@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grisburgh</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IM+Fell+English:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            room:    { bg: '#f5edd8', surface: '#efe3c5', elevated: '#e6d5ad', border: '#c4a87a', 'border-light': '#d4bc92' },
+            ink:     { bright: '#2a1a08', medium: '#5a4030', dim: '#8a7050', faint: '#b09870' },
+            gold:    { DEFAULT: '#b8860b', dim: '#9a7008', glow: 'rgba(184,134,11,0.12)' },
+            seal:    { DEFAULT: '#8b2a2a', glow: 'rgba(139,42,42,0.15)' },
+            'blue-ink':  { DEFAULT: '#2a5a8a', glow: 'rgba(42,90,138,0.12)' },
+            'green-wax': { DEFAULT: '#2a6a3a', glow: 'rgba(42,106,58,0.12)' },
+            'purple-codex': { DEFAULT: '#5a3a7a', glow: 'rgba(90,58,122,0.12)' },
+            orange:  { DEFAULT: '#9a6a2a', glow: 'rgba(154,106,42,0.12)' },
+            parchment: { letter: '#f2e6c8', press: '#e8e2d8', map: '#e0d8c4', codex: '#1a1520', log: '#f5f0e5' },
+          },
+          fontFamily: {
+            cinzel:  ['Cinzel', 'serif'],
+            crimson: ['Crimson Text', 'Georgia', 'serif'],
+            fell:    ['IM Fell English', 'serif'],
+            mono:    ['JetBrains Mono', 'monospace'],
+          },
+          boxShadow: {
+            card: '0 2px 12px rgba(0,0,0,0.4)',
+            deep: '0 8px 32px rgba(0,0,0,0.6)',
+          },
+          animation: {
+            'modal-in': 'modalIn 0.25s ease',
+            'fade-in': 'fadeIn 0.2s ease',
+            'reveal-burst': 'revealBurst 0.6s ease',
+          },
+          keyframes: {
+            modalIn:  { from: { opacity: '0', transform: 'translateY(20px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+            fadeIn:   { from: { opacity: '0' }, to: { opacity: '1' } },
+            revealBurst: { '0%': { boxShadow: '0 0 0 0 rgba(212,168,67,0.6)' }, '100%': { boxShadow: '0 0 20px 10px rgba(212,168,67,0)' } },
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="stylesheet" href="/css/theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-room-bg text-ink-bright font-crimson min-h-screen">
+  <div class="app player-mode" id="app">
+    <!-- Header -->
+    <header class="px-6 pt-5 pb-4 bg-room-surface border-b-2 border-room-border">
+      <div class="flex items-center justify-between">
+      <div>
+        <h1 class="font-cinzel text-4xl font-black text-ink-bright tracking-wider leading-none">&#x2694; Grisburgh</h1>
+        <div class="mt-1.5 flex items-center gap-2">
+          <div class="h-px bg-gold-dim w-12"></div>
+          <p class="text-ink-medium text-sm font-fell italic">De Parel van het Oosten</p>
+          <div class="h-px bg-gold-dim w-12"></div>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="dm-login">
+          <button id="dm-login-btn" onclick="window.app.toggleLoginModal()"
+            class="px-3 py-1 text-xs font-mono border border-room-border rounded text-ink-dim hover:text-gold hover:border-gold-dim transition">DM</button>
+        </div>
+        <div id="dm-badge" class="hidden flex items-center gap-2 px-3 py-1 rounded bg-gold-glow border border-gold-dim">
+          <span class="text-gold text-xs font-cinzel font-semibold">Dungeon Master</span>
+          <button onclick="window.app.logout()" class="text-ink-dim hover:text-ink-bright text-lg leading-none">&times;</button>
+        </div>
+      </div>
+      </div>
+    </header>
+
+    <!-- Section tabs -->
+    <nav class="flex gap-1 px-6 pt-2 border-b border-room-border" id="section-tabs">
+      <button class="section-tab active" data-section="personages">&#x1F464; Personages</button>
+      <button class="section-tab" data-section="locaties">&#x1F3F0; Locaties</button>
+      <button class="section-tab" data-section="organisaties">&#x2694; Organisaties</button>
+      <button class="section-tab" data-section="voorwerpen">&#x1F3BA; Voorwerpen</button>
+      <button class="section-tab" data-section="documenten">&#x1F4DC; Documenten</button>
+      <button class="section-tab" data-section="logboek">&#x1F4D6; Logboek</button>
+    </nav>
+
+    <!-- Sections -->
+    <main class="flex-1 overflow-hidden">
+      <div class="section active" id="section-personages"></div>
+      <div class="section" id="section-locaties"></div>
+      <div class="section" id="section-organisaties"></div>
+      <div class="section" id="section-voorwerpen"></div>
+      <div class="section" id="section-documenten"></div>
+      <div class="section" id="section-logboek"></div>
+    </main>
+
+    <!-- FAB -->
+    <button id="fab" onclick="window.app.onFabClick()"
+      class="hidden fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gold text-room-bg text-2xl font-bold shadow-deep hover:scale-110 transition z-40">+</button>
+  </div>
+
+  <!-- Login modal -->
+  <div class="modal-overlay" id="login-overlay">
+    <div class="modal max-w-sm animate-modal-in">
+      <div class="modal-head">
+        <div class="font-cinzel text-lg text-gold font-bold">DM Login</div>
+        <button class="modal-close" onclick="window.app.closeLoginModal()">&times;</button>
+      </div>
+      <div class="p-5">
+        <input type="password" id="dm-password" placeholder="Wachtwoord..."
+          class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
+          onkeydown="if(event.key==='Enter')window.app.login()">
+        <div id="login-error" class="hidden text-seal text-sm mt-2">Verkeerd wachtwoord</div>
+        <button onclick="window.app.login()"
+          class="w-full mt-3 px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">Inloggen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail / Editor modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal animate-modal-in">
+      <div class="modal-head">
+        <div>
+          <div class="font-cinzel text-xl text-gold font-bold" id="m-title"></div>
+          <div class="text-ink-dim text-sm italic" id="m-sub"></div>
+        </div>
+        <button class="modal-close" onclick="window.app.closeModal()">&times;</button>
+      </div>
+      <div class="p-5 overflow-y-auto flex-1 min-h-0" id="m-body"></div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center">
+    <button onclick="window.app.closeLightbox()" class="absolute top-4 right-5 text-white/60 hover:text-white text-3xl z-10">&times;</button>
+    <img id="lb-img" class="max-w-[92vw] max-h-[92vh] object-contain rounded" src="">
+    <div id="lb-title" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/70 bg-black/50 px-4 py-1 rounded text-sm font-fell italic"></div>
+  </div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
