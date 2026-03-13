@@ -1,0 +1,19 @@
+{
+  "name": "grisburgh",
+  "version": "1.0.0",
+  "description": "Grisburgh D&D Campaign Manager",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test --test-concurrency=1 'tests/*.test.js'",
+    "test:watch": "node --test --watch --test-concurrency=1 'tests/*.test.js'",
+    "tunnel": "cloudflared tunnel --url http://localhost:3000"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "express-session": "^1.18.0",
+    "socket.io": "^4.7.0",
+    "multer": "^1.4.5-lts.1"
+  }
+}
