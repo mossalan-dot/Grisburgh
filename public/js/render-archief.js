@@ -20,9 +20,19 @@ let meta = null;
 const $ = (...a) => window.app.$(...a);
 const isDM = () => window.app.isDM();
 const esc = (...a) => window.app.esc(...a);
+const mdToHtml = (...a) => window.app.mdToHtml(...a);
 const openModal = (...a) => window.app.openModal(...a);
 const closeModal = (...a) => window.app.closeModal(...a);
 const openLightbox = (...a) => window.app.openLightbox(...a);
+
+function fmtToolbar(id) {
+  return `<div class="flex gap-1 mb-1">
+    <button type="button" title="Vet (Ctrl+B)" onclick="window._fmt('${id}','**')"
+      class="w-7 h-6 text-xs font-black border border-room-border rounded bg-room-bg hover:bg-room-elevated transition font-cinzel leading-none">B</button>
+    <button type="button" title="Cursief (Ctrl+I)" onclick="window._fmt('${id}','*')"
+      class="w-7 h-6 text-xs border border-room-border rounded bg-room-bg hover:bg-room-elevated transition font-fell italic leading-none">I</button>
+  </div>`;
+}
 
 export function initArchief() {}
 
@@ -35,6 +45,13 @@ export async function renderDocumenten() {
 
   const docs = filterDocs();
 
+  // Only build the toolbar on first render; subsequent calls just refresh the grid
+  const existingGrid = container.querySelector('.doc-grid');
+  if (existingGrid) {
+    _refreshDocGrid(docs, container);
+    return;
+  }
+
   container.innerHTML = `
     <!-- Search -->
     <div class="flex items-center gap-3 px-6 py-3 bg-room-surface/30">
@@ -43,19 +60,35 @@ export async function renderDocumenten() {
         <input type="text" class="search-input w-full pl-9 pr-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none"
           placeholder="Zoek document..." value="${esc(searchQuery)}" oninput="window._documentenSearch(this.value)">
       </div>
-      <span class="text-ink-faint text-xs font-mono">${docs.length} resultaten</span>
+      <span class="results-count text-ink-faint text-xs font-mono">${docs.length} resultaten</span>
     </div>
 
     <!-- Content -->
-    <div class="flex-1 overflow-y-auto p-6" id="archief-content">
-      ${renderDocGrid(docs)}
+    <div class="flex-1 overflow-y-auto p-6">
+      <div class="doc-grid grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4"></div>
     </div>
   `;
 
+  _refreshDocGrid(docs, container);
+
   window._documentenSearch = (q) => {
     searchQuery = q;
-    renderDocumenten();
+    const filtered = filterDocs();
+    _refreshDocGrid(filtered, container);
   };
+}
+
+function _refreshDocGrid(docs, container) {
+  const grid = container.querySelector('.doc-grid');
+  if (!grid) return;
+  grid.innerHTML = docs.length === 0
+    ? `<div class="col-span-full text-center py-16 text-ink-faint">
+        <div class="text-4xl mb-3">\ud83d\udcdc</div>
+        <div class="font-fell italic">Geen documenten gevonden</div>
+       </div>`
+    : docs.map(d => renderDocCard(d)).join('');
+  const countEl = container.querySelector('.results-count');
+  if (countEl) countEl.textContent = `${docs.length} resultaten`;
 }
 
 export async function renderLogboek() {
@@ -65,7 +98,8 @@ export async function renderLogboek() {
     meta = window.app.state.meta;
   } catch { /* empty */ }
 
-  const entries = archiefData.sessieLog || [];
+  const allEntries = archiefData.sessieLog || [];
+  const entries = isDM() ? allEntries : allEntries.filter(e => e.visible);
   const hk = meta?.hoofdstukken || {};
 
   // Group by chapter
@@ -110,16 +144,22 @@ export async function renderLogboek() {
 function renderSessieEntry(e) {
   const nieuw = e.nieuw || [];
   const terugkerend = e.terugkerend || [];
+  const docs = e.docs || [];
+  const hasChips = nieuw.length || terugkerend.length || docs.length;
   return `
-    <div class="bg-room-surface border border-room-border rounded-lg p-5 relative group">
+    <div class="bg-room-surface border border-room-border rounded-lg p-5 relative group ${!e.visible && isDM() ? 'opacity-50' : ''}">
       ${isDM() ? `
-        <button class="dm-only absolute top-3 right-3 px-2 py-1 text-xs rounded bg-room-elevated border border-room-border text-ink-dim hover:text-gold hover:border-gold-dim transition"
-          onclick="window._openSessieEditor('${e.id}')">&#x270f; Bewerken</button>
+        <div class="dm-only absolute top-3 right-3 flex gap-1">
+          <button class="px-2 py-1 text-xs rounded border transition ${e.visible ? 'bg-green-wax/20 border-green-wax/40 text-green-wax' : 'bg-room-elevated border-room-border text-ink-dim'}"
+            onclick="window._toggleSessieVis('${e.id}', ${!!e.visible})">\ud83d\udc41</button>
+          <button class="px-2 py-1 text-xs rounded bg-room-elevated border border-room-border text-ink-dim hover:text-gold hover:border-gold-dim transition"
+            onclick="window._openSessieEditor('${e.id}')">&#x270f;</button>
+        </div>
       ` : ''}
       ${e.datum ? `<div class="text-xs font-mono text-ink-faint mb-2">${esc(e.datum)}</div>` : ''}
       ${e.korteSamenvatting ? `<div class="font-cinzel font-semibold text-ink-bright text-base mb-2">${esc(e.korteSamenvatting)}</div>` : ''}
-      ${e.samenvatting ? `<p class="text-sm text-ink-medium whitespace-pre-wrap mb-3 font-crimson">${esc(e.samenvatting)}</p>` : ''}
-      ${nieuw.length || terugkerend.length ? `
+      ${e.samenvatting ? `<p class="text-sm text-ink-medium mb-3 font-crimson">${mdToHtml(e.samenvatting)}</p>` : ''}
+      ${hasChips ? `
         <div class="flex flex-col gap-2 mt-3 pt-3 border-t border-room-border/60">
           ${nieuw.length ? `
             <div class="flex flex-wrap items-center gap-1.5">
@@ -133,6 +173,16 @@ function renderSessieEntry(e) {
               ${terugkerend.map(n => `<span class="px-2 py-0.5 text-xs rounded-full bg-blue-ink/10 border border-blue-ink/30 text-[#7ab0d4] font-crimson">${esc(n)}</span>`).join('')}
             </div>
           ` : ''}
+          ${docs.length ? `
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-xs font-cinzel text-purple-codex font-bold uppercase tracking-wider mr-1">\ud83d\udcdc</span>
+              ${docs.map(n => {
+                const docObj = (archiefData.documents || []).find(d => d.name === n);
+                const onclick = docObj ? `onclick="window._openDoc('${docObj.id}')"` : '';
+                return `<span class="px-2 py-0.5 text-xs rounded-full bg-purple-codex/15 border border-purple-codex/35 text-purple-codex font-crimson ${docObj ? 'cursor-pointer hover:bg-purple-codex/25 transition' : ''}" ${onclick}>${esc(n)}</span>`;
+              }).join('')}
+            </div>
+          ` : ''}
         </div>
       ` : ''}
     </div>
@@ -143,8 +193,14 @@ export function openLogboekEditor(editId) {
   window._openSessieEditor(editId);
 }
 
-let logEditorTags = { nieuw: [], terugkerend: [] };
+window._toggleSessieVis = async (id, currentVisible) => {
+  await api.updateSessieLog(id, { visible: !currentVisible });
+  renderLogboek();
+};
+
+let logEditorTags = { nieuw: [], terugkerend: [], docs: [] };
 let logAllNames = [];
+let logAllDocNames = [];
 
 window._openSessieEditor = async (editId) => {
   const hk = meta?.hoofdstukken || {};
@@ -165,9 +221,13 @@ window._openSessieEditor = async (editId) => {
     ])].sort();
   } catch { /* ignore */ }
 
+  // Document names for autocomplete
+  logAllDocNames = (archiefData.documents || []).map(d => d.name).sort();
+
   logEditorTags = {
     nieuw: e?.nieuw?.slice() || [],
     terugkerend: e?.terugkerend?.slice() || [],
+    docs: e?.docs?.slice() || [],
   };
 
   const body = `<form id="sessie-form" class="space-y-4">
@@ -195,11 +255,16 @@ window._openSessieEditor = async (editId) => {
     </div>
     <div>
       <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Uitgebreide samenvatting</label>
-      <textarea name="samenvatting" rows="5"
-        class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none">${esc(e?.samenvatting || '')}</textarea>
+      <div class="mt-1">
+        ${fmtToolbar('ta_samenvatting')}
+        <textarea id="ta_samenvatting" name="samenvatting" rows="5"
+          onkeydown="window._fmtKey(event)"
+          class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none">${esc(e?.samenvatting || '')}</textarea>
+      </div>
     </div>
     ${renderLogTagEditor('nieuw', '\u2728 Nieuwe entities', 'bg-gold/10 border-gold/30 text-gold')}
     ${renderLogTagEditor('terugkerend', '\ud83d\udd04 Terugkerende entities', 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]')}
+    ${renderLogTagEditor('docs', '\ud83d\udcdc Documenten', 'bg-purple-codex/15 border-purple-codex/35 text-purple-codex')}
     <div class="flex gap-2 pt-2">
       <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">\ud83d\udcbe Opslaan</button>
       ${editId ? `<button type="button" onclick="window._deleteSessie('${editId}')" class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition">\ud83d\uddd1 Verwijderen</button>` : ''}
@@ -219,6 +284,7 @@ window._openSessieEditor = async (editId) => {
       samenvatting: form.get('samenvatting'),
       nieuw: logEditorTags.nieuw,
       terugkerend: logEditorTags.terugkerend,
+      docs: logEditorTags.docs,
     };
     try {
       if (editId) await api.updateSessieLog(editId, payload);
@@ -258,6 +324,7 @@ function renderLogTagEditor(field, label, chipCls) {
 const LOG_CHIP_CLS = {
   nieuw: 'bg-gold/10 border-gold/30 text-gold',
   terugkerend: 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]',
+  docs: 'bg-purple-codex/15 border-purple-codex/35 text-purple-codex',
 };
 
 window._addLogTag = (field, name) => {
@@ -279,7 +346,8 @@ window._showLogSuggestions = (field) => {
   const input = document.getElementById(`log-tag-input-${field}`);
   const list = document.getElementById(`log-tag-suggestions-${field}`);
   const q = input.value.trim().toLowerCase();
-  const names = logAllNames.filter(n =>
+  const pool = field === 'docs' ? logAllDocNames : logAllNames;
+  const names = pool.filter(n =>
     !logEditorTags[field].includes(n) && (!q || n.toLowerCase().includes(q))
   );
   if (names.length === 0) { list.classList.remove('open'); return; }
@@ -345,43 +413,42 @@ function renderDocCard(d) {
   const hoofdstuk = meta?.hoofdstukken?.[d.hoofdstuk];
   const chapterLabel = hoofdstuk ? hoofdstuk.short : '';
   const hiddenLinks = archiefData.hiddenLinks?.[d.id] || {};
-
-  // Filter chips for hidden links
   const npcs = (d.npcs || []).filter(n => !(hiddenLinks.npcs || []).includes(n));
   const locs = (d.locs || []).filter(n => !(hiddenLinks.locs || []).includes(n));
-
   const isBlurred = !isDM() && state === 'blurred';
+  const metaText = [d.type, chapterLabel].filter(Boolean).join(' \u00b7 ');
+  const chips = [
+    ...npcs.slice(0, 2).map(n => `<span class="chip chip-npc">\ud83d\udc64 ${esc(n)}</span>`),
+    ...locs.slice(0, 2).map(n => `<span class="chip chip-loc">\ud83c\udff0 ${esc(n)}</span>`),
+  ];
 
   return `
-    <div class="border rounded-lg cursor-pointer hover:-translate-y-0.5 hover:shadow-deep transition relative cat-${d.cat || 'brieven'} ${isDM() && state !== 'revealed' ? 'state-' + state : ''}"
+    <div class="entity-card${isDM() && state !== 'revealed' ? ' card-hidden' : ''}"
       onclick="window._openDoc('${d.id}')">
       ${isDM() ? `
-        <div class="dm-only absolute top-2 right-2 z-10 flex gap-0.5 bg-black/80 rounded p-0.5">
+        <div class="dm-only absolute top-7 right-2 z-10 flex gap-0.5 bg-black/60 backdrop-blur-sm rounded p-0.5">
           ${['hidden','blurred','revealed'].map(s => `
             <button class="text-[11px] px-1.5 py-0.5 rounded transition ${state === s ? 'bg-gold-dim text-black' : 'text-ink-dim hover:bg-room-border'}"
               onclick="event.stopPropagation();window._setDocState('${d.id}','${s}')"
-              title="${s}">${s === 'hidden' ? '\ud83d\udd12' : s === 'blurred' ? '\ud83d\udc41\u200d\ud83d\udde8' : '\u2728'}</button>
+              title="${s}">${s === 'hidden' ? '\ud83d\udd12' : s === 'blurred' ? '\ud83d\udc41' : '\u2728'}</button>
           `).join('')}
         </div>
       ` : ''}
-      <img class="w-full h-32 object-cover rounded-t-lg ${isBlurred ? 'blur-lg select-none' : ''}" src="${api.fileUrl(d.id)}"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-      <div class="h-1 rounded-t-lg" style="display:none"></div>
-      <div class="doc-card-body p-4">
-        <div class="flex items-start gap-3 mb-2">
-          <div class="text-2xl">${d.icon || '\ud83d\udcdc'}</div>
-          <div class="min-w-0">
-            <div class="font-cinzel font-bold truncate">${esc(d.name)}</div>
-            <div class="text-xs opacity-60">${esc(d.type)}${chapterLabel ? ' \u00b7 ' + esc(chapterLabel) : ''}</div>
+      <div class="card-accent bar-documenten"></div>
+      <img class="card-img w-full object-cover${isBlurred ? ' blur-lg select-none pointer-events-none' : ''}"
+        src="${api.fileUrl(d.id)}" onerror="this.style.display='none'">
+      <div class="card-body px-4 pt-3 pb-3">
+        <div class="flex items-start gap-2.5 mb-2">
+          <div class="card-icon">${d.icon || '\ud83d\udcdc'}</div>
+          <div class="min-w-0 flex-1">
+            <div class="font-cinzel font-bold text-ink-bright text-sm leading-tight truncate">${esc(d.name)}</div>
+            ${metaText ? `<div class="text-[11px] text-ink-dim italic mt-0.5">${esc(metaText)}</div>` : ''}
           </div>
         </div>
         ${isBlurred
-          ? `<p class="text-sm opacity-50 italic">Dit document is nog niet volledig onthuld</p>`
-          : `${d.desc ? `<p class="text-sm opacity-80 line-clamp-2 mb-2">${esc(d.desc)}</p>` : ''}
-             <div class="flex flex-wrap gap-1">
-               ${npcs.slice(0,2).map(n => `<span class="chip chip-npc">\ud83d\udc64 ${esc(n)}</span>`).join('')}
-               ${locs.slice(0,2).map(n => `<span class="chip chip-loc">\ud83c\udff0 ${esc(n)}</span>`).join('')}
-             </div>`
+          ? `<p class="text-xs text-ink-faint italic font-crimson">Nog niet volledig onthuld\u2026</p>`
+          : `${d.desc ? `<p class="text-xs text-ink-medium line-clamp-2 mb-2 font-crimson leading-relaxed">${esc(d.desc)}</p>` : ''}
+             ${chips.length ? `<div class="flex flex-wrap gap-1">${chips.join('')}</div>` : ''}`
         }
       </div>
     </div>
@@ -403,7 +470,7 @@ window._openDoc = async (id) => {
 
   // Description
   if (d.desc) {
-    body += `<p class="text-sm mb-4 ${isBlurred ? 'blur-sm select-none' : ''}">${esc(d.desc)}</p>`;
+    body += `<p class="text-sm mb-4 font-crimson ${isBlurred ? 'blur-sm select-none' : ''}">${mdToHtml(d.desc)}</p>`;
   }
 
   // File (image or PDF) — detect type first, render after modal is open
@@ -475,6 +542,11 @@ window._openDoc = async (id) => {
           <button class="px-3 py-1 text-sm rounded bg-gold-dim text-room-bg font-semibold ml-auto"
             onclick="window._openArchiefEditor('${d.id}')">
             \u270f Bewerken
+          </button>
+          <button class="w-8 h-8 flex items-center justify-center rounded bg-seal/20 text-seal hover:bg-seal/40 transition"
+            title="Verwijderen"
+            onclick="window._deleteDoc('${d.id}')">
+            \ud83d\uddd1
           </button>
         </div>
       </div>
@@ -663,8 +735,12 @@ window._openArchiefEditor = async (editId) => {
     </div>
     <div>
       <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Beschrijving</label>
-      <textarea name="desc" rows="4"
-        class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(d?.desc || '')}</textarea>
+      <div class="mt-1">
+        ${fmtToolbar('ta_desc')}
+        <textarea id="ta_desc" name="desc" rows="4"
+          onkeydown="window._fmtKey(event)"
+          class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(d?.desc || '')}</textarea>
+      </div>
     </div>
     <div>
       <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Bestand</label>

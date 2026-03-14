@@ -186,7 +186,9 @@ router.get('/archief', attachRole, (req, res) => {
   res.json({
     documents: docs,
     logEntries: archief.logEntries,
-    sessieLog: archief.sessieLog || [],
+    sessieLog: req.role === 'dm'
+      ? archief.sessieLog || []
+      : (archief.sessieLog || []).filter(e => e.visible),
     hiddenLinks: req.role === 'dm' ? archief.hiddenLinks : {},
     tekstContent: req.role === 'dm'
       ? archief.tekstContent

@@ -27,8 +27,14 @@ app.use(session({
   cookie: { httpOnly: true, sameSite: 'lax' },
 }));
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Static files — no caching during development
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false,
+  lastModified: false,
+  setHeaders(res) {
+    res.setHeader('Cache-Control', 'no-store');
+  },
+}));
 
 // Routes
 app.use('/api/auth', authRouter);

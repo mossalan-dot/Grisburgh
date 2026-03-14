@@ -4,7 +4,7 @@ const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 const TYPE_META = {
   personages:    { icon: '\ud83d\udc64', label: 'Personages', color: 'green-wax', chip: 'chip-npc' },
   locaties:      { icon: '\ud83c\udff0', label: 'Locaties', color: 'blue-ink', chip: 'chip-loc' },
-  organisaties:  { icon: '\u2694', label: 'Organisaties', color: 'seal', chip: 'chip-org' },
+  organisaties:  { icon: '\u2694\ufe0f', label: 'Organisaties', color: 'seal', chip: 'chip-org' },
   voorwerpen:    { icon: '\ud83c\udf92', label: 'Voorwerpen', color: 'orange', chip: 'chip-item' },
 };
 
@@ -14,7 +14,10 @@ const SCHEMA = {
     fields: [
       { key: 'rol', label: 'Rol', type: 'text' },
       { key: 'ras', label: 'Ras', type: 'text' },
+      { key: 'klasse', label: 'Klasse', type: 'text' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
+      { key: 'persoonlijkheid', label: 'Persoonlijkheid', type: 'textarea', dmOnly: true },
+      { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
       { key: 'geheim', label: 'Geheim (DM)', type: 'textarea' },
     ],
   },
@@ -24,6 +27,7 @@ const SCHEMA = {
       { key: 'wijk', label: 'Wijk', type: 'text' },
       { key: 'eigenaar', label: 'Eigenaar', type: 'text' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
+      { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
     ],
   },
   organisaties: {
@@ -31,6 +35,7 @@ const SCHEMA = {
       { key: 'orgType', label: 'Type', type: 'select', options: ['Gilde','Factie','Religieus','Politiek','Crimineel','Militair','Overig'] },
       { key: 'motto', label: 'Motto', type: 'text' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
+      { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
     ],
   },
   voorwerpen: {
@@ -39,6 +44,7 @@ const SCHEMA = {
       { key: 'rariteit', label: 'Rariteit', type: 'select', options: ['Gewoon','Ongewoon','Zeldzaam','Zeer zeldzaam','Legendarisch'] },
       { key: 'prijs', label: 'Prijs', type: 'text' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
+      { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
     ],
   },
 };
@@ -112,9 +118,20 @@ const $ = (...a) => window.app.$(...a);
 const $$ = (...a) => window.app.$$(...a);
 const isDM = () => window.app.isDM();
 const esc = (...a) => window.app.esc(...a);
+const mdToHtml = (...a) => window.app.mdToHtml(...a);
 const openModal = (...a) => window.app.openModal(...a);
 const closeModal = (...a) => window.app.closeModal(...a);
 const openLightbox = (...a) => window.app.openLightbox(...a);
+
+// Kleine B/I toolbar boven een textarea
+function fmtToolbar(id) {
+  return `<div class="flex gap-1 mb-1">
+    <button type="button" title="Vet (Ctrl+B)" onclick="window._fmt('${id}','**')"
+      class="w-7 h-6 text-xs font-black border border-room-border rounded bg-room-bg hover:bg-room-elevated transition font-cinzel leading-none">B</button>
+    <button type="button" title="Cursief (Ctrl+I)" onclick="window._fmt('${id}','*')"
+      class="w-7 h-6 text-xs border border-room-border rounded bg-room-bg hover:bg-room-elevated transition font-fell italic leading-none">I</button>
+  </div>`;
+}
 
 export function initCampagne() {}
 
@@ -129,6 +146,13 @@ async function renderEntitySection(type) {
 
   const list = filterEntities(type, entities[type] || []);
 
+  // Only build the full toolbar+grid on first render; on subsequent calls just refresh the grid
+  const existingGrid = container.querySelector('.cards-grid');
+  if (existingGrid) {
+    _refreshGrid(type, list, container);
+    return;
+  }
+
   container.innerHTML = `
     <!-- Toolbar -->
     <div class="flex items-center gap-3 px-6 py-3 bg-room-surface/30">
@@ -137,24 +161,37 @@ async function renderEntitySection(type) {
         <input type="text" class="search-input w-full pl-9 pr-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none"
           placeholder="Zoek..." value="${esc(searchQueries[type])}" oninput="window._entitySearch('${type}',this.value)">
       </div>
-      <span class="text-ink-faint text-xs font-mono">${list.length} resultaten</span>
+      <span class="results-count text-ink-faint text-xs font-mono">${list.length} resultaten</span>
     </div>
 
     <!-- Card grid -->
-    <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-6 overflow-y-auto flex-1">
-      ${list.length === 0 ? `
-        <div class="col-span-full text-center py-16 text-ink-faint">
-          <div class="text-4xl mb-3">${TYPE_META[type].icon}</div>
-          <div class="font-fell italic">Geen ${TYPE_META[type].label.toLowerCase()} gevonden</div>
-        </div>
-      ` : list.map(e => renderCard(type, e)).join('')}
+    <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-6 overflow-y-auto flex-1">
     </div>
   `;
 
+  _refreshGrid(type, list, container);
+
   window._entitySearch = (t, q) => {
     searchQueries[t] = q;
-    renderEntitySection(t);
+    const filtered = filterEntities(t, entities[t] || []);
+    const c = $(`#section-${t}`);
+    _refreshGrid(t, filtered, c);
+    const countEl = c.querySelector('.results-count');
+    if (countEl) countEl.textContent = `${filtered.length} resultaten`;
   };
+}
+
+function _refreshGrid(type, list, container) {
+  const grid = container.querySelector('.cards-grid');
+  if (!grid) return;
+  grid.innerHTML = list.length === 0 ? `
+    <div class="col-span-full text-center py-16 text-ink-faint">
+      <div class="text-4xl mb-3">${TYPE_META[type].icon}</div>
+      <div class="font-fell italic">Geen ${TYPE_META[type].label.toLowerCase()} gevonden</div>
+    </div>
+  ` : list.map(e => renderCard(type, e)).join('');
+  const countEl = container.querySelector('.results-count');
+  if (countEl) countEl.textContent = `${list.length} resultaten`;
 }
 
 export async function renderPersonages() { return renderEntitySection('personages'); }
@@ -174,43 +211,58 @@ function filterEntities(type, list) {
 }
 
 function renderCard(type, e) {
-  const meta = TYPE_META[type];
   const vis = e._visibility || 'visible';
-  const metaText = [e.subtype, e.data?.rol, e.data?.locType, e.data?.orgType, e.data?.itemType, e.data?.ras].filter(Boolean).join(' \u00b7 ');
+  const rol     = e.data?.rol || '';
+  const metaText = [e.data?.locType, e.data?.orgType, e.data?.itemType, e.data?.ras, e.data?.klasse].filter(Boolean).join(' \u00b7 ');
   const desc = e.data?.desc || '';
+  const flavour = e.data?.flavour || '';
 
   const chips = [];
   if (e.links) {
-    (e.links.personages || []).slice(0, 2).forEach(n => chips.push(`<span class="chip chip-npc">\ud83d\udc64 ${esc(n)}</span>`));
-    (e.links.locaties || []).slice(0, 2).forEach(n => chips.push(`<span class="chip chip-loc">\ud83c\udff0 ${esc(n)}</span>`));
-    (e.links.organisaties || []).slice(0, 1).forEach(n => chips.push(`<span class="chip chip-org">\u2694 ${esc(n)}</span>`));
+    (e.links.personages || []).slice(0, 2).forEach(n => chips.push(`<span class="chip chip-npc" onclick="event.stopPropagation();window._navigateTo('personages','${esc(n)}')">\ud83d\udc64 ${esc(n)}</span>`));
+    (e.links.locaties || []).slice(0, 2).forEach(n => chips.push(`<span class="chip chip-loc" onclick="event.stopPropagation();window._navigateTo('locaties','${esc(n)}')">\ud83c\udff0 ${esc(n)}</span>`));
+    (e.links.organisaties || []).slice(0, 1).forEach(n => chips.push(`<span class="chip chip-org" onclick="event.stopPropagation();window._navigateTo('organisaties','${esc(n)}')">\u2694 ${esc(n)}</span>`));
   }
 
   return `
-    <div class="group bg-room-surface border border-room-border rounded-lg cursor-pointer hover:-translate-y-0.5 hover:shadow-deep hover:border-room-border-light transition relative
-      ${vis === 'hidden' && isDM() ? 'opacity-50 border-dashed' : ''}"
+    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}"
       onclick="window._openDetail('${type}','${e.id}')">
       ${isDM() ? `
-        <button class="dm-only absolute top-2 right-2 z-10 text-sm w-7 h-7 flex items-center justify-center rounded bg-black/60 hover:bg-black/80"
-          onclick="event.stopPropagation();window._toggleVis('${type}','${e.id}')"
-          title="${vis === 'visible' ? 'Verbergen' : 'Zichtbaar maken'}">
-          ${vis === 'visible' ? '\ud83d\udc41' : '\ud83d\udd12'}
-        </button>
+        <div class="dm-only absolute top-7 right-2 z-10 flex flex-col gap-1">
+          <button class="w-6 h-6 flex items-center justify-center rounded bg-black/40 hover:bg-black/65 backdrop-blur-sm transition text-xs"
+            onclick="event.stopPropagation();window._toggleVis('${type}','${e.id}')"
+            title="${vis === 'visible' ? 'Verbergen' : 'Zichtbaar maken'}">
+            ${vis === 'visible' ? '\ud83d\udc41' : '\ud83d\udd12'}
+          </button>
+          <button class="w-6 h-6 flex items-center justify-center rounded bg-black/40 hover:bg-black/65 backdrop-blur-sm transition text-xs"
+            onclick="event.stopPropagation();window._openEditor('${type}','${e.id}')"
+            title="Bewerken">&#9998;</button>
+          <button class="w-6 h-6 flex items-center justify-center rounded bg-black/40 hover:bg-seal/70 backdrop-blur-sm transition text-xs text-white"
+            onclick="event.stopPropagation();window._deleteEntity('${type}','${e.id}')"
+            title="Verwijderen">&#10005;</button>
+        </div>
       ` : ''}
-      <img class="w-full h-32 object-cover rounded-t-lg" src="${api.fileUrl(e.id)}"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-      <div class="h-1 bar-${type} rounded-t-lg" style="display:none"></div>
-      <div class="p-4">
-        <div class="flex items-start gap-3 mb-2">
-          <div class="text-2xl">${getAutoIcon(type, e)}</div>
-          <div class="min-w-0">
-            <div class="font-cinzel font-bold text-ink-bright truncate">${esc(e.name)}</div>
-            ${metaText ? `<div class="text-xs text-ink-dim italic">${esc(metaText)}</div>` : ''}
+      <div class="card-accent bar-${type}"></div>
+      <img class="card-img w-full object-cover" src="${api.fileUrl(e.id)}"
+        style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
+        onerror="this.style.display='none'">
+      <div class="card-body px-4 pt-3 pb-3">
+        <div class="flex items-start gap-2.5 mb-2">
+          <div class="card-icon">${getAutoIcon(type, e)}</div>
+          <div class="min-w-0 flex-1">
+            <div class="font-cinzel font-bold text-ink-bright text-sm leading-tight truncate">${esc(e.name)}</div>
+            ${rol      ? `<div class="text-[11px] text-ink-medium italic mt-0.5 truncate">${esc(rol)}</div>` : ''}
+            ${metaText ? `<div class="text-[11px] text-ink-dim mt-0.5 truncate">${esc(metaText)}</div>` : ''}
           </div>
         </div>
-        ${desc ? `<p class="text-sm text-ink-medium line-clamp-3 mb-2">${esc(desc)}</p>` : ''}
+        ${desc ? `<p class="text-xs text-ink-medium line-clamp-2 mb-2 font-crimson leading-relaxed">${mdToHtml(desc)}</p>` : ''}
         ${chips.length ? `<div class="flex flex-wrap gap-1">${chips.join('')}</div>` : ''}
       </div>
+      ${flavour ? `
+        <div class="flavour-preview">
+          <span class="flavour-preview-text">\u201e${esc(flavour.length > 90 ? flavour.slice(0, 90) + '\u2026' : flavour)}\u201c</span>
+        </div>
+      ` : ''}
     </div>
   `;
 }
@@ -229,10 +281,11 @@ window._openDetail = async (tab, id) => {
   // ── Tab: Info ──
   let infoHtml = '';
 
-  // Image (visible to all)
+  // Image — portrait frame (visible to all)
   infoHtml += `
-    <div class="mb-3" id="detail-img-wrap-${e.id}">
-      <img src="${fileUrl}" class="w-full max-h-72 object-contain rounded cursor-pointer"
+    <div class="mb-4" id="detail-img-wrap-${e.id}">
+      <img src="${fileUrl}" class="detail-portrait w-full max-h-80 object-cover cursor-pointer"
+        style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
         onclick="window.app.openLightbox('${fileUrl}','${esc(e.name)}')"
         onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
     </div>
@@ -251,15 +304,47 @@ window._openDetail = async (tab, id) => {
     `;
   }
 
-  // Schema fields (excl. geheim)
+  // Schema fields (excl. geheim + dmOnly + flavour — rendered separately)
   for (const field of (schema.fields || [])) {
     if (field.key === 'geheim') continue;
+    if (field.key === 'flavour') continue;
+    if (field.key === 'rol') continue;
+    if (field.dmOnly) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
+    if (field.key === 'desc') {
+      infoHtml += `<div class="detail-desc mb-4">${mdToHtml(val)}</div>`;
+    } else {
+      infoHtml += `
+        <div class="detail-field mb-3">
+          <div class="detail-field-label">${esc(field.label)}</div>
+          <div class="detail-field-value">${field.type === 'textarea' ? mdToHtml(val) : esc(val)}</div>
+        </div>
+      `;
+    }
+  }
+
+  // Persoonlijkheid (DM only)
+  const persVal = e.data?.persoonlijkheid;
+  if (persVal && isDM()) {
     infoHtml += `
-      <div class="mb-3">
-        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">${esc(field.label)}</div>
-        <div class="text-sm whitespace-pre-wrap">${esc(val)}</div>
+      <div class="dm-only mb-4">
+        <div class="detail-field-label">\ud83c\udfad Persoonlijkheid</div>
+        <div class="detail-dm-block">${mdToHtml(persVal)}</div>
+      </div>
+    `;
+  }
+
+  // Flavour scroll (parchment scroll — visible to all)
+  const flavourVal = e.data?.flavour;
+  if (flavourVal) {
+    infoHtml += `
+      <div class="flavour-scroll">
+        <div class="flavour-scroll-rod"></div>
+        <div class="flavour-scroll-content">
+          <p class="flavour-text">\u201e${esc(flavourVal)}\u201c</p>
+        </div>
+        <div class="flavour-scroll-rod"></div>
       </div>
     `;
   }
@@ -268,9 +353,9 @@ window._openDetail = async (tab, id) => {
   const geheimVal = e.data?.geheim;
   if (geheimVal && (isDM() || e._secretReveal)) {
     infoHtml += `
-      <div class="mb-3 p-3 bg-seal/10 border border-seal/30 rounded">
-        <div class="text-xs font-cinzel text-seal font-bold uppercase tracking-wider mb-1">\ud83d\udd12 Geheim</div>
-        <div class="text-sm whitespace-pre-wrap">${esc(geheimVal)}</div>
+      <div class="mb-4">
+        <div class="detail-field-label detail-field-label--secret">\ud83d\udd12 Geheim</div>
+        <div class="detail-dm-block detail-dm-block--secret">${mdToHtml(geheimVal)}</div>
       </div>
     `;
   }
@@ -375,7 +460,7 @@ window._openDetail = async (tab, id) => {
     <div id="dtab-verbindingen" class="hidden">${verbHtml}</div>
   `;
 
-  openModal(e.name, [e.subtype, meta.label].filter(Boolean).join(' \u2014 '), body);
+  openModal(e.name, e.data?.rol || meta.label, body);
 
   // Tab switching
   const allTabKeys = detailTabs.map(t => t.key);
@@ -427,6 +512,34 @@ window._toggleSecret = async (tab, id) => {
   window._openDetail(tab, id);
 };
 
+// ── Focal point picker ──
+let _fpDragging = false;
+
+window._fpDown = (ev) => {
+  _fpDragging = true;
+  _fpApply(ev);
+};
+window._fpMove = (ev) => {
+  if (!_fpDragging) return;
+  _fpApply(ev);
+};
+document.addEventListener('mouseup', () => { _fpDragging = false; });
+
+function _fpApply(ev) {
+  const wrap = document.getElementById('fp-wrap');
+  if (!wrap) return;
+  const rect = wrap.getBoundingClientRect();
+  const x = Math.max(0, Math.min(100, Math.round((ev.clientX - rect.left) / rect.width  * 100)));
+  const y = Math.max(0, Math.min(100, Math.round((ev.clientY - rect.top)  / rect.height * 100)));
+  const val = `${x}% ${y}%`;
+  const input = document.getElementById('fp-input');
+  if (input) input.value = val;
+  const img = document.getElementById('editor-img-preview');
+  if (img) img.style.objectPosition = val;
+  const ch = document.getElementById('fp-crosshair');
+  if (ch) { ch.style.left = x + '%'; ch.style.top = y + '%'; }
+}
+
 // ── File upload ──
 window._editorFileSelected = (file) => {
   if (!file) return;
@@ -444,11 +557,23 @@ window._uploadFile = async (tab, id, file) => {
 };
 
 // ── Navigate to linked entity ──
-window._navigateTo = (tab, name) => {
+window._navigateTo = async (tab, name) => {
   if (!ENTITY_TYPES.includes(tab)) return;
-  searchQueries[tab] = name;
   closeModal();
   window.app.switchSection(tab);
+  try {
+    const entities = await api.listEntities(tab);
+    const entity = entities.find(e => e.name === name);
+    if (entity) {
+      window._openDetail(tab, entity.id);
+    } else {
+      searchQueries[tab] = name;
+      renderEntitySection(tab);
+    }
+  } catch {
+    searchQueries[tab] = name;
+    renderEntitySection(tab);
+  }
 };
 
 // ── Editor ──
@@ -483,14 +608,34 @@ window._openEditor = async (tab, editId) => {
     </div>
   `;
 
-  // Image upload
+  // Image upload + focal point picker
   {
     const fileUrl = editId ? api.fileUrl(editId) : null;
+    const focusVal = e?.data?.imgFocus || '50% 50%';
+    const [fx, fy] = (focusVal.match(/(\d+)%\s*(\d+)%/) || [null,'50','50']).slice(1).map(Number);
     body += `
       <div>
         <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Afbeelding</label>
         <div class="mt-1">
-          ${fileUrl ? `<img id="editor-img-${editId}" src="${fileUrl}" class="w-full max-h-48 object-contain rounded mb-2" onerror="this.style.display='none'">` : ''}
+          ${fileUrl ? `
+            <div id="fp-wrap" class="relative rounded overflow-hidden mb-1 select-none"
+              style="height:140px;cursor:crosshair"
+              onmousedown="window._fpDown(event)"
+              onmousemove="window._fpMove(event)">
+              <img id="editor-img-preview" src="${fileUrl}"
+                class="w-full h-full object-cover pointer-events-none"
+                style="object-position:${focusVal}"
+                onerror="this.parentElement.style.display='none'">
+              <div id="fp-crosshair" class="absolute pointer-events-none"
+                style="left:${fx}%;top:${fy}%;transform:translate(-50%,-50%)">
+                <div style="width:22px;height:22px;border-radius:50%;
+                  border:2px solid #fff;
+                  box-shadow:0 0 0 1.5px rgba(0,0,0,0.55),inset 0 0 0 1.5px rgba(0,0,0,0.3)"></div>
+              </div>
+            </div>
+            <p class="text-[10px] text-ink-dim mb-2">Klik of sleep om het focuspunt in te stellen</p>
+            <input type="hidden" name="data_imgFocus" id="fp-input" value="${focusVal}">
+          ` : ''}
           <div class="upload-zone" onclick="document.getElementById('editor-file-input').click()">
             \ud83d\udcf7 Afbeelding of PDF uploaden (max 10MB)
           </div>
@@ -519,13 +664,18 @@ window._openEditor = async (tab, editId) => {
   // Schema fields
   for (const field of schema.fields) {
     const val = e?.data?.[field.key] || '';
-    if (field.key === 'geheim' && !isDM()) continue;
+    if ((field.key === 'geheim' || field.dmOnly) && !isDM()) continue;
     if (field.type === 'textarea') {
+      const taId = `ta_${field.key}`;
       body += `
         <div>
           <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
-          <textarea name="data_${field.key}" rows="4"
-            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(val)}</textarea>
+          <div class="mt-1">
+            ${fmtToolbar(taId)}
+            <textarea id="${taId}" name="data_${field.key}" rows="4"
+              onkeydown="window._fmtKey(event)"
+              class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(val)}</textarea>
+          </div>
         </div>
       `;
     } else if (field.type === 'select') {
@@ -720,6 +870,6 @@ function refreshTags(lt) {
 window._deleteEntity = async (tab, id) => {
   if (!confirm('Weet je zeker dat je dit wilt verwijderen?')) return;
   await api.deleteEntity(tab, id);
-  closeModal();
+  window.app.closeModal();
   renderEntitySection(tab);
 };

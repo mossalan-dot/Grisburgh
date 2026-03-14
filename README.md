@@ -18,19 +18,38 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 | **Organisaties** | Gildes, facties, criminelen, etc. |
 | **Voorwerpen** | Wapens, toveritems, drankjes, etc. |
 | **Documenten** | Brieven, kaarten, codex, etc. met 3-state onthulling: verborgen → wazig → onthuld |
-| **Logboek** | Sessiesamenvattingen per hoofdstuk met nieuwe en terugkerende entities |
+| **Logboek** | Sessiesamenvattingen per hoofdstuk met nieuwe, terugkerende entities én documentlinks |
 
 ### DM-features
 
-- Zichtbaarheid togglen per entity/document
+- Zichtbaarheid togglen per entity/document (👁 / 🔒) via knoppen op elke kaart
+- Bewerken en verwijderen direct via kaart-knoppen (✏ / ✕)
 - Geheime velden die apart onthuld kunnen worden
-- Character stats (AC, HP, abilities) — alleen zichtbaar voor DM
+- Character stats (AC, HP, Speed, ability scores) — ingelezen uit Obsidian stat blocks, alleen zichtbaar voor DM
 - DM-notities per entity (alleen voor DM)
 - Afbeelding en PDF upload (max 10MB) met inline PDF viewer
+- Focuspunt instellen per afbeelding (klikken in de afbeelding bepaalt het bijsnijdpunt)
 - Perkament-tekst editor voor archief-documenten
 - Verborgen connecties (selectief links verbergen op documenten)
 - Autocomplete bij het linken van entities
-- Sessielogboek met nieuwe (✨) en terugkerende (🔄) entities per sessie
+- Sessielogboek met nieuwe (✨), terugkerende (🔄) entities en gekoppelde documenten (📜) per sessie
+- Documentchips in het logboek zijn klikbaar en openen het document direct
+
+### Kaartweergave
+
+- Rol van een personage wordt direct onder de naam getoond
+- Beschrijvingen renderen markdown (vet, cursief)
+- Partybalk toont alleen de voornaam van spelersfiguren
+- Kaartafbeeldingen tonen met focuspunt, portraits in detailmodal groter weergegeven
+
+## Importscripts
+
+| Script | Functie |
+|---|---|
+| `import-schaduwvin.js` | Importeert personages, locaties, organisaties en voorwerpen vanuit een Obsidian-vault |
+| `import-obsidian.js` | Importeert documenten (brieven, kaarten, krantenartikelen, etc.) vanuit de Obsidian-vault |
+
+De scripts lezen Markdown-bestanden en embedded media uit de vault en schrijven direct naar `data/archief.json` en `data/dm-state.json`.
 
 ## Installatie
 
@@ -99,6 +118,8 @@ public/
   css/
     theme.css          # Perkament-thema (scrollbar, chips, modals, etc.)
 data/                  # Persistent data (gitignored)
+import-schaduwvin.js   # Obsidian entity-import script
+import-obsidian.js     # Obsidian document-import script
 tests/                 # Automatische tests
 ```
 
