@@ -38,12 +38,14 @@
 
 /* Modal */
 .modal {
-  background: #f5edd8;
+  background: #f8f0de;
   border: 1px solid #c4a87a;
-  border-radius: 12px;
+  border-radius: 10px;
   width: 92%; max-width: 720px;
   max-height: 90vh;
-  box-shadow: 0 8px 32px rgba(60,40,10,0.25);
+  box-shadow:
+    0 12px 40px rgba(60,40,10,0.28),
+    inset 0 1px 0 rgba(255,255,255,0.35);
   display: flex;
   flex-direction: column;
 }
@@ -51,7 +53,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 16px 20px 14px;
+  background: linear-gradient(to bottom, rgba(230,213,173,0.6), transparent);
   border-bottom: 1px solid #c4a87a;
   flex-shrink: 0;
 }
@@ -69,6 +72,223 @@
 /* DM-only elements */
 .player-mode .dm-only { display: none !important; }
 
+/* ── Party portraits in header ── */
+.party-portrait {
+  width: 60px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+.party-portrait:hover { transform: translateY(-3px); }
+
+.party-portrait-img,
+.party-portrait-fallback {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px solid #c8a840;
+  box-shadow: 0 0 0 2px #efe3c5, 0 2px 6px rgba(60,40,10,0.22);
+  object-fit: cover;
+  display: block;
+  margin: 0 auto 5px;
+}
+.party-portrait-fallback {
+  background: #efe3c5;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+.party-portrait-name {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  color: #2a1a08;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.party-portrait-sub {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 9px;
+  color: #8a7050;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Entity cards — paper look ── */
+.entity-card {
+  background: #faf4e6;
+  border: 1px solid rgba(196,168,122,0.75);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  box-shadow:
+    0 1px 2px rgba(60,40,10,0.08),
+    0 3px 8px rgba(60,40,10,0.07),
+    inset 0 0 0 1px rgba(255,255,255,0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.entity-card:hover {
+  transform: translateY(-4px) rotate(0.25deg);
+  box-shadow:
+    0 5px 14px rgba(60,40,10,0.16),
+    0 10px 28px rgba(60,40,10,0.09),
+    inset 0 0 0 1px rgba(255,255,255,0.22);
+}
+.entity-card.card-hidden { opacity: 0.5; }
+
+.card-accent { height: 5px; }
+.card-img { max-height: 160px; display: block; }
+.card-icon { font-size: 1.2rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+
+/* Flavour preview on card */
+.flavour-preview {
+  border-top: 1px dashed rgba(196,168,122,0.45);
+  padding: 6px 16px 8px;
+  background: rgba(236,224,196,0.45);
+}
+.flavour-preview-text {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #6a4010;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Detail view — document/dossier styling ── */
+
+/* Portrait image with ornate frame */
+.detail-portrait {
+  display: block;
+  border-radius: 4px;
+  border: 2px solid #c8a840;
+  box-shadow:
+    0 0 0 5px #f5edd8,
+    0 0 0 6px rgba(200,168,64,0.45),
+    0 4px 16px rgba(60,40,10,0.22);
+}
+
+/* Field label — archival header style */
+.detail-field-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #9a7008;
+  margin-bottom: 4px;
+  padding-left: 12px;
+  position: relative;
+}
+.detail-field-label::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  background: #c8a840;
+  border-radius: 50%;
+}
+.detail-field-label--secret { color: #8b2a2a; }
+.detail-field-label--secret::before { background: #8b2a2a; }
+
+/* Field value — manuscript typography */
+.detail-field-value {
+  font-family: 'IM Fell English', serif;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #2a1a08;
+  white-space: pre-wrap;
+  padding-left: 12px;
+}
+
+/* Description — featured manuscript block */
+.detail-desc {
+  font-family: 'IM Fell English', serif;
+  font-size: 14.5px;
+  line-height: 1.85;
+  color: #2a1a08;
+  white-space: pre-wrap;
+  padding: 14px 18px;
+  background: rgba(240,228,196,0.5);
+  border-left: 3px solid #c8a840;
+  border-radius: 0 4px 4px 0;
+}
+
+/* DM-only highlighted block */
+.detail-dm-block {
+  font-family: 'IM Fell English', serif;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #2a1a08;
+  white-space: pre-wrap;
+  padding: 10px 14px;
+  background: rgba(184,134,11,0.06);
+  border: 1px solid rgba(184,134,11,0.2);
+  border-radius: 4px;
+}
+.detail-dm-block--secret {
+  background: rgba(139,42,42,0.06);
+  border-color: rgba(139,42,42,0.2);
+}
+
+/* ── Flavour parchment scroll (detail view) ── */
+.flavour-scroll { margin: 28px 0 12px; }
+.flavour-scroll-rod {
+  height: 10px;
+  background: linear-gradient(180deg, #b89840 0%, #e8d078 40%, #b89840 100%);
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(60,40,10,0.28), inset 0 1px 0 rgba(255,255,255,0.32);
+  position: relative;
+  z-index: 1;
+}
+.flavour-scroll-content {
+  background: linear-gradient(180deg, #f8f0d8 0%, #f3e8c4 50%, #f8f0d8 100%);
+  border-left: 1px solid #c8a840;
+  border-right: 1px solid #c8a840;
+  padding: 16px 24px;
+  position: relative;
+}
+.flavour-scroll-content::before,
+.flavour-scroll-content::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 18px;
+  pointer-events: none;
+}
+.flavour-scroll-content::before {
+  top: 0;
+  background: linear-gradient(to bottom, rgba(200,168,64,0.1), transparent);
+}
+.flavour-scroll-content::after {
+  bottom: 0;
+  background: linear-gradient(to top, rgba(200,168,64,0.1), transparent);
+}
+.flavour-text {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.85;
+  color: #3a2010;
+  text-align: center;
+  white-space: pre-wrap;
+}
+
 /* Entity type accent colors */
 .accent-personages { color: #2a6a3a; }
 .accent-locaties { color: #2a5a8a; }
@@ -76,10 +296,11 @@
 .accent-voorwerpen { color: #9a6a2a; }
 .accent-archief { color: #5a3a7a; }
 
-.bar-personages { background: #2a6a3a; }
-.bar-locaties { background: #2a5a8a; }
-.bar-organisaties { background: #8b2a2a; }
-.bar-voorwerpen { background: #9a6a2a; }
+.bar-personages  { background: #2a6a3a; }
+.bar-locaties    { background: #2a5a8a; }
+.bar-organisaties{ background: #8b2a2a; }
+.bar-voorwerpen  { background: #9a6a2a; }
+.bar-documenten  { background: #5a3a7a; }
 
 /* Chip base */
 .chip {
@@ -143,9 +364,7 @@
 .stat-mod { font-size: 12px; color: #5a4030; }
 
 /* Archief revelation states */
-.state-hidden { opacity: 0.35; border-style: dashed !important; }
-.state-hidden .doc-card-body { filter: saturate(0.3); }
-.state-blurred .doc-card-body { filter: blur(6px); user-select: none; pointer-events: none; }
+/* Document state styling now handled via .card-hidden (shared with entities) */
 
 /* Parchment text styling */
 .parchment-block {

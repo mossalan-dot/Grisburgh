@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css">
+  <link rel="stylesheet" href="/css/theme.css?v=3">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -53,26 +53,30 @@
 <body class="bg-room-bg text-ink-bright font-crimson min-h-screen">
   <div class="app player-mode" id="app">
     <!-- Header -->
-    <header class="px-6 pt-5 pb-4 bg-room-surface border-b-2 border-room-border">
-      <div class="flex items-center justify-between">
-      <div>
-        <h1 class="font-cinzel text-4xl font-black text-ink-bright tracking-wider leading-none">&#x2694; Grisburgh</h1>
-        <div class="mt-1.5 flex items-center gap-2">
-          <div class="h-px bg-gold-dim w-12"></div>
-          <p class="text-ink-medium text-sm font-fell italic">De Parel van het Oosten</p>
-          <div class="h-px bg-gold-dim w-12"></div>
+    <header class="px-6 pt-5 pb-4 bg-room-elevated border-b-2 border-room-border">
+      <div class="flex items-center gap-4">
+        <!-- Title -->
+        <div class="flex-shrink-0">
+          <h1 class="font-cinzel text-4xl font-black text-ink-bright tracking-wider leading-none">&#x2694;&#xFE0F; Grisburgh</h1>
+          <div class="mt-1.5 flex items-center gap-2">
+            <div class="h-px bg-gold-dim w-12"></div>
+            <p class="text-ink-medium text-sm font-fell italic">Ontdekkingen uit het stadsarchief</p>
+            <div class="h-px bg-gold-dim w-12"></div>
+          </div>
         </div>
-      </div>
-      <div class="flex items-center gap-3">
-        <div id="dm-login">
-          <button id="dm-login-btn" onclick="window.app.toggleLoginModal()"
-            class="px-3 py-1 text-xs font-mono border border-room-border rounded text-ink-dim hover:text-gold hover:border-gold-dim transition">DM</button>
+        <!-- Party portraits (rendered by JS) -->
+        <div id="party-bar" class="flex items-end gap-3 flex-1 overflow-x-auto pt-2"></div>
+        <!-- DM controls -->
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <div id="dm-login">
+            <button id="dm-login-btn" onclick="window.app.toggleLoginModal()"
+              class="px-3 py-1 text-xs font-mono border border-room-border rounded text-ink-dim hover:text-gold hover:border-gold-dim transition">DM</button>
+          </div>
+          <div id="dm-badge" class="hidden flex items-center gap-2 px-3 py-1 rounded bg-gold-glow border border-gold-dim">
+            <span class="text-gold text-xs font-cinzel font-semibold">Dungeon Master</span>
+            <button onclick="window.app.logout()" class="text-ink-dim hover:text-ink-bright text-lg leading-none">&times;</button>
+          </div>
         </div>
-        <div id="dm-badge" class="hidden flex items-center gap-2 px-3 py-1 rounded bg-gold-glow border border-gold-dim">
-          <span class="text-gold text-xs font-cinzel font-semibold">Dungeon Master</span>
-          <button onclick="window.app.logout()" class="text-ink-dim hover:text-ink-bright text-lg leading-none">&times;</button>
-        </div>
-      </div>
       </div>
     </header>
 
@@ -80,7 +84,7 @@
     <nav class="flex gap-1 px-6 pt-2 border-b border-room-border" id="section-tabs">
       <button class="section-tab active" data-section="personages">&#x1F464; Personages</button>
       <button class="section-tab" data-section="locaties">&#x1F3F0; Locaties</button>
-      <button class="section-tab" data-section="organisaties">&#x2694; Organisaties</button>
+      <button class="section-tab" data-section="organisaties">&#x2694;&#xFE0F; Organisaties</button>
       <button class="section-tab" data-section="voorwerpen">&#x1F3BA; Voorwerpen</button>
       <button class="section-tab" data-section="documenten">&#x1F4DC; Documenten</button>
       <button class="section-tab" data-section="logboek">&#x1F4D6; Logboek</button>
@@ -140,6 +144,6 @@
     <div id="lb-title" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/70 bg-black/50 px-4 py-1 rounded text-sm font-fell italic"></div>
   </div>
 
-  <script type="module" src="/js/app.js"></script>
+  <script type="module" src="/js/app.js?v=3"></script>
 </body>
 </html>

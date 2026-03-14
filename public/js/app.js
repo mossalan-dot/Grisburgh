@@ -30,6 +30,7 @@ window.app = {
   refreshSection,
   switchSection,
   esc,
+  mdToHtml,
 };
 
 // ── Section switching ──
@@ -157,10 +158,66 @@ function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// ── Markdown → HTML (bold, italic, newlines) ──
+function mdToHtml(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(?!\*)(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
+// ── Inline format toolbar (B / I) ──
+// Wraps selected text in a textarea with a markdown marker.
+// Called via onclick on the toolbar buttons and via keyboard shortcut.
+window._fmt = (id, marker) => {
+  const ta = document.getElementById(id);
+  if (!ta) return;
+  const start = ta.selectionStart;
+  const end   = ta.selectionEnd;
+  const sel   = ta.value.slice(start, end);
+  const inner = sel || 'tekst';
+  ta.value = ta.value.slice(0, start) + marker + inner + marker + ta.value.slice(end);
+  ta.setSelectionRange(start + marker.length, start + marker.length + inner.length);
+  ta.focus();
+};
+
+window._fmtKey = (e) => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  if (e.key === 'b') { e.preventDefault(); window._fmt(e.target.id, '**'); }
+  if (e.key === 'i') { e.preventDefault(); window._fmt(e.target.id, '*');  }
+};
+
+// ── Party portraits ──
+async function renderParty() {
+  const bar = document.getElementById('party-bar');
+  if (!bar) return;
+  try {
+    const all = await api.listEntities('personages');
+    const spelers = all.filter(e => e.subtype === 'speler');
+    if (spelers.length === 0) { bar.innerHTML = ''; return; }
+    bar.innerHTML = spelers.map(e => {
+      const imgUrl = api.fileUrl(e.id);
+      const sub = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
+      return `
+        <div class="party-portrait" onclick="window._openDetail('personages','${esc(e.id)}')">
+          <img src="${imgUrl}" class="party-portrait-img"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="party-portrait-fallback" style="display:none">\u{1f464}</div>
+          <div class="party-portrait-name">${esc(e.name.split(' ')[0])}</div>
+          ${sub ? `<div class="party-portrait-sub">${esc(sub)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  } catch { bar.innerHTML = ''; }
+}
+window.renderParty = renderParty;
+
 // ── Refresh ──
 async function refreshSection(section) {
   section = section || state.activeSection;
-  if (section === 'personages') await renderPersonages();
+  if (section === 'personages') { await renderPersonages(); await renderParty(); }
   else if (section === 'locaties') await renderLocaties();
   else if (section === 'organisaties') await renderOrganisaties();
   else if (section === 'voorwerpen') await renderVoorwerpen();
@@ -201,6 +258,7 @@ async function init() {
   initCampagne();
   initArchief();
   initSocket();
+  renderParty();
   const hashSection = location.hash.replace('#', '');
   const validSections = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'logboek'];
   switchSection(validSections.includes(hashSection) ? hashSection : 'personages');
