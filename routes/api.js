@@ -4,7 +4,7 @@ const storage = require('../lib/storage');
 const { requireDM, attachRole } = require('./auth');
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 
@@ -41,6 +41,8 @@ function filterDocForPlayer(doc, dmState) {
   if (state === 'blurred') {
     d.npcs = [];
     d.locs = [];
+    d.orgs = [];
+    d.items = [];
     d.docs = [];
   }
   return d;
@@ -247,6 +249,8 @@ router.post('/archief', requireDM, (req, res) => {
     hoofdstuk: req.body.hoofdstuk || '',
     npcs: req.body.npcs || [],
     locs: req.body.locs || [],
+    orgs: req.body.orgs || [],
+    items: req.body.items || [],
     docs: req.body.docs || [],
   };
   archief.documents.push(doc);
@@ -357,6 +361,7 @@ router.post('/sessieLog', requireDM, (req, res) => {
     terugkerendPersonages: req.body.terugkerendPersonages || [],
     nieuwLocaties: req.body.nieuwLocaties || [],
     terugkerendLocaties: req.body.terugkerendLocaties || [],
+    organisaties: req.body.organisaties || [],
     voorwerpen: req.body.voorwerpen || [],
     docs: req.body.docs || [],
     // legacy fields kept for backward compat

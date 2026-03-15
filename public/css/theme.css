@@ -543,6 +543,7 @@
 .log-chip-green-new { background: rgba(42,106,58,0.18);  border-color: rgba(42,106,58,0.45); color: #1a5a2a; font-weight: 600; }
 .log-chip-orange    { background: rgba(154,106,42,0.12); border-color: rgba(154,106,42,0.3); color: #7a4a18; }
 .log-chip-purple    { background: rgba(90,58,122,0.12);  border-color: rgba(90,58,122,0.3);  color: #5a3a7a; }
+.log-chip-seal      { background: rgba(139,42,42,0.12);  border-color: rgba(139,42,42,0.35); color: #7a1a1a; }
 
 /* Chip base */
 .chip {

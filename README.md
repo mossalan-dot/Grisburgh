@@ -17,8 +17,8 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 | **Locaties** | Stadswijken, gebouwen, herbergen, etc. |
 | **Organisaties** | Gildes, facties, criminelen, etc. |
 | **Voorwerpen** | Wapens, toveritems, drankjes, etc. |
-| **Documenten** | Brieven, kaarten, codex, etc. met 3-state onthulling: verborgen → wazig → onthuld |
-| **Logboek** | Sessiesamenvattingen per hoofdstuk met nieuwe, terugkerende entities én documentlinks |
+| **Documenten** | Brieven, kaarten, codex, geluidsfragmenten, etc. met 3-state onthulling: verborgen → wazig → onthuld |
+| **Logboek** | Sessiesamenvattingen per hoofdstuk met nieuwe, terugkerende entities, organisaties én documentlinks |
 
 ### DM-features
 
@@ -26,13 +26,16 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 - Bewerken en verwijderen direct via kaart-knoppen (✏ / ✕)
 - Geheime velden die apart onthuld kunnen worden
 - Character stats (AC, HP, Speed, ability scores) — ingelezen uit Obsidian stat blocks, alleen zichtbaar voor DM
+- Vet/cursief opmaak (B/I toolbar + Ctrl+B/Ctrl+I) in character sheet tekstvelden
 - DM-notities per entity (alleen voor DM)
-- Afbeelding en PDF upload (max 10MB) met inline PDF viewer
+- Afbeelding, PDF en MP3/audio upload (max 50MB) met inline viewer/speler
+- Geluidsfragmenten opslaan als document (categorie *Geluid*, type *Audiofragment*) met ingebedde audiospeler
+- Koppelingen tussen documenten en organisaties/voorwerpen (naast personages en locaties)
 - Focuspunt instellen per afbeelding (klikken in de afbeelding bepaalt het bijsnijdpunt)
 - Perkament-tekst editor voor archief-documenten
 - Verborgen connecties (selectief links verbergen op documenten)
 - Autocomplete bij het linken van entities
-- Sessielogboek met nieuwe (✨), terugkerende (🔄) entities en gekoppelde documenten (📜) per sessie
+- Sessielogboek met nieuwe (✨), terugkerende (🔄) entities, organisaties en gekoppelde documenten (📜) per sessie
 - Documentchips in het logboek zijn klikbaar en openen het document direct
 - NPC's markeerbaar als deceased (rood kruis over kaartje)
 
@@ -50,6 +53,7 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 - Rol van een personage wordt direct onder de naam getoond
 - Beschrijvingen renderen markdown (vet, cursief)
 - Kaartafbeeldingen tonen met focuspunt, portraits in detailmodal groter weergegeven
+- Logboekkaartjes tonen de volledige hoofdstuktitel (bijv. *Hoofdstuk 3: De Heeren van de Nacht*)
 
 ### Detail-viewer (spelermodus)
 
@@ -63,8 +67,8 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 
 - Sessieafbeelding als hero-portret met dateline en hoofdstuklabel
 - Samenvatting als journaalstijl tekstblok met gouden linkerbalk
-- Entiteits-chips gegroepeerd per categorie: Personages / Locaties / Voorwerpen / Documenten
-- Kleurcodering per chip: goud = nieuw, blauw = terugkerend, etc.
+- Entiteits-chips gegroepeerd per categorie: Personages / Locaties / Organisaties / Voorwerpen / Documenten
+- Kleurcodering per chip: goud = nieuw, blauw = terugkerend, rood = organisaties, etc.
 - Samenvattingsexcerpt zichtbaar direct op de logboekkaart
 
 ### Dobbelsteenpaneel 🎲
@@ -140,13 +144,13 @@ routes/
   api.js               # REST API + server-side filtering
   auth.js              # DM login + middleware
 lib/
-  storage.js           # JSON file opslag + afbeeldingen/PDFs
+  storage.js           # JSON file opslag + afbeeldingen/PDFs/audio
 public/
   index.html           # SPA shell (Tailwind CSS + PDF.js)
   js/
     app.js             # App shell, auth, modals, section routing, dobbelsteenpaneel
     render-campagne.js # Entity CRUD, cards, editor, autocomplete links
-    render-archief.js  # Documenten, logboek, onthulling, PDF viewer
+    render-archief.js  # Documenten, logboek, onthulling, PDF viewer, audiospeler
     api.js             # Fetch wrapper + entity name lookup
     socket-client.js   # Real-time updates
   css/
@@ -159,7 +163,7 @@ tests/                 # Automatische tests
 
 ## Data
 
-Alle data staat in `data/` als JSON-bestanden. Deze map is gitignored. Afbeeldingen en PDFs staan in `data/files/`. Back-up = de `data/` map kopiëren.
+Alle data staat in `data/` als JSON-bestanden. Deze map is gitignored. Afbeeldingen, PDFs en audiobestanden staan in `data/files/`. Back-up = de `data/` map kopiëren.
 
 ## Scripts
 

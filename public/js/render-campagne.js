@@ -1059,12 +1059,18 @@ window._openEditor = async (tab, editId) => {
         <input name="stat_${k}" value="${esc(s[k] || '')}"
           class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none${center ? ' text-center' : ''}">
       </div>`;
-    const _ta = (k, label, rows = 3) => `
-      <div>
+    const _ta = (k, label, rows = 3) => {
+      const taId = `stat_ta_${k}`;
+      return `<div>
         <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
-        <textarea name="stat_${k}" rows="${rows}"
-          class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(s[k] || '')}</textarea>
+        <div class="mt-0.5">
+          ${fmtToolbar(taId)}
+          <textarea id="${taId}" name="stat_${k}" rows="${rows}"
+            onkeydown="window._fmtKey(event)"
+            class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(s[k] || '')}</textarea>
+        </div>
       </div>`;
+    };
     body += `
       <div class="p-4 bg-room-elevated rounded border border-room-border space-y-3">
         <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider">Character Sheet</div>
