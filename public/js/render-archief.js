@@ -130,7 +130,7 @@ export async function renderLogboek() {
             <div class="font-cinzel font-bold text-gold text-xl">Hoofdstuk ${info.num}: ${esc(info.title)}</div>
             <div class="text-ink-dim text-sm italic">${esc(info.dag)}</div>
           </div>
-          <div class="space-y-6">
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
             ${chEntries.map(e => renderSessieEntry(e)).join('')}
           </div>
         </div>
@@ -138,70 +138,150 @@ export async function renderLogboek() {
     }
   }
 
-  container.innerHTML = `<div class="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto">${html}</div>`;
+  container.innerHTML = `<div class="flex-1 overflow-y-auto p-6">${html}</div>`;
 }
+
+// ── Chip rows (used in detail modal) ──
 
 function _logChipRow(icon, items, chipCls, clickFn) {
   if (!items.length) return '';
   return `<div class="flex flex-wrap items-center gap-1.5">
     <span class="text-[11px] font-mono text-ink-faint mr-0.5">${icon}</span>
     ${items.map(n => {
-      const extra = clickFn ? clickFn(n) : '';
+      const extra = clickFn ? clickFn(n) : {};
       return `<span class="px-2 py-0.5 text-xs rounded-full border font-crimson ${chipCls}${extra.cls || ''}" ${extra.attr || ''}>${esc(n)}</span>`;
     }).join('')}
   </div>`;
 }
 
-function renderSessieEntry(e) {
-  // Detect new vs legacy data structure
+function _renderSessieChips(e) {
   const hasNewStructure = 'nieuwPersonages' in e || 'nieuwLocaties' in e || 'voorwerpen' in e;
-
   const nieuwP   = e.nieuwPersonages        || [];
   const terugP   = e.terugkerendPersonages  || [];
   const nieuwL   = e.nieuwLocaties          || [];
   const terugL   = e.terugkerendLocaties    || [];
   const items    = e.voorwerpen             || [];
   const docs     = e.docs                   || [];
-  // Backward compat: legacy flat arrays only shown when new fields absent
   const legNieuw = !hasNewStructure ? (e.nieuw       || []) : [];
   const legTerug = !hasNewStructure ? (e.terugkerend || []) : [];
-
   const hasChips = nieuwP.length || terugP.length || nieuwL.length || terugL.length ||
                    items.length  || docs.length   || legNieuw.length || legTerug.length;
-
+  if (!hasChips) return '';
   const docClick = (n) => {
     const d = (archiefData.documents || []).find(x => x.name === n);
     return d ? { cls: ' cursor-pointer hover:bg-purple-codex/25 transition', attr: `onclick="window._openDoc('${d.id}')"` } : {};
   };
-
-  return `
-    <div class="bg-room-surface border border-room-border rounded-lg p-5 relative group ${!e.visible && isDM() ? 'opacity-50' : ''}">
-      ${isDM() ? `
-        <div class="dm-only absolute top-3 right-3 flex gap-1">
-          <button class="px-2 py-1 text-xs rounded border transition ${e.visible ? 'bg-green-wax/20 border-green-wax/40 text-green-wax' : 'bg-room-elevated border-room-border text-ink-dim'}"
-            onclick="window._toggleSessieVis('${e.id}', ${!!e.visible})">\ud83d\udc41</button>
-          <button class="px-2 py-1 text-xs rounded bg-room-elevated border border-room-border text-ink-dim hover:text-gold hover:border-gold-dim transition"
-            onclick="window._openSessieEditor('${e.id}')">&#x270f;</button>
-        </div>
-      ` : ''}
-      ${e.datum ? `<div class="text-xs font-mono text-ink-faint mb-2">${esc(e.datum)}</div>` : ''}
-      ${e.korteSamenvatting ? `<div class="font-cinzel font-semibold text-ink-bright text-base mb-2">${esc(e.korteSamenvatting)}</div>` : ''}
-      ${e.samenvatting ? `<p class="text-sm text-ink-medium mb-3 font-crimson">${mdToHtml(e.samenvatting)}</p>` : ''}
-      ${hasChips ? `
-        <div class="flex flex-col gap-1.5 mt-3 pt-3 border-t border-room-border/60">
-          ${_logChipRow('\u2728\u00a0\ud83d\udc64', nieuwP, 'bg-gold/10 border-gold/30 text-gold')}
-          ${_logChipRow('\ud83d\udd04\u00a0\ud83d\udc64', terugP, 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]')}
-          ${_logChipRow('\u2728\u00a0\ud83c\udff0', nieuwL, 'bg-green-wax/10 border-green-wax/30 text-green-wax')}
-          ${_logChipRow('\ud83d\udd04\u00a0\ud83c\udff0', terugL, 'bg-green-wax/8 border-green-wax/20 text-green-wax/80')}
-          ${_logChipRow('\u2694\ufe0f', items, 'bg-orange/10 border-orange/30 text-orange')}
-          ${_logChipRow('\ud83d\udcdc', docs, 'bg-purple-codex/15 border-purple-codex/35 text-purple-codex', docClick)}
-          ${_logChipRow('\u2728', legNieuw, 'bg-gold/10 border-gold/30 text-gold')}
-          ${_logChipRow('\ud83d\udd04', legTerug, 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]')}
-        </div>
-      ` : ''}
-    </div>
-  `;
+  return `<div class="flex flex-col gap-1.5 pt-3 mt-3 border-t border-room-border/60">
+    ${_logChipRow('\u2728\u00a0\ud83d\udc64', nieuwP, 'bg-gold/10 border-gold/30 text-gold')}
+    ${_logChipRow('\ud83d\udd04\u00a0\ud83d\udc64', terugP, 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]')}
+    ${_logChipRow('\u2728\u00a0\ud83c\udff0', nieuwL, 'bg-green-wax/10 border-green-wax/30 text-green-wax')}
+    ${_logChipRow('\ud83d\udd04\u00a0\ud83c\udff0', terugL, 'bg-green-wax/10 border-green-wax/20 text-green-wax')}
+    ${_logChipRow('\u2694\ufe0f', items, 'bg-orange/10 border-orange/30 text-orange')}
+    ${_logChipRow('\ud83d\udcdc', docs, 'bg-purple-codex/15 border-purple-codex/35 text-purple-codex', docClick)}
+    ${_logChipRow('\u2728', legNieuw, 'bg-gold/10 border-gold/30 text-gold')}
+    ${_logChipRow('\ud83d\udd04', legTerug, 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]')}
+  </div>`;
 }
+
+// ── Carrousel ──
+
+const _carouselPos = {};
+
+function _renderCarousel(key, imageIds) {
+  if (!imageIds.length) return '';
+  if (imageIds.length === 1) {
+    const url = api.fileUrl(imageIds[0]);
+    return `<img src="${url}" class="w-full max-h-72 object-contain rounded mb-4 cursor-pointer"
+      onclick="window.app.openLightbox('${url}','')">`;
+  }
+  _carouselPos[key] = 0;
+  return `
+    <div class="relative mb-4">
+      <div class="overflow-hidden rounded">
+        <div id="carousel-track-${key}" class="flex" style="transition:transform 0.3s ease">
+          ${imageIds.map(id => {
+            const url = api.fileUrl(id);
+            return `<div class="flex-shrink-0 w-full flex justify-center bg-room-elevated/30">
+              <img src="${url}" class="max-h-72 object-contain cursor-pointer"
+                onclick="window.app.openLightbox('${url}','')">
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+      <button class="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/65 text-white rounded-full text-lg leading-none flex items-center justify-center transition"
+        onclick="window._carouselStep('${key}',-1,${imageIds.length})">\u2039</button>
+      <button class="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/65 text-white rounded-full text-lg leading-none flex items-center justify-center transition"
+        onclick="window._carouselStep('${key}',1,${imageIds.length})">\u203a</button>
+      <div class="flex justify-center gap-1.5 mt-2">
+        ${imageIds.map((_, i) => `<span id="cd-${key}-${i}" onclick="window._carouselGo('${key}',${i},${imageIds.length})"
+          class="block w-2 h-2 rounded-full cursor-pointer transition ${i === 0 ? 'bg-gold' : 'bg-room-border'}"></span>`).join('')}
+      </div>
+    </div>`;
+}
+
+window._carouselStep = (key, dir, total) => {
+  window._carouselGo(key, ((_carouselPos[key] || 0) + dir + total) % total, total);
+};
+window._carouselGo = (key, idx, total) => {
+  _carouselPos[key] = idx;
+  const track = document.getElementById(`carousel-track-${key}`);
+  if (track) track.style.transform = `translateX(-${idx * 100}%)`;
+  for (let i = 0; i < total; i++) {
+    const dot = document.getElementById(`cd-${key}-${i}`);
+    if (dot) dot.className = `block w-2 h-2 rounded-full cursor-pointer transition ${i === idx ? 'bg-gold' : 'bg-room-border'}`;
+  }
+};
+
+// ── Logboek card (compact) ──
+
+function renderSessieEntry(e) {
+  const firstImg = e.images?.length ? api.fileUrl(e.images[0]) : null;
+  return `
+    <div class="entity-card${isDM() && !e.visible ? ' card-hidden' : ''}"
+      onclick="window._openSessieDetail('${e.id}')">
+      ${isDM() ? `
+        <div class="dm-only absolute top-7 right-2 z-10 flex gap-0.5 bg-black/60 backdrop-blur-sm rounded p-0.5">
+          <button class="text-[11px] px-1.5 py-0.5 rounded transition ${e.visible ? 'bg-green-wax/80 text-white' : 'text-ink-dim hover:bg-room-border'}"
+            title="Zichtbaarheid" onclick="event.stopPropagation();window._toggleSessieVis('${e.id}',${!!e.visible})">\ud83d\udc41</button>
+          <button class="text-[11px] px-1.5 py-0.5 rounded text-ink-dim hover:bg-room-border transition"
+            title="Bewerken" onclick="event.stopPropagation();window._openSessieEditor('${e.id}')">&#x270f;</button>
+        </div>
+      ` : ''}
+      <div class="card-accent bar-logboek"></div>
+      ${firstImg ? `<img class="card-img w-full object-cover" src="${firstImg}" onerror="this.style.display='none'">` : ''}
+      <div class="px-4 pt-3 pb-4">
+        ${e.datum ? `<div class="text-[11px] font-mono text-ink-faint mb-1">${esc(e.datum)}</div>` : ''}
+        ${e.korteSamenvatting
+          ? `<div class="font-cinzel font-semibold text-ink-bright text-sm leading-snug">${esc(e.korteSamenvatting)}</div>`
+          : `<div class="text-ink-dim text-xs italic">Geen titel</div>`}
+      </div>
+    </div>`;
+}
+
+// ── Logboek detail modal ──
+
+window._openSessieDetail = (id) => {
+  const e = (archiefData.sessieLog || []).find(s => s.id === id);
+  if (!e) return;
+  const hk = meta?.hoofdstukken || {};
+  const chapter = hk[e.hoofdstuk] || {};
+  const images = e.images || [];
+
+  const body = `
+    ${_renderCarousel(id, images)}
+    ${e.samenvatting ? `<p class="font-crimson text-sm text-ink-medium leading-relaxed mb-4">${mdToHtml(e.samenvatting)}</p>` : ''}
+    ${_renderSessieChips(e)}
+    ${isDM() ? `
+      <div class="dm-only mt-4 pt-4 border-t border-room-border flex gap-2">
+        <button class="px-3 py-1.5 text-sm rounded bg-gold-dim text-room-bg font-cinzel font-semibold hover:bg-gold transition"
+          onclick="window.app.closeModal();window._openSessieEditor('${e.id}')">&#x270f; Bewerken</button>
+        <button class="px-3 py-1.5 text-sm rounded bg-seal/20 text-seal hover:bg-seal/40 transition"
+          onclick="window._deleteSessie('${e.id}')">\ud83d\uddd1 Verwijderen</button>
+      </div>` : ''}
+  `;
+  const subtitle = [chapter.short, e.datum].filter(Boolean).join(' \u00b7 ');
+  openModal(e.korteSamenvatting || 'Sessie', subtitle, body);
+};
 
 export function openLogboekEditor(editId) {
   window._openSessieEditor(editId);
@@ -221,6 +301,36 @@ let logAllPersonageNames = [];
 let logAllLocatieNames   = [];
 let logAllVoorwerpNames  = [];
 let logAllDocNames       = [];
+// Image editor state: { id, url, isNew, file? }
+let logEditorImages        = [];
+let logEditorImagesToDelete = [];
+
+window._addLogImages = (files) => {
+  for (const file of files) {
+    const id = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+    logEditorImages.push({ id, url: URL.createObjectURL(file), isNew: true, file });
+  }
+  _refreshLogImages();
+};
+window._removeLogImage = (idx) => {
+  const img = logEditorImages[idx];
+  if (!img.isNew) logEditorImagesToDelete.push(img.id);
+  else URL.revokeObjectURL(img.url);
+  logEditorImages.splice(idx, 1);
+  _refreshLogImages();
+};
+function _refreshLogImages() {
+  const c = document.getElementById('log-img-preview');
+  if (!c) return;
+  c.innerHTML = logEditorImages.length
+    ? logEditorImages.map((img, i) => `
+        <div class="relative w-20 h-20 flex-shrink-0 rounded overflow-hidden border border-room-border bg-room-elevated">
+          <img src="${img.url}" class="w-full h-full object-cover">
+          <button type="button" onclick="window._removeLogImage(${i})"
+            class="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded-full text-xs flex items-center justify-center transition">\u00d7</button>
+        </div>`).join('')
+    : '<span class="text-xs text-ink-faint italic">Nog geen afbeeldingen</span>';
+}
 
 window._openSessieEditor = async (editId) => {
   const hk = meta?.hoofdstukken || {};
@@ -251,6 +361,10 @@ window._openSessieEditor = async (editId) => {
     voorwerpen:            e?.voorwerpen?.slice()            || [],
     docs:                  e?.docs?.slice()                  || [],
   };
+
+  // Image state — existing images from entry
+  logEditorImagesToDelete = [];
+  logEditorImages = (e?.images || []).map(id => ({ id, url: api.fileUrl(id), isNew: false }));
 
   const body = `<form id="sessie-form" class="space-y-4">
     <div class="grid grid-cols-2 gap-3">
@@ -302,6 +416,16 @@ window._openSessieEditor = async (editId) => {
       ${renderLogTagEditor('voorwerpen', '\u2694\ufe0f Voorwerpen', 'bg-orange/10 border-orange/30 text-orange')}
       ${renderLogTagEditor('docs',       '\ud83d\udcdc Documenten', 'bg-purple-codex/15 border-purple-codex/35 text-purple-codex')}
     </div>
+    <div>
+      <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2">\ud83d\uddbc\ufe0f Afbeeldingen</div>
+      <div id="log-img-preview" class="flex flex-wrap gap-2 mb-2 min-h-[2rem] items-center">
+        <span class="text-xs text-ink-faint italic">Nog geen afbeeldingen</span>
+      </div>
+      <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-room-elevated border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright cursor-pointer transition">
+        + Toevoegen
+        <input type="file" accept="image/*" multiple class="hidden" onchange="window._addLogImages(this.files)">
+      </label>
+    </div>
     <div class="flex gap-2 pt-2">
       <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">\ud83d\udcbe Opslaan</button>
       ${editId ? `<button type="button" onclick="window._deleteSessie('${editId}')" class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition">\ud83d\uddd1 Verwijderen</button>` : ''}
@@ -311,22 +435,36 @@ window._openSessieEditor = async (editId) => {
 
   openModal(editId ? 'Sessie bewerken' : 'Nieuwe sessie', '', body);
 
+  // Init image thumbnails after modal is in DOM
+  setTimeout(() => _refreshLogImages(), 0);
+
   document.getElementById('sessie-form').addEventListener('submit', async (ev) => {
     ev.preventDefault();
-    const form = new FormData(ev.target);
-    const payload = {
-      hoofdstuk: form.get('hoofdstuk'),
-      datum: form.get('datum'),
-      korteSamenvatting: form.get('korteSamenvatting'),
-      samenvatting: form.get('samenvatting'),
-      nieuwPersonages:       logEditorTags.nieuwPersonages,
-      terugkerendPersonages: logEditorTags.terugkerendPersonages,
-      nieuwLocaties:         logEditorTags.nieuwLocaties,
-      terugkerendLocaties:   logEditorTags.terugkerendLocaties,
-      voorwerpen:            logEditorTags.voorwerpen,
-      docs:                  logEditorTags.docs,
-    };
+    const btn = ev.target.querySelector('button[type=submit]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Bezig…'; }
     try {
+      // Upload new images
+      for (const img of logEditorImages) {
+        if (img.isNew) await api.uploadFile(img.id, img.file);
+      }
+      // Delete removed images
+      for (const id of logEditorImagesToDelete) {
+        await api.deleteFile(id).catch(() => {});
+      }
+      const form = new FormData(ev.target);
+      const payload = {
+        hoofdstuk:             form.get('hoofdstuk'),
+        datum:                 form.get('datum'),
+        korteSamenvatting:     form.get('korteSamenvatting'),
+        samenvatting:          form.get('samenvatting'),
+        images:                logEditorImages.map(i => i.id),
+        nieuwPersonages:       logEditorTags.nieuwPersonages,
+        terugkerendPersonages: logEditorTags.terugkerendPersonages,
+        nieuwLocaties:         logEditorTags.nieuwLocaties,
+        terugkerendLocaties:   logEditorTags.terugkerendLocaties,
+        voorwerpen:            logEditorTags.voorwerpen,
+        docs:                  logEditorTags.docs,
+      };
       if (editId) await api.updateSessieLog(editId, payload);
       else await api.createSessieLog(payload);
       closeModal();
