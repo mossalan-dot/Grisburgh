@@ -4,7 +4,7 @@ const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 const TYPE_META = {
   personages:    { icon: '\ud83d\udc64', label: 'Personages', color: 'green-wax', chip: 'chip-npc' },
   locaties:      { icon: '\ud83c\udff0', label: 'Locaties', color: 'blue-ink', chip: 'chip-loc' },
-  organisaties:  { icon: '\u2694\ufe0f', label: 'Organisaties', color: 'seal', chip: 'chip-org' },
+  organisaties:  { icon: '\ud83c\udfdb\ufe0f', label: 'Organisaties', color: 'seal', chip: 'chip-org' },
   voorwerpen:    { icon: '\ud83c\udf92', label: 'Voorwerpen', color: 'orange', chip: 'chip-item' },
 };
 

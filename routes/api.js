@@ -381,4 +381,18 @@ router.get('/meta', (req, res) => {
   res.json(storage.readJSON('meta.json'));
 });
 
+router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.hoofdstukken) meta.hoofdstukken = {};
+  meta.hoofdstukken[req.params.key] = {
+    num:   req.body.num   ?? 99,
+    title: req.body.title || '',
+    dag:   req.body.dag   || '',
+    short: req.body.short || req.body.title || req.params.key,
+  };
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').emit('meta:updated');
+  res.json(meta.hoofdstukken[req.params.key]);
+});
+
 module.exports = router;

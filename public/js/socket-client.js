@@ -67,6 +67,12 @@ export function initSocket() {
     }
   });
 
+  socket.on('meta:updated', () => {
+    import('./api.js').then(({ api }) => api.meta().then(m => {
+      if (window.app?.state) window.app.state.meta = m;
+    }));
+  });
+
   socket.on('connect', () => console.log('Socket connected'));
   socket.on('disconnect', () => console.log('Socket disconnected'));
 }

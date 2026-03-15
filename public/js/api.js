@@ -60,6 +60,7 @@ export const api = {
 
   // Meta
   meta: () => request('/meta'),
+  saveHoofdstuk: (key, data) => request(`/meta/hoofdstuk/${key}`, { method: 'PUT', body: JSON.stringify(data) }),
 
   // Get all entity names grouped by type (for link autocomplete)
   async allNames() {
