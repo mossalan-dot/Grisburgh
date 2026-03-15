@@ -189,6 +189,15 @@ window._fmtKey = (e) => {
   if (e.key === 'i') { e.preventDefault(); window._fmt(e.target.id, '*');  }
 };
 
+// ── Party presence state (localStorage) ──
+function _getPartyPresence() {
+  try { return JSON.parse(localStorage.getItem('grisburgh_party_presence') || '{}'); }
+  catch { return {}; }
+}
+function _setPartyPresence(s) {
+  localStorage.setItem('grisburgh_party_presence', JSON.stringify(s));
+}
+
 // ── Party portraits ──
 async function renderParty() {
   const bar = document.getElementById('party-bar');
@@ -197,22 +206,42 @@ async function renderParty() {
     const all = await api.listEntities('personages');
     const spelers = all.filter(e => e.subtype === 'speler');
     if (spelers.length === 0) { bar.innerHTML = ''; return; }
-    bar.innerHTML = spelers.map(e => {
+    const presence = _getPartyPresence();
+    const present = spelers.filter(e => presence[e.id] !== false);
+    const absent  = spelers.filter(e => presence[e.id] === false);
+    const renderPortrait = e => {
       const imgUrl = api.fileUrl(e.id);
       const sub = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
+      const isAbsent = presence[e.id] === false;
+      const dotTitle = isAbsent ? 'Afwezig — klik om aanwezig te maken' : 'Aanwezig — klik om af te melden';
       return `
-        <div class="party-portrait" onclick="window._openDetail('personages','${esc(e.id)}')">
-          <img src="${imgUrl}" class="party-portrait-img"
-            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-          <div class="party-portrait-fallback" style="display:none">\u{1f464}</div>
+        <div class="party-portrait${isAbsent ? ' party-portrait--absent' : ''}" onclick="window._openDetail('personages','${esc(e.id)}')">
+          <div class="party-portrait-avatar-wrap">
+            <img src="${imgUrl}" class="party-portrait-img"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="party-portrait-fallback" style="display:none">\u{1f464}</div>
+            <button class="party-presence-dot ${isAbsent ? 'absent' : 'present'}"
+              onclick="event.stopPropagation();window._togglePartyPresence('${esc(e.id)}')"
+              title="${dotTitle}"></button>
+          </div>
           <div class="party-portrait-name">${esc(e.name.split(' ')[0])}</div>
           ${sub ? `<div class="party-portrait-sub">${esc(sub)}</div>` : ''}
         </div>
       `;
-    }).join('');
+    };
+    const divider = (present.length > 0 && absent.length > 0)
+      ? '<div class="party-bar-divider"></div>' : '';
+    bar.innerHTML = present.map(renderPortrait).join('') + divider + absent.map(renderPortrait).join('');
   } catch { bar.innerHTML = ''; }
 }
 window.renderParty = renderParty;
+
+window._togglePartyPresence = (id) => {
+  const presence = _getPartyPresence();
+  presence[id] = presence[id] === false ? true : false; // default = present
+  _setPartyPresence(presence);
+  renderParty();
+};
 
 // ── Refresh ──
 async function refreshSection(section) {
@@ -229,12 +258,88 @@ async function refreshAll() {
   await refreshSection(state.activeSection);
 }
 
+// ── Dice Roller Panel ──
+;(() => {
+  const _history = [];
+
+  window.dice = {
+    toggle() {
+      document.getElementById('dice-panel').classList.toggle('open');
+    },
+
+    roll(sides) {
+      const result = Math.floor(Math.random() * sides) + 1;
+      const numEl   = document.getElementById('dice-result-num');
+      const lblEl   = document.getElementById('dice-result-label');
+      const boxEl   = document.getElementById('dice-result');
+      if (!numEl) return;
+
+      // Shake the result box on each new roll
+      boxEl.classList.remove('dice-shaking');
+      void boxEl.offsetWidth;
+      boxEl.classList.add('dice-shaking');
+      boxEl.addEventListener('animationend', () => boxEl.classList.remove('dice-shaking'), { once: true });
+
+      // Clear previous state
+      numEl.classList.remove('dice-crit', 'dice-fumble', 'dice-reveal');
+      lblEl.textContent = 'Gooien\u2026';
+
+      // Ticker animation: starts fast, slows toward result
+      const delays = [45, 55, 65, 80, 100, 125, 155];
+      let i = 0;
+      const tick = () => {
+        if (i < delays.length) {
+          numEl.textContent = Math.floor(Math.random() * sides) + 1;
+          setTimeout(tick, delays[i++]);
+        } else {
+          // Show the real result
+          numEl.classList.remove('dice-crit', 'dice-fumble');
+          void numEl.offsetWidth;
+          numEl.textContent = result;
+          numEl.classList.add('dice-reveal');
+          numEl.addEventListener('animationend', () => numEl.classList.remove('dice-reveal'), { once: true });
+
+          const dieLabel = sides === 100 ? 'd%' : `d${sides}`;
+          if (sides === 20 && result === 20) {
+            numEl.classList.add('dice-crit');
+            lblEl.textContent = `${dieLabel} \u2014 \u2736 Critical Hit!`;
+          } else if (sides === 20 && result === 1) {
+            numEl.classList.add('dice-fumble');
+            lblEl.textContent = `${dieLabel} \u2014 \u2715 Critical Fail!`;
+          } else {
+            lblEl.textContent = dieLabel;
+          }
+
+          // Update history
+          _history.unshift({ sides, result });
+          if (_history.length > 10) _history.pop();
+          _renderHistory();
+        }
+      };
+      tick();
+    },
+  };
+
+  function _renderHistory() {
+    const el = document.getElementById('dice-history');
+    if (!el) return;
+    el.innerHTML = _history.map(({ sides, result }) => {
+      const isCrit   = sides === 20 && result === 20;
+      const isFumble = sides === 20 && result === 1;
+      const cls      = isCrit ? ' dice-hist-crit' : isFumble ? ' dice-hist-fumble' : '';
+      const lbl      = sides === 100 ? '%' : sides;
+      return `<span class="dice-hist-chip${cls}">d${lbl}\u00b7${result}</span>`;
+    }).join('');
+  }
+})();
+
 // ── Keyboard shortcuts ──
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeLightbox();
     closeModal();
     closeLoginModal();
+    document.getElementById('dice-panel')?.classList.remove('open');
   }
   if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
     e.preventDefault();

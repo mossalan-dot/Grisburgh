@@ -164,58 +164,95 @@ function _renderSessieChips(e) {
   const docs     = e.docs                   || [];
   const legNieuw = !hasNewStructure ? (e.nieuw       || []) : [];
   const legTerug = !hasNewStructure ? (e.terugkerend || []) : [];
-  const hasChips = nieuwP.length || terugP.length || nieuwL.length || terugL.length ||
-                   items.length  || docs.length   || legNieuw.length || legTerug.length;
-  if (!hasChips) return '';
-  const docClick = (n) => {
-    const d = (archiefData.documents || []).find(x => x.name === n);
-    return d ? { cls: ' cursor-pointer hover:bg-purple-codex/25 transition', attr: `onclick="window._openDoc('${d.id}')"` } : {};
-  };
-  return `<div class="flex flex-col gap-1.5 pt-3 mt-3 border-t border-room-border/60">
-    ${_logChipRow('\u2728\u00a0\ud83d\udc64', nieuwP, 'bg-gold/10 border-gold/30 text-gold')}
-    ${_logChipRow('\ud83d\udd04\u00a0\ud83d\udc64', terugP, 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]')}
-    ${_logChipRow('\u2728\u00a0\ud83c\udff0', nieuwL, 'bg-green-wax/10 border-green-wax/30 text-green-wax')}
-    ${_logChipRow('\ud83d\udd04\u00a0\ud83c\udff0', terugL, 'bg-green-wax/10 border-green-wax/20 text-green-wax')}
-    ${_logChipRow('\u2694\ufe0f', items, 'bg-orange/10 border-orange/30 text-orange')}
-    ${_logChipRow('\ud83d\udcdc', docs, 'bg-purple-codex/15 border-purple-codex/35 text-purple-codex', docClick)}
-    ${_logChipRow('\u2728', legNieuw, 'bg-gold/10 border-gold/30 text-gold')}
-    ${_logChipRow('\ud83d\udd04', legTerug, 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]')}
+
+  const sections = [];
+
+  const persChips = [
+    ...nieuwP.map(n => `<span class="log-chip log-chip-gold">\u2728 ${esc(n)}</span>`),
+    ...terugP.map(n => `<span class="log-chip log-chip-blue">\u21a9 ${esc(n)}</span>`),
+    ...legNieuw.map(n => `<span class="log-chip log-chip-gold">\u2728 ${esc(n)}</span>`),
+    ...legTerug.map(n => `<span class="log-chip log-chip-blue">\u21a9 ${esc(n)}</span>`),
+  ];
+  if (persChips.length) sections.push({ label: '\ud83d\udc64 Personages', chips: persChips });
+
+  const locChips = [
+    ...nieuwL.map(n => `<span class="log-chip log-chip-green-new">\u2728 ${esc(n)}</span>`),
+    ...terugL.map(n => `<span class="log-chip log-chip-green">\u21a9 ${esc(n)}</span>`),
+  ];
+  if (locChips.length) sections.push({ label: '\ud83c\udff0 Locaties', chips: locChips });
+
+  if (items.length) sections.push({
+    label: '\u2694\ufe0f Voorwerpen',
+    chips: items.map(n => `<span class="log-chip log-chip-orange">${esc(n)}</span>`),
+  });
+
+  if (docs.length) sections.push({
+    label: '\ud83d\udcdc Documenten',
+    chips: docs.map(n => {
+      const d = (archiefData.documents || []).find(x => x.name === n);
+      const click = d ? `onclick="window._openDoc('${d.id}')"` : '';
+      return `<span class="log-chip log-chip-purple${d ? ' cursor-pointer' : ''}" ${click}>${esc(n)}</span>`;
+    }),
+  });
+
+  if (!sections.length) return '';
+  return `<div class="log-chips-wrap">
+    ${sections.map(s => `
+      <div class="log-chip-section">
+        <div class="log-chip-section-label">${s.label}</div>
+        <div class="flex flex-wrap gap-1.5">${s.chips.join('')}</div>
+      </div>`).join('')}
   </div>`;
 }
 
 // ── Carrousel ──
 
 const _carouselPos = {};
+const _carouselCaptions = {};
 
-function _renderCarousel(key, imageIds) {
-  if (!imageIds.length) return '';
-  if (imageIds.length === 1) {
-    const url = api.fileUrl(imageIds[0]);
-    return `<img src="${url}" class="w-full max-h-72 object-contain rounded mb-4 cursor-pointer"
-      onclick="window.app.openLightbox('${url}','')">`;
+// Normalize images: supports both legacy string[] and new {id, caption}[] format
+function _normImages(images) {
+  return images.map(img => typeof img === 'string' ? { id: img, caption: '' } : img);
+}
+
+function _renderCarousel(key, images) {
+  if (!images.length) return '';
+  const items = _normImages(images);
+  if (items.length === 1) {
+    const url = api.fileUrl(items[0].id);
+    return `
+      <div class="detail-hero mb-6" onclick="window.app.openLightbox('${url}','')">
+        <img src="${url}" class="detail-hero-img">
+        <div class="detail-hero-overlay"></div>
+      </div>
+      ${items[0].caption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-4 italic">${esc(items[0].caption)}</p>` : ''}`;
   }
   _carouselPos[key] = 0;
+  _carouselCaptions[key] = items.map(i => i.caption || '');
   return `
-    <div class="relative mb-4">
-      <div class="overflow-hidden rounded">
-        <div id="carousel-track-${key}" class="flex" style="transition:transform 0.3s ease">
-          ${imageIds.map(id => {
-            const url = api.fileUrl(id);
-            return `<div class="flex-shrink-0 w-full flex justify-center bg-room-elevated/30">
-              <img src="${url}" class="max-h-72 object-contain cursor-pointer"
-                onclick="window.app.openLightbox('${url}','')">
-            </div>`;
-          }).join('')}
+    <div class="mb-4">
+      <div class="relative">
+        <div class="overflow-hidden rounded">
+          <div id="carousel-track-${key}" class="flex" style="transition:transform 0.3s ease">
+            ${items.map(({id}) => {
+              const url = api.fileUrl(id);
+              return `<div class="flex-shrink-0 w-full flex justify-center bg-room-elevated/30">
+                <img src="${url}" class="max-h-72 object-contain cursor-pointer"
+                  onclick="window.app.openLightbox('${url}','')">
+              </div>`;
+            }).join('')}
+          </div>
         </div>
+        <button class="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/65 text-white rounded-full text-lg leading-none flex items-center justify-center transition"
+          onclick="window._carouselStep('${key}',-1,${items.length})">\u2039</button>
+        <button class="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/65 text-white rounded-full text-lg leading-none flex items-center justify-center transition"
+          onclick="window._carouselStep('${key}',1,${items.length})">\u203a</button>
       </div>
-      <button class="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/65 text-white rounded-full text-lg leading-none flex items-center justify-center transition"
-        onclick="window._carouselStep('${key}',-1,${imageIds.length})">\u2039</button>
-      <button class="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/65 text-white rounded-full text-lg leading-none flex items-center justify-center transition"
-        onclick="window._carouselStep('${key}',1,${imageIds.length})">\u203a</button>
       <div class="flex justify-center gap-1.5 mt-2">
-        ${imageIds.map((_, i) => `<span id="cd-${key}-${i}" onclick="window._carouselGo('${key}',${i},${imageIds.length})"
+        ${items.map((_, i) => `<span id="cd-${key}-${i}" onclick="window._carouselGo('${key}',${i},${items.length})"
           class="block w-2 h-2 rounded-full cursor-pointer transition ${i === 0 ? 'bg-gold' : 'bg-room-border'}"></span>`).join('')}
       </div>
+      <div id="carousel-caption-${key}" class="text-center text-xs text-ink-dim font-crimson mt-1.5 italic min-h-[1.2em]">${esc(items[0].caption || '')}</div>
     </div>`;
 }
 
@@ -230,12 +267,15 @@ window._carouselGo = (key, idx, total) => {
     const dot = document.getElementById(`cd-${key}-${i}`);
     if (dot) dot.className = `block w-2 h-2 rounded-full cursor-pointer transition ${i === idx ? 'bg-gold' : 'bg-room-border'}`;
   }
+  const capEl = document.getElementById(`carousel-caption-${key}`);
+  if (capEl) capEl.textContent = (_carouselCaptions[key] || [])[idx] || '';
 };
 
 // ── Logboek card (compact) ──
 
 function renderSessieEntry(e) {
-  const firstImg = e.images?.length ? api.fileUrl(e.images[0]) : null;
+  const firstRaw = e.images?.[0];
+  const firstImg = firstRaw ? api.fileUrl(typeof firstRaw === 'string' ? firstRaw : firstRaw.id) : null;
   return `
     <div class="entity-card${isDM() && !e.visible ? ' card-hidden' : ''}"
       onclick="window._openSessieDetail('${e.id}')">
@@ -252,8 +292,9 @@ function renderSessieEntry(e) {
       <div class="px-4 pt-3 pb-4">
         ${e.datum ? `<div class="text-[11px] font-mono text-ink-faint mb-1">${esc(e.datum)}</div>` : ''}
         ${e.korteSamenvatting
-          ? `<div class="font-cinzel font-semibold text-ink-bright text-sm leading-snug">${esc(e.korteSamenvatting)}</div>`
+          ? `<div class="font-cinzel font-semibold text-ink-bright text-sm leading-snug mb-1">${esc(e.korteSamenvatting)}</div>`
           : `<div class="text-ink-dim text-xs italic">Geen titel</div>`}
+        ${e.samenvatting ? `<p class="text-[11px] text-ink-dim font-fell italic line-clamp-2 leading-snug">${esc(e.samenvatting.replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n/g,' ').slice(0,110))}</p>` : ''}
       </div>
     </div>`;
 }
@@ -267,9 +308,15 @@ window._openSessieDetail = (id) => {
   const chapter = hk[e.hoofdstuk] || {};
   const images = e.images || [];
 
+  const datelineParts = [
+    chapter.short && chapter.short !== e.korteSamenvatting ? chapter.short : null,
+    e.datum,
+  ].filter(Boolean);
+
   const body = `
     ${_renderCarousel(id, images)}
-    ${e.samenvatting ? `<p class="font-crimson text-sm text-ink-medium leading-relaxed mb-4">${mdToHtml(e.samenvatting)}</p>` : ''}
+    ${datelineParts.length ? `<div class="log-dateline">${datelineParts.map(p => esc(p)).join(' &mdash; ')}</div>` : ''}
+    ${e.samenvatting ? `<div class="log-entry">${mdToHtml(e.samenvatting)}</div>` : ''}
     ${_renderSessieChips(e)}
     ${isDM() ? `
       <div class="dm-only mt-4 pt-4 border-t border-room-border flex gap-2">
@@ -281,6 +328,9 @@ window._openSessieDetail = (id) => {
   `;
   const subtitle = [chapter.short, e.datum].filter(Boolean).join(' \u00b7 ');
   openModal(e.korteSamenvatting || 'Sessie', subtitle, body);
+
+  const _accentEl = document.getElementById('m-accent');
+  if (_accentEl) _accentEl.className = 'modal-accent bar-logboek';
 };
 
 export function openLogboekEditor(editId) {
@@ -308,7 +358,7 @@ let logEditorImagesToDelete = [];
 window._addLogImages = (files) => {
   for (const file of files) {
     const id = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-    logEditorImages.push({ id, url: URL.createObjectURL(file), isNew: true, file });
+    logEditorImages.push({ id, url: URL.createObjectURL(file), isNew: true, file, caption: '' });
   }
   _refreshLogImages();
 };
@@ -324,13 +374,21 @@ function _refreshLogImages() {
   if (!c) return;
   c.innerHTML = logEditorImages.length
     ? logEditorImages.map((img, i) => `
-        <div class="relative w-20 h-20 flex-shrink-0 rounded overflow-hidden border border-room-border bg-room-elevated">
-          <img src="${img.url}" class="w-full h-full object-cover">
-          <button type="button" onclick="window._removeLogImage(${i})"
-            class="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded-full text-xs flex items-center justify-center transition">\u00d7</button>
+        <div class="flex flex-col gap-1 flex-shrink-0" style="width:5rem">
+          <div class="relative w-20 h-20 rounded overflow-hidden border border-room-border bg-room-elevated">
+            <img src="${img.url}" class="w-full h-full object-cover">
+            <button type="button" onclick="window._removeLogImage(${i})"
+              class="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded-full text-xs flex items-center justify-center transition">\u00d7</button>
+          </div>
+          <input type="text" placeholder="Onderschrift…" value="${esc(img.caption || '')}"
+            oninput="window._updateLogImageCaption(${i}, this.value)"
+            class="w-full px-1 py-0.5 text-[10px] bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
         </div>`).join('')
     : '<span class="text-xs text-ink-faint italic">Nog geen afbeeldingen</span>';
 }
+window._updateLogImageCaption = (idx, val) => {
+  if (logEditorImages[idx]) logEditorImages[idx].caption = val;
+};
 
 window._saveNewHoofdstuk = async () => {
   const key   = document.getElementById('hk-key')?.value.trim();
@@ -386,9 +444,13 @@ window._openSessieEditor = async (editId) => {
     docs:                  e?.docs?.slice()                  || [],
   };
 
-  // Image state — existing images from entry
+  // Image state — existing images from entry (supports both legacy string[] and {id,caption}[])
   logEditorImagesToDelete = [];
-  logEditorImages = (e?.images || []).map(id => ({ id, url: api.fileUrl(id), isNew: false }));
+  logEditorImages = (e?.images || []).map(item => {
+    const id      = typeof item === 'string' ? item : item.id;
+    const caption = typeof item === 'string' ? '' : (item.caption || '');
+    return { id, url: api.fileUrl(id), isNew: false, caption };
+  });
 
   // Suggest next chapter key/number
   const existingNums = Object.values(hk).map(v => v.num).filter(n => n < 90);
@@ -518,7 +580,7 @@ window._openSessieEditor = async (editId) => {
         datum:                 form.get('datum'),
         korteSamenvatting:     form.get('korteSamenvatting'),
         samenvatting:          form.get('samenvatting'),
-        images:                logEditorImages.map(i => i.id),
+        images:                logEditorImages.map(i => ({ id: i.id, caption: i.caption || '' })),
         nieuwPersonages:       logEditorTags.nieuwPersonages,
         terugkerendPersonages: logEditorTags.terugkerendPersonages,
         nieuwLocaties:         logEditorTags.nieuwLocaties,
