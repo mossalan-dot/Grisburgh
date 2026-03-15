@@ -10,7 +10,7 @@ const TYPE_META = {
 
 const SCHEMA = {
   personages: {
-    subtypes: ['NPC', 'speler', 'antagonist', 'god', 'dier'],
+    subtypes: ['NPC', 'speler', 'antagonist', 'god', 'dier', 'verkoper'],
     fields: [
       { key: 'rol', label: 'Rol', type: 'text' },
       { key: 'ras', label: 'Ras', type: 'text' },
@@ -58,8 +58,9 @@ const AUTO_ICONS = {
     'NPC':        '\ud83d\udc65',
     'speler':     '\u2694\ufe0f',
     'antagonist': '\ud83d\udc80',
-    'god':    '\u2728',
-    'dier':   '\ud83d\udc3e',
+    'god':        '\u2728',
+    'dier':       '\ud83d\udc3e',
+    'verkoper':   '\ud83c\udfea',
   },
   locaties: {
     'Stadswijk':  '\ud83c\udfe0',
@@ -333,6 +334,39 @@ window._openDetail = async (tab, id) => {
           <div class="detail-field-value">${field.type === 'textarea' ? mdToHtml(val) : esc(val)}</div>
         </div>
       `;
+    }
+  }
+
+  // Voorraad (verkopers) — zichtbaar voor spelers
+  if (e.subtype === 'verkoper') {
+    let voorraadItems = [];
+    try { voorraadItems = e.data?.voorraad ? JSON.parse(e.data.voorraad) : []; } catch {}
+    if (voorraadItems.length > 0) {
+      infoHtml += `
+        <div class="mb-4">
+          <div class="detail-field-label">\ud83c\udfea Voorraad</div>
+          <div class="mt-2 rounded border border-room-border overflow-hidden">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-room-elevated border-b border-room-border">
+                  <th class="px-3 py-2 text-left font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Voorwerp</th>
+                  <th class="px-3 py-2 text-right font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Prijs</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${voorraadItems.map((item, i) => `
+                  <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0">
+                    <td class="px-3 py-2 text-ink-bright font-crimson">${esc(item.naam || '—')}</td>
+                    <td class="px-3 py-2 text-ink-medium text-right font-crimson">${esc(item.prijs || '—')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    } else {
+      infoHtml += `<div class="mb-4 text-ink-faint text-sm italic font-fell">\ud83c\udfea Geen voorraad bekend</div>`;
     }
   }
 
@@ -717,7 +751,9 @@ window._openEditor = async (tab, editId) => {
     body += `
       <div>
         <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Subtype</label>
-        <select name="subtype" class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+        <select name="subtype" id="subtype-select"
+          onchange="window._onSubtypeChange(this.value)"
+          class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
           <option value="">—</option>
           ${schema.subtypes.map(s => `<option value="${s}" ${e?.subtype === s ? 'selected' : ''}>${s}</option>`).join('')}
         </select>
@@ -762,6 +798,22 @@ window._openEditor = async (tab, editId) => {
         </div>
       `;
     }
+  }
+
+  // Voorraad (verkopers)
+  if (tab === 'personages') {
+    const isVerkoper = e?.subtype === 'verkoper';
+    body += `
+      <div id="voorraad-section"${isVerkoper ? '' : ' style="display:none"'}
+        class="p-4 bg-room-elevated rounded border border-room-border">
+        <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-3">\ud83c\udfea Voorraad</div>
+        <div id="voorraad-rows" class="space-y-2 mb-3"></div>
+        <button type="button" onclick="window._addVoorraadItem()"
+          class="px-3 py-1 bg-room-bg border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright transition">
+          + Voorwerp toevoegen
+        </button>
+      </div>
+    `;
   }
 
   // Stats (personages)
@@ -873,6 +925,39 @@ window._openEditor = async (tab, editId) => {
 
   openModal(editId ? 'Bewerken' : 'Nieuw', TYPE_META[tab].label, body);
 
+  // ── Voorraad editor state ──
+  let _voorraadItems = [];
+  if (tab === 'personages') {
+    try { _voorraadItems = e?.data?.voorraad ? JSON.parse(e.data.voorraad) : []; } catch { _voorraadItems = []; }
+
+    window._refreshVoorraad = () => {
+      const rows = document.getElementById('voorraad-rows');
+      if (!rows) return;
+      rows.innerHTML = _voorraadItems.length === 0
+        ? `<p class="text-xs text-ink-faint italic">Nog geen items toegevoegd</p>`
+        : _voorraadItems.map((item, idx) => `
+          <div class="flex gap-2 items-center">
+            <input placeholder="Naam voorwerp" value="${esc(item.naam || '')}"
+              oninput="window._updateVoorraadItem(${idx},'naam',this.value)"
+              class="flex-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            <input placeholder="Prijs (bijv. 15 gp)" value="${esc(item.prijs || '')}"
+              oninput="window._updateVoorraadItem(${idx},'prijs',this.value)"
+              class="w-32 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            <button type="button" onclick="window._removeVoorraadItem(${idx})"
+              class="w-7 h-7 flex items-center justify-center rounded text-seal hover:bg-seal/20 text-lg leading-none transition">&times;</button>
+          </div>
+        `).join('');
+    };
+    window._addVoorraadItem = () => { _voorraadItems.push({ naam: '', prijs: '' }); window._refreshVoorraad(); };
+    window._removeVoorraadItem = (idx) => { _voorraadItems.splice(idx, 1); window._refreshVoorraad(); };
+    window._updateVoorraadItem = (idx, field, val) => { if (_voorraadItems[idx]) _voorraadItems[idx][field] = val; };
+    window._onSubtypeChange = (val) => {
+      const sec = document.getElementById('voorraad-section');
+      if (sec) sec.style.display = val === 'verkoper' ? '' : 'none';
+    };
+    window._refreshVoorraad();
+  }
+
   // Form submit handler
   document.getElementById('entity-form').addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -882,6 +967,11 @@ window._openEditor = async (tab, editId) => {
     for (const [key, val] of form.entries()) {
       if (key.startsWith('data_')) data[key.slice(5)] = val;
       else if (key.startsWith('stat_')) stats[key.slice(5)] = val;
+    }
+    // Voorraad serialiseren voor verkopers
+    if (tab === 'personages') {
+      const validItems = _voorraadItems.filter(i => i.naam || i.prijs);
+      data.voorraad = validItems.length > 0 ? JSON.stringify(validItems) : '';
     }
     const payload = {
       name: form.get('name'),
