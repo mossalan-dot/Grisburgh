@@ -332,6 +332,30 @@ function _refreshLogImages() {
     : '<span class="text-xs text-ink-faint italic">Nog geen afbeeldingen</span>';
 }
 
+window._saveNewHoofdstuk = async () => {
+  const key   = document.getElementById('hk-key')?.value.trim();
+  const num   = parseInt(document.getElementById('hk-num')?.value) || 99;
+  const title = document.getElementById('hk-title')?.value.trim();
+  const dag   = document.getElementById('hk-dag')?.value.trim() || '';
+  if (!key || !title) { alert('Sleutel en titel zijn verplicht'); return; }
+  const short = `H${num} \u00b7 ${title.length > 22 ? title.slice(0, 22) + '\u2026' : title}`;
+  try {
+    await api.saveHoofdstuk(key, { num, title, dag, short });
+    // Refresh local meta
+    const newMeta = await api.meta();
+    meta = newMeta;
+    if (window.app?.state) window.app.state.meta = newMeta;
+    // Rebuild select
+    const select = document.getElementById('hk-select');
+    const hk = newMeta?.hoofdstukken || {};
+    select.innerHTML = '<option value="">\u2014</option>' +
+      Object.entries(hk).sort(([,a],[,b]) => a.num - b.num)
+        .map(([k, v]) => `<option value="${k}" ${k === key ? 'selected' : ''}>${esc(v.short)}</option>`)
+        .join('');
+    document.getElementById('new-hk-panel').classList.add('hidden');
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
 window._openSessieEditor = async (editId) => {
   const hk = meta?.hoofdstukken || {};
   let e = null;
@@ -366,16 +390,53 @@ window._openSessieEditor = async (editId) => {
   logEditorImagesToDelete = [];
   logEditorImages = (e?.images || []).map(id => ({ id, url: api.fileUrl(id), isNew: false }));
 
+  // Suggest next chapter key/number
+  const existingNums = Object.values(hk).map(v => v.num).filter(n => n < 90);
+  const nextNum = existingNums.length ? Math.max(...existingNums) + 1 : 1;
+  const nextKey = `h${nextNum}`;
+
   const body = `<form id="sessie-form" class="space-y-4">
     <div class="grid grid-cols-2 gap-3">
       <div>
         <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Hoofdstuk</label>
-        <select name="hoofdstuk" class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-          <option value="">—</option>
-          ${Object.entries(hk).sort(([,a],[,b]) => a.num - b.num).map(([k, v]) =>
-            `<option value="${k}" ${e?.hoofdstuk === k ? 'selected' : ''}>${v.short}</option>`
-          ).join('')}
-        </select>
+        <div class="flex gap-1 mt-1">
+          <select id="hk-select" name="hoofdstuk" class="flex-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+            <option value="">—</option>
+            ${Object.entries(hk).sort(([,a],[,b]) => a.num - b.num).map(([k, v]) =>
+              `<option value="${k}" ${e?.hoofdstuk === k ? 'selected' : ''}>${v.short}</option>`
+            ).join('')}
+          </select>
+          <button type="button" title="Nieuw hoofdstuk toevoegen"
+            onclick="document.getElementById('new-hk-panel').classList.toggle('hidden')"
+            class="px-2.5 py-1 bg-room-elevated border border-room-border rounded text-ink-dim hover:text-gold hover:border-gold-dim transition text-base leading-none">+</button>
+        </div>
+        <div id="new-hk-panel" class="hidden mt-2 p-3 bg-room-elevated/60 border border-room-border rounded space-y-2">
+          <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">Nieuw hoofdstuk</div>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="col-span-2">
+              <label class="text-[10px] text-ink-faint uppercase">Sleutel</label>
+              <input id="hk-key" value="${nextKey}" placeholder="h11"
+                class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            </div>
+            <div>
+              <label class="text-[10px] text-ink-faint uppercase">Nr.</label>
+              <input id="hk-num" type="number" value="${nextNum}" min="1"
+                class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] text-ink-faint uppercase">Titel</label>
+            <input id="hk-title" placeholder="De nieuwe sessie…"
+              class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+          </div>
+          <div>
+            <label class="text-[10px] text-ink-faint uppercase">In-game dag (optioneel)</label>
+            <input id="hk-dag" placeholder="Dag van …"
+              class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+          </div>
+          <button type="button" onclick="window._saveNewHoofdstuk()"
+            class="px-3 py-1.5 bg-gold-dim text-room-bg text-sm font-cinzel rounded hover:bg-gold transition">Toevoegen</button>
+        </div>
       </div>
       <div>
         <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Sessiedatum</label>
