@@ -11,15 +11,25 @@ const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 // ── Helpers ──
 
 function filterEntityForPlayer(entity, dmState) {
-  if (dmState.visibility[entity.id] === 'hidden') return null;
+  const vis = dmState.visibility[entity.id] || 'hidden';
+  if (vis === 'hidden') return null;
+  // Vague: player sees only name + subtype (for icon), nothing else
+  if (vis === 'vague') {
+    return {
+      id: entity.id,
+      name: entity.name,
+      subtype: entity.subtype || '',
+      data: {},
+      links: {},
+      _visibility: 'vague',
+    };
+  }
+  // Visible: full entity, strip DM-only fields
   const e = { ...entity, data: { ...entity.data } };
-  // Strip geheim unless secretReveal is on
   if (!dmState.secretReveals[entity.id]) {
     delete e.data.geheim;
   }
-  // Strip stats — DM only
   delete e.stats;
-  // Deceased is visible to players too
   e._deceased = !!(dmState.deceased?.[entity.id]);
   return e;
 }
@@ -141,13 +151,21 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
 // ── Visibility & Secret toggles ──
 
 router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
-  const { id } = req.params;
+  const { type, id } = req.params;
   const dmState = storage.readJSON('dm-state.json');
   const current = dmState.visibility[id] || 'hidden';
-  dmState.visibility[id] = current === 'visible' ? 'hidden' : 'visible';
+  // Personages + locaties get a 3-state cycle: hidden → vague → visible → hidden
+  const threeState = ['personages', 'locaties'].includes(type);
+  let next;
+  if (threeState) {
+    next = current === 'hidden' ? 'vague' : current === 'vague' ? 'visible' : 'hidden';
+  } else {
+    next = current === 'visible' ? 'hidden' : 'visible';
+  }
+  dmState.visibility[id] = next;
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').emit('entity:visibility', { id, visibility: dmState.visibility[id] });
-  res.json({ visibility: dmState.visibility[id] });
+  req.app.get('io').emit('entity:visibility', { id, visibility: next });
+  res.json({ visibility: next });
 });
 
 router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
