@@ -319,6 +319,14 @@ router.post('/sessieLog', requireDM, (req, res) => {
     datum: req.body.datum || '',
     korteSamenvatting: req.body.korteSamenvatting || '',
     samenvatting: req.body.samenvatting || '',
+    images: req.body.images || [],
+    nieuwPersonages: req.body.nieuwPersonages || [],
+    terugkerendPersonages: req.body.terugkerendPersonages || [],
+    nieuwLocaties: req.body.nieuwLocaties || [],
+    terugkerendLocaties: req.body.terugkerendLocaties || [],
+    voorwerpen: req.body.voorwerpen || [],
+    docs: req.body.docs || [],
+    // legacy fields kept for backward compat
     nieuw: req.body.nieuw || [],
     terugkerend: req.body.terugkerend || [],
   };
