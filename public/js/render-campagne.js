@@ -569,8 +569,12 @@ window._toggleSecret = async (tab, id) => {
 };
 
 window._toggleDeceased = async (tab, id) => {
-  await api.toggleDeceased(tab, id);
-  renderEntitySection(tab);
+  try {
+    await api.toggleDeceased(tab, id);
+    renderEntitySection(tab);
+  } catch (err) {
+    alert('Fout bij deceased toggle: ' + err.message);
+  }
 };
 
 // ── Focal point picker ──
