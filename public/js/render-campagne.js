@@ -60,7 +60,7 @@ const AUTO_ICONS = {
     'antagonist': '\ud83d\udc80',
     'god':        '\u2728',
     'dier':       '\ud83d\udc3e',
-    'verkoper':   '\ud83c\udfea',
+    'verkoper':   '\ud83c\udfec',
   },
   locaties: {
     'Stadswijk':  '\ud83c\udfe0',
@@ -337,39 +337,6 @@ window._openDetail = async (tab, id) => {
     }
   }
 
-  // Voorraad (verkopers) — zichtbaar voor spelers
-  if (e.subtype === 'verkoper') {
-    let voorraadItems = [];
-    try { voorraadItems = e.data?.voorraad ? JSON.parse(e.data.voorraad) : []; } catch {}
-    if (voorraadItems.length > 0) {
-      infoHtml += `
-        <div class="mb-4">
-          <div class="detail-field-label">\ud83c\udfea Voorraad</div>
-          <div class="mt-2 rounded border border-room-border overflow-hidden">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="bg-room-elevated border-b border-room-border">
-                  <th class="px-3 py-2 text-left font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Voorwerp</th>
-                  <th class="px-3 py-2 text-right font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Prijs</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${voorraadItems.map((item, i) => `
-                  <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0">
-                    <td class="px-3 py-2 text-ink-bright font-crimson">${esc(item.naam || '—')}</td>
-                    <td class="px-3 py-2 text-ink-medium text-right font-crimson">${esc(item.prijs || '—')}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-    } else {
-      infoHtml += `<div class="mb-4 text-ink-faint text-sm italic font-fell">\ud83c\udfea Geen voorraad bekend</div>`;
-    }
-  }
-
   // Persoonlijkheid (DM only)
   const persVal = e.data?.persoonlijkheid;
   if (persVal && isDM()) {
@@ -532,10 +499,45 @@ window._openDetail = async (tab, id) => {
     verbHtml = `<div class="text-center py-10 text-ink-faint font-fell italic">Geen verbindingen</div>`;
   }
 
+  // ── Tab: Voorraad (verkopers) ──
+  const isVerkoper = e.subtype === 'verkoper';
+  let voorraadHtml = '';
+  if (isVerkoper) {
+    let voorraadItems = [];
+    try { voorraadItems = e.data?.voorraad ? JSON.parse(e.data.voorraad) : []; } catch {}
+    if (voorraadItems.length > 0) {
+      voorraadHtml = `
+        <div class="rounded border border-room-border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-room-elevated border-b border-room-border">
+                <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Voorwerp</th>
+                <th class="px-4 py-2.5 text-right font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Prijs</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${voorraadItems.map((item, i) => `
+                <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0">
+                  <td class="px-4 py-2.5 text-ink-bright font-crimson">${esc(item.naam || '\u2014')}</td>
+                  <td class="px-4 py-2.5 text-ink-medium text-right font-crimson">${esc(item.prijs || '\u2014')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } else {
+      voorraadHtml = `<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad bekend</div>`;
+    }
+  }
+
   // ── Build tabbed modal body ──
-  const detailTabs = showSheet
-    ? [{ key: 'info', label: 'Info' }, { key: 'sheet', label: 'Character Sheet' }, { key: 'verbindingen', label: 'Verbindingen' }]
-    : [{ key: 'info', label: 'Info' }, { key: 'verbindingen', label: 'Verbindingen' }];
+  const detailTabs = [
+    { key: 'info', label: 'Info' },
+    ...(showSheet ? [{ key: 'sheet', label: 'Character Sheet' }] : []),
+    ...(isVerkoper ? [{ key: 'voorraad', label: '\ud83c\udfec Voorraad' }] : []),
+    { key: 'verbindingen', label: 'Verbindingen' },
+  ];
 
   const tabNav = detailTabs.map((t, i) => `
     <button class="detail-tab px-4 py-2 text-xs font-cinzel font-semibold transition rounded-t
@@ -547,6 +549,7 @@ window._openDetail = async (tab, id) => {
     <div class="flex gap-0.5 border-b border-room-border mb-4">${tabNav}</div>
     <div id="dtab-info">${infoHtml}</div>
     ${showSheet ? `<div id="dtab-sheet" class="hidden">${sheetHtml}</div>` : ''}
+    ${isVerkoper ? `<div id="dtab-voorraad" class="hidden">${voorraadHtml}</div>` : ''}
     <div id="dtab-verbindingen" class="hidden">${verbHtml}</div>
   `;
 
@@ -806,7 +809,7 @@ window._openEditor = async (tab, editId) => {
     body += `
       <div id="voorraad-section"${isVerkoper ? '' : ' style="display:none"'}
         class="p-4 bg-room-elevated rounded border border-room-border">
-        <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-3">\ud83c\udfea Voorraad</div>
+        <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-3">\ud83c\udfec Voorraad</div>
         <div id="voorraad-rows" class="space-y-2 mb-3"></div>
         <button type="button" onclick="window._addVoorraadItem()"
           class="px-3 py-1 bg-room-bg border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright transition">
