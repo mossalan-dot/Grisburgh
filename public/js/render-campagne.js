@@ -248,6 +248,25 @@ function filterEntities(type, list) {
 
 function renderCard(type, e) {
   const vis = e._visibility || 'visible';
+
+  // ── Player vague card: only show name + type icon ──
+  if (!isDM() && vis === 'vague') {
+    return `
+      <div class="entity-card card-vague">
+        <div class="card-accent bar-${type}" style="opacity:0.45"></div>
+        <div class="card-body px-4 py-4">
+          <div class="flex items-center gap-2.5">
+            <div class="card-icon" style="opacity:0.35;filter:grayscale(1)">${TYPE_META[type].icon}</div>
+            <div class="min-w-0 flex-1">
+              <div class="font-cinzel font-bold text-ink-bright text-sm leading-tight">${esc(e.name)}</div>
+              <div class="text-[10px] text-ink-faint font-fell italic mt-0.5">— onbekend —</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   const rol     = e.data?.rol || '';
   const metaText = [e.data?.locType, e.data?.orgType, e.data?.itemType, e.data?.ras, e.data?.klasse].filter(Boolean).join(' \u00b7 ');
   const desc = e.data?.desc || '';
@@ -260,15 +279,25 @@ function renderCard(type, e) {
     (e.links.organisaties || []).slice(0, 1).forEach(n => chips.push(`<span class="chip chip-org" onclick="event.stopPropagation();window._navigateTo('organisaties','${esc(n)}')">\u2694 ${esc(n)}</span>`));
   }
 
+  // ── DM toggle icon / title — 3-state for personages + locaties ──
+  const _threeState = ['personages', 'locaties'].includes(type);
+  const _visIcon  = vis === 'visible' ? '\ud83d\udc41'
+                  : vis === 'vague'   ? '\ud83d\udc64'
+                  :                    '\ud83d\udd12';
+  const _visTitle = vis === 'visible' ? 'Verbergen'
+                  : vis === 'vague'   ? 'Volledig tonen'
+                  : _threeState       ? 'Naam tonen (vaag)'
+                  :                    'Zichtbaar maken';
+
   return `
-    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}"
+    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}"
       onclick="window._openDetail('${type}','${e.id}')">
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._toggleVis('${type}','${e.id}')"
-            title="${vis === 'visible' ? 'Verbergen' : 'Zichtbaar maken'}">
-            ${vis === 'visible' ? '\ud83d\udc41' : '\ud83d\udd12'}
+            title="${_visTitle}">
+            ${_visIcon}
           </button>
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._openEditor('${type}','${e.id}')"
@@ -508,12 +537,24 @@ window._openDetail = async (tab, id) => {
 
   // DM controls
   if (isDM()) {
+    const _ts = ['personages', 'locaties'].includes(tab);
+    const _mVisIcon  = vis === 'visible' ? '\ud83d\udc41'
+                     : vis === 'vague'   ? '\ud83d\udc64'
+                     :                    '\ud83d\udd12';
+    const _mVisCls   = vis === 'visible' ? 'bg-green-wax text-white'
+                     : vis === 'vague'   ? 'bg-gold-dim/60 text-room-bg'
+                     :                    'bg-room-elevated text-ink-dim';
+    const _mVisTitle = vis === 'visible' ? 'Verbergen'
+                     : vis === 'vague'   ? 'Volledig tonen'
+                     : _ts              ? 'Naam tonen (vaag)'
+                     :                    'Zichtbaar maken';
     infoHtml += `
       <div class="dm-only mt-4 pt-4 border-t border-room-border">
         <div class="flex flex-wrap gap-2 mb-3">
-          <button class="px-3 py-1 text-sm rounded ${vis === 'visible' ? 'bg-green-wax text-white' : 'bg-room-elevated text-ink-dim'}"
+          <button class="px-3 py-1 text-sm rounded ${_mVisCls}"
+            title="${_mVisTitle}"
             onclick="window._toggleVis('${tab}','${e.id}')">
-            ${vis === 'visible' ? '\ud83d\udc41' : '\ud83d\udd12'}
+            ${_mVisIcon}
           </button>
           ${isPersonage ? `
             <button class="px-3 py-1 text-sm rounded ${e._secretReveal ? 'bg-seal text-white' : 'bg-room-elevated text-ink-dim'}"

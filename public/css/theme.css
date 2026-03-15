@@ -194,6 +194,34 @@
 }
 .entity-card.card-hidden { opacity: 0.5; }
 
+/* Vague card — player sees name only, no content */
+.entity-card.card-vague {
+  cursor: default;
+  border-style: dashed;
+  border-color: rgba(196,168,122,0.45);
+  background: repeating-linear-gradient(
+    135deg,
+    #faf4e6,
+    #faf4e6 8px,
+    #f5edd8 8px,
+    #f5edd8 16px
+  );
+}
+.entity-card.card-vague:hover {
+  transform: none;
+  box-shadow:
+    0 1px 2px rgba(60,40,10,0.08),
+    0 3px 8px rgba(60,40,10,0.07),
+    inset 0 0 0 1px rgba(255,255,255,0.22);
+}
+/* DM indicator: this entity is in vague state (players see name only) */
+.entity-card.card-vague-dm {
+  box-shadow:
+    0 0 0 2px rgba(184,134,11,0.4),
+    0 3px 8px rgba(60,40,10,0.07),
+    inset 0 0 0 1px rgba(255,255,255,0.22);
+}
+
 .card-accent { height: 5px; flex-shrink: 0; }
 /* card-body grows to fill available space, pushing flavour to the bottom */
 .card-body { flex: 1 1 auto; }
