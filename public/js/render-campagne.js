@@ -98,7 +98,40 @@ const AUTO_ICONS = {
   },
 };
 
+// ── Icon picker emoji sets ──
+const ICON_SETS = {
+  locaties: [
+    '\ud83c\udfe0','\ud83c\udfe1','\ud83c\udfe3','\ud83c\udfe5','\ud83c\udfe6','\ud83c\udfe7','\ud83c\udfe8',
+    '\ud83c\udfe9','\ud83c\udfea','\ud83c\udfeb','\ud83c\udfec','\ud83c\udfed','\ud83c\udfaf',
+    '\ud83c\udfef','\ud83c\udff0','\ud83c\udfd7','\ud83c\udfdb','\ud83c\udfdf','\ud83c\udfd9',
+    '\ud83d\uddfb','\u26ea','\u26e9','\ud83d\udef0','\ud83d\udded','\ud83d\udeab','\ud83d\udee2',
+    '\ud83c\udf7a','\ud83c\udf7b','\ud83c\udf7d','\ud83d\udd6f','\ud83d\udccd','\ud83d\udea9',
+    '\ud83d\uddfa','\u26f5','\ud83d\udea2','\ud83d\udea4',
+    '\ud83c\udf0a','\ud83c\udfd4','\u26f0','\ud83c\udfd5','\ud83c\udfd6','\ud83c\udfdd','\ud83c\udfdc',
+    '\ud83c\udf32','\ud83c\udf33','\ud83c\udf35','\ud83c\udf0b','\ud83c\udf03','\ud83c\udfd9','\ud83c\udf09',
+    '\ud83d\udd11','\ud83d\udddd','\ud83d\udc8e','\ud83d\udd2e','\ud83c\udff9','\u2694\ufe0f','\ud83d\udee1',
+    '\ud83d\udc51','\ud83d\udd31','\u2728','\u2b50','\ud83d\udd25','\u2744','\ud83d\udca7','\u26a1','\ud83c\udf19',
+  ],
+  personages: [
+    '\ud83e\uddd9','\ud83e\udddd','\ud83e\uddb8','\ud83e\uddb9','\ud83e\udddb','\ud83e\udddf','\ud83e\udddc','\ud83e\uddda',
+    '\ud83e\udda0','\ud83d\udc80','\ud83d\udc64','\ud83d\udc65','\ud83e\udd35','\ud83e\uddd1','\ud83d\udc78','\ud83e\uddd1\u200d\u2696\ufe0f',
+    '\ud83d\udc51','\u2694\ufe0f','\ud83d\udde1','\ud83c\udff9','\ud83d\udee1','\ud83d\udd2e','\ud83d\udc8e','\u2728','\u2b50','\u2620\ufe0f','\ud83d\udc32',
+  ],
+  organisaties: [
+    '\ud83c\udfd9','\u269b\ufe0f','\u2694\ufe0f','\ud83d\udee1','\ud83d\uddc1','\ud83d\udc51','\u2764','\u2620\ufe0f',
+    '\u26ea','\ud83d\udef0','\u26e9','\ud83c\udfd7','\ud83d\udd31','\u2b50','\ud83d\udd2e','\ud83c\udff9',
+    '\ud83d\udca3','\ud83e\uddea','\ud83d\udc8e','\u2696\ufe0f','\ud83d\udcdc','\ud83d\udcb0','\ud83e\udd1d',
+  ],
+  voorwerpen: [
+    '\u2694\ufe0f','\ud83d\udee1','\ud83c\udff9','\ud83d\udde1','\ud83d\udd2e','\ud83d\udc8e','\ud83d\udc8d','\ud83d\udcdc',
+    '\ud83e\uddea','\ud83d\udddd','\ud83d\udd11','\ud83d\udc8a','\ud83c\udf7f','\ud83e\uddea','\ud83e\uddeb',
+    '\ud83d\udce6','\ud83d\udcb0','\ud83e\ude99','\u26b1','\ud83e\udea4','\ud83d\udd2e','\ud83e\ude84',
+    '\ud83d\udc52','\ud83d\udc60','\ud83d\udcf0','\u2b50','\u2728','\ud83d\udd25','\u2744',
+  ],
+};
+
 function getAutoIcon(type, e) {
+  if (e.data?.icon) return e.data.icon;
   const map = AUTO_ICONS[type] || {};
   const key =
     e.subtype ||
@@ -113,6 +146,8 @@ const searchQueries = { personages: '', locaties: '', organisaties: '', voorwerp
 let entities = {};
 let editorTags = {};
 let pendingFile = null;
+let entityEditorImages = [];
+let entityEditorImagesToDelete = [];
 
 // Lazy proxies — window.app isn't set yet when ES modules evaluate
 const $ = (...a) => window.app.$(...a);
@@ -235,9 +270,6 @@ function renderCard(type, e) {
             title="${vis === 'visible' ? 'Verbergen' : 'Zichtbaar maken'}">
             ${vis === 'visible' ? '\ud83d\udc41' : '\ud83d\udd12'}
           </button>
-          <button class="w-7 h-7 flex items-center justify-center rounded ${e._deceased ? 'bg-red-700/95' : 'bg-black/75 hover:bg-red-700/90'} backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            onclick="event.stopPropagation();window._toggleDeceased('${type}','${e.id}')"
-            title="${e._deceased ? 'Herstel (niet meer deceased)' : 'Markeer als deceased'}">&#9760;</button>
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._openEditor('${type}','${e.id}')"
             title="Bewerken">&#9998;</button>
@@ -258,7 +290,7 @@ function renderCard(type, e) {
       <div class="card-accent bar-${type}"></div>
       <img class="card-img w-full object-cover" src="${api.fileUrl(e.id)}"
         style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
-        onerror="this.style.display='none'">
+        onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
       <div class="card-body px-4 pt-3 pb-3">
         <div class="flex items-start gap-2.5 mb-2">
           <div class="card-icon">${getAutoIcon(type, e)}</div>
@@ -273,11 +305,95 @@ function renderCard(type, e) {
       </div>
       ${flavour ? `
         <div class="flavour-preview">
-          <span class="flavour-preview-text">\u201e${esc(flavour.length > 90 ? flavour.slice(0, 90) + '\u2026' : flavour)}\u201c</span>
+          <span class="flavour-preview-text">\u201e${esc(flavour.length > 300 ? flavour.slice(0, 300) + '\u2026' : flavour)}\u201c</span>
         </div>
       ` : ''}
     </div>
   `;
+}
+
+// ── Entity carousel (multi-image with captions) ──
+const _ecp = {};   // entity carousel position
+const _ecc = {};   // entity carousel captions
+
+function _parseExtraImages(raw) {
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+function _entityCarouselHtml(key, items) {
+  if (!items.length) return '';
+  if (items.length === 1) {
+    const url = api.fileUrl(items[0].id);
+    return `
+      <div class="detail-hero mb-6" id="detail-img-wrap-${key}" onclick="window.app.openLightbox('${url}','')">
+        <img src="${url}" class="detail-hero-img"
+          onerror="this.closest('#detail-img-wrap-${key}').style.display='none'">
+        <div class="detail-hero-overlay"></div>
+      </div>
+      ${items[0].caption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(items[0].caption)}</p>` : ''}`;
+  }
+  _ecp[key] = 0;
+  _ecc[key] = items.map(i => i.caption || '');
+  return `
+    <div class="mb-4">
+      <div class="relative">
+        <div class="overflow-hidden rounded">
+          <div id="ec-track-${key}" class="flex" style="transition:transform 0.3s ease">
+            ${items.map(({id}) => {
+              const url = api.fileUrl(id);
+              return `<div class="flex-shrink-0 w-full">
+                <img src="${url}" class="detail-portrait w-full max-h-80 object-cover cursor-pointer"
+                  onclick="window.app.openLightbox('${url}','')">
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+        <button class="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/65 text-white rounded-full text-lg leading-none flex items-center justify-center transition"
+          onclick="window._ecStep('${key}',-1,${items.length})">\u2039</button>
+        <button class="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/65 text-white rounded-full text-lg leading-none flex items-center justify-center transition"
+          onclick="window._ecStep('${key}',1,${items.length})">\u203a</button>
+      </div>
+      <div class="flex justify-center gap-1.5 mt-2">
+        ${items.map((_, i) => `<span id="ec-dot-${key}-${i}" onclick="window._ecGo('${key}',${i},${items.length})"
+          class="block w-2 h-2 rounded-full cursor-pointer transition ${i === 0 ? 'bg-gold' : 'bg-room-border'}"></span>`).join('')}
+      </div>
+      <div id="ec-cap-${key}" class="text-center text-xs text-ink-dim font-crimson mt-1.5 italic min-h-[1.2em]">${esc(items[0].caption || '')}</div>
+    </div>`;
+}
+
+window._ecStep = (key, dir, total) => {
+  window._ecGo(key, ((_ecp[key] || 0) + dir + total) % total, total);
+};
+window._ecGo = (key, idx, total) => {
+  _ecp[key] = idx;
+  const track = document.getElementById(`ec-track-${key}`);
+  if (track) track.style.transform = `translateX(-${idx * 100}%)`;
+  for (let i = 0; i < total; i++) {
+    const dot = document.getElementById(`ec-dot-${key}-${i}`);
+    if (dot) dot.className = `block w-2 h-2 rounded-full cursor-pointer transition ${i === idx ? 'bg-gold' : 'bg-room-border'}`;
+  }
+  const capEl = document.getElementById(`ec-cap-${key}`);
+  if (capEl) capEl.textContent = (_ecc[key] || [])[idx] || '';
+};
+
+// ── Entity extra-image editor ──
+function _refreshEntityImages() {
+  const c = document.getElementById('entity-img-preview');
+  if (!c) return;
+  c.innerHTML = entityEditorImages.length
+    ? entityEditorImages.map((img, i) => `
+        <div class="flex flex-col gap-1 flex-shrink-0" style="width:5rem">
+          <div class="relative w-20 h-20 rounded overflow-hidden border border-room-border bg-room-elevated">
+            <img src="${img.url}" class="w-full h-full object-cover">
+            <button type="button" onclick="window._removeEntityImage(${i})"
+              class="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded-full text-xs flex items-center justify-center transition">\u00d7</button>
+          </div>
+          <input type="text" placeholder="Onderschrift\u2026" value="${esc(img.caption || '')}"
+            oninput="window._updateEntityImageCaption(${i}, this.value)"
+            class="w-full px-1 py-0.5 text-[10px] bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+        </div>`).join('')
+    : '<span class="text-xs text-ink-faint italic">Nog geen extra afbeeldingen</span>';
 }
 
 // ── Detail view ──
@@ -294,22 +410,31 @@ window._openDetail = async (tab, id) => {
   // ── Tab: Info ──
   let infoHtml = '';
 
-  // Image — portrait frame (visible to all)
-  infoHtml += `
-    <div class="mb-4" id="detail-img-wrap-${e.id}">
-      <img src="${fileUrl}" class="detail-portrait w-full max-h-80 object-cover cursor-pointer"
-        style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
-        onclick="window.app.openLightbox('${fileUrl}','${esc(e.name)}')"
-        onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
-    </div>
-  `;
+  // Image(s) — carousel when extra images exist, else single portrait
+  const _extraImgs = _parseExtraImages(e.data?.extraImages);
+  const _primaryCaption = e.data?.imgCaption || '';
+  if (_extraImgs.length > 0) {
+    const _allImgs = [{ id: e.id, caption: _primaryCaption }, ..._extraImgs];
+    infoHtml += _entityCarouselHtml(e.id, _allImgs);
+  } else {
+    infoHtml += `
+      <div class="detail-hero mb-6" id="detail-img-wrap-${e.id}" onclick="window.app.openLightbox('${fileUrl}','${esc(e.name)}')">
+        <img src="${fileUrl}" class="detail-hero-img"
+          style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
+          onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
+        <div class="detail-hero-overlay"></div>
+        <div class="detail-hero-icon">${getAutoIcon(tab, e)}</div>
+      </div>
+      ${_primaryCaption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(_primaryCaption)}</p>` : ''}
+    `;
+  }
 
-  // Upload zone (DM only)
+  // Upload zone (DM only — quick upload for primary image)
   if (isDM()) {
     infoHtml += `
       <div class="dm-only mb-4">
         <div class="upload-zone" onclick="document.getElementById('file-upload-${e.id}').click()">
-          \ud83d\udcf7 Afbeelding of PDF uploaden (max 10MB)
+          \ud83d\udcf7 Afbeelding uploaden (max 10MB)
         </div>
         <input type="file" id="file-upload-${e.id}" accept="image/*,.pdf,application/pdf" class="hidden"
           onchange="window._uploadFile('${tab}','${e.id}',this.files[0])">
@@ -317,24 +442,31 @@ window._openDetail = async (tab, id) => {
     `;
   }
 
-  // Schema fields (excl. geheim + dmOnly + flavour — rendered separately)
+  // Rol badge
+  const rolVal = e.data?.rol;
+  if (rolVal) {
+    infoHtml += `<div class="text-center mb-4"><span class="detail-role-badge">${esc(rolVal)}</span></div>`;
+  }
+
+  // Short metadata → pills; description → block
+  const _metaPills = [];
+  let _descVal = '';
   for (const field of (schema.fields || [])) {
-    if (field.key === 'geheim') continue;
-    if (field.key === 'flavour') continue;
-    if (field.key === 'rol') continue;
+    if (['geheim', 'flavour', 'rol'].includes(field.key)) continue;
     if (field.dmOnly) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
     if (field.key === 'desc') {
-      infoHtml += `<div class="detail-desc mb-4">${mdToHtml(val)}</div>`;
+      _descVal = val;
     } else {
-      infoHtml += `
-        <div class="detail-field mb-3">
-          <div class="detail-field-label">${esc(field.label)}</div>
-          <div class="detail-field-value">${field.type === 'textarea' ? mdToHtml(val) : esc(val)}</div>
-        </div>
-      `;
+      _metaPills.push(`<span class="detail-meta-pill">${esc(val)}</span>`);
     }
+  }
+  if (_metaPills.length) {
+    infoHtml += `<div class="detail-meta-pills">${_metaPills.join('')}</div>`;
+  }
+  if (_descVal) {
+    infoHtml += `<div class="detail-desc mb-4">${mdToHtml(_descVal)}</div>`;
   }
 
   // Persoonlijkheid (DM only)
@@ -351,6 +483,7 @@ window._openDetail = async (tab, id) => {
   // Flavour scroll (parchment scroll — visible to all)
   const flavourVal = e.data?.flavour;
   if (flavourVal) {
+    infoHtml += `<div class="detail-divider">— ✦ —</div>`;
     infoHtml += `
       <div class="flavour-scroll">
         <div class="flavour-scroll-rod"></div>
@@ -553,7 +686,11 @@ window._openDetail = async (tab, id) => {
     <div id="dtab-verbindingen" class="hidden">${verbHtml}</div>
   `;
 
-  openModal(e.name, e.data?.rol || meta.label, body);
+  openModal(e.name, `${getAutoIcon(tab, e)}  ${e.data?.rol || meta.label}`, body);
+
+  // Set type accent bar
+  const _accentEl = document.getElementById('m-accent');
+  if (_accentEl) _accentEl.className = `modal-accent bar-${tab}`;
 
   // Tab switching
   const allTabKeys = detailTabs.map(t => t.key);
@@ -701,12 +838,41 @@ window._openEditor = async (tab, editId) => {
 
   let body = `<form id="entity-form" class="space-y-4">`;
 
-  // Name
+  // Name + icon (side by side)
+  const _autoIc  = getAutoIcon(tab, e || { data: {} });
+  const _customIc = e?.data?.icon || '';
+  const _showIc  = _customIc || _autoIc;
+  const _iconSet = ICON_SETS[tab] || [];
   body += `
-    <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Naam</label>
-      <input name="name" value="${esc(e?.name || '')}" required
-        class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+    <div class="flex gap-3 items-end">
+      <div class="flex-1">
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Naam</label>
+        <input name="name" value="${esc(e?.name || '')}" required
+          class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+      </div>
+      <div class="flex-shrink-0">
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider block mb-1">Icoon</label>
+        <button type="button" id="icon-picker-btn"
+          onclick="window._toggleIconPicker()"
+          title="Kies een icoon"
+          class="w-12 h-12 text-2xl flex items-center justify-center rounded border border-room-border bg-room-elevated hover:border-gold-dim transition select-none">
+          <span id="icon-preview">${_showIc}</span>
+        </button>
+        <input type="hidden" name="data_icon" id="icon-input" value="${esc(_customIc)}">
+      </div>
+    </div>
+    <div id="icon-picker" class="hidden p-2 bg-room-elevated border border-room-border rounded">
+      <div class="flex flex-wrap gap-1 mb-1.5">
+        <button type="button"
+          onclick="window._selectIcon('')"
+          class="px-2 py-0.5 text-[10px] font-cinzel text-ink-dim bg-room-bg border border-room-border rounded hover:border-gold-dim transition${!_customIc ? ' border-gold-dim text-gold' : ''}">
+          Automatisch
+        </button>
+      </div>
+      <div class="flex flex-wrap gap-0.5">
+        ${_iconSet.map(ic => `<button type="button" onclick="window._selectIcon('${ic}')"
+          class="w-8 h-8 text-lg flex items-center justify-center rounded hover:bg-room-bg transition${ic === _customIc ? ' bg-room-bg ring-1 ring-gold-dim' : ''}">${ic}</button>`).join('')}
+      </div>
     </div>
   `;
 
@@ -748,6 +914,30 @@ window._openEditor = async (tab, editId) => {
       </div>
     `;
   }
+
+  // Caption for primary image
+  body += `
+    <div>
+      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Onderschrift hoofdafbeelding</label>
+      <input name="data_imgCaption" value="${esc(e?.data?.imgCaption || '')}"
+        placeholder="Bijschrift bij de hoofdafbeelding\u2026"
+        class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+    </div>
+  `;
+
+  // Extra images section
+  body += `
+    <div>
+      <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2">\ud83d\uddbc\ufe0f Extra afbeeldingen</div>
+      <div id="entity-img-preview" class="flex flex-wrap gap-2 mb-2 min-h-[2rem] items-start">
+        <span class="text-xs text-ink-faint italic">Nog geen extra afbeeldingen</span>
+      </div>
+      <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-room-elevated border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright cursor-pointer transition">
+        + Toevoegen
+        <input type="file" accept="image/*" multiple class="hidden" onchange="window._addEntityImages(this.files)">
+      </label>
+    </div>
+  `;
 
   // Subtype
   if (schema.subtypes) {
@@ -928,6 +1118,45 @@ window._openEditor = async (tab, editId) => {
 
   openModal(editId ? 'Bewerken' : 'Nieuw', TYPE_META[tab].label, body);
 
+  // ── Icon picker ──
+  window._toggleIconPicker = () => {
+    document.getElementById('icon-picker')?.classList.toggle('hidden');
+  };
+  window._selectIcon = (ic) => {
+    const input = document.getElementById('icon-input');
+    const preview = document.getElementById('icon-preview');
+    if (input) input.value = ic;
+    if (preview) preview.textContent = ic || getAutoIcon(tab, e || { data: {} });
+    document.getElementById('icon-picker')?.classList.add('hidden');
+  };
+
+  // ── Extra images editor state ──
+  entityEditorImagesToDelete = [];
+  entityEditorImages = _parseExtraImages(e?.data?.extraImages).map(item => ({
+    id: item.id,
+    url: api.fileUrl(item.id),
+    isNew: false,
+    caption: item.caption || '',
+  }));
+  window._addEntityImages = (files) => {
+    for (const file of files) {
+      const id = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+      entityEditorImages.push({ id, url: URL.createObjectURL(file), isNew: true, file, caption: '' });
+    }
+    _refreshEntityImages();
+  };
+  window._removeEntityImage = (idx) => {
+    const img = entityEditorImages[idx];
+    if (!img.isNew) entityEditorImagesToDelete.push(img.id);
+    else URL.revokeObjectURL(img.url);
+    entityEditorImages.splice(idx, 1);
+    _refreshEntityImages();
+  };
+  window._updateEntityImageCaption = (idx, val) => {
+    if (entityEditorImages[idx]) entityEditorImages[idx].caption = val;
+  };
+  setTimeout(() => _refreshEntityImages(), 0);
+
   // ── Voorraad editor state ──
   let _voorraadItems = [];
   if (tab === 'personages') {
@@ -976,6 +1205,10 @@ window._openEditor = async (tab, editId) => {
       const validItems = _voorraadItems.filter(i => i.naam || i.prijs);
       data.voorraad = validItems.length > 0 ? JSON.stringify(validItems) : '';
     }
+    // Extra afbeeldingen serialiseren
+    data.extraImages = entityEditorImages.length > 0
+      ? JSON.stringify(entityEditorImages.map(i => ({ id: i.id, caption: i.caption || '' })))
+      : '';
     const payload = {
       name: form.get('name'),
       subtype: form.get('subtype') || '',
@@ -990,6 +1223,14 @@ window._openEditor = async (tab, editId) => {
       } else {
         const created = await api.createEntity(tab, payload);
         if (pendingFile && created?.id) await api.uploadFile(created.id, pendingFile);
+      }
+      // Upload nieuwe extra afbeeldingen
+      for (const img of entityEditorImages) {
+        if (img.isNew) await api.uploadFile(img.id, img.file);
+      }
+      // Verwijder verwijderde extra afbeeldingen
+      for (const id of entityEditorImagesToDelete) {
+        await api.deleteFile(id).catch(() => {});
       }
       closeModal();
       renderEntitySection(tab);

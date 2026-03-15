@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=3">
+  <link rel="stylesheet" href="/css/theme.css?v=4">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -126,6 +126,7 @@
   <!-- Detail / Editor modal -->
   <div class="modal-overlay" id="modal-overlay">
     <div class="modal animate-modal-in">
+      <div id="m-accent" class="modal-accent"></div>
       <div class="modal-head">
         <div>
           <div class="font-cinzel text-xl text-gold font-bold" id="m-title"></div>
@@ -144,6 +145,30 @@
     <div id="lb-title" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/70 bg-black/50 px-4 py-1 rounded text-sm font-fell italic"></div>
   </div>
 
-  <script type="module" src="/js/app.js?v=3"></script>
+  <!-- Dice roller trigger — small button, bottom-right corner -->
+  <button id="dice-fab" class="dice-fab" onclick="window.dice.toggle()" title="Dobbelstenen gooien">🎲</button>
+
+  <!-- Dice Roller Panel — slides up from bottom-right -->
+  <div id="dice-panel" class="dice-panel">
+    <div class="dice-panel-head">
+      <span class="dice-panel-title">⚄ Dobbelstenen</span>
+      <button class="dice-panel-close" onclick="window.dice.toggle()" title="Sluiten">&times;</button>
+    </div>
+    <div class="dice-panel-grid">
+      <button class="dice-btn" onclick="window.dice.roll(4)">d4</button>
+      <button class="dice-btn" onclick="window.dice.roll(6)">d6</button>
+      <button class="dice-btn" onclick="window.dice.roll(8)">d8</button>
+      <button class="dice-btn" onclick="window.dice.roll(12)">d12</button>
+      <button class="dice-btn dice-btn--featured" onclick="window.dice.roll(20)">d20</button>
+      <button class="dice-btn" onclick="window.dice.roll(100)">d%</button>
+    </div>
+    <div class="dice-result" id="dice-result">
+      <div class="dice-result-num" id="dice-result-num">—</div>
+      <div class="dice-result-label" id="dice-result-label">Kies een dobbelsteen</div>
+    </div>
+    <div class="dice-history" id="dice-history"></div>
+  </div>
+
+  <script type="module" src="/js/app.js?v=4"></script>
 </body>
 </html>

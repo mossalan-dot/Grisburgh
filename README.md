@@ -34,13 +34,47 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 - Autocomplete bij het linken van entities
 - Sessielogboek met nieuwe (✨), terugkerende (🔄) entities en gekoppelde documenten (📜) per sessie
 - Documentchips in het logboek zijn klikbaar en openen het document direct
+- NPC's markeerbaar als deceased (rood kruis over kaartje)
+
+### Partybalk
+
+- Spelersportretten (subtype `speler`) verschijnen automatisch in de header
+- Klik op het gekleurde bolletje per portret om aan te geven of een speler aanwezig is in de sessie
+- Aanwezige spelers staan links, afwezige spelers staan rechts (gedimd en grijsfilter) met een scheidingslijn ertussen
+- Aanwezigheidsstatus wordt lokaal opgeslagen (per browser)
 
 ### Kaartweergave
 
+- Kaarten zijn flex-kolommen: flavourtekst staat altijd onderaan het kaartje
+- Kaarten zonder afbeelding tonen meer flavourtekst (6 regels in plaats van 2)
 - Rol van een personage wordt direct onder de naam getoond
 - Beschrijvingen renderen markdown (vet, cursief)
-- Partybalk toont alleen de voornaam van spelersfiguren
 - Kaartafbeeldingen tonen met focuspunt, portraits in detailmodal groter weergegeven
+
+### Detail-viewer (spelermodus)
+
+- **Hero-portret** — grote afbeelding met gradient-overlay en type-icoon
+- **Rol-badge** — sierlijk badge met Cinzel uppercase lettering
+- **Meta-pills** — compacte pills voor ras, klasse, locatietype, etc.
+- **Sierlijk scheidingsteken** — `— ✦ —` tussen beschrijving en flavourrol
+- **Gekleurde accentbalk** bovenaan het modal per entiteitstype
+
+### Logboek-viewer (spelermodus)
+
+- Sessieafbeelding als hero-portret met dateline en hoofdstuklabel
+- Samenvatting als journaalstijl tekstblok met gouden linkerbalk
+- Entiteits-chips gegroepeerd per categorie: Personages / Locaties / Voorwerpen / Documenten
+- Kleurcodering per chip: goud = nieuw, blauw = terugkerend, etc.
+- Samenvattingsexcerpt zichtbaar direct op de logboekkaart
+
+### Dobbelsteenpaneel 🎲
+
+- Klein goudkleurig knopje rechtsonder in het scherm (naast DM-knop)
+- Klikken schuift een paneel omhoog met alle dobbelstenen: d4, d6, d8, d12, d20, d%
+- Ticker-animatie bij elke gooi (versneld → vertraagd → uitkomst)
+- d20=20 → **Critical Hit!** (groen), d20=1 → **Critical Fail!** (rood)
+- Rolgeschiedenis van de laatste 10 gooien zichtbaar als chips
+- Toegankelijk voor zowel DM als spelers
 
 ## Importscripts
 
@@ -110,13 +144,13 @@ lib/
 public/
   index.html           # SPA shell (Tailwind CSS + PDF.js)
   js/
-    app.js             # App shell, auth, modals, section routing
+    app.js             # App shell, auth, modals, section routing, dobbelsteenpaneel
     render-campagne.js # Entity CRUD, cards, editor, autocomplete links
     render-archief.js  # Documenten, logboek, onthulling, PDF viewer
     api.js             # Fetch wrapper + entity name lookup
     socket-client.js   # Real-time updates
   css/
-    theme.css          # Perkament-thema (scrollbar, chips, modals, etc.)
+    theme.css          # Perkament-thema (scrollbar, chips, modals, kaarten, panelen)
 data/                  # Persistent data (gitignored)
 import-schaduwvin.js   # Obsidian entity-import script
 import-obsidian.js     # Obsidian document-import script
