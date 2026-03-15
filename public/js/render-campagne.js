@@ -229,18 +229,18 @@ function renderCard(type, e) {
       onclick="window._openDetail('${type}','${e.id}')">
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
-          <button class="w-6 h-6 flex items-center justify-center rounded bg-black/40 hover:bg-black/65 backdrop-blur-sm transition text-xs"
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._toggleVis('${type}','${e.id}')"
             title="${vis === 'visible' ? 'Verbergen' : 'Zichtbaar maken'}">
             ${vis === 'visible' ? '\ud83d\udc41' : '\ud83d\udd12'}
           </button>
-          <button class="w-6 h-6 flex items-center justify-center rounded ${e._deceased ? 'bg-red-800/80' : 'bg-black/40'} hover:bg-red-700/70 backdrop-blur-sm transition text-xs"
+          <button class="w-7 h-7 flex items-center justify-center rounded ${e._deceased ? 'bg-red-700/95' : 'bg-black/75 hover:bg-red-700/90'} backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._toggleDeceased('${type}','${e.id}')"
             title="${e._deceased ? 'Herstel (niet meer deceased)' : 'Markeer als deceased'}">&#9760;</button>
-          <button class="w-6 h-6 flex items-center justify-center rounded bg-black/40 hover:bg-black/65 backdrop-blur-sm transition text-xs"
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._openEditor('${type}','${e.id}')"
             title="Bewerken">&#9998;</button>
-          <button class="w-6 h-6 flex items-center justify-center rounded bg-black/40 hover:bg-seal/70 backdrop-blur-sm transition text-xs text-white"
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-red-700/90 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._deleteEntity('${type}','${e.id}')"
             title="Verwijderen">&#10005;</button>
         </div>
