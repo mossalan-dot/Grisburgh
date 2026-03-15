@@ -1,11 +1,13 @@
 import { api } from './api.js';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js';
+import { renderKaart } from './render-kaart.js';
 import { initSocket } from './socket-client.js';
 
 // ── App State ──
 const state = {
   role: 'player',
+  dmPreview: false,   // true = DM authenticated but viewing as player
   activeSection: 'personages',
   meta: null,
 };
@@ -17,11 +19,13 @@ const $$ = (sel) => document.querySelectorAll(sel);
 window.app = {
   state,
   $, $$,
-  isDM: () => state.role === 'dm',
+  isDM: () => state.role === 'dm' && !state.dmPreview,
   toggleLoginModal,
   closeLoginModal,
   login,
   logout,
+  dmLogout,
+  dmToggleClick,
   onFabClick,
   openModal,
   closeModal,
@@ -55,7 +59,7 @@ const ENTITY_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen']
 function updateFab() {
   const fab = $('#fab');
   const editableSections = [...ENTITY_SECTIONS, 'documenten', 'logboek'];
-  if (state.role === 'dm' && editableSections.includes(state.activeSection)) {
+  if (state.role === 'dm' && !state.dmPreview && editableSections.includes(state.activeSection)) {
     fab.classList.remove('hidden');
   } else {
     fab.classList.add('hidden');
@@ -100,17 +104,66 @@ async function login() {
 async function logout() {
   await api.logout();
   state.role = 'player';
+  state.dmPreview = false;
   applyRole();
   refreshAll();
 }
 
+async function dmLogout() {
+  await logout();
+}
+
 function applyRole() {
-  const appEl = $('#app');
-  appEl.classList.toggle('dm-mode', state.role === 'dm');
-  appEl.classList.toggle('player-mode', state.role !== 'dm');
-  $('#dm-login').classList.toggle('hidden', state.role === 'dm');
-  $('#dm-badge').classList.toggle('hidden', state.role !== 'dm');
+  const appEl   = $('#app');
+  const isDmActive  = state.role === 'dm' && !state.dmPreview;
+  const isDmPreview = state.role === 'dm' && state.dmPreview;
+
+  appEl.classList.toggle('dm-mode',     isDmActive);
+  appEl.classList.toggle('player-mode', !isDmActive);
+
+  const toggle    = $('#dm-toggle');
+  const knob      = $('#dm-toggle-knob');
+  const label     = $('#dm-toggle-label');
+  const logoutBtn = $('#dm-logout-btn');
+
+  if (toggle) {
+    toggle.style.background  = isDmActive ? '#8a6200' : isDmPreview ? '#3a2a00' : '';
+    toggle.style.borderColor = isDmActive ? '#c4930a' : isDmPreview ? '#6a4800' : '';
+    toggle.title = isDmActive ? 'Spelerweergave tonen' : isDmPreview ? 'Terug naar DM-weergave' : 'Dungeon Master modus';
+  }
+  if (knob) {
+    knob.style.transform = isDmActive ? 'translateX(1.25rem)' : isDmPreview ? 'translateX(0.625rem)' : 'translateX(0)';
+    knob.style.background = isDmActive ? '#f0b429' : isDmPreview ? '#8a6200' : '';
+  }
+  if (label) {
+    label.textContent = isDmActive ? 'Dungeon Master' : isDmPreview ? 'Spelerweergave' : 'DM';
+    label.style.color = isDmActive ? '#c4930a' : isDmPreview ? '#6a4800' : '';
+  }
+  if (logoutBtn) {
+    logoutBtn.classList.toggle('hidden', state.role !== 'dm');
+  }
+
+  const diceFab = document.getElementById('dice-fab');
+  if (diceFab) diceFab.style.right = isDmActive ? '88px' : '26px';
+
   updateFab();
+}
+
+function dmToggleClick() {
+  if (state.role === 'dm' && !state.dmPreview) {
+    // DM active → enter player preview
+    state.dmPreview = true;
+    applyRole();
+    refreshAll();
+  } else if (state.role === 'dm' && state.dmPreview) {
+    // Preview → back to DM
+    state.dmPreview = false;
+    applyRole();
+    refreshAll();
+  } else {
+    // Not logged in → open login
+    toggleLoginModal();
+  }
 }
 
 // ── Modal ──
@@ -252,6 +305,7 @@ async function refreshSection(section) {
   else if (section === 'voorwerpen') await renderVoorwerpen();
   else if (section === 'documenten') await renderDocumenten();
   else if (section === 'logboek') await renderLogboek();
+  else if (section === 'kaart') await renderKaart();
 }
 
 async function refreshAll() {

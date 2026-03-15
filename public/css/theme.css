@@ -1,3 +1,27 @@
+/* Parchment texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background-image:
+    repeating-linear-gradient(
+      -38deg,
+      transparent 0px,
+      transparent 6px,
+      rgba(130, 90, 30, 0.009) 6px,
+      rgba(130, 90, 30, 0.009) 7px
+    ),
+    repeating-linear-gradient(
+      52deg,
+      transparent 0px,
+      transparent 9px,
+      rgba(130, 90, 30, 0.006) 9px,
+      rgba(130, 90, 30, 0.006) 10px
+    );
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: #efe3c5; }
@@ -15,10 +39,23 @@
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: 0.25s ease;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease, transform 0.15s ease, text-shadow 0.2s ease;
+  transform-origin: bottom center;
 }
-.section-tab:hover { color: #5a4030; }
-.section-tab.active { color: #9a7008; border-bottom-color: #9a7008; }
+.section-tab:hover {
+  color: #c4930a;
+  transform: translateY(-2px);
+  text-shadow: 0 0 12px rgba(196, 147, 10, 0.4);
+  border-bottom-color: rgba(196, 147, 10, 0.35);
+}
+.section-tab.active {
+  color: #9a7008;
+  border-bottom-color: #9a7008;
+  transform: none;
+  text-shadow: none;
+  background: rgba(196, 168, 122, 0.18);
+  border-radius: 4px 4px 0 0;
+}
 
 /* Sections */
 .section { display: none; height: 100%; overflow-y: auto; }
@@ -225,7 +262,7 @@
 .card-accent { height: 5px; flex-shrink: 0; }
 /* card-body grows to fill available space, pushing flavour to the bottom */
 .card-body { flex: 1 1 auto; }
-.card-img { max-height: 160px; display: block; width: 100%; object-fit: cover; flex-shrink: 0; }
+.card-img { min-height: 130px; max-height: 160px; display: block; width: 100%; object-fit: cover; flex-shrink: 0; }
 .card-icon { font-size: 1.2rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
 
 /* Flavour preview on card */
@@ -497,16 +534,19 @@
 
 .log-entry {
   font-family: 'IM Fell English', serif;
-  font-size: 15px;
-  line-height: 1.85;
+  font-size: 15.5px;
+  line-height: 1.9;
   color: #2a1a08;
-  padding: 16px 20px;
-  background: rgba(240,228,196,0.45);
+  padding: 20px 24px;
+  background: linear-gradient(to bottom right, rgba(245,235,205,0.6), rgba(238,224,188,0.4));
   border-left: 3px solid #b8860b;
-  border-radius: 0 4px 4px 0;
-  margin-bottom: 16px;
+  border-top: 1px solid rgba(184,134,11,0.15);
+  border-bottom: 1px solid rgba(184,134,11,0.1);
+  border-radius: 0 6px 6px 0;
+  margin-bottom: 18px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3), 2px 2px 8px rgba(60,40,10,0.06);
 }
-.log-entry p { margin: 0 0 0.75em; }
+.log-entry p { margin: 0 0 0.85em; }
 .log-entry p:last-child { margin-bottom: 0; }
 
 .log-chips-wrap {
@@ -520,11 +560,14 @@
 .log-chip-section { display: flex; flex-direction: column; gap: 5px; }
 .log-chip-section-label {
   font-family: 'Cinzel', serif;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: #8a7050;
+  letter-spacing: 1.8px;
+  color: #7a5c28;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(196,168,122,0.4);
+  margin-bottom: 4px;
 }
 .log-chip {
   display: inline-flex;
@@ -579,6 +622,41 @@
 }
 .autocomplete-item:hover, .autocomplete-item.active {
   background: #e6d5ad; color: #2a1a08;
+}
+
+/* ── Search input — more distinctive ── */
+.search-input {
+  background: #faf4e8 !important;
+  border: 1.5px solid #b09060 !important;
+  box-shadow: inset 0 1px 3px rgba(60,40,10,0.06) !important;
+}
+.search-input:focus {
+  border-color: #9a7008 !important;
+  box-shadow: inset 0 1px 3px rgba(60,40,10,0.06), 0 0 0 2.5px rgba(154,112,8,0.12) !important;
+}
+
+/* ── Section banner ── */
+.section-banner {
+  flex-shrink: 0;
+  padding: 14px 24px 11px;
+  background: linear-gradient(to bottom, rgba(196,168,122,0.1), transparent);
+  border-bottom: 1px solid rgba(196,168,122,0.35);
+}
+.section-banner-title {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2.2px;
+  color: #5a4010;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-banner-line {
+  height: 1px;
+  margin-top: 7px;
+  background: linear-gradient(to right, rgba(196,168,122,0.6), rgba(196,168,122,0.15), transparent);
 }
 
 /* Upload zone */
@@ -636,7 +714,7 @@
 .dice-fab {
   position: fixed;
   bottom: 26px;
-  right: 88px;
+  right: 26px;
   width: 38px;
   height: 38px;
   border-radius: 50%;
@@ -822,7 +900,140 @@
   75%  { transform: translateX(4px)  rotate(1.5deg); }
 }
 
+/* ── Kaart — navigatie ── */
+.map-nav-btn {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: rgba(180,140,40,0.12);
+  border: 1px solid rgba(180,140,40,0.3);
+  color: #c4930a;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.map-nav-btn:hover { background: rgba(180,140,40,0.25); color: #d4af37; }
+.map-nav-btn:disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+
+/* ── Kaart / Map pins ── */
+.map-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.map-pin:hover { z-index: 20; cursor: grab; }
+.map-pin.pin-dragging { cursor: grabbing; opacity: 0.85; }
+
+.pin-head {
+  width: 14px;
+  height: 14px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: #c4930a;
+  border: 2px solid rgba(255,255,220,0.7);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  flex-shrink: 0;
+}
+.pin-needle {
+  width: 2px;
+  height: 0;
+  background: #c4930a;
+  order: 1;
+  flex-shrink: 0;
+}
+.pin-label {
+  order: -1;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  font-size: 10px;
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  background: rgba(18,12,4,0.82);
+  color: #d4af37;
+  padding: 2px 5px;
+  border-radius: 3px;
+  pointer-events: none;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 0.15s;
+  border: 1px solid rgba(180,140,40,0.3);
+}
+.map-pin:hover .pin-label { opacity: 1; }
+
+.map-pin-vague .pin-head { background: #555; border-color: rgba(200,200,200,0.4); }
+.map-pin-vague .pin-label { color: #888; }
+.map-pin-hidden { opacity: 0.45; }
+.map-pin-hidden .pin-head { background: #7a5010; }
+
+.pin-delete {
+  display: none;
+  position: absolute;
+  top: -6px;
+  right: -16px;
+  background: #7a1a1a;
+  color: #ffd;
+  border: none;
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  font-size: 8px;
+  cursor: pointer;
+  line-height: 15px;
+  text-align: center;
+  z-index: 30;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+.map-pin:hover .pin-delete { display: block; }
+
+/* Pin placer popup */
+.pin-placer-popup {
+  position: fixed;
+  z-index: 200;
+  background: #1c1408;
+  border: 1px solid #3a2a10;
+  border-radius: 8px;
+  padding: 12px;
+  width: 210px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.85);
+}
+
 /* Responsive */
+/* ── Kaart — pin-onthulling toast ── */
+.map-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: linear-gradient(135deg, #2a1f0a, #1a1208);
+  border: 1px solid #c4930a55;
+  color: #f0d88a;
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  padding: 10px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 12px rgba(196,147,10,0.15);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  white-space: nowrap;
+}
+.map-toast--show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.map-toast--clickable { cursor: pointer; pointer-events: auto; }
+.map-toast--clickable:hover {
+  border-color: #c4930a99;
+  background: linear-gradient(135deg, #3a2a0e, #221608);
+}
+
 @media (max-width: 768px) {
   .section-tab { padding: 6px 12px; font-size: 12px; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
@@ -830,3 +1041,33 @@
   .modal-head { padding: 12px 16px; }
   .modal-close { width: 44px; height: 44px; font-size: 32px; }
 }
+
+/* ── Map rustic frame ── */
+.map-frame {
+  position: relative;
+  /* Layered border: inner dark line → gold → dark → gold → shadow */
+  border: 4px solid #7a5c1e;
+  box-shadow:
+    0 0 0 1px #c4a87a,
+    0 0 0 3px #5c4010,
+    0 0 0 5px #c4a87a,
+    0 0 0 7px #7a5c1e,
+    10px 14px 36px rgba(0,0,0,0.65),
+    inset 0 0 0 2px rgba(196,168,122,0.35),
+    inset 0 0 14px rgba(0,0,0,0.4);
+}
+
+/* Corner ornaments via pseudo-elements */
+.map-frame::before,
+.map-frame::after {
+  content: '✦';
+  position: absolute;
+  color: #c4a87a;
+  font-size: 14px;
+  line-height: 1;
+  z-index: 2;
+  pointer-events: none;
+  text-shadow: 0 0 4px rgba(0,0,0,0.7);
+}
+.map-frame::before { top: -10px;  left: -10px;  transform: translate(-30%, -30%); }
+.map-frame::after  { bottom: -10px; right: -10px; transform: translate(30%, 30%); }

@@ -189,13 +189,30 @@ async function renderEntitySection(type) {
     return;
   }
 
+  const DESC = {
+    personages: 'Helden, vrienden en vijanden',
+    locaties: 'Plaatsen, wijken en gebouwen',
+    organisaties: 'Gilden, facties en genootschappen',
+    voorwerpen: 'Magische voorwerpen en uitrusting',
+  };
+
   container.innerHTML = `
+    <!-- Section banner -->
+    <div class="section-banner">
+      <div class="section-banner-title">
+        <span>${TYPE_META[type].icon}</span>
+        <span>${TYPE_META[type].label}</span>
+        <span class="font-fell font-normal normal-case tracking-normal text-ink-faint text-xs italic ml-1">${DESC[type] || ''}</span>
+      </div>
+      <div class="section-banner-line"></div>
+    </div>
+
     <!-- Toolbar -->
     <div class="flex items-center gap-3 px-6 py-3 bg-room-surface/30">
       <div class="relative flex-1 max-w-md">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint">\u2315</span>
         <input type="text" class="search-input w-full pl-9 pr-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none"
-          placeholder="Zoek..." value="${esc(searchQueries[type])}" oninput="window._entitySearch('${type}',this.value)">
+          placeholder="Zoek ${TYPE_META[type].label.toLowerCase()}..." value="${esc(searchQueries[type])}" oninput="window._entitySearch('${type}',this.value)">
       </div>
       <span class="results-count text-ink-faint text-xs font-mono">${list.length} resultaten</span>
     </div>
@@ -220,12 +237,23 @@ async function renderEntitySection(type) {
 function _refreshGrid(type, list, container) {
   const grid = container.querySelector('.cards-grid');
   if (!grid) return;
+  const savedScrollY = window.scrollY;
+  const totalCount = (entities[type] || []).length;
+  const isSearch = !!(searchQueries[type]);
   grid.innerHTML = list.length === 0 ? `
-    <div class="col-span-full text-center py-16 text-ink-faint">
-      <div class="text-4xl mb-3">${TYPE_META[type].icon}</div>
-      <div class="font-fell italic">Geen ${TYPE_META[type].label.toLowerCase()} gevonden</div>
+    <div class="col-span-full text-center py-20 text-ink-faint">
+      <div class="text-5xl mb-4 opacity-40">${TYPE_META[type].icon}</div>
+      <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">
+        ${isSearch || totalCount > 0
+          ? `Geen ${TYPE_META[type].label.toLowerCase()} gevonden`
+          : 'Het archief is nog leeg...'}
+      </div>
+      ${!isSearch && totalCount === 0 && isDM()
+        ? `<div class="text-xs font-fell italic mt-1">Gebruik de <span class="font-mono px-1 py-0.5 bg-room-elevated rounded">+</span> knop om iets toe te voegen</div>`
+        : ''}
     </div>
   ` : list.map(e => renderCard(type, e)).join('');
+  requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
   const countEl = container.querySelector('.results-count');
   if (countEl) countEl.textContent = `${list.length} resultaten`;
 }
@@ -274,9 +302,16 @@ function renderCard(type, e) {
 
   const chips = [];
   if (e.links) {
-    (e.links.personages || []).slice(0, 2).forEach(n => chips.push(`<span class="chip chip-npc" onclick="event.stopPropagation();window._navigateTo('personages','${esc(n)}')">\ud83d\udc64 ${esc(n)}</span>`));
-    (e.links.locaties || []).slice(0, 2).forEach(n => chips.push(`<span class="chip chip-loc" onclick="event.stopPropagation();window._navigateTo('locaties','${esc(n)}')">\ud83c\udff0 ${esc(n)}</span>`));
-    (e.links.organisaties || []).slice(0, 1).forEach(n => chips.push(`<span class="chip chip-org" onclick="event.stopPropagation();window._navigateTo('organisaties','${esc(n)}')">\u2694 ${esc(n)}</span>`));
+    const npc = (e.links.personages || []).slice(0, 1);
+    const loc = (e.links.locaties   || []).slice(0, 1);
+    // Max 2 chips: eerst 1 personage + 1 locatie; ontbreekt één soort, pak 2 van de andere
+    const npcShow = npc.length ? npc : (e.links.personages || []).slice(0, 2 - loc.length);
+    const locShow = loc.length ? loc : (e.links.locaties   || []).slice(0, 2 - npcShow.length);
+    const combined = [
+      ...npcShow.map(n => `<span class="chip chip-npc" onclick="event.stopPropagation();window._navigateTo('personages','${esc(n)}')">\ud83d\udc64 ${esc(n)}</span>`),
+      ...locShow.map(n => `<span class="chip chip-loc" onclick="event.stopPropagation();window._navigateTo('locaties','${esc(n)}')">\ud83c\udff0 ${esc(n)}</span>`),
+    ];
+    chips.push(...combined.slice(0, 2));
   }
 
   // ── DM toggle icon / title — 3-state for personages + locaties ──
@@ -329,7 +364,7 @@ function renderCard(type, e) {
             ${metaText ? `<div class="text-[11px] text-ink-dim mt-0.5 truncate">${esc(metaText)}</div>` : ''}
           </div>
         </div>
-        ${desc ? `<p class="text-xs text-ink-medium line-clamp-2 mb-2 font-crimson leading-relaxed">${mdToHtml(desc)}</p>` : ''}
+        ${desc ? `<p class="text-xs text-ink-medium line-clamp-3 mb-2 font-crimson leading-relaxed">${mdToHtml(desc)}</p>` : ''}
         ${chips.length ? `<div class="flex flex-wrap gap-1">${chips.join('')}</div>` : ''}
       </div>
       ${flavour ? `
@@ -727,7 +762,20 @@ window._openDetail = async (tab, id) => {
     <div id="dtab-verbindingen" class="hidden">${verbHtml}</div>
   `;
 
-  openModal(e.name, `${getAutoIcon(tab, e)}  ${e.data?.rol || meta.label}`, body);
+  const _subParts = [
+    e.data?.rol,
+    e.data?.ras,
+    e.data?.klasse,
+    e.data?.locType,
+    e.data?.wijk,
+    e.data?.orgType,
+    e.data?.itemType,
+    e.data?.rariteit,
+  ].filter(Boolean);
+  const _subtitle = _subParts.length
+    ? `${getAutoIcon(tab, e)}  ${_subParts.join(' · ')}`
+    : `${getAutoIcon(tab, e)}  ${meta.label}`;
+  openModal(e.name, _subtitle, body);
 
   // Set type accent bar
   const _accentEl = document.getElementById('m-accent');
@@ -816,6 +864,8 @@ function _fpApply(ev) {
   if (input) input.value = val;
   const img = document.getElementById('editor-img-preview');
   if (img) img.style.objectPosition = val;
+  const card = document.getElementById('fp-card-preview');
+  if (card) card.style.objectPosition = val;
   const ch = document.getElementById('fp-crosshair');
   if (ch) { ch.style.left = x + '%'; ch.style.top = y + '%'; }
 }
@@ -942,7 +992,16 @@ window._openEditor = async (tab, editId) => {
                   box-shadow:0 0 0 1.5px rgba(0,0,0,0.55),inset 0 0 0 1.5px rgba(0,0,0,0.3)"></div>
               </div>
             </div>
-            <p class="text-[10px] text-ink-dim mb-2">Klik of sleep om het focuspunt in te stellen</p>
+            <p class="text-[10px] text-ink-dim mb-1">Klik of sleep om het focuspunt in te stellen</p>
+            <div class="flex items-start gap-2 mb-2">
+              <div class="text-[10px] text-ink-dim mt-1 shrink-0">Kaartweergave:</div>
+              <div class="rounded overflow-hidden border border-room-border shrink-0"
+                style="width:140px;height:80px">
+                <img id="fp-card-preview" src="${fileUrl}"
+                  class="w-full h-full object-cover pointer-events-none"
+                  style="object-position:${focusVal}">
+              </div>
+            </div>
             <input type="hidden" name="data_imgFocus" id="fp-input" value="${focusVal}">
           ` : ''}
           <div class="upload-zone" onclick="document.getElementById('editor-file-input').click()">
@@ -1159,7 +1218,7 @@ window._openEditor = async (tab, editId) => {
         </button>
       ` : ''}
       <button type="button" onclick="window.app.closeModal()"
-        class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition">Annuleren</button>
+        class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition" title="Annuleren">✕</button>
     </div>
   </form>`;
 

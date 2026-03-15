@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=4">
+  <link rel="stylesheet" href="/css/theme.css?v=5">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -57,25 +57,27 @@
       <div class="flex items-center gap-4">
         <!-- Title -->
         <div class="flex-shrink-0">
-          <h1 class="font-cinzel text-4xl font-black text-ink-bright tracking-wider leading-none">&#x2694;&#xFE0F; Grisburgh</h1>
-          <div class="mt-1.5 flex items-center gap-2">
-            <div class="h-px bg-gold-dim w-12"></div>
+          <h1 class="font-cinzel text-4xl font-black text-ink-bright tracking-wider leading-none">Grisburgh</h1>
+          <div class="mt-1.5 flex items-center gap-1.5">
+            <span class="text-gold-dim text-[10px] leading-none select-none">✦</span>
+            <div class="h-px w-8" style="background:linear-gradient(to right,transparent,#9a7008)"></div>
             <p class="text-ink-medium text-sm font-fell italic">Ontdekkingen uit het stadsarchief</p>
-            <div class="h-px bg-gold-dim w-12"></div>
+            <div class="h-px w-8" style="background:linear-gradient(to left,transparent,#9a7008)"></div>
+            <span class="text-gold-dim text-[10px] leading-none select-none">✦</span>
           </div>
         </div>
         <!-- Party portraits (rendered by JS) -->
         <div id="party-bar" class="flex items-end gap-3 flex-1 overflow-x-auto pt-2"></div>
-        <!-- DM controls -->
-        <div class="flex items-center gap-3 flex-shrink-0">
-          <div id="dm-login">
-            <button id="dm-login-btn" onclick="window.app.toggleLoginModal()"
-              class="px-3 py-1 text-xs font-mono border border-room-border rounded text-ink-dim hover:text-gold hover:border-gold-dim transition">DM</button>
-          </div>
-          <div id="dm-badge" class="hidden flex items-center gap-2 px-3 py-1 rounded bg-gold-glow border border-gold-dim">
-            <span class="text-gold text-xs font-cinzel font-semibold">Dungeon Master</span>
-            <button onclick="window.app.logout()" class="text-ink-dim hover:text-ink-bright text-lg leading-none">&times;</button>
-          </div>
+        <!-- DM toggle -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <span id="dm-toggle-label" class="text-xs font-mono text-ink-dim select-none">DM</span>
+          <button id="dm-toggle" onclick="window.app.dmToggleClick()" title="Dungeon Master modus"
+            class="relative w-11 h-6 rounded-full border border-room-border bg-room-elevated transition-all duration-300 flex-shrink-0">
+            <span id="dm-toggle-knob"
+              class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-ink-faint shadow transition-all duration-300"></span>
+          </button>
+          <button id="dm-logout-btn" onclick="window.app.dmLogout()" title="Uitloggen als DM"
+            class="hidden text-xs text-ink-dim hover:text-gold transition-colors px-1">✕</button>
         </div>
       </div>
     </header>
@@ -88,6 +90,7 @@
       <button class="section-tab" data-section="voorwerpen">&#x1F3BA; Voorwerpen</button>
       <button class="section-tab" data-section="documenten">&#x1F4DC; Documenten</button>
       <button class="section-tab" data-section="logboek">&#x1F4D6; Logboek</button>
+      <button class="section-tab" data-section="kaart">&#x1F5FA; Kaarten</button>
     </nav>
 
     <!-- Sections -->
@@ -98,6 +101,7 @@
       <div class="section" id="section-voorwerpen"></div>
       <div class="section" id="section-documenten"></div>
       <div class="section" id="section-logboek"></div>
+      <div class="section" id="section-kaart"></div>
     </main>
 
     <!-- FAB -->
@@ -124,7 +128,7 @@
   </div>
 
   <!-- Detail / Editor modal -->
-  <div class="modal-overlay" id="modal-overlay">
+  <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)window.app.closeModal()">
     <div class="modal animate-modal-in">
       <div id="m-accent" class="modal-accent"></div>
       <div class="modal-head">
@@ -146,7 +150,12 @@
   </div>
 
   <!-- Dice roller trigger — small button, bottom-right corner -->
-  <button id="dice-fab" class="dice-fab" onclick="window.dice.toggle()" title="Dobbelstenen gooien">🎲</button>
+  <button id="dice-fab" class="dice-fab" onclick="window.dice.toggle()" title="Dobbelstenen gooien">
+    <svg viewBox="0 0 24 22" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+      <polygon points="12,1.5 23,20.5 1,20.5"/>
+      <polygon points="6.5,11.5 17.5,11.5 12,20"/>
+    </svg>
+  </button>
 
   <!-- Dice Roller Panel — slides up from bottom-right -->
   <div id="dice-panel" class="dice-panel">
@@ -169,6 +178,6 @@
     <div class="dice-history" id="dice-history"></div>
   </div>
 
-  <script type="module" src="/js/app.js?v=4"></script>
+  <script type="module" src="/js/app.js?v=5"></script>
 </body>
 </html>

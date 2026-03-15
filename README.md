@@ -19,6 +19,7 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 | **Voorwerpen** | Wapens, toveritems, drankjes, etc. |
 | **Documenten** | Brieven, kaarten, codex, geluidsfragmenten, etc. met 3-state onthulling: verborgen → wazig → onthuld |
 | **Logboek** | Sessiesamenvattingen per hoofdstuk met nieuwe, terugkerende entities, organisaties én documentlinks |
+| **Kaarten** | Interactieve stad- en wereldkaarten met zoom, pan en klikbare pins per locatie |
 
 ### DM-features
 
@@ -39,21 +40,28 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 - Documentchips in het logboek zijn klikbaar en openen het document direct
 - NPC's markeerbaar als deceased (rood kruis over kaartje)
 
-### Partybalk
-
-- Spelersportretten (subtype `speler`) verschijnen automatisch in de header
-- Klik op het gekleurde bolletje per portret om aan te geven of een speler aanwezig is in de sessie
-- Aanwezige spelers staan links, afwezige spelers staan rechts (gedimd en grijsfilter) met een scheidingslijn ertussen
-- Aanwezigheidsstatus wordt lokaal opgeslagen (per browser)
-
 ### Kaartweergave
 
+- Interactieve kaarten met muis/trackpad zoom (scrollwiel) en pan (klik + slepen)
+- Meerdere kaarten (stad, wereld) via tabs
+- Locatie-pins op de kaart — klikbaar, openen het bijbehorende locatiekaartje
+- DM kan pins toevoegen, verplaatsen en verwijderen
+- Rustieke rand rondom kaarten
 - Kaarten zijn flex-kolommen: flavourtekst staat altijd onderaan het kaartje
 - Kaarten zonder afbeelding tonen meer flavourtekst (6 regels in plaats van 2)
 - Rol van een personage wordt direct onder de naam getoond
 - Beschrijvingen renderen markdown (vet, cursief)
 - Kaartafbeeldingen tonen met focuspunt, portraits in detailmodal groter weergegeven
 - Logboekkaartjes tonen de volledige hoofdstuktitel (bijv. *Hoofdstuk 3: De Heeren van de Nacht*)
+
+### Visueel ontwerp
+
+- **Perkamenttextuur** — subtiele linnenpatroon overlay over de hele achtergrond
+- **Sectiebanners** — decoratieve koptekst met icon, label en omschrijving per tabblad
+- **Lege toestanden** — "Het archief is nog leeg..." met DM-hint bij lege secties
+- **Zoekbalk** — visueel duidelijker met perkamentachtergrond en gouden rand
+- **Actief tabblad** — subtiele achtergrondtint op het geselecteerde tabblad
+- **Detail-modal subtitel** — verrijkt met rol, ras, klasse en andere metadata
 
 ### Detail-viewer (spelermodus)
 
@@ -62,6 +70,7 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 - **Meta-pills** — compacte pills voor ras, klasse, locatietype, etc.
 - **Sierlijk scheidingsteken** — `— ✦ —` tussen beschrijving en flavourrol
 - **Gekleurde accentbalk** bovenaan het modal per entiteitstype
+- **Subtitel** — combinatie van rol, ras, klasse en andere velden gescheiden door ` · `
 
 ### Logboek-viewer (spelermodus)
 
@@ -69,7 +78,15 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 - Samenvatting als journaalstijl tekstblok met gouden linkerbalk
 - Entiteits-chips gegroepeerd per categorie: Personages / Locaties / Organisaties / Voorwerpen / Documenten
 - Kleurcodering per chip: goud = nieuw, blauw = terugkerend, rood = organisaties, etc.
+- Chipgroepen voorzien van gelabelde sectiekopjes
 - Samenvattingsexcerpt zichtbaar direct op de logboekkaart
+
+### Partybalk
+
+- Spelersportretten (subtype `speler`) verschijnen automatisch in de header
+- Klik op het gekleurde bolletje per portret om aan te geven of een speler aanwezig is in de sessie
+- Aanwezige spelers staan links, afwezige spelers staan rechts (gedimd en grijsfilter) met een scheidingslijn ertussen
+- Aanwezigheidsstatus wordt lokaal opgeslagen (per browser)
 
 ### Dobbelsteenpaneel 🎲
 
@@ -86,6 +103,7 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 |---|---|
 | `import-schaduwvin.js` | Importeert personages, locaties, organisaties en voorwerpen vanuit een Obsidian-vault |
 | `import-obsidian.js` | Importeert documenten (brieven, kaarten, krantenartikelen, etc.) vanuit de Obsidian-vault |
+| `import-verhaal.js` | Importeert Obsidian-hoofdstukken (Verhaal/) als DM-notities in het sessielogboek |
 
 De scripts lezen Markdown-bestanden en embedded media uit de vault en schrijven direct naar `data/archief.json` en `data/dm-state.json`.
 
@@ -147,10 +165,12 @@ lib/
   storage.js           # JSON file opslag + afbeeldingen/PDFs/audio
 public/
   index.html           # SPA shell (Tailwind CSS + PDF.js)
+  assets/              # Statische kaartafbeeldingen
   js/
     app.js             # App shell, auth, modals, section routing, dobbelsteenpaneel
     render-campagne.js # Entity CRUD, cards, editor, autocomplete links
     render-archief.js  # Documenten, logboek, onthulling, PDF viewer, audiospeler
+    render-kaart.js    # Interactieve kaarten met zoom, pan en locatie-pins
     api.js             # Fetch wrapper + entity name lookup
     socket-client.js   # Real-time updates
   css/
@@ -158,6 +178,7 @@ public/
 data/                  # Persistent data (gitignored)
 import-schaduwvin.js   # Obsidian entity-import script
 import-obsidian.js     # Obsidian document-import script
+import-verhaal.js      # Obsidian verhaal/logboek-import script
 tests/                 # Automatische tests
 ```
 

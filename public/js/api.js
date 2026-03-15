@@ -63,6 +63,12 @@ export const api = {
   meta: () => request('/meta'),
   saveHoofdstuk: (key, data) => request(`/meta/hoofdstuk/${key}`, { method: 'PUT', body: JSON.stringify(data) }),
 
+  // Kaart
+  mapPins: (mapId) => request(`/map/pins?mapId=${encodeURIComponent(mapId || 'grisburgh')}`),
+  createMapPin: (data) => request('/map/pins', { method: 'POST', body: JSON.stringify(data) }),
+  updateMapPin: (id, data) => request(`/map/pins/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteMapPin: (id) => request(`/map/pins/${id}`, { method: 'DELETE' }),
+
   // Get all entity names grouped by type (for link autocomplete)
   async allNames() {
     const types = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
