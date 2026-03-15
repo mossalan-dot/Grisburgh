@@ -399,12 +399,48 @@ window._openDetail = async (tab, id) => {
         const m = Math.floor((parseInt(v) - 10) / 2);
         return m >= 0 ? `+${m}` : `${m}`;
       };
+      // Combat header (AC, HP, Speed, CR, Prof Bonus)
+      const _combatStats = ['ac','hp','speed'].filter(k => s[k]).map(k =>
+        `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">${k.toUpperCase()}</div><div class="text-2xl font-bold text-ink-bright">${esc(s[k])}</div></div>`
+      ).join('');
+      const _crStat = s.cr ? `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">CR</div><div class="text-2xl font-bold text-ink-bright">${esc(s.cr)}</div></div>` : '';
+      const _profStat = s.profBonus ? `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">Prof</div><div class="text-2xl font-bold text-ink-bright">${esc(s.profBonus)}</div></div>` : '';
+
+      // Property rows
+      const _propRows = [
+        ['savingThrows','Saving Throws'],
+        ['skills','Skills'],
+        ['resistances','Damage Resistances'],
+        ['immunities','Damage Immunities'],
+        ['conditionImmunities','Condition Immunities'],
+        ['senses','Senses'],
+        ['languages','Languages'],
+      ].filter(([k]) => s[k]).map(([k, label]) =>
+        `<div class="flex gap-2"><span class="font-cinzel text-ink-dim text-[10px] uppercase flex-shrink-0 w-40">${label}</span><span class="text-ink-medium">${esc(s[k])}</span></div>`
+      ).join('');
+      const _propTable = _propRows ? `<div class="mt-3 border-t border-room-border pt-3 text-sm space-y-1">${_propRows}</div>` : '';
+
+      // Narrative sections
+      const _narrative = [
+        ['traits','Traits'],
+        ['actions','Actions'],
+        ['bonusActions','Bonus Actions'],
+        ['reactions','Reactions'],
+        ['legendaryActions','Legendary Actions'],
+      ].filter(([k]) => s[k]).map(([k, label]) =>
+        `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-1">${label}</div><div class="text-sm text-ink-medium whitespace-pre-wrap">${esc(s[k])}</div></div>`
+      ).join('');
+
+      // Spells
+      const _spells = [
+        s.cantrips ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-1">Cantrips</div><div class="text-sm text-ink-medium whitespace-pre-wrap">${esc(s.cantrips)}</div></div>` : '',
+        s.spells ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-1">Spells</div><div class="text-sm text-ink-medium whitespace-pre-wrap">${esc(s.spells)}</div></div>` : '',
+      ].join('');
+
       sheetHtml += `
         <div class="mb-4 p-4 bg-room-elevated rounded border border-room-border">
-          <div class="flex gap-6 mb-4 text-sm">
-            ${s.ac ? `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">AC</div><div class="text-2xl font-bold text-ink-bright">${esc(s.ac)}</div></div>` : ''}
-            ${s.hp ? `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">HP</div><div class="text-2xl font-bold text-ink-bright">${esc(s.hp)}</div></div>` : ''}
-            ${s.speed ? `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">Speed</div><div class="text-2xl font-bold text-ink-bright">${esc(s.speed)}</div></div>` : ''}
+          <div class="flex flex-wrap gap-4 mb-4 text-sm">
+            ${_combatStats}${_crStat}${_profStat}
           </div>
           <div class="stat-grid">
             ${['str','dex','con','int','wis','cha'].map(a => `
@@ -415,7 +451,10 @@ window._openDetail = async (tab, id) => {
               </div>
             `).join('')}
           </div>
-          ${s.extra ? `<div class="mt-4 text-sm text-ink-medium whitespace-pre-wrap border-t border-room-border pt-3">${esc(s.extra)}</div>` : ''}
+          ${_propTable}
+          ${_narrative}
+          ${_spells}
+          ${s.extra ? `<div class="mt-3 border-t border-room-border pt-3 text-sm text-ink-medium whitespace-pre-wrap">${esc(s.extra)}</div>` : ''}
         </div>
       `;
     } else {
@@ -702,32 +741,63 @@ window._openEditor = async (tab, editId) => {
   // Stats (personages)
   if (tab === 'personages') {
     const s = e?.stats || {};
+    const _si = (k, label, center = false) => `
+      <div>
+        <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
+        <input name="stat_${k}" value="${esc(s[k] || '')}"
+          class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none${center ? ' text-center' : ''}">
+      </div>`;
+    const _ta = (k, label, rows = 3) => `
+      <div>
+        <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
+        <textarea name="stat_${k}" rows="${rows}"
+          class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(s[k] || '')}</textarea>
+      </div>`;
     body += `
-      <div class="p-4 bg-room-elevated rounded border border-room-border">
-        <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-3">Character Sheet</div>
-        <div class="grid grid-cols-3 gap-2 mb-3">
-          ${['ac','hp','speed'].map(k => `
-            <div>
-              <label class="text-[10px] font-cinzel text-ink-dim uppercase">${k.toUpperCase()}</label>
-              <input name="stat_${k}" value="${esc(s[k] || '')}"
-                class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-center text-sm focus:border-gold-dim focus:outline-none">
-            </div>
-          `).join('')}
+      <div class="p-4 bg-room-elevated rounded border border-room-border space-y-3">
+        <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider">Character Sheet</div>
+
+        <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Gevecht</div>
+        <div class="grid grid-cols-3 gap-2">
+          ${_si('ac','AC',true)}${_si('hp','HP',true)}${_si('speed','Speed',true)}
         </div>
-        <div class="grid grid-cols-3 gap-2 mb-3">
-          ${['str','dex','con','int','wis','cha'].map(k => `
-            <div>
-              <label class="text-[10px] font-cinzel text-ink-dim uppercase">${k.toUpperCase()}</label>
-              <input name="stat_${k}" value="${esc(s[k] || '')}"
-                class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-center text-sm focus:border-gold-dim focus:outline-none">
-            </div>
-          `).join('')}
+        <div class="grid grid-cols-2 gap-2">
+          ${_si('cr','Challenge Rating',true)}${_si('profBonus','Prof. Bonus',true)}
         </div>
-        <div>
-          <label class="text-[10px] font-cinzel text-ink-dim uppercase">Spreuken / Acties</label>
-          <textarea name="stat_extra" rows="3"
-            class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(s.extra || '')}</textarea>
+
+        <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Eigenschappen</div>
+        <div class="grid grid-cols-3 gap-2">
+          ${['str','dex','con','int','wis','cha'].map(k => _si(k, k.toUpperCase(), true)).join('')}
         </div>
+
+        <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Proficiencies & Verdedigingen</div>
+        ${_si('savingThrows','Saving Throws')}
+        ${_si('skills','Skills')}
+        ${_si('resistances','Damage Resistances')}
+        ${_si('immunities','Damage Immunities')}
+        ${_si('conditionImmunities','Condition Immunities')}
+
+        <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Zintuigen & Talen</div>
+        ${_si('senses','Senses')}
+        ${_si('languages','Languages')}
+
+        <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Traits & Acties</div>
+        ${_ta('traits','Traits', 3)}
+        ${_ta('actions','Actions', 4)}
+        ${_ta('bonusActions','Bonus Actions', 2)}
+        ${_ta('reactions','Reactions', 2)}
+        ${_ta('legendaryActions','Legendary Actions', 3)}
+
+        <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Spreuken</div>
+        ${_si('cantrips','Cantrips')}
+        ${_ta('spells','Spells', 3)}
+
+        ${s.extra ? `
+          <div class="border-t border-room-border pt-3">
+            <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider mb-1">Extra (legacy)</div>
+            ${_ta('extra','', 2)}
+          </div>
+        ` : ''}
       </div>
     `;
   }

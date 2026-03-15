@@ -163,9 +163,10 @@ function bulletToText(text) {
 // ── D&D 5e stat block parser (blockquote-formaat) ────────────────────────────
 
 // Parseer het eerste ">"-blockquote-blok in de tekst naar een stats-object.
-// Verwacht formaat: **Armor Class** / **Hit Points** / **Speed** /
-//   STR X | DEX X | CON X | INT X | WIS X | CHA X
-//   gevolgd door Skills, Senses, Features, Actions (→ stats.extra)
+// Herkent alle standaard D&D 5e velden: AC, HP, Speed, ability scores,
+// Saving Throws, Skills, Resistances, Immunities, Senses, Languages, CR,
+// Prof Bonus, Traits, Actions, Bonus Actions, Reactions, Legendary Actions,
+// Cantrips, Spells.
 function parseStatBlock(raw) {
   // Verzamel de eerste aaneengesloten reeks blockquote-regels
   const allLines = raw.split('\n');
@@ -185,51 +186,136 @@ function parseStatBlock(raw) {
   if (bq.length < 3) return null;
 
   const stats = {};
-  const extraLines = [];
   let phase = 'header'; // header → structured → extra
+  let currentSection = 'traits';
+  let expectAbilityRow = false; // voor tabel-formaat ability scores
+
+  const sections = { traits: [], actions: [], bonusActions: [], reactions: [], legendaryActions: [], spells: [] };
+
+  // Verwijder markdown-opmaak uit een regel
+  const stripMd = (s) => s
+    .replace(/\*{3}([^*]+)\*{3}/g, '$1')
+    .replace(/\*{2}([^*]+)\*{2}/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1');
 
   for (const rawLine of bq) {
     const line = rawLine.trim();
-    if (!line) continue;
+    if (!line || line === '---') continue;
 
-    // Armor Class
+    // ── ALTIJD: single-line structured velden (ook vóór ability scores) ──
+
     const ac = line.match(/\*\*Armor\s+Class\*\*\s*(.+)/i);
     if (ac) { stats.ac = ac[1].trim(); phase = 'structured'; continue; }
 
-    // Hit Points
     const hp = line.match(/\*\*Hit\s+Points\*\*\s*(.+)/i);
     if (hp) { stats.hp = hp[1].trim(); continue; }
 
-    // Speed
     const sp = line.match(/\*\*Speed\*\*\s*(.+)/i);
     if (sp) { stats.speed = sp[1].trim(); continue; }
 
-    // Ability scores: STR 10 (+0) | DEX 17 (+3) | CON 10 (+0) | INT 14 (+2) | WIS 12 (+1) | CHA 16 (+3)
+    // Ability scores: één-regel formaat  STR 10 (+0) | DEX 17 (+3) | ...
     const ab = line.match(
       /STR\s+(\d+)[^|]*\|\s*DEX\s+(\d+)[^|]*\|\s*CON\s+(\d+)[^|]*\|\s*INT\s+(\d+)[^|]*\|\s*WIS\s+(\d+)[^|]*\|\s*CHA\s+(\d+)/i
     );
     if (ab) {
       stats.str = ab[1]; stats.dex = ab[2]; stats.con = ab[3];
       stats.int = ab[4]; stats.wis = ab[5]; stats.cha = ab[6];
-      phase = 'extra';
+      phase = 'extra'; expectAbilityRow = false;
       continue;
     }
 
-    // Header- en structuurregels (naam, type, klassebeschrijving) overslaan
+    // Ability scores: tabel-header  | STR | DEX | CON | INT | WIS | CHA |
+    if (/\|\s*STR\s*\|/i.test(line) && /CHA/i.test(line)) {
+      expectAbilityRow = true;
+      continue;
+    }
+    // Tabel-separator overslaan
+    if (expectAbilityRow && /^\|[-\s|]+\|$/.test(line)) continue;
+    // Tabel-data: | 18 (+4) | 14 (+2) | ...
+    if (expectAbilityRow) {
+      const nums = [...line.matchAll(/\|\s*(\d+)\s*(?:\([^)]*\))?\s*/g)].map(m => m[1]);
+      if (nums.length >= 6) {
+        stats.str = nums[0]; stats.dex = nums[1]; stats.con = nums[2];
+        stats.int = nums[3]; stats.wis = nums[4]; stats.cha = nums[5];
+        phase = 'extra'; expectAbilityRow = false;
+        continue;
+      }
+    }
+
+    // Header- en structuurregels overslaan (naam, type, grootte, alignment)
     if (phase === 'header' || phase === 'structured') continue;
 
-    // Alles na de ability scores → extra (Skills, Senses, Actions, Features …)
-    extraLines.push(
-      line
-        .replace(/\*{3}([^*]+)\*{3}/g, '$1') // ***bold italic*** → tekst
-        .replace(/\*{2}([^*]+)\*{2}/g, '$1') // **bold** → tekst
-        .replace(/\*([^*]+)\*/g, '$1')        // *italic* → tekst
-    );
+    // ── EXTRA PHASE: structured fields + secties ──
+
+    // Saving Throws
+    const st = line.match(/\*\*Saving\s+Throws\*\*\s*(.+)/i);
+    if (st) { stats.savingThrows = st[1].trim(); continue; }
+
+    // Skills
+    const sk = line.match(/\*\*Skills\*\*\s*(.+)/i);
+    if (sk) { stats.skills = sk[1].trim(); continue; }
+
+    // Damage Resistances
+    const dr = line.match(/\*\*Damage\s+Resistances?\*\*\s*(.+)/i);
+    if (dr) { stats.resistances = dr[1].trim(); continue; }
+
+    // Damage Immunities
+    const di = line.match(/\*\*Damage\s+Immunities?\*\*\s*(.+)/i);
+    if (di) { stats.immunities = di[1].trim(); continue; }
+
+    // Condition Immunities
+    const ci = line.match(/\*\*Condition\s+Immunities?\*\*\s*(.+)/i);
+    if (ci) { stats.conditionImmunities = ci[1].trim(); continue; }
+
+    // Senses
+    const se = line.match(/\*\*Senses\*\*\s*(.+)/i);
+    if (se) { stats.senses = se[1].trim(); continue; }
+
+    // Languages
+    const la = line.match(/\*\*Languages\*\*\s*(.+)/i);
+    if (la) { stats.languages = la[1].trim(); continue; }
+
+    // Challenge (CR) — kan ook Prof Bonus op dezelfde regel bevatten
+    const ch = line.match(/\*\*Challenge\*\*\s*(.+)/i);
+    if (ch) {
+      const crLine = ch[1];
+      const pbInline = crLine.match(/\*\*Proficiency\s+Bonus\*\*\s*(\S+)/i);
+      if (pbInline) stats.profBonus = pbInline[1];
+      stats.cr = crLine.replace(/\|?\s*\*\*Proficiency\s+Bonus\*\*.*$/i, '').trim();
+      continue;
+    }
+
+    // Proficiency Bonus (apart)
+    const pb = line.match(/\*\*Proficiency\s+Bonus\*\*\s*(.+)/i);
+    if (pb) { stats.profBonus = pb[1].trim(); continue; }
+
+    // Cantrips (apart veld)
+    const ca = line.match(/\*\*Cantrips?\*\*\s*(.+)/i);
+    if (ca) { stats.cantrips = ca[1].trim(); continue; }
+
+    // Sectiekoppen (## Actions, ## Bonus Actions, etc.)
+    const secMatch = line.match(/^#+\s*(.+)/);
+    if (secMatch) {
+      const sName = secMatch[1].trim().toLowerCase().replace(/\s+/g, ' ');
+      if (sName === 'actions') currentSection = 'actions';
+      else if (sName === 'bonus actions') currentSection = 'bonusActions';
+      else if (sName === 'reactions') currentSection = 'reactions';
+      else if (sName === 'legendary actions') currentSection = 'legendaryActions';
+      else if (sName.includes('spell')) currentSection = 'spells';
+      continue;
+    }
+
+    // Voeg toe aan huidige sectie (strip markdown)
+    sections[currentSection].push(stripMd(line));
   }
 
-  if (extraLines.length > 0) {
-    stats.extra = extraLines.join('\n').trim();
-  }
+  // Sla secties op als niet-lege strings
+  if (sections.traits.length)          stats.traits          = sections.traits.join('\n').trim();
+  if (sections.actions.length)         stats.actions         = sections.actions.join('\n').trim();
+  if (sections.bonusActions.length)    stats.bonusActions    = sections.bonusActions.join('\n').trim();
+  if (sections.reactions.length)       stats.reactions       = sections.reactions.join('\n').trim();
+  if (sections.legendaryActions.length) stats.legendaryActions = sections.legendaryActions.join('\n').trim();
+  if (sections.spells.length)          stats.spells          = sections.spells.join('\n').trim();
 
   // Retourneer alleen als er minimaal één herkenbaar veld is
   return (stats.ac || stats.hp || stats.str) ? stats : null;
