@@ -166,7 +166,20 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
   }
   dmState.visibility[id] = next;
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').emit('entity:visibility', { id, visibility: next });
+
+  const entities = storage.readJSON('entities.json');
+  const entity   = (entities[type] || []).find(e => e.id === id);
+  req.app.get('io').emit('entity:visibility', { id, type, name: entity?.name || '', visibility: next });
+
+  // Als een locatie zichtbaar wordt en een pin heeft op de kaart → stuur kaart-refresh
+  if (type === 'locaties' && next !== 'hidden') {
+    const mapData = storage.readJSON('map.json');
+    const hasPin  = (mapData.pins || []).some(p => p.locId === id);
+    if (hasPin) {
+      req.app.get('io').emit('map:pinRevealed', { id, name: entity?.name || '', visibility: next });
+    }
+  }
+
   res.json({ visibility: next });
 });
 
@@ -223,7 +236,10 @@ router.get('/archief', attachRole, (req, res) => {
     logEntries: archief.logEntries,
     sessieLog: req.role === 'dm'
       ? archief.sessieLog || []
-      : (archief.sessieLog || []).filter(e => e.visible),
+      : (archief.sessieLog || []).filter(e => e.visible).map(e => ({
+          ...e,
+          images: (e.images || []).filter(img => typeof img === 'string' || img.visible !== false),
+        })),
     hiddenLinks: req.role === 'dm' ? archief.hiddenLinks : {},
     tekstContent: req.role === 'dm'
       ? archief.tekstContent
@@ -323,7 +339,7 @@ router.put('/archief/:id/state', requireDM, (req, res) => {
     storage.writeJSON('archief.json', archief);
   }
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').emit('archief:stateChanged', { id: doc.id, state });
+  req.app.get('io').emit('archief:stateChanged', { id: doc.id, name: doc.name, state });
   res.json({ state });
 });
 
@@ -379,9 +395,28 @@ router.put('/sessieLog/:id', requireDM, (req, res) => {
   if (!archief.sessieLog) archief.sessieLog = [];
   const idx = archief.sessieLog.findIndex(e => e.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Niet gevonden' });
-  archief.sessieLog[idx] = { ...archief.sessieLog[idx], ...req.body, id: req.params.id };
+  const oldEntry = archief.sessieLog[idx];
+  archief.sessieLog[idx] = { ...oldEntry, ...req.body, id: req.params.id };
   storage.writeJSON('archief.json', archief);
   req.app.get('io').emit('logboek:updated', { id: req.params.id });
+
+  // Detecteer nieuw ontsloten afbeeldingen
+  if (Array.isArray(req.body.images)) {
+    const oldImages = oldEntry.images || [];
+    for (const img of req.body.images) {
+      if (!img.id || img.visible === false) continue;
+      const prev = oldImages.find(o => (typeof o === 'string' ? o : o.id) === img.id);
+      const wasHidden = prev && typeof prev !== 'string' && prev.visible === false;
+      if (wasHidden) {
+        req.app.get('io').emit('logboek:imageRevealed', {
+          sessieId: req.params.id,
+          caption: img.caption || '',
+          samenvatting: oldEntry.korteSamenvatting || '',
+        });
+      }
+    }
+  }
+
   res.json(archief.sessieLog[idx]);
 });
 
@@ -431,6 +466,65 @@ router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {
   storage.writeJSON('meta.json', meta);
   req.app.get('io').emit('meta:updated');
   res.json(meta.hoofdstukken[req.params.key]);
+});
+
+// ── Kaart ──
+
+router.get('/map/pins', attachRole, (req, res) => {
+  const mapId = req.query.mapId || 'grisburgh';
+  const mapData = storage.readJSON('map.json');
+  const entities = storage.readJSON('entities.json');
+  const dmState = storage.readJSON('dm-state.json');
+  const locaties = entities.locaties || [];
+
+  const pins = (mapData.pins || [])
+    .filter(pin => (pin.mapId || 'grisburgh') === mapId)
+    .map(pin => {
+      const loc = locaties.find(l => l.id === pin.locId);
+      if (!loc) return null;
+      const vis = dmState.visibility[loc.id] || 'hidden';
+      if (req.role !== 'dm' && vis === 'hidden') return null;
+      return { ...pin, locName: vis === 'vague' ? null : loc.name, visibility: vis };
+    }).filter(Boolean);
+
+  res.json(pins);
+});
+
+router.post('/map/pins', requireDM, (req, res) => {
+  const { locId, x, y, mapId } = req.body;
+  if (!locId || x == null || y == null) return res.status(400).json({ error: 'Ontbrekende velden' });
+  const mapData = storage.readJSON('map.json');
+  const pin = {
+    id: 'pin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    mapId: mapId || 'grisburgh',
+    locId,
+    x: parseFloat(x),
+    y: parseFloat(y),
+  };
+  mapData.pins.push(pin);
+  storage.writeJSON('map.json', mapData);
+  req.app.get('io').emit('map:updated');
+  res.json(pin);
+});
+
+router.put('/map/pins/:id', requireDM, (req, res) => {
+  const { x, y } = req.body;
+  if (x == null || y == null) return res.status(400).json({ error: 'Ontbrekende velden' });
+  const mapData = storage.readJSON('map.json');
+  const pin = mapData.pins.find(p => p.id === req.params.id);
+  if (!pin) return res.status(404).json({ error: 'Niet gevonden' });
+  pin.x = parseFloat(x);
+  pin.y = parseFloat(y);
+  storage.writeJSON('map.json', mapData);
+  res.json(pin);
+});
+
+router.delete('/map/pins/:id', requireDM, (req, res) => {
+  const mapData = storage.readJSON('map.json');
+  mapData.pins = mapData.pins.filter(p => p.id !== req.params.id);
+  storage.writeJSON('map.json', mapData);
+  req.app.get('io').emit('map:updated');
+  res.json({ ok: true });
 });
 
 module.exports = router;

@@ -54,6 +54,16 @@ export async function renderDocumenten() {
   }
 
   container.innerHTML = `
+    <!-- Section banner -->
+    <div class="section-banner">
+      <div class="section-banner-title">
+        <span>📜</span>
+        <span>Documenten</span>
+        <span class="font-fell font-normal normal-case tracking-normal text-ink-faint text-xs italic ml-1">Brieven, kranten, kaarten en manuscripten</span>
+      </div>
+      <div class="section-banner-line"></div>
+    </div>
+
     <!-- Search -->
     <div class="flex items-center gap-3 px-6 py-3 bg-room-surface/30">
       <div class="relative flex-1 max-w-md">
@@ -82,10 +92,16 @@ export async function renderDocumenten() {
 function _refreshDocGrid(docs, container) {
   const grid = container.querySelector('.doc-grid');
   if (!grid) return;
+  const totalDocs = (archiefData.documents || []).length;
   grid.innerHTML = docs.length === 0
-    ? `<div class="col-span-full text-center py-16 text-ink-faint">
-        <div class="text-4xl mb-3">\ud83d\udcdc</div>
-        <div class="font-fell italic">Geen documenten gevonden</div>
+    ? `<div class="col-span-full text-center py-20 text-ink-faint">
+        <div class="text-5xl mb-4 opacity-40">📜</div>
+        <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">
+          ${searchQuery || totalDocs > 0 ? 'Geen documenten gevonden' : 'Het archief is nog leeg...'}
+        </div>
+        ${!searchQuery && totalDocs === 0 && isDM()
+          ? `<div class="text-xs font-fell italic mt-1">Gebruik de <span class="font-mono px-1 py-0.5 bg-room-elevated rounded">+</span> knop om een document toe te voegen</div>`
+          : ''}
        </div>`
     : docs.map(d => renderDocCard(d)).join('');
   const countEl = container.querySelector('.results-count');
@@ -117,19 +133,20 @@ export async function renderLogboek() {
   let html = '';
   if (entries.length === 0) {
     html = `<div class="text-center py-20 text-ink-faint">
-      <div class="text-4xl mb-3">\ud83d\udcd6</div>
-      <div class="font-fell italic text-lg">Het logboek is nog leeg</div>
-      ${isDM() ? `<div class="text-sm mt-2">Gebruik de + knop om een sessie-samenvatting toe te voegen</div>` : ''}
+      <div class="text-5xl mb-4 opacity-40">📖</div>
+      <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">Het archief is nog leeg...</div>
+      ${isDM() ? `<div class="text-xs font-fell italic mt-1">Gebruik de <span class="font-mono px-1 py-0.5 bg-room-elevated rounded">+</span> knop om een sessie toe te voegen</div>` : ''}
     </div>`;
   } else {
     for (const ch of sortedChapters) {
       const info = hk[ch] || { title: ch, dag: '', num: '?' };
       const chEntries = groups[ch].slice().sort((a, b) => (a.datum || '').localeCompare(b.datum || ''));
       html += `
-        <div class="mb-10">
-          <div class="flex items-baseline gap-3 mb-4 pb-2 border-b border-room-border">
-            <div class="font-cinzel font-bold text-gold text-xl">Hoofdstuk ${info.num}: ${esc(info.title)}</div>
-            <div class="text-ink-dim text-sm italic">${esc(info.dag)}</div>
+        <div class="mb-12">
+          <div class="flex items-baseline gap-3 mb-5 pb-2.5 border-b-2 border-room-border">
+            <div class="font-cinzel font-bold text-gold text-xl">Hoofdstuk ${info.num}:</div>
+            <div class="font-cinzel font-semibold text-ink-bright text-lg">${esc(info.title)}</div>
+            ${info.dag ? `<div class="text-ink-faint text-xs font-mono ml-auto">${esc(info.dag)}</div>` : ''}
           </div>
           <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
             ${chEntries.map(e => renderSessieEntry(e)).join('')}
@@ -139,7 +156,17 @@ export async function renderLogboek() {
     }
   }
 
-  container.innerHTML = `<div class="flex-1 overflow-y-auto p-6">${html}</div>`;
+  container.innerHTML = `
+    <div class="section-banner">
+      <div class="section-banner-title">
+        <span>📖</span>
+        <span>Logboek</span>
+        <span class="font-fell font-normal normal-case tracking-normal text-ink-faint text-xs italic ml-1">Verslagen van sessies en avonturen</span>
+      </div>
+      <div class="section-banner-line"></div>
+    </div>
+    <div class="flex-1 overflow-y-auto p-6">${html}</div>
+  `;
 }
 
 // ── Chip rows (used in detail modal) ──
@@ -214,38 +241,64 @@ function _renderSessieChips(e) {
 
 // ── Carrousel ──
 
-const _carouselPos = {};
+const _carouselPos   = {};
 const _carouselCaptions = {};
+const _carouselItems = {};  // stores full item array per key for DM controls
 
-// Normalize images: supports both legacy string[] and new {id, caption}[] format
+// Normalize images: supports legacy string[], {id,caption}[], and new {id,caption,visible}[]
 function _normImages(images) {
-  return images.map(img => typeof img === 'string' ? { id: img, caption: '' } : img);
+  return images.map(img =>
+    typeof img === 'string'
+      ? { id: img, caption: '', visible: true }
+      : { visible: true, ...img }   // default visible:true for entries without the field
+  );
 }
 
-function _renderCarousel(key, images) {
+function _visBtn(cls) {
+  return `text-[11px] px-2 py-0.5 rounded font-mono transition ${cls}`;
+}
+
+function _renderCarousel(key, images, opts = {}) {
   if (!images.length) return '';
   const items = _normImages(images);
+  const dm = opts.dmControls || false;
+
   if (items.length === 1) {
     const url = api.fileUrl(items[0].id);
+    const isVis = items[0].visible !== false;
     return `
-      <div class="detail-hero mb-6" onclick="window.app.openLightbox('${url}','')">
-        <img src="${url}" class="detail-hero-img">
+      <div class="detail-hero mb-${dm ? 2 : 6}" onclick="window.app.openLightbox('${url}','')">
+        <img src="${url}" class="detail-hero-img${!isVis && dm ? ' opacity-50' : ''}">
         <div class="detail-hero-overlay"></div>
       </div>
-      ${items[0].caption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-4 italic">${esc(items[0].caption)}</p>` : ''}`;
+      ${items[0].caption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-1 mb-2 italic">${esc(items[0].caption)}</p>` : ''}
+      ${dm ? `<div class="flex justify-center mb-4">
+        <button id="carousel-vis-btn-${key}"
+          onclick="window._toggleImageVisible('${key}','${items[0].id}',${!isVis})"
+          class="${_visBtn(isVis ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-room-border text-ink-dim hover:text-ink-bright')}">
+          ${isVis ? '👁 Zichtbaar voor spelers' : '🔒 Verborgen voor spelers'}
+        </button>
+      </div>` : ''}`;
   }
-  _carouselPos[key] = 0;
+
+  _carouselPos[key]   = 0;
   _carouselCaptions[key] = items.map(i => i.caption || '');
+  _carouselItems[key] = items;
+
   return `
     <div class="mb-4">
       <div class="relative">
         <div class="overflow-hidden rounded">
           <div id="carousel-track-${key}" class="flex" style="transition:transform 0.3s ease">
-            ${items.map(({id}) => {
+            ${items.map(({id, visible}) => {
               const url = api.fileUrl(id);
-              return `<div class="flex-shrink-0 w-full flex justify-center bg-room-elevated/30">
-                <img src="${url}" class="max-h-72 object-contain cursor-pointer"
+              const isVis = visible !== false;
+              return `<div class="flex-shrink-0 w-full flex justify-center bg-room-elevated/30 relative">
+                <img src="${url}" class="max-h-[32rem] w-full object-contain cursor-pointer${!isVis && dm ? ' opacity-50' : ''}"
                   onclick="window.app.openLightbox('${url}','')">
+                ${!isVis && dm ? `<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span class="bg-black/60 text-ink-dim text-xs px-2 py-1 rounded font-mono">🔒 Verborgen</span>
+                </div>` : ''}
               </div>`;
             }).join('')}
           </div>
@@ -260,6 +313,13 @@ function _renderCarousel(key, images) {
           class="block w-2 h-2 rounded-full cursor-pointer transition ${i === 0 ? 'bg-gold' : 'bg-room-border'}"></span>`).join('')}
       </div>
       <div id="carousel-caption-${key}" class="text-center text-xs text-ink-dim font-crimson mt-1.5 italic min-h-[1.2em]">${esc(items[0].caption || '')}</div>
+      ${dm ? `<div class="flex justify-center mt-2">
+        <button id="carousel-vis-btn-${key}"
+          onclick="window._toggleCarouselVis('${key}',${items.length})"
+          class="${_visBtn(items[0].visible !== false ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-room-border text-ink-dim hover:text-ink-bright')}">
+          ${items[0].visible !== false ? '👁 Zichtbaar voor spelers' : '🔒 Verborgen voor spelers'}
+        </button>
+      </div>` : ''}
     </div>`;
 }
 
@@ -276,6 +336,47 @@ window._carouselGo = (key, idx, total) => {
   }
   const capEl = document.getElementById(`carousel-caption-${key}`);
   if (capEl) capEl.textContent = (_carouselCaptions[key] || [])[idx] || '';
+  // Update DM visibility button for current slide
+  const items = _carouselItems[key];
+  const btn = document.getElementById(`carousel-vis-btn-${key}`);
+  if (btn && items) {
+    const isVis = items[idx]?.visible !== false;
+    btn.textContent = isVis ? '👁 Zichtbaar voor spelers' : '🔒 Verborgen voor spelers';
+    btn.className = _visBtn(isVis ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-room-border text-ink-dim hover:text-ink-bright');
+    btn.onclick = () => window._toggleCarouselVis(key, total);
+  }
+};
+
+// Toggle visibility of currently shown carousel slide
+window._toggleCarouselVis = async (key, total) => {
+  const idx   = _carouselPos[key] || 0;
+  const items = _carouselItems[key];
+  if (!items) return;
+  const item     = items[idx];
+  const newVis   = item.visible === false;
+  item.visible   = newVis;
+  window._carouselGo(key, idx, total); // update button
+  await window._toggleImageVisible(key, item.id, newVis);
+};
+
+// Save image visibility to server and update local archiefData
+window._toggleImageVisible = async (sessieId, imgId, newVisible) => {
+  const entry = (archiefData.sessieLog || []).find(s => s.id === sessieId);
+  if (!entry) return;
+  entry.images = (entry.images || []).map(img => {
+    const id = typeof img === 'string' ? img : img.id;
+    return id === imgId
+      ? { ...(typeof img === 'string' ? { id } : img), visible: newVisible }
+      : img;
+  });
+  await api.updateSessieLog(sessieId, { images: entry.images });
+  // Update single-image DM button (carousel case handled by _carouselGo above)
+  const btn = document.getElementById(`carousel-vis-btn-${sessieId}`);
+  if (btn && !_carouselItems[sessieId]) {
+    btn.textContent = newVisible ? '👁 Zichtbaar voor spelers' : '🔒 Verborgen voor spelers';
+    btn.className   = _visBtn(newVisible ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-room-border text-ink-dim hover:text-ink-bright');
+    btn.onclick = () => window._toggleImageVisible(sessieId, imgId, !newVisible);
+  }
 };
 
 // ── Logboek card (compact) ──
@@ -325,16 +426,16 @@ window._openSessieDetail = (id) => {
   ].filter(Boolean);
 
   const body = `
-    ${_renderCarousel(id, images)}
+    ${_renderCarousel(id, images, { dmControls: isDM() })}
     ${datelineParts.length ? `<div class="log-dateline">${datelineParts.map(p => esc(p)).join(' &mdash; ')}</div>` : ''}
     ${e.samenvatting ? `<div class="log-entry">${mdToHtml(e.samenvatting)}</div>` : ''}
     ${_renderSessieChips(e)}
     ${isDM() ? `
       <div class="dm-only mt-4 pt-4 border-t border-room-border flex gap-2">
         <button class="px-3 py-1.5 text-sm rounded bg-gold-dim text-room-bg font-cinzel font-semibold hover:bg-gold transition"
-          onclick="window.app.closeModal();window._openSessieEditor('${e.id}')">&#x270f; Bewerken</button>
+          onclick="window.app.closeModal();window._openSessieEditor('${e.id}')" title="Bewerken">&#x270f;</button>
         <button class="px-3 py-1.5 text-sm rounded bg-seal/20 text-seal hover:bg-seal/40 transition"
-          onclick="window._deleteSessie('${e.id}')">\ud83d\uddd1 Verwijderen</button>
+          onclick="window._deleteSessie('${e.id}')" title="Verwijderen">&#x1F5D1;</button>
       </div>` : ''}
   `;
   const subtitle = [chapter.short, e.datum].filter(Boolean).join(' \u00b7 ');
@@ -370,7 +471,7 @@ let logEditorImagesToDelete = [];
 window._addLogImages = (files) => {
   for (const file of files) {
     const id = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-    logEditorImages.push({ id, url: URL.createObjectURL(file), isNew: true, file, caption: '' });
+    logEditorImages.push({ id, url: URL.createObjectURL(file), isNew: true, file, caption: '', visible: false });
   }
   _refreshLogImages();
 };
@@ -381,6 +482,13 @@ window._removeLogImage = (idx) => {
   logEditorImages.splice(idx, 1);
   _refreshLogImages();
 };
+window._toggleLogImageVisible = (idx) => {
+  if (logEditorImages[idx]) {
+    logEditorImages[idx].visible = !logEditorImages[idx].visible;
+    _refreshLogImages();
+  }
+};
+
 function _refreshLogImages() {
   const c = document.getElementById('log-img-preview');
   if (!c) return;
@@ -388,9 +496,13 @@ function _refreshLogImages() {
     ? logEditorImages.map((img, i) => `
         <div class="flex flex-col gap-1 flex-shrink-0" style="width:5rem">
           <div class="relative w-20 h-20 rounded overflow-hidden border border-room-border bg-room-elevated">
-            <img src="${img.url}" class="w-full h-full object-cover">
+            <img src="${img.url}" class="w-full h-full object-cover${img.visible ? '' : ' opacity-40'}">
             <button type="button" onclick="window._removeLogImage(${i})"
               class="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded-full text-xs flex items-center justify-center transition">\u00d7</button>
+            <button type="button" onclick="window._toggleLogImageVisible(${i})"
+              title="${img.visible ? 'Zichtbaar — klik om te verbergen' : 'Verborgen — klik om te onthullen'}"
+              class="absolute bottom-0.5 right-0.5 w-5 h-5 ${img.visible ? 'bg-gold-dim text-room-bg' : 'bg-black/70 text-ink-dim'} rounded-full text-xs flex items-center justify-center transition">
+              ${img.visible ? '👁' : '🔒'}</button>
           </div>
           <input type="text" placeholder="Onderschrift…" value="${esc(img.caption || '')}"
             oninput="window._updateLogImageCaption(${i}, this.value)"
@@ -458,12 +570,13 @@ window._openSessieEditor = async (editId) => {
     docs:                  e?.docs?.slice()                  || [],
   };
 
-  // Image state — existing images from entry (supports both legacy string[] and {id,caption}[])
+  // Image state — existing images from entry (supports both legacy string[] and {id,caption,visible}[])
   logEditorImagesToDelete = [];
   logEditorImages = (e?.images || []).map(item => {
     const id      = typeof item === 'string' ? item : item.id;
     const caption = typeof item === 'string' ? '' : (item.caption || '');
-    return { id, url: api.fileUrl(id), isNew: false, caption };
+    const visible = typeof item === 'string' ? true : (item.visible !== false);
+    return { id, url: api.fileUrl(id), isNew: false, caption, visible };
   });
 
   // Suggest next chapter key/number
@@ -511,7 +624,7 @@ window._openSessieEditor = async (editId) => {
               class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
           </div>
           <button type="button" onclick="window._saveNewHoofdstuk()"
-            class="px-3 py-1.5 bg-gold-dim text-room-bg text-sm font-cinzel rounded hover:bg-gold transition">Toevoegen</button>
+            class="px-3 py-1.5 bg-gold-dim text-room-bg text-sm font-cinzel rounded hover:bg-gold transition" title="Toevoegen">✚</button>
         </div>
       </div>
       <div>
@@ -568,9 +681,9 @@ window._openSessieEditor = async (editId) => {
       </label>
     </div>
     <div class="flex gap-2 pt-2">
-      <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">\ud83d\udcbe Opslaan</button>
-      ${editId ? `<button type="button" onclick="window._deleteSessie('${editId}')" class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition">\ud83d\uddd1 Verwijderen</button>` : ''}
-      <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition">Annuleren</button>
+      <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition" title="Opslaan">&#x1F4BE;</button>
+      ${editId ? `<button type="button" onclick="window._deleteSessie('${editId}')" class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition" title="Verwijderen">&#x1F5D1;</button>` : ''}
+      <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition" title="Annuleren">✕</button>
     </div>
   </form>`;
 
@@ -598,7 +711,7 @@ window._openSessieEditor = async (editId) => {
         datum:                 form.get('datum'),
         korteSamenvatting:     form.get('korteSamenvatting'),
         samenvatting:          form.get('samenvatting'),
-        images:                logEditorImages.map(i => ({ id: i.id, caption: i.caption || '' })),
+        images:                logEditorImages.map(i => ({ id: i.id, caption: i.caption || '', visible: i.visible !== false })),
         nieuwPersonages:       logEditorTags.nieuwPersonages,
         terugkerendPersonages: logEditorTags.terugkerendPersonages,
         nieuwLocaties:         logEditorTags.nieuwLocaties,
@@ -1172,9 +1285,9 @@ window._openArchiefEditor = async (editId) => {
 
   body += `
     <div class="flex gap-2 pt-2">
-      <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">\ud83d\udcbe Opslaan</button>
-      ${editId ? `<button type="button" onclick="window._deleteDoc('${editId}')" class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition">\ud83d\uddd1 Verwijderen</button>` : ''}
-      <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition">Annuleren</button>
+      <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition" title="Opslaan">&#x1F4BE;</button>
+      ${editId ? `<button type="button" onclick="window._deleteDoc('${editId}')" class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition" title="Verwijderen">&#x1F5D1;</button>` : ''}
+      <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition" title="Annuleren">✕</button>
     </div>
   </form>`;
 
