@@ -19,6 +19,8 @@ function filterEntityForPlayer(entity, dmState) {
   }
   // Strip stats — DM only
   delete e.stats;
+  // Deceased is visible to players too
+  e._deceased = !!(dmState.deceased?.[entity.id]);
   return e;
 }
 
@@ -50,6 +52,7 @@ router.get('/entities/:type', attachRole, (req, res) => {
       ...e,
       _visibility: dmState.visibility[e.id] || 'hidden',
       _secretReveal: !!dmState.secretReveals[e.id],
+      _deceased: !!(dmState.deceased?.[e.id]),
       _dmNote: dmState.dmNotes[e.id] || '',
     }));
   }
@@ -72,6 +75,7 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
     ...entity,
     _visibility: dmState.visibility[entity.id] || 'hidden',
     _secretReveal: !!dmState.secretReveals[entity.id],
+    _deceased: !!(dmState.deceased?.[entity.id]),
     _dmNote: dmState.dmNotes[entity.id] || '',
   });
 });
@@ -126,6 +130,7 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
   delete dmState.visibility[id];
   delete dmState.secretReveals[id];
   delete dmState.dmNotes[id];
+  if (dmState.deceased) delete dmState.deceased[id];
   storage.writeJSON('entities.json', entities);
   storage.writeJSON('dm-state.json', dmState);
   storage.deleteFile(id);
@@ -152,6 +157,16 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').emit('entity:secret', { id, secretReveal: dmState.secretReveals[id] });
   res.json({ secretReveal: dmState.secretReveals[id] });
+});
+
+router.put('/entities/:type/:id/deceased', requireDM, (req, res) => {
+  const { id } = req.params;
+  const dmState = storage.readJSON('dm-state.json');
+  if (!dmState.deceased) dmState.deceased = {};
+  dmState.deceased[id] = !dmState.deceased[id];
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('entity:updated', { id, deceased: dmState.deceased[id] });
+  res.json({ deceased: dmState.deceased[id] });
 });
 
 // ── DM Notes ──
