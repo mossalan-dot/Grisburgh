@@ -6,10 +6,11 @@ const CATEGORIES = [
   { key: 'pers', label: 'Gedrukte Pers', icon: '\ud83d\uddde' },
   { key: 'kaarten', label: 'Kaarten', icon: '\ud83d\uddfa' },
   { key: 'codex', label: 'Codex & Emblema', icon: '\ud83d\udd0f' },
+  { key: 'audio', label: 'Geluid', icon: '\ud83c\udfb5' },
 ];
 
-const DOC_TYPES = ['Brief','Krant','Kaart','Manuscript','Kasboek','Notities','Folder','Gebed','Blauwdruk','Embleem','Visitekaartje','Gedicht','Dreigbrief','Catalogus','Menu','Stadskaart','Wereldkaart','Dungeon map','Overig'];
-const DOC_CATS = ['brieven','pers','kaarten','codex','logboek'];
+const DOC_TYPES = ['Brief','Krant','Kaart','Manuscript','Kasboek','Notities','Folder','Gebed','Blauwdruk','Embleem','Visitekaartje','Gedicht','Dreigbrief','Catalogus','Menu','Stadskaart','Wereldkaart','Dungeon map','Audiofragment','Overig'];
+const DOC_CATS = ['brieven','pers','kaarten','codex','logboek','audio'];
 
 let activeCat = 'alle';
 let searchQuery = '';
@@ -181,6 +182,12 @@ function _renderSessieChips(e) {
   ];
   if (locChips.length) sections.push({ label: '\ud83c\udff0 Locaties', chips: locChips });
 
+  const orgs = e.organisaties || [];
+  if (orgs.length) sections.push({
+    label: '\ud83c\udfdb\ufe0f Organisaties',
+    chips: orgs.map(n => `<span class="log-chip log-chip-seal">${esc(n)}</span>`),
+  });
+
   if (items.length) sections.push({
     label: '\u2694\ufe0f Voorwerpen',
     chips: items.map(n => `<span class="log-chip log-chip-orange">${esc(n)}</span>`),
@@ -276,6 +283,9 @@ window._carouselGo = (key, idx, total) => {
 function renderSessieEntry(e) {
   const firstRaw = e.images?.[0];
   const firstImg = firstRaw ? api.fileUrl(typeof firstRaw === 'string' ? firstRaw : firstRaw.id) : null;
+  const hk = meta?.hoofdstukken || {};
+  const chapter = hk[e.hoofdstuk];
+  const chapterLabel = chapter ? `Hoofdstuk ${chapter.num}: ${chapter.title}` : '';
   return `
     <div class="entity-card${isDM() && !e.visible ? ' card-hidden' : ''}"
       onclick="window._openSessieDetail('${e.id}')">
@@ -290,6 +300,7 @@ function renderSessieEntry(e) {
       <div class="card-accent bar-logboek"></div>
       ${firstImg ? `<img class="card-img w-full object-cover" src="${firstImg}" onerror="this.style.display='none'">` : ''}
       <div class="px-4 pt-3 pb-4">
+        ${chapterLabel ? `<div class="text-[10px] font-cinzel text-gold-dim uppercase tracking-wide mb-0.5">${esc(chapterLabel)}</div>` : ''}
         ${e.datum ? `<div class="text-[11px] font-mono text-ink-faint mb-1">${esc(e.datum)}</div>` : ''}
         ${e.korteSamenvatting
           ? `<div class="font-cinzel font-semibold text-ink-bright text-sm leading-snug mb-1">${esc(e.korteSamenvatting)}</div>`
@@ -345,12 +356,13 @@ window._toggleSessieVis = async (id, currentVisible) => {
 let logEditorTags = {
   nieuwPersonages: [], terugkerendPersonages: [],
   nieuwLocaties:   [], terugkerendLocaties:   [],
-  voorwerpen: [], docs: [],
+  organisaties: [], voorwerpen: [], docs: [],
 };
-let logAllPersonageNames = [];
-let logAllLocatieNames   = [];
-let logAllVoorwerpNames  = [];
-let logAllDocNames       = [];
+let logAllPersonageNames  = [];
+let logAllLocatieNames    = [];
+let logAllOrganisatieNames = [];
+let logAllVoorwerpNames   = [];
+let logAllDocNames        = [];
 // Image editor state: { id, url, isNew, file? }
 let logEditorImages        = [];
 let logEditorImagesToDelete = [];
@@ -427,9 +439,10 @@ window._openSessieEditor = async (editId) => {
   logAllVoorwerpNames  = [];
   try {
     const names = await api.allNames();
-    logAllPersonageNames = (names.personages   || []).slice().sort();
-    logAllLocatieNames   = (names.locaties     || []).slice().sort();
-    logAllVoorwerpNames  = (names.voorwerpen   || []).slice().sort();
+    logAllPersonageNames   = (names.personages   || []).slice().sort();
+    logAllLocatieNames     = (names.locaties     || []).slice().sort();
+    logAllOrganisatieNames = (names.organisaties || []).slice().sort();
+    logAllVoorwerpNames    = (names.voorwerpen   || []).slice().sort();
   } catch { /* ignore */ }
 
   // Document names for autocomplete
@@ -440,6 +453,7 @@ window._openSessieEditor = async (editId) => {
     terugkerendPersonages: e?.terugkerendPersonages?.slice() || [],
     nieuwLocaties:         e?.nieuwLocaties?.slice()         || [],
     terugkerendLocaties:   e?.terugkerendLocaties?.slice()   || [],
+    organisaties:          e?.organisaties?.slice()          || [],
     voorwerpen:            e?.voorwerpen?.slice()            || [],
     docs:                  e?.docs?.slice()                  || [],
   };
@@ -535,6 +549,10 @@ window._openSessieEditor = async (editId) => {
         ${renderLogTagEditor('terugkerendLocaties', '\ud83d\udd04 Terugkerend', 'bg-green-wax/10 border-green-wax/20 text-green-wax')}
       </div>
     </div>
+    <div>
+      <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2 pb-1 border-b border-room-border">\ud83c\udfdb\ufe0f Organisaties</div>
+      ${renderLogTagEditor('organisaties', 'Organisaties', 'bg-seal/10 border-seal/30 text-seal')}
+    </div>
     <div class="grid grid-cols-2 gap-3">
       ${renderLogTagEditor('voorwerpen', '\u2694\ufe0f Voorwerpen', 'bg-orange/10 border-orange/30 text-orange')}
       ${renderLogTagEditor('docs',       '\ud83d\udcdc Documenten', 'bg-purple-codex/15 border-purple-codex/35 text-purple-codex')}
@@ -585,6 +603,7 @@ window._openSessieEditor = async (editId) => {
         terugkerendPersonages: logEditorTags.terugkerendPersonages,
         nieuwLocaties:         logEditorTags.nieuwLocaties,
         terugkerendLocaties:   logEditorTags.terugkerendLocaties,
+        organisaties:          logEditorTags.organisaties,
         voorwerpen:            logEditorTags.voorwerpen,
         docs:                  logEditorTags.docs,
       };
@@ -627,6 +646,7 @@ const LOG_CHIP_CLS = {
   terugkerendPersonages: 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]',
   nieuwLocaties:         'bg-green-wax/10 border-green-wax/30 text-green-wax',
   terugkerendLocaties:   'bg-green-wax/10 border-green-wax/20 text-green-wax',
+  organisaties:          'bg-seal/10 border-seal/30 text-seal',
   voorwerpen:            'bg-orange/10 border-orange/30 text-orange',
   docs:                  'bg-purple-codex/15 border-purple-codex/35 text-purple-codex',
 };
@@ -655,6 +675,7 @@ window._showLogSuggestions = (field) => {
     terugkerendPersonages: logAllPersonageNames,
     nieuwLocaties:         logAllLocatieNames,
     terugkerendLocaties:   logAllLocatieNames,
+    organisaties:          logAllOrganisatieNames,
     voorwerpen:            logAllVoorwerpNames,
     docs:                  logAllDocNames,
   };
@@ -702,7 +723,7 @@ function filterDocs() {
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     docs = docs.filter(d => {
-      return [d.name, d.type, d.desc, ...(d.npcs||[]), ...(d.locs||[]), ...(d.docs||[])].join(' ').toLowerCase().includes(q);
+      return [d.name, d.type, d.desc, ...(d.npcs||[]), ...(d.locs||[]), ...(d.orgs||[]), ...(d.items||[]), ...(d.docs||[])].join(' ').toLowerCase().includes(q);
     });
   }
   return docs;
@@ -795,46 +816,40 @@ window._openDoc = async (id) => {
   }
 
   // Connections
-  const showNpcs = isDM() ? (d.npcs || []) : (d.npcs || []).filter(n => !(hiddenLinks.npcs || []).includes(n));
-  const showLocs = isDM() ? (d.locs || []) : (d.locs || []).filter(n => !(hiddenLinks.locs || []).includes(n));
-  const showDocs = isDM() ? (d.docs || []) : (d.docs || []).filter(n => !(hiddenLinks.docs || []).includes(n));
+  const showNpcs  = isDM() ? (d.npcs  || []) : (d.npcs  || []).filter(n => !(hiddenLinks.npcs  || []).includes(n));
+  const showLocs  = isDM() ? (d.locs  || []) : (d.locs  || []).filter(n => !(hiddenLinks.locs  || []).includes(n));
+  const showOrgs  = isDM() ? (d.orgs  || []) : (d.orgs  || []).filter(n => !(hiddenLinks.orgs  || []).includes(n));
+  const showItems = isDM() ? (d.items || []) : (d.items || []).filter(n => !(hiddenLinks.items || []).includes(n));
+  const showDocs  = isDM() ? (d.docs  || []) : (d.docs  || []).filter(n => !(hiddenLinks.docs  || []).includes(n));
 
-  if (showNpcs.length) {
-    body += `
+  const _connBlock = (list, field, chipCls, icon, label) => {
+    if (!list.length) return '';
+    return `
       <div class="mb-3">
-        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">Personages</div>
+        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">${label}</div>
         <div class="flex flex-wrap gap-1">
-          ${showNpcs.map(n => {
-            const hidden = (hiddenLinks.npcs || []).includes(n);
-            return `<span class="chip chip-npc">\ud83d\udc64 ${esc(n)}
-              ${isDM() ? `<span class="ml-1 cursor-pointer opacity-60 hover:opacity-100" onclick="event.stopPropagation();window._toggleLinkVis('${d.id}','npcs','${esc(n)}')">${hidden ? '\ud83d\udc41' : '\ud83d\udc41\u200d\ud83d\udde8'}</span>` : ''}
+          ${list.map(n => {
+            const hidden = (hiddenLinks[field] || []).includes(n);
+            return `<span class="chip ${chipCls}">${icon} ${esc(n)}
+              ${isDM() ? `<span class="ml-1 cursor-pointer opacity-60 hover:opacity-100" onclick="event.stopPropagation();window._toggleLinkVis('${d.id}','${field}','${esc(n)}')">${hidden ? '👁' : '👁‍🗨'}</span>` : ''}
             </span>`;
           }).join('')}
         </div>
       </div>
     `;
-  }
-  if (showLocs.length) {
-    body += `
-      <div class="mb-3">
-        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">Locaties</div>
-        <div class="flex flex-wrap gap-1">
-          ${showLocs.map(n => {
-            const hidden = (hiddenLinks.locs || []).includes(n);
-            return `<span class="chip chip-loc">\ud83c\udff0 ${esc(n)}
-              ${isDM() ? `<span class="ml-1 cursor-pointer opacity-60 hover:opacity-100" onclick="event.stopPropagation();window._toggleLinkVis('${d.id}','locs','${esc(n)}')">${hidden ? '\ud83d\udc41' : '\ud83d\udc41\u200d\ud83d\udde8'}</span>` : ''}
-            </span>`;
-          }).join('')}
-        </div>
-      </div>
-    `;
-  }
+  };
+
+  body += _connBlock(showNpcs,  'npcs',  'chip-npc',  '👤', 'Personages');
+  body += _connBlock(showLocs,  'locs',  'chip-loc',  '🏰', 'Locaties');
+  body += _connBlock(showOrgs,  'orgs',  'chip-org',  '🏛️', 'Organisaties');
+  body += _connBlock(showItems, 'items', 'chip-item', '🎒', 'Voorwerpen');
+
   if (showDocs.length) {
     body += `
       <div class="mb-3">
         <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">Gerelateerde documenten</div>
         <div class="flex flex-wrap gap-1">
-          ${showDocs.map(n => `<span class="chip chip-doc">\ud83d\udcdc ${esc(n)}</span>`).join('')}
+          ${showDocs.map(n => `<span class="chip chip-doc">📜 ${esc(n)}</span>`).join('')}
         </div>
       </div>
     `;
@@ -882,6 +897,11 @@ window._openDoc = async (id) => {
           } else {
             fileContainer.innerHTML = `<div class="rounded bg-room-elevated p-8 text-center select-none"><div class="text-4xl mb-2 opacity-30">\ud83d\udd12</div><div class="text-ink-faint text-sm italic">Document nog niet volledig onthuld</div></div>`;
           }
+        } else if (ct.includes('audio')) {
+          fileContainer.innerHTML = `<div class="bg-room-elevated rounded-lg p-4">
+            <div class="text-xs font-cinzel text-ink-dim uppercase tracking-wide mb-2">\ud83c\udfb5 Geluidsfragment</div>
+            <audio controls class="w-full" src="${fileUrl}"></audio>
+          </div>`;
         } else if (ct.includes('pdf')) {
           await renderPdfViewer(fileContainer, fileUrl);
         } else if (ct.includes('image')) {
@@ -954,12 +974,12 @@ window._saveTekst = (id) => {
 // ── File upload ──
 window._uploadDocFile = async (id, file) => {
   if (!file) return;
-  if (file.size > 10 * 1024 * 1024) return alert('Max 10MB');
+  if (file.size > 50 * 1024 * 1024) return alert('Max 50MB');
   await api.uploadFile(id, file);
   window._openDoc(id);
 };
 
-// If img fails to load, check if it's a PDF and embed it instead
+// If img fails to load, check if it's a PDF or audio and embed accordingly
 window._tryPdfEmbed = async (id, imgEl) => {
   const container = document.getElementById(`doc-file-container-${id}`);
   if (!container) return;
@@ -967,7 +987,13 @@ window._tryPdfEmbed = async (id, imgEl) => {
     const res = await fetch(api.fileUrl(id), { method: 'HEAD' });
     if (!res.ok) { container.style.display = 'none'; return; }
     const ct = res.headers.get('content-type') || '';
-    if (ct.includes('pdf')) {
+    if (ct.includes('audio')) {
+      const fileUrl = api.fileUrl(id);
+      container.innerHTML = `<div class="bg-room-elevated rounded-lg p-4">
+        <div class="text-xs font-cinzel text-ink-dim uppercase tracking-wide mb-2">\ud83c\udfb5 Geluidsfragment</div>
+        <audio controls class="w-full" src="${fileUrl}"></audio>
+      </div>`;
+    } else if (ct.includes('pdf')) {
       renderPdfViewer(container, api.fileUrl(id));
     } else {
       container.style.display = 'none';
@@ -975,6 +1001,23 @@ window._tryPdfEmbed = async (id, imgEl) => {
   } catch {
     container.style.display = 'none';
   }
+};
+
+// Fallback for editor image preview when file is not an image (e.g. audio/pdf)
+window._docPreviewFallback = async (imgEl, id) => {
+  imgEl.style.display = 'none';
+  try {
+    const res = await fetch(api.fileUrl(id), { method: 'HEAD' });
+    if (!res.ok) return;
+    const ct = res.headers.get('content-type') || '';
+    const preview = document.getElementById('editor-file-preview');
+    if (!preview) return;
+    if (ct.includes('audio')) {
+      preview.innerHTML = `<audio controls class="w-full mt-1" src="${api.fileUrl(id)}"></audio>`;
+    } else if (ct.includes('pdf')) {
+      preview.innerHTML = `<div class="text-sm text-ink-medium p-2 bg-room-elevated rounded">\ud83d\udcc4 PDF-bestand</div>`;
+    }
+  } catch { /* ignore */ }
 };
 
 async function renderPdfViewer(container, url) {
@@ -1004,7 +1047,7 @@ export function openArchiefEditor(editId) {
   window._openArchiefEditor(editId);
 }
 
-let editorTags = { npcs: [], locs: [], docs: [] };
+let editorTags = { npcs: [], locs: [], orgs: [], items: [], docs: [] };
 
 let allNames = {};
 
@@ -1013,7 +1056,13 @@ window._openArchiefEditor = async (editId) => {
   if (editId) {
     try { d = await api.getArchief(editId); } catch { return; }
   }
-  editorTags = { npcs: d?.npcs?.slice() || [], locs: d?.locs?.slice() || [], docs: d?.docs?.slice() || [] };
+  editorTags = {
+    npcs:  d?.npcs?.slice()  || [],
+    locs:  d?.locs?.slice()  || [],
+    orgs:  d?.orgs?.slice()  || [],
+    items: d?.items?.slice() || [],
+    docs:  d?.docs?.slice()  || [],
+  };
   allNames = await api.allNames();
 
   let body = `<form id="archief-form" class="space-y-4">
@@ -1056,20 +1105,22 @@ window._openArchiefEditor = async (editId) => {
     </div>
     <div>
       <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Bestand</label>
-      <div id="editor-file-preview" class="mt-1 mb-2">${editId ? `<img src="${api.fileUrl(editId)}" class="max-h-32 rounded" onerror="this.style.display='none'">` : ''}</div>
+      <div id="editor-file-preview" class="mt-1 mb-2">${editId ? `<img src="${api.fileUrl(editId)}" class="max-h-32 rounded" onerror="window._docPreviewFallback(this,'${editId}')">` : ''}</div>
       <div class="upload-zone mt-1" onclick="document.getElementById('editor-file-input').click()">
-        \ud83d\udcc2 Afbeelding of PDF uploaden (max 10MB)
+        \ud83d\udcc2 Afbeelding, PDF of MP3 uploaden (max 50MB)
       </div>
-      <input type="file" id="editor-file-input" accept="image/*,.pdf,application/pdf" class="hidden">
+      <input type="file" id="editor-file-input" accept="image/*,.pdf,application/pdf,audio/mpeg,.mp3,audio/ogg,.ogg,audio/wav,.wav" class="hidden">
       <div id="editor-file-status" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>
     </div>
   `;
 
   // Tag editors
   const tagMeta = {
-    npcs: { icon: '\ud83d\udc64', label: 'Personages', chip: 'chip-npc', nameKey: 'personages' },
-    locs: { icon: '\ud83c\udff0', label: 'Locaties', chip: 'chip-loc', nameKey: 'locaties' },
-    docs: { icon: '\ud83d\udcdc', label: 'Documenten', chip: 'chip-doc', nameKey: 'archief' },
+    npcs:  { icon: '👤', label: 'Personages',    chip: 'chip-npc', nameKey: 'personages' },
+    locs:  { icon: '🏰', label: 'Locaties',      chip: 'chip-loc', nameKey: 'locaties' },
+    orgs:  { icon: '🏛️', label: 'Organisaties', chip: 'chip-org', nameKey: 'organisaties' },
+    items: { icon: '🎒', label: 'Voorwerpen',    chip: 'chip-item', nameKey: 'voorwerpen' },
+    docs:  { icon: '📜', label: 'Documenten',    chip: 'chip-doc', nameKey: 'archief' },
   };
   for (const [field, fm] of Object.entries(tagMeta)) {
     body += `
@@ -1133,10 +1184,13 @@ window._openArchiefEditor = async (editId) => {
   document.getElementById('editor-file-input').addEventListener('change', (ev) => {
     const file = ev.target.files[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { alert('Max 10MB'); ev.target.value = ''; return; }
+    if (file.size > 50 * 1024 * 1024) { alert('Max 50MB'); ev.target.value = ''; return; }
     const preview = document.getElementById('editor-file-preview');
     const status = document.getElementById('editor-file-status');
-    if (file.type === 'application/pdf') {
+    if (file.type.startsWith('audio/')) {
+      const url = URL.createObjectURL(file);
+      preview.innerHTML = `<audio controls class="w-full mt-1" src="${url}"></audio><div class="text-xs text-ink-dim mt-1">\ud83c\udfb5 ${esc(file.name)} (${(file.size / 1024 / 1024).toFixed(1)} MB)</div>`;
+    } else if (file.type === 'application/pdf') {
       preview.innerHTML = `<div class="text-sm text-ink-medium p-2 bg-room-elevated rounded">\ud83d\udcc4 ${esc(file.name)} (${(file.size / 1024 / 1024).toFixed(1)} MB)</div>`;
     } else {
       const url = URL.createObjectURL(file);
@@ -1155,9 +1209,11 @@ window._openArchiefEditor = async (editId) => {
       cat: form.get('cat'),
       hoofdstuk: form.get('hoofdstuk'),
       desc: form.get('desc'),
-      npcs: editorTags.npcs,
-      locs: editorTags.locs,
-      docs: editorTags.docs,
+      npcs:  editorTags.npcs,
+      locs:  editorTags.locs,
+      orgs:  editorTags.orgs,
+      items: editorTags.items,
+      docs:  editorTags.docs,
     };
     try {
       let docId = editId;
@@ -1188,7 +1244,7 @@ window._openArchiefEditor = async (editId) => {
   });
 };
 
-const ATAG_NAME_KEY = { npcs: 'personages', locs: 'locaties', docs: 'archief' };
+const ATAG_NAME_KEY = { npcs: 'personages', locs: 'locaties', orgs: 'organisaties', items: 'voorwerpen', docs: 'archief' };
 
 window._addATag = (field, name) => {
   const input = document.getElementById(`atag-input-${field}`);
@@ -1241,7 +1297,7 @@ document.addEventListener('focusout', (ev) => {
 });
 
 function refreshATags(field) {
-  const fm = { npcs: 'chip-npc', locs: 'chip-loc', docs: 'chip-doc' };
+  const fm = { npcs: 'chip-npc', locs: 'chip-loc', orgs: 'chip-org', items: 'chip-item', docs: 'chip-doc' };
   const container = document.getElementById(`atags-${field}`);
   if (!container) return;
   container.innerHTML = editorTags[field].map(n =>
