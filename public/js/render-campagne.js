@@ -535,7 +535,7 @@ window._openDetail = async (tab, id) => {
   const detailTabs = [
     { key: 'info', label: 'Info' },
     ...(showSheet ? [{ key: 'sheet', label: 'Character Sheet' }] : []),
-    ...(isVerkoper ? [{ key: 'voorraad', label: '\ud83c\udfec Voorraad' }] : []),
+    ...(isVerkoper ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
     { key: 'verbindingen', label: 'Verbindingen' },
   ];
 
