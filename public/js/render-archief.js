@@ -141,11 +141,39 @@ export async function renderLogboek() {
   container.innerHTML = `<div class="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto">${html}</div>`;
 }
 
+function _logChipRow(icon, items, chipCls, clickFn) {
+  if (!items.length) return '';
+  return `<div class="flex flex-wrap items-center gap-1.5">
+    <span class="text-[11px] font-mono text-ink-faint mr-0.5">${icon}</span>
+    ${items.map(n => {
+      const extra = clickFn ? clickFn(n) : '';
+      return `<span class="px-2 py-0.5 text-xs rounded-full border font-crimson ${chipCls}${extra.cls || ''}" ${extra.attr || ''}>${esc(n)}</span>`;
+    }).join('')}
+  </div>`;
+}
+
 function renderSessieEntry(e) {
-  const nieuw = e.nieuw || [];
-  const terugkerend = e.terugkerend || [];
-  const docs = e.docs || [];
-  const hasChips = nieuw.length || terugkerend.length || docs.length;
+  // Detect new vs legacy data structure
+  const hasNewStructure = 'nieuwPersonages' in e || 'nieuwLocaties' in e || 'voorwerpen' in e;
+
+  const nieuwP   = e.nieuwPersonages        || [];
+  const terugP   = e.terugkerendPersonages  || [];
+  const nieuwL   = e.nieuwLocaties          || [];
+  const terugL   = e.terugkerendLocaties    || [];
+  const items    = e.voorwerpen             || [];
+  const docs     = e.docs                   || [];
+  // Backward compat: legacy flat arrays only shown when new fields absent
+  const legNieuw = !hasNewStructure ? (e.nieuw       || []) : [];
+  const legTerug = !hasNewStructure ? (e.terugkerend || []) : [];
+
+  const hasChips = nieuwP.length || terugP.length || nieuwL.length || terugL.length ||
+                   items.length  || docs.length   || legNieuw.length || legTerug.length;
+
+  const docClick = (n) => {
+    const d = (archiefData.documents || []).find(x => x.name === n);
+    return d ? { cls: ' cursor-pointer hover:bg-purple-codex/25 transition', attr: `onclick="window._openDoc('${d.id}')"` } : {};
+  };
+
   return `
     <div class="bg-room-surface border border-room-border rounded-lg p-5 relative group ${!e.visible && isDM() ? 'opacity-50' : ''}">
       ${isDM() ? `
@@ -160,29 +188,15 @@ function renderSessieEntry(e) {
       ${e.korteSamenvatting ? `<div class="font-cinzel font-semibold text-ink-bright text-base mb-2">${esc(e.korteSamenvatting)}</div>` : ''}
       ${e.samenvatting ? `<p class="text-sm text-ink-medium mb-3 font-crimson">${mdToHtml(e.samenvatting)}</p>` : ''}
       ${hasChips ? `
-        <div class="flex flex-col gap-2 mt-3 pt-3 border-t border-room-border/60">
-          ${nieuw.length ? `
-            <div class="flex flex-wrap items-center gap-1.5">
-              <span class="text-xs font-cinzel text-gold font-bold uppercase tracking-wider mr-1">\u2728</span>
-              ${nieuw.map(n => `<span class="px-2 py-0.5 text-xs rounded-full bg-gold/10 border border-gold/30 text-gold font-crimson">${esc(n)}</span>`).join('')}
-            </div>
-          ` : ''}
-          ${terugkerend.length ? `
-            <div class="flex flex-wrap items-center gap-1.5">
-              <span class="text-xs font-cinzel text-blue-ink font-bold uppercase tracking-wider mr-1">\ud83d\udd04</span>
-              ${terugkerend.map(n => `<span class="px-2 py-0.5 text-xs rounded-full bg-blue-ink/10 border border-blue-ink/30 text-[#7ab0d4] font-crimson">${esc(n)}</span>`).join('')}
-            </div>
-          ` : ''}
-          ${docs.length ? `
-            <div class="flex flex-wrap items-center gap-1.5">
-              <span class="text-xs font-cinzel text-purple-codex font-bold uppercase tracking-wider mr-1">\ud83d\udcdc</span>
-              ${docs.map(n => {
-                const docObj = (archiefData.documents || []).find(d => d.name === n);
-                const onclick = docObj ? `onclick="window._openDoc('${docObj.id}')"` : '';
-                return `<span class="px-2 py-0.5 text-xs rounded-full bg-purple-codex/15 border border-purple-codex/35 text-purple-codex font-crimson ${docObj ? 'cursor-pointer hover:bg-purple-codex/25 transition' : ''}" ${onclick}>${esc(n)}</span>`;
-              }).join('')}
-            </div>
-          ` : ''}
+        <div class="flex flex-col gap-1.5 mt-3 pt-3 border-t border-room-border/60">
+          ${_logChipRow('\u2728\u00a0\ud83d\udc64', nieuwP, 'bg-gold/10 border-gold/30 text-gold')}
+          ${_logChipRow('\ud83d\udd04\u00a0\ud83d\udc64', terugP, 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]')}
+          ${_logChipRow('\u2728\u00a0\ud83c\udff0', nieuwL, 'bg-green-wax/10 border-green-wax/30 text-green-wax')}
+          ${_logChipRow('\ud83d\udd04\u00a0\ud83c\udff0', terugL, 'bg-green-wax/8 border-green-wax/20 text-green-wax/80')}
+          ${_logChipRow('\u2694\ufe0f', items, 'bg-orange/10 border-orange/30 text-orange')}
+          ${_logChipRow('\ud83d\udcdc', docs, 'bg-purple-codex/15 border-purple-codex/35 text-purple-codex', docClick)}
+          ${_logChipRow('\u2728', legNieuw, 'bg-gold/10 border-gold/30 text-gold')}
+          ${_logChipRow('\ud83d\udd04', legTerug, 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]')}
         </div>
       ` : ''}
     </div>
@@ -198,9 +212,15 @@ window._toggleSessieVis = async (id, currentVisible) => {
   renderLogboek();
 };
 
-let logEditorTags = { nieuw: [], terugkerend: [], docs: [] };
-let logAllNames = [];
-let logAllDocNames = [];
+let logEditorTags = {
+  nieuwPersonages: [], terugkerendPersonages: [],
+  nieuwLocaties:   [], terugkerendLocaties:   [],
+  voorwerpen: [], docs: [],
+};
+let logAllPersonageNames = [];
+let logAllLocatieNames   = [];
+let logAllVoorwerpNames  = [];
+let logAllDocNames       = [];
 
 window._openSessieEditor = async (editId) => {
   const hk = meta?.hoofdstukken || {};
@@ -209,25 +229,27 @@ window._openSessieEditor = async (editId) => {
     e = (archiefData.sessieLog || []).find(s => s.id === editId) || null;
   }
 
-  // Fetch all entity names for autocomplete
-  logAllNames = [];
+  // Fetch entity names per type for autocomplete
+  logAllPersonageNames = [];
+  logAllLocatieNames   = [];
+  logAllVoorwerpNames  = [];
   try {
     const names = await api.allNames();
-    logAllNames = [...new Set([
-      ...(names.personages || []),
-      ...(names.locaties || []),
-      ...(names.organisaties || []),
-      ...(names.voorwerpen || []),
-    ])].sort();
+    logAllPersonageNames = (names.personages   || []).slice().sort();
+    logAllLocatieNames   = (names.locaties     || []).slice().sort();
+    logAllVoorwerpNames  = (names.voorwerpen   || []).slice().sort();
   } catch { /* ignore */ }
 
   // Document names for autocomplete
   logAllDocNames = (archiefData.documents || []).map(d => d.name).sort();
 
   logEditorTags = {
-    nieuw: e?.nieuw?.slice() || [],
-    terugkerend: e?.terugkerend?.slice() || [],
-    docs: e?.docs?.slice() || [],
+    nieuwPersonages:       e?.nieuwPersonages?.slice()       || [],
+    terugkerendPersonages: e?.terugkerendPersonages?.slice() || [],
+    nieuwLocaties:         e?.nieuwLocaties?.slice()         || [],
+    terugkerendLocaties:   e?.terugkerendLocaties?.slice()   || [],
+    voorwerpen:            e?.voorwerpen?.slice()            || [],
+    docs:                  e?.docs?.slice()                  || [],
   };
 
   const body = `<form id="sessie-form" class="space-y-4">
@@ -262,9 +284,24 @@ window._openSessieEditor = async (editId) => {
           class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none">${esc(e?.samenvatting || '')}</textarea>
       </div>
     </div>
-    ${renderLogTagEditor('nieuw', '\u2728 Nieuwe entities', 'bg-gold/10 border-gold/30 text-gold')}
-    ${renderLogTagEditor('terugkerend', '\ud83d\udd04 Terugkerende entities', 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]')}
-    ${renderLogTagEditor('docs', '\ud83d\udcdc Documenten', 'bg-purple-codex/15 border-purple-codex/35 text-purple-codex')}
+    <div>
+      <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2 pb-1 border-b border-room-border">\ud83d\udc64 Personages</div>
+      <div class="grid grid-cols-2 gap-3">
+        ${renderLogTagEditor('nieuwPersonages',       '\u2728 Nieuw',       'bg-gold/10 border-gold/30 text-gold')}
+        ${renderLogTagEditor('terugkerendPersonages', '\ud83d\udd04 Terugkerend', 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]')}
+      </div>
+    </div>
+    <div>
+      <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2 pb-1 border-b border-room-border">\ud83c\udff0 Locaties</div>
+      <div class="grid grid-cols-2 gap-3">
+        ${renderLogTagEditor('nieuwLocaties',       '\u2728 Nieuw',       'bg-green-wax/10 border-green-wax/30 text-green-wax')}
+        ${renderLogTagEditor('terugkerendLocaties', '\ud83d\udd04 Terugkerend', 'bg-green-wax/10 border-green-wax/20 text-green-wax')}
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      ${renderLogTagEditor('voorwerpen', '\u2694\ufe0f Voorwerpen', 'bg-orange/10 border-orange/30 text-orange')}
+      ${renderLogTagEditor('docs',       '\ud83d\udcdc Documenten', 'bg-purple-codex/15 border-purple-codex/35 text-purple-codex')}
+    </div>
     <div class="flex gap-2 pt-2">
       <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">\ud83d\udcbe Opslaan</button>
       ${editId ? `<button type="button" onclick="window._deleteSessie('${editId}')" class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition">\ud83d\uddd1 Verwijderen</button>` : ''}
@@ -282,9 +319,12 @@ window._openSessieEditor = async (editId) => {
       datum: form.get('datum'),
       korteSamenvatting: form.get('korteSamenvatting'),
       samenvatting: form.get('samenvatting'),
-      nieuw: logEditorTags.nieuw,
-      terugkerend: logEditorTags.terugkerend,
-      docs: logEditorTags.docs,
+      nieuwPersonages:       logEditorTags.nieuwPersonages,
+      terugkerendPersonages: logEditorTags.terugkerendPersonages,
+      nieuwLocaties:         logEditorTags.nieuwLocaties,
+      terugkerendLocaties:   logEditorTags.terugkerendLocaties,
+      voorwerpen:            logEditorTags.voorwerpen,
+      docs:                  logEditorTags.docs,
     };
     try {
       if (editId) await api.updateSessieLog(editId, payload);
@@ -322,9 +362,12 @@ function renderLogTagEditor(field, label, chipCls) {
 }
 
 const LOG_CHIP_CLS = {
-  nieuw: 'bg-gold/10 border-gold/30 text-gold',
-  terugkerend: 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]',
-  docs: 'bg-purple-codex/15 border-purple-codex/35 text-purple-codex',
+  nieuwPersonages:       'bg-gold/10 border-gold/30 text-gold',
+  terugkerendPersonages: 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]',
+  nieuwLocaties:         'bg-green-wax/10 border-green-wax/30 text-green-wax',
+  terugkerendLocaties:   'bg-green-wax/10 border-green-wax/20 text-green-wax',
+  voorwerpen:            'bg-orange/10 border-orange/30 text-orange',
+  docs:                  'bg-purple-codex/15 border-purple-codex/35 text-purple-codex',
 };
 
 window._addLogTag = (field, name) => {
@@ -346,7 +389,15 @@ window._showLogSuggestions = (field) => {
   const input = document.getElementById(`log-tag-input-${field}`);
   const list = document.getElementById(`log-tag-suggestions-${field}`);
   const q = input.value.trim().toLowerCase();
-  const pool = field === 'docs' ? logAllDocNames : logAllNames;
+  const POOL_MAP = {
+    nieuwPersonages:       logAllPersonageNames,
+    terugkerendPersonages: logAllPersonageNames,
+    nieuwLocaties:         logAllLocatieNames,
+    terugkerendLocaties:   logAllLocatieNames,
+    voorwerpen:            logAllVoorwerpNames,
+    docs:                  logAllDocNames,
+  };
+  const pool = POOL_MAP[field] || [];
   const names = pool.filter(n =>
     !logEditorTags[field].includes(n) && (!q || n.toLowerCase().includes(q))
   );
