@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grisburgh — Campagne Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --parchment: #f4edd3;
+  --parchment-dark: #e8dfc0;
+  --ink: #1a1410;
+  --ink-soft: #3d3428;
+  --ink-faded: #6b5e4f;
+  --accent-gold: #c9a84c;
+  --accent-gold-dim: #a68832;
+  --accent-red: #8b2020;
+  --accent-blue: #2a4a6b;
+  --accent-green: #2d5a3d;
+  --accent-purple: #4a2d5a;
+  --panel-bg: #1c1810;
+  --panel-surface: #2a2318;
+  --panel-border: #3d3428;
+  --panel-hover: #352d22;
+  --tag-bg: rgba(201,168,76,0.15);
+  --tag-border: rgba(201,168,76,0.3);
+  --shadow-soft: 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-deep: 0 4px 20px rgba(0,0,0,0.5);
+  --radius: 4px;
+  --radius-lg: 8px;
+  --transition: 0.2s ease;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Crimson Text', Georgia, serif;
+  background: var(--panel-bg);
+  color: var(--parchment);
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ═══════════════════ LAYOUT ═══════════════════ */
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  background: linear-gradient(180deg, #221c14 0%, var(--panel-bg) 100%);
+  border-bottom: 1px solid var(--panel-border);
+  z-index: 100;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar-brand h1 {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.topbar-brand .subtitle {
+  font-size: 12px;
+  color: var(--ink-faded);
+  font-style: italic;
+  margin-top: 2px;
+  letter-spacing: 1px;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-tab {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 8px 20px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-faded);
+  cursor: pointer;
+  transition: var(--transition);
+  border-radius: var(--radius) var(--radius) 0 0;
+  position: relative;
+}
+
+.nav-tab:hover {
+  color: var(--parchment);
+  background: var(--panel-surface);
+}
+
+.nav-tab.active {
+  color: var(--accent-gold);
+  background: var(--panel-surface);
+  border-color: var(--panel-border);
+  border-bottom-color: var(--panel-surface);
+}
+
+.nav-tab .tab-icon {
+  margin-right: 6px;
+  font-size: 14px;
+}
+
+.nav-tab .tab-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  background: var(--tag-bg);
+  color: var(--accent-gold-dim);
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* ═══════════════════ MAIN PANELS ═══════════════════ */
+.main {
+  overflow: hidden;
+}
+
+.panel {
+  display: none;
+  height: 100%;
+  overflow: hidden;
+}
+
+.panel.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ═══════════════════ SEARCH & FILTERS ═══════════════════ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--panel-surface);
+  border-bottom: 1px solid var(--panel-border);
+  flex-shrink: 0;
+}
+
+.search-box {
+  flex: 1;
+  max-width: 400px;
+  position: relative;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  color: var(--parchment);
+  font-family: 'Crimson Text', serif;
+  font-size: 15px;
+  outline: none;
+  transition: var(--transition);
+}
+
+.search-box input:focus {
+  border-color: var(--accent-gold-dim);
+}
+
+.search-box input::placeholder {
+  color: var(--ink-faded);
+  font-style: italic;
+}
+
+.search-box::before {
+  content: '⌕';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-faded);
+  font-size: 16px;
+}
+
+.filter-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 5px 12px;
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  color: var(--ink-faded);
+  cursor: pointer;
+  border-radius: 20px;
+  transition: var(--transition);
+}
+
+.filter-pill:hover {
+  border-color: var(--accent-gold-dim);
+  color: var(--parchment);
+}
+
+.filter-pill.active {
+  background: var(--tag-bg);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+/* ═══════════════════ CARD GRID ═══════════════════ */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.card-grid::-webkit-scrollbar { width: 8px; }
+.card-grid::-webkit-scrollbar-track { background: var(--panel-bg); }
+.card-grid::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 4px; }
+.card-grid::-webkit-scrollbar-thumb:hover { background: var(--ink-faded); }
+
+/* ═══════════════════ NPC CARDS ═══════════════════ */
+.npc-card {
+  background: var(--panel-surface);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+
+.npc-card:hover {
+  border-color: var(--accent-gold-dim);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-deep);
+}
+
+.npc-card-header {
+  padding: 16px 18px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.npc-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-gold-dim), var(--accent-red));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--parchment);
+  flex-shrink: 0;
+}
+
+.npc-card-info { flex: 1; min-width: 0; }
+
+.npc-card-name {
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--parchment);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.npc-card-role {
+  font-size: 14px;
+  color: var(--ink-faded);
+  font-style: italic;
+  line-height: 1.3;
+}
+
+.npc-card-body {
+  padding: 0 18px 14px;
+}
+
+.npc-card-desc {
+  font-size: 14px;
+  color: var(--parchment-dark);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.npc-card-footer {
+  padding: 8px 18px;
+  border-top: 1px solid var(--panel-border);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--tag-bg);
+  border: 1px solid var(--tag-border);
+  color: var(--accent-gold-dim);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.tag:hover {
+  background: rgba(201,168,76,0.25);
+  color: var(--accent-gold);
+}
+
+.tag.tag-location { background: rgba(42,74,107,0.2); border-color: rgba(42,74,107,0.4); color: #6a9fd8; }
+.tag.tag-org { background: rgba(139,32,32,0.2); border-color: rgba(139,32,32,0.4); color: #d46a6a; }
+.tag.tag-npc { background: rgba(45,90,61,0.2); border-color: rgba(45,90,61,0.4); color: #6abd83; }
+
+/* ═══════════════════ LOCATION CARDS ═══════════════════ */
+.loc-card {
+  background: var(--panel-surface);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.loc-card:hover {
+  border-color: var(--accent-blue);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-deep);
+}
+
+.loc-card-type-bar {
+  height: 4px;
+  background: var(--accent-blue);
+}
+
+.loc-card-type-bar.type-wijk { background: var(--accent-green); }
+.loc-card-type-bar.type-tempel { background: var(--accent-purple); }
+.loc-card-type-bar.type-winkel { background: var(--accent-gold); }
+.loc-card-type-bar.type-taverne { background: var(--accent-red); }
+.loc-card-type-bar.type-stad { background: #6a9fd8; }
+.loc-card-type-bar.type-natuur { background: #4a8a5a; }
+
+.loc-card-content {
+  padding: 16px 18px;
+}
+
+.loc-card-name {
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--parchment);
+  margin-bottom: 4px;
+}
+
+.loc-card-meta {
+  font-size: 13px;
+  color: var(--ink-faded);
+  margin-bottom: 8px;
+  display: flex;
+  gap: 12px;
+}
+
+.loc-card-meta span { display: flex; align-items: center; gap: 4px; }
+
+.loc-card-desc {
+  font-size: 14px;
+  color: var(--parchment-dark);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.loc-card-footer {
+  padding: 8px 18px;
+  border-top: 1px solid var(--panel-border);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════ DOCUMENT CARDS ═══════════════════ */
+.doc-card {
+  background: var(--panel-surface);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.doc-card:hover {
+  border-color: var(--accent-gold-dim);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-deep);
+}
+
+.doc-card-icon {
+  padding: 20px 18px 12px;
+  text-align: center;
+}
+
+.doc-card-icon .icon-glyph {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.doc-card-content {
+  padding: 0 18px 16px;
+  text-align: center;
+}
+
+.doc-card-name {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--parchment);
+  margin-bottom: 4px;
+}
+
+.doc-card-type {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-faded);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.doc-card-footer {
+  padding: 8px 18px;
+  border-top: 1px solid var(--panel-border);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ═══════════════════ DETAIL MODAL ═══════════════════ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.15s ease;
+}
+
+.modal-overlay.active { display: flex; align-items: center; justify-content: center; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.modal {
+  background: var(--panel-surface);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 700px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.2s ease;
+  box-shadow: var(--shadow-deep);
+}
+
+.modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--panel-border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.modal-header-info { flex: 1; }
+
+.modal-title {
+  font-family: 'Cinzel', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size: 15px;
+  color: var(--ink-faded);
+  font-style: italic;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--ink-faded);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: var(--transition);
+}
+
+.modal-close:hover { color: var(--parchment); }
+
+.modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-body::-webkit-scrollbar { width: 6px; }
+.modal-body::-webkit-scrollbar-track { background: transparent; }
+.modal-body::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 3px; }
+
+.modal-section {
+  margin-bottom: 20px;
+}
+
+.modal-section-title {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-gold-dim);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.modal-section p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--parchment-dark);
+}
+
+.modal-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modal-link {
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.modal-link.link-npc {
+  background: rgba(45,90,61,0.15);
+  border: 1px solid rgba(45,90,61,0.3);
+  color: #6abd83;
+}
+
+.modal-link.link-location {
+  background: rgba(42,74,107,0.15);
+  border: 1px solid rgba(42,74,107,0.3);
+  color: #6a9fd8;
+}
+
+.modal-link.link-org {
+  background: rgba(139,32,32,0.15);
+  border: 1px solid rgba(139,32,32,0.3);
+  color: #d46a6a;
+}
+
+.modal-link.link-doc {
+  background: rgba(74,45,90,0.15);
+  border: 1px solid rgba(74,45,90,0.3);
+  color: #b086d4;
+}
+
+.modal-link:hover { filter: brightness(1.2); transform: translateY(-1px); }
+
+/* ═══════════════════ DM NOTES ═══════════════════ */
+.dm-notes-area {
+  margin-top: 12px;
+}
+
+.dm-notes-area textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  color: var(--parchment);
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  resize: vertical;
+  outline: none;
+  transition: var(--transition);
+}
+
+.dm-notes-area textarea:focus {
+  border-color: var(--accent-gold-dim);
+}
+
+.dm-notes-area textarea::placeholder {
+  color: var(--ink-faded);
+  font-style: italic;
+}
+
+.note-save-indicator {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--accent-green);
+  margin-top: 4px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.note-save-indicator.show { opacity: 1; }
+
+/* ═══════════════════ STATUS BAR ═══════════════════ */
+.topbar-stats {
+  display: flex;
+  gap: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-faded);
+}
+
+.topbar-stats span { display: flex; align-items: center; gap: 4px; }
+.topbar-stats .stat-num { color: var(--accent-gold-dim); }
+
+/* ═══════════════════ EMPTY STATE ═══════════════════ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ink-faded);
+  font-style: italic;
+  font-size: 16px;
+  gap: 8px;
+}
+
+.empty-state .empty-icon { font-size: 48px; opacity: 0.3; }
+
+/* ═══════════════════ WIJK GROUPS (Location view) ═══════════════════ */
+.wijk-group {
+  margin-bottom: 8px;
+}
+
+.wijk-group-header {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-gold-dim);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 8px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wijk-group-header::before {
+  content: '▸';
+  transition: var(--transition);
+}
+
+.wijk-group-header.open::before {
+  transform: rotate(90deg);
+}
+
+.wijk-group-items {
+  display: none;
+}
+
+.wijk-group-items.open {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  padding-bottom: 16px;
+}
+
+/* ═══════════════════ BREADCRUMB TRAIL ═══════════════════ */
+.breadcrumb-trail {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 24px;
+  background: rgba(0,0,0,0.2);
+  font-size: 13px;
+  color: var(--ink-faded);
+  flex-shrink: 0;
+}
+
+.breadcrumb-trail .bc-item {
+  cursor: pointer;
+  color: var(--accent-gold-dim);
+  transition: var(--transition);
+}
+
+.breadcrumb-trail .bc-item:hover { color: var(--accent-gold); }
+.breadcrumb-trail .bc-sep { color: var(--panel-border); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .search-box { max-width: 100%; }
+  .card-grid { grid-template-columns: 1fr; padding: 12px; }
+  .topbar { flex-direction: column; gap: 8px; }
+  .nav-tabs { width: 100%; justify-content: center; }
+  .topbar-stats { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ═══════════ TOP BAR ═══════════ -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div>
+        <h1>⚔ Grisburgh</h1>
+        <div class="subtitle">Campagne Dashboard — De Parel van het Oosten</div>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-panel="npcs" onclick="switchPanel('npcs')">
+        <span class="tab-icon">👤</span>Personages<span class="tab-count" id="npc-count">0</span>
+      </button>
+      <button class="nav-tab" data-panel="locations" onclick="switchPanel('locations')">
+        <span class="tab-icon">🏰</span>Locaties<span class="tab-count" id="loc-count">0</span>
+      </button>
+      <button class="nav-tab" data-panel="docs" onclick="switchPanel('docs')">
+        <span class="tab-icon">📜</span>Archief<span class="tab-count" id="doc-count">0</span>
+      </button>
+    </div>
+    <div class="topbar-stats">
+      <span>📝 DM Notities: <span class="stat-num" id="notes-count">0</span></span>
+    </div>
+  </div>
+
+  <!-- ═══════════ MAIN CONTENT ═══════════ -->
+  <div class="main">
+
+    <!-- ═══ NPC PANEL ═══ -->
+    <div class="panel active" id="panel-npcs">
+      <div class="toolbar">
+        <div class="search-box">
+          <input type="text" id="npc-search" placeholder="Zoek personage..." oninput="filterNPCs()">
+        </div>
+        <div class="filter-pills" id="npc-filters"></div>
+      </div>
+      <div class="card-grid" id="npc-grid"></div>
+    </div>
+
+    <!-- ═══ LOCATION PANEL ═══ -->
+    <div class="panel" id="panel-locations">
+      <div class="toolbar">
+        <div class="search-box">
+          <input type="text" id="loc-search" placeholder="Zoek locatie..." oninput="filterLocations()">
+        </div>
+        <div class="filter-pills" id="loc-filters"></div>
+      </div>
+      <div class="card-grid" id="loc-grid"></div>
+    </div>
+
+    <!-- ═══ DOCUMENTS PANEL ═══ -->
+    <div class="panel" id="panel-docs">
+      <div class="toolbar">
+        <div class="search-box">
+          <input type="text" id="doc-search" placeholder="Zoek document..." oninput="filterDocs()">
+        </div>
+        <div class="filter-pills" id="doc-filters"></div>
+      </div>
+      <div class="card-grid" id="doc-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ DETAIL MODAL ═══════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <div class="modal-title" id="modal-title"></div>
+        <div class="modal-subtitle" id="modal-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA — NPCs, Locations, Documents, all cross-referenced
+// ═══════════════════════════════════════════════════════
+
+const NPCS = [
+  // Raad van de Vier
+  { id:"ilona_findabair", name:"Ilona Findabair", role:"Hoofdmagiër · Warlock", tags:["Raad van de Vier","Arkanium","Roodzwaarden"], desc:"Halfling met felrood haar en een dijk van stem. Ex-piraat en huurling die nu jonge magiërs opleidt. Heeft een pact met een demon na een vervloekte piratenschat.", locations:["arkanium","raadkamer"], related:["salazar_zwartbaard","harmen_jonker","sabrina_charbonneau","ursun_rogarr"] },
+  { id:"ursun_rogarr", name:"Ursûn Rogarr", role:"Hoofdmagiër · Artificer/Druïde", tags:["Raad van de Vier","Artifexgilde","De Eendragt"], desc:"Half-orc genie achter het stoomschip De Eendragt. Liever met dingen dan met mensen bezig. Ex-druïde van het Amberwoud, door zijn familie doodverklaard.", locations:["de_eendragt","arkanium"], related:["berend_swering","iridan_rogarr","ilona_findabair"] },
+  { id:"wilfrid_kalmhand", name:"Wilfrid Kalmhand", role:"Hoofdmagiër · Priester van Matall", tags:["Raad van de Vier","Tempel van Matall"], desc:"Oude man met wit haar en ooglapje. Geneesheer die 30 jaar geleden baby Hugo II redde. Draagt een stijve arm door een moordpoging van zijn rivaal Ārslän.", locations:["tempel_matall","arkanium"], related:["hugo_ii","arslan","isabella_grisburgh"] },
+  { id:"sabrina_charbonneau", name:"Sabrina 'Bonny' Charbonneau", role:"Hoofdmagiër · Tovenares", tags:["Raad van de Vier","Bibliotheek"], desc:"Klein van stuk, warrig peper-en-zoutkleurig haar vol vlijmscherpe haarspelden. Gespecialiseerd in magische kennis en transformatie. Aanbidster van Denava.", locations:["bibliotheek_arkanium","arkanium"], related:["ilona_findabair","wilfrid_kalmhand"] },
+  // Sleutelfiguren
+  { id:"berend_swering", name:"Berend Swering", role:"Gouverneur Artifexgilde", tags:["Artifexgilde","De Eendragt"], desc:"Lange, stevige man met donker haar en rode kraag. Rechterhand van Ursûn Rogarr. Goedlachs en lacht luidkeels.", locations:["de_eendragt"], related:["ursun_rogarr","isidora_swering"] },
+  { id:"isidora_swering", name:"Isidora Swering", role:"Dochter van Berend", tags:["Artifexgilde"], desc:"Donkerrood haar, vriendelijke glimlach die haar ogen niet bereikt. Verloor haar arm op De Eendragt. Koestert haat tegen Rogarr vanwege zijn misogyne beslissing.", locations:["de_eendragt"], related:["berend_swering","ursun_rogarr"] },
+  { id:"lucibaldo", name:"Lucibaldo", role:"Troubadour · Musicus", tags:["Lichtfeest","Haveplein"], desc:"Vermaarde halfelf-troubadour met potloodsnorretje. Kwam naar Grisburgh voor het Lichtfeest. Zijn stem werd gestolen door de Heeren van de Nacht.", locations:["haveplein","de_swarte_cat"], related:["berend_swering","grum_shar"] },
+  { id:"harmen_jonker", name:"Harmen Jonker", role:"Kapitein Roodzwaarden", tags:["Roodzwaarden","Schuttershuis"], desc:"Alias van Hugo II Grisburgh. Voert een persoonlijke vendetta tegen het dievengilde. Veel jeugdvrienden uit het weeshuis belandden in de criminaliteit.", locations:["schuttershuis","luimpoort"], related:["wilfrid_kalmhand","hugo_grisburgh","ilona_findabair"] },
+  { id:"salazar_zwartbaard", name:"Salazar Zwartbaard", role:"Piratenkapitein · Necromancer", tags:["Piraten","Maenfort"], desc:"Dwergen piratenkapitein met kille, calculerende ogen. Gecontracteerd door Maenfort om Grisburgh te hinderen. Bezit een witte draak als vervoermiddel.", locations:["schemerzee"], related:["ilona_findabair","hieronymus_haringh"] },
+  { id:"iridan_rogarr", name:"Iridan Rogarr", role:"Druïde · Antagonist", tags:["Amberwoud","Druïden"], desc:"Halfork druïde uit het Amberwoud. Halfbroer van Ursûn Rogarr, die hij heeft doodverklaard. Huurde de Heeren van de Nacht in om Lucibaldo te neutraliseren.", locations:["amberwoud","pastorie_velurut"], related:["ursun_rogarr","grum_shar","camma_chosach"] },
+  // Heeren van de Nacht
+  { id:"ilyana", name:"Ilyana", role:"Vrouwe Avondrood", tags:["Heeren van de Nacht"], desc:"Vrouw met verweerde donkere huid en touwachtig wit haar. Leidt de nachtelijke criminele operaties van het dievengilde.", locations:["het_nieuwe_vlashuis"], related:["volke","grum_shar","ricfer_staaloog"] },
+  { id:"volke", name:"Volke", role:"Heer Dageraad", tags:["Heeren van de Nacht"], desc:"Onopvallende jonge man met boerenblondhaar en bleke huid. Draagt een adder om zijn nek. Zodra je hem passeert, vergeet je zijn uiterlijk.", locations:[], related:["ilyana","grum_shar"] },
+  { id:"grum_shar", name:"Grum'shar", role:"Luitenant · Half-ork tovenaar", tags:["Heeren van de Nacht"], desc:"Beruchte vechtersbaas met litteken boven zijn oog en metalen tanden. Verslagen door de avonturiers in zijn schuilplaats bij de Kaarssteeg.", locations:["kaarssteeg","bistro_de_ratz"], related:["ilyana","iridan_rogarr"] },
+  { id:"ricfer_staaloog", name:"Ricfer Staaloog", role:"Fictief figuur · Misleiding", tags:["Heeren van de Nacht"], desc:"Bestaat niet. Wanneer dieven bedreigd worden om een naam te geven, verzinnen zij een fabel rondom de bloeddorstige Ricfer Staaloog. De handtekening RS is eveneens een verzinsel.", locations:[], related:["ilyana","volke"] },
+  // Cassalanters
+  { id:"henry_cassalanter", name:"Henry Cassalanter", role:"Adellijke patriarch", tags:["Cassalanters","Duvelingh"], desc:"Patriarch van de Cassalanter-familie in Villa Cassalanter. Wordt gechanteerd door de Heeren van de Nacht vanwege een onderschepte liefdesbrief.", locations:["villa_cassalanter"], related:["boris_cassalanter","balina_cassalanter","piotr_cassalanter"] },
+  { id:"boris_cassalanter", name:"Boris Cassalanter", role:"Cassalanter-zoon · Geleerde", tags:["Cassalanters"], desc:"Zoon van Henry. Kan helpen bij het vertalen van het Aarakocra-gedicht.", locations:["villa_cassalanter"], related:["henry_cassalanter"] },
+  { id:"balina_cassalanter", name:"Balina Cassalanter", role:"Cassalanter-dochter", tags:["Cassalanters","A.S.C. Het Nymfenblad"], desc:"Oogappel van de beroemde familie. Betrokken bij het studentencorps.", locations:["villa_cassalanter"], related:["henry_cassalanter","sherry_tippel"] },
+  // Ambtenaren & Dienstverleners
+  { id:"hendrika_beaujolais", name:"Hendrika Beaujolais", role:"BEO · Hoofdarchivaris", tags:["Stadsarchief","Arkanium"], desc:"De Bijzonder Eerbiedwaardige Ordenaar van het stadsarchief in het Arkanium. Leidt de ambtelijke organisatie.", locations:["stadsarchief","arkanium"], related:["agnes_vd_vuurberg"] },
+  { id:"dr_riage", name:"dr. T. (Terminus) Riage", role:"Directeur Fortunaziekenhuis", tags:["Fortunaziekenhuis","Dragonder"], desc:"Leidt het Fortunaziekenhuis in Dragonder. Kan helpen bij vertalingen, maar tegen betaling van 2d20 fl per letter.", locations:["fortunaziekenhuis"], related:["hadewych"] },
+  { id:"vader_pasternak", name:"Vader Pasternak", role:"Priester van Corellin", tags:["Tempel van Corellin","Oosterkwartier"], desc:"Priester in Het Nieuwe Vlashuis. Onder de indruk van de zegening van Corellin aan de groep. Kent de frasen 'Ongezien in spiegels' en 'Ongesneden aan de scherven'.", locations:["het_nieuwe_vlashuis"], related:["ilyana","birtha"] },
+  // Winkeleigenaren
+  { id:"thalion", name:"Thalion", role:"Winkelier · Dohwar", tags:["Mystieke Magazijn","Luimpoort"], desc:"Pinguïnachtig buitenaards wezen dat zich voordoet als oude gnoom. Verkoopt tweedehands magische snuisterijen met garantie 'tot aan de deur'.", locations:["mystieke_magazijn"], related:[] },
+  { id:"miraal_ezelsoor", name:"Miraal Ezelsoor", role:"Spreukenhandelaar", tags:["Boekenwyrm","Luimpoort"], desc:"Runt de Boekenwyrm en verkoopt een brede selectie spreuken. Verkocht een Polymorph-spreuk aan Iridan Rogarr.", locations:["boekenwyrm"], related:["iridan_rogarr"] },
+  { id:"bob", name:"Bob", role:"Tatoeëerder · Harengon", tags:["Bobs Tattoos","Kalkwijk"], desc:"Zit onder de tatoeages, oren vol piercings. Rookt een lange pijp met giftigzoete oranje wolk. Ondanks schuttingtaal, piepstemmetje.", locations:["bobs_tattoos"], related:[] },
+  { id:"brylwaen", name:"Brÿlwaen", role:"Waardin De Swarte Cat", tags:["De Swarte Cat","Haveplein"], desc:"Dwergenvrouw, rechttoe rechtaan maar vriendelijk. Rekent 3 florinde per nacht voor een standaard kamer inclusief ontbijt.", locations:["de_swarte_cat"], related:[] },
+  { id:"herbert_hoogdraver", name:"Herbert Hoogdraver", role:"Waard De Schunnige Egel", tags:["De Schunnige Egel","Haveplein"], desc:"Waard van De Schunnige Egel op het Haveplein. Kent de naam Ricfer Staaloog van zijn clientèle.", locations:["de_schunnige_egel"], related:["ricfer_staaloog"] },
+  { id:"auguste_escargouffier", name:"Auguste Escargouffier", role:"Chef-kok Bistro De Ratz", tags:["Bistro De Ratz","Duvelingh"], desc:"Gevierde chef-kok uit Lhute. Had een uitstaande schuld bij Taevin Woekeling. Ging in zee met Grum'shar voor bescherming en contacten.", locations:["bistro_de_ratz"], related:["grum_shar","taevin_woekeling"] },
+  // Avonturiers-gerelateerd
+  { id:"jacobus_spreeuw", name:"Jacobus 'Sjaak' Spreeuw", role:"Kapitein · Zeeman", tags:["Zeevaarders"], desc:"Droomt van een eigen piratenvloot. Aangeschoten aan het roer zingt hij zeemansliederen over rampen. Herkent de piratenvlag van Zwartbaard onmiddellijk.", locations:["schemerzee","medeweg"], related:["salazar_zwartbaard","ilona_findabair"] },
+  { id:"tempees_hora", name:"Tempees Hora", role:"Tijdmagiër · Legende", tags:["Toorn des Tijds"], desc:"Levende legende uit Grisburgh. Deed onderzoek naar tijdmagie in zijn klokkentoren, die 15 jaar geleden in rook opging en sindsdien op onwaarschijnlijke plaatsen verschijnt.", locations:["toorn_des_tijds"], related:["ilona_findabair"] },
+  { id:"arslan", name:"Ārslän", role:"Necromancer · Oude rivaal", tags:["Antagonisten"], desc:"Necromancer en oude rivaal van Wilfrid Kalmhand. Studeerden bij dezelfde geneesheer. Adviseerde hertog Hugo en pleegde een moordpoging op Kalmhand.", locations:[], related:["wilfrid_kalmhand","hugo_grisburgh"] },
+  { id:"hugo_grisburgh", name:"Hugo Grisburgh", role:"Verbannen hertog", tags:["Grisburgh-dynastie"], desc:"Dertig jaar geleden van de troon gestoten door de hoofdmagiërs. Bespionert de raadsbijeenkomsten via een magisch schilderij in de Raadkamer.", locations:["raadkamer"], related:["wilfrid_kalmhand","arslan","hugo_ii"] },
+  { id:"hugo_ii", name:"Hugo II Grisburgh", role:"Verborgen troonpretendent", tags:["Grisburgh-dynastie","Roodzwaarden"], desc:"Baby die door Kalmhand werd gered en verstopt in een weeshuis. Leeft nu als Harmen Jonker, kapitein van de Roodzwaarden.", locations:["schuttershuis"], related:["harmen_jonker","wilfrid_kalmhand","hugo_grisburgh"] },
+  { id:"jelle_pieter_woelstra", name:"Jelle-Pieter Woelstra", role:"Luitenant Roodzwaarden · Oproermaker", tags:["Roodzwaarden"], desc:"Jonge ambitieuze luitenant die een staking organiseert. Begenadigd acteur die meer verbergt dan hij laat zien. Alleen bij DC20 Insight herkenbaar.", locations:["schuttershuis","de_schunnige_egel"], related:["harmen_jonker"] },
+  { id:"camma_chosach", name:"Camma Chosach", role:"Druïde · De Coöperatie", tags:["Druïden","De Coöperatie"], desc:"Een van de drie druïden bij De Coöperatie. Kent Iridan Rogarr maar probeert dat te ontkennen.", locations:["de_cooperatie"], related:["iridan_rogarr"] },
+  { id:"taevin_woekeling", name:"Taevin Woekeling", role:"Geldschieter", tags:["Woekeling & Co.","Dragonder"], desc:"Runt Woekeling & Co. in Dragonder. Escargouffier had een uitstaande schuld bij hem.", locations:["woekeling_co"], related:["auguste_escargouffier"] },
+  { id:"agnes_vd_vuurberg", name:"Agnes van der Vuurberg", role:"Archief-medewerker · Necromant", tags:["Stadsarchief","Antagonisten"], desc:"Zocht in het Arkanium-archief naar informatie over haar onbekende vader. Ontvreemdde een kristal en wekte documenten tot leven.", locations:["stadsarchief","arkanium"], related:["hendrika_beaujolais","lucien_de_clairmont"] },
+  { id:"birtha", name:"Birtha", role:"Rekruut Heeren van de Nacht", tags:["Heeren van de Nacht"], desc:"Nieuwe rekruut met potentie. Staat op wacht voor Villa Cassalanter om de chantage-operatie te bewaken.", locations:["villa_cassalanter"], related:["ilyana","henry_cassalanter"] },
+  { id:"madame_vlinder", name:"Madame Vlinder (Esmeralde)", role:"Bordeelhoudster", tags:["Oosterkwartier"], desc:"Gelijknamige madame en uitbaatster van het bordeel in het Oosterkwartier. Kent Lucibaldo als vaste klant.", locations:["madame_vlinder_loc"], related:["lucibaldo"] },
+  { id:"hieronymus_haringh", name:"Hiëronymus Haringh", role:"Piratenkapitein", tags:["Piraten"], desc:"Dikke piratenkapitein van het schip Vaillant. Ingehuurd door Lhute om schepen uit Grisburgh te bestoken. Verslagen door de avonturiers.", locations:["schemerzee"], related:["salazar_zwartbaard","jacobus_spreeuw"] },
+  { id:"pares_xiv", name:"Pares XIV", role:"Koning van Isfār", tags:["Lhute","Politiek"], desc:"Koning in de hoofdstad Lhute. Kijkt met jaloezie en argwaan naar het succes van Grisburgh. Zou de slavenroute via Werveling hebben opgedoekt.", locations:["lhute"], related:[] },
+  { id:"sherry_tippel", name:"Sherry Tippel", role:"Praeses A.S.C. Het Nymfenblad", tags:["A.S.C. Het Nymfenblad"], desc:"Praeses van het studentencorps. Biedt excuses aan voor het gedrag van haar leden.", locations:["asc_nymfenblad"], related:["balina_cassalanter"] },
+  { id:"sasja", name:"Sasja", role:"Orc Butler · Cassalanter", tags:["Cassalanters","Villa Cassalanter"], desc:"Voorzichtige orc met zachte stem. Reageert met extreem geweld als de kinderen van Villa Cassalanter worden bedreigd.", locations:["villa_cassalanter"], related:["henry_cassalanter"] },
+  { id:"esmeralde_vlinder", name:"Esmeralde Vlinder", role:"Madame · Bordeelhoudster", tags:["Oosterkwartier"], desc:"De gelijknamige madame en uitbaatster. Kent Lucibaldo: 'Ik weet wie Lucibaldo is — dat is die zanger — maar ik vertel niets over mijn clientèle.'", locations:["oosterkwartier"], related:["lucibaldo"] },
+  { id:"larynxius_zilvertong", name:"Larynxius Zilvertong", role:"Advocaat", tags:["Zilvertong & Zemelaar"], desc:"Advocaat van het kantoor Zilvertong & Zemelaar Advocaten aan de Haaienvinnenhoek in Nootdorp.", locations:["nootdorp"], related:["zamantha_zemelaar"] },
+  { id:"plumella_pulp", name:"Plumella Pulp", role:"Journalist", tags:["De Grisburgh Gazette","Kalkwijk"], desc:"Journaliste bij De Grisburgh Gazette. Roddelkoningin die schrijft over Lucibaldo's schandalen en de chantage van Marianne Kallebas.", locations:["de_grisburgh_gazette"], related:["lucibaldo","marianne_kallebas"] },
+  { id:"marianne_kallebas", name:"Marianne Kallebas", role:"Diva · Theater De Zeester", tags:["Theater De Zeester"], desc:"De mooie diva die zonder opgaaf van reden ontslag nam vlak voor de première. Kwade tongen spreken over chantage.", locations:["theater_de_zeester"], related:["stormgast_blaeck","plumella_pulp"] },
+];
+
+const LOCATIONS = [
+  // Wijken
+  { id:"arkanium", name:"Het Arkanium", type:"Fort", wijk:"Arkanium", desc:"Voormalige familiewoning van hertog Hugo Grisburgh. Nu het magiërsgilde met academie, bibliotheek, kerkers en de Tempel van Matall.", eigenaar:"Raad van de Vier", jaar:900, npcs:["ilona_findabair","ursun_rogarr","wilfrid_kalmhand","sabrina_charbonneau"], contains:["bibliotheek_arkanium","kerkers_grifburgh","raadkamer","tempel_matall","ter_velde"] },
+  { id:"luimpoort", name:"Luimpoort", type:"Stadswijk", wijk:"Luimpoort", desc:"Het oude stadshart met nauwe, meanderende straatjes en familiewinkels die al generaties teruggaan. 's Middags studenten, 's avonds verliefde koppeltjes.", eigenaar:"Raad van de Vier", jaar:910, npcs:[], contains:["de_kromme_spijker","boekenwyrm","schuttershuis","mystieke_magazijn","tempel_ghon","tempel_tirimet"] },
+  { id:"haveplein", name:"Haveplein", type:"Stadswijk", wijk:"Haveplein", desc:"Hoofdader van de stad die het Arkanium verbindt met de haven. Hier vind je onderdak, drank en wapens.", eigenaar:"Raad van de Vier", jaar:920, npcs:[], contains:["de_swarte_cat","de_schunnige_egel","tempel_seldari"] },
+  { id:"dragonder", name:"Dragonder", type:"Stadswijk", wijk:"Dragonder", desc:"Voormalige arbeiderswijk, nu voor de welvarende middenstand. Oorspronkelijke bewoners verhuisd naar Mistheuvel. Vete met Mistheuvel.", eigenaar:"Raad van de Vier", jaar:1400, npcs:[], contains:["madame_ursula_loc","fortunaziekenhuis","woekeling_co"] },
+  { id:"mistheuvel", name:"Mistheuvel", type:"Stadswijk", wijk:"Mistheuvel", desc:"Minder aantrekkelijk stadsdeel waar oorspronkelijke Dragonder-bewoners naartoe verhuisden. Louche reputatie.", eigenaar:"Raad van de Vier", jaar:1499, npcs:[], contains:["de_tweespalt","het_hijgende_paard"] },
+  { id:"duvelingh", name:"Duvelingh", type:"Stadswijk", wijk:"Duvelingh", desc:"De rijkste wijk van Grisburgh waar de adellijke families resideren.", eigenaar:"Raad van de Vier", jaar:1100, npcs:[], contains:["villa_cassalanter","bistro_de_ratz","tempel_sehan"] },
+  { id:"kalkwijk", name:"Kalkwijk", type:"Stadswijk", wijk:"Kalkwijk", desc:"Nieuwste stadsgedeelte met veel expats. Grauw en buiten de avondcontrole. Het dievengilde heeft hier grip gekregen.", eigenaar:"Raad van de Vier", jaar:1640, npcs:[], contains:["tempel_yrdus","de_grisburgh_gazette","bobs_tattoos"] },
+  { id:"noorddorp", name:"Noorddorp", type:"Stadswijk", wijk:"Noorddorp", desc:"Bij de stadsmuren waar de stichters van Grisburgh begraven liggen. Hier wordt De Verborgene gevreesd.", eigenaar:"Raad van de Vier", jaar:900, npcs:[], contains:["tempel_verborgene"] },
+  { id:"oosterkwartier", name:"Oosterkwartier", type:"Stadswijk", wijk:"Oosterkwartier", desc:"Stadsdeel met Het Nieuwe Vlashuis en het bordeel van Madame Vlinder.", eigenaar:"Raad van de Vier", jaar:1200, npcs:["vader_pasternak"], contains:["het_nieuwe_vlashuis"] },
+  { id:"purperhaven", name:"Purperhaven", type:"Stadswijk", wijk:"Purperhaven", desc:"Het havengebied waar zeelui hun benen vinden en het heiligdom van Oronoë staat.", eigenaar:"Raad van de Vier", jaar:920, npcs:[], contains:["tempel_oronoe"] },
+  { id:"westerweg", name:"Westerweg", type:"Stadswijk", wijk:"Westerweg", desc:"Waar de akkerlanden de stad ontmoeten. Hier zetelt Qirell Vuurhand en de vervallen tempel van Denava.", eigenaar:"Raad van de Vier", jaar:1000, npcs:[], contains:["tempel_qirell","tempel_denava","de_cooperatie"] },
+  // Specifieke locaties
+  { id:"de_swarte_cat", name:"De Swarte Cat", type:"Herberg", wijk:"Haveplein", desc:"Voornaamste herberg en thuisbasis van de avonturiers. Waardin Brÿlwaen rekent 3 florinde per nacht.", eigenaar:"Brÿlwaen", jaar:1400, npcs:["brylwaen"], contains:[] },
+  { id:"de_schunnige_egel", name:"De Schunnige Egel", type:"Taveerne", wijk:"Haveplein", desc:"Populaire taveerne op het Haveplein. Waard Herbert Hoogdraver kent de geruchten over het dievengilde.", eigenaar:"Herbert Hoogdraver", jaar:0, npcs:["herbert_hoogdraver"], contains:[] },
+  { id:"bistro_de_ratz", name:"Bistro De Ratz", type:"Restaurant", wijk:"Duvelingh", desc:"Culinair juweel onder leiding van chef Auguste Escargouffier uit Lhute. VIP-ruimte gebruikt door de Heeren van de Nacht.", eigenaar:"Auguste Escargouffier", jaar:0, npcs:["auguste_escargouffier"], contains:[] },
+  { id:"schuttershuis", name:"Schuttershuis", type:"Stadswacht", wijk:"Luimpoort", desc:"Hoofdkwartier van de Roodzwaarden. Kleine maar sterke fortificatie met mozaïekvloer en stadsgevangenis in de kelder.", eigenaar:"Roodzwaarden", jaar:1100, npcs:["harmen_jonker","jelle_pieter_woelstra"], contains:[] },
+  { id:"villa_cassalanter", name:"Villa Cassalanter", type:"Herenhuis", wijk:"Duvelingh", desc:"Residentie van de adellijke Cassalanter-familie. Bewaakt door Birtha van de Heeren van de Nacht.", eigenaar:"Henry Cassalanter", jaar:0, npcs:["henry_cassalanter","boris_cassalanter","sasja","birtha"], contains:[] },
+  { id:"mystieke_magazijn", name:"Mystieke Magazijn", type:"Magische winkel", wijk:"Luimpoort", desc:"Overvolle winkel met magische snuisterijen. Gerund door Thalion, een dohwar vermomd als gnoom. Garantie tot aan de deur.", eigenaar:"Thalion", jaar:1672, npcs:["thalion"], contains:[] },
+  { id:"boekenwyrm", name:"De Boekenwyrm", type:"Spreukenwinkel", wijk:"Luimpoort", desc:"Brede selectie spreuken voor tovenaars. Alle transacties worden magisch genoteerd in het kasboek.", eigenaar:"Miraal Ezelsoor", jaar:0, npcs:["miraal_ezelsoor"], contains:[] },
+  { id:"het_nieuwe_vlashuis", name:"Het Nieuwe Vlashuis", type:"Tempel/Opvang", wijk:"Oosterkwartier", desc:"Herbergt de Tempel van Corellin, god van de zwakkeren en verschoppelingen. Geleid door Vader Pasternak.", eigenaar:"Vader Pasternak", jaar:0, npcs:["vader_pasternak"], contains:[] },
+  { id:"de_eendragt", name:"De Eendragt", type:"Stoomschip", wijk:"Purperhaven", desc:"Voormalig oorlogsfregat omgebouwd tot drijvend gildehuis en laboratorium van het artifexgilde.", eigenaar:"Ursûn Rogarr", jaar:0, npcs:["ursun_rogarr","berend_swering"], contains:[] },
+  { id:"toorn_des_tijds", name:"Toorn des Tijds", type:"Magiërstoren", wijk:"Buiten Grisburgh", desc:"Ranke toren met meer dan honderd ingemetselde klokken. Verdween 15 jaar geleden uit het Arkanium en verschijnt sindsdien op onwaarschijnlijke plaatsen.", eigenaar:"Tempees Hora", jaar:0, npcs:["tempees_hora"], contains:[] },
+  { id:"de_cooperatie", name:"De Coöperatie", type:"Druïdengemeenschap", wijk:"Westerweg", desc:"Drie druïden die de moestuin omploegen en appelsap aanbieden. Onderhouden contact met magiër Charbonneau.", eigenaar:"", jaar:0, npcs:["camma_chosach"], contains:[] },
+  { id:"de_tweespalt", name:"De Tweespalt", type:"Kruispunt", wijk:"Mistheuvel", desc:"Stoffig kruispunt waar ruzies tussen Mistheuvel en Dragonder worden beslecht in georganiseerde straatgevechten.", eigenaar:"Korporaal Standhall", jaar:1499, npcs:[], contains:[] },
+  { id:"de_grisburgh_gazette", name:"De Grisburgh Gazette", type:"Krant", wijk:"Kalkwijk", desc:"De grootste gazette van Grisburgh. Hoofdredacteur Petrus Lelacq.", eigenaar:"Petrus Lelacq", jaar:0, npcs:["plumella_pulp"], contains:[] },
+  { id:"bobs_tattoos", name:"Bobs Tattoos", type:"Tattooshop", wijk:"Kalkwijk", desc:"Kleine tattooshop gerund door de harengon Bob.", eigenaar:"Bob", jaar:0, npcs:["bob"], contains:[] },
+  // Buitengebied
+  { id:"amberwoud", name:"Amberwoud", type:"Woud", wijk:"Buiten Grisburgh", desc:"Uitgestrekt woud nabij Grisburgh. Thuisbasis van druïden waaronder Iridan Rogarr.", eigenaar:"", jaar:0, npcs:["iridan_rogarr"], contains:["gulthiasboom","fort_adhmaid"] },
+  { id:"medeweg", name:"Medeweg", type:"Dorp", wijk:"Buiten Grisburgh", desc:"Klein gemoedelijk dorpje nabij het Amberwoud, bekend om zijn distilleerderij.", eigenaar:"", jaar:0, npcs:[], contains:[] },
+  { id:"lhute", name:"Lhute", type:"Hoofdstad", wijk:"Isfār", desc:"Hoofdstad van Isfār. Koning Pares XIV kijkt met jaloezie naar Grisburgh.", eigenaar:"Pares XIV", jaar:0, npcs:["pares_xiv"], contains:[] },
+  { id:"maenfort", name:"Maenfort", type:"Stad", wijk:"Isfār", desc:"Concurrerende havenstad die Zwartbaard heeft gecontracteerd om Grisburgh te hinderen.", eigenaar:"", jaar:0, npcs:[], contains:[] },
+  { id:"stormhaven", name:"Stormhaven", type:"Stad", wijk:"Isfār", desc:"Tweede stad van het eiland. Regent luistert naar ieder woord van Grisburgh.", eigenaar:"", jaar:0, npcs:[], contains:[] },
+  { id:"wrakland", name:"Wrakland", type:"Kustgebied", wijk:"Isfār", desc:"Gevaarlijk kustgebied bezaaid met scheepswrakken.", eigenaar:"", jaar:0, npcs:[], contains:[] },
+];
+
+const DOCUMENTS = [
+  { id:"grisburgh_gazette", name:"Grisburgh Gazette", type:"Krant", cat:"Publicatie", desc:"Uitgave met artikelen over piraterij van Zwartbaard, De Tweespalt-debat, en roddelrubriek over Lucibaldo.", related_npcs:["salazar_zwartbaard","plumella_pulp","lucibaldo"], related_locs:["de_grisburgh_gazette","de_tweespalt"] },
+  { id:"liefdesbrief_h_c", name:"Liefdesbrief van H. aan C.", type:"Brief", cat:"Correspondentie", desc:"Onderschepte liefdesbrief die de Heeren van de Nacht gebruiken om Henry Cassalanter te chanteren.", related_npcs:["henry_cassalanter"], related_locs:["villa_cassalanter"] },
+  { id:"liefdesgedicht_h_c", name:"Liefdesgedicht van H. aan C.", type:"Gedicht", cat:"Correspondentie", desc:"Liefdesgedicht behorend bij de chantage-affaire rond de Cassalanters.", related_npcs:["henry_cassalanter"], related_locs:["villa_cassalanter"] },
+  { id:"dreigbrief_hvdn", name:"Dreigbrief van de Heeren van de Nacht", type:"Dreigbrief", cat:"Correspondentie", desc:"Dreigbrief met eis van 3000 florindes, verstuurd aan Villa Cassalanter.", related_npcs:["henry_cassalanter","ilyana"], related_locs:["villa_cassalanter"] },
+  { id:"brief_rs_grum", name:"Brief van RS aan Grum'shar over Lucibaldo", type:"Brief", cat:"Correspondentie", desc:"Brief ondertekend met RS (het fictieve figuur Ricfer Staaloog) aan Grum'shar over de operatie tegen Lucibaldo.", related_npcs:["grum_shar","ricfer_staaloog","lucibaldo"], related_locs:["kaarssteeg"] },
+  { id:"grumshars_kasboek", name:"Grum'shars Kasboek", type:"Kasboek", cat:"Financieel", desc:"Financiële administratie van Grum'shar met overzicht van de criminele operaties.", related_npcs:["grum_shar"], related_locs:[] },
+  { id:"bespiegelingh_vogels", name:"Eenen bespiegelingh op den tael der vogels", type:"Manuscript", cat:"Theologisch", desc:"Kostbaar twaalfde-eeuws theologisch manuscript over de goden van Isfār en een magische spiegel. Laatste deel in archaïsch Aarakocra.", related_npcs:["wilhelm_dockermakker"], related_locs:["bibliotheek_arkanium"] },
+  { id:"aantekeningen_chantage", name:"Aantekeningen om H. te chanteren", type:"Notities", cat:"Crimineel", desc:"Aantekeningen van de Heeren van de Nacht over het chantageplan tegen Henry Cassalanter.", related_npcs:["henry_cassalanter","ilyana"], related_locs:["villa_cassalanter"] },
+  { id:"blauwdruk_tatoeages", name:"Blauwdruk tatoeages Heeren van de Nacht", type:"Blauwdruk", cat:"Crimineel", desc:"Ontwerp van de kenmerkende tatoeages van het dievengilde — een groot zwart oog.", related_npcs:["ilyana","volke"], related_locs:[] },
+  { id:"gebed_corellin", name:"Gebed aan Corellin, god der dieven", type:"Gebed", cat:"Religieus", desc:"Gebed aan Corellin, patroonheilige van de verschoppelingen en het dievengilde.", related_npcs:["vader_pasternak"], related_locs:["het_nieuwe_vlashuis"] },
+  { id:"reclamefolder", name:"Reclamefolder Grisburgh", type:"Folder", cat:"Publicatie", desc:"Promotioneel materiaal: 'Bezoek Grisburgh, de parel van het oosten!' Met stadskaart en informatie over het Lichtfeest.", related_npcs:[], related_locs:["arkanium","haveplein","luimpoort","de_tweespalt"] },
+  { id:"boekenwyrm_spells", name:"De Boekenwyrm Spell List", type:"Catalogus", cat:"Magisch", desc:"Spreukenlijst beschikbaar bij De Boekenwyrm.", related_npcs:["miraal_ezelsoor"], related_locs:["boekenwyrm"] },
+  { id:"uitnodiging_swering", name:"Uitnodiging van Berend Swering", type:"Uitnodiging", cat:"Correspondentie", desc:"Uitnodigingen van Berend Swering aan de avonturiers namens Ursûn Rogarr.", related_npcs:["berend_swering","ursun_rogarr"], related_locs:["de_swarte_cat"] },
+  { id:"visitekaartje_zt", name:"Visitekaartje Zilvertong & Zemelaar", type:"Visitekaartje", cat:"Zakelijk", desc:"Visitekaartje van het advocatenkantoor. 'Recht uit het hart.' Haaienvinnenhoek 17, Nootdorp.", related_npcs:["larynxius_zilvertong"], related_locs:[] },
+];
+
+const ORGANIZATIONS = [
+  { id:"raad_van_de_vier", name:"Raad van de Vier", desc:"De vier hoofdmagiërs die Grisburgh besturen.", members:["ilona_findabair","ursun_rogarr","wilfrid_kalmhand","sabrina_charbonneau"] },
+  { id:"heeren_van_de_nacht", name:"Heeren van de Nacht", desc:"Het dievengilde van Grisburgh. Meritocratisch met halfjaarlijkse verkiezingen.", members:["ilyana","volke","grum_shar","birtha"] },
+  { id:"roodzwaarden", name:"Roodzwaarden", desc:"De stadswacht van Grisburgh.", members:["harmen_jonker","jelle_pieter_woelstra"] },
+  { id:"artifexgilde", name:"Artifexgilde", desc:"Het gilde van uitvinders en artifexen onder leiding van Ursûn Rogarr.", members:["ursun_rogarr","berend_swering"] },
+];
+
+// ═══════════════════════════════════════════════════════
+// STATE & STORAGE
+// ═══════════════════════════════════════════════════════
+
+let currentPanel = 'npcs';
+let npcFilter = 'all';
+let locFilter = 'all';
+let docFilter = 'all';
+let dmNotes = {};
+let navigationHistory = [];
+
+async function loadNotes() {
+  try {
+    const result = await window.storage.get('dm-notes');
+    if (result && result.value) {
+      dmNotes = JSON.parse(result.value);
+      updateNotesCount();
+    }
+  } catch(e) { dmNotes = {}; }
+}
+
+async function saveNotes() {
+  try {
+    await window.storage.set('dm-notes', JSON.stringify(dmNotes));
+    updateNotesCount();
+  } catch(e) { console.error('Storage error:', e); }
+}
+
+function updateNotesCount() {
+  const count = Object.keys(dmNotes).filter(k => dmNotes[k] && dmNotes[k].trim()).length;
+  document.getElementById('notes-count').textContent = count;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════
+
+function switchPanel(panel) {
+  currentPanel = panel;
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.panel === panel));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+panel));
+}
+
+function getInitials(name) {
+  return name.split(/[\s-]+/).map(w => w[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
+}
+
+function getAvatarColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  const hue = Math.abs(hash % 360);
+  return `hsl(${hue}, 35%, 30%)`;
+}
+
+function renderNPCs() {
+  const grid = document.getElementById('npc-grid');
+  const search = document.getElementById('npc-search').value.toLowerCase();
+  
+  let filtered = NPCS.filter(n => {
+    const matchSearch = !search || n.name.toLowerCase().includes(search) || n.role.toLowerCase().includes(search) || n.desc.toLowerCase().includes(search) || n.tags.some(t => t.toLowerCase().includes(search));
+    const matchFilter = npcFilter === 'all' || n.tags.some(t => t === npcFilter);
+    return matchSearch && matchFilter;
+  });
+
+  grid.innerHTML = filtered.map(n => `
+    <div class="npc-card" onclick="openNPCDetail('${n.id}')">
+      <div class="npc-card-header">
+        <div class="npc-avatar" style="background:${getAvatarColor(n.name)}">${getInitials(n.name)}</div>
+        <div class="npc-card-info">
+          <div class="npc-card-name">${n.name}</div>
+          <div class="npc-card-role">${n.role}</div>
+        </div>
+      </div>
+      <div class="npc-card-body">
+        <div class="npc-card-desc">${n.desc}</div>
+      </div>
+      <div class="npc-card-footer">
+        ${n.tags.slice(0,3).map(t => `<span class="tag" onclick="event.stopPropagation();setNPCFilter('${t}')">${t}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('npc-count').textContent = filtered.length;
+  
+  // Build filter pills
+  const allTags = [...new Set(NPCS.flatMap(n => n.tags))].sort();
+  document.getElementById('npc-filters').innerHTML = 
+    `<button class="filter-pill ${npcFilter==='all'?'active':''}" onclick="setNPCFilter('all')">Alle</button>` +
+    allTags.map(t => `<button class="filter-pill ${npcFilter===t?'active':''}" onclick="setNPCFilter('${t}')">${t}</button>`).join('');
+}
+
+function renderLocations() {
+  const grid = document.getElementById('loc-grid');
+  const search = document.getElementById('loc-search').value.toLowerCase();
+
+  let filtered = LOCATIONS.filter(l => {
+    const matchSearch = !search || l.name.toLowerCase().includes(search) || l.type.toLowerCase().includes(search) || l.desc.toLowerCase().includes(search) || l.wijk.toLowerCase().includes(search);
+    const matchFilter = locFilter === 'all' || l.wijk === locFilter || l.type === locFilter;
+    return matchSearch && matchFilter;
+  });
+
+  const typeClass = (t) => {
+    if (['Stadswijk'].includes(t)) return 'type-wijk';
+    if (t.includes('Tempel')) return 'type-tempel';
+    if (['Magische winkel','Spreukenwinkel','Tattooshop'].includes(t)) return 'type-winkel';
+    if (['Herberg','Taveerne','Restaurant'].includes(t)) return 'type-taverne';
+    if (['Stad','Hoofdstad','Dorp'].includes(t)) return 'type-stad';
+    if (['Woud','Kustgebied','Zee'].includes(t)) return 'type-natuur';
+    return '';
+  };
+
+  grid.innerHTML = filtered.map(l => `
+    <div class="loc-card" onclick="openLocDetail('${l.id}')">
+      <div class="loc-card-type-bar ${typeClass(l.type)}"></div>
+      <div class="loc-card-content">
+        <div class="loc-card-name">${l.name}</div>
+        <div class="loc-card-meta">
+          <span>📍 ${l.type}</span>
+          <span>🏘 ${l.wijk}</span>
+          ${l.jaar ? `<span>📅 ${l.jaar}</span>` : ''}
+        </div>
+        <div class="loc-card-desc">${l.desc}</div>
+      </div>
+      <div class="loc-card-footer">
+        ${l.npcs.slice(0,3).map(nid => { const n = NPCS.find(x=>x.id===nid); return n ? `<span class="tag tag-npc" onclick="event.stopPropagation();openNPCDetail('${nid}')">${n.name.split(' ')[0]}</span>` : ''; }).join('')}
+        ${l.contains.slice(0,2).map(cid => { const c = LOCATIONS.find(x=>x.id===cid); return c ? `<span class="tag tag-location" onclick="event.stopPropagation();openLocDetail('${cid}')">${c.name}</span>` : ''; }).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('loc-count').textContent = filtered.length;
+
+  const allWijken = [...new Set(LOCATIONS.map(l => l.wijk))].sort();
+  document.getElementById('loc-filters').innerHTML = 
+    `<button class="filter-pill ${locFilter==='all'?'active':''}" onclick="setLocFilter('all')">Alle</button>` +
+    allWijken.map(w => `<button class="filter-pill ${locFilter===w?'active':''}" onclick="setLocFilter('${w}')">${w}</button>`).join('');
+}
+
+function renderDocs() {
+  const grid = document.getElementById('doc-grid');
+  const search = document.getElementById('doc-search').value.toLowerCase();
+
+  let filtered = DOCUMENTS.filter(d => {
+    const matchSearch = !search || d.name.toLowerCase().includes(search) || d.type.toLowerCase().includes(search) || d.desc.toLowerCase().includes(search) || d.cat.toLowerCase().includes(search);
+    const matchFilter = docFilter === 'all' || d.cat === docFilter;
+    return matchSearch && matchFilter;
+  });
+
+  const docIcon = (type) => {
+    const icons = { 'Krant':'📰', 'Brief':'✉️', 'Dreigbrief':'⚠️', 'Kasboek':'📒', 'Manuscript':'📖', 'Notities':'📝', 'Blauwdruk':'📐', 'Gebed':'🙏', 'Folder':'📋', 'Catalogus':'📚', 'Uitnodiging':'💌', 'Visitekaartje':'🪪', 'Gedicht':'🪶' };
+    return icons[type] || '📄';
+  };
+
+  grid.innerHTML = filtered.map(d => `
+    <div class="doc-card" onclick="openDocDetail('${d.id}')">
+      <div class="doc-card-icon">
+        <span class="icon-glyph">${docIcon(d.type)}</span>
+      </div>
+      <div class="doc-card-content">
+        <div class="doc-card-name">${d.name}</div>
+        <div class="doc-card-type">${d.type} · ${d.cat}</div>
+      </div>
+      <div class="doc-card-footer">
+        ${d.related_npcs.slice(0,2).map(nid => { const n = NPCS.find(x=>x.id===nid); return n ? `<span class="tag tag-npc" onclick="event.stopPropagation();openNPCDetail('${nid}')">${n.name.split(' ')[0]}</span>` : ''; }).join('')}
+        ${d.related_locs.slice(0,2).map(lid => { const l = LOCATIONS.find(x=>x.id===lid); return l ? `<span class="tag tag-location" onclick="event.stopPropagation();openLocDetail('${lid}')">${l.name}</span>` : ''; }).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('doc-count').textContent = filtered.length;
+
+  const allCats = [...new Set(DOCUMENTS.map(d => d.cat))].sort();
+  document.getElementById('doc-filters').innerHTML = 
+    `<button class="filter-pill ${docFilter==='all'?'active':''}" onclick="setDocFilter('all')">Alle</button>` +
+    allCats.map(c => `<button class="filter-pill ${docFilter===c?'active':''}" onclick="setDocFilter('${c}')">${c}</button>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════════════════════
+
+function setNPCFilter(f) { npcFilter = f; renderNPCs(); }
+function setLocFilter(f) { locFilter = f; renderLocations(); }
+function setDocFilter(f) { docFilter = f; renderDocs(); }
+function filterNPCs() { renderNPCs(); }
+function filterLocations() { renderLocations(); }
+function filterDocs() { renderDocs(); }
+
+// ═══════════════════════════════════════════════════════
+// DETAIL MODALS
+// ═══════════════════════════════════════════════════════
+
+function openModal() {
+  document.getElementById('modal-overlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function openNPCDetail(id) {
+  const n = NPCS.find(x => x.id === id);
+  if (!n) return;
+  
+  document.getElementById('modal-title').textContent = n.name;
+  document.getElementById('modal-subtitle').textContent = n.role;
+
+  let body = '';
+  
+  // Description
+  body += `<div class="modal-section"><div class="modal-section-title">Beschrijving</div><p>${n.desc}</p></div>`;
+
+  // Tags / Affiliaties
+  if (n.tags.length) {
+    body += `<div class="modal-section"><div class="modal-section-title">Affiliaties</div><div class="modal-links">`;
+    n.tags.forEach(t => {
+      const org = ORGANIZATIONS.find(o => o.name === t);
+      if (org) {
+        body += `<span class="modal-link link-org" onclick="openOrgDetail('${org.id}')">⚔ ${t}</span>`;
+      } else {
+        body += `<span class="modal-link link-org">${t}</span>`;
+      }
+    });
+    body += `</div></div>`;
+  }
+
+  // Connected NPCs
+  if (n.related && n.related.length) {
+    body += `<div class="modal-section"><div class="modal-section-title">Verbonden Personages</div><div class="modal-links">`;
+    n.related.forEach(rid => {
+      const r = NPCS.find(x => x.id === rid);
+      if (r) body += `<span class="modal-link link-npc" onclick="openNPCDetail('${rid}')">👤 ${r.name}</span>`;
+    });
+    body += `</div></div>`;
+  }
+
+  // Locations
+  if (n.locations && n.locations.length) {
+    body += `<div class="modal-section"><div class="modal-section-title">Locaties</div><div class="modal-links">`;
+    n.locations.forEach(lid => {
+      const l = LOCATIONS.find(x => x.id === lid);
+      if (l) body += `<span class="modal-link link-location" onclick="openLocDetail('${lid}')">🏰 ${l.name}</span>`;
+    });
+    body += `</div></div>`;
+  }
+
+  // Related documents
+  const relDocs = DOCUMENTS.filter(d => d.related_npcs.includes(id));
+  if (relDocs.length) {
+    body += `<div class="modal-section"><div class="modal-section-title">Documenten</div><div class="modal-links">`;
+    relDocs.forEach(d => {
+      body += `<span class="modal-link link-doc" onclick="openDocDetail('${d.id}')">📜 ${d.name}</span>`;
+    });
+    body += `</div></div>`;
+  }
+
+  // DM Notes
+  body += buildNotesSection('npc_' + id);
+
+  document.getElementById('modal-body').innerHTML = body;
+  openModal();
+  setupNotesListener('npc_' + id);
+}
+
+function openLocDetail(id) {
+  const l = LOCATIONS.find(x => x.id === id);
+  if (!l) return;
+
+  document.getElementById('modal-title').textContent = l.name;
+  document.getElementById('modal-subtitle').textContent = `${l.type} · ${l.wijk}${l.eigenaar ? ' · ' + l.eigenaar : ''}${l.jaar ? ' · Jaar ' + l.jaar : ''}`;
+
+  let body = '';
+  body += `<div class="modal-section"><div class="modal-section-title">Beschrijving</div><p>${l.desc}</p></div>`;
+
+  // NPCs here
+  if (l.npcs.length) {
+    body += `<div class="modal-section"><div class="modal-section-title">Personages op deze locatie</div><div class="modal-links">`;
+    l.npcs.forEach(nid => {
+      const n = NPCS.find(x => x.id === nid);
+      if (n) body += `<span class="modal-link link-npc" onclick="openNPCDetail('${nid}')">👤 ${n.name}</span>`;
+    });
+    body += `</div></div>`;
+  }
+
+  // Sub-locations
+  if (l.contains && l.contains.length) {
+    body += `<div class="modal-section"><div class="modal-section-title">Bevat</div><div class="modal-links">`;
+    l.contains.forEach(cid => {
+      const c = LOCATIONS.find(x => x.id === cid);
+      if (c) body += `<span class="modal-link link-location" onclick="openLocDetail('${cid}')">🏰 ${c.name}</span>`;
+    });
+    body += `</div></div>`;
+  }
+
+  // Parent location
+  const parents = LOCATIONS.filter(x => x.contains && x.contains.includes(id));
+  if (parents.length) {
+    body += `<div class="modal-section"><div class="modal-section-title">Onderdeel van</div><div class="modal-links">`;
+    parents.forEach(p => {
+      body += `<span class="modal-link link-location" onclick="openLocDetail('${p.id}')">🏰 ${p.name}</span>`;
+    });
+    body += `</div></div>`;
+  }
+
+  // Also find NPCs that reference this location
+  const otherNPCs = NPCS.filter(n => n.locations && n.locations.includes(id) && !l.npcs.includes(n.id));
+  if (otherNPCs.length) {
+    body += `<div class="modal-section"><div class="modal-section-title">Andere verbonden personages</div><div class="modal-links">`;
+    otherNPCs.forEach(n => {
+      body += `<span class="modal-link link-npc" onclick="openNPCDetail('${n.id}')">👤 ${n.name}</span>`;
+    });
+    body += `</div></div>`;
+  }
+
+  // Related docs
+  const relDocs = DOCUMENTS.filter(d => d.related_locs.includes(id));
+  if (relDocs.length) {
+    body += `<div class="modal-section"><div class="modal-section-title">Documenten</div><div class="modal-links">`;
+    relDocs.forEach(d => {
+      body += `<span class="modal-link link-doc" onclick="openDocDetail('${d.id}')">📜 ${d.name}</span>`;
+    });
+    body += `</div></div>`;
+  }
+
+  body += buildNotesSection('loc_' + id);
+
+  document.getElementById('modal-body').innerHTML = body;
+  openModal();
+  setupNotesListener('loc_' + id);
+}
+
+function openDocDetail(id) {
+  const d = DOCUMENTS.find(x => x.id === id);
+  if (!d) return;
+
+  document.getElementById('modal-title').textContent = d.name;
+  document.getElementById('modal-subtitle').textContent = `${d.type} · ${d.cat}`;
+
+  let body = '';
+  body += `<div class="modal-section"><div class="modal-section-title">Inhoud</div><p>${d.desc}</p></div>`;
+
+  if (d.related_npcs.length) {
+    body += `<div class="modal-section"><div class="modal-section-title">Gerelateerde personages</div><div class="modal-links">`;
+    d.related_npcs.forEach(nid => {
+      const n = NPCS.find(x => x.id === nid);
+      if (n) body += `<span class="modal-link link-npc" onclick="openNPCDetail('${nid}')">👤 ${n.name}</span>`;
+    });
+    body += `</div></div>`;
+  }
+
+  if (d.related_locs.length) {
+    body += `<div class="modal-section"><div class="modal-section-title">Gerelateerde locaties</div><div class="modal-links">`;
+    d.related_locs.forEach(lid => {
+      const l = LOCATIONS.find(x => x.id === lid);
+      if (l) body += `<span class="modal-link link-location" onclick="openLocDetail('${lid}')">🏰 ${l.name}</span>`;
+    });
+    body += `</div></div>`;
+  }
+
+  body += buildNotesSection('doc_' + id);
+
+  document.getElementById('modal-body').innerHTML = body;
+  openModal();
+  setupNotesListener('doc_' + id);
+}
+
+function openOrgDetail(id) {
+  const o = ORGANIZATIONS.find(x => x.id === id);
+  if (!o) return;
+
+  document.getElementById('modal-title').textContent = o.name;
+  document.getElementById('modal-subtitle').textContent = 'Organisatie';
+
+  let body = '';
+  body += `<div class="modal-section"><div class="modal-section-title">Beschrijving</div><p>${o.desc}</p></div>`;
+
+  if (o.members.length) {
+    body += `<div class="modal-section"><div class="modal-section-title">Leden</div><div class="modal-links">`;
+    o.members.forEach(mid => {
+      const m = NPCS.find(x => x.id === mid);
+      if (m) body += `<span class="modal-link link-npc" onclick="openNPCDetail('${mid}')">👤 ${m.name} — ${m.role}</span>`;
+    });
+    body += `</div></div>`;
+  }
+
+  body += buildNotesSection('org_' + id);
+
+  document.getElementById('modal-body').innerHTML = body;
+  openModal();
+  setupNotesListener('org_' + id);
+}
+
+// ═══════════════════════════════════════════════════════
+// DM NOTES SYSTEM
+// ═══════════════════════════════════════════════════════
+
+function buildNotesSection(key) {
+  const existingNote = dmNotes[key] || '';
+  return `
+    <div class="modal-section">
+      <div class="modal-section-title">🖊 DM Notities</div>
+      <div class="dm-notes-area">
+        <textarea id="dm-notes-textarea" data-key="${key}" placeholder="Schrijf hier je DM-notities...">${existingNote}</textarea>
+        <div class="note-save-indicator" id="note-save-indicator">✓ Opgeslagen</div>
+      </div>
+    </div>`;
+}
+
+function setupNotesListener(key) {
+  const textarea = document.getElementById('dm-notes-textarea');
+  if (!textarea) return;
+  let saveTimeout;
+  textarea.addEventListener('input', () => {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      dmNotes[key] = textarea.value;
+      saveNotes();
+      const indicator = document.getElementById('note-save-indicator');
+      indicator.classList.add('show');
+      setTimeout(() => indicator.classList.remove('show'), 1500);
+    }, 500);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === '1' && e.altKey) { e.preventDefault(); switchPanel('npcs'); }
+  if (e.key === '2' && e.altKey) { e.preventDefault(); switchPanel('locations'); }
+  if (e.key === '3' && e.altKey) { e.preventDefault(); switchPanel('docs'); }
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+    const activeSearch = document.querySelector('.panel.active .search-box input');
+    if (activeSearch && document.activeElement !== activeSearch) {
+      e.preventDefault();
+      activeSearch.focus();
+    }
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+
+async function init() {
+  await loadNotes();
+  renderNPCs();
+  renderLocations();
+  renderDocs();
+}
+
+init();
+</script>
+</body>
+</html>

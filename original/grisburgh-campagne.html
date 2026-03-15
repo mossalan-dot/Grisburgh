@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grisburgh — Campagnedashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IM+Fell+English:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --room-bg: #13100b; --room-surface: #1e1914; --room-elevated: #2a231b;
+  --room-border: #3d3428; --room-border-light: #4a3f32;
+  --ink-bright: #f0e8d4; --ink-medium: #c4b89a; --ink-dim: #8a7d6a; --ink-faint: #5a5040;
+  --gold: #d4a843; --gold-dim: #a68832; --gold-glow: rgba(212,168,67,0.15);
+  --red-seal: #8b2a2a; --red-glow: rgba(139,42,42,0.2);
+  --blue-ink: #3a6a9a; --blue-glow: rgba(58,106,154,0.15);
+  --green-wax: #3a6a4a; --green-glow: rgba(58,106,74,0.15);
+  --purple-codex: #6a4a8a; --purple-glow: rgba(106,74,138,0.15);
+  --orange: #b8763a; --orange-glow: rgba(184,118,58,0.15);
+  --parchment-letter: #f2e6c8;
+  --radius: 4px; --radius-md: 8px; --radius-lg: 12px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.4); --shadow-deep: 0 8px 32px rgba(0,0,0,0.6);
+  --transition: 0.25s ease;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Crimson Text',Georgia,serif; background:var(--room-bg); color:var(--ink-bright); min-height:100vh; overflow:hidden; }
+body::after { content:''; position:fixed; inset:0; pointer-events:none; opacity:0.03; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); z-index:9999; }
+
+.app { display:grid; grid-template-rows:auto auto auto 1fr; height:100vh; }
+
+/* ═══ HEADER ═══ */
+.header { display:flex; align-items:center; justify-content:space-between; padding:10px 24px; background:linear-gradient(180deg,#1a1510,var(--room-bg)); border-bottom:1px solid var(--room-border); }
+.header-title { font-family:'Cinzel',serif; font-size:20px; font-weight:700; color:var(--gold); letter-spacing:3px; text-transform:uppercase; }
+.header-subtitle { font-family:'IM Fell English',serif; font-size:12px; color:var(--ink-dim); font-style:italic; }
+.header-right { display:flex; align-items:center; gap:10px; }
+.dm-switch { position:relative; width:42px; height:22px; background:var(--room-border); border-radius:11px; cursor:pointer; transition:var(--transition); }
+.dm-switch.active { background:var(--red-seal); }
+.dm-switch::after { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; background:var(--ink-bright); border-radius:50%; transition:var(--transition); }
+.dm-switch.active::after { left:23px; }
+.dm-label { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-dim); }
+.dm-switch.active + .dm-label { color:var(--red-seal); }
+
+/* ═══ MAIN TABS ═══ */
+.main-tabs { display:flex; padding:0 24px; background:var(--room-bg); border-bottom:1px solid var(--room-border); overflow-x:auto; gap:2px; }
+.main-tab { font-family:'Cinzel',serif; font-size:12px; font-weight:600; letter-spacing:0.8px; padding:10px 16px; border:none; background:transparent; color:var(--ink-dim); cursor:pointer; transition:var(--transition); white-space:nowrap; border-bottom:2px solid transparent; }
+.main-tab:hover { color:var(--ink-medium); }
+.main-tab.active { border-bottom-color:var(--gold); color:var(--gold); }
+.main-tab[data-tab="personages"].active { color:#6abd83; border-bottom-color:var(--green-wax); }
+.main-tab[data-tab="locaties"].active { color:#7ab0d4; border-bottom-color:var(--blue-ink); }
+.main-tab[data-tab="organisaties"].active { color:#d46a6a; border-bottom-color:var(--red-seal); }
+.main-tab[data-tab="voorwerpen"].active { color:#d4a843; border-bottom-color:var(--orange); }
+.main-tab[data-tab="archief"].active { color:#b88adb; border-bottom-color:var(--purple-codex); }
+.tab-count { font-family:'JetBrains Mono',monospace; font-size:9px; background:var(--room-elevated); padding:1px 5px; border-radius:8px; margin-left:5px; }
+
+/* ═══ TOOLBAR ═══ */
+.toolbar { display:flex; align-items:center; gap:10px; padding:8px 24px; background:var(--room-bg); border-bottom:1px solid var(--room-border); }
+.toolbar-search { position:relative; flex:1; max-width:400px; }
+.toolbar-search input { width:100%; padding:7px 12px 7px 30px; background:var(--room-surface); border:1px solid var(--room-border); border-radius:4px; color:var(--ink-bright); font-family:'Crimson Text',serif; font-size:14px; outline:none; transition:border-color 0.2s; }
+.toolbar-search input:focus { border-color:var(--gold-dim); }
+.toolbar-search input::placeholder { color:var(--ink-faint); font-style:italic; }
+.toolbar-search::before { content:'⌕'; position:absolute; left:9px; top:50%; transform:translateY(-50%); color:var(--ink-faint); font-size:14px; }
+.toolbar-count { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-faint); }
+.dm-toolbar { display:none; gap:6px; align-items:center; margin-left:auto; }
+.dm-mode .dm-toolbar { display:flex; }
+.dm-tb-btn { padding:5px 8px; background:var(--room-elevated); border:1px solid var(--room-border); border-radius:4px; color:var(--ink-medium); cursor:pointer; font-size:13px; transition:var(--transition); }
+.dm-tb-btn:hover { border-color:var(--gold-dim); color:var(--gold); }
+.dm-tb-btn.primary { background:var(--gold-dim); color:#000; border:none; font-family:'Cinzel',serif; font-size:11px; font-weight:700; padding:5px 14px; }
+.dm-tb-btn.primary:hover { background:var(--gold); }
+
+/* ═══ CONTENT ═══ */
+.content { overflow-y:auto; padding:20px 24px; }
+.content::-webkit-scrollbar { width:6px; }
+.content::-webkit-scrollbar-thumb { background:var(--room-border); border-radius:3px; }
+
+/* ═══ CARD GRID ═══ */
+.card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+
+/* ═══ ENTITY CARD ═══ */
+.e-card { background:var(--room-surface); border:1px solid var(--room-border); border-radius:var(--radius-md); overflow:hidden; cursor:pointer; transition:transform 0.2s,box-shadow 0.2s; position:relative; }
+.e-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-deep); }
+.e-card-accent { height:3px; }
+.e-card-accent.t-personages { background:var(--green-wax); }
+.e-card-accent.t-locaties { background:var(--blue-ink); }
+.e-card-accent.t-organisaties { background:var(--red-seal); }
+.e-card-accent.t-voorwerpen { background:var(--orange); }
+.e-card-thumb { width:100%; height:120px; object-fit:cover; display:block; border-bottom:1px solid var(--room-border); }
+.e-card-body { padding:14px 16px 12px; }
+.e-card-header { display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
+.e-card-icon { font-size:26px; flex-shrink:0; line-height:1; }
+.e-card-name { font-family:'IM Fell English',serif; font-size:15px; line-height:1.3; }
+.e-card-meta { font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:var(--ink-faint); margin-top:2px; }
+.e-card-desc { font-size:13px; line-height:1.5; color:var(--ink-medium); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:8px; }
+.e-card-footer { display:flex; gap:5px; flex-wrap:wrap; padding-top:8px; border-top:1px solid rgba(128,128,128,0.1); }
+
+/* ═══ CHIPS ═══ */
+.chip { font-family:'JetBrains Mono',monospace; font-size:9px; padding:2px 7px; border-radius:3px; cursor:pointer; transition:var(--transition); }
+.chip-npc { background:var(--green-glow); border:1px solid rgba(58,106,74,0.3); color:#6abd83; }
+.chip-loc { background:var(--blue-glow); border:1px solid rgba(58,106,154,0.3); color:#7ab0d4; }
+.chip-org { background:var(--red-glow); border:1px solid rgba(139,42,42,0.3); color:#d46a6a; }
+.chip-item { background:var(--orange-glow); border:1px solid rgba(184,118,58,0.3); color:#d4a843; }
+.chip-doc { background:var(--purple-glow); border:1px solid rgba(106,74,138,0.3); color:#b88adb; }
+.chip:hover { filter:brightness(1.3); }
+
+/* ═══ VISIBILITY ═══ */
+.e-card.is-hidden { opacity:0.35; border-style:dashed; }
+.e-card.is-hidden .e-card-body { filter:saturate(0.3); }
+.player-mode .e-card.is-hidden { display:none; }
+.vis-toggle { position:absolute; top:6px; right:6px; display:none; font-size:12px; padding:3px 6px; background:rgba(0,0,0,0.8); border:none; border-radius:3px; cursor:pointer; color:var(--ink-dim); z-index:2; transition:var(--transition); }
+.vis-toggle:hover { color:var(--ink-bright); }
+.dm-mode .vis-toggle { display:block; }
+
+/* ═══ FAB ═══ */
+.fab { display:none; position:fixed; bottom:24px; right:24px; width:50px; height:50px; border-radius:50%; background:var(--gold-dim); color:#000; border:none; font-size:24px; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.5); transition:var(--transition); z-index:100; }
+.fab:hover { background:var(--gold); transform:scale(1.08); }
+.dm-mode .fab { display:block; }
+
+/* ═══ MODAL ═══ */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1000; backdrop-filter:blur(6px); justify-content:center; align-items:center; }
+.modal-overlay.active { display:flex; }
+.modal { background:var(--room-surface); border:1px solid var(--room-border); border-radius:var(--radius-lg); width:92%; max-width:720px; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:var(--shadow-deep); animation:modalIn 0.2s ease; }
+@keyframes modalIn { from{opacity:0;transform:scale(0.96) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+.modal-head { padding:16px 20px 12px; border-bottom:1px solid var(--room-border); display:flex; justify-content:space-between; align-items:flex-start; }
+.modal-title { font-family:'IM Fell English',serif; font-size:22px; color:var(--gold); }
+.modal-subtitle { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+.modal-close { background:none; border:none; color:var(--ink-dim); font-size:22px; cursor:pointer; padding:2px 6px; }
+.modal-close:hover { color:var(--ink-bright); }
+.modal-body { padding:16px 20px; overflow-y:auto; flex:1; }
+.modal-body::-webkit-scrollbar { width:5px; }
+.modal-body::-webkit-scrollbar-thumb { background:var(--room-border); border-radius:3px; }
+
+/* Modal sections */
+.m-section { margin-bottom:16px; }
+.m-label { font-family:'Cinzel',serif; font-size:10px; font-weight:700; color:var(--gold-dim); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px; padding-bottom:3px; border-bottom:1px solid var(--room-border); }
+.m-section p { font-size:15px; line-height:1.7; color:var(--ink-medium); }
+.m-chips { display:flex; gap:6px; flex-wrap:wrap; }
+.m-chip { font-size:12px; padding:4px 10px; border-radius:var(--radius); cursor:pointer; transition:var(--transition); display:inline-flex; align-items:center; gap:4px; }
+.m-chip:hover { filter:brightness(1.2); }
+.m-chip-npc { background:var(--green-glow); border:1px solid rgba(58,106,74,0.35); color:#6abd83; }
+.m-chip-loc { background:var(--blue-glow); border:1px solid rgba(58,106,154,0.35); color:#7ab0d4; }
+.m-chip-org { background:var(--red-glow); border:1px solid rgba(139,42,42,0.35); color:#d46a6a; }
+.m-chip-item { background:var(--orange-glow); border:1px solid rgba(184,118,58,0.35); color:#d4a843; }
+.m-chip-doc { background:var(--purple-glow); border:1px solid rgba(106,74,138,0.35); color:#b88adb; }
+
+/* ═══ SECRET REVEAL (NPC only) ═══ */
+.secret-block { background:var(--room-bg); border:1px dashed var(--room-border); border-radius:var(--radius-md); padding:12px 14px; margin-top:8px; }
+.secret-block.hidden-for-player { display:none; }
+.secret-block .secret-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.secret-block .secret-title { font-family:'Cinzel',serif; font-size:10px; font-weight:700; color:var(--red-seal); text-transform:uppercase; letter-spacing:1.5px; }
+.secret-toggle { font-size:11px; padding:3px 8px; border:1px solid var(--room-border); border-radius:var(--radius); background:transparent; color:var(--ink-dim); cursor:pointer; font-family:'JetBrains Mono',monospace; }
+.secret-toggle:hover { border-color:var(--gold-dim); color:var(--ink-bright); }
+.secret-block p { font-size:14px; line-height:1.6; color:var(--ink-medium); font-style:italic; }
+
+/* ═══ CHARACTER SHEET TAB ═══ */
+.sheet-tabs { display:flex; gap:2px; margin-bottom:12px; }
+.sheet-tab { font-family:'JetBrains Mono',monospace; font-size:10px; padding:5px 12px; border:1px solid var(--room-border); border-radius:var(--radius) var(--radius) 0 0; background:transparent; color:var(--ink-dim); cursor:pointer; }
+.sheet-tab.active { background:var(--room-elevated); color:var(--ink-bright); border-bottom-color:var(--room-elevated); }
+.sheet-panel { display:none; }
+.sheet-panel.active { display:block; }
+
+.stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0; }
+.stat-box { text-align:center; background:var(--room-bg); border:1px solid var(--room-border); border-radius:var(--radius-md); padding:8px 4px; }
+.stat-box .stat-val { font-family:'Cinzel',serif; font-size:20px; font-weight:700; color:var(--ink-bright); }
+.stat-box .stat-mod { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--gold-dim); }
+.stat-box .stat-name { font-family:'JetBrains Mono',monospace; font-size:8px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin-top:2px; }
+.combat-row { display:flex; gap:8px; margin:8px 0; }
+.combat-box { flex:1; text-align:center; background:var(--room-bg); border:1px solid var(--room-border); border-radius:var(--radius); padding:6px; }
+.combat-box .cb-val { font-family:'Cinzel',serif; font-size:18px; font-weight:700; color:var(--ink-bright); }
+.combat-box .cb-label { font-family:'JetBrains Mono',monospace; font-size:8px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); }
+
+/* ═══ EDITOR FORM ═══ */
+.ed-form { display:flex; flex-direction:column; gap:12px; }
+.ed-row { display:flex; flex-direction:column; gap:3px; }
+.ed-row label { font-family:'Cinzel',serif; font-size:10px; font-weight:700; color:var(--gold-dim); text-transform:uppercase; letter-spacing:1.5px; }
+.ed-row input,.ed-row textarea,.ed-row select { width:100%; padding:7px 10px; background:var(--room-bg); border:1px solid var(--room-border); border-radius:var(--radius); color:var(--ink-bright); font-family:'Crimson Text',serif; font-size:14px; outline:none; }
+.ed-row input:focus,.ed-row textarea:focus,.ed-row select:focus { border-color:var(--gold-dim); }
+.ed-row textarea { min-height:55px; resize:vertical; }
+.ed-row select option { background:var(--room-bg); }
+.ed-inline { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.ed-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:3px; }
+.ed-tag { font-family:'JetBrains Mono',monospace; font-size:10px; padding:2px 7px; border-radius:3px; display:inline-flex; align-items:center; gap:3px; }
+.ed-tag .x { cursor:pointer; opacity:0.5; font-size:12px; }
+.ed-tag .x:hover { opacity:1; }
+.ed-add { display:flex; gap:4px; margin-top:3px; }
+.ed-add input { flex:1; font-size:12px; padding:4px 8px; }
+.ed-add button { padding:4px 8px; background:var(--room-border); border:none; color:var(--ink-medium); border-radius:var(--radius); cursor:pointer; font-size:11px; }
+.ed-add button:hover { background:var(--gold-dim); color:#000; }
+.ed-actions { display:flex; gap:6px; padding-top:10px; border-top:1px solid var(--room-border); }
+.btn-save { flex:1; padding:8px; background:var(--gold-dim); color:#000; border:none; border-radius:var(--radius); font-family:'Cinzel',serif; font-size:12px; font-weight:700; cursor:pointer; }
+.btn-save:hover { background:var(--gold); }
+.btn-del { padding:8px 14px; background:transparent; color:var(--red-seal); border:1px solid var(--red-seal); border-radius:var(--radius); font-size:12px; cursor:pointer; }
+.btn-cancel { padding:8px 14px; background:transparent; color:var(--ink-dim); border:1px solid var(--room-border); border-radius:var(--radius); font-size:12px; cursor:pointer; }
+
+/* ═══ DM NOTES ═══ */
+.dm-notes textarea { width:100%; min-height:60px; padding:8px; background:var(--room-bg); border:1px solid var(--room-border); border-radius:var(--radius); color:var(--ink-bright); font-family:'Crimson Text',serif; font-size:13px; resize:vertical; outline:none; }
+.dm-notes textarea:focus { border-color:var(--gold-dim); }
+.save-ind { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--green-wax); opacity:0; transition:opacity 0.3s; }
+.save-ind.show { opacity:1; }
+
+/* ═══ UPLOAD ═══ */
+.upload-zone { border:2px dashed var(--room-border); border-radius:var(--radius-md); padding:20px; text-align:center; cursor:pointer; color:var(--ink-dim); margin-top:6px; transition:var(--transition); font-size:13px; }
+.upload-zone:hover { border-color:var(--gold-dim); color:var(--ink-medium); }
+.img-preview { margin-top:8px; border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--room-border); cursor:pointer; position:relative; }
+.img-preview img { width:100%; max-height:280px; object-fit:contain; display:block; background:var(--room-bg); }
+
+/* ═══ LIGHTBOX ═══ */
+.lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:2000; justify-content:center; align-items:center; cursor:zoom-out; }
+.lightbox.active { display:flex; }
+.lightbox img { max-width:92vw; max-height:92vh; object-fit:contain; border-radius:4px; box-shadow:0 0 60px rgba(0,0,0,0.5); cursor:grab; transition:transform 0.15s ease; }
+.lb-close { position:absolute; top:16px; right:20px; background:none; border:none; color:rgba(255,255,255,0.5); font-size:32px; cursor:pointer; z-index:2001; }
+
+/* ═══ EMPTY ═══ */
+.empty { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; color:var(--ink-faint); font-style:italic; text-align:center; }
+.empty-icon { font-size:40px; opacity:0.3; margin-bottom:8px; }
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:768px) {
+  .header { flex-direction:column; gap:8px; padding:8px 16px; }
+  .main-tabs { padding:0 12px; }
+  .toolbar { flex-direction:column; align-items:stretch; }
+  .toolbar-search { max-width:100%; }
+  .content { padding:12px; }
+  .card-grid { grid-template-columns:1fr; }
+  .ed-inline { grid-template-columns:1fr; }
+  .stat-grid { grid-template-columns:repeat(2,1fr); }
+}
+</style>
+</head>
+<body>
+<div class="app player-mode" id="app">
+  <div class="header">
+    <div>
+      <div class="header-title">⚔ Grisburgh</div>
+      <div class="header-subtitle">campagnedashboard</div>
+    </div>
+    <div class="header-right">
+      <span id="storage-badge" style="font-size:12px" title="Opslagstatus"></span>
+      <div class="dm-switch" id="dm-switch" onclick="toggleDM()"></div>
+      <div class="dm-label" id="dm-label">speler</div>
+    </div>
+  </div>
+
+  <div class="main-tabs" id="main-tabs">
+    <button class="main-tab active" data-tab="personages" onclick="switchTab('personages')">👤 personages<span class="tab-count" id="tc-personages">0</span></button>
+    <button class="main-tab" data-tab="locaties" onclick="switchTab('locaties')">🏰 locaties<span class="tab-count" id="tc-locaties">0</span></button>
+    <button class="main-tab" data-tab="organisaties" onclick="switchTab('organisaties')">⚔ organisaties<span class="tab-count" id="tc-organisaties">0</span></button>
+    <button class="main-tab" data-tab="voorwerpen" onclick="switchTab('voorwerpen')">🎒 voorwerpen<span class="tab-count" id="tc-voorwerpen">0</span></button>
+    <button class="main-tab" data-tab="archief" onclick="switchTab('archief')">📜 archief<span class="tab-count" id="tc-archief">0</span></button>
+  </div>
+
+  <div class="toolbar">
+    <div class="toolbar-search">
+      <input type="text" id="search" placeholder="Zoek..." oninput="render()">
+    </div>
+    <span class="toolbar-count" id="result-count"></span>
+    <div class="dm-toolbar">
+      <button class="dm-tb-btn primary" onclick="exportPlayerVersion()" title="Spelersversie voor Netlify">🌐 spelersversie</button>
+      <button class="dm-tb-btn" onclick="exportJSON()" title="DM-backup (JSON)">📥</button>
+      <button class="dm-tb-btn" onclick="importJSON()" title="Importeer DM-backup">📤</button>
+    </div>
+  </div>
+
+  <div class="content" id="content"></div>
+  <button class="fab" onclick="openEditor()" title="Toevoegen">+</button>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal"><div class="modal-head"><div><div class="modal-title" id="m-title"></div><div class="modal-subtitle" id="m-sub"></div></div><button class="modal-close" onclick="closeModal()">&times;</button></div><div class="modal-body" id="m-body"></div></div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLB()">
+  <button class="lb-close">&times;</button>
+  <img id="lb-img" src="" onclick="event.stopPropagation()" onwheel="zoomLB(event)">
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// ENTITY SCHEMA — defines the fields per tab
+// ═══════════════════════════════════════════════════════
+
+const SCHEMA = {
+  personages: {
+    icon:'👤', color:'green-wax', chipClass:'chip-npc', mChipClass:'m-chip-npc',
+    fields: [
+      { key:'rol', label:'Rol', type:'text', placeholder:'Hoofdmagiër, waard, piraat...' },
+      { key:'ras', label:'Ras', type:'select', options:['Mens','Elf','Halfelf','Dwerg','Halfling','Half-ork','Gnoom','Tiefling','Dragonborn','Aarakocra','Dohwar','Harengon','Giff','Tabaxi','Orc','Overig'] },
+      { key:'desc', label:'Beschrijving (zichtbaar)', type:'textarea', placeholder:'Wat spelers zien...' },
+      { key:'geheim', label:'Geheim (DM onthulbaar)', type:'textarea', placeholder:'Verborgen informatie...' },
+    ],
+    statblock: true, // has character sheet tab
+    subtypes: ['NPC','speler','antagonist','godheid','familiar'],
+  },
+  locaties: {
+    icon:'🏰', color:'blue-ink', chipClass:'chip-loc', mChipClass:'m-chip-loc',
+    fields: [
+      { key:'locType', label:'Type', type:'select', options:['Stadswijk','Gebouw','Herberg','Taveerne','Tempel','Winkel','Fort','Schip','Dorp','Stad','Woud','Zee','Overig'] },
+      { key:'wijk', label:'Wijk / Regio', type:'text', placeholder:'Luimpoort, Amberwoud, Isfār...' },
+      { key:'eigenaar', label:'Eigenaar', type:'text', placeholder:'Naam eigenaar...' },
+      { key:'desc', label:'Beschrijving', type:'textarea', placeholder:'Beschrijf deze locatie...' },
+    ],
+    subtypes: [],
+  },
+  organisaties: {
+    icon:'⚔', color:'red-seal', chipClass:'chip-org', mChipClass:'m-chip-org',
+    fields: [
+      { key:'orgType', label:'Type', type:'select', options:['Gilde','Factie','Religieus','Politiek','Crimineel','Militair','Overig'] },
+      { key:'motto', label:'Motto', type:'text', placeholder:'' },
+      { key:'desc', label:'Beschrijving', type:'textarea', placeholder:'Beschrijf deze organisatie...' },
+    ],
+    subtypes: [],
+  },
+  voorwerpen: {
+    icon:'🎒', color:'orange', chipClass:'chip-item', mChipClass:'m-chip-item',
+    fields: [
+      { key:'itemType', label:'Type', type:'select', options:['Wapen','Toveritem','Drank','Uitrusting','Scroll','Ring','Amulet','Overig'] },
+      { key:'rariteit', label:'Rariteit', type:'select', options:['Gewoon','Ongewoon','Zeldzaam','Zeer zeldzaam','Legendarisch'] },
+      { key:'prijs', label:'Prijs', type:'text', placeholder:'bv. 150 fl' },
+      { key:'desc', label:'Beschrijving', type:'textarea', placeholder:'Beschrijf dit voorwerp...' },
+    ],
+    subtypes: [],
+  },
+  archief: {
+    icon:'📜', color:'purple-codex', chipClass:'chip-doc', mChipClass:'m-chip-doc',
+    fields: [
+      { key:'docType', label:'Type', type:'select', options:['Brief','Krant','Kaart','Manuscript','Kasboek','Notities','Folder','Gebed','Blauwdruk','Embleem','Visitekaartje','Overig'] },
+      { key:'desc', label:'Beschrijving', type:'textarea', placeholder:'Inhoud van het document...' },
+    ],
+    subtypes: [],
+  },
+};
+
+// Cross-reference fields — same for all tabs
+const LINK_FIELDS = ['personages','locaties','organisaties','voorwerpen','archief'];
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+
+let isDM = false;
+let activeTab = 'personages';
+let entities = { personages:[], locaties:[], organisaties:[], voorwerpen:[], archief:[] };
+let dmNotes = {};
+let secretReveals = {}; // { entityId: true } — for NPC geheim field
+let visibility = {}; // { entityId: 'hidden'|'visible' } — default 'hidden'
+let fileCache = {};
+
+// ═══════════════════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════════════════
+
+async function loadState() {
+  try {
+    const r = await window.storage.get('grisburgh-dash');
+    if (r && r.value) {
+      const s = JSON.parse(r.value);
+      if (s.entities) entities = s.entities;
+      if (s.dmNotes) dmNotes = s.dmNotes;
+      if (s.secretReveals) secretReveals = s.secretReveals;
+      if (s.visibility) visibility = s.visibility;
+    }
+  } catch(e) {}
+  // Load files
+  try {
+    const keys = await window.storage.list('gb-file:');
+    if (keys && keys.keys) {
+      for (const k of keys.keys) {
+        try { const r = await window.storage.get(k); if(r&&r.value) fileCache[k.replace('gb-file:','')]=r.value; } catch(e) {}
+      }
+    }
+  } catch(e) {}
+}
+
+async function saveState() {
+  if (typeof window.storage === 'undefined') return;
+  try { await window.storage.set('grisburgh-dash', JSON.stringify({ entities, dmNotes, secretReveals, visibility })); } catch(e) {}
+}
+
+async function saveFile(id, data) {
+  fileCache[id] = data;
+  try { await window.storage.set('gb-file:'+id, data); } catch(e) {}
+}
+
+async function deleteFile(id) {
+  delete fileCache[id];
+  try { await window.storage.delete('gb-file:'+id); } catch(e) {}
+}
+
+function readFile(file) {
+  return new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+}
+
+// ═══════════════════════════════════════════════════════
+// DM MODE
+// ═══════════════════════════════════════════════════════
+
+function toggleDM() {
+  isDM = !isDM;
+  document.getElementById('dm-switch').classList.toggle('active', isDM);
+  document.getElementById('dm-label').textContent = isDM ? 'dungeon master' : 'speler';
+  document.getElementById('app').classList.toggle('dm-mode', isDM);
+  document.getElementById('app').classList.toggle('player-mode', !isDM);
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.main-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('search').value = '';
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function render() {
+  const container = document.getElementById('content');
+  const q = (document.getElementById('search').value||'').toLowerCase().trim();
+  let items = entities[activeTab] || [];
+
+  // In player mode, hide hidden entities
+  if (!isDM) {
+    items = items.filter(e => visibility[e.id] === 'visible');
+  }
+
+  if (q) {
+    items = items.filter(e => {
+      const searchable = [e.name, e.subtype, ...(Object.values(e.data||{}))].join(' ').toLowerCase();
+      const links = LINK_FIELDS.flatMap(f => e.links?.[f] || []).join(' ').toLowerCase();
+      return searchable.includes(q) || links.includes(q);
+    });
+  }
+
+  const countEl = document.getElementById('result-count');
+  countEl.textContent = q ? items.length + ' resultaten' : '';
+
+  // Update tab counts (respect visibility in player mode)
+  for (const tab of Object.keys(entities)) {
+    const el = document.getElementById('tc-' + tab);
+    if (el) {
+      const count = isDM ? entities[tab].length : entities[tab].filter(e => visibility[e.id] === 'visible').length;
+      el.textContent = count;
+    }
+  }
+
+  if (!items.length) {
+    container.innerHTML = `<div class="empty"><span class="empty-icon">${q?'🔍':SCHEMA[activeTab].icon}</span>${q ? 'Geen resultaten.' : isDM ? 'Nog geen items. Klik + om toe te voegen.' : 'Nog niets beschikbaar.'}</div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="card-grid">${items.map(e => renderCard(e)).join('')}</div>`;
+}
+
+function renderCard(e) {
+  const s = SCHEMA[activeTab];
+  const hasFile = !!fileCache[e.id];
+  const desc = e.data?.desc || '';
+  const meta = [e.subtype, e.data?.rol, e.data?.locType, e.data?.orgType, e.data?.itemType, e.data?.docType, e.data?.wijk, e.data?.rariteit].filter(Boolean).join(' · ');
+  const isHidden = visibility[e.id] !== 'visible';
+
+  return `<div class="e-card ${isHidden ? 'is-hidden' : ''}" onclick="openDetail('${activeTab}','${e.id}')">
+    <button class="vis-toggle" onclick="event.stopPropagation();toggleVis('${e.id}')" title="${isHidden ? 'Tonen aan spelers' : 'Verbergen voor spelers'}">${isHidden ? '🔒' : '👁'}</button>
+    ${hasFile ? `<img class="e-card-thumb" src="${fileCache[e.id]}">` : `<div class="e-card-accent t-${activeTab}"></div>`}
+    <div class="e-card-body">
+      <div class="e-card-header">
+        <div class="e-card-icon">${e.icon || s.icon}</div>
+        <div><div class="e-card-name">${e.name}</div><div class="e-card-meta">${esc(meta)}</div></div>
+      </div>
+      ${desc ? `<div class="e-card-desc">${esc(desc)}</div>` : ''}
+      <div class="e-card-footer">
+        ${(e.links?.personages||[]).slice(0,2).map(n=>`<span class="chip chip-npc">👤 ${n.split(' ')[0]}</span>`).join('')}
+        ${(e.links?.locaties||[]).slice(0,2).map(n=>`<span class="chip chip-loc">🏰 ${n}</span>`).join('')}
+        ${(e.links?.organisaties||[]).slice(0,1).map(n=>`<span class="chip chip-org">⚔ ${n}</span>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// VISIBILITY — toggle hidden/visible per entity
+// ═══════════════════════════════════════════════════════
+
+function toggleVis(id) {
+  visibility[id] = visibility[id] === 'visible' ? 'hidden' : 'visible';
+  saveState();
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// DETAIL MODAL
+// ═══════════════════════════════════════════════════════
+
+function openDetail(tab, id) {
+  const list = entities[tab];
+  const e = list.find(x => x.id === id);
+  if (!e) return;
+  const s = SCHEMA[tab];
+
+  document.getElementById('m-title').textContent = e.name;
+  const meta = [e.subtype, e.data?.rol, e.data?.locType, e.data?.orgType, e.data?.itemType, e.data?.docType].filter(Boolean).join(' · ');
+  document.getElementById('m-sub').textContent = meta;
+
+  let h = '';
+
+  // Image
+  if (fileCache[e.id]) {
+    h += `<div class="img-preview" onclick="openLB('${e.id}')"><img src="${fileCache[e.id]}"></div>`;
+  }
+  if (isDM && !fileCache[e.id]) {
+    h += `<div class="upload-zone" onclick="uploadFile('${e.id}','${tab}')">📎 Afbeelding uploaden</div>`;
+  }
+  if (isDM && fileCache[e.id]) {
+    h += `<div style="margin-top:4px"><button class="btn-del" style="font-size:10px;padding:3px 8px" onclick="removeFile('${e.id}','${tab}')">Verwijder afbeelding</button></div>`;
+  }
+
+  // For personages: sheet tabs
+  if (tab === 'personages' && s.statblock) {
+    h += `<div class="sheet-tabs" style="margin-top:12px">
+      <button class="sheet-tab active" onclick="showSheet(this,'info')">Info</button>
+      <button class="sheet-tab" onclick="showSheet(this,'sheet')">Character sheet</button>
+      <button class="sheet-tab" onclick="showSheet(this,'links')">Verbindingen</button>
+    </div>`;
+    h += `<div class="sheet-panel active" id="sp-info">`;
+  }
+
+  // Description
+  if (e.data?.desc) {
+    h += `<div class="m-section"><div class="m-label">Beschrijving</div><p>${esc(e.data.desc)}</p></div>`;
+  }
+
+  // Extra fields (not desc, not geheim)
+  for (const f of s.fields) {
+    if (f.key === 'desc' || f.key === 'geheim') continue;
+    const val = e.data?.[f.key];
+    if (val) h += `<div class="m-section"><div class="m-label">${f.label}</div><p>${esc(val)}</p></div>`;
+  }
+
+  // Secret (personages only)
+  if (tab === 'personages' && e.data?.geheim) {
+    const revealed = !!secretReveals[e.id];
+    if (isDM || revealed) {
+      h += `<div class="secret-block ${!isDM && !revealed ? 'hidden-for-player' : ''}">
+        <div class="secret-header"><span class="secret-title">🔒 Geheim</span>`;
+      if (isDM) {
+        h += `<button class="secret-toggle" onclick="toggleSecret('${e.id}','${tab}')">${revealed ? '👁 Zichtbaar voor spelers' : '🔒 Verborgen voor spelers'}</button>`;
+      }
+      h += `</div><p>${esc(e.data.geheim)}</p></div>`;
+    }
+  }
+
+  if (tab === 'personages' && s.statblock) {
+    h += `</div>`; // close sp-info
+
+    // Character sheet panel
+    h += `<div class="sheet-panel" id="sp-sheet">`;
+    const st = e.stats || {};
+    h += `<div class="combat-row">
+      <div class="combat-box"><div class="cb-val">${st.ac||'—'}</div><div class="cb-label">AC</div></div>
+      <div class="combat-box"><div class="cb-val">${st.hp||'—'}</div><div class="cb-label">HP</div></div>
+      <div class="combat-box"><div class="cb-val">${st.speed||'—'}</div><div class="cb-label">Speed</div></div>
+    </div>`;
+    h += `<div class="stat-grid">`;
+    for (const ab of ['str','dex','con','int','wis','cha']) {
+      const val = st[ab] || '—';
+      const mod = val !== '—' ? Math.floor((parseInt(val)-10)/2) : '—';
+      const modStr = mod !== '—' ? (mod >= 0 ? '+'+mod : ''+mod) : '';
+      h += `<div class="stat-box"><div class="stat-val">${val}</div><div class="stat-mod">${modStr}</div><div class="stat-name">${ab}</div></div>`;
+    }
+    h += `</div>`;
+    if (st.extra) h += `<div class="m-section"><div class="m-label">Spreuken / Acties / Bijzonderheden</div><p style="white-space:pre-wrap">${esc(st.extra)}</p></div>`;
+    if (isDM) h += `<button class="btn-cancel" style="margin-top:8px;font-size:10px" onclick="editStats('${tab}','${e.id}')">✏️ Character sheet bewerken</button>`;
+    h += `</div>`; // close sp-sheet
+
+    // Links panel
+    h += `<div class="sheet-panel" id="sp-links">`;
+  }
+
+  // Cross-reference links
+  for (const lf of LINK_FIELDS) {
+    if (lf === tab) continue; // skip self-type in main section
+    const linked = e.links?.[lf] || [];
+    if (!linked.length) continue;
+    const ls = SCHEMA[lf];
+    h += `<div class="m-section"><div class="m-label">${lf}</div><div class="m-chips">`;
+    linked.forEach(name => {
+      h += `<span class="m-chip ${ls.mChipClass}" onclick="navigateTo('${lf}','${esc(name)}')">${ls.icon} ${name}</span>`;
+    });
+    h += `</div></div>`;
+  }
+  // Same-type links (e.g. NPC→NPC)
+  const sameLinks = e.links?.[tab] || [];
+  if (sameLinks.length) {
+    h += `<div class="m-section"><div class="m-label">Gerelateerd</div><div class="m-chips">`;
+    sameLinks.forEach(name => { h += `<span class="m-chip ${s.mChipClass}" onclick="navigateTo('${tab}','${esc(name)}')">${s.icon} ${name}</span>`; });
+    h += `</div></div>`;
+  }
+
+  if (tab === 'personages' && s.statblock) {
+    h += `</div>`; // close sp-links
+  }
+
+  // DM: Edit button + notes
+  if (isDM) {
+    const isVis = visibility[e.id] === 'visible';
+    h += `<div style="margin-top:12px;display:flex;gap:6px;align-items:center">
+      <button class="btn-cancel" onclick="openEditor('${tab}','${e.id}')">✏️ Bewerken</button>
+      <button class="secret-toggle" onclick="toggleVis('${e.id}');openDetail('${tab}','${e.id}')">${isVis ? '👁 Zichtbaar voor spelers' : '🔒 Verborgen voor spelers'}</button>
+    </div>`;
+    const note = dmNotes[e.id] || '';
+    h += `<div class="m-section" style="margin-top:12px"><div class="m-label">🖊 DM notities</div>
+      <div class="dm-notes"><textarea id="dm-note" placeholder="Notities...">${esc(note)}</textarea>
+      <div class="save-ind" id="save-ind">✓</div></div></div>`;
+  }
+
+  document.getElementById('m-body').innerHTML = h;
+  document.getElementById('modal-overlay').classList.add('active');
+
+  // Setup note auto-save
+  if (isDM) {
+    const ta = document.getElementById('dm-note');
+    if (ta) {
+      let to;
+      ta.addEventListener('input', () => { clearTimeout(to); to = setTimeout(() => {
+        dmNotes[e.id] = ta.value; saveState();
+        const ind = document.getElementById('save-ind'); ind.classList.add('show'); setTimeout(()=>ind.classList.remove('show'),1000);
+      }, 400); });
+    }
+  }
+}
+
+function showSheet(btn, panel) {
+  btn.parentElement.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.sheet-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('sp-'+panel)?.classList.add('active');
+}
+
+function toggleSecret(id, tab) {
+  secretReveals[id] = !secretReveals[id];
+  saveState();
+  openDetail(tab, id);
+}
+
+function navigateTo(tab, name) {
+  const e = entities[tab].find(x => x.name === name);
+  if (e) { closeModal(); setTimeout(() => { switchTab(tab); setTimeout(() => openDetail(tab, e.id), 50); }, 50); }
+}
+
+// ═══════════════════════════════════════════════════════
+// EDITOR
+// ═══════════════════════════════════════════════════════
+
+let _edTags = {};
+
+function openEditor(tab, id) {
+  tab = tab || activeTab;
+  const s = SCHEMA[tab];
+  const existing = id ? entities[tab].find(x => x.id === id) : null;
+  const e = existing || { name:'', subtype:'', icon:s.icon, data:{}, links:{}, stats:{} };
+
+  _edTags = {};
+  LINK_FIELDS.forEach(f => { _edTags[f] = [...(e.links?.[f] || [])]; });
+
+  document.getElementById('m-title').textContent = existing ? 'Bewerken' : 'Nieuw ' + tab.slice(0,-1);
+  document.getElementById('m-sub').textContent = tab;
+
+  let h = `<div class="ed-form">`;
+  h += `<div class="ed-row"><label>Naam</label><input id="ed-name" value="${esc(e.name)}" placeholder="Naam..."></div>`;
+
+  if (s.subtypes?.length) {
+    h += `<div class="ed-row"><label>Subtype</label><select id="ed-subtype">${s.subtypes.map(st=>`<option ${e.subtype===st?'selected':''}>${st}</option>`).join('')}</select></div>`;
+  }
+
+  // Schema fields
+  for (const f of s.fields) {
+    const val = e.data?.[f.key] || '';
+    h += `<div class="ed-row"><label>${f.label}</label>`;
+    if (f.type === 'textarea') {
+      h += `<textarea id="ed-${f.key}" placeholder="${f.placeholder||''}">${esc(val)}</textarea>`;
+    } else if (f.type === 'select') {
+      h += `<select id="ed-${f.key}">${f.options.map(o=>`<option ${val===o?'selected':''}>${o}</option>`).join('')}</select>`;
+    } else {
+      h += `<input id="ed-${f.key}" value="${esc(val)}" placeholder="${f.placeholder||''}">`;
+    }
+    h += `</div>`;
+  }
+
+  // Link editors
+  for (const lf of LINK_FIELDS) {
+    const ls = SCHEMA[lf];
+    h += `<div class="ed-row"><label>${ls.icon} ${lf}</label>`;
+    h += `<div class="ed-tags" id="edt-${lf}">${renderEdTags(lf)}</div>`;
+    h += `<div class="ed-add"><input id="edi-${lf}" placeholder="Naam..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('${lf}')}"><button onclick="addTag('${lf}')">+</button></div>`;
+    h += `</div>`;
+  }
+
+  // Character sheet fields (personages only)
+  if (tab === 'personages') {
+    const st = e.stats || {};
+    h += `<div class="m-label" style="margin-top:8px">Character sheet</div>`;
+    h += `<div class="ed-inline">
+      <div class="ed-row"><label>AC</label><input id="ed-ac" value="${st.ac||''}" placeholder="15"></div>
+      <div class="ed-row"><label>HP</label><input id="ed-hp" value="${st.hp||''}" placeholder="45"></div>
+    </div>`;
+    h += `<div class="ed-inline">
+      <div class="ed-row"><label>Speed</label><input id="ed-speed" value="${st.speed||''}" placeholder="30 ft."></div>
+      <div class="ed-row"></div>
+    </div>`;
+    h += `<div class="ed-inline">`;
+    for (const ab of ['str','dex','con','int','wis','cha']) {
+      h += `<div class="ed-row"><label>${ab.toUpperCase()}</label><input id="ed-${ab}" value="${st[ab]||''}" placeholder="10" style="width:100%"></div>`;
+    }
+    h += `</div>`;
+    h += `<div class="ed-row"><label>Spreuken / Acties</label><textarea id="ed-extra" placeholder="Vrij tekstveld...">${esc(st.extra||'')}</textarea></div>`;
+  }
+
+  h += `<div class="ed-actions">
+    <button class="btn-save" onclick="saveEditor('${tab}','${id||''}')">💾 Opslaan</button>
+    ${existing ? `<button class="btn-del" onclick="deleteEntity('${tab}','${id}')">🗑</button>` : ''}
+    <button class="btn-cancel" onclick="closeModal()">Annuleren</button>
+  </div></div>`;
+
+  document.getElementById('m-body').innerHTML = h;
+  document.getElementById('modal-overlay').classList.add('active');
+}
+
+function renderEdTags(field) {
+  const s = SCHEMA[field];
+  return (_edTags[field]||[]).map(t => `<span class="ed-tag" style="background:var(--${s.color === 'orange' ? 'orange-glow' : s.color.replace('-','-') + '-glow' || 'gold-glow'})">${s.icon} ${esc(t)}<span class="x" onclick="removeTag('${field}','${esc(t)}')">×</span></span>`).join('');
+}
+
+function addTag(field) {
+  const input = document.getElementById('edi-'+field);
+  const val = input.value.trim();
+  if (!val || _edTags[field].includes(val)) { input.value=''; return; }
+  _edTags[field].push(val);
+  input.value = '';
+  document.getElementById('edt-'+field).innerHTML = renderEdTags(field);
+}
+
+function removeTag(field, val) {
+  _edTags[field] = _edTags[field].filter(v => v !== val);
+  document.getElementById('edt-'+field).innerHTML = renderEdTags(field);
+}
+
+function saveEditor(tab, id) {
+  const name = document.getElementById('ed-name').value.trim();
+  if (!name) { document.getElementById('ed-name').style.borderColor='var(--red-seal)'; return; }
+
+  const s = SCHEMA[tab];
+  const data = {};
+  for (const f of s.fields) {
+    const el = document.getElementById('ed-'+f.key);
+    if (el) data[f.key] = el.value;
+  }
+
+  const links = {};
+  LINK_FIELDS.forEach(f => { links[f] = [..._edTags[f]]; });
+
+  let stats = {};
+  if (tab === 'personages') {
+    stats = {
+      ac: document.getElementById('ed-ac')?.value || '',
+      hp: document.getElementById('ed-hp')?.value || '',
+      speed: document.getElementById('ed-speed')?.value || '',
+      extra: document.getElementById('ed-extra')?.value || '',
+    };
+    for (const ab of ['str','dex','con','int','wis','cha']) {
+      stats[ab] = document.getElementById('ed-'+ab)?.value || '';
+    }
+  }
+
+  if (id) {
+    const e = entities[tab].find(x => x.id === id);
+    if (e) { e.name = name; e.data = data; e.links = links; if(tab==='personages') e.stats = stats; e.subtype = document.getElementById('ed-subtype')?.value || e.subtype; }
+  } else {
+    const newId = 'e_' + Date.now() + '_' + Math.random().toString(36).substr(2,4);
+    entities[tab].push({
+      id: newId, name, icon: s.icon,
+      subtype: document.getElementById('ed-subtype')?.value || '',
+      data, links, stats,
+    });
+    visibility[newId] = 'hidden'; // new entities start hidden
+  }
+
+  saveState(); closeModal(); render();
+}
+
+function editStats(tab, id) {
+  openEditor(tab, id); // reuse the full editor
+}
+
+function deleteEntity(tab, id) {
+  if (!confirm('Verwijderen?')) return;
+  entities[tab] = entities[tab].filter(x => x.id !== id);
+  delete dmNotes[id]; delete secretReveals[id]; delete visibility[id]; delete fileCache[id];
+  saveState(); closeModal(); render();
+}
+
+// ═══════════════════════════════════════════════════════
+// FILE UPLOAD
+// ═══════════════════════════════════════════════════════
+
+function uploadFile(id, tab) {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = async (ev) => {
+    const file = ev.target.files[0];
+    if (!file || file.size > 2*1024*1024) { if(file) alert('Max 2MB'); return; }
+    const data = await readFile(file);
+    await saveFile(id, data);
+    openDetail(tab, id); render();
+  };
+  input.click();
+}
+
+async function removeFile(id, tab) {
+  await deleteFile(id);
+  openDetail(tab, id); render();
+}
+
+// ═══════════════════════════════════════════════════════
+// LIGHTBOX
+// ═══════════════════════════════════════════════════════
+
+let lbZoom = 1;
+function openLB(id) {
+  lbZoom = 1;
+  const img = document.getElementById('lb-img');
+  img.src = fileCache[id] || '';
+  img.style.transform = 'scale(1)';
+  document.getElementById('lightbox').classList.add('active');
+}
+function closeLB() { document.getElementById('lightbox').classList.remove('active'); }
+function zoomLB(e) {
+  e.preventDefault();
+  lbZoom = Math.min(5, Math.max(0.5, lbZoom + (e.deltaY > 0 ? -0.15 : 0.15)));
+  document.getElementById('lb-img').style.transform = `scale(${lbZoom})`;
+}
+
+// ═══════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════════════════
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify({ entities, dmNotes, secretReveals, visibility }, null, 2)], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'grisburgh-backup.json'; a.click();
+}
+
+function importJSON() {
+  const input = document.createElement('input'); input.type='file'; input.accept='.json';
+  input.onchange = async (ev) => {
+    try {
+      const s = JSON.parse(await ev.target.files[0].text());
+      if (s.entities) entities = s.entities;
+      if (s.dmNotes) dmNotes = s.dmNotes;
+      if (s.secretReveals) secretReveals = s.secretReveals;
+      if (s.visibility) visibility = s.visibility;
+      await saveState(); render(); closeModal(); alert('Geïmporteerd!');
+    } catch(e) { alert('Ongeldig bestand.'); }
+  };
+  input.click();
+}
+
+function exportPlayerVersion() {
+  // Build a read-only version with secrets hidden
+  const playerEntities = {};
+  for (const [tab, items] of Object.entries(entities)) {
+    playerEntities[tab] = items
+      .filter(e => visibility[e.id] === 'visible') // only visible entities
+      .map(e => {
+        const pe = { ...e, data: { ...e.data }, links: { ...e.links } };
+        if (tab === 'personages' && !secretReveals[e.id]) delete pe.data.geheim;
+        return pe;
+      });
+  }
+
+  const css = document.querySelector('style').textContent;
+  const html = `<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Grisburgh — spelersversie</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IM+Fell+English:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>${css}</style></head><body>
+<div class="app player-mode"><div class="header"><div><div class="header-title">⚔ Grisburgh</div><div class="header-subtitle">spelersversie</div></div></div>
+<div class="main-tabs">${Object.keys(SCHEMA).map(t=>`<button class="main-tab ${t==='personages'?'active':''}" data-tab="${t}" onclick="switchTab('${t}')">${SCHEMA[t].icon} ${t}<span class="tab-count" id="tc-${t}">0</span></button>`).join('')}</div>
+<div class="toolbar"><div class="toolbar-search"><input type="text" id="search" placeholder="Zoek..." oninput="render()"></div><span class="toolbar-count" id="result-count"></span></div>
+<div class="content" id="content"></div></div>
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-head"><div><div class="modal-title" id="m-title"></div><div class="modal-subtitle" id="m-sub"></div></div><button class="modal-close" onclick="closeModal()">&times;</button></div><div class="modal-body" id="m-body"></div></div></div>
+<div class="lightbox" id="lightbox" onclick="closeLB()"><button class="lb-close">&times;</button><img id="lb-img" src="" onclick="event.stopPropagation()" onwheel="zoomLB(event)"></div>
+<script>
+const SCHEMA=${JSON.stringify(SCHEMA)};
+const LINK_FIELDS=${JSON.stringify(LINK_FIELDS)};
+const entities=${JSON.stringify(playerEntities)};
+const fileCache=${JSON.stringify(fileCache)};
+const secretReveals=${JSON.stringify(secretReveals)};
+let activeTab='personages';
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+function switchTab(t){activeTab=t;document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));document.getElementById('search').value='';render();}
+function render(){const c=document.getElementById('content');const q=(document.getElementById('search').value||'').toLowerCase().trim();let items=entities[activeTab]||[];if(q)items=items.filter(e=>[e.name,...Object.values(e.data||{})].join(' ').toLowerCase().includes(q));document.getElementById('result-count').textContent=q?items.length+' resultaten':'';for(const t of Object.keys(entities)){const el=document.getElementById('tc-'+t);if(el)el.textContent=entities[t].length;}if(!items.length){c.innerHTML='<div class="empty"><span class="empty-icon">📭</span>Niets gevonden.</div>';return;}c.innerHTML='<div class="card-grid">'+items.map(renderCard).join('')+'</div>';}
+function renderCard(e){const s=SCHEMA[activeTab];const f=!!fileCache[e.id];const desc=e.data?.desc||'';const meta=[e.subtype,e.data?.rol,e.data?.locType,e.data?.orgType,e.data?.itemType,e.data?.docType,e.data?.wijk,e.data?.rariteit].filter(Boolean).join(' · ');return '<div class="e-card" onclick="openDetail(\\''+activeTab+'\\',\\''+e.id+'\\')">'+
+(f?'<img class="e-card-thumb" src="'+fileCache[e.id]+'">':'<div class="e-card-accent t-'+activeTab+'"></div>')+
+'<div class="e-card-body"><div class="e-card-header"><div class="e-card-icon">'+(e.icon||s.icon)+'</div><div><div class="e-card-name">'+e.name+'</div><div class="e-card-meta">'+esc(meta)+'</div></div></div>'+
+(desc?'<div class="e-card-desc">'+esc(desc)+'</div>':'')+
+'</div></div>';}
+function openDetail(tab,id){const e=(entities[tab]||[]).find(x=>x.id===id);if(!e)return;const s=SCHEMA[tab];document.getElementById('m-title').textContent=e.name;document.getElementById('m-sub').textContent=[e.subtype,e.data?.rol,e.data?.locType].filter(Boolean).join(' · ');let h='';if(fileCache[e.id])h+='<div class="img-preview" onclick="openLB(\\''+e.id+'\\')"><img src="'+fileCache[e.id]+'"></div>';if(e.data?.desc)h+='<div class="m-section"><div class="m-label">Beschrijving</div><p>'+esc(e.data.desc)+'</p></div>';for(const f of s.fields){if(f.key==='desc'||f.key==='geheim')continue;const v=e.data?.[f.key];if(v)h+='<div class="m-section"><div class="m-label">'+f.label+'</div><p>'+esc(v)+'</p></div>';}if(tab==='personages'&&e.data?.geheim&&secretReveals[e.id])h+='<div class="secret-block"><div class="secret-header"><span class="secret-title">🔓 Onthuld</span></div><p>'+esc(e.data.geheim)+'</p></div>';if(tab==='personages'&&e.stats){const st=e.stats;if(st.ac||st.hp)h+='<div class="combat-row"><div class="combat-box"><div class="cb-val">'+(st.ac||'—')+'</div><div class="cb-label">AC</div></div><div class="combat-box"><div class="cb-val">'+(st.hp||'—')+'</div><div class="cb-label">HP</div></div><div class="combat-box"><div class="cb-val">'+(st.speed||'—')+'</div><div class="cb-label">Speed</div></div></div>';}for(const lf of ${JSON.stringify(LINK_FIELDS)}){const linked=e.links?.[lf]||[];if(!linked.length)continue;const ls=SCHEMA[lf];h+='<div class="m-section"><div class="m-label">'+lf+'</div><div class="m-chips">'+linked.map(n=>'<span class="m-chip '+ls.mChipClass+'" onclick="navigateTo(\\''+lf+'\\',\\''+esc(n)+'\\')">'+ls.icon+' '+n+'</span>').join('')+'</div></div>';}document.getElementById('m-body').innerHTML=h;document.getElementById('modal-overlay').classList.add('active');}
+function navigateTo(tab,name){const e=entities[tab].find(x=>x.name===name);if(e){closeModal();setTimeout(()=>{switchTab(tab);setTimeout(()=>openDetail(tab,e.id),50);},50);}}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('active');}
+let lbZoom=1;function openLB(id){lbZoom=1;document.getElementById('lb-img').src=fileCache[id]||'';document.getElementById('lb-img').style.transform='scale(1)';document.getElementById('lightbox').classList.add('active');}function closeLB(){document.getElementById('lightbox').classList.remove('active');}function zoomLB(e){e.preventDefault();lbZoom=Math.min(5,Math.max(0.5,lbZoom+(e.deltaY>0?-0.15:0.15)));document.getElementById('lb-img').style.transform='scale('+lbZoom+')';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeLB();closeModal();}});
+render();
+<\/script></body></html>`;
+
+  const blob = new Blob([html], { type:'text/html;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'grisburgh-spelers.html'; a.click();
+}
+
+// ═══════════════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════════════
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeLB(); closeModal(); }
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+    e.preventDefault(); document.getElementById('search')?.focus();
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+
+async function init() {
+  await loadState();
+  render();
+  // Storage badge
+  try {
+    await window.storage.set('gb-ping','ok');
+    document.getElementById('storage-badge').textContent = '💾';
+    document.getElementById('storage-badge').title = 'Opslag actief';
+  } catch(e) {
+    document.getElementById('storage-badge').textContent = '⚠️';
+    document.getElementById('storage-badge').title = 'Opslag niet beschikbaar';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

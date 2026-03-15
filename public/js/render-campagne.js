@@ -228,18 +228,30 @@ function renderCard(type, e) {
     <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}"
       onclick="window._openDetail('${type}','${e.id}')">
       ${isDM() ? `
-        <div class="dm-only absolute top-7 right-2 z-10 flex flex-col gap-1">
+        <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
           <button class="w-6 h-6 flex items-center justify-center rounded bg-black/40 hover:bg-black/65 backdrop-blur-sm transition text-xs"
             onclick="event.stopPropagation();window._toggleVis('${type}','${e.id}')"
             title="${vis === 'visible' ? 'Verbergen' : 'Zichtbaar maken'}">
             ${vis === 'visible' ? '\ud83d\udc41' : '\ud83d\udd12'}
           </button>
+          <button class="w-6 h-6 flex items-center justify-center rounded ${e._deceased ? 'bg-red-800/80' : 'bg-black/40'} hover:bg-red-700/70 backdrop-blur-sm transition text-xs"
+            onclick="event.stopPropagation();window._toggleDeceased('${type}','${e.id}')"
+            title="${e._deceased ? 'Herstel (niet meer deceased)' : 'Markeer als deceased'}">&#9760;</button>
           <button class="w-6 h-6 flex items-center justify-center rounded bg-black/40 hover:bg-black/65 backdrop-blur-sm transition text-xs"
             onclick="event.stopPropagation();window._openEditor('${type}','${e.id}')"
             title="Bewerken">&#9998;</button>
           <button class="w-6 h-6 flex items-center justify-center rounded bg-black/40 hover:bg-seal/70 backdrop-blur-sm transition text-xs text-white"
             onclick="event.stopPropagation();window._deleteEntity('${type}','${e.id}')"
             title="Verwijderen">&#10005;</button>
+        </div>
+      ` : ''}
+      ${e._deceased ? `
+        <div class="absolute inset-0 z-20 pointer-events-none rounded overflow-hidden">
+          <div class="absolute inset-0 bg-red-950/30"></div>
+          <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <line x1="4" y1="4" x2="96" y2="96" stroke="#dc2626" stroke-width="5" stroke-linecap="round" stroke-opacity="0.88"/>
+            <line x1="96" y1="4" x2="4" y2="96" stroke="#dc2626" stroke-width="5" stroke-linecap="round" stroke-opacity="0.88"/>
+          </svg>
         </div>
       ` : ''}
       <div class="card-accent bar-${type}"></div>
@@ -375,6 +387,11 @@ window._openDetail = async (tab, id) => {
               ${e._secretReveal ? '\u2728' : '\ud83d\udd12'}
             </button>
           ` : ''}
+          <button class="px-3 py-1 text-sm rounded ${e._deceased ? 'bg-red-800 text-white' : 'bg-room-elevated text-ink-dim'}"
+            onclick="window._toggleDeceased('${tab}','${e.id}')"
+            title="${e._deceased ? 'Herstel' : 'Markeer als deceased'}">
+            &#9760;
+          </button>
           <button class="px-3 py-1 text-sm rounded bg-gold-dim text-room-bg font-semibold"
             onclick="window._openEditor('${tab}','${e.id}')">
             \u270f
@@ -540,7 +557,7 @@ window._openDetail = async (tab, id) => {
   }
 };
 
-// ── Visibility / Secret toggles ──
+// ── Visibility / Secret / Deceased toggles ──
 window._toggleVis = async (tab, id) => {
   await api.toggleVisibility(tab, id);
   renderEntitySection(tab);
@@ -549,6 +566,11 @@ window._toggleVis = async (tab, id) => {
 window._toggleSecret = async (tab, id) => {
   await api.toggleSecret(tab, id);
   window._openDetail(tab, id);
+};
+
+window._toggleDeceased = async (tab, id) => {
+  await api.toggleDeceased(tab, id);
+  renderEntitySection(tab);
 };
 
 // ── Focal point picker ──

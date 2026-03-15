@@ -1,0 +1,2332 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grisburgh Archief — Documentenmodule</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IM+Fell+English:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════
+   DESIGN DIRECTION: "De Archiefkamer"
+   A candlelit archive room — warm parchment meets dark wood.
+   Each document category has its own physical "material" feel.
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  /* Base palette — dark archive room */
+  --room-bg: #13100b;
+  --room-surface: #1e1914;
+  --room-elevated: #2a231b;
+  --room-border: #3d3428;
+  --room-border-light: #4a3f32;
+
+  /* Ink & text */
+  --ink-bright: #f0e8d4;
+  --ink-medium: #c4b89a;
+  --ink-dim: #8a7d6a;
+  --ink-faint: #5a5040;
+
+  /* Accent palette */
+  --gold: #d4a843;
+  --gold-dim: #a68832;
+  --gold-glow: rgba(212,168,67,0.15);
+  --red-seal: #8b2a2a;
+  --red-glow: rgba(139,42,42,0.2);
+  --blue-ink: #3a6a9a;
+  --blue-glow: rgba(58,106,154,0.15);
+  --green-wax: #3a6a4a;
+  --green-glow: rgba(58,106,74,0.15);
+  --purple-codex: #6a4a8a;
+  --purple-glow: rgba(106,74,138,0.15);
+
+  /* Category-specific parchment tones */
+  --parchment-letter: #f2e6c8;
+  --parchment-press: #e8e2d8;
+  --parchment-map: #e0d8c4;
+  --parchment-codex: #1a1520;
+  --parchment-log: #f5f0e5;
+
+  /* System */
+  --radius: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.4);
+  --shadow-deep: 0 8px 32px rgba(0,0,0,0.6);
+  --transition: 0.25s ease;
+  --transition-slow: 0.5s ease;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Crimson Text', Georgia, serif;
+  background: var(--room-bg);
+  color: var(--ink-bright);
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Subtle paper grain texture via CSS */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  z-index: 9999;
+}
+
+/* ═══════════════ APP SHELL ═══════════════ */
+.app { display: grid; grid-template-rows: auto auto 1fr; height: 100vh; }
+
+/* ═══════════════ HEADER ═══════════════ */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 28px;
+  background: linear-gradient(180deg, #1a1510 0%, var(--room-bg) 100%);
+  border-bottom: 1px solid var(--room-border);
+}
+
+.header-left { display: flex; align-items: center; gap: 16px; }
+
+.header-title {
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.header-subtitle {
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  color: var(--ink-dim);
+  font-style: italic;
+  margin-top: 1px;
+}
+
+/* DM Mode Toggle */
+.dm-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+.dm-toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--room-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.dm-toggle-switch.active { background: var(--red-seal); }
+
+.dm-toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: var(--ink-bright);
+  border-radius: 50%;
+  transition: var(--transition);
+}
+
+.dm-toggle-switch.active::after { left: 23px; }
+
+.dm-toggle-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.dm-toggle-switch.active + .dm-toggle-label { color: var(--red-seal); }
+
+/* ═══════════════ CATEGORY TABS ═══════════════ */
+.cat-tabs {
+  display: flex;
+  padding: 0 28px;
+  gap: 2px;
+  background: var(--room-bg);
+  border-bottom: 1px solid var(--room-border);
+  overflow-x: auto;
+}
+
+.cat-tab {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 10px 18px;
+  border: none;
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  position: relative;
+  border-bottom: 2px solid transparent;
+}
+
+.cat-tab:hover { color: var(--ink-medium); }
+
+.cat-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+.cat-tab[data-cat="brieven"].active { color: var(--parchment-letter); border-bottom-color: var(--gold-dim); }
+.cat-tab[data-cat="pers"].active { color: var(--ink-bright); border-bottom-color: var(--ink-medium); }
+.cat-tab[data-cat="kaarten"].active { color: #7ab0d4; border-bottom-color: var(--blue-ink); }
+.cat-tab[data-cat="codex"].active { color: #b88adb; border-bottom-color: var(--purple-codex); }
+.cat-tab[data-cat="logboek"].active { color: #8abd83; border-bottom-color: var(--green-wax); }
+
+.cat-tab .tab-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  background: var(--room-elevated);
+  padding: 1px 5px;
+  border-radius: 8px;
+  margin-left: 6px;
+}
+
+/* ═══════════════ MAIN CONTENT ═══════════════ */
+.main { overflow-y: auto; padding: 24px 28px; }
+.main::-webkit-scrollbar { width: 6px; }
+.main::-webkit-scrollbar-track { background: transparent; }
+.main::-webkit-scrollbar-thumb { background: var(--room-border); border-radius: 3px; }
+
+/* ═══════════════ DOCUMENT GRID ═══════════════ */
+.doc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* ═══════════════ DOCUMENT CARD — BASE ═══════════════ */
+.doc-card {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.doc-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-deep); }
+
+/* ═══════════════ CATEGORY: BRIEVEN & DOCUMENTEN ═══════════════ */
+.doc-card.cat-brieven {
+  background: var(--parchment-letter);
+  color: #2a2015;
+  border: 1px solid #d4c9a8;
+  box-shadow: 2px 3px 12px rgba(0,0,0,0.3), inset 0 0 40px rgba(180,160,120,0.15);
+}
+
+.doc-card.cat-brieven .doc-card-accent {
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold-dim), transparent);
+}
+
+.doc-card.cat-brieven .doc-card-icon { color: var(--red-seal); }
+
+/* ═══════════════ CATEGORY: GEDRUKTE PERS ═══════════════ */
+.doc-card.cat-pers {
+  background: var(--parchment-press);
+  color: #1a1815;
+  border: 2px solid #333;
+  box-shadow: 2px 3px 12px rgba(0,0,0,0.3);
+}
+
+.doc-card.cat-pers .doc-card-accent {
+  height: 4px;
+  background: #1a1815;
+}
+
+/* ═══════════════ CATEGORY: KAARTEN ═══════════════ */
+.doc-card.cat-kaarten {
+  background: var(--parchment-map);
+  color: #1a2a20;
+  border: 1px solid #a0987a;
+  box-shadow: 2px 3px 12px rgba(0,0,0,0.3);
+}
+
+.doc-card.cat-kaarten .doc-card-accent {
+  height: 3px;
+  background: linear-gradient(90deg, var(--blue-ink), var(--green-wax));
+}
+
+/* ═══════════════ CATEGORY: CODEX & EMBLEMA ═══════════════ */
+.doc-card.cat-codex {
+  background: var(--parchment-codex);
+  color: #e0d8f0;
+  border: 1px solid #3a3050;
+  box-shadow: 2px 3px 12px rgba(0,0,0,0.4), inset 0 0 30px rgba(106,74,138,0.1);
+}
+
+.doc-card.cat-codex .doc-card-accent {
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold), var(--purple-codex));
+}
+
+/* ═══════════════ CATEGORY: LOGBOEK ═══════════════ */
+.doc-card.cat-logboek {
+  background: var(--room-elevated);
+  color: var(--ink-bright);
+  border: 1px solid var(--room-border);
+  border-left: 3px solid var(--green-wax);
+}
+
+/* ═══════════════ CARD INNER LAYOUT ═══════════════ */
+.doc-card-accent { width: 100%; }
+
+.doc-card-body { padding: 16px 18px 12px; }
+
+.doc-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.doc-card-icon { font-size: 28px; flex-shrink: 0; line-height: 1; }
+
+.doc-card-title {
+  font-family: 'IM Fell English', serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.doc-card.cat-codex .doc-card-title { font-family: 'Cinzel', serif; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
+
+.doc-card-type {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.5;
+  margin-top: 2px;
+}
+
+.doc-card-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.8;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.doc-card.cat-brieven .doc-card-desc,
+.doc-card.cat-pers .doc-card-desc,
+.doc-card.cat-kaarten .doc-card-desc { font-family: 'IM Fell English', serif; }
+
+.doc-card-footer {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid rgba(128,128,128,0.15);
+}
+
+/* ═══════════════ TAGS / CHIPS ═══════════════ */
+.chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: var(--transition);
+  letter-spacing: 0.3px;
+}
+
+.chip-npc { background: rgba(58,106,74,0.2); border: 1px solid rgba(58,106,74,0.35); color: #6abd83; }
+.chip-loc { background: rgba(58,106,154,0.2); border: 1px solid rgba(58,106,154,0.35); color: #7ab0d4; }
+.chip-doc { background: rgba(106,74,138,0.2); border: 1px solid rgba(106,74,138,0.35); color: #b88adb; }
+.chip:hover { filter: brightness(1.3); transform: translateY(-1px); }
+
+/* On light card backgrounds, darken chips */
+.doc-card.cat-brieven .chip,
+.doc-card.cat-pers .chip,
+.doc-card.cat-kaarten .chip { border-color: rgba(0,0,0,0.15); }
+.doc-card.cat-brieven .chip-npc,
+.doc-card.cat-pers .chip-npc,
+.doc-card.cat-kaarten .chip-npc { background: rgba(45,90,60,0.15); color: #2d5a3d; }
+.doc-card.cat-brieven .chip-loc,
+.doc-card.cat-pers .chip-loc,
+.doc-card.cat-kaarten .chip-loc { background: rgba(42,74,107,0.15); color: #2a4a6b; }
+
+/* ═══════════════ REVELATION STATES ═══════════════ */
+
+/* Hidden — only DM sees it, faded ghost */
+.doc-card.state-hidden {
+  opacity: 0.35;
+  border-style: dashed;
+}
+.doc-card.state-hidden .doc-card-body { filter: saturate(0.3); }
+
+/* Blurred — players see shape but can't read anything */
+.doc-card.state-blurred .doc-card-body { filter: blur(6px); user-select: none; pointer-events: none; }
+.doc-card.state-blurred .doc-card-icon { filter: blur(0); } /* keep icon recognizable */
+
+/* Revealed — full glory */
+.doc-card.state-revealed { /* default, no overrides */ }
+
+/* DM controls overlay */
+.dm-controls {
+  display: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  background: rgba(0,0,0,0.85);
+  border-radius: var(--radius);
+  padding: 3px;
+  gap: 2px;
+}
+
+.dm-mode .dm-controls { display: flex; }
+
+/* When DM controls are visible, give the header room */
+.dm-mode .doc-card-header { padding-right: 85px; }
+
+.dm-btn {
+  font-size: 11px;
+  padding: 3px 6px;
+  border: none;
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: var(--transition);
+}
+
+.dm-btn:hover { background: var(--room-border); color: var(--ink-bright); }
+.dm-btn.active-state { background: var(--gold-dim); color: #000; }
+
+/* In player mode, hide hidden cards entirely */
+.player-mode .doc-card.state-hidden { display: none; }
+
+/* ═══════════════ LOGBOEK TIMELINE ═══════════════ */
+.timeline { max-width: 700px; }
+
+.timeline-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--room-border);
+  animation: fadeSlideIn 0.3s ease;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.timeline-date {
+  font-family: 'IM Fell English', serif;
+  font-size: 13px;
+  color: var(--gold-dim);
+  min-width: 140px;
+  text-align: right;
+  font-style: italic;
+  padding-top: 2px;
+}
+
+.timeline-content { flex: 1; }
+
+.timeline-event {
+  font-size: 15px;
+  color: var(--ink-bright);
+  margin-bottom: 4px;
+}
+
+.timeline-event .event-icon { margin-right: 6px; }
+
+.timeline-meta {
+  font-size: 12px;
+  color: var(--ink-dim);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.timeline-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.timeline-empty-icon { font-size: 48px; opacity: 0.3; display: block; margin-bottom: 12px; }
+
+/* ═══════════════ DETAIL MODAL ═══════════════ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 1000;
+  backdrop-filter: blur(6px);
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: var(--room-surface);
+  border: 1px solid var(--room-border);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 680px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-deep);
+  animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-header {
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid var(--room-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.modal-title {
+  font-family: 'IM Fell English', serif;
+  font-size: 22px;
+  color: var(--gold);
+}
+
+.modal-subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--ink-dim);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.modal-close:hover { color: var(--ink-bright); }
+
+.modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-body::-webkit-scrollbar { width: 5px; }
+.modal-body::-webkit-scrollbar-thumb { background: var(--room-border); border-radius: 3px; }
+
+.modal-section { margin-bottom: 18px; }
+
+.modal-section-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold-dim);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--room-border);
+}
+
+.modal-section p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-medium);
+}
+
+.modal-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.modal-chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.modal-chip-npc { background: var(--green-glow); border: 1px solid rgba(58,106,74,0.35); color: #6abd83; }
+.modal-chip-loc { background: var(--blue-glow); border: 1px solid rgba(58,106,154,0.35); color: #7ab0d4; }
+.modal-chip-doc { background: var(--purple-glow); border: 1px solid rgba(106,74,138,0.35); color: #b88adb; }
+.modal-chip:hover { filter: brightness(1.2); transform: translateY(-1px); }
+
+/* DM State selector in modal */
+.modal-state-selector {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.state-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 4px 10px;
+  border: 1px solid var(--room-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.state-btn:hover { border-color: var(--gold-dim); color: var(--ink-bright); }
+.state-btn.active { background: var(--gold-dim); color: #000; border-color: var(--gold); }
+
+/* DM Notes in modal */
+.dm-notes textarea {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px;
+  background: var(--room-bg);
+  border: 1px solid var(--room-border);
+  border-radius: var(--radius);
+  color: var(--ink-bright);
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  resize: vertical;
+  outline: none;
+}
+
+.dm-notes textarea:focus { border-color: var(--gold-dim); }
+.dm-notes textarea::placeholder { color: var(--ink-faint); font-style: italic; }
+
+.save-flash {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--green-wax);
+  opacity: 0;
+  transition: opacity 0.3s;
+  margin-top: 3px;
+}
+
+.save-flash.show { opacity: 1; }
+
+/* ═══════════════ REVEAL ANIMATION ═══════════════ */
+@keyframes revealBurst {
+  0% { filter: blur(8px) brightness(0.5); transform: scale(0.95); }
+  50% { filter: blur(0) brightness(1.8); transform: scale(1.02); }
+  100% { filter: blur(0) brightness(1); transform: scale(1); }
+}
+
+.doc-card.just-revealed { animation: revealBurst 0.6s ease; }
+
+/* ═══════════════ HIDDEN LINK CHIPS ═══════════════ */
+.modal-chip.link-hidden {
+  opacity: 0.3; text-decoration: line-through; filter: saturate(0);
+}
+.dm-mode .modal-chip.link-hidden {
+  opacity: 0.5; text-decoration: line-through; filter: none;
+  border-style: dashed;
+}
+.link-eye-toggle {
+  display: none; cursor: pointer; margin-left: 2px; font-size: 11px;
+  opacity: 0.5; transition: var(--transition);
+}
+.link-eye-toggle:hover { opacity: 1; }
+.dm-mode .link-eye-toggle { display: inline; }
+
+/* ═══════════════ PARCHMENT TEXT RENDERER ═══════════════ */
+.parchment-block {
+  position: relative;
+  background: var(--parchment-letter);
+  color: #2a2015;
+  padding: 24px 28px;
+  border-radius: var(--radius-md);
+  margin-top: 12px;
+  font-family: 'IM Fell English', serif;
+  font-size: 15px;
+  line-height: 1.8;
+  box-shadow: inset 0 0 40px rgba(180,160,120,0.2), 2px 3px 12px rgba(0,0,0,0.3);
+  border: 1px solid #d4c9a8;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+.parchment-block::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  border-radius: var(--radius-md);
+}
+.parchment-block .parch-title {
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 12px;
+  color: #1a1410;
+  letter-spacing: 1px;
+}
+.parchment-block .parch-rule {
+  border: none; border-top: 1px solid #c4b89a; margin: 12px 0;
+}
+.parchment-block .parch-sig {
+  font-style: italic; text-align: right; margin-top: 12px; color: #5a4a30;
+}
+
+/* Parchment in card thumbnail slot */
+.doc-card-parchment-preview {
+  background: var(--parchment-letter);
+  padding: 10px 14px;
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #2a2015;
+  max-height: 80px;
+  overflow: hidden;
+  border-bottom: 1px solid #d4c9a8;
+  position: relative;
+}
+.doc-card-parchment-preview::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 30px;
+  background: linear-gradient(transparent, var(--parchment-letter));
+}
+.doc-card.state-blurred .doc-card-parchment-preview { filter: blur(4px); }
+
+/* DM tekst editor in modal */
+.tekst-editor-area {
+  margin-top: 8px;
+}
+.tekst-editor-area textarea {
+  width: 100%; min-height: 100px; padding: 12px;
+  background: var(--parchment-letter); color: #2a2015;
+  border: 1px solid #c4b89a; border-radius: var(--radius);
+  font-family: 'IM Fell English', serif; font-size: 14px;
+  line-height: 1.7; resize: vertical; outline: none;
+}
+.tekst-editor-area textarea:focus { border-color: var(--gold-dim); }
+.tekst-editor-area textarea::placeholder { color: #9a8a6a; font-style: italic; }
+.tekst-hint {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--ink-faint); margin-top: 3px;
+}
+
+/* ═══════════════ LIGHTBOX VIEWER ═══════════════ */
+.lightbox {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+  z-index: 2000; justify-content: center; align-items: center; cursor: zoom-out;
+}
+.lightbox.active { display: flex; }
+.lightbox img {
+  max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 4px;
+  box-shadow: 0 0 60px rgba(0,0,0,0.5); cursor: default;
+}
+.lightbox-close {
+  position: absolute; top: 16px; right: 20px; background: none; border: none;
+  color: rgba(255,255,255,0.6); font-size: 32px; cursor: pointer; z-index: 2001;
+}
+.lightbox-close:hover { color: #fff; }
+.lightbox-title {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  font-family: 'Cinzel', serif; font-size: 14px; color: rgba(255,255,255,0.7);
+  background: rgba(0,0,0,0.5); padding: 6px 16px; border-radius: 4px;
+}
+
+/* ═══════════════ FILE UPLOAD & PREVIEW IN MODAL ═══════════════ */
+.doc-preview {
+  margin-top: 12px; border-radius: var(--radius-md); overflow: hidden;
+  border: 1px solid var(--room-border); cursor: pointer; position: relative;
+}
+.doc-preview img {
+  width: 100%; display: block; max-height: 300px; object-fit: contain;
+  background: var(--room-bg);
+}
+.doc-preview-hint {
+  position: absolute; bottom: 8px; right: 8px; font-size: 10px;
+  background: rgba(0,0,0,0.7); color: var(--ink-medium); padding: 2px 8px;
+  border-radius: 3px; font-family: 'JetBrains Mono', monospace;
+}
+.upload-zone {
+  border: 2px dashed var(--room-border); border-radius: var(--radius-md);
+  padding: 24px; text-align: center; cursor: pointer; transition: var(--transition);
+  color: var(--ink-dim); margin-top: 8px;
+}
+.upload-zone:hover { border-color: var(--gold-dim); color: var(--ink-medium); }
+.upload-zone-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+.upload-zone-text { font-size: 13px; }
+.upload-zone-sub { font-size: 11px; opacity: 0.5; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+.btn-remove-file {
+  margin-top: 6px; font-size: 11px; color: var(--red-seal); background: none;
+  border: 1px solid var(--red-seal); border-radius: var(--radius); padding: 3px 10px;
+  cursor: pointer;
+}
+.btn-remove-file:hover { background: var(--red-glow); }
+
+/* ═══════════════ CARD THUMBNAIL ═══════════════ */
+.doc-card-thumb {
+  width: 100%; height: 120px; object-fit: cover; display: block;
+  border-bottom: 1px solid rgba(128,128,128,0.15);
+}
+.doc-card.cat-brieven .doc-card-thumb,
+.doc-card.cat-pers .doc-card-thumb { filter: sepia(0.15); }
+.doc-card.cat-codex .doc-card-thumb { filter: brightness(0.8) contrast(1.1); }
+.doc-card.state-blurred .doc-card-thumb { filter: blur(8px) saturate(0.3); }
+
+/* ═══════════════ PUZZLE BEFORE/AFTER ═══════════════ */
+.puzzle-toggle {
+  display: flex; gap: 6px; margin-top: 8px; align-items: center;
+}
+.puzzle-btn {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  padding: 4px 10px; border: 1px solid var(--room-border);
+  border-radius: var(--radius); background: transparent;
+  color: var(--ink-dim); cursor: pointer; transition: var(--transition);
+}
+.puzzle-btn.active { background: var(--gold-dim); color: #000; border-color: var(--gold); }
+.puzzle-btn:hover { border-color: var(--gold-dim); color: var(--ink-bright); }
+.puzzle-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--ink-faint); margin-left: 4px;
+}
+
+@keyframes puzzleFlip {
+  0% { transform: scaleY(1); opacity: 1; }
+  50% { transform: scaleY(0); opacity: 0.5; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+.puzzle-flip { animation: puzzleFlip 0.4s ease; }
+
+/* ═══════════════ ZOOMABLE LIGHTBOX ═══════════════ */
+.lightbox img {
+  max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 4px;
+  box-shadow: 0 0 60px rgba(0,0,0,0.5); cursor: grab;
+  transition: transform 0.15s ease;
+  touch-action: manipulation;
+}
+.lightbox img.zoomed { cursor: move; }
+.lightbox-zoom-hint {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: rgba(255,255,255,0.4); background: rgba(0,0,0,0.4);
+  padding: 3px 10px; border-radius: 3px;
+}
+
+/* ═══════════════ DRAG-DROP ═══════════════ */
+.upload-zone.drag-over {
+  border-color: var(--gold) !important;
+  background: var(--gold-glow) !important;
+  color: var(--gold) !important;
+}
+
+/* ═══════════════ RESPONSIVE ═══════════════ */
+@media (max-width: 768px) {
+  .header { flex-direction: column; gap: 8px; padding: 10px 16px; }
+  .cat-tabs { padding: 0 16px; }
+  .main { padding: 16px; }
+  .doc-grid { grid-template-columns: 1fr; }
+  .timeline-item { flex-direction: column; gap: 4px; }
+  .timeline-date { text-align: left; min-width: auto; }
+}
+
+/* ═══════════════ DM ADD BUTTON (FAB) ═══════════════ */
+.fab-add {
+  display: none;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+  color: #000;
+  border: none;
+  font-size: 26px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  transition: var(--transition);
+  z-index: 100;
+  line-height: 1;
+}
+.fab-add:hover { background: var(--gold); transform: scale(1.08); }
+.dm-mode .fab-add { display: block; }
+
+/* ═══════════════ EDITOR FORM ═══════════════ */
+.editor-form { display: flex; flex-direction: column; gap: 14px; }
+.editor-row { display: flex; flex-direction: column; gap: 4px; }
+.editor-row label {
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  color: var(--gold-dim); text-transform: uppercase; letter-spacing: 1.5px;
+}
+.editor-row input, .editor-row textarea, .editor-row select {
+  width: 100%; padding: 8px 10px; background: var(--room-bg);
+  border: 1px solid var(--room-border); border-radius: var(--radius);
+  color: var(--ink-bright); font-family: 'Crimson Text', serif;
+  font-size: 14px; outline: none; transition: var(--transition);
+}
+.editor-row input:focus, .editor-row textarea:focus, .editor-row select:focus { border-color: var(--gold-dim); }
+.editor-row select { cursor: pointer; }
+.editor-row select option { background: var(--room-bg); color: var(--ink-bright); }
+.editor-row textarea { min-height: 60px; resize: vertical; }
+.editor-row-inline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.editor-tags-wrap {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;
+}
+.editor-tag {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  padding: 2px 8px; border-radius: 3px;
+  background: var(--green-glow); border: 1px solid rgba(58,106,74,0.35); color: #6abd83;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.editor-tag.et-loc { background: var(--blue-glow); border-color: rgba(58,106,154,0.35); color: #7ab0d4; }
+.editor-tag.et-doc { background: var(--purple-glow); border-color: rgba(106,74,138,0.35); color: #b88adb; }
+.editor-tag .et-x { cursor: pointer; opacity: 0.6; font-size: 13px; line-height: 1; }
+.editor-tag .et-x:hover { opacity: 1; }
+.editor-add-row { display: flex; gap: 6px; }
+.editor-add-row input { flex: 1; font-size: 13px; padding: 5px 8px; }
+.editor-add-row button {
+  padding: 5px 10px; background: var(--room-border); border: none;
+  color: var(--ink-medium); border-radius: var(--radius); cursor: pointer;
+  font-size: 12px; transition: var(--transition);
+}
+.editor-add-row button:hover { background: var(--gold-dim); color: #000; }
+.editor-actions { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--room-border); }
+.btn-save {
+  flex: 1; padding: 9px 16px; background: var(--gold-dim); color: #000; border: none;
+  border-radius: var(--radius); font-family: 'Cinzel', serif; font-size: 13px;
+  font-weight: 700; cursor: pointer; transition: var(--transition); letter-spacing: 0.5px;
+}
+.btn-save:hover { background: var(--gold); }
+.btn-cancel, .btn-delete, .btn-edit {
+  padding: 9px 16px; background: transparent; border: 1px solid var(--room-border);
+  border-radius: var(--radius); font-family: 'Cinzel', serif; font-size: 13px;
+  cursor: pointer; transition: var(--transition);
+}
+.btn-cancel { color: var(--ink-dim); }
+.btn-cancel:hover { border-color: var(--ink-dim); color: var(--ink-bright); }
+.btn-delete { color: var(--red-seal); border-color: var(--red-seal); }
+.btn-delete:hover { background: var(--red-glow); }
+.btn-edit { color: var(--ink-dim); padding: 5px 12px; font-size: 12px; }
+.btn-edit:hover { border-color: var(--gold-dim); color: var(--gold); }
+</style>
+</head>
+<body>
+
+<div class="app player-mode" id="app">
+  <!-- ═══════════ HEADER ═══════════ -->
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div class="header-title">📜 Het Archief</div>
+        <div class="header-subtitle">Stadsarchief van Grisburgh — documenten, kaarten &amp; logboek</div>
+      </div>
+    </div>
+    <div class="dm-toggle">
+      <span id="storage-badge" style="font-size:12px;margin-right:10px" title="Opslagstatus"></span>
+      <div class="dm-toggle-switch" id="dm-switch" onclick="toggleDMMode()"></div>
+      <div class="dm-toggle-label" id="dm-label">Speler</div>
+    </div>
+  </div>
+
+  <!-- DM toolbar: export/import (only visible in DM mode) -->
+  <div id="dm-toolbar" style="display:none;padding:6px 28px;background:var(--room-surface);border-bottom:1px solid var(--room-border);gap:6px;align-items:center;font-size:12px">
+    <button onclick="exportPlayerVersion()" style="padding:5px 14px;background:var(--gold-dim);border:none;border-radius:4px;color:#000;cursor:pointer;font-family:'Cinzel',serif;font-size:11px;font-weight:700" title="Genereer spelersversie voor Netlify">🌐 Spelersversie</button>
+    <button onclick="exportArchief()" style="padding:5px 8px;background:var(--room-elevated);border:1px solid var(--room-border);border-radius:4px;color:var(--ink-medium);cursor:pointer;font-size:13px" title="Exporteer DM-backup (JSON)">📥</button>
+    <button onclick="importArchief()" style="padding:5px 8px;background:var(--room-elevated);border:1px solid var(--room-border);border-radius:4px;color:var(--ink-medium);cursor:pointer;font-size:13px" title="Importeer DM-backup (JSON)">📤</button>
+  </div>
+
+  <!-- ═══════════ CATEGORY TABS ═══════════ -->
+  <div class="cat-tabs">
+    <button class="cat-tab active" data-cat="alle" onclick="switchCat('alle')">alle<span class="tab-count" id="count-alle">0</span></button>
+    <button class="cat-tab" data-cat="brieven" onclick="switchCat('brieven')">📜 brieven &amp; documenten<span class="tab-count" id="count-brieven">0</span></button>
+    <button class="cat-tab" data-cat="pers" onclick="switchCat('pers')">🗞 gedrukte pers<span class="tab-count" id="count-pers">0</span></button>
+    <button class="cat-tab" data-cat="kaarten" onclick="switchCat('kaarten')">🗺 kaarten<span class="tab-count" id="count-kaarten">0</span></button>
+    <button class="cat-tab" data-cat="codex" onclick="switchCat('codex')">🔏 codex &amp; emblema<span class="tab-count" id="count-codex">0</span></button>
+    <button class="cat-tab" data-cat="logboek" onclick="switchCat('logboek')">📖 logboek<span class="tab-count" id="count-logboek">0</span></button>
+  </div>
+
+  <!-- ═══════════ SEARCH BAR ═══════════ -->
+  <div id="search-bar" style="padding:8px 28px;background:var(--room-bg);border-bottom:1px solid var(--room-border);display:flex;align-items:center;gap:10px">
+    <div style="position:relative;flex:1;max-width:400px">
+      <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink-faint);font-size:15px">⌕</span>
+      <input type="text" id="search-input" placeholder="Zoek op titel, personage, locatie..." oninput="render()" style="width:100%;padding:7px 12px 7px 32px;background:var(--room-surface);border:1px solid var(--room-border);border-radius:4px;color:var(--ink-bright);font-family:'Crimson Text',serif;font-size:14px;outline:none;transition:border-color 0.2s" onfocus="this.style.borderColor='var(--gold-dim)'" onblur="this.style.borderColor='var(--room-border)'">
+    </div>
+    <span id="search-count" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-faint)"></span>
+  </div>
+
+  <!-- ═══════════ MAIN ═══════════ -->
+  <div class="main" id="main-content"></div>
+
+  <!-- ═══════════ FAB: Add Document (DM only) ═══════════ -->
+  <button class="fab-add" onclick="openEditor()" title="Nieuw document toevoegen">+</button>
+</div>
+
+<!-- ═══════════ MODAL ═══════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="m-title"></div>
+        <div class="modal-subtitle" id="m-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+  </div>
+</div>
+
+<!-- ═══════════ LIGHTBOX ═══════════ -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+  <div class="lightbox-zoom-hint" id="zoom-hint">Scrollwiel of pinch om te zoomen</div>
+  <img id="lightbox-img" src="" onclick="event.stopPropagation()" onwheel="zoomLightbox(event)">
+  <div class="lightbox-title" id="lightbox-title"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA — Documents with category, revelation state, connections
+// ═══════════════════════════════════════════════════════
+
+let DOCS = [
+  // 📜 Brieven & Documenten
+  { id:"liefdesbrief_h_c", name:"Liefdesbrief van H. aan C.", type:"Brief", cat:"brieven", desc:"Onderschepte liefdesbrief die de Heeren van de Nacht gebruiken om Henry Cassalanter te chanteren. Gevonden in Villa Cassalanter.", icon:"✉️", hoofdstuk:"h3", bestand:"", npcs:["Henry Cassalanter"], locs:["Villa Cassalanter"], docs:["Dreigbrief HvdN","Aantekeningen chantage"] },
+  { id:"liefdesgedicht_h_c", name:"Liefdesgedicht van H. aan C.", type:"Gedicht", cat:"brieven", desc:"Romantisch gedicht, behorend bij de chantage-affaire rond de Cassalanter-familie.", icon:"🪶", hoofdstuk:"h3", bestand:"", npcs:["Henry Cassalanter"], locs:["Villa Cassalanter"], docs:["Liefdesbrief van H. aan C."] },
+  { id:"dreigbrief_hvdn", name:"Dreigbrief van de Heeren van de Nacht", type:"Dreigbrief", cat:"brieven", desc:"Eis van 3.000 florindes, verstuurd aan Villa Cassalanter. Ondertekend met het zwarte oog.", icon:"⚠️", hoofdstuk:"h3", bestand:"", npcs:["Henry Cassalanter","Ilyana (Avondrood)"], locs:["Villa Cassalanter"], docs:["Liefdesbrief van H. aan C.","Aantekeningen chantage"] },
+  { id:"brief_rs_grum", name:"Brief van RS aan Grum'shar", type:"Brief", cat:"brieven", desc:"Brief ondertekend met RS (het fictieve figuur Ricfer Staaloog) met instructies over de operatie tegen Lucibaldo.", icon:"✉️", hoofdstuk:"h2", bestand:"", npcs:["Grum'shar","Ricfer Staaloog","Lucibaldo"], locs:["Kaarssteeg"], docs:["Grum'shars Kasboek"] },
+  { id:"aantekeningen_chantage", name:"Aantekeningen om H. te chanteren", type:"Notities", cat:"brieven", desc:"Handgeschreven aantekeningen van de Heeren van de Nacht over het chantageplan. Bevat observaties over de gewoontes van Henry Cassalanter.", icon:"📝", hoofdstuk:"h3", bestand:"", npcs:["Henry Cassalanter","Ilyana (Avondrood)"], locs:["Villa Cassalanter"], docs:["Dreigbrief HvdN"] },
+  { id:"grumshars_kasboek", name:"Grum'shars Kasboek", type:"Kasboek", cat:"brieven", desc:"Financiële administratie van Grum'shar met overzicht van criminele inkomsten en uitgaven. Gevonden in de schuilplaats onder Het Hijgende Paard.", icon:"📒", hoofdstuk:"h2", bestand:"", npcs:["Grum'shar"], locs:["Het Hijgende Paard","Kaarssteeg"], docs:["Brief van RS aan Grum'shar"] },
+  { id:"uitnodiging_swering", name:"Uitnodiging van Berend Swering", type:"Uitnodiging", cat:"brieven", desc:"Formele uitnodiging van gouverneur Berend Swering aan de avonturiers, namens meester Ursûn Rogarr.", icon:"💌", hoofdstuk:"h1", bestand:"", npcs:["Berend Swering","Ursûn Rogarr"], locs:["De Swarte Cat"], docs:[] },
+
+  // 🗞 Gedrukte Pers
+  { id:"grisburgh_gazette", name:"Grisburgh Gazette", type:"Krant", cat:"pers", desc:"Speciale Lichtfeest-uitgave. Artikelen over Zwartbaards piraterij, het Tweespalt-debat, roddelrubriek over Lucibaldo, en de kosten van de Arkanium-bibliotheek.", icon:"📰", hoofdstuk:"h1", bestand:"", npcs:["Salazar Zwartbaard","Plumella Pulp","Lucibaldo","Harmen Jonker","Wilfrid Kalmhand"], locs:["De Grisburgh Gazette","De Tweespalt","Purperhaven"], docs:[] },
+  { id:"reclamefolder", name:"Reclamefolder Grisburgh", type:"Folder", cat:"pers", desc:"'Bezoek Grisburgh, de parel van het oosten!' Promotioneel materiaal met stadskaart, informatie over het Lichtfeest, en valutaconversie.", icon:"📋", hoofdstuk:"h1", bestand:"", npcs:[], locs:["Arkanium","Haveplein","Luimpoort","De Tweespalt","De Eendragt"], docs:[] },
+  { id:"boekenwyrm_spells", name:"Spreukenlijst De Boekenwyrm", type:"Catalogus", cat:"pers", desc:"Spreukenlijst voor de aspirerende magiër. Van Comprehend Languages (25/50) tot Modify Memory (750/1.500). Open van 10:00-18:00, gesloten op Cyllines en Ghondag.", icon:"📚", hoofdstuk:"h3", bestand:"", npcs:["Miraal Ezelsoor"], locs:["De Boekenwyrm"], docs:[] },
+  { id:"menu_de_ratz", name:"Menu Bistro De Ratz", type:"Menu", cat:"pers", desc:"Het achtgangenmenu van chef Escargouffier: van kakelverse kraken-calamari tot wilde magieparfait. 50 florinde.", icon:"🍽️", hoofdstuk:"h3", bestand:"", npcs:["Auguste Escargouffier"], locs:["Bistro De Ratz"], docs:[] },
+
+  // 🗺 Kaarten
+  { id:"kaart_grisburgh", name:"Stadskaart van Grisburgh", type:"Stadskaart", cat:"kaarten", desc:"Plattegrond van Grisburgh met alle wijken: Arkanium, Duvelingh, Noorddorp, Luimpoort, Haveplein, Dragonder, Mistheuvel, Kalkwijk, en meer.", icon:"🗺️", hoofdstuk:"h1", bestand:"", npcs:[], locs:["Grisburgh"], docs:["Reclamefolder Grisburgh"] },
+  { id:"kaart_isfar", name:"Kaart van Isfār", type:"Wereldkaart", cat:"kaarten", desc:"Overzichtskaart van het eiland Isfār met Grisburgh, Lhute, Maenfort, Stormhaven, het Amberwoud, en de Schemerzee.", icon:"🌍", hoofdstuk:"h4", bestand:"", npcs:[], locs:["Lhute","Maenfort","Stormhaven","Amberwoud"], docs:[] },
+  { id:"kaart_vlashuis", name:"Kaart Het Nieuwe Vlashuis", type:"Dungeon map", cat:"kaarten", desc:"Plattegrond van Het Nieuwe Vlashuis in het Oosterkwartier, met genummerde kamers.", icon:"📐", hoofdstuk:"h3", bestand:"", npcs:["Vader Pasternak"], locs:["Het Nieuwe Vlashuis"], docs:[] },
+  { id:"kaart_riool", name:"Kaart Riool Heeren van de Nacht", type:"Dungeon map", cat:"kaarten", desc:"Schematische kaart van het rioolstelsel onder Grisburgh, gebruikt door de Heeren van de Nacht.", icon:"📐", hoofdstuk:"h2", bestand:"", npcs:["Grum'shar"], locs:["Kaarssteeg"], docs:[] },
+
+  // 🔏 Codex & Emblema
+  { id:"blauwdruk_tatoeages", name:"Blauwdruk tatoeages HvdN", type:"Blauwdruk", cat:"codex", desc:"Ontwerp van de kenmerkende tatoeage van het dievengilde — het grote zwarte oog. Gevonden bij leden van de Heeren van de Nacht.", icon:"👁", hoofdstuk:"h2", bestand:"", npcs:["Ilyana (Avondrood)","Volke (Dageraad)"], locs:[], docs:[] },
+  { id:"gebed_corellin", name:"Gebed aan Corellin, god der dieven", type:"Gebed", cat:"codex", desc:"Religieuze tekst aan Corellin, patroonheilige der verschoppelingen. Bevat de mysterieuze frasen 'Ongezien in spiegels' en 'Ongesneden aan de scherven'.", icon:"🙏", hoofdstuk:"h3", bestand:"", npcs:["Vader Pasternak"], locs:["Het Nieuwe Vlashuis"], docs:["Eenen bespiegelingh"] },
+  { id:"bespiegelingh_vogels", name:"Eenen bespiegelingh op den tael der vogels", type:"Manuscript", cat:"codex", desc:"Twaalfde-eeuws theologisch manuscript over de goden van Isfār en een magische spiegel. Het laatste deel, in archaïsch Aarakocra, is nog onvertaald.", icon:"📖", hoofdstuk:"h9", bestand:"", npcs:["Wilhelm A. Dockermakker","Amalia Becchi"], locs:["Bibliotheek van het Arkanium"], docs:["Gebed aan Corellin"] },
+  { id:"visitekaartje_zt", name:"Visitekaartje Zilvertong & Zemelaar", type:"Visitekaartje", cat:"codex", desc:"'Recht uit het hart.' Haaienvinnenhoek 17, Nootdorp. Klein, zwaar karton met gouddruk.", icon:"🪪", hoofdstuk:"", bestand:"", npcs:["Larynxius Zilvertong"], locs:[], docs:[] },
+  { id:"piratenvlag", name:"Piratenvlag van Zwartbaard", type:"Embleem", cat:"codex", desc:"Zwarte vlag met schedel, ooglapje en welige baard. Voor doorgewinterde zeelui een van hun grootste nachtmerries.", icon:"🏴‍☠️", hoofdstuk:"h7", bestand:"", npcs:["Salazar Zwartbaard"], locs:["Schemerzee"], docs:[] },
+];
+
+// ═══════════════════════════════════════════════════════
+// CHAPTERS — the campaign timeline
+// ═══════════════════════════════════════════════════════
+
+const HOOFDSTUKKEN = {
+  "h1":  { num:1,  title:"Dauwdag", dag:"Dag van Matall, de Maker", short:"H1 · Dauwdag" },
+  "h2":  { num:2,  title:"Een gestolen stem", dag:"Dag van Seldari, Stormoog", short:"H2 · Gestolen stem" },
+  "h3":  { num:3,  title:"De Heeren van de Nacht", dag:"Dag van Ghon, de Loper", short:"H3 · Heeren v/d Nacht" },
+  "h4":  { num:4,  title:"Op zee!", dag:"Dag van Tirimet, Elvenluit", short:"H4 · Op zee!" },
+  "h5":  { num:5,  title:"Het Amberwoud", dag:"Dag van Velurut, de Jager", short:"H5 · Amberwoud" },
+  "h6":  { num:6,  title:"De Gulthiasboom", dag:"Dag van Velurut, de Jager", short:"H6 · Gulthiasboom" },
+  "h7":  { num:7,  title:"Draken, stormen en vreemd bezoek", dag:"Dag 6–7 van het Lichtfeest", short:"H7 · Draken & stormen" },
+  "h8":  { num:8,  title:"Een onverwachte toren", dag:"Dag van Oronoë, de Zephir", short:"H8 · De toren" },
+  "h9":  { num:9,  title:"Roes bij het Nymfenblad", dag:"Dag van Sehan, de Weegschaal", short:"H9 · Nymfenblad" },
+  "h10": { num:10, title:"Het varkentje in de toren", dag:"Dag van Yrdus, de Ringdrager", short:"H10 · Varkentje" },
+  "os1": { num:90, title:"Terreur voor het Tribunaal", dag:"One-shot", short:"OS · Tribunaal" },
+  "os2": { num:91, title:"Het profijt van extradimensionale ruimtes", dag:"One-shot", short:"OS · Extradimensionaal" },
+};
+
+function getHoofdstukLabel(hid) {
+  const h = HOOFDSTUKKEN[hid];
+  return h ? h.short : (hid || '—');
+}
+
+function getHoofdstukFull(hid) {
+  const h = HOOFDSTUKKEN[hid];
+  return h ? `Hoofdstuk ${h.num}: ${h.title} (${h.dag})` : '';
+}
+
+// Stub NPC and Location data for cross-references
+const NPC_NAMES = {
+  "Henry Cassalanter":"Adellijke patriarch, Duvelingh","Ilyana (Avondrood)":"Vrouwe Avondrood, Heeren van de Nacht","Grum'shar":"Luitenant HvdN, verslagen","Ricfer Staaloog":"Fictief figuur","Lucibaldo":"Troubadour","Berend Swering":"Gouverneur Artifexgilde","Ursûn Rogarr":"Hoofdmagiër, Artificer","Salazar Zwartbaard":"Piratenkapitein","Plumella Pulp":"Journalist, Gazette","Harmen Jonker":"Kapitein Roodzwaarden","Wilfrid Kalmhand":"Hoofdmagiër, Priester","Miraal Ezelsoor":"Spreukenhandelaar","Auguste Escargouffier":"Chef-kok, De Ratz","Vader Pasternak":"Priester van Corellin","Volke (Dageraad)":"Heer Dageraad, HvdN","Wilhelm A. Dockermakker":"Monnik, vertaler","Amalia Becchi":"Bibliothecaris Arkanium","Larynxius Zilvertong":"Advocaat"
+};
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+
+let isDM = false;
+let activeCat = 'alle';
+let docStates = {}; // { docId: 'hidden'|'blurred'|'revealed' }
+let dmNotes = {};
+let logEntries = []; // { hoofdstuk, event, icon, docId, timestamp }
+let hiddenLinks = {}; // { docId: { npcs:["name",...], locs:["name",...], docs:["name",...] } }
+let tekstContent = {}; // { docId: "markdown-achtige tekst" } — for parchment rendering
+
+// ═══════════════════════════════════════════════════════
+// STORAGE — persists doc states, notes, log, custom docs, and edits
+// With retry, visual feedback, and JSON export/import fallback
+// ═══════════════════════════════════════════════════════
+
+const BUILTIN_IDS = new Set(DOCS.map(d => d.id));
+let storageAvailable = false;
+let lastSaveOk = false;
+
+function getFullState() {
+  const customDocs = DOCS.filter(d => !BUILTIN_IDS.has(d.id));
+  const docEdits = {};
+  DOCS.filter(d => BUILTIN_IDS.has(d.id) && d._edited).forEach(d => {
+    docEdits[d.id] = { name:d.name, type:d.type, cat:d.cat, desc:d.desc, icon:d.icon, hoofdstuk:d.hoofdstuk, npcs:d.npcs, locs:d.locs, docs:d.docs };
+  });
+  return { docStates, dmNotes, logEntries, customDocs, docEdits, hiddenLinks, tekstContent };
+}
+
+function applyState(s) {
+  if (!s) return;
+  docStates = s.docStates || {};
+  dmNotes = s.dmNotes || {};
+  logEntries = s.logEntries || [];
+  hiddenLinks = s.hiddenLinks || {};
+  tekstContent = s.tekstContent || {};
+  if (s.customDocs && Array.isArray(s.customDocs)) {
+    s.customDocs.forEach(cd => {
+      if (!DOCS.find(d => d.id === cd.id)) DOCS.push(cd);
+    });
+  }
+  if (s.docEdits) {
+    Object.entries(s.docEdits).forEach(([id, edits]) => {
+      const doc = DOCS.find(d => d.id === id);
+      if (doc) { Object.assign(doc, edits); doc._edited = true; }
+    });
+  }
+  DOCS.forEach(d => { if (!docStates[d.id]) docStates[d.id] = 'hidden'; });
+}
+
+async function loadState() {
+  // Try window.storage
+  if (typeof window.storage !== 'undefined') {
+    try {
+      const r = await window.storage.get('archief-state');
+      if (r && r.value) {
+        applyState(JSON.parse(r.value));
+        storageAvailable = true;
+        updateStorageBadge(true);
+        return;
+      }
+    } catch(e) { /* key doesn't exist yet, or storage broken */ }
+    // Even if get failed, set might work — test it
+    try {
+      await window.storage.set('archief-ping', 'ok');
+      storageAvailable = true;
+    } catch(e) { storageAvailable = false; }
+  }
+  // Defaults
+  DOCS.forEach(d => { if (!docStates[d.id]) docStates[d.id] = 'hidden'; });
+  updateStorageBadge(storageAvailable);
+}
+
+async function saveState() {
+  const data = JSON.stringify(getFullState());
+
+  // Try window.storage
+  if (typeof window.storage !== 'undefined') {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await window.storage.set('archief-state', data);
+        storageAvailable = true;
+        lastSaveOk = true;
+        updateStorageBadge(true);
+        return;
+      } catch(e) {
+        if (attempt === 0) await new Promise(r => setTimeout(r, 200));
+      }
+    }
+  }
+
+  // Storage failed
+  storageAvailable = false;
+  lastSaveOk = false;
+  updateStorageBadge(false);
+}
+
+function updateStorageBadge(ok) {
+  const badge = document.getElementById('storage-badge');
+  if (!badge) return;
+  if (ok) {
+    badge.textContent = '💾';
+    badge.title = 'Opgeslagen';
+    badge.style.color = 'var(--green-wax)';
+  } else {
+    badge.textContent = '⚠';
+    badge.title = 'Storage niet beschikbaar — gebruik export';
+    badge.style.color = 'var(--red-seal)';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT / IMPORT — fallback when storage is unavailable
+// ═══════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════
+// PLAYER EXPORT — generates standalone read-only HTML for Netlify
+// ═══════════════════════════════════════════════════════
+
+function exportPlayerVersion() {
+  // 1. Collect only visible documents (revealed or blurred, not hidden)
+  const playerDocs = DOCS.filter(d => docStates[d.id] === 'revealed' || docStates[d.id] === 'blurred')
+    .map(d => {
+      const state = docStates[d.id];
+      // Strip hidden links
+      const hl = hiddenLinks[d.id] || { npcs:[], locs:[], docs:[] };
+      return {
+        id: d.id, name: state === 'blurred' ? '???' : d.name,
+        type: d.type, cat: d.cat, icon: d.icon, hoofdstuk: d.hoofdstuk,
+        desc: state === 'blurred' ? 'De inhoud van dit document is nog niet leesbaar...' : d.desc,
+        npcs: d.npcs.filter(n => !(hl.npcs||[]).includes(n)),
+        locs: d.locs.filter(l => !(hl.locs||[]).includes(l)),
+        docs: d.docs.filter(x => !(hl.docs||[]).includes(x)),
+        state: state,
+        // Include file data inline
+        fileData: state === 'revealed' ? (puzzleAfterCache[d.id] || fileCache[d.id] || null) : (fileCache[d.id] || null),
+        tekst: state === 'revealed' ? (tekstContent[d.id] || '') : '',
+      };
+    });
+
+  // 2. Collect revealed log entries
+  const playerLog = logEntries.filter(e => {
+    const d = DOCS.find(x => x.id === e.docId);
+    return d && docStates[d.id] === 'revealed';
+  });
+
+  // 3. Build the HTML
+  const html = buildPlayerHTML(playerDocs, playerLog);
+
+  // 4. Download
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'grisburgh-archief-spelers.html';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function buildPlayerHTML(docs, log) {
+  // Get the CSS from the current page (everything inside <style>)
+  const styleEl = document.querySelector('style');
+  const css = styleEl ? styleEl.textContent : '';
+
+  // Hoofdstukken data
+  const hfdstStr = JSON.stringify(HOOFDSTUKKEN);
+
+  return `<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grisburgh Archief — Spelersversie</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=IM+Fell+English:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>${css}</style>
+</head>
+<body>
+<div class="app player-mode">
+  <div class="header">
+    <div class="header-left">
+      <div>
+        <div class="header-title">📜 Het Archief</div>
+        <div class="header-subtitle">Stadsarchief van Grisburgh — Spelersversie</div>
+      </div>
+    </div>
+  </div>
+  <div class="cat-tabs">
+    <button class="cat-tab active" data-cat="alle" onclick="switchCat('alle')">Alle<span class="tab-count" id="count-alle">0</span></button>
+    <button class="cat-tab" data-cat="brieven" onclick="switchCat('brieven')">📜 Brieven<span class="tab-count" id="count-brieven">0</span></button>
+    <button class="cat-tab" data-cat="pers" onclick="switchCat('pers')">🗞 Pers<span class="tab-count" id="count-pers">0</span></button>
+    <button class="cat-tab" data-cat="kaarten" onclick="switchCat('kaarten')">🗺 Kaarten<span class="tab-count" id="count-kaarten">0</span></button>
+    <button class="cat-tab" data-cat="codex" onclick="switchCat('codex')">🔏 Codex<span class="tab-count" id="count-codex">0</span></button>
+    <button class="cat-tab" data-cat="logboek" onclick="switchCat('logboek')">📖 Logboek<span class="tab-count" id="count-logboek">0</span></button>
+  </div>
+  <div id="search-bar" style="padding:8px 28px;background:var(--room-bg);border-bottom:1px solid var(--room-border);display:flex;align-items:center;gap:10px">
+    <div style="position:relative;flex:1;max-width:400px">
+      <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink-faint);font-size:15px">⌕</span>
+      <input type="text" id="search-input" placeholder="Zoek op titel, personage, locatie..." oninput="render()" style="width:100%;padding:7px 12px 7px 32px;background:var(--room-surface);border:1px solid var(--room-border);border-radius:4px;color:var(--ink-bright);font-family:'Crimson Text',serif;font-size:14px;outline:none">
+    </div>
+    <span id="search-count" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-faint)"></span>
+  </div>
+  <div class="main" id="main-content"></div>
+</div>
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div><div class="modal-title" id="m-title"></div><div class="modal-subtitle" id="m-subtitle"></div></div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+  </div>
+</div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+  <div class="lightbox-zoom-hint" id="zoom-hint">Scrollwiel of pinch om te zoomen</div>
+  <img id="lightbox-img" src="" onclick="event.stopPropagation()" onwheel="zoomLightbox(event)">
+  <div class="lightbox-title" id="lightbox-title"></div>
+</div>
+<script>
+const DOCS = ${JSON.stringify(docs)};
+const HOOFDSTUKKEN = ${hfdstStr};
+const LOG = ${JSON.stringify(log)};
+
+function getHoofdstukLabel(hid) { const h = HOOFDSTUKKEN[hid]; return h ? h.short : (hid||'—'); }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function renderParchment(text) {
+  if(!text) return '';
+  const lines=text.split('\\n'); let html='',i=0;
+  while(i<lines.length){const line=lines[i].trim();
+    if(line==='---titel---'&&i+1<lines.length){html+=\`<div class="parch-title">\${escHtml(lines[i+1])}</div>\`;i+=2;continue;}
+    if(/^---\\s*$/.test(line)){html+='<hr class="parch-rule">';i++;continue;}
+    if(line==='--handtekening--'&&i+1<lines.length){html+=\`<div class="parch-sig">\${escHtml(lines[i+1])}</div>\`;i+=2;continue;}
+    if(line===''){html+='<br>';}else{html+=escHtml(lines[i])+'<br>';}i++;}
+  return html;
+}
+
+let activeCat='alle';
+function switchCat(cat){activeCat=cat;document.querySelectorAll('.cat-tab').forEach(t=>t.classList.toggle('active',t.dataset.cat===cat));render();}
+
+function render(){
+  const main=document.getElementById('main-content');
+  if(activeCat==='logboek'){renderLog(main);return;}
+  let filtered=activeCat==='alle'?DOCS:DOCS.filter(d=>d.cat===activeCat);
+  const q=(document.getElementById('search-input')?.value||'').toLowerCase().trim();
+  if(q) filtered=filtered.filter(d=>d.name.toLowerCase().includes(q)||d.type.toLowerCase().includes(q)||d.desc.toLowerCase().includes(q)||d.npcs.some(n=>n.toLowerCase().includes(q))||d.locs.some(l=>l.toLowerCase().includes(q)));
+  const ce=document.getElementById('search-count');if(ce)ce.textContent=q?filtered.length+' resultaten':'';
+  if(!filtered.length){main.innerHTML='<div class="timeline-empty"><span class="timeline-empty-icon">📭</span>Geen documenten beschikbaar.</div>';updateCounts();return;}
+  main.innerHTML='<div class="doc-grid">'+filtered.map(renderCard).join('')+'</div>';updateCounts();
+}
+
+function renderCard(d){
+  const isBlurred=d.state==='blurred';
+  return \`<div class="doc-card cat-\${d.cat} state-\${d.state}" onclick="openDoc('\${d.id}')">
+    \${d.fileData?\`<img class="doc-card-thumb" src="\${d.fileData}">\`:d.tekst?\`<div class="doc-card-parchment-preview">\${renderParchment(d.tekst)}</div>\`:'<div class="doc-card-accent"></div>'}
+    <div class="doc-card-body"><div class="doc-card-header"><div class="doc-card-icon">\${d.icon}</div><div>
+      <div class="doc-card-title">\${d.name}</div>
+      <div class="doc-card-type">\${d.type}\${d.hoofdstuk?' · '+getHoofdstukLabel(d.hoofdstuk):''}</div>
+    </div></div><div class="doc-card-desc">\${d.desc}</div>
+    <div class="doc-card-footer">\${d.npcs.slice(0,2).map(n=>'<span class="chip chip-npc">👤 '+n.split(' ')[0]+'</span>').join('')}\${d.locs.slice(0,2).map(l=>'<span class="chip chip-loc">🏰 '+l+'</span>').join('')}</div>
+    </div></div>\`;
+}
+
+function openDoc(id){
+  const d=DOCS.find(x=>x.id===id);if(!d)return;
+  const isBlurred=d.state==='blurred';
+  document.getElementById('m-title').textContent=d.name;
+  document.getElementById('m-subtitle').textContent=d.type+(d.hoofdstuk?' · '+getHoofdstukLabel(d.hoofdstuk):'');
+  let h='<div class="modal-section"><div class="modal-section-label">Inhoud</div><p>'+d.desc+'</p>';
+  if(d.fileData&&!isBlurred) h+='<div class="doc-preview" onclick="openLightbox(\\''+d.id+'\\')"><img src="'+d.fileData+'"><span class="doc-preview-hint">Klik om te vergroten</span></div>';
+  else if(d.fileData&&isBlurred) h+='<div class="doc-preview" style="filter:blur(10px);pointer-events:none"><img src="'+d.fileData+'"></div>';
+  else if(d.tekst&&!isBlurred) h+='<div class="parchment-block">'+renderParchment(d.tekst)+'</div>';
+  h+='</div>';
+  if(d.npcs.length&&!isBlurred) h+='<div class="modal-section"><div class="modal-section-label">Verbonden personages</div><div class="modal-chips">'+d.npcs.map(n=>'<span class="modal-chip modal-chip-npc">👤 '+n+'</span>').join('')+'</div></div>';
+  if(d.locs.length&&!isBlurred) h+='<div class="modal-section"><div class="modal-section-label">Locaties</div><div class="modal-chips">'+d.locs.map(l=>'<span class="modal-chip modal-chip-loc">🏰 '+l+'</span>').join('')+'</div></div>';
+  if(d.docs.length&&!isBlurred){h+='<div class="modal-section"><div class="modal-section-label">Gerelateerde documenten</div><div class="modal-chips">';
+    d.docs.forEach(name=>{const lnk=DOCS.find(x=>x.name.includes(name.substring(0,15)));h+=lnk?'<span class="modal-chip modal-chip-doc" onclick="openDoc(\\''+lnk.id+'\\')">📜 '+lnk.name+'</span>':'<span class="modal-chip modal-chip-doc">📜 '+name+'</span>';});
+    h+='</div></div>';}
+  document.getElementById('m-body').innerHTML=h;document.getElementById('modal-overlay').classList.add('active');
+}
+
+function renderLog(container){
+  if(!LOG.length){container.innerHTML='<div class="timeline-empty"><span class="timeline-empty-icon">📖</span>Het logboek is nog leeg.</div>';return;}
+  const sorted=[...LOG].sort((a,b)=>{const ha=HOOFDSTUKKEN[a.hoofdstuk],hb=HOOFDSTUKKEN[b.hoofdstuk];const na=ha?ha.num:999,nb=hb?hb.num:999;return na!==nb?na-nb:a.timestamp-b.timestamp;});
+  const groups={};sorted.forEach(e=>{const k=e.hoofdstuk||'_none';if(!groups[k])groups[k]=[];groups[k].push(e);});
+  let html='<div class="timeline">';
+  for(const[key,entries]of Object.entries(groups)){const h=HOOFDSTUKKEN[key];
+    html+='<div style="margin-bottom:24px"><div style="font-family:Cinzel,serif;font-size:14px;font-weight:700;color:var(--gold);margin-bottom:2px">'+(h?'Hoofdstuk '+h.num+': '+h.title:'Overig')+'</div>';
+    if(h)html+='<div style="font-family:IM Fell English,serif;font-size:12px;color:var(--ink-dim);font-style:italic;margin-bottom:12px">'+h.dag+'</div>';
+    entries.forEach(e=>{html+='<div class="timeline-item"><div class="timeline-date">'+e.icon+'</div><div class="timeline-content"><div class="timeline-event">'+e.event+'</div><div class="timeline-meta"><span class="chip chip-doc" onclick="openDoc(\\''+e.docId+'\\')">Bekijk →</span></div></div></div>';});
+    html+='</div>';}
+  html+='</div>';container.innerHTML=html;
+}
+
+function updateCounts(){const c=cat=>(cat==='alle'?DOCS:DOCS.filter(d=>d.cat===cat)).length;['alle','brieven','pers','kaarten','codex'].forEach(x=>{const e=document.getElementById('count-'+x);if(e)e.textContent=c(x);});const l=document.getElementById('count-logboek');if(l)l.textContent=LOG.length;}
+
+function closeModal(){document.getElementById('modal-overlay').classList.remove('active');}
+let lbZoom=1,lbPX=0,lbPY=0,lbDrag=false,lbSX=0,lbSY=0;
+function openLightbox(id){lbZoom=1;lbPX=0;lbPY=0;const d=DOCS.find(x=>x.id===id);if(!d||!d.fileData)return;const img=document.getElementById('lightbox-img');img.src=d.fileData;img.style.transform='scale(1)';document.getElementById('lightbox-title').textContent=d.name;document.getElementById('lightbox').classList.add('active');document.getElementById('zoom-hint').style.opacity='1';setTimeout(()=>{document.getElementById('zoom-hint').style.opacity='0';},2500);}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.getElementById('lightbox-img').src='';}
+function zoomLightbox(e){e.preventDefault();lbZoom=Math.min(5,Math.max(0.5,lbZoom+(e.deltaY>0?-0.15:0.15)));document.getElementById('lightbox-img').style.transform='scale('+lbZoom+') translate('+lbPX+'px,'+lbPY+'px)';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeLightbox();closeModal();}if(e.key==='/'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();document.getElementById('search-input')?.focus();}});
+render();
+<\/script>
+</body></html>`;
+}
+
+function exportArchief() {
+  const data = JSON.stringify(getFullState(), null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'grisburgh-archief-backup.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importArchief() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const s = JSON.parse(text);
+      // Reset custom docs (remove previously loaded customs before re-applying)
+      DOCS.length = 0;
+      BUILTIN_DOCS_BACKUP.forEach(d => DOCS.push({...d}));
+      applyState(s);
+      await saveState();
+      render();
+      closeModal();
+      alert('Archief succesvol geïmporteerd!');
+    } catch(err) {
+      alert('Fout bij importeren: ongeldig bestand.');
+    }
+  };
+  input.click();
+}
+
+// Keep a clean copy of built-in docs for import resets
+const BUILTIN_DOCS_BACKUP = DOCS.map(d => ({...d}));
+
+// ═══════════════════════════════════════════════════════
+// FILE STORAGE — stores uploaded images as base64 in storage
+// Each file is stored separately: archief-file:{docId} = data:...
+// ═══════════════════════════════════════════════════════
+
+const fileCache = {}; // in-memory cache: { docId: dataURL }
+
+async function loadFile(docId) {
+  if (fileCache[docId]) return fileCache[docId];
+  if (typeof window.storage === 'undefined') return null;
+  try {
+    const r = await window.storage.get('archief-file:' + docId);
+    if (r && r.value) { fileCache[docId] = r.value; return r.value; }
+  } catch(e) {}
+  return null;
+}
+
+async function saveFile(docId, dataURL) {
+  fileCache[docId] = dataURL;
+  if (typeof window.storage === 'undefined') return;
+  try { await window.storage.set('archief-file:' + docId, dataURL); } catch(e) {}
+}
+
+async function deleteFile(docId) {
+  delete fileCache[docId];
+  if (typeof window.storage === 'undefined') return;
+  try { await window.storage.delete('archief-file:' + docId); } catch(e) {}
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Preload all files for thumbnails
+async function preloadFiles() {
+  if (typeof window.storage === 'undefined') return;
+  try {
+    const keys = await window.storage.list('archief-file:');
+    if (keys && keys.keys) {
+      for (const k of keys.keys) {
+        const docId = k.replace('archief-file:', '');
+        try {
+          const r = await window.storage.get(k);
+          if (r && r.value) fileCache[docId] = r.value;
+        } catch(e) {}
+      }
+    }
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════
+// LIGHTBOX
+// ═══════════════════════════════════════════════════════
+
+// (lightbox functions defined below with zoom support)
+
+// ═══════════════════════════════════════════════════════
+// EDITOR — Add / Edit / Delete documents (DM only)
+// ═══════════════════════════════════════════════════════
+
+const ICONS = ['✉️','📝','📒','💌','⚠️','🪶','📰','📋','📚','🍽️','🗺️','🌍','📐','👁','🙏','📖','🪪','🏴‍☠️','📜','🔮','⚔️','🗝️','💀','🎭','🏺'];
+const CATS = [
+  { value:'brieven', label:'📜 Brieven & Documenten' },
+  { value:'pers', label:'🗞 Gedrukte Pers' },
+  { value:'kaarten', label:'🗺 Kaarten' },
+  { value:'codex', label:'🔏 Codex & Emblema' },
+];
+
+let editingDocId = null;
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function openEditor(docId) {
+  editingDocId = docId || null;
+  const doc = docId ? DOCS.find(d => d.id === docId) : null;
+
+  document.getElementById('m-title').textContent = doc ? 'Document bewerken' : 'Nieuw document';
+  document.getElementById('m-subtitle').textContent = doc ? doc.name : 'Voeg een document toe aan het Archief';
+
+  const v = doc || { name:'', type:'', cat:'brieven', desc:'', icon:'📜', hoofdstuk:'', npcs:[], locs:[], docs:[] };
+  window._editorTags = { npcs:[...v.npcs], locs:[...v.locs], docs:[...v.docs] };
+
+  let html = `<div class="editor-form">
+    <div class="editor-row">
+      <label>Titel</label>
+      <input type="text" id="ed-name" value="${esc(v.name)}" placeholder="Naam van het document">
+    </div>
+    <div class="editor-row-inline">
+      <div class="editor-row">
+        <label>Type</label>
+        <input type="text" id="ed-type" value="${esc(v.type)}" placeholder="Brief, Krant, Kaart...">
+      </div>
+      <div class="editor-row">
+        <label>Categorie</label>
+        <select id="ed-cat">${CATS.map(c => `<option value="${c.value}" ${v.cat===c.value?'selected':''}>${c.label}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="editor-row-inline">
+      <div class="editor-row">
+        <label>Icoon</label>
+        <select id="ed-icon">${ICONS.map(i => `<option value="${i}" ${v.icon===i?'selected':''}>${i}</option>`).join('')}</select>
+      </div>
+      <div class="editor-row">
+        <label>Hoofdstuk</label>
+        <select id="ed-hoofdstuk">
+          <option value="" ${!v.hoofdstuk?'selected':''}>— Geen —</option>
+          ${Object.entries(HOOFDSTUKKEN).map(([k,h]) => `<option value="${k}" ${v.hoofdstuk===k?'selected':''}>${h.short} (${h.dag})</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="editor-row">
+      <label>Beschrijving</label>
+      <textarea id="ed-desc" placeholder="Wat staat er in dit document?">${esc(v.desc)}</textarea>
+    </div>
+    ${buildTagEditor('npcs', '👤', 'Verbonden personages', 'Naam personage...')}
+    ${buildTagEditor('locs', '🏰', 'Locaties', 'Naam locatie...', 'et-loc')}
+    ${buildTagEditor('docs', '📜', 'Gerelateerde documenten', 'Naam document...', 'et-doc')}
+    <div class="editor-actions">
+      <button class="btn-save" onclick="saveEditor()">💾 Opslaan</button>
+      ${doc ? `<button class="btn-delete" onclick="deleteDoc('${doc.id}')">🗑 Verwijderen</button>` : ''}
+      <button class="btn-cancel" onclick="closeModal()">Annuleren</button>
+    </div>
+  </div>`;
+
+  document.getElementById('m-body').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('active');
+}
+
+function buildTagEditor(field, ico, label, placeholder, cls='') {
+  const inputId = `ed-${field}-input`;
+  const tags = window._editorTags[field].map(t =>
+    `<span class="editor-tag ${cls}">${ico} ${esc(t)}<span class="et-x" onclick="removeEditorTag('${field}','${esc(t)}')">×</span></span>`
+  ).join('');
+  return `<div class="editor-row">
+    <label>${label}</label>
+    <div class="editor-tags-wrap" id="ed-${field}-wrap">${tags}</div>
+    <div class="editor-add-row">
+      <input type="text" id="${inputId}" placeholder="${placeholder}" onkeydown="if(event.key==='Enter'){event.preventDefault();addEditorTag('${field}')}">
+      <button onclick="addEditorTag('${field}')">+</button>
+    </div>
+  </div>`;
+}
+
+function addEditorTag(field) {
+  const inputId = `ed-${field}-input`;
+  const input = document.getElementById(inputId);
+  const val = input.value.trim();
+  if (!val || window._editorTags[field].includes(val)) { input.value = ''; return; }
+  window._editorTags[field].push(val);
+  input.value = '';
+  refreshEditorTags(field);
+}
+
+function removeEditorTag(field, val) {
+  window._editorTags[field] = window._editorTags[field].filter(v => v !== val);
+  refreshEditorTags(field);
+}
+
+function refreshEditorTags(field) {
+  const wrap = document.getElementById(`ed-${field}-wrap`);
+  const cls = field==='locs'?'et-loc': field==='docs'?'et-doc':'';
+  const ico = field==='npcs'?'👤': field==='locs'?'🏰':'📜';
+  wrap.innerHTML = window._editorTags[field].map(t =>
+    `<span class="editor-tag ${cls}">${ico} ${esc(t)}<span class="et-x" onclick="removeEditorTag('${field}','${esc(t)}')">×</span></span>`
+  ).join('');
+}
+
+function saveEditor() {
+  const name = document.getElementById('ed-name').value.trim();
+  if (!name) { document.getElementById('ed-name').style.borderColor = 'var(--red-seal)'; return; }
+
+  const data = {
+    name,
+    type: document.getElementById('ed-type').value.trim() || 'Document',
+    cat: document.getElementById('ed-cat').value,
+    desc: document.getElementById('ed-desc').value.trim(),
+    icon: document.getElementById('ed-icon').value,
+    hoofdstuk: document.getElementById('ed-hoofdstuk').value,
+    npcs: [...window._editorTags.npcs],
+    locs: [...window._editorTags.locs],
+    docs: [...window._editorTags.docs],
+  };
+
+  if (editingDocId) {
+    const doc = DOCS.find(d => d.id === editingDocId);
+    if (doc) { Object.assign(doc, data); doc._edited = true; }
+  } else {
+    const id = 'custom_' + Date.now();
+    DOCS.push({ id, ...data });
+    docStates[id] = 'hidden';
+  }
+
+  saveState();
+  closeModal();
+  render();
+}
+
+function deleteDoc(docId) {
+  if (!confirm('Dit document verwijderen uit het Archief?')) return;
+  const idx = DOCS.findIndex(d => d.id === docId);
+  if (idx > -1) DOCS.splice(idx, 1);
+  delete docStates[docId];
+  delete dmNotes[docId];
+  logEntries = logEntries.filter(e => e.docId !== docId);
+  saveState();
+  closeModal();
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// DM MODE
+// ═══════════════════════════════════════════════════════
+
+function toggleDMMode() {
+  isDM = !isDM;
+  const sw = document.getElementById('dm-switch');
+  const lb = document.getElementById('dm-label');
+  const app = document.getElementById('app');
+  const tb = document.getElementById('dm-toolbar');
+  sw.classList.toggle('active', isDM);
+  lb.textContent = isDM ? 'Dungeon Master' : 'Speler';
+  app.classList.toggle('dm-mode', isDM);
+  app.classList.toggle('player-mode', !isDM);
+  tb.style.display = isDM ? 'flex' : 'none';
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// CATEGORY SWITCHING
+// ═══════════════════════════════════════════════════════
+
+function switchCat(cat) {
+  activeCat = cat;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.toggle('active', t.dataset.cat === cat));
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// STATE CHANGES
+// ═══════════════════════════════════════════════════════
+
+function setDocState(docId, newState) {
+  const oldState = docStates[docId];
+  docStates[docId] = newState;
+
+  // If revealing, add to logbook
+  if (newState === 'revealed' && oldState !== 'revealed') {
+    const doc = DOCS.find(d => d.id === docId);
+    if (doc) {
+      logEntries.push({
+        hoofdstuk: doc.hoofdstuk || '',
+        event: doc.name,
+        icon: doc.icon,
+        docId: doc.id,
+        timestamp: Date.now()
+      });
+      // Trigger reveal animation
+      setTimeout(() => {
+        const card = document.querySelector(`[data-doc-id="${docId}"]`);
+        if (card) { card.classList.add('just-revealed'); setTimeout(() => card.classList.remove('just-revealed'), 700); }
+      }, 50);
+    }
+  }
+
+  saveState();
+  render();
+  updateCounts();
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════
+
+function render() {
+  const main = document.getElementById('main-content');
+
+  if (activeCat === 'logboek') {
+    renderLogboek(main);
+  } else {
+    renderDocGrid(main);
+  }
+  updateCounts();
+}
+
+function renderDocGrid(container) {
+  let filtered = activeCat === 'alle'
+    ? DOCS
+    : DOCS.filter(d => d.cat === activeCat);
+
+  // Apply search filter
+  const query = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+  if (query) {
+    filtered = filtered.filter(d => {
+      return d.name.toLowerCase().includes(query)
+        || d.type.toLowerCase().includes(query)
+        || d.desc.toLowerCase().includes(query)
+        || d.npcs.some(n => n.toLowerCase().includes(query))
+        || d.locs.some(l => l.toLowerCase().includes(query))
+        || d.docs.some(x => x.toLowerCase().includes(query))
+        || (d.hoofdstuk && getHoofdstukLabel(d.hoofdstuk).toLowerCase().includes(query));
+    });
+  }
+
+  // In player mode, hide hidden docs
+  const visible = isDM ? filtered : filtered.filter(d => docStates[d.id] !== 'hidden');
+
+  // Update search count
+  const countEl = document.getElementById('search-count');
+  if (countEl) countEl.textContent = query ? `${visible.length} resultaten` : '';
+
+  if (visible.length === 0) {
+    container.innerHTML = `<div class="timeline-empty"><span class="timeline-empty-icon">${query ? '🔍' : '📭'}</span>${query ? 'Geen documenten gevonden.' : `Geen documenten${isDM ? ' in deze categorie' : ' beschikbaar'}.`}</div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="doc-grid">${visible.map(d => renderCard(d)).join('')}</div>`;
+}
+
+function renderCard(d) {
+  const state = docStates[d.id] || 'hidden';
+  const stateClass = `state-${state}`;
+  const hasFile = !!fileCache[d.id];
+
+  return `
+    <div class="doc-card cat-${d.cat} ${stateClass}" data-doc-id="${d.id}" onclick="openDoc('${d.id}')">
+      <div class="dm-controls">
+        <button class="dm-btn ${state==='hidden'?'active-state':''}" onclick="event.stopPropagation();setDocState('${d.id}','hidden')" title="Verborgen">🔒</button>
+        <button class="dm-btn ${state==='blurred'?'active-state':''}" onclick="event.stopPropagation();setDocState('${d.id}','blurred')" title="Vaag">👁‍🗨</button>
+        <button class="dm-btn ${state==='revealed'?'active-state':''}" onclick="event.stopPropagation();setDocState('${d.id}','revealed')" title="Onthuld">✨</button>
+      </div>
+      ${hasFile ? `<img class="doc-card-thumb" src="${fileCache[d.id]}" alt="${esc(d.name)}">` : (tekstContent[d.id] ? `<div class="doc-card-parchment-preview">${renderParchment(tekstContent[d.id])}</div>` : '<div class="doc-card-accent"></div>')}
+      <div class="doc-card-body">
+        <div class="doc-card-header">
+          <div class="doc-card-icon">${d.icon}</div>
+          <div>
+            <div class="doc-card-title">${d.name}</div>
+            <div class="doc-card-type">${d.type}${d.hoofdstuk ? ' · ' + getHoofdstukLabel(d.hoofdstuk) : ''}</div>
+          </div>
+        </div>
+        <div class="doc-card-desc">${d.desc}</div>
+        <div class="doc-card-footer">
+          ${d.npcs.slice(0,2).filter(n => isDM || !((hiddenLinks[d.id]||{}).npcs||[]).includes(n)).map(n => `<span class="chip chip-npc">👤 ${n.split(' ')[0]}</span>`).join('')}
+          ${d.locs.slice(0,2).filter(l => isDM || !((hiddenLinks[d.id]||{}).locs||[]).includes(l)).map(l => `<span class="chip chip-loc">🏰 ${l}</span>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderLogboek(container) {
+  const sorted = [...logEntries].sort((a,b) => {
+    const ha = HOOFDSTUKKEN[a.hoofdstuk]; const hb = HOOFDSTUKKEN[b.hoofdstuk];
+    const na = ha ? ha.num : 999; const nb = hb ? hb.num : 999;
+    if (na !== nb) return na - nb;
+    return a.timestamp - b.timestamp;
+  });
+
+  if (sorted.length === 0) {
+    container.innerHTML = `<div class="timeline-empty"><span class="timeline-empty-icon">📖</span>Het logboek is nog leeg.<br>Onthul documenten om de tijdlijn te vullen.</div>`;
+    return;
+  }
+
+  // Group by chapter
+  const groups = {};
+  sorted.forEach(e => {
+    const key = e.hoofdstuk || '_none';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(e);
+  });
+
+  let html = '<div class="timeline">';
+  for (const [key, entries] of Object.entries(groups)) {
+    const h = HOOFDSTUKKEN[key];
+    const groupTitle = h ? `Hoofdstuk ${h.num}: ${h.title}` : 'Overig';
+    const groupSub = h ? h.dag : '';
+
+    html += `<div style="margin-bottom:24px">
+      <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--gold);margin-bottom:2px">${groupTitle}</div>
+      ${groupSub ? `<div style="font-family:'IM Fell English',serif;font-size:12px;color:var(--ink-dim);font-style:italic;margin-bottom:12px">${groupSub}</div>` : ''}`;
+
+    entries.forEach(e => {
+      html += `<div class="timeline-item">
+        <div class="timeline-date">${e.icon}</div>
+        <div class="timeline-content">
+          <div class="timeline-event">${e.event}</div>
+          <div class="timeline-meta">
+            <span class="chip chip-doc" onclick="openDoc('${e.docId}')" style="cursor:pointer">Bekijk document →</span>
+          </div>
+        </div>
+      </div>`;
+    });
+
+    html += '</div>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function updateCounts() {
+  const countFor = (cat) => {
+    const docs = cat === 'alle' ? DOCS : DOCS.filter(d => d.cat === cat);
+    return isDM ? docs.length : docs.filter(d => docStates[d.id] !== 'hidden').length;
+  };
+  ['alle','brieven','pers','kaarten','codex'].forEach(c => {
+    const el = document.getElementById('count-' + c);
+    if (el) el.textContent = countFor(c);
+  });
+  // Logboek count = number of entries
+  const logEl = document.getElementById('count-logboek');
+  if (logEl) logEl.textContent = logEntries.length;
+}
+
+// ═══════════════════════════════════════════════════════
+// DOCUMENT DETAIL MODAL
+// ═══════════════════════════════════════════════════════
+
+function openDoc(id) {
+  const d = DOCS.find(x => x.id === id);
+  if (!d) return;
+
+  const state = docStates[d.id];
+  // In player mode, blurred docs show limited info
+  const isBlurred = !isDM && state === 'blurred';
+
+  document.getElementById('m-title').textContent = isBlurred ? '???' : d.name;
+  document.getElementById('m-subtitle').textContent = `${d.type}${d.hoofdstuk ? ' · ' + getHoofdstukLabel(d.hoofdstuk) : ''}`;
+
+  let html = '';
+
+  // Description
+  html += `<div class="modal-section"><div class="modal-section-label">Inhoud</div>`;
+  html += `<p>${isBlurred ? '<em style="opacity:0.4">De inhoud van dit document is nog niet leesbaar...</em>' : d.desc}</p>`;
+
+  // File preview (if file exists and not blurred for player)
+  const fileData = fileCache[d.id];
+  const afterData = puzzleAfterCache[d.id];
+  const tekst = tekstContent[d.id] || '';
+  // Determine which image to show (before or after for puzzle docs)
+  const showAfter = afterData && docStates[d.id] === 'revealed';
+  const displayFile = showAfter ? afterData : fileData;
+
+  if (displayFile && !isBlurred) {
+    html += `<div class="doc-preview ${showAfter?'puzzle-flip':''}" onclick="openLightbox(${showAfter?`puzzleAfterCache['${d.id}']`:`fileCache['${d.id}']`}, '${esc(d.name)}')">
+      <img src="${displayFile}" alt="${esc(d.name)}">
+      <span class="doc-preview-hint">Klik om te vergroten</span>
+    </div>`;
+    // If both versions exist, show toggle in DM mode
+    if (isDM && fileData && afterData) {
+      html += `<div class="puzzle-toggle">
+        <button class="puzzle-btn ${!showAfter?'active':''}" onclick="setDocState('${d.id}','blurred');openDoc('${d.id}')">🔒 Vóór</button>
+        <button class="puzzle-btn ${showAfter?'active':''}" onclick="setDocState('${d.id}','revealed');openDoc('${d.id}')">✨ Na (opgelost)</button>
+        <span class="puzzle-label">Puzzel voor/na</span>
+      </div>`;
+    }
+  } else if (displayFile && isBlurred) {
+    html += `<div class="doc-preview" style="filter:blur(10px);pointer-events:none"><img src="${fileData}"></div>`;
+  } else if (tekst && !isBlurred) {
+    html += `<div class="parchment-block">${renderParchment(tekst)}</div>`;
+  } else if (tekst && isBlurred) {
+    html += `<div class="parchment-block" style="filter:blur(6px);user-select:none">${renderParchment(tekst)}</div>`;
+  }
+
+  // DM: File upload zones
+  if (isDM) {
+    if (fileData) {
+      html += `<div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--green-wax);font-family:'JetBrains Mono',monospace">✓ Afbeelding (vóór)</span>
+        <button class="btn-remove-file" onclick="removeDocFile('${d.id}')">Verwijder</button>`;
+      if (!afterData) {
+        html += `<span style="font-size:11px;color:var(--ink-faint);margin-left:8px">|</span>
+        <button class="puzzle-btn" onclick="uploadPuzzleFile('${d.id}')">+ Na-versie (puzzel)</button>`;
+      }
+      html += `</div>`;
+      if (afterData) {
+        html += `<div style="margin-top:4px;display:flex;gap:6px;align-items:center">
+          <span style="font-size:11px;color:var(--green-wax);font-family:'JetBrains Mono',monospace">✓ Na-versie (opgelost)</span>
+          <button class="btn-remove-file" onclick="removePuzzleFile('${d.id}')">Verwijder</button>
+        </div>`;
+      }
+    } else {
+      html += `<div class="upload-zone" data-doc-id="${d.id}" onclick="uploadDocFile('${d.id}')">
+        <span class="upload-zone-icon">📎</span>
+        <span class="upload-zone-text">Sleep een afbeelding hierheen of klik om te uploaden</span>
+        <span class="upload-zone-sub">JPEG, PNG — max 2MB</span>
+      </div>`;
+    }
+    // Tekst editor — for parchment rendering without an image
+    html += `<div class="tekst-editor-area" style="margin-top:12px">
+      <div class="modal-section-label">📜 Perkamenttekst</div>
+      <textarea id="tekst-editor" placeholder="Typ hier de tekst van het document...\n\n---titel---\nBrief aan de Heer Cassalanter\n---\nWaarde Heer, ..." oninput="clearTimeout(window._tekstTO);window._tekstTO=setTimeout(()=>saveTekstContent('${d.id}'),500)">${esc(tekst)}</textarea>
+      <div class="tekst-hint">Gebruik ---titel--- en --- voor opmaak. Wordt getoond als perkament als er geen afbeelding is.</div>
+      <div class="save-flash" id="tekst-save-flash">✓ Tekst opgeslagen</div>
+    </div>`;
+  }
+  html += `</div>`;
+
+  // DM: State selector
+  if (isDM) {
+    html += `<div class="modal-section"><div class="modal-section-label">🎭 Onthullingsniveau</div>`;
+    html += `<div class="modal-state-selector">
+      <button class="state-btn ${state==='hidden'?'active':''}" onclick="setDocState('${d.id}','hidden');openDoc('${d.id}')">🔒 Verborgen</button>
+      <button class="state-btn ${state==='blurred'?'active':''}" onclick="setDocState('${d.id}','blurred');openDoc('${d.id}')">👁‍🗨 Vaag</button>
+      <button class="state-btn ${state==='revealed'?'active':''}" onclick="setDocState('${d.id}','revealed');openDoc('${d.id}')">✨ Onthuld</button>
+      <button class="btn-edit" onclick="openEditor('${d.id}')" style="margin-left:auto">✏️ Bewerken</button>
+    </div></div>`;
+  }
+
+  // Connected NPCs
+  if (d.npcs.length && !isBlurred) {
+    const hidden = (hiddenLinks[d.id] && hiddenLinks[d.id].npcs) || [];
+    const visibleNpcs = isDM ? d.npcs : d.npcs.filter(n => !hidden.includes(n));
+    if (visibleNpcs.length || isDM) {
+      html += `<div class="modal-section"><div class="modal-section-label">Verbonden personages</div><div class="modal-chips">`;
+      (isDM ? d.npcs : visibleNpcs).forEach(n => {
+        const role = NPC_NAMES[n] || '';
+        const isHidden = hidden.includes(n);
+        html += `<span class="modal-chip modal-chip-npc ${isHidden?'link-hidden':''}" title="${role}">👤 ${n}<span class="link-eye-toggle" onclick="event.stopPropagation();toggleLinkVis('${d.id}','npcs','${esc(n)}')">${isHidden?'👁‍🗨':'👁'}</span></span>`;
+      });
+      html += `</div></div>`;
+    }
+  }
+
+  // Connected Locations
+  if (d.locs.length && !isBlurred) {
+    const hidden = (hiddenLinks[d.id] && hiddenLinks[d.id].locs) || [];
+    const visibleLocs = isDM ? d.locs : d.locs.filter(l => !hidden.includes(l));
+    if (visibleLocs.length || isDM) {
+      html += `<div class="modal-section"><div class="modal-section-label">Locaties</div><div class="modal-chips">`;
+      (isDM ? d.locs : visibleLocs).forEach(l => {
+        const isHidden = hidden.includes(l);
+        html += `<span class="modal-chip modal-chip-loc ${isHidden?'link-hidden':''}">🏰 ${l}<span class="link-eye-toggle" onclick="event.stopPropagation();toggleLinkVis('${d.id}','locs','${esc(l)}')">${isHidden?'👁‍🗨':'👁'}</span></span>`;
+      });
+      html += `</div></div>`;
+    }
+  }
+
+  // Connected Documents
+  if (d.docs.length && !isBlurred) {
+    const hidden = (hiddenLinks[d.id] && hiddenLinks[d.id].docs) || [];
+    const visibleDocs = isDM ? d.docs : d.docs.filter(x => !hidden.includes(x));
+    if (visibleDocs.length || isDM) {
+      html += `<div class="modal-section"><div class="modal-section-label">Gerelateerde documenten</div><div class="modal-chips">`;
+      (isDM ? d.docs : visibleDocs).forEach(name => {
+        const linked = DOCS.find(x => x.name.includes(name.substring(0,15)));
+        const isHidden = hidden.includes(name);
+        const clickAttr = linked ? `onclick="openDoc('${linked.id}')"` : '';
+        html += `<span class="modal-chip modal-chip-doc ${isHidden?'link-hidden':''}" ${clickAttr}>📜 ${linked ? linked.name : name}<span class="link-eye-toggle" onclick="event.stopPropagation();toggleLinkVis('${d.id}','docs','${esc(name)}')">${isHidden?'👁‍🗨':'👁'}</span></span>`;
+      });
+      html += `</div></div>`;
+    }
+  }
+
+  // DM Notes
+  if (isDM) {
+    const note = dmNotes[d.id] || '';
+    html += `<div class="modal-section"><div class="modal-section-label">🖊 DM Notities</div>`;
+    html += `<div class="dm-notes"><textarea id="dm-note-ta" placeholder="Notities voor de DM...">${note}</textarea>`;
+    html += `<div class="save-flash" id="save-flash">✓ Opgeslagen</div></div></div>`;
+  }
+
+  document.getElementById('m-body').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('active');
+
+  // Setup notes auto-save
+  if (isDM) {
+    const ta = document.getElementById('dm-note-ta');
+    if (ta) {
+      let timeout;
+      ta.addEventListener('input', () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          dmNotes[d.id] = ta.value;
+          saveState();
+          const fl = document.getElementById('save-flash');
+          fl.classList.add('show');
+          setTimeout(() => fl.classList.remove('show'), 1200);
+        }, 400);
+      });
+    }
+  }
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+}
+
+// ═══════════════════════════════════════════════════════
+// PARCHMENT TEXT RENDERER — converts simple markup to styled HTML
+// Syntax: ---titel--- for centered title, --- for horizontal rule,
+// --handtekening-- for right-aligned signature
+// ═══════════════════════════════════════════════════════
+
+function renderParchment(text) {
+  if (!text) return '';
+  return text.split('\n').map(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('---titel---') || trimmed.startsWith('---Titel---')) {
+      return ''; // Title marker, handled by next line
+    }
+    if (/^---\s*$/.test(trimmed)) {
+      return '<hr class="parch-rule">';
+    }
+    // Check if previous line was a title marker — look for centered bold text
+    if (trimmed.startsWith('--handtekening--') || trimmed.startsWith('--Handtekening--')) {
+      return ''; // marker
+    }
+    return `<span>${escHtml(line)}</span><br>`;
+  }).join('');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Smarter renderer: detect title/sig blocks
+function renderParchmentSmart(text) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  let html = '';
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    if (line === '---titel---' && i + 1 < lines.length) {
+      html += `<div class="parch-title">${escHtml(lines[i+1])}</div>`;
+      i += 2; continue;
+    }
+    if (/^---\s*$/.test(line)) {
+      html += '<hr class="parch-rule">';
+      i++; continue;
+    }
+    if (line === '--handtekening--' && i + 1 < lines.length) {
+      html += `<div class="parch-sig">${escHtml(lines[i+1])}</div>`;
+      i += 2; continue;
+    }
+    if (line === '') { html += '<br>'; }
+    else { html += `${escHtml(lines[i])}<br>`; }
+    i++;
+  }
+  return html;
+}
+
+// Override the simple renderer with the smart one
+function renderParchment(text) { return renderParchmentSmart(text); }
+
+// ═══════════════════════════════════════════════════════
+// HIDDEN LINKS — toggle visibility of individual connections
+// ═══════════════════════════════════════════════════════
+
+function toggleLinkVis(docId, field, name) {
+  if (!hiddenLinks[docId]) hiddenLinks[docId] = { npcs:[], locs:[], docs:[] };
+  const arr = hiddenLinks[docId][field];
+  const idx = arr.indexOf(name);
+  if (idx > -1) arr.splice(idx, 1);
+  else arr.push(name);
+  saveState();
+  openDoc(docId); // refresh modal
+}
+
+// ═══════════════════════════════════════════════════════
+// TEKST CONTENT — parchment text per document
+// ═══════════════════════════════════════════════════════
+
+function saveTekstContent(docId) {
+  const ta = document.getElementById('tekst-editor');
+  if (ta) {
+    tekstContent[docId] = ta.value;
+    saveState();
+    const fl = document.getElementById('tekst-save-flash');
+    if (fl) { fl.classList.add('show'); setTimeout(() => fl.classList.remove('show'), 1200); }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// FILE UPLOAD / REMOVE
+// ═══════════════════════════════════════════════════════
+
+function uploadDocFile(docId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/jpeg,image/png,image/webp';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert('Bestand te groot (max 2MB)'); return; }
+    try {
+      const dataURL = await readFileAsDataURL(file);
+      await saveFile(docId, dataURL);
+      openDoc(docId); // refresh modal
+      render(); // refresh grid (thumbnails)
+    } catch(err) { alert('Fout bij uploaden'); }
+  };
+  input.click();
+}
+
+async function removeDocFile(docId) {
+  if (!confirm('Bestand verwijderen van dit document?')) return;
+  await deleteFile(docId);
+  openDoc(docId);
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// PUZZLE BEFORE/AFTER — second file slot per document
+// Stored as archief-file-after:{docId}
+// ═══════════════════════════════════════════════════════
+
+const puzzleAfterCache = {};
+
+async function loadPuzzleFile(docId) {
+  if (puzzleAfterCache[docId]) return puzzleAfterCache[docId];
+  if (typeof window.storage === 'undefined') return null;
+  try {
+    const r = await window.storage.get('archief-file-after:' + docId);
+    if (r && r.value) { puzzleAfterCache[docId] = r.value; return r.value; }
+  } catch(e) {}
+  return null;
+}
+
+async function savePuzzleFile(docId, dataURL) {
+  puzzleAfterCache[docId] = dataURL;
+  if (typeof window.storage === 'undefined') return;
+  try { await window.storage.set('archief-file-after:' + docId, dataURL); } catch(e) {}
+}
+
+async function deletePuzzleFile(docId) {
+  delete puzzleAfterCache[docId];
+  if (typeof window.storage === 'undefined') return;
+  try { await window.storage.delete('archief-file-after:' + docId); } catch(e) {}
+}
+
+function uploadPuzzleFile(docId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/jpeg,image/png,image/webp';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file || file.size > 2*1024*1024) { if(file) alert('Max 2MB'); return; }
+    try {
+      const dataURL = await readFileAsDataURL(file);
+      await savePuzzleFile(docId, dataURL);
+      openDoc(docId);
+    } catch(err) { alert('Fout bij uploaden'); }
+  };
+  input.click();
+}
+
+async function removePuzzleFile(docId) {
+  if (!confirm('Na-versie verwijderen?')) return;
+  await deletePuzzleFile(docId);
+  openDoc(docId);
+}
+
+async function preloadPuzzleFiles() {
+  if (typeof window.storage === 'undefined') return;
+  try {
+    const keys = await window.storage.list('archief-file-after:');
+    if (keys && keys.keys) {
+      for (const k of keys.keys) {
+        const docId = k.replace('archief-file-after:', '');
+        try {
+          const r = await window.storage.get(k);
+          if (r && r.value) puzzleAfterCache[docId] = r.value;
+        } catch(e) {}
+      }
+    }
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════
+// ZOOMABLE LIGHTBOX — scroll wheel + pinch to zoom
+// ═══════════════════════════════════════════════════════
+
+let lightboxZoom = 1;
+let lightboxPanX = 0, lightboxPanY = 0;
+let isDraggingLB = false, dragStartX = 0, dragStartY = 0;
+
+function openLightbox(dataURL, title) {
+  lightboxZoom = 1; lightboxPanX = 0; lightboxPanY = 0;
+  const img = document.getElementById('lightbox-img');
+  img.src = dataURL;
+  img.style.transform = 'scale(1) translate(0,0)';
+  img.classList.remove('zoomed');
+  document.getElementById('lightbox-title').textContent = title || '';
+  document.getElementById('lightbox').classList.add('active');
+  document.getElementById('zoom-hint').style.opacity = '1';
+  setTimeout(() => { document.getElementById('zoom-hint').style.opacity = '0'; }, 2500);
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+  document.getElementById('lightbox-img').src = '';
+  lightboxZoom = 1;
+}
+
+function zoomLightbox(e) {
+  e.preventDefault(); e.stopPropagation();
+  const delta = e.deltaY > 0 ? -0.15 : 0.15;
+  lightboxZoom = Math.min(5, Math.max(0.5, lightboxZoom + delta));
+  applyLightboxTransform();
+}
+
+function applyLightboxTransform() {
+  const img = document.getElementById('lightbox-img');
+  img.style.transform = `scale(${lightboxZoom}) translate(${lightboxPanX}px, ${lightboxPanY}px)`;
+  img.classList.toggle('zoomed', lightboxZoom > 1.05);
+}
+
+// Pan when zoomed
+document.addEventListener('mousedown', (e) => {
+  if (!document.getElementById('lightbox').classList.contains('active')) return;
+  if (e.target.id !== 'lightbox-img' || lightboxZoom <= 1.05) return;
+  isDraggingLB = true; dragStartX = e.clientX - lightboxPanX; dragStartY = e.clientY - lightboxPanY;
+  e.preventDefault();
+});
+document.addEventListener('mousemove', (e) => {
+  if (!isDraggingLB) return;
+  lightboxPanX = (e.clientX - dragStartX) / lightboxZoom;
+  lightboxPanY = (e.clientY - dragStartY) / lightboxZoom;
+  applyLightboxTransform();
+});
+document.addEventListener('mouseup', () => { isDraggingLB = false; });
+
+// Touch pinch-to-zoom
+let touchDist = 0;
+document.getElementById('lightbox')?.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 2) {
+    touchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  }
+}, { passive: true });
+document.getElementById('lightbox')?.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2) {
+    const newDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    const scale = newDist / touchDist;
+    lightboxZoom = Math.min(5, Math.max(0.5, lightboxZoom * scale));
+    touchDist = newDist;
+    applyLightboxTransform();
+  }
+}, { passive: true });
+
+// ═══════════════════════════════════════════════════════
+// DRAG AND DROP — enhance upload zones
+// ═══════════════════════════════════════════════════════
+
+function setupDragDrop() {
+  document.addEventListener('dragover', (e) => {
+    const zone = e.target.closest('.upload-zone');
+    if (zone) { e.preventDefault(); zone.classList.add('drag-over'); }
+  });
+  document.addEventListener('dragleave', (e) => {
+    const zone = e.target.closest('.upload-zone');
+    if (zone) zone.classList.remove('drag-over');
+  });
+  document.addEventListener('drop', async (e) => {
+    const zone = e.target.closest('.upload-zone');
+    if (!zone) return;
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const docId = zone.dataset.docId;
+    const isPuzzle = zone.dataset.puzzle === 'true';
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 2*1024*1024) { alert('Max 2MB'); return; }
+    try {
+      const dataURL = await readFileAsDataURL(file);
+      if (isPuzzle) { await savePuzzleFile(docId, dataURL); }
+      else { await saveFile(docId, dataURL); }
+      openDoc(docId);
+      render();
+    } catch(err) { alert('Fout bij uploaden'); }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════════════
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeLightbox(); closeModal(); }
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    const si = document.getElementById('search-input');
+    if (si) si.focus();
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+
+async function init() {
+  await loadState();
+  await preloadFiles();
+  await preloadPuzzleFiles();
+  setupDragDrop();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>

@@ -27,6 +27,7 @@ export const api = {
   deleteEntity: (type, id) => request(`/entities/${type}/${id}`, { method: 'DELETE' }),
   toggleVisibility: (type, id) => request(`/entities/${type}/${id}/visibility`, { method: 'PUT' }),
   toggleSecret: (type, id) => request(`/entities/${type}/${id}/secret`, { method: 'PUT' }),
+  toggleDeceased: (type, id) => request(`/entities/${type}/${id}/deceased`, { method: 'PUT' }),
 
   // DM Notes
   getNote: (id) => request(`/dm/notes/${id}`),
