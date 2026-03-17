@@ -286,8 +286,9 @@ function renderCard(type, e) {
           <div class="flex items-center gap-2.5">
             <div class="card-icon" style="opacity:0.35;filter:grayscale(1)">${TYPE_META[type].icon}</div>
             <div class="min-w-0 flex-1">
-              <div class="font-cinzel font-bold text-ink-bright text-sm leading-tight">${esc(e.name)}</div>
-              <div class="text-[10px] text-ink-faint font-fell italic mt-0.5">— onbekend —</div>
+              <span class="card-name">${esc(e.name)}</span>
+              <span class="card-name-sep"></span>
+              <div class="text-[10px] text-ink-faint font-fell italic">— onbekend —</div>
             </div>
           </div>
         </div>
@@ -359,9 +360,10 @@ function renderCard(type, e) {
         <div class="flex items-start gap-2.5 mb-2">
           <div class="card-icon">${getAutoIcon(type, e)}</div>
           <div class="min-w-0 flex-1">
-            <div class="font-cinzel font-bold text-ink-bright text-sm leading-tight truncate">${esc(e.name)}</div>
-            ${rol      ? `<div class="text-[11px] text-ink-medium italic mt-0.5 truncate">${esc(rol)}</div>` : ''}
-            ${metaText ? `<div class="text-[11px] text-ink-dim mt-0.5 truncate">${esc(metaText)}</div>` : ''}
+            <span class="card-name truncate block">${esc(e.name)}</span>
+            ${(rol || metaText) ? `<span class="card-name-sep"></span>` : ''}
+            ${rol      ? `<div class="text-[11px] text-ink-medium italic truncate">${esc(rol)}</div>` : ''}
+            ${metaText ? `<div class="text-[11px] text-ink-dim truncate">${esc(metaText)}</div>` : ''}
           </div>
         </div>
         ${desc ? `<p class="text-xs text-ink-medium line-clamp-3 mb-2 font-crimson leading-relaxed">${mdToHtml(desc)}</p>` : ''}

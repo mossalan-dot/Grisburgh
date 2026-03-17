@@ -88,12 +88,24 @@ body::before {
 }
 .modal-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 16px 20px 14px;
   background: linear-gradient(to bottom, rgba(230,213,173,0.6), transparent);
   border-bottom: 1px solid #c4a87a;
   flex-shrink: 0;
+}
+/* Decorative rule under modal title */
+#m-title {
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+#m-title::after {
+  content: '';
+  display: block;
+  height: 1px;
+  margin-top: 5px;
+  background: linear-gradient(to right, rgba(180,140,60,0.7), transparent 70%);
 }
 .modal-close {
   width: 40px; height: 40px;
@@ -264,6 +276,25 @@ body::before {
 .card-body { flex: 1 1 auto; }
 .card-img { min-height: 130px; max-height: 160px; display: block; width: 100%; object-fit: cover; flex-shrink: 0; }
 .card-icon { font-size: 1.2rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+
+/* Card title styling */
+.card-name {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 0.92rem;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
+  color: #1e1108;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+  display: block;
+}
+.card-name-sep {
+  display: block;
+  height: 1px;
+  margin: 3px 0 2px;
+  background: linear-gradient(to right, rgba(180,140,60,0.55), transparent);
+  border: none;
+}
 
 /* Flavour preview on card */
 .flavour-preview {
