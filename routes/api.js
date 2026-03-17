@@ -231,12 +231,18 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
 });
 
 router.put('/entities/:type/:id/deceased', requireDM, (req, res) => {
-  const { id } = req.params;
+  const { type, id } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[type] || []).find(e => e.id === id);
   const dmState = storage.readJSON('dm-state.json');
   if (!dmState.deceased) dmState.deceased = {};
   dmState.deceased[id] = !dmState.deceased[id];
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').emit('entity:updated', { id, deceased: dmState.deceased[id] });
+  // Notify players when a character is marked as deceased (not on restore)
+  if (dmState.deceased[id] && entity) {
+    req.app.get('io').emit('entity:deceased', { id, type, name: entity.name });
+  }
   res.json({ deceased: dmState.deceased[id] });
 });
 

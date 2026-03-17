@@ -113,11 +113,30 @@ export function initSocket() {
     }));
   });
 
+  socket.on('entity:deceased', ({ id, type, name } = {}) => {
+    // Herlaad de huidige sectie zodat het kaartje meteen grijs wordt
+    const section = window.app.state.activeSection;
+    if (ENTITY_SECTIONS.includes(section)) {
+      import('./render-campagne.js').then(m => {
+        if (section === 'personages') m.renderPersonages();
+        else if (section === 'locaties') m.renderLocaties();
+        else if (section === 'organisaties') m.renderOrganisaties();
+        else if (section === 'voorwerpen') m.renderVoorwerpen();
+      });
+    }
+    // Toast voor spelers
+    if (!window.app.isDM() && name) {
+      _showToast(`🕯️ <strong>${name}</strong> is overleden`, () => {
+        if (type && id) window._openDetail?.(type, id);
+      }, 8000);
+    }
+  });
+
   socket.on('connect', () => console.log('Socket connected'));
   socket.on('disconnect', () => console.log('Socket disconnected'));
 }
 
-function _showToast(html, onClick) {
+function _showToast(html, onClick, duration = 4500) {
   const toast = document.createElement('div');
   toast.className = 'map-toast' + (onClick ? ' map-toast--clickable' : '');
   toast.innerHTML = html;
@@ -133,6 +152,6 @@ function _showToast(html, onClick) {
   }
 
   requestAnimationFrame(() => toast.classList.add('map-toast--show'));
-  const timer = setTimeout(dismiss, 4500);
+  const timer = setTimeout(dismiss, duration);
   if (onClick) toast.addEventListener('click', () => clearTimeout(timer), { once: true });
 }
