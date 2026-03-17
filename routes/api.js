@@ -126,8 +126,46 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
   const entities = storage.readJSON('entities.json');
   const idx = (entities[type] || []).findIndex(e => e.id === id);
   if (idx === -1) return res.status(404).json({ error: 'Niet gevonden' });
+
+  const oldName = entities[type][idx].name;
+  const newName = req.body.name;
   const updated = { ...entities[type][idx], ...req.body, id };
   entities[type][idx] = updated;
+
+  // ── Cascade rename: update alle link-verwijzingen bij naamswijziging ──
+  if (newName && newName !== oldName) {
+    for (const et of ENTITY_TYPES) {
+      for (const entity of (entities[et] || [])) {
+        if (!entity.links) continue;
+        let changed = false;
+        for (const lt of Object.keys(entity.links)) {
+          if (Array.isArray(entity.links[lt]) && entity.links[lt].includes(oldName)) {
+            entity.links[lt] = entity.links[lt].map(n => n === oldName ? newName : n);
+            changed = true;
+          }
+        }
+        if (changed) req.app.get('io').emit('entity:updated', { type: et, id: entity.id });
+      }
+    }
+
+    // Update namen in sessieLog
+    const archief = storage.readJSON('archief.json');
+    const LOG_FIELDS = ['nieuwPersonages','terugkerendPersonages','nieuwLocaties','terugkerendLocaties','organisaties','voorwerpen','nieuw','terugkerend'];
+    let logChanged = false;
+    for (const entry of (archief.sessieLog || [])) {
+      for (const field of LOG_FIELDS) {
+        if (Array.isArray(entry[field]) && entry[field].includes(oldName)) {
+          entry[field] = entry[field].map(n => n === oldName ? newName : n);
+          logChanged = true;
+        }
+      }
+    }
+    if (logChanged) {
+      storage.writeJSON('archief.json', archief);
+      req.app.get('io').emit('logboek:updated', {});
+    }
+  }
+
   storage.writeJSON('entities.json', entities);
   req.app.get('io').emit('entity:updated', { type, id });
   res.json(updated);
