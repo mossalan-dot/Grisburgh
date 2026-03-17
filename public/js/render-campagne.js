@@ -326,7 +326,7 @@ function renderCard(type, e) {
                   :                    'Zichtbaar maken';
 
   return `
-    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}"
+    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}"
       onclick="window._openDetail('${type}','${e.id}')">
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
@@ -343,15 +343,6 @@ function renderCard(type, e) {
             title="Verwijderen">&#10005;</button>
         </div>
       ` : ''}
-      ${e._deceased ? `
-        <div class="absolute inset-0 z-20 pointer-events-none rounded overflow-hidden">
-          <div class="absolute inset-0 bg-red-950/30"></div>
-          <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <line x1="4" y1="4" x2="96" y2="96" stroke="#dc2626" stroke-width="5" stroke-linecap="round" stroke-opacity="0.88"/>
-            <line x1="96" y1="4" x2="4" y2="96" stroke="#dc2626" stroke-width="5" stroke-linecap="round" stroke-opacity="0.88"/>
-          </svg>
-        </div>
-      ` : ''}
       <div class="card-accent bar-${type}"></div>
       <img class="card-img w-full object-cover" src="${api.fileUrl(e.id)}"
         style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
@@ -360,7 +351,7 @@ function renderCard(type, e) {
         <div class="flex items-start gap-2.5 mb-2">
           <div class="card-icon">${getAutoIcon(type, e)}</div>
           <div class="min-w-0 flex-1">
-            <span class="card-name truncate block">${esc(e.name)}</span>
+            <span class="card-name truncate block">${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
             ${(rol || metaText) ? `<span class="card-name-sep"></span>` : ''}
             ${rol      ? `<div class="text-[11px] text-ink-medium italic truncate">${esc(rol)}</div>` : ''}
             ${metaText ? `<div class="text-[11px] text-ink-dim truncate">${esc(metaText)}</div>` : ''}

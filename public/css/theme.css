@@ -243,6 +243,22 @@ body::before {
 }
 .entity-card.card-hidden { opacity: 0.5; }
 
+/* Deceased card */
+.entity-card.card-deceased {
+  filter: grayscale(100%) brightness(0.72);
+}
+.entity-card.card-deceased:hover {
+  filter: grayscale(100%) brightness(0.80);
+}
+.card-name-dagger {
+  font-family: 'Cinzel', serif;
+  color: #888;
+  font-size: 0.78em;
+  margin-left: 4px;
+  opacity: 0.75;
+  vertical-align: middle;
+}
+
 /* Vague card — player sees name only, no content */
 .entity-card.card-vague {
   cursor: default;
