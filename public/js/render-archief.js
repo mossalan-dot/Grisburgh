@@ -667,7 +667,7 @@ window._openSessieEditor = async (editId) => {
       <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Uitgebreide samenvatting</label>
       <div class="mt-1">
         ${fmtToolbar('ta_samenvatting')}
-        <textarea id="ta_samenvatting" name="samenvatting" rows="5"
+        <textarea id="ta_samenvatting" name="samenvatting" rows="12"
           onkeydown="window._fmtKey(event)"
           class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none">${esc(e?.samenvatting || '')}</textarea>
       </div>
