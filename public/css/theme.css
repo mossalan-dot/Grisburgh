@@ -1655,6 +1655,7 @@ body::before {
 }
 .dm-type-player  { background: #2a6a3a; }
 .dm-type-monster { background: #8b2a2a; }
+.dm-type-ally    { background: #2a7a5a; border-radius: 2px; }
 .dm-combatant-remove {
   width: 20px; height: 20px;
   background: none; border: none;

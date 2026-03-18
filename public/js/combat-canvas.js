@@ -2,72 +2,12 @@
 // Renders the battle scene on a <canvas> element.
 // Call init(canvasEl, combat) to start, update(combat) on each state change, stop() to halt.
 
-// Emoji fallback voor conditions zonder sprite
 const CONDITION_ICONS = {
   blinded: '🙈', charmed: '💕', deafened: '🔇', exhaustion: '😓',
   frightened: '😱', grappled: '✊', incapacitated: '💤', invisible: '👻',
   paralyzed: '⚡', petrified: '🪨', poisoned: '🤢', prone: '⬇️',
   restrained: '⛓️', stunned: '⭐', unconscious: '💀', concentration: '🔮',
 };
-
-// Roll20 sprite sheet — [sx, sy, sw, sh] in pixels (1050×1050 afbeelding)
-// Grid: 5 kolommen × 4 rijen, elke cel ≈ 210×210px, iconrijen starten op y=185
-const SPRITE_URL    = '/img/conditions-sprite.jpg';
-const SPRITE_CROPS  = {
-  stunned:       [210, 185, 210, 210],
-  restrained:    [420, 185, 210, 210],
-  prone:         [630, 185, 210, 210],
-  poisoned:      [840, 185, 210, 210],
-  petrified:     [  0, 395, 210, 210],
-  paralyzed:     [210, 395, 210, 210],
-  invisible:     [  0, 605, 210, 210],
-  incapacitated: [210, 605, 210, 210],
-  grappled:      [420, 605, 210, 210],
-  exhaustion:    [840, 605, 210, 210],
-  concentration: [210, 815, 210, 210],
-  deafened:      [420, 815, 210, 210],
-  blinded:       [630, 815, 210, 210],
-};
-
-let _sprite    = null;  // null = niet gestart, false = laden, HTMLImageElement = klaar
-let _iconCache = {};    // condId → HTMLCanvasElement (grijs verwijderd)
-
-function _loadSprite() {
-  if (_sprite !== null) return;
-  _sprite = false;
-  const img = new Image();
-  img.onload  = () => { _sprite = img; _iconCache = {}; };
-  img.onerror = () => { _sprite = false; };
-  img.src = SPRITE_URL;
-}
-
-// Geeft een kleine HTMLCanvasElement terug met grije achtergrond verwijderd,
-// of null als de sprite nog niet geladen is / condition niet in sheet zit.
-function _getIconCanvas(condId) {
-  if (_iconCache[condId]) return _iconCache[condId];
-  if (!_sprite)           return null;
-  const crop = SPRITE_CROPS[condId];
-  if (!crop)              return null;
-
-  const [sx, sy, sw, sh] = crop;
-  const oc  = document.createElement('canvas');
-  oc.width  = sw;
-  oc.height = sh;
-  const oct  = oc.getContext('2d');
-  oct.drawImage(_sprite, sx, sy, sw, sh, 0, 0, sw, sh);
-
-  // Verwijder grijze achtergrond: pixels waarbij R≈G≈B en helderheid tussen 60-210
-  const id   = oct.getImageData(0, 0, sw, sh);
-  const data = id.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i + 1], b = data[i + 2];
-    const lo = Math.min(r, g, b), hi = Math.max(r, g, b);
-    if (hi - lo < 24 && r > 60 && r < 215) data[i + 3] = 0;
-  }
-  oct.putImageData(id, 0, 0);
-  _iconCache[condId] = oc;
-  return oc;
-}
 
 // Volgorde van meest naar minst ingrijpend — bepaalt welk visueel effect getoond wordt
 const CONDITION_PRIORITY = [
@@ -119,7 +59,6 @@ let _positions = {};      // id -> {cx, cy, r} — gevuld tijdens drawCombatant,
 
 export function init(canvasEl, combat) {
   _stop();
-  _loadSprite();
   _canvas = canvasEl;
   _ctx    = canvasEl.getContext('2d');
   _t0     = performance.now();
@@ -225,23 +164,23 @@ function _draw() {
     const sh = backdropImg.height * scale;
     ctx.drawImage(backdropImg, (W - sw) / 2, (H - sh) / 2, sw, sh);
   } else {
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#2c1a0a');
-    grad.addColorStop(1, '#120802');
-    ctx.fillStyle = grad;
+    // Perkamentkleur als standaard achtergrond
+    ctx.fillStyle = '#f0e8d4';
     ctx.fillRect(0, 0, W, H);
   }
 
-  // Vignette
-  const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.15, W / 2, H / 2, H * 0.85);
-  vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(0,0,0,0.6)');
-  ctx.fillStyle = vig;
-  ctx.fillRect(0, 0, W, H);
+  // Vignette — alleen bij een backdrop-afbeelding
+  if (backdropImg) {
+    const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.15, W / 2, H / 2, H * 0.85);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, W, H);
+  }
 
   // ── Split combatants ──
   const cs       = _combat.combatants || [];
-  const players  = cs.filter(c => c.type === 'player');
+  const players  = cs.filter(c => c.type === 'player' || c.type === 'ally');
   const monsters = cs.filter(c => c.type === 'monster' && (c.hp || 0) > 0);
   const group    = _getTurnGroup(cs, _combat.currentTurn ?? 0);
 
@@ -254,10 +193,10 @@ function _draw() {
   const hasBoth = players.length > 0 && monsters.length > 0;
 
   if (isWide) {
-    // Zij aan zij: monsters links, spelers rechts
+    // Zij aan zij: spelers links, monsters rechts
     if (hasBoth) {
-      _drawSide(ctx, monsters, cs, group, 0,     0, W / 2, H, t);
-      _drawSide(ctx, players,  cs, group, W / 2, 0, W / 2, H, t);
+      _drawSide(ctx, players,  cs, group, 0,     0, W / 2, H, t);
+      _drawSide(ctx, monsters, cs, group, W / 2, 0, W / 2, H, t);
       _drawDivider(ctx, W / 2, 0, W / 2, H, 'vertical', t);
     } else if (monsters.length) {
       _drawSide(ctx, monsters, cs, group, 0, 0, W, H, t);
@@ -399,30 +338,57 @@ function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t) {
   });
 }
 
+// Avatar-pad: cirkel voor spelers/monsters, afgerond vierkant voor medestanders
+function _avatarPath(ctx, c, cx, cy, r) {
+  if (c.type === 'ally') {
+    const rr = r * 0.18;
+    ctx.roundRect(cx - r, cy - r, r * 2, r * 2, rr);
+  } else {
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  }
+}
+
 function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
-  const bounce = isActive ? Math.sin(t * 3.5) * 5 : 0;
+  const isDead  = (c.hp || 0) <= 0;
+  const conds   = isDead ? [] : (c.conditions || []);
+  const hasCond = (name) => conds.includes(name);
+  const topCond = _getTopCondition(conds);
+
+  // Bounce: stil bij unconscious/petrified/incapacitated/stunned; langzaam bij exhaustion; beperkt bij restrained
+  const isStill   = hasCond('unconscious') || hasCond('petrified') || hasCond('incapacitated') || hasCond('stunned');
+  const isSlow    = hasCond('exhaustion');
+  const isReduced = hasCond('restrained');
+  const bounce    = isActive && !isStill
+    ? Math.sin(t * (isSlow ? 0.9 : 3.5)) * (isReduced || isSlow ? 2 : 5)
+    : 0;
 
   // Circle avatar sizing
   const AVTR_R = Math.min(w * 0.30, h * 0.26);
   const cx     = x + w / 2;
   const cy     = y + h * 0.12 + AVTR_R + bounce;
 
-  const isDead = (c.hp || 0) <= 0;
-  const conds  = isDead ? [] : (c.conditions || []);
-  const topCond = _getTopCondition(conds);
-
   // ── Effects behind / around avatar ──
   if (topCond) _fxBehind(ctx, topCond, cx, cy, AVTR_R, t);
 
   // ── Avatar image ──
-  const imgId      = c.imageId || c.entityId;
-  const img        = imgId ? _images[imgId] : null;
+  const imgId       = c.imageId || c.entityId;
+  const img         = imgId ? _images[imgId] : null;
   const isInvisible = topCond === 'invisible';
+  const isProne     = hasCond('prone');
+  const isGrappled  = hasCond('grappled');
+  const isDeafened  = hasCond('deafened');
+  const grappleSq   = isGrappled ? 0.72 + Math.sin(t * 2.5) * 0.14 : 1;
 
   ctx.save();
   if (isInvisible) ctx.globalAlpha = 0.25 + Math.abs(Math.sin(t * 1.4)) * 0.35;
+  if (isDeafened)  ctx.filter = 'blur(2.5px)';
+  // prone: roteer 90°; grappled: pers horizontaal samen (clip wordt ook ellips)
+  ctx.translate(cx, cy);
+  if (isProne)    ctx.rotate(Math.PI / 2);
+  if (isGrappled) ctx.scale(grappleSq, 1);
+  ctx.translate(-cx, -cy);
   ctx.beginPath();
-  ctx.arc(cx, cy, AVTR_R, 0, Math.PI * 2);
+  _avatarPath(ctx, c, cx, cy, AVTR_R);
   ctx.clip();
 
   if (img) {
@@ -434,17 +400,32 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
   } else {
     // Coloured placeholder
     const g = ctx.createRadialGradient(cx, cy - AVTR_R * 0.2, 0, cx, cy, AVTR_R * 1.1);
-    g.addColorStop(0, c.type === 'player' ? '#4a6a9a' : '#6a3a28');
-    g.addColorStop(1, c.type === 'player' ? '#1a2a4a' : '#28100a');
+    g.addColorStop(0, c.type === 'player' ? '#6080b8' : c.type === 'ally' ? '#5a9a6a' : '#8a4830');
+    g.addColorStop(1, c.type === 'player' ? '#2a3a60' : c.type === 'ally' ? '#1e4a30' : '#4a2010');
     ctx.fillStyle = g;
     ctx.fillRect(cx - AVTR_R, cy - AVTR_R, AVTR_R * 2, AVTR_R * 2);
-    ctx.fillStyle    = 'rgba(255,255,255,0.2)';
+    ctx.fillStyle    = 'rgba(255,255,255,0.25)';
     ctx.font         = `${AVTR_R * 0.85}px serif`;
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(c.type === 'player' ? '👤' : '👾', cx, cy);
+    ctx.fillText(c.type === 'player' ? '👤' : c.type === 'ally' ? '⚔️' : '👾', cx, cy);
   }
   ctx.restore();
+
+  // ── Rand: cirkel voor spelers/monsters, vierkant voor medestanders ──
+  if (!isDead) {
+    ctx.save();
+    ctx.beginPath();
+    _avatarPath(ctx, c, cx, cy, AVTR_R);
+    ctx.strokeStyle = c.type === 'player'
+      ? 'rgba(100,140,220,0.35)'
+      : c.type === 'ally'
+        ? 'rgba(60,160,100,0.50)'
+        : 'rgba(180,90,50,0.35)';
+    ctx.lineWidth = c.type === 'ally' ? 2 : 1.5;
+    ctx.stroke();
+    ctx.restore();
+  }
 
   // ── Sla positie op voor floating numbers (getekend na alle slots) ──
   _positions[c.id] = { cx, cy, r: AVTR_R };
@@ -457,7 +438,7 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
     const alpha = (1 - pct) * 0.52;
     ctx.save();
     ctx.beginPath();
-    ctx.arc(cx, cy, AVTR_R, 0, Math.PI * 2);
+    _avatarPath(ctx, c, cx, cy, AVTR_R);
     ctx.fillStyle = flash.delta > 0
       ? `rgba(80,230,80,${alpha})`
       : `rgba(255,40,20,${alpha})`;
@@ -467,6 +448,10 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
 
   // ── Petrified overlay (on top of avatar) ──
   if (topCond === 'petrified') _fxPetrified(ctx, cx, cy, AVTR_R);
+
+  // ── Extra condition overlays ──
+  if (hasCond('blinded'))    _fxBlinded(ctx, cx, cy, AVTR_R, t);
+  if (hasCond('restrained')) _fxRestrained(ctx, cx, cy, AVTR_R, t);
 
   // ── Active ring ──
   if (isActive) {
@@ -485,24 +470,24 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
   // ── Condition icons — links in het slot, verticaal gecentreerd ──
   const allConds = isDead ? [] : (c.conditions || []);
   if (allConds.length > 0) {
-    const sz     = Math.max(14, Math.min(18, w * 0.11));
-    const lineH  = sz + 5;
-    const stackH = allConds.length * lineH - 5;
+    ctx.save();
+    const sz     = Math.max(11, Math.min(14, w * 0.09));
+    const lineH  = sz + 4;
+    const stackH = allConds.length * lineH - 4;
     const iconX  = x + 4;
     let   iconY  = y + h / 2 - stackH / 2;
     ctx.font         = `${sz}px serif`;
+    ctx.fillStyle    = '#111111';
+    ctx.shadowColor  = 'rgba(255,255,255,0.8)';
+    ctx.shadowBlur   = 3;
     ctx.textAlign    = 'left';
     ctx.textBaseline = 'top';
     allConds.forEach(id => {
-      const ic = _getIconCanvas(id);
-      if (ic) {
-        ctx.drawImage(ic, iconX, iconY, sz, sz);
-      } else {
-        ctx.fillText(CONDITION_ICONS[id] || '?', iconX, iconY);
-      }
-      _hitAreas.push({ x: iconX, y: iconY, w: sz, h: sz, condId: id });
+      ctx.fillText(CONDITION_ICONS[id] || '?', iconX, iconY);
+      _hitAreas.push({ x: iconX, y: iconY, w: sz + 2, h: sz, condId: id });
       iconY += lineH;
     });
+    ctx.restore();
   }
 
   // ── HP bar (directly below circle) ──
@@ -525,15 +510,19 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
   // Leave room for DM HP numbers or death save dots
   const nameY    = barY + barH + (isDMView || isDying ? 14 : 7);
   ctx.save();
-  ctx.shadowColor  = 'rgba(0,0,0,0.85)';
-  ctx.shadowBlur   = 4;
-  ctx.fillStyle    = isActive ? '#f5c842' : '#f0e6d0';
   ctx.font         = `bold ${fontSize}px 'Cinzel', serif`;
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'top';
   let label = c.name;
   while (ctx.measureText(label).width > w - 6 && label.length > 3) label = label.slice(0, -1);
   if (label !== c.name) label += '…';
+  // Witte outline — leesbaar op donkere achtergrond
+  ctx.lineJoin     = 'round';
+  ctx.lineWidth    = 3.5;
+  ctx.strokeStyle  = 'rgba(255,255,255,0.92)';
+  ctx.strokeText(label, cx, nameY);
+  // Donkere vulling — leesbaar op lichte achtergrond
+  ctx.fillStyle    = isActive ? '#7a4800' : '#1e1008';
   ctx.fillText(label, cx, nameY);
   ctx.restore();
 }
@@ -599,15 +588,15 @@ function _fxParalyzed(ctx, cx, cy, r, t) {
   ctx.restore();
 }
 
-// Petrified — grijze overlay + scheuren op de avatar
+// Petrified — sterk grijze overlay + scheuren; geen beweging (bounce = 0)
 function _fxPetrified(ctx, cx, cy, r) {
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(155,150,140,0.55)';
+  ctx.fillStyle = 'rgba(130,125,115,0.80)';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(90,85,80,0.75)';
-  ctx.lineWidth   = 1;
+  ctx.strokeStyle = 'rgba(70,65,60,0.90)';
+  ctx.lineWidth   = 1.2;
   const cracks = [
     [[-0.20, -0.65], [ 0.10, -0.10], [-0.15,  0.45]],
     [[ 0.30, -0.55], [ 0.05,  0.15], [ 0.38,  0.52]],
@@ -625,10 +614,10 @@ function _fxPetrified(ctx, cx, cy, r) {
 // ── Condition effects — zwevende particles ───────────────────────────────────
 
 function _fxParticles(ctx, cond, cx, cy, r, t) {
-  if (cond === 'poisoned')                                 _fxPoisoned(ctx, cx, cy, r, t);
-  else if (cond === 'unconscious' || cond === 'incapacitated') _fxUnconscious(ctx, cx, cy, r, t);
-  else if (cond === 'stunned')                             _fxStunned(ctx, cx, cy, r, t);
-  else if (cond === 'charmed')                             _fxCharmed(ctx, cx, cy, r, t);
+  if (cond === 'poisoned')         _fxPoisoned(ctx, cx, cy, r, t);
+  else if (cond === 'unconscious') _fxUnconscious(ctx, cx, cy, r, t);  // incapacitated: geen Z's
+  else if (cond === 'stunned')     _fxStunned(ctx, cx, cy, r, t);
+  else if (cond === 'charmed')     _fxCharmed(ctx, cx, cy, r, t);
 }
 
 // Poisoned — groene bubbels drijven omhoog
@@ -678,11 +667,12 @@ function _fxUnconscious(ctx, cx, cy, r, t) {
   ctx.restore();
 }
 
-// Stunned — sterren cirkelen rond de avatar
+// Stunned — sterren cirkelen boven de avatar (niet erdoorheen)
 function _fxStunned(ctx, cx, cy, r, t) {
   ctx.save();
   const count  = 5;
-  const orbitR = r + 10;
+  const orbitR = r * 0.85;              // horizontale straal
+  const baseY  = cy - r - 10;           // net boven de bovenkant van de cirkel
   const sz     = Math.max(10, r * 0.22);
   ctx.font         = `${sz}px sans-serif`;
   ctx.textAlign    = 'center';
@@ -690,8 +680,8 @@ function _fxStunned(ctx, cx, cy, r, t) {
   for (let i = 0; i < count; i++) {
     const angle = t * 3.0 + (i / count) * Math.PI * 2;
     const sx    = cx + Math.cos(angle) * orbitR;
-    const sy    = cy + Math.sin(angle) * orbitR * 0.38;  // elliptische baan
-    ctx.globalAlpha = 0.70 + Math.sin(angle * 2) * 0.30;
+    const sy    = baseY + Math.sin(angle) * 5;  // lichte verticale beweging
+    ctx.globalAlpha = 0.65 + Math.sin(angle * 2) * 0.35;
     ctx.fillText('⭐', sx, sy);
   }
   ctx.restore();
@@ -714,6 +704,49 @@ function _fxCharmed(ctx, cx, cy, r, t) {
     ctx.globalAlpha = alpha;
     ctx.fillText('💕', hx, hy);
   }
+  ctx.restore();
+}
+
+// Blinded — donkere wolk over de bovenkant van de visual (bedekt de ogen)
+function _fxBlinded(ctx, cx, cy, r, t) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+  const pulse = 0.82 + Math.sin(t * 1.6) * 0.10;
+  const grad  = ctx.createLinearGradient(cx, cy - r, cx, cy + r * 0.25);
+  grad.addColorStop(0,    `rgba(8,4,0,${0.92 * pulse})`);
+  grad.addColorStop(0.50, `rgba(12,6,0,${0.72 * pulse})`);
+  grad.addColorStop(1,    'rgba(8,4,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(cx - r, cy - r, r * 2, r * 1.25);
+  ctx.restore();
+}
+
+// Restrained — kettingringen om de cirkel, verminderde bounce (al afgehandeld)
+function _fxRestrained(ctx, cx, cy, r, t) {
+  ctx.save();
+  const chainR   = r + 7;
+  const numLinks = 7;
+  ctx.shadowColor = 'rgba(60,40,10,0.55)';
+  ctx.shadowBlur  = 4;
+  ctx.strokeStyle = 'rgba(110,88,44,0.85)';
+  ctx.lineWidth   = 2;
+  for (let i = 0; i < numLinks; i++) {
+    const angle = (i / numLinks) * Math.PI * 2 + t * 0.25;
+    const lx    = cx + Math.cos(angle) * chainR;
+    const ly    = cy + Math.sin(angle) * chainR;
+    ctx.beginPath();
+    ctx.ellipse(lx, ly, 4.5, 3, angle, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // Verbindingsring
+  ctx.shadowBlur  = 0;
+  ctx.beginPath();
+  ctx.arc(cx, cy, chainR, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(90,68,28,0.45)';
+  ctx.lineWidth   = 1.5;
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -864,7 +897,10 @@ function _drawWinScreen(ctx, W, H, winner, t) {
   ctx.font         = `${subFontSize}px 'Cinzel', serif`;
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillText(subText, W / 2, H / 2 + fontSize * 0.65);
+  const subLines   = _wrapText(ctx, subText, W * 0.85);
+  const subLineH   = subFontSize * 1.4;
+  const subStartY  = H / 2 + fontSize * 0.65;
+  subLines.forEach((ln, i) => ctx.fillText(ln, W / 2, subStartY + i * subLineH));
   ctx.restore();
 }
 
@@ -912,13 +948,15 @@ function _drawHpBar(ctx, c, x, y, w, h) {
   // DM: exact numbers below the bar (only when alive — dying shows death save dots)
   if (isDM && hp > 0) {
     ctx.save();
-    ctx.shadowColor  = 'rgba(0,0,0,0.9)';
-    ctx.shadowBlur   = 3;
-    ctx.fillStyle    = 'rgba(255,255,255,0.85)';
     ctx.font         = `bold 8px sans-serif`;
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'top';
     const txt = tempHp > 0 ? `${hp}+${tempHp}/${maxHp}` : `${hp}/${maxHp}`;
+    ctx.lineJoin    = 'round';
+    ctx.lineWidth   = 2.5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.strokeText(txt, x + w / 2, y + h + 2);
+    ctx.fillStyle   = '#1e1008';
     ctx.fillText(txt, x + w / 2, y + h + 2);
     ctx.restore();
   }
@@ -971,6 +1009,23 @@ function _drawDeathSaveDots(ctx, cx, y, ds) {
     ctx.shadowBlur = 0;
   }
   ctx.restore();
+}
+
+function _wrapText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
 }
 
 function _roundRect(ctx, x, y, w, h, r) {

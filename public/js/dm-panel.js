@@ -796,7 +796,7 @@ async function _setupAddSubmit() {
     }
   }
 
-  if (_setupSelectedType === 'player' && _setupSelectedEntityId) {
+  if ((_setupSelectedType === 'player' || _setupSelectedType === 'ally') && _setupSelectedEntityId) {
     payload.entityId = _setupSelectedEntityId;
   }
 
@@ -1070,7 +1070,7 @@ function _renderGevecht() {
         <div class="dm-setup-list">
           ${cs.map(c => `
             <div class="dm-setup-row">
-              <span class="dm-combatant-type-dot ${c.type === 'player' ? 'dm-type-player' : 'dm-type-monster'}"></span>
+              <span class="dm-combatant-type-dot ${c.type === 'player' ? 'dm-type-player' : c.type === 'ally' ? 'dm-type-ally' : 'dm-type-monster'}"></span>
               <span class="dm-setup-name">${esc(c.name)}</span>
               <span class="dm-setup-meta">Init ${c.initiative} · ${c.maxHp} HP</span>
               <button class="dm-combatant-remove" onclick="window.dmPanel.combatRemove('${esc(c.id)}')">✕</button>
@@ -1082,8 +1082,9 @@ function _renderGevecht() {
         <div class="dm-feature-row">
           <select id="dm-setup-type" class="dm-select dm-select-sm"
               onchange="window.dmPanel.setupTypeChange(this.value)">
-            <option value="monster" ${_setupSelectedType === 'monster' ? 'selected' : ''}>Monster</option>
-            <option value="player"  ${_setupSelectedType === 'player'  ? 'selected' : ''}>Speler</option>
+            <option value="monster"   ${_setupSelectedType === 'monster'   ? 'selected' : ''}>Monster</option>
+            <option value="player"    ${_setupSelectedType === 'player'    ? 'selected' : ''}>Speler</option>
+            <option value="ally"      ${_setupSelectedType === 'ally'      ? 'selected' : ''}>Medestander</option>
           </select>
         </div>
         ${_setupSelectedType === 'monster' && _monsters.length > 0 ? `
@@ -1098,6 +1099,16 @@ function _renderGevecht() {
               onchange="window.dmPanel.setupEntityChange(this.value)">
             <option value="">— Handmatig invoeren —</option>
             ${_setupPersonages.filter(e => e.subtype === 'speler').map(e => `<option value="${esc(e.id)}" ${_setupSelectedEntityId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+          </select>
+        ` : ''}
+        ${_setupSelectedType === 'ally' && _setupPersonages.some(e => e.stats && Object.values(e.stats).some(v => v !== null && v !== undefined && String(v).trim() !== '')) ? `
+          <select id="dm-setup-entity" class="dm-select"
+              onchange="window.dmPanel.setupEntityChange(this.value)">
+            <option value="">— Handmatig invoeren —</option>
+            ${_setupPersonages
+              .filter(e => e.stats && Object.values(e.stats).some(v => v !== null && v !== undefined && String(v).trim() !== ''))
+              .map(e => `<option value="${esc(e.id)}" ${_setupSelectedEntityId === e.id ? 'selected' : ''}>${esc(e.name)}${e.stats?.hp ? ' (HP ' + e.stats.hp + ')' : ''}</option>`)
+              .join('')}
           </select>
         ` : ''}
         <div class="dm-feature-row">
