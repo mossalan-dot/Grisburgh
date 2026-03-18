@@ -65,8 +65,6 @@ export function initDmPanel() {
       const isOpen = panel.classList.toggle('open');
       if (fab) fab.classList.toggle('hidden', isOpen);
       if (isOpen) {
-        // Close dice panel if open
-        document.getElementById('dice-panel')?.classList.remove('open');
         _switchTab(_activeTab);
       }
     },
@@ -1095,11 +1093,11 @@ function _renderGevecht() {
             ${_monsters.map(m => `<option value="${esc(m.id)}" ${_setupSelectedPresetId === m.id ? 'selected' : ''}>${esc(m.name)} (HP ${m.maxHp})</option>`).join('')}
           </select>
         ` : ''}
-        ${_setupSelectedType === 'player' && _setupPersonages.length > 0 ? `
+        ${_setupSelectedType === 'player' && _setupPersonages.some(e => e.subtype === 'speler') ? `
           <select id="dm-setup-entity" class="dm-select"
               onchange="window.dmPanel.setupEntityChange(this.value)">
             <option value="">— Handmatig invoeren —</option>
-            ${_setupPersonages.map(e => `<option value="${esc(e.id)}" ${_setupSelectedEntityId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+            ${_setupPersonages.filter(e => e.subtype === 'speler').map(e => `<option value="${esc(e.id)}" ${_setupSelectedEntityId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
           </select>
         ` : ''}
         <div class="dm-feature-row">

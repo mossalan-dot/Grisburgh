@@ -3,6 +3,7 @@ import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, ren
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js';
 import { renderKaart } from './render-kaart.js';
 import { initSocket } from './socket-client.js';
+import { initDmPanel } from './dm-panel.js';
 
 // ── App State ──
 const state = {
@@ -35,6 +36,10 @@ window.app = {
   switchSection,
   esc,
   mdToHtml,
+  switchGroup,
+  renameGroup,
+  newGroup,
+  deleteGroup,
 };
 
 // ── Section switching ──
@@ -95,7 +100,14 @@ async function login() {
     state.role = 'dm';
     applyRole();
     closeLoginModal();
+    // Laad groepen nu DM is ingelogd
+    try {
+      const { groups, activeGroup } = await api.listGroups();
+      _activeGroupId = activeGroup;
+      window.renderGroupSwitcher(groups, activeGroup);
+    } catch { /* ok */ }
     refreshAll();
+    window.dmPanel?.refreshCombatOverlay();
   } catch {
     $('#login-error').classList.remove('hidden');
   }
@@ -105,6 +117,7 @@ async function logout() {
   await api.logout();
   state.role = 'player';
   state.dmPreview = false;
+  _activeGroupId = null;
   applyRole();
   refreshAll();
 }
@@ -143,8 +156,12 @@ function applyRole() {
     logoutBtn.classList.toggle('hidden', state.role !== 'dm');
   }
 
-  const diceFab = document.getElementById('dice-fab');
-  if (diceFab) diceFab.style.right = isDmActive ? '88px' : '26px';
+  const dmPanelFab = document.getElementById('dm-panel-fab');
+  if (dmPanelFab) dmPanelFab.classList.toggle('hidden', !isDmActive);
+
+  // Groepswisselaar tonen/verbergen op basis van DM-status
+  const groupSwitcher = document.getElementById('group-switcher');
+  if (groupSwitcher) groupSwitcher.classList.toggle('hidden', !isDmActive);
 
   updateFab();
 }
@@ -155,11 +172,13 @@ function dmToggleClick() {
     state.dmPreview = true;
     applyRole();
     refreshAll();
+    window.dmPanel?.refreshCombatOverlay();
   } else if (state.role === 'dm' && state.dmPreview) {
     // Preview → back to DM
     state.dmPreview = false;
     applyRole();
     refreshAll();
+    window.dmPanel?.refreshCombatOverlay();
   } else {
     // Not logged in → open login
     toggleLoginModal();
@@ -176,6 +195,10 @@ function openModal(title, subtitle, bodyHtml) {
 
 function closeModal() {
   $('#modal-overlay').classList.remove('active');
+  // Reset navigatiehistory en tracking
+  window._currentDetailTab = null;
+  window._currentDetailId  = null;
+  if (window._clearHistory) window._clearHistory();
 }
 
 // ── Lightbox ──
@@ -211,14 +234,22 @@ function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// ── Markdown → HTML (bold, italic, newlines) ──
+// ── Markdown → HTML (headings, bold, italic, newlines) ──
 function mdToHtml(s) {
   if (!s) return '';
   return String(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    // Koppen moeten voor inline-markup zodat bold/italic erin werkt
+    .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^### (.+)$/gm,  '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,   '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,    '<h1>$1</h1>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(?!\*)(.+?)\*/g, '<em>$1</em>')
-    .replace(/\n/g, '<br>');
+    .replace(/\n/g, '<br>')
+    // Geen losse <br> direct vóór of na een koptag
+    .replace(/<br>(<h[1-4]>)/g, '$1')
+    .replace(/(<\/h[1-4]>)<br>/g, '$1');
 }
 
 // ── Inline format toolbar (B / I) ──
@@ -242,13 +273,19 @@ window._fmtKey = (e) => {
   if (e.key === 'i') { e.preventDefault(); window._fmt(e.target.id, '*');  }
 };
 
-// ── Party presence state (localStorage) ──
+// ── Actieve groep ──
+let _activeGroupId = null;
+
+// ── Party presence state (per groep in localStorage) ──
+function _presenceKey() {
+  return 'grisburgh_party_presence' + (_activeGroupId ? '_' + _activeGroupId : '');
+}
 function _getPartyPresence() {
-  try { return JSON.parse(localStorage.getItem('grisburgh_party_presence') || '{}'); }
+  try { return JSON.parse(localStorage.getItem(_presenceKey()) || '{}'); }
   catch { return {}; }
 }
 function _setPartyPresence(s) {
-  localStorage.setItem('grisburgh_party_presence', JSON.stringify(s));
+  localStorage.setItem(_presenceKey(), JSON.stringify(s));
 }
 
 // ── Party portraits ──
@@ -257,14 +294,19 @@ async function renderParty() {
   if (!bar) return;
   try {
     const all = await api.listEntities('personages');
-    const spelers = all.filter(e => e.subtype === 'speler');
+    // Filter op actieve groep: spelers zonder groep-toewijzing tonen in alle groepen
+    const spelers = all.filter(e => {
+      if (e.subtype !== 'speler') return false;
+      if (!_activeGroupId || !e.data?.groep) return true;
+      return e.data.groep === _activeGroupId;
+    });
     if (spelers.length === 0) { bar.innerHTML = ''; return; }
     const presence = _getPartyPresence();
-    const present = spelers.filter(e => presence[e.id] !== false);
-    const absent  = spelers.filter(e => presence[e.id] === false);
+    const present  = spelers.filter(e => presence[e.id] !== false);
+    const absent   = spelers.filter(e => presence[e.id] === false);
     const renderPortrait = e => {
-      const imgUrl = api.fileUrl(e.id);
-      const sub = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
+      const imgUrl   = api.fileUrl(e.id);
+      const sub      = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
       const isAbsent = presence[e.id] === false;
       const dotTitle = isAbsent ? 'Afwezig — klik om aanwezig te maken' : 'Aanwezig — klik om af te melden';
       return `
@@ -291,10 +333,63 @@ window.renderParty = renderParty;
 
 window._togglePartyPresence = (id) => {
   const presence = _getPartyPresence();
-  presence[id] = presence[id] === false ? true : false; // default = present
+  presence[id] = presence[id] === false ? true : false;
   _setPartyPresence(presence);
   renderParty();
 };
+
+// ── Groepswisselaar ──
+window.renderGroupSwitcher = function(groups, activeGroupId) {
+  _activeGroupId = activeGroupId;
+  const container = document.getElementById('group-switcher');
+  if (!container) return;
+  // Alleen zichtbaar in DM-modus
+  const isDm = state.role === 'dm' && !state.dmPreview;
+  container.classList.toggle('hidden', !isDm);
+  if (!isDm) return;
+  container.innerHTML = groups.map(g => `
+    <button class="group-tab${g.active ? ' active' : ''}"
+      onclick="window.app.switchGroup('${esc(g.id)}')"
+      ondblclick="window.app.renameGroup('${esc(g.id)}','${esc(g.name)}')"
+      title="${g.active ? 'Actieve groep · dubbelklik om te hernoemen' : 'Wissel naar deze groep · dubbelklik om te hernoemen'}"
+    >${esc(g.name)}</button>
+  `).join('') + `
+    <button class="group-tab-add" onclick="window.app.newGroup()" title="Nieuwe groep aanmaken">+</button>
+    ${groups.length > 1 ? `<button class="group-tab-del" onclick="window.app.deleteGroup()" title="Huidige groep verwijderen">×</button>` : ''}
+  `;
+};
+
+async function switchGroup(groupId) {
+  try {
+    await api.switchGroup(groupId);
+    // groups:updated socket-event verwerkt de rest
+  } catch (e) {
+    alert('Fout bij wisselen van groep: ' + e.message);
+  }
+}
+
+async function renameGroup(id, currentName) {
+  const newName = prompt('Nieuwe naam voor de groep:', currentName);
+  if (!newName || newName.trim() === currentName) return;
+  try { await api.updateGroup(id, newName.trim()); }
+  catch (e) { alert('Fout: ' + e.message); }
+}
+
+async function newGroup() {
+  const name = prompt('Naam voor de nieuwe groep:');
+  if (!name || !name.trim()) return;
+  try { await api.createGroup(name.trim()); }
+  catch (e) { alert('Fout: ' + e.message); }
+}
+
+async function deleteGroup() {
+  const groups = document.querySelectorAll('#group-switcher .group-tab');
+  const activeBtn = document.querySelector('#group-switcher .group-tab.active');
+  const name = activeBtn?.textContent?.trim() || 'deze groep';
+  if (!confirm(`Groep "${name}" verwijderen? De zichtbaarheidsstatus van deze groep gaat verloren.`)) return;
+  try { await api.deleteGroup(_activeGroupId); }
+  catch (e) { alert('Fout: ' + e.message); }
+}
 
 // ── Refresh ──
 async function refreshSection(section) {
@@ -312,15 +407,11 @@ async function refreshAll() {
   await refreshSection(state.activeSection);
 }
 
-// ── Dice Roller Panel ──
+// ── Dice Roller ──
 ;(() => {
   const _history = [];
 
   window.dice = {
-    toggle() {
-      document.getElementById('dice-panel').classList.toggle('open');
-    },
-
     roll(sides) {
       const result = Math.floor(Math.random() * sides) + 1;
       const numEl   = document.getElementById('dice-result-num');
@@ -387,6 +478,21 @@ async function refreshAll() {
   }
 })();
 
+// ── Spell lookup ──
+let _spellTab = null;
+window.openSpellLookup = function() {
+  if (_spellTab && !_spellTab.closed) {
+    // Tab bestaat al — niet opnieuw openen, focus bij app houden
+    return;
+  }
+  _spellTab = window.open('https://5e.tools/spells.html', 'spellLookup');
+  // Focus terug naar deze pagina zodat het nieuwe tabblad op de achtergrond blijft
+  window.focus();
+};
+window.closeSpellLookup = function() {
+  document.getElementById('spell-overlay')?.classList.remove('active');
+};
+
 // ── Keyboard shortcuts ──
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
@@ -394,6 +500,8 @@ document.addEventListener('keydown', (e) => {
     closeModal();
     closeLoginModal();
     document.getElementById('dice-panel')?.classList.remove('open');
+    document.getElementById('dm-panel')?.classList.remove('open');
+    document.getElementById('spell-overlay')?.classList.remove('active');
   }
   if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
     e.preventDefault();
@@ -417,6 +525,15 @@ async function init() {
   initCampagne();
   initArchief();
   initSocket();
+  initDmPanel();
+
+  // Laad groepen en render wisselaar (alleen relevant voor DM, maar state ook voor spelers)
+  try {
+    const { groups, activeGroup } = await api.listGroups();
+    _activeGroupId = activeGroup;
+    window.renderGroupSwitcher(groups, activeGroup);
+  } catch { /* niet ingelogd als DM */ }
+
   renderParty();
   const hashSection = location.hash.replace('#', '');
   const validSections = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'logboek'];
