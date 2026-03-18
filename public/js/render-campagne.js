@@ -159,6 +159,32 @@ const openModal = (...a) => window.app.openModal(...a);
 const closeModal = (...a) => window.app.closeModal(...a);
 const openLightbox = (...a) => window.app.openLightbox(...a);
 
+// ── Modal navigatie-history ──
+const _modalHistory = [];   // stack van { tab, id }
+
+function _pushHistory(tab, id) {
+  _modalHistory.push({ tab, id });
+  _updateBackButton();
+}
+
+function _clearHistory() {
+  _modalHistory.length = 0;
+  _updateBackButton();
+}
+
+function _updateBackButton() {
+  const btn = document.getElementById('m-back');
+  if (btn) btn.classList.toggle('hidden', _modalHistory.length === 0);
+}
+
+window._modalGoBack = async () => {
+  const prev = _modalHistory.pop();
+  if (!prev) return;
+  await window._openDetail(prev.tab, prev.id, true /* isBack */);
+};
+
+window._clearHistory = _clearHistory;
+
 // Kleine B/I toolbar boven een textarea
 function fmtToolbar(id) {
   return `<div class="flex gap-1 mb-1">
@@ -265,13 +291,14 @@ export async function renderVoorwerpen() { return renderEntitySection('voorwerpe
 
 function filterEntities(type, list) {
   const q = searchQueries[type];
-  if (!q) return list;
-  const ql = q.toLowerCase();
-  return list.filter(e => {
-    const fields = [e.name, e.subtype, ...Object.values(e.data || {})].join(' ').toLowerCase();
-    const links = Object.values(e.links || {}).flat().join(' ').toLowerCase();
-    return fields.includes(ql) || links.includes(ql);
-  });
+  const filtered = q
+    ? list.filter(e => {
+        const fields = [e.name, e.subtype, ...Object.values(e.data || {})].join(' ').toLowerCase();
+        const links = Object.values(e.links || {}).flat().join(' ').toLowerCase();
+        return fields.includes(q.toLowerCase()) || links.includes(q.toLowerCase());
+      })
+    : list;
+  return filtered.slice().sort((a, b) => a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' }));
 }
 
 function renderCard(type, e) {
@@ -309,8 +336,8 @@ function renderCard(type, e) {
     const npcShow = npc.length ? npc : (e.links.personages || []).slice(0, 2 - loc.length);
     const locShow = loc.length ? loc : (e.links.locaties   || []).slice(0, 2 - npcShow.length);
     const combined = [
-      ...npcShow.map(n => `<span class="chip chip-npc" onclick="event.stopPropagation();window._navigateTo('personages','${esc(n)}')">\ud83d\udc64 ${esc(n)}</span>`),
-      ...locShow.map(n => `<span class="chip chip-loc" onclick="event.stopPropagation();window._navigateTo('locaties','${esc(n)}')">\ud83c\udff0 ${esc(n)}</span>`),
+      ...npcShow.map(n => `<span class="chip chip-npc" data-name="${esc(n)}" onclick="event.stopPropagation();window._navigateTo('personages',this.dataset.name)">\ud83d\udc64 ${esc(n)}</span>`),
+      ...locShow.map(n => `<span class="chip chip-loc" data-name="${esc(n)}" onclick="event.stopPropagation();window._navigateTo('locaties',this.dataset.name)">\ud83c\udff0 ${esc(n)}</span>`),
     ];
     chips.push(...combined.slice(0, 2));
   }
@@ -320,9 +347,9 @@ function renderCard(type, e) {
   const _visIcon  = vis === 'visible' ? '\ud83d\udc41'
                   : vis === 'vague'   ? '\ud83d\udc64'
                   :                    '\ud83d\udd12';
-  const _visTitle = vis === 'visible' ? 'Verbergen'
-                  : vis === 'vague'   ? 'Volledig tonen'
-                  : _threeState       ? 'Naam tonen (vaag)'
+  const _visTitle = vis === 'visible' ? 'Verbergen  ·  Shift: vaag tonen'
+                  : vis === 'vague'   ? 'Volledig tonen  ·  Shift: vaag houden'
+                  : _threeState       ? 'Zichtbaar maken  ·  Shift: vaag tonen'
                   :                    'Zichtbaar maken';
 
   return `
@@ -331,7 +358,7 @@ function renderCard(type, e) {
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            onclick="event.stopPropagation();window._toggleVis('${type}','${e.id}')"
+            onclick="event.stopPropagation();window._toggleVis('${type}','${e.id}',event)"
             title="${_visTitle}">
             ${_visIcon}
           </button>
@@ -400,7 +427,7 @@ function _entityCarouselHtml(key, items) {
             ${items.map(({id}) => {
               const url = api.fileUrl(id);
               return `<div class="flex-shrink-0 w-full">
-                <img src="${url}" class="detail-portrait w-full max-h-80 object-cover cursor-pointer"
+                <img src="${url}" class="detail-portrait w-full max-h-80 object-contain cursor-pointer" style="background:#1a0e04"
                   onclick="window.app.openLightbox('${url}','')">
               </div>`;
             }).join('')}
@@ -454,9 +481,27 @@ function _refreshEntityImages() {
 }
 
 // ── Detail view ──
-window._openDetail = async (tab, id) => {
+let _detailToken = 0;   // Annuleer concurrent _openDetail aanroepen
+
+window._openDetail = async (tab, id, isBack = false) => {
+  const myToken = ++_detailToken;   // Uniek token voor deze aanroep
+
+  const prevTab = window._currentDetailTab;
+  const prevId  = window._currentDetailId;
+
+  if (!isBack) {
+    if (prevId && prevId !== id) {
+      _pushHistory(prevTab, prevId);
+    } else if (!prevId) {
+      _clearHistory();
+    }
+  }
+  window._currentDetailTab = tab;
+  window._currentDetailId  = id;
+
   let e;
   try { e = await api.getEntity(tab, id); } catch { return; }
+  if (myToken !== _detailToken) return;   // Nieuwere aanroep actief — stop
   const meta = TYPE_META[tab];
   const schema = SCHEMA[tab];
   const vis = e._visibility || 'visible';
@@ -572,16 +617,16 @@ window._openDetail = async (tab, id) => {
     const _mVisCls   = vis === 'visible' ? 'bg-green-wax text-white'
                      : vis === 'vague'   ? 'bg-gold-dim/60 text-room-bg'
                      :                    'bg-room-elevated text-ink-dim';
-    const _mVisTitle = vis === 'visible' ? 'Verbergen'
-                     : vis === 'vague'   ? 'Volledig tonen'
-                     : _ts              ? 'Naam tonen (vaag)'
+    const _mVisTitle = vis === 'visible' ? 'Verbergen  ·  Shift: vaag tonen'
+                     : vis === 'vague'   ? 'Volledig tonen  ·  Shift: vaag houden'
+                     : _ts              ? 'Zichtbaar maken  ·  Shift: vaag tonen'
                      :                    'Zichtbaar maken';
     infoHtml += `
       <div class="dm-only mt-4 pt-4 border-t border-room-border">
         <div class="flex flex-wrap gap-2 mb-3">
           <button class="px-3 py-1 text-sm rounded ${_mVisCls}"
             title="${_mVisTitle}"
-            onclick="window._toggleVis('${tab}','${e.id}')">
+            onclick="window._toggleVis('${tab}','${e.id}',event)">
             ${_mVisIcon}
           </button>
           ${isPersonage ? `
@@ -648,13 +693,13 @@ window._openDetail = async (tab, id) => {
         ['reactions','Reactions'],
         ['legendaryActions','Legendary Actions'],
       ].filter(([k]) => s[k]).map(([k, label]) =>
-        `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-1">${label}</div><div class="text-sm text-ink-medium whitespace-pre-wrap">${esc(s[k])}</div></div>`
+        `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-1">${label}</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s[k])}</div></div>`
       ).join('');
 
       // Spells
       const _spells = [
-        s.cantrips ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-1">Cantrips</div><div class="text-sm text-ink-medium whitespace-pre-wrap">${esc(s.cantrips)}</div></div>` : '',
-        s.spells ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-1">Spells</div><div class="text-sm text-ink-medium whitespace-pre-wrap">${esc(s.spells)}</div></div>` : '',
+        s.cantrips ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-1">Cantrips</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.cantrips)}</div></div>` : '',
+        s.spells ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-1">Spells</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.spells)}</div></div>` : '',
       ].join('');
 
       sheetHtml += `
@@ -674,7 +719,7 @@ window._openDetail = async (tab, id) => {
           ${_propTable}
           ${_narrative}
           ${_spells}
-          ${s.extra ? `<div class="mt-3 border-t border-room-border pt-3 text-sm text-ink-medium whitespace-pre-wrap">${esc(s.extra)}</div>` : ''}
+          ${s.extra ? `<div class="mt-3 border-t border-room-border pt-3 text-sm text-ink-medium sheet-narrative">${mdToHtml(s.extra)}</div>` : ''}
         </div>
       `;
     } else {
@@ -692,7 +737,7 @@ window._openDetail = async (tab, id) => {
       <div class="mb-4">
         <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2">${LINK_LABELS[lt] || lt}</div>
         <div class="flex flex-wrap gap-1.5">
-          ${names.map(n => `<span class="chip ${lm.chip} cursor-pointer" onclick="window._navigateTo('${lt}','${esc(n)}')">${lm.icon} ${esc(n)}</span>`).join('')}
+          ${names.map(n => `<span class="chip ${lm.chip} cursor-pointer" data-tab="${lt}" data-name="${esc(n)}" onclick="window._navigateTo(this.dataset.tab,this.dataset.name)">${lm.icon} ${esc(n)}</span>`).join('')}
         </div>
       </div>
     `;
@@ -769,6 +814,7 @@ window._openDetail = async (tab, id) => {
     ? `${getAutoIcon(tab, e)}  ${_subParts.join(' · ')}`
     : `${getAutoIcon(tab, e)}  ${meta.label}`;
   openModal(e.name, _subtitle, body);
+  _updateBackButton();
 
   // Set type accent bar
   const _accentEl = document.getElementById('m-accent');
@@ -814,8 +860,9 @@ window._openDetail = async (tab, id) => {
 };
 
 // ── Visibility / Secret / Deceased toggles ──
-window._toggleVis = async (tab, id) => {
-  await api.toggleVisibility(tab, id);
+window._toggleVis = async (tab, id, event) => {
+  const toVague = event?.shiftKey && ['personages', 'locaties'].includes(tab);
+  await api.toggleVisibility(tab, id, toVague ? 'vague' : undefined);
   renderEntitySection(tab);
 };
 
@@ -882,18 +929,22 @@ window._uploadFile = async (tab, id, file) => {
 // ── Navigate to linked entity ──
 window._navigateTo = async (tab, name) => {
   if (!ENTITY_TYPES.includes(tab)) return;
-  closeModal();
-  window.app.switchSection(tab);
   try {
     const entities = await api.listEntities(tab);
     const entity = entities.find(e => e.name === name);
     if (entity) {
+      // Navigeer binnen de modal — history wordt bijgehouden door _openDetail
       window._openDetail(tab, entity.id);
     } else {
+      // Niet gevonden: sluit modal en zoek in grid
+      closeModal();
+      window.app.switchSection(tab);
       searchQueries[tab] = name;
       renderEntitySection(tab);
     }
   } catch {
+    closeModal();
+    window.app.switchSection(tab);
     searchQueries[tab] = name;
     renderEntitySection(tab);
   }
@@ -913,6 +964,8 @@ window._openEditor = async (tab, editId) => {
     try { e = await api.getEntity(tab, editId); } catch { return; }
   }
   allNames = await api.allNames();
+  let _editorGroups = [];
+  try { const { groups } = await api.listGroups(); _editorGroups = groups; } catch { /* ok */ }
 
   editorTags = {};
   pendingFile = null;
@@ -1047,6 +1100,22 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
+
+  // Groep-selector (alleen voor personages met subtype speler)
+  if (tab === 'personages' && _editorGroups.length > 1) {
+    const isSpeler = e?.subtype === 'speler';
+    const currentGroep = e?.data?.groep || '';
+    body += `
+      <div id="groep-section"${isSpeler ? '' : ' style="display:none"'}>
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Spelersgroep</label>
+        <select name="data_groep"
+          class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          <option value="">Alle groepen</option>
+          ${_editorGroups.map(g => `<option value="${esc(g.id)}"${currentGroep === g.id ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}
+        </select>
+      </div>
+    `;
+  }
 
   // Schema fields
   for (const field of schema.fields) {
@@ -1285,6 +1354,8 @@ window._openEditor = async (tab, editId) => {
     window._onSubtypeChange = (val) => {
       const sec = document.getElementById('voorraad-section');
       if (sec) sec.style.display = val === 'verkoper' ? '' : 'none';
+      const groepSec = document.getElementById('groep-section');
+      if (groepSec) groepSec.style.display = val === 'speler' ? '' : 'none';
     };
     window._refreshVoorraad();
   }
@@ -1363,7 +1434,7 @@ window._showSuggestions = (lt) => {
   );
   if (names.length === 0) { list.classList.remove('open'); return; }
   list.innerHTML = names.map(n =>
-    `<div class="autocomplete-item" onmousedown="window._addTag('${lt}','${esc(n)}')">${esc(n)}</div>`
+    `<div class="autocomplete-item" data-name="${esc(n)}" onmousedown="window._addTag('${lt}',this.dataset.name)">${esc(n)}</div>`
   ).join('');
   list.classList.add('open');
 };
@@ -1391,7 +1462,7 @@ function refreshTags(lt) {
   const container = document.getElementById(`tags-${lt}`);
   if (!container) return;
   container.innerHTML = editorTags[lt].map(n =>
-    `<span class="chip ${lm.chip}">${esc(n)} <span class="cursor-pointer ml-1" onclick="window._removeTag('${lt}','${esc(n)}')">\u00d7</span></span>`
+    `<span class="chip ${lm.chip}">${esc(n)} <span class="cursor-pointer ml-1" data-name="${esc(n)}" onclick="window._removeTag('${lt}',this.dataset.name)">\u00d7</span></span>`
   ).join('');
 }
 
