@@ -2,12 +2,72 @@
 // Renders the battle scene on a <canvas> element.
 // Call init(canvasEl, combat) to start, update(combat) on each state change, stop() to halt.
 
+// Emoji fallback voor conditions zonder sprite
 const CONDITION_ICONS = {
   blinded: '🙈', charmed: '💕', deafened: '🔇', exhaustion: '😓',
   frightened: '😱', grappled: '✊', incapacitated: '💤', invisible: '👻',
   paralyzed: '⚡', petrified: '🪨', poisoned: '🤢', prone: '⬇️',
   restrained: '⛓️', stunned: '⭐', unconscious: '💀', concentration: '🔮',
 };
+
+// Roll20 sprite sheet — [sx, sy, sw, sh] in pixels (1050×1050 afbeelding)
+// Grid: 5 kolommen × 4 rijen, elke cel ≈ 210×210px, iconrijen starten op y=185
+const SPRITE_URL    = '/img/conditions-sprite.jpg';
+const SPRITE_CROPS  = {
+  stunned:       [210, 185, 210, 210],
+  restrained:    [420, 185, 210, 210],
+  prone:         [630, 185, 210, 210],
+  poisoned:      [840, 185, 210, 210],
+  petrified:     [  0, 395, 210, 210],
+  paralyzed:     [210, 395, 210, 210],
+  invisible:     [  0, 605, 210, 210],
+  incapacitated: [210, 605, 210, 210],
+  grappled:      [420, 605, 210, 210],
+  exhaustion:    [840, 605, 210, 210],
+  concentration: [210, 815, 210, 210],
+  deafened:      [420, 815, 210, 210],
+  blinded:       [630, 815, 210, 210],
+};
+
+let _sprite    = null;  // null = niet gestart, false = laden, HTMLImageElement = klaar
+let _iconCache = {};    // condId → HTMLCanvasElement (grijs verwijderd)
+
+function _loadSprite() {
+  if (_sprite !== null) return;
+  _sprite = false;
+  const img = new Image();
+  img.onload  = () => { _sprite = img; _iconCache = {}; };
+  img.onerror = () => { _sprite = false; };
+  img.src = SPRITE_URL;
+}
+
+// Geeft een kleine HTMLCanvasElement terug met grije achtergrond verwijderd,
+// of null als de sprite nog niet geladen is / condition niet in sheet zit.
+function _getIconCanvas(condId) {
+  if (_iconCache[condId]) return _iconCache[condId];
+  if (!_sprite)           return null;
+  const crop = SPRITE_CROPS[condId];
+  if (!crop)              return null;
+
+  const [sx, sy, sw, sh] = crop;
+  const oc  = document.createElement('canvas');
+  oc.width  = sw;
+  oc.height = sh;
+  const oct  = oc.getContext('2d');
+  oct.drawImage(_sprite, sx, sy, sw, sh, 0, 0, sw, sh);
+
+  // Verwijder grijze achtergrond: pixels waarbij R≈G≈B en helderheid tussen 60-210
+  const id   = oct.getImageData(0, 0, sw, sh);
+  const data = id.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const lo = Math.min(r, g, b), hi = Math.max(r, g, b);
+    if (hi - lo < 24 && r > 60 && r < 215) data[i + 3] = 0;
+  }
+  oct.putImageData(id, 0, 0);
+  _iconCache[condId] = oc;
+  return oc;
+}
 
 // Volgorde van meest naar minst ingrijpend — bepaalt welk visueel effect getoond wordt
 const CONDITION_PRIORITY = [
@@ -59,6 +119,7 @@ let _positions = {};      // id -> {cx, cy, r} — gevuld tijdens drawCombatant,
 
 export function init(canvasEl, combat) {
   _stop();
+  _loadSprite();
   _canvas = canvasEl;
   _ctx    = canvasEl.getContext('2d');
   _t0     = performance.now();
@@ -424,17 +485,22 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
   // ── Condition icons — links in het slot, verticaal gecentreerd ──
   const allConds = isDead ? [] : (c.conditions || []);
   if (allConds.length > 0) {
-    const sz     = Math.max(9, Math.min(11, w * 0.07));
-    const lineH  = sz + 4;
-    const stackH = allConds.length * lineH - 4;
-    const iconX  = x + 6;
+    const sz     = Math.max(14, Math.min(18, w * 0.11));
+    const lineH  = sz + 5;
+    const stackH = allConds.length * lineH - 5;
+    const iconX  = x + 4;
     let   iconY  = y + h / 2 - stackH / 2;
     ctx.font         = `${sz}px serif`;
     ctx.textAlign    = 'left';
     ctx.textBaseline = 'top';
     allConds.forEach(id => {
-      ctx.fillText(CONDITION_ICONS[id] || '?', iconX, iconY);
-      _hitAreas.push({ x: iconX, y: iconY, w: sz + 4, h: sz + 2, condId: id });
+      const ic = _getIconCanvas(id);
+      if (ic) {
+        ctx.drawImage(ic, iconX, iconY, sz, sz);
+      } else {
+        ctx.fillText(CONDITION_ICONS[id] || '?', iconX, iconY);
+      }
+      _hitAreas.push({ x: iconX, y: iconY, w: sz, h: sz, condId: id });
       iconY += lineH;
     });
   }
