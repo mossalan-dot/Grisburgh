@@ -406,7 +406,7 @@ function renderSessieEntry(e) {
         ${e.korteSamenvatting
           ? `<div class="font-cinzel font-semibold text-ink-bright text-sm leading-snug mb-1">${esc(e.korteSamenvatting)}</div>`
           : `<div class="text-ink-dim text-xs italic">Geen titel</div>`}
-        ${e.samenvatting ? `<p class="text-[11px] text-ink-dim font-fell italic line-clamp-2 leading-snug">${esc(e.samenvatting.replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n/g,' ').slice(0,110))}</p>` : ''}
+        ${e.samenvatting ? `<p class="text-[11px] text-ink-dim font-fell italic line-clamp-2 leading-snug">${esc(e.samenvatting.replace(/^#+\s*/gm,'').replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n/g,' ').slice(0,110))}</p>` : ''}
       </div>
     </div>`;
 }
@@ -871,15 +871,24 @@ function renderDocCard(d) {
   return `
     <div class="entity-card${isDM() && state !== 'revealed' ? ' card-hidden' : ''}"
       onclick="window._openDoc('${d.id}')">
-      ${isDM() ? `
-        <div class="dm-only absolute top-7 right-2 z-10 flex gap-0.5 bg-black/60 backdrop-blur-sm rounded p-0.5">
-          ${['hidden','blurred','revealed'].map(s => `
-            <button class="text-[11px] px-1.5 py-0.5 rounded transition ${state === s ? 'bg-gold-dim text-black' : 'text-ink-dim hover:bg-room-border'}"
-              onclick="event.stopPropagation();window._setDocState('${d.id}','${s}')"
-              title="${s}">${s === 'hidden' ? '\ud83d\udd12' : s === 'blurred' ? '\ud83d\udc41' : '\u2728'}</button>
-          `).join('')}
-        </div>
-      ` : ''}
+      ${isDM() ? (() => {
+        const _visIcon  = state === 'revealed' ? '\u2728' : state === 'blurred' ? '\ud83d\udc41' : '\ud83d\udd12';
+        const _visTitle = state === 'hidden'   ? 'Wazig tonen  \u00b7  Shift: meteen onthullen'
+                        : state === 'blurred'  ? 'Onthullen  \u00b7  Shift: verbergen'
+                        :                        'Verbergen';
+        return `
+        <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+            onclick="event.stopPropagation();window._cycleDocState('${d.id}','${state}',event)"
+            title="${_visTitle}">${_visIcon}</button>
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+            onclick="event.stopPropagation();window._openArchiefEditor('${d.id}')"
+            title="Bewerken">&#9998;</button>
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-red-700/90 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+            onclick="event.stopPropagation();window._deleteDoc('${d.id}')"
+            title="Verwijderen">&#10005;</button>
+        </div>`;
+      })() : ''}
       <div class="card-accent bar-documenten"></div>
       <img class="card-img w-full object-cover${isBlurred ? ' blur-lg select-none pointer-events-none' : ''}"
         src="${api.fileUrl(d.id)}" onerror="this.style.display='none'">
@@ -1055,6 +1064,19 @@ function renderParchment(text) {
 // ── State change ──
 window._setDocState = async (id, state) => {
   await api.setArchiefState(id, state);
+  renderDocumenten();
+};
+
+window._cycleDocState = async (id, current, event) => {
+  const order = ['hidden', 'blurred', 'revealed'];
+  let next;
+  if (event?.shiftKey) {
+    // Shift: cycle backwards
+    next = order[(order.indexOf(current) + order.length - 1) % order.length];
+  } else {
+    next = order[(order.indexOf(current) + 1) % order.length];
+  }
+  await api.setArchiefState(id, next);
   renderDocumenten();
 };
 
@@ -1240,7 +1262,7 @@ window._openArchiefEditor = async (editId) => {
       <div>
         <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">${fm.label}</div>
         <div id="atags-${field}" class="flex flex-wrap gap-1 mb-1">
-          ${editorTags[field].map(n => `<span class="chip ${fm.chip}">${esc(n)} <span class="cursor-pointer ml-1" onclick="window._removeATag('${field}','${esc(n)}')">\u00d7</span></span>`).join('')}
+          ${editorTags[field].map(n => `<span class="chip ${fm.chip}">${esc(n)} <span class="cursor-pointer ml-1" data-field="${field}" data-name="${esc(n)}" onclick="window._removeATag(this.dataset.field,this.dataset.name)">\u00d7</span></span>`).join('')}
         </div>
         <div class="flex gap-1">
           <div class="flex-1 autocomplete-wrap">
@@ -1414,7 +1436,7 @@ function refreshATags(field) {
   const container = document.getElementById(`atags-${field}`);
   if (!container) return;
   container.innerHTML = editorTags[field].map(n =>
-    `<span class="chip ${fm[field]}">${esc(n)} <span class="cursor-pointer ml-1" onclick="window._removeATag('${field}','${esc(n)}')">\u00d7</span></span>`
+    `<span class="chip ${fm[field]}">${esc(n)} <span class="cursor-pointer ml-1" data-field="${field}" data-name="${esc(n)}" onclick="window._removeATag(this.dataset.field,this.dataset.name)">\u00d7</span></span>`
   ).join('');
 }
 

@@ -121,7 +121,7 @@ function filterList(list) {
       return fields.includes(q);
     });
   }
-  return result;
+  return result.slice().sort((a, b) => a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' }));
 }
 
 function renderDashCard(e) {
