@@ -162,6 +162,35 @@
     </div>
   </div>
 
+  <!-- Dice roller trigger — players only, bottom-right -->
+  <button id="dice-fab" class="dice-fab" onclick="window.dice.toggle()" title="Dobbelstenen gooien">
+    <svg viewBox="0 0 24 22" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+      <polygon points="12,1.5 23,20.5 1,20.5"/>
+      <polygon points="6.5,11.5 17.5,11.5 12,20"/>
+    </svg>
+  </button>
+
+  <!-- Dice Roller Panel — players only -->
+  <div id="dice-panel" class="dice-panel">
+    <div class="dice-panel-head">
+      <span class="dice-panel-title">⚄ Dobbelstenen</span>
+      <button class="dice-panel-close" onclick="window.dice.toggle()" title="Sluiten">&times;</button>
+    </div>
+    <div class="dice-panel-grid">
+      <button class="dice-btn" onclick="window.dice.roll(4)">d4</button>
+      <button class="dice-btn" onclick="window.dice.roll(6)">d6</button>
+      <button class="dice-btn" onclick="window.dice.roll(8)">d8</button>
+      <button class="dice-btn" onclick="window.dice.roll(12)">d12</button>
+      <button class="dice-btn dice-btn--featured" onclick="window.dice.roll(20)">d20</button>
+      <button class="dice-btn" onclick="window.dice.roll(100)">d%</button>
+    </div>
+    <div class="dice-result" id="dice-result">
+      <div class="dice-result-num" id="dice-result-num">—</div>
+      <div class="dice-result-label" id="dice-result-label">Kies een dobbelsteen</div>
+    </div>
+    <div class="dice-history" id="dice-history"></div>
+  </div>
+
   <!-- DM Panel trigger — DM only, bottom-right -->
   <button id="dm-panel-fab" class="dm-panel-fab dm-only hidden" onclick="window.dmPanel.toggle()" title="DM-paneel">
     <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
@@ -182,7 +211,12 @@
       <button class="dm-tab-btn"        data-tab="tafels"        onclick="window.dmPanel.switchTab('tafels')"        title="Tafels">🎲</button>
       <button class="dm-tab-btn"        data-tab="monsters"      onclick="window.dmPanel.switchTab('monsters')"      title="Monsterbibliotheek">👾</button>
       <button class="dm-tab-btn"        data-tab="gevecht"       onclick="window.dmPanel.switchTab('gevecht')"       title="Gevecht">⚔️</button>
-      <button class="dm-tab-btn"        data-tab="dobbelstenen"  onclick="window.dmPanel.switchTab('dobbelstenen')"  title="Dobbelstenen">⚄</button>
+      <button class="dm-tab-btn"        data-tab="dobbelstenen"  onclick="window.dmPanel.switchTab('dobbelstenen')"  title="Dobbelstenen">
+        <svg viewBox="0 0 24 22" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+          <polygon points="12,1.5 23,20.5 1,20.5"/>
+          <polygon points="6.5,11.5 17.5,11.5 12,20"/>
+        </svg>
+      </button>
     </div>
     <div class="dm-panel-body">
       <!-- Tunnel tab -->
@@ -218,11 +252,11 @@
           <button class="dice-btn dice-btn--featured" onclick="window.dice.roll(20)">d20</button>
           <button class="dice-btn" onclick="window.dice.roll(100)">d%</button>
         </div>
-        <div class="dice-result" id="dice-result">
-          <div class="dice-result-num" id="dice-result-num">—</div>
-          <div class="dice-result-label" id="dice-result-label">Kies een dobbelsteen</div>
+        <div class="dice-result" id="dm-dice-result">
+          <div class="dice-result-num" id="dm-dice-result-num">—</div>
+          <div class="dice-result-label" id="dm-dice-result-label">Kies een dobbelsteen</div>
         </div>
-        <div class="dice-history" id="dice-history"></div>
+        <div class="dice-history" id="dm-dice-history"></div>
       </div>
     </div>
   </div>

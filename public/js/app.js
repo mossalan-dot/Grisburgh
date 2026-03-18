@@ -156,6 +156,10 @@ function applyRole() {
     logoutBtn.classList.toggle('hidden', state.role !== 'dm');
   }
 
+  // Dice FAB: alleen zichtbaar voor spelers (niet voor actieve DM)
+  const diceFab = document.getElementById('dice-fab');
+  if (diceFab) diceFab.classList.toggle('hidden', isDmActive);
+
   const dmPanelFab = document.getElementById('dm-panel-fab');
   if (dmPanelFab) dmPanelFab.classList.toggle('hidden', !isDmActive);
 
@@ -411,51 +415,62 @@ async function refreshAll() {
 ;(() => {
   const _history = [];
 
+  // Geeft alle actieve result-elementen terug (spelers-paneel én DM-paneel)
+  function _els(suffix) {
+    return ['dice-' + suffix, 'dm-dice-' + suffix]
+      .map(id => document.getElementById(id))
+      .filter(Boolean);
+  }
+
   window.dice = {
+    toggle() {
+      document.getElementById('dice-panel')?.classList.toggle('open');
+    },
+
     roll(sides) {
       const result = Math.floor(Math.random() * sides) + 1;
-      const numEl   = document.getElementById('dice-result-num');
-      const lblEl   = document.getElementById('dice-result-label');
-      const boxEl   = document.getElementById('dice-result');
-      if (!numEl) return;
+      const numEls = _els('result-num');
+      const lblEls = _els('result-label');
+      const boxEls = _els('result');
+      if (!numEls.length) return;
 
-      // Shake the result box on each new roll
-      boxEl.classList.remove('dice-shaking');
-      void boxEl.offsetWidth;
-      boxEl.classList.add('dice-shaking');
-      boxEl.addEventListener('animationend', () => boxEl.classList.remove('dice-shaking'), { once: true });
+      // Schud alle resultaat-boxes
+      boxEls.forEach(box => {
+        box.classList.remove('dice-shaking');
+        void box.offsetWidth;
+        box.classList.add('dice-shaking');
+        box.addEventListener('animationend', () => box.classList.remove('dice-shaking'), { once: true });
+      });
 
-      // Clear previous state
-      numEl.classList.remove('dice-crit', 'dice-fumble', 'dice-reveal');
-      lblEl.textContent = 'Gooien\u2026';
+      // Wis vorige staat
+      numEls.forEach(n => n.classList.remove('dice-crit', 'dice-fumble', 'dice-reveal'));
+      lblEls.forEach(l => l.textContent = 'Gooien\u2026');
 
-      // Ticker animation: starts fast, slows toward result
+      // Ticker-animatie: begint snel, vertraagt naar het resultaat
       const delays = [45, 55, 65, 80, 100, 125, 155];
       let i = 0;
       const tick = () => {
         if (i < delays.length) {
-          numEl.textContent = Math.floor(Math.random() * sides) + 1;
+          const rnd = Math.floor(Math.random() * sides) + 1;
+          numEls.forEach(n => n.textContent = rnd);
           setTimeout(tick, delays[i++]);
         } else {
-          // Show the real result
-          numEl.classList.remove('dice-crit', 'dice-fumble');
-          void numEl.offsetWidth;
-          numEl.textContent = result;
-          numEl.classList.add('dice-reveal');
-          numEl.addEventListener('animationend', () => numEl.classList.remove('dice-reveal'), { once: true });
-
           const dieLabel = sides === 100 ? 'd%' : `d${sides}`;
-          if (sides === 20 && result === 20) {
-            numEl.classList.add('dice-crit');
-            lblEl.textContent = `${dieLabel} \u2014 \u2736 Critical Hit!`;
-          } else if (sides === 20 && result === 1) {
-            numEl.classList.add('dice-fumble');
-            lblEl.textContent = `${dieLabel} \u2014 \u2715 Critical Fail!`;
-          } else {
-            lblEl.textContent = dieLabel;
-          }
+          numEls.forEach(n => {
+            n.classList.remove('dice-crit', 'dice-fumble');
+            void n.offsetWidth;
+            n.textContent = result;
+            n.classList.add('dice-reveal');
+            n.addEventListener('animationend', () => n.classList.remove('dice-reveal'), { once: true });
+            if (sides === 20 && result === 20) n.classList.add('dice-crit');
+            if (sides === 20 && result === 1)  n.classList.add('dice-fumble');
+          });
+          lblEls.forEach(l => {
+            if (sides === 20 && result === 20)      l.textContent = `${dieLabel} \u2014 \u2736 Critical Hit!`;
+            else if (sides === 20 && result === 1)  l.textContent = `${dieLabel} \u2014 \u2715 Critical Fail!`;
+            else                                    l.textContent = dieLabel;
+          });
 
-          // Update history
           _history.unshift({ sides, result });
           if (_history.length > 10) _history.pop();
           _renderHistory();
@@ -466,15 +481,14 @@ async function refreshAll() {
   };
 
   function _renderHistory() {
-    const el = document.getElementById('dice-history');
-    if (!el) return;
-    el.innerHTML = _history.map(({ sides, result }) => {
+    const html = _history.map(({ sides, result }) => {
       const isCrit   = sides === 20 && result === 20;
       const isFumble = sides === 20 && result === 1;
       const cls      = isCrit ? ' dice-hist-crit' : isFumble ? ' dice-hist-fumble' : '';
       const lbl      = sides === 100 ? '%' : sides;
       return `<span class="dice-hist-chip${cls}">d${lbl}\u00b7${result}</span>`;
     }).join('');
+    _els('history').forEach(el => { el.innerHTML = html; });
   }
 })();
 
