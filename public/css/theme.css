@@ -1292,6 +1292,9 @@ body::before {
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .dm-tab-btn:hover { color: #5a4010; background: rgba(196,168,122,0.12); }
 .dm-tab-btn.active { color: #4a2e08; border-bottom-color: #9a7008; background: rgba(196,168,122,0.18); }

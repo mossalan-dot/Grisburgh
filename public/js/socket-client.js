@@ -110,6 +110,7 @@ export function initSocket() {
   socket.on('meta:updated', () => {
     import('./api.js').then(({ api }) => api.meta().then(m => {
       if (window.app?.state) window.app.state.meta = m;
+      window.app?.applyAppMeta(m);
     }));
   });
 
@@ -130,6 +131,42 @@ export function initSocket() {
         if (type && id) window._openDetail?.(type, id);
       }, 8000);
     }
+  });
+
+  // ── Groepswisseling ──
+  socket.on('groups:updated', ({ groups, activeGroup } = {}) => {
+    // Update groepswisselaar UI (DM) en actieve groep state (iedereen)
+    window.renderGroupSwitcher?.(groups, activeGroup);
+    // Herlaad party bar zodat juiste spelers getoond worden
+    window.renderParty?.();
+    // Herlaad huidige sectie zodat zichtbaarheidsstatus klopt na groepswisseling
+    const section = window.app.state.activeSection;
+    if (['personages', 'locaties', 'organisaties', 'voorwerpen'].includes(section)) {
+      import('./render-campagne.js').then(m => {
+        if (section === 'personages') m.renderPersonages();
+        else if (section === 'locaties') m.renderLocaties();
+        else if (section === 'organisaties') m.renderOrganisaties();
+        else if (section === 'voorwerpen') m.renderVoorwerpen();
+      });
+    }
+  });
+
+  // ── Tunnel ──
+  socket.on('tunnel:url', ({ url } = {}) => {
+    if (window.dmPanel) {
+      window._dmPanelTunnelUrl = url;
+      window._dmPanelTunnelActive = true;
+      window.dmPanel.onTunnelUrl(url);
+    }
+  });
+
+  socket.on('tunnel:stopped', () => {
+    if (window.dmPanel) window.dmPanel.onTunnelStopped();
+  });
+
+  // ── Gevecht ──
+  socket.on('combat:updated', (combat) => {
+    if (window.dmPanel) window.dmPanel.onCombatUpdated(combat);
   });
 
   socket.on('connect', () => console.log('Socket connected'));

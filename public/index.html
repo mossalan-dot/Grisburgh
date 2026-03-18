@@ -57,13 +57,31 @@
       <div class="flex items-center gap-4">
         <!-- Title -->
         <div class="flex-shrink-0">
-          <h1 class="font-cinzel text-4xl font-black text-ink-bright tracking-wider leading-none">Grisburgh</h1>
-          <div class="mt-1.5 flex items-center gap-1.5">
-            <span class="text-gold-dim text-[10px] leading-none select-none">✦</span>
-            <div class="h-px w-8" style="background:linear-gradient(to right,transparent,#9a7008)"></div>
-            <p class="text-ink-medium text-sm font-fell italic">Ontdekkingen uit het stadsarchief</p>
-            <div class="h-px w-8" style="background:linear-gradient(to left,transparent,#9a7008)"></div>
-            <span class="text-gold-dim text-[10px] leading-none select-none">✦</span>
+          <div id="header-display">
+            <div class="flex items-center gap-2">
+              <h1 id="app-title" class="font-cinzel text-4xl font-black text-ink-bright tracking-wider leading-none">Grisburgh</h1>
+              <button id="header-edit-btn" class="dm-only hidden text-ink-faint hover:text-gold transition-colors leading-none" onclick="window.app.editHeader()" title="Titel bewerken" style="font-size:14px;padding:2px 4px;background:none;border:none;cursor:pointer;">✏️</button>
+            </div>
+            <div class="mt-1.5 flex items-center gap-1.5">
+              <span class="text-gold-dim text-[10px] leading-none select-none">✦</span>
+              <div class="h-px w-8" style="background:linear-gradient(to right,transparent,#9a7008)"></div>
+              <p id="app-subtitle" class="text-ink-medium text-sm font-fell italic">Ontdekkingen uit het stadsarchief</p>
+              <div class="h-px w-8" style="background:linear-gradient(to left,transparent,#9a7008)"></div>
+              <span class="text-gold-dim text-[10px] leading-none select-none">✦</span>
+            </div>
+          </div>
+          <div id="header-editor" class="hidden space-y-1.5">
+            <input id="header-title-input" type="text"
+              class="font-cinzel font-black text-ink-bright tracking-wider bg-room-bg border border-room-border rounded px-2 py-0.5 focus:border-gold-dim focus:outline-none w-full"
+              style="font-size:1.6rem">
+            <input id="header-subtitle-input" type="text"
+              class="font-fell italic text-ink-medium text-sm bg-room-bg border border-room-border rounded px-2 py-0.5 focus:border-gold-dim focus:outline-none w-full">
+            <div class="flex gap-2">
+              <button onclick="window.app.saveHeader()"
+                class="px-3 py-1 text-xs font-cinzel font-bold bg-gold/20 hover:bg-gold/30 text-gold border border-gold/40 rounded transition">Opslaan</button>
+              <button onclick="window.app.cancelHeader()"
+                class="px-3 py-1 text-xs font-cinzel text-ink-dim hover:text-ink-medium border border-room-border rounded transition">Annuleren</button>
+            </div>
           </div>
         </div>
         <!-- Groepswisselaar + party portraits -->

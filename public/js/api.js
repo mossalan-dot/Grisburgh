@@ -25,9 +25,16 @@ export const api = {
   createEntity: (type, data) => request(`/entities/${type}`, { method: 'POST', body: JSON.stringify(data) }),
   updateEntity: (type, id, data) => request(`/entities/${type}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteEntity: (type, id) => request(`/entities/${type}/${id}`, { method: 'DELETE' }),
-  toggleVisibility: (type, id) => request(`/entities/${type}/${id}/visibility`, { method: 'PUT' }),
+  toggleVisibility: (type, id, target) => request(`/entities/${type}/${id}/visibility`, { method: 'PUT', body: JSON.stringify(target ? { target } : {}) }),
   toggleSecret: (type, id) => request(`/entities/${type}/${id}/secret`, { method: 'PUT' }),
   toggleDeceased: (type, id) => request(`/entities/${type}/${id}/deceased`, { method: 'PUT' }),
+
+  // Groepen
+  listGroups:   ()           => request('/groups'),
+  createGroup:  (name)       => request('/groups',        { method: 'POST',   body: JSON.stringify({ name }) }),
+  switchGroup:  (groupId)    => request('/groups/active', { method: 'PUT',    body: JSON.stringify({ groupId }) }),
+  updateGroup:  (id, name)   => request(`/groups/${id}`,  { method: 'PUT',    body: JSON.stringify({ name }) }),
+  deleteGroup:  (id)         => request(`/groups/${id}`,  { method: 'DELETE' }),
 
   // DM Notes
   getNote: (id) => request(`/dm/notes/${id}`),
@@ -62,12 +69,40 @@ export const api = {
   // Meta
   meta: () => request('/meta'),
   saveHoofdstuk: (key, data) => request(`/meta/hoofdstuk/${key}`, { method: 'PUT', body: JSON.stringify(data) }),
+  saveAppMeta: (data) => request('/meta/app', { method: 'PUT', body: JSON.stringify(data) }),
 
   // Kaart
   mapPins: (mapId) => request(`/map/pins?mapId=${encodeURIComponent(mapId || 'grisburgh')}`),
   createMapPin: (data) => request('/map/pins', { method: 'POST', body: JSON.stringify(data) }),
   updateMapPin: (id, data) => request(`/map/pins/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteMapPin: (id) => request(`/map/pins/${id}`, { method: 'DELETE' }),
+
+  // Tunnel
+  tunnelStart:  ()     => request('/tunnel/start',  { method: 'POST' }),
+  tunnelStop:   ()     => request('/tunnel/stop',   { method: 'DELETE' }),
+  tunnelStatus: ()     => request('/tunnel/status'),
+
+  // Tafels
+  listTables:    ()         => request('/tables'),
+  createTable:   (data)     => request('/tables',        { method: 'POST',   body: JSON.stringify(data) }),
+  updateTable:   (id, data) => request(`/tables/${id}`,  { method: 'PUT',    body: JSON.stringify(data) }),
+  deleteTable:   (id)       => request(`/tables/${id}`,  { method: 'DELETE' }),
+
+  // Monsters
+  listMonsters:   ()         => request('/monsters'),
+  createMonster:  (data)     => request('/monsters',        { method: 'POST',   body: JSON.stringify(data) }),
+  updateMonster:  (id, data) => request(`/monsters/${id}`,  { method: 'PUT',    body: JSON.stringify(data) }),
+  deleteMonster:  (id)       => request(`/monsters/${id}`,  { method: 'DELETE' }),
+
+  // Gevecht
+  getCombat:        ()        => request('/combat'),
+  startCombat:      ()        => request('/combat/start',              { method: 'POST' }),
+  endCombat:        ()        => request('/combat',                    { method: 'DELETE' }),
+  updateCombat:     (data)    => request('/combat',                    { method: 'PUT',    body: JSON.stringify(data) }),
+  addCombatant:     (data)    => request('/combat/combatant',          { method: 'POST',   body: JSON.stringify(data) }),
+  updateCombatant:  (id, d)   => request(`/combat/combatant/${id}`,    { method: 'PUT',    body: JSON.stringify(d) }),
+  removeCombatant:  (id)      => request(`/combat/combatant/${id}`,    { method: 'DELETE' }),
+  setCombatWinner:  (winner)  => request('/combat/winner',             { method: 'PUT',    body: JSON.stringify({ winner }) }),
 
   // Get all entity names grouped by type (for link autocomplete)
   async allNames() {
