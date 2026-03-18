@@ -52,6 +52,8 @@ let _hitAreas  = [];      // [{x, y, w, h, condId}] — herbouwd elke frame
 let _hoverCond = null;    // condition-id van icoon waarover de muis zweeft
 let _hoverX    = 0;
 let _hoverY    = 0;
+let _hitEvents = [];      // [{id, delta, t0}] — floating damage/heal nummers
+let _positions = {};      // id -> {cx, cy, r} — gevuld tijdens drawCombatant, gebruikt voor floating numbers
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -87,6 +89,16 @@ function _stop() {
 }
 
 function _updateState(combat) {
+  // Detecteer HP-wijzigingen en registreer als hit-event
+  if (_combat && combat) {
+    (combat.combatants || []).forEach(c => {
+      const prev = (_combat.combatants || []).find(p => p.id === c.id);
+      if (prev) {
+        const delta = (c.hp || 0) - (prev.hp || 0);
+        if (delta !== 0) _hitEvents.push({ id: c.id, delta, t0: performance.now() });
+      }
+    });
+  }
   _combat = combat;
   if (!combat) return;
   // Pre-load backdrop (first monster's backdropId)
@@ -138,7 +150,9 @@ function _draw() {
 
   const ctx = _ctx;
   const t   = (performance.now() - _t0) / 1000;
-  _hitAreas = [];
+  const now = performance.now();
+  _hitAreas  = [];
+  _positions = {};
 
   // ── Backdrop ──
   const backdropId  = _combat.combatants?.find(c => c.type === 'monster' && c.backdropId)?.backdropId;
@@ -200,6 +214,13 @@ function _draw() {
     }
   }
 
+  // ── Floating damage / heal nummers (buiten slot-clip) ──
+  _hitEvents = _hitEvents.filter(e => now - e.t0 < 1600);
+  for (const evt of _hitEvents) {
+    const pos = _positions[evt.id];
+    if (pos) _drawHitNumber(ctx, evt, pos.cx, pos.cy, pos.r, now);
+  }
+
   // ── Win / lose overlay ──
   if (_combat.winner) {
     _drawWinScreen(ctx, W, H, _combat.winner, t);
@@ -207,6 +228,36 @@ function _draw() {
 
   // ── Condition tooltip (bovenop alles) ──
   if (_hoverCond) _drawCondTooltip(ctx, W, H, _hoverCond, _hoverX, _hoverY);
+}
+
+// ── Floating damage / heal getal ─────────────────────────────────────────────
+
+function _drawHitNumber(ctx, evt, cx, cy, r, now) {
+  const elapsed = (now - evt.t0) / 1000;
+  if (elapsed > 1.6) return;
+  const isHeal  = evt.delta > 0;
+  const alpha   = elapsed < 0.85 ? 1 : Math.max(0, (1.6 - elapsed) / 0.75);
+  const rise    = elapsed * 48;
+  const numY    = cy - r - 10 - rise;
+  const sz      = Math.max(13, r * 0.42);
+  const label   = (isHeal ? '+' : '') + evt.delta;
+
+  ctx.save();
+  ctx.globalAlpha    = alpha;
+  ctx.font           = `bold ${sz}px 'Cinzel', serif`;
+  ctx.textAlign      = 'center';
+  ctx.textBaseline   = 'middle';
+  // Schaduw voor leesbaarheid
+  ctx.shadowColor    = 'rgba(0,0,0,0.85)';
+  ctx.shadowBlur     = 5;
+  ctx.fillStyle      = isHeal ? '#70f070' : '#ff5030';
+  ctx.fillText(label, cx, numY);
+  // Subtiele witte kern
+  ctx.shadowBlur     = 0;
+  ctx.fillStyle      = isHeal ? 'rgba(200,255,200,0.55)' : 'rgba(255,200,180,0.45)';
+  ctx.font           = `bold ${sz * 0.82}px 'Cinzel', serif`;
+  ctx.fillText(label, cx, numY);
+  ctx.restore();
 }
 
 // ── Scheidslijn tussen monsters en spelers ────────────────────────────────────
@@ -333,6 +384,25 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
     ctx.fillText(c.type === 'player' ? '👤' : '👾', cx, cy);
   }
   ctx.restore();
+
+  // ── Sla positie op voor floating numbers (getekend na alle slots) ──
+  _positions[c.id] = { cx, cy, r: AVTR_R };
+
+  // ── Hit/heal flash op de avatar ──
+  const nowMs  = performance.now();
+  const flash  = _hitEvents.find(e => e.id === c.id && nowMs - e.t0 < 380);
+  if (flash) {
+    const pct   = (nowMs - flash.t0) / 380;
+    const alpha = (1 - pct) * 0.52;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, AVTR_R, 0, Math.PI * 2);
+    ctx.fillStyle = flash.delta > 0
+      ? `rgba(80,230,80,${alpha})`
+      : `rgba(255,40,20,${alpha})`;
+    ctx.fill();
+    ctx.restore();
+  }
 
   // ── Petrified overlay (on top of avatar) ──
   if (topCond === 'petrified') _fxPetrified(ctx, cx, cy, AVTR_R);
