@@ -370,7 +370,7 @@ function _renderTafels() {
       <div id="dm-naam-result" class="dm-naam-result"></div>
     </div>
     <div class="dm-feature-section">
-      <div class="dm-section-label">Tables</div>
+      <div class="dm-section-label">Tabellen</div>
       ${hasTables ? `
         <div class="dm-feature-row">
           <select id="dm-tabel-select" class="dm-select" onchange="window.dmPanel.tabelSelect(this.value)">
@@ -385,8 +385,8 @@ function _renderTafels() {
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.tabelNew()" style="margin-left:auto" title="Nieuwe tafel">+</button>
         </div>
       ` : `
-        <p class="dm-hint">No tables created yet.</p>
-        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.tabelNew()" title="New table">+</button>
+        <p class="dm-hint">Nog geen tabellen aangemaakt.</p>
+        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.tabelNew()" title="Nieuwe tafel">+</button>
       `}
     </div>
   `;
@@ -487,7 +487,7 @@ function _tabelRoll() {
     _renderTafelResult(match ? `d100: ${d100} → ${match}` : `d100: ${d100} → (geen treffer)`);
   } else {
     const entries = table.entries || [];
-    if (entries.length === 0) { _renderTafelResult('Table is empty'); return; }
+    if (entries.length === 0) { _renderTafelResult('Tafel is leeg'); return; }
     // Pick unique results (shuffle-style)
     const shuffled = [...entries].sort(() => Math.random() - 0.5);
     _renderTafelResult(shuffled.slice(0, Math.min(rolls, entries.length)));
@@ -504,7 +504,7 @@ function _tabelEdit(id) {
 async function _tabelDelete(id) {
   const table = _tables.find(t => t.id === id);
   if (!table) return;
-  if (!confirm(`Delete table "${table.name}"?`)) return;
+  if (!confirm(`Tafel "${table.name}" verwijderen?`)) return;
   try {
     await api.deleteTable(id);
     _tables = _tables.filter(t => t.id !== id);
