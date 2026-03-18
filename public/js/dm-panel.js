@@ -358,7 +358,8 @@ function _renderTafels() {
   if (!el) return;
   if (_editingTableId !== null) { _renderTafelEditor(el); return; }
 
-  const hasTables = _tables.length > 0;
+  const sortedTables = [..._tables].sort((a, b) => a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' }));
+  const hasTables = sortedTables.length > 0;
   el.innerHTML = `
     <div class="dm-feature-section dm-namen-section">
       <div class="dm-section-label">Namen</div>
@@ -373,7 +374,7 @@ function _renderTafels() {
       ${hasTables ? `
         <div class="dm-feature-row">
           <select id="dm-tabel-select" class="dm-select" onchange="window.dmPanel.tabelSelect(this.value)">
-            ${_tables.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}
+            ${sortedTables.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}
           </select>
           <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.tabelRoll()" title="Gooien">🎲</button>
         </div>
