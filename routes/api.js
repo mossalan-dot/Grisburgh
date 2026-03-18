@@ -655,6 +655,15 @@ router.get('/meta', (req, res) => {
   res.json(storage.readJSON('meta.json'));
 });
 
+router.put('/meta/app', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (req.body.appTitle    !== undefined) meta.appTitle    = String(req.body.appTitle).trim()    || meta.appTitle;
+  if (req.body.appSubtitle !== undefined) meta.appSubtitle = String(req.body.appSubtitle).trim() || meta.appSubtitle;
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').emit('meta:updated');
+  res.json({ appTitle: meta.appTitle, appSubtitle: meta.appSubtitle });
+});
+
 router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.hoofdstukken) meta.hoofdstukken = {};

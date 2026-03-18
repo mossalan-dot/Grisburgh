@@ -40,6 +40,10 @@ window.app = {
   renameGroup,
   newGroup,
   deleteGroup,
+  editHeader,
+  saveHeader,
+  cancelHeader,
+  applyAppMeta,
 };
 
 // ── Section switching ──
@@ -155,6 +159,10 @@ function applyRole() {
   if (logoutBtn) {
     logoutBtn.classList.toggle('hidden', state.role !== 'dm');
   }
+
+  // Potloodknop header: alleen zichtbaar voor actieve DM
+  const headerEditBtn = document.getElementById('header-edit-btn');
+  if (headerEditBtn) headerEditBtn.classList.toggle('hidden', !isDmActive);
 
   // Dice FAB: alleen zichtbaar voor spelers (niet voor actieve DM)
   const diceFab = document.getElementById('dice-fab');
@@ -525,6 +533,56 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ── Init ──
+// ── App header (titel + ondertitel) ──
+
+function applyAppMeta(meta) {
+  const m = meta || state.meta;
+  if (!m) return;
+  const titleEl    = document.getElementById('app-title');
+  const subtitleEl = document.getElementById('app-subtitle');
+  if (titleEl    && m.appTitle)    titleEl.textContent    = m.appTitle;
+  if (subtitleEl && m.appSubtitle) subtitleEl.textContent = m.appSubtitle;
+  // Paginatitel ook aanpassen
+  if (m.appTitle) document.title = m.appTitle;
+}
+
+function editHeader() {
+  const titleEl    = document.getElementById('app-title');
+  const subtitleEl = document.getElementById('app-subtitle');
+  const display    = document.getElementById('header-display');
+  const editor     = document.getElementById('header-editor');
+  const tInput     = document.getElementById('header-title-input');
+  const sInput     = document.getElementById('header-subtitle-input');
+  if (!display || !editor) return;
+  tInput.value = titleEl?.textContent || '';
+  sInput.value = subtitleEl?.textContent || '';
+  display.classList.add('hidden');
+  editor.classList.remove('hidden');
+  tInput.focus();
+  tInput.select();
+}
+
+async function saveHeader() {
+  const tInput = document.getElementById('header-title-input');
+  const sInput = document.getElementById('header-subtitle-input');
+  const t = tInput?.value.trim();
+  const s = sInput?.value.trim();
+  if (!t && !s) { cancelHeader(); return; }
+  try {
+    const updated = await api.saveAppMeta({ appTitle: t, appSubtitle: s });
+    state.meta = { ...state.meta, ...updated };
+    applyAppMeta(state.meta);
+  } catch (err) {
+    alert('Opslaan mislukt: ' + err.message);
+  }
+  cancelHeader();
+}
+
+function cancelHeader() {
+  document.getElementById('header-display')?.classList.remove('hidden');
+  document.getElementById('header-editor')?.classList.add('hidden');
+}
+
 async function init() {
   try {
     const { role } = await api.role();
@@ -533,7 +591,12 @@ async function init() {
 
   try {
     state.meta = await api.meta();
+    applyAppMeta(state.meta);
   } catch { /* ok */ }
+
+  // Enter in header-editor slaat op
+  document.getElementById('header-title-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') window.app.saveHeader(); if (e.key === 'Escape') window.app.cancelHeader(); });
+  document.getElementById('header-subtitle-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') window.app.saveHeader(); if (e.key === 'Escape') window.app.cancelHeader(); });
 
   applyRole();
   initCampagne();
