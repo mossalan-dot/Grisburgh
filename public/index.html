@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=7">
+  <link rel="stylesheet" href="/css/theme.css?v=16">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -66,8 +66,11 @@
             <span class="text-gold-dim text-[10px] leading-none select-none">✦</span>
           </div>
         </div>
-        <!-- Party portraits (rendered by JS) -->
-        <div id="party-bar" class="flex items-end gap-3 flex-1 overflow-x-auto pt-2"></div>
+        <!-- Groepswisselaar + party portraits -->
+        <div class="flex flex-col flex-1 min-w-0">
+          <div id="group-switcher" class="dm-only hidden flex items-center gap-1 flex-wrap mb-1"></div>
+          <div id="party-bar" class="flex items-end gap-3 overflow-x-auto pt-1"></div>
+        </div>
         <!-- DM toggle -->
         <div class="flex items-center gap-2 flex-shrink-0">
           <span id="dm-toggle-label" class="text-xs font-mono text-ink-dim select-none">DM</span>
@@ -132,9 +135,12 @@
     <div class="modal animate-modal-in">
       <div id="m-accent" class="modal-accent"></div>
       <div class="modal-head">
-        <div>
-          <div class="font-cinzel text-xl text-gold font-bold" id="m-title"></div>
-          <div class="text-ink-dim text-sm italic" id="m-sub"></div>
+        <div class="flex items-center gap-2 min-w-0 flex-1">
+          <button id="m-back" class="modal-back hidden" onclick="window._modalGoBack()" title="Terug">&#8592;</button>
+          <div class="min-w-0">
+            <div class="font-cinzel text-xl text-gold font-bold" id="m-title"></div>
+            <div class="text-ink-dim text-sm italic" id="m-sub"></div>
+          </div>
         </div>
         <button class="modal-close" onclick="window.app.closeModal()">&times;</button>
       </div>
@@ -149,35 +155,92 @@
     <div id="lb-title" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/70 bg-black/50 px-4 py-1 rounded text-sm font-fell italic"></div>
   </div>
 
-  <!-- Dice roller trigger — small button, bottom-right corner -->
-  <button id="dice-fab" class="dice-fab" onclick="window.dice.toggle()" title="Dobbelstenen gooien">
-    <svg viewBox="0 0 24 22" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
-      <polygon points="12,1.5 23,20.5 1,20.5"/>
-      <polygon points="6.5,11.5 17.5,11.5 12,20"/>
+  <!-- Combat overlay — visible to everyone when combat is active -->
+  <div id="combat-overlay" class="combat-overlay hidden">
+    <div class="combat-modal">
+      <div id="combat-modal-inner"></div>
+    </div>
+  </div>
+
+  <!-- DM Panel trigger — DM only, bottom-right -->
+  <button id="dm-panel-fab" class="dm-panel-fab dm-only hidden" onclick="window.dmPanel.toggle()" title="DM-paneel">
+    <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+      <circle cx="10" cy="10" r="3"/>
+      <path d="M10 1v3M10 16v3M1 10h3M16 10h3M3.5 3.5l2.1 2.1M14.4 14.4l2.1 2.1M3.5 16.5l2.1-2.1M14.4 5.6l2.1-2.1"/>
     </svg>
   </button>
 
-  <!-- Dice Roller Panel — slides up from bottom-right -->
-  <div id="dice-panel" class="dice-panel">
-    <div class="dice-panel-head">
-      <span class="dice-panel-title">⚄ Dobbelstenen</span>
-      <button class="dice-panel-close" onclick="window.dice.toggle()" title="Sluiten">&times;</button>
+  <!-- DM Panel — slides up from bottom-right -->
+  <div id="dm-panel" class="dm-panel dm-only">
+    <div class="dm-panel-head">
+      <span class="dm-panel-title">🔧 DM-paneel</span>
+      <button class="dm-panel-close" onclick="window.dmPanel.close()" title="Sluiten">&times;</button>
     </div>
-    <div class="dice-panel-grid">
-      <button class="dice-btn" onclick="window.dice.roll(4)">d4</button>
-      <button class="dice-btn" onclick="window.dice.roll(6)">d6</button>
-      <button class="dice-btn" onclick="window.dice.roll(8)">d8</button>
-      <button class="dice-btn" onclick="window.dice.roll(12)">d12</button>
-      <button class="dice-btn dice-btn--featured" onclick="window.dice.roll(20)">d20</button>
-      <button class="dice-btn" onclick="window.dice.roll(100)">d%</button>
+    <div class="dm-panel-tabs">
+      <button class="dm-tab-btn active" data-tab="tunnel"        onclick="window.dmPanel.switchTab('tunnel')"        title="Tunnel">🌐</button>
+      <button class="dm-tab-btn"        data-tab="spreuken"      onclick="window.openSpellLookup()"                  title="Spreuken">📖</button>
+      <button class="dm-tab-btn"        data-tab="tafels"        onclick="window.dmPanel.switchTab('tafels')"        title="Tafels">🎲</button>
+      <button class="dm-tab-btn"        data-tab="monsters"      onclick="window.dmPanel.switchTab('monsters')"      title="Monsterbibliotheek">👾</button>
+      <button class="dm-tab-btn"        data-tab="gevecht"       onclick="window.dmPanel.switchTab('gevecht')"       title="Gevecht">⚔️</button>
+      <button class="dm-tab-btn"        data-tab="dobbelstenen"  onclick="window.dmPanel.switchTab('dobbelstenen')"  title="Dobbelstenen">⚄</button>
     </div>
-    <div class="dice-result" id="dice-result">
-      <div class="dice-result-num" id="dice-result-num">—</div>
-      <div class="dice-result-label" id="dice-result-label">Kies een dobbelsteen</div>
+    <div class="dm-panel-body">
+      <!-- Tunnel tab -->
+      <div class="dm-tab-content active" data-tab="tunnel">
+        <div id="dm-tunnel-content"></div>
+      </div>
+      <!-- Spreuken tab -->
+      <div class="dm-tab-content" data-tab="spreuken">
+        <div class="dm-feature-section">
+          <p class="dm-hint">Zoek een spreuk op via 5e.tools. Opent in een nieuw tabblad.</p>
+          <button class="dm-btn dm-btn-primary" onclick="window.openSpellLookup()">📖 Open spreukenlijst</button>
+        </div>
+      </div>
+      <!-- Tafels tab -->
+      <div class="dm-tab-content" data-tab="tafels">
+        <div id="dm-tafels-content"></div>
+      </div>
+      <!-- Monsters tab -->
+      <div class="dm-tab-content" data-tab="monsters">
+        <div id="dm-monsters-content"></div>
+      </div>
+      <!-- Gevecht tab -->
+      <div class="dm-tab-content" data-tab="gevecht">
+        <div id="dm-gevecht-content"></div>
+      </div>
+      <!-- Dobbelstenen tab -->
+      <div class="dm-tab-content" data-tab="dobbelstenen">
+        <div class="dice-panel-grid">
+          <button class="dice-btn" onclick="window.dice.roll(4)">d4</button>
+          <button class="dice-btn" onclick="window.dice.roll(6)">d6</button>
+          <button class="dice-btn" onclick="window.dice.roll(8)">d8</button>
+          <button class="dice-btn" onclick="window.dice.roll(12)">d12</button>
+          <button class="dice-btn dice-btn--featured" onclick="window.dice.roll(20)">d20</button>
+          <button class="dice-btn" onclick="window.dice.roll(100)">d%</button>
+        </div>
+        <div class="dice-result" id="dice-result">
+          <div class="dice-result-num" id="dice-result-num">—</div>
+          <div class="dice-result-label" id="dice-result-label">Kies een dobbelsteen</div>
+        </div>
+        <div class="dice-history" id="dice-history"></div>
+      </div>
     </div>
-    <div class="dice-history" id="dice-history"></div>
   </div>
 
-  <script type="module" src="/js/app.js?v=7"></script>
+  <!-- Spell lookup modal (iframe) -->
+  <div id="spell-overlay" class="modal-overlay" onclick="if(event.target===this)window.closeSpellLookup()">
+    <div class="spell-modal animate-modal-in">
+      <div class="modal-head">
+        <div class="font-cinzel text-lg text-gold font-bold">📖 Spreuken — 5e.tools</div>
+        <button class="modal-close" onclick="window.closeSpellLookup()">&times;</button>
+      </div>
+      <iframe id="spell-iframe" class="spell-iframe"
+        src="" frameborder="0" allowfullscreen
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups">
+      </iframe>
+    </div>
+  </div>
+
+  <script type="module" src="/js/app.js?v=16"></script>
 </body>
 </html>
