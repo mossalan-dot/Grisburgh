@@ -399,6 +399,7 @@ function _renderTafelEditor(el) {
   // When first opening editor, set _editingTableType from existing table
   if (!isNew && _editingTableType !== table.type) { /* preserve current user selection */ }
   const isCombined = _editingTableType === 'combined';
+  // _editingTableType is leading (set via tabelTypeChange or tabelEdit)
   el.innerHTML = `
     <div class="dm-feature-section">
       <div class="dm-form-row">
@@ -408,8 +409,9 @@ function _renderTafelEditor(el) {
       <div class="dm-form-row">
         <label class="dm-form-label">Type</label>
         <select id="dm-tbl-type" class="dm-select" onchange="window.dmPanel.tabelTypeChange(this.value)">
-          <option value="simple"   ${!isCombined ? 'selected' : ''}>Simple table</option>
-          <option value="combined" ${isCombined  ? 'selected' : ''}>Name generator (2×d100)</option>
+          <option value="simple"   ${_editingTableType === 'simple'   ? 'selected' : ''}>Simple table</option>
+          <option value="weighted" ${_editingTableType === 'weighted' ? 'selected' : ''}>d100 bereiken</option>
+          <option value="combined" ${_editingTableType === 'combined' ? 'selected' : ''}>Name generator (2×d100)</option>
         </select>
       </div>
       ${isCombined ? `
@@ -420,6 +422,11 @@ function _renderTafelEditor(el) {
         <div class="dm-form-row">
           <label class="dm-form-label">Last names (one per line)</label>
           <textarea id="dm-tbl-last" class="dm-textarea" rows="5">${(table.last || []).join('\n')}</textarea>
+        </div>
+      ` : _editingTableType === 'weighted' ? `
+        <div class="dm-form-row">
+          <label class="dm-form-label">Bereiken (formaat: 1-35: tekst, één per regel)</label>
+          <textarea id="dm-tbl-entries" class="dm-textarea" rows="10">${(table.entries || []).join('\n')}</textarea>
         </div>
       ` : `
         <div class="dm-form-row">
@@ -463,6 +470,20 @@ function _tabelRoll() {
       results.push(`${first} ${last}`);
     }
     _renderTafelResult(results);
+  } else if (table.type === 'weighted') {
+    // Elke entry heeft formaat "van-tot: tekst", gooi d100 en zoek overeenkomst
+    const entries = table.entries || [];
+    if (entries.length === 0) { _renderTafelResult('Tafel is leeg'); return; }
+    const d100 = Math.floor(Math.random() * 100) + 1;
+    let match = null;
+    for (const entry of entries) {
+      const m = entry.match(/^(\d+)[-–](\d+):\s*(.+)$/);
+      if (m) {
+        const from = parseInt(m[1]), to = parseInt(m[2]);
+        if (d100 >= from && d100 <= to) { match = m[3].trim(); break; }
+      }
+    }
+    _renderTafelResult(match ? `d100: ${d100} → ${match}` : `d100: ${d100} → (geen treffer)`);
   } else {
     const entries = table.entries || [];
     if (entries.length === 0) { _renderTafelResult('Table is empty'); return; }
