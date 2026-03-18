@@ -18,6 +18,19 @@ const $ = (...a) => window.app.$(...a);
 const esc = (...a) => window.app.esc(...a);
 const openModal = (...a) => window.app.openModal(...a);
 
+function _sortKey(name) {
+  return (name || '').replace(/^(de|het|'t)\s+/i, '').trim();
+}
+
+function _fitText(el) {
+  el.style.fontSize = '';
+  if (el.scrollWidth <= el.clientWidth) return;
+  for (let size = 13; size >= 9; size--) {
+    el.style.fontSize = size + 'px';
+    if (el.scrollWidth <= el.clientWidth) break;
+  }
+}
+
 export function initDashboard() {}
 
 export async function renderDashboard() {
@@ -77,6 +90,8 @@ export async function renderDashboard() {
     </div>
   `;
 
+  requestAnimationFrame(() => container.querySelectorAll('[data-fittext]').forEach(_fitText));
+
   container.querySelectorAll('.panel-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       activePanel = btn.dataset.panel;
@@ -121,7 +136,7 @@ function filterList(list) {
       return fields.includes(q);
     });
   }
-  return result.slice().sort((a, b) => a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' }));
+  return result.slice().sort((a, b) => _sortKey(a.name).localeCompare(_sortKey(b.name), 'nl', { sensitivity: 'base' }));
 }
 
 function renderDashCard(e) {
@@ -150,7 +165,7 @@ function renderDashCard(e) {
         <div class="flex items-start gap-3 mb-2">
           <div class="text-2xl">${e.icon || meta.icon}</div>
           <div class="min-w-0">
-            <div class="font-cinzel font-bold text-ink-bright truncate">${esc(e.name)}</div>
+            <div class="font-cinzel font-bold text-ink-bright" data-fittext>${esc(e.name)}</div>
             ${metaText ? `<div class="text-xs text-ink-dim italic">${esc(metaText)}</div>` : ''}
           </div>
         </div>
