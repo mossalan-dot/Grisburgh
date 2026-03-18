@@ -26,6 +26,10 @@ const openModal = (...a) => window.app.openModal(...a);
 const closeModal = (...a) => window.app.closeModal(...a);
 const openLightbox = (...a) => window.app.openLightbox(...a);
 
+function _sortKey(name) {
+  return (name || '').replace(/^(de|het|'t)\s+/i, '').trim();
+}
+
 function fmtToolbar(id) {
   return `<div class="flex gap-1 mb-1">
     <button type="button" title="Vet (Ctrl+B)" onclick="window._fmt('${id}','**')"
@@ -119,6 +123,19 @@ export async function renderLogboek() {
   const entries = isDM() ? allEntries : allEntries.filter(e => e.visible);
   const hk = meta?.hoofdstukken || {};
 
+  // Group documents by chapter (hidden docs only visible for DM)
+  const allDocs = archiefData.documents || [];
+  const docsByChapter = {};
+  for (const d of allDocs) {
+    if (!isDM() && (d.state || 'hidden') === 'hidden') continue;
+    const ch = d.hoofdstuk || '_';
+    if (!docsByChapter[ch]) docsByChapter[ch] = [];
+    docsByChapter[ch].push(d);
+  }
+  for (const ch of Object.keys(docsByChapter)) {
+    docsByChapter[ch].sort((a, b) => _sortKey(a.name).localeCompare(_sortKey(b.name), 'nl', { sensitivity: 'base' }));
+  }
+
   // Group by chapter
   const groups = {};
   for (const e of entries) {
@@ -151,6 +168,13 @@ export async function renderLogboek() {
           <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
             ${chEntries.map(e => renderSessieEntry(e)).join('')}
           </div>
+          ${(docsByChapter[ch] || []).length ? `
+          <div class="mt-5 ml-6 pl-5 border-l-2 border-room-border">
+            <div class="text-[10px] font-cinzel font-semibold text-ink-faint uppercase tracking-widest mb-2">\ud83d\udcdc Documenten</div>
+            <div class="flex flex-wrap gap-2">
+              ${(docsByChapter[ch] || []).map(d => renderDocCardCompact(d)).join('')}
+            </div>
+          </div>` : ''}
         </div>
       `;
     }
@@ -852,6 +876,24 @@ function renderDocGrid(docs) {
   return `<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5">
     ${docs.map(d => renderDocCard(d)).join('')}
   </div>`;
+}
+
+function renderDocCardCompact(d) {
+  const state = d.state || 'hidden';
+  const isBlurred = !isDM() && state === 'blurred';
+  const dimmed = isDM() && state !== 'revealed';
+  return `
+    <div class="flex items-center gap-2 w-44 shrink-0 bg-room-elevated border border-room-border rounded-lg overflow-hidden cursor-pointer hover:border-room-border-light transition${dimmed ? ' opacity-60' : ''}"
+      onclick="window._openDoc('${d.id}')">
+      <img class="w-10 h-12 object-cover shrink-0${isBlurred ? ' blur-sm' : ''}"
+        src="${api.fileUrl(d.id)}" onerror="this.style.display='none'">
+      <div class="min-w-0 flex-1 py-1.5 pr-2">
+        <div class="text-[11px] font-cinzel font-semibold text-ink-bright leading-tight truncate${isBlurred ? ' blur-sm select-none' : ''}">${esc(d.name)}</div>
+        ${d.type ? `<div class="text-[10px] text-ink-faint italic mt-0.5">${esc(d.type)}</div>` : ''}
+      </div>
+      ${dimmed ? `<div class="text-[11px] pr-1.5 shrink-0">${state === 'blurred' ? '\ud83d\udc41' : '\ud83d\udd12'}</div>` : ''}
+    </div>
+  `;
 }
 
 function renderDocCard(d) {

@@ -260,6 +260,19 @@ async function renderEntitySection(type) {
   };
 }
 
+function _sortKey(name) {
+  return (name || '').replace(/^(de|het|'t)\s+/i, '').trim();
+}
+
+function _fitText(el) {
+  el.style.fontSize = '';
+  if (el.scrollWidth <= el.clientWidth) return;
+  for (let size = 13; size >= 9; size--) {
+    el.style.fontSize = size + 'px';
+    if (el.scrollWidth <= el.clientWidth) break;
+  }
+}
+
 function _refreshGrid(type, list, container) {
   const grid = container.querySelector('.cards-grid');
   if (!grid) return;
@@ -279,7 +292,10 @@ function _refreshGrid(type, list, container) {
         : ''}
     </div>
   ` : list.map(e => renderCard(type, e)).join('');
-  requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
+  requestAnimationFrame(() => {
+    window.scrollTo(0, savedScrollY);
+    grid.querySelectorAll('[data-fittext]').forEach(_fitText);
+  });
   const countEl = container.querySelector('.results-count');
   if (countEl) countEl.textContent = `${list.length} resultaten`;
 }
@@ -298,7 +314,7 @@ function filterEntities(type, list) {
         return fields.includes(q.toLowerCase()) || links.includes(q.toLowerCase());
       })
     : list;
-  return filtered.slice().sort((a, b) => a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' }));
+  return filtered.slice().sort((a, b) => _sortKey(a.name).localeCompare(_sortKey(b.name), 'nl', { sensitivity: 'base' }));
 }
 
 function renderCard(type, e) {
@@ -378,7 +394,7 @@ function renderCard(type, e) {
         <div class="flex items-start gap-2.5 mb-2">
           <div class="card-icon">${getAutoIcon(type, e)}</div>
           <div class="min-w-0 flex-1">
-            <span class="card-name truncate block">${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
+            <span class="card-name block" data-fittext>${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
             ${(rol || metaText) ? `<span class="card-name-sep"></span>` : ''}
             ${rol      ? `<div class="text-[11px] text-ink-medium italic truncate">${esc(rol)}</div>` : ''}
             ${metaText ? `<div class="text-[11px] text-ink-dim truncate">${esc(metaText)}</div>` : ''}
