@@ -15,9 +15,12 @@ async function request(path, opts = {}) {
 
 export const api = {
   // Auth
-  login: (password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ password }) }),
-  logout: () => request('/auth/logout', { method: 'POST' }),
-  role: () => request('/auth/role'),
+  login:             (password)     => request('/auth/login',         { method: 'POST', body: JSON.stringify({ password }) }),
+  logout:            ()             => request('/auth/logout',        { method: 'POST' }),
+  role:              ()             => request('/auth/role'),
+  listPlayerChars:   ()             => request('/auth/players'),
+  playerLogin:       (characterId)  => request('/auth/player-login',  { method: 'POST', body: JSON.stringify({ characterId }) }),
+  playerLogout:      ()             => request('/auth/player-logout', { method: 'POST' }),
 
   // Entities
   listEntities: (type) => request(`/entities/${type}`),
@@ -37,8 +40,12 @@ export const api = {
   deleteGroup:  (id)         => request(`/groups/${id}`,  { method: 'DELETE' }),
 
   // DM Notes
-  getNote: (id) => request(`/dm/notes/${id}`),
-  saveNote: (id, note) => request(`/dm/notes/${id}`, { method: 'PUT', body: JSON.stringify({ note }) }),
+  getNote:   (id)       => request(`/dm/notes/${id}`),
+  saveNote:  (id, note) => request(`/dm/notes/${id}`, { method: 'PUT', body: JSON.stringify({ note }) }),
+
+  // Spelersaantekeningen
+  getPlayerNotes:  (entityId)       => request(`/player-notes/${entityId}`),
+  savePlayerNote:  (entityId, note) => request(`/player-notes/${entityId}`, { method: 'PUT', body: JSON.stringify({ note }) }),
 
   // Archief
   listArchief: () => request('/archief'),
@@ -72,6 +79,10 @@ export const api = {
   saveAppMeta: (data) => request('/meta/app', { method: 'PUT', body: JSON.stringify(data) }),
 
   // Kaart
+  listMaps:     ()         => request('/map/maps'),
+  createMap:    (data)     => request('/map/maps',      { method: 'POST',   body: JSON.stringify(data) }),
+  updateMap:    (id, data) => request(`/map/maps/${id}`,{ method: 'PUT',    body: JSON.stringify(data) }),
+  deleteMap:    (id)       => request(`/map/maps/${id}`,{ method: 'DELETE' }),
   mapPins: (mapId) => request(`/map/pins?mapId=${encodeURIComponent(mapId || 'grisburgh')}`),
   createMapPin: (data) => request('/map/pins', { method: 'POST', body: JSON.stringify(data) }),
   updateMapPin: (id, data) => request(`/map/pins/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -93,6 +104,24 @@ export const api = {
   createMonster:  (data)     => request('/monsters',        { method: 'POST',   body: JSON.stringify(data) }),
   updateMonster:  (id, data) => request(`/monsters/${id}`,  { method: 'PUT',    body: JSON.stringify(data) }),
   deleteMonster:  (id)       => request(`/monsters/${id}`,  { method: 'DELETE' }),
+
+  // Voorwerpen claimen & ruilen
+  getItemOwnership:    ()              => request('/items/ownership'),
+  requestItem:         (id, body)      => request(`/items/${id}/request`,              { method: 'POST',   body: JSON.stringify(body) }),
+  approveItemRequest:  (reqId)         => request(`/items/request/${reqId}/approve`,   { method: 'POST' }),
+  rejectItemRequest:   (reqId)         => request(`/items/request/${reqId}/reject`,    { method: 'POST' }),
+  removeItemOwner:     (id)            => request(`/items/${id}/owner`,                { method: 'DELETE' }),
+  setTradeAllowed:     (allowed)       => request('/items/trade-allowed',              { method: 'PUT',    body: JSON.stringify({ allowed }) }),
+
+  // Speler HP
+  getPlayerHp:     (characterId)        => request(`/player-hp/${characterId}`),
+  setPlayerHp:     (characterId, data)  => request(`/player-hp/${characterId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  combatPlayerHp:  (combatantId, hp)    => request(`/combat/player-hp/${combatantId}`, { method: 'PATCH', body: JSON.stringify({ hp }) }),
+
+  // Speler losse voorwerpen
+  getPlayerItems:   (characterId)          => request(`/player-items/${characterId}`),
+  addPlayerItem:    (characterId, data)    => request(`/player-items/${characterId}`,          { method: 'POST',   body: JSON.stringify(data) }),
+  removePlayerItem: (characterId, itemId)  => request(`/player-items/${characterId}/${itemId}`, { method: 'DELETE' }),
 
   // Gevecht
   getCombat:        ()        => request('/combat'),

@@ -48,6 +48,12 @@ app.get('*', (req, res) => {
 // Socket.io
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
+
+  // Relay player emote trigger — DM browser catches it and plays the sound
+  socket.on('sound:emote', (data) => {
+    io.emit('sound:emote', data);
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });

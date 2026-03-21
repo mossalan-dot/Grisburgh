@@ -3,6 +3,7 @@ const multer = require('multer');
 const { spawn } = require('child_process');
 const storage = require('../lib/storage');
 const { requireDM, attachRole } = require('./auth');
+const { buildSnapshot } = require('../lib/snapshot');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
@@ -20,6 +21,9 @@ function readDmState() {
       visibility:    state.visibility    || {},
       secretReveals: state.secretReveals || {},
       deceased:      state.deceased      || {},
+      itemOwners:    state.itemOwners    || {},
+      itemRequests:  state.itemRequests  || [],
+      tradeAllowed:  state.tradeAllowed !== false,
     };
     const migrated = {
       activeGroup: 'groep1',
@@ -29,6 +33,23 @@ function readDmState() {
     };
     storage.writeJSON('dm-state.json', migrated);
     return migrated;
+  }
+  // Migreer top-niveau itemOwners/itemRequests/tradeAllowed naar actieve groep (eenmalig)
+  if (state.itemOwners !== undefined || state.itemRequests !== undefined || state.tradeAllowed !== undefined) {
+    const g = state.groups[state.activeGroup] || Object.values(state.groups)[0];
+    if (g) {
+      // Kopieer alleen als er daadwerkelijk data is (niet-lege object/array)
+      if (state.itemOwners && Object.keys(state.itemOwners).length > 0)
+        g.itemOwners = state.itemOwners;
+      if (state.itemRequests && state.itemRequests.length > 0)
+        g.itemRequests = state.itemRequests;
+      if (state.tradeAllowed !== undefined)
+        g.tradeAllowed = state.tradeAllowed;
+    }
+    delete state.itemOwners;
+    delete state.itemRequests;
+    delete state.tradeAllowed;
+    storage.writeJSON('dm-state.json', state);
   }
   return state;
 }
@@ -360,6 +381,252 @@ router.put('/dm/notes/:id', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Spelersaantekeningen ──
+// Opslag: player-notes.json  →  { "entityId::playerName": "tekst", ... }
+
+router.get('/player-notes/:entityId', attachRole, (req, res) => {
+  const { entityId } = req.params;
+  const notes = storage.readJSON('player-notes.json');
+  if (req.role === 'dm') {
+    // DM ziet alle aantekeningen voor dit kaartje, gegroepeerd per speler
+    const result = {};
+    for (const [key, text] of Object.entries(notes)) {
+      const [eid, playerName] = key.split('::');
+      if (eid === entityId && text) result[playerName] = text;
+    }
+    return res.json({ notes: result });
+  }
+  // Speler ziet alleen eigen aantekening
+  if (!req.playerName) return res.json({ note: '' });
+  const key = `${entityId}::${req.playerName}`;
+  res.json({ note: notes[key] || '' });
+});
+
+router.put('/player-notes/:entityId', attachRole, (req, res) => {
+  if (!req.playerName) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+  const { entityId } = req.params;
+  const note  = req.body.note || '';
+  const notes = storage.readJSON('player-notes.json');
+  const key   = `${entityId}::${req.playerName}`;
+  notes[key]  = note;
+  storage.writeJSON('player-notes.json', notes);
+  // Zoek de entiteitsnaam op voor de toast-melding aan de DM
+  if (note.trim()) {
+    try {
+      const entities  = storage.readJSON('entities.json');
+      let entityName  = entityId;
+      for (const type of ['personages', 'locaties', 'organisaties', 'voorwerpen']) {
+        const found = (entities[type] || []).find(e => e.id === entityId);
+        if (found) { entityName = found.name; break; }
+      }
+      req.app.get('io').emit('notes:created', {
+        playerName: req.playerName,
+        entityId,
+        entityName,
+      });
+    } catch { /* niet kritiek */ }
+  }
+  res.json({ ok: true });
+});
+
+// ── Voorwerpen claimen & ruilen ──
+// dm-state.json:
+//   itemOwners:  { itemId: { characterId, playerName } }
+//   itemRequests: [ { id, itemId, itemName, type:'claim'|'trade', requesterId, requesterName,
+//                     targetId?, targetName?, status:'pending'|'approved'|'rejected' } ]
+//   tradeAllowed: boolean
+
+router.get('/items/ownership', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  res.json({
+    owners:       g.itemOwners   || {},
+    requests:     g.itemRequests || [],
+    tradeAllowed: g.tradeAllowed !== false,
+  });
+});
+
+router.put('/items/trade-allowed', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  g.tradeAllowed = !!req.body.allowed;
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('items:ownership-updated', {
+    owners: g.itemOwners || {}, requests: g.itemRequests || [],
+    tradeAllowed: g.tradeAllowed,
+  });
+  res.json({ tradeAllowed: g.tradeAllowed });
+});
+
+router.post('/items/:itemId/request', attachRole, (req, res) => {
+  if (!req.playerName) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+  const { itemId } = req.params;
+  const { type = 'claim', targetId, targetName } = req.body;
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  if (!g.itemOwners)   g.itemOwners   = {};
+  if (!g.itemRequests) g.itemRequests = [];
+
+  // Zoek itemnaam op
+  let itemName = itemId;
+  try {
+    const entities = storage.readJSON('entities.json');
+    const item = (entities.voorwerpen || []).find(e => e.id === itemId);
+    if (item) itemName = item.name;
+  } catch { /* ok */ }
+
+  // Controleer of er al een openstaand verzoek is voor dit item door deze speler
+  const existing = g.itemRequests.find(
+    r => r.itemId === itemId && r.requesterId === req.session.characterId && r.status === 'pending'
+  );
+  if (existing) return res.status(409).json({ error: 'Al een openstaand verzoek' });
+
+  const reqObj = {
+    id:            'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    itemId,
+    itemName,
+    type,
+    requesterId:   req.session.characterId,
+    requesterName: req.playerName,
+    targetId:      targetId   || null,
+    targetName:    targetName || null,
+    status:        'pending',
+    createdAt:     new Date().toISOString(),
+  };
+  g.itemRequests.push(reqObj);
+  storage.writeJSON('dm-state.json', dmState);
+
+  req.app.get('io').emit('items:request', {
+    ...reqObj,
+    owners:       g.itemOwners,
+    requests:     g.itemRequests,
+    tradeAllowed: g.tradeAllowed !== false,
+  });
+  res.status(201).json(reqObj);
+});
+
+router.post('/items/request/:reqId/approve', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  if (!g.itemRequests) g.itemRequests = [];
+  if (!g.itemOwners)   g.itemOwners   = {};
+  const idx = g.itemRequests.findIndex(r => r.id === req.params.reqId);
+  if (idx === -1) return res.status(404).json({ error: 'Verzoek niet gevonden' });
+  const r = g.itemRequests[idx];
+  g.itemRequests[idx].status = 'approved';
+
+  if (r.type === 'claim') {
+    g.itemOwners[r.itemId] = { characterId: r.requesterId, playerName: r.requesterName };
+  } else if (r.type === 'trade' && r.targetId) {
+    g.itemOwners[r.itemId] = { characterId: r.requesterId, playerName: r.requesterName };
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('items:ownership-updated', {
+    owners: g.itemOwners, requests: g.itemRequests,
+    tradeAllowed: g.tradeAllowed !== false,
+  });
+  res.json({ ok: true });
+});
+
+router.post('/items/request/:reqId/reject', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  if (!g.itemRequests) g.itemRequests = [];
+  const idx = g.itemRequests.findIndex(r => r.id === req.params.reqId);
+  if (idx === -1) return res.status(404).json({ error: 'Verzoek niet gevonden' });
+  g.itemRequests[idx].status = 'rejected';
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('items:ownership-updated', {
+    owners: g.itemOwners || {}, requests: g.itemRequests,
+    tradeAllowed: g.tradeAllowed !== false,
+  });
+  res.json({ ok: true });
+});
+
+router.delete('/items/:itemId/owner', requireDM, (req, res) => {
+  const dmState  = readDmState();
+  const g        = getGroup(dmState);
+  const entities = storage.readJSON('entities.json');
+  const item     = (entities.voorwerpen || []).find(e => e.id === req.params.itemId);
+  const prevOwner = (g.itemOwners || {})[req.params.itemId] || null;
+  if (g.itemOwners) delete g.itemOwners[req.params.itemId];
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('items:ownership-updated', {
+    owners:       g.itemOwners  || {},
+    requests:     g.itemRequests || [],
+    tradeAllowed: g.tradeAllowed !== false,
+    takenBack:    prevOwner ? { itemName: item?.name || '', ...prevOwner } : null,
+  });
+  res.json({ ok: true });
+});
+
+// ── Speler HP (buiten gevecht) ──
+
+router.get('/player-hp/:characterId', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const hp = (dmState.playerHp || {})[req.params.characterId] || { current: null, max: null };
+  res.json(hp);
+});
+
+router.patch('/player-hp/:characterId', attachRole, (req, res) => {
+  // DM mag alles; speler mag alleen eigen HP
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId) {
+    return res.status(403).json({ error: 'Geen toegang' });
+  }
+  const dmState = readDmState();
+  if (!dmState.playerHp) dmState.playerHp = {};
+  const existing = dmState.playerHp[characterId] || { current: null, max: null };
+  const updated = {
+    current: req.body.current !== undefined ? parseInt(req.body.current) : existing.current,
+    max:     req.body.max     !== undefined ? parseInt(req.body.max)     : existing.max,
+  };
+  dmState.playerHp[characterId] = updated;
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('player:hp-updated', { characterId, ...updated });
+  res.json(updated);
+});
+
+// ── Speler losse voorwerpen ──
+
+router.get('/player-items/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  res.json((dmState.playerItems || {})[characterId] || []);
+});
+
+router.post('/player-items/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const { name, note } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Naam vereist' });
+  const dmState = readDmState();
+  if (!dmState.playerItems) dmState.playerItems = {};
+  if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];
+  const item = {
+    id:   'pi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    name: name.trim(),
+    note: (note || '').trim(),
+  };
+  dmState.playerItems[characterId].push(item);
+  storage.writeJSON('dm-state.json', dmState);
+  res.status(201).json(item);
+});
+
+router.delete('/player-items/:characterId/:itemId', attachRole, (req, res) => {
+  const { characterId, itemId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  if (dmState.playerItems?.[characterId])
+    dmState.playerItems[characterId] = dmState.playerItems[characterId].filter(i => i.id !== itemId);
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true });
+});
+
 // ── Groepen ──
 
 router.get('/groups', requireDM, (req, res) => {
@@ -381,6 +648,9 @@ router.post('/groups', requireDM, (req, res) => {
     visibility,
     secretReveals: {},
     deceased:      {},
+    itemOwners:    {},
+    itemRequests:  [],
+    tradeAllowed:  true,
   };
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
@@ -612,6 +882,7 @@ router.put('/sessieLog/:id', requireDM, (req, res) => {
       if (wasHidden) {
         req.app.get('io').emit('logboek:imageRevealed', {
           sessieId:     req.params.id,
+          imageId:      img.id,
           caption:      img.caption || '',
           samenvatting: oldEntry.korteSamenvatting || '',
         });
@@ -649,6 +920,23 @@ router.delete('/files/:id', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Sounds ──
+
+router.get('/sounds', (req, res) => {
+  let data = storage.readJSON('sounds.json');
+  if (!data) data = { standard: { damage: null, healing: null, win: null, loss: null }, emotes: {} };
+  res.json(data);
+});
+
+router.put('/sounds', requireDM, (req, res) => {
+  let data = storage.readJSON('sounds.json');
+  if (!data) data = { standard: { damage: null, healing: null, win: null, loss: null }, emotes: {} };
+  if (req.body.standard) Object.assign(data.standard, req.body.standard);
+  if (req.body.emotes)   Object.assign(data.emotes,   req.body.emotes);
+  storage.writeJSON('sounds.json', data);
+  res.json(data);
+});
+
 // ── Meta ──
 
 router.get('/meta', (req, res) => {
@@ -679,6 +967,56 @@ router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {
 });
 
 // ── Kaart ──
+
+const DEFAULT_MAPS = [
+  { id: 'grisburgh', label: 'Grisburgh', src: '/assets/map-grisburgh.jpg' },
+  { id: 'isfar',     label: 'Isfār',     src: '/assets/map-isfar.jpg' },
+];
+
+function getMaps() {
+  const mapData = storage.readJSON('map.json');
+  return mapData.maps || DEFAULT_MAPS;
+}
+
+router.get('/map/maps', attachRole, (req, res) => {
+  res.json(getMaps());
+});
+
+router.post('/map/maps', requireDM, (req, res) => {
+  const { label } = req.body;
+  if (!label) return res.status(400).json({ error: 'Label vereist' });
+  const mapData = storage.readJSON('map.json');
+  if (!mapData.maps) mapData.maps = [...DEFAULT_MAPS];
+  const map = { id: 'map_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4), label };
+  mapData.maps.push(map);
+  storage.writeJSON('map.json', mapData);
+  req.app.get('io').emit('map:updated');
+  res.json(map);
+});
+
+router.put('/map/maps/:id', requireDM, (req, res) => {
+  const { label } = req.body;
+  const mapData = storage.readJSON('map.json');
+  if (!mapData.maps) mapData.maps = [...DEFAULT_MAPS];
+  const map = mapData.maps.find(m => m.id === req.params.id);
+  if (!map) return res.status(404).json({ error: 'Niet gevonden' });
+  if (label) map.label = label;
+  storage.writeJSON('map.json', mapData);
+  req.app.get('io').emit('map:updated');
+  res.json(map);
+});
+
+router.delete('/map/maps/:id', requireDM, (req, res) => {
+  const mapData = storage.readJSON('map.json');
+  if (!mapData.maps) mapData.maps = [...DEFAULT_MAPS];
+  const map = mapData.maps.find(m => m.id === req.params.id);
+  if (map && !map.src) storage.deleteFile(map.id);  // clean up upload if not a static asset
+  mapData.maps = mapData.maps.filter(m => m.id !== req.params.id);
+  mapData.pins = (mapData.pins || []).filter(p => (p.mapId || 'grisburgh') !== req.params.id);
+  storage.writeJSON('map.json', mapData);
+  req.app.get('io').emit('map:updated');
+  res.json({ ok: true });
+});
 
 router.get('/map/pins', attachRole, (req, res) => {
   const mapId   = req.query.mapId || 'grisburgh';
@@ -965,6 +1303,30 @@ router.put('/combat/combatant/:id', requireDM, (req, res) => {
   res.json(combat.combatants.find(c => c.id === req.params.id));
 });
 
+// Speler mag alleen eigen HP updaten in actief gevecht
+router.patch('/combat/player-hp/:combatantId', attachRole, (req, res) => {
+  if (!req.playerName) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+  const combat = storage.readJSON('combat.json');
+  if (!combat.active) return res.status(400).json({ error: 'Geen actief gevecht' });
+  const idx = combat.combatants.findIndex(c => c.id === req.params.combatantId);
+  if (idx === -1) return res.status(404).json({ error: 'Niet gevonden' });
+  const c = combat.combatants[idx];
+  // Controleer dat dit de eigen combatant is (via naam of entityId)
+  const isOwn = c.name === req.playerName ||
+    (c.entityId && c.entityId === req.session.characterId);
+  if (!isOwn) return res.status(403).json({ error: 'Niet je eigen combatant' });
+  const newHp = Math.max(0, Math.min(c.maxHp || 999, parseInt(req.body.hp) || 0));
+  combat.combatants[idx] = { ...c, hp: newHp };
+  storage.writeJSON('combat.json', combat);
+  // Persisteer ook in playerHp
+  const dmState = readDmState();
+  if (!dmState.playerHp) dmState.playerHp = {};
+  dmState.playerHp[c.entityId || c.name] = { current: newHp, max: c.maxHp || newHp };
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('combat:updated', combat);
+  res.json({ hp: newHp });
+});
+
 router.put('/combat/winner', requireDM, (req, res) => {
   const combat = storage.readJSON('combat.json');
   combat.winner = req.body.winner || null;
@@ -982,6 +1344,25 @@ router.delete('/combat/combatant/:id', requireDM, (req, res) => {
   storage.writeJSON('combat.json', combat);
   req.app.get('io').emit('combat:updated', combat);
   res.json({ ok: true });
+});
+
+// ── Snapshot export ──
+
+router.get('/export', requireDM, async (req, res) => {
+  try {
+    const dmState  = readDmState();
+    const groupId  = req.query.groupId || dmState.activeGroup;
+    const html     = await buildSnapshot(dmState, groupId);
+    const appTitle = storage.readJSON('meta.json').appTitle || 'grisburgh';
+    const slug     = appTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const date     = new Date().toISOString().slice(0,10);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${slug}-snapshot-${date}.html"`);
+    res.send(html);
+  } catch (err) {
+    console.error('Export error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

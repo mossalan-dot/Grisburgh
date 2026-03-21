@@ -7,7 +7,31 @@ const CONDITION_ICONS = {
   frightened: '😱', grappled: '✊', incapacitated: '💤', invisible: '👻',
   paralyzed: '⚡', petrified: '🪨', poisoned: '🤢', prone: '⬇️',
   restrained: '⛓️', stunned: '⭐', unconscious: '💀', concentration: '🔮',
+  bleeding: '🩸', burning: '🔥',
 };
+
+// ── Condition icons (JinxShadow, transparante PNG's) ─────────────────────────
+const _condImgs = {};
+const _COND_IDS = [
+  'blinded','charmed','concentration','deafened','exhaustion','frightened',
+  'grappled','incapacitated','invisible','paralyzed','petrified','poisoned',
+  'prone','restrained','stunned','unconscious','bleeding','burning',
+];
+_COND_IDS.forEach(id => {
+  const img = new Image();
+  img.onload = () => { _condImgs[id] = img; };
+  img.src = `/img/conditions/${id}.png`;
+});
+
+function _drawCondIcon(ctx, condId, dx, dy, dSize) {
+  const img = _condImgs[condId];
+  if (img) {
+    ctx.drawImage(img, dx, dy, dSize, dSize);
+  } else {
+    ctx.font = `${dSize}px serif`;
+    ctx.fillText(CONDITION_ICONS[condId] || '?', dx, dy);
+  }
+}
 
 // Volgorde van meest naar minst ingrijpend — bepaalt welk visueel effect getoond wordt
 const CONDITION_PRIORITY = [
@@ -32,6 +56,8 @@ const CONDITION_DESC = {
   restrained:    'Speed becomes 0. Attack rolls have disadvantage. Dexterity saving throws have disadvantage.',
   stunned:       'Incapacitated, can\'t move, can only speak falteringly. Automatically fails Strength and Dexterity saves. Attacks have advantage.',
   unconscious:   'Incapacitated, can\'t move or speak. Drops held items, falls prone. Automatically fails Str and Dex saves. Attacks have advantage; melee hits within 5 ft. are critical.',
+  bleeding:      'Losing blood. Takes 1d4 damage at the start of each turn. Ends when healed or a DC 10 Medicine check is made.',
+  burning:       'On fire. Takes 1d6 fire damage at the start of each turn. Can use an action to extinguish (drop and roll).',
 };
 
 function _getTopCondition(conds) {
@@ -54,6 +80,9 @@ let _hoverX    = 0;
 let _hoverY    = 0;
 let _hitEvents = [];      // [{id, delta, t0}] — floating damage/heal nummers
 let _positions = {};      // id -> {cx, cy, r} — gevuld tijdens drawCombatant, gebruikt voor floating numbers
+let _announcement = null; // { t0, type:'round'|'turn', title, subtitle, color }
+let _prevTurn  = -1;
+let _prevRound = -1;
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -65,6 +94,7 @@ export function init(canvasEl, combat) {
   _canvas.addEventListener('mousemove',  _onMouseMove);
   _canvas.addEventListener('mouseleave', _onMouseLeave);
   _canvas.addEventListener('touchstart', _onTouch, { passive: true });
+  _canvas.addEventListener('click',      _onClick);
   _updateState(combat);
   _loop();
 }
@@ -85,6 +115,7 @@ function _stop() {
     _canvas.removeEventListener('mousemove',  _onMouseMove);
     _canvas.removeEventListener('mouseleave', _onMouseLeave);
     _canvas.removeEventListener('touchstart', _onTouch);
+    _canvas.removeEventListener('click',      _onClick);
   }
 }
 
@@ -99,6 +130,31 @@ function _updateState(combat) {
       }
     });
   }
+  // ── Detecteer beurt- en ronde-overgangen ──
+  if (combat?.active && _prevRound >= 0) {
+    const newRound = combat.round || 1;
+    const newTurn  = combat.currentTurn ?? 0;
+    if (newRound > _prevRound) {
+      _announcement = { t0: performance.now(), type: 'round',
+        title: `RONDE ${newRound}`, subtitle: 'BEGINT', color: null };
+    } else if (newTurn !== _prevTurn) {
+      const cs  = combat.combatants || [];
+      const cur = cs[newTurn];
+      // Monsters met dezelfde initiative gaan samen; anderen individueel
+      const group = (cur?.type === 'monster') ? _getTurnGroup(cs, newTurn) : [newTurn];
+      const names = group.map(i => cs[i]?.name).filter(Boolean);
+      const ctype = cs[newTurn]?.type;
+      const color = ctype === 'player' ? '#90b8ff'
+                  : ctype === 'ally'   ? '#70d890'
+                  : ctype === 'summon' ? '#c090f8'
+                  :                     '#f07858';
+      _announcement = { t0: performance.now(), type: 'turn',
+        title: names.join(' & '), subtitle: 'is aan de beurt', color };
+    }
+  }
+  _prevRound = combat?.active ? (combat.round || 1) : -1;
+  _prevTurn  = combat?.active ? (combat.currentTurn ?? 0) : -1;
+
   _combat = combat;
   if (!combat) return;
   // Pre-load backdrop (first monster's backdropId)
@@ -140,13 +196,15 @@ function _getTurnGroup(cs, currentTurn) {
 
 function _draw() {
   if (!_canvas || !_ctx || !_combat) return;
+  const dpr = window.devicePixelRatio || 1;
   const W = _canvas.offsetWidth;
   const H = _canvas.offsetHeight;
   if (W < 4 || H < 4) return;                  // hidden / not laid out yet
-  if (_canvas.width !== W || _canvas.height !== H) {
-    _canvas.width  = W;
-    _canvas.height = H;
+  if (_canvas.width !== Math.round(W * dpr) || _canvas.height !== Math.round(H * dpr)) {
+    _canvas.width  = Math.round(W * dpr);
+    _canvas.height = Math.round(H * dpr);
   }
+  _ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const ctx = _ctx;
   const t   = (performance.now() - _t0) / 1000;
@@ -180,7 +238,7 @@ function _draw() {
 
   // ── Split combatants ──
   const cs       = _combat.combatants || [];
-  const players  = cs.filter(c => c.type === 'player' || c.type === 'ally');
+  const players  = cs.filter(c => c.type === 'player' || c.type === 'ally' || c.type === 'summon');
   const monsters = cs.filter(c => c.type === 'monster' && (c.hp || 0) > 0);
   const group    = _getTurnGroup(cs, _combat.currentTurn ?? 0);
 
@@ -195,22 +253,22 @@ function _draw() {
   if (isWide) {
     // Zij aan zij: spelers links, monsters rechts
     if (hasBoth) {
-      _drawSide(ctx, players,  cs, group, 0,     0, W / 2, H, t);
-      _drawSide(ctx, monsters, cs, group, W / 2, 0, W / 2, H, t);
+      _drawSide(ctx, players,  cs, group, 0,     0, W / 2, H, t, true);
+      _drawSide(ctx, monsters, cs, group, W / 2, 0, W / 2, H, t, true);
       _drawDivider(ctx, W / 2, 0, W / 2, H, 'vertical', t);
     } else if (monsters.length) {
-      _drawSide(ctx, monsters, cs, group, 0, 0, W, H, t);
+      _drawSide(ctx, monsters, cs, group, 0, 0, W, H, t, true);
     } else {
-      _drawSide(ctx, players,  cs, group, 0, 0, W, H, t);
+      _drawSide(ctx, players,  cs, group, 0, 0, W, H, t, true);
     }
   } else {
     // Gestapeld: monsters boven, spelers onder
     if (hasBoth) {
-      _drawSide(ctx, monsters, cs, group, 0, 0,     W, H / 2, t);
-      _drawSide(ctx, players,  cs, group, 0, H / 2, W, H / 2, t);
+      _drawSide(ctx, monsters, cs, group, 0, 0,     W, H / 2, t, false);
+      _drawSide(ctx, players,  cs, group, 0, H / 2, W, H / 2, t, false);
       _drawDivider(ctx, 0, H / 2, W, H / 2, 'horizontal', t);
     } else {
-      _drawSide(ctx, cs, cs, group, 0, 0, W, H, t);
+      _drawSide(ctx, cs, cs, group, 0, 0, W, H, t, false);
     }
   }
 
@@ -226,8 +284,170 @@ function _draw() {
     _drawWinScreen(ctx, W, H, _combat.winner, t);
   }
 
+  // ── Beurt / ronde aankondiging ──
+  if (_announcement) _drawAnnouncement(ctx, W, H, now);
+
   // ── Condition tooltip (bovenop alles) ──
   if (_hoverCond) _drawCondTooltip(ctx, W, H, _hoverCond, _hoverX, _hoverY);
+}
+
+// ── Beurt / ronde aankondiging ────────────────────────────────────────────────
+
+function _drawAnnouncement(ctx, W, H, nowMs) {
+  if (!_announcement) return;
+  const elapsed = (nowMs - _announcement.t0) / 1000;
+  const TOTAL = 3.0, FADE_IN = 0.35, FADE_OUT_START = 2.4;
+
+  if (elapsed >= TOTAL) { _announcement = null; return; }
+
+  const alpha = elapsed < FADE_IN
+    ? elapsed / FADE_IN
+    : elapsed > FADE_OUT_START
+      ? 1 - (elapsed - FADE_OUT_START) / (TOTAL - FADE_OUT_START)
+      : 1;
+
+  // Cubic ease-out voor slide-animatie
+  const slideP = Math.min(1, elapsed / FADE_IN);
+  const eased  = 1 - Math.pow(1 - slideP, 3);
+
+  const { type, title, subtitle, color } = _announcement;
+  const isRound = type === 'round';
+
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+
+  if (isRound) {
+    // ── Ronde-aankondiging: horizontale baan over het midden ──
+    const bh = Math.min(H * 0.20, 100);
+    const by = H / 2 - bh / 2;
+    const offsetX = (1 - eased) * -W;
+    ctx.translate(offsetX, 0);
+
+    // Achtergrond — verloopt aan de zijkanten naar transparant
+    const bg = ctx.createLinearGradient(0, 0, W, 0);
+    bg.addColorStop(0,    'rgba(0,0,0,0)');
+    bg.addColorStop(0.08, 'rgba(8,6,18,0.94)');
+    bg.addColorStop(0.92, 'rgba(8,6,18,0.94)');
+    bg.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, by, W, bh);
+
+    // Gouden decoratielijnen boven en onder
+    const lineInset = W * 0.06;
+    ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 10;
+    [[by + 2, '#c8940a'], [by + bh - 2, '#c8940a']].forEach(([ly, col]) => {
+      const lg = ctx.createLinearGradient(0, 0, W, 0);
+      lg.addColorStop(0,    'rgba(0,0,0,0)');
+      lg.addColorStop(0.08, col);
+      lg.addColorStop(0.92, col);
+      lg.addColorStop(1,    'rgba(0,0,0,0)');
+      ctx.strokeStyle = lg;
+      ctx.shadowColor = col;
+      ctx.beginPath();
+      ctx.moveTo(lineInset, ly);
+      ctx.lineTo(W - lineInset, ly);
+      ctx.stroke();
+    });
+
+    // Diamant-ornament in het midden van de lijnen
+    const drawDiamond = (dx, dy, size, col) => {
+      ctx.save();
+      ctx.translate(dx, dy);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = col;
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 10;
+      ctx.fillRect(-size / 2, -size / 2, size, size);
+      ctx.restore();
+    };
+    [by + 2, by + bh - 2].forEach(ly => {
+      [-28, 0, 28].forEach((offset, i) => {
+        drawDiamond(W / 2 + offset, ly, i === 1 ? 5 : 3.5, '#f0b800');
+      });
+    });
+
+    // Hoofdtitel "RONDE X"
+    const titleSz = Math.min(bh * 0.50, 46);
+    ctx.font         = `bold ${titleSz}px 'Cinzel', serif`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor  = '#f0c030';
+    ctx.shadowBlur   = 22;
+    ctx.fillStyle    = '#f5cc40';
+    ctx.fillText(title, W / 2, by + bh * 0.40);
+
+    // Subtitel "BEGINT"
+    if (subtitle) {
+      const subSz = Math.min(bh * 0.24, 20);
+      ctx.font         = `${subSz}px 'Cinzel', serif`;
+      ctx.shadowBlur   = 8;
+      ctx.shadowColor  = 'rgba(220,180,60,0.6)';
+      ctx.fillStyle    = 'rgba(215,190,130,0.90)';
+      // Letterspatiëring simuleren
+      const letters = subtitle.split('');
+      const spacing = subSz * 0.22;
+      const total   = ctx.measureText(subtitle).width + spacing * (letters.length - 1);
+      let lx = W / 2 - total / 2;
+      for (const ch of letters) {
+        ctx.fillText(ch, lx + ctx.measureText(ch).width / 2, by + bh * 0.73);
+        lx += ctx.measureText(ch).width + spacing;
+      }
+    }
+
+  } else {
+    // ── Beurt-aankondiging: banner onderin ──
+    const bh     = Math.min(H * 0.16, 78);
+    const by     = H - bh - H * 0.04;
+    const typeColor = color || '#f0c840';
+    const offsetY   = (1 - eased) * (bh + H * 0.04);
+    ctx.translate(0, offsetY);
+
+    // Achtergrond
+    const bg = ctx.createLinearGradient(0, 0, W, 0);
+    bg.addColorStop(0,    'rgba(0,0,0,0)');
+    bg.addColorStop(0.06, 'rgba(6,6,16,0.92)');
+    bg.addColorStop(0.94, 'rgba(6,6,16,0.92)');
+    bg.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, by, W, bh);
+
+    // Gekleurde accentlijn bovenaan (kleur op type)
+    const ag = ctx.createLinearGradient(0, 0, W, 0);
+    ag.addColorStop(0,    'rgba(0,0,0,0)');
+    ag.addColorStop(0.06, typeColor);
+    ag.addColorStop(0.94, typeColor);
+    ag.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.strokeStyle = ag;
+    ctx.lineWidth   = 2;
+    ctx.shadowColor = typeColor;
+    ctx.shadowBlur  = 12;
+    ctx.beginPath();
+    ctx.moveTo(W * 0.06, by + 1);
+    ctx.lineTo(W * 0.94, by + 1);
+    ctx.stroke();
+
+    // Naam
+    const titleSz = Math.min(bh * 0.46, 34);
+    ctx.font         = `bold ${titleSz}px 'Cinzel', serif`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor  = typeColor;
+    ctx.shadowBlur   = 18;
+    ctx.fillStyle    = typeColor;
+    ctx.fillText(title, W / 2, by + bh * 0.37);
+
+    // "is aan de beurt"
+    if (subtitle) {
+      const subSz = Math.min(bh * 0.27, 17);
+      ctx.font       = `${subSz}px 'Cinzel', serif`;
+      ctx.shadowBlur = 6;
+      ctx.fillStyle  = 'rgba(210,200,185,0.85)';
+      ctx.fillText(subtitle, W / 2, by + bh * 0.72);
+    }
+  }
+
+  ctx.restore();
 }
 
 // ── Floating damage / heal getal ─────────────────────────────────────────────
@@ -320,7 +540,23 @@ function _drawEmptyHint(ctx, W, H) {
   ctx.fillText('Geen deelnemers', W / 2, H / 2);
 }
 
-function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t) {
+function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t, isWide) {
+  // Gekleurde zijachtergrond
+  const isMonsterSide = group.every(c => c.type === 'monster');
+  if (isMonsterSide) {
+    const grad = ctx.createLinearGradient(x + w, y, x, y);
+    grad.addColorStop(0, 'rgba(160, 40, 30, 0.16)');
+    grad.addColorStop(1, 'rgba(160, 40, 30, 0.03)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, w, h);
+  } else {
+    const grad = ctx.createLinearGradient(x, y, x + w, y);
+    grad.addColorStop(0, 'rgba(50, 90, 180, 0.13)');
+    grad.addColorStop(1, 'rgba(50, 90, 180, 0.03)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, w, h);
+  }
+
   const n    = group.length;
   const GAP  = n > 1 ? Math.min(8, w * 0.02) : 0;
   const slotW = (w - GAP * (n - 1)) / n;
@@ -328,12 +564,13 @@ function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t) {
     const idx    = allCs.indexOf(c);
     const isActive = turnGroup.includes(idx);
     const slotX  = x + i * (slotW + GAP);
-    // Clip per slot zodat effects niet in de buurman bloeden
+    // Clip per slot: alleen horizontaal (zodat effects niet in de buurman bloeden),
+    // maar niet verticaal — iconen onder de HP-balk moeten zichtbaar blijven
     ctx.save();
     ctx.beginPath();
-    ctx.rect(slotX, y, slotW, h);
+    ctx.rect(slotX, 0, slotW, ctx.canvas.height);
     ctx.clip();
-    _drawCombatant(ctx, c, slotX, y, slotW, h, t, isActive);
+    _drawCombatant(ctx, c, slotX, y, slotW, h, t, isActive, isWide, idx + 1);
     ctx.restore();
   });
 }
@@ -348,7 +585,7 @@ function _avatarPath(ctx, c, cx, cy, r) {
   }
 }
 
-function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
+function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
   const isDead  = (c.hp || 0) <= 0;
   const conds   = isDead ? [] : (c.conditions || []);
   const hasCond = (name) => conds.includes(name);
@@ -400,15 +637,15 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
   } else {
     // Coloured placeholder
     const g = ctx.createRadialGradient(cx, cy - AVTR_R * 0.2, 0, cx, cy, AVTR_R * 1.1);
-    g.addColorStop(0, c.type === 'player' ? '#6080b8' : c.type === 'ally' ? '#5a9a6a' : '#8a4830');
-    g.addColorStop(1, c.type === 'player' ? '#2a3a60' : c.type === 'ally' ? '#1e4a30' : '#4a2010');
+    g.addColorStop(0, c.type === 'player' ? '#6080b8' : c.type === 'ally' ? '#5a9a6a' : c.type === 'summon' ? '#9060c8' : '#8a4830');
+    g.addColorStop(1, c.type === 'player' ? '#2a3a60' : c.type === 'ally' ? '#1e4a30' : c.type === 'summon' ? '#4a1880' : '#4a2010');
     ctx.fillStyle = g;
     ctx.fillRect(cx - AVTR_R, cy - AVTR_R, AVTR_R * 2, AVTR_R * 2);
     ctx.fillStyle    = 'rgba(255,255,255,0.25)';
     ctx.font         = `${AVTR_R * 0.85}px serif`;
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(c.type === 'player' ? '👤' : c.type === 'ally' ? '⚔️' : '👾', cx, cy);
+    ctx.fillText(c.type === 'player' ? '👤' : c.type === 'ally' ? '⚔️' : c.type === 'summon' ? '✨' : '👾', cx, cy);
   }
   ctx.restore();
 
@@ -417,12 +654,11 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
     ctx.save();
     ctx.beginPath();
     _avatarPath(ctx, c, cx, cy, AVTR_R);
-    ctx.strokeStyle = c.type === 'player'
-      ? 'rgba(100,140,220,0.35)'
-      : c.type === 'ally'
-        ? 'rgba(60,160,100,0.50)'
-        : 'rgba(180,90,50,0.35)';
-    ctx.lineWidth = c.type === 'ally' ? 2 : 1.5;
+    ctx.strokeStyle = c.type === 'player'  ? 'rgba(100,150,255,0.75)'
+      : c.type === 'ally'   ? 'rgba(60,180,110,0.80)'
+      : c.type === 'summon' ? 'rgba(180,110,255,0.80)'
+      : 'rgba(210,70,45,0.75)';
+    ctx.lineWidth = 2.5;
     ctx.stroke();
     ctx.restore();
   }
@@ -467,26 +703,24 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
   // ── Floating particle effects ──
   if (topCond) _fxParticles(ctx, topCond, cx, cy, AVTR_R, t);
 
-  // ── Condition icons — links in het slot, verticaal gecentreerd ──
-  const allConds = isDead ? [] : (c.conditions || []);
-  if (allConds.length > 0) {
+  // ── Initiative badge (top-left of avatar) ──
+  if (turnIndex !== undefined) {
+    const badgeR  = Math.max(8, Math.min(12, AVTR_R * 0.38));
+    const badgeX  = cx - AVTR_R * 0.72;
+    const badgeY  = cy - AVTR_R * 0.72;
     ctx.save();
-    const sz     = Math.max(11, Math.min(14, w * 0.09));
-    const lineH  = sz + 4;
-    const stackH = allConds.length * lineH - 4;
-    const iconX  = x + 4;
-    let   iconY  = y + h / 2 - stackH / 2;
-    ctx.font         = `${sz}px serif`;
-    ctx.fillStyle    = '#111111';
-    ctx.shadowColor  = 'rgba(255,255,255,0.8)';
-    ctx.shadowBlur   = 3;
-    ctx.textAlign    = 'left';
-    ctx.textBaseline = 'top';
-    allConds.forEach(id => {
-      ctx.fillText(CONDITION_ICONS[id] || '?', iconX, iconY);
-      _hitAreas.push({ x: iconX, y: iconY, w: sz + 2, h: sz, condId: id });
-      iconY += lineH;
-    });
+    ctx.beginPath();
+    ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);
+    ctx.fillStyle = isActive ? '#c4930a' : 'rgba(30,16,8,0.72)';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur  = 4;
+    ctx.fill();
+    ctx.shadowBlur  = 0;
+    ctx.font         = `bold ${Math.round(badgeR * 1.1)}px 'Cinzel', serif`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle    = '#ffffff';
+    ctx.fillText(String(turnIndex), badgeX, badgeY + 0.5);
     ctx.restore();
   }
 
@@ -504,18 +738,61 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive) {
     _drawDeathSaveDots(ctx, cx, barY + barH + 2, ds);
   }
 
+  // ── Condition icons ──
+  const allConds = isDead ? [] : (c.conditions || []);
+  if (allConds.length > 0) {
+    ctx.save();
+    ctx.font         = '12px serif';
+    ctx.fillStyle    = '#111111';
+    ctx.shadowColor  = 'rgba(255,255,255,0.8)';
+    ctx.shadowBlur   = 3;
+    ctx.textAlign    = 'left';
+    ctx.textBaseline = 'top';
+
+    if (isWide) {
+      // Horizontaal onder de HP-balk, begint bij barX
+      const sz    = Math.max(18, Math.min(26, AVTR_R * 0.72));
+      const gap   = 3;
+      let   iconX = barX;
+      const iconY = barY + barH + 14;
+      allConds.forEach(id => {
+        _drawCondIcon(ctx, id, iconX, iconY, sz);
+        _hitAreas.push({ x: iconX, y: iconY, w: sz, h: sz, condId: id });
+        iconX += sz + gap;
+      });
+    } else {
+      // Verticaal aan de linkerzijde, gecentreerd in het slot
+      const sz     = Math.max(16, Math.min(22, h * 0.11));
+      const lineH  = sz + 3;
+      const stackH = allConds.length * lineH - 3;
+      const iconX  = x + 3;
+      let   iconY  = y + h / 2 - stackH / 2;
+      allConds.forEach(id => {
+        _drawCondIcon(ctx, id, iconX, iconY, sz);
+        _hitAreas.push({ x: iconX, y: iconY, w: sz, h: sz, condId: id });
+        iconY += lineH;
+      });
+    }
+    ctx.restore();
+  }
+
   // ── Name ──
   const isDMView = window.app?.isDM?.();
   const fontSize = Math.max(9, Math.min(13, w * 0.1));
-  // Leave room for DM HP numbers or death save dots
-  const nameY    = barY + barH + (isDMView || isDying ? 14 : 7);
+  // In wide-modus: naam onder de iconrij; anders: onder de HP-balk
+  let nameY = barY + barH + (isDMView || isDying ? 14 : 7);
+  if (isWide && allConds.length > 0) {
+    const sz = Math.max(18, Math.min(26, AVTR_R * 0.72));
+    nameY = barY + barH + 14 + sz + 4;
+  }
   ctx.save();
   ctx.font         = `bold ${fontSize}px 'Cinzel', serif`;
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'top';
-  let label = c.name;
+  const fullName = c.type === 'player' ? c.name.split(' ')[0] : c.name;
+  let label = fullName;
   while (ctx.measureText(label).width > w - 6 && label.length > 3) label = label.slice(0, -1);
-  if (label !== c.name) label += '…';
+  if (label !== fullName) label += '…';
   // Witte outline — leesbaar op donkere achtergrond
   ctx.lineJoin     = 'round';
   ctx.lineWidth    = 3.5;
@@ -753,11 +1030,9 @@ function _fxRestrained(ctx, cx, cy, r, t) {
 // ── Muisinteractie — condition tooltip ───────────────────────────────────────
 
 function _onMouseMove(e) {
-  const rect  = _canvas.getBoundingClientRect();
-  const scaleX = _canvas.width  / rect.width;
-  const scaleY = _canvas.height / rect.height;
-  const mx = (e.clientX - rect.left) * scaleX;
-  const my = (e.clientY - rect.top)  * scaleY;
+  const rect = _canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left);
+  const my = (e.clientY - rect.top);
   _hoverX = mx;
   _hoverY = my;
   _hoverCond = null;
@@ -777,6 +1052,22 @@ function _onMouseLeave() {
 function _onTouch(e) {
   const touch = e.touches[0];
   if (touch) _onMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
+}
+
+function _onClick(e) {
+  const rect = _canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  for (const [id, pos] of Object.entries(_positions)) {
+    const dx = mx - pos.cx;
+    const dy = my - pos.cy;
+    if (Math.sqrt(dx * dx + dy * dy) <= pos.r + 4) {
+      window.dmPanel?.combatSelectCombatant?.(id);
+      return;
+    }
+  }
+  // Klik buiten elk portret → sluit detail-panel
+  window.dmPanel?.combatSelectCombatant?.(null);
 }
 
 function _drawCondTooltip(ctx, W, H, condId, mx, my) {

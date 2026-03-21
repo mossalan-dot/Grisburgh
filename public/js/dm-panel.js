@@ -20,6 +20,8 @@ const CONDITIONS = [
   { id: 'stunned',       label: 'Stunned',        desc: 'Incapacitated, cannot move, can speak only falteringly. Fails STR/DEX saves. Attack rolls against it have advantage.' },
   { id: 'unconscious',   label: 'Unconscious',    desc: 'Incapacitated, prone, unaware. Fails STR/DEX saves. Attacks have advantage. Hits within 5 ft. are critical hits.' },
   { id: 'concentration', label: 'Concentration',  desc: 'Concentrating on a spell. Ends if damaged (CON save, DC 10 or half damage taken) or incapacitated.' },
+  { id: 'bleeding',      label: 'Bleeding',       desc: 'Losing blood. Takes 1d4 damage at the start of each turn. Ends when healed or a DC 10 Medicine check is made.' },
+  { id: 'burning',       label: 'Burning',        desc: 'On fire. Takes 1d6 fire damage at the start of each turn. Can use an action to extinguish.' },
 ];
 
 const HP_LABELS = [
@@ -42,11 +44,19 @@ let _editingTableId = null;
 let _editingTableType = 'simple';
 let _combat = null;
 let _combatLoaded = false;
+let _selectedCombatantId = null;
 let _monsters = [];
+let _monsterChapterFilter    = '';
+let _monsterPage             = 0;
 let _editingMonsterId        = null;
 let _editingMonsterIsNew     = false;
 let _editingMonsterImageId   = null;
 let _editingMonsterBackdropId = null;
+
+// ── Spreuken state ──
+let _spellList   = null;   // null = not yet loaded, [] = loaded (possibly empty)
+let _spellQuery  = '';
+let _spellDetail = null;   // currently viewed spell data object
 let _setupSelectedType      = 'monster';
 let _setupSelectedPresetId  = null;
 let _setupSelectedEntityId  = null;
@@ -75,9 +85,15 @@ export function initDmPanel() {
     },
     switchTab(tab) { _switchTab(tab); },
 
+    // Spreuken
+    spellSearch: _spellSearch,
+    spellOpen:   _spellOpen,
+    spellBack:   _spellBack,
+
     // Tunnel
     tunnelToggle:  _tunnelToggle,
     tunnelCopy:    _tunnelCopy,
+    exportSnapshot: _exportSnapshot,
 
     // Tafels
     tabelRoll:     _tabelRoll,
@@ -94,11 +110,13 @@ export function initDmPanel() {
     },
 
     // Monster library
-    monsterNew:         _monsterNew,
-    monsterEdit:        _monsterEdit,
-    monsterCancel:      _monsterCancel,
-    monsterSave:        _monsterSave,
-    monsterDelete:      _monsterDelete,
+    monsterNew:          _monsterNew,
+    monsterEdit:         _monsterEdit,
+    monsterCancel:       _monsterCancel,
+    monsterSave:         _monsterSave,
+    monsterDelete:       _monsterDelete,
+    monsterFilterChapter: _monsterFilterChapter,
+    monsterPage:          _monsterPage_set,
     monsterUpload:      _monsterUpload,
     monsterRemoveImage: _monsterRemoveImage,
     monsterAddToCombat: _monsterAddToCombat,
@@ -129,13 +147,16 @@ export function initDmPanel() {
     combatAddCancel:  () => { document.getElementById('co-add-form')?.classList.add('hidden'); },
     combatHpChange:   _combatHpChange,
     combatHpInput:    _combatHpInput,
+    playerHpChange:   _playerHpChange,
+    playerHpInput:    _playerHpInput,
     combatThpChange:  _combatThpChange,
     combatThpInput:   _combatThpInput,
     combatInitChange: _combatInitChange,
     combatCondToggle:  _combatCondToggle,
     combatRemove:      _combatRemove,
     combatSetWinner:   _combatSetWinner,
-    combatDeathSave:   _combatDeathSave,
+    combatDeathSave:        _combatDeathSave,
+    combatSelectCombatant:  _combatSelectCombatant,
 
     // Socket callbacks
     onTunnelUrl(url) {
@@ -182,18 +203,137 @@ function _switchTab(tab) {
   document.querySelectorAll('.dm-tab-content').forEach(c => {
     c.classList.toggle('active', c.dataset.tab === tab);
   });
-  if (tab === 'tunnel')   _renderTunnel();
-  if (tab === 'tafels')   _loadAndRenderTafels();
-  if (tab === 'monsters') _loadAndRenderMonsters();
+  if (tab === 'tunnel')    _renderTunnel();
+  if (tab === 'spreuken')  _renderSpreuken();
+  if (tab === 'tafels')    _loadAndRenderTafels();
+  if (tab === 'monsters')  _loadAndRenderMonsters();
+  if (tab === 'geluiden')  _renderGeluiden();
   if (tab === 'gevecht') {
     // Always reload monsters + entities so pickers are fresh
     Promise.all([
       api.listMonsters().then(d => { _monsters = d.monsters || []; }).catch(() => {}),
       api.listEntities('personages').then(list => { _setupPersonages = list || []; }).catch(() => {}),
-    ]).then(() => { if (_activeTab === 'gevecht') _renderGevecht(); });
+    ]).then(() => {
+      if (_activeTab !== 'gevecht') return;
+      const isEmpty = !_combat?.active && (_combat?.combatants?.length || 0) === 0;
+      if (isEmpty) _autoAddSpelers().then(() => _renderGevecht());
+      else _renderGevecht();
+    });
     _renderGevecht();
   }
-  // spreuken has no dynamic content
+}
+
+// ── Spreuken ──
+
+async function _loadSpells() {
+  try {
+    const r = await fetch('https://www.dnd5eapi.co/api/spells');
+    const d = await r.json();
+    _spellList = d.results || [];
+  } catch {
+    _spellList = [];
+  }
+  if (_activeTab === 'spreuken') _renderSpreuken();
+}
+
+function _renderSpreuken() {
+  const el = document.querySelector('.dm-tab-content[data-tab="spreuken"]');
+  if (!el) return;
+  if (_spellDetail) { el.innerHTML = _spellDetailHtml(_spellDetail); return; }
+  if (_spellList === null) _loadSpells();
+
+  // Only rebuild the DOM when the search input doesn't exist yet
+  if (!document.getElementById('dm-spell-search')) {
+    el.innerHTML = `
+      <div class="dm-feature-section" style="padding-bottom:8px">
+        <input class="dm-input" id="dm-spell-search" placeholder="Zoek spreuk..."
+          oninput="window.dmPanel.spellSearch(this.value)">
+        <p id="dm-spell-loading" class="dm-hint" style="margin-top:6px"></p>
+      </div>
+      <p id="dm-spell-noresults" class="dm-hint" style="padding:0 12px;display:none">Geen resultaten gevonden.</p>
+      <div id="dm-spell-results"></div>`;
+    setTimeout(() => {
+      const inp = document.getElementById('dm-spell-search');
+      if (inp) { inp.value = _spellQuery; inp.focus(); }
+    }, 0);
+  }
+  _updateSpellResults();
+}
+
+function _updateSpellResults() {
+  const loading   = document.getElementById('dm-spell-loading');
+  const noresults = document.getElementById('dm-spell-noresults');
+  const results   = document.getElementById('dm-spell-results');
+  if (!results) return;
+
+  if (loading) loading.textContent = _spellList === null ? 'Spreukenlijst laden…' : '';
+
+  const q = _spellQuery.toLowerCase().trim();
+  const filtered = q && _spellList
+    ? _spellList.filter(s => s.name.toLowerCase().includes(q)).slice(0, 5)
+    : [];
+
+  if (noresults) noresults.style.display = (q && filtered.length === 0 && _spellList !== null) ? 'block' : 'none';
+  results.innerHTML = filtered.map(s =>
+    `<div class="dm-spell-row" onclick="window.dmPanel.spellOpen('${esc(s.index)}')">${esc(s.name)}</div>`
+  ).join('');
+}
+
+function _spellDetailHtml(s) {
+  const schoolMap = {
+    Abjuration: 'Afwering', Conjuration: 'Bezwering', Divination: 'Waarzeggerij',
+    Enchantment: 'Betovering', Evocation: 'Oproeping', Illusion: 'Illusie',
+    Necromancy: 'Necromantie', Transmutation: 'Transmutatie',
+  };
+  const levelStr = s.level === 0 ? 'Cantrip' : `Level ${s.level}`;
+  const school   = schoolMap[s.school?.name] || s.school?.name || '';
+  const comps    = [
+    s.components?.includes('V') ? 'V' : '',
+    s.components?.includes('S') ? 'G' : '',
+    s.components?.includes('M') ? `M (${s.material || '…'})` : '',
+  ].filter(Boolean).join(', ');
+  const desc      = (s.desc || []).map(p => `<p class="dm-spell-p">${esc(p)}</p>`).join('');
+  const higher    = s.higher_level?.length
+    ? `<p class="dm-spell-p dm-spell-higher"><strong>Op hogere levels:</strong> ${esc(s.higher_level.join(' '))}</p>`
+    : '';
+  const wikidotSlug = s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  return `
+    <div class="dm-feature-section dm-spell-detail">
+      <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.spellBack()" style="margin-bottom:10px">← Terug</button>
+      <div class="dm-spell-name">${esc(s.name)}</div>
+      <div class="dm-spell-meta">${levelStr} · ${school}${s.ritual ? ' · Ritueel' : ''}</div>
+      <div class="dm-spell-props">
+        <div><span>Uitvoertijd</span><span>${esc(s.casting_time)}</span></div>
+        <div><span>Bereik</span><span>${esc(s.range)}</span></div>
+        <div><span>Componenten</span><span>${esc(comps)}</span></div>
+        <div><span>Duur</span><span>${esc(s.duration)}${s.concentration ? ' (concentratie)' : ''}</span></div>
+      </div>
+      <div class="dm-spell-desc">${desc}${higher}</div>
+      <a class="dm-spell-link" href="https://dnd5e.wikidot.com/spell:${wikidotSlug}" target="_blank" rel="noopener">Wikidot →</a>
+    </div>`;
+}
+
+async function _spellOpen(index) {
+  const el = document.querySelector('.dm-tab-content[data-tab="spreuken"]');
+  if (el) el.innerHTML = '<p class="dm-hint" style="padding:12px">Laden…</p>';
+  try {
+    const r  = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
+    _spellDetail = await r.json();
+    _renderSpreuken();
+  } catch {
+    if (el) el.innerHTML = '<p class="dm-hint" style="padding:12px">Laden mislukt.</p>';
+  }
+}
+
+function _spellBack() {
+  _spellDetail = null;
+  _renderSpreuken();
+}
+
+function _spellSearch(q) {
+  _spellQuery = q;
+  _updateSpellResults();
 }
 
 // ── Tunnel ──
@@ -245,6 +385,33 @@ function _tunnelCopy() {
   });
 }
 
+async function _exportSnapshot() {
+  const btn = document.getElementById('dm-export-btn');
+  const icon = btn?.querySelector('.dm-tab-icon');
+  if (icon) icon.textContent = '⏳';
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch('/api/export', { credentials: 'include' });
+    if (!res.ok) throw new Error(await res.text());
+    const blob = await res.blob();
+    const disp = res.headers.get('Content-Disposition') || '';
+    const match = disp.match(/filename="([^"]+)"/);
+    const filename = match ? match[1] : 'snapshot.html';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+    if (icon) { icon.textContent = '✓'; setTimeout(() => { icon.textContent = '📥'; }, 2000); }
+  } catch (err) {
+    if (icon) { icon.textContent = '✕'; setTimeout(() => { icon.textContent = '📥'; }, 3000); }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 function _renderTunnel() {
   const el = document.getElementById('dm-tunnel-content');
   if (!el) return;
@@ -263,6 +430,7 @@ function _renderTunnel() {
         `}
       </div>
     </div>
+
   `;
 }
 
@@ -553,38 +721,93 @@ async function _loadAndRenderMonsters() {
   _renderMonsters();
 }
 
+function _monsterRow(m) {
+  return `
+    <div class="dm-monster-row">
+      ${m.imageId
+        ? `<img class="dm-monster-thumb" src="${api.fileUrl(m.imageId)}" alt="">`
+        : `<div class="dm-monster-thumb dm-monster-thumb-empty">👾</div>`}
+      <div class="dm-monster-info">
+        <span class="dm-monster-name">${esc(m.name)}</span>
+        <span class="dm-monster-meta">HP ${m.maxHp} · Init ${m.initiative}</span>
+      </div>
+      <div class="dm-monster-actions">
+        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.monsterAddToCombat('${esc(m.id)}')" title="Toevoegen aan gevecht">⚔️</button>
+        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.monsterEdit('${esc(m.id)}')" title="Bewerken">✏️</button>
+        <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterDelete('${esc(m.id)}')" title="Verwijderen">✕</button>
+      </div>
+    </div>`;
+}
+
+function _metaHk() {
+  return window.app?.state?.meta?.hoofdstukken || {};
+}
+
+function _hkLabel(key) {
+  const hk = _metaHk();
+  return hk[key] ? hk[key].short : key;
+}
+
+function _hkOptions(selectedKey) {
+  const hk = _metaHk();
+  return Object.entries(hk)
+    .sort(([, a], [, b]) => a.num - b.num)
+    .map(([k, v]) => `<option value="${esc(k)}"${selectedKey === k ? ' selected' : ''}>${esc(v.short)}</option>`)
+    .join('');
+}
+
+const MONSTER_PAGE_SIZE = 5;
+
 function _renderMonsters() {
   const el = document.getElementById('dm-monsters-content');
   if (!el) return;
   if (_editingMonsterId !== null) { _renderMonsterEditor(el); return; }
 
+  const hk = _metaHk();
+  const usedKeys = [...new Set(_monsters.map(m => m.chapter || '').filter(Boolean))]
+    .sort((a, b) => (hk[a]?.num ?? 99) - (hk[b]?.num ?? 99));
+
+  // Filter + sort alphabetically
+  const filtered = (_monsterChapterFilter
+    ? _monsters.filter(m => (m.chapter || '') === _monsterChapterFilter)
+    : _monsters.slice()
+  ).sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / MONSTER_PAGE_SIZE));
+  if (_monsterPage >= totalPages) _monsterPage = totalPages - 1;
+  if (_monsterPage < 0) _monsterPage = 0;
+
+  const pageItems = filtered.slice(_monsterPage * MONSTER_PAGE_SIZE, (_monsterPage + 1) * MONSTER_PAGE_SIZE);
+
+  let listHtml;
+  if (_monsters.length === 0) {
+    listHtml = `<p class="dm-hint">Nog geen monsters. Voeg er een toe met +.</p>`;
+  } else if (filtered.length === 0) {
+    listHtml = `<p class="dm-hint">Geen monsters in dit hoofdstuk.</p>`;
+  } else {
+    listHtml = `<div class="dm-monster-list">${pageItems.map(_monsterRow).join('')}</div>`;
+  }
+
+  const paginationHtml = totalPages > 1 ? `
+    <div class="dm-monster-pagination">
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" ${_monsterPage === 0 ? 'disabled' : ''}
+        onclick="window.dmPanel.monsterPage(${_monsterPage - 1})">←</button>
+      <span class="dm-monster-page-info">${_monsterPage + 1} / ${totalPages}</span>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" ${_monsterPage >= totalPages - 1 ? 'disabled' : ''}
+        onclick="window.dmPanel.monsterPage(${_monsterPage + 1})">→</button>
+    </div>` : '';
+
   el.innerHTML = `
     <div class="dm-feature-section">
       <div class="dm-feature-row">
-        <div class="dm-section-label" style="flex:1">Monsterbibliotheek</div>
+        <select class="dm-select dm-select-sm" style="flex:1" onchange="window.dmPanel.monsterFilterChapter(this.value)">
+          <option value="">Alle hoofdstukken</option>
+          ${usedKeys.map(k => `<option value="${esc(k)}"${_monsterChapterFilter === k ? ' selected' : ''}>${esc(_hkLabel(k))}</option>`).join('')}
+        </select>
         <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.monsterNew()" title="Nieuw monster">+</button>
       </div>
-      ${_monsters.length === 0
-        ? `<p class="dm-hint">Nog geen monsters. Voeg er een toe met +.</p>`
-        : `<div class="dm-monster-list">
-            ${_monsters.map(m => `
-              <div class="dm-monster-row">
-                ${m.imageId
-                  ? `<img class="dm-monster-thumb" src="${api.fileUrl(m.imageId)}" alt="">`
-                  : `<div class="dm-monster-thumb dm-monster-thumb-empty">👾</div>`}
-                <div class="dm-monster-info">
-                  <span class="dm-monster-name">${esc(m.name)}</span>
-                  <span class="dm-monster-meta">HP ${m.maxHp} · Init ${m.initiative}</span>
-                </div>
-                <div class="dm-monster-actions">
-                  <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.monsterAddToCombat('${esc(m.id)}')" title="Toevoegen aan gevecht">⚔️</button>
-                  <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.monsterEdit('${esc(m.id)}')" title="Bewerken">✏️</button>
-                  <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterDelete('${esc(m.id)}')" title="Verwijderen">✕</button>
-                </div>
-              </div>
-            `).join('')}
-          </div>`
-      }
+      ${listHtml}
+      ${paginationHtml}
     </div>
   `;
 }
@@ -595,6 +818,7 @@ function _renderMonsterEditor(el) {
   const m = {
     id:         _editingMonsterId,
     name:       stored.name        || '',
+    chapter:    stored.chapter     || _monsterChapterFilter || '',
     maxHp:      stored.maxHp       ?? 10,
     initiative: stored.initiative  ?? 10,
     imageId:    _editingMonsterImageId,
@@ -606,6 +830,13 @@ function _renderMonsterEditor(el) {
       <div class="dm-form-row">
         <label class="dm-form-label">Naam</label>
         <input id="dm-mon-name" class="dm-input" value="${esc(m.name)}" placeholder="Monsternaam…">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Hoofdstuk</label>
+        <select id="dm-mon-chapter" class="dm-select dm-select-sm">
+          <option value="">— geen hoofdstuk —</option>
+          ${_hkOptions(m.chapter)}
+        </select>
       </div>
       <div class="dm-feature-row">
         <div class="dm-form-row" style="flex:1">
@@ -671,6 +902,17 @@ function _monsterEdit(id) {
   _renderMonsters();
 }
 
+function _monsterFilterChapter(chapter) {
+  _monsterChapterFilter = chapter;
+  _monsterPage = 0;
+  _renderMonsters();
+}
+
+function _monsterPage_set(page) {
+  _monsterPage = page;
+  _renderMonsters();
+}
+
 function _monsterCancel() {
   _editingMonsterId = null;
   _editingMonsterIsNew = false;
@@ -678,11 +920,12 @@ function _monsterCancel() {
 }
 
 async function _monsterSave() {
-  const name  = document.getElementById('dm-mon-name')?.value.trim();
-  const maxHp = parseInt(document.getElementById('dm-mon-hp')?.value)   || 10;
-  const init  = parseInt(document.getElementById('dm-mon-init')?.value) || 10;
+  const name    = document.getElementById('dm-mon-name')?.value.trim();
+  const chapter = document.getElementById('dm-mon-chapter')?.value.trim() || '';
+  const maxHp   = parseInt(document.getElementById('dm-mon-hp')?.value)   || 10;
+  const init    = parseInt(document.getElementById('dm-mon-init')?.value) || 10;
   if (!name) { alert('Voer een naam in.'); return; }
-  const payload = { name, maxHp, initiative: init, imageId: _editingMonsterImageId, backdropId: _editingMonsterBackdropId };
+  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, backdropId: _editingMonsterBackdropId };
   try {
     if (_editingMonsterIsNew) {
       const created = await api.createMonster({ id: _editingMonsterId, ...payload });
@@ -801,6 +1044,22 @@ function _setupEntityChange(entityId) {
   }
 }
 
+async function _autoAddSpelers() {
+  const spelers = _setupPersonages.filter(e => e.subtype === 'speler');
+  for (const e of spelers) {
+    const hp = parseInt(e.stats?.hp) || 10;
+    await api.addCombatant({
+      name:       e.name,
+      type:       'player',
+      initiative: 10,
+      hp,
+      maxHp:      hp,
+      entityId:   e.id,
+    }).catch(() => {});
+  }
+  _combat = await api.getCombat().catch(() => _combat);
+}
+
 async function _setupAddSubmit() {
   const name  = document.getElementById('dm-setup-name')?.value.trim();
   const init  = parseInt(document.getElementById('dm-setup-init')?.value)  || 0;
@@ -835,8 +1094,9 @@ async function _setupReset() {
   try {
     await api.endCombat();
     _combat = { active: false, round: 1, currentTurn: 0, combatants: [] };
-    _renderGevecht();
     _renderCombatOverlay(_combat);
+    await _autoAddSpelers();
+    _renderGevecht();
   } catch (e) { alert('Fout: ' + e.message); }
 }
 
@@ -862,16 +1122,25 @@ async function _combatEnd() {
 }
 
 // Geeft de indices terug van alle deelnemers die dezelfde beurt delen.
-// Monsters met dezelfde initiative delen een beurt; spelers altijd individueel.
+// Monsters met dezelfde initiative delen een beurt; spelers + summons op gelijk initiative ook.
 function _getTurnGroup(combatants, currentTurn) {
   const current = combatants[currentTurn];
   if (!current) return [currentTurn];
-  if (current.type === 'player') return [currentTurn];
   const init = current.initiative;
-  return combatants
-    .map((c, i) => ({ c, i }))
-    .filter(({ c }) => c.type === 'monster' && c.initiative === init)
-    .map(({ i }) => i);
+  if (current.type === 'monster') {
+    return combatants
+      .map((c, i) => ({ c, i }))
+      .filter(({ c }) => c.type === 'monster' && c.initiative === init)
+      .map(({ i }) => i);
+  }
+  if (current.type === 'player' || current.type === 'summon') {
+    // Speler + alle summons met hetzelfde initiative handelen samen
+    return combatants
+      .map((c, i) => ({ c, i }))
+      .filter(({ c }) => (c.type === 'player' || c.type === 'summon') && c.initiative === init)
+      .map(({ i }) => i);
+  }
+  return [currentTurn];
 }
 
 async function _combatNextTurn() {
@@ -972,6 +1241,24 @@ async function _combatHpInput(id, val) {
   catch (e) { console.error(e); }
 }
 
+// ── Speler past eigen HP aan in gevecht ──
+
+async function _playerHpChange(id, delta) {
+  const c = _combat?.combatants?.find(x => x.id === id);
+  if (!c) return;
+  const newHp = Math.max(0, Math.min(c.maxHp || 999, (c.hp || 0) + delta));
+  try { await api.combatPlayerHp(id, newHp); }
+  catch (e) { console.error(e); }
+}
+
+async function _playerHpInput(id, val) {
+  const c = _combat?.combatants?.find(x => x.id === id);
+  if (!c) return;
+  const newHp = Math.max(0, Math.min(c.maxHp || 999, parseInt(val) || 0));
+  try { await api.combatPlayerHp(id, newHp); }
+  catch (e) { console.error(e); }
+}
+
 async function _combatThpChange(id, delta) {
   const c = _combat?.combatants?.find(x => x.id === id);
   if (!c) return;
@@ -1064,6 +1351,258 @@ function _showToast(msg, duration = 4500) {
   }, duration);
 }
 
+// ── Geluiden ──────────────────────────────────────────────────────────────────
+
+let _sndOpenPid = null;   // welk speler-panel is momenteel open
+
+// Helpers shared across all Geluiden actions
+async function _sndPatch(body) {
+  await fetch('/api/sounds', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  window.soundManager?.reloadSounds();
+}
+
+async function _sndUploadFile(file) {
+  const id = `snd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const fd = new FormData();
+  fd.append('file', file);
+  await fetch(`/api/files/${id}`, { method: 'POST', body: fd });
+  return id;
+}
+
+async function _sndGetData() {
+  const r = await fetch('/api/sounds');
+  return r.ok ? r.json() : { standard: { damage: null, healing: null, win: null, loss: null }, emotes: {} };
+}
+
+function _sndPlayerData(sounds, pid) {
+  const raw = sounds.emotes?.[pid];
+  // Support both old flat-array format and new {library, selected} format
+  if (!raw || Array.isArray(raw)) return { library: [], selected: [] };
+  return { library: raw.library || [], selected: raw.selected || [] };
+}
+
+async function _renderGeluiden() {
+  const el = document.getElementById('dm-geluiden-content');
+  if (!el) return;
+
+  let sounds     = { standard: { damage: null, healing: null, win: null, loss: null }, emotes: {} };
+  let personages = [];
+  try {
+    [sounds, personages] = await Promise.all([
+      _sndGetData(),
+      api.listEntities('personages'),
+    ]);
+  } catch { /* ok */ }
+
+  // Only player characters
+  const spelers = personages.filter(p => p.subtype === 'speler');
+
+  const STANDARD_SLOTS = [
+    { key: 'damage',  label: '💥 Schade'  },
+    { key: 'healing', label: '💚 Healing' },
+    { key: 'win',     label: '🏆 Winst'   },
+    { key: 'loss',    label: '💀 Verlies' },
+  ];
+
+  const standardRows = STANDARD_SLOTS.map(({ key, label }) => {
+    const fileId = sounds.standard?.[key];
+    return `
+      <div class="dm-sound-row">
+        <span class="dm-sound-slot-label">${label}</span>
+        <div class="dm-sound-controls">
+          ${fileId
+            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${fileId}')">▶</button>
+               <span class="dm-sound-set">✓ Ingesteld</span>
+               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemoveStd('${key}')">✕</button>`
+            : `<span class="dm-sound-empty">Geen geluid</span>`}
+          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
+            ↑ Upload
+            <input type="file" accept="audio/*" style="display:none"
+              onchange="window._sndUploadStd('${key}', this)">
+          </label>
+        </div>
+      </div>`;
+  }).join('');
+
+  const playerBlocks = spelers.map(p => {
+    const { library, selected } = _sndPlayerData(sounds, p.id);
+    const selCount = selected.filter(Boolean).length;
+
+    const libraryRows = library.map(item => {
+      const isSelected = selected.includes(item.id);
+      const canSelect  = isSelected || selCount < 5;
+      return `
+        <div class="dm-sound-emote-item">
+          <label class="dm-sound-emote-check" title="${isSelected ? 'Actief in gevecht' : selCount >= 5 ? 'Max 5 geselecteerd' : 'Selecteren voor gevecht'}">
+            <input type="checkbox" ${isSelected ? 'checked' : ''} ${!canSelect ? 'disabled' : ''}
+              onchange="window._sndToggleSelect('${esc(p.id)}','${esc(item.id)}',this.checked)">
+          </label>
+          <input class="dm-input dm-sound-emote-icon" type="text"
+            placeholder="🎭" value="${esc(item.icon || '')}"
+            title="Icoon (emoji)" maxlength="4"
+            onchange="window._sndUpdateIcon('${esc(p.id)}','${esc(item.id)}',this.value)">
+          <input class="dm-input dm-sound-emote-label" type="text"
+            placeholder="Label…" value="${esc(item.label || '')}"
+            onchange="window._sndUpdateLabel('${esc(p.id)}','${esc(item.id)}',this.value)">
+          <div class="dm-sound-controls">
+            ${item.fileId
+              ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(item.fileId)}')">▶</button>
+                 <span class="dm-sound-set">✓</span>
+                 <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndClearFile('${esc(p.id)}','${esc(item.id)}')">✕</button>`
+              : `<span class="dm-sound-empty">Geen audio</span>`}
+            <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
+              ↑
+              <input type="file" accept="audio/*" style="display:none"
+                onchange="window._sndUploadEmote('${esc(p.id)}','${esc(item.id)}',this)">
+            </label>
+            <button class="dm-btn dm-btn-sm dm-btn-danger" onclick="window._sndDeleteEmote('${esc(p.id)}','${esc(item.id)}')" title="Emote verwijderen">🗑</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    const selBadge = selected.filter(Boolean).length;
+    const isOpen   = _sndOpenPid === p.id;
+
+    return `
+      <div class="dm-sound-player-dropdown" data-pid="${esc(p.id)}">
+        <button class="dm-sound-player-summary" onclick="window._sndTogglePlayer('${esc(p.id)}')">
+          <span class="dm-sound-arrow">${isOpen ? '▼' : '▶'}</span>
+          <span class="dm-sound-player-name">${esc(p.name)}</span>
+          <span class="dm-sound-sel-badge">${selBadge}/5 actief</span>
+        </button>
+        <div class="dm-sound-player-body" ${isOpen ? '' : 'hidden'}>
+          ${library.length === 0
+            ? `<p class="dm-hint" style="margin:0 0 8px">Nog geen emotes. Voeg er hieronder een toe.</p>`
+            : libraryRows}
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" style="margin-top:6px"
+            onclick="window._sndAddEmote('${esc(p.id)}')">+ Emote toevoegen</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="dm-sound-section">
+      <div class="dm-sound-section-title">🔊 Standaardgeluiden</div>
+      <p class="dm-hint">Automatisch afgespeeld op jouw laptop bij HP-wijzigingen en gevecht-einde.</p>
+      <div class="dm-sound-list">${standardRows}</div>
+    </div>
+    <div class="dm-sound-section">
+      <div class="dm-sound-section-title">🎭 Spelersemotes</div>
+      <p class="dm-hint">Maak een bibliotheek van emotes per speler. Selecteer er max. 5 voor gevecht (✓ = actief).</p>
+      ${spelers.length === 0
+        ? `<p class="dm-hint" style="opacity:.6">Geen spelers-personages gevonden (subtype = speler).</p>`
+        : playerBlocks}
+    </div>`;
+
+  // ── Window-handlers ─────────────────────────────────────────────────────────
+
+  window._sndTogglePlayer = (pid) => {
+    _sndOpenPid = (_sndOpenPid === pid) ? null : pid;
+    // Toggle zonder re-render: wissel zichtbaarheid direct
+    document.querySelectorAll('.dm-sound-player-dropdown').forEach(el => {
+      const p    = el.dataset.pid;
+      const open = p === _sndOpenPid;
+      el.querySelector('.dm-sound-player-body').hidden = !open;
+      el.querySelector('.dm-sound-arrow').textContent  = open ? '▼' : '▶';
+    });
+  };
+
+  window._sndPlay = (fileId) => {
+    new Audio(`/api/files/${fileId}`).play().catch(() => {});
+  };
+
+  window._sndUploadStd = async (key, input) => {
+    const file = input.files[0]; if (!file) return;
+    const fileId = await _sndUploadFile(file);
+    await _sndPatch({ standard: { [key]: fileId } });
+    _renderGeluiden();
+  };
+
+  window._sndRemoveStd = async (key) => {
+    await _sndPatch({ standard: { [key]: null } });
+    _renderGeluiden();
+  };
+
+  window._sndAddEmote = async (pid) => {
+    _sndOpenPid = pid;   // blijf open na re-render
+    const sd = await _sndGetData();
+    const { library, selected } = _sndPlayerData(sd, pid);
+    const newItem = { id: `em_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, label: '', fileId: null };
+    await _sndPatch({ emotes: { [pid]: { library: [...library, newItem], selected } } });
+    _renderGeluiden();
+  };
+
+  window._sndDeleteEmote = async (pid, eid) => {
+    _sndOpenPid = pid;
+    const sd = await _sndGetData();
+    const { library, selected } = _sndPlayerData(sd, pid);
+    await _sndPatch({ emotes: { [pid]: {
+      library:  library.filter(e => e.id !== eid),
+      selected: selected.filter(id => id !== eid),
+    }}});
+    _renderGeluiden();
+  };
+
+  window._sndToggleSelect = async (pid, eid, checked) => {
+    _sndOpenPid = pid;
+    const sd = await _sndGetData();
+    const { library, selected } = _sndPlayerData(sd, pid);
+    let newSel = selected.filter(id => id !== eid);
+    if (checked) {
+      if (newSel.length >= 5) { _renderGeluiden(); return; }
+      newSel.push(eid);
+    }
+    await _sndPatch({ emotes: { [pid]: { library, selected: newSel } } });
+    _renderGeluiden();
+  };
+
+  window._sndUpdateLabel = async (pid, eid, label) => {
+    const sd = await _sndGetData();
+    const { library, selected } = _sndPlayerData(sd, pid);
+    await _sndPatch({ emotes: { [pid]: {
+      library:  library.map(e => e.id === eid ? { ...e, label } : e),
+      selected,
+    }}});
+  };
+
+  window._sndUpdateIcon = async (pid, eid, icon) => {
+    const sd = await _sndGetData();
+    const { library, selected } = _sndPlayerData(sd, pid);
+    await _sndPatch({ emotes: { [pid]: {
+      library:  library.map(e => e.id === eid ? { ...e, icon } : e),
+      selected,
+    }}});
+  };
+
+  window._sndUploadEmote = async (pid, eid, input) => {
+    _sndOpenPid = pid;
+    const file = input.files[0]; if (!file) return;
+    const fileId = await _sndUploadFile(file);
+    const sd = await _sndGetData();
+    const { library, selected } = _sndPlayerData(sd, pid);
+    await _sndPatch({ emotes: { [pid]: {
+      library:  library.map(e => e.id === eid ? { ...e, fileId } : e),
+      selected,
+    }}});
+    _renderGeluiden();
+  };
+
+  window._sndClearFile = async (pid, eid) => {
+    _sndOpenPid = pid;
+    const sd = await _sndGetData();
+    const { library, selected } = _sndPlayerData(sd, pid);
+    await _sndPatch({ emotes: { [pid]: {
+      library:  library.map(e => e.id === eid ? { ...e, fileId: null } : e),
+      selected,
+    }}});
+    _renderGeluiden();
+  };
+}
+
 // DM panel Gevecht tab — setup fase
 function _renderGevecht() {
   const el = document.getElementById('dm-gevecht-content');
@@ -1092,7 +1631,7 @@ function _renderGevecht() {
         <div class="dm-setup-list">
           ${cs.map(c => `
             <div class="dm-setup-row">
-              <span class="dm-combatant-type-dot ${c.type === 'player' ? 'dm-type-player' : c.type === 'ally' ? 'dm-type-ally' : 'dm-type-monster'}"></span>
+              <span class="dm-combatant-type-dot ${c.type === 'player' ? 'dm-type-player' : c.type === 'ally' ? 'dm-type-ally' : c.type === 'summon' ? 'dm-type-summon' : 'dm-type-monster'}"></span>
               <span class="dm-setup-name">${esc(c.name)}</span>
               <span class="dm-setup-meta">Init ${c.initiative} · ${c.maxHp} HP</span>
               <button class="dm-combatant-remove" onclick="window.dmPanel.combatRemove('${esc(c.id)}')">✕</button>
@@ -1105,8 +1644,9 @@ function _renderGevecht() {
           <select id="dm-setup-type" class="dm-select dm-select-sm"
               onchange="window.dmPanel.setupTypeChange(this.value)">
             <option value="monster"   ${_setupSelectedType === 'monster'   ? 'selected' : ''}>Monster</option>
-            <option value="player"    ${_setupSelectedType === 'player'    ? 'selected' : ''}>Speler</option>
+            <option value="summon"    ${_setupSelectedType === 'summon'    ? 'selected' : ''}>Summon</option>
             <option value="ally"      ${_setupSelectedType === 'ally'      ? 'selected' : ''}>Medestander</option>
+            <option value="player"    ${_setupSelectedType === 'player'    ? 'selected' : ''}>Speler</option>
           </select>
         </div>
         ${_setupSelectedType === 'monster' && _monsters.length > 0 ? `
@@ -1150,6 +1690,84 @@ function _renderGevecht() {
       </div>
     </div>
   `;
+}
+
+// ── Detail-panel: klik op portret ────────────────────────────────────────────
+
+function _combatSelectCombatant(id) {
+  _selectedCombatantId = id || null;
+  const panel = document.getElementById('co-detail-panel');
+  if (!panel) return;
+  if (!id) { panel.classList.add('hidden'); return; }
+
+  const c = _combat?.combatants?.find(x => x.id === id);
+  if (!c) { panel.classList.add('hidden'); return; }
+
+  const isDM = window.app?.isDM?.();
+  const hp    = hpStatus(c.hp, c.maxHp);
+  const hpPct = c.maxHp > 0 ? Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100)) : 0;
+
+  const condPicker = CONDITIONS.map(cond => {
+    const active = (c.conditions || []).includes(cond.id);
+    return `<button class="co-cond-pick${active ? ' active' : ''}"
+      onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cond.id}')"
+      title="${esc(cond.desc)}">${esc(cond.label)}</button>`;
+  }).join('');
+
+  const isDying = (c.hp || 0) <= 0 && c.type === 'player';
+  const ds = c.deathSaves || { successes: 0, failures: 0 };
+  const deathSaves = isDying ? `
+    <div class="co-death-saves" style="margin-top:4px">
+      <span class="co-ds-label">Death saves</span>
+      <div class="co-ds-track">
+        ${[0,1,2].map(i => `<span class="co-ds-dot${i < ds.successes ? ' co-ds-s' : ''}">●</span>`).join('')}
+        <span class="co-ds-sep">·</span>
+        ${[0,1,2].map(i => `<span class="co-ds-dot${i < ds.failures  ? ' co-ds-f' : ''}">●</span>`).join('')}
+      </div>
+      <button class="co-ds-btn co-ds-yes" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','success')">✓</button>
+      <button class="co-ds-btn co-ds-no"  onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','failure')">✗</button>
+      <button class="co-ds-btn co-ds-rst" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','reset')">↺</button>
+    </div>` : '';
+
+  panel.innerHTML = `
+    <div class="co-detail-name">
+      <span class="co-type-dot ${c.type === 'player' ? 'co-type-player' : c.type === 'ally' ? 'co-type-ally' : c.type === 'summon' ? 'co-type-summon' : 'co-type-monster'}" style="width:10px;height:10px;flex-shrink:0"></span>
+      ${esc(c.name)}
+      ${isDM ? `
+        <label class="co-init-wrap" style="margin-left:8px;font-size:11px">Init
+          <input class="co-init-input" type="number" value="${c.initiative}"
+            onchange="window.dmPanel.combatInitChange('${esc(c.id)}',this.value)" style="width:44px">
+        </label>
+        <button class="co-remove-btn" onclick="window.dmPanel.combatRemove('${esc(c.id)}');window.dmPanel.combatSelectCombatant(null)" title="Verwijder">✕</button>
+      ` : ''}
+      <button class="co-detail-close" onclick="window.dmPanel.combatSelectCombatant(null)">✕</button>
+    </div>
+    <div class="co-hp-row">
+      <button class="co-hp-btn" onclick="window.dmPanel.${isDM ? 'combatHpChange' : 'playerHpChange'}('${esc(c.id)}',-1)">−</button>
+      <div class="co-hp-bar-wrap"><div class="co-hp-bar ${hp.cls}" style="width:${hpPct}%"></div></div>
+      <input class="co-hp-input" type="number" value="${c.hp}"
+        onchange="window.dmPanel.${isDM ? 'combatHpInput' : 'playerHpInput'}('${esc(c.id)}',this.value)">
+      <span class="co-hp-max">/${c.maxHp}</span>
+      <button class="co-hp-btn" onclick="window.dmPanel.${isDM ? 'combatHpChange' : 'playerHpChange'}('${esc(c.id)}',1)">+</button>
+    </div>
+    ${isDM ? `
+    <div class="co-thp-row">
+      <span class="co-thp-label" title="Temporary HP">🛡️</span>
+      <button class="co-hp-btn" onclick="window.dmPanel.combatThpChange('${esc(c.id)}',-1)">−</button>
+      <input class="co-thp-input" type="number" min="0" value="${c.tempHp || 0}"
+        onchange="window.dmPanel.combatThpInput('${esc(c.id)}',this.value)">
+      <button class="co-hp-btn" onclick="window.dmPanel.combatThpChange('${esc(c.id)}',1)">+</button>
+    </div>
+    <div class="co-cond-picker">${condPicker}</div>
+    ` : `
+    ${(c.conditions || []).length ? `<div class="co-active-conds">${(c.conditions || []).map(cid => {
+      const cond = CONDITIONS.find(x => x.id === cid);
+      return cond ? `<span class="co-cond-chip" title="${esc(cond.desc)}">${esc(cond.label)}</span>` : '';
+    }).join('')}</div>` : ''}
+    `}
+    ${deathSaves}
+  `;
+  panel.classList.remove('hidden');
 }
 
 // Combat overlay — zichtbaar voor iedereen tijdens gevecht
@@ -1209,7 +1827,8 @@ function _renderCombatOverlay(combat, startMinimized = false) {
       return `
         <div class="co-row${isActive ? ' co-row-active' : ''}">
           <div class="co-row-head">
-            <span class="co-type-dot ${c.type === 'player' ? 'co-type-player' : 'co-type-monster'}"></span>
+            <span class="co-turn-num">${i + 1}</span>
+            <span class="co-type-dot ${c.type === 'player' ? 'co-type-player' : c.type === 'ally' ? 'co-type-ally' : c.type === 'summon' ? 'co-type-summon' : 'co-type-monster'}"></span>
             <span class="co-name">${isActive ? '▶ ' : ''}${esc(c.name)}</span>
             <label class="co-init-wrap">Init
               <input class="co-init-input" type="number" value="${c.initiative}"
@@ -1258,10 +1877,44 @@ function _renderCombatOverlay(combat, startMinimized = false) {
         </div>
       `;
     } else {
+      // Bepaal of dit de eigen combatant van de ingelogde speler is
+      const myCharId  = window.app?.state?.characterId;
+      const myName    = window.app?.state?.playerName;
+      const isOwnChar = myCharId
+        ? (c.entityId === myCharId)
+        : (myName && c.name === myName);
+
+      if (isOwnChar) {
+        // Eigen combatant: toon bewerkbare HP-controls
+        return `
+          <div class="co-row${isActive ? ' co-row-active' : ''} co-row-own">
+            <div class="co-row-head">
+              <span class="co-turn-num">${i + 1}</span>
+              <span class="co-type-dot co-type-player"></span>
+              <span class="co-name">${isActive ? '▶ ' : ''}${esc(c.name)} <span class="co-own-badge">jij</span></span>
+              <span class="co-init-display">Init ${c.initiative}</span>
+            </div>
+            <div class="co-hp-row">
+              <button class="co-hp-btn" onclick="window.dmPanel.playerHpChange('${esc(c.id)}',-1)">−</button>
+              <div class="co-hp-bar-wrap"><div class="co-hp-bar ${hp.cls}" style="width:${hpPct}%"></div></div>
+              <input class="co-hp-input" type="number" value="${c.hp}"
+                onchange="window.dmPanel.playerHpInput('${esc(c.id)}',this.value)"
+                onclick="event.stopPropagation()">
+              <span class="co-hp-max">/${c.maxHp}</span>
+              <button class="co-hp-btn" onclick="window.dmPanel.playerHpChange('${esc(c.id)}',1)">+</button>
+            </div>
+            ${(c.tempHp || 0) > 0 ? `<div class="co-hp-player-row"><span class="co-thp-badge" title="Temporary Hit Points">🛡️ +${c.tempHp}</span></div>` : ''}
+            ${conds ? `<div class="co-active-conds">${conds}</div>` : ''}
+          </div>
+        `;
+      }
+
+      // Andere combatants: alleen balk + status + conditions
       return `
         <div class="co-row${isActive ? ' co-row-active' : ''}">
           <div class="co-row-head">
-            <span class="co-type-dot ${c.type === 'player' ? 'co-type-player' : 'co-type-monster'}"></span>
+            <span class="co-turn-num">${i + 1}</span>
+            <span class="co-type-dot ${c.type === 'player' ? 'co-type-player' : c.type === 'ally' ? 'co-type-ally' : c.type === 'summon' ? 'co-type-summon' : 'co-type-monster'}"></span>
             <span class="co-name">${isActive ? '▶ ' : ''}${esc(c.name)}</span>
             <span class="co-init-display">Init ${c.initiative}</span>
           </div>
@@ -1302,6 +1955,8 @@ function _renderCombatOverlay(combat, startMinimized = false) {
             onkeydown="if(event.key==='Enter')window.dmPanel.combatAddSubmit()">
           <select id="co-add-type" class="co-select">
             <option value="monster">Monster</option>
+            <option value="summon">Summon</option>
+            <option value="ally">Medestander</option>
             <option value="player">Speler</option>
           </select>
           <input id="co-add-init" class="co-input co-input-sm" type="number" placeholder="Init" value="10">
@@ -1310,11 +1965,114 @@ function _renderCombatOverlay(combat, startMinimized = false) {
           <button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatAddCancel()">✕</button>
         </div>
       </div>
-      <div class="co-body">${rows}</div>
-    ` : ''}
+      <div id="co-detail-panel" class="co-detail-panel hidden"></div>
+      <div id="co-dm-emote-bar" class="co-emote-bar"></div>
+    ` : `
+      <div id="co-detail-panel" class="co-detail-panel hidden"></div>
+      <div id="co-emote-bar" class="co-emote-bar"></div>
+    `}
   `;
 
   // Start canvas animation loop
   const canvasEl = document.getElementById('combat-canvas');
   if (canvasEl) canvasInit(canvasEl, combat);
+
+  // Herstel detail-panel als een combatant geselecteerd was
+  if (_selectedCombatantId) _combatSelectCombatant(_selectedCombatantId);
+
+  // Emote-balken asynchroon vullen
+  if (isDM) {
+    _populateDmEmoteBar(combat).catch(() => {});
+  } else {
+    _populateEmoteBar(combat).catch(() => {});
+  }
+}
+
+async function _populateDmEmoteBar(combat) {
+  const bar = document.getElementById('co-dm-emote-bar');
+  if (!bar) return;
+
+  const current = combat.combatants?.[combat.currentTurn];
+  if (!current || current.type !== 'player' || !current.entityId) {
+    bar.innerHTML = '';
+    return;
+  }
+
+  let sounds = { emotes: {} };
+  try {
+    const r = await fetch('/api/sounds');
+    if (r.ok) sounds = await r.json();
+  } catch { return; }
+
+  const data     = sounds.emotes?.[current.entityId];
+  const library  = data?.library  || [];
+  const selected = data?.selected || [];
+  const active   = selected
+    .map((eid, idx) => ({ index: idx, item: library.find(e => e.id === eid) }))
+    .filter(e => e.item?.label && e.item?.fileId);
+
+  if (!active.length) { bar.innerHTML = ''; return; }
+
+  bar.innerHTML = `
+    <div class="co-emote-bar-inner">
+      <span class="co-emote-bar-label">🎭 ${esc(current.name)}</span>
+      ${active.map(e => {
+        const icon  = e.item.icon  || '';
+        const label = e.item.label || '';
+        return `<button class="co-emote-btn" onclick="new Audio('/api/files/${esc(e.item.fileId)}').play()" title="${esc(label)}">
+          ${icon ? `<span class="co-emote-icon">${esc(icon)}</span>` : ''}
+          ${label ? `<span class="co-emote-text">${esc(label)}</span>` : ''}
+        </button>`;
+      }).join('')}
+    </div>`;
+}
+
+async function _populateEmoteBar(combat) {
+  const bar = document.getElementById('co-emote-bar');
+  if (!bar) return;
+
+  const myCharId = window.app?.state?.characterId;
+  const myName   = window.app?.state?.playerName;
+  if (!myCharId && !myName) return;
+
+  const currentC = combat.combatants?.[combat.currentTurn];
+  const isMyTurn = currentC &&
+    (myCharId ? currentC.entityId === myCharId : currentC.name === myName);
+
+  if (!isMyTurn) { bar.innerHTML = ''; return; }
+
+  let sounds = { emotes: {} };
+  try {
+    const r = await fetch('/api/sounds');
+    if (r.ok) sounds = await r.json();
+  } catch { return; }
+
+  // Nieuw model: { library, selected }
+  const emoteData    = sounds.emotes?.[myCharId];
+  const emoteLibrary = emoteData?.library || [];
+  const emoteSelected = emoteData?.selected || [];
+  const active = emoteSelected
+    .map((eid, idx) => ({ index: idx, item: emoteLibrary.find(e => e.id === eid) }))
+    .filter(e => e.item?.label);
+
+  if (!active.length) { bar.innerHTML = ''; return; }
+
+  bar.innerHTML = `
+    <div class="co-emote-bar-inner">
+      <span class="co-emote-bar-label">🎭 Jouw beurt</span>
+      ${active.map(e => {
+        const icon  = e.item.icon  || '';
+        const label = e.item.label || '';
+        return `<button class="co-emote-btn" onclick="window._coEmote(${e.index})" title="${esc(label)}">
+          ${icon ? `<span class="co-emote-icon">${esc(icon)}</span>` : ''}
+          ${label ? `<span class="co-emote-text">${esc(label)}</span>` : ''}
+        </button>`;
+      }).join('')}
+    </div>`;
+
+  window._coEmote = (index) => {
+    if (window._socket && myCharId) {
+      window._socket.emit('sound:emote', { entityId: myCharId, index });
+    }
+  };
 }

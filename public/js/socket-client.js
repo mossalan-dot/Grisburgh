@@ -2,6 +2,7 @@ const ENTITY_ICONS = { personages: '👤', locaties: '🏰', organisaties: '🏛
 
 export function initSocket() {
   const socket = io();
+  window._socket = socket;  // Exposed so players can emit sound:emote events
 
   const ENTITY_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 
@@ -82,15 +83,19 @@ export function initSocket() {
     }
   });
 
-  socket.on('logboek:imageRevealed', ({ caption, samenvatting } = {}) => {
+  socket.on('logboek:imageRevealed', ({ imageId, caption, samenvatting } = {}) => {
     if (window.app.state.activeSection === 'logboek') {
       import('./render-archief.js').then(m => m.renderLogboek());
     }
     if (!window.app.isDM()) {
-      const label = caption || samenvatting || 'Logboek';
-      _showToast(`🖼️ <strong>${label}</strong> — nieuwe afbeelding onthuld`, () => {
-        window.app.switchSection('logboek');
-      });
+      if (imageId) {
+        window.app.openLightbox(`/api/files/${imageId}`, caption || samenvatting || '');
+      } else {
+        const label = caption || samenvatting || 'Logboek';
+        _showToast(`🖼️ <strong>${label}</strong> — nieuwe afbeelding onthuld`, () => {
+          window.app.switchSection('logboek');
+        });
+      }
     }
   });
 
@@ -167,6 +172,83 @@ export function initSocket() {
   // ── Gevecht ──
   socket.on('combat:updated', (combat) => {
     if (window.dmPanel) window.dmPanel.onCombatUpdated(combat);
+    window.soundManager?.onCombatUpdated(combat);
+    // Herlaad spelersdashboard als dat actief is (HP-balk bijwerken)
+    if (window.app?.state?.activeSection === 'mijn-karakter') {
+      import('./app.js').catch(() => {});  // module is al geladen; alleen dashboard herrenderen
+      window.app?.refreshSection('mijn-karakter');
+    }
+  });
+
+  // ── Geluiden ──
+  socket.on('sound:emote', (data) => {
+    window.soundManager?.playEmote(data);
+  });
+
+  socket.on('player:hp-updated', ({ characterId } = {}) => {
+    // Herlaad dashboard als dit de eigen speler is
+    if (window.app?.state?.characterId === characterId &&
+        window.app?.state?.activeSection === 'mijn-karakter') {
+      window.app.refreshSection('mijn-karakter');
+    }
+  });
+
+  // ── Voorwerpen eigendom ──
+  socket.on('items:ownership-updated', (data) => {
+    import('./render-campagne.js').then(m => {
+      if (data) m.setOwnership?.(data);
+      if (window.app?.state?.activeSection === 'voorwerpen') m.renderVoorwerpen();
+    });
+    // Ververs het spelerdashboard als dat actief is (geclaimde voorwerpen bijwerken)
+    if (window.app?.state?.activeSection === 'mijn-karakter') {
+      window.app.refreshSection('mijn-karakter');
+    }
+    // Toast voor de speler wiens item is teruggenomen
+    if (!window.app.isDM() && data?.takenBack) {
+      const myCharId = window.app?.state?.characterId;
+      if (myCharId && data.takenBack.characterId === myCharId) {
+        _showToast(`📦 <strong>${data.takenBack.itemName}</strong> is teruggenomen door de DM`);
+      }
+    }
+  });
+
+  socket.on('items:request', (data) => {
+    import('./render-campagne.js').then(m => {
+      if (data) m.setOwnership?.(data);
+      // DM: toast met het verzoek
+      if (window.app.isDM() && data.requesterName) {
+        _showToast(
+          `📬 <strong>${data.requesterName}</strong> wil <em>${data.itemName || 'een voorwerp'}</em> claimen`,
+          () => { window.app.switchSection('voorwerpen'); },
+          6000
+        );
+      }
+      if (window.app?.state?.activeSection === 'voorwerpen') m.renderVoorwerpen();
+    });
+  });
+
+  // ── Spelersaantekeningen ──
+  socket.on('notes:created', ({ playerName, entityId, entityName } = {}) => {
+    if (window.app.isDM() && playerName && entityName) {
+      _showToast(
+        `✏️ <strong>${playerName}</strong> heeft een opmerking gemaakt over <strong>${entityName}</strong>`,
+        () => { /* optioneel: open kaartje */ },
+        5000
+      );
+    }
+  });
+
+  // ── Speler-aanwezigheid ──
+  socket.on('player:joined', ({ playerName } = {}) => {
+    if (window.app.isDM() && playerName) {
+      _showToast(`👤 <strong>${playerName}</strong> is verbonden`, null, 4000);
+    }
+  });
+
+  socket.on('player:left', ({ playerName } = {}) => {
+    if (window.app.isDM() && playerName) {
+      _showToast(`👤 <strong>${playerName}</strong> heeft de sessie verlaten`, null, 3500);
+    }
   });
 
   socket.on('connect', () => console.log('Socket connected'));
