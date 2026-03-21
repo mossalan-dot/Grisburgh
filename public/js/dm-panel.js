@@ -102,6 +102,8 @@ export function initDmPanel() {
     tabelSave:     _tabelSave,
     tabelNew:      _tabelNew,
     naamGenereer:  _naamGenereer,
+    weerSeason:    _weerSeason,
+    weerGenereer:  _weerGenereer,
     tabelCancel:   () => { _editingTableId = null; _renderTafels(); },
     tabelTypeChange(val) { _editingTableType = val; _renderTafels(); },
     tabelSelect:   (id) => {
@@ -499,6 +501,64 @@ const NAMEN_ACHTERNAAM = [
   'Goutschilt','Stroomvaert','van Hofflander','Gloedt',
 ];
 
+// ── Weersgenerator ────────────────────────────────────────────────────────────
+
+let _weerSeizoen = 'Lente';
+
+function _weerSeason(btn) {
+  _weerSeizoen = btn.dataset.season;
+  document.querySelectorAll('.dm-weer-season-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+const _WEER = {
+  Lente: {
+    temp:   [[25,'Vriezend (-5°C)'], [50,'Koud (3°C)'], [80,'Fris (10°C)'], [100,'Mild (16°C)']],
+    neersl: [[40,'Geen'], [60,'Motregen'], [80,'Regen'], [95,'Stortregen'], [100,'Hagel']],
+    wind:   [[50,'Windstil'], [80,'Bries'], [95,'Matige wind'], [100,'Stormachtig']],
+  },
+  Zomer: {
+    temp:   [[10,'Fris (14°C)'], [30,'Mild (19°C)'], [65,'Warm (25°C)'], [90,'Heet (30°C)'], [100,'Snikheet (36°C)']],
+    neersl: [[60,'Geen'], [75,'Lichte bui'], [90,'Onweersbui'], [100,'Stortregen']],
+    wind:   [[60,'Windstil'], [85,'Bries'], [97,'Matige wind'], [100,'Stormachtig']],
+  },
+  Herfst: {
+    temp:   [[20,'Vriezend (-2°C)'], [50,'Koud (5°C)'], [80,'Fris (11°C)'], [100,'Mild (16°C)']],
+    neersl: [[30,'Geen'], [55,'Motregen'], [75,'Regen'], [90,'Stortregen'], [100,'Hagel']],
+    wind:   [[35,'Windstil'], [65,'Bries'], [88,'Matige wind'], [100,'Stormachtig']],
+  },
+  Winter: {
+    temp:   [[40,'Vriezend (-8°C)'], [70,'IJskoud (-2°C)'], [90,'Koud (2°C)'], [100,'Fris (7°C)']],
+    neersl: [[35,'Geen'], [55,'Sneeuw'], [75,'Zware sneeuwval'], [90,'IJzel'], [100,'Blizzard']],
+    wind:   [[25,'Windstil'], [55,'Bries'], [80,'Matige wind'], [100,'Stormachtig']],
+  },
+};
+
+const _WEER_BIJZONDER = ['Dichte mist', 'Regenboog', 'Hevige onweersbui ⚡', 'IJzel', 'Hittegolf 🌡', 'Hagelbui', 'Zandstorm', 'Vlokkensneeuw ❄️'];
+
+function _weerRoll(tabel) {
+  const d = Math.floor(Math.random() * 100) + 1;
+  for (const [grens, label] of tabel) {
+    if (d <= grens) return label;
+  }
+  return tabel[tabel.length - 1][1];
+}
+
+function _weerGenereer() {
+  const s = _WEER[_weerSeizoen];
+  const temp   = _weerRoll(s.temp);
+  const neersl = _weerRoll(s.neersl);
+  const wind   = _weerRoll(s.wind);
+  const bijz   = Math.random() < 0.1
+    ? ' — ✨ ' + _WEER_BIJZONDER[Math.floor(Math.random() * _WEER_BIJZONDER.length)]
+    : '';
+  const result = `🌡 ${temp} &nbsp;·&nbsp; 💧 ${neersl} &nbsp;·&nbsp; 🌬 ${wind}${bijz}`;
+  const el = document.getElementById('dm-weer-result');
+  if (el) { el.innerHTML = result; el.classList.remove('hidden'); }
+}
+
+// ── Naamgenerator ─────────────────────────────────────────────────────────────
+
 function _naamGenereer(geslacht) {
   const lijst = geslacht === 'm' ? NAMEN_MAN : NAMEN_VROUW;
   const voornaam = lijst[Math.floor(Math.random() * lijst.length)];
@@ -536,6 +596,18 @@ function _renderTafels() {
         <button class="dm-btn dm-btn-ghost dm-naam-btn" onclick="window.dmPanel.naamGenereer('v')" title="Vrouwennaam">♀</button>
       </div>
       <div id="dm-naam-result" class="dm-naam-result"></div>
+    </div>
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Weer</div>
+      <div class="dm-feature-row">
+        <div class="dm-weer-seasons" id="dm-weer-seasons">
+          ${['Lente','Zomer','Herfst','Winter'].map((s,i) =>
+            `<button class="dm-btn dm-btn-sm dm-weer-season-btn${i===0?' active':''}" data-season="${s}"
+               onclick="window.dmPanel.weerSeason(this)">${s}</button>`).join('')}
+        </div>
+        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.weerGenereer()" title="Genereer weer">🎲</button>
+      </div>
+      <div id="dm-weer-result" class="dm-tabel-result hidden"></div>
     </div>
     <div class="dm-feature-section">
       <div class="dm-section-label">Tabellen</div>
@@ -1389,7 +1461,7 @@ async function _renderGeluiden() {
   const el = document.getElementById('dm-geluiden-content');
   if (!el) return;
 
-  let sounds     = { standard: { damage: null, healing: null, win: null, loss: null }, emotes: {} };
+  let sounds     = { standard: { damage: null, healing: null, win: null, loss: null, nextRound: null, nextTurn: null }, emotes: {}, playerTurn: {} };
   let personages = [];
   try {
     [sounds, personages] = await Promise.all([
@@ -1402,10 +1474,12 @@ async function _renderGeluiden() {
   const spelers = personages.filter(p => p.subtype === 'speler');
 
   const STANDARD_SLOTS = [
-    { key: 'damage',  label: '💥 Schade'  },
-    { key: 'healing', label: '💚 Healing' },
-    { key: 'win',     label: '🏆 Winst'   },
-    { key: 'loss',    label: '💀 Verlies' },
+    { key: 'damage',    label: '💥 Schade'         },
+    { key: 'healing',   label: '💚 Healing'         },
+    { key: 'win',       label: '🏆 Winst'           },
+    { key: 'loss',      label: '💀 Verlies'         },
+    { key: 'nextRound', label: '🔔 Volgende ronde'  },
+    { key: 'nextTurn',  label: '▶ Volgende beurt (standaard)' },
   ];
 
   const standardRows = STANDARD_SLOTS.map(({ key, label }) => {
@@ -1431,6 +1505,24 @@ async function _renderGeluiden() {
   const playerBlocks = spelers.map(p => {
     const { library, selected } = _sndPlayerData(sounds, p.id);
     const selCount = selected.filter(Boolean).length;
+    const turnFileId = sounds.playerTurn?.[p.id] || null;
+
+    const turnRow = `
+      <div class="dm-sound-row" style="margin-bottom:8px">
+        <span class="dm-sound-slot-label">▶ Beurtgeluid</span>
+        <div class="dm-sound-controls">
+          ${turnFileId
+            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${turnFileId}')">▶</button>
+               <span class="dm-sound-set">✓ Ingesteld</span>
+               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemovePlayerTurn('${esc(p.id)}')">✕</button>`
+            : `<span class="dm-sound-empty">Geen geluid</span>`}
+          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
+            ↑ Upload
+            <input type="file" accept="audio/*" style="display:none"
+              onchange="window._sndUploadPlayerTurn('${esc(p.id)}', this)">
+          </label>
+        </div>
+      </div>`;
 
     const libraryRows = library.map(item => {
       const isSelected = selected.includes(item.id);
@@ -1475,6 +1567,7 @@ async function _renderGeluiden() {
           <span class="dm-sound-sel-badge">${selBadge}/5 actief</span>
         </button>
         <div class="dm-sound-player-body" ${isOpen ? '' : 'hidden'}>
+          ${turnRow}
           ${library.length === 0
             ? `<p class="dm-hint" style="margin:0 0 8px">Nog geen emotes. Voeg er hieronder een toe.</p>`
             : libraryRows}
@@ -1484,18 +1577,26 @@ async function _renderGeluiden() {
       </div>`;
   }).join('');
 
+  const stdOpen = _sndOpenPid === '__std__';
   el.innerHTML = `
     <div class="dm-sound-section">
-      <div class="dm-sound-section-title">🔊 Standaardgeluiden</div>
-      <p class="dm-hint">Automatisch afgespeeld op jouw laptop bij HP-wijzigingen en gevecht-einde.</p>
-      <div class="dm-sound-list">${standardRows}</div>
-    </div>
-    <div class="dm-sound-section">
       <div class="dm-sound-section-title">🎭 Spelersemotes</div>
-      <p class="dm-hint">Maak een bibliotheek van emotes per speler. Selecteer er max. 5 voor gevecht (✓ = actief).</p>
+      <p class="dm-hint">Stel per speler een beurtgeluid in en maak een emotebibliotheek. Selecteer max. 5 emotes voor gevecht (✓ = actief).</p>
       ${spelers.length === 0
         ? `<p class="dm-hint" style="opacity:.6">Geen spelers-personages gevonden (subtype = speler).</p>`
         : playerBlocks}
+    </div>
+    <div class="dm-sound-section">
+      <div class="dm-sound-player-dropdown" data-pid="__std__">
+        <button class="dm-sound-player-summary" onclick="window._sndTogglePlayer('__std__')">
+          <span class="dm-sound-arrow">${stdOpen ? '▼' : '▶'}</span>
+          <span class="dm-sound-player-name">🔊 Standaardgeluiden</span>
+        </button>
+        <div class="dm-sound-player-body" ${stdOpen ? '' : 'hidden'}>
+          <p class="dm-hint" style="margin:0 0 8px">Automatisch afgespeeld bij HP-wijzigingen, beurtwisseling en gevecht-einde.</p>
+          <div class="dm-sound-list">${standardRows}</div>
+        </div>
+      </div>
     </div>`;
 
   // ── Window-handlers ─────────────────────────────────────────────────────────
@@ -1524,6 +1625,20 @@ async function _renderGeluiden() {
 
   window._sndRemoveStd = async (key) => {
     await _sndPatch({ standard: { [key]: null } });
+    _renderGeluiden();
+  };
+
+  window._sndUploadPlayerTurn = async (pid, input) => {
+    _sndOpenPid = pid;
+    const file = input.files[0]; if (!file) return;
+    const fileId = await _sndUploadFile(file);
+    await _sndPatch({ playerTurn: { [pid]: fileId } });
+    _renderGeluiden();
+  };
+
+  window._sndRemovePlayerTurn = async (pid) => {
+    _sndOpenPid = pid;
+    await _sndPatch({ playerTurn: { [pid]: null } });
     _renderGeluiden();
   };
 
@@ -1971,6 +2086,15 @@ function _renderCombatOverlay(combat, startMinimized = false) {
       <div id="co-detail-panel" class="co-detail-panel hidden"></div>
       <div id="co-emote-bar" class="co-emote-bar"></div>
     `}
+    ${(combat.log?.length > 0) ? `
+    <details class="co-log">
+      <summary class="co-log-summary">📜 Gevechtslog (${combat.log.length})</summary>
+      <div class="co-log-entries" id="co-log-entries">
+        ${[...combat.log].slice(-30).map(e =>
+          `<div class="co-log-entry"><span class="co-log-round">R${e.round}</span> ${esc(e.text)}</div>`
+        ).join('')}
+      </div>
+    </details>` : ''}
   `;
 
   // Start canvas animation loop

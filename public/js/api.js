@@ -123,6 +123,14 @@ export const api = {
   addPlayerItem:    (characterId, data)    => request(`/player-items/${characterId}`,          { method: 'POST',   body: JSON.stringify(data) }),
   removePlayerItem: (characterId, itemId)  => request(`/player-items/${characterId}/${itemId}`, { method: 'DELETE' }),
 
+  // Speler valuta
+  getPlayerCurrency:   (characterId)       => request(`/player-currency/${characterId}`),
+  patchPlayerCurrency: (characterId, data) => request(`/player-currency/${characterId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Speler spreukenslots
+  getPlayerSpellSlots: (characterId)       => request(`/player-spellslots/${characterId}`),
+  setPlayerSpellSlots: (characterId, data) => request(`/player-spellslots/${characterId}`, { method: 'PUT', body: JSON.stringify(data) }),
+
   // Gevecht
   getCombat:        ()        => request('/combat'),
   startCombat:      ()        => request('/combat/start',              { method: 'POST' }),

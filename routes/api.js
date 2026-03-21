@@ -627,6 +627,65 @@ router.delete('/player-items/:characterId/:itemId', attachRole, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Speler valuta (FL/KN/CL) ──
+
+router.get('/player-currency/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  res.json((dmState.playerCurrency || {})[characterId] || { fl: 0, kn: 0, cl: 0 });
+});
+
+router.patch('/player-currency/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const existing = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  const updated = {
+    fl: req.body.fl !== undefined ? Math.max(0, parseInt(req.body.fl) || 0) : existing.fl,
+    kn: req.body.kn !== undefined ? Math.max(0, parseInt(req.body.kn) || 0) : existing.kn,
+    cl: req.body.cl !== undefined ? Math.max(0, parseInt(req.body.cl) || 0) : existing.cl,
+  };
+  dmState.playerCurrency[characterId] = updated;
+  storage.writeJSON('dm-state.json', dmState);
+  res.json(updated);
+});
+
+// ── Speler spreukenslots ──
+
+router.get('/player-spellslots/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  res.json((dmState.playerSpellSlots || {})[characterId] || {});
+});
+
+router.put('/player-spellslots/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  if (!dmState.playerSpellSlots) dmState.playerSpellSlots = {};
+  // Merge per level
+  const existing = dmState.playerSpellSlots[characterId] || {};
+  const updated = { ...existing };
+  for (const [lvl, val] of Object.entries(req.body)) {
+    if (typeof val === 'object' && val !== null) {
+      updated[lvl] = {
+        max:  Math.max(0, parseInt(val.max)  || 0),
+        used: Math.max(0, parseInt(val.used) || 0),
+      };
+    }
+  }
+  dmState.playerSpellSlots[characterId] = updated;
+  storage.writeJSON('dm-state.json', dmState);
+  res.json(updated);
+});
+
 // ── Groepen ──
 
 router.get('/groups', requireDM, (req, res) => {
@@ -924,15 +983,18 @@ router.delete('/files/:id', requireDM, (req, res) => {
 
 router.get('/sounds', (req, res) => {
   let data = storage.readJSON('sounds.json');
-  if (!data) data = { standard: { damage: null, healing: null, win: null, loss: null }, emotes: {} };
+  if (!data) data = { standard: {}, emotes: {}, playerTurn: {} };
+  if (!data.playerTurn) data.playerTurn = {};
   res.json(data);
 });
 
 router.put('/sounds', requireDM, (req, res) => {
   let data = storage.readJSON('sounds.json');
-  if (!data) data = { standard: { damage: null, healing: null, win: null, loss: null }, emotes: {} };
-  if (req.body.standard) Object.assign(data.standard, req.body.standard);
-  if (req.body.emotes)   Object.assign(data.emotes,   req.body.emotes);
+  if (!data) data = { standard: {}, emotes: {}, playerTurn: {} };
+  if (!data.playerTurn) data.playerTurn = {};
+  if (req.body.standard)    Object.assign(data.standard,    req.body.standard);
+  if (req.body.emotes)      Object.assign(data.emotes,      req.body.emotes);
+  if (req.body.playerTurn)  Object.assign(data.playerTurn,  req.body.playerTurn);
   storage.writeJSON('sounds.json', data);
   res.json(data);
 });
@@ -1233,10 +1295,18 @@ router.get('/combat', (req, res) => {
   res.json(storage.readJSON('combat.json'));
 });
 
+function _combatLog(combat, text) {
+  if (!Array.isArray(combat.log)) combat.log = [];
+  combat.log.push({ round: combat.round || 1, text });
+  if (combat.log.length > 100) combat.log = combat.log.slice(-100);
+}
+
 router.post('/combat/start', requireDM, (req, res) => {
   const existing = storage.readJSON('combat.json');
   const combatants = [...(existing.combatants || [])].sort((a, b) => b.initiative - a.initiative);
-  const combat = { active: true, round: 1, currentTurn: 0, combatants };
+  const combat = { active: true, round: 1, currentTurn: 0, combatants, log: [] };
+  _combatLog(combat, '⚔️ Gevecht begonnen');
+  if (combatants[0]) _combatLog(combat, `▶ Beurt van ${combatants[0].name}`);
   storage.writeJSON('combat.json', combat);
   req.app.get('io').emit('combat:updated', combat);
   res.json(combat);
@@ -1254,6 +1324,16 @@ router.put('/combat', requireDM, (req, res) => {
   const updated = { ...combat, ...req.body };
   // Zorg dat bestaande combatants behouden worden tenzij expliciet meegegeven
   if (!req.body.combatants) updated.combatants = combat.combatants;
+  if (!Array.isArray(updated.log)) updated.log = combat.log || [];
+  // Log nieuwe ronde
+  if (req.body.round !== undefined && req.body.round > (combat.round || 1)) {
+    _combatLog(updated, `🔔 Ronde ${req.body.round} begint`);
+  }
+  // Log beurtwissel
+  if (req.body.currentTurn !== undefined && req.body.currentTurn !== combat.currentTurn) {
+    const next = updated.combatants[req.body.currentTurn];
+    if (next) _combatLog(updated, `▶ Beurt van ${next.name}`);
+  }
   storage.writeJSON('combat.json', updated);
   req.app.get('io').emit('combat:updated', updated);
   res.json(updated);
@@ -1286,16 +1366,24 @@ router.put('/combat/combatant/:id', requireDM, (req, res) => {
   const combat = storage.readJSON('combat.json');
   const idx = combat.combatants.findIndex(c => c.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Niet gevonden' });
-  combat.combatants[idx] = { ...combat.combatants[idx], ...req.body, id: req.params.id };
+  const prev = combat.combatants[idx];
+  combat.combatants[idx] = { ...prev, ...req.body, id: req.params.id };
   // Hersorteren op initiative als dat gewijzigd is
   if (req.body.initiative !== undefined) {
     combat.combatants.sort((a, b) => b.initiative - a.initiative);
+  }
+  // Log HP-wijzigingen
+  if (req.body.hp !== undefined && req.body.hp !== prev.hp) {
+    const diff = req.body.hp - prev.hp;
+    if (diff < 0) _combatLog(combat, `💥 ${prev.name} ontvangt ${-diff} schade (${req.body.hp}/${prev.maxHp || '?'} HP)`);
+    else          _combatLog(combat, `💚 ${prev.name} geneest ${diff} HP (${req.body.hp}/${prev.maxHp || '?'} HP)`);
   }
   // Auto-detect: all monsters at 0 HP → players win
   if (!combat.winner && req.body.hp !== undefined) {
     const monsters = combat.combatants.filter(c => c.type === 'monster');
     if (monsters.length > 0 && monsters.every(c => (c.hp || 0) <= 0)) {
       combat.winner = 'players';
+      _combatLog(combat, '🏆 Spelers winnen het gevecht!');
     }
   }
   storage.writeJSON('combat.json', combat);
@@ -1316,7 +1404,12 @@ router.patch('/combat/player-hp/:combatantId', attachRole, (req, res) => {
     (c.entityId && c.entityId === req.session.characterId);
   if (!isOwn) return res.status(403).json({ error: 'Niet je eigen combatant' });
   const newHp = Math.max(0, Math.min(c.maxHp || 999, parseInt(req.body.hp) || 0));
+  const hpDiff = newHp - (c.hp || 0);
   combat.combatants[idx] = { ...c, hp: newHp };
+  if (hpDiff !== 0) {
+    if (hpDiff < 0) _combatLog(combat, `💥 ${c.name} ontvangt ${-hpDiff} schade (${newHp}/${c.maxHp || '?'} HP)`);
+    else            _combatLog(combat, `💚 ${c.name} geneest ${hpDiff} HP (${newHp}/${c.maxHp || '?'} HP)`);
+  }
   storage.writeJSON('combat.json', combat);
   // Persisteer ook in playerHp
   const dmState = readDmState();
