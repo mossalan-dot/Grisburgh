@@ -1,5 +1,10 @@
 import { api } from './api.js';
 
+// Track shift key globally — more reliable than event.shiftKey in inline handlers
+window._shiftHeld = false;
+document.addEventListener('keydown', e => { if (e.key === 'Shift') window._shiftHeld = true; });
+document.addEventListener('keyup',   e => { if (e.key === 'Shift') window._shiftHeld = false; });
+
 const CATEGORIES = [
   { key: 'alle', label: 'Alle', icon: '' },
   { key: 'brieven', label: 'Brieven & Documenten', icon: '\ud83d\udcdc' },
@@ -415,11 +420,13 @@ function renderSessieEntry(e) {
     <div class="entity-card${isDM() && !e.visible ? ' card-hidden' : ''}"
       onclick="window._openSessieDetail('${e.id}')">
       ${isDM() ? `
-        <div class="dm-only absolute top-7 right-2 z-10 flex gap-0.5 bg-black/60 backdrop-blur-sm rounded p-0.5">
-          <button class="text-[11px] px-1.5 py-0.5 rounded transition ${e.visible ? 'bg-green-wax/80 text-white' : 'text-ink-dim hover:bg-room-border'}"
-            title="Zichtbaarheid" onclick="event.stopPropagation();window._toggleSessieVis('${e.id}',${!!e.visible})">\ud83d\udc41</button>
-          <button class="text-[11px] px-1.5 py-0.5 rounded text-ink-dim hover:bg-room-border transition"
-            title="Bewerken" onclick="event.stopPropagation();window._openSessieEditor('${e.id}')">&#x270f;</button>
+        <div class="dm-only absolute top-7 right-2 z-10 flex flex-col gap-1">
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+            title="${e.visible ? 'Verbergen' : 'Zichtbaar maken'}" onclick="event.stopPropagation();window._toggleSessieVis('${e.id}',${!!e.visible})">${e.visible ? '\ud83d\udc41' : '\ud83d\udd12'}</button>
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+            title="Bewerken" onclick="event.stopPropagation();window._openSessieEditor('${e.id}')">&#9998;</button>
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-red-700/90 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+            title="Verwijderen" onclick="event.stopPropagation();window._deleteSessie('${e.id}')">&#10005;</button>
         </div>
       ` : ''}
       <div class="card-accent bar-logboek"></div>
@@ -457,7 +464,7 @@ window._openSessieDetail = (id) => {
     ${isDM() ? `
       <div class="dm-only mt-4 pt-4 border-t border-room-border flex gap-2">
         <button class="px-3 py-1.5 text-sm rounded bg-gold-dim text-room-bg font-cinzel font-semibold hover:bg-gold transition"
-          onclick="window.app.closeModal();window._openSessieEditor('${e.id}')" title="Bewerken">&#x270f;</button>
+          onclick="window.app.closeModal();window._openSessieEditor('${e.id}')" title="Bewerken">&#9998;</button>
         <button class="px-3 py-1.5 text-sm rounded bg-seal/20 text-seal hover:bg-seal/40 transition"
           onclick="window._deleteSessie('${e.id}')" title="Verwijderen">&#x1F5D1;</button>
       </div>` : ''}
@@ -759,7 +766,7 @@ function renderLogTagEditor(field, label, chipCls) {
       <div id="log-tags-${field}" class="flex flex-wrap gap-1 mb-1">
         ${logEditorTags[field].map(n => `
           <span class="px-2 py-0.5 text-xs rounded-full border font-crimson ${chipCls}">${esc(n)}
-            <span class="cursor-pointer ml-1 opacity-70 hover:opacity-100" onclick="window._removeLogTag('${field}','${esc(n)}')">\u00d7</span>
+            <span class="cursor-pointer ml-1 opacity-70 hover:opacity-100" data-field="${field}" data-name="${esc(n)}" onclick="window._removeLogTag(this.dataset.field,this.dataset.name)">\u00d7</span>
           </span>
         `).join('')}
       </div>
@@ -843,7 +850,7 @@ function refreshLogTags(field) {
   if (!container) return;
   container.innerHTML = logEditorTags[field].map(n =>
     `<span class="px-2 py-0.5 text-xs rounded-full border font-crimson ${cls}">${esc(n)}
-      <span class="cursor-pointer ml-1 opacity-70 hover:opacity-100" onclick="window._removeLogTag('${field}','${esc(n)}')">\u00d7</span>
+      <span class="cursor-pointer ml-1 opacity-70 hover:opacity-100" data-field="${field}" data-name="${esc(n)}" onclick="window._removeLogTag(this.dataset.field,this.dataset.name)">\u00d7</span>
     </span>`
   ).join('');
 }
@@ -863,6 +870,9 @@ function filterDocs() {
       return [d.name, d.type, d.desc, ...(d.npcs||[]), ...(d.locs||[]), ...(d.orgs||[]), ...(d.items||[]), ...(d.docs||[])].join(' ').toLowerCase().includes(q);
     });
   }
+  docs = [...docs].sort((a, b) =>
+    _sortKey(a.name).localeCompare(_sortKey(b.name), 'nl', { sensitivity: 'base' })
+  );
   return docs;
 }
 
@@ -911,17 +921,17 @@ function renderDocCard(d) {
   ];
 
   return `
-    <div class="entity-card${isDM() && state !== 'revealed' ? ' card-hidden' : ''}"
+    <div class="entity-card${isDM() && state === 'hidden' ? ' card-hidden' : isDM() && state === 'blurred' ? ' opacity-60' : ''}"
       onclick="window._openDoc('${d.id}')">
       ${isDM() ? (() => {
-        const _visIcon  = state === 'revealed' ? '\u2728' : state === 'blurred' ? '\ud83d\udc41' : '\ud83d\udd12';
-        const _visTitle = state === 'hidden'   ? 'Wazig tonen  \u00b7  Shift: meteen onthullen'
+        const _visIcon  = state === 'hidden' ? '\ud83d\udd12' : state === 'blurred' ? '\ud83d\udc64' : '\ud83d\udc41';
+        const _visTitle = state === 'revealed' ? 'Verbergen  \u00b7  Shift: vaag maken'
                         : state === 'blurred'  ? 'Onthullen  \u00b7  Shift: verbergen'
-                        :                        'Verbergen';
+                        :                        'Onthullen  \u00b7  Shift: vaag maken';
         return `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
-          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            onclick="event.stopPropagation();window._cycleDocState('${d.id}','${state}',event)"
+          <button class="w-7 h-7 flex items-center justify-center rounded ${state === 'blurred' ? 'bg-gold-dim/80' : 'bg-black/75'} hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+            onclick="event.stopPropagation();window._toggleDocState('${d.id}','${state}',window._shiftHeld)"
             title="${_visTitle}">${_visIcon}</button>
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._openArchiefEditor('${d.id}')"
@@ -1109,14 +1119,12 @@ window._setDocState = async (id, state) => {
   renderDocumenten();
 };
 
-window._cycleDocState = async (id, current, event) => {
-  const order = ['hidden', 'blurred', 'revealed'];
+window._toggleDocState = async (id, current, shiftKey) => {
   let next;
-  if (event?.shiftKey) {
-    // Shift: cycle backwards
-    next = order[(order.indexOf(current) + order.length - 1) % order.length];
+  if (shiftKey) {
+    next = current === 'blurred' ? 'hidden' : 'blurred';
   } else {
-    next = order[(order.indexOf(current) + 1) % order.length];
+    next = current === 'revealed' ? 'hidden' : 'revealed';
   }
   await api.setArchiefState(id, next);
   renderDocumenten();

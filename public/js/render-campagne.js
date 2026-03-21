@@ -1,6 +1,19 @@
 import { api } from './api.js';
 
 const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+
+// ── Eigendomsstatus voorwerpen (module-level, bijgewerkt via socket) ──
+let _ownership = { owners: {}, requests: [], tradeAllowed: true };
+
+export async function refreshOwnership() {
+  try { _ownership = await api.getItemOwnership(); } catch { /* ok */ }
+}
+
+export function setOwnership(data) {
+  if (data.owners   !== undefined) _ownership.owners      = data.owners;
+  if (data.requests !== undefined) _ownership.requests    = data.requests;
+  if (data.tradeAllowed !== undefined) _ownership.tradeAllowed = data.tradeAllowed;
+}
 const TYPE_META = {
   personages:    { icon: '\ud83d\udc64', label: 'Personages', color: 'green-wax', chip: 'chip-npc' },
   locaties:      { icon: '\ud83c\udff0', label: 'Locaties', color: 'blue-ink', chip: 'chip-loc' },
@@ -146,8 +159,86 @@ const searchQueries = { personages: '', locaties: '', organisaties: '', voorwerp
 let entities = {};
 let editorTags = {};
 let pendingFile = null;
+let pendingAudioFile = null;
+let _editorOldAudioId = null;
 let entityEditorImages = [];
 let entityEditorImagesToDelete = [];
+
+// ── Audio playback singleton ──
+let _audioEl = null;
+let _currentAudioId = null;
+
+function _updateAudioBtns(activeId, playing) {
+  document.querySelectorAll('[data-audio-btn]').forEach(btn => {
+    const isActive = btn.dataset.audioBtnId === activeId;
+    btn.textContent = isActive && playing ? '⏸' : '▶';
+    btn.classList.toggle('audio-btn-playing', isActive && playing);
+  });
+}
+
+window._audioToggle = (audioId) => {
+  const url = api.fileUrl(audioId);
+  if (_audioEl && _currentAudioId === audioId) {
+    if (_audioEl.paused) { _audioEl.play(); _updateAudioBtns(audioId, true); }
+    else                 { _audioEl.pause(); _updateAudioBtns(audioId, false); }
+    return;
+  }
+  if (_audioEl) { _audioEl.pause(); _audioEl = null; }
+  _currentAudioId = audioId;
+  _audioEl = new Audio(url);
+  _audioEl.play().catch(() => {});
+  _audioEl.onended = () => { _currentAudioId = null; _updateAudioBtns(null, false); };
+  _audioEl.onerror = () => { _currentAudioId = null; _updateAudioBtns(null, false); };
+  _updateAudioBtns(audioId, true);
+};
+
+window._stopAudio = () => {
+  if (_audioEl) { _audioEl.pause(); _audioEl = null; }
+  _currentAudioId = null;
+  _updateAudioBtns(null, false);
+};
+
+// ── Audio upload helpers ──
+window._uploadAudio = async (tab, entityId, oldAudioId, file) => {
+  if (!file) return;
+  if (file.size > 30 * 1024 * 1024) { alert('Max 30MB'); return; }
+  const audioId = 'a_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  await api.uploadFile(audioId, file);
+  if (oldAudioId) await api.deleteFile(oldAudioId).catch(() => {});
+  const entity = await api.getEntity(tab, entityId);
+  await api.updateEntity(tab, entityId, { ...entity, data: { ...entity.data, audioId } });
+  window._openDetail(tab, entityId);
+};
+
+window._deleteAudio = async (tab, entityId, audioId) => {
+  if (!confirm('Geluidsfragment verwijderen?')) return;
+  window._stopAudio();
+  await api.deleteFile(audioId).catch(() => {});
+  const entity = await api.getEntity(tab, entityId);
+  await api.updateEntity(tab, entityId, { ...entity, data: { ...entity.data, audioId: '' } });
+  window._openDetail(tab, entityId);
+};
+
+window._editorAudioSelected = (file) => {
+  if (!file) return;
+  if (file.size > 30 * 1024 * 1024) { alert('Max 30MB'); return; }
+  const idInput = document.getElementById('editor-audio-id');
+  if (idInput && !idInput.value) {
+    idInput.value = 'a_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  }
+  pendingAudioFile = file;
+  const label = document.getElementById('editor-audio-name');
+  if (label) { label.textContent = '🔊 ' + file.name; label.classList.remove('hidden'); }
+};
+
+window._editorClearAudio = () => {
+  pendingAudioFile = null;
+  const idInput = document.getElementById('editor-audio-id');
+  if (idInput) idInput.value = '';
+  const label = document.getElementById('editor-audio-name');
+  if (label) { label.textContent = 'Audio wordt verwijderd bij opslaan'; label.classList.remove('hidden'); }
+  document.getElementById('editor-audio-preview')?.classList.add('hidden');
+};
 
 // Lazy proxies — window.app isn't set yet when ES modules evaluate
 const $ = (...a) => window.app.$(...a);
@@ -197,6 +288,18 @@ function fmtToolbar(id) {
 
 export function initCampagne() {}
 
+// Expose for global search
+window._entityTypeMeta = TYPE_META;
+window._entityFilter = (type, list, q) => {
+  if (!q) return list;
+  const ql = q.toLowerCase();
+  return list.filter(e => {
+    const fields = [e.name, e.subtype, ...Object.values(e.data || {})].join(' ').toLowerCase();
+    const links = Object.values(e.links || {}).flat().join(' ').toLowerCase();
+    return fields.includes(ql) || links.includes(ql);
+  });
+};
+
 async function renderEntitySection(type) {
   const container = $(`#section-${type}`);
 
@@ -205,6 +308,7 @@ async function renderEntitySection(type) {
   } catch (e) {
     entities[type] = [];
   }
+  window._entityCache = entities;
 
   const list = filterEntities(type, entities[type] || []);
 
@@ -250,6 +354,9 @@ async function renderEntitySection(type) {
 
   _refreshGrid(type, list, container);
 
+  // DM: openstaande claim-verzoeken tonen boven de grid
+  if (type === 'voorwerpen') _renderClaimRequests(container);
+
   window._entitySearch = (t, q) => {
     searchQueries[t] = q;
     const filtered = filterEntities(t, entities[t] || []);
@@ -273,7 +380,38 @@ function _fitText(el) {
   }
 }
 
+function _renderClaimRequests(container) {
+  // Verwijder eventuele bestaande balk
+  container.querySelector('.claim-requests-bar')?.remove();
+  if (!isDM()) return;
+  const pending = (_ownership.requests || []).filter(r => r.status === 'pending');
+  if (pending.length === 0) return;
+
+  const bar = document.createElement('div');
+  bar.className = 'claim-requests-bar';
+  bar.innerHTML = `
+    <div class="claim-requests-title">📬 Openstaande claimverzoeken (${pending.length})</div>
+    ${pending.map(r => `
+      <div class="claim-request-row">
+        <span class="claim-request-info">
+          <strong>${esc(r.requesterName)}</strong> wil
+          <em>${esc(r.itemName)}</em> ${r.type === 'trade' ? `ruilen met ${esc(r.targetName || '?')}` : 'claimen'}
+        </span>
+        <div class="claim-request-actions">
+          <button class="claim-btn-approve" onclick="window._itemApproveRequest('${esc(r.id)}')">✓ Goedkeuren</button>
+          <button class="claim-btn-reject"  onclick="window._itemRejectRequest('${esc(r.id)}')">✕ Weigeren</button>
+        </div>
+      </div>
+    `).join('')}
+  `;
+  // Voeg in vóór de cards-grid
+  const grid = container.querySelector('.cards-grid');
+  if (grid) container.insertBefore(bar, grid);
+}
+
 function _refreshGrid(type, list, container) {
+  // Refresh ook de claim-balk bij grid-update
+  if (type === 'voorwerpen') _renderClaimRequests(container);
   const grid = container.querySelector('.cards-grid');
   if (!grid) return;
   const savedScrollY = window.scrollY;
@@ -303,7 +441,10 @@ function _refreshGrid(type, list, container) {
 export async function renderPersonages() { return renderEntitySection('personages'); }
 export async function renderLocaties() { return renderEntitySection('locaties'); }
 export async function renderOrganisaties() { return renderEntitySection('organisaties'); }
-export async function renderVoorwerpen() { return renderEntitySection('voorwerpen'); }
+export async function renderVoorwerpen() {
+  await refreshOwnership();
+  return renderEntitySection('voorwerpen');
+}
 
 function filterEntities(type, list) {
   const q = searchQueries[type];
@@ -387,7 +528,7 @@ function renderCard(type, e) {
         </div>
       ` : ''}
       <div class="card-accent bar-${type}"></div>
-      <img class="card-img w-full object-cover" src="${api.fileUrl(e.id)}"
+      <img class="card-img w-full ${type === 'voorwerpen' ? 'card-img-item' : 'object-cover'}" src="${api.fileUrl(e.id)}"
         style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
         onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
       <div class="card-body px-4 pt-3 pb-3">
@@ -405,11 +546,48 @@ function renderCard(type, e) {
       </div>
       ${flavour ? `
         <div class="flavour-preview">
+          ${e.data?.audioId ? `<button type="button" class="flavour-audio-btn" data-audio-btn data-audio-btn-id="${esc(e.data.audioId)}" onclick="event.stopPropagation();window._audioToggle('${esc(e.data.audioId)}')" title="Sfeer afspelen">▶</button>` : ''}
           <span class="flavour-preview-text">\u201e${esc(flavour.length > 300 ? flavour.slice(0, 300) + '\u2026' : flavour)}\u201c</span>
         </div>
       ` : ''}
+      ${type === 'voorwerpen' ? _itemOwnershipBadge(e.id) : ''}
     </div>
   `;
+}
+
+function _itemOwnershipBadge(itemId) {
+  const owner   = _ownership.owners[itemId];
+  const myId    = window.app?.state?.characterId;
+  const myName  = window.app?.state?.playerName;
+  const isDm    = window.app?.isDM?.();
+
+  // Eigenaar-label
+  if (owner) {
+    const isMine = myId && owner.characterId === myId;
+    return `
+      <div class="item-owner-badge ${isMine ? 'item-owner-badge--mine' : ''}" onclick="event.stopPropagation()">
+        ${isMine ? '🎒 Jouw eigendom' : `🎒 ${esc(owner.playerName)}`}
+        ${isDm ? `<button class="item-owner-remove" onclick="event.stopPropagation();window._itemRemoveOwner('${esc(itemId)}')" title="Eigendom verwijderen">✕</button>` : ''}
+      </div>`;
+  }
+
+  // Pending verzoek van deze speler
+  const pending = myId && _ownership.requests.find(
+    r => r.itemId === itemId && r.requesterId === myId && r.status === 'pending'
+  );
+  if (pending) {
+    return `<div class="item-claim-pending" onclick="event.stopPropagation()">⏳ Wacht op DM…</div>`;
+  }
+
+  // Claim-knop voor ingelogde speler
+  if (myName && !isDm) {
+    return `
+      <button class="item-claim-btn" onclick="event.stopPropagation();window._itemClaim('${esc(itemId)}')">
+        Claim
+      </button>`;
+  }
+
+  return '';
 }
 
 // ── Entity carousel (multi-image with captions) ──
@@ -515,8 +693,13 @@ window._openDetail = async (tab, id, isBack = false) => {
   window._currentDetailTab = tab;
   window._currentDetailId  = id;
 
-  let e;
-  try { e = await api.getEntity(tab, id); } catch { return; }
+  let e, playerNotesData;
+  try {
+    [e, playerNotesData] = await Promise.all([
+      api.getEntity(tab, id),
+      api.getPlayerNotes(id).catch(() => null),
+    ]);
+  } catch { return; }
   if (myToken !== _detailToken) return;   // Nieuwere aanroep actief — stop
   const meta = TYPE_META[tab];
   const schema = SCHEMA[tab];
@@ -600,17 +783,47 @@ window._openDetail = async (tab, id, isBack = false) => {
 
   // Flavour scroll (parchment scroll — visible to all)
   const flavourVal = e.data?.flavour;
-  if (flavourVal) {
+  const _audioId   = e.data?.audioId || '';
+  if (flavourVal || (isDM() && !flavourVal && _audioId)) {
     infoHtml += `<div class="detail-divider">— ✦ —</div>`;
-    infoHtml += `
-      <div class="flavour-scroll">
-        <div class="flavour-scroll-rod"></div>
-        <div class="flavour-scroll-content">
-          <p class="flavour-text">\u201e${esc(flavourVal)}\u201c</p>
-        </div>
-        <div class="flavour-scroll-rod"></div>
-      </div>
-    `;
+    if (flavourVal) {
+      infoHtml += `
+        <div class="flavour-scroll">
+          <div class="flavour-scroll-rod"></div>
+          <div class="flavour-scroll-content">
+            <p class="flavour-text">\u201e${esc(flavourVal)}\u201c</p>
+            ${_audioId ? `
+              <div class="flavour-audio-wrap">
+                <button type="button" class="flavour-audio-play" data-audio-btn data-audio-btn-id="${esc(_audioId)}"
+                  onclick="window._audioToggle('${esc(_audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>
+              </div>` : ''}
+          </div>
+          <div class="flavour-scroll-rod"></div>
+        </div>`;
+    }
+    if (isDM()) {
+      if (_audioId) {
+        infoHtml += `
+          <div class="dm-only flavour-audio-dm">
+            <label class="flavour-audio-dm-link" title="Audio vervangen">
+              🔊 Vervangen
+              <input type="file" accept="audio/*" class="hidden"
+                onchange="window._uploadAudio('${tab}','${esc(e.id)}','${esc(_audioId)}',this.files[0])">
+            </label>
+            <button class="flavour-audio-dm-link flavour-audio-dm-del"
+              onclick="window._deleteAudio('${tab}','${esc(e.id)}','${esc(_audioId)}')">✕ Verwijderen</button>
+          </div>`;
+      } else {
+        infoHtml += `
+          <div class="dm-only flavour-audio-dm">
+            <label class="flavour-audio-dm-link" title="Geluidsfragment toevoegen">
+              🔊 Geluid toevoegen
+              <input type="file" accept="audio/*" class="hidden"
+                onchange="window._uploadAudio('${tab}','${esc(e.id)}','',this.files[0])">
+            </label>
+          </div>`;
+      }
+    }
   }
 
   // Geheim field
@@ -665,6 +878,36 @@ window._openDetail = async (tab, id, isBack = false) => {
         <textarea id="dm-note-${e.id}" class="w-full min-h-[80px] px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
           placeholder="Notities...">${esc(e._dmNote || '')}</textarea>
         <div id="note-save-${e.id}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>
+      </div>
+    `;
+
+    // DM ziet de aantekeningen van alle spelers (read-only, gelabeld)
+    if (playerNotesData?.notes && Object.keys(playerNotesData.notes).length > 0) {
+      infoHtml += `
+        <div class="dm-only mt-3 pt-3 border-t border-room-border/50">
+          <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2">Spelersaantekeningen</div>
+          ${Object.entries(playerNotesData.notes).map(([name, text]) => `
+            <div class="mb-2">
+              <div class="text-xs text-gold font-cinzel font-semibold mb-0.5">${esc(name)}</div>
+              <div class="text-sm text-ink-medium bg-room-bg border border-room-border/50 rounded px-3 py-2 font-crimson">${esc(text)}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+  }
+
+  // Eigen spelersaantekening (zichtbaar voor ingelogde speler)
+  const playerName = window.app?.state?.playerName;
+  if (playerName && !isDM()) {
+    const myNote = playerNotesData?.note || '';
+    infoHtml += `
+      <div class="mt-4 pt-4 border-t border-room-border">
+        <div class="text-xs font-cinzel text-gold font-bold uppercase tracking-wider mb-1">✏ Mijn aantekeningen</div>
+        <textarea id="player-note-${e.id}"
+          class="w-full min-h-[70px] px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
+          placeholder="Notities voor jezelf...">${esc(myNote)}</textarea>
+        <div id="player-note-save-${e.id}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>
       </div>
     `;
   }
@@ -873,6 +1116,64 @@ window._openDetail = async (tab, id, isBack = false) => {
       });
     }
   }
+
+  // Spelersnotitie auto-save
+  if (window.app?.state?.playerName && !isDM()) {
+    let playerNoteTimer;
+    const pta = document.getElementById(`player-note-${e.id}`);
+    if (pta) {
+      pta.addEventListener('input', () => {
+        clearTimeout(playerNoteTimer);
+        playerNoteTimer = setTimeout(async () => {
+          await api.savePlayerNote(e.id, pta.value);
+          const ind = document.getElementById(`player-note-save-${e.id}`);
+          if (ind) {
+            ind.textContent = '\u2713 Opgeslagen';
+            ind.style.opacity = '1';
+            setTimeout(() => { ind.style.opacity = '0'; }, 1200);
+          }
+        }, 600);
+      });
+    }
+  }
+};
+
+// ── Voorwerpen: claimen & eigendom ──
+
+window._itemClaim = async (itemId) => {
+  try {
+    await api.requestItem(itemId, { type: 'claim' });
+    await refreshOwnership();
+    renderEntitySection('voorwerpen');
+  } catch (err) {
+    if (err.message?.includes('Al een')) alert('Je hebt al een openstaand verzoek voor dit voorwerp.');
+    else alert('Fout: ' + err.message);
+  }
+};
+
+window._itemRemoveOwner = async (itemId) => {
+  if (!confirm('Eigendom verwijderen van dit voorwerp?')) return;
+  try {
+    await api.removeItemOwner(itemId);
+    await refreshOwnership();
+    renderEntitySection('voorwerpen');
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+window._itemApproveRequest = async (reqId) => {
+  try {
+    await api.approveItemRequest(reqId);
+    await refreshOwnership();
+    renderEntitySection('voorwerpen');
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+window._itemRejectRequest = async (reqId) => {
+  try {
+    await api.rejectItemRequest(reqId);
+    await refreshOwnership();
+    renderEntitySection('voorwerpen');
+  } catch (err) { alert('Fout: ' + err.message); }
 };
 
 // ── Visibility / Secret / Deceased toggles ──
@@ -985,6 +1286,8 @@ window._openEditor = async (tab, editId) => {
 
   editorTags = {};
   pendingFile = null;
+  pendingAudioFile = null;
+  _editorOldAudioId = e?.data?.audioId || null;
   for (const lt of LINK_TYPES) {
     editorTags[lt] = e?.links?.[lt]?.slice() || [];
   }
@@ -1150,6 +1453,34 @@ window._openEditor = async (tab, editId) => {
           </div>
         </div>
       `;
+      // Audio upload section directly below flavour textarea
+      if (field.key === 'flavour') {
+        const existingAudioId = e?.data?.audioId || '';
+        body += `
+          <div>
+            <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">🔊 Geluidsfragment</label>
+            <div class="mt-1 flex flex-wrap items-center gap-2">
+              ${existingAudioId ? `
+                <button type="button" id="editor-audio-preview" class="flavour-audio-btn editor-audio-preview"
+                  data-audio-btn data-audio-btn-id="${esc(existingAudioId)}"
+                  onclick="window._audioToggle('${esc(existingAudioId)}')" title="Afspelen / pauzeren">▶</button>
+                <span class="text-xs text-ink-dim">Audio bijgevoegd</span>
+                <button type="button" onclick="window._editorClearAudio()"
+                  class="text-xs text-ink-dim hover:text-seal transition ml-auto">✕ Verwijderen</button>
+              ` : `
+                <div id="editor-audio-preview" class="hidden"></div>
+              `}
+              <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-room-elevated border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright cursor-pointer transition">
+                ${existingAudioId ? '🔁 Vervangen' : '+ Audio toevoegen'}
+                <input type="file" accept="audio/*" class="hidden"
+                  onchange="window._editorAudioSelected(this.files[0])">
+              </label>
+            </div>
+            <div id="editor-audio-name" class="text-xs text-ink-dim mt-1 hidden"></div>
+            <input type="hidden" name="data_audioId" id="editor-audio-id" value="${esc(existingAudioId)}">
+          </div>
+        `;
+      }
     } else if (field.type === 'select') {
       body += `
         <div>
@@ -1265,7 +1596,7 @@ window._openEditor = async (tab, editId) => {
         <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">${LINK_LABELS[lt] || lm.label || lt}</div>
         <div id="tags-${lt}" class="flex flex-wrap gap-1 mb-1">
           ${editorTags[lt].map(n => `
-            <span class="chip ${lm.chip}">${esc(n)} <span class="cursor-pointer ml-1" onclick="window._removeTag('${lt}','${esc(n)}')">\u00d7</span></span>
+            <span class="chip ${lm.chip}">${esc(n)} <span class="cursor-pointer ml-1" data-lt="${lt}" data-name="${esc(n)}" onclick="window._removeTag(this.dataset.lt,this.dataset.name)">\u00d7</span></span>
           `).join('')}
         </div>
         <div class="flex gap-1">
@@ -1409,6 +1740,13 @@ window._openEditor = async (tab, editId) => {
       } else {
         const created = await api.createEntity(tab, payload);
         if (pendingFile && created?.id) await api.uploadFile(created.id, pendingFile);
+      }
+      // Upload/verwijder audio
+      if (pendingAudioFile && data.audioId) {
+        await api.uploadFile(data.audioId, pendingAudioFile);
+      }
+      if (!data.audioId && _editorOldAudioId) {
+        await api.deleteFile(_editorOldAudioId).catch(() => {});
       }
       // Upload nieuwe extra afbeeldingen
       for (const img of entityEditorImages) {
