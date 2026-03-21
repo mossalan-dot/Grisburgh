@@ -222,8 +222,9 @@ function applyRole() {
   const diceFab = document.getElementById('dice-fab');
   if (diceFab) diceFab.classList.toggle('hidden', isDmActive);
 
-  const dmPanelFab = document.getElementById('dm-panel-fab');
-  if (dmPanelFab) dmPanelFab.classList.toggle('hidden', !isDmActive);
+  // Meesterkamer-tab: alleen zichtbaar voor actieve DM
+  const dmTab = document.getElementById('dm-tab');
+  if (dmTab) dmTab.classList.toggle('hidden', !isDmActive);
 
   // Groepswisselaar tonen/verbergen op basis van DM-status
   const groupSwitcher = document.getElementById('group-switcher');
@@ -560,6 +561,7 @@ async function refreshSection(section) {
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await renderKaart();
   else if (section === 'mijn-karakter') await renderMijnKarakter();
+  else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
 }
 
 async function renderMijnKarakter() {

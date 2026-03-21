@@ -69,21 +69,8 @@ function esc(s) {
 
 export function initDmPanel() {
   window.dmPanel = {
-    toggle() {
-      const panel = document.getElementById('dm-panel');
-      const fab   = document.getElementById('dm-panel-fab');
-      const isOpen = panel.classList.toggle('open');
-      if (fab) fab.classList.toggle('hidden', isOpen);
-      if (isOpen) {
-        _switchTab(_activeTab);
-      }
-    },
-    close() {
-      document.getElementById('dm-panel')?.classList.remove('open');
-      const fab = document.getElementById('dm-panel-fab');
-      if (fab) fab.classList.remove('hidden');
-    },
     switchTab(tab) { _switchTab(tab); },
+    renderMeesterkamer() { _buildTabs(); _switchTab(_activeTab); },
 
     // Spreuken
     spellSearch: _spellSearch,
@@ -193,6 +180,26 @@ export function initDmPanel() {
     _combatLoaded = true;
     _renderCombatOverlay(c, /* startMinimized */ !window.app?.isDM?.());
   }).catch(() => {});
+}
+
+// ── Tab knoppen bouwen ──
+
+function _buildTabs() {
+  const container = document.getElementById('dm-section-tabs');
+  if (!container) return;
+  container.innerHTML = `
+    <button class="dm-tab-btn${_activeTab==='tunnel'?      ' active':''}" data-tab="tunnel"       onclick="window.dmPanel.switchTab('tunnel')"       title="Tunnel"><span class="dm-tab-icon">🌐</span><span class="dm-tab-label">Tunnel</span></button>
+    <button id="dm-export-btn" class="dm-tab-btn" onclick="window.dmPanel.exportSnapshot()"                                                           title="Snapshot"><span class="dm-tab-icon">📥</span><span class="dm-tab-label">Snapshot</span></button>
+    <button class="dm-tab-btn${_activeTab==='spreuken'?    ' active':''}" data-tab="spreuken"     onclick="window.dmPanel.switchTab('spreuken')"     title="Spreuken"><span class="dm-tab-icon">📖</span><span class="dm-tab-label">Spreuken</span></button>
+    <button class="dm-tab-btn${_activeTab==='tafels'?      ' active':''}" data-tab="tafels"       onclick="window.dmPanel.switchTab('tafels')"       title="Tafels"><span class="dm-tab-icon">🎲</span><span class="dm-tab-label">Tafels</span></button>
+    <button class="dm-tab-btn${_activeTab==='dobbelstenen'?' active':''}" data-tab="dobbelstenen" onclick="window.dmPanel.switchTab('dobbelstenen')" title="Dobbelstenen">
+      <span class="dm-tab-icon"><svg viewBox="0 0 24 22" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><polygon points="12,1.5 23,20.5 1,20.5"/><polygon points="6.5,11.5 17.5,11.5 12,20"/></svg></span>
+      <span class="dm-tab-label">Dobbel</span>
+    </button>
+    <button class="dm-tab-btn${_activeTab==='geluiden'?    ' active':''}" data-tab="geluiden"     onclick="window.dmPanel.switchTab('geluiden')"     title="Geluiden"><span class="dm-tab-icon">🔊</span><span class="dm-tab-label">Geluiden</span></button>
+    <button class="dm-tab-btn${_activeTab==='monsters'?    ' active':''}" data-tab="monsters"     onclick="window.dmPanel.switchTab('monsters')"     title="Monsterbibliotheek"><span class="dm-tab-icon">👾</span><span class="dm-tab-label">Monsters</span></button>
+    <button class="dm-tab-btn${_activeTab==='gevecht'?     ' active':''}" data-tab="gevecht"      onclick="window.dmPanel.switchTab('gevecht')"      title="Gevecht"><span class="dm-tab-icon">⚔️</span><span class="dm-tab-label">Gevecht</span></button>
+  `;
 }
 
 // ── Tab switching ──
