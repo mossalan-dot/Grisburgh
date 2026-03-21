@@ -578,8 +578,10 @@ async function renderMijnKarakter() {
   let allVoorwerpen = [];
   let soundsData    = { emotes: {} };
   let simpleItems   = [];
+  let currency      = { fl: 0, kn: 0, cl: 0 };
+  let spellSlots    = {};
   try {
-    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems] = await Promise.all([
+    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, spellSlots] = await Promise.all([
       api.getPlayerHp(state.characterId).catch(() => ({ current: null, max: null })),
       api.getEntity('personages', state.characterId).catch(() => null),
       api.getCombat().catch(() => null),
@@ -587,6 +589,8 @@ async function renderMijnKarakter() {
       api.listEntities('voorwerpen').catch(() => []),
       fetch('/api/sounds').then(r => r.json()).catch(() => ({ emotes: {} })),
       api.getPlayerItems(state.characterId).catch(() => []),
+      api.getPlayerCurrency(state.characterId).catch(() => ({ fl: 0, kn: 0, cl: 0 })),
+      api.getPlayerSpellSlots(state.characterId).catch(() => ({})),
     ]);
   } catch { /* ok */ }
 
@@ -710,6 +714,59 @@ async function renderMijnKarakter() {
         </div>
       </div>` : ''}
 
+      <!-- Valuta -->
+      <div class="player-dash-section">
+        <div class="player-dash-section-title">💰 Beurs</div>
+        <div class="player-dash-currency">
+          <label class="player-dash-currency-row">
+            <span class="player-dash-currency-label"><span class="player-dash-currency-icon">🟡</span>Florinde</span>
+            <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-fl" value="${currency.fl}"
+              onblur="window._dashCurrencySave()">
+          </label>
+          <label class="player-dash-currency-row">
+            <span class="player-dash-currency-label"><span class="player-dash-currency-icon">⚪</span>Knaker</span>
+            <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-kn" value="${currency.kn}"
+              onblur="window._dashCurrencySave()">
+          </label>
+          <label class="player-dash-currency-row">
+            <span class="player-dash-currency-label"><span class="player-dash-currency-icon">🟤</span>Centeling</span>
+            <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-cl" value="${currency.cl}"
+              onblur="window._dashCurrencySave()">
+          </label>
+        </div>
+      </div>
+
+      <!-- Spreukenslots -->
+      ${(() => {
+        const lvls = [1,2,3,4,5,6,7,8,9];
+        const rows = lvls.map(lvl => {
+          const slot = spellSlots[lvl] || { max: 0, used: 0 };
+          if (slot.max === 0 && !spellSlots[lvl]) return '';
+          const dots = Array.from({ length: Math.max(slot.max, 0) }, (_, i) => {
+            const used = i < slot.used;
+            return `<button class="spell-slot-dot ${used ? 'used' : 'free'}" title="${used ? 'Verbruikt — klik om vrij te maken' : 'Vrij — klik om te verbruiken'}"
+              onclick="window._dashToggleSlot(${lvl}, ${i})"></button>`;
+          }).join('');
+          return `
+            <div class="player-dash-slot-row">
+              <span class="player-dash-slot-level">Niv. ${lvl}</span>
+              <div class="player-dash-slot-dots">${dots}</div>
+              <span class="player-dash-slot-count">${slot.used}/${slot.max}</span>
+              <button class="player-dash-slot-adj" onclick="window._dashSlotAdj(${lvl}, -1)" title="Max verlagen">−</button>
+              <button class="player-dash-slot-adj" onclick="window._dashSlotAdj(${lvl}, 1)" title="Max verhogen">+</button>
+            </div>`;
+        }).filter(Boolean).join('');
+        return `
+      <div class="player-dash-section player-dash-spellslots">
+        <div class="player-dash-section-title">
+          ✨ Spreukenslots
+          ${rows ? `<button class="player-dash-slot-rest-btn" onclick="window._dashLongRest()" title="Lange rust — herstel alle slots">🌙 Lange rust</button>` : ''}
+        </div>
+        ${rows || '<p class="player-dash-empty">Nog geen spreukenslots ingesteld.</p>'}
+        <button class="player-dash-slot-add-btn" onclick="window._dashSlotAddLevel()" title="Nieuw niveau toevoegen">+ Niveau</button>
+      </div>`;
+      })()}
+
       <!-- Emote-knoppen (altijd zichtbaar als DM emotes heeft ingesteld) -->
       ${activeEmotes.length > 0 ? `
       <div class="player-dash-section player-dash-emotes">
@@ -826,6 +883,53 @@ async function renderMijnKarakter() {
       await api.removePlayerItem(state.characterId, itemId);
       renderMijnKarakter();
     } catch { /* ok */ }
+  };
+
+  // ── Valuta ──
+  window._dashCurrencySave = async function() {
+    const fl = Math.max(0, parseInt(document.getElementById('dash-cur-fl')?.value) || 0);
+    const kn = Math.max(0, parseInt(document.getElementById('dash-cur-kn')?.value) || 0);
+    const cl = Math.max(0, parseInt(document.getElementById('dash-cur-cl')?.value) || 0);
+    try { await api.patchPlayerCurrency(state.characterId, { fl, kn, cl }); } catch { /* ok */ }
+  };
+
+  // ── Spreukenslots ──
+  window._dashToggleSlot = async function(lvl, idx) {
+    const slot = spellSlots[lvl] || { max: 0, used: 0 };
+    const newUsed = idx < slot.used
+      ? slot.used - 1   // dot al gebruikt → één minder
+      : slot.used + 1;  // dot vrij → één meer
+    spellSlots[lvl] = { ...slot, used: Math.min(Math.max(0, newUsed), slot.max) };
+    await api.setPlayerSpellSlots(state.characterId, spellSlots).catch(() => {});
+    renderMijnKarakter();
+  };
+
+  window._dashSlotAdj = async function(lvl, delta) {
+    const slot = spellSlots[lvl] || { max: 0, used: 0 };
+    const newMax = Math.max(0, slot.max + delta);
+    spellSlots[lvl] = { max: newMax, used: Math.min(slot.used, newMax) };
+    await api.setPlayerSpellSlots(state.characterId, spellSlots).catch(() => {});
+    renderMijnKarakter();
+  };
+
+  window._dashLongRest = async function() {
+    for (const lvl of Object.keys(spellSlots)) {
+      spellSlots[lvl] = { ...spellSlots[lvl], used: 0 };
+    }
+    await api.setPlayerSpellSlots(state.characterId, spellSlots).catch(() => {});
+    renderMijnKarakter();
+  };
+
+  window._dashSlotAddLevel = async function() {
+    // Voeg het eerstvolgende ontbrekende niveau toe
+    for (let lvl = 1; lvl <= 9; lvl++) {
+      if (!spellSlots[lvl] || spellSlots[lvl].max === 0) {
+        spellSlots[lvl] = { max: 1, used: 0 };
+        await api.setPlayerSpellSlots(state.characterId, spellSlots).catch(() => {});
+        renderMijnKarakter();
+        return;
+      }
+    }
   };
 }
 
