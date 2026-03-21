@@ -1555,12 +1555,110 @@ body::before {
   background: linear-gradient(135deg, #3a2a0e, #221608);
 }
 
+/* ── Desktop: nav-tabs mag overflow tonen (voor Archief-dropdown) ── */
+#section-tabs { overflow: visible; }
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBIEL (≤ 768px)
+   ══════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  .section-tab { padding: 6px 12px; font-size: 12px; }
-  .stat-grid { grid-template-columns: repeat(2, 1fr); }
-  .modal { width: 100%; max-width: 100%; max-height: 100vh; border-radius: 0; }
+
+  /* ── Header ── */
+  #app-title { font-size: 1.9rem !important; }
+  /* Verberg decoratieve sierregels in de header op kleine schermen */
+  #header-display .h-px { display: none; }
+  #header-display .text-gold-dim { display: none; }
+
+  /* ── Nav tabs: horizontaal scrollbaar zodat alle tabs bereikbaar zijn ── */
+  #section-tabs {
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+  #section-tabs::-webkit-scrollbar { display: none; }
+
+  /* Archief-dropdown: position:fixed zodat hij niet geclipt wordt door overflow:auto */
+  .archief-menu {
+    position: fixed;
+    top: auto;
+    left: 8px;
+    right: 8px;
+    min-width: unset;
+  }
+
+  /* Tabs compacter */
+  .section-tab { padding: 6px 10px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+  .section-tab .tab-icon { font-size: 1.35em; }
+
+  /* ── Kaartgrid ── */
+  .cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+    padding: 12px !important;
+    gap: 10px !important;
+  }
+  /* Kleinere kaartafbeelding op mobiel */
+  .card-img { min-height: 100px; max-height: 130px; }
+
+  /* ── Modal: volledig scherm ── */
+  .modal { width: 100%; max-width: 100%; max-height: 100dvh; border-radius: 0; }
   .modal-head { padding: 12px 16px; }
   .modal-close { width: 44px; height: 44px; font-size: 32px; }
+
+  /* ── Dobbelstenen-paneel: volledige breedte ── */
+  .dice-panel { width: 100%; border-radius: 10px 10px 0 0; border-left: none; border-right: none; }
+  .dice-fab { bottom: 16px; right: 16px; width: 52px; height: 52px; }
+
+  /* ── Spelersdashboard ── */
+  .player-dashboard { padding: 14px 12px 28px; }
+  .player-dash-hero { gap: 14px; }
+  .player-dash-avatar-wrap { width: 72px; height: 72px; }
+
+  /* ── Globale zoekoverlap ── */
+  .global-search-overlay { padding-top: 44px; align-items: flex-start; }
+  .global-search-box { max-height: 80vh; }
+
+  /* ── Stat-block (character sheet weergave) ── */
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* ── DM Meesterkamer sub-tabs ── */
+  .dm-tab-label { font-size: 8px; }
+  .dm-tab-btn { min-width: 44px; padding: 7px 3px 6px; }
+
+  /* ── Gevechtsoverlay ── */
+  .combat-overlay { padding: 12px 12px 72px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   KLEINE TELEFOON (≤ 480px)
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+
+  /* ── Header nog compacter ── */
+  #app-title { font-size: 1.55rem !important; }
+  #app-subtitle { font-size: 0.78rem; }
+
+  /* ── Kaartgrid: 2 kolommen vast ── */
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    padding: 8px !important;
+    gap: 8px !important;
+  }
+  .card-name { font-size: 0.8rem; }
+
+  /* ── Tabs nog smaller ── */
+  .section-tab { padding: 5px 8px; font-size: 10.5px; }
+
+  /* ── Modal body minder padding ── */
+  #m-body { padding: 12px !important; }
+
+  /* ── Spelersdashboard ── */
+  .player-dashboard { padding: 10px 10px 24px; }
+  .player-dash-avatar-wrap { width: 60px; height: 60px; }
+
+  /* ── Zoekoverlay helemaal bovenaan ── */
+  .global-search-overlay { padding-top: 16px; }
 }
 
 /* ── Meesterkamer (DM-tab) ── */
