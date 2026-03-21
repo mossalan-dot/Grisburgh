@@ -138,6 +138,8 @@
       <button class="section-tab" data-section="logboek">&#x1F4D6; Logboek</button>
       <!-- Alleen zichtbaar voor ingelogde spelers -->
       <button class="section-tab hidden" data-section="mijn-karakter">&#x1F9D1; Mijn karakter</button>
+      <!-- Alleen zichtbaar voor DM -->
+      <button class="section-tab hidden" data-section="meesterkamer" id="dm-tab">⚙ Meesterkamer</button>
       <!-- Globaal zoeken -->
       <button class="section-tab global-search-tab" id="global-search-btn" onclick="window.app.openGlobalSearch()" title="Zoeken (/)">⌕</button>
     </nav>
@@ -166,6 +168,57 @@
       <div class="section" id="section-logboek"></div>
       <div class="section" id="section-kaart"></div>
       <div class="section" id="section-mijn-karakter"></div>
+      <div class="section dm-section" id="section-meesterkamer">
+        <div class="dm-section-tabs" id="dm-section-tabs"></div>
+        <div class="dm-section-body" id="dm-section-body">
+          <!-- Tunnel tab -->
+          <div class="dm-tab-content active" data-tab="tunnel">
+            <div id="dm-tunnel-content"></div>
+          </div>
+          <!-- Spreuken tab -->
+          <div class="dm-tab-content" data-tab="spreuken"></div>
+          <!-- Tafels tab -->
+          <div class="dm-tab-content" data-tab="tafels">
+            <div id="dm-tafels-content"></div>
+          </div>
+          <!-- Monsters tab -->
+          <div class="dm-tab-content" data-tab="monsters">
+            <div id="dm-monsters-content"></div>
+          </div>
+          <!-- Gevecht tab -->
+          <div class="dm-tab-content" data-tab="gevecht">
+            <div id="dm-gevecht-content"></div>
+          </div>
+          <!-- Geluiden tab -->
+          <div class="dm-tab-content" data-tab="geluiden">
+            <div id="dm-geluiden-content"></div>
+          </div>
+          <!-- Dobbelstenen tab -->
+          <div class="dm-tab-content" data-tab="dobbelstenen">
+            <div class="dm-feature-section" style="padding-bottom:6px;border-bottom:1px solid rgba(58,40,16,0.4)">
+              <div class="dm-feature-row" style="align-items:center;gap:8px">
+                <span class="dm-form-label" style="flex:none">Aantal</span>
+                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dice.adjustCount(-1)">−</button>
+                <span id="dm-dice-count-display" class="dm-dice-count">1</span>
+                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dice.adjustCount(1)">+</button>
+              </div>
+            </div>
+            <div class="dice-panel-grid">
+              <button class="dice-btn" onclick="window.dice.rollDm(4)">d4</button>
+              <button class="dice-btn" onclick="window.dice.rollDm(6)">d6</button>
+              <button class="dice-btn" onclick="window.dice.rollDm(8)">d8</button>
+              <button class="dice-btn" onclick="window.dice.rollDm(12)">d12</button>
+              <button class="dice-btn dice-btn--featured" onclick="window.dice.rollDm(20)">d20</button>
+              <button class="dice-btn" onclick="window.dice.rollDm(100)">d%</button>
+            </div>
+            <div class="dice-result" id="dm-dice-result">
+              <div class="dice-result-num" id="dm-dice-result-num">—</div>
+              <div class="dice-result-label" id="dm-dice-result-label">Kies een dobbelsteen</div>
+            </div>
+            <div class="dice-history" id="dm-dice-history"></div>
+          </div>
+        </div>
+      </div>
     </main>
 
     <!-- FAB -->
@@ -270,82 +323,6 @@
     <div class="dice-history" id="dice-history"></div>
   </div>
 
-  <!-- DM Panel trigger — DM only, bottom-right -->
-  <button id="dm-panel-fab" class="dm-panel-fab dm-only hidden" onclick="window.dmPanel.toggle()" title="DM-paneel">
-    <svg viewBox="0 0 20 20" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
-      <circle cx="10" cy="10" r="3"/>
-      <path d="M10 1v3M10 16v3M1 10h3M16 10h3M3.5 3.5l2.1 2.1M14.4 14.4l2.1 2.1M3.5 16.5l2.1-2.1M14.4 5.6l2.1-2.1"/>
-    </svg>
-  </button>
-
-  <!-- DM Panel — slides up from bottom-right -->
-  <div id="dm-panel" class="dm-panel dm-only">
-    <div class="dm-panel-head">
-      <span class="dm-panel-title">Meesterkamer</span>
-      <button class="dm-panel-close" onclick="window.dmPanel.close()" title="Sluiten">&times;</button>
-    </div>
-    <div class="dm-panel-tabs">
-      <button class="dm-tab-btn active" data-tab="tunnel"        onclick="window.dmPanel.switchTab('tunnel')"        title="Tunnel"><span class="dm-tab-icon">🌐</span><span class="dm-tab-label">Tunnel</span></button>
-      <button id="dm-export-btn" class="dm-tab-btn" onclick="window.dmPanel.exportSnapshot()" title="Download snapshot"><span class="dm-tab-icon">📥</span><span class="dm-tab-label">Snapshot</span></button>
-      <button class="dm-tab-btn"        data-tab="spreuken"      onclick="window.dmPanel.switchTab('spreuken')"       title="Spreuken"><span class="dm-tab-icon">📖</span><span class="dm-tab-label">Spreuken</span></button>
-      <button class="dm-tab-btn"        data-tab="tafels"        onclick="window.dmPanel.switchTab('tafels')"        title="Tafels"><span class="dm-tab-icon">🎲</span><span class="dm-tab-label">Tafels</span></button>
-      <button class="dm-tab-btn"        data-tab="dobbelstenen"  onclick="window.dmPanel.switchTab('dobbelstenen')"  title="Dobbelstenen">
-        <span class="dm-tab-icon"><svg viewBox="0 0 24 22" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><polygon points="12,1.5 23,20.5 1,20.5"/><polygon points="6.5,11.5 17.5,11.5 12,20"/></svg></span>
-        <span class="dm-tab-label">Dobbel</span>
-      </button>
-      <button class="dm-tab-btn"        data-tab="geluiden"      onclick="window.dmPanel.switchTab('geluiden')"      title="Geluiden"><span class="dm-tab-icon">🔊</span><span class="dm-tab-label">Geluiden</span></button>
-      <button class="dm-tab-btn"        data-tab="monsters"      onclick="window.dmPanel.switchTab('monsters')"      title="Monsterbibliotheek"><span class="dm-tab-icon">👾</span><span class="dm-tab-label">Monsters</span></button>
-      <button class="dm-tab-btn"        data-tab="gevecht"       onclick="window.dmPanel.switchTab('gevecht')"       title="Gevecht"><span class="dm-tab-icon">⚔️</span><span class="dm-tab-label">Gevecht</span></button>
-    </div>
-    <div class="dm-panel-body">
-      <!-- Tunnel tab -->
-      <div class="dm-tab-content active" data-tab="tunnel">
-        <div id="dm-tunnel-content"></div>
-      </div>
-      <!-- Spreuken tab -->
-      <div class="dm-tab-content" data-tab="spreuken"></div>
-      <!-- Tafels tab -->
-      <div class="dm-tab-content" data-tab="tafels">
-        <div id="dm-tafels-content"></div>
-      </div>
-      <!-- Monsters tab -->
-      <div class="dm-tab-content" data-tab="monsters">
-        <div id="dm-monsters-content"></div>
-      </div>
-      <!-- Gevecht tab -->
-      <div class="dm-tab-content" data-tab="gevecht">
-        <div id="dm-gevecht-content"></div>
-      </div>
-      <!-- Geluiden tab -->
-      <div class="dm-tab-content" data-tab="geluiden">
-        <div id="dm-geluiden-content"></div>
-      </div>
-      <!-- Dobbelstenen tab -->
-      <div class="dm-tab-content" data-tab="dobbelstenen">
-        <div class="dm-feature-section" style="padding-bottom:6px;border-bottom:1px solid rgba(58,40,16,0.4)">
-          <div class="dm-feature-row" style="align-items:center;gap:8px">
-            <span class="dm-form-label" style="flex:none">Aantal</span>
-            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dice.adjustCount(-1)">−</button>
-            <span id="dm-dice-count-display" class="dm-dice-count">1</span>
-            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dice.adjustCount(1)">+</button>
-          </div>
-        </div>
-        <div class="dice-panel-grid">
-          <button class="dice-btn" onclick="window.dice.rollDm(4)">d4</button>
-          <button class="dice-btn" onclick="window.dice.rollDm(6)">d6</button>
-          <button class="dice-btn" onclick="window.dice.rollDm(8)">d8</button>
-          <button class="dice-btn" onclick="window.dice.rollDm(12)">d12</button>
-          <button class="dice-btn dice-btn--featured" onclick="window.dice.rollDm(20)">d20</button>
-          <button class="dice-btn" onclick="window.dice.rollDm(100)">d%</button>
-        </div>
-        <div class="dice-result" id="dm-dice-result">
-          <div class="dice-result-num" id="dm-dice-result-num">—</div>
-          <div class="dice-result-label" id="dm-dice-result-label">Kies een dobbelsteen</div>
-        </div>
-        <div class="dice-history" id="dm-dice-history"></div>
-      </div>
-    </div>
-  </div>
 
   <script type="module" src="/js/sound-manager.js?v=1"></script>
   <script type="module" src="/js/app.js?v=17"></script>
