@@ -57,10 +57,18 @@ body::before {
   border-radius: 4px 4px 0 0;
 }
 
+/* ── Nav tab: icoon-span (vergroot dunne Unicode-symbolen naar emoji-grootte) ── */
+.section-tab .tab-icon {
+  font-size: 1.45em;
+  line-height: 1;
+  vertical-align: -0.15em;
+  display: inline-block;
+}
+
 /* ── Nav tab: zoekknop ── */
 .global-search-tab {
   margin-left: auto;
-  font-size: 18px;
+  font-size: 13px;
   padding: 8px 14px;
   opacity: 0.7;
 }
