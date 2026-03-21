@@ -54,7 +54,7 @@ export function initSocket() {
     }
     // Melding voor spelers bij onthulling van een geheimenis
     if (!window.app?.isDM?.() && secretReveal && name) {
-      _showToast(`🔓 <strong>${name}</strong> — geheimenis onthuld`, () => {
+      _showToast(`🔓 Geheim van <strong>${name}</strong> onthuld`, () => {
         if (type && id) window._openDetail?.(type, id);
       });
     }
