@@ -2963,6 +2963,44 @@ body::before {
 }
 
 
+/* ── Geheim-badge op personagekaart (DM-only) ── */
+.secret-badge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 10px;
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(18,9,2,0.78);
+  color: #9a8060;
+  border-top: 1px solid rgba(106,72,32,0.4);
+  border-radius: 0 0 8px 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  z-index: 10;
+}
+.secret-badge:hover {
+  background: rgba(18,9,2,0.93);
+  color: #d4b888;
+}
+.secret-badge--revealed {
+  background: rgba(196,148,10,0.18);
+  border-top-color: rgba(196,148,10,0.35);
+  color: #c4930a;
+}
+.secret-badge--revealed:hover {
+  background: rgba(196,148,10,0.28);
+  color: #f0c040;
+}
+
 /* ── Voorwerpen: eigendom & claimen ── */
 
 .item-owner-badge {

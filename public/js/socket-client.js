@@ -42,7 +42,7 @@ export function initSocket() {
     }
   });
 
-  socket.on('entity:secret', () => {
+  socket.on('entity:secret', ({ id, type, name, secretReveal } = {}) => {
     const section = window.app.state.activeSection;
     if (ENTITY_SECTIONS.includes(section)) {
       import('./render-campagne.js').then(m => {
@@ -50,6 +50,12 @@ export function initSocket() {
         else if (section === 'locaties') m.renderLocaties();
         else if (section === 'organisaties') m.renderOrganisaties();
         else if (section === 'voorwerpen') m.renderVoorwerpen();
+      });
+    }
+    // Melding voor spelers bij onthulling van een geheimenis
+    if (!window.app?.isDM?.() && secretReveal && name) {
+      _showToast(`🔓 <strong>${name}</strong> — geheimenis onthuld`, () => {
+        if (type && id) window._openDetail?.(type, id);
       });
     }
   });

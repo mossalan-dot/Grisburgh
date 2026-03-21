@@ -551,6 +551,13 @@ function renderCard(type, e) {
         </div>
       ` : ''}
       ${type === 'voorwerpen' ? _itemOwnershipBadge(e.id) : ''}
+      ${isDM() && e.data?.geheim ? `
+        <button class="secret-badge${e._secretReveal ? ' secret-badge--revealed' : ''}"
+          onclick="event.stopPropagation();window._toggleSecretCard('${type}','${e.id}')"
+          title="${e._secretReveal ? 'Geheim zichtbaar voor spelers — klik om te verbergen' : 'Geheim verborgen voor spelers — klik om te onthullen'}">
+          ${e._secretReveal ? '✨ Onthuld' : '🔒 Geheim'}
+        </button>
+      ` : ''}
     </div>
   `;
 }
@@ -1186,6 +1193,11 @@ window._toggleVis = async (tab, id, event) => {
 window._toggleSecret = async (tab, id) => {
   await api.toggleSecret(tab, id);
   window._openDetail(tab, id);
+};
+
+// Toggle vanuit de kaart — detail hoeft niet heropend; socket-event herrendert de kaarten.
+window._toggleSecretCard = async (type, id) => {
+  await api.toggleSecret(type, id);
 };
 
 window._toggleDeceased = async (tab, id) => {
