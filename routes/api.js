@@ -342,12 +342,18 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
 });
 
 router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
-  const { id } = req.params;
-  const dmState = readDmState();
-  const g       = getGroup(dmState);
+  const { type, id } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const entity   = (entities[type] || []).find(e => e.id === id);
+  const dmState  = readDmState();
+  const g        = getGroup(dmState);
   g.secretReveals[id] = !g.secretReveals[id];
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').emit('entity:secret', { id, secretReveal: g.secretReveals[id] });
+  req.app.get('io').emit('entity:secret', {
+    id, type,
+    name:         entity?.name || '',
+    secretReveal: g.secretReveals[id],
+  });
   res.json({ secretReveal: g.secretReveals[id] });
 });
 
