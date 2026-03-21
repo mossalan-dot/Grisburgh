@@ -1098,6 +1098,74 @@ body::before {
 }
 .upload-zone:hover { border-color: #9a7008; color: #5a4030; }
 
+/* ── Character Sheet accordeon (editor) ── */
+.cs-accordion {
+  border: 1px solid #c4a87a;
+  border-radius: 8px;
+  background: #efe3c5;
+  overflow: hidden;
+}
+.cs-accordion-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #8a6000;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  border-bottom: 1px solid transparent;
+  transition: background 0.15s;
+}
+.cs-accordion-head::-webkit-details-marker { display: none; }
+.cs-accordion[open] > .cs-accordion-head {
+  border-bottom-color: #c4a87a;
+  background: rgba(196,168,122,0.18);
+}
+.cs-accordion-chevron {
+  font-size: 14px;
+  color: #9a8060;
+  transition: transform 0.2s;
+}
+.cs-accordion[open] .cs-accordion-chevron { transform: rotate(180deg); }
+.cs-accordion-body { padding: 6px 0; }
+
+/* Sub-accordions */
+.cs-sub { border-top: 1px solid rgba(196,168,122,0.4); }
+.cs-sub:first-child { border-top: none; }
+.cs-sub > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 14px;
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #7a6040;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background 0.12s;
+}
+.cs-sub > summary:hover { background: rgba(196,168,122,0.12); }
+.cs-sub > summary::-webkit-details-marker { display: none; }
+.cs-sub > summary::after {
+  content: '▾';
+  font-size: 11px;
+  color: #9a8060;
+  transition: transform 0.18s;
+  flex-shrink: 0;
+}
+.cs-sub:not([open]) > summary::after { transform: rotate(-90deg); }
+.cs-sub-body { padding: 4px 14px 12px; }
+
 /* Stat block */
 .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .stat-box {

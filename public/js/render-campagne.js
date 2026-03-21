@@ -1551,52 +1551,89 @@ window._openEditor = async (tab, editId) => {
         </div>
       </div>`;
     };
+    const _hasStats = Object.values(s).some(v => v);
     body += `
-      <div class="p-4 bg-room-elevated rounded border border-room-border space-y-3">
-        <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider">Character Sheet</div>
+      <details class="cs-accordion"${_hasStats ? ' open' : ''}>
+        <summary class="cs-accordion-head">
+          <span>⚔ Character Sheet</span>
+          <span class="cs-accordion-chevron">▾</span>
+        </summary>
+        <div class="cs-accordion-body">
 
-        <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Gevecht</div>
-        <div class="grid grid-cols-3 gap-2">
-          ${_si('ac','AC',true)}${_si('hp','HP',true)}${_si('speed','Speed',true)}
+          <details class="cs-sub" open>
+            <summary>Gevecht</summary>
+            <div class="cs-sub-body space-y-2">
+              <div class="grid grid-cols-3 gap-2">
+                ${_si('ac','AC',true)}${_si('hp','HP',true)}${_si('speed','Speed',true)}
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                ${_si('cr','Challenge Rating',true)}${_si('profBonus','Prof. Bonus',true)}
+              </div>
+            </div>
+          </details>
+
+          <details class="cs-sub" open>
+            <summary>Eigenschappen</summary>
+            <div class="cs-sub-body">
+              <div class="grid grid-cols-3 gap-2">
+                ${['str','dex','con','int','wis','cha'].map(k => _si(k, k.toUpperCase(), true)).join('')}
+              </div>
+            </div>
+          </details>
+
+          <details class="cs-sub" open>
+            <summary>Proficiencies &amp; Verdedigingen</summary>
+            <div class="cs-sub-body space-y-2">
+              ${_si('savingThrows','Saving Throws')}
+              ${_si('skills','Skills')}
+              ${_si('vulnerabilities','Damage Vulnerabilities')}
+              ${_si('resistances','Damage Resistances')}
+              ${_si('immunities','Damage Immunities')}
+              ${_si('conditionImmunities','Condition Immunities')}
+            </div>
+          </details>
+
+          <details class="cs-sub" open>
+            <summary>Zintuigen &amp; Talen</summary>
+            <div class="cs-sub-body space-y-2">
+              ${_si('senses','Senses')}
+              ${_si('languages','Languages')}
+            </div>
+          </details>
+
+          <details class="cs-sub" open>
+            <summary>Traits &amp; Acties</summary>
+            <div class="cs-sub-body space-y-2">
+              ${_ta('traits','Traits', 3)}
+              ${_ta('actions','Actions', 4)}
+              ${_ta('bonusActions','Bonus Actions', 2)}
+              ${_ta('reactions','Reactions', 2)}
+              ${_ta('legendaryActions','Legendary Actions', 3)}
+            </div>
+          </details>
+
+          <details class="cs-sub" open>
+            <summary>Spreuken</summary>
+            <div class="cs-sub-body space-y-2">
+              <div class="grid grid-cols-2 gap-2">
+                ${_si('spellSaveDC','Spell Save DC',true)}${_si('spellAttackMod','Spell Attack Mod',true)}
+              </div>
+              ${_si('cantrips','Cantrips')}
+              ${_ta('spells','Spells', 3)}
+            </div>
+          </details>
+
+          ${s.extra ? `
+            <details class="cs-sub" open>
+              <summary>Extra (legacy)</summary>
+              <div class="cs-sub-body">
+                ${_ta('extra','', 2)}
+              </div>
+            </details>
+          ` : ''}
+
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          ${_si('cr','Challenge Rating',true)}${_si('profBonus','Prof. Bonus',true)}
-        </div>
-
-        <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Eigenschappen</div>
-        <div class="grid grid-cols-3 gap-2">
-          ${['str','dex','con','int','wis','cha'].map(k => _si(k, k.toUpperCase(), true)).join('')}
-        </div>
-
-        <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Proficiencies & Verdedigingen</div>
-        ${_si('savingThrows','Saving Throws')}
-        ${_si('skills','Skills')}
-        ${_si('resistances','Damage Resistances')}
-        ${_si('immunities','Damage Immunities')}
-        ${_si('conditionImmunities','Condition Immunities')}
-
-        <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Zintuigen & Talen</div>
-        ${_si('senses','Senses')}
-        ${_si('languages','Languages')}
-
-        <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Traits & Acties</div>
-        ${_ta('traits','Traits', 3)}
-        ${_ta('actions','Actions', 4)}
-        ${_ta('bonusActions','Bonus Actions', 2)}
-        ${_ta('reactions','Reactions', 2)}
-        ${_ta('legendaryActions','Legendary Actions', 3)}
-
-        <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Spreuken</div>
-        ${_si('cantrips','Cantrips')}
-        ${_ta('spells','Spells', 3)}
-
-        ${s.extra ? `
-          <div class="border-t border-room-border pt-3">
-            <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider mb-1">Extra (legacy)</div>
-            ${_ta('extra','', 2)}
-          </div>
-        ` : ''}
-      </div>
+      </details>
     `;
   }
 
