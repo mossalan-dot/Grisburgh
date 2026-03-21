@@ -31,7 +31,8 @@ const visible = args.includes('--visible');
 const FOLDER_RULES = [
   { match: "Personen/PC's",                      type: 'personages', subtype: 'speler' },
   { match: "Personen/NPC's in Grisburgh",        type: 'personages', subtype: 'npc'    },
-  { match: "Personen/NPC's in Amberwoud",        type: 'personages', subtype: 'npc'    },
+  { match: "Personen/NPC's in Amberwoud",              type: 'personages', subtype: 'npc' },
+  { match: "Personen/NPC's in Amberwoud en Medeweg",  type: 'personages', subtype: 'npc' },
   { match: "Personen/Andere NPC's",              type: 'personages', subtype: 'npc'    },
   { match: "Personen/Dieren",                    type: 'personages', subtype: 'npc'    },
   { match: 'Locaties',                           type: 'locaties',   subtype: ''       },
@@ -558,8 +559,16 @@ for (const { type, entity, imageSrc } of parsed) {
     added++;
   }
 
-  dmState.visibility[entity.id]    = visible ? 'visible' : 'hidden';
-  dmState.secretReveals[entity.id] = false;
+  // Zet zichtbaarheid in alle groepen (groepsstructuur)
+  for (const g of Object.values(dmState.groups || {})) {
+    if (!g.visibility)    g.visibility    = {};
+    if (!g.secretReveals) g.secretReveals = {};
+    if (!(entity.id in g.visibility))    g.visibility[entity.id]    = visible ? 'visible' : 'hidden';
+    if (!(entity.id in g.secretReveals)) g.secretReveals[entity.id] = false;
+  }
+  // Ondersteuning voor oud plat formaat (migratie nog niet uitgevoerd)
+  if ('visibility' in dmState)    dmState.visibility[entity.id]    = visible ? 'visible' : 'hidden';
+  if ('secretReveals' in dmState) dmState.secretReveals[entity.id] = false;
 }
 
 // Atomisch opslaan
