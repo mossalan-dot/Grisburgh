@@ -1487,11 +1487,10 @@ body::before {
   .modal-close { width: 44px; height: 44px; font-size: 32px; }
 }
 
-/* ── DM Panel FAB ── */
 /* ── Meesterkamer (DM-tab) ── */
 #section-meesterkamer {
   padding: 0;
-  background: #2e1c0c;
+  background: transparent;
   display: flex;
   flex-direction: column;
   min-height: 100%;
@@ -1501,8 +1500,8 @@ body::before {
   top: 0;
   z-index: 10;
   display: flex;
-  background: #1e1208;
-  border-bottom: 2px solid #6a4820;
+  background: #efe3c5;
+  border-bottom: 2px solid rgba(196,168,122,0.5);
   overflow-x: auto;
   scrollbar-width: none;
   flex-shrink: 0;
@@ -1517,12 +1516,12 @@ body::before {
   min-width: 52px;
   padding: 8px 4px 7px;
   font-size: 16px;
-  color: #9a8060;
-  background: none;
+  color: #8a7050;
+  background: transparent;
   border: none;
-  border-bottom: 3px solid transparent;
+  border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.15s ease;
   white-space: nowrap;
   display: flex;
   flex-direction: column;
@@ -1539,8 +1538,8 @@ body::before {
   letter-spacing: 0.4px;
   line-height: 1;
 }
-.dm-tab-btn:hover { color: #c4930a; background: rgba(196,148,10,0.07); }
-.dm-tab-btn.active { color: #f0b429; border-bottom-color: #f0b429; background: rgba(196,148,10,0.1); }
+.dm-tab-btn:hover { color: #c4930a; background: rgba(196,148,10,0.07); border-bottom-color: rgba(196,147,10,0.35); }
+.dm-tab-btn.active { color: #9a7008; border-bottom-color: #9a7008; background: rgba(196,168,122,0.18); border-radius: 4px 4px 0 0; }
 
 .dm-tab-content { display: none; }
 .dm-tab-content.active { display: block; }
