@@ -101,7 +101,17 @@ function switchSection(section) {
 }
 
 function toggleArchiefMenu() {
-  $('#archief-menu')?.classList.toggle('hidden');
+  const menu = $('#archief-menu');
+  if (!menu) return;
+  const willShow = menu.classList.contains('hidden');
+  menu.classList.toggle('hidden');
+  // Op mobiel: bereken top-positie voor position:fixed dropdown
+  if (willShow && window.innerWidth <= 768) {
+    const btn = $('#archief-nav-btn');
+    if (btn) menu.style.top = (btn.getBoundingClientRect().bottom + 4) + 'px';
+  } else {
+    menu.style.top = '';
+  }
 }
 
 function closeArchiefMenu() {
