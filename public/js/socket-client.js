@@ -276,6 +276,36 @@ export function initSocket() {
     }
   });
 
+  // ── Inspiratie ──
+  socket.on('player:inspiration', ({ characterId, inspired, name } = {}) => {
+    const isMe = characterId && characterId === window.app?.state?.characterId;
+    if (inspired && isMe) {
+      _showToast('✨ Je hebt inspiratie gekregen!', null, 6000);
+    } else if (!inspired && isMe) {
+      // geen toast bij verbruiken, dat doet de speler zelf
+    }
+    // DM: herrender party bar
+    if (window.app?.isDM?.()) window.renderParty?.();
+    // Speler: herrender dashboard als actief
+    if (isMe && window.app?.state?.activeSection === 'mijn-karakter') {
+      window.refreshSection?.('mijn-karakter');
+    }
+  });
+
+  // ── Undo toast bij verwijderde entiteit ──
+  socket.on('entity:trashed', ({ type, id, name } = {}) => {
+    if (!window.app?.isDM?.()) return;
+    _showToast(
+      `🗑 <strong>${name}</strong> verwijderd — <u style="cursor:pointer">↩ Ongedaan</u>`,
+      async () => {
+        try {
+          await window.api?.restoreEntity?.(id);
+        } catch { /* ok */ }
+      },
+      8000
+    );
+  });
+
   socket.on('connect', () => console.log('Socket connected'));
   socket.on('disconnect', () => console.log('Socket disconnected'));
 }

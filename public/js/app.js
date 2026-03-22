@@ -464,8 +464,10 @@ async function renderParty() {
   const bar = document.getElementById('party-bar');
   if (!bar) return;
   try {
-    const all = await api.listEntities('personages');
-    // Filter op actieve groep: spelers zonder groep-toewijzing tonen in alle groepen
+    const [all, inspirationMap] = await Promise.all([
+      api.listEntities('personages'),
+      api.getAllInspiration().catch(() => ({})),
+    ]);
     const spelers = all.filter(e => {
       if (e.subtype !== 'speler') return false;
       if (!_activeGroupId || !e.data?.groep) return true;
@@ -479,19 +481,24 @@ async function renderParty() {
       const imgUrl   = api.fileUrl(e.id);
       const sub      = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
       const isAbsent = presence[e.id] === false;
+      const hasInsp  = !!inspirationMap[e.id];
       const dotTitle = isAbsent ? 'Afwezig — klik om aanwezig te maken' : 'Aanwezig — klik om af te melden';
       return `
         <div class="party-portrait${isAbsent ? ' party-portrait--absent' : ''}" onclick="window._openDetail('personages','${esc(e.id)}')">
           <div class="party-portrait-avatar-wrap">
             <img src="${imgUrl}" class="party-portrait-img"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="party-portrait-fallback" style="display:none">\u{1f464}</div>
+            <div class="party-portrait-fallback" style="display:none">👤</div>
             <button class="party-presence-dot ${isAbsent ? 'absent' : 'present'}"
               onclick="event.stopPropagation();window._togglePartyPresence('${esc(e.id)}')"
               title="${dotTitle}"></button>
+            ${hasInsp ? '<span class="party-inspiration-badge" title="Heeft inspiratie">✨</span>' : ''}
           </div>
           <div class="party-portrait-name">${esc(e.name.split(' ')[0])}</div>
           ${sub ? `<div class="party-portrait-sub">${esc(sub)}</div>` : ''}
+          <button class="party-inspiration-btn${hasInsp ? ' has-inspiration' : ''}"
+            onclick="event.stopPropagation();window._toggleInspiration('${esc(e.id)}')"
+            title="${hasInsp ? 'Inspiratie intrekken' : 'Inspiratie geven'}">✨</button>
         </div>
       `;
     };
@@ -500,6 +507,15 @@ async function renderParty() {
     bar.innerHTML = present.map(renderPortrait).join('') + divider + absent.map(renderPortrait).join('');
   } catch { bar.innerHTML = ''; }
 }
+
+window._toggleInspiration = async function(charId) {
+  try {
+    const current = await api.getInspiration(charId);
+    if (current.inspired) await api.removeInspiration(charId);
+    else await api.giveInspiration(charId);
+    renderParty();
+  } catch { /* ok */ }
+};
 window.renderParty = renderParty;
 
 window._togglePartyPresence = (id) => {
@@ -576,6 +592,9 @@ async function refreshSection(section) {
   else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
 }
 
+let _playerSubTab = localStorage.getItem('_playerSubTab') || 'personage';
+let _playerSpellList = null;
+
 async function renderMijnKarakter() {
   const el = document.getElementById('section-mijn-karakter');
   if (!el) return;
@@ -597,8 +616,11 @@ async function renderMijnKarakter() {
   let playerProfile = {};
   let partyMembers  = [];
   let companions    = [];
+  let trackers      = [];
+  let pinnedSpells  = [];
+  let inspired      = false;
   try {
-    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, spellSlots, playerProfile, partyMembers, companions] = await Promise.all([
+    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, { inspired }] = await Promise.all([
       api.getPlayerHp(state.characterId).catch(() => ({ current: null, max: null })),
       api.getEntity('personages', state.characterId).catch(() => null),
       api.getCombat().catch(() => null),
@@ -611,6 +633,9 @@ async function renderMijnKarakter() {
       api.getPlayerProfile(state.characterId).catch(() => ({})),
       api.getPartyMembers().catch(() => []),
       api.getCompanions().catch(() => []),
+      api.getPlayerTrackers(state.characterId).catch(() => []),
+      api.getPlayerSpells(state.characterId).catch(() => []),
+      api.getInspiration(state.characterId).catch(() => ({ inspired: false })),
     ]);
   } catch { /* ok */ }
 
@@ -659,9 +684,32 @@ async function renderMijnKarakter() {
   const sub = [entity?.data?.ras, entity?.data?.klasse].filter(Boolean).join(' · ');
   const desc = entity?.data?.desc || '';
 
+  // ── Spreukslots HTML helper ──
+  const _spellSlotsHTML = (() => {
+    const lvls = [1,2,3,4,5,6,7,8,9];
+    const rows = lvls.map(lvl => {
+      const slot = spellSlots[lvl] || { max: 0, used: 0 };
+      if (slot.max === 0 && !spellSlots[lvl]) return '';
+      const dots = Array.from({ length: Math.max(slot.max, 0) }, (_, i) => {
+        const used = i < slot.used;
+        return `<button class="spell-slot-dot ${used ? 'used' : 'free'}"
+          title="${used ? 'Verbruikt — klik om vrij te maken' : 'Vrij — klik om te verbruiken'}"
+          onclick="window._dashToggleSlot(${lvl}, ${i})"></button>`;
+      }).join('');
+      return `<div class="player-dash-slot-row">
+        <span class="player-dash-slot-level">Niv. ${lvl}</span>
+        <div class="player-dash-slot-dots">${dots}</div>
+        <span class="player-dash-slot-count">${slot.used}/${slot.max}</span>
+        <button class="player-dash-slot-adj" onclick="window._dashSlotAdj(${lvl}, -1)">−</button>
+        <button class="player-dash-slot-adj" onclick="window._dashSlotAdj(${lvl}, 1)">+</button>
+      </div>`;
+    }).filter(Boolean).join('');
+    return { rows };
+  })();
+
   el.innerHTML = `
     <div class="player-dashboard">
-      <!-- Karakter header -->
+      <!-- Karakter header (altijd zichtbaar) -->
       <div class="player-dash-hero">
         <div class="player-dash-avatar-wrap">
           <img src="${imgUrl}" class="player-dash-avatar"
@@ -672,247 +720,279 @@ async function renderMijnKarakter() {
           <h2 class="player-dash-name">${esc(state.playerName)}</h2>
           ${sub ? `<p class="player-dash-sub">${esc(sub)}</p>` : ''}
           <div class="player-profile-fields">
-            <div class="ppf-row">
-              <label class="ppf-label">Level</label>
+            <div class="ppf-row"><label class="ppf-label">Level</label>
               <input class="ppf-input ppf-level" type="number" min="1" max="20"
                 value="${esc(playerProfile.level ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('level', this.value)">
-            </div>
-            <div class="ppf-row">
-              <label class="ppf-label">Klasse</label>
-              <input class="ppf-input" type="text"
-                value="${esc(playerProfile.klasse ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('klasse', this.value)">
-            </div>
-            <div class="ppf-row">
-              <label class="ppf-label">Subclass</label>
-              <input class="ppf-input" type="text"
-                value="${esc(playerProfile.subclass ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('subclass', this.value)">
-            </div>
-            <div class="ppf-row">
-              <label class="ppf-label">Background</label>
-              <input class="ppf-input" type="text"
-                value="${esc(playerProfile.background ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('background', this.value)">
-            </div>
-            <div class="ppf-row">
-              <label class="ppf-label">Origin</label>
-              <input class="ppf-input" type="text"
-                value="${esc(playerProfile.origin ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('origin', this.value)">
-            </div>
+                onblur="window._saveProfileField('level', this.value)"></div>
+            <div class="ppf-row"><label class="ppf-label">Klasse</label>
+              <input class="ppf-input" type="text" value="${esc(playerProfile.klasse ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('klasse', this.value)"></div>
+            <div class="ppf-row"><label class="ppf-label">Subclass</label>
+              <input class="ppf-input" type="text" value="${esc(playerProfile.subclass ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('subclass', this.value)"></div>
+            <div class="ppf-row"><label class="ppf-label">Background</label>
+              <input class="ppf-input" type="text" value="${esc(playerProfile.background ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('background', this.value)"></div>
+            <div class="ppf-row"><label class="ppf-label">Origin</label>
+              <input class="ppf-input" type="text" value="${esc(playerProfile.origin ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('origin', this.value)"></div>
           </div>
         </div>
       </div>
 
-      <!-- HP blok -->
-      <div class="player-dash-section">
-        <div class="player-dash-section-title">❤️ HP</div>
-        <div class="player-dash-hp-block">
-          <div class="player-dash-hp-bar-wrap">
-            <div class="player-dash-hp-bar ${hpCls}" style="width:${hpPct}%"></div>
-          </div>
-          <div class="player-dash-hp-controls">
-            <button class="player-dash-hp-btn" onclick="window._dashHpChange(-1)" title="Schade">−</button>
-            <div class="player-dash-hp-display">
-              <input id="dash-hp-current" type="number" class="player-dash-hp-input" value="${hpNum ?? ''}"
-                placeholder="?" onchange="window._dashHpSave()"
-                onclick="event.stopPropagation()">
-              <span class="player-dash-hp-sep">/</span>
-              <input id="dash-hp-max" type="number" class="player-dash-hp-max" value="${maxNum ?? ''}"
-                placeholder="max" onchange="window._dashHpSave()"
-                onclick="event.stopPropagation()">
-            </div>
-            <button class="player-dash-hp-btn" onclick="window._dashHpChange(1)" title="Genezing">+</button>
-          </div>
-          ${myCombatant ? '<p class="player-dash-hp-note">⚔️ Actief in gevecht — wijzigingen zijn direct zichtbaar</p>' : ''}
-        </div>
+      <!-- Subtab nav -->
+      <div class="player-subtabs">
+        <button class="player-subtab${_playerSubTab === 'personage' ? ' active' : ''}"
+          data-tab="personage" onclick="window._setPlayerSubTab('personage')">🧙 Mijn personage</button>
+        <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
+          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">🎒 Mijn knapzak</button>
+        <button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
+          data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">✨ Mijn spreukenboek</button>
       </div>
 
-      <!-- Party + medestanders -->
-      ${(partyMembers.length > 0 || companions.length > 0) ? `
-      <div class="player-dash-section">
-        <div class="player-dash-section-title">🧙 Party</div>
-        <div class="player-dash-party-row">
-          ${partyMembers.map(e => {
-            const imgUrl = api.fileUrl(e.id);
-            const firstName = esc(e.name.split(' ')[0]);
-            const sub = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
-            return `
-              <div class="party-portrait" onclick="window._openDetail('personages','${esc(e.id)}')">
+      <!-- ═══ TAB: Mijn personage ═══ -->
+      <div id="pst-personage" class="player-subtab-panel${_playerSubTab !== 'personage' ? ' hidden' : ''}">
+
+        ${inspired ? `
+        <div class="player-dash-section player-inspiration-section">
+          <div class="player-dash-section-title">✨ Inspiratie</div>
+          <div class="player-inspiration-block">
+            <span class="player-inspiration-badge">✨ Je hebt inspiratie!</span>
+            <button class="player-inspiration-use-btn" onclick="window._dashUseInspiration()">Gebruik</button>
+          </div>
+        </div>` : ''}
+
+        <!-- HP blok -->
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">❤️ HP</div>
+          <div class="player-dash-hp-block">
+            <div class="player-dash-hp-bar-wrap">
+              <div class="player-dash-hp-bar ${hpCls}" style="width:${hpPct}%"></div>
+            </div>
+            <div class="player-dash-hp-controls">
+              <button class="player-dash-hp-btn" onclick="window._dashHpChange(-1)" title="Schade">−</button>
+              <div class="player-dash-hp-display">
+                <input id="dash-hp-current" type="number" class="player-dash-hp-input" value="${hpNum ?? ''}"
+                  placeholder="?" onchange="window._dashHpSave()" onclick="event.stopPropagation()">
+                <span class="player-dash-hp-sep">/</span>
+                <input id="dash-hp-max" type="number" class="player-dash-hp-max" value="${maxNum ?? ''}"
+                  placeholder="max" onchange="window._dashHpSave()" onclick="event.stopPropagation()">
+              </div>
+              <button class="player-dash-hp-btn" onclick="window._dashHpChange(1)" title="Genezing">+</button>
+            </div>
+            ${myCombatant ? '<p class="player-dash-hp-note">⚔️ Actief in gevecht — wijzigingen zijn direct zichtbaar</p>' : ''}
+          </div>
+        </div>
+
+        <!-- Party + medestanders -->
+        ${(partyMembers.length > 0 || companions.length > 0) ? `
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">🧙 Party</div>
+          <div class="player-dash-party-row">
+            ${partyMembers.map(e => {
+              const pImgUrl = api.fileUrl(e.id);
+              const firstName = esc(e.name.split(' ')[0]);
+              const psub = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
+              return `<div class="party-portrait" onclick="window._openDetail('personages','${esc(e.id)}')">
                 <div class="party-portrait-avatar-wrap">
-                  <img src="${imgUrl}" class="party-portrait-img"
+                  <img src="${pImgUrl}" class="party-portrait-img"
                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                   <div class="party-portrait-fallback" style="display:none">👤</div>
                 </div>
                 <div class="party-portrait-name">${firstName}</div>
-                ${sub ? `<div class="party-portrait-sub">${esc(sub)}</div>` : ''}
+                ${psub ? `<div class="party-portrait-sub">${esc(psub)}</div>` : ''}
               </div>`;
-          }).join('')}
-          ${companions.length > 0 && partyMembers.length > 0 ? '<div class="party-bar-divider"></div>' : ''}
-          ${companions.map(e => {
-            const imgUrl = api.fileUrl(e.id);
-            const firstName = esc(e.name.split(' ')[0]);
-            const sub = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
-            return `
-              <div class="party-portrait party-portrait--companion" onclick="window._openDetail('personages','${esc(e.id)}')">
+            }).join('')}
+            ${companions.length > 0 && partyMembers.length > 0 ? '<div class="party-bar-divider"></div>' : ''}
+            ${companions.map(e => {
+              const pImgUrl = api.fileUrl(e.id);
+              const firstName = esc(e.name.split(' ')[0]);
+              const psub = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
+              return `<div class="party-portrait party-portrait--companion" onclick="window._openDetail('personages','${esc(e.id)}')">
                 <div class="party-portrait-avatar-wrap">
-                  <img src="${imgUrl}" class="party-portrait-img"
+                  <img src="${pImgUrl}" class="party-portrait-img"
                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                   <div class="party-portrait-fallback" style="display:none">🗡️</div>
                 </div>
                 <div class="party-portrait-name">${firstName}</div>
-                ${sub ? `<div class="party-portrait-sub">${esc(sub)}</div>` : ''}
+                ${psub ? `<div class="party-portrait-sub">${esc(psub)}</div>` : ''}
               </div>`;
-          }).join('')}
-        </div>
-      </div>` : ''}
+            }).join('')}
+          </div>
+        </div>` : ''}
 
-      <!-- Initiativevolgorde (alleen tijdens gevecht) -->
-      ${combat?.active && (combat.combatants?.length || 0) > 0 ? `
-      <div class="player-dash-section player-dash-initiative">
-        <div class="player-dash-section-title">⚔️ Initiativevolgorde</div>
-        <div class="player-dash-init-list">
-          ${(combat.combatants || []).map((c, i) => {
-            const isActive = i === combat.currentTurn;
-            const isMe = state.characterId
-              ? (c.entityId === state.characterId)
-              : (state.playerName && c.name === state.playerName);
-            const displayName = c.type === 'player' ? c.name.split(' ')[0] : c.name;
-            return `<div class="player-dash-init-row${isActive ? ' player-dash-init-active' : ''}${isMe ? ' player-dash-init-me' : ''}">
-              <span class="player-dash-init-num">${i + 1}</span>
-              <span class="player-dash-init-dot ${c.type === 'player' ? 'co-type-player' : c.type === 'ally' ? 'co-type-ally' : 'co-type-monster'}"></span>
-              <span class="player-dash-init-name">${esc(displayName)}${isMe ? ' <span class="player-dash-init-you">(jij)</span>' : ''}</span>
-              ${isActive ? '<span class="player-dash-init-arrow">▶</span>' : ''}
-            </div>`;
-          }).join('')}
-        </div>
-      </div>` : ''}
+        <!-- Initiativevolgorde (alleen tijdens gevecht) -->
+        ${combat?.active && (combat.combatants?.length || 0) > 0 ? `
+        <div class="player-dash-section player-dash-initiative">
+          <div class="player-dash-section-title">⚔️ Initiativevolgorde</div>
+          <div class="player-dash-init-list">
+            ${(combat.combatants || []).map((c, i) => {
+              const isActive = i === combat.currentTurn;
+              const isMe = c.entityId === state.characterId || c.name === state.playerName;
+              const displayName = c.type === 'player' ? c.name.split(' ')[0] : c.name;
+              return `<div class="player-dash-init-row${isActive ? ' player-dash-init-active' : ''}${isMe ? ' player-dash-init-me' : ''}">
+                <span class="player-dash-init-num">${i + 1}</span>
+                <span class="player-dash-init-dot ${c.type === 'player' ? 'co-type-player' : c.type === 'ally' ? 'co-type-ally' : 'co-type-monster'}"></span>
+                <span class="player-dash-init-name">${esc(displayName)}${isMe ? ' <span class="player-dash-init-you">(jij)</span>' : ''}</span>
+                ${isActive ? '<span class="player-dash-init-arrow">▶</span>' : ''}
+              </div>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
 
-      <!-- Actieve conditions (alleen tijdens gevecht) -->
-      ${conditions.length > 0 ? `
-      <div class="player-dash-section">
-        <div class="player-dash-section-title">⚡ Actieve statussen</div>
-        <div class="player-dash-conditions">
-          ${conditions.map(cid => {
-            const COND_LABELS = {
-              blinded:'Verblind', charmed:'Betoverd', deafened:'Doof', exhaustion:'Uitputting',
-              frightened:'Bevreesd', grappled:'Vastgegrepen', incapacitated:'Buiten gevecht',
-              invisible:'Onzichtbaar', paralyzed:'Verlamd', petrified:'Versteend',
-              poisoned:'Vergiftigd', prone:'Neergevallen', restrained:'Vastgehouden',
-              stunned:'Verdoofd', unconscious:'Bewusteloos', concentration:'Concentratie'
-            };
-            return `<span class="player-dash-cond-chip">${esc(COND_LABELS[cid] || cid)}</span>`;
-          }).join('')}
-        </div>
-      </div>` : ''}
+        <!-- Actieve conditions -->
+        ${conditions.length > 0 ? `
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">⚡ Actieve statussen</div>
+          <div class="player-dash-conditions">
+            ${conditions.map(cid => {
+              const COND_LABELS = {
+                blinded:'Verblind', charmed:'Betoverd', deafened:'Doof', exhaustion:'Uitputting',
+                frightened:'Bevreesd', grappled:'Vastgegrepen', incapacitated:'Buiten gevecht',
+                invisible:'Onzichtbaar', paralyzed:'Verlamd', petrified:'Versteend',
+                poisoned:'Vergiftigd', prone:'Neergevallen', restrained:'Vastgehouden',
+                stunned:'Verdoofd', unconscious:'Bewusteloos', concentration:'Concentratie'
+              };
+              return `<span class="player-dash-cond-chip">${esc(COND_LABELS[cid] || cid)}</span>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
 
-      <!-- Valuta -->
-      <div class="player-dash-section">
-        <div class="player-dash-section-title">💰 Beurs</div>
-        <div class="player-dash-currency">
-          <label class="player-dash-currency-row">
-            <span class="player-dash-currency-label"><span class="player-dash-currency-icon">🟡</span>Florinde</span>
-            <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-fl" value="${currency.fl}"
-              onblur="window._dashCurrencySave()">
-          </label>
-          <label class="player-dash-currency-row">
-            <span class="player-dash-currency-label"><span class="player-dash-currency-icon">⚪</span>Knaker</span>
-            <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-kn" value="${currency.kn}"
-              onblur="window._dashCurrencySave()">
-          </label>
-          <label class="player-dash-currency-row">
-            <span class="player-dash-currency-label"><span class="player-dash-currency-icon">🟤</span>Centeling</span>
-            <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-cl" value="${currency.cl}"
-              onblur="window._dashCurrencySave()">
-          </label>
+        <!-- Emotes -->
+        ${activeEmotes.length > 0 ? `
+        <div class="player-dash-section player-dash-emotes">
+          <div class="player-dash-section-title">🎭 Emotes${isMyTurn ? ' <span class="player-dash-emote-turn-hint">— jouw beurt!</span>' : ''}</div>
+          <div class="player-dash-emote-btns">
+            ${activeEmotes.map(e => `
+              <button class="player-dash-emote-btn" onclick="window._dashEmote(${e.index})" title="${esc(e.item.label || '')}">
+                ${e.item.icon  ? `<span class="emote-btn-icon">${esc(e.item.icon)}</span>`  : ''}
+                ${e.item.label ? `<span class="emote-btn-text">${esc(e.item.label)}</span>` : ''}
+              </button>`).join('')}
+          </div>
+        </div>` : ''}
+
+        <!-- Klassevaardig­heden / trackers -->
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">🔮 Klassevaardig­heden</div>
+          ${trackers.map(t => `
+            <div class="player-tracker-row">
+              <span class="player-tracker-name">${esc(t.name)}</span>
+              <div class="player-tracker-dots">
+                ${Array.from({ length: t.max }, (_, i) => `
+                  <button class="tracker-dot${i < t.current ? ' used' : ''}"
+                    onclick="window._dashToggleTracker('${esc(t.id)}', ${i})"></button>`).join('')}
+              </div>
+              <span class="player-tracker-count">${t.current}/${t.max}</span>
+              <button class="player-tracker-del" onclick="window._dashDeleteTracker('${esc(t.id)}')" title="Verwijder">×</button>
+            </div>`).join('')}
+          <div class="player-dash-add-tracker">
+            <input id="tracker-name" class="player-dash-add-item-input" type="text"
+              placeholder="Naam vaardigheid…" maxlength="40">
+            <input id="tracker-max" class="player-dash-add-item-note tracker-max-input" type="number"
+              min="1" max="20" placeholder="Slots" value="3">
+            <button class="player-dash-add-item-btn" onclick="window._dashAddTracker()">+ Toevoegen</button>
+          </div>
         </div>
       </div>
 
-      <!-- Spreukenslots -->
-      ${(() => {
-        const lvls = [1,2,3,4,5,6,7,8,9];
-        const rows = lvls.map(lvl => {
-          const slot = spellSlots[lvl] || { max: 0, used: 0 };
-          if (slot.max === 0 && !spellSlots[lvl]) return '';
-          const dots = Array.from({ length: Math.max(slot.max, 0) }, (_, i) => {
-            const used = i < slot.used;
-            return `<button class="spell-slot-dot ${used ? 'used' : 'free'}" title="${used ? 'Verbruikt — klik om vrij te maken' : 'Vrij — klik om te verbruiken'}"
-              onclick="window._dashToggleSlot(${lvl}, ${i})"></button>`;
-          }).join('');
-          return `
-            <div class="player-dash-slot-row">
-              <span class="player-dash-slot-level">Niv. ${lvl}</span>
-              <div class="player-dash-slot-dots">${dots}</div>
-              <span class="player-dash-slot-count">${slot.used}/${slot.max}</span>
-              <button class="player-dash-slot-adj" onclick="window._dashSlotAdj(${lvl}, -1)" title="Max verlagen">−</button>
-              <button class="player-dash-slot-adj" onclick="window._dashSlotAdj(${lvl}, 1)" title="Max verhogen">+</button>
-            </div>`;
-        }).filter(Boolean).join('');
-        return `
-      <div class="player-dash-section player-dash-spellslots">
-        <div class="player-dash-section-title">
-          ✨ Spreukenslots
-          ${rows ? `<button class="player-dash-slot-rest-btn" onclick="window._dashLongRest()" title="Lange rust — herstel alle slots">🌙 Lange rust</button>` : ''}
-        </div>
-        ${rows || '<p class="player-dash-empty">Nog geen spreukenslots ingesteld.</p>'}
-        <button class="player-dash-slot-add-btn" onclick="window._dashSlotAddLevel()" title="Nieuw niveau toevoegen">+ Niveau</button>
-      </div>`;
-      })()}
+      <!-- ═══ TAB: Mijn knapzak ═══ -->
+      <div id="pst-knapzak" class="player-subtab-panel${_playerSubTab !== 'knapzak' ? ' hidden' : ''}">
 
-      <!-- Emote-knoppen (altijd zichtbaar als DM emotes heeft ingesteld) -->
-      ${activeEmotes.length > 0 ? `
-      <div class="player-dash-section player-dash-emotes">
-        <div class="player-dash-section-title">🎭 Emotes${isMyTurn ? ' <span class="player-dash-emote-turn-hint">— jouw beurt!</span>' : ''}</div>
-        <div class="player-dash-emote-btns">
-          ${activeEmotes.map(e => {
-            const icon  = e.item.icon  || '';
-            const label = e.item.label || '';
-            return `<button class="player-dash-emote-btn" onclick="window._dashEmote(${e.index})" title="${esc(label)}">
-              ${icon  ? `<span class="emote-btn-icon">${esc(icon)}</span>`  : ''}
-              ${label ? `<span class="emote-btn-text">${esc(label)}</span>` : ''}
-            </button>`;
-          }).join('')}
+        <!-- Valuta -->
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">💰 Beurs</div>
+          <div class="player-dash-currency">
+            <label class="player-dash-currency-row">
+              <span class="player-dash-currency-label"><span class="player-dash-currency-icon">🟡</span>Florinde</span>
+              <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-fl" value="${currency.fl}"
+                onblur="window._dashCurrencySave()">
+            </label>
+            <label class="player-dash-currency-row">
+              <span class="player-dash-currency-label"><span class="player-dash-currency-icon">⚪</span>Knaker</span>
+              <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-kn" value="${currency.kn}"
+                onblur="window._dashCurrencySave()">
+            </label>
+            <label class="player-dash-currency-row">
+              <span class="player-dash-currency-label"><span class="player-dash-currency-icon">🟤</span>Centeling</span>
+              <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-cl" value="${currency.cl}"
+                onblur="window._dashCurrencySave()">
+            </label>
+          </div>
         </div>
-      </div>` : ''}
 
-      <!-- Geclaimde & losse voorwerpen -->
-      <div class="player-dash-section">
-        <div class="player-dash-section-title">🎒 Jouw voorwerpen</div>
-        ${myItems.length > 0 ? `
-        <div class="player-dash-items">
-          ${myItems.map(item => {
-            const imgUrl  = api.fileUrl(item.id);
-            const subtype = item.data?.itemType || item.subtype || '';
-            return `
-              <div class="player-dash-item-card" onclick="window._openDetail('voorwerpen','${esc(item.id)}')" title="${esc(item.name)}">
+        <!-- Geclaimde & losse voorwerpen -->
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">🎒 Jouw voorwerpen</div>
+          ${myItems.length > 0 ? `
+          <div class="player-dash-items">
+            ${myItems.map(item => {
+              const iImgUrl = api.fileUrl(item.id);
+              const subtype = item.data?.itemType || item.subtype || '';
+              return `<div class="player-dash-item-card" onclick="window._openDetail('voorwerpen','${esc(item.id)}')" title="${esc(item.name)}">
                 <div class="player-dash-item-img-wrap">
-                  <img src="${imgUrl}" class="player-dash-item-img"
+                  <img src="${iImgUrl}" class="player-dash-item-img"
                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                   <div class="player-dash-item-fallback" style="display:none">⚔️</div>
                 </div>
                 <div class="player-dash-item-name">${esc(item.name)}</div>
                 ${subtype ? `<div class="player-dash-item-sub">${esc(subtype)}</div>` : ''}
               </div>`;
-          }).join('')}
-        </div>` : ''}
-        ${simpleItems.length > 0 ? `
-        <ul class="player-dash-simple-list">
-          ${simpleItems.map(si => `
-            <li class="player-dash-simple-item">
-              <span class="player-dash-simple-name">${esc(si.name)}</span>
-              ${si.note ? `<span class="player-dash-simple-note">${esc(si.note)}</span>` : ''}
-              <button class="player-dash-simple-del" onclick="window._dashRemoveItem('${esc(si.id)}')" title="Verwijder">×</button>
-            </li>`).join('')}
-        </ul>` : ''}
-        ${myItems.length === 0 && simpleItems.length === 0 ? '<p class="player-dash-empty">Nog geen voorwerpen.</p>' : ''}
-        <div class="player-dash-add-item">
-          <input id="dash-item-name" class="player-dash-add-item-input" type="text" placeholder="Naam voorwerp…" maxlength="80">
-          <input id="dash-item-note" class="player-dash-add-item-note" type="text" placeholder="Notitie (optioneel)" maxlength="120">
-          <button class="player-dash-add-item-btn" onclick="window._dashAddItem()">+ Voeg toe</button>
+            }).join('')}
+          </div>` : ''}
+          ${simpleItems.length > 0 ? `
+          <ul class="player-dash-simple-list">
+            ${simpleItems.map(si => `
+              <li class="player-dash-simple-item">
+                <span class="player-dash-simple-name">${esc(si.name)}</span>
+                ${si.note ? `<span class="player-dash-simple-note">${esc(si.note)}</span>` : ''}
+                <button class="player-dash-simple-del" onclick="window._dashRemoveItem('${esc(si.id)}')" title="Verwijder">×</button>
+              </li>`).join('')}
+          </ul>` : ''}
+          ${myItems.length === 0 && simpleItems.length === 0 ? '<p class="player-dash-empty">Nog geen voorwerpen.</p>' : ''}
+          <div class="player-dash-add-item">
+            <input id="dash-item-name" class="player-dash-add-item-input" type="text"
+              placeholder="Naam voorwerp…" maxlength="80">
+            <input id="dash-item-note" class="player-dash-add-item-note" type="text"
+              placeholder="Notitie (optioneel)" maxlength="120">
+            <button class="player-dash-add-item-btn" onclick="window._dashAddItem()">+ Voeg toe</button>
+          </div>
         </div>
       </div>
+
+      <!-- ═══ TAB: Mijn spreukenboek ═══ -->
+      <div id="pst-spreukenboek" class="player-subtab-panel${_playerSubTab !== 'spreukenboek' ? ' hidden' : ''}">
+
+        <!-- Spreukenslots -->
+        <div class="player-dash-section player-dash-spellslots">
+          <div class="player-dash-section-title">
+            🔮 Spreukenslots
+            ${_spellSlotsHTML.rows ? `<button class="player-dash-slot-rest-btn" onclick="window._dashLongRest()" title="Lange rust">🌙 Lange rust</button>` : ''}
+          </div>
+          ${_spellSlotsHTML.rows || '<p class="player-dash-empty">Nog geen spreukenslots ingesteld.</p>'}
+          <button class="player-dash-slot-add-btn" onclick="window._dashSlotAddLevel()">+ Niveau</button>
+        </div>
+
+        <!-- Spreuk zoeken & vastzetten -->
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">📖 Spreukzoeker</div>
+          <div class="player-spell-search-wrap">
+            <input id="player-spell-input" class="player-spell-search-input" type="text"
+              placeholder="Zoek spreuk…" autocomplete="off"
+              oninput="window._playerSpellSearch(this.value)">
+            <div id="player-spell-results" class="player-spell-results"></div>
+          </div>
+          ${pinnedSpells.length > 0 ? `
+          <div class="player-pinned-spells">
+            ${pinnedSpells.map(s => `
+              <div class="player-pinned-spell-row">
+                <span class="player-pinned-spell-name" onclick="window._playerSpellOpen('${esc(s.index)}')">${esc(s.name)}</span>
+                <span class="player-pinned-spell-meta">Niv. ${s.level}${s.school ? ' · ' + esc(s.school) : ''}</span>
+                <button class="player-pinned-spell-del" onclick="window._playerSpellUnpin('${esc(s.index)}')" title="Verwijder uit spreukenboek">×</button>
+              </div>`).join('')}
+          </div>` : '<p class="player-dash-empty" style="margin-top:8px">Nog geen spreuken vastgezet.</p>'}
+        </div>
+      </div>
+
     </div>`;
 
   // Profiel-velden opslaan
@@ -1023,7 +1103,6 @@ async function renderMijnKarakter() {
   };
 
   window._dashSlotAddLevel = async function() {
-    // Voeg het eerstvolgende ontbrekende niveau toe
     for (let lvl = 1; lvl <= 9; lvl++) {
       if (!spellSlots[lvl] || spellSlots[lvl].max === 0) {
         spellSlots[lvl] = { max: 1, used: 0 };
@@ -1032,6 +1111,115 @@ async function renderMijnKarakter() {
         return;
       }
     }
+  };
+
+  // ── Subtab switcher ──
+  window._setPlayerSubTab = function(tab) {
+    _playerSubTab = tab;
+    localStorage.setItem('_playerSubTab', tab);
+    ['personage', 'knapzak', 'spreukenboek'].forEach(t => {
+      const panel = document.getElementById('pst-' + t);
+      if (panel) panel.classList.toggle('hidden', t !== tab);
+      const btn = document.querySelector(`.player-subtab[data-tab="${t}"]`);
+      if (btn) btn.classList.toggle('active', t === tab);
+    });
+  };
+
+  // ── Inspiratie gebruiken ──
+  window._dashUseInspiration = async function() {
+    try {
+      await api.removeInspiration(state.characterId);
+      renderMijnKarakter();
+    } catch { /* ok */ }
+  };
+
+  // ── Trackers ──
+  window._dashToggleTracker = async function(trackerId, dotIdx) {
+    const t = trackers.find(tr => tr.id === trackerId);
+    if (!t) return;
+    const newCurrent = dotIdx < t.current ? t.current - 1 : t.current + 1;
+    t.current = Math.min(Math.max(0, newCurrent), t.max);
+    await api.patchPlayerTracker(state.characterId, trackerId, { current: t.current }).catch(() => {});
+    renderMijnKarakter();
+  };
+
+  window._dashAddTracker = async function() {
+    const nameEl = document.getElementById('tracker-name');
+    const maxEl  = document.getElementById('tracker-max');
+    const name = nameEl?.value?.trim();
+    if (!name) { nameEl?.focus(); return; }
+    const max = parseInt(maxEl?.value) || 3;
+    try {
+      await api.addPlayerTracker(state.characterId, { name, max });
+      renderMijnKarakter();
+    } catch { /* ok */ }
+  };
+
+  window._dashDeleteTracker = async function(trackerId) {
+    try {
+      await api.deletePlayerTracker(state.characterId, trackerId);
+      renderMijnKarakter();
+    } catch { /* ok */ }
+  };
+
+  // ── Spreukzoeker ──
+  window._playerSpellSearch = async function(q) {
+    const resultsEl = document.getElementById('player-spell-results');
+    if (!resultsEl) return;
+    const query = q.toLowerCase().trim();
+    if (!query) { resultsEl.innerHTML = ''; return; }
+    if (!_playerSpellList) {
+      resultsEl.innerHTML = '<div class="player-spell-loading">Laden…</div>';
+      try {
+        const r = await fetch('https://www.dnd5eapi.co/api/spells');
+        const d = await r.json();
+        _playerSpellList = d.results || [];
+      } catch { _playerSpellList = []; }
+    }
+    const filtered = _playerSpellList.filter(s => s.name.toLowerCase().includes(query)).slice(0, 6);
+    const pinned = pinnedSpells.map(s => s.index);
+    resultsEl.innerHTML = filtered.length
+      ? filtered.map(s => `
+          <div class="player-spell-result${pinned.includes(s.index) ? ' pinned' : ''}"
+            onclick="window._playerSpellPin('${esc(s.index)}','${esc(s.name)}')">
+            ${esc(s.name)}
+            <span class="player-spell-pin-icon">${pinned.includes(s.index) ? '✓' : '📌'}</span>
+          </div>`).join('')
+      : '<div class="player-spell-noresult">Geen spreuken gevonden</div>';
+  };
+
+  window._playerSpellPin = async function(index, name) {
+    if (pinnedSpells.find(s => s.index === index)) return;
+    try {
+      const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
+      const spell = await r.json();
+      await api.addPlayerSpell(state.characterId, {
+        index, name, level: spell.level || 0, school: spell.school?.name || '',
+      });
+      renderMijnKarakter();
+    } catch { /* ok */ }
+  };
+
+  window._playerSpellUnpin = async function(spellIndex) {
+    try {
+      await api.removePlayerSpell(state.characterId, spellIndex);
+      renderMijnKarakter();
+    } catch { /* ok */ }
+  };
+
+  window._playerSpellOpen = async function(index) {
+    if (window.dmPanel?.spellOpen) { window.dmPanel.spellOpen(index); return; }
+    try {
+      const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
+      const s = await r.json();
+      const desc = (s.desc || []).join('<br><br>');
+      const higher = s.higher_level?.length ? `<p class="mt-2"><strong>Op hogere niveaus:</strong> ${s.higher_level.join(' ')}</p>` : '';
+      window.app.openModal(
+        s.name,
+        `Niveau ${s.level} · ${s.school?.name || ''} · ${s.casting_time || ''} · Bereik: ${s.range || ''}`,
+        `<div style="font-family:var(--font-fell);color:var(--ink-bright);line-height:1.6">${desc}${higher}</div>`
+      );
+    } catch { /* ok */ }
   };
 }
 
