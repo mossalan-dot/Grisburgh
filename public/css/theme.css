@@ -1665,9 +1665,7 @@ body::before {
 #section-meesterkamer {
   padding: 0;
   background: transparent;
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
+  /* display & flex-direction komen van .section.active — niet hier overschrijven */
 }
 .dm-section-tabs {
   position: sticky;
@@ -4424,18 +4422,28 @@ body::before {
 [data-theme="hp"] ::-webkit-scrollbar-thumb { background: #6b3fa0; }
 [data-theme="hp"] ::-webkit-scrollbar-thumb:hover { background: #c25090; }
 
-[data-theme="hp"] .app-header {
-  background: linear-gradient(90deg, #1a0d2e 0%, #3d1f80 50%, #1a0d2e 100%);
-  border-bottom-color: #6b3fa0;
+/* header = <header> element (Tailwind-klassen overschrijven met !important) */
+[data-theme="hp"] header {
+  background: linear-gradient(90deg, #1a0d2e 0%, #3d1f80 50%, #1a0d2e 100%) !important;
+  border-bottom-color: #6b3fa0 !important;
 }
 
-[data-theme="hp"] #app-title     { color: #d4a830; text-shadow: 0 0 14px rgba(212,168,48,0.6); }
-[data-theme="hp"] #app-subtitle  { color: #c25090; }
+[data-theme="hp"] #app-title     { color: #d4a830 !important; text-shadow: 0 0 14px rgba(212,168,48,0.6); }
+[data-theme="hp"] #app-subtitle  { color: #c25090 !important; }
+[data-theme="hp"] #player-identity .text-ink-dim,
+[data-theme="hp"] #player-name-display { color: #c4a0e0 !important; }
 
-[data-theme="hp"] .nav-tabs       { background: #1a0d2e; border-top-color: #6b3fa0; }
-[data-theme="hp"] .section-tab    { color: #c4a0e0; }
-[data-theme="hp"] .section-tab:hover   { background: rgba(107,63,160,0.3); color: #f0e6ff; }
-[data-theme="hp"] .section-tab.active  { background: rgba(107,63,160,0.5); color: #d4a830; border-top: 2px solid #d4a830; }
+/* nav = <nav id="section-tabs"> */
+[data-theme="hp"] nav#section-tabs { background: #1a0d2e !important; border-bottom-color: #6b3fa0 !important; }
+[data-theme="hp"] .section-tab    { color: #c4a0e0 !important; }
+[data-theme="hp"] .section-tab:hover   { background: rgba(107,63,160,0.3) !important; color: #f0e6ff !important; }
+[data-theme="hp"] .section-tab.active  { background: rgba(107,63,160,0.5) !important; color: #d4a830 !important; border-top: 2px solid #d4a830 !important; }
+
+/* body achtergrond */
+[data-theme="hp"] body {
+  background: linear-gradient(160deg, #1a0d2e 0%, #2d1657 60%, #1a0d2e 100%) !important;
+  color: #f0e6ff !important;
+}
 
 [data-theme="hp"] .section { background: transparent; }
 
