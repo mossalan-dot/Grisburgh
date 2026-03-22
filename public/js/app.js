@@ -702,6 +702,7 @@ async function renderMijnKarakter() {
         <span class="player-dash-slot-count">${slot.used}/${slot.max}</span>
         <button class="player-dash-slot-adj" onclick="window._dashSlotAdj(${lvl}, -1)">−</button>
         <button class="player-dash-slot-adj" onclick="window._dashSlotAdj(${lvl}, 1)">+</button>
+        <button class="player-dash-slot-del" onclick="window._dashSlotRemove(${lvl})" title="Niveau verwijderen">×</button>
       </div>`;
     }).filter(Boolean).join('');
     return { rows };
@@ -1155,6 +1156,12 @@ async function renderMijnKarakter() {
         return;
       }
     }
+  };
+
+  window._dashSlotRemove = async function(lvl) {
+    delete spellSlots[lvl];
+    await api.setPlayerSpellSlots(state.characterId, spellSlots).catch(() => {});
+    renderMijnKarakter();
   };
 
   // ── Subtab switcher ──

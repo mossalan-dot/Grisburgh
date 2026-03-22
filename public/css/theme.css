@@ -4256,3 +4256,15 @@ body::before {
   color: #8a7050;
   font-style: italic;
 }
+
+.player-dash-slot-del {
+  background: none;
+  border: none;
+  color: #b09870;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 0 3px;
+  line-height: 1;
+  margin-left: 2px;
+}
+.player-dash-slot-del:hover { color: #8b2a2a; }
