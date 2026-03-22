@@ -484,8 +484,11 @@ async function renderParty() {
       const hasInsp  = !!inspirationMap[e.id];
       const dotTitle = isAbsent ? 'Afwezig — klik om aanwezig te maken' : 'Aanwezig — klik om af te melden';
       return `
-        <div class="party-portrait${isAbsent ? ' party-portrait--absent' : ''}" onclick="window._openDetail('personages','${esc(e.id)}')">
-          <div class="party-portrait-avatar-wrap">
+        <div class="party-portrait${isAbsent ? ' party-portrait--absent' : ''}"
+          onclick="window._openDetail('personages','${esc(e.id)}')"
+          ondblclick="event.stopPropagation();window._toggleInspiration('${esc(e.id)}')"
+          title="${hasInsp ? 'Heeft inspiratie — dubbelklik om in te trekken' : 'Dubbelklik om inspiratie te geven'}">
+          <div class="party-portrait-avatar-wrap${hasInsp ? ' has-inspiration' : ''}">
             <img src="${imgUrl}" class="party-portrait-img"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="party-portrait-fallback" style="display:none">👤</div>
@@ -496,9 +499,6 @@ async function renderParty() {
           </div>
           <div class="party-portrait-name">${esc(e.name.split(' ')[0])}</div>
           ${sub ? `<div class="party-portrait-sub">${esc(sub)}</div>` : ''}
-          <button class="party-inspiration-btn${hasInsp ? ' has-inspiration' : ''}"
-            onclick="event.stopPropagation();window._toggleInspiration('${esc(e.id)}')"
-            title="${hasInsp ? 'Inspiratie intrekken' : 'Inspiratie geven'}">✨</button>
         </div>
       `;
     };
