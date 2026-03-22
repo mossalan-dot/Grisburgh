@@ -1663,6 +1663,18 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
+  // Medestander-koppeling (alleen voor NPCs in DM-modus)
+  if (tab === 'personages' && editId && e?.subtype?.toLowerCase() === 'npc' && isDM()) {
+    body += `
+      <div class="companion-link-section">
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">⚔ Medestander</label>
+        <div id="companion-toggles" class="companion-toggles-row">
+          <span class="text-ink-dim text-xs italic">Laden…</span>
+        </div>
+      </div>
+    `;
+  }
+
   // Buttons
   body += `
     <div class="flex gap-2 pt-2">
@@ -1681,6 +1693,34 @@ window._openEditor = async (tab, editId) => {
   </form>`;
 
   openModal(editId ? 'Bewerken' : 'Nieuw', TYPE_META[tab].label, body);
+
+  // ── Medestander toggles ──
+  if (tab === 'personages' && editId && e?.subtype?.toLowerCase() === 'npc' && isDM() && _editorGroups.length > 0) {
+    const _renderCompanionToggles = (linked) => {
+      const container = document.getElementById('companion-toggles');
+      if (!container) return;
+      container.innerHTML = _editorGroups.map(g => {
+        const isLinked = linked.includes(g.id);
+        return `<button type="button"
+          class="companion-group-btn${isLinked ? ' companion-group-btn--linked' : ''}"
+          onclick="window._toggleCompanion('${esc(editId)}','${esc(g.id)}',${isLinked})">
+          ${isLinked ? '⚔' : '➕'} ${esc(g.name)}
+        </button>`;
+      }).join('');
+    };
+    api.getCompanionStatus(editId)
+      .then(({ linked }) => _renderCompanionToggles(linked))
+      .catch(() => {
+        const c = document.getElementById('companion-toggles');
+        if (c) c.innerHTML = '<span class="text-xs text-seal">Fout bij laden</span>';
+      });
+    window._toggleCompanion = async (npcId, groupId, currentlyLinked) => {
+      if (currentlyLinked) await api.unlinkCompanion(npcId, groupId);
+      else                  await api.linkCompanion(npcId, groupId);
+      const { linked } = await api.getCompanionStatus(npcId);
+      _renderCompanionToggles(linked);
+    };
+  }
 
   // ── Icon picker ──
   window._toggleIconPicker = () => {

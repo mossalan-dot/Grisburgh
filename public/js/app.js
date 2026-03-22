@@ -236,9 +236,11 @@ function applyRole() {
   const dmTab = document.getElementById('dm-tab');
   if (dmTab) dmTab.classList.toggle('hidden', !isDmActive);
 
-  // Groepswisselaar tonen/verbergen op basis van DM-status
+  // Groepswisselaar + party-bar: alleen zichtbaar voor actieve DM
   const groupSwitcher = document.getElementById('group-switcher');
   if (groupSwitcher) groupSwitcher.classList.toggle('hidden', !isDmActive);
+  const partyBar = document.getElementById('party-bar');
+  if (partyBar) partyBar.classList.toggle('hidden', !isDmActive);
 
   // Speler-identiteit in header
   const playerIdentity = document.getElementById('player-identity');
@@ -592,8 +594,11 @@ async function renderMijnKarakter() {
   let simpleItems   = [];
   let currency      = { fl: 0, kn: 0, cl: 0 };
   let spellSlots    = {};
+  let playerProfile = {};
+  let partyMembers  = [];
+  let companions    = [];
   try {
-    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, spellSlots] = await Promise.all([
+    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, spellSlots, playerProfile, partyMembers, companions] = await Promise.all([
       api.getPlayerHp(state.characterId).catch(() => ({ current: null, max: null })),
       api.getEntity('personages', state.characterId).catch(() => null),
       api.getCombat().catch(() => null),
@@ -603,8 +608,14 @@ async function renderMijnKarakter() {
       api.getPlayerItems(state.characterId).catch(() => []),
       api.getPlayerCurrency(state.characterId).catch(() => ({ fl: 0, kn: 0, cl: 0 })),
       api.getPlayerSpellSlots(state.characterId).catch(() => ({})),
+      api.getPlayerProfile(state.characterId).catch(() => ({})),
+      api.getPartyMembers().catch(() => []),
+      api.getCompanions().catch(() => []),
     ]);
   } catch { /* ok */ }
+
+  // Sla eigen groep-id op zodat socket-events kunnen filteren
+  window._myGroupId = entity?.data?.groep || null;
 
   // Geclaimde voorwerpen van deze speler
   const myItemIds = Object.entries(ownershipData.owners || {})
@@ -660,6 +671,38 @@ async function renderMijnKarakter() {
         <div class="player-dash-hero-info">
           <h2 class="player-dash-name">${esc(state.playerName)}</h2>
           ${sub ? `<p class="player-dash-sub">${esc(sub)}</p>` : ''}
+          <div class="player-profile-fields">
+            <div class="ppf-row">
+              <label class="ppf-label">Level</label>
+              <input class="ppf-input ppf-level" type="number" min="1" max="20"
+                value="${esc(playerProfile.level ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('level', this.value)">
+            </div>
+            <div class="ppf-row">
+              <label class="ppf-label">Klasse</label>
+              <input class="ppf-input" type="text"
+                value="${esc(playerProfile.klasse ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('klasse', this.value)">
+            </div>
+            <div class="ppf-row">
+              <label class="ppf-label">Subclass</label>
+              <input class="ppf-input" type="text"
+                value="${esc(playerProfile.subclass ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('subclass', this.value)">
+            </div>
+            <div class="ppf-row">
+              <label class="ppf-label">Background</label>
+              <input class="ppf-input" type="text"
+                value="${esc(playerProfile.background ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('background', this.value)">
+            </div>
+            <div class="ppf-row">
+              <label class="ppf-label">Origin</label>
+              <input class="ppf-input" type="text"
+                value="${esc(playerProfile.origin ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('origin', this.value)">
+            </div>
+          </div>
         </div>
       </div>
 
@@ -686,6 +729,45 @@ async function renderMijnKarakter() {
           ${myCombatant ? '<p class="player-dash-hp-note">⚔️ Actief in gevecht — wijzigingen zijn direct zichtbaar</p>' : ''}
         </div>
       </div>
+
+      <!-- Party + medestanders -->
+      ${(partyMembers.length > 0 || companions.length > 0) ? `
+      <div class="player-dash-section">
+        <div class="player-dash-section-title">🧙 Party</div>
+        <div class="player-dash-party-row">
+          ${partyMembers.map(e => {
+            const imgUrl = api.fileUrl(e.id);
+            const firstName = esc(e.name.split(' ')[0]);
+            const sub = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
+            return `
+              <div class="party-portrait" onclick="window._openDetail('personages','${esc(e.id)}')">
+                <div class="party-portrait-avatar-wrap">
+                  <img src="${imgUrl}" class="party-portrait-img"
+                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                  <div class="party-portrait-fallback" style="display:none">👤</div>
+                </div>
+                <div class="party-portrait-name">${firstName}</div>
+                ${sub ? `<div class="party-portrait-sub">${esc(sub)}</div>` : ''}
+              </div>`;
+          }).join('')}
+          ${companions.length > 0 && partyMembers.length > 0 ? '<div class="party-bar-divider"></div>' : ''}
+          ${companions.map(e => {
+            const imgUrl = api.fileUrl(e.id);
+            const firstName = esc(e.name.split(' ')[0]);
+            const sub = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
+            return `
+              <div class="party-portrait party-portrait--companion" onclick="window._openDetail('personages','${esc(e.id)}')">
+                <div class="party-portrait-avatar-wrap">
+                  <img src="${imgUrl}" class="party-portrait-img"
+                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                  <div class="party-portrait-fallback" style="display:none">🗡️</div>
+                </div>
+                <div class="party-portrait-name">${firstName}</div>
+                ${sub ? `<div class="party-portrait-sub">${esc(sub)}</div>` : ''}
+              </div>`;
+          }).join('')}
+        </div>
+      </div>` : ''}
 
       <!-- Initiativevolgorde (alleen tijdens gevecht) -->
       ${combat?.active && (combat.combatants?.length || 0) > 0 ? `
@@ -832,6 +914,14 @@ async function renderMijnKarakter() {
         </div>
       </div>
     </div>`;
+
+  // Profiel-velden opslaan
+  window._saveProfileField = async function(field, value) {
+    if (!state.characterId) return;
+    try {
+      await api.patchPlayerProfile(state.characterId, { [field]: value });
+    } catch (e) { console.warn('Profiel opslaan mislukt', e); }
+  };
 
   // HP-helpers voor het dashboard
   window._dashHpSave = async function() {

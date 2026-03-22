@@ -257,6 +257,25 @@ export function initSocket() {
     }
   });
 
+  // ── Medestanders ──
+  socket.on('companion:link', ({ npcId, name, groupId } = {}) => {
+    if (!window.app?.isDM?.() && name && groupId === window._myGroupId) {
+      _showToast(`⚔️ <strong>${name}</strong> vergezelt nu de groep`);
+    }
+    if (window.app?.state?.activeSection === 'mijn-karakter') {
+      window.refreshSection?.('mijn-karakter');
+    }
+  });
+
+  socket.on('companion:unlink', ({ npcId, name, groupId } = {}) => {
+    if (!window.app?.isDM?.() && name && groupId === window._myGroupId) {
+      _showToast(`↩ <strong>${name}</strong> heeft de groep verlaten`);
+    }
+    if (window.app?.state?.activeSection === 'mijn-karakter') {
+      window.refreshSection?.('mijn-karakter');
+    }
+  });
+
   socket.on('connect', () => console.log('Socket connected'));
   socket.on('disconnect', () => console.log('Socket disconnected'));
 }

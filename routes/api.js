@@ -692,6 +692,122 @@ router.put('/player-spellslots/:characterId', attachRole, (req, res) => {
   res.json(updated);
 });
 
+// ── Medestanders ──
+
+// Geeft de medestanders terug die aan de groep van de ingelogde speler zijn gekoppeld
+router.get('/companions', attachRole, (req, res) => {
+  const myId    = req.session.characterId;
+  const entities = storage.readJSON('entities.json');
+  const dmState  = readDmState();
+  let g;
+  if (req.role === 'dm') {
+    g = getGroup(dmState);
+  } else if (myId) {
+    const me       = (entities.personages || []).find(e => e.id === myId);
+    const myGroupId = me?.data?.groep;
+    g = myGroupId ? (dmState.groups[myGroupId] || getGroup(dmState)) : getGroup(dmState);
+  } else {
+    return res.json([]);
+  }
+  const companionIds = g.companions || [];
+  const npcs = (entities.personages || []).filter(e => companionIds.includes(e.id));
+  res.json(npcs.map(e => ({
+    id: e.id, name: e.name, subtype: e.subtype,
+    data: { ras: e.data?.ras, klasse: e.data?.klasse },
+  })));
+});
+
+// Geeft terug aan welke groepen een NPC gekoppeld is (DM only)
+router.get('/companions/status/:npcId', requireDM, (req, res) => {
+  const { npcId } = req.params;
+  const dmState = readDmState();
+  const linked = Object.entries(dmState.groups)
+    .filter(([, g]) => (g.companions || []).includes(npcId))
+    .map(([id]) => id);
+  res.json({ linked });
+});
+
+// Koppel NPC aan een groep
+router.post('/companions/:npcId/:groupId', requireDM, (req, res) => {
+  const { npcId, groupId } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const entity   = (entities.personages || []).find(e => e.id === npcId);
+  const dmState  = readDmState();
+  const g = dmState.groups[groupId];
+  if (!g) return res.status(404).json({ error: 'Groep niet gevonden' });
+  if (!g.companions) g.companions = [];
+  if (!g.companions.includes(npcId)) g.companions.push(npcId);
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('companion:link', { npcId, name: entity?.name || '', groupId });
+  res.json({ ok: true });
+});
+
+// Ontkoppel NPC van een groep
+router.delete('/companions/:npcId/:groupId', requireDM, (req, res) => {
+  const { npcId, groupId } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const entity   = (entities.personages || []).find(e => e.id === npcId);
+  const dmState  = readDmState();
+  const g = dmState.groups[groupId];
+  if (!g) return res.status(404).json({ error: 'Groep niet gevonden' });
+  g.companions = (g.companions || []).filter(id => id !== npcId);
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('companion:unlink', { npcId, name: entity?.name || '', groupId });
+  res.json({ ok: true });
+});
+
+// ── Party-leden (op basis van entity-groepveld, onafhankelijk van DM-visibility) ──
+
+router.get('/party', attachRole, (req, res) => {
+  const myId = req.session.characterId;
+  if (!myId && req.role !== 'dm')
+    return res.status(403).json({ error: 'Geen karakter geselecteerd' });
+  const entities = storage.readJSON('entities.json');
+  const spelers  = (entities.personages || []).filter(e => e.subtype === 'speler');
+  if (!myId) return res.json(spelers); // DM: geef alles terug
+  const me      = spelers.find(e => e.id === myId);
+  const myGroup = me?.data?.groep;
+  const party   = spelers.filter(e => {
+    if (e.id === myId) return false;
+    if (myGroup && e.data?.groep && e.data.groep !== myGroup) return false;
+    return true;
+  });
+  // Geef alleen veilige velden terug (geen geheimen)
+  res.json(party.map(e => ({
+    id:      e.id,
+    name:    e.name,
+    subtype: e.subtype,
+    data:    { ras: e.data?.ras, klasse: e.data?.klasse },
+  })));
+});
+
+// ── Speler profiel (level, klasse, subclass, background, origin) ──
+
+router.get('/player-profile/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  res.json((dmState.playerProfiles || {})[characterId] || {});
+});
+
+router.patch('/player-profile/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  if (!dmState.playerProfiles) dmState.playerProfiles = {};
+  const existing = dmState.playerProfiles[characterId] || {};
+  const allowed = ['level', 'klasse', 'subclass', 'background', 'origin'];
+  const updated = { ...existing };
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) updated[key] = req.body[key];
+  }
+  dmState.playerProfiles[characterId] = updated;
+  storage.writeJSON('dm-state.json', dmState);
+  res.json(updated);
+});
+
 // ── Groepen ──
 
 router.get('/groups', requireDM, (req, res) => {
