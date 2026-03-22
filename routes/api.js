@@ -1785,4 +1785,47 @@ router.get('/export', requireDM, async (req, res) => {
   }
 });
 
+// ── Campagnes ──
+
+// Lijst alle campagnes
+router.get('/campaigns', requireDM, (req, res) => {
+  res.json({
+    campaigns:      storage.listCampaigns(),
+    activeCampaign: storage.getActiveCampaignId(),
+  });
+});
+
+// Nieuwe campagne aanmaken
+router.post('/campaigns', requireDM, (req, res) => {
+  const { id, meta = {} } = req.body;
+  if (!id || !/^[a-z0-9_-]+$/i.test(id))
+    return res.status(400).json({ error: 'Ongeldige campagne-ID (gebruik alleen letters, cijfers, _ en -)' });
+  try {
+    storage.createCampaign(id, meta);
+    res.status(201).json({ id, ...meta });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Wissel actieve campagne (logt alle spelers uit via socket)
+router.put('/campaigns/active', requireDM, (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ error: 'id vereist' });
+  const campaigns = storage.listCampaigns();
+  if (!campaigns.find(c => c.id === id))
+    return res.status(404).json({ error: 'Campagne niet gevonden' });
+  storage.setCampaign(id);
+  storage.init(); // Herinitialiseer databestanden voor nieuwe campagne
+  const meta = storage.readJSON('meta.json');
+  req.app.get('io').emit('campaign:switched', { id, meta });
+  res.json({ ok: true, activeCampaign: id, meta });
+});
+
+// Meta van actieve campagne ophalen
+router.get('/campaigns/meta', attachRole, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  res.json({ ...meta, activeCampaign: storage.getActiveCampaignId() });
+});
+
 module.exports = router;

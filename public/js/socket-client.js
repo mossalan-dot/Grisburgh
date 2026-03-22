@@ -306,6 +306,24 @@ export function initSocket() {
     );
   });
 
+  // ── Campagnewisseling ──
+  socket.on('campaign:switched', ({ id, meta } = {}) => {
+    // DM: herlaad de meesterkamer-tab zodat nieuwe campagne zichtbaar is
+    if (window.app?.isDM?.()) {
+      if (window.app?.state) window.app.state.meta = meta || {};
+      window.app?.applyAppMeta?.(meta || {});
+      window.app?.refreshSection?.('meesterkamer');
+      _showToast(`🗂 Campagne gewisseld naar <strong>${meta?.appTitle || id}</strong>`, null, 4000);
+      return;
+    }
+    // Spelers: korte melding + automatisch uitloggen na 3 seconden
+    _showToast(`🗂 De DM heeft de campagne gewisseld. Je wordt uitgelogd…`, null, 3000);
+    setTimeout(async () => {
+      try { await fetch('/api/auth/player-logout', { method: 'POST' }); } catch {}
+      location.reload();
+    }, 3000);
+  });
+
   socket.on('connect', () => console.log('Socket connected'));
   socket.on('disconnect', () => console.log('Socket disconnected'));
 }

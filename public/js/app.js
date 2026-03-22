@@ -908,21 +908,22 @@ async function renderMijnKarakter() {
         <div class="player-dash-section">
           <div class="player-dash-section-title">💰 Beurs</div>
           <div class="player-dash-currency">
+            ${((_c) => `
             <label class="player-dash-currency-row">
-              <span class="player-dash-currency-label"><span class="player-dash-currency-icon">🟡</span>Florinde</span>
+              <span class="player-dash-currency-label"><span class="player-dash-currency-icon">🟡</span>${esc(_c.fl || 'Florinde')}</span>
               <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-fl" value="${currency.fl}"
                 onblur="window._dashCurrencySave()">
             </label>
             <label class="player-dash-currency-row">
-              <span class="player-dash-currency-label"><span class="player-dash-currency-icon">⚪</span>Knaker</span>
+              <span class="player-dash-currency-label"><span class="player-dash-currency-icon">⚪</span>${esc(_c.kn || 'Knaker')}</span>
               <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-kn" value="${currency.kn}"
                 onblur="window._dashCurrencySave()">
             </label>
             <label class="player-dash-currency-row">
-              <span class="player-dash-currency-label"><span class="player-dash-currency-icon">🟤</span>Centeling</span>
+              <span class="player-dash-currency-label"><span class="player-dash-currency-icon">🟤</span>${esc(_c.cl || 'Centeling')}</span>
               <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-cl" value="${currency.cl}"
                 onblur="window._dashCurrencySave()">
-            </label>
+            </label>`)(window._currency || state.meta?.currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' })}
           </div>
         </div>
 
@@ -1513,10 +1514,15 @@ function applyAppMeta(meta) {
   if (!m) return;
   const titleEl    = document.getElementById('app-title');
   const subtitleEl = document.getElementById('app-subtitle');
-  if (titleEl    && m.appTitle)    titleEl.textContent    = m.appTitle;
-  if (subtitleEl && m.appSubtitle) subtitleEl.textContent = m.appSubtitle;
+  if (titleEl    && m.appTitle !== undefined) titleEl.textContent    = m.appTitle;
+  if (subtitleEl)                             subtitleEl.textContent = m.appSubtitle || '';
   // Paginatitel ook aanpassen
   if (m.appTitle) document.title = m.appTitle;
+  // Thema toepassen
+  const theme = m.theme || 'default';
+  document.documentElement.setAttribute('data-theme', theme);
+  // Valutanamen opslaan zodat andere onderdelen ze kunnen ophalen
+  if (m.currency) window._currency = m.currency;
 }
 
 function editHeader() {
