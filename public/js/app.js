@@ -486,7 +486,7 @@ async function renderParty() {
       return `
         <div class="party-portrait${isAbsent ? ' party-portrait--absent' : ''}"
           onclick="window._openDetail('personages','${esc(e.id)}')"
-          ondblclick="event.stopPropagation();window._toggleInspiration('${esc(e.id)}')"
+          oncontextmenu="event.preventDefault();event.stopPropagation();window._toggleInspiration('${esc(e.id)}')"
           title="${hasInsp ? 'Heeft inspiratie — dubbelklik om in te trekken' : 'Dubbelklik om inspiratie te geven'}">
           <div class="party-portrait-avatar-wrap${hasInsp ? ' has-inspiration' : ''}">
             <img src="${imgUrl}" class="party-portrait-img"
