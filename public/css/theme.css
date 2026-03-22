@@ -2819,6 +2819,55 @@ body::before {
   font-style: italic;
   margin: 0 0 8px;
 }
+/* Speler profiel-velden (level, klasse, subclass, background, origin) */
+.player-profile-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.ppf-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ppf-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8a7050;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  width: 82px;
+  flex-shrink: 0;
+}
+.ppf-input {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 14px;
+  color: #2a1a08;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid #c4a87a;
+  border-radius: 4px;
+  padding: 2px 6px;
+  width: 100%;
+  min-width: 0;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ppf-input.ppf-level {
+  width: 52px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.ppf-input:focus {
+  border-color: #8a6000;
+  background: rgba(255, 255, 255, 0.8);
+}
+.ppf-input::placeholder {
+  color: #b0956a;
+  font-style: italic;
+}
+
 .player-dash-link {
   font-family: 'Cinzel', serif;
   font-size: 11px;
@@ -2845,6 +2894,54 @@ body::before {
   letter-spacing: 0.1em;
   color: #8a7050;
   margin-bottom: 12px;
+}
+.player-dash-party-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 4px;
+}
+
+/* Medestander-portret: zelfde vorm als party, andere randkleur (salie-groen) */
+.party-portrait--companion .party-portrait-img,
+.party-portrait--companion .party-portrait-fallback {
+  border-color: #5a9a78;
+  box-shadow: 0 0 0 2px #efe3c5, 0 2px 6px rgba(20,70,40,0.22);
+}
+
+/* Companion-koppeling in edit modal */
+.companion-link-section {
+  padding: 10px 0 4px;
+  border-top: 1px solid #d4bc92;
+}
+.companion-toggles-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.companion-group-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 1.5px solid #c4a87a;
+  background: rgba(255,255,255,0.5);
+  color: #5a4030;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.companion-group-btn:hover {
+  background: rgba(255,255,255,0.85);
+  border-color: #8a6000;
+}
+.companion-group-btn--linked {
+  background: #2a5a3a;
+  border-color: #4a8a5a;
+  color: #c8e8d0;
+}
+.companion-group-btn--linked:hover {
+  background: #1e4a2e;
 }
 .player-dash-hp-bar-wrap {
   height: 8px;

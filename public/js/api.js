@@ -131,6 +131,19 @@ export const api = {
   getPlayerSpellSlots: (characterId)       => request(`/player-spellslots/${characterId}`),
   setPlayerSpellSlots: (characterId, data) => request(`/player-spellslots/${characterId}`, { method: 'PUT', body: JSON.stringify(data) }),
 
+  // Speler profiel
+  getPlayerProfile:   (characterId)       => request(`/player-profile/${characterId}`),
+  patchPlayerProfile: (characterId, data) => request(`/player-profile/${characterId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Party-leden
+  getPartyMembers: () => request('/party'),
+
+  // Medestanders
+  getCompanions:       ()                   => request('/companions'),
+  getCompanionStatus:  (npcId)              => request(`/companions/status/${npcId}`),
+  linkCompanion:       (npcId, groupId)     => request(`/companions/${npcId}/${groupId}`, { method: 'POST' }),
+  unlinkCompanion:     (npcId, groupId)     => request(`/companions/${npcId}/${groupId}`, { method: 'DELETE' }),
+
   // Gevecht
   getCombat:        ()        => request('/combat'),
   startCombat:      ()        => request('/combat/start',              { method: 'POST' }),

@@ -2,9 +2,11 @@
 // Plays sounds ONLY on the DM's browser.
 // Socket events are handled by socket-client.js, which calls window.soundManager.*
 
-let _sounds     = { standard: { damage: null, healing: null, win: null, loss: null }, emotes: {} };
+let _sounds     = { standard: { damage: null, healing: null, win: null, loss: null, nextRound: null, nextTurn: null }, emotes: {}, playerTurn: {} };
 let _prevHp     = {};   // combatantId → hp
 let _prevWinner = undefined;
+let _prevTurn   = undefined;
+let _prevRound  = undefined;
 
 // ── Audio playback ────────────────────────────────────────────────────────────
 
@@ -39,11 +41,38 @@ function _onCombatUpdated(combat) {
       if (combat.winner === 'monsters') _play(_sounds.standard.loss);
     }
     _prevHp = {};
+    _prevTurn = undefined;
+    _prevRound = undefined;
     return;
   }
 
   _prevWinner = combat.winner ?? null;
 
+  // ── Turn / round change sounds ─────────────────────────────────────────────
+  const turnKey  = combat.currentTurn;
+  const roundKey = combat.round;
+
+  if (_prevTurn !== undefined && (_prevTurn !== turnKey || _prevRound !== roundKey)) {
+    if (_prevRound !== undefined && roundKey > _prevRound) {
+      // New round — play nextRound sound (takes priority)
+      _play(_sounds.standard.nextRound);
+    } else {
+      // Same round, new turn — play per-player or generic nextTurn sound
+      const current = (combat.combatants || [])[turnKey];
+      const isPlayer = current?.type === 'player';
+      const playerSnd = isPlayer ? _sounds.playerTurn?.[current.entityId] : null;
+      if (playerSnd) {
+        _play(playerSnd);
+      } else {
+        _play(_sounds.standard.nextTurn);
+      }
+    }
+  }
+
+  _prevTurn  = turnKey;
+  _prevRound = roundKey;
+
+  // ── HP change sounds ───────────────────────────────────────────────────────
   let tookDamage = false;
   let gotHealing = false;
 
