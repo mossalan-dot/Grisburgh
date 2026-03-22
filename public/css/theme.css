@@ -3938,3 +3938,242 @@ body::before {
   flex-shrink: 0;
   min-width: 20px;
 }
+
+/* ══════════════════════════════════════════════════
+   SPELER SUBTABS
+   ══════════════════════════════════════════════════ */
+.player-subtabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 14px 0;
+  border-bottom: 2px solid #c4a87a;
+  margin-bottom: 0;
+}
+.player-subtab {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 7px 14px;
+  border: 1px solid #c4a87a;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: #efe3c5;
+  color: #8a6000;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.player-subtab:hover { background: #e6d5ad; }
+.player-subtab.active {
+  background: #f8f0de;
+  color: #3a2410;
+  border-color: #c4a87a;
+  border-bottom: 2px solid #f8f0de;
+  margin-bottom: -2px;
+  position: relative;
+  z-index: 1;
+}
+.player-subtab-panel { padding-top: 4px; }
+.player-subtab-panel.hidden { display: none; }
+
+/* ══════════════════════════════════════════════════
+   INSPIRATIEBADGE (spelerstabblad)
+   ══════════════════════════════════════════════════ */
+.player-inspiration-section {
+  background: linear-gradient(135deg, #fffbe6 0%, #fef3c7 100%);
+  border: 1.5px solid #f0b429 !important;
+}
+.player-inspiration-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 0;
+}
+.player-inspiration-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92600a;
+}
+.player-inspiration-use-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  padding: 5px 14px;
+  background: #f0b429;
+  color: #3a2410;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+.player-inspiration-use-btn:hover { background: #d4a020; }
+
+/* Inspiratieknop op party-portret (DM) */
+.party-inspiration-btn {
+  display: block;
+  width: 100%;
+  font-size: 11px;
+  background: none;
+  border: 1px solid #c4a87a;
+  border-radius: 4px;
+  color: #8a7050;
+  cursor: pointer;
+  padding: 1px 0;
+  margin-top: 2px;
+  line-height: 1.4;
+  transition: background 0.15s, color 0.15s;
+}
+.party-inspiration-btn:hover { background: #f0b429; color: #3a2410; border-color: #f0b429; }
+.party-inspiration-btn.has-inspiration { background: #f0b429; color: #3a2410; border-color: #d4a020; }
+.party-inspiration-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════
+   KLASSE-TRACKERS (klikbare vakjes)
+   ══════════════════════════════════════════════════ */
+.player-tracker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid #e8d4a8;
+}
+.player-tracker-row:last-of-type { border-bottom: none; }
+.player-tracker-name {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  color: #3a2410;
+  min-width: 90px;
+  font-weight: 600;
+}
+.player-tracker-dots {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.tracker-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #c4a87a;
+  background: #f8f0de;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.tracker-dot.used { background: #8a6000; border-color: #6a4800; }
+.tracker-dot:hover { border-color: #8a6000; }
+.player-tracker-count {
+  font-size: 11px;
+  color: #8a7050;
+  min-width: 28px;
+  text-align: center;
+}
+.player-tracker-del {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #b09870;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+}
+.player-tracker-del:hover { color: #8b2a2a; }
+.player-dash-add-tracker {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.tracker-max-input { width: 60px !important; }
+
+/* ══════════════════════════════════════════════════
+   SPREUKZOEKER (spelerstabblad)
+   ══════════════════════════════════════════════════ */
+.player-spell-search-wrap { position: relative; margin-bottom: 10px; }
+.player-spell-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #c4a87a;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.6);
+  color: #3a2410;
+  font-family: 'Crimson Text', serif;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+.player-spell-search-input:focus { outline: none; border-color: #8a6000; }
+.player-spell-results {
+  position: absolute;
+  top: 100%;
+  left: 0; right: 0;
+  background: #f8f0de;
+  border: 1.5px solid #c4a87a;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  z-index: 20;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.player-spell-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  font-family: 'Crimson Text', serif;
+  font-size: 15px;
+  color: #3a2410;
+  cursor: pointer;
+  border-bottom: 1px solid #e8d4a8;
+  transition: background 0.1s;
+}
+.player-spell-result:hover { background: #efe3c5; }
+.player-spell-result.pinned { color: #8a7050; }
+.player-spell-pin-icon { font-size: 13px; color: #8a6000; }
+.player-spell-noresult, .player-spell-loading {
+  padding: 8px 12px;
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: #8a7050;
+  font-style: italic;
+}
+.player-pinned-spells { margin-top: 4px; }
+.player-pinned-spell-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 4px;
+  border-bottom: 1px solid #e8d4a8;
+}
+.player-pinned-spell-name {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  color: #3a2410;
+  cursor: pointer;
+  font-weight: 600;
+  flex: 1;
+}
+.player-pinned-spell-name:hover { color: #8a6000; }
+.player-pinned-spell-meta {
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  color: #8a7050;
+  flex-shrink: 0;
+}
+.player-pinned-spell-del {
+  background: none;
+  border: none;
+  color: #b09870;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.player-pinned-spell-del:hover { color: #8b2a2a; }

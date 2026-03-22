@@ -144,6 +144,26 @@ export const api = {
   linkCompanion:       (npcId, groupId)     => request(`/companions/${npcId}/${groupId}`, { method: 'POST' }),
   unlinkCompanion:     (npcId, groupId)     => request(`/companions/${npcId}/${groupId}`, { method: 'DELETE' }),
 
+  // Inspiratie
+  getAllInspiration:      ()             => request('/player-inspiration'),
+  getInspiration:        (charId)       => request(`/player-inspiration/${charId}`),
+  giveInspiration:       (charId)       => request(`/player-inspiration/${charId}`, { method: 'PUT' }),
+  removeInspiration:     (charId)       => request(`/player-inspiration/${charId}`, { method: 'DELETE' }),
+
+  // Trackers (klasse-/rasvaardig­heden)
+  getPlayerTrackers:    (charId)            => request(`/player-trackers/${charId}`),
+  addPlayerTracker:     (charId, data)      => request(`/player-trackers/${charId}`, { method: 'POST', body: JSON.stringify(data) }),
+  patchPlayerTracker:   (charId, tid, data) => request(`/player-trackers/${charId}/${tid}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deletePlayerTracker:  (charId, tid)       => request(`/player-trackers/${charId}/${tid}`, { method: 'DELETE' }),
+
+  // Vastgezette spreuken
+  getPlayerSpells:    (charId)             => request(`/player-spells/${charId}`),
+  addPlayerSpell:     (charId, data)       => request(`/player-spells/${charId}`, { method: 'POST', body: JSON.stringify(data) }),
+  removePlayerSpell:  (charId, spellIdx)   => request(`/player-spells/${charId}/${spellIdx}`, { method: 'DELETE' }),
+
+  // Undo: herstel verwijderde entiteit
+  restoreEntity: (id) => request(`/entities/restore/${id}`, { method: 'POST' }),
+
   // Gevecht
   getCombat:        ()        => request('/combat'),
   startCombat:      ()        => request('/combat/start',              { method: 'POST' }),

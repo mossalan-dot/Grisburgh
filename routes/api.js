@@ -281,20 +281,35 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
   if (!ENTITY_TYPES.includes(type)) return res.status(400).json({ error: 'Ongeldig type' });
   const entities = storage.readJSON('entities.json');
   const dmState  = readDmState();
-  // ── Bidirectionele links: verwijder terugverwijzingen bij gelinkte entiteiten ──
   const dying = (entities[type] || []).find(e => e.id === id);
-  if (dying) {
-    for (const lt of ENTITY_TYPES) {
-      for (const targetName of (dying.links?.[lt] || [])) {
-        const target = (entities[lt] || []).find(e => e.name === targetName);
-        if (target?.links?.[type]) {
-          target.links[type] = target.links[type].filter(n => n !== dying.name);
-        }
+  if (!dying) return res.status(404).json({ error: 'Niet gevonden' });
+
+  // ── Sla op in prullenbak voor undo (max 10 items) ──
+  const trashItem = {
+    type, entity: JSON.parse(JSON.stringify(dying)),
+    groupsState: {}, dmNote: dmState.dmNotes?.[id] || null, deletedAt: Date.now(),
+  };
+  for (const [gid, g] of Object.entries(dmState.groups || {})) {
+    trashItem.groupsState[gid] = {
+      visibility:   g.visibility?.[id],
+      secretReveal: g.secretReveals?.[id],
+      deceased:     g.deceased?.[id],
+    };
+  }
+  if (!dmState.trash) dmState.trash = [];
+  dmState.trash.unshift(trashItem);
+  dmState.trash = dmState.trash.slice(0, 10);
+
+  // ── Bidirectionele links: verwijder terugverwijzingen bij gelinkte entiteiten ──
+  for (const lt of ENTITY_TYPES) {
+    for (const targetName of (dying.links?.[lt] || [])) {
+      const target = (entities[lt] || []).find(e => e.name === targetName);
+      if (target?.links?.[type]) {
+        target.links[type] = target.links[type].filter(n => n !== dying.name);
       }
     }
   }
   entities[type] = (entities[type] || []).filter(e => e.id !== id);
-  // Verwijder uit ALLE groepen
   for (const gid of Object.keys(dmState.groups)) {
     delete dmState.groups[gid].visibility[id];
     delete dmState.groups[gid].secretReveals[id];
@@ -305,7 +320,38 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   storage.deleteFile(id);
   req.app.get('io').emit('entity:updated', { type, id, deleted: true });
+  req.app.get('io').emit('entity:trashed', { type, id, name: dying.name });
   res.json({ ok: true });
+});
+
+// Herstel verwijderde entiteit uit prullenbak
+router.post('/entities/restore/:id', requireDM, (req, res) => {
+  const { id } = req.params;
+  const dmState = readDmState();
+  const trashItem = (dmState.trash || []).find(t => t.entity.id === id);
+  if (!trashItem) return res.status(404).json({ error: 'Niet gevonden in prullenbak' });
+  const entities = storage.readJSON('entities.json');
+  const { type, entity, groupsState, dmNote } = trashItem;
+  if (!entities[type]) entities[type] = [];
+  if (!entities[type].find(e => e.id === entity.id)) entities[type].push(entity);
+  for (const [gid, s] of Object.entries(groupsState || {})) {
+    if (!dmState.groups[gid]) continue;
+    if (s.visibility !== undefined) dmState.groups[gid].visibility[entity.id] = s.visibility;
+    if (s.secretReveal !== undefined) dmState.groups[gid].secretReveals[entity.id] = s.secretReveal;
+    if (s.deceased !== undefined) {
+      if (!dmState.groups[gid].deceased) dmState.groups[gid].deceased = {};
+      dmState.groups[gid].deceased[entity.id] = s.deceased;
+    }
+  }
+  if (dmNote !== null && dmNote !== undefined) {
+    if (!dmState.dmNotes) dmState.dmNotes = {};
+    dmState.dmNotes[entity.id] = dmNote;
+  }
+  dmState.trash = (dmState.trash || []).filter(t => t.entity.id !== id);
+  storage.writeJSON('entities.json', entities);
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('entity:updated', { type, id: entity.id, restored: true });
+  res.json({ ok: true, type, id: entity.id });
 });
 
 // ── Visibility & Secret toggles ──
@@ -806,6 +852,140 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
   dmState.playerProfiles[characterId] = updated;
   storage.writeJSON('dm-state.json', dmState);
   res.json(updated);
+});
+
+// ── Speler inspiratie ──
+
+router.get('/player-inspiration', requireDM, (req, res) => {
+  const dmState = readDmState();
+  res.json(dmState.playerInspiration || {});
+});
+
+router.get('/player-inspiration/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  res.json({ inspired: !!((dmState.playerInspiration || {})[characterId]) });
+});
+
+router.put('/player-inspiration/:characterId', requireDM, (req, res) => {
+  const { characterId } = req.params;
+  const dmState = readDmState();
+  if (!dmState.playerInspiration) dmState.playerInspiration = {};
+  dmState.playerInspiration[characterId] = true;
+  storage.writeJSON('dm-state.json', dmState);
+  const entity = (storage.readJSON('entities.json').personages || []).find(e => e.id === characterId);
+  req.app.get('io').emit('player:inspiration', { characterId, inspired: true, name: entity?.name || '' });
+  res.json({ inspired: true });
+});
+
+router.delete('/player-inspiration/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  if (!dmState.playerInspiration) dmState.playerInspiration = {};
+  dmState.playerInspiration[characterId] = false;
+  storage.writeJSON('dm-state.json', dmState);
+  const entity = (storage.readJSON('entities.json').personages || []).find(e => e.id === characterId);
+  req.app.get('io').emit('player:inspiration', { characterId, inspired: false, name: entity?.name || '' });
+  res.json({ inspired: false });
+});
+
+// ── Speler trackers (klasse-/rasvaardig­heden) ──
+
+router.get('/player-trackers/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  res.json((dmState.playerTrackers || {})[characterId] || []);
+});
+
+router.post('/player-trackers/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const { name, max } = req.body;
+  if (!name || typeof name !== 'string') return res.status(400).json({ error: 'Naam vereist' });
+  const maxVal = Math.max(1, Math.min(20, parseInt(max) || 3));
+  const dmState = readDmState();
+  if (!dmState.playerTrackers) dmState.playerTrackers = {};
+  if (!dmState.playerTrackers[characterId]) dmState.playerTrackers[characterId] = [];
+  const tracker = {
+    id: 'tr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    name, max: maxVal, current: 0,
+  };
+  dmState.playerTrackers[characterId].push(tracker);
+  storage.writeJSON('dm-state.json', dmState);
+  res.json(tracker);
+});
+
+router.patch('/player-trackers/:characterId/:trackerId', attachRole, (req, res) => {
+  const { characterId, trackerId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const trackers = (dmState.playerTrackers || {})[characterId] || [];
+  const tracker = trackers.find(t => t.id === trackerId);
+  if (!tracker) return res.status(404).json({ error: 'Tracker niet gevonden' });
+  if (req.body.current !== undefined)
+    tracker.current = Math.max(0, Math.min(tracker.max, parseInt(req.body.current) || 0));
+  if (req.body.max !== undefined) {
+    tracker.max = Math.max(1, Math.min(20, parseInt(req.body.max) || 1));
+    tracker.current = Math.min(tracker.current, tracker.max);
+  }
+  if (req.body.name !== undefined) tracker.name = req.body.name;
+  storage.writeJSON('dm-state.json', dmState);
+  res.json(tracker);
+});
+
+router.delete('/player-trackers/:characterId/:trackerId', attachRole, (req, res) => {
+  const { characterId, trackerId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  if (!dmState.playerTrackers) dmState.playerTrackers = {};
+  dmState.playerTrackers[characterId] = (dmState.playerTrackers[characterId] || []).filter(t => t.id !== trackerId);
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true });
+});
+
+// ── Speler vastgezette spreuken ──
+
+router.get('/player-spells/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  res.json((dmState.playerSpells || {})[characterId] || []);
+});
+
+router.post('/player-spells/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const { index, name, level, school } = req.body;
+  if (!index || !name) return res.status(400).json({ error: 'index en name vereist' });
+  const dmState = readDmState();
+  if (!dmState.playerSpells) dmState.playerSpells = {};
+  if (!dmState.playerSpells[characterId]) dmState.playerSpells[characterId] = [];
+  if (!dmState.playerSpells[characterId].find(s => s.index === index))
+    dmState.playerSpells[characterId].push({ index, name, level: level || 0, school: school || '' });
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true });
+});
+
+router.delete('/player-spells/:characterId/:spellIndex', attachRole, (req, res) => {
+  const { characterId, spellIndex } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  if (!dmState.playerSpells) dmState.playerSpells = {};
+  dmState.playerSpells[characterId] = (dmState.playerSpells[characterId] || []).filter(s => s.index !== spellIndex);
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true });
 });
 
 // ── Groepen ──
