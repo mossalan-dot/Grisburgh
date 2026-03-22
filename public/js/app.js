@@ -876,13 +876,18 @@ async function renderMijnKarakter() {
           <div class="player-dash-section-title">🔮 Klassevaardig­heden</div>
           ${trackers.map(t => `
             <div class="player-tracker-row">
-              <span class="player-tracker-name">${esc(t.name)}</span>
-              <div class="player-tracker-dots">
+              <input class="player-tracker-name-input" type="text" value="${esc(t.name)}"
+                placeholder="Naam…" maxlength="30"
+                onblur="window._dashRenameTracker('${esc(t.id)}', this.value)">
+              <div class="player-dash-slot-dots">
                 ${Array.from({ length: t.max }, (_, i) => `
-                  <button class="tracker-dot${i < t.current ? ' used' : ''}"
+                  <button class="spell-slot-dot ${i < t.current ? 'used' : 'free'}"
+                    title="${i < t.current ? 'Verbruikt — klik om vrij te maken' : 'Vrij — klik om te verbruiken'}"
                     onclick="window._dashToggleTracker('${esc(t.id)}', ${i})"></button>`).join('')}
               </div>
-              <span class="player-tracker-count">${t.current}/${t.max}</span>
+              <span class="player-dash-slot-count">${t.current}/${t.max}</span>
+              <button class="player-dash-slot-adj" onclick="window._dashTrackerAdj('${esc(t.id)}', -1)" title="Max verlagen">−</button>
+              <button class="player-dash-slot-adj" onclick="window._dashTrackerAdj('${esc(t.id)}', 1)" title="Max verhogen">+</button>
               <button class="player-tracker-del" onclick="window._dashDeleteTracker('${esc(t.id)}')" title="Verwijder">×</button>
             </div>`).join('')}
           <div class="player-dash-add-tracker">
@@ -984,16 +989,55 @@ async function renderMijnKarakter() {
           ${pinnedSpells.length > 0 ? `
           <div class="player-pinned-spells">
             ${pinnedSpells.map(s => `
-              <div class="player-pinned-spell-row">
-                <span class="player-pinned-spell-name" onclick="window._playerSpellOpen('${esc(s.index)}')">${esc(s.name)}</span>
-                <span class="player-pinned-spell-meta">Niv. ${s.level}${s.school ? ' · ' + esc(s.school) : ''}</span>
-                <button class="player-pinned-spell-del" onclick="window._playerSpellUnpin('${esc(s.index)}')" title="Verwijder uit spreukenboek">×</button>
-              </div>`).join('')}
+              <details class="player-spell-accordion">
+                <summary class="player-pinned-spell-summary">
+                  <span class="player-pinned-spell-chevron">▾</span>
+                  <span class="player-pinned-spell-name">${esc(s.name)}</span>
+                  <span class="player-pinned-spell-meta">Niv. ${s.level}${s.school ? ' · ' + esc(s.school) : ''}</span>
+                  <button class="player-pinned-spell-del"
+                    onclick="event.preventDefault();event.stopPropagation();window._playerSpellUnpin('${esc(s.index)}')"
+                    title="Verwijder">×</button>
+                </summary>
+                <div class="player-spell-accordion-body" data-spell-index="${esc(s.index)}" data-loaded="false">
+                  <p class="player-spell-loading-text">Laden…</p>
+                </div>
+              </details>`).join('')}
           </div>` : '<p class="player-dash-empty" style="margin-top:8px">Nog geen spreuken vastgezet.</p>'}
         </div>
       </div>
 
     </div>`;
+
+  // ── Spreuk-accordion: beschrijving lazy laden ──
+  document.querySelectorAll('.player-spell-accordion').forEach(details => {
+    details.addEventListener('toggle', async function() {
+      if (!this.open) return;
+      const body = this.querySelector('.player-spell-accordion-body');
+      if (!body || body.dataset.loaded === 'true') return;
+      const index = body.dataset.spellIndex;
+      try {
+        const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
+        const s = await r.json();
+        const desc = (s.desc || []).join('<br><br>');
+        const higher = s.higher_level?.length
+          ? `<p class="player-spell-higher"><strong>Op hogere niveaus:</strong> ${s.higher_level.join(' ')}</p>` : '';
+        const metaParts = [
+          s.casting_time ? `Spreektijd: ${s.casting_time}` : '',
+          s.range        ? `Bereik: ${s.range}` : '',
+          s.components?.length ? `Comp.: ${s.components.join(', ')}` : '',
+          s.duration     ? `Duur: ${s.duration}` : '',
+          s.concentration ? 'Concentratie' : '',
+        ].filter(Boolean);
+        body.innerHTML = `
+          ${metaParts.length ? `<div class="player-spell-meta2">${metaParts.join(' · ')}</div>` : ''}
+          <div class="player-spell-desc">${desc}</div>
+          ${higher}`;
+        body.dataset.loaded = 'true';
+      } catch {
+        body.innerHTML = '<p class="player-spell-err">Beschrijving kon niet worden geladen.</p>';
+      }
+    });
+  });
 
   // Profiel-velden opslaan
   window._saveProfileField = async function(field, value) {
@@ -1160,6 +1204,22 @@ async function renderMijnKarakter() {
       await api.deletePlayerTracker(state.characterId, trackerId);
       renderMijnKarakter();
     } catch { /* ok */ }
+  };
+
+  window._dashRenameTracker = async function(trackerId, name) {
+    const trimmed = name?.trim();
+    if (!trimmed) return;
+    await api.patchPlayerTracker(state.characterId, trackerId, { name: trimmed }).catch(() => {});
+  };
+
+  window._dashTrackerAdj = async function(trackerId, delta) {
+    const t = trackers.find(tr => tr.id === trackerId);
+    if (!t) return;
+    const newMax = Math.max(1, Math.min(20, t.max + delta));
+    t.max = newMax;
+    t.current = Math.min(t.current, newMax);
+    await api.patchPlayerTracker(state.characterId, trackerId, { max: newMax }).catch(() => {});
+    renderMijnKarakter();
   };
 
   // ── Spreukzoeker ──

@@ -4177,3 +4177,81 @@ body::before {
   line-height: 1;
 }
 .player-pinned-spell-del:hover { color: #8b2a2a; }
+
+/* ══════════════════════════════════════════════════
+   TRACKER — spell-slot stijl (naam bewerkbaar)
+   ══════════════════════════════════════════════════ */
+.player-tracker-name-input {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #3a2410;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed #c4a87a;
+  width: 90px;
+  min-width: 60px;
+  padding: 1px 2px;
+  outline: none;
+  flex-shrink: 0;
+}
+.player-tracker-name-input:focus { border-bottom-color: #8a6000; background: rgba(255,255,255,0.4); }
+
+/* ══════════════════════════════════════════════════
+   SPREUK-ACCORDION
+   ══════════════════════════════════════════════════ */
+.player-spell-accordion {
+  border-bottom: 1px solid #e8d4a8;
+}
+.player-spell-accordion:last-child { border-bottom: none; }
+.player-pinned-spell-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.player-pinned-spell-summary::-webkit-details-marker { display: none; }
+.player-pinned-spell-chevron {
+  font-size: 11px;
+  color: #8a7050;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+.player-spell-accordion[open] .player-pinned-spell-chevron { transform: rotate(0deg); }
+.player-spell-accordion:not([open]) .player-pinned-spell-chevron { transform: rotate(-90deg); }
+.player-pinned-spell-summary:hover { background: rgba(196,168,122,0.1); border-radius: 4px; }
+.player-spell-accordion-body {
+  padding: 6px 12px 12px 20px;
+  background: rgba(255,255,255,0.35);
+  border-top: 1px solid #e8d4a8;
+}
+.player-spell-meta2 {
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  color: #8a7050;
+  margin-bottom: 8px;
+  font-style: italic;
+}
+.player-spell-desc {
+  font-family: 'Crimson Text', serif;
+  font-size: 15px;
+  color: #3a2410;
+  line-height: 1.6;
+}
+.player-spell-higher {
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: #5a4030;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #e8d4a8;
+}
+.player-spell-loading-text, .player-spell-err {
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: #8a7050;
+  font-style: italic;
+}
