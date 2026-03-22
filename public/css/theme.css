@@ -4504,3 +4504,81 @@ body::before {
 [data-theme="hp"] .dm-btn-ghost:hover { background: rgba(107,63,160,0.3); }
 
 [data-theme="hp"] .map-toast { background: #2d1657; border-color: #6b3fa0; color: #f0e6ff; }
+
+/* ── HP-thema: Spreukenpaneel (DM) ── */
+[data-theme="hp"] .dm-spell-row {
+  background: rgba(60,28,110,0.6);
+  color: #c4a0e0;
+  border: 1px solid rgba(107,63,160,0.4);
+  margin-bottom: 2px;
+}
+[data-theme="hp"] .dm-spell-row:hover { background: rgba(80,40,140,0.75); color: #ecdff5; border-color: #c25090; }
+[data-theme="hp"] #dm-spell-results { gap: 3px; }
+
+[data-theme="hp"] .dm-spell-name { color: #d4a830; }
+[data-theme="hp"] .dm-spell-meta { color: #9b6dc0; }
+[data-theme="hp"] .dm-spell-props {
+  background: rgba(26,13,46,0.7);
+  border-color: rgba(107,63,160,0.5);
+}
+[data-theme="hp"] .dm-spell-props > div > span:first-child { color: #7a55a0; }
+[data-theme="hp"] .dm-spell-props > div > span:last-child  { color: #ecdff5; }
+[data-theme="hp"] .dm-spell-desc { color: #d0bce8; }
+[data-theme="hp"] .dm-spell-higher { border-top-color: rgba(107,63,160,0.4); }
+[data-theme="hp"] .dm-spell-link { color: #d4a830; }
+[data-theme="hp"] .dm-spell-link:hover { color: #f0c840; }
+
+/* ── HP-thema: Spreukenboek (speler) ── */
+[data-theme="hp"] .player-spell-search-input {
+  background: rgba(45,22,87,0.8) !important;
+  border-color: #6b3fa0 !important;
+  color: #ecdff5 !important;
+}
+[data-theme="hp"] .player-spell-results {
+  background: #2d1657;
+  border-color: #6b3fa0;
+}
+[data-theme="hp"] .player-spell-result {
+  color: #c4a0e0;
+  border-bottom-color: rgba(107,63,160,0.3);
+}
+[data-theme="hp"] .player-spell-result:hover { background: rgba(107,63,160,0.35); color: #ecdff5; }
+[data-theme="hp"] .player-spell-result.pinned { color: #7a55a0; }
+[data-theme="hp"] .player-spell-pin-icon { color: #d4a830; }
+[data-theme="hp"] .player-spell-noresult,
+[data-theme="hp"] .player-spell-loading { color: #7a55a0; }
+
+[data-theme="hp"] .player-pinned-spell-row {
+  background: rgba(60,28,110,0.5);
+  border: 1px solid rgba(107,63,160,0.4);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(107,63,160,0.4);
+}
+[data-theme="hp"] .player-pinned-spell-name { color: #d4a830; }
+[data-theme="hp"] .player-pinned-spell-name:hover { color: #f0c840; }
+[data-theme="hp"] .player-pinned-spell-meta { color: #9b6dc0; }
+[data-theme="hp"] .player-pinned-spell-del { color: #6b3fa0; }
+[data-theme="hp"] .player-pinned-spell-del:hover { color: #c25090; }
+
+[data-theme="hp"] .player-spell-accordion {
+  background: rgba(60,28,110,0.45);
+  border: 1px solid rgba(107,63,160,0.4);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  overflow: hidden;
+}
+[data-theme="hp"] .player-spell-accordion:last-child { border-bottom: 1px solid rgba(107,63,160,0.4); }
+[data-theme="hp"] .player-spell-accordion-body {
+  background: rgba(26,13,46,0.6);
+  border-top: 1px solid rgba(107,63,160,0.3);
+}
+[data-theme="hp"] .player-spell-meta2 { color: #9b6dc0; }
+[data-theme="hp"] .player-spell-desc { color: #d0bce8; }
+[data-theme="hp"] .player-spell-higher { color: #c4a0e0; border-top-color: rgba(107,63,160,0.4); }
+[data-theme="hp"] .player-spell-loading-text,
+[data-theme="hp"] .player-spell-err { color: #7a55a0; }
+
+[data-theme="hp"] .player-pinned-spell-summary:hover { background: rgba(107,63,160,0.2); }
+[data-theme="hp"] .player-pinned-spell-chevron { color: #9b6dc0; }
