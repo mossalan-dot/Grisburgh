@@ -1357,14 +1357,9 @@ router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {
 
 // ── Kaart ──
 
-const DEFAULT_MAPS = [
-  { id: 'grisburgh', label: 'Grisburgh', src: '/assets/map-grisburgh.jpg' },
-  { id: 'isfar',     label: 'Isfār',     src: '/assets/map-isfar.jpg' },
-];
-
 function getMaps() {
   const mapData = storage.readJSON('map.json');
-  return mapData.maps || DEFAULT_MAPS;
+  return mapData.maps || [];
 }
 
 router.get('/map/maps', attachRole, (req, res) => {
