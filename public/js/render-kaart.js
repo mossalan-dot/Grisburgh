@@ -23,7 +23,10 @@ function _mapImgSrc(map) {
 // ── Public entry point ──
 export async function renderKaart() {
   MAPS = await api.listMaps();
-  if (!MAPS.length) MAPS = [{ id: 'grisburgh', label: 'Grisburgh', src: '/assets/map-grisburgh.jpg' }];
+  if (!MAPS.length) {
+    const title = window.app?.state?.meta?.appTitle || 'Wereld';
+    MAPS = [{ id: 'grisburgh', label: title, src: '/assets/map-grisburgh.jpg' }];
+  }
   if (currentMapIdx >= MAPS.length) currentMapIdx = 0;
 
   [mapPins, allLocaties] = await Promise.all([
@@ -45,7 +48,7 @@ function _buildShell() {
       <div class="section-banner-title">
         <span>🗺️</span>
         <span>Kaarten</span>
-        <span class="font-fell font-normal normal-case tracking-normal text-ink-faint text-xs italic ml-1">Grisburgh op de kaart</span>
+        <span class="font-fell font-normal normal-case tracking-normal text-ink-faint text-xs italic ml-1">${esc(window.app?.state?.meta?.appTitle || 'De wereld')} op de kaart</span>
       </div>
       <div class="section-banner-line"></div>
     </div>
