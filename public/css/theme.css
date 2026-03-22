@@ -4338,3 +4338,149 @@ body::before {
   border: 1.5px solid #c4a87a;
   flex-shrink: 0;
 }
+
+/* ── Campagne-kaarten ──────────────────────────────────────────────────────── */
+
+.campagne-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.campagne-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(180,140,60,0.35);
+  border-radius: 8px;
+  padding: 10px 14px;
+  transition: border-color 0.15s;
+}
+
+.campagne-card--active {
+  border-color: #f0b429;
+  background: rgba(240,180,41,0.1);
+}
+
+.campagne-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.campagne-card-title {
+  color: #f0d8a8;
+  font-size: 1em;
+}
+
+.campagne-card-sub {
+  color: #c8a87a;
+  font-size: 0.82em;
+}
+
+.campagne-card-meta {
+  color: #8a7050;
+  font-size: 0.78em;
+}
+
+.campagne-card-actions {
+  flex-shrink: 0;
+}
+
+.campagne-active-badge {
+  color: #f0b429;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+/* ── Harry-Potter thema ────────────────────────────────────────────────────── */
+
+[data-theme="hp"] {
+  --hp-purple:  #6b3fa0;
+  --hp-rose:    #c25090;
+  --hp-gold:    #d4a830;
+  --hp-dark:    #1a0d2e;
+  --hp-mid:     #2d1657;
+  --hp-light:   #ecdff5;
+  --hp-text:    #f0e6ff;
+}
+
+[data-theme="hp"] body,
+[data-theme="hp"] .app-shell {
+  background: linear-gradient(160deg, #1a0d2e 0%, #2d1657 60%, #1a0d2e 100%);
+  color: #f0e6ff;
+}
+
+[data-theme="hp"] body::before {
+  background-image:
+    repeating-linear-gradient(-38deg, transparent 0px, transparent 6px, rgba(180,80,200,0.008) 6px, rgba(180,80,200,0.008) 7px),
+    repeating-linear-gradient(52deg,  transparent 0px, transparent 9px, rgba(100,40,160,0.005) 9px, rgba(100,40,160,0.005) 10px);
+}
+
+[data-theme="hp"] ::-webkit-scrollbar-track { background: #2d1657; }
+[data-theme="hp"] ::-webkit-scrollbar-thumb { background: #6b3fa0; }
+[data-theme="hp"] ::-webkit-scrollbar-thumb:hover { background: #c25090; }
+
+[data-theme="hp"] .app-header {
+  background: linear-gradient(90deg, #1a0d2e 0%, #3d1f80 50%, #1a0d2e 100%);
+  border-bottom-color: #6b3fa0;
+}
+
+[data-theme="hp"] #app-title     { color: #d4a830; text-shadow: 0 0 14px rgba(212,168,48,0.6); }
+[data-theme="hp"] #app-subtitle  { color: #c25090; }
+
+[data-theme="hp"] .nav-tabs       { background: #1a0d2e; border-top-color: #6b3fa0; }
+[data-theme="hp"] .section-tab    { color: #c4a0e0; }
+[data-theme="hp"] .section-tab:hover   { background: rgba(107,63,160,0.3); color: #f0e6ff; }
+[data-theme="hp"] .section-tab.active  { background: rgba(107,63,160,0.5); color: #d4a830; border-top: 2px solid #d4a830; }
+
+[data-theme="hp"] .section { background: transparent; }
+
+[data-theme="hp"] .entity-card {
+  background: rgba(45,22,87,0.7);
+  border-color: rgba(107,63,160,0.5);
+}
+[data-theme="hp"] .entity-card:hover { border-color: #c25090; }
+
+[data-theme="hp"] .entity-card-name   { color: #ecdff5; }
+[data-theme="hp"] .entity-card-type   { color: #9b6dc0; }
+[data-theme="hp"] .entity-type-badge  { background: rgba(107,63,160,0.4); color: #d4a830; border-color: rgba(107,63,160,0.6); }
+
+[data-theme="hp"] .party-bar         { background: #1a0d2e; border-top-color: #6b3fa0; }
+[data-theme="hp"] .party-member-name { color: #c4a0e0; }
+
+[data-theme="hp"] .modal-overlay     { background: rgba(10,5,25,0.85); }
+[data-theme="hp"] .modal-box         { background: #2d1657; border-color: #6b3fa0; color: #ecdff5; }
+[data-theme="hp"] .modal-box h2      { color: #d4a830; }
+
+[data-theme="hp"] .dm-section .dm-section-tabs { background: #150a28; border-bottom-color: #6b3fa0; }
+[data-theme="hp"] .dm-tab-btn         { color: #c4a0e0; }
+[data-theme="hp"] .dm-tab-btn:hover   { background: rgba(107,63,160,0.3); }
+[data-theme="hp"] .dm-tab-btn.active  { background: rgba(107,63,160,0.5); color: #d4a830; border-bottom-color: #d4a830; }
+[data-theme="hp"] .dm-section-body    { background: #1a0d2e; }
+
+[data-theme="hp"] input,
+[data-theme="hp"] textarea,
+[data-theme="hp"] select {
+  background: rgba(45,22,87,0.7);
+  border-color: #6b3fa0;
+  color: #ecdff5;
+}
+
+[data-theme="hp"] input::placeholder,
+[data-theme="hp"] textarea::placeholder { color: #9b6dc0; }
+
+[data-theme="hp"] button.dm-btn,
+[data-theme="hp"] .dm-btn {
+  background: linear-gradient(135deg, #6b3fa0, #c25090);
+  border-color: #9b60c0;
+  color: #fff;
+}
+[data-theme="hp"] .dm-btn:hover { opacity: 0.88; }
+[data-theme="hp"] .dm-btn-ghost { background: transparent; border-color: #6b3fa0; color: #c4a0e0; }
+[data-theme="hp"] .dm-btn-ghost:hover { background: rgba(107,63,160,0.3); }
+
+[data-theme="hp"] .map-toast { background: #2d1657; border-color: #6b3fa0; color: #f0e6ff; }

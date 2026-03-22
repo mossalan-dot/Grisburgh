@@ -147,6 +147,11 @@ export function initDmPanel() {
     combatDeathSave:        _combatDeathSave,
     combatSelectCombatant:  _combatSelectCombatant,
 
+    // Campagnes
+    campagneSwitchTo:  _campagneSwitchTo,
+    campagneCreate:    _campagneCreate,
+    campagneSubmit:    _campagneSubmit,
+
     // Socket callbacks
     onTunnelUrl(url) {
       window._dmPanelTunnelUrl = url;
@@ -199,6 +204,7 @@ function _buildTabs() {
     <button class="dm-tab-btn${_activeTab==='geluiden'?    ' active':''}" data-tab="geluiden"     onclick="window.dmPanel.switchTab('geluiden')"     title="Geluiden"><span class="dm-tab-icon">🔊</span><span class="dm-tab-label">Geluiden</span></button>
     <button class="dm-tab-btn${_activeTab==='monsters'?    ' active':''}" data-tab="monsters"     onclick="window.dmPanel.switchTab('monsters')"     title="Monsterbibliotheek"><span class="dm-tab-icon">👾</span><span class="dm-tab-label">Monsters</span></button>
     <button class="dm-tab-btn${_activeTab==='gevecht'?     ' active':''}" data-tab="gevecht"      onclick="window.dmPanel.switchTab('gevecht')"      title="Gevecht"><span class="dm-tab-icon">⚔️</span><span class="dm-tab-label">Gevecht</span></button>
+    <button class="dm-tab-btn${_activeTab==='campagnes'?   ' active':''}" data-tab="campagnes"    onclick="window.dmPanel.switchTab('campagnes')"    title="Campagnes"><span class="dm-tab-icon">🗂</span><span class="dm-tab-label">Campagnes</span></button>
   `;
 }
 
@@ -217,6 +223,7 @@ function _switchTab(tab) {
   if (tab === 'tafels')    _loadAndRenderTafels();
   if (tab === 'monsters')  _loadAndRenderMonsters();
   if (tab === 'geluiden')  _renderGeluiden();
+  if (tab === 'campagnes') _loadAndRenderCampagnes();
   if (tab === 'gevecht') {
     // Always reload monsters + entities so pickers are fresh
     Promise.all([
@@ -1429,6 +1436,98 @@ function _showToast(msg, duration = 4500) {
     setTimeout(() => el.remove(), 350);
   }, duration);
 }
+
+// ── Campagnes ─────────────────────────────────────────────────────────────────
+
+async function _loadAndRenderCampagnes() {
+  const el = document.getElementById('dm-campagnes-content');
+  if (!el) return;
+  el.innerHTML = '<p class="dm-empty" style="padding:16px">Campagnes laden…</p>';
+  try {
+    const { campaigns, activeCampaign } = await api.getCampaigns();
+    _renderCampagnes(el, campaigns, activeCampaign);
+  } catch (err) {
+    el.innerHTML = `<p class="dm-empty" style="padding:16px;color:#c44">Fout: ${esc(err.message)}</p>`;
+  }
+}
+
+function _renderCampagnes(el, campaigns, activeCampaign) {
+  const THEMES = { default: 'Fantasy (standaard)', hp: 'Harry Potter' };
+  const listHTML = campaigns.map(c => {
+    const isActive = c.id === activeCampaign;
+    return `
+      <div class="campagne-card${isActive ? ' campagne-card--active' : ''}">
+        <div class="campagne-card-info">
+          <strong class="campagne-card-title">${esc(c.appTitle || c.id)}</strong>
+          ${c.appSubtitle ? `<span class="campagne-card-sub">${esc(c.appSubtitle)}</span>` : ''}
+          <span class="campagne-card-meta">${esc(THEMES[c.theme] || c.theme || 'standaard')} · ID: ${esc(c.id)}</span>
+        </div>
+        <div class="campagne-card-actions">
+          ${isActive
+            ? '<span class="campagne-active-badge">● Actief</span>'
+            : `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSwitchTo('${esc(c.id)}')">Activeer</button>`
+          }
+        </div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span class="dm-form-label" style="font-size:1em;font-weight:700">Campagnes</span>
+        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneCreate()">+ Nieuwe campagne</button>
+      </div>
+      <div class="campagne-list">${listHTML || '<p class="dm-empty">Geen campagnes gevonden.</p>'}</div>
+    </div>
+    <div class="dm-feature-section" id="campagne-create-form" style="display:none">
+      <div class="dm-form-label" style="font-weight:700;margin-bottom:8px">Nieuwe campagne aanmaken</div>
+      <div class="dm-feature-row" style="gap:8px;flex-wrap:wrap">
+        <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">
+        <input id="campagne-new-title"    class="dm-input" placeholder="Naam" style="flex:2;min-width:140px">
+        <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
+      </div>
+      <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
+        <select id="campagne-new-theme" class="dm-input" style="flex:1;min-width:160px">
+          <option value="default">Fantasy (standaard)</option>
+          <option value="hp">Harry Potter</option>
+        </select>
+        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSubmit()">Aanmaken</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('campagne-create-form').style.display='none'">Annuleren</button>
+      </div>
+      <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
+    </div>`;
+}
+
+async function _campagneSwitchTo(id) {
+  if (!confirm(`Wil je wisselen naar campagne "${id}"? Alle spelers worden automatisch uitgelogd.`)) return;
+  try {
+    await api.switchCampaign(id);
+    // Socket event 'campaign:switched' zorgt voor de rest
+  } catch (err) {
+    alert('Wisselen mislukt: ' + err.message);
+  }
+}
+
+function _campagneCreate() {
+  const form = document.getElementById('campagne-create-form');
+  if (form) { form.style.display = 'block'; document.getElementById('campagne-new-id')?.focus(); }
+}
+
+async function _campagneSubmit() {
+  const id       = document.getElementById('campagne-new-id')?.value.trim();
+  const title    = document.getElementById('campagne-new-title')?.value.trim();
+  const subtitle = document.getElementById('campagne-new-subtitle')?.value.trim();
+  const theme    = document.getElementById('campagne-new-theme')?.value || 'default';
+  const errEl    = document.getElementById('campagne-create-error');
+  if (!id) { if (errEl) errEl.textContent = 'Vul een ID in.'; return; }
+  if (errEl) errEl.textContent = '';
+  try {
+    await api.createCampaign(id, { appTitle: title || id, appSubtitle: subtitle, theme });
+    await _loadAndRenderCampagnes();
+  } catch (err) {
+    if (errEl) errEl.textContent = 'Aanmaken mislukt: ' + err.message;
+  }
+};
 
 // ── Geluiden ──────────────────────────────────────────────────────────────────
 

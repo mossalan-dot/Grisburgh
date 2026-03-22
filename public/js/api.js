@@ -168,6 +168,12 @@ export const api = {
   assignItemOwner: (itemId, data) => request(`/items/${itemId}/owner`, { method: 'PUT', body: JSON.stringify(data) }),
   getGroups: () => request('/groups'),
 
+  // Campagnes
+  getCampaigns:      ()          => request('/campaigns'),
+  createCampaign:    (id, meta)  => request('/campaigns',        { method: 'POST', body: JSON.stringify({ id, meta }) }),
+  switchCampaign:    (id)        => request('/campaigns/active', { method: 'PUT',  body: JSON.stringify({ id }) }),
+  getCampaignMeta:   ()          => request('/campaigns/meta'),
+
   // Gevecht
   getCombat:        ()        => request('/combat'),
   startCombat:      ()        => request('/combat/start',              { method: 'POST' }),
