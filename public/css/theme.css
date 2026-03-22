@@ -4448,10 +4448,20 @@ body::before {
 [data-theme="hp"] .section { background: transparent; }
 
 [data-theme="hp"] .entity-card {
-  background: rgba(35,15,70,0.85);
-  border-color: rgba(107,63,160,0.6);
+  background: linear-gradient(160deg, rgba(72,36,128,0.95) 0%, rgba(55,24,100,0.95) 100%);
+  border: 1px solid rgba(150,90,210,0.55);
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(107,63,160,0.25),
+    inset 0 1px 0 rgba(200,160,255,0.08);
 }
-[data-theme="hp"] .entity-card:hover { border-color: #c25090; }
+[data-theme="hp"] .entity-card:hover {
+  border-color: #c25090;
+  box-shadow:
+    0 5px 16px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(194,80,144,0.4),
+    inset 0 1px 0 rgba(200,160,255,0.1);
+}
 
 /* Tekst op paarse kaartjes: alle ink-kleuren overschrijven naar lichte tonen */
 [data-theme="hp"] .entity-card .card-name            { color: #ecdff5 !important; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
