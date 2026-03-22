@@ -595,6 +595,31 @@ router.post('/items/request/:reqId/reject', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// DM geeft voorwerp rechtstreeks aan een speler (specifieke groep via groupId)
+router.put('/items/:itemId/owner', requireDM, (req, res) => {
+  const { itemId } = req.params;
+  const { characterId, playerName, groupId } = req.body;
+  if (!characterId || !playerName) return res.status(400).json({ error: 'characterId en playerName vereist' });
+  const dmState  = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const item     = (entities.voorwerpen || []).find(e => e.id === itemId);
+  // Gebruik de opgegeven groep of anders de actieve groep
+  const targetId = groupId && dmState.groups[groupId] ? groupId : dmState.activeGroup;
+  const g = dmState.groups[targetId];
+  if (!g) return res.status(400).json({ error: 'Groep niet gevonden' });
+  if (!g.itemOwners) g.itemOwners = {};
+  g.itemOwners[itemId] = { characterId, playerName };
+  storage.writeJSON('dm-state.json', dmState);
+  // Stuur update naar de juiste groep — emit met groepinfo zodat clients kunnen filteren
+  req.app.get('io').emit('items:ownership-updated', {
+    owners:       g.itemOwners,
+    requests:     g.itemRequests || [],
+    tradeAllowed: g.tradeAllowed !== false,
+    given:        { itemName: item?.name || '', playerName, groupId: targetId },
+  });
+  res.json({ ok: true });
+});
+
 router.delete('/items/:itemId/owner', requireDM, (req, res) => {
   const dmState  = readDmState();
   const g        = getGroup(dmState);

@@ -164,6 +164,10 @@ export const api = {
   // Undo: herstel verwijderde entiteit
   restoreEntity: (id) => request(`/entities/restore/${id}`, { method: 'POST' }),
 
+  // DM geeft voorwerp aan speler
+  assignItemOwner: (itemId, data) => request(`/items/${itemId}/owner`, { method: 'PUT', body: JSON.stringify(data) }),
+  getGroups: () => request('/groups'),
+
   // Gevecht
   getCombat:        ()        => request('/combat'),
   startCombat:      ()        => request('/combat/start',              { method: 'POST' }),

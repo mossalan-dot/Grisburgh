@@ -575,6 +575,7 @@ function _itemOwnershipBadge(itemId) {
       <div class="item-owner-badge ${isMine ? 'item-owner-badge--mine' : ''}" onclick="event.stopPropagation()">
         ${isMine ? '🎒 Jouw eigendom' : `🎒 ${esc(owner.playerName)}`}
         ${isDm ? `<button class="item-owner-remove" onclick="event.stopPropagation();window._itemRemoveOwner('${esc(itemId)}')" title="Eigendom verwijderen">✕</button>` : ''}
+        ${isDm ? `<button class="item-give-btn" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan andere speler">🎁</button>` : ''}
       </div>`;
   }
 
@@ -594,8 +595,65 @@ function _itemOwnershipBadge(itemId) {
       </button>`;
   }
 
+  // Geef-knop voor DM (geen eigenaar)
+  if (isDm) {
+    return `
+      <button class="item-give-btn item-give-btn--standalone" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan speler">
+        🎁 Geef aan speler
+      </button>`;
+  }
+
   return '';
 }
+
+// ── DM: voorwerp geven aan speler ──
+window._itemGiveToPlayer = async function(itemId) {
+  try {
+    const [allPersonages, allGroups] = await Promise.all([
+      api.listEntities('personages'),
+      api.getGroups().catch(() => []),
+    ]);
+    const spelers = allPersonages.filter(e => e.subtype?.toLowerCase() === 'speler');
+    if (!spelers.length) {
+      alert('Geen spelerskarakters gevonden.');
+      return;
+    }
+    // Groepeer per groep
+    const groupNames = Object.fromEntries((allGroups || []).map(g => [g.id, g.name]));
+    const byGroup = {};
+    for (const s of spelers) {
+      const gid = s.data?.groep || '_geen';
+      if (!byGroup[gid]) byGroup[gid] = [];
+      byGroup[gid].push(s);
+    }
+    const sections = Object.entries(byGroup).map(([gid, members]) => {
+      const label = groupNames[gid] || (gid === '_geen' ? 'Zonder groep' : gid);
+      return `
+        <div class="item-give-group">
+          <div class="item-give-group-label">${esc(label)}</div>
+          ${members.map(s => `
+            <button class="item-give-player-btn"
+              onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${esc(s.name)}','${esc(s.data?.groep || '')}')">
+              <img src="${api.fileUrl(s.id)}" class="item-give-avatar"
+                onerror="this.style.display='none'">
+              <span>${esc(s.name)}</span>
+            </button>`).join('')}
+        </div>`;
+    }).join('');
+    window.app.openModal('🎁 Geef voorwerp aan speler', 'Kies een ontvanger', `<div class="item-give-picker">${sections}</div>`);
+  } catch (e) {
+    console.warn('_itemGiveToPlayer fout:', e);
+  }
+};
+
+window._itemAssignToPlayer = async function(itemId, characterId, playerName, groupId) {
+  try {
+    await api.assignItemOwner(itemId, { characterId, playerName, groupId: groupId || null });
+    window.app.closeModal();
+  } catch (e) {
+    console.warn('_itemAssignToPlayer fout:', e);
+  }
+};
 
 // ── Entity carousel (multi-image with captions) ──
 const _ecp = {};   // entity carousel position
