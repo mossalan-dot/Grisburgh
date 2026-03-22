@@ -1231,6 +1231,8 @@ async function renderMijnKarakter() {
   };
 
   // ── Spreukzoeker ──
+  const _isHpCampaign = () => state.meta?.spellSource === 'wands-wizards';
+
   window._playerSpellSearch = async function(q) {
     const resultsEl = document.getElementById('player-spell-results');
     if (!resultsEl) return;
@@ -1239,7 +1241,8 @@ async function renderMijnKarakter() {
     if (!_playerSpellList) {
       resultsEl.innerHTML = '<div class="player-spell-loading">Laden…</div>';
       try {
-        const r = await fetch('https://www.dnd5eapi.co/api/spells');
+        const url = _isHpCampaign() ? '/data/hp-spells.json' : 'https://www.dnd5eapi.co/api/spells';
+        const r = await fetch(url);
         const d = await r.json();
         _playerSpellList = d.results || [];
       } catch { _playerSpellList = []; }
@@ -1259,8 +1262,14 @@ async function renderMijnKarakter() {
   window._playerSpellPin = async function(index, name) {
     if (pinnedSpells.find(s => s.index === index)) return;
     try {
-      const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
-      const spell = await r.json();
+      let spell;
+      if (_isHpCampaign()) {
+        // HP spreuken zijn volledig in de lijst — geen tweede fetch nodig
+        spell = (_playerSpellList || []).find(s => s.index === index) || { level: 0, school: {} };
+      } else {
+        const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
+        spell = await r.json();
+      }
       await api.addPlayerSpell(state.characterId, {
         index, name, level: spell.level || 0, school: spell.school?.name || '',
       });
@@ -1278,13 +1287,27 @@ async function renderMijnKarakter() {
   window._playerSpellOpen = async function(index) {
     if (window.dmPanel?.spellOpen) { window.dmPanel.spellOpen(index); return; }
     try {
-      const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
-      const s = await r.json();
-      const desc = (s.desc || []).join('<br><br>');
+      let s;
+      if (_isHpCampaign()) {
+        s = (_playerSpellList || []).find(sp => sp.index === index);
+        if (!s) {
+          const r = await fetch('/data/hp-spells.json');
+          const d = await r.json();
+          _playerSpellList = d.results || [];
+          s = _playerSpellList.find(sp => sp.index === index) || {};
+        }
+      } else {
+        const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
+        s = await r.json();
+      }
+      const schoolMap = { Charm: 'Bezwering', Curse: 'Vloek', Transfiguration: 'Gedaanteverandering', Healing: 'Genezing' };
+      const schoolNl  = schoolMap[s.school?.name] || s.school?.name || '';
+      const levelStr  = s.level === 0 ? 'Tovervorm' : `Niveau ${s.level}`;
+      const desc   = (s.desc || []).join('<br><br>');
       const higher = s.higher_level?.length ? `<p class="mt-2"><strong>Op hogere niveaus:</strong> ${s.higher_level.join(' ')}</p>` : '';
       window.app.openModal(
         s.name,
-        `Niveau ${s.level} · ${s.school?.name || ''} · ${s.casting_time || ''} · Bereik: ${s.range || ''}`,
+        `${levelStr} · ${schoolNl} · ${s.casting_time || ''} · Bereik: ${s.range || ''}`,
         `<div style="font-family:var(--font-fell);color:var(--ink-bright);line-height:1.6">${desc}${higher}</div>`
       );
     } catch { /* ok */ }

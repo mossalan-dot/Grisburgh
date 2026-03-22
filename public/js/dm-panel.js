@@ -241,9 +241,16 @@ function _switchTab(tab) {
 
 // ── Spreuken ──
 
+function _isHpCampaign() {
+  return window.app?.state?.meta?.spellSource === 'wands-wizards';
+}
+
 async function _loadSpells() {
+  const url = _isHpCampaign()
+    ? '/data/hp-spells.json'
+    : 'https://www.dnd5eapi.co/api/spells';
   try {
-    const r = await fetch('https://www.dnd5eapi.co/api/spells');
+    const r = await fetch(url);
     const d = await r.json();
     _spellList = d.results || [];
   } catch {
@@ -297,22 +304,34 @@ function _updateSpellResults() {
 
 function _spellDetailHtml(s) {
   const schoolMap = {
+    // D&D scholen
     Abjuration: 'Afwering', Conjuration: 'Bezwering', Divination: 'Waarzeggerij',
     Enchantment: 'Betovering', Evocation: 'Oproeping', Illusion: 'Illusie',
     Necromancy: 'Necromantie', Transmutation: 'Transmutatie',
+    // HP scholen
+    Charm: 'Bezwering', Curse: 'Vloek', Transfiguration: 'Gedaanteverandering',
+    Healing: 'Genezing',
   };
-  const levelStr = s.level === 0 ? 'Cantrip' : `Level ${s.level}`;
+  const levelStr = s.level === 0 ? 'Tovervorm' : `Niveau ${s.level}`;
   const school   = schoolMap[s.school?.name] || s.school?.name || '';
   const comps    = [
     s.components?.includes('V') ? 'V' : '',
     s.components?.includes('S') ? 'G' : '',
     s.components?.includes('M') ? `M (${s.material || '…'})` : '',
   ].filter(Boolean).join(', ');
-  const desc      = (s.desc || []).map(p => `<p class="dm-spell-p">${esc(p)}</p>`).join('');
-  const higher    = s.higher_level?.length
-    ? `<p class="dm-spell-p dm-spell-higher"><strong>Op hogere levels:</strong> ${esc(s.higher_level.join(' '))}</p>`
+  const desc   = (s.desc || []).map(p => `<p class="dm-spell-p">${esc(p)}</p>`).join('');
+  const higher = s.higher_level?.length
+    ? `<p class="dm-spell-p dm-spell-higher"><strong>Op hogere niveaus:</strong> ${esc(s.higher_level.join(' '))}</p>`
     : '';
-  const wikidotSlug = s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  let link = '';
+  if (_isHpCampaign()) {
+    const wikiSlug = s.name.replace(/\s*\/.*$/, '').trim().replace(/\s+/g, '_');
+    link = `<a class="dm-spell-link" href="https://harrypotter.fandom.com/wiki/${encodeURIComponent(wikiSlug)}" target="_blank" rel="noopener">HP-wiki →</a>`;
+  } else {
+    const wikidotSlug = s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    link = `<a class="dm-spell-link" href="https://dnd5e.wikidot.com/spell:${wikidotSlug}" target="_blank" rel="noopener">Wikidot →</a>`;
+  }
 
   return `
     <div class="dm-feature-section dm-spell-detail">
@@ -322,11 +341,11 @@ function _spellDetailHtml(s) {
       <div class="dm-spell-props">
         <div><span>Uitvoertijd</span><span>${esc(s.casting_time)}</span></div>
         <div><span>Bereik</span><span>${esc(s.range)}</span></div>
-        <div><span>Componenten</span><span>${esc(comps)}</span></div>
+        ${comps ? `<div><span>Componenten</span><span>${esc(comps)}</span></div>` : ''}
         <div><span>Duur</span><span>${esc(s.duration)}${s.concentration ? ' (concentratie)' : ''}</span></div>
       </div>
       <div class="dm-spell-desc">${desc}${higher}</div>
-      <a class="dm-spell-link" href="https://dnd5e.wikidot.com/spell:${wikidotSlug}" target="_blank" rel="noopener">Wikidot →</a>
+      ${link}
     </div>`;
 }
 
@@ -334,8 +353,15 @@ async function _spellOpen(index) {
   const el = document.querySelector('.dm-tab-content[data-tab="spreuken"]');
   if (el) el.innerHTML = '<p class="dm-hint" style="padding:12px">Laden…</p>';
   try {
-    const r  = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
-    _spellDetail = await r.json();
+    if (_isHpCampaign()) {
+      // HP spreuken zijn volledig in de lijst opgeslagen — geen tweede fetch nodig
+      if (!_spellList) await _loadSpells();
+      _spellDetail = (_spellList || []).find(s => s.index === index) || null;
+      if (!_spellDetail) throw new Error('not found');
+    } else {
+      const r  = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
+      _spellDetail = await r.json();
+    }
     _renderSpreuken();
   } catch {
     if (el) el.innerHTML = '<p class="dm-hint" style="padding:12px">Laden mislukt.</p>';
