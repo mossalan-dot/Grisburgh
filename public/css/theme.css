@@ -3786,10 +3786,10 @@ body::before {
 .player-dash-currency-icon { font-size: 14px; }
 .player-dash-currency-input {
   width: 72px;
-  background: transparent;
-  border: 1px solid #b8996a;
+  background: rgba(255,255,255,0.7);
+  border: 1.5px solid #c4a87a;
   border-radius: 5px;
-  color: #e8d5a0;
+  color: #3a2410;
   font-family: 'Cinzel', serif;
   font-size: 13px;
   text-align: right;
@@ -3797,7 +3797,8 @@ body::before {
 }
 .player-dash-currency-input:focus {
   outline: none;
-  border-color: #c4930a;
+  border-color: #8a6000;
+  background: rgba(255,255,255,0.9);
 }
 
 /* ── Spreukenslots ─────────────────────────────────────────────────────────── */
