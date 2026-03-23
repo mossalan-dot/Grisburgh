@@ -96,6 +96,8 @@ function switchSection(section) {
     b.classList.toggle('active', b.dataset.section === section));
 
   $$('.section').forEach(s => s.classList.toggle('active', s.id === `section-${section}`));
+  // Herberg-achtergrond op body togglen zodat hij altijd het volledige scherm bedekt
+  document.body.classList.toggle('herberg-actief', section === 'herberg');
   refreshSection(section);
   updateFab();
 }
@@ -256,6 +258,12 @@ function applyRole() {
   }
   if (playerNameEl && state.playerName) playerNameEl.textContent = state.playerName;
   if (playerPickBtn) playerPickBtn.classList.toggle('hidden', !isAnonymousPlayer);
+
+  // Herberg-tabblad: alleen zichtbaar voor benoemde spelers als herberg geconfigureerd is
+  const herbergTab = document.getElementById('herberg-tab');
+  if (herbergTab) {
+    herbergTab.classList.toggle('hidden', !isNamedPlayer || !state.meta?.herberg);
+  }
 
   // Eigen-karakter-tabblad
   const myCharTab = document.querySelector('.section-tab[data-section="mijn-karakter"]');
@@ -588,6 +596,7 @@ async function refreshSection(section) {
   else if (section === 'documenten') await renderDocumenten();
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await renderKaart();
+  else if (section === 'herberg') await renderHerberg();
   else if (section === 'mijn-karakter') await renderMijnKarakter();
   else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
 }
@@ -990,7 +999,7 @@ async function renderMijnKarakter() {
           </div>
           ${pinnedSpells.length > 0 ? `
           <div class="player-pinned-spells">
-            ${pinnedSpells.map(s => `
+            ${[...pinnedSpells].sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)).map(s => `
               <details class="player-spell-accordion">
                 <summary class="player-pinned-spell-summary">
                   <span class="player-pinned-spell-chevron">▾</span>
@@ -1627,5 +1636,100 @@ async function init() {
     setTimeout(openPlayerPicker, 800);
   }
 }
+
+// ── Herberg ──
+
+async function renderHerberg() {
+  const el = document.getElementById('section-herberg');
+  if (!el) return;
+
+  let data;
+  try { data = await api.get('/herberg'); }
+  catch { el.innerHTML = '<p class="p-8 text-ink-dim">Herberg niet beschikbaar.</p>'; return; }
+
+  const { config, state: hState, entities } = data;
+  const remaining = config.maxVragen - hState.vragen;
+  const cooldownActief = hState.cooldownTot && new Date(hState.cooldownTot) > new Date();
+
+  // Alleen entiteiten tonen waarvan de roddel nog niet uitgesproken is
+  const beschikbaar = entities.filter(e => !e.uitgesproken);
+
+  const tellerTekst = !cooldownActief && hState.vragen > 0
+    ? remaining === 1
+      ? `Het is druk in de herberg. ${esc(config.waard)} heeft nog tijd voor een vraag.`
+      : remaining === 2
+        ? `Het is druk in de herberg. ${esc(config.waard)} heeft nog tijd voor twee vragen.`
+        : ''
+    : '';
+
+  el.innerHTML = `
+    <div class="herberg-scene">
+      <div class="herberg-content">
+        <div class="herberg-portrait-wrap">
+          ${config.imageId
+            ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.waard)}">`
+            : `<div class="herberg-portrait-round herberg-portrait-fallback">🍺</div>`}
+        </div>
+        <p class="herberg-groet">Avonturiers! Wat kan ik voor jullie betekenen?</p>
+
+        ${cooldownActief
+          ? `<p class="herberg-cooldown-tekst">${esc(config.waard)} helpt even een andere klant. Ze is zo bij je terug.</p>`
+          : remaining <= 0
+            ? `<p class="herberg-cooldown-tekst">${esc(config.waard)} heeft genoeg gesproken voor vandaag.</p>`
+            : `<div class="herberg-zoek-wrap">
+                ${tellerTekst ? `<p class="herberg-teller">${tellerTekst}</p>` : ''}
+                <div class="herberg-search-wrap">
+                  <input class="herberg-search" placeholder="Kun je me meer vertellen over\u2026"
+                    oninput="window._herbergFilter(this.value)" id="herberg-search" autocomplete="off">
+                </div>
+                <div id="herberg-lijst" class="herberg-lijst">
+                  ${beschikbaar.length === 0
+                    ? `<p class="herberg-leeg">Brylwaen weet niets meer te vertellen.</p>`
+                    : beschikbaar.map(e => `
+                        <button class="herberg-item"
+                          onclick="window._herbergVraag('${esc(e.id)}')"
+                          data-name="${esc(e.name.toLowerCase())}">
+                          <span class="herberg-item-naam">${esc(e.name)}</span>
+                          <span class="herberg-item-type">${e.type === 'personages' ? 'persoon' : 'locatie'}</span>
+                        </button>`).join('')}
+                </div>
+              </div>`
+        }
+        <div id="herberg-antwoord" class="herberg-antwoord hidden"></div>
+      </div>
+    </div>
+  `;
+}
+
+window._herbergFilter = (q) => {
+  document.querySelectorAll('.herberg-item').forEach(btn => {
+    btn.classList.toggle('hidden', !btn.dataset.name.includes(q.toLowerCase()));
+  });
+};
+
+window._herbergVraag = async (entityId) => {
+  const antwoord = document.getElementById('herberg-antwoord');
+  if (!antwoord) return;
+  antwoord.classList.remove('hidden');
+  antwoord.innerHTML = '<p class="herberg-loading">…</p>';
+  try {
+    const res = await api.post('/herberg/vraag', { entityId });
+    const bubbleHtml = `
+      <div class="herberg-bubble">
+        <p class="herberg-bubble-text">\u201e${esc(res.flavour)}\u201c</p>
+        ${res.audioId ? `<button class="flavour-audio-btn" onclick="window._audioToggle('${esc(res.audioId)}')">▶</button>` : ''}
+        <p class="herberg-bubble-naam">— over ${esc(res.entityName)}</p>
+      </div>`;
+    antwoord.innerHTML = bubbleHtml;
+    if (res.audioId) window._audioToggle(res.audioId);
+    // Re-render herberg (toont bijgewerkte lijst zonder zojuist verteld item), bewaar antwoord
+    renderHerberg().then(() => {
+      const a = document.getElementById('herberg-antwoord');
+      if (a) { a.classList.remove('hidden'); a.innerHTML = bubbleHtml; }
+    });
+  } catch (err) {
+    antwoord.innerHTML = `<p class="herberg-err">${err.message || 'Fout'}</p>`;
+  }
+};
 
 init();

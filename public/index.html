@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=16">
+  <link rel="stylesheet" href="/css/theme.css?v=20">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -136,6 +136,8 @@
       </div>
       <!-- Directe tabs -->
       <button class="section-tab" data-section="logboek">&#x1F4D6; Logboek</button>
+      <!-- Alleen zichtbaar als herberg geconfigureerd is en speler ingelogd -->
+      <button class="section-tab hidden" data-section="herberg" id="herberg-tab">🍺 De Swarte Cat</button>
       <!-- Alleen zichtbaar voor ingelogde spelers -->
       <button class="section-tab hidden" data-section="mijn-karakter">&#x1F9D1; Mijn karakter</button>
       <!-- Alleen zichtbaar voor DM -->
@@ -166,10 +168,12 @@
       <div class="section" id="section-voorwerpen"></div>
       <div class="section" id="section-documenten"></div>
       <div class="section" id="section-logboek"></div>
+      <div class="section" id="section-herberg"></div>
       <div class="section" id="section-kaart"></div>
       <div class="section" id="section-mijn-karakter"></div>
       <div class="section dm-section" id="section-meesterkamer">
         <div class="dm-section-tabs" id="dm-section-tabs"></div>
+        <div class="dm-section-layout">
         <div class="dm-section-body" id="dm-section-body">
           <!-- Tunnel tab -->
           <div class="dm-tab-content active" data-tab="tunnel">
@@ -221,7 +225,9 @@
             </div>
             <div class="dice-history" id="dm-dice-history"></div>
           </div>
-        </div>
+        </div><!-- /.dm-section-body -->
+        <div class="dm-reveal-strip" id="dm-reveal-strip"></div>
+        </div><!-- /.dm-section-layout -->
       </div>
     </main>
 
@@ -329,6 +335,6 @@
 
 
   <script type="module" src="/js/sound-manager.js?v=1"></script>
-  <script type="module" src="/js/app.js?v=17"></script>
+  <script type="module" src="/js/app.js?v=18"></script>
 </body>
 </html>

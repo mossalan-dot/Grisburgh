@@ -184,6 +184,10 @@ export const api = {
   removeCombatant:  (id)      => request(`/combat/combatant/${id}`,    { method: 'DELETE' }),
   setCombatWinner:  (winner)  => request('/combat/winner',             { method: 'PUT',    body: JSON.stringify({ winner }) }),
 
+  // Generieke helper-methoden
+  get:  (path)        => request(path),
+  post: (path, body)  => request(path, { method: 'POST', body: JSON.stringify(body) }),
+
   // Get all entity names grouped by type (for link autocomplete)
   async allNames() {
     const types = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
