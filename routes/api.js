@@ -1823,4 +1823,121 @@ router.get('/campaigns/meta', attachRole, (req, res) => {
   res.json({ ...meta, activeCampaign: storage.getActiveCampaignId() });
 });
 
+// ── Herberg / Roddelwaard ──
+
+router.get('/herberg', attachRole, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const config = meta.herberg;
+  if (!config) return res.status(404).json({ error: 'Herberg niet geconfigureerd' });
+
+  const characterId = req.session.characterId || req.playerName || 'dm';
+  const herbergState = storage.readJSON('herberg-state.json');
+  let playerState = herbergState[characterId] || { vragen: 0, cooldownTot: null };
+
+  // Reset cooldown als die verlopen is
+  if (playerState.cooldownTot && new Date(playerState.cooldownTot) < new Date()) {
+    playerState = { vragen: 0, cooldownTot: null };
+    herbergState[characterId] = playerState;
+    storage.writeJSON('herberg-state.json', herbergState);
+  }
+
+  // Verzamel entiteiten met flavour die zichtbaar of vaag zijn
+  const entities = storage.readJSON('entities.json');
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  const visibility = g.visibility || {};
+
+  const result = [];
+  for (const type of ['personages', 'locaties']) {
+    for (const e of (entities[type] || [])) {
+      const vis = visibility[e.id] || 'hidden';
+      if (vis === 'hidden') continue;          // volledig verborgen: overslaan
+      if (!e.data?.flavour) continue;          // geen roddel: overslaan
+      result.push({
+        id: e.id,
+        name: e.name,
+        type,
+        uitgesproken: e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true',
+        visibility: vis,
+      });
+    }
+  }
+
+  res.json({
+    config: {
+      naam: config.naam,
+      waard: config.waard,
+      imageId: config.imageId || '',
+      maxVragen: config.maxVragen || 3,
+    },
+    state: playerState,
+    entities: result,
+  });
+});
+
+router.post('/herberg/vraag', attachRole, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const config = meta.herberg;
+  if (!config) return res.status(404).json({ error: 'Herberg niet geconfigureerd' });
+
+  const characterId = req.session.characterId || req.playerName || 'dm';
+  const herbergState = storage.readJSON('herberg-state.json');
+  let playerState = herbergState[characterId] || { vragen: 0, cooldownTot: null };
+
+  // Reset verlopen cooldown
+  if (playerState.cooldownTot && new Date(playerState.cooldownTot) < new Date()) {
+    playerState = { vragen: 0, cooldownTot: null };
+  }
+
+  // Controleer cooldown actief
+  if (playerState.cooldownTot && new Date(playerState.cooldownTot) > new Date()) {
+    return res.status(429).json({ error: 'Cooldown actief', cooldownTot: playerState.cooldownTot });
+  }
+
+  const maxVragen = config.maxVragen || 3;
+  if (playerState.vragen >= maxVragen) {
+    return res.status(429).json({ error: 'Maximum vragen bereikt' });
+  }
+
+  const { entityId } = req.body;
+  if (!entityId) return res.status(400).json({ error: 'entityId vereist' });
+
+  // Zoek entiteit in personages en locaties
+  const entities = storage.readJSON('entities.json');
+  let foundEntity = null;
+  let foundType = null;
+  for (const type of ['personages', 'locaties']) {
+    const e = (entities[type] || []).find(e => e.id === entityId);
+    if (e) { foundEntity = e; foundType = type; break; }
+  }
+
+  if (!foundEntity) return res.status(404).json({ error: 'Entiteit niet gevonden' });
+  if (!foundEntity.data?.flavour) return res.status(404).json({ error: 'Geen roddel beschikbaar' });
+
+  // Markeer als uitgesproken
+  foundEntity.data.flavourUitgesproken = 'true';
+  storage.writeJSON('entities.json', entities);
+
+  // Update spelerstoestand
+  playerState.vragen += 1;
+  if (playerState.vragen >= maxVragen) {
+    const cooldownMs = (config.cooldownMinuten || 5) * 60 * 1000;
+    playerState.cooldownTot = new Date(Date.now() + cooldownMs).toISOString();
+  }
+  herbergState[characterId] = playerState;
+  storage.writeJSON('herberg-state.json', herbergState);
+
+  // Stuur socket-event zodat kaarten refreshen
+  req.app.get('io').emit('entity:updated', { type: foundType, id: entityId });
+
+  res.json({
+    flavour: foundEntity.data.flavour,
+    audioId: foundEntity.data.audioId || null,
+    entityName: foundEntity.name,
+    uitgesproken: true,
+    vragen: playerState.vragen,
+    cooldownTot: playerState.cooldownTot || null,
+  });
+});
+
 module.exports = router;

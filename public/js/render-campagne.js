@@ -54,7 +54,7 @@ const SCHEMA = {
   voorwerpen: {
     fields: [
       { key: 'itemType', label: 'Type', type: 'select', options: ['Wapen','Toveritem','Drank','Uitrusting','Scroll','Ring','Amulet','Overig'] },
-      { key: 'rariteit', label: 'Rariteit', type: 'select', options: ['Gewoon','Ongewoon','Zeldzaam','Zeer zeldzaam','Legendarisch'] },
+      { key: 'rariteit', label: 'Rariteit', type: 'select', options: ['Common','Uncommon','Rare','Very Rare','Legendary'] },
       { key: 'prijs', label: 'Prijs', type: 'text' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
@@ -153,6 +153,34 @@ function getAutoIcon(type, e) {
     e.data?.itemType ||
     '';
   return map[key] || TYPE_META[type].icon;
+}
+
+function getSubtypeBadge(type, e) {
+  if (type === 'personages') {
+    const sub = e.subtype || '';
+    if (!sub) return null;
+    const labels = { NPC: 'NPC', speler: 'Speler', antagonist: 'Antagonist', god: 'God', godheid: 'God', dier: 'Dier', monster: 'Monster', verkoper: 'Verkoper' };
+    const cls = sub === 'godheid' ? 'badge-god' : 'badge-' + sub.toLowerCase();
+    return { label: labels[sub] || sub, cls };
+  }
+  if (type === 'locaties') {
+    const t = e.data?.locType;
+    return t ? { label: t, cls: 'badge-loc' } : null;
+  }
+  if (type === 'organisaties') {
+    const t = e.data?.orgType;
+    return t ? { label: t, cls: 'badge-org' } : null;
+  }
+  if (type === 'voorwerpen') {
+    const r = e.data?.rariteit;
+    if (!r) return null;
+    const clsMap = {
+      'Legendary': 'badge-legendary', 'Very Rare': 'badge-very-rare', 'Rare': 'badge-rare', 'Uncommon': 'badge-uncommon', 'Common': 'badge-common',
+      'Legendarisch': 'badge-legendary', 'Zeer zeldzaam': 'badge-very-rare', 'Zeldzaam': 'badge-rare', 'Ongewoon': 'badge-uncommon', 'Gewoon': 'badge-common',
+    };
+    return { label: r, cls: clsMap[r] || 'badge-common' };
+  }
+  return null;
 }
 
 const searchQueries = { personages: '', locaties: '', organisaties: '', voorwerpen: '' };
@@ -461,20 +489,21 @@ function filterEntities(type, list) {
 function renderCard(type, e) {
   const vis = e._visibility || 'visible';
 
-  // ── Player vague card: only show name + type icon ──
+  // ── Player vague card: name visible, content hidden behind overlay ──
   if (!isDM() && vis === 'vague') {
     return `
       <div class="entity-card card-vague">
-        <div class="card-accent bar-${type}" style="opacity:0.45"></div>
-        <div class="card-body px-4 py-4">
-          <div class="flex items-center gap-2.5">
-            <div class="card-icon" style="opacity:0.35;filter:grayscale(1)">${TYPE_META[type].icon}</div>
-            <div class="min-w-0 flex-1">
-              <span class="card-name">${esc(e.name)}</span>
-              <span class="card-name-sep"></span>
-              <div class="text-[10px] text-ink-faint font-fell italic">— onbekend —</div>
-            </div>
-          </div>
+        <div class="card-accent bar-${type}" style="opacity:0.5"></div>
+        <div class="card-img-wrap">
+          <img class="card-img w-full object-cover" src="${api.fileUrl(e.id)}"
+            style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
+            onerror="this.closest('.entity-card').classList.add('no-img')">
+          <div class="card-vague-overlay">?</div>
+        </div>
+        <div class="card-body px-4 py-3">
+          <span class="card-name">${esc(e.name)}</span>
+          <span class="card-name-sep"></span>
+          <div class="text-[10px] text-ink-faint font-fell italic">— onbekend —</div>
         </div>
       </div>
     `;
@@ -482,8 +511,10 @@ function renderCard(type, e) {
 
   const rol     = e.data?.rol || '';
   const metaText = [e.data?.locType, e.data?.orgType, e.data?.itemType, e.data?.ras, e.data?.klasse].filter(Boolean).join(' \u00b7 ');
+  const badge   = getSubtypeBadge(type, e);
   const desc = e.data?.desc || '';
   const flavour = e.data?.flavour || '';
+  const flavourUitgesproken = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
 
   const chips = [];
   if (e.links) {
@@ -528,24 +559,25 @@ function renderCard(type, e) {
         </div>
       ` : ''}
       <div class="card-accent bar-${type}"></div>
-      <img class="card-img w-full ${type === 'voorwerpen' ? 'card-img-item' : 'object-cover'}" src="${api.fileUrl(e.id)}"
-        style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
-        onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
+      <div class="card-img-wrap">
+        <img class="card-img w-full ${type === 'voorwerpen' ? 'card-img-item' : 'object-cover'}" src="${api.fileUrl(e.id)}"
+          style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
+          onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
+        <div class="card-img-fade"></div>
+        ${badge ? `<div class="card-subtype-badge ${badge.cls}">${esc(badge.label)}</div>` : ''}
+      </div>
       <div class="card-body px-4 pt-3 pb-3">
-        <div class="flex items-start gap-2.5 mb-2">
-          <div class="card-icon">${getAutoIcon(type, e)}</div>
-          <div class="min-w-0 flex-1">
-            <span class="card-name block" data-fittext>${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
-            ${(rol || metaText) ? `<span class="card-name-sep"></span>` : ''}
-            ${rol      ? `<div class="text-[11px] text-ink-medium italic truncate">${esc(rol)}</div>` : ''}
-            ${metaText ? `<div class="text-[11px] text-ink-dim truncate">${esc(metaText)}</div>` : ''}
-          </div>
+        <div class="mb-2">
+          <span class="card-name block" data-fittext>${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
+          ${(rol || metaText) ? `<span class="card-name-sep"></span>` : ''}
+          ${rol      ? `<div class="text-[11px] text-ink-medium italic truncate">${esc(rol)}</div>` : ''}
+          ${metaText ? `<div class="text-[11px] text-ink-dim truncate">${esc(metaText)}</div>` : ''}
         </div>
         ${desc ? `<p class="text-xs text-ink-medium line-clamp-3 mb-2 font-crimson leading-relaxed">${mdToHtml(desc)}</p>` : ''}
         ${chips.length ? `<div class="flex flex-wrap gap-1">${chips.join('')}</div>` : ''}
       </div>
-      ${flavour ? `
-        <div class="flavour-preview">
+      ${flavour && (isDM() || flavourUitgesproken) ? `
+        <div class="flavour-preview${isDM() && !flavourUitgesproken ? ' flavour-preview--ongespoken' : ''}">
           ${e.data?.audioId ? `<button type="button" class="flavour-audio-btn" data-audio-btn data-audio-btn-id="${esc(e.data.audioId)}" onclick="event.stopPropagation();window._audioToggle('${esc(e.data.audioId)}')" title="Sfeer afspelen">▶</button>` : ''}
           <span class="flavour-preview-text">\u201e${esc(flavour.length > 300 ? flavour.slice(0, 300) + '\u2026' : flavour)}\u201c</span>
         </div>
@@ -846,14 +878,16 @@ window._openDetail = async (tab, id, isBack = false) => {
     `;
   }
 
-  // Flavour scroll (parchment scroll — visible to all)
+  // Flavour scroll (parchment scroll — zichtbaar voor spelers als uitgesproken, altijd voor DM)
   const flavourVal = e.data?.flavour;
+  const flavourUitgespr = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
   const _audioId   = e.data?.audioId || '';
-  if (flavourVal || (isDM() && !flavourVal && _audioId)) {
+  const flavourZichtbaar = isDM() || flavourUitgespr;
+  if ((flavourVal && flavourZichtbaar) || (isDM() && !flavourVal && _audioId)) {
     infoHtml += `<div class="detail-divider">— ✦ —</div>`;
-    if (flavourVal) {
+    if (flavourVal && flavourZichtbaar) {
       infoHtml += `
-        <div class="flavour-scroll">
+        <div class="flavour-scroll${isDM() && !flavourUitgespr ? ' flavour-scroll--ongespoken' : ''}">
           <div class="flavour-scroll-rod"></div>
           <div class="flavour-scroll-content">
             <p class="flavour-text">\u201e${esc(flavourVal)}\u201c</p>
@@ -1526,6 +1560,7 @@ window._openEditor = async (tab, editId) => {
       // Audio upload section directly below flavour textarea
       if (field.key === 'flavour') {
         const existingAudioId = e?.data?.audioId || '';
+        const valUitgesproken = e?.data?.flavourUitgesproken === true || e?.data?.flavourUitgesproken === 'true';
         body += `
           <div>
             <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">🔊 Geluidsfragment</label>
@@ -1548,6 +1583,15 @@ window._openEditor = async (tab, editId) => {
             </div>
             <div id="editor-audio-name" class="text-xs text-ink-dim mt-1 hidden"></div>
             <input type="hidden" name="data_audioId" id="editor-audio-id" value="${esc(existingAudioId)}">
+          </div>
+          <div class="flex items-center gap-2 mt-2">
+            <input type="hidden" name="data_flavourUitgesproken" id="inp-flavourUitgesproken" value="${valUitgesproken ? 'true' : ''}">
+            <input type="checkbox" id="cb-flavourUitgesproken" class="rounded"
+              ${valUitgesproken ? 'checked' : ''}
+              onchange="document.getElementById('inp-flavourUitgesproken').value=this.checked?'true':''">
+            <label for="cb-flavourUitgesproken" class="text-xs text-ink-dim cursor-pointer">
+              🍺 Uitgesproken door de waard
+            </label>
           </div>
         `;
       }
