@@ -1667,8 +1667,8 @@ async function renderHerberg() {
       <div class="herberg-content">
         <div class="herberg-portrait-wrap">
           ${config.imageId
-            ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.waard)}">`
-            : `<div class="herberg-portrait-round herberg-portrait-fallback">🍺</div>`}
+            ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round${cooldownActief ? ' herberg-portrait--weg' : ''}" alt="${esc(config.waard)}">`
+            : `<div class="herberg-portrait-round herberg-portrait-fallback${cooldownActief ? ' herberg-portrait--weg' : ''}">🍺</div>`}
         </div>
         <p class="herberg-groet">Avonturiers! Wat kan ik voor jullie betekenen?</p>
 

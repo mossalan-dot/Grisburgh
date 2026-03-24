@@ -1357,9 +1357,14 @@ router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {
 
 // ── Kaart ──
 
+const DEFAULT_MAPS = [
+  { id: 'grisburgh', label: 'Grisburgh', src: '/assets/map-grisburgh.jpg' },
+  { id: 'isfar',     label: 'Isfār',     src: '/assets/map-isfar.jpg' },
+];
+
 function getMaps() {
   const mapData = storage.readJSON('map.json');
-  return mapData.maps || [];
+  return mapData.maps?.length ? mapData.maps : DEFAULT_MAPS;
 }
 
 router.get('/map/maps', attachRole, (req, res) => {
@@ -1921,8 +1926,10 @@ router.post('/herberg/vraag', attachRole, (req, res) => {
   // Update spelerstoestand
   playerState.vragen += 1;
   if (playerState.vragen >= maxVragen) {
-    const cooldownMs = (config.cooldownMinuten || 5) * 60 * 1000;
-    playerState.cooldownTot = new Date(Date.now() + cooldownMs).toISOString();
+    const minMin = config.cooldownMinutenMin ?? 3;
+    const maxMin = config.cooldownMinutenMax ?? 10;
+    const cooldownMin = minMin + Math.floor(Math.random() * (maxMin - minMin + 1));
+    playerState.cooldownTot = new Date(Date.now() + cooldownMin * 60 * 1000).toISOString();
   }
   herbergState[characterId] = playerState;
   storage.writeJSON('herberg-state.json', herbergState);
