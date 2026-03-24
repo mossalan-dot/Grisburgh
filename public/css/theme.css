@@ -2937,7 +2937,7 @@ body::before {
 }
 .player-dash-hero {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 20px;
   margin-bottom: 24px;
   padding-bottom: 20px;
@@ -3025,6 +3025,73 @@ body::before {
   color: #b0956a;
   font-style: italic;
 }
+.ppf-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a6000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  padding-right: 22px;
+  cursor: pointer;
+}
+
+/* Klasse-icoon rechts van profiel-velden */
+.player-class-icon-wrap {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+.player-class-icon {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  opacity: 0.88;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.25));
+}
+
+/* Spreuk-statistieken (Spell Save DC + Attack Bonus) */
+.player-spell-stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.player-spell-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: rgba(196,168,122,0.12);
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 8px;
+  padding: 8px 16px;
+  min-width: 90px;
+}
+.player-spell-stat-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  color: #8a7050;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.player-spell-stat-input {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #2a1a08;
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 60px;
+  text-align: center;
+  padding: 0;
+}
+.player-spell-stat-input::placeholder { color: #c4a87a; font-size: 16px; }
+.player-spell-stat-input:focus { color: #8a6000; }
 
 .player-dash-link {
   font-family: 'Cinzel', serif;

@@ -735,8 +735,13 @@ async function renderMijnKarakter() {
                 value="${esc(playerProfile.level ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('level', this.value)"></div>
             <div class="ppf-row"><label class="ppf-label">Klasse</label>
-              <input class="ppf-input" type="text" value="${esc(playerProfile.klasse ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('klasse', this.value)"></div>
+              <select class="ppf-input ppf-select"
+                onchange="window._saveProfileField('klasse', this.value)">
+                <option value="">—</option>
+                ${['Artificer','Barbarian','Bard','Cleric','Druid','Fighter','Monk','Paladin','Ranger','Rogue','Sorcerer','Warlock','Wizard'].map(k =>
+                  `<option value="${k}"${playerProfile.klasse === k ? ' selected' : ''}>${k}</option>`
+                ).join('')}
+              </select></div>
             <div class="ppf-row"><label class="ppf-label">Subclass</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.subclass ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('subclass', this.value)"></div>
@@ -748,6 +753,10 @@ async function renderMijnKarakter() {
                 onblur="window._saveProfileField('origin', this.value)"></div>
           </div>
         </div>
+        ${playerProfile.klasse && playerProfile.klasse !== 'Artificer' ? `
+        <div class="player-class-icon-wrap">
+          <img src="/img/classes/${esc(playerProfile.klasse)}.png" class="player-class-icon" alt="${esc(playerProfile.klasse)}">
+        </div>` : ''}
       </div>
 
       <!-- Subtab nav -->
@@ -977,6 +986,22 @@ async function renderMijnKarakter() {
 
       <!-- ═══ TAB: Mijn spreukenboek ═══ -->
       <div id="pst-spreukenboek" class="player-subtab-panel${_playerSubTab !== 'spreukenboek' ? ' hidden' : ''}">
+
+        <!-- Spreuk-statistieken -->
+        <div class="player-spell-stats">
+          <div class="player-spell-stat">
+            <label class="player-spell-stat-label">Spell Save DC</label>
+            <input class="player-spell-stat-input" type="number" min="1" max="30"
+              value="${esc(playerProfile.spellSaveDC ?? '')}" placeholder="—"
+              onblur="window._saveProfileField('spellSaveDC', this.value)">
+          </div>
+          <div class="player-spell-stat">
+            <label class="player-spell-stat-label">Attack Bonus</label>
+            <input class="player-spell-stat-input" type="number" min="-5" max="20"
+              value="${esc(playerProfile.spellAttackBonus ?? '')}" placeholder="—"
+              onblur="window._saveProfileField('spellAttackBonus', this.value)">
+          </div>
+        </div>
 
         <!-- Spreukenslots -->
         <div class="player-dash-section player-dash-spellslots">
