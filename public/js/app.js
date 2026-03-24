@@ -736,7 +736,7 @@ async function renderMijnKarakter() {
                 onblur="window._saveProfileField('level', this.value)"></div>
             <div class="ppf-row"><label class="ppf-label">Klasse</label>
               <select class="ppf-input ppf-select"
-                onchange="window._saveProfileField('klasse', this.value)">
+                onchange="window._saveProfileField('klasse', this.value); window._updateKlasseIcon(this.value)">
                 <option value="">—</option>
                 ${['Artificer','Barbarian','Bard','Cleric','Druid','Fighter','Monk','Paladin','Ranger','Rogue','Sorcerer','Warlock','Wizard'].map(k =>
                   `<option value="${k}"${playerProfile.klasse === k ? ' selected' : ''}>${k}</option>`
@@ -753,10 +753,9 @@ async function renderMijnKarakter() {
                 onblur="window._saveProfileField('origin', this.value)"></div>
           </div>
         </div>
-        ${playerProfile.klasse && playerProfile.klasse !== 'Artificer' ? `
-        <div class="player-class-icon-wrap">
-          <img src="/img/classes/${esc(playerProfile.klasse)}.png" class="player-class-icon" alt="${esc(playerProfile.klasse)}">
-        </div>` : ''}
+        <div class="player-class-icon-wrap" id="player-class-icon-wrap">
+          ${playerProfile.klasse && playerProfile.klasse !== 'Artificer' ? `<img src="/img/classes/${esc(playerProfile.klasse)}.png" class="player-class-icon" alt="${esc(playerProfile.klasse)}">` : ''}
+        </div>
       </div>
 
       <!-- Subtab nav -->
@@ -1725,6 +1724,17 @@ async function renderHerberg() {
     </div>
   `;
 }
+
+const _KLASSEN_MET_ICON = new Set(['Barbarian','Bard','Cleric','Druid','Fighter','Monk','Paladin','Ranger','Rogue','Sorcerer','Warlock','Wizard']);
+window._updateKlasseIcon = (klasse) => {
+  const wrap = document.getElementById('player-class-icon-wrap');
+  if (!wrap) return;
+  if (klasse && _KLASSEN_MET_ICON.has(klasse)) {
+    wrap.innerHTML = `<img src="/img/classes/${klasse}.png" class="player-class-icon" alt="${klasse}">`;
+  } else {
+    wrap.innerHTML = '';
+  }
+};
 
 window._herbergFilter = (q) => {
   document.querySelectorAll('.herberg-item').forEach(btn => {
