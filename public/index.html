@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=20">
+  <link rel="stylesheet" href="/css/theme.css?v=25">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -137,7 +137,7 @@
       <!-- Directe tabs -->
       <button class="section-tab" data-section="logboek">&#x1F4D6; Logboek</button>
       <!-- Alleen zichtbaar als herberg geconfigureerd is en speler ingelogd -->
-      <button class="section-tab hidden" data-section="herberg" id="herberg-tab">🍺 De Swarte Cat</button>
+      <button class="section-tab hidden" data-section="herberg" id="herberg-tab">🍺 Herberg</button>
       <!-- Alleen zichtbaar voor ingelogde spelers -->
       <button class="section-tab hidden" data-section="mijn-karakter">&#x1F9D1; Mijn karakter</button>
       <!-- Alleen zichtbaar voor DM -->
@@ -201,6 +201,8 @@
           <div class="dm-tab-content" data-tab="campagnes">
             <div id="dm-campagnes-content"></div>
           </div>
+          <!-- Herberg tab -->
+          <div class="dm-tab-content" data-tab="herberg"></div>
           <!-- Dobbelstenen tab -->
           <div class="dm-tab-content" data-tab="dobbelstenen">
             <div class="dm-feature-section" style="padding-bottom:6px;border-bottom:1px solid rgba(58,40,16,0.4)">
@@ -276,10 +278,13 @@
   <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this&&!document.querySelector('#m-body form'))window.app.closeModal()">
     <div class="modal animate-modal-in">
       <div id="m-accent" class="modal-accent"></div>
-      <div class="modal-head">
+      <div class="modal-head" id="modal-head">
         <div class="flex items-center gap-2 min-w-0 flex-1">
           <button id="m-back" class="modal-back hidden" onclick="window._modalGoBack()" title="Terug">&#8592;</button>
-          <div class="min-w-0">
+          <div id="m-portrait-wrap" class="modal-portrait-wrap hidden">
+            <img id="m-portrait" class="modal-portrait-img" alt="">
+          </div>
+          <div class="min-w-0 flex-1">
             <div class="font-cinzel text-xl text-gold font-bold" id="m-title"></div>
             <div class="text-ink-dim text-sm italic" id="m-sub"></div>
           </div>

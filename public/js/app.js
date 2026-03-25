@@ -263,6 +263,15 @@ function applyRole() {
   const herbergTab = document.getElementById('herberg-tab');
   if (herbergTab) {
     herbergTab.classList.toggle('hidden', !isNamedPlayer || !state.meta?.herberg);
+    const herbergNaam = state.meta?.herberg?.naam;
+    herbergTab.textContent = herbergNaam ? `🍺 ${herbergNaam}` : '🍺 Herberg';
+  }
+  // Backdrop CSS-variabele voor herbergachtergrond
+  const backdropId = state.meta?.herberg?.backdropId;
+  if (backdropId) {
+    document.documentElement.style.setProperty('--herberg-backdrop-url', `url('${api.fileUrl(backdropId)}')`);
+  } else {
+    document.documentElement.style.removeProperty('--herberg-backdrop-url');
   }
 
   // Eigen-karakter-tabblad
@@ -601,6 +610,55 @@ async function refreshSection(section) {
   else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
 }
 
+const _SKILLS = [
+  { key: 'acrobatics',    label: 'Acrobatics',     ab: 'dex' },
+  { key: 'animalHandling',label: 'Animal Handling', ab: 'wis' },
+  { key: 'arcana',        label: 'Arcana',          ab: 'int' },
+  { key: 'athletics',     label: 'Athletics',       ab: 'str' },
+  { key: 'deception',     label: 'Deception',       ab: 'cha' },
+  { key: 'history',       label: 'History',         ab: 'int' },
+  { key: 'insight',       label: 'Insight',         ab: 'wis' },
+  { key: 'intimidation',  label: 'Intimidation',    ab: 'cha' },
+  { key: 'investigation', label: 'Investigation',   ab: 'int' },
+  { key: 'medicine',      label: 'Medicine',        ab: 'wis' },
+  { key: 'nature',        label: 'Nature',          ab: 'int' },
+  { key: 'perception',    label: 'Perception',      ab: 'wis' },
+  { key: 'performance',   label: 'Performance',     ab: 'cha' },
+  { key: 'persuasion',    label: 'Persuasion',      ab: 'cha' },
+  { key: 'religion',      label: 'Religion',        ab: 'int' },
+  { key: 'sleightOfHand', label: 'Sleight of Hand', ab: 'dex' },
+  { key: 'stealth',       label: 'Stealth',         ab: 'dex' },
+  { key: 'survival',      label: 'Survival',        ab: 'wis' },
+];
+const _SKILLS_HP = [
+  { key: 'acrobatics',      label: 'Acrobatics',        ab: 'dex' },
+  { key: 'athletics',       label: 'Athletics',         ab: 'str' },
+  { key: 'deception',       label: 'Deception',         ab: 'cha' },
+  { key: 'historyOfMagic',  label: 'History of Magic',  ab: 'int' },
+  { key: 'herbology',       label: 'Herbology',         ab: 'int' },
+  { key: 'insight',         label: 'Insight',           ab: 'wis' },
+  { key: 'intimidation',    label: 'Intimidation',      ab: 'cha' },
+  { key: 'investigation',   label: 'Investigation',     ab: 'int' },
+  { key: 'medicine',        label: 'Medicine',          ab: 'wis' },
+  { key: 'magicalCreatures',label: 'Magical Creatures', ab: 'wis' },
+  { key: 'muggleStudies',   label: 'Muggle Studies',    ab: 'int' },
+  { key: 'perception',      label: 'Perception',        ab: 'wis' },
+  { key: 'performance',     label: 'Performance',       ab: 'cha' },
+  { key: 'persuasion',      label: 'Persuasion',        ab: 'cha' },
+  { key: 'potionMaking',    label: 'Potion-making',     ab: 'wis' },
+  { key: 'sleightOfHand',   label: 'Sleight of Hand',   ab: 'dex' },
+  { key: 'stealth',         label: 'Stealth',           ab: 'dex' },
+  { key: 'survival',        label: 'Survival',          ab: 'wis' },
+];
+const _KLASSEN_DEFAULT = ['Artificer','Barbarian','Bard','Cleric','Druid','Fighter','Monk','Paladin','Ranger','Rogue','Sorcerer','Warlock','Wizard'];
+function _getSkills() {
+  return state.meta?.skillSet === 'hp' ? _SKILLS_HP : _SKILLS;
+}
+function _getKlassen() {
+  return state.meta?.klassen?.length ? state.meta.klassen : _KLASSEN_DEFAULT;
+}
+const _AB_LABELS = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' };
+
 let _playerSubTab = localStorage.getItem('_playerSubTab') || 'personage';
 let _playerSpellList = null;
 
@@ -688,6 +746,25 @@ async function renderMijnKarakter() {
   const isMyTurn = combat?.active && myCombatant &&
     (combat.combatants[combat.currentTurn]?.id === myCombatant.id);
 
+  // Ability scores & derived values
+  const _ab  = (ab) => parseInt(playerProfile[ab]) || 10;
+  const _mod = (ab) => Math.floor((_ab(ab) - 10) / 2);
+  const _modStr = (ab) => { const m = _mod(ab); return (m >= 0 ? '+' : '') + m; };
+  let _skillProfs = {};
+  try { _skillProfs = JSON.parse(playerProfile.skillProfs || '{}'); } catch { _skillProfs = {}; }
+  const _saveProfs  = new Set((playerProfile.saveProfs || '').split(',').filter(Boolean));
+  const _profBonusNum = parseInt(playerProfile.profBonus) || 0;
+  const _percProf     = _skillProfs['perception'] || null;
+  const _passivePerc  = 10 + _mod('wis') + (_percProf === 'expert' ? _profBonusNum * 2 : _percProf === 'prof' ? _profBonusNum : 0);
+  const _dsSucc = Math.min(3, Math.max(0, parseInt(playerProfile.deathSaveSuccesses) || 0));
+  const _dsFail = Math.min(3, Math.max(0, parseInt(playerProfile.deathSaveFailures) || 0));
+  const _skillBonus = (skill) => {
+    const prof = _skillProfs[skill.key] || null;
+    return _mod(skill.ab) + (prof === 'expert' ? _profBonusNum * 2 : prof === 'prof' ? _profBonusNum : 0);
+  };
+  const _cNames = window._currency || state.meta?.currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' };
+  const isHp = state.meta?.skillSet === 'hp';
+
   // Portret
   const imgUrl = api.fileUrl(state.characterId);
   const sub = [entity?.data?.ras, entity?.data?.klasse].filter(Boolean).join(' · ');
@@ -734,27 +811,30 @@ async function renderMijnKarakter() {
               <input class="ppf-input ppf-level" type="number" min="1" max="20"
                 value="${esc(playerProfile.level ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('level', this.value)"></div>
-            <div class="ppf-row"><label class="ppf-label">Klasse</label>
+            <div class="ppf-row"><label class="ppf-label">Class</label>
               <select class="ppf-input ppf-select"
                 onchange="window._saveProfileField('klasse', this.value); window._updateKlasseIcon(this.value)">
                 <option value="">—</option>
-                ${['Artificer','Barbarian','Bard','Cleric','Druid','Fighter','Monk','Paladin','Ranger','Rogue','Sorcerer','Warlock','Wizard'].map(k =>
+                ${_getKlassen().map(k =>
                   `<option value="${k}"${playerProfile.klasse === k ? ' selected' : ''}>${k}</option>`
                 ).join('')}
               </select></div>
-            <div class="ppf-row"><label class="ppf-label">Subclass</label>
+            <div class="ppf-row"><label class="ppf-label">${isHp ? 'School of Magic' : 'Subclass'}</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.subclass ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('subclass', this.value)"></div>
             <div class="ppf-row"><label class="ppf-label">Background</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.background ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('background', this.value)"></div>
-            <div class="ppf-row"><label class="ppf-label">Origin</label>
+            <div class="ppf-row"><label class="ppf-label">${isHp ? 'House' : 'Origin'}</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.origin ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('origin', this.value)"></div>
+            ${isHp ? `<div class="ppf-row"><label class="ppf-label">Blood Status</label>
+              <input class="ppf-input" type="text" value="${esc(playerProfile.bloodStatus ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('bloodStatus', this.value)"></div>` : ''}
           </div>
         </div>
         <div class="player-class-icon-wrap" id="player-class-icon-wrap">
-          ${playerProfile.klasse && playerProfile.klasse !== 'Artificer' ? `<img src="/img/classes/${esc(playerProfile.klasse)}.png" class="player-class-icon" alt="${esc(playerProfile.klasse)}">` : ''}
+          ${playerProfile.klasse && _KLASSEN_DEFAULT.includes(playerProfile.klasse) && playerProfile.klasse !== 'Artificer' ? `<img src="/img/classes/${esc(playerProfile.klasse)}.png" class="player-class-icon" alt="${esc(playerProfile.klasse)}">` : ''}
         </div>
       </div>
 
@@ -780,25 +860,110 @@ async function renderMijnKarakter() {
           </div>
         </div>` : ''}
 
-        <!-- HP blok -->
+        <!-- Combat stats strip -->
+        <div class="player-combat-strip">
+          <div class="pcs-item">
+            <span class="pcs-label">AC</span>
+            <input class="pcs-input" type="number" min="1" max="30"
+              value="${esc(playerProfile.ac ?? '')}" placeholder="—"
+              onblur="window._saveProfileField('ac', this.value)">
+          </div>
+          <div class="pcs-item">
+            <span class="pcs-label">Speed</span>
+            <input class="pcs-input" type="text"
+              value="${esc(playerProfile.speed ?? '')}" placeholder="—"
+              onblur="window._saveProfileField('speed', this.value)">
+          </div>
+          <div class="pcs-item">
+            <span class="pcs-label">Initiative</span>
+            <input class="pcs-input" type="text"
+              value="${esc(playerProfile.initiative ?? '')}" placeholder="—"
+              onblur="window._saveProfileField('initiative', this.value)">
+          </div>
+          <div class="pcs-item">
+            <span class="pcs-label">Prof. Bonus</span>
+            <input class="pcs-input" type="text"
+              value="${esc(playerProfile.profBonus ?? '')}" placeholder="—"
+              onblur="window._saveProfileField('profBonus', this.value); renderMijnKarakter()">
+          </div>
+          <div class="pcs-item">
+            <span class="pcs-label">Hit Die</span>
+            <input class="pcs-input" type="text"
+              value="${esc(playerProfile.hitDie ?? '')}" placeholder="—"
+              onblur="window._saveProfileField('hitDie', this.value)">
+          </div>
+          <div class="pcs-item">
+            <span class="pcs-label">Pass. Perc</span>
+            <div class="pcs-value">${_passivePerc}</div>
+          </div>
+        </div>
+
+        <!-- HP blok (redesigned) -->
         <div class="player-dash-section">
           <div class="player-dash-section-title">❤️ HP</div>
-          <div class="player-dash-hp-block">
+          <div class="player-hp-hero">
+            <div class="player-hp-hero-row">
+              <button class="player-hp-btn-big" onclick="window._dashHpChange(-1)" title="Schade">−</button>
+              <div class="player-hp-nums">
+                <input id="dash-hp-current" type="number" class="player-hp-current" value="${hpNum ?? ''}"
+                  placeholder="?" onchange="window._dashHpSave()" onclick="event.stopPropagation()">
+                <span class="player-hp-sep">/</span>
+                <input id="dash-hp-max" type="number" class="player-hp-max" value="${maxNum ?? ''}"
+                  placeholder="max" onchange="window._dashHpSave()" onclick="event.stopPropagation()">
+              </div>
+              <button class="player-hp-btn-big" onclick="window._dashHpChange(1)" title="Genezing">+</button>
+            </div>
             <div class="player-dash-hp-bar-wrap">
               <div class="player-dash-hp-bar ${hpCls}" style="width:${hpPct}%"></div>
             </div>
-            <div class="player-dash-hp-controls">
-              <button class="player-dash-hp-btn" onclick="window._dashHpChange(-1)" title="Schade">−</button>
-              <div class="player-dash-hp-display">
-                <input id="dash-hp-current" type="number" class="player-dash-hp-input" value="${hpNum ?? ''}"
-                  placeholder="?" onchange="window._dashHpSave()" onclick="event.stopPropagation()">
-                <span class="player-dash-hp-sep">/</span>
-                <input id="dash-hp-max" type="number" class="player-dash-hp-max" value="${maxNum ?? ''}"
-                  placeholder="max" onchange="window._dashHpSave()" onclick="event.stopPropagation()">
-              </div>
-              <button class="player-dash-hp-btn" onclick="window._dashHpChange(1)" title="Genezing">+</button>
-            </div>
-            ${myCombatant ? '<p class="player-dash-hp-note">⚔️ Actief in gevecht — wijzigingen zijn direct zichtbaar</p>' : ''}
+            ${myCombatant ? '<p class="player-dash-hp-note">⚔️ Actief in gevecht</p>' : ''}
+          </div>
+        </div>
+
+        <!-- Ability Scores + Saving Throws -->
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">🎲 Ability Scores</div>
+          <div class="player-ability-grid">
+            ${['str','dex','con','int','wis','cha'].map(ab => {
+              const isProf = _saveProfs.has(ab);
+              const saveBonus = _mod(ab) + (isProf ? _profBonusNum : 0);
+              const saveBonusStr = (saveBonus >= 0 ? '+' : '') + saveBonus;
+              return `
+                <div class="player-ability-card">
+                  <div class="player-ability-label">${_AB_LABELS[ab]}</div>
+                  <input class="player-ability-score" type="number" min="1" max="30"
+                    value="${_ab(ab)}"
+                    onblur="window._saveAbilityScore('${ab}', this.value)">
+                  <div class="player-ability-mod-wrap">
+                    <span class="player-ability-mod">${_modStr(ab)}</span>
+                  </div>
+                  <button class="player-save-dot${isProf ? ' active' : ''}"
+                    onclick="window._toggleSaveProf('${ab}', ${!isProf})"
+                    title="Saving throw: ${saveBonusStr}">
+                  </button>
+                  <span class="player-save-val">${saveBonusStr}</span>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Skills -->
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">🎯 Skills</div>
+          <div class="player-skills-list">
+            ${_getSkills().map(skill => {
+              const prof  = _skillProfs[skill.key] || null;
+              const bonus = _skillBonus(skill);
+              const bonusStr = (bonus >= 0 ? '+' : '') + bonus;
+              return `<div class="player-skill-row">
+                <button class="player-skill-prof-btn${prof ? ' ' + prof : ''}"
+                  onclick="window._cycleSkillProf('${skill.key}')"
+                  title="${prof === 'expert' ? 'Expertise' : prof === 'prof' ? 'Proficient' : 'Geen proficiency'}"></button>
+                <span class="player-skill-bonus">${bonusStr}</span>
+                <span class="player-skill-name">${skill.label}</span>
+                <span class="player-skill-ab">${skill.ab.toUpperCase()}</span>
+              </div>`;
+            }).join('')}
           </div>
         </div>
 
@@ -916,6 +1081,20 @@ async function renderMijnKarakter() {
             <button class="player-dash-add-item-btn" onclick="window._dashAddTracker()">+ Toevoegen</button>
           </div>
         </div>
+
+        <!-- Kenmerken & Eigenschappen -->
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">📜 Kenmerken & Eigenschappen</div>
+          <div class="player-ft-wrap">
+            <div class="player-ft-toolbar">
+              <button class="player-ft-btn" onclick="window._ftFormat('bold')" title="Vet"><strong>B</strong></button>
+              <button class="player-ft-btn player-ft-btn-i" onclick="window._ftFormat('italic')" title="Cursief"><em>I</em></button>
+            </div>
+            <textarea id="player-ft-area" class="player-ft-area"
+              placeholder="Raskenmerken, klassevaardigheden, achtergrondskenmerken…"
+              onblur="window._saveFeaturesTraits()">${esc(playerProfile.featuresTraits || '')}</textarea>
+          </div>
+        </div>
       </div>
 
       <!-- ═══ TAB: Mijn knapzak ═══ -->
@@ -924,23 +1103,31 @@ async function renderMijnKarakter() {
         <!-- Valuta -->
         <div class="player-dash-section">
           <div class="player-dash-section-title">💰 Beurs</div>
-          <div class="player-dash-currency">
-            ${((_c) => `
-            <label class="player-dash-currency-row">
-              <span class="player-dash-currency-label"><span class="player-dash-currency-icon">🟡</span>${esc(_c.fl || 'Florinde')}</span>
-              <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-fl" value="${currency.fl}"
-                onblur="window._dashCurrencySave()">
-            </label>
-            <label class="player-dash-currency-row">
-              <span class="player-dash-currency-label"><span class="player-dash-currency-icon">⚪</span>${esc(_c.kn || 'Knaker')}</span>
-              <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-kn" value="${currency.kn}"
-                onblur="window._dashCurrencySave()">
-            </label>
-            <label class="player-dash-currency-row">
-              <span class="player-dash-currency-label"><span class="player-dash-currency-icon">🟤</span>${esc(_c.cl || 'Centeling')}</span>
-              <input class="player-dash-currency-input" type="number" min="0" id="dash-cur-cl" value="${currency.cl}"
-                onblur="window._dashCurrencySave()">
-            </label>`)(window._currency || state.meta?.currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' })}
+          <div class="player-dash-currency-new">
+            <div class="player-currency-item player-currency-gold">
+              <span class="player-currency-coin">🟡</span>
+              <div class="player-currency-body">
+                <span class="player-currency-name">${esc(_cNames.fl || 'Florinde')}</span>
+                <input class="player-currency-input" type="number" min="0" id="dash-cur-fl" value="${currency.fl}"
+                  onblur="window._dashCurrencySave()">
+              </div>
+            </div>
+            <div class="player-currency-item player-currency-silver">
+              <span class="player-currency-coin">⚪</span>
+              <div class="player-currency-body">
+                <span class="player-currency-name">${esc(_cNames.kn || 'Knaker')}</span>
+                <input class="player-currency-input" type="number" min="0" id="dash-cur-kn" value="${currency.kn}"
+                  onblur="window._dashCurrencySave()">
+              </div>
+            </div>
+            <div class="player-currency-item player-currency-copper">
+              <span class="player-currency-coin">🟤</span>
+              <div class="player-currency-body">
+                <span class="player-currency-name">${esc(_cNames.cl || 'Centeling')}</span>
+                <input class="player-currency-input" type="number" min="0" id="dash-cur-cl" value="${currency.cl}"
+                  onblur="window._dashCurrencySave()">
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1006,7 +1193,8 @@ async function renderMijnKarakter() {
         <div class="player-dash-section player-dash-spellslots">
           <div class="player-dash-section-title">
             🔮 Spreukenslots
-            ${_spellSlotsHTML.rows ? `<button class="player-dash-slot-rest-btn" onclick="window._dashLongRest()" title="Lange rust">🌙 Lange rust</button>` : ''}
+            ${_spellSlotsHTML.rows ? `<button class="player-dash-slot-rest-btn" onclick="window._dashLongRest()" title="Long rest">🌙 Long rest</button>
+            <button class="player-dash-slot-rest-btn player-dash-slot-rest-btn--short" onclick="window._dashShortRest()" title="Short rest">☀️ Short rest</button>` : ''}
           </div>
           ${_spellSlotsHTML.rows || '<p class="player-dash-empty">Nog geen spreukenslots ingesteld.</p>'}
           <button class="player-dash-slot-add-btn" onclick="window._dashSlotAddLevel()">+ Niveau</button>
@@ -1315,6 +1503,70 @@ async function renderMijnKarakter() {
       await api.removePlayerSpell(state.characterId, spellIndex);
       renderMijnKarakter();
     } catch { /* ok */ }
+  };
+
+  // ── Ability scores ──
+  window._saveAbilityScore = async function(ab, value) {
+    const val = parseInt(value);
+    if (!isNaN(val) && val >= 1 && val <= 30)
+      await window._saveProfileField(ab, val);
+    renderMijnKarakter();
+  };
+
+  // ── Skill proficiency: cycle none → prof → expert → none ──
+  window._cycleSkillProf = async function(skillKey) {
+    const current = _skillProfs[skillKey] || null;
+    const next = current === null ? 'prof' : current === 'prof' ? 'expert' : null;
+    if (next === null) delete _skillProfs[skillKey];
+    else _skillProfs[skillKey] = next;
+    await window._saveProfileField('skillProfs', JSON.stringify(_skillProfs));
+    renderMijnKarakter();
+  };
+
+  // ── Saving throw proficiency toggle ──
+  window._toggleSaveProf = async function(ab, add) {
+    const profs = new Set((playerProfile.saveProfs || '').split(',').filter(Boolean));
+    if (add) profs.add(ab); else profs.delete(ab);
+    await window._saveProfileField('saveProfs', [...profs].join(','));
+    renderMijnKarakter();
+  };
+
+  // ── Death save dot ──
+  window._dashDeathSaveDot = async function(type, idx) {
+    const field   = type === 'success' ? 'deathSaveSuccesses' : 'deathSaveFailures';
+    const current = type === 'success' ? _dsSucc : _dsFail;
+    const newVal  = idx < current ? idx : idx + 1;
+    await window._saveProfileField(field, Math.max(0, Math.min(3, newVal)));
+    renderMijnKarakter();
+  };
+
+  // ── Features & traits ──
+  window._saveFeaturesTraits = async function() {
+    const ta = document.getElementById('player-ft-area');
+    if (ta) await window._saveProfileField('featuresTraits', ta.value);
+  };
+
+  window._ftFormat = function(type) {
+    const ta = document.getElementById('player-ft-area');
+    if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const sel = ta.value.slice(start, end);
+    const wrap = type === 'bold' ? '**' : '*';
+    ta.value = ta.value.slice(0, start) + wrap + sel + wrap + ta.value.slice(end);
+    ta.selectionStart = start + wrap.length;
+    ta.selectionEnd   = end   + wrap.length;
+    ta.focus();
+  };
+
+  // ── Korte rust ──
+  window._dashShortRest = async function() {
+    if (playerProfile.klasse === 'Warlock') {
+      for (const lvl of Object.keys(spellSlots)) {
+        spellSlots[lvl] = { ...spellSlots[lvl], used: 0 };
+      }
+      await api.setPlayerSpellSlots(state.characterId, spellSlots).catch(() => {});
+    }
+    renderMijnKarakter();
   };
 
   window._playerSpellOpen = async function(index) {

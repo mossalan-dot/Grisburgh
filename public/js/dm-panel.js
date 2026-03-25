@@ -53,6 +53,11 @@ let _editingMonsterIsNew     = false;
 let _editingMonsterImageId   = null;
 let _editingMonsterBackdropId = null;
 
+// ── Reveal strip state ──
+let _revealChapter = null;
+let _revealQueue   = []; // [{sessieId, imgId, caption, url}]
+let _revealLoading = false;
+
 // ── Spreuken state ──
 let _spellList   = null;   // null = not yet loaded, [] = loaded (possibly empty)
 let _spellQuery  = '';
@@ -70,7 +75,7 @@ function esc(s) {
 export function initDmPanel() {
   window.dmPanel = {
     switchTab(tab) { _switchTab(tab); },
-    renderMeesterkamer() { _buildTabs(); _switchTab(_activeTab); },
+    renderMeesterkamer() { _buildTabs(); _switchTab(_activeTab); _renderRevealStrip(); },
 
     // Spreuken
     spellSearch: _spellSearch,
@@ -147,6 +152,11 @@ export function initDmPanel() {
     combatDeathSave:        _combatDeathSave,
     combatSelectCombatant:  _combatSelectCombatant,
 
+    // Reveal strip
+    setRevealChapter(key) { _revealChapter = key || null; _loadRevealQueue(_revealChapter); },
+    revealImage:      _revealImage,
+    renderRevealStrip: _renderRevealStrip,
+
     // Campagnes
     campagneSwitchTo:  _campagneSwitchTo,
     campagneCreate:    _campagneCreate,
@@ -205,6 +215,7 @@ function _buildTabs() {
     <button class="dm-tab-btn${_activeTab==='monsters'?    ' active':''}" data-tab="monsters"     onclick="window.dmPanel.switchTab('monsters')"     title="Monsterbibliotheek"><span class="dm-tab-icon">👾</span><span class="dm-tab-label">Monsters</span></button>
     <button class="dm-tab-btn${_activeTab==='gevecht'?     ' active':''}" data-tab="gevecht"      onclick="window.dmPanel.switchTab('gevecht')"      title="Gevecht"><span class="dm-tab-icon">⚔️</span><span class="dm-tab-label">Gevecht</span></button>
     <button class="dm-tab-btn${_activeTab==='campagnes'?   ' active':''}" data-tab="campagnes"    onclick="window.dmPanel.switchTab('campagnes')"    title="Campagnes"><span class="dm-tab-icon">🗂</span><span class="dm-tab-label">Campagnes</span></button>
+    <button class="dm-tab-btn${_activeTab==='herberg'?     ' active':''}" data-tab="herberg"      onclick="window.dmPanel.switchTab('herberg')"      title="Herberg instellingen"><span class="dm-tab-icon">🍺</span><span class="dm-tab-label">Herberg</span></button>
   `;
 }
 
@@ -224,6 +235,7 @@ function _switchTab(tab) {
   if (tab === 'monsters')  _loadAndRenderMonsters();
   if (tab === 'geluiden')  _renderGeluiden();
   if (tab === 'campagnes') _loadAndRenderCampagnes();
+  if (tab === 'herberg')   _renderHerbergSettings();
   if (tab === 'gevecht') {
     // Always reload monsters + entities so pickers are fresh
     Promise.all([
@@ -474,6 +486,98 @@ function _renderTunnel() {
     </div>
 
   `;
+}
+
+// ── Reveal strip ──
+
+function _renderRevealStrip() {
+  const el = document.getElementById('dm-reveal-strip');
+  if (!el) return;
+  const thumbs = _revealQueue.slice(0, 3);
+  const more   = Math.max(0, _revealQueue.length - 3);
+  el.innerHTML = `
+    <div style="padding-bottom:6px;border-bottom:1px solid rgba(196,168,122,0.3);margin-bottom:2px;">
+      <div class="dm-form-label" style="margin-bottom:4px;">Afbeeldingen</div>
+      <select class="dm-select" style="width:100%;font-size:10px;"
+        onchange="window.dmPanel.setRevealChapter(this.value)">
+        <option value="">— Akte —</option>
+        ${_hkOptions(_revealChapter)}
+      </select>
+    </div>
+    ${_revealLoading
+      ? `<div class="dm-reveal-empty">⏳</div>`
+      : !_revealChapter
+        ? `<div class="dm-reveal-empty">Selecteer een akte om afbeeldingen te onthullen.</div>`
+        : thumbs.length === 0
+          ? `<div class="dm-reveal-empty">Geen verborgen afbeeldingen.<br><span style="opacity:.6">Verberg ze eerst in het logboek.</span></div>`
+          : thumbs.map(item => `
+              <div class="dm-reveal-thumb" id="dm-thumb-${esc(item.imgId)}">
+                <img class="dm-reveal-thumb-img" src="${esc(item.url)}" loading="lazy"
+                  onclick="window.dmPanel.revealImage('${esc(item.sessieId)}','${esc(item.imgId)}')"
+                  title="${esc(item.caption) || 'Klik om te onthullen'}">
+                <div class="dm-reveal-thumb-foot">
+                  <span class="dm-reveal-thumb-caption">${esc(item.caption) || '—'}</span>
+                  <button class="dm-btn dm-btn-sm" style="font-size:9px;padding:1px 6px;"
+                    onclick="window.dmPanel.revealImage('${esc(item.sessieId)}','${esc(item.imgId)}')">▶</button>
+                </div>
+              </div>`).join('')
+          + (more > 0 ? `<div style="font-size:9px;color:var(--color-ink-dim);text-align:center;padding:4px 0">+${more} meer verborgen</div>` : '')
+    }`;
+}
+
+async function _loadRevealQueue(chapterKey) {
+  _revealQueue = [];
+  if (!chapterKey) { _renderRevealStrip(); return; }
+  _revealLoading = true;
+  _renderRevealStrip();
+  try {
+    const archief = await api.listArchief();
+    for (const entry of (archief.sessieLog || [])) {
+      if (entry.hoofdstuk !== chapterKey) continue;
+      for (const img of (entry.images || [])) {
+        const obj = typeof img === 'string' ? { id: img, visible: true } : img;
+        if (obj.visible === false) {
+          _revealQueue.push({
+            sessieId: entry.id,
+            imgId:    obj.id,
+            caption:  obj.caption || '',
+            url:      api.fileUrl(obj.id),
+          });
+        }
+      }
+    }
+  } finally {
+    _revealLoading = false;
+    _renderRevealStrip();
+  }
+}
+
+async function _revealImage(sessieId, imgId) {
+  // Animate the thumbnail out
+  const thumb = document.getElementById(`dm-thumb-${imgId}`);
+  if (thumb) {
+    thumb.classList.add('revealing');
+    await new Promise(r => setTimeout(r, 250));
+  }
+  // Remove from queue and re-render immediately
+  _revealQueue = _revealQueue.filter(i => i.imgId !== imgId);
+  _renderRevealStrip();
+  // Persist via the existing API (same logic as _toggleImageVisible in render-archief.js)
+  try {
+    const archief = await api.listArchief();
+    const entry = (archief.sessieLog || []).find(e => e.id === sessieId);
+    if (!entry) return;
+    const images = (entry.images || []).map(img => {
+      const id = typeof img === 'string' ? img : img.id;
+      return id === imgId
+        ? { ...(typeof img === 'string' ? { id } : img), visible: true }
+        : img;
+    });
+    await api.updateSessieLog(sessieId, { images });
+    // → backend emits logboek:imageRevealed → players get lightbox
+  } catch (err) {
+    console.error('Reveal failed', err);
+  }
 }
 
 // ── Namen ──
@@ -944,9 +1048,9 @@ function _renderMonsterEditor(el) {
         <input id="dm-mon-name" class="dm-input" value="${esc(m.name)}" placeholder="Monsternaam…">
       </div>
       <div class="dm-form-row">
-        <label class="dm-form-label">Hoofdstuk</label>
+        <label class="dm-form-label">Akte</label>
         <select id="dm-mon-chapter" class="dm-select dm-select-sm">
-          <option value="">— geen hoofdstuk —</option>
+          <option value="">— geen akte —</option>
           ${_hkOptions(m.chapter)}
         </select>
       </div>
@@ -1553,6 +1657,118 @@ async function _campagneSubmit() {
   } catch (err) {
     if (errEl) errEl.textContent = 'Aanmaken mislukt: ' + err.message;
   }
+};
+
+// ── Herberg instellingen ───────────────────────────────────────────────────────
+
+let _hbPersonages = [];
+let _hbPendingBackdropId = null;
+
+async function _renderHerbergSettings() {
+  const el = document.querySelector('.dm-tab-content[data-tab="herberg"]');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  const config = window.app?.state?.meta?.herberg || {};
+  try { _hbPersonages = await api.listEntities('personages'); } catch { _hbPersonages = []; }
+  _hbPendingBackdropId = null;
+
+  const selectedP = _hbPersonages.find(p => p.id === config.imageId);
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Herberginstellingen</div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Naam van de herberg</label>
+        <input id="hb-naam" class="dm-input" value="${esc(config.naam || '')}" placeholder="De Swarte Cat…">
+      </div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Waard (NPC)</label>
+        <select id="hb-waard-select" class="dm-select" onchange="window._hbSelectWaard(this.value)">
+          <option value="">— Kies een personage —</option>
+          ${_hbPersonages.map(p => `<option value="${esc(p.id)}" ${config.imageId === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+        </select>
+      </div>
+
+      <div id="hb-portrait-row" class="dm-form-row" style="${selectedP ? '' : 'display:none'}">
+        <img id="hb-portrait-preview" src="${selectedP ? api.fileUrl(selectedP.id) : ''}"
+          style="width:64px;height:80px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)">
+      </div>
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrondafbeelding</label>
+        ${config.backdropId ? `<img id="hb-backdrop-preview" src="${api.fileUrl(config.backdropId)}"
+          style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : ''}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">
+          📷 Afbeelding kiezen
+          <input type="file" accept="image/*" class="hidden" onchange="window._hbUploadBackdrop(this.files[0])">
+        </label>
+      </div>
+
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-primary" onclick="window._hbSave()">💾 Opslaan</button>
+      </div>
+    </div>`;
+}
+
+window._hbSelectWaard = (entityId) => {
+  const p = _hbPersonages.find(p => p.id === entityId);
+  const row = document.getElementById('hb-portrait-row');
+  const img = document.getElementById('hb-portrait-preview');
+  if (p && img) {
+    img.src = api.fileUrl(p.id);
+    if (row) row.style.display = '';
+  } else if (row) {
+    row.style.display = 'none';
+  }
+};
+
+window._hbUploadBackdrop = async (file) => {
+  if (!file) return;
+  const id = 'herberg-backdrop-' + Date.now();
+  try {
+    await api.uploadFile(id, file);
+    _hbPendingBackdropId = id;
+    // Show/update preview
+    const existing = document.getElementById('hb-backdrop-preview');
+    if (existing) {
+      existing.src = api.fileUrl(id);
+    } else {
+      const label = document.querySelector('[onchange*="_hbUploadBackdrop"]')?.closest('.dm-form-row');
+      if (label) {
+        const img = document.createElement('img');
+        img.id = 'hb-backdrop-preview';
+        img.src = api.fileUrl(id);
+        img.style.cssText = 'width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)';
+        label.prepend(img);
+      }
+    }
+  } catch (err) { alert('Upload mislukt: ' + err.message); }
+};
+
+window._hbSave = async () => {
+  const config = window.app?.state?.meta?.herberg || {};
+  const naam = document.getElementById('hb-naam')?.value.trim() || '';
+  const select = document.getElementById('hb-waard-select');
+  const entityId = select?.value || '';
+  const p = _hbPersonages.find(p => p.id === entityId);
+  const payload = {
+    naam,
+    waard:      p?.name || config.waard || '',
+    imageId:    entityId || config.imageId || '',
+    backdropId: _hbPendingBackdropId || config.backdropId || '',
+  };
+  try {
+    await api.saveHerberg(payload);
+    const newMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = newMeta;
+    // Update tab label + backdrop CSS var
+    window.app?.applyAppMeta?.();
+    // Re-render to reflect saved state
+    await _renderHerbergSettings();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
 };
 
 // ── Geluiden ──────────────────────────────────────────────────────────────────

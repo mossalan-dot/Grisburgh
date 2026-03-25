@@ -18,6 +18,10 @@ const DOC_TYPES = ['Brief','Krant','Kaart','Manuscript','Kasboek','Notities','Fo
 const DOC_CATS = ['brieven','pers','kaarten','codex','logboek','audio'];
 
 let activeCat = 'alle';
+let logboekSearch = '';
+let _logboekInitialized = false;
+let _collapsedChapters = new Set();
+let _logboekCache = null;
 let searchQuery = '';
 let archiefData = { documents: [], logEntries: [], hiddenLinks: {}, tekstContent: {} };
 let meta = null;
@@ -125,10 +129,100 @@ export async function renderLogboek() {
   } catch { /* empty */ }
 
   const allEntries = archiefData.sessieLog || [];
-  const entries = isDM() ? allEntries : allEntries.filter(e => e.visible);
+  const visibleEntries = isDM() ? allEntries : allEntries.filter(e => e.visible);
   const hk = meta?.hoofdstukken || {};
 
-  // Group documents by chapter (hidden docs only visible for DM)
+  _logboekCache = { allEntries: visibleEntries, hk };
+
+  if (!_logboekInitialized) {
+    const chapterKeys = [...new Set(visibleEntries.map(e => e.hoofdstuk || '_'))];
+    const sorted = chapterKeys.sort((a, b) => (hk[a]?.num || 99) - (hk[b]?.num || 99));
+    sorted.slice(0, -1).forEach(k => _collapsedChapters.add(k));
+    _logboekInitialized = true;
+  }
+
+  container.innerHTML = `
+    <div class="section-banner">
+      <div class="section-banner-title">
+        <span>📖</span>
+        <span>Logboek</span>
+        <span class="font-fell font-normal normal-case tracking-normal text-ink-faint text-xs italic ml-1">Verslagen van aktes en avonturen</span>
+      </div>
+      <div class="section-banner-line"></div>
+    </div>
+    <div class="logboek-search-wrap">
+      <input type="text" class="logboek-search-input" id="logboek-search-input"
+        placeholder="🔍  Zoek in het logboek…" value="${esc(logboekSearch)}"
+        oninput="window._logboekSearch(this.value)">
+    </div>
+    <div class="flex-1 overflow-y-auto p-6" id="logboek-body">
+      ${_buildLogboekBody(visibleEntries, hk)}
+    </div>
+  `;
+
+  window._logboekSearch = (q) => {
+    logboekSearch = q;
+    const body = document.getElementById('logboek-body');
+    if (body && _logboekCache) {
+      const filtered = q.trim()
+        ? _logboekCache.allEntries.filter(e => _logboekMatchesSearch(e, q.toLowerCase()))
+        : _logboekCache.allEntries;
+      body.innerHTML = _buildLogboekBody(filtered, _logboekCache.hk, !!q.trim());
+    }
+  };
+
+  window._toggleChapter = (chKey) => {
+    if (_collapsedChapters.has(chKey)) _collapsedChapters.delete(chKey);
+    else _collapsedChapters.add(chKey);
+    const body = document.getElementById('logboek-body');
+    if (body && _logboekCache) {
+      const q = logboekSearch;
+      const entries = q.trim()
+        ? _logboekCache.allEntries.filter(e => _logboekMatchesSearch(e, q.toLowerCase()))
+        : _logboekCache.allEntries;
+      body.innerHTML = _buildLogboekBody(entries, _logboekCache.hk, !!q.trim());
+    }
+  };
+}
+
+function _logboekMatchesSearch(e, q) {
+  return [
+    e.korteSamenvatting, e.samenvatting, e.citaat,
+    ...(e.nieuwPersonages || []), ...(e.terugkerendPersonages || []),
+    ...(e.nieuwLocaties || []), ...(e.terugkerendLocaties || []),
+    ...(e.organisaties || []), ...(e.voorwerpen || []),
+  ].some(f => f?.toLowerCase().includes(q));
+}
+
+function _buildLogboekBody(entries, hk, isSearchMode = false) {
+  if (entries.length === 0) {
+    return `<div class="text-center py-20 text-ink-faint">
+      <div class="text-5xl mb-4 opacity-40">📖</div>
+      <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">
+        ${logboekSearch ? 'Geen resultaten gevonden.' : 'Het archief is nog leeg...'}
+      </div>
+      ${!logboekSearch && isDM() ? `<div class="text-xs font-fell italic mt-1">Gebruik de <span class="font-mono px-1 py-0.5 bg-room-elevated rounded">+</span> knop om een hoofdstuk toe te voegen</div>` : ''}
+    </div>`;
+  }
+
+  if (isSearchMode) {
+    return `<div class="logboek-search-results">
+      ${entries.map(e => {
+        const ch = hk[e.hoofdstuk];
+        const chLabel = ch ? `A${ch.num}: ${ch.title}` : '';
+        return renderSessieEntry(e, null, chLabel);
+      }).join('')}
+    </div>`;
+  }
+
+  const groups = {};
+  for (const e of entries) {
+    const ch = e.hoofdstuk || '_';
+    if (!groups[ch]) groups[ch] = [];
+    groups[ch].push(e);
+  }
+  const sortedChapters = Object.keys(groups).sort((a, b) => (hk[a]?.num || 99) - (hk[b]?.num || 99));
+
   const allDocs = archiefData.documents || [];
   const docsByChapter = {};
   for (const d of allDocs) {
@@ -141,61 +235,62 @@ export async function renderLogboek() {
     docsByChapter[ch].sort((a, b) => _sortKey(a.name).localeCompare(_sortKey(b.name), 'nl', { sensitivity: 'base' }));
   }
 
-  // Group by chapter
-  const groups = {};
-  for (const e of entries) {
-    const ch = e.hoofdstuk || '_';
-    if (!groups[ch]) groups[ch] = [];
-    groups[ch].push(e);
-  }
-  const sortedChapters = Object.keys(groups).sort((a, b) => {
-    return (hk[a]?.num || 99) - (hk[b]?.num || 99);
-  });
-
   let html = '';
-  if (entries.length === 0) {
-    html = `<div class="text-center py-20 text-ink-faint">
-      <div class="text-5xl mb-4 opacity-40">📖</div>
-      <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">Het archief is nog leeg...</div>
-      ${isDM() ? `<div class="text-xs font-fell italic mt-1">Gebruik de <span class="font-mono px-1 py-0.5 bg-room-elevated rounded">+</span> knop om een sessie toe te voegen</div>` : ''}
-    </div>`;
-  } else {
-    for (const ch of sortedChapters) {
-      const info = hk[ch] || { title: ch, dag: '', num: '?' };
-      const chEntries = groups[ch].slice().sort((a, b) => (a.datum || '').localeCompare(b.datum || ''));
-      html += `
-        <div class="mb-12">
-          <div class="flex items-baseline gap-3 mb-5 pb-2.5 border-b-2 border-room-border">
-            <div class="font-cinzel font-bold text-gold text-xl">Hoofdstuk ${info.num}:</div>
-            <div class="font-cinzel font-semibold text-ink-bright text-lg">${esc(info.title)}</div>
-            ${info.dag ? `<div class="text-ink-faint text-xs font-mono ml-auto">${esc(info.dag)}</div>` : ''}
+  for (const ch of sortedChapters) {
+    const info = hk[ch] || { title: ch, dag: '', num: '?' };
+    const chEntries = groups[ch].slice().sort((a, b) => (a.datum || '').localeCompare(b.datum || ''));
+    const isCollapsed = _collapsedChapters.has(ch);
+
+    const firstEntryWithImg = chEntries.find(e => (e.images || []).length > 0);
+    const firstRawImg = firstEntryWithImg?.images?.[0];
+    const bannerImgId = firstRawImg ? (typeof firstRawImg === 'string' ? firstRawImg : firstRawImg.id) : null;
+    const bannerImgSrc = bannerImgId ? api.fileUrl(bannerImgId) : null;
+
+    const bannerFocusVal = info.bannerFocus || '50% 30%';
+    html += `
+      <div class="logboek-chapter" id="logboek-ch-${esc(ch)}">
+        <div class="logboek-chapter-banner${bannerImgSrc ? ' logboek-chapter-banner--img' : ''}"
+          ${bannerImgSrc ? `style="background-image:url('${bannerImgSrc}');background-position:${esc(bannerFocusVal)}"` : ''}
+          onclick="window._toggleChapter('${esc(ch)}')">
+          <div class="logboek-chapter-banner-overlay"></div>
+          <div class="logboek-chapter-banner-content">
+            <div class="logboek-chapter-num">Akte ${info.num}</div>
+            <div class="logboek-chapter-title">${esc(info.title)}</div>
+            ${info.dag ? `<div class="logboek-chapter-dag">${esc(info.dag)}</div>` : ''}
           </div>
-          <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
-            ${chEntries.map(e => renderSessieEntry(e)).join('')}
+          <div class="logboek-chapter-toggle-wrap">
+            ${isDM() ? `<button class="logboek-chapter-edit-btn dm-only" title="Akte bewerken" onclick="event.stopPropagation();window._editAkte('${esc(ch)}')">✎</button>` : ''}
+            <div class="logboek-chapter-toggle">${isCollapsed ? '▶' : '▼'}</div>
           </div>
+        </div>
+
+        <div class="logboek-chapter-content${isCollapsed ? ' hidden' : ''}">
+          <div class="logboek-timeline">
+            ${chEntries.map((e, idx) => renderSessieEntry(e, idx + 1)).join('')}
+          </div>
+          ${(info.spelersSamenvatting || isDM()) ? `
+          <div class="logboek-akte-samenvatting${!info.spelersSamenvatting ? ' logboek-akte-samenvatting--empty' : ''}">
+            <div class="logboek-akte-samenvatting-header">
+              <span class="logboek-akte-samenvatting-label">📖 Spelerssamenvatting</span>
+              ${isDM() ? `<button class="logboek-akte-samenvatting-edit dm-only" title="Bewerken" onclick="window._editAkte('${esc(ch)}')">✎</button>` : ''}
+            </div>
+            ${info.spelersSamenvatting
+              ? `<div class="log-entry logboek-akte-samenvatting-body">${mdToHtml(info.spelersSamenvatting)}</div>`
+              : `<div class="logboek-akte-samenvatting-empty-hint">Nog geen spelerssamenvatting toegevoegd.</div>`
+            }
+          </div>` : ''}
           ${(docsByChapter[ch] || []).length ? `
-          <div class="mt-5 ml-6 pl-5 border-l-2 border-room-border">
-            <div class="text-[10px] font-cinzel font-semibold text-ink-faint uppercase tracking-widest mb-2">\ud83d\udcdc Documenten</div>
+          <div class="logboek-chapter-docs">
+            <div class="logboek-docs-label">📜 Documenten</div>
             <div class="flex flex-wrap gap-2">
               ${(docsByChapter[ch] || []).map(d => renderDocCardCompact(d)).join('')}
             </div>
           </div>` : ''}
         </div>
-      `;
-    }
-  }
-
-  container.innerHTML = `
-    <div class="section-banner">
-      <div class="section-banner-title">
-        <span>📖</span>
-        <span>Logboek</span>
-        <span class="font-fell font-normal normal-case tracking-normal text-ink-faint text-xs italic ml-1">Verslagen van sessies en avonturen</span>
       </div>
-      <div class="section-banner-line"></div>
-    </div>
-    <div class="flex-1 overflow-y-auto p-6">${html}</div>
-  `;
+    `;
+  }
+  return html;
 }
 
 // ── Chip rows (used in detail modal) ──
@@ -410,46 +505,75 @@ window._toggleImageVisible = async (sessieId, imgId, newVisible) => {
 
 // ── Logboek card (compact) ──
 
-function renderSessieEntry(e) {
-  const firstRaw = e.images?.[0];
-  const firstImg = firstRaw ? api.fileUrl(typeof firstRaw === 'string' ? firstRaw : firstRaw.id) : null;
-  const hk = meta?.hoofdstukken || {};
-  const chapter = hk[e.hoofdstuk];
-  const chapterLabel = chapter ? `Hoofdstuk ${chapter.num}: ${chapter.title}` : '';
+function renderSessieEntry(e, sessieNum = null, chLabel = null) {
+  const images = e.images || [];
+  const firstRaw = images.find(img => typeof img === 'string' || img.visible !== false);
+  const firstImgId = firstRaw ? (typeof firstRaw === 'string' ? firstRaw : firstRaw.id) : null;
+  const firstImg = firstImgId ? api.fileUrl(firstImgId) : null;
+
+  const previewNames = [
+    ...(e.nieuwPersonages || []).slice(0, 2),
+    ...(e.nieuwLocaties || []).slice(0, 1),
+  ].slice(0, 3);
+
   return `
-    <div class="entity-card${isDM() && !e.visible ? ' card-hidden' : ''}"
+    <div class="logboek-tl-entry${isDM() && !e.visible ? ' logboek-entry--hidden' : ''}"
       onclick="window._openSessieDetail('${e.id}')">
       ${isDM() ? `
-        <div class="dm-only absolute top-7 right-2 z-10 flex flex-col gap-1">
+        <div class="dm-only absolute top-2 right-2 z-10 flex gap-1">
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            title="${e.visible ? 'Verbergen' : 'Zichtbaar maken'}" onclick="event.stopPropagation();window._toggleSessieVis('${e.id}',${!!e.visible})">${e.visible ? '\ud83d\udc41' : '\ud83d\udd12'}</button>
+            title="${e.visible ? 'Verbergen' : 'Zichtbaar maken'}" onclick="event.stopPropagation();window._toggleSessieVis('${e.id}',${!!e.visible})">${e.visible ? '👁' : '🔒'}</button>
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             title="Bewerken" onclick="event.stopPropagation();window._openSessieEditor('${e.id}')">&#9998;</button>
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-red-700/90 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             title="Verwijderen" onclick="event.stopPropagation();window._deleteSessie('${e.id}')">&#10005;</button>
         </div>
       ` : ''}
-      <div class="card-accent bar-logboek"></div>
-      ${firstImg ? `<img class="card-img w-full object-cover" src="${firstImg}" onerror="this.style.display='none'">` : ''}
-      <div class="px-4 pt-3 pb-4">
-        ${chapterLabel ? `<div class="text-[10px] font-cinzel text-gold-dim uppercase tracking-wide mb-0.5">${esc(chapterLabel)}</div>` : ''}
-        ${e.datum ? `<div class="text-[11px] font-mono text-ink-faint mb-1">${esc(e.datum)}</div>` : ''}
-        ${e.korteSamenvatting
-          ? `<div class="font-cinzel font-semibold text-ink-bright text-sm leading-snug mb-1">${esc(e.korteSamenvatting)}</div>`
-          : `<div class="text-ink-dim text-xs italic">Geen titel</div>`}
-        ${e.samenvatting ? `<p class="text-[11px] text-ink-dim font-fell italic line-clamp-2 leading-snug">${esc(e.samenvatting.replace(/^#+\s*/gm,'').replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n/g,' ').slice(0,110))}</p>` : ''}
+      <div class="logboek-tl-card">
+        ${firstImg ? `
+          <div class="logboek-card-img-wrap">
+            <img src="${firstImg}" class="logboek-card-img" onerror="this.closest('.logboek-card-img-wrap').style.display='none'">
+            <div class="logboek-card-img-overlay">
+              ${chLabel ? `<span class="logboek-card-chapter-lbl">${esc(chLabel)}</span>` : ''}
+              ${sessieNum ? `<span class="logboek-card-sessie-num">Hoofdstuk ${sessieNum}</span>` : ''}
+              <h3 class="logboek-card-title">${esc(e.korteSamenvatting || 'Naamloos')}</h3>
+              ${e.datum ? `<div class="logboek-card-date">${esc(e.datum)}</div>` : ''}
+            </div>
+          </div>
+        ` : `
+          <div class="logboek-card-no-img">
+            ${chLabel ? `<div class="logboek-card-chapter-lbl-plain">${esc(chLabel)}</div>` : ''}
+            ${sessieNum ? `<div class="logboek-card-sessie-num-plain">Hoofdstuk ${sessieNum}</div>` : ''}
+            <h3 class="logboek-card-title-plain">${esc(e.korteSamenvatting || 'Naamloos')}</h3>
+            ${e.datum ? `<div class="logboek-card-date-plain">${esc(e.datum)}</div>` : ''}
+          </div>
+        `}
+        ${e.citaat ? `<p class="logboek-card-citaat">"${esc(e.citaat)}"</p>` : ''}
+        ${e.samenvatting ? `<p class="logboek-card-preview">${esc(e.samenvatting.replace(/^#+\s*/gm,'').replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n/g,' ').slice(0,100))}…</p>` : ''}
+        ${previewNames.length ? `<div class="logboek-card-chips">
+          ${previewNames.map(n => `<span class="logboek-card-chip">${esc(n)}</span>`).join('')}
+        </div>` : ''}
       </div>
     </div>`;
 }
 
 // ── Logboek detail modal ──
 
-window._openSessieDetail = (id) => {
+window._openSessieDetail = async (id) => {
   const e = (archiefData.sessieLog || []).find(s => s.id === id);
   if (!e) return;
   const hk = meta?.hoofdstukken || {};
   const chapter = hk[e.hoofdstuk] || {};
   const images = e.images || [];
+
+  let playerNote = '';
+  const playerName = window.app?.state?.playerName;
+  if (!isDM() && playerName) {
+    try {
+      const nd = await api.getPlayerNotes(id);
+      playerNote = nd?.notes?.[playerName] || '';
+    } catch {}
+  }
 
   const datelineParts = [
     chapter.short && chapter.short !== e.korteSamenvatting ? chapter.short : null,
@@ -459,8 +583,17 @@ window._openSessieDetail = (id) => {
   const body = `
     ${_renderCarousel(id, images, { dmControls: isDM() })}
     ${datelineParts.length ? `<div class="log-dateline">${datelineParts.map(p => esc(p)).join(' &mdash; ')}</div>` : ''}
+    ${e.citaat ? `<blockquote class="log-detail-citaat">"${esc(e.citaat)}"</blockquote>` : ''}
     ${e.samenvatting ? `<div class="log-entry">${mdToHtml(e.samenvatting)}</div>` : ''}
     ${_renderSessieChips(e)}
+    ${!isDM() && playerName ? `
+      <div class="log-detail-player-note">
+        <div class="log-detail-note-label">📝 Mijn aantekening</div>
+        <textarea id="log-note-ta-${id}" class="log-detail-note-ta"
+          placeholder="Jouw persoonlijke notities bij deze sessie…"
+          onblur="window._saveLogNote('${esc(id)}', this.value)">${esc(playerNote)}</textarea>
+      </div>
+    ` : ''}
     ${isDM() ? `
       <div class="dm-only mt-4 pt-4 border-t border-room-border flex gap-2">
         <button class="px-3 py-1.5 text-sm rounded bg-gold-dim text-room-bg font-cinzel font-semibold hover:bg-gold transition"
@@ -474,6 +607,10 @@ window._openSessieDetail = (id) => {
 
   const _accentEl = document.getElementById('m-accent');
   if (_accentEl) _accentEl.className = 'modal-accent bar-logboek';
+};
+
+window._saveLogNote = async (sessieId, text) => {
+  try { await api.savePlayerNote(sessieId, text); } catch {}
 };
 
 export function openLogboekEditor(editId) {
@@ -551,7 +688,7 @@ window._saveNewHoofdstuk = async () => {
   const title = document.getElementById('hk-title')?.value.trim();
   const dag   = document.getElementById('hk-dag')?.value.trim() || '';
   if (!key || !title) { alert('Sleutel en titel zijn verplicht'); return; }
-  const short = `H${num} \u00b7 ${title.length > 22 ? title.slice(0, 22) + '\u2026' : title}`;
+  const short = `A${num} \u00b7 ${title.length > 22 ? title.slice(0, 22) + '\u2026' : title}`;
   try {
     await api.saveHoofdstuk(key, { num, title, dag, short });
     // Refresh local meta
@@ -567,6 +704,99 @@ window._saveNewHoofdstuk = async () => {
         .join('');
     document.getElementById('new-hk-panel').classList.add('hidden');
   } catch (err) { alert('Fout: ' + err.message); }
+};
+
+window._editAkte = (ch) => {
+  const hk = meta?.hoofdstukken || {};
+  const info = hk[ch] || {};
+
+  // Find banner image for focus picker
+  const chEntries = (archiefData.sessieLog || []).filter(e => e.hoofdstuk === ch);
+  const firstEntryWithImg = chEntries.find(e => (e.images || []).length > 0);
+  const firstRawImg = firstEntryWithImg?.images?.[0];
+  const bannerImgId = firstRawImg ? (typeof firstRawImg === 'string' ? firstRawImg : firstRawImg.id) : null;
+  const bannerImgSrc = bannerImgId ? api.fileUrl(bannerImgId) : null;
+
+  const focusVal = info.bannerFocus || '50% 30%';
+  const [fx, fy] = (focusVal.match(/(\d+)%\s*(\d+)%/) || [null, '50', '30']).slice(1).map(Number);
+
+  const body = `
+    <form id="akte-edit-form" class="space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Nummer</label>
+          <input type="number" id="akte-num" value="${esc(String(info.num || ''))}" min="1"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+        </div>
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">In-game dag</label>
+          <input id="akte-dag" value="${esc(info.dag || '')}" placeholder="Dag van …"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Titel</label>
+        <input id="akte-title" value="${esc(info.title || '')}"
+          class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+      </div>
+      <div>
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Bannerfocus</label>
+        ${bannerImgSrc ? `
+          <div id="fp-wrap" class="relative rounded overflow-hidden mt-1 mb-1 select-none"
+            style="height:140px;cursor:crosshair"
+            onmousedown="window._fpDown(event)"
+            onmousemove="window._fpMove(event)">
+            <img id="editor-img-preview" src="${bannerImgSrc}"
+              class="w-full h-full object-cover pointer-events-none"
+              style="object-position:${focusVal}"
+              onerror="this.parentElement.style.display='none'">
+            <div id="fp-crosshair" class="absolute pointer-events-none"
+              style="left:${fx}%;top:${fy}%;transform:translate(-50%,-50%)">
+              <div style="width:22px;height:22px;border-radius:50%;
+                border:2px solid #fff;
+                box-shadow:0 0 0 1.5px rgba(0,0,0,0.55),inset 0 0 0 1.5px rgba(0,0,0,0.3)"></div>
+            </div>
+          </div>
+          <p class="text-[10px] text-ink-dim mb-1">Klik of sleep om het focuspunt van de bannerafbeelding in te stellen</p>
+          <input type="hidden" id="fp-input" value="${focusVal}">
+        ` : `
+          <p class="text-xs text-ink-faint mt-1 font-fell italic">Geen bannerafbeelding — voeg een afbeelding toe aan het eerste hoofdstuk van deze akte.</p>
+        `}
+      </div>
+      <div>
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Spelerssamenvatting</label>
+        <div class="mt-1">
+          ${fmtToolbar('akte-samenvatting-ta')}
+          <textarea id="akte-samenvatting-ta" rows="10"
+            onkeydown="window._fmtKey(event)"
+            class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none">${esc(info.spelersSamenvatting || '')}</textarea>
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">💾 Opslaan</button>
+        <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition">✕</button>
+      </div>
+    </form>`;
+  openModal('Akte bewerken', info.title || ch, body);
+  document.getElementById('akte-edit-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const btn = ev.target.querySelector('[type=submit]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Bezig…'; }
+    const num   = parseInt(document.getElementById('akte-num').value) || info.num || 99;
+    const title = document.getElementById('akte-title').value.trim() || info.title || '';
+    const dag   = document.getElementById('akte-dag').value.trim();
+    const bannerFocus = document.getElementById('fp-input')?.value || focusVal;
+    const spelersSamenvatting = document.getElementById('akte-samenvatting-ta').value.trim();
+    const short = `A${num} \u00b7 ${title.length > 22 ? title.slice(0, 22) + '\u2026' : title}`;
+    try {
+      await api.saveHoofdstuk(ch, { num, title, dag, short, bannerFocus, spelersSamenvatting });
+      const newMeta = await api.meta();
+      meta = newMeta;
+      if (window.app?.state) window.app.state.meta = newMeta;
+      closeModal();
+      renderLogboek();
+    } catch (err) { alert('Fout: ' + err.message); }
+  });
 };
 
 window._openSessieEditor = async (editId) => {
@@ -618,7 +848,7 @@ window._openSessieEditor = async (editId) => {
   const body = `<form id="sessie-form" class="space-y-4">
     <div class="grid grid-cols-2 gap-3">
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Hoofdstuk</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Akte</label>
         <div class="flex gap-1 mt-1">
           <select id="hk-select" name="hoofdstuk" class="flex-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
             <option value="">—</option>
@@ -626,12 +856,12 @@ window._openSessieEditor = async (editId) => {
               `<option value="${k}" ${e?.hoofdstuk === k ? 'selected' : ''}>${v.short}</option>`
             ).join('')}
           </select>
-          <button type="button" title="Nieuw hoofdstuk toevoegen"
+          <button type="button" title="Nieuwe akte toevoegen"
             onclick="document.getElementById('new-hk-panel').classList.toggle('hidden')"
             class="px-2.5 py-1 bg-room-elevated border border-room-border rounded text-ink-dim hover:text-gold hover:border-gold-dim transition text-base leading-none">+</button>
         </div>
         <div id="new-hk-panel" class="hidden mt-2 p-3 bg-room-elevated/60 border border-room-border rounded space-y-2">
-          <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">Nieuw hoofdstuk</div>
+          <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">Nieuwe akte</div>
           <div class="grid grid-cols-3 gap-2">
             <div class="col-span-2">
               <label class="text-[10px] text-ink-faint uppercase">Sleutel</label>
@@ -669,6 +899,12 @@ window._openSessieEditor = async (editId) => {
       <input name="korteSamenvatting" value="${esc(e?.korteSamenvatting || '')}"
         placeholder="Één zin die de sessie omschrijft..."
         class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+    </div>
+    <div>
+      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Citaat (optioneel)</label>
+      <input name="citaat" value="${esc(e?.citaat || '')}"
+        placeholder="Een opvallend citaat of motto uit deze sessie…"
+        class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none font-fell italic">
     </div>
     <div>
       <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Uitgebreide samenvatting</label>
@@ -718,7 +954,7 @@ window._openSessieEditor = async (editId) => {
     </div>
   </form>`;
 
-  openModal(editId ? 'Sessie bewerken' : 'Nieuwe sessie', '', body);
+  openModal(editId ? 'Hoofdstuk bewerken' : 'Nieuw hoofdstuk', '', body);
 
   // Init image thumbnails after modal is in DOM
   setTimeout(() => _refreshLogImages(), 0);
@@ -741,6 +977,7 @@ window._openSessieEditor = async (editId) => {
         hoofdstuk:             form.get('hoofdstuk'),
         datum:                 form.get('datum'),
         korteSamenvatting:     form.get('korteSamenvatting'),
+        citaat:                form.get('citaat'),
         samenvatting:          form.get('samenvatting'),
         images:                logEditorImages.map(i => ({ id: i.id, caption: i.caption || '', visible: i.visible !== false })),
         nieuwPersonages:       logEditorTags.nieuwPersonages,
@@ -856,7 +1093,7 @@ function refreshLogTags(field) {
 }
 
 window._deleteSessie = async (id) => {
-  if (!confirm('Sessie-entry verwijderen?')) return;
+  if (!confirm('Hoofdstuk-entry verwijderen?')) return;
   await api.deleteSessieLog(id);
   closeModal();
   renderLogboek();

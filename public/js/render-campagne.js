@@ -811,6 +811,7 @@ window._openDetail = async (tab, id, isBack = false) => {
   // Image(s) — carousel when extra images exist, else single portrait
   const _extraImgs = _parseExtraImages(e.data?.extraImages);
   const _primaryCaption = e.data?.imgCaption || '';
+  const _heroBadge = getSubtypeBadge(tab, e);
   if (_extraImgs.length > 0) {
     const _allImgs = [{ id: e.id, caption: _primaryCaption }, ..._extraImgs];
     infoHtml += _entityCarouselHtml(e.id, _allImgs);
@@ -822,6 +823,7 @@ window._openDetail = async (tab, id, isBack = false) => {
           onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
         <div class="detail-hero-overlay"></div>
         <div class="detail-hero-icon">${getAutoIcon(tab, e)}</div>
+        ${_heroBadge ? `<div class="detail-hero-badge badge ${_heroBadge.cls}">${esc(_heroBadge.label)}</div>` : ''}
       </div>
       ${_primaryCaption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(_primaryCaption)}</p>` : ''}
     `;
@@ -846,7 +848,7 @@ window._openDetail = async (tab, id, isBack = false) => {
     infoHtml += `<div class="text-center mb-4"><span class="detail-role-badge">${esc(rolVal)}</span></div>`;
   }
 
-  // Short metadata → pills; description → block
+  // Short metadata → labeled pills; description → block
   const _metaPills = [];
   let _descVal = '';
   for (const field of (schema.fields || [])) {
@@ -857,7 +859,7 @@ window._openDetail = async (tab, id, isBack = false) => {
     if (field.key === 'desc') {
       _descVal = val;
     } else {
-      _metaPills.push(`<span class="detail-meta-pill">${esc(val)}</span>`);
+      _metaPills.push(`<span class="detail-meta-pill"><span class="pill-lbl">${esc(field.label)}</span>${esc(val)}</span>`);
     }
   }
   if (_metaPills.length) {
@@ -1177,6 +1179,21 @@ window._openDetail = async (tab, id, isBack = false) => {
   // Set type accent bar
   const _accentEl = document.getElementById('m-accent');
   if (_accentEl) _accentEl.className = `modal-accent bar-${tab}`;
+
+  // Portrait in modal header
+  const _mPortraitWrap = document.getElementById('m-portrait-wrap');
+  const _mPortraitImg  = document.getElementById('m-portrait');
+  if (_mPortraitWrap && _mPortraitImg) {
+    _mPortraitWrap.classList.add('hidden');
+    _mPortraitImg.src = '';
+    _mPortraitImg.onerror = () => _mPortraitWrap.classList.add('hidden');
+    _mPortraitImg.onload  = () => _mPortraitWrap.classList.remove('hidden');
+    _mPortraitImg.src = fileUrl;
+  }
+
+  // Modal header type-color tint
+  const _mHead = document.getElementById('modal-head');
+  if (_mHead) _mHead.className = `modal-head modal-head--${tab}`;
 
   // Tab switching
   const allTabKeys = detailTabs.map(t => t.key);

@@ -869,7 +869,13 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
   const dmState = readDmState();
   if (!dmState.playerProfiles) dmState.playerProfiles = {};
   const existing = dmState.playerProfiles[characterId] || {};
-  const allowed = ['level', 'klasse', 'subclass', 'background', 'origin', 'spellSaveDC', 'spellAttackBonus'];
+  const allowed = [
+    'level', 'klasse', 'subclass', 'background', 'origin', 'bloodStatus', 'spellSaveDC', 'spellAttackBonus',
+    'str', 'dex', 'con', 'int', 'wis', 'cha',
+    'ac', 'speed', 'initiative', 'profBonus', 'hitDie',
+    'deathSaveSuccesses', 'deathSaveFailures',
+    'saveProfs', 'skillProfs', 'featuresTraits',
+  ];
   const updated = { ...existing };
   for (const key of allowed) {
     if (req.body[key] !== undefined) updated[key] = req.body[key];
@@ -1345,14 +1351,28 @@ router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.hoofdstukken) meta.hoofdstukken = {};
   meta.hoofdstukken[req.params.key] = {
-    num:   req.body.num   ?? 99,
-    title: req.body.title || '',
-    dag:   req.body.dag   || '',
-    short: req.body.short || req.body.title || req.params.key,
+    num:                 req.body.num   ?? 99,
+    title:               req.body.title || '',
+    dag:                 req.body.dag   || '',
+    short:               req.body.short || req.body.title || req.params.key,
+    bannerFocus:         req.body.bannerFocus         || '',
+    spelersSamenvatting: req.body.spelersSamenvatting || '',
   };
   storage.writeJSON('meta.json', meta);
   req.app.get('io').emit('meta:updated');
   res.json(meta.hoofdstukken[req.params.key]);
+});
+
+router.put('/meta/herberg', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.herberg) meta.herberg = {};
+  const allowed = ['naam','waard','imageId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax'];
+  for (const f of allowed) {
+    if (req.body[f] !== undefined) meta.herberg[f] = req.body[f];
+  }
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').emit('meta:updated');
+  res.json(meta.herberg);
 });
 
 // ── Kaart ──
