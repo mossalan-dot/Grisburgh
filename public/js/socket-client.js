@@ -122,6 +122,8 @@ export function initSocket() {
     import('./api.js').then(({ api }) => api.meta().then(m => {
       if (window.app?.state) window.app.state.meta = m;
       window.app?.applyAppMeta(m);
+      // Refresh hoofdstuk-dropdown in reveal strip (chapters may have changed)
+      window.dmPanel?.renderRevealStrip?.();
     }));
   });
 

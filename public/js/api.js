@@ -77,6 +77,7 @@ export const api = {
   meta: () => request('/meta'),
   saveHoofdstuk: (key, data) => request(`/meta/hoofdstuk/${key}`, { method: 'PUT', body: JSON.stringify(data) }),
   saveAppMeta: (data) => request('/meta/app', { method: 'PUT', body: JSON.stringify(data) }),
+  saveHerberg: (data) => request('/meta/herberg', { method: 'PUT', body: JSON.stringify(data) }),
 
   // Kaart
   listMaps:     ()         => request('/map/maps'),

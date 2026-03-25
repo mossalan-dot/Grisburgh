@@ -297,6 +297,28 @@ body::before {
   border-bottom: 1px solid #c4a87a;
   flex-shrink: 0;
 }
+/* Modal header type-color tints */
+.modal-head--personages  { background: linear-gradient(to bottom, rgba(90,170,112,0.18), transparent); border-bottom-color: rgba(90,170,112,0.45); }
+.modal-head--locaties    { background: linear-gradient(to bottom, rgba(90,138,191,0.18), transparent); border-bottom-color: rgba(90,138,191,0.45); }
+.modal-head--organisaties{ background: linear-gradient(to bottom, rgba(192,96,96,0.18),  transparent); border-bottom-color: rgba(192,96,96,0.45); }
+.modal-head--voorwerpen  { background: linear-gradient(to bottom, rgba(201,149,96,0.18), transparent); border-bottom-color: rgba(201,149,96,0.45); }
+.modal-head--documenten  { background: linear-gradient(to bottom, rgba(138,96,176,0.18), transparent); border-bottom-color: rgba(138,96,176,0.45); }
+
+/* Portrait miniature in modal header */
+.modal-portrait-wrap {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(200,168,64,0.7);
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(60,40,10,0.3);
+}
+.modal-portrait-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 /* Decorative rule under modal title */
 #m-title {
   letter-spacing: 0.04em;
@@ -761,7 +783,7 @@ body::before {
 
 /* ── Modal type accent bar ── */
 .modal-accent {
-  height: 4px;
+  height: 7px;
   border-radius: 9px 9px 0 0;
   flex-shrink: 0;
   transition: background 0.2s ease;
@@ -790,8 +812,23 @@ body::before {
 .detail-hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(25,12,3,0.62) 0%, transparent 52%);
+  background: linear-gradient(to top, rgba(25,12,3,0.72) 0%, rgba(25,12,3,0.18) 40%, transparent 65%);
   pointer-events: none;
+}
+.detail-hero-badge {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  font-size: 9.5px;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 10px;
+  pointer-events: none;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.45);
+  text-shadow: none;
 }
 .detail-hero-icon {
   position: absolute;
@@ -826,15 +863,28 @@ body::before {
   margin-bottom: 14px;
 }
 .detail-meta-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
   font-family: 'IM Fell English', serif;
   font-style: italic;
   font-size: 12.5px;
   color: #5a4030;
   background: rgba(236,220,186,0.7);
   border: 1px solid rgba(196,168,122,0.55);
-  padding: 3px 11px;
+  padding: 3px 11px 3px 9px;
   border-radius: 12px;
   line-height: 1.5;
+}
+.pill-lbl {
+  font-family: 'Cinzel', serif;
+  font-style: normal;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #9a7008;
+  opacity: 0.75;
 }
 
 /* ── Ornate section divider ── */
@@ -4899,11 +4949,713 @@ body::before {
 [data-theme="hp"] .player-pinned-spell-summary:hover { background: rgba(107,63,160,0.2); }
 [data-theme="hp"] .player-pinned-spell-chevron { color: #9b6dc0; }
 
+/* ── Combat stats strip ── */
+.player-combat-strip {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 14px 8px 16px;
+  border-bottom: 1px solid rgba(196,168,122,0.3);
+  margin-bottom: 16px;
+  background: rgba(240,228,196,0.2);
+  border-radius: 0 0 6px 6px;
+}
+.pcs-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 48px;
+}
+.pcs-label {
+  font-family: 'Cinzel', serif;
+  font-size: 7.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #9a7008;
+}
+.pcs-input {
+  width: 52px;
+  text-align: center;
+  padding: 5px 2px;
+  font-family: 'Cinzel', serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #2a1a08;
+  background: rgba(255,255,255,0.5);
+  border: 1.5px solid rgba(196,168,122,0.55);
+  border-radius: 6px;
+  line-height: 1;
+}
+.pcs-input:focus { border-color: #c8a840; outline: none; background: rgba(255,255,255,0.8); }
+.pcs-value {
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #7a5008;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  background: rgba(200,168,64,0.1);
+  border: 1.5px solid rgba(196,168,122,0.4);
+  border-radius: 6px;
+}
+
+/* ── HP hero redesign ── */
+.player-hp-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 4px 0; }
+.player-hp-hero-row { display: flex; align-items: center; gap: 16px; }
+.player-hp-nums { display: flex; align-items: baseline; gap: 4px; }
+.player-hp-current {
+  font-family: 'Cinzel', serif;
+  font-size: 44px;
+  font-weight: 900;
+  line-height: 1;
+  width: 88px;
+  text-align: center;
+  background: none;
+  border: none;
+  border-bottom: 2px solid #c8a840;
+  color: #2a1a08;
+}
+.player-hp-current:focus { outline: none; border-bottom-color: #7a5008; }
+.player-hp-sep { font-size: 26px; color: #9a7008; font-family: 'Cinzel', serif; line-height: 1; }
+.player-hp-max {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  width: 60px;
+  text-align: center;
+  background: none;
+  border: none;
+  border-bottom: 1.5px solid rgba(196,168,122,0.5);
+  color: #5a4030;
+}
+.player-hp-max:focus { outline: none; }
+.player-hp-btn-big {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: 2px solid #c8a840;
+  background: rgba(200,168,64,0.12);
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #7a5008;
+  line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.player-hp-btn-big:hover { background: rgba(200,168,64,0.28); }
+
+/* ── Death saves ── */
+.player-death-saves {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0 2px;
+  border-top: 1px solid rgba(196,168,122,0.25);
+  margin-top: 10px;
+}
+.player-ds-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.player-ds-label {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 700;
+  width: 16px;
+  text-align: center;
+  color: #9a7008;
+}
+.player-ds-dot {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid #c8a840;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s;
+}
+.player-ds-dot.filled.success { background: #5aaa70; border-color: #5aaa70; }
+.player-ds-dot.filled.failure { background: #c06060; border-color: #c06060; }
+.player-ds-sep { font-size: 10px; color: #9a7008; font-family: 'Cinzel', serif; letter-spacing: 0.5px; }
+
+/* ── Ability scores ── */
+.player-ability-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.player-ability-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 7px 4px 8px;
+  background: rgba(240,228,196,0.45);
+  border: 2px solid rgba(196,168,122,0.6);
+  border-radius: 8px;
+  text-align: center;
+  gap: 3px;
+}
+.player-ability-label {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9a7008;
+}
+.player-ability-score {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: #2a1a08;
+  width: 100%;
+  text-align: center;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(196,168,122,0.5);
+  padding: 1px 0;
+  line-height: 1.2;
+}
+.player-ability-score:focus { outline: none; border-bottom-color: #c8a840; }
+.player-ability-mod-wrap {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 20px;
+  border: 1.5px solid rgba(200,168,64,0.65);
+  border-radius: 10px;
+  background: rgba(200,168,64,0.1);
+  margin: 1px 0;
+}
+.player-ability-mod { font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; color: #7a5008; }
+.player-save-dot {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid #c8a840;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 1px;
+  transition: background 0.12s;
+}
+.player-save-dot.active { background: #c8a840; }
+.player-save-val { font-family: 'Cinzel', serif; font-size: 9px; color: #7a5008; font-weight: 700; }
+
+/* ── Skills ── */
+.player-skills-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px 16px;
+}
+.player-skill-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(196,168,122,0.12);
+}
+.player-skill-prof-btn {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(196,168,122,0.7);
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.1s, border-color 0.1s;
+}
+.player-skill-prof-btn.prof { background: #c8a840; border-color: #c8a840; }
+.player-skill-prof-btn.expert { background: #7a5008; border-color: #7a5008; }
+.player-skill-bonus {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  width: 26px;
+  text-align: right;
+  color: #2a1a08;
+  flex-shrink: 0;
+}
+.player-skill-name {
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  color: #2a1a08;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.player-skill-ab {
+  font-size: 8.5px;
+  color: #9a7008;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── Features & Traits ── */
+.player-ft-wrap { display: flex; flex-direction: column; gap: 6px; }
+.player-ft-toolbar { display: flex; gap: 4px; }
+.player-ft-btn {
+  width: 28px; height: 28px;
+  border: 1px solid rgba(196,168,122,0.55);
+  border-radius: 4px;
+  background: rgba(240,228,196,0.5);
+  cursor: pointer;
+  font-size: 13px;
+  color: #2a1a08;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s;
+}
+.player-ft-btn:hover { background: rgba(200,168,64,0.2); }
+.player-ft-btn-i em { font-size: 14px; }
+.player-ft-area {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  background: rgba(240,228,196,0.3);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 6px;
+  color: #2a1a08;
+  font-family: 'IM Fell English', serif;
+  font-size: 13px;
+  line-height: 1.65;
+  resize: vertical;
+}
+.player-ft-area:focus { outline: none; border-color: #c8a840; background: rgba(240,228,196,0.5); }
+
+/* ── Currency redesign ── */
+.player-dash-currency-new {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.player-currency-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1.5px solid;
+}
+.player-currency-gold   { background: rgba(200,168,64,0.12); border-color: rgba(200,168,64,0.5); }
+.player-currency-silver { background: rgba(180,180,200,0.12); border-color: rgba(160,160,180,0.4); }
+.player-currency-copper { background: rgba(180,120,80,0.12); border-color: rgba(160,100,60,0.4); }
+.player-currency-coin { font-size: 24px; line-height: 1; }
+.player-currency-body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.player-currency-name { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #9a7008; }
+.player-currency-input {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #2a1a08;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(196,168,122,0.4);
+  width: 100%;
+  padding: 0;
+}
+.player-currency-input:focus { outline: none; border-bottom-color: #c8a840; }
+
+/* ── Spell slot dots — larger ── */
+.spell-slot-dot {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+}
+
+/* ── Short rest button variant ── */
+.player-dash-slot-rest-btn--short { margin-left: 6px; opacity: 0.85; }
+
+/* ── Logboek redesign ── */
+.logboek-search-wrap {
+  padding: 12px 24px 10px;
+  background: rgba(240,228,196,0.2);
+  border-bottom: 1px solid rgba(196,168,122,0.2);
+}
+.logboek-search-input {
+  width: 100%;
+  max-width: 520px;
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 20px;
+  font-family: 'IM Fell English', serif;
+  font-size: 13.5px;
+  color: #2a1a08;
+}
+.logboek-search-input:focus { outline: none; border-color: #c8a840; background: rgba(255,255,255,0.8); }
+
+.logboek-chapter { margin-bottom: 28px; }
+
+.logboek-chapter-banner {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  min-height: 72px;
+  display: flex;
+  align-items: stretch;
+  background: linear-gradient(135deg, #3a2510 0%, #1a0e04 100%);
+  background-size: cover;
+  background-position: center;
+  user-select: none;
+}
+.logboek-chapter-banner--img { min-height: 110px; }
+.logboek-chapter-banner:hover .logboek-chapter-banner-overlay {
+  background: linear-gradient(to top, rgba(20,10,2,0.92) 0%, rgba(20,10,2,0.55) 60%, transparent 100%);
+}
+.logboek-chapter-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(20,10,2,0.85) 0%, rgba(20,10,2,0.4) 65%, transparent 100%);
+  transition: background 0.2s;
+}
+.logboek-chapter-banner-content {
+  position: relative;
+  z-index: 1;
+  padding: 14px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.logboek-chapter-num {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: #c8a840;
+  margin-bottom: 3px;
+}
+.logboek-chapter-title {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f5edd8;
+  line-height: 1.2;
+}
+.logboek-chapter-dag {
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(245,237,216,0.6);
+  margin-top: 3px;
+}
+.logboek-chapter-toggle-wrap {
+  position: relative;
+  z-index: 1;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.logboek-chapter-toggle {
+  color: #c8a840;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+}
+.logboek-chapter-edit-btn {
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 4px;
+  color: rgba(196,168,122,0.8);
+  font-size: 12px;
+  padding: 2px 6px;
+  cursor: pointer;
+  line-height: 1.4;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+.logboek-chapter-banner:hover .logboek-chapter-edit-btn { opacity: 1; }
+.logboek-chapter-edit-btn:hover { background: rgba(0,0,0,0.75); color: #c8a840; }
+
+.logboek-chapter-content { padding-top: 4px; }
+
+.logboek-timeline {
+  position: relative;
+  padding-left: 28px;
+  border-left: 2px solid rgba(196,168,122,0.3);
+  margin-left: 20px;
+  margin-top: 18px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.logboek-tl-entry {
+  position: relative;
+  cursor: pointer;
+}
+.logboek-tl-entry::before {
+  content: '';
+  position: absolute;
+  left: -36px;
+  top: 14px;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: #c8a840;
+  border: 2px solid #f5edd8;
+  box-shadow: 0 0 0 2px rgba(196,168,122,0.4);
+  transition: transform 0.15s;
+}
+.logboek-tl-entry:hover::before { transform: scale(1.2); }
+.logboek-entry--hidden { opacity: 0.6; }
+.logboek-entry--hidden::before { background: #8a7050; }
+
+.logboek-tl-card {
+  position: relative;
+  background: rgba(240,228,196,0.25);
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+}
+.logboek-tl-entry:hover .logboek-tl-card {
+  border-color: rgba(196,168,122,0.7);
+  box-shadow: 0 4px 14px rgba(60,40,10,0.16);
+  transform: translateX(2px);
+}
+
+.logboek-card-img-wrap {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+}
+.logboek-card-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.logboek-card-img-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(20,10,2,0.88) 0%, rgba(20,10,2,0.2) 55%, transparent 100%);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.logboek-card-chapter-lbl {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(200,168,64,0.8);
+}
+.logboek-card-sessie-num {
+  font-family: 'Cinzel', serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #c8a840;
+}
+.logboek-card-title {
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #f5edd8;
+  line-height: 1.25;
+  text-shadow: 0 1px 5px rgba(0,0,0,0.6);
+  margin: 0;
+}
+.logboek-card-date {
+  font-family: 'IM Fell English', serif;
+  font-size: 10px;
+  font-style: italic;
+  color: rgba(245,237,216,0.6);
+}
+
+.logboek-card-no-img { padding: 14px 16px 10px; }
+.logboek-card-chapter-lbl-plain {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #c8a840;
+  margin-bottom: 2px;
+}
+.logboek-card-sessie-num-plain {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #9a7008;
+}
+.logboek-card-title-plain {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2a1a08;
+  margin: 4px 0 3px;
+}
+.logboek-card-date-plain {
+  font-size: 10px;
+  color: #9a7008;
+  font-family: 'Cinzel', serif;
+  font-style: italic;
+}
+
+.logboek-card-preview {
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  font-style: italic;
+  color: #5a4030;
+  padding: 7px 14px 10px;
+  line-height: 1.55;
+  border-top: 1px solid rgba(196,168,122,0.2);
+  margin: 0;
+}
+.logboek-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 12px 10px;
+}
+.logboek-card-chip {
+  font-size: 10px;
+  color: #7a5008;
+  background: rgba(200,168,64,0.12);
+  border: 1px solid rgba(196,168,122,0.35);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+}
+
+.logboek-card-citaat {
+  font-family: 'IM Fell English', serif;
+  font-size: 11.5px;
+  font-style: italic;
+  color: rgba(140,90,20,0.85);
+  padding: 6px 14px 0;
+  margin: 0;
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.logboek-akte-samenvatting {
+  margin: 4px 16px 12px 50px;
+  padding: 14px 16px;
+  background: rgba(196,168,122,0.07);
+  border: 1px solid rgba(196,168,122,0.25);
+  border-radius: 8px;
+}
+.logboek-akte-samenvatting--empty {
+  border-style: dashed;
+  opacity: 0.7;
+}
+.logboek-akte-samenvatting-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.logboek-akte-samenvatting-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(196,168,122,0.7);
+}
+.logboek-akte-samenvatting-edit {
+  background: transparent;
+  border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 4px;
+  color: rgba(196,168,122,0.6);
+  font-size: 11px;
+  padding: 1px 6px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.logboek-akte-samenvatting-edit:hover { color: #c8a840; border-color: rgba(196,168,122,0.7); }
+.logboek-akte-samenvatting-body { margin: 0; }
+.logboek-akte-samenvatting-empty-hint {
+  font-size: 11px;
+  color: rgba(140,110,60,0.6);
+  font-style: italic;
+  font-family: 'IM Fell English', serif;
+}
+
+.logboek-chapter-docs {
+  margin: 12px 16px 4px 50px;
+  padding-left: 14px;
+  border-left: 2px solid rgba(196,168,122,0.2);
+}
+.logboek-docs-label {
+  font-size: 9px;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #9a7008;
+  margin-bottom: 7px;
+}
+
+.logboek-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Detail modal additions */
+.log-detail-citaat {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 15.5px;
+  color: #7a5008;
+  border-left: 3px solid #c8a840;
+  padding: 10px 16px;
+  margin: 12px 0;
+  background: rgba(200,168,64,0.07);
+  border-radius: 0 4px 4px 0;
+  line-height: 1.65;
+}
+.log-detail-player-note { margin-top: 18px; }
+.log-detail-note-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #9a7008;
+  margin-bottom: 6px;
+}
+.log-detail-note-ta {
+  width: 100%;
+  min-height: 80px;
+  padding: 8px 10px;
+  background: rgba(240,228,196,0.3);
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 6px;
+  font-family: 'IM Fell English', serif;
+  font-size: 13px;
+  color: #2a1a08;
+  line-height: 1.6;
+  resize: vertical;
+}
+.log-detail-note-ta:focus { outline: none; border-color: #c8a840; }
+
 /* ── Herberg ── */
 
 /* Achtergrond op body — ontsnapt aan overflow:hidden van ancestors, bedekt altijd volledig scherm */
 body.herberg-actief {
-  background-image: url('/img/herberg-bg.jpeg') !important;
+  background-image: var(--herberg-backdrop-url, url('/img/herberg-bg.jpeg')) !important;
   background-size: cover !important;
   background-position: center top !important;
   background-attachment: fixed !important;
