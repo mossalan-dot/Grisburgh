@@ -1216,7 +1216,7 @@ async function renderMijnKarakter() {
                 <summary class="player-pinned-spell-summary">
                   <span class="player-pinned-spell-chevron">▾</span>
                   <span class="player-pinned-spell-name">${esc(s.name)}</span>
-                  <span class="player-pinned-spell-meta">Niv. ${s.level}${s.school ? ' · ' + esc(s.school) : ''}</span>
+                  <span class="player-pinned-spell-meta">${s.level === 0 ? 'Cantrip' : 'Niv. ' + s.level}${s.school ? ' · ' + esc(s.school) : ''}</span>
                   <button class="player-pinned-spell-del"
                     onclick="event.preventDefault();event.stopPropagation();window._playerSpellUnpin('${esc(s.index)}')"
                     title="Verwijder">×</button>

@@ -56,6 +56,7 @@ const SCHEMA = {
       { key: 'itemType', label: 'Type', type: 'select', options: ['Wapen','Toveritem','Drank','Uitrusting','Scroll','Ring','Amulet','Overig'] },
       { key: 'rariteit', label: 'Rariteit', type: 'select', options: ['Common','Uncommon','Rare','Very Rare','Legendary'] },
       { key: 'prijs', label: 'Prijs', type: 'text' },
+      { key: 'attunement', label: 'Requires attunement', type: 'checkbox' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
     ],
@@ -582,6 +583,7 @@ function renderCard(type, e) {
           <span class="flavour-preview-text">\u201e${esc(flavour.length > 300 ? flavour.slice(0, 300) + '\u2026' : flavour)}\u201c</span>
         </div>
       ` : ''}
+      ${type === 'voorwerpen' && (e.data?.attunement === 'true' || e.data?.attunement === true) ? `<span class="attunement-badge">Requires attunement</span>` : ''}
       ${type === 'voorwerpen' ? _itemOwnershipBadge(e.id) : ''}
       ${isDM() && e.data?.geheim ? `
         <button class="secret-badge${e._secretReveal ? ' secret-badge--revealed' : ''}"
@@ -1612,6 +1614,17 @@ window._openEditor = async (tab, editId) => {
           </div>
         `;
       }
+    } else if (field.type === 'checkbox') {
+      const checked = val === 'true' || val === true;
+      body += `
+        <div class="flex items-center gap-2">
+          <input type="hidden" name="data_${field.key}" value="${checked ? 'true' : ''}">
+          <input type="checkbox" id="cb_${field.key}" class="rounded"
+            ${checked ? 'checked' : ''}
+            onchange="this.previousElementSibling.value=this.checked?'true':''">
+          <label for="cb_${field.key}" class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider cursor-pointer">${esc(field.label)}</label>
+        </div>
+      `;
     } else if (field.type === 'select') {
       body += `
         <div>

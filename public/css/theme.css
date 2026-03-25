@@ -3547,6 +3547,20 @@ body::before {
   background: rgba(196,148,10,0.28);
   color: #f0c040;
 }
+.attunement-badge {
+  display: inline-block;
+  margin: 4px 8px 2px;
+  padding: 2px 8px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(154,106,42,0.9);
+  background: rgba(154,106,42,0.1);
+  border: 1px solid rgba(154,106,42,0.35);
+  border-radius: 3px;
+}
 
 /* ── Voorwerpen: eigendom & claimen ── */
 
