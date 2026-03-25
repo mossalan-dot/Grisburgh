@@ -1239,8 +1239,18 @@ async function renderMijnKarakter() {
       if (!body || body.dataset.loaded === 'true') return;
       const index = body.dataset.spellIndex;
       try {
-        const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
-        const s = await r.json();
+        let s;
+        if (_isHpCampaign()) {
+          if (!_playerSpellList) {
+            const r = await fetch('/data/hp-spells.json');
+            const d = await r.json();
+            _playerSpellList = d.results || [];
+          }
+          s = _playerSpellList.find(sp => sp.index === index) || {};
+        } else {
+          const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
+          s = await r.json();
+        }
         const desc = (s.desc || []).join('<br><br>');
         const higher = s.higher_level?.length
           ? `<p class="player-spell-higher"><strong>Op hogere niveaus:</strong> ${s.higher_level.join(' ')}</p>` : '';
