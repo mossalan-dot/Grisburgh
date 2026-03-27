@@ -561,7 +561,7 @@ function renderCard(type, e) {
       ` : ''}
       <div class="card-accent bar-${type}"></div>
       <div class="card-img-wrap">
-        <img class="card-img w-full ${type === 'voorwerpen' ? 'card-img-item' : 'object-cover'}" src="${api.fileUrl(e.id)}"
+        <img class="card-img w-full object-cover" src="${api.fileUrl(e.id)}"
           style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
           onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
         <div class="card-img-fade"></div>
@@ -596,6 +596,24 @@ function renderCard(type, e) {
   `;
 }
 
+// Vaste kleurpalet per speler (op basis van characterId hash)
+const _PLAYER_COLORS = [
+  '#7b9e6b', // groen
+  '#6b8bbf', // blauw
+  '#b07a4e', // oranje-bruin
+  '#9b6bb5', // paars
+  '#b5836b', // terracotta
+  '#5e9e9e', // teal
+  '#b5a040', // goud
+  '#7e6e9e', // lavendel
+];
+function _playerColor(characterId) {
+  if (!characterId) return _PLAYER_COLORS[0];
+  let h = 0;
+  for (let i = 0; i < characterId.length; i++) h = (h * 31 + characterId.charCodeAt(i)) >>> 0;
+  return _PLAYER_COLORS[h % _PLAYER_COLORS.length];
+}
+
 function _itemOwnershipBadge(itemId) {
   const owner   = _ownership.owners[itemId];
   const myId    = window.app?.state?.characterId;
@@ -605,8 +623,9 @@ function _itemOwnershipBadge(itemId) {
   // Eigenaar-label
   if (owner) {
     const isMine = myId && owner.characterId === myId;
+    const color  = isMine ? '' : `color:${_playerColor(owner.characterId)};border-color:${_playerColor(owner.characterId)}40`;
     return `
-      <div class="item-owner-badge ${isMine ? 'item-owner-badge--mine' : ''}" onclick="event.stopPropagation()">
+      <div class="item-owner-badge ${isMine ? 'item-owner-badge--mine' : 'item-owner-badge--other'}" style="${color}" onclick="event.stopPropagation()">
         ${isMine ? '🎒 Jouw eigendom' : `🎒 ${esc(owner.playerName)}`}
         ${isDm ? `<button class="item-owner-remove" onclick="event.stopPropagation();window._itemRemoveOwner('${esc(itemId)}')" title="Eigendom verwijderen">✕</button>` : ''}
         ${isDm ? `<button class="item-give-btn" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan andere speler">🎁</button>` : ''}
@@ -684,6 +703,8 @@ window._itemAssignToPlayer = async function(itemId, characterId, playerName, gro
   try {
     await api.assignItemOwner(itemId, { characterId, playerName, groupId: groupId || null });
     window.app.closeModal();
+    await refreshOwnership();
+    renderEntitySection('voorwerpen');
   } catch (e) {
     console.warn('_itemAssignToPlayer fout:', e);
   }

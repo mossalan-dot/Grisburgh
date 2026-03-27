@@ -3582,6 +3582,9 @@ body::before {
   background: rgba(196,147,10,0.14);
   color: #c4930a;
 }
+.item-owner-badge--other {
+  background: rgba(255,255,255,0.06);
+}
 .item-owner-remove {
   margin-left: auto;
   background: none;
