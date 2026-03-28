@@ -1058,7 +1058,7 @@ async function renderMijnKarakter() {
         <div class="player-dash-section">
           <div class="player-dash-section-title">🔮 Klassevaardig­heden</div>
           ${trackers.map(t => `
-            <div class="player-tracker-row">
+            <div class="player-tracker-row" data-tid="${esc(t.id)}">
               <input class="player-tracker-name-input" type="text" value="${esc(t.name)}"
                 placeholder="Naam…" maxlength="30"
                 onblur="window._dashRenameTracker('${esc(t.id)}', this.value)">
@@ -1164,7 +1164,7 @@ async function renderMijnKarakter() {
             <input id="dash-item-name" class="player-dash-add-item-input" type="text"
               placeholder="Naam voorwerp…" maxlength="80">
             <input id="dash-item-note" class="player-dash-add-item-note" type="text"
-              placeholder="Notitie (optioneel)" maxlength="120">
+              placeholder="Notitie (optioneel)" maxlength="500">
             <button class="player-dash-add-item-btn" onclick="window._dashAddItem()">+ Voeg toe</button>
           </div>
         </div>
@@ -1417,13 +1417,28 @@ async function renderMijnKarakter() {
   };
 
   // ── Trackers ──
+  // Herstelt de dots en teller van één tracker in-place (zonder volledige re-render)
+  function _redrawTrackerRow(t) {
+    const row = document.querySelector(`.player-tracker-row[data-tid="${t.id}"]`);
+    if (!row) return;
+    const dotsWrap = row.querySelector('.player-dash-slot-dots');
+    if (dotsWrap) {
+      dotsWrap.innerHTML = Array.from({ length: t.max }, (_, i) => `
+        <button class="spell-slot-dot ${i < t.current ? 'used' : 'free'}"
+          title="${i < t.current ? 'Verbruikt — klik om vrij te maken' : 'Vrij — klik om te verbruiken'}"
+          onclick="window._dashToggleTracker('${t.id}', ${i})"></button>`).join('');
+    }
+    const count = row.querySelector('.player-dash-slot-count');
+    if (count) count.textContent = `${t.current}/${t.max}`;
+  }
+
   window._dashToggleTracker = async function(trackerId, dotIdx) {
     const t = trackers.find(tr => tr.id === trackerId);
     if (!t) return;
     const newCurrent = dotIdx < t.current ? t.current - 1 : t.current + 1;
     t.current = Math.min(Math.max(0, newCurrent), t.max);
+    _redrawTrackerRow(t);
     await api.patchPlayerTracker(state.characterId, trackerId, { current: t.current }).catch(() => {});
-    renderMijnKarakter();
   };
 
   window._dashAddTracker = async function() {
@@ -1457,8 +1472,8 @@ async function renderMijnKarakter() {
     const newMax = Math.max(1, Math.min(20, t.max + delta));
     t.max = newMax;
     t.current = Math.min(t.current, newMax);
+    _redrawTrackerRow(t);
     await api.patchPlayerTracker(state.characterId, trackerId, { max: newMax }).catch(() => {});
-    renderMijnKarakter();
   };
 
   // ── Spreukzoeker ──
