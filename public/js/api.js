@@ -85,9 +85,11 @@ export const api = {
   updateMap:    (id, data) => request(`/map/maps/${id}`,{ method: 'PUT',    body: JSON.stringify(data) }),
   deleteMap:    (id)       => request(`/map/maps/${id}`,{ method: 'DELETE' }),
   mapPins: (mapId) => request(`/map/pins?mapId=${encodeURIComponent(mapId || 'grisburgh')}`),
+  availableLocations: (mapId) => request(`/map/pins/available-locations?mapId=${encodeURIComponent(mapId || 'grisburgh')}`),
   createMapPin: (data) => request('/map/pins', { method: 'POST', body: JSON.stringify(data) }),
   updateMapPin: (id, data) => request(`/map/pins/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteMapPin: (id) => request(`/map/pins/${id}`, { method: 'DELETE' }),
+  approveMapPin: (id) => request(`/map/pins/${id}/approve`, { method: 'PUT' }),
 
   // Tunnel
   tunnelStart:  ()     => request('/tunnel/start',  { method: 'POST' }),
@@ -184,6 +186,14 @@ export const api = {
   updateCombatant:  (id, d)   => request(`/combat/combatant/${id}`,    { method: 'PUT',    body: JSON.stringify(d) }),
   removeCombatant:  (id)      => request(`/combat/combatant/${id}`,    { method: 'DELETE' }),
   setCombatWinner:  (winner)  => request('/combat/winner',             { method: 'PUT',    body: JSON.stringify({ winner }) }),
+
+  // Berichten
+  getBerichten:        ()                   => request('/berichten'),
+  sendBericht:         (data)               => request('/berichten',                         { method: 'POST',  body: JSON.stringify(data) }),
+  markBerichtGelezen:  (characterId, msgId) => request(`/berichten/${characterId}/${msgId}/gelezen`, { method: 'PUT' }),
+  deleteBericht:       (characterId, msgId) => request(`/berichten/${characterId}/${msgId}`,         { method: 'DELETE' }),
+  getSjablonen:        ()                   => request('/berichten/sjablonen'),
+  saveSjablonen:       (sjablonen)          => request('/berichten/sjablonen',                { method: 'PUT',   body: JSON.stringify({ sjablonen }) }),
 
   // Generieke helper-methoden
   get:  (path)        => request(path),

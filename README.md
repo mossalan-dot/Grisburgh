@@ -22,6 +22,7 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 | **Documenten** | Brieven, kranten, kaarten, manuscripten, dagboeken, audiofragmenten — met 3-staps onthulling |
 | **Kaarten** | Interactieve stad- en wereldkaarten met zoom, pan en klikbare locatiepins |
 | **Logboek** | Sessiesamenvattingen per hoofdstuk met entities, afbeeldingen en documentlinks |
+| **Herberg** | Spelers kunnen de waard bevragen voor roddels over zichtbare personages en locaties (flavour-tekst, max. vragen + cooldown, 3 gerandomiseerde suggesties) |
 
 ---
 
@@ -53,6 +54,7 @@ Een lokaal draaiende web-app voor de Grisburgh D&D-campagne. De DM beheert perso
 - Meerdere kaarten (stad, wereld) via tabs
 - Locatiepins klikbaar — openen het bijbehorende locatiekaartje
 - DM kan pins toevoegen, verplaatsen en verwijderen
+- **Spelers kunnen locaties voorstellen** op de kaart — de DM keurt goed of wijst af (pending-pin met pulsanimatie)
 - Rustieke rand rondom kaarten
 
 ### Detail-modal
@@ -97,9 +99,12 @@ Toegankelijk nadat een speler een personage heeft gekozen.
 - Personageportret en naam (geladen uit het personagekaartje)
 - HP-balk met statuslabel (Gezond → Lichtgewond → Gewond → Zwaargewond → Kritiek → Gevallen)
 - Eigen HP aanpassen direct vanuit het dashboard (tijdens gevecht)
+- **Klassethema**: klik op het klasse-icoon om een themakleur per klasse in/uit te schakelen
+- **Multiclass-ondersteuning**: toggle via ⊕-knop naast het Class-veld; toont aparte klasse + level per klasse; icoon en thema passen zich aan naar de dominante klasse
 - **Emote-knoppen**: altijd zichtbaar als de DM emotes heeft ingesteld
   - Tijdens gevecht: geluid wordt afgespeeld op de DM-laptop
   - Buiten gevecht: geluid wordt lokaal afgespeeld op het apparaat van de speler
+- **Beurs**: Florinde, Knaker en Centeling naast elkaar weergegeven in het Knapzak-tabblad
 - **Gevonden voorwerpen**: kaartjes van items die de DM aan de speler heeft toegewezen
 - **Losse aantekeningen**: spelers kunnen zelf vrije tekstitems toevoegen (niet gekoppeld aan een kaartje)
 - Navigatietab toont het avatar van de speler
@@ -172,6 +177,7 @@ Toegankelijk via de ⚔-knop rechtsonder. Tabs:
 | **Geluiden** | Gevechtsklanken en emotes beheren per speler |
 | **Monsters** | Monsterbibliotheek beheren (aanmaken, bewerken, verwijderen, per hoofdstuk) |
 | **Gevecht** | Gevecht opzetten en beheren (deelnemers, beurten, condities) |
+| **Herberg** | Herberginstellingen: naam, waard (NPC-portret), achtergrondafbeelding en begroetingstekst per speler (`{naam}` als placeholder) |
 
 ---
 

@@ -38,6 +38,7 @@ window.app = {
   refreshSection,
   switchSection,
   esc,
+  escJS,
   mdToHtml,
   switchGroup,
   renameGroup,
@@ -96,6 +97,11 @@ function switchSection(section) {
     b.classList.toggle('active', b.dataset.section === section));
 
   $$('.section').forEach(s => s.classList.toggle('active', s.id === `section-${section}`));
+  // Verberg de floating reveal-strip in de Meesterkamer (die heeft eigen ruimte)
+  const revealStrip = document.getElementById('dm-reveal-strip');
+  if (revealStrip && revealStrip.classList.contains('dm-reveal-strip--visible')) {
+    revealStrip.classList.toggle('dm-reveal-strip--in-mk', section === 'meesterkamer');
+  }
   // Herberg-achtergrond op body togglen zodat hij altijd het volledige scherm bedekt
   document.body.classList.toggle('herberg-actief', section === 'herberg');
   refreshSection(section);
@@ -355,6 +361,8 @@ async function playerLogin(characterId) {
     state.characterId = cid;
     closePlayerPicker();
     applyRole();
+    // Registreer socket zodat DM directe berichten kan sturen
+    if (cid && window._socket) window._socket.emit('player:register', cid);
     // Als het eigen karakter-tabblad actief is, herlaad het
     if (state.activeSection === 'mijn-karakter') refreshSection('mijn-karakter');
   } catch (err) {
@@ -420,6 +428,11 @@ $('#lightbox').addEventListener('wheel', (e) => {
 function esc(s) {
   if (!s) return '';
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── JS string escape (voor names in single-quoted onclick handlers) ──
+function escJS(s) {
+  return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
 // ── Markdown → HTML (headings, bold, italic, newlines) ──
@@ -552,14 +565,16 @@ window.renderGroupSwitcher = function(groups, activeGroupId) {
   container.classList.toggle('hidden', !isDm);
   if (!isDm) return;
   container.innerHTML = groups.map(g => `
-    <button class="group-tab${g.active ? ' active' : ''}"
-      onclick="window.app.switchGroup('${esc(g.id)}')"
-      ondblclick="window.app.renameGroup('${esc(g.id)}','${esc(g.name)}')"
-      title="${g.active ? 'Actieve groep · dubbelklik om te hernoemen' : 'Wissel naar deze groep · dubbelklik om te hernoemen'}"
-    >${esc(g.name)}</button>
+    <span class="group-tab-wrap${g.active ? ' active' : ''}">
+      <button class="group-tab${g.active ? ' active' : ''}"
+        onclick="window.app.switchGroup('${esc(g.id)}')"
+        title="${g.active ? 'Actieve groep' : 'Wissel naar deze groep'}"
+      >${esc(g.name)}</button>
+      <button class="group-tab-rename" onclick="window.app.renameGroup('${esc(g.id)}','${escJS(g.name)}')" title="Hernoemen">✎</button>
+      ${groups.length > 1 ? `<button class="group-tab-del" onclick="window.app.deleteGroup('${esc(g.id)}')" title="Groep verwijderen">×</button>` : ''}
+    </span>
   `).join('') + `
     <button class="group-tab-add" onclick="window.app.newGroup()" title="Nieuwe groep aanmaken">+</button>
-    ${groups.length > 1 ? `<button class="group-tab-del" onclick="window.app.deleteGroup()" title="Huidige groep verwijderen">×</button>` : ''}
   `;
 };
 
@@ -586,13 +601,22 @@ async function newGroup() {
   catch (e) { alert('Fout: ' + e.message); }
 }
 
-async function deleteGroup() {
-  const groups = document.querySelectorAll('#group-switcher .group-tab');
-  const activeBtn = document.querySelector('#group-switcher .group-tab.active');
-  const name = activeBtn?.textContent?.trim() || 'deze groep';
+async function deleteGroup(groupId) {
+  const id = groupId || _activeGroupId;
+  if (!id) return;
+  const btn = document.querySelector(`#group-switcher .group-tab-wrap button.group-tab[onclick*="${id}"]`);
+  const name = btn?.textContent?.trim() || 'deze groep';
   if (!confirm(`Groep "${name}" verwijderen? De zichtbaarheidsstatus van deze groep gaat verloren.`)) return;
-  try { await api.deleteGroup(_activeGroupId); }
-  catch (e) { alert('Fout: ' + e.message); }
+  try {
+    // Als de te verwijderen groep actief is, wissel eerst naar een andere
+    if (id === _activeGroupId) {
+      const allWraps = [...document.querySelectorAll('#group-switcher .group-tab-wrap')];
+      const other = allWraps.find(w => !w.classList.contains('active'));
+      const otherId = other?.querySelector('.group-tab')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+      if (otherId) await api.switchGroup(otherId);
+    }
+    await api.deleteGroup(id);
+  } catch (e) { alert('Fout: ' + e.message); }
 }
 
 // ── Refresh ──
@@ -659,8 +683,29 @@ function _getKlassen() {
 }
 const _AB_LABELS = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' };
 
-let _playerSubTab = localStorage.getItem('_playerSubTab') || 'personage';
+let _playerSubTab    = localStorage.getItem('_playerSubTab') || 'personage';
+let _klasseThemeOn   = localStorage.getItem('_klasseThemeOn') !== 'false'; // standaard aan
 let _playerSpellList = null;
+
+function _fmtBerichtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }) + ' ' +
+         d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+}
+
+window._updateBerichtenBadge = function() {
+  const count = window._berichtenUnread || 0;
+  const btn = document.querySelector('.player-subtab[data-tab="berichten"]');
+  if (!btn) return;
+  const existing = btn.querySelector('.bericht-badge');
+  if (count > 0) {
+    if (existing) existing.textContent = count;
+    else btn.insertAdjacentHTML('beforeend', ` <span class="bericht-badge">${count}</span>`);
+  } else {
+    existing?.remove();
+  }
+};
 
 async function renderMijnKarakter() {
   const el = document.getElementById('section-mijn-karakter');
@@ -686,8 +731,9 @@ async function renderMijnKarakter() {
   let trackers      = [];
   let pinnedSpells  = [];
   let inspired      = false;
+  let berichtenLijst = [];
   try {
-    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, { inspired }] = await Promise.all([
+    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, { inspired }, berichtenLijst] = await Promise.all([
       api.getPlayerHp(state.characterId).catch(() => ({ current: null, max: null })),
       api.getEntity('personages', state.characterId).catch(() => null),
       api.getCombat().catch(() => null),
@@ -703,8 +749,13 @@ async function renderMijnKarakter() {
       api.getPlayerTrackers(state.characterId).catch(() => []),
       api.getPlayerSpells(state.characterId).catch(() => []),
       api.getInspiration(state.characterId).catch(() => ({ inspired: false })),
+      api.getBerichten().then(d => d.berichten || []).catch(() => []),
     ]);
   } catch { /* ok */ }
+
+  // Sla unread bericht-teller op (niet resetten als berichten-tab open is)
+  const unreadCount = berichtenLijst.filter(m => !m.gelezen).length;
+  if (_playerSubTab !== 'berichten') window._berichtenUnread = unreadCount;
 
   // Sla eigen groep-id op zodat socket-events kunnen filteren
   window._myGroupId = entity?.data?.groep || null;
@@ -767,7 +818,17 @@ async function renderMijnKarakter() {
 
   // Portret
   const imgUrl = api.fileUrl(state.characterId);
-  const sub = [entity?.data?.ras, entity?.data?.klasse].filter(Boolean).join(' · ');
+
+  // Multiclass
+  const _isMulticlass = playerProfile.multiclass === 'true' || playerProfile.multiclass === true;
+  const _kLvl  = parseInt(playerProfile.klasseLevel) || 0;
+  const _mkLvl = parseInt(playerProfile.multiKlasseLevel) || 0;
+  const _dominantKlasse = (_isMulticlass && playerProfile.multiKlasse && _mkLvl > _kLvl)
+    ? playerProfile.multiKlasse : (playerProfile.klasse || '');
+  const _klasseStr = _isMulticlass && playerProfile.multiKlasse
+    ? `${playerProfile.klasse || '?'} (${playerProfile.klasseLevel || '?'}) / ${playerProfile.multiKlasse} (${playerProfile.multiKlasseLevel || '?'})`
+    : entity?.data?.klasse || playerProfile.klasse || '';
+  const sub = [entity?.data?.ras, _klasseStr].filter(Boolean).join(' · ');
   const desc = entity?.data?.desc || '';
 
   // ── Spreukslots HTML helper ──
@@ -794,11 +855,14 @@ async function renderMijnKarakter() {
     return { rows };
   })();
 
+  const _klasseKey = _dominantKlasse.toLowerCase().replace(/\s+/g, '-');
+  const _themeAttr  = (_klasseThemeOn && _klasseKey) ? ` data-klasse="${esc(_klasseKey)}"` : '';
+
   el.innerHTML = `
-    <div class="player-dashboard">
+    <div class="player-dashboard"${_themeAttr}>
       <!-- Karakter header (altijd zichtbaar) -->
       <div class="player-dash-hero">
-        <div class="player-dash-avatar-wrap">
+        <div class="player-dash-avatar-wrap avatar-${hpCls}">
           <img src="${imgUrl}" class="player-dash-avatar"
             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <div class="player-dash-avatar-fallback" style="display:none">👤</div>
@@ -812,13 +876,32 @@ async function renderMijnKarakter() {
                 value="${esc(playerProfile.level ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('level', this.value)"></div>
             <div class="ppf-row"><label class="ppf-label">Class</label>
-              <select class="ppf-input ppf-select"
-                onchange="window._saveProfileField('klasse', this.value); window._updateKlasseIcon(this.value)">
+              <select class="ppf-input ppf-select" id="ppf-klasse-select"
+                onchange="window._saveProfileField('klasse', this.value); window._updateMulticlassTheme()">
                 <option value="">—</option>
                 ${_getKlassen().map(k =>
                   `<option value="${k}"${playerProfile.klasse === k ? ' selected' : ''}>${k}</option>`
                 ).join('')}
-              </select></div>
+              </select>
+              ${_isMulticlass ? `<input class="ppf-input ppf-level" id="ppf-klasse-level" type="number" min="1" max="20"
+                value="${esc(playerProfile.klasseLevel ?? '')}" placeholder="Niv"
+                onblur="window._saveProfileField('klasseLevel', this.value); window._updateMulticlassTheme()">` : ''}
+              <button class="ppf-multiclass-toggle${_isMulticlass ? ' ppf-multiclass-toggle--active' : ''}"
+                onclick="window._toggleMulticlass()"
+                title="${_isMulticlass ? 'Multiclass uitschakelen' : 'Multiclass inschakelen'}">⊕</button>
+            </div>
+            ${_isMulticlass ? `<div class="ppf-row"><label class="ppf-label">Multiclass</label>
+              <select class="ppf-input ppf-select" id="ppf-multi-select"
+                onchange="window._saveProfileField('multiKlasse', this.value); window._updateMulticlassTheme()">
+                <option value="">—</option>
+                ${_getKlassen().map(k =>
+                  `<option value="${k}"${playerProfile.multiKlasse === k ? ' selected' : ''}>${k}</option>`
+                ).join('')}
+              </select>
+              <input class="ppf-input ppf-level" id="ppf-multi-level" type="number" min="1" max="20"
+                value="${esc(playerProfile.multiKlasseLevel ?? '')}" placeholder="Niv"
+                onblur="window._saveProfileField('multiKlasseLevel', this.value); window._updateMulticlassTheme()">
+            </div>` : ''}
             <div class="ppf-row"><label class="ppf-label">${isHp ? 'School of Magic' : 'Subclass'}</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.subclass ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('subclass', this.value)"></div>
@@ -833,19 +916,21 @@ async function renderMijnKarakter() {
                 onblur="window._saveProfileField('bloodStatus', this.value)"></div>` : ''}
           </div>
         </div>
-        <div class="player-class-icon-wrap" id="player-class-icon-wrap">
-          ${playerProfile.klasse && _KLASSEN_DEFAULT.includes(playerProfile.klasse) && playerProfile.klasse !== 'Artificer' ? `<img src="/img/classes/${esc(playerProfile.klasse)}.png" class="player-class-icon" alt="${esc(playerProfile.klasse)}">` : ''}
+        <div class="player-class-icon-wrap" id="player-class-icon-wrap"${_klasseKey ? ` onclick="window._toggleKlasseTheme()" title="${_klasseThemeOn ? 'Schakel naar standaard look' : 'Schakel naar klasse-look'}" style="cursor:pointer"` : ''}>
+          ${_dominantKlasse && _KLASSEN_MET_ICON.has(_dominantKlasse) ? `<img src="/img/classes/${esc(_dominantKlasse)}.png" class="player-class-icon" alt="${esc(_dominantKlasse)}">` : ''}
         </div>
       </div>
 
       <!-- Subtab nav -->
       <div class="player-subtabs">
         <button class="player-subtab${_playerSubTab === 'personage' ? ' active' : ''}"
-          data-tab="personage" onclick="window._setPlayerSubTab('personage')">🧙 Mijn personage</button>
+          data-tab="personage" onclick="window._setPlayerSubTab('personage')">🧙 Personage</button>
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
-          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">🎒 Mijn knapzak</button>
+          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">🎒 Knapzak</button>
         <button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
-          data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">✨ Mijn spreukenboek</button>
+          data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">✨ Spreukenboek</button>
+        <button class="player-subtab${_playerSubTab === 'berichten' ? ' active' : ''}"
+          data-tab="berichten" onclick="window._setPlayerSubTab('berichten')">💬 Berichten${window._berichtenUnread ? ` <span class="bericht-badge">${window._berichtenUnread}</span>` : ''}</button>
       </div>
 
       <!-- ═══ TAB: Mijn personage ═══ -->
@@ -1229,6 +1314,24 @@ async function renderMijnKarakter() {
         </div>
       </div>
 
+      <!-- ═══ TAB: Berichten ═══ -->
+      <div id="pst-berichten" class="player-subtab-panel${_playerSubTab !== 'berichten' ? ' hidden' : ''}">
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">💬 Geheime berichten</div>
+          ${berichtenLijst.length === 0
+            ? '<p class="player-dash-empty">Nog geen berichten ontvangen.</p>'
+            : berichtenLijst.slice().reverse().map(m => `
+              <div class="speler-bericht-item${m.gelezen ? '' : ' speler-bericht-item--nieuw'}"
+                data-mid="${esc(m.id)}" onclick="window._berichtMarkGelezen('${esc(m.id)}')">
+                <div class="speler-bericht-row">
+                  <div class="speler-bericht-tekst">${esc(m.tekst)}</div>
+                  <button class="bericht-del-btn" title="Verwijder" onclick="event.stopPropagation();window._berichtPlayerDelete('${esc(m.id)}')">✕</button>
+                </div>
+                <div class="speler-bericht-meta">${_fmtBerichtDate(m.timestamp)}${m.gelezen ? '' : ' · <strong>nieuw</strong>'}</div>
+              </div>`).join('')}
+        </div>
+      </div>
+
     </div>`;
 
   // ── Spreuk-accordion: beschrijving lazy laden ──
@@ -1251,7 +1354,11 @@ async function renderMijnKarakter() {
           const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
           s = await r.json();
         }
-        const desc = (s.desc || []).join('<br><br>');
+        const _md = t => t
+          .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>');
+        const desc = (s.desc || []).map(_md).join('<br><br>');
         const higher = s.higher_level?.length
           ? `<p class="player-spell-higher"><strong>Op hogere niveaus:</strong> ${s.higher_level.join(' ')}</p>` : '';
         const metaParts = [
@@ -1278,6 +1385,38 @@ async function renderMijnKarakter() {
     try {
       await api.patchPlayerProfile(state.characterId, { [field]: value });
     } catch (e) { console.warn('Profiel opslaan mislukt', e); }
+  };
+
+  // Multiclass toggle
+  window._toggleMulticlass = async function() {
+    const cur = playerProfile.multiclass === 'true' || playerProfile.multiclass === true;
+    await window._saveProfileField('multiclass', cur ? '' : 'true');
+    window.app.refreshSection('mijn-karakter');
+  };
+
+  // Reactief icon + theme updaten na level-/klassewijziging
+  window._updateMulticlassTheme = function() {
+    const klass  = document.getElementById('ppf-klasse-select')?.value || '';
+    const mklass = document.getElementById('ppf-multi-select')?.value || '';
+    const kLvl   = parseInt(document.getElementById('ppf-klasse-level')?.value) || 0;
+    const mkLvl  = parseInt(document.getElementById('ppf-multi-level')?.value) || 0;
+    const dominant = (mklass && mkLvl > kLvl) ? mklass : klass;
+    // Icon
+    const wrap = document.getElementById('player-class-icon-wrap');
+    if (wrap) {
+      if (dominant && _KLASSEN_MET_ICON.has(dominant)) {
+        wrap.innerHTML = `<img src="/img/classes/${dominant}.png" class="player-class-icon" alt="${dominant}">`;
+      } else {
+        wrap.innerHTML = '';
+      }
+    }
+    // Theme
+    const dash = document.querySelector('.player-dashboard');
+    if (dash) {
+      const key = dominant.toLowerCase().replace(/\s+/g, '-');
+      if (_klasseThemeOn && key) dash.setAttribute('data-klasse', key);
+      else dash.removeAttribute('data-klasse');
+    }
   };
 
   // HP-helpers voor het dashboard
@@ -1400,12 +1539,45 @@ async function renderMijnKarakter() {
   window._setPlayerSubTab = function(tab) {
     _playerSubTab = tab;
     localStorage.setItem('_playerSubTab', tab);
-    ['personage', 'knapzak', 'spreukenboek'].forEach(t => {
+    ['personage', 'knapzak', 'spreukenboek', 'berichten'].forEach(t => {
       const panel = document.getElementById('pst-' + t);
       if (panel) panel.classList.toggle('hidden', t !== tab);
       const btn = document.querySelector(`.player-subtab[data-tab="${t}"]`);
       if (btn) btn.classList.toggle('active', t === tab);
     });
+    // Berichten gelezen markeren als tab geopend wordt
+    if (tab === 'berichten') {
+      window._berichtenUnread = 0;
+      window._updateBerichtenBadge?.();
+    }
+  };
+
+  // ── Bericht mark-gelezen ──
+  window._berichtMarkGelezen = async function(msgId) {
+    if (!state.characterId || !msgId) return;
+    const item = document.querySelector(`.speler-bericht-item[data-mid="${msgId}"]`);
+    if (item) item.classList.remove('speler-bericht-item--nieuw');
+    try { await api.markBerichtGelezen(state.characterId, msgId); } catch { /* ok */ }
+  };
+
+  window._berichtPlayerDelete = async function(msgId) {
+    if (!state.characterId || !msgId) return;
+    const item = document.querySelector(`.speler-bericht-item[data-mid="${msgId}"]`);
+    if (item) item.remove();
+    try { await api.deleteBericht(state.characterId, msgId); } catch { /* ok */ }
+  };
+
+  // ── Klasse-thema toggle ──
+  window._toggleKlasseTheme = function() {
+    _klasseThemeOn = !_klasseThemeOn;
+    localStorage.setItem('_klasseThemeOn', _klasseThemeOn);
+    const dash = document.querySelector('.player-dashboard');
+    const wrap = document.getElementById('player-class-icon-wrap');
+    if (dash) {
+      if (_klasseThemeOn && _klasseKey) dash.setAttribute('data-klasse', _klasseKey);
+      else dash.removeAttribute('data-klasse');
+    }
+    if (wrap) wrap.title = _klasseThemeOn ? 'Schakel naar standaard look' : 'Schakel naar klasse-look';
   };
 
   // ── Inspiratie gebruiken ──
@@ -1613,7 +1785,11 @@ async function renderMijnKarakter() {
       const schoolMap = { Charm: 'Bezwering', Curse: 'Vloek', Transfiguration: 'Gedaanteverandering', Healing: 'Genezing' };
       const schoolNl  = schoolMap[s.school?.name] || s.school?.name || '';
       const levelStr  = s.level === 0 ? 'Tovervorm' : `Niveau ${s.level}`;
-      const desc   = (s.desc || []).join('<br><br>');
+      const _md2 = t => t
+        .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>');
+      const desc   = (s.desc || []).map(_md2).join('<br><br>');
       const higher = s.higher_level?.length ? `<p class="mt-2"><strong>Op hogere niveaus:</strong> ${s.higher_level.join(' ')}</p>` : '';
       window.app.openModal(
         s.name,
@@ -1948,12 +2124,28 @@ async function renderHerberg() {
   try { data = await api.get('/herberg'); }
   catch { el.innerHTML = '<p class="p-8 text-ink-dim">Herberg niet beschikbaar.</p>'; return; }
 
-  const { config, state: hState, entities } = data;
+  const { config, state: hState, entities, playerFirstName } = data;
   const remaining = config.maxVragen - hState.vragen;
   const cooldownActief = hState.cooldownTot && new Date(hState.cooldownTot) > new Date();
 
+  // Begroetingstekst — {naam} vervangen door voornaam speler
+  const _groetTekst = config.groet
+    ? config.groet.replace(/\{naam\}/gi, esc(playerFirstName || 'avonturier'))
+    : `${playerFirstName ? esc(playerFirstName) + '!' : 'Avonturiers!'} Wat kan ik voor je betekenen?`;
+
   // Alleen entiteiten tonen waarvan de roddel nog niet uitgesproken is
   const beschikbaar = entities.filter(e => !e.uitgesproken);
+
+  // 3 gerandomiseerde voorbeelden
+  const _sample = (arr, n) => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a.slice(0, n);
+  };
+  let _gesamplede = _sample(beschikbaar, 3);
 
   const tellerTekst = !cooldownActief && hState.vragen > 0
     ? remaining === 1
@@ -1971,7 +2163,7 @@ async function renderHerberg() {
             ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round${cooldownActief ? ' herberg-portrait--weg' : ''}" alt="${esc(config.waard)}">`
             : `<div class="herberg-portrait-round herberg-portrait-fallback${cooldownActief ? ' herberg-portrait--weg' : ''}">🍺</div>`}
         </div>
-        <p class="herberg-groet">Avonturiers! Wat kan ik voor jullie betekenen?</p>
+        <p class="herberg-groet">${_groetTekst}</p>
 
         ${cooldownActief
           ? `<p class="herberg-cooldown-tekst">${esc(config.waard)} helpt even een andere klant. Ze is zo bij je terug.</p>`
@@ -1979,20 +2171,22 @@ async function renderHerberg() {
             ? `<p class="herberg-cooldown-tekst">${esc(config.waard)} heeft genoeg gesproken voor vandaag.</p>`
             : `<div class="herberg-zoek-wrap">
                 ${tellerTekst ? `<p class="herberg-teller">${tellerTekst}</p>` : ''}
-                <div class="herberg-search-wrap">
-                  <input class="herberg-search" placeholder="Kun je me meer vertellen over\u2026"
-                    oninput="window._herbergFilter(this.value)" id="herberg-search" autocomplete="off">
-                </div>
                 <div id="herberg-lijst" class="herberg-lijst">
                   ${beschikbaar.length === 0
-                    ? `<p class="herberg-leeg">Brylwaen weet niets meer te vertellen.</p>`
-                    : beschikbaar.map(e => `
+                    ? `<p class="herberg-leeg">${esc(config.waard)} weet niets meer te vertellen.</p>`
+                    : _gesamplede.map(e => `
                         <button class="herberg-item"
                           onclick="window._herbergVraag('${esc(e.id)}')"
                           data-name="${esc(e.name.toLowerCase())}">
                           <span class="herberg-item-naam">${esc(e.name)}</span>
                           <span class="herberg-item-type">${e.type === 'personages' ? 'persoon' : 'locatie'}</span>
                         </button>`).join('')}
+                  ${beschikbaar.length > 3 ? `
+                    <button class="herberg-item herberg-item--shuffle"
+                      onclick="window._herbergShuffle()"
+                      title="Andere suggesties">
+                      <span class="herberg-item-naam">🎲 Andere suggesties…</span>
+                    </button>` : ''}
                 </div>
               </div>`
         }
@@ -2017,6 +2211,12 @@ window._herbergFilter = (q) => {
   document.querySelectorAll('.herberg-item').forEach(btn => {
     btn.classList.toggle('hidden', !btn.dataset.name.includes(q.toLowerCase()));
   });
+};
+
+window._herbergShuffle = () => {
+  // Herlaad herberg zodat een nieuwe sample getoond wordt
+  import('./app.js').catch(() => {});
+  window.app?.refreshSection('herberg');
 };
 
 window._herbergVraag = async (entityId) => {

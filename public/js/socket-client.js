@@ -118,6 +118,41 @@ export function initSocket() {
     }
   });
 
+  // ── Kaartpinnen spelers ──
+  socket.on('pin:pending', ({ id, locName, placedByName } = {}) => {
+    if (!window.app?.isDM?.()) return;
+    _showToast(
+      `📍 <strong>${placedByName || 'Speler'}</strong> stelt ${locName ? `<em>${locName}</em>` : 'een locatie'} voor op de kaart`,
+      () => { window.app.switchSection('kaart'); },
+      8000
+    );
+    if (window.app.state.activeSection === 'kaart') {
+      import('./render-kaart.js').then(m => m.renderKaart());
+    }
+  });
+
+  socket.on('pin:approved', ({ locName } = {}) => {
+    _showToast(
+      `✅ Je pin voor <strong>${locName || 'de locatie'}</strong> is goedgekeurd`,
+      () => { window.app.switchSection('kaart'); },
+      6000
+    );
+    if (window.app.state.activeSection === 'kaart') {
+      import('./render-kaart.js').then(m => m.renderKaart());
+    }
+  });
+
+  socket.on('pin:rejected', ({ locName } = {}) => {
+    _showToast(
+      `❌ Je pin voor <strong>${locName || 'de locatie'}</strong> is niet goedgekeurd`,
+      null,
+      5000
+    );
+    if (window.app.state.activeSection === 'kaart') {
+      import('./render-kaart.js').then(m => m.renderKaart());
+    }
+  });
+
   socket.on('meta:updated', () => {
     import('./api.js').then(({ api }) => api.meta().then(m => {
       if (window.app?.state) window.app.state.meta = m;
@@ -325,7 +360,29 @@ export function initSocket() {
     }
   });
 
-  socket.on('connect', () => console.log('Socket connected'));
+  // ── Geheime berichten ──
+  socket.on('bericht:nieuw', ({ msg } = {}) => {
+    if (!msg?.tekst) return;
+    _showToast(
+      `💬 <strong>Geheim bericht van de DM</strong>`,
+      () => { window.app.switchSection('mijn-karakter'); window._setPlayerSubTab?.('berichten'); },
+      8000
+    );
+    // Als de spelerspagina open is, herrender direct
+    if (window.app?.state?.activeSection === 'mijn-karakter') {
+      window.app.refreshSection('mijn-karakter');
+    }
+    // Unread badge bijwerken
+    window._berichtenUnread = (window._berichtenUnread || 0) + 1;
+    window._updateBerichtenBadge?.();
+  });
+
+  socket.on('connect', () => {
+    console.log('Socket connected');
+    // Herregistreer characterId na reconnect
+    const cid = window.app?.state?.characterId;
+    if (cid) socket.emit('player:register', cid);
+  });
   socket.on('disconnect', () => console.log('Socket disconnected'));
 }
 

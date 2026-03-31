@@ -7,14 +7,15 @@ const ZOOM_STEP = 0.15;
 const ZOOM_MIN  = 0.2;
 const ZOOM_MAX  = 5.0;
 
-let MAPS          = [];
-let currentMapIdx = 0;
-let zoomLevel     = 1.0;
-let panX          = 0;
-let panY          = 0;
-let mapPins       = [];
-let allLocaties   = [];
-let _panAbort     = null;
+let MAPS               = [];
+let currentMapIdx      = 0;
+let zoomLevel          = 1.0;
+let panX               = 0;
+let panY               = 0;
+let mapPins            = [];
+let allLocaties        = [];
+let _availableForPin   = [];   // locaties die speler kan aanwijzen (niet-DM)
+let _panAbort          = null;
 
 function _mapImgSrc(map) {
   return map.src || api.fileUrl(map.id);
@@ -33,6 +34,10 @@ export async function renderKaart() {
     api.mapPins(MAPS[currentMapIdx].id),
     api.listEntities('locaties'),
   ]);
+  if (!isDM()) {
+    try { _availableForPin = await api.availableLocations(MAPS[currentMapIdx].id); }
+    catch { _availableForPin = []; }
+  }
 
   panX = 0; panY = 0;
   const section = document.getElementById('section-kaart');
@@ -95,6 +100,10 @@ function _renderMapContent() {
       <div class="mt-3 text-xs text-ink-dim font-mono flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-gold inline-block"></span>
         Klik op de kaart om een pin te plaatsen
+      </div>` : _availableForPin.length ? `
+      <div class="mt-3 text-xs text-ink-dim font-mono flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-gold/40 inline-block"></span>
+        Klik op de kaart om een locatie voor te stellen
       </div>` : ''}`;
 
   _initZoom();
@@ -175,6 +184,10 @@ async function _switchMap(dir) {
   panX = 0; panY = 0;
   document.getElementById('map-title').textContent = MAPS[currentMapIdx].label;
   mapPins = await api.mapPins(MAPS[currentMapIdx].id);
+  if (!isDM()) {
+    try { _availableForPin = await api.availableLocations(MAPS[currentMapIdx].id); }
+    catch { _availableForPin = []; }
+  }
   _renderMapContent();
   // Refresh delete/rename buttons visibility for new map
   const renameBtn = document.getElementById('map-rename-btn');
@@ -236,11 +249,15 @@ function _attachPanAndClick() {
     panning = false;
     wrapper.style.cursor = 'grab';
 
-    if (!panMoved && isDM()) {
+    if (!panMoved) {
       const rect = wrapper.getBoundingClientRect();
       const x = ((ev.clientX - rect.left) / rect.width) * 100;
       const y = ((ev.clientY - rect.top) / rect.height) * 100;
-      _openPinPlacer(x, y, ev.clientX, ev.clientY);
+      if (isDM()) {
+        _openPinPlacer(x, y, ev.clientX, ev.clientY);
+      } else if (_availableForPin.length) {
+        _openPlayerPinPlacer(x, y, ev.clientX, ev.clientY);
+      }
     }
   }, { signal });
 }
@@ -249,33 +266,59 @@ function _attachPanAndClick() {
 function _renderPins() {
   const layer = document.getElementById('map-pins-layer');
   if (!layer) return;
+  const myCharId = window.app?.state?.characterId;
 
   layer.innerHTML = mapPins.map(pin => {
     const loc = allLocaties.find(l => l.id === pin.locId);
     if (!loc) return '';
 
-    const vis = pin.visibility || loc._visibility || 'visible';
-    if (!isDM() && vis === 'hidden') return '';
+    const vis       = pin.visibility || loc._visibility || 'visible';
+    const isPending = !!pin.pending;
+    const isOwnPending = isPending && pin.placedBy === myCharId;
+
+    if (!isDM() && vis === 'hidden' && !isOwnPending) return '';
 
     const isVague  = vis === 'vague';
     const isHidden = vis === 'hidden';
-    const label    = isVague ? '?' : esc(pin.locName || loc.name || '');
-    const icon     = isVague ? '?' : (loc.data?.icon || '🏰');
+    const label    = (isVague && !isPending) ? '?' : esc(pin.locName || loc.name || '');
+    const icon     = (isVague && !isPending) ? '?' : (loc.data?.icon || '🏰');
+
+    let extraClass = '';
+    if (isVague)   extraClass += ' map-pin-vague';
+    if (isHidden)  extraClass += ' map-pin-hidden';
+    if (isPending) extraClass += ' map-pin-pending';
+
+    const titleAttr = isPending
+      ? (isDM()
+          ? `title="Ingediend door ${esc(pin.placedByName || 'speler')} — keur goed of wijs af"`
+          : `title="Wachten op goedkeuring van de DM"`)
+      : '';
+
+    const actions = isDM()
+      ? (isPending
+          ? `<button class="pin-approve" onclick="event.stopPropagation();window._approveMapPin('${pin.id}')" title="Goedkeuren">✓</button>
+             <button class="pin-delete"  onclick="event.stopPropagation();window._deleteMapPin('${pin.id}')"  title="Afwijzen">✕</button>`
+          : `<button class="pin-delete"  onclick="event.stopPropagation();window._deleteMapPin('${pin.id}')"  title="Pin verwijderen">✕</button>`)
+      : '';
 
     return `
-      <div class="map-pin${isVague ? ' map-pin-vague' : ''}${isHidden ? ' map-pin-hidden' : ''}"
+      <div class="map-pin${extraClass}"
         style="left:${pin.x}%;top:${pin.y}%;pointer-events:auto"
-        data-pin-id="${pin.id}" data-loc-id="${pin.locId}">
+        data-pin-id="${pin.id}" data-loc-id="${pin.locId}"
+        data-pending="${isPending}" data-own-pending="${isOwnPending}"
+        ${titleAttr}>
         <div class="pin-icon">${icon}</div>
         <div class="pin-needle"></div>
         <div class="pin-label">${label}</div>
-        ${isDM() ? `<button class="pin-delete" onclick="event.stopPropagation();window._deleteMapPin('${pin.id}')" title="Pin verwijderen">✕</button>` : ''}
+        ${actions}
       </div>`;
   }).join('');
 
   layer.querySelectorAll('.map-pin').forEach(el => {
     if (isDM()) {
       _attachDrag(el);
+    } else if (el.dataset.ownPending === 'true') {
+      _attachPlayerPendingDrag(el);
     } else {
       el.addEventListener('click', () => {
         const pin = mapPins.find(p => p.id === el.dataset.pinId);
@@ -407,11 +450,138 @@ function _openPinPlacer(x, y, clientX, clientY) {
 }
 
 window._deleteMapPin = async (pinId) => {
-  if (!confirm('Pin verwijderen?')) return;
+  const pin = mapPins.find(p => p.id === pinId);
+  const confirmMsg = pin?.pending
+    ? `Pin-voorstel van ${pin.placedByName || 'speler'} afwijzen?`
+    : 'Pin verwijderen?';
+  if (!confirm(confirmMsg)) return;
   await api.deleteMapPin(pinId);
   mapPins = mapPins.filter(p => p.id !== pinId);
   _renderPins();
 };
+
+window._approveMapPin = async (pinId) => {
+  try {
+    await api.approveMapPin(pinId);
+    const pin = mapPins.find(p => p.id === pinId);
+    if (pin) { delete pin.pending; delete pin.placedBy; delete pin.placedByGroup; delete pin.placedByName; }
+    _renderPins();
+  } catch (e) { alert('Fout: ' + e.message); }
+};
+
+// ── Speler: pending pin placer popup ──
+function _openPlayerPinPlacer(x, y, clientX, clientY) {
+  document.getElementById('pin-placer-popup')?.remove();
+
+  if (!_availableForPin.length) {
+    alert('Er zijn geen locaties beschikbaar om te markeren.');
+    return;
+  }
+
+  const pw = 220, ph = 155;
+  const left = Math.min(clientX + 8, window.innerWidth  - pw - 8);
+  const top  = Math.min(clientY + 8, window.innerHeight - ph - 8);
+
+  const popup = document.createElement('div');
+  popup.id        = 'pin-placer-popup';
+  popup.className = 'pin-placer-popup';
+  popup.style.cssText = `left:${left}px;top:${top}px`;
+  popup.innerHTML = `
+    <div class="text-[11px] font-cinzel text-gold uppercase tracking-wide mb-2">📍 Locatie voorstellen</div>
+    <input id="pin-loc-search" type="text" placeholder="Zoeken…"
+      class="w-full text-sm bg-room-bg border border-room-border rounded px-2 py-1 text-ink-bright mb-1 focus:border-gold-dim focus:outline-none">
+    <select id="pin-loc-select" size="4"
+      class="w-full text-sm bg-room-bg border border-room-border rounded px-1 py-0.5 text-ink-bright mb-2 focus:border-gold-dim focus:outline-none">
+      ${_availableForPin.map(l => `<option value="${esc(l.id)}">${esc(l.name)}</option>`).join('')}
+    </select>
+    <div class="flex gap-2">
+      <button id="pin-confirm"
+        class="flex-1 text-xs bg-gold/20 hover:bg-gold/30 text-gold border border-gold/30 rounded px-2 py-1 transition" title="Voorstellen">📌</button>
+      <button id="pin-cancel"
+        class="flex-1 text-xs text-ink-dim hover:bg-room-border rounded px-2 py-1 transition" title="Annuleren">✕</button>
+    </div>`;
+  document.body.appendChild(popup);
+
+  const available = _availableForPin;
+  popup.querySelector('#pin-loc-search').addEventListener('input', (ev) => {
+    const q = ev.target.value.toLowerCase();
+    popup.querySelector('#pin-loc-select').innerHTML = available
+      .filter(l => l.name.toLowerCase().includes(q))
+      .map(l => `<option value="${esc(l.id)}">${esc(l.name)}</option>`)
+      .join('');
+  });
+  popup.querySelector('#pin-loc-search').focus();
+
+  popup.querySelector('#pin-cancel').addEventListener('click', () => popup.remove());
+  popup.querySelector('#pin-confirm').addEventListener('click', async () => {
+    const locId = popup.querySelector('#pin-loc-select').value;
+    if (!locId) return;
+    try {
+      const pin = await api.createMapPin({ locId, x, y, mapId: MAPS[currentMapIdx].id });
+      const loc = available.find(l => l.id === locId);
+      mapPins.push({ ...pin, locName: loc?.name, visibility: 'visible' });
+      _availableForPin = _availableForPin.filter(l => l.id !== locId);
+      popup.remove();
+      _renderPins();
+    } catch (e) { alert(e.message || 'Fout bij indienen'); }
+  });
+
+  setTimeout(() => {
+    const handler = (ev) => {
+      if (!popup.contains(ev.target)) { popup.remove(); document.removeEventListener('click', handler); }
+    };
+    document.addEventListener('click', handler);
+  }, 0);
+}
+
+// ── Speler: drag voor eigen pending pin ──
+function _attachPlayerPendingDrag(el) {
+  let dragging = false;
+  let moved    = false;
+  let startX, startY, origLeft, origTop;
+
+  el.addEventListener('mousedown', (ev) => {
+    ev.preventDefault();
+    dragging = true;
+    moved    = false;
+    startX   = ev.clientX;
+    startY   = ev.clientY;
+    origLeft = parseFloat(el.style.left);
+    origTop  = parseFloat(el.style.top);
+    el.style.zIndex = '50';
+    el.classList.add('pin-dragging');
+  });
+
+  document.addEventListener('mousemove', (ev) => {
+    if (!dragging) return;
+    const wrapper = document.getElementById('map-wrapper');
+    if (!wrapper) return;
+    const rect = wrapper.getBoundingClientRect();
+    const dx = ((ev.clientX - startX) / rect.width) * 100;
+    const dy = ((ev.clientY - startY) / rect.height) * 100;
+    if (Math.abs(dx) > 0.3 || Math.abs(dy) > 0.3) moved = true;
+    el.style.left = `${Math.max(0, Math.min(100, origLeft + dx))}%`;
+    el.style.top  = `${Math.max(0, Math.min(100, origTop  + dy))}%`;
+  });
+
+  document.addEventListener('mouseup', async () => {
+    if (!dragging) return;
+    dragging = false;
+    el.style.zIndex = '';
+    el.classList.remove('pin-dragging');
+    if (!moved) return;
+    const x     = parseFloat(el.style.left);
+    const y     = parseFloat(el.style.top);
+    const pinId = el.dataset.pinId;
+    const pin   = mapPins.find(p => p.id === pinId);
+    if (pin) { pin.x = x; pin.y = y; }
+    try {
+      await api.updateMapPin(pinId, { x, y });
+    } catch {
+      if (pin) { el.style.left = `${pin.x}%`; el.style.top = `${pin.y}%`; }
+    }
+  });
+}
 
 // ── DM: kaart toevoegen ──
 function _openMapAdder() {
