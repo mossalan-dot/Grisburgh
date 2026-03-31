@@ -25,12 +25,12 @@ const CONDITIONS = [
 ];
 
 const HP_LABELS = [
-  { min: 1.00, label: 'Healthy',          cls: 'hp-full' },
-  { min: 0.75, label: 'Lightly Wounded',  cls: 'hp-light' },
-  { min: 0.50, label: 'Wounded',          cls: 'hp-wounded' },
-  { min: 0.25, label: 'Heavily Wounded',  cls: 'hp-heavy' },
-  { min: 0.01, label: 'Critical',         cls: 'hp-critical' },
-  { min: -Infinity, label: 'Down',        cls: 'hp-dead' },
+  { min: 1.00, label: 'Volledig in leven', cls: 'hp-full' },
+  { min: 0.75, label: 'Licht verwond',     cls: 'hp-light' },
+  { min: 0.50, label: 'Verwond',           cls: 'hp-wounded' },
+  { min: 0.25, label: 'Zwaar verwond',     cls: 'hp-heavy' },
+  { min: 0.01, label: 'Bijna dood',        cls: 'hp-critical' },
+  { min: -Infinity, label: 'Dood',         cls: 'hp-dead' },
 ];
 
 function hpStatus(hp, maxHp) {
@@ -75,7 +75,13 @@ function esc(s) {
 export function initDmPanel() {
   window.dmPanel = {
     switchTab(tab) { _switchTab(tab); },
-    renderMeesterkamer() { _buildTabs(); _switchTab(_activeTab); _renderRevealStrip(); },
+    renderMeesterkamer() {
+      _buildTabs();
+      _switchTab(_activeTab);
+      // Strip alleen renderen als hij nog niet actief is (voorkomt overschrijven van minimized-staat)
+      const el = document.getElementById('dm-reveal-strip');
+      if (el && !el.classList.contains('dm-reveal-strip--visible')) _renderRevealStrip();
+    },
 
     // Spreuken
     spellSearch: _spellSearch,
@@ -114,6 +120,8 @@ export function initDmPanel() {
     monsterUpload:      _monsterUpload,
     monsterRemoveImage: _monsterRemoveImage,
     monsterAddToCombat: _monsterAddToCombat,
+    monsterStatblock:   _showStatblock,
+    combatStatblock:    _showStatblockForCombatant,
 
     // Gevecht — setup (voor start)
     setupTypeChange:   _setupTypeChange,
@@ -121,6 +129,7 @@ export function initDmPanel() {
     setupEntityChange: _setupEntityChange,
     setupAddSubmit:    _setupAddSubmit,
     setupReset:        _setupReset,
+    setupInitChange:   _setupInitChange,
 
     // Gevecht — tijdens combat (overlay)
     combatStart:      _combatStart,
@@ -136,11 +145,15 @@ export function initDmPanel() {
       const canvasEl = document.getElementById('combat-canvas');
       if (canvasEl && _combat) canvasInit(canvasEl, _combat);
     },
-    combatAddForm:    () => { document.getElementById('co-add-form')?.classList.remove('hidden'); },
-    combatAddSubmit:  _combatAddSubmit,
-    combatAddCancel:  () => { document.getElementById('co-add-form')?.classList.add('hidden'); },
+    combatAddForm:        () => { document.getElementById('co-add-form')?.classList.remove('hidden'); },
+    combatAddSubmit:      _combatAddSubmit,
+    combatAddCancel:      () => { document.getElementById('co-add-form')?.classList.add('hidden'); },
+    combatAddTypeChange:  _combatAddTypeChange,
+    combatAddPresetChange: _combatAddPresetChange,
     combatHpChange:   _combatHpChange,
     combatHpInput:    _combatHpInput,
+    combatApplyDamage: _combatApplyDamage,
+    combatApplyHeal:   _combatApplyHeal,
     playerHpChange:   _playerHpChange,
     playerHpInput:    _playerHpInput,
     combatThpChange:  _combatThpChange,
@@ -156,11 +169,38 @@ export function initDmPanel() {
     setRevealChapter(key) { _revealChapter = key || null; _loadRevealQueue(_revealChapter); },
     revealImage:      _revealImage,
     renderRevealStrip: _renderRevealStrip,
+    closeRevealStrip() {
+      _revealChapter = null;
+      _revealQueue   = [];
+      const el = document.getElementById('dm-reveal-strip');
+      if (el) { el.classList.remove('dm-reveal-strip--visible', 'dm-reveal-strip--minimized'); el.innerHTML = ''; }
+    },
+    toggleRevealStrip() {
+      const el = document.getElementById('dm-reveal-strip');
+      if (!el) return;
+      const isMinimized = el.classList.contains('dm-reveal-strip--minimized');
+      if (isMinimized) {
+        el.classList.remove('dm-reveal-strip--minimized');
+        _renderRevealStrip();
+      } else {
+        el.classList.add('dm-reveal-strip--minimized');
+        el.innerHTML = `<button onclick="window.dmPanel.toggleRevealStrip()" title="Uitklappen"
+          style="writing-mode:vertical-rl;transform:rotate(180deg);background:none;border:none;cursor:pointer;
+                 color:var(--color-ink-medium);font-size:10px;font-weight:600;letter-spacing:.05em;padding:8px 0;width:100%;text-align:center;">
+          🖼 Afbeeldingen
+        </button>`;
+      }
+    },
 
     // Campagnes
     campagneSwitchTo:  _campagneSwitchTo,
     campagneCreate:    _campagneCreate,
     campagneSubmit:    _campagneSubmit,
+
+    // Berichten
+    berichtenRefresh:   _renderBerichten,
+    berichtSend:        _berichtSend,
+    sjabloonDelete:     _sjabloonDelete,
 
     // Socket callbacks
     onTunnelUrl(url) {
@@ -216,6 +256,7 @@ function _buildTabs() {
     <button class="dm-tab-btn${_activeTab==='gevecht'?     ' active':''}" data-tab="gevecht"      onclick="window.dmPanel.switchTab('gevecht')"      title="Gevecht"><span class="dm-tab-icon">⚔️</span><span class="dm-tab-label">Gevecht</span></button>
     <button class="dm-tab-btn${_activeTab==='campagnes'?   ' active':''}" data-tab="campagnes"    onclick="window.dmPanel.switchTab('campagnes')"    title="Campagnes"><span class="dm-tab-icon">🗂</span><span class="dm-tab-label">Campagnes</span></button>
     <button class="dm-tab-btn${_activeTab==='herberg'?     ' active':''}" data-tab="herberg"      onclick="window.dmPanel.switchTab('herberg')"      title="Herberg instellingen"><span class="dm-tab-icon">🍺</span><span class="dm-tab-label">Herberg</span></button>
+    <button class="dm-tab-btn${_activeTab==='berichten'?   ' active':''}" data-tab="berichten"    onclick="window.dmPanel.switchTab('berichten')"    title="Geheime berichten"><span class="dm-tab-icon">💬</span><span class="dm-tab-label">Berichten</span></button>
   `;
 }
 
@@ -236,6 +277,7 @@ function _switchTab(tab) {
   if (tab === 'geluiden')  _renderGeluiden();
   if (tab === 'campagnes') _loadAndRenderCampagnes();
   if (tab === 'herberg')   _renderHerbergSettings();
+  if (tab === 'berichten') _renderBerichten();
   if (tab === 'gevecht') {
     // Always reload monsters + entities so pickers are fresh
     Promise.all([
@@ -245,7 +287,7 @@ function _switchTab(tab) {
       if (_activeTab !== 'gevecht') return;
       const isEmpty = !_combat?.active && (_combat?.combatants?.length || 0) === 0;
       if (isEmpty) _autoAddSpelers().then(() => _renderGevecht());
-      else _renderGevecht();
+      else _syncSpelerHp().then(() => _renderGevecht());
     });
     _renderGevecht();
   }
@@ -331,7 +373,11 @@ function _spellDetailHtml(s) {
     s.components?.includes('S') ? 'G' : '',
     s.components?.includes('M') ? `M (${s.material || '…'})` : '',
   ].filter(Boolean).join(', ');
-  const desc   = (s.desc || []).map(p => `<p class="dm-spell-p">${esc(p)}</p>`).join('');
+  const _md = t => t
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  const desc   = (s.desc || []).map(p => `<p class="dm-spell-p">${_md(esc(p))}</p>`).join('');
   const higher = s.higher_level?.length
     ? `<p class="dm-spell-p dm-spell-higher"><strong>Op hogere niveaus:</strong> ${esc(s.higher_level.join(' '))}</p>`
     : '';
@@ -490,14 +536,36 @@ function _renderTunnel() {
 
 // ── Reveal strip ──
 
+function _positionRevealStrip() {
+  const el = document.getElementById('dm-reveal-strip');
+  if (!el) return;
+  const main = document.querySelector('main') || document.querySelector('#app > .flex-1');
+  if (main) {
+    const top = Math.round(main.getBoundingClientRect().top);
+    el.style.top = top + 'px';
+  }
+}
+
 function _renderRevealStrip() {
   const el = document.getElementById('dm-reveal-strip');
   if (!el) return;
-  const thumbs = _revealQueue.slice(0, 3);
-  const more   = Math.max(0, _revealQueue.length - 3);
+  // Niet opnieuw renderen als de strip al geminimaliseerd is
+  if (el.classList.contains('dm-reveal-strip--minimized')) return;
+  _positionRevealStrip();
+  el.classList.toggle('dm-reveal-strip--visible', true);
+  const thumbs = _revealQueue.slice(0, 5);
+  const more   = Math.max(0, _revealQueue.length - 5);
   el.innerHTML = `
     <div style="padding-bottom:6px;border-bottom:1px solid rgba(196,168,122,0.3);margin-bottom:2px;">
-      <div class="dm-form-label" style="margin-bottom:4px;">Afbeeldingen</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div class="dm-form-label" style="margin:0">Afbeeldingen</div>
+        <div style="display:flex;gap:4px">
+          <button onclick="window.dmPanel.toggleRevealStrip()" title="Minimaliseren"
+            style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--color-ink-dim);padding:0 2px;line-height:1;">−</button>
+          <button onclick="window.dmPanel.closeRevealStrip()" title="Sluiten"
+            style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--color-ink-dim);padding:0 2px;line-height:1;">✕</button>
+        </div>
+      </div>
       <select class="dm-select" style="width:100%;font-size:10px;"
         onchange="window.dmPanel.setRevealChapter(this.value)">
         <option value="">— Akte —</option>
@@ -927,6 +995,235 @@ function _tabelNew() {
 
 // ── Monsters ──
 
+// Statblock helpers
+function _sbMod(score) {
+  const m = Math.floor(((score || 10) - 10) / 2);
+  return (m >= 0 ? '+' : '') + m;
+}
+
+function _sbMdLine(text) {
+  return (text || '').replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+}
+
+function _sbMdBlock(text) {
+  return (text || '').split('\n').filter(l => l.trim())
+    .map(l => `<p class="sb-p">${_sbMdLine(esc(l))}</p>`).join('');
+}
+
+function _hasStatblock(m) {
+  if (!m?.statblock) return false;
+  const sb = m.statblock;
+  return !!(sb.type || sb.ac || sb.hp || sb.traits || sb.actions ||
+    sb.str || sb.dex || sb.con || sb.int || sb.wis || sb.cha);
+}
+
+function _statblockHtml(m) {
+  const sb = m.statblock || {};
+  const ATTRS = ['str','dex','con','int','wis','cha'];
+  const LABELS = ['STR','DEX','CON','INT','WIS','CHA'];
+  const props = [
+    ['savingThrows',          'Saving Throws'],
+    ['skills',                'Skills'],
+    ['damageVulnerabilities', 'Damage Vulnerabilities'],
+    ['damageResistances',     'Damage Resistances'],
+    ['damageImmunities',      'Damage Immunities'],
+    ['conditionImmunities',   'Condition Immunities'],
+    ['senses',                'Senses'],
+    ['languages',             'Languages'],
+  ].filter(([k]) => sb[k]).map(([k, label]) =>
+    `<div class="sb-prop"><span class="sb-prop-label">${label}</span>${esc(sb[k])}</div>`
+  ).join('');
+  const cr = (sb.cr || sb.xp) ? `<div class="sb-prop"><span class="sb-prop-label">Challenge</span>${esc(sb.cr||'?')}${sb.xp ? ` (${sb.xp} XP)` : ''}</div>` : '';
+
+  return `<div class="sb-block">
+    <div class="sb-header">
+      <div class="sb-name">${esc(m.name)}</div>
+      <div class="sb-sub">${[sb.size, sb.type, sb.alignment].filter(Boolean).map(esc).join(' ')}</div>
+    </div>
+    <div class="sb-rule"></div>
+    ${sb.ac    ? `<div class="sb-prop"><span class="sb-prop-label">Armor Class</span>${esc(sb.ac)}</div>` : ''}
+    ${(sb.hp || m.maxHp) ? `<div class="sb-prop"><span class="sb-prop-label">Hit Points</span>${m.maxHp}${sb.hp ? ` (${esc(sb.hp)})` : ''}</div>` : ''}
+    ${sb.speed ? `<div class="sb-prop"><span class="sb-prop-label">Speed</span>${esc(sb.speed)}</div>` : ''}
+    <div class="sb-rule"></div>
+    <div class="sb-scores">
+      ${LABELS.map((lbl, i) => `<div class="sb-score-cell">
+        <div class="sb-score-label">${lbl}</div>
+        <div class="sb-score-val">${sb[ATTRS[i]] ?? 10}</div>
+        <div class="sb-score-mod">(${_sbMod(sb[ATTRS[i]] ?? 10)})</div>
+      </div>`).join('')}
+    </div>
+    <div class="sb-rule"></div>
+    ${props}${cr}
+    ${sb.traits ? `<div class="sb-rule"></div>${_sbMdBlock(sb.traits)}` : ''}
+    ${sb.actions ? `<div class="sb-rule"></div><div class="sb-section-label">Actions</div>${_sbMdBlock(sb.actions)}` : ''}
+    ${sb.reactions ? `<div class="sb-rule"></div><div class="sb-section-label">Reactions</div>${_sbMdBlock(sb.reactions)}` : ''}
+    ${sb.legendaryActions ? `<div class="sb-rule"></div><div class="sb-section-label">Legendary Actions</div>${_sbMdBlock(sb.legendaryActions)}` : ''}
+  </div>`;
+}
+
+function _showStatblock(mId) {
+  const m = _monsters.find(x => x.id === mId);
+  if (!m) return;
+  const sb = m.statblock || {};
+  const subtitle = [sb.size, sb.type, sb.alignment].filter(Boolean).join(' ');
+  window.app.openModal(m.name, subtitle, _statblockHtml(m));
+}
+
+function _showStatblockForCombatant(cId) {
+  const c = _combat?.combatants?.find(x => x.id === cId);
+  if (!c) return;
+  const preset = c.presetId ? _monsters.find(x => x.id === c.presetId) : null;
+  const m = preset || { name: c.name, maxHp: c.maxHp, statblock: c.statblock };
+  const sb = m.statblock || {};
+  const subtitle = [sb.size, sb.type, sb.alignment].filter(Boolean).join(' ');
+  window.app.openModal(m.name, subtitle, _statblockHtml(m));
+}
+
+function _statblockEditorHtml(sb) {
+  sb = sb || {};
+  const opt = (val, label) => `<option value="${esc(val)}"${sb.size === val ? ' selected' : ''}>${label}</option>`;
+  const v = (k, placeholder, type='text') => `<input id="dm-mon-sb-${k}" class="dm-input dm-input-sm" type="${type}" value="${esc(sb[k] ?? '')}" placeholder="${placeholder}">`;
+  const ta = (k, placeholder) => `<textarea id="dm-mon-sb-${k}" class="dm-input dm-sb-textarea" placeholder="${placeholder}">${esc(sb[k] || '')}</textarea>`;
+  return `
+    <details class="dm-sb-editor">
+      <summary class="dm-sb-summary">📋 Statblock</summary>
+      <div class="dm-sb-fields">
+        <div class="dm-feature-row" style="gap:6px;flex-wrap:wrap">
+          <div style="flex:1;min-width:80px">
+            <label class="dm-form-label">Size</label>
+            <select id="dm-mon-sb-size" class="dm-select dm-select-sm" style="width:100%">
+              <option value="">—</option>
+              ${['Tiny','Small','Medium','Large','Huge','Gargantuan'].map(s => opt(s,s)).join('')}
+            </select>
+          </div>
+          <div style="flex:2;min-width:100px">
+            <label class="dm-form-label">Type</label>
+            ${v('type','beast, undead…')}
+          </div>
+          <div style="flex:2;min-width:100px">
+            <label class="dm-form-label">Alignment</label>
+            ${v('alignment','unaligned')}
+          </div>
+        </div>
+        <div class="dm-feature-row" style="gap:6px">
+          <div style="flex:1">
+            <label class="dm-form-label">AC</label>
+            ${v('ac','13')}
+          </div>
+          <div style="flex:2">
+            <label class="dm-form-label">HP formula</label>
+            ${v('hp','2d8+2')}
+          </div>
+          <div style="flex:2">
+            <label class="dm-form-label">Speed</label>
+            ${v('speed','40 ft.')}
+          </div>
+        </div>
+        <div class="dm-sb-scores-grid">
+          ${['str','dex','con','int','wis','cha'].map(attr => `
+            <div class="dm-sb-score-col">
+              <label class="dm-form-label" style="text-align:center">${attr.toUpperCase()}</label>
+              <input id="dm-mon-sb-${attr}" class="dm-input dm-input-sm" type="number" min="1" max="30" value="${sb[attr] ?? 10}" style="text-align:center">
+              <div class="dm-sb-mod">${_sbMod(sb[attr] ?? 10)}</div>
+            </div>`).join('')}
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Saving Throws</label>
+          ${v('savingThrows','Wis +3, Cha +1')}
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Skills</label>
+          ${v('skills','Perception +3, Stealth +4')}
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Damage Vulnerabilities</label>
+          ${v('damageVulnerabilities','fire')}
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Damage Resistances</label>
+          ${v('damageResistances','bludgeoning')}
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Damage Immunities</label>
+          ${v('damageImmunities','poison, fire')}
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Condition Immunities</label>
+          ${v('conditionImmunities','charmed, frightened')}
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Senses</label>
+          ${v('senses','darkvision 60 ft., passive Perception 13')}
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Languages</label>
+          ${v('languages','Common, Elvish')}
+        </div>
+        <div class="dm-feature-row" style="gap:6px">
+          <div style="flex:1">
+            <label class="dm-form-label">CR</label>
+            ${v('cr','1/4')}
+          </div>
+          <div style="flex:1">
+            <label class="dm-form-label">XP</label>
+            <input id="dm-mon-sb-xp" class="dm-input dm-input-sm" type="number" value="${sb.xp || ''}" placeholder="50">
+          </div>
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Traits</label>
+          ${ta('traits','***Pack Tactics.*** …')}
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Actions</label>
+          ${ta('actions','***Bite.*** *Melee Weapon Attack:* …')}
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Reactions</label>
+          ${ta('reactions','')}
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Legendary Actions</label>
+          ${ta('legendaryActions','')}
+        </div>
+      </div>
+    </details>`;
+}
+
+function _readStatblockFromForm() {
+  const v = k => document.getElementById('dm-mon-sb-' + k)?.value?.trim() || '';
+  const n = k => parseInt(document.getElementById('dm-mon-sb-' + k)?.value) || 10;
+  return {
+    size:                  v('size'),
+    type:                  v('type'),
+    alignment:             v('alignment'),
+    ac:                    v('ac'),
+    hp:                    v('hp'),
+    speed:                 v('speed'),
+    str:                   n('str'),
+    dex:                   n('dex'),
+    con:                   n('con'),
+    int:                   n('int'),
+    wis:                   n('wis'),
+    cha:                   n('cha'),
+    savingThrows:          v('savingThrows'),
+    skills:                v('skills'),
+    damageVulnerabilities: v('damageVulnerabilities'),
+    damageResistances:     v('damageResistances'),
+    damageImmunities:      v('damageImmunities'),
+    conditionImmunities:   v('conditionImmunities'),
+    senses:                v('senses'),
+    languages:             v('languages'),
+    cr:                    v('cr'),
+    xp:                    parseInt(document.getElementById('dm-mon-sb-xp')?.value) || 0,
+    traits:                v('traits'),
+    actions:               v('actions'),
+    reactions:             v('reactions'),
+    legendaryActions:      v('legendaryActions'),
+  };
+}
+
 async function _loadAndRenderMonsters() {
   try {
     const data = await api.listMonsters();
@@ -949,6 +1246,7 @@ function _monsterRow(m) {
       </div>
       <div class="dm-monster-actions">
         <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.monsterAddToCombat('${esc(m.id)}')" title="Toevoegen aan gevecht">⚔️</button>
+        ${_hasStatblock(m) ? `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.monsterStatblock('${esc(m.id)}')" title="Statblock bekijken">📋</button>` : ''}
         <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.monsterEdit('${esc(m.id)}')" title="Bewerken">✏️</button>
         <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterDelete('${esc(m.id)}')" title="Verwijderen">✕</button>
       </div>
@@ -1039,6 +1337,7 @@ function _renderMonsterEditor(el) {
     initiative: stored.initiative  ?? 10,
     imageId:    _editingMonsterImageId,
     backdropId: _editingMonsterBackdropId,
+    statblock:  stored.statblock   || null,
   };
 
   el.innerHTML = `
@@ -1092,6 +1391,7 @@ function _renderMonsterEditor(el) {
           ${m.backdropId ? `<button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterRemoveImage('backdrop')" title="Verwijderen">✕</button>` : ''}
         </div>
       </div>
+      ${_statblockEditorHtml(m.statblock)}
       <div class="dm-feature-row" style="margin-top:4px">
         <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.monsterSave()" title="Opslaan">✓</button>
         <button class="dm-btn dm-btn-ghost"   onclick="window.dmPanel.monsterCancel()" title="Annuleren">✕</button>
@@ -1141,7 +1441,8 @@ async function _monsterSave() {
   const maxHp   = parseInt(document.getElementById('dm-mon-hp')?.value)   || 10;
   const init    = parseInt(document.getElementById('dm-mon-init')?.value) || 10;
   if (!name) { alert('Voer een naam in.'); return; }
-  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, backdropId: _editingMonsterBackdropId };
+  const statblock = _readStatblockFromForm();
+  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, backdropId: _editingMonsterBackdropId, statblock };
   try {
     if (_editingMonsterIsNew) {
       const created = await api.createMonster({ id: _editingMonsterId, ...payload });
@@ -1185,7 +1486,7 @@ async function _monsterUpload(monsterId, type, inputEl) {
       const idx = _monsters.findIndex(m => m.id === monsterId);
       if (idx !== -1) _monsters[idx] = updated;
     }
-    _renderMonsters();
+    _redrawMonsterImageRow(type, fileId);
   } catch (e) { alert('Upload mislukt: ' + e.message); }
 }
 
@@ -1202,7 +1503,26 @@ async function _monsterRemoveImage(type) {
       if (idx !== -1) _monsters[idx] = updated;
     } catch (_) {}
   }
-  _renderMonsters();
+  _redrawMonsterImageRow(type, null);
+}
+
+function _redrawMonsterImageRow(type, fileId) {
+  const rows = document.querySelectorAll('.dm-upload-row');
+  const row = rows[type === 'image' ? 0 : 1];
+  if (!row) return;
+  const id = _editingMonsterId;
+  const isWide = type === 'backdrop';
+  row.innerHTML = `
+    ${fileId
+      ? `<img class="dm-mon-preview${isWide ? ' dm-mon-preview-wide' : ''}" src="${api.fileUrl(fileId)}" alt="">`
+      : `<div class="dm-mon-preview${isWide ? ' dm-mon-preview-wide' : ''} dm-mon-preview-empty">${isWide ? '🌄' : '👾'}</div>`}
+    <label class="dm-btn dm-btn-sm dm-upload-label">
+      Uploaden
+      <input type="file" accept="image/*" style="display:none"
+        onchange="window.dmPanel.monsterUpload('${id}', '${type}', this)">
+    </label>
+    ${fileId ? `<button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterRemoveImage('${type}')" title="Verwijderen">✕</button>` : ''}
+  `;
 }
 
 async function _monsterAddToCombat(id) {
@@ -1260,16 +1580,36 @@ function _setupEntityChange(entityId) {
   }
 }
 
+// Synchroniseert maxHp van bestaande speler-combatants met het door de speler ingestelde HP
+async function _syncSpelerHp() {
+  if (!_combat?.combatants) return;
+  const playerCombatants = _combat.combatants.filter(c => c.type === 'player' && c.entityId);
+  for (const c of playerCombatants) {
+    try {
+      const hpData = await api.getPlayerHp(c.entityId);
+      if (hpData.max != null && hpData.max !== c.maxHp) {
+        await api.updateCombatant(c.id, { maxHp: hpData.max });
+      }
+    } catch (_) {}
+  }
+  _combat = await api.getCombat().catch(() => _combat);
+}
+
 async function _autoAddSpelers() {
   const spelers = _setupPersonages.filter(e => e.subtype === 'speler');
   for (const e of spelers) {
-    const hp = parseInt(e.stats?.hp) || 10;
+    // Gebruik het door de speler ingestelde max-HP; val terug op stats.hp of 10
+    let maxHp = parseInt(e.stats?.hp) || 10;
+    try {
+      const hpData = await api.getPlayerHp(e.id);
+      if (hpData.max != null) maxHp = hpData.max;
+    } catch (_) {}
     await api.addCombatant({
       name:       e.name,
       type:       'player',
       initiative: 10,
-      hp,
-      maxHp:      hp,
+      hp:         maxHp,
+      maxHp:      maxHp,
       entityId:   e.id,
     }).catch(() => {});
   }
@@ -1303,6 +1643,16 @@ async function _setupAddSubmit() {
     _setupSelectedEntityId = null;
     _renderGevecht();
   } catch (e) { alert('Fout: ' + e.message); }
+}
+
+async function _setupInitChange(combatantId, value) {
+  const init = parseInt(value);
+  if (isNaN(init)) return;
+  try {
+    await api.updateCombatant(combatantId, { initiative: init });
+    const c = _combat?.combatants?.find(x => x.id === combatantId);
+    if (c) c.initiative = init;
+  } catch (e) { /* stil falen */ }
 }
 
 async function _setupReset() {
@@ -1389,16 +1739,57 @@ async function _combatPrevTurn() {
   catch (e) { alert('Fout: ' + e.message); }
 }
 
+function _combatAddTypeChange(type) {
+  const presetRow = document.getElementById('co-add-preset-row');
+  if (presetRow) presetRow.classList.toggle('hidden', type !== 'monster');
+  // Reset preset when switching type
+  const preset = document.getElementById('co-add-preset');
+  if (preset && type !== 'monster') preset.value = '';
+}
+
+function _combatAddPresetChange(presetId) {
+  if (!presetId) return;
+  const m = _monsters.find(x => x.id === presetId);
+  if (!m) return;
+  const nameEl = document.getElementById('co-add-name');
+  const initEl = document.getElementById('co-add-init');
+  const hpEl   = document.getElementById('co-add-maxhp');
+  if (nameEl) nameEl.value = m.name;
+  if (initEl) initEl.value = m.initiative ?? 10;
+  if (hpEl)   hpEl.value   = m.maxHp ?? 10;
+}
+
 async function _combatAddSubmit() {
-  const name  = document.getElementById('co-add-name')?.value.trim();
-  const type  = document.getElementById('co-add-type')?.value || 'monster';
-  const init  = parseInt(document.getElementById('co-add-init')?.value) || 0;
-  const maxHp = parseInt(document.getElementById('co-add-maxhp')?.value) || 10;
+  const name    = document.getElementById('co-add-name')?.value.trim();
+  const type    = document.getElementById('co-add-type')?.value || 'monster';
+  const init    = parseInt(document.getElementById('co-add-init')?.value) || 0;
+  const maxHp   = parseInt(document.getElementById('co-add-maxhp')?.value) || 10;
+  const presetId = document.getElementById('co-add-preset')?.value || null;
   if (!name) return;
+  const preset  = presetId ? _monsters.find(x => x.id === presetId) : null;
   try {
-    await api.addCombatant({ name, type, initiative: init, hp: maxHp, maxHp });
+    await api.addCombatant({
+      name, type, initiative: init, hp: maxHp, maxHp,
+      ...(preset ? { imageId: preset.imageId || null, backdropId: preset.backdropId || null, presetId: preset.id } : {}),
+    });
     document.getElementById('co-add-form')?.classList.add('hidden');
   } catch (e) { alert('Fout: ' + e.message); }
+}
+
+async function _combatApplyDamage(id) {
+  const inp = document.getElementById('co-dmg-input-' + id);
+  const amount = parseInt(inp?.value);
+  if (!amount || amount <= 0) return;
+  await _combatHpChange(id, -amount);
+  if (inp) inp.value = '';
+}
+
+async function _combatApplyHeal(id) {
+  const inp = document.getElementById('co-dmg-input-' + id);
+  const amount = parseInt(inp?.value);
+  if (!amount || amount <= 0) return;
+  await _combatHpChange(id, amount);
+  if (inp) inp.value = '';
 }
 
 async function _combatHpChange(id, delta) {
@@ -1707,6 +2098,14 @@ async function _renderHerbergSettings() {
         </label>
       </div>
 
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label">Begroeting (spelersnaam = <code>{naam}</code>)</label>
+        <textarea id="hb-groet" class="dm-input" rows="3"
+          placeholder="Welkom, {naam}! Wat kan ik voor je betekenen?"
+          style="resize:vertical;min-height:60px">${esc(config.groet || '')}</textarea>
+        <span class="dm-hint" style="font-size:10px;color:var(--color-ink-dim,#888)">Gebruik <code>{naam}</code> voor de voornaam van de speler.</span>
+      </div>
+
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-primary" onclick="window._hbSave()">💾 Opslaan</button>
       </div>
@@ -1754,11 +2153,13 @@ window._hbSave = async () => {
   const select = document.getElementById('hb-waard-select');
   const entityId = select?.value || '';
   const p = _hbPersonages.find(p => p.id === entityId);
+  const groet = document.getElementById('hb-groet')?.value.trim() || '';
   const payload = {
     naam,
     waard:      p?.name || config.waard || '',
     imageId:    entityId || config.imageId || '',
     backdropId: _hbPendingBackdropId || config.backdropId || '',
+    groet,
   };
   try {
     await api.saveHerberg(payload);
@@ -2096,7 +2497,12 @@ function _renderGevecht() {
             <div class="dm-setup-row">
               <span class="dm-combatant-type-dot ${c.type === 'player' ? 'dm-type-player' : c.type === 'ally' ? 'dm-type-ally' : c.type === 'summon' ? 'dm-type-summon' : 'dm-type-monster'}"></span>
               <span class="dm-setup-name">${esc(c.name)}</span>
-              <span class="dm-setup-meta">Init ${c.initiative} · ${c.maxHp} HP</span>
+              <span class="dm-setup-meta">
+                Init <input class="dm-setup-init-input" type="number" value="${c.initiative}"
+                  onchange="window.dmPanel.setupInitChange('${esc(c.id)}', this.value)"
+                  style="width:44px">
+                · ${c.maxHp} HP
+              </span>
               <button class="dm-combatant-remove" onclick="window.dmPanel.combatRemove('${esc(c.id)}')">✕</button>
             </div>
           `).join('')}
@@ -2192,6 +2598,9 @@ function _combatSelectCombatant(id) {
       <button class="co-ds-btn co-ds-rst" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','reset')">↺</button>
     </div>` : '';
 
+  const presetMonster = c.presetId ? _monsters.find(x => x.id === c.presetId) : null;
+  const hasStatblock = _hasStatblock(presetMonster) || _hasStatblock({ statblock: c.statblock });
+
   panel.innerHTML = `
     <div class="co-detail-name">
       <span class="co-type-dot ${c.type === 'player' ? 'co-type-player' : c.type === 'ally' ? 'co-type-ally' : c.type === 'summon' ? 'co-type-summon' : 'co-type-monster'}" style="width:10px;height:10px;flex-shrink:0"></span>
@@ -2201,6 +2610,7 @@ function _combatSelectCombatant(id) {
           <input class="co-init-input" type="number" value="${c.initiative}"
             onchange="window.dmPanel.combatInitChange('${esc(c.id)}',this.value)" style="width:44px">
         </label>
+        ${hasStatblock ? `<button class="co-statblock-btn" onclick="window.dmPanel.combatStatblock('${esc(c.id)}')" title="Statblock">📋</button>` : ''}
         <button class="co-remove-btn" onclick="window.dmPanel.combatRemove('${esc(c.id)}');window.dmPanel.combatSelectCombatant(null)" title="Verwijder">✕</button>
       ` : ''}
       <button class="co-detail-close" onclick="window.dmPanel.combatSelectCombatant(null)">✕</button>
@@ -2214,6 +2624,12 @@ function _combatSelectCombatant(id) {
       <button class="co-hp-btn" onclick="window.dmPanel.${isDM ? 'combatHpChange' : 'playerHpChange'}('${esc(c.id)}',1)">+</button>
     </div>
     ${isDM ? `
+    <div class="co-dmg-row">
+      <input id="co-dmg-input-${esc(c.id)}" class="co-dmg-input" type="number" min="0"
+        onkeydown="if(event.key==='Enter')window.dmPanel.combatApplyDamage('${esc(c.id)}')">
+      <button class="co-ctrl-btn co-ctrl-danger" onclick="window.dmPanel.combatApplyDamage('${esc(c.id)}')" title="Schade toepassen">⚔ Schade</button>
+      <button class="co-ctrl-btn co-ctrl-heal" onclick="window.dmPanel.combatApplyHeal('${esc(c.id)}')" title="Genezen">+ Genezen</button>
+    </div>
     <div class="co-thp-row">
       <span class="co-thp-label" title="Temporary HP">🛡️</span>
       <button class="co-hp-btn" onclick="window.dmPanel.combatThpChange('${esc(c.id)}',-1)">−</button>
@@ -2382,7 +2798,7 @@ function _renderCombatOverlay(combat, startMinimized = false) {
             <span class="co-init-display">Init ${c.initiative}</span>
           </div>
           <div class="co-hp-player-row">
-            <div class="co-hp-bar-wrap"><div class="co-hp-bar ${hp.cls}" style="width:${hpPct}%"></div></div>
+            <span class="co-hp-status-dot co-hp-dot-${hp.cls}"></span>
             <span class="co-hp-label ${hp.cls}">${hp.label}</span>
             ${(c.tempHp || 0) > 0 ? `<span class="co-thp-badge" title="Temporary Hit Points">🛡️ +${c.tempHp}</span>` : ''}
             ${conds ? `<span class="co-conds">${conds}</span>` : ''}
@@ -2414,18 +2830,27 @@ function _renderCombatOverlay(combat, startMinimized = false) {
       </div>
       <div id="co-add-form" class="co-add-form hidden">
         <div class="co-add-row">
-          <input id="co-add-name" class="co-input" placeholder="Naam…"
-            onkeydown="if(event.key==='Enter')window.dmPanel.combatAddSubmit()">
-          <select id="co-add-type" class="co-select">
+          <select id="co-add-type" class="co-select" onchange="window.dmPanel.combatAddTypeChange(this.value)">
             <option value="monster">Monster</option>
             <option value="summon">Summon</option>
             <option value="ally">Medestander</option>
             <option value="player">Speler</option>
           </select>
+          <button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatAddCancel()">✕</button>
+        </div>
+        ${_monsters.length > 0 ? `
+        <div id="co-add-preset-row" class="co-add-row">
+          <select id="co-add-preset" class="co-select" style="flex:1" onchange="window.dmPanel.combatAddPresetChange(this.value)">
+            <option value="">— Handmatig invoeren —</option>
+            ${_monsters.map(m => `<option value="${esc(m.id)}">${esc(m.name)} (HP ${m.maxHp})</option>`).join('')}
+          </select>
+        </div>` : ''}
+        <div class="co-add-row">
+          <input id="co-add-name" class="co-input" placeholder="Naam…"
+            onkeydown="if(event.key==='Enter')window.dmPanel.combatAddSubmit()">
           <input id="co-add-init" class="co-input co-input-sm" type="number" placeholder="Init" value="10">
           <input id="co-add-maxhp" class="co-input co-input-sm" type="number" placeholder="Max HP" value="10">
           <button class="co-ctrl-btn co-ctrl-primary" onclick="window.dmPanel.combatAddSubmit()">+</button>
-          <button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatAddCancel()">✕</button>
         </div>
       </div>
       <div id="co-detail-panel" class="co-detail-panel hidden"></div>
@@ -2547,4 +2972,168 @@ async function _populateEmoteBar(combat) {
       window._socket.emit('sound:emote', { entityId: myCharId, index });
     }
   };
+}
+
+// ── Berichten ─────────────────────────────────────────────────────────────────
+
+let _berichtenSpelers = [];
+let _berichtenData    = {};   // { characterId: [{ id, tekst, timestamp, gelezen }] }
+let _sjablonen        = [];
+let _sjabloonMode     = false;
+
+async function _renderBerichten() {
+  const el = document.querySelector('.dm-tab-content[data-tab="berichten"]');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  try {
+    const [berichtenRes, sjablonenRes, allPersonages] = await Promise.all([
+      api.getBerichten(),
+      api.getSjablonen().catch(() => ({ sjablonen: [] })),
+      api.listEntities('personages').catch(() => []),
+    ]);
+    // DM response: { spelers: [{ characterId, name, berichten }] }
+    _sjablonen = sjablonenRes.sjablonen || [];
+    _berichtenData = {};
+    for (const s of (berichtenRes.spelers || [])) {
+      _berichtenData[s.characterId] = s.berichten || [];
+    }
+    // Alle zichtbare speler-personages als keuzemogelijkheid
+    _berichtenSpelers = allPersonages.filter(p => p._visibility !== 'hidden' && p.subtype === 'speler');
+  } catch (err) {
+    el.innerHTML = `<div class="dm-feature-section"><div class="dm-section-label">Fout: ${esc(err.message)}</div></div>`;
+    return;
+  }
+
+  const totalUnread = Object.values(_berichtenData).flat().filter(m => !m.gelezen).length;
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">💬 Geheime berichten${totalUnread ? ` <span class="bericht-badge">${totalUnread}</span>` : ''}</div>
+
+      <!-- Stuur bericht -->
+      <div class="bericht-compose">
+        <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;align-items:center">
+          <label class="dm-form-label" style="min-width:60px">Aan</label>
+          <select id="bericht-ontvanger" class="dm-select" style="flex:1;min-width:120px">
+            <option value="">— Kies speler —</option>
+            ${_berichtenSpelers.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+            <label class="dm-form-label">Bericht</label>
+            ${_sjablonen.length ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._berichtenToggleSjablonen()" style="font-size:10px">📋 Sjablonen</button>` : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._berichtenToggleSjablonen()" style="font-size:10px">📋 Sjabloon opslaan</button>`}
+          </div>
+          <div id="bericht-sjablonen-lijst" class="bericht-sjablonen hidden">
+            ${_sjablonen.map((s, i) => `
+              <div class="bericht-sjabloon-row">
+                <button class="bericht-sjabloon-btn" onclick="window._berichtenUseSjabloon(${i})">${esc(s.substring(0, 60))}${s.length > 60 ? '…' : ''}</button>
+                <button class="bericht-sjabloon-del" onclick="window.dmPanel.sjabloonDelete(${i})" title="Verwijder">✕</button>
+              </div>`).join('')}
+            ${_sjablonen.length < 20 ? `
+              <button class="dm-btn dm-btn-sm dm-btn-ghost" style="margin-top:4px;width:100%" onclick="window._berichtenSaveCurrentAsSjabloon()">💾 Huidige tekst opslaan als sjabloon</button>
+            ` : ''}
+          </div>
+          <textarea id="bericht-tekst" class="dm-textarea" rows="3" placeholder="Geheim bericht aan de speler…" style="resize:vertical"></textarea>
+        </div>
+
+        <div class="dm-form-row" style="justify-content:flex-end;gap:6px">
+          <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.berichtSend()">📤 Versturen</button>
+        </div>
+        <div id="bericht-send-status" class="bericht-status hidden"></div>
+      </div>
+
+      <!-- Verstuurde berichten per speler -->
+      <div class="dm-section-label" style="margin-top:12px">Geschiedenis</div>
+      ${_berichtenSpelers.length === 0 ? '<p class="dm-empty">Geen spelers zichtbaar.</p>' : ''}
+      ${_berichtenSpelers.map(p => {
+        const msgs = (_berichtenData[p.id] || []).slice().reverse();
+        if (!msgs.length) return '';
+        return `
+          <details class="bericht-history-group" open>
+            <summary class="bericht-history-head">
+              ${esc(p.name)}
+              <span class="bericht-history-count">${msgs.length} bericht${msgs.length !== 1 ? 'en' : ''}</span>
+            </summary>
+            <div class="bericht-history-body">
+              ${msgs.map(m => `
+                <div class="bericht-history-item${m.gelezen ? '' : ' bericht-history-unread'}">
+                  <div class="bericht-history-row">
+                    <span class="bericht-history-tekst">${esc(m.tekst)}</span>
+                    <button class="bericht-del-btn" title="Verwijder" onclick="window._berichtDmDelete('${esc(p.id)}','${esc(m.id)}')">✕</button>
+                  </div>
+                  <span class="bericht-history-meta">${_fmtDate(m.timestamp)}${m.gelezen ? ' · gelezen' : ' · ongelezen'}</span>
+                </div>`).join('')}
+            </div>
+          </details>`;
+      }).join('')}
+    </div>`;
+}
+
+function _fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }) + ' ' +
+         d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+}
+
+window._berichtDmDelete = async (characterId, msgId) => {
+  try {
+    await api.deleteBericht(characterId, msgId);
+    _renderBerichten();
+  } catch { /* ok */ }
+};
+
+window._berichtenToggleSjablonen = () => {
+  const el = document.getElementById('bericht-sjablonen-lijst');
+  if (el) el.classList.toggle('hidden');
+};
+
+window._berichtenUseSjabloon = (index) => {
+  const s = _sjablonen[index];
+  if (!s) return;
+  const ta = document.getElementById('bericht-tekst');
+  if (ta) ta.value = s;
+  document.getElementById('bericht-sjablonen-lijst')?.classList.add('hidden');
+};
+
+window._berichtenSaveCurrentAsSjabloon = async () => {
+  const tekst = document.getElementById('bericht-tekst')?.value.trim();
+  if (!tekst) return;
+  if (_sjablonen.includes(tekst)) return;
+  _sjablonen.push(tekst);
+  if (_sjablonen.length > 20) _sjablonen = _sjablonen.slice(-20);
+  try {
+    await api.saveSjablonen(_sjablonen);
+    _renderBerichten();
+  } catch { /* ok */ }
+};
+
+async function _berichtSend() {
+  const ontvangerId = document.getElementById('bericht-ontvanger')?.value;
+  const tekst       = document.getElementById('bericht-tekst')?.value.trim();
+  const statusEl    = document.getElementById('bericht-send-status');
+
+  if (!ontvangerId || !tekst) {
+    if (statusEl) { statusEl.textContent = 'Kies een speler en voer een bericht in.'; statusEl.className = 'bericht-status bericht-status--err'; }
+    return;
+  }
+
+  try {
+    await api.sendBericht({ characterId: ontvangerId, tekst });
+    if (statusEl) { statusEl.textContent = '✓ Bericht verstuurd'; statusEl.className = 'bericht-status bericht-status--ok'; }
+    document.getElementById('bericht-tekst').value = '';
+    setTimeout(() => _renderBerichten(), 400);
+  } catch (err) {
+    if (statusEl) { statusEl.textContent = 'Fout: ' + err.message; statusEl.className = 'bericht-status bericht-status--err'; }
+  }
+  if (statusEl) statusEl.classList.remove('hidden');
+}
+
+async function _sjabloonDelete(index) {
+  _sjablonen.splice(index, 1);
+  try { await api.saveSjablonen(_sjablonen); } catch { /* ok */ }
+  _renderBerichten();
 }

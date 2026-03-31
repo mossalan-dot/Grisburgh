@@ -309,6 +309,30 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
       }
     }
   }
+
+  // ── Verwijder verwijzingen in archiefDocumenten ──
+  const ARCHIEF_FIELD = { personages: 'npcs', locaties: 'locs', organisaties: 'orgs', voorwerpen: 'items' };
+  const archiefField = ARCHIEF_FIELD[type];
+  if (archiefField) {
+    const archief = storage.readJSON('archief.json');
+    let archiefChanged = false;
+    for (const doc of (archief.documents || [])) {
+      if (Array.isArray(doc[archiefField]) && doc[archiefField].includes(dying.name)) {
+        doc[archiefField] = doc[archiefField].filter(n => n !== dying.name);
+        archiefChanged = true;
+      }
+    }
+    for (const entry of (archief.sessieLog || [])) {
+      for (const field of ['nieuw', 'terugkerend']) {
+        if (Array.isArray(entry[field]) && entry[field].includes(dying.name)) {
+          entry[field] = entry[field].filter(n => n !== dying.name);
+          archiefChanged = true;
+        }
+      }
+    }
+    if (archiefChanged) storage.writeJSON('archief.json', archief);
+  }
+
   entities[type] = (entities[type] || []).filter(e => e.id !== id);
   for (const gid of Object.keys(dmState.groups)) {
     delete dmState.groups[gid].visibility[id];
@@ -481,6 +505,81 @@ router.put('/player-notes/:entityId', attachRole, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Geheime berichten ──
+// berichten.json: { [characterId]: [ { id, tekst, timestamp, gelezen } ] }
+
+router.get('/berichten', attachRole, (req, res) => {
+  const berichten = storage.readJSON('berichten.json') || {};
+  if (req.session.role === 'dm') {
+    // DM: geef alle berichten terug, gegroepeerd per character
+    const entities = storage.readJSON('entities.json');
+    const spelers = (entities.personages || []).filter(e => e.subtype === 'speler');
+    const result = spelers.map(s => ({
+      characterId: s.id,
+      name: s.name,
+      berichten: (berichten[s.id] || []).sort((a, b) => b.timestamp - a.timestamp),
+    }));
+    return res.json({ spelers: result });
+  }
+  // Speler: eigen berichten
+  if (!req.characterId) return res.json({ berichten: [] });
+  const eigen = (berichten[req.characterId] || []).sort((a, b) => b.timestamp - a.timestamp);
+  res.json({ berichten: eigen });
+});
+
+router.post('/berichten', requireDM, (req, res) => {
+  const { characterId, tekst } = req.body;
+  if (!characterId || !tekst?.trim()) return res.status(400).json({ error: 'Ontbrekende velden' });
+  const berichten = storage.readJSON('berichten.json') || {};
+  if (!berichten[characterId]) berichten[characterId] = [];
+  const msg = { id: `msg_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, tekst: tekst.trim(), timestamp: Date.now(), gelezen: false };
+  berichten[characterId].unshift(msg);
+  storage.writeJSON('berichten.json', berichten);
+  // Stuur direct naar de specifieke speler als die verbonden is
+  const io = req.app.get('io');
+  const playerSockets = req.app.get('playerSockets');
+  const socketId = playerSockets?.get(characterId);
+  if (socketId) {
+    io.to(socketId).emit('bericht:nieuw', { msg });
+  }
+  res.json({ ok: true, msg });
+});
+
+router.put('/berichten/:characterId/:msgId/gelezen', attachRole, (req, res) => {
+  const { characterId, msgId } = req.params;
+  if (req.session.role !== 'dm' && req.characterId !== characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const berichten = storage.readJSON('berichten.json') || {};
+  const msg = (berichten[characterId] || []).find(m => m.id === msgId);
+  if (msg) { msg.gelezen = true; storage.writeJSON('berichten.json', berichten); }
+  res.json({ ok: true });
+});
+
+router.delete('/berichten/:characterId/:msgId', attachRole, (req, res) => {
+  const { characterId, msgId } = req.params;
+  if (req.session.role !== 'dm' && req.characterId !== characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const berichten = storage.readJSON('berichten.json') || {};
+  if (berichten[characterId]) {
+    berichten[characterId] = berichten[characterId].filter(m => m.id !== msgId);
+    storage.writeJSON('berichten.json', berichten);
+  }
+  res.json({ ok: true });
+});
+
+// Sla vooraf ingevulde berichtsjablonen op in dm-state
+router.get('/berichten/sjablonen', requireDM, (req, res) => {
+  const dmState = readDmState();
+  res.json({ sjablonen: dmState.berichtSjablonen || [] });
+});
+
+router.put('/berichten/sjablonen', requireDM, (req, res) => {
+  const { sjablonen } = req.body;
+  if (!Array.isArray(sjablonen)) return res.status(400).json({ error: 'Array verwacht' });
+  const dmState = readDmState();
+  dmState.berichtSjablonen = sjablonen.slice(0, 20);
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true });
+});
+
 // ── Voorwerpen claimen & ruilen ──
 // dm-state.json:
 //   itemOwners:  { itemId: { characterId, playerName } }
@@ -603,8 +702,7 @@ router.put('/items/:itemId/owner', requireDM, (req, res) => {
   const dmState  = readDmState();
   const entities = storage.readJSON('entities.json');
   const item     = (entities.voorwerpen || []).find(e => e.id === itemId);
-  // Gebruik de opgegeven groep of anders de actieve groep
-  const targetId = groupId && dmState.groups[groupId] ? groupId : dmState.activeGroup;
+  const targetId = dmState.activeGroup;
   const g = dmState.groups[targetId];
   if (!g) return res.status(400).json({ error: 'Groep niet gevonden' });
   if (!g.itemOwners) g.itemOwners = {};
@@ -875,6 +973,7 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
     'ac', 'speed', 'initiative', 'profBonus', 'hitDie',
     'deathSaveSuccesses', 'deathSaveFailures',
     'saveProfs', 'skillProfs', 'featuresTraits',
+    'multiclass', 'klasseLevel', 'multiKlasse', 'multiKlasseLevel',
   ];
   const updated = { ...existing };
   for (const key of allowed) {
@@ -1170,8 +1269,18 @@ router.put('/archief/:id', requireDM, (req, res) => {
 router.delete('/archief/:id', requireDM, (req, res) => {
   const archief = storage.readJSON('archief.json');
   const dmState = readDmState();
+  const deletingDoc = (archief.documents || []).find(d => d.id === req.params.id);
   archief.documents  = (archief.documents  || []).filter(d => d.id !== req.params.id);
   archief.logEntries = (archief.logEntries || []).filter(e => e.docId !== req.params.id);
+  // Verwijder terugverwijzingen in andere documenten en logboekentries
+  if (deletingDoc) {
+    for (const doc of (archief.documents || [])) {
+      if (Array.isArray(doc.docs)) doc.docs = doc.docs.filter(n => n !== deletingDoc.name);
+    }
+    for (const entry of (archief.sessieLog || [])) {
+      if (Array.isArray(entry.docs)) entry.docs = entry.docs.filter(n => n !== deletingDoc.name);
+    }
+  }
   delete archief.hiddenLinks[req.params.id];
   delete archief.tekstContent[req.params.id];
   delete dmState.docStates[req.params.id];
@@ -1366,7 +1475,7 @@ router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {
 router.put('/meta/herberg', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.herberg) meta.herberg = {};
-  const allowed = ['naam','waard','imageId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax'];
+  const allowed = ['naam','waard','imageId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet'];
   for (const f of allowed) {
     if (req.body[f] !== undefined) meta.herberg[f] = req.body[f];
   }
@@ -1427,6 +1536,39 @@ router.delete('/map/maps/:id', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// Hulpfunctie: zoek groep van een speler op via character-entiteit
+function _playerGroup(entities, characterId) {
+  const char = (entities.personages || []).find(e => e.id === characterId);
+  return char?.data?.groep || null;
+}
+
+router.get('/map/pins/available-locations', attachRole, (req, res) => {
+  if (req.role === 'dm') return res.json([]);
+  const mapId    = req.query.mapId || 'grisburgh';
+  const charId   = req.characterId;
+  if (!charId) return res.status(401).json({ error: 'Niet ingelogd' });
+  const entities = storage.readJSON('entities.json');
+  const mapData  = storage.readJSON('map.json');
+  const dmState  = readDmState();
+  const g        = getGroup(dmState);
+  const groupId  = _playerGroup(entities, charId);
+
+  // Locaties die al een pin hebben op deze kaart (goedgekeurd of pending voor dezelfde groep)
+  const takenLocIds = new Set(
+    (mapData.pins || [])
+      .filter(p => (p.mapId || 'grisburgh') === mapId)
+      .filter(p => !p.pending || p.placedByGroup === groupId)
+      .map(p => p.locId)
+  );
+
+  const available = (entities.locaties || []).filter(loc => {
+    const vis = g.visibility[loc.id] || 'hidden';
+    return vis === 'visible' && !takenLocIds.has(loc.id);
+  }).map(loc => ({ id: loc.id, name: loc.name }));
+
+  res.json(available);
+});
+
 router.get('/map/pins', attachRole, (req, res) => {
   const mapId   = req.query.mapId || 'grisburgh';
   const mapData = storage.readJSON('map.json');
@@ -1434,6 +1576,8 @@ router.get('/map/pins', attachRole, (req, res) => {
   const dmState = readDmState();
   const g       = getGroup(dmState);
   const locaties = entities.locaties || [];
+  const charId  = req.characterId;
+  const groupId = charId ? _playerGroup(entities, charId) : null;
 
   const pins = (mapData.pins || [])
     .filter(pin => (pin.mapId || 'grisburgh') === mapId)
@@ -1441,36 +1585,116 @@ router.get('/map/pins', attachRole, (req, res) => {
       const loc = locaties.find(l => l.id === pin.locId);
       if (!loc) return null;
       const vis = g.visibility[loc.id] || 'hidden';
-      if (req.role !== 'dm' && vis === 'hidden') return null;
-      return { ...pin, locName: vis === 'vague' ? null : loc.name, visibility: vis };
+
+      if (req.role !== 'dm') {
+        // Speler: goedgekeurde pins (niet hidden) + eigen pending pin
+        if (pin.pending) {
+          if (pin.placedBy !== charId) return null;
+          return { ...pin, locName: loc.name, visibility: vis };
+        }
+        if (vis === 'hidden') return null;
+        return { ...pin, locName: vis === 'vague' ? null : loc.name, visibility: vis };
+      }
+
+      // DM: alle pins
+      return { ...pin, locName: loc.name, visibility: vis };
     }).filter(Boolean);
 
   res.json(pins);
 });
 
-router.post('/map/pins', requireDM, (req, res) => {
+router.post('/map/pins', attachRole, (req, res) => {
   const { locId, x, y, mapId } = req.body;
   if (!locId || x == null || y == null) return res.status(400).json({ error: 'Ontbrekende velden' });
-  const mapData = storage.readJSON('map.json');
+  const mapData  = storage.readJSON('map.json');
+  const targetMap = mapId || 'grisburgh';
+
+  if (req.role === 'dm') {
+    const pin = {
+      id:    'pin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      mapId: targetMap, locId,
+      x:     parseFloat(x), y: parseFloat(y),
+    };
+    mapData.pins.push(pin);
+    storage.writeJSON('map.json', mapData);
+    req.app.get('io').emit('map:updated');
+    return res.json(pin);
+  }
+
+  // Speler: pending pin
+  const charId  = req.characterId;
+  if (!charId) return res.status(401).json({ error: 'Niet ingelogd' });
+  const entities = storage.readJSON('entities.json');
+  const dmState  = readDmState();
+  const g        = getGroup(dmState);
+  const groupId  = _playerGroup(entities, charId);
+  const char     = (entities.personages || []).find(e => e.id === charId);
+
+  // Controleer of locatie visible is
+  const loc = (entities.locaties || []).find(l => l.id === locId);
+  if (!loc) return res.status(404).json({ error: 'Locatie niet gevonden' });
+  if ((g.visibility[locId] || 'hidden') !== 'visible')
+    return res.status(403).json({ error: 'Locatie niet zichtbaar' });
+
+  // Controleer uniekheid: max één pin per locatie per groep op deze kaart
+  const exists = (mapData.pins || []).some(p =>
+    (p.mapId || 'grisburgh') === targetMap && p.locId === locId &&
+    (!p.pending || p.placedByGroup === groupId)
+  );
+  if (exists) return res.status(409).json({ error: 'Er staat al een pin voor deze locatie' });
+
   const pin = {
-    id:    'pin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-    mapId: mapId || 'grisburgh',
-    locId,
-    x:     parseFloat(x),
-    y:     parseFloat(y),
+    id:             'pin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    mapId:          targetMap, locId,
+    x:              parseFloat(x), y: parseFloat(y),
+    pending:        true,
+    placedBy:       charId,
+    placedByGroup:  groupId,
+    placedByName:   char?.name || 'Speler',
   };
   mapData.pins.push(pin);
   storage.writeJSON('map.json', mapData);
-  req.app.get('io').emit('map:updated');
+
+  // Stuur notificatie naar DM
+  const io = req.app.get('io');
+  io.emit('pin:pending', { id: pin.id, locName: loc.name, placedByName: pin.placedByName });
+
   res.json(pin);
 });
 
-router.put('/map/pins/:id', requireDM, (req, res) => {
+router.put('/map/pins/:id/approve', requireDM, (req, res) => {
+  const mapData = storage.readJSON('map.json');
+  const pin = mapData.pins.find(p => p.id === req.params.id);
+  if (!pin) return res.status(404).json({ error: 'Niet gevonden' });
+  if (!pin.pending) return res.status(400).json({ error: 'Pin is al goedgekeurd' });
+  const { placedBy } = pin;
+  delete pin.pending;
+  delete pin.placedBy;
+  delete pin.placedByGroup;
+  delete pin.placedByName;
+  storage.writeJSON('map.json', mapData);
+  const io = req.app.get('io');
+  io.emit('map:updated');
+  // Stuur bevestiging naar de speler die de pin heeft geplaatst
+  const entities = storage.readJSON('entities.json');
+  const loc = (entities.locaties || []).find(l => l.id === pin.locId);
+  const playerSockets = req.app.get('playerSockets');
+  const socketId = playerSockets?.get(placedBy);
+  if (socketId) io.to(socketId).emit('pin:approved', { locName: loc?.name || '' });
+  res.json(pin);
+});
+
+router.put('/map/pins/:id', attachRole, (req, res) => {
   const { x, y } = req.body;
   if (x == null || y == null) return res.status(400).json({ error: 'Ontbrekende velden' });
   const mapData = storage.readJSON('map.json');
   const pin = mapData.pins.find(p => p.id === req.params.id);
   if (!pin) return res.status(404).json({ error: 'Niet gevonden' });
+  // Speler mag alleen eigen pending pin verplaatsen
+  if (req.role !== 'dm') {
+    if (!pin.pending || pin.placedBy !== req.characterId)
+      return res.status(403).json({ error: 'Geen toegang' });
+  }
   pin.x = parseFloat(x);
   pin.y = parseFloat(y);
   storage.writeJSON('map.json', mapData);
@@ -1479,9 +1703,21 @@ router.put('/map/pins/:id', requireDM, (req, res) => {
 
 router.delete('/map/pins/:id', requireDM, (req, res) => {
   const mapData = storage.readJSON('map.json');
+  const pin = mapData.pins.find(p => p.id === req.params.id);
+  if (!pin) return res.status(404).json({ error: 'Niet gevonden' });
+  const { placedBy } = pin;
   mapData.pins = mapData.pins.filter(p => p.id !== req.params.id);
   storage.writeJSON('map.json', mapData);
-  req.app.get('io').emit('map:updated');
+  const io = req.app.get('io');
+  io.emit('map:updated');
+  // Als dit een pending pin was: stuur afwijzing naar de speler
+  if (pin.pending && placedBy) {
+    const entities = storage.readJSON('entities.json');
+    const loc = (entities.locaties || []).find(l => l.id === pin.locId);
+    const playerSockets = req.app.get('playerSockets');
+    const socketId = playerSockets?.get(placedBy);
+    if (socketId) io.to(socketId).emit('pin:rejected', { locName: loc?.name || '' });
+  }
   res.json({ ok: true });
 });
 
@@ -1600,10 +1836,13 @@ router.get('/monsters', requireDM, (req, res) => {
 });
 
 router.post('/monsters', requireDM, (req, res) => {
-  const data = storage.readJSON('monsters.json');
+  const raw = storage.readJSON('monsters.json');
+  const data = Array.isArray(raw) ? { monsters: [] } : (raw || { monsters: [] });
   const monster = {
+    ...req.body,
     id:          req.body.id || ('m_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
     name:        req.body.name        || 'Unnamed',
+    chapter:     req.body.chapter     || '',
     maxHp:       req.body.maxHp       ?? 10,
     initiative:  req.body.initiative  ?? 10,
     imageId:     req.body.imageId     || null,
@@ -1888,15 +2127,21 @@ router.get('/herberg', attachRole, (req, res) => {
     }
   }
 
+  // Spelersnaam ophalen voor begroeting
+  const charEntity = (entities.personages || []).find(e => e.id === characterId);
+  const playerFirstName = (charEntity?.name || '').split(/\s+/)[0] || '';
+
   res.json({
     config: {
-      naam: config.naam,
-      waard: config.waard,
-      imageId: config.imageId || '',
+      naam:      config.naam,
+      waard:     config.waard,
+      imageId:   config.imageId || '',
       maxVragen: config.maxVragen || 3,
+      groet:     config.groet || '',
     },
-    state: playerState,
-    entities: result,
+    state:           playerState,
+    entities:        result,
+    playerFirstName,
   });
 });
 

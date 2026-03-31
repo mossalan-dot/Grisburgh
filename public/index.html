@@ -172,8 +172,8 @@
       <div class="section" id="section-kaart"></div>
       <div class="section" id="section-mijn-karakter"></div>
       <div class="section dm-section" id="section-meesterkamer">
-        <div class="dm-section-tabs" id="dm-section-tabs"></div>
         <div class="dm-section-layout">
+        <div class="dm-section-tabs" id="dm-section-tabs"></div>
         <div class="dm-section-body" id="dm-section-body">
           <!-- Tunnel tab -->
           <div class="dm-tab-content active" data-tab="tunnel">
@@ -203,6 +203,8 @@
           </div>
           <!-- Herberg tab -->
           <div class="dm-tab-content" data-tab="herberg"></div>
+          <!-- Berichten tab -->
+          <div class="dm-tab-content" data-tab="berichten"></div>
           <!-- Dobbelstenen tab -->
           <div class="dm-tab-content" data-tab="dobbelstenen">
             <div class="dm-feature-section" style="padding-bottom:6px;border-bottom:1px solid rgba(58,40,16,0.4)">
@@ -228,10 +230,12 @@
             <div class="dice-history" id="dm-dice-history"></div>
           </div>
         </div><!-- /.dm-section-body -->
-        <div class="dm-reveal-strip" id="dm-reveal-strip"></div>
         </div><!-- /.dm-section-layout -->
       </div>
     </main>
+
+    <!-- Reveal strip (persistent DM overlay) -->
+    <div class="dm-reveal-strip" id="dm-reveal-strip"></div>
 
     <!-- FAB -->
     <button id="fab" onclick="window.app.onFabClick()"
@@ -291,7 +295,7 @@
         </div>
         <button class="modal-close" onclick="window.app.closeModal()">&times;</button>
       </div>
-      <div class="overflow-y-auto flex-1 min-h-0" id="m-body" style="padding:20px"></div>
+      <div class="overflow-y-auto flex-1 min-h-0" id="m-body" style="padding:20px;overscroll-behavior:contain"></div>
     </div>
   </div>
 
