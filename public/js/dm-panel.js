@@ -92,6 +92,7 @@ export function initDmPanel() {
     tunnelToggle:  _tunnelToggle,
     tunnelCopy:    _tunnelCopy,
     exportSnapshot: _exportSnapshot,
+    exportFile:     _exportFile,
 
     // Tafels
     tabelRoll:     _tabelRoll,
@@ -244,7 +245,7 @@ function _buildTabs() {
   if (!container) return;
   container.innerHTML = `
     <button class="dm-tab-btn${_activeTab==='tunnel'?      ' active':''}" data-tab="tunnel"       onclick="window.dmPanel.switchTab('tunnel')"       title="Tunnel"><span class="dm-tab-icon">🌐</span><span class="dm-tab-label">Tunnel</span></button>
-    <button id="dm-export-btn" class="dm-tab-btn" onclick="window.dmPanel.exportSnapshot()"                                                           title="Snapshot"><span class="dm-tab-icon">📥</span><span class="dm-tab-label">Snapshot</span></button>
+    <button class="dm-tab-btn${_activeTab==='export'?       ' active':''}" data-tab="export"       onclick="window.dmPanel.switchTab('export')"       title="Export"><span class="dm-tab-icon">📥</span><span class="dm-tab-label">Export</span></button>
     <button class="dm-tab-btn${_activeTab==='spreuken'?    ' active':''}" data-tab="spreuken"     onclick="window.dmPanel.switchTab('spreuken')"     title="Spreuken"><span class="dm-tab-icon">📖</span><span class="dm-tab-label">Spreuken</span></button>
     <button class="dm-tab-btn${_activeTab==='tafels'?      ' active':''}" data-tab="tafels"       onclick="window.dmPanel.switchTab('tafels')"       title="Tafels"><span class="dm-tab-icon">🎲</span><span class="dm-tab-label">Tafels</span></button>
     <button class="dm-tab-btn${_activeTab==='dobbelstenen'?' active':''}" data-tab="dobbelstenen" onclick="window.dmPanel.switchTab('dobbelstenen')" title="Dobbelstenen">
@@ -271,6 +272,7 @@ function _switchTab(tab) {
     c.classList.toggle('active', c.dataset.tab === tab);
   });
   if (tab === 'tunnel')    _renderTunnel();
+  if (tab === 'export')    _renderExportTab();
   if (tab === 'spreuken')  _renderSpreuken();
   if (tab === 'tafels')    _loadAndRenderTafels();
   if (tab === 'monsters')  _loadAndRenderMonsters();
@@ -485,18 +487,53 @@ function _tunnelCopy() {
   });
 }
 
-async function _exportSnapshot() {
-  const btn = document.getElementById('dm-export-btn');
-  const icon = btn?.querySelector('.dm-tab-icon');
-  if (icon) icon.textContent = '⏳';
-  if (btn) btn.disabled = true;
+function _renderExportTab() {
+  const el = document.getElementById('dm-export-content');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-feature-label">Exporteren</div>
+
+      <div class="export-option-card" id="export-card-snapshot">
+        <div class="export-option-icon">📷</div>
+        <div class="export-option-body">
+          <div class="export-option-title">Snapshot</div>
+          <div class="export-option-desc">Interactieve HTML-versie van de campagnedata voor spelers — met kaarten, modals en alle onthuld materiaal.</div>
+          <button class="dm-btn dm-btn-primary export-option-btn" id="export-btn-snapshot"
+            onclick="window.dmPanel.exportFile('snapshot')">
+            📥 Snapshot downloaden
+          </button>
+        </div>
+      </div>
+
+      <div class="export-option-card" id="export-card-boek">
+        <div class="export-option-icon">📖</div>
+        <div class="export-option-body">
+          <div class="export-option-title">Campagneboek</div>
+          <div class="export-option-desc">Lineair, printklaar boek met inhoudsopgave, alle sessies per hoofdstuk, afbeeldingen en een register van personages, locaties en meer. Gebruik Afdrukken → Opslaan als PDF.</div>
+          <button class="dm-btn dm-btn-primary export-option-btn" id="export-btn-boek"
+            onclick="window.dmPanel.exportFile('campagneboek')">
+            📖 Campagneboek downloaden
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function _exportFile(type) {
+  const btnId = type === 'campagneboek' ? 'export-btn-boek' : 'export-btn-snapshot';
+  const btn = document.getElementById(btnId);
+  const origText = btn?.textContent;
+  if (btn) { btn.textContent = '⏳ Bezig…'; btn.disabled = true; }
   try {
-    const res = await fetch('/api/export', { credentials: 'include' });
+    const url = type === 'campagneboek' ? '/api/export/campagneboek' : '/api/export';
+    const res = await fetch(url, { credentials: 'include' });
     if (!res.ok) throw new Error(await res.text());
     const blob = await res.blob();
     const disp = res.headers.get('Content-Disposition') || '';
     const match = disp.match(/filename="([^"]+)"/);
-    const filename = match ? match[1] : 'snapshot.html';
+    const filename = match ? match[1] : `${type}.html`;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = filename;
@@ -504,12 +541,14 @@ async function _exportSnapshot() {
     a.click();
     a.remove();
     URL.revokeObjectURL(a.href);
-    if (icon) { icon.textContent = '✓'; setTimeout(() => { icon.textContent = '📥'; }, 2000); }
+    if (btn) { btn.textContent = '✓ Klaar!'; setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2500); }
   } catch (err) {
-    if (icon) { icon.textContent = '✕'; setTimeout(() => { icon.textContent = '📥'; }, 3000); }
-  } finally {
-    if (btn) btn.disabled = false;
+    if (btn) { btn.textContent = '✕ Fout'; setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 3000); }
   }
+}
+
+async function _exportSnapshot() {
+  await _exportFile('snapshot');
 }
 
 function _renderTunnel() {

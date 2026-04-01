@@ -216,46 +216,59 @@ body::before {
 
 .archief-menu {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
   z-index: 200;
-  background: #efe3c5;
-  border: 1px solid #c4a87a;
-  border-radius: 6px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
-  min-width: 180px;
-  padding: 4px 0;
+  background: linear-gradient(160deg, #f5e9ce 0%, #ede0bc 100%);
+  border: 1px solid rgba(196,168,122,0.7);
+  border-radius: 8px;
+  box-shadow:
+    0 8px 28px rgba(60,30,0,0.22),
+    0 1px 0 rgba(255,255,255,0.5) inset,
+    0 -1px 0 rgba(120,80,20,0.12) inset;
+  min-width: 175px;
+  padding: 5px 0;
   animation: fadeIn 0.15s ease;
+  overflow: hidden;
 }
 
 .archief-menu-item {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   width: 100%;
-  padding: 11px 18px;
+  padding: 8px 16px;
   text-align: left;
   font-family: 'Cinzel', serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #5a4030;
   background: none;
   border: none;
   border-left: 3px solid transparent;
   cursor: pointer;
-  letter-spacing: 0.03em;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  letter-spacing: 0.04em;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  position: relative;
+}
+
+.archief-menu-item + .archief-menu-item::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 16px; right: 16px;
+  height: 1px;
+  background: rgba(196,168,122,0.3);
 }
 
 .archief-menu-item:hover {
-  background: rgba(196,168,122,0.25);
-  color: #2a1a08;
+  background: rgba(196,168,122,0.28);
+  color: #3a2008;
 }
 
 .archief-menu-item.active {
-  background: rgba(154,112,8,0.12);
-  color: #9a7008;
-  border-left-color: #9a7008;
+  background: rgba(154,112,8,0.13);
+  color: #7a5800;
+  border-left-color: #c4a030;
   font-weight: 700;
 }
 
@@ -596,7 +609,7 @@ body::before {
   border-color: rgba(255,255,255,0.08);
 }
 .entity-card.card-deceased .flavour-preview-text {
-  color: #666;
+  color: #999;
 }
 .entity-card.card-deceased .chip {
   background: rgba(255,255,255,0.07) !important;
@@ -3812,6 +3825,10 @@ body::before {
   background: rgba(196,148,10,0.28);
   color: #f0c040;
 }
+.secret-badge--player {
+  cursor: default;
+  pointer-events: none;
+}
 .attunement-badge {
   display: inline-block;
   margin: 4px 8px 2px;
@@ -5937,6 +5954,36 @@ body::before {
 }
 .log-detail-note-ta:focus { outline: none; border-color: #c8a840; }
 
+/* ── Export tab ── */
+.export-option-card {
+  display: flex;
+  gap: 16px;
+  padding: 18px;
+  background: rgba(196,168,122,0.07);
+  border: 1px solid rgba(196,168,122,0.28);
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+.export-option-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+  line-height: 1;
+  padding-top: 2px;
+}
+.export-option-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.export-option-title {
+  font-family: 'Cinzel', serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-ink-bright);
+}
+.export-option-desc {
+  font-size: 0.8rem;
+  color: var(--color-ink-dim);
+  line-height: 1.5;
+}
+.export-option-btn { align-self: flex-start; margin-top: 6px; }
+
 /* ── Herberg ── */
 
 /* Achtergrond op body — ontsnapt aan overflow:hidden van ancestors, bedekt altijd volledig scherm */
@@ -6068,6 +6115,25 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 
 /* Lijst */
 .herberg-lijst { display: flex; flex-direction: column; gap: 5px; max-height: 260px; overflow-y: auto; }
+.herberg-item-row { display: flex; align-items: center; gap: 6px; }
+.herberg-item-row .herberg-item { flex: 1; min-width: 0; }
+.herberg-item-card-btn {
+  flex-shrink: 0;
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(196,168,122,0.1);
+  border: 1px solid rgba(196,168,122,0.28);
+  border-radius: 6px;
+  color: rgba(212,180,100,0.7);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.herberg-item-card-btn:hover {
+  background: rgba(196,168,122,0.22);
+  border-color: rgba(212,168,67,0.6);
+  color: rgba(240,210,120,1);
+}
 .herberg-item {
   display: flex; align-items: center; justify-content: space-between;
   padding: 9px 14px;

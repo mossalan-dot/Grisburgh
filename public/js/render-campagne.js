@@ -30,8 +30,8 @@ const SCHEMA = {
       { key: 'klasse', label: 'Klasse', type: 'text' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'persoonlijkheid', label: 'Persoonlijkheid', type: 'textarea', dmOnly: true },
-      { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
-      { key: 'geheim', label: 'Geheim (DM)', type: 'textarea' },
+      { key: 'flavour', label: 'Roddel', type: 'textarea' },
+      { key: 'geheim', label: 'Geheim', type: 'textarea' },
     ],
   },
   locaties: {
@@ -274,13 +274,14 @@ const $ = (...a) => window.app.$(...a);
 const $$ = (...a) => window.app.$$(...a);
 const isDM = () => window.app.isDM();
 const esc = (...a) => window.app.esc(...a);
+const escJS = (...a) => window.app.escJS(...a);
 const mdToHtml = (...a) => window.app.mdToHtml(...a);
 const openModal = (...a) => window.app.openModal(...a);
 const closeModal = (...a) => window.app.closeModal(...a);
 const openLightbox = (...a) => window.app.openLightbox(...a);
 
 // ── Modal navigatie-history ──
-const _modalHistory = [];   // stack van { tab, id }
+const _modalHistory = window._modalHistory = [];   // stack van { tab, id } — ook toegankelijk vanuit render-archief.js
 
 function _pushHistory(tab, id) {
   _modalHistory.push({ tab, id });
@@ -300,7 +301,14 @@ function _updateBackButton() {
 window._modalGoBack = async () => {
   const prev = _modalHistory.pop();
   if (!prev) return;
-  await window._openDetail(prev.tab, prev.id, true /* isBack */);
+  _updateBackButton();
+  if (prev.type === 'archief') {
+    window._openDoc?.(prev.id);
+  } else if (prev.type === 'sessie') {
+    window._openSessieDetail?.(prev.id);
+  } else {
+    await window._openDetail(prev.tab, prev.id, true /* isBack */);
+  }
 };
 
 window._clearHistory = _clearHistory;
@@ -585,12 +593,16 @@ function renderCard(type, e) {
       ` : ''}
       ${type === 'voorwerpen' && (e.data?.attunement === 'true' || e.data?.attunement === true) ? `<span class="attunement-badge">Requires attunement</span>` : ''}
       ${type === 'voorwerpen' ? _itemOwnershipBadge(e.id) : ''}
-      ${isDM() && e.data?.geheim ? `
+      ${e.data?.geheim && isDM() ? `
         <button class="secret-badge${e._secretReveal ? ' secret-badge--revealed' : ''}"
           onclick="event.stopPropagation();window._toggleSecretCard('${type}','${e.id}')"
           title="${e._secretReveal ? 'Geheim zichtbaar voor spelers — klik om te verbergen' : 'Geheim verborgen voor spelers — klik om te onthullen'}">
           ${e._secretReveal ? '✨ Onthuld' : '🔒 Geheim'}
         </button>
+      ` : e.data?.geheim && e._secretReveal ? `
+        <div class="secret-badge secret-badge--revealed secret-badge--player" title="Geheim onthuld">
+          ✨
+        </div>
       ` : ''}
     </div>
   `;
@@ -672,7 +684,7 @@ window._itemGiveToPlayer = async function(itemId) {
       return;
     }
     // Groepeer per groep
-    const groupNames = Object.fromEntries((allGroups || []).map(g => [g.id, g.name]));
+    const groupNames = Object.fromEntries((allGroups?.groups || allGroups || []).map(g => [g.id, g.name]));
     const byGroup = {};
     for (const s of spelers) {
       const gid = s.data?.groep || '_geen';
@@ -686,7 +698,7 @@ window._itemGiveToPlayer = async function(itemId) {
           <div class="item-give-group-label">${esc(label)}</div>
           ${members.map(s => `
             <button class="item-give-player-btn"
-              onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${esc(s.name)}','${esc(s.data?.groep || '')}')">
+              onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}')">
               <img src="${api.fileUrl(s.id)}" class="item-give-avatar"
                 onerror="this.style.display='none'">
               <span>${esc(s.name)}</span>
@@ -781,17 +793,17 @@ function _refreshEntityImages() {
   if (!c) return;
   c.innerHTML = entityEditorImages.length
     ? entityEditorImages.map((img, i) => `
-        <div class="flex flex-col gap-1 flex-shrink-0" style="width:5rem">
-          <div class="relative w-20 h-20 rounded overflow-hidden border border-room-border bg-room-elevated">
+        <div>
+          <div class="relative rounded overflow-hidden border border-room-border bg-room-elevated" style="height:56px">
             <img src="${img.url}" class="w-full h-full object-cover">
             <button type="button" onclick="window._removeEntityImage(${i})"
               class="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded-full text-xs flex items-center justify-center transition">\u00d7</button>
           </div>
           <input type="text" placeholder="Onderschrift\u2026" value="${esc(img.caption || '')}"
             oninput="window._updateEntityImageCaption(${i}, this.value)"
-            class="w-full px-1 py-0.5 text-[10px] bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+            class="w-full mt-0.5 px-1 py-0.5 text-[9px] bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
         </div>`).join('')
-    : '<span class="text-xs text-ink-faint italic">Nog geen extra afbeeldingen</span>';
+    : '<span class="text-xs text-ink-faint italic">Nog geen</span>';
 }
 
 // ── Detail view ──
@@ -840,7 +852,7 @@ window._openDetail = async (tab, id, isBack = false) => {
     infoHtml += _entityCarouselHtml(e.id, _allImgs);
   } else {
     infoHtml += `
-      <div class="detail-hero mb-6" id="detail-img-wrap-${e.id}" onclick="window.app.openLightbox('${fileUrl}','${esc(e.name)}')">
+      <div class="detail-hero mb-6" id="detail-img-wrap-${e.id}" onclick="window.app.openLightbox('${fileUrl}','${escJS(e.name)}')">
         <img src="${fileUrl}" class="detail-hero-img"
           style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
           onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
@@ -1376,8 +1388,16 @@ window._editorFileSelected = (file) => {
   if (!file) return;
   if (file.size > 10 * 1024 * 1024) { alert('Max 10MB'); return; }
   pendingFile = file;
-  const label = document.getElementById('editor-file-name');
-  if (label) { label.textContent = file.name; label.classList.remove('hidden'); }
+  const zone = document.getElementById('editor-upload-zone');
+  if (zone) {
+    if (file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      zone.style.padding = '4px';
+      zone.innerHTML = `<img src="${url}" style="width:100%;height:80px;object-fit:cover;border-radius:4px;display:block"><div class="text-[10px] text-ink-dim mt-1 truncate px-1">${esc(file.name)}</div>`;
+    } else {
+      zone.innerHTML = `<div style="font-size:1.5rem">📄</div><div class="text-xs text-ink-dim mt-1 truncate">${esc(file.name)}</div>`;
+    }
+  }
 };
 
 window._uploadFile = async (tab, id, file) => {
@@ -1438,45 +1458,16 @@ window._openEditor = async (tab, editId) => {
 
   let body = `<form id="entity-form" class="space-y-4">`;
 
-  // Name + icon (side by side)
-  const _autoIc  = getAutoIcon(tab, e || { data: {} });
+  // ── Twee-kolom layout ──
+  const _autoIc   = getAutoIcon(tab, e || { data: {} });
   const _customIc = e?.data?.icon || '';
-  const _showIc  = _customIc || _autoIc;
-  const _iconSet = ICON_SETS[tab] || [];
-  body += `
-    <div class="flex gap-3 items-end">
-      <div class="flex-1">
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Naam</label>
-        <input name="name" value="${esc(e?.name || '')}" required
-          class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-      </div>
-      <div class="flex-shrink-0">
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider block mb-1">Icoon</label>
-        <button type="button" id="icon-picker-btn"
-          onclick="window._toggleIconPicker()"
-          title="Kies een icoon"
-          class="w-12 h-12 text-2xl flex items-center justify-center rounded border border-room-border bg-room-elevated hover:border-gold-dim transition select-none">
-          <span id="icon-preview">${_showIc}</span>
-        </button>
-        <input type="hidden" name="data_icon" id="icon-input" value="${esc(_customIc)}">
-      </div>
-    </div>
-    <div id="icon-picker" class="hidden p-2 bg-room-elevated border border-room-border rounded">
-      <div class="flex flex-wrap gap-1 mb-1.5">
-        <button type="button"
-          onclick="window._selectIcon('')"
-          class="px-2 py-0.5 text-[10px] font-cinzel text-ink-dim bg-room-bg border border-room-border rounded hover:border-gold-dim transition${!_customIc ? ' border-gold-dim text-gold' : ''}">
-          Automatisch
-        </button>
-      </div>
-      <div class="flex flex-wrap gap-0.5">
-        ${_iconSet.map(ic => `<button type="button" onclick="window._selectIcon('${ic}')"
-          class="w-8 h-8 text-lg flex items-center justify-center rounded hover:bg-room-bg transition${ic === _customIc ? ' bg-room-bg ring-1 ring-gold-dim' : ''}">${ic}</button>`).join('')}
-      </div>
-    </div>
-  `;
+  const _showIc   = _customIc || _autoIc;
+  const _iconSet  = ICON_SETS[tab] || [];
 
-  // Image upload + focal point picker
+  body += `<div class="editor-layout">`;
+
+  // ── Linker kolom: afbeelding ──
+  body += `<div class="editor-col-left">`;
   {
     const fileUrl = editId ? api.fileUrl(editId) : null;
     const focusVal = e?.data?.imgFocus || '50% 50%';
@@ -1501,50 +1492,70 @@ window._openEditor = async (tab, editId) => {
                   box-shadow:0 0 0 1.5px rgba(0,0,0,0.55),inset 0 0 0 1.5px rgba(0,0,0,0.3)"></div>
               </div>
             </div>
-            <p class="text-[10px] text-ink-dim mb-1">Klik of sleep om het focuspunt in te stellen</p>
-            <div class="flex items-start gap-2 mb-2">
-              <div class="text-[10px] text-ink-dim mt-1 shrink-0">Kaartweergave:</div>
-              <div class="rounded overflow-hidden border border-room-border shrink-0"
-                style="width:140px;height:80px">
-                <img id="fp-card-preview" src="${fileUrl}"
-                  class="w-full h-full object-cover pointer-events-none"
-                  style="object-position:${focusVal}">
-              </div>
-            </div>
+            <p class="text-[10px] text-ink-dim mb-1">Klik om focuspunt in te stellen</p>
             <input type="hidden" name="data_imgFocus" id="fp-input" value="${focusVal}">
           ` : ''}
-          <div class="upload-zone" onclick="document.getElementById('editor-file-input').click()">
-            \ud83d\udcf7 Afbeelding of PDF uploaden (max 10MB)
+          <div class="upload-zone" id="editor-upload-zone"
+            onclick="document.getElementById('editor-file-input').click()"
+            ondragover="event.preventDefault();this.classList.add('upload-zone--drag')"
+            ondragleave="this.classList.remove('upload-zone--drag')"
+            ondrop="event.preventDefault();this.classList.remove('upload-zone--drag');window._editorFileSelected(event.dataTransfer.files[0])">
+            <div id="upload-zone-content">\ud83d\udcf7 Sleep of klik (max 10MB)</div>
           </div>
-          <div id="editor-file-name" class="text-xs text-ink-dim mt-1 hidden"></div>
           <input type="file" id="editor-file-input" accept="image/*,.pdf,application/pdf" class="hidden"
             onchange="window._editorFileSelected(this.files[0])">
         </div>
       </div>
+      <div>
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Onderschrift</label>
+        <input name="data_imgCaption" value="${esc(e?.data?.imgCaption || '')}"
+          placeholder="Bijschrift\u2026"
+          class="w-full mt-1 px-2 py-1.5 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+      </div>
+      <div>
+        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">Extra afbeeldingen</div>
+        <div id="entity-img-preview" class="editor-img-grid mb-2">
+          <span class="text-xs text-ink-faint italic">Nog geen</span>
+        </div>
+        <label class="inline-flex items-center gap-1 px-2 py-1 bg-room-elevated border border-room-border rounded text-ink-dim text-xs hover:text-ink-bright cursor-pointer transition">
+          + Toevoegen
+          <input type="file" accept="image/*" multiple class="hidden" onchange="window._addEntityImages(this.files)">
+        </label>
+      </div>
     `;
   }
+  body += `</div>`; // end editor-col-left
 
-  // Caption for primary image
+  // ── Rechter kolom: naam, icoon, type-velden ──
+  body += `<div class="editor-col-right">`;
   body += `
-    <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Onderschrift hoofdafbeelding</label>
-      <input name="data_imgCaption" value="${esc(e?.data?.imgCaption || '')}"
-        placeholder="Bijschrift bij de hoofdafbeelding\u2026"
-        class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-    </div>
-  `;
-
-  // Extra images section
-  body += `
-    <div>
-      <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2">\ud83d\uddbc\ufe0f Extra afbeeldingen</div>
-      <div id="entity-img-preview" class="flex flex-wrap gap-2 mb-2 min-h-[2rem] items-start">
-        <span class="text-xs text-ink-faint italic">Nog geen extra afbeeldingen</span>
+    <div class="flex gap-2 items-end">
+      <div class="flex-1 min-w-0">
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Naam</label>
+        <input name="name" value="${esc(e?.name || '')}" required
+          class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
       </div>
-      <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-room-elevated border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright cursor-pointer transition">
-        + Toevoegen
-        <input type="file" accept="image/*" multiple class="hidden" onchange="window._addEntityImages(this.files)">
-      </label>
+      <div class="flex-shrink-0">
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider block mb-1">Icoon</label>
+        <button type="button" id="icon-picker-btn"
+          onclick="window._toggleIconPicker()"
+          class="w-10 h-10 text-xl flex items-center justify-center rounded border border-room-border bg-room-elevated hover:border-gold-dim transition select-none">
+          <span id="icon-preview">${_showIc}</span>
+        </button>
+        <input type="hidden" name="data_icon" id="icon-input" value="${esc(_customIc)}">
+      </div>
+    </div>
+    <div id="icon-picker" class="hidden p-2 bg-room-elevated border border-room-border rounded">
+      <div class="flex flex-wrap gap-1 mb-1.5">
+        <button type="button" onclick="window._selectIcon('')"
+          class="px-2 py-0.5 text-[10px] font-cinzel text-ink-dim bg-room-bg border border-room-border rounded hover:border-gold-dim transition${!_customIc ? ' border-gold-dim text-gold' : ''}">
+          Automatisch
+        </button>
+      </div>
+      <div class="flex flex-wrap gap-0.5">
+        ${_iconSet.map(ic => `<button type="button" onclick="window._selectIcon('${ic}')"
+          class="w-8 h-8 text-lg flex items-center justify-center rounded hover:bg-room-bg transition${ic === _customIc ? ' bg-room-bg ring-1 ring-gold-dim' : ''}">${ic}</button>`).join('')}
+      </div>
     </div>
   `;
 
@@ -1563,7 +1574,6 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
-
   // Groep-selector (alleen voor personages met subtype speler)
   if (tab === 'personages' && _editorGroups.length > 1) {
     const isSpeler = e?.subtype === 'speler';
@@ -1580,62 +1590,12 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
-  // Schema fields
+  // Korte velden (niet-textarea) in rechter kolom
   for (const field of schema.fields) {
-    const val = e?.data?.[field.key] || '';
     if ((field.key === 'geheim' || field.dmOnly) && !isDM()) continue;
-    if (field.type === 'textarea') {
-      const taId = `ta_${field.key}`;
-      body += `
-        <div>
-          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
-          <div class="mt-1">
-            ${fmtToolbar(taId)}
-            <textarea id="${taId}" name="data_${field.key}" rows="4"
-              onkeydown="window._fmtKey(event)"
-              class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(val)}</textarea>
-          </div>
-        </div>
-      `;
-      // Audio upload section directly below flavour textarea
-      if (field.key === 'flavour') {
-        const existingAudioId = e?.data?.audioId || '';
-        const valUitgesproken = e?.data?.flavourUitgesproken === true || e?.data?.flavourUitgesproken === 'true';
-        body += `
-          <div>
-            <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">🔊 Geluidsfragment</label>
-            <div class="mt-1 flex flex-wrap items-center gap-2">
-              ${existingAudioId ? `
-                <button type="button" id="editor-audio-preview" class="flavour-audio-btn editor-audio-preview"
-                  data-audio-btn data-audio-btn-id="${esc(existingAudioId)}"
-                  onclick="window._audioToggle('${esc(existingAudioId)}')" title="Afspelen / pauzeren">▶</button>
-                <span class="text-xs text-ink-dim">Audio bijgevoegd</span>
-                <button type="button" onclick="window._editorClearAudio()"
-                  class="text-xs text-ink-dim hover:text-seal transition ml-auto">✕ Verwijderen</button>
-              ` : `
-                <div id="editor-audio-preview" class="hidden"></div>
-              `}
-              <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-room-elevated border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright cursor-pointer transition">
-                ${existingAudioId ? '🔁 Vervangen' : '+ Audio toevoegen'}
-                <input type="file" accept="audio/*" class="hidden"
-                  onchange="window._editorAudioSelected(this.files[0])">
-              </label>
-            </div>
-            <div id="editor-audio-name" class="text-xs text-ink-dim mt-1 hidden"></div>
-            <input type="hidden" name="data_audioId" id="editor-audio-id" value="${esc(existingAudioId)}">
-          </div>
-          <div class="flex items-center gap-2 mt-2">
-            <input type="hidden" name="data_flavourUitgesproken" id="inp-flavourUitgesproken" value="${valUitgesproken ? 'true' : ''}">
-            <input type="checkbox" id="cb-flavourUitgesproken" class="rounded"
-              ${valUitgesproken ? 'checked' : ''}
-              onchange="document.getElementById('inp-flavourUitgesproken').value=this.checked?'true':''">
-            <label for="cb-flavourUitgesproken" class="text-xs text-ink-dim cursor-pointer">
-              🍺 Uitgesproken door de waard
-            </label>
-          </div>
-        `;
-      }
-    } else if (field.type === 'checkbox') {
+    if (field.type === 'textarea') continue;
+    const val = e?.data?.[field.key] || '';
+    if (field.type === 'checkbox') {
       const checked = val === 'true' || val === true;
       body += `
         <div class="flex items-center gap-2">
@@ -1662,6 +1622,65 @@ window._openEditor = async (tab, editId) => {
           <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
           <input name="data_${field.key}" value="${esc(val)}"
             class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+        </div>
+      `;
+    }
+  }
+
+  body += `</div>`; // end editor-col-right
+  body += `</div>`; // end editor-layout
+
+  // ── Textarea velden (volledige breedte) ──
+  for (const field of schema.fields) {
+    const val = e?.data?.[field.key] || '';
+    if ((field.key === 'geheim' || field.dmOnly) && !isDM()) continue;
+    if (field.type !== 'textarea') continue;
+    const taId = `ta_${field.key}`;
+    body += `
+      <div>
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
+        <div class="mt-1">
+          ${fmtToolbar(taId)}
+          <textarea id="${taId}" name="data_${field.key}" rows="4"
+            onkeydown="window._fmtKey(event)"
+            class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(val)}</textarea>
+        </div>
+      </div>
+    `;
+    if (field.key === 'flavour') {
+      const existingAudioId = e?.data?.audioId || '';
+      const valUitgesproken = e?.data?.flavourUitgesproken === true || e?.data?.flavourUitgesproken === 'true';
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">🔊 Geluidsfragment</label>
+          <div class="mt-1 flex flex-wrap items-center gap-2">
+            ${existingAudioId ? `
+              <button type="button" id="editor-audio-preview" class="flavour-audio-btn editor-audio-preview"
+                data-audio-btn data-audio-btn-id="${esc(existingAudioId)}"
+                onclick="window._audioToggle('${esc(existingAudioId)}')" title="Afspelen / pauzeren">▶</button>
+              <span class="text-xs text-ink-dim">Audio bijgevoegd</span>
+              <button type="button" onclick="window._editorClearAudio()"
+                class="text-xs text-ink-dim hover:text-seal transition ml-auto">✕ Verwijderen</button>
+            ` : `
+              <div id="editor-audio-preview" class="hidden"></div>
+            `}
+            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-room-elevated border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright cursor-pointer transition">
+              ${existingAudioId ? '🔁 Vervangen' : '+ Audio toevoegen'}
+              <input type="file" accept="audio/*" class="hidden"
+                onchange="window._editorAudioSelected(this.files[0])">
+            </label>
+          </div>
+          <div id="editor-audio-name" class="text-xs text-ink-dim mt-1 hidden"></div>
+          <input type="hidden" name="data_audioId" id="editor-audio-id" value="${esc(existingAudioId)}">
+        </div>
+        <div class="flex items-center gap-2 mt-2">
+          <input type="hidden" name="data_flavourUitgesproken" id="inp-flavourUitgesproken" value="${valUitgesproken ? 'true' : ''}">
+          <input type="checkbox" id="cb-flavourUitgesproken" class="rounded"
+            ${valUitgesproken ? 'checked' : ''}
+            onchange="document.getElementById('inp-flavourUitgesproken').value=this.checked?'true':''">
+          <label for="cb-flavourUitgesproken" class="text-xs text-ink-dim cursor-pointer">
+            🍺 Uitgesproken door de waard
+          </label>
         </div>
       `;
     }
@@ -1712,31 +1731,27 @@ window._openEditor = async (tab, editId) => {
           <span class="cs-accordion-chevron">▾</span>
         </summary>
         <div class="cs-accordion-body">
+          <div class="cs-tabs-bar">
+            <button type="button" class="cs-tab-btn cs-tab-active" onclick="window._csTab('gevecht')">Gevecht</button>
+            <button type="button" class="cs-tab-btn" onclick="window._csTab('acties')">Acties</button>
+            <button type="button" class="cs-tab-btn" onclick="window._csTab('spreuken')">Spreuken</button>
+          </div>
 
-          <details class="cs-sub" open>
-            <summary>Gevecht</summary>
-            <div class="cs-sub-body space-y-2">
-              <div class="grid grid-cols-3 gap-2">
-                ${_si('ac','AC',true)}${_si('hp','HP',true)}${_si('speed','Speed',true)}
-              </div>
-              <div class="grid grid-cols-2 gap-2">
-                ${_si('cr','Challenge Rating',true)}${_si('profBonus','Prof. Bonus',true)}
-              </div>
+          <div id="cs-panel-gevecht" class="cs-sub-body space-y-2">
+            <div class="grid grid-cols-3 gap-2">
+              ${_si('ac','AC',true)}${_si('hp','HP',true)}${_si('speed','Speed',true)}
             </div>
-          </details>
-
-          <details class="cs-sub" open>
-            <summary>Eigenschappen</summary>
-            <div class="cs-sub-body">
-              <div class="grid grid-cols-3 gap-2">
-                ${['str','dex','con','int','wis','cha'].map(k => _si(k, k.toUpperCase(), true)).join('')}
-              </div>
+            <div class="grid grid-cols-2 gap-2">
+              ${_si('cr','Challenge Rating',true)}${_si('profBonus','Prof. Bonus',true)}
             </div>
-          </details>
-
-          <details class="cs-sub" open>
-            <summary>Proficiencies &amp; Verdedigingen</summary>
-            <div class="cs-sub-body space-y-2">
+            <div class="cs-divider"></div>
+            <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Eigenschappen</div>
+            <div class="grid grid-cols-3 gap-2">
+              ${['str','dex','con','int','wis','cha'].map(k => _si(k, k.toUpperCase(), true)).join('')}
+            </div>
+            <div class="cs-divider"></div>
+            <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Proficiencies &amp; Verdedigingen</div>
+            <div class="space-y-2">
               ${_si('savingThrows','Saving Throws')}
               ${_si('skills','Skills')}
               ${_si('vulnerabilities','Damage Vulnerabilities')}
@@ -1744,47 +1759,30 @@ window._openEditor = async (tab, editId) => {
               ${_si('immunities','Damage Immunities')}
               ${_si('conditionImmunities','Condition Immunities')}
             </div>
-          </details>
-
-          <details class="cs-sub" open>
-            <summary>Zintuigen &amp; Talen</summary>
-            <div class="cs-sub-body space-y-2">
+            <div class="cs-divider"></div>
+            <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Zintuigen &amp; Talen</div>
+            <div class="space-y-2">
               ${_si('senses','Senses')}
               ${_si('languages','Languages')}
             </div>
-          </details>
+          </div>
 
-          <details class="cs-sub" open>
-            <summary>Traits &amp; Acties</summary>
-            <div class="cs-sub-body space-y-2">
-              ${_ta('traits','Traits', 3)}
-              ${_ta('actions','Actions', 4)}
-              ${_ta('bonusActions','Bonus Actions', 2)}
-              ${_ta('reactions','Reactions', 2)}
-              ${_ta('legendaryActions','Legendary Actions', 3)}
+          <div id="cs-panel-acties" class="cs-sub-body space-y-2" style="display:none">
+            ${_ta('traits','Traits', 3)}
+            ${_ta('actions','Actions', 4)}
+            ${_ta('bonusActions','Bonus Actions', 2)}
+            ${_ta('reactions','Reactions', 2)}
+            ${_ta('legendaryActions','Legendary Actions', 3)}
+          </div>
+
+          <div id="cs-panel-spreuken" class="cs-sub-body space-y-2" style="display:none">
+            <div class="grid grid-cols-2 gap-2">
+              ${_si('spellSaveDC','Spell Save DC',true)}${_si('spellAttackMod','Spell Attack Mod',true)}
             </div>
-          </details>
-
-          <details class="cs-sub" open>
-            <summary>Spreuken</summary>
-            <div class="cs-sub-body space-y-2">
-              <div class="grid grid-cols-2 gap-2">
-                ${_si('spellSaveDC','Spell Save DC',true)}${_si('spellAttackMod','Spell Attack Mod',true)}
-              </div>
-              ${_si('cantrips','Cantrips')}
-              ${_ta('spells','Spells', 3)}
-            </div>
-          </details>
-
-          ${s.extra ? `
-            <details class="cs-sub" open>
-              <summary>Extra (legacy)</summary>
-              <div class="cs-sub-body">
-                ${_ta('extra','', 2)}
-              </div>
-            </details>
-          ` : ''}
-
+            ${_si('cantrips','Cantrips')}
+            ${_ta('spells','Spells', 3)}
+            ${s.extra ? _ta('extra','Legacy', 2) : ''}
+          </div>
         </div>
       </details>
     `;
@@ -1846,6 +1844,29 @@ window._openEditor = async (tab, editId) => {
   </form>`;
 
   openModal(editId ? 'Bewerken' : 'Nieuw', TYPE_META[tab].label, body);
+
+  // ── CS tab switcher ──
+  window._csTab = (name) => {
+    ['gevecht','acties','spreuken'].forEach(t => {
+      const p = document.getElementById('cs-panel-' + t);
+      if (p) p.style.display = t === name ? '' : 'none';
+    });
+    document.querySelectorAll('.cs-tab-btn').forEach(b => {
+      b.classList.toggle('cs-tab-active', b.getAttribute('onclick').includes("'" + name + "'"));
+    });
+  };
+
+  // ── Ctrl+S sneltoets ──
+  if (window._lastEditorKeyFn) document.removeEventListener('keydown', window._lastEditorKeyFn);
+  window._lastEditorKeyFn = (ev) => {
+    if ((ev.ctrlKey || ev.metaKey) && ev.key === 's') {
+      const form = document.getElementById('entity-form');
+      if (!form) { document.removeEventListener('keydown', window._lastEditorKeyFn); return; }
+      ev.preventDefault();
+      form.requestSubmit();
+    }
+  };
+  document.addEventListener('keydown', window._lastEditorKeyFn);
 
   // ── Medestander toggles ──
   if (tab === 'personages' && editId && e?.subtype?.toLowerCase() === 'npc' && isDM() && _editorGroups.length > 0) {
@@ -1998,6 +2019,7 @@ window._openEditor = async (tab, editId) => {
       for (const id of entityEditorImagesToDelete) {
         await api.deleteFile(id).catch(() => {});
       }
+      document.removeEventListener('keydown', window._lastEditorKeyFn);
       closeModal();
       renderEntitySection(tab);
     } catch (err) {
@@ -2066,6 +2088,7 @@ function refreshTags(lt) {
 window._deleteEntity = async (tab, id) => {
   if (!confirm('Weet je zeker dat je dit wilt verwijderen?')) return;
   await api.deleteEntity(tab, id);
+  document.removeEventListener('keydown', window._lastEditorKeyFn);
   window.app.closeModal();
   renderEntitySection(tab);
 };
