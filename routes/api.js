@@ -3,7 +3,7 @@ const multer = require('multer');
 const { spawn } = require('child_process');
 const storage = require('../lib/storage');
 const { requireDM, attachRole } = require('./auth');
-const { buildSnapshot } = require('../lib/snapshot');
+const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
@@ -2040,6 +2040,23 @@ router.get('/export', requireDM, async (req, res) => {
     res.send(html);
   } catch (err) {
     console.error('Export error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/export/campagneboek', requireDM, async (req, res) => {
+  try {
+    const dmState  = readDmState();
+    const groupId  = req.query.groupId || dmState.activeGroup;
+    const html     = await buildCampagneboek(dmState, groupId);
+    const appTitle = storage.readJSON('meta.json').appTitle || 'grisburgh';
+    const slug     = appTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const date     = new Date().toISOString().slice(0,10);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${slug}-campagneboek-${date}.html"`);
+    res.send(html);
+  } catch (err) {
+    console.error('Campagneboek export error:', err);
     res.status(500).json({ error: err.message });
   }
 });

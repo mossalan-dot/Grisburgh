@@ -2175,12 +2175,17 @@ async function renderHerberg() {
                   ${beschikbaar.length === 0
                     ? `<p class="herberg-leeg">${esc(config.waard)} weet niets meer te vertellen.</p>`
                     : _gesamplede.map(e => `
-                        <button class="herberg-item"
-                          onclick="window._herbergVraag('${esc(e.id)}')"
-                          data-name="${esc(e.name.toLowerCase())}">
-                          <span class="herberg-item-naam">${esc(e.name)}</span>
-                          <span class="herberg-item-type">${e.type === 'personages' ? 'persoon' : 'locatie'}</span>
-                        </button>`).join('')}
+                        <div class="herberg-item-row">
+                          <button class="herberg-item"
+                            onclick="window._herbergVraag('${esc(e.id)}')"
+                            data-name="${esc(e.name.toLowerCase())}">
+                            <span class="herberg-item-naam">${esc(e.name)}</span>
+                            <span class="herberg-item-type">${e.type === 'personages' ? 'persoon' : 'locatie'}</span>
+                          </button>
+                          <button class="herberg-item-card-btn"
+                            onclick="event.stopPropagation();window._openDetail('${esc(e.type)}','${esc(e.id)}')"
+                            title="Bekijk kaartje">↗</button>
+                        </div>`).join('')}
                   ${beschikbaar.length > 3 ? `
                     <button class="herberg-item herberg-item--shuffle"
                       onclick="window._herbergShuffle()"
