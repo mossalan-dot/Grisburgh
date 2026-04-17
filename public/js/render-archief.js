@@ -30,21 +30,84 @@ let meta = null;
 const $ = (...a) => window.app.$(...a);
 const isDM = () => window.app.isDM();
 const esc = (...a) => window.app.esc(...a);
+const escJS = (...a) => window.app.escJS(...a);
 const mdToHtml = (...a) => window.app.mdToHtml(...a);
 const openModal = (...a) => window.app.openModal(...a);
 const closeModal = (...a) => window.app.closeModal(...a);
 const openLightbox = (...a) => window.app.openLightbox(...a);
 
+// Navigeer vanuit een naam-chip naar het bijbehorende kaartje of document
+const FIELD_TO_SECTION = { npcs: 'personages', locs: 'locaties', orgs: 'organisaties', items: 'voorwerpen' };
+const FIELD_TO_TYPE    = { npcs: 'personages', locs: 'locaties', orgs: 'organisaties', items: 'voorwerpen' };
+
+window._archiefLinkClick = async (field, name) => {
+  const type = FIELD_TO_TYPE[field];
+  if (!type) return;
+  let list = [];
+  try { list = await api.listEntities(type); } catch { return; }
+  const entity = list.find(e => e.name === name);
+  if (!entity) return;
+
+  // Huidige context opslaan als back-item zodat de terugknop werkt
+  const currentDocId    = window._currentArchiefDocId;
+  const currentSessieId = window._currentArchiefSessieId;
+  if (currentDocId) {
+    window._modalHistory?.push({ type: 'archief', id: currentDocId });
+  } else if (currentSessieId) {
+    window._modalHistory?.push({ type: 'sessie', id: currentSessieId });
+  } else if (window._currentDetailId) {
+    window._modalHistory?.push({ tab: window._currentDetailTab, id: window._currentDetailId });
+  }
+
+  // Terugknop zichtbaar maken (history is net gevuld)
+  const backBtn = document.getElementById('m-back');
+  if (backBtn) backBtn.classList.remove('hidden');
+  window._openDetail?.(type, entity.id, true /* isBack=true zodat history niet nogmaals wordt opgebouwd */);
+};
+
 function _sortKey(name) {
   return (name || '').replace(/^(de|het|'t)\s+/i, '').trim();
 }
 
+const _FMT_KLEUREN = [
+  { naam: 'rood',   hex: '#e05555' },
+  { naam: 'groen',  hex: '#5aaa6a' },
+  { naam: 'blauw',  hex: '#5b8fd4' },
+  { naam: 'goud',   hex: '#c4a840' },
+  { naam: 'paars',  hex: '#a070cc' },
+  { naam: 'oranje', hex: '#e08840' },
+  { naam: 'grijs',  hex: '#888888' },
+];
+
 function fmtToolbar(id) {
-  return `<div class="flex gap-1 mb-1">
+  const kleurOpties = _FMT_KLEUREN.map(k =>
+    `<option value="${k.naam}" style="background:#1a1410;color:${k.hex}">${k.naam}</option>`
+  ).join('');
+  return `<div class="fmt-toolbar">
     <button type="button" title="Vet (Ctrl+B)" onclick="window._fmt('${id}','**')"
-      class="w-7 h-6 text-xs font-black border border-room-border rounded bg-room-bg hover:bg-room-elevated transition font-cinzel leading-none">B</button>
+      class="fmt-btn fmt-btn-b">B</button>
     <button type="button" title="Cursief (Ctrl+I)" onclick="window._fmt('${id}','*')"
-      class="w-7 h-6 text-xs border border-room-border rounded bg-room-bg hover:bg-room-elevated transition font-fell italic leading-none">I</button>
+      class="fmt-btn fmt-btn-i">I</button>
+    <button type="button" title="Onderstreept" onclick="window._fmt('${id}','__')"
+      class="fmt-btn fmt-btn-u">U</button>
+    <button type="button" title="Doorhalen" onclick="window._fmt('${id}','~~')"
+      class="fmt-btn fmt-btn-s">S</button>
+    <button type="button" title="Markering" onclick="window._fmt('${id}','==')"
+      class="fmt-btn fmt-btn-mark">▌</button>
+    <button type="button" title="Kleine kapitalen" onclick="window._fmt('${id}','^')"
+      class="fmt-btn fmt-btn-sc">Sc</button>
+    <div class="fmt-toolbar-sep"></div>
+    <div class="fmt-kleur-wrap">
+      <select class="fmt-kleur-select" id="fmt-kleur-${id}"
+        onchange="window._fmtKleurSelect('${id}', this)">
+        <option value="">🎨 kleur</option>
+        ${kleurOpties}
+      </select>
+      <span class="fmt-kleur-dot" id="fmt-kleur-dot-${id}"></span>
+    </div>
+    <div class="fmt-toolbar-sep"></div>
+    <button type="button" title="Horizontale lijn" onclick="window._fmtHr('${id}')"
+      class="fmt-btn fmt-btn-hr">—</button>
   </div>`;
 }
 
@@ -68,13 +131,15 @@ export async function renderDocumenten() {
 
   container.innerHTML = `
     <!-- Section banner -->
-    <div class="section-banner">
-      <div class="section-banner-title">
-        <span>📜</span>
-        <span>Documenten</span>
-        <span class="font-fell font-normal normal-case tracking-normal text-ink-faint text-xs italic ml-1">Brieven, kranten, kaarten en manuscripten</span>
+    <div class="section-banner section-banner--entity section-banner--documenten">
+      <div class="section-banner-head">
+        <div class="section-banner-icon-wrap">📜</div>
+        <div class="section-banner-info">
+          <div class="section-banner-label">Documenten</div>
+          <div class="section-banner-desc-line">Brieven, kranten, kaarten en manuscripten</div>
+        </div>
       </div>
-      <div class="section-banner-line"></div>
+      <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
     </div>
 
     <!-- Search -->
@@ -119,6 +184,7 @@ function _refreshDocGrid(docs, container) {
     : docs.map(d => renderDocCard(d)).join('');
   const countEl = container.querySelector('.results-count');
   if (countEl) countEl.textContent = `${docs.length} resultaten`;
+  requestAnimationFrame(() => window._attachCardTilt?.(grid));
 }
 
 export async function renderLogboek() {
@@ -142,13 +208,15 @@ export async function renderLogboek() {
   }
 
   container.innerHTML = `
-    <div class="section-banner">
-      <div class="section-banner-title">
-        <span>📖</span>
-        <span>Logboek</span>
-        <span class="font-fell font-normal normal-case tracking-normal text-ink-faint text-xs italic ml-1">Verslagen van aktes en avonturen</span>
+    <div class="section-banner section-banner--entity section-banner--logboek">
+      <div class="section-banner-head">
+        <div class="section-banner-icon-wrap">📖</div>
+        <div class="section-banner-info">
+          <div class="section-banner-label">Logboek</div>
+          <div class="section-banner-desc-line">Verslagen van aktes en avonturen</div>
+        </div>
       </div>
-      <div class="section-banner-line"></div>
+      <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
     </div>
     <div class="logboek-search-wrap">
       <input type="text" class="logboek-search-input" id="logboek-search-input"
@@ -192,6 +260,40 @@ function _logboekMatchesSearch(e, q) {
     ...(e.nieuwLocaties || []), ...(e.terugkerendLocaties || []),
     ...(e.organisaties || []), ...(e.voorwerpen || []),
   ].some(f => f?.toLowerCase().includes(q));
+}
+
+function _buildChapterImgStrip(chEntries, ch) {
+  const imgs = [];
+  for (const e of chEntries) {
+    for (const img of (e.images || [])) {
+      const isVisible = typeof img === 'string' || img.visible !== false;
+      if (!isDM() && !isVisible) continue;
+      const id = typeof img === 'string' ? img : img.id;
+      const hidden = typeof img !== 'string' && img.visible === false;
+      imgs.push({ id, sessieId: e.id, title: e.korteSamenvatting || '', hidden });
+    }
+  }
+  if (imgs.length === 0) return '';
+  const stripId = `img-strip-${esc(ch)}`;
+  return `
+    <div class="logboek-img-strip-wrap">
+      <button class="logboek-img-strip-arrow logboek-img-strip-arrow--left"
+        onclick="event.stopPropagation();document.getElementById('${stripId}').scrollBy({left:-200,behavior:'smooth'})"
+        aria-label="Naar links">&#8249;</button>
+      <div class="logboek-img-strip" id="${stripId}">
+        ${imgs.map(img => `
+          <button class="logboek-img-strip-thumb${img.hidden ? ' logboek-img-strip-thumb--hidden' : ''}"
+            onclick="event.stopPropagation();window.app.openLightbox('${api.fileUrl(img.id)}','${esc(img.title)}')"
+            title="${esc(img.title)}">
+            <img src="${api.fileUrl(img.id)}" class="logboek-img-strip-img"
+              onerror="this.closest('.logboek-img-strip-thumb').style.display='none'">
+            ${img.hidden ? '<span class="logboek-img-strip-hidden-badge">🔒</span>' : ''}
+          </button>`).join('')}
+      </div>
+      <button class="logboek-img-strip-arrow logboek-img-strip-arrow--right"
+        onclick="event.stopPropagation();document.getElementById('${stripId}').scrollBy({left:200,behavior:'smooth'})"
+        aria-label="Naar rechts">&#8250;</button>
+    </div>`;
 }
 
 function _buildLogboekBody(entries, hk, isSearchMode = false) {
@@ -243,7 +345,8 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
 
     const firstEntryWithImg = chEntries.find(e => (e.images || []).length > 0);
     const firstRawImg = firstEntryWithImg?.images?.[0];
-    const bannerImgId = firstRawImg ? (typeof firstRawImg === 'string' ? firstRawImg : firstRawImg.id) : null;
+    const _firstImgId = firstRawImg ? (typeof firstRawImg === 'string' ? firstRawImg : firstRawImg.id) : null;
+    const bannerImgId = info.bannerImg || _firstImgId;
     const bannerImgSrc = bannerImgId ? api.fileUrl(bannerImgId) : null;
 
     const bannerFocusVal = info.bannerFocus || '50% 30%';
@@ -265,20 +368,11 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
         </div>
 
         <div class="logboek-chapter-content${isCollapsed ? ' hidden' : ''}">
+          ${_buildChapterImgStrip(chEntries, ch)}
           <div class="logboek-timeline">
             ${chEntries.map((e, idx) => renderSessieEntry(e, idx + 1)).join('')}
+            ${(info.spelersSamenvatting || isDM()) ? _renderAkteSamenvattingCard(ch, info) : ''}
           </div>
-          ${(info.spelersSamenvatting || isDM()) ? `
-          <div class="logboek-akte-samenvatting${!info.spelersSamenvatting ? ' logboek-akte-samenvatting--empty' : ''}">
-            <div class="logboek-akte-samenvatting-header">
-              <span class="logboek-akte-samenvatting-label">📖 Spelerssamenvatting</span>
-              ${isDM() ? `<button class="logboek-akte-samenvatting-edit dm-only" title="Bewerken" onclick="window._editAkte('${esc(ch)}')">✎</button>` : ''}
-            </div>
-            ${info.spelersSamenvatting
-              ? `<div class="log-entry logboek-akte-samenvatting-body">${mdToHtml(info.spelersSamenvatting)}</div>`
-              : `<div class="logboek-akte-samenvatting-empty-hint">Nog geen spelerssamenvatting toegevoegd.</div>`
-            }
-          </div>` : ''}
           ${(docsByChapter[ch] || []).length ? `
           <div class="logboek-chapter-docs">
             <div class="logboek-docs-label">📜 Documenten</div>
@@ -319,29 +413,34 @@ function _renderSessieChips(e) {
 
   const sections = [];
 
+  const _pClick  = n => `data-lf="npcs"  data-ln="${esc(n)}" onclick="window._archiefLinkClick(this.dataset.lf,this.dataset.ln)"`;
+  const _lClick  = n => `data-lf="locs"  data-ln="${esc(n)}" onclick="window._archiefLinkClick(this.dataset.lf,this.dataset.ln)"`;
+  const _oClick  = n => `data-lf="orgs"  data-ln="${esc(n)}" onclick="window._archiefLinkClick(this.dataset.lf,this.dataset.ln)"`;
+  const _iClick  = n => `data-lf="items" data-ln="${esc(n)}" onclick="window._archiefLinkClick(this.dataset.lf,this.dataset.ln)"`;
+
   const persChips = [
-    ...nieuwP.map(n => `<span class="log-chip log-chip-gold">\u2728 ${esc(n)}</span>`),
-    ...terugP.map(n => `<span class="log-chip log-chip-blue">\u21a9 ${esc(n)}</span>`),
-    ...legNieuw.map(n => `<span class="log-chip log-chip-gold">\u2728 ${esc(n)}</span>`),
-    ...legTerug.map(n => `<span class="log-chip log-chip-blue">\u21a9 ${esc(n)}</span>`),
+    ...nieuwP.map(n => `<span class="log-chip log-chip-gold cursor-pointer" ${_pClick(n)}>\u2728 ${esc(n)}</span>`),
+    ...terugP.map(n => `<span class="log-chip log-chip-blue cursor-pointer" ${_pClick(n)}>\u21a9 ${esc(n)}</span>`),
+    ...legNieuw.map(n => `<span class="log-chip log-chip-gold cursor-pointer" ${_pClick(n)}>\u2728 ${esc(n)}</span>`),
+    ...legTerug.map(n => `<span class="log-chip log-chip-blue cursor-pointer" ${_pClick(n)}>\u21a9 ${esc(n)}</span>`),
   ];
   if (persChips.length) sections.push({ label: '\ud83d\udc64 Personages', chips: persChips });
 
   const locChips = [
-    ...nieuwL.map(n => `<span class="log-chip log-chip-green-new">\u2728 ${esc(n)}</span>`),
-    ...terugL.map(n => `<span class="log-chip log-chip-green">\u21a9 ${esc(n)}</span>`),
+    ...nieuwL.map(n => `<span class="log-chip log-chip-green-new cursor-pointer" ${_lClick(n)}>\u2728 ${esc(n)}</span>`),
+    ...terugL.map(n => `<span class="log-chip log-chip-green cursor-pointer" ${_lClick(n)}>\u21a9 ${esc(n)}</span>`),
   ];
   if (locChips.length) sections.push({ label: '\ud83c\udff0 Locaties', chips: locChips });
 
   const orgs = e.organisaties || [];
   if (orgs.length) sections.push({
     label: '\ud83c\udfdb\ufe0f Organisaties',
-    chips: orgs.map(n => `<span class="log-chip log-chip-seal">${esc(n)}</span>`),
+    chips: orgs.map(n => `<span class="log-chip log-chip-seal cursor-pointer" ${_oClick(n)}>${esc(n)}</span>`),
   });
 
   if (items.length) sections.push({
     label: '\u2694\ufe0f Voorwerpen',
-    chips: items.map(n => `<span class="log-chip log-chip-orange">${esc(n)}</span>`),
+    chips: items.map(n => `<span class="log-chip log-chip-orange cursor-pointer" ${_iClick(n)}>${esc(n)}</span>`),
   });
 
   if (docs.length) sections.push({
@@ -505,6 +604,56 @@ window._toggleImageVisible = async (sessieId, imgId, newVisible) => {
 
 // ── Logboek card (compact) ──
 
+function _renderAkteSamenvattingCard(ch, info) {
+  const tekst = info.spelersSamenvatting || '';
+  const preview = tekst ? _truncateWords(tekst.replace(/\*\*/g, '').replace(/\*/g, '').replace(/\n+/g, ' ').trim(), 300) : '';
+  return `
+    <div class="logboek-tl-entry logboek-tl-entry--h logboek-tl-entry--samenvatting"
+      onclick="window._openAkteSamenvatting('${esc(ch)}')">
+      ${isDM() ? `
+        <div class="dm-only absolute top-2 right-2 z-10 flex gap-1">
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+            title="Bewerken" onclick="event.stopPropagation();window._editAkte('${esc(ch)}')">&#9998;</button>
+        </div>` : ''}
+      <div class="logboek-tl-card logboek-tl-card--h logboek-tl-card--samenvatting">
+        <div class="logboek-card-thumb logboek-card-thumb--samenvatting">
+          <span class="logboek-samenvatting-icon">📖</span>
+        </div>
+        <div class="logboek-card-hbody">
+          <div class="logboek-card-hmeta">
+            <span class="logboek-samenvatting-label">Spelerssamenvatting</span>
+          </div>
+          <h3 class="logboek-card-htitle">${esc(info.title)}</h3>
+          ${tekst
+            ? `<p class="logboek-card-hpreview">${preview}</p>`
+            : `<p class="logboek-card-hpreview logboek-card-hpreview--leeg">Nog geen samenvatting toegevoegd.</p>`}
+        </div>
+      </div>
+    </div>`;
+}
+
+window._openAkteSamenvatting = (ch) => {
+  const hk = meta?.hoofdstukken || {};
+  const info = hk[ch] || {};
+  if (!info.spelersSamenvatting && !isDM()) return;
+  const body = info.spelersSamenvatting
+    ? `<div class="log-entry">${mdToHtml(info.spelersSamenvatting)}</div>`
+    : `<div class="text-ink-faint italic text-sm">Nog geen samenvatting toegevoegd.</div>`;
+  const dmBar = isDM() ? `
+    <div class="dm-only mt-4 pt-4 border-t border-room-border">
+      <button class="px-3 py-1.5 text-sm rounded bg-gold-dim text-room-bg font-cinzel font-semibold hover:bg-gold transition"
+        onclick="window.app.closeModal();window._editAkte('${esc(ch)}')">&#9998; Bewerken</button>
+    </div>` : '';
+  openModal(`Akte ${info.num} · ${esc(info.title)}`, 'Spelerssamenvatting', body + dmBar);
+};
+
+function _truncateWords(text, maxLen) {
+  if (text.length <= maxLen) return esc(text);
+  const cut = text.slice(0, maxLen);
+  const lastSpace = cut.lastIndexOf(' ');
+  return esc(lastSpace > maxLen * 0.6 ? cut.slice(0, lastSpace) : cut) + '…';
+}
+
 function renderSessieEntry(e, sessieNum = null, chLabel = null) {
   const images = e.images || [];
   const firstRaw = images.find(img => typeof img === 'string' || img.visible !== false);
@@ -512,12 +661,16 @@ function renderSessieEntry(e, sessieNum = null, chLabel = null) {
   const firstImg = firstImgId ? api.fileUrl(firstImgId) : null;
 
   const previewNames = [
-    ...(e.nieuwPersonages || []).slice(0, 2),
-    ...(e.nieuwLocaties || []).slice(0, 1),
-  ].slice(0, 3);
+    ...(e.nieuwPersonages || []).slice(0, 3),
+    ...(e.nieuwLocaties || []).slice(0, 2),
+  ].slice(0, 5);
+
+  const summary = e.samenvatting
+    ? _truncateWords(e.samenvatting.replace(/^#+\s*/gm, '').replace(/\n+/g, ' ').trim(), 380)
+    : '';
 
   return `
-    <div class="logboek-tl-entry${isDM() && !e.visible ? ' logboek-entry--hidden' : ''}"
+    <div class="logboek-tl-entry logboek-tl-entry--h${isDM() && !e.visible ? ' logboek-entry--hidden' : ''}"
       onclick="window._openSessieDetail('${e.id}')">
       ${isDM() ? `
         <div class="dm-only absolute top-2 right-2 z-10 flex gap-1">
@@ -529,30 +682,24 @@ function renderSessieEntry(e, sessieNum = null, chLabel = null) {
             title="Verwijderen" onclick="event.stopPropagation();window._deleteSessie('${e.id}')">&#10005;</button>
         </div>
       ` : ''}
-      <div class="logboek-tl-card">
+      <div class="logboek-tl-card logboek-tl-card--h">
         ${firstImg ? `
-          <div class="logboek-card-img-wrap">
-            <img src="${firstImg}" class="logboek-card-img" onerror="this.closest('.logboek-card-img-wrap').style.display='none'">
-            <div class="logboek-card-img-overlay">
-              ${chLabel ? `<span class="logboek-card-chapter-lbl">${esc(chLabel)}</span>` : ''}
-              ${sessieNum ? `<span class="logboek-card-sessie-num">Hoofdstuk ${sessieNum}</span>` : ''}
-              <h3 class="logboek-card-title">${esc(e.korteSamenvatting || 'Naamloos')}</h3>
-              ${e.datum ? `<div class="logboek-card-date">${esc(e.datum)}</div>` : ''}
-            </div>
+          <div class="logboek-card-thumb">
+            <img src="${firstImg}" class="logboek-card-thumb-img" onerror="this.closest('.logboek-card-thumb').style.display='none'">
           </div>
-        ` : `
-          <div class="logboek-card-no-img">
-            ${chLabel ? `<div class="logboek-card-chapter-lbl-plain">${esc(chLabel)}</div>` : ''}
-            ${sessieNum ? `<div class="logboek-card-sessie-num-plain">Hoofdstuk ${sessieNum}</div>` : ''}
-            <h3 class="logboek-card-title-plain">${esc(e.korteSamenvatting || 'Naamloos')}</h3>
-            ${e.datum ? `<div class="logboek-card-date-plain">${esc(e.datum)}</div>` : ''}
+        ` : `<div class="logboek-card-thumb logboek-card-thumb--empty"><span>📖</span></div>`}
+        <div class="logboek-card-hbody">
+          <div class="logboek-card-hmeta">
+            ${chLabel ? `<span class="logboek-card-chapter-lbl-plain">${esc(chLabel)}</span>` : ''}
+            ${e.datum ? `<span class="logboek-card-date-plain">${esc(e.datum)}</span>` : ''}
           </div>
-        `}
-        ${e.citaat ? `<p class="logboek-card-citaat">"${esc(e.citaat)}"</p>` : ''}
-        ${e.samenvatting ? `<p class="logboek-card-preview">${esc(e.samenvatting.replace(/^#+\s*/gm,'').replace(/\*\*/g,'').replace(/\*/g,'').replace(/\n/g,' ').slice(0,100))}…</p>` : ''}
-        ${previewNames.length ? `<div class="logboek-card-chips">
-          ${previewNames.map(n => `<span class="logboek-card-chip">${esc(n)}</span>`).join('')}
-        </div>` : ''}
+          <h3 class="logboek-card-htitle">${esc(e.korteSamenvatting || 'Naamloos')}</h3>
+          ${e.citaat ? `<p class="logboek-card-hcitaat">"${mdToHtml(e.citaat)}"</p>` : ''}
+          ${summary ? `<p class="logboek-card-hpreview">${summary}</p>` : ''}
+          ${previewNames.length ? `<div class="logboek-card-chips logboek-card-chips--h">
+            ${previewNames.map(n => `<span class="logboek-card-chip">${esc(n)}</span>`).join('')}
+          </div>` : ''}
+        </div>
       </div>
     </div>`;
 }
@@ -562,6 +709,8 @@ function renderSessieEntry(e, sessieNum = null, chLabel = null) {
 window._openSessieDetail = async (id) => {
   const e = (archiefData.sessieLog || []).find(s => s.id === id);
   if (!e) return;
+  window._currentArchiefSessieId = id;
+  window._currentArchiefDocId    = null;
   const hk = meta?.hoofdstukken || {};
   const chapter = hk[e.hoofdstuk] || {};
   const images = e.images || [];
@@ -583,7 +732,7 @@ window._openSessieDetail = async (id) => {
   const body = `
     ${_renderCarousel(id, images, { dmControls: isDM() })}
     ${datelineParts.length ? `<div class="log-dateline">${datelineParts.map(p => esc(p)).join(' &mdash; ')}</div>` : ''}
-    ${e.citaat ? `<blockquote class="log-detail-citaat">"${esc(e.citaat)}"</blockquote>` : ''}
+    ${e.citaat ? `<blockquote class="log-detail-citaat">"${mdToHtml(e.citaat)}"</blockquote>` : ''}
     ${e.samenvatting ? `<div class="log-entry">${mdToHtml(e.samenvatting)}</div>` : ''}
     ${_renderSessieChips(e)}
     ${!isDM() && playerName ? `
@@ -710,11 +859,15 @@ window._editAkte = (ch) => {
   const hk = meta?.hoofdstukken || {};
   const info = hk[ch] || {};
 
-  // Find banner image for focus picker
+  // Collect all images from entries in this chapter
   const chEntries = (archiefData.sessieLog || []).filter(e => e.hoofdstuk === ch);
+  const allChImgIds = [...new Set(
+    chEntries.flatMap(e => (e.images || []).map(img => typeof img === 'string' ? img : img.id))
+  )];
   const firstEntryWithImg = chEntries.find(e => (e.images || []).length > 0);
   const firstRawImg = firstEntryWithImg?.images?.[0];
-  const bannerImgId = firstRawImg ? (typeof firstRawImg === 'string' ? firstRawImg : firstRawImg.id) : null;
+  const _firstImgId = firstRawImg ? (typeof firstRawImg === 'string' ? firstRawImg : firstRawImg.id) : null;
+  const bannerImgId = info.bannerImg || _firstImgId;
   const bannerImgSrc = bannerImgId ? api.fileUrl(bannerImgId) : null;
 
   const focusVal = info.bannerFocus || '50% 30%';
@@ -739,6 +892,19 @@ window._editAkte = (ch) => {
         <input id="akte-title" value="${esc(info.title || '')}"
           class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
       </div>
+      ${allChImgIds.length > 1 ? `
+      <div>
+        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Bannerafbeelding</label>
+        <div class="flex flex-wrap gap-2 mt-2">
+          ${allChImgIds.map(imgId => `
+            <button type="button" class="banner-img-thumb${(info.bannerImg || _firstImgId) === imgId ? ' banner-img-thumb--sel' : ''}"
+              data-img-id="${esc(imgId)}"
+              onclick="window._pickBannerImg(this)"
+              style="background-image:url('${api.fileUrl(imgId)}')">
+            </button>`).join('')}
+        </div>
+        <input type="hidden" id="banner-img-input" value="${esc(info.bannerImg || '')}">
+      </div>` : `<input type="hidden" id="banner-img-input" value="${esc(info.bannerImg || '')}">`}
       <div>
         <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Bannerfocus</label>
         ${bannerImgSrc ? `
@@ -786,10 +952,11 @@ window._editAkte = (ch) => {
     const title = document.getElementById('akte-title').value.trim() || info.title || '';
     const dag   = document.getElementById('akte-dag').value.trim();
     const bannerFocus = document.getElementById('fp-input')?.value || focusVal;
+    const bannerImg   = document.getElementById('banner-img-input')?.value || '';
     const spelersSamenvatting = document.getElementById('akte-samenvatting-ta').value.trim();
     const short = `A${num} \u00b7 ${title.length > 22 ? title.slice(0, 22) + '\u2026' : title}`;
     try {
-      await api.saveHoofdstuk(ch, { num, title, dag, short, bannerFocus, spelersSamenvatting });
+      await api.saveHoofdstuk(ch, { num, title, dag, short, bannerFocus, bannerImg, spelersSamenvatting });
       const newMeta = await api.meta();
       meta = newMeta;
       if (window.app?.state) window.app.state.meta = newMeta;
@@ -797,6 +964,19 @@ window._editAkte = (ch) => {
       renderLogboek();
     } catch (err) { alert('Fout: ' + err.message); }
   });
+};
+
+window._pickBannerImg = (btn) => {
+  document.querySelectorAll('.banner-img-thumb').forEach(b => b.classList.remove('banner-img-thumb--sel'));
+  btn.classList.add('banner-img-thumb--sel');
+  const imgId = btn.dataset.imgId;
+  document.getElementById('banner-img-input').value = imgId;
+  // Update de focuspicker-preview
+  const preview = document.getElementById('editor-img-preview');
+  if (preview) {
+    preview.src = api.fileUrl(imgId);
+    document.getElementById('fp-wrap')?.style.removeProperty('display');
+  }
 };
 
 window._openSessieEditor = async (editId) => {
@@ -1180,7 +1360,7 @@ function renderDocCard(d) {
       })() : ''}
       <div class="card-accent bar-documenten"></div>
       <img class="card-img w-full object-cover${isBlurred ? ' blur-lg select-none pointer-events-none' : ''}"
-        src="${api.fileUrl(d.id)}" onerror="this.style.display='none'">
+        loading="lazy" src="${api.thumbUrl(d.id)}" onerror="this.style.display='none'">
       <div class="card-body px-4 pt-3 pb-3">
         <div class="flex items-start gap-2.5 mb-2">
           <div class="card-icon">${d.icon || '\ud83d\udcdc'}</div>
@@ -1191,7 +1371,7 @@ function renderDocCard(d) {
         </div>
         ${isBlurred
           ? `<p class="text-xs text-ink-faint italic font-crimson">Nog niet volledig onthuld\u2026</p>`
-          : `${d.desc ? `<p class="text-xs text-ink-medium line-clamp-2 mb-2 font-crimson leading-relaxed">${esc(d.desc)}</p>` : ''}
+          : `${d.desc ? `<p class="text-xs text-ink-medium line-clamp-2 mb-2 font-crimson leading-relaxed">${mdToHtml(d.desc)}</p>` : ''}
              ${chips.length ? `<div class="flex flex-wrap gap-1">${chips.join('')}</div>` : ''}`
         }
       </div>
@@ -1204,6 +1384,8 @@ function renderDocCard(d) {
 window._openDoc = async (id) => {
   let d;
   try { d = await api.getArchief(id); } catch { return; }
+  window._currentArchiefDocId    = id;
+  window._currentArchiefSessieId = null;
   const state = d.state || 'hidden';
   const isBlurred = !isDM() && state === 'blurred';
   const hoofdstuk = meta?.hoofdstukken?.[d.hoofdstuk];
@@ -1241,8 +1423,8 @@ window._openDoc = async (id) => {
         <div class="flex flex-wrap gap-1">
           ${list.map(n => {
             const hidden = (hiddenLinks[field] || []).includes(n);
-            return `<span class="chip ${chipCls}">${icon} ${esc(n)}
-              ${isDM() ? `<span class="ml-1 cursor-pointer opacity-60 hover:opacity-100" onclick="event.stopPropagation();window._toggleLinkVis('${d.id}','${field}','${esc(n)}')">${hidden ? '👁' : '👁‍🗨'}</span>` : ''}
+            return `<span class="chip ${chipCls} cursor-pointer" onclick="window._archiefLinkClick('${field}','${escJS(n)}')">${icon} ${esc(n)}
+              ${isDM() ? `<span class="ml-1 cursor-pointer opacity-60 hover:opacity-100" onclick="event.stopPropagation();window._toggleLinkVis('${d.id}','${field}','${escJS(n)}')">${hidden ? '👁' : '👁‍🗨'}</span>` : ''}
             </span>`;
           }).join('')}
         </div>
@@ -1316,7 +1498,7 @@ window._openDoc = async (id) => {
         } else if (ct.includes('pdf')) {
           await renderPdfViewer(fileContainer, fileUrl);
         } else if (ct.includes('image')) {
-          fileContainer.innerHTML = `<img src="${fileUrl}" class="w-full max-h-80 object-contain rounded cursor-pointer" onclick="window.app.openLightbox('${fileUrl}','${esc(d.name)}')">`;
+          fileContainer.innerHTML = `<img src="${fileUrl}" class="w-full max-h-80 object-contain rounded cursor-pointer" onclick="window.app.openLightbox('${fileUrl}','${escJS(d.name)}')">`;
         } else {
           fileContainer.style.display = 'none';
         }

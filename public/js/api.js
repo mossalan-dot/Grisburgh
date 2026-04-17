@@ -29,6 +29,7 @@ export const api = {
   updateEntity: (type, id, data) => request(`/entities/${type}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteEntity: (type, id) => request(`/entities/${type}/${id}`, { method: 'DELETE' }),
   toggleVisibility: (type, id, target) => request(`/entities/${type}/${id}/visibility`, { method: 'PUT', body: JSON.stringify(target ? { target } : {}) }),
+  shopRevealItem:   (type, id)          => request(`/entities/${type}/${id}/shop-reveal`, { method: 'POST' }),
   toggleSecret: (type, id) => request(`/entities/${type}/${id}/secret`, { method: 'PUT' }),
   toggleDeceased: (type, id) => request(`/entities/${type}/${id}/deceased`, { method: 'PUT' }),
 
@@ -65,7 +66,8 @@ export const api = {
     if (!res.ok) throw new Error('Upload mislukt');
     return res.json();
   },
-  fileUrl: (id) => `${BASE}/files/${id}`,
+  fileUrl:  (id) => `${BASE}/files/${id}`,
+  thumbUrl: (id) => `${BASE}/thumb/${id}`,
   deleteFile: (id) => request(`/files/${id}`, { method: 'DELETE' }),
 
   // Sessie Log
@@ -108,12 +110,22 @@ export const api = {
   updateMonster:  (id, data) => request(`/monsters/${id}`,  { method: 'PUT',    body: JSON.stringify(data) }),
   deleteMonster:  (id)       => request(`/monsters/${id}`,  { method: 'DELETE' }),
 
+  // Winkel uitverkocht
+  getShopUitverkocht:    (shopId)           => request(`/shops/${shopId}/uitverkocht`),
+  toggleShopUitverkocht: (shopId, itemNaam) => request(`/shops/${shopId}/uitverkocht`, { method: 'PUT', body: JSON.stringify({ itemNaam }) }),
+  getShopBeschikbaar: (shopId)         => request(`/shops/${shopId}/beschikbaar`),
+  koopShopItem:       (shopId, data)   => request(`/shops/${shopId}/koop`, { method: 'POST', body: JSON.stringify(data) }),
+  getShopLog:         (shopId)         => request(`/shops/${shopId}/log`),
+  onderhandelShop:    (shopId, data)   => request(`/shops/${shopId}/onderhandel`, { method: 'POST', body: JSON.stringify(data) }),
+
   // Voorwerpen claimen & ruilen
   getItemOwnership:    ()              => request('/items/ownership'),
   requestItem:         (id, body)      => request(`/items/${id}/request`,              { method: 'POST',   body: JSON.stringify(body) }),
   approveItemRequest:  (reqId)         => request(`/items/request/${reqId}/approve`,   { method: 'POST' }),
   rejectItemRequest:   (reqId)         => request(`/items/request/${reqId}/reject`,    { method: 'POST' }),
   removeItemOwner:     (id)            => request(`/items/${id}/owner`,                { method: 'DELETE' }),
+  removeStackOwner:    (id, charId)    => request(`/items/${id}/owner?characterId=${encodeURIComponent(charId)}`, { method: 'DELETE' }),
+  patchItemOwnerQty:   (id, charId, delta) => request(`/items/${id}/owner/${charId}`, { method: 'PATCH', body: JSON.stringify({ delta }) }),
   setTradeAllowed:     (allowed)       => request('/items/trade-allowed',              { method: 'PUT',    body: JSON.stringify({ allowed }) }),
 
   // Speler HP
@@ -129,6 +141,11 @@ export const api = {
   // Speler valuta
   getPlayerCurrency:   (characterId)       => request(`/player-currency/${characterId}`),
   patchPlayerCurrency: (characterId, data) => request(`/player-currency/${characterId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Gedeelde beurs
+  getPartyCurrency:    ()       => request('/party-currency'),
+  patchPartyCurrency:  (data)   => request('/party-currency', { method: 'PATCH', body: JSON.stringify(data) }),
+  togglePartyCurrency: ()       => request('/party-currency/toggle', { method: 'PUT' }),
 
   // Speler spreukenslots
   getPlayerSpellSlots: (characterId)       => request(`/player-spellslots/${characterId}`),
@@ -163,6 +180,12 @@ export const api = {
   getPlayerSpells:    (charId)             => request(`/player-spells/${charId}`),
   addPlayerSpell:     (charId, data)       => request(`/player-spells/${charId}`, { method: 'POST', body: JSON.stringify(data) }),
   removePlayerSpell:  (charId, spellIdx)   => request(`/player-spells/${charId}/${spellIdx}`, { method: 'DELETE' }),
+
+  // Vastgezette kenmerken
+  getPlayerTraits:    (charId)             => request(`/player-traits/${charId}`),
+  addPlayerTrait:     (charId, data)       => request(`/player-traits/${charId}`, { method: 'POST', body: JSON.stringify(data) }),
+  patchPlayerTrait:   (charId, traitId, data) => request(`/player-traits/${charId}/${traitId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deletePlayerTrait:  (charId, traitId)    => request(`/player-traits/${charId}/${traitId}`, { method: 'DELETE' }),
 
   // Undo: herstel verwijderde entiteit
   restoreEntity: (id) => request(`/entities/restore/${id}`, { method: 'POST' }),

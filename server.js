@@ -1,11 +1,12 @@
-const express = require('express');
-const session = require('express-session');
-const http = require('http');
+const express    = require('express');
+const compression = require('compression');
+const session    = require('express-session');
+const http       = require('http');
 const { Server } = require('socket.io');
-const path = require('path');
-const config = require('./config');
-const storage = require('./lib/storage');
-const apiRoutes = require('./routes/api');
+const path       = require('path');
+const config     = require('./config');
+const storage    = require('./lib/storage');
+const apiRoutes  = require('./routes/api');
 const { router: authRouter } = require('./routes/auth');
 
 // Initialize data files
@@ -19,6 +20,7 @@ const io = new Server(server);
 app.set('io', io);
 
 // Middleware
+app.use(compression()); // gzip alle responses — scheelt 75-80% op JS/CSS
 app.use(express.json({ limit: '5mb' }));
 app.use(session({
   secret: config.sessionSecret,
@@ -27,12 +29,21 @@ app.use(session({
   cookie: { httpOnly: true, sameSite: 'lax' },
 }));
 
-// Static files — no caching during development
+// Static files
+// — HTML nooit cachen (bevat versie-querystrings die cache busten)
+// — JS/CSS wél cachen (1 uur): versie-querystring (?v=xx) zorgt voor automatische invalidatie
 app.use(express.static(path.join(__dirname, 'public'), {
-  etag: false,
-  lastModified: false,
-  setHeaders(res) {
-    res.setHeader('Cache-Control', 'no-store');
+  etag: true,
+  lastModified: true,
+  setHeaders(res, filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === '.html') {
+      res.setHeader('Cache-Control', 'no-store');
+    } else if (ext === '.js' || ext === '.css') {
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 uur
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 uur voor afbeeldingen e.d.
+    }
   },
 }));
 
@@ -45,9 +56,20 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Track which socket belongs to which characterId (for direct messaging)
+const playerSockets = new Map(); // characterId → socketId
+app.set('playerSockets', playerSockets);
+
 // Socket.io
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
+
+  // Player registers their characterId so DM can send direct messages
+  socket.on('player:register', (characterId) => {
+    if (characterId) {
+      playerSockets.set(characterId, socket.id);
+    }
+  });
 
   // Relay player emote trigger — DM browser catches it and plays the sound
   socket.on('sound:emote', (data) => {
@@ -56,6 +78,10 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
+    // Clean up socket registration
+    for (const [cid, sid] of playerSockets.entries()) {
+      if (sid === socket.id) { playerSockets.delete(cid); break; }
+    }
   });
 });
 

@@ -30,31 +30,27 @@ body::before {
 
 /* Section tabs */
 .section-tab {
-  padding: 8px 20px;
+  padding: 6px 16px;
   font-family: 'Cinzel', serif;
   font-size: 13px;
   font-weight: 600;
   color: #8a7050;
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-radius: 6px;
   cursor: pointer;
-  transition: color 0.2s ease, border-bottom-color 0.2s ease, transform 0.15s ease, text-shadow 0.2s ease;
-  transform-origin: bottom center;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 .section-tab:hover {
-  color: #c4930a;
-  transform: translateY(-2px);
-  text-shadow: 0 0 12px rgba(196, 147, 10, 0.4);
-  border-bottom-color: rgba(196, 147, 10, 0.35);
+  color: #4a2e08;
+  background: rgba(196, 168, 122, 0.15);
 }
 .section-tab.active {
-  color: #9a7008;
-  border-bottom-color: #9a7008;
-  transform: none;
-  text-shadow: none;
-  background: rgba(196, 168, 122, 0.18);
-  border-radius: 4px 4px 0 0;
+  color: #3a1e00;
+  font-weight: 700;
+  background: linear-gradient(to bottom, transparent 30%, rgba(196,147,10,0.11) 100%);
+  box-shadow: inset 0 -2.5px 0 rgba(196,147,10,0.72);
+  border-radius: 6px 6px 0 0;
 }
 
 /* ── Nav tab: icoon-span (vergroot dunne Unicode-symbolen naar emoji-grootte) ── */
@@ -125,10 +121,35 @@ body::before {
 }
 .global-search-input::placeholder { color: #6a5030; }
 
+.gs-type-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #4a3018;
+}
+
+.gs-type-chip {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid #5a3c18;
+  background: transparent;
+  color: #9a7840;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.gs-type-chip:hover { background: rgba(196,147,10,0.14); color: #e0c070; border-color: #8a6030; }
+.gs-type-chip--active { background: rgba(196,147,10,0.22); color: #f0d080; border-color: #c4930a; }
+
 .global-search-results {
   overflow-y: auto;
   padding: 8px 0;
-  max-height: calc(70vh - 60px);
+  max-height: calc(70vh - 100px);
 }
 
 .gs-group { padding: 4px 0; }
@@ -274,7 +295,11 @@ body::before {
 
 /* Sections */
 .section { display: none; height: 100%; overflow-y: auto; }
-.section.active { display: flex; flex-direction: column; }
+/* Standaard: block — content heeft zijn eigen hoogte, section scrolt */
+.section.active { display: block; }
+/* Kaart + Meesterkamer hebben full-height flex layout nodig */
+#section-kaart.active,
+#section-meesterkamer.active { display: flex; flex-direction: column; overflow: hidden; }
 
 /* Modal overlay */
 .modal-overlay {
@@ -369,57 +394,45 @@ body::before {
 /* DM-only elements */
 .player-mode .dm-only { display: none !important; }
 
-/* ── Party portraits in header ── */
-.party-portrait {
-  width: 60px;
-  text-align: center;
-  cursor: pointer;
-  transition: transform 0.15s ease;
-  flex-shrink: 0;
-}
-.party-portrait:hover { transform: translateY(-3px); }
-.party-portrait--absent:hover { transform: translateY(-2px); }
-
-/* Avatar wrapper — needed for the presence dot overlay */
-.party-portrait-avatar-wrap {
-  position: relative;
-  width: 46px;
-  margin: 0 auto 5px;
-}
-
-.party-portrait-img,
-.party-portrait-fallback {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  border: 2px solid #c8a840;
-  box-shadow: 0 0 0 2px #efe3c5, 0 2px 6px rgba(60,40,10,0.22);
-  object-fit: cover;
-  display: block;
-  transition: opacity 0.2s ease, filter 0.2s ease;
-}
-.party-portrait-fallback {
-  background: #efe3c5;
+/* ── Party chips in DM-bar ── */
+.party-chip {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1.3rem;
+  gap: 5px;
+  padding: 3px 8px 3px 5px;
+  background: rgba(196,168,122,0.15);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
 }
+.party-chip:hover { background: rgba(196,147,10,0.18); border-color: rgba(196,147,10,0.55); }
+.party-chip--absent { opacity: 0.45; }
+.party-chip--insp { border-color: rgba(196,147,10,0.7); }
 
-/* Presence toggle dot */
+.party-chip-name {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #4a2e08;
+  white-space: nowrap;
+}
+.party-chip--absent .party-chip-name { color: #8a7050; }
+.party-chip-insp { font-size: 0.7rem; line-height: 1; }
+
+/* Presence dot (nu inline in chip) */
 .party-presence-dot {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  width: 14px;
-  height: 14px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  border: 2px solid #efe3c5;
+  border: none;
   cursor: pointer;
   padding: 0;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-  z-index: 2;
+  flex-shrink: 0;
+  transition: transform 0.12s ease;
 }
-.party-presence-dot:hover { transform: scale(1.3); box-shadow: 0 0 4px rgba(0,0,0,0.3); }
+.party-presence-dot:hover { transform: scale(1.4); }
 .party-presence-dot.present { background: #3a9a4a; }
 .party-presence-dot.absent  { background: #9a9080; }
 
@@ -488,37 +501,6 @@ body::before {
   flex-shrink: 0;
 }
 
-/* Absent state — dim & desaturate */
-.party-portrait--absent .party-portrait-img,
-.party-portrait--absent .party-portrait-fallback {
-  opacity: 0.35;
-  filter: grayscale(100%);
-}
-.party-portrait--absent .party-portrait-name,
-.party-portrait--absent .party-portrait-sub { opacity: 0.4; }
-
-.party-portrait-name {
-  font-family: 'Cinzel', serif;
-  font-size: 9px;
-  font-weight: 700;
-  color: #2a1a08;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.party-portrait-sub {
-  font-family: 'IM Fell English', serif;
-  font-style: italic;
-  font-size: 9px;
-  color: #8a7050;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 /* ── Entity cards — paper look ── */
 .entity-card {
@@ -575,6 +557,24 @@ body::before {
 }
 .entity-card.card-hidden { opacity: 0.5; }
 
+/* ── Subtiele type-tint per kaart — heel zacht, tekst blijft volledig leesbaar ── */
+.entity-card:has(.bar-personages)  { background: #f5f7ee; }
+.entity-card:has(.bar-locaties)    { background: #f0f3f8; }
+.entity-card:has(.bar-organisaties){ background: #f8f0f0; }
+.entity-card:has(.bar-voorwerpen)  { background: #faf3e0; }
+.entity-card:has(.bar-documenten)  { background: #f5f2f8; }
+/* Bijpassende fade-gradient zodat de afbeelding naadloos overvloeit */
+.entity-card:has(.bar-personages)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f5f7ee 100%); }
+.entity-card:has(.bar-locaties)    .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f0f3f8 100%); }
+.entity-card:has(.bar-organisaties).card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f8f0f0 100%); }
+.entity-card:has(.bar-voorwerpen)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #faf3e0 100%); }
+.entity-card:has(.bar-documenten)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f5f2f8 100%); }
+
+/* ── 3D tilt: tijdens muisbeweging alleen box-shadow transitioneren, transform instant ── */
+.entity-card.card-tilting {
+  transition: box-shadow 0.18s ease !important;
+}
+
 /* Deceased card */
 .entity-card.card-deceased {
   background: #111;
@@ -605,11 +605,11 @@ body::before {
   color: #888 !important;
 }
 .entity-card.card-deceased .flavour-preview {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(255,255,255,0.15);
 }
 .entity-card.card-deceased .flavour-preview-text {
-  color: #999;
+  color: #d0d0d0;
 }
 .entity-card.card-deceased .chip {
   background: rgba(255,255,255,0.07) !important;
@@ -675,7 +675,13 @@ body::before {
 .card-img-wrap { position: relative; flex-shrink: 0; }
 .entity-card.no-img .card-img-wrap { display: none; }
 
-.card-img { min-height: 130px; max-height: 160px; display: block; width: 100%; object-fit: cover; }
+.card-img { min-height: 130px; max-height: 160px; display: block; width: 100%; object-fit: cover; transition: object-position 0s; }
+@keyframes card-img-pan {
+  to { object-position: center bottom; }
+}
+.entity-card:hover .card-img {
+  animation: card-img-pan 12s ease-in-out infinite alternate;
+}
 .card-img-item { min-height: 130px; max-height: 160px; display: block; width: 100%; object-fit: contain; background: radial-gradient(ellipse at center, rgba(196,168,100,0.08) 0%, rgba(20,12,4,0.55) 100%); padding: 8px; box-sizing: border-box; }
 
 /* gradient that blends image bottom into card body */
@@ -721,12 +727,15 @@ body::before {
 .badge-loc { background: rgba(24,52,92,0.82);  color: #b8d8ff; border: 1px solid rgba(70,120,200,0.4); }
 .badge-org { background: rgba(80,24,24,0.82);  color: #ffc8c8; border: 1px solid rgba(170,60,60,0.4); }
 
-/* voorwerpen rariteit */
-.badge-legendary  { background: rgba(140,78,8,0.88);  color: #fff0a0; border: 1px solid rgba(220,160,40,0.55); }
-.badge-very-rare  { background: rgba(88,24,110,0.88); color: #f0c0ff; border: 1px solid rgba(170,70,210,0.5); }
-.badge-rare       { background: rgba(24,60,140,0.88); color: #c0d4ff; border: 1px solid rgba(70,130,230,0.5); }
-.badge-uncommon   { background: rgba(24,90,52,0.88);  color: #b8f0cc; border: 1px solid rgba(60,170,90,0.5); }
-.badge-common     { background: rgba(52,44,32,0.80);  color: #ddd4c4; border: 1px solid rgba(130,110,80,0.4); }
+/* voorwerpen item-type */
+.badge-item-weapon  { background: rgba(90,20,20,0.85);   color: #ffbcbc; border: 1px solid rgba(180,60,60,0.45); }
+.badge-item-armor   { background: rgba(20,50,90,0.85);   color: #b8d4ff; border: 1px solid rgba(60,110,200,0.45); }
+.badge-item-potion  { background: rgba(20,80,50,0.85);   color: #b8f0cc; border: 1px solid rgba(50,160,90,0.45); }
+.badge-item-magic   { background: rgba(80,20,110,0.85);  color: #e8c0ff; border: 1px solid rgba(150,60,210,0.45); }
+.badge-item-scroll  { background: rgba(90,65,10,0.85);   color: #ffe8a0; border: 1px solid rgba(170,130,30,0.45); }
+.badge-item-ring    { background: rgba(100,60,10,0.85);  color: #ffd8a0; border: 1px solid rgba(190,120,30,0.45); }
+.badge-item-amulet  { background: rgba(50,40,80,0.85);   color: #d8c8ff; border: 1px solid rgba(110,90,190,0.45); }
+.badge-item-other   { background: rgba(52,44,32,0.80);   color: #ddd4c4; border: 1px solid rgba(130,110,80,0.4); }
 .card-icon { font-size: 1.2rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
 
 /* Card title styling */
@@ -889,6 +898,28 @@ body::before {
 }
 
 /* ── Metadata pills ── */
+.detail-item-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.detail-item-rarity {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 13px;
+  color: #7a5c30;
+}
+.detail-item-attunement {
+  font-size: 11px;
+  color: var(--color-ink-dim);
+  background: rgba(196,168,122,0.12);
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-style: italic;
+}
 .detail-meta-pills {
   display: flex;
   flex-wrap: wrap;
@@ -1210,20 +1241,27 @@ body::before {
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  gap: 5px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 4px;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 12px;
   cursor: pointer;
-  transition: 0.2s ease;
+  border: 1px solid transparent;
+  border-left-width: 3px;
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
 }
-.chip:hover { filter: brightness(0.9); }
-.chip-npc  { background: rgba(42,106,58,0.15);  color: #1a4a2a; border: 1px solid rgba(42,106,58,0.35); }
-.chip-loc  { background: rgba(42,90,138,0.15);  color: #1a3a6a; border: 1px solid rgba(42,90,138,0.35); }
-.chip-org  { background: rgba(139,42,42,0.15);  color: #6a1a1a; border: 1px solid rgba(139,42,42,0.35); }
-.chip-item { background: rgba(154,106,42,0.15); color: #6a4010; border: 1px solid rgba(154,106,42,0.35); }
-.chip-doc  { background: rgba(90,58,122,0.15);  color: #3a1a5a; border: 1px solid rgba(90,58,122,0.35); }
+.chip:hover {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 1px 4px rgba(0,0,0,0.18);
+  filter: brightness(1.08);
+}
+.chip-npc  { background: rgba(42,106,58,0.13);  color: #1e5c30; border-color: rgba(42,106,58,0.25); border-left-color: #3a8a50; }
+.chip-loc  { background: rgba(42,90,138,0.13);  color: #1a3e72; border-color: rgba(42,90,138,0.25); border-left-color: #3a6aaa; }
+.chip-org  { background: rgba(139,42,42,0.13);  color: #721a1a; border-color: rgba(139,42,42,0.25); border-left-color: #aa3a3a; }
+.chip-item { background: rgba(154,106,42,0.13); color: #6a4010; border-color: rgba(154,106,42,0.25); border-left-color: #b07828; }
+.chip-doc  { background: rgba(90,58,122,0.13);  color: #3e1a66; border-color: rgba(90,58,122,0.25); border-left-color: #7a4aaa; }
 
 /* Autocomplete dropdown */
 .autocomplete-wrap { position: relative; }
@@ -1253,6 +1291,50 @@ body::before {
   box-shadow: inset 0 1px 3px rgba(60,40,10,0.06), 0 0 0 2.5px rgba(154,112,8,0.12) !important;
 }
 
+/* ── Subtype filter toggle-knop (naast zoekbalk) ── */
+.sf-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--color-room-border, #c4a87a);
+  border-radius: 6px;
+  color: var(--color-ink-dim, #8a7050);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.sf-toggle-btn:hover { background: rgba(196,168,122,0.15); color: var(--color-ink-bright, #2a1a08); }
+.sf-toggle-btn--active { background: rgba(196,168,122,0.25); color: var(--color-ink-bright, #2a1a08); border-color: #9a7008; }
+
+/* ── Subtype filter chips (per sectie) ── */
+.subtype-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 24px 10px;
+}
+.subtype-filter-bar--hidden { display: none; }
+
+.sf-chip {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--color-room-border, #c4a87a);
+  background: transparent;
+  color: var(--color-ink-dim, #8a7050);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.sf-chip:hover { background: rgba(196,168,122,0.15); color: var(--color-ink-bright, #2a1a08); }
+.sf-chip--active { background: rgba(196,168,122,0.25); color: var(--color-ink-bright, #2a1a08); border-color: #9a7008; }
+
 /* ── Section banner ── */
 .section-banner {
   flex-shrink: 0;
@@ -1275,6 +1357,74 @@ body::before {
   height: 1px;
   margin-top: 7px;
   background: linear-gradient(to right, rgba(196,168,122,0.6), rgba(196,168,122,0.15), transparent);
+}
+
+/* ── Entity section-banner: sfeervolle koptekst per type ── */
+.section-banner--personages  { --bc: 42,106,58;  --bc-text: #1e5c2e; }
+.section-banner--locaties    { --bc: 42,90,138;  --bc-text: #1e4e7a; }
+.section-banner--organisaties{ --bc: 139,42,42;  --bc-text: #7a1e1e; }
+.section-banner--voorwerpen  { --bc: 154,106,42; --bc-text: #7a5610; }
+.section-banner--documenten  { --bc: 128,92,42;  --bc-text: #6a4818; }
+.section-banner--logboek     { --bc: 72,52,22;   --bc-text: #4a3410; }
+
+.section-banner--entity {
+  padding: 16px 24px 0;
+  background: linear-gradient(to bottom, rgba(var(--bc),0.07) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(var(--bc),0.20);
+}
+.section-banner-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.section-banner-icon-wrap {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.65rem;
+  background: rgba(var(--bc),0.10);
+  border: 1px solid rgba(var(--bc),0.22);
+  border-radius: 10px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(var(--bc),0.14), inset 0 1px 0 rgba(255,255,255,0.4);
+}
+.section-banner-info { flex: 1; min-width: 0; }
+.section-banner-label {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+  color: var(--bc-text);
+  line-height: 1.2;
+}
+.section-banner-desc-line {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 11.5px;
+  color: #8a7050;
+  margin-top: 3px;
+}
+.section-banner-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-bottom: 11px;
+}
+.section-banner-rule::before,
+.section-banner-rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(var(--bc),0.32), transparent);
+}
+.section-banner-ornament {
+  font-size: 6px;
+  color: rgba(var(--bc),0.55);
+  line-height: 1;
 }
 
 /* Upload zone */
@@ -1827,6 +1977,327 @@ body::before {
   background: linear-gradient(135deg, #3a2a0e, #221608);
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   APP-HEADER — unified single bar
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Root app container */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* Main content: vult resterende hoogte, min-height: 0 zodat sections height:100% correct berekenen */
+#app > main {
+  min-height: 0;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: linear-gradient(180deg, #f0e4c4 0%, #e8d8ac 100%);
+  border-bottom: 1px solid rgba(196,168,122,0.6);
+  box-shadow: 0 2px 8px rgba(60,30,0,0.12);
+  position: relative;
+  z-index: 10;
+  min-height: 52px;
+  padding: 0 8px 0 16px;
+  flex-shrink: 0;
+}
+
+/* Left column: title + player identity */
+.app-header-title {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex-shrink: 0;
+  width: 210px;
+  padding-right: 10px;
+}
+.app-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.app-title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #4a2e08;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-subtitle {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.7rem;
+  color: #8a7050;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-header-edit-btn {
+  font-size: 14px;
+  color: #9a8060;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+.app-header-edit-btn:hover { color: #4a2e08; background: rgba(60,40,10,0.07); }
+
+/* Player identity strip */
+.app-player-identity {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+.app-player-avatar {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(196,147,10,0.5);
+  flex-shrink: 0;
+}
+.app-player-name {
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #5a4030;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+.app-pick-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #8a7050;
+  background: rgba(196,168,122,0.12);
+  border: 1px dashed rgba(196,168,122,0.5);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  margin-top: 2px;
+}
+.app-pick-btn:hover { background: rgba(196,168,122,0.25); color: #4a2e08; }
+
+/* Small icon buttons in header (edit/close) */
+.app-header-icon-btn {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: #9a8060;
+  background: none; border: 1px solid transparent;
+  cursor: pointer; border-radius: 6px;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.app-header-icon-btn:hover { color: #4a2e08; background: rgba(60,40,10,0.07); }
+.app-header-icon-btn--danger { color: #a05040; }
+.app-header-icon-btn--danger:hover { color: #7a1a08; background: rgba(180,40,10,0.08); }
+
+/* Inline title editor */
+.app-header-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex-shrink: 0;
+  width: 210px;
+  padding-right: 10px;
+}
+.app-header-editor.hidden { display: none; }
+.app-header-input {
+  background: rgba(255,255,255,0.5);
+  border: 1px solid rgba(196,168,122,0.6);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 0.78rem;
+  color: #4a2e08;
+  width: 100%;
+}
+.app-header-input--title { font-family: 'Cinzel', serif; font-weight: 600; }
+.app-header-input--sub   { font-family: 'IM Fell English', serif; font-style: italic; }
+.app-header-save-btn {
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  background: rgba(154,112,8,0.15);
+  border: 1px solid rgba(154,112,8,0.45);
+  border-radius: 4px;
+  color: #7a5800;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.app-header-save-btn:hover { background: rgba(154,112,8,0.28); }
+.app-header-cancel-btn {
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-family: 'Cinzel', serif;
+  background: none;
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 4px;
+  color: #8a7050;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.app-header-cancel-btn:hover { background: rgba(60,40,10,0.07); }
+
+/* Middle: nav tabs */
+.app-nav {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-width: 0;
+  overflow: visible;
+  align-self: stretch;
+}
+
+/* Right: search + DM seal */
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-left: 8px;
+}
+
+/* Zoekknop (prominent, expandable) */
+.app-search-wrap { display: flex; align-items: center; }
+.app-search-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  background: rgba(196,168,122,0.12);
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 20px;
+  color: #8a7050;
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  letter-spacing: 0.02em;
+}
+.app-search-btn:hover { background: rgba(196,168,122,0.25); border-color: rgba(196,147,10,0.55); color: #4a2e08; }
+.app-search-icon { font-size: 1.1em; line-height: 1; }
+.app-search-label { font-size: 0.72rem; }
+
+/* Spelerwisselknop in header-actions */
+.app-player-switch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  background: rgba(196,168,122,0.1);
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.app-player-switch-btn:hover { background: rgba(196,168,122,0.25); border-color: rgba(196,147,10,0.55); }
+.app-player-switch-btn.hidden { display: none; }
+
+/* DM-zegel — thematische toggle */
+.dm-seal {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  background: rgba(196,168,122,0.08);
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dm-seal:hover { background: rgba(196,168,122,0.18); border-color: rgba(196,147,10,0.5); }
+.dm-seal-icon { font-size: 1.05rem; line-height: 1; font-style: normal; }
+.dm-seal-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #7a6040;
+  letter-spacing: 0.04em;
+  transition: color 0.2s;
+}
+/* DM active state */
+.dm-seal--active {
+  background: linear-gradient(135deg, rgba(154,112,8,0.25), rgba(196,147,10,0.15));
+  border-color: rgba(196,147,10,0.75);
+  box-shadow: 0 0 8px rgba(196,147,10,0.2);
+}
+.dm-seal--active .dm-seal-label { color: #c4930a; }
+/* DM preview state */
+.dm-seal--preview {
+  background: rgba(90,60,10,0.12);
+  border-color: rgba(120,80,20,0.45);
+}
+.dm-seal--preview .dm-seal-label { color: #7a5820; }
+
+/* DM party bar — below header, DM-only */
+.dm-party-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px;
+  background: linear-gradient(180deg, rgba(240,228,196,0.6) 0%, rgba(232,216,172,0.4) 100%);
+  border-bottom: 1px solid rgba(196,168,122,0.4);
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.dm-party-bar::-webkit-scrollbar { display: none; }
+.dm-party-bar.hidden { display: none; }
+.dm-party-groups {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.dm-party-portraits {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+
+/* Contextual section accent bar */
+.section-accent-bar {
+  height: 3px;
+  background: var(--section-color, rgba(196,168,122,0.35));
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+
 /* ── Desktop: nav-tabs mag overflow tonen (voor Archief-dropdown) ── */
 #section-tabs { overflow: visible; }
 
@@ -1835,11 +2306,15 @@ body::before {
    ══════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
 
-  /* ── Header ── */
-  #app-title { font-size: 1.9rem !important; }
-  /* Verberg decoratieve sierregels in de header op kleine schermen */
-  #header-display .h-px { display: none; }
-  #header-display .text-gold-dim { display: none; }
+  /* ── App-header op mobiel: compacter ── */
+  .app-header { padding: 0 6px 0 10px; min-height: 48px; gap: 0; }
+  .app-header-title { width: 130px; }
+  .app-title { font-size: 0.95rem !important; }
+  .app-subtitle { display: none; }
+  .app-search-label { display: none; }
+  .app-search-btn { padding: 0 10px; border-radius: 6px; }
+  .dm-seal-label { display: none; }
+  .dm-seal { padding: 0 10px; border-radius: 6px; }
 
   /* ── Nav tabs: horizontaal scrollbaar zodat alle tabs bereikbaar zijn ── */
   #section-tabs {
@@ -1848,6 +2323,7 @@ body::before {
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     flex-wrap: nowrap;
+    justify-content: flex-start;
   }
   #section-tabs::-webkit-scrollbar { display: none; }
 
@@ -1887,6 +2363,7 @@ body::before {
   /* ── Spelersdashboard ── */
   .player-dashboard { padding: 14px 12px 28px; }
   .player-dash-hero { gap: 14px; }
+  .player-dash-avatar-outer { width: 116px; height: 116px; }
   .player-dash-avatar-wrap { width: 96px; height: 96px; }
 
   /* ── Globale zoekoverlap ── */
@@ -1909,9 +2386,13 @@ body::before {
    ══════════════════════════════════════════════════════════════════ */
 @media (max-width: 480px) {
 
-  /* ── Header nog compacter ── */
-  #app-title { font-size: 1.55rem !important; }
-  #app-subtitle { font-size: 0.78rem; }
+  /* ── Titelbalk verbergen zodat tabs meer ruimte krijgen ── */
+  .app-header-title { display: none !important; }
+
+  /* ── Tabs: alleen icoon, geen tekstlabel ── */
+  .tab-label { display: none; }
+  .section-tab { padding: 6px 10px; font-size: 18px; line-height: 1; }
+  .section-tab .tab-icon { font-size: 1em; vertical-align: middle; }
 
   /* ── Kaartgrid: 2 kolommen vast ── */
   .cards-grid {
@@ -1921,14 +2402,12 @@ body::before {
   }
   .card-name { font-size: 0.8rem; }
 
-  /* ── Tabs nog smaller ── */
-  .section-tab { padding: 5px 8px; font-size: 10.5px; }
-
   /* ── Modal body minder padding ── */
   #m-body { padding: 12px !important; }
 
   /* ── Spelersdashboard ── */
   .player-dashboard { padding: 10px 10px 24px; }
+  .player-dash-avatar-outer { width: 100px; height: 100px; }
   .player-dash-avatar-wrap { width: 80px; height: 80px; }
 
   /* ── Zoekoverlay helemaal bovenaan ── */
@@ -2775,6 +3254,421 @@ body::before {
 }
 .combat-overlay.minimized .co-rows { display: none; }
 
+/* ── Combat overlay tabbladen (spelers) ── */
+.co-tabs {
+  display: flex;
+  flex-shrink: 0;
+  background: #e2d3b0;
+  border-bottom: 2px solid #c4a87a;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.co-tabs::-webkit-scrollbar { display: none; }
+.combat-overlay.minimized .co-tabs { display: none; }
+
+.co-tab {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #7a5a30;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.co-tab:hover { color: #2a1a08; background: rgba(196,168,122,0.2); }
+.co-tab.active { color: #2a1a08; border-bottom-color: #b8860b; background: rgba(196,168,122,0.15); }
+
+/* Tab panels */
+.co-tab-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.co-tab-panel.hidden { display: none; }
+.combat-overlay.minimized .co-tab-panel { display: none; }
+
+/* Gevecht-panel: canvas neemt de ruimte */
+#co-tab-gevecht { overflow: hidden; }
+#co-tab-gevecht .co-canvas { flex: 1; min-height: 80px; }
+
+/* Karakter-panels: scrollen */
+.co-char-tab { overflow-y: auto; padding: 0 0 12px; }
+
+/* Laadstatus & foutmeldingen */
+.co-char-loading {
+  padding: 24px;
+  text-align: center;
+  font-style: italic;
+  color: #9a7050;
+  font-size: 13px;
+}
+.co-char-empty {
+  padding: 10px 16px;
+  font-style: italic;
+  color: #9a7050;
+  font-size: 12px;
+}
+.co-char-err {
+  padding: 10px 16px;
+  color: #8b2a2a;
+  font-size: 12px;
+}
+
+/* Secties binnen karakter-panels */
+.co-char-section {
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid rgba(196,168,122,0.25);
+}
+.co-char-section:last-child { border-bottom: none; }
+.co-char-section-title {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7a5a20;
+  margin-bottom: 8px;
+}
+
+/* Stats-strip bovenaan het personage-panel */
+.co-char-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  background: #e8d9b5;
+  border-bottom: 2px solid #c4a87a;
+  padding: 8px 10px;
+  flex-shrink: 0;
+}
+.co-cs-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 10px;
+  min-width: 52px;
+  flex: 1;
+  border-right: 1px solid rgba(196,168,122,0.35);
+}
+.co-cs-item:last-child { border-right: none; }
+.co-cs-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #9a7050;
+  letter-spacing: 0.05em;
+}
+.co-cs-val {
+  font-family: 'Crimson Text', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #2a1a08;
+  line-height: 1.2;
+}
+
+/* Ability score grid */
+.co-ability-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+@media (max-width: 480px) {
+  .co-ability-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.co-ability-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(196,168,122,0.12);
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 6px;
+  padding: 5px 3px 4px;
+  gap: 1px;
+}
+.co-ability-label {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #9a7050;
+}
+.co-ability-score {
+  font-family: 'Crimson Text', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #2a1a08;
+  line-height: 1;
+}
+.co-ability-mod {
+  font-family: 'Crimson Text', serif;
+  font-size: 12px;
+  color: #4a2e08;
+  line-height: 1;
+}
+.co-ability-save {
+  font-size: 10px;
+  color: #9a7050;
+  line-height: 1.2;
+  border-top: 1px solid rgba(196,168,122,0.4);
+  width: 100%;
+  text-align: center;
+  margin-top: 2px;
+  padding-top: 2px;
+}
+.co-ability-save.prof { color: #3a7a3a; font-weight: 700; }
+
+/* Skills list */
+.co-skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.co-skill-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 12px;
+}
+.co-skill-prof-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(196,168,122,0.6);
+  flex-shrink: 0;
+  background: transparent;
+}
+.co-skill-prof-dot.prof { background: #5a8a5a; border-color: #5a8a5a; }
+.co-skill-prof-dot.expert {
+  background: #3a6a3a; border-color: #3a6a3a;
+  box-shadow: 0 0 0 2px rgba(58,106,58,0.25);
+}
+.co-skill-bonus {
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2a1a08;
+  min-width: 26px;
+  text-align: right;
+}
+.co-skill-name { color: #3a2a10; flex: 1; }
+.co-skill-ab {
+  font-size: 10px;
+  color: #9a7050;
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+}
+
+/* Spreuken panel */
+.co-spell-list { display: flex; flex-direction: column; gap: 3px; }
+.co-spell-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(196,168,122,0.15);
+}
+.co-spell-level {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #7a5a20;
+  background: rgba(196,168,122,0.2);
+  border-radius: 3px;
+  padding: 1px 4px;
+  min-width: 16px;
+  text-align: center;
+}
+.co-spell-name { color: #2a1a08; flex: 1; }
+.co-spell-school { font-size: 11px; color: #9a7050; font-style: italic; }
+
+/* Knapzak panel */
+.co-currency-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.co-currency-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.co-currency-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #9a7050;
+}
+.co-currency-val {
+  font-family: 'Crimson Text', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #2a1a08;
+}
+.co-items-list { display: flex; flex-direction: column; gap: 2px; }
+.co-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(196,168,122,0.15);
+}
+.co-item-name { color: #2a1a08; }
+.co-item-qty {
+  font-size: 11px;
+  color: #7a5a30;
+  font-weight: 700;
+  background: rgba(196,168,122,0.2);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* Combat overlay — Weapons tabel */
+.co-weapons-table { display: flex; flex-direction: column; gap: 2px; }
+.co-weapons-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr 2fr;
+  gap: 4px;
+  padding: 2px 4px 4px;
+  border-bottom: 1px solid rgba(196,168,122,0.4);
+}
+.co-weapons-header > span {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #7a5a20;
+}
+.co-weapon-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr 2fr;
+  gap: 4px;
+  padding: 4px;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(196,168,122,0.1);
+  align-items: center;
+}
+.co-w-name { color: #2a1a08; font-weight: 600; }
+.co-w-atk  { color: #5a3510; font-family: 'Cinzel', serif; font-size: 11px; }
+.co-w-dmg  { color: #3a2a10; }
+.co-w-notes{ color: #7a5a30; font-size: 11px; font-style: italic; }
+
+/* Combat overlay — Traits lijst */
+.co-traits-list { display: flex; flex-direction: column; gap: 2px; }
+.co-trait-accordion summary { list-style: none; }
+.co-trait-accordion summary::-webkit-details-marker { display: none; }
+
+/* Spreuk level badge in accordion summary */
+.player-pinned-spell-level-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #7a5a20;
+  background: rgba(196,168,122,0.2);
+  border-radius: 3px;
+  padding: 1px 5px;
+  min-width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Winkel: kopen-knop ── */
+.shop-koop-btn {
+  padding: 4px 10px;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(196,147,10,0.18);
+  border: 1px solid rgba(196,147,10,0.45);
+  border-radius: 4px;
+  color: #5a3a08;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.shop-koop-btn:hover:not(:disabled) {
+  background: rgba(196,147,10,0.35);
+  border-color: #c4930a;
+}
+.shop-koop-btn--uitverkocht,
+.shop-koop-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  font-size: 9px;
+}
+
+/* Beurs weergave in winkel */
+.shop-beurs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  margin-bottom: 8px;
+  background: rgba(196,168,122,0.1);
+  border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 6px;
+}
+.shop-beurs-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #7a5a20;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.shop-beurs-amount {
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: #3a2a10;
+  font-weight: 600;
+}
+
+/* Rotatie-info */
+.shop-rotatie-info {
+  font-size: 11px;
+  color: #8a7050;
+  font-style: italic;
+  margin-bottom: 6px;
+  text-align: right;
+}
+
+/* Actief badge voor DM in roterende winkel */
+.shop-actief-badge {
+  color: #c4930a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Koop-feedback melding */
+.shop-koop-feedback {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: 'Crimson Text', serif;
+  font-style: italic;
+}
+.shop-koop-feedback--fout {
+  background: rgba(139,42,42,0.12);
+  border: 1px solid rgba(139,42,42,0.3);
+  color: #8b2a2a;
+}
+.shop-koop-feedback--ok {
+  background: rgba(34,100,54,0.10);
+  border: 1px solid rgba(34,100,54,0.28);
+  color: #1a5c30;
+}
+
 /* Detail-panel — schuift omhoog als een portret wordt aangeklikt */
 .co-detail-panel {
   flex-shrink: 0;
@@ -3037,6 +3931,31 @@ body::before {
   background: rgba(139,42,42,0.12);
   border-color: rgba(139,42,42,0.4);
   color: #7a1a1a;
+}
+/* Klassespecifieke conditions — amber tint */
+.co-cond-pick.co-cond-class {
+  background: rgba(184,134,11,0.08);
+  border-color: rgba(184,134,11,0.35);
+  color: #7a5808;
+}
+.co-cond-pick.co-cond-class:hover { background: rgba(184,134,11,0.18); }
+.co-cond-pick.co-cond-class.active {
+  background: rgba(184,134,11,0.22);
+  border-color: rgba(184,134,11,0.6);
+  color: #5a3e04;
+  font-weight: 600;
+}
+.co-cond-chip.co-cond-chip--class {
+  background: rgba(184,134,11,0.12);
+  border-color: rgba(184,134,11,0.4);
+  color: #6a4a04;
+}
+/* Scheidingslijn tussen standaard en klasse-conditions in de picker */
+.co-cond-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(196,168,122,0.2);
+  margin: 2px 0;
 }
 
 /* ── Death Saving Throws row ── */
@@ -3448,11 +4367,218 @@ body::before {
   letter-spacing: 0.1em;
   color: #8a7050;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+/* Weapons & Damage Cantrips */
+.player-dash-section-title--with-btn { justify-content: space-between; }
+.player-weapon-add-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 700;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: rgba(196,168,122,0.2);
+  border: 1.5px solid rgba(196,168,122,0.6);
+  color: #5a3a10;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.player-weapon-add-btn:hover { background: rgba(196,168,122,0.45); border-color: #c4a87a; }
+
+.player-weapons-table {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+}
+.player-weapons-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr 2fr 22px;
+  gap: 4px;
+  padding: 0 2px 4px;
+  border-bottom: 1.5px solid rgba(196,168,122,0.45);
+}
+.player-weapons-header span {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9a7050;
+}
+.player-weapon-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr 2fr 22px;
+  gap: 4px;
+  align-items: center;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(196,168,122,0.15);
+}
+.player-weapon-row:last-child { border-bottom: none; }
+.pw-input {
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  padding: 3px 6px;
+  background: rgba(196,168,122,0.08);
+  border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 4px;
+  color: #2a1a08;
+  width: 100%;
+  min-width: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+.pw-input:focus {
+  outline: none;
+  border-color: #c4a87a;
+  background: rgba(196,168,122,0.18);
+}
+.pw-input::placeholder { color: #b0956a; opacity: 0.65; }
+.pw-name { font-weight: 600; }
+.pw-del-btn {
+  background: none;
+  border: none;
+  color: #9a7050;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
+}
+.pw-del-btn:hover { color: #8b2a2a; opacity: 1; }
+.player-weapons-empty {
+  font-size: 12px;
+  color: #9a7050;
+  font-style: italic;
+}
+
+/* Collapsible sections */
+details.player-dash-collapsible > summary {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  margin-bottom: 0;
+}
+details.player-dash-collapsible > summary::-webkit-details-marker { display: none; }
+details.player-dash-collapsible > summary::after {
+  content: '›';
+  margin-left: auto;
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.6;
+  display: inline-block;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+details.player-dash-collapsible[open] > summary::after {
+  transform: rotate(90deg);
+}
+details.player-dash-collapsible[open] > summary {
+  margin-bottom: 12px;
+}
+
 .player-dash-party-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 4px;
+  gap: 12px 8px;
+}
+
+/* ── Party portraits (player dashboard) ── */
+.party-portrait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 88px;
+  cursor: pointer;
+  text-align: center;
+}
+.party-portrait--self { cursor: default; }
+
+.party-portrait-avatar-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(196,168,122,0.6);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  flex-shrink: 0;
+  margin-bottom: 5px;
+  background: #2a1a08;
+}
+.party-portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+.party-portrait-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  border-radius: 50%;
+  background: rgba(196,168,122,0.12);
+}
+.party-portrait-name {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4a2e08;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+.party-portrait-sub {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 10px;
+  color: #8a7050;
+  line-height: 1.3;
+}
+.party-portrait-badge {
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+/* Zelf-portret: gouden rand */
+.party-portrait--self .party-portrait-avatar-wrap {
+  border-color: rgba(196,168,122,0.9);
+  box-shadow: 0 0 0 2px rgba(196,168,122,0.35), 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* Ring-wrapper voor HP-cirkel */
+.party-portrait-ring-wrap {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.party-portrait-ring-wrap .party-portrait-avatar-wrap {
+  width: 68px;
+  height: 68px;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+  border: none;
+  box-shadow: none;
+}
+/* Medestander: groene rand */
+.party-portrait--companion .party-portrait-avatar-wrap {
+  border-color: #5a9a78;
+}
+.party-portrait-badge {
+  font-size: 0.8rem;
+  margin-top: 2px;
 }
 
 /* Medestander-portret: zelfde vorm als party, andere randkleur (salie-groen) */
@@ -3498,22 +4624,22 @@ body::before {
   background: #1e4a2e;
 }
 .player-dash-hp-bar-wrap {
-  height: 8px;
-  background: #d4bc92;
-  border-radius: 4px;
+  height: 6px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 3px;
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-top: 8px;
 }
 .player-dash-hp-bar {
   height: 100%;
-  border-radius: 4px;
-  transition: width 0.4s ease;
+  border-radius: 3px;
+  transition: width 0.4s ease, background 0.4s ease;
 }
-.player-dash-hp-bar.hp-healthy  { background: #2a8a4a; }
-.player-dash-hp-bar.hp-lightly  { background: #7a9a2a; }
-.player-dash-hp-bar.hp-wounded  { background: #c4930a; }
-.player-dash-hp-bar.hp-critical { background: #c44a0a; }
-.player-dash-hp-bar.hp-down     { background: #8b2a2a; }
+.player-dash-hp-bar.hp-healthy  { background: linear-gradient(90deg, #388e3c, #66bb6a); }
+.player-dash-hp-bar.hp-lightly  { background: linear-gradient(90deg, #558b2f, #9ccc65); }
+.player-dash-hp-bar.hp-wounded  { background: linear-gradient(90deg, #e65100, #ffa726); }
+.player-dash-hp-bar.hp-critical { background: linear-gradient(90deg, #b71c1c, #ef5350); }
+.player-dash-hp-bar.hp-down     { background: #555; }
 .player-dash-hp-controls {
   display: flex;
   align-items: center;
@@ -3637,6 +4763,7 @@ body::before {
   align-items: center;
   justify-content: center;
   font-size: 24px;
+  position: relative; /* zodat de qty-badge altijd correct gepositioneerd is */
 }
 
 .player-dash-item-img {
@@ -3829,6 +4956,24 @@ body::before {
   cursor: default;
   pointer-events: none;
 }
+/* Geheim onthuld-balk voor spelers — in flex flow (niet absoluut) */
+.player-secret-reveal-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 10px;
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(196,148,10,0.18);
+  color: #c4930a;
+  border-top: 1px solid rgba(196,148,10,0.35);
+  border-radius: 0 0 8px 8px;
+  flex-shrink: 0;
+}
 .attunement-badge {
   display: inline-block;
   margin: 4px 8px 2px;
@@ -3973,34 +5118,86 @@ body::before {
 
 /* ── Speler karakter-kiezer ── */
 
-.player-char-card {
+/* ── Spelerkiezer dropdown ── */
+.player-picker-panel {
+  position: fixed;
+  top: 58px;
+  right: 8px;
+  z-index: 300;
+  width: 240px;
+  background: linear-gradient(160deg, #f5e9ce 0%, #ede0bc 100%);
+  border: 1px solid rgba(196,168,122,0.75);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(60,30,0,0.22), inset 0 1px 0 rgba(255,255,255,0.5);
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+.player-picker-panel.hidden { display: none; }
+
+.player-picker-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid rgba(196,168,122,0.4);
+}
+.player-picker-panel-title {
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #4a2e08;
+  letter-spacing: 0.04em;
+}
+.player-picker-panel-close {
+  font-size: 18px;
+  color: #8a7050;
+  background: none;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+  transition: color 0.15s;
+}
+.player-picker-panel-close:hover { color: #2a1a08; }
+
+.player-picker-list {
   display: flex;
   flex-direction: column;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.player-picker-loading {
+  padding: 12px 14px;
+  font-size: 0.8rem;
+  color: #8a7050;
+  font-style: italic;
+}
+
+.player-char-card {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px 12px 12px;
-  background: #f5edd8;
-  border: 2px solid #c4a87a;
-  border-radius: 10px;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(196,168,122,0.2);
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  text-align: left;
+  transition: background 0.12s;
   position: relative;
 }
-.player-char-card:hover {
-  border-color: #c4930a;
-  box-shadow: 0 4px 16px rgba(196,147,10,0.18);
-  transform: translateY(-2px);
-}
-.player-char-card--active {
-  border-color: #c4930a;
-  background: rgba(196,147,10,0.07);
-}
+.player-char-card:last-child { border-bottom: none; }
+.player-char-card:hover { background: rgba(196,147,10,0.1); }
+.player-char-card--active { background: rgba(196,147,10,0.08); }
+.player-char-card--active:hover { background: rgba(196,147,10,0.15); }
+
 .player-char-avatar-wrap {
-  width: 72px;
-  height: 72px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid #c4a87a;
+  border: 1.5px solid rgba(196,168,122,0.7);
   background: #efe3c5;
   flex-shrink: 0;
   display: flex;
@@ -4013,40 +5210,76 @@ body::before {
   object-fit: cover;
 }
 .player-char-avatar-fallback {
-  font-size: 32px;
+  font-size: 18px;
   width: 100%;
   height: 100%;
+  display: flex;
   align-items: center;
   justify-content: center;
   color: #8a7050;
 }
+.player-char-info {
+  flex: 1;
+  min-width: 0;
+}
 .player-char-name {
   font-family: 'Cinzel', serif;
-  font-size: 14px;
+  font-size: 0.78rem;
   font-weight: 700;
   color: #2a1a08;
-  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .player-char-sub {
   font-family: 'Crimson Text', Georgia, serif;
-  font-size: 12px;
+  font-size: 0.72rem;
+  font-style: italic;
   color: #8a7050;
-  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .player-char-badge {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  background: #c4930a;
-  color: #fff;
-  font-family: 'Cinzel', serif;
-  font-size: 8px;
-  font-weight: 700;
-  padding: 2px 5px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 13px;
+  color: #c4930a;
+  flex-shrink: 0;
 }
+
+.player-picker-anon-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  border-top: 1px solid rgba(196,168,122,0.35);
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #8a7050;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s, color 0.12s;
+}
+.player-picker-anon-btn:hover { background: rgba(60,40,10,0.05); color: #4a2e08; }
+
+.player-picker-dm-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 14px 9px;
+  background: none;
+  border: none;
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #9a7840;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s, color 0.12s;
+  opacity: 0.75;
+}
+.player-picker-dm-btn:hover { background: rgba(196,168,122,0.12); color: #5a3a08; opacity: 1; }
 
 /* ── Geluiden tab (DM) ── */
 .dm-sound-section {
@@ -4555,6 +5788,60 @@ body::before {
 /* ══════════════════════════════════════════════════
    INSPIRATIEBADGE (spelerstabblad)
    ══════════════════════════════════════════════════ */
+/* ── Wild Magic Surge roller ── */
+.wild-magic-section { }
+.wild-magic-roller {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.wild-magic-btn {
+  align-self: flex-start;
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 20px;
+  background: linear-gradient(135deg, #c4930a, #a07008);
+  color: #fdf6e3;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  letter-spacing: 0.4px;
+  transition: filter 0.15s, transform 0.1s;
+  box-shadow: 0 2px 6px rgba(160,112,8,0.3);
+}
+.wild-magic-btn:hover  { filter: brightness(1.1); }
+.wild-magic-btn:active { transform: scale(0.97); }
+.wild-magic-result {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 13px;
+  background: rgba(196,168,122,0.12);
+  border-radius: 5px;
+  border: 1px solid rgba(196,168,122,0.4);
+}
+.wild-magic-roll {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: #8a6020;
+  font-weight: 600;
+}
+.wild-magic-text {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 13.5px;
+  color: var(--color-ink-bright, #2a1a08);
+  line-height: 1.55;
+}
+@keyframes wild-magic-flash {
+  0%   { background: rgba(196,147,10,0.28); }
+  100% { background: rgba(196,168,122,0.12); }
+}
+.wild-magic-result--flash {
+  animation: wild-magic-flash 0.6s ease-out forwards;
+}
+
 .player-inspiration-section {
   background: linear-gradient(135deg, #fffbe6 0%, #fef3c7 100%);
   border: 1.5px solid #f0b429 !important;
@@ -4999,22 +6286,30 @@ body::before {
 [data-theme="hp"] ::-webkit-scrollbar-thumb { background: #6b3fa0; }
 [data-theme="hp"] ::-webkit-scrollbar-thumb:hover { background: #c25090; }
 
-/* header = <header> element (Tailwind-klassen overschrijven met !important) */
-[data-theme="hp"] header {
+/* header = <header class="app-header"> */
+[data-theme="hp"] .app-header {
   background: linear-gradient(90deg, #1a0d2e 0%, #3d1f80 50%, #1a0d2e 100%) !important;
+  border-bottom-color: #6b3fa0 !important;
+}
+[data-theme="hp"] .dm-party-bar {
+  background: linear-gradient(180deg, #250f45 0%, #1a0d2e 100%) !important;
   border-bottom-color: #6b3fa0 !important;
 }
 
 [data-theme="hp"] #app-title     { color: #d4a830 !important; text-shadow: 0 0 14px rgba(212,168,48,0.6); }
-[data-theme="hp"] #app-subtitle  { color: #c25090 !important; }
-[data-theme="hp"] #player-identity .text-ink-dim,
+[data-theme="hp"] .app-subtitle  { color: #c25090 !important; }
 [data-theme="hp"] #player-name-display { color: #c4a0e0 !important; }
+[data-theme="hp"] .dm-seal       { border-color: rgba(107,63,160,0.6) !important; background: rgba(107,63,160,0.15) !important; }
+[data-theme="hp"] .dm-seal-label { color: #c4a0e0 !important; }
+[data-theme="hp"] .dm-seal--active { background: rgba(107,63,160,0.35) !important; border-color: #d4a830 !important; }
+[data-theme="hp"] .dm-seal--active .dm-seal-label { color: #d4a830 !important; }
+[data-theme="hp"] .app-search-btn { border-color: rgba(107,63,160,0.5) !important; color: #c4a0e0 !important; background: rgba(107,63,160,0.12) !important; }
 
-/* nav = <nav id="section-tabs"> */
-[data-theme="hp"] nav#section-tabs { background: #1a0d2e !important; border-bottom-color: #6b3fa0 !important; }
+/* nav inside app-header — transparant, kleur al van header */
+[data-theme="hp"] .app-nav { background: transparent !important; }
 [data-theme="hp"] .section-tab    { color: #c4a0e0 !important; }
 [data-theme="hp"] .section-tab:hover   { background: rgba(107,63,160,0.3) !important; color: #f0e6ff !important; }
-[data-theme="hp"] .section-tab.active  { background: rgba(107,63,160,0.5) !important; color: #d4a830 !important; border-top: 2px solid #d4a830 !important; }
+[data-theme="hp"] .section-tab.active  { background: rgba(107,63,160,0.5) !important; color: #d4a830 !important; }
 
 /* body achtergrond */
 [data-theme="hp"] body {
@@ -5528,6 +6823,95 @@ body::before {
 }
 .player-ft-area:focus { outline: none; border-color: #c8a840; background: rgba(240,228,196,0.5); }
 
+/* ── Traits: zoeker & accordeon ── */
+.player-trait-search-wrap { position: relative; margin-bottom: 10px; }
+.player-pinned-traits { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+
+.player-trait-accordion { border-radius: 6px; overflow: hidden; }
+.player-trait-accordion > summary { list-style: none; }
+.player-trait-accordion > summary::-webkit-details-marker { display: none; }
+
+.player-trait-add-btn {
+  margin-left: auto;
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border: 1px solid rgba(196,168,122,0.5);
+  border-radius: 5px;
+  background: rgba(196,168,122,0.1);
+  color: var(--color-ink-dim, #8a7050);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.player-trait-add-btn:hover {
+  background: rgba(196,168,122,0.22);
+  color: var(--color-ink-bright, #2a1a08);
+}
+
+/* Formulier: nieuw kenmerk */
+.player-trait-custom-form {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px;
+  background: rgba(196,168,122,0.08);
+  border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 7px;
+}
+.player-trait-custom-form.hidden { display: none; }
+.player-trait-form-input {
+  padding: 7px 10px;
+  background: rgba(240,228,196,0.4);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 5px;
+  color: #2a1a08;
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  outline: none;
+}
+.player-trait-form-input:focus { border-color: #c8a840; background: rgba(240,228,196,0.6); }
+.player-trait-form-ta {
+  padding: 7px 10px;
+  background: rgba(240,228,196,0.4);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 5px;
+  color: #2a1a08;
+  font-family: 'IM Fell English', serif;
+  font-size: 13px;
+  line-height: 1.55;
+  resize: vertical;
+  outline: none;
+}
+.player-trait-form-ta:focus { border-color: #c8a840; }
+.player-trait-form-btns { display: flex; gap: 6px; }
+.player-trait-form-save {
+  padding: 5px 14px;
+  background: rgba(196,148,10,0.18);
+  border: 1px solid rgba(196,148,10,0.45);
+  border-radius: 5px;
+  color: #b8860b;
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.player-trait-form-save:hover { background: rgba(196,148,10,0.3); }
+.player-trait-form-cancel {
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 5px;
+  color: #8a7050;
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.player-trait-form-cancel:hover { background: rgba(196,168,122,0.1); }
+
 /* ── Currency redesign ── */
 .player-dash-currency-new {
   display: flex;
@@ -5575,6 +6959,83 @@ body::before {
 /* ── Short rest button variant ── */
 .player-dash-slot-rest-btn--short { margin-left: 6px; opacity: 0.85; }
 
+/* ── Format toolbar (B / I / kleuren) ── */
+.fmt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.fmt-btn {
+  width: 26px;
+  height: 22px;
+  font-size: 12px;
+  border: 1px solid var(--color-room-border);
+  border-radius: 4px;
+  background: var(--color-room-bg);
+  color: var(--color-ink-bright);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.fmt-btn:hover { background: var(--color-room-elevated); }
+.fmt-btn-b  { font-weight: 900; font-family: 'Cinzel', serif; }
+.fmt-btn-i  { font-style: italic; font-family: 'IM Fell English', serif; }
+.fmt-btn-u  { text-decoration: underline; }
+.fmt-btn-s  { text-decoration: line-through; }
+.fmt-btn-mark { color: #c4a840; font-size: 14px; }
+.fmt-btn-sc { font-variant: small-caps; font-size: 10px; letter-spacing: 0.05em; }
+.fmt-btn-hr { font-size: 16px; line-height: 1; }
+.fmt-toolbar-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--color-room-border);
+  margin: 0 2px;
+}
+.fmt-kleur-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.fmt-kleur-select {
+  height: 22px;
+  padding: 0 4px;
+  font-size: 11px;
+  background: var(--color-room-bg);
+  border: 1px solid var(--color-room-border);
+  border-radius: 4px;
+  color: var(--color-ink-bright);
+  cursor: pointer;
+}
+.fmt-kleur-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+
+/* mdToHtml output stijlen */
+.md-mark {
+  background: rgba(196,168,66,0.35);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+.md-smallcaps {
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+.md-hr {
+  border: none;
+  border-top: 1px solid rgba(196,168,122,0.35);
+  margin: 10px 0;
+}
+
 /* ── Logboek redesign ── */
 .logboek-search-wrap {
   padding: 12px 24px 10px;
@@ -5610,6 +7071,13 @@ body::before {
   user-select: none;
 }
 .logboek-chapter-banner--img { min-height: 110px; }
+
+@keyframes logboek-banner-pan {
+  to { background-position: center bottom; }
+}
+.logboek-chapter-banner--img:hover {
+  animation: logboek-banner-pan 12s ease-in-out infinite alternate;
+}
 .logboek-chapter-banner:hover .logboek-chapter-banner-overlay {
   background: linear-gradient(to top, rgba(20,10,2,0.92) 0%, rgba(20,10,2,0.55) 60%, transparent 100%);
 }
@@ -5736,6 +7204,9 @@ body::before {
   overflow: hidden;
 }
 .logboek-card-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.logboek-card-img-wrap:hover .logboek-card-img {
+  animation: card-img-pan 12s ease-in-out infinite alternate;
+}
 .logboek-card-img-overlay {
   position: absolute;
   inset: 0;
@@ -5819,6 +7290,13 @@ body::before {
   line-height: 1.55;
   border-top: 1px solid rgba(196,168,122,0.2);
   margin: 0;
+  /* Two-line clamp: max-height as hard fallback, webkit-line-clamp for ellipsis */
+  overflow: hidden;
+  max-height: calc(12px * 1.55 * 2 + 7px + 10px); /* 2 lines + padding */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  /* stylelint-disable-next-line */
+  -webkit-box-orient: vertical;
 }
 .logboek-card-chips {
   display: flex;
@@ -5849,6 +7327,209 @@ body::before {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+/* ── Logboek horizontal card layout ── */
+.logboek-tl-entry--h { margin-bottom: 0; }
+
+.logboek-tl-card--h {
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 110px;
+  max-height: 140px;
+}
+
+.logboek-card-thumb {
+  flex-shrink: 0;
+  width: 130px;
+  min-height: 110px;
+  max-height: 140px;
+  overflow: hidden;
+  background: rgba(30,20,10,0.3);
+}
+.logboek-card-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: object-position 0s;
+}
+.logboek-tl-entry--h:hover .logboek-card-thumb-img {
+  animation: card-img-pan 12s ease-in-out infinite alternate;
+}
+.logboek-tl-entry--samenvatting { opacity: 0.92; }
+.logboek-tl-card--samenvatting {
+  background: rgba(196,168,122,0.1);
+  border-color: rgba(196,168,122,0.35);
+  border-style: dashed;
+}
+.logboek-tl-entry--samenvatting:hover .logboek-tl-card--samenvatting {
+  background: rgba(196,168,122,0.17);
+  border-color: rgba(196,168,122,0.6);
+  border-style: dashed;
+}
+.logboek-card-thumb--samenvatting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(196,168,122,0.12);
+}
+.logboek-samenvatting-icon { font-size: 2rem; line-height: 1; }
+.logboek-samenvatting-label {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: rgba(196,168,122,0.75);
+}
+.logboek-card-hpreview--leeg { opacity: 0.45; }
+
+.logboek-card-thumb--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  opacity: 0.3;
+}
+
+.logboek-card-hbody {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+.logboek-card-hmeta {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.logboek-card-hmeta .logboek-card-chapter-lbl-plain {
+  font-size: 8px;
+  font-weight: 700;
+}
+.logboek-card-hmeta .logboek-card-date-plain { font-size: 9px; }
+
+.logboek-card-htitle {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-ink-bright);
+  margin: 0;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logboek-card-hcitaat {
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(140,90,20,0.85);
+  margin: 0;
+  line-height: 1.45;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  /* stylelint-disable-next-line */
+  -webkit-box-orient: vertical;
+}
+
+.logboek-card-hpreview {
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--color-ink-medium);
+  margin: 0;
+  line-height: 1.5;
+  flex: 1;
+  overflow: hidden;
+}
+
+.logboek-card-chips--h { margin-top: auto; padding-top: 4px; }
+
+/* ── Hoofdstuk afbeeldingen-strip ── */
+.logboek-img-strip-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 10px 0 10px;
+}
+.logboek-img-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 8px;
+  flex: 1;
+  scrollbar-width: none;
+}
+.logboek-img-strip::-webkit-scrollbar { display: none; }
+
+.logboek-img-strip-arrow {
+  flex-shrink: 0;
+  width: 28px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(196,168,122,0.1);
+  border: 1px solid rgba(196,168,122,0.25);
+  color: rgba(196,168,122,0.7);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  padding: 0;
+}
+.logboek-img-strip-arrow--left  { border-radius: 4px 0 0 4px; margin-left: 24px; }
+.logboek-img-strip-arrow--right { border-radius: 0 4px 4px 0; margin-right: 24px; }
+.logboek-img-strip-arrow:hover {
+  background: rgba(196,168,122,0.22);
+  border-color: rgba(196,168,122,0.55);
+  color: rgba(196,168,122,1);
+}
+
+.logboek-img-strip-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 90px;
+  height: 60px;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(196,168,122,0.25);
+  cursor: pointer;
+  padding: 0;
+  background: rgba(30,20,10,0.4);
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.logboek-img-strip-thumb:hover {
+  border-color: rgba(196,168,122,0.7);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+.logboek-img-strip-thumb--hidden { opacity: 0.45; }
+.logboek-img-strip-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: object-position 0s;
+}
+.logboek-img-strip-thumb:hover .logboek-img-strip-img {
+  animation: card-img-pan 10s ease-in-out infinite alternate;
+}
+.logboek-img-strip-hidden-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  font-size: 9px;
+  line-height: 1;
 }
 
 .logboek-akte-samenvatting {
@@ -5983,6 +7664,40 @@ body::before {
   line-height: 1.5;
 }
 .export-option-btn { align-self: flex-start; margin-top: 6px; }
+.export-template-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.export-template-link {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 5px;
+  color: var(--color-ink-dim);
+  background: rgba(196,168,122,0.08);
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+}
+.export-template-link:hover { background: rgba(196,168,122,0.2); color: var(--color-ink-bright); }
+.export-import-label { cursor: pointer; }
+.import-md-results { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.import-md-results.hidden { display: none; }
+.import-md-row {
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-family: 'Crimson Text', serif;
+}
+.import-md-loading { color: var(--color-ink-dim); font-style: italic; }
+.import-md-ok { background: rgba(42,106,58,0.12); color: #2a6a3a; border: 1px solid rgba(42,106,58,0.2); }
+.import-md-err { background: rgba(139,42,42,0.1); color: #8b2a2a; border: 1px solid rgba(139,42,42,0.2); }
+.import-md-type {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-left: 6px;
+  font-family: 'Cinzel', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 
 /* ── Herberg ── */
 
@@ -6170,14 +7885,198 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   color: rgba(240,220,170,0.95);
   line-height: 1.65;
 }
-.herberg-bubble-naam { font-size: 0.73rem; color: rgba(180,150,90,0.65); text-align: right; }
+.herberg-bubble-footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.herberg-bubble-naam { font-size: 0.73rem; color: rgba(180,150,90,0.65); }
+.herberg-bubble-card-btn {
+  flex-shrink: 0;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(196,168,122,0.1);
+  border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 5px;
+  color: rgba(196,168,122,0.7);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  padding: 0;
+}
+.herberg-bubble-card-btn:hover {
+  background: rgba(196,168,122,0.22);
+  border-color: rgba(212,168,67,0.6);
+  color: rgba(240,210,120,1);
+}
 .herberg-loading, .herberg-err { font-size: 0.85rem; color: rgba(180,150,90,0.6); font-style: italic; text-align: center; padding: 8px 0; }
+
+/* ── Bladwijzer toast ── */
+.bookmark-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: rgba(30,22,10,0.92);
+  color: #f0c840;
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 20px;
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-family: 'Cinzel', serif;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 9999;
+  white-space: nowrap;
+}
+.bookmark-toast--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Voorraad inladen paneel ── */
+.voorraad-inladen-wrap { border-top: 1px solid var(--color-room-border); padding-top: 8px; }
+#voorraad-inladen-panel { display: flex; gap: 8px; align-items: center; }
+#voorraad-inladen-panel.hidden { display: none; }
+
+/* ── Winkel uitverkocht ── */
+.winkel-uitverkocht-rij { opacity: 0.55; }
+.winkel-uitverkocht-naam { text-decoration: line-through; text-decoration-color: rgba(196,168,122,0.5); color: var(--color-ink-faint); }
+.winkel-uitverkocht-cb { accent-color: var(--color-seal, #8b2e2e); cursor: pointer; width: 14px; height: 14px; }
+
+/* ── Stapelbaar eigendom: give-picker ── */
+.item-give-player-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--color-room-border); }
+.item-give-player-row:last-child { border-bottom: none; }
+.item-give-player-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.item-give-qty-input { width: 52px; padding: 4px 6px; background: var(--color-room-bg); border: 1px solid var(--color-room-border); border-radius: 4px; color: var(--color-ink-bright); font-size: 0.85rem; text-align: center; }
+.item-give-confirm-btn { padding: 4px 10px; background: rgba(196,168,122,0.15); border: 1px solid rgba(196,168,122,0.4); border-radius: 4px; color: var(--color-ink-bright); cursor: pointer; font-size: 1rem; transition: background 0.15s; }
+.item-give-confirm-btn:hover { background: rgba(196,168,122,0.3); }
+
+/* ── Stapelbaar badge op kaart ── */
+.item-owner-badge--stapelbaar { background: rgba(196,168,122,0.15); border: 1px solid rgba(196,168,122,0.4); border-radius: 4px; padding: 2px 6px; font-size: 0.72rem; color: var(--color-ink-medium); display: flex; align-items: center; gap: 4px; }
+
+/* ── Stapelbaar: qty badge & controls in knapzak ── */
+.player-item-qty-badge { position: absolute; bottom: 3px; right: 3px; background: rgba(196,168,122,0.85); color: #1a1410; font-size: 0.65rem; font-weight: 700; font-family: 'Cinzel', serif; padding: 1px 4px; border-radius: 3px; line-height: 1.4; pointer-events: none; }
+.player-item-qty-controls { display: flex; justify-content: center; gap: 4px; padding: 2px 0; }
+.player-item-qty-btn { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; background: var(--color-room-elevated); border: 1px solid var(--color-room-border); border-radius: 4px; color: var(--color-ink-dim); font-size: 1rem; cursor: pointer; transition: color 0.15s, border-color 0.15s; }
+.player-item-qty-btn:hover { color: var(--color-ink-bright); border-color: rgba(196,168,122,0.5); }
+.player-dash-item-card--stapelbaar { padding-bottom: 2px; }
+
+/* ── Bladwijzer-knop op kaartje ── */
+.card-bookmark-btn {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: rgba(196,168,122,0.5);
+  font-size: 13px;
+  line-height: 1;
+  padding: 3px 5px;
+  cursor: pointer;
+  z-index: 10;
+  transition: color 0.15s, background 0.15s;
+}
+.card-bookmark-btn:hover { color: #f0c840; background: rgba(0,0,0,0.12); }
+.card-bookmark-btn--active { color: #f0c840 !important; }
+
+/* ── Kaart-knop op locatie-cards ── */
+.card-map-btn {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.70);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(196,168,122,0.35);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.15s, border-color 0.15s;
+  z-index: 10;
+}
+.entity-card:hover .card-map-btn { opacity: 1; }
+.card-map-btn:hover { background: rgba(196,147,10,0.35); border-color: rgba(196,147,10,0.7); }
+
+/* ── "Toon op kaart" knop in detail-view ── */
+.detail-map-link-wrap { margin-bottom: 14px; }
+.detail-map-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-family: 'Cinzel', serif;
+  color: var(--color-ink-medium);
+  background: rgba(196,168,122,0.08);
+  border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.detail-map-link-btn:hover {
+  background: rgba(196,147,10,0.2);
+  color: var(--color-ink-bright);
+  border-color: rgba(196,147,10,0.5);
+}
+
+/* ── Pin highlight na fly-to ── */
+@keyframes pin-fly-pulse {
+  0%   { transform: scale(1);    box-shadow: 0 2px 8px rgba(0,0,0,0.7); border-color: rgba(196,160,60,0.8); }
+  35%  { transform: scale(1.45); box-shadow: 0 0 18px rgba(196,147,10,0.9); border-color: rgba(255,200,60,1); }
+  70%  { transform: scale(1.15); box-shadow: 0 0 10px rgba(196,147,10,0.5); border-color: rgba(196,160,60,0.8); }
+  100% { transform: scale(1);    box-shadow: 0 2px 8px rgba(0,0,0,0.7); border-color: rgba(196,160,60,0.8); }
+}
+.map-pin.pin-fly-highlight { z-index: 30; }
+.map-pin.pin-fly-highlight .pin-icon {
+  animation: pin-fly-pulse 0.85s ease-in-out 3;
+}
+.map-pin.pin-fly-highlight .pin-label {
+  opacity: 1;
+  background: rgba(196,147,10,0.9);
+  color: #100c04;
+  font-weight: 600;
+}
+
+/* ── Bladwijzerlijst in spelerstabblad ── */
+.player-bookmarks-list { display: flex; flex-direction: column; gap: 4px; }
+.player-bookmark-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 10px;
+  cursor: pointer;
+  background: rgba(196,168,122,0.08);
+  border: 1px solid rgba(196,168,122,0.25);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s, border-color 0.15s;
+}
+.player-bookmark-item:hover { background: rgba(196,168,122,0.16); border-color: rgba(196,168,122,0.5); }
+.player-bookmark-icon { font-size: 13px; flex-shrink: 0; }
+.player-bookmark-name { flex: 1; font-size: 0.85rem; color: var(--color-ink-bright); font-family: 'Cinzel', serif; }
+.player-bookmark-remove {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: rgba(196,168,122,0.4);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: color 0.15s;
+}
+.player-bookmark-remove:hover { color: #e05555; }
 
 /* DM: flavour die nog niet is uitgesproken — gedempt tonen */
 .flavour-preview--ongespoken { opacity: 0.45; }
-.flavour-preview--ongespoken::before { content: '🍺 '; }
 .flavour-scroll--ongespoken { opacity: 0.45; }
-.flavour-scroll--ongespoken::before { content: '🍺'; display: block; text-align: center; font-size: 1rem; margin-bottom: 4px; }
 
 /* ── Berichten (DM panel) ── */
 .bericht-badge { display: inline-flex; align-items: center; justify-content: center; background: #c0392b; color: #fff; font-size: 9px; font-weight: 700; border-radius: 999px; min-width: 16px; height: 16px; padding: 0 4px; line-height: 1; vertical-align: middle; }
@@ -6215,6 +8114,27 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .bericht-del-btn:hover { opacity: 1; background: rgba(180,40,40,0.15); color: #c0392b; }
 
 /* ── Spelersportret HP-visualisatie ── */
+
+/* Buitenste wrapper voor de hero-avatar + SVG-ring */
+.player-dash-avatar-outer {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+}
+.player-dash-avatar-outer .player-dash-avatar-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.player-dash-avatar-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 .player-dash-avatar-wrap { position: relative; overflow: hidden; }
 
 /* Vignette-overlay via ::after pseudo-element */
@@ -6431,7 +8351,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .player-dashboard[data-klasse="cleric"] .player-subtab.active { border-bottom-color: #a890d8; color: #c8b8f0; }
 
 .player-dashboard[data-klasse="cleric"] .player-dash-hero::before {
-  content: '· · ☽  schemering  ☾ · ·';
+  content: '· · ☽  ☾ · ·';
   display: block;
   text-align: center;
   font-size: 9px;
@@ -6480,7 +8400,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .player-dashboard[data-klasse="sorcerer"] .player-subtab.active { border-bottom-color: #d07080; color: #f0a0a8; }
 
 .player-dashboard[data-klasse="sorcerer"] .player-dash-hero::before {
-  content: '⚡  chaos  ·  bloed  ·  vuur  ⚡';
+  content: '⚡  ·  ·  ⚡';
   display: block;
   text-align: center;
   font-size: 9px;
@@ -6528,7 +8448,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .player-dashboard[data-klasse="bard"] .player-subtab.active { border-bottom-color: #c8a050; color: #f0c870; }
 
 .player-dashboard[data-klasse="bard"] .player-dash-hero::before {
-  content: '♩  ♫  ♪  verhaal  ♪  ♫  ♩';
+  content: '♩  ♫  ♪  ♪  ♫  ♩';
   display: block;
   text-align: center;
   font-size: 10px;
@@ -6582,7 +8502,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .player-dashboard[data-klasse="rogue"] .player-subtab.active { border-bottom-color: #a0a0b8; color: #d0d0e0; }
 
 .player-dashboard[data-klasse="rogue"] .player-dash-hero::before {
-  content: '— ◆ — schaduw — ◆ —';
+  content: '— ◆ — — ◆ —';
   display: block;
   text-align: center;
   font-size: 9px;
@@ -6719,3 +8639,604 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 
 /* Klasse-icoon is klikbaar */
 .player-dashboard[data-klasse] #player-class-icon-wrap { cursor: pointer; }
+
+/* Zoekbalk (kenmerken & spreuken) */
+.player-dashboard[data-klasse] .player-spell-search-input,
+.player-dashboard[data-klasse] .herberg-search {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.92);
+}
+.player-dashboard[data-klasse] .player-spell-search-input::placeholder { color: rgba(255,255,255,0.4); }
+.player-dashboard[data-klasse] .player-spell-results {
+  background: #2a1e10;
+  border-color: rgba(255,255,255,0.2);
+}
+.player-dashboard[data-klasse] .player-spell-result {
+  color: rgba(255,255,255,0.85);
+  border-bottom-color: rgba(255,255,255,0.1);
+}
+.player-dashboard[data-klasse] .player-spell-result:hover { background: rgba(255,255,255,0.1); }
+.player-dashboard[data-klasse] .player-spell-result-meta { color: rgba(255,255,255,0.45); }
+.player-dashboard[data-klasse] .player-spell-result-pin { border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.7); }
+
+/* Accordion: kenmerken & spreuken */
+.player-dashboard[data-klasse] .player-spell-accordion,
+.player-dashboard[data-klasse] .player-trait-accordion { border-bottom-color: rgba(255,255,255,0.12); }
+.player-dashboard[data-klasse] .player-pinned-spell-summary:hover { background: rgba(255,255,255,0.07); }
+.player-dashboard[data-klasse] .player-pinned-spell-chevron { color: rgba(255,255,255,0.45); }
+.player-dashboard[data-klasse] .player-pinned-spell-name { color: rgba(255,255,255,0.92); }
+.player-dashboard[data-klasse] .player-pinned-spell-name:hover { color: #fff; }
+.player-dashboard[data-klasse] .player-pinned-spell-meta { color: rgba(255,255,255,0.5); }
+.player-dashboard[data-klasse] .player-pinned-spell-del { color: rgba(255,255,255,0.4); }
+.player-dashboard[data-klasse] .player-pinned-spell-del:hover { color: #ff7070; }
+.player-dashboard[data-klasse] .player-spell-accordion-body {
+  background: rgba(0,0,0,0.2);
+  border-top-color: rgba(255,255,255,0.1);
+}
+.player-dashboard[data-klasse] .player-spell-desc,
+.player-dashboard[data-klasse] .player-spell-meta2 { color: rgba(255,255,255,0.75); }
+.player-dashboard[data-klasse] .player-spell-loading-text,
+.player-dashboard[data-klasse] .player-spell-err { color: rgba(255,255,255,0.4); }
+.player-dashboard[data-klasse] .player-dash-empty { color: rgba(255,255,255,0.4); }
+
+/* Proficiencies invoervelden */
+.player-dashboard[data-klasse] .player-prof-input {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.88);
+}
+.player-dashboard[data-klasse] .player-prof-input::placeholder { color: rgba(255,255,255,0.3); }
+.player-dashboard[data-klasse] .player-prof-label { color: rgba(255,255,255,0.5); }
+
+/* Kenmerken add-btn & custom form */
+.player-dashboard[data-klasse] .player-trait-add-btn {
+  border-color: rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.07);
+}
+.player-dashboard[data-klasse] .player-trait-add-btn:hover {
+  background: rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.9);
+}
+.player-dashboard[data-klasse] .player-trait-custom-form {
+  background: rgba(0,0,0,0.2);
+  border-color: rgba(255,255,255,0.15);
+}
+.player-dashboard[data-klasse] .player-trait-form-input,
+.player-dashboard[data-klasse] .player-trait-form-ta {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.88);
+}
+.player-dashboard[data-klasse] .player-trait-form-input::placeholder,
+.player-dashboard[data-klasse] .player-trait-form-ta::placeholder { color: rgba(255,255,255,0.35); }
+
+/* Trait uses dots config */
+.player-dashboard[data-klasse] .trait-uses-label { color: rgba(255,255,255,0.55); }
+.player-dashboard[data-klasse] .trait-uses-count,
+.player-dashboard[data-klasse] .trait-uses-count-cfg { color: rgba(255,255,255,0.7); }
+
+/* Tracker naam */
+.player-dashboard[data-klasse] .player-tracker-name-input {
+  color: rgba(255,255,255,0.88);
+  border-bottom-color: rgba(255,255,255,0.2);
+}
+.player-dashboard[data-klasse] .player-tracker-name-input:focus {
+  background: rgba(255,255,255,0.1);
+  border-bottom-color: rgba(255,255,255,0.5);
+}
+
+/* Slot add / adj knoppen */
+.player-dashboard[data-klasse] .player-dash-slot-add-btn,
+.player-dashboard[data-klasse] .player-dash-add-item-btn {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.75);
+}
+.player-dashboard[data-klasse] .player-dash-slot-add-btn:hover,
+.player-dashboard[data-klasse] .player-dash-add-item-btn:hover {
+  background: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.95);
+}
+
+/* Invoervelden in knapzak / items */
+.player-dashboard[data-klasse] .player-dash-add-item-input,
+.player-dashboard[data-klasse] .player-dash-add-item-note {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.88);
+}
+.player-dashboard[data-klasse] .player-dash-add-item-input::placeholder,
+.player-dashboard[data-klasse] .player-dash-add-item-note::placeholder { color: rgba(255,255,255,0.35); }
+
+/* ── Skill aanpassing: ▲▼ pijltjes ── */
+.skill-adj-ctrl { display: flex; flex-direction: column; align-items: center; gap: 0; margin-left: auto; flex-shrink: 0; }
+.skill-adj-arrow { background: none; border: none; cursor: pointer; color: var(--color-ink-dim); font-size: 0.55rem; padding: 0 2px; line-height: 1.1; border-radius: 2px; transition: color 0.15s, background 0.15s; }
+.skill-adj-arrow:hover { color: var(--color-ink-bright); background: rgba(196,168,122,0.15); }
+.skill-adj-val { font-size: 0.72rem; min-width: 18px; text-align: center; font-weight: 700; }
+.skill-adj-val.buff { color: #5aab6a; }
+.skill-adj-val.nerf { color: #c0392b; }
+.skill-bonus--buff { color: #5aab6a !important; font-weight: 700; }
+.skill-bonus--nerf { color: #c0392b !important; font-weight: 700; }
+
+/* ── Proficiënties ── */
+.player-profs-grid { display: flex; flex-direction: column; gap: 8px; }
+.player-prof-row { display: flex; flex-direction: column; gap: 3px; }
+.player-prof-label { font-size: 0.72rem; color: var(--color-ink-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.player-prof-input { padding: 5px 10px; background: var(--color-room-bg); border: 1px solid rgba(196,168,122,0.25); border-radius: 6px; color: var(--color-ink-bright); font-size: 0.83rem; }
+.player-prof-input:focus { border-color: rgba(196,168,122,0.55); outline: none; }
+
+/* ── Trait type badge ── */
+.player-trait-type-badge { font-size: 0.65rem; padding: 1px 5px; border-radius: 3px; background: rgba(196,168,122,0.18); color: var(--color-ink-dim); margin-left: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ── Gedeelde beurs badge ── */
+.currency-shared-badge { font-size: 0.72rem; padding: 2px 7px; border-radius: 10px; background: rgba(100,180,100,0.18); color: #7bc47b; border: 1px solid rgba(100,180,100,0.35); margin-left: 8px; font-weight: 600; }
+
+/* ── Trait uses bolletjes ── */
+.trait-uses-dots { display: inline-flex; align-items: center; gap: 3px; margin: 0 6px; }
+.trait-uses-count { font-size: 0.7rem; color: var(--color-ink-dim); margin-left: 3px; }
+
+/* ── Trait uses configuratie (in accordion-body) ── */
+.trait-uses-config { display: flex; align-items: center; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(196,168,122,0.2); }
+.trait-uses-label { font-size: 0.72rem; color: var(--color-ink-dim); margin-right: 2px; }
+.trait-uses-count-cfg { font-size: 0.8rem; font-weight: 700; color: var(--color-ink-bright); min-width: 20px; text-align: center; }
+
+/* ── Trait persoonlijke opmerking ── */
+.trait-note-section { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(196,168,122,0.2); }
+.trait-note-display { margin-bottom: 6px; }
+.trait-note-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #c0392b;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.trait-note-display { display: flex; align-items: flex-start; gap: 6px; }
+.trait-note-text {
+  flex: 1;
+  font-size: 0.82rem;
+  font-style: italic;
+  font-weight: 700;
+  color: #c0392b;
+  margin: 0;
+  line-height: 1.5;
+  padding-left: 8px;
+  border-left: 3px solid #e05555;
+}
+.trait-note-actions { display: flex; flex-direction: row; gap: 2px; flex-shrink: 0; align-items: center; }
+.trait-note-icon-btn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 1px 3px;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+  line-height: 1;
+}
+.trait-note-icon-btn:hover { opacity: 1; }
+.trait-note-icon-del:hover { filter: brightness(0.7) sepia(1) hue-rotate(-10deg); }
+.trait-note-form { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+.trait-note-ta {
+  width: 100%;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #c0392b;
+  background: rgba(192,57,43,0.05);
+  border: 1px solid rgba(192,57,43,0.3);
+  border-radius: 4px;
+  padding: 6px 8px;
+  resize: vertical;
+  min-height: 56px;
+  font-family: 'IM Fell English', serif;
+  box-sizing: border-box;
+}
+.trait-note-ta::placeholder { color: rgba(192,57,43,0.4); font-style: italic; }
+.trait-note-form-btns { display: flex; gap: 6px; }
+.trait-note-save, .trait-note-cancel {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.trait-note-save { background: #c0392b; border-color: #a93226; color: #fff; }
+.trait-note-save:hover { background: #a93226; }
+.trait-note-cancel { background: transparent; border-color: rgba(196,168,122,0.4); color: var(--color-ink-dim); }
+.trait-note-cancel:hover { background: rgba(196,168,122,0.1); }
+
+/* ── Custom spell button (in zoekresultaten) ── */
+.player-spell-custom-btn { background: none; border: 1px solid rgba(196,148,10,0.5); border-radius: 4px; color: #c4930a; font-size: 0.78rem; padding: 2px 8px; cursor: pointer; margin-left: 6px; }
+.player-spell-custom-btn:hover { background: rgba(196,148,10,0.12); }
+
+/* ═══════════════════════════════════════════════════════
+   SPELERSTABBLAD — VERBETERINGEN (visueel & inhoudelijk)
+   ═══════════════════════════════════════════════════════ */
+
+/* ── HP-ring op het eigen portret ── */
+.party-hp-ring { overflow: visible; }
+.party-hp-ring-bg  { fill: none; stroke: rgba(255,255,255,0.15); stroke-width: 5; }
+.party-hp-ring-fill { fill: none; stroke-width: 5; stroke-linecap: round; transition: stroke-dasharray 0.4s ease; }
+.party-hp-ring-hp-healthy  { stroke: #4caf50; }
+.party-hp-ring-hp-lightly  { stroke: #8bc34a; }
+.party-hp-ring-hp-wounded  { stroke: #ff9800; }
+.party-hp-ring-hp-critical { stroke: #f44336; }
+.party-hp-ring-hp-down     { stroke: #555; }
+
+/* ── Spreukenslot dots — vrije dots gloeien ── */
+.spell-slot-dot.free {
+  box-shadow: 0 0 0 0 rgba(196,168,122,0.7);
+  animation: slot-pulse 2.5s infinite;
+}
+@keyframes slot-pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(196,168,122,0.5); }
+  50%  { box-shadow: 0 0 0 4px rgba(196,168,122,0); }
+  100% { box-shadow: 0 0 0 0   rgba(196,168,122,0); }
+}
+
+/* ── Concentratie & ritueel badges ── */
+.spell-badge {
+  font-size: 9px;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  letter-spacing: 0.05em;
+}
+.spell-badge--conc   { background: rgba(100,60,200,0.18); color: #8860d0; border: 1px solid rgba(100,60,200,0.3); }
+.spell-badge--ritual { background: rgba(20,120,80,0.18);  color: #2a9060; border: 1px solid rgba(20,120,80,0.3); }
+
+/* ── Level-filter chips boven spreukenlijst ── */
+.spell-level-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 8px 0 4px;
+}
+.spell-lvl-chip {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid rgba(196,168,122,0.4);
+  background: transparent;
+  color: #8a7050;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.spell-lvl-chip:hover  { background: rgba(196,168,122,0.15); color: #3a2410; }
+.spell-lvl-chip--active { background: rgba(196,168,122,0.28); color: #3a2410; border-color: #9a7008; }
+
+/* ── Spell level group header ── */
+.spell-level-group { margin-top: 4px; }
+.spell-level-group-header {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b09060;
+  padding: 6px 4px 3px;
+  border-bottom: 1px solid rgba(196,168,122,0.3);
+  margin-bottom: 2px;
+}
+
+/* ── Item categorie-label ── */
+.item-cat-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a7050;
+  margin: 10px 0 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid rgba(196,168,122,0.25);
+}
+.item-cat-label:first-child { margin-top: 2px; }
+
+/* ── Hero collapse knop ── */
+.player-hero-collapse-btn {
+  display: inline-block;
+  margin-top: 6px;
+  background: none;
+  border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 4px;
+  color: rgba(196,168,122,0.6);
+  font-size: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s, border-color 0.15s;
+}
+.player-hero-collapse-btn:hover { color: rgba(196,168,122,0.9); }
+
+/* data-klasse varianten voor spell-badge, level chips */
+.player-dashboard[data-klasse] .spell-lvl-chip { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.55); }
+.player-dashboard[data-klasse] .spell-lvl-chip:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.9); }
+.player-dashboard[data-klasse] .spell-lvl-chip--active { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.95); border-color: rgba(255,255,255,0.5); }
+.player-dashboard[data-klasse] .spell-level-group-header { color: rgba(255,255,255,0.45); border-bottom-color: rgba(255,255,255,0.12); }
+.player-dashboard[data-klasse] .item-cat-label { color: rgba(255,255,255,0.45); border-bottom-color: rgba(255,255,255,0.12); }
+.player-dashboard[data-klasse] .player-hero-collapse-btn { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.3); }
+.player-dashboard[data-klasse] .player-hero-collapse-btn:hover { color: rgba(255,255,255,0.7); }
+
+/* ── Klasselook: Weapons & Damage Cantrips ── */
+.player-dashboard[data-klasse] .player-weapons-header { border-bottom-color: rgba(255,255,255,0.15); }
+.player-dashboard[data-klasse] .player-weapons-header span { color: rgba(255,255,255,0.45); }
+.player-dashboard[data-klasse] .player-weapon-row { border-bottom-color: rgba(255,255,255,0.08); }
+.player-dashboard[data-klasse] .pw-input {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.92);
+}
+.player-dashboard[data-klasse] .pw-input:focus {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.5);
+}
+.player-dashboard[data-klasse] .pw-input::placeholder { color: rgba(255,255,255,0.3); }
+.player-dashboard[data-klasse] .pw-del-btn { color: rgba(255,255,255,0.35); }
+.player-dashboard[data-klasse] .pw-del-btn:hover { color: #ff7070; opacity: 1; }
+.player-dashboard[data-klasse] .player-weapon-add-btn {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.8);
+}
+.player-dashboard[data-klasse] .player-weapon-add-btn:hover {
+  background: rgba(255,255,255,0.22);
+  border-color: rgba(255,255,255,0.55);
+}
+.player-dashboard[data-klasse] .player-weapons-empty { color: rgba(255,255,255,0.4); }
+
+/* ── Klasselook: Jouw voorwerpen (knapzak) ── */
+.player-dashboard[data-klasse] .player-dash-item-card {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.18);
+}
+.player-dashboard[data-klasse] .player-dash-item-card:hover { border-color: rgba(255,255,255,0.4); }
+.player-dashboard[data-klasse] .player-dash-item-img-wrap { background: rgba(0,0,0,0.25); }
+.player-dashboard[data-klasse] .player-dash-item-fallback { background: rgba(0,0,0,0.2); color: rgba(255,255,255,0.3); }
+.player-dashboard[data-klasse] .player-dash-item-name { color: rgba(255,255,255,0.9); }
+.player-dashboard[data-klasse] .player-dash-simple-item {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.15);
+}
+.player-dashboard[data-klasse] .player-dash-simple-name { color: rgba(255,255,255,0.92); }
+.player-dashboard[data-klasse] .player-dash-simple-note { color: rgba(255,255,255,0.5); }
+.player-dashboard[data-klasse] .player-dash-simple-del { color: rgba(255,255,255,0.35); }
+.player-dashboard[data-klasse] .player-dash-simple-del:hover { color: #ff7070; }
+
+/* ── Klasselook: Initiatievolgorde ── */
+.player-dashboard[data-klasse] .player-dash-init-row {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.1);
+}
+.player-dashboard[data-klasse] .player-dash-init-row.player-dash-init-active {
+  background: rgba(255,255,255,0.15);
+  border-left-color: rgba(255,255,255,0.7);
+}
+.player-dashboard[data-klasse] .player-dash-init-row.player-dash-init-me {
+  border-left-color: rgba(255,255,255,0.6);
+}
+.player-dashboard[data-klasse] .player-dash-init-num { color: rgba(255,255,255,0.4); }
+.player-dashboard[data-klasse] .player-dash-init-name { color: rgba(255,255,255,0.9); }
+.player-dashboard[data-klasse] .player-dash-init-you { color: rgba(255,255,255,0.45); }
+.player-dashboard[data-klasse] .player-dash-init-arrow { color: rgba(255,255,255,0.8); }
+
+/* ── Klasselook: Wild Magic Surge ── */
+.player-dashboard[data-klasse] .wild-magic-result {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+}
+.player-dashboard[data-klasse] .wild-magic-roll { color: rgba(255,255,255,0.55); }
+.player-dashboard[data-klasse] .wild-magic-text { color: rgba(255,255,255,0.9); }
+
+/* ── Klasselook: Geheime berichten ── */
+.player-dashboard[data-klasse] .speler-bericht-item {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.15);
+}
+.player-dashboard[data-klasse] .speler-bericht-item:hover { background: rgba(255,255,255,0.13); }
+.player-dashboard[data-klasse] .speler-bericht-item--nieuw {
+  background: rgba(255,255,255,0.14);
+  border-color: rgba(255,255,255,0.35);
+}
+.player-dashboard[data-klasse] .speler-bericht-tekst { color: rgba(255,255,255,0.9); }
+.player-dashboard[data-klasse] .speler-bericht-meta { color: rgba(255,255,255,0.4); }
+.player-dashboard[data-klasse] .bericht-del-btn { color: rgba(255,255,255,0.3); }
+.player-dashboard[data-klasse] .bericht-del-btn:hover { color: #ff7070; opacity: 1; background: rgba(255,80,80,0.12); }
+
+/* ── Spelers-tab (DM) ── */
+.spelers-tab-wrap { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.spelers-tab-header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: rgba(196,168,122,0.08); border-bottom: 1px solid rgba(196,168,122,0.2); flex-shrink: 0; }
+.spelers-tab-label { font-size: 0.8rem; color: var(--color-ink-dim); font-style: italic; }
+.spelers-tab-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+.spelers-tab-btn { padding: 4px 14px; border-radius: 20px; border: 1px solid rgba(196,168,122,0.35); background: transparent; color: var(--color-ink-medium); font-size: 0.82rem; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.spelers-tab-btn:hover { background: rgba(196,168,122,0.18); color: var(--color-ink-bright); }
+.spelers-tab-btn--active { background: rgba(196,147,10,0.18); border-color: rgba(196,147,10,0.5); color: var(--color-ink-bright); font-weight: 600; }
+.spelers-dashboard-wrap { flex: 1; overflow-y: auto; min-height: 0; }
+
+/* ── Akte-editor: bannerafbeelding thumbnails ── */
+.banner-img-thumb {
+  width: 72px;
+  height: 54px;
+  border-radius: 5px;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid transparent;
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.15s, border-color 0.15s;
+  padding: 0;
+}
+.banner-img-thumb:hover { opacity: 1; }
+.banner-img-thumb--sel { border-color: rgba(196,147,10,0.9); opacity: 1; }
+
+/* ── Shop item tooltip ── */
+.shop-item-tooltip {
+  position: absolute;
+  z-index: 9999;
+  max-width: 280px;
+  padding: 8px 12px;
+  background: var(--color-room-elevated, #1e1a14);
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+  font-family: 'IM Fell English', 'Crimson Text', serif;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--color-ink-medium, #c4a87a);
+  line-height: 1.5;
+  pointer-events: none;
+}
+.shop-item-tooltip.hidden { display: none; }
+
+/* ── Shop verbeteringen ── */
+
+/* Thumbnail in voorraadtabel */
+.shop-item-thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid rgba(196,168,122,0.3);
+  flex-shrink: 0;
+}
+
+/* Quantity input */
+.shop-qty-input {
+  width: 48px;
+  padding: 3px 6px;
+  background: var(--color-room-bg);
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 4px;
+  color: var(--color-ink-bright);
+  font-size: 0.82rem;
+  text-align: center;
+}
+.shop-qty-input:focus { outline: none; border-color: rgba(196,168,122,0.7); }
+
+/* Korting badge bij prijs */
+.shop-korting-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 5px;
+  background: rgba(34,100,54,0.15);
+  border: 1px solid rgba(34,100,54,0.4);
+  border-radius: 3px;
+  font-size: 0.7rem;
+  color: #1a7a40;
+  font-style: normal;
+  font-family: 'Cinzel', serif;
+}
+.shop-korting-badge--malus {
+  background: rgba(139,42,42,0.12);
+  border-color: rgba(139,42,42,0.3);
+  color: #8b2a2a;
+}
+
+/* Korting banner bovenaan voorraad */
+.shop-korting-banner {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-style: italic;
+  margin-bottom: 10px;
+}
+.shop-korting-banner--ok { background: rgba(34,100,54,0.10); border: 1px solid rgba(34,100,54,0.28); color: #1a5c30; }
+.shop-korting-banner--malus { background: rgba(139,42,42,0.08); border: 1px solid rgba(139,42,42,0.25); color: #8b2a2a; }
+
+/* Sfeer-sectie */
+.shop-sfeer {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 12px 0 16px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(196,168,122,0.2);
+}
+.shop-sfeer-img {
+  width: 72px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 5px;
+  border: 1px solid rgba(196,168,122,0.35);
+  flex-shrink: 0;
+}
+.shop-sfeer-tekst {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.88rem;
+  color: var(--color-ink-medium);
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* Onderhandelen */
+.shop-onderhandel-wrap {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(196,168,122,0.2);
+}
+.shop-onderhandel-btn {
+  padding: 5px 14px;
+  background: rgba(196,168,122,0.08);
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 5px;
+  color: var(--color-ink-medium);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.shop-onderhandel-btn:hover { background: rgba(196,168,122,0.16); border-color: rgba(196,168,122,0.6); }
+.shop-onderhandel-panel {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.shop-cha-input {
+  padding: 3px 6px;
+  background: var(--color-room-bg);
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 4px;
+  color: var(--color-ink-bright);
+  font-size: 0.85rem;
+  text-align: center;
+}
+.shop-cha-input:focus { outline: none; border-color: rgba(196,168,122,0.7); }
+.shop-onderhandel-roll-btn {
+  padding: 4px 12px;
+  background: rgba(196,147,10,0.12);
+  border: 1px solid rgba(196,147,10,0.4);
+  border-radius: 4px;
+  color: var(--color-ink-bright);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.shop-onderhandel-roll-btn:hover { background: rgba(196,147,10,0.22); }
+.shop-onderhandel-annuleer {
+  background: none;
+  border: none;
+  color: var(--color-ink-dim);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+}
+.shop-onderhandel-annuleer:hover { color: var(--color-ink-bright); }
+.shop-onderhandel-result {
+  margin-top: 8px;
+  padding: 7px 12px;
+  border-radius: 5px;
+  font-size: 0.82rem;
+  font-style: italic;
+}
+.shop-onderhandel-loading { color: var(--color-ink-dim); }
+.shop-onderhandel-result--ok { background: rgba(34,100,54,0.10); border: 1px solid rgba(34,100,54,0.28); color: #1a5c30; }
+.shop-onderhandel-result--fout { background: rgba(139,42,42,0.08); border: 1px solid rgba(139,42,42,0.25); color: #8b2a2a; }
