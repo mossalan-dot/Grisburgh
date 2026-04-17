@@ -45,106 +45,90 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=25">
+  <link rel="stylesheet" href="/css/theme.css?v=72">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body class="bg-room-bg text-ink-bright font-crimson min-h-screen">
   <div class="app player-mode" id="app">
-    <!-- Header -->
-    <header class="px-6 pt-5 pb-4 bg-room-elevated border-b-2 border-room-border">
-      <div class="flex items-center gap-4">
-        <!-- Title -->
-        <div class="flex-shrink-0">
-          <div id="header-display">
-            <div class="flex items-center gap-2">
-              <h1 id="app-title" class="font-cinzel text-4xl font-black text-ink-bright tracking-wider leading-none">Grisburgh</h1>
-              <button id="header-edit-btn" class="dm-only hidden text-ink-faint hover:text-gold transition-colors leading-none" onclick="window.app.editHeader()" title="Titel bewerken" style="font-size:14px;padding:2px 4px;background:none;border:none;cursor:pointer;">&#9998;</button>
-            </div>
-            <div class="mt-1.5 flex items-center gap-1.5">
-              <span class="text-gold-dim text-[10px] leading-none select-none">✦</span>
-              <div class="h-px w-8" style="background:linear-gradient(to right,transparent,#9a7008)"></div>
-              <p id="app-subtitle" class="text-ink-medium text-sm font-fell italic">Ontdekkingen uit het stadsarchief</p>
-              <div class="h-px w-8" style="background:linear-gradient(to left,transparent,#9a7008)"></div>
-              <span class="text-gold-dim text-[10px] leading-none select-none">✦</span>
-            </div>
-            <!-- Speler-identiteit onder de ondertitel -->
-            <div id="player-identity" class="hidden items-center gap-1.5 mt-1">
-              <span class="text-xs text-ink-dim select-none">Speelt als</span>
-              <span id="player-name-display" class="text-xs font-cinzel font-bold text-gold"></span>
-              <button onclick="window.app.openPlayerPicker()" title="Wisselen van karakter"
-                class="text-xs text-ink-faint hover:text-gold transition-colors leading-none" style="background:none;border:none;cursor:pointer;padding:0 2px">✎</button>
-              <button onclick="window.app.playerLogout()" title="Anoniem verder"
-                class="text-xs text-ink-faint hover:text-seal transition-colors leading-none" style="background:none;border:none;cursor:pointer;padding:0 2px">✕</button>
-            </div>
-            <!-- Karakter kiezen (zichtbaar als anonieme speler) -->
-            <button id="player-pick-btn" class="hidden text-xs text-ink-dim hover:text-gold transition-colors font-cinzel mt-1"
-              onclick="window.app.openPlayerPicker()" title="Kies je karakter">👤 Kies karakter</button>
-          </div>
-          <div id="header-editor" class="hidden space-y-1.5">
-            <input id="header-title-input" type="text"
-              class="font-cinzel font-black text-ink-bright tracking-wider bg-room-bg border border-room-border rounded px-2 py-0.5 focus:border-gold-dim focus:outline-none w-full"
-              style="font-size:1.6rem">
-            <input id="header-subtitle-input" type="text"
-              class="font-fell italic text-ink-medium text-sm bg-room-bg border border-room-border rounded px-2 py-0.5 focus:border-gold-dim focus:outline-none w-full">
-            <div class="flex gap-2">
-              <button onclick="window.app.saveHeader()"
-                class="px-3 py-1 text-xs font-cinzel font-bold bg-gold/20 hover:bg-gold/30 text-gold border border-gold/40 rounded transition">Opslaan</button>
-              <button onclick="window.app.cancelHeader()"
-                class="px-3 py-1 text-xs font-cinzel text-ink-dim hover:text-ink-medium border border-room-border rounded transition">Annuleren</button>
-            </div>
+    <!-- ══ App-header: één balk ══ -->
+    <header class="app-header" id="app-header">
+
+      <!-- Links: titel -->
+      <div class="app-header-title" id="header-display">
+        <div class="app-header-title-row">
+          <h1 id="app-title" class="app-title">Grisburgh</h1>
+          <button id="header-edit-btn" class="app-header-edit-btn dm-only hidden"
+            onclick="window.app.editHeader()" title="Titel bewerken">✎</button>
+        </div>
+        <p id="app-subtitle" class="app-subtitle">Ontdekkingen uit het stadsarchief</p>
+      </div>
+      <!-- Inline titel-editor -->
+      <div id="header-editor" class="app-header-editor hidden">
+        <input id="header-title-input" type="text" class="app-header-input app-header-input--title" placeholder="Campagnenaam">
+        <input id="header-subtitle-input" type="text" class="app-header-input app-header-input--sub" placeholder="Ondertitel">
+        <div class="flex gap-2 mt-1">
+          <button onclick="window.app.saveHeader()" class="app-header-save-btn">Opslaan</button>
+          <button onclick="window.app.cancelHeader()" class="app-header-cancel-btn">Annuleren</button>
+        </div>
+      </div>
+
+      <!-- Midden: navigatietabs -->
+      <nav class="app-nav" id="section-tabs">
+        <!-- Archief dropdown -->
+        <div class="relative flex-shrink-0" id="archief-nav-group">
+          <button class="section-tab archief-tab active" id="archief-nav-btn"
+            onclick="window.app.toggleArchiefMenu()">
+            ☰ <span id="archief-nav-label" class="tab-label">Archief</span><span class="archief-arrow tab-label">▾</span>
+          </button>
+          <div class="archief-menu hidden" id="archief-menu">
+            <button class="archief-menu-item active" data-section="personages">👤 Personages</button>
+            <button class="archief-menu-item" data-section="locaties">🏰 Locaties</button>
+            <button class="archief-menu-item" data-section="organisaties">🏛️ Organisaties</button>
+            <button class="archief-menu-item" data-section="voorwerpen">🎺 Voorwerpen</button>
+            <button class="archief-menu-item" data-section="documenten">📜 Documenten</button>
+            <button class="archief-menu-item" data-section="kaart">🗺️ Kaarten</button>
           </div>
         </div>
-        <!-- Groepswisselaar + party portraits -->
-        <div class="flex flex-col flex-1 min-w-0">
-          <div id="group-switcher" class="dm-only hidden flex items-center gap-1 flex-wrap mb-1"></div>
-          <div id="party-bar" class="flex items-end gap-3 overflow-x-auto pt-1"></div>
+        <button class="section-tab" data-section="logboek">📖 <span class="tab-label">Logboek</span></button>
+        <button class="section-tab hidden" data-section="herberg" id="herberg-tab">🍺 <span class="tab-label">Herberg</span></button>
+        <button class="section-tab hidden" data-section="mijn-karakter">🧑 <span class="tab-label">Mijn karakter</span></button>
+        <button class="section-tab hidden" data-section="spelers" id="spelers-tab">👥 <span class="tab-label">Spelers</span></button>
+        <button class="section-tab hidden" data-section="meesterkamer" id="dm-tab"><span class="tab-icon">⚙</span><span class="tab-label"> Meesterkamer</span></button>
+      </nav>
+
+      <!-- Rechts: zoek + DM-zegel -->
+      <div class="app-header-actions">
+        <!-- Zoekbalk (expandeert) -->
+        <div class="app-search-wrap" id="app-search-wrap">
+          <button class="app-search-btn" id="app-search-btn"
+            onclick="window.app.openGlobalSearch()" title="Zoeken (/)">
+            <span class="app-search-icon">⌕</span>
+            <span class="app-search-label">Zoeken</span>
+          </button>
         </div>
-        <!-- DM toggle -->
-        <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
-          <div class="flex items-center gap-2">
-            <span id="dm-toggle-label" class="text-xs font-mono text-ink-dim select-none">DM</span>
-            <button id="dm-toggle" onclick="window.app.dmToggleClick()" title="Dungeon Master modus"
-              class="relative w-11 h-6 rounded-full border border-room-border bg-room-elevated transition-all duration-300 flex-shrink-0">
-              <span id="dm-toggle-knob"
-                class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-ink-faint shadow transition-all duration-300"></span>
-            </button>
-            <button id="dm-logout-btn" onclick="window.app.dmLogout()" title="Uitloggen als DM"
-              class="hidden text-xs text-ink-dim hover:text-gold transition-colors px-1">✕</button>
-          </div>
-        </div>
+        <!-- DM-zegel: alleen zichtbaar als DM ingelogd (voor preview-toggle) -->
+        <button class="dm-seal hidden" id="dm-toggle" onclick="window.app.dmToggleClick()" title="Dungeon Master modus">
+          <span class="dm-seal-icon">⚔︎</span>
+          <span class="dm-seal-label" id="dm-toggle-label">DM</span>
+        </button>
+        <button id="dm-logout-btn" onclick="window.app.dmLogout()" title="Uitloggen als DM"
+          class="app-header-icon-btn app-header-icon-btn--danger hidden">✕</button>
+        <!-- Spelerwisselknop (alleen zichtbaar voor spelers) -->
+        <button id="player-switch-btn" onclick="window.app.openPlayerPicker()" title="Wissel van karakter"
+          class="app-player-switch-btn hidden">👤</button>
       </div>
     </header>
 
-    <!-- Section tabs -->
-    <nav class="flex gap-1 px-4 pt-2 border-b border-room-border" id="section-tabs">
-      <!-- Archief dropdown -->
-      <div class="relative flex-shrink-0" id="archief-nav-group">
-        <button class="section-tab archief-tab active" id="archief-nav-btn"
-          onclick="window.app.toggleArchiefMenu()">
-          ☰ <span id="archief-nav-label">Archief</span> <span class="archief-arrow">▾</span>
-        </button>
-        <div class="archief-menu hidden" id="archief-menu">
-          <button class="archief-menu-item active" data-section="personages">&#x1F464; Personages</button>
-          <button class="archief-menu-item" data-section="locaties">&#x1F3F0; Locaties</button>
-          <button class="archief-menu-item" data-section="organisaties">&#x1F3DB; Organisaties</button>
-          <button class="archief-menu-item" data-section="voorwerpen">&#x1F3BA; Voorwerpen</button>
-          <button class="archief-menu-item" data-section="documenten">&#x1F4DC; Documenten</button>
-          <button class="archief-menu-item" data-section="kaart">&#x1F5FA; Kaarten</button>
-        </div>
-      </div>
-      <!-- Directe tabs -->
-      <button class="section-tab" data-section="logboek">&#x1F4D6; Logboek</button>
-      <!-- Alleen zichtbaar als herberg geconfigureerd is en speler ingelogd -->
-      <button class="section-tab hidden" data-section="herberg" id="herberg-tab">🍺 Herberg</button>
-      <!-- Alleen zichtbaar voor ingelogde spelers -->
-      <button class="section-tab hidden" data-section="mijn-karakter">&#x1F9D1; Mijn karakter</button>
-      <!-- Alleen zichtbaar voor DM -->
-      <button class="section-tab hidden" data-section="meesterkamer" id="dm-tab"><span class="tab-icon">⚙</span> Meesterkamer</button>
-      <!-- Globaal zoeken -->
-      <button class="section-tab global-search-tab" id="global-search-btn" onclick="window.app.openGlobalSearch()" title="Zoeken (/)"><span class="tab-icon">⌕</span></button>
-    </nav>
+    <!-- ══ DM-party-bar: groepswisselaar + portraits (alleen DM) ══ -->
+    <div class="dm-party-bar hidden" id="dm-party-bar">
+      <div id="group-switcher" class="dm-party-groups"></div>
+      <div id="party-bar" class="dm-party-portraits"></div>
+    </div>
+
+    <!-- Contextueel sectie-accent -->
+    <div class="section-accent-bar" id="section-accent-bar"></div>
 
   <!-- Globale zoekoverlay -->
   <div id="global-search-overlay" class="global-search-overlay hidden" onclick="window.app.closeGlobalSearch(event)">
@@ -155,6 +139,14 @@
           placeholder=""
           oninput="window.app._globalSearchRun(this.value)"
           onkeydown="if(event.key==='Escape')window.app.closeGlobalSearch()">
+      </div>
+      <div id="gs-type-chips" class="gs-type-chips">
+        <button class="gs-type-chip gs-type-chip--active" data-gs-type="" onclick="window.app._gsSetTypeFilter(null)">Alles</button>
+        <button class="gs-type-chip" data-gs-type="personages"   onclick="window.app._gsSetTypeFilter('personages')">👤 Personages</button>
+        <button class="gs-type-chip" data-gs-type="locaties"     onclick="window.app._gsSetTypeFilter('locaties')">🏰 Locaties</button>
+        <button class="gs-type-chip" data-gs-type="organisaties" onclick="window.app._gsSetTypeFilter('organisaties')">🏛️ Organisaties</button>
+        <button class="gs-type-chip" data-gs-type="voorwerpen"   onclick="window.app._gsSetTypeFilter('voorwerpen')">🎺 Voorwerpen</button>
+        <button class="gs-type-chip" data-gs-type="documenten"   onclick="window.app._gsSetTypeFilter('documenten')">📜 Documenten</button>
       </div>
       <div id="global-search-results" class="global-search-results"></div>
     </div>
@@ -171,6 +163,7 @@
       <div class="section" id="section-herberg"></div>
       <div class="section" id="section-kaart"></div>
       <div class="section" id="section-mijn-karakter"></div>
+      <div class="section" id="section-spelers"></div>
       <div class="section dm-section" id="section-meesterkamer">
         <div class="dm-section-layout">
         <div class="dm-section-tabs" id="dm-section-tabs"></div>
@@ -207,6 +200,8 @@
           </div>
           <!-- Herberg tab -->
           <div class="dm-tab-content" data-tab="herberg"></div>
+          <!-- Gedeelde beurs tab -->
+          <div class="dm-tab-content" data-tab="beurs"></div>
           <!-- Berichten tab -->
           <div class="dm-tab-content" data-tab="berichten"></div>
           <!-- Dobbelstenen tab -->
@@ -265,21 +260,19 @@
   </div>
 
   <!-- Speler karakter-kiezer modal -->
-  <div class="modal-overlay" id="player-picker-overlay">
-    <div class="modal max-w-lg animate-modal-in">
-      <div class="modal-head">
-        <div class="font-cinzel text-lg text-gold font-bold">Wie ben jij?</div>
-        <button class="modal-close" onclick="window.app.closePlayerPicker()">&times;</button>
-      </div>
-      <div class="p-5">
-        <p class="text-ink-dim text-sm mb-4 font-fell italic">Kies je personage</p>
-        <div id="player-char-list" class="grid grid-cols-2 gap-3 mb-4"></div>
-        <button onclick="window.app.closePlayerPicker()"
-          class="w-full py-2 text-sm text-ink-dim hover:text-ink-medium border border-room-border rounded font-crimson transition">
-          Anoniem verder
-        </button>
-      </div>
+  <!-- Spelerkiezer — compact dropdown vanuit de 👤-knop -->
+  <div id="player-picker-overlay" class="player-picker-panel hidden">
+    <div class="player-picker-panel-head">
+      <span class="player-picker-panel-title">Wie ben jij?</span>
+      <button class="player-picker-panel-close" onclick="window.app.closePlayerPicker()">×</button>
     </div>
+    <div id="player-char-list" class="player-picker-list"></div>
+    <button onclick="window.app.closePlayerPicker(); window.app.toggleLoginModal()" class="player-picker-dm-btn">
+      ⚔︎ Inloggen als DM
+    </button>
+    <button onclick="window.app.closePlayerPicker()" class="player-picker-anon-btn">
+      Anoniem verder
+    </button>
   </div>
 
   <!-- Detail / Editor modal -->
@@ -348,6 +341,6 @@
 
 
   <script type="module" src="/js/sound-manager.js?v=1"></script>
-  <script type="module" src="/js/app.js?v=18"></script>
+  <script type="module" src="/js/app.js?v=47"></script>
 </body>
 </html>

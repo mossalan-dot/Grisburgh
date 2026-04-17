@@ -1,14 +1,55 @@
 const express = require('express');
-const multer = require('multer');
+const multer  = require('multer');
+const fs      = require('fs');
+const path    = require('path');
 const { spawn } = require('child_process');
 const storage = require('../lib/storage');
 const { requireDM, attachRole } = require('./auth');
 const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 
+let _sharp = null;
+try { _sharp = require('sharp'); } catch {}
+
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+
+// ── Thumbnail-cache ──
+// Genereert bij eerste aanvraag een 600px-brede WebP en slaat die op in
+// data/campaigns/<id>/thumbs/. Daarna wordt de gecachte versie direct geserveerd.
+router.get('/thumb/:id', async (req, res) => {
+  const file = storage.getFile(req.params.id);
+  if (!file) return res.status(404).end();
+
+  const mime = file.mimetype || '';
+  const isResizeable = mime.startsWith('image/') && mime !== 'image/svg+xml' && mime !== 'image/gif';
+
+  // Niet-resizeable bestanden (SVG, GIF, audio, PDF) → stuur origineel door
+  if (!isResizeable || !_sharp) {
+    res.setHeader('Cache-Control', 'public, max-age=604800');
+    return res.type(mime).sendFile(file.path);
+  }
+
+  const thumbDir  = path.join(storage.DATA_DIR, 'thumbs');
+  const thumbPath = path.join(thumbDir, `${req.params.id}.webp`);
+
+  try {
+    if (!fs.existsSync(thumbPath)) {
+      fs.mkdirSync(thumbDir, { recursive: true });
+      await _sharp(file.path)
+        .resize(600, null, { withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toFile(thumbPath);
+    }
+    res.setHeader('Cache-Control', 'public, max-age=604800'); // 1 week
+    res.type('image/webp').sendFile(thumbPath);
+  } catch {
+    // Fallback naar origineel als sharp faalt
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.type(mime).sendFile(file.path);
+  }
+});
 
 // ── dm-state helpers ──
 
@@ -69,8 +110,18 @@ function groupInfoList(dmState) {
 
 // ── Entity player filter ──
 
-function filterEntityForPlayer(entity, dmState) {
-  const g   = getGroup(dmState);
+// Bepaal de groep van een speler op basis van het karakter-entity
+function _playerGroupId(dmState, characterId) {
+  if (!characterId) return null;
+  const entities = storage.readJSON('entities.json');
+  const char = (entities.personages || []).find(e => e.id === characterId);
+  const groep = char?.data?.groep;
+  if (groep && dmState.groups?.[groep]) return groep;
+  return null;
+}
+
+function filterEntityForPlayer(entity, dmState, groupId) {
+  const g   = getGroup(dmState, groupId);
   const vis = g.visibility[entity.id] || 'hidden';
   if (vis === 'hidden') return null;
   if (vis === 'vague') {
@@ -80,14 +131,18 @@ function filterEntityForPlayer(entity, dmState) {
       subtype:     entity.subtype || '',
       data:        {},
       links:       {},
-      _visibility: 'vague',
+      _visibility:   'vague',
+      _secretReveal: false,
     };
   }
   // Visible: full entity, strip DM-only fields
+  const revealed = !!g.secretReveals[entity.id];
   const e = { ...entity, data: { ...entity.data } };
-  if (!g.secretReveals[entity.id]) delete e.data.geheim;
+  if (!revealed) delete e.data.geheim;
   delete e.stats;
-  e._deceased = !!(g.deceased?.[entity.id]);
+  e._visibility   = 'visible';
+  e._secretReveal = revealed;
+  e._deceased     = !!(g.deceased?.[entity.id]);
   return e;
 }
 
@@ -115,7 +170,9 @@ router.get('/entities/:type', attachRole, (req, res) => {
   const g        = getGroup(dmState);
   let list = entities[type] || [];
   if (req.role !== 'dm') {
-    list = list.map(e => filterEntityForPlayer(e, dmState)).filter(Boolean);
+    if (!req.session.characterId) return res.json([]);
+    const playerGid = _playerGroupId(dmState, req.session.characterId);
+    list = list.map(e => filterEntityForPlayer(e, dmState, playerGid)).filter(Boolean);
   } else {
     list = list.map(e => ({
       ...e,
@@ -137,7 +194,9 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
   const entity   = (entities[type] || []).find(e => e.id === id);
   if (!entity) return res.status(404).json({ error: 'Niet gevonden' });
   if (req.role !== 'dm') {
-    const filtered = filterEntityForPlayer(entity, dmState);
+    if (!req.session.characterId) return res.status(404).json({ error: 'Niet gevonden' });
+    const playerGid = _playerGroupId(dmState, req.session.characterId);
+    const filtered = filterEntityForPlayer(entity, dmState, playerGid);
     if (!filtered) return res.status(404).json({ error: 'Niet gevonden' });
     return res.json(filtered);
   }
@@ -411,6 +470,23 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
   res.json({ visibility: next });
 });
 
+// Onthul een voorwerpkaartje vanuit winkelcontext — alleen als het nog 'hidden' is.
+// Toegankelijk voor spelers (attachRole) zodat klikken vanuit de winkel voldoende is.
+router.post('/entities/:type/:id/shop-reveal', attachRole, (req, res) => {
+  const { type, id } = req.params;
+  if (!['voorwerpen'].includes(type)) return res.status(400).json({ error: 'Alleen voor voorwerpen' });
+  const dmState = readDmState();
+  const g       = getGroup(dmState);
+  const current = g.visibility[id] || 'hidden';
+  if (current !== 'hidden') return res.json({ visibility: current, changed: false });
+  g.visibility[id] = 'visible';
+  storage.writeJSON('dm-state.json', dmState);
+  const entities = storage.readJSON('entities.json');
+  const entity   = (entities[type] || []).find(e => e.id === id);
+  req.app.get('io').emit('entity:visibility', { id, type, name: entity?.name || '', visibility: 'visible' });
+  res.json({ visibility: 'visible', changed: true });
+});
+
 router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
   const { type, id } = req.params;
   const entities = storage.readJSON('entities.json');
@@ -418,6 +494,15 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
   const dmState  = readDmState();
   const g        = getGroup(dmState);
   g.secretReveals[id] = !g.secretReveals[id];
+  // Geheime antagonist: wissel subtype mee bij onthulling
+  if (entity && entity.data?.geheimeAntagonist === 'true') {
+    if (g.secretReveals[id]) {
+      entity.subtype = 'antagonist';
+    } else {
+      entity.subtype = 'NPC';
+    }
+    storage.writeJSON('entities.json', entities);
+  }
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').emit('entity:secret', {
     id, type,
@@ -580,6 +665,343 @@ router.put('/berichten/sjablonen', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Winkel uitverkocht (per groep) ──
+// dm-state.json: groups[id].shopUitverkocht = { shopEntityId: ["itemnaam", ...] }
+
+// ── Prijs parser: "5 fl.", "10 kn", "2 fl, 3 kn" etc. ──
+function parsePrijs(str) {
+  if (!str) return null;
+  const result = { fl: 0, kn: 0, cl: 0 };
+  const re = /(\d+(?:[.,]\d+)?)\s*(fl|kn|cl)\.?/gi;
+  let match, any = false;
+  while ((match = re.exec(String(str))) !== null) {
+    const val = parseFloat(match[1].replace(',', '.'));
+    result[match[2].toLowerCase()] += val;
+    any = true;
+  }
+  return any ? result : null;
+}
+
+// Valuta-hulpfuncties: 1 fl = 10 kn = 100 cl
+function toCl(cur) {
+  return Math.round(((cur.fl || 0) * 100) + ((cur.kn || 0) * 10) + (cur.cl || 0));
+}
+function fromCl(total) {
+  const fl = Math.floor(total / 100);
+  const kn = Math.floor((total % 100) / 10);
+  const cl = total % 10;
+  return { fl, kn, cl };
+}
+
+router.get('/shops/:shopId/uitverkocht', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  const uitverkocht = ((g.shopUitverkocht || {})[req.params.shopId]) || [];
+  res.json({ uitverkocht });
+});
+
+router.put('/shops/:shopId/uitverkocht', requireDM, (req, res) => {
+  const { shopId } = req.params;
+  const { itemNaam } = req.body;
+  if (!itemNaam) return res.status(400).json({ error: 'itemNaam vereist' });
+  const key = itemNaam.toLowerCase().trim();
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  if (!g.shopUitverkocht) g.shopUitverkocht = {};
+  if (!g.shopUitverkocht[shopId]) g.shopUitverkocht[shopId] = [];
+  const idx = g.shopUitverkocht[shopId].indexOf(key);
+  let nu;
+  if (idx === -1) {
+    g.shopUitverkocht[shopId].push(key);
+    nu = true;
+  } else {
+    g.shopUitverkocht[shopId].splice(idx, 1);
+    nu = false;
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('shop:uitverkocht-updated', {
+    shopId,
+    uitverkocht: g.shopUitverkocht[shopId],
+  });
+  res.json({ uitverkocht: g.shopUitverkocht[shopId], itemNaam: key, nu });
+});
+
+// ── Winkel: beschikbare items (met rotatie-logica) ──
+router.get('/shops/:shopId/beschikbaar', attachRole, (req, res) => {
+  const { shopId } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const allEntities = [...(entities.personages || []), ...(entities.locaties || [])];
+  const shop = allEntities.find(e => e.id === shopId);
+  if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+
+  let voorraadItems = [];
+  try { voorraadItems = shop.data?.voorraad ? JSON.parse(shop.data.voorraad) : []; } catch {}
+  let winkelConfig = {};
+  try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}
+
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  const uitverkochtSet = new Set((g.shopUitverkocht?.[shopId] || []).map(k => (k || '').toLowerCase().trim()));
+
+  // Beschrijving ophalen voor gelinkte kaartjes
+  const _voorwerpen = entities.voorwerpen || [];
+  const _withDesc = item => {
+    const ent = item.entityId ? _voorwerpen.find(e => e.id === item.entityId) : null;
+    return {
+      ...item,
+      desc: ent?.data?.desc || '',
+      imageId: ent?.imageId || '',
+      stapelbaar: ent?.data?.stapelbaar === 'true',
+    };
+  };
+
+  if (!winkelConfig.roterend) {
+    const _characterId = req.session?.characterId;
+    const _tempDiscount = _characterId ? g.shopTempDiscount?.[shopId]?.[_characterId] : null;
+    const _discountActief = _tempDiscount && new Date(_tempDiscount.geldigTot) > new Date() && (_tempDiscount.percent || 0) !== 0;
+    const discountPct = _discountActief ? _tempDiscount.percent : 0;
+    const sfeerTekst = winkelConfig.sfeerTekst || '';
+    return res.json({
+      items: voorraadItems.map(item => ({
+        ..._withDesc(item),
+        uitverkocht: uitverkochtSet.has((item.naam || '').toLowerCase().trim()),
+        actief: true,
+      })),
+      roterend: false,
+      sfeerTekst,
+      discountPct,
+    });
+  }
+
+  // Roterende winkel
+  const deelGroep = winkelConfig.deelGroep?.trim() || shopId;
+  const aantalItems = Math.max(1, parseInt(winkelConfig.aantalItems) || 3);
+  const refreshMs = Math.max(1, parseFloat(winkelConfig.refreshUren) || 24) * 3600000;
+
+  if (!g.shopRotatie) g.shopRotatie = {};
+  let rotatie = g.shopRotatie[deelGroep];
+  const now = Date.now();
+  const geldig = rotatie && rotatie.geldigTot && new Date(rotatie.geldigTot).getTime() > now && rotatie.items?.length;
+
+  if (!geldig) {
+    const pool = [...voorraadItems].filter(item => !uitverkochtSet.has((item.naam || '').toLowerCase().trim()));
+    const shuffled = pool.sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, aantalItems).map(i => i.naam);
+    rotatie = { items: selected, geldigTot: new Date(now + refreshMs).toISOString() };
+    g.shopRotatie[deelGroep] = rotatie;
+    storage.writeJSON('dm-state.json', dmState);
+  }
+
+  const actiefSet = new Set(rotatie.items.map(n => (n || '').toLowerCase().trim()));
+  const isDMReq = req.role === 'dm';
+
+  const filtered = isDMReq
+    ? voorraadItems.map(item => ({
+        ..._withDesc(item),
+        uitverkocht: uitverkochtSet.has((item.naam || '').toLowerCase().trim()),
+        actief: actiefSet.has((item.naam || '').toLowerCase().trim()),
+      }))
+    : voorraadItems
+        .filter(item => actiefSet.has((item.naam || '').toLowerCase().trim()))
+        .map(item => ({
+          ..._withDesc(item),
+          uitverkocht: uitverkochtSet.has((item.naam || '').toLowerCase().trim()),
+          actief: true,
+        }));
+
+  const _characterId = req.session?.characterId;
+  const _tempDiscount = _characterId ? g.shopTempDiscount?.[shopId]?.[_characterId] : null;
+  const _discountActief = _tempDiscount && new Date(_tempDiscount.geldigTot) > new Date() && (_tempDiscount.percent || 0) !== 0;
+  const discountPct = _discountActief ? _tempDiscount.percent : 0;
+  const sfeerTekst = winkelConfig.sfeerTekst || '';
+  res.json({ items: filtered, roterend: true, geldigTot: rotatie.geldigTot, sfeerTekst, discountPct });
+});
+
+// ── Winkel: voorwerp kopen ──
+router.post('/shops/:shopId/koop', attachRole, (req, res) => {
+  const characterId = req.session?.characterId;
+  if (!characterId) return res.status(401).json({ error: 'Log in als speler om te kopen' });
+
+  const { shopId } = req.params;
+  const { itemNaam, entityId, aantal: aantalRaw } = req.body;
+  const aantal = Math.max(1, parseInt(aantalRaw) || 1);
+  if (!itemNaam) return res.status(400).json({ error: 'itemNaam vereist' });
+
+  const entities = storage.readJSON('entities.json');
+  const allShops = [...(entities.personages || []), ...(entities.locaties || [])];
+  const shop = allShops.find(e => e.id === shopId);
+  if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+
+  let voorraadItems = [];
+  try { voorraadItems = shop.data?.voorraad ? JSON.parse(shop.data.voorraad) : []; } catch {}
+
+  const itemKey = (itemNaam || '').toLowerCase().trim();
+  const item = voorraadItems.find(i => (i.naam || '').toLowerCase().trim() === itemKey);
+  if (!item) return res.status(404).json({ error: 'Voorwerp niet gevonden in voorraad' });
+
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+
+  const uitverkochtLijst = (g.shopUitverkocht?.[shopId] || []).map(k => (k || '').toLowerCase().trim());
+  if (uitverkochtLijst.includes(itemKey)) {
+    return res.status(409).json({ error: 'Dit voorwerp is uitverkocht' });
+  }
+
+  const prijs = parsePrijs(item.prijs);
+
+  if (prijs && (prijs.fl > 0 || prijs.kn > 0 || prijs.cl > 0)) {
+    let prijsCl = toCl(prijs) * aantal;
+    // Pas eventuele onderhandel-korting toe
+    const tempDisc = g.shopTempDiscount?.[shopId]?.[characterId];
+    const discActief = tempDisc && new Date(tempDisc.geldigTot) > new Date();
+    if (discActief && tempDisc.percent !== 0) {
+      prijsCl = Math.max(1, Math.round(prijsCl * (1 - tempDisc.percent / 100)));
+    }
+    if (!dmState.playerCurrency) dmState.playerCurrency = {};
+    const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+    const heeftCl = toCl(pc);
+    if (heeftCl < prijsCl) {
+      return res.status(402).json({ error: 'Niet genoeg geld', prijs });
+    }
+    dmState.playerCurrency[characterId] = fromCl(heeftCl - prijsCl);
+  }
+
+  // Controleer of het entityId ook echt bestaat — zo niet, behandel als tekst-item
+  const _rawEntityId = entityId || item.entityId || null;
+  const _entityItem = _rawEntityId ? (entities.voorwerpen || []).find(e => e.id === _rawEntityId) : null;
+  const effectiveEntityId = _entityItem ? _rawEntityId : null;
+  const isStapelbaar = _entityItem?.data?.stapelbaar === 'true';
+
+  const playerName = req.playerName || 'Speler';
+  if (effectiveEntityId) {
+    if (!g.itemOwners) g.itemOwners = {};
+    if (isStapelbaar) {
+      if (!Array.isArray(g.itemOwners[effectiveEntityId])) g.itemOwners[effectiveEntityId] = [];
+      const existing = g.itemOwners[effectiveEntityId].find(o => o.characterId === characterId);
+      if (existing) { existing.qty = (existing.qty || 1) + aantal; }
+      else { g.itemOwners[effectiveEntityId].push({ characterId, playerName, qty: aantal }); }
+    } else {
+      g.itemOwners[effectiveEntityId] = { characterId, playerName };
+    }
+    // Auto-onthul het kaartje als het nog verborgen is
+    if (!g.visibility) g.visibility = {};
+    if ((g.visibility[effectiveEntityId] || 'hidden') === 'hidden') {
+      g.visibility[effectiveEntityId] = 'visible';
+    }
+  } else {
+    if (!dmState.playerItems) dmState.playerItems = {};
+    if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];
+    for (let i = 0; i < aantal; i++) {
+      dmState.playerItems[characterId].push({
+        id: 'pi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        name: item.naam,
+        note: item.prijs ? `Gekocht voor ${item.prijs}` : '',
+      });
+    }
+  }
+
+  if (!isStapelbaar) {
+    if (!g.shopUitverkocht) g.shopUitverkocht = {};
+    if (!g.shopUitverkocht[shopId]) g.shopUitverkocht[shopId] = [];
+    if (!g.shopUitverkocht[shopId].map(k => (k || '').toLowerCase()).includes(itemKey)) {
+      g.shopUitverkocht[shopId].push(item.naam);
+    }
+  }
+
+  storage.writeJSON('dm-state.json', dmState);
+
+  // Shop log bijhouden
+  try {
+    const shopLog = storage.readJSON('shop-log.json');
+    if (!shopLog[shopId]) shopLog[shopId] = [];
+    shopLog[shopId].push({
+      ts: new Date().toISOString(),
+      characterId,
+      playerName,
+      itemNaam: item.naam,
+      prijs: item.prijs || '',
+      aantal,
+    });
+    // Max 200 entries per shop bewaren
+    if (shopLog[shopId].length > 200) shopLog[shopId] = shopLog[shopId].slice(-200);
+    storage.writeJSON('shop-log.json', shopLog);
+  } catch { /* stil falen */ }
+
+  const io = req.app.get('io');
+
+  if (prijs && (prijs.fl > 0 || prijs.kn > 0 || prijs.cl > 0)) {
+    io.emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  }
+
+  if (effectiveEntityId) {
+    io.emit('items:ownership-updated', {
+      owners: g.itemOwners || {},
+      requests: g.itemRequests || [],
+      tradeAllowed: g.tradeAllowed !== false,
+    });
+    // Stuur onthullingsgebeurtenis zodat het kaartje zichtbaar wordt
+    io.emit('entity:visibility', { id: effectiveEntityId, type: 'voorwerpen', name: _entityItem?.name || '', visibility: 'visible' });
+  } else {
+    io.emit('player:items-updated', { characterId, items: (dmState.playerItems || {})[characterId] || [] });
+  }
+
+  if (!isStapelbaar) {
+    io.emit('shop:uitverkocht-updated', { shopId, uitverkocht: g.shopUitverkocht[shopId] });
+  }
+
+  res.json({ ok: true, itemNaam: item.naam, prijs });
+});
+
+// ── Winkel: onderhandelen ──
+router.post('/shops/:shopId/onderhandel', attachRole, (req, res) => {
+  const characterId = req.session?.characterId;
+  if (!characterId) return res.status(401).json({ error: 'Log in als speler' });
+
+  const { shopId } = req.params;
+  const { modifier = 0 } = req.body;
+
+  const entities = storage.readJSON('entities.json');
+  const allShops = [...(entities.personages || []), ...(entities.locaties || [])];
+  const shop = allShops.find(e => e.id === shopId);
+  if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+
+  let winkelConfig = {};
+  try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}
+
+  const dc = parseInt(winkelConfig.onderhandelDC) || 15;
+  const kortingPct = parseInt(winkelConfig.onderhandelKorting) || 10;
+  const boetePct = parseInt(winkelConfig.onderhandelBoete) || 0;
+
+  const diceRoll = Math.floor(Math.random() * 20) + 1;
+  const mod = parseInt(modifier) || 0;
+  const totaal = diceRoll + mod;
+  const geslaagd = totaal >= dc;
+
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  if (!g.shopTempDiscount) g.shopTempDiscount = {};
+  if (!g.shopTempDiscount[shopId]) g.shopTempDiscount[shopId] = {};
+
+  const geldigTot = new Date(Date.now() + 3600000).toISOString(); // 1 uur
+  if (geslaagd) {
+    g.shopTempDiscount[shopId][characterId] = { percent: kortingPct, geldigTot };
+  } else if (boetePct > 0) {
+    g.shopTempDiscount[shopId][characterId] = { percent: -boetePct, geldigTot };
+  } else {
+    delete g.shopTempDiscount[shopId]?.[characterId];
+  }
+  storage.writeJSON('dm-state.json', dmState);
+
+  res.json({ diceRoll, modifier: mod, totaal, dc, geslaagd, kortingPct: geslaagd ? kortingPct : 0, boetePct: !geslaagd ? boetePct : 0 });
+});
+
+// ── Winkel: aankooplog ──
+router.get('/shops/:shopId/log', requireDM, (req, res) => {
+  const shopLog = storage.readJSON('shop-log.json');
+  const entries = (shopLog[req.params.shopId] || []).slice(-100).reverse();
+  res.json({ entries });
+});
+
 // ── Voorwerpen claimen & ruilen ──
 // dm-state.json:
 //   itemOwners:  { itemId: { characterId, playerName } }
@@ -590,10 +1012,18 @@ router.put('/berichten/sjablonen', requireDM, (req, res) => {
 router.get('/items/ownership', attachRole, (req, res) => {
   const dmState = readDmState();
   const g = getGroup(dmState);
+  let stapelbaar = [];
+  try {
+    const entities = storage.readJSON('entities.json');
+    stapelbaar = (entities.voorwerpen || [])
+      .filter(e => e.data?.stapelbaar === 'true')
+      .map(e => e.id);
+  } catch { /* ok */ }
   res.json({
     owners:       g.itemOwners   || {},
     requests:     g.itemRequests || [],
     tradeAllowed: g.tradeAllowed !== false,
+    stapelbaar,
   });
 });
 
@@ -697,18 +1127,31 @@ router.post('/items/request/:reqId/reject', requireDM, (req, res) => {
 // DM geeft voorwerp rechtstreeks aan een speler (specifieke groep via groupId)
 router.put('/items/:itemId/owner', requireDM, (req, res) => {
   const { itemId } = req.params;
-  const { characterId, playerName, groupId } = req.body;
+  const { characterId, playerName, groupId, qty } = req.body;
   if (!characterId || !playerName) return res.status(400).json({ error: 'characterId en playerName vereist' });
   const dmState  = readDmState();
   const entities = storage.readJSON('entities.json');
   const item     = (entities.voorwerpen || []).find(e => e.id === itemId);
+  const isStapelbaar = item?.data?.stapelbaar === 'true';
   const targetId = dmState.activeGroup;
   const g = dmState.groups[targetId];
   if (!g) return res.status(400).json({ error: 'Groep niet gevonden' });
   if (!g.itemOwners) g.itemOwners = {};
-  g.itemOwners[itemId] = { characterId, playerName };
+
+  if (isStapelbaar) {
+    const amount = Math.max(1, parseInt(qty) || 1);
+    if (!Array.isArray(g.itemOwners[itemId])) g.itemOwners[itemId] = [];
+    const existing = g.itemOwners[itemId].find(o => o.characterId === characterId);
+    if (existing) {
+      existing.qty = (existing.qty || 1) + amount;
+    } else {
+      g.itemOwners[itemId].push({ characterId, playerName, qty: amount });
+    }
+  } else {
+    g.itemOwners[itemId] = { characterId, playerName };
+  }
+
   storage.writeJSON('dm-state.json', dmState);
-  // Stuur update naar de juiste groep — emit met groepinfo zodat clients kunnen filteren
   req.app.get('io').emit('items:ownership-updated', {
     owners:       g.itemOwners,
     requests:     g.itemRequests || [],
@@ -723,16 +1166,53 @@ router.delete('/items/:itemId/owner', requireDM, (req, res) => {
   const g        = getGroup(dmState);
   const entities = storage.readJSON('entities.json');
   const item     = (entities.voorwerpen || []).find(e => e.id === req.params.itemId);
-  const prevOwner = (g.itemOwners || {})[req.params.itemId] || null;
-  if (g.itemOwners) delete g.itemOwners[req.params.itemId];
+  const { characterId } = req.query; // optioneel: voor stapelbaar eigendom per speler
+
+  if (characterId && Array.isArray((g.itemOwners || {})[req.params.itemId])) {
+    // Verwijder specifieke speler uit stapelbaar eigendom
+    g.itemOwners[req.params.itemId] = g.itemOwners[req.params.itemId]
+      .filter(o => o.characterId !== characterId);
+    if (g.itemOwners[req.params.itemId].length === 0) delete g.itemOwners[req.params.itemId];
+  } else {
+    if (g.itemOwners) delete g.itemOwners[req.params.itemId];
+  }
+
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').emit('items:ownership-updated', {
     owners:       g.itemOwners  || {},
     requests:     g.itemRequests || [],
     tradeAllowed: g.tradeAllowed !== false,
-    takenBack:    prevOwner ? { itemName: item?.name || '', ...prevOwner } : null,
   });
   res.json({ ok: true });
+});
+
+// Speler of DM past hoeveelheid aan van een stapelbaar voorwerp
+router.patch('/items/:itemId/owner/:characterId', attachRole, (req, res) => {
+  const { itemId, characterId } = req.params;
+  const { delta } = req.body;
+  const sessionCharId = req.session?.characterId;
+  const isPlayerRole  = !!req.playerName;
+  if (isPlayerRole && sessionCharId !== characterId) {
+    return res.status(403).json({ error: 'Geen toegang' });
+  }
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  if (!g.itemOwners) return res.status(404).json({ error: 'Niet gevonden' });
+  const owners = g.itemOwners[itemId];
+  if (!Array.isArray(owners)) return res.status(400).json({ error: 'Geen stapelbaar eigendom' });
+  const entry = owners.find(o => o.characterId === characterId);
+  if (!entry) return res.status(404).json({ error: 'Eigendom niet gevonden' });
+  entry.qty = Math.max(0, (entry.qty || 1) + (parseInt(delta) || 0));
+  if (entry.qty === 0) {
+    g.itemOwners[itemId] = owners.filter(o => o.characterId !== characterId);
+    if (g.itemOwners[itemId].length === 0) delete g.itemOwners[itemId];
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('items:ownership-updated', {
+    owners: g.itemOwners || {}, requests: g.itemRequests || [],
+    tradeAllowed: g.tradeAllowed !== false,
+  });
+  res.json({ ok: true, qty: entry.qty });
 });
 
 // ── Speler HP (buiten gevecht) ──
@@ -827,6 +1307,40 @@ router.patch('/player-currency/:characterId', attachRole, (req, res) => {
   dmState.playerCurrency[characterId] = updated;
   storage.writeJSON('dm-state.json', dmState);
   res.json(updated);
+});
+
+// ── Gedeelde beurs ──
+
+router.get('/party-currency', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const groupId = req.role === 'dm' ? dmState.activeGroup : _playerGroupId(dmState, req.session.characterId);
+  const g = getGroup(dmState, groupId);
+  res.json(g.sharedPurse || { enabled: false, fl: 0, kn: 0, cl: 0 });
+});
+
+router.patch('/party-currency', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const groupId = req.role === 'dm' ? dmState.activeGroup : _playerGroupId(dmState, req.session.characterId);
+  const g = getGroup(dmState, groupId);
+  if (!g.sharedPurse) g.sharedPurse = { enabled: false, fl: 0, kn: 0, cl: 0 };
+  if (!g.sharedPurse.enabled && req.role !== 'dm') return res.status(403).json({ error: 'Gedeelde beurs niet actief' });
+  g.sharedPurse.fl = req.body.fl !== undefined ? Math.max(0, parseInt(req.body.fl) || 0) : g.sharedPurse.fl;
+  g.sharedPurse.kn = req.body.kn !== undefined ? Math.max(0, parseInt(req.body.kn) || 0) : g.sharedPurse.kn;
+  g.sharedPurse.cl = req.body.cl !== undefined ? Math.max(0, parseInt(req.body.cl) || 0) : g.sharedPurse.cl;
+  storage.writeJSON('dm-state.json', dmState);
+  const actor = req.session.playerName || 'DM';
+  req.app.get('io').emit('party-currency:updated', { groupId: groupId || dmState.activeGroup, currency: g.sharedPurse, actor });
+  res.json(g.sharedPurse);
+});
+
+router.put('/party-currency/toggle', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  if (!g.sharedPurse) g.sharedPurse = { enabled: false, fl: 0, kn: 0, cl: 0 };
+  g.sharedPurse.enabled = !g.sharedPurse.enabled;
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('party-currency:updated', { groupId: dmState.activeGroup, currency: g.sharedPurse, actor: 'DM' });
+  res.json(g.sharedPurse);
 });
 
 // ── Speler spreukenslots ──
@@ -941,13 +1455,20 @@ router.get('/party', attachRole, (req, res) => {
     if (myGroup && e.data?.groep && e.data.groep !== myGroup) return false;
     return true;
   });
-  // Geef alleen veilige velden terug (geen geheimen)
-  res.json(party.map(e => ({
-    id:      e.id,
-    name:    e.name,
-    subtype: e.subtype,
-    data:    { ras: e.data?.ras, klasse: e.data?.klasse },
-  })));
+  // Geef alleen veilige velden terug (geen geheimen), inclusief HP
+  const dmState = readDmState();
+  const hpMap   = dmState.playerHp || {};
+  res.json(party.map(e => {
+    const hp = hpMap[e.id] || { current: null, max: null };
+    return {
+      id:      e.id,
+      name:    e.name,
+      subtype: e.subtype,
+      data:    { ras: e.data?.ras, klasse: e.data?.klasse },
+      hp:      hp.current,
+      maxHp:   hp.max,
+    };
+  }));
 });
 
 // ── Speler profiel (level, klasse, subclass, background, origin) ──
@@ -972,8 +1493,11 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
     'str', 'dex', 'con', 'int', 'wis', 'cha',
     'ac', 'speed', 'initiative', 'profBonus', 'hitDie',
     'deathSaveSuccesses', 'deathSaveFailures',
-    'saveProfs', 'skillProfs', 'featuresTraits',
+    'saveProfs', 'skillProfs', 'skillAdj', 'featuresTraits',
+    'armorProfs', 'weaponProfs', 'toolProfs',
+    'languages', 'senses',
     'multiclass', 'klasseLevel', 'multiKlasse', 'multiKlasseLevel',
+    'bookmarks', 'weapons',
   ];
   const updated = { ...existing };
   for (const key of allowed) {
@@ -1096,13 +1620,17 @@ router.post('/player-spells/:characterId', attachRole, (req, res) => {
   const { characterId } = req.params;
   if (req.role !== 'dm' && req.session.characterId !== characterId)
     return res.status(403).json({ error: 'Geen toegang' });
-  const { index, name, level, school } = req.body;
+  const { index, name, level, school, source, desc } = req.body;
   if (!index || !name) return res.status(400).json({ error: 'index en name vereist' });
   const dmState = readDmState();
   if (!dmState.playerSpells) dmState.playerSpells = {};
   if (!dmState.playerSpells[characterId]) dmState.playerSpells[characterId] = [];
-  if (!dmState.playerSpells[characterId].find(s => s.index === index))
-    dmState.playerSpells[characterId].push({ index, name, level: level || 0, school: school || '' });
+  if (!dmState.playerSpells[characterId].find(s => s.index === index)) {
+    const entry = { index, name, level: level || 0, school: school || '' };
+    if (source) entry.source = source;
+    if (desc)   entry.desc   = desc;
+    dmState.playerSpells[characterId].push(entry);
+  }
   storage.writeJSON('dm-state.json', dmState);
   res.json({ ok: true });
 });
@@ -1116,6 +1644,226 @@ router.delete('/player-spells/:characterId/:spellIndex', attachRole, (req, res) 
   dmState.playerSpells[characterId] = (dmState.playerSpells[characterId] || []).filter(s => s.index !== spellIndex);
   storage.writeJSON('dm-state.json', dmState);
   res.json({ ok: true });
+});
+
+// ── Speler vastgezette kenmerken ──
+
+router.get('/player-traits/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  res.json((dmState.playerTraits || {})[characterId] || []);
+});
+
+router.post('/player-traits/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const { index, name, source, meta, desc } = req.body;
+  if (!name) return res.status(400).json({ error: 'name vereist' });
+  const dmState = readDmState();
+  if (!dmState.playerTraits) dmState.playerTraits = {};
+  if (!dmState.playerTraits[characterId]) dmState.playerTraits[characterId] = [];
+  // Voorkom dubbelen op index
+  if (index && dmState.playerTraits[characterId].find(t => t.index === index))
+    return res.json({ ok: true, duplicate: true });
+  const id = `trait_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
+  dmState.playerTraits[characterId].push({
+    id, index: index || null, name, source: source || 'custom', meta: meta || '', desc: desc || '',
+  });
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, id });
+});
+
+router.patch('/player-traits/:characterId/:traitId', attachRole, (req, res) => {
+  const { characterId, traitId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const list = (dmState.playerTraits || {})[characterId] || [];
+  const trait = list.find(t => t.id === traitId);
+  if (!trait) return res.status(404).json({ error: 'Niet gevonden' });
+  if (req.body.maxUses     !== undefined) trait.maxUses     = Math.max(0, parseInt(req.body.maxUses)     || 0);
+  if (req.body.currentUses !== undefined) trait.currentUses = Math.max(0, parseInt(req.body.currentUses) || 0);
+  if (req.body.note        !== undefined) trait.note        = String(req.body.note || '').slice(0, 2000);
+  storage.writeJSON('dm-state.json', dmState);
+  res.json(trait);
+});
+
+router.delete('/player-traits/:characterId/:traitId', attachRole, (req, res) => {
+  const { characterId, traitId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  if (!dmState.playerTraits) dmState.playerTraits = {};
+  dmState.playerTraits[characterId] = (dmState.playerTraits[characterId] || []).filter(t => t.id !== traitId);
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true });
+});
+
+// ── Obsidian import ──
+
+// Simple YAML frontmatter parser — handles strings, booleans, lists
+function _parseFrontmatter(content) {
+  const m = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n)?([\s\S]*)$/);
+  if (!m) return null;
+  const [, yaml, body] = m;
+  const data = {};
+  let currentKey = null;
+  let inList = false;
+
+  for (const rawLine of yaml.split(/\r?\n/)) {
+    const listMatch = rawLine.match(/^  - (.*)$/);
+    if (listMatch && inList && currentKey) {
+      const val = listMatch[1].trim().replace(/^["']|["']$/g, '');
+      if (val) data[currentKey].push(val);
+      continue;
+    }
+    inList = false;
+    const kvMatch = rawLine.match(/^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$/);
+    if (!kvMatch) continue;
+    const [, key, raw] = kvMatch;
+    currentKey = key;
+    const val = raw.trim().replace(/^["']|["']$/g, '');
+    if (val === '[]' || val === '') {
+      data[key] = val === '[]' ? [] : null; // null = list starts below
+      inList = true;
+      if (val === '[]') inList = false;
+      else data[key] = [];
+    } else if (val === 'true')  { data[key] = true;  }
+    else if (val === 'false') { data[key] = false; }
+    else { data[key] = val; }
+  }
+  return { fm: data, body: body.trim() };
+}
+
+function _makeId(prefix) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function _cleanLinks(arr) {
+  return (arr || []).filter(s => s && s.trim() !== '');
+}
+
+function _importMd(content, filename) {
+  const parsed = _parseFrontmatter(content);
+  if (!parsed) return { ok: false, error: 'Geen geldige frontmatter gevonden in ' + filename };
+  const { fm, body } = parsed;
+
+  const type = (fm.type || '').toLowerCase();
+  const name = (fm.name || filename.replace(/\.md$/i, '')).trim();
+  if (!name) return { ok: false, error: 'Naam ontbreekt in ' + filename };
+
+  const links = {
+    personages:    _cleanLinks(fm.links_personages),
+    locaties:      _cleanLinks(fm.links_locaties),
+    organisaties:  _cleanLinks(fm.links_organisaties),
+    voorwerpen:    _cleanLinks(fm.links_voorwerpen),
+    archief:       [],
+  };
+
+  if (type === 'document') {
+    // ── Document ──
+    const entities = storage.readJSON('entities.json');
+    const archief  = storage.readJSON('archief.json');
+    if (!archief.documents) archief.documents = [];
+    if (!archief.tekstContent) archief.tekstContent = {};
+    const id = _makeId('doc');
+    archief.documents.push({
+      id,
+      name,
+      type:      fm.docType || 'Notities',
+      cat:       fm.cat     || 'brieven',
+      desc:      fm.desc    || '',
+      icon:      fm.icon    || '📜',
+      hoofdstuk: fm.hoofdstuk || '',
+      npcs:      _cleanLinks(fm.links_personages),
+      locs:      _cleanLinks(fm.links_locaties),
+      orgs:      _cleanLinks(fm.links_organisaties),
+      items:     _cleanLinks(fm.links_voorwerpen),
+      docs:      _cleanLinks(fm.links_documenten),
+    });
+    if (body) archief.tekstContent[id] = body;
+    storage.writeJSON('archief.json', archief);
+    return { ok: true, id, name, type: 'document' };
+  }
+
+  // ── Entiteiten ──
+  const ENTITY_MAP = {
+    personage:    'personages',
+    personages:   'personages',
+    locatie:      'locaties',
+    locaties:     'locaties',
+    organisatie:  'organisaties',
+    organisaties: 'organisaties',
+    voorwerp:     'voorwerpen',
+    voorwerpen:   'voorwerpen',
+  };
+  const collection = ENTITY_MAP[type];
+  if (!collection) return { ok: false, error: `Onbekend type "${type}" in ${filename}` };
+
+  const entities = storage.readJSON('entities.json');
+  if (!entities[collection]) entities[collection] = [];
+
+  const id  = _makeId('e');
+  const data = {
+    desc:            fm.desc            || body || '',
+    flavour:         fm.flavour         || '',
+    geheim:          fm.geheim          || '',
+    rol:             fm.rol             || '',
+    imgFocus:        '50% 50%',
+    imgCaption:      '',
+    icon:            '',
+    groep:           '',
+  };
+
+  if (collection === 'personages') {
+    data.ras             = fm.ras             || '';
+    data.klasse          = fm.klasse          || '';
+    data.persoonlijkheid = fm.persoonlijkheid || '';
+  }
+  if (collection === 'locaties') {
+    data.locType  = fm.locType  || '';
+    data.wijk     = fm.wijk     || '';
+    data.eigenaar = fm.eigenaar || '';
+  }
+  if (collection === 'voorwerpen') {
+    data.attunement = fm.attunement ? 'true' : 'false';
+    data.rarity     = fm.rarity || '';
+  }
+
+  const entity = { id, name, icon: '', subtype: fm.subtype || '', data, links };
+
+  // Stats (personages only)
+  if (collection === 'personages') {
+    const statFields = ['ac','hp','speed','cr','profBonus','str','dex','con','int','wis','cha',
+      'savingThrows','skills','vulnerabilities','resistances','immunities','conditionImmunities',
+      'senses','languages','traits','actions','bonusActions','reactions','legendaryActions',
+      'spellSaveDC','spellAttackMod','cantrips','spells','extra'];
+    const stats = {};
+    let hasStats = false;
+    for (const f of statFields) {
+      const v = fm[`stat_${f}`] || '';
+      stats[f] = v;
+      if (v) hasStats = true;
+    }
+    entity.stats = hasStats ? stats : null;
+  }
+
+  entities[collection].push(entity);
+  storage.writeJSON('entities.json', entities);
+  return { ok: true, id, name, type: collection };
+}
+
+router.post('/import/obsidian', requireDM, upload.array('files', 50), (req, res) => {
+  if (!req.files?.length) return res.status(400).json({ error: 'Geen bestanden ontvangen' });
+  const results = [];
+  for (const file of req.files) {
+    const content = file.buffer.toString('utf8');
+    results.push(_importMd(content, file.originalname));
+  }
+  res.json({ results });
 });
 
 // ── Groepen ──
@@ -1465,6 +2213,7 @@ router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {
     dag:                 req.body.dag   || '',
     short:               req.body.short || req.body.title || req.params.key,
     bannerFocus:         req.body.bannerFocus         || '',
+    bannerImg:           req.body.bannerImg           || '',
     spelersSamenvatting: req.body.spelersSamenvatting || '',
   };
   storage.writeJSON('meta.json', meta);
@@ -1887,6 +2636,22 @@ function _combatLog(combat, text) {
   if (combat.log.length > 100) combat.log = combat.log.slice(-100);
 }
 
+// Synchroniseer HP van speler-combatanten terug naar dm-state.playerHp
+function _flushPlayerHpToDmState(combat, io) {
+  const players = (combat.combatants || []).filter(c => c.entityId);
+  if (players.length === 0) return;
+  const dmState = readDmState();
+  if (!dmState.playerHp) dmState.playerHp = {};
+  for (const c of players) {
+    dmState.playerHp[c.entityId] = {
+      current: c.hp  ?? dmState.playerHp[c.entityId]?.current ?? null,
+      max:     c.maxHp ?? dmState.playerHp[c.entityId]?.max ?? null,
+    };
+    if (io) io.emit('player:hp-updated', { characterId: c.entityId, ...dmState.playerHp[c.entityId] });
+  }
+  storage.writeJSON('dm-state.json', dmState);
+}
+
 router.post('/combat/start', requireDM, (req, res) => {
   const existing = storage.readJSON('combat.json');
   const combatants = [...(existing.combatants || [])].sort((a, b) => b.initiative - a.initiative);
@@ -1899,6 +2664,9 @@ router.post('/combat/start', requireDM, (req, res) => {
 });
 
 router.delete('/combat', requireDM, (req, res) => {
+  // Persisteer speler-HP naar dm-state vóór het wissen van het gevecht
+  const prevCombat = storage.readJSON('combat.json');
+  _flushPlayerHpToDmState(prevCombat, req.app.get('io'));
   const combat = { active: false, round: 1, currentTurn: 0, combatants: [] };
   storage.writeJSON('combat.json', combat);
   req.app.get('io').emit('combat:updated', combat);
@@ -1973,6 +2741,10 @@ router.put('/combat/combatant/:id', requireDM, (req, res) => {
     }
   }
   storage.writeJSON('combat.json', combat);
+  // Sync speler-HP naar dm-state zodat speler-tab altijd actueel is
+  if (req.body.hp !== undefined || req.body.maxHp !== undefined) {
+    _flushPlayerHpToDmState(combat, req.app.get('io'));
+  }
   req.app.get('io').emit('combat:updated', combat);
   res.json(combat.combatants.find(c => c.id === req.params.id));
 });
@@ -2010,6 +2782,8 @@ router.put('/combat/winner', requireDM, (req, res) => {
   const combat = storage.readJSON('combat.json');
   combat.winner = req.body.winner || null;
   storage.writeJSON('combat.json', combat);
+  // Gevecht eindigt: persisteer finale HP naar dm-state
+  _flushPlayerHpToDmState(combat, req.app.get('io'));
   req.app.get('io').emit('combat:updated', combat);
   res.json({ ok: true });
 });
@@ -2223,6 +2997,8 @@ router.post('/herberg/vraag', attachRole, (req, res) => {
     flavour: foundEntity.data.flavour,
     audioId: foundEntity.data.audioId || null,
     entityName: foundEntity.name,
+    entityId: foundEntity.id,
+    entityType: foundType,
     uitgesproken: true,
     vragen: playerState.vragen,
     cooldownTot: playerState.cooldownTot || null,

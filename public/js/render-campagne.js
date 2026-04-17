@@ -3,22 +3,67 @@ import { api } from './api.js';
 const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 
 // ── Eigendomsstatus voorwerpen (module-level, bijgewerkt via socket) ──
-let _ownership = { owners: {}, requests: [], tradeAllowed: true };
+let _ownership = { owners: {}, requests: [], tradeAllowed: true, stapelbaar: new Set() };
+
+// ── Subtype-filter per sectie ──
+const subtypeFilters = {};
+
+// ── Shop item tooltip ──
+let _tooltipEl = null;
+function _ensureTooltip() {
+  if (_tooltipEl) return _tooltipEl;
+  _tooltipEl = document.createElement('div');
+  _tooltipEl.id = 'shop-item-tooltip';
+  _tooltipEl.className = 'shop-item-tooltip hidden';
+  document.body.appendChild(_tooltipEl);
+  return _tooltipEl;
+}
+document.addEventListener('mouseover', (e) => {
+  const span = e.target.closest('.shop-item-with-desc');
+  if (!span) return;
+  const desc = span.dataset.desc;
+  if (!desc) return;
+  const tip = _ensureTooltip();
+  tip.innerHTML = mdToHtml(desc);
+  tip.classList.remove('hidden');
+});
+document.addEventListener('mousemove', (e) => {
+  if (!_tooltipEl) return;
+  // Verberg tooltip zodra cursor niet meer boven een shop-item hangt
+  if (!e.target.closest('.shop-item-with-desc')) {
+    _tooltipEl.classList.add('hidden');
+    return;
+  }
+  if (_tooltipEl.classList.contains('hidden')) return;
+  const x = Math.min(e.clientX + 12, window.innerWidth - _tooltipEl.offsetWidth - 16);
+  const y = e.clientY + 20;
+  _tooltipEl.style.left = x + 'px';
+  _tooltipEl.style.top = y + 'px';
+});
 
 export async function refreshOwnership() {
-  try { _ownership = await api.getItemOwnership(); } catch { /* ok */ }
+  try {
+    const data = await api.getItemOwnership();
+    _ownership.owners      = data.owners      || {};
+    _ownership.requests    = data.requests    || [];
+    _ownership.tradeAllowed = data.tradeAllowed !== false;
+    _ownership.stapelbaar  = new Set(data.stapelbaar || []);
+  } catch { /* ok */ }
 }
 
 export function setOwnership(data) {
-  if (data.owners   !== undefined) _ownership.owners      = data.owners;
-  if (data.requests !== undefined) _ownership.requests    = data.requests;
+  if (data.owners      !== undefined) _ownership.owners      = data.owners;
+  if (data.requests    !== undefined) _ownership.requests    = data.requests;
   if (data.tradeAllowed !== undefined) _ownership.tradeAllowed = data.tradeAllowed;
+  if (data.stapelbaar  !== undefined) _ownership.stapelbaar  = new Set(data.stapelbaar || []);
 }
+// Expose op window zodat socket-client.js altijd de correcte module-instantie gebruikt
+window._setOwnership = setOwnership;
 const TYPE_META = {
   personages:    { icon: '\ud83d\udc64', label: 'Personages', color: 'green-wax', chip: 'chip-npc' },
   locaties:      { icon: '\ud83c\udff0', label: 'Locaties', color: 'blue-ink', chip: 'chip-loc' },
   organisaties:  { icon: '\ud83c\udfdb\ufe0f', label: 'Organisaties', color: 'seal', chip: 'chip-org' },
-  voorwerpen:    { icon: '\ud83c\udf92', label: 'Voorwerpen', color: 'orange', chip: 'chip-item' },
+  voorwerpen:    { icon: '🎺', label: 'Voorwerpen', color: 'orange', chip: 'chip-item' },
 };
 
 const SCHEMA = {
@@ -36,11 +81,12 @@ const SCHEMA = {
   },
   locaties: {
     fields: [
-      { key: 'locType', label: 'Type', type: 'select', options: ['Stadswijk','Gebouw','Herberg','Taveerne','Tempel','Winkel','Fort','Schip','Dorp','Stad','Woud','Zee','Overig'] },
+      { key: 'locType', label: 'Type', type: 'select', options: ['Stadswijk','Gebouw','Herberg','Taveerne','Tempel','Winkel','Fort','Schip','Dorp','Stad','Woud','Berg','Zee','Overig'] },
       { key: 'wijk', label: 'Wijk', type: 'text' },
       { key: 'eigenaar', label: 'Eigenaar', type: 'text' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
+      { key: 'geheim', label: 'Geheim', type: 'textarea' },
     ],
   },
   organisaties: {
@@ -53,10 +99,11 @@ const SCHEMA = {
   },
   voorwerpen: {
     fields: [
-      { key: 'itemType', label: 'Type', type: 'select', options: ['Wapen','Toveritem','Drank','Uitrusting','Scroll','Ring','Amulet','Overig'] },
-      { key: 'rariteit', label: 'Rariteit', type: 'select', options: ['Common','Uncommon','Rare','Very Rare','Legendary'] },
+      { key: 'itemType', label: 'Type', type: 'select', options: ['Weapon','Magic Item','Potion','Armor','Shield','Scroll','Ring','Amulet','Consumable','Wondrous item','Musical instrument','Feature','Other'] },
+      { key: 'rariteit', label: 'Rarity', type: 'select', options: ['Common','Uncommon','Rare','Very Rare','Legendary'] },
       { key: 'prijs', label: 'Prijs', type: 'text' },
       { key: 'attunement', label: 'Requires attunement', type: 'checkbox' },
+      { key: 'stapelbaar', label: 'Stapelbaar (meerdere exemplaren)', type: 'checkbox' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
     ],
@@ -77,19 +124,20 @@ const AUTO_ICONS = {
     'verkoper':   '\ud83c\udfec',
   },
   locaties: {
-    'Stadswijk':  '\ud83c\udfe0',
-    'Gebouw':     '\ud83c\udfd7',
-    'Herberg':    '\ud83c\udf7a',
-    'Taveerne':   '\ud83c\udf7b',
-    'Tempel':     '\u26ea',
-    'Winkel':     '\ud83d\uded2',
-    'Fort':       '\ud83c\udff0',
-    'Schip':      '\u26f5',
-    'Dorp':       '\ud83c\udfe1',
-    'Stad':       '\ud83c\udfd9',
-    'Woud':       '\ud83c\udf32',
-    'Zee':        '\ud83c\udf0a',
-    'Overig':     '\ud83d\udccd',
+    'Stadswijk':  '🗺️',
+    'Gebouw':     '🏛️',
+    'Herberg':    '🍺',
+    'Taveerne':   '🍻',
+    'Tempel':     '⛩️',
+    'Winkel':     '⚖️',
+    'Fort':       '🏰',
+    'Schip':      '⚓',
+    'Dorp':       '🏡',
+    'Stad':       '🌆',
+    'Woud':       '🌲',
+    'Berg':       '⛰️',
+    'Zee':        '🌊',
+    'Overig':     '📍',
   },
   organisaties: {
     'Gilde':      '\u2692\ufe0f',
@@ -101,14 +149,14 @@ const AUTO_ICONS = {
     'Overig':     '\ud83d\udd39',
   },
   voorwerpen: {
-    'Wapen':      '\u2694\ufe0f',
-    'Toveritem':  '\ud83d\udd2e',
-    'Drank':      '\ud83e\uddea',
-    'Uitrusting': '\ud83d\udee1\ufe0f',
-    'Scroll':     '\ud83d\udcdc',
-    'Ring':       '\ud83d\udc8d',
-    'Amulet':     '\ud83d\udde1\ufe0f',
-    'Overig':     '\ud83d\udc8e',
+    'Weapon':     '⚔️', 'Wapen':     '⚔️',
+    'Magic Item': '🔮', 'Toveritem': '🔮',
+    'Potion':     '🧪', 'Drank':     '🧪',
+    'Armor':      '🛡️', 'Uitrusting':'🛡️',
+    'Scroll':     '📜',
+    'Ring':       '💍',
+    'Amulet':     '🗡️',
+    'Other':      '💎', 'Overig':    '💎',
   },
 };
 
@@ -144,6 +192,12 @@ const ICON_SETS = {
   ],
 };
 
+const _NL_ITEM_TYPE = {
+  'Wapen': 'Weapon', 'Toveritem': 'Magic Item', 'Drank': 'Potion',
+  'Uitrusting': 'Armor', 'Overig': 'Other',
+};
+function _normItemType(v) { return _NL_ITEM_TYPE[v] || v; }
+
 function getAutoIcon(type, e) {
   if (e.data?.icon) return e.data.icon;
   const map = AUTO_ICONS[type] || {};
@@ -165,21 +219,27 @@ function getSubtypeBadge(type, e) {
     return { label: labels[sub] || sub, cls };
   }
   if (type === 'locaties') {
-    const t = e.data?.locType;
-    return t ? { label: t, cls: 'badge-loc' } : null;
+    const w = e.data?.wijk;
+    return w ? { label: w, cls: 'badge-loc' } : null;
   }
   if (type === 'organisaties') {
     const t = e.data?.orgType;
     return t ? { label: t, cls: 'badge-org' } : null;
   }
   if (type === 'voorwerpen') {
-    const r = e.data?.rariteit;
-    if (!r) return null;
+    const t = e.data?.itemType;
+    if (!t) return null;
     const clsMap = {
-      'Legendary': 'badge-legendary', 'Very Rare': 'badge-very-rare', 'Rare': 'badge-rare', 'Uncommon': 'badge-uncommon', 'Common': 'badge-common',
-      'Legendarisch': 'badge-legendary', 'Zeer zeldzaam': 'badge-very-rare', 'Zeldzaam': 'badge-rare', 'Ongewoon': 'badge-uncommon', 'Gewoon': 'badge-common',
+      'Weapon':     'badge-item-weapon',
+      'Armor':      'badge-item-armor',
+      'Potion':     'badge-item-potion',
+      'Magic Item': 'badge-item-magic',
+      'Scroll':     'badge-item-scroll',
+      'Ring':       'badge-item-ring',
+      'Amulet':     'badge-item-amulet',
+      'Other':      'badge-item-other',
     };
-    return { label: r, cls: clsMap[r] || 'badge-common' };
+    return { label: t, cls: clsMap[t] || 'badge-item-other' };
   }
   return null;
 }
@@ -363,15 +423,26 @@ async function renderEntitySection(type) {
     voorwerpen: 'Magische voorwerpen en uitrusting',
   };
 
+  // Unieke subtype-waarden — case-insensitief dedupliceren
+  const _sfSeen = new Map();
+  (entities[type] || []).forEach(e => {
+    const v = (_getEntitySubtypeVal(type, e) || '').trim();
+    if (v && !_sfSeen.has(v.toLowerCase())) _sfSeen.set(v.toLowerCase(), v);
+  });
+  const sfVals = [..._sfSeen.values()].sort((a, b) => a.localeCompare(b, 'nl'));
+  const sfActive = subtypeFilters[type] || '';
+
   container.innerHTML = `
     <!-- Section banner -->
-    <div class="section-banner">
-      <div class="section-banner-title">
-        <span>${TYPE_META[type].icon}</span>
-        <span>${TYPE_META[type].label}</span>
-        <span class="font-fell font-normal normal-case tracking-normal text-ink-faint text-xs italic ml-1">${DESC[type] || ''}</span>
+    <div class="section-banner section-banner--entity section-banner--${type}">
+      <div class="section-banner-head">
+        <div class="section-banner-icon-wrap">${TYPE_META[type].icon}</div>
+        <div class="section-banner-info">
+          <div class="section-banner-label">${TYPE_META[type].label}</div>
+          <div class="section-banner-desc-line">${DESC[type] || ''}</div>
+        </div>
       </div>
-      <div class="section-banner-line"></div>
+      <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
     </div>
 
     <!-- Toolbar -->
@@ -381,8 +452,16 @@ async function renderEntitySection(type) {
         <input type="text" class="search-input w-full pl-9 pr-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none"
           placeholder="Zoek ${TYPE_META[type].label.toLowerCase()}..." value="${esc(searchQueries[type])}" oninput="window._entitySearch('${type}',this.value)">
       </div>
+      ${sfVals.length >= 2 ? `<button class="sf-toggle-btn${sfActive ? ' sf-toggle-btn--active' : ''}" onclick="window._toggleSubtypeBar('${type}')" title="Filter op subtype"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : ''}
       <span class="results-count text-ink-faint text-xs font-mono">${list.length} resultaten</span>
     </div>
+
+    <!-- Subtype filter chips (standaard verborgen, toggle via knop) -->
+    ${sfVals.length >= 2 ? `
+    <div class="subtype-filter-bar${sfActive ? '' : ' subtype-filter-bar--hidden'}">
+      <button class="sf-chip${sfActive === '' ? ' sf-chip--active' : ''}" data-sf-val="" onclick="window._entitySubtypeFilter('${type}', null)">Alle</button>
+      ${sfVals.map(v => `<button class="sf-chip${sfActive === v ? ' sf-chip--active' : ''}" data-sf-val="${esc(v)}" onclick="window._entitySubtypeFilter('${type}', this.classList.contains('sf-chip--active') ? null : this.dataset.sfVal)">${esc(v)}</button>`).join('')}
+    </div>` : ''}
 
     <!-- Card grid -->
     <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-6 overflow-y-auto flex-1">
@@ -401,6 +480,28 @@ async function renderEntitySection(type) {
     _refreshGrid(t, filtered, c);
     const countEl = c.querySelector('.results-count');
     if (countEl) countEl.textContent = `${filtered.length} resultaten`;
+  };
+
+  window._entitySubtypeFilter = (t, subtype) => {
+    subtypeFilters[t] = subtype || null;
+    const filtered = filterEntities(t, entities[t] || []);
+    const c = $(`#section-${t}`);
+    _refreshGrid(t, filtered, c);
+    const countEl = c.querySelector('.results-count');
+    if (countEl) countEl.textContent = `${filtered.length} resultaten`;
+    c.querySelectorAll('.sf-chip').forEach(btn => {
+      btn.classList.toggle('sf-chip--active', btn.dataset.sfVal === (subtype || ''));
+    });
+    // Toon de filterbalk als een filter actief is; update knop
+    const bar = c.querySelector('.subtype-filter-bar');
+    if (bar && subtype) bar.classList.remove('subtype-filter-bar--hidden');
+    const toggleBtn = c.querySelector('.sf-toggle-btn');
+    if (toggleBtn) toggleBtn.classList.toggle('sf-toggle-btn--active', !!subtype);
+  };
+
+  window._toggleSubtypeBar = (type) => {
+    const c = $(`#section-${type}`);
+    c.querySelector('.subtype-filter-bar')?.classList.toggle('subtype-filter-bar--hidden');
   };
 }
 
@@ -470,10 +571,36 @@ function _refreshGrid(type, list, container) {
   requestAnimationFrame(() => {
     window.scrollTo(0, savedScrollY);
     grid.querySelectorAll('[data-fittext]').forEach(_fitText);
+    _attachCardTilt(grid);
   });
   const countEl = container.querySelector('.results-count');
   if (countEl) countEl.textContent = `${list.length} resultaten`;
 }
+
+// ── 3D kaart-tilt bij hover ──
+function _onCardTiltMove(e) {
+  const card = this;
+  if (!card.classList.contains('card-tilting')) card.classList.add('card-tilting');
+  const rect = card.getBoundingClientRect();
+  const dx = (e.clientX - (rect.left + rect.width  / 2)) / (rect.width  / 2); // -1..1
+  const dy = (e.clientY - (rect.top  + rect.height / 2)) / (rect.height / 2); // -1..1
+  const rx = (-dy * 7).toFixed(2);
+  const ry = ( dx * 7).toFixed(2);
+  card.style.transform = `perspective(700px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-5px)`;
+}
+function _onCardTiltLeave() {
+  this.classList.remove('card-tilting');
+  this.style.transform = '';
+}
+function _attachCardTilt(container) {
+  container.querySelectorAll('.entity-card:not(.card-vague)').forEach(card => {
+    card.removeEventListener('mousemove',  _onCardTiltMove);
+    card.removeEventListener('mouseleave', _onCardTiltLeave);
+    card.addEventListener('mousemove',  _onCardTiltMove);
+    card.addEventListener('mouseleave', _onCardTiltLeave);
+  });
+}
+window._attachCardTilt = _attachCardTilt;
 
 export async function renderPersonages() { return renderEntitySection('personages'); }
 export async function renderLocaties() { return renderEntitySection('locaties'); }
@@ -483,16 +610,41 @@ export async function renderVoorwerpen() {
   return renderEntitySection('voorwerpen');
 }
 
+// Geeft de subtype-waarde terug die gebruikt wordt voor filteren per type
+function _getEntitySubtypeVal(type, e) {
+  if (type === 'locaties')     return e.data?.wijk     || '';
+  if (type === 'organisaties') return e.data?.orgType  || '';
+  return e.subtype || '';
+}
+
 function filterEntities(type, list) {
-  const q = searchQueries[type];
-  const filtered = q
-    ? list.filter(e => {
-        const fields = [e.name, e.subtype, ...Object.values(e.data || {})].join(' ').toLowerCase();
-        const links = Object.values(e.links || {}).flat().join(' ').toLowerCase();
-        return fields.includes(q.toLowerCase()) || links.includes(q.toLowerCase());
-      })
-    : list;
-  return filtered.slice().sort((a, b) => _sortKey(a.name).localeCompare(_sortKey(b.name), 'nl', { sensitivity: 'base' }));
+  const q  = searchQueries[type];
+  const sf = subtypeFilters[type] || null;
+  let filtered = list;
+  if (q) {
+    const ql = q.toLowerCase();
+    filtered = filtered.filter(e => {
+      const fields = [e.name, e.subtype, ...Object.values(e.data || {})].join(' ').toLowerCase();
+      const links  = Object.values(e.links || {}).flat().join(' ').toLowerCase();
+      return fields.includes(ql) || links.includes(ql);
+    });
+  }
+  if (sf) {
+    filtered = filtered.filter(e => _getEntitySubtypeVal(type, e) === sf);
+  }
+  return filtered.slice().sort((a, b) => {
+    if (type === 'locaties') {
+      const wa = a.data?.wijk || '';
+      const wb = b.data?.wijk || '';
+      // Locaties zonder wijk komen achteraan
+      if (wa !== wb) {
+        if (!wa) return 1;
+        if (!wb) return -1;
+        return wa.localeCompare(wb, 'nl', { sensitivity: 'base' });
+      }
+    }
+    return _sortKey(a.name).localeCompare(_sortKey(b.name), 'nl', { sensitivity: 'base' });
+  });
 }
 
 function renderCard(type, e) {
@@ -504,7 +656,7 @@ function renderCard(type, e) {
       <div class="entity-card card-vague">
         <div class="card-accent bar-${type}" style="opacity:0.5"></div>
         <div class="card-img-wrap">
-          <img class="card-img w-full object-cover" src="${api.fileUrl(e.id)}"
+          <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbUrl(e.id)}"
             style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
             onerror="this.closest('.entity-card').classList.add('no-img')">
           <div class="card-vague-overlay">?</div>
@@ -519,7 +671,10 @@ function renderCard(type, e) {
   }
 
   const rol     = e.data?.rol || '';
-  const metaText = [e.data?.locType, e.data?.orgType, e.data?.itemType, e.data?.ras, e.data?.klasse].filter(Boolean).join(' \u00b7 ');
+  const _itemMeta = type === 'voorwerpen'
+    ? [e.data?.rariteit, (e.data?.attunement === 'true' || e.data?.attunement === true) ? 'Attunement' : null].filter(Boolean).join(' · ')
+    : null;
+  const metaText = [e.data?.locType, e.data?.orgType, _itemMeta, e.data?.ras, e.data?.klasse].filter(Boolean).join(' \u00b7 ');
   const badge   = getSubtypeBadge(type, e);
   const desc = e.data?.desc || '';
   const flavour = e.data?.flavour || '';
@@ -569,11 +724,24 @@ function renderCard(type, e) {
       ` : ''}
       <div class="card-accent bar-${type}"></div>
       <div class="card-img-wrap">
-        <img class="card-img w-full object-cover" src="${api.fileUrl(e.id)}"
+        <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbUrl(e.id)}"
           style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
           onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
         <div class="card-img-fade"></div>
         ${badge ? `<div class="card-subtype-badge ${badge.cls}">${esc(badge.label)}</div>` : ''}
+        ${!isDM() && window.app?.state?.characterId ? (() => {
+          const _bms = window.app?.state?.bookmarks || [];
+          const _bmActive = _bms.some(b => b.id === e.id);
+          return `<button class="card-bookmark-btn${_bmActive ? ' card-bookmark-btn--active' : ''}"
+            onclick="event.stopPropagation();window._toggleBookmark(this.dataset.btype,this.dataset.bid,this.dataset.bname)"
+            data-btype="${esc(type)}" data-bid="${esc(e.id)}" data-bname="${esc(e.name)}"
+            title="${_bmActive ? 'Bladwijzer verwijderen' : 'Bladwijzer toevoegen'}">
+            ${_bmActive ? '★' : '☆'}
+          </button>`;
+        })() : ''}
+        ${type === 'locaties' && window._pinnedLocIds?.has(e.id) ? `<button class="card-map-btn"
+          onclick="event.stopPropagation();window._toonOpKaart('${esc(e.id)}')"
+          title="Toon op kaart">📍</button>` : ''}
       </div>
       <div class="card-body px-4 pt-3 pb-3">
         <div class="mb-2">
@@ -591,7 +759,6 @@ function renderCard(type, e) {
           <span class="flavour-preview-text">\u201e${esc(flavour.length > 300 ? flavour.slice(0, 300) + '\u2026' : flavour)}\u201c</span>
         </div>
       ` : ''}
-      ${type === 'voorwerpen' && (e.data?.attunement === 'true' || e.data?.attunement === true) ? `<span class="attunement-badge">Requires attunement</span>` : ''}
       ${type === 'voorwerpen' ? _itemOwnershipBadge(e.id) : ''}
       ${e.data?.geheim && isDM() ? `
         <button class="secret-badge${e._secretReveal ? ' secret-badge--revealed' : ''}"
@@ -600,13 +767,58 @@ function renderCard(type, e) {
           ${e._secretReveal ? '✨ Onthuld' : '🔒 Geheim'}
         </button>
       ` : e.data?.geheim && e._secretReveal ? `
-        <div class="secret-badge secret-badge--revealed secret-badge--player" title="Geheim onthuld">
-          ✨
-        </div>
+        <div class="player-secret-reveal-bar" title="Geheim onthuld">✨ Onthuld</div>
       ` : ''}
     </div>
   `;
 }
+
+// ── Bladwijzers ──
+window._toggleBookmark = async function(type, id, name) {
+  const charId = window.app?.state?.characterId;
+  if (!charId) return;
+  const profile = await api.getPlayerProfile(charId).catch(() => ({}));
+  let bms = Array.isArray(profile.bookmarks) ? [...profile.bookmarks] : [];
+  const idx = bms.findIndex(b => b.id === id);
+  if (idx >= 0) {
+    bms.splice(idx, 1);
+  } else {
+    bms.push({ id, type, name });
+  }
+  await api.patchPlayerProfile(charId, { bookmarks: bms });
+  // Update state cache
+  if (window.app?.state) window.app.state.bookmarks = bms;
+  // Direct DOM update: verwijder of voeg toe in bladwijzerlijst (mijn-karakter)
+  const wasRemoved = !bms.some(b => b.id === id);
+  if (wasRemoved) {
+    document.querySelector(`.player-bookmark-item[data-bid="${CSS.escape(id)}"]`)?.remove();
+    // Verberg de sectieheader als de lijst leeg is
+    const list = document.querySelector('.player-bookmarks-list');
+    if (list && !list.querySelector('.player-bookmark-item')) {
+      list.closest('.player-dash-section')?.remove();
+    }
+  }
+  // Update knop direct in-place
+  const active = bms.some(b => b.id === id);
+  const btn = document.querySelector(`.card-bookmark-btn[data-bid="${CSS.escape(id)}"]`);
+  if (btn) {
+    btn.classList.toggle('card-bookmark-btn--active', active);
+    btn.title = active ? 'Bladwijzer verwijderen' : 'Bladwijzer toevoegen';
+    btn.textContent = active ? '★' : '☆';
+  }
+  // Toast-melding
+  const toast = document.createElement('div');
+  toast.className = 'bookmark-toast';
+  toast.textContent = active ? '⭐ Bladwijzer toegevoegd' : '☆ Bladwijzer verwijderd';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('bookmark-toast--visible'), 10);
+  setTimeout(() => { toast.classList.remove('bookmark-toast--visible'); setTimeout(() => toast.remove(), 300); }, 2000);
+
+  // Als mijn-karakter actief is: herrender zodat de sectie direct zichtbaar is
+  if (window.app?.state?.activeSection === 'mijn-karakter') {
+    await window.app.refreshSection('mijn-karakter');
+  }
+};
 
 // Vaste kleurpalet per speler (op basis van characterId hash)
 const _PLAYER_COLORS = [
@@ -627,13 +839,35 @@ function _playerColor(characterId) {
 }
 
 function _itemOwnershipBadge(itemId) {
-  const owner   = _ownership.owners[itemId];
-  const myId    = window.app?.state?.characterId;
-  const myName  = window.app?.state?.playerName;
-  const isDm    = window.app?.isDM?.();
+  const owner        = _ownership.owners[itemId];
+  const isStapelbaar = _ownership.stapelbaar.has(itemId);
+  const myId         = window.app?.state?.characterId;
+  const myName       = window.app?.state?.playerName;
+  const isDm         = window.app?.isDM?.();
 
-  // Eigenaar-label
-  if (owner) {
+  // ── Stapelbaar: array-eigendom ──
+  if (isStapelbaar) {
+    const eigenaren = Array.isArray(owner) ? owner : [];
+    if (isDm) {
+      const total = eigenaren.reduce((s, o) => s + (o.qty || 1), 0);
+      const label = eigenaren.length > 0
+        ? `🎁 ${eigenaren.length} speler${eigenaren.length !== 1 ? 's' : ''} · ${total}×`
+        : '🎁 Geef aan speler';
+      return `
+        <div class="item-owner-badge item-owner-badge--stapelbaar" onclick="event.stopPropagation()">
+          <span>${label}</span>
+          <button class="item-give-btn" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef exemplaren aan speler">+</button>
+        </div>`;
+    }
+    const myEntry = myId ? eigenaren.find(o => o.characterId === myId) : null;
+    if (myEntry && (myEntry.qty || 1) > 0) {
+      return `<div class="item-owner-badge item-owner-badge--mine" onclick="event.stopPropagation()">🎒 ×${myEntry.qty || 1}</div>`;
+    }
+    return '';
+  }
+
+  // ── Uniek eigendom (bestaande logica) ──
+  if (owner && !Array.isArray(owner)) {
     const isMine = myId && owner.characterId === myId;
     const color  = isMine ? '' : `color:${_playerColor(owner.characterId)};border-color:${_playerColor(owner.characterId)}40`;
     return `
@@ -652,19 +886,19 @@ function _itemOwnershipBadge(itemId) {
     return `<div class="item-claim-pending" onclick="event.stopPropagation()">⏳ Wacht op DM…</div>`;
   }
 
-  // Claim-knop voor ingelogde speler
-  if (myName && !isDm) {
-    return `
-      <button class="item-claim-btn" onclick="event.stopPropagation();window._itemClaim('${esc(itemId)}')">
-        Claim
-      </button>`;
-  }
-
-  // Geef-knop voor DM (geen eigenaar)
+  // Geef-knop voor DM (geen eigenaar, niet stapelbaar)
   if (isDm) {
     return `
       <button class="item-give-btn item-give-btn--standalone" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan speler">
         🎁 Geef aan speler
+      </button>`;
+  }
+
+  // Claim-knop voor ingelogde speler (niet stapelbaar)
+  if (myName && !isDm) {
+    return `
+      <button class="item-claim-btn" onclick="event.stopPropagation();window._itemClaim('${esc(itemId)}')">
+        Claim
       </button>`;
   }
 
@@ -674,6 +908,7 @@ function _itemOwnershipBadge(itemId) {
 // ── DM: voorwerp geven aan speler ──
 window._itemGiveToPlayer = async function(itemId) {
   try {
+    const isStapelbaar = _ownership.stapelbaar.has(itemId);
     const [allPersonages, allGroups] = await Promise.all([
       api.listEntities('personages'),
       api.getGroups().catch(() => []),
@@ -683,7 +918,6 @@ window._itemGiveToPlayer = async function(itemId) {
       alert('Geen spelerskarakters gevonden.');
       return;
     }
-    // Groepeer per groep
     const groupNames = Object.fromEntries((allGroups?.groups || allGroups || []).map(g => [g.id, g.name]));
     const byGroup = {};
     for (const s of spelers) {
@@ -696,24 +930,36 @@ window._itemGiveToPlayer = async function(itemId) {
       return `
         <div class="item-give-group">
           <div class="item-give-group-label">${esc(label)}</div>
-          ${members.map(s => `
+          ${members.map(s => isStapelbaar ? `
+            <div class="item-give-player-row">
+              <div class="item-give-player-info">
+                <img src="${api.fileUrl(s.id)}" class="item-give-avatar" onerror="this.style.display='none'">
+                <span>${esc(s.name)}</span>
+              </div>
+              <input type="number" min="1" value="1" id="igq-${esc(s.id)}"
+                class="item-give-qty-input" onclick="event.stopPropagation()">
+              <button class="item-give-confirm-btn"
+                onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}',+(document.getElementById('igq-${esc(s.id)}').value)||1)">
+                🎁
+              </button>
+            </div>` : `
             <button class="item-give-player-btn"
               onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}')">
-              <img src="${api.fileUrl(s.id)}" class="item-give-avatar"
-                onerror="this.style.display='none'">
+              <img src="${api.fileUrl(s.id)}" class="item-give-avatar" onerror="this.style.display='none'">
               <span>${esc(s.name)}</span>
             </button>`).join('')}
         </div>`;
     }).join('');
-    window.app.openModal('🎁 Geef voorwerp aan speler', 'Kies een ontvanger', `<div class="item-give-picker">${sections}</div>`);
+    const subtitle = isStapelbaar ? 'Kies een ontvanger en aantal' : 'Kies een ontvanger';
+    window.app.openModal('🎁 Geef voorwerp aan speler', subtitle, `<div class="item-give-picker">${sections}</div>`);
   } catch (e) {
     console.warn('_itemGiveToPlayer fout:', e);
   }
 };
 
-window._itemAssignToPlayer = async function(itemId, characterId, playerName, groupId) {
+window._itemAssignToPlayer = async function(itemId, characterId, playerName, groupId, qty) {
   try {
-    await api.assignItemOwner(itemId, { characterId, playerName, groupId: groupId || null });
+    await api.assignItemOwner(itemId, { characterId, playerName, groupId: groupId || null, qty: qty || 1 });
     window.app.closeModal();
     await refreshOwnership();
     renderEntitySection('voorwerpen');
@@ -809,7 +1055,7 @@ function _refreshEntityImages() {
 // ── Detail view ──
 let _detailToken = 0;   // Annuleer concurrent _openDetail aanroepen
 
-window._openDetail = async (tab, id, isBack = false) => {
+window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const myToken = ++_detailToken;   // Uniek token voor deze aanroep
 
   const prevTab = window._currentDetailTab;
@@ -825,13 +1071,31 @@ window._openDetail = async (tab, id, isBack = false) => {
   window._currentDetailTab = tab;
   window._currentDetailId  = id;
 
-  let e, playerNotesData;
+  let e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData;
+  let shopLogData = null;
+  const _isShopTab = (tab === 'locaties' || tab === 'personages');
   try {
-    [e, playerNotesData] = await Promise.all([
+    [e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData] = await Promise.all([
       api.getEntity(tab, id),
       api.getPlayerNotes(id).catch(() => null),
+      _isShopTab
+        ? api.getShopUitverkocht(id).catch(() => ({ uitverkocht: [] }))
+        : Promise.resolve({ uitverkocht: [] }),
+      _isShopTab
+        ? api.getShopBeschikbaar(id).catch(() => null)
+        : Promise.resolve(null),
+      (_isShopTab && !isDM())
+        ? Promise.all([
+            api.getPlayerCurrency(window.app?.state?.characterId).catch(() => ({ fl: 0, kn: 0, cl: 0 })),
+            api.getPartyCurrency().catch(() => ({ enabled: false, fl: 0, kn: 0, cl: 0 })),
+          ]).then(([player, party]) => ({ player, party }))
+        : Promise.resolve(null),
     ]);
   } catch { return; }
+  if (_isShopTab && isDM()) {
+    shopLogData = await api.getShopLog(id).catch(() => null);
+  }
+  const uitverkochtSet = new Set((uitverkochtData?.uitverkocht || []).map(k => k.toLowerCase().trim()));
   if (myToken !== _detailToken) return;   // Nieuwere aanroep actief — stop
   const meta = TYPE_META[tab];
   const schema = SCHEMA[tab];
@@ -883,11 +1147,24 @@ window._openDetail = async (tab, id, isBack = false) => {
     infoHtml += `<div class="text-center mb-4"><span class="detail-role-badge">${esc(rolVal)}</span></div>`;
   }
 
+  // Voorwerpen: rariteit + attunement als compacte subtitelrij direct onder hero
+  if (tab === 'voorwerpen') {
+    const _rar = e.data?.rariteit;
+    const _att = e.data?.attunement === true || e.data?.attunement === 'true';
+    if (_rar || _att) {
+      infoHtml += `<div class="detail-item-subtitle">
+        ${_rar ? `<span class="detail-item-rarity">${esc(_rar)}</span>` : ''}
+        ${_att ? `<span class="detail-item-attunement">Requires Attunement</span>` : ''}
+      </div>`;
+    }
+  }
+
   // Short metadata → labeled pills; description → block
   const _metaPills = [];
   let _descVal = '';
   for (const field of (schema.fields || [])) {
-    if (['geheim', 'flavour', 'rol'].includes(field.key)) continue;
+    if (['geheim', 'flavour', 'rol', 'stapelbaar', 'attunement'].includes(field.key)) continue;
+    if (tab === 'voorwerpen' && ['itemType', 'rariteit'].includes(field.key)) continue;
     if (field.dmOnly) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
@@ -899,6 +1176,13 @@ window._openDetail = async (tab, id, isBack = false) => {
   }
   if (_metaPills.length) {
     infoHtml += `<div class="detail-meta-pills">${_metaPills.join('')}</div>`;
+  }
+  if (tab === 'locaties' && window._pinnedLocIds?.has(e.id)) {
+    infoHtml += `<div class="detail-map-link-wrap">
+      <button class="detail-map-link-btn" onclick="window._toonOpKaart('${esc(e.id)}')">
+        📍 Toon op kaart
+      </button>
+    </div>`;
   }
   if (_descVal) {
     infoHtml += `<div class="detail-desc mb-4">${mdToHtml(_descVal)}</div>`;
@@ -994,7 +1278,7 @@ window._openDetail = async (tab, id, isBack = false) => {
             onclick="window._toggleVis('${tab}','${e.id}',event)">
             ${_mVisIcon}
           </button>
-          ${isPersonage ? `
+          ${(isPersonage || tab === 'locaties') ? `
             <button class="px-3 py-1 text-sm rounded ${e._secretReveal ? 'bg-seal text-white' : 'bg-room-elevated text-ink-dim'}"
               onclick="window._toggleSecret('${tab}','${e.id}')">
               ${e._secretReveal ? '\u2728' : '\ud83d\udd12'}
@@ -1141,35 +1425,243 @@ window._openDetail = async (tab, id, isBack = false) => {
     verbHtml = `<div class="text-center py-10 text-ink-faint font-fell italic">Geen verbindingen</div>`;
   }
 
-  // ── Tab: Voorraad (verkopers) ──
+  // ── Tab: Eigenaren (stapelbare voorwerpen, DM only) ──
+  const isStapelbaarVoorwerp = tab === 'voorwerpen' && (e.data?.stapelbaar === 'true' || e.data?.stapelbaar === true);
+  let eigenarenHtml = '';
+  if (isStapelbaarVoorwerp && isDM()) {
+    const eigenaren = Array.isArray(_ownership.owners[e.id]) ? _ownership.owners[e.id] : [];
+    if (eigenaren.length > 0) {
+      eigenarenHtml = `
+        <div class="rounded border border-room-border overflow-hidden mb-3">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-room-elevated border-b border-room-border">
+                <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Speler</th>
+                <th class="px-4 py-2.5 text-center font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Aantal</th>
+                <th class="px-4 py-2.5 w-8"></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${eigenaren.map((o, i) => `
+                <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0">
+                  <td class="px-4 py-2.5 text-ink-bright font-crimson">${esc(o.playerName)}</td>
+                  <td class="px-4 py-2.5 text-center">
+                    <span class="inline-flex items-center gap-2">
+                      <button onclick="window._eigenaarQtyAdj('${esc(e.id)}','${esc(o.characterId)}',-1)"
+                        class="w-6 h-6 flex items-center justify-center rounded bg-room-bg border border-room-border text-ink-dim hover:text-ink-bright transition">−</button>
+                      <span class="text-ink-bright font-cinzel w-6 text-center">${o.qty || 1}</span>
+                      <button onclick="window._eigenaarQtyAdj('${esc(e.id)}','${esc(o.characterId)}',1)"
+                        class="w-6 h-6 flex items-center justify-center rounded bg-room-bg border border-room-border text-ink-dim hover:text-ink-bright transition">+</button>
+                    </span>
+                  </td>
+                  <td class="px-4 py-2.5 text-right">
+                    <button onclick="window._eigenaarVerwijder('${esc(e.id)}','${esc(o.characterId)}')"
+                      class="text-seal hover:bg-seal/20 px-1.5 py-0.5 rounded transition text-xs" title="Verwijder eigendom">✕</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    } else {
+      eigenarenHtml = `<div class="text-center py-6 text-ink-faint font-fell italic">Geen eigenaren</div>`;
+    }
+    eigenarenHtml += `
+      <button onclick="window._itemGiveToPlayer('${esc(e.id)}')"
+        class="px-4 py-2 bg-room-elevated border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright transition">
+        🎁 Geef exemplaren aan speler
+      </button>`;
+  }
+
+  // ── Tab: Voorraad (verkopers & winkels) ──
   const isVerkoper = e.subtype === 'verkoper';
+  const isWinkel = tab === 'locaties' && e.data?.locType === 'Winkel';
+  const heeftVoorraad = isVerkoper || isWinkel;
   let voorraadHtml = '';
-  if (isVerkoper) {
-    let voorraadItems = [];
-    try { voorraadItems = e.data?.voorraad ? JSON.parse(e.data.voorraad) : []; } catch {}
+  if (heeftVoorraad) {
+    // Gebruik beschikbaarData als die beschikbaar is, anders val terug op ruwe voorraad
+    let voorraadItems;
+    const roterend = beschikbaarData?.roterend || false;
+    const geldigTot = beschikbaarData?.geldigTot || null;
+    if (beschikbaarData?.items) {
+      voorraadItems = beschikbaarData.items;
+    } else {
+      try { voorraadItems = e.data?.voorraad ? JSON.parse(e.data.voorraad) : []; } catch { voorraadItems = []; }
+      voorraadItems = voorraadItems.map(item => ({
+        ...item,
+        uitverkocht: uitverkochtSet.has((item.naam || '').toLowerCase().trim()),
+        actief: true,
+      }));
+    }
+
+    // Beurs weergave (alleen voor spelers) — altijd persoonlijke beurs
+    let beursHtml = '';
+    if (!isDM() && shopCurrencyData) {
+      const cur = shopCurrencyData.player;
+      const _cN = window._currency || { fl: 'fl', kn: 'kn', cl: 'cl' };
+      if (cur) {
+        beursHtml = `<div class="shop-beurs">
+          <span class="shop-beurs-label">💰 Jouw beurs</span>
+          <span class="shop-beurs-amount">${cur.fl ?? 0} ${esc(_cN.fl)} · ${cur.kn ?? 0} ${esc(_cN.kn)} · ${cur.cl ?? 0} ${esc(_cN.cl)}</span>
+        </div>`;
+      }
+    }
+
+    // Rotatie-timer
+    let roterendHtml = '';
+    if (roterend && geldigTot) {
+      const diff = new Date(geldigTot) - Date.now();
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      roterendHtml = `<div class="shop-rotatie-info">🔄 Assortiment ververst over ${h > 0 ? h + 'u ' : ''}${m}m</div>`;
+    }
+
+    const _shopId = e.id;
+    const discountPct = beschikbaarData?.discountPct || 0;
+
+    // Sfeer bovenaan
+    const _sfeerTekst = beschikbaarData?.sfeerTekst || '';
+    const _sfeerImageId = e.imageId || '';
+    const sfeerHtml = (_sfeerTekst || _sfeerImageId) ? `
+      <div class="shop-sfeer">
+        ${_sfeerImageId ? `<img src="${api.fileUrl(_sfeerImageId)}" class="shop-sfeer-img" alt="">` : ''}
+        ${_sfeerTekst ? `<p class="shop-sfeer-tekst">${esc(_sfeerTekst)}</p>` : ''}
+      </div>` : '';
+
+    const kortingBannerHtml = discountPct > 0
+      ? `<div class="shop-korting-banner shop-korting-banner--ok">🎲 ${discountPct}% korting actief!</div>`
+      : discountPct < 0
+        ? `<div class="shop-korting-banner shop-korting-banner--malus">🎲 Prijs ${Math.abs(discountPct)}% hoger</div>`
+        : '';
+
     if (voorraadItems.length > 0) {
+      // Onderhandelen button (alleen voor spelers)
+      const onderhandelHtml = !isDM() ? `
+        <div id="shop-onderhandel-wrap" class="shop-onderhandel-wrap">
+          <button class="shop-onderhandel-btn" onclick="window._onderhandelOpen('${esc(_shopId)}')">
+            🎲 Onderhandelen
+          </button>
+          <div id="shop-onderhandel-panel-${esc(_shopId)}" class="shop-onderhandel-panel hidden">
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-ink-dim">CHA-modifier:</label>
+              <input type="number" id="shop-cha-mod-${esc(_shopId)}" value="0" min="-5" max="10"
+                class="shop-cha-input" style="width:56px">
+              <button class="shop-onderhandel-roll-btn"
+                onclick="window._onderhandelRoll('${esc(_shopId)}')">Gooien</button>
+              <button class="shop-onderhandel-annuleer"
+                onclick="document.getElementById('shop-onderhandel-panel-${esc(_shopId)}').classList.add('hidden')">✕</button>
+            </div>
+          </div>
+          <div id="shop-onderhandel-result-${esc(_shopId)}" class="shop-onderhandel-result hidden"></div>
+        </div>` : '';
+
       voorraadHtml = `
+        ${sfeerHtml}
+        ${kortingBannerHtml}
+        ${beursHtml}
+        ${roterendHtml}
         <div class="rounded border border-room-border overflow-hidden">
           <table class="w-full text-sm">
             <thead>
               <tr class="bg-room-elevated border-b border-room-border">
                 <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Voorwerp</th>
                 <th class="px-4 py-2.5 text-right font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Prijs</th>
+                ${isDM() && roterend ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] uppercase" title="Actief voor spelers">✦</th>` : ''}
+                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] uppercase tracking-wider" title="Uitverkocht">UV</th>` : ''}
+                ${!isDM() ? `<th class="px-2 py-2.5"></th>` : ''}
               </tr>
             </thead>
             <tbody>
-              ${voorraadItems.map((item, i) => `
+              ${voorraadItems.map((item, i) => {
+                const uitverkocht = item.uitverkocht;
+                const actief = item.actief;
+                const thumbHtml = item.imageId
+                  ? `<img src="${api.fileUrl(item.imageId)}" class="shop-item-thumb" alt="">`
+                  : '';
+                const naamHtml = item.entityId
+                  ? `<span class="cursor-pointer hover:text-gold transition underline decoration-dotted${uitverkocht ? ' winkel-uitverkocht-naam' : ''} shop-item-with-desc"
+                       onclick="window._openDetailFromShop('${esc(item.entityId)}')"
+                       data-desc="${esc(item.desc || '')}">${esc(item.naam || '\u2014')}</span>`
+                  : `<span class="${uitverkocht ? 'winkel-uitverkocht-naam' : ''}">${esc(item.naam || '\u2014')}</span>`;
+                return `
+                <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0${uitverkocht ? ' winkel-uitverkocht-rij' : ''}">
+                  <td class="px-4 py-2.5 font-crimson">
+                    <div class="flex items-center gap-2">
+                      ${thumbHtml}${naamHtml}
+                    </div>
+                  </td>
+                  <td class="px-4 py-2.5 text-right font-crimson ${uitverkocht ? 'text-ink-faint' : 'text-ink-medium'}">
+                    ${esc(item.prijs || '\u2014')}
+                    ${!uitverkocht && discountPct > 0 ? `<span class="shop-korting-badge">-${discountPct}%</span>` : ''}
+                    ${!uitverkocht && discountPct < 0 ? `<span class="shop-korting-badge shop-korting-badge--malus">+${Math.abs(discountPct)}%</span>` : ''}
+                  </td>
+                  ${isDM() && roterend ? `<td class="px-3 py-2.5 text-center">${actief ? '<span class="shop-actief-badge" title="Actief voor spelers">✦</span>' : ''}</td>` : ''}
+                  ${isDM() ? `
+                  <td class="px-3 py-2.5 text-center">
+                    <input type="checkbox" class="winkel-uitverkocht-cb" title="Uitverkocht voor deze party"
+                      ${uitverkocht ? 'checked' : ''}
+                      onchange="window._toggleShopUitverkocht('${esc(_shopId)}','${esc(item.naam || '')}',this)">
+                  </td>` : ''}
+                  ${!isDM() ? `
+                  <td class="px-2 py-2.5 text-right">
+                    ${uitverkocht ? `<span class="text-xs text-ink-faint italic">Uitverkocht</span>` : `
+                      <div class="flex items-center gap-1 justify-end">
+                        ${item.stapelbaar ? `
+                          <input type="number" min="1" max="99" value="1"
+                            class="shop-qty-input" id="shop-qty-${i}"
+                            onclick="event.stopPropagation()" oninput="this.value=Math.max(1,parseInt(this.value)||1)">
+                        ` : ''}
+                        <button class="shop-koop-btn"
+                          onclick="window._koopItem('${esc(_shopId)}','${esc(item.naam || '')}','${esc(item.entityId || '')}',this,${item.stapelbaar ? `parseInt(document.getElementById('shop-qty-${i}')?.value)||1` : '1'})">
+                          Kopen
+                        </button>
+                      </div>
+                    `}
+                  </td>` : ''}
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${onderhandelHtml}
+        <div id="shop-koop-feedback" class="shop-koop-feedback hidden"></div>`;
+    } else {
+      voorraadHtml = `${sfeerHtml}${kortingBannerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>`;
+    }
+  }
+
+  // ── Build log HTML for DM ──
+  let logHtml = '';
+  if (heeftVoorraad && isDM()) {
+    const entries = shopLogData?.entries || [];
+    if (entries.length > 0) {
+      logHtml = `
+        <div class="rounded border border-room-border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-room-elevated border-b border-room-border">
+                <th class="px-4 py-2 text-left font-cinzel text-ink-dim text-[10px] uppercase">Tijdstip</th>
+                <th class="px-4 py-2 text-left font-cinzel text-ink-dim text-[10px] uppercase">Speler</th>
+                <th class="px-4 py-2 text-left font-cinzel text-ink-dim text-[10px] uppercase">Voorwerp</th>
+                <th class="px-4 py-2 text-right font-cinzel text-ink-dim text-[10px] uppercase">Prijs</th>
+                <th class="px-3 py-2 text-center font-cinzel text-ink-dim text-[10px] uppercase">#</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entries.map((entry, i) => `
                 <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0">
-                  <td class="px-4 py-2.5 text-ink-bright font-crimson">${esc(item.naam || '\u2014')}</td>
-                  <td class="px-4 py-2.5 text-ink-medium text-right font-crimson">${esc(item.prijs || '\u2014')}</td>
+                  <td class="px-4 py-2 text-ink-dim text-xs">${esc(new Date(entry.ts).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' }))}</td>
+                  <td class="px-4 py-2 text-ink-bright font-crimson">${esc(entry.playerName || '?')}</td>
+                  <td class="px-4 py-2 text-ink-medium font-crimson">${esc(entry.itemNaam || '?')}</td>
+                  <td class="px-4 py-2 text-right text-ink-dim">${esc(entry.prijs || '\u2014')}</td>
+                  <td class="px-3 py-2 text-center text-ink-dim">${entry.aantal > 1 ? entry.aantal : ''}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
-        </div>
-      `;
+        </div>`;
     } else {
-      voorraadHtml = `<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad bekend</div>`;
+      logHtml = `<div class="text-center py-10 text-ink-faint font-fell italic">Nog geen aankopen geregistreerd</div>`;
     }
   }
 
@@ -1177,7 +1669,9 @@ window._openDetail = async (tab, id, isBack = false) => {
   const detailTabs = [
     { key: 'info', label: 'Info' },
     ...(showSheet ? [{ key: 'sheet', label: 'Character Sheet' }] : []),
-    ...(isVerkoper ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
+    ...(isStapelbaarVoorwerp && isDM() ? [{ key: 'eigenaren', label: 'Eigenaren' }] : []),
+    ...(heeftVoorraad ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
+    ...(heeftVoorraad && isDM() ? [{ key: 'log', label: '📋 Log' }] : []),
     { key: 'verbindingen', label: 'Verbindingen' },
   ];
 
@@ -1191,7 +1685,9 @@ window._openDetail = async (tab, id, isBack = false) => {
     <div class="flex gap-0.5 border-b border-room-border mb-4">${tabNav}</div>
     <div id="dtab-info">${infoHtml}</div>
     ${showSheet ? `<div id="dtab-sheet" class="hidden">${sheetHtml}</div>` : ''}
-    ${isVerkoper ? `<div id="dtab-voorraad" class="hidden">${voorraadHtml}</div>` : ''}
+    ${isStapelbaarVoorwerp && isDM() ? `<div id="dtab-eigenaren" class="hidden">${eigenarenHtml}</div>` : ''}
+    ${heeftVoorraad ? `<div id="dtab-voorraad" class="hidden">${voorraadHtml}</div>` : ''}
+    ${heeftVoorraad && isDM() ? `<div id="dtab-log" class="hidden">${logHtml}</div>` : ''}
     <div id="dtab-verbindingen" class="hidden">${verbHtml}</div>
   `;
 
@@ -1202,8 +1698,8 @@ window._openDetail = async (tab, id, isBack = false) => {
     e.data?.locType,
     e.data?.wijk,
     e.data?.orgType,
-    e.data?.itemType,
-    e.data?.rariteit,
+    e.data?.itemType ? _normItemType(e.data.itemType) : null,
+    e.data?.rariteit ? (({'Gewoon':'Common','Ongewoon':'Uncommon','Zeldzaam':'Rare','Zeer zeldzaam':'Very Rare','Legendarisch':'Legendary'})[e.data.rariteit] || e.data.rariteit) : null,
   ].filter(Boolean);
   const _subtitle = _subParts.length
     ? `${getAutoIcon(tab, e)}  ${_subParts.join(' · ')}`
@@ -1247,6 +1743,12 @@ window._openDetail = async (tab, id, isBack = false) => {
       });
     });
   });
+
+  // Activeer een specifieke tab als gevraagd (bijv. na aankoop terug naar voorraad)
+  if (openTabKey) {
+    const targetBtn = document.querySelector(`.detail-tab[data-dtab="${openTabKey}"]`);
+    if (targetBtn) targetBtn.click();
+  }
 
   // DM note auto-save
   if (isDM()) {
@@ -1311,6 +1813,112 @@ window._itemRemoveOwner = async (itemId) => {
   } catch (err) { alert('Fout: ' + err.message); }
 };
 
+// ── Stapelbaar eigendom: qty aanpassen / verwijderen (DM vanuit Eigenaren-tab) ──
+// ── Klik op gekoppeld voorwerp vanuit winkeldetail ──
+// Onthult het kaartje stil als het nog hidden was, dan opent de detailview.
+window._openDetailFromShop = async (entityId) => {
+  try {
+    await api.shopRevealItem('voorwerpen', entityId);
+  } catch { /* stil falen — detail openen lukt altijd */ }
+  window._openDetail('voorwerpen', entityId);
+};
+
+// ── Speler koopt voorwerp uit winkel ──
+window._koopItem = async (shopId, itemNaam, entityId, btn, aantal = 1) => {
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  const feedback = document.getElementById('shop-koop-feedback');
+  try {
+    await api.koopShopItem(shopId, { itemNaam, entityId: entityId || undefined, aantal });
+    // Herlaad de modal maar blijf op de voorraadtab
+    if (window._currentDetailTab && window._currentDetailId) {
+      await window._openDetail(window._currentDetailTab, window._currentDetailId, false, 'voorraad');
+    }
+    // Succesbericht in de voorraadtab
+    const fb = document.getElementById('shop-koop-feedback');
+    if (fb) {
+      fb.innerHTML = `✓ ${aantal > 1 ? `${aantal}× ` : ''}<strong>${itemNaam}</strong> gekocht!`;
+      fb.className = 'shop-koop-feedback shop-koop-feedback--ok';
+      fb.classList.remove('hidden');
+      setTimeout(() => fb.classList.add('hidden'), 4000);
+    }
+    // Refresh knapzak zodat het nieuwe item meteen zichtbaar is
+    window.app?.refreshSection?.('mijn-karakter');
+  } catch (err) {
+    const msg = err.message || 'Kon niet kopen';
+    if (feedback) {
+      feedback.textContent = '⚠ ' + msg;
+      feedback.className = 'shop-koop-feedback shop-koop-feedback--fout';
+      feedback.classList.remove('hidden');
+      setTimeout(() => feedback.classList.add('hidden'), 5000);
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Kopen'; }
+  }
+};
+
+// ── Winkel: onderhandelen ──
+window._onderhandelOpen = (shopId) => {
+  const panel = document.getElementById(`shop-onderhandel-panel-${shopId}`);
+  if (panel) panel.classList.toggle('hidden');
+};
+
+window._onderhandelRoll = async (shopId) => {
+  const modEl = document.getElementById(`shop-cha-mod-${shopId}`);
+  const resultEl = document.getElementById(`shop-onderhandel-result-${shopId}`);
+  const modifier = parseInt(modEl?.value) || 0;
+  if (resultEl) { resultEl.classList.remove('hidden'); resultEl.innerHTML = '<span class="shop-onderhandel-loading">🎲 …</span>'; }
+  try {
+    const r = await api.onderhandelShop(shopId, { modifier });
+    const modStr = r.modifier >= 0 ? `+${r.modifier}` : `${r.modifier}`;
+    const kleur = r.geslaagd ? 'shop-onderhandel-result--ok' : 'shop-onderhandel-result--fout';
+    const tekst = r.geslaagd
+      ? `✓ Geslaagd! (${r.diceRoll}${modStr !== '+0' ? ` ${modStr}` : ''} = ${r.totaal} ≥ ${r.dc}) — ${r.kortingPct}% korting actief voor 1 uur.`
+      : r.boetePct > 0
+        ? `✗ Mislukt. (${r.diceRoll}${modStr !== '+0' ? ` ${modStr}` : ''} = ${r.totaal} < ${r.dc}) — Prijs ${r.boetePct}% hoger voor 1 uur.`
+        : `✗ Mislukt. (${r.diceRoll}${modStr !== '+0' ? ` ${modStr}` : ''} = ${r.totaal} < ${r.dc})`;
+    if (resultEl) {
+      resultEl.className = `shop-onderhandel-result ${kleur}`;
+      resultEl.textContent = tekst;
+    }
+    // Panel sluiten
+    document.getElementById(`shop-onderhandel-panel-${shopId}`)?.classList.add('hidden');
+    // Herlaad modal voor updated prijzen
+    if (window._currentDetailTab && window._currentDetailId) {
+      await window._openDetail(window._currentDetailTab, window._currentDetailId, false, 'voorraad');
+    }
+  } catch (err) {
+    if (resultEl) { resultEl.className = 'shop-onderhandel-result shop-onderhandel-result--fout'; resultEl.textContent = err.message || 'Fout'; }
+  }
+};
+
+// ── Winkel uitverkocht toggle ──
+window._toggleShopUitverkocht = async (shopId, itemNaam, cbEl) => {
+  try {
+    await api.toggleShopUitverkocht(shopId, itemNaam);
+    // Her-open detail zodat de tabel opnieuw rendert met bijgewerkte state
+    window._openDetail(window._currentDetailTab, shopId);
+  } catch (err) {
+    if (cbEl) cbEl.checked = !cbEl.checked; // terugdraaien bij fout
+    alert('Fout: ' + err.message);
+  }
+};
+
+window._eigenaarQtyAdj = async (itemId, characterId, delta) => {
+  try {
+    await api.patchItemOwnerQty(itemId, characterId, delta);
+    await refreshOwnership();
+    window._openDetail('voorwerpen', itemId);
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+window._eigenaarVerwijder = async (itemId, characterId) => {
+  if (!confirm('Eigendom verwijderen voor deze speler?')) return;
+  try {
+    await api.removeStackOwner(itemId, characterId);
+    await refreshOwnership();
+    window._openDetail('voorwerpen', itemId);
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
 window._itemApproveRequest = async (reqId) => {
   try {
     await api.approveItemRequest(reqId);
@@ -1334,14 +1942,25 @@ window._toggleVis = async (tab, id, event) => {
   renderEntitySection(tab);
 };
 
+function _secretToast(revealed) {
+  const toast = document.createElement('div');
+  toast.className = 'bookmark-toast';
+  toast.textContent = revealed ? '✨ Geheim onthuld voor spelers' : '🔒 Geheim verborgen voor spelers';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('bookmark-toast--visible'), 10);
+  setTimeout(() => { toast.classList.remove('bookmark-toast--visible'); setTimeout(() => toast.remove(), 300); }, 2500);
+}
+
 window._toggleSecret = async (tab, id) => {
-  await api.toggleSecret(tab, id);
+  const res = await api.toggleSecret(tab, id);
+  _secretToast(res.secretReveal);
   window._openDetail(tab, id);
 };
 
 // Toggle vanuit de kaart — detail hoeft niet heropend; socket-event herrendert de kaarten.
 window._toggleSecretCard = async (type, id) => {
-  await api.toggleSecret(type, id);
+  const res = await api.toggleSecret(type, id);
+  _secretToast(res.secretReveal);
 };
 
 window._toggleDeceased = async (tab, id) => {
@@ -1607,10 +2226,12 @@ window._openEditor = async (tab, editId) => {
         </div>
       `;
     } else if (field.type === 'select') {
+      const _selOnchange = (tab === 'locaties' && field.key === 'locType')
+        ? ' onchange="window._onLocTypeChange(this.value)"' : '';
       body += `
         <div>
           <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
-          <select name="data_${field.key}" class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          <select name="data_${field.key}"${_selOnchange} class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
             <option value="">—</option>
             ${field.options.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
           </select>
@@ -1647,6 +2268,21 @@ window._openEditor = async (tab, editId) => {
         </div>
       </div>
     `;
+    if (field.key === 'geheim' && tab === 'personages' && isDM()) {
+      const isNpc = e?.subtype === 'NPC';
+      const isAntagonist = e?.data?.geheimeAntagonist === true || e?.data?.geheimeAntagonist === 'true';
+      body += `
+        <div id="geheime-antagonist-section"${isNpc ? '' : ' style="display:none"'} class="flex items-center gap-2 -mt-1">
+          <input type="hidden" id="inp-geheimeAntagonist" name="data_geheimeAntagonist" value="${isAntagonist ? 'true' : ''}">
+          <input type="checkbox" id="cb-geheimeAntagonist" class="rounded"
+            ${isAntagonist ? 'checked' : ''}
+            onchange="document.getElementById('inp-geheimeAntagonist').value=this.checked?'true':''">
+          <label for="cb-geheimeAntagonist" class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider cursor-pointer">
+            💀 Geheime antagonist — subtype wordt antagonist na onthulling
+          </label>
+        </div>
+      `;
+    }
     if (field.key === 'flavour') {
       const existingAudioId = e?.data?.audioId || '';
       const valUitgesproken = e?.data?.flavourUitgesproken === true || e?.data?.flavourUitgesproken === 'true';
@@ -1686,18 +2322,96 @@ window._openEditor = async (tab, editId) => {
     }
   }
 
-  // Voorraad (verkopers)
-  if (tab === 'personages') {
-    const isVerkoper = e?.subtype === 'verkoper';
+  // Voorraad (verkopers & winkels)
+  if (tab === 'personages' || tab === 'locaties') {
+    const _showVoorraad = tab === 'personages' ? e?.subtype === 'verkoper' : e?.data?.locType === 'Winkel';
+    let winkelConfigEditor = {};
+    try { winkelConfigEditor = e?.data?.winkelConfig ? JSON.parse(e.data.winkelConfig) : {}; } catch {}
     body += `
-      <div id="voorraad-section"${isVerkoper ? '' : ' style="display:none"'}
+      <div id="voorraad-section"${_showVoorraad ? '' : ' style="display:none"'}
         class="p-4 bg-room-elevated rounded border border-room-border">
         <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-3">\ud83c\udfec Voorraad</div>
+        <div class="voorraad-inladen-wrap mb-3">
+          <button type="button" onclick="window._voorraadInladenToggle()"
+            class="text-xs text-ink-dim hover:text-gold transition flex items-center gap-1">
+            <span id="voorraad-inladen-chevron">▸</span> Inladen van bestaande winkel…
+          </button>
+          <div id="voorraad-inladen-panel" class="hidden mt-2 flex gap-2 items-center">
+            <select id="voorraad-inladen-select"
+              class="flex-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              <option value="">— laden… —</option>
+            </select>
+            <button type="button" onclick="window._voorraadInladen()"
+              class="px-3 py-1 bg-room-bg border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright transition">
+              Inladen
+            </button>
+          </div>
+        </div>
         <div id="voorraad-rows" class="space-y-2 mb-3"></div>
         <button type="button" onclick="window._addVoorraadItem()"
           class="px-3 py-1 bg-room-bg border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright transition">
           + Voorwerp toevoegen
         </button>
+        <!-- Winkelconfig: rotatie-instellingen -->
+        <div class="mt-4 pt-3 border-t border-room-border/60">
+          <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-2">🔄 Rotatie-instellingen</div>
+          <input type="hidden" name="data_winkelConfig" id="winkelconfig-hidden" value="${esc(e?.data?.winkelConfig || '')}">
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer">
+              <input type="checkbox" id="wc-roterend" ${winkelConfigEditor.roterend ? 'checked' : ''} onchange="window._wcUpdate()">
+              Roterend assortiment
+            </label>
+            <div id="wc-extra" class="${winkelConfigEditor.roterend ? '' : 'hidden'} space-y-2 pl-4">
+              <div class="flex gap-2 items-center">
+                <label class="text-xs text-ink-dim w-32">Aantal tegelijk</label>
+                <input type="number" id="wc-aantal" min="1" max="50" value="${winkelConfigEditor.aantalItems || 3}"
+                  oninput="window._wcUpdate()"
+                  class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              </div>
+              <div class="flex gap-2 items-center">
+                <label class="text-xs text-ink-dim w-32">Refresh na (uur)</label>
+                <input type="number" id="wc-uren" min="1" value="${winkelConfigEditor.refreshUren || 24}"
+                  oninput="window._wcUpdate()"
+                  class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              </div>
+              <div class="flex gap-2 items-center">
+                <label class="text-xs text-ink-dim w-32" title="Winkels met hetzelfde label delen één rotatie">Gedeeld met</label>
+                <input type="text" id="wc-deelgroep" value="${esc(winkelConfigEditor.deelGroep || '')}"
+                  oninput="window._wcUpdate()" placeholder="bijv. mystiek-magazijn"
+                  class="flex-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Sfeer & Onderhandelen instellingen -->
+        <div class="mt-4 pt-3 border-t border-room-border/60">
+          <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-2">🎭 Sfeer & onderhandelen</div>
+          <div class="space-y-2">
+            <div>
+              <label class="text-xs text-ink-dim block mb-1">Sfeertekst (bovenaan voorraad)</label>
+              <textarea id="wc-sfeer" rows="2" oninput="window._wcUpdate()" placeholder="De schappen liggen vol met…"
+                class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(winkelConfigEditor.sfeerTekst || '')}</textarea>
+            </div>
+            <div class="flex gap-2 items-center">
+              <label class="text-xs text-ink-dim w-32">Onderhandel DC</label>
+              <input type="number" id="wc-onderhandel-dc" min="1" max="30" value="${winkelConfigEditor.onderhandelDC ?? 15}"
+                oninput="window._wcUpdate()"
+                class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            </div>
+            <div class="flex gap-2 items-center">
+              <label class="text-xs text-ink-dim w-32">Korting bij succes (%)</label>
+              <input type="number" id="wc-onderhandel-korting" min="0" max="90" value="${winkelConfigEditor.onderhandelKorting ?? 10}"
+                oninput="window._wcUpdate()"
+                class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            </div>
+            <div class="flex gap-2 items-center">
+              <label class="text-xs text-ink-dim w-32">Boete bij falen (%)</label>
+              <input type="number" id="wc-onderhandel-boete" min="0" max="50" value="${winkelConfigEditor.onderhandelBoete ?? 0}"
+                oninput="window._wcUpdate()"
+                class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            </div>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -1937,36 +2651,160 @@ window._openEditor = async (tab, editId) => {
 
   // ── Voorraad editor state ──
   let _voorraadItems = [];
-  if (tab === 'personages') {
+  if (tab === 'personages' || tab === 'locaties') {
     try { _voorraadItems = e?.data?.voorraad ? JSON.parse(e.data.voorraad) : []; } catch { _voorraadItems = []; }
+
+    let _voorraadEntityOptions = []; // { id, name } — geladen uit voorwerpen
+    // Async: laad voorwerpen voor koppeling + auto-link op naam
+    if (isDM()) {
+      api.listEntities('voorwerpen').then(items => {
+        _voorraadEntityOptions = items.map(i => ({ id: i.id, name: i.name }));
+        // Auto-link bestaande items op exacte naamovereenkomst
+        let changed = false;
+        _voorraadItems = _voorraadItems.map(item => {
+          if (!item.entityId && item.naam) {
+            const match = _voorraadEntityOptions.find(o => o.name.toLowerCase() === item.naam.toLowerCase());
+            if (match) { changed = true; return { ...item, entityId: match.id }; }
+          }
+          return item;
+        });
+        const dl = document.getElementById('voorraad-entity-dl');
+        if (dl) dl.innerHTML = _voorraadEntityOptions.map(o => `<option value="${esc(o.name)}">`).join('');
+        if (changed) window._refreshVoorraad();
+      }).catch(() => {});
+    }
 
     window._refreshVoorraad = () => {
       const rows = document.getElementById('voorraad-rows');
       if (!rows) return;
       rows.innerHTML = _voorraadItems.length === 0
         ? `<p class="text-xs text-ink-faint italic">Nog geen items toegevoegd</p>`
-        : _voorraadItems.map((item, idx) => `
-          <div class="flex gap-2 items-center">
+        : _voorraadItems.map((item, idx) => {
+          const linked = !!item.entityId;
+          const entityDisplayName = item.entityId
+            ? (_voorraadEntityOptions.find(o => o.id === item.entityId)?.name || item.naam || '')
+            : '';
+          return `
+          <div class="flex gap-2 items-center flex-wrap">
             <input placeholder="Naam voorwerp" value="${esc(item.naam || '')}"
               oninput="window._updateVoorraadItem(${idx},'naam',this.value)"
-              class="flex-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              class="flex-1 min-w-24 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
             <input placeholder="Prijs (bijv. 15 gp)" value="${esc(item.prijs || '')}"
               oninput="window._updateVoorraadItem(${idx},'prijs',this.value)"
-              class="w-32 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              class="w-28 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            <div class="relative flex items-center gap-1">
+              <input list="voorraad-entity-dl" placeholder="🔗 Koppel aan kaartje…"
+                value="${esc(entityDisplayName)}"
+                onchange="window._updateVoorraadEntityLink(${idx}, this.value)"
+                title="Koppel aan een bestaand voorwerpkaartje"
+                class="w-36 px-2 py-1 bg-room-bg border rounded text-sm focus:border-gold-dim focus:outline-none ${linked ? 'border-green-wax/60 text-green-wax' : 'border-room-border text-ink-dim'}">
+              ${linked ? '<span class="text-green-wax text-xs" title="Gekoppeld">✓</span>' : ''}
+            </div>
             <button type="button" onclick="window._removeVoorraadItem(${idx})"
               class="w-7 h-7 flex items-center justify-center rounded text-seal hover:bg-seal/20 text-lg leading-none transition">&times;</button>
-          </div>
-        `).join('');
+          </div>`;
+        }).join('') + `<datalist id="voorraad-entity-dl">${_voorraadEntityOptions.map(o => `<option value="${esc(o.name)}">`).join('')}</datalist>`;
     };
-    window._addVoorraadItem = () => { _voorraadItems.push({ naam: '', prijs: '' }); window._refreshVoorraad(); };
+    window._addVoorraadItem = () => { _voorraadItems.push({ naam: '', prijs: '', entityId: '' }); window._refreshVoorraad(); };
     window._removeVoorraadItem = (idx) => { _voorraadItems.splice(idx, 1); window._refreshVoorraad(); };
     window._updateVoorraadItem = (idx, field, val) => { if (_voorraadItems[idx]) _voorraadItems[idx][field] = val; };
+    window._updateVoorraadEntityLink = (idx, naam) => {
+      if (!_voorraadItems[idx]) return;
+      const match = _voorraadEntityOptions.find(o => o.name.toLowerCase() === naam.toLowerCase());
+      _voorraadItems[idx].entityId = match?.id || '';
+      // Re-render om het ✓ icoon en stijl bij te werken
+      window._refreshVoorraad();
+    };
+
+    // Subtype-wissel (personages)
     window._onSubtypeChange = (val) => {
       const sec = document.getElementById('voorraad-section');
       if (sec) sec.style.display = val === 'verkoper' ? '' : 'none';
+      const wcSec = document.getElementById('winkelconfig-section');
+      if (wcSec) wcSec.style.display = val === 'verkoper' ? '' : 'none';
       const groepSec = document.getElementById('groep-section');
       if (groepSec) groepSec.style.display = val === 'speler' ? '' : 'none';
+      const antagonistSec = document.getElementById('geheime-antagonist-section');
+      if (antagonistSec) antagonistSec.style.display = val === 'NPC' ? '' : 'none';
     };
+
+    // LocType-wissel (locaties)
+    window._onLocTypeChange = (val) => {
+      const sec = document.getElementById('voorraad-section');
+      if (sec) sec.style.display = val === 'Winkel' ? '' : 'none';
+      const wcSec = document.getElementById('winkelconfig-section');
+      if (wcSec) wcSec.style.display = val === 'Winkel' ? '' : 'none';
+    };
+
+    // Inladen-paneel toggle
+    window._voorraadInladenToggle = async () => {
+      const panel = document.getElementById('voorraad-inladen-panel');
+      const chevron = document.getElementById('voorraad-inladen-chevron');
+      if (!panel) return;
+      const open = !panel.classList.contains('hidden');
+      panel.classList.toggle('hidden', open);
+      if (chevron) chevron.textContent = open ? '▸' : '▾';
+      if (!open) {
+        // Vul de select met winkels/verkopers die voorraad hebben
+        const sel = document.getElementById('voorraad-inladen-select');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">— kies een winkel/verkoper —</option>';
+        try {
+          const [personages, locaties] = await Promise.all([
+            api.listEntities('personages'),
+            api.listEntities('locaties'),
+          ]);
+          const bronnen = [
+            ...personages.filter(p => p.subtype === 'verkoper' && p.data?.voorraad && p.data.voorraad !== '[]'),
+            ...locaties.filter(l => l.data?.locType === 'Winkel' && l.data?.voorraad && l.data.voorraad !== '[]'),
+          ].filter(b => b.id !== (e?.id || null)); // eigen item niet aanbieden
+          bronnen.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.id;
+            opt.dataset.type = b.subtype === 'verkoper' ? 'personages' : 'locaties';
+            opt.textContent = b.name + (b.subtype === 'verkoper' ? ' (verkoper)' : ' (winkel)');
+            sel.appendChild(opt);
+          });
+          if (bronnen.length === 0) sel.innerHTML = '<option value="">— geen winkels gevonden —</option>';
+        } catch { sel.innerHTML = '<option value="">— fout bij laden —</option>'; }
+      }
+    };
+
+    // Inladen: kopieer voorraad van geselecteerde bron
+    window._voorraadInladen = async () => {
+      const sel = document.getElementById('voorraad-inladen-select');
+      if (!sel || !sel.value) return;
+      const bronType = sel.options[sel.selectedIndex]?.dataset.type || 'personages';
+      try {
+        const bron = await api.getEntity(bronType, sel.value);
+        const bronItems = bron?.data?.voorraad ? JSON.parse(bron.data.voorraad) : [];
+        if (bronItems.length === 0) return;
+        _voorraadItems = bronItems.map(i => ({ naam: i.naam || '', prijs: i.prijs || '' }));
+        window._refreshVoorraad();
+        // Sluit paneel
+        document.getElementById('voorraad-inladen-panel')?.classList.add('hidden');
+        const chevron = document.getElementById('voorraad-inladen-chevron');
+        if (chevron) chevron.textContent = '▸';
+      } catch { /* stil falen */ }
+    };
+
+    window._wcUpdate = () => {
+      const roterend = document.getElementById('wc-roterend')?.checked || false;
+      document.getElementById('wc-extra')?.classList.toggle('hidden', !roterend);
+      const config = {
+        roterend,
+        aantalItems: parseInt(document.getElementById('wc-aantal')?.value) || 3,
+        refreshUren: parseFloat(document.getElementById('wc-uren')?.value) || 24,
+        deelGroep: (document.getElementById('wc-deelgroep')?.value || '').trim(),
+        sfeerTekst: (document.getElementById('wc-sfeer')?.value || '').trim(),
+        onderhandelDC: parseInt(document.getElementById('wc-onderhandel-dc')?.value) || 15,
+        onderhandelKorting: parseInt(document.getElementById('wc-onderhandel-korting')?.value) || 10,
+        onderhandelBoete: parseInt(document.getElementById('wc-onderhandel-boete')?.value) || 0,
+      };
+      const hidden = document.getElementById('winkelconfig-hidden');
+      if (hidden) hidden.value = JSON.stringify(config);
+    };
+
     window._refreshVoorraad();
   }
 
@@ -1980,8 +2818,8 @@ window._openEditor = async (tab, editId) => {
       if (key.startsWith('data_')) data[key.slice(5)] = val;
       else if (key.startsWith('stat_')) stats[key.slice(5)] = val;
     }
-    // Voorraad serialiseren voor verkopers
-    if (tab === 'personages') {
+    // Voorraad serialiseren voor verkopers & winkels
+    if (tab === 'personages' || tab === 'locaties') {
       const validItems = _voorraadItems.filter(i => i.naam || i.prijs);
       data.voorraad = validItems.length > 0 ? JSON.stringify(validItems) : '';
     }
@@ -1996,6 +2834,14 @@ window._openEditor = async (tab, editId) => {
       links: { ...editorTags },
       stats: tab === 'personages' ? stats : null,
     };
+    // Duplicaatdetectie voor voorwerpen (unieke naam vereist)
+    if (tab === 'voorwerpen') {
+      try {
+        const allVw = await api.listEntities('voorwerpen');
+        const dup = allVw.find(i => i.id !== editId && i.name.toLowerCase() === (payload.name || '').toLowerCase());
+        if (dup && !confirm(`Er bestaat al een voorwerp met de naam "${dup.name}". Toch opslaan?`)) return;
+      } catch { /* ok — niet blokkeren bij API-fout */ }
+    }
     try {
       if (editId) {
         await api.updateEntity(tab, editId, payload);

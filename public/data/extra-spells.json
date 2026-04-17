@@ -1,0 +1,124 @@
+{
+  "results": [
+    {
+      "index": "nathairs-mischief",
+      "name": "Nathair's Mischief",
+      "level": 2,
+      "school": { "name": "Illusie" },
+      "casting_time": "1 actie",
+      "range": "20 feet",
+      "components": ["V", "S"],
+      "duration": "Concentratie, tot 1 minuut",
+      "desc": ["Je vult een kubus van 20 voet die je kunt zien binnen bereik met feërie en draconische magie. Gooi op de Mischievous Surge-tabel om het magische effect te bepalen, en gooi opnieuw aan het begin van elk van jouw beurten totdat de spreuk eindigt. Je kunt de kubus tot 10 voet verplaatsen voordat je gooit.", "Mischievous Surge: 1–2: Elk wezen in het gebied is vergiftigd tot de volgende Mischievous Surge-gooi. 3–4: Een wezen in het gebied naar keuze is bang voor elk ander wezen in het gebied tot de volgende gooi. 5–6: Elk wezen in het gebied is betoverd door elk ander wezen in het gebied tot de volgende gooi. 7–8: Elk wezen in het gebied valt in slaap tot de volgende gooi. 9–10: Elk wezen in het gebied blaast zeepbellen totdat het slaapt."],
+      "source": "extra"
+    },
+    {
+      "index": "antagonize",
+      "name": "Antagonize",
+      "level": 3,
+      "school": { "name": "Betovering" },
+      "casting_time": "1 actie",
+      "range": "30 feet",
+      "components": ["V", "S", "M"],
+      "duration": "Onmiddellijk",
+      "desc": ["Je fluistert woorden in het oor van een wezen dat je kunt zien en dat je kunt horen. Het doelwit moet een Wijsheid-reddingsworp maken. Bij een mislukte worp wordt het doelwit geprovoceerd door een wezen naar keuze dat je kunt zien en dat in het zicht van het doelwit is. Op zijn volgende beurt moet het doelwit naar dat wezen bewegen en een aanval uitvoeren als het kan. Bij een geslaagde worp heeft de spreuk geen effect.", "De spreuk heeft ook geen effect als het doelwit geen vijandelijkheid kan voelen jegens het gekozen wezen."],
+      "source": "extra"
+    },
+    {
+      "index": "silvery-barbs",
+      "name": "Silvery Barbs",
+      "level": 1,
+      "school": { "name": "Betovering" },
+      "casting_time": "1 reactie",
+      "range": "60 feet",
+      "components": ["V"],
+      "duration": "Onmiddellijk",
+      "desc": ["Je werp zilveren magie op een wezen en verwart het. Als reactie op het moment dat een wezen dat je kunt zien binnen 60 voet een aanvals­gooi, ability check, of reddingsworp slaagt, kun je deze spreuk uitspreken om het wezen opnieuw te laten gooien en het lagere resultaat te gebruiken.  Bovendien kies je een ander wezen dat je kunt zien binnen bereik (inclusief jezelf). Dat wezen mag een advantage-gooi gebruiken bij de volgende aanvals­gooi, ability check, of reddingsworp die het maakt."],
+      "source": "extra"
+    },
+    {
+      "index": "tasha-caustic-brew",
+      "name": "Tasha's Caustic Brew",
+      "level": 1,
+      "school": { "name": "Evoking" },
+      "casting_time": "1 actie",
+      "range": "Self (30-foot line)",
+      "components": ["V", "S", "M"],
+      "duration": "Concentratie, tot 1 minuut",
+      "desc": ["Een stroom zuur van 30 voet lang en 5 voet breed stroomt van jou uit. Elk wezen in dat gebied moet een Behendigheid-reddingsworp maken. Bij mislukking is het wezen bedekt in zuur (2d4 zuurschade per beurt, neerleggen als actie)."],
+      "source": "extra"
+    },
+    {
+      "index": "tasha-mind-whip",
+      "name": "Tasha's Mind Whip",
+      "level": 2,
+      "school": { "name": "Betovering" },
+      "casting_time": "1 actie",
+      "range": "90 feet",
+      "components": ["V"],
+      "duration": "Onmiddellijk",
+      "desc": ["Je slaat een wezen aan met een psychische zweep. Het doelwit moet een Intelligentie-reddingsworp maken (3d6 psychische schade bij mislukking, helft bij succes). Bij mislukking moet het doelwit ook één optie opgeven op zijn volgende beurt: een actie, een bonus­actie, of zijn beweging."],
+      "source": "extra"
+    },
+    {
+      "index": "summon-beast",
+      "name": "Summon Beast",
+      "level": 2,
+      "school": { "name": "Bezwering" },
+      "casting_time": "1 actie",
+      "range": "90 feet",
+      "components": ["V", "S", "M"],
+      "duration": "Concentratie, tot 1 uur",
+      "desc": ["Je roept een beestgeest op dat een vorm aanneemt van jouw keuze: Land, Sea of Air. Het wezen verschijnt op een leeg vlak dat je kunt zien binnen bereik en verdwijnt als het op 0 trefferpunten valt of als de spreuk eindigt. Het wezen is vriendelijk tegenover jou en je metgezellen."],
+      "source": "extra"
+    },
+    {
+      "index": "summon-undead",
+      "name": "Summon Undead",
+      "level": 3,
+      "school": { "name": "Necromantie" },
+      "casting_time": "1 actie",
+      "range": "90 feet",
+      "components": ["V", "S", "M"],
+      "duration": "Concentratie, tot 1 uur",
+      "desc": ["Je roept een onsterfelijke geest op. Kies de vorm van de geest: Ghostly, Putrid of Skeletal. Het verschijnt op een leeg vlak dat je kunt zien en is vriendelijk tegenover jou. Het is onder jouw bevel voor de duur."],
+      "source": "extra"
+    },
+    {
+      "index": "gift-of-alacrity",
+      "name": "Gift of Alacrity",
+      "level": 1,
+      "school": { "name": "Divinatie" },
+      "casting_time": "1 minuut",
+      "range": "Touch",
+      "components": ["V", "S"],
+      "duration": "8 uur",
+      "desc": ["Je raakt een gewillig wezen aan. Voor de duur gooit het wezen een extra 1d8 bij initiatief­bepaling."],
+      "source": "extra"
+    },
+    {
+      "index": "spirit-shroud",
+      "name": "Spirit Shroud",
+      "level": 3,
+      "school": { "name": "Necromantie" },
+      "casting_time": "1 bonus­actie",
+      "range": "Self",
+      "components": ["V", "S"],
+      "duration": "Concentratie, tot 1 minuut",
+      "desc": ["Je roep geesten op die je omringen. Je aanvallen doen extra 1d8 schade (nekrotisch, stralend of koud — jouw keuze) totdat de spreuk eindigt. Vijanden op 10 voet van jou kunnen hun snelheid niet herstellen."],
+      "source": "extra"
+    },
+    {
+      "index": "psychic-lance",
+      "name": "Psychic Lance",
+      "level": 4,
+      "school": { "name": "Betovering" },
+      "casting_time": "1 actie",
+      "range": "120 feet",
+      "components": ["V"],
+      "duration": "Onmiddellijk",
+      "desc": ["Je richt een lans van psychische energie op een wezen dat je kunt zien. Het doelwit moet een Intelligentie-reddingsworp maken (7d6 psychische schade bij mislukking, helft bij succes). Bij mislukking is het wezen ook incapacitated tot het einde van zijn volgende beurt."],
+      "source": "extra"
+    }
+  ]
+}

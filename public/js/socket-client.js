@@ -6,15 +6,18 @@ export function initSocket() {
 
   const ENTITY_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 
+  // Helper: herlaad de actieve entiteitsectie via window.app (zelfde module-instantie als app.js,
+  // zodat searchQueries/subtypeFilters behouden blijven)
+  function _refreshEntitySection(section) {
+    if (ENTITY_SECTIONS.includes(section)) {
+      window.app.refreshSection(section);
+    }
+  }
+
   socket.on('entity:updated', () => {
     const section = window.app.state.activeSection;
     if (ENTITY_SECTIONS.includes(section)) {
-      import('./render-campagne.js').then(m => {
-        if (section === 'personages') m.renderPersonages();
-        else if (section === 'locaties') m.renderLocaties();
-        else if (section === 'organisaties') m.renderOrganisaties();
-        else if (section === 'voorwerpen') m.renderVoorwerpen();
-      });
+      _refreshEntitySection(section);
     } else if (section === 'dashboard') {
       import('./render-dashboard.js').then(m => m.renderDashboard());
     }
@@ -23,12 +26,7 @@ export function initSocket() {
   socket.on('entity:visibility', ({ id, type, name, visibility } = {}) => {
     const section = window.app.state.activeSection;
     if (ENTITY_SECTIONS.includes(section)) {
-      import('./render-campagne.js').then(m => {
-        if (section === 'personages') m.renderPersonages();
-        else if (section === 'locaties') m.renderLocaties();
-        else if (section === 'organisaties') m.renderOrganisaties();
-        else if (section === 'voorwerpen') m.renderVoorwerpen();
-      });
+      _refreshEntitySection(section);
     } else if (section === 'dashboard') {
       import('./render-dashboard.js').then(m => m.renderDashboard());
     }
@@ -45,12 +43,7 @@ export function initSocket() {
   socket.on('entity:secret', ({ id, type, name, secretReveal } = {}) => {
     const section = window.app.state.activeSection;
     if (ENTITY_SECTIONS.includes(section)) {
-      import('./render-campagne.js').then(m => {
-        if (section === 'personages') m.renderPersonages();
-        else if (section === 'locaties') m.renderLocaties();
-        else if (section === 'organisaties') m.renderOrganisaties();
-        else if (section === 'voorwerpen') m.renderVoorwerpen();
-      });
+      _refreshEntitySection(section);
     }
     // Melding voor spelers bij onthulling van een geheimenis
     if (!window.app?.isDM?.() && secretReveal && name) {
@@ -165,14 +158,7 @@ export function initSocket() {
   socket.on('entity:deceased', ({ id, type, name } = {}) => {
     // Herlaad de huidige sectie zodat het kaartje meteen grijs wordt
     const section = window.app.state.activeSection;
-    if (ENTITY_SECTIONS.includes(section)) {
-      import('./render-campagne.js').then(m => {
-        if (section === 'personages') m.renderPersonages();
-        else if (section === 'locaties') m.renderLocaties();
-        else if (section === 'organisaties') m.renderOrganisaties();
-        else if (section === 'voorwerpen') m.renderVoorwerpen();
-      });
-    }
+    _refreshEntitySection(section);
     // Toast voor spelers
     if (!window.app.isDM() && name) {
       _showToast(`🕯️ <strong>${name}</strong> is overleden`, () => {
@@ -188,15 +174,7 @@ export function initSocket() {
     // Herlaad party bar zodat juiste spelers getoond worden
     window.renderParty?.();
     // Herlaad huidige sectie zodat zichtbaarheidsstatus klopt na groepswisseling
-    const section = window.app.state.activeSection;
-    if (['personages', 'locaties', 'organisaties', 'voorwerpen'].includes(section)) {
-      import('./render-campagne.js').then(m => {
-        if (section === 'personages') m.renderPersonages();
-        else if (section === 'locaties') m.renderLocaties();
-        else if (section === 'organisaties') m.renderOrganisaties();
-        else if (section === 'voorwerpen') m.renderVoorwerpen();
-      });
-    }
+    _refreshEntitySection(window.app.state.activeSection);
   });
 
   // ── Tunnel ──
@@ -218,7 +196,6 @@ export function initSocket() {
     window.soundManager?.onCombatUpdated(combat);
     // Herlaad spelersdashboard als dat actief is (HP-balk bijwerken)
     if (window.app?.state?.activeSection === 'mijn-karakter') {
-      import('./app.js').catch(() => {});  // module is al geladen; alleen dashboard herrenderen
       window.app?.refreshSection('mijn-karakter');
     }
   });
@@ -238,14 +215,12 @@ export function initSocket() {
 
   // ── Voorwerpen eigendom ──
   socket.on('items:ownership-updated', (data) => {
-    import('./render-campagne.js').then(m => {
-      if (data) m.setOwnership?.(data);
-      if (window.app?.state?.activeSection === 'voorwerpen') m.renderVoorwerpen();
-    });
-    // Ververs het spelerdashboard als dat actief is (geclaimde voorwerpen bijwerken)
-    if (window.app?.state?.activeSection === 'mijn-karakter') {
-      window.app.refreshSection('mijn-karakter');
+    if (data) window._setOwnership?.(data);
+    if (window.app?.state?.activeSection === 'voorwerpen') {
+      window.app.refreshSection('voorwerpen');
     }
+    // Altijd de knapzak bijwerken (ook als de tab niet actief is)
+    window.app.refreshSection('mijn-karakter');
     // Toast voor de speler wiens item is teruggenomen
     if (!window.app.isDM() && data?.takenBack) {
       const myCharId = window.app?.state?.characterId;
@@ -255,19 +230,35 @@ export function initSocket() {
     }
   });
 
+  // ── Speler voorwerpen bijgewerkt (tekst-items, geen entityId) ──
+  socket.on('player:items-updated', ({ characterId } = {}) => {
+    const myCharId = window.app?.state?.characterId;
+    if (!characterId || characterId === myCharId) {
+      window.app.refreshSection('mijn-karakter');
+    }
+  });
+
   socket.on('items:request', (data) => {
-    import('./render-campagne.js').then(m => {
-      if (data) m.setOwnership?.(data);
-      // DM: toast met het verzoek
-      if (window.app.isDM() && data.requesterName) {
-        _showToast(
-          `📬 <strong>${data.requesterName}</strong> wil <em>${data.itemName || 'een voorwerp'}</em> claimen`,
-          () => { window.app.switchSection('voorwerpen'); },
-          6000
-        );
-      }
-      if (window.app?.state?.activeSection === 'voorwerpen') m.renderVoorwerpen();
-    });
+    if (data) window._setOwnership?.(data);
+    // DM: toast met het verzoek
+    if (window.app.isDM() && data.requesterName) {
+      _showToast(
+        `📬 <strong>${data.requesterName}</strong> wil <em>${data.itemName || 'een voorwerp'}</em> claimen`,
+        () => { window.app.switchSection('voorwerpen'); },
+        6000
+      );
+    }
+    if (window.app?.state?.activeSection === 'voorwerpen') {
+      window.app.refreshSection('voorwerpen');
+    }
+  });
+
+  // ── Winkel uitverkocht ──
+  socket.on('shop:uitverkocht-updated', ({ shopId } = {}) => {
+    // Als het detail-venster van deze winkel open is, herlaad het
+    if (shopId && window._currentDetailId === shopId) {
+      window._openDetail(window._currentDetailTab, shopId);
+    }
   });
 
   // ── Spelersaantekeningen ──
@@ -300,7 +291,7 @@ export function initSocket() {
       _showToast(`⚔️ <strong>${name}</strong> vergezelt nu de groep`);
     }
     if (window.app?.state?.activeSection === 'mijn-karakter') {
-      window.refreshSection?.('mijn-karakter');
+      window.app.refreshSection('mijn-karakter');
     }
   });
 
@@ -309,7 +300,7 @@ export function initSocket() {
       _showToast(`↩ <strong>${name}</strong> heeft de groep verlaten`);
     }
     if (window.app?.state?.activeSection === 'mijn-karakter') {
-      window.refreshSection?.('mijn-karakter');
+      window.app.refreshSection('mijn-karakter');
     }
   });
 
@@ -325,7 +316,7 @@ export function initSocket() {
     if (window.app?.isDM?.()) window.renderParty?.();
     // Speler: herrender dashboard als actief
     if (isMe && window.app?.state?.activeSection === 'mijn-karakter') {
-      window.refreshSection?.('mijn-karakter');
+      window.app.refreshSection('mijn-karakter');
     }
   });
 
@@ -375,6 +366,19 @@ export function initSocket() {
     // Unread badge bijwerken
     window._berichtenUnread = (window._berichtenUnread || 0) + 1;
     window._updateBerichtenBadge?.();
+  });
+
+  // ── Gedeelde beurs ──
+  socket.on('party-currency:updated', ({ groupId, currency, actor } = {}) => {
+    // Alleen relevant als dit mijn groep is
+    const myGroupId = window._myGroupId;
+    if (groupId && myGroupId && groupId !== myGroupId) return;
+    if (window.app?.state?.activeSection === 'mijn-karakter') {
+      window.app.refreshSection('mijn-karakter');
+    }
+    if (actor && actor !== 'DM' && currency) {
+      _showToast(`💰 <strong>${actor}</strong> heeft de gedeelde beurs bijgewerkt`);
+    }
   });
 
   socket.on('connect', () => {
