@@ -135,8 +135,13 @@ function _updateState(combat) {
     const newRound = combat.round || 1;
     const newTurn  = combat.currentTurn ?? 0;
     if (newRound > _prevRound) {
+      const cs    = combat.combatants || [];
+      const cur   = cs[newTurn];
+      const group = (cur?.type === 'monster') ? _getTurnGroup(cs, newTurn) : [newTurn];
+      const names = group.map(i => cs[i]?.name).filter(Boolean);
+      const turnSub = names.length ? names.join(' & ') + ' is aan de beurt' : 'BEGINT';
       _announcement = { t0: performance.now(), type: 'round',
-        title: `RONDE ${newRound}`, subtitle: 'BEGINT', color: null };
+        title: `RONDE ${newRound}`, subtitle: turnSub, color: null };
     } else if (newTurn !== _prevTurn) {
       const cs  = combat.combatants || [];
       const cur = cs[newTurn];
