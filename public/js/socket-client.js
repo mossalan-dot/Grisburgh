@@ -381,6 +381,54 @@ export function initSocket() {
     }
   });
 
+  // ── Gock rapport klaar ──
+  socket.on('gock:rapport-klaar', ({ entityName } = {}) => {
+    _showToast(
+      `📁 <strong>De Gock</strong> heeft zijn rapport over <em>${entityName}</em> klaargelegd`,
+      () => { window.app.switchSection('gock'); },
+      8000
+    );
+    if (window.app?.state?.activeSection === 'gock') {
+      window.app.refreshSection('gock');
+    }
+  });
+
+  // ── Tweespalt ──
+  socket.on('tweespalt:updated', () => {
+    if (window.app?.state?.activeSection === 'tweespalt') {
+      window.app.refreshSection('tweespalt');
+    }
+  });
+
+  socket.on('tweespalt:uitslag', ({ eventNaam, winnaarNaam, uitbetalingen } = {}) => {
+    const myCharId = window.app?.state?.characterId;
+    const mijnUitbetaling = myCharId && uitbetalingen?.[myCharId];
+    if (mijnUitbetaling) {
+      if (mijnUitbetaling.gewonnen) {
+        _showToast(
+          `🏆 <strong>${eventNaam}</strong> — ${winnaarNaam} wint! Jij hebt gewonnen!`,
+          () => { window.app.switchSection('tweespalt'); },
+          7000
+        );
+      } else {
+        _showToast(
+          `🎲 <strong>${eventNaam}</strong> — ${winnaarNaam} wint. Jij had pech.`,
+          () => { window.app.switchSection('tweespalt'); },
+          6000
+        );
+      }
+    } else if (myCharId) {
+      _showToast(
+        `🎲 <strong>${eventNaam}</strong> afgerond — winnaar: ${winnaarNaam}`,
+        () => { window.app.switchSection('tweespalt'); },
+        5000
+      );
+    }
+    if (window.app?.state?.activeSection === 'tweespalt') {
+      window.app.refreshSection('tweespalt');
+    }
+  });
+
   socket.on('connect', () => {
     console.log('Socket connected');
     // Herregistreer characterId na reconnect
