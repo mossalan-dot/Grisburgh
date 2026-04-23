@@ -92,13 +92,14 @@ function _onCombatUpdated(combat) {
 // ── Public API (called by socket-client.js) ───────────────────────────────────
 
 window.soundManager = {
-  playEmote({ entityId, index }) {
+  playEmote({ entityId, index, emoteId }) {
     if (!window.app?.isDM?.()) return;
     const data = _sounds.emotes?.[entityId];
-    // New model: { library, selected } — index is position in selected[]
-    if (data?.selected) {
-      const eid  = data.selected[index];
-      const item = data.library?.find(e => e.id === eid);
+    if (data?.library) {
+      // Zoek op emoteId (nieuw) of via selected[index] (gevechtsoverlay)
+      const item = emoteId
+        ? data.library.find(e => e.id === emoteId)
+        : data.library.find(e => e.id === data.selected?.[index]);
       if (item?.fileId) _play(item.fileId);
     } else if (Array.isArray(data)) {
       // Legacy flat-array fallback
