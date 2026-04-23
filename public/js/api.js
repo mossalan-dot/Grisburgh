@@ -218,6 +218,16 @@ export const api = {
   getSjablonen:        ()                   => request('/berichten/sjablonen'),
   saveSjablonen:       (sjablonen)          => request('/berichten/sjablonen',                { method: 'PUT',   body: JSON.stringify({ sjablonen }) }),
 
+  // Tweespalt / Gokkantoor
+  getTweespalt:          ()              => request('/tweespalt'),
+  createTweespaltEvent:  (data)          => request('/tweespalt/events',                    { method: 'POST',   body: JSON.stringify(data) }),
+  updateTweespaltEvent:  (id, data)      => request(`/tweespalt/events/${id}`,              { method: 'PUT',    body: JSON.stringify(data) }),
+  deleteTweespaltEvent:  (id)            => request(`/tweespalt/events/${id}`,              { method: 'DELETE' }),
+  weddenTweespalt:       (id, data)      => request(`/tweespalt/events/${id}/wedden`,       { method: 'POST',   body: JSON.stringify(data) }),
+  uitslagTweespalt:      (id, data)      => request(`/tweespalt/events/${id}/uitslag`,      { method: 'POST',   body: JSON.stringify(data || {}) }),
+  leenTweespalt:         (bedrag)        => request('/tweespalt/leen',                      { method: 'POST',   body: JSON.stringify({ bedrag }) }),
+  getTweespaltLog:       ()              => request('/tweespalt/log'),
+
   // Generieke helper-methoden
   get:  (path)        => request(path),
   post: (path, body)  => request(path, { method: 'POST', body: JSON.stringify(body) }),

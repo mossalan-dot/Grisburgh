@@ -115,6 +115,7 @@ function switchSection(section) {
     kaart:         'rgba(42,90,70,0.55)',
     logboek:       'rgba(184,134,11,0.55)',
     herberg:       'rgba(160,90,20,0.65)',
+    tweespalt:     'rgba(90,20,20,0.65)',
     'mijn-karakter': 'rgba(42,90,138,0.55)',
     meesterkamer:  'rgba(139,42,42,0.55)',
   };
@@ -293,6 +294,10 @@ function applyRole() {
   } else {
     document.documentElement.style.removeProperty('--herberg-backdrop-url');
   }
+
+  // Tweespalt-tabblad: alleen zichtbaar voor benoemde spelers
+  const tweespaltTab = document.getElementById('tweespalt-tab');
+  if (tweespaltTab) tweespaltTab.classList.toggle('hidden', !isNamedPlayer);
 
   // Eigen-karakter-tabblad
   const myCharTab = document.querySelector('.section-tab[data-section="mijn-karakter"]');
@@ -713,6 +718,7 @@ async function refreshSection(section) {
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await renderKaart();
   else if (section === 'herberg') await renderHerberg();
+  else if (section === 'tweespalt') await renderTweespalt();
   else if (section === 'mijn-karakter') await renderMijnKarakter();
   else if (section === 'spelers') await renderSpelersTab();
   else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
@@ -3276,5 +3282,214 @@ window._herbergVraag = async (entityId) => {
     antwoord.innerHTML = `<p class="herberg-err">${err.message || 'Fout'}</p>`;
   }
 };
+
+// ── Tweespalt / Gokkantoor ──────────────────────────────────────────────────
+
+async function renderTweespalt() {
+  const el = document.getElementById('section-tweespalt');
+  if (!el) return;
+  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+
+  let data;
+  try { data = await api.getTweespalt(); }
+  catch (e) {
+    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`;
+    return;
+  }
+
+  const { events = [], currency, lening, npcNamen = [] } = data;
+  const openEvents = events.filter(e => e.status === 'open');
+  const afgerondEvents = events.filter(e => e.status === 'afgerond');
+
+  function formatCl(cl) {
+    const fl = Math.floor(cl / 100), kn = Math.floor((cl % 100) / 10), ce = cl % 10;
+    return [fl && `${fl} fl`, kn && `${kn} kn`, ce && `${ce} cl`].filter(Boolean).join(' · ') || '0 cl';
+  }
+  function beursTekst(cur) {
+    if (!cur) return '';
+    const parts = [cur.fl && `${cur.fl} fl`, cur.kn && `${cur.kn} kn`, cur.cl && `${cur.cl} cl`].filter(Boolean);
+    return parts.join(' · ') || '0 cl';
+  }
+
+  function npcBets(event) {
+    if (!npcNamen.length || !event.opties.length) return '';
+    const seed = event.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    const count = 2 + (seed % 4);
+    const rows = [];
+    for (let i = 0; i < count; i++) {
+      const naam = npcNamen[(seed * (i + 7)) % npcNamen.length];
+      const optie = event.opties[(seed * (i + 3)) % event.opties.length];
+      rows.push(`<div class="ts-npc-row"><span class="ts-npc-naam">${esc(naam)}</span><span class="ts-npc-optie">→ ${esc(optie.naam)}</span></div>`);
+    }
+    return `<div class="ts-npc-lijst">${rows.join('')}</div>`;
+  }
+
+  function renderOptieKnop(event, opt) {
+    const mijnInzet = event.mijnInzet;
+    const heeftIngezet = !!mijnInzet;
+    const isGekozen = mijnInzet?.optieId === opt.id;
+    return `
+      <div class="ts-optie${isGekozen ? ' ts-optie--gekozen' : ''}" data-optie-id="${esc(opt.id)}" data-event-id="${esc(event.id)}">
+        <div class="ts-optie-top">
+          <span class="ts-optie-naam">${esc(opt.naam)}</span>
+          <span class="ts-optie-kans">${opt.kans}% kans</span>
+          <span class="ts-optie-payout">× ${opt.payout + 1} bij winst</span>
+        </div>
+        ${isGekozen
+          ? `<div class="ts-optie-ingezet">✓ Jouw inzet: ${formatCl(mijnInzet.bedragCl)}</div>`
+          : heeftIngezet ? '' : `
+          <div class="ts-inzet-form" id="ts-form-${esc(event.id)}-${esc(opt.id)}">
+            <div class="ts-inzet-velden">
+              <input type="number" min="0" placeholder="fl" class="ts-inzet-input" id="ts-fl-${esc(event.id)}-${esc(opt.id)}" style="width:52px">
+              <span class="ts-inzet-label">fl</span>
+              <input type="number" min="0" placeholder="kn" class="ts-inzet-input" id="ts-kn-${esc(event.id)}-${esc(opt.id)}" style="width:52px">
+              <span class="ts-inzet-label">kn</span>
+            </div>
+            <button class="ts-wedden-btn" onclick="window._tsWedden('${esc(event.id)}','${esc(opt.id)}')">Inzetten</button>
+          </div>`}
+      </div>`;
+  }
+
+  function renderEvent(event) {
+    const isAfgerond = event.status === 'afgerond';
+    const winnaarOptie = isAfgerond ? event.opties.find(o => o.id === event.uitkomst) : null;
+    const gewonnen = isAfgerond && event.mijnInzet?.optieId === event.uitkomst;
+    const verloren = isAfgerond && event.mijnInzet && !gewonnen;
+    const restTijd = event.sluitTijd ? Math.max(0, new Date(event.sluitTijd) - Date.now()) : null;
+    const minRest = restTijd !== null ? Math.ceil(restTijd / 60000) : null;
+
+    return `
+      <div class="ts-event${isAfgerond ? ' ts-event--afgerond' : ''}">
+        <div class="ts-event-head">
+          <span class="ts-event-type">${event.type === 'godenwedden' ? '⚡ Godenwedden' : '⚔️ Gevecht'}</span>
+          <span class="ts-event-naam">${esc(event.naam)}</span>
+          ${event.uitkomstModus === 'auto' && minRest !== null && !isAfgerond
+            ? `<span class="ts-event-timer">${minRest < 60 ? `${minRest} min` : `${Math.ceil(minRest/60)} uur`}</span>`
+            : ''}
+        </div>
+        ${isAfgerond
+          ? `<div class="ts-uitslag${gewonnen ? ' ts-uitslag--gewonnen' : verloren ? ' ts-uitslag--verloren' : ''}">
+              <span class="ts-uitslag-label">Uitslag:</span>
+              <strong>${esc(winnaarOptie?.naam || '—')}</strong>
+              ${gewonnen ? `<span class="ts-uitslag-winst">🏆 Gewonnen! +${formatCl(event.mijnInzet.bedragCl * winnaarOptie.payout)}</span>` : ''}
+              ${verloren ? `<span class="ts-uitslag-verlies">Niet gewonnen</span>` : ''}
+            </div>`
+          : `<div class="ts-opties">${event.opties.map(o => renderOptieKnop(event, o)).join('')}</div>
+             ${npcBets(event)}`}
+      </div>`;
+  }
+
+  const leningBanner = lening
+    ? `<div class="ts-lening-banner">
+        📜 Openstaande lening bij Taevin Woekeling — oorspronkelijk ${formatCl(lening.bedragCl)},
+        huidig verschuldigd: <strong>${formatCl(lening.huidigVerschuldigdCl)}</strong>
+        <span class="ts-lening-sub">(30% rente per dag)</span>
+       </div>` : '';
+
+  el.innerHTML = `
+    <div class="herberg-scene">
+      <div class="herberg-content ts-content">
+        <div class="ts-header">
+          <div class="ts-portrait-fallback">🎲</div>
+          <div>
+            <p class="herberg-groet">Welkom bij De Tweespalt. Korporaal Standhall knikt je toe.</p>
+            ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
+          </div>
+        </div>
+
+        ${leningBanner}
+
+        ${openEvents.length
+          ? `<div class="ts-sectie-label">Openstaande weddenschappen</div>${openEvents.map(renderEvent).join('')}`
+          : `<p class="herberg-leeg">Er zijn momenteel geen openstaande weddenschappen.</p>`}
+
+        ${afgerondEvents.length
+          ? `<div class="ts-sectie-label ts-sectie-label--afgerond">Afgeronde events</div>${afgerondEvents.map(renderEvent).join('')}`
+          : ''}
+      </div>
+    </div>`;
+}
+
+window._tsWedden = async (eventId, optieId) => {
+  const flEl = document.getElementById(`ts-fl-${eventId}-${optieId}`);
+  const knEl = document.getElementById(`ts-kn-${eventId}-${optieId}`);
+  const fl = parseInt(flEl?.value || '0') || 0;
+  const kn = parseInt(knEl?.value || '0') || 0;
+
+  if (fl === 0 && kn === 0) { _tsToast('Vul een inzet in.'); return; }
+
+  const bedragCl = fl * 100 + kn * 10;
+  let currency;
+  try {
+    const res = await api.getTweespalt();
+    currency = res.currency;
+  } catch { currency = null; }
+
+  const heeftCl = currency ? (currency.fl * 100 + currency.kn * 10 + currency.cl) : Infinity;
+
+  if (bedragCl > heeftCl) {
+    _tsTaevinPrompt(eventId, optieId, bedragCl - heeftCl);
+    return;
+  }
+
+  try {
+    await api.weddenTweespalt(eventId, { optieId, bedrag: { fl, kn, cl: 0 } });
+    await renderTweespalt();
+    _tsToast('✓ Inzet geplaatst.');
+  } catch (err) {
+    _tsToast(err.message || 'Fout bij inzetten.');
+  }
+};
+
+function _tsTaevinPrompt(eventId, optieId, tekortCl) {
+  const fl = Math.floor(tekortCl / 100), kn = Math.ceil((tekortCl % 100) / 10);
+  const leenBedrag = { fl, kn: kn + 1, cl: 0 };
+  const leenCl = leenBedrag.fl * 100 + leenBedrag.kn * 10;
+  const leenTekst = [leenBedrag.fl && `${leenBedrag.fl} fl`, leenBedrag.kn && `${leenBedrag.kn} kn`].filter(Boolean).join(' en ');
+
+  const bubble = document.createElement('div');
+  bubble.className = 'ts-taevin-bubble';
+  bubble.innerHTML = `
+    <p class="ts-taevin-tekst">
+      <em>Psst… beetje krap bij kas, vriend? Lenen kan altijd, uiteraard tegen een heel vriendschappelijk prijsje.</em>
+    </p>
+    <p class="ts-taevin-sub">Taevin kan je <strong>${leenTekst}</strong> lenen — 30% rente per dag.</p>
+    <div class="ts-taevin-knoppen">
+      <button class="ts-btn ts-btn--gevaar" id="ts-leen-ja">Akkoord, leen me het geld</button>
+      <button class="ts-btn ts-btn--ghost" id="ts-leen-nee">Laat maar zitten</button>
+    </div>`;
+
+  const form = document.getElementById(`ts-form-${eventId}-${optieId}`);
+  if (form) form.after(bubble);
+
+  document.getElementById('ts-leen-nee')?.addEventListener('click', () => bubble.remove());
+  document.getElementById('ts-leen-ja')?.addEventListener('click', async () => {
+    try {
+      await api.leenTweespalt(leenBedrag);
+      bubble.remove();
+      const flEl = document.getElementById(`ts-fl-${eventId}-${optieId}`);
+      const knEl = document.getElementById(`ts-kn-${eventId}-${optieId}`);
+      const fl2 = parseInt(flEl?.value || '0') || 0;
+      const kn2 = parseInt(knEl?.value || '0') || 0;
+      await api.weddenTweespalt(eventId, { optieId, bedrag: { fl: fl2, kn: kn2, cl: 0 } });
+      await renderTweespalt();
+      _tsToast('📜 Geleend van Taevin. Schuldbewijs in je knapzak.');
+    } catch (err) {
+      _tsToast(err.message || 'Fout.');
+    }
+  });
+}
+
+function _tsToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'map-toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('map-toast--show'));
+  setTimeout(() => {
+    t.classList.remove('map-toast--show');
+    t.addEventListener('transitionend', () => t.remove(), { once: true });
+  }, 4000);
+}
 
 init();
