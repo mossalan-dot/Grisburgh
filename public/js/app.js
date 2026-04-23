@@ -54,6 +54,8 @@ window.app = {
   playerLogout,
   toggleArchiefMenu,
   closeArchiefMenu,
+  toggleDienstenMenu,
+  closeDienstenMenu,
 };
 
 // ── Section switching ──
@@ -66,20 +68,25 @@ $$('.section-tab[data-section]').forEach(btn => {
 
 // Archief dropdown items
 $$('#archief-menu .archief-menu-item').forEach(btn => {
-  btn.addEventListener('click', () => {
-    switchSection(btn.dataset.section);
-  });
+  btn.addEventListener('click', () => { switchSection(btn.dataset.section); });
 });
 
-// Sluit dropdown bij klik buiten het menu
+// Diensten dropdown items
+$$('#diensten-menu .archief-menu-item').forEach(btn => {
+  btn.addEventListener('click', () => { switchSection(btn.dataset.section); });
+});
+
+// Sluit dropdowns bij klik buiten het menu
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#archief-nav-group')) closeArchiefMenu();
+  if (!e.target.closest('#diensten-nav-group')) closeDienstenMenu();
 });
 
 function switchSection(section) {
   state.activeSection = section;
   location.hash = section;
   closeArchiefMenu();
+  closeDienstenMenu();
 
   // Directe tabs (logboek, mijn-karakter)
   $$('.section-tab[data-section]').forEach(b =>
@@ -116,6 +123,8 @@ function switchSection(section) {
     logboek:       'rgba(184,134,11,0.55)',
     herberg:       'rgba(160,90,20,0.65)',
     tweespalt:     'rgba(90,20,20,0.65)',
+    ursula:        'rgba(60,20,90,0.65)',
+    gock:          'rgba(20,50,80,0.65)',
     'mijn-karakter': 'rgba(42,90,138,0.55)',
     meesterkamer:  'rgba(139,42,42,0.55)',
   };
@@ -150,6 +159,23 @@ function toggleArchiefMenu() {
 
 function closeArchiefMenu() {
   $('#archief-menu')?.classList.add('hidden');
+}
+
+function toggleDienstenMenu() {
+  const menu = $('#diensten-menu');
+  if (!menu) return;
+  const willShow = menu.classList.contains('hidden');
+  menu.classList.toggle('hidden');
+  if (willShow && window.innerWidth <= 768) {
+    const btn = $('#diensten-nav-btn');
+    if (btn) menu.style.top = (btn.getBoundingClientRect().bottom + 4) + 'px';
+  } else {
+    menu.style.top = '';
+  }
+}
+
+function closeDienstenMenu() {
+  $('#diensten-menu')?.classList.add('hidden');
 }
 
 const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
@@ -280,13 +306,6 @@ function applyRole() {
 
   const isNamedPlayer = state.role === 'player' && !!state.playerName;
 
-  // Herberg-tabblad: alleen zichtbaar voor benoemde spelers als herberg geconfigureerd is
-  const herbergTab = document.getElementById('herberg-tab');
-  if (herbergTab) {
-    herbergTab.classList.toggle('hidden', !isNamedPlayer || !state.meta?.herberg);
-    const herbergNaam = state.meta?.herberg?.naam;
-    herbergTab.textContent = herbergNaam ? `🍺 ${herbergNaam}` : '🍺 Herberg';
-  }
   // Backdrop CSS-variabele voor herbergachtergrond
   const backdropId = state.meta?.herberg?.backdropId;
   if (backdropId) {
@@ -295,9 +314,23 @@ function applyRole() {
     document.documentElement.style.removeProperty('--herberg-backdrop-url');
   }
 
-  // Tweespalt-tabblad: alleen zichtbaar voor benoemde spelers
-  const tweespaltTab = document.getElementById('tweespalt-tab');
-  if (tweespaltTab) tweespaltTab.classList.toggle('hidden', !isNamedPlayer);
+  // Diensten dropdown: alleen zichtbaar voor benoemde spelers
+  const dienstenGroup = document.getElementById('diensten-nav-group');
+  if (dienstenGroup) dienstenGroup.classList.toggle('hidden', !isNamedPlayer);
+
+  // Herberg-item in dropdown: label aanpassen + verbergen als niet geconfigureerd
+  const herbergItem = document.getElementById('diensten-herberg-item');
+  if (herbergItem) {
+    herbergItem.classList.toggle('hidden', !state.meta?.herberg);
+    const herbergNaam = state.meta?.herberg?.naam;
+    const herbergLabel = document.getElementById('diensten-herberg-label');
+    if (herbergLabel) herbergLabel.textContent = herbergNaam || 'Herberg';
+  }
+
+  // Diensten-knop active-state als een diensten-sectie actief is
+  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'ursula', 'gock'];
+  const dienstenBtn = document.getElementById('diensten-nav-btn');
+  if (dienstenBtn) dienstenBtn.classList.toggle('active', DIENSTEN_SECTIONS.includes(state.activeSection));
 
   // Eigen-karakter-tabblad
   const myCharTab = document.querySelector('.section-tab[data-section="mijn-karakter"]');
@@ -719,6 +752,8 @@ async function refreshSection(section) {
   else if (section === 'kaart') await renderKaart();
   else if (section === 'herberg') await renderHerberg();
   else if (section === 'tweespalt') await renderTweespalt();
+  else if (section === 'ursula') await renderUrsula();
+  else if (section === 'gock') await renderGock();
   else if (section === 'mijn-karakter') await renderMijnKarakter();
   else if (section === 'spelers') await renderSpelersTab();
   else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
@@ -3281,6 +3316,188 @@ window._herbergVraag = async (entityId) => {
   } catch (err) {
     antwoord.innerHTML = `<p class="herberg-err">${err.message || 'Fout'}</p>`;
   }
+};
+
+// ── Madame Ursula / Waarzegger ─────────────────────────────────────────────
+
+async function renderUrsula() {
+  const el = document.getElementById('section-ursula');
+  if (!el) return;
+  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+
+  let data;
+  try { data = await api.getUrsula(); }
+  catch (e) {
+    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`;
+    return;
+  }
+
+  const { config, state: st, beschikbaar = [], currency } = data;
+  const cooldownActief = st.cooldownTot && new Date(st.cooldownTot) > new Date();
+  const minRest = cooldownActief ? Math.max(1, Math.ceil((new Date(st.cooldownTot) - Date.now()) / 60000)) : 0;
+
+  function beursTekst(cur) {
+    if (!cur) return '';
+    return [cur.fl && `${cur.fl} fl`, cur.kn && `${cur.kn} kn`, cur.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+  }
+  function prijsTekst(p) {
+    return [p.fl && `${p.fl} fl`, p.kn && `${p.kn} kn`, p.cl && `${p.cl} cl`].filter(Boolean).join(' ') || '0';
+  }
+
+  const lijstHtml = beschikbaar.map(e => `
+    <button class="herberg-item" onclick="window._ursulaKies('${esc(e.id)}','${esc(e.type)}','${esc(e.name)}')">
+      <span class="herberg-item-naam">${esc(e.name)}</span>
+      <span class="herberg-item-type">${e.type === 'personages' ? 'persoon' : e.type === 'locaties' ? 'locatie' : e.type}</span>
+    </button>`).join('');
+
+  el.innerHTML = `
+    <div class="herberg-scene ursula-scene">
+      <div class="herberg-content">
+        <div class="ts-header">
+          <div class="ursula-portret-fallback">🔮</div>
+          <div>
+            <p class="herberg-groet">${esc(config.naam)} trekt haar sluier opzij en gebaart je nader te komen.</p>
+            ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
+            <p class="ts-beurs">Prijs per raadpleging: <strong>${prijsTekst(config.prijs)}</strong></p>
+          </div>
+        </div>
+
+        ${cooldownActief
+          ? `<p class="herberg-cooldown-tekst">${esc(config.naam)} heeft haar ogen gesloten. Ze is nog ${minRest} minuut${minRest === 1 ? '' : 'en'} in trance.</p>`
+          : `<div class="herberg-zoek-wrap">
+              <p class="herberg-teller">Over wie wil je iets weten?</p>
+              <div class="herberg-lijst">${lijstHtml}</div>
+            </div>`}
+
+        <div id="ursula-antwoord" class="herberg-antwoord hidden"></div>
+      </div>
+    </div>`;
+}
+
+window._ursulaKies = async (entityId, entityType, entityName) => {
+  const antwoord = document.getElementById('ursula-antwoord');
+  if (!antwoord) return;
+  antwoord.classList.remove('hidden');
+  antwoord.innerHTML = '<p class="herberg-loading">De sluier trilt…</p>';
+  try {
+    const res = await api.ursulaVraag({ entityId, entityType });
+    const bubbleHtml = `
+      <div class="herberg-bubble ursula-bubble">
+        <p class="herberg-bubble-text">„${esc(res.tekst)}“</p>
+        <div class="herberg-bubble-footer">
+          <p class="herberg-bubble-naam">— over ${esc(res.entityName)}</p>
+          ${res.isGeheim && res.entityId
+            ? `<button class="herberg-bubble-card-btn"
+                onclick="window._openDetail('${esc(res.entityType)}','${esc(res.entityId)}')"
+                title="Bekijk kaartje">↗</button>`
+            : ''}
+        </div>
+      </div>`;
+    antwoord.innerHTML = bubbleHtml;
+    if (res.audioId) window._audioToggle(res.audioId);
+    renderUrsula().then(() => {
+      const a = document.getElementById('ursula-antwoord');
+      if (a) { a.classList.remove('hidden'); a.innerHTML = bubbleHtml; }
+    });
+  } catch (err) {
+    antwoord.innerHTML = `<p class="herberg-err">${esc(err.message || 'Fout')}</p>`;
+  }
+};
+
+// ── De Gock / Privédetective ────────────────────────────────────────────────
+
+async function renderGock() {
+  const el = document.getElementById('section-gock');
+  if (!el) return;
+  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+
+  let data;
+  try { data = await api.getGock(); }
+  catch (e) {
+    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`;
+    return;
+  }
+
+  const { config, geval, beschikbaar = [], currency } = data;
+  const heeftLopendeZaak = geval && !geval.gereed;
+  const heeftKlaarZaak = geval && geval.gereed && !geval.opgehaald;
+
+  function beursTekst(cur) {
+    return [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+  }
+  function prijsTekst(p) {
+    return [p.fl && `${p.fl} fl`, p.kn && `${p.kn} kn`, p.cl && `${p.cl} cl`].filter(Boolean).join(' ') || '0';
+  }
+
+  let restTijdTekst = '';
+  if (heeftLopendeZaak && geval.klaarOp) {
+    const ms = new Date(geval.klaarOp) - Date.now();
+    if (ms > 0) {
+      const uren = Math.floor(ms / 3600000);
+      const min  = Math.ceil((ms % 3600000) / 60000);
+      restTijdTekst = uren > 0 ? `${uren} uur en ${min} min` : `${min} min`;
+    }
+  }
+
+  const lijstHtml = beschikbaar.map(e => `
+    <button class="herberg-item" onclick="window._gockKies('${esc(e.id)}','${esc(e.type)}','${esc(e.name)}')">
+      <span class="herberg-item-naam">${esc(e.name)}</span>
+      <span class="herberg-item-type">${e.type === 'personages' ? 'persoon' : e.type === 'locaties' ? 'locatie' : e.type}</span>
+    </button>`).join('');
+
+  el.innerHTML = `
+    <div class="herberg-scene gock-scene">
+      <div class="herberg-content">
+        <div class="ts-header">
+          <div class="gock-portret-fallback">🔍</div>
+          <div>
+            <p class="herberg-groet">${esc(config.naam)} kijkt op van zijn bureau en trekt een wenkbrauw op.</p>
+            ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
+            <p class="ts-beurs">Vooruitbetaling: <strong>${prijsTekst(config.prijs)}</strong> · Resultaat binnen 24 uur</p>
+          </div>
+        </div>
+
+        ${heeftKlaarZaak ? `
+          <div class="gock-dossier">
+            <div class="gock-dossier-head">📁 Dossier: ${esc(geval.entityName)}</div>
+            <p class="gock-dossier-tekst">${esc(geval.tekst)}</p>
+            ${geval.isGeheim && geval.entityId
+              ? `<button class="herberg-bubble-card-btn gock-kaartje-btn"
+                  onclick="window._openDetail('${esc(geval.entityType)}','${esc(geval.entityId)}')"
+                  title="Open kaartje">↗ Bekijk kaartje</button>`
+              : ''}
+            <button class="ts-wedden-btn" style="margin-top:10px" onclick="window._gockOpgehaald()">Dossier ontvangen</button>
+          </div>` : ''}
+
+        ${heeftLopendeZaak ? `
+          <div class="gock-lopend">
+            <p>🔎 <strong>${esc(config.naam)}</strong> doet onderzoek naar <strong>${esc(geval.entityName)}</strong>.</p>
+            ${restTijdTekst ? `<p class="ts-beurs">Geschatte doorlooptijd: nog ${restTijdTekst}</p>` : '<p class="ts-beurs">Het rapport is bijna klaar…</p>'}
+          </div>` : ''}
+
+        ${!heeftLopendeZaak && !heeftKlaarZaak ? `
+          <div class="herberg-zoek-wrap">
+            <p class="herberg-teller">Naar wie wil je onderzoek laten doen?</p>
+            <div class="herberg-lijst">${lijstHtml}</div>
+          </div>` : ''}
+      </div>
+    </div>`;
+}
+
+window._gockKies = async (entityId, entityType, entityName) => {
+  if (!confirm(`Opdracht geven aan De Gock voor onderzoek naar "${entityName}"? Betaling vindt direct plaats.`)) return;
+  try {
+    await api.gockOpdracht({ entityId, entityType });
+    await renderGock();
+    _tsToast('🔍 Opdracht ingediend. Rapport volgt binnen 24 uur.');
+  } catch (err) {
+    _tsToast(err.message || 'Fout bij indienen opdracht.');
+  }
+};
+
+window._gockOpgehaald = async () => {
+  try { await api.gockOpgehaald(); } catch { /* ok */ }
+  await renderGock();
 };
 
 // ── Tweespalt / Gokkantoor ──────────────────────────────────────────────────

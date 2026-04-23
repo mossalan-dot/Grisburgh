@@ -258,6 +258,8 @@ function _buildTabs() {
     <button class="dm-tab-btn${_activeTab==='campagnes'?   ' active':''}" data-tab="campagnes"    onclick="window.dmPanel.switchTab('campagnes')"    title="Campagnes"><span class="dm-tab-icon">🗂</span><span class="dm-tab-label">Campagnes</span></button>
     <button class="dm-tab-btn${_activeTab==='herberg'?     ' active':''}" data-tab="herberg"      onclick="window.dmPanel.switchTab('herberg')"      title="Herberg instellingen"><span class="dm-tab-icon">🍺</span><span class="dm-tab-label">Herberg</span></button>
     <button class="dm-tab-btn${_activeTab==='tweespalt'?  ' active':''}" data-tab="tweespalt"   onclick="window.dmPanel.switchTab('tweespalt')"   title="De Tweespalt — gokkantoor"><span class="dm-tab-icon">🎲</span><span class="dm-tab-label">Tweespalt</span></button>
+    <button class="dm-tab-btn${_activeTab==='ursula'?     ' active':''}" data-tab="ursula"      onclick="window.dmPanel.switchTab('ursula')"      title="Madame Ursula — waarzegger"><span class="dm-tab-icon">🔮</span><span class="dm-tab-label">Ursula</span></button>
+    <button class="dm-tab-btn${_activeTab==='gock'?       ' active':''}" data-tab="gock"        onclick="window.dmPanel.switchTab('gock')"        title="De Gock — privédetective"><span class="dm-tab-icon">🔍</span><span class="dm-tab-label">De Gock</span></button>
     <button class="dm-tab-btn${_activeTab==='berichten'?   ' active':''}" data-tab="berichten"    onclick="window.dmPanel.switchTab('berichten')"    title="Geheime berichten"><span class="dm-tab-icon">💬</span><span class="dm-tab-label">Berichten</span></button>
   `;
 }
@@ -281,6 +283,8 @@ function _switchTab(tab) {
   if (tab === 'campagnes') _loadAndRenderCampagnes();
   if (tab === 'herberg')    _renderHerbergSettings();
   if (tab === 'tweespalt')  _renderTweespaltDM();
+  if (tab === 'ursula')     _renderUrsulaSettings();
+  if (tab === 'gock')       _renderGockSettings();
   if (tab === 'berichten')  _renderBerichten();
   if (tab === 'gevecht') {
     // Always reload monsters + entities so pickers are fresh
@@ -2427,6 +2431,159 @@ window._tsDmVerwijder = async (eventId) => {
   try {
     await api.deleteTweespaltEvent(eventId);
     await _renderTweespaltDM();
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+// ── Madame Ursula ─────────────────────────────────────────────────────────────
+
+async function _renderUrsulaSettings() {
+  const el = document.querySelector('.dm-tab-content[data-tab="ursula"]');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  const meta = window.app?.state?.meta || {};
+  const config = meta.ursula || {};
+  const prijs = config.prijs || { fl: 20 };
+
+  let personages = [];
+  try { personages = await api.listEntities('personages'); } catch {}
+
+  const tidbitsWaarde = (config.tidbits || []).join('\n');
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Madame Ursula — Instellingen</div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Naam</label>
+        <input id="ursula-naam" class="dm-input" value="${esc(config.naam || 'Madame Ursula')}">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Prijs (fl)</label>
+        <input id="ursula-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 20}" style="width:70px">
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label">Aangepaste tidbits (één per regel, gebruik {naam} voor de naam)</label>
+        <textarea id="ursula-tidbits" class="dm-input" rows="8" style="resize:vertical;font-size:11px"
+          placeholder="Laat leeg voor standaard tidbits…">${esc(tidbitsWaarde)}</textarea>
+      </div>
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-primary" onclick="window._ursulaSettingsSave()">💾 Opslaan</button>
+      </div>
+    </div>
+
+    <div class="dm-feature-section" style="margin-top:14px">
+      <div class="dm-section-label">Geheimen per personage</div>
+      <p style="font-size:11px;opacity:.6;margin-bottom:8px">Vul hieronder de vage profetie in die Ursula geeft. Laat leeg voor een random tidbit.</p>
+      ${personages.map(p => `
+        <div class="dm-form-row" style="flex-direction:column;gap:3px;margin-bottom:8px">
+          <label class="dm-form-label">${esc(p.name)}</label>
+          <textarea class="dm-input ursula-geheim-input" data-entity-id="${esc(p.id)}" data-entity-type="personages"
+            rows="2" style="resize:vertical;font-size:11px"
+            placeholder="Vage profetie voor Ursula…">${esc(p.data?.ursulaGeheim || '')}</textarea>
+        </div>`).join('')}
+      <button class="dm-btn dm-btn-primary" onclick="window._ursulaGeheimSave()">💾 Geheimen opslaan</button>
+    </div>`;
+}
+
+window._ursulaSettingsSave = async () => {
+  const naam = document.getElementById('ursula-naam')?.value.trim() || 'Madame Ursula';
+  const fl = parseInt(document.getElementById('ursula-prijs-fl')?.value) || 20;
+  const tidbitsRaw = document.getElementById('ursula-tidbits')?.value.trim() || '';
+  const tidbits = tidbitsRaw ? tidbitsRaw.split('\n').map(l => l.trim()).filter(Boolean) : [];
+  try {
+    await api.saveUrsulaConfig({ naam, prijs: { fl }, tidbits: tidbits.length ? tidbits : undefined });
+    const newMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = newMeta;
+    await _renderUrsulaSettings();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+window._ursulaGeheimSave = async () => {
+  const inputs = document.querySelectorAll('.ursula-geheim-input');
+  try {
+    for (const inp of inputs) {
+      await api.setUrsulaGeheim(inp.dataset.entityType, inp.dataset.entityId, inp.value.trim() || null);
+    }
+    alert('Geheimen opgeslagen.');
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+// ── De Gock ───────────────────────────────────────────────────────────────────
+
+async function _renderGockSettings() {
+  const el = document.querySelector('.dm-tab-content[data-tab="gock"]');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  const meta = window.app?.state?.meta || {};
+  const config = meta.gock || {};
+  const prijs = config.prijs || { fl: 50 };
+
+  let personages = [];
+  try { personages = await api.listEntities('personages'); } catch {}
+
+  let gockData;
+  try { gockData = await api.getTweespalt(); } catch { gockData = null; }
+
+  const tidbitsWaarde = (config.tidbits || []).join('\n');
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">De Gock — Instellingen</div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Naam</label>
+        <input id="gock-naam" class="dm-input" value="${esc(config.naam || 'De Gock')}">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Prijs (fl)</label>
+        <input id="gock-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 50}" style="width:70px">
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label">Aangepaste tidbits (één per regel, gebruik {naam})</label>
+        <textarea id="gock-tidbits" class="dm-input" rows="8" style="resize:vertical;font-size:11px"
+          placeholder="Laat leeg voor standaard tidbits…">${esc(tidbitsWaarde)}</textarea>
+      </div>
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-primary" onclick="window._gockSettingsSave()">💾 Opslaan</button>
+      </div>
+    </div>
+
+    <div class="dm-feature-section" style="margin-top:14px">
+      <div class="dm-section-label">Geheimen per personage</div>
+      <p style="font-size:11px;opacity:.6;margin-bottom:8px">Precieze informatie die De Gock oplevert. Laat leeg voor een random tidbit.</p>
+      ${personages.map(p => `
+        <div class="dm-form-row" style="flex-direction:column;gap:3px;margin-bottom:8px">
+          <label class="dm-form-label">${esc(p.name)}</label>
+          <textarea class="dm-input gock-geheim-input" data-entity-id="${esc(p.id)}" data-entity-type="personages"
+            rows="2" style="resize:vertical;font-size:11px"
+            placeholder="Precies rapport van De Gock…">${esc(p.data?.gockGeheim || '')}</textarea>
+        </div>`).join('')}
+      <button class="dm-btn dm-btn-primary" onclick="window._gockGeheimSave()">💾 Geheimen opslaan</button>
+    </div>`;
+}
+
+window._gockSettingsSave = async () => {
+  const naam = document.getElementById('gock-naam')?.value.trim() || 'De Gock';
+  const fl = parseInt(document.getElementById('gock-prijs-fl')?.value) || 50;
+  const tidbitsRaw = document.getElementById('gock-tidbits')?.value.trim() || '';
+  const tidbits = tidbitsRaw ? tidbitsRaw.split('\n').map(l => l.trim()).filter(Boolean) : [];
+  try {
+    await api.saveGockConfig({ naam, prijs: { fl }, tidbits: tidbits.length ? tidbits : undefined });
+    const newMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = newMeta;
+    await _renderGockSettings();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+window._gockGeheimSave = async () => {
+  const inputs = document.querySelectorAll('.gock-geheim-input');
+  try {
+    for (const inp of inputs) {
+      await api.setGockGeheim(inp.dataset.entityType, inp.dataset.entityId, inp.value.trim() || null);
+    }
+    alert('Geheimen opgeslagen.');
   } catch (err) { alert('Fout: ' + err.message); }
 };
 

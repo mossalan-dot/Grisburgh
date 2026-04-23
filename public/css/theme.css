@@ -9467,3 +9467,86 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   color: var(--color-ink-dim);
 }
 .ts-btn--ghost:hover { background: rgba(196,168,122,0.1); }
+
+/* ══ Diensten dropdown ═══════════════════════════════════════════════════════ */
+
+.diensten-tab { position: relative; }
+.diensten-arrow { font-size: 0.7rem; margin-left: 2px; opacity: .7; }
+
+/* ══ Madame Ursula ═══════════════════════════════════════════════════════════ */
+
+.ursula-scene { --herberg-tint: rgba(60,10,90,0.55); }
+.ursula-scene .herberg-scene::before { background: var(--herberg-tint, rgba(60,10,90,0.55)); }
+
+.ursula-portret-fallback {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(60,10,90,0.6);
+  border: 2px solid rgba(150,80,220,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.ursula-bubble { border-color: rgba(120,60,200,0.35) !important; background: rgba(60,10,90,0.12) !important; }
+
+/* ══ De Gock ═════════════════════════════════════════════════════════════════ */
+
+.gock-scene { --herberg-tint: rgba(10,40,70,0.6); }
+.gock-scene .herberg-scene::before { background: var(--herberg-tint, rgba(10,40,70,0.6)); }
+
+.gock-portret-fallback {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(10,40,70,0.6);
+  border: 2px solid rgba(60,120,200,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.gock-dossier {
+  background: rgba(245,235,200,0.08);
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 12px 0;
+}
+.gock-dossier-head {
+  font-family: var(--font-cinzel);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-gold);
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(196,168,122,0.2);
+  padding-bottom: 6px;
+}
+.gock-dossier-tekst {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  font-style: italic;
+  margin-bottom: 10px;
+}
+.gock-kaartje-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+.gock-lopend {
+  background: rgba(10,40,70,0.12);
+  border: 1px solid rgba(60,120,200,0.25);
+  border-radius: 8px;
+  padding: 14px;
+  margin: 12px 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
