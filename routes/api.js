@@ -2878,6 +2878,309 @@ router.get('/campaigns/meta', attachRole, (req, res) => {
   res.json({ ...meta, activeCampaign: storage.getActiveCampaignId() });
 });
 
+// ── Madame Ursula / Waarzegger ──
+
+const URSULA_TIDBITS_DEFAULT = [
+  'De geesten fluisteren dat {naam} een verlies draagt dat nooit uitgesproken is',
+  'In de sluier der toekomst ziet Ursula {naam} op een kruispunt — een keus die alles verandert',
+  'De kaarten tonen {naam} omringd door schaduwen die ze zelf hebben gecreëerd',
+  'Een verborgen band met het verleden van {naam} trekt nog steeds aan hen — onzichtbaar maar voelbaar',
+  'Er is iemand die {naam} beter kent dan ze beseffen',
+  'Ursula ziet water en {naam} in dezelfde droom — niet als vijanden, maar ook niet als vrienden',
+  'Een oud geheim sluimert bij {naam}, klaar om op het verkeerde moment te ontwaken',
+  'De sterren staan gunstig voor {naam}, maar hun eigen aard staat hen in de weg',
+  'Er nadert een ontmoeting voor {naam} die meer gewicht heeft dan het lijkt',
+  "Ursula's handen trillen bij het noemen van {naam} — zelfs de kaarsvlam buigt",
+  '{naam} wordt gevolgd, al weten ze het niet',
+  'Iets wat verloren leek zal terugkeren via {naam}',
+  'Een oude schuld hangt boven {naam} als een onweerswolk',
+  'De geest van iemand die {naam} kende is nog steeds aanwezig in hun leven',
+  '{naam} vreest iets wat nooit hardop is uitgesproken',
+  'Een onverwachte bondgenoot bevindt zich in de nabijheid van {naam}',
+  'Ursula ziet goud en bloed in verband met {naam} — zij weet niet in welke volgorde',
+  '{naam} staat op het punt iets te verliezen wat ze nog niet weten te koesteren',
+  'De maan staat scheef boven {naam} — er is iets dat uit balans is',
+  "Ursula's kaars dooft bij de naam van {naam}. Ze weigert verder te kijken.",
+];
+
+const GOCK_TIDBITS_DEFAULT = [
+  '{naam} bezocht vorige week in het geheim een wedstrijd voor het vervaardigen van schunnige limericks',
+  '{naam} heeft een geheime minnaar in de havenbuurt die ze bezoeken elke eerste dag van de maand',
+  '{naam} staat bij drie verschillende kroegen bekend onder een valse naam',
+  '{naam} stuurt anonieme klachten naar het stadsbestuur over geluidsoverlast van een nabijgelegen bakker',
+  '{naam} koopt elke week vers gebak maar beweert het zelf te bakken',
+  '{naam} is al maanden lid van een geheime dichterskring die uitsluitend sonnetten schrijft over kazen',
+  '{naam} heeft een huurachterstand van vier maanden maar houdt dit geheim voor de eigenaar',
+  '{naam} verloor vorig jaar een aanzienlijk bedrag bij het gokken en heeft dit nog niemand verteld',
+  '{naam} verzamelt in het geheim miniatuurbeeldjes van beroemde avonturiers',
+  '{naam} betaalt iemand anders om hun post op te halen — ze willen niet gezien worden bij het postkantoor',
+  '{naam} heeft een geheime angst voor duiven en mijdt systematisch het centrale plein',
+  '{naam} is al drie jaar in het bezit van een boek dat toebehoort aan de stadsbibliotheek',
+  '{naam} koopt wekelijks twee flessen wijn maar beweert er nooit een te drinken',
+  '{naam} heeft een tweede woning buiten de stad die ze nooit aan iemand hebben laten zien',
+  '{naam} spreekt vloeiend een taal die ze officieel niet kennen',
+  '{naam} betaalt maandelijks een anonieme toelage aan een onbekende begunstigde',
+  '{naam} verloor een weddenschap en moet nu elke dinsdag een specifieke route door de stad vermijden',
+  '{naam} heeft een geheime correspondentie met een rivaliserende handelaar gaande al twee jaar',
+  '{naam} draagt altijd een bepaald amulet verborgen onder hun kleding — de herkomst ervan is onbekend',
+  '{naam} huurde vorig kwartaal een detective in. De Gock was die detective.',
+];
+
+function _dienstenBeschikbaar(dmState) {
+  const entities = storage.readJSON('entities.json');
+  const g = getGroup(dmState);
+  const vis = g.visibility || {};
+  const lijst = [];
+  for (const type of ['personages', 'locaties', 'organisaties', 'voorwerpen']) {
+    for (const e of (entities[type] || [])) {
+      if ((vis[e.id] || 'hidden') === 'hidden') continue;
+      lijst.push({ id: e.id, name: e.name, type });
+    }
+  }
+  return lijst;
+}
+
+router.get('/ursula', attachRole, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const config = meta.ursula || {};
+  const characterId = req.session.characterId;
+  const dmState = readDmState();
+
+  let playerState = (dmState.ursulaState || {})[characterId] || { cooldownTot: null };
+  if (playerState.cooldownTot && new Date(playerState.cooldownTot) < new Date()) {
+    playerState = { cooldownTot: null };
+  }
+
+  const currency = characterId ? ((dmState.playerCurrency || {})[characterId] || { fl: 0, kn: 0, cl: 0 }) : null;
+  res.json({
+    config: { prijs: config.prijs || { fl: 20 }, naam: config.naam || 'Madame Ursula' },
+    state: playerState,
+    beschikbaar: _dienstenBeschikbaar(dmState),
+    currency,
+  });
+});
+
+router.post('/ursula/vraag', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+
+  const { entityId, entityType } = req.body;
+  if (!entityId || !entityType) return res.status(400).json({ error: 'entityId en entityType vereist' });
+
+  const meta = storage.readJSON('meta.json');
+  const config = meta.ursula || {};
+  const prijs = config.prijs || { fl: 20 };
+  const tidbits = config.tidbits?.length ? config.tidbits : URSULA_TIDBITS_DEFAULT;
+
+  const dmState = readDmState();
+  if (!dmState.ursulaState) dmState.ursulaState = {};
+  let playerState = dmState.ursulaState[characterId] || { cooldownTot: null };
+
+  if (playerState.cooldownTot && new Date(playerState.cooldownTot) > new Date()) {
+    return res.status(429).json({ error: 'Cooldown actief', cooldownTot: playerState.cooldownTot });
+  }
+
+  const prijsCl = toCl(prijs);
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
+
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[entityType] || []).find(e => e.id === entityId);
+  if (!entity) return res.status(404).json({ error: 'Entiteit niet gevonden' });
+
+  let tekst, isGeheim = false;
+  if (entity.data?.ursulaGeheim) {
+    tekst = entity.data.ursulaGeheim;
+    isGeheim = true;
+    const g = getGroup(dmState);
+    if (!g.secretReveals) g.secretReveals = {};
+    g.secretReveals[entityId] = true;
+  } else {
+    tekst = tidbits[Math.floor(Math.random() * tidbits.length)].replace(/\{naam\}/g, entity.name);
+  }
+
+  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  playerState.cooldownTot = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  dmState.ursulaState[characterId] = playerState;
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io');
+  io.emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  if (isGeheim) {
+    io.emit('entity:secret', { id: entityId, type: entityType, name: entity.name, secretReveal: true });
+    io.emit('entity:updated', { type: entityType, id: entityId });
+  }
+
+  res.json({
+    tekst, entityName: entity.name, entityId, entityType, isGeheim,
+    cooldownTot: playerState.cooldownTot,
+    currency: dmState.playerCurrency[characterId],
+  });
+});
+
+// ── De Gock / Privédetective ──
+
+function _gockCheckReady(dmState, io) {
+  if (!dmState.gockState) return false;
+  const now = new Date();
+  let changed = false;
+  const entities = storage.readJSON('entities.json');
+  for (const [charId, geval] of Object.entries(dmState.gockState)) {
+    if (!geval.gereed && geval.klaarOp && new Date(geval.klaarOp) <= now) {
+      geval.gereed = true;
+      changed = true;
+      if (geval.isGeheim) {
+        const entity = (entities[geval.entityType] || []).find(e => e.id === geval.entityId);
+        if (entity) {
+          const g = getGroup(dmState);
+          if (!g.secretReveals) g.secretReveals = {};
+          g.secretReveals[geval.entityId] = true;
+          if (io) {
+            io.emit('entity:secret', { id: geval.entityId, type: geval.entityType, name: entity.name, secretReveal: true });
+            io.emit('entity:updated', { type: geval.entityType, id: geval.entityId });
+          }
+        }
+      }
+      if (io) {
+        io.emit('gock:rapport-klaar', {
+          characterId: charId,
+          entityName: geval.entityName,
+          entityId: geval.entityId,
+          entityType: geval.entityType,
+        });
+      }
+    }
+  }
+  return changed;
+}
+
+router.get('/gock', attachRole, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const config = meta.gock || {};
+  const characterId = req.session.characterId;
+  const dmState = readDmState();
+  const io = req.app.get('io');
+
+  if (_gockCheckReady(dmState, io)) storage.writeJSON('dm-state.json', dmState);
+
+  const playerCase = characterId ? ((dmState.gockState || {})[characterId] || null) : null;
+  const currency = characterId ? ((dmState.playerCurrency || {})[characterId] || { fl: 0, kn: 0, cl: 0 }) : null;
+
+  res.json({
+    config: { prijs: config.prijs || { fl: 50 }, naam: config.naam || 'De Gock' },
+    geval: playerCase,
+    beschikbaar: _dienstenBeschikbaar(dmState),
+    currency,
+  });
+});
+
+router.post('/gock/opdracht', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+
+  const { entityId, entityType } = req.body;
+  if (!entityId || !entityType) return res.status(400).json({ error: 'entityId en entityType vereist' });
+
+  const dmState = readDmState();
+  if (!dmState.gockState) dmState.gockState = {};
+  const existing = dmState.gockState[characterId];
+  if (existing && !existing.gereed) return res.status(400).json({ error: 'Je hebt al een lopende opdracht' });
+
+  const meta = storage.readJSON('meta.json');
+  const config = meta.gock || {};
+  const prijs = config.prijs || { fl: 50 };
+  const tidbits = config.tidbits?.length ? config.tidbits : GOCK_TIDBITS_DEFAULT;
+
+  const prijsCl = toCl(prijs);
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
+
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[entityType] || []).find(e => e.id === entityId);
+  if (!entity) return res.status(404).json({ error: 'Entiteit niet gevonden' });
+
+  let tekst, isGeheim = false;
+  if (entity.data?.gockGeheim) {
+    tekst = entity.data.gockGeheim;
+    isGeheim = true;
+  } else {
+    tekst = tidbits[Math.floor(Math.random() * tidbits.length)].replace(/\{naam\}/g, entity.name);
+  }
+
+  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  const klaarOp = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  dmState.gockState[characterId] = {
+    entityId, entityType, entityName: entity.name,
+    betaaldOp: new Date().toISOString(),
+    klaarOp, tekst, isGeheim,
+    gereed: false, opgehaald: false,
+  };
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  io.emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  res.json({ ok: true, klaarOp, currency: dmState.playerCurrency[characterId] });
+});
+
+router.put('/entities/:type/:id/ursula-geheim', requireDM, (req, res) => {
+  const { type, id } = req.params;
+  if (!ENTITY_TYPES.includes(type)) return res.status(400).json({ error: 'Ongeldig type' });
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[type] || []).find(e => e.id === id);
+  if (!entity) return res.status(404).json({ error: 'Niet gevonden' });
+  if (!entity.data) entity.data = {};
+  const tekst = req.body.tekst?.trim() || null;
+  if (tekst) entity.data.ursulaGeheim = tekst;
+  else delete entity.data.ursulaGeheim;
+  storage.writeJSON('entities.json', entities);
+  res.json({ ok: true });
+});
+
+router.put('/entities/:type/:id/gock-geheim', requireDM, (req, res) => {
+  const { type, id } = req.params;
+  if (!ENTITY_TYPES.includes(type)) return res.status(400).json({ error: 'Ongeldig type' });
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[type] || []).find(e => e.id === id);
+  if (!entity) return res.status(404).json({ error: 'Niet gevonden' });
+  if (!entity.data) entity.data = {};
+  const tekst = req.body.tekst?.trim() || null;
+  if (tekst) entity.data.gockGeheim = tekst;
+  else delete entity.data.gockGeheim;
+  storage.writeJSON('entities.json', entities);
+  res.json({ ok: true });
+});
+
+router.put('/gock/opgehaald', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+  const dmState = readDmState();
+  const geval = (dmState.gockState || {})[characterId];
+  if (!geval) return res.status(404).json({ error: 'Geen dossier gevonden' });
+  geval.opgehaald = true;
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true });
+});
+
+router.put('/meta/ursula', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.ursula) meta.ursula = {};
+  ['naam', 'prijs', 'tidbits'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').emit('meta:updated');
+  res.json(meta.ursula);
+});
+
+router.put('/meta/gock', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.gock) meta.gock = {};
+  ['naam', 'prijs', 'tidbits'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').emit('meta:updated');
+  res.json(meta.gock);
+});
+
 // ── Herberg / Roddelwaard ──
 
 router.get('/herberg', attachRole, (req, res) => {
@@ -3003,6 +3306,326 @@ router.post('/herberg/vraag', attachRole, (req, res) => {
     vragen: playerState.vragen,
     cooldownTot: playerState.cooldownTot || null,
   });
+});
+
+// ── Tweespalt / Gokkantoor ──
+
+function _tsState(dmState) {
+  if (!dmState.tweespalt) dmState.tweespalt = {};
+  if (!dmState.tweespalt.events) dmState.tweespalt.events = [];
+  if (!dmState.tweespalt.leningen) dmState.tweespalt.leningen = {};
+  return dmState.tweespalt;
+}
+
+function _tsCl(bedrag) {
+  return toCl({ fl: bedrag?.fl || 0, kn: bedrag?.kn || 0, cl: bedrag?.cl || 0 });
+}
+
+function _tsFormatCl(cl) {
+  const { fl, kn, cl: ce } = fromCl(cl);
+  const parts = [];
+  if (fl) parts.push(`${fl} fl`);
+  if (kn) parts.push(`${kn} kn`);
+  if (ce) parts.push(`${ce} cl`);
+  return parts.length ? parts.join(', ') : '0 cl';
+}
+
+function _tsResolveEvent(dmState, event, io) {
+  let winnaarId = event.uitkomstModus === 'dm' ? event.uitkomst : null;
+
+  if (!winnaarId) {
+    const r = Math.random() * 100;
+    let cum = 0;
+    for (const opt of event.opties) {
+      cum += opt.kans;
+      if (r < cum) { winnaarId = opt.id; break; }
+    }
+    if (!winnaarId && event.opties.length) winnaarId = event.opties[event.opties.length - 1].id;
+  }
+
+  event.uitkomst = winnaarId;
+  event.status = 'afgerond';
+
+  const winnaarOptie = event.opties.find(o => o.id === winnaarId);
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+
+  const uitbetalingen = {};
+  for (const [charId, inzet] of Object.entries(event.inzetten || {})) {
+    const gewonnen = inzet.optieId === winnaarId;
+    uitbetalingen[charId] = { gewonnen, inzetCl: inzet.bedragCl };
+    if (gewonnen && winnaarOptie) {
+      const terug = inzet.bedragCl + inzet.bedragCl * winnaarOptie.payout;
+      const pc = dmState.playerCurrency[charId] || { fl: 0, kn: 0, cl: 0 };
+      dmState.playerCurrency[charId] = fromCl(toCl(pc) + terug);
+      uitbetalingen[charId].uitbetaaldCl = terug;
+    }
+  }
+
+  let gokLog = storage.readJSON('gok-log.json');
+  if (!Array.isArray(gokLog)) gokLog = [];
+  for (const [charId, ut] of Object.entries(uitbetalingen)) {
+    const inzet = event.inzetten[charId];
+    gokLog.push({
+      timestamp:  new Date().toISOString(),
+      characterId: charId,
+      eventId:    event.id,
+      eventNaam:  event.naam,
+      optieNaam:  event.opties.find(o => o.id === inzet.optieId)?.naam || '',
+      inzetCl:    inzet.bedragCl,
+      gewonnen:   ut.gewonnen,
+      uitbetaaldCl: ut.uitbetaaldCl || 0,
+    });
+  }
+  storage.writeJSON('gok-log.json', gokLog);
+
+  if (io) {
+    io.emit('tweespalt:uitslag', {
+      eventId:     event.id,
+      eventNaam:   event.naam,
+      winnaarId,
+      winnaarNaam: winnaarOptie?.naam || '',
+      uitbetalingen,
+    });
+    for (const [charId, ut] of Object.entries(uitbetalingen)) {
+      if (ut.gewonnen) {
+        io.emit('player:currency-updated', { characterId: charId, currency: dmState.playerCurrency[charId] });
+      }
+    }
+  }
+
+  return { winnaarOptie, uitbetalingen };
+}
+
+router.get('/tweespalt', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const ts = _tsState(dmState);
+  const io = req.app.get('io');
+  const now = new Date();
+  let needsSave = false;
+
+  for (const event of ts.events) {
+    if (event.status === 'open' && event.uitkomstModus === 'auto' && event.sluitTijd) {
+      if (new Date(event.sluitTijd) <= now) {
+        _tsResolveEvent(dmState, event, io);
+        needsSave = true;
+      }
+    }
+  }
+  if (needsSave) storage.writeJSON('dm-state.json', dmState);
+
+  const isDM = req.role === 'dm';
+  const characterId = req.session.characterId;
+  const currency = characterId ? ((dmState.playerCurrency || {})[characterId] || { fl: 0, kn: 0, cl: 0 }) : null;
+
+  let lening = characterId ? (ts.leningen[characterId] || null) : null;
+  if (lening) {
+    const dagenVerlopen = (Date.now() - new Date(lening.aangegaan).getTime()) / (1000 * 60 * 60 * 24);
+    const factor = Math.pow(1 + lening.rentePerDag / 100, dagenVerlopen);
+    lening = { ...lening, huidigVerschuldigdCl: Math.ceil(lening.bedragCl * factor) };
+  }
+
+  const entities = storage.readJSON('entities.json');
+  const npcNamen = (entities.personages || []).map(p => p.name).filter(Boolean);
+
+  const events = ts.events.map(e => {
+    const evt = {
+      id: e.id, type: e.type, naam: e.naam, status: e.status,
+      uitkomstModus: e.uitkomstModus, aangemaakt: e.aangemaakt,
+      sluitTijd: e.sluitTijd, eenmalig: e.eenmalig || false,
+      opties: e.opties,
+      aantalInzetten: Object.keys(e.inzetten || {}).length,
+    };
+    if (e.status === 'afgerond' || isDM) evt.uitkomst = e.uitkomst;
+    if (characterId) evt.mijnInzet = (e.inzetten || {})[characterId] || null;
+    if (isDM) evt.inzetten = e.inzetten;
+    return evt;
+  });
+
+  res.json({ events, currency, lening, npcNamen });
+});
+
+router.post('/tweespalt/events', requireDM, (req, res) => {
+  const { type, naam, uitkomstModus, uitkomst, opties, duurMinuten } = req.body;
+  if (!naam?.trim() || !type || !Array.isArray(opties) || !opties.length)
+    return res.status(400).json({ error: 'naam, type en opties vereist' });
+
+  const dmState = readDmState();
+  const ts = _tsState(dmState);
+
+  const sluitTijd = uitkomstModus === 'auto'
+    ? new Date(Date.now() + (Number(duurMinuten) || 60) * 60 * 1000).toISOString()
+    : null;
+
+  const event = {
+    id:           'ts_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    type,
+    naam:         naam.trim(),
+    uitkomstModus: uitkomstModus || 'auto',
+    uitkomst:     uitkomstModus === 'dm' ? (uitkomst || null) : null,
+    status:       'open',
+    sluitTijd,
+    aangemaakt:   new Date().toISOString(),
+    eenmalig:     type === 'godenwedden',
+    opties:       opties.map((o, i) => ({
+      id:     'opt_' + i + '_' + Math.random().toString(36).slice(2, 5),
+      naam:   String(o.naam || '').trim(),
+      kans:   Number(o.kans) || 0,
+      payout: Number(o.payout) || 1,
+    })),
+    inzetten: {},
+  };
+
+  ts.events.push(event);
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('tweespalt:updated');
+  res.status(201).json(event);
+});
+
+router.put('/tweespalt/events/:id', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const ts = _tsState(dmState);
+  const event = ts.events.find(e => e.id === req.params.id);
+  if (!event) return res.status(404).json({ error: 'Event niet gevonden' });
+
+  const { naam, uitkomst, uitkomstModus, opties, duurMinuten } = req.body;
+  if (naam !== undefined) event.naam = naam.trim();
+  if (uitkomst !== undefined) event.uitkomst = uitkomst;
+  if (uitkomstModus !== undefined) {
+    event.uitkomstModus = uitkomstModus;
+    if (uitkomstModus === 'auto' && duurMinuten) {
+      event.sluitTijd = new Date(Date.now() + Number(duurMinuten) * 60 * 1000).toISOString();
+    }
+  }
+  if (Array.isArray(opties)) {
+    event.opties = opties.map((o, i) => ({
+      id:     o.id || ('opt_' + i + '_' + Math.random().toString(36).slice(2, 5)),
+      naam:   String(o.naam || '').trim(),
+      kans:   Number(o.kans) || 0,
+      payout: Number(o.payout) || 1,
+    }));
+  }
+
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('tweespalt:updated');
+  res.json(event);
+});
+
+router.delete('/tweespalt/events/:id', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const ts = _tsState(dmState);
+  const idx = ts.events.findIndex(e => e.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Event niet gevonden' });
+
+  const event = ts.events[idx];
+  if (event.status === 'open') {
+    if (!dmState.playerCurrency) dmState.playerCurrency = {};
+    for (const [charId, inzet] of Object.entries(event.inzetten || {})) {
+      const pc = dmState.playerCurrency[charId] || { fl: 0, kn: 0, cl: 0 };
+      dmState.playerCurrency[charId] = fromCl(toCl(pc) + inzet.bedragCl);
+    }
+  }
+
+  ts.events.splice(idx, 1);
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('tweespalt:updated');
+  res.json({ ok: true });
+});
+
+router.post('/tweespalt/events/:id/wedden', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+
+  const { optieId, bedrag } = req.body;
+  if (!optieId || !bedrag) return res.status(400).json({ error: 'optieId en bedrag vereist' });
+
+  const dmState = readDmState();
+  const ts = _tsState(dmState);
+  const event = ts.events.find(e => e.id === req.params.id);
+  if (!event) return res.status(404).json({ error: 'Event niet gevonden' });
+  if (event.status !== 'open') return res.status(400).json({ error: 'Event is gesloten' });
+
+  const optie = event.opties.find(o => o.id === optieId);
+  if (!optie) return res.status(404).json({ error: 'Optie niet gevonden' });
+  if (event.inzetten?.[characterId]) return res.status(400).json({ error: 'Je hebt al ingezet' });
+
+  const bedragCl = _tsCl(bedrag);
+  if (bedragCl <= 0) return res.status(400).json({ error: 'Inzet moet groter zijn dan 0' });
+
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  if (toCl(pc) < bedragCl) return res.status(400).json({ error: 'Onvoldoende saldo', code: 'te_weinig' });
+
+  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - bedragCl);
+  if (!event.inzetten) event.inzetten = {};
+  event.inzetten[characterId] = { optieId, bedragCl, geplaatst: new Date().toISOString() };
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  io.emit('tweespalt:updated');
+  io.emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  res.json({ ok: true, currency: dmState.playerCurrency[characterId] });
+});
+
+router.post('/tweespalt/events/:id/uitslag', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const ts = _tsState(dmState);
+  const event = ts.events.find(e => e.id === req.params.id);
+  if (!event) return res.status(404).json({ error: 'Event niet gevonden' });
+  if (event.status !== 'open') return res.status(400).json({ error: 'Event al afgerond' });
+
+  if (event.uitkomstModus === 'dm' && req.body.uitkomst) event.uitkomst = req.body.uitkomst;
+
+  const io = req.app.get('io');
+  const result = _tsResolveEvent(dmState, event, io);
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, winnaarId: event.uitkomst, ...result });
+});
+
+router.post('/tweespalt/leen', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+
+  const { bedrag } = req.body;
+  if (!bedrag) return res.status(400).json({ error: 'bedrag vereist' });
+
+  const bedragCl = _tsCl(bedrag);
+  if (bedragCl <= 0) return res.status(400).json({ error: 'Bedrag moet groter zijn dan 0' });
+
+  const dmState = readDmState();
+  const ts = _tsState(dmState);
+  if (ts.leningen[characterId]) return res.status(400).json({ error: 'Je hebt al een openstaande lening bij Taevin' });
+
+  const lening = { bedragCl, aangegaan: new Date().toISOString(), rentePerDag: 30 };
+  ts.leningen[characterId] = lening;
+
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  dmState.playerCurrency[characterId] = fromCl(toCl(pc) + bedragCl);
+
+  const bedragFormatted = _tsFormatCl(bedragCl);
+  const datum = new Date().toLocaleDateString('nl-NL');
+  const iouNaam = '📜 Schuldbewijs — Taevin Woekeling';
+  const iouNote = `Geleend op ${datum} — bedrag: ${bedragFormatted}. Woekerrente: 30% per dag. "Ik weet je te vinden, vriend."`;
+
+  if (!dmState.playerItems) dmState.playerItems = {};
+  if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];
+  dmState.playerItems[characterId].push({
+    id:   'ts_leen_' + Date.now(),
+    name: iouNaam,
+    note: iouNote,
+  });
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  io.emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  io.emit('player:items-updated', { characterId });
+  res.json({ ok: true, currency: dmState.playerCurrency[characterId], lening });
+});
+
+router.get('/tweespalt/log', requireDM, (req, res) => {
+  let log = storage.readJSON('gok-log.json');
+  if (!Array.isArray(log)) log = [];
+  res.json(log);
 });
 
 module.exports = router;
