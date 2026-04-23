@@ -257,6 +257,7 @@ function _buildTabs() {
     <button class="dm-tab-btn${_activeTab==='gevecht'?     ' active':''}" data-tab="gevecht"      onclick="window.dmPanel.switchTab('gevecht')"      title="Gevecht"><span class="dm-tab-icon">⚔️</span><span class="dm-tab-label">Gevecht</span></button>
     <button class="dm-tab-btn${_activeTab==='campagnes'?   ' active':''}" data-tab="campagnes"    onclick="window.dmPanel.switchTab('campagnes')"    title="Campagnes"><span class="dm-tab-icon">🗂</span><span class="dm-tab-label">Campagnes</span></button>
     <button class="dm-tab-btn${_activeTab==='herberg'?     ' active':''}" data-tab="herberg"      onclick="window.dmPanel.switchTab('herberg')"      title="Herberg instellingen"><span class="dm-tab-icon">🍺</span><span class="dm-tab-label">Herberg</span></button>
+    <button class="dm-tab-btn${_activeTab==='tweespalt'?  ' active':''}" data-tab="tweespalt"   onclick="window.dmPanel.switchTab('tweespalt')"   title="De Tweespalt — gokkantoor"><span class="dm-tab-icon">🎲</span><span class="dm-tab-label">Tweespalt</span></button>
     <button class="dm-tab-btn${_activeTab==='berichten'?   ' active':''}" data-tab="berichten"    onclick="window.dmPanel.switchTab('berichten')"    title="Geheime berichten"><span class="dm-tab-icon">💬</span><span class="dm-tab-label">Berichten</span></button>
   `;
 }
@@ -278,8 +279,9 @@ function _switchTab(tab) {
   if (tab === 'monsters')  _loadAndRenderMonsters();
   if (tab === 'geluiden')  _renderGeluiden();
   if (tab === 'campagnes') _loadAndRenderCampagnes();
-  if (tab === 'herberg')   _renderHerbergSettings();
-  if (tab === 'berichten') _renderBerichten();
+  if (tab === 'herberg')    _renderHerbergSettings();
+  if (tab === 'tweespalt')  _renderTweespaltDM();
+  if (tab === 'berichten')  _renderBerichten();
   if (tab === 'gevecht') {
     // Always reload monsters + entities so pickers are fresh
     Promise.all([
@@ -2209,6 +2211,223 @@ window._hbSave = async () => {
     // Re-render to reflect saved state
     await _renderHerbergSettings();
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+// ── Tweespalt / Gokkantoor ────────────────────────────────────────────────────
+
+async function _renderTweespaltDM() {
+  const el = document.querySelector('.dm-tab-content[data-tab="tweespalt"]');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  let data;
+  try { data = await api.getTweespalt(); } catch (err) {
+    el.innerHTML = `<div class="dm-feature-section"><p style="color:var(--color-seal)">${esc(err.message)}</p></div>`;
+    return;
+  }
+
+  const { events = [] } = data;
+
+  function formatCl(cl) {
+    const fl = Math.floor(cl / 100), kn = Math.floor((cl % 100) / 10), ce = cl % 10;
+    return [fl && `${fl} fl`, kn && `${kn} kn`, ce && `${ce} cl`].filter(Boolean).join(' · ') || '0 cl';
+  }
+
+  function renderDMEvent(evt) {
+    const isAfgerond = evt.status === 'afgerond';
+    const winnaarOptie = isAfgerond ? evt.opties.find(o => o.id === evt.uitkomst) : null;
+    const aantalInzetten = Object.keys(evt.inzetten || {}).length;
+    const sluitLabel = evt.sluitTijd
+      ? new Date(evt.sluitTijd).toLocaleString('nl-NL')
+      : '—';
+
+    return `
+      <div class="dm-feature-section" style="border:1px solid rgba(196,168,122,0.3);margin-bottom:10px;padding:10px">
+        <div class="dm-feature-row" style="justify-content:space-between;align-items:flex-start">
+          <div>
+            <strong>${esc(evt.naam)}</strong>
+            <span style="margin-left:8px;font-size:11px;opacity:.6">${evt.type === 'godenwedden' ? '⚡ Godenwedden' : '⚔️ Gevecht'}</span>
+            ${isAfgerond ? '<span style="margin-left:6px;font-size:11px;color:var(--color-gold)">✓ Afgerond</span>' : ''}
+          </div>
+          <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window._tsDmVerwijder('${esc(evt.id)}')">✕</button>
+        </div>
+        <div style="font-size:11px;opacity:.65;margin:4px 0">
+          Modus: ${evt.uitkomstModus === 'dm' ? 'DM bepaalt' : `Automatisch — sluit ${sluitLabel}`} ·
+          Inzetten: ${aantalInzetten}
+        </div>
+        <div style="margin:6px 0">
+          ${evt.opties.map(o => `
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+              <span style="flex:1">${esc(o.naam)}</span>
+              <span style="font-size:11px;opacity:.7">${o.kans}% · ×${o.payout + 1}</span>
+              ${isAfgerond
+                ? (o.id === evt.uitkomst ? '<span style="color:var(--color-gold)">★ Winnaar</span>' : '')
+                : evt.uitkomstModus === 'dm'
+                  ? `<button class="dm-btn dm-btn-sm" onclick="window._tsDmUitslag('${esc(evt.id)}','${esc(o.id)}')" style="font-size:10px">Laat winnen</button>`
+                  : ''}
+            </div>`).join('')}
+        </div>
+        ${!isAfgerond && evt.uitkomstModus === 'auto'
+          ? `<button class="dm-btn dm-btn-sm" onclick="window._tsDmUitslag('${esc(evt.id)}')">⚡ Nu afronden</button>`
+          : ''}
+        ${!isAfgerond && evt.inzetten && Object.keys(evt.inzetten).length
+          ? `<div style="margin-top:6px;font-size:11px;opacity:.7">
+              ${Object.entries(evt.inzetten).map(([cid, inz]) => {
+                const optNaam = evt.opties.find(o => o.id === inz.optieId)?.naam || '?';
+                return `<div>${esc(cid.slice(0,8))}… → ${esc(optNaam)} (${formatCl(inz.bedragCl)})</div>`;
+              }).join('')}
+             </div>` : ''}
+      </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">De Tweespalt — Beheer</div>
+      ${events.length
+        ? events.map(renderDMEvent).join('')
+        : `<p style="opacity:.5;font-size:13px">Geen actieve events.</p>`}
+
+      <div class="dm-section-label" style="margin-top:14px">Nieuw event aanmaken</div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Type</label>
+        <select id="ts-type" class="dm-select" onchange="window._tsToggleGodenwedden()">
+          <option value="gevecht">⚔️ Gevecht</option>
+          <option value="godenwedden">⚡ Godenwedden</option>
+        </select>
+      </div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Naam</label>
+        <input id="ts-naam" class="dm-input" placeholder="bv. Standhall vs. De Vuurvuist">
+      </div>
+
+      <div class="dm-form-row" id="ts-modus-row">
+        <label class="dm-form-label">Uitkomst</label>
+        <select id="ts-modus" class="dm-select" onchange="window._tsToonModusVelden()">
+          <option value="auto">Automatisch (op basis van kansen)</option>
+          <option value="dm">DM bepaalt vooraf</option>
+        </select>
+      </div>
+
+      <div id="ts-duur-row" class="dm-form-row">
+        <label class="dm-form-label">Duur (minuten)</label>
+        <input id="ts-duur" class="dm-input" type="number" min="1" value="60" style="width:80px">
+      </div>
+
+      <div class="dm-section-label" style="margin-top:10px;font-size:11px">Opties (min. 2)</div>
+      <div id="ts-opties-lijst"></div>
+      <button class="dm-btn dm-btn-ghost" onclick="window._tsAddOptie()" style="margin-top:4px">+ Optie toevoegen</button>
+
+      <div id="ts-dm-winnaar-row" class="dm-form-row hidden">
+        <label class="dm-form-label">Winnende optie</label>
+        <select id="ts-dm-winnaar" class="dm-select"></select>
+      </div>
+
+      <div class="dm-form-row" style="margin-top:12px">
+        <button class="dm-btn dm-btn-primary" onclick="window._tsDmOpslaan()">💾 Event aanmaken</button>
+      </div>
+    </div>`;
+
+  window._tsAddOptie();
+  window._tsAddOptie();
+  window._tsToonModusVelden();
+}
+
+let _tsOptieCount = 0;
+
+window._tsAddOptie = () => {
+  _tsOptieCount++;
+  const lijst = document.getElementById('ts-opties-lijst');
+  if (!lijst) return;
+  const id = _tsOptieCount;
+  const row = document.createElement('div');
+  row.className = 'dm-feature-row';
+  row.id = `ts-optie-row-${id}`;
+  row.style.cssText = 'gap:6px;align-items:center;margin-bottom:4px';
+  row.innerHTML = `
+    <input class="dm-input ts-opt-naam" placeholder="Naam" style="flex:2">
+    <input class="dm-input ts-opt-kans" type="number" min="0" max="100" placeholder="%" style="width:52px" title="Kans in %">
+    <input class="dm-input ts-opt-payout" type="number" min="1" placeholder="×" style="width:48px" title="Uitbetaling (bijv. 4 = 4:1)">
+    <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="document.getElementById('ts-optie-row-${id}').remove();window._tsUpdateWinnaarSelect()">✕</button>`;
+  lijst.appendChild(row);
+  row.querySelectorAll('input').forEach(i => i.addEventListener('input', window._tsUpdateWinnaarSelect));
+  window._tsUpdateWinnaarSelect();
+};
+
+window._tsUpdateWinnaarSelect = () => {
+  const sel = document.getElementById('ts-dm-winnaar');
+  if (!sel) return;
+  const prev = sel.value;
+  const namen = [...document.querySelectorAll('.ts-opt-naam')].map(i => i.value.trim()).filter(Boolean);
+  sel.innerHTML = namen.map((n, i) => `<option value="${i}">${esc(n)}</option>`).join('');
+  if (prev) sel.value = prev;
+};
+
+window._tsToonModusVelden = () => {
+  const modus = document.getElementById('ts-modus')?.value;
+  const duurRow = document.getElementById('ts-duur-row');
+  const winnaarRow = document.getElementById('ts-dm-winnaar-row');
+  if (duurRow) duurRow.classList.toggle('hidden', modus === 'dm');
+  if (winnaarRow) winnaarRow.classList.toggle('hidden', modus !== 'dm');
+};
+
+window._tsToggleGodenwedden = () => {
+  const type = document.getElementById('ts-type')?.value;
+  const modusSelect = document.getElementById('ts-modus');
+  const modusRow = document.getElementById('ts-modus-row');
+  if (type === 'godenwedden') {
+    if (modusSelect) modusSelect.value = 'dm';
+    if (modusRow) modusRow.classList.add('hidden');
+  } else {
+    if (modusRow) modusRow.classList.remove('hidden');
+  }
+  window._tsToonModusVelden();
+};
+
+window._tsDmOpslaan = async () => {
+  const naam = document.getElementById('ts-naam')?.value.trim();
+  const type = document.getElementById('ts-type')?.value;
+  const modus = document.getElementById('ts-modus')?.value || 'auto';
+  const duur = parseInt(document.getElementById('ts-duur')?.value) || 60;
+
+  const optieRijen = document.querySelectorAll('#ts-opties-lijst > .dm-feature-row');
+  const opties = [...optieRijen].map(row => ({
+    naam:   row.querySelector('.ts-opt-naam')?.value.trim() || '',
+    kans:   parseFloat(row.querySelector('.ts-opt-kans')?.value) || 0,
+    payout: parseFloat(row.querySelector('.ts-opt-payout')?.value) || 1,
+  })).filter(o => o.naam);
+
+  if (!naam) { alert('Geef een naam op.'); return; }
+  if (opties.length < 2) { alert('Voeg minimaal 2 opties toe.'); return; }
+
+  let uitkomst = null;
+  if (modus === 'dm') {
+    const sel = document.getElementById('ts-dm-winnaar');
+    const idx = parseInt(sel?.value);
+    uitkomst = isNaN(idx) ? null : String(idx);
+  }
+
+  try {
+    await api.createTweespaltEvent({ naam, type, uitkomstModus: modus, uitkomst, opties, duurMinuten: duur });
+    _tsOptieCount = 0;
+    await _renderTweespaltDM();
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+window._tsDmUitslag = async (eventId, optieId) => {
+  try {
+    await api.uitslagTweespalt(eventId, optieId ? { uitkomst: optieId } : {});
+    await _renderTweespaltDM();
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+window._tsDmVerwijder = async (eventId) => {
+  if (!confirm('Event verwijderen? Inzetten worden teruggestort.')) return;
+  try {
+    await api.deleteTweespaltEvent(eventId);
+    await _renderTweespaltDM();
+  } catch (err) { alert('Fout: ' + err.message); }
 };
 
 // ── Geluiden ──────────────────────────────────────────────────────────────────

@@ -9240,3 +9240,230 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .shop-onderhandel-loading { color: var(--color-ink-dim); }
 .shop-onderhandel-result--ok { background: rgba(34,100,54,0.10); border: 1px solid rgba(34,100,54,0.28); color: #1a5c30; }
 .shop-onderhandel-result--fout { background: rgba(139,42,42,0.08); border: 1px solid rgba(139,42,42,0.25); color: #8b2a2a; }
+
+/* ══ Tweespalt / Gokkantoor ══════════════════════════════════════════════════ */
+
+.ts-content { max-width: 640px; margin: 0 auto; padding: 20px 16px; }
+
+.ts-header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.ts-portrait-fallback {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(58,30,10,0.55);
+  border: 2px solid rgba(196,168,122,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.ts-beurs {
+  font-size: 0.9rem;
+  color: var(--color-ink-dim);
+  margin-top: 4px;
+}
+
+.ts-lening-banner {
+  background: rgba(139,42,42,0.10);
+  border: 1px solid rgba(139,42,42,0.30);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  margin-bottom: 16px;
+  color: #7a2020;
+}
+.ts-lening-sub { opacity: .7; font-style: italic; }
+
+.ts-sectie-label {
+  font-family: var(--font-cinzel);
+  font-size: 0.72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+  margin: 18px 0 8px;
+  border-bottom: 1px solid rgba(196,168,122,0.25);
+  padding-bottom: 4px;
+}
+.ts-sectie-label--afgerond { opacity: .65; }
+
+.ts-event {
+  background: rgba(58,30,10,0.25);
+  border: 1px solid rgba(196,168,122,0.28);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.ts-event--afgerond { opacity: .7; }
+
+.ts-event-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.ts-event-type {
+  font-size: 0.72rem;
+  opacity: .6;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.ts-event-naam {
+  font-family: var(--font-cinzel);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-gold);
+  flex: 1;
+}
+.ts-event-timer {
+  font-size: 0.75rem;
+  opacity: .55;
+  font-style: italic;
+}
+
+.ts-opties { display: flex; flex-direction: column; gap: 8px; }
+
+.ts-optie {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(196,168,122,0.2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  transition: border-color .15s;
+}
+.ts-optie--gekozen {
+  border-color: rgba(184,134,11,0.5);
+  background: rgba(184,134,11,0.07);
+}
+
+.ts-optie-top {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.ts-optie-naam {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.ts-optie-kans {
+  font-size: 0.78rem;
+  opacity: .6;
+}
+.ts-optie-payout {
+  font-size: 0.78rem;
+  color: var(--color-gold);
+}
+.ts-optie-ingezet {
+  font-size: 0.8rem;
+  color: var(--color-gold);
+  font-style: italic;
+}
+
+.ts-inzet-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ts-inzet-velden { display: flex; align-items: center; gap: 4px; }
+.ts-inzet-input {
+  width: 56px;
+  padding: 4px 6px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 4px;
+  color: var(--color-ink-bright);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  text-align: right;
+}
+.ts-inzet-input:focus { outline: none; border-color: rgba(184,134,11,0.6); }
+.ts-inzet-label { font-size: 0.78rem; opacity: .6; }
+
+.ts-wedden-btn {
+  padding: 5px 14px;
+  background: rgba(184,134,11,0.18);
+  border: 1px solid rgba(184,134,11,0.45);
+  border-radius: 5px;
+  color: var(--color-gold);
+  font-family: var(--font-cinzel);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background .15s;
+}
+.ts-wedden-btn:hover { background: rgba(184,134,11,0.30); }
+
+.ts-uitslag {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
+.ts-uitslag--gewonnen { background: rgba(34,100,54,0.12); border: 1px solid rgba(34,100,54,0.3); }
+.ts-uitslag--verloren { background: rgba(80,60,40,0.12); border: 1px solid rgba(196,168,122,0.2); }
+.ts-uitslag-label { opacity: .6; font-size: 0.78rem; }
+.ts-uitslag-winst { color: #2a7a3a; font-weight: 600; font-size: 0.85rem; }
+.ts-uitslag-verlies { opacity: .5; font-size: 0.82rem; font-style: italic; }
+
+.ts-npc-lijst {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(196,168,122,0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ts-npc-row { display: flex; gap: 8px; font-size: 0.78rem; opacity: .55; }
+.ts-npc-naam { font-style: italic; }
+.ts-npc-optie { opacity: .8; }
+
+.ts-taevin-bubble {
+  background: rgba(58,20,10,0.45);
+  border: 1px solid rgba(139,42,42,0.45);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 8px;
+}
+.ts-taevin-tekst {
+  font-size: 0.9rem;
+  color: var(--color-ink-bright);
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+.ts-taevin-sub {
+  font-size: 0.82rem;
+  opacity: .75;
+  margin-bottom: 10px;
+}
+.ts-taevin-knoppen { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.ts-btn {
+  padding: 6px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: var(--font-cinzel);
+  font-size: 0.78rem;
+  border: 1px solid transparent;
+  transition: background .15s;
+}
+.ts-btn--gevaar {
+  background: rgba(139,42,42,0.2);
+  border-color: rgba(139,42,42,0.5);
+  color: #c05050;
+}
+.ts-btn--gevaar:hover { background: rgba(139,42,42,0.35); }
+.ts-btn--ghost {
+  background: none;
+  border-color: rgba(196,168,122,0.35);
+  color: var(--color-ink-dim);
+}
+.ts-btn--ghost:hover { background: rgba(196,168,122,0.1); }
