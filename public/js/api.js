@@ -218,6 +218,19 @@ export const api = {
   getSjablonen:        ()                   => request('/berichten/sjablonen'),
   saveSjablonen:       (sjablonen)          => request('/berichten/sjablonen',                { method: 'PUT',   body: JSON.stringify({ sjablonen }) }),
 
+  // Madame Ursula
+  getUrsula:       ()              => request('/ursula'),
+  ursulaVraag:     (data)          => request('/ursula/vraag',  { method: 'POST', body: JSON.stringify(data) }),
+  saveUrsulaConfig:  (data)          => request('/meta/ursula',                            { method: 'PUT',  body: JSON.stringify(data) }),
+  setUrsulaGeheim:   (type, id, tekst) => request(`/entities/${type}/${id}/ursula-geheim`, { method: 'PUT',  body: JSON.stringify({ tekst }) }),
+  setGockGeheim:     (type, id, tekst) => request(`/entities/${type}/${id}/gock-geheim`,   { method: 'PUT',  body: JSON.stringify({ tekst }) }),
+
+  // De Gock
+  getGock:         ()              => request('/gock'),
+  gockOpdracht:    (data)          => request('/gock/opdracht',   { method: 'POST', body: JSON.stringify(data) }),
+  gockOpgehaald:   ()              => request('/gock/opgehaald', { method: 'PUT' }),
+  saveGockConfig:  (data)          => request('/meta/gock',      { method: 'PUT',  body: JSON.stringify(data) }),
+
   // Tweespalt / Gokkantoor
   getTweespalt:          ()              => request('/tweespalt'),
   createTweespaltEvent:  (data)          => request('/tweespalt/events',                    { method: 'POST',   body: JSON.stringify(data) }),

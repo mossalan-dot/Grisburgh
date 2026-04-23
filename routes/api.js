@@ -2878,6 +2878,309 @@ router.get('/campaigns/meta', attachRole, (req, res) => {
   res.json({ ...meta, activeCampaign: storage.getActiveCampaignId() });
 });
 
+// ── Madame Ursula / Waarzegger ──
+
+const URSULA_TIDBITS_DEFAULT = [
+  'De geesten fluisteren dat {naam} een verlies draagt dat nooit uitgesproken is',
+  'In de sluier der toekomst ziet Ursula {naam} op een kruispunt — een keus die alles verandert',
+  'De kaarten tonen {naam} omringd door schaduwen die ze zelf hebben gecreëerd',
+  'Een verborgen band met het verleden van {naam} trekt nog steeds aan hen — onzichtbaar maar voelbaar',
+  'Er is iemand die {naam} beter kent dan ze beseffen',
+  'Ursula ziet water en {naam} in dezelfde droom — niet als vijanden, maar ook niet als vrienden',
+  'Een oud geheim sluimert bij {naam}, klaar om op het verkeerde moment te ontwaken',
+  'De sterren staan gunstig voor {naam}, maar hun eigen aard staat hen in de weg',
+  'Er nadert een ontmoeting voor {naam} die meer gewicht heeft dan het lijkt',
+  "Ursula's handen trillen bij het noemen van {naam} — zelfs de kaarsvlam buigt",
+  '{naam} wordt gevolgd, al weten ze het niet',
+  'Iets wat verloren leek zal terugkeren via {naam}',
+  'Een oude schuld hangt boven {naam} als een onweerswolk',
+  'De geest van iemand die {naam} kende is nog steeds aanwezig in hun leven',
+  '{naam} vreest iets wat nooit hardop is uitgesproken',
+  'Een onverwachte bondgenoot bevindt zich in de nabijheid van {naam}',
+  'Ursula ziet goud en bloed in verband met {naam} — zij weet niet in welke volgorde',
+  '{naam} staat op het punt iets te verliezen wat ze nog niet weten te koesteren',
+  'De maan staat scheef boven {naam} — er is iets dat uit balans is',
+  "Ursula's kaars dooft bij de naam van {naam}. Ze weigert verder te kijken.",
+];
+
+const GOCK_TIDBITS_DEFAULT = [
+  '{naam} bezocht vorige week in het geheim een wedstrijd voor het vervaardigen van schunnige limericks',
+  '{naam} heeft een geheime minnaar in de havenbuurt die ze bezoeken elke eerste dag van de maand',
+  '{naam} staat bij drie verschillende kroegen bekend onder een valse naam',
+  '{naam} stuurt anonieme klachten naar het stadsbestuur over geluidsoverlast van een nabijgelegen bakker',
+  '{naam} koopt elke week vers gebak maar beweert het zelf te bakken',
+  '{naam} is al maanden lid van een geheime dichterskring die uitsluitend sonnetten schrijft over kazen',
+  '{naam} heeft een huurachterstand van vier maanden maar houdt dit geheim voor de eigenaar',
+  '{naam} verloor vorig jaar een aanzienlijk bedrag bij het gokken en heeft dit nog niemand verteld',
+  '{naam} verzamelt in het geheim miniatuurbeeldjes van beroemde avonturiers',
+  '{naam} betaalt iemand anders om hun post op te halen — ze willen niet gezien worden bij het postkantoor',
+  '{naam} heeft een geheime angst voor duiven en mijdt systematisch het centrale plein',
+  '{naam} is al drie jaar in het bezit van een boek dat toebehoort aan de stadsbibliotheek',
+  '{naam} koopt wekelijks twee flessen wijn maar beweert er nooit een te drinken',
+  '{naam} heeft een tweede woning buiten de stad die ze nooit aan iemand hebben laten zien',
+  '{naam} spreekt vloeiend een taal die ze officieel niet kennen',
+  '{naam} betaalt maandelijks een anonieme toelage aan een onbekende begunstigde',
+  '{naam} verloor een weddenschap en moet nu elke dinsdag een specifieke route door de stad vermijden',
+  '{naam} heeft een geheime correspondentie met een rivaliserende handelaar gaande al twee jaar',
+  '{naam} draagt altijd een bepaald amulet verborgen onder hun kleding — de herkomst ervan is onbekend',
+  '{naam} huurde vorig kwartaal een detective in. De Gock was die detective.',
+];
+
+function _dienstenBeschikbaar(dmState) {
+  const entities = storage.readJSON('entities.json');
+  const g = getGroup(dmState);
+  const vis = g.visibility || {};
+  const lijst = [];
+  for (const type of ['personages', 'locaties', 'organisaties', 'voorwerpen']) {
+    for (const e of (entities[type] || [])) {
+      if ((vis[e.id] || 'hidden') === 'hidden') continue;
+      lijst.push({ id: e.id, name: e.name, type });
+    }
+  }
+  return lijst;
+}
+
+router.get('/ursula', attachRole, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const config = meta.ursula || {};
+  const characterId = req.session.characterId;
+  const dmState = readDmState();
+
+  let playerState = (dmState.ursulaState || {})[characterId] || { cooldownTot: null };
+  if (playerState.cooldownTot && new Date(playerState.cooldownTot) < new Date()) {
+    playerState = { cooldownTot: null };
+  }
+
+  const currency = characterId ? ((dmState.playerCurrency || {})[characterId] || { fl: 0, kn: 0, cl: 0 }) : null;
+  res.json({
+    config: { prijs: config.prijs || { fl: 20 }, naam: config.naam || 'Madame Ursula' },
+    state: playerState,
+    beschikbaar: _dienstenBeschikbaar(dmState),
+    currency,
+  });
+});
+
+router.post('/ursula/vraag', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+
+  const { entityId, entityType } = req.body;
+  if (!entityId || !entityType) return res.status(400).json({ error: 'entityId en entityType vereist' });
+
+  const meta = storage.readJSON('meta.json');
+  const config = meta.ursula || {};
+  const prijs = config.prijs || { fl: 20 };
+  const tidbits = config.tidbits?.length ? config.tidbits : URSULA_TIDBITS_DEFAULT;
+
+  const dmState = readDmState();
+  if (!dmState.ursulaState) dmState.ursulaState = {};
+  let playerState = dmState.ursulaState[characterId] || { cooldownTot: null };
+
+  if (playerState.cooldownTot && new Date(playerState.cooldownTot) > new Date()) {
+    return res.status(429).json({ error: 'Cooldown actief', cooldownTot: playerState.cooldownTot });
+  }
+
+  const prijsCl = toCl(prijs);
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
+
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[entityType] || []).find(e => e.id === entityId);
+  if (!entity) return res.status(404).json({ error: 'Entiteit niet gevonden' });
+
+  let tekst, isGeheim = false;
+  if (entity.data?.ursulaGeheim) {
+    tekst = entity.data.ursulaGeheim;
+    isGeheim = true;
+    const g = getGroup(dmState);
+    if (!g.secretReveals) g.secretReveals = {};
+    g.secretReveals[entityId] = true;
+  } else {
+    tekst = tidbits[Math.floor(Math.random() * tidbits.length)].replace(/\{naam\}/g, entity.name);
+  }
+
+  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  playerState.cooldownTot = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  dmState.ursulaState[characterId] = playerState;
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io');
+  io.emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  if (isGeheim) {
+    io.emit('entity:secret', { id: entityId, type: entityType, name: entity.name, secretReveal: true });
+    io.emit('entity:updated', { type: entityType, id: entityId });
+  }
+
+  res.json({
+    tekst, entityName: entity.name, entityId, entityType, isGeheim,
+    cooldownTot: playerState.cooldownTot,
+    currency: dmState.playerCurrency[characterId],
+  });
+});
+
+// ── De Gock / Privédetective ──
+
+function _gockCheckReady(dmState, io) {
+  if (!dmState.gockState) return false;
+  const now = new Date();
+  let changed = false;
+  const entities = storage.readJSON('entities.json');
+  for (const [charId, geval] of Object.entries(dmState.gockState)) {
+    if (!geval.gereed && geval.klaarOp && new Date(geval.klaarOp) <= now) {
+      geval.gereed = true;
+      changed = true;
+      if (geval.isGeheim) {
+        const entity = (entities[geval.entityType] || []).find(e => e.id === geval.entityId);
+        if (entity) {
+          const g = getGroup(dmState);
+          if (!g.secretReveals) g.secretReveals = {};
+          g.secretReveals[geval.entityId] = true;
+          if (io) {
+            io.emit('entity:secret', { id: geval.entityId, type: geval.entityType, name: entity.name, secretReveal: true });
+            io.emit('entity:updated', { type: geval.entityType, id: geval.entityId });
+          }
+        }
+      }
+      if (io) {
+        io.emit('gock:rapport-klaar', {
+          characterId: charId,
+          entityName: geval.entityName,
+          entityId: geval.entityId,
+          entityType: geval.entityType,
+        });
+      }
+    }
+  }
+  return changed;
+}
+
+router.get('/gock', attachRole, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const config = meta.gock || {};
+  const characterId = req.session.characterId;
+  const dmState = readDmState();
+  const io = req.app.get('io');
+
+  if (_gockCheckReady(dmState, io)) storage.writeJSON('dm-state.json', dmState);
+
+  const playerCase = characterId ? ((dmState.gockState || {})[characterId] || null) : null;
+  const currency = characterId ? ((dmState.playerCurrency || {})[characterId] || { fl: 0, kn: 0, cl: 0 }) : null;
+
+  res.json({
+    config: { prijs: config.prijs || { fl: 50 }, naam: config.naam || 'De Gock' },
+    geval: playerCase,
+    beschikbaar: _dienstenBeschikbaar(dmState),
+    currency,
+  });
+});
+
+router.post('/gock/opdracht', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+
+  const { entityId, entityType } = req.body;
+  if (!entityId || !entityType) return res.status(400).json({ error: 'entityId en entityType vereist' });
+
+  const dmState = readDmState();
+  if (!dmState.gockState) dmState.gockState = {};
+  const existing = dmState.gockState[characterId];
+  if (existing && !existing.gereed) return res.status(400).json({ error: 'Je hebt al een lopende opdracht' });
+
+  const meta = storage.readJSON('meta.json');
+  const config = meta.gock || {};
+  const prijs = config.prijs || { fl: 50 };
+  const tidbits = config.tidbits?.length ? config.tidbits : GOCK_TIDBITS_DEFAULT;
+
+  const prijsCl = toCl(prijs);
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
+
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[entityType] || []).find(e => e.id === entityId);
+  if (!entity) return res.status(404).json({ error: 'Entiteit niet gevonden' });
+
+  let tekst, isGeheim = false;
+  if (entity.data?.gockGeheim) {
+    tekst = entity.data.gockGeheim;
+    isGeheim = true;
+  } else {
+    tekst = tidbits[Math.floor(Math.random() * tidbits.length)].replace(/\{naam\}/g, entity.name);
+  }
+
+  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  const klaarOp = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  dmState.gockState[characterId] = {
+    entityId, entityType, entityName: entity.name,
+    betaaldOp: new Date().toISOString(),
+    klaarOp, tekst, isGeheim,
+    gereed: false, opgehaald: false,
+  };
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  io.emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  res.json({ ok: true, klaarOp, currency: dmState.playerCurrency[characterId] });
+});
+
+router.put('/entities/:type/:id/ursula-geheim', requireDM, (req, res) => {
+  const { type, id } = req.params;
+  if (!ENTITY_TYPES.includes(type)) return res.status(400).json({ error: 'Ongeldig type' });
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[type] || []).find(e => e.id === id);
+  if (!entity) return res.status(404).json({ error: 'Niet gevonden' });
+  if (!entity.data) entity.data = {};
+  const tekst = req.body.tekst?.trim() || null;
+  if (tekst) entity.data.ursulaGeheim = tekst;
+  else delete entity.data.ursulaGeheim;
+  storage.writeJSON('entities.json', entities);
+  res.json({ ok: true });
+});
+
+router.put('/entities/:type/:id/gock-geheim', requireDM, (req, res) => {
+  const { type, id } = req.params;
+  if (!ENTITY_TYPES.includes(type)) return res.status(400).json({ error: 'Ongeldig type' });
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[type] || []).find(e => e.id === id);
+  if (!entity) return res.status(404).json({ error: 'Niet gevonden' });
+  if (!entity.data) entity.data = {};
+  const tekst = req.body.tekst?.trim() || null;
+  if (tekst) entity.data.gockGeheim = tekst;
+  else delete entity.data.gockGeheim;
+  storage.writeJSON('entities.json', entities);
+  res.json({ ok: true });
+});
+
+router.put('/gock/opgehaald', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+  const dmState = readDmState();
+  const geval = (dmState.gockState || {})[characterId];
+  if (!geval) return res.status(404).json({ error: 'Geen dossier gevonden' });
+  geval.opgehaald = true;
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true });
+});
+
+router.put('/meta/ursula', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.ursula) meta.ursula = {};
+  ['naam', 'prijs', 'tidbits'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').emit('meta:updated');
+  res.json(meta.ursula);
+});
+
+router.put('/meta/gock', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.gock) meta.gock = {};
+  ['naam', 'prijs', 'tidbits'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').emit('meta:updated');
+  res.json(meta.gock);
+});
+
 // ── Herberg / Roddelwaard ──
 
 router.get('/herberg', attachRole, (req, res) => {

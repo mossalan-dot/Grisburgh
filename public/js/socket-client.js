@@ -381,6 +381,18 @@ export function initSocket() {
     }
   });
 
+  // ── Gock rapport klaar ──
+  socket.on('gock:rapport-klaar', ({ entityName } = {}) => {
+    _showToast(
+      `📁 <strong>De Gock</strong> heeft zijn rapport over <em>${entityName}</em> klaargelegd`,
+      () => { window.app.switchSection('gock'); },
+      8000
+    );
+    if (window.app?.state?.activeSection === 'gock') {
+      window.app.refreshSection('gock');
+    }
+  });
+
   // ── Tweespalt ──
   socket.on('tweespalt:updated', () => {
     if (window.app?.state?.activeSection === 'tweespalt') {
