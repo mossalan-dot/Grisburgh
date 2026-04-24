@@ -7838,6 +7838,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 
 /* Zoekbalk */
 .herberg-zoek-wrap { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.herberg-zoek-hint { font-size: 0.8rem; color: rgba(180,150,90,0.5); font-style: italic; text-align: center; padding: 8px 0; margin: 0; }
 .herberg-search-wrap { position: relative; }
 .herberg-search {
   width: 100%;
