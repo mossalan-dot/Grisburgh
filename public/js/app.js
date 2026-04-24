@@ -3239,9 +3239,26 @@ async function init() {
 
 // ── Herberg ──
 
+function _dienstNietBereikbaar(el, naam) {
+  el.innerHTML = `
+    <div class="herberg-scene" style="justify-content:center;align-items:center;min-height:220px">
+      <div class="herberg-content" style="text-align:center;padding:2rem 1.5rem">
+        <div style="font-size:2.2rem;margin-bottom:.6rem">🔒</div>
+        <p class="herberg-groet" style="margin:0">${esc(naam)} is momenteel niet bereikbaar.</p>
+        <p style="opacity:.5;font-size:.85rem;margin-top:.5rem">De groep bevindt zich buiten Grisburgh.</p>
+      </div>
+    </div>`;
+}
+
 async function renderHerberg() {
   const el = document.getElementById('section-herberg');
   if (!el) return;
+
+  const meta = window.app?.state?.meta || {};
+  if (meta.buitenGrisburgh) {
+    _dienstNietBereikbaar(el, meta.herberg?.naam || 'De herberg');
+    return;
+  }
 
   let data;
   try { data = await api.get('/herberg'); }
@@ -3382,6 +3399,13 @@ window._herbergVraag = async (entityId) => {
 async function renderUrsula() {
   const el = document.getElementById('section-ursula');
   if (!el) return;
+
+  const meta = window.app?.state?.meta || {};
+  if (meta.buitenGrisburgh) {
+    _dienstNietBereikbaar(el, meta.ursula?.naam || 'Madame Ursula');
+    return;
+  }
+
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
 
   let data;
@@ -3483,6 +3507,13 @@ window._ursulaFilter = (q) => {
 async function renderGock() {
   const el = document.getElementById('section-gock');
   if (!el) return;
+
+  const meta = window.app?.state?.meta || {};
+  if (meta.buitenGrisburgh) {
+    _dienstNietBereikbaar(el, meta.gock?.naam || 'De Gock');
+    return;
+  }
+
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
 
   let data;
@@ -3593,6 +3624,13 @@ window._gockOpgehaald = async () => {
 async function renderTweespalt() {
   const el = document.getElementById('section-tweespalt');
   if (!el) return;
+
+  const meta = window.app?.state?.meta || {};
+  if (meta.buitenGrisburgh) {
+    _dienstNietBereikbaar(el, 'De Tweespalt');
+    return;
+  }
+
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
 
   let data;

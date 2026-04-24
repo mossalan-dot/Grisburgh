@@ -293,6 +293,7 @@ function _buildTabs() {
     <button class="dm-tab-btn${_activeTab==='monsters'?    ' active':''}" data-tab="monsters"     onclick="window.dmPanel.switchTab('monsters')"     title="Monsterbibliotheek"><span class="dm-tab-icon">👾</span><span class="dm-tab-label">Monsters</span></button>
     <button class="dm-tab-btn${_activeTab==='gevecht'?     ' active':''}" data-tab="gevecht"      onclick="window.dmPanel.switchTab('gevecht')"      title="Gevecht"><span class="dm-tab-icon">⚔️</span><span class="dm-tab-label">Gevecht</span></button>
     <button class="dm-tab-btn${_activeTab==='campagnes'?   ' active':''}" data-tab="campagnes"    onclick="window.dmPanel.switchTab('campagnes')"    title="Campagnes"><span class="dm-tab-icon">🗂</span><span class="dm-tab-label">Campagnes</span></button>
+    <button class="dm-tab-btn${_activeTab==='wereld'?      ' active':''}" data-tab="wereld"       onclick="window.dmPanel.switchTab('wereld')"       title="Locatie — Grisburgh verlaten"><span class="dm-tab-icon">🗺️</span><span class="dm-tab-label">Wereld</span></button>
     <button class="dm-tab-btn${_activeTab==='herberg'?     ' active':''}" data-tab="herberg"      onclick="window.dmPanel.switchTab('herberg')"      title="Herberg instellingen"><span class="dm-tab-icon">🍺</span><span class="dm-tab-label">Herberg</span></button>
     <button class="dm-tab-btn${_activeTab==='tweespalt'?  ' active':''}" data-tab="tweespalt"   onclick="window.dmPanel.switchTab('tweespalt')"   title="De Tweespalt — gokkantoor"><span class="dm-tab-icon">🎲</span><span class="dm-tab-label">Tweespalt</span></button>
     <button class="dm-tab-btn${_activeTab==='ursula'?     ' active':''}" data-tab="ursula"      onclick="window.dmPanel.switchTab('ursula')"      title="Madame Ursula — waarzegger"><span class="dm-tab-icon">🔮</span><span class="dm-tab-label">Ursula</span></button>
@@ -319,6 +320,7 @@ function _switchTab(tab) {
   if (tab === 'monsters')  _loadAndRenderMonsters();
   if (tab === 'geluiden')  _renderGeluiden();
   if (tab === 'campagnes') _loadAndRenderCampagnes();
+  if (tab === 'wereld')     _renderWereldTab();
   if (tab === 'herberg')    _renderHerbergSettings();
   if (tab === 'tweespalt')  _renderTweespaltDM();
   if (tab === 'ursula')     _renderUrsulaSettings();
@@ -2313,6 +2315,82 @@ async function _campagneSubmit() {
 };
 
 // ── Herberg instellingen ───────────────────────────────────────────────────────
+
+// ── Wereld (Grisburgh verlaten) ───────────────────────────────────────────────
+
+async function _renderWereldTab() {
+  const el = document.querySelector('.dm-tab-content[data-tab="wereld"]');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  const meta = window.app?.state?.meta || {};
+  const buitenGrisburgh = !!meta.buitenGrisburgh;
+  const buitenEntiteiten = meta.buitenGrisburgEntiteiten || [];
+
+  // Load all verkopers + winkels
+  let verkopers = [];
+  try {
+    const [p, l] = await Promise.all([
+      api.listEntities('personages').catch(() => []),
+      api.listEntities('locaties').catch(() => []),
+    ]);
+    verkopers = [
+      ...p.filter(e => e.subtype === 'verkoper'),
+      ...l.filter(e => e.data?.locType === 'Winkel'),
+    ];
+  } catch {}
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Locatie van de groep</div>
+
+      <div class="dm-form-row" style="flex-direction:column;gap:10px">
+        <button id="wereld-toggle-btn" class="dm-btn${buitenGrisburgh ? ' dm-btn-danger' : ' dm-btn-primary'}"
+          onclick="window._wereldToggle()" style="font-size:1rem;padding:10px 18px">
+          ${buitenGrisburgh ? '🔒 Grisburgh verlaten — klik om terug te keren' : '🏙️ In Grisburgh — klik om te verlaten'}
+        </button>
+        <p style="font-size:11px;opacity:.6">
+          Als de groep Grisburgh verlaat, worden alle Grisburgh-diensten
+          (herberg, Tweespalt, Ursula, Gock) en winkels geblokkeerd voor spelers.
+          Winkels die je hieronder markeert als "buiten Grisburgh" blijven altijd bereikbaar.
+        </p>
+      </div>
+    </div>
+
+    ${verkopers.length > 0 ? `
+    <div class="dm-feature-section" style="margin-top:14px">
+      <div class="dm-section-label">Bereikbaar buiten Grisburgh</div>
+      <p style="font-size:11px;opacity:.6;margin-bottom:10px">
+        Gemarkeerde winkels/verkopers blijven toegankelijk wanneer de groep buiten Grisburgh is.
+      </p>
+      ${verkopers.map(v => `
+        <div class="dm-form-row" style="align-items:center;gap:10px;margin-bottom:6px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1">
+            <input type="checkbox" ${buitenEntiteiten.includes(v.id) ? 'checked' : ''}
+              onchange="window._wereldToggleEntiteit('${esc(v.id)}')"
+              style="width:16px;height:16px;accent-color:var(--color-gold,#c4a87a)">
+            <span class="dm-form-label" style="margin:0">${esc(v.name)}</span>
+          </label>
+        </div>`).join('')}
+    </div>` : ''}`;
+}
+
+window._wereldToggle = async () => {
+  const meta = window.app?.state?.meta || {};
+  try {
+    const res = await api.setLocatie({ buitenGrisburgh: !meta.buitenGrisburgh });
+    if (window.app?.state) window.app.state.meta = { ...meta, buitenGrisburgh: res.buitenGrisburgh };
+    await _renderWereldTab();
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+window._wereldToggleEntiteit = async (entityId) => {
+  const meta = window.app?.state?.meta || {};
+  try {
+    const res = await api.toggleLocatieEntiteit(entityId);
+    if (window.app?.state) window.app.state.meta = { ...meta, buitenGrisburgEntiteiten: res.buitenGrisburgEntiteiten };
+  } catch (err) { alert('Fout: ' + err.message); }
+};
 
 let _hbPersonages = [];
 let _hbPendingBackdropId = null;
