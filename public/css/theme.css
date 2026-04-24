@@ -9846,3 +9846,37 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 
 /* ── Geselecteerde node: gouden rand via SVG ── */
 .rel-node--selected rect, .rel-node--selected polygon { filter: drop-shadow(0 0 5px rgba(196,168,122,0.7)); }
+
+/* ══ Witte tekst op donkere backdrop (Tweespalt, Ursula, Gock) ══════════════ */
+
+/* Basis: alle tekst in content-paneel met backdrop lichter maken */
+.herberg-scene[style] .herberg-content,
+.herberg-scene[style] .herberg-content p,
+.herberg-scene[style] .herberg-content span,
+.herberg-scene[style] .herberg-content label,
+.herberg-scene[style] .herberg-content strong {
+  color: rgba(240,235,225,0.93);
+}
+
+/* Tweespalt-specifieke overrides */
+.tweespalt-scene .ts-beurs                { color: rgba(220,210,190,0.85); }
+.tweespalt-scene .ts-sectie-label         { color: rgba(215,195,145,0.90); border-color: rgba(215,195,145,0.25); }
+.tweespalt-scene .ts-event                { background: rgba(0,0,0,0.35); border-color: rgba(215,195,145,0.25); }
+.tweespalt-scene .ts-event-type           { color: rgba(200,185,155,0.75); }
+.tweespalt-scene .ts-event-naam           { color: rgba(230,205,130,0.97); text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+.tweespalt-scene .ts-event-timer          { color: rgba(200,185,155,0.70); }
+.tweespalt-scene .ts-optie                { background: rgba(0,0,0,0.25); border-color: rgba(215,195,145,0.22); }
+.tweespalt-scene .ts-optie-naam           { color: rgba(240,235,220,0.95); }
+.tweespalt-scene .ts-optie-kans           { color: rgba(200,185,155,0.75); }
+.tweespalt-scene .ts-uitslag-label        { color: rgba(200,185,155,0.75); }
+.tweespalt-scene .ts-uitslag-winst        { color: #6fda8a; }
+.tweespalt-scene .ts-inzet-label          { color: rgba(200,185,155,0.75); }
+.tweespalt-scene .ts-lening-banner        { color: rgba(255,170,170,0.90); background: rgba(100,20,20,0.35); border-color: rgba(180,60,60,0.4); }
+.tweespalt-scene .ts-npc-row              { color: rgba(185,170,145,0.70); }
+.tweespalt-scene .herberg-leeg            { color: rgba(200,185,155,0.65); }
+
+/* Ursula en Gock: zorg dat ook hun dim-tekst leesbaar blijft */
+.ursula-scene .herberg-cooldown-tekst,
+.gock-scene   .herberg-cooldown-tekst     { color: rgba(220,200,240,0.85); background: rgba(0,0,0,0.30); }
+.ursula-scene .ts-beurs,
+.gock-scene   .ts-beurs                   { color: rgba(220,210,190,0.85); }
