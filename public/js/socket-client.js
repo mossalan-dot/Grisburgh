@@ -177,10 +177,18 @@ export function initSocket() {
 
   socket.on('meta:updated', () => {
     import('./api.js').then(({ api }) => api.meta().then(m => {
+      const prev = window.app?.state?.meta;
+      const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;
       window.app?.applyAppMeta(m);
-      // Refresh hoofdstuk-dropdown in reveal strip (chapters may have changed)
       window.dmPanel?.renderRevealStrip?.();
+      // Re-render active dienst tab when locatie-flag changes
+      if (buitenChanged) {
+        const sec = window.app?.state?.activeSection;
+        if (['herberg','tweespalt','ursula','gock'].includes(sec)) {
+          window.app?.navigateTo?.(sec);
+        }
+      }
     }));
   });
 

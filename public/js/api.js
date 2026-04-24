@@ -251,6 +251,10 @@ export const api = {
   gockOpgehaald:   ()              => request('/gock/opgehaald', { method: 'PUT' }),
   saveGockConfig:  (data)          => request('/meta/gock',      { method: 'PUT',  body: JSON.stringify(data) }),
 
+  // Locatie (Grisburgh verlaten)
+  setLocatie:              (data)     => request('/locatie',          { method: 'PUT', body: JSON.stringify(data) }),
+  toggleLocatieEntiteit:   (entityId) => request('/locatie/entiteit', { method: 'PUT', body: JSON.stringify({ entityId }) }),
+
   // Tweespalt / Gokkantoor
   getTweespalt:          ()              => request('/tweespalt'),
   createTweespaltEvent:  (data)          => request('/tweespalt/events',                    { method: 'POST',   body: JSON.stringify(data) }),

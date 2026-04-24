@@ -1479,6 +1479,15 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const heeftVoorraad = isVerkoper || isWinkel;
   let voorraadHtml = '';
   if (heeftVoorraad) {
+    const _appMeta = window.app?.state?.meta || {};
+    const _buitenEntiteiten = _appMeta.buitenGrisburgEntiteiten || [];
+    if (!isDM() && _appMeta.buitenGrisburgh && !_buitenEntiteiten.includes(e.id)) {
+      voorraadHtml = `<div style="text-align:center;padding:2rem 1rem">
+        <div style="font-size:2rem;margin-bottom:.5rem">🔒</div>
+        <p style="color:var(--color-ink-dim,.7rem)">${esc(e.name)} is momenteel niet bereikbaar.</p>
+        <p style="font-size:.8rem;opacity:.5">De groep bevindt zich buiten Grisburgh.</p>
+      </div>`;
+    } else {
     // Gebruik beschikbaarData als die beschikbaar is, anders val terug op ruwe voorraad
     let voorraadItems;
     const roterend = beschikbaarData?.roterend || false;
@@ -1628,6 +1637,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     } else {
       voorraadHtml = `${sfeerHtml}${kortingBannerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>`;
     }
+    } // end else (niet buitenGrisburgh)
   }
 
   // ── Build log HTML for DM ──

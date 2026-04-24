@@ -3444,6 +3444,29 @@ router.put('/meta/gock', requireDM, (req, res) => {
   res.json(meta.gock);
 });
 
+// ── Locatie (Grisburgh verlaten) ──
+
+router.put('/locatie', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (req.body.buitenGrisburgh !== undefined) meta.buitenGrisburgh = Boolean(req.body.buitenGrisburgh);
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').emit('meta:updated');
+  res.json({ buitenGrisburgh: meta.buitenGrisburgh });
+});
+
+router.put('/locatie/entiteit', requireDM, (req, res) => {
+  const { entityId } = req.body;
+  if (!entityId) return res.status(400).json({ error: 'entityId vereist' });
+  const meta = storage.readJSON('meta.json');
+  if (!meta.buitenGrisburgEntiteiten) meta.buitenGrisburgEntiteiten = [];
+  const idx = meta.buitenGrisburgEntiteiten.indexOf(entityId);
+  if (idx === -1) meta.buitenGrisburgEntiteiten.push(entityId);
+  else            meta.buitenGrisburgEntiteiten.splice(idx, 1);
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').emit('meta:updated');
+  res.json({ buitenGrisburgEntiteiten: meta.buitenGrisburgEntiteiten });
+});
+
 // ── Herberg / Roddelwaard ──
 
 router.get('/herberg', attachRole, (req, res) => {
