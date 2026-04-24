@@ -4,7 +4,7 @@ import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLo
 import { renderKaart, queueFlyTo } from './render-kaart.js';
 import { renderRelatiemap } from './render-relatiemap.js?v=8';
 import { initSocket } from './socket-client.js?v=8';
-import { initDmPanel } from './dm-panel.js?v=7';
+import { initDmPanel } from './dm-panel.js?v=8';
 
 // ── App State ──
 const state = {
@@ -3662,7 +3662,7 @@ async function renderTweespalt() {
     return;
   }
 
-  const { events = [], currency, lening, npcNamen = [] } = data;
+  const { events = [], currency, lening, npcNamen = [], config = {} } = data;
   const openEvents = events.filter(e => e.status === 'open');
   const afgerondEvents = events.filter(e => e.status === 'afgerond');
 
@@ -3751,15 +3751,18 @@ async function renderTweespalt() {
         <span class="ts-lening-sub">(30% rente per dag)</span>
        </div>` : '';
 
+  const tsBackdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const tsPortret  = config.imageId
+    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam || 'De Tweespalt')}">`
+    : `<div class="ts-portrait-fallback">🎲</div>`;
+
   el.innerHTML = `
-    <div class="herberg-scene">
+    <div class="herberg-scene tweespalt-scene" ${tsBackdrop}>
       <div class="herberg-content ts-content">
-        <div class="ts-header">
-          <div class="ts-portrait-fallback">🎲</div>
-          <div>
-            <p class="herberg-groet">Welkom bij De Tweespalt. Korporaal Standhall knikt je toe.</p>
-            ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
-          </div>
+        <div class="herberg-portrait-wrap">${tsPortret}</div>
+        <div>
+          <p class="herberg-groet">Welkom bij ${esc(config.naam || 'De Tweespalt')}. Korporaal Standhall knikt je toe.</p>
+          ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
         </div>
 
         ${leningBanner}

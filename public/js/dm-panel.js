@@ -2562,7 +2562,7 @@ async function _renderTweespaltDM() {
     return;
   }
 
-  const { events = [] } = data;
+  const { events = [], config: tsConfig = {} } = data;
 
   function formatCl(cl) {
     const fl = Math.floor(cl / 100), kn = Math.floor((cl % 100) / 10), ce = cl % 10;
@@ -2616,8 +2616,51 @@ async function _renderTweespaltDM() {
       </div>`;
   }
 
+  let tsPersonages = [], tsLocaties = [];
+  try { tsPersonages = await api.listEntities('personages'); } catch {}
+  try { tsLocaties   = await api.listEntities('locaties');   } catch {}
+  const tsAlleEntiteiten = [...tsPersonages, ...tsLocaties];
+
   el.innerHTML = `
     <div class="dm-feature-section">
+      <div class="dm-section-label">De Tweespalt — Instellingen</div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Naam</label>
+        <input id="ts-naam-config" class="dm-input" value="${esc(tsConfig.naam || 'De Tweespalt')}">
+      </div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Portret (NPC)</label>
+        <select id="ts-portret-select" class="dm-select">
+          <option value="">— Kies een personage of locatie —</option>
+          ${tsAlleEntiteiten.map(e => `<option value="${esc(e.id)}" ${tsConfig.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select>
+      </div>
+      ${tsConfig.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(tsConfig.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrondafbeelding</label>
+        ${tsConfig.backdropId ? `<img id="ts-backdrop-preview" src="${api.fileUrl(tsConfig.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="ts-backdrop-preview" style="display:none"></span>'}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">
+          📷 Afbeelding kiezen
+          <input type="file" accept="image/*" class="hidden" onchange="window._tsUploadBackdrop(this.files[0])">
+        </label>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Of kies uit entiteiten</label>
+          <select id="ts-backdrop-select" class="dm-select">
+            <option value="">— Entiteit als backdrop —</option>
+            ${tsAlleEntiteiten.map(e => `<option value="${esc(e.id)}" ${tsConfig.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-primary" onclick="window._tsSettingsSave()">💾 Instellingen opslaan</button>
+      </div>
+    </div>
+
+    <div class="dm-feature-section" style="margin-top:14px">
       <div class="dm-section-label">De Tweespalt — Beheer</div>
       ${events.length
         ? events.map(renderDMEvent).join('')
@@ -2663,6 +2706,7 @@ async function _renderTweespaltDM() {
       <div class="dm-form-row" style="margin-top:12px">
         <button class="dm-btn dm-btn-primary" onclick="window._tsDmOpslaan()">💾 Event aanmaken</button>
       </div>
+    </div>
     </div>`;
 
   window._tsAddOptie();
@@ -2766,6 +2810,33 @@ window._tsDmVerwijder = async (eventId) => {
   } catch (err) { alert('Fout: ' + err.message); }
 };
 
+window._tsUploadBackdrop = async (file) => {
+  if (!file) return;
+  const id = 'ts-backdrop-' + Date.now();
+  try {
+    await api.uploadFile(id, file);
+    window._tsBackdropPending = id;
+    const prev = document.getElementById('ts-backdrop-preview');
+    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
+    const sel = document.getElementById('ts-backdrop-select');
+    if (sel) sel.value = '';
+  } catch (err) { alert('Upload mislukt: ' + err.message); }
+};
+
+window._tsSettingsSave = async () => {
+  const naam      = document.getElementById('ts-naam-config')?.value.trim() || 'De Tweespalt';
+  const imageId   = document.getElementById('ts-portret-select')?.value || null;
+  const backdropFromSelect = document.getElementById('ts-backdrop-select')?.value || null;
+  const backdropId = window._tsBackdropPending || backdropFromSelect || (window.app?.state?.meta?.tweespalt?.backdropId) || null;
+  try {
+    await api.saveTweespaltConfig({ naam, imageId, backdropId });
+    const newMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = newMeta;
+    window._tsBackdropPending = null;
+    await _renderTweespaltDM();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
 // ── Madame Ursula ─────────────────────────────────────────────────────────────
 
 async function _renderUrsulaSettings() {
@@ -2777,11 +2848,12 @@ async function _renderUrsulaSettings() {
   const config = meta.ursula || {};
   const prijs = config.prijs || { fl: 20 };
 
-  let personages = [];
+  let personages = [], locaties = [];
   try { personages = await api.listEntities('personages'); } catch {}
+  try { locaties   = await api.listEntities('locaties');   } catch {}
+  const alleEntiteiten = [...personages, ...locaties];
 
   const tidbitsWaarde = (config.tidbits || []).join('\n');
-  let _ursulaBackdropPending = null;
 
   el.innerHTML = `
     <div class="dm-feature-section">
@@ -2797,10 +2869,10 @@ async function _renderUrsulaSettings() {
       </div>
 
       <div class="dm-form-row">
-        <label class="dm-form-label">Portret (NPC)</label>
+        <label class="dm-form-label">Portret (NPC of locatie)</label>
         <select id="ursula-portret-select" class="dm-select">
-          <option value="">— Kies een personage —</option>
-          ${personages.map(p => `<option value="${esc(p.id)}" ${config.imageId === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+          <option value="">— Kies een entiteit —</option>
+          ${alleEntiteiten.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
         </select>
       </div>
       ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
@@ -2809,9 +2881,16 @@ async function _renderUrsulaSettings() {
         <label class="dm-form-label">Achtergrondafbeelding</label>
         ${config.backdropId ? `<img id="ursula-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="ursula-backdrop-preview" style="display:none"></span>'}
         <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">
-          📷 Afbeelding kiezen
+          📷 Afbeelding uploaden
           <input type="file" accept="image/*" class="hidden" onchange="window._ursulaUploadBackdrop(this.files[0])">
         </label>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Of kies uit entiteiten</label>
+          <select id="ursula-backdrop-select" class="dm-select">
+            <option value="">— Entiteit als backdrop —</option>
+            ${alleEntiteiten.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+          </select>
+        </div>
       </div>
 
       <div class="dm-form-row" style="flex-direction:column;gap:4px">
@@ -2856,7 +2935,8 @@ window._ursulaSettingsSave = async () => {
   const tidbitsRaw = document.getElementById('ursula-tidbits')?.value.trim() || '';
   const tidbits = tidbitsRaw ? tidbitsRaw.split('\n').map(l => l.trim()).filter(Boolean) : [];
   const imageId = document.getElementById('ursula-portret-select')?.value || config.imageId || '';
-  const backdropId = window._ursulaBackdropPending || config.backdropId || '';
+  const backdropFromSelect = document.getElementById('ursula-backdrop-select')?.value || null;
+  const backdropId = window._ursulaBackdropPending || backdropFromSelect || config.backdropId || '';
   try {
     await api.saveUrsulaConfig({ naam, prijs: { fl }, tidbits: tidbits.length ? tidbits : undefined, imageId, backdropId });
     const newMeta = await api.meta();
@@ -2887,11 +2967,10 @@ async function _renderGockSettings() {
   const config = meta.gock || {};
   const prijs = config.prijs || { fl: 50 };
 
-  let personages = [];
-  try { personages = await api.listEntities('personages'); } catch {}
-
-  let gockData;
-  try { gockData = await api.getTweespalt(); } catch { gockData = null; }
+  let personages = [], gockLocaties = [];
+  try { personages  = await api.listEntities('personages'); } catch {}
+  try { gockLocaties = await api.listEntities('locaties');  } catch {}
+  const gockAlleEntiteiten = [...personages, ...gockLocaties];
 
   const tidbitsWaarde = (config.tidbits || []).join('\n');
 
@@ -2909,10 +2988,10 @@ async function _renderGockSettings() {
       </div>
 
       <div class="dm-form-row">
-        <label class="dm-form-label">Portret (NPC)</label>
+        <label class="dm-form-label">Portret (NPC of locatie)</label>
         <select id="gock-portret-select" class="dm-select">
-          <option value="">— Kies een personage —</option>
-          ${personages.map(p => `<option value="${esc(p.id)}" ${config.imageId === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+          <option value="">— Kies een entiteit —</option>
+          ${gockAlleEntiteiten.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
         </select>
       </div>
       ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
@@ -2921,9 +3000,16 @@ async function _renderGockSettings() {
         <label class="dm-form-label">Achtergrondafbeelding</label>
         ${config.backdropId ? `<img id="gock-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="gock-backdrop-preview" style="display:none"></span>'}
         <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">
-          📷 Afbeelding kiezen
+          📷 Afbeelding uploaden
           <input type="file" accept="image/*" class="hidden" onchange="window._gockUploadBackdrop(this.files[0])">
         </label>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Of kies uit entiteiten</label>
+          <select id="gock-backdrop-select" class="dm-select">
+            <option value="">— Entiteit als backdrop —</option>
+            ${gockAlleEntiteiten.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+          </select>
+        </div>
       </div>
 
       <div class="dm-form-row" style="flex-direction:column;gap:4px">
@@ -2958,6 +3044,8 @@ window._gockUploadBackdrop = async (file) => {
     window._gockBackdropPending = id;
     const prev = document.getElementById('gock-backdrop-preview');
     if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
+    const sel = document.getElementById('gock-backdrop-select');
+    if (sel) sel.value = '';
   } catch (err) { alert('Upload mislukt: ' + err.message); }
 };
 
@@ -2968,7 +3056,8 @@ window._gockSettingsSave = async () => {
   const tidbitsRaw = document.getElementById('gock-tidbits')?.value.trim() || '';
   const tidbits = tidbitsRaw ? tidbitsRaw.split('\n').map(l => l.trim()).filter(Boolean) : [];
   const imageId = document.getElementById('gock-portret-select')?.value || config.imageId || '';
-  const backdropId = window._gockBackdropPending || config.backdropId || '';
+  const backdropFromSelect = document.getElementById('gock-backdrop-select')?.value || null;
+  const backdropId = window._gockBackdropPending || backdropFromSelect || config.backdropId || '';
   try {
     await api.saveGockConfig({ naam, prijs: { fl }, tidbits: tidbits.length ? tidbits : undefined, imageId, backdropId });
     const newMeta = await api.meta();

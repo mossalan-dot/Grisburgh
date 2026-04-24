@@ -3216,7 +3216,7 @@ router.get('/ursula', attachRole, (req, res) => {
 
   const currency = characterId ? ((dmState.playerCurrency || {})[characterId] || { fl: 0, kn: 0, cl: 0 }) : null;
   res.json({
-    config: { prijs: config.prijs || { fl: 20 }, naam: config.naam || 'Madame Ursula' },
+    config: { prijs: config.prijs || { fl: 20 }, naam: config.naam || 'Madame Ursula', imageId: config.imageId || null, backdropId: config.backdropId || null },
     state: playerState,
     beschikbaar: _dienstenBeschikbaar(dmState),
     currency,
@@ -3331,7 +3331,7 @@ router.get('/gock', attachRole, (req, res) => {
   const currency = characterId ? ((dmState.playerCurrency || {})[characterId] || { fl: 0, kn: 0, cl: 0 }) : null;
 
   res.json({
-    config: { prijs: config.prijs || { fl: 50 }, naam: config.naam || 'De Gock' },
+    config: { prijs: config.prijs || { fl: 50 }, naam: config.naam || 'De Gock', imageId: config.imageId || null, backdropId: config.backdropId || null },
     geval: playerCase,
     beschikbaar: _dienstenBeschikbaar(dmState),
     currency,
@@ -3424,6 +3424,15 @@ router.put('/gock/opgehaald', attachRole, (req, res) => {
   geval.opgehaald = true;
   storage.writeJSON('dm-state.json', dmState);
   res.json({ ok: true });
+});
+
+router.put('/meta/tweespalt', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.tweespalt) meta.tweespalt = {};
+  ['naam', 'imageId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').emit('meta:updated');
+  res.json(meta.tweespalt);
 });
 
 router.put('/meta/ursula', requireDM, (req, res) => {
@@ -3727,7 +3736,9 @@ router.get('/tweespalt', attachRole, (req, res) => {
     return evt;
   });
 
-  res.json({ events, currency, lening, npcNamen });
+  const tsMeta = storage.readJSON('meta.json').tweespalt || {};
+  const config = { naam: tsMeta.naam || 'De Tweespalt', imageId: tsMeta.imageId || null, backdropId: tsMeta.backdropId || null };
+  res.json({ events, currency, lening, npcNamen, config });
 });
 
 router.post('/tweespalt/events', requireDM, (req, res) => {

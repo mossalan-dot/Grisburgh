@@ -256,6 +256,7 @@ export const api = {
   toggleLocatieEntiteit:   (entityId) => request('/locatie/entiteit', { method: 'PUT', body: JSON.stringify({ entityId }) }),
 
   // Tweespalt / Gokkantoor
+  saveTweespaltConfig:   (data)          => request('/meta/tweespalt',                        { method: 'PUT',    body: JSON.stringify(data) }),
   getTweespalt:          ()              => request('/tweespalt'),
   createTweespaltEvent:  (data)          => request('/tweespalt/events',                    { method: 'POST',   body: JSON.stringify(data) }),
   updateTweespaltEvent:  (id, data)      => request(`/tweespalt/events/${id}`,              { method: 'PUT',    body: JSON.stringify(data) }),
