@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=72">
+  <link rel="stylesheet" href="/css/theme.css?v=88">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -91,7 +91,17 @@
             <button class="archief-menu-item" data-section="kaart">🗺️ Kaarten</button>
           </div>
         </div>
-        <button class="section-tab" data-section="logboek">📖 <span class="tab-label">Logboek</span></button>
+        <!-- Logboek dropdown -->
+        <div class="relative flex-shrink-0" id="logboek-nav-group">
+          <button class="section-tab" id="logboek-nav-btn" onclick="window.app.toggleLogboekMenu()">
+            📖 <span id="logboek-nav-label" class="tab-label">Logboek</span><span class="archief-arrow tab-label">▾</span>
+          </button>
+          <div class="archief-menu hidden" id="logboek-menu">
+            <button class="archief-menu-item" data-logtab="verslagen">📖 Verslagen</button>
+            <button class="archief-menu-item" data-logtab="quests">📌 Missies</button>
+            <button class="archief-menu-item" data-logtab="prikbord">🗺️ Jonkers prikbord</button>
+          </div>
+        </div>
         <!-- Diensten dropdown -->
         <div class="relative flex-shrink-0 hidden" id="diensten-nav-group">
           <button class="section-tab diensten-tab" id="diensten-nav-btn"
@@ -177,6 +187,7 @@
       <div class="section" id="section-ursula"></div>
       <div class="section" id="section-gock"></div>
       <div class="section" id="section-kaart"></div>
+      <div class="section" id="section-relatiemap"></div>
       <div class="section" id="section-mijn-karakter"></div>
       <div class="section" id="section-spelers"></div>
       <div class="section dm-section" id="section-meesterkamer">
@@ -288,12 +299,14 @@
       <button class="player-picker-panel-close" onclick="window.app.closePlayerPicker()">×</button>
     </div>
     <div id="player-char-list" class="player-picker-list"></div>
-    <button onclick="window.app.closePlayerPicker(); window.app.toggleLoginModal()" class="player-picker-dm-btn">
-      ⚔︎ Inloggen als DM
-    </button>
-    <button onclick="window.app.closePlayerPicker()" class="player-picker-anon-btn">
-      Anoniem verder
-    </button>
+    <div class="player-picker-footer">
+      <button onclick="window.app.closePlayerPicker(); window.app.toggleLoginModal()" class="player-picker-footer-btn">
+        ⚔︎ Inloggen als DM
+      </button>
+      <button onclick="window.app.closePlayerPicker()" class="player-picker-footer-btn player-picker-footer-btn--muted">
+        Anoniem verder
+      </button>
+    </div>
   </div>
 
   <!-- Detail / Editor modal -->
@@ -362,6 +375,6 @@
 
 
   <script type="module" src="/js/sound-manager.js?v=1"></script>
-  <script type="module" src="/js/app.js?v=47"></script>
+  <script type="module" src="/js/app.js?v=61"></script>
 </body>
 </html>

@@ -110,6 +110,24 @@ export const api = {
   updateMonster:  (id, data) => request(`/monsters/${id}`,  { method: 'PUT',    body: JSON.stringify(data) }),
   deleteMonster:  (id)       => request(`/monsters/${id}`,  { method: 'DELETE' }),
 
+  // SRD Monster Import
+  srdSearchMonsters: (q)     => request(`/srd/monsters?q=${encodeURIComponent(q)}`),
+  srdGetMonster:     (index) => request(`/srd/monsters/${encodeURIComponent(index)}`),
+
+  // Quests
+  listQuests:   (groepId)    => request(`/quests${groepId ? `?groepId=${encodeURIComponent(groepId)}` : ''}`),
+  createQuest:  (data)       => request('/quests',       { method: 'POST',   body: JSON.stringify(data) }),
+  updateQuest:  (id, data)   => request(`/quests/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
+  deleteQuest:  (id)         => request(`/quests/${id}`, { method: 'DELETE' }),
+
+  // Groepen
+  listGroups:   ()           => request('/groups'),
+
+  // Akte-zichtbaarheid per party
+  setChapterVisibility: (groepId, chapterId, visible) =>
+    request(`/chapter-visibility/${encodeURIComponent(groepId)}/${encodeURIComponent(chapterId)}`,
+      { method: 'PUT', body: JSON.stringify({ visible }) }),
+
   // Winkel uitverkocht
   getShopUitverkocht:    (shopId)           => request(`/shops/${shopId}/uitverkocht`),
   toggleShopUitverkocht: (shopId, itemNaam) => request(`/shops/${shopId}/uitverkocht`, { method: 'PUT', body: JSON.stringify({ itemNaam }) }),
@@ -240,10 +258,18 @@ export const api = {
   uitslagTweespalt:      (id, data)      => request(`/tweespalt/events/${id}/uitslag`,      { method: 'POST',   body: JSON.stringify(data || {}) }),
   leenTweespalt:         (bedrag)        => request('/tweespalt/leen',                      { method: 'POST',   body: JSON.stringify({ bedrag }) }),
   getTweespaltLog:       ()              => request('/tweespalt/log'),
+  // Relations
+  getRelations:          ()          => request('/relations'),
+  addRelationEdge:       (data)      => request('/relations/edges',       { method: 'POST',   body: JSON.stringify(data) }),
+  updateRelationEdge:    (id, data)  => request(`/relations/edges/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
+  deleteRelationEdge:    (id)        => request(`/relations/edges/${id}`, { method: 'DELETE' }),
+  saveRelationPositions: (positions) => request('/relations/positions',   { method: 'PUT',    body: JSON.stringify({ positions }) }),
 
   // Generieke helper-methoden
-  get:  (path)        => request(path),
-  post: (path, body)  => request(path, { method: 'POST', body: JSON.stringify(body) }),
+  get:    (path)        => request(path),
+  post:   (path, body)  => request(path, { method: 'POST',   body: JSON.stringify(body) }),
+  put:    (path, body)  => request(path, { method: 'PUT',    body: JSON.stringify(body) }),
+  delete: (path)        => request(path, { method: 'DELETE' }),
 
   // Get all entity names grouped by type (for link autocomplete)
   async allNames() {
