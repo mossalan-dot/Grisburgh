@@ -7779,14 +7779,22 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(10,5,1,0.55);
+  background: rgba(10,5,1,0.65);
   z-index: 0;
 }
-.ursula-scene.herberg-scene[style]::before   { background: rgba(60,10,90,0.55); }
-.gock-scene.herberg-scene[style]::before     { background: rgba(10,40,70,0.60); }
-.tweespalt-scene.herberg-scene[style]::before { background: rgba(10,10,30,0.55); }
-/* Content boven de overlay */
-.herberg-scene[style] .herberg-content { position: relative; z-index: 1; }
+.ursula-scene.herberg-scene[style]::before    { background: rgba(40,5,65,0.68); }
+.gock-scene.herberg-scene[style]::before      { background: rgba(5,25,50,0.70); }
+.tweespalt-scene.herberg-scene[style]::before { background: rgba(8,8,22,0.68); }
+/* Content boven de overlay: positie + leesbaarheidspaneel */
+.herberg-scene[style] .herberg-content {
+  position: relative;
+  z-index: 1;
+  background: rgba(0,0,0,0.30);
+  border-radius: 12px;
+  padding: 24px 20px;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
 
 .herberg-content {
   width: 100%;
@@ -7824,18 +7832,19 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   font-family: 'IM Fell English', serif;
   font-style: italic;
   font-size: 1.05rem;
-  color: rgba(240, 220, 170, 0.92);
+  color: rgba(245, 225, 180, 0.97);
   text-align: center;
   line-height: 1.5;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+  text-shadow: 0 1px 6px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5);
 }
 
 /* Teller */
 .herberg-teller {
   font-size: 0.78rem;
-  color: rgba(200,170,100,0.75);
+  color: rgba(215,185,115,0.90);
   font-style: italic;
   text-align: center;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 
 /* Cooldown */
