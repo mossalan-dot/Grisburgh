@@ -10,7 +10,9 @@ async function request(path, opts = {}) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || res.statusText);
   }
-  return res.json();
+  return res.json().catch(() => {
+    throw new Error(`Route ${path} bestaat niet op deze server (geen JSON antwoord)`);
+  });
 }
 
 export const api = {
