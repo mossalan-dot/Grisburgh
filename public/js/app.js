@@ -3403,30 +3403,36 @@ async function renderUrsula() {
     return [p.fl && `${p.fl} fl`, p.kn && `${p.kn} kn`, p.cl && `${p.cl} cl`].filter(Boolean).join(' ') || '0';
   }
 
-  const lijstHtml = beschikbaar.map(e => `
-    <button class="herberg-item" onclick="window._ursulaKies('${esc(e.id)}','${esc(e.type)}','${esc(e.name)}')">
-      <span class="herberg-item-naam">${esc(e.name)}</span>
-      <span class="herberg-item-type">${e.type === 'personages' ? 'persoon' : e.type === 'locaties' ? 'locatie' : e.type}</span>
-    </button>`).join('');
+  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const portret  = config.imageId
+    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
+    : `<div class="ursula-portret-fallback">🔮</div>`;
 
   el.innerHTML = `
-    <div class="herberg-scene ursula-scene">
+    <div class="herberg-scene ursula-scene" ${backdrop}>
       <div class="herberg-content">
-        <div class="ts-header">
-          <div class="ursula-portret-fallback">🔮</div>
-          <div>
-            <p class="herberg-groet">${esc(config.naam)} trekt haar sluier opzij en gebaart je nader te komen.</p>
-            ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
-            <p class="ts-beurs">Prijs per raadpleging: <strong>${prijsTekst(config.prijs)}</strong></p>
-          </div>
-        </div>
+        <div class="herberg-portrait-wrap">${portret}</div>
+        <p class="herberg-groet">${esc(config.naam)} trekt haar sluier opzij en gebaart je nader te komen.</p>
+        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
+        <p class="ts-beurs">Prijs per raadpleging: <strong>${prijsTekst(config.prijs)}</strong></p>
 
         ${cooldownActief
           ? `<p class="herberg-cooldown-tekst">${esc(config.naam)} heeft haar ogen gesloten. Ze is nog ${minRest} minuut${minRest === 1 ? '' : 'en'} in trance.</p>`
-          : `<div class="herberg-zoek-wrap">
-              <p class="herberg-teller">Over wie wil je iets weten?</p>
-              <div class="herberg-lijst">${lijstHtml}</div>
-            </div>`}
+          : beschikbaar.length === 0
+            ? `<p class="herberg-cooldown-tekst">Er zijn nog geen personen bekend.</p>`
+            : `<div class="herberg-zoek-wrap">
+                <p class="herberg-teller">Over wie wil je iets weten?</p>
+                <input type="text" class="herberg-zoek-input" placeholder="Zoek persoon…"
+                  oninput="window._ursulaFilter(this.value)"
+                  id="ursula-zoek">
+                <div class="herberg-lijst" id="ursula-lijst">
+                  ${beschikbaar.map(e => `
+                    <button class="herberg-item" data-naam="${esc(e.name.toLowerCase())}"
+                      onclick="window._ursulaKies('${esc(e.id)}','${esc(e.type)}','${esc(e.name)}')">
+                      <span class="herberg-item-naam">${esc(e.name)}</span>
+                    </button>`).join('')}
+                </div>
+              </div>`}
 
         <div id="ursula-antwoord" class="herberg-antwoord hidden"></div>
       </div>
@@ -3461,6 +3467,15 @@ window._ursulaKies = async (entityId, entityType, entityName) => {
   } catch (err) {
     antwoord.innerHTML = `<p class="herberg-err">${esc(err.message || 'Fout')}</p>`;
   }
+};
+
+window._ursulaFilter = (q) => {
+  const lijst = document.getElementById('ursula-lijst');
+  if (!lijst) return;
+  const s = q.trim().toLowerCase();
+  lijst.querySelectorAll('.herberg-item').forEach(btn => {
+    btn.style.display = !s || btn.dataset.naam.includes(s) ? '' : 'none';
+  });
 };
 
 // ── De Gock / Privédetective ────────────────────────────────────────────────
@@ -3498,23 +3513,18 @@ async function renderGock() {
     }
   }
 
-  const lijstHtml = beschikbaar.map(e => `
-    <button class="herberg-item" onclick="window._gockKies('${esc(e.id)}','${esc(e.type)}','${esc(e.name)}')">
-      <span class="herberg-item-naam">${esc(e.name)}</span>
-      <span class="herberg-item-type">${e.type === 'personages' ? 'persoon' : e.type === 'locaties' ? 'locatie' : e.type}</span>
-    </button>`).join('');
+  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const portret  = config.imageId
+    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
+    : `<div class="gock-portret-fallback">🔍</div>`;
 
   el.innerHTML = `
-    <div class="herberg-scene gock-scene">
+    <div class="herberg-scene gock-scene" ${backdrop}>
       <div class="herberg-content">
-        <div class="ts-header">
-          <div class="gock-portret-fallback">🔍</div>
-          <div>
-            <p class="herberg-groet">${esc(config.naam)} kijkt op van zijn bureau en trekt een wenkbrauw op.</p>
-            ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
-            <p class="ts-beurs">Vooruitbetaling: <strong>${prijsTekst(config.prijs)}</strong> · Resultaat binnen 24 uur</p>
-          </div>
-        </div>
+        <div class="herberg-portrait-wrap">${portret}</div>
+        <p class="herberg-groet">${esc(config.naam)} kijkt op van zijn bureau en trekt een wenkbrauw op.</p>
+        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
+        <p class="ts-beurs">Vooruitbetaling: <strong>${prijsTekst(config.prijs)}</strong> · Resultaat binnen 24 uur</p>
 
         ${heeftKlaarZaak ? `
           <div class="gock-dossier">
@@ -3534,14 +3544,33 @@ async function renderGock() {
             ${restTijdTekst ? `<p class="ts-beurs">Geschatte doorlooptijd: nog ${restTijdTekst}</p>` : '<p class="ts-beurs">Het rapport is bijna klaar…</p>'}
           </div>` : ''}
 
-        ${!heeftLopendeZaak && !heeftKlaarZaak ? `
-          <div class="herberg-zoek-wrap">
-            <p class="herberg-teller">Naar wie wil je onderzoek laten doen?</p>
-            <div class="herberg-lijst">${lijstHtml}</div>
-          </div>` : ''}
+        ${!heeftLopendeZaak && !heeftKlaarZaak ? (beschikbaar.length === 0
+          ? `<p class="herberg-cooldown-tekst">Er zijn nog geen personen bekend.</p>`
+          : `<div class="herberg-zoek-wrap">
+              <p class="herberg-teller">Naar wie wil je onderzoek laten doen?</p>
+              <input type="text" class="herberg-zoek-input" placeholder="Zoek persoon…"
+                oninput="window._gockFilter(this.value)"
+                id="gock-zoek">
+              <div class="herberg-lijst" id="gock-lijst">
+                ${beschikbaar.map(e => `
+                  <button class="herberg-item" data-naam="${esc(e.name.toLowerCase())}"
+                    onclick="window._gockKies('${esc(e.id)}','${esc(e.type)}','${esc(e.name)}')">
+                    <span class="herberg-item-naam">${esc(e.name)}</span>
+                  </button>`).join('')}
+              </div>
+            </div>`) : ''}
       </div>
     </div>`;
 }
+
+window._gockFilter = (q) => {
+  const lijst = document.getElementById('gock-lijst');
+  if (!lijst) return;
+  const s = q.trim().toLowerCase();
+  lijst.querySelectorAll('.herberg-item').forEach(btn => {
+    btn.style.display = !s || btn.dataset.naam.includes(s) ? '' : 'none';
+  });
+};
 
 window._gockKies = async (entityId, entityType, entityName) => {
   if (!confirm(`Opdracht geven aan De Gock voor onderzoek naar "${entityName}"? Betaling vindt direct plaats.`)) return;

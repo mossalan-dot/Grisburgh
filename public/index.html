@@ -106,13 +106,13 @@
         <div class="relative flex-shrink-0 hidden" id="diensten-nav-group">
           <button class="section-tab diensten-tab" id="diensten-nav-btn"
             onclick="window.app.toggleDienstenMenu()">
-            🏪 <span id="diensten-nav-label" class="tab-label">Diensten</span><span class="diensten-arrow tab-label">▾</span>
+            ⚜️ <span id="diensten-nav-label" class="tab-label">Diensten</span><span class="diensten-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="diensten-menu">
             <button class="archief-menu-item" data-section="herberg" id="diensten-herberg-item">🍺 <span id="diensten-herberg-label">Herberg</span></button>
-            <button class="archief-menu-item" data-section="tweespalt">🎲 De Tweespalt</button>
-            <button class="archief-menu-item" data-section="ursula">🔮 Madame Ursula</button>
-            <button class="archief-menu-item" data-section="gock">🔍 De Gock</button>
+            <button class="archief-menu-item" data-section="tweespalt">🎲 <span>De Tweespalt</span></button>
+            <button class="archief-menu-item" data-section="ursula">🔮 <span>Madame Ursula</span></button>
+            <button class="archief-menu-item" data-section="gock">🔍 <span>De Gock</span></button>
           </div>
         </div>
         <button class="section-tab hidden" data-section="mijn-karakter">🧑 <span class="tab-label">Mijn karakter</span></button>
@@ -331,10 +331,10 @@
   </div>
 
   <!-- Lightbox -->
-  <div id="lightbox" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center">
-    <button onclick="window.app.closeLightbox()" class="absolute top-4 right-5 text-white/60 hover:text-white text-3xl z-10">&times;</button>
-    <img id="lb-img" class="max-w-[92vw] max-h-[92vh] object-contain rounded" src="">
-    <div id="lb-title" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/70 bg-black/50 px-4 py-1 rounded text-sm font-fell italic"></div>
+  <div id="lightbox" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center" onclick="window.app.closeLightbox()">
+    <button onclick="event.stopPropagation();window.app.closeLightbox()" class="absolute top-3 right-4 text-white text-4xl z-10 leading-none" style="text-shadow:0 0 8px #000">&times;</button>
+    <img id="lb-img" class="max-w-[92vw] max-h-[92vh] object-contain rounded" src="" onclick="event.stopPropagation()">
+    <div id="lb-title" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/70 bg-black/50 px-4 py-1 rounded text-sm font-fell italic" onclick="event.stopPropagation()"></div>
   </div>
 
   <!-- Combat overlay — visible to everyone when combat is active -->

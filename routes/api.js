@@ -3196,11 +3196,9 @@ function _dienstenBeschikbaar(dmState) {
   const g = getGroup(dmState);
   const vis = g.visibility || {};
   const lijst = [];
-  for (const type of ['personages', 'locaties', 'organisaties', 'voorwerpen']) {
-    for (const e of (entities[type] || [])) {
-      if ((vis[e.id] || 'hidden') === 'hidden') continue;
-      lijst.push({ id: e.id, name: e.name, type });
-    }
+  for (const e of (entities.personages || [])) {
+    if ((vis[e.id] || 'hidden') === 'hidden') continue;
+    lijst.push({ id: e.id, name: e.name, type: 'personages' });
   }
   return lijst;
 }
@@ -3431,7 +3429,7 @@ router.put('/gock/opgehaald', attachRole, (req, res) => {
 router.put('/meta/ursula', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.ursula) meta.ursula = {};
-  ['naam', 'prijs', 'tidbits'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
+  ['naam', 'prijs', 'tidbits', 'imageId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').emit('meta:updated');
   res.json(meta.ursula);
@@ -3440,7 +3438,7 @@ router.put('/meta/ursula', requireDM, (req, res) => {
 router.put('/meta/gock', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.gock) meta.gock = {};
-  ['naam', 'prijs', 'tidbits'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
+  ['naam', 'prijs', 'tidbits', 'imageId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.gock[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').emit('meta:updated');
   res.json(meta.gock);

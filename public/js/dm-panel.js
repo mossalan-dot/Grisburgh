@@ -2703,6 +2703,7 @@ async function _renderUrsulaSettings() {
   try { personages = await api.listEntities('personages'); } catch {}
 
   const tidbitsWaarde = (config.tidbits || []).join('\n');
+  let _ursulaBackdropPending = null;
 
   el.innerHTML = `
     <div class="dm-feature-section">
@@ -2716,6 +2717,25 @@ async function _renderUrsulaSettings() {
         <label class="dm-form-label">Prijs (fl)</label>
         <input id="ursula-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 20}" style="width:70px">
       </div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Portret (NPC)</label>
+        <select id="ursula-portret-select" class="dm-select">
+          <option value="">— Kies een personage —</option>
+          ${personages.map(p => `<option value="${esc(p.id)}" ${config.imageId === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+        </select>
+      </div>
+      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrondafbeelding</label>
+        ${config.backdropId ? `<img id="ursula-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="ursula-backdrop-preview" style="display:none"></span>'}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">
+          📷 Afbeelding kiezen
+          <input type="file" accept="image/*" class="hidden" onchange="window._ursulaUploadBackdrop(this.files[0])">
+        </label>
+      </div>
+
       <div class="dm-form-row" style="flex-direction:column;gap:4px">
         <label class="dm-form-label">Aangepaste tidbits (één per regel, gebruik {naam} voor de naam)</label>
         <textarea id="ursula-tidbits" class="dm-input" rows="8" style="resize:vertical;font-size:11px"
@@ -2740,15 +2760,30 @@ async function _renderUrsulaSettings() {
     </div>`;
 }
 
+window._ursulaUploadBackdrop = async (file) => {
+  if (!file) return;
+  const id = 'ursula-backdrop-' + Date.now();
+  try {
+    await api.uploadFile(id, file);
+    window._ursulaBackdropPending = id;
+    const prev = document.getElementById('ursula-backdrop-preview');
+    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
+  } catch (err) { alert('Upload mislukt: ' + err.message); }
+};
+
 window._ursulaSettingsSave = async () => {
+  const config = window.app?.state?.meta?.ursula || {};
   const naam = document.getElementById('ursula-naam')?.value.trim() || 'Madame Ursula';
   const fl = parseInt(document.getElementById('ursula-prijs-fl')?.value) || 20;
   const tidbitsRaw = document.getElementById('ursula-tidbits')?.value.trim() || '';
   const tidbits = tidbitsRaw ? tidbitsRaw.split('\n').map(l => l.trim()).filter(Boolean) : [];
+  const imageId = document.getElementById('ursula-portret-select')?.value || config.imageId || '';
+  const backdropId = window._ursulaBackdropPending || config.backdropId || '';
   try {
-    await api.saveUrsulaConfig({ naam, prijs: { fl }, tidbits: tidbits.length ? tidbits : undefined });
+    await api.saveUrsulaConfig({ naam, prijs: { fl }, tidbits: tidbits.length ? tidbits : undefined, imageId, backdropId });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
+    window._ursulaBackdropPending = null;
     await _renderUrsulaSettings();
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
 };
@@ -2794,6 +2829,25 @@ async function _renderGockSettings() {
         <label class="dm-form-label">Prijs (fl)</label>
         <input id="gock-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 50}" style="width:70px">
       </div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Portret (NPC)</label>
+        <select id="gock-portret-select" class="dm-select">
+          <option value="">— Kies een personage —</option>
+          ${personages.map(p => `<option value="${esc(p.id)}" ${config.imageId === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+        </select>
+      </div>
+      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrondafbeelding</label>
+        ${config.backdropId ? `<img id="gock-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="gock-backdrop-preview" style="display:none"></span>'}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">
+          📷 Afbeelding kiezen
+          <input type="file" accept="image/*" class="hidden" onchange="window._gockUploadBackdrop(this.files[0])">
+        </label>
+      </div>
+
       <div class="dm-form-row" style="flex-direction:column;gap:4px">
         <label class="dm-form-label">Aangepaste tidbits (één per regel, gebruik {naam})</label>
         <textarea id="gock-tidbits" class="dm-input" rows="8" style="resize:vertical;font-size:11px"
@@ -2818,15 +2872,30 @@ async function _renderGockSettings() {
     </div>`;
 }
 
+window._gockUploadBackdrop = async (file) => {
+  if (!file) return;
+  const id = 'gock-backdrop-' + Date.now();
+  try {
+    await api.uploadFile(id, file);
+    window._gockBackdropPending = id;
+    const prev = document.getElementById('gock-backdrop-preview');
+    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
+  } catch (err) { alert('Upload mislukt: ' + err.message); }
+};
+
 window._gockSettingsSave = async () => {
+  const config = window.app?.state?.meta?.gock || {};
   const naam = document.getElementById('gock-naam')?.value.trim() || 'De Gock';
   const fl = parseInt(document.getElementById('gock-prijs-fl')?.value) || 50;
   const tidbitsRaw = document.getElementById('gock-tidbits')?.value.trim() || '';
   const tidbits = tidbitsRaw ? tidbitsRaw.split('\n').map(l => l.trim()).filter(Boolean) : [];
+  const imageId = document.getElementById('gock-portret-select')?.value || config.imageId || '';
+  const backdropId = window._gockBackdropPending || config.backdropId || '';
   try {
-    await api.saveGockConfig({ naam, prijs: { fl }, tidbits: tidbits.length ? tidbits : undefined });
+    await api.saveGockConfig({ naam, prijs: { fl }, tidbits: tidbits.length ? tidbits : undefined, imageId, backdropId });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
+    window._gockBackdropPending = null;
     await _renderGockSettings();
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
 };
