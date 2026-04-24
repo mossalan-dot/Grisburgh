@@ -1,9 +1,10 @@
 import { api } from './api.js';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=40';
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=4';
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=12';
 import { renderKaart, queueFlyTo } from './render-kaart.js';
-import { initSocket } from './socket-client.js?v=2';
-import { initDmPanel } from './dm-panel.js?v=5';
+import { renderRelatiemap } from './render-relatiemap.js?v=8';
+import { initSocket } from './socket-client.js?v=7';
+import { initDmPanel } from './dm-panel.js?v=6';
 
 // ── App State ──
 const state = {
@@ -56,6 +57,8 @@ window.app = {
   closeArchiefMenu,
   toggleDienstenMenu,
   closeDienstenMenu,
+  toggleLogboekMenu,
+  closeLogboekMenu,
 };
 
 // ── Section switching ──
@@ -76,10 +79,20 @@ $$('#diensten-menu .archief-menu-item').forEach(btn => {
   btn.addEventListener('click', () => { switchSection(btn.dataset.section); });
 });
 
+// Logboek dropdown items
+$$('#logboek-menu .archief-menu-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    window._logboekActiveTab = btn.dataset.logtab;
+    switchSection('logboek');
+    closeLogboekMenu();
+  });
+});
+
 // Sluit dropdowns bij klik buiten het menu
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#archief-nav-group')) closeArchiefMenu();
   if (!e.target.closest('#diensten-nav-group')) closeDienstenMenu();
+  if (!e.target.closest('#logboek-nav-group')) closeLogboekMenu();
 });
 
 function switchSection(section) {
@@ -87,8 +100,9 @@ function switchSection(section) {
   location.hash = section;
   closeArchiefMenu();
   closeDienstenMenu();
+  closeLogboekMenu();
 
-  // Directe tabs (logboek, mijn-karakter)
+  // Directe tabs (mijn-karakter, herberg, etc. — niet logboek, dat heeft eigen dropdown)
   $$('.section-tab[data-section]').forEach(b =>
     b.classList.toggle('active', b.dataset.section === section));
 
@@ -99,9 +113,22 @@ function switchSection(section) {
   if (archiefBtn) archiefBtn.classList.toggle('active', isArchief);
   if (archiefLabel) archiefLabel.textContent = isArchief ? ARCHIEF_LABELS[section] : 'Archief';
 
-  // Dropdown-items
+  // Archief dropdown-items
   $$('#archief-menu .archief-menu-item').forEach(b =>
     b.classList.toggle('active', b.dataset.section === section));
+
+  // Logboek-knop: actief als logboek actief is
+  const logboekBtn   = $('#logboek-nav-btn');
+  const logboekLabel = $('#logboek-nav-label');
+  const isLogboek    = section === 'logboek';
+  if (logboekBtn) logboekBtn.classList.toggle('active', isLogboek);
+  if (logboekLabel) {
+    const activeTab = window._logboekActiveTab || 'verslagen';
+    logboekLabel.textContent = isLogboek ? (LOGBOEK_LABELS[activeTab] || 'Logboek') : 'Logboek';
+  }
+  // Logboek dropdown-items
+  $$('#logboek-menu .archief-menu-item').forEach(b =>
+    b.classList.toggle('active', isLogboek && b.dataset.logtab === (window._logboekActiveTab || 'verslagen')));
 
   $$('.section').forEach(s => s.classList.toggle('active', s.id === `section-${section}`));
   // Verberg de floating reveal-strip in de Meesterkamer (die heeft eigen ruimte)
@@ -120,6 +147,7 @@ function switchSection(section) {
     voorwerpen:    'rgba(154,106,42,0.55)',
     documenten:    'rgba(90,58,122,0.55)',
     kaart:         'rgba(42,90,70,0.55)',
+    relatiemap:    'rgba(80,42,122,0.55)',
     logboek:       'rgba(184,134,11,0.55)',
     herberg:       'rgba(160,90,20,0.65)',
     tweespalt:     'rgba(90,20,20,0.65)',
@@ -174,12 +202,35 @@ function toggleDienstenMenu() {
   }
 }
 
+function toggleLogboekMenu() {
+  const menu = $('#logboek-menu');
+  if (!menu) return;
+  const willShow = menu.classList.contains('hidden');
+  menu.classList.toggle('hidden');
+  if (willShow && window.innerWidth <= 768) {
+    const btn = $('#logboek-nav-btn');
+    if (btn) menu.style.top = (btn.getBoundingClientRect().bottom + 4) + 'px';
+  } else {
+    menu.style.top = '';
+  }
+}
+
 function closeDienstenMenu() {
   $('#diensten-menu')?.classList.add('hidden');
 }
 
+function closeLogboekMenu() {
+  $('#logboek-menu')?.classList.add('hidden');
+}
+
+const LOGBOEK_LABELS = {
+  verslagen: 'Verslagen',
+  quests:    'Missies',
+  prikbord:  'Prikbord',
+};
+
 const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
-const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'kaart'];
+const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'kaart', 'relatiemap'];
 const ARCHIEF_LABELS   = {
   personages:   '👤 Personages',
   locaties:     '🏰 Locaties',
@@ -187,12 +238,16 @@ const ARCHIEF_LABELS   = {
   voorwerpen:   '🎺 Voorwerpen',
   documenten:   '📜 Documenten',
   kaart:        '🗺️ Kaarten',
+  relatiemap:   '🕸️ Relatiemap',
 };
 
 function updateFab() {
   const fab = $('#fab');
   const editableSections = [...ENTITY_SECTIONS, 'documenten', 'logboek'];
-  if (state.role === 'dm' && !state.dmPreview && editableSections.includes(state.activeSection)) {
+  // Voor logboek: FAB alleen tonen in de verslagen-subtab, niet in missies of prikbord
+  const logboekSubTabOk = state.activeSection !== 'logboek'
+    || (window._logboekActiveTab || 'verslagen') === 'verslagen';
+  if (state.role === 'dm' && !state.dmPreview && editableSections.includes(state.activeSection) && logboekSubTabOk) {
     fab.classList.remove('hidden');
   } else {
     fab.classList.add('hidden');
@@ -246,6 +301,7 @@ async function logout() {
   state.role = 'player';
   state.dmPreview = false;
   _activeGroupId = null;
+  window._activeGroupId = null;
   applyRole();
   refreshAll();
 }
@@ -667,7 +723,8 @@ window._toggleInspiration = async function(charId) {
     renderParty();
   } catch { /* ok */ }
 };
-window.renderParty = renderParty;
+window.renderParty   = renderParty;
+window.renderLogboek = renderLogboek;
 
 window._togglePartyPresence = (id) => {
   const presence = _getPartyPresence();
@@ -679,6 +736,7 @@ window._togglePartyPresence = (id) => {
 // ── Groepswisselaar ──
 window.renderGroupSwitcher = function(groups, activeGroupId) {
   _activeGroupId = activeGroupId;
+  window._activeGroupId = activeGroupId; // toegankelijk voor andere modules (render-archief)
   const container = document.getElementById('group-switcher');
   if (!container) return;
   // Alleen zichtbaar in DM-modus
@@ -750,6 +808,7 @@ async function refreshSection(section) {
   else if (section === 'documenten') await renderDocumenten();
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await renderKaart();
+  else if (section === 'relatiemap') await renderRelatiemap();
   else if (section === 'herberg') await renderHerberg();
   else if (section === 'tweespalt') await renderTweespalt();
   else if (section === 'ursula') await renderUrsula();

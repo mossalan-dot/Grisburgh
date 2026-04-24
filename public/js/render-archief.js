@@ -22,6 +22,7 @@ let logboekSearch = '';
 let _logboekInitialized = false;
 let _collapsedChapters = new Set();
 let _logboekCache = null;
+let _logboekActiveTab = 'verslagen'; // 'verslagen' | 'quests'
 let searchQuery = '';
 let archiefData = { documents: [], logEntries: [], hiddenLinks: {}, tekstContent: {} };
 let meta = null;
@@ -189,6 +190,10 @@ function _refreshDocGrid(docs, container) {
 
 export async function renderLogboek() {
   const container = $('#section-logboek');
+
+  // Sync active tab from global (set by dropdown in app.js or socket-handler)
+  if (window._logboekActiveTab) _logboekActiveTab = window._logboekActiveTab;
+
   try {
     archiefData = await api.listArchief();
     meta = window.app.state.meta;
@@ -207,23 +212,37 @@ export async function renderLogboek() {
     _logboekInitialized = true;
   }
 
-  container.innerHTML = `
-    <div class="section-banner section-banner--entity section-banner--logboek">
-      <div class="section-banner-head">
-        <div class="section-banner-icon-wrap">📖</div>
-        <div class="section-banner-info">
-          <div class="section-banner-label">Logboek</div>
-          <div class="section-banner-desc-line">Verslagen van aktes en avonturen</div>
-        </div>
-      </div>
-      <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
-    </div>
-    <div class="logboek-search-wrap">
+  // Build static skeleton on first render (geen subtabbalk — navigatie via dropdown in header)
+  if (!container.querySelector('#logboek-tab-content')) {
+    container.innerHTML = `<div id="logboek-tab-content" class="flex-1 overflow-y-auto"></div>`;
+  }
+
+  const tabContent = container.querySelector('#logboek-tab-content');
+  if (!tabContent) return;
+
+  if (_logboekActiveTab === 'quests') {
+    tabContent.style.cssText = '';
+    await _renderPrikbord(container);
+    return;
+  }
+
+  if (_logboekActiveTab === 'prikbord') {
+    tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
+    tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=8');
+    await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
+    return;
+  }
+
+  // Verslagen tab
+  tabContent.style.cssText = '';
+  tabContent.innerHTML = `
+    <div class="logboek-search-wrap" style="padding: 0 24px 8px">
       <input type="text" class="logboek-search-input" id="logboek-search-input"
         placeholder="🔍  Zoek in het logboek…" value="${esc(logboekSearch)}"
         oninput="window._logboekSearch(this.value)">
     </div>
-    <div class="flex-1 overflow-y-auto p-6" id="logboek-body">
+    <div class="flex-1 overflow-y-auto px-6 pb-6" id="logboek-body">
       ${_buildLogboekBody(visibleEntries, hk)}
     </div>
   `;
@@ -250,6 +269,158 @@ export async function renderLogboek() {
         : _logboekCache.allEntries;
       body.innerHTML = _buildLogboekBody(entries, _logboekCache.hk, !!q.trim());
     }
+  };
+}
+
+// Deterministische rotatie op basis van quest-id (consistent over renders)
+function _questRot(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffff;
+  return ((h % 9) - 4) * 0.55; // −2.2° … +2.2°
+}
+
+async function _renderPrikbord(container) {
+  const isDm = isDM();
+
+  let quests = [];
+  try { quests = await api.listQuests(); } catch { quests = []; }
+
+  const hk = meta?.hoofdstukken || {};
+
+  const visibleQuests = isDm ? quests : quests.filter(q => q.status !== 'verborgen');
+
+  // Verborgen staat links — de →-knop werkt dan van links naar rechts
+  const cols = [
+    ...(isDm ? [{ key: 'verborgen', label: '🔒 Verborgen' }] : []),
+    { key: 'actief',   label: '📌 Actief' },
+    { key: 'voltooid', label: '✓ Voltooid' },
+    { key: 'mislukt',  label: '✗ Mislukt' },
+  ];
+
+  // Volgorde voor de →-knop: verborgen→actief→voltooid→mislukt (geen terug naar verborgen)
+  const STATUS_CYCLE = ['verborgen', 'actief', 'voltooid', 'mislukt'];
+
+  const questCard = (q, col) => {
+    const chLabel    = q.chapter && hk[q.chapter] ? hk[q.chapter].short : '';
+    const rot        = _questRot(q.id);
+    const showDesc   = q.description && col.key === 'actief';
+    const cycleIdx   = STATUS_CYCLE.indexOf(q.status);
+    const hasNext    = cycleIdx >= 0 && cycleIdx < STATUS_CYCLE.length - 1;
+    return `
+      <div class="quest-card quest-card--${q.status}${q.status === 'verborgen' ? ' quest-card--hidden' : ''}"
+           style="transform:rotate(${rot}deg)"
+           onclick="${isDm ? `window._questEdit('${q.id}')` : ''}">
+        ${isDm ? `
+          <div class="quest-card-actions">
+            ${hasNext ? `<button class="quest-card-btn" onclick="event.stopPropagation();window._questStatusNext('${q.id}')" title="Volgende kolom">→</button>` : ''}
+            <button class="quest-card-btn" onclick="event.stopPropagation();window._questDelete('${q.id}')" title="Verwijderen">✕</button>
+          </div>
+        ` : ''}
+        <div class="quest-card-title">${q.title.replace(/</g,'&lt;')}</div>
+        ${showDesc ? `<div class="quest-card-desc">${q.description.replace(/</g,'&lt;')}</div>` : ''}
+        ${chLabel ? `<div class="quest-card-chapter">${chLabel.replace(/</g,'&lt;')}</div>` : ''}
+      </div>`;
+  };
+
+  const bodyEl = container.querySelector('#logboek-tab-content');
+  if (!bodyEl) return;
+
+  bodyEl.innerHTML = `
+    <div class="prikbord">
+      ${cols.map(col => `
+        <div class="prikbord-col prikbord-col--${col.key}">
+          <div class="prikbord-col-header">
+            <span>${col.label}</span>
+            <span class="prikbord-col-count">${visibleQuests.filter(q => q.status === col.key).length}</span>
+          </div>
+          <div class="prikbord-col-cards">
+            ${visibleQuests.filter(q => q.status === col.key).map(q => questCard(q, col)).join('')}
+          </div>
+          ${isDm ? `
+            <button class="prikbord-add-btn" onclick="window._questNew('${col.key}')">+ Missie toevoegen</button>
+          ` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  window._questNew    = (status) => _openQuestModal(null, status);
+  window._questEdit   = (id) => { const q = quests.find(x => x.id === id); if (q) _openQuestModal(q); };
+  window._questDelete = async (id) => {
+    if (!confirm('Missie verwijderen?')) return;
+    try { await api.deleteQuest(id); await renderLogboek(); } catch {}
+  };
+  // Vooruit: verborgen → actief → voltooid → mislukt (stopt, geen cirkel terug)
+  window._questStatusNext = async (id) => {
+    const q = quests.find(x => x.id === id);
+    if (!q) return;
+    const idx = STATUS_CYCLE.indexOf(q.status);
+    if (idx < 0 || idx >= STATUS_CYCLE.length - 1) return; // al op mislukt
+    const next = STATUS_CYCLE[idx + 1];
+    try { await api.updateQuest(id, { status: next }); await renderLogboek(); } catch {}
+  };
+}
+
+function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
+  document.getElementById('quest-modal-overlay')?.remove();
+  const hk = meta?.hoofdstukken || {};
+  const chOptions = Object.entries(hk)
+    .sort(([,a],[,b]) => (a.num || 0) - (b.num || 0))
+    .map(([k,v]) => `<option value="${k}" ${existingQuest?.chapter === k ? 'selected' : ''}>${(v.short || k).replace(/</g,'&lt;')}</option>`)
+    .join('');
+
+  const overlay = document.createElement('div');
+  overlay.id = 'quest-modal-overlay';
+  overlay.className = 'quest-modal-overlay';
+  overlay.innerHTML = `
+    <div class="quest-modal" onclick="event.stopPropagation()">
+      <div class="quest-modal-title">${existingQuest ? 'Missie bewerken' : 'Nieuwe missie'}</div>
+      <div class="quest-modal-row">
+        <label class="quest-modal-label">Titel</label>
+        <input id="qm-title" class="dm-input" value="${(existingQuest?.title || '').replace(/"/g,'&quot;')}" placeholder="Missietitel…">
+      </div>
+      <div class="quest-modal-row">
+        <label class="quest-modal-label">Omschrijving</label>
+        <textarea id="qm-desc" class="dm-textarea" rows="3" placeholder="Korte omschrijving…">${existingQuest?.description || ''}</textarea>
+      </div>
+      <div class="quest-modal-row">
+        <label class="quest-modal-label">Status</label>
+        <select id="qm-status" class="dm-select">
+          <option value="verborgen" ${(existingQuest?.status ?? defaultStatus) === 'verborgen' ? 'selected':''}>🔒 Verborgen (alleen DM)</option>
+          <option value="actief"    ${(existingQuest?.status ?? defaultStatus) === 'actief'    ? 'selected':''}>📌 Actief</option>
+          <option value="voltooid"  ${(existingQuest?.status ?? defaultStatus) === 'voltooid'  ? 'selected':''}>✓ Voltooid</option>
+          <option value="mislukt"   ${(existingQuest?.status ?? defaultStatus) === 'mislukt'   ? 'selected':''}>✗ Mislukt</option>
+        </select>
+      </div>
+      <div class="quest-modal-row">
+        <label class="quest-modal-label">Akte</label>
+        <select id="qm-chapter" class="dm-select">
+          <option value="">— geen akte —</option>
+          ${chOptions}
+        </select>
+      </div>
+      <div class="quest-modal-actions">
+        <button class="dm-btn dm-btn-ghost" onclick="document.getElementById('quest-modal-overlay').remove()">Annuleren</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._questSave('${existingQuest?.id || ''}')">Opslaan</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+  document.getElementById('qm-title')?.focus();
+
+  window._questSave = async (id) => {
+    const title   = document.getElementById('qm-title')?.value.trim();
+    const desc    = document.getElementById('qm-desc')?.value.trim();
+    const status  = document.getElementById('qm-status')?.value || 'actief';
+    const chapter = document.getElementById('qm-chapter')?.value || '';
+    if (!title) { alert('Vul een titel in.'); return; }
+    try {
+      if (id) await api.updateQuest(id, { title, description: desc, status, chapter });
+      else    await api.createQuest({ title, description: desc, status, chapter });
+      document.getElementById('quest-modal-overlay')?.remove();
+      await renderLogboek();
+    } catch (err) { alert('Opslaan mislukt: ' + err.message); }
   };
 }
 
@@ -337,11 +508,18 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
     docsByChapter[ch].sort((a, b) => _sortKey(a.name).localeCompare(_sortKey(b.name), 'nl', { sensitivity: 'base' }));
   }
 
+  // DM: akte-zichtbaarheid per actieve groep
+  const _cv     = archiefData.chapterVisibility || {};
+  const _cvGrp  = window._activeGroupId;
+
   let html = '';
   for (const ch of sortedChapters) {
     const info = hk[ch] || { title: ch, dag: '', num: '?' };
     const chEntries = groups[ch].slice().sort((a, b) => (a.datum || '').localeCompare(b.datum || ''));
     const isCollapsed = _collapsedChapters.has(ch);
+
+    // Is deze akte verborgen voor de actieve groep? (alleen relevant voor DM)
+    const isHiddenForGroup = isDM() && _cvGrp && _cv[_cvGrp]?.[ch] === false;
 
     const firstEntryWithImg = chEntries.find(e => (e.images || []).length > 0);
     const firstRawImg = firstEntryWithImg?.images?.[0];
@@ -351,7 +529,7 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
 
     const bannerFocusVal = info.bannerFocus || '50% 30%';
     html += `
-      <div class="logboek-chapter" id="logboek-ch-${esc(ch)}">
+      <div class="logboek-chapter${isHiddenForGroup ? ' logboek-chapter--hidden-for-group' : ''}" id="logboek-ch-${esc(ch)}">
         <div class="logboek-chapter-banner${bannerImgSrc ? ' logboek-chapter-banner--img' : ''}"
           ${bannerImgSrc ? `style="background-image:url('${bannerImgSrc}');background-position:${esc(bannerFocusVal)}"` : ''}
           onclick="window._toggleChapter('${esc(ch)}')">
@@ -362,7 +540,15 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
             ${info.dag ? `<div class="logboek-chapter-dag">${esc(info.dag)}</div>` : ''}
           </div>
           <div class="logboek-chapter-toggle-wrap">
-            ${isDM() ? `<button class="logboek-chapter-edit-btn dm-only" title="Akte bewerken" onclick="event.stopPropagation();window._editAkte('${esc(ch)}')">✎</button>` : ''}
+            ${isDM() ? `
+              <button class="logboek-chapter-edit-btn dm-only" title="Akte bewerken"
+                onclick="event.stopPropagation();window._editAkte('${esc(ch)}')">✎</button>
+              ${_cvGrp ? `<button class="logboek-chapter-visibility-btn dm-only${isHiddenForGroup ? ' is-hidden' : ''}"
+                title="${isHiddenForGroup ? 'Toon akte voor huidige groep' : 'Verberg akte voor huidige groep'}"
+                onclick="event.stopPropagation();window._toggleChapterVisibility('${esc(ch)}',${isHiddenForGroup})">
+                ${isHiddenForGroup ? '🔒' : '👁'}
+              </button>` : ''}
+            ` : ''}
             <div class="logboek-chapter-toggle">${isCollapsed ? '▶' : '▼'}</div>
           </div>
         </div>
@@ -768,7 +954,18 @@ export function openLogboekEditor(editId) {
 
 window._toggleSessieVis = async (id, currentVisible) => {
   await api.updateSessieLog(id, { visible: !currentVisible });
-  renderLogboek();
+  // Werk alleen archiefData bij en herbouw de body — geen tabContent.innerHTML reset
+  // (de scroll-positie blijft behouden; socket logboek:updated doet daarna een volledige refresh)
+  const entry = (archiefData.sessieLog || []).find(e => e.id === id);
+  if (entry) {
+    entry.visible = !currentVisible;
+    entry._chapterHidden = entry._chapterHidden; // ongewijzigd
+  }
+  const body = document.getElementById('logboek-body');
+  if (body && _logboekCache) {
+    // DM ziet altijd alles; update _logboekCache niet (socket doet straks een echte refresh)
+    body.innerHTML = _buildLogboekBody(_logboekCache.allEntries, _logboekCache.hk);
+  }
 };
 
 let logEditorTags = {
@@ -853,6 +1050,17 @@ window._saveNewHoofdstuk = async () => {
         .join('');
     document.getElementById('new-hk-panel').classList.add('hidden');
   } catch (err) { alert('Fout: ' + err.message); }
+};
+
+// Toggle akte-zichtbaarheid voor de actieve groep (DM-only)
+window._toggleChapterVisibility = async (ch, currentlyHidden) => {
+  const groepId = window._activeGroupId;
+  if (!groepId) return;
+  const newVisible = currentlyHidden; // was hidden → zichtbaar, was zichtbaar → verborgen
+  try {
+    await api.setChapterVisibility(groepId, ch, newVisible);
+    await renderLogboek();
+  } catch (err) { console.error('Chapter visibility toggle failed:', err); }
 };
 
 window._editAkte = (ch) => {

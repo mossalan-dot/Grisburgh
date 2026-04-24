@@ -1945,15 +1945,31 @@ router.get('/archief', attachRole, (req, res) => {
       _dmNote: dmState.dmNotes[d.id]   || '',
     }));
   }
+  // Chapter-visibility: DM ziet alles; spelers alleen zichtbare aktes voor hun groep
+  const cv = _readChapterVisibility();
+  const playerGroepId = req.role !== 'dm'
+    ? _playerGroupId(dmState, req.session?.characterId)
+    : null;
+
   res.json({
     documents: docs,
     logEntries: archief.logEntries,
     sessieLog: req.role === 'dm'
-      ? archief.sessieLog || []
-      : (archief.sessieLog || []).filter(e => e.visible).map(e => ({
+      ? (archief.sessieLog || []).map(e => ({
           ...e,
-          images: (e.images || []).filter(img => typeof img === 'string' || img.visible !== false),
-        })),
+          // Stuur per sessie mee of de akte verborgen is voor de activeGroup (voor DM-toggle)
+          _chapterHidden: !_chapterVisible(cv, dmState.activeGroup, e.hoofdstuk || '_'),
+        }))
+      : !playerGroepId
+        ? []  // niet ingelogd als speler → geen verslagen
+        : (archief.sessieLog || []).filter(e =>
+            e.visible &&
+            _chapterVisible(cv, playerGroepId, e.hoofdstuk || '_')
+          ).map(e => ({
+            ...e,
+            images: (e.images || []).filter(img => typeof img === 'string' || img.visible !== false),
+          })),
+    chapterVisibility: req.role === 'dm' ? cv : undefined,
     hiddenLinks:  req.role === 'dm' ? archief.hiddenLinks : {},
     tekstContent: req.role === 'dm'
       ? archief.tekstContent
@@ -2063,6 +2079,20 @@ router.put('/archief/:id/state', requireDM, (req, res) => {
   }
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').emit('archief:stateChanged', { id: doc.id, name: doc.name, state });
+  // Dramatic reveal for players
+  if (state === 'revealed') {
+    const freshArchief = storage.readJSON('archief.json');
+    const revealDoc = (freshArchief.documents || []).find(d => d.id === req.params.id);
+    if (revealDoc) {
+      req.app.get('io').emit('archief:dramaticReveal', {
+        id:      revealDoc.id,
+        name:    revealDoc.name,
+        imageId: revealDoc.imageId || null,
+        type:    revealDoc.type || '',
+        flavour: revealDoc.flavour || '',
+      });
+    }
+  }
   res.json({ state });
 });
 
@@ -2081,6 +2111,83 @@ router.put('/archief/:id/tekst', requireDM, (req, res) => {
   const archief = storage.readJSON('archief.json');
   archief.tekstContent[req.params.id] = req.body.tekst || '';
   storage.writeJSON('archief.json', archief);
+  res.json({ ok: true });
+});
+
+// ── Relatiemap ──
+
+router.get('/relations', attachRole, (req, res) => {
+  const data = storage.readJSON('relations.json');
+  if (!data.edges) data.edges = [];
+  if (!data.positions) data.positions = {};
+
+  // Non-DM: filter edges where either endpoint is hidden
+  if (req.role !== 'dm') {
+    const dmState = readDmState();
+    const activeGroup = dmState.groups?.[dmState.activeGroup] || {};
+    const vis = activeGroup.visibility || {};
+    data.edges = data.edges.filter(ed => {
+      const vA = vis[ed.from];
+      const vB = vis[ed.to];
+      return vA !== 'hidden' && vB !== 'hidden';
+    });
+  }
+  res.json(data);
+});
+
+router.post('/relations/edges', requireDM, (req, res) => {
+  const data = storage.readJSON('relations.json');
+  if (!data.edges) data.edges = [];
+  const edge = {
+    id:            `rel_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+    from:          req.body.from,
+    fromType:      req.body.fromType,
+    to:            req.body.to,
+    toType:        req.body.toType,
+    label:         req.body.label         || '',
+    hiddenLabel:   req.body.hiddenLabel   || '',
+    labelRevealed: req.body.labelRevealed || false,
+  };
+  data.edges.push(edge);
+  storage.writeJSON('relations.json', data);
+  req.app.get('io').emit('relations:updated');
+  res.json(edge);
+});
+
+router.put('/relations/edges', requireDM, (req, res) => {
+  const data = storage.readJSON('relations.json');
+  data.edges = req.body.edges || [];
+  storage.writeJSON('relations.json', data);
+  req.app.get('io').emit('relations:updated');
+  res.json({ ok: true });
+});
+
+router.put('/relations/edges/:id', requireDM, (req, res) => {
+  const data = storage.readJSON('relations.json');
+  if (!data.edges) data.edges = [];
+  const idx = data.edges.findIndex(e => e.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Niet gevonden' });
+  const wasRevealed = data.edges[idx].labelRevealed;
+  data.edges[idx] = { ...data.edges[idx], ...req.body, id: req.params.id };
+  storage.writeJSON('relations.json', data);
+  const ev = (!wasRevealed && data.edges[idx].labelRevealed) ? 'relations:revealed' : 'relations:updated';
+  req.app.get('io').emit(ev, { id: req.params.id });
+  res.json(data.edges[idx]);
+});
+
+router.delete('/relations/edges/:id', requireDM, (req, res) => {
+  const data = storage.readJSON('relations.json');
+  if (!data.edges) return res.json({});
+  data.edges = data.edges.filter(e => e.id !== req.params.id);
+  storage.writeJSON('relations.json', data);
+  req.app.get('io').emit('relations:updated');
+  res.json({});
+});
+
+router.put('/relations/positions', requireDM, (req, res) => {
+  const data = storage.readJSON('relations.json');
+  data.positions = { ...(data.positions || {}), ...(req.body.positions || {}) };
+  storage.writeJSON('relations.json', data);
   res.json({ ok: true });
 });
 
@@ -2148,6 +2255,95 @@ router.delete('/sessieLog/:id', requireDM, (req, res) => {
   storage.writeJSON('archief.json', archief);
   req.app.get('io').emit('logboek:updated', { id: req.params.id, deleted: true });
   res.json({ ok: true });
+});
+
+// ── Quests ──
+// Status is per-party (quest-states/{groepId}.json); global quest only stores
+// title/description/chapter. Default status for any quest in any party = 'verborgen'.
+
+router.get('/quests', attachRole, (req, res) => {
+  const data    = storage.readJSON('quests.json');
+  const quests  = data.quests || [];
+  // DM kan een specifieke groep opvragen via ?groepId=xxx
+  let groepId = _getQuestGroepId(req);
+  if (req.role === 'dm' && req.query.groepId) {
+    const dmState = readDmState();
+    if (dmState.groups[req.query.groepId]) groepId = req.query.groepId;
+  }
+  const states  = groepId ? _readQuestStates(groepId) : {};
+  const result  = quests.map(q => ({
+    ...q,
+    status: states[q.id] ?? 'verborgen',
+  }));
+  res.json(result);
+});
+
+router.post('/quests', requireDM, (req, res) => {
+  const data = storage.readJSON('quests.json');
+  if (!data.quests) data.quests = [];
+  const quest = {
+    id:          `q_${Date.now()}`,
+    title:       req.body.title || 'Naamloze missie',
+    description: req.body.description || '',
+    chapter:     req.body.chapter || '',
+    notes:       req.body.notes || '',
+    createdAt:   new Date().toISOString(),
+  };
+  data.quests.push(quest);
+  storage.writeJSON('quests.json', data);
+
+  // Sla de gekozen beginstatus op voor de opgegeven of actieve party
+  let groepId = _getQuestGroepId(req);
+  if (req.body.groepId) {
+    const dmState = readDmState();
+    if (dmState.groups[req.body.groepId]) groepId = req.body.groepId;
+  }
+  if (groepId) {
+    const states   = _readQuestStates(groepId);
+    states[quest.id] = req.body.status || 'verborgen';
+    _writeQuestStates(groepId, states);
+  }
+
+  req.app.get('io').emit('quests:updated');
+  res.json(quest);
+});
+
+router.put('/quests/:id', requireDM, (req, res) => {
+  const data = storage.readJSON('quests.json');
+  if (!data.quests) data.quests = [];
+  const idx = data.quests.findIndex(q => q.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Niet gevonden' });
+
+  // Globale velden bijwerken (nooit 'status' of 'groepId' — die zijn per party)
+  const { status, groepId: bodyGroepId, ...globalFields } = req.body;
+  data.quests[idx] = { ...data.quests[idx], ...globalFields, id: req.params.id };
+  storage.writeJSON('quests.json', data);
+
+  // Per-party status bijwerken
+  if (status !== undefined) {
+    let groepId = _getQuestGroepId(req);
+    if (bodyGroepId) {
+      const dmState = readDmState();
+      if (dmState.groups[bodyGroepId]) groepId = bodyGroepId;
+    }
+    if (groepId) {
+      const states   = _readQuestStates(groepId);
+      states[req.params.id] = status;
+      _writeQuestStates(groepId, states);
+    }
+  }
+
+  req.app.get('io').emit('quests:updated');
+  res.json({ ...data.quests[idx], status: status ?? undefined });
+});
+
+router.delete('/quests/:id', requireDM, (req, res) => {
+  const data = storage.readJSON('quests.json');
+  if (!data.quests) return res.json({});
+  data.quests = data.quests.filter(q => q.id !== req.params.id);
+  storage.writeJSON('quests.json', data);
+  req.app.get('io').emit('quests:updated');
+  res.json({});
 });
 
 // ── Files ──
@@ -2616,6 +2812,75 @@ router.delete('/monsters/:id', requireDM, (req, res) => {
   data.monsters = (data.monsters || []).filter(m => m.id !== req.params.id);
   storage.writeJSON('monsters.json', data);
   res.json({ ok: true });
+});
+
+// ── SRD Monster Import (proxy naar dnd5eapi) ──
+router.get('/srd/monsters', attachRole, requireDM, async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.json({ results: [] });
+  try {
+    const url = `https://www.dnd5eapi.co/api/monsters?name=${encodeURIComponent(q)}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return res.status(502).json({ error: 'SRD niet bereikbaar' });
+    const data = await resp.json();
+    const results = (data.results || []).slice(0, 20).map(m => ({
+      index: m.index,
+      name:  m.name,
+      url:   m.url,
+    }));
+    res.json({ results });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+router.get('/srd/monsters/:index', attachRole, requireDM, async (req, res) => {
+  try {
+    const url = `https://www.dnd5eapi.co/api/monsters/${encodeURIComponent(req.params.index)}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return res.status(404).json({ error: 'Niet gevonden' });
+    const m = await resp.json();
+    const mod = score => Math.floor(((score || 10) - 10) / 2);
+    const mapCond = (arr) => (arr || []).map(x => x.name || x.index || x).join(', ');
+    const sbStr = arr => (arr || []).map(x => {
+      const bonus = x.value != null ? ` +${x.value}` : '';
+      return `${x.name || x.ability_score?.name || ''}${bonus}`;
+    }).join(', ');
+
+    const avgHp = m.hit_points || 10;
+
+    const sb = {
+      size:                  m.size || '',
+      type:                  m.type || '',
+      alignment:             m.alignment || '',
+      ac:                    (m.armor_class || []).map(a => `${a.value}${a.type ? ' ('+a.type+')' : ''}`).join(', '),
+      hp:                    m.hit_points_roll || '',
+      speed:                 Object.entries(m.speed || {}).map(([k,v]) => `${k} ${v}`).join(', '),
+      str:                   m.strength || 10,
+      dex:                   m.dexterity || 10,
+      con:                   m.constitution || 10,
+      int:                   m.intelligence || 10,
+      wis:                   m.wisdom || 10,
+      cha:                   m.charisma || 10,
+      savingThrows:          sbStr(m.proficiencies?.filter(p => p.proficiency?.name?.startsWith('Saving'))),
+      skills:                sbStr(m.proficiencies?.filter(p => p.proficiency?.name?.startsWith('Skill'))),
+      damageVulnerabilities: mapCond(m.damage_vulnerabilities),
+      damageResistances:     mapCond(m.damage_resistances),
+      damageImmunities:      mapCond(m.damage_immunities),
+      conditionImmunities:   mapCond(m.condition_immunities),
+      senses:                Object.entries(m.senses || {}).map(([k,v]) => `${k.replace(/_/g,' ')} ${v}`).join(', '),
+      languages:             m.languages || '',
+      cr:                    String(m.challenge_rating || ''),
+      xp:                    m.xp || 0,
+      traits:                (m.special_abilities || []).map(a => `***${a.name}.*** ${a.desc}`).join('\n\n'),
+      actions:               (m.actions || []).map(a => `***${a.name}.*** ${a.desc}`).join('\n\n'),
+      reactions:             (m.reactions || []).map(a => `***${a.name}.*** ${a.desc}`).join('\n\n'),
+      legendaryActions:      (m.legendary_actions || []).map(a => `***${a.name}.*** ${a.desc}`).join('\n\n'),
+    };
+    res.json({ name: m.name, maxHp: avgHp, initiative: 10 + mod(m.dexterity), statblock: sb });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
 });
 
 // ── Gevecht (Combat) ──
@@ -3626,6 +3891,279 @@ router.get('/tweespalt/log', requireDM, (req, res) => {
   let log = storage.readJSON('gok-log.json');
   if (!Array.isArray(log)) log = [];
   res.json(log);
+});
+
+// ── Quest States (per party) ─────────────────────────────────────────────────
+
+function _readQuestStates(groepId) {
+  const fp = path.join(storage.DATA_DIR, 'quest-states', `${groepId}.json`);
+  try { return JSON.parse(fs.readFileSync(fp, 'utf8')); } catch { return {}; }
+}
+
+function _writeQuestStates(groepId, data) {
+  const dir = path.join(storage.DATA_DIR, 'quest-states');
+  fs.mkdirSync(dir, { recursive: true });
+  const fp = path.join(dir, `${groepId}.json`);
+  const tmp = fp + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+  fs.renameSync(tmp, fp);
+}
+
+function _getQuestGroepId(req) {
+  const dmState = readDmState();
+  // req.role is alleen gezet door attachRole; requireDM zet het niet — gebruik session als fallback
+  const role   = req.role ?? req.session?.role;
+  const charId = req.characterId ?? req.session?.characterId;
+  if (role === 'dm') return dmState.activeGroup;
+  return _playerGroupId(dmState, charId) || null;
+}
+
+// ── Chapter Visibility (per party) ──────────────────────────────────────────
+// Opgeslagen als data/campaigns/<id>/chapter-visibility.json:
+//   { groepId: { h3: false, h4: false } }
+// Ontbrekende groep of ontbrekend chapter-id = zichtbaar (true is de default).
+
+function _cvPath() {
+  return path.join(storage.DATA_DIR, 'chapter-visibility.json');
+}
+
+function _readChapterVisibility() {
+  try { return JSON.parse(fs.readFileSync(_cvPath(), 'utf8')); } catch { return {}; }
+}
+
+function _writeChapterVisibility(data) {
+  const tmp = _cvPath() + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+  fs.renameSync(tmp, _cvPath());
+}
+
+// Is een hoofdstuk zichtbaar voor een groep? Default: ja.
+function _chapterVisible(cv, groepId, chapterId) {
+  return cv[groepId]?.[chapterId] !== false;
+}
+
+// GET /chapter-visibility — DM: retourneert volledig object voor alle groepen
+router.get('/chapter-visibility', requireDM, (req, res) => {
+  res.json(_readChapterVisibility());
+});
+
+// PUT /chapter-visibility/:groepId/:chapterId  { visible: true|false }
+router.put('/chapter-visibility/:groepId/:chapterId', requireDM, (req, res) => {
+  const { groepId, chapterId } = req.params;
+  const visible = req.body.visible !== false; // default true
+  const dmState = readDmState();
+  if (!dmState.groups[groepId]) return res.status(404).json({ error: 'Groep niet gevonden' });
+  const cv = _readChapterVisibility();
+  if (!cv[groepId]) cv[groepId] = {};
+  if (visible) {
+    delete cv[groepId][chapterId]; // default = visible, dus verwijder de expliciete false
+    if (Object.keys(cv[groepId]).length === 0) delete cv[groepId]; // groep opruimen als leeg
+  } else {
+    cv[groepId][chapterId] = false;
+  }
+  _writeChapterVisibility(cv);
+  req.app.get('io').emit('chapter-visibility:updated');
+  res.json({ ok: true, groepId, chapterId, visible });
+});
+
+// ── Party Board ──────────────────────────────────────────────────────────────
+
+function _readPartyBoard(groepId) {
+  const fp = path.join(storage.DATA_DIR, 'party-boards', `${groepId}.json`);
+  try { return JSON.parse(fs.readFileSync(fp, 'utf8')); } catch { return { nodes: [], edges: [] }; }
+}
+
+function _writePartyBoard(groepId, data) {
+  const dir = path.join(storage.DATA_DIR, 'party-boards');
+  fs.mkdirSync(dir, { recursive: true });
+  const fp  = path.join(dir, `${groepId}.json`);
+  const tmp = fp + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+  fs.renameSync(tmp, fp);
+}
+
+function _getBoardGroepId(req) {
+  const dmState = readDmState();
+  if (req.role === 'dm') return dmState.activeGroup;
+  return _playerGroupId(dmState, req.characterId) || null;
+}
+
+// GET /api/party-board
+router.get('/party-board', attachRole, (req, res) => {
+  const groepId = _getBoardGroepId(req);
+  if (!groepId) return res.status(403).json({ error: 'Geen groep gevonden' });
+
+  const board    = _readPartyBoard(groepId);
+  const entities = storage.readJSON('entities.json');
+
+  const enriched = (board.nodes || []).map(node => {
+    if (!node.entityId || !node.entityType) return node;
+    const ent = (entities[node.entityType] || []).find(e => e.id === node.entityId);
+    return { ...node, entityName: ent?.name || node.entityName || node.entityId, hasImage: !!(ent?.data?.imgFocus) };
+  });
+
+  res.json({ groepId, nodes: enriched, edges: board.edges || [] });
+});
+
+// GET /api/party-board/entities — zoekbare entiteiten (zichtbaar voor deze groep)
+router.get('/party-board/entities', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const groepId = _getBoardGroepId(req);
+  if (!groepId) return res.status(403).json({ error: 'Geen groep gevonden' });
+
+  const entities = storage.readJSON('entities.json');
+  const g        = getGroup(dmState, groepId);
+  const result   = [];
+
+  for (const type of ['personages', 'locaties', 'organisaties']) {
+    for (const e of (entities[type] || [])) {
+      const vis = g.visibility[e.id] || 'hidden';
+      if (vis === 'hidden') continue;
+      result.push({ id: e.id, name: e.name, type, hasImage: !!(e.data?.imgFocus) });
+    }
+  }
+  result.sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+  res.json(result);
+});
+
+// POST /api/party-board/node
+router.post('/party-board/node', attachRole, (req, res) => {
+  const groepId = _getBoardGroepId(req);
+  if (!groepId) return res.status(403).json({ error: 'Geen groep gevonden' });
+
+  const { entityId, entityType, text } = req.body;
+  if (!entityId && !text) return res.status(400).json({ error: 'entityId of text vereist' });
+
+  const board = _readPartyBoard(groepId);
+  if (entityId && (board.nodes || []).some(n => n.entityId === entityId))
+    return res.status(409).json({ error: 'Al op het bord' });
+
+  const node = {
+    id:         `node_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    entityId:   entityId   || null,
+    entityType: entityType || null,
+    text:       text       || null,
+    notes:      '',
+    x:          req.body.x ?? 100 + Math.random() * 600,
+    y:          req.body.y ?? 100 + Math.random() * 400,
+  };
+  board.nodes = board.nodes || [];
+  board.nodes.push(node);
+  _writePartyBoard(groepId, board);
+
+  if (entityId && entityType) {
+    const entities = storage.readJSON('entities.json');
+    const ent = (entities[entityType] || []).find(e => e.id === entityId);
+    node.entityName = ent?.name || entityId;
+    node.hasImage   = !!(ent?.data?.imgFocus);
+  }
+
+  req.app.get('io').emit('party-board:updated', { groepId });
+  res.json(node);
+});
+
+// DELETE /api/party-board/node/:id
+router.delete('/party-board/node/:id', attachRole, (req, res) => {
+  const groepId = _getBoardGroepId(req);
+  if (!groepId) return res.status(403).json({ error: 'Geen groep gevonden' });
+
+  const board  = _readPartyBoard(groepId);
+  const nodeId = req.params.id;
+  board.nodes  = (board.nodes || []).filter(n => n.id !== nodeId);
+  board.edges  = (board.edges || []).filter(e => e.from !== nodeId && e.to !== nodeId);
+  _writePartyBoard(groepId, board);
+
+  req.app.get('io').emit('party-board:updated', { groepId });
+  res.json({ ok: true });
+});
+
+// PUT /api/party-board/node/:id
+router.put('/party-board/node/:id', attachRole, (req, res) => {
+  const groepId = _getBoardGroepId(req);
+  if (!groepId) return res.status(403).json({ error: 'Geen groep gevonden' });
+
+  const board = _readPartyBoard(groepId);
+  const node  = (board.nodes || []).find(n => n.id === req.params.id);
+  if (!node) return res.status(404).json({ error: 'Node niet gevonden' });
+
+  const changed = [];
+  if (req.body.notes !== undefined) { node.notes = req.body.notes; changed.push('notes'); }
+  if (req.body.text  !== undefined) { node.text  = req.body.text;  changed.push('text'); }
+  if (req.body.x     !== undefined)   node.x     = req.body.x;
+  if (req.body.y     !== undefined)   node.y     = req.body.y;
+
+  _writePartyBoard(groepId, board);
+  if (changed.length) req.app.get('io').emit('party-board:updated', { groepId });
+  res.json({ ok: true });
+});
+
+// POST /api/party-board/edge
+router.post('/party-board/edge', attachRole, (req, res) => {
+  const groepId = _getBoardGroepId(req);
+  if (!groepId) return res.status(403).json({ error: 'Geen groep gevonden' });
+
+  const { from, to, label, color } = req.body;
+  if (!from || !to || from === to) return res.status(400).json({ error: 'Ongeldige van/naar' });
+
+  const board = _readPartyBoard(groepId);
+  const edge  = {
+    id:    `edge_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    from, to,
+    label: label || '',
+    color: color || '#cc2222',
+  };
+  board.edges = board.edges || [];
+  board.edges.push(edge);
+  _writePartyBoard(groepId, board);
+
+  req.app.get('io').emit('party-board:updated', { groepId });
+  res.json(edge);
+});
+
+// DELETE /api/party-board/edge/:id
+router.delete('/party-board/edge/:id', attachRole, (req, res) => {
+  const groepId = _getBoardGroepId(req);
+  if (!groepId) return res.status(403).json({ error: 'Geen groep gevonden' });
+
+  const board = _readPartyBoard(groepId);
+  board.edges = (board.edges || []).filter(e => e.id !== req.params.id);
+  _writePartyBoard(groepId, board);
+
+  req.app.get('io').emit('party-board:updated', { groepId });
+  res.json({ ok: true });
+});
+
+// PUT /api/party-board/edge/:id
+router.put('/party-board/edge/:id', attachRole, (req, res) => {
+  const groepId = _getBoardGroepId(req);
+  if (!groepId) return res.status(403).json({ error: 'Geen groep gevonden' });
+
+  const board = _readPartyBoard(groepId);
+  const edge  = (board.edges || []).find(e => e.id === req.params.id);
+  if (!edge) return res.status(404).json({ error: 'Verbinding niet gevonden' });
+
+  if (req.body.label !== undefined) edge.label = req.body.label;
+  if (req.body.color !== undefined) edge.color = req.body.color;
+
+  _writePartyBoard(groepId, board);
+  req.app.get('io').emit('party-board:updated', { groepId });
+  res.json({ ok: true });
+});
+
+// PUT /api/party-board/positions
+router.put('/party-board/positions', attachRole, (req, res) => {
+  const groepId   = _getBoardGroepId(req);
+  if (!groepId) return res.status(403).json({ error: 'Geen groep gevonden' });
+
+  const { positions } = req.body;
+  if (!positions) return res.status(400).json({ error: 'positions vereist' });
+
+  const board = _readPartyBoard(groepId);
+  (board.nodes || []).forEach(n => {
+    if (positions[n.id]) { n.x = positions[n.id].x; n.y = positions[n.id].y; }
+  });
+  _writePartyBoard(groepId, board);
+  res.json({ ok: true });
 });
 
 module.exports = router;

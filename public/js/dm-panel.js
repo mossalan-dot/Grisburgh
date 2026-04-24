@@ -22,6 +22,14 @@ const CONDITIONS = [
   { id: 'concentration', label: 'Concentration',  desc: 'Concentrating on a spell. Ends if damaged (CON save, DC 10 or half damage taken) or incapacitated.' },
   { id: 'bleeding',      label: 'Bleeding',       desc: 'Losing blood. Takes 1d4 damage at the start of each turn. Ends when healed or a DC 10 Medicine check is made.' },
   { id: 'burning',       label: 'Burning',        desc: 'On fire. Takes 1d6 fire damage at the start of each turn. Can use an action to extinguish.' },
+  // ── Klassespecifiek ──
+  { id: 'bardic-inspiration', label: 'Bardic Inspiration', desc: '(Bard) Has a Bardic Inspiration die. Can add it to one attack roll, ability check, or saving throw. Expended on use.' },
+  { id: 'tides-of-chaos',     label: 'Tides of Chaos',     desc: '(Sorcerer) Has advantage on the next attack roll, ability check, or saving throw. Expended on use — may trigger a Wild Magic Surge.' },
+  { id: 'twilight-sanctuary', label: 'Twilight Sanctuary',  desc: '(Cleric) Within the Twilight Sanctuary aura. At end of each turn: gain temp HP (1d6 + cleric level) or end one charmed or frightened condition.' },
+  { id: 'patient-defense',    label: 'Patient Defense',    desc: '(Monk) Taking the Dodge action via ki. Attack rolls against this creature have disadvantage; DEX saving throws have advantage. Until start of next turn.' },
+  { id: 'steady-aim',         label: 'Steady Aim',         desc: '(Rogue) Used Steady Aim bonus action. Has advantage on the next attack roll this turn. Speed is 0 until end of turn.' },
+  { id: 'vigilant-blessing',  label: 'Vigilant Blessing',  desc: '(Cleric) Has advantage on the next initiative roll. Expended when rolled.' },
+  { id: 'blessed',            label: 'Blessed',            desc: '(Bless spell) Adds 1d4 to attack rolls and saving throws. Concentration, up to 1 minute.' },
 ];
 
 const HP_LABELS = [
@@ -46,6 +54,32 @@ let _combat = null;
 let _combatLoaded = false;
 let _selectedCombatantId = null;
 let _monsters = [];
+
+// ── Combat overlay tabs (speler) ──
+let _combatOverlayTab = 'gevecht';
+let _lastCombat = null;
+
+const _CO_AB_LABELS = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' };
+const _CO_SKILLS = [
+  { key: 'acrobatics',    label: 'Acrobatics',      ab: 'dex' },
+  { key: 'animalHandling',label: 'Animal Handling',  ab: 'wis' },
+  { key: 'arcana',        label: 'Arcana',            ab: 'int' },
+  { key: 'athletics',     label: 'Athletics',         ab: 'str' },
+  { key: 'deception',     label: 'Deception',         ab: 'cha' },
+  { key: 'history',       label: 'History',           ab: 'int' },
+  { key: 'insight',       label: 'Insight',           ab: 'wis' },
+  { key: 'intimidation',  label: 'Intimidation',      ab: 'cha' },
+  { key: 'investigation', label: 'Investigation',     ab: 'int' },
+  { key: 'medicine',      label: 'Medicine',          ab: 'wis' },
+  { key: 'nature',        label: 'Nature',            ab: 'int' },
+  { key: 'perception',    label: 'Perception',        ab: 'wis' },
+  { key: 'performance',   label: 'Performance',       ab: 'cha' },
+  { key: 'persuasion',    label: 'Persuasion',        ab: 'cha' },
+  { key: 'religion',      label: 'Religion',          ab: 'int' },
+  { key: 'sleightOfHand', label: 'Sleight of Hand',   ab: 'dex' },
+  { key: 'stealth',       label: 'Stealth',           ab: 'dex' },
+  { key: 'survival',      label: 'Survival',          ab: 'wis' },
+];
 let _monsterChapterFilter    = '';
 let _monsterPage             = 0;
 let _editingMonsterId        = null;
@@ -91,8 +125,9 @@ export function initDmPanel() {
     // Tunnel
     tunnelToggle:  _tunnelToggle,
     tunnelCopy:    _tunnelCopy,
-    exportSnapshot: _exportSnapshot,
-    exportFile:     _exportFile,
+    exportSnapshot:  _exportSnapshot,
+    exportFile:      _exportFile,
+    importObsidian:  _importObsidian,
 
     // Tafels
     tabelRoll:     _tabelRoll,
@@ -116,6 +151,8 @@ export function initDmPanel() {
     monsterCancel:       _monsterCancel,
     monsterSave:         _monsterSave,
     monsterDelete:       _monsterDelete,
+    srdSearch:           _srdSearch,
+    srdImport:           _srdImport,
     monsterFilterChapter: _monsterFilterChapter,
     monsterPage:          _monsterPage_set,
     monsterUpload:      _monsterUpload,
@@ -260,6 +297,7 @@ function _buildTabs() {
     <button class="dm-tab-btn${_activeTab==='tweespalt'?  ' active':''}" data-tab="tweespalt"   onclick="window.dmPanel.switchTab('tweespalt')"   title="De Tweespalt — gokkantoor"><span class="dm-tab-icon">🎲</span><span class="dm-tab-label">Tweespalt</span></button>
     <button class="dm-tab-btn${_activeTab==='ursula'?     ' active':''}" data-tab="ursula"      onclick="window.dmPanel.switchTab('ursula')"      title="Madame Ursula — waarzegger"><span class="dm-tab-icon">🔮</span><span class="dm-tab-label">Ursula</span></button>
     <button class="dm-tab-btn${_activeTab==='gock'?       ' active':''}" data-tab="gock"        onclick="window.dmPanel.switchTab('gock')"        title="De Gock — privédetective"><span class="dm-tab-icon">🔍</span><span class="dm-tab-label">De Gock</span></button>
+    <button class="dm-tab-btn${_activeTab==='beurs'?       ' active':''}" data-tab="beurs"        onclick="window.dmPanel.switchTab('beurs')"        title="Gedeelde beurs"><span class="dm-tab-icon">👛</span><span class="dm-tab-label">Beurs</span></button>
     <button class="dm-tab-btn${_activeTab==='berichten'?   ' active':''}" data-tab="berichten"    onclick="window.dmPanel.switchTab('berichten')"    title="Geheime berichten"><span class="dm-tab-icon">💬</span><span class="dm-tab-label">Berichten</span></button>
   `;
 }
@@ -286,6 +324,9 @@ function _switchTab(tab) {
   if (tab === 'ursula')     _renderUrsulaSettings();
   if (tab === 'gock')       _renderGockSettings();
   if (tab === 'berichten')  _renderBerichten();
+  if (tab === 'herberg')   _renderHerbergSettings();
+  if (tab === 'beurs')     _renderBeursTab();
+  if (tab === 'berichten') _renderBerichten();
   if (tab === 'gevecht') {
     // Always reload monsters + entities so pickers are fresh
     Promise.all([
@@ -524,7 +565,74 @@ function _renderExportTab() {
         </div>
       </div>
     </div>
+
+    <div class="dm-feature-section" style="margin-top:18px">
+      <div class="dm-feature-label">Importeren vanuit Obsidian</div>
+
+      <div class="export-option-card">
+        <div class="export-option-icon">🗒️</div>
+        <div class="export-option-body">
+          <div class="export-option-title">Sjablonen downloaden</div>
+          <div class="export-option-desc">Gebruik deze Obsidian-sjablonen om personages, locaties, organisaties, voorwerpen en documenten voor te bereiden. Vul het YAML-blok bovenaan in en importeer de bestanden hieronder.</div>
+          <div class="export-template-links">
+            ${['Personage','Locatie','Organisatie','Voorwerp','Document'].map(t =>
+              `<a class="export-template-link" href="/obsidian-templates/${t}.md" download="${t}.md">⬇ ${t}</a>`
+            ).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="export-option-card" id="export-card-import">
+        <div class="export-option-icon">📂</div>
+        <div class="export-option-body">
+          <div class="export-option-title">Markdown-bestanden importeren</div>
+          <div class="export-option-desc">Selecteer één of meerdere ingevulde <code>.md</code>-bestanden. Elk bestand wordt als nieuwe entiteit of document aangemaakt op basis van het <code>type</code>-veld in de frontmatter.</div>
+          <label class="export-import-label">
+            <input type="file" id="import-md-input" accept=".md" multiple style="display:none"
+              onchange="window.dmPanel.importObsidian(this.files)">
+            <span class="dm-btn dm-btn-primary export-option-btn" onclick="document.getElementById('import-md-input').click()">
+              📂 Bestanden kiezen…
+            </span>
+          </label>
+          <div id="import-md-results" class="import-md-results hidden"></div>
+        </div>
+      </div>
+    </div>
   `;
+}
+
+async function _importObsidian(files) {
+  const resultsEl = document.getElementById('import-md-results');
+  if (!files?.length || !resultsEl) return;
+  resultsEl.classList.remove('hidden');
+  resultsEl.innerHTML = '<div class="import-md-row import-md-loading">⏳ Bezig met importeren…</div>';
+
+  const formData = new FormData();
+  for (const f of files) formData.append('files', f);
+
+  try {
+    const res = await fetch('/api/import/obsidian', {
+      method: 'POST', credentials: 'include', body: formData,
+    });
+    const { results } = await res.json();
+    const TYPE_LABELS = {
+      personages: 'Personage', locaties: 'Locatie', organisaties: 'Organisatie',
+      voorwerpen: 'Voorwerp', document: 'Document',
+    };
+    resultsEl.innerHTML = results.map(r => r.ok
+      ? `<div class="import-md-row import-md-ok">✓ <strong>${r.name}</strong> <span class="import-md-type">${TYPE_LABELS[r.type] || r.type}</span></div>`
+      : `<div class="import-md-row import-md-err">✕ ${r.error}</div>`
+    ).join('');
+    // Reset file input
+    const inp = document.getElementById('import-md-input');
+    if (inp) inp.value = '';
+    // Reload entities in background so new items show up
+    if (results.some(r => r.ok)) {
+      setTimeout(() => window.app?.refreshSection?.('archief'), 400);
+    }
+  } catch (err) {
+    resultsEl.innerHTML = `<div class="import-md-row import-md-err">✕ Fout: ${err.message}</div>`;
+  }
 }
 
 async function _exportFile(type) {
@@ -1387,6 +1495,15 @@ function _renderMonsterEditor(el) {
 
   el.innerHTML = `
     <div class="dm-feature-section">
+      <details class="dm-srd-import-panel" id="dm-srd-panel">
+        <summary class="dm-srd-summary">🔍 SRD importeren</summary>
+        <div class="dm-srd-search-row">
+          <input id="dm-srd-q" class="dm-input dm-input-sm" placeholder="Zoek monster…"
+            onkeydown="if(event.key==='Enter')window.dmPanel.srdSearch()">
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.srdSearch()">Zoeken</button>
+        </div>
+        <div id="dm-srd-results" class="dm-srd-results"></div>
+      </details>
       <div class="dm-form-row">
         <label class="dm-form-label">Naam</label>
         <input id="dm-mon-name" class="dm-input" value="${esc(m.name)}" placeholder="Monsternaam…">
@@ -1478,6 +1595,82 @@ function _monsterCancel() {
   _editingMonsterId = null;
   _editingMonsterIsNew = false;
   _renderMonsters();
+}
+
+async function _srdSearch() {
+  const q = document.getElementById('dm-srd-q')?.value.trim();
+  if (!q) return;
+  const resultsEl = document.getElementById('dm-srd-results');
+  if (resultsEl) resultsEl.innerHTML = '<div class="dm-hint">Zoeken…</div>';
+  try {
+    const { results } = await api.srdSearchMonsters(q);
+    if (!resultsEl) return;
+    if (!results.length) { resultsEl.innerHTML = '<div class="dm-hint">Geen resultaten.</div>'; return; }
+    resultsEl.innerHTML = results.map(m =>
+      `<button class="dm-srd-result-btn" onclick="window.dmPanel.srdImport('${esc(m.index)}')">${esc(m.name)}</button>`
+    ).join('');
+  } catch (err) {
+    if (resultsEl) resultsEl.innerHTML = `<div class="dm-hint" style="color:#c44">Fout: ${esc(err.message)}</div>`;
+  }
+}
+
+async function _srdImport(index) {
+  const resultsEl = document.getElementById('dm-srd-results');
+  if (resultsEl) resultsEl.innerHTML = '<div class="dm-hint">Importeren…</div>';
+  try {
+    const m = await api.srdGetMonster(index);
+    const nameEl = document.getElementById('dm-mon-name');
+    const hpEl   = document.getElementById('dm-mon-hp');
+    const initEl = document.getElementById('dm-mon-init');
+    if (nameEl) nameEl.value = m.name;
+    if (hpEl)   hpEl.value   = m.maxHp;
+    if (initEl) initEl.value = m.initiative;
+    const sbPanel = document.querySelector('.dm-sb-editor');
+    if (sbPanel) sbPanel.open = true;
+    const sb = m.statblock || {};
+    const v = (k, val) => { const el = document.getElementById('dm-mon-sb-' + k); if (el) el.value = val ?? ''; };
+    v('size',                  sb.size);
+    v('type',                  sb.type);
+    v('alignment',             sb.alignment);
+    v('ac',                    sb.ac);
+    v('hp',                    sb.hp);
+    v('speed',                 sb.speed);
+    v('str',                   sb.str);
+    v('dex',                   sb.dex);
+    v('con',                   sb.con);
+    v('int',                   sb.int);
+    v('wis',                   sb.wis);
+    v('cha',                   sb.cha);
+    v('savingThrows',          sb.savingThrows);
+    v('skills',                sb.skills);
+    v('damageVulnerabilities', sb.damageVulnerabilities);
+    v('damageResistances',     sb.damageResistances);
+    v('damageImmunities',      sb.damageImmunities);
+    v('conditionImmunities',   sb.conditionImmunities);
+    v('senses',                sb.senses);
+    v('languages',             sb.languages);
+    v('cr',                    sb.cr);
+    const xpEl = document.getElementById('dm-mon-sb-xp');
+    if (xpEl) xpEl.value = sb.xp || '';
+    v('traits',           sb.traits);
+    v('actions',          sb.actions);
+    v('reactions',        sb.reactions);
+    v('legendaryActions', sb.legendaryActions);
+    document.querySelectorAll('.dm-sb-score-col').forEach(col => {
+      const input = col.querySelector('input');
+      const modEl = col.querySelector('.dm-sb-mod');
+      if (input && modEl) {
+        const score = parseInt(input.value) || 10;
+        const mod = Math.floor((score - 10) / 2);
+        modEl.textContent = (mod >= 0 ? '+' : '') + mod;
+      }
+    });
+    if (resultsEl) resultsEl.innerHTML = `<div class="dm-hint" style="color:#4a7">✓ ${esc(m.name)} geïmporteerd</div>`;
+    const panel = document.getElementById('dm-srd-panel');
+    if (panel) panel.open = false;
+  } catch (err) {
+    if (resultsEl) resultsEl.innerHTML = `<div class="dm-hint" style="color:#c44">Fout: ${esc(err.message)}</div>`;
+  }
 }
 
 async function _monsterSave() {
@@ -1612,29 +1805,45 @@ function _setupPresetChange(presetId) {
   }
 }
 
-function _setupEntityChange(entityId) {
+async function _setupEntityChange(entityId) {
   _setupSelectedEntityId = entityId || null;
   const e = _setupPersonages.find(x => x.id === entityId);
   const nameEl  = document.getElementById('dm-setup-name');
   const maxhpEl = document.getElementById('dm-setup-maxhp');
-  if (e) {
-    if (nameEl)  nameEl.value  = e.name;
-    if (maxhpEl) maxhpEl.value = parseInt(e.stats?.hp) || 10;
-  } else {
+  if (!e) {
     if (nameEl) nameEl.value = '';
+    return;
+  }
+  if (nameEl) nameEl.value = e.name;
+  // Vul het HP-veld met het actuele HP uit dm-state (niet het statblock-maximum)
+  let maxHp   = parseInt(e.stats?.hp) || 10;
+  let current = maxHp;
+  try {
+    const hpData = await api.getPlayerHp(e.id);
+    if (hpData.max     != null) maxHp   = hpData.max;
+    if (hpData.current != null) current = hpData.current;
+    else current = maxHp;
+  } catch (_) {}
+  if (maxhpEl) {
+    maxhpEl.value       = current;
+    maxhpEl.title       = `Huidig: ${current} / Max: ${maxHp}`;
+    maxhpEl.placeholder = `HP (max ${maxHp})`;
+    // Sla max op als data-attribuut zodat _setupAddSubmit het kan gebruiken
+    maxhpEl.dataset.maxHp = maxHp;
   }
 }
 
-// Synchroniseert maxHp van bestaande speler-combatants met het door de speler ingestelde HP
+// Synchroniseert hp én maxHp van bestaande speler-combatants met dm-state
 async function _syncSpelerHp() {
   if (!_combat?.combatants) return;
   const playerCombatants = _combat.combatants.filter(c => c.type === 'player' && c.entityId);
   for (const c of playerCombatants) {
     try {
       const hpData = await api.getPlayerHp(c.entityId);
-      if (hpData.max != null && hpData.max !== c.maxHp) {
-        await api.updateCombatant(c.id, { maxHp: hpData.max });
-      }
+      const patch = {};
+      if (hpData.max     != null && hpData.max     !== c.maxHp) patch.maxHp = hpData.max;
+      if (hpData.current != null && hpData.current !== c.hp)    patch.hp    = hpData.current;
+      if (Object.keys(patch).length) await api.updateCombatant(c.id, patch);
     } catch (_) {}
   }
   _combat = await api.getCombat().catch(() => _combat);
@@ -1643,17 +1852,19 @@ async function _syncSpelerHp() {
 async function _autoAddSpelers() {
   const spelers = _setupPersonages.filter(e => e.subtype === 'speler');
   for (const e of spelers) {
-    // Gebruik het door de speler ingestelde max-HP; val terug op stats.hp of 10
-    let maxHp = parseInt(e.stats?.hp) || 10;
+    let maxHp   = parseInt(e.stats?.hp) || 10;
+    let current = maxHp;
     try {
       const hpData = await api.getPlayerHp(e.id);
-      if (hpData.max != null) maxHp = hpData.max;
+      if (hpData.max     != null) maxHp   = hpData.max;
+      if (hpData.current != null) current = hpData.current;
+      else current = maxHp; // geen opgeslagen current → gebruik max
     } catch (_) {}
     await api.addCombatant({
       name:       e.name,
       type:       'player',
       initiative: 10,
-      hp:         maxHp,
+      hp:         current,
       maxHp:      maxHp,
       entityId:   e.id,
     }).catch(() => {});
@@ -1662,12 +1873,18 @@ async function _autoAddSpelers() {
 }
 
 async function _setupAddSubmit() {
-  const name  = document.getElementById('dm-setup-name')?.value.trim();
-  const init  = parseInt(document.getElementById('dm-setup-init')?.value)  || 0;
-  const maxHp = parseInt(document.getElementById('dm-setup-maxhp')?.value) || 10;
+  const name       = document.getElementById('dm-setup-name')?.value.trim();
+  const init       = parseInt(document.getElementById('dm-setup-init')?.value) || 0;
+  const maxhpEl    = document.getElementById('dm-setup-maxhp');
+  // Voor spelers: het veld bevat het actuele HP; maxHp staat in data-maxHp
+  const isPlayer   = _setupSelectedType === 'player' && _setupSelectedEntityId;
+  const currentHp  = parseInt(maxhpEl?.value) || 10;
+  const maxHp      = isPlayer && maxhpEl?.dataset?.maxHp
+    ? parseInt(maxhpEl.dataset.maxHp) || currentHp
+    : currentHp;
   if (!name) return;
 
-  const payload = { name, type: _setupSelectedType, initiative: init, hp: maxHp, maxHp };
+  const payload = { name, type: _setupSelectedType, initiative: init, hp: currentHp, maxHp };
 
   if (_setupSelectedType === 'monster' && _setupSelectedPresetId) {
     const m = _monsters.find(x => x.id === _setupSelectedPresetId);
@@ -2157,6 +2374,43 @@ async function _renderHerbergSettings() {
     </div>`;
 }
 
+async function _renderBeursTab() {
+  const el = document.querySelector('.dm-tab-content[data-tab="beurs"]');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  let _partyCurrency = { enabled: false, fl: 0, kn: 0, cl: 0 };
+  try { _partyCurrency = await api.getPartyCurrency(); } catch { /* ok */ }
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Gedeelde beurs</div>
+
+      <div class="dm-form-row" style="align-items:center;gap:12px">
+        <button class="dm-btn${_partyCurrency.enabled ? ' dm-btn-primary' : ''}"
+          id="hb-purse-toggle-btn"
+          onclick="window._hbTogglePurse()">
+          ${_partyCurrency.enabled ? '🤝 Gedeeld — klik om te deactiveren' : '👛 Individueel — klik om te delen'}
+        </button>
+      </div>
+
+      ${_partyCurrency.enabled ? `
+      <div class="dm-form-row" style="gap:8px;flex-wrap:wrap;margin-top:8px">
+        <label class="dm-form-label" style="width:100%">Bedragen bijwerken</label>
+        <input id="hb-purse-fl" class="dm-input" type="number" min="0" style="width:80px"
+          placeholder="FL" value="${_partyCurrency.fl}">
+        <input id="hb-purse-kn" class="dm-input" type="number" min="0" style="width:80px"
+          placeholder="KN" value="${_partyCurrency.kn}">
+        <input id="hb-purse-cl" class="dm-input" type="number" min="0" style="width:80px"
+          placeholder="CL" value="${_partyCurrency.cl}">
+        <button class="dm-btn dm-btn-ghost" onclick="window._hbSavePurse()">💾 Bijwerken</button>
+      </div>` : `
+      <p style="font-size:12px;color:var(--color-ink-dim,#888);margin-top:8px">
+        Activeer de gedeelde beurs zodat alle spelers hetzelfde saldo zien.
+      </p>`}
+    </div>`;
+}
+
 window._hbSelectWaard = (entityId) => {
   const p = _hbPersonages.find(p => p.id === entityId);
   const row = document.getElementById('hb-portrait-row');
@@ -2584,6 +2838,23 @@ window._gockGeheimSave = async () => {
       await api.setGockGeheim(inp.dataset.entityType, inp.dataset.entityId, inp.value.trim() || null);
     }
     alert('Geheimen opgeslagen.');
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+window._hbTogglePurse = async () => {
+  try {
+    await api.togglePartyCurrency();
+    await _renderBeursTab();
+  } catch (err) { alert('Fout: ' + err.message); }
+};
+
+window._hbSavePurse = async () => {
+  const fl = Math.max(0, parseInt(document.getElementById('hb-purse-fl')?.value) || 0);
+  const kn = Math.max(0, parseInt(document.getElementById('hb-purse-kn')?.value) || 0);
+  const cl = Math.max(0, parseInt(document.getElementById('hb-purse-cl')?.value) || 0);
+  try {
+    await api.patchPartyCurrency({ fl, kn, cl });
+    await _renderBeursTab();
   } catch (err) { alert('Fout: ' + err.message); }
 };
 
@@ -2916,7 +3187,7 @@ function _renderGevecht() {
                 Init <input class="dm-setup-init-input" type="number" value="${c.initiative}"
                   onchange="window.dmPanel.setupInitChange('${esc(c.id)}', this.value)"
                   style="width:44px">
-                · ${c.maxHp} HP
+                · ${c.hp}/${c.maxHp} HP
               </span>
               <button class="dm-combatant-remove" onclick="window.dmPanel.combatRemove('${esc(c.id)}')">✕</button>
             </div>
@@ -2991,12 +3262,21 @@ function _combatSelectCombatant(id) {
   const hp    = hpStatus(c.hp, c.maxHp);
   const hpPct = c.maxHp > 0 ? Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100)) : 0;
 
-  const condPicker = CONDITIONS.map(cond => {
-    const active = (c.conditions || []).includes(cond.id);
-    return `<button class="co-cond-pick${active ? ' active' : ''}"
+  const CLASS_CONDS = new Set(['bardic-inspiration','tides-of-chaos','twilight-sanctuary','patient-defense','steady-aim','vigilant-blessing','blessed']);
+  const stdConds   = CONDITIONS.filter(x => !CLASS_CONDS.has(x.id));
+  const classConds = CONDITIONS.filter(x =>  CLASS_CONDS.has(x.id));
+  const _pickBtn = (cond) => {
+    const active   = (c.conditions || []).includes(cond.id);
+    const isClass  = CLASS_CONDS.has(cond.id);
+    return `<button class="co-cond-pick${active ? ' active' : ''}${isClass ? ' co-cond-class' : ''}"
       onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cond.id}')"
       title="${esc(cond.desc)}">${esc(cond.label)}</button>`;
-  }).join('');
+  };
+  const condPicker = [
+    ...stdConds.map(_pickBtn),
+    `<div class="co-cond-divider"></div>`,
+    ...classConds.map(_pickBtn),
+  ].join('');
 
   const isDying = (c.hp || 0) <= 0 && c.type === 'player';
   const ds = c.deathSaves || { successes: 0, failures: 0 };
@@ -3056,7 +3336,8 @@ function _combatSelectCombatant(id) {
     ` : `
     ${(c.conditions || []).length ? `<div class="co-active-conds">${(c.conditions || []).map(cid => {
       const cond = CONDITIONS.find(x => x.id === cid);
-      return cond ? `<span class="co-cond-chip" title="${esc(cond.desc)}">${esc(cond.label)}</span>` : '';
+      const isClass = CLASS_CONDS.has(cid);
+      return cond ? `<span class="co-cond-chip${isClass ? ' co-cond-chip--class' : ''}" title="${esc(cond.desc)}">${esc(cond.label)}</span>` : '';
     }).join('')}</div>` : ''}
     `}
     ${deathSaves}
@@ -3097,33 +3378,61 @@ function _renderCombatOverlay(combat, startMinimized = false) {
   const groupNames = turnGroup.map(i => cs[i]?.name).filter(Boolean);
   const currentLabel = groupNames.length > 1 ? groupNames.join(' + ') : (current?.name || '—');
 
+  // Compute initiative groups for visual grouping
+  const initGroups = new Map();
+  cs.forEach((c, i) => {
+    const key = c.initiative;
+    if (!initGroups.has(key)) initGroups.set(key, []);
+    initGroups.get(key).push(i);
+  });
+
   const rows = cs.map((c, i) => {
     const isActive = turnGroup.includes(i);
     const hp    = hpStatus(c.hp, c.maxHp);
     const hpPct = c.maxHp > 0 ? Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100)) : 0;
+    const _CC = new Set(['bardic-inspiration','tides-of-chaos','twilight-sanctuary','patient-defense','steady-aim','vigilant-blessing','blessed']);
+
+    // Concentration and initiative grouping
+    const hasConc = (c.conditions || []).includes('concentration');
+    const groupIndices = initGroups.get(c.initiative) || [i];
+    const isGroupFirst = groupIndices.length > 1 && groupIndices[0] === i;
+    const isGroupLast  = groupIndices.length > 1 && groupIndices[groupIndices.length - 1] === i;
+    const isGroupMid   = groupIndices.length > 1 && !isGroupFirst && !isGroupLast;
+    const groupClass   = isGroupFirst ? ' co-row--group-first' : isGroupLast ? ' co-row--group-last' : isGroupMid ? ' co-row--group-mid' : '';
+    const concClass    = hasConc ? ' co-row--concentrating' : '';
     const conds = (c.conditions || []).map(cid => {
       const cond = CONDITIONS.find(x => x.id === cid);
+      const isClass = _CC.has(cid);
       return cond
-        ? `<span class="co-cond-chip${isDM ? ' co-cond-dm' : ''}" title="${esc(cond.desc)}"
+        ? `<span class="co-cond-chip${isClass ? ' co-cond-chip--class' : ''}${isDM ? ' co-cond-dm' : ''}" title="${esc(cond.desc)}"
             ${isDM ? `onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cid}')"` : ''}
            >${esc(cond.label)}${isDM ? ' ✕' : ''}</span>`
         : '';
     }).join('');
 
     if (isDM) {
-      const condPicker = CONDITIONS.map(cond => {
-        const active = (c.conditions || []).includes(cond.id);
-        return `<button class="co-cond-pick${active ? ' active' : ''}"
-          onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cond.id}')"
-          title="${esc(cond.desc)}">${esc(cond.label)}</button>`;
-      }).join('');
+      const condPicker = [
+        ...CONDITIONS.filter(x => !_CC.has(x.id)).map(cond => {
+          const active = (c.conditions || []).includes(cond.id);
+          return `<button class="co-cond-pick${active ? ' active' : ''}"
+            onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cond.id}')"
+            title="${esc(cond.desc)}">${esc(cond.label)}</button>`;
+        }),
+        `<div class="co-cond-divider"></div>`,
+        ...CONDITIONS.filter(x => _CC.has(x.id)).map(cond => {
+          const active = (c.conditions || []).includes(cond.id);
+          return `<button class="co-cond-pick co-cond-class${active ? ' active' : ''}"
+            onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cond.id}')"
+            title="${esc(cond.desc)}">${esc(cond.label)}</button>`;
+        }),
+      ].join('');
 
       return `
-        <div class="co-row${isActive ? ' co-row-active' : ''}">
+        <div class="co-row${isActive ? ' co-row-active' : ''}${concClass}${groupClass}">
           <div class="co-row-head">
             <span class="co-turn-num">${i + 1}</span>
             <span class="co-type-dot ${c.type === 'player' ? 'co-type-player' : c.type === 'ally' ? 'co-type-ally' : c.type === 'summon' ? 'co-type-summon' : 'co-type-monster'}"></span>
-            <span class="co-name">${isActive ? '▶ ' : ''}${esc(c.name)}</span>
+            <span class="co-name">${isActive ? '▶ ' : ''}${esc(c.name)}</span>${hasConc ? '<span class="co-conc-badge" title="Concentratie actief">🔮</span>' : ''}
             <label class="co-init-wrap">Init
               <input class="co-init-input" type="number" value="${c.initiative}"
                 onchange="window.dmPanel.combatInitChange('${esc(c.id)}',this.value)"
@@ -3181,7 +3490,7 @@ function _renderCombatOverlay(combat, startMinimized = false) {
       if (isOwnChar) {
         // Eigen combatant: toon bewerkbare HP-controls
         return `
-          <div class="co-row${isActive ? ' co-row-active' : ''} co-row-own">
+          <div class="co-row${isActive ? ' co-row-active' : ''}${concClass}${groupClass} co-row-own">
             <div class="co-row-head">
               <span class="co-turn-num">${i + 1}</span>
               <span class="co-type-dot co-type-player"></span>
@@ -3205,7 +3514,7 @@ function _renderCombatOverlay(combat, startMinimized = false) {
 
       // Andere combatants: alleen balk + status + conditions
       return `
-        <div class="co-row${isActive ? ' co-row-active' : ''}">
+        <div class="co-row${isActive ? ' co-row-active' : ''}${concClass}${groupClass}">
           <div class="co-row-head">
             <span class="co-turn-num">${i + 1}</span>
             <span class="co-type-dot ${c.type === 'player' ? 'co-type-player' : c.type === 'ally' ? 'co-type-ally' : c.type === 'summon' ? 'co-type-summon' : 'co-type-monster'}"></span>
@@ -3223,6 +3532,19 @@ function _renderCombatOverlay(combat, startMinimized = false) {
     }
   }).join('');
 
+  // Sla gevecht op voor tab-switching na re-renders
+  _lastCombat = combat;
+
+  const _coLog = (combat.log?.length > 0) ? `
+    <details class="co-log">
+      <summary class="co-log-summary">📜 Gevechtslog (${combat.log.length})</summary>
+      <div class="co-log-entries" id="co-log-entries">
+        ${[...combat.log].slice(-30).map(e =>
+          `<div class="co-log-entry"><span class="co-log-round">R${e.round}</span> ${esc(e.text)}</div>`
+        ).join('')}
+      </div>
+    </details>` : '';
+
   inner.innerHTML = `
     <div class="co-header">
       <span class="co-title">⚔️ Gevecht</span>
@@ -3231,8 +3553,8 @@ function _renderCombatOverlay(combat, startMinimized = false) {
       <button class="co-minimize-btn" onclick="document.getElementById('combat-overlay').classList.contains('minimized')?window.dmPanel.combatExpand():window.dmPanel.combatMinimize()" title="Minimaliseren/maximaliseren">▼</button>
       ${isDM ? `<button class="co-end-btn" onclick="event.stopPropagation();window.dmPanel.combatEnd()" title="Gevecht beëindigen">✕</button>` : ''}
     </div>
-    <canvas id="combat-canvas" class="co-canvas"></canvas>
     ${isDM ? `
+      <canvas id="combat-canvas" class="co-canvas"></canvas>
       <div class="co-turn-controls">
         ${!combat.winner ? `
           <button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatPrevTurn()" title="Vorige beurt">◀</button>
@@ -3270,24 +3592,46 @@ function _renderCombatOverlay(combat, startMinimized = false) {
       </div>
       <div id="co-detail-panel" class="co-detail-panel hidden"></div>
       <div id="co-dm-emote-bar" class="co-emote-bar"></div>
+      ${_coLog}
     ` : `
-      <div id="co-detail-panel" class="co-detail-panel hidden"></div>
-      <div id="co-emote-bar" class="co-emote-bar"></div>
-    `}
-    ${(combat.log?.length > 0) ? `
-    <details class="co-log">
-      <summary class="co-log-summary">📜 Gevechtslog (${combat.log.length})</summary>
-      <div class="co-log-entries" id="co-log-entries">
-        ${[...combat.log].slice(-30).map(e =>
-          `<div class="co-log-entry"><span class="co-log-round">R${e.round}</span> ${esc(e.text)}</div>`
-        ).join('')}
+      <!-- Speler: tabbladen in de gevechtsoverlay -->
+      <div class="co-tabs" id="co-tabs">
+        <button class="co-tab${_combatOverlayTab==='gevecht'?' active':''}" data-tab="gevecht" onclick="window._setCombatOverlayTab('gevecht')">⚔️ Gevecht</button>
+        <button class="co-tab${_combatOverlayTab==='personage'?' active':''}" data-tab="personage" onclick="window._setCombatOverlayTab('personage')">📖 Stats</button>
+        <button class="co-tab${_combatOverlayTab==='spreuken'?' active':''}" data-tab="spreuken" onclick="window._setCombatOverlayTab('spreuken')">✨ Spreuken</button>
+        <button class="co-tab${_combatOverlayTab==='knapzak'?' active':''}" data-tab="knapzak" onclick="window._setCombatOverlayTab('knapzak')">🎒 Items</button>
       </div>
-    </details>` : ''}
+
+      <!-- Gevecht tab -->
+      <div class="co-tab-panel${_combatOverlayTab!=='gevecht'?' hidden':''}" id="co-tab-gevecht">
+        <canvas id="combat-canvas" class="co-canvas"></canvas>
+        <div id="co-detail-panel" class="co-detail-panel hidden"></div>
+        <div id="co-emote-bar" class="co-emote-bar"></div>
+        ${_coLog}
+      </div>
+
+      <!-- Stats tab -->
+      <div class="co-tab-panel co-char-tab${_combatOverlayTab!=='personage'?' hidden':''}" id="co-tab-personage">
+        <div class="co-char-loading">Laden…</div>
+      </div>
+
+      <!-- Spreuken tab -->
+      <div class="co-tab-panel co-char-tab${_combatOverlayTab!=='spreuken'?' hidden':''}" id="co-tab-spreuken">
+        <div class="co-char-loading">Laden…</div>
+      </div>
+
+      <!-- Items tab -->
+      <div class="co-tab-panel co-char-tab${_combatOverlayTab!=='knapzak'?' hidden':''}" id="co-tab-knapzak">
+        <div class="co-char-loading">Laden…</div>
+      </div>
+    `}
   `;
 
-  // Start canvas animation loop
-  const canvasEl = document.getElementById('combat-canvas');
-  if (canvasEl) canvasInit(canvasEl, combat);
+  // Start canvas animation loop (alleen als het canvas zichtbaar is)
+  if (_combatOverlayTab === 'gevecht' || isDM) {
+    const canvasEl = document.getElementById('combat-canvas');
+    if (canvasEl) canvasInit(canvasEl, combat);
+  }
 
   // Herstel detail-panel als een combatant geselecteerd was
   if (_selectedCombatantId) _combatSelectCombatant(_selectedCombatantId);
@@ -3295,10 +3639,456 @@ function _renderCombatOverlay(combat, startMinimized = false) {
   // Emote-balken asynchroon vullen
   if (isDM) {
     _populateDmEmoteBar(combat).catch(() => {});
-  } else {
+  } else if (_combatOverlayTab === 'gevecht') {
     _populateEmoteBar(combat).catch(() => {});
   }
+
+  // Laad karakter-tab als die actief is
+  if (!isDM && _combatOverlayTab !== 'gevecht') {
+    _loadCombatCharTab(_combatOverlayTab).catch(() => {});
+  }
 }
+
+// ── Combat overlay tab-switching ──────────────────────────────────────────────
+
+window._setCombatOverlayTab = async (tab) => {
+  _combatOverlayTab = tab;
+  // Knoppen bijwerken
+  document.querySelectorAll('#co-tabs .co-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  // Panelen tonen/verbergen
+  document.querySelectorAll('.co-tab-panel').forEach(panel => {
+    panel.classList.toggle('hidden', panel.id !== `co-tab-${tab}`);
+  });
+  // Canvas & emotes beheren
+  if (tab === 'gevecht') {
+    const canvasEl = document.getElementById('combat-canvas');
+    if (canvasEl && _lastCombat) {
+      canvasStop();
+      canvasInit(canvasEl, _lastCombat);
+    }
+    _populateEmoteBar(_lastCombat).catch(() => {});
+  } else {
+    canvasStop();
+    await _loadCombatCharTab(tab);
+  }
+};
+
+async function _loadCombatCharTab(tab) {
+  const charId = window.app?.state?.characterId;
+  const panel  = document.getElementById(`co-tab-${tab}`);
+  if (!panel) return;
+  if (!charId) {
+    panel.innerHTML = '<p class="co-char-err">Geen karakter geselecteerd.</p>';
+    return;
+  }
+  panel.innerHTML = '<div class="co-char-loading">Laden…</div>';
+  try {
+    if (tab === 'personage') {
+      const [profile, hpData, traits] = await Promise.all([
+        api.getPlayerProfile(charId).catch(() => ({})),
+        api.getPlayerHp(charId).catch(() => ({ current: null, max: null })),
+        api.getPlayerTraits(charId).catch(() => []),
+      ]);
+      panel.innerHTML = _buildCombatPersonagePanel(profile, hpData, _lastCombat, charId, traits);
+      _attachCombatTraitAccordionListeners(panel);
+    } else if (tab === 'spreuken') {
+      const [slots, spells] = await Promise.all([
+        api.getPlayerSpellSlots(charId).catch(() => ({})),
+        api.getPlayerSpells(charId).catch(() => []),
+      ]);
+      panel.innerHTML = _buildCombatSpreukenPanel(slots, spells, charId);
+      _attachCombatSpellAccordionListeners(panel);
+    } else if (tab === 'knapzak') {
+      const [simpleItems, currency, ownership, voorwerpen] = await Promise.all([
+        api.getPlayerItems(charId).catch(() => []),
+        api.getPlayerCurrency(charId).catch(() => ({ fl: 0, kn: 0, cl: 0 })),
+        api.getItemOwnership().catch(() => ({ owners: {} })),
+        api.listEntities('voorwerpen').catch(() => []),
+      ]);
+      panel.innerHTML = _buildCombatKnapzakPanel(simpleItems, currency, ownership, voorwerpen, charId);
+    }
+  } catch (e) {
+    panel.innerHTML = `<p class="co-char-err">Fout bij laden: ${esc(String(e?.message || e))}</p>`;
+  }
+}
+
+function _buildCombatPersonagePanel(profile, hpData, combat, charId, traits) {
+  const _ab      = (ab) => parseInt(profile[ab]) || 10;
+  const _mod     = (ab) => Math.floor((_ab(ab) - 10) / 2);
+  const _modStr  = (ab) => { const m = _mod(ab); return (m >= 0 ? '+' : '') + m; };
+  let _skillProfs = {};
+  try { _skillProfs = JSON.parse(profile.skillProfs || '{}'); } catch {}
+  let _skillAdj = {};
+  try { _skillAdj = JSON.parse(profile.skillAdj || '{}'); } catch {}
+  const _saveProfs    = new Set((profile.saveProfs || '').split(',').filter(Boolean));
+  const _profBonusNum = parseInt(profile.profBonus) || 0;
+  const _percProf     = _skillProfs['perception'] || null;
+  const _passivePerc  = 10 + _mod('wis') + (_percProf === 'expert' ? _profBonusNum * 2 : _percProf === 'prof' ? _profBonusNum : 0);
+
+  const hp    = typeof hpData.current === 'number' ? hpData.current : null;
+  const maxHp = typeof hpData.max     === 'number' ? hpData.max     : null;
+  const hpPct = hp !== null && maxHp ? Math.max(0, Math.min(100, hp / maxHp * 100)) : 0;
+  const hpCls = hpPct > 75 ? 'hp-healthy' : hpPct > 50 ? 'hp-lightly' : hpPct > 25 ? 'hp-wounded' : hpPct > 0 ? 'hp-critical' : 'hp-down';
+
+  const myCombatant = combat?.combatants?.find(c => c.entityId === charId);
+  const conditions  = myCombatant?.conditions || [];
+
+  const _skillBonus = (skill) => {
+    const prof = _skillProfs[skill.key] || null;
+    const adj  = _skillAdj[skill.key]  || 0;
+    return _mod(skill.ab) + (prof === 'expert' ? _profBonusNum * 2 : prof === 'prof' ? _profBonusNum : 0) + adj;
+  };
+
+  const absHtml = ['str','dex','con','int','wis','cha'].map(ab => {
+    const isProf       = _saveProfs.has(ab);
+    const saveBonus    = _mod(ab) + (isProf ? _profBonusNum : 0);
+    const saveBonusStr = (saveBonus >= 0 ? '+' : '') + saveBonus;
+    return `
+      <div class="co-ability-card">
+        <div class="co-ability-label">${_CO_AB_LABELS[ab]}</div>
+        <div class="co-ability-score">${_ab(ab)}</div>
+        <div class="co-ability-mod">${_modStr(ab)}</div>
+        <div class="co-ability-save${isProf ? ' prof' : ''}" title="Saving throw: ${saveBonusStr}">${saveBonusStr}</div>
+      </div>`;
+  }).join('');
+
+  const skillsHtml = _CO_SKILLS.map(skill => {
+    const prof     = _skillProfs[skill.key] || null;
+    const bonus    = _skillBonus(skill);
+    const bonusStr = (bonus >= 0 ? '+' : '') + bonus;
+    const adjVal   = _skillAdj[skill.key] || 0;
+    const adjCls   = adjVal > 0 ? ' skill-bonus--buff' : adjVal < 0 ? ' skill-bonus--nerf' : '';
+    return `<div class="co-skill-row">
+      <span class="co-skill-prof-dot${prof ? ' ' + prof : ''}"></span>
+      <span class="co-skill-bonus${adjCls}">${bonusStr}</span>
+      <span class="co-skill-name">${skill.label}</span>
+      <span class="co-skill-ab">${skill.ab.toUpperCase()}</span>
+    </div>`;
+  }).join('');
+
+  const condHtml = conditions.length ? `
+    <div class="co-char-section">
+      <div class="co-char-section-title">⚡ Actieve condities</div>
+      <div class="co-active-conds">${conditions.map(cid => {
+        const cond = CONDITIONS.find(x => x.id === cid);
+        return cond ? `<span class="co-cond-chip" title="${esc(cond.desc)}">${esc(cond.label)}</span>` : '';
+      }).join('')}</div>
+    </div>` : '';
+
+  // ── Weapons & Damage Cantrips ──
+  let weapons = [];
+  try { weapons = JSON.parse(profile.weapons || '[]'); } catch {}
+  const weaponsHtml = weapons.length ? `
+    <div class="co-weapons-table">
+      <div class="co-weapons-header">
+        <span class="co-wh-name">Naam</span>
+        <span class="co-wh-atk">Aanval / DC</span>
+        <span class="co-wh-dmg">Schade &amp; Type</span>
+        <span class="co-wh-notes">Notities</span>
+      </div>
+      ${weapons.map(w => `
+      <div class="co-weapon-row">
+        <span class="co-w-name">${esc(w.name || '—')}</span>
+        <span class="co-w-atk">${esc(w.atk  || '—')}</span>
+        <span class="co-w-dmg">${esc(w.dmg  || '—')}</span>
+        <span class="co-w-notes">${esc(w.notes || '')}</span>
+      </div>`).join('')}
+    </div>` : '<p class="co-char-empty">Geen wapens of cantrips geconfigureerd.</p>';
+
+  // ── Kenmerken & Eigenschappen ──
+  const pinnedTraits = Array.isArray(traits) ? traits : [];
+  const _traitLevel = t => {
+    const m = (t.meta || '').match(/Niv\.\s*(\d+)/i);
+    return m ? parseInt(m[1]) : (t.source === 'phb-feats' ? 99 : 0);
+  };
+  const sortedTraits = [...pinnedTraits].sort((a, b) =>
+    _traitLevel(a) - _traitLevel(b) || (a.name || '').localeCompare(b.name || ''));
+
+  const traitsHtml = sortedTraits.length ? sortedTraits.map(t => {
+    const maxUses = t.maxUses || 0;
+    const curUses = t.currentUses || 0;
+    const dotsHtml = maxUses > 0 ? `
+      <span class="trait-uses-dots">
+        ${Array.from({length: maxUses}, (_, i) =>
+          `<span class="spell-slot-dot ${i < curUses ? 'used' : 'free'}" title="${i < curUses ? 'Verbruikt' : 'Vrij'}"></span>`
+        ).join('')}
+        <span class="trait-uses-count">${curUses}/${maxUses}</span>
+      </span>` : '';
+    return `
+    <details class="player-trait-accordion co-trait-accordion">
+      <summary class="player-pinned-spell-summary">
+        <span class="player-pinned-spell-chevron">▾</span>
+        <span class="player-pinned-spell-name">${esc(t.name)}</span>
+        ${t.meta ? `<span class="player-pinned-spell-meta">${esc(t.meta)}</span>` : ''}
+        ${dotsHtml}
+      </summary>
+      <div class="player-spell-accordion-body"
+        data-trait-index="${esc(t.index || '')}"
+        data-trait-source="${esc(t.source || 'custom')}"
+        data-trait-desc="${esc(t.desc || '')}"
+        data-trait-id="${esc(t.id)}"
+        data-loaded="false">
+        <p class="player-spell-loading-text">Laden…</p>
+      </div>
+    </details>`;
+  }).join('') : '<p class="co-char-empty">Geen kenmerken vastgezet.</p>';
+
+  return `
+    <div class="co-char-strip">
+      <div class="co-cs-item"><span class="co-cs-label">AC</span><span class="co-cs-val">${esc(profile.ac ?? '—')}</span></div>
+      <div class="co-cs-item"><span class="co-cs-label">Speed</span><span class="co-cs-val">${esc(profile.speed ?? '—')}</span></div>
+      <div class="co-cs-item"><span class="co-cs-label">Init</span><span class="co-cs-val">${esc(profile.initiative ?? '—')}</span></div>
+      <div class="co-cs-item"><span class="co-cs-label">Prof</span><span class="co-cs-val">${_profBonusNum > 0 ? '+' + _profBonusNum : '—'}</span></div>
+      <div class="co-cs-item"><span class="co-cs-label">PP</span><span class="co-cs-val">${_passivePerc}</span></div>
+      <div class="co-cs-item"><span class="co-cs-label">HP</span><span class="co-cs-val ${hpCls}">${hp ?? '—'}/${maxHp ?? '—'}</span></div>
+    </div>
+    ${condHtml}
+    <div class="co-char-section">
+      <div class="co-char-section-title">🎲 Ability Scores & Saving Throws</div>
+      <div class="co-ability-grid">${absHtml}</div>
+    </div>
+    <div class="co-char-section">
+      <div class="co-char-section-title">🎯 Skills</div>
+      <div class="co-skills-list">${skillsHtml}</div>
+    </div>
+    <div class="co-char-section">
+      <div class="co-char-section-title">⚔️ Weapons &amp; Damage Cantrips</div>
+      ${weaponsHtml}
+    </div>
+    <div class="co-char-section">
+      <div class="co-char-section-title">✨ Kenmerken &amp; Eigenschappen</div>
+      <div class="co-traits-list">${traitsHtml}</div>
+    </div>
+  `;
+}
+
+function _buildCombatSpreukenPanel(slots, spells, charId) {
+  const lvls = [1,2,3,4,5,6,7,8,9];
+  const slotsHtml = lvls.map(lvl => {
+    const slot = slots[lvl];
+    if (!slot || slot.max === 0) return '';
+    const dots = Array.from({ length: slot.max }, (_, i) => {
+      const used = i < slot.used;
+      return `<button class="spell-slot-dot ${used ? 'used' : 'free'}"
+        onclick="window._coCombatToggleSlot(${lvl},${i},'${esc(charId)}')"
+        title="${used ? 'Verbruikt — klik om vrij' : 'Vrij — klik om te verbruiken'}"></button>`;
+    }).join('');
+    return `<div class="player-dash-slot-row">
+      <span class="player-dash-slot-level">Niv. ${lvl}</span>
+      <div class="player-dash-slot-dots">${dots}</div>
+      <span class="player-dash-slot-count">${slot.used}/${slot.max}</span>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  const hasSlots    = !!slotsHtml;
+  // De spells-lijst IS de gepinde lijst — geen extra .pinned filter nodig
+  const pinnedSpells = Array.isArray(spells) ? [...spells].sort((a, b) => (a.level ?? 0) - (b.level ?? 0) || (a.name || '').localeCompare(b.name || '')) : [];
+
+  const spellAccordionsHtml = pinnedSpells.map(s => `
+    <details class="player-spell-accordion co-spell-accordion">
+      <summary class="player-pinned-spell-summary">
+        <span class="player-pinned-spell-chevron">▾</span>
+        <span class="player-pinned-spell-level-badge">${s.level === 0 ? 'C' : s.level || '?'}</span>
+        <span class="player-pinned-spell-name">${esc(s.name)}</span>
+        ${s.school ? `<span class="player-pinned-spell-meta">${esc(s.school)}</span>` : ''}
+        ${s.concentration ? '<span class="spell-badge spell-badge--conc">C</span>' : ''}
+        ${s.ritual        ? '<span class="spell-badge spell-badge--ritual">R</span>' : ''}
+      </summary>
+      <div class="player-spell-accordion-body"
+        data-spell-index="${esc(s.index || '')}"
+        data-spell-source="${esc(s.source || '')}"
+        data-spell-desc="${esc(s.desc || '')}"
+        data-loaded="false">
+        <p class="player-spell-loading-text">Laden…</p>
+      </div>
+    </details>`).join('');
+
+  return `
+    ${hasSlots ? `
+    <div class="co-char-section">
+      <div class="co-char-section-title">🔮 Spreukslots</div>
+      <div class="player-dash-spell-slots">${slotsHtml}</div>
+    </div>` : '<p class="co-char-empty">Geen spreukslots geconfigureerd.</p>'}
+    ${pinnedSpells.length ? `
+    <div class="co-char-section">
+      <div class="co-char-section-title">📌 Gepinde spreuken</div>
+      <div class="co-spell-accordions">${spellAccordionsHtml}</div>
+    </div>` : ''}
+  `;
+}
+
+function _buildCombatKnapzakPanel(simpleItems, currency, ownership, voorwerpen, charId) {
+  const myItemMap = {};
+  for (const [itemId, ownerData] of Object.entries(ownership.owners || {})) {
+    if (Array.isArray(ownerData)) {
+      const entry = ownerData.find(o => o.characterId === charId);
+      if (entry && (entry.qty || 1) > 0) myItemMap[itemId] = entry.qty || 1;
+    } else if (ownerData?.characterId === charId) {
+      myItemMap[itemId] = null;
+    }
+  }
+  const myItems   = voorwerpen.filter(item => item.id in myItemMap);
+  const cNames    = window._currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' };
+
+  const currencyHtml = `
+    <div class="co-currency-row">
+      <span class="co-currency-item"><span class="co-currency-label">${esc(cNames.fl)}</span><span class="co-currency-val">${currency.fl ?? 0}</span></span>
+      <span class="co-currency-item"><span class="co-currency-label">${esc(cNames.kn)}</span><span class="co-currency-val">${currency.kn ?? 0}</span></span>
+      <span class="co-currency-item"><span class="co-currency-label">${esc(cNames.cl)}</span><span class="co-currency-val">${currency.cl ?? 0}</span></span>
+    </div>`;
+
+  const claimedHtml = myItems.length ? myItems.map(item => {
+    const qty = myItemMap[item.id];
+    return `<div class="co-item-row">
+      <span class="co-item-name">${esc(item.name)}</span>
+      ${qty !== null ? `<span class="co-item-qty">×${qty}</span>` : ''}
+    </div>`;
+  }).join('') : '';
+
+  const simpleHtml = simpleItems.length ? simpleItems.map(it => `
+    <div class="co-item-row">
+      <span class="co-item-name">${esc(it.name)}</span>
+      ${(it.qty || 1) > 1 ? `<span class="co-item-qty">×${it.qty}</span>` : ''}
+    </div>`).join('') : '';
+
+  return `
+    <div class="co-char-section">
+      <div class="co-char-section-title">💰 Munten</div>
+      ${currencyHtml}
+    </div>
+    ${myItems.length ? `
+    <div class="co-char-section">
+      <div class="co-char-section-title">🎒 Geclaimde voorwerpen</div>
+      <div class="co-items-list">${claimedHtml}</div>
+    </div>` : ''}
+    ${simpleItems.length ? `
+    <div class="co-char-section">
+      <div class="co-char-section-title">📦 Eenvoudige items</div>
+      <div class="co-items-list">${simpleHtml}</div>
+    </div>` : ''}
+    ${!myItems.length && !simpleItems.length ? '<p class="co-char-empty">Geen items in knapzak.</p>' : ''}
+  `;
+}
+
+// ── Spell-accordion lazy-loader voor combat overlay ──
+let _coSpellList = null; // cache HP-spells
+
+function _attachCombatSpellAccordionListeners(container) {
+  container.querySelectorAll('.co-spell-accordion').forEach(details => {
+    details.addEventListener('toggle', async function() {
+      if (!this.open) return;
+      const body = this.querySelector('.player-spell-accordion-body');
+      if (!body || body.dataset.loaded === 'true') return;
+      const index  = body.dataset.spellIndex;
+      const source = body.dataset.spellSource;
+      const stored = body.dataset.spellDesc;
+      if (source === 'custom' || index?.startsWith('custom_')) {
+        body.innerHTML = stored
+          ? `<div class="player-spell-desc">${esc(stored).replace(/\n/g,'<br>')}</div>`
+          : '<p class="player-spell-err" style="opacity:.5">Geen beschrijving.</p>';
+        body.dataset.loaded = 'true';
+        return;
+      }
+      try {
+        let s;
+        if (typeof _isHpCampaign === 'function' && _isHpCampaign()) {
+          if (!_coSpellList) {
+            const r = await fetch('/data/hp-spells.json');
+            const d = await r.json();
+            _coSpellList = d.results || [];
+          }
+          s = _coSpellList.find(sp => sp.index === index) || {};
+        } else {
+          const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
+          s = await r.json();
+        }
+        const _md = t => String(t)
+          .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>');
+        const desc = (s.desc || []).map(_md).join('<br><br>');
+        const higher = s.higher_level?.length
+          ? `<p class="player-spell-higher"><strong>Op hogere niveaus:</strong> ${s.higher_level.join(' ')}</p>` : '';
+        const metaParts = [
+          s.casting_time ? `Spreektijd: ${s.casting_time}` : '',
+          s.range        ? `Bereik: ${s.range}` : '',
+          s.components?.length ? `Comp.: ${s.components.join(', ')}` : '',
+          s.duration     ? `Duur: ${s.duration}` : '',
+          s.concentration ? 'Concentratie' : '',
+        ].filter(Boolean);
+        body.innerHTML = `
+          ${metaParts.length ? `<div class="player-spell-meta2">${metaParts.join(' · ')}</div>` : ''}
+          <div class="player-spell-desc">${desc}</div>
+          ${higher}`;
+        body.dataset.loaded = 'true';
+      } catch {
+        body.innerHTML = '<p class="player-spell-err">Beschrijving kon niet worden geladen.</p>';
+      }
+    });
+  });
+}
+
+// ── Kenmerk-accordion lazy-loader voor combat overlay ──
+function _attachCombatTraitAccordionListeners(container) {
+  container.querySelectorAll('.co-trait-accordion').forEach(details => {
+    details.addEventListener('toggle', async function() {
+      if (!this.open) return;
+      const body = this.querySelector('.player-spell-accordion-body');
+      if (!body || body.dataset.loaded === 'true') return;
+      const source = body.dataset.traitSource;
+      const index  = body.dataset.traitIndex;
+      const stored = body.dataset.traitDesc;
+      if (source === 'custom') {
+        body.innerHTML = stored
+          ? `<div class="player-spell-desc">${esc(stored).replace(/\n/g,'<br>')}</div>`
+          : '<p class="player-spell-err" style="opacity:.5">Geen beschrijving.</p>';
+        body.dataset.loaded = 'true';
+        return;
+      }
+      try {
+        if (!index) throw new Error('geen index');
+        const apiType = source === 'phb-traits' ? 'traits'
+                      : source === 'phb-feats'  ? 'feats'
+                      : 'features';
+        const r = await fetch(`https://www.dnd5eapi.co/api/${apiType}/${index}`);
+        const f = await r.json();
+        const _md = t => String(t)
+          .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>');
+        const desc = (f.desc || []).map(_md).join('<br><br>');
+        let metaParts = [];
+        if (apiType === 'features') {
+          metaParts = [
+            f.class?.name    ? `Klasse: ${f.class.name}` : '',
+            f.subclass?.name ? `Subklasse: ${f.subclass.name}` : '',
+            f.level          ? `Niveau ${f.level}` : '',
+          ].filter(Boolean);
+        }
+        body.innerHTML = `
+          ${metaParts.length ? `<div class="player-spell-meta2">${metaParts.join(' · ')}</div>` : ''}
+          <div class="player-spell-desc">${desc || '<em>Geen beschrijving beschikbaar.</em>'}</div>`;
+        body.dataset.loaded = 'true';
+      } catch {
+        body.innerHTML = '<p class="player-spell-err">Beschrijving kon niet worden geladen.</p>';
+      }
+    });
+  });
+}
+
+window._coCombatToggleSlot = async (lvl, idx, charId) => {
+  const current = await api.getPlayerSpellSlots(charId).catch(() => ({}));
+  const slot    = current[lvl] || { max: 0, used: 0 };
+  const newUsed = idx < slot.used ? slot.used - 1 : slot.used + 1;
+  current[lvl]  = { ...slot, used: Math.max(0, Math.min(newUsed, slot.max)) };
+  await api.setPlayerSpellSlots(charId, current).catch(() => {});
+  // Ververs spreuken-panel in overlay
+  await _loadCombatCharTab('spreuken');
+  // Ververs ook het karakter-tabblad als dat open is
+  window._reRenderKarakter?.();
+};
 
 async function _populateDmEmoteBar(combat) {
   const bar = document.getElementById('co-dm-emote-bar');
@@ -3413,8 +4203,8 @@ async function _renderBerichten() {
     for (const s of (berichtenRes.spelers || [])) {
       _berichtenData[s.characterId] = s.berichten || [];
     }
-    // Alle zichtbare speler-personages als keuzemogelijkheid
-    _berichtenSpelers = allPersonages.filter(p => p._visibility !== 'hidden' && p.subtype === 'speler');
+    // Alle speler-personages als keuzemogelijkheid (ongeacht campagnezichtbaarheid)
+    _berichtenSpelers = allPersonages.filter(p => p.subtype === 'speler');
   } catch (err) {
     el.innerHTML = `<div class="dm-feature-section"><div class="dm-section-label">Fout: ${esc(err.message)}</div></div>`;
     return;

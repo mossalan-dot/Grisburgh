@@ -53,6 +53,17 @@ export function initSocket() {
     }
   });
 
+  socket.on('party-board:updated', () => {
+    const section = window.app.state.activeSection;
+    if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
+      // Herlaad alleen de relatiemap, niet het hele logboek
+      import('./render-relatiemap.js?v=8').then(m => {
+        const el = document.getElementById('pb-relatiemap-container');
+        if (el) m.renderRelatiemap(el);
+      });
+    }
+  });
+
   socket.on('archief:updated', () => {
     const section = window.app.state.activeSection;
     if (section === 'documenten') {
@@ -79,6 +90,24 @@ export function initSocket() {
   socket.on('logboek:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
       import('./render-archief.js').then(m => m.renderLogboek());
+    }
+  });
+
+  socket.on('quests:updated', () => {
+    if (window.app.state.activeSection === 'logboek') {
+      import('./render-archief.js').then(m => m.renderLogboek());
+    }
+  });
+
+  socket.on('chapter-visibility:updated', () => {
+    if (window.app.state.activeSection === 'logboek') {
+      import('./render-archief.js').then(m => m.renderLogboek());
+    }
+  });
+
+  socket.on('archief:dramaticReveal', (doc) => {
+    if (!window.app.isDM()) {
+      _showDramaticReveal(doc);
     }
   });
 
@@ -174,7 +203,12 @@ export function initSocket() {
     // Herlaad party bar zodat juiste spelers getoond worden
     window.renderParty?.();
     // Herlaad huidige sectie zodat zichtbaarheidsstatus klopt na groepswisseling
-    _refreshEntitySection(window.app.state.activeSection);
+    const activeSection = window.app.state.activeSection;
+    _refreshEntitySection(activeSection);
+    // Logboek/quests ook verversen (quest-statussen zijn per party)
+    if (activeSection === 'logboek') {
+      window.renderLogboek?.();
+    }
   });
 
   // ── Tunnel ──
@@ -429,6 +463,23 @@ export function initSocket() {
     }
   });
 
+  socket.on('relations:updated', () => {
+    if (window.app.state.activeSection === 'relatiemap') {
+      import('./render-relatiemap.js').then(m => m.renderRelatiemap());
+    }
+  });
+
+  socket.on('relations:revealed', ({ id } = {}) => {
+    if (window.app.state.activeSection === 'relatiemap') {
+      import('./render-relatiemap.js').then(m => m.renderRelatiemap());
+    }
+    if (!window.app.isDM()) {
+      _showToast(`🕸️ <strong>Nieuwe verbinding onthuld!</strong>`, () => {
+        window.app.switchSection('relatiemap');
+      }, 6000);
+    }
+  });
+
   socket.on('connect', () => {
     console.log('Socket connected');
     // Herregistreer characterId na reconnect
@@ -436,6 +487,33 @@ export function initSocket() {
     if (cid) socket.emit('player:register', cid);
   });
   socket.on('disconnect', () => console.log('Socket disconnected'));
+}
+
+function _showDramaticReveal(doc) {
+  document.getElementById('dramatic-reveal-overlay')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'dramatic-reveal-overlay';
+  overlay.className = 'dramatic-reveal-overlay';
+  overlay.innerHTML = `
+    <div class="dramatic-reveal-backdrop" onclick="this.closest('.dramatic-reveal-overlay').remove()"></div>
+    <div class="dramatic-reveal-card">
+      <div class="dramatic-reveal-label">📜 Nieuw document onthuld</div>
+      <div class="dramatic-reveal-title">${(doc.name || '').replace(/</g,'&lt;')}</div>
+      ${doc.type ? `<div class="dramatic-reveal-type">${doc.type.replace(/</g,'&lt;')}</div>` : ''}
+      ${doc.imageId ? `<img class="dramatic-reveal-img" src="/api/files/${doc.imageId}" alt="${(doc.name||'').replace(/"/g,'&quot;')}">` : ''}
+      ${doc.flavour ? `<p class="dramatic-reveal-flavour">"${doc.flavour.replace(/</g,'&lt;')}"</p>` : ''}
+      <button class="dramatic-reveal-btn" onclick="document.getElementById('dramatic-reveal-overlay').remove()">Bekijken</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('dramatic-reveal-overlay--in')));
+  setTimeout(() => {
+    if (document.getElementById('dramatic-reveal-overlay') === overlay) {
+      overlay.classList.remove('dramatic-reveal-overlay--in');
+      setTimeout(() => overlay.remove(), 600);
+    }
+  }, 15000);
 }
 
 function _showToast(html, onClick, duration = 4500) {

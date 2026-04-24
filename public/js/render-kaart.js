@@ -16,6 +16,17 @@ let mapPins            = [];
 let allLocaties        = [];
 let _availableForPin   = [];   // locaties die speler kan aanwijzen (niet-DM)
 let _panAbort          = null;
+let _pendingFlyLocId   = null; // queued "fly to pin" after next render
+
+// ── Publieke fly-to helper (aanroepen vóór switchSection('kaart')) ──
+export function queueFlyTo(locId) {
+  _pendingFlyLocId = locId;
+}
+
+// Houdt window._pinnedLocIds bij — gebruikt door render-campagne.js om de kaartknop te tonen
+function _syncPinnedSet() {
+  window._pinnedLocIds = new Set(mapPins.filter(p => !p.pending).map(p => p.locId));
+}
 
 function _mapImgSrc(map) {
   return map.src || api.fileUrl(map.id);
@@ -34,6 +45,7 @@ export async function renderKaart() {
     api.mapPins(MAPS[currentMapIdx].id),
     api.listEntities('locaties'),
   ]);
+  _syncPinnedSet();
   if (!isDM()) {
     try { _availableForPin = await api.availableLocations(MAPS[currentMapIdx].id); }
     catch { _availableForPin = []; }
@@ -44,6 +56,13 @@ export async function renderKaart() {
   section.innerHTML = _buildShell();
   _renderMapContent();
   _attachNavEvents();
+
+  // Fly to queued location (if any)
+  if (_pendingFlyLocId) {
+    const locId = _pendingFlyLocId;
+    _pendingFlyLocId = null;
+    _flyToPin(locId);
+  }
 }
 
 // ── Shell ──
@@ -184,6 +203,7 @@ async function _switchMap(dir) {
   panX = 0; panY = 0;
   document.getElementById('map-title').textContent = MAPS[currentMapIdx].label;
   mapPins = await api.mapPins(MAPS[currentMapIdx].id);
+  _syncPinnedSet();
   if (!isDM()) {
     try { _availableForPin = await api.availableLocations(MAPS[currentMapIdx].id); }
     catch { _availableForPin = []; }
@@ -429,21 +449,23 @@ function _openPinPlacer(x, y, clientX, clientY) {
   });
   popup.querySelector('#pin-loc-search').focus();
 
-  popup.querySelector('#pin-cancel').addEventListener('click', () => popup.remove());
+  const _closePopup = () => { document.activeElement?.blur(); popup.remove(); };
+  popup.querySelector('#pin-cancel').addEventListener('click', _closePopup);
   popup.querySelector('#pin-confirm').addEventListener('click', async () => {
     const locId = popup.querySelector('#pin-loc-select').value;
     if (!locId) return;
     try {
       const pin = await api.createMapPin({ locId, x, y, mapId: MAPS[currentMapIdx].id });
       mapPins.push({ ...pin, locName: allLocaties.find(l => l.id === locId)?.name, visibility: 'hidden' });
-      popup.remove();
+      _syncPinnedSet();
+      _closePopup();
       _renderPins();
     } catch (e) { alert('Fout: ' + e.message); }
   });
 
   setTimeout(() => {
     const handler = (ev) => {
-      if (!popup.contains(ev.target)) { popup.remove(); document.removeEventListener('click', handler); }
+      if (!popup.contains(ev.target)) { _closePopup(); document.removeEventListener('click', handler); }
     };
     document.addEventListener('click', handler);
   }, 0);
@@ -457,6 +479,7 @@ window._deleteMapPin = async (pinId) => {
   if (!confirm(confirmMsg)) return;
   await api.deleteMapPin(pinId);
   mapPins = mapPins.filter(p => p.id !== pinId);
+  _syncPinnedSet();
   _renderPins();
 };
 
@@ -465,6 +488,7 @@ window._approveMapPin = async (pinId) => {
     await api.approveMapPin(pinId);
     const pin = mapPins.find(p => p.id === pinId);
     if (pin) { delete pin.pending; delete pin.placedBy; delete pin.placedByGroup; delete pin.placedByName; }
+    _syncPinnedSet();
     _renderPins();
   } catch (e) { alert('Fout: ' + e.message); }
 };
@@ -512,7 +536,8 @@ function _openPlayerPinPlacer(x, y, clientX, clientY) {
   });
   popup.querySelector('#pin-loc-search').focus();
 
-  popup.querySelector('#pin-cancel').addEventListener('click', () => popup.remove());
+  const _closePlayerPopup = () => { document.activeElement?.blur(); popup.remove(); };
+  popup.querySelector('#pin-cancel').addEventListener('click', _closePlayerPopup);
   popup.querySelector('#pin-confirm').addEventListener('click', async () => {
     const locId = popup.querySelector('#pin-loc-select').value;
     if (!locId) return;
@@ -520,15 +545,16 @@ function _openPlayerPinPlacer(x, y, clientX, clientY) {
       const pin = await api.createMapPin({ locId, x, y, mapId: MAPS[currentMapIdx].id });
       const loc = available.find(l => l.id === locId);
       mapPins.push({ ...pin, locName: loc?.name, visibility: 'visible' });
+      _syncPinnedSet();
       _availableForPin = _availableForPin.filter(l => l.id !== locId);
-      popup.remove();
+      _closePlayerPopup();
       _renderPins();
     } catch (e) { alert(e.message || 'Fout bij indienen'); }
   });
 
   setTimeout(() => {
     const handler = (ev) => {
-      if (!popup.contains(ev.target)) { popup.remove(); document.removeEventListener('click', handler); }
+      if (!popup.contains(ev.target)) { _closePlayerPopup(); document.removeEventListener('click', handler); }
     };
     document.addEventListener('click', handler);
   }, 0);
@@ -665,6 +691,57 @@ function _openMapRenamer() {
     if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
     if (ev.key === 'Escape') { input.value = old; input.blur(); }
   });
+}
+
+// ── Fly to pin ──
+function _flyToPin(locId) {
+  const pin = mapPins.find(p => p.locId === locId);
+  if (!pin) return;
+
+  const img = document.getElementById('map-img');
+  if (!img) return;
+
+  const doFly = () => {
+    // Use rAF so layout (zoom/resize from _initZoom) is fully settled
+    requestAnimationFrame(() => {
+      const scroll  = document.getElementById('map-scroll');
+      const wrapper = document.getElementById('map-wrapper');
+      if (!scroll || !wrapper) return;
+
+      // Pin pixel coordinates within the map image
+      const imgW   = img.clientWidth;
+      const imgH   = img.clientHeight;
+      const pinPxX = (pin.x / 100) * imgW;
+      const pinPxY = (pin.y / 100) * imgH;
+
+      // Natural (panX=0, panY=0) position of the wrapper's top-left corner
+      // relative to the scroll viewport, accounting for the current transform.
+      const wrapRect   = wrapper.getBoundingClientRect();
+      const scrollRect = scroll.getBoundingClientRect();
+      // Remove the current pan offset to get the natural position
+      const natLeft = wrapRect.left - scrollRect.left - panX;
+      const natTop  = wrapRect.top  - scrollRect.top  - panY;
+
+      // Set pan so the pin is centred in the scroll viewport
+      panX = scroll.clientWidth  / 2 - natLeft - pinPxX;
+      panY = scroll.clientHeight / 2 - natTop  - pinPxY;
+
+      _applyPan();
+
+      // Highlight the pin with a brief pulse
+      const pinEl = document.querySelector(`.map-pin[data-loc-id="${CSS.escape(locId)}"]`);
+      if (pinEl) {
+        pinEl.classList.add('pin-fly-highlight');
+        setTimeout(() => pinEl.classList.remove('pin-fly-highlight'), 2800);
+      }
+    });
+  };
+
+  if (img.complete && img.naturalWidth) {
+    doFly();
+  } else {
+    img.addEventListener('load', doFly, { once: true });
+  }
 }
 
 // ── DM: kaart verwijderen ──
