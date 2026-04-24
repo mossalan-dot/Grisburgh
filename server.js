@@ -40,7 +40,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
     if (ext === '.html') {
       res.setHeader('Cache-Control', 'no-store');
     } else if (ext === '.js' || ext === '.css') {
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 uur
+      res.setHeader('Cache-Control', 'no-store');
     } else {
       res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 uur voor afbeeldingen e.d.
     }
