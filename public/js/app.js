@@ -548,6 +548,10 @@ $('#lightbox').addEventListener('wheel', (e) => {
   $('#lb-img').style.transform = `scale(${lbZoom})`;
 });
 
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('#lightbox').classList.contains('hidden')) closeLightbox();
+});
+
 // ── HTML escape ──
 function esc(s) {
   if (!s) return '';
@@ -3446,12 +3450,14 @@ async function renderUrsula() {
             ? `<p class="herberg-cooldown-tekst">Er zijn nog geen personen bekend.</p>`
             : `<div class="herberg-zoek-wrap">
                 <p class="herberg-teller">Over wie wil je iets weten?</p>
-                <input type="text" class="herberg-zoek-input" placeholder="Zoek persoon…"
+                <input type="text" class="herberg-zoek-input" placeholder="Typ een naam…"
                   oninput="window._ursulaFilter(this.value)"
-                  id="ursula-zoek">
+                  id="ursula-zoek" autocomplete="off">
+                <p class="herberg-zoek-hint" id="ursula-hint">Begin met typen om te zoeken.</p>
                 <div class="herberg-lijst" id="ursula-lijst">
                   ${beschikbaar.map(e => `
                     <button class="herberg-item" data-naam="${esc(e.name.toLowerCase())}"
+                      style="display:none"
                       onclick="window._ursulaKies('${esc(e.id)}','${esc(e.type)}','${esc(e.name)}')">
                       <span class="herberg-item-naam">${esc(e.name)}</span>
                     </button>`).join('')}
@@ -3495,10 +3501,17 @@ window._ursulaKies = async (entityId, entityType, entityName) => {
 
 window._ursulaFilter = (q) => {
   const lijst = document.getElementById('ursula-lijst');
+  const hint  = document.getElementById('ursula-hint');
   if (!lijst) return;
   const s = q.trim().toLowerCase();
+  if (!s) {
+    lijst.querySelectorAll('.herberg-item').forEach(btn => { btn.style.display = 'none'; });
+    if (hint) hint.style.display = '';
+    return;
+  }
+  if (hint) hint.style.display = 'none';
   lijst.querySelectorAll('.herberg-item').forEach(btn => {
-    btn.style.display = !s || btn.dataset.naam.includes(s) ? '' : 'none';
+    btn.style.display = btn.dataset.naam.includes(s) ? '' : 'none';
   });
 };
 
@@ -3579,12 +3592,14 @@ async function renderGock() {
           ? `<p class="herberg-cooldown-tekst">Er zijn nog geen personen bekend.</p>`
           : `<div class="herberg-zoek-wrap">
               <p class="herberg-teller">Naar wie wil je onderzoek laten doen?</p>
-              <input type="text" class="herberg-zoek-input" placeholder="Zoek persoon…"
+              <input type="text" class="herberg-zoek-input" placeholder="Typ een naam…"
                 oninput="window._gockFilter(this.value)"
-                id="gock-zoek">
+                id="gock-zoek" autocomplete="off">
+              <p class="herberg-zoek-hint" id="gock-hint">Begin met typen om te zoeken.</p>
               <div class="herberg-lijst" id="gock-lijst">
                 ${beschikbaar.map(e => `
                   <button class="herberg-item" data-naam="${esc(e.name.toLowerCase())}"
+                    style="display:none"
                     onclick="window._gockKies('${esc(e.id)}','${esc(e.type)}','${esc(e.name)}')">
                     <span class="herberg-item-naam">${esc(e.name)}</span>
                   </button>`).join('')}
@@ -3596,10 +3611,17 @@ async function renderGock() {
 
 window._gockFilter = (q) => {
   const lijst = document.getElementById('gock-lijst');
+  const hint  = document.getElementById('gock-hint');
   if (!lijst) return;
   const s = q.trim().toLowerCase();
+  if (!s) {
+    lijst.querySelectorAll('.herberg-item').forEach(btn => { btn.style.display = 'none'; });
+    if (hint) hint.style.display = '';
+    return;
+  }
+  if (hint) hint.style.display = 'none';
   lijst.querySelectorAll('.herberg-item').forEach(btn => {
-    btn.style.display = !s || btn.dataset.naam.includes(s) ? '' : 'none';
+    btn.style.display = btn.dataset.naam.includes(s) ? '' : 'none';
   });
 };
 
