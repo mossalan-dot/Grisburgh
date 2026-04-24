@@ -1,10 +1,10 @@
-import { api } from './api.js';
+import { api } from './api.js?v=2';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=40';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=12';
 import { renderKaart, queueFlyTo } from './render-kaart.js';
 import { renderRelatiemap } from './render-relatiemap.js?v=8';
-import { initSocket } from './socket-client.js?v=7';
-import { initDmPanel } from './dm-panel.js?v=6';
+import { initSocket } from './socket-client.js?v=8';
+import { initDmPanel } from './dm-panel.js?v=7';
 
 // ── App State ──
 const state = {
