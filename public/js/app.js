@@ -1,4 +1,4 @@
-import { api } from './api.js?v=2';
+import { api } from './api.js';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=40';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=12';
 import { renderKaart, queueFlyTo } from './render-kaart.js';
@@ -3387,7 +3387,7 @@ async function renderUrsula() {
   let data;
   try { data = await api.getUrsula(); }
   catch (e) {
-    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`;
+    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)} (${esc(e.constructor?.name || 'Error')})</p></div></div>`;
     return;
   }
 
@@ -3473,7 +3473,7 @@ async function renderGock() {
   let data;
   try { data = await api.getGock(); }
   catch (e) {
-    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`;
+    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)} (${esc(e.constructor?.name || 'Error')})</p></div></div>`;
     return;
   }
 
@@ -3569,7 +3569,7 @@ async function renderTweespalt() {
   let data;
   try { data = await api.getTweespalt(); }
   catch (e) {
-    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`;
+    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)} (${esc(e.constructor?.name || 'Error')})</p></div></div>`;
     return;
   }
 
