@@ -774,7 +774,19 @@ const _MD_KLEUREN = {
 };
 function mdToHtml(s) {
   if (!s) return '';
-  return String(s)
+
+  // ── Stap 1: Extraheer [[wikilinks]] vóór HTML-escaping ──
+  // \x02 is een controle-teken dat nooit in gewone tekst voorkomt.
+  const _WL_SEP = '\x02';
+  const _wlNames = [];
+  let text = String(s).replace(/\[\[([^\]]+)\]\]/g, (_, name) => {
+    const idx = _wlNames.length;
+    _wlNames.push(name);
+    return `${_WL_SEP}${idx}${_WL_SEP}`;
+  });
+
+  // ── Stap 2: Normale markdown-verwerking ──
+  text = text
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
     // Koppen moeten voor inline-markup zodat bold/italic erin werkt
     .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
@@ -799,7 +811,146 @@ function mdToHtml(s) {
     .replace(/<br>(<h[1-4]>|<hr)/g, '$1')
     .replace(/(<\/h[1-4]>|<\/hr>)<br>/g, '$1')
     .replace(/(<hr class="md-hr">)<br>/g, '$1');
+
+  // ── Stap 3: Vervang wikilink-placeholders ──
+  if (_wlNames.length) {
+    const re = new RegExp(`${_WL_SEP}(\\d+)${_WL_SEP}`, 'g');
+    text = text.replace(re, (_, idx) => _resolveWikilink(_wlNames[parseInt(idx)]));
+  }
+
+  return text;
 }
+
+// ── Wikilink-resolver ───────────────────────────────────────────────
+function _resolveWikilink(name) {
+  const cache = window._entityCache || {};
+  const TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+
+  let foundEntity = null, foundType = null;
+  for (const t of TYPES) {
+    const e = (cache[t] || []).find(e => e.name === name);
+    if (e) { foundEntity = e; foundType = t; break; }
+  }
+
+  const safeName = name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+
+  if (!foundEntity) {
+    // Onbekende entiteitsnaam: toon als gewone tekst met subtiele markering
+    return `<span class="wikilink-unknown" title="Onbekende entiteit">[[${safeName}]]</span>`;
+  }
+
+  // Zichtbaarheidscheck voor spelers
+  const vis = foundEntity._visibility || 'visible';
+  if (!window.app?.isDM() && (vis === 'hidden' || vis === 'vague')) {
+    return `<span class="wikilink-hidden" title="Nog niet onthuld">${safeName}</span>`;
+  }
+
+  // Klikbare link (gebruik ID zodat aanhalingstekens in naam geen probleem zijn)
+  return `<a class="wikilink" onclick="event.stopPropagation();window._openDetail('${foundType}','${foundEntity.id}')" title="${safeName}">${safeName}</a>`;
+}
+
+// ── Wikilink autocomplete ───────────────────────────────────────────
+let _wlAcTriggerEl = null;
+
+function _wlAcInit() {
+  // Input: detecteer [[ en toon autocomplete
+  document.addEventListener('input', ev => {
+    const el = ev.target;
+    if (el.tagName !== 'TEXTAREA') return;
+    const before = el.value.substring(0, el.selectionStart);
+    const m = before.match(/\[\[([^\]]{0,60})$/);
+    if (!m) { _wlAcClose(); return; }
+    _wlAcShow(el, m[1]);
+  });
+
+  // Pijltoetsen, Enter, Escape afhandelen
+  document.addEventListener('keydown', ev => {
+    const ac = document.getElementById('wikilink-ac');
+    if (!ac) return;
+    if (!['ArrowUp','ArrowDown','Enter','Tab','Escape'].includes(ev.key)) return;
+    ev.preventDefault();
+    const items = [...ac.querySelectorAll('.wikilink-ac-item')];
+    const idx = items.findIndex(i => i.classList.contains('wikilink-ac-item--active'));
+    if (ev.key === 'Escape') { _wlAcClose(); return; }
+    if (ev.key === 'ArrowDown') {
+      const next = (idx + 1) % items.length;
+      items.forEach((i, n) => i.classList.toggle('wikilink-ac-item--active', n === next));
+      return;
+    }
+    if (ev.key === 'ArrowUp') {
+      const prev = (idx - 1 + items.length) % items.length;
+      items.forEach((i, n) => i.classList.toggle('wikilink-ac-item--active', n === prev));
+      return;
+    }
+    if (ev.key === 'Enter' || ev.key === 'Tab') {
+      items[idx]?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      return;
+    }
+  });
+
+  // Klik buiten → sluit
+  document.addEventListener('mousedown', ev => {
+    if (!ev.target.closest('#wikilink-ac')) _wlAcClose();
+  });
+}
+
+function _wlAcShow(textarea, query) {
+  const cache = window._entityCache || {};
+  const TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+  const lower = query.toLowerCase();
+  const matches = TYPES.flatMap(t => (cache[t] || []).map(e => ({ name: e.name, type: t })))
+    .filter(e => e.name.toLowerCase().includes(lower))
+    .slice(0, 9);
+
+  if (!matches.length) { _wlAcClose(); return; }
+
+  let ac = document.getElementById('wikilink-ac');
+  if (!ac) {
+    ac = document.createElement('div');
+    ac.id = 'wikilink-ac';
+    ac.className = 'wikilink-ac';
+    document.body.appendChild(ac);
+  }
+
+  const rect = textarea.getBoundingClientRect();
+  ac.style.left  = rect.left  + 'px';
+  ac.style.top   = (rect.bottom + window.scrollY + 4) + 'px';
+  ac.style.width = Math.max(rect.width, 280) + 'px';
+  ac.style.display = '';
+
+  const ICONS = { personages:'👤', locaties:'🏰', organisaties:'🏛️', voorwerpen:'⚔️' };
+  ac.innerHTML = matches.map((e, i) =>
+    `<div class="wikilink-ac-item${i === 0 ? ' wikilink-ac-item--active' : ''}"
+      onmousedown="event.preventDefault();window._wlAcSelect(${JSON.stringify(e.name)})">
+      <span class="wikilink-ac-icon">${ICONS[e.type] || '📜'}</span>
+      <span class="wikilink-ac-name">${esc(e.name)}</span>
+    </div>`
+  ).join('');
+
+  _wlAcTriggerEl = textarea;
+}
+
+function _wlAcClose() {
+  document.getElementById('wikilink-ac')?.remove();
+  _wlAcTriggerEl = null;
+}
+
+window._wlAcSelect = name => {
+  const el = _wlAcTriggerEl;
+  if (!el) return;
+  const val = el.value;
+  const pos = el.selectionStart;
+  const before = val.substring(0, pos);
+  const m = before.match(/\[\[([^\]]*)$/);
+  if (m) {
+    const start = pos - m[0].length;
+    el.value = val.substring(0, start) + `[[${name}]]` + val.substring(pos);
+    el.selectionStart = el.selectionEnd = start + name.length + 4;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  _wlAcClose();
+  el.focus();
+};
 
 // ── Inline format toolbar (B / I) ──
 // Wraps selected text in a textarea with a markdown marker.
@@ -3678,6 +3829,7 @@ async function init() {
   document.getElementById('header-subtitle-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') window.app.saveHeader(); if (e.key === 'Escape') window.app.cancelHeader(); });
 
   applyRole();
+  _wlAcInit();
   initCampagne();
   initArchief();
   initSocket();
