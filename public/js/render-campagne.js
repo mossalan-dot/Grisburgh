@@ -999,6 +999,7 @@ function _entityCarouselHtml(key, items) {
     const url = api.fileUrl(items[0].id);
     return `
       <div class="detail-hero mb-6" id="detail-img-wrap-${key}" onclick="window.app.openLightbox('${url}','')">
+        <div class="detail-hero-bg" style="background-image:url('${url}')"></div>
         <img src="${url}" class="detail-hero-img"
           onerror="this.closest('#detail-img-wrap-${key}').style.display='none'">
         <div class="detail-hero-overlay"></div>
@@ -1014,8 +1015,9 @@ function _entityCarouselHtml(key, items) {
           <div id="ec-track-${key}" class="flex" style="transition:transform 0.3s ease">
             ${items.map(({id}) => {
               const url = api.fileUrl(id);
-              return `<div class="flex-shrink-0 w-full">
-                <img src="${url}" class="detail-portrait w-full max-h-80 object-contain cursor-pointer" style="background:#1a0e04"
+              return `<div class="flex-shrink-0 w-full relative overflow-hidden">
+                <div class="detail-hero-bg" style="background-image:url('${url}')"></div>
+                <img src="${url}" class="detail-portrait w-full max-h-80 object-contain cursor-pointer" style="position:relative;z-index:1"
                   onclick="window.app.openLightbox('${url}','')">
               </div>`;
             }).join('')}
@@ -1133,6 +1135,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   } else {
     infoHtml += `
       <div class="detail-hero mb-6" id="detail-img-wrap-${e.id}" onclick="window.app.openLightbox('${fileUrl}','${escJS(e.name)}')">
+        <div class="detail-hero-bg" style="background-image:url('${fileUrl}')"></div>
         <img src="${fileUrl}" class="detail-hero-img"
           style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
           onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
@@ -1144,18 +1147,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     `;
   }
 
-  // Upload zone (DM only — quick upload for primary image)
-  if (isDM()) {
-    infoHtml += `
-      <div class="dm-only mb-4">
-        <div class="upload-zone" onclick="document.getElementById('file-upload-${e.id}').click()">
-          \ud83d\udcf7 Afbeelding uploaden (max 10MB)
-        </div>
-        <input type="file" id="file-upload-${e.id}" accept="image/*,.pdf,application/pdf" class="hidden"
-          onchange="window._uploadFile('${tab}','${e.id}',this.files[0])">
-      </div>
-    `;
-  }
+  // Upload en audio-beheer staan in de bewerkmodus (openEditor), niet in de detailview
 
   // Rol badge
   const rolVal = e.data?.rol;
@@ -1237,29 +1229,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           <div class="flavour-scroll-rod"></div>
         </div>`;
     }
-    if (isDM()) {
-      if (_audioId) {
-        infoHtml += `
-          <div class="dm-only flavour-audio-dm">
-            <label class="flavour-audio-dm-link" title="Audio vervangen">
-              🔊 Vervangen
-              <input type="file" accept="audio/*" class="hidden"
-                onchange="window._uploadAudio('${tab}','${esc(e.id)}','${esc(_audioId)}',this.files[0])">
-            </label>
-            <button class="flavour-audio-dm-link flavour-audio-dm-del"
-              onclick="window._deleteAudio('${tab}','${esc(e.id)}','${esc(_audioId)}')">✕ Verwijderen</button>
-          </div>`;
-      } else {
-        infoHtml += `
-          <div class="dm-only flavour-audio-dm">
-            <label class="flavour-audio-dm-link" title="Geluidsfragment toevoegen">
-              🔊 Geluid toevoegen
-              <input type="file" accept="audio/*" class="hidden"
-                onchange="window._uploadAudio('${tab}','${esc(e.id)}','',this.files[0])">
-            </label>
-          </div>`;
-      }
-    }
   }
 
   // Geheim field
@@ -1286,28 +1255,31 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                      : vis === 'vague'   ? 'Volledig tonen  ·  Shift: vaag houden'
                      : _ts              ? 'Zichtbaar maken  ·  Shift: vaag tonen'
                      :                    'Zichtbaar maken';
+    const _mVisLabel = vis === 'visible' ? 'Zichtbaar' : vis === 'vague' ? 'Vaag' : 'Verborgen';
     infoHtml += `
       <div class="dm-only mt-4 pt-4 border-t border-room-border">
         <div class="flex flex-wrap gap-2 mb-3">
-          <button class="px-3 py-1 text-sm rounded ${_mVisCls}"
+          <button class="dm-btn ${_mVisCls}"
             title="${_mVisTitle}"
             onclick="window._toggleVis('${tab}','${e.id}',event)">
-            ${_mVisIcon}
+            ${_mVisIcon} <span>${_mVisLabel}</span>
           </button>
           ${(isPersonage || tab === 'locaties') ? `
-            <button class="px-3 py-1 text-sm rounded ${e._secretReveal ? 'bg-seal text-white' : 'bg-room-elevated text-ink-dim'}"
+            <button class="dm-btn ${e._secretReveal ? 'bg-seal text-white' : 'bg-room-elevated text-ink-dim'}"
+              title="${e._secretReveal ? 'Geheim verbergen voor spelers' : 'Geheim onthullen aan spelers'}"
               onclick="window._toggleSecret('${tab}','${e.id}')">
-              ${e._secretReveal ? '\u2728' : '\ud83d\udd12'}
+              ${e._secretReveal ? '✨' : '🔒'} <span>Geheim</span>
             </button>
           ` : ''}
-          <button class="px-3 py-1 text-sm rounded ${e._deceased ? 'bg-red-800 text-white' : 'bg-room-elevated text-ink-dim'}"
-            onclick="window._toggleDeceased('${tab}','${e.id}')"
-            title="${e._deceased ? 'Herstel' : 'Markeer als deceased'}">
-            &#9760;
+          <button class="dm-btn ${e._deceased ? 'bg-red-800 text-white' : 'bg-room-elevated text-ink-dim'}"
+            title="${e._deceased ? 'Markering verwijderen' : 'Markeer als deceased'}"
+            onclick="window._toggleDeceased('${tab}','${e.id}')">
+            ☠ <span>${e._deceased ? 'Deceased' : 'Levend'}</span>
           </button>
-          <button class="px-3 py-1 text-sm rounded bg-gold-dim text-room-bg font-semibold"
+          <button class="dm-btn bg-gold-dim/80 text-room-bg"
+            title="Bewerk dit kaartje (afbeelding, tekst, geluid)"
             onclick="window._openEditor('${tab}','${e.id}')">
-            \u270f
+            ✏ <span>Bewerken</span>
           </button>
         </div>
         <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">DM Notities</div>
