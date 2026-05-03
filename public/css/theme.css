@@ -35,6 +35,9 @@ body::before {
   --color-gold-dim:      #9a7008;
 }
 
+/* Utility */
+.hidden { display: none !important; }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: #efe3c5; }
@@ -692,7 +695,7 @@ body::before {
 .card-img-wrap { position: relative; flex-shrink: 0; }
 .entity-card.no-img .card-img-wrap { display: none; }
 
-.card-img { min-height: 130px; max-height: 160px; display: block; width: 100%; object-fit: cover; transition: object-position 0s; }
+.card-img { min-height: 148px; max-height: 185px; display: block; width: 100%; object-fit: cover; transition: object-position 0s; }
 @keyframes card-img-pan {
   to { object-position: center bottom; }
 }
@@ -769,9 +772,34 @@ body::before {
 .card-name-sep {
   display: block;
   height: 1px;
-  margin: 3px 0 6px;
+  margin: 3px 0 4px;
   background: linear-gradient(to right, rgba(180,140,60,0.55), transparent);
   border: none;
+}
+/* Eén compacte metaregel: Rol · Ras · Klasse (of locType / orgType / rariteit) */
+.card-meta {
+  font-size: 10.5px;
+  font-family: 'IM Fell English', serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+/* Rol: vet, iets donkerder */
+.card-meta-rol {
+  font-weight: 700;
+  font-style: normal;
+  color: #5a4030;
+}
+/* Ras · Klasse (of locType, orgType, rariteit): cursief, lichter */
+.card-meta-sub {
+  font-style: italic;
+  color: #8a7050;
+}
+/* Scheidingsteken tussen rol en sub */
+.card-meta-dot {
+  color: #b09870;
+  font-style: normal;
 }
 
 /* Flavour preview on card */
@@ -1816,6 +1844,63 @@ body::before {
   75%  { transform: translateX(4px)  rotate(1.5deg); }
 }
 
+/* DM Dice FAB — zichtbaar in rechteronderhoek wanneer DM actief is */
+.dm-dice-fab {
+  position: fixed;
+  bottom: 1.5rem;
+  right: calc(1.5rem + 3.5rem + 10px);
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, #7a5c1e, #4e3a0c);
+  color: #f5edd8;
+  font-size: 1.05rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(60,40,10,0.28), 0 1px 3px rgba(60,40,10,0.16);
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+.dm-dice-fab:hover {
+  transform: scale(1.10);
+  background: linear-gradient(to bottom, #9a7428, #6a4e18);
+  box-shadow: 0 5px 16px rgba(60,40,10,0.32);
+}
+.dm-dice-fab:active { transform: scale(0.94); }
+.dm-dice-fab svg { display: block; }
+.dm-dice-fab.hidden { display: none; }
+
+/* DM Dice Panel */
+.dm-dice-panel {
+  position: fixed;
+  right: 0;
+  bottom: -600px;
+  width: 250px;
+  max-height: 85vh;
+  background: #f8f0de;
+  border: 1px solid #c4a87a;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  box-shadow: -4px -3px 22px rgba(60,40,10,0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 44;
+  transition: bottom 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dm-dice-panel.open { bottom: 0; }
+
+/* Aantal-rij in DM dice panel */
+.dm-dice-panel-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 13px 4px;
+}
+
 /* ── Kaart — navigatie ── */
 .map-nav-btn {
   width: 34px; height: 34px;
@@ -2364,7 +2449,7 @@ body::before {
     gap: 10px !important;
   }
   /* Kleinere kaartafbeelding op mobiel */
-  .card-img { min-height: 100px; max-height: 130px; }
+  .card-img { min-height: 115px; max-height: 148px; }
   .card-img-fade { height: 40px; }
   .card-subtype-badge { font-size: 8.5px; padding: 2px 7px; bottom: 7px; left: 7px; }
 
@@ -2560,6 +2645,111 @@ body::before {
 .dm-tab-content { display: none; }
 .dm-tab-content.active { display: block; }
 .dm-feature-section + .dm-feature-section { border-top: 1px solid rgba(196,168,122,0.45); }
+
+/* ── DM Instellingen knop (⚙️) — altijd onderaan de tab-kolom ── */
+.dm-tab-btn--settings {
+  margin-top: auto;
+  border-top: 1px solid rgba(196,168,122,0.3);
+}
+
+/* ── DM Sub-tab navigatie (binnen gecombineerde tabs) ── */
+.dm-subtab-nav {
+  display: flex;
+  gap: 2px;
+  padding: 0 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(196,168,122,0.3);
+  flex-shrink: 0;
+}
+.dm-subtab-btn {
+  padding: 7px 11px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-ink-dim, #8a7050);
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.dm-subtab-btn.active { color: #9a7008; border-bottom-color: #9a7008; }
+.dm-subtab-btn:hover:not(.active) { color: var(--color-ink-medium, #5a4030); }
+
+/* ── DM Instellingen modal ── */
+.dm-instellingen-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20,15,8,0.6);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+.dm-instellingen-overlay.hidden { display: none; }
+.dm-instellingen-modal {
+  background: #f8f0de;
+  border: 1px solid #c4a87a;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 560px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 40px rgba(40,20,5,0.4);
+  overflow: hidden;
+}
+.dm-instellingen-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 12px;
+  background: linear-gradient(to bottom, #ede0b8, #f8f0de);
+  border-bottom: 1px solid #c4a87a;
+  flex-shrink: 0;
+}
+.dm-instellingen-title {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #5a4010;
+}
+.dm-instellingen-close {
+  width: 28px; height: 28px;
+  font-size: 22px; color: #8a7050;
+  background: none; border: none; cursor: pointer;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+.dm-instellingen-close:hover { color: #2a1a08; background: rgba(60,40,10,0.07); }
+.dm-instellingen-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0 0 16px;
+}
+.dm-inst-group-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.dm-inst-group-row .dm-input {
+  flex: 1;
+}
+.dm-btn-danger {
+  color: #a03020;
+  border-color: rgba(160,48,32,0.35);
+}
+.dm-btn-danger:hover {
+  background: rgba(160,48,32,0.1);
+  color: #c04030;
+}
 
 /* ── DM Panel feature components ── */
 .dm-feature-section {
@@ -4162,7 +4352,7 @@ body::before {
 }
 .player-dash-hero {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 20px;
   margin-bottom: 24px;
   padding-bottom: 20px;
@@ -4300,19 +4490,33 @@ body::before {
   cursor: pointer;
 }
 
-/* Klasse-icoon rechts van profiel-velden */
-.player-class-icon-wrap {
+/* Klasse-icoon rechts van profiel-velden — zelfde structuur als avatar-outer */
+.player-class-icon-outer {
+  position: relative;
+  width: 140px;
+  height: 140px;
   flex-shrink: 0;
   display: flex;
-  align-items: flex-start;
-  padding-top: 2px;
+  align-items: center;
+  justify-content: center;
+}
+.player-class-icon-wrap {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #c4a87a;
+  background: radial-gradient(ellipse at center, #f0e4c4 30%, #d4b878 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .player-class-icon {
-  width: 88px;
-  height: 88px;
+  width: 80px;
+  height: 80px;
   object-fit: contain;
-  opacity: 0.88;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.25));
+  opacity: 0.92;
+  filter: drop-shadow(0 1px 4px rgba(60,30,0,0.22));
 }
 
 /* Spreuk-statistieken (Spell Save DC + Attack Bonus) */
@@ -5131,6 +5335,296 @@ details.player-dash-collapsible[open] > summary {
   letter-spacing: 0.05em;
   vertical-align: middle;
   margin-left: 4px;
+}
+
+/* ── Landing page — paginavullend portretkiezer ── */
+
+.landing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  background: #0c0805;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 32px 20px;
+}
+.landing-overlay::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(196,148,10,0.10) 0%, transparent 65%),
+    radial-gradient(ellipse at 20% 80%, rgba(80,40,10,0.15) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+.landing-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 52px;
+  width: 100%;
+  max-width: 960px;
+}
+.landing-header {
+  text-align: center;
+}
+.landing-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2rem, 7vw, 4.2rem);
+  font-weight: 700;
+  color: #c4a840;
+  letter-spacing: 0.1em;
+  margin: 0 0 10px;
+  text-shadow: 0 2px 28px rgba(196,168,64,0.28), 0 1px 2px rgba(0,0,0,0.8);
+  line-height: 1.1;
+}
+.landing-subtitle {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: clamp(0.95rem, 2.5vw, 1.25rem);
+  color: rgba(220,195,145,0.6);
+  margin: 0;
+  min-height: 1.4em;
+}
+.landing-portraits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 36px 48px;
+  justify-content: center;
+  align-items: flex-start;
+}
+.landing-loading {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  color: rgba(196,168,122,0.4);
+  font-size: 1rem;
+  margin: 0;
+}
+.landing-portrait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.22s cubic-bezier(0.2,0,0,1);
+  width: 148px;
+}
+.landing-portrait:hover { transform: translateY(-8px); }
+.landing-portrait:active { transform: translateY(-2px); }
+
+.landing-portrait-ring {
+  position: relative;
+  width: 148px;
+  height: 148px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2.5px solid rgba(196,168,122,0.35);
+  box-shadow:
+    0 0 0 1px rgba(196,168,122,0.12),
+    0 6px 28px rgba(0,0,0,0.55),
+    inset 0 0 0 1px rgba(0,0,0,0.4);
+  background: #1a0f05;
+  flex-shrink: 0;
+  transition: border-color 0.22s, box-shadow 0.22s;
+}
+.landing-portrait:hover .landing-portrait-ring {
+  border-color: rgba(196,168,122,0.85);
+  box-shadow:
+    0 0 0 3px rgba(196,148,10,0.22),
+    0 8px 36px rgba(196,148,10,0.28),
+    0 0 70px rgba(196,148,10,0.10);
+}
+.landing-portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.landing-portrait-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.2rem;
+  color: rgba(196,168,122,0.35);
+}
+/* Video-overlay: absolut boven de stilstaande afbeelding, verborgen tot canplay */
+.landing-portrait-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+  border-radius: 50%;
+}
+.landing-portrait-name {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #ffe9c0;
+  line-height: 1.25;
+}
+.landing-portrait-sub {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 11.5px;
+  color: rgba(220,192,148,0.82);
+  margin-top: -10px;
+  line-height: 1.4;
+}
+/* Portret wegvallen bij klik op een ander */
+.landing-portrait {
+  transition: transform 0.22s cubic-bezier(0.2,0,0,1), opacity 0.32s ease;
+}
+.landing-portrait--dismissed {
+  opacity: 0;
+  transform: translateY(28px) scale(0.82);
+  pointer-events: none;
+}
+
+/* Overlay-inhoud verduisteren zodra de zoom-animatie begint */
+.landing-overlay--dimming .landing-inner {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+/* Overlay zelf uitfaden tegelijk met de zoom-out */
+.landing-overlay--out {
+  opacity: 0 !important;
+  transition: opacity 0.38s ease !important;
+  pointer-events: none !important;
+}
+
+/* ── Landing zoom-cirkel (groeit vanuit portret naar midden) ── */
+.landing-zoom {
+  position: fixed;
+  z-index: 200;
+  pointer-events: none;
+  /* Geen overflow:hidden hier — ring moet buiten de clip vallen */
+}
+.landing-zoom--growing {
+  transition:
+    left   0.62s cubic-bezier(0.4, 0, 0.2, 1),
+    top    0.62s cubic-bezier(0.4, 0, 0.2, 1),
+    width  0.62s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.62s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.landing-zoom--out {
+  opacity: 0;
+  transition: opacity 0.38s ease !important;
+}
+
+/* Binnenste cirkel met portret + spotlight-schaduw */
+.landing-zoom-portrait {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #1a0f05;
+  box-shadow: 0 0 0 0 rgba(0,0,0,0);
+  transition: box-shadow 0.62s ease;
+}
+.landing-zoom--growing .landing-zoom-portrait {
+  box-shadow: 0 0 0 100vmax rgba(0,0,0,0.88);
+}
+.landing-zoom-img,
+.landing-zoom-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Roterende naamring */
+.landing-zoom-ring {
+  position: absolute;
+  inset: -14%;
+  width: 128%;
+  height: 128%;
+  pointer-events: none;
+  transform-origin: center;
+  animation: zoom-ring-spin 32s linear infinite;
+  opacity: 0;
+  transition: opacity 0.55s ease 0.38s;
+}
+.landing-zoom--growing .landing-zoom-ring { opacity: 1; }
+@keyframes zoom-ring-spin { to { transform: rotate(360deg); } }
+.landing-zoom-ring-text {
+  fill: rgba(210,180,120,0.78);
+  font-family: 'Cinzel', serif;
+  font-size: 4px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.landing-footer { margin-top: -8px; }
+.landing-dm-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: rgba(196,168,122,0.38);
+  background: none;
+  border: 1px solid rgba(196,168,122,0.18);
+  border-radius: 6px;
+  padding: 9px 22px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.landing-dm-btn:hover {
+  color: rgba(196,168,122,0.8);
+  border-color: rgba(196,168,122,0.45);
+  background: rgba(196,168,122,0.07);
+}
+
+/* ── Landing: mobiel (≤ 600 px) ── */
+@media (max-width: 600px) {
+  .landing-overlay {
+    align-items: flex-start;
+    padding: 28px 14px 36px;
+  }
+  .landing-inner {
+    gap: 32px;
+    margin: auto; /* centreert verticaal als er ruimte is */
+  }
+  .landing-portraits {
+    gap: 22px 18px;
+  }
+  .landing-portrait {
+    width: 112px;
+    gap: 10px;
+    /* grotere taptarget zonder zichtbaar te worden */
+    touch-action: manipulation;
+  }
+  .landing-portrait-ring {
+    width: 112px;
+    height: 112px;
+  }
+  .landing-portrait-name {
+    font-size: 11.5px;
+  }
+  .landing-portrait-sub {
+    font-size: 10.5px;
+  }
+  .landing-dm-btn {
+    min-height: 44px;
+    padding: 12px 28px;
+    touch-action: manipulation;
+  }
+  /* Tik-hover verwijderen op aanraakschermen */
+  .landing-portrait:hover { transform: none; }
+  .landing-portrait:active { transform: translateY(-3px); }
 }
 
 /* ── Speler karakter-kiezer ── */
@@ -7162,12 +7656,12 @@ details.player-dash-collapsible[open] > summary {
   background: rgba(0,0,0,0.45);
   border: 1px solid rgba(196,168,122,0.35);
   border-radius: 4px;
-  color: rgba(196,168,122,0.8);
+  color: rgba(196,168,122,0.75);
   font-size: 12px;
   padding: 2px 6px;
   cursor: pointer;
   line-height: 1.4;
-  opacity: 0;
+  opacity: 0.7;
   transition: opacity 0.15s, background 0.15s;
 }
 .logboek-chapter-banner:hover .logboek-chapter-visibility-btn { opacity: 1; }
@@ -7177,6 +7671,114 @@ details.player-dash-collapsible[open] > summary {
 /* Akte verborgen voor actieve groep: DM ziet het gedempt */
 .logboek-chapter--hidden-for-group { opacity: 0.45; }
 .logboek-chapter--hidden-for-group .logboek-chapter-banner { filter: grayscale(0.6); }
+
+/* ── Actieve akte chip in de header (DM-only) ── */
+.active-akte-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px 4px 10px;
+  background: rgba(80,45,10,0.85);
+  border: 1px solid rgba(196,168,122,0.55);
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  color: rgba(240,215,160,0.98);
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 220px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+#active-akte-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+.active-akte-dot {
+  font-size: 0.6rem;
+  color: rgba(240,180,60,0.9);
+  flex-shrink: 0;
+}
+.active-akte-stop {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(196,168,122,0.7);
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 50%;
+  transition: color 0.15s, background 0.15s;
+}
+.active-akte-stop:hover { color: #fff; background: rgba(200,60,60,0.7); }
+
+/* ── Speel-knop op akteheader in logboek (DM-only) ── */
+.logboek-chapter-speel-btn {
+  background: rgba(196,168,122,0.18);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 4px;
+  color: rgba(220,195,140,0.9);
+  font-size: 11px;
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  padding: 2px 8px;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.logboek-chapter-speel-btn:hover {
+  background: rgba(196,168,122,0.35);
+  color: #fff;
+}
+
+/* Info-balk boven het logboek (DM: welke groep wordt geconfigureerd) */
+.logboek-visibility-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 12px 0;
+  padding: 6px 12px;
+  background: rgba(196,168,122,0.08);
+  border: 1px solid rgba(196,168,122,0.25);
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: rgba(196,168,122,0.75);
+}
+.logboek-visibility-bar strong { color: rgba(220,195,140,0.95); }
+.logboek-visibility-bar-legend { font-style: italic; opacity: 0.8; white-space: nowrap; }
+
+/* Banner in verborgen aktes (DM-only) */
+.logboek-chapter-hidden-notice {
+  margin: 0 0 10px 0;
+  padding: 7px 12px;
+  background: rgba(180,50,50,0.12);
+  border: 1px solid rgba(200,80,80,0.35);
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: rgba(240,160,160,0.85);
+  font-style: italic;
+}
+.logboek-chapter-hidden-notice strong { color: rgba(255,180,180,0.95); font-style: normal; }
+
+/* Banner in detail-modal als akte verborgen is */
+.logboek-modal-hidden-notice {
+  margin-bottom: 12px;
+  padding: 7px 12px;
+  background: rgba(180,50,50,0.12);
+  border: 1px solid rgba(200,80,80,0.35);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: rgba(240,160,160,0.85);
+  font-style: italic;
+}
+.logboek-modal-hidden-notice strong { color: rgba(255,180,180,0.95); font-style: normal; }
 
 .logboek-chapter-content { padding-top: 4px; }
 
@@ -7779,21 +8381,21 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(10,5,1,0.65);
+  background: rgba(10,5,1,0.38);
   z-index: 0;
 }
-.ursula-scene.herberg-scene[style]::before    { background: rgba(40,5,65,0.68); }
-.gock-scene.herberg-scene[style]::before      { background: rgba(5,25,50,0.70); }
-.tweespalt-scene.herberg-scene[style]::before { background: rgba(8,8,22,0.68); }
+.ursula-scene.herberg-scene[style]::before    { background: rgba(40,5,65,0.38); }
+.gock-scene.herberg-scene[style]::before      { background: rgba(5,25,50,0.40); }
+.tweespalt-scene.herberg-scene[style]::before { background: rgba(8,8,22,0.38); }
 /* Content boven de overlay: positie + leesbaarheidspaneel */
 .herberg-scene[style] .herberg-content {
   position: relative;
   z-index: 1;
-  background: rgba(0,0,0,0.30);
+  background: rgba(0,0,0,0.52);
   border-radius: 12px;
   padding: 24px 20px;
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 
 .herberg-content {
@@ -8136,6 +8738,34 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .bericht-compose { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: rgba(196,168,122,0.06); border: 1px solid rgba(196,168,122,0.25); border-radius: 8px; }
 .dm-textarea { width: 100%; padding: 6px 10px; background: var(--color-room-bg); border: 1px solid var(--color-room-border); border-radius: 6px; color: var(--color-ink-bright); font-size: 0.85rem; font-family: inherit; resize: vertical; min-height: 64px; }
 .dm-textarea:focus { outline: none; border-color: rgba(196,168,122,0.7); }
+/* ── NPC zoek-combobox in brief-formulier ── */
+.post-npc-wrap { position: relative; }
+.post-npc-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0; right: 0;
+  background: #1e1710;
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 200;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.55);
+}
+.post-npc-dropdown.open { display: block; }
+.post-npc-item {
+  padding: 6px 10px;
+  font-family: 'IM Fell English', serif;
+  font-size: 12.5px;
+  color: rgba(220,200,160,0.85);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.post-npc-item:hover { background: rgba(196,168,122,0.14); color: #d4b870; }
+.post-npc-item--none { color: rgba(196,168,122,0.40); font-style: italic; }
+.post-npc-item--none:hover { background: rgba(196,168,122,0.08); color: rgba(196,168,122,0.55); }
+
 .bericht-status { font-size: 0.8rem; padding: 4px 0; }
 .bericht-status--ok  { color: #3a9c3a; }
 .bericht-status--err { color: #c0392b; }
@@ -9461,11 +10091,11 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   flex-wrap: wrap;
   font-size: 0.9rem;
 }
-.ts-uitslag--gewonnen { background: rgba(34,100,54,0.12); border: 1px solid rgba(34,100,54,0.3); }
-.ts-uitslag--verloren { background: rgba(80,60,40,0.12); border: 1px solid rgba(196,168,122,0.2); }
+.ts-uitslag--gewonnen { background: rgba(34,100,54,0.14); border: 1px solid rgba(34,140,70,0.45); }
+.ts-uitslag--verloren { background: rgba(130,25,25,0.10); border: 1px solid rgba(180,55,55,0.40); }
 .ts-uitslag-label { opacity: .6; font-size: 0.78rem; }
 .ts-uitslag-winst { color: #2a7a3a; font-weight: 600; font-size: 0.85rem; }
-.ts-uitslag-verlies { opacity: .5; font-size: 0.82rem; font-style: italic; }
+.ts-uitslag-verlies { color: #8b2020; font-size: 0.82rem; font-style: italic; }
 
 .ts-npc-lijst {
   margin-top: 10px;
@@ -9479,6 +10109,9 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .ts-npc-naam { font-style: italic; }
 .ts-npc-optie { opacity: .8; }
 
+.ts-taevin-hoofd { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+.ts-taevin-portret { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; object-position: 50% 20%; border: 2px solid rgba(180,60,60,0.55); flex-shrink: 0; }
+.ts-taevin-bericht { flex: 1; }
 .ts-taevin-bubble {
   background: rgba(58,20,10,0.45);
   border: 1px solid rgba(139,42,42,0.45);
@@ -9652,6 +10285,42 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .quest-modal-label { font-size: 0.75rem; color: var(--color-ink-dim); }
 .quest-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
 
+/* Speler: klikbare missiekaart */
+.quest-card--clickable { cursor: pointer; }
+/* Speler: read-only missiedetail modal */
+.quest-view-modal { max-width: 420px; }
+.quest-view-status {
+  display: inline-block;
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  padding: 2px 10px;
+  border-radius: 12px;
+  align-self: flex-start;
+  text-transform: uppercase;
+}
+.quest-view-status--actief   { background: rgba(196,168,40,0.15);  color: #9a8010; border: 1px solid rgba(196,168,40,0.35);  }
+.quest-view-status--voltooid { background: rgba(60,160,80,0.12);   color: #2a8040; border: 1px solid rgba(60,160,80,0.3);   }
+.quest-view-status--mislukt  { background: rgba(180,60,60,0.12);   color: #903030; border: 1px solid rgba(180,60,60,0.3);   }
+.quest-view-chapter {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--color-ink-dim);
+}
+.quest-view-desc {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.97rem;
+  color: var(--color-ink-medium);
+  line-height: 1.65;
+  padding: 10px 14px;
+  background: rgba(196,168,122,0.08);
+  border-left: 3px solid rgba(196,168,122,0.4);
+  border-radius: 3px;
+  white-space: pre-wrap;
+}
+
 /* ── Dramatische Onthulling ── */
 .dramatic-reveal-overlay { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity 0.5s ease; pointer-events: none; }
 .dramatic-reveal-overlay--in { opacity: 1; pointer-events: all; }
@@ -9665,6 +10334,8 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .dramatic-reveal-flavour { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.95rem; color: var(--color-ink-medium); line-height: 1.6; }
 .dramatic-reveal-btn { margin-top: 8px; padding: 8px 24px; background: rgba(196,168,122,0.2); border: 1px solid rgba(196,168,122,0.5); border-radius: 6px; cursor: pointer; font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--color-gold-bright); transition: background 0.15s; }
 .dramatic-reveal-btn:hover { background: rgba(196,168,122,0.35); }
+.dramatic-reveal-close { position: absolute; top: 10px; right: 12px; background: none; border: none; color: var(--color-ink-dim); font-size: 1.1rem; cursor: pointer; line-height: 1; padding: 2px 4px; opacity: 0.7; transition: opacity 0.15s; }
+.dramatic-reveal-close:hover { opacity: 1; }
 
 /* ── Concentratie indicator ── */
 .co-row--concentrating { border-left: 3px solid rgba(160,80,220,0.7) !important; background: rgba(160,80,220,0.05) !important; }
@@ -9778,8 +10449,29 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 }
 .pb-panel.hidden { display: none; }
 .pb-panel-inner { display: flex; flex-direction: column; gap: 10px; padding: 14px 12px; }
-.pb-panel-img-wrap { width: 100%; aspect-ratio: 3/2; border-radius: 4px; overflow: hidden; background: #0e0b07; }
+.pb-panel-img-wrap { width: 100%; aspect-ratio: 3/2; border-radius: 4px; overflow: hidden; background: #0e0b07; position: relative; }
 .pb-panel-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Silhouet voor deels-onthulde entiteiten */
+.pb-panel-img--vague {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 3rem; color: rgba(100,75,40,0.30);
+  background: #1e1608; font-family: 'Cinzel', serif;
+}
+/* Rood kruis voor overledenen in het paneel (via gradient) */
+.pb-panel-deceased-cross {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(to bottom right,
+      transparent calc(50% - 2px),
+      rgba(200,25,25,0.82) calc(50% - 2px),
+      rgba(200,25,25,0.82) calc(50% + 2px),
+      transparent calc(50% + 2px)),
+    linear-gradient(to bottom left,
+      transparent calc(50% - 2px),
+      rgba(200,25,25,0.82) calc(50% - 2px),
+      rgba(200,25,25,0.82) calc(50% + 2px),
+      transparent calc(50% + 2px));
+}
 .pb-panel-blank-icon { font-size: 2.5rem; text-align: center; padding: 12px 0 4px; }
 .pb-panel-name {
   font-family: 'Cinzel', serif; font-size: 0.82rem; color: #e8d9b8; text-align: center;
@@ -9866,13 +10558,21 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .tweespalt-scene .ts-event-naam           { color: rgba(230,205,130,0.97); text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
 .tweespalt-scene .ts-event-timer          { color: rgba(200,185,155,0.70); }
 .tweespalt-scene .ts-optie                { background: rgba(0,0,0,0.25); border-color: rgba(215,195,145,0.22); }
+.tweespalt-scene .ts-optie--gekozen      { border-color: rgba(200,175,70,0.75) !important; background: rgba(170,145,30,0.22) !important; box-shadow: 0 0 0 1px rgba(200,175,70,0.30), inset 0 0 14px rgba(170,145,30,0.12); }
 .tweespalt-scene .ts-optie-naam           { color: rgba(240,235,220,0.95); }
 .tweespalt-scene .ts-optie-kans           { color: rgba(200,185,155,0.75); }
 .tweespalt-scene .ts-uitslag-label        { color: rgba(200,185,155,0.75); }
+.tweespalt-scene .ts-uitslag--gewonnen   { background: rgba(30,110,55,0.38); border-color: rgba(90,210,120,0.50); }
+.tweespalt-scene .ts-uitslag--verloren   { background: rgba(130,22,22,0.42); border-color: rgba(225,80,80,0.50); }
 .tweespalt-scene .ts-uitslag-winst        { color: #6fda8a; }
+.tweespalt-scene .ts-uitslag-verlies     { color: rgba(255,135,135,0.92); }
 .tweespalt-scene .ts-inzet-label          { color: rgba(200,185,155,0.75); }
 .tweespalt-scene .ts-lening-banner        { color: rgba(255,170,170,0.90); background: rgba(100,20,20,0.35); border-color: rgba(180,60,60,0.4); }
 .tweespalt-scene .ts-npc-row              { color: rgba(185,170,145,0.70); }
+.tweespalt-scene .ts-npc-header          { font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(215,195,145,0.65); margin-bottom: 4px; }
+.tweespalt-scene .ts-npc-bedrag          { margin-left: auto; color: rgba(200,175,110,0.80); font-variant-numeric: tabular-nums; }
+.tweespalt-scene .ts-inzet-input         { color: rgba(240,235,220,0.95) !important; background: rgba(255,255,255,0.08); }
+.tweespalt-scene .ts-inzet-input::placeholder { color: rgba(200,185,155,0.45); }
 .tweespalt-scene .herberg-leeg            { color: rgba(200,185,155,0.65); }
 
 /* Ursula en Gock: zorg dat ook hun dim-tekst leesbaar blijft */
@@ -9880,3 +10580,998 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .gock-scene   .herberg-cooldown-tekst     { color: rgba(220,200,240,0.85); background: rgba(0,0,0,0.30); }
 .ursula-scene .ts-beurs,
 .gock-scene   .ts-beurs                   { color: rgba(220,210,190,0.85); }
+
+/* ══ Speler: brief-kaarten ══ */
+.speler-brief-card {
+  background: #f9f0dc;
+  border: 1px solid #c8a87a;
+  border-left: 3px solid #b8860b;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+  position: relative;
+}
+.speler-brief-card:hover { box-shadow: 0 2px 10px rgba(80,40,0,0.13); }
+.speler-brief-card--nieuw {
+  border-left-color: #8b2a2a;
+  background: #fdf5e4;
+}
+.speler-brief-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.speler-brief-header-main {
+  flex: 1;
+  min-width: 0;
+}
+.speler-brief-afzender-inline {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.80rem;
+  color: #7a5830;
+  margin-top: 1px;
+}
+.speler-brief-meta-inline {
+  font-size: 0.72rem;
+  color: #a08050;
+  margin-top: 2px;
+}
+.speler-brief-chevron {
+  font-size: 1rem;
+  color: #b09060;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  line-height: 1;
+  margin-right: 2px;
+}
+.speler-brief-card--open .speler-brief-chevron {
+  transform: rotate(180deg);
+}
+.speler-brief-body {
+  display: none;
+  margin-top: 10px;
+  border-top: 1px solid rgba(184,134,11,0.20);
+  padding-top: 8px;
+}
+.speler-brief-card--open .speler-brief-body {
+  display: block;
+}
+.speler-brief-titel {
+  font-family: 'Cinzel', serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #3a1f08;
+  letter-spacing: 0.02em;
+}
+.speler-brief-afzender {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.82rem;
+  color: #6a4828;
+  margin-bottom: 6px;
+}
+.speler-brief-tekst {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.93rem;
+  color: #3a2010;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.speler-brief-trash {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #b09060;
+  padding: 0 2px;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.speler-brief-trash:hover { color: #8b2a2a; }
+
+/* ══ DM: brief-kaarten in geschiedenis ══ */
+.bericht-history-brief {
+  background: rgba(245,235,210,0.6);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-left: 3px solid rgba(184,134,11,0.6);
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+.bericht-history-brief--deleted {
+  opacity: 0.55;
+  border-left-color: rgba(150,80,80,0.5);
+}
+.bericht-brief-titel {
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #3a1f08;
+  margin-bottom: 2px;
+}
+.bericht-brief-afzender {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.75rem;
+  color: #7a5838;
+  margin-bottom: 3px;
+}
+.bericht-brief-tekst-preview {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.8rem;
+  color: #5a4030;
+  font-style: italic;
+}
+.bericht-brief-deleted-badge {
+  font-size: 0.68rem;
+  color: rgba(150,80,80,0.9);
+  background: rgba(150,80,80,0.08);
+  border: 1px solid rgba(150,80,80,0.3);
+  border-radius: 10px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+/* ══ DM: brief-compose formulier ══ */
+.post-compose {
+  border: 1px solid rgba(184,134,11,0.3);
+  background: rgba(245,235,210,0.35);
+  border-radius: 6px;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   ── Dungeon Maps ──────────────────────────────────────────
+   ══════════════════════════════════════════════════════════ */
+
+/* Shell */
+.dng-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0d0a06;
+  overflow: hidden;
+}
+
+/* Topbar */
+.dng-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: #17110a;
+  border-bottom: 1px solid rgba(196,168,100,0.18);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.dng-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dng-map-select {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #d4b870;
+  background: #211809;
+  border: 1px solid rgba(196,168,100,0.35);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  max-width: 220px;
+}
+.dng-map-select-empty {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  color: rgba(196,168,100,0.4);
+  font-size: 13px;
+}
+
+/* Knoppen */
+.dng-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(196,168,100,0.35);
+  background: rgba(196,168,100,0.08);
+  color: #d4b870;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.dng-btn:hover { background: rgba(196,168,100,0.18); border-color: rgba(196,168,100,0.6); }
+.dng-btn-sm { padding: 4px 10px; font-size: 10px; }
+.dng-btn-ghost { background: none; border-color: rgba(196,168,100,0.18); color: rgba(196,168,100,0.5); }
+.dng-btn-ghost:hover { color: rgba(196,168,100,0.8); border-color: rgba(196,168,100,0.4); background: none; }
+.dng-btn-danger { border-color: rgba(180,40,40,0.5); color: #c06060; background: rgba(180,40,40,0.08); }
+.dng-btn-danger:hover { background: rgba(180,40,40,0.18); }
+.dng-btn-reveal {
+  border-color: rgba(80,180,80,0.5);
+  color: #80c880;
+  background: rgba(80,180,80,0.08);
+  width: 100%;
+  margin-bottom: 6px;
+}
+.dng-btn-reveal:hover { background: rgba(80,180,80,0.18); }
+
+/* Gereedschappen */
+.dng-tools { display: flex; align-items: center; gap: 4px; }
+.dng-tool-btn {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: none;
+  color: rgba(196,168,100,0.5);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.dng-tool-btn:hover { background: rgba(196,168,100,0.12); color: #d4b870; }
+.dng-tool-btn.active {
+  background: rgba(196,168,100,0.18);
+  border-color: rgba(196,168,100,0.45);
+  color: #d4b870;
+}
+.dng-tool-sep { width: 1px; height: 20px; background: rgba(196,168,100,0.2); margin: 0 4px; }
+
+/* Workspace */
+.dng-workspace {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+.dng-map-area {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background:
+    radial-gradient(ellipse at center, #1a1208 0%, #0a0805 100%);
+}
+.dng-img-wrap {
+  /* Absoluut gecentreerd; transform schaalt vanuit het midden */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  will-change: transform;
+}
+.dng-img {
+  display: block;
+  user-select: none;
+  max-width: none;
+}
+.dng-svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+/* SVG kamerlagen */
+/* Transparante overlay over bestaande kamers in tekenmodus */
+.dng-room-draw-overlay {
+  fill: rgba(196,168,100,0.18);
+  stroke: rgba(196,168,100,0.55);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.dng-room {
+  fill: transparent; /* niet 'none': transparent vangt muisklikken op het vlak op */
+  stroke: rgba(196,168,100,0.30);
+  stroke-width: 2;
+  cursor: pointer;
+  transition: stroke 0.15s;
+}
+.dng-room:hover { stroke: rgba(196,168,100,0.75); }
+.dng-room-revealed { stroke: rgba(196,168,100,0.55); }
+.dng-room-selected {
+  stroke: #d4b870;
+  stroke-width: 2.5;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 4px rgba(196,168,100,0.5));
+}
+.dng-room-label {
+  fill: rgba(240,220,160,0.92);
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  paint-order: stroke;
+  stroke: rgba(0,0,0,0.8);
+  stroke-width: 3px;
+}
+
+/* Tekenlaag */
+.dng-draw-preview {
+  fill: rgba(196,168,100,0.15);
+  stroke: rgba(196,168,100,0.8);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  pointer-events: none;
+}
+.dng-draw-vertex {
+  fill: rgba(196,168,100,0.9);
+  stroke: none;
+  pointer-events: none;
+}
+.dng-draw-hint {
+  fill: rgba(196,168,100,0.6);
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+/* Sidebar */
+.dng-sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  background: #17110a;
+  border-left: 1px solid rgba(196,168,100,0.15);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+/* ── Detailkaart (geselecteerde kamer) ── */
+.dng-sidebar-detail:empty { display: none; }
+.dng-sb-detail-card {
+  padding: 14px;
+  border-bottom: 1px solid rgba(196,168,100,0.12);
+}
+.dng-sidebar-hint {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  color: rgba(196,168,100,0.35);
+  font-size: 12px;
+  text-align: center;
+  margin-top: 12px;
+}
+.dng-sb-name {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #d4b870;
+  margin-bottom: 3px;
+}
+.dng-sb-shape {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  color: rgba(196,168,100,0.45);
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.dng-sb-notes {
+  font-family: 'Crimson Text', serif;
+  font-size: 12px;
+  color: rgba(220,195,150,0.75);
+  background: rgba(196,168,100,0.06);
+  border: 1px solid rgba(196,168,100,0.12);
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+.dng-sb-actions { display: flex; flex-direction: column; gap: 5px; }
+.dng-sb-revealed {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  color: rgba(80,180,80,0.7);
+  text-align: center;
+  padding: 5px;
+}
+/* ── Kamerlijst ── */
+.dng-sb-list-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 10px 0 6px;
+}
+.dng-sb-list-hdr {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 0 12px 6px;
+}
+.dng-sb-list-title {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(196,168,100,0.5);
+  text-transform: uppercase;
+}
+.dng-sb-list-count {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  color: rgba(196,168,100,0.3);
+}
+.dng-sb-list {
+  flex: 1;
+  overflow-y: auto;
+}
+.dng-sb-li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-left: 2px solid transparent;
+}
+.dng-sb-li:hover { background: rgba(196,168,100,0.06); }
+.dng-sb-li--sel {
+  background: rgba(196,168,100,0.10);
+  border-left-color: rgba(196,168,100,0.5);
+}
+.dng-sb-li-dot {
+  font-size: 9px;
+  color: rgba(196,168,100,0.3);
+  flex-shrink: 0;
+  width: 12px;
+  text-align: center;
+}
+.dng-sb-li-dot--rev { color: rgba(80,200,80,0.7); }
+.dng-sb-li-name {
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  color: rgba(220,200,160,0.85);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dng-sb-quick-reveal {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  opacity: 0.35;
+  padding: 2px 3px;
+  border-radius: 3px;
+  transition: opacity 0.12s, background 0.12s;
+  line-height: 1;
+}
+.dng-sb-quick-reveal:hover { opacity: 0.9; background: rgba(196,168,100,0.12); }
+
+/* Dialogs */
+.dng-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0,0,0,0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dng-dialog {
+  background: linear-gradient(160deg, #2a1e0f 0%, #1c1408 100%);
+  border: 1px solid rgba(196,168,100,0.35);
+  border-radius: 12px;
+  padding: 24px 28px;
+  min-width: 340px;
+  max-width: 480px;
+  width: 90vw;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.7);
+}
+.dng-dialog-title {
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #d4b870;
+  margin: 0 0 18px;
+}
+.dng-dialog-sub {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  color: rgba(196,168,100,0.55);
+  font-size: 13px;
+  margin: -10px 0 14px;
+}
+.dng-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(196,168,100,0.6);
+  margin-bottom: 14px;
+}
+.dng-input {
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: #e8d5a8;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(196,168,100,0.3);
+  border-radius: 6px;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.dng-input:focus { border-color: rgba(196,168,100,0.7); }
+.dng-textarea {
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  color: #e8d5a8;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(196,168,100,0.3);
+  border-radius: 6px;
+  padding: 7px 10px;
+  outline: none;
+  resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.dng-textarea:focus { border-color: rgba(196,168,100,0.7); }
+.dng-dialog-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+.dng-dialog-preview { display: flex; justify-content: center; margin: 10px 0; }
+
+/* Party-toegang */
+.dng-party-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.dng-party-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.dng-party-name {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  color: #d4b870;
+  flex-shrink: 0;
+}
+.dng-party-states {
+  display: flex;
+  gap: 4px;
+}
+.dng-state-btn {
+  padding: 3px 9px;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(196,168,100,0.25);
+  background: rgba(196,168,100,0.06);
+  color: rgba(196,168,100,0.45);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.dng-state-btn:hover { background: rgba(196,168,100,0.14); color: rgba(196,168,100,0.75); }
+.dng-state-btn--on {
+  background: rgba(196,168,100,0.22);
+  color: #d4b870;
+  border-color: rgba(196,168,100,0.55);
+}
+/* Uitgespeeld-knop: groen accent */
+.dng-state-btn--on[data-state="completed"] {
+  background: rgba(60,160,80,0.18);
+  color: rgba(100,210,120,0.9);
+  border-color: rgba(60,160,80,0.45);
+}
+/* Reveal-count chip in topbar */
+.dng-reveal-chip {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(196,168,100,0.12);
+  border: 1px solid rgba(196,168,100,0.30);
+  border-radius: 10px;
+  padding: 2px 10px;
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  color: rgba(196,168,100,0.75);
+  white-space: nowrap;
+}
+
+/* Context-hint bij verbindingstool */
+.dng-tool-hint {
+  display: none;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: rgba(196,168,100,0.55);
+  align-self: center;
+  margin-left: 4px;
+}
+
+/* Verbindingslijn tussen kamers */
+.dng-conn-line {
+  stroke: rgba(196,168,100,0.60);
+  stroke-dasharray: 6 4;
+  fill: none;
+  pointer-events: none;
+}
+
+/* Geselecteerde startkamer bij verbindingstool */
+.dng-conn-start {
+  stroke: rgba(220,180,80,0.95) !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 0 4px rgba(220,180,80,0.55));
+}
+
+/* Conditie-iconen op de kaart */
+.dng-cond-icon {
+  font-family: 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif;
+  pointer-events: none;
+}
+.dng-cond-icon--hidden {
+  opacity: 0.35;   /* DM ziet verborgen iconen half-transparant */
+}
+
+/* ── Sidebar detail: secties ── */
+.dng-sb-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(196,168,100,0.14);
+}
+.dng-sb-section-hdr {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(196,168,100,0.55);
+  margin-bottom: 6px;
+}
+
+/* Conditie-toggle knoppen (☠️ 💰 🔒 ✓) */
+.dng-cond-toggle-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.dng-cond-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(196,168,100,0.22);
+  border-radius: 6px;
+  background: rgba(196,168,100,0.05);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.45;
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+}
+.dng-cond-btn:hover { opacity: 0.8; background: rgba(196,168,100,0.12); }
+.dng-cond-btn--on {
+  opacity: 1;
+  background: rgba(196,168,100,0.18);
+  border-color: rgba(196,168,100,0.55);
+}
+
+/* Actieve conditie-rijen */
+.dng-cond-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dng-cond-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+}
+.dng-cond-row-icon {
+  font-size: 15px;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.dng-cond-vis-btn {
+  flex: 1;
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  padding: 2px 7px;
+  border: 1px solid rgba(196,168,100,0.22);
+  border-radius: 4px;
+  background: rgba(196,168,100,0.05);
+  color: rgba(196,168,100,0.50);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.dng-cond-vis-btn:hover { background: rgba(196,168,100,0.12); color: rgba(196,168,100,0.75); }
+.dng-cond-vis-btn--on {
+  color: rgba(100,200,120,0.85);
+  border-color: rgba(60,160,80,0.40);
+  background: rgba(60,160,80,0.10);
+}
+.dng-cond-del-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: rgba(200,80,80,0.55);
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.dng-cond-del-btn:hover { color: rgba(200,80,80,0.9); background: rgba(200,80,80,0.10); }
+
+/* Verbindingen in sidebar */
+.dng-conn-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+}
+.dng-conn-row-name {
+  flex: 1;
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  color: rgba(196,168,100,0.70);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Conditie-iconen in de kamerlijst */
+.dng-sb-li-conds {
+  display: flex;
+  gap: 1px;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+.dng-sb-cond-icon {
+  font-size: 11px;
+  line-height: 1;
+}
+.dng-sb-cond-icon--hidden {
+  opacity: 0.30;
+}
+
+/* Leeg state */
+.dng-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  color: rgba(196,168,100,0.35);
+}
+.dng-empty-icon { font-size: 3rem; opacity: 0.4; }
+.dng-empty-title { font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; }
+.dng-empty-sub { font-family: 'IM Fell English', serif; font-style: italic; font-size: 13px; }
+
+/* ── Kaart-sectie modus-toggle ── */
+/* #section-kaart.active display:flex zit al in de globale sectie-regels (regel 318) */
+.kaart-mode-bar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 14px 0;
+  background: var(--color-room-bg);
+  border-bottom: 1px solid var(--color-room-border);
+  flex-shrink: 0;
+}
+.kaart-mode-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 7px 16px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: none;
+  color: var(--color-ink-dim);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.kaart-mode-btn:hover { color: var(--color-ink-medium); background: rgba(196,168,100,0.06); }
+.kaart-mode-btn.active {
+  color: var(--color-ink-bright);
+  background: var(--color-room-bg);
+  border-color: var(--color-room-border);
+  border-bottom-color: var(--color-room-bg);
+  position: relative;
+  z-index: 1;
+}
+
+/* ══ Item Carousel (knapzak) ══ */
+.item-carousel {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+.item-carousel-nav {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #c4a87a;
+  background: transparent;
+  color: #8a6000;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.item-carousel-nav:hover { background: rgba(196,168,122,0.18); color: #5a3000; }
+.item-carousel-nav:disabled { opacity: 0.3; cursor: default; }
+.item-carousel-track {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.item-carousel-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 8px;
+  background: #f2e8d2;
+  border: 1px solid #c8a060;
+  border-radius: 10px;
+}
+.item-carousel-img-wrap {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid #c4a87a;
+  background: #e8d8b0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.item-carousel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.item-carousel-fallback {
+  font-size: 52px;
+  color: #b09060;
+}
+.item-carousel-namerow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.item-carousel-type-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.item-carousel-name {
+  font-family: 'Cinzel', serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #2a1a08;
+  text-align: center;
+  line-height: 1.3;
+}
+.item-carousel-desc {
+  font-family: 'IM Fell English', serif;
+  font-size: 0.88rem;
+  color: #4a3010;
+  max-height: 160px;
+  overflow-y: auto;
+  text-align: left;
+  width: 100%;
+  line-height: 1.55;
+  padding: 0 4px;
+}
+.item-carousel-qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.item-carousel-qty-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #c4a87a;
+  background: rgba(196,168,100,0.12);
+  color: #8a6000;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.item-carousel-qty-btn:hover { background: rgba(196,168,100,0.28); }
+.item-carousel-qty-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  color: #5a3000;
+}
+.item-carousel-dots {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.item-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(196,168,100,0.30);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s;
+}
+.item-carousel-dot.active { background: #c4a87a; }
+.item-carousel-detail-btn {
+  font-size: 0.75rem;
+  font-family: 'Cinzel', serif;
+  color: #8a6000;
+  background: none;
+  border: 1px solid rgba(196,168,100,0.40);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.item-carousel-detail-btn:hover { background: rgba(196,168,100,0.15); }
+
+/* ══ Item Charge dots ══ */
+.item-carousel-charges { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; }
+.item-charge-label { font-size: 0.75rem; color: #8a7050; font-family: 'Cinzel', serif; letter-spacing: 0.03em; margin-bottom: 4px; }
+.item-charge-dots-row { display: flex; align-items: center; gap: 6px; justify-content: center; }
+.item-charge-dots { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.item-charge-recharge-label { font-size: 0.70rem; color: #a08050; margin-top: 3px; }
+
+/* ══ Long rest knop ══ */
+.player-dash-rest-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+.player-long-rest-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 0.80rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #3a1a08;
+  background: linear-gradient(135deg, #d4a84a, #b8882a);
+  border: 1px solid #a07020;
+  border-radius: 6px;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 4px rgba(80,40,0,0.18);
+}
+.player-long-rest-btn:hover { background: linear-gradient(135deg, #e0b450, #c89030); box-shadow: 0 2px 8px rgba(80,40,0,0.28); }
+
+/* ── Dungeon room tooltip (spelers) ── */
+.dng-room-tooltip { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); background: rgba(20,12,4,0.92); border: 1px solid rgba(196,168,100,0.45); border-radius: 8px; padding: 8px 18px; font-family: 'Cinzel', serif; font-size: 0.9rem; color: rgba(240,220,160,0.95); pointer-events: none; z-index: 8000; white-space: nowrap; opacity: 1; transition: opacity 0.4s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+.dng-room-tooltip--out { opacity: 0; }

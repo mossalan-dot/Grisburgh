@@ -306,10 +306,13 @@ async function _renderPrikbord(container) {
     const showDesc   = q.description && col.key === 'actief';
     const cycleIdx   = STATUS_CYCLE.indexOf(q.status);
     const hasNext    = cycleIdx >= 0 && cycleIdx < STATUS_CYCLE.length - 1;
+    const clickHandler = isDm
+      ? `window._questEdit('${q.id}')`
+      : (q.description ? `window._questViewPlayer('${q.id}')` : '');
     return `
-      <div class="quest-card quest-card--${q.status}${q.status === 'verborgen' ? ' quest-card--hidden' : ''}"
+      <div class="quest-card quest-card--${q.status}${q.status === 'verborgen' ? ' quest-card--hidden' : ''}${!isDm && q.description ? ' quest-card--clickable' : ''}"
            style="transform:rotate(${rot}deg)"
-           onclick="${isDm ? `window._questEdit('${q.id}')` : ''}">
+           onclick="${clickHandler}">
         ${isDm ? `
           <div class="quest-card-actions">
             ${hasNext ? `<button class="quest-card-btn" onclick="event.stopPropagation();window._questStatusNext('${q.id}')" title="Volgende kolom">→</button>` : ''}
@@ -358,6 +361,30 @@ async function _renderPrikbord(container) {
     if (idx < 0 || idx >= STATUS_CYCLE.length - 1) return; // al op mislukt
     const next = STATUS_CYCLE[idx + 1];
     try { await api.updateQuest(id, { status: next }); await renderLogboek(); } catch {}
+  };
+
+  // Speler: read-only missiedetail openen
+  window._questViewPlayer = (id) => {
+    const q = quests.find(x => x.id === id);
+    if (!q) return;
+    document.getElementById('quest-view-overlay')?.remove();
+    const chLabel = q.chapter && hk[q.chapter] ? hk[q.chapter].short : '';
+    const statusLabel = q.status === 'voltooid' ? '✓ Voltooid' : q.status === 'mislukt' ? '✗ Mislukt' : '📌 Actief';
+    const overlay = document.createElement('div');
+    overlay.id = 'quest-view-overlay';
+    overlay.className = 'quest-modal-overlay';
+    overlay.innerHTML = `
+      <div class="quest-modal quest-view-modal" onclick="event.stopPropagation()">
+        <div class="quest-view-status quest-view-status--${q.status}">${statusLabel}</div>
+        <div class="quest-modal-title">${q.title.replace(/</g,'&lt;')}</div>
+        ${chLabel ? `<div class="quest-view-chapter">📖 ${chLabel.replace(/</g,'&lt;')}</div>` : ''}
+        ${q.description ? `<div class="quest-view-desc">${q.description.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>` : ''}
+        <div class="quest-modal-actions">
+          <button class="dm-btn dm-btn-ghost" onclick="document.getElementById('quest-view-overlay').remove()">Sluiten</button>
+        </div>
+      </div>`;
+    overlay.addEventListener('click', () => overlay.remove());
+    document.body.appendChild(overlay);
   };
 }
 
@@ -446,15 +473,20 @@ function _buildChapterImgStrip(chEntries, ch) {
   }
   if (imgs.length === 0) return '';
   const stripId = `img-strip-${esc(ch)}`;
+
+  // Sla de afbeeldingsreeks op zodat de lightbox er doorheen kan bladeren
+  const setKey = `_lbStrip_${ch}`;
+  window[setKey] = imgs.map(img => ({ src: api.fileUrl(img.id), title: img.title }));
+
   return `
     <div class="logboek-img-strip-wrap">
       <button class="logboek-img-strip-arrow logboek-img-strip-arrow--left"
         onclick="event.stopPropagation();document.getElementById('${stripId}').scrollBy({left:-200,behavior:'smooth'})"
         aria-label="Naar links">&#8249;</button>
       <div class="logboek-img-strip" id="${stripId}">
-        ${imgs.map(img => `
+        ${imgs.map((img, i) => `
           <button class="logboek-img-strip-thumb${img.hidden ? ' logboek-img-strip-thumb--hidden' : ''}"
-            onclick="event.stopPropagation();window.app.openLightbox('${api.fileUrl(img.id)}','${esc(img.title)}')"
+            onclick="event.stopPropagation();window.app.openLightboxAt(window['${setKey}'],${i})"
             title="${esc(img.title)}">
             <img src="${api.fileUrl(img.id)}" class="logboek-img-strip-img"
               onerror="this.closest('.logboek-img-strip-thumb').style.display='none'">
@@ -509,10 +541,18 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
   }
 
   // DM: akte-zichtbaarheid per actieve groep
-  const _cv     = archiefData.chapterVisibility || {};
-  const _cvGrp  = window._activeGroupId;
+  const _cv            = archiefData.chapterVisibility || {};
+  const _cvGrp         = window._activeGroupId;
+  const _activeGrpName = isDM() && _cvGrp
+    ? (window._groups?.find(g => g.id === _cvGrp)?.name || _cvGrp)
+    : null;
 
-  let html = '';
+  let html = isDM() && _cvGrp && !isSearchMode ? `
+    <div class="logboek-visibility-bar">
+      <span class="logboek-visibility-bar-label">Zichtbaarheid instellen voor: <strong>${esc(_activeGrpName)}</strong></span>
+      <span class="logboek-visibility-bar-legend">👁 zichtbaar &nbsp;·&nbsp; <span style="color:#e08080">🔒</span> verborgen</span>
+    </div>` : '';
+
   for (const ch of sortedChapters) {
     const info = hk[ch] || { title: ch, dag: '', num: '?' };
     const chEntries = groups[ch].slice().sort((a, b) => (a.datum || '').localeCompare(b.datum || ''));
@@ -541,10 +581,13 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
           </div>
           <div class="logboek-chapter-toggle-wrap">
             ${isDM() ? `
+              <button class="logboek-chapter-speel-btn dm-only"
+                title="Speel akte — onthul afbeeldingen"
+                onclick="event.stopPropagation();window._speelAkte('${esc(ch)}',${JSON.stringify(info.num)},'${esc(info.title)}')">▶ Speel</button>
               <button class="logboek-chapter-edit-btn dm-only" title="Akte bewerken"
                 onclick="event.stopPropagation();window._editAkte('${esc(ch)}')">✎</button>
               ${_cvGrp ? `<button class="logboek-chapter-visibility-btn dm-only${isHiddenForGroup ? ' is-hidden' : ''}"
-                title="${isHiddenForGroup ? 'Toon akte voor huidige groep' : 'Verberg akte voor huidige groep'}"
+                title="${isHiddenForGroup ? 'Toon akte voor ' + _activeGrpName : 'Verberg akte voor ' + _activeGrpName}"
                 onclick="event.stopPropagation();window._toggleChapterVisibility('${esc(ch)}',${isHiddenForGroup})">
                 ${isHiddenForGroup ? '🔒' : '👁'}
               </button>` : ''}
@@ -554,6 +597,10 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
         </div>
 
         <div class="logboek-chapter-content${isCollapsed ? ' hidden' : ''}">
+          ${isHiddenForGroup ? `
+            <div class="logboek-chapter-hidden-notice dm-only">
+              🔒 Verborgen voor <strong>${esc(_activeGrpName)}</strong> — sessies en afbeeldingen hieronder zijn <em>niet</em> zichtbaar voor spelers van deze groep, ongeacht de afzonderlijke zichtbaarheidsinstellingen
+            </div>` : ''}
           ${_buildChapterImgStrip(chEntries, ch)}
           <div class="logboek-timeline">
             ${chEntries.map((e, idx) => renderSessieEntry(e, idx + 1)).join('')}
@@ -915,7 +962,12 @@ window._openSessieDetail = async (id) => {
     e.datum,
   ].filter(Boolean);
 
+  const activeGrpName = window._groups?.find(g => g.id === window._activeGroupId)?.name;
   const body = `
+    ${isDM() && e._chapterHidden && activeGrpName ? `
+      <div class="dm-only logboek-modal-hidden-notice">
+        🔒 Verborgen voor <strong>${esc(activeGrpName)}</strong> — dit verslag en alle afbeeldingen hieronder zijn niet zichtbaar voor spelers van deze groep
+      </div>` : ''}
     ${_renderCarousel(id, images, { dmControls: isDM() })}
     ${datelineParts.length ? `<div class="log-dateline">${datelineParts.map(p => esc(p)).join(' &mdash; ')}</div>` : ''}
     ${e.citaat ? `<blockquote class="log-detail-citaat">"${mdToHtml(e.citaat)}"</blockquote>` : ''}
@@ -1061,6 +1113,16 @@ window._toggleChapterVisibility = async (ch, currentlyHidden) => {
     await api.setChapterVisibility(groepId, ch, newVisible);
     await renderLogboek();
   } catch (err) { console.error('Chapter visibility toggle failed:', err); }
+};
+
+// Activeer reveal strip voor een akte vanuit het logboek
+// Reset eerst alle afbeeldingen naar verborgen zodat ze één voor één onthuld kunnen worden.
+window._speelAkte = async (ch, num, title) => {
+  if (!window.dmPanel) return;
+  try { await api.resetChapterImages(ch); } catch (e) { console.warn('reset images failed', e); }
+  window.dmPanel.setRevealChapter(ch);
+  window.dmPanel.renderRevealStrip();
+  window.app?.setActiveAkte?.(ch, num, title);
 };
 
 window._editAkte = (ch) => {

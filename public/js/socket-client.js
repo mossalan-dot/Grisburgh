@@ -30,13 +30,11 @@ export function initSocket() {
     } else if (section === 'dashboard') {
       import('./render-dashboard.js').then(m => m.renderDashboard());
     }
-    // Toast voor spelers bij onthulling
+    // Kaartoverlay voor spelers bij onthulling
     if (!window.app.isDM() && visibility && visibility !== 'hidden' && name) {
       const icon  = ENTITY_ICONS[type] || '📜';
-      const label = visibility === 'vague' ? 'is ontdekt' : 'is onthuld';
-      _showToast(`${icon} <strong>${name}</strong> ${label}`, () => {
-        if (type && id) window._openDetail?.(type, id);
-      });
+      const label = visibility === 'vague' ? 'ontdekt' : 'onthuld';
+      _showEntityReveal({ id, type, name, icon, label });
     }
   });
 
@@ -129,14 +127,32 @@ export function initSocket() {
 
   socket.on('map:updated', () => {
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js').then(m => m.renderKaart());
+      import('./render-kaart.js?v=2').then(m => m.renderKaart());
     }
+  });
+
+  // Dungeon: kamer onthuld → alleen spelers herladen (DM werkt al lokaal bij)
+  socket.on('dungeon:revealed', () => {
+    if (window.app.state.activeSection !== 'kaart') return;
+    if (window.app.state.role === 'dm') return; // DM al bijgewerkt via _renderSvg()
+    import('./render-dungeon.js?v=15').then(m => {
+      const content = document.getElementById('kaart-mode-content');
+      if (content) m.renderDungeon(content);
+    });
+  });
+  // Dungeon meta bijgewerkt (nieuwe map, party-access) → iedereen herlaadt
+  socket.on('dungeon:updated', () => {
+    if (window.app.state.activeSection !== 'kaart') return;
+    import('./render-dungeon.js?v=15').then(m => {
+      const content = document.getElementById('kaart-mode-content');
+      if (content) m.renderDungeon(content);
+    });
   });
 
   socket.on('map:pinRevealed', () => {
     // Herlaad kaart als de speler daar is (toast wordt al getoond via entity:visibility)
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js').then(m => m.renderKaart());
+      import('./render-kaart.js?v=2').then(m => m.renderKaart());
     }
   });
 
@@ -149,7 +165,7 @@ export function initSocket() {
       8000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js').then(m => m.renderKaart());
+      import('./render-kaart.js?v=2').then(m => m.renderKaart());
     }
   });
 
@@ -160,7 +176,7 @@ export function initSocket() {
       6000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js').then(m => m.renderKaart());
+      import('./render-kaart.js?v=2').then(m => m.renderKaart());
     }
   });
 
@@ -171,7 +187,7 @@ export function initSocket() {
       5000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js').then(m => m.renderKaart());
+      import('./render-kaart.js?v=2').then(m => m.renderKaart());
     }
   });
 
@@ -396,8 +412,12 @@ export function initSocket() {
   // ── Geheime berichten ──
   socket.on('bericht:nieuw', ({ msg } = {}) => {
     if (!msg?.tekst) return;
+    const isBrief = msg.type === 'brief';
+    const toastLabel = isBrief
+      ? `✉️ <strong>${msg.titel ? `Brief: ${msg.titel}` : 'Nieuwe brief ontvangen'}</strong>`
+      : `💬 <strong>Geheim bericht van de DM</strong>`;
     _showToast(
-      `💬 <strong>Geheim bericht van de DM</strong>`,
+      toastLabel,
       () => { window.app.switchSection('mijn-karakter'); window._setPlayerSubTab?.('berichten'); },
       8000
     );
@@ -506,6 +526,7 @@ function _showDramaticReveal(doc) {
   overlay.innerHTML = `
     <div class="dramatic-reveal-backdrop" onclick="this.closest('.dramatic-reveal-overlay').remove()"></div>
     <div class="dramatic-reveal-card">
+      <button class="dramatic-reveal-close" onclick="document.getElementById('dramatic-reveal-overlay').remove()" title="Sluiten">✕</button>
       <div class="dramatic-reveal-label">📜 Nieuw document onthuld</div>
       <div class="dramatic-reveal-title">${(doc.name || '').replace(/</g,'&lt;')}</div>
       ${doc.type ? `<div class="dramatic-reveal-type">${doc.type.replace(/</g,'&lt;')}</div>` : ''}
@@ -521,7 +542,36 @@ function _showDramaticReveal(doc) {
       overlay.classList.remove('dramatic-reveal-overlay--in');
       setTimeout(() => overlay.remove(), 600);
     }
-  }, 15000);
+  }, 300000);
+}
+
+function _showEntityReveal({ id, type, name, icon, label }) {
+  document.getElementById('entity-reveal-overlay')?.remove();
+
+  const eName = (name || '').replace(/</g, '&lt;');
+  const eType = (type || '');
+  const eId   = (id   || '');
+
+  const overlay = document.createElement('div');
+  overlay.id = 'entity-reveal-overlay';
+  overlay.className = 'dramatic-reveal-overlay';
+  overlay.innerHTML = `
+    <div class="dramatic-reveal-backdrop" onclick="this.closest('#entity-reveal-overlay, .dramatic-reveal-overlay').remove()"></div>
+    <div class="dramatic-reveal-card">
+      <button class="dramatic-reveal-close" onclick="document.getElementById('entity-reveal-overlay').remove()" title="Sluiten">✕</button>
+      <div class="dramatic-reveal-label">${icon} ${label.charAt(0).toUpperCase() + label.slice(1)}</div>
+      <div class="dramatic-reveal-title">${eName}</div>
+      <button class="dramatic-reveal-btn" onclick="document.getElementById('entity-reveal-overlay').remove(); window._openDetail?.('${eType}','${eId}')">Bekijken</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('dramatic-reveal-overlay--in')));
+  setTimeout(() => {
+    if (document.getElementById('entity-reveal-overlay') === overlay) {
+      overlay.classList.remove('dramatic-reveal-overlay--in');
+      setTimeout(() => overlay.remove(), 600);
+    }
+  }, 300000);
 }
 
 function _showToast(html, onClick, duration = 4500) {
