@@ -11573,10 +11573,18 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .player-long-rest-btn:hover { background: linear-gradient(135deg, #e0b450, #c89030); box-shadow: 0 2px 8px rgba(80,40,0,0.28); }
 
 /* ── Wikilinks ── */
-a.wikilink { color: var(--color-gold-bright, #c4a87a); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; cursor: pointer; transition: color 0.15s; }
-a.wikilink:hover { color: var(--color-gold-bright, #e0c080); text-decoration-style: solid; }
-.wikilink-hidden { color: rgba(140,120,90,0.5); cursor: default; font-style: italic; }
-.wikilink-unknown { color: rgba(160,100,80,0.6); font-style: italic; }
+a.wikilink { text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; cursor: pointer; transition: color 0.15s; font-weight: 500; }
+a.wikilink:hover { text-decoration-style: solid; filter: brightness(1.15); }
+/* Typespecifieke kleuren — gebaseerd op de kaartbalkstijlen */
+a.wikilink--personages   { color: #3a8a50; }
+a.wikilink--locaties     { color: #3a6a9a; }
+a.wikilink--organisaties { color: #9a3030; }
+a.wikilink--voorwerpen   { color: #9a7020; }
+a.wikilink--documenten   { color: #6a3a90; }
+/* Fallback zonder type */
+a.wikilink:not([class*="wikilink--"]) { color: var(--color-gold-bright, #c4a87a); }
+.wikilink-hidden { color: rgba(140,120,90,0.45); cursor: default; font-style: italic; }
+.wikilink-unknown { color: rgba(150,110,80,0.5); font-style: italic; }
 
 /* ── Wikilink autocomplete dropdown ── */
 .wikilink-ac { position: absolute; z-index: 9500; background: var(--color-room-bg, #1a1008); border: 1px solid rgba(196,168,100,0.4); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.55); overflow: hidden; max-height: 320px; overflow-y: auto; }

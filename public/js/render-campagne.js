@@ -416,6 +416,8 @@ async function renderEntitySection(type) {
     entities[type] = [];
   }
   window._entityCache = entities;
+  // Naamindex bijwerken voor wikilink-resolving
+  window._buildEntityIndex?.(type, entities[type]);
 
   const list = filterEntities(type, entities[type] || []);
 
