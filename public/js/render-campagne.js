@@ -765,8 +765,9 @@ function renderCard(type, e) {
             ${metaText ? `<span class="card-meta-sub">${esc(metaText)}</span>` : ''}
           </div>` : ''}
         </div>
-        ${desc ? `<p class="text-xs text-ink-medium line-clamp-3 mb-2 font-crimson leading-relaxed">${mdToHtml(desc)}</p>` : ''}
-        ${chips.length ? `<div class="flex flex-wrap gap-1">${chips.join('')}</div>` : ''}
+        ${desc ? `<p class="text-xs text-ink-medium line-clamp-4 mb-1 font-crimson leading-relaxed">${mdToHtml(desc)}</p>` : ''}
+        <!-- relatie-chips verborgen (code bewaard); vervangen door wikilinks in beschrijving -->
+        <!-- ${chips.length ? `<div class="flex flex-wrap gap-1">${chips.join('')}</div>` : ''} -->
       </div>
       ${flavour && (isDM() || flavourUitgesproken) ? `
         <div class="flavour-preview${isDM() && !flavourUitgesproken ? ' flavour-preview--ongespoken' : ''}">
