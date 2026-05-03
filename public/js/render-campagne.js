@@ -1129,43 +1129,22 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _extraImgs = _parseExtraImages(e.data?.extraImages);
   const _primaryCaption = e.data?.imgCaption || '';
   const _heroBadge = getSubtypeBadge(tab, e);
-  // Bouw meta-panel (rechterkolom naast afbeelding)
+  // Afbeelding — simpel gecentreerd met perkamentachtergrond
   const _d = e.data || {};
-  const _heroBgColor = '#f5edd8'; // perkament voor alle types
-  const _heroBorderColor = { personages:'rgba(58,138,80,0.35)', locaties:'rgba(58,106,154,0.35)', organisaties:'rgba(139,42,42,0.35)', voorwerpen:'rgba(154,112,8,0.35)', documenten:'rgba(90,58,122,0.35)' }[tab] || 'rgba(196,168,100,0.3)';
-  const _heroMetaItems = [];
-  if (tab === 'personages') {
-    if (_d.ras)    _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.ras)}</span>`);
-    if (_d.klasse) _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.klasse)}</span>`);
-  } else if (tab === 'locaties') {
-    if (_d.locType) _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.locType)}</span>`);
-    if (_d.wijk)    _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.wijk)}</span>`);
-  } else if (tab === 'organisaties') {
-    if (_d.orgType) _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.orgType)}</span>`);
-  } else if (tab === 'voorwerpen') {
-    if (_d.itemType) _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_normItemType(_d.itemType))}</span>`);
-    if (_d.rariteit) _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.rariteit)}</span>`);
-  }
-
   if (_extraImgs.length > 0) {
     const _allImgs = [{ id: e.id, caption: _primaryCaption }, ..._extraImgs];
     infoHtml += _entityCarouselHtml(e.id, _allImgs);
   } else {
     infoHtml += `
-      <div class="detail-hero mb-4" id="detail-img-wrap-${e.id}">
-        <div class="detail-hero-img-col" onclick="window.app.openLightbox('${fileUrl}','${escJS(e.name)}')">
-          <img src="${fileUrl}" class="detail-hero-img"
-            style="${_d.imgFocus ? `object-position:${_d.imgFocus}` : ''}"
-            onerror="this.closest('.detail-hero-img-col').style.display='none'">
-          <div class="detail-hero-overlay"></div>
-          ${_heroBadge ? `<div class="detail-hero-badge badge ${_heroBadge.cls}">${esc(_heroBadge.label)}</div>` : ''}
-        </div>
-        <div class="detail-hero-meta" style="background:${_heroBgColor};border-left:3px solid ${_heroBorderColor}">
-          <div class="hero-meta-icon">${getAutoIcon(tab, e)}</div>
-          ${_heroMetaItems.join('')}
-          ${_primaryCaption ? `<p class="hero-meta-caption">${esc(_primaryCaption)}</p>` : ''}
-        </div>
+      <div class="detail-hero mb-6" id="detail-img-wrap-${e.id}" onclick="window.app.openLightbox('${fileUrl}','${escJS(e.name)}')">
+        <img src="${fileUrl}" class="detail-hero-img"
+          style="${_d.imgFocus ? `object-position:${_d.imgFocus}` : ''}"
+          onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
+        <div class="detail-hero-overlay"></div>
+        <div class="detail-hero-icon">${getAutoIcon(tab, e)}</div>
+        ${_heroBadge ? `<div class="detail-hero-badge badge ${_heroBadge.cls}">${esc(_heroBadge.label)}</div>` : ''}
       </div>
+      ${_primaryCaption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(_primaryCaption)}</p>` : ''}
     `;
   }
 
@@ -1193,11 +1172,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _metaPills = [];
   let _descVal = '';
   for (const field of (schema.fields || [])) {
-    if (['geheim', 'flavour', 'rol', 'stapelbaar', 'attunement'].includes(field.key)) continue;
+    if (['geheim', 'flavour', 'rol', 'stapelbaar', 'attunement', 'persoonlijkheid'].includes(field.key)) continue;
     if (tab === 'voorwerpen' && ['itemType', 'rariteit'].includes(field.key)) continue;
-    if (tab === 'personages' && ['ras', 'klasse'].includes(field.key)) continue;
-    if (tab === 'locaties'   && ['locType', 'wijk'].includes(field.key)) continue;
-    if (tab === 'organisaties' && field.key === 'orgType') continue;
     const val = e.data?.[field.key];
     if (!val) continue;
     if (field.key === 'desc') {

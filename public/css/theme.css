@@ -876,48 +876,36 @@ body::before {
   transition: background 0.2s ease;
 }
 
-/* ── Detail hero: afbeelding links + meta rechts ── */
+/* ── Detail hero portrait ── */
 .detail-hero {
   position: relative;
   border-radius: 6px;
   overflow: hidden;
-  cursor: default;
+  cursor: pointer;
   margin-bottom: 0;
   border: 2px solid #c8a840;
   box-shadow:
     0 0 0 5px #f5edd8,
     0 0 0 6px rgba(200,168,64,0.4),
     0 6px 24px rgba(60,40,10,0.28);
-  display: flex;
-  min-height: 210px;
-}
-/* Afbeeldingskolom (links, klikbaar voor lightbox) */
-.detail-hero-img-col {
-  width: 42%;
-  flex-shrink: 0;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
 }
 .detail-hero-img {
   width: 100%;
-  height: 100%;
-  min-height: 210px;
-  object-fit: cover;
-  background: #1a0e04; /* fallback terwijl de img laadt */
+  max-height: 260px;
+  object-fit: contain;
+  background: #f5edd8; /* perkamentkleur op de zijvlakken */
   display: block;
 }
 .detail-hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to right, transparent 60%, rgba(25,12,3,0.25) 100%),
-              linear-gradient(to top, rgba(25,12,3,0.55) 0%, transparent 40%);
+  background: linear-gradient(to top, rgba(25,12,3,0.55) 0%, rgba(25,12,3,0.12) 35%, transparent 60%);
   pointer-events: none;
 }
 .detail-hero-badge {
   position: absolute;
   bottom: 10px;
-  left: 10px;
+  left: 12px;
   font-size: 9.5px;
   font-family: 'Cinzel', serif;
   font-weight: 700;
@@ -929,7 +917,7 @@ body::before {
   box-shadow: 0 1px 6px rgba(0,0,0,0.45);
   text-shadow: none;
 }
-/* Carousel gebruikt nog blurred bg — keep .detail-hero-bg */
+/* Carousel gebruikt blurred bg */
 .detail-hero-bg {
   position: absolute;
   inset: 0;
@@ -939,42 +927,6 @@ body::before {
   transform: scale(1.1);
   z-index: 0;
 }
-/* Meta-kolom (rechts) */
-.detail-hero-meta {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 16px 18px;
-  gap: 7px;
-  min-width: 0;
-}
-.hero-meta-icon {
-  font-size: 1.8rem;
-  line-height: 1;
-  margin-bottom: 2px;
-}
-/* Pill-stijl voor ras, klasse, locType etc. — zelfde vormgeving als detail-meta-pill */
-.hero-meta-tag {
-  display: inline-block;
-  font-family: 'IM Fell English', serif;
-  font-style: italic;
-  font-size: 12.5px;
-  color: #5a4030;
-  background: rgba(236,220,186,0.7);
-  border: 1px solid rgba(196,168,122,0.55);
-  padding: 3px 11px;
-  border-radius: 12px;
-  line-height: 1.5;
-}
-.hero-meta-caption {
-  font-family: 'Crimson Text', serif;
-  font-size: 12px;
-  color: #8a7055;
-  font-style: italic;
-  margin-top: auto;
-}
-/* detail-hero-icon: niet meer gebruikt in main hero, behoud voor evt. carousel */
 .detail-hero-icon {
   position: absolute;
   top: 10px;
