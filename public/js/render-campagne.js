@@ -1129,21 +1129,43 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _extraImgs = _parseExtraImages(e.data?.extraImages);
   const _primaryCaption = e.data?.imgCaption || '';
   const _heroBadge = getSubtypeBadge(tab, e);
+  // Bouw meta-panel (rechterkolom naast afbeelding)
+  const _d = e.data || {};
+  const _heroBgColor = { personages:'#f5f7ee', locaties:'#f0f3f8', organisaties:'#f8f0f0', voorwerpen:'#faf3e0', documenten:'#f5f2f8' }[tab] || '#faf4e6';
+  const _heroMetaItems = [];
+  if (tab === 'personages') {
+    if (_d.rol)    _heroMetaItems.push(`<span class="hero-meta-rol">${esc(_d.rol)}</span>`);
+    if (_d.ras)    _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.ras)}</span>`);
+    if (_d.klasse) _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.klasse)}</span>`);
+  } else if (tab === 'locaties') {
+    if (_d.locType) _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.locType)}</span>`);
+    if (_d.wijk)    _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.wijk)}</span>`);
+  } else if (tab === 'organisaties') {
+    if (_d.orgType) _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.orgType)}</span>`);
+  } else if (tab === 'voorwerpen') {
+    if (_d.itemType) _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_normItemType(_d.itemType))}</span>`);
+    if (_d.rariteit) _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.rariteit)}</span>`);
+  }
+
   if (_extraImgs.length > 0) {
     const _allImgs = [{ id: e.id, caption: _primaryCaption }, ..._extraImgs];
     infoHtml += _entityCarouselHtml(e.id, _allImgs);
   } else {
     infoHtml += `
-      <div class="detail-hero mb-6" id="detail-img-wrap-${e.id}" onclick="window.app.openLightbox('${fileUrl}','${escJS(e.name)}')">
-        <div class="detail-hero-bg" style="background-image:url('${fileUrl}')"></div>
-        <img src="${fileUrl}" class="detail-hero-img"
-          style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
-          onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
-        <div class="detail-hero-overlay"></div>
-        <div class="detail-hero-icon">${getAutoIcon(tab, e)}</div>
-        ${_heroBadge ? `<div class="detail-hero-badge badge ${_heroBadge.cls}">${esc(_heroBadge.label)}</div>` : ''}
+      <div class="detail-hero mb-4" id="detail-img-wrap-${e.id}">
+        <div class="detail-hero-img-col" onclick="window.app.openLightbox('${fileUrl}','${escJS(e.name)}')">
+          <img src="${fileUrl}" class="detail-hero-img"
+            style="${_d.imgFocus ? `object-position:${_d.imgFocus}` : ''}"
+            onerror="this.closest('.detail-hero-img-col').style.display='none'">
+          <div class="detail-hero-overlay"></div>
+          ${_heroBadge ? `<div class="detail-hero-badge badge ${_heroBadge.cls}">${esc(_heroBadge.label)}</div>` : ''}
+        </div>
+        <div class="detail-hero-meta" style="background:${_heroBgColor}">
+          <div class="hero-meta-icon">${getAutoIcon(tab, e)}</div>
+          ${_heroMetaItems.join('')}
+          ${_primaryCaption ? `<p class="hero-meta-caption">${esc(_primaryCaption)}</p>` : ''}
+        </div>
       </div>
-      ${_primaryCaption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(_primaryCaption)}</p>` : ''}
     `;
   }
 
@@ -1255,31 +1277,30 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                      : vis === 'vague'   ? 'Volledig tonen  ·  Shift: vaag houden'
                      : _ts              ? 'Zichtbaar maken  ·  Shift: vaag tonen'
                      :                    'Zichtbaar maken';
-    const _mVisLabel = vis === 'visible' ? 'Zichtbaar' : vis === 'vague' ? 'Vaag' : 'Verborgen';
     infoHtml += `
       <div class="dm-only mt-4 pt-4 border-t border-room-border">
         <div class="flex flex-wrap gap-2 mb-3">
           <button class="dm-btn ${_mVisCls}"
             title="${_mVisTitle}"
             onclick="window._toggleVis('${tab}','${e.id}',event)">
-            ${_mVisIcon} <span>${_mVisLabel}</span>
+            ${_mVisIcon}
           </button>
           ${(isPersonage || tab === 'locaties') ? `
             <button class="dm-btn ${e._secretReveal ? 'bg-seal text-white' : 'bg-room-elevated text-ink-dim'}"
               title="${e._secretReveal ? 'Geheim verbergen voor spelers' : 'Geheim onthullen aan spelers'}"
               onclick="window._toggleSecret('${tab}','${e.id}')">
-              ${e._secretReveal ? '✨' : '🔒'} <span>Geheim</span>
+              ${e._secretReveal ? '✨' : '🔒'}
             </button>
           ` : ''}
           <button class="dm-btn ${e._deceased ? 'bg-red-800 text-white' : 'bg-room-elevated text-ink-dim'}"
             title="${e._deceased ? 'Markering verwijderen' : 'Markeer als deceased'}"
             onclick="window._toggleDeceased('${tab}','${e.id}')">
-            ☠ <span>${e._deceased ? 'Deceased' : 'Levend'}</span>
+            ☠
           </button>
           <button class="dm-btn bg-gold-dim/80 text-room-bg"
             title="Bewerk dit kaartje (afbeelding, tekst, geluid)"
             onclick="window._openEditor('${tab}','${e.id}')">
-            ✏ <span>Bewerken</span>
+            ✏
           </button>
         </div>
         <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">DM Notities</div>

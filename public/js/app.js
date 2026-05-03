@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=47'; // app v115
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=48'; // app v115
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=17';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=2';
 import { renderDungeon } from './render-dungeon.js?v=15';
