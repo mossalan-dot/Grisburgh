@@ -695,7 +695,7 @@ body::before {
 .card-img-wrap { position: relative; flex-shrink: 0; }
 .entity-card.no-img .card-img-wrap { display: none; }
 
-.card-img { min-height: 148px; max-height: 185px; display: block; width: 100%; object-fit: cover; transition: object-position 0s; }
+.card-img { min-height: 158px; max-height: 196px; display: block; width: 100%; object-fit: cover; transition: object-position 0s; }
 @keyframes card-img-pan {
   to { object-position: center bottom; }
 }
