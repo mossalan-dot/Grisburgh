@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=44';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=45';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=17';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=2';
 import { renderDungeon } from './render-dungeon.js?v=15';
@@ -779,6 +779,7 @@ function mdToHtml(s) {
   // \x02 is een controle-teken dat nooit in gewone tekst voorkomt.
   const _WL_SEP = '\x02';
   const _wlNames = [];
+  const _wlSeen  = new Set();   // track eerste voorkomen per naam
   let text = String(s).replace(/\[\[([^\]]+)\]\]/g, (_, name) => {
     const idx = _wlNames.length;
     _wlNames.push(name);
@@ -812,47 +813,74 @@ function mdToHtml(s) {
     .replace(/(<\/h[1-4]>|<\/hr>)<br>/g, '$1')
     .replace(/(<hr class="md-hr">)<br>/g, '$1');
 
-  // ── Stap 3: Vervang wikilink-placeholders ──
+  // ── Stap 3: Vervang wikilink-placeholders (eerste voorkomen = link, rest = plain) ──
   if (_wlNames.length) {
     const re = new RegExp(`${_WL_SEP}(\\d+)${_WL_SEP}`, 'g');
-    text = text.replace(re, (_, idx) => _resolveWikilink(_wlNames[parseInt(idx)]));
+    text = text.replace(re, (_, idx) => {
+      const name    = _wlNames[parseInt(idx)];
+      const isFirst = !_wlSeen.has(name);
+      if (isFirst) _wlSeen.add(name);
+      return _resolveWikilink(name, isFirst);
+    });
   }
 
   return text;
 }
 
+// ── Wikilink naam-index ─────────────────────────────────────────────
+// Platte map: name → { id, type, vis }
+// Wordt gevuld bij opstart én bijgewerkt als render-campagne.js entities laadt.
+window._entityNameIndex = window._entityNameIndex || {};
+
+window._buildEntityIndex = function(type, entityList) {
+  (entityList || []).forEach(e => {
+    window._entityNameIndex[e.name] = {
+      id:   e.id,
+      type,
+      vis:  e._visibility,   // undefined = DM (altijd zichtbaar)
+    };
+  });
+};
+
 // ── Wikilink-resolver ───────────────────────────────────────────────
-function _resolveWikilink(name) {
-  const cache = window._entityCache || {};
-  const TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
-
-  let foundEntity = null, foundType = null;
-  for (const t of TYPES) {
-    const e = (cache[t] || []).find(e => e.name === name);
-    if (e) { foundEntity = e; foundType = t; break; }
-  }
-
+// isFirst: alleen de eerste keer een klikbare link; dubbelen → plain tekst.
+function _resolveWikilink(name, isFirst) {
+  const idx   = window._entityNameIndex || {};
+  const entry = idx[name];
   const safeName = name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 
-  if (!foundEntity) {
-    // Onbekende entiteitsnaam: toon als gewone tekst met subtiele markering
-    return `<span class="wikilink-unknown" title="Onbekende entiteit">[[${safeName}]]</span>`;
+  if (!entry) {
+    // Onbekende naam: subtiele grijs-markering
+    return `<span class="wikilink-unknown">[[${safeName}]]</span>`;
   }
 
+  const { id, type, vis } = entry;
+
   // Zichtbaarheidscheck voor spelers
-  const vis = foundEntity._visibility || 'visible';
   if (!window.app?.isDM() && (vis === 'hidden' || vis === 'vague')) {
     return `<span class="wikilink-hidden" title="Nog niet onthuld">${safeName}</span>`;
   }
 
-  // Klikbare link (gebruik ID zodat aanhalingstekens in naam geen probleem zijn)
-  return `<a class="wikilink" onclick="event.stopPropagation();window._openDetail('${foundType}','${foundEntity.id}')" title="${safeName}">${safeName}</a>`;
+  // Tweede of latere vermelding: plain tekst (geen link)
+  if (!isFirst) return safeName;
+
+  // Klikbare link met typespecifieke kleur via data-attribuut
+  return `<a class="wikilink wikilink--${type}" data-wl-type="${type}" onclick="event.stopPropagation();window._openDetail('${type}','${id}')" title="${safeName}">${safeName}</a>`;
 }
 
 // ── Wikilink autocomplete ───────────────────────────────────────────
 let _wlAcTriggerEl = null;
 
 function _wlAcInit() {
+  // Pre-laad alle entity-types in de naam-index zodat wikilinks direct werken,
+  // ook als de bijbehorende sectie nog niet bezocht is.
+  const WL_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+  Promise.all(WL_TYPES.map(t =>
+    api.listEntities(t)
+      .then(list => window._buildEntityIndex(t, list))
+      .catch(() => {})
+  ));
+
   // Input: detecteer [[ en toon autocomplete
   document.addEventListener('input', ev => {
     const el = ev.target;
@@ -895,11 +923,11 @@ function _wlAcInit() {
 }
 
 function _wlAcShow(textarea, query) {
-  const cache = window._entityCache || {};
-  const TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+  const idx   = window._entityNameIndex || {};
   const lower = query.toLowerCase();
-  const matches = TYPES.flatMap(t => (cache[t] || []).map(e => ({ name: e.name, type: t })))
-    .filter(e => e.name.toLowerCase().includes(lower))
+  const matches = Object.entries(idx)
+    .filter(([name]) => name.toLowerCase().includes(lower))
+    .map(([name, entry]) => ({ name, type: entry.type }))
     .slice(0, 9);
 
   if (!matches.length) { _wlAcClose(); return; }
