@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=46';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=46'; // app v115
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=17';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=2';
 import { renderDungeon } from './render-dungeon.js?v=15';
@@ -535,7 +535,10 @@ async function _landingPortraitClick(charId, portraitEl) {
   // Naamring: herhaal naam met ✦ als scheiding rondom de cirkel
   const nameEl   = portraitEl.querySelector('.landing-portrait-name');
   const charName = nameEl ? nameEl.textContent.toUpperCase() : '';
-  const ringLabel = charName ? ` ✦ ${charName}` : ' ✦ ';
+  // Gebruik non-breaking spaces ( ) rondom ✦: SVG strips gewone leading/
+  // trailing whitespace uit textContent, waardoor bij de naad van de ring de
+  // spatie tussen NAAM en ✦ ontbreekt.   wordt nooit weggegooid.
+  const ringLabel = charName ? `${charName} ✦ ` : ' ✦ ';
 
   zoom.innerHTML = `
     <div class="landing-zoom-portrait">
