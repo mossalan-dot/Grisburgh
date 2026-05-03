@@ -949,13 +949,26 @@ body::before {
   font-size: 15px;
   line-height: 1;
   cursor: pointer;
-  border: 1px solid rgba(196,168,100,0.22);
-  transition: filter 0.15s, box-shadow 0.15s;
   flex-shrink: 0;
+  /* Uniforme kleur — geen Tailwind-klassen meer */
+  background: #e6d5ad;
+  color: #6a5030;
+  border: 1px solid rgba(196,168,100,0.4);
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 .dm-btn:hover {
-  filter: brightness(1.12);
+  background: #d4bf92;
+  border-color: rgba(196,168,100,0.7);
   box-shadow: 0 2px 6px rgba(60,40,10,0.16);
+}
+/* Actieve staat: subtiele gouden tint, zelfde grootte/vorm */
+.dm-btn--active {
+  background: rgba(184,134,11,0.22);
+  color: #4a3008;
+  border-color: rgba(184,134,11,0.55);
+}
+.dm-btn--active:hover {
+  background: rgba(184,134,11,0.32);
 }
 
 /* ── Rol badge ── */

@@ -1248,9 +1248,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _mVisIcon  = vis === 'visible' ? '\ud83d\udc41'
                      : vis === 'vague'   ? '\ud83d\udc64'
                      :                    '\ud83d\udd12';
-    const _mVisCls   = vis === 'visible' ? 'bg-green-wax text-white'
-                     : vis === 'vague'   ? 'bg-gold-dim/60 text-room-bg'
-                     :                    'bg-room-elevated text-ink-dim';
     const _mVisTitle = vis === 'visible' ? 'Verbergen  ·  Shift: vaag tonen'
                      : vis === 'vague'   ? 'Volledig tonen  ·  Shift: vaag houden'
                      : _ts              ? 'Zichtbaar maken  ·  Shift: vaag tonen'
@@ -1258,24 +1255,24 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     infoHtml += `
       <div class="dm-only mt-4 pt-4 border-t border-room-border">
         <div class="flex flex-wrap gap-2 mb-3">
-          <button class="dm-btn ${_mVisCls}"
+          <button class="dm-btn${vis !== 'hidden' ? ' dm-btn--active' : ''}"
             title="${_mVisTitle}"
             onclick="window._toggleVis('${tab}','${e.id}',event)">
             ${_mVisIcon}
           </button>
           ${(isPersonage || tab === 'locaties') ? `
-            <button class="dm-btn ${e._secretReveal ? 'bg-seal text-white' : 'bg-room-elevated text-ink-dim'}"
+            <button class="dm-btn${e._secretReveal ? ' dm-btn--active' : ''}"
               title="${e._secretReveal ? 'Geheim verbergen voor spelers' : 'Geheim onthullen aan spelers'}"
               onclick="window._toggleSecret('${tab}','${e.id}')">
               ${e._secretReveal ? '✨' : '🔒'}
             </button>
           ` : ''}
-          <button class="dm-btn ${e._deceased ? 'bg-red-800 text-white' : 'bg-room-elevated text-ink-dim'}"
+          <button class="dm-btn${e._deceased ? ' dm-btn--active' : ''}"
             title="${e._deceased ? 'Markering verwijderen' : 'Markeer als deceased'}"
             onclick="window._toggleDeceased('${tab}','${e.id}')">
             ☠
           </button>
-          <button class="dm-btn bg-gold-dim/80 text-room-bg"
+          <button class="dm-btn"
             title="Bewerk dit kaartje (afbeelding, tekst, geluid)"
             onclick="window._openEditor('${tab}','${e.id}')">
             ✏
