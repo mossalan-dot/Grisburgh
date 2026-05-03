@@ -1131,10 +1131,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _heroBadge = getSubtypeBadge(tab, e);
   // Bouw meta-panel (rechterkolom naast afbeelding)
   const _d = e.data || {};
-  const _heroBgColor = { personages:'#f5f7ee', locaties:'#f0f3f8', organisaties:'#f8f0f0', voorwerpen:'#faf3e0', documenten:'#f5f2f8' }[tab] || '#faf4e6';
+  const _heroBgColor = '#f5edd8'; // perkament voor alle types
+  const _heroBorderColor = { personages:'rgba(58,138,80,0.35)', locaties:'rgba(58,106,154,0.35)', organisaties:'rgba(139,42,42,0.35)', voorwerpen:'rgba(154,112,8,0.35)', documenten:'rgba(90,58,122,0.35)' }[tab] || 'rgba(196,168,100,0.3)';
   const _heroMetaItems = [];
   if (tab === 'personages') {
-    if (_d.rol)    _heroMetaItems.push(`<span class="hero-meta-rol">${esc(_d.rol)}</span>`);
     if (_d.ras)    _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.ras)}</span>`);
     if (_d.klasse) _heroMetaItems.push(`<span class="hero-meta-tag">${esc(_d.klasse)}</span>`);
   } else if (tab === 'locaties') {
@@ -1160,7 +1160,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           <div class="detail-hero-overlay"></div>
           ${_heroBadge ? `<div class="detail-hero-badge badge ${_heroBadge.cls}">${esc(_heroBadge.label)}</div>` : ''}
         </div>
-        <div class="detail-hero-meta" style="background:${_heroBgColor}">
+        <div class="detail-hero-meta" style="background:${_heroBgColor};border-left:3px solid ${_heroBorderColor}">
           <div class="hero-meta-icon">${getAutoIcon(tab, e)}</div>
           ${_heroMetaItems.join('')}
           ${_primaryCaption ? `<p class="hero-meta-caption">${esc(_primaryCaption)}</p>` : ''}
@@ -1195,7 +1195,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   for (const field of (schema.fields || [])) {
     if (['geheim', 'flavour', 'rol', 'stapelbaar', 'attunement'].includes(field.key)) continue;
     if (tab === 'voorwerpen' && ['itemType', 'rariteit'].includes(field.key)) continue;
-    if (field.dmOnly) continue;
+    if (tab === 'personages' && ['ras', 'klasse'].includes(field.key)) continue;
+    if (tab === 'locaties'   && ['locType', 'wijk'].includes(field.key)) continue;
+    if (tab === 'organisaties' && field.key === 'orgType') continue;
     const val = e.data?.[field.key];
     if (!val) continue;
     if (field.key === 'desc') {
