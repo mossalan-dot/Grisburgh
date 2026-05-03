@@ -76,6 +76,7 @@ export const api = {
   createSessieLog: (data) => request('/sessieLog', { method: 'POST', body: JSON.stringify(data) }),
   updateSessieLog: (id, data) => request(`/sessieLog/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteSessieLog: (id) => request(`/sessieLog/${id}`, { method: 'DELETE' }),
+  resetChapterImages: (key) => request(`/sessieLog/chapter/${encodeURIComponent(key)}/reset-images`, { method: 'PUT' }),
 
   // Meta
   meta: () => request('/meta'),
@@ -94,6 +95,15 @@ export const api = {
   updateMapPin: (id, data) => request(`/map/pins/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteMapPin: (id) => request(`/map/pins/${id}`, { method: 'DELETE' }),
   approveMapPin: (id) => request(`/map/pins/${id}/approve`, { method: 'PUT' }),
+
+  // Dungeon maps
+  listDungeons:         ()          => request('/dungeons'),
+  createDungeon:        (data)      => request('/dungeons',                 { method: 'POST',   body: JSON.stringify(data) }),
+  updateDungeon:        (id, data)  => request(`/dungeons/${id}`,           { method: 'PUT',    body: JSON.stringify(data) }),
+  deleteDungeon:        (id)        => request(`/dungeons/${id}`,           { method: 'DELETE' }),
+  saveDungeonRooms:     (id, rooms, connections=[]) => request(`/dungeons/${id}/rooms`, { method: 'PUT', body: JSON.stringify({ rooms, connections }) }),
+  revealDungeonRoom:    (id, data)  => request(`/dungeons/${id}/reveal`,    { method: 'POST',   body: JSON.stringify(data) }),
+  setDungeonPartyAccess:(id, list, completed=[]) => request(`/dungeons/${id}/party-access`, { method: 'PUT', body: JSON.stringify({ partyAccess: list, partyCompleted: completed }) }),
 
   // Tunnel
   tunnelStart:  ()     => request('/tunnel/start',  { method: 'POST' }),
@@ -146,6 +156,10 @@ export const api = {
   removeItemOwner:     (id)            => request(`/items/${id}/owner`,                { method: 'DELETE' }),
   removeStackOwner:    (id, charId)    => request(`/items/${id}/owner?characterId=${encodeURIComponent(charId)}`, { method: 'DELETE' }),
   patchItemOwnerQty:   (id, charId, delta) => request(`/items/${id}/owner/${charId}`, { method: 'PATCH', body: JSON.stringify({ delta }) }),
+  patchItemCharges:    (itemId, charId, charges)    => request(`/items/${itemId}/owner/${charId}/charges`,    { method: 'PATCH', body: JSON.stringify({ charges }) }),
+  patchItemMaxCharges: (itemId, charId, maxCharges) => request(`/items/${itemId}/owner/${charId}/maxCharges`, { method: 'PATCH', body: JSON.stringify({ maxCharges }) }),
+  longRest:            (charId) => request(`/characters/${charId}/long-rest`, { method: 'POST' }),
+  partyLongRest:       ()       => request('/party/long-rest', { method: 'POST' }),
   setTradeAllowed:     (allowed)       => request('/items/trade-allowed',              { method: 'PUT',    body: JSON.stringify({ allowed }) }),
 
   // Speler HP
@@ -237,6 +251,10 @@ export const api = {
   deleteBericht:       (characterId, msgId) => request(`/berichten/${characterId}/${msgId}`,         { method: 'DELETE' }),
   getSjablonen:        ()                   => request('/berichten/sjablonen'),
   saveSjablonen:       (sjablonen)          => request('/berichten/sjablonen',                { method: 'PUT',   body: JSON.stringify({ sjablonen }) }),
+
+  // Brieven (DM → speler/party, rijker format dan berichten)
+  sendPost:   (data)               => request('/post',                              { method: 'POST',   body: JSON.stringify(data) }),
+  deletePost: (characterId, postId) => request(`/post/${characterId}/${postId}`,   { method: 'DELETE' }),
 
   // Madame Ursula
   getUrsula:       ()              => request('/ursula'),

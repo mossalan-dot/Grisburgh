@@ -33,7 +33,7 @@ function _mapImgSrc(map) {
 }
 
 // ── Public entry point ──
-export async function renderKaart() {
+export async function renderKaart(container) {
   MAPS = await api.listMaps();
   if (!MAPS.length) {
     const title = window.app?.state?.meta?.appTitle || 'Wereld';
@@ -52,7 +52,7 @@ export async function renderKaart() {
   }
 
   panX = 0; panY = 0;
-  const section = document.getElementById('section-kaart');
+  const section = container || document.getElementById('section-kaart');
   section.innerHTML = _buildShell();
   _renderMapContent();
   _attachNavEvents();
@@ -118,11 +118,11 @@ function _renderMapContent() {
     ${isDM() ? `
       <div class="mt-3 text-xs text-ink-dim font-mono flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-gold inline-block"></span>
-        Klik op de kaart om een pin te plaatsen
+        Dubbelklik op de kaart om een pin te plaatsen
       </div>` : _availableForPin.length ? `
       <div class="mt-3 text-xs text-ink-dim font-mono flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-gold/40 inline-block"></span>
-        Klik op de kaart om een locatie voor te stellen
+        Dubbelklik op de kaart om een locatie voor te stellen
       </div>` : ''}`;
 
   _initZoom();
@@ -268,16 +268,43 @@ function _attachPanAndClick() {
     if (!panning) return;
     panning = false;
     wrapper.style.cursor = 'grab';
+  }, { signal });
 
-    if (!panMoved) {
+  // Dubbelklik → pin plaatsen (onderscheidt pan van intentionele plaatsing)
+  wrapper.addEventListener('dblclick', (ev) => {
+    if (ev.target.closest('.map-pin')) return;
+    ev.preventDefault(); // voorkom tekstselectie
+    const rect = wrapper.getBoundingClientRect();
+    const x = ((ev.clientX - rect.left) / rect.width) * 100;
+    const y = ((ev.clientY - rect.top) / rect.height) * 100;
+    if (isDM()) {
+      _openPinPlacer(x, y, ev.clientX, ev.clientY);
+    } else if (_availableForPin.length) {
+      _openPlayerPinPlacer(x, y, ev.clientX, ev.clientY);
+    }
+  }, { signal });
+
+  // Touch: dubbelklik-detectie (twee tikken binnen 320 ms op ~dezelfde plek)
+  let _lastTap = null;
+  wrapper.addEventListener('touchend', (ev) => {
+    if (ev.target.closest('.map-pin')) return;
+    const t = ev.changedTouches[0];
+    const now = Date.now();
+    if (_lastTap && now - _lastTap.time < 320
+        && Math.abs(t.clientX - _lastTap.x) < 24
+        && Math.abs(t.clientY - _lastTap.y) < 24) {
+      ev.preventDefault();
       const rect = wrapper.getBoundingClientRect();
-      const x = ((ev.clientX - rect.left) / rect.width) * 100;
-      const y = ((ev.clientY - rect.top) / rect.height) * 100;
+      const x = ((t.clientX - rect.left) / rect.width) * 100;
+      const y = ((t.clientY - rect.top) / rect.height) * 100;
       if (isDM()) {
-        _openPinPlacer(x, y, ev.clientX, ev.clientY);
+        _openPinPlacer(x, y, t.clientX, t.clientY);
       } else if (_availableForPin.length) {
-        _openPlayerPinPlacer(x, y, ev.clientX, ev.clientY);
+        _openPlayerPinPlacer(x, y, t.clientX, t.clientY);
       }
+      _lastTap = null;
+    } else {
+      _lastTap = { time: now, x: t.clientX, y: t.clientY };
     }
   }, { signal });
 }

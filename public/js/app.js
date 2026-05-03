@@ -1,10 +1,11 @@
 import { api } from './api.js';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=40';
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=12';
-import { renderKaart, queueFlyTo } from './render-kaart.js';
-import { renderRelatiemap } from './render-relatiemap.js?v=8';
-import { initSocket } from './socket-client.js?v=8';
-import { initDmPanel } from './dm-panel.js?v=8';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=44';
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=17';
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=2';
+import { renderDungeon } from './render-dungeon.js?v=15';
+import { renderRelatiemap } from './render-relatiemap.js?v=9';
+import { initSocket } from './socket-client.js?v=9';
+import { initDmPanel } from './dm-panel.js?v=19';
 
 // ── App State ──
 const state = {
@@ -35,6 +36,8 @@ window.app = {
   openModal,
   closeModal,
   openLightbox,
+  openLightboxAt,
+  lbNavigate,
   closeLightbox,
   refreshSection,
   switchSection,
@@ -49,6 +52,9 @@ window.app = {
   saveHeader,
   cancelHeader,
   applyAppMeta,
+  showLanding,
+  hideLanding,
+  _landingPortraitClick,
   openPlayerPicker,
   closePlayerPicker,
   playerLogin,
@@ -59,7 +65,24 @@ window.app = {
   closeDienstenMenu,
   toggleLogboekMenu,
   closeLogboekMenu,
+  setActiveAkte,
+  stopAkte,
 };
+
+// ── Actieve akte (reveal-modus vanuit logboek) ──
+function setActiveAkte(ch, num, title) {
+  const chip  = document.getElementById('active-akte-chip');
+  const label = document.getElementById('active-akte-label');
+  if (!chip || !label) return;
+  label.textContent = `Akte ${num} — ${title}`;
+  chip.classList.remove('hidden');
+}
+
+function stopAkte() {
+  const chip = document.getElementById('active-akte-chip');
+  if (chip) chip.classList.add('hidden');
+  window.dmPanel?.closeRevealStrip?.();
+}
 
 // ── Section switching ──
 $$('.section-tab[data-section]').forEach(btn => {
@@ -151,7 +174,6 @@ function switchSection(section) {
     logboek:       'rgba(184,134,11,0.55)',
     herberg:       'rgba(160,90,20,0.65)',
     tweespalt:     'rgba(90,20,20,0.65)',
-    ursula:        'rgba(60,20,90,0.65)',
     gock:          'rgba(20,50,80,0.65)',
     'mijn-karakter': 'rgba(42,90,138,0.55)',
     meesterkamer:  'rgba(139,42,42,0.55)',
@@ -335,13 +357,11 @@ function applyRole() {
     logoutBtn.classList.toggle('hidden', state.role !== 'dm');
   }
 
-  // Potloodknop header: alleen zichtbaar voor actieve DM
-  const headerEditBtn = document.getElementById('header-edit-btn');
-  if (headerEditBtn) headerEditBtn.classList.toggle('hidden', !isDmActive);
-
-  // Dice FAB: alleen zichtbaar voor spelers (niet voor actieve DM)
-  const diceFab = document.getElementById('dice-fab');
-  if (diceFab) diceFab.classList.toggle('hidden', isDmActive);
+  // Dice FAB: spelers zien het reguliere, DM ziet de DM-variant
+  const diceFab   = document.getElementById('dice-fab');
+  const dmDiceFab = document.getElementById('dm-dice-fab');
+  if (diceFab)   diceFab.classList.toggle('hidden', isDmActive);
+  if (dmDiceFab) dmDiceFab.classList.toggle('hidden', !isDmActive);
 
   // Meesterkamer-tab: alleen zichtbaar voor actieve DM
   const dmTab = document.getElementById('dm-tab');
@@ -380,11 +400,11 @@ function applyRole() {
     herbergItem.classList.toggle('hidden', !state.meta?.herberg);
     const herbergNaam = state.meta?.herberg?.naam;
     const herbergLabel = document.getElementById('diensten-herberg-label');
-    if (herbergLabel) herbergLabel.textContent = herbergNaam || 'Herberg';
+    if (herbergLabel) herbergLabel.textContent = '🍺 ' + (herbergNaam || 'Herberg');
   }
 
   // Diensten-knop active-state als een diensten-sectie actief is
-  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'ursula', 'gock'];
+  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock'];
   const dienstenBtn = document.getElementById('diensten-nav-btn');
   if (dienstenBtn) dienstenBtn.classList.toggle('active', DIENSTEN_SECTIONS.includes(state.activeSection));
 
@@ -400,6 +420,9 @@ function applyRole() {
       myCharTab.innerHTML = '🧑 Mijn karakter';
     }
   }
+
+  // Verberg landing zodra iemand ingelogd is
+  if (state.role === 'dm' || state.playerName) hideLanding();
 
   updateFab();
 }
@@ -423,56 +446,185 @@ function dmToggleClick() {
   }
 }
 
-// ── Speler-karakter kiezer ──
+// ── Landing page ──
 
-async function openPlayerPicker() {
-  const panel = $('#player-picker-overlay');
-  const list  = $('#player-char-list');
-  if (!panel || !list) return;
-  list.innerHTML = '<p class="player-picker-loading">Laden…</p>';
-  panel.classList.remove('hidden');
+function hideLanding() {
+  document.getElementById('landing-overlay')?.classList.add('hidden');
+}
+
+async function showLanding() {
+  const overlay = document.getElementById('landing-overlay');
+  if (!overlay) return;
+
+  // Reset animatieklassen + eventuele overgebleven zoom-cirkel van vorige sessie
+  overlay.classList.remove('hidden', 'landing-overlay--dimming', 'landing-overlay--out');
+  document.getElementById('landing-zoom')?.remove();
+
+  // Titels uit meta
+  const titleEl    = document.getElementById('landing-title');
+  const subtitleEl = document.getElementById('landing-subtitle');
+  if (titleEl)    titleEl.textContent    = state.meta?.appTitle    || 'Grisburgh';
+  if (subtitleEl) subtitleEl.textContent = state.meta?.appSubtitle || '';
+
+
+  const list = document.getElementById('landing-portraits');
+  if (!list) return;
+  list.innerHTML = '<p class="landing-loading">Laden…</p>';
+
   try {
     const chars = await api.listPlayerChars();
     if (chars.length === 0) {
-      list.innerHTML = '<p class="player-picker-loading">Geen spelerskarakters gevonden.</p>';
+      list.innerHTML = '<p class="landing-loading">Geen spelerskarakters gevonden.</p>';
       return;
     }
     list.innerHTML = chars.map(c => {
       const sub = [c.ras, c.klasse].filter(Boolean).join(' · ');
-      const isMe = c.id === state.characterId;
       return `
-        <button class="player-char-card${isMe ? ' player-char-card--active' : ''}"
-          onclick="window.app.playerLogin('${esc(c.id)}')">
-          <div class="player-char-avatar-wrap">
-            <img src="/api/files/${esc(c.id)}" class="player-char-avatar"
+        <div class="landing-portrait" onclick="window.app._landingPortraitClick('${esc(c.id)}', this)">
+          <div class="landing-portrait-ring">
+            <img src="/api/files/${esc(c.id)}" class="landing-portrait-img"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="player-char-avatar-fallback" style="display:none">👤</div>
+            <div class="landing-portrait-fallback" style="display:none">👤</div>
           </div>
-          <div class="player-char-info">
-            <div class="player-char-name">${esc(c.name)}</div>
-            ${sub ? `<div class="player-char-sub">${esc(sub)}</div>` : ''}
-          </div>
-          ${isMe ? '<div class="player-char-badge">✓</div>' : ''}
-        </button>`;
+          <div class="landing-portrait-name">${esc(c.name)}</div>
+          ${sub ? `<div class="landing-portrait-sub">${esc(sub)}</div>` : ''}
+        </div>`;
     }).join('');
   } catch {
-    list.innerHTML = '<p class="player-picker-loading">Fout bij laden.</p>';
+    list.innerHTML = '<p class="landing-loading">Fout bij laden.</p>';
   }
 }
 
-function closePlayerPicker() {
-  $('#player-picker-overlay')?.classList.add('hidden');
+// ── Landing portret-klik animatie ──
+
+async function _landingPortraitClick(charId, portraitEl) {
+  // Voorkom dubbele klik
+  if (document.getElementById('landing-zoom')) return;
+
+  // Zelfde karakter binnen 15 minuten → animatie overslaan
+  try {
+    const lastLogin = JSON.parse(localStorage.getItem('_lastLogin') || 'null');
+    if (lastLogin && lastLogin.charId === charId && Date.now() - lastLogin.ts < 15 * 60 * 1000) {
+      document.getElementById('landing-overlay')?.classList.add('hidden');
+      await playerLogin(charId);
+      return;
+    }
+  } catch { /* ok */ }
+
+  // 1. Andere portretten wegvallen + overlay-inhoud meteen verduisteren
+  const landingOverlay = document.getElementById('landing-overlay');
+  landingOverlay?.classList.add('landing-overlay--dimming');
+  document.querySelectorAll('.landing-portrait').forEach(p => {
+    if (p !== portraitEl) p.classList.add('landing-portrait--dismissed');
+  });
+  portraitEl.style.pointerEvents = 'none';
+
+  // 2. Start-coördinaten van de ring vastleggen
+  const ring = portraitEl.querySelector('.landing-portrait-ring');
+  const r    = ring.getBoundingClientRect();
+
+  // 3. Zoom-cirkel aanmaken op dezelfde plek als het portret
+  const zoom = document.createElement('div');
+  zoom.id        = 'landing-zoom';
+  zoom.className = 'landing-zoom';
+  Object.assign(zoom.style, {
+    left: r.left + 'px', top: r.top + 'px',
+    width: r.width + 'px', height: r.height + 'px',
+  });
+
+  // Naamring: herhaal naam met ✦ als scheiding rondom de cirkel
+  const nameEl   = portraitEl.querySelector('.landing-portrait-name');
+  const charName = nameEl ? nameEl.textContent.toUpperCase() : '';
+  const ringLabel = charName ? ` ✦ ${charName}` : ' ✦ ';
+
+  zoom.innerHTML = `
+    <div class="landing-zoom-portrait">
+      <img class="landing-zoom-img" src="/api/files/${esc(charId)}"
+        onerror="this.style.display='none'">
+      <video id="landing-zoom-video" class="landing-zoom-video" autoplay muted playsinline>
+        <source src="/api/files/${esc(charId)}_video" type="video/mp4">
+      </video>
+    </div>
+    <svg class="landing-zoom-ring" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <path id="lzr-path"
+          d="M 50,50 m 0,-44 a 44,44 0 1,1 0,88 a 44,44 0 1,1 0,-88"/>
+      </defs>
+      <circle cx="50" cy="50" r="41.5"
+        fill="none" stroke="rgba(196,168,100,0.30)" stroke-width="0.5"/>
+      <text class="landing-zoom-ring-text">
+        <textPath href="#lzr-path" startOffset="0%">${ringLabel.repeat(6)}</textPath>
+      </text>
+    </svg>`;
+  document.body.appendChild(zoom);
+
+  // Pas het aantal herhalingen aan zodat de tekst naadloos de cirkelomtrek vult.
+  // We meten de werkelijke breedte van één herhaling in SVG-eenheden en berekenen
+  // hoeveel reps precies de omtrek (getTotalLength) vullen. textLength + lengthAdjust
+  // strekt de tekst daarna uit tot exact de omtrek → geen afkap, geen zichtbare naad.
+  requestAnimationFrame(() => {
+    const tp    = zoom.querySelector('textPath');
+    const lzrPath = zoom.querySelector('#lzr-path');
+    if (!tp || !lzrPath) return;
+    const pathLen = lzrPath.getTotalLength();   // ≈ 276 SVG-eenheden voor r=44
+    tp.textContent = ringLabel;                 // één herhaling meten
+    const oneLen  = tp.getComputedTextLength();
+    if (!oneLen) return;
+    const reps = Math.ceil(pathLen / oneLen);   // kleinste N dat de omtrek vult
+    tp.textContent = ringLabel.repeat(reps);
+    tp.setAttribute('textLength',    pathLen.toFixed(3));
+    tp.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+  });
+
+  // 4. Doelgrootte + positie (gecentreerd in het scherm)
+  const size = Math.round(Math.min(window.innerWidth * 0.82, window.innerHeight * 0.74, 560));
+  const tx   = Math.round((window.innerWidth  - size) / 2);
+  const ty   = Math.round((window.innerHeight - size) / 2);
+
+  // Animatie starten na twee frames (zodat de browser de start-positie heeft gezien)
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    zoom.classList.add('landing-zoom--growing');
+    Object.assign(zoom.style, {
+      left: tx + 'px', top: ty + 'px',
+      width: size + 'px', height: size + 'px',
+    });
+  }));
+
+  // 5. Wachten tot de video klaar is, of fallback als er geen video is
+  const vid = document.getElementById('landing-zoom-video');
+  await new Promise(resolve => {
+    const cap = setTimeout(resolve, 12_000); // 12s harde grens
+
+    if (!vid) { clearTimeout(cap); setTimeout(resolve, 1000); return; }
+
+    vid.addEventListener('ended', () => { clearTimeout(cap); resolve(); });
+
+    // Geen video-bestand: 'error' vuurt snel → korte pauze dan verder
+    vid.addEventListener('error', () => {
+      clearTimeout(cap);
+      setTimeout(resolve, 800);
+    });
+  });
+
+  // 6. Zoom + overlay gelijktijdig uitfaden, daarna direct naar de app
+  zoom.classList.add('landing-zoom--out');
+  landingOverlay?.classList.add('landing-overlay--out');
+  await new Promise(r => setTimeout(r, 400));
+
+  // Landing nu volledig verbergen (vóór login-API, zodat er geen flits is)
+  landingOverlay?.classList.add('hidden');
+  zoom.remove();
+
+  try { await playerLogin(charId); } catch { /* fout al getoond door playerLogin */ }
 }
 
-// Sluit spelerkiezer bij klik buiten het paneel
-document.addEventListener('click', (e) => {
-  const panel = document.getElementById('player-picker-overlay');
-  if (panel && !panel.classList.contains('hidden') &&
-      !panel.contains(e.target) &&
-      e.target.id !== 'player-switch-btn') {
-    closePlayerPicker();
-  }
-});
+// ── Speler-karakter kiezer ──
+
+// openPlayerPicker is vervangen door showLanding() — de 👤-knop brengt
+// de speler terug naar de landingspagina om een personage te kiezen.
+// closePlayerPicker blijft als no-op zodat bestaande aanroepen vanuit playerLogin werken.
+function openPlayerPicker() { showLanding(); }
+function closePlayerPicker() { /* panel niet meer in gebruik */ }
 
 async function playerLogin(characterId) {
   try {
@@ -481,10 +633,13 @@ async function playerLogin(characterId) {
     state.characterId = cid;
     closePlayerPicker();
     applyRole();
+    // Sla login op voor animatie-skip bij herlogin binnen 15 minuten
+    try { localStorage.setItem('_lastLogin', JSON.stringify({ charId: cid, ts: Date.now() })); } catch { /* ok */ }
     // Registreer socket zodat DM directe berichten kan sturen
     if (cid && window._socket) window._socket.emit('player:register', cid);
-    // Herlaad alles zodat zichtbaarheid van het nieuwe karakter geldt
-    await refreshAll();
+    // Navigeer direct naar mijn-karakter → personage-subtab
+    window._pendingPlayerSubTab = 'personage';
+    switchSection('mijn-karakter');
   } catch (err) {
     alert('Inloggen mislukt: ' + err.message);
   }
@@ -522,16 +677,55 @@ function closeModal() {
 }
 
 // ── Lightbox ──
-let lbZoom = 1;
-function openLightbox(src, title) {
-  const lb = $('#lightbox');
+let lbZoom    = 1;
+let _lbImages = null;   // [{src, title}] of huidige reeks
+let _lbIdx    = 0;
+
+function _lbShowCurrent() {
+  const entry = _lbImages?.[_lbIdx];
+  if (!entry) return;
+  lbZoom = 1;
   const img = $('#lb-img');
-  img.src = src;
-  $('#lb-title').textContent = title || '';
+  img.src = entry.src;
+  img.style.transform = '';
+  $('#lb-title').textContent = entry.title || '';
+
+  const multi = (_lbImages?.length || 0) > 1;
+  const left  = $('#lb-nav-left');
+  const right = $('#lb-nav-right');
+  const cnt   = $('#lb-counter');
+  if (left)  left.classList.toggle('hidden',  !multi || _lbIdx <= 0);
+  if (right) right.classList.toggle('hidden', !multi || _lbIdx >= _lbImages.length - 1);
+  if (cnt) {
+    cnt.textContent = multi ? `${_lbIdx + 1} / ${_lbImages.length}` : '';
+    cnt.classList.toggle('hidden', !multi);
+  }
+}
+
+// Enkelvoudige afbeelding (achterwaarts compatibel)
+function openLightbox(src, title) {
+  _lbImages = [{ src, title: title || '' }];
+  _lbIdx    = 0;
+  _lbShowCurrent();
+  const lb = $('#lightbox');
   lb.classList.remove('hidden');
   lb.classList.add('flex');
-  lbZoom = 1;
-  img.style.transform = '';
+}
+
+// Reeks met navigatie: images = [{src, title}], startIdx = index
+function openLightboxAt(images, startIdx = 0) {
+  _lbImages = images;
+  _lbIdx    = Math.max(0, Math.min((images?.length || 1) - 1, startIdx));
+  _lbShowCurrent();
+  const lb = $('#lightbox');
+  lb.classList.remove('hidden');
+  lb.classList.add('flex');
+}
+
+function lbNavigate(dir) {
+  if (!_lbImages?.length) return;
+  _lbIdx = Math.max(0, Math.min(_lbImages.length - 1, _lbIdx + dir));
+  _lbShowCurrent();
 }
 
 function closeLightbox() {
@@ -539,6 +733,7 @@ function closeLightbox() {
   lb.classList.add('hidden');
   lb.classList.remove('flex');
   $('#lb-img').src = '';
+  _lbImages = null;
 }
 
 $('#lightbox').addEventListener('wheel', (e) => {
@@ -549,7 +744,10 @@ $('#lightbox').addEventListener('wheel', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !$('#lightbox').classList.contains('hidden')) closeLightbox();
+  if ($('#lightbox').classList.contains('hidden')) return;
+  if (e.key === 'Escape')      closeLightbox();
+  if (e.key === 'ArrowLeft')   lbNavigate(-1);
+  if (e.key === 'ArrowRight')  lbNavigate(1);
 });
 
 // ── HTML escape ──
@@ -741,6 +939,7 @@ window._togglePartyPresence = (id) => {
 window.renderGroupSwitcher = function(groups, activeGroupId) {
   _activeGroupId = activeGroupId;
   window._activeGroupId = activeGroupId; // toegankelijk voor andere modules (render-archief)
+  window._groups = groups; // groepslijst voor naam-opzoeken
   const container = document.getElementById('group-switcher');
   if (!container) return;
   // Alleen zichtbaar in DM-modus
@@ -811,15 +1010,61 @@ async function refreshSection(section) {
   else if (section === 'voorwerpen') await renderVoorwerpen();
   else if (section === 'documenten') await renderDocumenten();
   else if (section === 'logboek') await renderLogboek();
-  else if (section === 'kaart') await renderKaart();
+  else if (section === 'kaart') await _renderKaartSection();
   else if (section === 'relatiemap') await renderRelatiemap();
   else if (section === 'herberg') await renderHerberg();
   else if (section === 'tweespalt') await renderTweespalt();
-  else if (section === 'ursula') await renderUrsula();
   else if (section === 'gock') await renderGock();
   else if (section === 'mijn-karakter') await renderMijnKarakter();
   else if (section === 'spelers') await renderSpelersTab();
   else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
+}
+
+// ── Kaart-sectie: toggle tussen Wereldkaarten en Dungeons ──
+let _kaartMode = 'wereld'; // 'wereld' | 'dungeon'
+
+async function _renderKaartSection() {
+  const container = document.getElementById('section-kaart');
+  if (!container) return;
+
+  // Toggle-bar bovenaan; de inhoud eronder wordt gevuld door de sub-renderer
+  container.innerHTML = `
+    <div class="kaart-mode-bar">
+      <button class="kaart-mode-btn ${_kaartMode==='wereld'?'active':''}" data-mode="wereld">
+        🗺️ Kaarten
+      </button>
+      <button class="kaart-mode-btn ${_kaartMode==='dungeon'?'active':''}" data-mode="dungeon">
+        ⛓️ Dungeons
+      </button>
+    </div>
+    <div class="kaart-mode-content" id="kaart-mode-content" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;"></div>`;
+
+  container.querySelectorAll('.kaart-mode-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      _kaartMode = btn.dataset.mode;
+      container.querySelectorAll('.kaart-mode-btn').forEach(b => b.classList.toggle('active', b===btn));
+      await _renderKaartContent();
+    });
+  });
+
+  await _renderKaartContent();
+}
+
+async function _renderKaartContent() {
+  const content = document.getElementById('kaart-mode-content');
+  if (!content) return;
+  if (_kaartMode === 'wereld') {
+    // renderKaart werkt op #section-kaart; geef het de content-div
+    content.innerHTML = '';
+    // renderKaart verwacht section-kaart als container — we wrappen het tijdelijk
+    const tmp = document.createElement('div');
+    tmp.style.cssText = 'flex:1;display:flex;flex-direction:column;min-height:0;height:100%;';
+    tmp.id = 'section-kaart-inner';
+    content.appendChild(tmp);
+    await renderKaart(tmp);
+  } else {
+    await renderDungeon(content);
+  }
 }
 
 const _SKILLS = [
@@ -960,18 +1205,28 @@ async function renderMijnKarakter(opts = {}) {
   state.bookmarks = Array.isArray(playerProfile.bookmarks) ? playerProfile.bookmarks : [];
 
   // Geclaimde & stapelbare voorwerpen van deze speler
-  const myItemMap = {}; // itemId → qty (null = uniek, number = stapelbaar)
+  const myItemMap = {}; // itemId → { qty }
   for (const [itemId, ownerData] of Object.entries(ownershipData.owners || {})) {
     if (Array.isArray(ownerData)) {
       const entry = ownerData.find(o => o.characterId === charId);
-      if (entry && (entry.qty || 1) > 0) myItemMap[itemId] = entry.qty || 1;
+      if (entry && (entry.qty || 1) > 0)
+        myItemMap[itemId] = { qty: entry.qty || 1 };
     } else if (ownerData?.characterId === charId) {
-      myItemMap[itemId] = null; // uniek
+      myItemMap[itemId] = { qty: null };
     }
   }
+  // Apply itemCharges / itemMaxCharges from ownership data
+  const _itemChargesMap    = ownershipData.itemCharges    || {};
+  const _itemMaxChargesMap = ownershipData.itemMaxCharges || {};
   const myItems = allVoorwerpen
     .filter(item => item.id in myItemMap)
-    .map(item => ({ ...item, _qty: myItemMap[item.id], _stapelbaar: myItemMap[item.id] !== null }));
+    .map(item => {
+      const d = myItemMap[item.id];
+      const baseMax     = parseInt(item.data?.maxCharges) || 0;
+      const effectiveMax = (_itemMaxChargesMap[item.id] != null) ? _itemMaxChargesMap[item.id] : baseMax;
+      const curCh = effectiveMax > 0 ? (_itemChargesMap[item.id] ?? effectiveMax) : 0;
+      return { ...item, _qty: d.qty, _stapelbaar: d.qty !== null, _baseMaxCharges: baseMax, _maxCharges: effectiveMax, _charges: curCh, _rechargeOn: item.data?.rechargeOn || '', _playerMaxAdjustable: item.data?.playerMaxAdjustable === 'true' };
+    });
 
   // Zoek eigen combatant in actief gevecht
   let myCombatant = null;
@@ -1077,7 +1332,7 @@ async function renderMijnKarakter(opts = {}) {
   el.innerHTML = `
     <div class="player-dashboard"${_themeAttr}>
       <!-- Karakter header (altijd zichtbaar) -->
-      <div class="player-dash-hero" id="player-dash-hero">
+      <div class="player-dash-hero" id="player-dash-hero" style="align-items:center">
         <div class="player-dash-avatar-outer">
           ${(() => {
             const _hR = 45, _hC = +(2 * Math.PI * 45).toFixed(1);
@@ -1145,8 +1400,10 @@ async function renderMijnKarakter(opts = {}) {
                 onblur="window._saveProfileField('bloodStatus', this.value)"></div>` : ''}
           </div>
         </div>
-        <div class="player-class-icon-wrap" id="player-class-icon-wrap"${_klasseKey ? ` onclick="window._toggleKlasseTheme()" title="${_klasseThemeOn ? 'Schakel naar standaard look' : 'Schakel naar klasse-look'}" style="cursor:pointer"` : ''}>
-          ${_dominantKlasse && _KLASSEN_MET_ICON.has(_dominantKlasse) ? `<img src="/img/classes/${esc(_dominantKlasse)}.png" class="player-class-icon" alt="${esc(_dominantKlasse)}">` : ''}
+        <div class="player-class-icon-outer">
+          <div class="player-class-icon-wrap" id="player-class-icon-wrap"${_klasseKey ? ` onclick="window._toggleKlasseTheme()" title="${_klasseThemeOn ? 'Schakel naar standaard look' : 'Schakel naar klasse-look'}" style="cursor:pointer"` : ''}>
+            ${_dominantKlasse && _KLASSEN_MET_ICON.has(_dominantKlasse) ? `<img src="/img/classes/${esc(_dominantKlasse)}.png" class="player-class-icon" alt="${esc(_dominantKlasse)}">` : ''}
+          </div>
         </div>
       </div>
 
@@ -1583,8 +1840,6 @@ async function renderMijnKarakter(opts = {}) {
             💰 Beurs
             ${partyCurrency.enabled ? '<span class="currency-shared-badge">🤝 Gedeeld</span>' : ''}
           </div>
-          ${partyCurrency.enabled ? `
-          <p class="herberg-teller">De party heeft een gedeelde beurs.</p>` : ''}
           <div class="player-dash-currency-new">
             <div class="player-currency-item player-currency-gold">
               <span class="player-currency-coin">🟡</span>
@@ -1629,51 +1884,83 @@ async function renderMijnKarakter(opts = {}) {
               { key: 'Ring',      label: 'Ringen',      icon: '💍' },
               { key: 'Amulet',    label: 'Amuletten',   icon: '📿' },
             ];
-            const _catMap = {};
-            const _overig = [];
-            myItems.forEach(item => {
-              const t = item.data?.itemType || item.subtype || '';
-              const cat = _ITEM_CATS.find(c => c.key === t);
-              if (cat) { if (!_catMap[t]) _catMap[t] = []; _catMap[t].push(item); }
-              else _overig.push(item);
+            // Sort items by category order, then overig
+            const _catOrder = _ITEM_CATS.map(c => c.key);
+            const sortedItems = [...myItems].sort((a, b) => {
+              const tA = a.data?.itemType || a.subtype || '';
+              const tB = b.data?.itemType || b.subtype || '';
+              const iA = _catOrder.indexOf(tA);
+              const iB = _catOrder.indexOf(tB);
+              const rA = iA === -1 ? 999 : iA;
+              const rB = iB === -1 ? 999 : iB;
+              return rA - rB || a.name.localeCompare(b.name);
             });
-            const _renderItemCard = item => {
-              const iImgUrl   = api.fileUrl(item.id);
-              const charIdEsc = esc(charId);
-              const qty       = item._qty;
-              const qtyBadge = item._stapelbaar ? `<div class="player-item-qty-badge">×${qty}</div>` : '';
-              const qtyControls = item._stapelbaar ? `
-                <div class="player-item-qty-controls" onclick="event.stopPropagation()">
-                  <button class="player-item-qty-btn"
-                    onclick="window._dashQtyAdj('${esc(item.id)}','${charIdEsc}',-1,${qty})"
+            window._knapzakCarouselIdx = 0;
+            window._knapzakCarouselItems = sortedItems;
+            const _charIdEsc = esc(charId);
+            const _mdInline = s => s
+              .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+              .replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>')
+              .replace(/\*([^*\n]+)\*/g,'<em>$1</em>')
+              .replace(/\n/g,'<br>');
+            const _renderCarouselSlide = (item) => {
+              if (!item) return '<div class="item-carousel-slide"><p style="color:#8a7050;font-style:italic">Geen voorwerpen</p></div>';
+              const iImgUrl = api.fileUrl(item.id);
+              const typeIcon = _ITEM_CATS.find(c => c.key === (item.data?.itemType || item.subtype || ''))?.icon || '📦';
+              const typeLabel = item.data?.itemType || item.subtype || 'Overig';
+              const desc = item.data?.desc || '';
+              const qty = item._qty;
+              const qtyHtml = item._stapelbaar ? `
+                <div class="item-carousel-qty-controls" onclick="event.stopPropagation()">
+                  <button class="item-carousel-qty-btn"
+                    onclick="window._dashQtyAdj('${esc(item.id)}','${_charIdEsc}',-1,${qty})"
                     title="Verbruikt">−</button>
-                  <button class="player-item-qty-btn"
-                    onclick="window._dashQtyAdj('${esc(item.id)}','${charIdEsc}',1,${qty})"
+                  <span class="item-carousel-qty-label">×${qty}</span>
+                  <button class="item-carousel-qty-btn"
+                    onclick="window._dashQtyAdj('${esc(item.id)}','${_charIdEsc}',1,${qty})"
                     title="Nog een gevonden">+</button>
                 </div>` : '';
-              return `<div class="player-dash-item-card${item._stapelbaar ? ' player-dash-item-card--stapelbaar' : ''}"
-                onclick="window._openDetail('voorwerpen','${esc(item.id)}')" title="${esc(item.name)}">
-                <div class="player-dash-item-img-wrap">
-                  <img src="${iImgUrl}" class="player-dash-item-img"
-                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                  <div class="player-dash-item-fallback" style="display:none">⚔️</div>
-                  ${qtyBadge}
+              const chargesHtml = item._maxCharges > 0 ? `
+                <div class="item-carousel-charges" onclick="event.stopPropagation()">
+                  <div class="item-charge-label">⚡ Charges: ${item._charges}/${item._maxCharges}</div>
+                  <div class="item-charge-dots-row">
+                    ${item._playerMaxAdjustable ? `<button class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${_charIdEsc}',-1,${item._maxCharges})" title="Max. charges verlagen">−</button>` : ''}
+                    <div class="item-charge-dots">
+                      ${Array.from({length: item._maxCharges}, (_, i) => `
+                        <button class="spell-slot-dot ${i < item._charges ? 'free' : 'used'}"
+                          title="${i < item._charges ? 'Vrij — klik om te verbruiken' : 'Verbruikt — klik om te herstellen'}"
+                          onclick="window._dashChargeToggle('${esc(item.id)}','${_charIdEsc}',${i},${item._charges},${item._maxCharges})"></button>`).join('')}
+                    </div>
+                    ${item._playerMaxAdjustable ? `<button class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${_charIdEsc}',1,${item._maxCharges})" title="Max. charges verhogen">+</button>` : ''}
+                  </div>
+                </div>` : '';
+              return `<div class="item-carousel-slide">
+                <div class="item-carousel-img-wrap" onclick="window._openDetail('voorwerpen','${esc(item.id)}')" title="Bekijk kaartje" style="cursor:pointer">
+                  <img src="${iImgUrl}" class="item-carousel-img"
+                    onerror="this.closest('.item-carousel-img-wrap').style.display='none'">
                 </div>
-                ${qtyControls}
-                <div class="player-dash-item-name">${esc(item.name)}</div>
+                <div class="item-carousel-namerow">
+                  <span class="item-carousel-type-icon">${typeIcon}</span>
+                  <span class="item-carousel-name">${esc(item.name)}</span>
+                </div>
+                ${desc ? `<div class="item-carousel-desc">${_mdInline(desc)}</div>` : ''}
+                ${qtyHtml}
+                ${chargesHtml}
               </div>`;
             };
-            let html = '';
-            _ITEM_CATS.forEach(cat => {
-              if (!_catMap[cat.key]?.length) return;
-              html += `<div class="item-cat-label">${cat.icon} ${cat.label}</div>
-                <div class="player-dash-items">${_catMap[cat.key].map(_renderItemCard).join('')}</div>`;
-            });
-            if (_overig.length) {
-              html += `<div class="item-cat-label">📦 Overig</div>
-                <div class="player-dash-items">${_overig.map(_renderItemCard).join('')}</div>`;
-            }
-            return html;
+            const _dotsHtml = sortedItems.length > 1 ? `
+              <div class="item-carousel-dots">
+                ${sortedItems.map((_, i) => `<button class="item-carousel-dot${i === 0 ? ' active' : ''}" onclick="window._knapzakCarouselGoTo(${i})"></button>`).join('')}
+              </div>` : '';
+            return `
+              <div class="item-carousel">
+                <button class="item-carousel-nav" id="knapzak-nav-prev" onclick="window._knapzakCarouselNav(-1)" ${sortedItems.length <= 1 ? 'style="visibility:hidden"' : ''}>&#8249;</button>
+                <div class="item-carousel-track" id="knapzak-carousel-track">
+                  ${_renderCarouselSlide(sortedItems[0])}
+                </div>
+                <button class="item-carousel-nav" id="knapzak-nav-next" onclick="window._knapzakCarouselNav(1)" ${sortedItems.length <= 1 ? 'style="visibility:hidden"' : ''}>&#8250;</button>
+              </div>
+              ${_dotsHtml}`;
           })() : ''}
           ${simpleItems.length > 0 ? `
           <ul class="player-dash-simple-list">
@@ -1681,6 +1968,7 @@ async function renderMijnKarakter(opts = {}) {
               <li class="player-dash-simple-item">
                 <span class="player-dash-simple-name">${esc(si.name)}</span>
                 ${si.note ? `<span class="player-dash-simple-note">${esc(si.note)}</span>` : ''}
+                ${si.entityId ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:0.65rem;padding:1px 4px;line-height:1.3;" onclick="window._openDetail('${esc(si.entityType)}','${esc(si.entityId)}')" title="Open kaartje">↗</button>` : ''}
                 <button class="player-dash-simple-del" onclick="window._dashRemoveItem('${esc(si.id)}')" title="Verwijder">×</button>
               </li>`).join('')}
           </ul>` : ''}
@@ -1691,34 +1979,6 @@ async function renderMijnKarakter(opts = {}) {
             <input id="dash-item-note" class="player-dash-add-item-note" type="text"
               placeholder="Notitie (optioneel)" maxlength="500">
             <button class="player-dash-add-item-btn" onclick="window._dashAddItem()">+</button>
-          </div>
-        </div>
-
-        <!-- Trackers (vaardigheden / items met beperkt aantal uses) -->
-        <div class="player-dash-section">
-          <div class="player-dash-section-title">🔮 Trackers</div>
-          ${trackers.map(t => `
-            <div class="player-tracker-row" data-tid="${esc(t.id)}">
-              <input class="player-tracker-name-input" type="text" value="${esc(t.name)}"
-                placeholder="Naam…" maxlength="30"
-                onblur="window._dashRenameTracker('${esc(t.id)}', this.value)">
-              <div class="player-dash-slot-dots">
-                ${Array.from({ length: t.max }, (_, i) => `
-                  <button class="spell-slot-dot ${i < t.current ? 'used' : 'free'}"
-                    title="${i < t.current ? 'Verbruikt — klik om vrij te maken' : 'Vrij — klik om te verbruiken'}"
-                    onclick="window._dashToggleTracker('${esc(t.id)}', ${i})"></button>`).join('')}
-              </div>
-              <span class="player-dash-slot-count">${t.current}/${t.max}</span>
-              <button class="player-dash-slot-adj" onclick="window._dashTrackerAdj('${esc(t.id)}', -1)" title="Max verlagen">−</button>
-              <button class="player-dash-slot-adj" onclick="window._dashTrackerAdj('${esc(t.id)}', 1)" title="Max verhogen">+</button>
-              <button class="player-tracker-del" onclick="window._dashDeleteTracker('${esc(t.id)}')" title="Verwijder">×</button>
-            </div>`).join('')}
-          <div class="player-dash-add-tracker">
-            <input id="tracker-name" class="player-dash-add-item-input" type="text"
-              placeholder="Naam item / vaardigheid…" maxlength="40">
-            <input id="tracker-max" class="player-dash-add-item-note tracker-max-input" type="number"
-              min="1" max="20" placeholder="Uses" value="3">
-            <button class="player-dash-add-item-btn" onclick="window._dashAddTracker()">+</button>
           </div>
         </div>
       </div>
@@ -1839,20 +2099,61 @@ async function renderMijnKarakter(opts = {}) {
           </div>
         </div>` : ''}
 
-        <div class="player-dash-section">
-          <div class="player-dash-section-title">💬 Geheime berichten</div>
-          ${berichtenLijst.length === 0
-            ? '<p class="player-dash-empty">Nog geen berichten ontvangen.</p>'
-            : berichtenLijst.slice().reverse().map(m => `
-              <div class="speler-bericht-item${m.gelezen ? '' : ' speler-bericht-item--nieuw'}"
-                data-mid="${esc(m.id)}" onclick="window._berichtMarkGelezen('${esc(m.id)}')">
-                <div class="speler-bericht-row">
-                  <div class="speler-bericht-tekst">${esc(m.tekst)}</div>
-                  <button class="bericht-del-btn" title="Verwijder" onclick="event.stopPropagation();window._berichtPlayerDelete('${esc(m.id)}')">✕</button>
-                </div>
-                <div class="speler-bericht-meta">${_fmtBerichtDate(m.timestamp)}${m.gelezen ? '' : ' · <strong>nieuw</strong>'}</div>
-              </div>`).join('')}
-        </div>
+        ${(() => {
+          const brieven   = berichtenLijst.filter(m => m.type === 'brief');
+          const berichten = berichtenLijst.filter(m => m.type !== 'brief');
+          let out = '';
+
+          // Brieven (document-kaarten)
+          if (brieven.length > 0) {
+            out += `<div class="player-dash-section">
+              <div class="player-dash-section-title">✉️ Brieven & berichten</div>
+              ${brieven.map(m => `
+                <div class="speler-brief-card${m.gelezen ? '' : ' speler-brief-card--nieuw'}" data-mid="${esc(m.id)}" onclick="window._briefToggle('${esc(m.id)}')">
+                  <div class="speler-brief-header">
+                    <div class="speler-brief-header-main">
+                      ${m.titel ? `<div class="speler-brief-titel">${esc(m.titel)}</div>` : ''}
+                      ${m.afzender ? `<div class="speler-brief-afzender-inline">van <em>${esc(m.afzender)}</em></div>` : ''}
+                      <div class="speler-brief-meta-inline">${m.datum ? m.datum : _fmtBerichtDate(m.timestamp)}${m.gelezen ? '' : ' · <strong>nieuw</strong>'}</div>
+                    </div>
+                    <span class="speler-brief-chevron">▾</span>
+                    <button class="bericht-del-btn speler-brief-trash" title="Weggooien" onclick="event.stopPropagation();window._briefPlayerDelete('${esc(m.id)}')">🗑</button>
+                  </div>
+                  <div class="speler-brief-body">
+                    ${m.afzender ? `<div class="speler-brief-afzender">
+                      Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.65rem;padding:1px 4px;line-height:1.3;margin-left:3px" onclick="event.stopPropagation();window._openDetail('${esc(m.entityType)}','${esc(m.entityId)}')" title="Open kaartje">↗</button>` : ''}
+                    </div>` : ''}
+                    <div class="speler-brief-tekst">${esc(m.tekst).replace(/\n/g, '<br>')}</div>
+                  </div>
+                </div>`).join('')}
+            </div>`;
+          }
+
+          // Gewone geheime berichten (tekstbubbles)
+          if (berichten.length > 0) {
+            out += `<div class="player-dash-section">
+              <div class="player-dash-section-title">💬 Geheime berichten</div>
+              ${berichten.slice().reverse().map(m => `
+                <div class="speler-bericht-item${m.gelezen ? '' : ' speler-bericht-item--nieuw'}"
+                  data-mid="${esc(m.id)}" onclick="window._berichtMarkGelezen('${esc(m.id)}')">
+                  <div class="speler-bericht-row">
+                    <div class="speler-bericht-tekst">${esc(m.tekst)}</div>
+                    <button class="bericht-del-btn" title="Verwijder" onclick="event.stopPropagation();window._berichtPlayerDelete('${esc(m.id)}')">✕</button>
+                  </div>
+                  <div class="speler-bericht-meta">${_fmtBerichtDate(m.timestamp)}${m.gelezen ? '' : ' · <strong>nieuw</strong>'}</div>
+                </div>`).join('')}
+            </div>`;
+          }
+
+          if (brieven.length === 0 && berichten.length === 0) {
+            out += `<div class="player-dash-section">
+              <div class="player-dash-section-title">💬 Berichten</div>
+              <p class="player-dash-empty">Nog geen berichten ontvangen.</p>
+            </div>`;
+          }
+
+          return out;
+        })()}
       </div>
 
     </div>`;
@@ -2343,12 +2644,22 @@ async function renderMijnKarakter(opts = {}) {
 
   // ── Stapelbaar voorwerp: qty aanpassen ──
   window._dashQtyAdj = async function(itemId, characterId, delta, currentQty) {
-    if (delta < 0 && (currentQty || 1) + delta <= 0) {
+    const newQty = (currentQty || 1) + delta;
+    if (delta < 0 && newQty <= 0) {
       if (!confirm('Dit verbruikt het laatste exemplaar. Verwijder uit knapzak?')) return;
     }
     try {
       await api.patchItemOwnerQty(itemId, characterId, delta);
-      renderMijnKarakter(opts);
+      if (newQty > 0) {
+        // Update in-place — carousel stays on current slide
+        const found = (window._knapzakCarouselItems || []).find(it => it.id === itemId);
+        if (found) { found._qty = newQty; }
+        if (window._knapzakCarouselRender) window._knapzakCarouselRender();
+        else renderMijnKarakter(opts);
+      } else {
+        // Item verwijderd — volledige herrender
+        renderMijnKarakter(opts);
+      }
     } catch (err) { alert('Fout: ' + (err.message || 'onbekend')); }
   };
 
@@ -2457,12 +2768,152 @@ async function renderMijnKarakter(opts = {}) {
     }
   };
 
-  // ── Bericht mark-gelezen ──
+  // ── Pending subtab na login (wordt gezet door playerLogin) ──
+  if (window._pendingPlayerSubTab) {
+    window._setPlayerSubTab(window._pendingPlayerSubTab);
+    window._pendingPlayerSubTab = null;
+  }
+
+  // ── Knapzak carousel navigatie ──
+  (function() {
+    const _ITEM_CATS_ORDER = ['Wapen','Uitrusting','Toveritem','Drank','Scroll','Ring','Amulet'];
+    const _catIconMap = { Wapen:'⚔️', Uitrusting:'🛡️', Toveritem:'✨', Drank:'🧪', Scroll:'📜', Ring:'💍', Amulet:'📿' };
+
+    function _renderCarouselInDom() {
+      const items = window._knapzakCarouselItems || [];
+      const idx   = window._knapzakCarouselIdx || 0;
+      const item  = items[idx];
+      const track = document.getElementById('knapzak-carousel-track');
+      if (!track) return;
+
+      if (!item) {
+        track.innerHTML = '<div class="item-carousel-slide"><p style="color:#8a7050;font-style:italic">Geen voorwerpen</p></div>';
+        return;
+      }
+
+      const iImgUrl   = api.fileUrl(item.id);
+      const typeIcon  = _catIconMap[item.data?.itemType || item.subtype || ''] || '📦';
+      const typeLabel = item.data?.itemType || item.subtype || 'Overig';
+      const desc      = item.data?.desc || '';
+      const qty       = item._qty;
+      const charIdEsc = esc(charId);
+
+      const qtyHtml = item._stapelbaar ? `
+        <div class="item-carousel-qty-controls" onclick="event.stopPropagation()">
+          <button class="item-carousel-qty-btn"
+            onclick="window._dashQtyAdj('${esc(item.id)}','${charIdEsc}',-1,${qty})"
+            title="Verbruikt">−</button>
+          <span class="item-carousel-qty-label">×${qty}</span>
+          <button class="item-carousel-qty-btn"
+            onclick="window._dashQtyAdj('${esc(item.id)}','${charIdEsc}',1,${qty})"
+            title="Nog een gevonden">+</button>
+        </div>` : '';
+
+      const chargesHtml = item._maxCharges > 0 ? `
+        <div class="item-carousel-charges" onclick="event.stopPropagation()">
+          <div class="item-charge-label">⚡ Charges: ${item._charges}/${item._maxCharges}</div>
+          <div class="item-charge-dots-row">
+            ${item._playerMaxAdjustable ? `<button class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${charIdEsc}',-1,${item._maxCharges})" title="Max. charges verlagen">−</button>` : ''}
+            <div class="item-charge-dots">
+              ${Array.from({length: item._maxCharges}, (_, i) => `
+                <button class="spell-slot-dot ${i < item._charges ? 'free' : 'used'}"
+                  title="${i < item._charges ? 'Vrij — klik om te verbruiken' : 'Verbruikt — klik om te herstellen'}"
+                  onclick="window._dashChargeToggle('${esc(item.id)}','${charIdEsc}',${i},${item._charges},${item._maxCharges})"></button>`).join('')}
+            </div>
+            ${item._playerMaxAdjustable ? `<button class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${charIdEsc}',1,${item._maxCharges})" title="Max. charges verhogen">+</button>` : ''}
+          </div>
+        </div>` : '';
+
+      const _mdI = s => s
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*([^*\n]+)\*/g,'<em>$1</em>')
+        .replace(/\n/g,'<br>');
+
+      track.innerHTML = `<div class="item-carousel-slide">
+        <div class="item-carousel-img-wrap" onclick="window._openDetail('voorwerpen','${esc(item.id)}')" title="Bekijk kaartje" style="cursor:pointer">
+          <img src="${iImgUrl}" class="item-carousel-img"
+            onerror="this.closest('.item-carousel-img-wrap').style.display='none'">
+        </div>
+        <div class="item-carousel-namerow">
+          <span class="item-carousel-type-icon">${typeIcon}</span>
+          <span class="item-carousel-name">${esc(item.name)}</span>
+        </div>
+        ${desc ? `<div class="item-carousel-desc">${_mdI(desc)}</div>` : ''}
+        ${qtyHtml}
+        ${chargesHtml}
+      </div>`;
+
+      // Update dots
+      document.querySelectorAll('.item-carousel-dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === idx);
+      });
+    }
+
+    window._knapzakCarouselNav = function(delta) {
+      const items = window._knapzakCarouselItems || [];
+      if (!items.length) return;
+      const n = items.length;
+      window._knapzakCarouselIdx = (((window._knapzakCarouselIdx || 0) + delta) % n + n) % n;
+      _renderCarouselInDom();
+    };
+
+    window._knapzakCarouselGoTo = function(idx) {
+      window._knapzakCarouselIdx = idx;
+      _renderCarouselInDom();
+    };
+
+    window._knapzakCarouselRender = _renderCarouselInDom;
+  })();
+
+  // ── Item charges ──
+  window._dashChargeToggle = async function(itemId, charId, dotIdx, current, maxCharges) {
+    const newCharges = dotIdx < current ? dotIdx : dotIdx + 1;
+    const clampedCharges = Math.max(0, Math.min(maxCharges, newCharges));
+    try { await api.patchItemCharges(itemId, charId, clampedCharges); } catch { /* ok */ }
+    // Update in-place — no full re-render so carousel stays on current slide
+    const found = (window._knapzakCarouselItems || []).find(it => it.id === itemId);
+    if (found) { found._charges = clampedCharges; }
+    if (window._knapzakCarouselRender) window._knapzakCarouselRender();
+    else renderMijnKarakter(opts);
+  };
+
+  window._dashMaxChargeAdj = async function(itemId, charId, delta, currentMax) {
+    const newMax = Math.max(0, currentMax + delta);
+    try { await api.patchItemMaxCharges(itemId, charId, newMax); } catch { /* ok */ }
+    const found = (window._knapzakCarouselItems || []).find(it => it.id === itemId);
+    if (found) {
+      found._maxCharges = newMax;
+      found._charges = Math.min(found._charges, newMax);
+    }
+    if (window._knapzakCarouselRender) window._knapzakCarouselRender();
+    else renderMijnKarakter(opts);
+  };
+
+  window._dashLongRest = async function() {
+    try { await api.longRest(charId); } catch { /* ok */ }
+    renderMijnKarakter(opts);
+  };
+
+  // ── Bericht mark-gelezen (werkt voor zowel berichten als brieven) ──
   window._berichtMarkGelezen = async function(msgId) {
     if (!charId || !msgId) return;
+    // Markeer visueel als gelezen — bericht-item of brief-card
     const item = document.querySelector(`.speler-bericht-item[data-mid="${msgId}"]`);
     if (item) item.classList.remove('speler-bericht-item--nieuw');
+    const brief = document.querySelector(`.speler-brief-card[data-mid="${msgId}"]`);
+    if (brief) brief.classList.remove('speler-brief-card--nieuw');
     try { await api.markBerichtGelezen(charId, msgId); } catch { /* ok */ }
+  };
+
+  window._briefToggle = function(msgId) {
+    const card = document.querySelector(`.speler-brief-card[data-mid="${msgId}"]`);
+    if (!card) return;
+    card.classList.toggle('speler-brief-card--open');
+    // Mark as read when opening
+    if (card.classList.contains('speler-brief-card--open')) {
+      window._berichtMarkGelezen(msgId);
+    }
   };
 
   window._berichtPlayerDelete = async function(msgId) {
@@ -2470,6 +2921,14 @@ async function renderMijnKarakter(opts = {}) {
     const item = document.querySelector(`.speler-bericht-item[data-mid="${msgId}"]`);
     if (item) item.remove();
     try { await api.deleteBericht(charId, msgId); } catch { /* ok */ }
+  };
+
+  // Zachte verwijdering van een brief (DM ziet 'weggegooid', speler ziet het niet meer)
+  window._briefPlayerDelete = async function(postId) {
+    if (!charId || !postId) return;
+    const item = document.querySelector(`.speler-brief-card[data-mid="${postId}"]`);
+    if (item) item.remove();
+    try { await api.deletePost(charId, postId); } catch { /* ok */ }
   };
 
   // ── Klasse-thema toggle ──
@@ -2964,6 +3423,9 @@ async function refreshAll() {
     toggle() {
       document.getElementById('dice-panel')?.classList.toggle('open');
     },
+    toggleDm() {
+      document.getElementById('dm-dice-panel')?.classList.toggle('open');
+    },
 
     adjustCount(delta) {
       _dmCount = Math.max(1, Math.min(20, _dmCount + delta));
@@ -3235,9 +3697,9 @@ async function init() {
   // Voorkom dat anonieme speler direct op mijn-karakter-tab belandt
   switchSection(startSection === 'mijn-karakter' && !state.playerName ? 'personages' : startSection);
 
-  // Speler heeft nog geen karakter gekozen: toon de kiezer na een kleine vertraging
+  // Speler heeft nog geen karakter gekozen: toon de landingspagina
   if (state.role === 'player' && !state.playerName) {
-    setTimeout(openPlayerPicker, 800);
+    showLanding();
   }
 }
 
@@ -3398,123 +3860,6 @@ window._herbergVraag = async (entityId) => {
   }
 };
 
-// ── Madame Ursula / Waarzegger ─────────────────────────────────────────────
-
-async function renderUrsula() {
-  const el = document.getElementById('section-ursula');
-  if (!el) return;
-
-  const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh) {
-    _dienstNietBereikbaar(el, meta.ursula?.naam || 'Madame Ursula');
-    return;
-  }
-
-  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
-
-  let data;
-  try { data = await api.getUrsula(); }
-  catch (e) {
-    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)} (${esc(e.constructor?.name || 'Error')})</p></div></div>`;
-    return;
-  }
-
-  const { config, state: st, beschikbaar = [], currency } = data;
-  const cooldownActief = st.cooldownTot && new Date(st.cooldownTot) > new Date();
-  const minRest = cooldownActief ? Math.max(1, Math.ceil((new Date(st.cooldownTot) - Date.now()) / 60000)) : 0;
-
-  function beursTekst(cur) {
-    if (!cur) return '';
-    return [cur.fl && `${cur.fl} fl`, cur.kn && `${cur.kn} kn`, cur.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
-  }
-  function prijsTekst(p) {
-    return [p.fl && `${p.fl} fl`, p.kn && `${p.kn} kn`, p.cl && `${p.cl} cl`].filter(Boolean).join(' ') || '0';
-  }
-
-  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
-  const portret  = config.imageId
-    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
-    : `<div class="ursula-portret-fallback">🔮</div>`;
-
-  el.innerHTML = `
-    <div class="herberg-scene ursula-scene" ${backdrop}>
-      <div class="herberg-content">
-        <div class="herberg-portrait-wrap">${portret}</div>
-        <p class="herberg-groet">${esc(config.naam)} trekt haar sluier opzij en gebaart je nader te komen.</p>
-        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
-        <p class="ts-beurs">Prijs per raadpleging: <strong>${prijsTekst(config.prijs)}</strong></p>
-
-        ${cooldownActief
-          ? `<p class="herberg-cooldown-tekst">${esc(config.naam)} heeft haar ogen gesloten. Ze is nog ${minRest} minuut${minRest === 1 ? '' : 'en'} in trance.</p>`
-          : beschikbaar.length === 0
-            ? `<p class="herberg-cooldown-tekst">Er zijn nog geen personen bekend.</p>`
-            : `<div class="herberg-zoek-wrap">
-                <p class="herberg-teller">Over wie wil je iets weten?</p>
-                <input type="text" class="herberg-zoek-input" placeholder="Typ een naam…"
-                  oninput="window._ursulaFilter(this.value)"
-                  id="ursula-zoek" autocomplete="off">
-                <p class="herberg-zoek-hint" id="ursula-hint">Begin met typen om te zoeken.</p>
-                <div class="herberg-lijst" id="ursula-lijst">
-                  ${beschikbaar.map(e => `
-                    <button class="herberg-item" data-naam="${esc(e.name.toLowerCase())}"
-                      style="display:none"
-                      onclick="window._ursulaKies('${esc(e.id)}','${esc(e.type)}','${esc(e.name)}')">
-                      <span class="herberg-item-naam">${esc(e.name)}</span>
-                    </button>`).join('')}
-                </div>
-              </div>`}
-
-        <div id="ursula-antwoord" class="herberg-antwoord hidden"></div>
-      </div>
-    </div>`;
-}
-
-window._ursulaKies = async (entityId, entityType, entityName) => {
-  const antwoord = document.getElementById('ursula-antwoord');
-  if (!antwoord) return;
-  antwoord.classList.remove('hidden');
-  antwoord.innerHTML = '<p class="herberg-loading">De sluier trilt…</p>';
-  try {
-    const res = await api.ursulaVraag({ entityId, entityType });
-    const bubbleHtml = `
-      <div class="herberg-bubble ursula-bubble">
-        <p class="herberg-bubble-text">„${esc(res.tekst)}“</p>
-        <div class="herberg-bubble-footer">
-          <p class="herberg-bubble-naam">— over ${esc(res.entityName)}</p>
-          ${res.isGeheim && res.entityId
-            ? `<button class="herberg-bubble-card-btn"
-                onclick="window._openDetail('${esc(res.entityType)}','${esc(res.entityId)}')"
-                title="Bekijk kaartje">↗</button>`
-            : ''}
-        </div>
-      </div>`;
-    antwoord.innerHTML = bubbleHtml;
-    if (res.audioId) window._audioToggle(res.audioId);
-    renderUrsula().then(() => {
-      const a = document.getElementById('ursula-antwoord');
-      if (a) { a.classList.remove('hidden'); a.innerHTML = bubbleHtml; }
-    });
-  } catch (err) {
-    antwoord.innerHTML = `<p class="herberg-err">${esc(err.message || 'Fout')}</p>`;
-  }
-};
-
-window._ursulaFilter = (q) => {
-  const lijst = document.getElementById('ursula-lijst');
-  const hint  = document.getElementById('ursula-hint');
-  if (!lijst) return;
-  const s = q.trim().toLowerCase();
-  if (!s) {
-    lijst.querySelectorAll('.herberg-item').forEach(btn => { btn.style.display = 'none'; });
-    if (hint) hint.style.display = '';
-    return;
-  }
-  if (hint) hint.style.display = 'none';
-  lijst.querySelectorAll('.herberg-item').forEach(btn => {
-    btn.style.display = btn.dataset.naam.includes(s) ? '' : 'none';
-  });
-};
-
 // ── De Gock / Privédetective ────────────────────────────────────────────────
 
 async function renderGock() {
@@ -3662,7 +4007,7 @@ async function renderTweespalt() {
     return;
   }
 
-  const { events = [], currency, lening, npcNamen = [], config = {} } = data;
+  const { events = [], currency, lening, nameFirst = [], nameLast = [], config = {} } = data;
   const openEvents = events.filter(e => e.status === 'open');
   const afgerondEvents = events.filter(e => e.status === 'afgerond');
 
@@ -3677,16 +4022,22 @@ async function renderTweespalt() {
   }
 
   function npcBets(event) {
-    if (!npcNamen.length || !event.opties.length) return '';
+    if (!event.opties.length) return '';
+    if (!nameFirst.length && !nameLast.length) return '';
+    // Stable pseudo-random per event
     const seed = event.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-    const count = 2 + (seed % 4);
+    function prng(s) { const x = Math.sin(s + 1) * 10000; return x - Math.floor(x); }
+    const count = 3 + Math.floor(prng(seed) * 3); // 3–5 gokkers
     const rows = [];
     for (let i = 0; i < count; i++) {
-      const naam = npcNamen[(seed * (i + 7)) % npcNamen.length];
-      const optie = event.opties[(seed * (i + 3)) % event.opties.length];
-      rows.push(`<div class="ts-npc-row"><span class="ts-npc-naam">${esc(naam)}</span><span class="ts-npc-optie">→ ${esc(optie.naam)}</span></div>`);
+      const first = nameFirst.length ? nameFirst[Math.floor(prng(seed + i * 7)  * nameFirst.length)] : '';
+      const last  = nameLast.length  ? nameLast[Math.floor(prng(seed + i * 13) * nameLast.length)]  : '';
+      const naam  = [first, last].filter(Boolean).join(' ');
+      const optie = event.opties[Math.floor(prng(seed + i * 3) * event.opties.length)];
+      const bedrag = 1 + Math.floor(prng(seed + i * 17) * 200); // 1–200 fl
+      rows.push(`<div class="ts-npc-row"><span class="ts-npc-naam">${esc(naam)}</span><span class="ts-npc-optie">→ ${esc(optie.naam)}</span><span class="ts-npc-bedrag">${bedrag} fl</span></div>`);
     }
-    return `<div class="ts-npc-lijst">${rows.join('')}</div>`;
+    return `<div class="ts-npc-lijst"><div class="ts-npc-header">Laatste gokkers</div>${rows.join('')}</div>`;
   }
 
   function renderOptieKnop(event, opt) {
@@ -3705,10 +4056,8 @@ async function renderTweespalt() {
           : heeftIngezet ? '' : `
           <div class="ts-inzet-form" id="ts-form-${esc(event.id)}-${esc(opt.id)}">
             <div class="ts-inzet-velden">
-              <input type="number" min="0" placeholder="fl" class="ts-inzet-input" id="ts-fl-${esc(event.id)}-${esc(opt.id)}" style="width:52px">
+              <input type="text" inputmode="decimal" placeholder="bijv. 1,28" class="ts-inzet-input" id="ts-fl-input-${esc(event.id)}-${esc(opt.id)}" style="width:100px">
               <span class="ts-inzet-label">fl</span>
-              <input type="number" min="0" placeholder="kn" class="ts-inzet-input" id="ts-kn-${esc(event.id)}-${esc(opt.id)}" style="width:52px">
-              <span class="ts-inzet-label">kn</span>
             </div>
             <button class="ts-wedden-btn" onclick="window._tsWedden('${esc(event.id)}','${esc(opt.id)}')">Inzetten</button>
           </div>`}
@@ -3778,15 +4127,27 @@ async function renderTweespalt() {
     </div>`;
 }
 
+// Parseert decimale florinde-invoer: "1,28" of "1.28" → { fl:1, kn:2, cl:8, bedragCl:128 }
+function _tsParseInzet(raw) {
+  const s = (raw || '').trim().replace(',', '.');
+  const m = s.match(/^(\d+)(?:\.(\d{1,2}))?$/);
+  if (!m) return null;
+  const fl = parseInt(m[1]) || 0;
+  const decs = (m[2] || '').padEnd(2, '0');
+  const kn = parseInt(decs[0]) || 0;
+  const cl = parseInt(decs[1]) || 0;
+  return { fl, kn, cl, bedragCl: fl * 100 + kn * 10 + cl };
+}
+
 window._tsWedden = async (eventId, optieId) => {
-  const flEl = document.getElementById(`ts-fl-${eventId}-${optieId}`);
-  const knEl = document.getElementById(`ts-kn-${eventId}-${optieId}`);
-  const fl = parseInt(flEl?.value || '0') || 0;
-  const kn = parseInt(knEl?.value || '0') || 0;
+  const inputEl = document.getElementById(`ts-fl-input-${eventId}-${optieId}`);
+  const parsed = _tsParseInzet(inputEl?.value);
 
-  if (fl === 0 && kn === 0) { _tsToast('Vul een inzet in.'); return; }
+  if (!parsed) { _tsToast('Vul een geldig bedrag in (bijv. 1,28).'); return; }
+  if (parsed.bedragCl === 0) { _tsToast('Vul een inzet in.'); return; }
 
-  const bedragCl = fl * 100 + kn * 10;
+  const { fl, kn, cl, bedragCl } = parsed;
+
   let currency;
   try {
     const res = await api.getTweespalt();
@@ -3796,12 +4157,17 @@ window._tsWedden = async (eventId, optieId) => {
   const heeftCl = currency ? (currency.fl * 100 + currency.kn * 10 + currency.cl) : Infinity;
 
   if (bedragCl > heeftCl) {
-    _tsTaevinPrompt(eventId, optieId, bedragCl - heeftCl);
+    const tekortCl = bedragCl - heeftCl;
+    if (tekortCl > 10000) { // meer dan 100 fl tekort — Taevin leent niet zoveel
+      _tsToast('Onvoldoende saldo. Taevin leent maximaal 100 fl.');
+      return;
+    }
+    _tsTaevinPrompt(eventId, optieId, tekortCl);
     return;
   }
 
   try {
-    await api.weddenTweespalt(eventId, { optieId, bedrag: { fl, kn, cl: 0 } });
+    await api.weddenTweespalt(eventId, { optieId, bedrag: { fl, kn, cl } });
     await renderTweespalt();
     _tsToast('✓ Inzet geplaatst.');
   } catch (err) {
@@ -3815,13 +4181,20 @@ function _tsTaevinPrompt(eventId, optieId, tekortCl) {
   const leenCl = leenBedrag.fl * 100 + leenBedrag.kn * 10;
   const leenTekst = [leenBedrag.fl && `${leenBedrag.fl} fl`, leenBedrag.kn && `${leenBedrag.kn} kn`].filter(Boolean).join(' en ');
 
+  const taevinPortret = api.fileUrl('e_1773523435098_p3vxjp');
+
   const bubble = document.createElement('div');
   bubble.className = 'ts-taevin-bubble';
   bubble.innerHTML = `
-    <p class="ts-taevin-tekst">
-      <em>Psst… beetje krap bij kas, vriend? Lenen kan altijd, uiteraard tegen een heel vriendschappelijk prijsje.</em>
-    </p>
-    <p class="ts-taevin-sub">Taevin kan je <strong>${leenTekst}</strong> lenen — 30% rente per dag.</p>
+    <div class="ts-taevin-hoofd">
+      <img src="${taevinPortret}" class="ts-taevin-portret" alt="Taevin Woekeling">
+      <div class="ts-taevin-bericht">
+        <p class="ts-taevin-tekst">
+          <em>Psst… beetje krap bij kas, vriend? Lenen kan altijd, uiteraard tegen een heel vriendschappelijk prijsje.</em>
+        </p>
+        <p class="ts-taevin-sub">Taevin kan je <strong>${leenTekst}</strong> lenen — 30% rente per dag.</p>
+      </div>
+    </div>
     <div class="ts-taevin-knoppen">
       <button class="ts-btn ts-btn--gevaar" id="ts-leen-ja">Akkoord, leen me het geld</button>
       <button class="ts-btn ts-btn--ghost" id="ts-leen-nee">Laat maar zitten</button>
@@ -3835,11 +4208,9 @@ function _tsTaevinPrompt(eventId, optieId, tekortCl) {
     try {
       await api.leenTweespalt(leenBedrag);
       bubble.remove();
-      const flEl = document.getElementById(`ts-fl-${eventId}-${optieId}`);
-      const knEl = document.getElementById(`ts-kn-${eventId}-${optieId}`);
-      const fl2 = parseInt(flEl?.value || '0') || 0;
-      const kn2 = parseInt(knEl?.value || '0') || 0;
-      await api.weddenTweespalt(eventId, { optieId, bedrag: { fl: fl2, kn: kn2, cl: 0 } });
+      const inputEl2 = document.getElementById(`ts-fl-input-${eventId}-${optieId}`);
+      const parsed2 = _tsParseInzet(inputEl2?.value) || { fl: 0, kn: 0, cl: 0 };
+      await api.weddenTweespalt(eventId, { optieId, bedrag: { fl: parsed2.fl, kn: parsed2.kn, cl: parsed2.cl } });
       await renderTweespalt();
       _tsToast('📜 Geleend van Taevin. Schuldbewijs in je knapzak.');
     } catch (err) {

@@ -104,6 +104,16 @@ const SCHEMA = {
       { key: 'prijs', label: 'Prijs', type: 'text' },
       { key: 'attunement', label: 'Requires attunement', type: 'checkbox' },
       { key: 'stapelbaar', label: 'Stapelbaar (meerdere exemplaren)', type: 'checkbox' },
+      { key: '_chargesToggle', label: 'Heeft charges', type: 'reveal-toggle' },
+      { key: 'maxCharges', label: 'Max. charges', type: 'text', inReveal: '_chargesToggle' },
+      { key: 'rechargeOn', label: 'Herlaadt bij', type: 'select', inReveal: '_chargesToggle', options: [
+        { value: 'longRest',     label: '🌙 Lange rust' },
+        { value: 'shortRest',    label: '☀️ Korte rust' },
+        { value: 'dawn',         label: '🌅 Dageraad' },
+        { value: 'longRestRoll', label: '🎲 Lange rust (dobbelrol)' },
+      ]},
+      { key: 'rechargeRoll', label: 'Dobbelformule (bijv. 1d3)', type: 'text', inReveal: '_chargesToggle' },
+      { key: 'playerMaxAdjustable', label: 'Max. door spelers in te stellen', type: 'checkbox', inReveal: '_chargesToggle' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
     ],
@@ -743,12 +753,15 @@ function renderCard(type, e) {
           onclick="event.stopPropagation();window._toonOpKaart('${esc(e.id)}')"
           title="Toon op kaart">📍</button>` : ''}
       </div>
-      <div class="card-body px-4 pt-3 pb-3">
-        <div class="mb-2">
+      <div class="card-body px-3 pt-2 pb-2">
+        <div class="mb-1.5">
           <span class="card-name block" data-fittext>${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
-          ${(rol || metaText) ? `<span class="card-name-sep"></span>` : ''}
-          ${rol      ? `<div class="text-[11px] text-ink-medium italic truncate">${esc(rol)}</div>` : ''}
-          ${metaText ? `<div class="text-[11px] text-ink-dim truncate">${esc(metaText)}</div>` : ''}
+          ${(rol || metaText) ? `<span class="card-name-sep"></span>
+          <div class="card-meta">
+            ${rol      ? `<span class="card-meta-rol">${esc(rol)}</span>` : ''}
+            ${rol && metaText ? `<span class="card-meta-dot"> · </span>` : ''}
+            ${metaText ? `<span class="card-meta-sub">${esc(metaText)}</span>` : ''}
+          </div>` : ''}
         </div>
         ${desc ? `<p class="text-xs text-ink-medium line-clamp-3 mb-2 font-crimson leading-relaxed">${mdToHtml(desc)}</p>` : ''}
         ${chips.length ? `<div class="flex flex-wrap gap-1">${chips.join('')}</div>` : ''}
@@ -2013,6 +2026,17 @@ function _fpApply(ev) {
 }
 
 // ── File upload ──
+window._onRevealToggle = (groupId, checked) => {
+  const group = document.getElementById('reveal-group-' + groupId);
+  if (!group) return;
+  if (checked) {
+    group.style.display = 'contents';
+  } else {
+    group.style.display = 'none';
+    group.querySelectorAll('input[name], select[name], textarea[name]').forEach(el => { el.value = ''; });
+  }
+};
+
 window._editorFileSelected = (file) => {
   if (!file) return;
   if (file.size > 10 * 1024 * 1024) { alert('Max 10MB'); return; }
@@ -2220,10 +2244,32 @@ window._openEditor = async (tab, editId) => {
   }
 
   // Korte velden (niet-textarea) in rechter kolom
+  let _revealGroupOpen = null;
   for (const field of schema.fields) {
     if ((field.key === 'geheim' || field.dmOnly) && !isDM()) continue;
     if (field.type === 'textarea') continue;
+    // Close open reveal group when leaving it
+    if (_revealGroupOpen && field.inReveal !== _revealGroupOpen) {
+      body += `</div>`; // end reveal-group div
+      _revealGroupOpen = null;
+    }
     const val = e?.data?.[field.key] || '';
+    if (field.type === 'reveal-toggle') {
+      const hasData = schema.fields
+        .filter(f => f.inReveal === field.key)
+        .some(f => e?.data?.[f.key] && e?.data?.[f.key] !== '');
+      body += `
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="toggle-${field.key}" class="rounded"
+            ${hasData ? 'checked' : ''}
+            onchange="window._onRevealToggle('${field.key}', this.checked)">
+          <label for="toggle-${field.key}" class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider cursor-pointer">${esc(field.label)}</label>
+        </div>
+        <div id="reveal-group-${field.key}" style="${hasData ? 'display:contents' : 'display:none'}">
+      `;
+      _revealGroupOpen = field.key;
+      continue;
+    }
     if (field.type === 'checkbox') {
       const checked = val === 'true' || val === true;
       body += `
@@ -2243,7 +2289,7 @@ window._openEditor = async (tab, editId) => {
           <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
           <select name="data_${field.key}"${_selOnchange} class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
             <option value="">—</option>
-            ${field.options.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
+            ${field.options.map(o => typeof o === 'object' ? `<option value="${o.value}" ${val === o.value ? 'selected' : ''}>${o.label}</option>` : `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
           </select>
         </div>
       `;
@@ -2257,6 +2303,7 @@ window._openEditor = async (tab, editId) => {
       `;
     }
   }
+  if (_revealGroupOpen) { body += `</div>`; _revealGroupOpen = null; }
 
   body += `</div>`; // end editor-col-right
   body += `</div>`; // end editor-layout

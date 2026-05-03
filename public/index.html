@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=93">
+  <link rel="stylesheet" href="/css/theme.css?v=130">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -59,8 +59,6 @@
       <div class="app-header-title" id="header-display">
         <div class="app-header-title-row">
           <h1 id="app-title" class="app-title">Grisburgh</h1>
-          <button id="header-edit-btn" class="app-header-edit-btn dm-only hidden"
-            onclick="window.app.editHeader()" title="Titel bewerken">✎</button>
         </div>
         <p id="app-subtitle" class="app-subtitle">Ontdekkingen uit het stadsarchief</p>
       </div>
@@ -109,10 +107,9 @@
             ⚜️ <span id="diensten-nav-label" class="tab-label">Diensten</span><span class="diensten-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="diensten-menu">
-            <button class="archief-menu-item" data-section="herberg" id="diensten-herberg-item"><span>🍺</span><span id="diensten-herberg-label">Herberg</span></button>
-            <button class="archief-menu-item" data-section="tweespalt"><span>🎲</span><span>De Tweespalt</span></button>
-            <button class="archief-menu-item" data-section="ursula"><span>🔮</span><span>Madame Ursula</span></button>
-            <button class="archief-menu-item" data-section="gock"><span>🔍</span><span>De Gock</span></button>
+            <button class="archief-menu-item" data-section="herberg" id="diensten-herberg-item"><span id="diensten-herberg-label">🍺 Herberg</span></button>
+            <button class="archief-menu-item" data-section="tweespalt">🎲 De Tweespalt</button>
+            <button class="archief-menu-item" data-section="gock">🔍 De Gock</button>
           </div>
         </div>
         <button class="section-tab hidden" data-section="mijn-karakter">🧑 <span class="tab-label">Mijn karakter</span></button>
@@ -122,6 +119,12 @@
 
       <!-- Rechts: zoek + DM-zegel -->
       <div class="app-header-actions">
+        <!-- DM: actieve akte chip -->
+        <div id="active-akte-chip" class="active-akte-chip dm-only hidden">
+          <span class="active-akte-dot">▶</span>
+          <span id="active-akte-label"></span>
+          <button class="active-akte-stop" onclick="window.app.stopAkte()" title="Stop akte">×</button>
+        </div>
         <!-- Zoekbalk (expandeert) -->
         <div class="app-search-wrap" id="app-search-wrap">
           <button class="app-search-btn" id="app-search-btn"
@@ -137,8 +140,8 @@
         </button>
         <button id="dm-logout-btn" onclick="window.app.dmLogout()" title="Uitloggen als DM"
           class="app-header-icon-btn app-header-icon-btn--danger hidden">✕</button>
-        <!-- Spelerwisselknop (alleen zichtbaar voor spelers) -->
-        <button id="player-switch-btn" onclick="window.app.openPlayerPicker()" title="Wissel van karakter"
+        <!-- Spelerwisselknop → terug naar landingspagina -->
+        <button id="player-switch-btn" onclick="window.app.showLanding()" title="Wissel van karakter"
           class="app-player-switch-btn hidden">👤</button>
       </div>
     </header>
@@ -184,7 +187,6 @@
       <div class="section" id="section-logboek"></div>
       <div class="section" id="section-herberg"></div>
       <div class="section" id="section-tweespalt"></div>
-      <div class="section" id="section-ursula"></div>
       <div class="section" id="section-gock"></div>
       <div class="section" id="section-kaart"></div>
       <div class="section" id="section-relatiemap"></div>
@@ -230,38 +232,16 @@
           <div class="dm-tab-content" data-tab="herberg"></div>
           <!-- Tweespalt tab -->
           <div class="dm-tab-content" data-tab="tweespalt"></div>
-          <!-- Ursula tab -->
-          <div class="dm-tab-content" data-tab="ursula"></div>
           <!-- Gock tab -->
           <div class="dm-tab-content" data-tab="gock"></div>
           <!-- Gedeelde beurs tab -->
           <div class="dm-tab-content" data-tab="beurs"></div>
           <!-- Berichten tab -->
           <div class="dm-tab-content" data-tab="berichten"></div>
-          <!-- Dobbelstenen tab -->
-          <div class="dm-tab-content" data-tab="dobbelstenen">
-            <div class="dm-feature-section" style="padding-bottom:6px;border-bottom:1px solid rgba(58,40,16,0.4)">
-              <div class="dm-feature-row" style="align-items:center;gap:8px">
-                <span class="dm-form-label" style="flex:none">Aantal</span>
-                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dice.adjustCount(-1)">−</button>
-                <span id="dm-dice-count-display" class="dm-dice-count">1</span>
-                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dice.adjustCount(1)">+</button>
-              </div>
-            </div>
-            <div class="dice-panel-grid">
-              <button class="dice-btn" onclick="window.dice.rollDm(4)">d4</button>
-              <button class="dice-btn" onclick="window.dice.rollDm(6)">d6</button>
-              <button class="dice-btn" onclick="window.dice.rollDm(8)">d8</button>
-              <button class="dice-btn" onclick="window.dice.rollDm(12)">d12</button>
-              <button class="dice-btn dice-btn--featured" onclick="window.dice.rollDm(20)">d20</button>
-              <button class="dice-btn" onclick="window.dice.rollDm(100)">d%</button>
-            </div>
-            <div class="dice-result" id="dm-dice-result">
-              <div class="dice-result-num" id="dm-dice-result-num">—</div>
-              <div class="dice-result-label" id="dm-dice-result-label">Kies een dobbelsteen</div>
-            </div>
-            <div class="dice-history" id="dm-dice-history"></div>
-          </div>
+          <!-- Delen tab (Tunnel + Export) -->
+          <div class="dm-tab-content" data-tab="delen"></div>
+          <!-- Diensten tab (Herberg + Tweespalt + Gock) -->
+          <div class="dm-tab-content" data-tab="diensten"></div>
         </div><!-- /.dm-section-body -->
         </div><!-- /.dm-section-layout -->
       </div>
@@ -293,21 +273,21 @@
     </div>
   </div>
 
-  <!-- Speler karakter-kiezer modal -->
-  <!-- Spelerkiezer — compact dropdown vanuit de 👤-knop -->
-  <div id="player-picker-overlay" class="player-picker-panel hidden">
-    <div class="player-picker-panel-head">
-      <span class="player-picker-panel-title">Wie ben jij?</span>
-      <button class="player-picker-panel-close" onclick="window.app.closePlayerPicker()">×</button>
-    </div>
-    <div id="player-char-list" class="player-picker-list"></div>
-    <div class="player-picker-footer">
-      <button onclick="window.app.closePlayerPicker(); window.app.toggleLoginModal()" class="player-picker-footer-btn">
-        ⚔︎ Inloggen als DM
-      </button>
-      <button onclick="window.app.closePlayerPicker()" class="player-picker-footer-btn player-picker-footer-btn--muted">
-        Anoniem verder
-      </button>
+  <!-- Speler karakter-kiezer — vervangen door landingspagina (panel niet meer in gebruik) -->
+
+  <!-- Landing page — paginavullend portretkiezer voor niet-ingelogde bezoekers -->
+  <div id="landing-overlay" class="landing-overlay hidden">
+    <div class="landing-inner">
+      <div class="landing-header">
+        <h1 class="landing-title" id="landing-title">Grisburgh</h1>
+        <p class="landing-subtitle" id="landing-subtitle"></p>
+      </div>
+      <div class="landing-portraits" id="landing-portraits">
+        <p class="landing-loading">Laden…</p>
+      </div>
+      <div class="landing-footer">
+        <button class="landing-dm-btn" onclick="window.app.toggleLoginModal()">⚔️ Dungeon Master</button>
+      </div>
     </div>
   </div>
 
@@ -335,7 +315,18 @@
   <!-- Lightbox -->
   <div id="lightbox" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center" onclick="window.app.closeLightbox()">
     <button onclick="event.stopPropagation();window.app.closeLightbox()" class="absolute top-3 right-4 text-white text-4xl z-10 leading-none" style="text-shadow:0 0 8px #000">&times;</button>
-    <img id="lb-img" class="max-w-[92vw] max-h-[92vh] object-contain rounded" src="" onclick="event.stopPropagation()">
+    <!-- Navigatiepijlen -->
+    <button id="lb-nav-left" onclick="event.stopPropagation();window.app.lbNavigate(-1)"
+      class="hidden absolute left-3 top-1/2 -translate-y-1/2 text-white text-5xl z-10 w-14 h-14 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70 transition-colors select-none"
+      style="text-shadow:0 0 8px #000">&#8249;</button>
+    <button id="lb-nav-right" onclick="event.stopPropagation();window.app.lbNavigate(1)"
+      class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-white text-5xl z-10 w-14 h-14 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70 transition-colors select-none"
+      style="text-shadow:0 0 8px #000">&#8250;</button>
+    <!-- Afbeelding -->
+    <img id="lb-img" class="max-w-[82vw] max-h-[88vh] object-contain rounded" src="" onclick="event.stopPropagation()">
+    <!-- Teller bovenin -->
+    <div id="lb-counter" class="hidden absolute top-4 left-1/2 -translate-x-1/2 text-white/50 text-xs font-mono bg-black/30 px-3 py-1 rounded-full" onclick="event.stopPropagation()"></div>
+    <!-- Titel onderaan -->
     <div id="lb-title" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/70 bg-black/50 px-4 py-1 rounded text-sm font-fell italic" onclick="event.stopPropagation()"></div>
   </div>
 
@@ -375,8 +366,53 @@
     <div class="dice-history" id="dice-history"></div>
   </div>
 
+  <!-- DM Dice FAB — rechteronderhoek, zichtbaar voor DM -->
+  <button id="dm-dice-fab" class="dm-dice-fab hidden" onclick="window.dice.toggleDm()" title="Dobbelstenen gooien">
+    <svg viewBox="0 0 24 22" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+      <polygon points="12,1.5 23,20.5 1,20.5"/>
+      <polygon points="6.5,11.5 17.5,11.5 12,20"/>
+    </svg>
+  </button>
+
+  <!-- DM Dice Panel -->
+  <div id="dm-dice-panel" class="dm-dice-panel">
+    <div class="dice-panel-head">
+      <span class="dice-panel-title">⚄ Dobbelstenen</span>
+      <button class="dice-panel-close" onclick="window.dice.toggleDm()" title="Sluiten">&times;</button>
+    </div>
+    <div class="dm-dice-panel-count">
+      <span class="dm-form-label" style="flex:none;font-size:11px">Aantal</span>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dice.adjustCount(-1)">−</button>
+      <span id="dm-dice-count-display" class="dm-dice-count">1</span>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dice.adjustCount(1)">+</button>
+    </div>
+    <div class="dice-panel-grid">
+      <button class="dice-btn" onclick="window.dice.rollDm(4)">d4</button>
+      <button class="dice-btn" onclick="window.dice.rollDm(6)">d6</button>
+      <button class="dice-btn" onclick="window.dice.rollDm(8)">d8</button>
+      <button class="dice-btn" onclick="window.dice.rollDm(12)">d12</button>
+      <button class="dice-btn dice-btn--featured" onclick="window.dice.rollDm(20)">d20</button>
+      <button class="dice-btn" onclick="window.dice.rollDm(100)">d%</button>
+    </div>
+    <div class="dice-result" id="dm-dice-result">
+      <div class="dice-result-num" id="dm-dice-result-num">—</div>
+      <div class="dice-result-label" id="dm-dice-result-label">Kies een dobbelsteen</div>
+    </div>
+    <div class="dice-history" id="dm-dice-history"></div>
+  </div>
+
+  <!-- DM Instellingen modal -->
+  <div id="dm-instellingen-overlay" class="dm-instellingen-overlay hidden" onclick="if(event.target===this)window._dmInstellingenClose()">
+    <div class="dm-instellingen-modal" onclick="event.stopPropagation()">
+      <div class="dm-instellingen-head">
+        <span class="dm-instellingen-title">⚙️ Instellingen</span>
+        <button class="dm-instellingen-close" onclick="window._dmInstellingenClose()" title="Sluiten">×</button>
+      </div>
+      <div id="dm-instellingen-body" class="dm-instellingen-body"></div>
+    </div>
+  </div>
 
   <script type="module" src="/js/sound-manager.js?v=1"></script>
-  <script type="module" src="/js/app.js?v=64"></script>
+  <script type="module" src="/js/app.js?v=111"></script>
 </body>
 </html>

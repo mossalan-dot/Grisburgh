@@ -169,10 +169,34 @@ function _renderGraph() {
 
     if (isEntity) {
       // ── Polaroid ──
-      const IMG_H    = 72;
-      const thumbUrl = api.thumbUrl(node.entityId);
-      const border   = sel ? '#c4a840' : '#c8b88a';
-      const bw       = sel ? 2.5 : 0.8;
+      const IMG_H      = 72;
+      const isVague    = node.entityVisibility === 'vague';
+      const isHidden   = !node.entityVisibility || node.entityVisibility === 'hidden';
+      const isDeceased = !!node.entityDeceased;
+      // Afbeelding alleen tonen als entiteit volledig zichtbaar is
+      const showImg    = !isVague && !isHidden;
+      const border     = sel ? '#c4a840' : isDeceased ? '#992222' : '#c8b88a';
+      const bw         = sel ? 2.5 : isDeceased ? 1.5 : 0.8;
+
+      // Afbeelding of silhouet
+      const imgSvg = showImg
+        ? `<svg x="6" y="8" width="${NODE_W - 12}" height="${IMG_H}" overflow="hidden">
+             <image href="${api.thumbUrl(node.entityId)}" width="${NODE_W - 12}" height="${IMG_H}"
+                    preserveAspectRatio="xMidYMid slice"/>
+           </svg>`
+        : `<rect x="6" y="8" width="${NODE_W - 12}" height="${IMG_H}" rx="1" fill="#c4b48a"/>
+           <text x="${NODE_W / 2}" y="${8 + IMG_H / 2}" text-anchor="middle"
+             dominant-baseline="middle" fill="rgba(80,55,20,0.35)"
+             style="font-size:30px;pointer-events:none">?</text>`;
+
+      // Rood kruis voor overledenen (over de afbeelding heen)
+      const crossSvg = isDeceased
+        ? `<line x1="6" y1="8" x2="${NODE_W - 6}" y2="${8 + IMG_H}"
+             stroke="rgba(200,25,25,0.88)" stroke-width="4" stroke-linecap="round"/>
+           <line x1="${NODE_W - 6}" y1="8" x2="6" y2="${8 + IMG_H}"
+             stroke="rgba(200,25,25,0.88)" stroke-width="4" stroke-linecap="round"/>`
+        : '';
+
       return `
         <g class="rel-node${sel ? ' rel-node--selected' : ''}" data-id="${esc(node.id)}"
            transform="${tf}" style="cursor:pointer"
@@ -180,10 +204,8 @@ function _renderGraph() {
           <rect x="4" y="6" width="${NODE_W}" height="${NODE_H}" rx="2" fill="rgba(0,0,0,0.38)"/>
           <rect x="0" y="0" width="${NODE_W}" height="${NODE_H}" rx="2"
                 fill="#f4eed6" stroke="${border}" stroke-width="${bw}"/>
-          <svg x="6" y="8" width="${NODE_W - 12}" height="${IMG_H}" overflow="hidden">
-            <image href="${thumbUrl}" width="${NODE_W - 12}" height="${IMG_H}"
-                   preserveAspectRatio="xMidYMid slice"/>
-          </svg>
+          ${imgSvg}
+          ${crossSvg}
           ${hasNotes ? `<text x="${NODE_W - 7}" y="11" text-anchor="middle" fill="#7a6040"
             style="font-size:11px;pointer-events:none">📎</text>` : ''}
           ${lines.length === 1
@@ -275,12 +297,20 @@ function _renderPanel() {
   panel.classList.remove('hidden');
   const name = node.entityName || node.text || '';
 
+  const panelVis      = node.entityVisibility;
+  const panelShowImg  = node.entityId && panelVis === 'visible';
+  const panelDeceased = !!node.entityDeceased;
+
   panel.innerHTML = `
     <div class="pb-panel-inner">
       ${node.entityId
-        ? `<div class="pb-panel-img-wrap">
-             <img src="${api.thumbUrl(node.entityId)}" class="pb-panel-img" alt="${esc(name)}"
-                  onerror="this.style.display='none'">
+        ? `<div class="pb-panel-img-wrap" style="position:relative">
+             ${panelShowImg
+               ? `<img src="${api.thumbUrl(node.entityId)}" class="pb-panel-img" alt="${esc(name)}"
+                       onerror="this.style.display='none'">`
+               : `<div class="pb-panel-img pb-panel-img--vague">?</div>`
+             }
+             ${panelDeceased ? `<div class="pb-panel-deceased-cross"></div>` : ''}
            </div>`
         : `<div class="pb-panel-blank-icon">📝</div>`
       }

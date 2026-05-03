@@ -112,9 +112,6 @@ export function initDmPanel() {
     renderMeesterkamer() {
       _buildTabs();
       _switchTab(_activeTab);
-      // Strip alleen renderen als hij nog niet actief is (voorkomt overschrijven van minimized-staat)
-      const el = document.getElementById('dm-reveal-strip');
-      if (el && !el.classList.contains('dm-reveal-strip--visible')) _renderRevealStrip();
     },
 
     // Spreuken
@@ -235,9 +232,10 @@ export function initDmPanel() {
     campagneCreate:    _campagneCreate,
     campagneSubmit:    _campagneSubmit,
 
-    // Berichten
+    // Berichten & Brieven
     berichtenRefresh:   _renderBerichten,
     berichtSend:        _berichtSend,
+    postSend:           _postSend,
     sjabloonDelete:     _sjabloonDelete,
 
     // Socket callbacks
@@ -277,29 +275,36 @@ export function initDmPanel() {
 
 // ── Tab knoppen bouwen ──
 
+// Welke tabs zijn "gevecht & monsters"?
+const _GEVECHT_TABS = new Set(['gevecht', 'monsters']);
+// Welke tabs zijn "diensten"?
+const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock']);
+// Welke tabs zijn "delen"?
+const _DELEN_TABS = new Set(['tunnel', 'export']);
+// Welke tabs zijn "instellingen" (niet als tab getoond)?
+const _INSTELLINGEN_TABS = new Set(['campagnes', 'wereld', 'beurs', 'dobbelstenen']);
+
+// Zet legacy tab-namen om naar nieuwe parent-tab
+function _tabToParent(tab) {
+  if (_GEVECHT_TABS.has(tab))     return 'gevecht';
+  if (_DIENSTEN_TABS.has(tab))    return 'diensten';
+  if (_DELEN_TABS.has(tab))       return 'delen';
+  return tab;
+}
+
 function _buildTabs() {
   const container = document.getElementById('dm-section-tabs');
   if (!container) return;
+  const activeParent = _tabToParent(_activeTab);
   container.innerHTML = `
-    <button class="dm-tab-btn${_activeTab==='tunnel'?      ' active':''}" data-tab="tunnel"       onclick="window.dmPanel.switchTab('tunnel')"       title="Tunnel"><span class="dm-tab-icon">🌐</span><span class="dm-tab-label">Tunnel</span></button>
-    <button class="dm-tab-btn${_activeTab==='export'?       ' active':''}" data-tab="export"       onclick="window.dmPanel.switchTab('export')"       title="Export"><span class="dm-tab-icon">📥</span><span class="dm-tab-label">Export</span></button>
-    <button class="dm-tab-btn${_activeTab==='spreuken'?    ' active':''}" data-tab="spreuken"     onclick="window.dmPanel.switchTab('spreuken')"     title="Spreuken"><span class="dm-tab-icon">📖</span><span class="dm-tab-label">Spreuken</span></button>
-    <button class="dm-tab-btn${_activeTab==='tafels'?      ' active':''}" data-tab="tafels"       onclick="window.dmPanel.switchTab('tafels')"       title="Tafels"><span class="dm-tab-icon">🎲</span><span class="dm-tab-label">Tafels</span></button>
-    <button class="dm-tab-btn${_activeTab==='dobbelstenen'?' active':''}" data-tab="dobbelstenen" onclick="window.dmPanel.switchTab('dobbelstenen')" title="Dobbelstenen">
-      <span class="dm-tab-icon"><svg viewBox="0 0 24 22" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><polygon points="12,1.5 23,20.5 1,20.5"/><polygon points="6.5,11.5 17.5,11.5 12,20"/></svg></span>
-      <span class="dm-tab-label">Dobbel</span>
-    </button>
-    <button class="dm-tab-btn${_activeTab==='geluiden'?    ' active':''}" data-tab="geluiden"     onclick="window.dmPanel.switchTab('geluiden')"     title="Geluiden"><span class="dm-tab-icon">🔊</span><span class="dm-tab-label">Geluiden</span></button>
-    <button class="dm-tab-btn${_activeTab==='monsters'?    ' active':''}" data-tab="monsters"     onclick="window.dmPanel.switchTab('monsters')"     title="Monsterbibliotheek"><span class="dm-tab-icon">👾</span><span class="dm-tab-label">Monsters</span></button>
-    <button class="dm-tab-btn${_activeTab==='gevecht'?     ' active':''}" data-tab="gevecht"      onclick="window.dmPanel.switchTab('gevecht')"      title="Gevecht"><span class="dm-tab-icon">⚔️</span><span class="dm-tab-label">Gevecht</span></button>
-    <button class="dm-tab-btn${_activeTab==='campagnes'?   ' active':''}" data-tab="campagnes"    onclick="window.dmPanel.switchTab('campagnes')"    title="Campagnes"><span class="dm-tab-icon">🗂</span><span class="dm-tab-label">Campagnes</span></button>
-    <button class="dm-tab-btn${_activeTab==='wereld'?      ' active':''}" data-tab="wereld"       onclick="window.dmPanel.switchTab('wereld')"       title="Locatie — Grisburgh verlaten"><span class="dm-tab-icon">🗺️</span><span class="dm-tab-label">Wereld</span></button>
-    <button class="dm-tab-btn${_activeTab==='herberg'?     ' active':''}" data-tab="herberg"      onclick="window.dmPanel.switchTab('herberg')"      title="Herberg instellingen"><span class="dm-tab-icon">🍺</span><span class="dm-tab-label">Herberg</span></button>
-    <button class="dm-tab-btn${_activeTab==='tweespalt'?  ' active':''}" data-tab="tweespalt"   onclick="window.dmPanel.switchTab('tweespalt')"   title="De Tweespalt — gokkantoor"><span class="dm-tab-icon">🎲</span><span class="dm-tab-label">Tweespalt</span></button>
-    <button class="dm-tab-btn${_activeTab==='ursula'?     ' active':''}" data-tab="ursula"      onclick="window.dmPanel.switchTab('ursula')"      title="Madame Ursula — waarzegger"><span class="dm-tab-icon">🔮</span><span class="dm-tab-label">Ursula</span></button>
-    <button class="dm-tab-btn${_activeTab==='gock'?       ' active':''}" data-tab="gock"        onclick="window.dmPanel.switchTab('gock')"        title="De Gock — privédetective"><span class="dm-tab-icon">🔍</span><span class="dm-tab-label">De Gock</span></button>
-    <button class="dm-tab-btn${_activeTab==='beurs'?       ' active':''}" data-tab="beurs"        onclick="window.dmPanel.switchTab('beurs')"        title="Gedeelde beurs"><span class="dm-tab-icon">👛</span><span class="dm-tab-label">Beurs</span></button>
-    <button class="dm-tab-btn${_activeTab==='berichten'?   ' active':''}" data-tab="berichten"    onclick="window.dmPanel.switchTab('berichten')"    title="Geheime berichten"><span class="dm-tab-icon">💬</span><span class="dm-tab-label">Berichten</span></button>
+    <button class="dm-tab-btn${activeParent==='gevecht'  ?' active':''}" data-tab="gevecht"   onclick="window.dmPanel.switchTab('gevecht')"   title="Gevecht & Monsters"><span class="dm-tab-icon">⚔️</span><span class="dm-tab-label">Gevecht</span></button>
+    <button class="dm-tab-btn${activeParent==='geluiden' ?' active':''}" data-tab="geluiden"  onclick="window.dmPanel.switchTab('geluiden')"  title="Geluiden"><span class="dm-tab-icon">🔊</span><span class="dm-tab-label">Geluiden</span></button>
+    <button class="dm-tab-btn${activeParent==='spreuken' ?' active':''}" data-tab="spreuken"  onclick="window.dmPanel.switchTab('spreuken')"  title="Spreuken"><span class="dm-tab-icon">📖</span><span class="dm-tab-label">Spreuken</span></button>
+    <button class="dm-tab-btn${activeParent==='tafels'   ?' active':''}" data-tab="tafels"    onclick="window.dmPanel.switchTab('tafels')"    title="Willekeur — tafels & namen"><span class="dm-tab-icon">🎲</span><span class="dm-tab-label">Tafels</span></button>
+    <button class="dm-tab-btn${activeParent==='diensten' ?' active':''}" data-tab="diensten"  onclick="window.dmPanel.switchTab('diensten')"  title="Grisburgh-diensten"><span class="dm-tab-icon">🏪</span><span class="dm-tab-label">Diensten</span></button>
+    <button class="dm-tab-btn${activeParent==='berichten'?' active':''}" data-tab="berichten" onclick="window.dmPanel.switchTab('berichten')" title="Berichten"><span class="dm-tab-icon">💬</span><span class="dm-tab-label">Berichten</span></button>
+    <button class="dm-tab-btn${activeParent==='delen'    ?' active':''}" data-tab="delen"     onclick="window.dmPanel.switchTab('delen')"     title="Delen met spelers"><span class="dm-tab-icon">📡</span><span class="dm-tab-label">Delen</span></button>
+    <button class="dm-tab-btn dm-tab-btn--settings" onclick="window._dmInstellingenOpen()" title="Instellingen"><span class="dm-tab-icon">⚙️</span><span class="dm-tab-label">Inst.</span></button>
   `;
 }
 
@@ -307,47 +312,171 @@ function _buildTabs() {
 
 function _switchTab(tab) {
   _activeTab = tab;
+  // Bepaal de parent-tab voor actieve styling
+  const parentTab = _tabToParent(tab);
   document.querySelectorAll('.dm-tab-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.tab === tab);
+    b.classList.toggle('active', b.dataset.tab === parentTab);
   });
   document.querySelectorAll('.dm-tab-content').forEach(c => {
-    c.classList.toggle('active', c.dataset.tab === tab);
+    // Toon: gevecht-tab voor alles in _GEVECHT_TABS, diensten voor _DIENSTEN_TABS, etc.
+    const matchTab = _tabToParent(c.dataset.tab || '') === parentTab
+      ? parentTab : c.dataset.tab;
+    c.classList.toggle('active', c.dataset.tab === parentTab || c.dataset.tab === tab);
+    if (c.dataset.tab !== parentTab && c.dataset.tab !== tab) c.classList.remove('active');
   });
-  if (tab === 'tunnel')    _renderTunnel();
-  if (tab === 'export')    _renderExportTab();
+  // Zorg dat alleen de juiste parent-tab-content zichtbaar is
+  document.querySelectorAll('.dm-tab-content').forEach(c => {
+    c.classList.toggle('active', c.dataset.tab === parentTab);
+  });
+
   if (tab === 'spreuken')  _renderSpreuken();
   if (tab === 'tafels')    _loadAndRenderTafels();
-  if (tab === 'monsters')  _loadAndRenderMonsters();
   if (tab === 'geluiden')  _renderGeluiden();
-  if (tab === 'campagnes') _loadAndRenderCampagnes();
-  if (tab === 'wereld')     _renderWereldTab();
-  if (tab === 'herberg')    _renderHerbergSettings();
-  if (tab === 'tweespalt')  _renderTweespaltDM();
-  if (tab === 'ursula')     _renderUrsulaSettings();
-  if (tab === 'gock')       _renderGockSettings();
-  if (tab === 'berichten')  _renderBerichten();
-  if (tab === 'herberg')   _renderHerbergSettings();
-  if (tab === 'beurs')     _renderBeursTab();
   if (tab === 'berichten') _renderBerichten();
-  if (tab === 'gevecht') {
-    // Always reload monsters + entities so pickers are fresh
-    Promise.all([
-      api.listMonsters().then(d => { _monsters = d.monsters || []; }).catch(() => {}),
-      api.listEntities('personages').then(list => { _setupPersonages = list || []; }).catch(() => {}),
-    ]).then(() => {
-      if (_activeTab !== 'gevecht') return;
-      const isEmpty = !_combat?.active && (_combat?.combatants?.length || 0) === 0;
-      if (isEmpty) _autoAddSpelers().then(() => _renderGevecht());
-      else _syncSpelerHp().then(() => _renderGevecht());
-    });
-    _renderGevecht();
-  }
+  if (tab === 'gevecht' || tab === 'monsters') _renderGevechtEnMonsters(tab);
+  if (tab === 'diensten' || _DIENSTEN_TABS.has(tab)) _renderDiensten(tab);
+  if (tab === 'delen'    || _DELEN_TABS.has(tab))    _renderDelen(tab);
 }
 
 // ── Spreuken ──
 
 function _isHpCampaign() {
   return window.app?.state?.meta?.spellSource === 'wands-wizards';
+}
+
+// ── Gevecht & Monsters (gecombineerde tab) ──
+
+let _gevechtSubTab = 'gevecht'; // 'gevecht' | 'monsters'
+
+function _renderGevechtEnMonsters(subTab) {
+  if (subTab && (subTab === 'gevecht' || subTab === 'monsters')) _gevechtSubTab = subTab;
+  const el = document.querySelector('.dm-tab-content[data-tab="gevecht"]');
+  if (!el) return;
+
+  // Verplaats #dm-monsters-content naar de gecombineerde gevecht-tab als dat nog niet zo is
+  const monstersEl = document.getElementById('dm-monsters-content');
+  if (monstersEl && !el.contains(monstersEl)) el.appendChild(monstersEl);
+  const gevechtEl = document.getElementById('dm-gevecht-content');
+
+  // Sub-tab-nav injecteren/bijwerken
+  if (!el.querySelector('.dm-subtab-nav')) {
+    const nav = document.createElement('div');
+    nav.className = 'dm-subtab-nav';
+    el.prepend(nav);
+  }
+  el.querySelector('.dm-subtab-nav').innerHTML = `
+    <button class="dm-subtab-btn${_gevechtSubTab==='gevecht'  ?' active':''}" onclick="window.dmPanel.switchTab('gevecht')">⚔️ Gevecht</button>
+    <button class="dm-subtab-btn${_gevechtSubTab==='monsters' ?' active':''}" onclick="window.dmPanel.switchTab('monsters')">👾 Monsters</button>
+  `;
+
+  // Toon/verberg de juiste sub-content
+  if (gevechtEl)  gevechtEl.classList.toggle('hidden',  _gevechtSubTab !== 'gevecht');
+  if (monstersEl) monstersEl.classList.toggle('hidden', _gevechtSubTab !== 'monsters');
+
+  if (_gevechtSubTab === 'gevecht') {
+    Promise.all([
+      api.listMonsters().then(d => { _monsters = d.monsters || []; }).catch(() => {}),
+      api.listEntities('personages').then(list => { _setupPersonages = list || []; }).catch(() => {}),
+    ]).then(() => {
+      if (_tabToParent(_activeTab) !== 'gevecht') return;
+      const isEmpty = !_combat?.active && (_combat?.combatants?.length || 0) === 0;
+      if (isEmpty) _autoAddSpelers().then(() => _renderGevecht());
+      else _syncSpelerHp().then(() => _renderGevecht());
+    });
+    _renderGevecht();
+  } else {
+    _loadAndRenderMonsters();
+  }
+}
+
+// Helper: zoek de juiste container voor een "logische" tab-naam,
+// ook als die tab is samengevoegd in een parent-tab of de instellingen-modal.
+function _tabEl(name) {
+  return document.getElementById(`dm-inst-${name}`)
+      || document.getElementById(`dm-diensten-${name}`)
+      || document.getElementById(`dm-delen-${name}`)
+      || document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
+}
+
+// ── Diensten (Herberg + Tweespalt + Gock gecombineerd) ──
+
+let _dienstenSubTab = 'herberg'; // 'herberg' | 'tweespalt' | 'gock'
+
+function _renderDiensten(subTab) {
+  if (subTab && _DIENSTEN_TABS.has(subTab)) _dienstenSubTab = subTab;
+  const el = document.querySelector('.dm-tab-content[data-tab="diensten"]');
+  if (!el) return;
+
+  // Sub-tab-nav
+  if (!el.querySelector('.dm-subtab-nav')) {
+    const nav = document.createElement('div');
+    nav.className = 'dm-subtab-nav';
+    el.prepend(nav);
+  }
+  el.querySelector('.dm-subtab-nav').innerHTML = `
+    <button class="dm-subtab-btn${_dienstenSubTab==='herberg'   ?' active':''}" onclick="window.dmPanel.switchTab('herberg')">🍺 Herberg</button>
+    <button class="dm-subtab-btn${_dienstenSubTab==='tweespalt' ?' active':''}" onclick="window.dmPanel.switchTab('tweespalt')">🎲 Tweespalt</button>
+    <button class="dm-subtab-btn${_dienstenSubTab==='gock'      ?' active':''}" onclick="window.dmPanel.switchTab('gock')">🔍 De Gock</button>
+  `;
+
+  // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
+  ['herberg','tweespalt','gock'].forEach(name => {
+    let legacy = document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
+    if (!legacy) return;
+    // Verplaats content naar sub-div in diensten-tab
+    let sub = el.querySelector(`#dm-diensten-${name}`);
+    if (!sub) {
+      sub = document.createElement('div');
+      sub.id = `dm-diensten-${name}`;
+      // Steek children van legacy erin
+      while (legacy.firstChild) sub.appendChild(legacy.firstChild);
+      el.appendChild(sub);
+    }
+    sub.classList.toggle('hidden', _dienstenSubTab !== name);
+    legacy.classList.remove('active'); // legacy nooit actief
+  });
+
+  if (_dienstenSubTab === 'herberg')   _renderHerbergSettings();
+  if (_dienstenSubTab === 'tweespalt') _renderTweespaltDM();
+  if (_dienstenSubTab === 'gock')      _renderGockSettings();
+}
+
+// ── Delen (Tunnel + Export gecombineerd) ──
+
+let _delenSubTab = 'tunnel'; // 'tunnel' | 'export'
+
+function _renderDelen(subTab) {
+  if (subTab && _DELEN_TABS.has(subTab)) _delenSubTab = subTab;
+  const el = document.querySelector('.dm-tab-content[data-tab="delen"]');
+  if (!el) return;
+
+  // Sub-tab-nav
+  if (!el.querySelector('.dm-subtab-nav')) {
+    const nav = document.createElement('div');
+    nav.className = 'dm-subtab-nav';
+    el.prepend(nav);
+  }
+  el.querySelector('.dm-subtab-nav').innerHTML = `
+    <button class="dm-subtab-btn${_delenSubTab==='tunnel' ?' active':''}" onclick="window.dmPanel.switchTab('tunnel')">🌐 Tunnel</button>
+    <button class="dm-subtab-btn${_delenSubTab==='export' ?' active':''}" onclick="window.dmPanel.switchTab('export')">📥 Export</button>
+  `;
+
+  ['tunnel','export'].forEach(name => {
+    let legacy = document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
+    if (!legacy) return;
+    let sub = el.querySelector(`#dm-delen-${name}`);
+    if (!sub) {
+      sub = document.createElement('div');
+      sub.id = `dm-delen-${name}`;
+      while (legacy.firstChild) sub.appendChild(legacy.firstChild);
+      el.appendChild(sub);
+    }
+    sub.classList.toggle('hidden', _delenSubTab !== name);
+    legacy.classList.remove('active');
+  });
+
+  if (_delenSubTab === 'tunnel') _renderTunnel();
+  if (_delenSubTab === 'export') _renderExportTab();
 }
 
 async function _loadSpells() {
@@ -2308,7 +2437,7 @@ async function _campagneSubmit() {
   if (errEl) errEl.textContent = '';
   try {
     await api.createCampaign(id, { appTitle: title || id, appSubtitle: subtitle, theme });
-    await _loadAndRenderCampagnes();
+    await _renderInstellingen();
   } catch (err) {
     if (errEl) errEl.textContent = 'Aanmaken mislukt: ' + err.message;
   }
@@ -2319,7 +2448,7 @@ async function _campagneSubmit() {
 // ── Wereld (Grisburgh verlaten) ───────────────────────────────────────────────
 
 async function _renderWereldTab() {
-  const el = document.querySelector('.dm-tab-content[data-tab="wereld"]');
+  const el = _tabEl('wereld');
   if (!el) return;
   el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
 
@@ -2351,7 +2480,7 @@ async function _renderWereldTab() {
         </button>
         <p style="font-size:11px;opacity:.6">
           Als de groep Grisburgh verlaat, worden alle Grisburgh-diensten
-          (herberg, Tweespalt, Ursula, Gock) en winkels geblokkeerd voor spelers.
+          (herberg, Tweespalt, Gock) en winkels geblokkeerd voor spelers.
           Winkels die je hieronder markeert als "buiten Grisburgh" blijven altijd bereikbaar.
         </p>
       </div>
@@ -2396,7 +2525,7 @@ let _hbPersonages = [];
 let _hbPendingBackdropId = null;
 
 async function _renderHerbergSettings() {
-  const el = document.querySelector('.dm-tab-content[data-tab="herberg"]');
+  const el = _tabEl('herberg');
   if (!el) return;
   el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
 
@@ -2453,7 +2582,7 @@ async function _renderHerbergSettings() {
 }
 
 async function _renderBeursTab() {
-  const el = document.querySelector('.dm-tab-content[data-tab="beurs"]');
+  const el = _tabEl('beurs');
   if (!el) return;
   el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
 
@@ -2552,7 +2681,7 @@ window._hbSave = async () => {
 // ── Tweespalt / Gokkantoor ────────────────────────────────────────────────────
 
 async function _renderTweespaltDM() {
-  const el = document.querySelector('.dm-tab-content[data-tab="tweespalt"]');
+  const el = _tabEl('tweespalt');
   if (!el) return;
   el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
 
@@ -2837,129 +2966,10 @@ window._tsSettingsSave = async () => {
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
 };
 
-// ── Madame Ursula ─────────────────────────────────────────────────────────────
-
-async function _renderUrsulaSettings() {
-  const el = document.querySelector('.dm-tab-content[data-tab="ursula"]');
-  if (!el) return;
-  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
-
-  const meta = window.app?.state?.meta || {};
-  const config = meta.ursula || {};
-  const prijs = config.prijs || { fl: 20 };
-
-  let personages = [], locaties = [];
-  try { personages = await api.listEntities('personages'); } catch {}
-  try { locaties   = await api.listEntities('locaties');   } catch {}
-  const alleEntiteiten = [...personages, ...locaties];
-
-  const tidbitsWaarde = (config.tidbits || []).join('\n');
-
-  el.innerHTML = `
-    <div class="dm-feature-section">
-      <div class="dm-section-label">Madame Ursula — Instellingen</div>
-
-      <div class="dm-form-row">
-        <label class="dm-form-label">Naam</label>
-        <input id="ursula-naam" class="dm-input" value="${esc(config.naam || 'Madame Ursula')}">
-      </div>
-      <div class="dm-form-row">
-        <label class="dm-form-label">Prijs (fl)</label>
-        <input id="ursula-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 20}" style="width:70px">
-      </div>
-
-      <div class="dm-form-row">
-        <label class="dm-form-label">Portret (NPC of locatie)</label>
-        <select id="ursula-portret-select" class="dm-select">
-          <option value="">— Kies een entiteit —</option>
-          ${alleEntiteiten.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
-        </select>
-      </div>
-      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
-
-      <div class="dm-form-row" style="flex-direction:column;gap:6px">
-        <label class="dm-form-label">Achtergrondafbeelding</label>
-        ${config.backdropId ? `<img id="ursula-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="ursula-backdrop-preview" style="display:none"></span>'}
-        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">
-          📷 Afbeelding uploaden
-          <input type="file" accept="image/*" class="hidden" onchange="window._ursulaUploadBackdrop(this.files[0])">
-        </label>
-        <div class="dm-form-row">
-          <label class="dm-form-label">Of kies uit entiteiten</label>
-          <select id="ursula-backdrop-select" class="dm-select">
-            <option value="">— Entiteit als backdrop —</option>
-            ${alleEntiteiten.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-
-      <div class="dm-form-row" style="flex-direction:column;gap:4px">
-        <label class="dm-form-label">Aangepaste tidbits (één per regel, gebruik {naam} voor de naam)</label>
-        <textarea id="ursula-tidbits" class="dm-input" rows="8" style="resize:vertical;font-size:11px"
-          placeholder="Laat leeg voor standaard tidbits…">${esc(tidbitsWaarde)}</textarea>
-      </div>
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._ursulaSettingsSave()">💾 Opslaan</button>
-      </div>
-    </div>
-
-    <div class="dm-feature-section" style="margin-top:14px">
-      <div class="dm-section-label">Geheimen per personage</div>
-      <p style="font-size:11px;opacity:.6;margin-bottom:8px">Vul hieronder de vage profetie in die Ursula geeft. Laat leeg voor een random tidbit.</p>
-      ${personages.map(p => `
-        <div class="dm-form-row" style="flex-direction:column;gap:3px;margin-bottom:8px">
-          <label class="dm-form-label">${esc(p.name)}</label>
-          <textarea class="dm-input ursula-geheim-input" data-entity-id="${esc(p.id)}" data-entity-type="personages"
-            rows="2" style="resize:vertical;font-size:11px"
-            placeholder="Vage profetie voor Ursula…">${esc(p.data?.ursulaGeheim || '')}</textarea>
-        </div>`).join('')}
-      <button class="dm-btn dm-btn-primary" onclick="window._ursulaGeheimSave()">💾 Geheimen opslaan</button>
-    </div>`;
-}
-
-window._ursulaUploadBackdrop = async (file) => {
-  if (!file) return;
-  const id = 'ursula-backdrop-' + Date.now();
-  try {
-    await api.uploadFile(id, file);
-    window._ursulaBackdropPending = id;
-    const prev = document.getElementById('ursula-backdrop-preview');
-    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
-  } catch (err) { alert('Upload mislukt: ' + err.message); }
-};
-
-window._ursulaSettingsSave = async () => {
-  const config = window.app?.state?.meta?.ursula || {};
-  const naam = document.getElementById('ursula-naam')?.value.trim() || 'Madame Ursula';
-  const fl = parseInt(document.getElementById('ursula-prijs-fl')?.value) || 20;
-  const tidbitsRaw = document.getElementById('ursula-tidbits')?.value.trim() || '';
-  const tidbits = tidbitsRaw ? tidbitsRaw.split('\n').map(l => l.trim()).filter(Boolean) : [];
-  const imageId = document.getElementById('ursula-portret-select')?.value || config.imageId || '';
-  const backdropFromSelect = document.getElementById('ursula-backdrop-select')?.value || null;
-  const backdropId = window._ursulaBackdropPending || backdropFromSelect || config.backdropId || '';
-  try {
-    await api.saveUrsulaConfig({ naam, prijs: { fl }, tidbits: tidbits.length ? tidbits : undefined, imageId, backdropId });
-    const newMeta = await api.meta();
-    if (window.app?.state) window.app.state.meta = newMeta;
-    window._ursulaBackdropPending = null;
-    await _renderUrsulaSettings();
-  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
-};
-
-window._ursulaGeheimSave = async () => {
-  const inputs = document.querySelectorAll('.ursula-geheim-input');
-  try {
-    for (const inp of inputs) {
-      await api.setUrsulaGeheim(inp.dataset.entityType, inp.dataset.entityId, inp.value.trim() || null);
-    }
-    alert('Geheimen opgeslagen.');
-  } catch (err) { alert('Fout: ' + err.message); }
-};
-
 // ── De Gock ───────────────────────────────────────────────────────────────────
 
 async function _renderGockSettings() {
-  const el = document.querySelector('.dm-tab-content[data-tab="gock"]');
+  const el = _tabEl('gock');
   if (!el) return;
   el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
 
@@ -3022,18 +3032,7 @@ async function _renderGockSettings() {
       </div>
     </div>
 
-    <div class="dm-feature-section" style="margin-top:14px">
-      <div class="dm-section-label">Geheimen per personage</div>
-      <p style="font-size:11px;opacity:.6;margin-bottom:8px">Precieze informatie die De Gock oplevert. Laat leeg voor een random tidbit.</p>
-      ${personages.map(p => `
-        <div class="dm-form-row" style="flex-direction:column;gap:3px;margin-bottom:8px">
-          <label class="dm-form-label">${esc(p.name)}</label>
-          <textarea class="dm-input gock-geheim-input" data-entity-id="${esc(p.id)}" data-entity-type="personages"
-            rows="2" style="resize:vertical;font-size:11px"
-            placeholder="Precies rapport van De Gock…">${esc(p.data?.gockGeheim || '')}</textarea>
-        </div>`).join('')}
-      <button class="dm-btn dm-btn-primary" onclick="window._gockGeheimSave()">💾 Geheimen opslaan</button>
-    </div>`;
+    `;
 }
 
 window._gockUploadBackdrop = async (file) => {
@@ -3064,16 +3063,6 @@ window._gockSettingsSave = async () => {
     if (window.app?.state) window.app.state.meta = newMeta;
     window._gockBackdropPending = null;
     await _renderGockSettings();
-  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
-};
-
-window._gockGeheimSave = async () => {
-  const inputs = document.querySelectorAll('.gock-geheim-input');
-  try {
-    for (const inp of inputs) {
-      await api.setGockGeheim(inp.dataset.entityType, inp.dataset.entityId, inp.value.trim() || null);
-    }
-    alert('Geheimen opgeslagen.');
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
 };
 
@@ -3480,7 +3469,34 @@ function _renderGevecht() {
           onclick="window.dmPanel.combatStart()" ${cs.length === 0 ? 'disabled' : ''} title="Start gevecht">⚔️</button>
       </div>
     </div>
+
+    <div class="dm-feature-section" style="margin-top:4px;border-top:1px solid rgba(196,168,122,0.25);padding-top:12px">
+      <div class="dm-section-label">🌙 Rust</div>
+      <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="dm-btn dm-btn-ghost" onclick="window._dmLangeRust()" title="Herlaadt alle item-charges voor de party">🌙 Lange rust</button>
+        <span id="dm-rust-status" style="font-size:11px;color:#6a9050"></span>
+      </div>
+    </div>
   `;
+
+  window._dmLangeRust = async function() {
+    const statusEl = document.getElementById('dm-rust-status');
+    try {
+      const r = await api.partyLongRest();
+      if (statusEl) {
+        let msg = `✓ Lange rust uitgevoerd (${r.resetCount} charges herladen)`;
+        if (r.rollLog && r.rollLog.length) {
+          msg += ' — Dobbelrollen: ' + r.rollLog.map(e =>
+            `${e.charName} / ${e.itemName}: +${e.rolled} → ${e.newCharges}/${e.max}`
+          ).join(', ');
+        }
+        statusEl.textContent = msg;
+        setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 8000);
+      }
+    } catch(err) {
+      if (statusEl) statusEl.textContent = 'Fout: ' + (err.message || '?');
+    }
+  };
 }
 
 // ── Detail-panel: klik op portret ────────────────────────────────────────────
@@ -4418,7 +4434,8 @@ async function _populateEmoteBar(combat) {
 // ── Berichten ─────────────────────────────────────────────────────────────────
 
 let _berichtenSpelers = [];
-let _berichtenData    = {};   // { characterId: [{ id, tekst, timestamp, gelezen }] }
+let _berichtenNPCs    = [];
+let _berichtenData    = {};   // { characterId: [{ id, tekst|brief-velden, timestamp, gelezen }] }
 let _sjablonen        = [];
 let _sjabloonMode     = false;
 
@@ -4428,10 +4445,11 @@ async function _renderBerichten() {
   el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
 
   try {
-    const [berichtenRes, sjablonenRes, allPersonages] = await Promise.all([
+    const [berichtenRes, sjablonenRes, allPersonages, groepen] = await Promise.all([
       api.getBerichten(),
       api.getSjablonen().catch(() => ({ sjablonen: [] })),
       api.listEntities('personages').catch(() => []),
+      api.listGroups().catch(() => []),
     ]);
     // DM response: { spelers: [{ characterId, name, berichten }] }
     _sjablonen = sjablonenRes.sjablonen || [];
@@ -4441,18 +4459,81 @@ async function _renderBerichten() {
     }
     // Alle speler-personages als keuzemogelijkheid (ongeacht campagnezichtbaarheid)
     _berichtenSpelers = allPersonages.filter(p => p.subtype === 'speler');
+    _berichtenNPCs    = allPersonages.filter(p => p.subtype !== 'speler');
+    // listGroups geeft { groups: [...] } terug
+    window._berichtenGroepen = groepen.groups || groepen || [];
   } catch (err) {
     el.innerHTML = `<div class="dm-feature-section"><div class="dm-section-label">Fout: ${esc(err.message)}</div></div>`;
     return;
   }
 
-  const totalUnread = Object.values(_berichtenData).flat().filter(m => !m.gelezen).length;
+  const totalUnread = Object.values(_berichtenData).flat().filter(m => !m.gelezen && !m.deletedAt).length;
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">💬 Geheime berichten${totalUnread ? ` <span class="bericht-badge">${totalUnread}</span>` : ''}</div>
 
-      <!-- Stuur bericht -->
+      <!-- ═══ STUUR BRIEF (rijker format) ═══ -->
+      <div class="dm-section-label">✉️ Stuur brief</div>
+      <div class="bericht-compose post-compose">
+
+        <!-- Ontvanger -->
+        <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;align-items:center">
+          <label class="dm-form-label" style="min-width:60px">Aan</label>
+          <select id="post-ontvanger-type" class="dm-select" style="width:110px;flex-shrink:0" onchange="window._postOntvangerTypeChange()">
+            <option value="speler">Speler</option>
+            <option value="groep">Hele party</option>
+          </select>
+          <select id="post-ontvanger-speler" class="dm-select" style="flex:1;min-width:110px">
+            <option value="">— Kies speler —</option>
+            ${_berichtenSpelers.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}
+          </select>
+          <select id="post-ontvanger-groep" class="dm-select hidden" style="flex:1;min-width:110px">
+            <option value="">— Kies groep —</option>
+            ${(window._berichtenGroepen || []).map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('')}
+          </select>
+        </div>
+
+        <!-- Afzender -->
+        <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;align-items:center">
+          <label class="dm-form-label" style="min-width:60px">Van</label>
+          <input id="post-afzender" type="text" class="dm-input" placeholder="Naam afzender (of anoniem)" style="flex:1;min-width:120px">
+          <div class="post-npc-wrap" style="flex:1;min-width:120px">
+            <input id="post-npc-search" type="text" class="dm-input" autocomplete="off"
+              placeholder="Zoek NPC…"
+              oninput="window._postNpcSearch(this.value)"
+              onfocus="window._postNpcSearch(this.value)"
+              onblur="setTimeout(window._postNpcClose,150)">
+            <input type="hidden" id="post-npc">
+            <div id="post-npc-dropdown" class="post-npc-dropdown"></div>
+          </div>
+        </div>
+
+        <!-- Titel -->
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label">Onderwerp</label>
+          <input id="post-titel" type="text" class="dm-input" placeholder="Onderwerp / titel van de brief" style="width:100%">
+        </div>
+
+        <!-- In-world datum -->
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label">Datum (in de spelwereld)</label>
+          <input id="post-datum" type="text" class="dm-input" placeholder="bijv. 4 Grasmaand MDCCLXXII" style="width:100%">
+        </div>
+
+        <!-- Tekst -->
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label">Inhoud</label>
+          <textarea id="post-tekst" class="dm-textarea" rows="5" placeholder="Schrijf de brief hier…" style="resize:vertical;font-family:'IM Fell English',serif;font-size:0.95rem"></textarea>
+        </div>
+
+        <div class="dm-form-row" style="justify-content:flex-end;gap:6px">
+          <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.postSend()">📜 Brief sturen</button>
+        </div>
+        <div id="post-send-status" class="bericht-status hidden"></div>
+      </div>
+
+      <!-- ═══ STUUR SNEL BERICHT (eenvoudig format) ═══ -->
+      <div class="dm-section-label" style="margin-top:16px">💬 Snel bericht${totalUnread ? ` <span class="bericht-badge">${totalUnread}</span>` : ''}</div>
       <div class="bericht-compose">
         <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;align-items:center">
           <label class="dm-form-label" style="min-width:60px">Aan</label>
@@ -4486,8 +4567,8 @@ async function _renderBerichten() {
         <div id="bericht-send-status" class="bericht-status hidden"></div>
       </div>
 
-      <!-- Verstuurde berichten per speler -->
-      <div class="dm-section-label" style="margin-top:12px">Geschiedenis</div>
+      <!-- ═══ GESCHIEDENIS ═══ -->
+      <div class="dm-section-label" style="margin-top:16px">Geschiedenis</div>
       ${_berichtenSpelers.length === 0 ? '<p class="dm-empty">Geen spelers zichtbaar.</p>' : ''}
       ${_berichtenSpelers.map(p => {
         const msgs = (_berichtenData[p.id] || []).slice().reverse();
@@ -4496,17 +4577,37 @@ async function _renderBerichten() {
           <details class="bericht-history-group" open>
             <summary class="bericht-history-head">
               ${esc(p.name)}
-              <span class="bericht-history-count">${msgs.length} bericht${msgs.length !== 1 ? 'en' : ''}</span>
+              <span class="bericht-history-count">${msgs.length}</span>
             </summary>
             <div class="bericht-history-body">
-              ${msgs.map(m => `
-                <div class="bericht-history-item${m.gelezen ? '' : ' bericht-history-unread'}">
-                  <div class="bericht-history-row">
-                    <span class="bericht-history-tekst">${esc(m.tekst)}</span>
-                    <button class="bericht-del-btn" title="Verwijder" onclick="window._berichtDmDelete('${esc(p.id)}','${esc(m.id)}')">✕</button>
-                  </div>
-                  <span class="bericht-history-meta">${_fmtDate(m.timestamp)}${m.gelezen ? ' · gelezen' : ' · ongelezen'}</span>
-                </div>`).join('')}
+              ${msgs.map(m => {
+                if (m.type === 'brief') {
+                  // Brief: rijke documentkaart
+                  return `
+                    <div class="bericht-history-item bericht-history-brief${m.deletedAt ? ' bericht-history-brief--deleted' : ''}${m.gelezen ? '' : ' bericht-history-unread'}">
+                      <div class="bericht-history-row">
+                        <div style="flex:1;min-width:0">
+                          ${m.titel ? `<div class="bericht-brief-titel">${esc(m.titel)}</div>` : ''}
+                          ${m.afzender ? `<div class="bericht-brief-afzender">Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.6rem;padding:1px 3px" onclick="window._openDetail('${esc(m.entityType)}','${esc(m.entityId)}')" title="Open kaartje">↗</button>` : ''}</div>` : ''}
+                          <div class="bericht-brief-tekst-preview">${esc(m.tekst.substring(0, 120))}${m.tekst.length > 120 ? '…' : ''}</div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+                          ${m.deletedAt ? `<span class="bericht-brief-deleted-badge" title="Weggegooid op ${_fmtDate(m.deletedAt)}">🗑 weggegooid</span>` : ''}
+                        </div>
+                      </div>
+                      <span class="bericht-history-meta">${_fmtDate(m.timestamp)}${m.gelezen ? ' · gelezen' : ' · ongelezen'}${m.deletedAt ? ' · weggegooid' : ''}</span>
+                    </div>`;
+                }
+                // Gewoon bericht
+                return `
+                  <div class="bericht-history-item${m.gelezen ? '' : ' bericht-history-unread'}">
+                    <div class="bericht-history-row">
+                      <span class="bericht-history-tekst">${esc(m.tekst)}</span>
+                      <button class="bericht-del-btn" title="Verwijder" onclick="window._berichtDmDelete('${esc(p.id)}','${esc(m.id)}')">✕</button>
+                    </div>
+                    <span class="bericht-history-meta">${_fmtDate(m.timestamp)}${m.gelezen ? ' · gelezen' : ' · ongelezen'}</span>
+                  </div>`;
+              }).join('')}
             </div>
           </details>`;
       }).join('')}
@@ -4526,6 +4627,101 @@ window._berichtDmDelete = async (characterId, msgId) => {
     _renderBerichten();
   } catch { /* ok */ }
 };
+
+// Schakel speler/groep dropdown bij brief-ontvanger
+window._postOntvangerTypeChange = () => {
+  const type = document.getElementById('post-ontvanger-type')?.value;
+  document.getElementById('post-ontvanger-speler')?.classList.toggle('hidden', type !== 'speler');
+  document.getElementById('post-ontvanger-groep')?.classList.toggle('hidden', type !== 'groep');
+};
+
+// Vul afzender-naam in vanuit NPC-selectie
+// ── NPC zoek-combobox ──
+window._postNpcSearch = (q) => {
+  const dd = document.getElementById('post-npc-dropdown');
+  if (!dd) return;
+  const matches = q.trim()
+    ? _berichtenNPCs.filter(n => n.name.toLowerCase().includes(q.toLowerCase()))
+    : _berichtenNPCs;
+  if (!matches.length) { dd.classList.remove('open'); return; }
+  dd.innerHTML = [
+    `<div class="post-npc-item post-npc-item--none" onmousedown="window._postNpcSelect('','')">— Geen NPC-link —</div>`,
+    ...matches.map(n =>
+      `<div class="post-npc-item" onmousedown="window._postNpcSelect('${esc(n.id)}','${escJS(n.name)}')">${esc(n.name)}</div>`)
+  ].join('');
+  dd.classList.add('open');
+};
+
+window._postNpcClose = () => {
+  document.getElementById('post-npc-dropdown')?.classList.remove('open');
+};
+
+window._postNpcSelect = (id, name) => {
+  const hidden   = document.getElementById('post-npc');
+  const search   = document.getElementById('post-npc-search');
+  const afzender = document.getElementById('post-afzender');
+  if (hidden) hidden.value  = id;
+  if (search) search.value  = name;
+  if (afzender && !afzender.value.trim() && name) afzender.value = name;
+  window._postNpcClose();
+};
+
+async function _postSend() {
+  const ontvangerType  = document.getElementById('post-ontvanger-type')?.value;
+  const spelerId       = document.getElementById('post-ontvanger-speler')?.value;
+  const groepId        = document.getElementById('post-ontvanger-groep')?.value;
+  const titel          = document.getElementById('post-titel')?.value.trim();
+  const tekst          = document.getElementById('post-tekst')?.value.trim();
+  const afzender       = document.getElementById('post-afzender')?.value.trim();
+  const datum          = document.getElementById('post-datum')?.value.trim();
+  const npcId          = document.getElementById('post-npc')?.value;
+  const statusEl       = document.getElementById('post-send-status');
+
+  if (!tekst) {
+    if (statusEl) { statusEl.textContent = 'Vul een briefinhoud in.'; statusEl.className = 'bericht-status bericht-status--err'; statusEl.classList.remove('hidden'); }
+    return;
+  }
+  if (ontvangerType === 'speler' && !spelerId) {
+    if (statusEl) { statusEl.textContent = 'Kies een speler.'; statusEl.className = 'bericht-status bericht-status--err'; statusEl.classList.remove('hidden'); }
+    return;
+  }
+  if (ontvangerType === 'groep' && !groepId) {
+    if (statusEl) { statusEl.textContent = 'Kies een party/groep.'; statusEl.className = 'bericht-status bericht-status--err'; statusEl.classList.remove('hidden'); }
+    return;
+  }
+
+  const npc = npcId ? _berichtenNPCs.find(n => n.id === npcId) : null;
+
+  const payload = {
+    titel,
+    tekst,
+    afzender,
+    datum,
+    entityId:   npc ? npc.id   : null,
+    entityType: npc ? 'personages' : null,
+    characterId: ontvangerType === 'speler' ? spelerId : null,
+    groepId:     ontvangerType === 'groep'  ? groepId  : null,
+  };
+
+  try {
+    const r = await api.sendPost(payload);
+    if (statusEl) {
+      statusEl.textContent = `✓ Brief verstuurd${r.created > 1 ? ` (${r.created} ontvangers)` : ''}`;
+      statusEl.className = 'bericht-status bericht-status--ok';
+      statusEl.classList.remove('hidden');
+    }
+    // Reset formulier
+    document.getElementById('post-titel').value      = '';
+    document.getElementById('post-tekst').value      = '';
+    document.getElementById('post-afzender').value   = '';
+    document.getElementById('post-datum').value      = '';
+    document.getElementById('post-npc').value        = '';
+    document.getElementById('post-npc-search').value = '';
+    setTimeout(() => _renderBerichten(), 400);
+  } catch (err) {
+    if (statusEl) { statusEl.textContent = 'Fout: ' + err.message; statusEl.className = 'bericht-status bericht-status--err'; statusEl.classList.remove('hidden'); }
+  }
+}
 
 window._berichtenToggleSjablonen = () => {
   const el = document.getElementById('bericht-sjablonen-lijst');
@@ -4578,3 +4774,167 @@ async function _sjabloonDelete(index) {
   try { await api.saveSjablonen(_sjablonen); } catch { /* ok */ }
   _renderBerichten();
 }
+
+// ── DM Instellingen modal ─────────────────────────────────────────────────────
+
+window._dmInstellingenOpen = () => {
+  const overlay = document.getElementById('dm-instellingen-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('hidden');
+  _renderInstellingen();
+};
+
+window._dmInstellingenClose = () => {
+  const overlay = document.getElementById('dm-instellingen-overlay');
+  if (overlay) overlay.classList.add('hidden');
+};
+
+async function _renderInstellingen() {
+  const body = document.getElementById('dm-instellingen-body');
+  if (!body) return;
+
+  // Haal data op
+  const meta = window.app?.state?.meta || {};
+  let groups = [], activeCampaign = '', campaigns = [];
+  try {
+    const gr = await api.listGroups();
+    groups = gr.groups || [];
+  } catch { /* ok */ }
+  try {
+    const cp = await api.getCampaigns();
+    campaigns    = cp.campaigns    || [];
+    activeCampaign = cp.activeCampaign || '';
+  } catch { /* ok */ }
+
+  const groupItems = groups.map(g => `
+    <div class="dm-inst-group-row" id="dm-inst-group-${esc(g.id)}">
+      <input class="dm-input dm-inst-group-name" value="${esc(g.name)}"
+        onchange="window._instGroepRename('${esc(g.id)}', this.value)">
+      <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
+        onclick="window._instGroepDelete('${esc(g.id)}')" title="Groep verwijderen">🗑</button>
+    </div>`).join('');
+
+  const campaignItems = campaigns.map(c => {
+    const isActive = c.id === activeCampaign;
+    return `
+      <div class="campagne-card${isActive ? ' campagne-card--active' : ''}">
+        <div class="campagne-card-info">
+          <strong class="campagne-card-title">${esc(c.appTitle || c.id)}</strong>
+          ${c.appSubtitle ? `<span class="campagne-card-sub">${esc(c.appSubtitle)}</span>` : ''}
+          <span class="campagne-card-meta">ID: ${esc(c.id)}</span>
+        </div>
+        <div class="campagne-card-actions">
+          ${isActive
+            ? '<span class="campagne-active-badge">● Actief</span>'
+            : `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSwitchTo('${esc(c.id)}')">Activeer</button>`}
+        </div>
+      </div>`;
+  }).join('');
+
+  body.innerHTML = `
+    <!-- Campagnetitel -->
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Campagnetitel</div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Titel</label>
+        <input id="inst-app-title" class="dm-input" value="${esc(meta.appTitle || '')}" placeholder="Campagnenaam">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Ondertitel</label>
+        <input id="inst-app-subtitle" class="dm-input" value="${esc(meta.appSubtitle || '')}" placeholder="Ondertitel (optioneel)">
+      </div>
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-primary" onclick="window._instTitelSave()">💾 Opslaan</button>
+        <span id="inst-titel-status" class="bericht-status hidden" style="margin-left:8px"></span>
+      </div>
+    </div>
+
+    <!-- Groepen -->
+    <div class="dm-feature-section">
+      <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span class="dm-section-label" style="margin-bottom:0">Party's</span>
+        <button class="dm-btn dm-btn-sm" onclick="window._instGroepCreate()">+ Nieuwe party</button>
+      </div>
+      <div id="inst-groepen-list" style="display:flex;flex-direction:column;gap:6px">
+        ${groupItems || '<p class="dm-hint">Nog geen party\'s.</p>'}
+      </div>
+    </div>
+
+    <!-- Campagnes -->
+    <div class="dm-feature-section">
+      <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span class="dm-section-label" style="margin-bottom:0">Campagnes</span>
+        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneCreate()">+ Nieuwe campagne</button>
+      </div>
+      <div id="dm-campagnes-inst-list">
+        ${campaignItems || '<p class="dm-hint">Geen campagnes gevonden.</p>'}
+      </div>
+      <div id="campagne-create-form" style="display:none;margin-top:10px">
+        <div class="dm-feature-row" style="gap:8px;flex-wrap:wrap">
+          <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">
+          <input id="campagne-new-title"    class="dm-input" placeholder="Naam" style="flex:2;min-width:140px">
+          <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
+        </div>
+        <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
+          <select id="campagne-new-theme" class="dm-input" style="flex:1;min-width:160px">
+            <option value="default">Fantasy (standaard)</option>
+            <option value="hp">Harry Potter</option>
+          </select>
+          <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSubmit()">Aanmaken</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('campagne-create-form').style.display='none'">Annuleren</button>
+        </div>
+        <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
+      </div>
+    </div>
+
+    <!-- Locatie / Wereld (render functie injecteert eigen dm-feature-section) -->
+    <div id="dm-inst-wereld"></div>
+
+    <!-- Gedeelde beurs (idem) -->
+    <div id="dm-inst-beurs"></div>
+  `;
+
+  // Render wereld en beurs in de juiste containers
+  _renderWereldTab();
+  _renderBeursTab();
+}
+
+window._instTitelSave = async () => {
+  const title    = document.getElementById('inst-app-title')?.value.trim();
+  const subtitle = document.getElementById('inst-app-subtitle')?.value.trim();
+  const status   = document.getElementById('inst-titel-status');
+  try {
+    await api.saveAppMeta({ appTitle: title, appSubtitle: subtitle });
+    const newMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = newMeta;
+    window.app?.applyAppMeta?.();
+    if (status) { status.textContent = '✓ Opgeslagen'; status.className = 'bericht-status bericht-status--ok'; status.classList.remove('hidden'); }
+    setTimeout(() => status?.classList.add('hidden'), 2500);
+  } catch (err) {
+    if (status) { status.textContent = 'Fout: ' + err.message; status.className = 'bericht-status bericht-status--err'; status.classList.remove('hidden'); }
+  }
+};
+
+window._instGroepCreate = async () => {
+  const naam = prompt('Naam van de nieuwe party:');
+  if (!naam?.trim()) return;
+  try {
+    await api.createGroup(naam.trim());
+    _renderInstellingen();
+  } catch (err) { alert('Aanmaken mislukt: ' + err.message); }
+};
+
+window._instGroepRename = async (id, naam) => {
+  if (!naam?.trim()) return;
+  try {
+    await api.updateGroup(id, naam.trim());
+  } catch (err) { alert('Hernoemen mislukt: ' + err.message); }
+};
+
+window._instGroepDelete = async (id) => {
+  if (!confirm('Weet je zeker dat je deze party wilt verwijderen? Alle spelerssessies in deze party worden beëindigd.')) return;
+  try {
+    await api.deleteGroup(id);
+    _renderInstellingen();
+  } catch (err) { alert('Verwijderen mislukt: ' + err.message); }
+};
