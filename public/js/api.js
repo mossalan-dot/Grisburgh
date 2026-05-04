@@ -21,7 +21,7 @@ export const api = {
   logout:            ()             => request('/auth/logout',        { method: 'POST' }),
   role:              ()             => request('/auth/role'),
   listPlayerChars:   ()             => request('/auth/players'),
-  playerLogin:       (characterId)  => request('/auth/player-login',  { method: 'POST', body: JSON.stringify({ characterId }) }),
+  playerLogin:       (characterId, password) => request('/auth/player-login', { method: 'POST', body: JSON.stringify({ characterId, password: password || '' }) }),
   playerLogout:      ()             => request('/auth/player-logout', { method: 'POST' }),
 
   // Entities
@@ -36,11 +36,12 @@ export const api = {
   toggleDeceased: (type, id) => request(`/entities/${type}/${id}/deceased`, { method: 'PUT' }),
 
   // Groepen
-  listGroups:   ()           => request('/groups'),
-  createGroup:  (name)       => request('/groups',        { method: 'POST',   body: JSON.stringify({ name }) }),
-  switchGroup:  (groupId)    => request('/groups/active', { method: 'PUT',    body: JSON.stringify({ groupId }) }),
-  updateGroup:  (id, name)   => request(`/groups/${id}`,  { method: 'PUT',    body: JSON.stringify({ name }) }),
-  deleteGroup:  (id)         => request(`/groups/${id}`,  { method: 'DELETE' }),
+  listGroups:        ()             => request('/groups'),
+  createGroup:       (name)         => request('/groups',                 { method: 'POST',   body: JSON.stringify({ name }) }),
+  switchGroup:       (groupId)      => request('/groups/active',          { method: 'PUT',    body: JSON.stringify({ groupId }) }),
+  updateGroup:       (id, name)     => request(`/groups/${id}`,           { method: 'PUT',    body: JSON.stringify({ name }) }),
+  setGroupPassword:  (id, password) => request(`/groups/${id}/password`,  { method: 'PUT',    body: JSON.stringify({ password }) }),
+  deleteGroup:       (id)           => request(`/groups/${id}`,           { method: 'DELETE' }),
 
   // DM Notes
   getNote:   (id)       => request(`/dm/notes/${id}`),

@@ -74,9 +74,9 @@ const SCHEMA = {
       { key: 'ras', label: 'Ras', type: 'text' },
       { key: 'klasse', label: 'Klasse', type: 'text' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
-      { key: 'persoonlijkheid', label: 'Persoonlijkheid', type: 'textarea', dmOnly: true },
-      { key: 'flavour', label: 'Roddel', type: 'textarea' },
       { key: 'geheim', label: 'Geheim', type: 'textarea' },
+      { key: 'flavour', label: 'Roddel', type: 'textarea' },
+      { key: 'persoonlijkheid', label: 'Persoonlijkheid', type: 'textarea', dmOnly: true },
     ],
   },
   locaties: {
@@ -1666,17 +1666,16 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ...(isStapelbaarVoorwerp && isDM() ? [{ key: 'eigenaren', label: 'Eigenaren' }] : []),
     ...(heeftVoorraad ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
     ...(heeftVoorraad && isDM() ? [{ key: 'log', label: '📋 Log' }] : []),
-    { key: 'verbindingen', label: 'Verbindingen' },
+    ...(isDM() ? [{ key: 'verbindingen', label: 'Verbindingen' }] : []),
   ];
 
   const tabNav = detailTabs.map((t, i) => `
-    <button class="detail-tab px-4 py-2 text-xs font-cinzel font-semibold transition rounded-t
-      ${i === 0 ? 'text-gold border-b-2 border-gold' : 'text-ink-dim hover:text-ink-medium'}"
+    <button class="detail-tab${i === 0 ? ' detail-tab--active' : ''}"
       data-dtab="${t.key}">${t.label}</button>
   `).join('');
 
   const body = `
-    <div class="flex gap-0.5 border-b border-room-border mb-4">${tabNav}</div>
+    <div class="detail-tab-nav">${tabNav}</div>
     <div id="dtab-info">${infoHtml}</div>
     ${showSheet ? `<div id="dtab-sheet" class="hidden">${sheetHtml}</div>` : ''}
     ${isStapelbaarVoorwerp && isDM() ? `<div id="dtab-eigenaren" class="hidden">${eigenarenHtml}</div>` : ''}
@@ -1726,10 +1725,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.dtab;
       document.querySelectorAll('.detail-tab').forEach(b => {
-        b.classList.toggle('text-gold', b === btn);
-        b.classList.toggle('border-b-2', b === btn);
-        b.classList.toggle('border-gold', b === btn);
-        b.classList.toggle('text-ink-dim', b !== btn);
+        b.classList.toggle('detail-tab--active', b === btn);
       });
       allTabKeys.forEach(k => {
         const panel = document.getElementById(`dtab-${k}`);
@@ -2082,6 +2078,12 @@ window._openEditor = async (tab, editId) => {
 
   let body = `<form id="entity-form" class="space-y-4">`;
 
+  // ── DM-toggle vars (vroeg berekend, gebruikt in rechterkolom én textarea-sectie) ──
+  const _valUitgesproken = e?.data?.flavourUitgesproken === true || e?.data?.flavourUitgesproken === 'true';
+  const _isAntagonist    = e?.data?.geheimeAntagonist === true || e?.data?.geheimeAntagonist === 'true';
+  const _existingAudioId = e?.data?.audioId || '';
+  const _isNpcEditor     = e?.subtype === 'NPC';
+
   // ── Twee-kolom layout ──
   const _autoIc   = getAutoIcon(tab, e || { data: {} });
   const _customIc = e?.data?.icon || '';
@@ -2276,78 +2278,86 @@ window._openEditor = async (tab, editId) => {
   }
   if (_revealGroupOpen) { body += `</div>`; _revealGroupOpen = null; }
 
+  // ── DM-toggles onder klasseveld (rechterkolom) ──
+  if (tab === 'personages' && isDM()) {
+    body += `
+      <div class="editor-toggles-row">
+        <button type="button" id="btn-uitgesproken"
+          class="dm-btn dm-btn-ghost editor-toggle-btn${_valUitgesproken ? ' editor-toggle-btn--active' : ''}"
+          title="Roddel uitgesproken door de waard"
+          onclick="window._editorToggleBtn('inp-flavourUitgesproken','btn-uitgesproken')">🍺</button>
+        <div id="geheime-antagonist-section"${_isNpcEditor ? '' : ' style="display:none"'}>
+          <button type="button" id="btn-geheimeAntagonist"
+            class="dm-btn dm-btn-ghost editor-toggle-btn${_isAntagonist ? ' editor-toggle-btn--active' : ''}"
+            title="Geheime antagonist — subtype wordt antagonist na onthulling"
+            onclick="window._editorToggleBtn('inp-geheimeAntagonist','btn-geheimeAntagonist')">💀</button>
+        </div>
+        ${editId && _isNpcEditor ? `
+          <button type="button" id="btn-medestander"
+            class="dm-btn dm-btn-ghost editor-toggle-btn"
+            title="Medestander koppelen / ontkoppelen"
+            onclick="window._editorToggleCompanionBtn()">⚔</button>
+        ` : ''}
+      </div>
+    `;
+  }
+
   body += `</div>`; // end editor-col-right
   body += `</div>`; // end editor-layout
 
   // ── Textarea velden (volledige breedte) ──
+  let _hasFlavourField = false;
+
   for (const field of schema.fields) {
     const val = e?.data?.[field.key] || '';
     if ((field.key === 'geheim' || field.dmOnly) && !isDM()) continue;
     if (field.type !== 'textarea') continue;
-    const taId = `ta_${field.key}`;
-    body += `
-      <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
-        <div class="mt-1">
-          ${fmtToolbar(taId)}
-          <textarea id="${taId}" name="data_${field.key}" rows="4"
+    if (field.key === 'flavour') _hasFlavourField = true;
+    const taId   = `ta_${field.key}`;
+    const _rows  = field.key === 'desc' ? 6 : 4;
+    const _taHtml = `${fmtToolbar(taId)}<textarea id="${taId}" name="data_${field.key}" rows="${_rows}"
             onkeydown="window._fmtKey(event)"
-            class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(val)}</textarea>
-        </div>
-      </div>
-    `;
-    if (field.key === 'geheim' && tab === 'personages' && isDM()) {
-      const isNpc = e?.subtype === 'NPC';
-      const isAntagonist = e?.data?.geheimeAntagonist === true || e?.data?.geheimeAntagonist === 'true';
+            class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(val)}</textarea>`;
+
+    if (['persoonlijkheid', 'flavour', 'geheim'].includes(field.key)) {
       body += `
-        <div id="geheime-antagonist-section"${isNpc ? '' : ' style="display:none"'} class="flex items-center gap-2 -mt-1">
-          <input type="hidden" id="inp-geheimeAntagonist" name="data_geheimeAntagonist" value="${isAntagonist ? 'true' : ''}">
-          <input type="checkbox" id="cb-geheimeAntagonist" class="rounded"
-            ${isAntagonist ? 'checked' : ''}
-            onchange="document.getElementById('inp-geheimeAntagonist').value=this.checked?'true':''">
-          <label for="cb-geheimeAntagonist" class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider cursor-pointer">
-            💀 Geheime antagonist — subtype wordt antagonist na onthulling
-          </label>
-        </div>
+        <details class="cs-accordion"${val ? ' open' : ''}>
+          <summary class="cs-accordion-head">
+            <span>${esc(field.label)}</span>
+            <span class="cs-accordion-chevron">▾</span>
+          </summary>
+          <div class="cs-accordion-body">${_taHtml}</div>
+        </details>
       `;
-    }
-    if (field.key === 'flavour') {
-      const existingAudioId = e?.data?.audioId || '';
-      const valUitgesproken = e?.data?.flavourUitgesproken === true || e?.data?.flavourUitgesproken === 'true';
+    } else {
       body += `
         <div>
-          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">🔊 Geluidsfragment</label>
-          <div class="mt-1 flex flex-wrap items-center gap-2">
-            ${existingAudioId ? `
-              <button type="button" id="editor-audio-preview" class="flavour-audio-btn editor-audio-preview"
-                data-audio-btn data-audio-btn-id="${esc(existingAudioId)}"
-                onclick="window._audioToggle('${esc(existingAudioId)}')" title="Afspelen / pauzeren">▶</button>
-              <span class="text-xs text-ink-dim">Audio bijgevoegd</span>
-              <button type="button" onclick="window._editorClearAudio()"
-                class="text-xs text-ink-dim hover:text-seal transition ml-auto">✕ Verwijderen</button>
-            ` : `
-              <div id="editor-audio-preview" class="hidden"></div>
-            `}
-            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-room-elevated border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright cursor-pointer transition">
-              ${existingAudioId ? '🔁 Vervangen' : '+ Audio toevoegen'}
-              <input type="file" accept="audio/*" class="hidden"
-                onchange="window._editorAudioSelected(this.files[0])">
-            </label>
-          </div>
-          <div id="editor-audio-name" class="text-xs text-ink-dim mt-1 hidden"></div>
-          <input type="hidden" name="data_audioId" id="editor-audio-id" value="${esc(existingAudioId)}">
-        </div>
-        <div class="flex items-center gap-2 mt-2">
-          <input type="hidden" name="data_flavourUitgesproken" id="inp-flavourUitgesproken" value="${valUitgesproken ? 'true' : ''}">
-          <input type="checkbox" id="cb-flavourUitgesproken" class="rounded"
-            ${valUitgesproken ? 'checked' : ''}
-            onchange="document.getElementById('inp-flavourUitgesproken').value=this.checked?'true':''">
-          <label for="cb-flavourUitgesproken" class="text-xs text-ink-dim cursor-pointer">
-            🍺 Uitgesproken door de waard
-          </label>
+          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
+          <div class="mt-1">${_taHtml}</div>
         </div>
       `;
     }
+  }
+
+  // ── Verborgen inputs + audio (code behouden) ──
+  if (tab === 'personages' && isDM()) {
+    body += `
+      <input type="hidden" name="data_flavourUitgesproken" id="inp-flavourUitgesproken" value="${_valUitgesproken ? 'true' : ''}">
+      <input type="hidden" id="inp-geheimeAntagonist" name="data_geheimeAntagonist" value="${_isAntagonist ? 'true' : ''}">
+      <div style="display:none" aria-hidden="true">
+        ${_existingAudioId ? `
+          <button type="button" id="editor-audio-preview" class="flavour-audio-btn editor-audio-preview"
+            data-audio-btn data-audio-btn-id="${esc(_existingAudioId)}"
+            onclick="window._audioToggle('${esc(_existingAudioId)}')" title="Afspelen / pauzeren">▶</button>
+          <button type="button" onclick="window._editorClearAudio()">✕ Verwijderen</button>
+        ` : `<div id="editor-audio-preview" class="hidden"></div>`}
+        <label>
+          <input type="file" accept="audio/*" class="hidden" onchange="window._editorAudioSelected(this.files[0])">
+        </label>
+        <div id="editor-audio-name" class="hidden"></div>
+      </div>
+      <input type="hidden" name="data_audioId" id="editor-audio-id" value="${esc(_existingAudioId)}">
+    `;
   }
 
   // Voorraad (verkopers & winkels)
@@ -2530,7 +2540,15 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
-  // Link editors
+  // Link editors (uitklapbaar)
+  body += `
+    <details class="cs-accordion">
+      <summary class="cs-accordion-head">
+        <span>Verbindingen</span>
+        <span class="cs-accordion-chevron">\u25be</span>
+      </summary>
+      <div class="cs-accordion-body space-y-3">
+  `;
   for (const lt of LINK_TYPES) {
     const lm = TYPE_META[lt] || { icon: '\ud83d\udcdc', label: lt, chip: 'chip-doc' };
     body += `
@@ -2555,18 +2573,7 @@ window._openEditor = async (tab, editId) => {
       </div>
     `;
   }
-
-  // Medestander-koppeling (alleen voor NPCs in DM-modus)
-  if (tab === 'personages' && editId && e?.subtype?.toLowerCase() === 'npc' && isDM()) {
-    body += `
-      <div class="companion-link-section">
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">⚔ Medestander</label>
-        <div id="companion-toggles" class="companion-toggles-row">
-          <span class="text-ink-dim text-xs italic">Laden…</span>
-        </div>
-      </div>
-    `;
-  }
+  body += `</div></details>`;
 
   // Buttons
   body += `
@@ -2610,33 +2617,37 @@ window._openEditor = async (tab, editId) => {
   };
   document.addEventListener('keydown', window._lastEditorKeyFn);
 
-  // ── Medestander toggles ──
+  // ── Medestander toggle (enkelvoudig, aan/uit voor eerste groep) ──
   if (tab === 'personages' && editId && e?.subtype?.toLowerCase() === 'npc' && isDM() && _editorGroups.length > 0) {
-    const _renderCompanionToggles = (linked) => {
-      const container = document.getElementById('companion-toggles');
-      if (!container) return;
-      container.innerHTML = _editorGroups.map(g => {
-        const isLinked = linked.includes(g.id);
-        return `<button type="button"
-          class="companion-group-btn${isLinked ? ' companion-group-btn--linked' : ''}"
-          onclick="window._toggleCompanion('${esc(editId)}','${esc(g.id)}',${isLinked})">
-          ${isLinked ? '⚔' : '➕'} ${esc(g.name)}
-        </button>`;
-      }).join('');
+    const _firstGroupId = _editorGroups[0].id;
+    const _updateMedBtn = (linked) => {
+      const btn = document.getElementById('btn-medestander');
+      if (btn) btn.classList.toggle('editor-toggle-btn--active', linked.length > 0);
     };
     api.getCompanionStatus(editId)
-      .then(({ linked }) => _renderCompanionToggles(linked))
-      .catch(() => {
-        const c = document.getElementById('companion-toggles');
-        if (c) c.innerHTML = '<span class="text-xs text-seal">Fout bij laden</span>';
-      });
-    window._toggleCompanion = async (npcId, groupId, currentlyLinked) => {
-      if (currentlyLinked) await api.unlinkCompanion(npcId, groupId);
-      else                  await api.linkCompanion(npcId, groupId);
-      const { linked } = await api.getCompanionStatus(npcId);
-      _renderCompanionToggles(linked);
+      .then(({ linked }) => _updateMedBtn(linked))
+      .catch(() => {});
+    window._editorToggleCompanionBtn = async () => {
+      const { linked } = await api.getCompanionStatus(editId).catch(() => ({ linked: [] }));
+      if (linked.length > 0) {
+        await Promise.all(linked.map(gid => api.unlinkCompanion(editId, gid)));
+      } else {
+        await api.linkCompanion(editId, _firstGroupId);
+      }
+      const { linked: nl } = await api.getCompanionStatus(editId).catch(() => ({ linked: [] }));
+      _updateMedBtn(nl);
     };
   }
+
+  // ── Toggle-knop helper ──
+  window._editorToggleBtn = (inputId, btnId) => {
+    const inp = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    if (!inp || !btn) return;
+    const active = inp.value === 'true';
+    inp.value = active ? '' : 'true';
+    btn.classList.toggle('editor-toggle-btn--active', !active);
+  };
 
   // ── Icon picker ──
   window._toggleIconPicker = () => {

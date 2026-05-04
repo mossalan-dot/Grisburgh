@@ -37,14 +37,23 @@ router.get('/role', (req, res) => {
 router.get('/players', (req, res) => {
   try {
     const entities = storage.readJSON('entities.json');
+    const dmState  = storage.readJSON('dm-state.json');
+    const groups   = dmState.groups || {};
     const spelers = (entities.personages || [])
       .filter(e => e.subtype === 'speler')
-      .map(e => ({
-        id:     e.id,
-        name:   e.name,
-        ras:    e.data?.ras    || '',
-        klasse: e.data?.klasse || '',
-      }));
+      .map(e => {
+        const groepId = e.data?.groep || null;
+        const groep   = groepId ? groups[groepId] : null;
+        return {
+          id:             e.id,
+          name:           e.name,
+          ras:            e.data?.ras    || '',
+          klasse:         e.data?.klasse || '',
+          groep:          groepId,
+          groepNaam:      groep?.name    || null,
+          groepHasPassword: !!groep?.password,
+        };
+      });
     res.json(spelers);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -55,16 +64,23 @@ router.get('/players', (req, res) => {
 
 router.post('/player-login', (req, res) => {
   try {
-    const { characterId } = req.body;
+    const { characterId, password } = req.body;
     if (!characterId) return res.status(400).json({ error: 'Geen karakter opgegeven' });
-    const entities  = storage.readJSON('entities.json');
+    const entities = storage.readJSON('entities.json');
+    const dmState  = storage.readJSON('dm-state.json');
+    const groups   = dmState.groups || {};
     const character = (entities.personages || []).find(
       e => e.id === characterId && e.subtype === 'speler'
     );
     if (!character) return res.status(404).json({ error: 'Karakter niet gevonden' });
+    // Controleer groepswachtwoord (alleen als er een is ingesteld)
+    const groepId    = character.data?.groep;
+    const groepPw    = groepId ? groups[groepId]?.password : null;
+    if (groepPw && password !== groepPw) {
+      return res.status(401).json({ error: 'Verkeerd wachtwoord' });
+    }
     req.session.playerName  = character.name;
     req.session.characterId = character.id;
-    // Stuur socket-event zodat DM een melding krijgt
     req.app.get('io').emit('player:joined', {
       playerName:  character.name,
       characterId: character.id,

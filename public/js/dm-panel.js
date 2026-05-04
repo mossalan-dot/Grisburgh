@@ -4809,9 +4809,14 @@ async function _renderInstellingen() {
   const groupItems = groups.map(g => `
     <div class="dm-inst-group-row" id="dm-inst-group-${esc(g.id)}">
       <input class="dm-input dm-inst-group-name" value="${esc(g.name)}"
-        onchange="window._instGroepRename('${esc(g.id)}', this.value)">
+        onchange="window._instGroepRename('${esc(g.id)}', this.value)"
+        placeholder="Naam party">
+      <input class="dm-input dm-inst-group-pw" type="password"
+        placeholder="${g.hasPassword ? '🔒 Wachtwoord wijzigen…' : 'Wachtwoord instellen…'}"
+        onchange="window._instGroepSetPw('${esc(g.id)}', this.value)"
+        title="${g.hasPassword ? 'Er is een wachtwoord ingesteld. Typ een nieuw wachtwoord om het te wijzigen, of laat leeg om het te verwijderen.' : 'Wachtwoord instellen voor deze party'}">
       <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
-        onclick="window._instGroepDelete('${esc(g.id)}')" title="Groep verwijderen">🗑</button>
+        onclick="window._instGroepDelete('${esc(g.id)}')" title="Party verwijderen">🗑</button>
     </div>`).join('');
 
   const campaignItems = campaigns.map(c => {
@@ -4929,6 +4934,12 @@ window._instGroepRename = async (id, naam) => {
   try {
     await api.updateGroup(id, naam.trim());
   } catch (err) { alert('Hernoemen mislukt: ' + err.message); }
+};
+
+window._instGroepSetPw = async (id, pw) => {
+  try {
+    await api.setGroupPassword(id, pw.trim());
+  } catch (err) { alert('Wachtwoord instellen mislukt: ' + err.message); }
 };
 
 window._instGroepDelete = async (id) => {

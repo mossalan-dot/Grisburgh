@@ -46,7 +46,7 @@ body::before {
 
 /* Section tabs */
 .section-tab {
-  padding: 6px 16px;
+  padding: 6px 10px;
   font-family: 'Cinzel', serif;
   font-size: 13px;
   font-weight: 700;          /* altijd bold — voorkomt layout-shift bij activering */
@@ -339,6 +339,7 @@ body::before {
   border: 1px solid #c4a87a;
   border-radius: 10px;
   width: 92%; max-width: 720px;
+  min-height: 70vh;
   max-height: 90vh;
   box-shadow:
     0 12px 40px rgba(60,40,10,0.28),
@@ -746,6 +747,7 @@ body::before {
 /* locaties / organisaties */
 .badge-loc { background: rgba(24,52,92,0.82);  color: #b8d8ff; border: 1px solid rgba(70,120,200,0.4); }
 .badge-org { background: rgba(80,24,24,0.82);  color: #ffc8c8; border: 1px solid rgba(170,60,60,0.4); }
+.badge-doc { background: rgba(82,42,120,0.82); color: #e8ccff; border: 1px solid rgba(138,80,200,0.45); }
 
 /* voorwerpen item-type */
 .badge-item-weapon  { background: rgba(90,20,20,0.85);   color: #ffbcbc; border: 1px solid rgba(180,60,60,0.45); }
@@ -1896,7 +1898,7 @@ body::before {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 50%;
-  background: linear-gradient(to bottom, #7a5c1e, #4e3a0c);
+  background: linear-gradient(to bottom, #c8a840, #9a7008);
   color: #f5edd8;
   font-size: 1.05rem;
   border: none;
@@ -1910,7 +1912,7 @@ body::before {
 }
 .dm-dice-fab:hover {
   transform: scale(1.10);
-  background: linear-gradient(to bottom, #9a7428, #6a4e18);
+  background: linear-gradient(to bottom, #d4b448, #b08010);
   box-shadow: 0 5px 16px rgba(60,40,10,0.32);
 }
 .dm-dice-fab:active { transform: scale(0.94); }
@@ -4888,6 +4890,34 @@ details.player-dash-collapsible[open] > summary {
 .companion-group-btn--linked:hover {
   background: #1e4a2e;
 }
+
+/* ── Editor toggle-knoppen (waard / antagonist / medestander) ── */
+.editor-toggles-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 2px 0 4px;
+}
+.editor-toggle-btn {
+  font-size: 1rem;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+.editor-toggle-btn--active {
+  background: linear-gradient(to bottom, #2a5a3a, #1e4a2e) !important;
+  border-color: #4a8a5a !important;
+  color: #c8e8d0 !important;
+}
+.editor-toggle-btn--active:hover {
+  background: linear-gradient(to bottom, #326644, #244f34) !important;
+}
+
 .player-dash-hp-bar-wrap {
   height: 6px;
   background: rgba(0,0,0,0.15);
@@ -5449,6 +5479,122 @@ details.player-dash-collapsible[open] > summary {
   font-size: 1rem;
   margin: 0;
 }
+.landing-portraits--grouped {
+  flex-direction: column;
+  gap: 48px;
+  align-items: center;
+}
+.landing-party-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  width: 100%;
+}
+.landing-party-label {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  max-width: 640px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(196,168,64,0.55);
+}
+.landing-party-label::before,
+.landing-party-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(196,168,64,0.25));
+}
+.landing-party-label::after {
+  background: linear-gradient(to left, transparent, rgba(196,168,64,0.25));
+}
+.landing-party-portraits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 36px 48px;
+  justify-content: center;
+}
+/* ── Wachtwoordprompt ── */
+.landing-pw-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.landing-pw-prompt--in {
+  opacity: 1;
+  transform: translateY(0);
+}
+.landing-pw-input {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(196,168,64,0.35);
+  border-radius: 6px;
+  color: #e8d8a0;
+  font-family: 'Crimson Text', serif;
+  font-size: 1.1rem;
+  padding: 10px 18px;
+  text-align: center;
+  outline: none;
+  width: 260px;
+  transition: border-color 0.15s;
+}
+.landing-pw-input::placeholder { color: rgba(196,168,64,0.35); }
+.landing-pw-input:focus { border-color: rgba(196,168,64,0.7); }
+.landing-pw-error {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  color: #c05050;
+  font-size: 0.9rem;
+}
+.landing-pw-actions {
+  display: flex;
+  gap: 10px;
+}
+.landing-pw-cancel,
+.landing-pw-submit {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  padding: 7px 18px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.landing-pw-cancel {
+  background: rgba(255,255,255,0.07);
+  color: rgba(196,168,64,0.55);
+}
+.landing-pw-cancel:hover { background: rgba(255,255,255,0.12); }
+.landing-pw-submit {
+  background: linear-gradient(to bottom, #c8a840, #9a7008);
+  color: #1a1208;
+}
+.landing-pw-submit:hover { background: linear-gradient(to bottom, #d4b448, #b08010); }
+.landing-pw-submit:disabled { opacity: 0.5; cursor: default; }
+
+/* ── Groepswachtwoord-knop in DM party-bar ── */
+.group-tab-pw {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  opacity: 0.35;
+  padding: 0 2px;
+  line-height: 1;
+  transition: opacity 0.15s;
+}
+.group-tab-pw:hover { opacity: 0.7; }
+.group-tab-pw.has-pw { opacity: 0.8; }
+
 .landing-portrait {
   display: flex;
   flex-direction: column;
@@ -5456,11 +5602,16 @@ details.player-dash-collapsible[open] > summary {
   gap: 14px;
   cursor: pointer;
   text-align: center;
-  transition: transform 0.22s cubic-bezier(0.2,0,0,1);
+  transition: transform 0.22s cubic-bezier(0.2,0,0,1), opacity 0.22s ease;
   width: 148px;
 }
 .landing-portrait:hover { transform: translateY(-8px); }
 .landing-portrait:active { transform: translateY(-2px); }
+.landing-portrait--dimmed { opacity: 0.35; }
+.landing-portrait--dimmed:hover { transform: none; }
+.landing-portrait--chosen .landing-portrait-ring {
+  box-shadow: 0 0 0 3px rgba(196,168,64,0.6), 0 0 20px rgba(196,168,64,0.25);
+}
 
 .landing-portrait-ring {
   position: relative;
@@ -11617,25 +11768,74 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .player-long-rest-btn:hover { background: linear-gradient(135deg, #e0b450, #c89030); box-shadow: 0 2px 8px rgba(80,40,0,0.28); }
 
 /* ── Wikilinks ── */
-a.wikilink { text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; cursor: pointer; transition: color 0.15s; font-weight: 500; }
-a.wikilink:hover { text-decoration-style: solid; filter: brightness(1.15); }
-/* Typespecifieke kleuren — gebaseerd op de kaartbalkstijlen */
-a.wikilink--personages   { color: #3a8a50; }
-a.wikilink--locaties     { color: #3a6a9a; }
-a.wikilink--organisaties { color: #9a3030; }
-a.wikilink--voorwerpen   { color: #9a7020; }
-a.wikilink--documenten   { color: #6a3a90; }
+a.wikilink {
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 500;
+  border-radius: 2px;
+  padding: 0 1px;
+  transition: background 0.15s, filter 0.15s;
+}
+a.wikilink:hover { filter: brightness(0.88); }
+/* Typespecifieke markeer-kleuren */
+a.wikilink--personages   { color: #1d5e30; background: rgba(42,120,60,0.14); }
+a.wikilink--locaties     { color: #1a3f6a; background: rgba(42,90,154,0.13); }
+a.wikilink--organisaties { color: #6a1818; background: rgba(140,40,40,0.13); }
+a.wikilink--voorwerpen   { color: #6a4410; background: rgba(154,112,32,0.14); }
+a.wikilink--documenten   { color: #4a1e6a; background: rgba(100,52,140,0.13); }
 /* Fallback zonder type */
-a.wikilink:not([class*="wikilink--"]) { color: var(--color-gold-bright, #c4a87a); }
+a.wikilink:not([class*="wikilink--"]) { color: #6a4a10; background: rgba(184,134,11,0.14); }
 .wikilink-hidden { color: rgba(140,120,90,0.45); cursor: default; font-style: italic; }
 .wikilink-unknown { color: rgba(150,110,80,0.5); font-style: italic; }
 
 /* ── Wikilink autocomplete dropdown ── */
-.wikilink-ac { position: absolute; z-index: 9500; background: var(--color-room-bg, #1a1008); border: 1px solid rgba(196,168,100,0.4); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.55); overflow: hidden; max-height: 320px; overflow-y: auto; }
+.wikilink-ac { position: fixed; z-index: 9999; background: var(--color-room-bg, #1a1008); border: 1px solid rgba(196,168,100,0.4); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.55); overflow: hidden; max-height: 320px; overflow-y: auto; }
 .wikilink-ac-item { display: flex; align-items: center; gap: 8px; padding: 7px 14px; cursor: pointer; font-family: 'Crimson Pro', serif; font-size: 0.95rem; color: var(--color-ink-medium, #c8b89a); transition: background 0.1s; }
 .wikilink-ac-item:hover, .wikilink-ac-item--active { background: rgba(196,168,100,0.15); color: var(--color-ink-bright, #f0e8d0); }
 .wikilink-ac-icon { font-size: 0.85rem; opacity: 0.8; flex-shrink: 0; }
 .wikilink-ac-name { flex: 1; }
+
+/* ── Detail modal: book-style tabs ── */
+.detail-tab-nav {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  border-bottom: 2px solid rgba(196,168,100,0.45);
+  margin-bottom: 16px;
+  padding-top: 6px;
+  flex-wrap: wrap;
+}
+.detail-tab {
+  font-family: 'Cinzel', 'Palatino', serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 5px 13px 7px;
+  cursor: pointer;
+  border: 1.5px solid rgba(196,168,100,0.3);
+  border-bottom: 2px solid rgba(196,168,100,0.45);
+  border-radius: 5px 5px 0 0;
+  background: rgba(196,168,100,0.07);
+  color: #9a8468;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  margin-bottom: -2px;
+  position: relative;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+.detail-tab:hover:not(.detail-tab--active) {
+  background: rgba(196,168,100,0.18);
+  color: #b89850;
+  border-color: rgba(196,168,100,0.5);
+}
+.detail-tab--active {
+  background: #f8f0de;
+  color: #a07830;
+  border-color: rgba(196,168,100,0.55);
+  border-bottom-color: #f8f0de;
+  z-index: 1;
+  font-weight: 700;
+}
 
 /* ── Dungeon room tooltip (spelers) ── */
 .dng-room-tooltip { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); background: rgba(20,12,4,0.92); border: 1px solid rgba(196,168,100,0.45); border-radius: 8px; padding: 8px 18px; font-family: 'Cinzel', serif; font-size: 0.9rem; color: rgba(240,220,160,0.95); pointer-events: none; z-index: 8000; white-space: nowrap; opacity: 1; transition: opacity 0.4s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }

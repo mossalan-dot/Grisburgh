@@ -103,8 +103,9 @@ function getGroup(dmState, groupId) {
 function groupInfoList(dmState) {
   return Object.entries(dmState.groups).map(([id, g]) => ({
     id,
-    name:   g.name,
-    active: id === dmState.activeGroup,
+    name:        g.name,
+    active:      id === dmState.activeGroup,
+    hasPassword: !!g.password,
   }));
 }
 
@@ -2205,6 +2206,17 @@ router.put('/groups/:id', requireDM, (req, res) => {
   res.json({ id, name: dmState.groups[id].name });
 });
 
+router.put('/groups/:id/password', requireDM, (req, res) => {
+  const { id }      = req.params;
+  const { password } = req.body;
+  const dmState     = readDmState();
+  if (!dmState.groups[id]) return res.status(404).json({ error: 'Groep niet gevonden' });
+  dmState.groups[id].password = password?.trim() || null;
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
+  res.json({ ok: true });
+});
+
 router.delete('/groups/:id', requireDM, (req, res) => {
   const { id }  = req.params;
   const dmState = readDmState();
@@ -3636,10 +3648,14 @@ router.get('/gock', attachRole, (req, res) => {
   const playerCase = characterId ? ((dmState.gockState || {})[characterId] || null) : null;
   const currency = _effectiveCurrency(dmState, characterId);
 
+  // Sluit de detective zelf uit als onderzoeksonderwerp
+  const beschikbaar = _dienstenBeschikbaar(dmState)
+    .filter(e => !config.imageId || e.id !== config.imageId);
+
   res.json({
     config: { prijs: config.prijs || { fl: 50 }, naam: config.naam || 'De Gock', imageId: config.imageId || null, backdropId: config.backdropId || null },
     geval: playerCase,
-    beschikbaar: _dienstenBeschikbaar(dmState),
+    beschikbaar,
     currency,
   });
 });
@@ -3658,6 +3674,9 @@ router.post('/gock/opdracht', attachRole, (req, res) => {
 
   const meta = storage.readJSON('meta.json');
   const config = meta.gock || {};
+  if (config.imageId && entityId === config.imageId) {
+    return res.status(400).json({ error: 'De detective kan geen onderzoek naar zichzelf uitvoeren' });
+  }
   const prijs = config.prijs || { fl: 50 };
   const tidbits = config.tidbits?.length ? config.tidbits : GOCK_TIDBITS_DEFAULT;
 

@@ -881,8 +881,10 @@ window._openAkteSamenvatting = (ch) => {
 };
 
 function _truncateWords(text, maxLen) {
-  if (text.length <= maxLen) return esc(text);
-  const cut = text.slice(0, maxLen);
+  // Strip [[wikilink]] markers — toon alleen de naam, geen haakjes
+  const plain = text.replace(/\[\[([^\]]+)\]\]/g, '$1');
+  if (plain.length <= maxLen) return esc(plain);
+  const cut = plain.slice(0, maxLen);
   const lastSpace = cut.lastIndexOf(' ');
   return esc(lastSpace > maxLen * 0.6 ? cut.slice(0, lastSpace) : cut) + '…';
 }
@@ -1597,15 +1599,7 @@ function renderDocCard(d) {
   const state = d.state || 'hidden';
   const hoofdstuk = meta?.hoofdstukken?.[d.hoofdstuk];
   const chapterLabel = hoofdstuk ? hoofdstuk.short : '';
-  const hiddenLinks = archiefData.hiddenLinks?.[d.id] || {};
-  const npcs = (d.npcs || []).filter(n => !(hiddenLinks.npcs || []).includes(n));
-  const locs = (d.locs || []).filter(n => !(hiddenLinks.locs || []).includes(n));
   const isBlurred = !isDM() && state === 'blurred';
-  const metaText = [d.type, chapterLabel].filter(Boolean).join(' \u00b7 ');
-  const chips = [
-    ...npcs.slice(0, 2).map(n => `<span class="chip chip-npc">\ud83d\udc64 ${esc(n)}</span>`),
-    ...locs.slice(0, 2).map(n => `<span class="chip chip-loc">\ud83c\udff0 ${esc(n)}</span>`),
-  ];
 
   return `
     <div class="entity-card${isDM() && state === 'hidden' ? ' card-hidden' : isDM() && state === 'blurred' ? ' opacity-60' : ''}"
@@ -1629,20 +1623,24 @@ function renderDocCard(d) {
         </div>`;
       })() : ''}
       <div class="card-accent bar-documenten"></div>
-      <img class="card-img w-full object-cover${isBlurred ? ' blur-lg select-none pointer-events-none' : ''}"
-        loading="lazy" src="${api.thumbUrl(d.id)}" onerror="this.style.display='none'">
-      <div class="card-body px-4 pt-3 pb-3">
-        <div class="flex items-start gap-2.5 mb-2">
-          <div class="card-icon">${d.icon || '\ud83d\udcdc'}</div>
-          <div class="min-w-0 flex-1">
-            <div class="font-cinzel font-bold text-ink-bright text-sm leading-tight truncate">${esc(d.name)}</div>
-            ${metaText ? `<div class="text-[11px] text-ink-dim italic mt-0.5">${esc(metaText)}</div>` : ''}
+      <div class="card-img-wrap">
+        <img class="card-img w-full object-cover${isBlurred ? ' blur-lg select-none pointer-events-none' : ''}"
+          loading="lazy" src="${api.thumbUrl(d.id)}" onerror="this.style.display='none'">
+        <div class="card-img-fade"></div>
+        ${d.type ? `<div class="card-subtype-badge badge-doc">${esc(d.type)}</div>` : ''}
+      </div>
+      <div class="card-body px-3 pt-2 pb-2">
+        <div class="mb-1.5">
+          <div class="flex items-center gap-1.5">
+            <span class="text-base leading-none shrink-0">${d.icon || '\ud83d\udcdc'}</span>
+            <span class="card-name truncate">${esc(d.name)}</span>
           </div>
+          <span class="card-name-sep"></span>
+          ${chapterLabel ? `<div class="card-meta"><span class="card-meta-sub">${esc(chapterLabel)}</span></div>` : ''}
         </div>
         ${isBlurred
           ? `<p class="text-xs text-ink-faint italic font-crimson">Nog niet volledig onthuld\u2026</p>`
-          : `${d.desc ? `<p class="text-xs text-ink-medium line-clamp-2 mb-2 font-crimson leading-relaxed">${mdToHtml(d.desc)}</p>` : ''}
-             ${chips.length ? `<div class="flex flex-wrap gap-1">${chips.join('')}</div>` : ''}`
+          : `${d.desc ? `<p class="text-xs text-ink-medium line-clamp-2 font-crimson leading-relaxed">${mdToHtml(d.desc)}</p>` : ''}`
         }
       </div>
     </div>
@@ -1656,97 +1654,71 @@ window._openDoc = async (id) => {
   try { d = await api.getArchief(id); } catch { return; }
   window._currentArchiefDocId    = id;
   window._currentArchiefSessieId = null;
-  const state = d.state || 'hidden';
-  const isBlurred = !isDM() && state === 'blurred';
-  const hoofdstuk = meta?.hoofdstukken?.[d.hoofdstuk];
-  const hiddenLinks = archiefData.hiddenLinks?.[id] || {};
-  const tekst = archiefData.tekstContent?.[id] || '';
+  const state      = d.state || 'hidden';
+  const isBlurred  = !isDM() && state === 'blurred';
+  const hoofdstuk  = meta?.hoofdstukken?.[d.hoofdstuk];
+  const tekst      = archiefData.tekstContent?.[id] || '';
+  const thumbUrl   = api.thumbUrl(id);
+  const fileUrl    = api.fileUrl(id);
 
   let body = '';
 
-  // Description
+  // ── DM visibility vars (needed for bottom controls) ──
+  const _visIcon  = state === 'hidden'   ? '🔒'
+                  : state === 'blurred'  ? '👁'
+                  :                        '✨';
+  const _visTitle = state === 'revealed' ? 'Verbergen · Shift: wazig'
+                  : state === 'blurred'  ? 'Volledig onthullen · Shift: verbergen'
+                  :                        'Onthullen · Shift: wazig';
+
+  // ── Hero afbeelding ──
+  body += `
+    <div class="detail-hero mb-4" onclick="window.app.openLightbox('${fileUrl}','${escJS(d.name)}')">
+      <img src="${thumbUrl}" class="detail-hero-img" onerror="this.closest('.detail-hero').style.display='none'">
+      <div class="detail-hero-overlay"></div>
+      <div class="detail-hero-icon">${d.icon || '📜'}</div>
+      ${d.type ? `<div class="detail-hero-badge badge-doc">${esc(d.type)}</div>` : ''}
+    </div>
+  `;
+
+  // ── Beschrijving ──
   if (d.desc) {
-    body += `<p class="text-sm mb-4 font-crimson ${isBlurred ? 'blur-sm select-none' : ''}">${mdToHtml(d.desc)}</p>`;
+    body += `<div class="detail-desc mb-4 ${isBlurred ? 'blur-sm select-none' : ''}">${mdToHtml(d.desc)}</div>`;
   }
 
-  // File (image or PDF) — detect type first, render after modal is open
-  const fileUrl = api.fileUrl(d.id);
+  // ── Bestand (PDF / audio — geen plain afbeelding, hero toont die al) ──
   body += `<div class="mb-4" id="doc-file-container-${d.id}"></div>`;
 
-  // Parchment text
+  // ── Perkament tekst ──
   if (tekst) {
     body += `<div class="parchment-block mb-4 ${isBlurred ? 'blur-md select-none pointer-events-none' : ''}">${renderParchment(tekst)}</div>`;
   }
 
-  // Connections
-  const showNpcs  = isDM() ? (d.npcs  || []) : (d.npcs  || []).filter(n => !(hiddenLinks.npcs  || []).includes(n));
-  const showLocs  = isDM() ? (d.locs  || []) : (d.locs  || []).filter(n => !(hiddenLinks.locs  || []).includes(n));
-  const showOrgs  = isDM() ? (d.orgs  || []) : (d.orgs  || []).filter(n => !(hiddenLinks.orgs  || []).includes(n));
-  const showItems = isDM() ? (d.items || []) : (d.items || []).filter(n => !(hiddenLinks.items || []).includes(n));
-  const showDocs  = isDM() ? (d.docs  || []) : (d.docs  || []).filter(n => !(hiddenLinks.docs  || []).includes(n));
-
-  const _connBlock = (list, field, chipCls, icon, label) => {
-    if (!list.length) return '';
-    return `
-      <div class="mb-3">
-        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">${label}</div>
-        <div class="flex flex-wrap gap-1">
-          ${list.map(n => {
-            const hidden = (hiddenLinks[field] || []).includes(n);
-            return `<span class="chip ${chipCls} cursor-pointer" onclick="window._archiefLinkClick('${field}','${escJS(n)}')">${icon} ${esc(n)}
-              ${isDM() ? `<span class="ml-1 cursor-pointer opacity-60 hover:opacity-100" onclick="event.stopPropagation();window._toggleLinkVis('${d.id}','${field}','${escJS(n)}')">${hidden ? '👁' : '👁‍🗨'}</span>` : ''}
-            </span>`;
-          }).join('')}
-        </div>
-      </div>
-    `;
-  };
-
-  body += _connBlock(showNpcs,  'npcs',  'chip-npc',  '👤', 'Personages');
-  body += _connBlock(showLocs,  'locs',  'chip-loc',  '🏰', 'Locaties');
-  body += _connBlock(showOrgs,  'orgs',  'chip-org',  '🏛️', 'Organisaties');
-  body += _connBlock(showItems, 'items', 'chip-item', '🎒', 'Voorwerpen');
-
-  if (showDocs.length) {
-    body += `
-      <div class="mb-3">
-        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">Gerelateerde documenten</div>
-        <div class="flex flex-wrap gap-1">
-          ${showDocs.map(n => `<span class="chip chip-doc">📜 ${esc(n)}</span>`).join('')}
-        </div>
-      </div>
-    `;
-  }
-
-  // DM controls
+  // ── DM controls (onderaan) ──
   if (isDM()) {
     body += `
-      <div class="dm-only mt-4 pt-4 border-t border-room-border">
-        <div class="flex gap-2">
-          ${['hidden','blurred','revealed'].map(s => `
-            <button class="px-3 py-1 text-sm rounded transition ${state === s ? 'bg-gold-dim text-room-bg font-semibold' : 'bg-room-elevated text-ink-dim hover:text-ink-bright'}"
-              onclick="window._setDocState('${d.id}','${s}')">
-              ${s === 'hidden' ? '\ud83d\udd12 Verborgen' : s === 'blurred' ? '\ud83d\udc41\u200d\ud83d\udde8 Wazig' : '\u2728 Onthuld'}
-            </button>
-          `).join('')}
-          <button class="px-3 py-1 text-sm rounded bg-gold-dim text-room-bg font-semibold ml-auto"
-            onclick="window._openArchiefEditor('${d.id}')">
-            \u270f Bewerken
-          </button>
-          <button class="w-8 h-8 flex items-center justify-center rounded bg-seal/20 text-seal hover:bg-seal/40 transition"
-            title="Verwijderen"
-            onclick="window._deleteDoc('${d.id}')">
-            \ud83d\uddd1
-          </button>
-        </div>
+      <div class="dm-only mt-4 pt-4 border-t border-room-border flex gap-2">
+        <button class="dm-btn${state !== 'hidden' ? ' dm-btn--active' : ''}"
+          title="${_visTitle}"
+          onclick="window._toggleDocState('${d.id}','${state}',event.shiftKey)">
+          ${_visIcon}
+        </button>
+        <button class="dm-btn" title="Bewerken"
+          onclick="window._openArchiefEditor('${d.id}')">&#9998;</button>
+        <button class="dm-btn dm-btn-danger" title="Verwijderen"
+          onclick="window._deleteDoc('${d.id}')">&#x1F5D1;</button>
       </div>
     `;
   }
 
-  const subtitle = [d.type, meta?.hoofdstukken?.[d.hoofdstuk]?.short].filter(Boolean).join(' \u00b7 ');
+  const subtitle = [d.type, hoofdstuk?.short].filter(Boolean).join(' · ');
   openModal(d.name, subtitle, body);
 
-  // Load file into container after modal is in DOM
+  // Accent bar
+  const _accentEl = document.getElementById('m-accent');
+  if (_accentEl) _accentEl.className = 'modal-accent bar-documenten';
+
+  // Laad bestand asynchroon in container
   const fileContainer = document.getElementById(`doc-file-container-${d.id}`);
   if (fileContainer) {
     try {
@@ -1758,17 +1730,18 @@ window._openDoc = async (id) => {
           if (ct.includes('image')) {
             fileContainer.innerHTML = `<img src="${fileUrl}" class="w-full max-h-80 object-contain rounded blur-xl select-none pointer-events-none">`;
           } else {
-            fileContainer.innerHTML = `<div class="rounded bg-room-elevated p-8 text-center select-none"><div class="text-4xl mb-2 opacity-30">\ud83d\udd12</div><div class="text-ink-faint text-sm italic">Document nog niet volledig onthuld</div></div>`;
+            fileContainer.innerHTML = `<div class="rounded bg-room-elevated p-8 text-center select-none"><div class="text-4xl mb-2 opacity-30">🔒</div><div class="text-ink-faint text-sm italic">Document nog niet volledig onthuld</div></div>`;
           }
         } else if (ct.includes('audio')) {
           fileContainer.innerHTML = `<div class="bg-room-elevated rounded-lg p-4">
-            <div class="text-xs font-cinzel text-ink-dim uppercase tracking-wide mb-2">\ud83c\udfb5 Geluidsfragment</div>
+            <div class="text-xs font-cinzel text-ink-dim uppercase tracking-wide mb-2">🎵 Geluidsfragment</div>
             <audio controls class="w-full" src="${fileUrl}"></audio>
           </div>`;
         } else if (ct.includes('pdf')) {
           await renderPdfViewer(fileContainer, fileUrl);
         } else if (ct.includes('image')) {
-          fileContainer.innerHTML = `<img src="${fileUrl}" class="w-full max-h-80 object-contain rounded cursor-pointer" onclick="window.app.openLightbox('${fileUrl}','${escJS(d.name)}')">`;
+          // Hero afbeelding toont de afbeelding al — geen duplicaat tonen
+          fileContainer.style.display = 'none';
         } else {
           fileContainer.style.display = 'none';
         }
@@ -1785,7 +1758,7 @@ function renderParchment(text) {
   while (i < lines.length) {
     const line = lines[i];
     if (line.trim() === '---titel---' && i + 1 < lines.length) {
-      html += `<div class="parch-title">${esc(lines[i + 1])}</div>`;
+      html += `<div class="parch-title">${mdToHtml(lines[i + 1])}</div>`;
       i += 2; continue;
     }
     if (/^---\s*$/.test(line.trim())) {
@@ -1793,10 +1766,10 @@ function renderParchment(text) {
       i++; continue;
     }
     if (line.trim() === '--handtekening--' && i + 1 < lines.length) {
-      html += `<div class="parch-sig">${esc(lines[i + 1])}</div>`;
+      html += `<div class="parch-sig">${mdToHtml(lines[i + 1])}</div>`;
       i += 2; continue;
     }
-    html += `<span>${esc(line)}</span><br>`;
+    html += `<span>${mdToHtml(line)}</span><br>`;
     i++;
   }
   return html;
@@ -1939,35 +1912,55 @@ window._openArchiefEditor = async (editId) => {
   };
   allNames = await api.allNames();
 
-  let body = `<form id="archief-form" class="space-y-4">
+  let body = `<form id="archief-form" class="space-y-4">`;
+
+  // ── Twee-kolom layout ──
+  body += `<div class="editor-layout">`;
+
+  // ── Linker kolom: bestand ──
+  body += `<div class="editor-col-left">`;
+  body += `
+    <div>
+      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Bestand</label>
+      <div id="editor-file-preview" class="mt-1 mb-2 rounded overflow-hidden">
+        ${editId ? `<img src="${api.fileUrl(editId)}" class="w-full max-h-40 object-contain rounded" onerror="window._docPreviewFallback(this,'${editId}')">` : ''}
+      </div>
+      <div class="upload-zone mt-1" onclick="document.getElementById('editor-file-input').click()">
+        📂 Afbeelding, PDF of audio (max 50MB)
+      </div>
+      <input type="file" id="editor-file-input" accept="image/*,.pdf,application/pdf,audio/mpeg,.mp3,audio/ogg,.ogg,audio/wav,.wav" class="hidden">
+      <div id="editor-file-status" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>
+    </div>
+  `;
+  body += `</div>`; // end editor-col-left
+
+  // ── Rechter kolom: velden ──
+  body += `<div class="editor-col-right">`;
+  body += `
     <div>
       <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Titel</label>
       <input name="name" value="${esc(d?.name || '')}" required
         class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
     </div>
-    <div class="grid grid-cols-2 gap-3">
-      <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Type</label>
-        <select name="type" class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-          ${DOC_TYPES.map(t => `<option value="${t}" ${d?.type === t ? 'selected' : ''}>${t}</option>`).join('')}
-        </select>
-      </div>
-      <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Categorie</label>
-        <select name="cat" class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-          ${DOC_CATS.map(c => `<option value="${c}" ${d?.cat === c ? 'selected' : ''}>${c}</option>`).join('')}
-        </select>
-      </div>
+    <div>
+      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Type</label>
+      <select name="type" class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+        ${DOC_TYPES.map(t => `<option value="${t}" ${d?.type === t ? 'selected' : ''}>${t}</option>`).join('')}
+      </select>
     </div>
-    <div class="grid grid-cols-1 gap-3">
-      <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Hoofdstuk</label>
-        <select name="hoofdstuk" class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-          <option value="">—</option>
-          ${Object.entries(meta?.hoofdstukken || {}).map(([k, v]) => `<option value="${k}" ${d?.hoofdstuk === k ? 'selected' : ''}>${v.short}</option>`).join('')}
-        </select>
-      </div>
+    <div>
+      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Hoofdstuk</label>
+      <select name="hoofdstuk" class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+        <option value="">—</option>
+        ${Object.entries(meta?.hoofdstukken || {}).map(([k, v]) => `<option value="${k}" ${d?.hoofdstuk === k ? 'selected' : ''}>${v.short}</option>`).join('')}
+      </select>
     </div>
+  `;
+  body += `</div>`; // end editor-col-right
+  body += `</div>`; // end editor-layout
+
+  // ── Beschrijving (volledige breedte) ──
+  body += `
     <div>
       <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Beschrijving</label>
       <div class="mt-1">
@@ -1977,31 +1970,51 @@ window._openArchiefEditor = async (editId) => {
           class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(d?.desc || '')}</textarea>
       </div>
     </div>
-    <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Bestand</label>
-      <div id="editor-file-preview" class="mt-1 mb-2">${editId ? `<img src="${api.fileUrl(editId)}" class="max-h-32 rounded" onerror="window._docPreviewFallback(this,'${editId}')">` : ''}</div>
-      <div class="upload-zone mt-1" onclick="document.getElementById('editor-file-input').click()">
-        \ud83d\udcc2 Afbeelding, PDF of MP3 uploaden (max 50MB)
-      </div>
-      <input type="file" id="editor-file-input" accept="image/*,.pdf,application/pdf,audio/mpeg,.mp3,audio/ogg,.ogg,audio/wav,.wav" class="hidden">
-      <div id="editor-file-status" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>
-    </div>
   `;
 
-  // Tag editors
+  // ── Perkament tekst (uitklapbaar) ──
+  if (editId) {
+    const tekst = archiefData.tekstContent?.[editId] || '';
+    body += `
+      <details class="cs-accordion"${tekst ? ' open' : ''}>
+        <summary class="cs-accordion-head">
+          <span>Perkament tekst</span>
+          <span class="cs-accordion-chevron">▾</span>
+        </summary>
+        <div class="cs-accordion-body">
+          <textarea id="tekst-editor-${editId}" rows="7"
+            oninput="window._saveTekst('${editId}')"
+            class="w-full px-3 py-2 bg-parchment-letter text-[#2a2015] font-fell text-sm border border-[#d4c9a8] rounded focus:outline-none"
+            placeholder="---titel---\nDocument Titel\n---\nTekst hier...\n--handtekening--\nNaam">${esc(tekst)}</textarea>
+          <div id="tekst-save-${editId}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>
+        </div>
+      </details>
+    `;
+  }
+
+  // ── Verbindingen (uitklapbaar) ──
   const tagMeta = {
-    npcs:  { icon: '👤', label: 'Personages',    chip: 'chip-npc', nameKey: 'personages' },
-    locs:  { icon: '🏰', label: 'Locaties',      chip: 'chip-loc', nameKey: 'locaties' },
-    orgs:  { icon: '🏛️', label: 'Organisaties', chip: 'chip-org', nameKey: 'organisaties' },
+    npcs:  { icon: '👤', label: 'Personages',    chip: 'chip-npc',  nameKey: 'personages' },
+    locs:  { icon: '🏰', label: 'Locaties',      chip: 'chip-loc',  nameKey: 'locaties' },
+    orgs:  { icon: '🏛️', label: 'Organisaties', chip: 'chip-org',  nameKey: 'organisaties' },
     items: { icon: '🎒', label: 'Voorwerpen',    chip: 'chip-item', nameKey: 'voorwerpen' },
-    docs:  { icon: '📜', label: 'Documenten',    chip: 'chip-doc', nameKey: 'archief' },
+    docs:  { icon: '📜', label: 'Documenten',    chip: 'chip-doc',  nameKey: 'archief' },
   };
+  const _hasAnyTags = Object.values(editorTags).some(arr => arr.length > 0);
+  body += `
+    <details class="cs-accordion"${_hasAnyTags ? ' open' : ''}>
+      <summary class="cs-accordion-head">
+        <span>Verbindingen</span>
+        <span class="cs-accordion-chevron">▾</span>
+      </summary>
+      <div class="cs-accordion-body space-y-3">
+  `;
   for (const [field, fm] of Object.entries(tagMeta)) {
     body += `
       <div>
         <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">${fm.label}</div>
         <div id="atags-${field}" class="flex flex-wrap gap-1 mb-1">
-          ${editorTags[field].map(n => `<span class="chip ${fm.chip}">${esc(n)} <span class="cursor-pointer ml-1" data-field="${field}" data-name="${esc(n)}" onclick="window._removeATag(this.dataset.field,this.dataset.name)">\u00d7</span></span>`).join('')}
+          ${editorTags[field].map(n => `<span class="chip ${fm.chip}">${esc(n)} <span class="cursor-pointer ml-1" data-field="${field}" data-name="${esc(n)}" onclick="window._removeATag(this.dataset.field,this.dataset.name)">×</span></span>`).join('')}
         </div>
         <div class="flex gap-1">
           <div class="flex-1 autocomplete-wrap">
@@ -2017,30 +2030,23 @@ window._openArchiefEditor = async (editId) => {
       </div>
     `;
   }
+  body += `</div></details>`;
 
-  // Parchment text editor
-  if (editId) {
-    const tekst = archiefData.tekstContent?.[editId] || '';
-    body += `
-      <div>
-        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">Perkament tekst</div>
-        <textarea id="tekst-editor-${editId}" rows="6"
-          class="w-full px-3 py-2 bg-parchment-letter text-[#2a2015] font-fell text-sm border border-[#d4c9a8] rounded focus:outline-none"
-          placeholder="---titel---\nDocument Titel\n---\nTekst hier...\n--handtekening--\nNaam">${esc(tekst)}</textarea>
-      </div>
-    `;
-  }
-
-  // DM notes
+  // ── DM Notities (uitklapbaar) ──
   if (editId) {
     const dmNote = (await api.getNote(editId).catch(() => ({}))).note || '';
     body += `
-      <div>
-        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">DM Notities</div>
-        <textarea id="dm-note-editor-${editId}" rows="3"
-          class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
-          placeholder="Notities...">${esc(dmNote)}</textarea>
-      </div>
+      <details class="cs-accordion"${dmNote ? ' open' : ''}>
+        <summary class="cs-accordion-head">
+          <span>DM Notities</span>
+          <span class="cs-accordion-chevron">▾</span>
+        </summary>
+        <div class="cs-accordion-body">
+          <textarea id="dm-note-editor-${editId}" rows="3"
+            class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
+            placeholder="Notities...">${esc(dmNote)}</textarea>
+        </div>
+      </details>
     `;
   }
 
@@ -2053,6 +2059,7 @@ window._openArchiefEditor = async (editId) => {
   </form>`;
 
   openModal(editId ? 'Document bewerken' : 'Nieuw document', '', body);
+
 
   // File input preview
   document.getElementById('editor-file-input').addEventListener('change', (ev) => {
@@ -2080,7 +2087,6 @@ window._openArchiefEditor = async (editId) => {
     const payload = {
       name: form.get('name'),
       type: form.get('type'),
-      cat: form.get('cat'),
       hoofdstuk: form.get('hoofdstuk'),
       desc: form.get('desc'),
       npcs:  editorTags.npcs,

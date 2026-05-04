@@ -1,11 +1,11 @@
 import { api } from './api.js';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=51'; // app v115
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=17';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=55'; // app v115
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=22';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=2';
 import { renderDungeon } from './render-dungeon.js?v=15';
 import { renderRelatiemap } from './render-relatiemap.js?v=9';
 import { initSocket } from './socket-client.js?v=9';
-import { initDmPanel } from './dm-panel.js?v=19';
+import { initDmPanel } from './dm-panel.js?v=20';
 
 // ── App State ──
 const state = {
@@ -48,6 +48,7 @@ window.app = {
   renameGroup,
   newGroup,
   deleteGroup,
+  setGroupPassword,
   editHeader,
   saveHeader,
   cancelHeader,
@@ -477,10 +478,15 @@ async function showLanding() {
       list.innerHTML = '<p class="landing-loading">Geen spelerskarakters gevonden.</p>';
       return;
     }
-    list.innerHTML = chars.map(c => {
+
+    const renderPortrait = c => {
       const sub = [c.ras, c.klasse].filter(Boolean).join(' · ');
       return `
-        <div class="landing-portrait" onclick="window.app._landingPortraitClick('${esc(c.id)}', this)">
+        <div class="landing-portrait"
+          data-char-id="${esc(c.id)}"
+          data-has-password="${c.groepHasPassword ? '1' : ''}"
+          data-groep-naam="${esc(c.groepNaam || '')}"
+          onclick="window.app._landingPortraitClick('${esc(c.id)}', this)">
           <div class="landing-portrait-ring">
             <img src="/api/files/${esc(c.id)}" class="landing-portrait-img"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
@@ -489,29 +495,121 @@ async function showLanding() {
           <div class="landing-portrait-name">${esc(c.name)}</div>
           ${sub ? `<div class="landing-portrait-sub">${esc(sub)}</div>` : ''}
         </div>`;
-    }).join('');
+    };
+
+    // Groepeer per party
+    const parties = new Map();
+    for (const c of chars) {
+      const gid = c.groep || '__none__';
+      if (!parties.has(gid)) parties.set(gid, { naam: c.groepNaam || null, chars: [] });
+      parties.get(gid).chars.push(c);
+    }
+
+    if (parties.size <= 1) {
+      // Één party: portretten direct, geen scheiders
+      list.className = 'landing-portraits';
+      list.innerHTML = chars.map(renderPortrait).join('');
+    } else {
+      // Meerdere parties: gegroepeerd met party-label ertussen
+      list.className = 'landing-portraits landing-portraits--grouped';
+      const sortedParties = [...parties.values()].sort((a, b) =>
+        (a.naam || '').localeCompare(b.naam || '', 'nl'));
+      list.innerHTML = sortedParties.map(party => `
+        <div class="landing-party-section">
+          <div class="landing-party-label">${esc(party.naam || 'Party')}</div>
+          <div class="landing-party-portraits">
+            ${party.chars.map(renderPortrait).join('')}
+          </div>
+        </div>`).join('');
+    }
   } catch {
     list.innerHTML = '<p class="landing-loading">Fout bij laden.</p>';
   }
 }
 
-// ── Landing portret-klik animatie ──
+// ── Landing portret-klik: stap 1 = wachtwoord (indien vereist) ──
 
 async function _landingPortraitClick(charId, portraitEl) {
-  // Voorkom dubbele klik
   if (document.getElementById('landing-zoom')) return;
+  if (portraitEl.classList.contains('landing-portrait--chosen')) return;
 
-  // Zelfde karakter binnen 15 minuten → animatie overslaan
-  try {
-    const lastLogin = JSON.parse(localStorage.getItem('_lastLogin') || 'null');
-    if (lastLogin && lastLogin.charId === charId && Date.now() - lastLogin.ts < 15 * 60 * 1000) {
-      document.getElementById('landing-overlay')?.classList.add('hidden');
-      await playerLogin(charId);
-      return;
+  // Highlight gekozen portret, dim de rest licht
+  document.querySelectorAll('.landing-portrait').forEach(p => {
+    p.classList.remove('landing-portrait--chosen');
+    if (p !== portraitEl) p.classList.add('landing-portrait--dimmed');
+    else                   p.classList.remove('landing-portrait--dimmed');
+  });
+  portraitEl.classList.add('landing-portrait--chosen');
+
+  const hasPassword = portraitEl.dataset.hasPassword === '1';
+  if (hasPassword) {
+    _landingShowPasswordPrompt(charId, portraitEl);
+  } else {
+    // Geen wachtwoord → meteen inloggen en animatie starten
+    try {
+      const result = await api.playerLogin(charId, '');
+      await _landingStartZoom(charId, portraitEl);
+      _landingFinishLogin(result);
+    } catch {
+      _landingCancelPassword();
     }
-  } catch { /* ok */ }
+  }
+}
 
-  // 1. Andere portretten wegvallen + overlay-inhoud meteen verduisteren
+function _landingShowPasswordPrompt(charId, portraitEl) {
+  document.getElementById('landing-pw-prompt')?.remove();
+  const groepNaam = portraitEl.dataset.groepNaam || 'je groep';
+  const prompt = document.createElement('div');
+  prompt.id = 'landing-pw-prompt';
+  prompt.className = 'landing-pw-prompt';
+  prompt.innerHTML = `
+    <input id="landing-pw-input" type="password" class="landing-pw-input"
+      placeholder="Wachtwoord voor ${esc(groepNaam)}…" autocomplete="current-password">
+    <div id="landing-pw-error" class="landing-pw-error hidden">Verkeerd wachtwoord</div>
+    <div class="landing-pw-actions">
+      <button class="landing-pw-cancel" id="landing-pw-cancel">Annuleren</button>
+      <button class="landing-pw-submit" id="landing-pw-submit">Inloggen ↵</button>
+    </div>`;
+  document.getElementById('landing-portraits')?.after(prompt);
+  requestAnimationFrame(() => prompt.classList.add('landing-pw-prompt--in'));
+  const input = document.getElementById('landing-pw-input');
+  input?.focus();
+  input?.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  _landingSubmitPassword(charId, portraitEl);
+    if (e.key === 'Escape') _landingCancelPassword();
+  });
+  document.getElementById('landing-pw-submit')?.addEventListener('click',
+    () => _landingSubmitPassword(charId, portraitEl));
+  document.getElementById('landing-pw-cancel')?.addEventListener('click', _landingCancelPassword);
+}
+
+async function _landingSubmitPassword(charId, portraitEl) {
+  const input     = document.getElementById('landing-pw-input');
+  const errorEl   = document.getElementById('landing-pw-error');
+  const submitBtn = document.getElementById('landing-pw-submit');
+  errorEl?.classList.add('hidden');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    const result = await api.playerLogin(charId, input?.value || '');
+    document.getElementById('landing-pw-prompt')?.remove();
+    await _landingStartZoom(charId, portraitEl);
+    _landingFinishLogin(result);
+  } catch {
+    errorEl?.classList.remove('hidden');
+    if (submitBtn) submitBtn.disabled = false;
+    input?.select();
+    input?.focus();
+  }
+}
+
+function _landingCancelPassword() {
+  document.getElementById('landing-pw-prompt')?.remove();
+  document.querySelectorAll('.landing-portrait').forEach(p => {
+    p.classList.remove('landing-portrait--chosen', 'landing-portrait--dimmed');
+  });
+}
+
+async function _landingStartZoom(charId, portraitEl) {
   const landingOverlay = document.getElementById('landing-overlay');
   landingOverlay?.classList.add('landing-overlay--dimming');
   document.querySelectorAll('.landing-portrait').forEach(p => {
@@ -614,11 +712,19 @@ async function _landingPortraitClick(charId, portraitEl) {
   landingOverlay?.classList.add('landing-overlay--out');
   await new Promise(r => setTimeout(r, 400));
 
-  // Landing nu volledig verbergen (vóór login-API, zodat er geen flits is)
   landingOverlay?.classList.add('hidden');
   zoom.remove();
+}
 
-  try { await playerLogin(charId); } catch { /* fout al getoond door playerLogin */ }
+function _landingFinishLogin({ playerName, characterId: cid }) {
+  state.playerName  = playerName;
+  state.characterId = cid;
+  closePlayerPicker();
+  applyRole();
+  try { localStorage.setItem('_lastLogin', JSON.stringify({ charId: cid, ts: Date.now() })); } catch { /* ok */ }
+  if (cid && window._socket) window._socket.emit('player:register', cid);
+  window._pendingPlayerSubTab = 'personage';
+  switchSection('mijn-karakter');
 }
 
 // ── Speler-karakter kiezer ──
@@ -663,13 +769,41 @@ async function playerLogout() {
 
 // ── Modal ──
 function openModal(title, subtitle, bodyHtml) {
+  const modal = document.querySelector('#modal-overlay .modal');
+  if (modal) modal.style.minHeight = '';   // reset bij heropenen
+  // Annuleer eventueel lopende portret-load van vorige modal
+  const _mPortraitWrap = document.getElementById('m-portrait-wrap');
+  const _mPortraitImg  = document.getElementById('m-portrait');
+  if (_mPortraitWrap && _mPortraitImg) {
+    _mPortraitWrap.classList.add('hidden');
+    _mPortraitImg.onload  = null;
+    _mPortraitImg.onerror = null;
+    _mPortraitImg.src = '';
+  }
   $('#m-title').textContent = title;
   $('#m-sub').textContent = subtitle;
   $('#m-body').innerHTML = bodyHtml;
   $('#modal-overlay').classList.add('active');
+  // Vergrendel de minimale hoogte zodat tabwisseling de modal niet laat krimpen.
+  // 300ms: genoeg voor layout + afbeelding eerste frame.
+  setTimeout(() => {
+    if (!modal) return;
+    const h = modal.offsetHeight;
+    if (h > 0) modal.style.minHeight = h + 'px';
+    // Hersluit na afbeelding-load (hero img kan de hoogte nog vergroten)
+    const img = modal.querySelector('.detail-hero-img');
+    if (img && !img.complete) {
+      img.addEventListener('load', () => {
+        const h2 = modal.offsetHeight;
+        if (h2 > (parseFloat(modal.style.minHeight) || 0)) modal.style.minHeight = h2 + 'px';
+      }, { once: true });
+    }
+  }, 300);
 }
 
 function closeModal() {
+  const modal = document.querySelector('#modal-overlay .modal');
+  if (modal) modal.style.minHeight = '';   // vrijgeven na sluiten
   $('#modal-overlay').classList.remove('active');
   // Reset navigatiehistory en tracking
   window._currentDetailTab = null;
@@ -783,11 +917,33 @@ function mdToHtml(s) {
   const _WL_SEP = '\x02';
   const _wlNames = [];
   const _wlSeen  = new Set();   // track eerste voorkomen per naam
-  let text = String(s).replace(/\[\[([^\]]+)\]\]/g, (_, name) => {
-    const idx = _wlNames.length;
-    _wlNames.push(name);
-    return `${_WL_SEP}${idx}${_WL_SEP}`;
-  });
+  // Diepte-gebaseerde extractie: buitenste [[...]] wint altijd.
+  // Geneste [[X]] binnen [[Y [[X]]]] worden genegeerd (X valt weg, Y [[X]] wordt Y).
+  let text = String(s);
+  {
+    let out = '', i = 0;
+    while (i < text.length) {
+      if (text[i] === '[' && text[i + 1] === '[') {
+        let depth = 1, j = i + 2;
+        while (j < text.length && depth > 0) {
+          if (text[j] === '[' && text[j + 1] === '[')      { depth++; j += 2; }
+          else if (text[j] === ']' && text[j + 1] === ']') { depth--; if (depth > 0) j += 2; else break; }
+          else j++;
+        }
+        // Binnenste tekst: strip eventuele geneste [[ ]]
+        const name = text.substring(i + 2, j).replace(/\[\[|\]\]/g, '').trim();
+        if (name) {
+          const idx = _wlNames.length;
+          _wlNames.push(name);
+          out += `${_WL_SEP}${idx}${_WL_SEP}`;
+        }
+        i = j + 2;
+      } else {
+        out += text[i++];
+      }
+    }
+    text = out;
+  }
 
   // ── Stap 2: Normale markdown-verwerking ──
   text = text
@@ -877,8 +1033,9 @@ let _wlAcTriggerEl = null;
 function _wlAcInit() {
   // Pre-laad alle entity-types in de naam-index zodat wikilinks direct werken,
   // ook als de bijbehorende sectie nog niet bezocht is.
-  const WL_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
-  Promise.all(WL_TYPES.map(t =>
+  const WL_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
+  // Sla de promise op zodat secties die wikilinks bevatten kunnen wachten tot de index klaar is
+  window._entityIndexReady = Promise.all(WL_TYPES.map(t =>
     api.listEntities(t)
       .then(list => window._buildEntityIndex(t, list))
       .catch(() => {})
@@ -945,18 +1102,26 @@ function _wlAcShow(textarea, query) {
 
   const rect = textarea.getBoundingClientRect();
   ac.style.left  = rect.left  + 'px';
-  ac.style.top   = (rect.bottom + window.scrollY + 4) + 'px';
+  ac.style.top   = (rect.bottom + 4) + 'px';
   ac.style.width = Math.max(rect.width, 280) + 'px';
   ac.style.display = '';
 
   const ICONS = { personages:'👤', locaties:'🏰', organisaties:'🏛️', voorwerpen:'⚔️' };
   ac.innerHTML = matches.map((e, i) =>
     `<div class="wikilink-ac-item${i === 0 ? ' wikilink-ac-item--active' : ''}"
-      onmousedown="event.preventDefault();window._wlAcSelect(${JSON.stringify(e.name)})">
+      data-wl-name="${e.name.replace(/"/g,'&quot;')}">
       <span class="wikilink-ac-icon">${ICONS[e.type] || '📜'}</span>
       <span class="wikilink-ac-name">${esc(e.name)}</span>
     </div>`
   ).join('');
+
+  // Klik-handler op de container: stopPropagation voorkomt dat het document-listener sluit
+  ac.onmousedown = ev => {
+    ev.preventDefault();   // voorkomt blur op de textarea
+    ev.stopPropagation();  // voorkomt dat de document-mousedown de AC sluit
+    const item = ev.target.closest('[data-wl-name]');
+    if (item) window._wlAcSelect(item.dataset.wlName);
+  };
 
   _wlAcTriggerEl = textarea;
 }
@@ -1155,6 +1320,13 @@ async function renameGroup(id, currentName) {
   const newName = prompt('Nieuwe naam voor de groep:', currentName);
   if (!newName || newName.trim() === currentName) return;
   try { await api.updateGroup(id, newName.trim()); }
+  catch (e) { alert('Fout: ' + e.message); }
+}
+
+async function setGroupPassword(id, groupName) {
+  const newPw = prompt(`Wachtwoord voor "${groupName}":\n(leeg laten = geen wachtwoord vereist)`,'');
+  if (newPw === null) return; // geannuleerd
+  try { await api.setGroupPassword(id, newPw.trim()); }
   catch (e) { alert('Fout: ' + e.message); }
 }
 
@@ -3877,6 +4049,8 @@ async function init() {
   const hashSection   = location.hash.replace('#', '');
   const validSections = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'logboek', 'kaart', 'mijn-karakter'];
   const startSection  = validSections.includes(hashSection) ? hashSection : 'personages';
+  // Wacht op de entity-index zodat wikilinks al bij de eerste render werken
+  await (window._entityIndexReady || Promise.resolve());
   // Voorkom dat anonieme speler direct op mijn-karakter-tab belandt
   switchSection(startSection === 'mijn-karakter' && !state.playerName ? 'personages' : startSection);
 
