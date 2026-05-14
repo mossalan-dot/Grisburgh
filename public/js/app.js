@@ -2169,16 +2169,25 @@ function _sbRender() {
         ['#fffaf0','#f2e8d4'], ['#fdf6e4','#eee0c0'],
       ];
       const [t1, t2] = noteTints[seed % noteTints.length];
-      // Tape strips: always TL + TR, sometimes a third
+      // Tape corner positions: TL, TR, BL, BR
       const tapeCorners = [
         'top:-6px;left:-5px;transform:rotate(-34deg)',
         'top:-6px;right:-5px;transform:rotate(33deg)',
         'bottom:-6px;left:-5px;transform:rotate(35deg)',
         'bottom:-6px;right:-5px;transform:rotate(-33deg)',
       ];
-      // Always first two, plus a third based on seed
-      const thirdIdx = 2 + (seed % 2);
-      const tape = [0, 1, thirdIdx].map(i =>
+      // 8 configurations cycling via seed: 2 diagonal, 1 both-top, 4 three-corner, 1 all-four
+      const tapeConfigs = [
+        [0, 3],          // 2 — diagonal TL + BR
+        [1, 2],          // 2 — diagonal TR + BL
+        [0, 1],          // 2 — both top corners
+        [0, 1, 2],       // 3 — top pair + bottom-left
+        [0, 1, 3],       // 3 — top pair + bottom-right
+        [0, 2, 3],       // 3 — TL + both bottom
+        [1, 2, 3],       // 3 — TR + both bottom
+        [0, 1, 2, 3],    // 4 — all corners
+      ];
+      const tape = tapeConfigs[seed % tapeConfigs.length].map(i =>
         `<div class="sb-tape" style="position:absolute;${tapeCorners[i]}"></div>`
       ).join('');
       incEl.innerHTML = `
