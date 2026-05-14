@@ -13837,7 +13837,7 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   justify-content: center;
   overflow: hidden;
   background: #0c1a2e;
-  transform-origin: 100% 50%;  /* fold from right edge (spine) */
+  transform-origin: center center;
 }
 /* ── Under-pages: layered parchment visible through torn right edge ── */
 .sb-page-under {
@@ -13848,8 +13848,8 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   pointer-events: none;
   /* clip-path set per-spell by JS (_sbGenTornEdge with offset seed) */
 }
-.sb-page-under--mid  { background: #cdc192; z-index: 1; }
-.sb-page-under--deep { background: #c1b585; z-index: 0; }
+.sb-page-under--mid  { background: #ddd4ae; z-index: 1; }
+.sb-page-under--deep { background: #d4c99e; z-index: 0; }
 /* Ensure the real pages are always on top of under-pages */
 .sb-page-left, .sb-page-right { z-index: 2; }
 
@@ -14108,7 +14108,7 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transform-origin: 0% 50%;  /* fold from left edge (spine) */
+  transform-origin: center center;
   /* clip-path set per-spell by JS (_sbGenTornEdge) */
 }
 /* Dog-eared corner fold – top-right */

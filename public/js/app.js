@@ -1719,7 +1719,7 @@ function _sbGenTornEdge(seed) {
     const y   = ((i / steps) * 100).toFixed(1);
     const v1  = (Math.sin(seed * 0.031 + i * 1.7) * 0.5 + 0.5);  // 0..1
     const v2  = (Math.sin(seed * 0.017 + i * 3.3) * 0.5 + 0.5);  // 0..1
-    const x   = (97.5 + v1 * 1.6 + v2 * 0.9).toFixed(1);         // 97.5–100%
+    const x   = (98.8 + v1 * 0.7 + v2 * 0.5).toFixed(1);         // 98.8–100%
     pts.push(`${x}% ${y}%`);
   }
   pts.push('100% 100%', '0% 100%');
