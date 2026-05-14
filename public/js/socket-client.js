@@ -34,7 +34,12 @@ export function initSocket() {
     if (!window.app.isDM() && visibility && visibility !== 'hidden' && name) {
       const icon  = ENTITY_ICONS[type] || '📜';
       const label = visibility === 'vague' ? 'ontdekt' : 'onthuld';
-      _showEntityReveal({ id, type, name, icon, label });
+      if (window._isDisplayMode) {
+        // iPad: alleen een toast, geen kaartje
+        _showToast(`${icon} <strong>${name.replace(/</g,'&lt;')}</strong> — ${label}`);
+      } else {
+        _showEntityReveal({ id, type, name, icon, label });
+      }
     }
   });
 
@@ -71,7 +76,7 @@ export function initSocket() {
     }
   });
 
-  socket.on('archief:stateChanged', ({ name, state } = {}) => {
+  socket.on('archief:stateChanged', ({ name, state, groupId } = {}) => {
     const section = window.app.state.activeSection;
     if (section === 'documenten') {
       import('./render-archief.js').then(m => m.renderDocumenten());
@@ -79,9 +84,13 @@ export function initSocket() {
       import('./render-archief.js').then(m => m.renderLogboek());
     }
     if (!window.app.isDM() && state === 'revealed' && name) {
-      _showToast(`📜 <strong>${name}</strong> is onthuld`, () => {
-        window.app.switchSection('documenten');
-      });
+      // Toon toast alleen aan spelers van de juiste groep
+      const myGroup = window._myGroupId;
+      if (!groupId || !myGroup || myGroup === groupId) {
+        _showToast(`📜 <strong>${name}</strong> is onthuld`, () => {
+          window.app.switchSection('documenten');
+        });
+      }
     }
   });
 
@@ -105,7 +114,11 @@ export function initSocket() {
 
   socket.on('archief:dramaticReveal', (doc) => {
     if (!window.app.isDM()) {
-      _showDramaticReveal(doc);
+      // Toon dramatische onthulling alleen aan spelers van de juiste groep
+      const myGroup = window._myGroupId;
+      if (!doc.groupId || !myGroup || myGroup === doc.groupId) {
+        _showDramaticReveal(doc);
+      }
     }
   });
 
@@ -114,9 +127,11 @@ export function initSocket() {
       import('./render-archief.js').then(m => m.renderLogboek());
     }
     if (!window.app.isDM()) {
-      if (imageId) {
-        window.app.openLightbox(`/api/files/${imageId}`, caption || samenvatting || '');
+      if (window._isDisplayMode) {
+        // iPad: afbeelding vol scherm tonen
+        if (imageId) window._displayShowImage?.(`/api/files/${imageId}`, caption || samenvatting || '');
       } else {
+        // Telefoon: alleen toast, geen lightbox
         const label = caption || samenvatting || 'Logboek';
         _showToast(`🖼️ <strong>${label}</strong> — nieuwe afbeelding onthuld`, () => {
           window.app.switchSection('logboek');
@@ -131,8 +146,12 @@ export function initSocket() {
     }
   });
 
-  // Dungeon: kamer onthuld → alleen spelers herladen (DM werkt al lokaal bij)
+  // Dungeon: kamer onthuld → iPad toont kaart; spelers herladen als ze er al zijn
   socket.on('dungeon:revealed', () => {
+    if (window._isDisplayMode) {
+      window._displayShowDungeon?.();
+      return;
+    }
     if (window.app.state.activeSection !== 'kaart') return;
     if (window.app.state.role === 'dm') return; // DM al bijgewerkt via _renderSvg()
     import('./render-dungeon.js?v=15').then(m => {
@@ -197,7 +216,6 @@ export function initSocket() {
       const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;
       window.app?.applyAppMeta(m);
-      window.dmPanel?.renderRevealStrip?.();
       // Re-render active dienst tab when locatie-flag changes
       if (buitenChanged) {
         const sec = window.app?.state?.activeSection;
@@ -233,6 +251,10 @@ export function initSocket() {
     if (activeSection === 'logboek') {
       window.renderLogboek?.();
     }
+    // Documenten ook verversen (zichtbaarheid is per groep)
+    if (activeSection === 'documenten') {
+      import('./render-archief.js').then(m => m.renderDocumenten());
+    }
   });
 
   // ── Tunnel ──
@@ -255,6 +277,17 @@ export function initSocket() {
     // Herlaad spelersdashboard als dat actief is (HP-balk bijwerken)
     if (window.app?.state?.activeSection === 'mijn-karakter') {
       window.app?.refreshSection('mijn-karakter');
+    }
+    // iPad: zorg dat de overlay nooit geminimaliseerd is; bij einde gevecht terug naar idle
+    if (window._isDisplayMode) {
+      const overlay = document.getElementById('combat-overlay');
+      if (overlay) {
+        if (combat?.active) {
+          overlay.classList.remove('minimized');
+        } else {
+          window._displayIdle?.();
+        }
+      }
     }
   });
 
