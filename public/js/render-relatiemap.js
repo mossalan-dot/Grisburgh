@@ -1,6 +1,7 @@
-import { api } from './api.js';
+import { api } from './api.js?v=2';
 
-const esc = s => window.app?.esc?.(s) ?? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const esc  = s => window.app?.esc?.(s) ?? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const icon = (...a) => window.icon(...a);
 
 // ── Afmetingen ──
 const NODE_W = 108;
@@ -44,11 +45,13 @@ let _board        = { nodes: [], edges: [] };
 let _svg          = null;
 let _svgG         = null;
 let _viewBox      = { x: 0, y: 0, w: 1200, h: 800 };
-let _dragging     = null;
-let _panning      = null;
-let _saveTimer    = null;
-let _suppressNext = false;
-let _selectedNode = null;
+let _dragging       = null;
+let _panning        = null;
+let _saveTimer      = null;
+let _suppressNext   = false;
+let _selectedNode   = null;
+let _pinchStartDist = 0;
+let _pinchStartVB   = null;
 
 const _nodeById = id => _board.nodes.find(n => n.id === id);
 const _edgeById = id => _board.edges.find(e => e.id === id);
@@ -400,7 +403,7 @@ async function _openAddCardDialog() {
             <button class="pb-entity-item"
                     data-name="${esc(e.name.toLowerCase())}"
                     onclick="window._pbSelectEntity('${esc(e.id)}','${esc(e.type)}')">
-              <span class="pb-entity-icon">${e.type === 'personages' ? '👤' : e.type === 'locaties' ? '🏰' : '🏛️'}</span>
+              <span class="pb-entity-icon">${e.type === 'personages' ? icon('user') : e.type === 'locaties' ? icon('map-pin') : icon('building')}</span>
               <span class="pb-entity-name">${esc(e.name)}</span>
             </button>`).join('')
           : `<p class="pb-entity-empty">Alle zichtbare kaartjes staan al op het bord.</p>`
@@ -618,6 +621,91 @@ function _onSvgMouseDown(e) {
   _panning = { startX: e.clientX, startY: e.clientY, origVBx: _viewBox.x, origVBy: _viewBox.y };
 }
 
+// ── Touch-ondersteuning ──
+function _onSvgTouchStart(e) {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const t      = e.touches[0];
+    const nodeEl = e.target.closest('.rel-node');
+    if (nodeEl) {
+      const node = _nodeById(nodeEl.dataset.id);
+      if (!node) return;
+      const svgRect = _svg.getBoundingClientRect();
+      _dragging = {
+        nodeId: nodeEl.dataset.id,
+        startMX: t.clientX, startMY: t.clientY,
+        origX: node.x,      origY: node.y,
+        moved: false,
+        scale: _viewBox.w / svgRect.width,
+      };
+    } else {
+      _panning = {
+        startX: t.clientX, startY: t.clientY,
+        origVBx: _viewBox.x, origVBy: _viewBox.y,
+        moved: false,
+      };
+    }
+  } else if (e.touches.length === 2) {
+    _dragging = null;
+    _panning  = null;
+    const t1 = e.touches[0], t2 = e.touches[1];
+    _pinchStartDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    _pinchStartVB   = { ..._viewBox };
+  }
+}
+
+function _onSvgTouchMove(e) {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    _onSvgMouseMove({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
+  } else if (e.touches.length === 2 && _pinchStartDist) {
+    const t1   = e.touches[0], t2 = e.touches[1];
+    const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    const midX = (t1.clientX + t2.clientX) / 2;
+    const midY = (t1.clientY + t2.clientY) / 2;
+    const r    = _svg.getBoundingClientRect();
+    const mx   = (midX - r.left) / r.width  * _pinchStartVB.w + _pinchStartVB.x;
+    const my   = (midY - r.top)  / r.height * _pinchStartVB.h + _pinchStartVB.y;
+    const fac  = _pinchStartDist / dist;
+    _viewBox.w = _pinchStartVB.w * fac;
+    _viewBox.h = _pinchStartVB.h * fac;
+    _viewBox.x = mx - (midX - r.left) / r.width  * _viewBox.w;
+    _viewBox.y = my - (midY - r.top)  / r.height * _viewBox.h;
+    _svg.setAttribute('viewBox', `${_viewBox.x} ${_viewBox.y} ${_viewBox.w} ${_viewBox.h}`);
+  }
+}
+
+function _onSvgTouchEnd(e) {
+  const wasTap = (_dragging && !_dragging.moved) || (_panning && !_panning.moved);
+
+  // Positie opslaan na verslepen kaartje
+  if (_dragging?.moved) {
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(() => {
+      const positions = {};
+      _board.nodes.forEach(n => { positions[n.id] = { x: n.x, y: n.y }; });
+      api.put('/party-board/positions', { positions }).catch(() => {});
+    }, 1500);
+  }
+
+  _dragging       = null;
+  _panning        = null;
+  _pinchStartDist = 0;
+  _pinchStartVB   = null;
+
+  // Tik (geen beweging) → simuleer klik op het element onder de vinger
+  if (wasTap && e.changedTouches.length) {
+    const t      = e.changedTouches[0];
+    const el     = document.elementFromPoint(t.clientX, t.clientY);
+    const target = el?.closest('.rel-node, .rel-edge') || el;
+    target?.dispatchEvent(new MouseEvent('click', {
+      bubbles: true, cancelable: true,
+      clientX: t.clientX, clientY: t.clientY,
+      view: window,
+    }));
+  }
+}
+
 function _updateEdgesForNode(nodeId) {
   const edgesG = document.getElementById('rel-edges-group');
   if (!edgesG) return;
@@ -638,11 +726,15 @@ function _updateEdgesForNode(nodeId) {
 
 function _attachSvgEvents() {
   if (!_svg) return;
-  _svg.addEventListener('mousedown',  _onSvgMouseDown);
-  _svg.addEventListener('mousemove',  _onSvgMouseMove);
-  _svg.addEventListener('mouseup',    _onSvgMouseUp);
-  _svg.addEventListener('mouseleave', _onSvgMouseUp);
-  _svg.addEventListener('wheel',      _onSvgWheel, { passive: false });
+  _svg.addEventListener('mousedown',   _onSvgMouseDown);
+  _svg.addEventListener('mousemove',   _onSvgMouseMove);
+  _svg.addEventListener('mouseup',     _onSvgMouseUp);
+  _svg.addEventListener('mouseleave',  _onSvgMouseUp);
+  _svg.addEventListener('wheel',       _onSvgWheel,       { passive: false });
+  _svg.addEventListener('touchstart',  _onSvgTouchStart,  { passive: false });
+  _svg.addEventListener('touchmove',   _onSvgTouchMove,   { passive: false });
+  _svg.addEventListener('touchend',    _onSvgTouchEnd);
+  _svg.addEventListener('touchcancel', _onSvgTouchEnd);
   const wrap = document.getElementById('rel-canvas-wrap');
   if (wrap) { _viewBox.w = wrap.clientWidth || 1200; _viewBox.h = wrap.clientHeight || 700; }
   _svg.setAttribute('viewBox', `${_viewBox.x} ${_viewBox.y} ${_viewBox.w} ${_viewBox.h}`);

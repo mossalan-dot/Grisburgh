@@ -1,4 +1,4 @@
-import { api } from './api.js';
+import { api } from './api.js?v=2';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=77';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=30';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
