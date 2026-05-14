@@ -1664,14 +1664,18 @@ let _klasseThemeOn   = localStorage.getItem('_klasseThemeOn') !== 'false'; // st
 let _playerSpellList = null;
 
 // Markdown → HTML voor spreukomschrijvingen (bold, italic, {color:text}, auto-highlights)
-function _spellMd(t) {
+// opts.diceColor: CSS color string to use for dice notation spans (damage-type tinted)
+function _spellMd(t, { diceColor } = {}) {
+  const diceStyle = diceColor
+    ? ` style="color:${diceColor};text-decoration-color:${diceColor}66"`
+    : '';
   return String(t ?? '')
     // ── Auto-highlights (applied to plain text before markdown) ──
-    // Dice notation: 2d6, 1d20+5, 4d8 – red, clickable to roll
+    // Dice notation: 2d6, 1d20+5, 4d8 – tinted by damage type, clickable
     .replace(/\b(\d+d\d+(?:\s*[+\-]\s*\d+)?)\b/gi,
-      (_, f) => `<span class="sb-hl-dice" title="Klik om te gooien">${f}</span>`)
+      (_, f) => `<span class="sb-hl-dice"${diceStyle} title="Klik om te gooien">${f}</span>`)
     // DC values and saving throws / ability checks
-    .replace(/\bDC\s+(\d+)\b/g,
+    .replace(/\bDC\s+\d+\b/g,
       (m) => `<span class="sb-hl-save">${m}</span>`)
     .replace(/\b(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma)\s+(saving throw|check)\b/gi,
       (m) => `<span class="sb-hl-save">${m}</span>`)
@@ -1686,6 +1690,40 @@ function _spellMd(t) {
     .replace(/\{([a-zA-Z#][a-zA-Z0-9#]*):([^}]+)\}/g, (_, color, text) =>
       /^(#[0-9a-fA-F]{3,6}|[a-zA-Z]{2,30})$/.test(color)
         ? `<span style="color:${color}">${text}</span>` : text);
+}
+
+// Returns a CSS color for dice spans based on damage type in spell.damage
+function _sbDiceColor(dmg) {
+  if (!dmg) return null;
+  const d = dmg.toLowerCase();
+  if (/heal/.test(d))                   return '#1a7a3a';
+  if (/fire/.test(d))                   return '#c43010';
+  if (/cold|ice|frost/.test(d))         return '#1464a0';
+  if (/lightning/.test(d))             return '#a89000';
+  if (/thunder/.test(d))               return '#5a6a7a';
+  if (/acid/.test(d))                   return '#3a7a10';
+  if (/force/.test(d))                  return '#6020a0';
+  if (/radiant/.test(d))               return '#b07800';
+  if (/necrotic/.test(d))              return '#2a4a28';
+  if (/psychic/.test(d))               return '#8020a0';
+  if (/poison/.test(d))                return '#4a7a10';
+  if (/slash|pierc|bludgeon/.test(d))  return '#5a3a28';
+  return '#b01010';
+}
+
+// Generates a randomised torn-paper clip-path for the right page
+function _sbGenTornEdge(seed) {
+  const pts = ['0% 0%', '100% 0%'];
+  const steps = 28;
+  for (let i = 1; i <= steps; i++) {
+    const y   = ((i / steps) * 100).toFixed(1);
+    const v1  = (Math.sin(seed * 0.031 + i * 1.7) * 0.5 + 0.5);  // 0..1
+    const v2  = (Math.sin(seed * 0.017 + i * 3.3) * 0.5 + 0.5);  // 0..1
+    const x   = (97.5 + v1 * 1.6 + v2 * 0.9).toFixed(1);         // 97.5–100%
+    pts.push(`${x}% ${y}%`);
+  }
+  pts.push('100% 100%', '0% 100%');
+  return `polygon(${pts.join(', ')})`;
 }
 
 // ── Spreukenboek overlay ──────────────────────────────────────────────────────
@@ -1777,13 +1815,13 @@ function _ensureSpellbookOverlay() {
         <img class="sb-left-img" id="sb-left-img" style="display:none" alt="">
         <!-- School icon, center -->
         <div class="sb-left-icon" id="sb-left-icon"></div>
-        <!-- Damage pill (clickable dice roll) -->
-        <div class="sb-left-damage" id="sb-left-damage"></div>
         <!-- Spell slot pips (level ≥ 1) -->
         <div class="sb-slot-zone" id="sb-slot-zone"></div>
         <!-- School + Level labels -->
         <div class="sb-left-school" id="sb-left-school"></div>
         <div class="sb-left-level"  id="sb-left-level"></div>
+        <!-- Wax seal (bottom-left, school-themed) -->
+        <div class="sb-wax-seal" id="sb-wax-seal"></div>
         <!-- Upload image button -->
         <button class="sb-img-btn" onclick="document.getElementById('sb-img-file').click()" title="Afbeelding uploaden">
           ${icon('camera')}
@@ -2104,26 +2142,43 @@ function _sbRender() {
   const sCfg = _SB_SCHOOLS[sKey] || _SB_DEFAULT;
   const curIdx = _sbState.idx;
 
+  // Deterministic seed for all random-but-consistent visuals per spell
+  const seed = spell.index.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+
   // ── Left page: gradient ──
   const leftPage = document.getElementById('sb-page-left');
   if (leftPage) leftPage.style.background = `linear-gradient(155deg, ${sCfg.c1} 0%, ${sCfg.c2} 100%)`;
 
-  // ── Left: incantation as pinned note ──
+  // ── Right page: randomised torn edge ──
+  const rightPage = document.getElementById('sb-page-right');
+  if (rightPage) rightPage.style.clipPath = _sbGenTornEdge(seed);
+
+  // ── Left: incantation as taped note ──
   const incEl = document.getElementById('sb-left-incantation');
   if (incEl) {
     if (spell.incantation) {
-      // Deterministic "random" tilt per spell (-4° … +4°)
-      const seed = spell.index.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-      const rot  = ((seed % 9) - 4) * 0.9; // -3.6 to +3.6 deg
+      const rot = ((seed % 9) - 4) * 0.85; // -3.4 to +3.4 deg
+      // Note paper tint varies per spell
+      const noteTints = [
+        ['#fef9e6','#f3e9c2'], ['#f8f5ee','#ece6d8'],
+        ['#fffaf0','#f2e8d4'], ['#fdf6e4','#eee0c0'],
+      ];
+      const [t1, t2] = noteTints[seed % noteTints.length];
+      // Tape strips: always TL + TR, sometimes a third
+      const tapeCorners = [
+        'top:-6px;left:-5px;transform:rotate(-34deg)',
+        'top:-6px;right:-5px;transform:rotate(33deg)',
+        'bottom:-6px;left:-5px;transform:rotate(35deg)',
+        'bottom:-6px;right:-5px;transform:rotate(-33deg)',
+      ];
+      // Always first two, plus a third based on seed
+      const thirdIdx = 2 + (seed % 2);
+      const tape = [0, 1, thirdIdx].map(i =>
+        `<div class="sb-tape" style="position:absolute;${tapeCorners[i]}"></div>`
+      ).join('');
       incEl.innerHTML = `
-        <div class="sb-note" style="transform:rotate(${rot}deg)">
-          <div class="sb-note-pin">
-            <svg width="15" height="20" viewBox="0 0 15 20" fill="none">
-              <circle cx="7.5" cy="6.5" r="5.8" fill="#c8a028" stroke="rgba(0,0,0,0.28)" stroke-width="0.6"/>
-              <circle cx="6"   cy="5"   r="2"   fill="rgba(255,255,255,0.38)"/>
-              <line x1="7.5" y1="12.3" x2="7.5" y2="20" stroke="#888" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </div>
+        <div class="sb-note" style="transform:rotate(${rot}deg);background:linear-gradient(145deg,${t1},${t2})">
+          ${tape}
           <div class="sb-note-text">${esc(spell.incantation)}</div>
         </div>`;
     } else {
@@ -2143,16 +2198,6 @@ function _sbRender() {
   const iconEl_ = document.getElementById('sb-left-icon');
   if (iconEl_) { iconEl_.innerHTML = icon(sCfg.icon); iconEl_.style.opacity = ''; }
 
-  // ── Left: damage pill ──
-  const dmgEl = document.getElementById('sb-left-damage');
-  if (dmgEl) {
-    if (spell.damage) {
-      dmgEl.innerHTML = `<button class="spell-damage-pill${_damagePillMod(spell.damage)} sb-dmg-pill"
-        onclick="event.stopPropagation();window._sbFlashRoll('${escJS(spell.damage)}','${escJS(spell.name)}')"
-        title="Gooi ${escJS(spell.damage)}">${icon('dice',{cls:'icon-gi'})} ${esc(spell.damage)}</button>`;
-    } else { dmgEl.innerHTML = ''; }
-  }
-
   // ── Left: spell slots ──
   _sbRenderSlots();
 
@@ -2161,6 +2206,26 @@ function _sbRender() {
   if (schoolEl) schoolEl.textContent = spell.school ? _sbSchoolLabel(spell.school) : '';
   const levelEl = document.getElementById('sb-left-level');
   if (levelEl) levelEl.textContent = spell.level === 0 ? 'Cantrip' : `Level ${spell.level} spell`;
+
+  // ── Left: wax seal (bottom-left, school-themed blob) ──
+  const sealEl = document.getElementById('sb-wax-seal');
+  if (sealEl && spell.school) {
+    const letter = spell.school.charAt(0).toUpperCase();
+    // Blob shape varies per spell
+    const r = [46,54,49,51,44,56,52,48].map((v,i) => v + ((seed >> i) & 3) - 1);
+    sealEl.style.borderRadius = `${r[0]}% ${r[1]}% ${r[2]}% ${r[3]}% / ${r[4]}% ${r[5]}% ${r[6]}% ${r[7]}%`;
+    // Glossy wax gradient using school colours
+    sealEl.style.background =
+      `radial-gradient(circle at 36% 30%, rgba(255,255,255,0.22) 0%, transparent 52%),
+       radial-gradient(circle at 60% 65%, rgba(0,0,0,0.18) 0%, transparent 42%),
+       linear-gradient(145deg, ${sCfg.c2}dd, ${sCfg.c1}ff)`;
+    const tilt = ((seed % 11) - 5) * 1.4;
+    sealEl.style.transform = `rotate(${tilt}deg)`;
+    sealEl.textContent = letter;
+    sealEl.style.display = 'flex';
+  } else if (sealEl) {
+    sealEl.style.display = 'none';
+  }
 
   // ── Ribbon ──
   _sbRenderRibbon();
@@ -2177,8 +2242,9 @@ function _sbRender() {
       contentEl.scrollTop = 0;
       _sbFetchDesc(spell).then(() => { if (_sbState.idx === curIdx) _sbRender(); });
     } else {
+      const diceColor = _sbDiceColor(spell.damage);
       const desc = rawDesc.split(/\n+/).map(p => p.trim()).filter(Boolean)
-        .map(p => `<p>${_spellMd(p)}</p>`).join('');
+        .map(p => `<p>${_spellMd(p, { diceColor })}</p>`).join('');
 
       const metaRows = [
         spell.casting_time ? ['Casting Time', spell.casting_time] : null,
