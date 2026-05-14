@@ -1,5 +1,5 @@
 import { api } from './api.js?v=2';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=4';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=5';
 
 // ── DM Panel ──
 // icon() helper is defined globally in app.js; grab a local alias for template use.

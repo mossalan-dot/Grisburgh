@@ -86,6 +86,24 @@ let _prevRound = -1;
 // Canvas-kleurthema: [r,g,b] per kant — worden gelezen uit combat.canvasColors
 let _pc = [50, 90, 180];   // spelers
 let _mc = [160, 40, 30];   // monsters
+// Omgevingsthema voor particles
+let _preset    = null;     // 'forest' | 'fire' | 'snow' | ... | null
+let _particles = [];       // actieve particles
+let _prevDrawT = -1;       // vorige frame-tijd (voor delta-time)
+let _turnPulse = null;     // { ids:[id,...], t0, color:[r,g,b] } — puls bij beurtwissel
+
+// Particle-config per thema: gedrag, max aantal per kant, grootte [min,max], snelheid [min,max], wob(ble)
+const _PCFG = {
+  forest:  { beh: 'fall',  n: 18, sz: [2,4],   sp: [18,36], wob: 0.28 },
+  sea:     { beh: 'rise',  n: 16, sz: [2,4],   sp: [18,36], wob: 0.20 },
+  cave:    { beh: 'fall',  n: 10, sz: [1,2.5], sp: [8,20],  wob: 0.15 },
+  desert:  { beh: 'blow',  n: 20, sz: [1,2],   sp: [50,90], wob: 0.15 },
+  snow:    { beh: 'fall',  n: 22, sz: [2,4],   sp: [12,26], wob: 0.22 },
+  fire:    { beh: 'rise',  n: 24, sz: [2,4],   sp: [32,68], wob: 0.30 },
+  crypt:   { beh: 'drift', n: 10, sz: [1,2.5], sp: [4,12],  wob: 1.0  },
+  city:    { beh: 'drift', n:  6, sz: [1,2],   sp: [3,8],   wob: 1.0  },
+  default: { beh: 'drift', n:  8, sz: [1,2.5], sp: [4,12],  wob: 1.0  },
+};
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -158,6 +176,10 @@ function _updateState(combat) {
                   :                     '#f07858';
       _announcement = { t0: performance.now(), type: 'turn',
         title: names.join(' & '), subtitle: 'is aan de beurt', color };
+      // Puls-ring in themakleur rondom actieve combatant(en)
+      const pulseColor = ctype === 'monster' ? _mc : _pc;
+      const pulseIds   = group.map(i => cs[i]?.id).filter(Boolean);
+      _turnPulse = { ids: pulseIds, t0: performance.now(), color: pulseColor };
     }
   }
   _prevRound = combat?.active ? (combat.round || 1) : -1;
@@ -165,9 +187,10 @@ function _updateState(combat) {
 
   _combat = combat;
   if (!combat) return;
-  // Laad canvas-kleuren uit combat-object (ingesteld via encounter-preset)
-  _pc = combat.canvasColors?.player  || [50, 90, 180];
-  _mc = combat.canvasColors?.monster || [160, 40, 30];
+  // Laad canvas-kleuren en preset uit combat-object (ingesteld via encounter-preset)
+  _pc     = combat.canvasColors?.player  || [50, 90, 180];
+  _mc     = combat.canvasColors?.monster || [160, 40, 30];
+  _preset = combat.canvasPreset || null;
   // Pre-load backdrop (first monster's backdropId)
   const backdrop = combat.combatants?.find(c => c.type === 'monster' && c.backdropId)?.backdropId;
   if (backdrop) _loadImage(backdrop);
@@ -290,6 +313,12 @@ function _draw() {
     if (pos) _drawHitNumber(ctx, evt, pos.cx, pos.cy, pos.r, now);
   }
 
+  // ── Ambient particles + turn pulse ──
+  const dt = _prevDrawT < 0 ? 0 : Math.min(t - _prevDrawT, 0.1);
+  _prevDrawT = t;
+  _updateAndDrawParticles(ctx, W, H, t, dt, hasBoth, isWide);
+  _drawTurnPulse(ctx);
+
   // ── Win / lose overlay ──
   if (_combat.winner) {
     _drawWinScreen(ctx, W, H, _combat.winner, t);
@@ -300,6 +329,174 @@ function _draw() {
 
   // ── Condition tooltip (bovenop alles) ──
   if (_hoverCond) _drawCondTooltip(ctx, W, H, _hoverCond, _hoverX, _hoverY);
+}
+
+// ── Ambient particle system ───────────────────────────────────────────────────
+
+function _spawnParticle(side, cfg, zx, zw, H) {
+  const isSnow = _preset === 'snow';
+  const [r, g, b] = isSnow ? [230, 245, 255]   // sneeuw altijd wit-blauw
+                  : side === 'player' ? _pc : _mc;
+  const sz      = cfg.sz[0] + Math.random() * (cfg.sz[1] - cfg.sz[0]);
+  const sp      = cfg.sp[0] + Math.random() * (cfg.sp[1] - cfg.sp[0]);
+  const maxLife = 4 + Math.random() * 5;
+  let x, y, vx = 0, vy = 0, wobAmp = sp * cfg.wob;
+
+  if (cfg.beh === 'rise') {
+    x = zx + Math.random() * zw;
+    y = H + sz;
+    vy = -sp;
+  } else if (cfg.beh === 'fall') {
+    x = zx + Math.random() * zw;
+    y = -sz;
+    vy = sp;
+  } else if (cfg.beh === 'blow') {
+    x = zx - sz;
+    y = Math.random() * H;
+    vx = sp;
+  } else { // drift
+    x = zx + Math.random() * zw;
+    y = Math.random() * H;
+    const ang = Math.random() * Math.PI * 2;
+    vx = Math.cos(ang) * sp;
+    vy = Math.sin(ang) * sp;
+    wobAmp = 0;
+  }
+
+  return { x, y, vx, vy,
+    wobPhase: Math.random() * Math.PI * 2,
+    wobFreq:  0.7 + Math.random() * 1.5,
+    wobAmp,
+    size: sz,
+    alpha: 0,
+    maxAlpha: _preset === 'fire' ? 0.55 + Math.random() * 0.2
+                                 : 0.30 + Math.random() * 0.20,
+    life: maxLife, maxLife,
+    side, r, g, b, zx, zw,
+  };
+}
+
+function _updateAndDrawParticles(ctx, W, H, t, dt, hasBoth, isWide) {
+  if (!_combat?.active || dt <= 0) { if (!_combat?.active) _particles = []; return; }
+
+  const cfg   = _PCFG[_preset] || _PCFG.default;
+  const zones = {
+    player:  isWide ? { zx: 0,     zw: W / 2 } : { zx: 0, zw: W },
+    monster: isWide ? { zx: W / 2, zw: W / 2 } : { zx: 0, zw: W },
+  };
+  const sides = hasBoth ? ['player', 'monster'] : ['player'];
+
+  // Spawn nieuwe particles tot maximum bereikt
+  for (const side of sides) {
+    const { zx, zw } = zones[side];
+    const count = _particles.filter(p => p.side === side).length;
+    if (count < cfg.n) _particles.push(_spawnParticle(side, cfg, zx, zw, H));
+  }
+
+  const surviving = [];
+  for (const p of _particles) {
+    // Positie bijwerken
+    const wob = Math.sin(t * p.wobFreq + p.wobPhase) * p.wobAmp;
+    if (cfg.beh === 'rise' || cfg.beh === 'fall') {
+      p.x += wob * dt;
+      p.y += p.vy * dt;
+    } else if (cfg.beh === 'blow') {
+      p.x += p.vx * dt;
+      p.y += wob * dt;
+    } else {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+    }
+    p.life -= dt;
+
+    // Fade in (eerste 15%) en fade out (laatste 20%)
+    const ageR  = 1 - p.life / p.maxLife;
+    const lifeR = p.life / p.maxLife;
+    p.alpha = p.maxAlpha * (
+      ageR  < 0.15 ? ageR / 0.15 :
+      lifeR < 0.20 ? lifeR / 0.20 : 1
+    );
+
+    // Verwijder als dood of buiten zone
+    const { zx, zw } = zones[p.side] || { zx: 0, zw: W };
+    if (p.life <= 0
+      || (cfg.beh !== 'drift' && (p.y < -60 || p.y > H + 60 || p.x < zx - 60 || p.x > zx + zw + 60))) {
+      continue;
+    }
+    surviving.push(p);
+
+    // Teken particle
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.alpha));
+
+    if (_preset === 'sea') {
+      // Zeebel: transparant met outline
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${p.r},${p.g},${p.b},0.9)`;
+      ctx.lineWidth   = 0.8;
+      ctx.stroke();
+      ctx.fillStyle   = `rgba(255,255,255,0.12)`;
+      ctx.fill();
+    } else if (_preset === 'fire') {
+      // Vonk: gloed + kern
+      ctx.shadowColor = `rgba(${p.r},${p.g},${p.b},0.7)`;
+      ctx.shadowBlur  = p.size * 4;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * 0.7, 0, Math.PI * 2);
+      ctx.fillStyle   = `rgba(255,${Math.round(p.g * 1.4)},${p.b},1)`;
+      ctx.fill();
+    } else {
+      // Standaard gevulde cirkel
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgb(${p.r},${p.g},${p.b})`;
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  _particles = surviving;
+}
+
+// ── Puls-ring bij beurtwissel ─────────────────────────────────────────────────
+
+function _drawTurnPulse(ctx) {
+  if (!_turnPulse) return;
+  const elapsed = (performance.now() - _turnPulse.t0) / 1000;
+  const DUR = 1.1;
+  if (elapsed >= DUR) { _turnPulse = null; return; }
+
+  const prog  = elapsed / DUR;
+  const ease  = 1 - Math.pow(1 - prog, 2);   // ease-out
+  const alpha = 0.75 * (1 - prog);
+  const [r, g, b] = _turnPulse.color;
+
+  ctx.save();
+  for (const id of _turnPulse.ids) {
+    const pos = _positions[id];
+    if (!pos) continue;
+
+    // Buitenste ring — groeit snel weg
+    const ringR = pos.r + pos.r * 2.8 * ease;
+    ctx.beginPath();
+    ctx.arc(pos.cx, pos.cy, ringR, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+    ctx.lineWidth   = 2.5 - prog * 1.5;
+    ctx.stroke();
+
+    // Tweede ring — licht vertraagd
+    if (prog < 0.75) {
+      const prog2  = Math.max(0, prog - 0.12);
+      const ease2  = 1 - Math.pow(1 - prog2 / 0.75, 2);
+      const ringR2 = pos.r + pos.r * 2.8 * ease2;
+      ctx.beginPath();
+      ctx.arc(pos.cx, pos.cy, ringR2, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${r},${g},${b},${alpha * 0.45})`;
+      ctx.lineWidth   = 1.5;
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
 }
 
 // ── Beurt / ronde aankondiging ────────────────────────────────────────────────

@@ -3373,7 +3373,7 @@ function _flushPlayerHpToDmState(combat, io, room) {
 router.post('/combat/start', requireDM, (req, res) => {
   const existing = storage.readJSON('combat.json');
   const combatants = [...(existing.combatants || [])].sort((a, b) => b.initiative - a.initiative);
-  const combat = { active: true, round: 1, currentTurn: 0, combatants, backdropId: existing.backdropId || null, canvasColors: existing.canvasColors || null, log: [] };
+  const combat = { active: true, round: 1, currentTurn: 0, combatants, backdropId: existing.backdropId || null, canvasPreset: existing.canvasPreset || null, canvasColors: existing.canvasColors || null, log: [] };
   _combatLog(combat, '⚔️ Gevecht begonnen');
   if (combatants[0]) _combatLog(combat, `▶ Beurt van ${combatants[0].name}`);
   storage.writeJSON('combat.json', combat);
@@ -4940,6 +4940,7 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
     currentTurn:  0,
     combatants,
     backdropId:   enc.backdropId   || null,
+    canvasPreset: enc.canvasPreset || null,
     canvasColors: enc.canvasColors || null,
     log:          [`⚔️ Encounter geladen: ${enc.name}`],
   };
