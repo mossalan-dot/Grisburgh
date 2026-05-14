@@ -1671,6 +1671,282 @@ function _spellMd(t) {
     .replace(/\*(.+?)\*/g,         '<em>$1</em>');
 }
 
+// ── Spreukenboek overlay ──────────────────────────────────────────────────────
+const _SB_SCHOOLS = {
+  abjuration:    { c1: '#0c2248', c2: '#1e4a8a', icon: 'shield'     },
+  conjuration:   { c1: '#0a3020', c2: '#1a6a50', icon: 'sparkles'   },
+  divination:    { c1: '#200c4e', c2: '#5a2e8a', icon: 'eye'        },
+  enchantment:   { c1: '#4a082e', c2: '#962058', icon: 'heart'      },
+  evocation:     { c1: '#4a1000', c2: '#a03810', icon: 'zap'        },
+  illusion:      { c1: '#150848', c2: '#441892', icon: 'moon'       },
+  necromancy:    { c1: '#040c06', c2: '#142e14', icon: 'skull'      },
+  transmutation: { c1: '#301800', c2: '#7a4a08', icon: 'refresh-cw' },
+};
+const _SB_DEFAULT = { c1: '#1a1220', c2: '#2e2040', icon: 'book-open' };
+
+const _sbState = {
+  spells: [],
+  idx: 0,
+  favs: new Set(),
+  charId: null,
+  tocOpen: false,
+};
+
+function _sbSchoolKey(school) {
+  if (!school) return null;
+  return school.toLowerCase().replace(/[\s-]/g, '');
+}
+
+function _sbSchoolLabel(school) {
+  const map = {
+    abjuration:    'Afweer',       conjuration:   'Bezwering',
+    divination:    'Waarzeggerij', enchantment:   'Betovering',
+    evocation:     'Oproeping',    illusion:      'Illusie',
+    necromancy:    'Necromantie',  transmutation: 'Transformatie',
+  };
+  if (!school) return '';
+  return map[school.toLowerCase()] || (school.charAt(0).toUpperCase() + school.slice(1));
+}
+
+function _sbRibbonMiniSvg() {
+  return `<svg width="9" height="14" viewBox="0 0 9 14"><path d="M0 0 H9 V11 L4.5 14 L0 11 Z" fill="#c82020"/></svg>`;
+}
+
+function _ensureSpellbookOverlay() {
+  if (document.getElementById('sb-overlay')) return;
+  const el = document.createElement('div');
+  el.id = 'sb-overlay';
+  el.className = 'sb-overlay';
+  el.innerHTML = `
+    <button class="sb-toc-btn" id="sb-toc-btn" onclick="window._sbToggleToc()">
+      ${icon('clipboard-list')} Inhoud
+    </button>
+    <button class="sb-close-btn" onclick="window._closeSpellbook()" title="Sluiten">×</button>
+    <div class="sb-book" id="sb-book">
+      <!-- Left page: school gradient + icon/image -->
+      <div class="sb-page-left" id="sb-page-left">
+        <div class="sb-left-icon" id="sb-left-icon"></div>
+        <div class="sb-left-school" id="sb-left-school"></div>
+        <div class="sb-left-level"  id="sb-left-level"></div>
+      </div>
+      <!-- Right page: parchment + content -->
+      <div class="sb-page-right" id="sb-page-right">
+        <!-- Red ribbon bookmark -->
+        <div class="sb-ribbon" id="sb-ribbon" onclick="window._sbTogglePin()" title="Vastpinnen">
+          <svg width="32" height="62" viewBox="0 0 32 62" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path id="sb-ribbon-shape" d="M0 0 H32 V52 L16 62 L0 52 Z" fill="rgba(0,0,0,0.18)"/>
+            <path d="M0 0 H32 V52 L16 62 L0 52 Z" fill="none" stroke="rgba(0,0,0,0.2)" stroke-width="1"/>
+          </svg>
+        </div>
+        <!-- Scrollable text content -->
+        <div class="sb-right-content" id="sb-right-content"></div>
+        <!-- Navigation bar -->
+        <div class="sb-nav-bar">
+          <button class="sb-nav-btn" id="sb-prev-btn" onclick="window._sbPrev()" disabled>
+            ${icon('chevron-left')} Vorige
+          </button>
+          <span class="sb-nav-counter" id="sb-nav-counter">1 / 1</span>
+          <button class="sb-nav-btn" id="sb-next-btn" onclick="window._sbNext()" disabled>
+            Volgende ${icon('chevron-right')}
+          </button>
+        </div>
+      </div>
+      <!-- TOC panel: slides from left -->
+      <div class="sb-toc-panel" id="sb-toc-panel">
+        <div class="sb-toc-header">
+          <div class="sb-toc-title">Inhoudsopgave</div>
+          <input type="text" class="sb-toc-search" id="sb-toc-search"
+            placeholder="Zoek spreuk…"
+            oninput="window._sbTocSearch(this.value)">
+        </div>
+        <div class="sb-toc-list" id="sb-toc-list"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  el.addEventListener('click', e => { if (e.target === el) window._closeSpellbook(); });
+}
+
+window._openSpellbook = function(startIdx = 0) {
+  _ensureSpellbookOverlay();
+  _sbState.idx    = Math.max(0, Math.min(startIdx, _sbState.spells.length - 1));
+  _sbState.tocOpen = false;
+  _sbRender();
+  const ov = document.getElementById('sb-overlay');
+  ov.classList.remove('sb-open');
+  requestAnimationFrame(() => ov.classList.add('sb-open'));
+  // Close TOC if it was open
+  const toc = document.getElementById('sb-toc-panel');
+  if (toc) toc.classList.remove('sb-toc-open');
+};
+
+window._closeSpellbook = function() {
+  const ov = document.getElementById('sb-overlay');
+  if (ov) ov.classList.remove('sb-open');
+  _sbState.tocOpen = false;
+};
+
+window._sbGoTo = function(idx, closeToc) {
+  const newIdx = Math.max(0, Math.min(idx, _sbState.spells.length - 1));
+  const book = document.getElementById('sb-book');
+  if (book && newIdx !== _sbState.idx) {
+    book.classList.add('sb-animating');
+    setTimeout(() => {
+      _sbState.idx = newIdx;
+      _sbRender();
+      book.classList.remove('sb-animating');
+    }, 160);
+  } else {
+    _sbState.idx = newIdx;
+    _sbRender();
+  }
+  if (closeToc) {
+    _sbState.tocOpen = false;
+    const toc = document.getElementById('sb-toc-panel');
+    if (toc) toc.classList.remove('sb-toc-open');
+  }
+};
+
+window._sbPrev = function() {
+  if (_sbState.idx > 0) window._sbGoTo(_sbState.idx - 1);
+};
+window._sbNext = function() {
+  if (_sbState.idx < _sbState.spells.length - 1) window._sbGoTo(_sbState.idx + 1);
+};
+
+window._sbTogglePin = async function() {
+  const spell = _sbState.spells[_sbState.idx];
+  if (!spell || !_sbState.charId) return;
+  const index = spell.index;
+  let favArr = [..._sbState.favs];
+  if (_sbState.favs.has(index)) favArr = favArr.filter(f => f !== index);
+  else favArr.push(index);
+  _sbState.favs = new Set(favArr);
+  _sbRenderRibbon();
+  _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
+  try { await window._saveProfileField('spellFavorites', JSON.stringify(favArr)); }
+  catch (e) { console.error('Fout bij opslaan favorieten:', e); }
+};
+
+window._sbToggleToc = function() {
+  _sbState.tocOpen = !_sbState.tocOpen;
+  const toc = document.getElementById('sb-toc-panel');
+  if (toc) toc.classList.toggle('sb-toc-open', _sbState.tocOpen);
+  if (_sbState.tocOpen) {
+    const inp = document.getElementById('sb-toc-search');
+    if (inp) inp.value = '';
+    _sbRenderTocList('');
+    setTimeout(() => document.getElementById('sb-toc-search')?.focus(), 50);
+  }
+};
+
+window._sbTocSearch = function(q) { _sbRenderTocList(q); };
+
+function _sbRenderTocList(q) {
+  const list = document.getElementById('sb-toc-list');
+  if (!list) return;
+  const query = (q || '').toLowerCase().trim();
+  const groups = {};
+  _sbState.spells.forEach((s, i) => {
+    if (query && !s.name.toLowerCase().includes(query)) return;
+    const k = s.level || 0;
+    if (!groups[k]) groups[k] = [];
+    groups[k].push({ s, i });
+  });
+  const keys = Object.keys(groups).map(Number).sort((a, b) => a - b);
+  list.innerHTML = keys.map(k => {
+    const label = k === 0 ? 'Cantrips' : `Niveau ${k}`;
+    return `<div class="sb-toc-level-header">${label}</div>` +
+      groups[k].map(({ s, i }) => {
+        const pinned = _sbState.favs.has(s.index);
+        const active = i === _sbState.idx;
+        const school = s.school ? _sbSchoolLabel(s.school).slice(0, 8) : '';
+        return `<div class="sb-toc-item${active ? ' sb-toc-active' : ''}${pinned ? ' sb-toc-pinned' : ''}"
+          onclick="window._sbGoTo(${i}, true)">
+          <span class="sb-toc-item-pin">${_sbRibbonMiniSvg()}</span>
+          <span class="sb-toc-item-name">${esc(s.name)}</span>
+          ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}
+        </div>`;
+      }).join('');
+  }).join('');
+}
+
+function _sbRenderRibbon() {
+  const spell = _sbState.spells[_sbState.idx];
+  if (!spell) return;
+  const pinned = _sbState.favs.has(spell.index);
+  const shape = document.getElementById('sb-ribbon-shape');
+  if (shape) shape.setAttribute('fill', pinned ? '#c82020' : 'rgba(0,0,0,0.18)');
+  const ribbon = document.getElementById('sb-ribbon');
+  if (ribbon) ribbon.title = pinned ? 'Losmaken' : 'Vastpinnen';
+}
+
+function _sbRender() {
+  const spell = _sbState.spells[_sbState.idx];
+  if (!spell) return;
+  const sKey   = _sbSchoolKey(spell.school);
+  const sCfg   = _SB_SCHOOLS[sKey] || _SB_DEFAULT;
+
+  // ── Left page ──
+  const leftPage = document.getElementById('sb-page-left');
+  if (leftPage) {
+    leftPage.style.background = `linear-gradient(155deg, ${sCfg.c1} 0%, ${sCfg.c2} 100%)`;
+  }
+  const iconEl = document.getElementById('sb-left-icon');
+  if (iconEl) iconEl.innerHTML = icon(sCfg.icon);
+  const schoolEl = document.getElementById('sb-left-school');
+  if (schoolEl) schoolEl.textContent = spell.school ? _sbSchoolLabel(spell.school) : '';
+  const levelEl = document.getElementById('sb-left-level');
+  if (levelEl) levelEl.textContent = spell.level === 0 ? 'Cantrip' : `Niveau ${spell.level} spreuk`;
+
+  // ── Ribbon ──
+  _sbRenderRibbon();
+
+  // ── Right page ──
+  const contentEl = document.getElementById('sb-right-content');
+  if (contentEl) {
+    const desc = (spell.desc || '').split(/\n+/).map(p => p.trim()).filter(Boolean)
+      .map(p => `<p>${_spellMd(p)}</p>`).join('');
+
+    const metaRows = [
+      spell.casting_time ? ['Werptijd',    spell.casting_time] : null,
+      spell.range        ? ['Bereik',      spell.range]        : null,
+      spell.components   ? ['Componenten', spell.components]   : null,
+      spell.duration     ? ['Duur',        spell.duration]     : null,
+    ].filter(Boolean);
+
+    const badges = [
+      spell.concentration ? `<span class="sb-badge sb-badge--conc">Concentratie</span>` : '',
+      spell.ritual        ? `<span class="sb-badge sb-badge--ritual">Ritueel</span>`     : '',
+      spell.damage        ? `<span class="sb-badge sb-badge--damage">${esc(spell.damage)}</span>` : '',
+    ].filter(Boolean).join('');
+
+    contentEl.innerHTML = `
+      <h2 class="sb-spell-name">${esc(spell.name)}</h2>
+      ${badges ? `<div class="sb-spell-meta-row">${badges}</div>` : ''}
+      ${metaRows.length ? `
+        <div class="sb-meta-table">
+          ${metaRows.map(([k,v]) => `
+            <span class="sb-meta-key">${k}</span>
+            <span class="sb-meta-val">${esc(v)}</span>`).join('')}
+        </div>` : ''}
+      ${(badges || metaRows.length) ? '<div class="sb-divider"></div>' : ''}
+      ${spell.incantation ? `<div class="sb-incantation">"${esc(spell.incantation)}"</div>` : ''}
+      <div class="sb-desc">${desc || '<em>Geen beschrijving beschikbaar.</em>'}</div>`;
+    contentEl.scrollTop = 0;
+  }
+
+  // ── Nav counter ──
+  const counter = document.getElementById('sb-nav-counter');
+  if (counter) counter.textContent = `${_sbState.idx + 1} / ${_sbState.spells.length}`;
+  const prevBtn = document.getElementById('sb-prev-btn');
+  if (prevBtn) prevBtn.disabled = _sbState.idx === 0;
+  const nextBtn = document.getElementById('sb-next-btn');
+  if (nextBtn) nextBtn.disabled = _sbState.idx === _sbState.spells.length - 1;
+
+  // ── TOC list ──
+  _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
+}
+
 // Geeft de juiste CSS-modifier voor de damage-pill op basis van het schadetype.
 // Detecteert trefwoorden in de damage-string (bijv. "2d6 fire", "3d8 cold damage").
 function _damagePillMod(dmg) {
@@ -1767,6 +2043,11 @@ async function renderMijnKarakter(opts = {}) {
 
   // Wacht op wikilink-naamindex zodat beschrijvingen in knapzak correct renderen
   await (window._entityIndexReady || Promise.resolve()).catch(() => {});
+
+  // Preload spellbook state (used by _openSpellbook button)
+  _sbState.spells = [...pinnedSpells].sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+  _sbState.favs   = new Set((() => { try { return JSON.parse(playerProfile.spellFavorites || '[]'); } catch { return []; } })());
+  _sbState.charId = charId;
 
   // Sla unread bericht-teller op (niet resetten als berichten-tab open is)
   const unreadCount = berichtenLijst.filter(m => !m.gelezen).length;
@@ -2738,6 +3019,7 @@ async function renderMijnKarakter(opts = {}) {
           <div class="player-dash-section-title">
             ${icon('book-open')} Spreukzoeker
             <button class="player-trait-add-btn" onclick="window._playerSpellCustomOpen()" title="Eigen spreuk invoeren">+</button>
+            ${pinnedSpells.length > 0 ? `<button class="sb-open-btn" onclick="window._openSpellbook()" title="Bladeren in het spreukenboek">${icon('book-open')} Bladeren</button>` : ''}
           </div>
           <div class="player-spell-search-wrap">
             <input id="player-spell-input" class="player-spell-search-input" type="text"
@@ -2806,7 +3088,9 @@ async function renderMijnKarakter(opts = {}) {
                       ${s.ritual ? '<span class="spell-badge spell-badge--ritual" title="Ritueel">R</span>' : ''}
                       <button class="spell-fav-btn${_isFav ? ' spell-fav-btn--on' : ''}"
                         onclick="event.preventDefault();event.stopPropagation();window._toggleSpellFav('${escJS(s.index)}',${s.level},this)"
-                        title="${_isFav ? 'Verwijder ster' : 'Markeer als favoriet'}">★</button>
+                        title="${_isFav ? 'Losmaken' : 'Vastpinnen'}">
+                        <svg width="11" height="18" viewBox="0 0 11 18" style="display:block"><path d="M0 0 H11 V14.5 L5.5 18 L0 14.5 Z" fill="currentColor"/></svg>
+                      </button>
                       <button class="player-pinned-spell-del"
                         onclick="event.preventDefault();event.stopPropagation();window._playerSpellUnpin('${esc(s.index)}')"
                         title="Verwijder">×</button>
