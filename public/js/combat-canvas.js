@@ -561,8 +561,8 @@ function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t, isWide) {
   const grad = isMonsterSide
     ? ctx.createLinearGradient(x + w, y, x, y)   // monster: rechts → links
     : ctx.createLinearGradient(x, y, x + w, y);  // speler:  links → rechts
-  grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.16)`);
-  grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.03)`);
+  grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.50)`);
+  grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.10)`);
   ctx.fillStyle = grad;
   ctx.fillRect(x, y, w, h);
 
