@@ -1719,7 +1719,7 @@ function _sbGenTornEdge(seed) {
     const y   = ((i / steps) * 100).toFixed(1);
     const v1  = (Math.sin(seed * 0.031 + i * 1.7) * 0.5 + 0.5);  // 0..1
     const v2  = (Math.sin(seed * 0.017 + i * 3.3) * 0.5 + 0.5);  // 0..1
-    const x   = (98.8 + v1 * 0.7 + v2 * 0.5).toFixed(1);         // 98.8–100%
+    const x   = (97.5 + v1 * 1.6 + v2 * 0.9).toFixed(1);         // 97.5–100%
     pts.push(`${x}% ${y}%`);
   }
   pts.push('100% 100%', '0% 100%');
@@ -1807,9 +1807,6 @@ function _ensureSpellbookOverlay() {
       <button class="sb-ctrl-btn sb-ctrl-close" onclick="window._closeSpellbook()" title="Sluiten">×</button>
     </div>
     <div class="sb-book" id="sb-book">
-      <!-- Under-pages: visible through the right page's torn edge, giving page-stack depth -->
-      <div class="sb-page-under sb-page-under--deep" id="sb-page-under-deep"></div>
-      <div class="sb-page-under sb-page-under--mid"  id="sb-page-under-mid"></div>
       <!-- Left page: school gradient + incantation + icon/image + slots -->
       <div class="sb-page-left" id="sb-page-left">
         <!-- Incantation verse at top -->
@@ -1927,13 +1924,12 @@ window._sbGoTo = function(idx, closeToc) {
 
   _sbFlipping = true;
 
-  // Phase 1 — dissolve out: blur + fade + subtle scale-down (190ms)
-  const tOut = 'opacity 0.19s ease-in, filter 0.19s ease-in, transform 0.19s ease-in';
+  // Phase 1 — dissolve out: blur + fade (190ms); no transform to avoid directional slide
+  const tOut = 'opacity 0.19s ease-in, filter 0.19s ease-in';
   leftP.style.transition = rightP.style.transition = tOut;
   leftP.style.opacity  = rightP.style.opacity  = '0';
   leftP.style.filter   = 'blur(6px) brightness(1.6)';
   rightP.style.filter  = 'blur(5px) brightness(1.3)';
-  leftP.style.transform = rightP.style.transform = 'scale(0.965)';
 
   setTimeout(() => {
     // Swap content while invisible
@@ -1944,13 +1940,12 @@ window._sbGoTo = function(idx, closeToc) {
     book.classList.add('sb-magic-flash');
 
     // Phase 2 — materialise: fade in with a brief glow that settles (340ms)
-    const tIn = 'opacity 0.34s ease-out, filter 0.34s ease-out, transform 0.34s ease-out';
+    const tIn = 'opacity 0.34s ease-out, filter 0.34s ease-out';
     leftP.style.transition = rightP.style.transition = tIn;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       leftP.style.opacity   = rightP.style.opacity   = '1';
       leftP.style.filter    = 'brightness(1.28)';
       rightP.style.filter   = 'brightness(1.12) sepia(0.08)';
-      leftP.style.transform = rightP.style.transform = '';
 
       // Let glow settle, then clear everything
       setTimeout(() => {
@@ -2172,13 +2167,9 @@ function _sbRender() {
   const leftPage = document.getElementById('sb-page-left');
   if (leftPage) leftPage.style.background = `linear-gradient(155deg, ${sCfg.c1} 0%, ${sCfg.c2} 100%)`;
 
-  // ── Right page + under-pages: each gets a unique torn-edge profile ──
+  // ── Right page: unique torn-edge profile per spell ──
   const rightPage = document.getElementById('sb-page-right');
   if (rightPage) rightPage.style.clipPath = _sbGenTornEdge(seed);
-  const underMid  = document.getElementById('sb-page-under-mid');
-  if (underMid)  underMid.style.clipPath  = _sbGenTornEdge(seed + 137);
-  const underDeep = document.getElementById('sb-page-under-deep');
-  if (underDeep) underDeep.style.clipPath = _sbGenTornEdge(seed + 271);
 
   // ── Left: incantation as taped note ──
   const incEl = document.getElementById('sb-left-incantation');
