@@ -753,8 +753,6 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
     ctx.save();
     ctx.font         = '12px serif';
     ctx.fillStyle    = '#111111';
-    ctx.shadowColor  = 'rgba(255,255,255,0.8)';
-    ctx.shadowBlur   = 3;
     ctx.textAlign    = 'left';
     ctx.textBaseline = 'top';
 
@@ -802,12 +800,8 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
   let label = fullName;
   while (ctx.measureText(label).width > w - 6 && label.length > 3) label = label.slice(0, -1);
   if (label !== fullName) label += '…';
-  // Witte outline — leesbaar op donkere achtergrond
-  ctx.lineJoin     = 'round';
-  ctx.lineWidth    = 3.5;
-  ctx.strokeStyle  = 'rgba(255,255,255,0.92)';
-  ctx.strokeText(label, cx, nameY);
-  // Donkere vulling — leesbaar op lichte achtergrond
+  ctx.shadowColor  = 'rgba(0,0,0,0.25)';
+  ctx.shadowBlur   = 3;
   ctx.fillStyle    = isActive ? '#7a4800' : '#1e1008';
   ctx.fillText(label, cx, nameY);
   ctx.restore();
@@ -1252,10 +1246,8 @@ function _drawHpBar(ctx, c, x, y, w, h) {
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'top';
     const txt = tempHp > 0 ? `${hp}+${tempHp}/${maxHp}` : `${hp}/${maxHp}`;
-    ctx.lineJoin    = 'round';
-    ctx.lineWidth   = 2.5;
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-    ctx.strokeText(txt, x + w / 2, y + h + 2);
+    ctx.shadowColor = 'rgba(0,0,0,0.25)';
+    ctx.shadowBlur  = 3;
     ctx.fillStyle   = '#1e1008';
     ctx.fillText(txt, x + w / 2, y + h + 2);
     ctx.restore();
