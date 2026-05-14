@@ -1745,7 +1745,9 @@ const _sbState = {
   favs: new Set(),
   charId: null,
   tocOpen: false,
-  slots: {},       // { 1: { max: 3, used: 1 }, ... }
+  slots: {},           // { 1: { max: 3, used: 1 }, ... }
+  spellSaveDC: null,   // from playerProfile
+  spellAttackBonus: null,
 };
 const _sbDescCache = new Map(); // spell.index → fetched desc string
 let   _sbFlipping  = false;    // prevent overlapping flip animations
@@ -1822,6 +1824,8 @@ function _ensureSpellbookOverlay() {
         <div class="sb-left-level"  id="sb-left-level"></div>
         <!-- Wax seal (bottom-left, school-themed) -->
         <div class="sb-wax-seal" id="sb-wax-seal"></div>
+        <!-- Spell stats: Save DC + Attack Bonus (bottom-right) -->
+        <div class="sb-spell-stats" id="sb-spell-stats"></div>
         <!-- Upload image button -->
         <button class="sb-img-btn" onclick="document.getElementById('sb-img-file').click()" title="Afbeelding uploaden">
           ${icon('camera')}
@@ -2236,6 +2240,23 @@ function _sbRender() {
   const levelEl = document.getElementById('sb-left-level');
   if (levelEl) levelEl.textContent = spell.level === 0 ? 'Cantrip' : `Level ${spell.level} spell`;
 
+  // ── Left: spell save DC + attack bonus ──
+  const statsEl = document.getElementById('sb-spell-stats');
+  if (statsEl) {
+    const dc  = _sbState.spellSaveDC;
+    const atk = _sbState.spellAttackBonus;
+    if (dc || atk) {
+      const atkNum = parseInt(atk);
+      const atkStr = !isNaN(atkNum) ? (atkNum >= 0 ? `+${atkNum}` : `${atkNum}`) : String(atk);
+      statsEl.innerHTML = [
+        dc  ? `<div class="sb-stat"><span class="sb-stat-label">Save DC</span><span class="sb-stat-value">${esc(String(dc))}</span></div>` : '',
+        atk ? `<div class="sb-stat"><span class="sb-stat-label">Atk</span><span class="sb-stat-value">${esc(atkStr)}</span></div>` : '',
+      ].join('');
+    } else {
+      statsEl.innerHTML = '';
+    }
+  }
+
   // ── Left: wax seal (bottom-left, school-themed blob) ──
   const sealEl = document.getElementById('sb-wax-seal');
   if (sealEl && spell.school) {
@@ -2401,10 +2422,12 @@ async function renderMijnKarakter(opts = {}) {
   await (window._entityIndexReady || Promise.resolve()).catch(() => {});
 
   // Preload spellbook state (used by _openSpellbook and auto-open)
-  _sbState.spells = [...pinnedSpells].sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
-  _sbState.favs   = new Set((() => { try { return JSON.parse(playerProfile.spellFavorites || '[]'); } catch { return []; } })());
-  _sbState.charId = charId;
-  _sbState.slots  = { ...spellSlots }; // copy so mutations don't affect the closure
+  _sbState.spells           = [...pinnedSpells].sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+  _sbState.favs             = new Set((() => { try { return JSON.parse(playerProfile.spellFavorites || '[]'); } catch { return []; } })());
+  _sbState.charId           = charId;
+  _sbState.slots            = { ...spellSlots }; // copy so mutations don't affect the closure
+  _sbState.spellSaveDC      = playerProfile.spellSaveDC      ?? null;
+  _sbState.spellAttackBonus = playerProfile.spellAttackBonus ?? null;
 
   // Sla unread bericht-teller op (niet resetten als berichten-tab open is)
   const unreadCount = berichtenLijst.filter(m => !m.gelezen).length;
