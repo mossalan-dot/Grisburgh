@@ -2098,6 +2098,25 @@ async function _sbFetchDesc(spell) {
   if (_sbDescCache.has(idx)) return;
   _sbDescCache.set(idx, ''); // mark as fetching
   try {
+    // Try local 2024 list first (fast, no network needed)
+    const local = (_playerSpellList || []).find(s => s.index === idx);
+    if (local?.desc?.length) {
+      const desc = local.desc.join('\n\n');
+      _sbDescCache.set(idx, desc);
+      const sp = _sbState.spells.find(x => x.index === idx);
+      if (sp) {
+        if (!sp.desc)         sp.desc         = desc;
+        if (!sp.casting_time) sp.casting_time = local.casting_time || '';
+        if (!sp.range)        sp.range        = local.range        || '';
+        if (!sp.duration)     sp.duration     = local.duration     || '';
+        if (!sp.components)   sp.components   = Array.isArray(local.components)
+          ? local.components.join(', ') + (local.material ? ` (${local.material})` : '')
+          : (local.components || '');
+        if (!sp.school)       sp.school       = local.school?.name || '';
+      }
+      return;
+    }
+    // Fallback: dnd5eapi.co (for older/custom spells not in local list)
     const r = await fetch(`https://www.dnd5eapi.co/api/spells/${idx}`);
     const s = await r.json();
     const desc = (s.desc || []).join('\n\n');
@@ -4603,17 +4622,17 @@ async function renderMijnKarakter(opts = {}) {
     if (!resultsEl) return;
     const query = q.toLowerCase().trim();
     if (!query) { resultsEl.innerHTML = ''; return; }
-    // Laad SRD/HP-lijst
+    // Laad spreuklijst (2024 PHB lokaal, of HP-campagne)
     if (!_playerSpellList) {
       resultsEl.innerHTML = '<div class="player-spell-loading">Laden…</div>';
       try {
-        const url = _isHpCampaign() ? '/data/hp-spells.json' : 'https://www.dnd5eapi.co/api/spells';
+        const url = _isHpCampaign() ? '/data/hp-spells.json' : '/data/spells-2024.json';
         const r = await fetch(url);
         const d = await r.json();
         _playerSpellList = d.results || [];
       } catch { _playerSpellList = []; }
     }
-    // Laad aanvullende spreuklijst (non-SRD)
+    // Laad aanvullende spreuklijst (custom/homebrew)
     if (!_extraSpellList) {
       try {
         const r = await fetch('/data/extra-spells.json');
@@ -4640,31 +4659,30 @@ async function renderMijnKarakter(opts = {}) {
   window._playerSpellPin = async function(index, name) {
     if (pinnedSpells.find(s => s.index === index)) return;
     try {
-      // Kijk eerst in de extra-lijst (non-SRD, volledig opgeslagen)
-      const extraSpell = (_extraSpellList || []).find(s => s.index === index);
-      if (extraSpell) {
-        const desc = (extraSpell.desc || []).join('\n\n');
-        const concentration = String(extraSpell.duration || '').toLowerCase().includes('concentratie');
-        await api.addPlayerSpell(charId, {
-          index, name, level: extraSpell.level || 0,
-          school: extraSpell.school?.name || '',
-          source: 'extra', desc, concentration, ritual: false,
-        });
-        renderMijnKarakter(opts);
-        return;
-      }
-      // SRD-spreuk: haal volledige data op voor concentratie/ritueel/school
-      const spell = (_playerSpellList || []).find(s => s.index === index) || { level: 0, school: {} };
-      let concentration = false, ritual = false, school = spell.school?.name || '';
-      try {
-        const full = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`).then(r => r.json());
-        concentration = String(full.duration || '').toLowerCase().includes('concentration');
-        ritual = !!full.ritual;
-        if (full.school?.name) school = full.school.name;
-      } catch { /* ok, geen badges */ }
+      // Zoek in alle beschikbare lijsten (extra/homebrew eerst, dan 2024-lijst)
+      const fullSpell =
+        (_extraSpellList   || []).find(s => s.index === index) ||
+        (_playerSpellList  || []).find(s => s.index === index) ||
+        { level: 0, school: {} };
+
+      const desc          = (fullSpell.desc || []).join('\n\n');
+      const concentration = !!fullSpell.concentration ||
+        String(fullSpell.duration || '').toLowerCase().includes('concentration');
+      const ritual        = !!fullSpell.ritual;
+      const school        = fullSpell.school?.name || '';
+      const source        = fullSpell.source || 'phb2024';
+
       await api.addPlayerSpell(charId, {
-        index, name, level: spell.level || 0, school,
-        concentration, ritual,
+        index, name,
+        level:  fullSpell.level || 0,
+        school, concentration, ritual, source,
+        desc,
+        casting_time: fullSpell.casting_time || '',
+        range:        fullSpell.range        || '',
+        duration:     fullSpell.duration     || '',
+        components:   Array.isArray(fullSpell.components)
+          ? fullSpell.components.join(', ') + (fullSpell.material ? ` (${fullSpell.material})` : '')
+          : (fullSpell.components || ''),
       });
       renderMijnKarakter(opts);
     } catch { /* ok */ }
