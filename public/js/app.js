@@ -1807,6 +1807,9 @@ function _ensureSpellbookOverlay() {
       <button class="sb-ctrl-btn sb-ctrl-close" onclick="window._closeSpellbook()" title="Sluiten">×</button>
     </div>
     <div class="sb-book" id="sb-book">
+      <!-- Under-pages: visible through the right page's torn edge, giving page-stack depth -->
+      <div class="sb-page-under sb-page-under--deep" id="sb-page-under-deep"></div>
+      <div class="sb-page-under sb-page-under--mid"  id="sb-page-under-mid"></div>
       <!-- Left page: school gradient + incantation + icon/image + slots -->
       <div class="sb-page-left" id="sb-page-left">
         <!-- Incantation verse at top -->
@@ -1907,7 +1910,8 @@ window._closeSpellbook = function() {
 };
 
 window._sbGoTo = function(idx, closeToc) {
-  const newIdx = Math.max(0, Math.min(idx, _sbState.spells.length - 1));
+  const n = _sbState.spells.length;
+  const newIdx = ((idx % n) + n) % n;
   if (closeToc) {
     _sbState.tocOpen = false;
     const toc = document.getElementById('sb-toc-panel');
@@ -1922,27 +1926,41 @@ window._sbGoTo = function(idx, closeToc) {
   if (!book || !leftP || !rightP) { _sbState.idx = newIdx; _sbRender(); return; }
 
   _sbFlipping = true;
-  // Phase 1 — fold in toward spine (ease-in)
-  leftP.style.transition  = 'transform 0.22s ease-in, opacity 0.22s ease-in';
-  rightP.style.transition = 'transform 0.22s ease-in, opacity 0.22s ease-in';
-  book.classList.add('sb-folding');
+
+  // Phase 1 — dissolve out: blur + fade + subtle scale-down (190ms)
+  const tOut = 'opacity 0.19s ease-in, filter 0.19s ease-in, transform 0.19s ease-in';
+  leftP.style.transition = rightP.style.transition = tOut;
+  leftP.style.opacity  = rightP.style.opacity  = '0';
+  leftP.style.filter   = 'blur(6px) brightness(1.6)';
+  rightP.style.filter  = 'blur(5px) brightness(1.3)';
+  leftP.style.transform = rightP.style.transform = 'scale(0.965)';
 
   setTimeout(() => {
-    // Update content while pages are folded shut (invisible)
+    // Swap content while invisible
     _sbState.idx = newIdx;
     _sbRender();
-    // Phase 2 — unfold out (ease-out)
-    leftP.style.transition  = 'transform 0.26s ease-out, opacity 0.26s ease-out';
-    rightP.style.transition = 'transform 0.26s ease-out, opacity 0.26s ease-out';
-    requestAnimationFrame(() => {
-      book.classList.remove('sb-folding');
+
+    // Magical shimmer flash from the spine outward
+    book.classList.add('sb-magic-flash');
+
+    // Phase 2 — materialise: fade in with a brief glow that settles (340ms)
+    const tIn = 'opacity 0.34s ease-out, filter 0.34s ease-out, transform 0.34s ease-out';
+    leftP.style.transition = rightP.style.transition = tIn;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      leftP.style.opacity   = rightP.style.opacity   = '1';
+      leftP.style.filter    = 'brightness(1.28)';
+      rightP.style.filter   = 'brightness(1.12) sepia(0.08)';
+      leftP.style.transform = rightP.style.transform = '';
+
+      // Let glow settle, then clear everything
       setTimeout(() => {
-        leftP.style.transition  = '';
-        rightP.style.transition = '';
+        leftP.style.filter = rightP.style.filter = '';
+        leftP.style.transition = rightP.style.transition = '';
+        book.classList.remove('sb-magic-flash');
         _sbFlipping = false;
-      }, 260);
-    });
-  }, 220);
+      }, 340);
+    }));
+  }, 190);
 };
 
 window._sbPrev = function() {
@@ -2154,9 +2172,13 @@ function _sbRender() {
   const leftPage = document.getElementById('sb-page-left');
   if (leftPage) leftPage.style.background = `linear-gradient(155deg, ${sCfg.c1} 0%, ${sCfg.c2} 100%)`;
 
-  // ── Right page: randomised torn edge ──
+  // ── Right page + under-pages: each gets a unique torn-edge profile ──
   const rightPage = document.getElementById('sb-page-right');
   if (rightPage) rightPage.style.clipPath = _sbGenTornEdge(seed);
+  const underMid  = document.getElementById('sb-page-under-mid');
+  if (underMid)  underMid.style.clipPath  = _sbGenTornEdge(seed + 137);
+  const underDeep = document.getElementById('sb-page-under-deep');
+  if (underDeep) underDeep.style.clipPath = _sbGenTornEdge(seed + 271);
 
   // ── Left: incantation as taped note ──
   const incEl = document.getElementById('sb-left-incantation');

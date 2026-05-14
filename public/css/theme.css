@@ -13804,6 +13804,8 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   width: min(900px, 96vw);
   height: min(580px, 88vh);
   border-radius: 4px 10px 10px 4px;
+  /* Parchment background fills any gaps torn edges expose inside the book */
+  background: #b8ab7a;
   box-shadow:
     /* Leather cover boards — slightly proud of the pages */
     0 -9px 0 0 #241830,   /* top board */
@@ -13837,14 +13839,37 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   background: #0c1a2e;
   transform-origin: 100% 50%;  /* fold from right edge (spine) */
 }
-/* 3D fold: pages close toward spine */
-.sb-book.sb-folding .sb-page-left {
-  transform: rotateY(28deg);
-  opacity: 0.06;
+/* ── Under-pages: layered parchment visible through torn right edge ── */
+.sb-page-under {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: calc(50% + 1px);  /* start just past the spine */
+  right: 0;
+  pointer-events: none;
+  /* clip-path set per-spell by JS (_sbGenTornEdge with offset seed) */
 }
-.sb-book.sb-folding .sb-page-right {
-  transform: rotateY(-28deg);
-  opacity: 0.06;
+.sb-page-under--mid  { background: #cdc192; z-index: 1; }
+.sb-page-under--deep { background: #c1b585; z-index: 0; }
+/* Ensure the real pages are always on top of under-pages */
+.sb-page-left, .sb-page-right { z-index: 2; }
+
+/* ── Magical page-turn flash (spine → outward shimmer) ── */
+@keyframes sb-magic-flash {
+  0%   { opacity: 0;   transform: scale(0.7); }
+  35%  { opacity: 1;   transform: scale(1);   }
+  100% { opacity: 0;   transform: scale(1.15); }
+}
+.sb-book.sb-magic-flash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 55% 80% at 50% 48%,
+    rgba(220,190,255,0.32) 0%,
+    rgba(160,110,240,0.14) 45%,
+    transparent 70%);
+  animation: sb-magic-flash 0.42s ease-out forwards;
+  z-index: 18;
+  pointer-events: none;
 }
 .sb-page-left::after {
   content: '';
