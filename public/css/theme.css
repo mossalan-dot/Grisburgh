@@ -1042,6 +1042,361 @@ body::before {
   opacity: 0.75;
 }
 
+/* ── Voorwerp: Schade / Genezing pill ── */
+.detail-item-damage-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.item-damage-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: #7a2a1a;
+  background: linear-gradient(135deg, rgba(180,60,30,0.10) 0%, rgba(236,220,186,0.65) 100%);
+  border: 1.5px solid rgba(180,60,30,0.35);
+  border-radius: 20px;
+  padding: 6px 18px 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  box-shadow: 0 1px 4px rgba(60,20,10,0.08);
+}
+.item-damage-pill:hover {
+  background: linear-gradient(135deg, rgba(180,60,30,0.18) 0%, rgba(236,220,186,0.85) 100%);
+  border-color: rgba(180,60,30,0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(60,20,10,0.14);
+}
+.item-damage-pill:active { transform: translateY(0); }
+.item-damage-pill--heal {
+  color: #1a5a2a;
+  background: linear-gradient(135deg, rgba(30,130,60,0.10) 0%, rgba(220,236,210,0.65) 100%);
+  border-color: rgba(30,130,60,0.35);
+}
+.item-damage-pill--heal:hover {
+  background: linear-gradient(135deg, rgba(30,130,60,0.18) 0%, rgba(220,236,210,0.85) 100%);
+  border-color: rgba(30,130,60,0.6);
+}
+/* Inline dobbelresultaat in modal */
+.dmg-inline-result {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #7a2a1a;
+  min-width: 28px;
+  display: inline-block;
+}
+.dmg-inline-result.dmg-result--flash {
+  animation: dmgFlash 0.45s cubic-bezier(0.2,0.8,0.3,1.2);
+}
+@keyframes dmgFlash {
+  0%   { transform: scale(1.6); opacity: 0; }
+  60%  { transform: scale(0.92); opacity: 1; }
+  100% { transform: scale(1); }
+}
+/* Card-overlay damage pill (rechtsboven op afbeelding) */
+.card-damage-pill {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: 'Cinzel', serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: #fff;
+  background: rgba(140,40,20,0.82);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  padding: 3px 7px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.card-damage-pill:hover {
+  background: rgba(180,50,25,0.95);
+  transform: scale(1.06);
+}
+.card-damage-pill:active { transform: scale(0.97); }
+.card-damage-pill--heal {
+  background: rgba(20,110,50,0.82);
+}
+.card-damage-pill--heal:hover { background: rgba(25,140,60,0.95); }
+.card-armor-ac-pill {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 12;
+  font-family: 'Cinzel', serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: #fff;
+  background: rgba(25,60,150,0.82);
+  border: 1px solid rgba(100,150,230,0.5);
+  border-radius: 10px;
+  padding: 3px 7px;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* ── Wapeneigenschappen — kaartchips ── */
+.card-weapon-props {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+.card-weapon-tag {
+  font-family: 'Cinzel', serif;
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #5a3a1a;
+  background: rgba(196,168,122,0.22);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 8px;
+  padding: 1px 5px;
+}
+.card-weapon-tag--more {
+  color: #888;
+  background: rgba(196,168,122,0.10);
+}
+/* ── Wapeneigenschappen — detailmodal chips + tooltip ── */
+.detail-weapon-props {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.detail-weapon-tag {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #5a3a1a;
+  background: rgba(196,168,122,0.25);
+  border: 1.5px solid rgba(196,168,122,0.55);
+  border-radius: 12px;
+  padding: 3px 10px;
+  cursor: default;
+  transition: background 0.12s;
+}
+.detail-weapon-tag:hover { background: rgba(196,168,122,0.45); }
+/* ── Armor AC overlay — carousel afbeelding (rechterbovenhoek) ── */
+.item-carousel-ac-pill {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  color: #fff;
+  background: rgba(25,60,150,0.78);
+  border: 1px solid rgba(100,150,230,0.85);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* ── Armor AC overlay — detail hero ── */
+.detail-hero-ac-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  color: #fff;
+  background: rgba(25,60,150,0.78);
+  border: 1.5px solid rgba(100,150,230,0.85);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.35);
+  cursor: default;
+}
+/* ── Pantsereigenschappen — kaartjes (klein) ── */
+.card-armor-tag {
+  font-family: 'Cinzel', serif;
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  border-radius: 8px;
+  padding: 1px 5px;
+}
+.card-armor-tag--ac {
+  color: #1a3a6a;
+  background: rgba(80,130,210,0.18);
+  border: 1px solid rgba(80,130,210,0.45);
+}
+.card-armor-tag--stealth {
+  color: #6a1a1a;
+  background: rgba(200,60,60,0.15);
+  border: 1px solid rgba(200,60,60,0.38);
+}
+.card-armor-tag--str {
+  color: #3a2a00;
+  background: rgba(160,120,30,0.18);
+  border: 1px solid rgba(160,120,30,0.40);
+}
+/* ── Pantsereigenschappen — detailmodal chips ── */
+.detail-armor-props {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.detail-armor-tag {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  border-radius: 12px;
+  padding: 3px 10px;
+  cursor: default;
+  transition: background 0.12s;
+}
+.detail-armor-tag--ac {
+  color: #1a3a6a;
+  background: rgba(80,130,210,0.20);
+  border: 1.5px solid rgba(80,130,210,0.50);
+}
+.detail-armor-tag--ac:hover { background: rgba(80,130,210,0.35); }
+.detail-armor-tag--stealth {
+  color: #6a1a1a;
+  background: rgba(200,60,60,0.16);
+  border: 1.5px solid rgba(200,60,60,0.42);
+}
+.detail-armor-tag--stealth:hover { background: rgba(200,60,60,0.30); }
+.detail-armor-tag--str {
+  color: #3a2a00;
+  background: rgba(160,120,30,0.18);
+  border: 1.5px solid rgba(160,120,30,0.44);
+}
+.detail-armor-tag--str:hover { background: rgba(160,120,30,0.32); }
+/* ── Scroll spell stats (detail view) ── */
+.detail-scroll-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.detail-scroll-stat {
+  display: inline-flex;
+  flex-direction: column;
+  padding: 4px 11px 5px;
+  border-radius: 10px;
+  background: rgba(110, 70, 185, 0.10);
+  border: 1px solid rgba(110, 70, 185, 0.28);
+  color: #2e1650;
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  line-height: 1.3;
+}
+.scroll-stat-lbl {
+  font-family: 'Cinzel', serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #7040b8;
+  margin-bottom: 1px;
+}
+/* Floating tooltip */
+.weapon-prop-tooltip {
+  position: fixed;
+  z-index: 9999;
+  max-width: 260px;
+  background: #2a1a08;
+  color: #ece8df;
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.weapon-prop-tooltip--visible { opacity: 1; }
+/* ── Wapeneigenschappen — editor tag-picker ── */
+.weapon-tags-editor-wrap { grid-column: 1 / -1; }
+.weapon-tags-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+.weapon-tag-pick {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #7a6040;
+  background: rgba(196,168,122,0.12);
+  border: 1.5px solid rgba(196,168,122,0.35);
+  border-radius: 12px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.weapon-tag-pick:hover  { background: rgba(196,168,122,0.28); }
+.weapon-tag-pick--on {
+  color: #fff;
+  background: #7a4a1a;
+  border-color: #7a4a1a;
+}
+/* Wrapper voor parameteriseerbare eigenschappen (knop + invoerveld naast elkaar) */
+.weapon-tag-pick-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+/* Klein invoerveld voor aanvullende tekst (bijv. "30/120" bij Range) */
+.weapon-tag-param-inp {
+  width: 58px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  padding: 2px 5px;
+  border: 1.5px solid rgba(196,168,122,0.55);
+  border-radius: 8px;
+  background: rgba(196,168,122,0.14);
+  color: #5a3a1a;
+  outline: none;
+  transition: border-color 0.12s, background 0.12s;
+}
+.weapon-tag-param-inp:focus {
+  border-color: #7a4a1a;
+  background: rgba(196,168,122,0.28);
+}
+.weapon-tag-param-inp.hidden { display: none; }
+
 /* ── Ornate section divider ── */
 .detail-divider {
   text-align: center;
@@ -1482,6 +1837,52 @@ body::before {
   box-shadow: 0 2px 8px rgba(var(--bc),0.14), inset 0 1px 0 rgba(255,255,255,0.4);
 }
 .section-banner-info { flex: 1; min-width: 0; }
+/* ── Geïntegreerde zoekbalk in de banner-header ── */
+.section-banner-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.sbs-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.sbs-icon {
+  position: absolute;
+  left: 9px;
+  font-size: 14px;
+  color: rgba(var(--bc), 0.45);
+  pointer-events: none;
+  line-height: 1;
+}
+.sbs-input {
+  width: 200px;
+  padding: 5px 10px 5px 28px;
+  font-family: 'IM Fell English', serif;
+  font-size: 12.5px;
+  color: #3a2a0e;
+  background: rgba(var(--bc), 0.06);
+  border: 1px solid rgba(var(--bc), 0.22);
+  border-radius: 20px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s, width 0.2s;
+}
+.sbs-input::placeholder { color: rgba(var(--bc), 0.40); }
+.sbs-input:focus {
+  width: 260px;
+  background: rgba(var(--bc), 0.10);
+  border-color: rgba(var(--bc), 0.50);
+}
+.sbs-count {
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  letter-spacing: 0.3px;
+  color: rgba(var(--bc), 0.55);
+  white-space: nowrap;
+}
 .section-banner-label {
   font-family: 'Cinzel', serif;
   font-size: 14px;
@@ -1988,6 +2389,7 @@ body::before {
   font-size: 15px;
   line-height: 1;
   flex-shrink: 0;
+  color: rgba(240,210,140,0.92);    /* SVG-iconen (currentColor) zichtbaar op donkere achtergrond */
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .map-pin:hover .pin-icon {
@@ -2526,7 +2928,8 @@ body::before {
   .dm-tab-btn { padding: 9px 3px 8px; }
 
   /* ── Gevechtsoverlay ── */
-  .combat-overlay { padding: 12px 12px 72px; }
+  .combat-overlay { top: 48px; padding: 12px 12px 72px; }
+  .co-minimize-btn { font-size: 16px; padding: 5px 14px; min-height: 34px; }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -2658,6 +3061,369 @@ body::before {
   text-align: center;
   padding: 10px 4px;
   line-height: 1.5;
+}
+
+/* ── Regie-balk (horizontale DM-overlay onderaan) ── */
+.dm-regie-balk {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: none;
+}
+.dm-regie-balk.dm-regie-balk--visible {
+  display: block;
+}
+.dm-regie-balk-inner {
+  display: flex;
+  flex-direction: column;
+  height: 188px;
+  background: var(--color-room-bg, #f5edd8);
+  border-top: 2px solid rgba(196, 168, 122, 0.65);
+  box-shadow: 0 -6px 24px rgba(0,0,0,0.22);
+}
+.dm-regie-balk-minimized-bar {
+  background: var(--color-room-bg, #f5edd8);
+  border-top: 2px solid rgba(196, 168, 122, 0.65);
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.14);
+}
+.dm-regie-balk-expand-btn {
+  width: 100%;
+  padding: 7px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-cinzel, 'Cinzel', serif);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-ink-medium, #5a4030);
+  text-align: left;
+  letter-spacing: 0.04em;
+}
+.dm-regie-balk-expand-btn:hover { color: var(--color-ink-bright, #2a1a08); }
+.dm-regie-balk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 12px;
+  border-bottom: 1px solid rgba(196, 168, 122, 0.3);
+  flex-shrink: 0;
+  gap: 8px;
+}
+.dm-regie-balk-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.dm-regie-balk-header-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.dm-regie-balk-akte-label {
+  font-family: var(--font-cinzel, 'Cinzel', serif);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-ink-medium, #5a4030);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dm-rb-progress {
+  font-size: 10px;
+  font-family: var(--font-cinzel, 'Cinzel', serif);
+  color: var(--color-ink-faint, #9a8060);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dm-regie-balk-filters {
+  display: flex;
+  gap: 3px;
+}
+.dm-regie-balk-filter {
+  padding: 2px 9px;
+  font-size: 11px;
+  background: none;
+  border: 1px solid rgba(196, 168, 122, 0.35);
+  border-radius: 100px;
+  cursor: pointer;
+  color: var(--color-ink-dim, #7a6040);
+  font-family: var(--font-cinzel, 'Cinzel', serif);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.dm-regie-balk-filter.active,
+.dm-regie-balk-filter:hover {
+  background: var(--color-gold-dim, #9a7008);
+  border-color: var(--color-gold-dim, #9a7008);
+  color: var(--color-room-bg, #f5edd8);
+}
+.dm-regie-balk-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-ink-dim, #7a6040);
+  padding: 2px 6px;
+  line-height: 1;
+  border-radius: 4px;
+}
+.dm-regie-balk-btn:hover { color: var(--color-ink-bright, #2a1a08); }
+.dm-regie-balk-scroll-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+  padding: 0 4px;
+}
+.dm-rb-scroll-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid rgba(196,168,122,0.3);
+  color: rgba(196,168,122,0.7);
+  font-size: 26px;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  user-select: none;
+}
+.dm-rb-scroll-btn:hover {
+  border-color: rgba(196,168,122,0.8);
+  color: rgba(196,168,122,1);
+  background: rgba(196,168,122,0.12);
+}
+.dm-regie-balk-scroll {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 4px;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: none;
+  user-select: none;
+}
+.dm-regie-balk-scroll::-webkit-scrollbar { display: none; }
+.dm-regie-balk-scroll.dm-rb-scroll--dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+}
+.dm-regie-balk-empty {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: var(--color-ink-faint, #9a8060);
+  font-family: var(--font-fell, 'IM Fell English', serif);
+  font-style: italic;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+/* Item cards in the Regie-balk */
+.dm-rb-item {
+  width: 116px;
+  min-width: 116px;
+  border-radius: 6px;
+  border: 1px solid rgba(196, 168, 122, 0.4);
+  background: var(--color-room-elevated, #e6d5ad);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: opacity 0.3s, border-color 0.25s;
+  flex-shrink: 0;
+}
+.dm-rb-item--revealed {
+  opacity: 0.4;
+  border-color: rgba(196, 168, 122, 0.18);
+}
+.dm-rb-item-thumb-wrap {
+  position: relative;
+  height: 76px;
+  background: rgba(0,0,0,0.12);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.dm-rb-item-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dm-rb-item-entity-thumb {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+}
+.dm-rb-entity-personages   { background: rgba(80, 90, 160, 0.18); }
+.dm-rb-entity-locaties      { background: rgba(60, 130, 80, 0.18); }
+.dm-rb-entity-organisaties  { background: rgba(150, 90, 50, 0.18); }
+.dm-rb-entity-voorwerpen    { background: rgba(140, 110, 40, 0.18); }
+.dm-rb-entity-encounter     { background: rgba(160, 50, 50, 0.18); }
+.dm-rb-item-revealed-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: rgba(255,255,255,0.9);
+  pointer-events: none;
+}
+.dm-rb-item-foot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  min-height: 28px;
+  flex-shrink: 0;
+}
+.dm-rb-item-icon { font-size: 11px; flex-shrink: 0; }
+.dm-rb-item-name {
+  flex: 1;
+  font-size: 10px;
+  font-family: var(--font-crimson, 'Crimson Text', serif);
+  color: var(--color-ink-medium, #5a4030);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dm-rb-reveal-btn {
+  background: var(--color-gold-dim, #9a7008);
+  border: none;
+  border-radius: 3px;
+  color: var(--color-room-bg, #f5edd8);
+  font-size: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+.dm-rb-reveal-btn:hover { background: var(--color-gold, #b8860b); }
+
+/* ── Logboek: akte script-sectie ── */
+.logboek-chapter-script {
+  background: rgba(196, 168, 122, 0.07);
+  border: 1px dashed rgba(196, 168, 122, 0.38);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 12px 16px 14px;
+  margin: 0;
+}
+.logboek-script-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.logboek-script-title {
+  font-family: var(--font-cinzel, 'Cinzel', serif);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-ink-dim, #7a6040);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.logboek-script-add-btns {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.logboek-script-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.script-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  background: var(--color-room-bg, #f5edd8);
+  border-radius: 4px;
+  border: 1px solid rgba(196, 168, 122, 0.22);
+}
+.script-item-icon { font-size: 12px; flex-shrink: 0; }
+.script-item-name {
+  flex: 1;
+  font-family: var(--font-crimson, 'Crimson Text', serif);
+  font-size: 13px;
+  color: var(--color-ink-medium, #5a4030);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.script-item-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+/* Kleine icon-knoppen in script-item (↑↓✕) */
+.script-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  line-height: 1;
+  background: rgba(0,0,0,0.08);
+  border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 3px;
+  color: rgba(90,60,20,0.75);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+.script-icon-btn:hover { background: rgba(0,0,0,0.18); color: #3a2410; }
+.script-icon-btn--del { color: #c44; }
+.script-icon-btn--del:hover { background: rgba(200,40,40,0.12); color: #a00; border-color: rgba(200,40,40,0.4); }
+/* Grote emoji-knoppen om picker te openen (🖼 👁 ⚔️) */
+.script-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  font-size: 16px;
+  line-height: 1;
+  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(196,168,122,0.32);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+.script-add-btn:hover { background: rgba(0,0,0,0.35); border-color: rgba(196,168,122,0.6); }
+.script-add-btn.is-active {
+  background: rgba(196,168,122,0.35);
+  border-color: rgba(196,168,122,0.75);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+}
+.logboek-script-picker {
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--color-room-bg, #f5edd8);
+  border-radius: 6px;
+  border: 1px solid rgba(196, 168, 122, 0.28);
 }
 .dm-tab-btn {
   flex-shrink: 0;
@@ -2901,8 +3667,15 @@ body::before {
   color: #c84040;
 }
 .dm-btn-danger:hover { background: rgba(139,42,42,0.25); border-color: rgba(139,42,42,0.55); }
-.dm-btn-danger-sm { font-size: 10px; padding: 4px 8px; }
-.dm-btn-sm { font-size: 10px; padding: 4px 8px; }
+.dm-btn-danger-sm { font-size: 10px; padding: 4px 8px; line-height: 1; }
+.dm-btn-sm {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  line-height: 1;
+  min-height: 0;
+}
 
 /* Tunnel */
 .dm-status-dot {
@@ -3187,6 +3960,22 @@ body::before {
   color: #3a2410;
   flex: 1;
 }
+/* ── Gelabelde invoervelden (Init / HP) ── */
+.dm-labeled-input {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.dm-input-lbl {
+  font-family: 'Cinzel', serif;
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--color-ink-dim, #8a7050);
+  line-height: 1;
+}
 .dm-setup-init-input {
   width: 40px;
   padding: 1px 3px;
@@ -3244,11 +4033,14 @@ body::before {
 /* ── Combat overlay ── */
 .combat-overlay {
   position: fixed;
-  inset: 0;
+  top: 52px;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0,0,0,0.45);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  z-index: 48;
+  z-index: 55;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3336,11 +4128,15 @@ body::before {
 }
 .co-round {
   font-family: 'Cinzel', serif;
-  font-size: 11px;
-  color: #7a5a20;
-  background: rgba(196,168,122,0.35);
-  padding: 2px 7px;
-  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #3d2200;
+  background: linear-gradient(135deg, rgba(196,147,10,0.28) 0%, rgba(220,175,50,0.14) 100%);
+  border: 1.5px solid rgba(196,147,10,0.5);
+  padding: 4px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,220,100,0.25);
 }
 .co-current-name {
   font-family: 'IM Fell English', serif;
@@ -3587,6 +4383,39 @@ body::before {
   letter-spacing: 0.06em;
   color: #7a5a20;
   margin-bottom: 8px;
+}
+
+/* Spreukwaarden-rij (Save DC + aanvalsbonus) */
+.co-spell-stats-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.co-spell-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(196,168,122,0.18);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 8px;
+  padding: 6px 14px 5px;
+  min-width: 90px;
+}
+.co-spell-stat-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7a5a20;
+  text-align: center;
+  margin-bottom: 2px;
+}
+.co-spell-stat-val {
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #2a1a08;
+  line-height: 1;
 }
 
 /* Stats-strip bovenaan het personage-panel */
@@ -4055,7 +4884,7 @@ body::before {
   overflow: hidden;
   min-width: 40px;
 }
-.co-hp-bar { height: 100%; border-radius: 6px; transition: width 0.3s ease; }
+.co-hp-bar { height: 100%; border-radius: 6px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
 .co-hp-input {
   width: 48px;
   background: rgba(250,244,230,0.8);
@@ -5471,6 +6300,7 @@ details.player-dash-collapsible[open] > summary {
   gap: 36px 48px;
   justify-content: center;
   align-items: flex-start;
+  padding-top: 12px;  /* ruimte voor hover-zweefeffect */
 }
 .landing-loading {
   font-family: 'IM Fell English', serif;
@@ -5519,6 +6349,59 @@ details.player-dash-collapsible[open] > summary {
   gap: 36px 48px;
   justify-content: center;
 }
+/* ── Groepen-carousel ── */
+.landing-portraits--carousel {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+.landing-carousel-track {
+  flex: 1;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+.landing-carousel-inner {
+  display: flex;
+  transition: transform 0.4s cubic-bezier(.4,0,.2,1);
+}
+.landing-carousel-slide {
+  min-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 36px 48px;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12px; /* ruimte voor hover-zweefeffect */
+}
+.landing-carousel-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid rgba(196,168,122,0.3);
+  color: rgba(196,168,122,0.7);
+  font-size: 32px;
+  line-height: 1;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  padding: 0;
+}
+.landing-carousel-btn:hover {
+  border-color: rgba(196,168,122,0.8);
+  color: rgba(196,168,122,1);
+  background: rgba(196,168,122,0.1);
+}
+.landing-carousel-btn--hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* ── Wachtwoordprompt ── */
 .landing-pw-prompt {
   display: flex;
@@ -5762,8 +6645,16 @@ details.player-dash-collapsible[open] > summary {
   text-transform: uppercase;
 }
 
-.landing-footer { margin-top: -8px; }
-.landing-dm-btn {
+.landing-footer {
+  margin-top: -8px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.landing-footer-btn {
   font-family: 'Cinzel', serif;
   font-size: 11px;
   font-weight: 700;
@@ -5773,15 +6664,22 @@ details.player-dash-collapsible[open] > summary {
   background: none;
   border: 1px solid rgba(196,168,122,0.18);
   border-radius: 6px;
-  padding: 9px 22px;
+  padding: 9px 20px;
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s, background 0.2s;
+  white-space: nowrap;
 }
-.landing-dm-btn:hover {
+.landing-footer-btn:hover {
   color: rgba(196,168,122,0.8);
   border-color: rgba(196,168,122,0.45);
   background: rgba(196,168,122,0.07);
 }
+.landing-footer-btn--showcase,
+.landing-footer-btn--ipad {
+  /* zelfde kleur en rand als de standaard DM-knop */
+}
+/* Legacy alias — behoud backward compat in geval van andere referenties */
+.landing-dm-btn { font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.8px; color: rgba(196,168,122,0.38); background: none; border: 1px solid rgba(196,168,122,0.18); border-radius: 6px; padding: 9px 22px; cursor: pointer; }
 
 /* ── Landing: mobiel (≤ 600 px) ── */
 @media (max-width: 600px) {
@@ -5812,9 +6710,10 @@ details.player-dash-collapsible[open] > summary {
   .landing-portrait-sub {
     font-size: 10.5px;
   }
+  .landing-footer-btn,
   .landing-dm-btn {
     min-height: 44px;
-    padding: 12px 28px;
+    padding: 10px 18px;
     touch-action: manipulation;
   }
   /* Tik-hover verwijderen op aanraakschermen */
@@ -6794,6 +7693,26 @@ details.player-dash-collapsible[open] > summary {
   margin-bottom: 8px;
   font-style: italic;
 }
+/* Spreukwoord (verbal component) */
+.spell-incantation {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-style: italic;
+  font-size: 1.08rem;
+  color: #4a2e10;
+  background: linear-gradient(90deg, rgba(196,168,122,0.22) 0%, rgba(196,168,122,0.05) 100%);
+  border-left: 3px solid rgba(196,168,122,0.75);
+  border-radius: 0 4px 4px 0;
+  padding: 7px 14px 7px 12px;
+  margin: 8px 0 10px;
+  line-height: 1.5;
+}
+.spell-incantation-icon {
+  font-style: normal;
+  color: rgba(160,120,50,0.7);
+  font-size: 0.7rem;
+  margin-right: 5px;
+  vertical-align: middle;
+}
 .player-spell-desc {
   font-family: 'Crimson Text', serif;
   font-size: 15px;
@@ -6814,6 +7733,171 @@ details.player-dash-collapsible[open] > summary {
   color: #8a7050;
   font-style: italic;
 }
+
+/* ── Favoriet/gepind: naam in rood ── */
+.spell-name--pinned {
+  color: #b03020 !important;
+}
+.spell-name--pinned:hover { color: #8a1a0a !important; }
+
+/* ── Damage/healing pill op spreuken ── */
+.spell-damage-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s;
+  line-height: 1.4;
+  /* default / fire: rood */
+  background: rgba(180,60,40,0.12);
+  border: 1px solid rgba(180,60,40,0.35);
+  color: #a03020;
+}
+.spell-damage-pill:hover          { background: rgba(180,60,40,0.22); }
+
+/* Healing — groen */
+.spell-damage-pill--heal          { background: rgba(40,140,80,0.12);  border-color: rgba(40,140,80,0.38);   color: #1a7040; }
+.spell-damage-pill--heal:hover    { background: rgba(40,140,80,0.22); }
+
+/* Fire — rood (zelfde als default, expliciet voor leesbaarheid) */
+.spell-damage-pill--fire          { background: rgba(180,60,40,0.12);  border-color: rgba(180,60,40,0.35);   color: #a03020; }
+.spell-damage-pill--fire:hover    { background: rgba(180,60,40,0.22); }
+
+/* Cold — blauw */
+.spell-damage-pill--cold          { background: rgba(25,90,190,0.11);  border-color: rgba(40,110,210,0.40);  color: #1550a0; }
+.spell-damage-pill--cold:hover    { background: rgba(25,90,190,0.20); }
+
+/* Lightning — geel */
+.spell-damage-pill--lightning     { background: rgba(195,155,0,0.12);  border-color: rgba(200,165,0,0.45);   color: #8a6a00; }
+.spell-damage-pill--lightning:hover { background: rgba(195,155,0,0.22); }
+
+/* Thunder — oranje */
+.spell-damage-pill--thunder       { background: rgba(195,90,10,0.12);  border-color: rgba(200,95,15,0.42);   color: #a04808; }
+.spell-damage-pill--thunder:hover { background: rgba(195,90,10,0.22); }
+
+/* Acid — geel-groen */
+.spell-damage-pill--acid          { background: rgba(100,145,0,0.12);  border-color: rgba(110,155,0,0.40);   color: #527000; }
+.spell-damage-pill--acid:hover    { background: rgba(100,145,0,0.22); }
+
+/* Force — paars */
+.spell-damage-pill--force         { background: rgba(105,40,185,0.11); border-color: rgba(115,50,195,0.40);  color: #6020a0; }
+.spell-damage-pill--force:hover   { background: rgba(105,40,185,0.21); }
+
+/* Slashing / Piercing / Bludgeoning — grijs */
+.spell-damage-pill--physical      { background: rgba(100,100,100,0.11); border-color: rgba(110,110,110,0.38); color: #505050; }
+.spell-damage-pill--physical:hover { background: rgba(100,100,100,0.21); }
+
+/* Radiant — goud/warm wit */
+.spell-damage-pill--radiant       { background: rgba(220,195,80,0.13); border-color: rgba(215,190,70,0.48);  color: #7a6010; }
+.spell-damage-pill--radiant:hover { background: rgba(220,195,80,0.23); }
+
+/* Necrotic — donker/zwart */
+.spell-damage-pill--necrotic      { background: rgba(35,20,55,0.14);   border-color: rgba(70,50,100,0.50);   color: #3a2858; }
+.spell-damage-pill--necrotic:hover { background: rgba(35,20,55,0.26); }
+
+/* Psychic — roze/magenta */
+.spell-damage-pill--psychic       { background: rgba(185,30,120,0.10); border-color: rgba(190,40,130,0.38);  color: #a01870; }
+.spell-damage-pill--psychic:hover { background: rgba(185,30,120,0.20); }
+
+/* ── Inline spell edit form ── */
+.spell-edit-section {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(196,168,122,0.1);
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 6px;
+}
+.spell-edit-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 10px;
+}
+.spell-edit-row--incant { margin-bottom: 10px; }
+.spell-edit-inp--incant { font-family: 'Crimson Text', serif; font-style: italic; font-size: 14px; }
+.spell-edit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+.spell-edit-lbl {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7a5a20;
+}
+.spell-edit-inp {
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  padding: 4px 8px;
+  border: 1px solid #c4a87a;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.6);
+  color: #3a2410;
+  outline: none;
+}
+.spell-edit-inp:focus { border-color: #8a6000; background: rgba(255,255,255,0.85); }
+.spell-edit-ta {
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  padding: 4px 8px;
+  border: 1px solid #c4a87a;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.6);
+  color: #3a2410;
+  outline: none;
+  width: 100%;
+  resize: vertical;
+  line-height: 1.5;
+}
+.spell-edit-ta:focus { border-color: #8a6000; background: rgba(255,255,255,0.85); }
+.spell-edit-btns { display: flex; gap: 8px; }
+.spell-edit-save {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 14px;
+  background: rgba(154,112,8,0.15);
+  border: 1px solid rgba(154,112,8,0.4);
+  border-radius: 4px;
+  color: #5a3a00;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.spell-edit-save:hover { background: rgba(154,112,8,0.28); }
+.spell-edit-cancel {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  padding: 4px 10px;
+  background: none;
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 4px;
+  color: #8a7050;
+  cursor: pointer;
+}
+.spell-edit-cancel:hover { background: rgba(196,168,122,0.12); }
+.spell-edit-toggle-btn {
+  display: block;
+  margin-top: 8px;
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #b0906050;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 3px;
+  opacity: 0.5;
+  transition: opacity 0.12s;
+}
+.spell-edit-toggle-btn:hover,
+.spell-edit-toggle-btn--active { opacity: 1; color: #7a5a20; }
 
 .player-dash-slot-del {
   background: none;
@@ -7831,37 +8915,29 @@ details.player-dash-collapsible[open] > summary {
   display: flex;
   align-items: center;
 }
-.logboek-chapter-edit-btn {
+/* Gedeelde stijl voor kleine icoonknoppen in de akte-banner */
+.logboek-chapter-edit-btn,
+.logboek-chapter-visibility-btn,
+.logboek-chapter-script-btn {
   background: rgba(0,0,0,0.45);
-  border: 1px solid rgba(196,168,122,0.35);
+  border: 1px solid rgba(196,168,122,0.32);
   border-radius: 4px;
-  color: rgba(196,168,122,0.8);
-  font-size: 12px;
-  padding: 2px 6px;
+  color: rgba(196,168,122,0.82);
+  font-size: 13px;
+  padding: 3px 7px;
   cursor: pointer;
   line-height: 1.4;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.15s;
+  opacity: 1;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
 }
-.logboek-chapter-banner:hover .logboek-chapter-edit-btn { opacity: 1; }
-.logboek-chapter-edit-btn:hover { background: rgba(0,0,0,0.75); color: #c8a840; }
-
-/* Visibility toggle per groep (DM) — zelfde stijl als edit-btn, altijd zichtbaar als hidden */
-.logboek-chapter-visibility-btn {
-  background: rgba(0,0,0,0.45);
-  border: 1px solid rgba(196,168,122,0.35);
-  border-radius: 4px;
-  color: rgba(196,168,122,0.75);
-  font-size: 12px;
-  padding: 2px 6px;
-  cursor: pointer;
-  line-height: 1.4;
-  opacity: 0.7;
-  transition: opacity 0.15s, background 0.15s;
-}
+.logboek-chapter-edit-btn:hover,
+.logboek-chapter-script-btn:hover { background: rgba(0,0,0,0.72); color: #e8c870; }
+.logboek-chapter-script-btn.is-open { background: rgba(196,168,122,0.28); border-color: rgba(196,168,122,0.7); color: #fff; }
+.logboek-chapter-visibility-btn { opacity: 0.75; }
 .logboek-chapter-banner:hover .logboek-chapter-visibility-btn { opacity: 1; }
 .logboek-chapter-visibility-btn.is-hidden { opacity: 1; color: #e08080; border-color: rgba(220,80,80,0.5); }
-.logboek-chapter-visibility-btn:hover { background: rgba(0,0,0,0.75); }
+.logboek-chapter-visibility-btn:hover { background: rgba(0,0,0,0.72); }
 
 /* Akte verborgen voor actieve groep: DM ziet het gedempt */
 .logboek-chapter--hidden-for-group { opacity: 0.45; }
@@ -7913,23 +8989,26 @@ details.player-dash-collapsible[open] > summary {
 .active-akte-stop:hover { color: #fff; background: rgba(200,60,60,0.7); }
 
 /* ── Speel-knop op akteheader in logboek (DM-only) ── */
+/* Amber/golden tint to distinguish it clearly from the neutral expand chevron */
 .logboek-chapter-speel-btn {
-  background: rgba(196,168,122,0.18);
-  border: 1px solid rgba(196,168,122,0.45);
+  background: rgba(180, 120, 20, 0.38);
+  border: 1px solid rgba(220, 165, 40, 0.65);
   border-radius: 4px;
-  color: rgba(220,195,140,0.9);
+  color: #f0d080;
   font-size: 11px;
   font-family: 'Cinzel', serif;
-  font-weight: 600;
-  padding: 2px 8px;
+  font-weight: 700;
+  padding: 3px 9px;
   cursor: pointer;
-  letter-spacing: 0.03em;
-  transition: background 0.15s, color 0.15s;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
+  line-height: 1.4;
 }
 .logboek-chapter-speel-btn:hover {
-  background: rgba(196,168,122,0.35);
-  color: #fff;
+  background: rgba(200, 145, 30, 0.58);
+  border-color: rgba(240, 185, 60, 0.85);
+  color: #fff8d0;
 }
 
 /* Info-balk boven het logboek (DM: welke groep wordt geconfigureerd) */
@@ -8801,6 +9880,9 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 
 /* ── Stapelbaar badge op kaart ── */
 .item-owner-badge--stapelbaar { background: rgba(196,168,122,0.15); border: 1px solid rgba(196,168,122,0.4); border-radius: 4px; padding: 2px 6px; font-size: 0.72rem; color: var(--color-ink-medium); display: flex; align-items: center; gap: 4px; }
+/* Klikbare variant: volledige breedte, pointer + hover ── */
+.item-owner-badge--give { cursor: pointer; transition: background 0.15s; }
+.item-owner-badge--give:hover { background: rgba(196,147,10,0.2); border-color: rgba(196,147,10,0.5); color: var(--color-ink-bright); }
 
 /* ── Stapelbaar: qty badge & controls in knapzak ── */
 .player-item-qty-badge { position: absolute; bottom: 3px; right: 3px; background: rgba(196,168,122,0.85); color: #1a1410; font-size: 0.65rem; font-weight: 700; font-family: 'Cinzel', serif; padding: 1px 4px; border-radius: 3px; line-height: 1.4; pointer-events: none; }
@@ -9011,6 +10093,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   inset: 0;
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 
 .player-dash-avatar-wrap { position: relative; overflow: hidden; }
@@ -9458,6 +10541,19 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   background: rgba(255,255,255,0.07);
 }
 .player-dashboard[data-klasse] .player-hp-btn-big:hover { background: rgba(255,255,255,0.16); }
+/* Temporary HP op donkere klasse-achtergronden */
+.player-dashboard[data-klasse] .player-hp-temp-label { color: #90caf9; }
+.player-dashboard[data-klasse] .player-hp-temp-inp {
+  border-bottom-color: rgba(100,181,246,0.6);
+  color: #90caf9;
+}
+.player-dashboard[data-klasse] .player-hp-temp-inp:focus { border-bottom-color: #90caf9; }
+.player-dashboard[data-klasse] .player-hp-temp-btn {
+  border-color: rgba(100,181,246,0.45);
+  color: #90caf9;
+  background: rgba(100,181,246,0.10);
+}
+.player-dashboard[data-klasse] .player-hp-temp-btn:hover { background: rgba(100,181,246,0.22); }
 
 /* Spell stat labels */
 .player-dashboard[data-klasse] .player-spell-stat-label { color: rgba(255,255,255,0.5); }
@@ -9556,6 +10652,12 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .player-dashboard[data-klasse] .player-spell-meta2 { color: rgba(255,255,255,0.75); }
 .player-dashboard[data-klasse] .player-spell-loading-text,
 .player-dashboard[data-klasse] .player-spell-err { color: rgba(255,255,255,0.4); }
+.player-dashboard[data-klasse] .spell-incantation {
+  color: rgba(255,240,200,0.88);
+  background: linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%);
+  border-left-color: rgba(255,255,255,0.3);
+}
+.player-dashboard[data-klasse] .spell-incantation-icon { color: rgba(255,255,255,0.4); }
 .player-dashboard[data-klasse] .player-dash-empty { color: rgba(255,255,255,0.4); }
 
 /* Proficiencies invoervelden */
@@ -9744,6 +10846,78 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .party-hp-ring-hp-wounded  { stroke: #ff9800; }
 .party-hp-ring-hp-critical { stroke: #f44336; }
 .party-hp-ring-hp-down     { stroke: #555; }
+/* Tijdelijk HP — dunne blauwe buitenring */
+.party-hp-ring-temp-bg {
+  fill: none;
+  stroke: rgba(100,181,246,0.18);
+  stroke-width: 2;
+}
+.party-hp-ring-temp {
+  fill: none;
+  stroke: #64b5f6;
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.4s ease;
+  filter: drop-shadow(0 0 4px rgba(100,181,246,0.7));
+}
+/* "party-portrait-sub" temp badge */
+.party-portrait-temp {
+  color: #90caf9;
+  font-size: 0.75em;
+  font-weight: 600;
+}
+/* Tijdelijk HP blok in HP-sectie */
+.player-hp-temp-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.player-hp-temp-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #1a3a6a;
+}
+.player-hp-temp-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.player-hp-temp-inp {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  width: 72px;
+  text-align: center;
+  background: none;
+  border: none;
+  border-bottom: 2px solid #3a6aaa;
+  color: #1a3a6a;
+  outline: none;
+}
+.player-hp-temp-inp:focus { border-bottom-color: #1a3a6a; }
+.player-hp-temp-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #3a6aaa;
+  background: rgba(58,106,170,0.10);
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #1a3a6a;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.player-hp-temp-btn:hover { background: rgba(58,106,170,0.22); }
 
 /* ── Spreukenslot dots — vrije dots gloeien ── */
 .spell-slot-dot.free {
@@ -9834,6 +11008,34 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   transition: color 0.15s, border-color 0.15s;
 }
 .player-hero-collapse-btn:hover { color: rgba(196,168,122,0.9); }
+
+/* Klein klasse-thema-knopje naast de collapse-btn */
+.player-klasse-theme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+  margin-left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(196,168,122,0.08);
+  border: 1px solid rgba(196,168,122,0.25);
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.15s, border-color 0.15s;
+  vertical-align: middle;
+  padding: 0;
+  overflow: hidden;
+  line-height: 1;
+  font-size: 11px;
+  color: rgba(196,168,122,0.7);
+}
+.player-klasse-theme-btn:hover { opacity: 0.8; border-color: rgba(196,168,122,0.55); }
+.player-klasse-theme-btn--on { opacity: 0.85; border-color: rgba(196,168,122,0.65); }
+.player-klasse-theme-icon { width: 14px; height: 14px; object-fit: contain; display: block; }
+.player-dashboard[data-klasse] .player-klasse-theme-btn { border-color: rgba(255,255,255,0.2); }
+.player-dashboard[data-klasse] .player-klasse-theme-btn:hover { border-color: rgba(255,255,255,0.5); }
 
 /* data-klasse varianten voor spell-badge, level chips */
 .player-dashboard[data-klasse] .spell-lvl-chip { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.55); }
@@ -10558,7 +11760,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
     radial-gradient(ellipse at 52% 12%, rgba(228,182,92,0.3)   0%, transparent 44%),
     radial-gradient(ellipse at 40% 80%, rgba(172,118,38,0.22)  0%, transparent 40%);
 }
-.rel-svg { width: 100%; height: 100%; display: block; }
+.rel-svg { width: 100%; height: 100%; display: block; touch-action: none; }
 
 /* Toolbar: donker hout + typewriter */
 .rel-toolbar {
@@ -10733,6 +11935,21 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 
 /* ── Geselecteerde node: gouden rand via SVG ── */
 .rel-node--selected rect, .rel-node--selected polygon { filter: drop-shadow(0 0 5px rgba(196,168,122,0.7)); }
+
+/* ── Prikbord: mobiele layout ── */
+@media (max-width: 640px) {
+  .pb-layout { flex-direction: column; }
+  .pb-panel {
+    width: 100%; max-height: 200px; border-left: none;
+    border-top: 1px solid rgba(196,168,122,0.25);
+    flex-shrink: 0;
+  }
+  .pb-panel-inner { flex-direction: row; flex-wrap: wrap; gap: 8px; padding: 10px; }
+  .pb-panel-img-wrap { width: 80px; height: 54px; flex-shrink: 0; }
+  .pb-panel-name { border-bottom: none; padding-bottom: 0; text-align: left; align-self: center; }
+  .pb-panel-field { flex: 1 1 100%; }
+  .pb-panel-meer-info, .pb-panel-remove { width: auto; flex: 1 1 auto; }
+}
 
 /* ══ Witte tekst op donkere backdrop (Tweespalt, Ursula, Gock) ══════════════ */
 
@@ -10925,7 +12142,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #0d0a06;
+  background: var(--color-room-bg);
   overflow: hidden;
 }
 
@@ -10936,8 +12153,8 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   justify-content: space-between;
   gap: 12px;
   padding: 8px 14px;
-  background: #17110a;
-  border-bottom: 1px solid rgba(196,168,100,0.18);
+  background: var(--color-room-elevated);
+  border-bottom: 1px solid var(--color-room-border);
   flex-shrink: 0;
   flex-wrap: wrap;
 }
@@ -10950,9 +12167,9 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   font-family: 'Cinzel', serif;
   font-size: 13px;
   font-weight: 600;
-  color: #d4b870;
-  background: #211809;
-  border: 1px solid rgba(196,168,100,0.35);
+  color: var(--color-ink-bright);
+  background: var(--color-room-bg);
+  border: 1px solid var(--color-room-border);
   border-radius: 6px;
   padding: 5px 10px;
   cursor: pointer;
@@ -10961,7 +12178,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .dng-map-select-empty {
   font-family: 'IM Fell English', serif;
   font-style: italic;
-  color: rgba(196,168,100,0.4);
+  color: var(--color-ink-faint);
   font-size: 13px;
 }
 
@@ -10974,27 +12191,35 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   text-transform: uppercase;
   padding: 6px 14px;
   border-radius: 6px;
-  border: 1px solid rgba(196,168,100,0.35);
-  background: rgba(196,168,100,0.08);
-  color: #d4b870;
+  border: 1px solid var(--color-room-border);
+  background: rgba(196,168,122,0.1);
+  color: var(--color-ink-medium);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
-.dng-btn:hover { background: rgba(196,168,100,0.18); border-color: rgba(196,168,100,0.6); }
+.dng-btn:hover { background: rgba(196,168,122,0.22); border-color: #c4a87a; }
 .dng-btn-sm { padding: 4px 10px; font-size: 10px; }
-.dng-btn-ghost { background: none; border-color: rgba(196,168,100,0.18); color: rgba(196,168,100,0.5); }
-.dng-btn-ghost:hover { color: rgba(196,168,100,0.8); border-color: rgba(196,168,100,0.4); background: none; }
-.dng-btn-danger { border-color: rgba(180,40,40,0.5); color: #c06060; background: rgba(180,40,40,0.08); }
-.dng-btn-danger:hover { background: rgba(180,40,40,0.18); }
+.dng-btn-ghost { background: none; border-color: rgba(196,168,122,0.3); color: var(--color-ink-faint); }
+.dng-btn-ghost:hover { color: var(--color-ink-dim); border-color: var(--color-room-border); background: rgba(196,168,122,0.06); }
+.dng-btn-danger { border-color: rgba(160,40,40,0.4); color: #7a2020; background: rgba(160,40,40,0.06); }
+.dng-btn-danger:hover { background: rgba(160,40,40,0.12); }
 .dng-btn-reveal {
-  border-color: rgba(80,180,80,0.5);
-  color: #80c880;
-  background: rgba(80,180,80,0.08);
+  border-color: rgba(50,140,60,0.4);
+  color: #2a6a30;
+  background: rgba(50,140,60,0.07);
   width: 100%;
   margin-bottom: 6px;
 }
-.dng-btn-reveal:hover { background: rgba(80,180,80,0.18); }
+.dng-btn-reveal:hover { background: rgba(50,140,60,0.15); }
+.dng-btn-hide {
+  border-color: rgba(140,90,30,0.4);
+  color: #6a4010;
+  background: rgba(140,90,30,0.07);
+  width: 100%;
+  margin-bottom: 6px;
+}
+.dng-btn-hide:hover { background: rgba(140,90,30,0.14); }
 
 /* Gereedschappen */
 .dng-tools { display: flex; align-items: center; gap: 4px; }
@@ -11005,17 +12230,17 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   border-radius: 6px;
   border: 1px solid transparent;
   background: none;
-  color: rgba(196,168,100,0.5);
+  color: var(--color-ink-dim);
   cursor: pointer;
   transition: all 0.15s;
 }
-.dng-tool-btn:hover { background: rgba(196,168,100,0.12); color: #d4b870; }
+.dng-tool-btn:hover { background: rgba(196,168,122,0.14); color: var(--color-ink-bright); }
 .dng-tool-btn.active {
-  background: rgba(196,168,100,0.18);
-  border-color: rgba(196,168,100,0.45);
-  color: #d4b870;
+  background: rgba(196,168,122,0.22);
+  border-color: var(--color-room-border);
+  color: var(--color-ink-bright);
 }
-.dng-tool-sep { width: 1px; height: 20px; background: rgba(196,168,100,0.2); margin: 0 4px; }
+.dng-tool-sep { width: 1px; height: 20px; background: var(--color-room-border); opacity: 0.5; margin: 0 4px; }
 
 /* Workspace */
 .dng-workspace {
@@ -11112,8 +12337,8 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .dng-sidebar {
   width: 230px;
   flex-shrink: 0;
-  background: #17110a;
-  border-left: 1px solid rgba(196,168,100,0.15);
+  background: var(--color-room-elevated);
+  border-left: 1px solid var(--color-room-border);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -11122,12 +12347,12 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .dng-sidebar-detail:empty { display: none; }
 .dng-sb-detail-card {
   padding: 14px;
-  border-bottom: 1px solid rgba(196,168,100,0.12);
+  border-bottom: 1px solid rgba(196,168,122,0.3);
 }
 .dng-sidebar-hint {
   font-family: 'IM Fell English', serif;
   font-style: italic;
-  color: rgba(196,168,100,0.35);
+  color: var(--color-ink-faint);
   font-size: 12px;
   text-align: center;
   margin-top: 12px;
@@ -11136,22 +12361,22 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   font-family: 'Cinzel', serif;
   font-size: 13px;
   font-weight: 700;
-  color: #d4b870;
+  color: var(--color-ink-bright);
   margin-bottom: 3px;
 }
 .dng-sb-shape {
   font-family: 'IM Fell English', serif;
   font-style: italic;
-  color: rgba(196,168,100,0.45);
+  color: var(--color-ink-dim);
   font-size: 11px;
   margin-bottom: 8px;
 }
 .dng-sb-notes {
   font-family: 'Crimson Text', serif;
   font-size: 12px;
-  color: rgba(220,195,150,0.75);
-  background: rgba(196,168,100,0.06);
-  border: 1px solid rgba(196,168,100,0.12);
+  color: var(--color-ink-medium);
+  background: rgba(196,168,122,0.1);
+  border: 1px solid rgba(196,168,122,0.28);
   border-radius: 6px;
   padding: 6px 8px;
   margin-bottom: 10px;
@@ -11161,7 +12386,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .dng-sb-revealed {
   font-family: 'Cinzel', serif;
   font-size: 10px;
-  color: rgba(80,180,80,0.7);
+  color: #3a8040;
   text-align: center;
   padding: 5px;
 }
@@ -11184,13 +12409,13 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: rgba(196,168,100,0.5);
+  color: var(--color-ink-dim);
   text-transform: uppercase;
 }
 .dng-sb-list-count {
   font-family: 'Cinzel', serif;
   font-size: 10px;
-  color: rgba(196,168,100,0.3);
+  color: var(--color-ink-faint);
 }
 .dng-sb-list {
   flex: 1;
@@ -11205,23 +12430,23 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   transition: background 0.12s;
   border-left: 2px solid transparent;
 }
-.dng-sb-li:hover { background: rgba(196,168,100,0.06); }
+.dng-sb-li:hover { background: rgba(196,168,122,0.12); }
 .dng-sb-li--sel {
-  background: rgba(196,168,100,0.10);
-  border-left-color: rgba(196,168,100,0.5);
+  background: rgba(196,168,122,0.2);
+  border-left-color: var(--color-gold-bright);
 }
 .dng-sb-li-dot {
   font-size: 9px;
-  color: rgba(196,168,100,0.3);
+  color: var(--color-ink-faint);
   flex-shrink: 0;
   width: 12px;
   text-align: center;
 }
-.dng-sb-li-dot--rev { color: rgba(80,200,80,0.7); }
+.dng-sb-li-dot--rev { color: #3a8040; }
 .dng-sb-li-name {
   font-family: 'Crimson Text', serif;
   font-size: 13px;
-  color: rgba(220,200,160,0.85);
+  color: var(--color-ink-medium);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -11239,7 +12464,20 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   transition: opacity 0.12s, background 0.12s;
   line-height: 1;
 }
-.dng-sb-quick-reveal:hover { opacity: 0.9; background: rgba(196,168,100,0.12); }
+.dng-sb-quick-reveal:hover { opacity: 0.9; background: rgba(196,168,122,0.18); }
+.dng-sb-quick-hide {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  opacity: 0.35;
+  padding: 2px 3px;
+  border-radius: 3px;
+  transition: opacity 0.12s, background 0.12s;
+  line-height: 1;
+}
+.dng-sb-quick-hide:hover { opacity: 0.9; background: rgba(196,168,122,0.18); }
 
 /* Dialogs */
 .dng-overlay {
@@ -11252,26 +12490,26 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   justify-content: center;
 }
 .dng-dialog {
-  background: linear-gradient(160deg, #2a1e0f 0%, #1c1408 100%);
-  border: 1px solid rgba(196,168,100,0.35);
+  background: linear-gradient(160deg, #f5e9ce 0%, #ede0bc 100%);
+  border: 1px solid var(--color-room-border);
   border-radius: 12px;
   padding: 24px 28px;
   min-width: 340px;
   max-width: 480px;
   width: 90vw;
-  box-shadow: 0 12px 48px rgba(0,0,0,0.7);
+  box-shadow: 0 12px 40px rgba(60,40,10,0.28), inset 0 1px 0 rgba(255,255,255,0.35);
 }
 .dng-dialog-title {
   font-family: 'Cinzel', serif;
   font-size: 16px;
   font-weight: 700;
-  color: #d4b870;
+  color: var(--color-ink-bright);
   margin: 0 0 18px;
 }
 .dng-dialog-sub {
   font-family: 'IM Fell English', serif;
   font-style: italic;
-  color: rgba(196,168,100,0.55);
+  color: var(--color-ink-dim);
   font-size: 13px;
   margin: -10px 0 14px;
 }
@@ -11284,15 +12522,15 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(196,168,100,0.6);
+  color: var(--color-ink-dim);
   margin-bottom: 14px;
 }
 .dng-input {
   font-family: 'Crimson Text', serif;
   font-size: 14px;
-  color: #e8d5a8;
-  background: rgba(0,0,0,0.3);
-  border: 1px solid rgba(196,168,100,0.3);
+  color: var(--color-ink-bright);
+  background: var(--color-room-bg);
+  border: 1px solid var(--color-room-border);
   border-radius: 6px;
   padding: 7px 10px;
   outline: none;
@@ -11300,13 +12538,13 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   width: 100%;
   box-sizing: border-box;
 }
-.dng-input:focus { border-color: rgba(196,168,100,0.7); }
+.dng-input:focus { border-color: var(--color-gold-bright); }
 .dng-textarea {
   font-family: 'Crimson Text', serif;
   font-size: 13px;
-  color: #e8d5a8;
-  background: rgba(0,0,0,0.3);
-  border: 1px solid rgba(196,168,100,0.3);
+  color: var(--color-ink-bright);
+  background: var(--color-room-bg);
+  border: 1px solid var(--color-room-border);
   border-radius: 6px;
   padding: 7px 10px;
   outline: none;
@@ -11315,7 +12553,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   box-sizing: border-box;
   transition: border-color 0.15s;
 }
-.dng-textarea:focus { border-color: rgba(196,168,100,0.7); }
+.dng-textarea:focus { border-color: var(--color-gold-bright); }
 .dng-dialog-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
 .dng-dialog-preview { display: flex; justify-content: center; margin: 10px 0; }
 
@@ -11330,7 +12568,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .dng-party-name {
   font-family: 'Cinzel', serif;
   font-size: 12px;
-  color: #d4b870;
+  color: var(--color-ink-bright);
   flex-shrink: 0;
 }
 .dng-party-states {
@@ -11342,36 +12580,36 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   font-family: 'Cinzel', serif;
   font-size: 10px;
   border-radius: 4px;
-  border: 1px solid rgba(196,168,100,0.25);
-  background: rgba(196,168,100,0.06);
-  color: rgba(196,168,100,0.45);
+  border: 1px solid rgba(196,168,122,0.35);
+  background: rgba(196,168,122,0.08);
+  color: var(--color-ink-dim);
   cursor: pointer;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
   white-space: nowrap;
 }
-.dng-state-btn:hover { background: rgba(196,168,100,0.14); color: rgba(196,168,100,0.75); }
+.dng-state-btn:hover { background: rgba(196,168,122,0.2); color: var(--color-ink-medium); }
 .dng-state-btn--on {
-  background: rgba(196,168,100,0.22);
-  color: #d4b870;
-  border-color: rgba(196,168,100,0.55);
+  background: rgba(196,168,122,0.28);
+  color: var(--color-ink-bright);
+  border-color: var(--color-room-border);
 }
 /* Uitgespeeld-knop: groen accent */
 .dng-state-btn--on[data-state="completed"] {
-  background: rgba(60,160,80,0.18);
-  color: rgba(100,210,120,0.9);
-  border-color: rgba(60,160,80,0.45);
+  background: rgba(50,140,60,0.12);
+  color: #2a6030;
+  border-color: rgba(50,140,60,0.4);
 }
 /* Reveal-count chip in topbar */
 .dng-reveal-chip {
   display: inline-flex;
   align-items: center;
-  background: rgba(196,168,100,0.12);
-  border: 1px solid rgba(196,168,100,0.30);
+  background: rgba(196,168,122,0.12);
+  border: 1px solid var(--color-room-border);
   border-radius: 10px;
   padding: 2px 10px;
   font-family: 'IM Fell English', serif;
   font-size: 12px;
-  color: rgba(196,168,100,0.75);
+  color: var(--color-ink-dim);
   white-space: nowrap;
 }
 
@@ -11381,7 +12619,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   font-family: 'IM Fell English', serif;
   font-style: italic;
   font-size: 12px;
-  color: rgba(196,168,100,0.55);
+  color: var(--color-ink-dim);
   align-self: center;
   margin-left: 4px;
 }
@@ -11414,7 +12652,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .dng-sb-section {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgba(196,168,100,0.14);
+  border-top: 1px solid rgba(196,168,122,0.28);
 }
 .dng-sb-section-hdr {
   font-family: 'Cinzel', serif;
@@ -11422,7 +12660,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(196,168,100,0.55);
+  color: var(--color-ink-dim);
   margin-bottom: 6px;
 }
 
@@ -11436,22 +12674,22 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .dng-cond-btn {
   width: 32px;
   height: 32px;
-  border: 1px solid rgba(196,168,100,0.22);
+  border: 1px solid rgba(196,168,122,0.3);
   border-radius: 6px;
-  background: rgba(196,168,100,0.05);
+  background: rgba(196,168,122,0.06);
   cursor: pointer;
   font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.45;
+  opacity: 0.55;
   transition: opacity 0.15s, background 0.15s, border-color 0.15s;
 }
-.dng-cond-btn:hover { opacity: 0.8; background: rgba(196,168,100,0.12); }
+.dng-cond-btn:hover { opacity: 1; background: rgba(196,168,122,0.16); }
 .dng-cond-btn--on {
   opacity: 1;
-  background: rgba(196,168,100,0.18);
-  border-color: rgba(196,168,100,0.55);
+  background: rgba(196,168,122,0.24);
+  border-color: var(--color-room-border);
 }
 
 /* Actieve conditie-rijen */
@@ -11477,32 +12715,32 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   font-family: 'IM Fell English', serif;
   font-size: 11px;
   padding: 2px 7px;
-  border: 1px solid rgba(196,168,100,0.22);
+  border: 1px solid rgba(196,168,122,0.3);
   border-radius: 4px;
-  background: rgba(196,168,100,0.05);
-  color: rgba(196,168,100,0.50);
+  background: rgba(196,168,122,0.07);
+  color: var(--color-ink-dim);
   cursor: pointer;
   text-align: left;
   transition: all 0.15s;
 }
-.dng-cond-vis-btn:hover { background: rgba(196,168,100,0.12); color: rgba(196,168,100,0.75); }
+.dng-cond-vis-btn:hover { background: rgba(196,168,122,0.15); color: var(--color-ink-medium); }
 .dng-cond-vis-btn--on {
-  color: rgba(100,200,120,0.85);
-  border-color: rgba(60,160,80,0.40);
-  background: rgba(60,160,80,0.10);
+  color: #2a6030;
+  border-color: rgba(50,140,60,0.40);
+  background: rgba(50,140,60,0.10);
 }
 .dng-cond-del-btn {
   border: none;
   background: none;
   cursor: pointer;
   font-size: 11px;
-  color: rgba(200,80,80,0.55);
+  color: rgba(160,40,40,0.55);
   padding: 2px 4px;
   border-radius: 3px;
   transition: color 0.15s, background 0.15s;
   flex-shrink: 0;
 }
-.dng-cond-del-btn:hover { color: rgba(200,80,80,0.9); background: rgba(200,80,80,0.10); }
+.dng-cond-del-btn:hover { color: rgba(160,40,40,0.9); background: rgba(160,40,40,0.10); }
 
 /* Verbindingen in sidebar */
 .dng-conn-row {
@@ -11515,7 +12753,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   flex: 1;
   font-family: 'IM Fell English', serif;
   font-size: 12px;
-  color: rgba(196,168,100,0.70);
+  color: var(--color-ink-medium);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -11545,7 +12783,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   justify-content: center;
   gap: 12px;
   height: 100%;
-  color: rgba(196,168,100,0.35);
+  color: var(--color-ink-faint);
 }
 .dng-empty-icon { font-size: 3rem; opacity: 0.4; }
 .dng-empty-title { font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; }
@@ -11840,3 +13078,662 @@ a.wikilink:not([class*="wikilink--"]) { color: #6a4a10; background: rgba(184,134
 /* ── Dungeon room tooltip (spelers) ── */
 .dng-room-tooltip { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); background: rgba(20,12,4,0.92); border: 1px solid rgba(196,168,100,0.45); border-radius: 8px; padding: 8px 18px; font-family: 'Cinzel', serif; font-size: 0.9rem; color: rgba(240,220,160,0.95); pointer-events: none; z-index: 8000; white-space: nowrap; opacity: 1; transition: opacity 0.4s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
 .dng-room-tooltip--out { opacity: 0; }
+
+/* ── Change 1: Hide class image on mobile ── */
+@media (max-width: 640px) {
+  .player-class-icon-outer { display: none; }
+}
+
+/* ── Change 2: Portrait inline video ── */
+.portrait-inline-video {
+  display: none;
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  z-index: 2;
+}
+.player-dash-avatar-wrap.portrait-showing-video .portrait-inline-video { display: block; }
+.player-dash-avatar-wrap.portrait-showing-video .player-dash-avatar,
+.player-dash-avatar-wrap.portrait-showing-video .player-dash-avatar-fallback { display: none; }
+
+/* ── Change 3: Extra speed (swim/fly) ── */
+.pcs-extra-speeds-wrap { display: contents; }
+.pcs-input-row {
+  display: flex; align-items: center; justify-content: center; gap: 3px;
+}
+.pcs-extra-speed-btn {
+  font-size: 12px; font-weight: 700; line-height: 1;
+  width: 16px; height: 16px; padding: 0;
+  background: none; border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 3px; cursor: pointer; opacity: 0.45; transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.pcs-extra-speed-btn--on { opacity: 1; border-color: rgba(196,168,122,0.8); }
+
+/* ── Change 5: Knapzak damage pills + props ── */
+.item-carousel-damage { margin: 4px 0; }
+.item-carousel-props { display: flex; flex-wrap: wrap; gap: 3px; margin: 4px 0; }
+.item-damage-pill--sm { font-size: 11px; padding: 4px 10px; }
+
+/* ── Change 6: Berichten tab mobile fix ── */
+@media (max-width: 640px) {
+  .player-subtabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    padding-bottom: 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    touch-action: pan-x;
+  }
+  .player-subtabs::-webkit-scrollbar { display: none; }
+  .player-subtab { white-space: nowrap; flex-shrink: 0; }
+}
+
+/* ── Change 7: Spell attack bonus + prefix ── */
+.player-spell-stat-atk-wrap {
+  display: flex; align-items: baseline; justify-content: center; gap: 1px;
+}
+.atk-bonus-prefix {
+  font-family: 'Cinzel', serif; font-size: 18px; font-weight: 700;
+  color: #5a3a1a; pointer-events: none; line-height: 1;
+}
+.player-spell-stat-atk-wrap .player-spell-stat-input { width: 44px; text-align: left; }
+
+/* ── Change 8: Spell slot add level button more subtle ── */
+.player-dash-slot-add-btn {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  font-size: 10px;
+  font-family: 'Cinzel', serif;
+  color: rgba(90, 60, 20, 0.45);
+  background: none;
+  border: 1px dashed rgba(196,168,122,0.3);
+  border-radius: 6px;
+  padding: 3px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  letter-spacing: 0.5px;
+}
+.player-dash-slot-add-btn:hover {
+  color: rgba(90,60,20,0.8);
+  border-color: rgba(196,168,122,0.7);
+}
+
+/* ── Change 9: Spell favorites ── */
+.spell-fav-btn {
+  margin-left: auto;
+  background: none; border: none;
+  font-size: 13px; color: rgba(196,168,122,0.4);
+  cursor: pointer; padding: 0 4px;
+  transition: color 0.15s, transform 0.1s;
+}
+.spell-fav-btn:hover { color: #c4a840; transform: scale(1.2); }
+.spell-fav-btn--on { color: #c4a840; }
+.spell-lvl-chip--fav { background: rgba(196,168,122,0.35); border-color: #c4a840; color: #7a5010; }
+
+/* ── Sandbox / Showcase mode ── */
+
+/* Landing-sandbox-btn alias (legacy — stijl nu via .landing-footer-btn--showcase) */
+.landing-sandbox-btn { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 600; }
+
+/* Header sandbox badge — small pill shown while in sandbox mode */
+.sandbox-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #5a7a3a;
+  background: rgba(80,130,50,0.12);
+  border: 1px solid rgba(80,130,50,0.35);
+  border-radius: 20px;
+  padding: 3px 10px;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+@media (max-width: 600px) {
+  .sandbox-badge { font-size: 8px; padding: 2px 8px; }
+  .landing-sandbox-btn { font-size: 9px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   iPad display mode (kiosk) — ?display=1
+   ═══════════════════════════════════════════════════════════ */
+
+/* Verberg alle normale app-UI in display-modus */
+body.display-mode .app-header,
+body.display-mode .app-nav,
+body.display-mode .dm-panel-wrap,
+body.display-mode #landing-overlay,
+body.display-mode .dice-fab,
+body.display-mode #active-akte-chip,
+body.display-mode .dm-regie-balk,
+body.display-mode .main-content { display: none !important; }
+
+/* Combat overlay boven alles in display-modus */
+body.display-mode .combat-overlay { z-index: 60; }
+
+/* Display canvas — zit onder de combat overlay */
+.display-canvas {
+  position: fixed;
+  inset: 0;
+  background: #0c0a08;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.display-canvas.hidden { display: none; }
+
+/* Verlaat-knop — subtiel kruisje rechtsboven */
+.display-exit-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.5);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.display-exit-btn:hover {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.4);
+  color: rgba(255,255,255,0.9);
+}
+
+/* Schermen binnen het canvas */
+.display-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Idle-scherm */
+.display-screen--idle {
+  background: radial-gradient(ellipse at 50% 60%, #1c140a 0%, #0c0a08 70%);
+}
+.display-idle-inner {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.display-campaign-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2rem, 6vw, 4.5rem);
+  font-weight: 700;
+  color: rgba(196,168,122,0.75);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.display-campaign-sub {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.75rem, 2vw, 1rem);
+  color: rgba(196,168,122,0.3);
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+}
+
+/* Afbeelding-scherm */
+.display-img {
+  max-width: 100%;
+  max-height: 100vh;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.display-img.display-img--in { opacity: 1; }
+.display-img-caption {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,0.7);
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.85rem, 2vw, 1.1rem);
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.9);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Dungeon-scherm */
+.display-dungeon-content {
+  width: 100%;
+  height: 100%;
+}
+
+/* Als aktebar actief is: verberg de geminimaliseerde combat-balk (knop zit in aktebar) */
+body.dm-rb-active .combat-overlay.minimized { display: none !important; }
+
+/* ⚔️-knop in aktebar header */
+.dm-rb-combat-btn { font-size: 14px !important; }
+
+/* Combat overlay: in display-modus vol scherm vanaf bovenkant, nooit geminimaliseerd */
+body.display-mode .combat-overlay { top: 0; z-index: 60; }
+/* Tabjes, tabinhoud en log verborgen in pure kiosk-modus (geen speler ingelogd) */
+body.display-kiosk .combat-overlay .co-tabs,
+body.display-kiosk .combat-overlay .co-tab-panel,
+body.display-kiosk .combat-overlay .co-log { display: none !important; }
+body.display-mode .combat-overlay.minimized {
+  background: rgba(0,0,0,0.55) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  pointer-events: all !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+}
+body.display-mode .combat-overlay.minimized .combat-modal {
+  border-radius: 12px !important;
+  width: 100% !important;
+  max-width: 780px !important;
+  height: auto !important;
+  max-height: 92vh !important;
+  pointer-events: all !important;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6) !important;
+}
+/* Herstel verstopte combat-elementen in geminimaliseerde staat */
+body.display-mode .combat-overlay.minimized .co-turn-controls,
+body.display-mode .combat-overlay.minimized .co-rows { display: block !important; }
+body.display-mode .combat-overlay.minimized .co-add-form,
+body.display-mode .combat-overlay.minimized .co-detail-panel,
+body.display-mode .combat-overlay.minimized .co-canvas { display: none !important; }
+
+/* ── Combat overlay backdrop & sfeer ─────────────────────────────────────── */
+
+/* Ken Burns: de backdrop-div is iets groter dan de overlay (inset: -6%) zodat
+   slow pan/zoom geen witte randen laat zien. z-index: -1 zorgt dat hij achter
+   de (niet-gepositioneerde) .combat-modal valt binnen de overlay stacking context. */
+@keyframes co-ken-burns {
+  0%   { transform: scale(1.00) translate( 0.0%,  0.0%); }
+  30%  { transform: scale(1.07) translate(-1.5%,  0.8%); }
+  65%  { transform: scale(1.05) translate( 1.2%, -1.0%); }
+  100% { transform: scale(1.00) translate( 0.0%,  0.0%); }
+}
+@keyframes co-backdrop-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.co-backdrop-el {
+  position: absolute;
+  inset: -6%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -1;
+  pointer-events: none;
+  animation:
+    co-backdrop-enter 1s ease both,
+    co-ken-burns 30s ease-in-out 1s infinite;
+  will-change: transform;
+}
+.co-backdrop-el.hidden { display: none; }
+
+.combat-overlay.co-has-backdrop {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  overflow: hidden; /* clip het vergrote backdrop-element */
+}
+.combat-overlay.co-has-backdrop .combat-modal {
+  background: rgba(240, 232, 212, 0.72);
+}
+
+/* ── Entrance-animatie combat modal ─────────────────────────────────────── */
+@keyframes co-modal-enter {
+  from { opacity: 0; transform: scale(0.97) translateY(10px); }
+  to   { opacity: 1; transform: scale(1.00) translateY(0); }
+}
+.combat-modal.co-entering {
+  animation: co-modal-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Encounter canvas-preset picker ─────────────────────────────────────── */
+.enc-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+.enc-preset-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 2px solid rgba(196,168,122,0.3);
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: rgba(255,255,255,0.9);
+  transition: border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+}
+.enc-preset-btn .icon {
+  width: 1.1em;
+  height: 1.1em;
+  filter: drop-shadow(0 1px 1.5px rgba(0,0,0,0.5));
+}
+.enc-preset-btn:hover { transform: scale(1.14); }
+.enc-preset-btn.active {
+  border-color: #c4930a;
+  box-shadow: 0 0 0 2px rgba(196,147,10,0.35);
+}
+.dm-form-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* ── Encounters ──────────────────────────────────────────────────────────── */
+.dm-enc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.dm-enc-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(196,168,122,0.07);
+  border: 1px solid rgba(196,168,122,0.22);
+  border-radius: 8px;
+}
+
+.dm-enc-backdrop-thumb {
+  width: 44px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 5px;
+  flex-shrink: 0;
+  border: 1px solid rgba(196,168,122,0.3);
+}
+
+.dm-enc-backdrop-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(196,168,122,0.08);
+  font-size: 16px;
+  color: rgba(196,168,122,0.5);
+}
+
+.dm-enc-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dm-enc-card-name {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-ink-dark, #3a2a0e);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dm-enc-akte {
+  font-family: 'IM Fell English', serif;
+  font-size: 10px;
+  color: var(--color-ink-medium, #7a6040);
+}
+
+.dm-enc-meta {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  color: var(--color-ink-dim, #9a8060);
+  letter-spacing: 0.04em;
+}
+
+.dm-enc-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Encounter editor - monster row */
+.dm-enc-monster-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  padding: 5px 6px;
+  background: rgba(196,168,122,0.06);
+  border: 1px solid rgba(196,168,122,0.18);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.dm-enc-bd-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dm-feature-title {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-medium, #7a6040);
+  text-transform: uppercase;
+}
+
+/* ── Attunement sectie (knapzak) ────────────────────────────────────────── */
+.player-dash-section--attunement {
+  background: linear-gradient(135deg, rgba(110,70,185,0.10) 0%, rgba(75,40,140,0.06) 100%);
+  border-color: rgba(110,70,185,0.28);
+}
+
+.att-count {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(110,70,185,0.7);
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.att-count--over { color: #c44; }
+.att-warn { cursor: default; font-size: 12px; }
+
+.att-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.att-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 6px 8px;
+  background: rgba(110,70,185,0.08);
+  border: 1px solid rgba(110,70,185,0.25);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  font-family: inherit;
+  text-align: center;
+  min-width: 0;
+}
+.att-slot:hover {
+  background: rgba(110,70,185,0.16);
+  border-color: rgba(110,70,185,0.5);
+  transform: translateY(-2px);
+}
+.att-slot--empty {
+  background: rgba(110,70,185,0.03);
+  border-style: dashed;
+  border-color: rgba(110,70,185,0.15);
+  cursor: default;
+  pointer-events: none;
+}
+.att-slot--empty:hover { transform: none; }
+
+.att-slot-icon { font-size: 20px; line-height: 1; }
+
+.att-slot-name {
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  color: #4a2a8a;
+  line-height: 1.25;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.att-slot-empty-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: rgba(110,70,185,0.3);
+  text-transform: uppercase;
+}
+
+/* Slot wrapper voor swap-knop */
+.att-slot-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.att-slot--swappable {
+  padding-bottom: 22px; /* ruimte voor swap-knop */
+}
+.att-swap-btn {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(110,70,185,0.12);
+  border: 1px solid rgba(110,70,185,0.28);
+  border-radius: 6px;
+  color: rgba(110,70,185,0.75);
+  font-size: 10px;
+  padding: 1px 7px;
+  cursor: pointer;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.att-swap-btn:hover {
+  background: rgba(110,70,185,0.22);
+  color: rgba(110,70,185,1);
+}
+
+/* Swap popup */
+.att-swap-popup {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff8ee;
+  border: 1px solid rgba(110,70,185,0.35);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  z-index: 200;
+  min-width: 140px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.att-swap-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  color: #3a2060;
+  text-align: left;
+  white-space: nowrap;
+  width: 100%;
+  transition: background 0.12s;
+}
+.att-swap-option:hover {
+  background: rgba(110,70,185,0.1);
+}
+
+/* Geef-modal: speler heeft item al */
+.item-give-player-btn--has {
+  opacity: 0.72;
+  border-style: dashed;
+}
+.item-give-qty-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #4a8a5a;
+  background: rgba(74,138,90,0.12);
+  border: 1px solid rgba(74,138,90,0.3);
+  border-radius: 8px;
+  padding: 1px 6px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+/* ── SVG icon system ─────────────────────────────────────────────────────────
+   Usage: icon('name') helper renders <svg class="icon"><use href="..."/></svg>
+   Size is controlled by font-size on parent element (1em × 1em).
+   ──────────────────────────────────────────────────────────────────────────── */
+.icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em; /* optical baseline alignment */
+  flex-shrink: 0;
+  overflow: visible;
+  /* stroke icons inherit currentColor automatically */
+  /* fill icons: set fill="currentColor" on their <symbol> paths */
+}
+
+/* Slightly larger in tab/button contexts for legibility */
+.dm-tab-btn .icon,
+.dm-subtab-btn .icon,
+.section-tab .icon,
+.archief-menu-item .icon,
+.landing-footer-btn .icon {
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+}
+
+/* game-icons are fill-only — no stroke */
+.icon-gi {
+  stroke: none !important;
+}
