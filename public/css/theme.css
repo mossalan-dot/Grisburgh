@@ -13750,8 +13750,10 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   z-index: 9100;
   background: rgba(0,0,0,0.88);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
@@ -13759,6 +13761,40 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 .sb-overlay.sb-open {
   opacity: 1;
   pointer-events: all;
+}
+
+/* ── Overlay controls row (above book) ── */
+.sb-overlay-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(900px, 96vw);
+  justify-content: flex-start;
+}
+.sb-ctrl-btn {
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
+  border-radius: 6px;
+  padding: 5px 11px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.14s;
+  line-height: 1;
+  white-space: nowrap;
+}
+.sb-ctrl-btn:hover { background: rgba(255,255,255,0.2); }
+.sb-ctrl-btn .icon { width: 13px; height: 13px; vertical-align: -0.1em; }
+.sb-ctrl-close {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 20px;
+  justify-content: center;
 }
 
 /* ── Book container ── */
@@ -13852,6 +13888,96 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   z-index: 2;
 }
 
+/* ── Left: incantation text at top ── */
+.sb-left-incantation {
+  position: absolute;
+  top: 20px;
+  left: 14px;
+  right: 14px;
+  text-align: center;
+  font-size: 12px;
+  font-style: italic;
+  color: rgba(255,255,255,0.75);
+  z-index: 2;
+  line-height: 1.45;
+  text-shadow: 0 0 12px rgba(255,255,255,0.3), 0 1px 3px rgba(0,0,0,0.6);
+  /* two-line clamp */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Left: spell slot zone ── */
+.sb-slot-zone {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  z-index: 2;
+}
+.sb-slot-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+}
+.sb-slot-dots {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.sb-slot-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.15);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.14s, border-color 0.14s, transform 0.1s;
+}
+.sb-slot-dot:hover { transform: scale(1.15); border-color: rgba(255,255,255,0.7); }
+.sb-slot-dot.used {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.15);
+  position: relative;
+}
+.sb-slot-dot.used::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+}
+
+/* ── Left: camera upload button ── */
+.sb-img-btn {
+  position: absolute;
+  bottom: 56px;
+  right: 8px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.55);
+  border-radius: 5px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 4;
+  transition: background 0.14s, color 0.14s;
+}
+.sb-img-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+.sb-img-btn .icon { width: 14px; height: 14px; }
+
 /* ── Right page (parchment / text) ── */
 .sb-page-right {
   flex: 1;
@@ -13866,7 +13992,7 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 .sb-right-content {
   flex: 1;
   overflow-y: auto;
-  padding: 26px 56px 60px 26px; /* right padding leaves room for ribbon */
+  padding: 26px 52px 52px 26px; /* right pad for ribbon, bottom for nav bar */
   scrollbar-width: thin;
   scrollbar-color: rgba(0,0,0,0.12) transparent;
 }
@@ -13958,21 +14084,47 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 .sb-ribbon:hover { transform: scaleY(1.05); filter: brightness(1.15); }
 .sb-ribbon svg { display: block; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
 
-/* ── Bottom navigation bar (over right page) ── */
+/* ── Full-width nav bar spanning both pages ── */
 .sb-nav-bar {
   position: absolute;
   bottom: 0;
-  left: 38%;
-  right: 0;
-  height: 44px;
-  background: rgba(240,232,208,0.97);
-  border-top: 1px solid rgba(42,20,4,0.1);
+  left: 0; right: 0;
+  height: 42px;
+  display: flex;
+  align-items: stretch;
+  z-index: 10;
+}
+.sb-nav-half {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  height: 100%;
+}
+.sb-nav-half--left {
+  width: 38%;
+  background: rgba(0,0,0,0.28);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid rgba(255,255,255,0.08);
   padding: 0 14px;
-  gap: 8px;
-  backdrop-filter: blur(4px);
+  flex-shrink: 0;
+}
+.sb-nav-half--right {
+  flex: 1;
+  background: rgba(240,232,208,0.97);
+  border-top: 1px solid rgba(42,20,4,0.1);
+  padding: 0 14px;
+  justify-content: flex-end;
+}
+.sb-nav-counter {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #2e1604;
+  background: rgba(240,232,208,0.97);
+  padding: 0 12px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid rgba(42,20,4,0.1);
+  white-space: nowrap;
 }
 .sb-nav-btn {
   background: none;
@@ -13992,49 +14144,13 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 .sb-nav-btn:hover { background: rgba(42,20,4,0.07); border-color: rgba(42,20,4,0.32); }
 .sb-nav-btn:disabled { opacity: 0.28; cursor: not-allowed; }
 .sb-nav-btn .icon { width: 13px; height: 13px; vertical-align: -0.1em; }
-.sb-nav-counter {
-  font-size: 11px;
-  color: #8a6030;
-  text-align: center;
-  min-width: 56px;
-  flex-shrink: 0;
+/* Light variant for the dark left side */
+.sb-nav-btn--light {
+  color: rgba(255,255,255,0.8);
+  border-color: rgba(255,255,255,0.2);
 }
-
-/* ── TOC + Close buttons (outside book, over backdrop) ── */
-.sb-toc-btn, .sb-close-btn {
-  position: absolute;
-  z-index: 9200;
-  background: rgba(255,255,255,0.10);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: #fff;
-  border-radius: 7px;
-  cursor: pointer;
-  transition: background 0.14s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-}
-.sb-toc-btn:hover, .sb-close-btn:hover { background: rgba(255,255,255,0.2); }
-.sb-toc-btn {
-  top: 14px;
-  left: calc(50% - 450px + 14px); /* align with left edge of book on wide screens */
-  padding: 6px 12px;
-  font-size: 12px;
-}
-.sb-close-btn {
-  top: 14px;
-  right: calc(50% - 450px + 14px);
-  width: 34px;
-  height: 34px;
-  font-size: 20px;
-  line-height: 1;
-}
-/* On narrower screens (book spans full width) */
-@media (max-width: 960px) {
-  .sb-toc-btn  { left: 12px; }
-  .sb-close-btn { right: 12px; }
-}
+.sb-nav-btn--light:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.4); color: #fff; }
+.sb-nav-btn--light:disabled { opacity: 0.25; }
 
 /* ── TOC panel (slides from left over book) ── */
 .sb-toc-panel {
@@ -14148,9 +14264,11 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 /* ── Mobile ── */
 @media (max-width: 600px) {
   .sb-book { flex-direction: column; border-radius: 8px; }
-  .sb-page-left { flex: 0 0 180px; }
-  .sb-left-icon { font-size: 64px; }
+  .sb-page-left { flex: 0 0 170px; }
+  .sb-left-icon { font-size: 60px; }
   .sb-spell-name { font-size: 18px; }
-  .sb-nav-bar { left: 0; }
-  .sb-right-content { padding: 18px 44px 60px 18px; }
+  .sb-nav-half--left { width: 40%; }
+  .sb-right-content { padding: 16px 44px 52px 16px; }
+  .sb-slot-zone { bottom: 48px; }
+  .sb-img-btn { bottom: 44px; }
 }
