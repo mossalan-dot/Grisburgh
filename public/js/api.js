@@ -17,12 +17,14 @@ async function request(path, opts = {}) {
 
 export const api = {
   // Auth
-  login:             (password)     => request('/auth/login',         { method: 'POST', body: JSON.stringify({ password }) }),
-  logout:            ()             => request('/auth/logout',        { method: 'POST' }),
+  login:             (password)     => request('/auth/login',          { method: 'POST', body: JSON.stringify({ password }) }),
+  sandboxLogin:      (password)     => request('/auth/sandbox-login',  { method: 'POST', body: JSON.stringify({ password: password || '' }) }),
+  tabletLogin:       (password)     => request('/auth/tablet-login',   { method: 'POST', body: JSON.stringify({ password }) }),
+  logout:            ()             => request('/auth/logout',         { method: 'POST' }),
   role:              ()             => request('/auth/role'),
   listPlayerChars:   ()             => request('/auth/players'),
   playerLogin:       (characterId, password) => request('/auth/player-login', { method: 'POST', body: JSON.stringify({ characterId, password: password || '' }) }),
-  playerLogout:      ()             => request('/auth/player-logout', { method: 'POST' }),
+  playerLogout:      ()             => request('/auth/player-logout',  { method: 'POST' }),
 
   // Entities
   listEntities: (type) => request(`/entities/${type}`),
@@ -58,6 +60,7 @@ export const api = {
   updateArchief: (id, data) => request(`/archief/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteArchief: (id) => request(`/archief/${id}`, { method: 'DELETE' }),
   setArchiefState: (id, state) => request(`/archief/${id}/state`, { method: 'PUT', body: JSON.stringify({ state }) }),
+  setArchiefGroupVisibility: (id, state) => request(`/archief/${id}/group-visibility`, { method: 'PUT', body: JSON.stringify({ state }) }),
   saveHiddenLinks: (id, links) => request(`/archief/${id}/hidden-links`, { method: 'PUT', body: JSON.stringify(links) }),
   saveTekst: (id, tekst) => request(`/archief/${id}/tekst`, { method: 'PUT', body: JSON.stringify({ tekst }) }),
 
@@ -81,7 +84,8 @@ export const api = {
 
   // Meta
   meta: () => request('/meta'),
-  saveHoofdstuk: (key, data) => request(`/meta/hoofdstuk/${key}`, { method: 'PUT', body: JSON.stringify(data) }),
+  saveHoofdstuk:  (key, data)   => request(`/meta/hoofdstuk/${key}`, { method: 'PUT', body: JSON.stringify(data) }),
+  saveAkteScript: (key, script) => request(`/meta/akte/${encodeURIComponent(key)}/script`, { method: 'PUT', body: JSON.stringify({ script }) }),
   saveAppMeta: (data) => request('/meta/app', { method: 'PUT', body: JSON.stringify(data) }),
   saveHerberg: (data) => request('/meta/herberg', { method: 'PUT', body: JSON.stringify(data) }),
 
@@ -104,6 +108,7 @@ export const api = {
   deleteDungeon:        (id)        => request(`/dungeons/${id}`,           { method: 'DELETE' }),
   saveDungeonRooms:     (id, rooms, connections=[]) => request(`/dungeons/${id}/rooms`, { method: 'PUT', body: JSON.stringify({ rooms, connections }) }),
   revealDungeonRoom:    (id, data)  => request(`/dungeons/${id}/reveal`,    { method: 'POST',   body: JSON.stringify(data) }),
+  hideDungeonRoom:      (id, data)  => request(`/dungeons/${id}/reveal`,    { method: 'DELETE', body: JSON.stringify(data) }),
   setDungeonPartyAccess:(id, list, completed=[]) => request(`/dungeons/${id}/party-access`, { method: 'PUT', body: JSON.stringify({ partyAccess: list, partyCompleted: completed }) }),
 
   // Tunnel
@@ -122,6 +127,21 @@ export const api = {
   createMonster:  (data)     => request('/monsters',        { method: 'POST',   body: JSON.stringify(data) }),
   updateMonster:  (id, data) => request(`/monsters/${id}`,  { method: 'PUT',    body: JSON.stringify(data) }),
   deleteMonster:  (id)       => request(`/monsters/${id}`,  { method: 'DELETE' }),
+
+  // Encounters (voorbereide gevechten)
+  listEncounters:    ()         => request('/encounters'),
+  createEncounter:   (data)     => request('/encounters',        { method: 'POST',   body: JSON.stringify(data) }),
+  updateEncounter:   (id, data) => request(`/encounters/${id}`,  { method: 'PUT',    body: JSON.stringify(data) }),
+  deleteEncounter:   (id)       => request(`/encounters/${id}`,  { method: 'DELETE' }),
+  startEncounter:    (id)       => request(`/encounters/${id}/start`, { method: 'POST' }),
+  uploadEncounterBackdrop: async (encId, file) => {
+    const fileId = 'enc-backdrop-' + encId;
+    const fd = new FormData();
+    fd.append('file', file);
+    const r = await fetch(`/api/files/${fileId}`, { method: 'POST', body: fd, credentials: 'include' });
+    if (!r.ok) throw new Error('Upload mislukt');
+    return fileId;
+  },
 
   // SRD Monster Import
   srdSearchMonsters: (q)     => request(`/srd/monsters?q=${encodeURIComponent(q)}`),
@@ -215,6 +235,7 @@ export const api = {
   getPlayerSpells:    (charId)             => request(`/player-spells/${charId}`),
   addPlayerSpell:     (charId, data)       => request(`/player-spells/${charId}`, { method: 'POST', body: JSON.stringify(data) }),
   removePlayerSpell:  (charId, spellIdx)   => request(`/player-spells/${charId}/${spellIdx}`, { method: 'DELETE' }),
+  updatePlayerSpell:  (charId, spellIdx, data) => request(`/player-spells/${charId}/${spellIdx}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Vastgezette kenmerken
   getPlayerTraits:    (charId)             => request(`/player-traits/${charId}`),
