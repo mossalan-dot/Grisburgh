@@ -11,6 +11,7 @@ const { router: authRouter } = require('./routes/auth');
 
 // Initialize data files
 storage.init();
+storage.initSandbox();
 
 const app = express();
 const server = http.createServer(app);
@@ -22,12 +23,24 @@ app.set('io', io);
 // Middleware
 app.use(compression()); // gzip alle responses — scheelt 75-80% op JS/CSS
 app.use(express.json({ limit: '5mb' }));
-app.use(session({
+
+// Session middleware extracted so it can be shared with socket.io
+const sessionMiddleware = session({
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: 'lax' },
-}));
+});
+app.use(sessionMiddleware);
+
+// ── Per-request campaign scoping ──
+// When session.campaignId is set (e.g. sandbox), run all storage operations in
+// that campaign's directory via AsyncLocalStorage. No changes needed in api.js.
+app.use((req, res, next) => {
+  const cid = req.session?.campaignId;
+  if (cid) return storage.runInCampaign(cid, next);
+  next();
+});
 
 // Static files
 // — HTML nooit cachen (bevat versie-querystrings die cache busten)
@@ -60,9 +73,15 @@ app.get('*', (req, res) => {
 const playerSockets = new Map(); // characterId → socketId
 app.set('playerSockets', playerSockets);
 
+// Share express session with socket.io so we can scope events per campaign
+io.use((socket, next) => sessionMiddleware(socket.request, {}, next));
+
 // Socket.io
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
+  // Each socket joins its campaign room: 'main' for real campaign, 'sandbox' for demo
+  const campaignId = socket.request.session?.campaignId || 'main';
+  socket.join(campaignId);
+  console.log(`Client connected: ${socket.id} (room: ${campaignId})`);
 
   // Player registers their characterId so DM can send direct messages
   socket.on('player:register', (characterId) => {
@@ -71,9 +90,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Relay player emote trigger — DM browser catches it and plays the sound
+  // Relay player emote trigger — only to sockets in the same campaign room
   socket.on('sound:emote', (data) => {
-    io.emit('sound:emote', data);
+    socket.to(campaignId).emit('sound:emote', data);
   });
 
   socket.on('disconnect', () => {
