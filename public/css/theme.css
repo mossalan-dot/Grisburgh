@@ -13804,7 +13804,21 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   width: min(900px, 96vw);
   height: min(580px, 88vh);
   border-radius: 4px 10px 10px 4px;
-  box-shadow: 0 12px 60px rgba(0,0,0,0.9), 0 2px 8px rgba(0,0,0,0.5);
+  box-shadow:
+    /* Leather cover boards — slightly proud of the pages */
+    0 -9px 0 0 #241830,   /* top board */
+    0  10px 0 1px #1c1228, /* bottom board (1px spread = cover slightly wider) */
+    /* Page stack — right edge (parchment tones, parallel strips) */
+    5px  0 0 0 #cec494,
+    9px  0 0 0 #c2b888,
+    13px 0 0 0 #b6ac7c,
+    /* Page stack — left edge (dark tones) */
+    -4px 0 0 0 #100c1e,
+    -7px 0 0 0 #080612,
+    /* Drop shadow — deep and directional */
+    0 30px 90px rgba(0,0,0,0.97),
+    0 8px 28px rgba(0,0,0,0.82),
+    10px 20px 55px rgba(0,0,0,0.55);
   overflow: hidden;
   /* 3D perspective for page-fold effect */
   perspective: 1200px;
@@ -13840,15 +13854,20 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   pointer-events: none;
   z-index: 0;
 }
-/* Page spine shadow */
+/* Page spine shadow (left page's right edge — deep shadow into the binding) */
 .sb-page-left::before {
   content: '';
   position: absolute;
   right: 0;
   top: 0;
   bottom: 0;
-  width: 20px;
-  background: linear-gradient(to right, transparent, rgba(0,0,0,0.55));
+  width: 30px;
+  background: linear-gradient(to right,
+    transparent        0%,
+    rgba(0,0,0,0.12)  30%,
+    rgba(0,0,0,0.52)  65%,
+    rgba(0,0,0,0.82)  85%,
+    rgba(0,0,0,0.95) 100%);
   z-index: 3;
   pointer-events: none;
 }
@@ -14051,6 +14070,8 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   position: relative;
   background-color: #e8dbb4;
   background-image:
+    /* Spine/binding shadow — dark crease at the left (bound) edge */
+    linear-gradient(to right, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.10) 5%, transparent 12%),
     /* Corner age stains */
     radial-gradient(ellipse at 3%  5%,  rgba(110,70,12,0.16) 0%, transparent 50%),
     radial-gradient(ellipse at 97% 7%,  rgba(90,55,8,0.10)  0%, transparent 44%),
@@ -14300,6 +14321,41 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 }
 @media (max-width: 600px) and (orientation: portrait) {
   .sb-portrait-hint { display: flex; }
+}
+
+/* ── Book spine — raised leather strip at the centre ── */
+.sb-spine {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0; bottom: 0;
+  width: 8px;
+  z-index: 15;
+  pointer-events: none;
+  /* Dark leather strip with soft edge highlights */
+  background: linear-gradient(to right,
+    rgba(0,0,0,0.80)  0%,
+    rgba(50,28,8,0.40) 28%,
+    rgba(70,40,12,0.30) 50%,
+    rgba(50,28,8,0.40) 72%,
+    rgba(0,0,0,0.80) 100%);
+  /* Two subtle gold-tinted bands placed via flex */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-evenly;
+  padding: 18% 0;
+}
+.sb-spine-band {
+  height: 3px;
+  border-radius: 1px;
+  background: linear-gradient(to right,
+    rgba(0,0,0,0)        0%,
+    rgba(160,110,30,0.5) 25%,
+    rgba(200,150,50,0.7) 50%,
+    rgba(160,110,30,0.5) 75%,
+    rgba(0,0,0,0)        100%);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
 /* ── TOC panel (slides from left over book) ── */

@@ -1840,6 +1840,11 @@ function _ensureSpellbookOverlay() {
         </div>
         <div class="sb-right-content" id="sb-right-content"></div>
       </div>
+      <!-- Book spine — raised leather binding at the centre -->
+      <div class="sb-spine" aria-hidden="true">
+        <div class="sb-spine-band"></div>
+        <div class="sb-spine-band"></div>
+      </div>
       <!-- Floating navigation arrows -->
       <button class="sb-arrow-btn sb-arrow-btn--prev" onclick="window._sbPrev()" title="Previous spell">
         ${icon('chevron-left')}
