@@ -1982,7 +1982,7 @@ function _sbRenderTocList(q) {
   });
   const keys = Object.keys(groups).map(Number).sort((a, b) => a - b);
   list.innerHTML = keys.map(k => {
-    const label = k === 0 ? 'Cantrips' : `Niveau ${k}`;
+    const label = k === 0 ? 'Cantrips' : `Level ${k}`;
     return `<div class="sb-toc-level-header">${label}</div>` +
       groups[k].map(({ s, i }) => {
         const pinned = _sbState.favs.has(s.index);
@@ -2043,7 +2043,7 @@ function _sbRenderSlots() {
       onclick="window._sbToggleSlot(${lvl},${i})"
       title="${used ? 'Verbruikt – klik om vrij te geven' : 'Vrij – klik om te verbruiken'}"></button>`;
   }).join('');
-  zone.innerHTML = `<div class="sb-slot-label">Niv.&thinsp;${lvl} slots</div><div class="sb-slot-dots">${dots}</div>`;
+  zone.innerHTML = `<div class="sb-slot-label">Level&thinsp;${lvl} slots</div><div class="sb-slot-dots">${dots}</div>`;
 }
 
 window._sbToggleSlot = async function(lvl, i) {
@@ -2119,7 +2119,7 @@ function _sbRender() {
   const schoolEl = document.getElementById('sb-left-school');
   if (schoolEl) schoolEl.textContent = spell.school ? _sbSchoolLabel(spell.school) : '';
   const levelEl = document.getElementById('sb-left-level');
-  if (levelEl) levelEl.textContent = spell.level === 0 ? 'Cantrip' : `Niveau ${spell.level} spreuk`;
+  if (levelEl) levelEl.textContent = spell.level === 0 ? 'Cantrip' : `Level ${spell.level} spell`;
 
   // ── Ribbon ──
   _sbRenderRibbon();
@@ -2140,15 +2140,15 @@ function _sbRender() {
         .map(p => `<p>${_spellMd(p)}</p>`).join('');
 
       const metaRows = [
-        spell.casting_time ? ['Werptijd',    _sbNl(spell.casting_time)] : null,
-        spell.range        ? ['Bereik',      _sbNl(spell.range)]        : null,
-        spell.components   ? ['Componenten', spell.components]          : null,
-        spell.duration     ? ['Duur',        _sbNl(spell.duration)]     : null,
+        spell.casting_time ? ['Casting Time', spell.casting_time] : null,
+        spell.range        ? ['Range',        spell.range]        : null,
+        spell.components   ? ['Components',   spell.components]   : null,
+        spell.duration     ? ['Duration',     spell.duration]     : null,
       ].filter(Boolean);
 
       const badges = [
-        spell.concentration ? `<span class="sb-badge sb-badge--conc">Concentratie</span>` : '',
-        spell.ritual        ? `<span class="sb-badge sb-badge--ritual">Ritueel</span>`     : '',
+        spell.concentration ? `<span class="sb-badge sb-badge--conc">Concentration</span>` : '',
+        spell.ritual        ? `<span class="sb-badge sb-badge--ritual">Ritual</span>`       : '',
       ].filter(Boolean).join('');
 
       contentEl.innerHTML = `
