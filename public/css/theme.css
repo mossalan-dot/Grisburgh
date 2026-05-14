@@ -13953,6 +13953,45 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   /* border-radius + background set by JS */
 }
 
+/* ── Left: spell stats (Save DC + Attack Bonus) — bottom-right, mirrors the wax seal ── */
+.sb-spell-stats {
+  position: absolute;
+  bottom: 14px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  z-index: 3;
+}
+.sb-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0,0,0,0.28);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 5px;
+  padding: 2px 7px 3px;
+  min-width: 38px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07);
+}
+.sb-stat-label {
+  font-family: 'Cinzel', serif;
+  font-size: 6.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.38);
+  line-height: 1.4;
+}
+.sb-stat-value {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.80);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  line-height: 1.1;
+}
+
 /* ── Left: incantation note container ── */
 .sb-left-incantation {
   position: absolute;
