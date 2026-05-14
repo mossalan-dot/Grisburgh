@@ -13901,23 +13901,48 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   z-index: 2;
 }
 
-/* ── Left: incantation text at top ── */
+/* ── Left: incantation note container ── */
 .sb-left-incantation {
   position: absolute;
-  top: 20px;
-  left: 14px;
-  right: 14px;
-  text-align: center;
-  font-family: 'Kalam', cursive;
-  font-size: 13px;
-  font-style: italic;
-  color: rgba(255,255,255,0.8);
+  top: 16px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: center;
+  z-index: 4;
+  pointer-events: auto;
+}
+/* The note card itself */
+.sb-note {
+  display: inline-block;
+  position: relative;
+  background: linear-gradient(150deg, #fef9e6 0%, #f3e9c2 100%);
+  padding: 18px 14px 12px;
+  max-width: 90%;
+  border-radius: 1px 2px 2px 1px;
+  box-shadow:
+    2px 5px 18px rgba(0,0,0,0.6),
+    0 1px 3px rgba(0,0,0,0.3),
+    inset 0 0 0 1px rgba(80,45,5,0.08);
+  transform-origin: top center;
+}
+.sb-note-pin {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 2;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.55));
+  line-height: 0;
+}
+.sb-note-text {
+  font-family: 'Kalam', cursive;
+  font-size: 11.5px;
+  font-style: italic;
+  color: #2a1a08;
   line-height: 1.5;
-  text-shadow: 0 0 12px rgba(255,255,255,0.3), 0 1px 3px rgba(0,0,0,0.6);
-  /* two-line clamp */
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -14003,13 +14028,6 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
     radial-gradient(ellipse at 97% 7%,  rgba(90,55,8,0.10)  0%, transparent 44%),
     radial-gradient(ellipse at 6%  96%, rgba(95,60,10,0.13) 0%, transparent 48%),
     radial-gradient(ellipse at 94% 92%, rgba(105,65,12,0.12) 0%, transparent 46%),
-    /* Faint manuscript ruling lines */
-    repeating-linear-gradient(
-      transparent,
-      transparent 27px,
-      rgba(42,20,4,0.05) 27px,
-      rgba(42,20,4,0.05) 28px
-    ),
     /* Main parchment gradient */
     linear-gradient(168deg, #f5eccb 0%, #e2d4a6 100%);
   box-shadow: inset 0 0 80px rgba(42,20,4,0.13), inset 0 0 10px rgba(42,20,4,0.06);
@@ -14017,6 +14035,37 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   flex-direction: column;
   overflow: hidden;
   transform-origin: 0% 50%;  /* fold from left edge (spine) */
+  /* Ragged outer (right) edge — torn page effect */
+  clip-path: polygon(
+    0% 0%, 100% 0%,
+    99.3% 3%,  100% 6%,  98.8% 9%,  100% 12%, 99.5% 16%,
+    100% 20%, 98.7% 24%, 100% 28%, 99.2% 32%, 100% 36%,
+    98.9% 40%, 100% 44%, 99.4% 48%, 100% 52%, 98.6% 56%,
+    100% 60%, 99.1% 64%, 100% 68%, 98.8% 72%, 100% 76%,
+    99.3% 80%, 100% 84%, 98.7% 88%, 100% 92%, 99.1% 96%, 100% 100%,
+    0% 100%
+  );
+}
+/* Decorative corner brackets */
+.sb-page-right::before {
+  content: '';
+  position: absolute;
+  top: 13px; right: 56px;   /* top-right, clear of ribbon */
+  width: 18px; height: 18px;
+  border-top:   1.5px solid rgba(100,55,10,0.22);
+  border-right: 1.5px solid rgba(100,55,10,0.22);
+  z-index: 1;
+  pointer-events: none;
+}
+.sb-page-right::after {
+  content: '';
+  position: absolute;
+  bottom: 13px; left: 16px;  /* bottom-left */
+  width: 18px; height: 18px;
+  border-bottom: 1.5px solid rgba(100,55,10,0.22);
+  border-left:   1.5px solid rgba(100,55,10,0.22);
+  z-index: 1;
+  pointer-events: none;
 }
 .sb-right-content {
   flex: 1;
@@ -14120,6 +14169,32 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 .sb-desc p { margin: 0 0 9px; }
 .sb-desc strong { color: #0e0600; font-weight: 700; }
 .sb-desc em     { color: #3a1e0a; }
+/* ── Inline auto-highlights ── */
+.sb-hl-dice {
+  color: #b01010;
+  text-decoration: underline;
+  text-decoration-color: rgba(176,16,16,0.45);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  font-weight: 400;
+  transition: color 0.12s;
+}
+.sb-hl-dice:hover { color: #d81818; text-decoration-color: rgba(216,24,24,0.7); }
+.sb-hl-range {
+  color: #1a5a8a;
+  text-decoration: underline;
+  text-decoration-color: rgba(26,90,138,0.38);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.sb-hl-save {
+  color: #5a1e7a;
+  text-decoration: underline;
+  text-decoration-color: rgba(90,30,122,0.38);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
 /* Drop cap on opening paragraph */
 .sb-desc p:first-child::first-letter {
   float: left;

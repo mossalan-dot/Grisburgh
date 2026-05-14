@@ -1663,12 +1663,26 @@ let _playerSubTab    = localStorage.getItem('_playerSubTab') || 'party';
 let _klasseThemeOn   = localStorage.getItem('_klasseThemeOn') !== 'false'; // standaard aan
 let _playerSpellList = null;
 
-// Markdown → HTML voor spreukomschrijvingen (bold, italic, {color:text})
+// Markdown → HTML voor spreukomschrijvingen (bold, italic, {color:text}, auto-highlights)
 function _spellMd(t) {
   return String(t ?? '')
+    // ── Auto-highlights (applied to plain text before markdown) ──
+    // Dice notation: 2d6, 1d20+5, 4d8 – red, clickable to roll
+    .replace(/\b(\d+d\d+(?:\s*[+\-]\s*\d+)?)\b/gi,
+      (_, f) => `<span class="sb-hl-dice" title="Klik om te gooien">${f}</span>`)
+    // DC values and saving throws / ability checks
+    .replace(/\bDC\s+(\d+)\b/g,
+      (m) => `<span class="sb-hl-save">${m}</span>`)
+    .replace(/\b(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma)\s+(saving throw|check)\b/gi,
+      (m) => `<span class="sb-hl-save">${m}</span>`)
+    // Range mentions: "30 feet", "60-foot cone", "120 feet", etc.
+    .replace(/\b\d+[‐\-]foot\b|\b\d+\s+feet?\b/gi,
+      (m) => `<span class="sb-hl-range">${m}</span>`)
+    // ── Markdown ──
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g,         '<em>$1</em>')
+    // ── User color syntax: {red:text} or {#8060ff:text} ──
     .replace(/\{([a-zA-Z#][a-zA-Z0-9#]*):([^}]+)\}/g, (_, color, text) =>
       /^(#[0-9a-fA-F]{3,6}|[a-zA-Z]{2,30})$/.test(color)
         ? `<span style="color:${color}">${text}</span>` : text);
@@ -1812,6 +1826,15 @@ function _ensureSpellbookOverlay() {
     </div>`;
   document.body.appendChild(el);
   el.addEventListener('click', e => { if (e.target === el) window._closeSpellbook(); });
+  // Click on inline dice notation → flash-roll it
+  el.addEventListener('click', e => {
+    const dice = e.target.closest('.sb-hl-dice');
+    if (dice) {
+      e.stopPropagation();
+      const spell = _sbState.spells[_sbState.idx];
+      window._sbFlashRoll(dice.textContent.trim(), spell?.name || '');
+    }
+  });
   // Keyboard navigation
   document.addEventListener('keydown', e => {
     if (!document.getElementById('sb-overlay')?.classList.contains('sb-open')) return;
@@ -2085,9 +2108,28 @@ function _sbRender() {
   const leftPage = document.getElementById('sb-page-left');
   if (leftPage) leftPage.style.background = `linear-gradient(155deg, ${sCfg.c1} 0%, ${sCfg.c2} 100%)`;
 
-  // ── Left: incantation at top ──
+  // ── Left: incantation as pinned note ──
   const incEl = document.getElementById('sb-left-incantation');
-  if (incEl) incEl.textContent = spell.incantation ? `"${spell.incantation}"` : '';
+  if (incEl) {
+    if (spell.incantation) {
+      // Deterministic "random" tilt per spell (-4° … +4°)
+      const seed = spell.index.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+      const rot  = ((seed % 9) - 4) * 0.9; // -3.6 to +3.6 deg
+      incEl.innerHTML = `
+        <div class="sb-note" style="transform:rotate(${rot}deg)">
+          <div class="sb-note-pin">
+            <svg width="15" height="20" viewBox="0 0 15 20" fill="none">
+              <circle cx="7.5" cy="6.5" r="5.8" fill="#c8a028" stroke="rgba(0,0,0,0.28)" stroke-width="0.6"/>
+              <circle cx="6"   cy="5"   r="2"   fill="rgba(255,255,255,0.38)"/>
+              <line x1="7.5" y1="12.3" x2="7.5" y2="20" stroke="#888" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="sb-note-text">${esc(spell.incantation)}</div>
+        </div>`;
+    } else {
+      incEl.innerHTML = '';
+    }
+  }
 
   // ── Left: uploaded image ──
   const imgEl = document.getElementById('sb-left-img');
