@@ -1894,6 +1894,7 @@ window._openSpellbook = function(startIdx = 0) {
   _sbRender();
   const ov = document.getElementById('sb-overlay');
   ov.classList.remove('sb-open');
+  document.body.style.overflow = 'hidden';  // prevent page scroll while book is open
   requestAnimationFrame(() => ov.classList.add('sb-open'));
   // Close TOC if it was open
   const toc = document.getElementById('sb-toc-panel');
@@ -1903,6 +1904,7 @@ window._openSpellbook = function(startIdx = 0) {
 window._closeSpellbook = function() {
   const ov = document.getElementById('sb-overlay');
   if (ov) ov.classList.remove('sb-open');
+  document.body.style.overflow = '';  // restore page scroll
   _sbState.tocOpen = false;
 };
 

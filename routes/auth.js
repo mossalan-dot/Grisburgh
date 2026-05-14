@@ -74,7 +74,7 @@ router.get('/players', (req, res) => {
       .filter(e => {
         if ((e.subtype || '').toLowerCase() !== 'speler') return false;
         const groep = groups[e.data?.groep];
-        if (groep?.hidden) return false;   // verberg karakters uit verborgen groepen (bv. testomgeving)
+        if (groep?.hidden && req.session.role !== 'dm') return false;  // verberg verborgen groepen voor spelers, niet voor DM
         return true;
       })
       .map(e => {
