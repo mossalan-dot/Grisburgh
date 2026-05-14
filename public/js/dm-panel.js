@@ -2256,7 +2256,7 @@ function _renderEncounterList(el) {
         const monCount = (enc.monsters || []).reduce((s, r) => s + (r.count || 1), 0);
         const bdThumb = enc.backdropId
           ? `<img class="dm-enc-backdrop-thumb" src="${api.fileUrl(enc.backdropId)}" alt="">`
-          : `<div class="dm-enc-backdrop-thumb dm-enc-backdrop-empty">🌄</div>`;
+          : `<div class="dm-enc-backdrop-thumb dm-enc-backdrop-empty">${icon('image')}</div>`;
         return `
           <div class="dm-enc-card">
             ${bdThumb}
@@ -2267,7 +2267,7 @@ function _renderEncounterList(el) {
             </div>
             <div class="dm-enc-card-actions">
               <button class="script-add-btn" onclick="window.dmPanel.encEdit('${esc(enc.id)}')" title="Bewerken">${icon('pencil')}</button>
-              <button class="script-add-btn" onclick="window.dmPanel.encStart('${esc(enc.id)}')" title="Gevecht starten">▶️</button>
+              <button class="script-add-btn" onclick="window.dmPanel.encStart('${esc(enc.id)}')" title="Gevecht starten" style="background:rgba(80,140,80,0.35);border-color:rgba(100,180,100,0.6)">${icon('play')}</button>
             </div>
           </div>`;
       }).join('');
@@ -2292,9 +2292,9 @@ function _renderEncounterEditor(el) {
     <div class="dm-upload-row dm-enc-bd-row">
       ${_encBackdropId
         ? `<img class="dm-mon-preview dm-mon-preview-wide" src="${api.fileUrl(_encBackdropId)}" alt="">`
-        : `<div class="dm-mon-preview dm-mon-preview-wide dm-mon-preview-empty">🌄</div>`}
+        : `<div class="dm-mon-preview dm-mon-preview-wide dm-mon-preview-empty">${icon('image')}</div>`}
       <label class="script-add-btn" title="Backdrop uploaden" style="cursor:pointer">
-        ⬆
+        ${icon('image')}
         <input type="file" accept="image/*" style="display:none"
           onchange="window.dmPanel.encBackdropUpload(this)">
       </label>
@@ -2382,7 +2382,7 @@ function _renderEncounterEditor(el) {
 
       <div class="dm-form-actions">
         <button class="script-add-btn" onclick="window.dmPanel.encCancel()" title="Annuleren">${icon('x')}</button>
-        <button class="script-add-btn" onclick="window.dmPanel.encSave()" title="Opslaan" style="background:rgba(80,140,80,0.35);border-color:rgba(100,180,100,0.6)">✓</button>
+        <button class="script-add-btn" onclick="window.dmPanel.encSave()" title="Opslaan" style="background:rgba(80,140,80,0.35);border-color:rgba(100,180,100,0.6)">${icon('check')}</button>
       </div>
     </div>`;
 }
