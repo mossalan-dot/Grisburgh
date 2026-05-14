@@ -60,7 +60,7 @@ function parseSpellFile(filepath) {
   const name = nameMatch[1].trim();
 
   // ── Tags line (level, school, classes) ──
-  const tagsLine = lines.find(l => l.startsWith('#') && (l.includes('#Level') || l.includes('#Cantrip'))) || '';
+  const tagsLine = lines.find(l => l.trim().startsWith('#') && (l.includes('#Level') || l.includes('#Cantrip'))) || '';
 
   let level = 0;
   const levelMatch = tagsLine.match(/#Level(\d+)/i);

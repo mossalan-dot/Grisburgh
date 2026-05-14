@@ -1,4 +1,4 @@
-import { api } from './api.js?v=2';
+import { api } from './api.js?v=217';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=77';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=30';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
@@ -1911,6 +1911,7 @@ window._closeSpellbook = function() {
   if (ov) ov.classList.remove('sb-open');
   document.body.style.overflow = '';  // restore page scroll
   _sbState.tocOpen = false;
+  window._sbUserClosed = true;  // don't auto-reopen until user explicitly navigates back
 };
 
 window._sbGoTo = function(idx, closeToc) {
@@ -4281,6 +4282,7 @@ async function renderMijnKarakter(opts = {}) {
     }
     // Auto-open spellbook when navigating to spreukenboek tab
     if (tab === 'spreukenboek' && _sbState.spells.length > 0) {
+      window._sbUserClosed = false;  // explicit tab nav resets the closed flag
       const ov = document.getElementById('sb-overlay');
       if (!ov?.classList.contains('sb-open')) window._openSpellbook();
     }
@@ -4292,8 +4294,9 @@ async function renderMijnKarakter(opts = {}) {
     window._pendingPlayerSubTab = null;
   }
 
-  // Auto-open spellbook when page loads with spreukenboek tab active
-  if (_playerSubTab === 'spreukenboek' && _sbState.spells.length > 0) {
+  // Auto-open spellbook when page loads/re-renders with spreukenboek tab active
+  // Only if the user hasn't manually closed the book this session
+  if (_playerSubTab === 'spreukenboek' && _sbState.spells.length > 0 && !window._sbUserClosed) {
     requestAnimationFrame(() => {
       const ov = document.getElementById('sb-overlay');
       if (!ov?.classList.contains('sb-open')) window._openSpellbook();
