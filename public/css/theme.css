@@ -14095,7 +14095,7 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 /* ── Left: camera upload button ── */
 .sb-img-btn {
   position: absolute;
-  bottom: 56px;
+  top: 8px;
   right: 8px;
   background: rgba(255,255,255,0.1);
   border: 1px solid rgba(255,255,255,0.18);

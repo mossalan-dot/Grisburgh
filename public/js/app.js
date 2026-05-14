@@ -1826,12 +1826,13 @@ function _ensureSpellbookOverlay() {
         <div class="sb-wax-seal" id="sb-wax-seal"></div>
         <!-- Spell stats: Save DC + Attack Bonus (bottom-right) -->
         <div class="sb-spell-stats" id="sb-spell-stats"></div>
-        <!-- Upload image button -->
+        <!-- Upload image button — DM only -->
+        ${app.isDM() ? `
         <button class="sb-img-btn" onclick="document.getElementById('sb-img-file').click()" title="Afbeelding uploaden">
           ${icon('camera')}
         </button>
         <input type="file" id="sb-img-file" accept="image/*" style="display:none"
-          onchange="window._sbUploadImage(this.files[0])">
+          onchange="window._sbUploadImage(this.files[0])">` : ''}
       </div>
       <!-- Right page: parchment -->
       <div class="sb-page-right" id="sb-page-right">
