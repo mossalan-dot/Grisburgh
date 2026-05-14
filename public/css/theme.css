@@ -13901,6 +13901,29 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   z-index: 2;
 }
 
+/* ── Left: wax seal ── */
+.sb-wax-seal {
+  position: absolute;
+  bottom: 20px;
+  left: 12px;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cinzel', serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.82);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  box-shadow:
+    0 3px 10px rgba(0,0,0,0.55),
+    inset 0 2px 4px rgba(255,255,255,0.14),
+    inset 0 -2px 4px rgba(0,0,0,0.25);
+  z-index: 3;
+  /* border-radius + background set by JS */
+}
+
 /* ── Left: incantation note container ── */
 .sb-left-incantation {
   position: absolute;
@@ -13916,8 +13939,8 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 .sb-note {
   display: inline-block;
   position: relative;
-  background: linear-gradient(150deg, #fef9e6 0%, #f3e9c2 100%);
-  padding: 18px 14px 12px;
+  /* background set inline by JS (tint varies per spell) */
+  padding: 10px 13px 10px;
   max-width: 90%;
   border-radius: 1px 2px 2px 1px;
   box-shadow:
@@ -13925,15 +13948,20 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
     0 1px 3px rgba(0,0,0,0.3),
     inset 0 0 0 1px rgba(80,45,5,0.08);
   transform-origin: top center;
+  overflow: visible;   /* allow tape strips to extend outside */
 }
-.sb-note-pin {
+/* Tape strip at a corner (position set inline by JS) */
+.sb-tape {
   position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.55));
-  line-height: 0;
+  width: 28px;
+  height: 11px;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(255,255,255,0.12) 0px, rgba(255,255,255,0.12) 1px,
+      transparent 1px, transparent 4px),
+    rgba(210,198,165,0.62);
+  border: 0.5px solid rgba(180,165,130,0.38);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.22);
 }
 .sb-note-text {
   font-family: 'Kalam', cursive;
@@ -14035,36 +14063,19 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   flex-direction: column;
   overflow: hidden;
   transform-origin: 0% 50%;  /* fold from left edge (spine) */
-  /* Ragged outer (right) edge — torn page effect */
-  clip-path: polygon(
-    0% 0%, 100% 0%,
-    99.3% 3%,  100% 6%,  98.8% 9%,  100% 12%, 99.5% 16%,
-    100% 20%, 98.7% 24%, 100% 28%, 99.2% 32%, 100% 36%,
-    98.9% 40%, 100% 44%, 99.4% 48%, 100% 52%, 98.6% 56%,
-    100% 60%, 99.1% 64%, 100% 68%, 98.8% 72%, 100% 76%,
-    99.3% 80%, 100% 84%, 98.7% 88%, 100% 92%, 99.1% 96%, 100% 100%,
-    0% 100%
-  );
+  /* clip-path set per-spell by JS (_sbGenTornEdge) */
 }
-/* Decorative corner brackets */
+/* Dog-eared corner fold – top-right */
 .sb-page-right::before {
   content: '';
   position: absolute;
-  top: 13px; right: 56px;   /* top-right, clear of ribbon */
-  width: 18px; height: 18px;
-  border-top:   1.5px solid rgba(100,55,10,0.22);
-  border-right: 1.5px solid rgba(100,55,10,0.22);
-  z-index: 1;
-  pointer-events: none;
-}
-.sb-page-right::after {
-  content: '';
-  position: absolute;
-  bottom: 13px; left: 16px;  /* bottom-left */
-  width: 18px; height: 18px;
-  border-bottom: 1.5px solid rgba(100,55,10,0.22);
-  border-left:   1.5px solid rgba(100,55,10,0.22);
-  z-index: 1;
+  top: 0; right: 0;
+  width: 22px; height: 22px;
+  /* Paper-back showing through the fold */
+  background:
+    linear-gradient(225deg, #cfc09a 50%, transparent 50%),
+    linear-gradient(225deg, rgba(0,0,0,0) 47%, rgba(0,0,0,0.14) 48%, rgba(0,0,0,0.14) 52%, transparent 53%);
+  z-index: 6;
   pointer-events: none;
 }
 .sb-right-content {
@@ -14371,25 +14382,6 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 /* ── 3D page-fold animation — transitions set via JS per direction ── */
 /* (default: no persistent transition so JS can control ease-in vs ease-out) */
 
-/* ── Damage pill on left page ── */
-.sb-left-damage {
-  position: absolute;
-  top: 90px;   /* just below the incantation block */
-  left: 0; right: 0;
-  display: flex;
-  justify-content: center;
-  z-index: 3;
-}
-.sb-dmg-pill {
-  /* inherits spell-damage-pill base styles, just needs positioning override */
-  font-size: 13px !important;
-  padding: 5px 14px !important;
-  cursor: pointer;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-  transition: transform 0.12s, filter 0.12s;
-}
-.sb-dmg-pill:hover { transform: scale(1.08); filter: brightness(1.2); }
-.sb-dmg-pill:active { transform: scale(0.96); }
 
 /* ── Flashy dice roll overlay ── */
 .sb-dice-flash {
