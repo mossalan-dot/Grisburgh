@@ -13808,13 +13808,9 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   background: #b8ab7a;
   box-shadow:
     /* Leather cover boards — slightly proud of the pages */
-    0 -9px 0 0 #241830,   /* top board */
-    0  10px 0 1px #1c1228, /* bottom board (1px spread = cover slightly wider) */
-    /* Page stack — right edge (parchment tones, parallel strips) */
-    5px  0 0 0 #cec494,
-    9px  0 0 0 #c2b888,
-    13px 0 0 0 #b6ac7c,
-    /* Page stack — left edge (dark tones) */
+    0 -9px 0 0 #241830,    /* top board */
+    0  10px 0 1px #1c1228, /* bottom board */
+    /* Page stack — left edge only (binding side) */
     -4px 0 0 0 #100c1e,
     -7px 0 0 0 #080612,
     /* Drop shadow — deep and directional */
