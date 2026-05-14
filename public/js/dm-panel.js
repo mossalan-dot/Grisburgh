@@ -4470,13 +4470,13 @@ function _renderCombatOverlay(combat, startMinimized = false) {
       <canvas id="combat-canvas" class="co-canvas"></canvas>
       <div class="co-turn-controls">
         ${!combat.winner ? `
-          <button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatPrevTurn()" title="Vorige beurt">◀</button>
-          <button class="co-ctrl-btn co-ctrl-primary" onclick="window.dmPanel.combatNextTurn()" title="Volgende beurt">▶</button>
+          <button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatPrevTurn()" title="Vorige beurt">${icon('chevron-left')}</button>
+          <button class="co-ctrl-btn co-ctrl-primary" onclick="window.dmPanel.combatNextTurn()" title="Volgende beurt">${icon('chevron-right')}</button>
         ` : ''}
         <button class="co-ctrl-btn co-win-btn"  onclick="window.dmPanel.combatSetWinner('players')"  title="Spelers winnen" style="${combat.winner === 'players'  ? 'opacity:1' : 'opacity:0.55'}">🏆</button>
-        <button class="co-ctrl-btn co-lose-btn" onclick="window.dmPanel.combatSetWinner('monsters')" title="Monsters winnen" style="${combat.winner === 'monsters' ? 'opacity:1' : 'opacity:0.55'}">💀</button>
-        ${combat.winner ? `<button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatSetWinner(null)" title="Reset winnaar" style="margin-left:4px">↺</button>` : ''}
-        <button class="co-ctrl-btn co-ctrl-ghost co-add-btn" onclick="window.dmPanel.combatAddForm()" style="margin-left:auto" title="Deelnemer toevoegen">+</button>
+        <button class="co-ctrl-btn co-lose-btn" onclick="window.dmPanel.combatSetWinner('monsters')" title="Monsters winnen" style="${combat.winner === 'monsters' ? 'opacity:1' : 'opacity:0.55'}">${icon('skull')}</button>
+        ${combat.winner ? `<button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatSetWinner(null)" title="Reset winnaar" style="margin-left:4px">${icon('refresh-cw')}</button>` : ''}
+        <button class="co-ctrl-btn co-ctrl-ghost co-add-btn" onclick="window.dmPanel.combatAddForm()" style="margin-left:auto" title="Deelnemer toevoegen">${icon('plus')}</button>
       </div>
       <div id="co-add-form" class="co-add-form hidden">
         <div class="co-add-row">
@@ -4506,7 +4506,7 @@ function _renderCombatOverlay(combat, startMinimized = false) {
             <span class="dm-input-lbl">Max HP</span>
             <input id="co-add-maxhp" class="co-input co-input-sm" type="number" value="10">
           </label>
-          <button class="co-ctrl-btn co-ctrl-primary" onclick="window.dmPanel.combatAddSubmit()">+</button>
+          <button class="co-ctrl-btn co-ctrl-primary" onclick="window.dmPanel.combatAddSubmit()" title="Toevoegen">${icon('plus')}</button>
         </div>
       </div>
       <div id="co-detail-panel" class="co-detail-panel hidden"></div>
