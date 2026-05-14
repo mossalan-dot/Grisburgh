@@ -1,16 +1,36 @@
 import { api } from './api.js';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=55'; // app v115
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=22';
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=2';
-import { renderDungeon } from './render-dungeon.js?v=15';
-import { renderRelatiemap } from './render-relatiemap.js?v=9';
-import { initSocket } from './socket-client.js?v=9';
-import { initDmPanel } from './dm-panel.js?v=20';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=77';
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=30';
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
+import { renderDungeon } from './render-dungeon.js?v=17';
+import { renderRelatiemap } from './render-relatiemap.js?v=10';
+import { initSocket } from './socket-client.js?v=11';
+import { initDmPanel } from './dm-panel.js?v=35';
+
+// ── Icon helper ──
+// Renders an inline SVG <use> reference from /img/icons.svg.
+// Usage: icon('eye')  or  icon('crossed-swords', { cls: 'icon-gi', title: 'Combat' })
+window.icon = function icon(name, { cls = '', title = '' } = {}) {
+  const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
+  const aria = title ? ' role="img"' : ' aria-hidden="true"';
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=3#icon-${name}"/>${t}</svg>`;
+};
+const icon = (...a) => window.icon(...a);
+
+// ── Display mode detectie (iPad kiosk) ──
+{
+  const _p = new URLSearchParams(location.search);
+  if (_p.get('display') === '1') localStorage.setItem('displayMode', '1');
+  else if (_p.get('display') === '0') localStorage.removeItem('displayMode');
+}
+window._isDisplayMode = localStorage.getItem('displayMode') === '1';
+if (window._isDisplayMode) document.body.classList.add('display-mode');
 
 // ── App State ──
 const state = {
   role:        'player',
   dmPreview:   false,   // true = DM authenticated but viewing as player
+  isSandbox:   false,   // true = ingelogd als sandbox-DM (demo omgeving)
   playerName:  null,    // naam van ingelogde speler (of null als anoniem)
   characterId: null,    // ID van bijbehorend personage-kaartje
   activeSection: 'personages',
@@ -31,6 +51,13 @@ window.app = {
   login,
   logout,
   dmLogout,
+  toggleSandboxModal,
+  closeSandboxModal,
+  sandboxLoginSubmit,
+  toggleTabletModal,
+  closeTabletModal,
+  tabletLoginSubmit,
+  testLogin,
   dmToggleClick,
   onFabClick,
   openModal,
@@ -68,6 +95,13 @@ window.app = {
   closeLogboekMenu,
   setActiveAkte,
   stopAkte,
+  activateDisplayMode() {
+    localStorage.setItem('displayMode', '1');
+    window._isDisplayMode = true;
+    document.body.classList.add('display-mode');
+    hideLanding();
+    _initDisplayMode();
+  },
 };
 
 // ── Actieve akte (reveal-modus vanuit logboek) ──
@@ -135,7 +169,7 @@ function switchSection(section) {
   const archiefLabel = $('#archief-nav-label');
   const isArchief    = ARCHIEF_SECTIONS.includes(section);
   if (archiefBtn) archiefBtn.classList.toggle('active', isArchief);
-  if (archiefLabel) archiefLabel.textContent = isArchief ? ARCHIEF_LABELS[section] : 'Archief';
+  if (archiefLabel) archiefLabel.innerHTML = isArchief ? ARCHIEF_LABELS[section] : `${icon('folder-open')} Archief`;
 
   // Archief dropdown-items
   $$('#archief-menu .archief-menu-item').forEach(b =>
@@ -148,7 +182,7 @@ function switchSection(section) {
   if (logboekBtn) logboekBtn.classList.toggle('active', isLogboek);
   if (logboekLabel) {
     const activeTab = window._logboekActiveTab || 'verslagen';
-    logboekLabel.textContent = isLogboek ? (LOGBOEK_LABELS[activeTab] || 'Logboek') : 'Logboek';
+    logboekLabel.innerHTML = isLogboek ? (LOGBOEK_LABELS[activeTab] || `${icon('book-open')} Logboek`) : `${icon('book-open')} Logboek`;
   }
   // Logboek dropdown-items
   $$('#logboek-menu .archief-menu-item').forEach(b =>
@@ -247,21 +281,21 @@ function closeLogboekMenu() {
 }
 
 const LOGBOEK_LABELS = {
-  verslagen: 'Verslagen',
-  quests:    'Missies',
-  prikbord:  'Prikbord',
+  verslagen: `${icon('book-open')} Logboek`,
+  quests:    `${icon('map-pin')} Missies`,
+  prikbord:  `${icon('map')} Prikbord`,
 };
 
 const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'kaart', 'relatiemap'];
-const ARCHIEF_LABELS   = {
-  personages:   '👤 Personages',
-  locaties:     '🏰 Locaties',
-  organisaties: '🏛️ Organisaties',
-  voorwerpen:   '🎺 Voorwerpen',
-  documenten:   '📜 Documenten',
-  kaart:        '🗺️ Kaarten',
-  relatiemap:   '🕸️ Relatiemap',
+const ARCHIEF_LABELS = {
+  personages:   `${icon('user')} Personages`,
+  locaties:     `${icon('castle', {cls:'icon-gi'})} Locaties`,
+  organisaties: `${icon('landmark')} Organisaties`,
+  voorwerpen:   `${icon('package')} Voorwerpen`,
+  documenten:   `${icon('scroll-text')} Documenten`,
+  kaart:        `${icon('map')} Kaarten`,
+  relatiemap:   `${icon('users')} Relatiemap`,
 };
 
 function updateFab() {
@@ -312,6 +346,8 @@ async function login() {
       _activeGroupId = activeGroup;
       window.renderGroupSwitcher(groups, activeGroup);
     } catch { /* ok */ }
+    // Herbouw de wikilink-naamindex voor de DM (alle entiteiten zichtbaar)
+    _rebuildEntityIndex();
     refreshAll();
     window.dmPanel?.refreshCombatOverlay();
   } catch {
@@ -321,16 +357,86 @@ async function login() {
 
 async function logout() {
   await api.logout();
-  state.role = 'player';
+  state.role      = 'player';
   state.dmPreview = false;
-  _activeGroupId = null;
+  state.isSandbox = false;
+  _activeGroupId  = null;
   window._activeGroupId = null;
   applyRole();
+  // Herbouw de naamindex voor anonieme weergave na uitloggen
+  _rebuildEntityIndex();
   refreshAll();
 }
 
 async function dmLogout() {
   await logout();
+}
+
+// ── Sandbox / demo login ──
+
+function toggleSandboxModal() {
+  const modal = document.getElementById('sandbox-login-overlay');
+  if (!modal) return;
+  modal.classList.toggle('active');
+  document.getElementById('sandbox-error')?.classList.add('hidden');
+  document.getElementById('sandbox-password')?.focus();
+}
+
+function closeSandboxModal() {
+  document.getElementById('sandbox-login-overlay')?.classList.remove('active');
+}
+
+// ── Tablet login ──
+
+function toggleTabletModal() {
+  const modal = document.getElementById('tablet-login-overlay');
+  if (!modal) return;
+  modal.classList.toggle('active');
+  document.getElementById('tablet-error')?.classList.add('hidden');
+  document.getElementById('tablet-password').value = '';
+  setTimeout(() => document.getElementById('tablet-password')?.focus(), 100);
+}
+
+function closeTabletModal() {
+  document.getElementById('tablet-login-overlay')?.classList.remove('active');
+}
+
+async function tabletLoginSubmit() {
+  const pw    = document.getElementById('tablet-password')?.value || '';
+  const errEl = document.getElementById('tablet-error');
+  try {
+    await api.tabletLogin(pw);
+    closeTabletModal();
+    window.app.activateDisplayMode();
+  } catch {
+    errEl?.classList.remove('hidden');
+  }
+}
+
+async function testLogin() {
+  await playerLogin('e_1778689148089_pypw');
+}
+
+async function sandboxLoginSubmit() {
+  const pw = document.getElementById('sandbox-password')?.value || '';
+  const errEl = document.getElementById('sandbox-error');
+  try {
+    const result = await api.sandboxLogin(pw);
+    state.role      = result.role || 'dm';
+    state.isSandbox = true;
+    closeSandboxModal();
+    applyRole();
+    try {
+      const { groups, activeGroup } = await api.listGroups();
+      _activeGroupId = activeGroup;
+      window.renderGroupSwitcher(groups, activeGroup);
+    } catch { /* ok */ }
+    _rebuildEntityIndex();
+    refreshAll();
+    window.dmPanel?.refreshCombatOverlay();
+  } catch {
+    if (errEl) errEl.classList.remove('hidden');
+  }
 }
 
 function applyRole() {
@@ -357,6 +463,10 @@ function applyRole() {
   if (logoutBtn) {
     logoutBtn.classList.toggle('hidden', state.role !== 'dm');
   }
+
+  // Sandbox badge: only visible when logged in as sandbox DM
+  const sandboxBadge = document.getElementById('sandbox-badge');
+  if (sandboxBadge) sandboxBadge.classList.toggle('hidden', !state.isSandbox);
 
   // Dice FAB: spelers zien het reguliere, DM ziet de DM-variant
   const diceFab   = document.getElementById('dice-fab');
@@ -401,7 +511,7 @@ function applyRole() {
     herbergItem.classList.toggle('hidden', !state.meta?.herberg);
     const herbergNaam = state.meta?.herberg?.naam;
     const herbergLabel = document.getElementById('diensten-herberg-label');
-    if (herbergLabel) herbergLabel.textContent = '🍺 ' + (herbergNaam || 'Herberg');
+    if (herbergLabel) herbergLabel.innerHTML = icon('beer') + ' ' + esc(herbergNaam || 'Herberg');
   }
 
   // Diensten-knop active-state als een diensten-sectie actief is
@@ -418,7 +528,7 @@ function applyRole() {
       const avatarUrl = api.fileUrl(state.characterId);
       myCharTab.innerHTML = `<img src="${avatarUrl}" class="nav-tab-avatar" alt="" onerror="this.style.display='none'">${esc(firstName)}`;
     } else {
-      myCharTab.innerHTML = '🧑 Mijn karakter';
+      myCharTab.innerHTML = icon('user') + ' Mijn karakter';
     }
   }
 
@@ -490,7 +600,7 @@ async function showLanding() {
           <div class="landing-portrait-ring">
             <img src="/api/files/${esc(c.id)}" class="landing-portrait-img"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="landing-portrait-fallback" style="display:none">👤</div>
+            <div class="landing-portrait-fallback" style="display:none">${icon('user')}</div>
           </div>
           <div class="landing-portrait-name">${esc(c.name)}</div>
           ${sub ? `<div class="landing-portrait-sub">${esc(sub)}</div>` : ''}
@@ -510,18 +620,31 @@ async function showLanding() {
       list.className = 'landing-portraits';
       list.innerHTML = chars.map(renderPortrait).join('');
     } else {
-      // Meerdere parties: gegroepeerd met party-label ertussen
-      list.className = 'landing-portraits landing-portraits--grouped';
+      // Meerdere parties: carousel, één groep per pagina
+      list.className = 'landing-portraits landing-portraits--carousel';
       const sortedParties = [...parties.values()].sort((a, b) =>
         (a.naam || '').localeCompare(b.naam || '', 'nl'));
-      list.innerHTML = sortedParties.map(party => `
-        <div class="landing-party-section">
-          <div class="landing-party-label">${esc(party.naam || 'Party')}</div>
-          <div class="landing-party-portraits">
-            ${party.chars.map(renderPortrait).join('')}
-          </div>
-        </div>`).join('');
+      _landingCarouselIdx   = 0;
+      _landingCarouselTotal = sortedParties.length;
+      const slides = sortedParties.map(party =>
+        `<div class="landing-carousel-slide">${party.chars.map(renderPortrait).join('')}</div>`
+      ).join('');
+      list.innerHTML = `
+        <button class="landing-carousel-btn landing-carousel-btn--hidden" onclick="window._landingCarouselNav(-1)">&#8249;</button>
+        <div class="landing-carousel-track">
+          <div class="landing-carousel-inner" id="landing-carousel-inner">${slides}</div>
+        </div>
+        <button class="landing-carousel-btn${sortedParties.length <= 1 ? ' landing-carousel-btn--hidden' : ''}" onclick="window._landingCarouselNav(1)">&#8250;</button>`;
     }
+
+    window._landingCarouselNav = (dir) => {
+      _landingCarouselIdx = Math.max(0, Math.min(_landingCarouselTotal - 1, _landingCarouselIdx + dir));
+      const inner = document.getElementById('landing-carousel-inner');
+      if (inner) inner.style.transform = `translateX(-${_landingCarouselIdx * 100}%)`;
+      const btns = list.querySelectorAll('.landing-carousel-btn');
+      if (btns[0]) btns[0].classList.toggle('landing-carousel-btn--hidden', _landingCarouselIdx === 0);
+      if (btns[1]) btns[1].classList.toggle('landing-carousel-btn--hidden', _landingCarouselIdx >= _landingCarouselTotal - 1);
+    };
   } catch {
     list.innerHTML = '<p class="landing-loading">Fout bij laden.</p>';
   }
@@ -719,6 +842,7 @@ async function _landingStartZoom(charId, portraitEl) {
 function _landingFinishLogin({ playerName, characterId: cid }) {
   state.playerName  = playerName;
   state.characterId = cid;
+  document.body.classList.remove('display-kiosk'); // speler ingelogd → geen pure kiosk
   closePlayerPicker();
   applyRole();
   try { localStorage.setItem('_lastLogin', JSON.stringify({ charId: cid, ts: Date.now() })); } catch { /* ok */ }
@@ -746,6 +870,8 @@ async function playerLogin(characterId) {
     try { localStorage.setItem('_lastLogin', JSON.stringify({ charId: cid, ts: Date.now() })); } catch { /* ok */ }
     // Registreer socket zodat DM directe berichten kan sturen
     if (cid && window._socket) window._socket.emit('player:register', cid);
+    // Herbouw de wikilink-naamindex voor de ingelogde speler
+    _rebuildEntityIndex();
     // Navigeer direct naar mijn-karakter → personage-subtab
     window._pendingPlayerSubTab = 'personage';
     switchSection('mijn-karakter');
@@ -762,6 +888,8 @@ async function playerLogout() {
     // Als we op het eigen tabblad waren, ga naar personages
     if (state.activeSection === 'mijn-karakter') switchSection('personages');
     applyRole();
+    // Herbouw de naamindex na uitloggen (terug naar anonieme weergave)
+    _rebuildEntityIndex();
     // Herlaad alles zodat anonieme weergave (leeg) geldt
     await refreshAll();
   } catch { /* ok */ }
@@ -780,7 +908,7 @@ function openModal(title, subtitle, bodyHtml) {
     _mPortraitImg.onerror = null;
     _mPortraitImg.src = '';
   }
-  $('#m-title').textContent = title;
+  $('#m-title').innerHTML = title;
   $('#m-sub').textContent = subtitle;
   $('#m-body').innerHTML = bodyHtml;
   $('#modal-overlay').classList.add('active');
@@ -896,6 +1024,58 @@ function esc(s) {
 // ── JS string escape (voor names in single-quoted onclick handlers) ──
 function escJS(s) {
   return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+// ── Weapon property tooltip text (English) ──
+function _calcArmorAC(d, dexMod) {
+  const type = (d?.armorType || '').toLowerCase();
+  const base = parseInt(d?.armorBaseAC);
+  if (!type || isNaN(base)) return null;
+  if (type === 'shield') {
+    return { pill: '+' + base + ' AC', tooltip: 'Shield: adds +' + base + ' to your Armor Class. You must wield it in one hand to gain this benefit.' };
+  }
+  let cap;
+  if      (type === 'light')  cap = null;
+  else if (type === 'medium') cap = 2;
+  else if (type === 'heavy')  cap = 0;
+  else { const c = parseInt(d?.armorDexCap); cap = isNaN(c) ? null : c; }
+  if (dexMod !== null && dexMod !== undefined) {
+    const contrib = (cap === null) ? dexMod : Math.min(dexMod, cap);
+    const total   = base + contrib;
+    const parts   = [base + ' base'];
+    if (cap !== 0) { const s = contrib >= 0 ? '+' + contrib : '' + contrib; parts.push(s + ' Dex' + (cap !== null && dexMod > cap ? ' (max +' + cap + ')' : '')); }
+    return { pill: 'AC ' + total, tooltip: 'Armor Class: ' + total + ' (' + parts.join(' ') + ').' };
+  } else {
+    if (cap === 0)    return { pill: 'AC ' + base,          tooltip: 'Armor Class: ' + base + '. Heavy armor — no Dexterity modifier applied.' };
+    if (cap === null) return { pill: 'AC ' + base + '+Dex', tooltip: 'Armor Class: ' + base + ' + your full Dexterity modifier.' };
+    return { pill: 'AC ' + base + '+Dex', tooltip: 'Armor Class: ' + base + ' + your Dexterity modifier (maximum +' + cap + ').' };
+  }
+}
+
+const _WEAPON_PROP_TITLES = {
+  'Ammunition':  'You can make a ranged attack with this weapon only if you have ammunition to fire from it. Each attack expends one piece of ammunition. You can recover half your expended ammunition by taking a minute to search the battlefield.',
+  'Cleave':      'If you hit a creature with a melee attack using this weapon, you can make one extra melee attack against a second creature within 5 feet of the first that is also within your reach. On this extra attack, use the same ability modifier as the primary attack but don\'t add your ability modifier to the damage roll unless that modifier is negative.',
+  'Finesse':     'When making an attack with a Finesse weapon, you use your choice of your Strength or Dexterity modifier for the attack and damage rolls. You must use the same modifier for both rolls.',
+  'Graze':       'If your attack roll with this weapon misses a creature, you can deal damage to that creature equal to the ability modifier you used for the attack roll. This damage is the same type dealt by the weapon and can\'t be increased in any way.',
+  'Heavy':       'You have Disadvantage on attack rolls with a Heavy weapon if it\'s a Small or Tiny creature.',
+  'Light':       'When you take the Attack action and attack with a Light weapon, you can make one extra attack as a Bonus Action later on the same turn with a different Light weapon. You don\'t add your ability modifier to the extra attack\'s damage roll unless that modifier is negative.',
+  'Loading':     'You can fire only one piece of ammunition from a Loading weapon when you use an action, a Bonus Action, or a Reaction to fire it, regardless of the number of attacks you can normally make.',
+  'Nick':        'When you make the extra attack of the Light property, you can make it as part of the Attack action instead of as a Bonus Action. You can make this extra attack only once per turn.',
+  'Push':        'If you hit a creature with this weapon, you can push the creature up to 10 feet straight away from yourself if it is Large or smaller.',
+  'Range':       'A Range weapon can be used to make a ranged attack only if the target is within the weapon\'s normal range, or at Disadvantage if it is within the weapon\'s long range. Targets beyond long range can\'t be attacked.',
+  'Reach':       'This weapon adds 5 feet to your reach when you attack with it, as well as when determining your reach for Opportunity Attacks.',
+  'Sap':         'If you hit a creature with this weapon, that creature has Disadvantage on its next attack roll before the start of your next turn.',
+  'Slow':        'If you hit a creature with this weapon and deal damage to it, you can reduce that creature\'s Speed by 10 feet until the start of your next turn.',
+  'Special':     'A Special weapon has an unusual rule that is described in its entry in the weapons table.',
+  'Thrown':      'If a weapon has the Thrown property, you can throw the weapon to make a ranged attack, and you can draw that weapon as part of the attack. If the weapon is a melee weapon, use the same ability modifier for the attack and damage rolls that you\'d use for a melee attack with it.',
+  'Topple':      'If you hit a creature with this weapon, you can force the creature to make a Constitution saving throw (DC 8 plus the ability modifier used to make the attack roll and your Proficiency Bonus). On a failed save, the creature has the Prone condition.',
+  'Two-Handed':  'This weapon requires two hands when you attack with it. This property is relevant only when you attack with the weapon, not when you simply hold it.',
+  'Two-handed':  'This weapon requires two hands when you attack with it. This property is relevant only when you attack with the weapon, not when you simply hold it.',
+  'Versatile':   'A Versatile weapon can be used with one or two hands. A damage value in parentheses appears with the property — the damage when the weapon is used with two hands to make a melee attack.',
+  'Vex':         'If you hit a creature with this weapon and deal damage to it, you have Advantage on your next attack roll against that creature before the end of your next turn.',
+};
+function _weaponPropTitle(prop) {
+  return _WEAPON_PROP_TITLES[prop] || _WEAPON_PROP_TITLES[prop.split(' ')[0]] || prop;
 }
 
 // ── Markdown → HTML (headings, bold, italic, kleur, newlines) ──
@@ -1030,16 +1210,23 @@ function _resolveWikilink(name, isFirst) {
 // ── Wikilink autocomplete ───────────────────────────────────────────
 let _wlAcTriggerEl = null;
 
-function _wlAcInit() {
-  // Pre-laad alle entity-types in de naam-index zodat wikilinks direct werken,
-  // ook als de bijbehorende sectie nog niet bezocht is.
+// Herbouw de wikilink-naamindex op basis van de huidige sessie (speler of DM).
+// Aanroepen na elke login/logout zodat de index altijd de juiste zichtbare entiteiten bevat.
+function _rebuildEntityIndex() {
   const WL_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
-  // Sla de promise op zodat secties die wikilinks bevatten kunnen wachten tot de index klaar is
+  window._entityNameIndex = {};           // leeg voordat we herbouwen
   window._entityIndexReady = Promise.all(WL_TYPES.map(t =>
     api.listEntities(t)
       .then(list => window._buildEntityIndex(t, list))
       .catch(() => {})
   ));
+  return window._entityIndexReady;
+}
+
+function _wlAcInit() {
+  // Pre-laad alle entity-types in de naam-index zodat wikilinks direct werken,
+  // ook als de bijbehorende sectie nog niet bezocht is.
+  _rebuildEntityIndex();
 
   // Input: detecteer [[ en toon autocomplete
   document.addEventListener('input', ev => {
@@ -1106,11 +1293,11 @@ function _wlAcShow(textarea, query) {
   ac.style.width = Math.max(rect.width, 280) + 'px';
   ac.style.display = '';
 
-  const ICONS = { personages:'👤', locaties:'🏰', organisaties:'🏛️', voorwerpen:'⚔️' };
+  const ICONS = { personages: icon('user'), locaties: icon('castle', {cls:'icon-gi'}), organisaties: icon('landmark'), voorwerpen: icon('package') };
   ac.innerHTML = matches.map((e, i) =>
     `<div class="wikilink-ac-item${i === 0 ? ' wikilink-ac-item--active' : ''}"
       data-wl-name="${e.name.replace(/"/g,'&quot;')}">
-      <span class="wikilink-ac-icon">${ICONS[e.type] || '📜'}</span>
+      <span class="wikilink-ac-icon">${ICONS[e.type] || icon('scroll-text')}</span>
       <span class="wikilink-ac-name">${esc(e.name)}</span>
     </div>`
   ).join('');
@@ -1210,6 +1397,8 @@ window._fmtKey = (e) => {
 
 // ── Actieve groep ──
 let _activeGroupId = null;
+let _landingCarouselIdx   = 0;
+let _landingCarouselTotal = 1;
 
 // ── Party presence state (per groep in localStorage) ──
 function _presenceKey() {
@@ -1299,7 +1488,7 @@ window.renderGroupSwitcher = function(groups, activeGroupId) {
         onclick="window.app.switchGroup('${esc(g.id)}')"
         title="${g.active ? 'Actieve groep' : 'Wissel naar deze groep'}"
       >${esc(g.name)}</button>
-      <button class="group-tab-rename" onclick="window.app.renameGroup('${esc(g.id)}','${escJS(g.name)}')" title="Hernoemen">✎</button>
+      <button class="group-tab-rename" onclick="window.app.renameGroup('${esc(g.id)}','${escJS(g.name)}')" title="Hernoemen">${icon('pencil')}</button>
       ${groups.length > 1 ? `<button class="group-tab-del" onclick="window.app.deleteGroup('${esc(g.id)}')" title="Groep verwijderen">×</button>` : ''}
     </span>
   `).join('') + `
@@ -1385,10 +1574,10 @@ async function _renderKaartSection() {
   container.innerHTML = `
     <div class="kaart-mode-bar">
       <button class="kaart-mode-btn ${_kaartMode==='wereld'?'active':''}" data-mode="wereld">
-        🗺️ Kaarten
+        ${icon('map')} Kaarten
       </button>
       <button class="kaart-mode-btn ${_kaartMode==='dungeon'?'active':''}" data-mode="dungeon">
-        ⛓️ Dungeons
+        ${icon('swords')} Dungeons
       </button>
     </div>
     <div class="kaart-mode-content" id="kaart-mode-content" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;"></div>`;
@@ -1474,6 +1663,34 @@ let _playerSubTab    = localStorage.getItem('_playerSubTab') || 'party';
 let _klasseThemeOn   = localStorage.getItem('_klasseThemeOn') !== 'false'; // standaard aan
 let _playerSpellList = null;
 
+// Markdown → HTML voor spreukomschrijvingen (bold, italic)
+function _spellMd(t) {
+  return String(t ?? '')
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,         '<em>$1</em>');
+}
+
+// Geeft de juiste CSS-modifier voor de damage-pill op basis van het schadetype.
+// Detecteert trefwoorden in de damage-string (bijv. "2d6 fire", "3d8 cold damage").
+function _damagePillMod(dmg) {
+  if (!dmg) return '';
+  const d = dmg.toLowerCase();
+  if (/heal/.test(d))                        return ' spell-damage-pill--heal';
+  if (/fire/.test(d))                        return ' spell-damage-pill--fire';
+  if (/cold|ice|frost/.test(d))             return ' spell-damage-pill--cold';
+  if (/lightning/.test(d))                   return ' spell-damage-pill--lightning';
+  if (/thunder/.test(d))                     return ' spell-damage-pill--thunder';
+  if (/acid/.test(d))                        return ' spell-damage-pill--acid';
+  if (/force/.test(d))                       return ' spell-damage-pill--force';
+  if (/slash|pierc|bludgeon/.test(d))       return ' spell-damage-pill--physical';
+  if (/radiant/.test(d))                     return ' spell-damage-pill--radiant';
+  if (/necrotic/.test(d))                    return ' spell-damage-pill--necrotic';
+  if (/psychic/.test(d))                     return ' spell-damage-pill--psychic';
+  if (/poison/.test(d))                      return ' spell-damage-pill--acid';
+  return ''; // onbekend type → standaard rood
+}
+
 function _fmtBerichtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -1548,6 +1765,9 @@ async function renderMijnKarakter(opts = {}) {
     ]);
   } catch { /* ok */ }
 
+  // Wacht op wikilink-naamindex zodat beschrijvingen in knapzak correct renderen
+  await (window._entityIndexReady || Promise.resolve()).catch(() => {});
+
   // Sla unread bericht-teller op (niet resetten als berichten-tab open is)
   const unreadCount = berichtenLijst.filter(m => !m.gelezen).length;
   if (_playerSubTab !== 'berichten') window._berichtenUnread = unreadCount;
@@ -1596,6 +1816,7 @@ async function renderMijnKarakter(opts = {}) {
   const maxNum = typeof maxHp === 'number' ? maxHp : null;
   const hpPct = (hpNum !== null && maxNum) ? Math.max(0, Math.min(100, (hpNum / maxNum) * 100)) : 0;
   const hpCls = hpPct > 75 ? 'hp-healthy' : hpPct > 50 ? 'hp-lightly' : hpPct > 25 ? 'hp-wounded' : hpPct > 0 ? 'hp-critical' : 'hp-down';
+  const tempNum = (typeof hpData.temp === 'number' && hpData.temp > 0) ? hpData.temp : 0;
 
   // Actieve conditions (uit gevecht)
   const conditions = myCombatant?.conditions || [];
@@ -1619,6 +1840,7 @@ async function renderMijnKarakter(opts = {}) {
   const _ab  = (ab) => parseInt(playerProfile[ab]) || 10;
   const _mod = (ab) => Math.floor((_ab(ab) - 10) / 2);
   const _modStr = (ab) => { const m = _mod(ab); return (m >= 0 ? '+' : '') + m; };
+  window._playerDexMod = _mod('dex'); // used by detail view in render-campagne.js
   let _skillProfs = {};
   try { _skillProfs = JSON.parse(playerProfile.skillProfs || '{}'); } catch { _skillProfs = {}; }
   let _skillAdj = {};
@@ -1681,7 +1903,8 @@ async function renderMijnKarakter(opts = {}) {
   })();
 
   const _klasseKey = _dominantKlasse.toLowerCase().replace(/\s+/g, '-');
-  const _themeAttr  = (_klasseThemeOn && _klasseKey) ? ` data-klasse="${esc(_klasseKey)}"` : '';
+  // Klasse-thema is alleen beschikbaar voor de DM (spelers zien altijd standaard CSS)
+  const _themeAttr  = (_klasseThemeOn && _klasseKey && window.app.isDM()) ? ` data-klasse="${esc(_klasseKey)}"` : '';
 
   el.innerHTML = `
     <div class="player-dashboard"${_themeAttr}>
@@ -1691,22 +1914,31 @@ async function renderMijnKarakter(opts = {}) {
           ${(() => {
             const _hR = 45, _hC = +(2 * Math.PI * 45).toFixed(1);
             const _hFill = hpPct > 0 ? +(_hC * hpPct / 100).toFixed(1) : 0;
-            return `<svg class="player-dash-avatar-ring" viewBox="0 0 100 100" style="pointer-events:none">
+            const _hTmpR = 48, _hTmpC = +(2 * Math.PI * 48).toFixed(1);
+            const _hTmpFill = (maxNum && tempNum > 0) ? +(_hTmpC * Math.min(tempNum, maxNum) / maxNum).toFixed(1) : 0;
+            return `<svg class="player-dash-avatar-ring" viewBox="0 0 100 100" style="pointer-events:none;overflow:visible">
               <circle cx="50" cy="50" r="${_hR}" class="party-hp-ring-bg"/>
               <circle cx="50" cy="50" r="${_hR}" class="party-hp-ring-fill party-hp-ring-${hpCls}"
                 stroke-dasharray="${_hFill} ${_hC}" transform="rotate(-90 50 50)"/>
+              <circle cx="50" cy="50" r="${_hTmpR}" class="party-hp-ring-temp-bg"/>
+              ${_hTmpFill > 0 ? `<circle cx="50" cy="50" r="${_hTmpR}" class="party-hp-ring-temp"
+                stroke-dasharray="${_hTmpFill} ${_hTmpC}" transform="rotate(-90 50 50)"/>` : ''}
             </svg>`;
           })()}
-          <div class="player-dash-avatar-wrap avatar-${hpCls}">
+          <div class="player-dash-avatar-wrap avatar-${hpCls}" onclick="window._dashOpenPortraitVideo()" style="cursor:pointer">
             <img src="${imgUrl}" class="player-dash-avatar"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="player-dash-avatar-fallback" style="display:none">👤</div>
+            <div class="player-dash-avatar-fallback" style="display:none">${icon('user')}</div>
           </div>
         </div>
         <div class="player-dash-hero-info">
           <h2 class="player-dash-name">${esc(playerName)}</h2>
           <button class="player-hero-collapse-btn${localStorage.getItem('_heroCollapsed') === '1' ? ' collapsed' : ''}"
-            onclick="window._toggleHeroCollapse()" title="Verberg/toon karakterinfo">▲</button>
+            onclick="window._toggleHeroCollapse()" title="Verberg/toon karakterinfo">▲</button>${_klasseKey && window.app.isDM() ? `<button
+            class="player-klasse-theme-btn${_klasseThemeOn ? ' player-klasse-theme-btn--on' : ''}"
+            id="player-class-icon-wrap"
+            onclick="window._toggleKlasseTheme()"
+            title="${_klasseThemeOn ? 'Schakel naar standaard look' : 'Schakel naar klasse-look'}">${_KLASSEN_MET_ICON.has(_dominantKlasse) ? `<img src="/img/classes/${esc(_dominantKlasse)}.png" class="player-klasse-theme-icon" alt="">` : '✦'}</button>` : ''}
           ${sub ? `<p class="player-dash-sub">${esc(sub)}</p>` : ''}
           <div class="player-profile-fields">
             <div class="ppf-row"><label class="ppf-label">Level</label>
@@ -1754,25 +1986,20 @@ async function renderMijnKarakter(opts = {}) {
                 onblur="window._saveProfileField('bloodStatus', this.value)"></div>` : ''}
           </div>
         </div>
-        <div class="player-class-icon-outer">
-          <div class="player-class-icon-wrap" id="player-class-icon-wrap"${_klasseKey ? ` onclick="window._toggleKlasseTheme()" title="${_klasseThemeOn ? 'Schakel naar standaard look' : 'Schakel naar klasse-look'}" style="cursor:pointer"` : ''}>
-            ${_dominantKlasse && _KLASSEN_MET_ICON.has(_dominantKlasse) ? `<img src="/img/classes/${esc(_dominantKlasse)}.png" class="player-class-icon" alt="${esc(_dominantKlasse)}">` : ''}
-          </div>
-        </div>
       </div>
 
       <!-- Subtab nav -->
       <div class="player-subtabs">
         <button class="player-subtab${_playerSubTab === 'party' ? ' active' : ''}"
-          data-tab="party" onclick="window._setPlayerSubTab('party')">🧙 Party</button>
+          data-tab="party" onclick="window._setPlayerSubTab('party')">${icon('users')} Party</button>
         <button class="player-subtab${_playerSubTab === 'personage' ? ' active' : ''}"
-          data-tab="personage" onclick="window._setPlayerSubTab('personage')">⚔️ Personage</button>
+          data-tab="personage" onclick="window._setPlayerSubTab('personage')">${icon('swords')} Personage</button>
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
-          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">🎒 Knapzak</button>
+          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">${icon('package')} Knapzak</button>
         <button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
-          data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">📖 Spreukenboek</button>
+          data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('book-open')} Spreukenboek</button>
         <button class="player-subtab${_playerSubTab === 'berichten' ? ' active' : ''}"
-          data-tab="berichten" onclick="window._setPlayerSubTab('berichten')">💬 Berichten${window._berichtenUnread ? ` <span class="bericht-badge">${window._berichtenUnread}</span>` : ''}</button>
+          data-tab="berichten" onclick="window._setPlayerSubTab('berichten')">${icon('message-circle')} Berichten${window._berichtenUnread ? ` <span class="bericht-badge">${window._berichtenUnread}</span>` : ''}</button>
       </div>
 
       <!-- ═══ TAB: Party ═══ -->
@@ -1780,7 +2007,7 @@ async function renderMijnKarakter(opts = {}) {
 
         ${inspired ? `
         <div class="player-dash-section player-inspiration-section">
-          <div class="player-dash-section-title">✨ Inspiratie</div>
+          <div class="player-dash-section-title">${icon('sparkles')} Inspiratie</div>
           <div class="player-inspiration-block">
             <span class="player-inspiration-badge">✨ Je hebt inspiratie!</span>
             <button class="player-inspiration-use-btn" onclick="window._dashUseInspiration()">Gebruik</button>
@@ -1788,27 +2015,32 @@ async function renderMijnKarakter(opts = {}) {
         </div>` : ''}
 
         <div class="player-dash-section">
-          <div class="player-dash-section-title">🧙 Mijn party</div>
+          <div class="player-dash-section-title">${icon('users')} Mijn party</div>
           <div class="player-dash-party-row">
             <!-- Zichzelf (altijd zichtbaar) -->
             ${(() => {
               const _ringR = 44, _ringC = +(2 * Math.PI * 44).toFixed(1);
               const _ringFill = hpPct > 0 ? +(_ringC * hpPct / 100).toFixed(1) : 0;
+              const _tmpR = 47, _tmpC = +(2 * Math.PI * 47).toFixed(1);
+              const _tmpFill = (maxNum && tempNum > 0) ? +(_tmpC * Math.min(tempNum, maxNum) / maxNum).toFixed(1) : 0;
               return `<div class="party-portrait party-portrait--self">
               <div class="party-portrait-ring-wrap">
                 <svg class="party-hp-ring" viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2">
                   <circle cx="50" cy="50" r="${_ringR}" class="party-hp-ring-bg"/>
                   <circle cx="50" cy="50" r="${_ringR}" class="party-hp-ring-fill party-hp-ring-${hpCls}"
                     stroke-dasharray="${_ringFill} ${_ringC}" transform="rotate(-90 50 50)"/>
+                  <circle cx="50" cy="50" r="${_tmpR}" class="party-hp-ring-temp-bg"/>
+                  ${_tmpFill > 0 ? `<circle cx="50" cy="50" r="${_tmpR}" class="party-hp-ring-temp"
+                    stroke-dasharray="${_tmpFill} ${_tmpC}" transform="rotate(-90 50 50)"/>` : ''}
                 </svg>
                 <div class="party-portrait-avatar-wrap avatar-${hpCls}">
                   <img src="${imgUrl}" class="party-portrait-img"
                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                  <div class="party-portrait-fallback" style="display:none">👤</div>
+                  <div class="party-portrait-fallback" style="display:none">${icon('user')}</div>
                 </div>
               </div>
               <div class="party-portrait-name">${esc(playerName.split(' ')[0])}</div>
-              <div class="party-portrait-sub">${hp !== '—' ? `${hp} / ${maxHp} HP` : '—'}</div>
+              <div class="party-portrait-sub">${hp !== '—' ? `${hp} / ${maxHp} HP${tempNum > 0 ? ` <span class="party-portrait-temp">+${tempNum}</span>` : ''}` : '—'}</div>
               ${inspired ? '<div class="party-portrait-badge">✨</div>' : ''}
             </div>`;
             })()}
@@ -1833,7 +2065,7 @@ async function renderMijnKarakter(opts = {}) {
                   <div class="party-portrait-avatar-wrap">
                     <img src="${pImgUrl}" class="party-portrait-img"
                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                    <div class="party-portrait-fallback" style="display:none">👤</div>
+                    <div class="party-portrait-fallback" style="display:none">${icon('user')}</div>
                   </div>
                 </div>
                 <div class="party-portrait-name">${firstName}</div>
@@ -1849,7 +2081,7 @@ async function renderMijnKarakter(opts = {}) {
                 <div class="party-portrait-avatar-wrap">
                   <img src="${pImgUrl}" class="party-portrait-img"
                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                  <div class="party-portrait-fallback" style="display:none">🗡️</div>
+                  <div class="party-portrait-fallback" style="display:none">${icon('sword')}</div>
                 </div>
                 <div class="party-portrait-name">${firstName}</div>
                 ${psub ? `<div class="party-portrait-sub">${esc(psub)}</div>` : ''}
@@ -1861,7 +2093,7 @@ async function renderMijnKarakter(opts = {}) {
         <!-- Initiativevolgorde (alleen tijdens gevecht) -->
         ${combat?.active && (combat.combatants?.length || 0) > 0 ? `
         <div class="player-dash-section player-dash-initiative">
-          <div class="player-dash-section-title">⚔️ Initiativevolgorde</div>
+          <div class="player-dash-section-title">${icon('swords')} Initiativevolgorde</div>
           <div class="player-dash-init-list">
             ${(combat.combatants || []).map((c, i) => {
               const isActive = i === combat.currentTurn;
@@ -1881,7 +2113,7 @@ async function renderMijnKarakter(opts = {}) {
 
         ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
         <div class="player-dash-section wild-magic-section">
-          <div class="player-dash-section-title">🌀 Wild Magic Surge</div>
+          <div class="player-dash-section-title">${icon('sparkles')} Wild Magic Surge</div>
           <div class="wild-magic-roller">
             <button class="wild-magic-btn" onclick="window._rollWildMagic()">Roll d100</button>
             <div class="wild-magic-result hidden" id="wild-magic-result">
@@ -1901,9 +2133,25 @@ async function renderMijnKarakter(opts = {}) {
           </div>
           <div class="pcs-item">
             <span class="pcs-label">Speed</span>
-            <input class="pcs-input" type="text"
-              value="${esc(playerProfile.speed ?? '')}" placeholder="—"
-              onblur="window._saveProfileField('speed', this.value)">
+            <div class="pcs-input-row">
+              <input class="pcs-input" type="text"
+                value="${esc(playerProfile.speed ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('speed', this.value)">
+              <button class="pcs-extra-speed-btn${(playerProfile.swimSpeed || playerProfile.flySpeed) ? ' pcs-extra-speed-btn--on' : ''}"
+                onclick="window._toggleExtraSpeed()" title="Zwem/vliegsnelheid">${(playerProfile.swimSpeed || playerProfile.flySpeed) ? '−' : '+'}</button>
+            </div>
+          </div>
+          <div id="pcs-extra-speeds" ${!(playerProfile.swimSpeed || playerProfile.flySpeed) ? 'style="display:none"' : ''} class="pcs-extra-speeds-wrap">
+            <div class="pcs-item">
+              <span class="pcs-label">Swim</span>
+              <input class="pcs-input" type="text" value="${esc(playerProfile.swimSpeed ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('swimSpeed', this.value)">
+            </div>
+            <div class="pcs-item">
+              <span class="pcs-label">Fly</span>
+              <input class="pcs-input" type="text" value="${esc(playerProfile.flySpeed ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('flySpeed', this.value)">
+            </div>
           </div>
           <div class="pcs-item">
             <span class="pcs-label">Initiative</span>
@@ -1931,7 +2179,7 @@ async function renderMijnKarakter(opts = {}) {
 
         <!-- HP blok (redesigned) -->
         <div class="player-dash-section">
-          <div class="player-dash-section-title">❤️ HP</div>
+          <div class="player-dash-section-title">${icon('heart')} HP</div>
           <div class="player-hp-hero">
             <div class="player-hp-hero-row">
               <button class="player-hp-btn-big" onclick="window._dashHpChange(-1)" title="Schade">−</button>
@@ -1947,14 +2195,23 @@ async function renderMijnKarakter(opts = {}) {
             <div class="player-dash-hp-bar-wrap">
               <div class="player-dash-hp-bar ${hpCls}" style="width:${hpPct}%"></div>
             </div>
-            ${myCombatant ? '<p class="player-dash-hp-note">⚔️ Actief in gevecht</p>' : ''}
+            <div class="player-hp-temp-wrap">
+              <div class="player-hp-temp-label">Temporary HP</div>
+              <div class="player-hp-temp-row">
+                <button class="player-hp-temp-btn" onclick="window._dashTempHpChange(-1)" title="Verminder">−</button>
+                <input id="dash-hp-temp" type="number" class="player-hp-temp-inp" min="0"
+                  value="${tempNum}" onchange="window._dashTempHpSave()" onclick="event.stopPropagation()">
+                <button class="player-hp-temp-btn" onclick="window._dashTempHpChange(1)" title="Verhoog">+</button>
+              </div>
+            </div>
+            ${myCombatant ? '<p class="player-dash-hp-note">${icon(\'swords\')} Actief in gevecht</p>' : ''}
           </div>
         </div>
 
         <!-- Weapons & Damage Cantrips -->
         <div class="player-dash-section">
           <div class="player-dash-section-title player-dash-section-title--with-btn">
-            ⚔️ Weapons &amp; Damage Cantrips
+            ${icon('swords')} Weapons &amp; Damage Cantrips
             <button class="player-weapon-add-btn" onclick="window._addWeapon()" title="Voeg wapen toe">+</button>
           </div>
           ${weapons.length > 0 ? `
@@ -1984,7 +2241,7 @@ async function renderMijnKarakter(opts = {}) {
 
         <!-- Ability Scores + Saving Throws -->
         <div class="player-dash-section">
-          <div class="player-dash-section-title">🎲 Ability Scores</div>
+          <div class="player-dash-section-title">${icon('dice', {cls:'icon-gi'})} Ability Scores</div>
           <div class="player-ability-grid">
             ${['str','dex','con','int','wis','cha'].map(ab => {
               const isProf = _saveProfs.has(ab);
@@ -2011,7 +2268,7 @@ async function renderMijnKarakter(opts = {}) {
 
         <!-- Skills -->
         <div class="player-dash-section">
-          <div class="player-dash-section-title">🎯 Skills</div>
+          <div class="player-dash-section-title">${icon('target')} Skills</div>
           <div class="player-skills-list">
             ${_getSkills().map(skill => {
               const prof  = _skillProfs[skill.key] || null;
@@ -2038,7 +2295,7 @@ async function renderMijnKarakter(opts = {}) {
 
         <!-- Proficiencies -->
         <details class="player-dash-section player-dash-collapsible" ${localStorage.getItem('_profOpen') !== '0' ? 'open' : ''} ontoggle="localStorage.setItem('_profOpen', this.open?'1':'0')">
-          <summary class="player-dash-section-title">🛡️ Proficiencies</summary>
+          <summary class="player-dash-section-title">${icon('shield')} Proficiencies</summary>
           <div class="player-profs-grid">
             <div class="player-prof-row">
               <label class="player-prof-label">Armor</label>
@@ -2063,7 +2320,7 @@ async function renderMijnKarakter(opts = {}) {
 
         <!-- Talen & Zintuigen -->
         <details class="player-dash-section player-dash-collapsible" ${localStorage.getItem('_talenOpen') !== '0' ? 'open' : ''} ontoggle="localStorage.setItem('_talenOpen', this.open?'1':'0')">
-          <summary class="player-dash-section-title">🌐 Talen & Zintuigen</summary>
+          <summary class="player-dash-section-title">${icon('globe')} Talen &amp; Zintuigen</summary>
           <div class="player-profs-grid">
             <div class="player-prof-row">
               <label class="player-prof-label">Talen</label>
@@ -2083,7 +2340,7 @@ async function renderMijnKarakter(opts = {}) {
         <!-- Actieve conditions -->
         ${conditions.length > 0 ? `
         <div class="player-dash-section">
-          <div class="player-dash-section-title">⚡ Actieve statussen</div>
+          <div class="player-dash-section-title">${icon('zap')} Actieve statussen</div>
           <div class="player-dash-conditions">
             ${conditions.map(cid => {
               const COND_LABELS = {
@@ -2101,7 +2358,7 @@ async function renderMijnKarakter(opts = {}) {
         <!-- Kenmerken & Eigenschappen -->
         <div class="player-dash-section">
           <div class="player-dash-section-title">
-            📜 Kenmerken & Eigenschappen
+            ${icon('scroll-text')} Kenmerken &amp; Eigenschappen
             <button class="player-trait-add-btn" onclick="window._traitCustomOpen()" title="Nieuw kenmerk toevoegen">+</button>
           </div>
 
@@ -2174,7 +2431,7 @@ async function renderMijnKarakter(opts = {}) {
         <!-- Emotes -->
         ${displayEmotes.length > 0 ? `
         <div class="player-dash-section player-dash-emotes">
-          <div class="player-dash-section-title">🎭 Emotes${isMyTurn ? ' <span class="player-dash-emote-turn-hint">— jouw beurt!</span>' : ''}</div>
+          <div class="player-dash-section-title">${icon('sparkles')} Emotes${isMyTurn ? ' <span class="player-dash-emote-turn-hint">— jouw beurt!</span>' : ''}</div>
           <div class="player-dash-emote-btns">
             ${displayEmotes.map(e => `
               <button class="player-dash-emote-btn" onclick="window._dashEmote('${esc(e.id)}')" title="${esc(e.label || '')}">
@@ -2191,12 +2448,12 @@ async function renderMijnKarakter(opts = {}) {
         <!-- Valuta -->
         <div class="player-dash-section">
           <div class="player-dash-section-title">
-            💰 Beurs
-            ${partyCurrency.enabled ? '<span class="currency-shared-badge">🤝 Gedeeld</span>' : ''}
+            ${icon('coins')} Beurs
+            ${partyCurrency.enabled ? `<span class="currency-shared-badge">${icon('users')} Gedeeld</span>` : ''}
           </div>
           <div class="player-dash-currency-new">
             <div class="player-currency-item player-currency-gold">
-              <span class="player-currency-coin">🟡</span>
+              <span class="player-currency-coin" style="display:inline-flex;align-items:center;justify-content:center"><span style="display:inline-block;width:.9em;height:.9em;border-radius:50%;background:#c9a227;box-shadow:0 0 0 1px rgba(0,0,0,.2)"></span></span>
               <div class="player-currency-body">
                 <span class="player-currency-name">${esc(_cNames.fl || 'Florinde')}</span>
                 <input class="player-currency-input" type="number" min="0" id="dash-cur-fl"
@@ -2205,7 +2462,7 @@ async function renderMijnKarakter(opts = {}) {
               </div>
             </div>
             <div class="player-currency-item player-currency-silver">
-              <span class="player-currency-coin">⚪</span>
+              <span class="player-currency-coin" style="display:inline-flex;align-items:center;justify-content:center"><span style="display:inline-block;width:.9em;height:.9em;border-radius:50%;background:#9090a8;box-shadow:0 0 0 1px rgba(0,0,0,.2)"></span></span>
               <div class="player-currency-body">
                 <span class="player-currency-name">${esc(_cNames.kn || 'Knaker')}</span>
                 <input class="player-currency-input" type="number" min="0" id="dash-cur-kn"
@@ -2214,7 +2471,7 @@ async function renderMijnKarakter(opts = {}) {
               </div>
             </div>
             <div class="player-currency-item player-currency-copper">
-              <span class="player-currency-coin">🟤</span>
+              <span class="player-currency-coin" style="display:inline-flex;align-items:center;justify-content:center"><span style="display:inline-block;width:.9em;height:.9em;border-radius:50%;background:#9a5530;box-shadow:0 0 0 1px rgba(0,0,0,.2)"></span></span>
               <div class="player-currency-body">
                 <span class="player-currency-name">${esc(_cNames.cl || 'Centeling')}</span>
                 <input class="player-currency-input" type="number" min="0" id="dash-cur-cl"
@@ -2225,14 +2482,106 @@ async function renderMijnKarakter(opts = {}) {
           </div>
         </div>
 
+        <!-- Attunement -->
+        ${(() => {
+          const attItems = myItems.filter(it => it.data?.attunement === 'true' || it.data?.attunement === true);
+          if (attItems.length === 0) return '';
+          // Laad/initialiseer volgorde uit localStorage
+          const _attKey = 'attSlots_' + charId;
+          let slotIds = (() => { try { return JSON.parse(localStorage.getItem(_attKey) || 'null'); } catch { return null; } })();
+          // Verwijder ids die de speler niet meer bezit; vul aan met overige
+          const allIds = attItems.map(i => i.id);
+          if (!Array.isArray(slotIds)) slotIds = [];
+          slotIds = slotIds.filter(id => allIds.includes(id));
+          for (const id of allIds) { if (slotIds.length < 3 && !slotIds.includes(id)) slotIds.push(id); }
+          localStorage.setItem(_attKey, JSON.stringify(slotIds));
+          window._attSlotIds   = slotIds;
+          window._attAllItems  = attItems;
+          window._attCharId    = charId;
+
+          const over = attItems.length > 3;
+          const _ATT_TYPE_ICON = { Weapon:icon('sword'), Armor:icon('shield'), Shield:icon('shield'), Ring:icon('swords'), Amulet:icon('swords'), 'Magic Item':icon('sparkles'), Wondrous:icon('sparkles'), Scroll:icon('scroll-text'), Other:icon('package') };
+
+          function _attSectionHtml(slotIds) {
+            const overflowIds = allIds.filter(id => !slotIds.includes(id));
+            return `
+            <div class="player-dash-section player-dash-section--attunement" id="att-section">
+              <div class="player-dash-section-title">
+                ${icon('flask-conical')} Attunement
+                <span class="att-count ${over ? 'att-count--over' : ''}">${attItems.length}/3${over ? ` <span class="att-warn" title="Je hebt meer dan drie voorwerpen die attunement vereisen.">⚠️</span>` : ''}</span>
+              </div>
+              <div class="att-slots">
+                ${slotIds.map((id, idx) => {
+                  const it = attItems.find(i => i.id === id);
+                  if (!it) return '';
+                  const typeIcon = _ATT_TYPE_ICON[it.data?.itemType] || icon('sparkles');
+                  const canSwap = overflowIds.length > 0;
+                  return `<div class="att-slot-wrap" id="att-wrap-${idx}">
+                    <button class="att-slot${canSwap ? ' att-slot--swappable' : ''}"
+                      onclick="window._openDetail('voorwerpen','${esc(it.id)}')" title="${esc(it.name)}">
+                      <span class="att-slot-icon">${typeIcon}</span>
+                      <span class="att-slot-name">${esc(it.name)}</span>
+                    </button>
+                    ${canSwap ? `<button class="att-swap-btn" onclick="event.stopPropagation();window._attOpenSwap(${idx})" title="Vervang door ander voorwerp">↔</button>` : ''}
+                  </div>`;
+                }).join('')}
+                ${Array.from({length: Math.max(0, 3 - slotIds.length)}, () =>
+                  `<div class="att-slot att-slot--empty"><span class="att-slot-empty-label">vrij</span></div>`
+                ).join('')}
+              </div>
+            </div>`;
+          }
+
+          // Globale swap-functies (hergebruikt na re-render)
+          window._attRender = () => {
+            const sec = document.getElementById('att-section');
+            if (sec) sec.outerHTML = _attSectionHtml(window._attSlotIds);
+          };
+          window._attOpenSwap = (slotIdx) => {
+            const overflowIds = window._attAllItems.map(i => i.id).filter(id => !window._attSlotIds.includes(id));
+            // Verwijder eventuele open popup
+            document.querySelectorAll('.att-swap-popup').forEach(p => p.remove());
+            const wrap = document.getElementById('att-wrap-' + slotIdx);
+            if (!wrap) return;
+            const popup = document.createElement('div');
+            popup.className = 'att-swap-popup';
+            popup.innerHTML = overflowIds.map(id => {
+              const it = window._attAllItems.find(i => i.id === id);
+              if (!it) return '';
+              const _attIcon = _ATT_TYPE_ICON[it.data?.itemType] || icon('sparkles');
+              return `<button class="att-swap-option" onclick="window._attDoSwap(${slotIdx},'${esc(id)}')">
+                <span>${icon}</span> ${esc(it.name)}
+              </button>`;
+            }).join('');
+            wrap.appendChild(popup);
+            // Klik buiten sluit popup
+            setTimeout(() => document.addEventListener('click', function _close() {
+              popup.remove(); document.removeEventListener('click', _close);
+            }), 0);
+          };
+          window._attDoSwap = (slotIdx, newId) => {
+            document.querySelectorAll('.att-swap-popup').forEach(p => p.remove());
+            window._attSlotIds[slotIdx] = newId;
+            localStorage.setItem('attSlots_' + window._attCharId, JSON.stringify(window._attSlotIds));
+            const sec = document.getElementById('att-section');
+            if (sec) {
+              const tmp = document.createElement('div');
+              tmp.innerHTML = _attSectionHtml(window._attSlotIds);
+              sec.replaceWith(tmp.firstElementChild);
+            }
+          };
+
+          return _attSectionHtml(slotIds);
+        })()}
+
         <!-- Geclaimde & losse voorwerpen -->
         <div class="player-dash-section">
-          <div class="player-dash-section-title">🎒 Jouw voorwerpen</div>
+          <div class="player-dash-section-title">${icon('package')} Jouw voorwerpen</div>
           ${myItems.length > 0 ? (() => {
             const _ITEM_CATS = [
-              { key: 'Wapen',     label: 'Wapens',     icon: '⚔️' },
-              { key: 'Uitrusting',label: 'Uitrusting',  icon: '🛡️' },
-              { key: 'Toveritem', label: 'Toveritems',  icon: '✨' },
+              { key: 'Wapen',     label: 'Wapens',     icon: icon('sword') },
+              { key: 'Uitrusting',label: 'Uitrusting',  icon: icon('shield') },
+              { key: 'Toveritem', label: 'Toveritems',  icon: icon('sparkles') },
               { key: 'Drank',     label: 'Drankjes',    icon: '🧪' },
               { key: 'Scroll',    label: 'Scrolls',     icon: '📜' },
               { key: 'Ring',      label: 'Ringen',      icon: '💍' },
@@ -2252,15 +2601,11 @@ async function renderMijnKarakter(opts = {}) {
             window._knapzakCarouselIdx = 0;
             window._knapzakCarouselItems = sortedItems;
             const _charIdEsc = esc(charId);
-            const _mdInline = s => s
-              .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-              .replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>')
-              .replace(/\*([^*\n]+)\*/g,'<em>$1</em>')
-              .replace(/\n/g,'<br>');
+            const _mdInline = s => mdToHtml(s);
             const _renderCarouselSlide = (item) => {
               if (!item) return '<div class="item-carousel-slide"><p style="color:#8a7050;font-style:italic">Geen voorwerpen</p></div>';
               const iImgUrl = api.fileUrl(item.id);
-              const typeIcon = _ITEM_CATS.find(c => c.key === (item.data?.itemType || item.subtype || ''))?.icon || '📦';
+              const typeIcon = _ITEM_CATS.find(c => c.key === (item.data?.itemType || item.subtype || ''))?.icon || icon('package');
               const typeLabel = item.data?.itemType || item.subtype || 'Overig';
               const desc = item.data?.desc || '';
               const qty = item._qty;
@@ -2276,7 +2621,7 @@ async function renderMijnKarakter(opts = {}) {
                 </div>` : '';
               const chargesHtml = item._maxCharges > 0 ? `
                 <div class="item-carousel-charges" onclick="event.stopPropagation()">
-                  <div class="item-charge-label">⚡ Charges: ${item._charges}/${item._maxCharges}</div>
+                  <div class="item-charge-label">${icon('zap')} Charges: ${item._charges}/${item._maxCharges}</div>
                   <div class="item-charge-dots-row">
                     ${item._playerMaxAdjustable ? `<button class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${_charIdEsc}',-1,${item._maxCharges})" title="Max. charges verlagen">−</button>` : ''}
                     <div class="item-charge-dots">
@@ -2288,16 +2633,38 @@ async function renderMijnKarakter(opts = {}) {
                     ${item._playerMaxAdjustable ? `<button class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${_charIdEsc}',1,${item._maxCharges})" title="Max. charges verhogen">+</button>` : ''}
                   </div>
                 </div>` : '';
+              const _itemDmg = item.data?.damage;
+              const _itemProps = (() => { try { return JSON.parse(item.data?.weaponProperties || '[]'); } catch { return []; } })();
+              const _acPill = _calcArmorAC(item.data, _mod('dex'));
               return `<div class="item-carousel-slide">
                 <div class="item-carousel-img-wrap" onclick="window._openDetail('voorwerpen','${esc(item.id)}')" title="Bekijk kaartje" style="cursor:pointer">
                   <img src="${iImgUrl}" class="item-carousel-img"
                     onerror="this.closest('.item-carousel-img-wrap').style.display='none'">
+                  ${_acPill ? `<span class="item-carousel-ac-pill" title="${esc(_acPill.tooltip)}">${esc(_acPill.pill)}</span>` : ''}
                 </div>
                 <div class="item-carousel-namerow">
                   <span class="item-carousel-type-icon">${typeIcon}</span>
                   <span class="item-carousel-name">${esc(item.name)}</span>
                 </div>
                 ${desc ? `<div class="item-carousel-desc">${_mdInline(desc)}</div>` : ''}
+                ${_itemDmg ? (() => {
+                  const _h = /heal/i.test(_itemDmg);
+                  return `<div class="item-carousel-damage" onclick="event.stopPropagation()">
+                    <button class="item-damage-pill item-damage-pill--sm${_h ? ' item-damage-pill--heal' : ''}"
+                      onclick="window.dice?.rollFormula('${escJS(_itemDmg)}')"
+                      title="Gooi ${escJS(_itemDmg)}">${icon('dice',{cls:'icon-gi'})} ${esc(_itemDmg)}</button>
+                  </div>`;
+                })() : ''}
+                ${_itemProps.length ? `<div class="item-carousel-props">${_itemProps.map(p => `<span class="card-weapon-tag" title="${esc(_weaponPropTitle(p))}">${esc(p)}</span>`).join('')}</div>` : ''}
+                ${(() => {
+                  const _stlth = item.data?.stealthDisadvantage === true || item.data?.stealthDisadvantage === 'true';
+                  const _srq   = parseInt(item.data?.strengthRequirement) || 0;
+                  if (!_stlth && !_srq) return '';
+                  return `<div class="item-carousel-props">
+                    ${_stlth ? `<span class="card-armor-tag card-armor-tag--stealth" title="You have disadvantage on Dexterity (Stealth) checks while wearing this armor.">Stealth ↓</span>` : ''}
+                    ${_srq   ? `<span class="card-armor-tag card-armor-tag--str" title="Your speed is reduced by 10 feet unless you have a Strength score of ${_srq} or higher.">Str ${_srq}</span>` : ''}
+                  </div>`;
+                })()}
                 ${qtyHtml}
                 ${chargesHtml}
               </div>`;
@@ -2350,15 +2717,18 @@ async function renderMijnKarakter(opts = {}) {
           </div>
           <div class="player-spell-stat">
             <label class="player-spell-stat-label">Attack Bonus</label>
-            <input class="player-spell-stat-input" type="number" min="-5" max="20"
-              value="${esc(playerProfile.spellAttackBonus ?? '')}" placeholder="—"
-              onblur="window._saveProfileField('spellAttackBonus', this.value)">
+            <div class="player-spell-stat-atk-wrap">
+              <span class="atk-bonus-prefix">+</span>
+              <input class="player-spell-stat-input" type="number" min="-5" max="20"
+                value="${esc(playerProfile.spellAttackBonus ?? '')}" placeholder="0"
+                onblur="window._saveProfileField('spellAttackBonus', this.value)">
+            </div>
           </div>
         </div>
 
         <!-- Spreukenslots -->
         <div class="player-dash-section player-dash-spellslots">
-          <div class="player-dash-section-title">🔮 Spreukenslots</div>
+          <div class="player-dash-section-title">${icon('flask-conical')} Spreukenslots</div>
           ${_spellSlotsHTML.rows || '<p class="player-dash-empty">Nog geen spreukenslots ingesteld.</p>'}
           <button class="player-dash-slot-add-btn" onclick="window._dashSlotAddLevel()">+</button>
         </div>
@@ -2366,7 +2736,7 @@ async function renderMijnKarakter(opts = {}) {
         <!-- Spreuk zoeken & vastzetten -->
         <div class="player-dash-section">
           <div class="player-dash-section-title">
-            📖 Spreukzoeker
+            ${icon('book-open')} Spreukzoeker
             <button class="player-trait-add-btn" onclick="window._playerSpellCustomOpen()" title="Eigen spreuk invoeren">+</button>
           </div>
           <div class="player-spell-search-wrap">
@@ -2382,9 +2752,18 @@ async function renderMijnKarakter(opts = {}) {
               <select id="pscf-level" class="player-trait-form-input" style="flex:0 0 auto">
                 ${[0,1,2,3,4,5,6,7,8,9].map(l => `<option value="${l}">${l === 0 ? 'Cantrip' : 'Niv. ' + l}</option>`).join('')}
               </select>
-              <input id="pscf-school"  class="player-trait-form-input" type="text" placeholder="School (optioneel)" maxlength="40" style="flex:1">
+                <input id="pscf-school"  class="player-trait-form-input" type="text" placeholder="School (bijv. Evocation)" maxlength="40" style="flex:1">
             </div>
-            <textarea id="pscf-desc"  class="player-trait-form-ta" placeholder="Beschrijving (optioneel)" rows="3"></textarea>
+            <input id="pscf-damage"       class="player-trait-form-input" type="text" placeholder="Damage / Healing (bijv. 2d10 Fire, optioneel)" maxlength="40">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <input id="pscf-casting-time" class="player-trait-form-input" type="text" placeholder="Casting Time" maxlength="60">
+              <input id="pscf-range"        class="player-trait-form-input" type="text" placeholder="Range" maxlength="60">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <input id="pscf-components"   class="player-trait-form-input" type="text" placeholder="Components (bijv. V, S)" maxlength="80">
+              <input id="pscf-duration"     class="player-trait-form-input" type="text" placeholder="Duration" maxlength="60">
+            </div>
+            <textarea id="pscf-desc"  class="player-trait-form-ta" placeholder="Beschrijving — **vet**, *cursief* ondersteund (optioneel)" rows="3"></textarea>
             <div class="player-trait-form-btns">
               <button class="player-trait-form-save" onclick="window._playerSpellCustomSave()">Opslaan</button>
               <button class="player-trait-form-cancel" onclick="window._playerSpellCustomClose()">Annuleer</button>
@@ -2400,25 +2779,34 @@ async function renderMijnKarakter(opts = {}) {
               _groups[k].push(s);
             });
             const _levelKeys = Object.keys(_groups).map(Number).sort((a,b) => a - b);
+            const _spellFavs = new Set((() => { try { return JSON.parse(playerProfile.spellFavorites || '[]'); } catch { return []; } })());
 
             // Level-filter chips
             const _lvlChips = `<div class="spell-level-filter" id="spell-level-filter">
               <button class="spell-lvl-chip spell-lvl-chip--active" data-lvl="" onclick="window._filterSpellLevel(null, this)">Alle</button>
-              ${_levelKeys.map(k => `<button class="spell-lvl-chip" data-lvl="${k}" onclick="window._filterSpellLevel(${k}, this)">${k === 0 ? 'Cantrip' : k}</button>`).join('')}
+              ${_levelKeys.map(k => { const _hf = _groups[k].some(s => _spellFavs.has(s.index)); return `<button class="spell-lvl-chip${_hf ? ' spell-lvl-chip--fav' : ''}" data-lvl="${k}" onclick="window._filterSpellLevel(${k}, this)">${k === 0 ? 'Cantrip' : k}</button>`; }).join('')}
             </div>`;
 
             const _spellHtml = _levelKeys.map(k => {
               const _levelLabel = k === 0 ? 'Cantrips' : `Niveau ${k}`;
               return `<div class="spell-level-group" data-level-group="${k}">
                 <div class="spell-level-group-header">${_levelLabel}</div>
-                ${_groups[k].map(s => `
-                  <details class="player-spell-accordion">
+                ${_groups[k].map(s => {
+                  const _isFav = _spellFavs.has(s.index);
+                  return `
+                  <details class="player-spell-accordion${_isFav ? ' spell-accordion--pinned' : ''}">
                     <summary class="player-pinned-spell-summary">
                       <span class="player-pinned-spell-chevron">▾</span>
-                      <span class="player-pinned-spell-name">${esc(s.name)}</span>
+                      <span class="player-pinned-spell-name${_isFav ? ' spell-name--pinned' : ''}">${esc(s.name)}</span>
+                      ${s.damage ? `<button class="spell-damage-pill${_damagePillMod(s.damage)}"
+                        onclick="event.preventDefault();event.stopPropagation();window.dice?.rollFormula('${escJS(s.damage)}')"
+                        title="Gooi ${escJS(s.damage)}">${icon('dice',{cls:'icon-gi'})} ${esc(s.damage)}</button>` : ''}
                       <span class="player-pinned-spell-meta">${s.school ? esc(s.school) : ''}</span>
                       ${s.concentration ? '<span class="spell-badge spell-badge--conc" title="Vereist concentratie">C</span>' : ''}
                       ${s.ritual ? '<span class="spell-badge spell-badge--ritual" title="Ritueel">R</span>' : ''}
+                      <button class="spell-fav-btn${_isFav ? ' spell-fav-btn--on' : ''}"
+                        onclick="event.preventDefault();event.stopPropagation();window._toggleSpellFav('${escJS(s.index)}',${s.level},this)"
+                        title="${_isFav ? 'Verwijder ster' : 'Markeer als favoriet'}">★</button>
                       <button class="player-pinned-spell-del"
                         onclick="event.preventDefault();event.stopPropagation();window._playerSpellUnpin('${esc(s.index)}')"
                         title="Verwijder">×</button>
@@ -2426,7 +2814,8 @@ async function renderMijnKarakter(opts = {}) {
                     <div class="player-spell-accordion-body" data-spell-index="${esc(s.index)}" data-spell-source="${esc(s.source||'')}" data-spell-desc="${esc(s.desc||'')}" data-loaded="false">
                       <p class="player-spell-loading-text">Laden…</p>
                     </div>
-                  </details>`).join('')}
+                  </details>`;
+                }).join('')}
               </div>`;
             }).join('');
 
@@ -2441,13 +2830,13 @@ async function renderMijnKarakter(opts = {}) {
         <!-- Bladwijzers -->
         ${(state.bookmarks || []).length > 0 ? `
         <div class="player-dash-section">
-          <div class="player-dash-section-title">⭐ Bladwijzers</div>
+          <div class="player-dash-section-title">${icon('star')} Bladwijzers</div>
           <div class="player-bookmarks-list">
             ${(state.bookmarks || []).map(b => `
               <div class="player-bookmark-item" data-bid="${esc(b.id)}" onclick="window._navigateTo('${esc(b.type)}','${esc(b.name)}')">
-                <span class="player-bookmark-icon">${b.type === 'personages' ? '👤' : b.type === 'locaties' ? '🏰' : b.type === 'organisaties' ? '🏛️' : '🎺'}</span>
+                <span class="player-bookmark-icon">${b.type === 'personages' ? icon('user') : b.type === 'locaties' ? icon('map-pin') : b.type === 'organisaties' ? icon('building') : icon('package')}</span>
                 <span class="player-bookmark-name">${esc(b.name)}</span>
-                <button class="player-bookmark-remove" onclick="event.stopPropagation();window._toggleBookmark('${esc(b.type)}','${esc(b.id)}','${esc(b.name)}')" title="Verwijderen">✕</button>
+                <button class="player-bookmark-remove" onclick="event.stopPropagation();window._toggleBookmark('${esc(b.type)}','${esc(b.id)}','${esc(b.name)}')" title="Verwijderen">${icon('x')}</button>
               </div>
             `).join('')}
           </div>
@@ -2461,7 +2850,7 @@ async function renderMijnKarakter(opts = {}) {
           // Brieven (document-kaarten)
           if (brieven.length > 0) {
             out += `<div class="player-dash-section">
-              <div class="player-dash-section-title">✉️ Brieven & berichten</div>
+              <div class="player-dash-section-title">${icon('mail')} Brieven &amp; berichten</div>
               ${brieven.map(m => `
                 <div class="speler-brief-card${m.gelezen ? '' : ' speler-brief-card--nieuw'}" data-mid="${esc(m.id)}" onclick="window._briefToggle('${esc(m.id)}')">
                   <div class="speler-brief-header">
@@ -2471,7 +2860,7 @@ async function renderMijnKarakter(opts = {}) {
                       <div class="speler-brief-meta-inline">${m.datum ? m.datum : _fmtBerichtDate(m.timestamp)}${m.gelezen ? '' : ' · <strong>nieuw</strong>'}</div>
                     </div>
                     <span class="speler-brief-chevron">▾</span>
-                    <button class="bericht-del-btn speler-brief-trash" title="Weggooien" onclick="event.stopPropagation();window._briefPlayerDelete('${esc(m.id)}')">🗑</button>
+                    <button class="bericht-del-btn speler-brief-trash" title="Weggooien" onclick="event.stopPropagation();window._briefPlayerDelete('${esc(m.id)}')">${icon('trash')}</button>
                   </div>
                   <div class="speler-brief-body">
                     ${m.afzender ? `<div class="speler-brief-afzender">
@@ -2486,13 +2875,13 @@ async function renderMijnKarakter(opts = {}) {
           // Gewone geheime berichten (tekstbubbles)
           if (berichten.length > 0) {
             out += `<div class="player-dash-section">
-              <div class="player-dash-section-title">💬 Geheime berichten</div>
+              <div class="player-dash-section-title">${icon('message-circle')} Geheime berichten</div>
               ${berichten.slice().reverse().map(m => `
                 <div class="speler-bericht-item${m.gelezen ? '' : ' speler-bericht-item--nieuw'}"
                   data-mid="${esc(m.id)}" onclick="window._berichtMarkGelezen('${esc(m.id)}')">
                   <div class="speler-bericht-row">
                     <div class="speler-bericht-tekst">${esc(m.tekst)}</div>
-                    <button class="bericht-del-btn" title="Verwijder" onclick="event.stopPropagation();window._berichtPlayerDelete('${esc(m.id)}')">✕</button>
+                    <button class="bericht-del-btn" title="Verwijder" onclick="event.stopPropagation();window._berichtPlayerDelete('${esc(m.id)}')">${icon('x')}</button>
                   </div>
                   <div class="speler-bericht-meta">${_fmtBerichtDate(m.timestamp)}${m.gelezen ? '' : ' · <strong>nieuw</strong>'}</div>
                 </div>`).join('')}
@@ -2501,7 +2890,7 @@ async function renderMijnKarakter(opts = {}) {
 
           if (brieven.length === 0 && berichten.length === 0) {
             out += `<div class="player-dash-section">
-              <div class="player-dash-section-title">💬 Berichten</div>
+              <div class="player-dash-section-title">${icon('message-circle')} Berichten</div>
               <p class="player-dash-empty">Nog geen berichten ontvangen.</p>
             </div>`;
           }
@@ -2523,10 +2912,27 @@ async function renderMijnKarakter(opts = {}) {
       const stored = body.dataset.spellDesc;
       // Eigen spreuk: gebruik opgeslagen beschrijving
       if (source === 'custom' || index?.startsWith('custom_')) {
-        body.innerHTML = stored
-          ? `<div class="player-spell-desc">${esc(stored).replace(/\n/g,'<br>')}</div>`
-          : '<p class="player-spell-err" style="opacity:.5">Geen beschrijving.</p>';
+        const sp = pinnedSpells.find(s => s.index === index) || {};
+        const compsStr = typeof sp.components === 'string' ? sp.components
+                       : Array.isArray(sp.components) ? sp.components.join(', ') : '';
+        const customMeta = [
+          sp.casting_time ? `Casting Time: ${sp.casting_time}` : '',
+          sp.range        ? `Range: ${sp.range}`               : '',
+          compsStr        ? `Components: ${compsStr}`          : '',
+          sp.duration     ? `Duration: ${sp.duration}`         : '',
+        ].filter(Boolean);
+        const metaHtml = customMeta.length
+          ? `<div class="player-spell-meta2">${customMeta.join(' · ')}</div>` : '';
+        const _incantHtmlC = sp.incantation
+          ? `<div class="spell-incantation"><span class="spell-incantation-icon">✦</span> "${esc(sp.incantation)}"</div>` : '';
+        body.innerHTML = metaHtml
+          + _incantHtmlC
+          + (stored
+            ? `<div class="player-spell-desc">${_spellMd(stored).replace(/\n/g,'<br>')}</div>`
+            : '<p class="player-spell-err" style="opacity:.5">Geen beschrijving.</p>')
+          + _buildSpellEditForm(index, body);
         body.dataset.loaded = 'true';
+        _attachSpellEditListeners(body, index, charId);
         return;
       }
       try {
@@ -2542,25 +2948,27 @@ async function renderMijnKarakter(opts = {}) {
           const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
           s = await r.json();
         }
-        const _md = t => t
-          .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-          .replace(/\*(.+?)\*/g, '<em>$1</em>');
-        const desc = (s.desc || []).map(_md).join('<br><br>');
+        const desc = (s.desc || []).map(_spellMd).join('<br><br>');
         const higher = s.higher_level?.length
-          ? `<p class="player-spell-higher"><strong>Op hogere niveaus:</strong> ${s.higher_level.join(' ')}</p>` : '';
+          ? `<p class="player-spell-higher"><strong>At Higher Levels:</strong> ${s.higher_level.join(' ')}</p>` : '';
         const metaParts = [
-          s.casting_time ? `Spreektijd: ${s.casting_time}` : '',
-          s.range        ? `Bereik: ${s.range}` : '',
-          s.components?.length ? `Comp.: ${s.components.join(', ')}` : '',
-          s.duration     ? `Duur: ${s.duration}` : '',
-          s.concentration ? 'Concentratie' : '',
+          s.casting_time ? `Casting Time: ${s.casting_time}` : '',
+          s.range        ? `Range: ${s.range}` : '',
+          s.components?.length ? `Components: ${s.components.join(', ')}` : '',
+          s.duration     ? `Duration: ${s.duration}` : '',
+          s.concentration ? 'Concentration' : '',
         ].filter(Boolean);
+        const _pinnedSp    = pinnedSpells.find(ps => ps.index === index) || {};
+        const _incantHtmlS = _pinnedSp.incantation
+          ? `<div class="spell-incantation"><span class="spell-incantation-icon">✦</span> "${esc(_pinnedSp.incantation)}"</div>` : '';
         body.innerHTML = `
           ${metaParts.length ? `<div class="player-spell-meta2">${metaParts.join(' · ')}</div>` : ''}
+          ${_incantHtmlS}
           <div class="player-spell-desc">${desc}</div>
-          ${higher}`;
+          ${higher}
+          ${_buildSpellEditForm(index, body)}`;
         body.dataset.loaded = 'true';
+        _attachSpellEditListeners(body, index, charId);
       } catch {
         body.innerHTML = '<p class="player-spell-err">Beschrijving kon niet worden geladen.</p>';
       }
@@ -2600,11 +3008,11 @@ async function renderMijnKarakter(opts = {}) {
       ${note ? `<div class="trait-note-display">
         <p class="trait-note-text">${esc(note).replace(/\n/g, '<br>')}</p>
         <div class="trait-note-actions">
-          <button class="trait-note-icon-btn" onclick="window._traitNoteEdit('${esc(traitId)}')" title="Bewerken">✏️</button>
-          <button class="trait-note-icon-btn trait-note-icon-del" onclick="window._traitNoteDelete('${esc(traitId)}')" title="Verwijderen">🗑️</button>
+          <button class="trait-note-icon-btn" onclick="window._traitNoteEdit('${esc(traitId)}')" title="Bewerken">${icon('pencil')}</button>
+          <button class="trait-note-icon-btn trait-note-icon-del" onclick="window._traitNoteDelete('${esc(traitId)}')" title="Verwijderen">${icon('trash')}</button>
         </div>
       </div>` : `
-        <button class="trait-note-icon-btn" onclick="window._traitNoteEdit('${esc(traitId)}')" title="Opmerking toevoegen">📝</button>
+        <button class="trait-note-icon-btn" onclick="window._traitNoteEdit('${esc(traitId)}')" title="Opmerking toevoegen">${icon('pencil')}</button>
       `}
       <div class="trait-note-form hidden">
         <textarea class="trait-note-ta" placeholder="Jouw persoonlijke aantekening bij dit kenmerk…" rows="3">${esc(note)}</textarea>
@@ -2742,8 +3150,55 @@ async function renderMijnKarakter(opts = {}) {
     renderMijnKarakter(opts);
   };
 
+  window._dashOpenPortraitVideo = function() {
+    const wrap = document.querySelector('.player-dash-avatar-wrap');
+    if (!wrap) return;
+    let vid = wrap.querySelector('.portrait-inline-video');
+    if (!vid) {
+      vid = document.createElement('video');
+      vid.className = 'portrait-inline-video';
+      vid.autoplay = true;
+      vid.playsInline = true;
+      vid.muted = false;
+      vid.innerHTML = `<source src="/api/files/${charId}_video" type="video/mp4">`;
+      vid.addEventListener('click', e => { e.stopPropagation(); wrap.classList.remove('portrait-showing-video'); vid.pause(); });
+      wrap.appendChild(vid);
+    }
+    const showing = wrap.classList.toggle('portrait-showing-video');
+    if (showing) { vid.load(); vid.play().catch(() => {}); }
+    else { vid.pause(); }
+  };
+
+  window._toggleSpellFav = async function(index, level, btnEl) {
+    let favs = (() => { try { return JSON.parse(playerProfile.spellFavorites || '[]'); } catch { return []; } })();
+    const idx = favs.indexOf(index);
+    if (idx >= 0) favs.splice(idx, 1);
+    else favs.push(index);
+    const isOn = idx < 0; // true = now on
+    // Optimistic UI update: toggle star immediately without full re-render
+    if (btnEl) {
+      btnEl.classList.toggle('spell-fav-btn--on', isOn);
+      btnEl.title = isOn ? 'Verwijder uit favorieten' : 'Markeer als favoriet';
+    }
+    // Update level chip color
+    const chip = document.querySelector(`.spell-lvl-chip[data-lvl="${level}"]`);
+    if (chip) {
+      const stillHasFav = favs.some(f => {
+        const s = (window._knapzakCarouselItems || []).find ? null : null;
+        return true; // we'll fix on full re-render
+      });
+      chip.classList.toggle('spell-lvl-chip--fav', isOn || chip.classList.contains('spell-lvl-chip--fav'));
+    }
+    playerProfile.spellFavorites = JSON.stringify(favs);
+    await window._saveProfileField('spellFavorites', JSON.stringify(favs));
+    renderMijnKarakter(opts);
+  };
+
   window._playerTraitDelete = async function(traitId) {
     if (!charId) return;
+    const t = pinnedTraits.find(x => x.id === traitId);
+    const name = t?.name || 'dit kenmerk';
+    if (!confirm(`Wil je "${name}" verwijderen?`)) return;
     await api.deletePlayerTrait(charId, traitId);
     renderMijnKarakter(opts);
   };
@@ -2964,6 +3419,26 @@ async function renderMijnKarakter(opts = {}) {
     } catch { /* ok */ }
   };
 
+  window._dashTempHpSave = async function() {
+    const val = parseInt(document.getElementById('dash-hp-temp')?.value);
+    if (isNaN(val)) return;
+    try {
+      await api.setPlayerHp(charId, { temp: Math.max(0, val) });
+      renderMijnKarakter(opts);
+    } catch { /* ok */ }
+  };
+
+  window._dashTempHpChange = async function(delta) {
+    const el = document.getElementById('dash-hp-temp');
+    const cur = parseInt(el?.value) || 0;
+    const newTemp = Math.max(0, cur + delta);
+    if (el) el.value = newTemp;
+    try {
+      await api.setPlayerHp(charId, { temp: newTemp });
+      renderMijnKarakter(opts);
+    } catch { /* ok */ }
+  };
+
   window._dashEmote = function(emoteId) {
     if (!charId) return;
     if (combat?.active) {
@@ -3131,7 +3606,7 @@ async function renderMijnKarakter(opts = {}) {
   // ── Knapzak carousel navigatie ──
   (function() {
     const _ITEM_CATS_ORDER = ['Wapen','Uitrusting','Toveritem','Drank','Scroll','Ring','Amulet'];
-    const _catIconMap = { Wapen:'⚔️', Uitrusting:'🛡️', Toveritem:'✨', Drank:'🧪', Scroll:'📜', Ring:'💍', Amulet:'📿' };
+    const _catIconMap = { Wapen:icon('sword'), Uitrusting:icon('shield'), Toveritem:icon('sparkles'), Drank:icon('flask-conical'), Scroll:icon('scroll-text'), Ring:icon('swords'), Amulet:icon('swords') };
 
     function _renderCarouselInDom() {
       const items = window._knapzakCarouselItems || [];
@@ -3146,7 +3621,7 @@ async function renderMijnKarakter(opts = {}) {
       }
 
       const iImgUrl   = api.fileUrl(item.id);
-      const typeIcon  = _catIconMap[item.data?.itemType || item.subtype || ''] || '📦';
+      const typeIcon  = _catIconMap[item.data?.itemType || item.subtype || ''] || icon('package');
       const typeLabel = item.data?.itemType || item.subtype || 'Overig';
       const desc      = item.data?.desc || '';
       const qty       = item._qty;
@@ -3165,7 +3640,7 @@ async function renderMijnKarakter(opts = {}) {
 
       const chargesHtml = item._maxCharges > 0 ? `
         <div class="item-carousel-charges" onclick="event.stopPropagation()">
-          <div class="item-charge-label">⚡ Charges: ${item._charges}/${item._maxCharges}</div>
+          <div class="item-charge-label">${icon('zap')} Charges: ${item._charges}/${item._maxCharges}</div>
           <div class="item-charge-dots-row">
             ${item._playerMaxAdjustable ? `<button class="item-carousel-qty-btn" onclick="window._dashMaxChargeAdj('${esc(item.id)}','${charIdEsc}',-1,${item._maxCharges})" title="Max. charges verlagen">−</button>` : ''}
             <div class="item-charge-dots">
@@ -3290,12 +3765,15 @@ async function renderMijnKarakter(opts = {}) {
     _klasseThemeOn = !_klasseThemeOn;
     localStorage.setItem('_klasseThemeOn', _klasseThemeOn);
     const dash = document.querySelector('.player-dashboard');
-    const wrap = document.getElementById('player-class-icon-wrap');
+    const btn  = document.getElementById('player-class-icon-wrap');
     if (dash) {
       if (_klasseThemeOn && _klasseKey) dash.setAttribute('data-klasse', _klasseKey);
       else dash.removeAttribute('data-klasse');
     }
-    if (wrap) wrap.title = _klasseThemeOn ? 'Schakel naar standaard look' : 'Schakel naar klasse-look';
+    if (btn) {
+      btn.title = _klasseThemeOn ? 'Schakel naar standaard look' : 'Schakel naar klasse-look';
+      btn.classList.toggle('player-klasse-theme-btn--on', _klasseThemeOn);
+    }
   };
 
   // ── Inspiratie gebruiken ──
@@ -3497,16 +3975,17 @@ async function renderMijnKarakter(opts = {}) {
         renderMijnKarakter(opts);
         return;
       }
-      // SRD-spreuk: haal volledige data op voor concentratie/ritueel
+      // SRD-spreuk: haal volledige data op voor concentratie/ritueel/school
       const spell = (_playerSpellList || []).find(s => s.index === index) || { level: 0, school: {} };
-      let concentration = false, ritual = false;
+      let concentration = false, ritual = false, school = spell.school?.name || '';
       try {
         const full = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`).then(r => r.json());
         concentration = String(full.duration || '').toLowerCase().includes('concentration');
         ritual = !!full.ritual;
+        if (full.school?.name) school = full.school.name;
       } catch { /* ok, geen badges */ }
       await api.addPlayerSpell(charId, {
-        index, name, level: spell.level || 0, school: spell.school?.name || '',
+        index, name, level: spell.level || 0, school,
         concentration, ritual,
       });
       renderMijnKarakter(opts);
@@ -3543,7 +4022,7 @@ async function renderMijnKarakter(opts = {}) {
 
   window._playerSpellCustomClose = function() {
     document.getElementById('player-spell-custom-form')?.classList.add('hidden');
-    ['pscf-name','pscf-school','pscf-desc'].forEach(id => {
+    ['pscf-name','pscf-school','pscf-damage','pscf-casting-time','pscf-range','pscf-components','pscf-duration','pscf-desc'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
@@ -3553,16 +4032,118 @@ async function renderMijnKarakter(opts = {}) {
 
   window._playerSpellCustomSave = async function() {
     if (!charId) return;
-    const name  = document.getElementById('pscf-name')?.value?.trim();
-    const level = parseInt(document.getElementById('pscf-level')?.value) || 0;
-    const school = document.getElementById('pscf-school')?.value?.trim() || '';
-    const desc  = document.getElementById('pscf-desc')?.value?.trim() || '';
+    const name         = document.getElementById('pscf-name')?.value?.trim();
+    const level        = parseInt(document.getElementById('pscf-level')?.value) || 0;
+    const school       = document.getElementById('pscf-school')?.value?.trim()       || '';
+    const damage       = document.getElementById('pscf-damage')?.value?.trim()       || '';
+    const casting_time = document.getElementById('pscf-casting-time')?.value?.trim() || '';
+    const range        = document.getElementById('pscf-range')?.value?.trim()        || '';
+    const components   = document.getElementById('pscf-components')?.value?.trim()   || '';
+    const duration     = document.getElementById('pscf-duration')?.value?.trim()     || '';
+    const desc         = document.getElementById('pscf-desc')?.value?.trim()         || '';
     if (!name) return;
     const index = 'custom_' + Date.now();
-    await api.addPlayerSpell(charId, { index, name, level, school, source: 'custom', desc });
+    await api.addPlayerSpell(charId, {
+      index, name, level, school, source: 'custom',
+      desc, damage, casting_time, range, components, duration,
+    });
     window._playerSpellCustomClose();
     renderMijnKarakter(opts);
   };
+
+  // ── Inline spell edit (school, damage, desc) ──
+  function _buildSpellEditForm(index, body) {
+    const sp           = pinnedSpells.find(s => s.index === index) || {};
+    const school       = sp.school       || '';
+    const damage       = sp.damage       || '';
+    const casting_time = sp.casting_time || '';
+    const range        = sp.range        || '';
+    const components   = typeof sp.components === 'string' ? sp.components
+                       : Array.isArray(sp.components) ? sp.components.join(', ')
+                       : '';
+    const duration     = sp.duration     || '';
+    const desc         = sp.desc         || '';
+    const incantation  = sp.incantation  || '';
+    const eidx = escJS(index);
+    return `
+      <div class="spell-edit-section" id="spell-edit-${eidx}" style="display:none">
+        <div class="spell-edit-row spell-edit-row--incant">
+          <label class="spell-edit-lbl">Spreukwoord</label>
+          <input class="spell-edit-inp spell-edit-inp--incant" id="sei-incantation-${eidx}" type="text"
+            placeholder='bijv. "Ignis, percute!"' maxlength="120" value="${esc(incantation)}">
+        </div>
+        <div class="spell-edit-grid2">
+          <div class="spell-edit-row">
+            <label class="spell-edit-lbl">School</label>
+            <input class="spell-edit-inp" id="sei-school-${eidx}" type="text" placeholder="bijv. Evocation" maxlength="40" value="${esc(school)}">
+          </div>
+          <div class="spell-edit-row">
+            <label class="spell-edit-lbl">Damage / Healing</label>
+            <input class="spell-edit-inp" id="sei-damage-${eidx}" type="text" placeholder="bijv. 2d10 Fire" maxlength="40" value="${esc(damage)}">
+          </div>
+          <div class="spell-edit-row">
+            <label class="spell-edit-lbl">Casting Time</label>
+            <input class="spell-edit-inp" id="sei-casting-time-${eidx}" type="text" placeholder="bijv. 1 action" maxlength="60" value="${esc(casting_time)}">
+          </div>
+          <div class="spell-edit-row">
+            <label class="spell-edit-lbl">Range</label>
+            <input class="spell-edit-inp" id="sei-range-${eidx}" type="text" placeholder="bijv. 60 feet" maxlength="60" value="${esc(range)}">
+          </div>
+          <div class="spell-edit-row">
+            <label class="spell-edit-lbl">Components</label>
+            <input class="spell-edit-inp" id="sei-components-${eidx}" type="text" placeholder="bijv. V, S, M (…)" maxlength="120" value="${esc(components)}">
+          </div>
+          <div class="spell-edit-row">
+            <label class="spell-edit-lbl">Duration</label>
+            <input class="spell-edit-inp" id="sei-duration-${eidx}" type="text" placeholder="bijv. 1 minute" maxlength="60" value="${esc(duration)}">
+          </div>
+        </div>
+        <div class="spell-edit-row">
+          <label class="spell-edit-lbl">Beschrijving (override)</label>
+          <textarea class="spell-edit-ta" id="sei-desc-${eidx}" rows="4" placeholder="Leeglaten = gebruik originele beschrijving">${esc(desc)}</textarea>
+        </div>
+        <div class="spell-edit-btns">
+          <button class="spell-edit-save" data-idx="${eidx}">Opslaan</button>
+          <button class="spell-edit-cancel" data-idx="${eidx}">Annuleer</button>
+        </div>
+      </div>
+      <button class="spell-edit-toggle-btn" data-idx="${eidx}" title="Spreuk aanpassen">✎</button>`;
+  }
+
+  function _attachSpellEditListeners(body, index, charId) {
+    const eidx = escJS(index);
+    const toggleBtn = body.querySelector('.spell-edit-toggle-btn');
+    const section   = body.querySelector(`#spell-edit-${eidx}`);
+    if (toggleBtn && section) {
+      toggleBtn.addEventListener('click', () => {
+        const open = section.style.display !== 'none';
+        section.style.display = open ? 'none' : 'block';
+        toggleBtn.classList.toggle('spell-edit-toggle-btn--active', !open);
+      });
+    }
+    const saveBtn = body.querySelector('.spell-edit-save');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        const school       = body.querySelector(`#sei-school-${eidx}`)?.value?.trim()       || '';
+        const damage       = body.querySelector(`#sei-damage-${eidx}`)?.value?.trim()       || '';
+        const casting_time = body.querySelector(`#sei-casting-time-${eidx}`)?.value?.trim() || '';
+        const range        = body.querySelector(`#sei-range-${eidx}`)?.value?.trim()        || '';
+        const components   = body.querySelector(`#sei-components-${eidx}`)?.value?.trim()   || '';
+        const duration     = body.querySelector(`#sei-duration-${eidx}`)?.value?.trim()     || '';
+        const desc         = body.querySelector(`#sei-desc-${eidx}`)?.value?.trim()         || '';
+        const incantation  = body.querySelector(`#sei-incantation-${eidx}`)?.value?.trim()  || '';
+        await api.updatePlayerSpell(charId, index, { school, damage, casting_time, range, components, duration, desc, incantation });
+        renderMijnKarakter(opts);
+      });
+    }
+    const cancelBtn = body.querySelector('.spell-edit-cancel');
+    if (cancelBtn && section) {
+      cancelBtn.addEventListener('click', () => {
+        section.style.display = 'none';
+        if (toggleBtn) toggleBtn.classList.remove('spell-edit-toggle-btn--active');
+      });
+    }
+  }
 
   // ── Ability scores ──
   window._saveAbilityScore = async function(ab, value) {
@@ -3665,7 +4246,7 @@ async function renderMijnKarakter(opts = {}) {
       const higher = s.higher_level?.length ? `<p class="mt-2"><strong>Op hogere niveaus:</strong> ${s.higher_level.join(' ')}</p>` : '';
       window.app.openModal(
         s.name,
-        `${levelStr} · ${schoolNl} · ${s.casting_time || ''} · Bereik: ${s.range || ''}`,
+        `${levelStr} · ${schoolNl} · ${s.casting_time || ''} · Range: ${s.range || ''}`,
         `<div style="font-family:var(--font-fell);color:var(--ink-bright);line-height:1.6">${desc}${higher}</div>`
       );
     } catch { /* ok */ }
@@ -3819,6 +4400,54 @@ async function refreshAll() {
       _animate(numEls, lblEls, boxEls,
         () => Math.floor(Math.random() * (max - min + 1)) + min,
         total, `${count}${dieLabel} \u2014 ${rolls.join(' + ')}`,
+        { sides, result: total, count, rolls, crit: false, fumble: false });
+    },
+
+    // Rolt een formule zoals "4d4+4 Healing" of "1d8+1 Slashing"
+    // inlineResultId: optioneel element-ID voor inline resultaat in modal
+    rollFormula(formulaStr, inlineResultId = null) {
+      const m = String(formulaStr).match(/^(\d+)d(\d+)([+-]\d+)?\s*(.*)/i);
+      if (!m) return;
+      const count     = parseInt(m[1]);
+      const sides     = parseInt(m[2]);
+      const bonus     = m[3] ? parseInt(m[3]) : 0;
+      const typeLabel = m[4]?.trim() || '';
+
+      const rolls     = Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1);
+      const diceTotal = rolls.reduce((a, b) => a + b, 0);
+      const total     = diceTotal + bonus;
+
+      const numEls = _els('result-num');
+      const lblEls = _els('result-label');
+      const boxEls = _els('result');
+
+      const bonusStr    = bonus !== 0 ? (bonus > 0 ? '+' : '') + bonus : '';
+      const dieLabel    = `${count}d${sides}${bonusStr}`;
+      const fullLabel   = typeLabel ? `${dieLabel} ${typeLabel}` : dieLabel;
+      const bonusPart   = bonus > 0 ? ` + ${bonus}` : bonus < 0 ? ` \u2212 ${Math.abs(bonus)}` : '';
+      const breakdown   = count > 1 ? `${rolls.join(' + ')}${bonusPart}` : `${rolls[0]}${bonusPart}`;
+
+      // Inline resultaat tonen in modal (meteen, zonder animatie)
+      if (inlineResultId) {
+        const inlineEl = document.getElementById(inlineResultId);
+        if (inlineEl) {
+          inlineEl.textContent = `\u2192 ${total}`;
+          inlineEl.classList.remove('dmg-result--flash');
+          void inlineEl.offsetWidth; // reflow voor herstart animatie
+          inlineEl.classList.add('dmg-result--flash');
+        }
+      }
+
+      // Dice panel alleen openen als er geen inline resultaat is (kaartoverzicht)
+      if (!inlineResultId) {
+        document.getElementById('dice-panel')?.classList.add('open');
+      }
+
+      const minRoll = count + bonus;
+      const maxRoll = count * sides + bonus;
+      _animate(numEls, lblEls, boxEls,
+        () => Math.floor(Math.random() * (maxRoll - minRoll + 1)) + minRoll,
+        total, `${fullLabel} \u2014 ${breakdown}`,
         { sides, result: total, count, rolls, crit: false, fumble: false });
     },
   };
@@ -4020,6 +4649,7 @@ async function init() {
     state.role        = me.role        || 'player';
     state.playerName  = me.playerName  || null;
     state.characterId = me.characterId || null;
+    state.isSandbox   = me.isSandbox   || false;
   } catch { /* default player */ }
 
   try {
@@ -4054,11 +4684,71 @@ async function init() {
   // Voorkom dat anonieme speler direct op mijn-karakter-tab belandt
   switchSection(startSection === 'mijn-karakter' && !state.playerName ? 'personages' : startSection);
 
-  // Speler heeft nog geen karakter gekozen: toon de landingspagina
-  if (state.role === 'player' && !state.playerName) {
+  // iPad kiosk-modus: sla landingspagina over, toon display canvas
+  if (window._isDisplayMode) {
+    _initDisplayMode();
+  } else if (state.role === 'player' && !state.playerName) {
     showLanding();
   }
 }
+
+// ── iPad Display Mode ──
+
+function _initDisplayMode() {
+  const canvas = document.getElementById('display-canvas');
+  if (canvas) canvas.classList.remove('hidden');
+  // Kiosk-modus: geen speler ingelogd → verberg speler-specifieke UI
+  if (!state.characterId) document.body.classList.add('display-kiosk');
+  // Zet campagnetitel
+  api.getMeta?.().then(meta => {
+    const el = document.getElementById('display-campaign-title');
+    if (el && meta?.title) el.textContent = meta.title;
+  }).catch(() => {});
+  // Als gevecht al actief is bij openen, zorg dat overlay niet geminimaliseerd is
+  api.getCombat().then(combat => {
+    if (combat?.active) {
+      const overlay = document.getElementById('combat-overlay');
+      if (overlay) overlay.classList.remove('minimized');
+    }
+  }).catch(() => {});
+}
+
+window._displayExit = function() {
+  localStorage.removeItem('displayMode');
+  window._isDisplayMode = false;
+  document.body.classList.remove('display-mode');
+  document.getElementById('display-canvas')?.classList.add('hidden');
+  showLanding();
+};
+
+window._displayShowImage = function(url, caption) {
+  document.getElementById('display-idle').style.display = 'none';
+  document.getElementById('display-dungeon-screen').style.display = 'none';
+  const screen = document.getElementById('display-image-screen');
+  screen.style.display = 'flex';
+  // Fade: vervang src zodat de animatie opnieuw afspeelt
+  const img = document.getElementById('display-img');
+  img.classList.remove('display-img--in');
+  img.src = url;
+  img.onload = () => img.classList.add('display-img--in');
+  const cap = document.getElementById('display-img-caption');
+  if (cap) cap.textContent = caption || '';
+};
+
+window._displayShowDungeon = function() {
+  document.getElementById('display-idle').style.display = 'none';
+  document.getElementById('display-image-screen').style.display = 'none';
+  const screen = document.getElementById('display-dungeon-screen');
+  screen.style.display = 'flex';
+  const content = document.getElementById('display-dungeon-content');
+  if (content) renderDungeon(content);
+};
+
+window._displayIdle = function() {
+  document.getElementById('display-image-screen').style.display = 'none';
+  document.getElementById('display-dungeon-screen').style.display = 'none';
+  document.getElementById('display-idle').style.display = 'flex';
+};
 
 // ── Herberg ──
 
@@ -4066,7 +4756,7 @@ function _dienstNietBereikbaar(el, naam) {
   el.innerHTML = `
     <div class="herberg-scene" style="justify-content:center;align-items:center;min-height:220px">
       <div class="herberg-content" style="text-align:center;padding:2rem 1.5rem">
-        <div style="font-size:2.2rem;margin-bottom:.6rem">🔒</div>
+        <div style="font-size:2.2rem;margin-bottom:.6rem">${icon('lock')}</div>
         <p class="herberg-groet" style="margin:0">${esc(naam)} is momenteel niet bereikbaar.</p>
         <p style="opacity:.5;font-size:.85rem;margin-top:.5rem">De groep bevindt zich buiten Grisburgh.</p>
       </div>
@@ -4173,6 +4863,16 @@ window._updateKlasseIcon = (klasse) => {
   } else {
     wrap.innerHTML = '';
   }
+};
+
+window._toggleExtraSpeed = function() {
+  const el = document.getElementById('pcs-extra-speeds');
+  const btn = document.querySelector('.pcs-extra-speed-btn');
+  if (!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? '' : 'none';
+  btn?.classList.toggle('pcs-extra-speed-btn--on', isHidden);
+  if (btn) btn.textContent = isHidden ? '−' : '+';
 };
 
 window._herbergFilter = (q) => {

@@ -83,6 +83,9 @@ let _positions = {};      // id -> {cx, cy, r} — gevuld tijdens drawCombatant,
 let _announcement = null; // { t0, type:'round'|'turn', title, subtitle, color }
 let _prevTurn  = -1;
 let _prevRound = -1;
+// Canvas-kleurthema: [r,g,b] per kant — worden gelezen uit combat.canvasColors
+let _pc = [50, 90, 180];   // spelers
+let _mc = [160, 40, 30];   // monsters
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -162,6 +165,9 @@ function _updateState(combat) {
 
   _combat = combat;
   if (!combat) return;
+  // Laad canvas-kleuren uit combat-object (ingesteld via encounter-preset)
+  _pc = combat.canvasColors?.player  || [50, 90, 180];
+  _mc = combat.canvasColors?.monster || [160, 40, 30];
   // Pre-load backdrop (first monster's backdropId)
   const backdrop = combat.combatants?.find(c => c.type === 'monster' && c.backdropId)?.backdropId;
   if (backdrop) _loadImage(backdrop);
@@ -490,12 +496,14 @@ function _drawHitNumber(ctx, evt, cx, cy, r, now) {
 function _drawDivider(ctx, x, y, w, h, dir, t) {
   ctx.save();
   const pulse = 0.30 + Math.sin(t * 1.4) * 0.12;
+  const [mr, mg, mb] = _mc;
+  const [pr, pg, pb] = _pc;
   if (dir === 'horizontal') {
-    // Horizontale lijn — kleur vervaagt van links (rood/monster) naar rechts (blauw/speler)
+    // Monsters links (horizontale layout = smal scherm, monsters boven → divider horizontal)
     const grad = ctx.createLinearGradient(x, y, x + w, y);
-    grad.addColorStop(0,   `rgba(160, 50,  30, ${pulse})`);
-    grad.addColorStop(0.5, `rgba(220,180,  80, ${pulse + 0.15})`);
-    grad.addColorStop(1,   `rgba( 50, 80, 160, ${pulse})`);
+    grad.addColorStop(0,   `rgba(${mr}, ${mg}, ${mb}, ${pulse})`);
+    grad.addColorStop(0.5, `rgba(220, 180,  80, ${pulse + 0.15})`);
+    grad.addColorStop(1,   `rgba(${pr}, ${pg}, ${pb}, ${pulse})`);
     ctx.strokeStyle = grad;
     ctx.lineWidth   = 1.5;
     ctx.setLineDash([6, 5]);
@@ -504,7 +512,6 @@ function _drawDivider(ctx, x, y, w, h, dir, t) {
     ctx.moveTo(x + 12, y);
     ctx.lineTo(x + w - 12, y);
     ctx.stroke();
-    // Subtiele gloed
     ctx.setLineDash([]);
     ctx.lineWidth   = 3;
     ctx.strokeStyle = `rgba(220,180,80,${pulse * 0.25})`;
@@ -513,11 +520,11 @@ function _drawDivider(ctx, x, y, w, h, dir, t) {
     ctx.lineTo(x + w - 12, y);
     ctx.stroke();
   } else {
-    // Verticale lijn — kleur vervaagt van boven (rood/monster) naar onder (blauw/speler)
+    // Verticale lijn (breed scherm): monsters rechts, spelers links
     const grad = ctx.createLinearGradient(x, y, x, y + h);
-    grad.addColorStop(0,   `rgba(160, 50,  30, ${pulse})`);
-    grad.addColorStop(0.5, `rgba(220,180,  80, ${pulse + 0.15})`);
-    grad.addColorStop(1,   `rgba( 50, 80, 160, ${pulse})`);
+    grad.addColorStop(0,   `rgba(${mr}, ${mg}, ${mb}, ${pulse})`);
+    grad.addColorStop(0.5, `rgba(220, 180,  80, ${pulse + 0.15})`);
+    grad.addColorStop(1,   `rgba(${pr}, ${pg}, ${pb}, ${pulse})`);
     ctx.strokeStyle = grad;
     ctx.lineWidth   = 1.5;
     ctx.setLineDash([6, 5]);
@@ -546,21 +553,18 @@ function _drawEmptyHint(ctx, W, H) {
 }
 
 function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t, isWide) {
-  // Gekleurde zijachtergrond
+  // Gekleurde zijachtergrond — kleur via canvas-preset, opacities zijn vast
+  // zodat tekst en HP-bars altijd leesbaar blijven.
   const isMonsterSide = group.every(c => c.type === 'monster');
-  if (isMonsterSide) {
-    const grad = ctx.createLinearGradient(x + w, y, x, y);
-    grad.addColorStop(0, 'rgba(160, 40, 30, 0.16)');
-    grad.addColorStop(1, 'rgba(160, 40, 30, 0.03)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(x, y, w, h);
-  } else {
-    const grad = ctx.createLinearGradient(x, y, x + w, y);
-    grad.addColorStop(0, 'rgba(50, 90, 180, 0.13)');
-    grad.addColorStop(1, 'rgba(50, 90, 180, 0.03)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(x, y, w, h);
-  }
+  const [r, g, b] = isMonsterSide ? _mc : _pc;
+  // Gradient van buitenrand (sterkste kleur) naar midden (nagenoeg transparant)
+  const grad = isMonsterSide
+    ? ctx.createLinearGradient(x + w, y, x, y)   // monster: rechts → links
+    : ctx.createLinearGradient(x, y, x + w, y);  // speler:  links → rechts
+  grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.16)`);
+  grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.03)`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, w, h);
 
   const n    = group.length;
   const GAP  = n > 1 ? Math.min(8, w * 0.02) : 0;
