@@ -1663,12 +1663,15 @@ let _playerSubTab    = localStorage.getItem('_playerSubTab') || 'party';
 let _klasseThemeOn   = localStorage.getItem('_klasseThemeOn') !== 'false'; // standaard aan
 let _playerSpellList = null;
 
-// Markdown → HTML voor spreukomschrijvingen (bold, italic)
+// Markdown → HTML voor spreukomschrijvingen (bold, italic, {color:text})
 function _spellMd(t) {
   return String(t ?? '')
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,         '<em>$1</em>');
+    .replace(/\*(.+?)\*/g,         '<em>$1</em>')
+    .replace(/\{([a-zA-Z#][a-zA-Z0-9#]*):([^}]+)\}/g, (_, color, text) =>
+      /^(#[0-9a-fA-F]{3,6}|[a-zA-Z]{2,30})$/.test(color)
+        ? `<span style="color:${color}">${text}</span>` : text);
 }
 
 // ── Spreukenboek overlay ──────────────────────────────────────────────────────
@@ -1727,14 +1730,8 @@ function _sbSchoolKey(school) {
 }
 
 function _sbSchoolLabel(school) {
-  const map = {
-    abjuration:    'Afweer',       conjuration:   'Bezwering',
-    divination:    'Waarzeggerij', enchantment:   'Betovering',
-    evocation:     'Oproeping',    illusion:      'Illusie',
-    necromancy:    'Necromantie',  transmutation: 'Transformatie',
-  };
   if (!school) return '';
-  return map[school.toLowerCase()] || (school.charAt(0).toUpperCase() + school.slice(1));
+  return school.charAt(0).toUpperCase() + school.slice(1).toLowerCase();
 }
 
 function _sbRibbonMiniSvg() {
@@ -1791,19 +1788,17 @@ function _ensureSpellbookOverlay() {
         </div>
         <div class="sb-right-content" id="sb-right-content"></div>
       </div>
-      <!-- Full-width nav bar spanning both pages -->
-      <div class="sb-nav-bar">
-        <div class="sb-nav-half sb-nav-half--left">
-          <button class="sb-nav-btn sb-nav-btn--light" id="sb-prev-btn" onclick="window._sbPrev()" disabled>
-            ${icon('chevron-left')} Vorige
-          </button>
-        </div>
-        <span class="sb-nav-counter" id="sb-nav-counter">1 / 1</span>
-        <div class="sb-nav-half sb-nav-half--right">
-          <button class="sb-nav-btn" id="sb-next-btn" onclick="window._sbNext()" disabled>
-            Volgende ${icon('chevron-right')}
-          </button>
-        </div>
+      <!-- Floating navigation arrows -->
+      <button class="sb-arrow-btn sb-arrow-btn--prev" onclick="window._sbPrev()" title="Previous spell">
+        ${icon('chevron-left')}
+      </button>
+      <button class="sb-arrow-btn sb-arrow-btn--next" onclick="window._sbNext()" title="Next spell">
+        ${icon('chevron-right')}
+      </button>
+      <!-- Mobile portrait rotation hint -->
+      <div class="sb-portrait-hint">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="sb-portrait-hint-icon"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        <span>Draai je scherm voor het spreukenboek</span>
       </div>
       <!-- TOC panel: slides from left -->
       <div class="sb-toc-panel" id="sb-toc-panel">
@@ -1885,10 +1880,14 @@ window._sbGoTo = function(idx, closeToc) {
 };
 
 window._sbPrev = function() {
-  if (_sbState.idx > 0) window._sbGoTo(_sbState.idx - 1);
+  const n = _sbState.spells.length;
+  if (!n) return;
+  window._sbGoTo((_sbState.idx - 1 + n) % n);
 };
 window._sbNext = function() {
-  if (_sbState.idx < _sbState.spells.length - 1) window._sbGoTo(_sbState.idx + 1);
+  const n = _sbState.spells.length;
+  if (!n) return;
+  window._sbGoTo((_sbState.idx + 1) % n);
 };
 
 // Flashy dice roll overlay
@@ -2162,14 +2161,6 @@ function _sbRender() {
       contentEl.scrollTop = 0;
     }
   }
-
-  // ── Nav ──
-  const counter = document.getElementById('sb-nav-counter');
-  if (counter) counter.textContent = `${_sbState.idx + 1} / ${_sbState.spells.length}`;
-  const prevBtn = document.getElementById('sb-prev-btn');
-  if (prevBtn) prevBtn.disabled = _sbState.idx === 0;
-  const nextBtn = document.getElementById('sb-next-btn');
-  if (nextBtn) nextBtn.disabled = _sbState.idx === _sbState.spells.length - 1;
 
   // ── TOC ──
   _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
