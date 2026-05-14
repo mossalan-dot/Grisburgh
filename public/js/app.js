@@ -1693,6 +1693,33 @@ const _sbState = {
   slots: {},       // { 1: { max: 3, used: 1 }, ... }
 };
 const _sbDescCache = new Map(); // spell.index → fetched desc string
+let   _sbFlipping  = false;    // prevent overlapping flip animations
+
+// Dutch translations for common D&D metadata values
+function _sbNl(s) {
+  if (!s) return s;
+  return String(s)
+    .replace(/\bInstantaneous\b/gi, 'Onmiddellijk')
+    .replace(/\bConcentration,\s*/gi, 'Concentratie, ')
+    .replace(/\bConcentration\b/gi, 'Concentratie')
+    .replace(/\bup to\b/gi, 'tot')
+    .replace(/\b1 action\b/gi, '1 actie')
+    .replace(/\b1 bonus action\b/gi, '1 bonusactie')
+    .replace(/\b1 reaction\b/gi, '1 reactie')
+    .replace(/\bTouch\b/gi, 'Aanraking')
+    .replace(/\bSelf\b/gi, 'Zichzelf')
+    .replace(/\bSpecial\b/gi, 'Speciaal')
+    .replace(/\bUntil dispelled\b/gi, 'Tot verwijdering')
+    .replace(/\b1 minute\b/gi, '1 minuut')
+    .replace(/\b(\d+) minutes\b/gi, (_, n) => `${n} minuten`)
+    .replace(/\b1 hour\b/gi, '1 uur')
+    .replace(/\b(\d+) hours\b/gi, (_, n) => `${n} uur`)
+    .replace(/\b1 round\b/gi, '1 ronde')
+    .replace(/\b(\d+) rounds\b/gi, (_, n) => `${n} rondes`)
+    .replace(/\b1 day\b/gi, '1 dag')
+    .replace(/\bVSM\b/g, 'V, S, M')
+    .trim();
+}
 
 function _sbSchoolKey(school) {
   if (!school) return null;
@@ -1739,6 +1766,8 @@ function _ensureSpellbookOverlay() {
         <img class="sb-left-img" id="sb-left-img" style="display:none" alt="">
         <!-- School icon, center -->
         <div class="sb-left-icon" id="sb-left-icon"></div>
+        <!-- Damage pill (clickable dice roll) -->
+        <div class="sb-left-damage" id="sb-left-damage"></div>
         <!-- Spell slot pips (level ≥ 1) -->
         <div class="sb-slot-zone" id="sb-slot-zone"></div>
         <!-- School + Level labels -->
@@ -1818,23 +1847,41 @@ window._closeSpellbook = function() {
 
 window._sbGoTo = function(idx, closeToc) {
   const newIdx = Math.max(0, Math.min(idx, _sbState.spells.length - 1));
-  const book = document.getElementById('sb-book');
-  if (book && newIdx !== _sbState.idx) {
-    book.classList.add('sb-animating');
-    setTimeout(() => {
-      _sbState.idx = newIdx;
-      _sbRender();
-      book.classList.remove('sb-animating');
-    }, 160);
-  } else {
-    _sbState.idx = newIdx;
-    _sbRender();
-  }
   if (closeToc) {
     _sbState.tocOpen = false;
     const toc = document.getElementById('sb-toc-panel');
     if (toc) toc.classList.remove('sb-toc-open');
   }
+  if (newIdx === _sbState.idx) return;
+  if (_sbFlipping) return;
+
+  const book  = document.getElementById('sb-book');
+  const leftP = document.getElementById('sb-page-left');
+  const rightP = document.getElementById('sb-page-right');
+  if (!book || !leftP || !rightP) { _sbState.idx = newIdx; _sbRender(); return; }
+
+  _sbFlipping = true;
+  // Phase 1 — fold in toward spine (ease-in)
+  leftP.style.transition  = 'transform 0.22s ease-in, opacity 0.22s ease-in';
+  rightP.style.transition = 'transform 0.22s ease-in, opacity 0.22s ease-in';
+  book.classList.add('sb-folding');
+
+  setTimeout(() => {
+    // Update content while pages are folded shut (invisible)
+    _sbState.idx = newIdx;
+    _sbRender();
+    // Phase 2 — unfold out (ease-out)
+    leftP.style.transition  = 'transform 0.26s ease-out, opacity 0.26s ease-out';
+    rightP.style.transition = 'transform 0.26s ease-out, opacity 0.26s ease-out';
+    requestAnimationFrame(() => {
+      book.classList.remove('sb-folding');
+      setTimeout(() => {
+        leftP.style.transition  = '';
+        rightP.style.transition = '';
+        _sbFlipping = false;
+      }, 260);
+    });
+  }, 220);
 };
 
 window._sbPrev = function() {
@@ -1842,6 +1889,56 @@ window._sbPrev = function() {
 };
 window._sbNext = function() {
   if (_sbState.idx < _sbState.spells.length - 1) window._sbGoTo(_sbState.idx + 1);
+};
+
+// Flashy dice roll overlay
+window._sbFlashRoll = function(formula, spellName) {
+  const m = formula.match(/(\d+)d(\d+)([+-]\d+)?/i);
+  if (!m) return;
+  const num = parseInt(m[1]), die = parseInt(m[2]), mod = m[3] ? parseInt(m[3]) : 0;
+  let total = mod;
+  for (let i = 0; i < num; i++) total += Math.floor(Math.random() * die) + 1;
+
+  let el = document.getElementById('sb-dice-flash');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sb-dice-flash';
+    el.className = 'sb-dice-flash';
+    el.innerHTML = `<div class="sb-dice-card" id="sb-dice-card">
+      <div class="sb-dice-spell" id="sb-dice-spell"></div>
+      <div class="sb-dice-formula" id="sb-dice-formula2"></div>
+      <div class="sb-dice-result" id="sb-dice-result">—</div>
+      <div class="sb-dice-hint">tik om te sluiten</div>
+    </div>`;
+    document.body.appendChild(el);
+    el.addEventListener('click', () => el.classList.remove('active'));
+  }
+  document.getElementById('sb-dice-spell').textContent = spellName;
+  document.getElementById('sb-dice-formula2').textContent = formula;
+  const resEl = document.getElementById('sb-dice-result');
+  resEl.textContent = '—';
+
+  el.classList.add('active');
+
+  // Rolling animation — random numbers cycling then settle
+  let ticks = 0;
+  const interval = setInterval(() => {
+    let fake = mod;
+    for (let i = 0; i < num; i++) fake += Math.floor(Math.random() * die) + 1;
+    resEl.textContent = fake;
+    resEl.classList.toggle('rolling', ticks % 2 === 0);
+    if (++ticks >= 14) {
+      clearInterval(interval);
+      resEl.textContent = total;
+      resEl.classList.remove('rolling');
+      resEl.classList.add('settled');
+      setTimeout(() => resEl.classList.remove('settled'), 400);
+    }
+  }, 45);
+
+  // Auto-dismiss
+  clearTimeout(el._dismissTimer);
+  el._dismissTimer = setTimeout(() => el.classList.remove('active'), 3800);
 };
 
 window._sbTogglePin = async function() {
@@ -2005,6 +2102,16 @@ function _sbRender() {
   const iconEl_ = document.getElementById('sb-left-icon');
   if (iconEl_) { iconEl_.innerHTML = icon(sCfg.icon); iconEl_.style.opacity = ''; }
 
+  // ── Left: damage pill ──
+  const dmgEl = document.getElementById('sb-left-damage');
+  if (dmgEl) {
+    if (spell.damage) {
+      dmgEl.innerHTML = `<button class="spell-damage-pill${_damagePillMod(spell.damage)} sb-dmg-pill"
+        onclick="event.stopPropagation();window._sbFlashRoll('${escJS(spell.damage)}','${escJS(spell.name)}')"
+        title="Gooi ${escJS(spell.damage)}">${icon('dice',{cls:'icon-gi'})} ${esc(spell.damage)}</button>`;
+    } else { dmgEl.innerHTML = ''; }
+  }
+
   // ── Left: spell slots ──
   _sbRenderSlots();
 
@@ -2033,16 +2140,15 @@ function _sbRender() {
         .map(p => `<p>${_spellMd(p)}</p>`).join('');
 
       const metaRows = [
-        spell.casting_time ? ['Werptijd',    spell.casting_time] : null,
-        spell.range        ? ['Bereik',      spell.range]        : null,
-        spell.components   ? ['Componenten', spell.components]   : null,
-        spell.duration     ? ['Duur',        spell.duration]     : null,
+        spell.casting_time ? ['Werptijd',    _sbNl(spell.casting_time)] : null,
+        spell.range        ? ['Bereik',      _sbNl(spell.range)]        : null,
+        spell.components   ? ['Componenten', spell.components]          : null,
+        spell.duration     ? ['Duur',        _sbNl(spell.duration)]     : null,
       ].filter(Boolean);
 
       const badges = [
         spell.concentration ? `<span class="sb-badge sb-badge--conc">Concentratie</span>` : '',
         spell.ritual        ? `<span class="sb-badge sb-badge--ritual">Ritueel</span>`     : '',
-        spell.damage        ? `<span class="sb-badge sb-badge--damage">${esc(spell.damage)}</span>` : '',
       ].filter(Boolean).join('');
 
       contentEl.innerHTML = `
