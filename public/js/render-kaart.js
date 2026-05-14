@@ -1,7 +1,8 @@
-import { api } from './api.js';
+import { api } from './api.js?v=2';
 
-const isDM = () => window.app.isDM();
-const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const isDM  = () => window.app.isDM();
+const icon  = (...a) => window.icon(...a);
+const esc   = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const ZOOM_STEP = 0.15;
 const ZOOM_MIN  = 0.2;
@@ -70,7 +71,7 @@ function _buildShell() {
   return `
     <div class="section-banner">
       <div class="section-banner-title">
-        <span>🗺️</span>
+        <span>${icon('map')}</span>
         <span>Kaarten</span>
         <span class="font-fell font-normal normal-case tracking-normal text-ink-faint text-xs italic ml-1">${esc(window.app?.state?.meta?.appTitle || 'De wereld')} op de kaart</span>
       </div>
@@ -79,23 +80,23 @@ function _buildShell() {
     <div class="flex-1 min-h-0 overflow-auto bg-room-bg flex flex-col items-center py-6 px-4" id="map-scroll">
       <div class="flex items-center gap-3 mb-4 flex-wrap justify-center">
         <button id="map-prev" class="map-nav-btn" title="Vorige kaart"
-          ${MAPS.length <= 1 ? 'disabled' : ''}>&#9664;</button>
+          ${MAPS.length <= 1 ? 'disabled' : ''}>${icon('chevron-left')}</button>
         <div class="flex items-center gap-1">
           <div class="font-cinzel font-bold text-gold text-lg tracking-widest min-w-[120px] text-center"
             id="map-title">${esc(MAPS[currentMapIdx].label)}</div>
           ${isDM() ? `
-            <button id="map-rename-btn" class="map-nav-btn text-[11px] px-1.5 w-auto rounded" title="Naam wijzigen">✎</button>
-            ${!MAPS[currentMapIdx].src ? `<button id="map-delete-btn" class="map-nav-btn text-[11px] px-1.5 w-auto rounded text-seal hover:bg-seal/20" title="Kaart verwijderen">✕</button>` : ''}
+            <button id="map-rename-btn" class="map-nav-btn px-1.5 w-auto rounded" title="Naam wijzigen">${icon('pencil')}</button>
+            ${!MAPS[currentMapIdx].src ? `<button id="map-delete-btn" class="map-nav-btn px-1.5 w-auto rounded text-seal hover:bg-seal/20" title="Kaart verwijderen">${icon('trash')}</button>` : ''}
           ` : ''}
         </div>
         <button id="map-next" class="map-nav-btn" title="Volgende kaart"
-          ${MAPS.length <= 1 ? 'disabled' : ''}>&#9654;</button>
+          ${MAPS.length <= 1 ? 'disabled' : ''}>${icon('chevron-right')}</button>
         <div class="w-px h-5 bg-room-border mx-1"></div>
-        <button id="map-zoom-out" class="map-nav-btn" title="Uitzoomen">−</button>
+        <button id="map-zoom-out" class="map-nav-btn" title="Uitzoomen">${icon('minus')}</button>
         <span id="map-zoom-label" class="text-xs font-mono text-ink-dim w-10 text-center">—</span>
-        <button id="map-zoom-in"  class="map-nav-btn" title="Inzoomen">+</button>
-        <button id="map-zoom-fit" class="map-nav-btn text-[11px] px-2 w-auto rounded-md" title="Passend maken">⊡</button>
-        ${isDM() ? `<button id="map-add-btn" class="map-nav-btn text-[11px] px-2 w-auto rounded-md text-gold border-gold/30" title="Kaart toevoegen">+ Kaart</button>` : ''}
+        <button id="map-zoom-in"  class="map-nav-btn" title="Inzoomen">${icon('plus')}</button>
+        <button id="map-zoom-fit" class="map-nav-btn px-2 w-auto rounded-md" title="Passend maken">${icon('maximize-2')}</button>
+        ${isDM() ? `<button id="map-add-btn" class="map-nav-btn px-2 w-auto rounded-md text-gold border-gold/30" title="Kaart toevoegen">${icon('plus')} Kaart</button>` : ''}
       </div>
       <div id="map-area" class="flex flex-col items-center w-full shrink-0 overflow-hidden"></div>
     </div>`;
@@ -328,7 +329,7 @@ function _renderPins() {
     const isVague  = vis === 'vague';
     const isHidden = vis === 'hidden';
     const label    = (isVague && !isPending) ? '?' : esc(pin.locName || loc.name || '');
-    const icon     = (isVague && !isPending) ? '?' : (loc.data?.icon || '🏰');
+    const _pinIcon  = (isVague && !isPending) ? '?' : (loc.data?.icon || icon('castle',{cls:'icon-gi'}));
 
     let extraClass = '';
     if (isVague)   extraClass += ' map-pin-vague';
@@ -343,9 +344,9 @@ function _renderPins() {
 
     const actions = isDM()
       ? (isPending
-          ? `<button class="pin-approve" onclick="event.stopPropagation();window._approveMapPin('${pin.id}')" title="Goedkeuren">✓</button>
-             <button class="pin-delete"  onclick="event.stopPropagation();window._deleteMapPin('${pin.id}')"  title="Afwijzen">✕</button>`
-          : `<button class="pin-delete"  onclick="event.stopPropagation();window._deleteMapPin('${pin.id}')"  title="Pin verwijderen">✕</button>`)
+          ? `<button class="pin-approve" onclick="event.stopPropagation();window._approveMapPin('${pin.id}')" title="Goedkeuren">${icon('check')}</button>
+             <button class="pin-delete"  onclick="event.stopPropagation();window._deleteMapPin('${pin.id}')"  title="Afwijzen">${icon('x')}</button>`
+          : `<button class="pin-delete"  onclick="event.stopPropagation();window._deleteMapPin('${pin.id}')"  title="Pin verwijderen">${icon('x')}</button>`)
       : '';
 
     return `
@@ -354,7 +355,7 @@ function _renderPins() {
         data-pin-id="${pin.id}" data-loc-id="${pin.locId}"
         data-pending="${isPending}" data-own-pending="${isOwnPending}"
         ${titleAttr}>
-        <div class="pin-icon">${icon}</div>
+        <div class="pin-icon">${_pinIcon}</div>
         <div class="pin-needle"></div>
         <div class="pin-label">${label}</div>
         ${actions}
@@ -452,7 +453,7 @@ function _openPinPlacer(x, y, clientX, clientY) {
   popup.className = 'pin-placer-popup';
   popup.style.cssText = `left:${left}px;top:${top}px`;
   popup.innerHTML = `
-    <div class="text-[11px] font-cinzel text-gold uppercase tracking-wide mb-2">📍 Locatie koppelen</div>
+    <div class="text-[11px] font-cinzel text-gold uppercase tracking-wide mb-2">${icon('map-pin')} Locatie koppelen</div>
     <input id="pin-loc-search" type="text" placeholder="Zoeken…"
       class="w-full text-sm bg-room-bg border border-room-border rounded px-2 py-1 text-ink-bright mb-1 focus:border-gold-dim focus:outline-none">
     <select id="pin-loc-select" size="4"
@@ -461,9 +462,9 @@ function _openPinPlacer(x, y, clientX, clientY) {
     </select>
     <div class="flex gap-2">
       <button id="pin-confirm"
-        class="flex-1 text-xs bg-gold/20 hover:bg-gold/30 text-gold border border-gold/30 rounded px-2 py-1 transition" title="Plaatsen">📌</button>
+        class="flex-1 text-xs bg-gold/20 hover:bg-gold/30 text-gold border border-gold/30 rounded px-2 py-1 transition" title="Plaatsen">${icon('pin')}</button>
       <button id="pin-cancel"
-        class="flex-1 text-xs text-ink-dim hover:bg-room-border rounded px-2 py-1 transition" title="Annuleren">✕</button>
+        class="flex-1 text-xs text-ink-dim hover:bg-room-border rounded px-2 py-1 transition" title="Annuleren">${icon('x')}</button>
     </div>`;
   document.body.appendChild(popup);
 
@@ -538,7 +539,7 @@ function _openPlayerPinPlacer(x, y, clientX, clientY) {
   popup.className = 'pin-placer-popup';
   popup.style.cssText = `left:${left}px;top:${top}px`;
   popup.innerHTML = `
-    <div class="text-[11px] font-cinzel text-gold uppercase tracking-wide mb-2">📍 Locatie voorstellen</div>
+    <div class="text-[11px] font-cinzel text-gold uppercase tracking-wide mb-2">${icon('map-pin')} Locatie voorstellen</div>
     <input id="pin-loc-search" type="text" placeholder="Zoeken…"
       class="w-full text-sm bg-room-bg border border-room-border rounded px-2 py-1 text-ink-bright mb-1 focus:border-gold-dim focus:outline-none">
     <select id="pin-loc-select" size="4"
@@ -547,9 +548,9 @@ function _openPlayerPinPlacer(x, y, clientX, clientY) {
     </select>
     <div class="flex gap-2">
       <button id="pin-confirm"
-        class="flex-1 text-xs bg-gold/20 hover:bg-gold/30 text-gold border border-gold/30 rounded px-2 py-1 transition" title="Voorstellen">📌</button>
+        class="flex-1 text-xs bg-gold/20 hover:bg-gold/30 text-gold border border-gold/30 rounded px-2 py-1 transition" title="Voorstellen">${icon('pin')}</button>
       <button id="pin-cancel"
-        class="flex-1 text-xs text-ink-dim hover:bg-room-border rounded px-2 py-1 transition" title="Annuleren">✕</button>
+        class="flex-1 text-xs text-ink-dim hover:bg-room-border rounded px-2 py-1 transition" title="Annuleren">${icon('x')}</button>
     </div>`;
   document.body.appendChild(popup);
 
@@ -645,7 +646,7 @@ function _openMapAdder() {
   popup.className = 'pin-placer-popup';
   popup.style.cssText = 'left:50%;top:50%;transform:translate(-50%,-50%);width:280px';
   popup.innerHTML = `
-    <div class="text-[11px] font-cinzel text-gold uppercase tracking-wide mb-2">🗺️ Nieuwe kaart</div>
+    <div class="text-[11px] font-cinzel text-gold uppercase tracking-wide mb-2">${icon('map')} Nieuwe kaart</div>
     <div class="space-y-2">
       <div>
         <label class="text-[10px] text-ink-faint uppercase">Naam</label>
@@ -655,7 +656,7 @@ function _openMapAdder() {
       <div>
         <label class="text-[10px] text-ink-faint uppercase">Afbeelding</label>
         <label class="flex items-center gap-2 mt-1 px-2 py-1.5 bg-room-elevated border border-room-border rounded cursor-pointer hover:border-gold-dim transition text-sm text-ink-dim">
-          📂 <span id="map-add-file-name">Kies bestand…</span>
+          ${icon('folder-open')} <span id="map-add-file-name">Kies bestand…</span>
           <input id="map-add-file" type="file" accept="image/*" class="hidden">
         </label>
       </div>

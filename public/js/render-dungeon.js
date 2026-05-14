@@ -10,17 +10,19 @@
  *   • Party-toegang (3-state: Geen / Actief / Uitgespeeld)
  */
 
-import { api } from './api.js';
+import { api } from './api.js?v=2';
+
+const icon = (...a) => window.icon(...a);
 
 const isDM  = () => window.app?.isDM?.();
 const esc   = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const uid   = () => 'r_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 
 const COND_TYPES = [
-  { id: 'enemies',  icon: '☠️', label: 'Vijanden'    },
-  { id: 'loot',     icon: '💰', label: 'Buit'        },
-  { id: 'locked',   icon: '🔒', label: 'Vergrendeld' },
-  { id: 'cleared',  icon: '✓',  label: 'Uitgewist'   },
+  { id: 'enemies',  icon: '☠️', svgName: 'skull',    label: 'Vijanden'    },
+  { id: 'loot',     icon: '💰', svgName: 'coins',    label: 'Buit'        },
+  { id: 'locked',   icon: '🔒', svgName: 'lock',     label: 'Vergrendeld' },
+  { id: 'cleared',  icon: '✓',  svgName: 'check',    label: 'Uitgewist'   },
 ];
 
 // ── State ──
@@ -65,7 +67,7 @@ function _buildShell() {
           ` : '<span class="dng-map-select-empty">Geen dungeon maps</span>'}
           ${isDM() ? `
             <button class="dng-btn dng-btn-sm" id="dng-new-btn">+ Nieuw</button>
-            ${_maps.length ? `<button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-delete-btn">✕</button>` : ''}
+            ${_maps.length ? `<button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-delete-btn">${icon('x')}</button>` : ''}
           ` : ''}
           ${isDM() && _maps.length ? `
             <span class="dng-reveal-chip" id="dng-reveal-count"></span>
@@ -73,10 +75,10 @@ function _buildShell() {
         </div>
         ${isDM() && _maps.length ? `
         <div class="dng-tools" id="dng-tools">
-          <button class="dng-tool-btn active" data-tool="select" title="Selecteren">↖</button>
-          <button class="dng-tool-btn" data-tool="rect"   title="Rechthoek tekenen">▭</button>
-          <button class="dng-tool-btn" data-tool="poly"   title="Polygoon tekenen">⬠</button>
-          <button class="dng-tool-btn" data-tool="conn"   title="Verbinding tekenen">↔</button>
+          <button class="dng-tool-btn active" data-tool="select" title="Selecteren">${icon('mouse-pointer-2')}</button>
+          <button class="dng-tool-btn" data-tool="rect"   title="Rechthoek tekenen">${icon('square')}</button>
+          <button class="dng-tool-btn" data-tool="poly"   title="Polygoon tekenen">${icon('hexagon')}</button>
+          <button class="dng-tool-btn" data-tool="conn"   title="Verbinding tekenen">${icon('link')}</button>
           <span class="dng-tool-hint" id="dng-tool-hint"></span>
           <div class="dng-tool-sep"></div>
           <button class="dng-btn dng-btn-sm" id="dng-party-btn">Party-toegang</button>
@@ -706,7 +708,7 @@ function _renderSidebar(room) {
   const condToggleHtml = COND_TYPES.map(ct => {
     const has = conditions.some(c => c.type === ct.id);
     return `<button class="dng-cond-btn${has?' dng-cond-btn--on':''}"
-      data-ctype="${ct.id}" title="${ct.label}">${ct.icon}</button>`;
+      data-ctype="${ct.id}" title="${ct.label}">${icon(ct.svgName)}</button>`;
   }).join('');
 
   // ── Actieve conditie-rijen ──
@@ -715,11 +717,11 @@ function _renderSidebar(room) {
       ${conditions.map(c => {
         const ct = COND_TYPES.find(t => t.id === c.type);
         return `<div class="dng-cond-row">
-          <span class="dng-cond-row-icon">${ct?.icon || '?'}</span>
+          <span class="dng-cond-row-icon">${ct ? icon(ct.svgName) : '?'}</span>
           <button class="dng-cond-vis-btn${c.visible?' dng-cond-vis-btn--on':''}" data-cid="${esc(c.id)}">
-            ${c.visible ? '👁 Zichtbaar' : '○ Verborgen'}
+            ${c.visible ? icon('eye')+' Zichtbaar' : icon('eye-off')+' Verborgen'}
           </button>
-          <button class="dng-cond-del-btn" data-cid="${esc(c.id)}" title="Verwijderen">✕</button>
+          <button class="dng-cond-del-btn" data-cid="${esc(c.id)}" title="Verwijderen">${icon('x')}</button>
         </div>`;
       }).join('')}
     </div>` : '';
@@ -732,9 +734,9 @@ function _renderSidebar(room) {
         const otherId = c.fromId === room.id ? c.toId : c.fromId;
         const other   = (map.rooms || []).find(r => r.id === otherId);
         return `<div class="dng-conn-row">
-          <span class="dng-conn-row-name">↔ ${esc(other?.name || '?')}</span>
+          <span class="dng-conn-row-name">${icon('link')} ${esc(other?.name || '?')}</span>
           <button class="dng-btn dng-btn-sm dng-btn-danger dng-del-conn-btn"
-            data-connid="${esc(c.id)}" title="Verbinding verwijderen">✕</button>
+            data-connid="${esc(c.id)}" title="Verbinding verwijderen">${icon('x')}</button>
         </div>`;
       }).join('')}
     </div>` : '';
@@ -742,16 +744,18 @@ function _renderSidebar(room) {
   sb.innerHTML = `
     <div class="dng-sb-detail-card">
       <div class="dng-sb-name">${esc(room.name)}</div>
-      <div class="dng-sb-shape">${room.shape === 'rect' ? '▭ Rechthoek' : '⬠ Polygoon'}</div>
+      <div class="dng-sb-shape">${room.shape === 'rect' ? icon('square')+' Rechthoek' : icon('hexagon')+' Polygoon'}</div>
       ${room.dmNotes ? `<div class="dng-sb-notes">${esc(room.dmNotes).replace(/\n/g,'<br>')}</div>` : ''}
       <div class="dng-sb-actions">
         ${!isRev ? `
           <button class="dng-btn dng-btn-reveal" id="dng-reveal-btn">
-            👁 Onthul voor ${esc(groupId)}
+            ${icon('eye')} Onthul voor ${esc(groupId)}
           </button>` : `
-          <div class="dng-sb-revealed">✓ Onthuld voor ${esc(groupId)}</div>`}
-        <button class="dng-btn dng-btn-sm" id="dng-edit-room-btn">✎ Bewerken</button>
-        <button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-delete-room-btn">🗑 Verwijderen</button>
+          <button class="dng-btn dng-btn-hide" id="dng-hide-btn">
+            ${icon('moon')} Verberg voor ${esc(groupId)}
+          </button>`}
+        <button class="dng-btn dng-btn-sm" id="dng-edit-room-btn">${icon('pencil')} Bewerken</button>
+        <button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-delete-room-btn">${icon('trash')} Verwijderen</button>
       </div>
       <div class="dng-sb-section">
         <div class="dng-sb-section-hdr">Symbolen</div>
@@ -767,6 +771,16 @@ function _renderSidebar(room) {
     if (!map.reveals) map.reveals = {};
     if (!map.reveals[groupId]) map.reveals[groupId] = [];
     map.reveals[groupId].push(room.id);
+    _renderSvg();
+    _renderSidebar(room);
+    _renderRoomList();
+  });
+
+  document.getElementById('dng-hide-btn')?.addEventListener('click', async () => {
+    await api.hideDungeonRoom(map.id, { roomId: room.id, groupId });
+    if (map.reveals?.[groupId]) {
+      map.reveals[groupId] = map.reveals[groupId].filter(id => id !== room.id);
+    }
     _renderSvg();
     _renderSidebar(room);
     _renderRoomList();
@@ -869,23 +883,25 @@ function _renderRoomList() {
       ? (r.conditions || []).map(c => {
           const ct = COND_TYPES.find(t => t.id === c.type);
           return `<span class="dng-sb-cond-icon${!c.visible ? ' dng-sb-cond-icon--hidden' : ''}"
-            title="${ct?.label || ''}">${ct?.icon || '?'}</span>`;
+            title="${ct?.label || ''}">${ct ? icon(ct.svgName) : '?'}</span>`;
         }).join('')
       : '';
     return `<div class="dng-sb-li${isSel ? ' dng-sb-li--sel' : ''}" data-rid="${esc(r.id)}">
       <span class="dng-sb-li-dot${isRev ? ' dng-sb-li-dot--rev' : ''}">
-        ${isRev ? '✓' : '○'}
+        ${isRev ? icon('check-circle') : '<span class="dng-sb-dot-empty">○</span>'}
       </span>
       <span class="dng-sb-li-name">${esc(r.name)}</span>
       ${condIcons ? `<span class="dng-sb-li-conds">${condIcons}</span>` : ''}
-      ${!isRev ? `<button class="dng-sb-quick-reveal" data-rid="${esc(r.id)}" title="Onthul kamer">👁</button>` : ''}
+      ${!isRev
+        ? `<button class="dng-sb-quick-reveal" data-rid="${esc(r.id)}" title="Onthul kamer">${icon('eye')}</button>`
+        : `<button class="dng-sb-quick-hide"   data-rid="${esc(r.id)}" title="Verberg kamer">${icon('moon')}</button>`}
     </div>`;
   }).join('');
 
   // Klik op rij → selecteer kamer + inzoomen (Feature 1 + 4)
   listEl.querySelectorAll('.dng-sb-li').forEach(row => {
     row.addEventListener('click', e => {
-      if (e.target.closest('.dng-sb-quick-reveal')) return;
+      if (e.target.closest('.dng-sb-quick-reveal') || e.target.closest('.dng-sb-quick-hide')) return;
       const room = map.rooms.find(r => r.id === row.dataset.rid);
       if (!room) return;
       _selectedRoom = room.id;
@@ -907,6 +923,23 @@ function _renderRoomList() {
       if (!map.reveals) map.reveals = {};
       if (!map.reveals[groupId]) map.reveals[groupId] = [];
       map.reveals[groupId].push(roomId);
+      _renderSvg();
+      _renderRoomList();
+      if (_selectedRoom === roomId) _renderSidebar(room);
+    });
+  });
+
+  // Snelverbergknoppen
+  listEl.querySelectorAll('.dng-sb-quick-hide').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const roomId = btn.dataset.rid;
+      const room   = map.rooms.find(r => r.id === roomId);
+      if (!room) return;
+      await api.hideDungeonRoom(map.id, { roomId, groupId });
+      if (map.reveals?.[groupId]) {
+        map.reveals[groupId] = map.reveals[groupId].filter(id => id !== roomId);
+      }
       _renderSvg();
       _renderRoomList();
       if (_selectedRoom === roomId) _renderSidebar(room);
@@ -1057,9 +1090,9 @@ async function _openPartyAccessDialog() {
               <button class="dng-state-btn${s==='none'?' dng-state-btn--on':''}" data-state="none"
                 title="Geen toegang">Geen</button>
               <button class="dng-state-btn${s==='active'?' dng-state-btn--on':''}" data-state="active"
-                title="Fog-of-war actief">👁 Actief</button>
+                title="Fog-of-war actief">${icon('eye')} Actief</button>
               <button class="dng-state-btn${s==='completed'?' dng-state-btn--on':''}" data-state="completed"
-                title="Dungeon uitgespeeld — volledige kaart zichtbaar">✓ Uitgespeeld</button>
+                title="Dungeon uitgespeeld — volledige kaart zichtbaar">${icon('check')} Uitgespeeld</button>
             </div>
           </div>`;
         }).join('')}

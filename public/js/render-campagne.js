@@ -1,9 +1,73 @@
-import { api } from './api.js';
+import { api } from './api.js?v=2';
+
+const icon = (...a) => window.icon(...a);
 
 const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 
+// ── Wapeneigenschappen (2024 PHB) ──
+const WEAPON_PROPERTIES = {
+  'Ammunition': 'You can make a ranged attack with this weapon only if you have ammunition to fire from it. Each attack expends one piece of ammunition. You can recover half your expended ammunition by taking a minute to search the battlefield.',
+  'Cleave':     'If you hit a creature with a melee attack using this weapon, you can make one extra melee attack against a second creature within 5 feet of the first that is also within your reach. On this extra attack, use the same ability modifier as the primary attack but don\'t add your ability modifier to the damage roll unless that modifier is negative.',
+  'Finesse':    'When making an attack with a Finesse weapon, you use your choice of your Strength or Dexterity modifier for the attack and damage rolls. You must use the same modifier for both rolls.',
+  'Graze':      'If your attack roll with this weapon misses a creature, you can deal damage to that creature equal to the ability modifier you used for the attack roll. This damage is the same type dealt by the weapon and can\'t be increased in any way.',
+  'Heavy':      'You have Disadvantage on attack rolls with a Heavy weapon if it\'s a Small or Tiny creature.',
+  'Light':      'When you take the Attack action and attack with a Light weapon, you can make one extra attack as a Bonus Action later on the same turn with a different Light weapon. You don\'t add your ability modifier to the extra attack\'s damage roll unless that modifier is negative.',
+  'Loading':    'You can fire only one piece of ammunition from a Loading weapon when you use an action, a Bonus Action, or a Reaction to fire it, regardless of the number of attacks you can normally make.',
+  'Nick':       'When you make the extra attack of the Light property, you can make it as part of the Attack action instead of as a Bonus Action. You can make this extra attack only once per turn.',
+  'Push':       'If you hit a creature with this weapon, you can push the creature up to 10 feet straight away from yourself if it is Large or smaller.',
+  'Range':      'A Range weapon can be used to make a ranged attack only if the target is within the weapon\'s normal range, or at Disadvantage if it is within the weapon\'s long range. Targets beyond long range can\'t be attacked.',
+  'Reach':      'This weapon adds 5 feet to your reach when you attack with it, as well as when determining your reach for Opportunity Attacks.',
+  'Sap':        'If you hit a creature with this weapon, that creature has Disadvantage on its next attack roll before the start of your next turn.',
+  'Slow':       'If you hit a creature with this weapon and deal damage to it, you can reduce that creature\'s Speed by 10 feet until the start of your next turn.',
+  'Special':    'A Special weapon has an unusual rule that is described in its entry in the weapons table.',
+  'Thrown':     'If a weapon has the Thrown property, you can throw the weapon to make a ranged attack, and you can draw that weapon as part of the attack. If the weapon is a melee weapon, use the same ability modifier for the attack and damage rolls that you\'d use for a melee attack with it.',
+  'Topple':     'If you hit a creature with this weapon, you can force the creature to make a Constitution saving throw (DC 8 plus the ability modifier used to make the attack roll and your Proficiency Bonus). On a failed save, the creature has the Prone condition.',
+  'Two-Handed': 'This weapon requires two hands when you attack with it. This property is relevant only when you attack with the weapon, not when you simply hold it.',
+  'Versatile':  'A Versatile weapon can be used with one or two hands. A damage value in parentheses appears with the property — the damage when the weapon is used with two hands to make a melee attack.',
+  'Vex':        'If you hit a creature with this weapon and deal damage to it, you have Advantage on your next attack roll against that creature before the end of your next turn.',
+};
+
+// Eigenschappen die optioneel extra tekst tussen haakjes krijgen (bijv. "Range (30/120)")
+const PARAMETERIZABLE_PROPS = new Set(['Range', 'Versatile', 'Thrown', 'Ammunition']);
+
+// ── Armor AC berekening ──
+// dexMod = null → DM-formule weergave; getal → spelersweergave met echte modifier
+function _calcArmorAC(d, dexMod) {
+  const type = (d?.armorType || '').toLowerCase();
+  const base = parseInt(d?.armorBaseAC);
+  if (!type || isNaN(base)) return null;
+
+  if (type === 'shield') {
+    return {
+      pill: '+' + base + ' AC',
+      tooltip: 'Shield: adds +' + base + ' to your Armor Class. You must wield it in one hand to gain this benefit.'
+    };
+  }
+
+  let cap; // null = unlimited, 0 = none, number = max
+  if      (type === 'light')  cap = null;
+  else if (type === 'medium') cap = 2;
+  else if (type === 'heavy')  cap = 0;
+  else { const c = parseInt(d?.armorDexCap); cap = isNaN(c) ? null : c; }
+
+  if (dexMod !== null && dexMod !== undefined) {
+    const contrib = (cap === null) ? dexMod : Math.min(dexMod, cap);
+    const total   = base + contrib;
+    const parts   = [base + ' base'];
+    if (cap !== 0) {
+      const sign = contrib >= 0 ? '+' + contrib : '' + contrib;
+      parts.push(sign + ' Dex' + (cap !== null && dexMod > cap ? ' (max +' + cap + ')' : ''));
+    }
+    return { pill: 'AC ' + total, tooltip: 'Armor Class: ' + total + ' (' + parts.join(' ') + ').' };
+  } else {
+    if (cap === 0)    return { pill: 'AC ' + base,        tooltip: 'Armor Class: ' + base + '. Heavy armor — no Dexterity modifier applied.' };
+    if (cap === null) return { pill: 'AC ' + base + '+Dex', tooltip: 'Armor Class: ' + base + ' + your full Dexterity modifier.' };
+    return { pill: 'AC ' + base + '+Dex', tooltip: 'Armor Class: ' + base + ' + your Dexterity modifier (maximum +' + cap + ').' };
+  }
+}
+
 // ── Eigendomsstatus voorwerpen (module-level, bijgewerkt via socket) ──
-let _ownership = { owners: {}, requests: [], tradeAllowed: true, stapelbaar: new Set() };
+let _ownership = { owners: {}, requests: [], tradeAllowed: true, stapelbaar: new Set(), gedeeld: new Set() };
 
 // ── Subtype-filter per sectie ──
 const subtypeFilters = {};
@@ -48,6 +112,7 @@ export async function refreshOwnership() {
     _ownership.requests    = data.requests    || [];
     _ownership.tradeAllowed = data.tradeAllowed !== false;
     _ownership.stapelbaar  = new Set(data.stapelbaar || []);
+    _ownership.gedeeld     = new Set(data.gedeeld    || []);
   } catch { /* ok */ }
 }
 
@@ -56,14 +121,15 @@ export function setOwnership(data) {
   if (data.requests    !== undefined) _ownership.requests    = data.requests;
   if (data.tradeAllowed !== undefined) _ownership.tradeAllowed = data.tradeAllowed;
   if (data.stapelbaar  !== undefined) _ownership.stapelbaar  = new Set(data.stapelbaar || []);
+  if (data.gedeeld     !== undefined) _ownership.gedeeld     = new Set(data.gedeeld    || []);
 }
 // Expose op window zodat socket-client.js altijd de correcte module-instantie gebruikt
 window._setOwnership = setOwnership;
 const TYPE_META = {
-  personages:    { icon: '\ud83d\udc64', label: 'Personages', color: 'green-wax', chip: 'chip-npc' },
-  locaties:      { icon: '\ud83c\udff0', label: 'Locaties', color: 'blue-ink', chip: 'chip-loc' },
-  organisaties:  { icon: '\ud83c\udfdb\ufe0f', label: 'Organisaties', color: 'seal', chip: 'chip-org' },
-  voorwerpen:    { icon: '🎺', label: 'Voorwerpen', color: 'orange', chip: 'chip-item' },
+  personages:   { icon: '\ud83d\udc64', get svgIcon() { return icon('user'); },                    label: 'Personages',   color: 'green-wax', chip: 'chip-npc' },
+  locaties:     { icon: '\ud83c\udff0', get svgIcon() { return icon('castle', {cls:'icon-gi'}); }, label: 'Locaties',     color: 'blue-ink',  chip: 'chip-loc' },
+  organisaties: { icon: '\ud83c\udfdb\ufe0f', get svgIcon() { return icon('landmark'); },         label: 'Organisaties', color: 'seal',      chip: 'chip-org' },
+  voorwerpen:   { icon: '🎺',              get svgIcon() { return icon('package'); },                label: 'Voorwerpen',   color: 'orange',    chip: 'chip-item' },
 };
 
 const SCHEMA = {
@@ -103,7 +169,11 @@ const SCHEMA = {
       { key: 'rariteit', label: 'Rarity', type: 'select', options: ['Common','Uncommon','Rare','Very Rare','Legendary'] },
       { key: 'prijs', label: 'Prijs', type: 'text' },
       { key: 'attunement', label: 'Requires attunement', type: 'checkbox' },
-      { key: 'stapelbaar', label: 'Stapelbaar (meerdere exemplaren)', type: 'checkbox' },
+      { key: 'gebruik', label: 'Gebruik', type: 'select', options: [
+        { value: 'uniek',      label: 'Uniek — één speler heeft het voorwerp' },
+        { value: 'gedeeld',    label: 'Gedeeld — meerdere spelers, elk 1 exemplaar' },
+        { value: 'stapelbaar', label: 'Stapelbaar — meerdere spelers, meerdere exemplaren' },
+      ]},
       { key: '_chargesToggle', label: 'Heeft charges', type: 'reveal-toggle' },
       { key: 'maxCharges', label: 'Max. charges', type: 'text', inReveal: '_chargesToggle' },
       { key: 'rechargeOn', label: 'Herlaadt bij', type: 'select', inReveal: '_chargesToggle', options: [
@@ -114,6 +184,23 @@ const SCHEMA = {
       ]},
       { key: 'rechargeRoll', label: 'Dobbelformule (bijv. 1d3)', type: 'text', inReveal: '_chargesToggle' },
       { key: 'playerMaxAdjustable', label: 'Max. door spelers in te stellen', type: 'checkbox', inReveal: '_chargesToggle' },
+      { key: 'damage', label: 'Schade / Genezing (bijv. 1d8+1 Slashing)', type: 'text', showFor: ['Weapon', 'Wapen'] },
+      { key: 'weaponProperties', label: 'Wapeneigenschappen', type: 'weapon-tags', showFor: ['Weapon', 'Wapen'] },
+      { key: 'armorType', label: 'Harnas type', type: 'select', showFor: ['Armor', 'Shield'], options: [
+        { value: 'light',  label: 'Light — volledig Dex' },
+        { value: 'medium', label: 'Medium — Dex max +2' },
+        { value: 'heavy',  label: 'Heavy — geen Dex' },
+        { value: 'shield', label: 'Shield — bonus op bestaande AC' },
+        { value: 'other',  label: 'Other — zie Dex cap' },
+      ]},
+      { key: 'armorBaseAC', label: 'Base AC (of bonus voor Shield)', type: 'text', showFor: ['Armor', 'Shield'] },
+      { key: 'armorDexCap', label: 'Dex cap (alleen bij Other)', type: 'text', showFor: ['Armor', 'Shield'] },
+      { key: 'stealthDisadvantage', label: 'Stealth Disadvantage', type: 'checkbox', showFor: ['Armor', 'Shield'] },
+      { key: 'strengthRequirement', label: 'Strength Requirement', type: 'text', showFor: ['Armor', 'Shield'] },
+      { key: 'spellCastingTime', label: 'Casting Time', type: 'text', showFor: ['Scroll'] },
+      { key: 'spellRange',       label: 'Range',         type: 'text', showFor: ['Scroll'] },
+      { key: 'spellComponents',  label: 'Components',    type: 'text', showFor: ['Scroll'] },
+      { key: 'spellDuration',    label: 'Duration',      type: 'text', showFor: ['Scroll'] },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
     ],
@@ -123,84 +210,61 @@ const SCHEMA = {
 const LINK_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'archief'];
 const LINK_LABELS = { personages: 'Personages', locaties: 'Locaties', organisaties: 'Organisaties', voorwerpen: 'Voorwerpen', archief: 'Documenten' };
 
-// ── Auto-icons per subtype / type-field ──
-const AUTO_ICONS = {
-  personages: {
-    'NPC':        '\ud83d\udc65',
-    'speler':     '\u2694\ufe0f',
-    'antagonist': '\ud83d\udc80',
-    'god':        '\u2728',
-    'dier':       '\ud83d\udc3e',
-    'verkoper':   '\ud83c\udfec',
-  },
-  locaties: {
-    'Stadswijk':  '🗺️',
-    'Gebouw':     '🏛️',
-    'Herberg':    '🍺',
-    'Taveerne':   '🍻',
-    'Tempel':     '⛩️',
-    'Winkel':     '⚖️',
-    'Fort':       '🏰',
-    'Schip':      '⚓',
-    'Dorp':       '🏡',
-    'Stad':       '🌆',
-    'Woud':       '🌲',
-    'Berg':       '⛰️',
-    'Zee':        '🌊',
-    'Overig':     '📍',
-  },
-  organisaties: {
-    'Gilde':      '\u2692\ufe0f',
-    'Factie':     '\u2694\ufe0f',
-    'Religieus':  '\u269b\ufe0f',
-    'Politiek':   '\ud83d\udc51',
-    'Crimineel':  '\ud83d\udde1\ufe0f',
-    'Militair':   '\ud83d\udee1\ufe0f',
-    'Overig':     '\ud83d\udd39',
-  },
-  voorwerpen: {
-    'Weapon':     '⚔️', 'Wapen':     '⚔️',
-    'Magic Item': '🔮', 'Toveritem': '🔮',
-    'Potion':     '🧪', 'Drank':     '🧪',
-    'Armor':      '🛡️', 'Uitrusting':'🛡️',
-    'Scroll':     '📜',
-    'Ring':       '💍',
-    'Amulet':     '🗡️',
-    'Other':      '💎', 'Overig':    '💎',
-  },
-};
-
-// ── Icon picker emoji sets ──
-const ICON_SETS = {
-  locaties: [
-    '\ud83c\udfe0','\ud83c\udfe1','\ud83c\udfe3','\ud83c\udfe5','\ud83c\udfe6','\ud83c\udfe7','\ud83c\udfe8',
-    '\ud83c\udfe9','\ud83c\udfea','\ud83c\udfeb','\ud83c\udfec','\ud83c\udfed','\ud83c\udfaf',
-    '\ud83c\udfef','\ud83c\udff0','\ud83c\udfd7','\ud83c\udfdb','\ud83c\udfdf','\ud83c\udfd9',
-    '\ud83d\uddfb','\u26ea','\u26e9','\ud83d\udef0','\ud83d\udded','\ud83d\udeab','\ud83d\udee2',
-    '\ud83c\udf7a','\ud83c\udf7b','\ud83c\udf7d','\ud83d\udd6f','\ud83d\udccd','\ud83d\udea9',
-    '\ud83d\uddfa','\u26f5','\ud83d\udea2','\ud83d\udea4',
-    '\ud83c\udf0a','\ud83c\udfd4','\u26f0','\ud83c\udfd5','\ud83c\udfd6','\ud83c\udfdd','\ud83c\udfdc',
-    '\ud83c\udf32','\ud83c\udf33','\ud83c\udf35','\ud83c\udf0b','\ud83c\udf03','\ud83c\udfd9','\ud83c\udf09',
-    '\ud83d\udd11','\ud83d\udddd','\ud83d\udc8e','\ud83d\udd2e','\ud83c\udff9','\u2694\ufe0f','\ud83d\udee1',
-    '\ud83d\udc51','\ud83d\udd31','\u2728','\u2b50','\ud83d\udd25','\u2744','\ud83d\udca7','\u26a1','\ud83c\udf19',
-  ],
-  personages: [
-    '\ud83e\uddd9','\ud83e\udddd','\ud83e\uddb8','\ud83e\uddb9','\ud83e\udddb','\ud83e\udddf','\ud83e\udddc','\ud83e\uddda',
-    '\ud83e\udda0','\ud83d\udc80','\ud83d\udc64','\ud83d\udc65','\ud83e\udd35','\ud83e\uddd1','\ud83d\udc78','\ud83e\uddd1\u200d\u2696\ufe0f',
-    '\ud83d\udc51','\u2694\ufe0f','\ud83d\udde1','\ud83c\udff9','\ud83d\udee1','\ud83d\udd2e','\ud83d\udc8e','\u2728','\u2b50','\u2620\ufe0f','\ud83d\udc32',
-  ],
-  organisaties: [
-    '\ud83c\udfd9','\u269b\ufe0f','\u2694\ufe0f','\ud83d\udee1','\ud83d\uddc1','\ud83d\udc51','\u2764','\u2620\ufe0f',
-    '\u26ea','\ud83d\udef0','\u26e9','\ud83c\udfd7','\ud83d\udd31','\u2b50','\ud83d\udd2e','\ud83c\udff9',
-    '\ud83d\udca3','\ud83e\uddea','\ud83d\udc8e','\u2696\ufe0f','\ud83d\udcdc','\ud83d\udcb0','\ud83e\udd1d',
-  ],
-  voorwerpen: [
-    '\u2694\ufe0f','\ud83d\udee1','\ud83c\udff9','\ud83d\udde1','\ud83d\udd2e','\ud83d\udc8e','\ud83d\udc8d','\ud83d\udcdc',
-    '\ud83e\uddea','\ud83d\udddd','\ud83d\udd11','\ud83d\udc8a','\ud83c\udf7f','\ud83e\uddea','\ud83e\uddeb',
-    '\ud83d\udce6','\ud83d\udcb0','\ud83e\ude99','\u26b1','\ud83e\udea4','\ud83d\udd2e','\ud83e\ude84',
-    '\ud83d\udc52','\ud83d\udc60','\ud83d\udcf0','\u2b50','\u2728','\ud83d\udd25','\u2744',
-  ],
-};
+// ── Auto-icons per subtype / type-field (lazy SVG, avoids module-init timing issue) ──
+let _autoIconsCache = null;
+function _getAutoIconMap(type) {
+  if (!_autoIconsCache) {
+    _autoIconsCache = {
+      personages: {
+        'NPC':        icon('users'),
+        'speler':     icon('swords'),
+        'antagonist': icon('skull'),
+        'god':        icon('sparkles'),
+        'dier':       icon('paw-print'),
+        'verkoper':   icon('building'),
+      },
+      locaties: {
+        'Stadswijk':  icon('map'),
+        'Gebouw':     icon('landmark'),
+        'Herberg':    icon('beer'),
+        'Taveerne':   icon('beer'),
+        'Tempel':     icon('church'),
+        'Winkel':     icon('building'),
+        'Fort':       icon('castle', { cls: 'icon-gi' }),
+        'Schip':      icon('globe'),
+        'Dorp':       icon('house'),
+        'Stad':       icon('map'),
+        'Woud':       icon('tree-pine'),
+        'Berg':       icon('mountain'),
+        'Zee':        icon('globe'),
+        'Overig':     icon('map-pin'),
+      },
+      organisaties: {
+        'Gilde':      icon('swords'),
+        'Factie':     icon('swords'),
+        'Religieus':  icon('sparkles'),
+        'Politiek':   icon('landmark'),
+        'Crimineel':  icon('stiletto', { cls: 'icon-gi' }),
+        'Militair':   icon('shield'),
+        'Overig':     icon('landmark'),
+      },
+      voorwerpen: {
+        'Weapon':     icon('sword'),    'Wapen':      icon('sword'),
+        'Magic Item': icon('sparkles'), 'Toveritem':  icon('sparkles'),
+        'Potion':     icon('flask-conical'), 'Drank':  icon('flask-conical'),
+        'Armor':      icon('shield'),   'Uitrusting': icon('shield'),
+        'Shield':     icon('shield'),
+        'Scroll':     icon('scroll-text'),
+        'Ring':       icon('sparkles'),
+        'Amulet':     icon('stiletto', { cls: 'icon-gi' }),
+        'Other':      icon('package'),  'Overig':     icon('package'),
+        'Feature':    icon('star'),
+        'Consumable': icon('flask-conical'), 'Wondrous': icon('flask-conical'),
+      },
+    };
+  }
+  return _autoIconsCache[type] || {};
+}
 
 const _NL_ITEM_TYPE = {
   'Wapen': 'Weapon', 'Toveritem': 'Magic Item', 'Drank': 'Potion',
@@ -208,16 +272,16 @@ const _NL_ITEM_TYPE = {
 };
 function _normItemType(v) { return _NL_ITEM_TYPE[v] || v; }
 
-function getAutoIcon(type, e) {
+function getAutoIconSvg(type, e) {
   if (e.data?.icon) return e.data.icon;
-  const map = AUTO_ICONS[type] || {};
+  const map = _getAutoIconMap(type);
   const key =
     e.subtype ||
     e.data?.locType ||
     e.data?.orgType ||
     e.data?.itemType ||
     '';
-  return map[key] || TYPE_META[type].icon;
+  return map[key] || TYPE_META[type].svgIcon;
 }
 
 function getSubtypeBadge(type, e) {
@@ -448,24 +512,23 @@ async function renderEntitySection(type) {
     <!-- Section banner -->
     <div class="section-banner section-banner--entity section-banner--${type}">
       <div class="section-banner-head">
-        <div class="section-banner-icon-wrap">${TYPE_META[type].icon}</div>
+        <div class="section-banner-icon-wrap">${TYPE_META[type].svgIcon}</div>
         <div class="section-banner-info">
           <div class="section-banner-label">${TYPE_META[type].label}</div>
           <div class="section-banner-desc-line">${DESC[type] || ''}</div>
         </div>
+        <div class="section-banner-search">
+          <div class="sbs-input-wrap">
+            <span class="sbs-icon">\u2315</span>
+            <input type="text" class="sbs-input search-input"
+              placeholder="Zoek ${TYPE_META[type].label.toLowerCase()}..." value="${esc(searchQueries[type])}"
+              oninput="window._entitySearch('${type}',this.value)">
+          </div>
+          ${sfVals.length >= 2 ? `<button class="sf-toggle-btn${sfActive ? ' sf-toggle-btn--active' : ''}" onclick="window._toggleSubtypeBar('${type}')" title="Filter op subtype"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : ''}
+          <span class="results-count sbs-count">${list.length} resultaten</span>
+        </div>
       </div>
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
-    </div>
-
-    <!-- Toolbar -->
-    <div class="flex items-center gap-3 px-6 py-3 bg-room-surface/30">
-      <div class="relative flex-1 max-w-md">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint">\u2315</span>
-        <input type="text" class="search-input w-full pl-9 pr-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none"
-          placeholder="Zoek ${TYPE_META[type].label.toLowerCase()}..." value="${esc(searchQueries[type])}" oninput="window._entitySearch('${type}',this.value)">
-      </div>
-      ${sfVals.length >= 2 ? `<button class="sf-toggle-btn${sfActive ? ' sf-toggle-btn--active' : ''}" onclick="window._toggleSubtypeBar('${type}')" title="Filter op subtype"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : ''}
-      <span class="results-count text-ink-faint text-xs font-mono">${list.length} resultaten</span>
     </div>
 
     <!-- Subtype filter chips (standaard verborgen, toggle via knop) -->
@@ -540,7 +603,7 @@ function _renderClaimRequests(container) {
   const bar = document.createElement('div');
   bar.className = 'claim-requests-bar';
   bar.innerHTML = `
-    <div class="claim-requests-title">📬 Openstaande claimverzoeken (${pending.length})</div>
+    <div class="claim-requests-title">${icon('mail')} Openstaande claimverzoeken (${pending.length})</div>
     ${pending.map(r => `
       <div class="claim-request-row">
         <span class="claim-request-info">
@@ -548,8 +611,8 @@ function _renderClaimRequests(container) {
           <em>${esc(r.itemName)}</em> ${r.type === 'trade' ? `ruilen met ${esc(r.targetName || '?')}` : 'claimen'}
         </span>
         <div class="claim-request-actions">
-          <button class="claim-btn-approve" onclick="window._itemApproveRequest('${esc(r.id)}')">✓ Goedkeuren</button>
-          <button class="claim-btn-reject"  onclick="window._itemRejectRequest('${esc(r.id)}')">✕ Weigeren</button>
+          <button class="claim-btn-approve" onclick="window._itemApproveRequest('${esc(r.id)}')">${icon('check')} Goedkeuren</button>
+          <button class="claim-btn-reject"  onclick="window._itemRejectRequest('${esc(r.id)}')">${icon('x')} Weigeren</button>
         </div>
       </div>
     `).join('')}
@@ -569,7 +632,7 @@ function _refreshGrid(type, list, container) {
   const isSearch = !!(searchQueries[type]);
   grid.innerHTML = list.length === 0 ? `
     <div class="col-span-full text-center py-20 text-ink-faint">
-      <div class="text-5xl mb-4 opacity-40">${TYPE_META[type].icon}</div>
+      <div class="text-5xl mb-4 opacity-40">${TYPE_META[type].svgIcon}</div>
       <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">
         ${isSearch || totalCount > 0
           ? `Geen ${TYPE_META[type].label.toLowerCase()} gevonden`
@@ -626,6 +689,7 @@ export async function renderVoorwerpen() {
 function _getEntitySubtypeVal(type, e) {
   if (type === 'locaties')     return e.data?.wijk     || '';
   if (type === 'organisaties') return e.data?.orgType  || '';
+  if (type === 'voorwerpen')   return e.data?.itemType || '';
   return e.subtype || '';
 }
 
@@ -706,11 +770,16 @@ function renderCard(type, e) {
     chips.push(...combined.slice(0, 2));
   }
 
+  // ── Armor AC — vooraf berekend zodat overlay én chips het resultaat kunnen gebruiken ──
+  const _cardAcr     = (type === 'voorwerpen') ? _calcArmorAC(e.data, null) : null;
+  const _cardStealth = e.data?.stealthDisadvantage === true || e.data?.stealthDisadvantage === 'true';
+  const _cardStrReq  = parseInt(e.data?.strengthRequirement) || 0;
+
   // ── DM toggle icon / title — 3-state for personages + locaties ──
   const _threeState = ['personages', 'locaties'].includes(type);
-  const _visIcon  = vis === 'visible' ? '\ud83d\udc41'
-                  : vis === 'vague'   ? '\ud83d\udc64'
-                  :                    '\ud83d\udd12';
+  const _visIcon  = vis === 'visible' ? icon('eye')
+                  : vis === 'vague'   ? icon('user')
+                  :                    icon('lock');
   const _visTitle = vis === 'visible' ? 'Verbergen  ·  Shift: vaag tonen'
                   : vis === 'vague'   ? 'Volledig tonen  ·  Shift: vaag houden'
                   : _threeState       ? 'Zichtbaar maken  ·  Shift: vaag tonen'
@@ -728,10 +797,10 @@ function renderCard(type, e) {
           </button>
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._openEditor('${type}','${e.id}')"
-            title="Bewerken">&#9998;</button>
+            title="Bewerken">${icon('pencil')}</button>
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-red-700/90 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._deleteEntity('${type}','${e.id}')"
-            title="Verwijderen">&#10005;</button>
+            title="Verwijderen">${icon('x')}</button>
         </div>
       ` : ''}
       <div class="card-accent bar-${type}"></div>
@@ -753,7 +822,14 @@ function renderCard(type, e) {
         })() : ''}
         ${type === 'locaties' && window._pinnedLocIds?.has(e.id) ? `<button class="card-map-btn"
           onclick="event.stopPropagation();window._toonOpKaart('${esc(e.id)}')"
-          title="Toon op kaart">📍</button>` : ''}
+          title="Toon op kaart">${icon('map-pin')}</button>` : ''}
+        ${type === 'voorwerpen' && e.data?.damage ? (() => {
+          const _isHeal = /heal/i.test(e.data.damage);
+          return `<button class="card-damage-pill${_isHeal ? ' card-damage-pill--heal' : ''}"
+            onclick="event.stopPropagation();window.dice?.rollFormula('${escJS(e.data.damage)}')"
+            title="Gooi ${escJS(e.data.damage)}">${icon('dice',{cls:'icon-gi'})} ${esc(e.data.damage)}</button>`;
+        })() : ''}
+        ${_cardAcr ? `<span class="card-armor-ac-pill" title="${escJS(_cardAcr.tooltip)}">${esc(_cardAcr.pill)}</span>` : ''}
       </div>
       <div class="card-body px-3 pt-2 pb-2">
         <div class="mb-1.5">
@@ -766,6 +842,16 @@ function renderCard(type, e) {
           </div>` : ''}
         </div>
         ${desc ? `<p class="text-xs text-ink-medium line-clamp-4 mb-1 font-crimson leading-relaxed">${mdToHtml(desc)}</p>` : ''}
+        ${(() => {
+          if (type !== 'voorwerpen') return '';
+          const _props = (() => { try { return JSON.parse(e.data?.weaponProperties || '[]'); } catch { return []; } })();
+          const _wpHtml = _props.length ? `<div class="card-weapon-props">${_props.map(p => { const _base = p.replace(/\s*\(.*\)$/, '').trim(); const _tip = WEAPON_PROPERTIES[p] || WEAPON_PROPERTIES[_base] || ''; return `<span class="card-weapon-tag"${_tip ? ` data-wptip="${escJS(_tip)}"` : ''}>${esc(p)}</span>`; }).join('')}</div>` : '';
+          const _arHtml = (_cardStealth || _cardStrReq) ? `<div class="card-weapon-props">
+            ${_cardStealth ? `<span class="card-armor-tag card-armor-tag--stealth" data-wptip="You have disadvantage on Dexterity (Stealth) checks while wearing this armor.">Stealth ↓</span>` : ''}
+            ${_cardStrReq  ? `<span class="card-armor-tag card-armor-tag--str" data-wptip="Your speed is reduced by 10 feet unless you have a Strength score of ${_cardStrReq} or higher.">Str ${_cardStrReq}</span>` : ''}
+          </div>` : '';
+          return _wpHtml + _arHtml;
+        })()}
         <!-- relatie-chips verborgen (code bewaard); vervangen door wikilinks in beschrijving -->
         <!-- ${chips.length ? `<div class="flex flex-wrap gap-1">${chips.join('')}</div>` : ''} -->
       </div>
@@ -780,10 +866,10 @@ function renderCard(type, e) {
         <button class="secret-badge${e._secretReveal ? ' secret-badge--revealed' : ''}"
           onclick="event.stopPropagation();window._toggleSecretCard('${type}','${e.id}')"
           title="${e._secretReveal ? 'Geheim zichtbaar voor spelers — klik om te verbergen' : 'Geheim verborgen voor spelers — klik om te onthullen'}">
-          ${e._secretReveal ? '✨ Onthuld' : '🔒 Geheim'}
+          ${e._secretReveal ? icon('eye') + ' Onthuld' : icon('lock') + ' Geheim'}
         </button>
       ` : e.data?.geheim && e._secretReveal ? `
-        <div class="player-secret-reveal-bar" title="Geheim onthuld">✨ Onthuld</div>
+        <div class="player-secret-reveal-bar" title="Geheim onthuld">${icon('eye')} Onthuld</div>
       ` : ''}
     </div>
   `;
@@ -854,12 +940,42 @@ function _playerColor(characterId) {
   return _PLAYER_COLORS[h % _PLAYER_COLORS.length];
 }
 
+// Geeft 'stapelbaar' | 'gedeeld' | 'uniek' terug, ook voor items met legacy vinkjes
+function _getGebruik(e) {
+  const d = e?.data || {};
+  if (d.gebruik) return d.gebruik;
+  if (d.stapelbaar === 'true' || d.stapelbaar === true) return 'stapelbaar';
+  if (d.gedeeld    === 'true' || d.gedeeld    === true) return 'gedeeld';
+  return 'uniek';
+}
+
 function _itemOwnershipBadge(itemId) {
   const owner        = _ownership.owners[itemId];
   const isStapelbaar = _ownership.stapelbaar.has(itemId);
+  const isGedeeld    = _ownership.gedeeld.has(itemId);
   const myId         = window.app?.state?.characterId;
   const myName       = window.app?.state?.playerName;
   const isDm         = window.app?.isDM?.();
+
+  // ── Gedeeld: array-eigendom, elk precies 1 exemplaar ──
+  if (isGedeeld) {
+    const eigenaren = Array.isArray(owner) ? owner : [];
+    if (isDm) {
+      const label = eigenaren.length > 0
+        ? `${icon('package')} ${eigenaren.length} speler${eigenaren.length !== 1 ? 's' : ''}`
+        : `${icon('package')} Geef aan speler`;
+      return `
+        <div class="item-owner-badge item-owner-badge--stapelbaar item-owner-badge--give" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')">
+          <span>${label}</span>
+          <span class="item-give-btn">${icon('plus')}</span>
+        </div>`;
+    }
+    const myEntry = myId ? eigenaren.find(o => o.characterId === myId) : null;
+    if (myEntry) {
+      return `<div class="item-owner-badge item-owner-badge--mine" onclick="event.stopPropagation()">${icon('package')} Jouw exemplaar</div>`;
+    }
+    return '';
+  }
 
   // ── Stapelbaar: array-eigendom ──
   if (isStapelbaar) {
@@ -867,17 +983,17 @@ function _itemOwnershipBadge(itemId) {
     if (isDm) {
       const total = eigenaren.reduce((s, o) => s + (o.qty || 1), 0);
       const label = eigenaren.length > 0
-        ? `🎁 ${eigenaren.length} speler${eigenaren.length !== 1 ? 's' : ''} · ${total}×`
-        : '🎁 Geef aan speler';
+        ? `${icon('package')} ${eigenaren.length} speler${eigenaren.length !== 1 ? 's' : ''} · ${total}×`
+        : `${icon('package')} Geef aan speler`;
       return `
-        <div class="item-owner-badge item-owner-badge--stapelbaar" onclick="event.stopPropagation()">
+        <div class="item-owner-badge item-owner-badge--stapelbaar item-owner-badge--give" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')">
           <span>${label}</span>
-          <button class="item-give-btn" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef exemplaren aan speler">+</button>
+          <span class="item-give-btn">${icon('plus')}</span>
         </div>`;
     }
     const myEntry = myId ? eigenaren.find(o => o.characterId === myId) : null;
     if (myEntry && (myEntry.qty || 1) > 0) {
-      return `<div class="item-owner-badge item-owner-badge--mine" onclick="event.stopPropagation()">🎒 ×${myEntry.qty || 1}</div>`;
+      return `<div class="item-owner-badge item-owner-badge--mine" onclick="event.stopPropagation()">${icon('package')} ×${myEntry.qty || 1}</div>`;
     }
     return '';
   }
@@ -888,9 +1004,9 @@ function _itemOwnershipBadge(itemId) {
     const color  = isMine ? '' : `color:${_playerColor(owner.characterId)};border-color:${_playerColor(owner.characterId)}40`;
     return `
       <div class="item-owner-badge ${isMine ? 'item-owner-badge--mine' : 'item-owner-badge--other'}" style="${color}" onclick="event.stopPropagation()">
-        ${isMine ? '🎒 Jouw eigendom' : `🎒 ${esc(owner.playerName)}`}
-        ${isDm ? `<button class="item-owner-remove" onclick="event.stopPropagation();window._itemRemoveOwner('${esc(itemId)}')" title="Eigendom verwijderen">✕</button>` : ''}
-        ${isDm ? `<button class="item-give-btn" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan andere speler">🎁</button>` : ''}
+        ${isMine ? `${icon('package')} Jouw eigendom` : `${icon('package')} ${esc(owner.playerName)}`}
+        ${isDm ? `<button class="item-owner-remove" onclick="event.stopPropagation();window._itemRemoveOwner('${esc(itemId)}')" title="Eigendom verwijderen">${icon('x')}</button>` : ''}
+        ${isDm ? `<button class="item-give-btn" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan andere speler">${icon('package')}</button>` : ''}
       </div>`;
   }
 
@@ -906,7 +1022,7 @@ function _itemOwnershipBadge(itemId) {
   if (isDm) {
     return `
       <button class="item-give-btn item-give-btn--standalone" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan speler">
-        🎁 Geef aan speler
+        ${icon('package')} Geef aan speler
       </button>`;
   }
 
@@ -922,52 +1038,94 @@ function _itemOwnershipBadge(itemId) {
 }
 
 // ── DM: voorwerp geven aan speler ──
-window._itemGiveToPlayer = async function(itemId) {
-  try {
-    const isStapelbaar = _ownership.stapelbaar.has(itemId);
-    const [allPersonages, allGroups] = await Promise.all([
-      api.listEntities('personages'),
-      api.getGroups().catch(() => []),
-    ]);
-    const spelers = allPersonages.filter(e => e.subtype?.toLowerCase() === 'speler');
-    if (!spelers.length) {
-      alert('Geen spelerskarakters gevonden.');
-      return;
+
+// Bouw de picker-HTML op basis van huidige _ownership-staat
+async function _buildItemGivePicker(itemId, spelers, groupNames) {
+  const isStapelbaar = _ownership.stapelbaar.has(itemId);
+  const isGedeeld    = _ownership.gedeeld.has(itemId);
+  const owners       = _ownership.owners[itemId];
+
+  // Huidige eigendom per characterId opzoeken
+  function currentQty(charId) {
+    if (Array.isArray(owners)) {
+      const entry = owners.find(o => o.characterId === charId);
+      return entry ? (entry.qty || 1) : 0;
     }
-    const groupNames = Object.fromEntries((allGroups?.groups || allGroups || []).map(g => [g.id, g.name]));
-    const byGroup = {};
-    for (const s of spelers) {
-      const gid = s.data?.groep || '_geen';
-      if (!byGroup[gid]) byGroup[gid] = [];
-      byGroup[gid].push(s);
-    }
-    const sections = Object.entries(byGroup).map(([gid, members]) => {
-      const label = groupNames[gid] || (gid === '_geen' ? 'Zonder groep' : gid);
-      return `
-        <div class="item-give-group">
-          <div class="item-give-group-label">${esc(label)}</div>
-          ${members.map(s => isStapelbaar ? `
+    // enkelvoudig eigendom
+    return (owners?.characterId === charId) ? 1 : 0;
+  }
+
+  const byGroup = {};
+  for (const s of spelers) {
+    const gid = s.data?.groep || '_geen';
+    if (!byGroup[gid]) byGroup[gid] = [];
+    byGroup[gid].push(s);
+  }
+
+  const sections = Object.entries(byGroup).map(([gid, members]) => {
+    const label = groupNames[gid] || (gid === '_geen' ? 'Zonder groep' : gid);
+    return `
+      <div class="item-give-group">
+        <div class="item-give-group-label">${esc(label)}</div>
+        ${members.map(s => {
+          const qty = currentQty(s.id);
+          const hasIt = qty > 0;
+          const qtyBadge = hasIt
+            ? `<span class="item-give-qty-badge">${isStapelbaar ? `×${qty}` : '✓'}</span>`
+            : '';
+          if (isStapelbaar) return `
             <div class="item-give-player-row">
               <div class="item-give-player-info">
                 <img src="${api.fileUrl(s.id)}" class="item-give-avatar" onerror="this.style.display='none'">
                 <span>${esc(s.name)}</span>
+                ${qtyBadge}
               </div>
               <input type="number" min="1" value="1" id="igq-${esc(s.id)}"
                 class="item-give-qty-input" onclick="event.stopPropagation()">
               <button class="item-give-confirm-btn"
                 onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}',+(document.getElementById('igq-${esc(s.id)}').value)||1)">
-                🎁
+                ${icon('package')}
               </button>
-            </div>` : `
-            <button class="item-give-player-btn"
+            </div>`;
+          if (isGedeeld) return `
+            <button class="item-give-player-btn${hasIt ? ' item-give-player-btn--has' : ''}"
+              onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}',1)">
+              <img src="${api.fileUrl(s.id)}" class="item-give-avatar" onerror="this.style.display='none'">
+              <span>${esc(s.name)}</span>
+              ${qtyBadge}
+            </button>`;
+          // Enkelvoudig eigendom
+          return `
+            <button class="item-give-player-btn${hasIt ? ' item-give-player-btn--has' : ''}"
               onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}')">
               <img src="${api.fileUrl(s.id)}" class="item-give-avatar" onerror="this.style.display='none'">
               <span>${esc(s.name)}</span>
-            </button>`).join('')}
-        </div>`;
-    }).join('');
-    const subtitle = isStapelbaar ? 'Kies een ontvanger en aantal' : 'Kies een ontvanger';
-    window.app.openModal('🎁 Geef voorwerp aan speler', subtitle, `<div class="item-give-picker">${sections}</div>`);
+              ${qtyBadge}
+            </button>`;
+        }).join('')}
+      </div>`;
+  }).join('');
+
+  const subtitle = isStapelbaar ? 'Kies een ontvanger en aantal' : isGedeeld ? 'Kies spelers (meerdere mogelijk)' : 'Kies een ontvanger';
+  return { html: `<div class="item-give-picker">${sections}</div>`, subtitle };
+}
+
+// Cache spelers/groepen zodat herrender na toewijzing snel is
+let _givePickerCache = null;
+
+window._itemGiveToPlayer = async function(itemId) {
+  try {
+    const [allPersonages, allGroups] = await Promise.all([
+      api.listEntities('personages'),
+      api.getGroups().catch(() => []),
+    ]);
+    const spelers = allPersonages.filter(e => e.subtype?.toLowerCase() === 'speler');
+    if (!spelers.length) { alert('Geen spelerskarakters gevonden.'); return; }
+    const groupNames = Object.fromEntries((allGroups?.groups || allGroups || []).map(g => [g.id, g.name]));
+    _givePickerCache = { itemId, spelers, groupNames };
+
+    const { html, subtitle } = await _buildItemGivePicker(itemId, spelers, groupNames);
+    window.app.openModal(`${icon('package')} Geef voorwerp aan speler`, subtitle, html);
   } catch (e) {
     console.warn('_itemGiveToPlayer fout:', e);
   }
@@ -976,9 +1134,15 @@ window._itemGiveToPlayer = async function(itemId) {
 window._itemAssignToPlayer = async function(itemId, characterId, playerName, groupId, qty) {
   try {
     await api.assignItemOwner(itemId, { characterId, playerName, groupId: groupId || null, qty: qty || 1 });
-    window.app.closeModal();
     await refreshOwnership();
     renderEntitySection('voorwerpen');
+    // Herrender de picker in de open modal (sluit NIET)
+    if (_givePickerCache?.itemId === itemId) {
+      const { itemId: id, spelers, groupNames } = _givePickerCache;
+      const { html } = await _buildItemGivePicker(id, spelers, groupNames);
+      const body = document.getElementById('m-body');
+      if (body) body.innerHTML = html;
+    }
   } catch (e) {
     console.warn('_itemAssignToPlayer fout:', e);
   }
@@ -1113,6 +1277,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (_isShopTab && isDM()) {
     shopLogData = await api.getShopLog(id).catch(() => null);
   }
+  // Zorg dat de wikilink-naamindex volledig geladen is voor we de beschrijving renderen
+  await window._entityIndexReady?.catch(() => {});
   const uitverkochtSet = new Set((uitverkochtData?.uitverkocht || []).map(k => k.toLowerCase().trim()));
   if (myToken !== _detailToken) return;   // Nieuwere aanroep actief — stop
   const meta = TYPE_META[tab];
@@ -1131,6 +1297,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _heroBadge = getSubtypeBadge(tab, e);
   // Afbeelding — simpel gecentreerd met perkamentachtergrond
   const _d = e.data || {};
+  // Armor AC pill — berekend voor hero-overlay en chips-sectie
+  const _detailDexMod = (typeof window._playerDexMod === 'number') ? window._playerDexMod : null;
+  const _detailAcResult = (tab === 'voorwerpen' && e.data?.armorType) ? _calcArmorAC(e.data, _detailDexMod) : null;
   if (_extraImgs.length > 0) {
     const _allImgs = [{ id: e.id, caption: _primaryCaption }, ..._extraImgs];
     infoHtml += _entityCarouselHtml(e.id, _allImgs);
@@ -1141,7 +1310,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           style="${_d.imgFocus ? `object-position:${_d.imgFocus}` : ''}"
           onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
         <div class="detail-hero-overlay"></div>
-        <div class="detail-hero-icon">${getAutoIcon(tab, e)}</div>
+        ${_detailAcResult
+          ? `<span class="detail-hero-ac-badge" data-wptip="${escJS(_detailAcResult.tooltip)}">${esc(_detailAcResult.pill)}</span>`
+          : `<div class="detail-hero-icon">${getAutoIconSvg(tab, e)}</div>`}
         ${_heroBadge ? `<div class="detail-hero-badge badge ${_heroBadge.cls}">${esc(_heroBadge.label)}</div>` : ''}
       </div>
       ${_primaryCaption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(_primaryCaption)}</p>` : ''}
@@ -1166,14 +1337,70 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         ${_att ? `<span class="detail-item-attunement">Requires Attunement</span>` : ''}
       </div>`;
     }
+    // Schade / Genezing pill — klikbaar, resultaat direct inline in modal
+    const _dmg = e.data?.damage;
+    if (_dmg) {
+      const _isHeal = /heal/i.test(_dmg);
+      infoHtml += `<div class="detail-item-damage-wrap">
+        <button class="item-damage-pill${_isHeal ? ' item-damage-pill--heal' : ''}"
+          onclick="window.dice?.rollFormula('${escJS(_dmg)}','dmg-inline-result')"
+          title="Klik om ${_isHeal ? 'genezing' : 'schade'} te gooien">
+          ${icon('dice',{cls:'icon-gi'})} ${esc(_dmg)}
+        </button>
+        <span class="dmg-inline-result" id="dmg-inline-result"></span>
+      </div>`;
+    }
+    // Wapeneigenschappen chips
+    const _wprops = (() => { try { return JSON.parse(e.data?.weaponProperties || '[]'); } catch { return []; } })();
+    if (_wprops.length) {
+      infoHtml += `<div class="detail-weapon-props">
+        ${_wprops.map(p => {
+          const _base = p.replace(/\s*\(.*\)$/, '').trim();
+          const desc = WEAPON_PROPERTIES[p] || WEAPON_PROPERTIES[_base] || '';
+          return `<span class="detail-weapon-tag" data-wptip="${escJS(desc)}">${esc(p)}</span>`;
+        }).join('')}
+      </div>`;
+    }
+    // Pantsereigenschappen chips (AC zit als overlay in het hero-beeld; hier alleen Stealth en Str)
+    if (_detailAcResult) {
+      const _stealth = e.data?.stealthDisadvantage === true || e.data?.stealthDisadvantage === 'true';
+      const _strReq  = parseInt(e.data?.strengthRequirement) || 0;
+      // AC pill als fallback wanneer er een extra-images-carousel is (geen detail-hero)
+      const _acFallback = _extraImgs.length > 0
+        ? `<span class="detail-armor-tag detail-armor-tag--ac" data-wptip="${escJS(_detailAcResult.tooltip)}">${esc(_detailAcResult.pill)}</span>`
+        : '';
+      if (_stealth || _strReq || _acFallback) {
+        infoHtml += `<div class="detail-armor-props">
+          ${_acFallback}
+          ${_stealth ? `<span class="detail-armor-tag detail-armor-tag--stealth" data-wptip="You have disadvantage on Dexterity (Stealth) checks while wearing this armor.">Stealth ↓</span>` : ''}
+          ${_strReq ? `<span class="detail-armor-tag detail-armor-tag--str" data-wptip="Your speed is reduced by 10 feet unless you have a Strength score of ${_strReq} or higher.">Str ${_strReq}</span>` : ''}
+        </div>`;
+      }
+    }
+  }
+
+  // Scroll spell stats block
+  if (tab === 'voorwerpen' && e.data?.itemType === 'Scroll') {
+    const _ct = e.data?.spellCastingTime;
+    const _sr = e.data?.spellRange;
+    const _sc = e.data?.spellComponents;
+    const _sd = e.data?.spellDuration;
+    if (_ct || _sr || _sc || _sd) {
+      infoHtml += `<div class="detail-scroll-stats">
+        ${_ct ? `<span class="detail-scroll-stat"><span class="scroll-stat-lbl">Casting Time</span>${esc(_ct)}</span>` : ''}
+        ${_sr ? `<span class="detail-scroll-stat"><span class="scroll-stat-lbl">Range</span>${esc(_sr)}</span>` : ''}
+        ${_sc ? `<span class="detail-scroll-stat"><span class="scroll-stat-lbl">Components</span>${esc(_sc)}</span>` : ''}
+        ${_sd ? `<span class="detail-scroll-stat"><span class="scroll-stat-lbl">Duration</span>${esc(_sd)}</span>` : ''}
+      </div>`;
+    }
   }
 
   // Short metadata → labeled pills; description → block
   const _metaPills = [];
   let _descVal = '';
   for (const field of (schema.fields || [])) {
-    if (['geheim', 'flavour', 'rol', 'stapelbaar', 'attunement', 'persoonlijkheid'].includes(field.key)) continue;
-    if (tab === 'voorwerpen' && ['itemType', 'rariteit'].includes(field.key)) continue;
+    if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid'].includes(field.key)) continue;
+    if (tab === 'voorwerpen' && ['itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration'].includes(field.key)) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
     if (field.key === 'desc') {
@@ -1188,7 +1415,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (tab === 'locaties' && window._pinnedLocIds?.has(e.id)) {
     infoHtml += `<div class="detail-map-link-wrap">
       <button class="detail-map-link-btn" onclick="window._toonOpKaart('${esc(e.id)}')">
-        📍 Toon op kaart
+        ${icon('map-pin')} Toon op kaart
       </button>
     </div>`;
   }
@@ -1245,9 +1472,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // DM controls
   if (isDM()) {
     const _ts = ['personages', 'locaties'].includes(tab);
-    const _mVisIcon  = vis === 'visible' ? '\ud83d\udc41'
-                     : vis === 'vague'   ? '\ud83d\udc64'
-                     :                    '\ud83d\udd12';
+    const _mVisIcon  = vis === 'visible' ? icon('eye')
+                     : vis === 'vague'   ? icon('user')
+                     :                    icon('lock');
     const _mVisTitle = vis === 'visible' ? 'Verbergen  ·  Shift: vaag tonen'
                      : vis === 'vague'   ? 'Volledig tonen  ·  Shift: vaag houden'
                      : _ts              ? 'Zichtbaar maken  ·  Shift: vaag tonen'
@@ -1264,18 +1491,18 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             <button class="dm-btn${e._secretReveal ? ' dm-btn--active' : ''}"
               title="${e._secretReveal ? 'Geheim verbergen voor spelers' : 'Geheim onthullen aan spelers'}"
               onclick="window._toggleSecret('${tab}','${e.id}')">
-              ${e._secretReveal ? '✨' : '🔒'}
+              ${e._secretReveal ? icon('eye') : icon('lock')}
             </button>
           ` : ''}
           <button class="dm-btn${e._deceased ? ' dm-btn--active' : ''}"
             title="${e._deceased ? 'Markering verwijderen' : 'Markeer als deceased'}"
             onclick="window._toggleDeceased('${tab}','${e.id}')">
-            ☠
+            ${icon('skull', {cls:'icon-gi'})}
           </button>
           <button class="dm-btn"
             title="Bewerk dit kaartje (afbeelding, tekst, geluid)"
             onclick="window._openEditor('${tab}','${e.id}')">
-            ✏
+            ${icon('pencil')}
           </button>
         </div>
         <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">DM Notities</div>
@@ -1395,12 +1622,12 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   for (const lt of LINK_TYPES) {
     const names = e.links?.[lt] || [];
     if (names.length === 0) continue;
-    const lm = TYPE_META[lt] || { icon: '\ud83d\udcdc', chip: 'chip-doc' };
+    const lm = TYPE_META[lt] || { get icon() { return icon('scroll-text'); }, chip: 'chip-doc' };
     verbHtml += `
       <div class="mb-4">
         <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2">${LINK_LABELS[lt] || lt}</div>
         <div class="flex flex-wrap gap-1.5">
-          ${names.map(n => `<span class="chip ${lm.chip} cursor-pointer" data-tab="${lt}" data-name="${esc(n)}" onclick="window._navigateTo(this.dataset.tab,this.dataset.name)">${lm.icon} ${esc(n)}</span>`).join('')}
+          ${names.map(n => `<span class="chip ${lm.chip} cursor-pointer" data-tab="${lt}" data-name="${esc(n)}" onclick="window._navigateTo(this.dataset.tab,this.dataset.name)">${lm.svgIcon || lm.icon} ${esc(n)}</span>`).join('')}
         </div>
       </div>
     `;
@@ -1409,10 +1636,12 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     verbHtml = `<div class="text-center py-10 text-ink-faint font-fell italic">Geen verbindingen</div>`;
   }
 
-  // ── Tab: Eigenaren (stapelbare voorwerpen, DM only) ──
-  const isStapelbaarVoorwerp = tab === 'voorwerpen' && (e.data?.stapelbaar === 'true' || e.data?.stapelbaar === true);
+  // ── Tab: Eigenaren (stapelbare & gedeelde voorwerpen, DM only) ──
+  const _gebruik = tab === 'voorwerpen' ? (_getGebruik(e) ) : 'uniek';
+  const isStapelbaarVoorwerp = _gebruik === 'stapelbaar';
+  const isGedeeldVoorwerp    = _gebruik === 'gedeeld';
   let eigenarenHtml = '';
-  if (isStapelbaarVoorwerp && isDM()) {
+  if ((isStapelbaarVoorwerp || isGedeeldVoorwerp) && isDM()) {
     const eigenaren = Array.isArray(_ownership.owners[e.id]) ? _ownership.owners[e.id] : [];
     if (eigenaren.length > 0) {
       eigenarenHtml = `
@@ -1421,7 +1650,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             <thead>
               <tr class="bg-room-elevated border-b border-room-border">
                 <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Speler</th>
-                <th class="px-4 py-2.5 text-center font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Aantal</th>
+                ${isStapelbaarVoorwerp ? `<th class="px-4 py-2.5 text-center font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Aantal</th>` : ''}
                 <th class="px-4 py-2.5 w-8"></th>
               </tr>
             </thead>
@@ -1429,7 +1658,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
               ${eigenaren.map((o, i) => `
                 <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0">
                   <td class="px-4 py-2.5 text-ink-bright font-crimson">${esc(o.playerName)}</td>
-                  <td class="px-4 py-2.5 text-center">
+                  ${isStapelbaarVoorwerp ? `<td class="px-4 py-2.5 text-center">
                     <span class="inline-flex items-center gap-2">
                       <button onclick="window._eigenaarQtyAdj('${esc(e.id)}','${esc(o.characterId)}',-1)"
                         class="w-6 h-6 flex items-center justify-center rounded bg-room-bg border border-room-border text-ink-dim hover:text-ink-bright transition">−</button>
@@ -1437,10 +1666,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                       <button onclick="window._eigenaarQtyAdj('${esc(e.id)}','${esc(o.characterId)}',1)"
                         class="w-6 h-6 flex items-center justify-center rounded bg-room-bg border border-room-border text-ink-dim hover:text-ink-bright transition">+</button>
                     </span>
-                  </td>
+                  </td>` : ''}
                   <td class="px-4 py-2.5 text-right">
                     <button onclick="window._eigenaarVerwijder('${esc(e.id)}','${esc(o.characterId)}')"
-                      class="text-seal hover:bg-seal/20 px-1.5 py-0.5 rounded transition text-xs" title="Verwijder eigendom">✕</button>
+                      class="text-seal hover:bg-seal/20 px-1.5 py-0.5 rounded transition text-xs" title="Verwijder eigendom">${icon('x')}</button>
                   </td>
                 </tr>
               `).join('')}
@@ -1453,7 +1682,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     eigenarenHtml += `
       <button onclick="window._itemGiveToPlayer('${esc(e.id)}')"
         class="px-4 py-2 bg-room-elevated border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright transition">
-        🎁 Geef exemplaren aan speler
+        ${isGedeeldVoorwerp ? icon('package')+' Geef aan speler(s)' : icon('package')+' Geef exemplaren aan speler'}
       </button>`;
   }
 
@@ -1467,7 +1696,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _buitenEntiteiten = _appMeta.buitenGrisburgEntiteiten || [];
     if (!isDM() && _appMeta.buitenGrisburgh && !_buitenEntiteiten.includes(e.id)) {
       voorraadHtml = `<div style="text-align:center;padding:2rem 1rem">
-        <div style="font-size:2rem;margin-bottom:.5rem">🔒</div>
+        <div style="font-size:2rem;margin-bottom:.5rem">${icon('lock')}</div>
         <p style="color:var(--color-ink-dim,.7rem)">${esc(e.name)} is momenteel niet bereikbaar.</p>
         <p style="font-size:.8rem;opacity:.5">De groep bevindt zich buiten Grisburgh.</p>
       </div>`;
@@ -1494,7 +1723,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       const _cN = window._currency || { fl: 'fl', kn: 'kn', cl: 'cl' };
       if (cur) {
         beursHtml = `<div class="shop-beurs">
-          <span class="shop-beurs-label">💰 Jouw beurs</span>
+          <span class="shop-beurs-label">${icon('coins')} Jouw beurs</span>
           <span class="shop-beurs-amount">${cur.fl ?? 0} ${esc(_cN.fl)} · ${cur.kn ?? 0} ${esc(_cN.kn)} · ${cur.cl ?? 0} ${esc(_cN.cl)}</span>
         </div>`;
       }
@@ -1542,7 +1771,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
               <button class="shop-onderhandel-roll-btn"
                 onclick="window._onderhandelRoll('${esc(_shopId)}')">Gooien</button>
               <button class="shop-onderhandel-annuleer"
-                onclick="document.getElementById('shop-onderhandel-panel-${esc(_shopId)}').classList.add('hidden')">✕</button>
+                onclick="document.getElementById('shop-onderhandel-panel-${esc(_shopId)}').classList.add('hidden')">${icon('x')}</button>
             </div>
           </div>
           <div id="shop-onderhandel-result-${esc(_shopId)}" class="shop-onderhandel-result hidden"></div>
@@ -1694,10 +1923,12 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     e.data?.itemType ? _normItemType(e.data.itemType) : null,
     e.data?.rariteit ? (({'Gewoon':'Common','Ongewoon':'Uncommon','Zeldzaam':'Rare','Zeer zeldzaam':'Very Rare','Legendarisch':'Legendary'})[e.data.rariteit] || e.data.rariteit) : null,
   ].filter(Boolean);
-  const _subtitle = _subParts.length
-    ? `${getAutoIcon(tab, e)}  ${_subParts.join(' · ')}`
-    : `${getAutoIcon(tab, e)}  ${meta.label}`;
-  openModal(e.name, _subtitle, body);
+  const _subtitleHtml = _subParts.length
+    ? `${getAutoIconSvg(tab, e)}  ${_subParts.map(p => esc(p)).join(' · ')}`
+    : `${getAutoIconSvg(tab, e)}  ${esc(meta.label)}`;
+  openModal(e.name, '', body);
+  const _mSubEl = document.getElementById('m-sub');
+  if (_mSubEl) _mSubEl.innerHTML = _subtitleHtml;
   _updateBackButton();
 
   // Set type accent bar
@@ -1935,7 +2166,7 @@ window._toggleVis = async (tab, id, event) => {
 function _secretToast(revealed) {
   const toast = document.createElement('div');
   toast.className = 'bookmark-toast';
-  toast.textContent = revealed ? '✨ Geheim onthuld voor spelers' : '🔒 Geheim verborgen voor spelers';
+  toast.innerHTML = revealed ? `${icon('eye')} Geheim onthuld voor spelers` : `${icon('lock')} Geheim verborgen voor spelers`;
   document.body.appendChild(toast);
   setTimeout(() => toast.classList.add('bookmark-toast--visible'), 10);
   setTimeout(() => { toast.classList.remove('bookmark-toast--visible'); setTimeout(() => toast.remove(), 300); }, 2500);
@@ -1993,6 +2224,64 @@ function _fpApply(ev) {
 }
 
 // ── File upload ──
+// ── Wapeneigenschappen tag-picker (editor) ──
+window._toggleWeaponTag = (fieldKey, prop, btn) => {
+  const input = document.getElementById('wt_' + fieldKey);
+  if (!input) return;
+  let sel = (() => { try { return JSON.parse(input.value || '[]'); } catch { return []; } })();
+  // Parameterizable props may be stored as "Range (30/120)" — match on base name
+  const idx = sel.findIndex(s => s === prop || s.startsWith(prop + ' ('));
+  const paramInp = document.getElementById('wtp-' + fieldKey + '-' + prop.replace(/[^a-zA-Z0-9]/g, '_'));
+  if (idx >= 0) {
+    sel.splice(idx, 1);
+    btn.classList.remove('weapon-tag-pick--on');
+    if (paramInp) { paramInp.classList.add('hidden'); paramInp.value = ''; }
+  } else {
+    sel.push(prop);
+    btn.classList.add('weapon-tag-pick--on');
+    if (paramInp) { paramInp.classList.remove('hidden'); setTimeout(() => paramInp.focus(), 50); }
+  }
+  input.value = JSON.stringify(sel);
+};
+
+window._updateWeaponTagParam = (fieldKey, baseProp, paramVal) => {
+  const input = document.getElementById('wt_' + fieldKey);
+  if (!input) return;
+  let sel = (() => { try { return JSON.parse(input.value || '[]'); } catch { return []; } })();
+  const idx = sel.findIndex(s => s === baseProp || s.startsWith(baseProp + ' ('));
+  if (idx >= 0) {
+    sel[idx] = paramVal.trim() ? `${baseProp} (${paramVal.trim()})` : baseProp;
+    input.value = JSON.stringify(sel);
+  }
+};
+
+// ── Wapeneigenschap tooltip (hover) ──
+let _wpTip = null;
+document.addEventListener('mouseover', ev => {
+  const el = ev.target.closest('[data-wptip]');
+  if (!el) return;
+  if (!_wpTip) {
+    _wpTip = document.createElement('div');
+    _wpTip.className = 'weapon-prop-tooltip';
+    document.body.appendChild(_wpTip);
+  }
+  _wpTip.textContent = el.dataset.wptip;
+  _wpTip.classList.add('weapon-prop-tooltip--visible');
+  const r = el.getBoundingClientRect();
+  _wpTip.style.left = r.left + 'px';
+  _wpTip.style.top  = (r.bottom + 6) + 'px';
+});
+document.addEventListener('mouseout', ev => {
+  if (ev.target.closest('[data-wptip]') && _wpTip) _wpTip.classList.remove('weapon-prop-tooltip--visible');
+});
+
+window._onItemTypeChange = (val) => {
+  document.querySelectorAll('[data-show-for]').forEach(el => {
+    const types = el.dataset.showFor.split(',');
+    el.style.display = types.includes(val) ? '' : 'none';
+  });
+};
+
 window._onRevealToggle = (groupId, checked) => {
   const group = document.getElementById('reveal-group-' + groupId);
   if (!group) return;
@@ -2085,11 +2374,6 @@ window._openEditor = async (tab, editId) => {
   const _isNpcEditor     = e?.subtype === 'NPC';
 
   // ── Twee-kolom layout ──
-  const _autoIc   = getAutoIcon(tab, e || { data: {} });
-  const _customIc = e?.data?.icon || '';
-  const _showIc   = _customIc || _autoIc;
-  const _iconSet  = ICON_SETS[tab] || [];
-
   body += `<div class="editor-layout">`;
 
   // ── Linker kolom: afbeelding ──
@@ -2152,36 +2436,13 @@ window._openEditor = async (tab, editId) => {
   }
   body += `</div>`; // end editor-col-left
 
-  // ── Rechter kolom: naam, icoon, type-velden ──
+  // ── Rechter kolom: naam, type-velden ──
   body += `<div class="editor-col-right">`;
   body += `
-    <div class="flex gap-2 items-end">
-      <div class="flex-1 min-w-0">
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Naam</label>
-        <input name="name" value="${esc(e?.name || '')}" required
-          class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-      </div>
-      <div class="flex-shrink-0">
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider block mb-1">Icoon</label>
-        <button type="button" id="icon-picker-btn"
-          onclick="window._toggleIconPicker()"
-          class="w-10 h-10 text-xl flex items-center justify-center rounded border border-room-border bg-room-elevated hover:border-gold-dim transition select-none">
-          <span id="icon-preview">${_showIc}</span>
-        </button>
-        <input type="hidden" name="data_icon" id="icon-input" value="${esc(_customIc)}">
-      </div>
-    </div>
-    <div id="icon-picker" class="hidden p-2 bg-room-elevated border border-room-border rounded">
-      <div class="flex flex-wrap gap-1 mb-1.5">
-        <button type="button" onclick="window._selectIcon('')"
-          class="px-2 py-0.5 text-[10px] font-cinzel text-ink-dim bg-room-bg border border-room-border rounded hover:border-gold-dim transition${!_customIc ? ' border-gold-dim text-gold' : ''}">
-          Automatisch
-        </button>
-      </div>
-      <div class="flex flex-wrap gap-0.5">
-        ${_iconSet.map(ic => `<button type="button" onclick="window._selectIcon('${ic}')"
-          class="w-8 h-8 text-lg flex items-center justify-center rounded hover:bg-room-bg transition${ic === _customIc ? ' bg-room-bg ring-1 ring-gold-dim' : ''}">${ic}</button>`).join('')}
-      </div>
+    <div>
+      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Naam</label>
+      <input name="name" value="${esc(e?.name || '')}" required
+        class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
     </div>
   `;
 
@@ -2218,6 +2479,7 @@ window._openEditor = async (tab, editId) => {
 
   // Korte velden (niet-textarea) in rechter kolom
   let _revealGroupOpen = null;
+  const _curItemType = e?.data?.itemType || '';
   for (const field of schema.fields) {
     if ((field.key === 'geheim' || field.dmOnly) && !isDM()) continue;
     if (field.type === 'textarea') continue;
@@ -2227,6 +2489,11 @@ window._openEditor = async (tab, editId) => {
       _revealGroupOpen = null;
     }
     const val = e?.data?.[field.key] || '';
+    // showFor: wrap in a togglable div, initially hidden if itemType doesn't match
+    if (field.showFor) {
+      const _vis = field.showFor.includes(_curItemType);
+      body += `<div data-show-for="${field.showFor.join(',')}" style="${_vis ? '' : 'display:none'}">`;
+    }
     if (field.type === 'reveal-toggle') {
       const hasData = schema.fields
         .filter(f => f.inReveal === field.key)
@@ -2256,7 +2523,10 @@ window._openEditor = async (tab, editId) => {
       `;
     } else if (field.type === 'select') {
       const _selOnchange = (tab === 'locaties' && field.key === 'locType')
-        ? ' onchange="window._onLocTypeChange(this.value)"' : '';
+        ? ' onchange="window._onLocTypeChange(this.value)"'
+        : (tab === 'voorwerpen' && field.key === 'itemType')
+        ? ' onchange="window._onItemTypeChange(this.value)"'
+        : '';
       body += `
         <div>
           <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
@@ -2264,6 +2534,41 @@ window._openEditor = async (tab, editId) => {
             <option value="">—</option>
             ${field.options.map(o => typeof o === 'object' ? `<option value="${o.value}" ${val === o.value ? 'selected' : ''}>${o.label}</option>` : `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
           </select>
+        </div>
+      `;
+    } else if (field.type === 'weapon-tags') {
+      const _sel = (() => { try { return JSON.parse(val || '[]'); } catch { return []; } })();
+      body += `
+        <div class="weapon-tags-editor-wrap">
+          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
+          <input type="hidden" name="data_${field.key}" id="wt_${field.key}" value="${esc(val)}">
+          <div class="weapon-tags-picker">
+            ${Object.keys(WEAPON_PROPERTIES).map(prop => {
+              const _isParam = PARAMETERIZABLE_PROPS.has(prop);
+              const _curVal  = _sel.find(s => s === prop || s.startsWith(prop + ' (')) || null;
+              const _isOn    = !!_curVal;
+              const _paramVal = (_curVal && _curVal !== prop)
+                ? _curVal.slice(prop.length + 2, -1) : '';
+              const _placeholder = prop === 'Versatile' ? '1d8' : '30/120';
+              const _safeId = 'wtp-' + field.key + '-' + prop.replace(/[^a-zA-Z0-9]/g, '_');
+              if (_isParam) {
+                return `<span class="weapon-tag-pick-group">
+                  <button type="button"
+                    class="weapon-tag-pick${_isOn ? ' weapon-tag-pick--on' : ''}"
+                    onclick="window._toggleWeaponTag('${escJS(field.key)}','${escJS(prop)}',this)">${esc(prop)}</button>
+                  <input type="text" id="${_safeId}"
+                    class="weapon-tag-param-inp${_isOn ? '' : ' hidden'}"
+                    placeholder="${_placeholder}"
+                    value="${esc(_paramVal)}"
+                    oninput="window._updateWeaponTagParam('${escJS(field.key)}','${escJS(prop)}',this.value)"
+                    onclick="event.stopPropagation()">
+                </span>`;
+              }
+              return `<button type="button"
+                class="weapon-tag-pick${_isOn ? ' weapon-tag-pick--on' : ''}"
+                onclick="window._toggleWeaponTag('${escJS(field.key)}','${escJS(prop)}',this)">${esc(prop)}</button>`;
+            }).join('')}
+          </div>
         </div>
       `;
     } else {
@@ -2275,6 +2580,7 @@ window._openEditor = async (tab, editId) => {
         </div>
       `;
     }
+    if (field.showFor) body += `</div>`; // close showFor wrapper
   }
   if (_revealGroupOpen) { body += `</div>`; _revealGroupOpen = null; }
 
@@ -2285,18 +2591,18 @@ window._openEditor = async (tab, editId) => {
         <button type="button" id="btn-uitgesproken"
           class="dm-btn dm-btn-ghost editor-toggle-btn${_valUitgesproken ? ' editor-toggle-btn--active' : ''}"
           title="Roddel uitgesproken door de waard"
-          onclick="window._editorToggleBtn('inp-flavourUitgesproken','btn-uitgesproken')">🍺</button>
+          onclick="window._editorToggleBtn('inp-flavourUitgesproken','btn-uitgesproken')">${icon('beer')}</button>
         <div id="geheime-antagonist-section"${_isNpcEditor ? '' : ' style="display:none"'}>
           <button type="button" id="btn-geheimeAntagonist"
             class="dm-btn dm-btn-ghost editor-toggle-btn${_isAntagonist ? ' editor-toggle-btn--active' : ''}"
             title="Geheime antagonist — subtype wordt antagonist na onthulling"
-            onclick="window._editorToggleBtn('inp-geheimeAntagonist','btn-geheimeAntagonist')">💀</button>
+            onclick="window._editorToggleBtn('inp-geheimeAntagonist','btn-geheimeAntagonist')">${icon('skull', {cls:'icon-gi'})}</button>
         </div>
         ${editId && _isNpcEditor ? `
           <button type="button" id="btn-medestander"
             class="dm-btn dm-btn-ghost editor-toggle-btn"
             title="Medestander koppelen / ontkoppelen"
-            onclick="window._editorToggleCompanionBtn()">⚔</button>
+            onclick="window._editorToggleCompanionBtn()">${icon('crossed-swords', {cls:'icon-gi'})}</button>
         ` : ''}
       </div>
     `;
@@ -2349,7 +2655,7 @@ window._openEditor = async (tab, editId) => {
           <button type="button" id="editor-audio-preview" class="flavour-audio-btn editor-audio-preview"
             data-audio-btn data-audio-btn-id="${esc(_existingAudioId)}"
             onclick="window._audioToggle('${esc(_existingAudioId)}')" title="Afspelen / pauzeren">▶</button>
-          <button type="button" onclick="window._editorClearAudio()">✕ Verwijderen</button>
+          <button type="button" onclick="window._editorClearAudio()">${icon('x')} Verwijderen</button>
         ` : `<div id="editor-audio-preview" class="hidden"></div>`}
         <label>
           <input type="file" accept="audio/*" class="hidden" onchange="window._editorAudioSelected(this.files[0])">
@@ -2550,7 +2856,7 @@ window._openEditor = async (tab, editId) => {
       <div class="cs-accordion-body space-y-3">
   `;
   for (const lt of LINK_TYPES) {
-    const lm = TYPE_META[lt] || { icon: '\ud83d\udcdc', label: lt, chip: 'chip-doc' };
+    const lm = TYPE_META[lt] || { get svgIcon() { return icon('scroll-text'); }, icon: '\ud83d\udcdc', label: lt, chip: 'chip-doc' };
     body += `
       <div>
         <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">${LINK_LABELS[lt] || lm.label || lt}</div>
@@ -2579,16 +2885,16 @@ window._openEditor = async (tab, editId) => {
   body += `
     <div class="flex gap-2 pt-2">
       <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">
-        \ud83d\udcbe
+        ${icon('save')}
       </button>
       ${editId ? `
         <button type="button" onclick="window._deleteEntity('${tab}','${editId}')"
           class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition">
-          \ud83d\uddd1
+          ${icon('trash')}
         </button>
       ` : ''}
       <button type="button" onclick="window.app.closeModal()"
-        class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition" title="Annuleren">✕</button>
+        class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition" title="Annuleren">${icon('x')}</button>
     </div>
   </form>`;
 
@@ -2647,18 +2953,6 @@ window._openEditor = async (tab, editId) => {
     const active = inp.value === 'true';
     inp.value = active ? '' : 'true';
     btn.classList.toggle('editor-toggle-btn--active', !active);
-  };
-
-  // ── Icon picker ──
-  window._toggleIconPicker = () => {
-    document.getElementById('icon-picker')?.classList.toggle('hidden');
-  };
-  window._selectIcon = (ic) => {
-    const input = document.getElementById('icon-input');
-    const preview = document.getElementById('icon-preview');
-    if (input) input.value = ic;
-    if (preview) preview.textContent = ic || getAutoIcon(tab, e || { data: {} });
-    document.getElementById('icon-picker')?.classList.add('hidden');
   };
 
   // ── Extra images editor state ──
@@ -2961,7 +3255,7 @@ document.addEventListener('focusout', (ev) => {
 });
 
 function refreshTags(lt) {
-  const lm = TYPE_META[lt] || { icon: '\ud83d\udcdc', chip: 'chip-doc' };
+  const lm = TYPE_META[lt] || { get svgIcon() { return icon('scroll-text'); }, icon: '\ud83d\udcdc', chip: 'chip-doc' };
   const container = document.getElementById(`tags-${lt}`);
   if (!container) return;
   container.innerHTML = editorTags[lt].map(n =>

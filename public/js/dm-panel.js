@@ -1,4 +1,4 @@
-import { api } from './api.js';
+import { api } from './api.js?v=2';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=2';
 
 // ── DM Panel ──

@@ -1,4 +1,7 @@
-import { api } from './api.js';
+import { api } from './api.js?v=2';
+
+// icon() helper is defined globally in app.js; grab a local alias for template use.
+const icon = (...a) => window.icon(...a);
 
 // Track shift key globally — more reliable than event.shiftKey in inline handlers
 window._shiftHeld = false;
@@ -26,6 +29,10 @@ let _logboekActiveTab = 'verslagen'; // 'verslagen' | 'quests'
 let searchQuery = '';
 let archiefData = { documents: [], logEntries: [], hiddenLinks: {}, tekstContent: {} };
 let meta = null;
+
+// ── Regie-script state per akte ──
+let _scriptPickerState = {}; // { [ch]: { mode: null|'image'|'entity'|'encounter', entityType, entityQuery, entities, encounters } }
+let _scriptOpenChapters = new Set(); // welke aktes hun script-panel open hebben
 
 // Lazy proxies — window.app isn't set yet when ES modules evaluate
 const $ = (...a) => window.app.$(...a);
@@ -134,7 +141,7 @@ export async function renderDocumenten() {
     <!-- Section banner -->
     <div class="section-banner section-banner--entity section-banner--documenten">
       <div class="section-banner-head">
-        <div class="section-banner-icon-wrap">📜</div>
+        <div class="section-banner-icon-wrap">${icon('scroll-text')}</div>
         <div class="section-banner-info">
           <div class="section-banner-label">Documenten</div>
           <div class="section-banner-desc-line">Brieven, kranten, kaarten en manuscripten</div>
@@ -174,7 +181,7 @@ function _refreshDocGrid(docs, container) {
   const totalDocs = (archiefData.documents || []).length;
   grid.innerHTML = docs.length === 0
     ? `<div class="col-span-full text-center py-20 text-ink-faint">
-        <div class="text-5xl mb-4 opacity-40">📜</div>
+        <div class="text-5xl mb-4 opacity-40">${icon('scroll-text')}</div>
         <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">
           ${searchQuery || totalDocs > 0 ? 'Geen documenten gevonden' : 'Het archief is nog leeg...'}
         </div>
@@ -270,6 +277,26 @@ export async function renderLogboek() {
       body.innerHTML = _buildLogboekBody(entries, _logboekCache.hk, !!q.trim());
     }
   };
+
+  window._toggleScriptPanel = (chKey) => {
+    if (_scriptOpenChapters.has(chKey)) _scriptOpenChapters.delete(chKey);
+    else _scriptOpenChapters.add(chKey);
+    const body = document.getElementById('logboek-body');
+    if (body && _logboekCache) {
+      const q = logboekSearch;
+      const entries = q.trim()
+        ? _logboekCache.allEntries.filter(e => _logboekMatchesSearch(e, q.toLowerCase()))
+        : _logboekCache.allEntries;
+      body.innerHTML = _buildLogboekBody(entries, _logboekCache.hk, !!q.trim());
+    }
+    // Scroll het script-panel in beeld
+    if (_scriptOpenChapters.has(chKey)) {
+      setTimeout(() => {
+        document.getElementById(`logboek-script-section-${chKey}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 60);
+    }
+  };
 }
 
 // Deterministische rotatie op basis van quest-id (consistent over renders)
@@ -291,10 +318,10 @@ async function _renderPrikbord(container) {
 
   // Verborgen staat links — de →-knop werkt dan van links naar rechts
   const cols = [
-    ...(isDm ? [{ key: 'verborgen', label: '🔒 Verborgen' }] : []),
-    { key: 'actief',   label: '📌 Actief' },
-    { key: 'voltooid', label: '✓ Voltooid' },
-    { key: 'mislukt',  label: '✗ Mislukt' },
+    ...(isDm ? [{ key: 'verborgen', label: `${icon('lock')} Verborgen` }] : []),
+    { key: 'actief',   label: `${icon('pin')} Actief` },
+    { key: 'voltooid', label: `${icon('check')} Voltooid` },
+    { key: 'mislukt',  label: `${icon('x')} Mislukt` },
   ];
 
   // Volgorde voor de →-knop: verborgen→actief→voltooid→mislukt (geen terug naar verborgen)
@@ -316,7 +343,7 @@ async function _renderPrikbord(container) {
         ${isDm ? `
           <div class="quest-card-actions">
             ${hasNext ? `<button class="quest-card-btn" onclick="event.stopPropagation();window._questStatusNext('${q.id}')" title="Volgende kolom">→</button>` : ''}
-            <button class="quest-card-btn" onclick="event.stopPropagation();window._questDelete('${q.id}')" title="Verwijderen">✕</button>
+            <button class="quest-card-btn" onclick="event.stopPropagation();window._questDelete('${q.id}')" title="Verwijderen">${icon('x')}</button>
           </div>
         ` : ''}
         <div class="quest-card-title">${q.title.replace(/</g,'&lt;')}</div>
@@ -369,7 +396,7 @@ async function _renderPrikbord(container) {
     if (!q) return;
     document.getElementById('quest-view-overlay')?.remove();
     const chLabel = q.chapter && hk[q.chapter] ? hk[q.chapter].short : '';
-    const statusLabel = q.status === 'voltooid' ? '✓ Voltooid' : q.status === 'mislukt' ? '✗ Mislukt' : '📌 Actief';
+    const statusLabel = q.status === 'voltooid' ? icon('check')+' Voltooid' : q.status === 'mislukt' ? icon('x')+' Mislukt' : icon('pin')+' Actief';
     const overlay = document.createElement('div');
     overlay.id = 'quest-view-overlay';
     overlay.className = 'quest-modal-overlay';
@@ -377,7 +404,7 @@ async function _renderPrikbord(container) {
       <div class="quest-modal quest-view-modal" onclick="event.stopPropagation()">
         <div class="quest-view-status quest-view-status--${q.status}">${statusLabel}</div>
         <div class="quest-modal-title">${q.title.replace(/</g,'&lt;')}</div>
-        ${chLabel ? `<div class="quest-view-chapter">📖 ${chLabel.replace(/</g,'&lt;')}</div>` : ''}
+        ${chLabel ? `<div class="quest-view-chapter">${icon('book-open')} ${chLabel.replace(/</g,'&lt;')}</div>` : ''}
         ${q.description ? `<div class="quest-view-desc">${q.description.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>` : ''}
         <div class="quest-modal-actions">
           <button class="dm-btn dm-btn-ghost" onclick="document.getElementById('quest-view-overlay').remove()">Sluiten</button>
@@ -488,9 +515,9 @@ function _buildChapterImgStrip(chEntries, ch) {
           <button class="logboek-img-strip-thumb${img.hidden ? ' logboek-img-strip-thumb--hidden' : ''}"
             onclick="event.stopPropagation();window.app.openLightboxAt(window['${setKey}'],${i})"
             title="${esc(img.title)}">
-            <img src="${api.fileUrl(img.id)}" class="logboek-img-strip-img"
+            <img src="${api.thumbUrl(img.id)}" loading="lazy" class="logboek-img-strip-img"
               onerror="this.closest('.logboek-img-strip-thumb').style.display='none'">
-            ${img.hidden ? '<span class="logboek-img-strip-hidden-badge">🔒</span>' : ''}
+            ${img.hidden ? '<span class="logboek-img-strip-hidden-badge">' + icon('lock') + '</span>' : ''}
           </button>`).join('')}
       </div>
       <button class="logboek-img-strip-arrow logboek-img-strip-arrow--right"
@@ -531,7 +558,8 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
   const allDocs = archiefData.documents || [];
   const docsByChapter = {};
   for (const d of allDocs) {
-    if (!isDM() && (d.state || 'hidden') === 'hidden') continue;
+    const _effectiveState = (isDM() && d._activeState !== undefined) ? d._activeState : (d.state || 'hidden');
+    if (!isDM() && _effectiveState === 'hidden') continue;
     const ch = d.hoofdstuk || '_';
     if (!docsByChapter[ch]) docsByChapter[ch] = [];
     docsByChapter[ch].push(d);
@@ -550,7 +578,6 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
   let html = isDM() && _cvGrp && !isSearchMode ? `
     <div class="logboek-visibility-bar">
       <span class="logboek-visibility-bar-label">Zichtbaarheid instellen voor: <strong>${esc(_activeGrpName)}</strong></span>
-      <span class="logboek-visibility-bar-legend">👁 zichtbaar &nbsp;·&nbsp; <span style="color:#e08080">🔒</span> verborgen</span>
     </div>` : '';
 
   for (const ch of sortedChapters) {
@@ -583,23 +610,26 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
             ${isDM() ? `
               <button class="logboek-chapter-speel-btn dm-only"
                 title="Speel akte — onthul afbeeldingen"
-                onclick="event.stopPropagation();window._speelAkte('${esc(ch)}',${JSON.stringify(info.num)},'${esc(info.title)}')">▶ Speel</button>
+                onclick="event.stopPropagation();window._speelAkte('${esc(ch)}',${JSON.stringify(info.num)},'${esc(info.title)}')">${icon('play')} Speel</button>
+              <button class="logboek-chapter-script-btn dm-only${_scriptOpenChapters.has(ch) ? ' is-open' : ''}"
+                title="Regie-script — voorbereiding voor deze akte"
+                onclick="event.stopPropagation();window._toggleScriptPanel('${esc(ch)}')">${icon('clipboard-list')}</button>
               <button class="logboek-chapter-edit-btn dm-only" title="Akte bewerken"
-                onclick="event.stopPropagation();window._editAkte('${esc(ch)}')">✎</button>
+                onclick="event.stopPropagation();window._editAkte('${esc(ch)}')">${icon('pencil')}</button>
               ${_cvGrp ? `<button class="logboek-chapter-visibility-btn dm-only${isHiddenForGroup ? ' is-hidden' : ''}"
                 title="${isHiddenForGroup ? 'Toon akte voor ' + _activeGrpName : 'Verberg akte voor ' + _activeGrpName}"
                 onclick="event.stopPropagation();window._toggleChapterVisibility('${esc(ch)}',${isHiddenForGroup})">
-                ${isHiddenForGroup ? '🔒' : '👁'}
+                ${isHiddenForGroup ? icon('lock') : icon('eye')}
               </button>` : ''}
             ` : ''}
-            <div class="logboek-chapter-toggle">${isCollapsed ? '▶' : '▼'}</div>
+            <div class="logboek-chapter-toggle">${isCollapsed ? '▸' : '▾'}</div>
           </div>
         </div>
 
         <div class="logboek-chapter-content${isCollapsed ? ' hidden' : ''}">
           ${isHiddenForGroup ? `
             <div class="logboek-chapter-hidden-notice dm-only">
-              🔒 Verborgen voor <strong>${esc(_activeGrpName)}</strong> — sessies en afbeeldingen hieronder zijn <em>niet</em> zichtbaar voor spelers van deze groep, ongeacht de afzonderlijke zichtbaarheidsinstellingen
+              ${icon('lock')} Verborgen voor <strong>${esc(_activeGrpName)}</strong> — sessies en afbeeldingen hieronder zijn <em>niet</em> zichtbaar voor spelers van deze groep, ongeacht de afzonderlijke zichtbaarheidsinstellingen
             </div>` : ''}
           ${_buildChapterImgStrip(chEntries, ch)}
           <div class="logboek-timeline">
@@ -608,12 +638,13 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
           </div>
           ${(docsByChapter[ch] || []).length ? `
           <div class="logboek-chapter-docs">
-            <div class="logboek-docs-label">📜 Documenten</div>
+            <div class="logboek-docs-label">${icon('scroll-text')} Documenten</div>
             <div class="flex flex-wrap gap-2">
               ${(docsByChapter[ch] || []).map(d => renderDocCardCompact(d)).join('')}
             </div>
           </div>` : ''}
         </div>
+        ${isDM() && _scriptOpenChapters.has(ch) ? _renderAkteScript(ch, info, chEntries) : ''}
       </div>
     `;
   }
@@ -720,11 +751,12 @@ function _renderCarousel(key, images, opts = {}) {
   const dm = opts.dmControls || false;
 
   if (items.length === 1) {
-    const url = api.fileUrl(items[0].id);
+    const url      = api.fileUrl(items[0].id);
+    const thumbUrl = api.thumbUrl(items[0].id);
     const isVis = items[0].visible !== false;
     return `
       <div class="detail-hero mb-${dm ? 2 : 6}" onclick="window.app.openLightbox('${url}','')">
-        <img src="${url}" class="detail-hero-img${!isVis && dm ? ' opacity-50' : ''}">
+        <img src="${thumbUrl}" loading="lazy" class="detail-hero-img${!isVis && dm ? ' opacity-50' : ''}">
         <div class="detail-hero-overlay"></div>
       </div>
       ${items[0].caption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-1 mb-2 italic">${esc(items[0].caption)}</p>` : ''}
@@ -732,7 +764,7 @@ function _renderCarousel(key, images, opts = {}) {
         <button id="carousel-vis-btn-${key}"
           onclick="window._toggleImageVisible('${key}','${items[0].id}',${!isVis})"
           class="${_visBtn(isVis ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-room-border text-ink-dim hover:text-ink-bright')}">
-          ${isVis ? '👁 Zichtbaar voor spelers' : '🔒 Verborgen voor spelers'}
+          ${isVis ? icon('eye')+' Zichtbaar voor spelers' : icon('lock')+' Verborgen voor spelers'}
         </button>
       </div>` : ''}`;
   }
@@ -747,13 +779,14 @@ function _renderCarousel(key, images, opts = {}) {
         <div class="overflow-hidden rounded">
           <div id="carousel-track-${key}" class="flex" style="transition:transform 0.3s ease">
             ${items.map(({id, visible}) => {
-              const url = api.fileUrl(id);
+              const url      = api.fileUrl(id);
+              const thumbUrl = api.thumbUrl(id);
               const isVis = visible !== false;
               return `<div class="flex-shrink-0 w-full flex justify-center bg-room-elevated/30 relative">
-                <img src="${url}" class="max-h-[32rem] w-full object-contain cursor-pointer${!isVis && dm ? ' opacity-50' : ''}"
+                <img src="${thumbUrl}" loading="lazy" class="max-h-[32rem] w-full object-contain cursor-pointer${!isVis && dm ? ' opacity-50' : ''}"
                   onclick="window.app.openLightbox('${url}','')">
                 ${!isVis && dm ? `<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span class="bg-black/60 text-ink-dim text-xs px-2 py-1 rounded font-mono">🔒 Verborgen</span>
+                  <span class="bg-black/60 text-ink-dim text-xs px-2 py-1 rounded font-mono">${icon('lock')} Verborgen</span>
                 </div>` : ''}
               </div>`;
             }).join('')}
@@ -773,7 +806,7 @@ function _renderCarousel(key, images, opts = {}) {
         <button id="carousel-vis-btn-${key}"
           onclick="window._toggleCarouselVis('${key}',${items.length})"
           class="${_visBtn(items[0].visible !== false ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-room-border text-ink-dim hover:text-ink-bright')}">
-          ${items[0].visible !== false ? '👁 Zichtbaar voor spelers' : '🔒 Verborgen voor spelers'}
+          ${items[0].visible !== false ? icon('eye')+' Zichtbaar voor spelers' : icon('lock')+' Verborgen voor spelers'}
         </button>
       </div>` : ''}
     </div>`;
@@ -797,7 +830,7 @@ window._carouselGo = (key, idx, total) => {
   const btn = document.getElementById(`carousel-vis-btn-${key}`);
   if (btn && items) {
     const isVis = items[idx]?.visible !== false;
-    btn.textContent = isVis ? '👁 Zichtbaar voor spelers' : '🔒 Verborgen voor spelers';
+    btn.innerHTML = isVis ? icon('eye')+' Zichtbaar voor spelers' : icon('lock')+' Verborgen voor spelers';
     btn.className = _visBtn(isVis ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-room-border text-ink-dim hover:text-ink-bright');
     btn.onclick = () => window._toggleCarouselVis(key, total);
   }
@@ -829,7 +862,7 @@ window._toggleImageVisible = async (sessieId, imgId, newVisible) => {
   // Update single-image DM button (carousel case handled by _carouselGo above)
   const btn = document.getElementById(`carousel-vis-btn-${sessieId}`);
   if (btn && !_carouselItems[sessieId]) {
-    btn.textContent = newVisible ? '👁 Zichtbaar voor spelers' : '🔒 Verborgen voor spelers';
+    btn.innerHTML = newVisible ? icon('eye')+' Zichtbaar voor spelers' : icon('lock')+' Verborgen voor spelers';
     btn.className   = _visBtn(newVisible ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-room-border text-ink-dim hover:text-ink-bright');
     btn.onclick = () => window._toggleImageVisible(sessieId, imgId, !newVisible);
   }
@@ -846,7 +879,7 @@ function _renderAkteSamenvattingCard(ch, info) {
       ${isDM() ? `
         <div class="dm-only absolute top-2 right-2 z-10 flex gap-1">
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            title="Bewerken" onclick="event.stopPropagation();window._editAkte('${esc(ch)}')">&#9998;</button>
+            title="Bewerken" onclick="event.stopPropagation();window._editAkte('${esc(ch)}')">${icon('pencil')}</button>
         </div>` : ''}
       <div class="logboek-tl-card logboek-tl-card--h logboek-tl-card--samenvatting">
         <div class="logboek-card-thumb logboek-card-thumb--samenvatting">
@@ -875,7 +908,7 @@ window._openAkteSamenvatting = (ch) => {
   const dmBar = isDM() ? `
     <div class="dm-only mt-4 pt-4 border-t border-room-border">
       <button class="px-3 py-1.5 text-sm rounded bg-gold-dim text-room-bg font-cinzel font-semibold hover:bg-gold transition"
-        onclick="window.app.closeModal();window._editAkte('${esc(ch)}')">&#9998; Bewerken</button>
+        onclick="window.app.closeModal();window._editAkte('${esc(ch)}')">${icon('pencil')} Bewerken</button>
     </div>` : '';
   openModal(`Akte ${info.num} · ${esc(info.title)}`, 'Spelerssamenvatting', body + dmBar);
 };
@@ -910,11 +943,11 @@ function renderSessieEntry(e, sessieNum = null, chLabel = null) {
       ${isDM() ? `
         <div class="dm-only absolute top-2 right-2 z-10 flex gap-1">
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            title="${e.visible ? 'Verbergen' : 'Zichtbaar maken'}" onclick="event.stopPropagation();window._toggleSessieVis('${e.id}',${!!e.visible})">${e.visible ? '👁' : '🔒'}</button>
+            title="${e.visible ? 'Verbergen' : 'Zichtbaar maken'}" onclick="event.stopPropagation();window._toggleSessieVis('${e.id}',${!!e.visible})">${e.visible ? icon('eye') : icon('lock')}</button>
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            title="Bewerken" onclick="event.stopPropagation();window._openSessieEditor('${e.id}')">&#9998;</button>
+            title="Bewerken" onclick="event.stopPropagation();window._openSessieEditor('${e.id}')">${icon('pencil')}</button>
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-red-700/90 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            title="Verwijderen" onclick="event.stopPropagation();window._deleteSessie('${e.id}')">&#10005;</button>
+            title="Verwijderen" onclick="event.stopPropagation();window._deleteSessie('${e.id}')">${icon('x')}</button>
         </div>
       ` : ''}
       <div class="logboek-tl-card logboek-tl-card--h">
@@ -968,7 +1001,7 @@ window._openSessieDetail = async (id) => {
   const body = `
     ${isDM() && e._chapterHidden && activeGrpName ? `
       <div class="dm-only logboek-modal-hidden-notice">
-        🔒 Verborgen voor <strong>${esc(activeGrpName)}</strong> — dit verslag en alle afbeeldingen hieronder zijn niet zichtbaar voor spelers van deze groep
+        ${icon('lock')} Verborgen voor <strong>${esc(activeGrpName)}</strong> — dit verslag en alle afbeeldingen hieronder zijn niet zichtbaar voor spelers van deze groep
       </div>` : ''}
     ${_renderCarousel(id, images, { dmControls: isDM() })}
     ${datelineParts.length ? `<div class="log-dateline">${datelineParts.map(p => esc(p)).join(' &mdash; ')}</div>` : ''}
@@ -986,9 +1019,9 @@ window._openSessieDetail = async (id) => {
     ${isDM() ? `
       <div class="dm-only mt-4 pt-4 border-t border-room-border flex gap-2">
         <button class="px-3 py-1.5 text-sm rounded bg-gold-dim text-room-bg font-cinzel font-semibold hover:bg-gold transition"
-          onclick="window.app.closeModal();window._openSessieEditor('${e.id}')" title="Bewerken">&#9998;</button>
+          onclick="window.app.closeModal();window._openSessieEditor('${e.id}')" title="Bewerken">${icon('pencil')}</button>
         <button class="px-3 py-1.5 text-sm rounded bg-seal/20 text-seal hover:bg-seal/40 transition"
-          onclick="window._deleteSessie('${e.id}')" title="Verwijderen">&#x1F5D1;</button>
+          onclick="window._deleteSessie('${e.id}')" title="Verwijderen">${icon('trash')}</button>
       </div>` : ''}
   `;
   const subtitle = [chapter.short, e.datum].filter(Boolean).join(' \u00b7 ');
@@ -1070,7 +1103,7 @@ function _refreshLogImages() {
             <button type="button" onclick="window._toggleLogImageVisible(${i})"
               title="${img.visible ? 'Zichtbaar — klik om te verbergen' : 'Verborgen — klik om te onthullen'}"
               class="absolute bottom-0.5 right-0.5 w-5 h-5 ${img.visible ? 'bg-gold-dim text-room-bg' : 'bg-black/70 text-ink-dim'} rounded-full text-xs flex items-center justify-center transition">
-              ${img.visible ? '👁' : '🔒'}</button>
+              ${img.visible ? icon('eye') : icon('lock')}</button>
           </div>
           <input type="text" placeholder="Onderschrift…" value="${esc(img.caption || '')}"
             oninput="window._updateLogImageCaption(${i}, this.value)"
@@ -1117,14 +1150,327 @@ window._toggleChapterVisibility = async (ch, currentlyHidden) => {
   } catch (err) { console.error('Chapter visibility toggle failed:', err); }
 };
 
-// Activeer reveal strip voor een akte vanuit het logboek
-// Reset eerst alle afbeeldingen naar verborgen zodat ze één voor één onthuld kunnen worden.
+// Activeer regie-balk voor een akte vanuit het logboek (reveal strip niet meer nodig)
 window._speelAkte = async (ch, num, title) => {
   if (!window.dmPanel) return;
   try { await api.resetChapterImages(ch); } catch (e) { console.warn('reset images failed', e); }
-  window.dmPanel.setRevealChapter(ch);
-  window.dmPanel.renderRevealStrip();
+  window.dmPanel.closeRevealStrip?.();   // sluit de oude reveal strip als die open staat
   window.app?.setActiveAkte?.(ch, num, title);
+  const akteTitle = `Akte ${num} · ${title}`;
+  window.dmPanel.regieBalkLoad(ch, akteTitle);
+};
+
+// ── Regie-script helpers ──
+
+function _renderAkteScript(ch, info, chEntries) {
+  return `<div class="logboek-chapter-script dm-only" id="logboek-script-section-${esc(ch)}">
+    ${_renderAkteScriptInner(ch, info, chEntries)}
+  </div>`;
+}
+
+function _renderAkteScriptInner(ch, info, chEntries) {
+  const script = info.script || [];
+  const pickerState = _scriptPickerState[ch] || {};
+
+  // Collect all images from this akte's sessions
+  const seenFileIds = new Set();
+  const allImages = [];
+  for (const entry of chEntries) {
+    for (const img of (entry.images || [])) {
+      const fileId  = typeof img === 'string' ? img : img.id;
+      const caption = typeof img === 'object' && img.caption ? img.caption : '';
+      if (!seenFileIds.has(fileId)) {
+        seenFileIds.add(fileId);
+        allImages.push({ sessieId: entry.id, fileId, caption });
+      }
+    }
+  }
+
+  const addedFileIds    = new Set(script.filter(x => x.type === 'image').map(x => x.fileId));
+  const addedEntityIds  = new Set(script.filter(x => x.type === 'entity').map(x => x.entityId));
+  const addedEncIds     = new Set(script.filter(x => x.type === 'encounter').map(x => x.encounterId));
+
+  // Script item list
+  const scriptHtml = script.length > 0
+    ? script.map((item, idx) => {
+        const isFirst = idx === 0, isLast = idx === script.length - 1;
+        const itemIcon = item.type === 'image'
+          ? icon('image')
+          : item.type === 'entity'
+            ? icon('eye')
+            : icon('crossed-swords', { cls: 'icon-gi' });
+        const name  = item.type === 'image' ? (item.caption || 'Afbeelding') : (item.name || '—');
+        const thumb = item.type === 'image'
+          ? `<img src="${api.fileUrl(item.fileId)}" style="width:40px;height:30px;object-fit:cover;border-radius:3px;flex-shrink:0">`
+          : '';
+        return `<div class="script-item">
+          ${thumb}
+          <span class="script-item-icon">${itemIcon}</span>
+          <span class="script-item-name">${esc(name)}</span>
+          <div class="script-item-actions">
+            ${!isFirst ? `<button class="script-icon-btn"
+              onclick="window._scriptMove('${esc(ch)}','${esc(item.id)}',-1)" title="Omhoog">↑</button>` : ''}
+            ${!isLast  ? `<button class="script-icon-btn"
+              onclick="window._scriptMove('${esc(ch)}','${esc(item.id)}',1)" title="Omlaag">↓</button>` : ''}
+            <button class="script-icon-btn script-icon-btn--del"
+              onclick="window._scriptRemove('${esc(ch)}','${esc(item.id)}')" title="Verwijderen">${icon('x')}</button>
+          </div>
+        </div>`;
+      }).join('')
+    : `<p class="dm-hint" style="margin:4px 0 0">Geen script-items. Voeg afbeeldingen, kaartjes of gevechten toe via de knoppen hieronder.</p>`;
+
+  // Picker panel
+  let pickerHtml = '';
+  if (pickerState.mode === 'image') {
+    if (allImages.length === 0) {
+      pickerHtml = `<p class="dm-hint">Geen afbeeldingen in deze akte.</p>`;
+    } else {
+      pickerHtml = `<div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${allImages.map(img => {
+          const added = addedFileIds.has(img.fileId);
+          return `<div style="position:relative;cursor:${added ? 'default' : 'pointer'};opacity:${added ? '.55' : '1'}"
+            ${added ? '' : `onclick="window._scriptAddImage('${esc(ch)}','${esc(img.sessieId)}','${esc(img.fileId)}',${JSON.stringify(img.caption)})"`}>
+            <img src="${api.fileUrl(img.fileId)}" style="width:72px;height:54px;object-fit:cover;border-radius:4px;
+              border:2px solid ${added ? 'var(--color-gold-dim)' : 'var(--color-room-border)'}">
+            ${added ? `<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+              font-size:18px;background:rgba(0,0,0,0.3);border-radius:4px;color:#fff">${icon('check')}</span>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+  } else if (pickerState.mode === 'entity') {
+    const entityList = pickerState.entities;
+    const dlOptions = entityList === undefined ? '' :
+      entityList.filter(e => !addedEntityIds.has(e.id))
+        .map(e => `<option value="${esc((e._icon || '') + ' ' + (e.name || ''))}"></option>`).join('');
+    pickerHtml = `
+      <input class="dm-input" type="text"
+        list="script-entity-dl-${esc(ch)}"
+        id="script-entity-search-${esc(ch)}"
+        placeholder="${entityList === undefined ? 'Laden…' : 'Zoek en selecteer een kaartje…'}"
+        ${entityList === undefined ? 'disabled' : ''}
+        style="width:100%;font-size:12px"
+        onchange="window._scriptEntityPick('${esc(ch)}', this.value); this.value=''">
+      <datalist id="script-entity-dl-${esc(ch)}">${dlOptions}</datalist>`;
+  } else if (pickerState.mode === 'encounter') {
+    const encounters = pickerState.encounters;
+    const dlEncOptions = encounters === undefined ? '' :
+      encounters.filter(e => !addedEncIds.has(e.id))
+        .map(e => `<option value="${esc(e.name || '')}"></option>`).join('');
+    pickerHtml = `
+      <input class="dm-input" type="text"
+        list="script-enc-dl-${esc(ch)}"
+        id="script-enc-search-${esc(ch)}"
+        placeholder="${encounters === undefined ? 'Laden…' : encounters.length === 0 ? 'Geen gevechten — maak er eerst een aan.' : 'Zoek en selecteer een gevecht…'}"
+        ${(encounters === undefined || encounters.length === 0) ? 'disabled' : ''}
+        style="width:100%;font-size:12px"
+        onchange="window._scriptEncounterPick('${esc(ch)}', this.value); this.value=''">
+      <datalist id="script-enc-dl-${esc(ch)}">${dlEncOptions}</datalist>`;
+  }
+
+  return `
+    <div class="logboek-script-header">
+      <span class="logboek-script-title">${icon('clipboard-list')} Regie-script</span>
+      <div class="logboek-script-add-btns">
+        <button class="script-add-btn${pickerState.mode === 'image'    ? ' is-active' : ''}"
+          title="Afbeelding toevoegen"
+          onclick="window._scriptTogglePicker('${esc(ch)}','image')">${icon('image')}</button>
+        <button class="script-add-btn${pickerState.mode === 'entity'   ? ' is-active' : ''}"
+          title="Kaartje toevoegen"
+          onclick="window._scriptTogglePicker('${esc(ch)}','entity')">${icon('eye')}</button>
+        <button class="script-add-btn${pickerState.mode === 'encounter'? ' is-active' : ''}"
+          title="Gevecht toevoegen"
+          onclick="window._scriptTogglePicker('${esc(ch)}','encounter')">${icon('crossed-swords',{cls:'icon-gi'})}</button>
+      </div>
+    </div>
+    <div class="logboek-script-items">${scriptHtml}</div>
+    ${pickerState.mode
+      ? `<div class="logboek-script-picker">${pickerHtml}</div>`
+      : ''}
+  `;
+}
+
+function _refreshScriptSection(ch) {
+  const container = document.getElementById(`logboek-script-section-${ch}`);
+  if (!container) return;
+  const info      = meta?.hoofdstukken?.[ch] || {};
+  const chEntries = (archiefData.sessieLog || []).filter(e => e.hoofdstuk === ch);
+  container.innerHTML = _renderAkteScriptInner(ch, info, chEntries);
+}
+
+window._scriptTogglePicker = (ch, mode) => {
+  const state = _scriptPickerState[ch] || {};
+  state.mode  = state.mode === mode ? null : mode;
+  _scriptPickerState[ch] = state;
+  _refreshScriptSection(ch);
+  // Lazy-load data when picker opens
+  if (state.mode === 'entity' && state.entities === undefined) {
+    _scriptLoadAllEntities(ch);
+  } else if (state.mode === 'encounter' && state.encounters === undefined) {
+    _scriptLoadEncounters(ch);
+  }
+  // Auto-focus search when opening entity picker
+  if (state.mode === 'entity') {
+    requestAnimationFrame(() => {
+      document.getElementById(`script-entity-search-${ch}`)?.focus();
+    });
+  }
+};
+
+// Called when user picks an encounter from the datalist suggestions
+window._scriptEncounterPick = (ch, value) => {
+  if (!value) return;
+  const encounters = (_scriptPickerState[ch] || {}).encounters || [];
+  const enc = encounters.find(e => e.name === value);
+  if (enc) window._scriptAddEncounter(ch, enc.id, enc.name);
+};
+
+// Called when user picks an entity from the datalist suggestions
+window._scriptEntityPick = (ch, value) => {
+  if (!value) return;
+  const state = _scriptPickerState[ch] || {};
+  const entities = state.entities || [];
+  // Match against "icon name" composite or plain name
+  const e = entities.find(x => ((x._icon || '') + ' ' + (x.name || '')) === value)
+         || entities.find(x => x.name === value);
+  if (e) window._scriptAddEntity(ch, e._type, e.id, e.name);
+};
+
+// ── Helpers for entity picker ──
+
+function _renderEntityResults(ch, entities, addedEntityIds, query) {
+  if (entities === undefined) return `<p class="dm-hint">Laden…</p>`;
+  const q = (query || '').toLowerCase().trim();
+  const filtered = q
+    ? entities.filter(e => (e.name || '').toLowerCase().includes(q))
+    : entities;
+  if (filtered.length === 0) return `<p class="dm-hint">Geen resultaten.</p>`;
+  return filtered.slice(0, 30).map(e => {
+    const added = addedEntityIds.has(e.id);
+    return `<button class="dm-btn dm-btn-sm${added ? ' dm-btn-ghost' : ''}"
+      style="text-align:left;padding:3px 8px;${added ? 'opacity:.5' : ''}"
+      ${added ? 'disabled' : `onclick="window._scriptAddEntity('${esc(ch)}','${esc(e._type)}','${esc(e.id)}',${JSON.stringify(e.name || '')})"`}>
+      ${e._icon || icon('eye')} ${added ? '✓ ' : ''}${esc(e.name)}</button>`;
+  }).join('');
+}
+
+async function _scriptLoadAllEntities(ch) {
+  const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+  const ICONS = { personages: '👤', locaties: '📍', organisaties: '🏛', voorwerpen: '📦', documenten: '📜' };
+  try {
+    const [archiefResult, ...entityLists] = await Promise.all([
+      api.listArchief().catch(() => ({ documents: [] })),
+      ...ENTITY_TYPES.map(t => api.listEntities(t).catch(() => []))
+    ]);
+    const allEntities = [];
+    ENTITY_TYPES.forEach((type, idx) => {
+      for (const e of (entityLists[idx] || [])) {
+        allEntities.push({ id: e.id, name: e.name, _type: type, _icon: ICONS[type] });
+      }
+    });
+    for (const doc of (archiefResult.documents || [])) {
+      allEntities.push({ id: doc.id, name: doc.name || doc.title || '(document)', _type: 'documenten', _icon: ICONS.documenten });
+    }
+    allEntities.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl'));
+    const state = _scriptPickerState[ch] || {};
+    state.entities = allEntities;
+    _scriptPickerState[ch] = state;
+    // Update datalist + enable input if picker is already visible, else full refresh
+    const dlEl    = document.getElementById(`script-entity-dl-${ch}`);
+    const inputEl = document.getElementById(`script-entity-search-${ch}`);
+    if (dlEl && inputEl) {
+      const addedEntityIds = new Set(
+        (meta?.hoofdstukken?.[ch]?.script || [])
+          .filter(x => x.type === 'entity').map(x => x.entityId)
+      );
+      dlEl.innerHTML = allEntities.filter(e => !addedEntityIds.has(e.id))
+        .map(e => `<option value="${esc((e._icon || '') + ' ' + (e.name || ''))}"></option>`).join('');
+      inputEl.disabled = false;
+      inputEl.placeholder = 'Zoek en selecteer een kaartje…';
+      inputEl.focus();
+    } else {
+      _refreshScriptSection(ch);
+    }
+  } catch (err) { console.warn('entity load failed', err); }
+}
+
+async function _scriptLoadEncounters(ch) {
+  try {
+    const list = await api.listEncounters();
+    const state = _scriptPickerState[ch] || {};
+    state.encounters = list;
+    _scriptPickerState[ch] = state;
+    // Update datalist + input in-place als de picker al zichtbaar is
+    const dlEl    = document.getElementById(`script-enc-dl-${ch}`);
+    const inputEl = document.getElementById(`script-enc-search-${ch}`);
+    if (dlEl && inputEl) {
+      const addedEncIds = new Set(
+        (meta?.hoofdstukken?.[ch]?.script || [])
+          .filter(x => x.type === 'encounter').map(x => x.encounterId)
+      );
+      dlEl.innerHTML = list.filter(e => !addedEncIds.has(e.id))
+        .map(e => `<option value="${esc(e.name || '')}"></option>`).join('');
+      inputEl.disabled = list.length === 0;
+      inputEl.placeholder = list.length === 0
+        ? 'Geen gevechten — maak er eerst een aan.'
+        : 'Zoek en selecteer een gevecht…';
+      inputEl.focus();
+    } else {
+      _refreshScriptSection(ch);
+    }
+  } catch (err) { console.warn('encounter load failed', err); }
+}
+
+function _scriptGenId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+async function _scriptSave(ch, newScript) {
+  if (!meta?.hoofdstukken?.[ch]) return;
+  meta.hoofdstukken[ch].script = newScript;
+  if (window.app?.state?.meta?.hoofdstukken?.[ch]) {
+    window.app.state.meta.hoofdstukken[ch].script = newScript;
+  }
+  try {
+    await api.saveAkteScript(ch, newScript);
+  } catch (err) { console.warn('script save failed', err); }
+  _refreshScriptSection(ch);
+}
+
+window._scriptAddImage = async (ch, sessieId, fileId, caption) => {
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  if (script.some(x => x.type === 'image' && x.fileId === fileId)) return;
+  script.push({ id: _scriptGenId(), type: 'image', sessieId, fileId, caption: caption || '' });
+  await _scriptSave(ch, script);
+};
+
+window._scriptAddEntity = async (ch, entityType, entityId, name) => {
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  if (script.some(x => x.type === 'entity' && x.entityId === entityId)) return;
+  script.push({ id: _scriptGenId(), type: 'entity', entityType, entityId, name });
+  await _scriptSave(ch, script);
+};
+
+window._scriptAddEncounter = async (ch, encounterId, name) => {
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  if (script.some(x => x.type === 'encounter' && x.encounterId === encounterId)) return;
+  script.push({ id: _scriptGenId(), type: 'encounter', encounterId, name });
+  await _scriptSave(ch, script);
+};
+
+window._scriptRemove = async (ch, itemId) => {
+  const script = (meta?.hoofdstukken?.[ch]?.script || []).filter(x => x.id !== itemId);
+  await _scriptSave(ch, script);
+};
+
+window._scriptMove = async (ch, itemId, dir) => {
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  const idx = script.findIndex(x => x.id === itemId);
+  if (idx < 0) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= script.length) return;
+  [script[idx], script[newIdx]] = [script[newIdx], script[idx]];
+  await _scriptSave(ch, script);
 };
 
 window._editAkte = (ch) => {
@@ -1211,8 +1557,8 @@ window._editAkte = (ch) => {
         </div>
       </div>
       <div class="flex gap-2 pt-2">
-        <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">💾 Opslaan</button>
-        <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition">✕</button>
+        <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">${icon('save')} Opslaan</button>
+        <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition">${icon('x')}</button>
       </div>
     </form>`;
   openModal('Akte bewerken', info.title || ch, body);
@@ -1400,9 +1746,9 @@ window._openSessieEditor = async (editId) => {
       </label>
     </div>
     <div class="flex gap-2 pt-2">
-      <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition" title="Opslaan">&#x1F4BE;</button>
-      ${editId ? `<button type="button" onclick="window._deleteSessie('${editId}')" class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition" title="Verwijderen">&#x1F5D1;</button>` : ''}
-      <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition" title="Annuleren">✕</button>
+      <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition" title="Opslaan">${icon('save')}</button>
+      ${editId ? `<button type="button" onclick="window._deleteSessie('${editId}')" class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition" title="Verwijderen">${icon('trash')}</button>` : ''}
+      <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition" title="Annuleren">${icon('x')}</button>
     </div>
   </form>`;
 
@@ -1578,7 +1924,7 @@ function renderDocGrid(docs) {
 }
 
 function renderDocCardCompact(d) {
-  const state = d.state || 'hidden';
+  const state = (isDM() && d._activeState !== undefined) ? d._activeState : (d.state || 'hidden');
   const isBlurred = !isDM() && state === 'blurred';
   const dimmed = isDM() && state !== 'revealed';
   return `
@@ -1596,7 +1942,7 @@ function renderDocCardCompact(d) {
 }
 
 function renderDocCard(d) {
-  const state = d.state || 'hidden';
+  const state = (isDM() && d._activeState !== undefined) ? d._activeState : (d.state || 'hidden');
   const hoofdstuk = meta?.hoofdstukken?.[d.hoofdstuk];
   const chapterLabel = hoofdstuk ? hoofdstuk.short : '';
   const isBlurred = !isDM() && state === 'blurred';
@@ -1605,7 +1951,7 @@ function renderDocCard(d) {
     <div class="entity-card${isDM() && state === 'hidden' ? ' card-hidden' : isDM() && state === 'blurred' ? ' opacity-60' : ''}"
       onclick="window._openDoc('${d.id}')">
       ${isDM() ? (() => {
-        const _visIcon  = state === 'hidden' ? '\ud83d\udd12' : state === 'blurred' ? '\ud83d\udc64' : '\ud83d\udc41';
+        const _visIcon  = state === 'hidden' ? icon('lock') : state === 'blurred' ? icon('eye-off') : icon('eye');
         const _visTitle = state === 'revealed' ? 'Verbergen  \u00b7  Shift: vaag maken'
                         : state === 'blurred'  ? 'Onthullen  \u00b7  Shift: verbergen'
                         :                        'Onthullen  \u00b7  Shift: vaag maken';
@@ -1614,12 +1960,12 @@ function renderDocCard(d) {
           <button class="w-7 h-7 flex items-center justify-center rounded ${state === 'blurred' ? 'bg-gold-dim/80' : 'bg-black/75'} hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._toggleDocState('${d.id}','${state}',window._shiftHeld)"
             title="${_visTitle}">${_visIcon}</button>
-          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._openArchiefEditor('${d.id}')"
-            title="Bewerken">&#9998;</button>
-          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-red-700/90 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
+            title="Bewerken">${icon('pencil')}</button>
+          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-red-700/90 backdrop-blur-sm transition text-white shadow ring-1 ring-white/20"
             onclick="event.stopPropagation();window._deleteDoc('${d.id}')"
-            title="Verwijderen">&#10005;</button>
+            title="Verwijderen">${icon('trash')}</button>
         </div>`;
       })() : ''}
       <div class="card-accent bar-documenten"></div>
@@ -1632,7 +1978,6 @@ function renderDocCard(d) {
       <div class="card-body px-3 pt-2 pb-2">
         <div class="mb-1.5">
           <div class="flex items-center gap-1.5">
-            <span class="text-base leading-none shrink-0">${d.icon || '\ud83d\udcdc'}</span>
             <span class="card-name truncate">${esc(d.name)}</span>
           </div>
           <span class="card-name-sep"></span>
@@ -1654,7 +1999,7 @@ window._openDoc = async (id) => {
   try { d = await api.getArchief(id); } catch { return; }
   window._currentArchiefDocId    = id;
   window._currentArchiefSessieId = null;
-  const state      = d.state || 'hidden';
+  const state      = (isDM() && d._activeState !== undefined) ? d._activeState : (d.state || 'hidden');
   const isBlurred  = !isDM() && state === 'blurred';
   const hoofdstuk  = meta?.hoofdstukken?.[d.hoofdstuk];
   const tekst      = archiefData.tekstContent?.[id] || '';
@@ -1664,9 +2009,9 @@ window._openDoc = async (id) => {
   let body = '';
 
   // ── DM visibility vars (needed for bottom controls) ──
-  const _visIcon  = state === 'hidden'   ? '🔒'
-                  : state === 'blurred'  ? '👁'
-                  :                        '✨';
+  const _visIcon  = state === 'hidden'   ? icon('lock')
+                  : state === 'blurred'  ? icon('eye-off')
+                  :                        icon('eye');
   const _visTitle = state === 'revealed' ? 'Verbergen · Shift: wazig'
                   : state === 'blurred'  ? 'Volledig onthullen · Shift: verbergen'
                   :                        'Onthullen · Shift: wazig';
@@ -1676,7 +2021,7 @@ window._openDoc = async (id) => {
     <div class="detail-hero mb-4" onclick="window.app.openLightbox('${fileUrl}','${escJS(d.name)}')">
       <img src="${thumbUrl}" class="detail-hero-img" onerror="this.closest('.detail-hero').style.display='none'">
       <div class="detail-hero-overlay"></div>
-      <div class="detail-hero-icon">${d.icon || '📜'}</div>
+      
       ${d.type ? `<div class="detail-hero-badge badge-doc">${esc(d.type)}</div>` : ''}
     </div>
   `;
@@ -1704,9 +2049,9 @@ window._openDoc = async (id) => {
           ${_visIcon}
         </button>
         <button class="dm-btn" title="Bewerken"
-          onclick="window._openArchiefEditor('${d.id}')">&#9998;</button>
+          onclick="window._openArchiefEditor('${d.id}')">${icon('pencil')}</button>
         <button class="dm-btn dm-btn-danger" title="Verwijderen"
-          onclick="window._deleteDoc('${d.id}')">&#x1F5D1;</button>
+          onclick="window._deleteDoc('${d.id}')">${icon('trash')}</button>
       </div>
     `;
   }
@@ -1730,7 +2075,7 @@ window._openDoc = async (id) => {
           if (ct.includes('image')) {
             fileContainer.innerHTML = `<img src="${fileUrl}" class="w-full max-h-80 object-contain rounded blur-xl select-none pointer-events-none">`;
           } else {
-            fileContainer.innerHTML = `<div class="rounded bg-room-elevated p-8 text-center select-none"><div class="text-4xl mb-2 opacity-30">🔒</div><div class="text-ink-faint text-sm italic">Document nog niet volledig onthuld</div></div>`;
+            fileContainer.innerHTML = `<div class="rounded bg-room-elevated p-8 text-center select-none"><div class="text-4xl mb-2 opacity-30">${icon('lock')}</div><div class="text-ink-faint text-sm italic">Document nog niet volledig onthuld</div></div>`;
           }
         } else if (ct.includes('audio')) {
           fileContainer.innerHTML = `<div class="bg-room-elevated rounded-lg p-4">
@@ -1788,7 +2133,7 @@ window._toggleDocState = async (id, current, shiftKey) => {
   } else {
     next = current === 'revealed' ? 'hidden' : 'revealed';
   }
-  await api.setArchiefState(id, next);
+  await api.setArchiefGroupVisibility(id, next);
   renderDocumenten();
 };
 
@@ -1994,11 +2339,11 @@ window._openArchiefEditor = async (editId) => {
 
   // ── Verbindingen (uitklapbaar) ──
   const tagMeta = {
-    npcs:  { icon: '👤', label: 'Personages',    chip: 'chip-npc',  nameKey: 'personages' },
-    locs:  { icon: '🏰', label: 'Locaties',      chip: 'chip-loc',  nameKey: 'locaties' },
-    orgs:  { icon: '🏛️', label: 'Organisaties', chip: 'chip-org',  nameKey: 'organisaties' },
-    items: { icon: '🎒', label: 'Voorwerpen',    chip: 'chip-item', nameKey: 'voorwerpen' },
-    docs:  { icon: '📜', label: 'Documenten',    chip: 'chip-doc',  nameKey: 'archief' },
+    npcs:  { icon: icon('user'),                        label: 'Personages',    chip: 'chip-npc',  nameKey: 'personages' },
+    locs:  { icon: icon('castle', {cls:'icon-gi'}),     label: 'Locaties',      chip: 'chip-loc',  nameKey: 'locaties' },
+    orgs:  { icon: icon('landmark'),                    label: 'Organisaties',  chip: 'chip-org',  nameKey: 'organisaties' },
+    items: { icon: icon('package'),                     label: 'Voorwerpen',    chip: 'chip-item', nameKey: 'voorwerpen' },
+    docs:  { icon: icon('scroll-text'),                 label: 'Documenten',    chip: 'chip-doc',  nameKey: 'archief' },
   };
   const _hasAnyTags = Object.values(editorTags).some(arr => arr.length > 0);
   body += `
@@ -2052,9 +2397,9 @@ window._openArchiefEditor = async (editId) => {
 
   body += `
     <div class="flex gap-2 pt-2">
-      <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition" title="Opslaan">&#x1F4BE;</button>
-      ${editId ? `<button type="button" onclick="window._deleteDoc('${editId}')" class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition" title="Verwijderen">&#x1F5D1;</button>` : ''}
-      <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition" title="Annuleren">✕</button>
+      <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition" title="Opslaan">${icon('save')}</button>
+      ${editId ? `<button type="button" onclick="window._deleteDoc('${editId}')" class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition" title="Verwijderen">${icon('trash')}</button>` : ''}
+      <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition" title="Annuleren">${icon('x')}</button>
     </div>
   </form>`;
 
