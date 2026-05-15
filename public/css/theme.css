@@ -14626,7 +14626,7 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 
 /* ── Spellbook: Beheer panel ── */
 .sb-manage-panel {
-  position: absolute; inset: 0; z-index: 12;
+  position: absolute; inset: 0; z-index: 20;
   background: linear-gradient(160deg, #2b1a0e 0%, #1e1208 100%);
   border-radius: inherit;
   transform: translateX(101%);
