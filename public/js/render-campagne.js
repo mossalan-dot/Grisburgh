@@ -1482,24 +1482,24 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     infoHtml += `
       <div class="dm-only mt-4 pt-4 border-t border-room-border">
         <div class="flex flex-wrap gap-2 mb-3">
-          <button class="dm-btn${vis !== 'hidden' ? ' dm-btn--active' : ''}"
+          <button class="dm-btn dm-btn-icon${vis !== 'hidden' ? ' dm-btn--active' : ''}"
             title="${_mVisTitle}"
             onclick="window._toggleVis('${tab}','${e.id}',event)">
             ${_mVisIcon}
           </button>
           ${(isPersonage || tab === 'locaties') ? `
-            <button class="dm-btn${e._secretReveal ? ' dm-btn--active' : ''}"
+            <button class="dm-btn dm-btn-icon${e._secretReveal ? ' dm-btn--active' : ''}"
               title="${e._secretReveal ? 'Geheim verbergen voor spelers' : 'Geheim onthullen aan spelers'}"
               onclick="window._toggleSecret('${tab}','${e.id}')">
               ${e._secretReveal ? icon('eye') : icon('lock')}
             </button>
           ` : ''}
-          <button class="dm-btn${e._deceased ? ' dm-btn--active' : ''}"
+          <button class="dm-btn dm-btn-icon${e._deceased ? ' dm-btn--active' : ''}"
             title="${e._deceased ? 'Markering verwijderen' : 'Markeer als deceased'}"
             onclick="window._toggleDeceased('${tab}','${e.id}')">
             ${icon('skull', {cls:'icon-gi'})}
           </button>
-          <button class="dm-btn"
+          <button class="dm-btn dm-btn-icon"
             title="Bewerk dit kaartje (afbeelding, tekst, geluid)"
             onclick="window._openEditor('${tab}','${e.id}')">
             ${icon('pencil')}
