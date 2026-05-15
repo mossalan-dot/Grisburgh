@@ -14868,6 +14868,291 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   background: radial-gradient(ellipse at 50% 50%, transparent 48%, rgba(35,130,35,0.38) 100%);
 }
 
+/* ══════════════════════════════════════════════════════
+   SPELLBOOK FEATURE ADDITIONS
+   ══════════════════════════════════════════════════════ */
+
+/* ── Quill cursor op notitievelden ── */
+.sb-manage-input--quill {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'><path d='M18 2 C20 2 21 5 17 8 L6 19 L2 20 L3 16 L14 5 C11 1 16 0 18 2Z' stroke='%23553311' stroke-width='0.8' fill='%23f8f0d8'/><line x1='6' y1='16' x2='14' y2='8' stroke='%23553311' stroke-width='0.5'/></svg>") 3 19, text;
+}
+
+/* ── Slot level stepper ── */
+.sb-slot-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 8px;
+  font-family: 'Cinzel', serif;
+}
+.sb-slot-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8a6030;
+  flex: 1;
+}
+.sb-slot-btn {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(100,60,10,0.35);
+  background: rgba(100,60,10,0.08);
+  color: #5a3a10;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s;
+  padding: 0;
+}
+.sb-slot-btn:hover { background: rgba(100,60,10,0.20); }
+.sb-slot-val {
+  font-family: 'Kalam', cursive;
+  font-size: 18px;
+  font-weight: 700;
+  color: #3a1e08;
+  min-width: 20px;
+  text-align: center;
+}
+.sb-slot-higher {
+  font-family: 'Kalam', cursive;
+  font-size: 12px;
+  color: #3a1e08;
+  background: rgba(120,80,10,0.10);
+  border-left: 3px solid rgba(120,80,10,0.35);
+  padding: 5px 8px;
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+/* ── Concentration fold corner ── */
+.sb-conc-fold {
+  position: absolute;
+  top: 0; right: 0;
+  width: 44px; height: 44px;
+  z-index: 8;
+  cursor: default;
+}
+.sb-conc-fold--hidden { display: none; }
+.sb-conc-fold--avail  { cursor: pointer; }
+.sb-conc-fold--active { cursor: pointer; }
+.sb-conc-fold::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 0 44px 44px 0;
+  border-color: transparent rgba(140,90,10,0.18) transparent transparent;
+  transition: border-color 0.4s;
+}
+.sb-conc-fold--avail::before  { border-color: transparent rgba(140,90,10,0.30) transparent transparent; }
+.sb-conc-fold--active::before { border-color: transparent rgba(210,140,10,0.72) transparent transparent; animation: sb-fold-pulse 2.2s ease-in-out infinite; }
+@keyframes sb-fold-pulse {
+  0%,100% { border-color: transparent rgba(210,140,10,0.72) transparent transparent; }
+  50%      { border-color: transparent rgba(255,180,20,0.95) transparent transparent; }
+}
+/* Candle flame icon inside the fold (visible when active) */
+.sb-conc-fold--active::after {
+  content: '🕯';
+  position: absolute;
+  top: 3px; right: 3px;
+  font-size: 13px;
+  animation: sb-candle-flicker 1.8s ease-in-out infinite;
+}
+@keyframes sb-candle-flicker {
+  0%,100% { opacity: 1;   transform: scale(1)   rotate(-3deg); }
+  25%      { opacity: 0.85; transform: scale(0.95) rotate(2deg);  }
+  50%      { opacity: 1;   transform: scale(1.05) rotate(-1deg); }
+  75%      { opacity: 0.9;  transform: scale(0.98) rotate(3deg);  }
+}
+
+/* ── Spell fade — no slots available ── */
+.sb-spell-fade {
+  position: absolute; inset: 0; z-index: 6;
+  background: rgba(230,215,180,0.55);
+  backdrop-filter: saturate(0.3) sepia(0.4);
+  pointer-events: none;
+  border-radius: inherit;
+}
+.sb-spell-fade::after {
+  content: 'Geen slots beschikbaar';
+  position: absolute;
+  bottom: 18px; left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(80,40,10,0.50);
+  white-space: nowrap;
+}
+
+/* ── Page yellowing (acquisitionLevel) ── */
+.sb-page-right[data-aged="3"] { filter: drop-shadow(3px 2px 5px rgba(0,0,0,0.38)) sepia(0.55) brightness(0.93); }
+.sb-page-right[data-aged="2"] { filter: drop-shadow(3px 2px 5px rgba(0,0,0,0.38)) sepia(0.30) brightness(0.96); }
+.sb-page-right[data-aged="1"] { filter: drop-shadow(3px 2px 5px rgba(0,0,0,0.38)) sepia(0.12); }
+.sb-page-right[data-aged="0"] { filter: drop-shadow(3px 2px 5px rgba(0,0,0,0.38)); }
+
+/* ── Marginalia icons on right margin ── */
+.sb-marginalia {
+  position: absolute;
+  right: 5px;
+  top: 55px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  z-index: 7;
+}
+.sb-marginal-icon {
+  position: relative;
+  width: 26px; height: 26px;
+  background: rgba(240,225,185,0.88);
+  border: 1px solid rgba(100,60,10,0.28);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: default;
+  box-shadow: 0 1px 3px rgba(60,30,5,0.18);
+  color: #4a2e08;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.sb-marginal-icon:hover,
+.sb-marginal-icon:focus {
+  transform: scale(1.2) translateX(-4px);
+  box-shadow: 0 2px 8px rgba(60,30,5,0.28);
+  outline: none;
+  z-index: 2;
+}
+.sb-marginal-icon svg { width: 14px; height: 14px; }
+/* Tooltip */
+.sb-marginal-tip {
+  display: none;
+  position: absolute;
+  right: 32px; top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(135deg, #fdf5d8, #f2e8c2);
+  border: 1px solid rgba(100,60,10,0.28);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-family: 'Kalam', cursive;
+  font-size: 11px;
+  color: #3a1e08;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(60,30,5,0.20);
+  pointer-events: none;
+}
+.sb-marginal-tip::after {
+  content: '';
+  position: absolute;
+  right: -6px; top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-left-color: rgba(100,60,10,0.28);
+}
+.sb-marginal-icon:hover .sb-marginal-tip,
+.sb-marginal-icon:focus .sb-marginal-tip { display: block; }
+
+/* ── Table row dice highlight ── */
+.sb-table-row-lit td {
+  background: rgba(220,170,20,0.28) !important;
+  transition: background 0.3s;
+  box-shadow: inset 0 0 0 1px rgba(180,130,10,0.45);
+}
+
+/* ── Beheer panel — new sections ── */
+.sb-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sb-manage-input--sm {
+  width: 60px;
+  flex: none;
+}
+.sb-manage-hint {
+  font-family: 'Kalam', cursive;
+  font-size: 10px;
+  color: rgba(200,170,100,0.70);
+  font-style: italic;
+}
+.sb-manage-conc-btn {
+  font-family: 'Kalam', cursive;
+  font-size: 12px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(200,170,100,0.30);
+  border-radius: 4px;
+  color: rgba(220,190,120,0.75);
+  padding: 5px 10px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+.sb-manage-conc-btn:hover { background: rgba(255,255,255,0.14); }
+.sb-manage-conc-btn--active {
+  background: rgba(210,150,10,0.20);
+  border-color: rgba(210,150,10,0.55);
+  color: rgba(255,210,80,0.90);
+}
+/* Icon picker grid */
+.sb-manage-icon-picker {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  margin-top: 6px;
+}
+.sb-icon-pick-btn {
+  width: 32px; height: 32px;
+  border-radius: 6px;
+  border: 1px solid rgba(200,170,100,0.25);
+  background: rgba(255,255,255,0.07);
+  color: rgba(220,190,120,0.75);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, border-color 0.12s;
+  padding: 0;
+}
+.sb-icon-pick-btn svg { width: 16px; height: 16px; }
+.sb-icon-pick-btn:hover { background: rgba(255,255,255,0.15); }
+.sb-icon-pick-btn.selected {
+  background: rgba(210,150,10,0.25);
+  border-color: rgba(210,150,10,0.65);
+  color: rgba(255,210,80,0.95);
+}
+.sb-manage-marginal-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(200,170,100,0.12);
+}
+.sb-manage-marginal-icon { width: 16px; height: 16px; color: rgba(220,190,120,0.75); flex-shrink: 0; }
+.sb-manage-marginal-label { flex: 1; font-family: 'Kalam', cursive; font-size: 11px; color: rgba(220,190,120,0.85); }
+.sb-manage-marginal-del {
+  background: none; border: none; color: rgba(220,120,100,0.70); cursor: pointer;
+  font-size: 14px; line-height: 1; padding: 0 2px;
+  transition: color 0.12s;
+}
+.sb-manage-marginal-del:hover { color: rgba(220,80,60,0.95); }
+.sb-manage-add-btn {
+  margin-top: 6px; width: 100%;
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em;
+  background: rgba(210,150,10,0.18);
+  border: 1px solid rgba(210,150,10,0.40);
+  border-radius: 4px;
+  color: rgba(255,210,80,0.85);
+  padding: 5px 0; cursor: pointer;
+  transition: background 0.12s;
+}
+.sb-manage-add-btn:hover { background: rgba(210,150,10,0.30); }
+
+/* Add right-side padding to sb-right-content to avoid overlap with marginalia */
+.sb-right-content { padding-right: 34px !important; }
+
 /* ── Incantatie placeholder (V-component maar geen incantatie ingesteld) ── */
 .sb-note--placeholder {
   background: linear-gradient(145deg, rgba(240,235,220,0.55), rgba(225,218,200,0.45)) !important;
