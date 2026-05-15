@@ -14641,116 +14641,158 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   z-index: 1; pointer-events: none;
   border-radius: inherit; overflow: hidden;
 }
-/* Fire: scorch marks at bottom corners */
+/* Fire: scorched glow rising from bottom corners */
 .sb-damage-fx--fire::before {
   content: '';
-  position: absolute; bottom: 0; left: 0; right: 0; height: 55%;
+  position: absolute; bottom: 0; left: 0; right: 0; height: 75%;
+  mix-blend-mode: screen;
   background:
-    radial-gradient(ellipse at 20% 110%, rgba(60,15,0,0.60) 0%, transparent 38%),
-    radial-gradient(ellipse at 80% 110%, rgba(60,15,0,0.50) 0%, transparent 32%),
-    radial-gradient(ellipse at 50% 120%, rgba(180,55,0,0.22) 0%, transparent 55%);
+    radial-gradient(ellipse at 15% 120%, rgba(255,55,0,0.95) 0%, transparent 42%),
+    radial-gradient(ellipse at 85% 120%, rgba(255,55,0,0.85) 0%, transparent 38%),
+    radial-gradient(ellipse at 50% 135%, rgba(255,130,0,0.70) 0%, transparent 58%);
 }
 .sb-damage-fx--fire::after {
   content: '';
-  position: absolute; bottom: 0; left: 0; right: 0; height: 30%;
-  background: radial-gradient(ellipse at 50% 100%, rgba(255,110,0,0.18) 0%, transparent 65%);
+  position: absolute; inset: 0;
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse at 50% 80%, rgba(220,80,0,0.55) 0%, transparent 52%);
 }
-/* Cold: frost vignette in corners */
+/* Cold: icy blue frost bleeding from all corners */
 .sb-damage-fx--cold::before {
   content: '';
   position: absolute; inset: 0;
+  mix-blend-mode: screen;
   background:
-    radial-gradient(circle at 0% 0%,   rgba(160,220,255,0.35) 0%, transparent 38%),
-    radial-gradient(circle at 100% 0%, rgba(160,220,255,0.28) 0%, transparent 32%),
-    radial-gradient(circle at 0% 100%, rgba(160,220,255,0.22) 0%, transparent 28%);
+    radial-gradient(circle at 0% 0%,    rgba(80,190,255,0.80) 0%, transparent 45%),
+    radial-gradient(circle at 100% 0%,  rgba(80,190,255,0.70) 0%, transparent 40%),
+    radial-gradient(circle at 0% 100%,  rgba(80,190,255,0.60) 0%, transparent 35%),
+    radial-gradient(circle at 100% 100%,rgba(80,190,255,0.50) 0%, transparent 30%);
 }
 .sb-damage-fx--cold::after {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(100,180,240,0.18) 100%);
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse at 50% 50%, transparent 38%, rgba(130,210,255,0.42) 100%);
 }
-/* Lightning: flash glow from top */
+/* Lightning: bright bolt-flash at two diagonal poles */
 .sb-damage-fx--lightning::before {
   content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 50%;
-  background: radial-gradient(ellipse at 50% 0%, rgba(255,240,80,0.28) 0%, transparent 60%);
+  position: absolute; inset: 0;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(ellipse at 28% 8%,  rgba(255,255,100,0.90) 0%, transparent 40%),
+    radial-gradient(ellipse at 72% 92%, rgba(255,255,100,0.75) 0%, transparent 36%);
 }
 .sb-damage-fx--lightning::after {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(180,160,20,0.12) 100%);
+  mix-blend-mode: screen;
+  background: linear-gradient(130deg, transparent 30%, rgba(240,240,80,0.38) 50%, transparent 70%);
 }
-/* Acid: green drip from top */
+/* Acid: neon green splatter dripping from top */
 .sb-damage-fx--acid::before {
   content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 40%;
+  position: absolute; top: 0; left: 0; right: 0; height: 65%;
+  mix-blend-mode: screen;
   background:
-    radial-gradient(circle at 25% 0%, rgba(70,180,0,0.32) 0%, transparent 35%),
-    radial-gradient(circle at 65% 0%, rgba(70,180,0,0.24) 0%, transparent 28%),
-    radial-gradient(circle at 85% 0%, rgba(70,180,0,0.18) 0%, transparent 22%);
+    radial-gradient(circle at 20% -10%, rgba(80,255,0,0.90) 0%, transparent 38%),
+    radial-gradient(circle at 62% -5%,  rgba(80,255,0,0.75) 0%, transparent 32%),
+    radial-gradient(circle at 88% -5%,  rgba(80,255,0,0.60) 0%, transparent 26%);
 }
 .sb-damage-fx--acid::after {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(30,100,0,0.15) 100%);
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse at 50% 50%, transparent 48%, rgba(40,130,0,0.45) 100%);
 }
-/* Necrotic: dark void vignette */
+/* Necrotic: void darkness eating into corners */
 .sb-damage-fx--necrotic::before {
   content: '';
   position: absolute; inset: 0;
   background:
-    radial-gradient(circle at 0% 0%,   rgba(40,0,60,0.55) 0%, transparent 45%),
-    radial-gradient(circle at 100% 100%, rgba(40,0,60,0.50) 0%, transparent 40%);
+    radial-gradient(circle at 0% 0%,    rgba(15,0,30,0.92) 0%, transparent 52%),
+    radial-gradient(circle at 100% 100%,rgba(15,0,30,0.88) 0%, transparent 48%),
+    radial-gradient(circle at 100% 0%,  rgba(15,0,30,0.65) 0%, transparent 38%);
 }
 .sb-damage-fx--necrotic::after {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(20,0,35,0.45) 100%);
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse at 50% 50%, transparent 28%, rgba(120,0,180,0.38) 100%);
 }
-/* Radiant: golden center glow */
+/* Radiant: blinding golden sunburst from center */
 .sb-damage-fx--radiant::before {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 40%, rgba(255,220,60,0.30) 0%, transparent 58%);
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(255,235,80,0.92) 0%, rgba(255,185,0,0.50) 30%, transparent 62%);
 }
 .sb-damage-fx--radiant::after {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(180,120,0,0.15) 100%);
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255,255,200,0.60) 0%, transparent 22%),
+    radial-gradient(ellipse at 50% 50%, transparent 52%, rgba(210,160,0,0.42) 100%);
 }
-/* Thunder: concentric rings */
+/* Thunder: visible shockwave rings */
 .sb-damage-fx--thunder::before {
   content: '';
   position: absolute; inset: 0;
+  mix-blend-mode: screen;
   background:
-    radial-gradient(circle at 50% 50%, transparent 22%, rgba(130,145,175,0.13) 27%, transparent 32%),
-    radial-gradient(circle at 50% 50%, transparent 42%, rgba(130,145,175,0.10) 47%, transparent 52%),
-    radial-gradient(circle at 50% 50%, transparent 62%, rgba(130,145,175,0.08) 67%, transparent 72%);
+    radial-gradient(circle at 50% 50%, transparent 16%, rgba(170,185,210,0.55) 20%, transparent 24%),
+    radial-gradient(circle at 50% 50%, transparent 34%, rgba(170,185,210,0.42) 38%, transparent 42%),
+    radial-gradient(circle at 50% 50%, transparent 52%, rgba(170,185,210,0.32) 56%, transparent 60%),
+    radial-gradient(circle at 50% 50%, transparent 70%, rgba(170,185,210,0.22) 74%, transparent 78%);
 }
-/* Psychic: purple outer glow */
+/* Psychic: deep magenta/violet swirling vignette */
 .sb-damage-fx--psychic::before {
   content: '';
   position: absolute; inset: 0;
+  mix-blend-mode: screen;
   background:
-    radial-gradient(circle at 50% 50%, rgba(160,0,255,0.08) 0%, transparent 45%),
-    radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(100,0,200,0.30) 100%);
+    radial-gradient(circle at 50% 50%, rgba(210,0,255,0.45) 0%, transparent 42%),
+    radial-gradient(ellipse at 50% 50%, transparent 28%, rgba(160,0,240,0.70) 100%);
 }
-/* Poison: green mist at bottom */
+.sb-damage-fx--psychic::after {
+  content: '';
+  position: absolute; inset: 0;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(circle at 28% 28%, rgba(255,0,210,0.38) 0%, transparent 32%),
+    radial-gradient(circle at 72% 72%, rgba(110,0,255,0.38) 0%, transparent 32%);
+}
+/* Poison: toxic green mist rising from bottom */
 .sb-damage-fx--poison::before {
   content: '';
-  position: absolute; bottom: 0; left: 0; right: 0; height: 45%;
-  background: radial-gradient(ellipse at 50% 110%, rgba(30,140,0,0.30) 0%, transparent 55%);
+  position: absolute; bottom: 0; left: 0; right: 0; height: 65%;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(ellipse at 28% 125%, rgba(80,230,0,0.82) 0%, transparent 48%),
+    radial-gradient(ellipse at 72% 125%, rgba(80,230,0,0.68) 0%, transparent 42%);
 }
 .sb-damage-fx--poison::after {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(20,80,0,0.18) 100%);
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse at 50% 50%, transparent 42%, rgba(35,130,0,0.42) 100%);
 }
-/* Heal: soft warm green center */
+/* Heal: warm emerald healing burst from center */
 .sb-damage-fx--heal::before {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 45%, rgba(80,200,80,0.22) 0%, transparent 55%);
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(ellipse at 50% 46%, rgba(80,240,110,0.82) 0%, rgba(50,210,70,0.50) 28%, transparent 58%),
+    radial-gradient(circle at 50% 46%, rgba(210,255,170,0.60) 0%, transparent 18%);
+}
+.sb-damage-fx--heal::after {
+  content: '';
+  position: absolute; inset: 0;
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse at 50% 50%, transparent 48%, rgba(35,130,35,0.38) 100%);
 }
 
 /* ── Incantatie placeholder (V-component maar geen incantatie ingesteld) ── */
