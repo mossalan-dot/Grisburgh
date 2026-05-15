@@ -1692,6 +1692,75 @@ function _spellMd(t, { diceColor } = {}) {
         ? `<span style="color:${color}">${text}</span>` : text);
 }
 
+// ── Block-level markdown renderer for spell descriptions ──
+// Handles headings (###), tables (|col|col|), bullet lists (- item),
+// and skips #Tag import artefacts.
+function _sbMdTable(lines, opts) {
+  // Filter separator rows (|---|---|)
+  const sepRe = /^\|[\s\-:|]+\|?$/;
+  const rows = lines.filter(l => !sepRe.test(l));
+  if (!rows.length) return '';
+  const parseRow = l => l.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+  const [hRow, ...bRows] = rows;
+  const hCells = parseRow(hRow).map(c => `<th>${_spellMd(c, opts)}</th>`).join('');
+  const bHtml  = bRows.map(r =>
+    `<tr>${parseRow(r).map(c => `<td>${_spellMd(c, opts)}</td>`).join('')}</tr>`
+  ).join('');
+  return `<div class="sb-desc-table-wrap"><table class="sb-desc-table">` +
+    `<thead><tr>${hCells}</tr></thead><tbody>${bHtml}</tbody></table></div>`;
+}
+
+function _renderSpellDesc(rawDesc, opts = {}) {
+  if (!rawDesc) return '';
+  const lines = rawDesc.split('\n');
+  let html = '';
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    if (!line) { i++; continue; }
+
+    // Heading: "### Title" (hash + space + content)
+    const hMatch = line.match(/^(#{1,4})\s+(.+)/);
+    if (hMatch) {
+      const level = Math.min(hMatch[1].length, 4);
+      html += `<p class="sb-desc-h sb-desc-h${level}">${_spellMd(hMatch[2], opts)}</p>`;
+      i++; continue;
+    }
+
+    // Import tag artefact: "#Word" with no space (e.g. "#Wondrous item, #Common")
+    if (/^#[A-Za-z]/.test(line)) { i++; continue; }
+
+    // Table: collect consecutive | lines
+    if (line.startsWith('|')) {
+      const tableLines = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        tableLines.push(lines[i].trim());
+        i++;
+      }
+      html += _sbMdTable(tableLines, opts);
+      continue;
+    }
+
+    // Bullet list: collect consecutive - / * lines
+    if (/^[-*]\s/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^[-*]\s/.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^[-*]\s+/, ''));
+        i++;
+      }
+      html += `<ul class="sb-desc-list">${
+        items.map(it => `<li>${_spellMd(it, opts)}</li>`).join('')
+      }</ul>`;
+      continue;
+    }
+
+    // Regular paragraph
+    html += `<p>${_spellMd(line, opts)}</p>`;
+    i++;
+  }
+  return html;
+}
+
 // Returns a CSS color for dice spans based on damage type in spell.damage
 function _sbDiceColor(dmg) {
   if (!dmg) return null;
@@ -2570,8 +2639,7 @@ function _sbRender() {
       _sbFetchDesc(spell).then(() => { if (_sbState.idx === curIdx) _sbRender(); });
     } else {
       const diceColor = _sbDiceColor(spell.damage);
-      const desc = rawDesc.split(/\n+/).map(p => p.trim()).filter(Boolean)
-        .map(p => `<p>${_spellMd(p, { diceColor })}</p>`).join('');
+      const desc = _renderSpellDesc(rawDesc, { diceColor });
 
       const metaRows = [
         spell.casting_time ? ['Casting Time', spell.casting_time] : null,
