@@ -1,4 +1,4 @@
-import { api } from './api.js?v=219';
+import { api } from './api.js?v=220';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=77';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=30';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
@@ -2428,42 +2428,68 @@ function _sbRender() {
   const rightPage = document.getElementById('sb-page-right');
   if (rightPage) rightPage.style.clipPath = _sbGenTornEdge(seed);
 
-  // ── Left: incantation as taped note ──
+  // ── Left: damage-type visueel effect ──
+  {
+    let dmgFxEl = document.getElementById('sb-damage-fx');
+    if (!dmgFxEl) {
+      dmgFxEl = document.createElement('div');
+      dmgFxEl.id = 'sb-damage-fx';
+      const lp = document.getElementById('sb-page-left');
+      if (lp) lp.prepend(dmgFxEl);
+    }
+    const dmgType = (spell.damage || '').toLowerCase();
+    const fx =
+      /fire/.test(dmgType)             ? 'fire'      :
+      /cold|ice|frost/.test(dmgType)   ? 'cold'      :
+      /lightning/.test(dmgType)        ? 'lightning' :
+      /acid/.test(dmgType)             ? 'acid'      :
+      /necrotic/.test(dmgType)         ? 'necrotic'  :
+      /radiant/.test(dmgType)          ? 'radiant'   :
+      /thunder/.test(dmgType)          ? 'thunder'   :
+      /psychic/.test(dmgType)          ? 'psychic'   :
+      /poison/.test(dmgType)           ? 'poison'    :
+      /heal/.test(dmgType)             ? 'heal'      : '';
+    dmgFxEl.className = `sb-damage-fx${fx ? ' sb-damage-fx--' + fx : ''}`;
+  }
+
+  // ── Left: incantation as taped note (or V-placeholder) ──
   const incEl = document.getElementById('sb-left-incantation');
   if (incEl) {
+    const rot = ((seed % 9) - 4) * 0.85;
+    const noteTints = [
+      ['#fef9e6','#f3e9c2'], ['#f8f5ee','#ece6d8'],
+      ['#fffaf0','#f2e8d4'], ['#fdf6e4','#eee0c0'],
+    ];
+    const [t1, t2] = noteTints[seed % noteTints.length];
+    const tapeCorners = [
+      'top:-6px;left:-5px;transform:rotate(-34deg)',
+      'top:-6px;right:-5px;transform:rotate(33deg)',
+      'bottom:-6px;left:-5px;transform:rotate(35deg)',
+      'bottom:-6px;right:-5px;transform:rotate(-33deg)',
+    ];
+    const tapeConfigs = [
+      [0, 3], [1, 2], [0, 1], [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3], [0, 1, 2, 3],
+    ];
+    const tape = tapeConfigs[seed % tapeConfigs.length].map(i =>
+      `<div class="sb-tape" style="position:absolute;${tapeCorners[i]}"></div>`
+    ).join('');
+
+    const hasVerbal = spell.components && /\bV\b/.test(spell.components);
+
     if (spell.incantation) {
-      const rot = ((seed % 9) - 4) * 0.85; // -3.4 to +3.4 deg
-      // Note paper tint varies per spell
-      const noteTints = [
-        ['#fef9e6','#f3e9c2'], ['#f8f5ee','#ece6d8'],
-        ['#fffaf0','#f2e8d4'], ['#fdf6e4','#eee0c0'],
-      ];
-      const [t1, t2] = noteTints[seed % noteTints.length];
-      // Tape corner positions: TL, TR, BL, BR
-      const tapeCorners = [
-        'top:-6px;left:-5px;transform:rotate(-34deg)',
-        'top:-6px;right:-5px;transform:rotate(33deg)',
-        'bottom:-6px;left:-5px;transform:rotate(35deg)',
-        'bottom:-6px;right:-5px;transform:rotate(-33deg)',
-      ];
-      // 8 configurations cycling via seed: 2 diagonal, 1 both-top, 4 three-corner, 1 all-four
-      const tapeConfigs = [
-        [0, 3],          // 2 — diagonal TL + BR
-        [1, 2],          // 2 — diagonal TR + BL
-        [0, 1],          // 2 — both top corners
-        [0, 1, 2],       // 3 — top pair + bottom-left
-        [0, 1, 3],       // 3 — top pair + bottom-right
-        [0, 2, 3],       // 3 — TL + both bottom
-        [1, 2, 3],       // 3 — TR + both bottom
-        [0, 1, 2, 3],    // 4 — all corners
-      ];
-      const tape = tapeConfigs[seed % tapeConfigs.length].map(i =>
-        `<div class="sb-tape" style="position:absolute;${tapeCorners[i]}"></div>`
-      ).join('');
       incEl.innerHTML = `
         <div class="sb-note" style="transform:rotate(${rot}deg);background:linear-gradient(145deg,${t1},${t2})">
           ${tape}
           <div class="sb-note-text">${esc(spell.incantation)}</div>
+        </div>`;
+    } else if (hasVerbal) {
+      // Placeholder: verbale spreuk zonder incantatie
+      incEl.innerHTML = `
+        <div class="sb-note sb-note--placeholder" style="transform:rotate(${rot}deg)"
+             onclick="window._sbToggleManage()" title="Klik om een incantatie in te stellen">
+          <div class="sb-tape" style="position:absolute;top:-6px;left:-5px;transform:rotate(-34deg)"></div>
+          <div class="sb-tape" style="position:absolute;top:-6px;right:-5px;transform:rotate(33deg)"></div>
+          <div class="sb-note-text sb-note-text--hint">✦ Stel een incantatie in</div>
         </div>`;
     } else {
       incEl.innerHTML = '';
