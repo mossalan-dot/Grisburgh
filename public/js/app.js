@@ -1,4 +1,4 @@
-import { api } from './api.js?v=218';
+import { api } from './api.js?v=219';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=77';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=30';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
@@ -1807,6 +1807,9 @@ function _ensureSpellbookOverlay() {
       <button class="sb-ctrl-btn" id="sb-manage-btn" onclick="window._sbToggleManage()" title="Beheer">
         ${icon('pencil')} Beheer
       </button>
+      <button class="sb-ctrl-btn sb-ctrl-close" onclick="window._sbCloseAndReturn()" title="Sluit boek">
+        ✕ Sluit
+      </button>
     </div>
     <div class="sb-book" id="sb-book">
       <!-- Left page: school gradient + incantation + icon/image + slots -->
@@ -1877,9 +1880,6 @@ function _ensureSpellbookOverlay() {
           <div class="sb-manage-title">Beheer</div>
         </div>
         <div class="sb-manage-body">
-          <button class="sb-manage-close-btn" onclick="window._sbCloseAndReturn()">
-            ✕ Sluit boek
-          </button>
           <div class="sb-manage-section" id="sb-manage-incant-section">
             <div class="sb-manage-label">Incantatie voor deze spreuk</div>
             <input type="text" class="sb-manage-input" id="sb-manage-incant"
@@ -2145,8 +2145,11 @@ window._sbTocPin = async function(index, name) {
     _sbState.spells.push(newEntry);
     _sbState.spells.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
     _sbState.idx = _sbState.spells.findIndex(s => s.index === index);
+    // Sluit TOC zodat de spreuk zichtbaar is
+    _sbState.tocOpen = false;
+    const toc = document.getElementById('sb-toc-panel');
+    if (toc) toc.classList.remove('sb-toc-open');
     _sbRender();
-    _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
     if (typeof window._reRenderKarakter === 'function') window._reRenderKarakter();
   } catch(e) { console.warn('Spreuk toevoegen mislukt:', e); }
 };
@@ -2191,7 +2194,7 @@ window._sbCustomSpellOpen = function() {
       <textarea class="sb-custom-inp" id="sbc-desc" placeholder="Beschrijving…" rows="3" style="resize:none;width:100%;box-sizing:border-box"></textarea>
       <div style="display:flex;gap:6px;margin-top:4px">
         <button class="sb-custom-save" onclick="window._sbCustomSpellSave()">Opslaan</button>
-        <button class="sb-custom-cancel" onclick="_sbRenderTocList('')">Annuleer</button>
+        <button class="sb-custom-cancel" onclick="window._sbTocSearch('')">Annuleer</button>
       </div>
     </div>`;
 };
