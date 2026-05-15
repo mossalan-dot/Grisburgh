@@ -2043,14 +2043,14 @@ window._openDoc = async (id) => {
   if (isDM()) {
     body += `
       <div class="dm-only mt-4 pt-4 border-t border-room-border flex gap-2">
-        <button class="dm-btn${state !== 'hidden' ? ' dm-btn--active' : ''}"
+        <button class="dm-btn dm-btn-icon${state !== 'hidden' ? ' dm-btn--active' : ''}"
           title="${_visTitle}"
           onclick="window._toggleDocState('${d.id}','${state}',event.shiftKey)">
           ${_visIcon}
         </button>
-        <button class="dm-btn" title="Bewerken"
+        <button class="dm-btn dm-btn-icon" title="Bewerken"
           onclick="window._openArchiefEditor('${d.id}')">${icon('pencil')}</button>
-        <button class="dm-btn dm-btn-danger" title="Verwijderen"
+        <button class="dm-btn dm-btn-icon dm-btn-danger" title="Verwijderen"
           onclick="window._deleteDoc('${d.id}')">${icon('trash')}</button>
       </div>
     `;

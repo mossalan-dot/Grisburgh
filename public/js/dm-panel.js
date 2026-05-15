@@ -579,9 +579,11 @@ function _renderSpreuken() {
   if (!document.getElementById('dm-spell-search')) {
     el.innerHTML = `
       <div class="dm-feature-section" style="padding-bottom:8px">
-        <input class="dm-input" id="dm-spell-search" placeholder="Zoek spreuk..."
-          oninput="window.dmPanel.spellSearch(this.value)">
-        <p id="dm-spell-loading" class="dm-hint" style="margin-top:6px"></p>
+        <div class="dm-feature-row">
+          <input class="dm-input" id="dm-spell-search" placeholder="Zoek spreuk…"
+            oninput="window.dmPanel.spellSearch(this.value)">
+        </div>
+        <p id="dm-spell-loading" class="dm-hint"></p>
       </div>
       <p id="dm-spell-noresults" class="dm-hint" style="padding:0 12px;display:none">Geen resultaten gevonden.</p>
       <div id="dm-spell-results"></div>`;
@@ -665,7 +667,7 @@ function _spellDetailHtml(s) {
         <img id="dm-spell-img-thumb" src="/api/files/spell-img-${esc(s.index)}?t=${Date.now()}"
           style="max-width:100%;max-height:110px;border-radius:6px;display:block;margin-bottom:8px"
           onerror="this.style.display='none'" alt="">
-        <label class="dm-btn dm-btn-ghost dm-btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px">
+        <label class="dm-btn dm-btn-ghost dm-btn-sm" style="gap:5px">
           📷 Afbeelding instellen
           <input type="file" accept="image/*" style="display:none"
             onchange="window.dmPanel.uploadSpellImage('${esc(s.index)}', this.files[0])">
