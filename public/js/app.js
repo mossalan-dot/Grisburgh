@@ -1696,18 +1696,32 @@ function _spellMd(t, { diceColor } = {}) {
 // Handles headings (###), tables (|col|col|), bullet lists (- item),
 // and skips #Tag import artefacts.
 function _sbMdTable(lines, opts) {
-  // Filter separator rows (|---|---|)
   const sepRe = /^\|[\s\-:|]+\|?$/;
   const rows = lines.filter(l => !sepRe.test(l));
   if (!rows.length) return '';
   const parseRow = l => l.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
   const [hRow, ...bRows] = rows;
   const hCells = parseRow(hRow).map(c => `<th>${_spellMd(c, opts)}</th>`).join('');
-  const bHtml  = bRows.map(r =>
-    `<tr>${parseRow(r).map(c => `<td>${_spellMd(c, opts)}</td>`).join('')}</tr>`
-  ).join('');
+  const bHtml  = bRows.map(r => {
+    const cells = parseRow(r);
+    // Tag rows whose first cell is a number or range (e.g. "3" or "01–05") for dice highlighting
+    const first = cells[0]?.replace(/\s|\*/g, '') || '';
+    const numAttr = /^\d+$/.test(first) || /^\d+[-–]\d+$/.test(first)
+      ? ` data-num="${first}"` : '';
+    return `<tr${numAttr}>${cells.map(c => `<td>${_spellMd(c, opts)}</td>`).join('')}</tr>`;
+  }).join('');
   return `<div class="sb-desc-table-wrap"><table class="sb-desc-table">` +
     `<thead><tr>${hCells}</tr></thead><tbody>${bHtml}</tbody></table></div>`;
+}
+
+// Does a roll result fall within the range described by a first-column value?
+function _sbMatchesRoll(numStr, result) {
+  const s = numStr.replace(/\s/g, '');
+  if (/^\d+$/.test(s)) return parseInt(s) === result;
+  const m = s.match(/^(\d+)[-–](\d+)$/);
+  if (!m) return false;
+  const lo = parseInt(m[1]), hi = parseInt(m[2]) === 0 ? 100 : parseInt(m[2]);
+  return result >= lo && result <= hi;
 }
 
 function _renderSpellDesc(rawDesc, opts = {}) {
@@ -1816,10 +1830,67 @@ const _sbState = {
   tocOpen: false,
   manageOpen: false,
   slots: {},           // { 1: { max: 3, used: 1 }, ... }
-  spellSaveDC: null,   // from playerProfile
+  spellSaveDC: null,
   spellAttackBonus: null,
+  castSlotLevel: null, // ephemeral: chosen cast level for current spell
 };
 const _sbDescCache = new Map(); // spell.index → fetched desc string
+
+// ── Subtle sound effects (Web Audio — no files needed) ──
+const _sbAudio = (() => {
+  let ctx = null;
+  const gc = () => { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); return ctx; };
+  return {
+    page() {
+      try {
+        const c = gc(), buf = c.createBuffer(1, c.sampleRate * 0.20, c.sampleRate), d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/d.length,2.2) * 0.10;
+        const src = c.createBufferSource(), f = c.createBiquadFilter();
+        f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 0.7;
+        src.buffer = buf; src.connect(f); f.connect(c.destination); src.start();
+      } catch(e) {}
+    },
+    dice() {
+      try {
+        const c = gc();
+        [0, 65, 130].forEach(delay => setTimeout(() => {
+          const buf = c.createBuffer(1, c.sampleRate*0.035, c.sampleRate), d = buf.getChannelData(0);
+          for (let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,1.8)*0.18;
+          const src = c.createBufferSource(); src.buffer=buf; src.connect(c.destination); src.start();
+        }, delay));
+      } catch(e) {}
+    },
+    write() {
+      try {
+        const c = gc(), osc = c.createOscillator(), g = c.createGain();
+        osc.frequency.value = 1800+Math.random()*600; g.gain.setValueAtTime(0.012,c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.025);
+        osc.connect(g); g.connect(c.destination); osc.start(); osc.stop(c.currentTime+0.025);
+      } catch(e) {}
+    },
+  };
+})();
+
+// ── Marginalia icon definitions (20×20 viewBox, stroke-based) ──
+const _SB_ICONS = {
+  damage:    `<line x1="5" y1="15" x2="15" y2="5" stroke-width="2"/><line x1="5" y1="9" x2="5" y2="5"/><line x1="5" y1="5" x2="9" y2="5"/>`,
+  aoe:       `<circle cx="10" cy="10" r="2.5"/><circle cx="10" cy="10" r="6.5" stroke-dasharray="2 1.8" stroke-width="1.2"/>`,
+  buff:      `<line x1="10" y1="14" x2="10" y2="5"/><polyline points="6,9 10,5 14,9"/><line x1="5" y1="16" x2="15" y2="16" stroke-width="1.2"/>`,
+  control:   `<path d="M7 10 a3 3 0 0 1 6 0 v4 H7 Z"/><circle cx="10" cy="8" r="1.5" stroke-width="1.2"/>`,
+  healing:   `<line x1="10" y1="4" x2="10" y2="16" stroke-width="2"/><line x1="4" y1="10" x2="16" y2="10" stroke-width="2"/>`,
+  mobility:  `<path d="M4 10 H16"/><polyline points="12,6 16,10 12,14"/><path d="M8 7 C5 8 5 12 8 13" stroke-width="1.2"/>`,
+  utility:   `<circle cx="10" cy="10" r="2"/><line x1="10" y1="4" x2="10" y2="6.5"/><line x1="10" y1="13.5" x2="10" y2="16"/><line x1="4" y1="10" x2="6.5" y2="10"/><line x1="13.5" y1="10" x2="16" y2="10"/>`,
+  divination:`<path d="M3 10 C5 5.5 15 5.5 17 10 C15 14.5 5 14.5 3 10 Z"/><circle cx="10" cy="10" r="2.5"/>`,
+  stealth:   `<path d="M14 5 A6 6 0 1 0 14 15 A4 4 0 0 1 14 5"/><circle cx="9.5" cy="10" r="1.5" fill="currentColor" stroke="none"/>`,
+  reaction:  `<polyline points="11,3 7,11 11,11 9,17 15,9 11,9 13,3" stroke-linejoin="round"/>`,
+  ritual:    `<circle cx="10" cy="10" r="7" stroke-width="1.2"/><path d="M10 4 L11.2 7.5 L15 7.5 L12 9.7 L13 13 L10 11 L7 13 L8 9.7 L5 7.5 L8.8 7.5 Z" stroke-width="1"/>`,
+  social:    `<path d="M5 6 H15 a1 1 0 0 1 1 1 V12 a1 1 0 0 1-1 1 H8 L5 16 V13 H5 a1 1 0 0 1-1-1 V7 a1 1 0 0 1 1-1 Z"/>`,
+};
+const _SB_ICON_LABELS = {
+  damage:'Schade', aoe:'Area of Effect', buff:'Buff / Versterking', control:'Crowd Control',
+  healing:'Genezing', mobility:'Mobiliteit', utility:'Hulpfunctie', divination:'Informatie / Divination',
+  stealth:'Stealth / Illusie', reaction:'Reactie', ritual:'Ritueel', social:'Sociaal',
+};
 let   _sbFlipping  = false;    // prevent overlapping flip animations
 
 // Dutch translations for common D&D metadata values
@@ -1915,6 +1986,12 @@ function _ensureSpellbookOverlay() {
             <path d="M0 0 H32 V52 L16 62 L0 52 Z" fill="none" stroke="rgba(0,0,0,0.2)" stroke-width="1"/>
           </svg>
         </div>
+        <!-- Marginalia icons — right spine edge -->
+        <div class="sb-marginalia" id="sb-marginalia"></div>
+        <!-- Concentration fold corner -->
+        <div class="sb-conc-fold sb-conc-fold--hidden" id="sb-conc-fold"></div>
+        <!-- No-slots-available fade overlay -->
+        <div class="sb-spell-fade" id="sb-spell-fade" style="display:none"></div>
         <div class="sb-right-content" id="sb-right-content"></div>
       </div>
       <!-- Book spine — raised leather binding at the centre -->
@@ -1949,11 +2026,33 @@ function _ensureSpellbookOverlay() {
           <div class="sb-manage-title">Beheer</div>
         </div>
         <div class="sb-manage-body">
-          <div class="sb-manage-section" id="sb-manage-incant-section">
-            <div class="sb-manage-label">Incantatie voor deze spreuk</div>
-            <input type="text" class="sb-manage-input" id="sb-manage-incant"
+          <div class="sb-manage-section">
+            <div class="sb-manage-label">Incantatie</div>
+            <input type="text" class="sb-manage-input sb-manage-input--quill" id="sb-manage-incant"
               placeholder="Eigen incantatie…" maxlength="120"
               onblur="window._sbSaveIncantation(this.value)">
+          </div>
+          <div class="sb-manage-section">
+            <div class="sb-manage-label">Op welk level verkregen</div>
+            <div class="sb-manage-row">
+              <input type="number" class="sb-manage-input sb-manage-input--sm" id="sb-manage-acqlevel"
+                min="1" max="20" placeholder="1–20"
+                onblur="window._sbSaveAcqLevel(+this.value)">
+              <span class="sb-manage-hint">Lager = geler papier</span>
+            </div>
+          </div>
+          <div class="sb-manage-section" id="sb-manage-conc-section" style="display:none">
+            <div class="sb-manage-label">Concentratie</div>
+            <button class="sb-manage-conc-btn" id="sb-manage-conc-btn"
+              onclick="window._sbToggleConcentration()">🕯 Inactief</button>
+          </div>
+          <div class="sb-manage-section">
+            <div class="sb-manage-label">Marginalia</div>
+            <div id="sb-manage-marginalia-list"></div>
+            <div class="sb-manage-icon-picker" id="sb-manage-icon-picker"></div>
+            <input type="text" class="sb-manage-input sb-manage-input--quill" id="sb-manage-icon-label"
+              placeholder="Eigen toelichting…" maxlength="80" style="margin-top:6px">
+            <button class="sb-manage-add-btn" onclick="window._sbAddMarginalia()">＋ Toevoegen</button>
           </div>
         </div>
       </div>
@@ -2058,11 +2157,15 @@ window._sbGoTo = function(idx, closeToc) {
 window._sbPrev = function() {
   const n = _sbState.spells.length;
   if (!n) return;
+  _sbState.castSlotLevel = null;
+  _sbAudio.page();
   window._sbGoTo((_sbState.idx - 1 + n) % n);
 };
 window._sbNext = function() {
   const n = _sbState.spells.length;
   if (!n) return;
+  _sbState.castSlotLevel = null;
+  _sbAudio.page();
   window._sbGoTo((_sbState.idx + 1) % n);
 };
 
@@ -2094,6 +2197,7 @@ window._sbFlashRoll = function(formula, spellName) {
   resEl.textContent = '—';
 
   el.classList.add('active');
+  _sbAudio.dice();
 
   // Rolling animation — random numbers cycling then settle
   let ticks = 0;
@@ -2108,6 +2212,19 @@ window._sbFlashRoll = function(formula, spellName) {
       resEl.classList.remove('rolling');
       resEl.classList.add('settled');
       setTimeout(() => resEl.classList.remove('settled'), 400);
+      // Highlight matching table row (if any table has numeric first column)
+      const content = document.getElementById('sb-right-content');
+      if (content) {
+        content.querySelectorAll('tr.sb-table-row-lit').forEach(r => r.classList.remove('sb-table-row-lit'));
+        for (const row of content.querySelectorAll('tr[data-num]')) {
+          if (_sbMatchesRoll(row.dataset.num, total)) {
+            row.classList.add('sb-table-row-lit');
+            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            setTimeout(() => row.classList.remove('sb-table-row-lit'), 9000);
+            break;
+          }
+        }
+      }
     }
   }, 45);
 
@@ -2150,7 +2267,6 @@ window._sbToggleToc = function() {
 
 window._sbToggleManage = function() {
   _sbState.manageOpen = !_sbState.manageOpen;
-  // Sluit TOC als manage opent
   if (_sbState.manageOpen) {
     _sbState.tocOpen = false;
     const toc = document.getElementById('sb-toc-panel');
@@ -2158,12 +2274,7 @@ window._sbToggleManage = function() {
   }
   const mp = document.getElementById('sb-manage-panel');
   if (mp) mp.classList.toggle('sb-manage-open', _sbState.manageOpen);
-  // Vul incantatie-input met huidige spreuk
-  if (_sbState.manageOpen) {
-    const spell = _sbState.spells[_sbState.idx];
-    const inp = document.getElementById('sb-manage-incant');
-    if (inp) inp.value = spell?.incantation || '';
-  }
+  if (_sbState.manageOpen) _sbManageRefresh();
 };
 
 window._sbCloseAndReturn = function() {
@@ -2179,11 +2290,148 @@ window._sbSaveIncantation = async function(text) {
   const trimmed = text.trim();
   if (trimmed === (spell.incantation || '')) return;
   spell.incantation = trimmed;
+  _sbAudio.write();
   try {
     await api.updatePlayerSpell(_sbState.charId, spell.index, { incantation: trimmed });
     _sbRender();
   } catch(e) { console.warn('Incantatie opslaan mislukt:', e); }
 };
+
+// ── Beheer panel refresh: populate all fields from current spell ──
+function _sbManageRefresh() {
+  const spell = _sbState.spells[_sbState.idx];
+  if (!spell) return;
+  const active = el => document.activeElement !== el;
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el && active(el)) el.value = v; };
+  setVal('sb-manage-incant', spell.incantation || '');
+  setVal('sb-manage-acqlevel', spell.acquisitionLevel || '');
+  // Concentration section
+  const concSec = document.getElementById('sb-manage-conc-section');
+  const concBtn = document.getElementById('sb-manage-conc-btn');
+  if (concSec) concSec.style.display = spell.concentration ? '' : 'none';
+  if (concBtn) {
+    const on = !!spell.concentrationActive;
+    concBtn.textContent = on ? '🕯 Actief — klik om te stoppen' : '🕯 Inactief — klik om te activeren';
+    concBtn.classList.toggle('sb-manage-conc-btn--active', on);
+  }
+  // Marginalia list
+  _sbRenderManageMarginalia();
+  // Icon picker (only build once)
+  const picker = document.getElementById('sb-manage-icon-picker');
+  if (picker && !picker.dataset.built) {
+    picker.dataset.built = '1';
+    picker.innerHTML = Object.keys(_SB_ICONS).map(key =>
+      `<button class="sb-icon-pick-btn" data-icon="${key}" onclick="window._sbSelectManageIcon('${key}')"
+        title="${_SB_ICON_LABELS[key]}">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor"
+          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          ${_SB_ICONS[key]}
+        </svg>
+      </button>`
+    ).join('');
+  }
+}
+
+function _sbRenderManageMarginalia() {
+  const spell = _sbState.spells[_sbState.idx];
+  const el = document.getElementById('sb-manage-marginalia-list');
+  if (!el) return;
+  const items = spell?.marginalia || [];
+  el.innerHTML = items.length ? items.map((m, i) => `
+    <div class="sb-manage-marginal-row">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round" class="sb-manage-marginal-icon">
+        ${_SB_ICONS[m.icon] || ''}
+      </svg>
+      <span class="sb-manage-marginal-label">${esc(m.label || _SB_ICON_LABELS[m.icon] || m.icon)}</span>
+      <button class="sb-manage-marginal-del" onclick="window._sbRemoveMarginalia(${i})">×</button>
+    </div>`).join('') : '<p class="sb-manage-hint">Nog geen marginalia toegevoegd.</p>';
+}
+
+window._sbSelectManageIcon = function(key) {
+  document.querySelectorAll('.sb-icon-pick-btn').forEach(b => b.classList.toggle('selected', b.dataset.icon === key));
+  document.getElementById('sb-manage-icon-label').dataset.icon = key;
+  const labelEl = document.getElementById('sb-manage-icon-label');
+  if (labelEl && !labelEl.value) labelEl.placeholder = _SB_ICON_LABELS[key] || key;
+};
+
+window._sbAddMarginalia = async function() {
+  const spell = _sbState.spells[_sbState.idx];
+  if (!spell || !_sbState.charId) return;
+  const labelEl = document.getElementById('sb-manage-icon-label');
+  const icon = labelEl?.dataset.icon;
+  if (!icon) { labelEl?.focus(); return; }
+  const label = (labelEl?.value || _SB_ICON_LABELS[icon] || icon).trim();
+  spell.marginalia = [...(spell.marginalia || []), { icon, label }];
+  _sbAudio.write();
+  try {
+    await api.updatePlayerSpell(_sbState.charId, spell.index, { marginalia: spell.marginalia });
+    if (labelEl) { labelEl.value = ''; delete labelEl.dataset.icon; }
+    document.querySelectorAll('.sb-icon-pick-btn').forEach(b => b.classList.remove('selected'));
+    _sbRender();
+  } catch(e) { console.warn('Marginalia opslaan mislukt:', e); }
+};
+
+window._sbRemoveMarginalia = async function(idx) {
+  const spell = _sbState.spells[_sbState.idx];
+  if (!spell || !_sbState.charId) return;
+  spell.marginalia = (spell.marginalia || []).filter((_, i) => i !== idx);
+  try {
+    await api.updatePlayerSpell(_sbState.charId, spell.index, { marginalia: spell.marginalia });
+    _sbRender();
+  } catch(e) { console.warn('Marginalia verwijderen mislukt:', e); }
+};
+
+window._sbSaveAcqLevel = async function(val) {
+  const spell = _sbState.spells[_sbState.idx];
+  if (!spell || !_sbState.charId || !val || val < 1 || val > 20) return;
+  if (val === (spell.acquisitionLevel || 0)) return;
+  spell.acquisitionLevel = val;
+  try {
+    await api.updatePlayerSpell(_sbState.charId, spell.index, { acquisitionLevel: val });
+    _sbRender();
+  } catch(e) { console.warn('Level opslaan mislukt:', e); }
+};
+
+window._sbToggleConcentration = async function() {
+  const spell = _sbState.spells[_sbState.idx];
+  if (!spell || !_sbState.charId || !spell.concentration) return;
+  spell.concentrationActive = !spell.concentrationActive;
+  try {
+    await api.updatePlayerSpell(_sbState.charId, spell.index, { concentrationActive: spell.concentrationActive });
+    _sbRender();
+  } catch(e) { console.warn('Concentratie opslaan mislukt:', e); }
+};
+
+window._sbSlotChange = function(delta) {
+  const spell = _sbState.spells[_sbState.idx];
+  if (!spell || spell.level === 0) return;
+  const cur  = _sbState.castSlotLevel ?? spell.level;
+  const next = Math.max(spell.level, Math.min(9, cur + delta));
+  if (next === cur) return;
+  _sbState.castSlotLevel = next;
+  const valEl    = document.getElementById('sb-slot-val');
+  const higherEl = document.getElementById('sb-slot-higher');
+  if (valEl) valEl.textContent = next;
+  if (higherEl) {
+    if (next > spell.level && spell.higher_level) {
+      higherEl.innerHTML = `<strong>Op slotniveau ${next}:</strong> ${_spellMd(spell.higher_level)}`;
+      higherEl.style.display = '';
+    } else {
+      higherEl.style.display = 'none';
+    }
+  }
+};
+
+// Returns true when a spell's level is >0 and no slots remain at any valid level
+function _sbHasNoSlots(spell) {
+  if (!spell.level) return false;           // cantrips always available
+  for (let l = spell.level; l <= 9; l++) {
+    const s = _sbState.slots[l];
+    if (s && s.max > 0 && (s.used || 0) < s.max) return false;
+  }
+  return Object.keys(_sbState.slots).length > 0; // only fade if slot data is loaded
+}
 
 window._sbTocPin = async function(index, name) {
   if (_sbState.spells.find(s => s.index === index)) return;
@@ -2653,6 +2901,11 @@ function _sbRender() {
         spell.ritual        ? `<span class="sb-badge sb-badge--ritual">Ritual</span>`       : '',
       ].filter(Boolean).join('');
 
+      const castLvl = _sbState.castSlotLevel ?? spell.level;
+      const higherHtml = (spell.level > 0 && castLvl > spell.level && spell.higher_level)
+        ? `<div class="sb-slot-higher" id="sb-slot-higher"><strong>Op slotniveau ${castLvl}:</strong> ${_spellMd(spell.higher_level)}</div>`
+        : `<div class="sb-slot-higher" id="sb-slot-higher" style="display:none"></div>`;
+
       contentEl.innerHTML = `
         <h2 class="sb-spell-name">${esc(spell.name)}</h2>
         ${badges ? `<div class="sb-spell-meta-row">${badges}</div>` : ''}
@@ -2660,19 +2913,61 @@ function _sbRender() {
           metaRows.map(([k,v]) => `<span class="sb-meta-key">${k}</span><span class="sb-meta-val">${esc(v)}</span>`).join('')
         }</div>` : ''}
         ${(badges || metaRows.length) ? '<div class="sb-divider"></div>' : ''}
+        ${spell.level > 0 ? `<div class="sb-slot-stepper">
+          <span class="sb-slot-label">Slot</span>
+          <button class="sb-slot-btn" onclick="window._sbSlotChange(-1)">−</button>
+          <span class="sb-slot-val" id="sb-slot-val">${castLvl}</span>
+          <button class="sb-slot-btn" onclick="window._sbSlotChange(+1)">+</button>
+        </div>` : ''}
+        ${higherHtml}
         <div class="sb-desc">${desc || '<em>Geen beschrijving beschikbaar.</em>'}</div>`;
       contentEl.scrollTop = 0;
     }
   }
 
+  // ── Marginalia icons on right page ──
+  const margEl = document.getElementById('sb-marginalia');
+  if (margEl) {
+    margEl.innerHTML = (spell.marginalia || []).map(m => {
+      const paths = _SB_ICONS[m.icon] || '';
+      const tip   = esc(m.label || _SB_ICON_LABELS[m.icon] || m.icon);
+      return `<div class="sb-marginal-icon" tabindex="0">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor"
+          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>
+        <div class="sb-marginal-tip">${tip}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Concentration fold corner ──
+  const foldEl = document.getElementById('sb-conc-fold');
+  if (foldEl) {
+    const active = !!spell.concentrationActive;
+    foldEl.className = 'sb-conc-fold' + (
+      !spell.concentration ? ' sb-conc-fold--hidden' :
+      active               ? ' sb-conc-fold--active' : ' sb-conc-fold--avail'
+    );
+    foldEl.onclick    = spell.concentration ? () => window._sbToggleConcentration() : null;
+    foldEl.title      = spell.concentration
+      ? (active ? 'Concentratie actief — klik om te stoppen' : 'Klik om concentratie te activeren')
+      : '';
+  }
+
+  // ── Spell fade when no slots available ──
+  const fadeEl = document.getElementById('sb-spell-fade');
+  if (fadeEl) fadeEl.style.display = _sbHasNoSlots(spell) ? '' : 'none';
+
+  // ── Page yellowing based on acquisition level ──
+  if (rightPage) {
+    const acq = spell.acquisitionLevel || 20;
+    rightPage.dataset.aged = acq <= 3 ? '3' : acq <= 7 ? '2' : acq <= 11 ? '1' : '0';
+  }
+
   // ── TOC ──
   _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
 
-  // ── Beheer-paneel: incantatie bijwerken als het open is ──
-  if (_sbState.manageOpen) {
-    const inp = document.getElementById('sb-manage-incant');
-    if (inp && document.activeElement !== inp) inp.value = spell?.incantation || '';
-  }
+  // ── Beheer-paneel bijwerken als het open is ──
+  if (_sbState.manageOpen) _sbManageRefresh();
 }
 
 // Geeft de juiste CSS-modifier voor de damage-pill op basis van het schadetype.
