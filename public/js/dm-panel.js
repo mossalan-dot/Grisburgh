@@ -128,6 +128,16 @@ export function initDmPanel() {
     spellSearch: _spellSearch,
     spellOpen:   _spellOpen,
     spellBack:   _spellBack,
+    uploadSpellImage: async function(index, file) {
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('file', file);
+      try {
+        await fetch(`/api/files/spell-img-${index}`, { method: 'POST', body: fd, credentials: 'include' });
+        const thumb = document.getElementById('dm-spell-img-thumb');
+        if (thumb) { thumb.src = `/api/files/spell-img-${index}?t=${Date.now()}`; thumb.style.display = 'block'; }
+      } catch(e) { console.warn('Afbeelding uploaden mislukt:', e); }
+    },
 
     // Tunnel
     tunnelToggle:  _tunnelToggle,
@@ -650,6 +660,17 @@ function _spellDetailHtml(s) {
       </div>
       <div class="dm-spell-desc">${desc}${higher}</div>
       ${link}
+      <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.10);padding-top:12px">
+        <div style="font-size:10px;color:rgba(255,255,255,0.40);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Afbeelding voor spelers</div>
+        <img id="dm-spell-img-thumb" src="/api/files/spell-img-${esc(s.index)}?t=${Date.now()}"
+          style="max-width:100%;max-height:110px;border-radius:6px;display:block;margin-bottom:8px"
+          onerror="this.style.display='none'" alt="">
+        <label class="dm-btn dm-btn-ghost dm-btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px">
+          📷 Afbeelding instellen
+          <input type="file" accept="image/*" style="display:none"
+            onchange="window.dmPanel.uploadSpellImage('${esc(s.index)}', this.files[0])">
+        </label>
+      </div>
     </div>`;
 }
 

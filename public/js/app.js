@@ -1,11 +1,11 @@
-import { api } from './api.js?v=217';
+import { api } from './api.js?v=218';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=77';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=30';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { initSocket } from './socket-client.js?v=11';
-import { initDmPanel } from './dm-panel.js?v=36';
+import { initDmPanel } from './dm-panel.js?v=37';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -1745,6 +1745,7 @@ const _sbState = {
   favs: new Set(),
   charId: null,
   tocOpen: false,
+  manageOpen: false,
   slots: {},           // { 1: { max: 3, used: 1 }, ... }
   spellSaveDC: null,   // from playerProfile
   spellAttackBonus: null,
@@ -1803,10 +1804,9 @@ function _ensureSpellbookOverlay() {
       <button class="sb-ctrl-btn" id="sb-toc-btn" onclick="window._sbToggleToc()">
         ${icon('clipboard-list')} Inhoud
       </button>
-      <button class="sb-ctrl-btn" onclick="window._closeSpellbook()" title="Terug naar bewerkmodus">
+      <button class="sb-ctrl-btn" id="sb-manage-btn" onclick="window._sbToggleManage()" title="Beheer">
         ${icon('pencil')} Beheer
       </button>
-      <button class="sb-ctrl-btn sb-ctrl-close" onclick="window._closeSpellbook()" title="Sluiten">×</button>
     </div>
     <div class="sb-book" id="sb-book">
       <!-- Left page: school gradient + incantation + icon/image + slots -->
@@ -1871,6 +1871,23 @@ function _ensureSpellbookOverlay() {
         </div>
         <div class="sb-toc-list" id="sb-toc-list"></div>
       </div>
+      <!-- Beheer panel: slides from right -->
+      <div class="sb-manage-panel" id="sb-manage-panel">
+        <div class="sb-manage-header">
+          <div class="sb-manage-title">Beheer</div>
+        </div>
+        <div class="sb-manage-body">
+          <button class="sb-manage-close-btn" onclick="window._sbCloseAndReturn()">
+            ✕ Sluit boek
+          </button>
+          <div class="sb-manage-section" id="sb-manage-incant-section">
+            <div class="sb-manage-label">Incantatie voor deze spreuk</div>
+            <input type="text" class="sb-manage-input" id="sb-manage-incant"
+              placeholder="Eigen incantatie…" maxlength="120"
+              onblur="window._sbSaveIncantation(this.value)">
+          </div>
+        </div>
+      </div>
     </div>`;
   document.body.appendChild(el);
   el.addEventListener('click', e => { if (e.target === el) window._closeSpellbook(); });
@@ -1911,6 +1928,9 @@ window._closeSpellbook = function() {
   if (ov) ov.classList.remove('sb-open');
   document.body.style.overflow = '';  // restore page scroll
   _sbState.tocOpen = false;
+  _sbState.manageOpen = false;
+  const mp = document.getElementById('sb-manage-panel');
+  if (mp) mp.classList.remove('sb-manage-open');
   window._sbUserClosed = true;  // don't auto-reopen until user explicitly navigates back
 };
 
@@ -2043,6 +2063,12 @@ window._sbTogglePin = async function() {
 
 window._sbToggleToc = function() {
   _sbState.tocOpen = !_sbState.tocOpen;
+  // Sluit manage paneel als TOC opent
+  if (_sbState.tocOpen) {
+    _sbState.manageOpen = false;
+    const mp = document.getElementById('sb-manage-panel');
+    if (mp) mp.classList.remove('sb-manage-open');
+  }
   const toc = document.getElementById('sb-toc-panel');
   if (toc) toc.classList.toggle('sb-toc-open', _sbState.tocOpen);
   if (_sbState.tocOpen) {
@@ -2053,35 +2079,236 @@ window._sbToggleToc = function() {
   }
 };
 
+window._sbToggleManage = function() {
+  _sbState.manageOpen = !_sbState.manageOpen;
+  // Sluit TOC als manage opent
+  if (_sbState.manageOpen) {
+    _sbState.tocOpen = false;
+    const toc = document.getElementById('sb-toc-panel');
+    if (toc) toc.classList.remove('sb-toc-open');
+  }
+  const mp = document.getElementById('sb-manage-panel');
+  if (mp) mp.classList.toggle('sb-manage-open', _sbState.manageOpen);
+  // Vul incantatie-input met huidige spreuk
+  if (_sbState.manageOpen) {
+    const spell = _sbState.spells[_sbState.idx];
+    const inp = document.getElementById('sb-manage-incant');
+    if (inp) inp.value = spell?.incantation || '';
+  }
+};
+
+window._sbCloseAndReturn = function() {
+  window._closeSpellbook();
+  if (typeof window._setPlayerSubTab === 'function') {
+    window._setPlayerSubTab('personage');
+  }
+};
+
+window._sbSaveIncantation = async function(text) {
+  const spell = _sbState.spells[_sbState.idx];
+  if (!spell || !_sbState.charId) return;
+  const trimmed = text.trim();
+  if (trimmed === (spell.incantation || '')) return;
+  spell.incantation = trimmed;
+  try {
+    await api.updatePlayerSpell(_sbState.charId, spell.index, { incantation: trimmed });
+    _sbRender();
+  } catch(e) { console.warn('Incantatie opslaan mislukt:', e); }
+};
+
+window._sbTocPin = async function(index, name) {
+  if (_sbState.spells.find(s => s.index === index)) return;
+  if (!_sbState.charId) return;
+  const fullSpell =
+    (_playerSpellList || []).find(s => s.index === index) ||
+    { level: 0, school: {}, components: [] };
+  const desc          = (fullSpell.desc || []).join('\n\n');
+  const concentration = !!fullSpell.concentration || String(fullSpell.duration||'').toLowerCase().includes('concentration');
+  const ritual        = !!fullSpell.ritual;
+  const school        = fullSpell.school?.name || (typeof fullSpell.school === 'string' ? fullSpell.school : '');
+  const source        = fullSpell.source || 'phb2024';
+  try {
+    await api.addPlayerSpell(_sbState.charId, {
+      index, name, level: fullSpell.level || 0,
+      school, concentration, ritual, source, desc,
+      casting_time: fullSpell.casting_time || '',
+      range:        fullSpell.range        || '',
+      duration:     fullSpell.duration     || '',
+      components: Array.isArray(fullSpell.components)
+        ? fullSpell.components.join(', ') + (fullSpell.material ? ` (${fullSpell.material})` : '')
+        : (fullSpell.components || ''),
+    });
+    // Lokaal toevoegen en naar de nieuwe spreuk navigeren
+    const newEntry = { ...fullSpell, index, name, school: { name: school },
+      source, concentration, ritual, level: fullSpell.level || 0,
+      desc: fullSpell.desc || [] };
+    _sbState.spells.push(newEntry);
+    _sbState.spells.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+    _sbState.idx = _sbState.spells.findIndex(s => s.index === index);
+    _sbRender();
+    _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
+    if (typeof window._reRenderKarakter === 'function') window._reRenderKarakter();
+  } catch(e) { console.warn('Spreuk toevoegen mislukt:', e); }
+};
+
+window._sbTocUnpin = async function(index) {
+  if (!_sbState.charId) return;
+  try {
+    await api.removePlayerSpell(_sbState.charId, index);
+    const wasIdx = _sbState.idx;
+    _sbState.spells = _sbState.spells.filter(s => s.index !== index);
+    _sbState.idx = Math.min(wasIdx, Math.max(0, _sbState.spells.length - 1));
+    if (_sbState.spells.length === 0) {
+      window._closeSpellbook();
+      if (typeof window._reRenderKarakter === 'function') window._reRenderKarakter();
+      return;
+    }
+    _sbRender();
+    _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
+    if (typeof window._reRenderKarakter === 'function') window._reRenderKarakter();
+  } catch(e) { console.warn('Spreuk verwijderen mislukt:', e); }
+};
+
+window._sbCustomSpellOpen = function() {
+  const list = document.getElementById('sb-toc-list');
+  if (!list) return;
+  list.innerHTML = `
+    <div class="sb-custom-form">
+      <input class="sb-custom-inp" id="sbc-name" placeholder="Naam spreuk" maxlength="80">
+      <div style="display:flex;gap:6px">
+        <select class="sb-custom-inp" id="sbc-level" style="flex:0 0 auto">
+          ${[0,1,2,3,4,5,6,7,8,9].map(l=>`<option value="${l}">${l===0?'Cantrip':'Niv. '+l}</option>`).join('')}
+        </select>
+        <input class="sb-custom-inp" id="sbc-school" placeholder="School" maxlength="40" style="flex:1">
+      </div>
+      <input class="sb-custom-inp" id="sbc-damage" placeholder="Damage (bijv. 2d6 Fire, optioneel)" maxlength="40">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+        <input class="sb-custom-inp" id="sbc-cast" placeholder="Casting Time" maxlength="60">
+        <input class="sb-custom-inp" id="sbc-range" placeholder="Range" maxlength="60">
+        <input class="sb-custom-inp" id="sbc-comp" placeholder="Components" maxlength="80">
+        <input class="sb-custom-inp" id="sbc-dur" placeholder="Duration" maxlength="60">
+      </div>
+      <textarea class="sb-custom-inp" id="sbc-desc" placeholder="Beschrijving…" rows="3" style="resize:none;width:100%;box-sizing:border-box"></textarea>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button class="sb-custom-save" onclick="window._sbCustomSpellSave()">Opslaan</button>
+        <button class="sb-custom-cancel" onclick="_sbRenderTocList('')">Annuleer</button>
+      </div>
+    </div>`;
+};
+
+window._sbCustomSpellSave = async function() {
+  const name = document.getElementById('sbc-name')?.value?.trim();
+  if (!name || !_sbState.charId) return;
+  const level        = parseInt(document.getElementById('sbc-level')?.value) || 0;
+  const school       = document.getElementById('sbc-school')?.value?.trim() || '';
+  const damage       = document.getElementById('sbc-damage')?.value?.trim() || '';
+  const casting_time = document.getElementById('sbc-cast')?.value?.trim()   || '';
+  const range        = document.getElementById('sbc-range')?.value?.trim()  || '';
+  const components   = document.getElementById('sbc-comp')?.value?.trim()   || '';
+  const duration     = document.getElementById('sbc-dur')?.value?.trim()    || '';
+  const desc         = document.getElementById('sbc-desc')?.value?.trim()   || '';
+  const index = 'custom_' + Date.now();
+  try {
+    await api.addPlayerSpell(_sbState.charId, {
+      index, name, level, school, source: 'custom',
+      desc, damage, casting_time, range, components, duration,
+    });
+    const newEntry = { index, name, level, school: { name: school }, source: 'custom',
+      desc: desc ? [desc] : [], damage, casting_time, range, components, duration,
+      concentration: false, ritual: false };
+    _sbState.spells.push(newEntry);
+    _sbState.spells.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+    _sbState.idx = _sbState.spells.findIndex(s => s.index === index);
+    _sbRender();
+    _sbRenderTocList('');
+    if (typeof window._reRenderKarakter === 'function') window._reRenderKarakter();
+  } catch(e) { console.warn('Eigen spreuk opslaan mislukt:', e); }
+};
+
 window._sbTocSearch = function(q) { _sbRenderTocList(q); };
 
 function _sbRenderTocList(q) {
   const list = document.getElementById('sb-toc-list');
   if (!list) return;
   const query = (q || '').toLowerCase().trim();
-  const groups = {};
-  _sbState.spells.forEach((s, i) => {
-    if (query && !s.name.toLowerCase().includes(query)) return;
-    const k = s.level || 0;
-    if (!groups[k]) groups[k] = [];
-    groups[k].push({ s, i });
-  });
-  const keys = Object.keys(groups).map(Number).sort((a, b) => a - b);
-  list.innerHTML = keys.map(k => {
-    const label = k === 0 ? 'Cantrips' : `Level ${k}`;
-    return `<div class="sb-toc-level-header">${label}</div>` +
-      groups[k].map(({ s, i }) => {
-        const pinned = _sbState.favs.has(s.index);
-        const active = i === _sbState.idx;
-        const school = s.school ? _sbSchoolLabel(s.school).slice(0, 8) : '';
-        return `<div class="sb-toc-item${active ? ' sb-toc-active' : ''}${pinned ? ' sb-toc-pinned' : ''}"
-          onclick="window._sbGoTo(${i}, true)">
-          <span class="sb-toc-item-pin">${_sbRibbonMiniSvg()}</span>
-          <span class="sb-toc-item-name">${esc(s.name)}</span>
-          ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}
+  const pinnedIndices = new Set(_sbState.spells.map(s => s.index));
+  let html = '';
+
+  if (!query) {
+    // Lege zoekterm: toon toegevoegde spreuken per level met verwijderknop
+    if (_sbState.spells.length === 0) {
+      html = '<div class="sb-toc-empty">Nog geen spreuken toegevoegd.<br>Zoek er een op om te beginnen.</div>';
+    } else {
+      const groups = {};
+      _sbState.spells.forEach((s, i) => {
+        const k = s.level || 0;
+        if (!groups[k]) groups[k] = [];
+        groups[k].push({ s, i });
+      });
+      const keys = Object.keys(groups).map(Number).sort((a, b) => a - b);
+      for (const k of keys) {
+        const label = k === 0 ? 'Cantrips' : `Level ${k}`;
+        html += `<div class="sb-toc-level-header">${label}</div>`;
+        for (const { s, i } of groups[k]) {
+          const active = i === _sbState.idx;
+          const school = s.school?.name || (typeof s.school === 'string' ? s.school : '');
+          html += `<div class="sb-toc-item${active ? ' sb-toc-active' : ''}">
+            <span class="sb-toc-item-name" onclick="window._sbGoTo(${i}, true)">${esc(s.name)}</span>
+            ${school ? `<span class="sb-toc-item-school">${esc(school.slice(0,8))}</span>` : ''}
+            <button class="sb-toc-item-del" onclick="window._sbTocUnpin('${esc(s.index)}')" title="Verwijderen">×</button>
+          </div>`;
+        }
+      }
+    }
+  } else {
+    // Zoekterm: zoek in volledige spellenlijst
+    if (!_playerSpellList) {
+      fetch('/data/spells-2024.json').then(r => r.json()).then(d => {
+        _playerSpellList = d.results || [];
+        _sbRenderTocList(q);
+      }).catch(() => {});
+      list.innerHTML = '<div class="sb-toc-empty">Laden…</div>';
+      return;
+    }
+    const allMatches = _playerSpellList.filter(s => s.name.toLowerCase().includes(query));
+    const pinnedMatches   = allMatches.filter(s =>  pinnedIndices.has(s.index)).slice(0, 6);
+    const unpinnedMatches = allMatches.filter(s => !pinnedIndices.has(s.index)).slice(0, 6);
+
+    if (pinnedMatches.length) {
+      html += '<div class="sb-toc-level-header">Jouw spreuken</div>';
+      for (const s of pinnedMatches) {
+        const navIdx = _sbState.spells.findIndex(x => x.index === s.index);
+        const active = navIdx === _sbState.idx;
+        const school = s.school?.name || '';
+        html += `<div class="sb-toc-item${active ? ' sb-toc-active' : ''}">
+          <span class="sb-toc-item-name" onclick="window._sbGoTo(${navIdx}, true)">${esc(s.name)}</span>
+          ${school ? `<span class="sb-toc-item-school">${esc(school.slice(0,8))}</span>` : ''}
+          <button class="sb-toc-item-del" onclick="window._sbTocUnpin('${esc(s.index)}')" title="Verwijderen">×</button>
         </div>`;
-      }).join('');
-  }).join('');
+      }
+    }
+    if (unpinnedMatches.length) {
+      html += '<div class="sb-toc-level-header">Toevoegen</div>';
+      for (const s of unpinnedMatches) {
+        const school = s.school?.name || '';
+        html += `<div class="sb-toc-item">
+          <span class="sb-toc-item-name">${esc(s.name)}</span>
+          ${school ? `<span class="sb-toc-item-school">${esc(school.slice(0,8))}</span>` : ''}
+          <button class="sb-toc-item-add" onclick="window._sbTocPin('${esc(s.index)}','${esc(s.name)}')" title="Toevoegen aan boek">+</button>
+        </div>`;
+      }
+    }
+    if (!pinnedMatches.length && !unpinnedMatches.length) {
+      html = '<div class="sb-toc-empty">Niet gevonden.</div>';
+    }
+  }
+
+  // Eigen spreuk knop altijd onderaan
+  html += `<div class="sb-toc-custom-btn-row">
+    <button class="sb-toc-custom-btn" onclick="window._sbCustomSpellOpen()">＋ Eigen spreuk</button>
+  </div>`;
+
+  list.innerHTML = html;
 }
 
 function _sbRenderRibbon() {
@@ -2343,6 +2570,12 @@ function _sbRender() {
 
   // ── TOC ──
   _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
+
+  // ── Beheer-paneel: incantatie bijwerken als het open is ──
+  if (_sbState.manageOpen) {
+    const inp = document.getElementById('sb-manage-incant');
+    if (inp && document.activeElement !== inp) inp.value = spell?.incantation || '';
+  }
 }
 
 // Geeft de juiste CSS-modifier voor de damage-pill op basis van het schadetype.
@@ -3415,97 +3648,17 @@ async function renderMijnKarakter(opts = {}) {
           <button class="player-dash-slot-add-btn" onclick="window._dashSlotAddLevel()">+</button>
         </div>
 
-        <!-- Spreuk zoeken & vastzetten -->
-        <div class="player-dash-section">
-          <div class="player-dash-section-title">
-            ${icon('book-open')} Spreukzoeker
-            <button class="player-trait-add-btn" onclick="window._playerSpellCustomOpen()" title="Eigen spreuk invoeren">+</button>
-            ${pinnedSpells.length > 0 ? `<button class="sb-open-btn" onclick="window._openSpellbook()" title="Open het spreukenboek">${icon('book-open')} Open spreukenboek</button>` : ''}
-          </div>
-          <div class="player-spell-search-wrap">
-            <input id="player-spell-input" class="player-spell-search-input" type="text"
-              placeholder="Zoek spreuk…" autocomplete="off"
-              oninput="window._playerSpellSearch(this.value)">
-            <div id="player-spell-results" class="player-spell-results"></div>
-          </div>
-          <!-- Eigen spreuk formulier -->
-          <div id="player-spell-custom-form" class="player-trait-custom-form hidden">
-            <input id="pscf-name"   class="player-trait-form-input" type="text" placeholder="Naam spreuk" maxlength="80">
-            <div style="display:flex;gap:8px">
-              <select id="pscf-level" class="player-trait-form-input" style="flex:0 0 auto">
-                ${[0,1,2,3,4,5,6,7,8,9].map(l => `<option value="${l}">${l === 0 ? 'Cantrip' : 'Niv. ' + l}</option>`).join('')}
-              </select>
-                <input id="pscf-school"  class="player-trait-form-input" type="text" placeholder="School (bijv. Evocation)" maxlength="40" style="flex:1">
-            </div>
-            <input id="pscf-damage"       class="player-trait-form-input" type="text" placeholder="Damage / Healing (bijv. 2d10 Fire, optioneel)" maxlength="40">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-              <input id="pscf-casting-time" class="player-trait-form-input" type="text" placeholder="Casting Time" maxlength="60">
-              <input id="pscf-range"        class="player-trait-form-input" type="text" placeholder="Range" maxlength="60">
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-              <input id="pscf-components"   class="player-trait-form-input" type="text" placeholder="Components (bijv. V, S)" maxlength="80">
-              <input id="pscf-duration"     class="player-trait-form-input" type="text" placeholder="Duration" maxlength="60">
-            </div>
-            <textarea id="pscf-desc"  class="player-trait-form-ta" placeholder="Beschrijving — **vet**, *cursief* ondersteund (optioneel)" rows="3"></textarea>
-            <div class="player-trait-form-btns">
-              <button class="player-trait-form-save" onclick="window._playerSpellCustomSave()">Opslaan</button>
-              <button class="player-trait-form-cancel" onclick="window._playerSpellCustomClose()">Annuleer</button>
-            </div>
-          </div>
-          ${pinnedSpells.length > 0 ? (() => {
-            // Groepeer op niveau
-            const _sorted = [...pinnedSpells].sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
-            const _groups = {};
-            _sorted.forEach(s => {
-              const k = s.level === 0 ? 0 : s.level;
-              if (!_groups[k]) _groups[k] = [];
-              _groups[k].push(s);
-            });
-            const _levelKeys = Object.keys(_groups).map(Number).sort((a,b) => a - b);
-            const _spellFavs = new Set((() => { try { return JSON.parse(playerProfile.spellFavorites || '[]'); } catch { return []; } })());
-
-            // Level-filter chips
-            const _lvlChips = `<div class="spell-level-filter" id="spell-level-filter">
-              <button class="spell-lvl-chip spell-lvl-chip--active" data-lvl="" onclick="window._filterSpellLevel(null, this)">Alle</button>
-              ${_levelKeys.map(k => { const _hf = _groups[k].some(s => _spellFavs.has(s.index)); return `<button class="spell-lvl-chip${_hf ? ' spell-lvl-chip--fav' : ''}" data-lvl="${k}" onclick="window._filterSpellLevel(${k}, this)">${k === 0 ? 'Cantrip' : k}</button>`; }).join('')}
-            </div>`;
-
-            const _spellHtml = _levelKeys.map(k => {
-              const _levelLabel = k === 0 ? 'Cantrips' : `Niveau ${k}`;
-              return `<div class="spell-level-group" data-level-group="${k}">
-                <div class="spell-level-group-header">${_levelLabel}</div>
-                ${_groups[k].map(s => {
-                  const _isFav = _spellFavs.has(s.index);
-                  return `
-                  <details class="player-spell-accordion${_isFav ? ' spell-accordion--pinned' : ''}">
-                    <summary class="player-pinned-spell-summary">
-                      <span class="player-pinned-spell-chevron">▾</span>
-                      <span class="player-pinned-spell-name${_isFav ? ' spell-name--pinned' : ''}">${esc(s.name)}</span>
-                      ${s.damage ? `<button class="spell-damage-pill${_damagePillMod(s.damage)}"
-                        onclick="event.preventDefault();event.stopPropagation();window.dice?.rollFormula('${escJS(s.damage)}')"
-                        title="Gooi ${escJS(s.damage)}">${icon('dice',{cls:'icon-gi'})} ${esc(s.damage)}</button>` : ''}
-                      <span class="player-pinned-spell-meta">${s.school ? esc(s.school) : ''}</span>
-                      ${s.concentration ? '<span class="spell-badge spell-badge--conc" title="Vereist concentratie">C</span>' : ''}
-                      ${s.ritual ? '<span class="spell-badge spell-badge--ritual" title="Ritueel">R</span>' : ''}
-                      <button class="spell-fav-btn${_isFav ? ' spell-fav-btn--on' : ''}"
-                        onclick="event.preventDefault();event.stopPropagation();window._toggleSpellFav('${escJS(s.index)}',${s.level},this)"
-                        title="${_isFav ? 'Losmaken' : 'Vastpinnen'}">
-                        <svg width="11" height="18" viewBox="0 0 11 18" style="display:block"><path d="M0 0 H11 V14.5 L5.5 18 L0 14.5 Z" fill="currentColor"/></svg>
-                      </button>
-                      <button class="player-pinned-spell-del"
-                        onclick="event.preventDefault();event.stopPropagation();window._playerSpellUnpin('${esc(s.index)}')"
-                        title="Verwijder">×</button>
-                    </summary>
-                    <div class="player-spell-accordion-body" data-spell-index="${esc(s.index)}" data-spell-source="${esc(s.source||'')}" data-spell-desc="${esc(s.desc||'')}" data-loaded="false">
-                      <p class="player-spell-loading-text">Laden…</p>
-                    </div>
-                  </details>`;
-                }).join('')}
-              </div>`;
-            }).join('');
-
-            return _lvlChips + `<div class="player-pinned-spells">${_spellHtml}</div>`;
-          })() : '<p class="player-dash-empty" style="margin-top:8px">Nog geen spreuken vastgezet.</p>'}
+        <!-- Spreukenboek openen -->
+        <div class="player-dash-section" id="sb-open-section">
+          <div class="player-dash-section-title">${icon('book-open')} Spreukenboek</div>
+          <p class="player-dash-empty" style="margin:8px 0 10px">
+            ${pinnedSpells.length > 0
+              ? `${pinnedSpells.length} ${pinnedSpells.length === 1 ? 'spreuk' : 'spreuken'} in je boek. Open het boek om spreuken te bekijken, toe te voegen of te verwijderen.`
+              : 'Je spreukenboek is nog leeg. Open het boek en gebruik "Inhoud" om spreuken toe te voegen.'}
+          </p>
+          <button class="sb-open-btn" onclick="window._sbUserClosed=false; window._openSpellbook()">
+            ${icon('book-open')} Open spreukenboek
+          </button>
         </div>
       </div>
 
