@@ -13790,12 +13790,9 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 .sb-ctrl-btn .icon { width: 13px; height: 13px; vertical-align: -0.1em; }
 .sb-ctrl-close {
   margin-left: auto;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  font-size: 20px;
-  justify-content: center;
+  opacity: 0.80;
 }
+.sb-ctrl-close:hover { opacity: 1; }
 
 /* ── Book container ── */
 .sb-book {
@@ -14619,9 +14616,157 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 /* ── Mobile landscape ── */
 @media (max-width: 700px) {
   .sb-book { width: 100vw; border-radius: 0; }
-  .sb-right-content { padding: 16px 48px 16px 16px; }
+  .sb-right-content { padding: 12px 44px 44px 12px; }
   .sb-arrow-btn--prev { left: 0; width: 18px; height: 56px; }
   .sb-arrow-btn--next { right: 0; width: 18px; height: 56px; }
+  .sb-spell-name { font-size: 14px; margin-bottom: 6px; padding-bottom: 6px; }
+  .sb-meta-table { gap: 2px 8px; margin-bottom: 8px; }
+  .sb-meta-key { font-size: 8px; }
+  .sb-meta-val { font-size: 11px; }
+  .sb-desc { font-size: 11.5px; line-height: 1.6; }
+  .sb-badge { font-size: 8px; padding: 2px 5px; }
+  .sb-spell-meta-row { gap: 4px; margin-bottom: 8px; }
+  .sb-ctrl-btn { font-size: 11px; padding: 4px 8px; gap: 3px; }
+  .sb-overlay-controls { gap: 5px; }
+}
+@media (max-width: 420px) {
+  .sb-spell-name { font-size: 12px; }
+  .sb-meta-val { font-size: 10px; }
+  .sb-ctrl-btn { font-size: 10px; padding: 4px 6px; }
+}
+
+/* ── Damage-type visual effect overlay (left page) ── */
+.sb-damage-fx {
+  position: absolute; inset: 0;
+  z-index: 1; pointer-events: none;
+  border-radius: inherit; overflow: hidden;
+}
+/* Fire: scorch marks at bottom corners */
+.sb-damage-fx--fire::before {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 55%;
+  background:
+    radial-gradient(ellipse at 20% 110%, rgba(60,15,0,0.60) 0%, transparent 38%),
+    radial-gradient(ellipse at 80% 110%, rgba(60,15,0,0.50) 0%, transparent 32%),
+    radial-gradient(ellipse at 50% 120%, rgba(180,55,0,0.22) 0%, transparent 55%);
+}
+.sb-damage-fx--fire::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 30%;
+  background: radial-gradient(ellipse at 50% 100%, rgba(255,110,0,0.18) 0%, transparent 65%);
+}
+/* Cold: frost vignette in corners */
+.sb-damage-fx--cold::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 0% 0%,   rgba(160,220,255,0.35) 0%, transparent 38%),
+    radial-gradient(circle at 100% 0%, rgba(160,220,255,0.28) 0%, transparent 32%),
+    radial-gradient(circle at 0% 100%, rgba(160,220,255,0.22) 0%, transparent 28%);
+}
+.sb-damage-fx--cold::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(100,180,240,0.18) 100%);
+}
+/* Lightning: flash glow from top */
+.sb-damage-fx--lightning::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 50%;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,240,80,0.28) 0%, transparent 60%);
+}
+.sb-damage-fx--lightning::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(180,160,20,0.12) 100%);
+}
+/* Acid: green drip from top */
+.sb-damage-fx--acid::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 40%;
+  background:
+    radial-gradient(circle at 25% 0%, rgba(70,180,0,0.32) 0%, transparent 35%),
+    radial-gradient(circle at 65% 0%, rgba(70,180,0,0.24) 0%, transparent 28%),
+    radial-gradient(circle at 85% 0%, rgba(70,180,0,0.18) 0%, transparent 22%);
+}
+.sb-damage-fx--acid::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(30,100,0,0.15) 100%);
+}
+/* Necrotic: dark void vignette */
+.sb-damage-fx--necrotic::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 0% 0%,   rgba(40,0,60,0.55) 0%, transparent 45%),
+    radial-gradient(circle at 100% 100%, rgba(40,0,60,0.50) 0%, transparent 40%);
+}
+.sb-damage-fx--necrotic::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(20,0,35,0.45) 100%);
+}
+/* Radiant: golden center glow */
+.sb-damage-fx--radiant::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, rgba(255,220,60,0.30) 0%, transparent 58%);
+}
+.sb-damage-fx--radiant::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(180,120,0,0.15) 100%);
+}
+/* Thunder: concentric rings */
+.sb-damage-fx--thunder::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 22%, rgba(130,145,175,0.13) 27%, transparent 32%),
+    radial-gradient(circle at 50% 50%, transparent 42%, rgba(130,145,175,0.10) 47%, transparent 52%),
+    radial-gradient(circle at 50% 50%, transparent 62%, rgba(130,145,175,0.08) 67%, transparent 72%);
+}
+/* Psychic: purple outer glow */
+.sb-damage-fx--psychic::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(160,0,255,0.08) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(100,0,200,0.30) 100%);
+}
+/* Poison: green mist at bottom */
+.sb-damage-fx--poison::before {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 45%;
+  background: radial-gradient(ellipse at 50% 110%, rgba(30,140,0,0.30) 0%, transparent 55%);
+}
+.sb-damage-fx--poison::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(20,80,0,0.18) 100%);
+}
+/* Heal: soft warm green center */
+.sb-damage-fx--heal::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, rgba(80,200,80,0.22) 0%, transparent 55%);
+}
+
+/* ── Incantatie placeholder (V-component maar geen incantatie ingesteld) ── */
+.sb-note--placeholder {
+  background: linear-gradient(145deg, rgba(240,235,220,0.55), rgba(225,218,200,0.45)) !important;
+  border: 1.5px dashed rgba(120,90,40,0.30);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.sb-note--placeholder:hover { opacity: 0.85; }
+.sb-note-text--hint {
+  font-family: 'Kalam', cursive;
+  font-size: 10px;
+  color: rgba(100,70,20,0.55);
+  font-style: italic;
+  white-space: nowrap;
 }
 
 /* ── Spellbook: Beheer panel ── */
