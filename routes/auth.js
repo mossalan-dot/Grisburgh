@@ -82,13 +82,14 @@ router.get('/players', (req, res) => {
         const groepId = e.data?.groep || null;
         const groep   = groepId ? groups[groepId] : null;
         return {
-          id:             e.id,
-          name:           e.name,
-          ras:            e.data?.ras    || '',
-          klasse:         e.data?.klasse || '',
-          groep:          groepId,
-          groepNaam:      groep?.name    || null,
+          id:               e.id,
+          name:             e.name,
+          ras:              e.data?.ras             || '',
+          klasse:           e.data?.klasse          || '',
+          groep:            groepId,
+          groepNaam:        groep?.name             || null,
           groepHasPassword: !!groep?.password,
+          portraitVideoId:  e.data?.portraitVideoId || null,
         };
       });
     res.json(spelers);
