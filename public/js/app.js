@@ -3177,15 +3177,15 @@ function _invTypeEmoji(it) {
 }
 
 function _invTornEdgePath(seed) {
-  const STEPS = 16;
+  const STEPS = 20;
   const rng = (i) => (((seed * 1664525 + i * 1013904223) >>> 0) % 1000) / 1000;
-  let pts = ['0% 0%', '95% 0%'];
+  let pts = ['0% 0%', '99% 0%'];
   for (let i = 0; i <= STEPS; i++) {
     const y = ((i / STEPS) * 100).toFixed(1);
-    const x = (93 + rng(i + 2) * 8).toFixed(1);
+    const x = (97.5 + rng(i + 2) * 2.5).toFixed(1);
     pts.push(`${x}% ${y}%`);
   }
-  pts.push('95% 100%', '0% 100%');
+  pts.push('99% 100%', '0% 100%');
   return `polygon(${pts.join(', ')})`;
 }
 
@@ -3223,7 +3223,6 @@ function _ensureInventarisOverlay() {
           <div class="inv-doc-rule"></div>
           <div class="inv-list-head">
             <span class="inv-lh-name">Voorwerp</span>
-            <span class="inv-lh-type">Soort</span>
             <span class="inv-lh-qty">Aantal</span>
             <span class="inv-lh-charges">Charges</span>
           </div>
@@ -3409,8 +3408,7 @@ function _invRender() {
         const attBadge = requiresAtt ? `<span class="inv-att-badge${isAttuned ? ' inv-att-badge--active' : ''}" title="${isAttuned ? 'Attuned' : 'Vereist attunement'}">${icon('link')}</span>` : '';
         return `<div class="inv-list-row${i === _invState.selectedIdx ? ' active' : ''}" onclick="window._invSelectItem(${i})">
           <span class="inv-row-name"><span class="inv-row-icon" aria-hidden="true">${typeIcon}</span>${esc(it.name)}${attBadge}</span>
-          <span class="inv-row-type">${esc(typeLabel)}</span>
-          <span class="inv-row-qty">${showTally ? _invTallyMarks(qty) : ''}</span>
+          <span class="inv-row-qty">${showTally ? _invTallyMarks(qty) : (qty > 1 ? `<span class="inv-qty-num">${qty}×</span>` : '')}</span>
           <span class="inv-row-charges">${charges}</span>
         </div>`;
       }).join('');
@@ -3426,9 +3424,9 @@ function _invRender() {
       <button class="inv-page-btn" onclick="window._invPageNext()" ${_invState.page >= totalPages - 1 ? 'disabled' : ''}>→</button>`;
   }
 
-  // Add-note trigger visibility (only for logged-in players)
+  // Add-note trigger visibility — zichtbaar voor spelers (eigen karakter) en DM
   const addTrigger = document.getElementById('inv-add-note-trigger');
-  if (addTrigger) addTrigger.style.display = state.characterId ? '' : 'none';
+  if (addTrigger) addTrigger.style.display = (state.characterId || state.role === 'dm') ? '' : 'none';
 
   // Beurs
   const beurs = document.getElementById('inv-beurs');
@@ -3442,13 +3440,12 @@ function _invRender() {
       : pc?.enabled ? `${esc(_invState.charName)} deelt zijn aardse vermogen met de groep` : '';
     beurs.innerHTML = `
       <div class="inv-beurs-row">
-        <span class="inv-beurs-coin inv-beurs-gold"></span>
         <span class="inv-beurs-amount">${cur.fl ?? 0}</span>
         <span class="inv-beurs-name">${esc(cn.fl || 'Florinde')}</span>
-        <span class="inv-beurs-coin inv-beurs-silver"></span>
+        <span class="inv-beurs-sep">·</span>
         <span class="inv-beurs-amount">${cur.kn ?? 0}</span>
         <span class="inv-beurs-name">${esc(cn.kn || 'Knaker')}</span>
-        <span class="inv-beurs-coin inv-beurs-copper"></span>
+        <span class="inv-beurs-sep">·</span>
         <span class="inv-beurs-amount">${cur.cl ?? 0}</span>
         <span class="inv-beurs-name">${esc(cn.cl || 'Centeling')}</span>
       </div>
@@ -3473,7 +3470,9 @@ function _invRenderDetail() {
 
 function _invRenderEntityDetail(panel, it) {
   const seed = it.id ? it.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) : 42;
-  const rot = ((seed % 13) - 6) * 0.7;
+  // Grotere rotatie-range — kaartjes zien eruit alsof ze willekeurig neergelegd zijn
+  const rotSteps = [3.2, -2.1, 4.8, -3.7, 1.9, -4.4, 2.6, -1.5, 3.9, -2.8, 1.2, -4.1, 4.3, -0.9, 2.4];
+  const rot = rotSteps[seed % rotSteps.length];
   const typeLabel = it.data?.itemType || it.subtype || 'Overig';
   const typeIcon = _invTypeEmoji(it);
   const desc = it.data?.desc || '';
@@ -3497,7 +3496,10 @@ function _invRenderEntityDetail(panel, it) {
       </div>
       <div class="inv-det-text">
         <div class="inv-det-name">${esc(it.name)}</div>
-        ${rarityLabel ? `<div class="inv-det-rarity">${esc(rarityLabel)}</div>` : ''}
+        <div class="inv-det-meta-row">
+          ${typeLabel ? `<span class="inv-det-type-badge">${esc(typeLabel)}</span>` : ''}
+          ${rarityLabel ? `<span class="inv-det-rarity">${esc(rarityLabel)}</span>` : ''}
+        </div>
         ${desc ? `<div class="inv-det-desc">${_spellMd(desc)}</div>` : ''}
         ${flavour ? `<blockquote class="inv-det-flavour">${esc(flavour)}</blockquote>` : ''}
       </div>
