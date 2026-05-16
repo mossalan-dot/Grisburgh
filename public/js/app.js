@@ -600,23 +600,16 @@ async function showLanding() {
 
     const renderPortrait = c => {
       const sub = [c.ras, c.klasse].filter(Boolean).join(' · ');
-      const mediaEl = c.portraitVideoId
-        ? `<video class="landing-portrait-video" src="/api/files/${esc(c.portraitVideoId)}"
-             autoplay loop muted playsinline
-             onerror="this.style.display='none';this.nextElementSibling.style.display='none';this.closest('.landing-portrait-ring').querySelector('.landing-portrait-fallback').style.display='flex'">
-           </video>
-           <img src="/api/files/${esc(c.id)}" class="landing-portrait-img landing-portrait-img--poster"
-             onerror="this.style.display='none'">`
-        : `<img src="/api/files/${esc(c.id)}" class="landing-portrait-img"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`;
       return `
         <div class="landing-portrait"
           data-char-id="${esc(c.id)}"
           data-has-password="${c.groepHasPassword ? '1' : ''}"
           data-groep-naam="${esc(c.groepNaam || '')}"
+          data-portrait-video="${c.portraitVideoId ? '1' : ''}"
           onclick="window.app._landingPortraitClick('${esc(c.id)}', this)">
           <div class="landing-portrait-ring">
-            ${mediaEl}
+            <img src="/api/files/${esc(c.id)}" class="landing-portrait-img"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="landing-portrait-fallback" style="display:none">${icon('user')}</div>
           </div>
           <div class="landing-portrait-name">${esc(c.name)}</div>
@@ -681,14 +674,15 @@ async function _landingPortraitClick(charId, portraitEl) {
   });
   portraitEl.classList.add('landing-portrait--chosen');
 
-  const hasPassword = portraitEl.dataset.hasPassword === '1';
+  const hasPassword  = portraitEl.dataset.hasPassword === '1';
+  const hasVideo     = portraitEl.dataset.portraitVideo === '1';
   if (hasPassword) {
-    _landingShowPasswordPrompt(charId, portraitEl);
+    _landingShowPasswordPrompt(charId, portraitEl, hasVideo);
   } else {
     // Geen wachtwoord → meteen inloggen en animatie starten
     try {
       const result = await api.playerLogin(charId, '');
-      await _landingStartZoom(charId, portraitEl);
+      await _landingStartZoom(charId, portraitEl, hasVideo);
       _landingFinishLogin(result);
     } catch {
       _landingCancelPassword();
@@ -696,7 +690,7 @@ async function _landingPortraitClick(charId, portraitEl) {
   }
 }
 
-function _landingShowPasswordPrompt(charId, portraitEl) {
+function _landingShowPasswordPrompt(charId, portraitEl, hasVideo = false) {
   document.getElementById('landing-pw-prompt')?.remove();
   const groepNaam = portraitEl.dataset.groepNaam || 'je groep';
   const prompt = document.createElement('div');
@@ -715,15 +709,15 @@ function _landingShowPasswordPrompt(charId, portraitEl) {
   const input = document.getElementById('landing-pw-input');
   input?.focus();
   input?.addEventListener('keydown', e => {
-    if (e.key === 'Enter')  _landingSubmitPassword(charId, portraitEl);
+    if (e.key === 'Enter')  _landingSubmitPassword(charId, portraitEl, hasVideo);
     if (e.key === 'Escape') _landingCancelPassword();
   });
   document.getElementById('landing-pw-submit')?.addEventListener('click',
-    () => _landingSubmitPassword(charId, portraitEl));
+    () => _landingSubmitPassword(charId, portraitEl, hasVideo));
   document.getElementById('landing-pw-cancel')?.addEventListener('click', _landingCancelPassword);
 }
 
-async function _landingSubmitPassword(charId, portraitEl) {
+async function _landingSubmitPassword(charId, portraitEl, hasVideo = false) {
   const input     = document.getElementById('landing-pw-input');
   const errorEl   = document.getElementById('landing-pw-error');
   const submitBtn = document.getElementById('landing-pw-submit');
@@ -732,7 +726,7 @@ async function _landingSubmitPassword(charId, portraitEl) {
   try {
     const result = await api.playerLogin(charId, input?.value || '');
     document.getElementById('landing-pw-prompt')?.remove();
-    await _landingStartZoom(charId, portraitEl);
+    await _landingStartZoom(charId, portraitEl, hasVideo);
     _landingFinishLogin(result);
   } catch {
     errorEl?.classList.remove('hidden');
@@ -749,7 +743,7 @@ function _landingCancelPassword() {
   });
 }
 
-async function _landingStartZoom(charId, portraitEl) {
+async function _landingStartZoom(charId, portraitEl, hasVideo = false) {
   const landingOverlay = document.getElementById('landing-overlay');
   landingOverlay?.classList.add('landing-overlay--dimming');
   document.querySelectorAll('.landing-portrait').forEach(p => {
@@ -782,9 +776,9 @@ async function _landingStartZoom(charId, portraitEl) {
     <div class="landing-zoom-portrait">
       <img class="landing-zoom-img" src="/api/files/${esc(charId)}"
         onerror="this.style.display='none'">
-      <video id="landing-zoom-video" class="landing-zoom-video" autoplay muted playsinline>
+      ${hasVideo ? `<video id="landing-zoom-video" class="landing-zoom-video" autoplay muted playsinline>
         <source src="/api/files/${esc(charId)}_video" type="video/mp4">
-      </video>
+      </video>` : ''}
     </div>
     <svg class="landing-zoom-ring" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <defs>
