@@ -1098,7 +1098,11 @@ router.get('/shops/:shopId/log', requireDM, (req, res) => {
 
 router.get('/items/ownership', attachRole, (req, res) => {
   const dmState = readDmState();
-  const g = getGroup(dmState);
+  // Spelers zien altijd hun eigen groep — niet de actief geselecteerde DM-groep.
+  // (De DM kan naar groep 3 wisselen terwijl spelers in groep 1 zitten.)
+  const charId = req.session?.characterId;
+  const playerGroupId = charId ? _playerGroupId(dmState, charId) : null;
+  const g = playerGroupId ? getGroup(dmState, playerGroupId) : getGroup(dmState);
   let stapelbaar = [], gedeeld = [];
   try {
     const entities = storage.readJSON('entities.json');
@@ -1106,7 +1110,6 @@ router.get('/items/ownership', attachRole, (req, res) => {
     stapelbaar = (entities.voorwerpen || []).filter(e => _gebruik(e.data) === 'stapelbaar').map(e => e.id);
     gedeeld    = (entities.voorwerpen || []).filter(e => _gebruik(e.data) === 'gedeeld').map(e => e.id);
   } catch { /* ok */ }
-  const charId = req.session?.characterId;
   res.json({
     owners:       g.itemOwners   || {},
     requests:     g.itemRequests || [],
