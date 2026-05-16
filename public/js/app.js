@@ -3146,7 +3146,7 @@ function _sbRender() {
 // BOEDELINVENTARIS — officiële eigendomsopgave voor spelers
 // ════════════════════════════════════════════════════════════
 
-const _invState = { items: [], selectedIdx: -1, charName: '', currency: { fl:0, kn:0, cl:0 }, partyCurrency: null, currencyNames: { fl:'Florinde', kn:'Knaker', cl:'Centeling' }, page: 0 };
+const _invState = { items: [], selectedIdx: -1, charName: '', currency: { fl:0, kn:0, cl:0 }, partyCurrency: null, currencyNames: { fl:'Florinde', kn:'Knaker', cl:'Centeling' }, page: 0, partyMembers: [] };
 const INV_PAGE_SIZE = 8;
 
 function _invTallyMarks(n) {
@@ -3174,6 +3174,19 @@ const _INV_TYPE_EMOJI = {
 };
 function _invTypeEmoji(it) {
   return _INV_TYPE_EMOJI[it.data?.itemType || it.subtype || ''] || icon('package');
+}
+
+function _invTornEdgePath(seed) {
+  const STEPS = 16;
+  const rng = (i) => (((seed * 1664525 + i * 1013904223) >>> 0) % 1000) / 1000;
+  let pts = ['0% 0%', '95% 0%'];
+  for (let i = 0; i <= STEPS; i++) {
+    const y = ((i / STEPS) * 100).toFixed(1);
+    const x = (93 + rng(i + 2) * 8).toFixed(1);
+    pts.push(`${x}% ${y}%`);
+  }
+  pts.push('95% 100%', '0% 100%');
+  return `polygon(${pts.join(', ')})`;
 }
 
 function _invChargeMarks(charges, maxCharges) {
@@ -3263,7 +3276,7 @@ function _ensureInventarisOverlay() {
   });
 }
 
-window._openInventaris = function(items, simpleItems, charName, currency, partyCurrency, currencyNames) {
+window._openInventaris = function(items, simpleItems, charName, currency, partyCurrency, currencyNames, partyMembers) {
   try {
     _invState.items = [
       ...(items || []).map(it => ({ _kind: 'entity', ...it })),
@@ -3275,6 +3288,7 @@ window._openInventaris = function(items, simpleItems, charName, currency, partyC
     _invState.currency = currency || { fl:0, kn:0, cl:0 };
     _invState.partyCurrency = partyCurrency || null;
     _invState.currencyNames = currencyNames || { fl:'Florinde', kn:'Knaker', cl:'Centeling' };
+    _invState.partyMembers = partyMembers || [];
     _ensureInventarisOverlay();
     _invRender();
     const ov = document.getElementById('inv-overlay');
@@ -3373,6 +3387,10 @@ function _invRender() {
   const offset = _invState.page * INV_PAGE_SIZE;
   const pageItems = _invState.items.slice(offset, offset + INV_PAGE_SIZE);
 
+  // Attunement slots (uit localStorage)
+  const _attCharId = state.characterId;
+  const _attSlots = _attCharId ? (() => { try { return JSON.parse(localStorage.getItem('attSlots_' + _attCharId) || '[]'); } catch { return []; } })() : [];
+
   const list = document.getElementById('inv-list');
   if (list) {
     if (!total) {
@@ -3386,8 +3404,11 @@ function _invRender() {
         const qty = it._qty || 1;
         const showTally = !isNote && it._stapelbaar && qty > 1;
         const charges = !isNote && it._maxCharges > 0 ? _invChargeMarks(it._charges, it._maxCharges) : '';
+        const requiresAtt = !isNote && (it.data?.attunement === 'true' || it.data?.attunement === true);
+        const isAttuned = requiresAtt && _attSlots.includes(it.id);
+        const attBadge = requiresAtt ? `<span class="inv-att-badge${isAttuned ? ' inv-att-badge--active' : ''}" title="${isAttuned ? 'Attuned' : 'Vereist attunement'}">${icon('link')}</span>` : '';
         return `<div class="inv-list-row${i === _invState.selectedIdx ? ' active' : ''}" onclick="window._invSelectItem(${i})">
-          <span class="inv-row-name"><span class="inv-row-icon" aria-hidden="true">${typeIcon}</span>${esc(it.name)}</span>
+          <span class="inv-row-name"><span class="inv-row-icon" aria-hidden="true">${typeIcon}</span>${esc(it.name)}${attBadge}</span>
           <span class="inv-row-type">${esc(typeLabel)}</span>
           <span class="inv-row-qty">${showTally ? _invTallyMarks(qty) : ''}</span>
           <span class="inv-row-charges">${charges}</span>
@@ -3415,7 +3436,10 @@ function _invRender() {
     const cn = _invState.currencyNames;
     const cur = _invState.currency;
     const pc = _invState.partyCurrency;
-    const anyVal = (cur.fl || 0) + (cur.kn || 0) + (cur.cl || 0);
+    const others = (_invState.partyMembers || []).filter(n => n && n !== _invState.charName);
+    const deeltMsg = pc?.enabled && others.length > 0
+      ? `${esc(_invState.charName)} deelt zijn aardse vermogen met ${others.map(n => esc(n)).join(', ')}`
+      : pc?.enabled ? `${esc(_invState.charName)} deelt zijn aardse vermogen met de groep` : '';
     beurs.innerHTML = `
       <div class="inv-beurs-row">
         <span class="inv-beurs-coin inv-beurs-gold"></span>
@@ -3428,7 +3452,7 @@ function _invRender() {
         <span class="inv-beurs-amount">${cur.cl ?? 0}</span>
         <span class="inv-beurs-name">${esc(cn.cl || 'Centeling')}</span>
       </div>
-      ${pc?.enabled ? `<div class="inv-beurs-shared">Deelt zijn aardse vermogen met de groep</div>` : ''}`;
+      ${deeltMsg ? `<div class="inv-beurs-shared">${deeltMsg}</div>` : ''}`;
   }
 
   _invRenderDetail();
@@ -3449,27 +3473,26 @@ function _invRenderDetail() {
 
 function _invRenderEntityDetail(panel, it) {
   const seed = it.id ? it.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) : 42;
-  const rot = ((seed % 13) - 6) * 0.55;
+  const rot = ((seed % 13) - 6) * 0.7;
   const typeLabel = it.data?.itemType || it.subtype || 'Overig';
-  const emoji = _invTypeEmoji(it);
+  const typeIcon = _invTypeEmoji(it);
   const desc = it.data?.desc || '';
   const flavour = it.data?.flavour || '';
   const rarity = it.data?.rarity || '';
   const rarityLabel = { Common:'Gewoon', Uncommon:'Ongewoon', Rare:'Zeldzaam', 'Very Rare':'Zeer zeldzaam', Legendary:'Legendarisch', Artifact:'Artefact' }[rarity] || rarity;
+  const paperBgs = ['#f8f3e5', '#f5eed6', '#f2ecd4', '#faf6eb'];
+  const bg = paperBgs[seed % paperBgs.length];
+  const clipPath = _invTornEdgePath(seed);
   panel.innerHTML = `
-    <div class="inv-det-page">
-      <div class="inv-img-zone">
-        <div class="inv-img-frame" style="transform:rotate(${rot}deg)">
-          <div class="inv-tape inv-tape--tl"></div>
-          <div class="inv-tape inv-tape--tr"></div>
-          <img class="inv-det-img" src="${api.fileUrl(it.id)}" alt="${esc(it.name)}"
-            onload="this.closest('.inv-img-zone').classList.add('inv-has-img')"
-            onerror="this.closest('.inv-img-zone').classList.add('inv-no-img')">
-          <div class="inv-img-fallback">
-            <span class="inv-fallback-emoji">${emoji}</span>
-            <div class="inv-fallback-name">${esc(it.name)}</div>
-            <div class="inv-fallback-type">${esc(typeLabel)}</div>
-          </div>
+    <div class="inv-det-page" style="transform:rotate(${rot}deg);clip-path:${clipPath};background:${bg}">
+      <div class="inv-img-zone inv-img-zone--sheet">
+        <img class="inv-det-img" src="${api.fileUrl(it.id)}" alt="${esc(it.name)}"
+          onload="this.closest('.inv-img-zone').classList.add('inv-has-img')"
+          onerror="this.closest('.inv-img-zone').classList.add('inv-no-img')">
+        <div class="inv-img-fallback">
+          <span class="inv-fallback-emoji">${typeIcon}</span>
+          <div class="inv-fallback-name">${esc(it.name)}</div>
+          <div class="inv-fallback-type">${esc(typeLabel)}</div>
         </div>
       </div>
       <div class="inv-det-text">
@@ -4416,11 +4439,12 @@ async function renderMijnKarakter(opts = {}) {
           window._invCurrency      = currency;
           window._invPartyCurrency = partyCurrency;
           window._invCurrencyNames = _cNames;
+          window._invPartyMembers  = partyMembers.map(m => m.name || m.playerName || '').filter(Boolean);
           const total = myItems.length + simpleItems.length;
           return `<div class="player-dash-section inv-open-section">
             <div class="player-dash-section-title">
               ${icon('scroll-text')} Boedelinventaris
-              <button class="inv-open-btn" onclick="window._openInventaris(window._invItems||[], window._invSimpleItems||[], window._invCharName||'', window._invCurrency, window._invPartyCurrency, window._invCurrencyNames)">
+              <button class="inv-open-btn" onclick="window._openInventaris(window._invItems||[], window._invSimpleItems||[], window._invCharName||'', window._invCurrency, window._invPartyCurrency, window._invCurrencyNames, window._invPartyMembers)">
                 Bekijk inventaris
               </button>
             </div>
