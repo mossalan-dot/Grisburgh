@@ -15420,18 +15420,17 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 
 /* Notary pre-text */
 .inv-notary-pre {
-  font-family: 'Kalam', cursive;
-  font-size: 10.5px;
-  font-weight: 300;
-  color: #2a1604;
-  line-height: 1.72;
-  opacity: 0.72;
+  font-family: 'UnifrakturMaguntia', cursive;
+  font-size: 11px;
+  color: #1e0c00;
+  line-height: 1.68;
+  opacity: 0.80;
   padding: 9px 12px 4px 36px;
   flex-shrink: 0;
   position: relative;
   z-index: 1;
 }
-.inv-notary-pre strong { font-weight: 700; color: #1a0a00; opacity: 1; }
+.inv-notary-pre strong { color: #0e0400; }
 .inv-notary-pre em { font-style: italic; }
 
 .inv-doc-ornament {
@@ -15529,8 +15528,9 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 }
 .inv-row-name {
   flex: 1;
-  font-family: 'Kalam', cursive;
-  font-size: 12.5px;
+  font-family: 'Dancing Script', cursive;
+  font-size: 13.5px;
+  font-weight: 600;
   color: #1a0a00;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -15540,13 +15540,18 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   gap: 4px;
   min-width: 0;
 }
+.inv-list-row.active .inv-row-name {
+  text-decoration: underline;
+  text-decoration-color: rgba(140,85,15,0.50);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
 .inv-row-icon { font-size: 11px; flex-shrink: 0; }
 .inv-row-type {
   width: 68px;
-  font-family: 'Kalam', cursive;
-  font-size: 10.5px;
+  font-family: 'Dancing Script', cursive;
+  font-size: 11.5px;
   color: rgba(60,30,10,0.50);
-  font-style: italic;
   flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -15610,6 +15615,14 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   z-index: 1;
 }
 
+/* ── Paper-drop animation ── */
+@keyframes inv-paper-drop {
+  0%   { opacity: 0; transform: translateY(-14px) scale(0.96); }
+  55%  { opacity: 1; transform: translateY(4px) scale(1.005); }
+  80%  { transform: translateY(-1px) scale(1.0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* ── Entity detail page ── */
 .inv-det-page {
   display: flex;
@@ -15622,6 +15635,7 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   overflow-y: auto;
   position: relative;
   z-index: 1;
+  animation: inv-paper-drop 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 .inv-det-page::-webkit-scrollbar { width: 4px; }
 .inv-det-page::-webkit-scrollbar-thumb { background: rgba(100,60,20,0.18); border-radius: 2px; }
@@ -15750,6 +15764,7 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 .inv-note-wrap {
   position: relative;
   display: inline-block;
+  animation: inv-paper-drop 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 .inv-note-paper {
   width: 190px;
