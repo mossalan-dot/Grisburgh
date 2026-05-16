@@ -600,6 +600,15 @@ async function showLanding() {
 
     const renderPortrait = c => {
       const sub = [c.ras, c.klasse].filter(Boolean).join(' · ');
+      const mediaEl = c.portraitVideoId
+        ? `<video class="landing-portrait-video" src="/api/files/${esc(c.portraitVideoId)}"
+             autoplay loop muted playsinline
+             onerror="this.style.display='none';this.nextElementSibling.style.display='none';this.closest('.landing-portrait-ring').querySelector('.landing-portrait-fallback').style.display='flex'">
+           </video>
+           <img src="/api/files/${esc(c.id)}" class="landing-portrait-img landing-portrait-img--poster"
+             onerror="this.style.display='none'">`
+        : `<img src="/api/files/${esc(c.id)}" class="landing-portrait-img"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`;
       return `
         <div class="landing-portrait"
           data-char-id="${esc(c.id)}"
@@ -607,8 +616,7 @@ async function showLanding() {
           data-groep-naam="${esc(c.groepNaam || '')}"
           onclick="window.app._landingPortraitClick('${esc(c.id)}', this)">
           <div class="landing-portrait-ring">
-            <img src="/api/files/${esc(c.id)}" class="landing-portrait-img"
-              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            ${mediaEl}
             <div class="landing-portrait-fallback" style="display:none">${icon('user')}</div>
           </div>
           <div class="landing-portrait-name">${esc(c.name)}</div>
