@@ -6541,26 +6541,15 @@ details.player-dash-collapsible[open] > summary {
   font-size: 3.2rem;
   color: rgba(196,168,122,0.35);
 }
-/* Video-portret: vult de cirkel, speelt automatisch */
+/* Video-portret (in de zoom-cirkel, niet in het kleine ringetje) */
 .landing-portrait-video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
+  display: none;
   border-radius: 50%;
-  z-index: 1;
-}
-/* Poster-afbeelding achter de video (zichtbaar tot video laadt) */
-.landing-portrait-img--poster {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  z-index: 0;
 }
 .landing-portrait-name {
   font-family: 'Cinzel', serif;
