@@ -154,10 +154,14 @@ document.addEventListener('click', (e) => {
 });
 
 function switchSection(section) {
-  // Sluit spreukenboek als het open is — overlay is position:fixed en volgt niet de sectie
+  // Sluit overlays als ze open zijn — position:fixed volgt de sectie niet
   const _sbOv = document.getElementById('sb-overlay');
   if (_sbOv?.classList.contains('sb-open') && typeof window._closeSpellbook === 'function') {
     window._closeSpellbook();
+  }
+  const _invOv = document.getElementById('inv-overlay');
+  if (_invOv?.classList.contains('inv-open') && typeof window._closeInventaris === 'function') {
+    window._closeInventaris();
   }
   state.activeSection = section;
   location.hash = section;
@@ -2068,6 +2072,9 @@ function _ensureSpellbookOverlay() {
       </div>
     </div>`;
   document.body.appendChild(el);
+  // Prevent scroll-through to the page behind while the overlay is open
+  el.addEventListener('wheel',     e => { if (!e.target.closest('.sb-right-content, .sb-toc-list, .sb-manage-panel')) e.preventDefault(); }, { passive: false });
+  el.addEventListener('touchmove', e => { if (!e.target.closest('.sb-right-content, .sb-toc-list, .sb-manage-panel')) e.preventDefault(); }, { passive: false });
   el.addEventListener('click', e => { if (e.target === el) window._closeSpellbook(); });
   // Click on inline dice notation → flash-roll it
   el.addEventListener('click', e => {
@@ -2102,10 +2109,8 @@ window._openSpellbook = function(startIdx) {
   _sbState.tocOpen = false;
   _sbRender();
   const ov = document.getElementById('sb-overlay');
+  ov.style.display = '';          // undo any post-close display:none
   ov.classList.remove('sb-open');
-  // Lock scroll on both body (fallback) and the actual scrollable section
-  document.body.classList.add('sb-scroll-locked');
-  document.querySelector('.section.active')?.classList.add('sb-scroll-locked');
   // Cancel any previous open-animation rAF, then schedule a fresh one
   if (_sbOpenRafId) { cancelAnimationFrame(_sbOpenRafId); _sbOpenRafId = null; }
   _sbOpenRafId = requestAnimationFrame(() => { ov.classList.add('sb-open'); _sbOpenRafId = null; });
@@ -2118,10 +2123,13 @@ window._closeSpellbook = function() {
   // Cancel any pending open-animation rAF so it can't re-open after we close
   if (_sbOpenRafId) { cancelAnimationFrame(_sbOpenRafId); _sbOpenRafId = null; }
   const ov = document.getElementById('sb-overlay');
-  if (ov) ov.classList.remove('sb-open');
-  // Restore scroll on body and any locked section
-  document.body.classList.remove('sb-scroll-locked');
-  document.querySelectorAll('.section.sb-scroll-locked').forEach(el => el.classList.remove('sb-scroll-locked'));
+  if (ov) {
+    ov.classList.remove('sb-open');
+    // After the CSS fade-out transition (0.3s), hide completely so it can't
+    // interfere with scroll or pointer events on the page behind it.
+    const _ref = ov;
+    setTimeout(() => { if (!_ref.classList.contains('sb-open')) _ref.style.display = 'none'; }, 350);
+  }
   _sbState.tocOpen = false;
   _sbState.manageOpen = false;
   const mp = document.getElementById('sb-manage-panel');
@@ -3158,13 +3166,13 @@ function _invTallyMarks(n) {
 }
 
 const _INV_TYPE_EMOJI = {
-  Weapon:'⚔', Wapen:'⚔', Armor:'🛡', Uitrusting:'🛡', Shield:'🛡',
-  'Magic Item':'✨', Toveritem:'✨', 'Wondrous Item':'✨',
-  Potion:'🧪', Drank:'🧪', Scroll:'📜', Ring:'💍', Amulet:'📿',
-  Consumable:'🌿', Feature:'⭐', 'Musical Instrument':'🎵',
+  Weapon:icon('swords'), Wapen:icon('swords'), Armor:icon('shield'), Uitrusting:icon('shield'), Shield:icon('shield'),
+  'Magic Item':icon('sparkles'), Toveritem:icon('sparkles'), 'Wondrous Item':icon('sparkles'),
+  Potion:icon('flask-conical'), Drank:icon('flask-conical'), Scroll:icon('scroll-text'), Ring:icon('star'), Amulet:icon('sparkles'),
+  Consumable:icon('flask-conical'), Feature:icon('star'), 'Musical Instrument':icon('sparkles'),
 };
 function _invTypeEmoji(it) {
-  return _INV_TYPE_EMOJI[it.data?.itemType || it.subtype || ''] || '🎒';
+  return _INV_TYPE_EMOJI[it.data?.itemType || it.subtype || ''] || icon('package');
 }
 
 function _ensureInventarisOverlay() {
@@ -3216,6 +3224,8 @@ function _ensureInventarisOverlay() {
     </div>`;
   document.body.appendChild(el);
   el.addEventListener('click', e => { if (e.target === el) window._closeInventaris(); });
+  el.addEventListener('wheel',     e => { if (!e.target.closest('.inv-list, .inv-det-text, .inv-document')) e.preventDefault(); }, { passive: false });
+  el.addEventListener('touchmove', e => { if (!e.target.closest('.inv-list, .inv-det-text, .inv-document')) e.preventDefault(); }, { passive: false });
   document.addEventListener('keydown', e => {
     if (!document.getElementById('inv-overlay')?.classList.contains('inv-open')) return;
     if (e.key === 'Escape') window._closeInventaris();
@@ -3225,23 +3235,30 @@ function _ensureInventarisOverlay() {
 }
 
 window._openInventaris = function(items, simpleItems, charName) {
-  _invState.items = [
-    ...items.map(it => ({ _kind: 'entity', ...it })),
-    ...(simpleItems || []).map(si => ({ _kind: 'note', id: si.id, name: si.name, note: si.note || '' })),
-  ];
-  _invState.charName = charName || '—';
-  _invState.selectedIdx = _invState.items.length > 0 ? 0 : -1;
-  _ensureInventarisOverlay();
-  _invRender();
-  const ov = document.getElementById('inv-overlay');
-  document.body.style.overflow = 'hidden';
-  requestAnimationFrame(() => ov.classList.add('inv-open'));
+  try {
+    _invState.items = [
+      ...(items || []).map(it => ({ _kind: 'entity', ...it })),
+      ...(simpleItems || []).map(si => ({ _kind: 'note', id: si.id, name: si.name, note: si.note || '' })),
+    ];
+    _invState.charName = charName || '—';
+    _invState.selectedIdx = _invState.items.length > 0 ? 0 : -1;
+    _ensureInventarisOverlay();
+    _invRender();
+    const ov = document.getElementById('inv-overlay');
+    if (!ov) return;
+    ov.style.display = '';  // undo any display:none
+    ov.classList.remove('inv-open');
+    requestAnimationFrame(() => ov.classList.add('inv-open'));
+  } catch(e) { console.error('Inventaris open fout:', e); }
 };
 
 window._closeInventaris = function() {
   const ov = document.getElementById('inv-overlay');
-  if (ov) ov.classList.remove('inv-open');
-  document.body.style.overflow = '';
+  if (ov) {
+    ov.classList.remove('inv-open');
+    const _ref = ov;
+    setTimeout(() => { if (!_ref.classList.contains('inv-open')) _ref.style.display = 'none'; }, 350);
+  }
 };
 
 window._invSelectItem = function(idx) {
@@ -3276,7 +3293,7 @@ function _invRender() {
       list.innerHTML = _invState.items.map((it, i) => {
         const isNote = it._kind === 'note';
         const typeLabel = isNote ? 'Notitie' : (it.data?.itemType || it.subtype || 'Overig');
-        const emoji = isNote ? '📝' : _invTypeEmoji(it);
+        const emoji = isNote ? icon('message-circle') : _invTypeEmoji(it);
         const qty = it._qty || 1;
         const showTally = !isNote && it._stapelbaar && qty > 1;
         return `<div class="inv-list-row${i === _invState.selectedIdx ? ' active' : ''}" onclick="window._invSelectItem(${i})">
@@ -3685,7 +3702,7 @@ async function renderMijnKarakter(opts = {}) {
         <button class="player-subtab${_playerSubTab === 'personage' ? ' active' : ''}"
           data-tab="personage" onclick="window._setPlayerSubTab('personage')">${icon('swords')} Personage</button>
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
-          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">📜 Boedel</button>
+          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">${icon('scroll-text')} Boedel</button>
         <button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
           data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('book-open')} Spreukenboek</button>
         <button class="player-subtab${_playerSubTab === 'berichten' ? ' active' : ''}"
@@ -4272,7 +4289,7 @@ async function renderMijnKarakter(opts = {}) {
           const total = myItems.length + simpleItems.length;
           return `<div class="player-dash-section inv-open-section">
             <div class="player-dash-section-title">
-              📜 Boedelinventaris
+              ${icon('scroll-text')} Boedelinventaris
               <button class="inv-open-btn" onclick="window._openInventaris(window._invItems||[], window._invSimpleItems||[], window._invCharName||'')">
                 Bekijk inventaris
               </button>
@@ -4291,10 +4308,10 @@ async function renderMijnKarakter(opts = {}) {
               { key: 'Wapen',     label: 'Wapens',     icon: icon('sword') },
               { key: 'Uitrusting',label: 'Uitrusting',  icon: icon('shield') },
               { key: 'Toveritem', label: 'Toveritems',  icon: icon('sparkles') },
-              { key: 'Drank',     label: 'Drankjes',    icon: '🧪' },
-              { key: 'Scroll',    label: 'Scrolls',     icon: '📜' },
-              { key: 'Ring',      label: 'Ringen',      icon: '💍' },
-              { key: 'Amulet',    label: 'Amuletten',   icon: '📿' },
+              { key: 'Drank',     label: 'Drankjes',    icon: icon('flask-conical') },
+              { key: 'Scroll',    label: 'Scrolls',     icon: icon('scroll-text') },
+              { key: 'Ring',      label: 'Ringen',      icon: icon('star') },
+              { key: 'Amulet',    label: 'Amuletten',   icon: icon('sparkles') },
             ];
             // Sort items by category order, then overig
             const _catOrder = _ITEM_CATS.map(c => c.key);
