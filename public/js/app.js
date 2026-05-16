@@ -776,9 +776,9 @@ async function _landingStartZoom(charId, portraitEl, hasVideo = false) {
     <div class="landing-zoom-portrait">
       <img class="landing-zoom-img" src="/api/files/${esc(charId)}"
         onerror="this.style.display='none'">
-      ${hasVideo ? `<video id="landing-zoom-video" class="landing-zoom-video" autoplay muted playsinline>
+      <video id="landing-zoom-video" class="landing-zoom-video" autoplay muted playsinline>
         <source src="/api/files/${esc(charId)}_video" type="video/mp4">
-      </video>` : ''}
+      </video>
     </div>
     <svg class="landing-zoom-ring" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <defs>
