@@ -3146,7 +3146,8 @@ function _sbRender() {
 // BOEDELINVENTARIS — officiële eigendomsopgave voor spelers
 // ════════════════════════════════════════════════════════════
 
-const _invState = { items: [], selectedIdx: -1, charName: '' };
+const _invState = { items: [], selectedIdx: -1, charName: '', currency: { fl:0, kn:0, cl:0 }, partyCurrency: null, currencyNames: { fl:'Florinde', kn:'Knaker', cl:'Centeling' }, page: 0 };
+const INV_PAGE_SIZE = 8;
 
 function _invTallyMarks(n) {
   if (n <= 0) return '';
@@ -3175,6 +3176,16 @@ function _invTypeEmoji(it) {
   return _INV_TYPE_EMOJI[it.data?.itemType || it.subtype || ''] || icon('package');
 }
 
+function _invChargeMarks(charges, maxCharges) {
+  if (maxCharges <= 0) return '';
+  if (maxCharges > 8) return `<span class="inv-charges-row"><span class="inv-charge-frac">${charges}/${maxCharges}</span></span>`;
+  let s = '';
+  for (let i = 0; i < maxCharges; i++) {
+    s += i < charges ? '<span class="inv-charge-tick">|</span>' : '<span class="inv-charge-cross">✕</span>';
+  }
+  return `<span class="inv-charges-row">${s}</span>`;
+}
+
 function _ensureInventarisOverlay() {
   if (document.getElementById('inv-overlay')) return;
   const el = document.createElement('div');
@@ -3200,12 +3211,26 @@ function _ensureInventarisOverlay() {
           <div class="inv-list-head">
             <span class="inv-lh-name">Voorwerp</span>
             <span class="inv-lh-type">Soort</span>
-            <span class="inv-lh-qty">Getal</span>
+            <span class="inv-lh-qty">Aantal</span>
+            <span class="inv-lh-charges">Charges</span>
           </div>
           <div class="inv-list" id="inv-list"></div>
+          <div class="inv-add-note-area" id="inv-add-note-area">
+            <div id="inv-add-note-form" class="inv-add-note-form">
+              <input id="inv-add-note-input" class="inv-add-note-input" placeholder="Naam van notitie…" maxlength="80"
+                onkeydown="if(event.key==='Enter')window._invSaveNote()">
+              <textarea id="inv-add-note-body" class="inv-add-note-body" placeholder="Inhoud (optioneel)" maxlength="400"></textarea>
+              <div class="inv-add-note-btns">
+                <button class="inv-add-note-save" onclick="window._invSaveNote()">Voeg toe</button>
+                <button class="inv-add-note-cancel" onclick="window._invToggleAddNote(false)">Annuleer</button>
+              </div>
+            </div>
+            <button class="inv-add-note-trigger" id="inv-add-note-trigger" onclick="window._invToggleAddNote()">+ notitie</button>
+          </div>
+          <div id="inv-page-nav" class="inv-page-nav"></div>
+          <div class="inv-beurs" id="inv-beurs"></div>
           <div class="inv-doc-footer">
-            <span class="inv-footer-sig">Aldus opgemaakt en geteekend voor waerheid.</span>
-            <svg class="inv-footer-seal" viewBox="0 0 60 60" width="46" height="46">
+            <svg class="inv-footer-seal" viewBox="0 0 60 60" width="52" height="52">
               <circle cx="30" cy="30" r="27" fill="none" stroke="#8a6030" stroke-width="1.2" stroke-dasharray="3 2"/>
               <circle cx="30" cy="30" r="19" fill="rgba(180,130,60,0.10)" stroke="#8a6030" stroke-width="0.8"/>
               <text x="30" y="27" font-family="Cinzel,serif" font-size="8" fill="#8a6030" text-anchor="middle">C·C·C</text>
@@ -3215,7 +3240,7 @@ function _ensureInventarisOverlay() {
         </div>
       </div>
       <div class="inv-detail-panel" id="inv-detail-panel">
-        <div class="inv-detail-hint"><span>← Kies een voorwerp uit de lijst</span></div>
+        <div class="inv-detail-hint"><span>← Kies een voorwerp</span></div>
       </div>
       <div class="inv-portrait-hint">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="sb-portrait-hint-icon"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
@@ -3224,8 +3249,12 @@ function _ensureInventarisOverlay() {
     </div>`;
   document.body.appendChild(el);
   el.addEventListener('click', e => { if (e.target === el) window._closeInventaris(); });
-  el.addEventListener('wheel',     e => { if (!e.target.closest('.inv-list, .inv-det-text, .inv-document')) e.preventDefault(); }, { passive: false });
-  el.addEventListener('touchmove', e => { if (!e.target.closest('.inv-list, .inv-det-text, .inv-document')) e.preventDefault(); }, { passive: false });
+  el.addEventListener('click', e => {
+    const dice = e.target.closest('.sb-hl-dice');
+    if (dice) { e.stopPropagation(); window._sbFlashRoll?.(dice.textContent.trim(), ''); }
+  });
+  el.addEventListener('wheel',     e => { if (!e.target.closest('.inv-list, .inv-det-page, .inv-document')) e.preventDefault(); }, { passive: false });
+  el.addEventListener('touchmove', e => { if (!e.target.closest('.inv-list, .inv-det-page, .inv-document')) e.preventDefault(); }, { passive: false });
   document.addEventListener('keydown', e => {
     if (!document.getElementById('inv-overlay')?.classList.contains('inv-open')) return;
     if (e.key === 'Escape') window._closeInventaris();
@@ -3234,7 +3263,7 @@ function _ensureInventarisOverlay() {
   });
 }
 
-window._openInventaris = function(items, simpleItems, charName) {
+window._openInventaris = function(items, simpleItems, charName, currency, partyCurrency, currencyNames) {
   try {
     _invState.items = [
       ...(items || []).map(it => ({ _kind: 'entity', ...it })),
@@ -3242,11 +3271,15 @@ window._openInventaris = function(items, simpleItems, charName) {
     ];
     _invState.charName = charName || '—';
     _invState.selectedIdx = _invState.items.length > 0 ? 0 : -1;
+    _invState.page = 0;
+    _invState.currency = currency || { fl:0, kn:0, cl:0 };
+    _invState.partyCurrency = partyCurrency || null;
+    _invState.currencyNames = currencyNames || { fl:'Florinde', kn:'Knaker', cl:'Centeling' };
     _ensureInventarisOverlay();
     _invRender();
     const ov = document.getElementById('inv-overlay');
     if (!ov) return;
-    ov.style.display = '';  // undo any display:none
+    ov.style.display = '';
     ov.classList.remove('inv-open');
     requestAnimationFrame(() => ov.classList.add('inv-open'));
   } catch(e) { console.error('Inventaris open fout:', e); }
@@ -3262,9 +3295,16 @@ window._closeInventaris = function() {
 };
 
 window._invSelectItem = function(idx) {
+  const targetPage = Math.floor(idx / INV_PAGE_SIZE);
   _invState.selectedIdx = idx;
-  document.querySelectorAll('.inv-list-row').forEach((r, i) => r.classList.toggle('active', i === idx));
-  _invRenderDetail();
+  if (targetPage !== _invState.page) {
+    _invState.page = targetPage;
+    _invRender();
+  } else {
+    const offset = _invState.page * INV_PAGE_SIZE;
+    document.querySelectorAll('.inv-list-row').forEach((r, i) => r.classList.toggle('active', i + offset === idx));
+    _invRenderDetail();
+  }
 };
 
 window._invMove = function(delta) {
@@ -3272,7 +3312,49 @@ window._invMove = function(delta) {
   if (!n) return;
   const ni = ((_invState.selectedIdx + delta) % n + n) % n;
   window._invSelectItem(ni);
-  document.querySelectorAll('.inv-list-row')[ni]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  const rowIdx = ni - _invState.page * INV_PAGE_SIZE;
+  document.querySelectorAll('.inv-list-row')[rowIdx]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+};
+window._invPagePrev = function() {
+  if (_invState.page > 0) {
+    _invState.page--;
+    _invState.selectedIdx = _invState.page * INV_PAGE_SIZE;
+    _invRender();
+  }
+};
+window._invPageNext = function() {
+  const totalPages = Math.ceil(_invState.items.length / INV_PAGE_SIZE);
+  if (_invState.page < totalPages - 1) {
+    _invState.page++;
+    _invState.selectedIdx = _invState.page * INV_PAGE_SIZE;
+    _invRender();
+  }
+};
+window._invToggleAddNote = function(forceOpen) {
+  const form = document.getElementById('inv-add-note-form');
+  if (!form) return;
+  const open = forceOpen !== undefined ? forceOpen : !form.classList.contains('open');
+  form.classList.toggle('open', open);
+  if (open) document.getElementById('inv-add-note-input')?.focus();
+};
+window._invSaveNote = async function() {
+  const nameEl = document.getElementById('inv-add-note-input');
+  const bodyEl = document.getElementById('inv-add-note-body');
+  const name = nameEl?.value?.trim();
+  if (!name) { nameEl?.focus(); return; }
+  const note = bodyEl?.value?.trim() || '';
+  const charId = state.characterId;
+  if (!charId) return;
+  try {
+    const result = await api.addPlayerItem(charId, { name, note });
+    _invState.items.push({ _kind: 'note', id: result.id, name: result.name, note: result.note || '' });
+    _invState.selectedIdx = _invState.items.length - 1;
+    _invState.page = Math.floor((_invState.items.length - 1) / INV_PAGE_SIZE);
+    if (nameEl) nameEl.value = '';
+    if (bodyEl) bodyEl.value = '';
+    window._invToggleAddNote(false);
+    _invRender();
+  } catch(e) { console.error('Notitie toevoegen mislukt:', e); }
 };
 
 function _invRender() {
@@ -3285,25 +3367,70 @@ function _invRender() {
       verklaarde dat navolgende voorwerpen zijn wettige<br>
       en persoonlijke eigendomme zijn.`;
   }
+  const total = _invState.items.length;
+  const totalPages = Math.max(1, Math.ceil(total / INV_PAGE_SIZE));
+  _invState.page = Math.max(0, Math.min(_invState.page, totalPages - 1));
+  const offset = _invState.page * INV_PAGE_SIZE;
+  const pageItems = _invState.items.slice(offset, offset + INV_PAGE_SIZE);
+
   const list = document.getElementById('inv-list');
   if (list) {
-    if (!_invState.items.length) {
+    if (!total) {
       list.innerHTML = '<div class="inv-list-empty">Geen voorwerpen in de boedel.</div>';
     } else {
-      list.innerHTML = _invState.items.map((it, i) => {
+      list.innerHTML = pageItems.map((it, pi) => {
+        const i = offset + pi;
         const isNote = it._kind === 'note';
         const typeLabel = isNote ? 'Notitie' : (it.data?.itemType || it.subtype || 'Overig');
-        const emoji = isNote ? icon('message-circle') : _invTypeEmoji(it);
+        const typeIcon = isNote ? icon('message-circle') : _invTypeEmoji(it);
         const qty = it._qty || 1;
         const showTally = !isNote && it._stapelbaar && qty > 1;
+        const charges = !isNote && it._maxCharges > 0 ? _invChargeMarks(it._charges, it._maxCharges) : '';
         return `<div class="inv-list-row${i === _invState.selectedIdx ? ' active' : ''}" onclick="window._invSelectItem(${i})">
-          <span class="inv-row-name"><span class="inv-row-icon" aria-hidden="true">${emoji}</span>${esc(it.name)}</span>
+          <span class="inv-row-name"><span class="inv-row-icon" aria-hidden="true">${typeIcon}</span>${esc(it.name)}</span>
           <span class="inv-row-type">${esc(typeLabel)}</span>
           <span class="inv-row-qty">${showTally ? _invTallyMarks(qty) : ''}</span>
+          <span class="inv-row-charges">${charges}</span>
         </div>`;
       }).join('');
     }
   }
+
+  // Pagination nav
+  const nav = document.getElementById('inv-page-nav');
+  if (nav) {
+    nav.innerHTML = totalPages <= 1 ? '' : `
+      <button class="inv-page-btn" onclick="window._invPagePrev()" ${_invState.page <= 0 ? 'disabled' : ''}>←</button>
+      <span class="inv-page-label">Folio ${_invState.page + 1} van ${totalPages}</span>
+      <button class="inv-page-btn" onclick="window._invPageNext()" ${_invState.page >= totalPages - 1 ? 'disabled' : ''}>→</button>`;
+  }
+
+  // Add-note trigger visibility (only for logged-in players)
+  const addTrigger = document.getElementById('inv-add-note-trigger');
+  if (addTrigger) addTrigger.style.display = state.characterId ? '' : 'none';
+
+  // Beurs
+  const beurs = document.getElementById('inv-beurs');
+  if (beurs) {
+    const cn = _invState.currencyNames;
+    const cur = _invState.currency;
+    const pc = _invState.partyCurrency;
+    const anyVal = (cur.fl || 0) + (cur.kn || 0) + (cur.cl || 0);
+    beurs.innerHTML = `
+      <div class="inv-beurs-row">
+        <span class="inv-beurs-coin inv-beurs-gold"></span>
+        <span class="inv-beurs-amount">${cur.fl ?? 0}</span>
+        <span class="inv-beurs-name">${esc(cn.fl || 'Florinde')}</span>
+        <span class="inv-beurs-coin inv-beurs-silver"></span>
+        <span class="inv-beurs-amount">${cur.kn ?? 0}</span>
+        <span class="inv-beurs-name">${esc(cn.kn || 'Knaker')}</span>
+        <span class="inv-beurs-coin inv-beurs-copper"></span>
+        <span class="inv-beurs-amount">${cur.cl ?? 0}</span>
+        <span class="inv-beurs-name">${esc(cn.cl || 'Centeling')}</span>
+      </div>
+      ${pc?.enabled ? `<div class="inv-beurs-shared">Deelt zijn aardse vermogen met de groep</div>` : ''}`;
+  }
+
   _invRenderDetail();
 }
 
@@ -3348,7 +3475,7 @@ function _invRenderEntityDetail(panel, it) {
       <div class="inv-det-text">
         <div class="inv-det-name">${esc(it.name)}</div>
         ${rarityLabel ? `<div class="inv-det-rarity">${esc(rarityLabel)}</div>` : ''}
-        ${desc ? `<div class="inv-det-desc">${mdToHtml(desc)}</div>` : ''}
+        ${desc ? `<div class="inv-det-desc">${_spellMd(desc)}</div>` : ''}
         ${flavour ? `<blockquote class="inv-det-flavour">${esc(flavour)}</blockquote>` : ''}
       </div>
     </div>`;
@@ -4283,14 +4410,17 @@ async function renderMijnKarakter(opts = {}) {
 
         <!-- Boedelinventaris open -->
         ${(() => {
-          window._invItems      = myItems;
-          window._invSimpleItems = simpleItems;
-          window._invCharName   = entity?.name || state.playerName || '—';
+          window._invItems         = myItems;
+          window._invSimpleItems   = simpleItems;
+          window._invCharName      = entity?.name || state.playerName || '—';
+          window._invCurrency      = currency;
+          window._invPartyCurrency = partyCurrency;
+          window._invCurrencyNames = _cNames;
           const total = myItems.length + simpleItems.length;
           return `<div class="player-dash-section inv-open-section">
             <div class="player-dash-section-title">
               ${icon('scroll-text')} Boedelinventaris
-              <button class="inv-open-btn" onclick="window._openInventaris(window._invItems||[], window._invSimpleItems||[], window._invCharName||'')">
+              <button class="inv-open-btn" onclick="window._openInventaris(window._invItems||[], window._invSimpleItems||[], window._invCharName||'', window._invCurrency, window._invPartyCurrency, window._invCurrencyNames)">
                 Bekijk inventaris
               </button>
             </div>
