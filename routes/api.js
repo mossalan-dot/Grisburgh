@@ -1760,7 +1760,13 @@ router.get('/party', attachRole, (req, res) => {
   const myGroup = me?.data?.groep;
   const party   = spelers.filter(e => {
     if (e.id === myId) return false;
-    if (myGroup && e.data?.groep && e.data.groep !== myGroup) return false;
+    if (myGroup) {
+      // Speler zit in een groep — toon alleen groepsgenoten
+      if (e.data?.groep !== myGroup) return false;
+    } else {
+      // Speler heeft geen groep — toon alleen andere groepsloos spelers
+      if (e.data?.groep) return false;
+    }
     return true;
   });
   // Geef alleen veilige velden terug (geen geheimen), inclusief HP
