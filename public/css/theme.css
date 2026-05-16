@@ -13802,6 +13802,24 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 }
 .sb-ctrl-close:hover { opacity: 1; }
 
+/* ── Concentration control button (overlay bar) ── */
+.sb-ctrl-conc {
+  background: rgba(80,50,5,0.28);
+  border-color: rgba(210,150,10,0.35);
+  color: rgba(255,210,80,0.80);
+}
+.sb-ctrl-conc:hover { background: rgba(80,50,5,0.45) !important; }
+.sb-ctrl-conc--active {
+  background: rgba(130,80,5,0.45) !important;
+  border-color: rgba(255,200,30,0.65) !important;
+  color: rgba(255,230,100,0.95) !important;
+  animation: sb-conc-btn-pulse 2s ease-in-out infinite;
+}
+@keyframes sb-conc-btn-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(220,160,20,0); }
+  50%      { box-shadow: 0 0 0 5px rgba(220,160,20,0.30); }
+}
+
 /* ── Book container ── */
 .sb-book {
   position: relative;
@@ -14872,48 +14890,68 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
    SPELLBOOK FEATURE ADDITIONS
    ══════════════════════════════════════════════════════ */
 
-/* ── Quill cursor op notitievelden ── */
-.sb-manage-input--quill {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'><path d='M18 2 C20 2 21 5 17 8 L6 19 L2 20 L3 16 L14 5 C11 1 16 0 18 2Z' stroke='%23553311' stroke-width='0.8' fill='%23f8f0d8'/><line x1='6' y1='16' x2='14' y2='8' stroke='%23553311' stroke-width='0.5'/></svg>") 3 19, text;
-}
+/* ── Scroll lock — prevents body scroll while spellbook is open ── */
+body.sb-scroll-locked { overflow: hidden; }
+/* Lock the actual scrollable section — body doesn't scroll, sections do */
+.section.sb-scroll-locked { overflow: hidden !important; }
 
-/* ── Slot level stepper ── */
-.sb-slot-stepper {
+/* ── Quill cursor — removed (no special cursor) ── */
+.sb-manage-input--quill { /* intentionally empty — kept for potential future use */ }
+
+/* ── Left-page slot level selector (−/+ arrows in sb-slot-zone) ── */
+.sb-slot-level-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 4px 0 8px;
-  font-family: 'Cinzel', serif;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 5px;
 }
-.sb-slot-label {
+.sb-slot-level-label {
+  font-family: 'Kalam', cursive;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.72);
+  min-width: 58px;
+  text-align: center;
+}
+.sb-slot-arrow {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.28);
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.72);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, border-color 0.12s;
+  padding: 0;
+}
+.sb-slot-arrow:hover:not(:disabled) { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.50); }
+.sb-slot-arrow:disabled { opacity: 0.25; cursor: default; }
+
+/* ── Right-page "At Higher Levels" checkbox toggle ── */
+.sb-higher-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 2px 0 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.sb-higher-toggle input[type="checkbox"] {
+  width: 13px; height: 13px;
+  accent-color: #8a6030;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sb-higher-toggle span {
+  font-family: 'Cinzel', serif;
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #8a6030;
-  flex: 1;
-}
-.sb-slot-btn {
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  border: 1px solid rgba(100,60,10,0.35);
-  background: rgba(100,60,10,0.08);
-  color: #5a3a10;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.12s;
-  padding: 0;
-}
-.sb-slot-btn:hover { background: rgba(100,60,10,0.20); }
-.sb-slot-val {
-  font-family: 'Kalam', cursive;
-  font-size: 18px;
-  font-weight: 700;
-  color: #3a1e08;
-  min-width: 20px;
-  text-align: center;
 }
 .sb-slot-higher {
   font-family: 'Kalam', cursive;
@@ -14997,63 +15035,75 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 .sb-page-right[data-aged="1"] { filter: drop-shadow(3px 2px 5px rgba(0,0,0,0.38)) sepia(0.12); }
 .sb-page-right[data-aged="0"] { filter: drop-shadow(3px 2px 5px rgba(0,0,0,0.38)); }
 
-/* ── Marginalia icons on right margin ── */
+/* ── Marginalia: handwritten draggable notes on right page ── */
 .sb-marginalia {
   position: absolute;
-  right: 5px;
-  top: 55px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+  inset: 0;
+  pointer-events: none;  /* container transparent; children capture events */
   z-index: 7;
 }
-.sb-marginal-icon {
-  position: relative;
-  width: 26px; height: 26px;
-  background: rgba(240,225,185,0.88);
-  border: 1px solid rgba(100,60,10,0.28);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  cursor: default;
-  box-shadow: 0 1px 3px rgba(60,30,5,0.18);
-  color: #4a2e08;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-.sb-marginal-icon:hover,
-.sb-marginal-icon:focus {
-  transform: scale(1.2) translateX(-4px);
-  box-shadow: 0 2px 8px rgba(60,30,5,0.28);
-  outline: none;
-  z-index: 2;
-}
-.sb-marginal-icon svg { width: 14px; height: 14px; }
-/* Tooltip */
-.sb-marginal-tip {
-  display: none;
+.sb-marginal-note {
   position: absolute;
-  right: 32px; top: 50%;
-  transform: translateY(-50%);
-  background: linear-gradient(135deg, #fdf5d8, #f2e8c2);
-  border: 1px solid rgba(100,60,10,0.28);
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-family: 'Kalam', cursive;
-  font-size: 11px;
-  color: #3a1e08;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(60,30,5,0.20);
-  pointer-events: none;
+  pointer-events: all;
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 52px;
+  /* Torn paper look */
+  background: linear-gradient(145deg, #fdf5d4, #f5e8b8);
+  border: 1px solid rgba(100,60,10,0.22);
+  border-radius: 2px 3px 3px 2px;
+  padding: 4px 5px 5px;
+  box-shadow:
+    1px 2px 4px rgba(60,30,5,0.22),
+    inset 0 1px 0 rgba(255,255,255,0.55);
+  transition: box-shadow 0.15s, transform 0.15s;
+  user-select: none;
+  touch-action: none;
+  /* torn bottom edge pseudo-element */
 }
-.sb-marginal-tip::after {
+.sb-marginal-note::after {
   content: '';
   position: absolute;
-  right: -6px; top: 50%;
-  transform: translateY(-50%);
-  border: 5px solid transparent;
-  border-left-color: rgba(100,60,10,0.28);
+  bottom: -2px; left: 0; right: 0; height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(100,60,10,0.12) 0px, rgba(100,60,10,0.12) 2px,
+    transparent 2px, transparent 4px
+  );
 }
-.sb-marginal-icon:hover .sb-marginal-tip,
-.sb-marginal-icon:focus .sb-marginal-tip { display: block; }
+.sb-marginal-note:hover {
+  box-shadow:
+    2px 4px 8px rgba(60,30,5,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.55);
+  z-index: 10;
+}
+.sb-marginal-note.dragging {
+  cursor: grabbing;
+  box-shadow: 4px 6px 16px rgba(60,30,5,0.45);
+  z-index: 20;
+}
+.sb-marginal-note-icon {
+  width: 14px; height: 14px;
+  color: #5a3010;
+  flex-shrink: 0;
+}
+.sb-marginal-note-text {
+  font-family: 'Kalam', cursive;
+  font-size: 9px;
+  color: #3a1e08;
+  text-align: center;
+  line-height: 1.25;
+  word-break: break-word;
+  hyphens: auto;
+  max-width: 44px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
 
 /* ── Table row dice highlight ── */
 .sb-table-row-lit td {
@@ -15150,8 +15200,8 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 }
 .sb-manage-add-btn:hover { background: rgba(210,150,10,0.30); }
 
-/* Add right-side padding to sb-right-content to avoid overlap with marginalia */
-.sb-right-content { padding-right: 34px !important; }
+/* sb-right-content: normal padding (marginalia are absolutely positioned, not in flow) */
+.sb-right-content { }
 
 /* ── Incantatie placeholder (V-component maar geen incantatie ingesteld) ── */
 .sb-note--placeholder {
@@ -15188,6 +15238,9 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   padding: 18px 20px 12px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .sb-manage-title {
   font-family: 'Cinzel', Georgia, serif;
@@ -15200,19 +15253,19 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   display: flex; flex-direction: column; gap: 18px;
 }
 .sb-manage-close-btn {
-  width: 100%;
-  padding: 13px 16px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.13);
-  border-radius: 8px;
-  color: rgba(230,185,100,0.85);
-  font-family: 'Cinzel', Georgia, serif;
-  font-size: 13px;
+  width: 28px; height: 28px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  color: rgba(230,185,100,0.75);
+  font-size: 15px;
+  line-height: 1;
   cursor: pointer;
-  transition: background 0.15s;
-  letter-spacing: 0.04em;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
 }
-.sb-manage-close-btn:hover { background: rgba(255,255,255,0.10); }
+.sb-manage-close-btn:hover { background: rgba(255,255,255,0.14); color: rgba(230,185,100,1); }
 .sb-manage-section { display: flex; flex-direction: column; gap: 7px; }
 .sb-manage-label {
   font-family: 'Cinzel', Georgia, serif;

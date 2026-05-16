@@ -43,17 +43,18 @@ app.use((req, res, next) => {
 });
 
 // Static files
-// — HTML nooit cachen (bevat versie-querystrings die cache busten)
-// — JS/CSS wél cachen (1 uur): versie-querystring (?v=xx) zorgt voor automatische invalidatie
+// — HTML/JS/CSS nooit cachen: etag+lastModified UIT zodat server nooit 304 teruggeeft.
+//   De ?v=xx querystring in index.html zorgt voor cache-busting van JS/CSS.
+// — Overige bestanden (afbeeldingen e.d.) wél cachen (24 uur)
 app.use(express.static(path.join(__dirname, 'public'), {
-  etag: true,
-  lastModified: true,
+  etag: false,
+  lastModified: false,
   setHeaders(res, filePath) {
     const ext = path.extname(filePath).toLowerCase();
-    if (ext === '.html') {
-      res.setHeader('Cache-Control', 'no-store');
-    } else if (ext === '.js' || ext === '.css') {
-      res.setHeader('Cache-Control', 'no-store');
+    if (ext === '.html' || ext === '.js' || ext === '.css') {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
     } else {
       res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 uur voor afbeeldingen e.d.
     }
@@ -64,8 +65,11 @@ app.use(express.static(path.join(__dirname, 'public'), {
 app.use('/api/auth', authRouter);
 app.use('/api', apiRoutes);
 
-// SPA fallback
+// SPA fallback — nooit cachen, geen ETag
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
