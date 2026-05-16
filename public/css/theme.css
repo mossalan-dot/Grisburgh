@@ -15403,21 +15403,25 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   display: flex;
   flex-direction: column;
   background:
+    /* Fine hair-line grain — more contrast */
     repeating-linear-gradient(
-      88deg,
-      transparent 0, transparent 1px,
-      rgba(0,0,0,0.022) 1px, rgba(0,0,0,0.022) 2px,
-      transparent 2px, transparent 5px,
-      rgba(255,255,255,0.015) 5px, rgba(255,255,255,0.015) 6px,
-      transparent 6px, transparent 13px,
-      rgba(0,0,0,0.018) 13px, rgba(0,0,0,0.018) 14px
+      89deg,
+      transparent 0, transparent 3px,
+      rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px,
+      transparent 4px, transparent 8px,
+      rgba(0,0,0,0.05) 8px, rgba(0,0,0,0.05) 9px,
+      transparent 9px, transparent 14px,
+      rgba(255,255,255,0.07) 14px, rgba(255,255,255,0.07) 15px,
+      transparent 15px, transparent 21px,
+      rgba(0,0,0,0.06) 21px, rgba(0,0,0,0.06) 22px
     ),
+    /* Growth rings */
     repeating-linear-gradient(
-      91deg,
-      transparent 0, transparent 22px,
-      rgba(0,0,0,0.028) 22px, rgba(0,0,0,0.028) 24px,
-      transparent 24px, transparent 50px,
-      rgba(255,255,255,0.018) 50px, rgba(255,255,255,0.018) 51px
+      92deg,
+      transparent 0, transparent 24px,
+      rgba(0,0,0,0.09) 24px, rgba(0,0,0,0.09) 27px,
+      transparent 27px, transparent 52px,
+      rgba(255,255,255,0.06) 52px, rgba(255,255,255,0.06) 54px
     ),
     linear-gradient(175deg, #8b5a2b 0%, #6b3d18 22%, #7a4e28 44%, #5a3412 64%, #6a4020 84%, #4a2810 100%);
   overflow: hidden;
@@ -15469,21 +15473,8 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 }
 .inv-document::before { display: none; }
 
-/* Notary pre-text — decoratieve achtergrondillustratie */
-.inv-notary-pre {
-  position: absolute;
-  top: 8px;
-  left: 0;
-  right: 0;
-  padding: 0 12px 0 14px;
-  font-family: 'UnifrakturMaguntia', cursive;
-  font-size: 11px;
-  color: #1e0c00;
-  line-height: 1.68;
-  opacity: 0.09;
-  pointer-events: none;
-  z-index: 0;
-}
+/* Notary pre-text — verborgen */
+.inv-notary-pre { display: none; }
 .inv-notary-pre strong { color: #0e0400; }
 .inv-notary-pre em { font-style: italic; }
 
@@ -15582,14 +15573,7 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 }
 .inv-list-row:hover  { background: rgba(180,140,60,0.10); }
 .inv-list-row.active { background: rgba(180,140,60,0.20); }
-.inv-list-row.active::before {
-  content: '▸';
-  position: absolute;
-  left: 16px;
-  font-size: 10px;
-  color: rgba(100,60,10,0.65);
-  line-height: 1;
-}
+.inv-list-row.active::before { content: none; }
 .inv-row-name {
   flex: 1;
   font-family: 'Dancing Script', cursive;
@@ -15646,32 +15630,32 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 .inv-charge-cross { font-size: 8px; color: rgba(140,50,20,0.42); font-family: 'IM Fell English', serif; line-height: 1; text-decoration: line-through; }
 .inv-charge-frac  { font-family: 'Kalam', cursive; font-size: 9px; color: rgba(60,30,10,0.55); }
 
-/* Footer with seal only */
-.inv-doc-footer {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 0 6px;
-  border-top: 1px solid rgba(150,120,70,0.22);
-  position: relative;
-  z-index: 1;
-}
-.inv-footer-sig { display: none; }
-.inv-footer-seal { flex-shrink: 0; opacity: 0.72; }
+/* ── Attunement badge ── */
+.inv-att-badge { display: inline-flex; align-items: center; margin-left: 3px; opacity: 0.28; flex-shrink: 0; vertical-align: middle; }
+.inv-att-badge .icon { width: 9px; height: 9px; }
+.inv-att-badge--active { opacity: 0.85; color: #a07020; }
 
-/* ── Right: detail panel ── */
+/* Footer — verborgen (geen stempel) */
+.inv-doc-footer { display: none; }
+.inv-footer-sig  { display: none; }
+.inv-footer-seal { display: none; }
+
+/* ── Right: detail panel — dark bg voor losse velletjes ── */
 .inv-detail-panel {
   flex: 1;
-  background:
-    repeating-linear-gradient(45deg, transparent 0, transparent 20px, rgba(0,0,0,0.010) 20px, rgba(0,0,0,0.010) 21px),
-    linear-gradient(160deg, #ece0be 0%, #e5d5a8 100%);
+  background: linear-gradient(160deg, #2a1e0e 0%, #1a1208 100%);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  justify-content: flex-start;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 28px 18px;
+  box-sizing: border-box;
   position: relative;
 }
+.inv-detail-panel::-webkit-scrollbar { width: 4px; }
+.inv-detail-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
 
 .inv-detail-hint {
   font-family: 'Kalam', cursive;
@@ -15691,28 +15675,27 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ── Entity detail page ── */
+/* ── Entity detail page — los velletje ── */
 .inv-det-page {
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 18px;
-  padding: 20px 18px;
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
+  flex-direction: column;
+  width: min(290px, 90%);
+  height: auto;
   box-sizing: border-box;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.60),
+    0 2px 8px rgba(0,0,0,0.30),
+    inset 0 0 0 1px rgba(255,255,255,0.06);
+  overflow: hidden;
   position: relative;
   z-index: 1;
   animation: inv-paper-drop 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
-.inv-det-page::-webkit-scrollbar { width: 4px; }
-.inv-det-page::-webkit-scrollbar-thumb { background: rgba(100,60,20,0.18); border-radius: 2px; }
 
-/* Image zone */
+/* Image zone — basis */
 .inv-img-zone { position: relative; flex-shrink: 0; }
 
-/* Photo-print frame, slightly rotated */
+/* Photo-print frame (klassiek) */
 .inv-img-frame {
   position: relative;
   display: inline-block;
@@ -15727,7 +15710,34 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   object-fit: cover;
 }
 
-/* Fallback (no image) shown inside same frame */
+/* Sheet image zone — vol breedte bovenaan het velletje */
+.inv-img-zone--sheet {
+  width: 100%;
+  height: 175px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #ddd4b8;
+}
+.inv-img-zone--sheet .inv-det-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.inv-img-zone--sheet .inv-img-fallback {
+  width: 100%;
+  height: 100%;
+  background: #ede4cc;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.inv-img-zone--sheet.inv-no-img .inv-det-img      { display: none; }
+.inv-img-zone--sheet.inv-no-img .inv-img-fallback { display: flex; }
+
+/* Fallback (klassiek) */
 .inv-img-fallback {
   display: none;
   flex-direction: column;
@@ -15787,6 +15797,7 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 14px 16px 20px;
 }
 .inv-det-name {
   font-family: 'Cinzel', serif;
@@ -15916,10 +15927,10 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 }
 .inv-beurs-coin {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.3);
   flex-shrink: 0;
 }
 .inv-beurs-gold   { background: #c9a227; }
