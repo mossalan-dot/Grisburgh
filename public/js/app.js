@@ -154,6 +154,11 @@ document.addEventListener('click', (e) => {
 });
 
 function switchSection(section) {
+  // Sluit spreukenboek als het open is — overlay is position:fixed en volgt niet de sectie
+  const _sbOv = document.getElementById('sb-overlay');
+  if (_sbOv?.classList.contains('sb-open') && typeof window._closeSpellbook === 'function') {
+    window._closeSpellbook();
+  }
   state.activeSection = section;
   location.hash = section;
   closeArchiefMenu();
@@ -1835,6 +1840,7 @@ const _sbState = {
   castSlotLevel: null, // ephemeral: chosen cast level for current spell
 };
 const _sbDescCache = new Map(); // spell.index → fetched desc string
+let _sbOpenRafId = null;        // rAF token for the open animation — cancelled on close
 
 // ── Subtle sound effects (Web Audio — no files needed) ──
 const _sbAudio = (() => {
@@ -1947,8 +1953,11 @@ function _ensureSpellbookOverlay() {
       <button class="sb-ctrl-btn" id="sb-manage-btn" onclick="window._sbToggleManage()" title="Beheer">
         ${icon('pencil')} Beheer
       </button>
-      <button class="sb-ctrl-btn sb-ctrl-close" onclick="window._sbCloseAndReturn()" title="Sluit boek">
-        ✕ Sluit
+      <button class="sb-ctrl-btn sb-ctrl-conc" id="sb-conc-ctrl-btn" onclick="window._sbToggleConcentration()" title="Concentratie" style="display:none">
+        🕯 Concentratie
+      </button>
+      <button class="sb-ctrl-btn sb-ctrl-close" onclick="window._sbCloseAndReturn()" title="Sluit spreukenboek">
+        ✕ Sluit spreukenboek
       </button>
     </div>
     <div class="sb-book" id="sb-book">
@@ -2024,6 +2033,7 @@ function _ensureSpellbookOverlay() {
       <div class="sb-manage-panel" id="sb-manage-panel">
         <div class="sb-manage-header">
           <div class="sb-manage-title">Beheer</div>
+          <button class="sb-manage-close-btn" onclick="window._sbToggleManage()" title="Sluit beheer">✕</button>
         </div>
         <div class="sb-manage-body">
           <div class="sb-manage-section">
@@ -2077,24 +2087,41 @@ function _ensureSpellbookOverlay() {
   });
 }
 
-window._openSpellbook = function(startIdx = 0) {
+window._openSpellbook = function(startIdx) {
   _ensureSpellbookOverlay();
+  // Restore last open spell from localStorage if no explicit index given
+  if (startIdx === undefined && _sbState.charId) {
+    const saved = localStorage.getItem(`_sbLastSpell_${_sbState.charId}`);
+    if (saved) {
+      const found = _sbState.spells.findIndex(s => s.index === saved);
+      if (found >= 0) startIdx = found;
+    }
+  }
+  if (startIdx === undefined) startIdx = 0;
   _sbState.idx    = Math.max(0, Math.min(startIdx, _sbState.spells.length - 1));
   _sbState.tocOpen = false;
   _sbRender();
   const ov = document.getElementById('sb-overlay');
   ov.classList.remove('sb-open');
-  document.body.style.overflow = 'hidden';  // prevent page scroll while book is open
-  requestAnimationFrame(() => ov.classList.add('sb-open'));
+  // Lock scroll on both body (fallback) and the actual scrollable section
+  document.body.classList.add('sb-scroll-locked');
+  document.querySelector('.section.active')?.classList.add('sb-scroll-locked');
+  // Cancel any previous open-animation rAF, then schedule a fresh one
+  if (_sbOpenRafId) { cancelAnimationFrame(_sbOpenRafId); _sbOpenRafId = null; }
+  _sbOpenRafId = requestAnimationFrame(() => { ov.classList.add('sb-open'); _sbOpenRafId = null; });
   // Close TOC if it was open
   const toc = document.getElementById('sb-toc-panel');
   if (toc) toc.classList.remove('sb-toc-open');
 };
 
 window._closeSpellbook = function() {
+  // Cancel any pending open-animation rAF so it can't re-open after we close
+  if (_sbOpenRafId) { cancelAnimationFrame(_sbOpenRafId); _sbOpenRafId = null; }
   const ov = document.getElementById('sb-overlay');
   if (ov) ov.classList.remove('sb-open');
-  document.body.style.overflow = '';  // restore page scroll
+  // Restore scroll on body and any locked section
+  document.body.classList.remove('sb-scroll-locked');
+  document.querySelectorAll('.section.sb-scroll-locked').forEach(el => el.classList.remove('sb-scroll-locked'));
   _sbState.tocOpen = false;
   _sbState.manageOpen = false;
   const mp = document.getElementById('sb-manage-panel');
@@ -2158,14 +2185,12 @@ window._sbPrev = function() {
   const n = _sbState.spells.length;
   if (!n) return;
   _sbState.castSlotLevel = null;
-  _sbAudio.page();
   window._sbGoTo((_sbState.idx - 1 + n) % n);
 };
 window._sbNext = function() {
   const n = _sbState.spells.length;
   if (!n) return;
   _sbState.castSlotLevel = null;
-  _sbAudio.page();
   window._sbGoTo((_sbState.idx + 1) % n);
 };
 
@@ -2410,18 +2435,134 @@ window._sbSlotChange = function(delta) {
   const next = Math.max(spell.level, Math.min(9, cur + delta));
   if (next === cur) return;
   _sbState.castSlotLevel = next;
-  const valEl    = document.getElementById('sb-slot-val');
-  const higherEl = document.getElementById('sb-slot-higher');
-  if (valEl) valEl.textContent = next;
-  if (higherEl) {
-    if (next > spell.level && spell.higher_level) {
-      higherEl.innerHTML = `<strong>Op slotniveau ${next}:</strong> ${_spellMd(spell.higher_level)}`;
-      higherEl.style.display = '';
-    } else {
-      higherEl.style.display = 'none';
-    }
+  // Refresh left-page slot zone with new level
+  _sbRenderSlots();
+  // If the right-page higher-level checkbox is checked, update that text too
+  const checkEl = document.getElementById('sb-higher-check');
+  if (checkEl?.checked) window._sbToggleHigher(true);
+};
+
+// Toggle visibility of the "at higher level" text block on the right page.
+// Called by the checkbox; also called when the cast level changes while visible.
+window._sbToggleHigher = function(checked) {
+  const el = document.getElementById('sb-slot-higher');
+  if (!el) return;
+  if (checked) {
+    const spell = _sbState.spells[_sbState.idx];
+    if (!spell?.higher_level) { el.style.display = 'none'; return; }
+    const lvl = _sbState.castSlotLevel;
+    el.innerHTML = (lvl && lvl > spell.level)
+      ? `<strong>Op slotniveau ${lvl}:</strong> ${_spellMd(spell.higher_level)}`
+      : _spellMd(spell.higher_level);
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
   }
 };
+
+// ── Marginalia: render handwritten draggable notes on the right page ──
+function _sbRenderMarginalia() {
+  const margEl = document.getElementById('sb-marginalia');
+  if (!margEl) return;
+  const spell = _sbState.spells[_sbState.idx];
+  const items = spell?.marginalia || [];
+
+  // Default positions spread down the page (% of page height, right-side strip)
+  margEl.innerHTML = items.map((m, i) => {
+    const x   = m.x != null ? m.x : 85;                  // % from left of page
+    const y   = m.y != null ? m.y : 12 + i * 12;         // % from top of page
+    const rot = ((i * 37 + 7) % 13) - 6;                 // deterministic slight rotation
+    const paths = _SB_ICONS[m.icon] || '';
+    const lbl = esc(m.label || _SB_ICON_LABELS[m.icon] || m.icon);
+    return `<div class="sb-marginal-note" data-idx="${i}"
+        style="left:${x}%;top:${y}%;transform:rotate(${rot}deg)"
+        title="${lbl}">
+      <svg class="sb-marginal-note-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+        stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>
+      <span class="sb-marginal-note-text">${lbl}</span>
+    </div>`;
+  }).join('');
+
+  // Attach drag handlers to each note
+  margEl.querySelectorAll('.sb-marginal-note').forEach(note => {
+    note.addEventListener('pointerdown', _sbMarginalDragStart, { passive: false });
+  });
+}
+
+// Drag state for marginalia
+const _sbDrag = { active: false, el: null, idx: -1, ox: 0, oy: 0 };
+
+function _sbMarginalDragStart(e) {
+  if (e.button !== 0 && e.pointerType !== 'touch') return;
+  e.preventDefault();
+  const note = e.currentTarget;
+  const page = document.getElementById('sb-page-right');
+  if (!page) return;
+  const idx = parseInt(note.dataset.idx);
+  const pageRect = page.getBoundingClientRect();
+  const noteRect = note.getBoundingClientRect();
+
+  // Offset of pointer within note (normalised to page width/height)
+  _sbDrag.active = true;
+  _sbDrag.el     = note;
+  _sbDrag.idx    = idx;
+  _sbDrag.pageRect = pageRect;
+  _sbDrag.ox = (e.clientX - noteRect.left) / pageRect.width * 100;
+  _sbDrag.oy = (e.clientY - noteRect.top)  / pageRect.height * 100;
+
+  note.classList.add('dragging');
+  note.setPointerCapture(e.pointerId);
+
+  note.addEventListener('pointermove', _sbMarginalDragMove, { passive: false });
+  note.addEventListener('pointerup',   _sbMarginalDragEnd,  { once: true });
+  note.addEventListener('pointercancel', _sbMarginalDragEnd, { once: true });
+}
+
+function _sbMarginalDragMove(e) {
+  if (!_sbDrag.active) return;
+  e.preventDefault();
+  const { el, pageRect, ox, oy } = _sbDrag;
+  // New position as % of page
+  let nx = (e.clientX - pageRect.left) / pageRect.width  * 100 - ox;
+  let ny = (e.clientY - pageRect.top)  / pageRect.height * 100 - oy;
+  // Constrain: keep within page, avoid ribbon (top-right 28px area) and spine
+  nx = Math.max(2, Math.min(88, nx));
+  ny = Math.max(5, Math.min(88, ny));
+  el.style.left      = nx + '%';
+  el.style.top       = ny + '%';
+  el.style.transform = 'rotate(0deg) scale(1.05)';
+}
+
+async function _sbMarginalDragEnd(e) {
+  if (!_sbDrag.active) return;
+  const { el, idx } = _sbDrag;
+  _sbDrag.active = false;
+  el.classList.remove('dragging');
+  el.removeEventListener('pointermove', _sbMarginalDragMove);
+
+  // Read final position
+  const page = document.getElementById('sb-page-right');
+  if (!page) return;
+  const pageRect  = page.getBoundingClientRect();
+  const noteRect  = el.getBoundingClientRect();
+  const nx = (noteRect.left - pageRect.left) / pageRect.width  * 100;
+  const ny = (noteRect.top  - pageRect.top)  / pageRect.height * 100;
+
+  // Restore rotation
+  const spell = _sbState.spells[_sbState.idx];
+  const rot   = ((idx * 37 + 7) % 13) - 6;
+  el.style.transform = `rotate(${rot}deg)`;
+
+  // Save new position
+  if (spell?.marginalia?.[idx]) {
+    spell.marginalia[idx].x = Math.round(nx * 10) / 10;
+    spell.marginalia[idx].y = Math.round(ny * 10) / 10;
+    if (_sbState.charId) {
+      try { await api.updatePlayerSpell(_sbState.charId, spell.index, { marginalia: spell.marginalia }); }
+      catch (e) { console.warn('Positie opslaan mislukt:', e); }
+    }
+  }
+}
 
 // Returns true when a spell's level is >0 and no slots remain at any valid level
 function _sbHasNoSlots(spell) {
@@ -2661,6 +2802,10 @@ async function _sbFetchDesc(spell) {
           ? local.components.join(', ') + (local.material ? ` (${local.material})` : '')
           : (local.components || '');
         if (!sp.school)       sp.school       = local.school?.name || '';
+        if (!sp.higher_level && local.higher_level?.length)
+          sp.higher_level = local.higher_level;   // ← needed for the "at higher levels" toggle
+        if (sp.concentration == null && local.concentration != null)
+          sp.concentration = !!local.concentration;
       }
       return;
     }
@@ -2677,6 +2822,10 @@ async function _sbFetchDesc(spell) {
       if (!sp.duration     && s.duration)     sp.duration     = s.duration;
       if (!sp.components   && s.components?.length) sp.components = s.components.join(', ');
       if (!sp.school       && s.school?.name) sp.school       = s.school.name;
+      if (!sp.higher_level && s.higher_level?.length)
+        sp.higher_level = s.higher_level;           // ← needed for the "at higher levels" toggle
+      if (sp.concentration == null && s.concentration != null)
+        sp.concentration = !!s.concentration;
     }
   } catch { /* leave cache entry empty */ }
 }
@@ -2685,17 +2834,42 @@ function _sbRenderSlots() {
   const zone = document.getElementById('sb-slot-zone');
   if (!zone) return;
   const spell = _sbState.spells[_sbState.idx];
-  const lvl = spell?.level;
-  if (!lvl || lvl < 1) { zone.innerHTML = ''; return; }
-  const slot = _sbState.slots[lvl] || { max: 0, used: 0 };
+  const baseLvl = spell?.level;
+  if (!baseLvl || baseLvl < 1) { zone.innerHTML = ''; return; }
+
+  // Determine shown cast level; keep within valid slot range
+  let castLvl = _sbState.castSlotLevel ?? baseLvl;
+  // Clamp to a level that actually has slots, preferring the requested level
+  const hasSlot = l => (_sbState.slots[l]?.max || 0) > 0;
+  if (!hasSlot(castLvl)) {
+    // scan up/down for a valid level
+    for (let d = 1; d <= 9; d++) {
+      if (castLvl + d <= 9 && hasSlot(castLvl + d)) { castLvl = castLvl + d; break; }
+      if (castLvl - d >= baseLvl && hasSlot(castLvl - d)) { castLvl = castLvl - d; break; }
+    }
+  }
+
+  const slot = _sbState.slots[castLvl] || { max: 0, used: 0 };
   if (!slot.max) { zone.innerHTML = ''; return; }
+
+  // Can we go up/down?
+  const canUp = (() => { for (let l = castLvl + 1; l <= 9; l++) if (hasSlot(l)) return true; return false; })();
+  const canDn = castLvl > baseLvl && (() => { for (let l = castLvl - 1; l >= baseLvl; l--) if (hasSlot(l)) return true; return false; })();
+
   const dots = Array.from({ length: slot.max }, (_, i) => {
     const used = i < slot.used;
     return `<button class="sb-slot-dot${used ? ' used' : ''}"
-      onclick="window._sbToggleSlot(${lvl},${i})"
+      onclick="window._sbToggleSlot(${castLvl},${i})"
       title="${used ? 'Verbruikt – klik om vrij te geven' : 'Vrij – klik om te verbruiken'}"></button>`;
   }).join('');
-  zone.innerHTML = `<div class="sb-slot-label">Level&thinsp;${lvl} slots</div><div class="sb-slot-dots">${dots}</div>`;
+
+  zone.innerHTML = `
+    <div class="sb-slot-level-row">
+      <button class="sb-slot-arrow" onclick="window._sbSlotChange(-1)" ${canDn ? '' : 'disabled'}>−</button>
+      <span class="sb-slot-level-label">Level&thinsp;${castLvl}${castLvl !== baseLvl ? ' ✓' : ''}</span>
+      <button class="sb-slot-arrow" onclick="window._sbSlotChange(+1)" ${canUp ? '' : 'disabled'}>+</button>
+    </div>
+    <div class="sb-slot-dots">${dots}</div>`;
 }
 
 window._sbToggleSlot = async function(lvl, i) {
@@ -2730,6 +2904,10 @@ window._sbUploadImage = async function(file) {
 function _sbRender() {
   const spell = _sbState.spells[_sbState.idx];
   if (!spell) return;
+  // Persist last viewed spell so it reopens on next session
+  if (_sbState.charId && spell.index) {
+    try { localStorage.setItem(`_sbLastSpell_${_sbState.charId}`, spell.index); } catch {}
+  }
   const sKey = _sbSchoolKey(spell.school);
   const sCfg = _SB_SCHOOLS[sKey] || _SB_DEFAULT;
   const curIdx = _sbState.idx;
@@ -2901,10 +3079,8 @@ function _sbRender() {
         spell.ritual        ? `<span class="sb-badge sb-badge--ritual">Ritual</span>`       : '',
       ].filter(Boolean).join('');
 
-      const castLvl = _sbState.castSlotLevel ?? spell.level;
-      const higherHtml = (spell.level > 0 && castLvl > spell.level && spell.higher_level)
-        ? `<div class="sb-slot-higher" id="sb-slot-higher"><strong>Op slotniveau ${castLvl}:</strong> ${_spellMd(spell.higher_level)}</div>`
-        : `<div class="sb-slot-higher" id="sb-slot-higher" style="display:none"></div>`;
+      const hasHigher = spell.level > 0 && spell.higher_level && spell.higher_level.length > 0;
+      const higherText = hasHigher ? _spellMd(spell.higher_level) : '';
 
       contentEl.innerHTML = `
         <h2 class="sb-spell-name">${esc(spell.name)}</h2>
@@ -2912,45 +3088,33 @@ function _sbRender() {
         ${metaRows.length ? `<div class="sb-meta-table">${
           metaRows.map(([k,v]) => `<span class="sb-meta-key">${k}</span><span class="sb-meta-val">${esc(v)}</span>`).join('')
         }</div>` : ''}
+        ${hasHigher ? `<label class="sb-higher-toggle">
+          <input type="checkbox" id="sb-higher-check" onchange="window._sbToggleHigher(this.checked)">
+          <span>Op hoger slotniveau</span>
+        </label>
+        <div class="sb-slot-higher" id="sb-slot-higher" style="display:none">${higherText}</div>` : ''}
         ${(badges || metaRows.length) ? '<div class="sb-divider"></div>' : ''}
-        ${spell.level > 0 ? `<div class="sb-slot-stepper">
-          <span class="sb-slot-label">Slot</span>
-          <button class="sb-slot-btn" onclick="window._sbSlotChange(-1)">−</button>
-          <span class="sb-slot-val" id="sb-slot-val">${castLvl}</span>
-          <button class="sb-slot-btn" onclick="window._sbSlotChange(+1)">+</button>
-        </div>` : ''}
-        ${higherHtml}
         <div class="sb-desc">${desc || '<em>Geen beschrijving beschikbaar.</em>'}</div>`;
       contentEl.scrollTop = 0;
     }
   }
 
-  // ── Marginalia icons on right page ──
-  const margEl = document.getElementById('sb-marginalia');
-  if (margEl) {
-    margEl.innerHTML = (spell.marginalia || []).map(m => {
-      const paths = _SB_ICONS[m.icon] || '';
-      const tip   = esc(m.label || _SB_ICON_LABELS[m.icon] || m.icon);
-      return `<div class="sb-marginal-icon" tabindex="0">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor"
-          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>
-        <div class="sb-marginal-tip">${tip}</div>
-      </div>`;
-    }).join('');
-  }
+  // ── Marginalia — handwritten notes on right page ──
+  _sbRenderMarginalia();
 
-  // ── Concentration fold corner ──
+  // ── Concentration fold corner — always hidden (replaced by overlay button) ──
   const foldEl = document.getElementById('sb-conc-fold');
-  if (foldEl) {
-    const active = !!spell.concentrationActive;
-    foldEl.className = 'sb-conc-fold' + (
-      !spell.concentration ? ' sb-conc-fold--hidden' :
-      active               ? ' sb-conc-fold--active' : ' sb-conc-fold--avail'
-    );
-    foldEl.onclick    = spell.concentration ? () => window._sbToggleConcentration() : null;
-    foldEl.title      = spell.concentration
-      ? (active ? 'Concentratie actief — klik om te stoppen' : 'Klik om concentratie te activeren')
-      : '';
+  if (foldEl) { foldEl.className = 'sb-conc-fold sb-conc-fold--hidden'; foldEl.onclick = null; }
+
+  // ── Concentration overlay button (pulsing, in controls bar) ──
+  const concCtrlBtn = document.getElementById('sb-conc-ctrl-btn');
+  if (concCtrlBtn) {
+    const hasConc = !!spell.concentration;
+    const active  = !!spell.concentrationActive;
+    concCtrlBtn.style.display = hasConc ? '' : 'none';
+    concCtrlBtn.innerHTML = active ? '🕯 Actief' : '🕯 Concentratie';
+    concCtrlBtn.classList.toggle('sb-ctrl-conc--active', active);
+    concCtrlBtn.title = active ? 'Concentratie actief — klik om te stoppen' : 'Klik om concentratie te activeren';
   }
 
   // ── Spell fade when no slots available ──

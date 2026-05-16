@@ -73,6 +73,7 @@ router.get('/players', (req, res) => {
     const spelers = (entities.personages || [])
       .filter(e => {
         if ((e.subtype || '').toLowerCase() !== 'speler') return false;
+        if (e.data?.testOnly && req.session.role !== 'dm') return false;  // verberg testpersonages voor spelers
         const groep = groups[e.data?.groep];
         if (groep?.hidden && req.session.role !== 'dm') return false;  // verberg verborgen groepen voor spelers, niet voor DM
         return true;
