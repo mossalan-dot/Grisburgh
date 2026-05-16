@@ -2970,6 +2970,225 @@ function _sbRender() {
   if (_sbState.manageOpen) _sbManageRefresh();
 }
 
+// ════════════════════════════════════════════════════════════
+// BOEDELINVENTARIS — officiële eigendomsopgave voor spelers
+// ════════════════════════════════════════════════════════════
+
+const _invState = { items: [], selectedIdx: -1, charName: '' };
+
+function _invTallyMarks(n) {
+  if (n <= 0) return '';
+  if (n > 10) return `<span class="inv-qty-num">${n}×</span>`;
+  const GW = 20, GAP = 4, MW = 5;
+  const g = Math.floor(n / 5), r = n % 5;
+  const w = g * GW + Math.max(0, g - 1) * GAP + (g > 0 && r > 0 ? GAP : 0) + r * MW;
+  const H = 18;
+  let m = '', x = 0;
+  for (let i = 0; i < g; i++) {
+    for (let j = 0; j < 4; j++) m += `<line x1="${x+1+j*5}" y1="2" x2="${x+1+j*5}" y2="${H-2}"/>`;
+    m += `<line x1="${x}" y1="${H-2}" x2="${x+GW}" y2="2"/>`;
+    x += GW + GAP;
+  }
+  for (let i = 0; i < r; i++) { m += `<line x1="${x+1}" y1="2" x2="${x+1}" y2="${H-2}"/>`; x += MW; }
+  return `<svg class="inv-tally" width="${w}" height="${H}" viewBox="0 0 ${w} ${H}" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">${m}</svg>`;
+}
+
+const _INV_TYPE_EMOJI = {
+  Weapon:'⚔', Wapen:'⚔', Armor:'🛡', Uitrusting:'🛡', Shield:'🛡',
+  'Magic Item':'✨', Toveritem:'✨', 'Wondrous Item':'✨',
+  Potion:'🧪', Drank:'🧪', Scroll:'📜', Ring:'💍', Amulet:'📿',
+  Consumable:'🌿', Feature:'⭐', 'Musical Instrument':'🎵',
+};
+function _invTypeEmoji(it) {
+  return _INV_TYPE_EMOJI[it.data?.itemType || it.subtype || ''] || '🎒';
+}
+
+function _ensureInventarisOverlay() {
+  if (document.getElementById('inv-overlay')) return;
+  const el = document.createElement('div');
+  el.id = 'inv-overlay';
+  el.className = 'inv-overlay';
+  el.innerHTML = `
+    <div class="inv-controls">
+      <button class="sb-ctrl-btn sb-ctrl-close" onclick="window._closeInventaris()">✕ Sluit inventaris</button>
+    </div>
+    <div class="inv-wrap" id="inv-wrap">
+      <div class="inv-clipboard-col">
+        <div class="inv-clip-head">
+          <div class="inv-clip-mount">
+            <div class="inv-clip-screw"></div>
+            <div class="inv-clip-bar"></div>
+            <div class="inv-clip-screw"></div>
+          </div>
+        </div>
+        <div class="inv-document" id="inv-document">
+          <div class="inv-notary-pre" id="inv-notary-pre"></div>
+          <div class="inv-doc-ornament">✦</div>
+          <div class="inv-doc-rule"></div>
+          <div class="inv-list-head">
+            <span class="inv-lh-name">Voorwerp</span>
+            <span class="inv-lh-type">Soort</span>
+            <span class="inv-lh-qty">Getal</span>
+          </div>
+          <div class="inv-list" id="inv-list"></div>
+          <div class="inv-doc-footer">
+            <span class="inv-footer-sig">Aldus opgemaakt en geteekend voor waerheid.</span>
+            <svg class="inv-footer-seal" viewBox="0 0 60 60" width="46" height="46">
+              <circle cx="30" cy="30" r="27" fill="none" stroke="#8a6030" stroke-width="1.2" stroke-dasharray="3 2"/>
+              <circle cx="30" cy="30" r="19" fill="rgba(180,130,60,0.10)" stroke="#8a6030" stroke-width="0.8"/>
+              <text x="30" y="27" font-family="Cinzel,serif" font-size="8" fill="#8a6030" text-anchor="middle">C·C·C</text>
+              <text x="30" y="37" font-family="Cinzel,serif" font-size="6" fill="#8a6030" text-anchor="middle">NOTARIS</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="inv-detail-panel" id="inv-detail-panel">
+        <div class="inv-detail-hint"><span>← Kies een voorwerp uit de lijst</span></div>
+      </div>
+      <div class="inv-portrait-hint">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="sb-portrait-hint-icon"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        <span>Draai je scherm voor de boedelinventaris</span>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  el.addEventListener('click', e => { if (e.target === el) window._closeInventaris(); });
+  document.addEventListener('keydown', e => {
+    if (!document.getElementById('inv-overlay')?.classList.contains('inv-open')) return;
+    if (e.key === 'Escape') window._closeInventaris();
+    if (e.key === 'ArrowDown') { e.preventDefault(); window._invMove(1); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); window._invMove(-1); }
+  });
+}
+
+window._openInventaris = function(items, simpleItems, charName) {
+  _invState.items = [
+    ...items.map(it => ({ _kind: 'entity', ...it })),
+    ...(simpleItems || []).map(si => ({ _kind: 'note', id: si.id, name: si.name, note: si.note || '' })),
+  ];
+  _invState.charName = charName || '—';
+  _invState.selectedIdx = _invState.items.length > 0 ? 0 : -1;
+  _ensureInventarisOverlay();
+  _invRender();
+  const ov = document.getElementById('inv-overlay');
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => ov.classList.add('inv-open'));
+};
+
+window._closeInventaris = function() {
+  const ov = document.getElementById('inv-overlay');
+  if (ov) ov.classList.remove('inv-open');
+  document.body.style.overflow = '';
+};
+
+window._invSelectItem = function(idx) {
+  _invState.selectedIdx = idx;
+  document.querySelectorAll('.inv-list-row').forEach((r, i) => r.classList.toggle('active', i === idx));
+  _invRenderDetail();
+};
+
+window._invMove = function(delta) {
+  const n = _invState.items.length;
+  if (!n) return;
+  const ni = ((_invState.selectedIdx + delta) % n + n) % n;
+  window._invSelectItem(ni);
+  document.querySelectorAll('.inv-list-row')[ni]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+};
+
+function _invRender() {
+  const pre = document.getElementById('inv-notary-pre');
+  if (pre) {
+    pre.innerHTML = `Huijden den XIV Bloemmaand MDCCLXXII compareerden<br>
+      voor mij, notaris <em>Cornelis Carolus Cnipcent</em>, de<br>
+      persoon van <strong>${esc(_invState.charName)}</strong>, eigenaardig<br>
+      van aangezicht en avonturier van beroep, dewelke<br>
+      verklaarde dat navolgende voorwerpen zijn wettige<br>
+      en persoonlijke eigendomme zijn.`;
+  }
+  const list = document.getElementById('inv-list');
+  if (list) {
+    if (!_invState.items.length) {
+      list.innerHTML = '<div class="inv-list-empty">Geen voorwerpen in de boedel.</div>';
+    } else {
+      list.innerHTML = _invState.items.map((it, i) => {
+        const isNote = it._kind === 'note';
+        const typeLabel = isNote ? 'Notitie' : (it.data?.itemType || it.subtype || 'Overig');
+        const emoji = isNote ? '📝' : _invTypeEmoji(it);
+        const qty = it._qty || 1;
+        const showTally = !isNote && it._stapelbaar && qty > 1;
+        return `<div class="inv-list-row${i === _invState.selectedIdx ? ' active' : ''}" onclick="window._invSelectItem(${i})">
+          <span class="inv-row-name"><span class="inv-row-icon" aria-hidden="true">${emoji}</span>${esc(it.name)}</span>
+          <span class="inv-row-type">${esc(typeLabel)}</span>
+          <span class="inv-row-qty">${showTally ? _invTallyMarks(qty) : ''}</span>
+        </div>`;
+      }).join('');
+    }
+  }
+  _invRenderDetail();
+}
+
+function _invRenderDetail() {
+  const panel = document.getElementById('inv-detail-panel');
+  if (!panel) return;
+  const idx = _invState.selectedIdx;
+  if (idx < 0 || idx >= _invState.items.length) {
+    panel.innerHTML = `<div class="inv-detail-hint"><span>← Kies een voorwerp uit de lijst</span></div>`;
+    return;
+  }
+  const it = _invState.items[idx];
+  if (it._kind === 'note') _invRenderNoteDetail(panel, it);
+  else _invRenderEntityDetail(panel, it);
+}
+
+function _invRenderEntityDetail(panel, it) {
+  const seed = it.id ? it.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) : 42;
+  const rot = ((seed % 13) - 6) * 0.55;
+  const typeLabel = it.data?.itemType || it.subtype || 'Overig';
+  const emoji = _invTypeEmoji(it);
+  const desc = it.data?.desc || '';
+  const flavour = it.data?.flavour || '';
+  const rarity = it.data?.rarity || '';
+  const rarityLabel = { Common:'Gewoon', Uncommon:'Ongewoon', Rare:'Zeldzaam', 'Very Rare':'Zeer zeldzaam', Legendary:'Legendarisch', Artifact:'Artefact' }[rarity] || rarity;
+  panel.innerHTML = `
+    <div class="inv-det-page">
+      <div class="inv-img-zone">
+        <div class="inv-img-frame" style="transform:rotate(${rot}deg)">
+          <div class="inv-tape inv-tape--tl"></div>
+          <div class="inv-tape inv-tape--tr"></div>
+          <img class="inv-det-img" src="${api.fileUrl(it.id)}" alt="${esc(it.name)}"
+            onload="this.closest('.inv-img-zone').classList.add('inv-has-img')"
+            onerror="this.closest('.inv-img-zone').classList.add('inv-no-img')">
+          <div class="inv-img-fallback">
+            <span class="inv-fallback-emoji">${emoji}</span>
+            <div class="inv-fallback-name">${esc(it.name)}</div>
+            <div class="inv-fallback-type">${esc(typeLabel)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="inv-det-text">
+        <div class="inv-det-name">${esc(it.name)}</div>
+        ${rarityLabel ? `<div class="inv-det-rarity">${esc(rarityLabel)}</div>` : ''}
+        ${desc ? `<div class="inv-det-desc">${mdToHtml(desc)}</div>` : ''}
+        ${flavour ? `<blockquote class="inv-det-flavour">${esc(flavour)}</blockquote>` : ''}
+      </div>
+    </div>`;
+}
+
+function _invRenderNoteDetail(panel, it) {
+  const seed = it.id ? it.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) : 7;
+  const rot = ((seed % 9) - 4) * 0.8;
+  panel.innerHTML = `
+    <div class="inv-det-page inv-det-page--note">
+      <div class="inv-note-wrap" style="transform:rotate(${rot}deg)">
+        <div class="inv-tape inv-tape--tc"></div>
+        <div class="inv-note-paper">
+          <div class="inv-note-label">— notitie —</div>
+          <div class="inv-note-name">${esc(it.name)}</div>
+          ${it.note ? `<div class="inv-note-body">${esc(it.note)}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
 // Geeft de juiste CSS-modifier voor de damage-pill op basis van het schadetype.
 // Detecteert trefwoorden in de damage-string (bijv. "2d6 fire", "3d8 cold damage").
 function _damagePillMod(dmg) {
@@ -3879,6 +4098,25 @@ async function renderMijnKarakter(opts = {}) {
           };
 
           return _attSectionHtml(slotIds);
+        })()}
+
+        <!-- Boedelinventaris open -->
+        ${(() => {
+          window._invItems      = myItems;
+          window._invSimpleItems = simpleItems;
+          window._invCharName   = entity?.name || state.playerName || '—';
+          const total = myItems.length + simpleItems.length;
+          return `<div class="player-dash-section inv-open-section">
+            <div class="player-dash-section-title">
+              📜 Boedelinventaris
+              <button class="inv-open-btn" onclick="window._openInventaris(window._invItems||[], window._invSimpleItems||[], window._invCharName||'')">
+                Bekijk inventaris
+              </button>
+            </div>
+            <p class="player-dash-empty" style="margin:6px 0 4px">
+              ${total > 0 ? `${total} ${total === 1 ? 'voorwerp' : 'voorwerpen'} geregistreerd — bekijk uw officiële eigendomsopgave.` : 'Nog geen voorwerpen geregistreerd bij de notaris.'}
+            </p>
+          </div>`;
         })()}
 
         <!-- Geclaimde & losse voorwerpen -->
