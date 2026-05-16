@@ -3521,7 +3521,7 @@ async function renderMijnKarakter(opts = {}) {
         <button class="player-subtab${_playerSubTab === 'personage' ? ' active' : ''}"
           data-tab="personage" onclick="window._setPlayerSubTab('personage')">${icon('swords')} Personage</button>
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
-          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">${icon('package')} Knapzak</button>
+          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">📜 Boedel</button>
         <button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
           data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('book-open')} Spreukenboek</button>
         <button class="player-subtab${_playerSubTab === 'berichten' ? ' active' : ''}"
