@@ -1445,6 +1445,12 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     }
   });
 
+  // ── 2b. Hit dice → volledig hersteld ──
+  if (!dmState.playerHitDice) dmState.playerHitDice = {};
+  spelers.forEach(char => {
+    dmState.playerHitDice[char.id] = { primaryUsed: 0, multiUsed: 0 };
+  });
+
   // ── 3. Conditions + tempHp wissen in actief gevecht ──
   try {
     const combat = storage.readJSON('combat.json');
@@ -1502,6 +1508,42 @@ router.post('/party/long-rest', requireDM, (req, res) => {
 
   storage.writeJSON('dm-state.json', dmState);
   res.json({ ok: true, spelers: spelers.length, resetCount, rollLog });
+});
+
+// Party-brede korte rust (DM-actie) — stuurt socket-event naar spelers
+router.post('/party/short-rest', requireDM, (req, res) => {
+  const io  = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  if (io) io.to(room).emit('party:short-rest', { timestamp: Date.now() });
+  res.json({ ok: true });
+});
+
+// ── Speler hit dice ──
+
+router.get('/player-hitdice/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  res.json((dmState.playerHitDice || {})[characterId] || { primaryUsed: 0, multiUsed: 0 });
+});
+
+router.patch('/player-hitdice/:characterId', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  if (!dmState.playerHitDice) dmState.playerHitDice = {};
+  const existing = dmState.playerHitDice[characterId] || { primaryUsed: 0, multiUsed: 0 };
+  const { primaryUsed, multiUsed } = req.body;
+  if (primaryUsed !== undefined) existing.primaryUsed = Math.max(0, parseInt(primaryUsed) || 0);
+  if (multiUsed   !== undefined) existing.multiUsed   = Math.max(0, parseInt(multiUsed)   || 0);
+  dmState.playerHitDice[characterId] = existing;
+  storage.writeJSON('dm-state.json', dmState);
+  const io  = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  if (io) io.to(room).emit('player:hitdice-updated', { characterId, ...existing });
+  res.json(existing);
 });
 
 // ── Speler HP (buiten gevecht) ──

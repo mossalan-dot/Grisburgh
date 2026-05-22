@@ -16047,3 +16047,257 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   background: linear-gradient(135deg, #3a2a10 0%, #5c3a18 100%);
   border-color: rgba(180,130,60,0.62);
 }
+
+/* ── Hit Dice (in character sheet HP section) ── */
+.player-dash-hitdice {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(196,168,122,0.25);
+}
+.player-dash-hitdice-title {
+  font-size: 11px;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.06em;
+  color: rgba(196,168,122,0.7);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.player-dash-hitdice-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.player-dash-hitdice-label {
+  font-size: 12px;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  color: #c4a87a;
+  min-width: 72px;
+}
+.player-dash-hitdice-die {
+  font-size: 11px;
+  font-family: 'Cinzel', serif;
+  color: rgba(196,168,122,0.65);
+  min-width: 26px;
+}
+.player-dash-hitdice-dots {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.hit-die-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(196,168,122,0.55);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+  background: rgba(196,168,122,0.22);
+}
+.hit-die-dot.free {
+  background: rgba(106,144,80,0.45);
+  border-color: rgba(106,144,80,0.75);
+}
+.hit-die-dot.free:hover {
+  background: rgba(106,144,80,0.65);
+  transform: scale(1.15);
+}
+.hit-die-dot.used {
+  background: rgba(196,168,122,0.12);
+  border-color: rgba(196,168,122,0.3);
+}
+.hit-die-dot.used:hover {
+  background: rgba(196,168,122,0.22);
+  transform: scale(1.1);
+}
+.player-dash-hitdice-count {
+  font-size: 11px;
+  color: rgba(196,168,122,0.65);
+  font-family: 'Cinzel', serif;
+}
+
+/* ── Korte Rust overlay ── */
+.short-rest-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10,6,2,0.72);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+.short-rest-overlay.short-rest-overlay--in {
+  opacity: 1;
+}
+.short-rest-card {
+  background: linear-gradient(160deg, #faf2de 0%, #f0e2b6 55%, #e8d49a 100%);
+  border: 1.5px solid #c4a87a;
+  border-radius: 12px;
+  padding: 28px 28px 22px;
+  max-width: 420px;
+  width: calc(100vw - 32px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.5);
+  font-family: 'IM Fell English', serif;
+}
+.short-rest-title {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #5c3a14;
+  text-align: center;
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+.short-rest-sub {
+  font-size: 13px;
+  color: #7a5530;
+  text-align: center;
+  margin-bottom: 18px;
+  font-style: italic;
+  line-height: 1.5;
+}
+.short-rest-pools {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sr-pool-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(196,168,122,0.18);
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 7px;
+}
+.sr-pool-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 72px;
+}
+.sr-pool-label {
+  font-size: 13px;
+  font-style: italic;
+  color: #5c3a14;
+  line-height: 1.3;
+}
+.sr-pool-die {
+  font-size: 11px;
+  font-family: 'Cinzel', serif;
+  color: #9a6a30;
+  letter-spacing: 0.04em;
+}
+.sr-pool-dots {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.sr-die-dot {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  border: 1px solid rgba(100,150,70,0.7);
+  background: rgba(100,150,70,0.4);
+  transition: background 0.12s;
+}
+.sr-die-dot.used {
+  background: rgba(196,168,122,0.18);
+  border-color: rgba(196,168,122,0.38);
+}
+.sr-roll-btn {
+  background: linear-gradient(135deg, #3a5a22 0%, #4e7a2e 100%);
+  border: 1px solid rgba(80,130,50,0.7);
+  color: #d4f0a0;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.14s, transform 0.1s;
+  white-space: nowrap;
+}
+.sr-roll-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4a7a2a 0%, #609a38 100%);
+  transform: scale(1.03);
+}
+.sr-roll-btn--disabled, .sr-roll-btn:disabled {
+  background: rgba(196,168,122,0.15);
+  border-color: rgba(196,168,122,0.3);
+  color: rgba(196,168,122,0.5);
+  cursor: not-allowed;
+}
+.sr-gain-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.sr-gain-label {
+  font-size: 13px;
+  color: #7a5530;
+  font-style: italic;
+}
+.sr-gain-num {
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #3a6a20;
+}
+.sr-hp-preview {
+  font-size: 13px;
+  color: #7a5530;
+  margin-bottom: 16px;
+  font-style: italic;
+}
+.sr-hp-new {
+  color: #3a6a20;
+}
+.sr-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+.sr-btn {
+  padding: 8px 18px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.14s, transform 0.1s;
+}
+.sr-btn-cancel {
+  background: transparent;
+  border-color: rgba(196,168,122,0.55);
+  color: #7a5530;
+}
+.sr-btn-cancel:hover {
+  background: rgba(196,168,122,0.2);
+}
+.sr-btn-confirm {
+  background: linear-gradient(135deg, #5c3a14 0%, #7a5020 100%);
+  border-color: rgba(196,168,122,0.6);
+  color: #f5edd8;
+}
+.sr-btn-confirm:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7a4a18 0%, #9a6828 100%);
+  transform: scale(1.02);
+}
+.sr-btn-confirm--disabled, .sr-btn-confirm:disabled {
+  background: rgba(196,168,122,0.18);
+  border-color: rgba(196,168,122,0.25);
+  color: rgba(196,168,122,0.45);
+  cursor: not-allowed;
+}

@@ -548,6 +548,20 @@ export function initSocket() {
     if (cid) socket.emit('player:register', cid);
   });
   socket.on('disconnect', () => console.log('Socket disconnected'));
+
+  // ── Korte rust ──
+  socket.on('party:short-rest', (data) => {
+    if (window.app?.state?.role === 'player' || window.app?.state?.dmPreview) {
+      window._showShortRestOverlay?.(data);
+    }
+  });
+
+  socket.on('player:hitdice-updated', ({ characterId } = {}) => {
+    if (characterId === window.app?.state?.characterId &&
+        window.app?.state?.activeSection === 'mijn-karakter') {
+      window.app.refreshSection('mijn-karakter');
+    }
+  });
 }
 
 function _showDramaticReveal(doc) {

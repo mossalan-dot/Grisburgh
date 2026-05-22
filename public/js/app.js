@@ -1,11 +1,11 @@
-import { api } from './api.js?v=220';
+import { api } from './api.js?v=221';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=78';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=31';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
-import { initSocket } from './socket-client.js?v=11';
-import { initDmPanel } from './dm-panel.js?v=38';
+import { initSocket } from './socket-client.js?v=12';
+import { initDmPanel } from './dm-panel.js?v=39';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -3229,6 +3229,22 @@ window._updateBerichtenBadge = function() {
   }
 };
 
+const _HIT_DIE_BY_CLASS = {
+  barbarian:'d12', barbaar:'d12',
+  bard:'d8', bardus:'d8',
+  cleric:'d8', klerikus:'d8', clericus:'d8',
+  druid:'d8', 'druïde':'d8', druidess:'d8',
+  fighter:'d10', vechter:'d10', strijder:'d10', krijger:'d10',
+  monk:'d8', monnik:'d8',
+  paladin:'d10', paladin:'d10',
+  ranger:'d10', jager:'d10',
+  rogue:'d8', schurk:'d8', 'schaduwjager':'d8',
+  sorcerer:'d6', tovenaar:'d6', magier:'d6', 'magiër':'d6',
+  warlock:'d8', heksemeester:'d8',
+  wizard:'d6',
+  artificer:'d8',
+};
+
 async function renderMijnKarakter(opts = {}) {
   const charId     = opts.charId     || state.characterId;
   const playerName = opts.playerName || state.playerName;
@@ -3260,8 +3276,9 @@ async function renderMijnKarakter(opts = {}) {
   let pinnedTraits  = [];
   let inspired      = false;
   let berichtenLijst = [];
+  let hitDiceData    = { primaryUsed: 0, multiUsed: 0 };
   try {
-    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst] = await Promise.all([
+    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, hitDiceData] = await Promise.all([
       api.getPlayerHp(charId).catch(() => ({ current: null, max: null })),
       api.getEntity('personages', charId).catch(() => null),
       api.getCombat().catch(() => null),
@@ -3280,6 +3297,7 @@ async function renderMijnKarakter(opts = {}) {
       api.getPlayerTraits(charId).catch(() => []),
       api.getInspiration(charId).catch(() => ({ inspired: false })),
       api.getBerichten().then(d => d.berichten || []).catch(() => []),
+      api.getPlayerHitDice(charId).catch(() => ({ primaryUsed: 0, multiUsed: 0 })),
     ]);
   } catch { /* ok */ }
 
@@ -3403,6 +3421,20 @@ async function renderMijnKarakter(opts = {}) {
     : entity?.data?.klasse || playerProfile.klasse || '';
   const sub = [entity?.data?.ras, _klasseStr].filter(Boolean).join(' · ');
   const desc = entity?.data?.desc || '';
+
+  // ── Hit Dice pools ──
+  const _totalLevel = (_kLvl || parseInt(playerProfile.level) || 0);
+  const _primaryDie = playerProfile.hitDie || _HIT_DIE_BY_CLASS[(playerProfile.klasse || '').toLowerCase()] || 'd8';
+  const _hitDicePools = [];
+  if (_totalLevel > 0) {
+    const _pUsed = Math.min(hitDiceData.primaryUsed || 0, _totalLevel);
+    _hitDicePools.push({ pool: 'primary', label: playerProfile.klasse || '—', die: _primaryDie, total: _totalLevel, used: _pUsed });
+  }
+  if (_isMulticlass && playerProfile.multiKlasse && _mkLvl > 0) {
+    const _mDie = _HIT_DIE_BY_CLASS[(playerProfile.multiKlasse || '').toLowerCase()] || 'd8';
+    const _mUsed = Math.min(hitDiceData.multiUsed || 0, _mkLvl);
+    _hitDicePools.push({ pool: 'multi', label: playerProfile.multiKlasse, die: _mDie, total: _mkLvl, used: _mUsed });
+  }
 
   // ── Spreukslots HTML helper ──
   const _spellSlotsHTML = (() => {
@@ -3731,6 +3763,22 @@ async function renderMijnKarakter(opts = {}) {
               </div>
             </div>
             ${myCombatant ? '<p class="player-dash-hp-note">${icon(\'swords\')} Actief in gevecht</p>' : ''}
+            ${_hitDicePools.length > 0 ? `
+            <div class="player-dash-hitdice">
+              <div class="player-dash-hitdice-title">Hit Dice</div>
+              ${_hitDicePools.map(p => `
+              <div class="player-dash-hitdice-row">
+                <span class="player-dash-hitdice-label">${esc(p.label)}</span>
+                <span class="player-dash-hitdice-die">${esc(p.die)}</span>
+                <div class="player-dash-hitdice-dots">${Array.from({ length: p.total }, (_, i) => {
+                  const spent = i < p.used;
+                  return `<button class="hit-die-dot ${spent ? 'used' : 'free'}"
+                    title="${spent ? 'Verbruikt — klik om vrij te zetten' : 'Beschikbaar — klik om te verbruiken'}"
+                    onclick="window._dashToggleHitDie('${p.pool}', ${i})"></button>`;
+                }).join('')}</div>
+                <span class="player-dash-hitdice-count">${p.total - p.used}/${p.total}</span>
+              </div>`).join('')}
+            </div>` : ''}
           </div>
         </div>
 
@@ -4974,6 +5022,20 @@ async function renderMijnKarakter(opts = {}) {
     } catch { /* ok */ }
   };
 
+  // ── Hit Dice toggle ──
+  window._dashToggleHitDie = async function(pool, idx) {
+    const p = _hitDicePools.find(x => x.pool === pool);
+    if (!p) return;
+    const newUsed = idx < p.used ? p.used - 1 : p.used + 1;
+    const clamped = Math.min(Math.max(0, newUsed), p.total);
+    const patch = pool === 'primary'
+      ? { primaryUsed: clamped, multiUsed: hitDiceData.multiUsed || 0 }
+      : { primaryUsed: hitDiceData.primaryUsed || 0, multiUsed: clamped };
+    hitDiceData = { ...hitDiceData, ...patch };
+    await api.setPlayerHitDice(charId, patch).catch(() => {});
+    renderMijnKarakter(opts);
+  };
+
   // ── Spreukenslots ──
   window._dashToggleSlot = async function(lvl, idx) {
     const slot = spellSlots[lvl] || { max: 0, used: 0 };
@@ -6046,6 +6108,12 @@ async function refreshAll() {
         total, `${fullLabel} \u2014 ${breakdown}`,
         { sides, result: total, count, rolls, crit: false, fumble: false });
     },
+
+    rollHitDie(sides, label) {
+      const result = Math.floor(Math.random() * sides) + 1;
+      _showFlash(sides, result, label || `Hit Die d${sides}`, '', false, false);
+      return result;
+    },
   };
 
   function _renderHistory() {
@@ -6884,5 +6952,125 @@ function _tsToast(msg) {
     t.addEventListener('transitionend', () => t.remove(), { once: true });
   }, 4000);
 }
+
+// ── Korte Rust overlay ──────────────────────────────────────────────────────
+window._showShortRestOverlay = async function() {
+  const charId = window.app?.state?.characterId;
+  if (!charId) return;
+
+  document.getElementById('short-rest-overlay')?.remove();
+
+  const [hpData, profile, hdData] = await Promise.all([
+    api.getPlayerHp(charId).catch(() => ({ current: null, max: null })),
+    api.getPlayerProfile(charId).catch(() => ({})),
+    api.getPlayerHitDice(charId).catch(() => ({ primaryUsed: 0, multiUsed: 0 })),
+  ]);
+
+  const conMod = Math.floor(((parseInt(profile.con) || 10) - 10) / 2);
+  const conStr = (conMod >= 0 ? '+' : '') + conMod;
+  const isMulti = profile.multiclass === 'true' || profile.multiclass === true;
+  const kLvl  = parseInt(profile.klasseLevel) || parseInt(profile.level) || 0;
+  const mkLvl = parseInt(profile.multiKlasseLevel) || 0;
+
+  const pools = [];
+  if (kLvl > 0) {
+    const die = profile.hitDie || _HIT_DIE_BY_CLASS[(profile.klasse || '').toLowerCase()] || 'd8';
+    pools.push({ pool: 'primary', label: profile.klasse || '—', die, total: kLvl, used: Math.min(hdData.primaryUsed || 0, kLvl) });
+  }
+  if (isMulti && profile.multiKlasse && mkLvl > 0) {
+    const die = _HIT_DIE_BY_CLASS[(profile.multiKlasse || '').toLowerCase()] || 'd8';
+    pools.push({ pool: 'multi', label: profile.multiKlasse, die, total: mkLvl, used: Math.min(hdData.multiUsed || 0, mkLvl) });
+  }
+
+  let srGain = 0;
+  const srUsed = { primary: pools[0]?.used ?? 0, multi: pools[1]?.used ?? 0 };
+  const curHp = parseInt(hpData.current) || 0;
+  const maxHp = parseInt(hpData.max)     || 0;
+
+  const overlay = document.createElement('div');
+  overlay.id    = 'short-rest-overlay';
+  overlay.className = 'short-rest-overlay';
+  document.body.appendChild(overlay);
+
+  function _dieSides(die) { return parseInt(die.replace('d', '')) || 8; }
+
+  function _renderSr() {
+    const newHp = Math.min(maxHp, curHp + srGain);
+    overlay.innerHTML = `
+      <div class="short-rest-card">
+        <div class="short-rest-title">Korte Rust</div>
+        <div class="short-rest-sub">Gooi hit dobbelstenen om HP te herstellen &mdash; Con ${conStr}</div>
+        <div class="short-rest-pools">
+          ${pools.map((p, pi) => {
+            const available = p.total - srUsed[p.pool];
+            const dots = Array.from({ length: p.total }, (_, i) => {
+              const spent = i < srUsed[p.pool];
+              return `<span class="sr-die-dot ${spent ? 'used' : 'free'}"></span>`;
+            }).join('');
+            return `<div class="sr-pool-row">
+              <div class="sr-pool-info">
+                <span class="sr-pool-label">${p.label}</span>
+                <span class="sr-pool-die">${p.die}</span>
+              </div>
+              <div class="sr-pool-dots">${dots}</div>
+              <button class="sr-roll-btn${available <= 0 ? ' sr-roll-btn--disabled' : ''}"
+                ${available <= 0 ? 'disabled' : ''}
+                onclick="window._srRollDie('${p.pool}', ${_dieSides(p.die)})">
+                Gooi ${p.die}
+              </button>
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="sr-gain-row">
+          <span class="sr-gain-label">Hersteld:</span>
+          <span class="sr-gain-num">${srGain > 0 ? '+' + srGain : 0} HP</span>
+        </div>
+        ${maxHp > 0 ? `<div class="sr-hp-preview">HP: <strong>${curHp}</strong>${srGain > 0 ? ` &rarr; <strong class="sr-hp-new">${newHp}</strong>` : ''} / ${maxHp}</div>` : ''}
+        <div class="sr-actions">
+          <button class="sr-btn sr-btn-cancel" onclick="document.getElementById('short-rest-overlay').remove()">Sluiten</button>
+          <button class="sr-btn sr-btn-confirm${srGain <= 0 ? ' sr-btn-confirm--disabled' : ''}"
+            ${srGain <= 0 ? 'disabled' : ''}
+            onclick="window._confirmShortRest()">Bevestigen</button>
+        </div>
+      </div>`;
+  }
+
+  window._srRollDie = function(pool, sides) {
+    const p = pools.find(x => x.pool === pool);
+    if (!p) return;
+    if (srUsed[pool] >= p.total) return;
+    const raw = window.dice?.rollHitDie(sides, `Hit Die ${p.die} (${p.label})`) ?? (Math.floor(Math.random() * sides) + 1);
+    const gain = Math.max(1, raw + conMod);
+    srUsed[pool]++;
+    srGain += gain;
+    _renderSr();
+  };
+
+  window._confirmShortRest = async function() {
+    if (srGain <= 0) return;
+    const newHp = Math.min(maxHp || curHp + srGain, curHp + srGain);
+    try {
+      await api.setPlayerHp(charId, { current: newHp, max: maxHp || undefined }).catch(() => {});
+      await api.setPlayerHitDice(charId, {
+        primaryUsed: srUsed.primary,
+        multiUsed:   srUsed.multi,
+      }).catch(() => {});
+      // Sync combat HP if in combat
+      const combat = await api.getCombat().catch(() => null);
+      if (combat?.combatants) {
+        const c = combat.combatants.find(x => x.type === 'player' && x.entityId === charId);
+        if (c) await api.combatPlayerHp(c.id, newHp).catch(() => {});
+      }
+    } finally {
+      document.getElementById('short-rest-overlay')?.remove();
+      if (window.app?.state?.activeSection === 'mijn-karakter') {
+        window.app.refreshSection('mijn-karakter');
+      }
+    }
+  };
+
+  requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('short-rest-overlay--in')));
+  _renderSr();
+};
 
 init();

@@ -4136,11 +4136,25 @@ function _renderGevecht() {
     <div class="dm-feature-section" style="margin-top:4px;border-top:1px solid rgba(196,168,122,0.25);padding-top:12px">
       <div class="dm-section-label">${icon('moon')} Rust</div>
       <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="dm-btn dm-btn-ghost" onclick="window._dmKorteRust()" title="Korte rust — spelers kunnen hit dice inzetten">${icon('sun')}</button>
         <button class="dm-btn dm-btn-ghost" onclick="window._dmLangeRust()" title="Lange rust — herlaadt alle item-charges">${icon('moon')}</button>
         <span id="dm-rust-status" style="font-size:11px;color:#6a9050"></span>
       </div>
     </div>
   `;
+
+  window._dmKorteRust = async function() {
+    const statusEl = document.getElementById('dm-rust-status');
+    try {
+      await api.partyShortRest();
+      if (statusEl) {
+        statusEl.textContent = '✓ Korte rust gestart';
+        setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 4000);
+      }
+    } catch(err) {
+      if (statusEl) statusEl.textContent = 'Fout: ' + (err.message || '?');
+    }
+  };
 
   window._dmLangeRust = async function() {
     const statusEl = document.getElementById('dm-rust-status');
