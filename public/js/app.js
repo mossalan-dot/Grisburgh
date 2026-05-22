@@ -5792,7 +5792,19 @@ async function refreshAll() {
 // ── Dice Roller ──
 ;(() => {
   const _history = [];
-  let _dmCount = 1;
+  let _dmCount   = 1;
+  let _diceCount = 1;
+  let _diceMode  = 'normal'; // 'normal' | 'advantage' | 'disadvantage'
+
+  const _DIE_SVG = {
+    4:   `<polygon points="50,10 90,80 10,80" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>`,
+    6:   `<rect x="12" y="12" width="76" height="76" rx="10" fill="none" stroke="currentColor" stroke-width="2.5"/>`,
+    8:   `<polygon points="50,8 92,50 50,92 8,50" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>`,
+    10:  `<polygon points="50,8 88,36 74,82 26,82 12,36" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>`,
+    12:  `<polygon points="50,7 83,20 94,55 69,88 31,88 6,55 17,20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>`,
+    20:  `<polygon points="50,5 93,27 93,73 50,95 7,73 7,27" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><line x1="50" y1="5" x2="50" y2="95" stroke="currentColor" stroke-width="1" opacity="0.22"/><line x1="7" y1="27" x2="93" y2="73" stroke="currentColor" stroke-width="1" opacity="0.22"/><line x1="93" y1="27" x2="7" y2="73" stroke="currentColor" stroke-width="1" opacity="0.22"/>`,
+    100: `<circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.4"/>`,
+  };
 
   // Geeft alle actieve result-elementen terug (spelers-paneel én DM-paneel)
   function _els(suffix) {
@@ -5836,6 +5848,56 @@ async function refreshAll() {
     tick();
   }
 
+  function _showFlash(sides, result, contextText, breakdown, isCrit, isFumble, advDropped) {
+    const flash = document.getElementById('dice-flash');
+    if (!flash) return;
+    const shape = _DIE_SVG[sides] || _DIE_SVG[20];
+    const dieEl = document.getElementById('dice-flash-die');
+    if (dieEl) dieEl.innerHTML = `<svg viewBox="0 0 100 100" width="52" height="52">${shape}</svg>`;
+    const ctxEl = document.getElementById('dice-flash-context');
+    if (ctxEl) ctxEl.textContent = contextText;
+    const brkEl = document.getElementById('dice-flash-breakdown');
+    if (brkEl) brkEl.textContent = breakdown;
+    const mainEl = document.getElementById('dice-flash-main');
+    if (mainEl) {
+      if (advDropped !== undefined) {
+        const modeClass = _diceMode === 'advantage' ? 'dice-flash-adv--adv' : 'dice-flash-adv--dis';
+        mainEl.innerHTML = `<div class="dice-flash-adv-pair ${modeClass}"><span class="dice-flash-adv-kept${isCrit ? ' flash-crit' : isFumble ? ' flash-fumble' : ''}" id="dice-flash-num">${result}</span><span class="dice-flash-adv-dropped">${advDropped}</span></div>`;
+      } else {
+        mainEl.innerHTML = `<div class="dice-flash-num" id="dice-flash-num">—</div>`;
+      }
+    }
+    flash.classList.remove('active');
+    void flash.offsetWidth;
+    flash.classList.add('active');
+    if (advDropped === undefined) {
+      const numEl = document.getElementById('dice-flash-num');
+      if (numEl) {
+        if (isCrit)   numEl.classList.add('flash-crit');
+        if (isFumble) numEl.classList.add('flash-fumble');
+        let ticks = 0;
+        const maxFake = sides === 100 ? 99 : sides;
+        const tick = () => {
+          if (ticks < 12) {
+            numEl.textContent = Math.floor(Math.random() * maxFake) + 1;
+            numEl.classList.toggle('dice-flash-cycling', ticks % 2 === 0);
+            setTimeout(tick, 35 + ticks * 9);
+            ticks++;
+          } else {
+            numEl.textContent = result;
+            numEl.classList.remove('dice-flash-cycling');
+            numEl.classList.add('dice-flash-settled');
+            setTimeout(() => numEl.classList.remove('dice-flash-settled'), 500);
+          }
+        };
+        tick();
+      }
+    }
+    clearTimeout(flash._dismissTimer);
+    flash._dismissTimer = setTimeout(() => flash.classList.remove('active'), 3800);
+    flash.onclick = () => flash.classList.remove('active');
+  }
+
   window.dice = {
     toggle() {
       document.getElementById('dice-panel')?.classList.toggle('open');
@@ -5850,22 +5912,74 @@ async function refreshAll() {
       if (el) el.textContent = _dmCount;
     },
 
+    adjustPlayerCount(delta) {
+      _diceCount = Math.max(1, Math.min(20, _diceCount + delta));
+      if (_diceCount > 1 && _diceMode !== 'normal') {
+        _diceMode = 'normal';
+        this._updateAdvButtons();
+      }
+      const el = document.getElementById('dice-count-display');
+      if (el) el.textContent = _diceCount;
+    },
+
+    toggleAdv(mode) {
+      if (_diceMode !== mode) {
+        _diceCount = 1;
+        const countEl = document.getElementById('dice-count-display');
+        if (countEl) countEl.textContent = 1;
+      }
+      _diceMode = _diceMode === mode ? 'normal' : mode;
+      this._updateAdvButtons();
+    },
+
+    _updateAdvButtons() {
+      document.getElementById('dice-adv-btn')?.classList.toggle('active', _diceMode === 'advantage');
+      document.getElementById('dice-dis-btn')?.classList.toggle('active', _diceMode === 'disadvantage');
+    },
+
     roll(sides) {
+      const count    = _diceCount;
+      const mode     = _diceMode;
       const result   = Math.floor(Math.random() * sides) + 1;
       const numEls   = _els('result-num');
       const lblEls   = _els('result-label');
       const boxEls   = _els('result');
       if (!numEls.length) return;
       const dieLabel = sides === 100 ? 'd%' : `d${sides}`;
-      const isCrit   = sides === 20 && result === 20;
-      const isFumble = sides === 20 && result === 1;
-      const lbl      = isCrit   ? `${dieLabel} \u2014 \u2736 Critical Hit!`
-                     : isFumble ? `${dieLabel} \u2014 \u2715 Critical Fail!`
-                     :             dieLabel;
+
+      // Advantage / Disadvantage
+      if (mode !== 'normal' && count === 1) {
+        const r1 = Math.floor(Math.random() * sides) + 1;
+        const r2 = Math.floor(Math.random() * sides) + 1;
+        const kept    = mode === 'advantage' ? Math.max(r1, r2) : Math.min(r1, r2);
+        const dropped = mode === 'advantage' ? Math.min(r1, r2) : Math.max(r1, r2);
+        const isCrit   = sides === 20 && kept === 20;
+        const isFumble = sides === 20 && kept === 1;
+        const modeTag  = mode === 'advantage' ? 'Advantage \u2191' : 'Disadvantage \u2193';
+        const lbl = `${dieLabel} \u2014 ${modeTag}${isCrit ? ' \u2736 Critical!' : isFumble ? ' \u2715 Fumble!' : ''}`;
+        _animate(numEls, lblEls, boxEls,
+          () => Math.floor(Math.random() * sides) + 1,
+          kept, lbl,
+          { sides, result: kept, count: 1, mode, crit: isCrit, fumble: isFumble });
+        _showFlash(sides, kept, lbl, '', isCrit, isFumble, dropped);
+        return;
+      }
+
+      // Meervoudig of normaal
+      const rolls  = Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1);
+      const total  = rolls.reduce((a, b) => a + b, 0);
+      const isCrit   = count === 1 && sides === 20 && total === 20;
+      const isFumble = count === 1 && sides === 20 && total === 1;
+      const min = count, max = count * sides;
+      const lbl = count > 1
+        ? `${count}${dieLabel}`
+        : (isCrit ? `${dieLabel} \u2014 \u2736 Critical Hit!` : isFumble ? `${dieLabel} \u2014 \u2715 Critical Fail!` : dieLabel);
+      const breakdown = count > 1 ? rolls.join(' + ') + ' = ' + total : '';
       _animate(numEls, lblEls, boxEls,
-        () => Math.floor(Math.random() * sides) + 1,
-        result, lbl,
-        { sides, result, count: 1, crit: isCrit, fumble: isFumble });
+        () => Math.floor(Math.random() * (max - min + 1)) + min,
+        total, count > 1 ? `${count}${dieLabel} \u2014 ${rolls.join(' + ')}` : lbl,
+        { sides, result: total, count, rolls: count > 1 ? rolls : undefined, crit: isCrit, fumble: isFumble });
+      _showFlash(sides, total, lbl, breakdown, isCrit, isFumble);
     },
 
     rollDm(sides) {
@@ -5935,11 +6049,12 @@ async function refreshAll() {
   };
 
   function _renderHistory() {
-    const html = _history.map(({ sides, result, count = 1, crit, fumble }) => {
+    const html = _history.map(({ sides, result, count = 1, mode, crit, fumble }) => {
       const cls = crit ? ' dice-hist-crit' : fumble ? ' dice-hist-fumble' : '';
       const lbl = sides === 100 ? '%' : sides;
       const pfx = count > 1 ? `${count}d` : 'd';
-      return `<span class="dice-hist-chip${cls}">${pfx}${lbl}\u00b7${result}</span>`;
+      const modeTag = mode === 'advantage' ? '\u2191' : mode === 'disadvantage' ? '\u2193' : '';
+      return `<span class="dice-hist-chip${cls}">${pfx}${lbl}\u00b7${result}${modeTag}</span>`;
     }).join('');
     _els('history').forEach(el => { el.innerHTML = html; });
   }

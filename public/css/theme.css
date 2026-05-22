@@ -2294,6 +2294,200 @@ body::before {
   75%  { transform: translateX(4px)  rotate(1.5deg); }
 }
 
+/* ── Dice panel controls (count + adv/dis) ── */
+.dice-panel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 13px 2px;
+  gap: 8px;
+}
+.dice-count-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dice-ctrl-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(196,168,122,0.6);
+  background: linear-gradient(to bottom, #f5edd8, #ece0c0);
+  color: #3a2010;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
+}
+.dice-ctrl-btn:hover { background: linear-gradient(to bottom, #faf4e4, #f0e4c8); }
+.dice-count-num {
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #8a5c00;
+  min-width: 20px;
+  text-align: center;
+}
+.dice-adv-row {
+  display: flex;
+  gap: 4px;
+}
+.dice-adv-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(196,168,122,0.5);
+  background: linear-gradient(to bottom, #f5edd8, #ece0c0);
+  color: rgba(60,35,10,0.55);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.dice-adv-btn--adv.active {
+  background: linear-gradient(to bottom, #d4f0da, #b8e4c0);
+  border-color: rgba(30,100,50,0.45);
+  color: #1a5c28;
+}
+.dice-adv-btn--dis.active {
+  background: linear-gradient(to bottom, #f0d4d4, #e4b8b8);
+  border-color: rgba(140,30,30,0.45);
+  color: #7a1a1a;
+}
+
+/* ── Parchment flash card ── */
+@keyframes dice-flash-in {
+  0%   { transform: scale(0.5) translateY(28px); opacity: 0; }
+  65%  { transform: scale(1.04) translateY(-4px); opacity: 1; }
+  80%  { transform: scale(0.98) translateY(1px); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+@keyframes dice-die-fall {
+  0%   { transform: translateY(-18px) rotate(-80deg); opacity: 0; }
+  55%  { transform: translateY(3px) rotate(6deg); opacity: 1; }
+  75%  { transform: translateY(-2px) rotate(-1deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+@keyframes dice-flash-settle {
+  0%   { transform: scale(1.5); }
+  55%  { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+
+.dice-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 9400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.dice-flash.active { pointer-events: all; }
+
+.dice-flash-card {
+  background: linear-gradient(155deg, #faf2de 0%, #f0e2b6 65%, #e8d49a 100%);
+  border: 1.5px solid rgba(150,105,25,0.50);
+  border-radius: 14px;
+  padding: 18px 44px 16px;
+  text-align: center;
+  box-shadow:
+    0 10px 44px rgba(50,30,5,0.38),
+    0 2px 8px rgba(50,30,5,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.65);
+  transform: scale(0.5) translateY(28px);
+  opacity: 0;
+  transition: none;
+  min-width: 170px;
+}
+.dice-flash.active .dice-flash-card {
+  animation: dice-flash-in 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.dice-flash-die {
+  color: rgba(110,70,15,0.40);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+}
+.dice-flash.active .dice-flash-die svg {
+  animation: dice-die-fall 0.38s cubic-bezier(0.22, 0.61, 0.36, 1) 0.08s both;
+}
+
+.dice-flash-context {
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgba(80,50,10,0.52);
+  margin-bottom: 6px;
+  min-height: 12px;
+}
+
+.dice-flash-num {
+  font-family: 'Cinzel', serif;
+  font-size: 78px;
+  font-weight: 900;
+  color: #1e0e00;
+  line-height: 1;
+  text-shadow: 0 2px 10px rgba(50,30,5,0.18);
+  display: inline-block;
+  min-width: 60px;
+}
+.dice-flash-num.dice-flash-cycling {
+  color: rgba(80,50,10,0.25);
+  text-shadow: none;
+}
+.dice-flash-num.dice-flash-settled {
+  animation: dice-flash-settle 0.40s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.dice-flash-num.flash-crit   { color: #0e5020; text-shadow: 0 0 24px rgba(14,80,32,0.35); }
+.dice-flash-num.flash-fumble { color: #6a1010; text-shadow: 0 0 24px rgba(106,16,16,0.35); }
+
+/* Advantage pair display */
+.dice-flash-adv-pair {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12px;
+}
+.dice-flash-adv-kept {
+  font-family: 'Cinzel', serif;
+  font-size: 78px;
+  font-weight: 900;
+  color: #1e0e00;
+  line-height: 1;
+}
+.dice-flash-adv--adv .dice-flash-adv-kept { color: #0e5020; }
+.dice-flash-adv--dis .dice-flash-adv-kept { color: #6a1010; }
+.dice-flash-adv-dropped {
+  font-family: 'Cinzel', serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: rgba(80,50,10,0.28);
+  text-decoration: line-through;
+  text-decoration-color: rgba(80,50,10,0.22);
+}
+
+.dice-flash-breakdown {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: rgba(80,50,10,0.50);
+  margin-top: 6px;
+  min-height: 15px;
+}
+.dice-flash-hint {
+  margin-top: 10px;
+  font-size: 9px;
+  color: rgba(80,50,10,0.28);
+  letter-spacing: 0.05em;
+  font-style: italic;
+}
+
 /* DM Dice FAB — zichtbaar in rechteronderhoek wanneer DM actief is */
 .dm-dice-fab {
   position: fixed;

@@ -414,6 +414,17 @@
       <span class="dice-panel-title">⚄ Dobbelstenen</span>
       <button class="dice-panel-close" onclick="window.dice.toggle()" title="Sluiten">&times;</button>
     </div>
+    <div class="dice-panel-controls">
+      <div class="dice-count-row">
+        <button class="dice-ctrl-btn" onclick="window.dice.adjustPlayerCount(-1)">−</button>
+        <span id="dice-count-display" class="dice-count-num">1</span>
+        <button class="dice-ctrl-btn" onclick="window.dice.adjustPlayerCount(1)">+</button>
+      </div>
+      <div class="dice-adv-row">
+        <button class="dice-adv-btn dice-adv-btn--adv" id="dice-adv-btn" onclick="window.dice.toggleAdv('advantage')" title="Advantage: hoogste">ADV</button>
+        <button class="dice-adv-btn dice-adv-btn--dis" id="dice-dis-btn" onclick="window.dice.toggleAdv('disadvantage')" title="Disadvantage: laagste">DIS</button>
+      </div>
+    </div>
     <div class="dice-panel-grid">
       <button class="dice-btn" onclick="window.dice.roll(4)">d4</button>
       <button class="dice-btn" onclick="window.dice.roll(6)">d6</button>
@@ -427,6 +438,19 @@
       <div class="dice-result-label" id="dice-result-label">Kies een dobbelsteen</div>
     </div>
     <div class="dice-history" id="dice-history"></div>
+  </div>
+
+  <!-- Parchment flash card (triggered on every roll) -->
+  <div id="dice-flash" class="dice-flash">
+    <div class="dice-flash-card">
+      <div class="dice-flash-die" id="dice-flash-die"></div>
+      <div class="dice-flash-context" id="dice-flash-context"></div>
+      <div class="dice-flash-main" id="dice-flash-main">
+        <div class="dice-flash-num" id="dice-flash-num">—</div>
+      </div>
+      <div class="dice-flash-breakdown" id="dice-flash-breakdown"></div>
+      <div class="dice-flash-hint">tik om te sluiten</div>
+    </div>
   </div>
 
   <!-- DM Dice FAB — rechteronderhoek, zichtbaar voor DM -->
