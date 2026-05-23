@@ -16098,3 +16098,134 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   background: linear-gradient(135deg, #3a2a10 0%, #5c3a18 100%);
   border-color: rgba(180,130,60,0.62);
 }
+
+/* ── NPC Generator ── */
+.dm-btn-full { width: 100%; justify-content: center; }
+
+.dm-npc-archetype-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+}
+
+.dm-npc-archetype-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 8px;
+  border: 1px solid #c4a87a;
+  border-radius: 5px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.5);
+  color: #7a5c2a;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  text-align: center;
+  line-height: 1.3;
+}
+.dm-npc-archetype-btn:hover { background: rgba(196,168,122,0.25); color: #3a2410; }
+.dm-npc-archetype-btn.active {
+  background: linear-gradient(to bottom, #c4930a, #9a7008);
+  border-color: #c4930a;
+  color: #fff8e8;
+}
+
+.dm-npc-preview {
+  border-top: 2px solid rgba(196,168,122,0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 14px;
+}
+
+.dm-npc-preview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dm-npc-naam {
+  font-family: 'IM Fell English', serif;
+  font-size: 21px;
+  color: #3a2410;
+  line-height: 1.2;
+}
+
+.dm-npc-meta {
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: #7a6040;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+
+.dm-npc-block { display: flex; flex-direction: column; gap: 4px; }
+.dm-npc-block-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7a6040;
+}
+.dm-npc-block-text {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 13px;
+  color: #3a2410;
+  line-height: 1.55;
+}
+
+.dm-npc-stats-wrap {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.dm-npc-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 36px;
+  border: 1px solid rgba(196,168,122,0.5);
+  border-radius: 5px;
+  padding: 5px 3px;
+  background: rgba(255,255,255,0.4);
+  gap: 1px;
+}
+.dm-npc-stat-box--hp {
+  background: rgba(139,42,42,0.07);
+  border-color: rgba(139,42,42,0.28);
+}
+.dm-npc-stat-label {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a6040;
+}
+.dm-npc-stat-score {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: #3a2410;
+  line-height: 1;
+}
+.dm-npc-stat-mod {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #7a6040;
+}
+
+.dm-npc-mj-prompt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #5a3a10;
+  background: rgba(196,168,122,0.12);
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 5px;
+  padding: 8px 10px;
+  line-height: 1.55;
+  word-break: break-word;
+}

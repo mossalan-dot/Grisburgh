@@ -302,6 +302,16 @@ export function initDmPanel() {
     postSend:           _postSend,
     sjabloonDelete:     _sjabloonDelete,
 
+    // NPC Generator
+    npcSetCategorie(key)  { _npcCategorie = key; _npcArchetypeId = _NPC_CATEGORIEEN[key].archetypes[0].id; _renderNpcGenerator(); },
+    npcSetArchetype(id)   { _npcArchetypeId = id; _renderNpcGenerator(); },
+    npcSetRas(id)         { _npcRasId = id; },
+    npcSetGeslacht(g)     { _npcGeslacht = g; _renderNpcGenerator(); },
+    npcSetLevel(v)        { _npcLevel = Math.max(1, Math.min(10, v || 1)); },
+    npcGenereer:          _npcGenereer,
+    npcCopyMj:            _npcCopyMj,
+    npcOpslaan:           _npcOpslaan,
+
     // Socket callbacks
     onTunnelUrl(url) {
       window._dmPanelTunnelUrl = url;
@@ -367,8 +377,9 @@ function _buildTabs() {
     <button class="dm-tab-btn${activeParent==='geluiden' ?' active':''}" data-tab="geluiden"  onclick="window.dmPanel.switchTab('geluiden')"  title="Geluiden">${icon('volume-2')}</button>
     <button class="dm-tab-btn${activeParent==='spreuken' ?' active':''}" data-tab="spreuken"  onclick="window.dmPanel.switchTab('spreuken')"  title="Spreuken">${icon('open-book',{cls:'icon-gi'})}</button>
     <button class="dm-tab-btn${activeParent==='tafels'   ?' active':''}" data-tab="tafels"    onclick="window.dmPanel.switchTab('tafels')"    title="Willekeur — tafels & namen">${icon('dice',{cls:'icon-gi'})}</button>
-    <button class="dm-tab-btn${activeParent==='diensten' ?' active':''}" data-tab="diensten"  onclick="window.dmPanel.switchTab('diensten')"  title="Grisburgh-diensten">${icon('building')}</button>
-    <button class="dm-tab-btn${activeParent==='berichten'?' active':''}" data-tab="berichten" onclick="window.dmPanel.switchTab('berichten')" title="Berichten">${icon('message-circle')}</button>
+    <button class="dm-tab-btn${activeParent==='diensten'      ?' active':''}" data-tab="diensten"       onclick="window.dmPanel.switchTab('diensten')"       title="Grisburgh-diensten">${icon('building')}</button>
+    <button class="dm-tab-btn${activeParent==='npc-generator'?' active':''}" data-tab="npc-generator" onclick="window.dmPanel.switchTab('npc-generator')" title="NPC Generator">${icon('user-plus')}</button>
+    <button class="dm-tab-btn${activeParent==='berichten'    ?' active':''}" data-tab="berichten"     onclick="window.dmPanel.switchTab('berichten')"     title="Berichten">${icon('message-circle')}</button>
     <button class="dm-tab-btn dm-tab-btn--settings" onclick="window._dmInstellingenOpen()" title="Instellingen">${icon('settings')}</button>
   `;
 }
@@ -394,10 +405,11 @@ function _switchTab(tab) {
     c.classList.toggle('active', c.dataset.tab === parentTab);
   });
 
-  if (tab === 'spreuken')  _renderSpreuken();
-  if (tab === 'tafels')    _loadAndRenderTafels();
-  if (tab === 'geluiden')  _renderGeluiden();
-  if (tab === 'berichten') _renderBerichten();
+  if (tab === 'spreuken')       _renderSpreuken();
+  if (tab === 'tafels')         _loadAndRenderTafels();
+  if (tab === 'geluiden')       _renderGeluiden();
+  if (tab === 'berichten')      _renderBerichten();
+  if (tab === 'npc-generator')  _renderNpcGenerator();
   if (tab === 'gevecht' || tab === 'monsters' || tab === 'encounters') _renderGevechtEnMonsters(tab);
   if (tab === 'diensten' || _DIENSTEN_TABS.has(tab)) _renderDiensten(tab);
 }
@@ -5615,6 +5627,352 @@ async function _renderInstellingen() {
   // Render wereld en beurs in de juiste containers
   _renderWereldTab();
   _renderBeursTab();
+}
+
+// ── NPC Generator ──────────────────────────────────────────────────────────────
+
+const _NPC_CATEGORIEEN = {
+  sociaal: {
+    label: 'Sociaal', icon: '🏘',
+    archetypes: [
+      { id: 'herbergier', label: 'Herbergier', klasse: 'Fighter',  rol: 'Herbergier', subtype: 'npc', statPrimary: ['STR','CHA'], hitDie: 8,  baseAC: 11, mjClothing: 'innkeeper apron and simple linen tunic',                      mjMood: 'welcoming' },
+      { id: 'koopman',    label: 'Koopman',    klasse: 'Rogue',    rol: 'Koopman',    subtype: 'npc', statPrimary: ['INT','CHA'], hitDie: 6,  baseAC: 11, mjClothing: 'fine merchant coat with coin purse at belt',                  mjMood: 'shrewd' },
+      { id: 'edelman',    label: 'Edelman',    klasse: 'Noble',    rol: 'Edelman',    subtype: 'npc', statPrimary: ['CHA','INT'], hitDie: 8,  baseAC: 11, mjClothing: 'ornate noble finery with family crest',                       mjMood: 'aristocratic' },
+      { id: 'bedelaar',   label: 'Bedelaar',   klasse: 'Commoner', rol: 'Bedelaar',   subtype: 'npc', statPrimary: ['DEX','WIS'], hitDie: 4,  baseAC: 10, mjClothing: 'tattered dirty ragged layered clothes',                       mjMood: 'desperate' },
+      { id: 'priester',   label: 'Priester',   klasse: 'Cleric',   rol: 'Priester',   subtype: 'npc', statPrimary: ['WIS','CHA'], hitDie: 8,  baseAC: 11, mjClothing: 'religious robes with prominent holy symbol',                  mjMood: 'devout and serene' },
+      { id: 'gildemeester', label: 'Gildemeester', klasse: 'Fighter', rol: 'Gildemeester', subtype: 'npc', statPrimary: ['INT','CHA'], hitDie: 10, baseAC: 13, mjClothing: 'guild master regalia with official insignia',           mjMood: 'authoritative' },
+    ],
+  },
+  gevecht: {
+    label: 'Gevecht', icon: '⚔',
+    archetypes: [
+      { id: 'garde',     label: 'Garde',     klasse: 'Fighter',   rol: 'Garde',     subtype: 'npc', statPrimary: ['STR','CON'], hitDie: 10, baseAC: 16, mjClothing: 'city guard chainmail armor with tabard and shield',          mjMood: 'vigilant' },
+      { id: 'huurling',  label: 'Huurling',  klasse: 'Barbarian', rol: 'Huurling',  subtype: 'npc', statPrimary: ['STR','DEX'], hitDie: 12, baseAC: 13, mjClothing: 'battle-worn mercenary leather armor with weapons',           mjMood: 'gruff and weathered' },
+      { id: 'bandiet',   label: 'Bandiet',   klasse: 'Rogue',     rol: 'Bandiet',   subtype: 'npc', statPrimary: ['DEX','STR'], hitDie: 8,  baseAC: 12, mjClothing: 'rough bandit leathers with hood and dagger',                 mjMood: 'cunning' },
+      { id: 'assassijn', label: 'Assassijn', klasse: 'Rogue',     rol: 'Assassijn', subtype: 'antagonist', statPrimary: ['DEX','INT'], hitDie: 8, baseAC: 14, mjClothing: 'dark form-fitting assassin gear with concealed blades', mjMood: 'cold and calculating' },
+      { id: 'soldaat',   label: 'Soldaat',   klasse: 'Fighter',   rol: 'Soldaat',   subtype: 'npc', statPrimary: ['STR','CON'], hitDie: 10, baseAC: 16, mjClothing: 'military uniform with plate armor and sword',                mjMood: 'disciplined' },
+    ],
+  },
+  mysterieus: {
+    label: 'Mysterieus', icon: '🔮',
+    archetypes: [
+      { id: 'magieer',      label: 'Magiëer',     klasse: 'Wizard',  rol: 'Magiëer',     subtype: 'npc', statPrimary: ['INT','WIS'], hitDie: 6, baseAC: 11, mjClothing: 'arcane robes adorned with glowing runes and a staff',    mjMood: 'eccentric and intense' },
+      { id: 'orakel',       label: 'Orakel',       klasse: 'Cleric',  rol: 'Orakel',       subtype: 'npc', statPrimary: ['WIS','INT'], hitDie: 8, baseAC: 11, mjClothing: 'flowing prophetic veiled robes',                         mjMood: 'enigmatic' },
+      { id: 'spion',        label: 'Spion',        klasse: 'Rogue',   rol: 'Spion',        subtype: 'npc', statPrimary: ['DEX','CHA'], hitDie: 8, baseAC: 12, mjClothing: 'unremarkable common traveler clothing',                  mjMood: 'watchful and tense' },
+      { id: 'informant',    label: 'Informant',    klasse: 'Rogue',   rol: 'Informant',    subtype: 'npc', statPrimary: ['INT','DEX'], hitDie: 8, baseAC: 11, mjClothing: 'nondescript plain urban clothing',                       mjMood: 'nervous' },
+      { id: 'waarzegger',   label: 'Waarzegger',   klasse: 'Warlock', rol: 'Waarzegger',   subtype: 'npc', statPrimary: ['CHA','WIS'], hitDie: 8, baseAC: 11, mjClothing: 'exotic fortune teller robes with crystal ball',          mjMood: 'mysterious and alluring' },
+    ],
+  },
+};
+
+const _NPC_RASSEN = [
+  { id: 'mens',         label: 'Mens',          en: 'human',          uiterlijk: 'met een doorsnee menselijk uiterlijk',                                     mjFeatures: 'average height' },
+  { id: 'hoog-elf',     label: 'Hoog-Elf',      en: 'high elf',       uiterlijk: 'met puntige oren en een slanke elfachtige gestalte',                       mjFeatures: 'pointed ears, slender elven build, pale skin' },
+  { id: 'hout-elf',     label: 'Hout-Elf',      en: 'wood elf',       uiterlijk: 'met puntige oren, een lenige gestalte en koperkleurige huid',              mjFeatures: 'pointed ears, lithe build, copper-toned skin, feral eyes' },
+  { id: 'duistere-elf', label: 'Duistere Elf',  en: 'dark elf',       uiterlijk: 'met puntige oren, donkergrijze huid en sneeuwwit haar',                   mjFeatures: 'pointed ears, dark grey skin, white hair, glowing purple eyes' },
+  { id: 'bergedwerg',   label: 'Bergedwerg',     en: 'mountain dwarf', uiterlijk: 'met een gedrongen gestalte en een volle baard',                            mjFeatures: 'stocky build, long braided beard, weathered face' },
+  { id: 'halfling',     label: 'Halfling',       en: 'halfling',       uiterlijk: 'met een kleine gestalte, ronde wangen en blote voeten',                   mjFeatures: 'small halfling stature, rosy cheeks, curly hair, bare feet' },
+  { id: 'gnoom',        label: 'Gnoom',          en: 'gnome',          uiterlijk: 'met een kleine gestalte en levendige nieuwsgierige ogen',                 mjFeatures: 'tiny gnome stature, wide curious eyes, whimsical appearance' },
+  { id: 'half-ork',     label: 'Half-Ork',       en: 'half-orc',       uiterlijk: 'met een groengrijze huid, kleine slagtanden en een imposant postuur',     mjFeatures: 'greenish-grey skin, small tusks, imposing muscular build' },
+  { id: 'tiefling',     label: 'Tiefling',       en: 'tiefling',       uiterlijk: 'met kleine hoorns, een staart en een ongewone huidkleur',                 mjFeatures: 'small horns, tail, unusual purple or red skin, solid-colored glowing eyes' },
+  { id: 'draconiet',    label: 'Draconiet',      en: 'dragonborn',     uiterlijk: 'met schubben en drakenachtige gelaatstrekken',                            mjFeatures: 'scales, draconic reptilian features, imposing stature' },
+  { id: 'aasimar',      label: 'Aasimar',        en: 'aasimar',        uiterlijk: 'met goudachtige ogen en een lichtgevende engelachtige uitstraling',        mjFeatures: 'golden glowing eyes, faint radiant halo, luminous skin' },
+  { id: 'half-elf',     label: 'Half-Elf',       en: 'half-elf',       uiterlijk: 'met licht puntige oren en elfse gelaatstrekken',                          mjFeatures: 'slightly pointed ears, mixed human and elven features' },
+];
+
+const _NPC_PERSONALITIES = {
+  positief: [
+    'Moedig en vastberaden in het aangezicht van gevaar',
+    'Vriendelijk en gastvrij voor vreemdelingen',
+    'Eerlijk tot op het bot — weigert te liegen',
+    'Wijs en bedachtzaam, spreekt zelden onbezonnen',
+    'Geduldig en tolerant, raakt zelden geïrriteerd',
+    'Heeft een droge humor die altijd op het juiste moment komt',
+    'Bescheiden ondanks indrukwekkende prestaties',
+    'Vrijgevig met geld én kennis',
+    'Loyaal tot in de dood aan degenen die hij/zij vertrouwt',
+    'Onverzettelijk nieuwsgierig en altijd begerig naar kennis',
+  ],
+  negatief: [
+    'Achterdochtig tegenover vreemdelingen en snel argwanend',
+    'Heimelijk hebzuchtig en altijd op zoek naar meer rijkdom',
+    'IJdel en te bewust van het eigen uiterlijk',
+    'Impulsief en handelt zonder na te denken',
+    'Bitter over een oud onrecht dat nooit vergeven werd',
+    'Lafhartig zodra het echt gevaarlijk wordt',
+    'Sarcastisch en onbedoeld kwetsend in woordgebruik',
+    'Diep paranoïde en gelooft in complottheorieën',
+    'Koppig en vrijwel onmogelijk van mening te veranderen',
+    'Subtiel manipulatief en draait situaties naar eigen voordeel',
+  ],
+  eigenaardig: [
+    'Krabt altijd aan de neus als hij/zij iets verbergt',
+    'Praat in raadsels en spreekwoorden die niemand begrijpt',
+    'Verzamelt kleine nutteloze snuisterijen als kostbaarheden',
+    'Zingt altijd zachtjes bij het werken of nadenken',
+    'Gelooft bijgelovig dat bepaalde kleuren ongeluk brengen',
+    'Spreekt altijd over zichzelf in de derde persoon',
+    'Eet automatisch zodra hij/zij nerveus is',
+    'Kan geen geheim bewaren en vertelt alles vroeg of laat',
+    'Lacht altijd net iets te laat als iemand een grap maakt',
+    'Heeft voor élke situatie een ongevraagde mening klaar',
+  ],
+};
+
+const _NPC_UITERLIJK = {
+  haarkleur: [
+    ['ravenzwart',   'raven black'],
+    ['asblond',      'ash blonde'],
+    ['koperrood',    'copper red'],
+    ['donkerbruin',  'dark brown'],
+    ['zilverwit',    'silver white'],
+    ['grijzend',     'salt and pepper grey'],
+    ['platinablond', 'platinum blonde'],
+    ['strohkleurig', 'straw-colored'],
+  ],
+  oogkleur: ['doordringende blauwe', 'diepbruine', 'hazelnootkleurige', 'grijze', 'groene', 'amberkleurige', 'goudgele', 'staalkleurige'],
+  postuur:  ['slanke', 'gedrongen', 'gespierde', 'rijzige', 'kleine', 'compacte', 'robuuste', 'ranke'],
+  leeftijd: ['jonge', 'middelbare', 'oudere', 'bejaarde', 'jeugdige'],
+};
+
+const _NPC_MJ_LIGHTING = [
+  'warm candlelight', 'dramatic torch light', 'cold moonlight', 'golden hour sunlight',
+  'misty morning light', 'stormy overcast light', 'flickering firelight', 'harsh midday sun',
+  'soft diffused overcast', 'ethereal blue moonlight',
+];
+
+const _NPC_MJ_STYLE = 'fantasy portrait, oil painting, highly detailed, dramatic lighting, painterly Renaissance inspired style';
+
+let _npcCategorie  = 'sociaal';
+let _npcArchetypeId = 'herbergier';
+let _npcRasId      = 'mens';
+let _npcGeslacht   = 'm';
+let _npcLevel      = 1;
+let _npcPreview    = null;
+
+function _npcPick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function _npcShuffleArr(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function _npcStatMod(score) {
+  return Math.floor((score - 10) / 2);
+}
+
+function _npcStatModStr(score) {
+  const m = _npcStatMod(score);
+  return (m >= 0 ? '+' : '') + m;
+}
+
+function _npcGenereerStats(archetype) {
+  const allStats  = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+  const primary   = archetype.statPrimary;
+  const secondary = _npcShuffleArr(allStats.filter(s => !primary.includes(s)));
+  const values    = [15, 14, 13, 12, 10, 8].map(v => Math.max(6, Math.min(18, v + Math.floor(Math.random() * 3) - 1)));
+  values.sort((a, b) => b - a);
+  const result = {};
+  let idx = 0;
+  for (const s of primary)    result[s] = values[idx++];
+  for (const s of secondary)  result[s] = values[idx++];
+  return result;
+}
+
+function _npcBerekeningHP(archetype, level, stats) {
+  const conMod = _npcStatMod(stats.CON);
+  return Math.max(1, archetype.hitDie + (level - 1) * (Math.floor(archetype.hitDie / 2) + 1) + level * conMod);
+}
+
+function _npcBerekeningAC(archetype, stats) {
+  const heavyArmor = archetype.baseAC >= 15;
+  return heavyArmor ? archetype.baseAC : archetype.baseAC + Math.max(0, Math.min(_npcStatMod(stats.DEX), 2));
+}
+
+function _npcGenereer() {
+  const cat       = _NPC_CATEGORIEEN[_npcCategorie];
+  const archetype = cat.archetypes.find(a => a.id === _npcArchetypeId) || cat.archetypes[0];
+  const ras       = _NPC_RASSEN.find(r => r.id === _npcRasId) || _NPC_RASSEN[0];
+
+  const naamLijst = _npcGeslacht === 'v' ? NAMEN_VROUW : (_npcGeslacht === 'n' && Math.random() < 0.5 ? NAMEN_VROUW : NAMEN_MAN);
+  const naam      = `${_npcPick(naamLijst)} ${_npcPick(NAMEN_ACHTERNAAM)}`;
+
+  const stats = _npcGenereerStats(archetype);
+  const level = Math.max(1, Math.min(10, _npcLevel));
+  const hp    = _npcBerekeningHP(archetype, level, stats);
+  const ac    = _npcBerekeningAC(archetype, stats);
+
+  const positief   = _npcPick(_NPC_PERSONALITIES.positief);
+  const negatief   = Math.random() < 0.6 ? _npcPick(_NPC_PERSONALITIES.negatief) : _npcPick(_NPC_PERSONALITIES.eigenaardig);
+  const persoonlijkheid = `${positief}. ${negatief}.`;
+
+  const [haarklNL, haarklEN] = _npcPick(_NPC_UITERLIJK.haarkleur);
+  const oogkleur  = _npcPick(_NPC_UITERLIJK.oogkleur);
+  const postuur   = _npcPick(_NPC_UITERLIJK.postuur);
+  const leeftijd  = _npcPick(_NPC_UITERLIJK.leeftijd);
+  const geslWoord = _npcGeslacht === 'v' ? 'vrouw' : (_npcGeslacht === 'n' ? 'persoon' : 'man');
+  const uiterlijk = `Een ${leeftijd} ${postuur} ${geslWoord} ${ras.uiterlijk}, met ${haarklNL} haar en ${oogkleur} ogen.`;
+
+  const genderEn = _npcGeslacht === 'v' ? 'female' : (_npcGeslacht === 'n' ? 'androgynous' : 'male');
+  const lighting  = _npcPick(_NPC_MJ_LIGHTING);
+  const mjPrompt  = `${ras.en} ${genderEn} ${archetype.rol.toLowerCase()}, ${ras.mjFeatures}, ${haarklEN} hair, ${archetype.mjClothing}, ${archetype.mjMood} expression, ${lighting}, ${_NPC_MJ_STYLE}, --ar 2:3`;
+
+  _npcPreview = { naam, ras: ras.label, klasse: archetype.klasse, rol: archetype.rol, subtype: archetype.subtype, geslacht: _npcGeslacht, level, persoonlijkheid, uiterlijk, stats, hp, ac, mjPrompt };
+  _renderNpcGenerator();
+}
+
+function _npcCopyMj() {
+  if (!_npcPreview) return;
+  navigator.clipboard.writeText(_npcPreview.mjPrompt).then(() => {
+    const btn = document.getElementById('dm-npc-mj-copy-btn');
+    if (!btn) return;
+    const old = btn.innerHTML;
+    btn.innerHTML = '✓ Gekopieerd';
+    setTimeout(() => { if (btn) btn.innerHTML = old; }, 1500);
+  });
+}
+
+async function _npcOpslaan() {
+  if (!_npcPreview) return;
+  const npc = _npcPreview;
+  const btn = document.getElementById('dm-npc-save-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Opslaan…'; }
+  try {
+    await api.createEntity('personages', {
+      name:    npc.naam,
+      subtype: npc.subtype,
+      data: {
+        rol:             npc.rol,
+        ras:             npc.ras,
+        klasse:          npc.klasse,
+        desc:            npc.uiterlijk,
+        persoonlijkheid: npc.persoonlijkheid,
+        flavour:         '',
+        geheim:          '',
+      },
+      stats: { ...npc.stats },
+      links: { personages: [], locaties: [], organisaties: [], voorwerpen: [], archief: [] },
+    });
+    if (btn) { btn.textContent = '✓ Opgeslagen!'; }
+    setTimeout(() => { _npcPreview = null; _renderNpcGenerator(); }, 1800);
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.innerHTML = `${icon('user-plus')} Opslaan als personage`; }
+    alert('Opslaan mislukt: ' + err.message);
+  }
+}
+
+function _renderNpcPreviewHTML(npc) {
+  const statKeys   = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+  const statLabels = { STR: 'KRA', DEX: 'LEN', CON: 'GEZ', INT: 'INT', WIS: 'WIJ', CHA: 'KAR' };
+  return `
+    <div class="dm-npc-preview">
+      <div class="dm-npc-preview-header">
+        <div>
+          <div class="dm-npc-naam">${esc(npc.naam)}</div>
+          <div class="dm-npc-meta">${esc(npc.ras)} &middot; ${esc(npc.klasse)} &middot; ${esc(npc.rol)}</div>
+        </div>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-icon" onclick="window.dmPanel.npcGenereer()" title="Opnieuw genereren">${icon('refresh-cw')}</button>
+      </div>
+      <div class="dm-npc-block">
+        <div class="dm-npc-block-label">Persoonlijkheid</div>
+        <div class="dm-npc-block-text">${esc(npc.persoonlijkheid)}</div>
+      </div>
+      <div class="dm-npc-block">
+        <div class="dm-npc-block-label">Uiterlijk</div>
+        <div class="dm-npc-block-text">${esc(npc.uiterlijk)}</div>
+      </div>
+      <div class="dm-npc-stats-wrap">
+        ${statKeys.map(s => `
+          <div class="dm-npc-stat-box">
+            <div class="dm-npc-stat-label">${statLabels[s]}</div>
+            <div class="dm-npc-stat-score">${npc.stats[s]}</div>
+            <div class="dm-npc-stat-mod">${_npcStatModStr(npc.stats[s])}</div>
+          </div>`).join('')}
+        <div class="dm-npc-stat-box dm-npc-stat-box--hp">
+          <div class="dm-npc-stat-label">HP</div>
+          <div class="dm-npc-stat-score">${npc.hp}</div>
+          <div class="dm-npc-stat-mod">&nbsp;</div>
+        </div>
+        <div class="dm-npc-stat-box">
+          <div class="dm-npc-stat-label">AC</div>
+          <div class="dm-npc-stat-score">${npc.ac}</div>
+          <div class="dm-npc-stat-mod">&nbsp;</div>
+        </div>
+      </div>
+      <div class="dm-npc-block">
+        <div class="dm-npc-block-label" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Midjourney Prompt</span>
+          <button id="dm-npc-mj-copy-btn" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.npcCopyMj()" style="font-size:10px;padding:3px 7px">${icon('copy')} Kopieer</button>
+        </div>
+        <div class="dm-npc-mj-prompt">${esc(npc.mjPrompt)}</div>
+      </div>
+      <button id="dm-npc-save-btn" class="dm-btn dm-btn-primary dm-btn-full" onclick="window.dmPanel.npcOpslaan()">
+        ${icon('user-plus')} Opslaan als personage
+      </button>
+    </div>`;
+}
+
+function _renderNpcGenerator() {
+  const el = document.getElementById('dm-npc-content');
+  if (!el) return;
+  const cat = _NPC_CATEGORIEEN[_npcCategorie];
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Categorie</div>
+      <div class="dm-feature-row">
+        ${Object.entries(_NPC_CATEGORIEEN).map(([key, c]) =>
+          `<button class="dm-btn dm-btn-sm${_npcCategorie === key ? ' dm-btn-primary' : ' dm-btn-ghost'}"
+            onclick="window.dmPanel.npcSetCategorie('${key}')">${c.icon} ${esc(c.label)}</button>`
+        ).join('')}
+      </div>
+    </div>
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Archetype</div>
+      <div class="dm-npc-archetype-grid">
+        ${cat.archetypes.map(a =>
+          `<button class="dm-npc-archetype-btn${_npcArchetypeId === a.id ? ' active' : ''}"
+            onclick="window.dmPanel.npcSetArchetype('${a.id}')">${esc(a.label)}</button>`
+        ).join('')}
+      </div>
+    </div>
+    <div class="dm-feature-section">
+      <div class="dm-feature-row" style="align-items:flex-start;gap:10px">
+        <div style="flex:1;min-width:110px">
+          <div class="dm-section-label">Ras</div>
+          <select class="dm-select" onchange="window.dmPanel.npcSetRas(this.value)">
+            ${_NPC_RASSEN.map(r =>
+              `<option value="${r.id}"${_npcRasId === r.id ? ' selected' : ''}>${esc(r.label)}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div>
+          <div class="dm-section-label">Geslacht</div>
+          <div class="dm-feature-row" style="gap:4px;flex-wrap:nowrap">
+            <button class="dm-btn dm-btn-sm${_npcGeslacht === 'm' ? ' dm-btn-primary' : ' dm-btn-ghost'}" onclick="window.dmPanel.npcSetGeslacht('m')" title="Mannelijk">♂</button>
+            <button class="dm-btn dm-btn-sm${_npcGeslacht === 'v' ? ' dm-btn-primary' : ' dm-btn-ghost'}" onclick="window.dmPanel.npcSetGeslacht('v')" title="Vrouwelijk">♀</button>
+            <button class="dm-btn dm-btn-sm${_npcGeslacht === 'n' ? ' dm-btn-primary' : ' dm-btn-ghost'}" onclick="window.dmPanel.npcSetGeslacht('n')" title="Non-binair">⚧</button>
+          </div>
+        </div>
+        <div>
+          <div class="dm-section-label">Level</div>
+          <input type="number" class="dm-input dm-input-sm" min="1" max="10" value="${_npcLevel}"
+            style="width:52px;text-align:center" onchange="window.dmPanel.npcSetLevel(+this.value)">
+        </div>
+      </div>
+    </div>
+    <div style="padding:0 14px 14px">
+      <button class="dm-btn dm-btn-primary dm-btn-full" onclick="window.dmPanel.npcGenereer()">
+        ${icon('wand-2')} Genereer NPC
+      </button>
+    </div>
+    ${_npcPreview ? _renderNpcPreviewHTML(_npcPreview) : ''}
+  `;
 }
 
 window._instTitelSave = async () => {
