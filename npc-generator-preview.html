@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NPC Generator — Grisburgh Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&family=IM+Fell+English:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Parchment texture overlay ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background-image:
+    repeating-linear-gradient(-38deg, transparent 0px, transparent 6px, rgba(130,90,30,0.009) 6px, rgba(130,90,30,0.009) 7px),
+    repeating-linear-gradient(52deg, transparent 0px, transparent 9px, rgba(130,90,30,0.006) 9px, rgba(130,90,30,0.006) 10px);
+}
+
+body {
+  min-height: 100vh;
+  background: #f5f0e8;
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(196,147,10,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 80%, rgba(139,90,40,0.05) 0%, transparent 55%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 16px 48px;
+  font-family: 'Crimson Text', Georgia, serif;
+  color: #3a2410;
+}
+
+/* ── Disclaimer banner ── */
+.disclaimer {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9a7008;
+  text-align: center;
+  margin-bottom: 18px;
+  opacity: 0.8;
+}
+
+/* ── Panel container ── */
+.panel {
+  width: 100%;
+  max-width: 384px;
+  background: #f8f0de;
+  border: 1px solid #c4a87a;
+  border-radius: 10px;
+  box-shadow:
+    0 4px 24px rgba(40,20,5,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.6);
+  overflow: hidden;
+}
+
+/* ── Panel header ── */
+.panel-header {
+  background: linear-gradient(to bottom, #ede0b8, #e8d8a8);
+  border-bottom: 1px solid #c4a87a;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-title {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #5a4010;
+  flex: 1;
+}
+
+.panel-icon {
+  font-size: 15px;
+  opacity: 0.75;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 7px; }
+::-webkit-scrollbar-track { background: #efe3c5; }
+::-webkit-scrollbar-thumb { background: #c4a87a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #b09060; }
+
+/* ── Section label ── */
+.dm-section-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7a6040;
+  margin-bottom: 6px;
+}
+
+/* ── Feature sections ── */
+.dm-feature-section {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dm-feature-section + .dm-feature-section {
+  border-top: 1px solid rgba(196,168,122,0.45);
+}
+
+.dm-feature-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+/* ── Buttons ── */
+.dm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 5px;
+  border: 1px solid;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+  flex-shrink: 0;
+  line-height: 1;
+  text-decoration: none;
+}
+.dm-btn:active { transform: scale(0.96); }
+.dm-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+.dm-btn-primary {
+  background: linear-gradient(to bottom, #c4930a, #9a7008);
+  border-color: #c4930a;
+  color: #fff8e8;
+}
+.dm-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(to bottom, #d4a318, #b08010);
+}
+
+.dm-btn-ghost {
+  background: rgba(255,255,255,0.5);
+  border-color: #c4a87a;
+  color: #7a5c2a;
+}
+.dm-btn-ghost:hover { background: rgba(196,168,122,0.25); color: #3a2410; }
+
+.dm-btn-sm {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  line-height: 1;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.dm-btn-full {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ── Archetype grid ── */
+.dm-npc-archetype-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 6px;
+}
+
+.dm-npc-archetype-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 8px;
+  border: 1px solid #c4a87a;
+  border-radius: 5px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.5);
+  color: #7a5c2a;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  text-align: center;
+  line-height: 1.3;
+}
+.dm-npc-archetype-btn:hover { background: rgba(196,168,122,0.25); color: #3a2410; }
+.dm-npc-archetype-btn.active {
+  background: linear-gradient(to bottom, #c4930a, #9a7008);
+  border-color: #c4930a;
+  color: #fff8e8;
+}
+
+/* ── Select & Input ── */
+.dm-select {
+  background: rgba(255,255,255,0.55);
+  border: 1px solid #c4a87a;
+  border-radius: 4px;
+  padding: 5px 6px;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 13px;
+  color: #3a2410;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.dm-select:focus { outline: none; border-color: #9a7008; }
+
+.dm-input {
+  background: rgba(255,255,255,0.55);
+  border: 1px solid #c4a87a;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 13px;
+  color: #3a2410;
+  transition: border-color 0.15s;
+  min-width: 0;
+}
+.dm-input:focus { outline: none; border-color: #9a7008; }
+.dm-input-sm { padding: 4px 6px; font-size: 12px; }
+
+/* ── Generate button section ── */
+.generate-section {
+  padding: 0 14px 14px;
+}
+
+/* ── NPC Preview card ── */
+.dm-npc-preview {
+  border-top: 2px solid rgba(196,168,122,0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  background: rgba(245,240,232,0.6);
+}
+
+.dm-npc-preview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dm-npc-naam {
+  font-family: 'IM Fell English', serif;
+  font-size: 21px;
+  color: #3a2410;
+  line-height: 1.2;
+}
+
+.dm-npc-meta {
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: #7a6040;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+
+.dm-npc-block { display: flex; flex-direction: column; gap: 4px; }
+.dm-npc-block-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7a6040;
+}
+.dm-npc-block-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.dm-npc-block-text {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 13px;
+  color: #3a2410;
+  line-height: 1.55;
+}
+
+/* ── Stats grid ── */
+.dm-npc-stats-wrap {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.dm-npc-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 36px;
+  border: 1px solid rgba(196,168,122,0.5);
+  border-radius: 5px;
+  padding: 5px 3px;
+  background: rgba(255,255,255,0.4);
+  gap: 1px;
+}
+.dm-npc-stat-box--hp {
+  background: rgba(139,42,42,0.07);
+  border-color: rgba(139,42,42,0.28);
+}
+.dm-npc-stat-label {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a6040;
+}
+.dm-npc-stat-score {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: #3a2410;
+  line-height: 1;
+}
+.dm-npc-stat-mod {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #7a6040;
+}
+
+/* ── MJ Prompt ── */
+.dm-npc-mj-prompt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #5a3a10;
+  background: rgba(196,168,122,0.12);
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 5px;
+  padding: 8px 10px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+/* ── Refresh icon button ── */
+.dm-btn-icon-sm {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 14px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Disabled save button tooltip wrapper ── */
+.save-btn-wrap {
+  position: relative;
+}
+.save-btn-wrap .tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #3a2410;
+  color: #f5f0e8;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+}
+.save-btn-wrap .tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: #3a2410;
+}
+.save-btn-wrap:hover .tooltip {
+  display: block;
+}
+
+/* ── Reveal animation for preview ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.dm-npc-preview.reveal {
+  animation: fadeUp 0.25s ease;
+}
+
+/* ── Footer note ── */
+.footer-note {
+  margin-top: 20px;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: #9a7040;
+  text-align: center;
+  opacity: 0.75;
+}
+</style>
+</head>
+<body>
+
+<p class="disclaimer">— Voorbeeldweergave — Beschikbaar in de app als DM-tabblad</p>
+
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-icon">⚙</span>
+    <span class="panel-title">NPC Generator</span>
+  </div>
+
+  <!-- Categorie -->
+  <div class="dm-feature-section">
+    <div class="dm-section-label">Categorie</div>
+    <div class="dm-feature-row" id="cat-buttons"></div>
+  </div>
+
+  <!-- Archetype -->
+  <div class="dm-feature-section">
+    <div class="dm-section-label">Archetype</div>
+    <div class="dm-npc-archetype-grid" id="archetype-grid"></div>
+  </div>
+
+  <!-- Ras / Geslacht / Level -->
+  <div class="dm-feature-section">
+    <div class="dm-feature-row" style="align-items:flex-start;gap:10px;flex-wrap:nowrap">
+      <div style="flex:1;min-width:100px">
+        <div class="dm-section-label">Ras</div>
+        <select class="dm-select" id="ras-select" onchange="setRas(this.value)"></select>
+      </div>
+      <div>
+        <div class="dm-section-label">Geslacht</div>
+        <div class="dm-feature-row" style="gap:4px;flex-wrap:nowrap">
+          <button class="dm-btn dm-btn-sm dm-btn-primary" id="g-m" onclick="setGeslacht('m')" title="Mannelijk">♂</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost"   id="g-v" onclick="setGeslacht('v')" title="Vrouwelijk">♀</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost"   id="g-n" onclick="setGeslacht('n')" title="Non-binair">⚧</button>
+        </div>
+      </div>
+      <div>
+        <div class="dm-section-label">Level</div>
+        <input type="number" class="dm-input dm-input-sm" id="level-input"
+          min="1" max="10" value="1" style="width:50px;text-align:center"
+          onchange="setLevel(+this.value)">
+      </div>
+    </div>
+  </div>
+
+  <!-- Generate button -->
+  <div class="generate-section">
+    <button class="dm-btn dm-btn-primary dm-btn-full" onclick="genereer()">
+      ✦ Genereer NPC
+    </button>
+  </div>
+
+  <!-- Preview card (injected here) -->
+  <div id="npc-preview-container"></div>
+</div>
+
+<p class="footer-note">Klik op "Genereer NPC" om een nieuw personage te genereren</p>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+
+const NAMEN_MAN = [
+  'Anwar','Adonai','Aleksandre','Alerik','Andrias','Azad','Bovin','Boaz','Bjarte','Bruno',
+  'Bernt','Borys','Caj','Caspar','Corin','Corné','Crispijn','Caleb','Darick','Dax',
+  'Daïn','Déclan','Dorian','Duc','Edvin','Everhard','Egidius','Ewoud','Emre','Ezra',
+  'Floris','Feliks','Florian','Friedrich','Fernando','Foppe','Gilles','Gerloff','Gydeon','Gérian',
+  'Garbann','Geordi','Hindrik','Haico','Halewyn','Hessel','Heyn','Hamed','Illko','Ilaij',
+  'Iggy','Ide','Ieper','Igo','Jaron','Joric','Jilles','Jeftha','Jent','Julyan',
+  'Koa','Kéano','Krein','Kjalt','Koobe','Karelt','Lennaert','Lodewijck','Levv','Lucka',
+  'Lénox','Liam','Mikäel','Miro','Magnuss','Maksymilian','Matz','Morits','Nathaniël','Nouwt',
+  'Nikolas','Nadyr','Nils','Nox','Okke','Olievir','Oskar','Olav','Obel','Offelix',
+  'Pepyn','Phillip','Pier','Pym','Paster','Pont','Quinten','Qais','Quillan','Qusai',
+  'Querijn','Qean','Reinaut','Ralph','Reda','Romeo','Rohan','Raphael','Samuel','Stein',
+  'Sébastian','Silas','Saul','Silvan','Timon','Tij','Tomas','Tobian','Tygo','Teo',
+  'Ubaida','Uriel','Ulysse','Uzaan','Udo','Ulrich','Viktor','Valentein','Vincent','Vihan',
+  'Vigo','Vivix','Wilhelm','Wolf','Wessel','Ward','Walter','Wiebe','Xander','Xavier',
+  'Xeno','Xylian','Xristos','Xyan','Yves','Yosua','Youp','Yoran','Yoeri','Yvo',
+  'Zacharias','Zeger','Zebb','Zeth','Zenno','Zeijn','Adam','Artur','Beer','Bastian',
+  'Cristoffel','Cornelis','Dariusz','Denis','Edvard','Erik','Frederic','Frank','Gerardus','Gabriël',
+  'Harman','Hubertus','Immanuël','Ivan','Jonas','Julius','Lars','Lukas','Manuel','Max',
+  'Nicodemus','Natan','Otis','Oost','Petrus','Pjotr','Rinse','Rutcher','Sven','Sam',
+  'Thalbin','Teunn','Valdemar','Vlas','Wynant','Wilvis','Anne','Ato','Bela','Broer',
+];
+
+const NAMEN_VROUW = [
+  'Alyssa','Adriana','Alissia','Alma','Amira','Ava','Batelihem','Bianka','Bregt','Bauca',
+  'Brenn','Bethile','Catoo','Chiara','Corinde','Calina','Celeste','Ciarian','Dalisha','Dilruz',
+  'Danaë','Dilfuze','Dyjonna','Deza','Ester','Evie','Erna','Emmey','Euphemia','Elina',
+  'Fyn','Fenne','Femmigje','Freyda','Flora','Fieke','Geke','Godelyve','Gabri','Gerdien',
+  'Giraleth','Geah','Hyncke','Hanrah','Hermijn','Heidie','Hugorien','Houke','Izanne','Isamijn',
+  'Ineau','Imme','Imelda','Isadore','Janna','Jolijn','Jyldou','Josja','Jhade','Juliët',
+  'Kyana','Kazja','Kae','Kieki','Klarra','Kess','Lavynia','Livy','Linn','Loren',
+  'Lux','Lisalot','Manon','Marte','Miralle','Marica','Mathilde','Madelinde','Noralie','Nell',
+  'Néla','Nhaomi','Nilsa','Noctis','Olívia','Odette','Oxandra','Ozymandea','Orda','Ophelia',
+  'Penélopé','Pukk','Philau','Pomme','Philinda','Pien','Quinn','Quirine','Qiqi','Qwen',
+  'Quilla','Qea','Rita','Rebekka','Rhune','Romy','Ruth','Rana','Sofia','Sarah',
+  'Stelle','Salomé','Sera','Selinda','Tara','Tirze','Tessel','Talina','Toska','Tea',
+  'Ulrike','Ula','Udou','Uma','Uriëlle','Ulissa','Viktoria','Valérie','Vivienne','Vyolett',
+  'Veere','Vesper','Wycke','Willeminke','Wilo','Wende','Welmoeth','Wiktoria','Xanthe','Ximena',
+  'Xeni','Xziva','Xrista','Xyana','Yasmijn','Yfke','Ylvana','Ylse','Yvette','Yrsa',
+  'Zora','Zonne','Zafira','Zhara','Zoë','Zarah','Amelia','Aurora','Belle','Benthilde',
+  'Crista','Cornelia','Deborah','Do','Elif','Evelinde','Fleure','Filippa','Griet','Gabriëlle',
+  'Hanne','Hoop','Ira','Ida','Joa','Juna','Luna','Larah','Marlijn','Martina',
+  'Nohr','Nadine','Otisse','Ooste','Petra','Puk','Roos','Renske','Sandra','Saïre',
+  'Thalia','Tooske','Veste','Vlasse','Winanda','Wilke','Anne','Arya','Beaune','Bolleke',
+];
+
+const NAMEN_ACHTERNAAM = [
+  'Smidshamer','Molenaar','Timmerveen','Touwslager','Bakkerwijck','Brouwerslot','Zilveraar','Gildemaer',
+  'Kaarsdraaier','Wijnschroef','Bontmakers','Vuurslager','Lichtvanger','Tiggelhouer','Kuiperbosch','Hoefsmit',
+  'Zwaarddrager','Schaarwever','Vismanger','Leerlooier','van Amberwoud','Medewegheyk','Donderheijer',
+  'Evermijnse','van Lhute','Maenfortuijn',"van 't Ravenbosch",'Schemerzeeuw','Stormhavik','Wervelander',
+  'Wraklandsmeer','Maensloot','Kalkwind','van Wrakstrand','van Everrust','Amberwijk','van Medewege',
+  'Moorhave','Elzenrede','van Zonsdal','Vossenhoef','Wintergout','Drifthout','Hazeling','Stormvlag',
+  'Maenvliet','Merenthout','IJsklauw','van Stormboei','Wolkenvang','Zilvervlinder','Goudvalk','Korenwint',
+  'van Eikelgaart','Wolfwacht','van Zonneroos','Sterrenbosch','Spreeuwbeek','Lakerheide','Kanthorst',
+  'Regenruiter','Smaragt','Zonnespeer','Sterrenwijck','Demsterwout','Wraklicht','Wervelvelder','Cruysvaer',
+  'Valkernis','Nachtveen','IJzermist','Zilverburcht','Duisterhave','Sterretoor','Donderhelm','Stormheeste',
+  'Kraakzwaard','Vlammeling','Schimvlug','Sneeuwhart','Bronsruiter','van Lichtval','Zoutgroeve',
+  'Kwartelhout','Zonnewachter','Hamerhout','Waltvlug','Duiventil','Achtermaans','Rotsvast',
+  'van Donkelburcht','van Straelweide','Klifwacht','Sluimerhoff','Stokzwaan','van Edelsee',
+  'Goutschilt','Stroomvaert','van Hofflander','Gloedt',
+];
+
+const NPC_CATEGORIEEN = {
+  sociaal: {
+    label: 'Sociaal', icon: '🏘',
+    archetypes: [
+      { id: 'herbergier',   label: 'Herbergier',   klasse: 'Fighter',  rol: 'Herbergier',   statPrimary: ['STR','CHA'], hitDie: 8,  baseAC: 11, mjClothing: 'innkeeper apron and simple linen tunic',                    mjMood: 'welcoming' },
+      { id: 'koopman',      label: 'Koopman',       klasse: 'Rogue',    rol: 'Koopman',      statPrimary: ['INT','CHA'], hitDie: 6,  baseAC: 11, mjClothing: 'fine merchant coat with coin purse at belt',                mjMood: 'shrewd' },
+      { id: 'edelman',      label: 'Edelman',       klasse: 'Noble',    rol: 'Edelman',      statPrimary: ['CHA','INT'], hitDie: 8,  baseAC: 11, mjClothing: 'ornate noble finery with family crest',                     mjMood: 'aristocratic' },
+      { id: 'bedelaar',     label: 'Bedelaar',      klasse: 'Commoner', rol: 'Bedelaar',     statPrimary: ['DEX','WIS'], hitDie: 4,  baseAC: 10, mjClothing: 'tattered dirty ragged layered clothes',                     mjMood: 'desperate' },
+      { id: 'priester',     label: 'Priester',      klasse: 'Cleric',   rol: 'Priester',     statPrimary: ['WIS','CHA'], hitDie: 8,  baseAC: 11, mjClothing: 'religious robes with prominent holy symbol',                mjMood: 'devout and serene' },
+      { id: 'gildemeester', label: 'Gildemeester',  klasse: 'Fighter',  rol: 'Gildemeester', statPrimary: ['INT','CHA'], hitDie: 10, baseAC: 13, mjClothing: 'guild master regalia with official insignia',               mjMood: 'authoritative' },
+    ],
+  },
+  gevecht: {
+    label: 'Gevecht', icon: '⚔',
+    archetypes: [
+      { id: 'garde',     label: 'Garde',     klasse: 'Fighter',   rol: 'Garde',     statPrimary: ['STR','CON'], hitDie: 10, baseAC: 16, mjClothing: 'city guard chainmail armor with tabard and shield',         mjMood: 'vigilant' },
+      { id: 'huurling',  label: 'Huurling',  klasse: 'Barbarian', rol: 'Huurling',  statPrimary: ['STR','DEX'], hitDie: 12, baseAC: 13, mjClothing: 'battle-worn mercenary leather armor with weapons',          mjMood: 'gruff and weathered' },
+      { id: 'bandiet',   label: 'Bandiet',   klasse: 'Rogue',     rol: 'Bandiet',   statPrimary: ['DEX','STR'], hitDie: 8,  baseAC: 12, mjClothing: 'rough bandit leathers with hood and dagger',                mjMood: 'cunning' },
+      { id: 'assassijn', label: 'Assassijn', klasse: 'Rogue',     rol: 'Assassijn', statPrimary: ['DEX','INT'], hitDie: 8,  baseAC: 14, mjClothing: 'dark form-fitting assassin gear with concealed blades',     mjMood: 'cold and calculating' },
+      { id: 'soldaat',   label: 'Soldaat',   klasse: 'Fighter',   rol: 'Soldaat',   statPrimary: ['STR','CON'], hitDie: 10, baseAC: 16, mjClothing: 'military uniform with plate armor and sword',               mjMood: 'disciplined' },
+    ],
+  },
+  mysterieus: {
+    label: 'Mysterieus', icon: '🔮',
+    archetypes: [
+      { id: 'magieer',    label: 'Magiëer',    klasse: 'Wizard',  rol: 'Magiëer',    statPrimary: ['INT','WIS'], hitDie: 6, baseAC: 11, mjClothing: 'arcane robes adorned with glowing runes and a staff',   mjMood: 'eccentric and intense' },
+      { id: 'orakel',     label: 'Orakel',     klasse: 'Cleric',  rol: 'Orakel',     statPrimary: ['WIS','INT'], hitDie: 8, baseAC: 11, mjClothing: 'flowing prophetic veiled robes',                        mjMood: 'enigmatic' },
+      { id: 'spion',      label: 'Spion',      klasse: 'Rogue',   rol: 'Spion',      statPrimary: ['DEX','CHA'], hitDie: 8, baseAC: 12, mjClothing: 'unremarkable common traveler clothing',                 mjMood: 'watchful and tense' },
+      { id: 'informant',  label: 'Informant',  klasse: 'Rogue',   rol: 'Informant',  statPrimary: ['INT','DEX'], hitDie: 8, baseAC: 11, mjClothing: 'nondescript plain urban clothing',                      mjMood: 'nervous' },
+      { id: 'waarzegger', label: 'Waarzegger', klasse: 'Warlock', rol: 'Waarzegger', statPrimary: ['CHA','WIS'], hitDie: 8, baseAC: 11, mjClothing: 'exotic fortune teller robes with crystal ball',         mjMood: 'mysterious and alluring' },
+    ],
+  },
+};
+
+const NPC_RASSEN = [
+  { id: 'mens',         label: 'Mens',         en: 'human',          uiterlijk: 'met een doorsnee menselijk uiterlijk',                                    mjFeatures: 'average height' },
+  { id: 'hoog-elf',     label: 'Hoog-Elf',     en: 'high elf',       uiterlijk: 'met puntige oren en een slanke elfachtige gestalte',                      mjFeatures: 'pointed ears, slender elven build, pale skin' },
+  { id: 'hout-elf',     label: 'Hout-Elf',     en: 'wood elf',       uiterlijk: 'met puntige oren, een lenige gestalte en koperkleurige huid',             mjFeatures: 'pointed ears, lithe build, copper-toned skin, feral eyes' },
+  { id: 'duistere-elf', label: 'Duistere Elf', en: 'dark elf',       uiterlijk: 'met puntige oren, donkergrijze huid en sneeuwwit haar',                  mjFeatures: 'pointed ears, dark grey skin, white hair, glowing purple eyes' },
+  { id: 'bergedwerg',   label: 'Bergedwerg',   en: 'mountain dwarf', uiterlijk: 'met een gedrongen gestalte en een volle baard',                           mjFeatures: 'stocky build, long braided beard, weathered face' },
+  { id: 'halfling',     label: 'Halfling',     en: 'halfling',       uiterlijk: 'met een kleine gestalte, ronde wangen en blote voeten',                  mjFeatures: 'small halfling stature, rosy cheeks, curly hair, bare feet' },
+  { id: 'gnoom',        label: 'Gnoom',        en: 'gnome',          uiterlijk: 'met een kleine gestalte en levendige nieuwsgierige ogen',                mjFeatures: 'tiny gnome stature, wide curious eyes, whimsical appearance' },
+  { id: 'half-ork',     label: 'Half-Ork',     en: 'half-orc',       uiterlijk: 'met een groengrijze huid, kleine slagtanden en een imposant postuur',    mjFeatures: 'greenish-grey skin, small tusks, imposing muscular build' },
+  { id: 'tiefling',     label: 'Tiefling',     en: 'tiefling',       uiterlijk: 'met kleine hoorns, een staart en een ongewone huidkleur',                mjFeatures: 'small horns, tail, unusual purple or red skin, solid-colored glowing eyes' },
+  { id: 'draconiet',    label: 'Draconiet',    en: 'dragonborn',     uiterlijk: 'met schubben en drakenachtige gelaatstrekken',                           mjFeatures: 'scales, draconic reptilian features, imposing stature' },
+  { id: 'aasimar',      label: 'Aasimar',      en: 'aasimar',        uiterlijk: 'met goudachtige ogen en een lichtgevende engelachtige uitstraling',       mjFeatures: 'golden glowing eyes, faint radiant halo, luminous skin' },
+  { id: 'half-elf',     label: 'Half-Elf',     en: 'half-elf',       uiterlijk: 'met licht puntige oren en elfse gelaatstrekken',                         mjFeatures: 'slightly pointed ears, mixed human and elven features' },
+];
+
+const NPC_PERSONALITIES = {
+  positief: [
+    'Moedig en vastberaden in het aangezicht van gevaar',
+    'Vriendelijk en gastvrij voor vreemdelingen',
+    'Eerlijk tot op het bot — weigert te liegen',
+    'Wijs en bedachtzaam, spreekt zelden onbezonnen',
+    'Geduldig en tolerant, raakt zelden geïrriteerd',
+    'Heeft een droge humor die altijd op het juiste moment komt',
+    'Bescheiden ondanks indrukwekkende prestaties',
+    'Vrijgevig met geld én kennis',
+    'Loyaal tot in de dood aan degenen die hij/zij vertrouwt',
+    'Onverzettelijk nieuwsgierig en altijd begerig naar kennis',
+  ],
+  negatief: [
+    'Achterdochtig tegenover vreemdelingen en snel argwanend',
+    'Heimelijk hebzuchtig en altijd op zoek naar meer rijkdom',
+    'IJdel en te bewust van het eigen uiterlijk',
+    'Impulsief en handelt zonder na te denken',
+    'Bitter over een oud onrecht dat nooit vergeven werd',
+    'Lafhartig zodra het echt gevaarlijk wordt',
+    'Sarcastisch en onbedoeld kwetsend in woordgebruik',
+    'Diep paranoïde en gelooft in complottheorieën',
+    'Koppig en vrijwel onmogelijk van mening te veranderen',
+    'Subtiel manipulatief en draait situaties naar eigen voordeel',
+  ],
+  eigenaardig: [
+    'Krabt altijd aan de neus als hij/zij iets verbergt',
+    'Praat in raadsels en spreekwoorden die niemand begrijpt',
+    'Verzamelt kleine nutteloze snuisterijen als kostbaarheden',
+    'Zingt altijd zachtjes bij het werken of nadenken',
+    'Gelooft bijgelovig dat bepaalde kleuren ongeluk brengen',
+    'Spreekt altijd over zichzelf in de derde persoon',
+    'Eet automatisch zodra hij/zij nerveus is',
+    'Kan geen geheim bewaren en vertelt alles vroeg of laat',
+    'Lacht altijd net iets te laat als iemand een grap maakt',
+    'Heeft voor élke situatie een ongevraagde mening klaar',
+  ],
+};
+
+const NPC_UITERLIJK = {
+  haarkleur: [
+    ['ravenzwart',   'raven black'],
+    ['asblond',      'ash blonde'],
+    ['koperrood',    'copper red'],
+    ['donkerbruin',  'dark brown'],
+    ['zilverwit',    'silver white'],
+    ['grijzend',     'salt and pepper grey'],
+    ['platinablond', 'platinum blonde'],
+    ['strohkleurig', 'straw-colored'],
+  ],
+  oogkleur: ['doordringende blauwe','diepbruine','hazelnootkleurige','grijze','groene','amberkleurige','goudgele','staalkleurige'],
+  postuur:  ['slanke','gedrongen','gespierde','rijzige','kleine','compacte','robuuste','ranke'],
+  leeftijd: ['jonge','middelbare','oudere','bejaarde','jeugdige'],
+};
+
+const NPC_MJ_LIGHTING = [
+  'warm candlelight','dramatic torch light','cold moonlight','golden hour sunlight',
+  'misty morning light','stormy overcast light','flickering firelight','harsh midday sun',
+  'soft diffused overcast','ethereal blue moonlight',
+];
+
+const NPC_MJ_STYLE = 'fantasy portrait, oil painting, highly detailed, dramatic lighting, painterly Renaissance inspired style';
+
+// ── State ──────────────────────────────────────────────────────────────────────
+
+let _categorie   = 'sociaal';
+let _archetypeId = 'herbergier';
+let _rasId       = 'mens';
+let _geslacht    = 'm';
+let _level       = 1;
+let _preview     = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function shuffleArr(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function statMod(score) { return Math.floor((score - 10) / 2); }
+function statModStr(score) { const m = statMod(score); return (m >= 0 ? '+' : '') + m; }
+
+function genereerStats(archetype) {
+  const allStats  = ['STR','DEX','CON','INT','WIS','CHA'];
+  const primary   = archetype.statPrimary;
+  const secondary = shuffleArr(allStats.filter(s => !primary.includes(s)));
+  const values    = [15,14,13,12,10,8].map(v => Math.max(6, Math.min(18, v + Math.floor(Math.random() * 3) - 1)));
+  values.sort((a, b) => b - a);
+  const result = {};
+  let idx = 0;
+  for (const s of primary)   result[s] = values[idx++];
+  for (const s of secondary) result[s] = values[idx++];
+  return result;
+}
+
+function berekeningHP(archetype, level, stats) {
+  const conMod = statMod(stats.CON);
+  return Math.max(1, archetype.hitDie + (level - 1) * (Math.floor(archetype.hitDie / 2) + 1) + level * conMod);
+}
+
+function berekeningAC(archetype, stats) {
+  const heavyArmor = archetype.baseAC >= 15;
+  return heavyArmor ? archetype.baseAC : archetype.baseAC + Math.max(0, Math.min(statMod(stats.DEX), 2));
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── State setters ─────────────────────────────────────────────────────────────
+
+function setCategorie(key) {
+  _categorie   = key;
+  _archetypeId = NPC_CATEGORIEEN[key].archetypes[0].id;
+  render();
+}
+
+function setArchetype(id) { _archetypeId = id; renderArchetypes(); }
+
+function setRas(id) { _rasId = id; }
+
+function setGeslacht(g) {
+  _geslacht = g;
+  ['m','v','n'].forEach(x => {
+    const btn = document.getElementById('g-' + x);
+    if (!btn) return;
+    btn.className = 'dm-btn dm-btn-sm ' + (x === g ? 'dm-btn-primary' : 'dm-btn-ghost');
+  });
+}
+
+function setLevel(v) { _level = Math.max(1, Math.min(10, v || 1)); }
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function renderCategories() {
+  const el = document.getElementById('cat-buttons');
+  if (!el) return;
+  el.innerHTML = Object.entries(NPC_CATEGORIEEN).map(([key, c]) =>
+    `<button class="dm-btn dm-btn-sm ${_categorie === key ? 'dm-btn-primary' : 'dm-btn-ghost'}"
+      onclick="setCategorie('${key}')">${c.icon} ${esc(c.label)}</button>`
+  ).join('');
+}
+
+function renderArchetypes() {
+  const el = document.getElementById('archetype-grid');
+  if (!el) return;
+  const cat = NPC_CATEGORIEEN[_categorie];
+  el.innerHTML = cat.archetypes.map(a =>
+    `<button class="dm-npc-archetype-btn${_archetypeId === a.id ? ' active' : ''}"
+      onclick="setArchetype('${a.id}')">${esc(a.label)}</button>`
+  ).join('');
+}
+
+function renderRasSelect() {
+  const el = document.getElementById('ras-select');
+  if (!el) return;
+  el.innerHTML = NPC_RASSEN.map(r =>
+    `<option value="${r.id}"${_rasId === r.id ? ' selected' : ''}>${esc(r.label)}</option>`
+  ).join('');
+}
+
+function render() {
+  renderCategories();
+  renderArchetypes();
+  renderRasSelect();
+}
+
+// ── Generate NPC ──────────────────────────────────────────────────────────────
+
+function genereer() {
+  const cat       = NPC_CATEGORIEEN[_categorie];
+  const archetype = cat.archetypes.find(a => a.id === _archetypeId) || cat.archetypes[0];
+  const ras       = NPC_RASSEN.find(r => r.id === _rasId) || NPC_RASSEN[0];
+
+  // Sync level from input
+  const levelInput = document.getElementById('level-input');
+  if (levelInput) _level = Math.max(1, Math.min(10, +levelInput.value || 1));
+
+  // Name
+  const naamLijst = _geslacht === 'v' ? NAMEN_VROUW : (_geslacht === 'n' && Math.random() < 0.5 ? NAMEN_VROUW : NAMEN_MAN);
+  const naam = `${pick(naamLijst)} ${pick(NAMEN_ACHTERNAAM)}`;
+
+  // Stats & combat
+  const stats = genereerStats(archetype);
+  const level = _level;
+  const hp    = berekeningHP(archetype, level, stats);
+  const ac    = berekeningAC(archetype, stats);
+
+  // Personality
+  const positief = pick(NPC_PERSONALITIES.positief);
+  const negatief = Math.random() < 0.6 ? pick(NPC_PERSONALITIES.negatief) : pick(NPC_PERSONALITIES.eigenaardig);
+  const persoonlijkheid = `${positief}. ${negatief}.`;
+
+  // Appearance
+  const [haarklNL, haarklEN] = pick(NPC_UITERLIJK.haarkleur);
+  const oogkleur  = pick(NPC_UITERLIJK.oogkleur);
+  const postuur   = pick(NPC_UITERLIJK.postuur);
+  const leeftijd  = pick(NPC_UITERLIJK.leeftijd);
+  const geslWoord = _geslacht === 'v' ? 'vrouw' : (_geslacht === 'n' ? 'persoon' : 'man');
+  const uiterlijk = `Een ${leeftijd} ${postuur} ${geslWoord} ${ras.uiterlijk}, met ${haarklNL} haar en ${oogkleur} ogen.`;
+
+  // MJ Prompt
+  const genderEn = _geslacht === 'v' ? 'female' : (_geslacht === 'n' ? 'androgynous' : 'male');
+  const lighting  = pick(NPC_MJ_LIGHTING);
+  const mjPrompt  = `${ras.en} ${genderEn} ${archetype.rol.toLowerCase()}, ${ras.mjFeatures}, ${haarklEN} hair, ${archetype.mjClothing}, ${archetype.mjMood} expression, ${lighting}, ${NPC_MJ_STYLE}, --ar 2:3`;
+
+  _preview = { naam, ras: ras.label, klasse: archetype.klasse, rol: archetype.rol, persoonlijkheid, uiterlijk, stats, hp, ac, mjPrompt };
+  renderPreview();
+}
+
+function renderPreview() {
+  const container = document.getElementById('npc-preview-container');
+  if (!container || !_preview) return;
+
+  const npc = _preview;
+  const statKeys   = ['STR','DEX','CON','INT','WIS','CHA'];
+  const statLabels = { STR:'KRA', DEX:'LEN', CON:'GEZ', INT:'INT', WIS:'WIJ', CHA:'KAR' };
+
+  const statsHTML = statKeys.map(s => `
+    <div class="dm-npc-stat-box">
+      <div class="dm-npc-stat-label">${statLabels[s]}</div>
+      <div class="dm-npc-stat-score">${npc.stats[s]}</div>
+      <div class="dm-npc-stat-mod">${statModStr(npc.stats[s])}</div>
+    </div>`).join('') + `
+    <div class="dm-npc-stat-box dm-npc-stat-box--hp">
+      <div class="dm-npc-stat-label">HP</div>
+      <div class="dm-npc-stat-score">${npc.hp}</div>
+      <div class="dm-npc-stat-mod">&nbsp;</div>
+    </div>
+    <div class="dm-npc-stat-box">
+      <div class="dm-npc-stat-label">AC</div>
+      <div class="dm-npc-stat-score">${npc.ac}</div>
+      <div class="dm-npc-stat-mod">&nbsp;</div>
+    </div>`;
+
+  container.innerHTML = `
+    <div class="dm-npc-preview reveal">
+      <div class="dm-npc-preview-header">
+        <div>
+          <div class="dm-npc-naam">${esc(npc.naam)}</div>
+          <div class="dm-npc-meta">${esc(npc.ras)} &middot; ${esc(npc.klasse)} &middot; ${esc(npc.rol)}</div>
+        </div>
+        <button class="dm-btn dm-btn-ghost dm-btn-icon-sm" onclick="genereer()" title="Opnieuw genereren" style="font-size:16px">↺</button>
+      </div>
+
+      <div class="dm-npc-block">
+        <div class="dm-npc-block-label">Persoonlijkheid</div>
+        <div class="dm-npc-block-text">${esc(npc.persoonlijkheid)}</div>
+      </div>
+
+      <div class="dm-npc-block">
+        <div class="dm-npc-block-label">Uiterlijk</div>
+        <div class="dm-npc-block-text">${esc(npc.uiterlijk)}</div>
+      </div>
+
+      <div class="dm-npc-stats-wrap">${statsHTML}</div>
+
+      <div class="dm-npc-block">
+        <div class="dm-npc-block-label dm-npc-block-label-row">
+          <span>Midjourney Prompt</span>
+          <button id="mj-copy-btn" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="copyMj()" style="font-size:10px;padding:3px 8px">⎘ Kopieer</button>
+        </div>
+        <div class="dm-npc-mj-prompt">${esc(npc.mjPrompt)}</div>
+      </div>
+
+      <div class="save-btn-wrap">
+        <button class="dm-btn dm-btn-primary dm-btn-full" disabled style="opacity:0.45;cursor:not-allowed">
+          ＋ Opslaan als personage
+        </button>
+        <div class="tooltip">Beschikbaar in de app</div>
+      </div>
+    </div>`;
+}
+
+function copyMj() {
+  if (!_preview) return;
+  navigator.clipboard.writeText(_preview.mjPrompt).then(() => {
+    const btn = document.getElementById('mj-copy-btn');
+    if (!btn) return;
+    const old = btn.textContent;
+    btn.textContent = '✓ Gekopieerd';
+    setTimeout(() => { if (btn) btn.textContent = old; }, 1500);
+  }).catch(() => {
+    // Fallback for browsers without clipboard API
+    const ta = document.createElement('textarea');
+    ta.value = _preview.mjPrompt;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn = document.getElementById('mj-copy-btn');
+    if (btn) { const old = btn.textContent; btn.textContent = '✓ Gekopieerd'; setTimeout(() => { if (btn) btn.textContent = old; }, 1500); }
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+render();
+</script>
+</body>
+</html>
