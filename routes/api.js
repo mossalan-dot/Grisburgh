@@ -5,7 +5,6 @@ const path    = require('path');
 const { spawn } = require('child_process');
 const storage = require('../lib/storage');
 const { requireDM, attachRole } = require('./auth');
-const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 
 let _sharp = null;
 try { _sharp = require('sharp'); } catch {}
@@ -3524,42 +3523,6 @@ router.delete('/combat/combatant/:id', requireDM, (req, res) => {
   storage.writeJSON('combat.json', combat);
   req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
   res.json({ ok: true });
-});
-
-// ── Snapshot export ──
-
-router.get('/export', requireDM, async (req, res) => {
-  try {
-    const dmState  = readDmState();
-    const groupId  = req.query.groupId || dmState.activeGroup;
-    const html     = await buildSnapshot(dmState, groupId);
-    const appTitle = storage.readJSON('meta.json').appTitle || 'grisburgh';
-    const slug     = appTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const date     = new Date().toISOString().slice(0,10);
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${slug}-snapshot-${date}.html"`);
-    res.send(html);
-  } catch (err) {
-    console.error('Export error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.get('/export/campagneboek', requireDM, async (req, res) => {
-  try {
-    const dmState  = readDmState();
-    const groupId  = req.query.groupId || dmState.activeGroup;
-    const html     = await buildCampagneboek(dmState, groupId);
-    const appTitle = storage.readJSON('meta.json').appTitle || 'grisburgh';
-    const slug     = appTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const date     = new Date().toISOString().slice(0,10);
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${slug}-campagneboek-${date}.html"`);
-    res.send(html);
-  } catch (err) {
-    console.error('Campagneboek export error:', err);
-    res.status(500).json({ error: err.message });
-  }
 });
 
 // ── Campagnes ──

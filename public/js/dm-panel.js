@@ -142,8 +142,6 @@ export function initDmPanel() {
     // Tunnel
     tunnelToggle:  _tunnelToggle,
     tunnelCopy:    _tunnelCopy,
-    exportSnapshot:  _exportSnapshot,
-    exportFile:      _exportFile,
     importObsidian:  _importObsidian,
 
     // Tafels
@@ -534,7 +532,7 @@ function _renderDelen(subTab) {
   }
   el.querySelector('.dm-subtab-nav').innerHTML = `
     <button class="dm-subtab-btn${_delenSubTab==='tunnel' ?' active':''}" onclick="window.dmPanel.switchTab('tunnel')">${icon('globe')} Tunnel</button>
-    <button class="dm-subtab-btn${_delenSubTab==='export' ?' active':''}" onclick="window.dmPanel.switchTab('export')">${icon('download')} Export</button>
+    <button class="dm-subtab-btn${_delenSubTab==='export' ?' active':''}" onclick="window.dmPanel.switchTab('export')">${icon('upload')} Import</button>
   `;
 
   ['tunnel','export'].forEach(name => {
@@ -759,34 +757,6 @@ function _renderExportTab() {
   if (!el) return;
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-feature-label">Exporteren</div>
-
-      <div class="export-option-card" id="export-card-snapshot">
-        <div class="export-option-icon">📷</div>
-        <div class="export-option-body">
-          <div class="export-option-title">Snapshot</div>
-          <div class="export-option-desc">Interactieve HTML-versie van de campagnedata voor spelers — met kaarten, modals en alle onthuld materiaal.</div>
-          <button class="dm-btn dm-btn-primary export-option-btn" id="export-btn-snapshot"
-            onclick="window.dmPanel.exportFile('snapshot')">
-            📥 Snapshot downloaden
-          </button>
-        </div>
-      </div>
-
-      <div class="export-option-card" id="export-card-boek">
-        <div class="export-option-icon">📖</div>
-        <div class="export-option-body">
-          <div class="export-option-title">Campagneboek</div>
-          <div class="export-option-desc">Lineair, printklaar boek met inhoudsopgave, alle sessies per hoofdstuk, afbeeldingen en een register van personages, locaties en meer. Gebruik Afdrukken → Opslaan als PDF.</div>
-          <button class="dm-btn dm-btn-primary export-option-btn" id="export-btn-boek"
-            onclick="window.dmPanel.exportFile('campagneboek')">
-            📖 Campagneboek downloaden
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="dm-feature-section" style="margin-top:18px">
       <div class="dm-feature-label">Importeren vanuit Obsidian</div>
 
       <div class="export-option-card">
@@ -853,36 +823,6 @@ async function _importObsidian(files) {
   } catch (err) {
     resultsEl.innerHTML = `<div class="import-md-row import-md-err">✕ Fout: ${err.message}</div>`;
   }
-}
-
-async function _exportFile(type) {
-  const btnId = type === 'campagneboek' ? 'export-btn-boek' : 'export-btn-snapshot';
-  const btn = document.getElementById(btnId);
-  const origText = btn?.textContent;
-  if (btn) { btn.textContent = '⏳ Bezig…'; btn.disabled = true; }
-  try {
-    const url = type === 'campagneboek' ? '/api/export/campagneboek' : '/api/export';
-    const res = await fetch(url, { credentials: 'include' });
-    if (!res.ok) throw new Error(await res.text());
-    const blob = await res.blob();
-    const disp = res.headers.get('Content-Disposition') || '';
-    const match = disp.match(/filename="([^"]+)"/);
-    const filename = match ? match[1] : `${type}.html`;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(a.href);
-    if (btn) { btn.textContent = '✓ Klaar!'; setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2500); }
-  } catch (err) {
-    if (btn) { btn.textContent = '✕ Fout'; setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 3000); }
-  }
-}
-
-async function _exportSnapshot() {
-  await _exportFile('snapshot');
 }
 
 function _renderTunnel() {

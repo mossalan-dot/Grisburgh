@@ -20,25 +20,24 @@ hand-verificatie van de kritieke bevindingen.
 
 ---
 
-## ⚠️ Belangrijke correctie vooraf: `lib/snapshot.js`
+## ⚠️ Belangrijke correctie vooraf: `lib/snapshot.js` (VERWIJDERD)
 
-`lib/snapshot.js` (1756 regels) is **geen backup/rollback-systeem** maar
-de **export-feature** voor spelers:
+`lib/snapshot.js` (1756 regels) was **geen backup/rollback-systeem** maar
+de **export-feature** voor spelers — bedoeld voor toen het project alleen
+op localhost draaide:
 
 - `buildSnapshot()` → interactieve standalone HTML-bundel (alles inline,
   base64-images via `sharp`).
 - `buildCampagneboek()` → printklaar boek (PDF via browser-print).
 
-Twee actieve DM-knoppen hangen eraan (`public/js/dm-panel.js:764-786,
-858-886`), die fetchen naar `routes/api.js:3531` (`GET /api/export`) en
-`:3548` (`GET /api/export/campagneboek`), beide `requireDM`. Geen
-state-restore, geen disk-snapshots die live data overschrijven.
-
-**Verwijderen breekt:** "Snapshot downloaden" en "Campagneboek downloaden"
-in het DM-paneel. Bug-audit op de file zelf vond niets kritieks
-(filename-slug is veilig, geen file-handle leaks, geen race-paden). Wel:
-in-memory generatie kan bij zeer grote campagnes een RAM-spike geven —
-niet urgent.
+**Status:** verwijderd in een vervolgcommit nu de app online staat. Mee
+opgeruimd:
+- `lib/snapshot.js` zelf
+- `routes/api.js:8` (require), `:3528-3563` (beide `/api/export*`-endpoints)
+- `public/js/dm-panel.js:145-146` (registraties),
+  `:762-787` (export-cards), `:858-886` (`_exportFile` + `_exportSnapshot`)
+- Sub-tab label hernoemd van "Export" naar "Import"
+  (interne id `'export'` blijft voor stabiliteit).
 
 ---
 
