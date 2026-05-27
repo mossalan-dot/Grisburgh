@@ -10,12 +10,35 @@
   `dm-panel.js`, `socket-client.js`), en render-/combat-modules
   (`combat-canvas.js`, `render-archief.js`, `render-campagne.js`,
   `render-dungeon.js`, `render-kaart.js`, `render-relatiemap.js`).
-- **Niet geaudit:** `lib/snapshot.js` (1756 r), `import-*.js`-scripts,
-  tests, en `public/data/*`.
+- Derde pass: `lib/snapshot.js`, alle `import-*.js`-scripts, en de
+  test-suite (`tests/*.test.js`).
+- **Niet geaudit:** `public/data/*` (content, geen code).
 
 **Methode:** parallelle research-agents per risico-oppervlak (security,
 XSS, race conditions, memory leaks, autorisatie), gevolgd door
 hand-verificatie van de kritieke bevindingen.
+
+---
+
+## ⚠️ Belangrijke correctie vooraf: `lib/snapshot.js`
+
+`lib/snapshot.js` (1756 regels) is **geen backup/rollback-systeem** maar
+de **export-feature** voor spelers:
+
+- `buildSnapshot()` → interactieve standalone HTML-bundel (alles inline,
+  base64-images via `sharp`).
+- `buildCampagneboek()` → printklaar boek (PDF via browser-print).
+
+Twee actieve DM-knoppen hangen eraan (`public/js/dm-panel.js:764-786,
+858-886`), die fetchen naar `routes/api.js:3531` (`GET /api/export`) en
+`:3548` (`GET /api/export/campagneboek`), beide `requireDM`. Geen
+state-restore, geen disk-snapshots die live data overschrijven.
+
+**Verwijderen breekt:** "Snapshot downloaden" en "Campagneboek downloaden"
+in het DM-paneel. Bug-audit op de file zelf vond niets kritieks
+(filename-slug is veilig, geen file-handle leaks, geen race-paden). Wel:
+in-memory generatie kan bij zeer grote campagnes een RAM-spike geven —
+niet urgent.
 
 ---
 
@@ -592,6 +615,158 @@ Onbetekend, maar symptomatisch voor het bredere shared-globals-patroon.
 
 ---
 
+## 🟠 High — derde pass (import-scripts & test-suite)
+
+### 42. CLI import-scripts schrijven naar legacy data-pad → silent no-op
+**Locaties:** `import-obsidian.js`, `import-schaduwvin.js`, `import-verhaal.js`
+
+Alle drie scripts schrijven hardgecodeerd naar
+`__dirname/data/entities.json` (en `data/dm-state.json`, `data/archief.json`).
+Maar `lib/storage.js` is sinds de multi-campaign refactor verschoven naar
+`data/campaigns/<id>/…`. Een DM die deze scripts vandaag draait vult een
+legacy data-pad dat de server **niet meer leest** — vanuit de webapp is
+het een stille no-op. Geen foutmelding, gewoon: "ik importeerde 200
+NPC's maar in de app zie ik er nul".
+
+**Status:** levende workflow voor DM via knop "Bestanden kiezen…"
+(`public/js/dm-panel.js:810-855`) gaat via `POST /api/import/obsidian`
++ `_importMd` in `routes/api.js:2097-2215` — die loopt wél door
+`lib/storage.js` en is dus campaign-aware. Dus de scripts zijn dubbel
+geïmplementeerd: de webapp-route werkt, de CLI-scripts zijn stilletjes
+kapot.
+
+**Fix-keuze:**
+- **Optie A — opruimen:** verwijder de drie CLI-scripts; de webapp-route
+  vervangt ze.
+- **Optie B — repareren:** laat ze via `lib/storage.js` (met
+  `withCampaign(id, () => ...)`) schrijven; vereist refactor.
+
+Optie A is veruit het simpelst en consistent met "app staat online,
+één bron-van-waarheid".
+
+---
+
+### 43. `import-obsidian.js` gebruikt verouderd `dm-state` schema
+**Locatie:** `import-obsidian.js:241`
+
+```js
+dmState.visibility[id]    = 'hidden';
+dmState.secretReveals[id] = false;
+```
+
+Het huidige schema is `dmState.groups[groupId].visibility/secretReveals`
+(zie `routes/api.js:2233-2241`). Zelfs als #42 wordt opgelost en het pad
+klopt, schrijft dit script in een plat oud schema dat geen enkele groep
+raakt. Imports zijn voor alle groepen `'hidden'` (default `undefined`
+op `groups[*].visibility`) — kaartjes verschijnen nergens tot de DM ze
+handmatig zichtbaar maakt.
+
+`import-schaduwvin.js:563-571` doet het **wél correct** (loopt door
+`dmState.groups`). Dus de fix bestaat al in een ander script — copy-paste.
+
+**Fix:** of bij keuze "opruimen" (#42), of port de loop uit
+`import-schaduwvin.js`.
+
+---
+
+### 44. Test-suite is grotendeels gebroken
+**Locaties:** `tests/storage.test.js`, plus afhankelijkheidsketen
+
+`npm test` → exit 1. Resultaten: **5 pass, 1 fail, 26 cancelled**.
+
+Twee oorzaken:
+1. **`node_modules` ontbreekt** in deze container — `require('express')`
+   faalt → `api.test.js` en `filter.test.js` worden gecancelled. Wordt
+   opgelost door `npm install`. Aanrader: SessionStart-hook die
+   `npm install` doet als `node_modules/` ontbreekt.
+2. **`storage.test.js` is achterhaald.** Verwacht `data/entities.json`
+   bestaat — maar `lib/storage.js` schrijft tegenwoordig naar
+   `data/campaigns/grisburgh/entities.json`. Test #1 faalt; tests #2-6
+   slagen toevallig omdat ze read-back via dezelfde storage-API doen.
+
+**Fix:** update `storage.test.js` voor het multi-campaign pad
+(`path.join('data','campaigns','grisburgh','entities.json')`), en zet
+`npm install` in de SessionStart-hook.
+
+---
+
+### 45. Test-coverage mist alle player-scoped endpoints
+**Locatie:** `tests/api.test.js`
+
+De suite dekt happy-paths van `/entities`, `/archief`, `/dm/notes`,
+login. **Niet** gedekt — terwijl exact daar de critical-findings
+zitten:
+
+- `/player-hp`, `/player-currency`, `/player-spellslots` (cross-player
+  leak / self-enrich) — bevindingen #5, #7, #8.
+- `/shop-reveal` zonder shop-context — bevinding #6.
+- `/combat` ongeauth — bevinding #9.
+- `/files/:id`, `/thumb/:id` ongeauth — bevinding #10.
+- Upload-validatie (#24).
+- Storage race-conditions (#20).
+- Socket.io DM-leak (#13), `sound:emote`-spoof (#14).
+
+**Minstens 12 van de 41 bevindingen** in deze review zou een geschreven
+test hebben gevangen vóór deploy.
+
+**Fix:** drie nieuwe testfiles, in volgorde van waarde:
+1. `tests/player-auth.test.js` — voor elke `/player-*`-route: speler A
+   mag B niet lezen/schrijven; clamp-validatie van numerieke velden.
+2. `tests/storage-race.test.js` — 50 parallel PATCHes naar dm-state,
+   assert final count == 50.
+3. `tests/sockets.test.js` — DM-only events bereiken speler-room niet;
+   `sound:emote` accepteert geen gespoofte `entityId`.
+
+---
+
+## 🟡 Medium — derde pass
+
+### 46. CLI import-scripts lossen geen lock met draaiende server
+**Locatie:** `import-obsidian.js`, `import-schaduwvin.js`, `import-verhaal.js`
+
+Zelfs als #42 + #43 zijn opgelost, doen deze scripts `readFileSync` +
+mutate + `writeFileSync` zonder coördinatie met de draaiende server. Als
+de DM tijdens een sessie een script start, kan elke gelijktijdige
+`storage.writeJSON` van de server (currency-update, HP-tick) het script
+overschrijven — buiten request-context. Geen documentatie dat de server
+gestopt moet zijn.
+
+**Fix:** als de scripts blijven, log een waarschuwing als de server
+draait, of verifieer afwezigheid van een lock-file.
+
+---
+
+### 47. Tests draaien op echte `./data` zonder isolatie
+**Locatie:** `tests/storage.test.js`, `tests/api.test.js`
+
+Setup doet `fs.rmSync(DATA_DIR)` voor en na. Als een test crasht laat
+hij `data/` in een vieze tussenstand achter. Gevaarlijker: als iemand
+per ongeluk de tests draait in een omgeving met productie-data wordt
+die weggegooid.
+
+**Fix:** gebruik `os.tmpdir() + '/grisburgh-test-' + Date.now()` per
+testrun; mock geen disk maar isoleer hem.
+
+---
+
+### 48. `import-spells-2024.js` vertrouwt SrD-input blind
+**Locatie:** `scripts/import-spells-2024.js`
+
+Schrijft `public/data/spells-2024.json`, een statische asset gedeeld
+over alle campagnes. Geen versie-pinning, geen hash van de bron, geen
+validatie dat `level/school/classes` geldig zijn — `parseInt(NaN)`
+wordt geaccepteerd. Een corrupt of mismaakt PHB-bestand maakt de hele
+spellbook stuk voor iedereen.
+
+**Status:** dit script is wél actief — de output wordt door `app.js:2737`
+en `:5754` geserveerd. Behouden, maar:
+
+**Fix:** voeg input-validatie toe (level 0-9, school in whitelist,
+classes in known-list) en faal de import bij een ongeldige spell ipv
+hem stilletjes mee te exporteren.
+
+---
+
 ## ℹ️ Geen issue (gecheckt en weggestreept)
 
 - **`/party` voor DM** is correct: `routes/api.js:1761` returnt vroeg.
@@ -601,8 +776,8 @@ Onbetekend, maar symptomatisch voor het bredere shared-globals-patroon.
 - **XSS via stored player content (algemeen)**: meeste player-velden
   gaan door `esc()`. Restproblemen staan in #1-#4.
 - **`mdToHtml` op `:1141`** escapet zelf — gebruik daarvan is veilig.
-- **Tests**: niet geaudit. `tests/api.test.js`, `tests/storage.test.js`,
-  `tests/filter.test.js` bestaan; status onbekend.
+- **`lib/snapshot.js`** is geen rollback-systeem maar de export-feature
+  voor spelers (zie correctie bovenin). Veilig, geen kritieke bugs.
 
 ---
 
@@ -620,24 +795,23 @@ Onbetekend, maar symptomatisch voor het bredere shared-globals-patroon.
 7. `#18` (`${icon}` bug) — eenliner.
 8. `#19` (`_gockCheckReady` crash) — feature herstellen.
 9. `#20` (storage mutex) — fundamenteel; pakt #21 grotendeels op.
+10. `#42`, `#43` — CLI import-scripts: kies opruimen of repareren.
 
-**Derde week — opschoning:**
-10. `#23` (state-lek), `#26` (image cache), `#28` (touch-tap).
-11. Restant van Medium/Low in één rondje.
+**Derde week — opschoning & test-veiligheid:**
+11. `#23` (state-lek), `#26` (image cache), `#28` (touch-tap).
+12. `#44` (test-suite repareren) + `#45` (drie nieuwe testfiles
+    schrijven), zodat fixes uit week 1-2 niet stilletjes regresseren.
+13. Restant van Medium/Low in één rondje.
 
 ---
 
 ## Wat niet beoordeeld is
 
-- `lib/snapshot.js` (1756 regels) — snapshot/restore-logica.
-- `import-obsidian.js`, `import-schaduwvin.js`, `import-verhaal.js`,
-  `scripts/import-spells-2024.js` — import-tooling.
-- `tests/*` — testdekking, test-correctheid.
 - `public/data/*.json` — content, geen code.
 - De socket-emit-zijde voor minder-kritieke events (`pin:*`, `notes:*`)
   is steekproefsgewijs gecheckt; niet uitputtend.
 
-Voor een vervolgronde zou dit prioriteit hebben: snapshot-logica
-(rollback-correctheid bij gefaalde writes), en de test-suite — als die
-groen is bij elk van bovenstaande fixes weet je dat je geen regressies
-hebt geïntroduceerd.
+Daarmee is de codebase nu **volledig in scope geweest** behalve de
+content-data. Voor toekomstige reviews na grote refactors: laat de
+test-suite (na fix van #44) eerst groen draaien, doe dan een
+diff-gerichte review op de feature.
