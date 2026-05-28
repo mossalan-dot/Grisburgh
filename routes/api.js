@@ -2899,6 +2899,16 @@ router.put('/meta/akte/:key/script', requireDM, (req, res) => {
   res.json({ script: meta.hoofdstukken[req.params.key].script });
 });
 
+// Actieve akte onthouden (gezet wanneer de DM een akte 'speelt'). Bepaalt o.a. Ursula's doel-akte.
+router.post('/akte/actief', requireDM, (req, res) => {
+  const { key, num, title } = req.body || {};
+  const dmState = readDmState();
+  dmState.activeAkte = { key: key || null, num: num ?? null, title: title || '' };
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('ursula:updated');
+  res.json(dmState.activeAkte);
+});
+
 router.put('/meta/herberg', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.herberg) meta.herberg = {};
@@ -3628,29 +3638,45 @@ router.get('/campaigns/meta', attachRole, (req, res) => {
 });
 
 // ── Madame Ursula / Waarzegger ──
+// Voorspelling over de eerstvolgende akte, gekoppeld aan de vijf zintuigen.
 
-const URSULA_TIDBITS_DEFAULT = [
-  'De geesten fluisteren dat {naam} een verlies draagt dat nooit uitgesproken is',
-  'In de sluier der toekomst ziet Ursula {naam} op een kruispunt — een keus die alles verandert',
-  'De kaarten tonen {naam} omringd door schaduwen die ze zelf hebben gecreëerd',
-  'Een verborgen band met het verleden van {naam} trekt nog steeds aan hen — onzichtbaar maar voelbaar',
-  'Er is iemand die {naam} beter kent dan ze beseffen',
-  'Ursula ziet water en {naam} in dezelfde droom — niet als vijanden, maar ook niet als vrienden',
-  'Een oud geheim sluimert bij {naam}, klaar om op het verkeerde moment te ontwaken',
-  'De sterren staan gunstig voor {naam}, maar hun eigen aard staat hen in de weg',
-  'Er nadert een ontmoeting voor {naam} die meer gewicht heeft dan het lijkt',
-  "Ursula's handen trillen bij het noemen van {naam} — zelfs de kaarsvlam buigt",
-  '{naam} wordt gevolgd, al weten ze het niet',
-  'Iets wat verloren leek zal terugkeren via {naam}',
-  'Een oude schuld hangt boven {naam} als een onweerswolk',
-  'De geest van iemand die {naam} kende is nog steeds aanwezig in hun leven',
-  '{naam} vreest iets wat nooit hardop is uitgesproken',
-  'Een onverwachte bondgenoot bevindt zich in de nabijheid van {naam}',
-  'Ursula ziet goud en bloed in verband met {naam} — zij weet niet in welke volgorde',
-  '{naam} staat op het punt iets te verliezen wat ze nog niet weten te koesteren',
-  'De maan staat scheef boven {naam} — er is iets dat uit balans is',
-  "Ursula's kaars dooft bij de naam van {naam}. Ze weigert verder te kijken.",
+const URSULA_ZINTUIGEN = [
+  { key: 'zien',    label: 'Zien',    icon: '👁' },
+  { key: 'horen',   label: 'Horen',   icon: '👂' },
+  { key: 'ruiken',  label: 'Ruiken',  icon: '👃' },
+  { key: 'proeven', label: 'Proeven', icon: '👅' },
+  { key: 'voelen',  label: 'Voelen',  icon: '✋' },
 ];
+
+function _ursulaHeeftInhoud(def) {
+  if (!def) return false;
+  return URSULA_ZINTUIGEN.some(z => (def[z.key] || '').trim()) || !!(def.concreet || '').trim();
+}
+
+// De eerstvolgende akte na de actieve (laagste num strikt groter dan de actieve).
+function _ursulaVolgendeAkte(meta, dmState) {
+  const actief = dmState.activeAkte;
+  if (!actief || actief.num == null) return null;
+  const hs = meta.hoofdstukken || {};
+  let best = null;
+  for (const [key, h] of Object.entries(hs)) {
+    const num = h.num ?? 99;
+    if (num > actief.num && (!best || num < best.num)) best = { key, num, title: h.title || h.short || key };
+  }
+  return best;
+}
+
+// Bouwt de voor de party onthulde fragmenten op basis van de worp.
+function _ursulaOnthulling(def, party) {
+  const idxs = party?.zintuigen || [];
+  const zintuigen = idxs
+    .map(i => URSULA_ZINTUIGEN[i])
+    .filter(Boolean)
+    .map(z => ({ label: z.label, icon: z.icon, tekst: (def[z.key] || '').trim() }))
+    .filter(z => z.tekst);
+  const concreet = party?.concreet ? ((def.concreet || '').trim() || null) : null;
+  return { zintuigen, concreet };
+}
 
 const GOCK_TIDBITS_DEFAULT = [
   '{naam} bezocht vorige week in het geheim een wedstrijd voor het vervaardigen van schunnige limericks',
@@ -3769,78 +3795,118 @@ router.get('/ursula', attachRole, (req, res) => {
   const config = meta.ursula || {};
   const characterId = req.session.characterId;
   const dmState = readDmState();
+  const currency = _effectiveCurrency(dmState, characterId);
 
-  let playerState = (dmState.ursulaState || {})[characterId] || { cooldownTot: null };
-  if (playerState.cooldownTot && new Date(playerState.cooldownTot) < new Date()) {
-    playerState = { cooldownTot: null };
-  }
+  const doel = _ursulaVolgendeAkte(meta, dmState);
+  const def = doel ? (meta.ursula?.voorspellingen?.[doel.key] || null) : null;
+  const beschikbaar = !!(doel && _ursulaHeeftInhoud(def));
 
-  const currency = characterId ? ((dmState.playerCurrency || {})[characterId] || { fl: 0, kn: 0, cl: 0 }) : null;
+  const g = getGroup(dmState);
+  const party = (beschikbaar && g.voorspellingen) ? (g.voorspellingen[doel.key] || null) : null;
+  const onthuld = party ? _ursulaOnthulling(def, party) : null;
+
   res.json({
-    config: { prijs: config.prijs || { fl: 20 }, naam: config.naam || 'Madame Ursula', imageId: config.imageId || null, backdropId: config.backdropId || null },
-    state: playerState,
-    beschikbaar: _dienstenBeschikbaar(dmState),
+    config: { naam: config.naam || 'Madame Ursula', prijs: config.prijs || { fl: 20 }, imageId: config.imageId || null, backdropId: config.backdropId || null },
+    beschikbaar,
+    geenAkte: !doel,
+    alGeworpen: !!party,
+    roll: party?.roll || null,
+    doorNaam: party?.doorNaam || null,
+    onthuld,
     currency,
   });
 });
 
-router.post('/ursula/vraag', attachRole, (req, res) => {
+router.post('/ursula/voorspel', attachRole, (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
-  const { entityId, entityType } = req.body;
-  if (!entityId || !entityType) return res.status(400).json({ error: 'entityId en entityType vereist' });
-
   const meta = storage.readJSON('meta.json');
   const config = meta.ursula || {};
-  const prijs = config.prijs || { fl: 20 };
-  const tidbits = config.tidbits?.length ? config.tidbits : URSULA_TIDBITS_DEFAULT;
-
   const dmState = readDmState();
-  if (!dmState.ursulaState) dmState.ursulaState = {};
-  let playerState = dmState.ursulaState[characterId] || { cooldownTot: null };
 
-  if (playerState.cooldownTot && new Date(playerState.cooldownTot) > new Date()) {
-    return res.status(429).json({ error: 'Cooldown actief', cooldownTot: playerState.cooldownTot });
-  }
+  const doel = _ursulaVolgendeAkte(meta, dmState);
+  if (!doel) return res.status(400).json({ error: 'Er is nu geen komende akte om te voorzien' });
+  const def = meta.ursula?.voorspellingen?.[doel.key];
+  if (!_ursulaHeeftInhoud(def)) return res.status(400).json({ error: 'De nevelen tonen niets — er valt nu niets te voorzien' });
 
+  const g = getGroup(dmState);
+  if (!g.voorspellingen) g.voorspellingen = {};
+  if (g.voorspellingen[doel.key]) return res.status(400).json({ error: 'De party heeft deze voorspelling al ontvangen' });
+
+  const prijs = config.prijs || { fl: 20 };
   const prijsCl = toCl(prijs);
   if (!dmState.playerCurrency) dmState.playerCurrency = {};
   const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
   if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
 
-  const entities = storage.readJSON('entities.json');
-  const entity = (entities[entityType] || []).find(e => e.id === entityId);
-  if (!entity) return res.status(404).json({ error: 'Entiteit niet gevonden' });
-
-  let tekst, isGeheim = false;
-  if (entity.data?.ursulaGeheim) {
-    tekst = entity.data.ursulaGeheim;
-    isGeheim = true;
-    const g = getGroup(dmState);
-    if (!g.secretReveals) g.secretReveals = {};
-    g.secretReveals[entityId] = true;
+  const pool = [0, 1, 2, 3, 4].filter(i => (def[URSULA_ZINTUIGEN[i].key] || '').trim());
+  const roll = Math.floor(Math.random() * 6) + 1;
+  let gekozen, concreet = false;
+  if (roll === 6) {
+    gekozen = pool.slice();
+    concreet = !!(def.concreet || '').trim();
   } else {
-    tekst = tidbits[Math.floor(Math.random() * tidbits.length)].replace(/\{naam\}/g, entity.name);
+    const shuffled = pool.slice().sort(() => Math.random() - 0.5);
+    gekozen = shuffled.slice(0, Math.min(roll, shuffled.length));
   }
+  g.voorspellingen[doel.key] = {
+    roll, zintuigen: gekozen, concreet,
+    doorNaam: req.session.playerName || '', op: new Date().toISOString(),
+  };
 
   dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
-  playerState.cooldownTot = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-  dmState.ursulaState[characterId] = playerState;
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
   io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
-  if (isGeheim) {
-    io.to(req.session?.campaignId||'main').emit('entity:secret', { id: entityId, type: entityType, name: entity.name, secretReveal: true });
-    io.to(req.session?.campaignId||'main').emit('entity:updated', { type: entityType, id: entityId });
-  }
+  io.to(req.session?.campaignId||'main').emit('ursula:updated');
 
-  res.json({
-    tekst, entityName: entity.name, entityId, entityType, isGeheim,
-    cooldownTot: playerState.cooldownTot,
-    currency: dmState.playerCurrency[characterId],
-  });
+  res.json({ ok: true, roll, onthuld: _ursulaOnthulling(def, g.voorspellingen[doel.key]), currency: dmState.playerCurrency[characterId] });
+});
+
+// DM: lijst van aktes met hun (eventuele) voorspelling-inhoud
+router.get('/ursula/aktes', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const hs = meta.hoofdstukken || {};
+  const vs = meta.ursula?.voorspellingen || {};
+  const dmState = readDmState();
+  const aktes = Object.entries(hs)
+    .map(([key, h]) => ({ key, num: h.num ?? 99, title: h.title || h.short || key, voorspelling: vs[key] || null }))
+    .sort((a, b) => a.num - b.num);
+  res.json({ aktes, activeAkte: dmState.activeAkte || null });
+});
+
+// DM: voorspelling-inhoud voor een akte opslaan
+router.put('/ursula/voorspelling/:akteKey', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.ursula) meta.ursula = {};
+  if (!meta.ursula.voorspellingen) meta.ursula.voorspellingen = {};
+  const b = req.body || {};
+  meta.ursula.voorspellingen[req.params.akteKey] = {
+    zien:    (b.zien    || '').trim(),
+    horen:   (b.horen   || '').trim(),
+    ruiken:  (b.ruiken  || '').trim(),
+    proeven: (b.proeven || '').trim(),
+    voelen:  (b.voelen  || '').trim(),
+    concreet:(b.concreet|| '').trim(),
+  };
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  res.json(meta.ursula.voorspellingen[req.params.akteKey]);
+});
+
+// DM: wis de party-voorspelling (zodat opnieuw geworpen kan worden)
+router.post('/ursula/reset', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  if (g.voorspellingen) {
+    if (req.body?.akteKey) delete g.voorspellingen[req.body.akteKey];
+    else g.voorspellingen = {};
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('ursula:updated');
+  res.json({ ok: true });
 });
 
 // ── De Gock / Privédetective ──
@@ -3955,20 +4021,6 @@ router.post('/gock/opdracht', attachRole, (req, res) => {
   res.json({ ok: true, klaarOp, currency: dmState.playerCurrency[characterId] });
 });
 
-router.put('/entities/:type/:id/ursula-geheim', requireDM, (req, res) => {
-  const { type, id } = req.params;
-  if (!ENTITY_TYPES.includes(type)) return res.status(400).json({ error: 'Ongeldig type' });
-  const entities = storage.readJSON('entities.json');
-  const entity = (entities[type] || []).find(e => e.id === id);
-  if (!entity) return res.status(404).json({ error: 'Niet gevonden' });
-  if (!entity.data) entity.data = {};
-  const tekst = req.body.tekst?.trim() || null;
-  if (tekst) entity.data.ursulaGeheim = tekst;
-  else delete entity.data.ursulaGeheim;
-  storage.writeJSON('entities.json', entities);
-  res.json({ ok: true });
-});
-
 router.put('/gock/opgehaald', attachRole, (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
@@ -4005,7 +4057,7 @@ router.put('/meta/tweespalt', requireDM, (req, res) => {
 router.put('/meta/ursula', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.ursula) meta.ursula = {};
-  ['naam', 'prijs', 'tidbits', 'imageId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
+  ['naam', 'prijs', 'imageId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.ursula[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
   res.json(meta.ursula);
