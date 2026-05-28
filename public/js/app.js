@@ -4575,6 +4575,12 @@ async function renderMijnKarakter(opts = {}) {
               <li class="player-dash-simple-item">
                 <span class="player-dash-simple-name">${esc(si.name)}</span>
                 ${si.note ? `<span class="player-dash-simple-note">${esc(si.note)}</span>` : ''}
+                ${si.kind === 'eenmalig' && si.usesMax ? `
+                <span class="player-dash-zegen-charges" style="display:inline-flex;align-items:center;gap:4px;margin-left:6px">
+                  ${Array.from({ length: si.usesMax }).map((_, i) =>
+                    `<span class="spell-slot-dot${i < (si.uses || 0) ? '' : ' used'}" style="width:11px;height:11px;cursor:default"></span>`).join('')}
+                  <button class="ts-wedden-btn" style="padding:1px 7px;font-size:.7rem" onclick="window._dashZegenVerbruik()" ${(si.uses || 0) <= 0 ? 'disabled' : ''} title="Vink één gebruik af">✓</button>
+                </span>` : ''}
                 ${si.entityId ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:0.65rem;padding:1px 4px;line-height:1.3;" onclick="window._openDetail('${esc(si.entityType)}','${esc(si.entityId)}')" title="Open kaartje">↗</button>` : ''}
                 <button class="player-dash-simple-del" onclick="window._dashRemoveItem('${esc(si.id)}')" title="Verwijder">×</button>
               </li>`).join('')}
@@ -5276,6 +5282,13 @@ async function renderMijnKarakter(opts = {}) {
   window._dashRemoveItem = async function(itemId) {
     try {
       await api.removePlayerItem(charId, itemId);
+      renderMijnKarakter(opts);
+    } catch { /* ok */ }
+  };
+
+  window._dashZegenVerbruik = async function() {
+    try {
+      await api.tempelVerbruik();
       renderMijnKarakter(opts);
     } catch { /* ok */ }
   };
@@ -6913,32 +6926,67 @@ async function renderTempel() {
           <div class="gock-dossier">
             <div class="gock-dossier-head">✨ Huidige zegen</div>
             <p class="gock-dossier-tekst">${esc(huidigeZegen.name)}${huidigeZegen.note ? ' — ' + esc(huidigeZegen.note) : ''}</p>
+            ${huidigeZegen.kind === 'eenmalig' && huidigeZegen.usesMax ? `
+              <div class="tempel-charges" style="display:flex;align-items:center;gap:6px;margin:6px 0;flex-wrap:wrap">
+                ${Array.from({ length: huidigeZegen.usesMax }).map((_, i) =>
+                  `<span class="spell-slot-dot${i < (huidigeZegen.uses || 0) ? '' : ' used'}" style="cursor:default"></span>`).join('')}
+                <span class="ts-beurs" style="margin:0">${huidigeZegen.uses || 0}/${huidigeZegen.usesMax} over</span>
+                <button class="ts-wedden-btn" style="margin-left:6px;padding:2px 10px" onclick="window._tempelVerbruik()" ${(huidigeZegen.uses || 0) <= 0 ? 'disabled' : ''}>✓ Gebruik</button>
+              </div>` : ''}
             <p class="ts-beurs">Je kunt maar één zegen tegelijk dragen; opnieuw bidden vervangt deze.</p>
           </div>` : ''}
 
         ${goden.length === 0
           ? `<p class="herberg-cooldown-tekst">Er zijn nog geen goden bekend in deze tempel.</p>`
           : `<div class="herberg-lijst tempel-goden">
-              ${goden.map(g => `
-                <button class="herberg-item tempel-god${huidigeZegen && huidigeZegen.godId === g.id ? ' tempel-god--actief' : ''}"
-                  onclick="window._tempelKies('${esc(g.id)}','${esc(g.naam)}')">
-                  <span class="herberg-item-naam">${esc(g.naam)}</span>
-                  ${g.domein ? `<span class="herberg-item-type">${esc(g.domein)}</span>` : ''}
-                  <span class="tempel-zegen-badge">${g.zegen ? esc(g.zegen) : '—'} · ${esc(prijsLabel(g))}</span>
-                </button>`).join('')}
+              ${goden.map(g => {
+                const eenmalig = (g.eenmaligeZegens || []).filter(Boolean);
+                const actief = huidigeZegen && huidigeZegen.godId === g.id;
+                return `
+                <div class="tempel-god-kaart${actief ? ' tempel-god--actief' : ''}" style="border:1px solid rgba(196,168,122,0.3);border-radius:10px;padding:10px;margin-bottom:8px;text-align:left">
+                  <div style="margin-bottom:6px">
+                    <span class="herberg-item-naam">${esc(g.naam)}</span>
+                    ${g.domein ? `<span class="herberg-item-type" style="display:block;opacity:.75">${esc(g.domein)}</span>` : ''}
+                  </div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px">
+                    <button class="ts-wedden-btn" onclick="window._tempelKies('${esc(g.id)}','permanent','${esc(g.naam)}')">
+                      🛡️ Permanent${g.zegen ? ': ' + esc(g.zegen) : ''} · ${esc(prijsLabel(g))}
+                    </button>
+                    ${eenmalig.length ? `
+                    <button class="ts-wedden-btn" onclick="window._tempelKies('${esc(g.id)}','eenmalig','${esc(g.naam)}')">
+                      🎲 Eenmalig (d${eenmalig.length}) · ${esc(prijsLabel(g))}
+                    </button>` : ''}
+                  </div>
+                </div>`;
+              }).join('')}
             </div>`}
       </div>
     </div>`;
 }
 
-window._tempelKies = async (godId, godNaam) => {
-  if (!confirm(`Een offer brengen aan ${godNaam}? De betaling vindt direct plaats en je ontvangt een votiefvoorwerp in je knapzak.`)) return;
+window._tempelKies = async (godId, type, godNaam) => {
+  const wat = type === 'eenmalig' ? 'een eenmalige zegen (met dobbelworp)' : 'de permanente zegen';
+  if (!confirm(`${godNaam}: ${wat} ontvangen? De betaling vindt direct plaats; het voorwerp komt in je knapzak.`)) return;
   try {
-    await api.tempelZegen({ godId });
+    const r = await api.tempelZegen({ godId, type });
     await renderTempel();
-    _tsToast(`✨ De zegen van ${godNaam} rust op je. Je vindt het voorwerp in je knapzak.`);
+    if (type === 'eenmalig' && r.rolls) {
+      _tsToast(`🎲 d${r.rolls.zegenAantal}=${r.rolls.zegenRoll} → ${r.item.zegenEffect} (${r.rolls.usesRoll}× te gebruiken)`);
+    } else {
+      _tsToast(`✨ De zegen van ${godNaam} rust op je. Zie je knapzak.`);
+    }
   } catch (err) {
     _tsToast(err.message || 'Het offer werd niet aanvaard.');
+  }
+};
+
+window._tempelVerbruik = async () => {
+  try {
+    await api.tempelVerbruik();
+    await renderTempel();
+    _tsToast('✓ Eén gebruik afgevinkt.');
+  } catch (err) {
+    _tsToast(err.message || 'Afvinken mislukt.');
   }
 };
 
