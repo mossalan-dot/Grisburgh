@@ -5978,6 +5978,28 @@ details.player-dash-collapsible[open] > summary {
   flex: 1;
 }
 
+/* Eed-kaartje: subtiel gouden accent */
+.player-dash-simple-item--eed {
+  background: #f3ead0;
+  border-color: #b8902f;
+  box-shadow: inset 3px 0 0 #b8902f;
+}
+
+/* Zegen-kaartje: lichte hemelse tint */
+.player-dash-simple-item--zegen {
+  background: #eef0e0;
+  border-color: #9aa86a;
+}
+
+/* Vloek-kaartje: zwart, zoals overleden NPC's */
+.player-dash-simple-item--vloek {
+  background: #111;
+  border-color: #333;
+}
+.player-dash-simple-item--vloek .player-dash-simple-name { color: #e8e8e8; text-shadow: none; }
+.player-dash-simple-item--vloek .player-dash-simple-note { color: #9a8a8a; }
+.player-dash-simple-item--vloek .player-dash-simple-del  { color: #c46; }
+
 .player-dash-simple-del {
   background: none;
   border: none;
