@@ -279,10 +279,13 @@ export const api = {
   deletePost: (characterId, postId) => request(`/post/${characterId}/${postId}`,   { method: 'DELETE' }),
 
   // Madame Ursula
-  getUrsula:       ()              => request('/ursula'),
-  ursulaVraag:     (data)          => request('/ursula/vraag',  { method: 'POST', body: JSON.stringify(data) }),
-  saveUrsulaConfig:  (data)          => request('/meta/ursula',                            { method: 'PUT',  body: JSON.stringify(data) }),
-  setUrsulaGeheim:   (type, id, tekst) => request(`/entities/${type}/${id}/ursula-geheim`, { method: 'PUT',  body: JSON.stringify({ tekst }) }),
+  getUrsula:           ()             => request('/ursula'),
+  ursulaVoorspel:      ()             => request('/ursula/voorspel', { method: 'POST' }),
+  saveUrsulaConfig:    (data)         => request('/meta/ursula',     { method: 'PUT',  body: JSON.stringify(data) }),
+  ursulaAktes:         ()             => request('/ursula/aktes'),
+  saveUrsulaVoorspelling: (key, data) => request(`/ursula/voorspelling/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  ursulaReset:         (akteKey)      => request('/ursula/reset',    { method: 'POST', body: JSON.stringify({ akteKey }) }),
+  setActiveAkte:       (key, num, title) => request('/akte/actief',  { method: 'POST', body: JSON.stringify({ key, num, title }) }),
   setGockGeheim:     (type, id, tekst) => request(`/entities/${type}/${id}/gock-geheim`,   { method: 'PUT',  body: JSON.stringify({ tekst }) }),
 
   // De Gock
