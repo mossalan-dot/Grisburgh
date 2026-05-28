@@ -1593,6 +1593,11 @@ router.delete('/player-items/:characterId/:itemId', attachRole, (req, res) => {
 
   const dmState = readDmState();
 
+  // Een eed of vloek kun je niet zomaar weggooien — boete doen of via de DM
+  const target = (dmState.playerItems?.[characterId] || []).find(i => i.id === itemId);
+  if (target?.eed && req.role !== 'dm')
+    return res.status(403).json({ error: 'Een eed of vloek leg je niet zomaar af — doe boete in de tempel of vraag de DM.' });
+
   // Item verwijderen
   if (dmState.playerItems?.[characterId])
     dmState.playerItems[characterId] = dmState.playerItems[characterId].filter(i => i.id !== itemId);
@@ -3671,75 +3676,75 @@ const GOCK_TIDBITS_DEFAULT = [
 ];
 
 // Hoofdgoden met een zegening. Mindere goden en De Verborgene (geen zegen) zijn weggelaten.
-// Elke god heeft een permanente zegen (+1) en een d4-tabel van eenmalige zegens.
+// Elke god heeft een eed-zegen (+1, blijvend), een vloek (bij verzaking) en een d4-tabel van eenmalige zegens.
 const TEMPEL_GODEN_DEFAULT = [
-  { id: 'matall',   naam: 'Matall, de Maker',     domein: 'Oppergod — de zon en de maan',           symbool: 'Een witte hamer voor een rode zon',                                  zegen: 'Con +1', eenmaligeZegens: [
+  { id: 'matall',   naam: 'Matall, de Maker',     domein: 'Oppergod — de zon en de maan',           symbool: 'Een witte hamer voor een rode zon',                                  zegen: 'Con +1', vloek: 'Con -1; Matall onthoudt je zijn licht — je herwint geen Hit Dice tijdens een korte rust.', eenmaligeZegens: [
     'Licht des Makers: roep naar believen helder licht op (als de Light-cantrip).',
     'Levensadem: herrol een mislukte death save.',
     'Dageraad: herwin 1d4 HP bij het eerste daglicht dat je ziet.',
     'Maanblik: voordeel op één redding tegen betovering.',
   ] },
-  { id: 'seldari',  naam: 'Seldari, Stormoog',    domein: 'Gerechtigheid en bescherming',           symbool: 'Een blauw, driehoekig schild met een oog en gesperde hand',          zegen: 'Str +1', eenmaligeZegens: [
+  { id: 'seldari',  naam: 'Seldari, Stormoog',    domein: 'Gerechtigheid en bescherming',           symbool: 'Een blauw, driehoekig schild met een oog en gesperde hand',          zegen: 'Str +1', vloek: 'Str -1; Stormoog onttrekt haar schild — nadeel op redding tegen omvergeworpen of vastgegrepen worden.', eenmaligeZegens: [
     'Wachters reactie: trek één aanval op een bondgenoot binnen 1,5 m naar jezelf.',
     'Schildmuur: +2 AC tegen één aanval (reactie).',
     'Rechtvaardige slag: voordeel op één aanval tegen wie net een bondgenoot raakte.',
     'Onwankelbaar: voordeel op één redding tegen omvergeworpen of geduwd worden.',
   ] },
-  { id: 'ghon',     naam: 'Ghon, de Loper',       domein: 'Kennis, uitvinding en wijsheid',         symbool: 'Een purperen waterrad',                                              zegen: 'Int +1', eenmaligeZegens: [
+  { id: 'ghon',     naam: 'Ghon, de Loper',       domein: 'Kennis, uitvinding en wijsheid',         symbool: 'Een purperen waterrad',                                              zegen: 'Int +1', vloek: 'Int -1; de Loper sluit zijn kennis — nadeel op Arcana-, History- en Investigation-checks.', eenmaligeZegens: [
     'Inzicht van Ghon: voordeel op één Arcana-, History- of Investigation-check.',
     'Vraag aan de Loper: krijg één waar feit van de DM.',
     'Uitvindersgeest: voordeel op één check om een mechanisme, slot of puzzel te ontcijferen.',
     'Herinnering: herrol één mislukte kennis-check.',
   ] },
-  { id: 'tirimet',  naam: 'Tirimet, Elvenluit',   domein: 'Beschaving en de vrije kunsten',         symbool: 'Een gele luit',                                                      zegen: 'Cha +1', eenmaligeZegens: [
+  { id: 'tirimet',  naam: 'Tirimet, Elvenluit',   domein: 'Beschaving en de vrije kunsten',         symbool: 'Een gele luit',                                                      zegen: 'Cha +1', vloek: 'Cha -1; de muze verstomt — nadeel op Performance- en Persuasion-checks.', eenmaligeZegens: [
     'Muze: geef een bondgenoot een d6-inspiratie (als Bardic Inspiration).',
     'Hoffelijkheid: voordeel op één sociale check in beschaafd gezelschap.',
     'Meesterwerk: voordeel op één check met gereedschap of een kunstvorm.',
     'Betoverend optreden: voordeel op één Performance-check.',
   ] },
-  { id: 'oronoe',   naam: 'Oronoë, de Zephir',    domein: 'Zeeën, wind, scheepvaart en verkenning', symbool: 'Drie blauwe kronkellijnen, gekruist door een zwarte bliksemschicht', zegen: 'Dex +1', eenmaligeZegens: [
+  { id: 'oronoe',   naam: 'Oronoë, de Zephir',    domein: 'Zeeën, wind, scheepvaart en verkenning', symbool: 'Drie blauwe kronkellijnen, gekruist door een zwarte bliksemschicht', zegen: 'Dex +1', vloek: 'Dex -1; de wind keert zich tegen je — nadeel op redding tegen vallen en op zwemmen.', eenmaligeZegens: [
     'Rugwind: +3 m snelheid deze beurt.',
     'Zeebenen: adem 10 minuten onder water of voordeel tegen verdrinken.',
     'Stuurmanskunst: voordeel op één check om te navigeren of een vaartuig te besturen.',
     'Wendbaar: herrol één Acrobatics-check of Dex-redding.',
   ] },
-  { id: 'velurut',  naam: 'Velurut, de Jager',    domein: 'De natuur en de jacht',                  symbool: 'Een hoefijzer',                                                      zegen: 'Wis +1', eenmaligeZegens: [
+  { id: 'velurut',  naam: 'Velurut, de Jager',    domein: 'De natuur en de jacht',                  symbool: 'Een hoefijzer',                                                      zegen: 'Wis +1', vloek: 'Wis -1; de jacht verstoot je — dieren zijn wantrouwig en je hebt nadeel op Survival-checks.', eenmaligeZegens: [
     'Jagersoog: voordeel op één aanval tegen een door jou gemerkte prooi.',
     'Stille jacht: voordeel op Stealth in de wildernis (één scène).',
     'Spoorzoeker: voordeel op één Survival-check om te sporen of de weg te vinden.',
     'Roep van het wild: voordeel op één Animal Handling-check.',
   ] },
-  { id: 'qirell',   naam: 'Qirell, Vuurhand',     domein: 'Landbouw en oogst',                      symbool: 'Een zwarte en groene boom, achter elkaar',                           zegen: 'Nature/Animal Handling +1', eenmaligeZegens: [
+  { id: 'qirell',   naam: 'Qirell, Vuurhand',     domein: 'Landbouw en oogst',                      symbool: 'Een zwarte en groene boom, achter elkaar',                           zegen: 'Nature/Animal Handling +1', vloek: 'Nature/Animal Handling -1; je voorraden bederven snel — nadeel op redding tegen uitputting.', eenmaligeZegens: [
     'Overvloed: jouw rantsoenen bederven niet en je hebt voordeel tegen uitputting.',
     'Zegen van de oogst: herwin 1d4 extra HP bij een korte rust.',
     'Vruchtbare hand: laat genoeg voedsel en water voor één maaltijd ontstaan.',
     'Aardse band: voordeel op één Nature-check.',
   ] },
-  { id: 'cylline',  naam: 'Cylline, Nymfenblad',  domein: 'Nacht, passie, dronkenschap en extase',  symbool: 'Drie paarse druiven',                                                zegen: 'Performance/Intimidation +1', eenmaligeZegens: [
+  { id: 'cylline',  naam: 'Cylline, Nymfenblad',  domein: 'Nacht, passie, dronkenschap en extase',  symbool: 'Drie paarse druiven',                                                zegen: 'Performance/Intimidation +1', vloek: 'Performance/Intimidation -1; de roes wordt een kater — nadeel op redding tegen angst en betovering.', eenmaligeZegens: [
     'Roes: immuun voor de nadelen van dronkenschap en voordeel tegen angst.',
     'Nachtwandelaar: schemerzicht of voordeel op Stealth in het donker (één scène).',
     'Betovering: voordeel op één check om te verleiden of te intimideren.',
     'Extatische roep: herrol één mislukte redding tegen angst of betovering.',
   ] },
-  { id: 'sehan',    naam: 'Sehan, de Weegschaal', domein: 'Handel en welvaart',                     symbool: 'Een metalen weegschaal',                                             zegen: 'Insight/Perception +1', eenmaligeZegens: [
+  { id: 'sehan',    naam: 'Sehan, de Weegschaal', domein: 'Handel en welvaart',                     symbool: 'Een metalen weegschaal',                                             zegen: 'Insight/Perception +1', vloek: 'Insight/Perception -1; de weegschaal slaat door — handelaren rekenen je het dubbele.', eenmaligeZegens: [
     'Koopmansoog: ken de eerlijke waarde van een voorwerp en voordeel bij afdingen.',
     'Gewogen oordeel: voordeel op één Insight-check om een leugen te doorzien.',
     'Scherpe blik: voordeel op één Perception-check.',
     'Eerlijke deal: herrol één mislukte Persuasion-check over geld.',
   ] },
-  { id: 'yrdus',    naam: 'Yrdus, de Ringdrager', domein: 'Liefde, huwelijk en familie',            symbool: 'Een rode ring',                                                      zegen: 'Persuasion/History +1', eenmaligeZegens: [
+  { id: 'yrdus',    naam: 'Yrdus, de Ringdrager', domein: 'Liefde, huwelijk en familie',            symbool: 'Een rode ring',                                                      zegen: 'Persuasion/History +1', vloek: 'Persuasion/History -1; de band breekt — je kunt geen tijdelijke HP van bondgenoten ontvangen.', eenmaligeZegens: [
     'Band van Yrdus: als je een bondgenoot helpt, krijgt die 1d4 tijdelijke HP.',
     'Verzoening: voordeel op één check om iemand te kalmeren of vrede te sluiten.',
     'Trouwe eed: voordeel op één redding tegen betovering terwijl je een dierbare beschermt.',
     'Familieverhaal: voordeel op één History-check.',
   ] },
-  { id: 'corellin', naam: 'Corellin, Vlasbaard',  domein: 'Dieven, zieken en buitenbeentjes',       symbool: 'Een gesloten oog',                                                   zegen: 'Sleight of Hand/Deception +1', eenmaligeZegens: [
+  { id: 'corellin', naam: 'Corellin, Vlasbaard',  domein: 'Dieven, zieken en buitenbeentjes',       symbool: 'Een gesloten oog',                                                   zegen: 'Sleight of Hand/Deception +1', vloek: 'Sleight of Hand/Deception -1; het oog opent zich — nadeel op Stealth-checks.', eenmaligeZegens: [
     'Schaduwhand: voordeel op één check om ongezien te stelen of een slot te kraken.',
     'Geluk van de verschoppeling: herrol één d20 naar keuze.',
     'Vermomming: voordeel op één Deception-check om je voor een ander uit te geven.',
     'Glipper: voordeel op één check om door een menigte of nauwe ruimte te ontkomen.',
   ] },
-  { id: 'denava',   naam: 'Denava',               domein: 'Verandering',                            symbool: 'Vier zandlopers',                                                    zegen: 'Survival/Nature +1', eenmaligeZegens: [
+  { id: 'denava',   naam: 'Denava',               domein: 'Verandering',                            symbool: 'Vier zandlopers',                                                    zegen: 'Survival/Nature +1', vloek: 'Survival/Nature -1; het lot keert zich — eenmaal per sessie laat de DM je een geslaagde worp opnieuw gooien.', eenmaligeZegens: [
     'Wending van het lot: zet één nadeel-worp om naar een normale worp.',
     'Aanpassing: voordeel op één redding tegen een effect dat je verplaatst of vervormt.',
     'Reizigerszegen: voordeel op één check om je aan te passen aan vreemd terrein of klimaat.',
@@ -4027,31 +4032,34 @@ router.get('/tempel', attachRole, (req, res) => {
   const characterId = req.session.characterId;
   const dmState = readDmState();
 
-  const huidigeZegen = characterId
-    ? ((dmState.playerItems || {})[characterId] || []).find(i => i.zegen) || null
-    : null;
+  const items = characterId ? ((dmState.playerItems || {})[characterId] || []) : [];
+  const huidigeZegen = items.find(i => i.zegen) || null;
+  const huidigeEed   = items.find(i => i.eed) || null;
   const currency = _effectiveCurrency(dmState, characterId);
 
   res.json({
     config: {
       naam: config.naam || 'De Tempel',
       prijs: config.prijs || { fl: 25 },
+      eedPrijs: config.eedPrijs || config.prijs || { fl: 50 },
+      boetePrijs: config.boetePrijs || { fl: 100 },
       imageId: config.imageId || null,
       backdropId: config.backdropId || null,
       voorwerpNaam: config.voorwerpNaam || 'Votiefmunt van {god}',
       goden: _tempelGoden(config),
     },
     huidigeZegen,
+    huidigeEed,
     currency,
   });
 });
 
+// Eenmalige zegen: d{n} kiest welke, d4 bepaalt het aantal keer. Vervalt bij lange rust.
 router.post('/tempel/zegen', attachRole, (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
   const { godId } = req.body;
-  const type = req.body.type === 'eenmalig' ? 'eenmalig' : 'permanent';
   if (!godId) return res.status(400).json({ error: 'godId vereist' });
 
   const meta = storage.readJSON('meta.json');
@@ -4060,18 +4068,11 @@ router.post('/tempel/zegen', attachRole, (req, res) => {
   if (!god) return res.status(404).json({ error: 'Onbekende god' });
 
   const eenmalige = Array.isArray(god.eenmaligeZegens) ? god.eenmaligeZegens.filter(Boolean) : [];
-  if (type === 'eenmalig' && eenmalige.length === 0) {
-    return res.status(400).json({ error: 'Deze god biedt geen eenmalige zegen' });
-  }
+  if (eenmalige.length === 0) return res.status(400).json({ error: 'Deze god biedt geen eenmalige zegen' });
 
   const dmState = readDmState();
   if (!dmState.playerItems) dmState.playerItems = {};
   if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];
-
-  const bestaand = dmState.playerItems[characterId].find(i => i.zegen);
-  if (type === 'permanent' && bestaand && bestaand.kind === 'permanent' && bestaand.godId === godId) {
-    return res.status(400).json({ error: `Je draagt al de permanente zegen van ${god.naam}` });
-  }
 
   const prijs = (god.prijs && toCl(god.prijs) > 0) ? god.prijs : (config.prijs || { fl: 25 });
   const prijsCl = toCl(prijs);
@@ -4079,41 +4080,27 @@ router.post('/tempel/zegen', attachRole, (req, res) => {
   const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
   if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
 
-  // Eén zegen per speler tegelijk: een nieuwe vervangt de vorige
+  // Eén eenmalige zegen per speler tegelijk (los van de eed): vervang de vorige
   dmState.playerItems[characterId] = dmState.playerItems[characterId].filter(i => !i.zegen);
 
   const voorwerpNaam = (config.voorwerpNaam || 'Votiefmunt van {god}').replace(/\{god\}/g, god.naam);
-  let item, rolls = null;
-  if (type === 'eenmalig') {
-    const zegenRoll = Math.floor(Math.random() * eenmalige.length) + 1; // d{n}: wélke zegen
-    const usesRoll  = Math.floor(Math.random() * 4) + 1;                // d4: aantal keer
-    const effect = eenmalige[zegenRoll - 1];
-    rolls = { zegenRoll, zegenAantal: eenmalige.length, usesRoll };
-    item = {
-      id: 'zegen_' + godId + '_' + Date.now(),
-      name: '✨ ' + voorwerpNaam,
-      note: `Eenmalige zegen van ${god.naam}: ${effect} Vink af na elk gebruik; vervalt bij je volgende lange rust.`,
-      zegen: true,
-      kind: 'eenmalig',
-      godId,
-      godNaam: god.naam,
-      zegenEffect: effect,
-      uses: usesRoll,
-      usesMax: usesRoll,
-      qty: usesRoll,
-    };
-  } else {
-    item = {
-      id: 'zegen_' + godId + '_' + Date.now(),
-      name: '🪙 ' + voorwerpNaam,
-      note: `Zegen van ${god.naam}${god.domein ? ' — ' + god.domein : ''}.${god.zegen ? ' Effect: ' + god.zegen + '.' : ''} Vervalt bij je volgende lange rust.`,
-      zegen: true,
-      kind: 'permanent',
-      godId,
-      godNaam: god.naam,
-      zegenEffect: god.zegen || '',
-    };
-  }
+  const zegenRoll = Math.floor(Math.random() * eenmalige.length) + 1; // d{n}: wélke zegen
+  const usesRoll  = Math.floor(Math.random() * 4) + 1;                // d4: aantal keer
+  const effect = eenmalige[zegenRoll - 1];
+  const rolls = { zegenRoll, zegenAantal: eenmalige.length, usesRoll };
+  const item = {
+    id: 'zegen_' + godId + '_' + Date.now(),
+    name: '✨ ' + voorwerpNaam,
+    note: `Eenmalige zegen van ${god.naam}: ${effect} Vink af na elk gebruik; vervalt bij je volgende lange rust.`,
+    zegen: true,
+    kind: 'eenmalig',
+    godId,
+    godNaam: god.naam,
+    zegenEffect: effect,
+    uses: usesRoll,
+    usesMax: usesRoll,
+    qty: usesRoll,
+  };
   dmState.playerItems[characterId].push(item);
 
   dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
@@ -4150,10 +4137,143 @@ router.post('/tempel/verbruik', attachRole, (req, res) => {
   res.json({ ok: true, removed, uses: removed ? 0 : item.uses });
 });
 
+// Eed: blijvende +1 (overleeft lange rust). Eén eed per speler. Verzaking → vloek.
+router.post('/tempel/eed', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+
+  const { godId } = req.body;
+  if (!godId) return res.status(400).json({ error: 'godId vereist' });
+
+  const meta = storage.readJSON('meta.json');
+  const config = meta.tempel || {};
+  const god = _tempelGoden(config).find(g => g.id === godId);
+  if (!god) return res.status(404).json({ error: 'Onbekende god' });
+
+  const dmState = readDmState();
+  if (!dmState.playerItems) dmState.playerItems = {};
+  if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];
+
+  if (dmState.playerItems[characterId].some(i => i.eed)) {
+    return res.status(400).json({ error: 'Je bent al door een eed gebonden — bevrijd je eerst.' });
+  }
+
+  const prijs = config.eedPrijs || config.prijs || { fl: 50 };
+  const prijsCl = toCl(prijs);
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
+
+  const item = {
+    id: 'eed_' + godId + '_' + Date.now(),
+    name: '⚖️ Eed aan ' + god.naam,
+    note: `Eed aan ${god.naam}${god.domein ? ' — ' + god.domein : ''}. Zegen: ${god.zegen || '—'}. Een blijvende eed; verzaking roept een vloek op.`,
+    eed: true,
+    kind: 'eed',
+    status: 'nagekomen',
+    godId,
+    godNaam: god.naam,
+    zegenEffect: god.zegen || '',
+    vloekEffect: god.vloek || '',
+  };
+  dmState.playerItems[characterId].push(item);
+
+  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io');
+  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+
+  res.json({ ok: true, item, currency: dmState.playerCurrency[characterId] });
+});
+
+// Boete: speler koopt zich vrij van een vloek.
+router.post('/tempel/boete', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+
+  const meta = storage.readJSON('meta.json');
+  const config = meta.tempel || {};
+
+  const dmState = readDmState();
+  const lijst = (dmState.playerItems || {})[characterId] || [];
+  const vloek = lijst.find(i => i.eed && i.status === 'vloek');
+  if (!vloek) return res.status(400).json({ error: 'Je draagt geen vloek om af te kopen' });
+
+  const prijs = config.boetePrijs || { fl: 100 };
+  const prijsCl = toCl(prijs);
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo voor de boete' });
+
+  dmState.playerItems[characterId] = lijst.filter(i => i.id !== vloek.id);
+  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io');
+  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+
+  res.json({ ok: true, currency: dmState.playerCurrency[characterId] });
+});
+
+// DM-beheer: overzicht van actieve eden/vloeken
+router.get('/tempel/eden', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const naamVan = (id) => (entities.personages || []).find(e => e.id === id)?.name || id;
+  const lijst = [];
+  for (const [charId, items] of Object.entries(dmState.playerItems || {})) {
+    const eed = (items || []).find(i => i.eed);
+    if (eed) lijst.push({
+      characterId: charId,
+      characterName: naamVan(charId),
+      status: eed.status || 'nagekomen',
+      godNaam: eed.godNaam || '',
+      effect: eed.status === 'vloek' ? (eed.vloekEffect || '') : (eed.zegenEffect || ''),
+    });
+  }
+  res.json(lijst);
+});
+
+// DM verbreekt een eed → vloek
+router.post('/tempel/eed/verbreek', requireDM, (req, res) => {
+  const { characterId } = req.body;
+  if (!characterId) return res.status(400).json({ error: 'characterId vereist' });
+  const dmState = readDmState();
+  const eed = ((dmState.playerItems || {})[characterId] || []).find(i => i.eed);
+  if (!eed) return res.status(404).json({ error: 'Deze speler draagt geen eed' });
+  if (eed.status === 'vloek') return res.status(400).json({ error: 'De eed is al verzaakt' });
+
+  eed.status = 'vloek';
+  eed.name = '☠️ Vloek van ' + (eed.godNaam || 'een god');
+  eed.note = `Vloek van ${eed.godNaam || 'een god'} wegens een verzaakte eed: ${eed.vloekEffect || ''} Doe boete in de tempel om je te bevrijden.`;
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io');
+  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+  res.json({ ok: true });
+});
+
+// DM heft een eed of vloek op (correctie)
+router.post('/tempel/eed/hef', requireDM, (req, res) => {
+  const { characterId } = req.body;
+  if (!characterId) return res.status(400).json({ error: 'characterId vereist' });
+  const dmState = readDmState();
+  const lijst = (dmState.playerItems || {})[characterId] || [];
+  if (!lijst.some(i => i.eed)) return res.status(404).json({ error: 'Deze speler draagt geen eed of vloek' });
+  dmState.playerItems[characterId] = lijst.filter(i => !i.eed);
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+  res.json({ ok: true });
+});
+
 router.put('/meta/tempel', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.tempel) meta.tempel = {};
-  ['naam', 'prijs', 'imageId', 'backdropId', 'voorwerpNaam', 'goden'].forEach(f => { if (req.body[f] !== undefined) meta.tempel[f] = req.body[f]; });
+  ['naam', 'prijs', 'eedPrijs', 'boetePrijs', 'imageId', 'backdropId', 'voorwerpNaam', 'goden'].forEach(f => { if (req.body[f] !== undefined) meta.tempel[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
   res.json(meta.tempel);
