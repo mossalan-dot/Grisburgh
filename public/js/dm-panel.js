@@ -3755,8 +3755,16 @@ async function _renderTempelSettings() {
         <input id="tempel-naam" class="dm-input" value="${esc(config.naam || 'De Tempel')}">
       </div>
       <div class="dm-form-row">
-        <label class="dm-form-label">Standaardprijs (fl)</label>
+        <label class="dm-form-label">Prijs eenmalige zegen (fl)</label>
         <input id="tempel-prijs-fl" class="dm-input" type="number" min="0" value="${(config.prijs && config.prijs.fl) || 25}" style="width:70px">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Prijs eed (fl)</label>
+        <input id="tempel-eedprijs-fl" class="dm-input" type="number" min="0" value="${(config.eedPrijs && config.eedPrijs.fl) || 50}" style="width:70px">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Boeteprijs vloek (fl)</label>
+        <input id="tempel-boeteprijs-fl" class="dm-input" type="number" min="0" value="${(config.boetePrijs && config.boetePrijs.fl) || 100}" style="width:70px">
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Voorwerpnaam ({god})</label>
@@ -3788,6 +3796,9 @@ async function _renderTempelSettings() {
         </div>
       </div>
 
+      <div class="dm-section-label" style="margin-top:14px">Actieve eden &amp; vloeken</div>
+      <div id="tempel-eden"></div>
+
       <div class="dm-section-label" style="margin-top:14px">Goden &amp; zegeningen</div>
       <p class="dm-form-label" style="opacity:.7;margin:0 0 6px">Eigen prijs per god is optioneel — leeg = standaardprijs.</p>
       <div id="tempel-goden"></div>
@@ -3801,7 +3812,42 @@ async function _renderTempelSettings() {
     </div>
   `;
   _renderTempelGodenRows();
+  _renderTempelEden();
 }
+
+async function _renderTempelEden() {
+  const wrap = document.getElementById('tempel-eden');
+  if (!wrap) return;
+  let eden = [];
+  try { eden = await api.tempelEden(); } catch {}
+  if (!eden.length) {
+    wrap.innerHTML = '<p class="dm-form-label" style="opacity:.6">Geen actieve eden of vloeken.</p>';
+    return;
+  }
+  wrap.innerHTML = eden.map(e => `
+    <div class="dm-form-row" style="gap:6px;align-items:center;border:1px solid rgba(196,168,122,0.2);border-radius:6px;padding:6px;margin-bottom:6px">
+      <span style="flex:1">
+        ${e.status === 'vloek' ? '☠️' : '⚖️'} <strong>${esc(e.characterName)}</strong> — ${esc(e.godNaam)}
+        <span style="display:block;opacity:.7;font-size:11px">${esc(e.effect || '')}</span>
+      </span>
+      ${e.status === 'vloek'
+        ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedHef('${esc(e.characterId)}')" title="Hef de vloek op">Hef op</button>`
+        : `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedVerbreek('${esc(e.characterId)}')" title="Verbreek de eed → vloek">Verbreek</button>
+           <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedHef('${esc(e.characterId)}')" title="Eed opheffen (correctie)">✕</button>`}
+    </div>`).join('');
+}
+
+window._tempelEedVerbreek = async (characterId) => {
+  if (!confirm('Deze eed verbreken? De speler wordt vervloekt tot er boete is gedaan.')) return;
+  try { await api.tempelEedVerbreek(characterId); await _renderTempelEden(); }
+  catch (err) { alert(err.message || 'Mislukt'); }
+};
+
+window._tempelEedHef = async (characterId) => {
+  if (!confirm('Deze eed of vloek opheffen?')) return;
+  try { await api.tempelEedHef(characterId); await _renderTempelEden(); }
+  catch (err) { alert(err.message || 'Mislukt'); }
+};
 
 function _renderTempelGodenRows() {
   const wrap = document.getElementById('tempel-goden');
@@ -3819,6 +3865,9 @@ function _renderTempelGodenRows() {
       </div>
       <div class="dm-form-row">
         <input class="dm-input" style="flex:1" placeholder="Symbool" value="${esc(g.symbool || '')}" oninput="window._tempelGodEdit(${i},'symbool',this.value)">
+      </div>
+      <div class="dm-form-row">
+        <input class="dm-input" style="flex:1" placeholder="Vloek bij verzaakte eed (bijv. Con -1; …)" value="${esc(g.vloek || '')}" oninput="window._tempelGodEdit(${i},'vloek',this.value)">
       </div>
       <div class="dm-form-row" style="flex-direction:column;gap:4px">
         <label class="dm-form-label" style="opacity:.7">Eenmalige zegens (één per regel, max 4 = d4)</label>
@@ -3847,7 +3896,7 @@ window._tempelGodEditLines = (i, value) => {
 };
 
 window._tempelGodToevoegen = () => {
-  _tempelGodenDraft.push({ id: 'god_' + Date.now(), naam: '', domein: '', symbool: '', zegen: '' });
+  _tempelGodenDraft.push({ id: 'god_' + Date.now(), naam: '', domein: '', symbool: '', zegen: '', vloek: '', eenmaligeZegens: [] });
   _renderTempelGodenRows();
 };
 
@@ -3873,6 +3922,8 @@ window._tempelSettingsSave = async () => {
   const config = window.app?.state?.meta?.tempel || {};
   const naam = document.getElementById('tempel-naam')?.value.trim() || 'De Tempel';
   const fl = parseInt(document.getElementById('tempel-prijs-fl')?.value) || 25;
+  const eedFl = parseInt(document.getElementById('tempel-eedprijs-fl')?.value) || 50;
+  const boeteFl = parseInt(document.getElementById('tempel-boeteprijs-fl')?.value) || 100;
   const voorwerpNaam = document.getElementById('tempel-voorwerp')?.value.trim() || 'Votiefmunt van {god}';
   const imageId = document.getElementById('tempel-portret-select')?.value || config.imageId || '';
   const backdropFromSelect = document.getElementById('tempel-backdrop-select')?.value || null;
@@ -3885,11 +3936,12 @@ window._tempelSettingsSave = async () => {
       domein: (g.domein || '').trim(),
       symbool: (g.symbool || '').trim(),
       zegen: (g.zegen || '').trim(),
+      vloek: (g.vloek || '').trim(),
       eenmaligeZegens: (g.eenmaligeZegens || []).filter(Boolean),
       ...(g.prijs ? { prijs: g.prijs } : {}),
     }));
   try {
-    await api.saveTempelConfig({ naam, prijs: { fl }, voorwerpNaam, imageId, backdropId, goden });
+    await api.saveTempelConfig({ naam, prijs: { fl }, eedPrijs: { fl: eedFl }, boetePrijs: { fl: boeteFl }, voorwerpNaam, imageId, backdropId, goden });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     _tempelBackdropPending = null;

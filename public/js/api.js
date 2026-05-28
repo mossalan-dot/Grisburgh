@@ -295,6 +295,11 @@ export const api = {
   getTempel:        ()              => request('/tempel'),
   tempelZegen:      (data)          => request('/tempel/zegen',  { method: 'POST', body: JSON.stringify(data) }),
   tempelVerbruik:   ()              => request('/tempel/verbruik', { method: 'POST' }),
+  tempelEed:        (data)          => request('/tempel/eed',    { method: 'POST', body: JSON.stringify(data) }),
+  tempelBoete:      ()              => request('/tempel/boete',  { method: 'POST' }),
+  tempelEden:       ()              => request('/tempel/eden'),
+  tempelEedVerbreek:(characterId)   => request('/tempel/eed/verbreek', { method: 'POST', body: JSON.stringify({ characterId }) }),
+  tempelEedHef:     (characterId)   => request('/tempel/eed/hef',      { method: 'POST', body: JSON.stringify({ characterId }) }),
   saveTempelConfig: (data)          => request('/meta/tempel',   { method: 'PUT',  body: JSON.stringify(data) }),
 
   // Locatie (Grisburgh verlaten)
