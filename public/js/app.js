@@ -4569,22 +4569,36 @@ async function renderMijnKarakter(opts = {}) {
               </div>
               ${_dotsHtml}`;
           })() : ''}
-          ${simpleItems.length > 0 ? `
-          <ul class="player-dash-simple-list">
-            ${simpleItems.map(si => `
-              <li class="player-dash-simple-item">
+          ${(() => {
+            const _sub = (si) => si.subtype || (si.eed ? (si.status === 'vloek' ? 'vloek' : 'eed') : (si.zegen ? 'zegen' : null));
+            const _row = (si) => {
+              const sub = _sub(si);
+              const cls = sub === 'vloek' ? ' player-dash-simple-item--vloek'
+                        : sub === 'eed'   ? ' player-dash-simple-item--eed'
+                        : sub === 'zegen' ? ' player-dash-simple-item--zegen' : '';
+              return `
+              <li class="player-dash-simple-item${cls}">
                 <span class="player-dash-simple-name">${esc(si.name)}</span>
                 ${si.note ? `<span class="player-dash-simple-note">${esc(si.note)}</span>` : ''}
-                ${si.kind === 'eenmalig' && si.usesMax ? `
+                ${sub === 'zegen' && si.usesMax ? `
                 <span class="player-dash-zegen-charges" style="display:inline-flex;align-items:center;gap:4px;margin-left:6px">
                   ${Array.from({ length: si.usesMax }).map((_, i) =>
                     `<span class="spell-slot-dot${i < (si.uses || 0) ? '' : ' used'}" style="width:11px;height:11px;cursor:default"></span>`).join('')}
                   <button class="ts-wedden-btn" style="padding:1px 7px;font-size:.7rem" onclick="window._dashZegenVerbruik()" ${(si.uses || 0) <= 0 ? 'disabled' : ''} title="Vink één gebruik af">✓</button>
                 </span>` : ''}
                 ${si.entityId ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:0.65rem;padding:1px 4px;line-height:1.3;" onclick="window._openDetail('${esc(si.entityType)}','${esc(si.entityId)}')" title="Open kaartje">↗</button>` : ''}
-                <button class="player-dash-simple-del" onclick="window._dashRemoveItem('${esc(si.id)}')" title="Verwijder">×</button>
-              </li>`).join('')}
-          </ul>` : ''}
+                ${si.eed ? '' : `<button class="player-dash-simple-del" onclick="window._dashRemoveItem('${esc(si.id)}')" title="Verwijder">×</button>`}
+              </li>`;
+            };
+            const gewone = simpleItems.filter(si => !_sub(si));
+            const zegens = simpleItems.filter(si => _sub(si));
+            return `
+              ${gewone.length ? `<ul class="player-dash-simple-list">${gewone.map(_row).join('')}</ul>` : ''}
+              ${zegens.length ? `
+                <div class="player-dash-section-title" style="margin-top:10px">⚜️ Zegeningen &amp; vloeken</div>
+                <ul class="player-dash-simple-list player-dash-zegen-list">${zegens.map(_row).join('')}</ul>` : ''}
+            `;
+          })()}
           ${myItems.length === 0 && simpleItems.length === 0 ? '<p class="player-dash-empty">Nog geen voorwerpen.</p>' : ''}
           <div class="player-dash-add-item">
             <input id="dash-item-name" class="player-dash-add-item-input" type="text"

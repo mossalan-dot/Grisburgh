@@ -4094,6 +4094,7 @@ router.post('/tempel/zegen', attachRole, (req, res) => {
     note: `Eenmalige zegen van ${god.naam}: ${effect} Vink af na elk gebruik; vervalt bij je volgende lange rust.`,
     zegen: true,
     kind: 'eenmalig',
+    subtype: 'zegen',
     godId,
     godNaam: god.naam,
     zegenEffect: effect,
@@ -4170,6 +4171,7 @@ router.post('/tempel/eed', attachRole, (req, res) => {
     note: `Eed aan ${god.naam}${god.domein ? ' — ' + god.domein : ''}. Zegen: ${god.zegen || '—'}. Een blijvende eed; verzaking roept een vloek op.`,
     eed: true,
     kind: 'eed',
+    subtype: 'eed',
     status: 'nagekomen',
     godId,
     godNaam: god.naam,
@@ -4247,6 +4249,7 @@ router.post('/tempel/eed/verbreek', requireDM, (req, res) => {
   if (eed.status === 'vloek') return res.status(400).json({ error: 'De eed is al verzaakt' });
 
   eed.status = 'vloek';
+  eed.subtype = 'vloek';
   eed.name = '☠️ Vloek van ' + (eed.godNaam || 'een god');
   eed.note = `Vloek van ${eed.godNaam || 'een god'} wegens een verzaakte eed: ${eed.vloekEffect || ''} Doe boete in de tempel om je te bevrijden.`;
   storage.writeJSON('dm-state.json', dmState);
