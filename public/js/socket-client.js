@@ -106,6 +106,10 @@ export function initSocket() {
     }
   });
 
+  socket.on('heeren:updated', () => {
+    if (window.app?.state?.activeSection === 'heeren') window.app?.refreshSection?.('heeren');
+  });
+
   socket.on('chapter-visibility:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
       import('./render-archief.js').then(m => m.renderLogboek());
