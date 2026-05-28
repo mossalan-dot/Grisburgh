@@ -1410,6 +1410,12 @@ router.post('/characters/:characterId/long-rest', attachRole, (req, res) => {
       g.itemCharges[characterId][itemId] = Math.min(effectiveMax, current + rolled);
     }
   });
+  // Tempel-zegens vervallen bij een lange rust
+  if (dmState.playerItems?.[characterId]?.some(i => i.zegen)) {
+    dmState.playerItems[characterId] = dmState.playerItems[characterId].filter(i => !i.zegen);
+    const io = req.app.get('io');
+    if (io) io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+  }
   storage.writeJSON('dm-state.json', dmState);
   res.json({ ok: true });
 });
@@ -1447,6 +1453,17 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       slots[lvl].used = 0;
     }
   });
+
+  // ── 2b. Tempel-zegens vervallen ──
+  if (dmState.playerItems) {
+    spelers.forEach(char => {
+      const items = dmState.playerItems[char.id];
+      if (items?.some(i => i.zegen)) {
+        dmState.playerItems[char.id] = items.filter(i => !i.zegen);
+        if (io) io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId: char.id, items: dmState.playerItems[char.id] });
+      }
+    });
+  }
 
   // ── 3. Conditions + tempHp wissen in actief gevecht ──
   try {
@@ -3653,6 +3670,22 @@ const GOCK_TIDBITS_DEFAULT = [
   '{naam} huurde vorig kwartaal een detective in. De Gock was die detective.',
 ];
 
+// Hoofdgoden met een zegening. Mindere goden en De Verborgene (geen zegen) zijn weggelaten.
+const TEMPEL_GODEN_DEFAULT = [
+  { id: 'matall',   naam: 'Matall, de Maker',     domein: 'Oppergod — de zon en de maan',           symbool: 'Een witte hamer voor een rode zon',                                  zegen: 'Con +1' },
+  { id: 'seldari',  naam: 'Seldari, Stormoog',    domein: 'Gerechtigheid en bescherming',           symbool: 'Een blauw, driehoekig schild met een oog en gesperde hand',          zegen: 'Str +1' },
+  { id: 'ghon',     naam: 'Ghon, de Loper',       domein: 'Kennis, uitvinding en wijsheid',         symbool: 'Een purperen waterrad',                                              zegen: 'Int +1' },
+  { id: 'tirimet',  naam: 'Tirimet, Elvenluit',   domein: 'Beschaving en de vrije kunsten',         symbool: 'Een gele luit',                                                      zegen: 'Cha +1' },
+  { id: 'oronoe',   naam: 'Oronoë, de Zephir',    domein: 'Zeeën, wind, scheepvaart en verkenning', symbool: 'Drie blauwe kronkellijnen, gekruist door een zwarte bliksemschicht', zegen: 'Dex +1' },
+  { id: 'velurut',  naam: 'Velurut, de Jager',    domein: 'De natuur en de jacht',                  symbool: 'Een hoefijzer',                                                      zegen: 'Wis +1' },
+  { id: 'qirell',   naam: 'Qirell, Vuurhand',     domein: 'Landbouw en oogst',                      symbool: 'Een zwarte en groene boom, achter elkaar',                           zegen: 'Nature/Animal Handling +1' },
+  { id: 'cylline',  naam: 'Cylline, Nymfenblad',  domein: 'Nacht, passie, dronkenschap en extase',  symbool: 'Drie paarse druiven',                                                zegen: 'Performance/Intimidation +1' },
+  { id: 'sehan',    naam: 'Sehan, de Weegschaal', domein: 'Handel en welvaart',                     symbool: 'Een metalen weegschaal',                                             zegen: 'Insight/Perception +1' },
+  { id: 'yrdus',    naam: 'Yrdus, de Ringdrager', domein: 'Liefde, huwelijk en familie',            symbool: 'Een rode ring',                                                      zegen: 'Persuasion/History +1' },
+  { id: 'corellin', naam: 'Corellin, Vlasbaard',  domein: 'Dieven, zieken en buitenbeentjes',       symbool: 'Een gesloten oog',                                                   zegen: 'Sleight of Hand/Deception +1' },
+  { id: 'denava',   naam: 'Denava',               domein: 'Verandering',                            symbool: 'Vier zandlopers',                                                    zegen: 'Survival/Nature +1' },
+];
+
 function _dienstenBeschikbaar(dmState) {
   const entities = storage.readJSON('entities.json');
   const g = getGroup(dmState);
@@ -3919,6 +3952,97 @@ router.put('/meta/gock', requireDM, (req, res) => {
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
   res.json(meta.gock);
+});
+
+// ── De Tempel / Zegeningen ──
+
+function _tempelGoden(config) {
+  return config.goden?.length ? config.goden : TEMPEL_GODEN_DEFAULT;
+}
+
+router.get('/tempel', attachRole, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const config = meta.tempel || {};
+  const characterId = req.session.characterId;
+  const dmState = readDmState();
+
+  const huidigeZegen = characterId
+    ? ((dmState.playerItems || {})[characterId] || []).find(i => i.zegen) || null
+    : null;
+  const currency = _effectiveCurrency(dmState, characterId);
+
+  res.json({
+    config: {
+      naam: config.naam || 'De Tempel',
+      prijs: config.prijs || { fl: 25 },
+      imageId: config.imageId || null,
+      backdropId: config.backdropId || null,
+      voorwerpNaam: config.voorwerpNaam || 'Votiefmunt van {god}',
+      goden: _tempelGoden(config),
+    },
+    huidigeZegen,
+    currency,
+  });
+});
+
+router.post('/tempel/zegen', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+
+  const { godId } = req.body;
+  if (!godId) return res.status(400).json({ error: 'godId vereist' });
+
+  const meta = storage.readJSON('meta.json');
+  const config = meta.tempel || {};
+  const god = _tempelGoden(config).find(g => g.id === godId);
+  if (!god) return res.status(404).json({ error: 'Onbekende god' });
+
+  const dmState = readDmState();
+  if (!dmState.playerItems) dmState.playerItems = {};
+  if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];
+
+  const bestaand = dmState.playerItems[characterId].find(i => i.zegen);
+  if (bestaand && bestaand.godId === godId) {
+    return res.status(400).json({ error: `Je draagt al de zegen van ${god.naam}` });
+  }
+
+  const prijs = (god.prijs && toCl(god.prijs) > 0) ? god.prijs : (config.prijs || { fl: 25 });
+  const prijsCl = toCl(prijs);
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
+
+  // Eén zegen per speler tegelijk: een nieuwe vervangt de vorige
+  dmState.playerItems[characterId] = dmState.playerItems[characterId].filter(i => !i.zegen);
+
+  const voorwerpNaam = (config.voorwerpNaam || 'Votiefmunt van {god}').replace(/\{god\}/g, god.naam);
+  const item = {
+    id: 'zegen_' + godId + '_' + Date.now(),
+    name: '🪙 ' + voorwerpNaam,
+    note: `Zegen van ${god.naam}${god.domein ? ' — ' + god.domein : ''}.${god.zegen ? ' Effect: ' + god.zegen + '.' : ''} Vervalt bij je volgende lange rust.`,
+    zegen: true,
+    godId,
+    zegenEffect: god.zegen || '',
+  };
+  dmState.playerItems[characterId].push(item);
+
+  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io');
+  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+
+  res.json({ ok: true, item, currency: dmState.playerCurrency[characterId] });
+});
+
+router.put('/meta/tempel', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.tempel) meta.tempel = {};
+  ['naam', 'prijs', 'imageId', 'backdropId', 'voorwerpNaam', 'goden'].forEach(f => { if (req.body[f] !== undefined) meta.tempel[f] = req.body[f]; });
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  res.json(meta.tempel);
 });
 
 // ── Locatie (Grisburgh verlaten) ──
