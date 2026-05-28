@@ -6881,18 +6881,27 @@ async function renderUrsula() {
   try { data = await api.getUrsula(); }
   catch (e) { el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`; return; }
 
-  const { config, beschikbaar, geenAkte, alGeworpen, roll, doorNaam, onthuld, currency } = data;
+  const { config, beschikbaar, geenSessie, geenAkte, alGeworpen, roll, doorNaam, onthuld, currency } = data;
   const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
   const prijsTekst = (p) => [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
 
+  const weg = geenSessie; // Ursula is er niet wanneer er geen sessie/akte loopt
   const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
   const portret = config.imageId
-    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
-    : `<div class="gock-portret-fallback">🔮</div>`;
+    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round${weg ? ' herberg-portrait--weg' : ''}" alt="${esc(config.naam)}">`
+    : `<div class="herberg-portrait-round herberg-portrait-fallback${weg ? ' herberg-portrait--weg' : ''}">🔮</div>`;
+
+  const groet = geenSessie
+    ? `Op de deur hangt een briefje: <em>“${esc(config.naam)} is even een fles jenever halen.”</em>`
+    : `${esc(config.naam)} legt haar handen op de kristallen bol.`;
 
   let body;
-  if (geenAkte || !beschikbaar) {
-    body = `<p class="herberg-cooldown-tekst">${esc(config.naam)} tuurt in haar bol… maar de nevelen tonen nu niets. Kom terug wanneer het lot zich roert.</p>`;
+  if (geenSessie) {
+    body = `<p class="herberg-cooldown-tekst">Er is nu niemand die de toekomst leest. Kom terug wanneer er een sessie loopt.</p>`;
+  } else if (geenAkte) {
+    body = `<p class="herberg-cooldown-tekst">${esc(config.naam)} schudt haar hoofd: voorbij dit punt is de toekomst nog ongeschreven.</p>`;
+  } else if (!beschikbaar) {
+    body = `<p class="herberg-cooldown-tekst">${esc(config.naam)} tuurt in haar bol… maar de nevelen tonen nu niets.</p>`;
   } else if (alGeworpen && onthuld) {
     body = _ursulaOnthuldHtml(onthuld, roll, doorNaam);
   } else {
@@ -6907,7 +6916,7 @@ async function renderUrsula() {
     <div class="herberg-scene gock-scene" ${backdrop}>
       <div class="herberg-content">
         <div class="herberg-portrait-wrap">${portret}</div>
-        <p class="herberg-groet">${esc(config.naam)} legt haar handen op de kristallen bol.</p>
+        <p class="herberg-groet">${groet}</p>
         ${body}
       </div>
     </div>`;
