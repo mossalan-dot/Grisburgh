@@ -219,6 +219,7 @@ function switchSection(section) {
     herberg:       'rgba(160,90,20,0.65)',
     tweespalt:     'rgba(90,20,20,0.65)',
     gock:          'rgba(20,50,80,0.65)',
+    tempel:        'rgba(120,90,150,0.6)',
     'mijn-karakter': 'rgba(42,90,138,0.55)',
     meesterkamer:  'rgba(139,42,42,0.55)',
   };
@@ -524,7 +525,7 @@ function applyRole() {
   }
 
   // Diensten-knop active-state als een diensten-sectie actief is
-  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock'];
+  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock', 'tempel'];
   const dienstenBtn = document.getElementById('diensten-nav-btn');
   if (dienstenBtn) dienstenBtn.classList.toggle('active', DIENSTEN_SECTIONS.includes(state.activeSection));
 
@@ -1569,6 +1570,7 @@ async function refreshSection(section) {
   else if (section === 'herberg') await renderHerberg();
   else if (section === 'tweespalt') await renderTweespalt();
   else if (section === 'gock') await renderGock();
+  else if (section === 'tempel') await renderTempel();
   else if (section === 'mijn-karakter') await renderMijnKarakter();
   else if (section === 'spelers') await renderSpelersTab();
   else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
@@ -6862,6 +6864,82 @@ window._gockKies = async (entityId, entityType, entityName) => {
 window._gockOpgehaald = async () => {
   try { await api.gockOpgehaald(); } catch { /* ok */ }
   await renderGock();
+};
+
+// ── De Tempel / Zegeningen ──────────────────────────────────────────────────
+
+async function renderTempel() {
+  const el = document.getElementById('section-tempel');
+  if (!el) return;
+
+  const meta = window.app?.state?.meta || {};
+  if (meta.buitenGrisburgh) {
+    _dienstNietBereikbaar(el, meta.tempel?.naam || 'De Tempel');
+    return;
+  }
+
+  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+
+  let data;
+  try { data = await api.getTempel(); }
+  catch (e) {
+    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`;
+    return;
+  }
+
+  const { config, huidigeZegen, currency } = data;
+  const goden = config.goden || [];
+
+  const beursTekst = (cur) =>
+    [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+  const prijsLabel = (g) => {
+    const p = (g.prijs && g.prijs.fl) ? g.prijs : config.prijs;
+    return [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
+  };
+
+  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const portret  = config.imageId
+    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
+    : `<div class="gock-portret-fallback">⛪</div>`;
+
+  el.innerHTML = `
+    <div class="herberg-scene gock-scene" ${backdrop}>
+      <div class="herberg-content">
+        <div class="herberg-portrait-wrap">${portret}</div>
+        <p class="herberg-groet">Welkom in ${esc(config.naam)}. Tot welke god wil je bidden?</p>
+        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
+
+        ${huidigeZegen ? `
+          <div class="gock-dossier">
+            <div class="gock-dossier-head">✨ Huidige zegen</div>
+            <p class="gock-dossier-tekst">${esc(huidigeZegen.name)}${huidigeZegen.note ? ' — ' + esc(huidigeZegen.note) : ''}</p>
+            <p class="ts-beurs">Je kunt maar één zegen tegelijk dragen; opnieuw bidden vervangt deze.</p>
+          </div>` : ''}
+
+        ${goden.length === 0
+          ? `<p class="herberg-cooldown-tekst">Er zijn nog geen goden bekend in deze tempel.</p>`
+          : `<div class="herberg-lijst tempel-goden">
+              ${goden.map(g => `
+                <button class="herberg-item tempel-god${huidigeZegen && huidigeZegen.godId === g.id ? ' tempel-god--actief' : ''}"
+                  onclick="window._tempelKies('${esc(g.id)}','${esc(g.naam)}')">
+                  <span class="herberg-item-naam">${esc(g.naam)}</span>
+                  ${g.domein ? `<span class="herberg-item-type">${esc(g.domein)}</span>` : ''}
+                  <span class="tempel-zegen-badge">${g.zegen ? esc(g.zegen) : '—'} · ${esc(prijsLabel(g))}</span>
+                </button>`).join('')}
+            </div>`}
+      </div>
+    </div>`;
+}
+
+window._tempelKies = async (godId, godNaam) => {
+  if (!confirm(`Een offer brengen aan ${godNaam}? De betaling vindt direct plaats en je ontvangt een votiefvoorwerp in je knapzak.`)) return;
+  try {
+    await api.tempelZegen({ godId });
+    await renderTempel();
+    _tsToast(`✨ De zegen van ${godNaam} rust op je. Je vindt het voorwerp in je knapzak.`);
+  } catch (err) {
+    _tsToast(err.message || 'Het offer werd niet aanvaard.');
+  }
 };
 
 // ── Tweespalt / Gokkantoor ──────────────────────────────────────────────────
