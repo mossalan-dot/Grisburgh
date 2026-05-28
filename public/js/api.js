@@ -279,10 +279,13 @@ export const api = {
   deletePost: (characterId, postId) => request(`/post/${characterId}/${postId}`,   { method: 'DELETE' }),
 
   // Madame Ursula
-  getUrsula:       ()              => request('/ursula'),
-  ursulaVraag:     (data)          => request('/ursula/vraag',  { method: 'POST', body: JSON.stringify(data) }),
-  saveUrsulaConfig:  (data)          => request('/meta/ursula',                            { method: 'PUT',  body: JSON.stringify(data) }),
-  setUrsulaGeheim:   (type, id, tekst) => request(`/entities/${type}/${id}/ursula-geheim`, { method: 'PUT',  body: JSON.stringify({ tekst }) }),
+  getUrsula:           ()             => request('/ursula'),
+  ursulaVoorspel:      ()             => request('/ursula/voorspel', { method: 'POST' }),
+  saveUrsulaConfig:    (data)         => request('/meta/ursula',     { method: 'PUT',  body: JSON.stringify(data) }),
+  ursulaAktes:         ()             => request('/ursula/aktes'),
+  saveUrsulaVoorspelling: (key, data) => request(`/ursula/voorspelling/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  ursulaReset:         (akteKey)      => request('/ursula/reset',    { method: 'POST', body: JSON.stringify({ akteKey }) }),
+  setActiveAkte:       (key, num, title) => request('/akte/actief',  { method: 'POST', body: JSON.stringify({ key, num, title }) }),
   setGockGeheim:     (type, id, tekst) => request(`/entities/${type}/${id}/gock-geheim`,   { method: 'PUT',  body: JSON.stringify({ tekst }) }),
 
   // De Gock
@@ -290,6 +293,17 @@ export const api = {
   gockOpdracht:    (data)          => request('/gock/opdracht',   { method: 'POST', body: JSON.stringify(data) }),
   gockOpgehaald:   ()              => request('/gock/opgehaald', { method: 'PUT' }),
   saveGockConfig:  (data)          => request('/meta/gock',      { method: 'PUT',  body: JSON.stringify(data) }),
+
+  // De Tempel
+  getTempel:        ()              => request('/tempel'),
+  tempelZegen:      (data)          => request('/tempel/zegen',  { method: 'POST', body: JSON.stringify(data) }),
+  tempelVerbruik:   ()              => request('/tempel/verbruik', { method: 'POST' }),
+  tempelEed:        (data)          => request('/tempel/eed',    { method: 'POST', body: JSON.stringify(data) }),
+  tempelBoete:      ()              => request('/tempel/boete',  { method: 'POST' }),
+  tempelEden:       ()              => request('/tempel/eden'),
+  tempelEedVerbreek:(characterId)   => request('/tempel/eed/verbreek', { method: 'POST', body: JSON.stringify({ characterId }) }),
+  tempelEedHef:     (characterId)   => request('/tempel/eed/hef',      { method: 'POST', body: JSON.stringify({ characterId }) }),
+  saveTempelConfig: (data)          => request('/meta/tempel',   { method: 'PUT',  body: JSON.stringify(data) }),
 
   // Locatie (Grisburgh verlaten)
   setLocatie:              (data)     => request('/locatie',          { method: 'PUT', body: JSON.stringify(data) }),

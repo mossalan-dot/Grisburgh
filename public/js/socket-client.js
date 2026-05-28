@@ -219,11 +219,15 @@ export function initSocket() {
       // Re-render active dienst tab when locatie-flag changes
       if (buitenChanged) {
         const sec = window.app?.state?.activeSection;
-        if (['herberg','tweespalt','ursula','gock'].includes(sec)) {
+        if (['herberg','tweespalt','ursula','gock','tempel'].includes(sec)) {
           window.app?.navigateTo?.(sec);
         }
       }
     }));
+  });
+
+  socket.on('ursula:updated', () => {
+    if (window.app?.state?.activeSection === 'ursula') window.app?.refreshSection?.('ursula');
   });
 
   socket.on('entity:deceased', ({ id, type, name } = {}) => {

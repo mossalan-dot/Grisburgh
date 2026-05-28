@@ -347,7 +347,7 @@ export function initDmPanel() {
 // Welke tabs zijn "gevecht & monsters"?
 const _GEVECHT_TABS = new Set(['gevecht', 'monsters', 'encounters']);
 // Welke tabs zijn "diensten"?
-const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock']);
+const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'tempel', 'ursula']);
 // Welke tabs zijn "instellingen" (niet als tab getoond)?
 const _INSTELLINGEN_TABS = new Set(['campagnes', 'wereld', 'beurs', 'dobbelstenen']);
 
@@ -493,10 +493,12 @@ function _renderDiensten(subTab) {
     <button class="dm-subtab-btn${_dienstenSubTab==='herberg'   ?' active':''}" onclick="window.dmPanel.switchTab('herberg')" title="Herberg">${icon('beer')}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='tweespalt' ?' active':''}" onclick="window.dmPanel.switchTab('tweespalt')" title="Tweespalt">${icon('dice',{cls:'icon-gi'})}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='gock'      ?' active':''}" onclick="window.dmPanel.switchTab('gock')" title="De Gock">${icon('search')}</button>
+    <button class="dm-subtab-btn${_dienstenSubTab==='tempel'    ?' active':''}" onclick="window.dmPanel.switchTab('tempel')" title="De Tempel">${icon('church')}</button>
+    <button class="dm-subtab-btn${_dienstenSubTab==='ursula'    ?' active':''}" onclick="window.dmPanel.switchTab('ursula')" title="Madame Ursula">${icon('sparkles')}</button>
   `;
 
   // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
-  ['herberg','tweespalt','gock'].forEach(name => {
+  ['herberg','tweespalt','gock','tempel','ursula'].forEach(name => {
     let legacy = document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
     if (!legacy) return;
     // Verplaats content naar sub-div in diensten-tab
@@ -515,6 +517,8 @@ function _renderDiensten(subTab) {
   if (_dienstenSubTab === 'herberg')   _renderHerbergSettings();
   if (_dienstenSubTab === 'tweespalt') _renderTweespaltDM();
   if (_dienstenSubTab === 'gock')      _renderGockSettings();
+  if (_dienstenSubTab === 'tempel')    _renderTempelSettings();
+  if (_dienstenSubTab === 'ursula')    _renderUrsulaSettings();
 }
 
 // ── Delen (Tunnel + Export gecombineerd) ──
@@ -3721,6 +3725,361 @@ window._gockSettingsSave = async () => {
     window._gockBackdropPending = null;
     await _renderGockSettings();
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+// ── De Tempel — DM-instellingen ──
+
+let _tempelGodenDraft = [];
+let _tempelBackdropPending = null;
+
+async function _renderTempelSettings() {
+  const el = _tabEl('tempel');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  let data;
+  try { data = await api.getTempel(); }
+  catch (e) { el.innerHTML = `<div class="dm-feature-section"><div class="dm-section-label">Fout: ${esc(String(e?.message || e))}</div></div>`; return; }
+  const config = data.config || {};
+  _tempelGodenDraft = (config.goden || []).map(g => ({ ...g }));
+
+  let personages = [], locaties = [];
+  try { personages = await api.listEntities('personages'); } catch {}
+  try { locaties  = await api.listEntities('locaties');  } catch {}
+  const alle = [...personages, ...locaties];
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">De Tempel — Instellingen</div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Naam</label>
+        <input id="tempel-naam" class="dm-input" value="${esc(config.naam || 'De Tempel')}">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Prijs eenmalige zegen (fl)</label>
+        <input id="tempel-prijs-fl" class="dm-input" type="number" min="0" value="${(config.prijs && config.prijs.fl) || 25}" style="width:70px">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Prijs eed (fl)</label>
+        <input id="tempel-eedprijs-fl" class="dm-input" type="number" min="0" value="${(config.eedPrijs && config.eedPrijs.fl) || 50}" style="width:70px">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Boeteprijs vloek (fl)</label>
+        <input id="tempel-boeteprijs-fl" class="dm-input" type="number" min="0" value="${(config.boetePrijs && config.boetePrijs.fl) || 100}" style="width:70px">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Voorwerpnaam ({god})</label>
+        <input id="tempel-voorwerp" class="dm-input" value="${esc(config.voorwerpNaam || 'Votiefmunt van {god}')}">
+      </div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Portret (NPC of locatie)</label>
+        <select id="tempel-portret-select" class="dm-select">
+          <option value="">— Kies een entiteit —</option>
+          ${alle.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select>
+      </div>
+      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrondafbeelding</label>
+        ${config.backdropId ? `<img id="tempel-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="tempel-backdrop-preview" style="display:none"></span>'}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">
+          📷
+          <input type="file" accept="image/*" class="hidden" onchange="window._tempelUploadBackdrop(this.files[0])">
+        </label>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Of kies uit entiteiten</label>
+          <select id="tempel-backdrop-select" class="dm-select">
+            <option value="">— Entiteit als backdrop —</option>
+            ${alle.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="dm-section-label" style="margin-top:14px">Actieve eden &amp; vloeken</div>
+      <div id="tempel-eden"></div>
+
+      <div class="dm-section-label" style="margin-top:14px">Goden &amp; zegeningen</div>
+      <p class="dm-form-label" style="opacity:.7;margin:0 0 6px">Eigen prijs per god is optioneel — leeg = standaardprijs.</p>
+      <div id="tempel-goden"></div>
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-ghost" onclick="window._tempelGodToevoegen()" title="God toevoegen">＋ God</button>
+      </div>
+
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-primary" onclick="window._tempelSettingsSave()" title="Opslaan">💾</button>
+      </div>
+    </div>
+  `;
+  _renderTempelGodenRows();
+  _renderTempelEden();
+}
+
+async function _renderTempelEden() {
+  const wrap = document.getElementById('tempel-eden');
+  if (!wrap) return;
+  let eden = [];
+  try { eden = await api.tempelEden(); } catch {}
+  if (!eden.length) {
+    wrap.innerHTML = '<p class="dm-form-label" style="opacity:.6">Geen actieve eden of vloeken.</p>';
+    return;
+  }
+  wrap.innerHTML = eden.map(e => `
+    <div class="dm-form-row" style="gap:6px;align-items:center;border:1px solid rgba(196,168,122,0.2);border-radius:6px;padding:6px;margin-bottom:6px">
+      <span style="flex:1">
+        ${e.status === 'vloek' ? '☠️' : '⚖️'} <strong>${esc(e.characterName)}</strong> — ${esc(e.godNaam)}
+        <span style="display:block;opacity:.7;font-size:11px">${esc(e.effect || '')}</span>
+      </span>
+      ${e.status === 'vloek'
+        ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedHef('${esc(e.characterId)}')" title="Hef de vloek op">Hef op</button>`
+        : `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedVerbreek('${esc(e.characterId)}')" title="Verbreek de eed → vloek">Verbreek</button>
+           <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedHef('${esc(e.characterId)}')" title="Eed opheffen (correctie)">✕</button>`}
+    </div>`).join('');
+}
+
+window._tempelEedVerbreek = async (characterId) => {
+  if (!confirm('Deze eed verbreken? De speler wordt vervloekt tot er boete is gedaan.')) return;
+  try { await api.tempelEedVerbreek(characterId); await _renderTempelEden(); }
+  catch (err) { alert(err.message || 'Mislukt'); }
+};
+
+window._tempelEedHef = async (characterId) => {
+  if (!confirm('Deze eed of vloek opheffen?')) return;
+  try { await api.tempelEedHef(characterId); await _renderTempelEden(); }
+  catch (err) { alert(err.message || 'Mislukt'); }
+};
+
+function _renderTempelGodenRows() {
+  const wrap = document.getElementById('tempel-goden');
+  if (!wrap) return;
+  wrap.innerHTML = _tempelGodenDraft.map((g, i) => `
+    <div class="dm-tempel-god" style="border:1px solid rgba(196,168,122,0.25);border-radius:8px;padding:8px;margin-bottom:8px">
+      <div class="dm-form-row" style="gap:6px;align-items:center">
+        <input class="dm-input" style="flex:1" placeholder="Naam (bijv. Matall, de Maker)" value="${esc(g.naam || '')}" oninput="window._tempelGodEdit(${i},'naam',this.value)">
+        <input class="dm-input" type="number" min="0" style="width:64px" placeholder="fl" value="${(g.prijs && g.prijs.fl) || ''}" oninput="window._tempelGodEdit(${i},'prijsFl',this.value)" title="Eigen prijs (leeg = standaard)">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelGodVerwijderen(${i})" title="Verwijderen">🗑️</button>
+      </div>
+      <div class="dm-form-row" style="gap:6px">
+        <input class="dm-input" style="flex:1" placeholder="Domein" value="${esc(g.domein || '')}" oninput="window._tempelGodEdit(${i},'domein',this.value)">
+        <input class="dm-input" style="flex:1" placeholder="Zegen (bijv. Con +1)" value="${esc(g.zegen || '')}" oninput="window._tempelGodEdit(${i},'zegen',this.value)">
+      </div>
+      <div class="dm-form-row">
+        <input class="dm-input" style="flex:1" placeholder="Symbool" value="${esc(g.symbool || '')}" oninput="window._tempelGodEdit(${i},'symbool',this.value)">
+      </div>
+      <div class="dm-form-row">
+        <input class="dm-input" style="flex:1" placeholder="Vloek bij verzaakte eed (bijv. Con -1; …)" value="${esc(g.vloek || '')}" oninput="window._tempelGodEdit(${i},'vloek',this.value)">
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label" style="opacity:.7">Eenmalige zegens (één per regel, max 4 = d4)</label>
+        <textarea class="dm-input" rows="4" style="resize:vertical;font-size:11px" placeholder="bijv. Herrol een mislukte death save."
+          oninput="window._tempelGodEditLines(${i}, this.value)">${esc((g.eenmaligeZegens || []).join('\n'))}</textarea>
+      </div>
+    </div>
+  `).join('') || '<p class="dm-form-label" style="opacity:.6">Nog geen goden toegevoegd.</p>';
+}
+
+window._tempelGodEdit = (i, field, value) => {
+  const g = _tempelGodenDraft[i];
+  if (!g) return;
+  if (field === 'prijsFl') {
+    const fl = parseInt(value);
+    if (fl > 0) g.prijs = { fl }; else delete g.prijs;
+  } else {
+    g[field] = value;
+  }
+};
+
+window._tempelGodEditLines = (i, value) => {
+  const g = _tempelGodenDraft[i];
+  if (!g) return;
+  g.eenmaligeZegens = value.split('\n').map(l => l.trim()).filter(Boolean);
+};
+
+window._tempelGodToevoegen = () => {
+  _tempelGodenDraft.push({ id: 'god_' + Date.now(), naam: '', domein: '', symbool: '', zegen: '', vloek: '', eenmaligeZegens: [] });
+  _renderTempelGodenRows();
+};
+
+window._tempelGodVerwijderen = (i) => {
+  _tempelGodenDraft.splice(i, 1);
+  _renderTempelGodenRows();
+};
+
+window._tempelUploadBackdrop = async (file) => {
+  if (!file) return;
+  const id = 'tempel-backdrop-' + Date.now();
+  try {
+    await api.uploadFile(id, file);
+    _tempelBackdropPending = id;
+    const prev = document.getElementById('tempel-backdrop-preview');
+    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
+    const sel = document.getElementById('tempel-backdrop-select');
+    if (sel) sel.value = '';
+  } catch (err) { alert('Upload mislukt: ' + err.message); }
+};
+
+window._tempelSettingsSave = async () => {
+  const config = window.app?.state?.meta?.tempel || {};
+  const naam = document.getElementById('tempel-naam')?.value.trim() || 'De Tempel';
+  const fl = parseInt(document.getElementById('tempel-prijs-fl')?.value) || 25;
+  const eedFl = parseInt(document.getElementById('tempel-eedprijs-fl')?.value) || 50;
+  const boeteFl = parseInt(document.getElementById('tempel-boeteprijs-fl')?.value) || 100;
+  const voorwerpNaam = document.getElementById('tempel-voorwerp')?.value.trim() || 'Votiefmunt van {god}';
+  const imageId = document.getElementById('tempel-portret-select')?.value || config.imageId || '';
+  const backdropFromSelect = document.getElementById('tempel-backdrop-select')?.value || null;
+  const backdropId = _tempelBackdropPending || backdropFromSelect || config.backdropId || '';
+  const goden = _tempelGodenDraft
+    .filter(g => (g.naam || '').trim())
+    .map(g => ({
+      id: g.id || ('god_' + Math.random().toString(36).slice(2, 8)),
+      naam: g.naam.trim(),
+      domein: (g.domein || '').trim(),
+      symbool: (g.symbool || '').trim(),
+      zegen: (g.zegen || '').trim(),
+      vloek: (g.vloek || '').trim(),
+      eenmaligeZegens: (g.eenmaligeZegens || []).filter(Boolean),
+      ...(g.prijs ? { prijs: g.prijs } : {}),
+    }));
+  try {
+    await api.saveTempelConfig({ naam, prijs: { fl }, eedPrijs: { fl: eedFl }, boetePrijs: { fl: boeteFl }, voorwerpNaam, imageId, backdropId, goden });
+    const newMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = newMeta;
+    _tempelBackdropPending = null;
+    await _renderTempelSettings();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+// ── Madame Ursula — DM-instellingen ──
+
+let _ursulaBackdropPending = null;
+let _ursulaAktes = [];
+let _ursulaActiveAkte = null;
+let _ursulaSelectedAkte = null;
+
+async function _renderUrsulaSettings() {
+  const el = _tabEl('ursula');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  const meta = window.app?.state?.meta || {};
+  const config = meta.ursula || {};
+  let personages = [], locaties = [];
+  try { personages = await api.listEntities('personages'); } catch {}
+  try { locaties  = await api.listEntities('locaties');  } catch {}
+  const alle = [...personages, ...locaties];
+
+  try { const r = await api.ursulaAktes(); _ursulaAktes = r.aktes || []; _ursulaActiveAkte = r.activeAkte || null; }
+  catch { _ursulaAktes = []; _ursulaActiveAkte = null; }
+  if ((!_ursulaSelectedAkte || !_ursulaAktes.some(a => a.key === _ursulaSelectedAkte)) && _ursulaAktes.length) {
+    const next = _ursulaActiveAkte ? _ursulaAktes.find(a => a.num > (_ursulaActiveAkte.num ?? -1)) : null;
+    _ursulaSelectedAkte = (next || _ursulaAktes[0]).key;
+  }
+
+  const prijs = config.prijs || { fl: 20 };
+  const sel = _ursulaAktes.find(a => a.key === _ursulaSelectedAkte) || null;
+  const v = sel?.voorspelling || {};
+  const actiefLabel = _ursulaActiveAkte ? `Akte ${_ursulaActiveAkte.num} — ${esc(_ursulaActiveAkte.title || '')}` : 'geen';
+  const doel = _ursulaActiveAkte ? _ursulaAktes.find(a => a.num > (_ursulaActiveAkte.num ?? -1)) : null;
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Madame Ursula — Instellingen</div>
+
+      <div class="dm-form-row"><label class="dm-form-label">Naam</label>
+        <input id="ursula-naam" class="dm-input" value="${esc(config.naam || 'Madame Ursula')}"></div>
+      <div class="dm-form-row"><label class="dm-form-label">Prijs (fl)</label>
+        <input id="ursula-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 20}" style="width:70px"></div>
+
+      <div class="dm-form-row"><label class="dm-form-label">Portret (NPC of locatie)</label>
+        <select id="ursula-portret-select" class="dm-select">
+          <option value="">— Kies een entiteit —</option>
+          ${alle.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select></div>
+      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrondafbeelding</label>
+        ${config.backdropId ? `<img id="ursula-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="ursula-backdrop-preview" style="display:none"></span>'}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">📷
+          <input type="file" accept="image/*" class="hidden" onchange="window._ursulaUploadBackdrop(this.files[0])"></label>
+        <div class="dm-form-row"><label class="dm-form-label">Of kies uit entiteiten</label>
+          <select id="ursula-backdrop-select" class="dm-select">
+            <option value="">— Entiteit als backdrop —</option>
+            ${alle.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+          </select></div>
+      </div>
+      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._ursulaSettingsSave()" title="Opslaan">💾</button></div>
+
+      <div class="dm-section-label" style="margin-top:14px">Voorspellingen per akte</div>
+      <p class="dm-form-label" style="opacity:.7;margin:0 0 6px">Actieve akte: <strong>${actiefLabel}</strong>${doel ? ` · spelers voorzien nu <strong>Akte ${doel.num} — ${esc(doel.title || '')}</strong>` : ' · (geen volgende akte)'}</p>
+
+      ${_ursulaAktes.length === 0 ? '<p class="dm-form-label" style="opacity:.6">Nog geen aktes/hoofdstukken gedefinieerd.</p>' : `
+      <div class="dm-form-row"><label class="dm-form-label">Akte</label>
+        <select id="ursula-akte-select" class="dm-select" onchange="window._ursulaSelectAkte(this.value)">
+          ${_ursulaAktes.map(a => `<option value="${esc(a.key)}" ${a.key === _ursulaSelectedAkte ? 'selected' : ''}>Akte ${a.num} — ${esc(a.title)}${a.voorspelling ? ' ✓' : ''}</option>`).join('')}
+        </select></div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label">👁 Zien</label><textarea id="ursula-zien" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.zien || '')}</textarea>
+        <label class="dm-form-label">👂 Horen</label><textarea id="ursula-horen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.horen || '')}</textarea>
+        <label class="dm-form-label">👃 Ruiken</label><textarea id="ursula-ruiken" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.ruiken || '')}</textarea>
+        <label class="dm-form-label">👅 Proeven</label><textarea id="ursula-proeven" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.proeven || '')}</textarea>
+        <label class="dm-form-label">✋ Voelen</label><textarea id="ursula-voelen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.voelen || '')}</textarea>
+        <label class="dm-form-label">✦ Concrete kern (naam/locatie — onthuld bij een 6)</label><textarea id="ursula-concreet" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.concreet || '')}</textarea>
+      </div>
+      <div class="dm-form-row" style="gap:6px">
+        <button class="dm-btn dm-btn-primary" onclick="window._ursulaVoorspellingSave()" title="Voorspelling opslaan">💾 Voorspelling</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window._ursulaResetParty()" title="Wis de party-worp voor deze akte zodat opnieuw geworpen kan worden">↺ Reset party-worp</button>
+      </div>`}
+    </div>`;
+}
+
+window._ursulaSelectAkte = (key) => { _ursulaSelectedAkte = key; _renderUrsulaSettings(); };
+
+window._ursulaUploadBackdrop = async (file) => {
+  if (!file) return;
+  const id = 'ursula-backdrop-' + Date.now();
+  try {
+    await api.uploadFile(id, file);
+    _ursulaBackdropPending = id;
+    const prev = document.getElementById('ursula-backdrop-preview');
+    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
+    const sel2 = document.getElementById('ursula-backdrop-select'); if (sel2) sel2.value = '';
+  } catch (err) { alert('Upload mislukt: ' + err.message); }
+};
+
+window._ursulaSettingsSave = async () => {
+  const config = window.app?.state?.meta?.ursula || {};
+  const naam = document.getElementById('ursula-naam')?.value.trim() || 'Madame Ursula';
+  const fl = parseInt(document.getElementById('ursula-prijs-fl')?.value) || 20;
+  const imageId = document.getElementById('ursula-portret-select')?.value || config.imageId || '';
+  const backdropFromSelect = document.getElementById('ursula-backdrop-select')?.value || null;
+  const backdropId = _ursulaBackdropPending || backdropFromSelect || config.backdropId || '';
+  try {
+    await api.saveUrsulaConfig({ naam, prijs: { fl }, imageId, backdropId });
+    const newMeta = await api.meta(); if (window.app?.state) window.app.state.meta = newMeta;
+    _ursulaBackdropPending = null;
+    await _renderUrsulaSettings();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+window._ursulaVoorspellingSave = async () => {
+  if (!_ursulaSelectedAkte) return;
+  const g = (id) => document.getElementById(id)?.value || '';
+  try {
+    await api.saveUrsulaVoorspelling(_ursulaSelectedAkte, {
+      zien: g('ursula-zien'), horen: g('ursula-horen'), ruiken: g('ursula-ruiken'),
+      proeven: g('ursula-proeven'), voelen: g('ursula-voelen'), concreet: g('ursula-concreet'),
+    });
+    await _renderUrsulaSettings();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+window._ursulaResetParty = async () => {
+  if (!confirm('De party-voorspelling voor deze akte wissen zodat de groep opnieuw kan werpen?')) return;
+  try { await api.ursulaReset(_ursulaSelectedAkte || undefined); }
+  catch (err) { alert('Reset mislukt: ' + err.message); }
 };
 
 window._hbTogglePurse = async () => {
