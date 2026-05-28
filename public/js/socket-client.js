@@ -226,6 +226,10 @@ export function initSocket() {
     }));
   });
 
+  socket.on('ursula:updated', () => {
+    if (window.app?.state?.activeSection === 'ursula') window.app?.refreshSection?.('ursula');
+  });
+
   socket.on('entity:deceased', ({ id, type, name } = {}) => {
     // Herlaad de huidige sectie zodat het kaartje meteen grijs wordt
     const section = window.app.state.activeSection;
