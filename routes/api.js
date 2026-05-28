@@ -3808,6 +3808,7 @@ router.get('/ursula', attachRole, (req, res) => {
   res.json({
     config: { naam: config.naam || 'Madame Ursula', prijs: config.prijs || { fl: 20 }, imageId: config.imageId || null, backdropId: config.backdropId || null },
     beschikbaar,
+    geenSessie: !dmState.activeAkte,
     geenAkte: !doel,
     alGeworpen: !!party,
     roll: party?.roll || null,
