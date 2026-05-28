@@ -3820,6 +3820,11 @@ function _renderTempelGodenRows() {
       <div class="dm-form-row">
         <input class="dm-input" style="flex:1" placeholder="Symbool" value="${esc(g.symbool || '')}" oninput="window._tempelGodEdit(${i},'symbool',this.value)">
       </div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label" style="opacity:.7">Eenmalige zegens (één per regel, max 4 = d4)</label>
+        <textarea class="dm-input" rows="4" style="resize:vertical;font-size:11px" placeholder="bijv. Herrol een mislukte death save."
+          oninput="window._tempelGodEditLines(${i}, this.value)">${esc((g.eenmaligeZegens || []).join('\n'))}</textarea>
+      </div>
     </div>
   `).join('') || '<p class="dm-form-label" style="opacity:.6">Nog geen goden toegevoegd.</p>';
 }
@@ -3833,6 +3838,12 @@ window._tempelGodEdit = (i, field, value) => {
   } else {
     g[field] = value;
   }
+};
+
+window._tempelGodEditLines = (i, value) => {
+  const g = _tempelGodenDraft[i];
+  if (!g) return;
+  g.eenmaligeZegens = value.split('\n').map(l => l.trim()).filter(Boolean);
 };
 
 window._tempelGodToevoegen = () => {
@@ -3874,6 +3885,7 @@ window._tempelSettingsSave = async () => {
       domein: (g.domein || '').trim(),
       symbool: (g.symbool || '').trim(),
       zegen: (g.zegen || '').trim(),
+      eenmaligeZegens: (g.eenmaligeZegens || []).filter(Boolean),
       ...(g.prijs ? { prijs: g.prijs } : {}),
     }));
   try {
