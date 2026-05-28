@@ -1156,6 +1156,7 @@ window._speelAkte = async (ch, num, title) => {
   try { await api.resetChapterImages(ch); } catch (e) { console.warn('reset images failed', e); }
   window.dmPanel.closeRevealStrip?.();   // sluit de oude reveal strip als die open staat
   window.app?.setActiveAkte?.(ch, num, title);
+  api.setActiveAkte(ch, num, title).catch(() => {});   // onthoud serverzijde (o.a. voor Ursula)
   const akteTitle = `Akte ${num} · ${title}`;
   window.dmPanel.regieBalkLoad(ch, akteTitle);
 };

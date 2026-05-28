@@ -347,7 +347,7 @@ export function initDmPanel() {
 // Welke tabs zijn "gevecht & monsters"?
 const _GEVECHT_TABS = new Set(['gevecht', 'monsters', 'encounters']);
 // Welke tabs zijn "diensten"?
-const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock']);
+const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'ursula']);
 // Welke tabs zijn "instellingen" (niet als tab getoond)?
 const _INSTELLINGEN_TABS = new Set(['campagnes', 'wereld', 'beurs', 'dobbelstenen']);
 
@@ -493,10 +493,11 @@ function _renderDiensten(subTab) {
     <button class="dm-subtab-btn${_dienstenSubTab==='herberg'   ?' active':''}" onclick="window.dmPanel.switchTab('herberg')" title="Herberg">${icon('beer')}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='tweespalt' ?' active':''}" onclick="window.dmPanel.switchTab('tweespalt')" title="Tweespalt">${icon('dice',{cls:'icon-gi'})}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='gock'      ?' active':''}" onclick="window.dmPanel.switchTab('gock')" title="De Gock">${icon('search')}</button>
+    <button class="dm-subtab-btn${_dienstenSubTab==='ursula'    ?' active':''}" onclick="window.dmPanel.switchTab('ursula')" title="Madame Ursula">${icon('sparkles')}</button>
   `;
 
   // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
-  ['herberg','tweespalt','gock'].forEach(name => {
+  ['herberg','tweespalt','gock','ursula'].forEach(name => {
     let legacy = document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
     if (!legacy) return;
     // Verplaats content naar sub-div in diensten-tab
@@ -515,6 +516,7 @@ function _renderDiensten(subTab) {
   if (_dienstenSubTab === 'herberg')   _renderHerbergSettings();
   if (_dienstenSubTab === 'tweespalt') _renderTweespaltDM();
   if (_dienstenSubTab === 'gock')      _renderGockSettings();
+  if (_dienstenSubTab === 'ursula')    _renderUrsulaSettings();
 }
 
 // ── Delen (Tunnel + Export gecombineerd) ──
@@ -3721,6 +3723,137 @@ window._gockSettingsSave = async () => {
     window._gockBackdropPending = null;
     await _renderGockSettings();
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+// ── Madame Ursula — DM-instellingen ──
+
+let _ursulaBackdropPending = null;
+let _ursulaAktes = [];
+let _ursulaActiveAkte = null;
+let _ursulaSelectedAkte = null;
+
+async function _renderUrsulaSettings() {
+  const el = _tabEl('ursula');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  const meta = window.app?.state?.meta || {};
+  const config = meta.ursula || {};
+  let personages = [], locaties = [];
+  try { personages = await api.listEntities('personages'); } catch {}
+  try { locaties  = await api.listEntities('locaties');  } catch {}
+  const alle = [...personages, ...locaties];
+
+  try { const r = await api.ursulaAktes(); _ursulaAktes = r.aktes || []; _ursulaActiveAkte = r.activeAkte || null; }
+  catch { _ursulaAktes = []; _ursulaActiveAkte = null; }
+  if ((!_ursulaSelectedAkte || !_ursulaAktes.some(a => a.key === _ursulaSelectedAkte)) && _ursulaAktes.length) {
+    const next = _ursulaActiveAkte ? _ursulaAktes.find(a => a.num > (_ursulaActiveAkte.num ?? -1)) : null;
+    _ursulaSelectedAkte = (next || _ursulaAktes[0]).key;
+  }
+
+  const prijs = config.prijs || { fl: 20 };
+  const sel = _ursulaAktes.find(a => a.key === _ursulaSelectedAkte) || null;
+  const v = sel?.voorspelling || {};
+  const actiefLabel = _ursulaActiveAkte ? `Akte ${_ursulaActiveAkte.num} — ${esc(_ursulaActiveAkte.title || '')}` : 'geen';
+  const doel = _ursulaActiveAkte ? _ursulaAktes.find(a => a.num > (_ursulaActiveAkte.num ?? -1)) : null;
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Madame Ursula — Instellingen</div>
+
+      <div class="dm-form-row"><label class="dm-form-label">Naam</label>
+        <input id="ursula-naam" class="dm-input" value="${esc(config.naam || 'Madame Ursula')}"></div>
+      <div class="dm-form-row"><label class="dm-form-label">Prijs (fl)</label>
+        <input id="ursula-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 20}" style="width:70px"></div>
+
+      <div class="dm-form-row"><label class="dm-form-label">Portret (NPC of locatie)</label>
+        <select id="ursula-portret-select" class="dm-select">
+          <option value="">— Kies een entiteit —</option>
+          ${alle.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select></div>
+      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrondafbeelding</label>
+        ${config.backdropId ? `<img id="ursula-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="ursula-backdrop-preview" style="display:none"></span>'}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">📷
+          <input type="file" accept="image/*" class="hidden" onchange="window._ursulaUploadBackdrop(this.files[0])"></label>
+        <div class="dm-form-row"><label class="dm-form-label">Of kies uit entiteiten</label>
+          <select id="ursula-backdrop-select" class="dm-select">
+            <option value="">— Entiteit als backdrop —</option>
+            ${alle.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+          </select></div>
+      </div>
+      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._ursulaSettingsSave()" title="Opslaan">💾</button></div>
+
+      <div class="dm-section-label" style="margin-top:14px">Voorspellingen per akte</div>
+      <p class="dm-form-label" style="opacity:.7;margin:0 0 6px">Actieve akte: <strong>${actiefLabel}</strong>${doel ? ` · spelers voorzien nu <strong>Akte ${doel.num} — ${esc(doel.title || '')}</strong>` : ' · (geen volgende akte)'}</p>
+
+      ${_ursulaAktes.length === 0 ? '<p class="dm-form-label" style="opacity:.6">Nog geen aktes/hoofdstukken gedefinieerd.</p>' : `
+      <div class="dm-form-row"><label class="dm-form-label">Akte</label>
+        <select id="ursula-akte-select" class="dm-select" onchange="window._ursulaSelectAkte(this.value)">
+          ${_ursulaAktes.map(a => `<option value="${esc(a.key)}" ${a.key === _ursulaSelectedAkte ? 'selected' : ''}>Akte ${a.num} — ${esc(a.title)}${a.voorspelling ? ' ✓' : ''}</option>`).join('')}
+        </select></div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label">👁 Zien</label><textarea id="ursula-zien" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.zien || '')}</textarea>
+        <label class="dm-form-label">👂 Horen</label><textarea id="ursula-horen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.horen || '')}</textarea>
+        <label class="dm-form-label">👃 Ruiken</label><textarea id="ursula-ruiken" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.ruiken || '')}</textarea>
+        <label class="dm-form-label">👅 Proeven</label><textarea id="ursula-proeven" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.proeven || '')}</textarea>
+        <label class="dm-form-label">✋ Voelen</label><textarea id="ursula-voelen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.voelen || '')}</textarea>
+        <label class="dm-form-label">✦ Concrete kern (naam/locatie — onthuld bij een 6)</label><textarea id="ursula-concreet" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.concreet || '')}</textarea>
+      </div>
+      <div class="dm-form-row" style="gap:6px">
+        <button class="dm-btn dm-btn-primary" onclick="window._ursulaVoorspellingSave()" title="Voorspelling opslaan">💾 Voorspelling</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window._ursulaResetParty()" title="Wis de party-worp voor deze akte zodat opnieuw geworpen kan worden">↺ Reset party-worp</button>
+      </div>`}
+    </div>`;
+}
+
+window._ursulaSelectAkte = (key) => { _ursulaSelectedAkte = key; _renderUrsulaSettings(); };
+
+window._ursulaUploadBackdrop = async (file) => {
+  if (!file) return;
+  const id = 'ursula-backdrop-' + Date.now();
+  try {
+    await api.uploadFile(id, file);
+    _ursulaBackdropPending = id;
+    const prev = document.getElementById('ursula-backdrop-preview');
+    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
+    const sel2 = document.getElementById('ursula-backdrop-select'); if (sel2) sel2.value = '';
+  } catch (err) { alert('Upload mislukt: ' + err.message); }
+};
+
+window._ursulaSettingsSave = async () => {
+  const config = window.app?.state?.meta?.ursula || {};
+  const naam = document.getElementById('ursula-naam')?.value.trim() || 'Madame Ursula';
+  const fl = parseInt(document.getElementById('ursula-prijs-fl')?.value) || 20;
+  const imageId = document.getElementById('ursula-portret-select')?.value || config.imageId || '';
+  const backdropFromSelect = document.getElementById('ursula-backdrop-select')?.value || null;
+  const backdropId = _ursulaBackdropPending || backdropFromSelect || config.backdropId || '';
+  try {
+    await api.saveUrsulaConfig({ naam, prijs: { fl }, imageId, backdropId });
+    const newMeta = await api.meta(); if (window.app?.state) window.app.state.meta = newMeta;
+    _ursulaBackdropPending = null;
+    await _renderUrsulaSettings();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+window._ursulaVoorspellingSave = async () => {
+  if (!_ursulaSelectedAkte) return;
+  const g = (id) => document.getElementById(id)?.value || '';
+  try {
+    await api.saveUrsulaVoorspelling(_ursulaSelectedAkte, {
+      zien: g('ursula-zien'), horen: g('ursula-horen'), ruiken: g('ursula-ruiken'),
+      proeven: g('ursula-proeven'), voelen: g('ursula-voelen'), concreet: g('ursula-concreet'),
+    });
+    await _renderUrsulaSettings();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+window._ursulaResetParty = async () => {
+  if (!confirm('De party-voorspelling voor deze akte wissen zodat de groep opnieuw kan werpen?')) return;
+  try { await api.ursulaReset(_ursulaSelectedAkte || undefined); }
+  catch (err) { alert('Reset mislukt: ' + err.message); }
 };
 
 window._hbTogglePurse = async () => {

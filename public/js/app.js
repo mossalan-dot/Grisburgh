@@ -219,6 +219,7 @@ function switchSection(section) {
     herberg:       'rgba(160,90,20,0.65)',
     tweespalt:     'rgba(90,20,20,0.65)',
     gock:          'rgba(20,50,80,0.65)',
+    ursula:        'rgba(80,40,110,0.65)',
     'mijn-karakter': 'rgba(42,90,138,0.55)',
     meesterkamer:  'rgba(139,42,42,0.55)',
   };
@@ -524,7 +525,7 @@ function applyRole() {
   }
 
   // Diensten-knop active-state als een diensten-sectie actief is
-  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock'];
+  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock', 'ursula'];
   const dienstenBtn = document.getElementById('diensten-nav-btn');
   if (dienstenBtn) dienstenBtn.classList.toggle('active', DIENSTEN_SECTIONS.includes(state.activeSection));
 
@@ -1569,6 +1570,7 @@ async function refreshSection(section) {
   else if (section === 'herberg') await renderHerberg();
   else if (section === 'tweespalt') await renderTweespalt();
   else if (section === 'gock') await renderGock();
+  else if (section === 'ursula') await renderUrsula();
   else if (section === 'mijn-karakter') await renderMijnKarakter();
   else if (section === 'spelers') await renderSpelersTab();
   else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
@@ -6862,6 +6864,80 @@ window._gockKies = async (entityId, entityType, entityName) => {
 window._gockOpgehaald = async () => {
   try { await api.gockOpgehaald(); } catch { /* ok */ }
   await renderGock();
+};
+
+// ── Madame Ursula / Waarzegger ───────────────────────────────────────────────
+
+async function renderUrsula() {
+  const el = document.getElementById('section-ursula');
+  if (!el) return;
+
+  const meta = window.app?.state?.meta || {};
+  if (meta.buitenGrisburgh) { _dienstNietBereikbaar(el, meta.ursula?.naam || 'Madame Ursula'); return; }
+
+  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+
+  let data;
+  try { data = await api.getUrsula(); }
+  catch (e) { el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`; return; }
+
+  const { config, beschikbaar, geenAkte, alGeworpen, roll, doorNaam, onthuld, currency } = data;
+  const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+  const prijsTekst = (p) => [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
+
+  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const portret = config.imageId
+    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
+    : `<div class="gock-portret-fallback">🔮</div>`;
+
+  let body;
+  if (geenAkte || !beschikbaar) {
+    body = `<p class="herberg-cooldown-tekst">${esc(config.naam)} tuurt in haar bol… maar de nevelen tonen nu niets. Kom terug wanneer het lot zich roert.</p>`;
+  } else if (alGeworpen && onthuld) {
+    body = _ursulaOnthuldHtml(onthuld, roll, doorNaam);
+  } else {
+    body = `
+      <p class="ts-beurs">Een blik op wat komen gaat — één worp per akte, voor de hele groep.</p>
+      ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
+      <p class="ts-beurs">Offer: <strong>${prijsTekst(config.prijs)}</strong></p>
+      <button class="ts-wedden-btn" style="margin-top:8px" onclick="window._ursulaVoorspel()">🔮 Werp de d6 — vraag de voorspelling</button>`;
+  }
+
+  el.innerHTML = `
+    <div class="herberg-scene gock-scene" ${backdrop}>
+      <div class="herberg-content">
+        <div class="herberg-portrait-wrap">${portret}</div>
+        <p class="herberg-groet">${esc(config.naam)} legt haar handen op de kristallen bol.</p>
+        ${body}
+      </div>
+    </div>`;
+}
+
+function _ursulaOnthuldHtml(onthuld, roll, doorNaam) {
+  const frag = (icon, label, tekst, concreet) => `
+    <div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid rgba(196,168,122,0.2)">
+      <span style="font-family:'Cinzel',serif;font-size:11px;opacity:.85;min-width:78px">${icon} ${esc(label)}</span>
+      <span style="flex:1;${concreet ? 'font-weight:700;color:#e8d8a0' : ''}">${esc(tekst)}</span>
+    </div>`;
+  const items = (onthuld.zintuigen || []).map(z => frag(z.icon, z.label, z.tekst, false)).join('');
+  return `
+    <div class="gock-dossier">
+      <div class="gock-dossier-head">🔮 De voorspelling${roll ? ` — worp: ${roll}` : ''}</div>
+      ${doorNaam ? `<p class="ts-beurs">Onthuld door ${esc(doorNaam)}</p>` : ''}
+      ${items || '<p class="ts-beurs">De nevelen bleven dicht…</p>'}
+      ${onthuld.concreet ? frag('✦', 'Kern', onthuld.concreet, true) : ''}
+    </div>`;
+}
+
+window._ursulaVoorspel = async () => {
+  if (!confirm('De d6 werpen voor een voorspelling over de volgende akte? Dit kan maar één keer per akte voor de hele groep, en de betaling vindt direct plaats.')) return;
+  try {
+    const r = await api.ursulaVoorspel();
+    await renderUrsula();
+    _tsToast(`🔮 Je wierp een ${r.roll}.`);
+  } catch (err) {
+    _tsToast(err.message || 'De geesten zwijgen.');
+  }
 };
 
 // ── Tweespalt / Gokkantoor ──────────────────────────────────────────────────
