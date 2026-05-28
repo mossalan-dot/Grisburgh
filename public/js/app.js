@@ -219,6 +219,7 @@ function switchSection(section) {
     herberg:       'rgba(160,90,20,0.65)',
     tweespalt:     'rgba(90,20,20,0.65)',
     gock:          'rgba(20,50,80,0.65)',
+    heeren:        'rgba(30,30,45,0.7)',
     'mijn-karakter': 'rgba(42,90,138,0.55)',
     meesterkamer:  'rgba(139,42,42,0.55)',
   };
@@ -524,7 +525,7 @@ function applyRole() {
   }
 
   // Diensten-knop active-state als een diensten-sectie actief is
-  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock'];
+  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock', 'heeren'];
   const dienstenBtn = document.getElementById('diensten-nav-btn');
   if (dienstenBtn) dienstenBtn.classList.toggle('active', DIENSTEN_SECTIONS.includes(state.activeSection));
 
@@ -1569,6 +1570,7 @@ async function refreshSection(section) {
   else if (section === 'herberg') await renderHerberg();
   else if (section === 'tweespalt') await renderTweespalt();
   else if (section === 'gock') await renderGock();
+  else if (section === 'heeren') await renderHeeren();
   else if (section === 'mijn-karakter') await renderMijnKarakter();
   else if (section === 'spelers') await renderSpelersTab();
   else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
@@ -6862,6 +6864,92 @@ window._gockKies = async (entityId, entityType, entityName) => {
 window._gockOpgehaald = async () => {
   try { await api.gockOpgehaald(); } catch { /* ok */ }
   await renderGock();
+};
+
+// ── De Heeren van de Nacht / Dievengilde ─────────────────────────────────────
+
+async function renderHeeren() {
+  const el = document.getElementById('section-heeren');
+  if (!el) return;
+  const meta = window.app?.state?.meta || {};
+  if (meta.buitenGrisburgh) { _dienstNietBereikbaar(el, meta.heeren?.naam || 'De Heeren van de Nacht'); return; }
+
+  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+  let data;
+  try { data = await api.getHeeren(); }
+  catch (e) { el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`; return; }
+
+  const { config, rang, luimpoort, advocaat, jobs = [], boetes = [], currency } = data;
+  const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+  const clTekst = (cl) => { const f = Math.floor(cl / 100), k = Math.floor((cl % 100) / 10), c = cl % 10; return [f && `${f} fl`, k && `${k} kn`, c && `${c} cl`].filter(Boolean).join(' ') || '0 cl'; };
+  const honorariumTekst = beursTekst(config.honorarium);
+  const typeIcon = { zakkenrollen: '🤚', inbraak: '🗝️', oplichting: '🎭' };
+
+  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const portret = config.imageId
+    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
+    : `<div class="gock-portret-fallback">🌑</div>`;
+  const kaartLink = (e) => (e && e.zichtbaar) ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:.65rem;padding:1px 4px" onclick="window._openDetail('${esc(e.type)}','${esc(e.id)}')" title="Bekijk kaartje">↗</button>` : '';
+
+  const boetesHtml = boetes.length ? `
+    <div class="gock-dossier" style="border-color:rgba(150,40,40,0.6)">
+      <div class="gock-dossier-head">⚖️ Openstaande boetes${luimpoort ? ' — ' + esc(luimpoort.naam) + kaartLink(luimpoort) : ''}</div>
+      ${boetes.map(b => `
+        <div style="border-top:1px solid rgba(196,168,122,0.2);padding:6px 0">
+          <p class="gock-dossier-tekst">${esc(b.reden)} — <strong>${clTekst(b.bedragCl)}</strong></p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+            <button class="ts-wedden-btn" onclick="window._heerenBetaal('${esc(b.id)}','${esc(clTekst(b.bedragCl))}')">Betaal ${esc(clTekst(b.bedragCl))}</button>
+            <button class="ts-wedden-btn" onclick="window._heerenAdvocaat('${esc(b.id)}')">⚖️ Huur ${advocaat ? esc(advocaat.naam) : 'Zilvertong en Zemelaar'} (${esc(honorariumTekst)})</button>
+            ${advocaat ? kaartLink(advocaat) : ''}
+          </div>
+        </div>`).join('')}
+    </div>` : '';
+
+  const jobsHtml = jobs.length ? jobs.map(j => `
+    <div class="tempel-god-kaart" style="border:1px solid rgba(196,168,122,0.3);border-radius:10px;padding:10px;margin-bottom:8px;text-align:left">
+      <div style="margin-bottom:4px">
+        <span class="herberg-item-naam">${typeIcon[j.type] || '🌑'} ${esc(j.typeNaam)}</span>
+        <span class="herberg-item-type" style="display:block;opacity:.8">${esc(j.omschrijving)} ${j.doelZichtbaar ? kaartLink({ type: j.doelType, id: j.doelId, zichtbaar: true }) : ''}</span>
+      </div>
+      <p class="ts-beurs" style="margin:2px 0">Buit: <strong>${j.payout} fl</strong></p>
+      ${j.status === 'open'
+        ? `<button class="ts-wedden-btn" onclick="window._heerenAanneem('${esc(j.id)}')">Neem aan</button>`
+        : `<p class="ts-beurs" style="opacity:.8">Aangenomen door ${esc(j.doorNaam || 'iemand')} — de DM beslist de uitkomst.</p>`}
+    </div>`).join('') : `<p class="herberg-cooldown-tekst">Er hangen nu geen klussen op het bord. Kom later terug.</p>`;
+
+  el.innerHTML = `
+    <div class="herberg-scene gock-scene" ${backdrop}>
+      <div class="herberg-content">
+        <div class="herberg-portrait-wrap">${portret}</div>
+        <p class="herberg-groet">${esc(config.naam)} — "Werk zat, als je vingers los zitten."</p>
+        <p class="ts-beurs">Aanzien: <strong>${esc(rang.naam)}</strong> (${rang.index + 1}/${rang.aantal})</p>
+        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
+        ${boetesHtml}
+        <div class="herberg-lijst">${jobsHtml}</div>
+      </div>
+    </div>`;
+}
+
+window._heerenAanneem = async (id) => {
+  if (!confirm("Deze klus aannemen? Speel 'm uit aan tafel; de DM bepaalt de uitkomst.")) return;
+  try { await api.heerenAanneem(id); await renderHeeren(); _tsToast('🌑 Klus aangenomen.'); }
+  catch (err) { _tsToast(err.message || 'Kon de klus niet aannemen.'); }
+};
+
+window._heerenBetaal = async (boeteId, label) => {
+  if (!confirm(`Boete betalen (${label})?`)) return;
+  try { await api.heerenBetaalBoete(boeteId); await renderHeeren(); _tsToast('⚖️ Boete voldaan.'); }
+  catch (err) { _tsToast(err.message || 'Betalen mislukt.'); }
+};
+
+window._heerenAdvocaat = async (boeteId) => {
+  if (!confirm('Zilvertong en Zemelaar inhuren? Het honorarium wordt direct betaald, ongeacht de uitkomst.')) return;
+  try {
+    const r = await api.heerenAdvocaat(boeteId);
+    await renderHeeren();
+    const uit = r.uitkomst === 'kwijtgescholden' ? 'de boete is kwijtgescholden!' : r.uitkomst === 'gehalveerd' ? 'de boete is gehalveerd.' : 'het mocht niet baten.';
+    _tsToast(`⚖️ Pleidooi: ${r.totaal} (d20 ${r.worp}${r.bonus >= 0 ? '+' : ''}${r.bonus}) — ${uit}`);
+  } catch (err) { _tsToast(err.message || 'Inhuren mislukt.'); }
 };
 
 // ── Tweespalt / Gokkantoor ──────────────────────────────────────────────────
