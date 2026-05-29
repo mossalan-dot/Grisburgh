@@ -3609,8 +3609,9 @@ async function renderMijnKarakter(opts = {}) {
   let inspired      = false;
   let berichtenLijst = [];
   let heerenData = null;
+  let factiesData = [];
   try {
-    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, heerenData] = await Promise.all([
+    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, heerenData, factiesData] = await Promise.all([
       api.getPlayerHp(charId).catch(() => ({ current: null, max: null })),
       api.getEntity('personages', charId).catch(() => null),
       api.getCombat().catch(() => null),
@@ -3630,6 +3631,7 @@ async function renderMijnKarakter(opts = {}) {
       api.getInspiration(charId).catch(() => ({ inspired: false })),
       api.getBerichten().then(d => d.berichten || []).catch(() => []),
       (window.app?.state?.meta?.heeren ? api.getHeeren().catch(() => null) : Promise.resolve(null)),
+      api.getFacties().then(d => d.facties || []).catch(() => []),
     ]);
   } catch { /* ok */ }
 
@@ -4241,6 +4243,16 @@ async function renderMijnKarakter(opts = {}) {
             ${(heerenData.boetes && heerenData.boetes.length) ? `<div class="renown-boete">⚖️ ${heerenData.boetes.length} openstaande boete${heerenData.boetes.length > 1 ? 's' : ''} bij de Luimpoort</div>` : ''}
           </div>
         </div>` : ''}
+
+        ${(factiesData || []).filter(f => (f.rang?.index ?? 0) > 0).map(f => `
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">${esc(f.embleem || '🏛️')} Aanzien bij ${esc(f.naam)}</div>
+          <div class="renown-card">
+            <div class="renown-rang">${esc(f.rang?.naam || '')}<span class="renown-trap">${(f.rang?.index ?? 0) + 1}/${f.rang?.aantal || 1}</span></div>
+            ${f.rang?.voordelen ? `<div class="renown-voordelen">${esc(f.rang.voordelen)}</div>` : ''}
+            ${f.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(f.rang.volgende.naam)}</strong>${f.rang.volgende.voordelen ? `: ${esc(f.rang.volgende.voordelen)}` : ''}</div>` : ''}
+          </div>
+        </div>`).join('')}
 
         <!-- Kenmerken & Eigenschappen -->
         <div class="player-dash-section">
