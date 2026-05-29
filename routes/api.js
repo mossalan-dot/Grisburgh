@@ -3945,11 +3945,11 @@ const HEEREN_KLUSTYPES = {
 };
 
 const HEEREN_RANGEN_DEFAULT = [
-  { naam: 'Schoffie',       min: 10,  max: 30  },
-  { naam: 'Beurzensnijder', min: 25,  max: 70  },
-  { naam: 'Inbreker',       min: 60,  max: 150 },
-  { naam: 'Schaduw',        min: 140, max: 300 },
-  { naam: 'Meesterdief',    min: 280, max: 600 },
+  { naam: 'Schoffie',       min: 10,  max: 30,  voordelen: 'Toegang tot het klussenbord.' },
+  { naam: 'Beurzensnijder', min: 25,  max: 70,  voordelen: 'Betere klussen; de heler knijpt een oogje toe.' },
+  { naam: 'Inbreker',       min: 60,  max: 150, voordelen: 'Hogere buit en eerste keus uit de klussen.' },
+  { naam: 'Schaduw',        min: 140, max: 300, voordelen: 'Een goed woordje bij Zilvertong en Zemelaar.' },
+  { naam: 'Meesterdief',    min: 280, max: 600, voordelen: 'De Heeren staan voor je in bij de Luimpoort.' },
 ];
 
 function _heerenConfig(meta) {
@@ -4056,9 +4056,14 @@ router.get('/heeren', attachRole, (req, res) => {
     }
   }
 
+  const volgende = config.rangen[rangIdx + 1] || null;
   res.json({
     config: { naam: config.naam, imageId: config.imageId, backdropId: config.backdropId, honorarium: config.honorarium },
-    rang: { naam: rang.naam, index: rangIdx, aantal: config.rangen.length },
+    rang: {
+      naam: rang.naam, index: rangIdx, aantal: config.rangen.length,
+      voordelen: rang.voordelen || '', min: rang.min, max: rang.max,
+      volgende: volgende ? { naam: volgende.naam, voordelen: volgende.voordelen || '' } : null,
+    },
     luimpoort, advocaat, jobs,
     boetes: eigenBoetes, alleBoetes,
     currency: _effectiveCurrency(dmState, characterId),
