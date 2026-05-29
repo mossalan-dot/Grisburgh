@@ -3755,8 +3755,11 @@ async function _renderHeerenSettings() {
   const alleBoetes = data?.alleBoetes || [];
 
   const rangen = (config.rangen && config.rangen.length) ? config.rangen : [
-    { naam: 'Schoffie', min: 10, max: 30 }, { naam: 'Beurzensnijder', min: 25, max: 70 },
-    { naam: 'Inbreker', min: 60, max: 150 }, { naam: 'Schaduw', min: 140, max: 300 }, { naam: 'Meesterdief', min: 280, max: 600 },
+    { naam: 'Schoffie', min: 10, max: 30, voordelen: 'Toegang tot het klussenbord.' },
+    { naam: 'Beurzensnijder', min: 25, max: 70, voordelen: 'Betere klussen; de heler knijpt een oogje toe.' },
+    { naam: 'Inbreker', min: 60, max: 150, voordelen: 'Hogere buit en eerste keus uit de klussen.' },
+    { naam: 'Schaduw', min: 140, max: 300, voordelen: 'Een goed woordje bij Zilvertong en Zemelaar.' },
+    { naam: 'Meesterdief', min: 280, max: 600, voordelen: 'De Heeren staan voor je in bij de Luimpoort.' },
   ];
   _heerenRangenDraft = rangen.map(r => ({ ...r }));
   const honFl = (config.honorarium && config.honorarium.fl) || 50;
@@ -3838,15 +3841,18 @@ function _renderHeerenRangen() {
   const wrap = document.getElementById('heeren-rangen');
   if (!wrap) return;
   wrap.innerHTML = _heerenRangenDraft.map((r, i) => `
-    <div class="dm-form-row" style="gap:6px;align-items:center">
-      <input class="dm-input" style="flex:1" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._heerenRangEdit(${i},'naam',this.value)">
-      <input class="dm-input" type="number" style="width:60px" placeholder="min" value="${r.min ?? ''}" oninput="window._heerenRangEdit(${i},'min',this.value)">
-      <input class="dm-input" type="number" style="width:60px" placeholder="max" value="${r.max ?? ''}" oninput="window._heerenRangEdit(${i},'max',this.value)">
-      <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._heerenRangVerwijder(${i})">🗑️</button>
+    <div style="border:1px solid rgba(196,168,122,0.2);border-radius:6px;padding:6px;margin-bottom:6px">
+      <div class="dm-form-row" style="gap:6px;align-items:center;margin-bottom:4px">
+        <input class="dm-input" style="flex:1" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._heerenRangEdit(${i},'naam',this.value)">
+        <input class="dm-input" type="number" style="width:60px" placeholder="min" value="${r.min ?? ''}" oninput="window._heerenRangEdit(${i},'min',this.value)">
+        <input class="dm-input" type="number" style="width:60px" placeholder="max" value="${r.max ?? ''}" oninput="window._heerenRangEdit(${i},'max',this.value)">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._heerenRangVerwijder(${i})">🗑️</button>
+      </div>
+      <input class="dm-input" style="width:100%" placeholder="Voordelen (bijv. korting, safehouse, contacten…)" value="${esc(r.voordelen || '')}" oninput="window._heerenRangEdit(${i},'voordelen',this.value)">
     </div>`).join('') || '<p class="dm-form-label" style="opacity:.6">Geen rangen.</p>';
 }
 
-window._heerenRangEdit = (i, f, v) => { const r = _heerenRangenDraft[i]; if (!r) return; r[f] = (f === 'naam') ? v : (parseInt(v) || 0); };
+window._heerenRangEdit = (i, f, v) => { const r = _heerenRangenDraft[i]; if (!r) return; r[f] = (f === 'naam' || f === 'voordelen') ? v : (parseInt(v) || 0); };
 window._heerenRangToevoegen = () => { _heerenRangenDraft.push({ naam: '', min: 0, max: 0 }); _renderHeerenRangen(); };
 window._heerenRangVerwijder = (i) => { _heerenRangenDraft.splice(i, 1); _renderHeerenRangen(); };
 
@@ -3867,7 +3873,7 @@ window._heerenSettingsSave = async () => {
   const honorarium = { fl: parseInt(document.getElementById('heeren-honorarium')?.value) || 50 };
   const boeteFactor = parseFloat(document.getElementById('heeren-boetefactor')?.value) || 2;
   const bordGrootte = parseInt(document.getElementById('heeren-bordgrootte')?.value) || 4;
-  const rangen = _heerenRangenDraft.filter(r => (r.naam || '').trim()).map(r => ({ naam: r.naam.trim(), min: r.min || 0, max: Math.max(r.min || 0, r.max || 0) }));
+  const rangen = _heerenRangenDraft.filter(r => (r.naam || '').trim()).map(r => ({ naam: r.naam.trim(), min: r.min || 0, max: Math.max(r.min || 0, r.max || 0), voordelen: (r.voordelen || '').trim() }));
   try {
     await api.saveHeerenConfig({ naam, imageId, backdropId, luimpoortId, advocaatId, honorarium, boeteFactor, bordGrootte, rangen });
     const newMeta = await api.meta(); if (window.app?.state) window.app.state.meta = newMeta;

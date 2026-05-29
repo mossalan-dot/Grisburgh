@@ -6923,6 +6923,8 @@ async function renderHeeren() {
         <div class="herberg-portrait-wrap">${portret}</div>
         <p class="herberg-groet">${esc(config.naam)} — "Werk zat, als je vingers los zitten."</p>
         <p class="ts-beurs">Aanzien: <strong>${esc(rang.naam)}</strong> (${rang.index + 1}/${rang.aantal})</p>
+        ${rang.voordelen ? `<p class="herberg-item-type" style="opacity:.85">Voordelen: ${esc(rang.voordelen)}</p>` : ''}
+        ${rang.volgende ? `<p class="herberg-item-type" style="opacity:.5;font-size:.8em">Volgende — ${esc(rang.volgende.naam)}${rang.volgende.voordelen ? ': ' + esc(rang.volgende.voordelen) : ''}</p>` : ''}
         ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
         ${boetesHtml}
         <div class="herberg-lijst">${jobsHtml}</div>
