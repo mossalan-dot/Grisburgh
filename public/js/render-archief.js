@@ -312,6 +312,9 @@ async function _renderPrikbord(container) {
   let quests = [];
   try { quests = await api.listQuests(); } catch { quests = []; }
 
+  let facties = [];
+  try { const fd = await api.getFacties(); facties = (fd.facties || []).filter(f => (f.rang?.index ?? 0) > 0); } catch {}
+
   const hk = meta?.hoofdstukken || {};
 
   const visibleQuests = isDm ? quests : quests.filter(q => q.status !== 'verborgen');
@@ -355,7 +358,31 @@ async function _renderPrikbord(container) {
   const bodyEl = container.querySelector('#logboek-tab-content');
   if (!bodyEl) return;
 
+  const factieBand = facties.length ? `
+    <div class="factie-band">
+      ${facties.map(f => {
+        const stijl = (f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase();
+        const rungs = (f.ladder || []).slice().reverse();
+        return `
+        <div class="factie-ladder factie-ladder--${stijl}">
+          <div class="factie-ladder-head">
+            <span class="factie-ladder-embleem">${esc(f.embleem || '🏛️')}</span>
+            <span class="factie-ladder-naam">${esc(f.naam || '')}</span>
+            <span class="factie-ladder-rang">${esc(f.rang?.naam || '')}</span>
+          </div>
+          <div class="factie-ladder-rungs">
+            ${rungs.map(r => `
+              <div class="factie-rung ${r.bereikt ? 'factie-rung--bereikt' : 'factie-rung--locked'} ${r.huidig ? 'factie-rung--huidig' : ''}">
+                <span class="factie-rung-naam">${r.bereikt ? '' : '🔒 '}${esc(r.naam || '')}${r.titel ? ` <span class="factie-rung-titel">🏷️ ${esc(r.titel)}</span>` : ''}</span>
+                ${(r.boons || []).map(b => `<span class="factie-rung-boon" title="${esc(b.tekst || '')}">${esc(b.icoon || '•')} ${esc(b.naam || '')}</span>`).join('')}
+              </div>`).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
   bodyEl.innerHTML = `
+    ${factieBand}
     <div class="prikbord">
       ${cols.map(col => `
         <div class="prikbord-col prikbord-col--${col.key}">

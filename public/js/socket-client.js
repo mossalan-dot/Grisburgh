@@ -111,7 +111,11 @@ export function initSocket() {
   });
 
   socket.on('facties:updated', () => {
-    if (window.app?.state?.activeSection === 'mijn-karakter') window.app?.refreshSection?.('mijn-karakter');
+    const section = window.app?.state?.activeSection;
+    if (section === 'mijn-karakter') window.app?.refreshSection?.('mijn-karakter');
+    if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
+      import('./render-archief.js').then(m => m.renderLogboek());
+    }
   });
 
   socket.on('chapter-visibility:updated', () => {

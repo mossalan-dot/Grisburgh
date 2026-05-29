@@ -3856,6 +3856,17 @@ async function renderMijnKarakter(opts = {}) {
             <div class="ppf-row"><label class="ppf-label">Background</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.background ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('background', this.value)"></div>
+            ${(() => {
+              const ontgrendeld = [...new Set((factiesData || []).flatMap(f => (f.ladder || []).filter(r => r.bereikt && r.index > 0 && r.titel).map(r => r.titel)))];
+              const cur = playerProfile.factieTitel || '';
+              if (cur && !ontgrendeld.includes(cur)) ontgrendeld.unshift(cur);
+              if (!ontgrendeld.length) return '';
+              return `<div class="ppf-row"><label class="ppf-label">Titel</label>
+                <select class="ppf-input" onchange="window._saveProfileField('factieTitel', this.value)">
+                  <option value="" ${cur ? '' : 'selected'}>— geen —</option>
+                  ${ontgrendeld.map(t => `<option value="${esc(t)}" ${t === cur ? 'selected' : ''}>${esc(t)}</option>`).join('')}
+                </select></div>`;
+            })()}
             <div class="ppf-row"><label class="ppf-label">${isHp ? 'House' : 'Origin'}</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.origin ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('origin', this.value)"></div>
@@ -4244,15 +4255,22 @@ async function renderMijnKarakter(opts = {}) {
           </div>
         </div>` : ''}
 
-        ${(factiesData || []).filter(f => (f.rang?.index ?? 0) > 0).map(f => `
+        ${(factiesData || []).filter(f => (f.rang?.index ?? 0) > 0).map(f => {
+          const stijl = (f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase();
+          const ladder = f.ladder || [];
+          const verworven = ladder.filter(r => r.bereikt).flatMap(r => r.boons || []);
+          const next = ladder.find(r => !r.bereikt && (r.boons || []).length);
+          return `
         <div class="player-dash-section">
           <div class="player-dash-section-title">${esc(f.embleem || '🏛️')} Aanzien bij ${esc(f.naam)}</div>
-          <div class="renown-card">
+          <div class="renown-card factie-card--${stijl}">
             <div class="renown-rang">${esc(f.rang?.naam || '')}<span class="renown-trap">${(f.rang?.index ?? 0) + 1}/${f.rang?.aantal || 1}</span></div>
             ${f.rang?.voordelen ? `<div class="renown-voordelen">${esc(f.rang.voordelen)}</div>` : ''}
-            ${f.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(f.rang.volgende.naam)}</strong>${f.rang.volgende.voordelen ? `: ${esc(f.rang.volgende.voordelen)}` : ''}</div>` : ''}
+            ${verworven.length ? `<div class="factie-boons">${verworven.map(b => `<span class="factie-boon" title="${esc(b.tekst || '')}">${esc(b.icoon || '•')} ${esc(b.naam || '')}</span>`).join('')}</div>` : ''}
+            ${next ? `<div class="renown-volgende">🔒 Volgende — <strong>${esc(next.naam)}</strong>${next.boons[0] ? `: ${esc(next.boons[0].icoon || '')} ${esc(next.boons[0].naam || '')}` : ''}</div>`
+                   : (f.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(f.rang.volgende.naam)}</strong></div>` : '')}
           </div>
-        </div>`).join('')}
+        </div>`; }).join('')}
 
         <!-- Kenmerken & Eigenschappen -->
         <div class="player-dash-section">
