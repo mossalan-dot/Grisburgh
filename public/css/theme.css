@@ -12020,19 +12020,27 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .nw-svg:active { cursor: grabbing; }
 
 /* Randen (draden) */
-.nw-edge { stroke: rgba(214,180,110,0.30); stroke-width: 1.5; transition: stroke 0.15s, stroke-width 0.15s; }
-.nw-svg.nw-focusing .nw-edge { stroke: rgba(214,180,110,0.10); }
-.nw-edge--hi { stroke: rgba(232,200,110,0.95) !important; stroke-width: 2.5 !important; }
-.nw-edge--faded { stroke: rgba(214,180,110,0.06) !important; }
+.nw-edge { stroke: rgba(214,180,110,0.30); stroke-width: 1.5; transition: stroke 0.18s, stroke-width 0.18s; }
+.nw-svg.nw-focusing .nw-edge { stroke: rgba(214,180,110,0.07); }
+.nw-edge--hi   { stroke: rgba(232,200,110,0.95) !important; stroke-width: 2.5 !important; } /* tot 1e graad */
+.nw-edge--mid  { stroke: rgba(214,180,110,0.40) !important; stroke-width: 1.5 !important; } /* naar 2e graad */
+.nw-edge--faded{ stroke: rgba(214,180,110,0.05) !important; }
 
 /* Knopen */
 .nw-node { cursor: pointer; transition: opacity 0.18s; }
 .nw-node-ring { transition: stroke-width 0.12s, stroke 0.12s; }
 .nw-node:hover .nw-node-ring { stroke: #e8c870; stroke-width: 3.5; }
 .nw-node--sel .nw-node-ring { stroke: #f0d480; stroke-width: 4; filter: drop-shadow(0 0 7px rgba(240,200,90,0.7)); }
-.nw-node--faded { opacity: 0.22; }
 .nw-node--dim   { opacity: 0.3; }
 .nw-node--dead .nw-node-ring { filter: grayscale(0.6) brightness(0.85); }
+
+/* Gelaagde focus: 0 = gekozen, 1 = directe relatie (vol), 2 = tweede graad
+   (lichter), verder = sterk vervaagd zodat het overzicht behouden blijft. */
+.nw-node.nw-f0, .nw-node.nw-f1 { opacity: 1; }
+.nw-node.nw-f2 { opacity: 0.5; }
+.nw-node.nw-f2 .nw-node-label { opacity: 0.7; }
+.nw-node.nw-faded { opacity: 0.1; }
+.nw-node.nw-faded .nw-node-label { display: none; } /* labels van verre knopen weglaten */
 .nw-node-initial {
   font-family: 'Cinzel', serif; font-weight: 700; font-size: 20px;
   fill: rgba(255,255,255,0.92); pointer-events: none; user-select: none;
@@ -12105,11 +12113,30 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .nw-empty-icon { font-size: 2.4rem; opacity: 0.5; }
 .nw-empty-icon .icon { width: 46px; height: 46px; color: #8a7050; }
 
-/* Mobiel: zijpaneel onderaan */
+/* Mobiel: compacte toolbar + zijpaneel als bodemvel */
 @media (max-width: 700px) {
-  .nw-panel { top: auto; right: 6px; left: 6px; bottom: 6px; width: auto; max-height: 48%; }
-  .nw-search { width: 130px; }
-  .nw-toolbar { gap: 8px; padding: 8px; }
+  .nw-toolbar { gap: 7px; padding: 7px 8px; align-items: center; }
+  .nw-search { width: 100%; min-width: 0; }
+  .nw-search-wrap { flex: 1 1 140px; }
+  /* Legenda in één rij die horizontaal scrollt i.p.v. de toolbar te laten groeien */
+  .nw-legend {
+    order: 3; flex: 1 1 100%;
+    flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px; scrollbar-width: none;
+  }
+  .nw-legend::-webkit-scrollbar { display: none; }
+  .nw-legend-item { flex: 0 0 auto; }
+  .nw-toolbar-right { margin-left: auto; }
+  .nw-count { display: none; }            /* telling weglaten op smal scherm */
+  /* Knoplabels weglaten zodat de iconen compact blijven */
+  .nw-btn { padding: 6px 9px; gap: 0; font-size: 0; }
+  .nw-btn .icon { width: 16px; height: 16px; }
+  /* Zijpaneel als bodemvel zodat de graaf zichtbaar blijft */
+  .nw-panel {
+    top: auto; right: 0; left: 0; bottom: 0; width: auto;
+    max-height: 52%; border-radius: 12px 12px 0 0;
+    box-shadow: 0 -6px 22px rgba(0,0,0,0.5);
+  }
 }
 
 /* ══ Witte tekst op donkere backdrop (Tweespalt, Ursula, Gock) ══════════════ */

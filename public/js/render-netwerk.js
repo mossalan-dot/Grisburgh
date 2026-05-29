@@ -46,6 +46,7 @@ let _viewBox = { x: -600, y: -400, w: 1200, h: 800 };
 let _hidden  = new Set();      // verborgen types (legenda-toggle)
 let _selected = null;
 let _query = '';
+let _adj = {};                 // adjacency: nodeId → [buur-ids] (voor gelaagde focus)
 let _dragging = null, _panning = null, _suppressClick = false;
 let _pinchDist = 0, _pinchVB = null;
 let _savedPos = {};
@@ -215,6 +216,8 @@ export async function renderNetwerk(containerEl) {
   _edges = graph.edges;
   _byId  = {};
   _nodes.forEach(n => (_byId[n.id] = n));
+  _adj = {};
+  _edges.forEach(e => { (_adj[e.a] ||= []).push(e.b); (_adj[e.b] ||= []).push(e.a); });
 
   if (!_nodes.length) {
     container.innerHTML = `
@@ -320,9 +323,12 @@ function _renderNodes() {
   _nodesG.querySelectorAll('.nw-node').forEach(el => {
     el.addEventListener('mousedown', _onNodeDown);
     el.addEventListener('click', _onNodeClick);
-    el.addEventListener('mouseenter', () => _highlight(el.dataset.id));
-    el.addEventListener('mouseleave', () => { if (!_selected) _clearHighlight(); });
+    el.addEventListener('mouseenter', () => _focus(el.dataset.id));
+    el.addEventListener('mouseleave', _restoreFocus);
   });
+
+  // DOM is herbouwd (zoek/legenda/render): herstel de focus van de selectie
+  if (_selected && _byId[_selected]) _focus(_selected);
 }
 
 // ── Randen tekenen ──
@@ -351,34 +357,55 @@ function _wrapName(name, max = 16) {
   return l2 ? [l1, l2] : [l1];
 }
 
-// ── Naburige knopen ──
-function _neighbours(id) {
-  const set = new Set([id]);
-  for (const e of _edges) {
-    if (e.a === id) set.add(e.b);
-    else if (e.b === id) set.add(e.a);
+// ── Afstanden vanaf een knoop (BFS, voor gelaagde focus) ──
+function _distances(rootId, maxD = 2) {
+  const dist = { [rootId]: 0 };
+  let frontier = [rootId];
+  for (let d = 1; d <= maxD && frontier.length; d++) {
+    const next = [];
+    for (const id of frontier) {
+      for (const nb of (_adj[id] || [])) {
+        if (!(nb in dist)) { dist[nb] = d; next.push(nb); }
+      }
+    }
+    frontier = next;
   }
-  return set;
+  return dist;
 }
 
-function _highlight(id) {
-  const near = _neighbours(id);
+// Gelaagde focus: directe relaties vol, 2e-graads lichter, de rest vervaagt.
+const _NODE_LVL = ['nw-f0', 'nw-f1', 'nw-f2', 'nw-faded'];
+function _focus(id) {
+  if (!_svg) return;
+  const dist = _distances(id, 2);
   _svg.classList.add('nw-focusing');
-  _nodesG.querySelectorAll('.nw-node').forEach(el =>
-    el.classList.toggle('nw-node--faded', !near.has(el.dataset.id)));
+  _nodesG.querySelectorAll('.nw-node').forEach(el => {
+    el.classList.remove(..._NODE_LVL);
+    const d = dist[el.dataset.id];
+    el.classList.add(d === 0 ? 'nw-f0' : d === 1 ? 'nw-f1' : d === 2 ? 'nw-f2' : 'nw-faded');
+  });
   _edgesG.querySelectorAll('.nw-edge').forEach(el => {
-    const on = el.dataset.a === id || el.dataset.b === id;
-    el.classList.toggle('nw-edge--hi', on);
-    el.classList.toggle('nw-edge--faded', !on);
+    el.classList.remove('nw-edge--hi', 'nw-edge--mid', 'nw-edge--faded');
+    const da = dist[el.dataset.a], db = dist[el.dataset.b];
+    if (da === undefined || db === undefined) { el.classList.add('nw-edge--faded'); return; }
+    const mx = Math.max(da, db);
+    el.classList.add(mx <= 1 ? 'nw-edge--hi' : mx === 2 ? 'nw-edge--mid' : 'nw-edge--faded');
   });
 }
 
-function _clearHighlight() {
+function _clearFocus() {
   if (!_svg) return;
   _svg.classList.remove('nw-focusing');
-  _nodesG.querySelectorAll('.nw-node--faded').forEach(el => el.classList.remove('nw-node--faded'));
+  _nodesG.querySelectorAll('.nw-node').forEach(el => el.classList.remove(..._NODE_LVL));
   _edgesG.querySelectorAll('.nw-edge').forEach(el =>
-    el.classList.remove('nw-edge--hi', 'nw-edge--faded'));
+    el.classList.remove('nw-edge--hi', 'nw-edge--mid', 'nw-edge--faded'));
+}
+
+// Hover toont tijdelijk de focus van de zwevende knoop; bij verlaten keren we
+// terug naar de geselecteerde knoop (of helder beeld als er niets geselecteerd is).
+function _restoreFocus() {
+  if (_selected && _byId[_selected]) _focus(_selected);
+  else _clearFocus();
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -390,8 +417,8 @@ function _onNodeClick(e) {
   const id = e.currentTarget.dataset.id;
   _selected = _selected === id ? null : id;
   _renderNodes();
-  if (_selected) { _highlight(_selected); _renderPanel(); }
-  else { _clearHighlight(); _closePanel(); }
+  if (_selected) { _focus(_selected); _renderPanel(); }
+  else { _clearFocus(); _closePanel(); }
 }
 
 function _closePanel() {
@@ -451,7 +478,7 @@ function _renderPanel() {
     </div>`;
 
   panel.querySelector('.nw-panel-close')?.addEventListener('click', () => {
-    _selected = null; _renderNodes(); _clearHighlight(); _closePanel();
+    _selected = null; _renderNodes(); _clearFocus(); _closePanel();
   });
   panel.querySelector('[data-open]')?.addEventListener('click', (ev) => {
     const [type, id] = ev.currentTarget.dataset.open.split('|');
@@ -461,7 +488,7 @@ function _renderPanel() {
   panel.querySelectorAll('[data-goto]').forEach(btn =>
     btn.addEventListener('click', () => {
       _selected = btn.dataset.goto;
-      _renderNodes(); _highlight(_selected); _renderPanel();
+      _renderNodes(); _focus(_selected); _renderPanel();
       _centerOn(_byId[_selected]);
     }));
 }
@@ -487,7 +514,7 @@ function _attachToolbar(container) {
       if (_hidden.has(t)) _hidden.delete(t); else _hidden.add(t);
       btn.classList.toggle('nw-legend-item--off', _hidden.has(t));
       if (_selected && _byId[_selected] && _hidden.has(_byId[_selected].type)) {
-        _selected = null; _closePanel(); _clearHighlight();
+        _selected = null; _closePanel(); _clearFocus();
       }
       _renderEdges(); _renderNodes(); _updateCount();
     });
@@ -549,7 +576,7 @@ function _onSvgDown(e) {
   if (e.button !== 0 || e.target.closest('.nw-node')) return;
   _panning = { sx: e.clientX, sy: e.clientY, ox: _viewBox.x, oy: _viewBox.y, moved: false };
   // Klik op de achtergrond: deselecteer
-  if (_selected) { _selected = null; _renderNodes(); _clearHighlight(); _closePanel(); }
+  if (_selected) { _selected = null; _renderNodes(); _clearFocus(); _closePanel(); }
 }
 
 function _onMove(e) {
@@ -608,13 +635,16 @@ function _onWheel(e) {
 }
 
 function _onTouchStart(e) {
+  // Onderdruk de synthetische muis-click die de browser ná touchend afvuurt;
+  // wij dispatchen zelf een click bij een tik (zie _onTouchEnd). Zonder dit
+  // zou een tik tweemaal selecteren (en dus meteen weer deselecteren).
+  e.preventDefault();
   if (e.touches.length === 1) {
     const t = e.touches[0];
     const nodeEl = e.target.closest('.nw-node');
     if (nodeEl) { _onNodeDown({ button: 0, clientX: t.clientX, clientY: t.clientY, stopPropagation() {}, currentTarget: nodeEl }); }
     else { _panning = { sx: t.clientX, sy: t.clientY, ox: _viewBox.x, oy: _viewBox.y, moved: false }; }
   } else if (e.touches.length === 2) {
-    e.preventDefault();
     _dragging = null; _panning = null;
     const [t1, t2] = e.touches;
     _pinchDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
@@ -649,7 +679,12 @@ function _onTouchEnd(e) {
   if (wasTap && e.changedTouches.length) {
     const t = e.changedTouches[0];
     const el = document.elementFromPoint(t.clientX, t.clientY)?.closest('.nw-node');
-    if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    if (el) {
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    } else if (_selected) {
+      // Tik op de lege achtergrond → deselecteer (geen mousedown op touch)
+      _selected = null; _renderNodes(); _clearFocus(); _closePanel();
+    }
   }
 }
 

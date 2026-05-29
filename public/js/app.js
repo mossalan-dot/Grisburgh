@@ -4,7 +4,7 @@ import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLo
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
-import { renderNetwerk } from './render-netwerk.js?v=1';
+import { renderNetwerk } from './render-netwerk.js?v=2';
 import { initSocket } from './socket-client.js?v=12';
 import { initDmPanel } from './dm-panel.js?v=38';
 
