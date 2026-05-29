@@ -3900,8 +3900,11 @@ async function _renderFactiesSettings() {
   let data = null;
   try { data = await api.getFacties(); } catch {}
   _factiesDraft = (data?.facties || []).map(f => ({
-    id: f.id, naam: f.naam, embleem: f.embleem, beschrijving: f.beschrijving,
-    rangen: (f.rangen || []).map(r => ({ ...r })),
+    id: f.id, naam: f.naam, embleem: f.embleem, stijl: f.stijl || '', beschrijving: f.beschrijving,
+    rangen: (f.rangen || []).map(r => ({
+      naam: r.naam, voordelen: r.voordelen || '', titel: r.titel || '',
+      boons: (r.boons || []).map(b => ({ icoon: b.icoon || '', naam: b.naam || '', tekst: b.tekst || '' })),
+    })),
     huidigeRang: f.rang?.index ?? 0,
   }));
   _renderFactiesDM();
@@ -3921,6 +3924,10 @@ function _renderFactiesDM() {
             <input class="dm-input" style="flex:1" placeholder="Naam" value="${esc(f.naam || '')}" oninput="window._factieEdit(${fi},'naam',this.value)">
           </div>
           <input class="dm-input" style="width:100%;margin-top:4px" placeholder="Beschrijving" value="${esc(f.beschrijving || '')}" oninput="window._factieEdit(${fi},'beschrijving',this.value)">
+          <div class="dm-form-row" style="margin-top:4px"><label class="dm-form-label">Stijl</label>
+            <select class="dm-select" onchange="window._factieEdit(${fi},'stijl',this.value)">
+              ${['', 'hout', 'metaal', 'staal'].map(s => `<option value="${s}" ${(f.stijl || '') === s ? 'selected' : ''}>${s ? s : '— standaard —'}</option>`).join('')}
+            </select></div>
           <div class="dm-form-row" style="margin-top:8px"><label class="dm-form-label">Huidige rang</label>
             <select class="dm-select" onchange="window._factieSetRang('${esc(f.id)}',this.value)">
               ${f.rangen.map((r, i) => `<option value="${i}" ${i === f.huidigeRang ? 'selected' : ''}>${i}. ${esc(r.naam)}</option>`).join('')}
@@ -3939,26 +3946,46 @@ function _renderFactieRangen(fi) {
   if (!wrap) return;
   const f = _factiesDraft[fi];
   wrap.innerHTML = (f.rangen || []).map((r, i) => `
-    <div class="dm-form-row" style="gap:6px;align-items:center;margin-bottom:4px">
-      <span style="opacity:.5;width:16px;text-align:right">${i}</span>
-      <input class="dm-input" style="width:120px" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._factieRangEdit(${fi},${i},'naam',this.value)">
-      <input class="dm-input" style="flex:1" placeholder="Voordelen" value="${esc(r.voordelen || '')}" oninput="window._factieRangEdit(${fi},${i},'voordelen',this.value)">
-      <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangVerwijder(${fi},${i})">🗑️</button>
+    <div style="border:1px solid rgba(196,168,122,0.18);border-radius:6px;padding:6px;margin-bottom:6px">
+      <div class="dm-form-row" style="gap:6px;align-items:center;margin-bottom:4px">
+        <span style="opacity:.5;width:16px;text-align:right">${i}</span>
+        <input class="dm-input" style="width:120px" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._factieRangEdit(${fi},${i},'naam',this.value)">
+        <input class="dm-input" style="flex:1" placeholder="Voordelen (korte regel)" value="${esc(r.voordelen || '')}" oninput="window._factieRangEdit(${fi},${i},'voordelen',this.value)">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangVerwijder(${fi},${i})">🗑️</button>
+      </div>
+      <input class="dm-input" style="width:100%;margin-bottom:4px" placeholder="Titel bij deze rang (optioneel)" value="${esc(r.titel || '')}" oninput="window._factieRangEdit(${fi},${i},'titel',this.value)">
+      <div style="padding-left:22px">
+        ${(r.boons || []).map((b, bi) => `
+          <div class="dm-form-row" style="gap:4px;align-items:center;margin-bottom:3px">
+            <input class="dm-input" style="width:42px;text-align:center" placeholder="🎁" value="${esc(b.icoon || '')}" oninput="window._factieBoonEdit(${fi},${i},${bi},'icoon',this.value)">
+            <input class="dm-input" style="width:110px" placeholder="Boon" value="${esc(b.naam || '')}" oninput="window._factieBoonEdit(${fi},${i},${bi},'naam',this.value)">
+            <input class="dm-input" style="flex:1" placeholder="Wat het doet" value="${esc(b.tekst || '')}" oninput="window._factieBoonEdit(${fi},${i},${bi},'tekst',this.value)">
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonVerwijder(${fi},${i},${bi})">✕</button>
+          </div>`).join('')}
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonToevoegen(${fi},${i})">＋ Boon</button>
+      </div>
     </div>`).join('') || '<p class="dm-form-label" style="opacity:.6">Geen rangen.</p>';
 }
 
 window._factieEdit = (fi, field, v) => { const f = _factiesDraft[fi]; if (f) f[field] = v; };
 window._factieRangEdit = (fi, i, field, v) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) r[field] = v; };
-window._factieRangToevoegen = (fi) => { _factiesDraft[fi]?.rangen.push({ naam: '', voordelen: '' }); _renderFactieRangen(fi); };
+window._factieRangToevoegen = (fi) => { _factiesDraft[fi]?.rangen.push({ naam: '', voordelen: '', titel: '', boons: [] }); _renderFactieRangen(fi); };
 window._factieRangVerwijder = (fi, i) => { _factiesDraft[fi]?.rangen.splice(i, 1); _renderFactieRangen(fi); };
+window._factieBoonEdit = (fi, i, bi, field, v) => { const b = _factiesDraft[fi]?.rangen?.[i]?.boons?.[bi]; if (b) b[field] = v; };
+window._factieBoonToevoegen = (fi, i) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) { (r.boons = r.boons || []).push({ icoon: '', naam: '', tekst: '' }); _renderFactieRangen(fi); } };
+window._factieBoonVerwijder = (fi, i, bi) => { _factiesDraft[fi]?.rangen?.[i]?.boons?.splice(bi, 1); _renderFactieRangen(fi); };
 window._factieSetRang = async (id, rang) => {
   try { await api.factieSetRang(id, parseInt(rang)); const f = _factiesDraft.find(x => x.id === id); if (f) f.huidigeRang = parseInt(rang); }
   catch (e) { alert(e.message); }
 };
 window._factiesSave = async () => {
   const payload = _factiesDraft.map(f => ({
-    id: f.id, naam: (f.naam || '').trim(), embleem: (f.embleem || '').trim(), beschrijving: (f.beschrijving || '').trim(),
-    rangen: (f.rangen || []).filter(r => (r.naam || '').trim()).map(r => ({ naam: r.naam.trim(), voordelen: (r.voordelen || '').trim() })),
+    id: f.id, naam: (f.naam || '').trim(), embleem: (f.embleem || '').trim(), stijl: (f.stijl || '').trim(), beschrijving: (f.beschrijving || '').trim(),
+    rangen: (f.rangen || []).filter(r => (r.naam || '').trim()).map(r => ({
+      naam: r.naam.trim(), voordelen: (r.voordelen || '').trim(), titel: (r.titel || '').trim(),
+      boons: (r.boons || []).filter(b => (b.naam || '').trim() || (b.tekst || '').trim())
+        .map(b => ({ icoon: (b.icoon || '').trim(), naam: (b.naam || '').trim(), tekst: (b.tekst || '').trim() })),
+    })),
   }));
   try { await api.saveFactiesConfig(payload); await _renderFactiesSettings(); }
   catch (e) { alert('Opslaan mislukt: ' + e.message); }

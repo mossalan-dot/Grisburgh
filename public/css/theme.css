@@ -12072,6 +12072,37 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .renown-voordelen { font-family:'IM Fell English',serif; font-size:0.86rem; color:#c9c2d6; margin-top:4px; }
 .renown-volgende { font-size:0.76rem; color:#8f8a9c; margin-top:6px; }
 .renown-boete { font-size:0.8rem; color:#e0a36a; margin-top:6px; }
+
+/* ── Facties & Aanzien ── */
+.factie-boons { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.factie-boon { font-size:0.74rem; background:rgba(196,168,122,0.12); border:1px solid rgba(196,168,122,0.28); border-radius:10px; padding:2px 8px; color:#d8cdb0; cursor:default; }
+.renown-card.factie-card--hout   { border-color:#7a5a30; }
+.renown-card.factie-card--metaal { border-color:#c4a840; }
+.renown-card.factie-card--staal  { border-color:#7a2a2a; }
+
+.factie-band { display:flex; gap:16px; flex-wrap:wrap; padding:16px 24px 0; }
+.factie-ladder { flex:1; min-width:240px; max-width:330px; border-radius:10px; padding:12px 14px; border:1px solid rgba(0,0,0,0.3); box-shadow:0 2px 10px rgba(0,0,0,0.28); }
+.factie-ladder-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.factie-ladder-embleem { font-size:1.3rem; }
+.factie-ladder-naam { font-family:'Cinzel',serif; font-weight:700; flex:1; }
+.factie-ladder-rang { font-size:0.72rem; opacity:0.85; text-align:right; }
+.factie-ladder-rungs { display:flex; flex-direction:column; gap:4px; }
+.factie-rung { border-radius:6px; padding:5px 9px; display:flex; flex-direction:column; gap:2px; }
+.factie-rung--bereikt { background:rgba(255,255,255,0.10); }
+.factie-rung--locked { opacity:0.42; }
+.factie-rung--huidig { outline:2px solid rgba(255,255,255,0.55); }
+.factie-rung-naam { font-family:'Cinzel',serif; font-weight:700; font-size:0.78rem; }
+.factie-rung-boon { font-size:0.74rem; opacity:0.92; }
+.factie-rung-titel { font-style:italic; font-weight:400; opacity:0.85; font-family:'IM Fell English',serif; }
+
+/* Per-factie stijlen — houtpatroon, metaalglans, gehard staal */
+.factie-ladder--hout   { background:linear-gradient(160deg,#5a4226 0%,#3a2a17 100%); color:#f0e2c8; border-color:#7a5a30; }
+.factie-ladder--metaal { background:linear-gradient(160deg,#b8a766 0%,#6a5d3a 45%,#9c8c54 100%); color:#1e1b12; border-color:#d8bf63; }
+.factie-ladder--metaal .factie-rung--bereikt { background:rgba(255,250,225,0.30); }
+.factie-ladder--metaal .factie-rung--huidig  { outline-color:rgba(60,45,15,0.7); }
+.factie-ladder--staal  { background:linear-gradient(160deg,#3a3f48 0%,#23272e 100%); color:#e6e8ec; border-color:#7a2a2a; }
+.factie-ladder--staal .factie-ladder-rang { color:#e08a8a; }
+
 .speler-brief-header {
   display: flex;
   align-items: center;
