@@ -97,6 +97,10 @@ export const api = {
   updateAlmanakEvent:(id, data)   => request(`/almanak/gebeurtenis/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteAlmanakEvent:(id)         => request(`/almanak/gebeurtenis/${id}`, { method: 'DELETE' }),
 
+  // Weer (De Hemel boven Grisburgh)
+  weer:     ()     => request('/weer'),
+  saveWeer: (data) => request('/weer', { method: 'PUT', body: JSON.stringify(data) }),
+
   // Kaart
   listMaps:     ()         => request('/map/maps'),
   createMap:    (data)     => request('/map/maps',      { method: 'POST',   body: JSON.stringify(data) }),

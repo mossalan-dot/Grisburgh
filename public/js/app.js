@@ -5,6 +5,7 @@ import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { renderAlmanak } from './render-almanak.js?v=1';
+import { renderWeer } from './render-weer.js?v=1';
 import { initSocket } from './socket-client.js?v=11';
 import { initDmPanel } from './dm-panel.js?v=38';
 
@@ -218,6 +219,7 @@ function switchSection(section) {
     kaart:         'rgba(42,90,70,0.55)',
     relatiemap:    'rgba(80,42,122,0.55)',
     almanak:       'rgba(58,74,138,0.55)',
+    weer:          'rgba(70,110,150,0.55)',
     logboek:       'rgba(184,134,11,0.55)',
     herberg:       'rgba(160,90,20,0.65)',
     tweespalt:     'rgba(90,20,20,0.65)',
@@ -518,6 +520,13 @@ function applyRole() {
   if (almanakTab) {
     const almanakAan = state.role === 'dm' || !!state.meta?.almanak?.enabled;
     almanakTab.classList.toggle('hidden', !almanakAan);
+  }
+
+  // Hemel/weer-tab: zelfde logica als de almanak
+  const weerTab = document.getElementById('weer-tab');
+  if (weerTab) {
+    const weerAan = state.role === 'dm' || !(state.meta?.weer && state.meta.weer.enabled === false);
+    weerTab.classList.toggle('hidden', !weerAan);
   }
 
   // Diensten dropdown: alleen zichtbaar voor benoemde spelers
@@ -1577,6 +1586,7 @@ async function refreshSection(section) {
   else if (section === 'kaart') await _renderKaartSection();
   else if (section === 'relatiemap') await renderRelatiemap();
   else if (section === 'almanak') await renderAlmanak();
+  else if (section === 'weer') await renderWeer();
   else if (section === 'herberg') await renderHerberg();
   else if (section === 'tweespalt') await renderTweespalt();
   else if (section === 'gock') await renderGock();

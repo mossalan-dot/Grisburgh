@@ -72,6 +72,7 @@ Geeft een publieke URL (bijv. `https://iets.trycloudflare.com`). Deel die met sp
 | **Kaarten** | Interactieve stad- en wereldkaarten met zoom, pan en klikbare locatiepins |
 | **Logboek** | Sessieverslagen per akte (hoofdstuk) met afbeeldingen, entiteitskoppelingen en documenten |
 | **Almanak** | In-wereld kalender met maanfasen, seizoenen en gebeurtenissen |
+| **Hemel** | Real-time weer- & luchtscène boven Grisburgh (dagdeel, conditie, wind, temperatuur) |
 | **Herberg** | Spelers kunnen de waard bevragen voor roddels over zichtbare personages en locaties |
 | **Mijn Karakter** | Persoonlijk spelerdashboard: HP, valuta, spreukenslots, voorwerpen, bladwijzers en meer |
 
@@ -358,6 +359,22 @@ Standaard gevuld met archaïsche Nederlandse maandnamen (Louwmaand, Sprokkelmaan
 
 ---
 
+## De Hemel boven Grisburgh 🌧️
+
+Een levende, real-time luchtscène die de DM instelt en alle spelers tegelijk zien — bedoeld voor de sfeer aan tafel.
+
+- **Dagdeel** (ochtend / middag / avond / nacht) bepaalt de luchtkleur, met zon of maan en sterren 's nachts
+- **Weersomstandigheid** (helder, bewolkt, regen, storm, mist, sneeuw) met passende animatie: drijvende wolken, vallende regenstrepen, dwarrelende sneeuw, mistbanken en een bliksemflits bij storm
+- **Silhouet van Grisburgh** aan de horizon — met verlichte raampjes wanneer het nacht is
+- **Windkracht** en **temperatuur** als sfeerlabels, plus een vrije **sfeernotitie**
+- De DM kan met één klik een **willekeurig weertype rollen** (gewogen kansen)
+- **Real-time** — zodra de DM iets wijzigt, verandert de lucht bij alle spelers
+- De hele scène is in **/aan te zetten** voor spelers; respecteert `prefers-reduced-motion`
+
+> Vult de bestaande **weersgenerator** (DM-paneel → Tafels) aan: die rolt een tekstuele weersbeschrijving per seizoen; de Hemel is de visuele tegenhanger die je aan spelers toont.
+
+---
+
 ## DM-paneel (Meesterkamer ⚔)
 
 Toegankelijk via de ⚔-knop rechtsonder.
@@ -478,6 +495,7 @@ routes/
   auth.js                  # DM-login + requireDM/attachRole middlewares
 lib/
   almanak.js               # Pure datum-/maanfase-berekeningen voor de Almanak (unit-getest)
+  weer.js                  # Weer-catalogus + gewogen weerworp voor de Hemel (unit-getest)
   storage.js               # JSON-bestandsopslag + afbeeldingen/PDFs/audio per campagne
   snapshot.js              # HTML-snapshot en campagneboek-export
 public/
@@ -491,6 +509,7 @@ public/
     dm-panel.js            # DM-paneel: alle tabs (tunnel, spreuken, gevecht, monsters, geluiden, etc.)
     render-dashboard.js    # Spelersdashboard: HP, valuta, spreukenslots, trackers, bladwijzers
     render-almanak.js      # Almanak: in-wereld kalender, maanfasen, seizoenen, gebeurtenissen
+    render-weer.js         # Hemel: real-time weer- & luchtscène (SVG + CSS-animaties)
     api.js                 # Fetch-wrapper, fileUrl, thumbUrl, entity name lookup
     socket-client.js       # Real-time updates en geluidsevents via Socket.io
     combat-canvas.js       # Canvas-gebaseerde gevechtsvisualisatie

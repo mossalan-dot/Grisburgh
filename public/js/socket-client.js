@@ -242,6 +242,17 @@ export function initSocket() {
     }
   });
 
+  socket.on('weer:updated', (info = {}) => {
+    // Meta verversen voor de tab-zichtbaarheid en de luchtscène bijwerken.
+    import('./api.js').then(({ api }) => api.meta().then(m => {
+      if (window.app?.state) window.app.state.meta = m;
+      window.app?.applyRole?.();
+      if (window.app?.state?.activeSection === 'weer') {
+        window.app.refreshSection('weer');
+      }
+    }).catch(() => {}));
+  });
+
   socket.on('entity:deceased', ({ id, type, name } = {}) => {
     // Herlaad de huidige sectie zodat het kaartje meteen grijs wordt
     const section = window.app.state.activeSection;

@@ -7,6 +7,7 @@ const storage = require('../lib/storage');
 const { requireDM, attachRole } = require('./auth');
 const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 const almanak = require('../lib/almanak');
+const weer = require('../lib/weer');
 
 let _sharp = null;
 try { _sharp = require('sharp'); } catch {}
@@ -3032,6 +3033,47 @@ router.delete('/almanak/gebeurtenis/:id', requireDM, (req, res) => {
   writeAlmanak(a);
   emitAlmanak(req);
   res.json({ ok: true });
+});
+
+// ── Weer (De Hemel boven Grisburgh) ──────────────────────────────
+
+function readWeer() {
+  const meta = storage.readJSON('meta.json');
+  return weer.ensureWeer(meta.weer);
+}
+
+function writeWeer(w) {
+  const meta = storage.readJSON('meta.json');
+  meta.weer = w;
+  storage.writeJSON('meta.json', meta);
+}
+
+// GET — rolbewust; voor spelers verborgen als de DM het weer heeft uitgezet.
+router.get('/weer', attachRole, (req, res) => {
+  const w = readWeer();
+  if (!w.enabled && req.role !== 'dm') return res.json({ enabled: false });
+  res.json({
+    ...w,
+    catalogus: { condities: weer.CONDITIES, dagdelen: weer.DAGDELEN, windLabels: weer.WIND_LABELS, tempLabels: weer.TEMP_LABELS },
+    isDM: req.role === 'dm',
+  });
+});
+
+// PUT — het weer instellen (DM). Met `roll:true` wordt een conditie gerold.
+router.put('/weer', requireDM, (req, res) => {
+  const w = readWeer();
+  const b = req.body || {};
+  if (b.roll === true) b.conditie = weer.rollConditie();
+  if (b.enabled  !== undefined) w.enabled  = !!b.enabled;
+  if (b.dagdeel  !== undefined) w.dagdeel  = b.dagdeel;
+  if (b.conditie !== undefined) w.conditie = b.conditie;
+  if (b.wind     !== undefined) w.wind     = b.wind;
+  if (b.temp     !== undefined) w.temp     = b.temp;
+  if (b.notitie  !== undefined) w.notitie  = b.notitie;
+  const clean = weer.ensureWeer(w);
+  writeWeer(clean);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('weer:updated', { conditie: clean.conditie });
+  res.json(clean);
 });
 
 // ── Kaart ──
