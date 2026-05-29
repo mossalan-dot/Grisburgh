@@ -16936,3 +16936,43 @@ input.alm-cfg-input[type="color"] { padding: 2px; height: 36px; cursor: pointer;
 }
 .weer-icon-btn:hover { background: rgba(184,134,11,0.18); border-color: var(--color-gold-dim); }
 .weer-icon-btn .icon { width: 14px; height: 14px; }
+
+/* ── Tabletmodus: de Hemel als sfeervol idle-rustscherm ── */
+.display-sky-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.display-sky-wrap .weer-sky {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* Scrim onderaan voor leesbaarheid van de titel op elke lucht */
+.display-sky-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(8,10,22,0.6) 0%, rgba(8,10,22,0.12) 32%, transparent 55%);
+}
+.display-idle-inner--sky {
+  position: absolute;
+  left: 0; right: 0; bottom: 7%;
+  z-index: 2;
+  text-shadow: 0 2px 14px rgba(0,0,0,0.65);
+}
+.display-idle-inner--sky .display-campaign-title {
+  color: rgba(255,250,238,0.96);
+}
+.display-idle-inner--sky .display-campaign-sub {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0.08em;
+  color: rgba(255,248,232,0.78);
+  font-size: clamp(0.85rem, 2.2vw, 1.25rem);
+  max-width: 80%;
+  margin: 6px auto 0;
+}

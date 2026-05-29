@@ -251,6 +251,8 @@ export function initSocket() {
         window.app.refreshSection('weer');
       }
     }).catch(() => {}));
+    // Tabletmodus: ververs het sfeervolle rustscherm in real-time
+    if (window._isDisplayMode) window._displayRefreshSky?.();
   });
 
   socket.on('entity:deceased', ({ id, type, name } = {}) => {

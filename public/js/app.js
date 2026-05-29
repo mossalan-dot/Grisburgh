@@ -5,7 +5,7 @@ import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { renderAlmanak } from './render-almanak.js?v=1';
-import { renderWeer } from './render-weer.js?v=1';
+import { renderWeer, renderDisplaySky } from './render-weer.js?v=1';
 import { initSocket } from './socket-client.js?v=11';
 import { initDmPanel } from './dm-panel.js?v=38';
 
@@ -6541,11 +6541,8 @@ function _initDisplayMode() {
   if (canvas) canvas.classList.remove('hidden');
   // Kiosk-modus: geen speler ingelogd → verberg speler-specifieke UI
   if (!state.characterId) document.body.classList.add('display-kiosk');
-  // Zet campagnetitel
-  api.getMeta?.().then(meta => {
-    const el = document.getElementById('display-campaign-title');
-    if (el && meta?.title) el.textContent = meta.title;
-  }).catch(() => {});
+  // Sfeervol rustscherm: de Hemel boven Grisburgh als idle-achtergrond
+  renderDisplaySky().catch(() => {});
   // Als gevecht al actief is bij openen, zorg dat overlay niet geminimaliseerd is
   api.getCombat().then(combat => {
     if (combat?.active) {
@@ -6590,6 +6587,15 @@ window._displayIdle = function() {
   document.getElementById('display-image-screen').style.display = 'none';
   document.getElementById('display-dungeon-screen').style.display = 'none';
   document.getElementById('display-idle').style.display = 'flex';
+  // Ververs de luchtscène zodat hij het actuele weer toont
+  renderDisplaySky().catch(() => {});
+};
+
+// Ververs alleen de Hemel als het idle-scherm nu zichtbaar is (real-time weer)
+window._displayRefreshSky = function() {
+  if (!window._isDisplayMode) return;
+  const idle = document.getElementById('display-idle');
+  if (idle && idle.style.display !== 'none') renderDisplaySky().catch(() => {});
 };
 
 // ── Herberg ──

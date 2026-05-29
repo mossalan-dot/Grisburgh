@@ -74,6 +74,28 @@ export async function renderWeer(containerEl) {
   container.innerHTML = _buildHtml();
 }
 
+// ── Tabletmodus: de Hemel als sfeervol rustscherm ──────────────────
+// Tekent de huidige luchtscène als achtergrond van het idle-scherm, met de
+// campagnetitel eroverheen. Valt terug op een avondlucht als het weer voor
+// spelers is uitgezet (de tablet-sessie heeft geen DM-rol).
+export async function renderDisplaySky() {
+  const idle = document.getElementById('display-idle');
+  if (!idle) return;
+  let w = null;
+  try { w = await api.weer(); } catch { /* netwerk/uit — gebruik fallback */ }
+  const state = (w && w.conditie)
+    ? w
+    : { dagdeel: 'avond', conditie: 'helder', notitie: '' };
+  const title = window.app?.state?.meta?.appTitle || 'Grisburgh';
+  const sub = state.notitie || REGELS[state.conditie] || '';
+  idle.innerHTML = `
+    <div class="display-sky-wrap">${_sky(state)}</div>
+    <div class="display-idle-inner display-idle-inner--sky">
+      <div id="display-campaign-title" class="display-campaign-title">${esc(title)}</div>
+      <div class="display-campaign-sub">${esc(sub)}</div>
+    </div>`;
+}
+
 function _cat() { return _data.catalogus || { condities: [], dagdelen: [], windLabels: [], tempLabels: [] }; }
 function _condLabel(id) { return (_cat().condities.find(c => c.id === id) || {}).label || id; }
 function _condEmoji(id) { return (_cat().condities.find(c => c.id === id) || {}).emoji || ''; }
@@ -124,9 +146,9 @@ function _scene() {
     </div>`;
 }
 
-function _sky() {
-  const sky = SKIES[_data.dagdeel] || SKIES.middag;
-  const cond = _data.conditie;
+function _sky(w = _data) {
+  const sky = SKIES[w.dagdeel] || SKIES.middag;
+  const cond = w.conditie;
   const stops = sky.stops.map(([o, c]) => `<stop offset="${o}%" stop-color="${c}"/>`).join('');
   const sluier = SLUIER[cond];
   const showBody = !['regen', 'storm', 'mist'].includes(cond);
@@ -148,11 +170,11 @@ function _sky() {
       </defs>
 
       <rect x="0" y="0" width="800" height="400" fill="url(#weerSky)"/>
-      ${_data.dagdeel === 'nacht' || _data.dagdeel === 'avond' ? _stars(_data.dagdeel === 'nacht' ? 1 : 0.4) : ''}
-      ${showBody ? _body(sky.body, dimBody) : ''}
+      ${w.dagdeel === 'nacht' || w.dagdeel === 'avond' ? _stars(w.dagdeel === 'nacht' ? 1 : 0.4) : ''}
+      ${showBody ? _body(sky.body, dimBody, w.dagdeel) : ''}
       ${_clouds(cond)}
       ${cond === 'mist' ? _fog() : ''}
-      ${_city(sky.grond, _data.dagdeel)}
+      ${_city(sky.grond, w.dagdeel)}
       ${cond === 'regen' || cond === 'storm' ? _rain(cond === 'storm') : ''}
       ${cond === 'sneeuw' ? _snow() : ''}
       ${sluier ? `<rect class="weer-sluier" x="0" y="0" width="800" height="400" fill="${sluier[0]}" opacity="${sluier[1]}"/>` : ''}
@@ -160,8 +182,8 @@ function _sky() {
     </svg>`;
 }
 
-function _body(type, dim) {
-  const p = BODY_POS[_data.dagdeel] || BODY_POS.middag;
+function _body(type, dim, dagdeel) {
+  const p = BODY_POS[dagdeel] || BODY_POS.middag;
   if (type === 'maan') {
     return `
       <g class="weer-body" opacity="${dim ? 0.5 : 1}">
