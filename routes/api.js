@@ -1843,6 +1843,7 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
     'multiclass', 'klasseLevel', 'multiKlasse', 'multiKlasseLevel',
     'bookmarks', 'weapons',
     'swimSpeed', 'flySpeed', 'spellFavorites',
+    'factieTitel',
   ];
   const updated = { ...existing };
   for (const key of allowed) {
@@ -4274,39 +4275,54 @@ router.put('/meta/heeren', requireDM, (req, res) => {
 
 const FACTIES_DEFAULT = [
   {
-    id: 'cooperatie', naam: 'De Coöperatie', embleem: '🌿',
+    id: 'cooperatie', naam: 'De Coöperatie', embleem: '🌿', stijl: 'hout',
     beschrijving: 'Het verbond van druïden dat over de wouden en wateren rond Grisburgh waakt.',
     rangen: [
       { naam: 'Buitenstaander', voordelen: 'Geen aanzien; de Kring houdt je op afstand.' },
-      { naam: 'Zaailing',       voordelen: 'Je wordt geduld in de buitenste hagen; ruil van kruiden toegestaan.' },
-      { naam: 'Wortelganger',   voordelen: 'Toegang tot de gemeenschappelijke kruidtuin en de raad.' },
-      { naam: 'Hagenhoeder',    voordelen: 'Druïden delen voortekenen en veilige paden met je.' },
-      { naam: 'Boomspreker',    voordelen: 'Je stem telt in de Kring; de Coöperatie staat je bij in nood.' },
-      { naam: 'Eikhart',        voordelen: 'De wouden zelf lijken je gunstig gezind.' },
+      { naam: 'Zaailing',       voordelen: 'Je wordt geduld in de buitenste hagen; ruil van kruiden toegestaan.',
+        boons: [{ icoon: '🌱', naam: 'Kruidruil', tekst: 'Koop genezende kruiden en eenvoudige remedies tegen kostprijs.' }] },
+      { naam: 'Wortelganger',   voordelen: 'Toegang tot de gemeenschappelijke kruidtuin en de raad.',
+        boons: [{ icoon: '🍵', naam: 'Kruidtuin', tekst: 'Eens per lange rust een gratis dosis genezende thee.' }] },
+      { naam: 'Hagenhoeder',    voordelen: 'Druïden delen voortekenen en veilige paden met je.', titel: 'Hagenhoeder van de Coöperatie',
+        boons: [{ icoon: '🧭', naam: 'Veilige paden', tekst: 'Voordeel op overlevingsworpen in de wildernis rond Grisburgh.' }] },
+      { naam: 'Boomspreker',    voordelen: 'Je stem telt in de Kring; de Coöperatie staat je bij in nood.', titel: 'Boomspreker der Coöperatie',
+        boons: [{ icoon: '🦉', naam: 'Dierbode', tekst: 'Stuur eens per dag een dierbode met een kort bericht.' }] },
+      { naam: 'Eikhart',        voordelen: 'De wouden zelf lijken je gunstig gezind.', titel: 'Eikhart van de Kring',
+        boons: [{ icoon: '🌳', naam: 'Gunst van het woud', tekst: 'Eens per lange rust een druïdische zegen van de Kring.' }] },
     ],
   },
   {
-    id: 'eendragt', naam: 'De Eendragt', embleem: '⚙️',
+    id: 'eendragt', naam: 'De Eendragt', embleem: '⚙️', stijl: 'metaal',
     beschrijving: 'Het artifexgilde dat het vakmanschap en de uitvindingen van de stad bewaakt.',
     rangen: [
       { naam: 'Vreemdeling',     voordelen: 'Geen aanzien; het gilde sluit zijn werkplaatsen voor je.' },
-      { naam: 'Leerjongen',      voordelen: 'Toegang tot de gildewerkplaats en eenvoudig gereedschap.' },
-      { naam: 'Gezel',           voordelen: 'Korting op vakwerk en materialen van het gilde.' },
-      { naam: 'Vakmeester',      voordelen: 'Het gilde neemt opdrachten van je aan met voorrang.' },
-      { naam: 'Meester-artifex', voordelen: 'Toegang tot zeldzame ontwerpen en materialen.' },
-      { naam: 'Gildemeester',    voordelen: 'Je woord weegt zwaar in de raad van De Eendragt.' },
+      { naam: 'Leerjongen',      voordelen: 'Toegang tot de gildewerkplaats en eenvoudig gereedschap.',
+        boons: [{ icoon: '🔧', naam: 'Werkplaats', tekst: 'Gebruik van het gildegereedschap; reparaties tegen kostprijs.' }] },
+      { naam: 'Gezel',           voordelen: 'Korting op vakwerk en materialen van het gilde.',
+        boons: [{ icoon: '💰', naam: 'Gildekorting', tekst: '10% korting op vakwerk, gereedschap en materialen.' }] },
+      { naam: 'Vakmeester',      voordelen: 'Het gilde neemt opdrachten van je aan met voorrang.', titel: 'Vakmeester van De Eendragt',
+        boons: [{ icoon: '📜', naam: 'Voorrang', tekst: 'Je opdrachten worden met voorrang vervaardigd.' }] },
+      { naam: 'Meester-artifex', voordelen: 'Toegang tot zeldzame ontwerpen en materialen.', titel: 'Meester-artifex',
+        boons: [{ icoon: '⚗️', naam: 'Zeldzame ontwerpen', tekst: 'Toegang tot zeldzame blauwdrukken; magische voorwerpen identificeren.' }] },
+      { naam: 'Gildemeester',    voordelen: 'Je woord weegt zwaar in de raad van De Eendragt.', titel: 'Gildemeester van De Eendragt',
+        boons: [{ icoon: '🛠️', naam: 'Maatwerk', tekst: 'Laat eens per boog een uniek voorwerp op maat vervaardigen.' }] },
     ],
   },
   {
-    id: 'roodzwaarden', naam: 'De Roodzwaarden', embleem: '🗡️',
+    id: 'roodzwaarden', naam: 'De Roodzwaarden', embleem: '🗡️', stijl: 'staal',
     beschrijving: 'De stadswacht van Grisburgh — gehard, en niet zonder eigenbelang.',
     rangen: [
       { naam: 'Verdachte',     voordelen: 'Geen aanzien; de wacht houdt je in de gaten.' },
-      { naam: 'Gedoogde',      voordelen: 'De wacht laat je met rust en beantwoordt je vragen.' },
-      { naam: 'Vertrouweling', voordelen: 'Toegang tot het wachthuis; je mag kleine zaken melden.' },
-      { naam: 'Bondgenoot',    voordelen: 'Je mag premies innen en krijgt eerste keus uit het premiebord.' },
-      { naam: 'Schildgenoot',  voordelen: 'De wacht verleent je doortocht en bijstand bij gevaar.' },
-      { naam: 'Erezwaard',     voordelen: 'Je geniet het volle vertrouwen van de Roodzwaarden.' },
+      { naam: 'Gedoogde',      voordelen: 'De wacht laat je met rust en beantwoordt je vragen.',
+        boons: [{ icoon: '🗣️', naam: 'Goodwill', tekst: 'De wacht beantwoordt vragen en geeft tips.' }] },
+      { naam: 'Vertrouweling', voordelen: 'Toegang tot het wachthuis; je mag kleine zaken melden.',
+        boons: [{ icoon: '🏛️', naam: 'Wachthuis', tekst: 'Toegang tot het wachthuis en het premiebord.' }] },
+      { naam: 'Bondgenoot',    voordelen: 'Je mag premies innen en krijgt eerste keus uit het premiebord.', titel: 'Bondgenoot van de Roodzwaarden',
+        boons: [{ icoon: '📋', naam: 'Premiejager', tekst: 'Eerste keus uit premies en een hogere uitbetaling.' }] },
+      { naam: 'Schildgenoot',  voordelen: 'De wacht verleent je doortocht en bijstand bij gevaar.', titel: 'Schildgenoot der Roodzwaarden',
+        boons: [{ icoon: '🛡️', naam: 'Bijstand', tekst: 'Roep eens per dag een wachtpatrouille op als rugdekking.' }] },
+      { naam: 'Erezwaard',     voordelen: 'Je geniet het volle vertrouwen van de Roodzwaarden.', titel: 'Erezwaard van Grisburgh',
+        boons: [{ icoon: '⚖️', naam: 'Vrijgeleide', tekst: 'De wacht knijpt eenmalig een oogje toe bij een klein vergrijp.' }] },
     ],
   },
 ];
@@ -4333,15 +4349,24 @@ router.get('/facties', attachRole, (req, res) => {
   const dmState = readDmState();
   const state = getGroup(dmState).facties || {};
   const isDM = req.role === 'dm';
+  const titels = [];
   const facties = config.map(f => {
+    const rangen = (f.rangen && f.rangen.length) ? f.rangen : [{ naam: '—', voordelen: '' }];
+    const idx = Math.max(0, Math.min(state[f.id]?.rang || 0, rangen.length - 1));
+    const ladder = rangen.map((r, i) => ({
+      index: i, naam: r.naam, voordelen: r.voordelen || '', titel: r.titel || null,
+      boons: (r.boons || []).map(b => ({ icoon: b.icoon || '•', naam: b.naam || '', tekst: b.tekst || '' })),
+      bereikt: i <= idx, huidig: i === idx,
+    }));
+    rangen.forEach((r, i) => { if (i > 0 && i <= idx && r.titel) titels.push({ titel: r.titel, factie: f.id, factieNaam: f.naam, embleem: f.embleem || '🏛️' }); });
     const view = {
       id: f.id, naam: f.naam, embleem: f.embleem || '🏛️', beschrijving: f.beschrijving || '',
-      rang: _factieRangView(f, state[f.id]?.rang || 0),
+      stijl: f.stijl || '', rang: _factieRangView(f, idx), ladder,
     };
     if (isDM) view.rangen = f.rangen || [];
     return view;
   });
-  res.json({ facties });
+  res.json({ facties, titels });
 });
 
 router.post('/facties/:id/rang', requireDM, (req, res) => {
@@ -4367,9 +4392,18 @@ router.put('/meta/facties', requireDM, (req, res) => {
     id: String(f.id || ('factie_' + Math.random().toString(36).slice(2, 7))).trim(),
     naam: String(f.naam || 'Naamloze factie').trim(),
     embleem: (f.embleem || '🏛️').toString().slice(0, 4),
+    stijl: String(f.stijl || '').trim(),
     beschrijving: String(f.beschrijving || '').trim(),
     rangen: (Array.isArray(f.rangen) && f.rangen.length)
-      ? f.rangen.map(r => ({ naam: String(r.naam || '—').trim(), voordelen: String(r.voordelen || '').trim() }))
+      ? f.rangen.map(r => {
+          const rang = { naam: String(r.naam || '—').trim(), voordelen: String(r.voordelen || '').trim() };
+          if (r.titel && String(r.titel).trim()) rang.titel = String(r.titel).trim();
+          const boons = (Array.isArray(r.boons) ? r.boons : [])
+            .map(b => ({ icoon: (b.icoon || '•').toString().slice(0, 4), naam: String(b.naam || '').trim(), tekst: String(b.tekst || '').trim() }))
+            .filter(b => b.naam || b.tekst);
+          if (boons.length) rang.boons = boons;
+          return rang;
+        })
       : [{ naam: '—', voordelen: '' }],
   }));
   storage.writeJSON('meta.json', meta);
