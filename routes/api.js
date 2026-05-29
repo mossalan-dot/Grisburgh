@@ -6,6 +6,7 @@ const { spawn } = require('child_process');
 const storage = require('../lib/storage');
 const { requireDM, attachRole } = require('./auth');
 const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
+const almanak = require('../lib/almanak');
 
 let _sharp = null;
 try { _sharp = require('sharp'); } catch {}
@@ -2887,6 +2888,150 @@ router.put('/meta/herberg', requireDM, (req, res) => {
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
   res.json(meta.herberg);
+});
+
+// ── Almanak (in-wereld kalender & maanfase) ──────────────────────
+
+// Lees de almanak-config (aangevuld met defaults) uit meta.json.
+function readAlmanak() {
+  const meta = storage.readJSON('meta.json');
+  return almanak.ensureAlmanak(meta.almanak);
+}
+
+// Schrijf de almanak-config terug naar meta.json.
+function writeAlmanak(a) {
+  const meta = storage.readJSON('meta.json');
+  meta.almanak = a;
+  storage.writeJSON('meta.json', meta);
+}
+
+function emitAlmanak(req, extra) {
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('almanak:updated', extra || {});
+}
+
+// GET — rolbewuste weergave van de almanak voor een gevraagd jaar.
+router.get('/almanak', attachRole, (req, res) => {
+  const a = readAlmanak();
+  const isDM = req.role === 'dm';
+
+  // Voor spelers verborgen als de DM de almanak heeft uitgezet.
+  if (!a.enabled && !isDM) return res.json({ enabled: false });
+
+  const viewJaar = Number.isFinite(Number(req.query.jaar))
+    ? Math.round(Number(req.query.jaar)) : a.jaar;
+
+  // Gebeurtenissen filteren op zichtbaarheid voor spelers.
+  const gebeurtenissen = (a.gebeurtenissen || [])
+    .filter(g => isDM || g.zichtbaar !== false)
+    .map(g => isDM ? g : { ...g, dmNotitie: undefined });
+
+  res.json({
+    enabled:    a.enabled,
+    eraNaam:    a.eraNaam,
+    maanNaam:   a.maanNaam,
+    maanCyclus: a.maanCyclus,
+    maanOffset: a.maanOffset,
+    weekdagen:  a.weekdagen,
+    maanden:    a.maanden,
+    seizoenen:  a.seizoenen,
+    vandaag:    { jaar: a.jaar, maandIdx: a.maandIdx, dag: a.dag },
+    today:      almanak.describeDate(a, { jaar: a.jaar, maandIdx: a.maandIdx, dag: a.dag }),
+    view:       almanak.buildYearView(a, viewJaar),
+    gebeurtenissen,
+    isDM,
+  });
+});
+
+// PUT /config — structuur van de kalender bijwerken (DM).
+router.put('/almanak/config', requireDM, (req, res) => {
+  const a = readAlmanak();
+  const b = req.body || {};
+  if (b.enabled       !== undefined) a.enabled       = !!b.enabled;
+  if (b.eraNaam       !== undefined) a.eraNaam       = String(b.eraNaam);
+  if (b.maanNaam      !== undefined) a.maanNaam      = String(b.maanNaam);
+  if (b.maanCyclus    !== undefined) a.maanCyclus    = b.maanCyclus;
+  if (b.maanOffset    !== undefined) a.maanOffset    = b.maanOffset;
+  if (b.weekdagOffset !== undefined) a.weekdagOffset = b.weekdagOffset;
+  if (Array.isArray(b.weekdagen))  a.weekdagen  = b.weekdagen;
+  if (Array.isArray(b.maanden))    a.maanden    = b.maanden;
+  if (Array.isArray(b.seizoenen))  a.seizoenen  = b.seizoenen;
+  const clean = almanak.ensureAlmanak(a);
+  writeAlmanak(clean);
+  emitAlmanak(req);
+  res.json({ ok: true });
+});
+
+// PUT /datum — de huidige in-wereld datum zetten of verschuiven (DM).
+router.put('/almanak/datum', requireDM, (req, res) => {
+  const a = readAlmanak();
+  const b = req.body || {};
+  let date = { jaar: a.jaar, maandIdx: a.maandIdx, dag: a.dag };
+  if (typeof b.deltaDagen === 'number' && b.deltaDagen !== 0) {
+    date = almanak.addDays(a, date, b.deltaDagen);
+  } else {
+    if (b.jaar     !== undefined) date.jaar     = Math.round(Number(b.jaar));
+    if (b.maandIdx !== undefined) date.maandIdx = Math.round(Number(b.maandIdx));
+    if (b.dag      !== undefined) date.dag      = Math.round(Number(b.dag));
+    date = almanak.clampDate(a, date);
+  }
+  a.jaar = date.jaar; a.maandIdx = date.maandIdx; a.dag = date.dag;
+  writeAlmanak(a);
+  const today = almanak.describeDate(a, date);
+  emitAlmanak(req, { volleMaan: today.volleMaan, nieuweMaan: today.nieuweMaan, datum: date });
+  res.json({ vandaag: date, today });
+});
+
+// POST /gebeurtenis — nieuwe gebeurtenis (DM).
+router.post('/almanak/gebeurtenis', requireDM, (req, res) => {
+  const a = readAlmanak();
+  const b = req.body || {};
+  const g = {
+    id:          'ev_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    naam:        String(b.naam || 'Gebeurtenis'),
+    beschrijving: String(b.beschrijving || ''),
+    maandIdx:    Math.round(Number(b.maandIdx) || 0),
+    dag:         Math.round(Number(b.dag) || 1),
+    jaar:        (b.jaar === null || b.jaar === undefined || b.jaar === '') ? null : Math.round(Number(b.jaar)),
+    kleur:       b.kleur || '',
+    icon:        b.icon || '',
+    zichtbaar:   b.zichtbaar !== false,
+    dmNotitie:   String(b.dmNotitie || ''),
+  };
+  a.gebeurtenissen.push(g);
+  writeAlmanak(a);
+  emitAlmanak(req);
+  res.json(g);
+});
+
+// PUT /gebeurtenis/:id — gebeurtenis bijwerken (DM).
+router.put('/almanak/gebeurtenis/:id', requireDM, (req, res) => {
+  const a = readAlmanak();
+  const g = a.gebeurtenissen.find(x => x.id === req.params.id);
+  if (!g) return res.status(404).json({ error: 'Niet gevonden' });
+  const b = req.body || {};
+  if (b.naam         !== undefined) g.naam        = String(b.naam);
+  if (b.beschrijving !== undefined) g.beschrijving = String(b.beschrijving);
+  if (b.maandIdx     !== undefined) g.maandIdx    = Math.round(Number(b.maandIdx));
+  if (b.dag          !== undefined) g.dag         = Math.round(Number(b.dag));
+  if (b.jaar         !== undefined) g.jaar        = (b.jaar === null || b.jaar === '') ? null : Math.round(Number(b.jaar));
+  if (b.kleur        !== undefined) g.kleur       = b.kleur;
+  if (b.icon         !== undefined) g.icon        = b.icon;
+  if (b.zichtbaar    !== undefined) g.zichtbaar   = !!b.zichtbaar;
+  if (b.dmNotitie    !== undefined) g.dmNotitie   = String(b.dmNotitie);
+  writeAlmanak(a);
+  emitAlmanak(req);
+  res.json(g);
+});
+
+// DELETE /gebeurtenis/:id (DM).
+router.delete('/almanak/gebeurtenis/:id', requireDM, (req, res) => {
+  const a = readAlmanak();
+  const n = a.gebeurtenissen.length;
+  a.gebeurtenissen = a.gebeurtenissen.filter(x => x.id !== req.params.id);
+  if (a.gebeurtenissen.length === n) return res.status(404).json({ error: 'Niet gevonden' });
+  writeAlmanak(a);
+  emitAlmanak(req);
+  res.json({ ok: true });
 });
 
 // ── Kaart ──

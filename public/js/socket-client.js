@@ -226,6 +226,22 @@ export function initSocket() {
     }));
   });
 
+  socket.on('almanak:updated', (info = {}) => {
+    // Meta opnieuw ophalen zodat de tab-zichtbaarheid (enabled-vlag) klopt.
+    import('./api.js').then(({ api }) => api.meta().then(m => {
+      if (window.app?.state) window.app.state.meta = m;
+      window.app?.applyRole?.();
+      if (window.app?.state?.activeSection === 'almanak') {
+        window.app.refreshSection('almanak');
+      }
+    }).catch(() => {}));
+    // Sfeervolle melding voor spelers bij een bijzondere maanstand.
+    if (!window.app?.isDM?.()) {
+      if (info.volleMaan) _showToast('🌕 De <strong>volle maan</strong> rijst boven de wereld…', () => window.app?.switchSection?.('almanak'), 6000);
+      else if (info.nieuweMaan) _showToast('🌑 Het is <strong>nieuwe maan</strong> — de nacht is zwart…', () => window.app?.switchSection?.('almanak'), 6000);
+    }
+  });
+
   socket.on('entity:deceased', ({ id, type, name } = {}) => {
     // Herlaad de huidige sectie zodat het kaartje meteen grijs wordt
     const section = window.app.state.activeSection;

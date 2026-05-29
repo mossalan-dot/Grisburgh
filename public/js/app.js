@@ -1,9 +1,10 @@
-import { api } from './api.js?v=220';
+import { api } from './api.js?v=221';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=78';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=31';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
+import { renderAlmanak } from './render-almanak.js?v=1';
 import { initSocket } from './socket-client.js?v=11';
 import { initDmPanel } from './dm-panel.js?v=38';
 
@@ -80,6 +81,7 @@ window.app = {
   saveHeader,
   cancelHeader,
   applyAppMeta,
+  applyRole,
   showLanding,
   hideLanding,
   _landingPortraitClick,
@@ -215,6 +217,7 @@ function switchSection(section) {
     documenten:    'rgba(90,58,122,0.55)',
     kaart:         'rgba(42,90,70,0.55)',
     relatiemap:    'rgba(80,42,122,0.55)',
+    almanak:       'rgba(58,74,138,0.55)',
     logboek:       'rgba(184,134,11,0.55)',
     herberg:       'rgba(160,90,20,0.65)',
     tweespalt:     'rgba(90,20,20,0.65)',
@@ -508,6 +511,13 @@ function applyRole() {
     document.documentElement.style.setProperty('--herberg-backdrop-url', `url('${api.fileUrl(backdropId)}')`);
   } else {
     document.documentElement.style.removeProperty('--herberg-backdrop-url');
+  }
+
+  // Almanak-tab: zichtbaar voor de DM, of voor iedereen als de DM hem heeft ingeschakeld
+  const almanakTab = document.getElementById('almanak-tab');
+  if (almanakTab) {
+    const almanakAan = state.role === 'dm' || !!state.meta?.almanak?.enabled;
+    almanakTab.classList.toggle('hidden', !almanakAan);
   }
 
   // Diensten dropdown: alleen zichtbaar voor benoemde spelers
@@ -1566,6 +1576,7 @@ async function refreshSection(section) {
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await _renderKaartSection();
   else if (section === 'relatiemap') await renderRelatiemap();
+  else if (section === 'almanak') await renderAlmanak();
   else if (section === 'herberg') await renderHerberg();
   else if (section === 'tweespalt') await renderTweespalt();
   else if (section === 'gock') await renderGock();

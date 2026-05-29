@@ -89,6 +89,14 @@ export const api = {
   saveAppMeta: (data) => request('/meta/app', { method: 'PUT', body: JSON.stringify(data) }),
   saveHerberg: (data) => request('/meta/herberg', { method: 'PUT', body: JSON.stringify(data) }),
 
+  // Almanak (in-wereld kalender)
+  almanak:           (jaar)       => request('/almanak' + (jaar !== undefined ? `?jaar=${jaar}` : '')),
+  saveAlmanakConfig: (data)       => request('/almanak/config',  { method: 'PUT',    body: JSON.stringify(data) }),
+  setAlmanakDatum:   (data)       => request('/almanak/datum',   { method: 'PUT',    body: JSON.stringify(data) }),
+  addAlmanakEvent:   (data)       => request('/almanak/gebeurtenis', { method: 'POST', body: JSON.stringify(data) }),
+  updateAlmanakEvent:(id, data)   => request(`/almanak/gebeurtenis/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteAlmanakEvent:(id)         => request(`/almanak/gebeurtenis/${id}`, { method: 'DELETE' }),
+
   // Kaart
   listMaps:     ()         => request('/map/maps'),
   createMap:    (data)     => request('/map/maps',      { method: 'POST',   body: JSON.stringify(data) }),

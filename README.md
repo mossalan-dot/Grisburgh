@@ -71,6 +71,7 @@ Geeft een publieke URL (bijv. `https://iets.trycloudflare.com`). Deel die met sp
 | **Documenten** | Brieven, kranten, kaarten, manuscripten, dagboeken en audiofragmenten |
 | **Kaarten** | Interactieve stad- en wereldkaarten met zoom, pan en klikbare locatiepins |
 | **Logboek** | Sessieverslagen per akte (hoofdstuk) met afbeeldingen, entiteitskoppelingen en documenten |
+| **Almanak** | In-wereld kalender met maanfasen, seizoenen en gebeurtenissen |
 | **Herberg** | Spelers kunnen de waard bevragen voor roddels over zichtbare personages en locaties |
 | **Mijn Karakter** | Persoonlijk spelerdashboard: HP, valuta, spreukenslots, voorwerpen, bladwijzers en meer |
 
@@ -321,6 +322,42 @@ Locaties en personages van het type **Verkoper** kunnen een winkelconfiguratie h
 
 ---
 
+## Almanak (De Almanak van Isfār) 🌙
+
+Een sfeervolle, in-wereld kalender die tijd, getij en de gang der manen bijhoudt.
+
+### "Vandaag"-kaart
+
+- Grote, **berekende maanfase** als geanimeerde SVG (nieuwe maan → volle maan → afnemende sikkel), met een sterrenhemel-achtergrond
+- De huidige in-wereld datum: weekdag, dag, maand en jaar + tijdperk (bijv. `1247 n.S.`)
+- **Seizoensbadge** en een poëtische sfeerregel die meebeweegt met seizoen en maanstand
+- De hele sectie krijgt een subtiele **seizoenstint** (winter/lente/zomer/herfst)
+
+### Maandkalender
+
+- Volledige maandgrid met weekdag-koprij en **vandaag-markering** (goudgloed)
+- **Maanstanden** per dag: nieuwe maan, volle maan en de kwartieren tonen een maan-icoon
+- **Gebeurtenis-stippen** op dagen met een gebeurtenis; klikken toont de details
+- Navigatie per maand en per jaar
+
+### Gebeurtenissen
+
+- Feestdagen en campagnemomenten gekoppeld aan een datum
+- **Jaarlijks** (terugkerende feestdag) of een eenmalige gebeurtenis in een specifiek jaar
+- Eigen kleur per gebeurtenis; **zichtbaarheidsbewust** — de DM kan een gebeurtenis verborgen houden voor spelers
+
+### DM-bediening (inline)
+
+- **Tijd laten verstrijken** met één klik (−7 / −1 / +1 / +7 dagen) of een exacte datum zetten
+- Bij een volle of nieuwe maan krijgen spelers automatisch een sfeervolle melding
+- De kalender volledig instellen: tijdperknaam, naam van de maan, maancyclus, weekdagen, seizoenen (naam + kleur) en de maanden (naam, dagen, seizoen)
+- **Maan-uitlijning** — één knop maakt van de huidige dag een nieuwe maan
+- De almanak in zijn geheel **aan- of uitzetten** voor spelers (de tab verschijnt pas als hij ingeschakeld is)
+
+Standaard gevuld met archaïsche Nederlandse maandnamen (Louwmaand, Sprokkelmaand, Bloeimaand …) en een maancyclus van 28 dagen, zodat de almanak meteen sfeervol is en door de DM hernoemd kan worden.
+
+---
+
 ## DM-paneel (Meesterkamer ⚔)
 
 Toegankelijk via de ⚔-knop rechtsonder.
@@ -440,6 +477,7 @@ routes/
   api.js                   # REST API (100+ endpoints) + server-side filtering + thumbnail-route
   auth.js                  # DM-login + requireDM/attachRole middlewares
 lib/
+  almanak.js               # Pure datum-/maanfase-berekeningen voor de Almanak (unit-getest)
   storage.js               # JSON-bestandsopslag + afbeeldingen/PDFs/audio per campagne
   snapshot.js              # HTML-snapshot en campagneboek-export
 public/
@@ -452,6 +490,7 @@ public/
     render-kaart.js        # Interactieve kaarten met zoom, pan en locatiepins
     dm-panel.js            # DM-paneel: alle tabs (tunnel, spreuken, gevecht, monsters, geluiden, etc.)
     render-dashboard.js    # Spelersdashboard: HP, valuta, spreukenslots, trackers, bladwijzers
+    render-almanak.js      # Almanak: in-wereld kalender, maanfasen, seizoenen, gebeurtenissen
     api.js                 # Fetch-wrapper, fileUrl, thumbUrl, entity name lookup
     socket-client.js       # Real-time updates en geluidsevents via Socket.io
     combat-canvas.js       # Canvas-gebaseerde gevechtsvisualisatie

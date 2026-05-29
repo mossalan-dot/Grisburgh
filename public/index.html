@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=201">
+  <link rel="stylesheet" href="/css/theme.css?v=202">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -112,6 +112,7 @@
             <button class="archief-menu-item" data-section="gock"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-search"/></svg> De Gock</button>
           </div>
         </div>
+        <button class="section-tab hidden" data-section="almanak" id="almanak-tab"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-moon"/></svg> <span class="tab-label">Almanak</span></button>
         <button class="section-tab hidden" data-section="mijn-karakter"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-user"/></svg> <span class="tab-label">Mijn karakter</span></button>
         <button class="section-tab hidden" data-section="spelers" id="spelers-tab"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-users"/></svg> <span class="tab-label">Spelers</span></button>
         <button class="section-tab hidden" data-section="meesterkamer" id="dm-tab"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-settings"/></svg><span class="tab-label"> Meesterkamer</span></button>
@@ -192,6 +193,7 @@
       <div class="section" id="section-gock"></div>
       <div class="section" id="section-kaart"></div>
       <div class="section" id="section-relatiemap"></div>
+      <div class="section" id="section-almanak"></div>
       <div class="section" id="section-mijn-karakter"></div>
       <div class="section" id="section-spelers"></div>
       <div class="section dm-section" id="section-meesterkamer">
@@ -476,6 +478,6 @@
   </div>
 
   <script type="module" src="/js/sound-manager.js?v=1"></script>
-  <script type="module" src="/js/app.js?v=234"></script>
+  <script type="module" src="/js/app.js?v=235"></script>
 </body>
 </html>
