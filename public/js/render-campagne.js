@@ -723,6 +723,20 @@ function filterEntities(type, list) {
   });
 }
 
+// Normaliseer een rariteit (NL/EN) naar een sleutel voor de visuele behandeling.
+function _rarityKey(r) {
+  if (!r) return '';
+  const map = {
+    'common': 'common', 'gewoon': 'common',
+    'uncommon': 'uncommon', 'ongewoon': 'uncommon',
+    'rare': 'rare', 'zeldzaam': 'rare',
+    'very rare': 'very-rare', 'zeer zeldzaam': 'very-rare',
+    'legendary': 'legendary', 'legendarisch': 'legendary',
+    'artifact': 'legendary', 'artefact': 'legendary',
+  };
+  return map[String(r).trim().toLowerCase()] || '';
+}
+
 function renderCard(type, e) {
   const vis = e._visibility || 'visible';
 
@@ -747,6 +761,7 @@ function renderCard(type, e) {
   }
 
   const rol     = e.data?.rol || '';
+  const _rarKey = type === 'voorwerpen' ? _rarityKey(e.data?.rariteit) : '';
   const _itemMeta = type === 'voorwerpen'
     ? [e.data?.rariteit, (e.data?.attunement === 'true' || e.data?.attunement === true) ? 'Attunement' : null].filter(Boolean).join(' · ')
     : null;
@@ -786,7 +801,7 @@ function renderCard(type, e) {
                   :                    'Zichtbaar maken';
 
   return `
-    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}"
+    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}
       onclick="window._openDetail('${type}','${e.id}')">
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
@@ -1332,8 +1347,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _rar = e.data?.rariteit;
     const _att = e.data?.attunement === true || e.data?.attunement === 'true';
     if (_rar || _att) {
+      const _rarK = _rarityKey(_rar);
       infoHtml += `<div class="detail-item-subtitle">
-        ${_rar ? `<span class="detail-item-rarity">${esc(_rar)}</span>` : ''}
+        ${_rar ? `<span class="detail-item-rarity"${_rarK ? ` data-rarity="${_rarK}"` : ''}>${esc(_rar)}</span>` : ''}
         ${_att ? `<span class="detail-item-attunement">Requires Attunement</span>` : ''}
       </div>`;
     }

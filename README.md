@@ -451,6 +451,7 @@ Toegankelijk via de ⚔-knop rechtsonder.
 - **Lettertypes** — Cinzel (koppen), Crimson Text (broodtekst), IM Fell English (decoratief), JetBrains Mono (code)
 - **Sectiebanners** — sfeervolle koptekst per sectie met een type-specifiek gekleurd icoonblokje, Cinzel-label en cursieve ondertitel; ornamentlijn met ◆
 - **Type-tint op kaartjes** — subtiele achtergrondkleur per entiteitstype (groen/blauw/rood/goud/paars)
+- **Zeldzaamheid-behandeling** — voorwerp-kaartjes krijgen een gekleurde rand en gloed per rariteit (Common → Legendary), met een glans-sweep over Very Rare & Legendary en de rariteit in kleur in de detailweergave
 - **Actieve tab-indicator** — goudkleurige onderlijnmarkering op het actieve tabblad
 - **3D tilt** op kaartjes bij hover (CSS `perspective`)
 - **Kleurgloed** op hover per entiteitstype (groen/blauw/rood/goud)
