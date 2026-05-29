@@ -16589,3 +16589,87 @@ body:has(#dm-dice-panel.open) #dm-dice-fab { display: none !important; }
   border-color: rgba(139,42,42,0.38);
 }
 .dice-adv-instant--dis:hover { background: rgba(139,42,42,0.22); }
+
+/* ══════════════════════════════════════════════════════════════════
+   Zeldzaamheid-behandeling voor voorwerp-kaartjes
+   ══════════════════════════════════════════════════════════════════ */
+.entity-card[data-rarity]              { --rar: rgba(150,160,170,0.55); --rar-soft: rgba(150,160,170,0.18); }
+.entity-card[data-rarity="common"]     { --rar: rgba(150,160,170,0.5);  --rar-soft: rgba(150,160,170,0.14); }
+.entity-card[data-rarity="uncommon"]   { --rar: #3f9a4e; --rar-soft: rgba(63,154,78,0.22); }
+.entity-card[data-rarity="rare"]       { --rar: #3a7bd5; --rar-soft: rgba(58,123,213,0.24); }
+.entity-card[data-rarity="very-rare"]  { --rar: #9b59b6; --rar-soft: rgba(155,89,182,0.26); }
+.entity-card[data-rarity="legendary"]  { --rar: #e0962f; --rar-soft: rgba(224,150,47,0.30); }
+
+/* Gekleurde rand-ring (binnen overflow:hidden, boven de content) */
+.entity-card[data-rarity]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1.5px solid var(--rar);
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.75;
+  transition: opacity 0.2s ease, box-shadow 0.2s ease;
+}
+.entity-card[data-rarity="common"]::after { opacity: 0.4; }
+.entity-card[data-rarity]:hover::after {
+  opacity: 1;
+  box-shadow: inset 0 0 14px -2px var(--rar-soft);
+}
+
+/* Buitenste gloed op hover per zeldzaamheid */
+.entity-card[data-rarity="uncommon"]:hover,
+.entity-card[data-rarity="rare"]:hover,
+.entity-card[data-rarity="very-rare"]:hover,
+.entity-card[data-rarity="legendary"]:hover {
+  box-shadow:
+    0 5px 16px var(--rar-soft),
+    0 10px 28px var(--rar-soft),
+    0 0 0 1px var(--rar),
+    inset 0 0 0 1px rgba(255,255,255,0.22);
+}
+
+/* Permanente, subtiele gloed voor de hoogste zeldzaamheden */
+.entity-card[data-rarity="very-rare"],
+.entity-card[data-rarity="legendary"] {
+  box-shadow:
+    0 1px 2px rgba(60,40,10,0.08),
+    0 3px 10px var(--rar-soft),
+    inset 0 0 0 1px rgba(255,255,255,0.22);
+}
+
+/* Glans-sweep over zeer zeldzame & legendarische items */
+.entity-card[data-rarity="very-rare"]::before,
+.entity-card[data-rarity="legendary"]::before {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: -70%;
+  width: 55%;
+  height: 120%;
+  background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%);
+  transform: skewX(-18deg);
+  pointer-events: none;
+  z-index: 6;
+  animation: card-sheen 6.5s ease-in-out infinite;
+}
+.entity-card[data-rarity="very-rare"]::before { animation-duration: 8s; opacity: 0.7; }
+@keyframes card-sheen {
+  0%        { left: -70%; }
+  55%, 100% { left: 130%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .entity-card[data-rarity]::before { animation: none; display: none; }
+}
+
+/* Detail-modal: rariteit-tekst in de zeldzaamheidskleur */
+.detail-item-rarity[data-rarity] {
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.detail-item-rarity[data-rarity="uncommon"]  { color: #3f9a4e; }
+.detail-item-rarity[data-rarity="rare"]       { color: #3a7bd5; }
+.detail-item-rarity[data-rarity="very-rare"]  { color: #9b59b6; }
+.detail-item-rarity[data-rarity="legendary"]  { color: #c47e1a; }
