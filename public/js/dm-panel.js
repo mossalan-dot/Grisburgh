@@ -347,7 +347,7 @@ export function initDmPanel() {
 // Welke tabs zijn "gevecht & monsters"?
 const _GEVECHT_TABS = new Set(['gevecht', 'monsters', 'encounters']);
 // Welke tabs zijn "diensten"?
-const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock']);
+const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'heeren', 'facties']);
 // Welke tabs zijn "instellingen" (niet als tab getoond)?
 const _INSTELLINGEN_TABS = new Set(['campagnes', 'wereld', 'beurs', 'dobbelstenen']);
 
@@ -493,10 +493,12 @@ function _renderDiensten(subTab) {
     <button class="dm-subtab-btn${_dienstenSubTab==='herberg'   ?' active':''}" onclick="window.dmPanel.switchTab('herberg')" title="Herberg">${icon('beer')}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='tweespalt' ?' active':''}" onclick="window.dmPanel.switchTab('tweespalt')" title="Tweespalt">${icon('dice',{cls:'icon-gi'})}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='gock'      ?' active':''}" onclick="window.dmPanel.switchTab('gock')" title="De Gock">${icon('search')}</button>
+    <button class="dm-subtab-btn${_dienstenSubTab==='heeren'    ?' active':''}" onclick="window.dmPanel.switchTab('heeren')" title="Heeren van de Nacht">${icon('eye')}</button>
+    <button class="dm-subtab-btn${_dienstenSubTab==='facties'   ?' active':''}" onclick="window.dmPanel.switchTab('facties')" title="Facties & Aanzien">${icon('landmark')}</button>
   `;
 
   // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
-  ['herberg','tweespalt','gock'].forEach(name => {
+  ['herberg','tweespalt','gock','heeren','facties'].forEach(name => {
     let legacy = document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
     if (!legacy) return;
     // Verplaats content naar sub-div in diensten-tab
@@ -515,6 +517,8 @@ function _renderDiensten(subTab) {
   if (_dienstenSubTab === 'herberg')   _renderHerbergSettings();
   if (_dienstenSubTab === 'tweespalt') _renderTweespaltDM();
   if (_dienstenSubTab === 'gock')      _renderGockSettings();
+  if (_dienstenSubTab === 'heeren')    _renderHeerenSettings();
+  if (_dienstenSubTab === 'facties')   _renderFactiesSettings();
 }
 
 // ── Delen (Tunnel + Export gecombineerd) ──
@@ -3723,6 +3727,270 @@ window._gockSettingsSave = async () => {
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
 };
 
+// ── De Heeren van de Nacht — DM-instellingen ──
+
+let _heerenBackdropPending = null;
+let _heerenRangenDraft = [];
+
+function _heerenClTekst(cl) {
+  const f = Math.floor(cl / 100), k = Math.floor((cl % 100) / 10), c = cl % 10;
+  return [f && `${f} fl`, k && `${k} kn`, c && `${c} cl`].filter(Boolean).join(' ') || '0 cl';
+}
+
+async function _renderHeerenSettings() {
+  const el = _tabEl('heeren');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  const meta = window.app?.state?.meta || {};
+  const config = meta.heeren || {};
+  let personages = [], locaties = [], organisaties = [];
+  try { personages   = await api.listEntities('personages'); } catch {}
+  try { locaties     = await api.listEntities('locaties'); } catch {}
+  try { organisaties = await api.listEntities('organisaties'); } catch {}
+  const advOpties = [...personages, ...organisaties];
+
+  let data = null;
+  try { data = await api.getHeeren(); } catch {}
+  const rang = data?.rang || { naam: '', index: 0, aantal: 0 };
+  const jobs = data?.jobs || [];
+  const alleBoetes = data?.alleBoetes || [];
+
+  const rangen = (config.rangen && config.rangen.length) ? config.rangen : [
+    { naam: 'Schoffie', min: 10, max: 30, voordelen: 'Toegang tot het klussenbord.' },
+    { naam: 'Beurzensnijder', min: 25, max: 70, voordelen: 'Betere klussen; de heler knijpt een oogje toe.' },
+    { naam: 'Inbreker', min: 60, max: 150, voordelen: 'Hogere buit en eerste keus uit de klussen.' },
+    { naam: 'Schaduw', min: 140, max: 300, voordelen: 'Een goed woordje bij Zilvertong en Zemelaar.' },
+    { naam: 'Meesterdief', min: 280, max: 600, voordelen: 'De Heeren staan voor je in bij de Luimpoort.' },
+  ];
+  _heerenRangenDraft = rangen.map(r => ({ ...r }));
+  const honFl = (config.honorarium && config.honorarium.fl) || 50;
+  const typeIcon = { zakkenrollen: '🤚', inbraak: '🗝️', oplichting: '🎭' };
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">De Heeren van de Nacht — Instellingen</div>
+
+      <div class="dm-form-row"><label class="dm-form-label">Naam</label>
+        <input id="heeren-naam" class="dm-input" value="${esc(config.naam || 'De Heeren van de Nacht')}"></div>
+      <div class="dm-form-row"><label class="dm-form-label">Contact-portret</label>
+        <select id="heeren-portret" class="dm-select"><option value="">— entiteit —</option>
+          ${[...personages, ...locaties, ...organisaties].map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select></div>
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrond</label>
+        ${config.backdropId ? `<img id="heeren-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:90px;object-fit:cover;border-radius:6px">` : '<span id="heeren-backdrop-preview" style="display:none"></span>'}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">📷<input type="file" accept="image/*" class="hidden" onchange="window._heerenUploadBackdrop(this.files[0])"></label>
+      </div>
+      <div class="dm-form-row"><label class="dm-form-label">Gerechtshof (de Luimpoort)</label>
+        <select id="heeren-luimpoort" class="dm-select"><option value="">— locatie —</option>
+          ${locaties.map(e => `<option value="${esc(e.id)}" ${config.luimpoortId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select></div>
+      <div class="dm-form-row"><label class="dm-form-label">Advocaat (Zilvertong en Zemelaar)</label>
+        <select id="heeren-advocaat" class="dm-select"><option value="">— personage/organisatie —</option>
+          ${advOpties.map(e => `<option value="${esc(e.id)}" ${config.advocaatId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select></div>
+      <div class="dm-form-row"><label class="dm-form-label">Honorarium advocaat (fl)</label>
+        <input id="heeren-honorarium" class="dm-input" type="number" min="0" value="${honFl}" style="width:70px"></div>
+      <div class="dm-form-row"><label class="dm-form-label">Boete = buit ×</label>
+        <input id="heeren-boetefactor" class="dm-input" type="number" min="1" step="0.5" value="${config.boeteFactor ?? 2}" style="width:70px"></div>
+      <div class="dm-form-row"><label class="dm-form-label">Bordgrootte</label>
+        <input id="heeren-bordgrootte" class="dm-input" type="number" min="1" max="12" value="${config.bordGrootte ?? 4}" style="width:70px"></div>
+
+      <div class="dm-section-label" style="margin-top:12px">Rangen (aanzien)</div>
+      <div id="heeren-rangen"></div>
+      <div class="dm-form-row"><button class="dm-btn dm-btn-ghost" onclick="window._heerenRangToevoegen()">＋ Rang</button></div>
+      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._heerenSettingsSave()">💾 Instellingen</button></div>
+
+      <div class="dm-section-label" style="margin-top:14px">Huidige rang van de party</div>
+      <div class="dm-form-row"><label class="dm-form-label">Rang</label>
+        <select id="heeren-huidige-rang" class="dm-select" onchange="window._heerenSetRang(this.value)">
+          ${rangen.map((r, i) => `<option value="${i}" ${i === rang.index ? 'selected' : ''}>${esc(r.naam)} (${r.min}–${r.max} fl)</option>`).join('')}
+        </select></div>
+
+      <div class="dm-section-label" style="margin-top:14px">Klussenbord</div>
+      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._heerenGenereer()">🎲 Genereer / ververs bord</button></div>
+      <div id="heeren-jobs">
+        ${jobs.length ? jobs.map(j => `
+          <div style="border:1px solid rgba(196,168,122,0.25);border-radius:8px;padding:8px;margin-bottom:8px">
+            <div><strong>${typeIcon[j.type] || ''} ${esc(j.typeNaam)}</strong> — buit ${j.payout} fl ${j.doelZichtbaar ? '' : '<span style="opacity:.6">(doelwit nog onontdekt)</span>'}</div>
+            <div style="opacity:.8;font-size:12px">${esc(j.omschrijving)}</div>
+            ${j.status === 'aangenomen'
+              ? `<div style="margin-top:4px"><span style="opacity:.8;font-size:12px">Aangenomen door ${esc(j.doorNaam || '?')}</span>
+                 <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+                   <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','geslaagd')">✓ Geslaagd</button>
+                   <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','mislukt')">✗ Mislukt</button>
+                   <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','ontsnapt')">🏃 Betrapt → ontsnapt</button>
+                   <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','gearresteerd')">⛓️ Betrapt → gearresteerd</button>
+                 </div></div>`
+              : `<div style="opacity:.6;font-size:12px;margin-top:4px">Open — wacht op een speler</div>`}
+          </div>`).join('') : '<p class="dm-form-label" style="opacity:.6">Bord is leeg. Genereer klussen.</p>'}
+      </div>
+
+      <div class="dm-section-label" style="margin-top:14px">Openstaande boetes</div>
+      <div id="heeren-boetes">
+        ${alleBoetes.length ? alleBoetes.map(b => `
+          <div class="dm-form-row" style="gap:6px;align-items:center;border:1px solid rgba(196,168,122,0.2);border-radius:6px;padding:6px;margin-bottom:6px">
+            <span style="flex:1">⚖️ <strong>${esc(b.characterNaam)}</strong> — ${esc(b.reden)} (${_heerenClTekst(b.bedragCl)})</span>
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._heerenKwijt('${esc(b.characterId)}','${esc(b.id)}')">Kwijtschelden</button>
+          </div>`).join('') : '<p class="dm-form-label" style="opacity:.6">Geen openstaande boetes.</p>'}
+      </div>
+    </div>`;
+  _renderHeerenRangen();
+}
+
+function _renderHeerenRangen() {
+  const wrap = document.getElementById('heeren-rangen');
+  if (!wrap) return;
+  wrap.innerHTML = _heerenRangenDraft.map((r, i) => `
+    <div style="border:1px solid rgba(196,168,122,0.2);border-radius:6px;padding:6px;margin-bottom:6px">
+      <div class="dm-form-row" style="gap:6px;align-items:center;margin-bottom:4px">
+        <input class="dm-input" style="flex:1" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._heerenRangEdit(${i},'naam',this.value)">
+        <input class="dm-input" type="number" style="width:60px" placeholder="min" value="${r.min ?? ''}" oninput="window._heerenRangEdit(${i},'min',this.value)">
+        <input class="dm-input" type="number" style="width:60px" placeholder="max" value="${r.max ?? ''}" oninput="window._heerenRangEdit(${i},'max',this.value)">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._heerenRangVerwijder(${i})">🗑️</button>
+      </div>
+      <input class="dm-input" style="width:100%" placeholder="Voordelen (bijv. korting, safehouse, contacten…)" value="${esc(r.voordelen || '')}" oninput="window._heerenRangEdit(${i},'voordelen',this.value)">
+    </div>`).join('') || '<p class="dm-form-label" style="opacity:.6">Geen rangen.</p>';
+}
+
+window._heerenRangEdit = (i, f, v) => { const r = _heerenRangenDraft[i]; if (!r) return; r[f] = (f === 'naam' || f === 'voordelen') ? v : (parseInt(v) || 0); };
+window._heerenRangToevoegen = () => { _heerenRangenDraft.push({ naam: '', min: 0, max: 0 }); _renderHeerenRangen(); };
+window._heerenRangVerwijder = (i) => { _heerenRangenDraft.splice(i, 1); _renderHeerenRangen(); };
+
+window._heerenUploadBackdrop = async (file) => {
+  if (!file) return;
+  const id = 'heeren-backdrop-' + Date.now();
+  try { await api.uploadFile(id, file); _heerenBackdropPending = id; const p = document.getElementById('heeren-backdrop-preview'); if (p) { p.src = api.fileUrl(id); p.style.display = ''; } }
+  catch (e) { alert('Upload mislukt: ' + e.message); }
+};
+
+window._heerenSettingsSave = async () => {
+  const config = window.app?.state?.meta?.heeren || {};
+  const naam = document.getElementById('heeren-naam')?.value.trim() || 'De Heeren van de Nacht';
+  const imageId = document.getElementById('heeren-portret')?.value || '';
+  const backdropId = _heerenBackdropPending || config.backdropId || '';
+  const luimpoortId = document.getElementById('heeren-luimpoort')?.value || '';
+  const advocaatId = document.getElementById('heeren-advocaat')?.value || '';
+  const honorarium = { fl: parseInt(document.getElementById('heeren-honorarium')?.value) || 50 };
+  const boeteFactor = parseFloat(document.getElementById('heeren-boetefactor')?.value) || 2;
+  const bordGrootte = parseInt(document.getElementById('heeren-bordgrootte')?.value) || 4;
+  const rangen = _heerenRangenDraft.filter(r => (r.naam || '').trim()).map(r => ({ naam: r.naam.trim(), min: r.min || 0, max: Math.max(r.min || 0, r.max || 0), voordelen: (r.voordelen || '').trim() }));
+  try {
+    await api.saveHeerenConfig({ naam, imageId, backdropId, luimpoortId, advocaatId, honorarium, boeteFactor, bordGrootte, rangen });
+    const newMeta = await api.meta(); if (window.app?.state) window.app.state.meta = newMeta;
+    _heerenBackdropPending = null;
+    await _renderHeerenSettings();
+  } catch (e) { alert('Opslaan mislukt: ' + e.message); }
+};
+
+window._heerenSetRang  = async (rang) => { try { await api.heerenSetRang(parseInt(rang)); await _renderHeerenSettings(); } catch (e) { alert(e.message); } };
+window._heerenGenereer = async () => { try { await api.heerenGenereer(); await _renderHeerenSettings(); } catch (e) { alert(e.message); } };
+window._heerenUitslag  = async (id, uitkomst) => { try { await api.heerenUitslag(id, uitkomst); await _renderHeerenSettings(); } catch (e) { alert(e.message); } };
+window._heerenKwijt    = async (cid, bid) => { if (!confirm('Deze boete kwijtschelden?')) return; try { await api.heerenKwijt(cid, bid); await _renderHeerenSettings(); } catch (e) { alert(e.message); } };
+
+// ── Facties & Aanzien ──
+
+let _factiesDraft = [];
+
+async function _renderFactiesSettings() {
+  const el = _tabEl('facties');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+  let data = null;
+  try { data = await api.getFacties(); } catch {}
+  _factiesDraft = (data?.facties || []).map(f => ({
+    id: f.id, naam: f.naam, embleem: f.embleem, stijl: f.stijl || '', beschrijving: f.beschrijving,
+    rangen: (f.rangen || []).map(r => ({
+      naam: r.naam, voordelen: r.voordelen || '', titel: r.titel || '',
+      boons: (r.boons || []).map(b => ({ icoon: b.icoon || '', naam: b.naam || '', tekst: b.tekst || '' })),
+    })),
+    huidigeRang: f.rang?.index ?? 0,
+  }));
+  _renderFactiesDM();
+}
+
+function _renderFactiesDM() {
+  const el = _tabEl('facties');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Facties &amp; Aanzien</div>
+      <p class="dm-form-label" style="opacity:.7;margin-bottom:10px">Stel per organisatie de huidige rang van de party in. Bij rang 0 verschijnt er niets op het spelersdashboard.</p>
+      ${_factiesDraft.map((f, fi) => `
+        <div style="border:1px solid rgba(196,168,122,0.25);border-radius:8px;padding:10px;margin-bottom:10px">
+          <div class="dm-form-row" style="gap:6px;align-items:center">
+            <input class="dm-input" style="width:48px;text-align:center" value="${esc(f.embleem || '')}" oninput="window._factieEdit(${fi},'embleem',this.value)">
+            <input class="dm-input" style="flex:1" placeholder="Naam" value="${esc(f.naam || '')}" oninput="window._factieEdit(${fi},'naam',this.value)">
+          </div>
+          <input class="dm-input" style="width:100%;margin-top:4px" placeholder="Beschrijving" value="${esc(f.beschrijving || '')}" oninput="window._factieEdit(${fi},'beschrijving',this.value)">
+          <div class="dm-form-row" style="margin-top:4px"><label class="dm-form-label">Stijl</label>
+            <select class="dm-select" onchange="window._factieEdit(${fi},'stijl',this.value)">
+              ${['', 'hout', 'metaal', 'staal'].map(s => `<option value="${s}" ${(f.stijl || '') === s ? 'selected' : ''}>${s ? s : '— standaard —'}</option>`).join('')}
+            </select></div>
+          <div class="dm-form-row" style="margin-top:8px"><label class="dm-form-label">Huidige rang</label>
+            <select class="dm-select" onchange="window._factieSetRang('${esc(f.id)}',this.value)">
+              ${f.rangen.map((r, i) => `<option value="${i}" ${i === f.huidigeRang ? 'selected' : ''}>${i}. ${esc(r.naam)}</option>`).join('')}
+            </select></div>
+          <div class="dm-section-label" style="margin-top:8px">Rangen (aanzien)</div>
+          <div id="factie-rangen-${fi}"></div>
+          <div class="dm-form-row"><button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangToevoegen(${fi})">＋ Rang</button></div>
+        </div>`).join('')}
+      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._factiesSave()">💾 Facties opslaan</button></div>
+    </div>`;
+  _factiesDraft.forEach((_, fi) => _renderFactieRangen(fi));
+}
+
+function _renderFactieRangen(fi) {
+  const wrap = document.getElementById(`factie-rangen-${fi}`);
+  if (!wrap) return;
+  const f = _factiesDraft[fi];
+  wrap.innerHTML = (f.rangen || []).map((r, i) => `
+    <div style="border:1px solid rgba(196,168,122,0.18);border-radius:6px;padding:6px;margin-bottom:6px">
+      <div class="dm-form-row" style="gap:6px;align-items:center;margin-bottom:4px">
+        <span style="opacity:.5;width:16px;text-align:right">${i}</span>
+        <input class="dm-input" style="width:120px" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._factieRangEdit(${fi},${i},'naam',this.value)">
+        <input class="dm-input" style="flex:1" placeholder="Voordelen (korte regel)" value="${esc(r.voordelen || '')}" oninput="window._factieRangEdit(${fi},${i},'voordelen',this.value)">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangVerwijder(${fi},${i})">🗑️</button>
+      </div>
+      <input class="dm-input" style="width:100%;margin-bottom:4px" placeholder="Titel bij deze rang (optioneel)" value="${esc(r.titel || '')}" oninput="window._factieRangEdit(${fi},${i},'titel',this.value)">
+      <div style="padding-left:22px">
+        ${(r.boons || []).map((b, bi) => `
+          <div class="dm-form-row" style="gap:4px;align-items:center;margin-bottom:3px">
+            <input class="dm-input" style="width:42px;text-align:center" placeholder="🎁" value="${esc(b.icoon || '')}" oninput="window._factieBoonEdit(${fi},${i},${bi},'icoon',this.value)">
+            <input class="dm-input" style="width:110px" placeholder="Boon" value="${esc(b.naam || '')}" oninput="window._factieBoonEdit(${fi},${i},${bi},'naam',this.value)">
+            <input class="dm-input" style="flex:1" placeholder="Wat het doet" value="${esc(b.tekst || '')}" oninput="window._factieBoonEdit(${fi},${i},${bi},'tekst',this.value)">
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonVerwijder(${fi},${i},${bi})">✕</button>
+          </div>`).join('')}
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonToevoegen(${fi},${i})">＋ Boon</button>
+      </div>
+    </div>`).join('') || '<p class="dm-form-label" style="opacity:.6">Geen rangen.</p>';
+}
+
+window._factieEdit = (fi, field, v) => { const f = _factiesDraft[fi]; if (f) f[field] = v; };
+window._factieRangEdit = (fi, i, field, v) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) r[field] = v; };
+window._factieRangToevoegen = (fi) => { _factiesDraft[fi]?.rangen.push({ naam: '', voordelen: '', titel: '', boons: [] }); _renderFactieRangen(fi); };
+window._factieRangVerwijder = (fi, i) => { _factiesDraft[fi]?.rangen.splice(i, 1); _renderFactieRangen(fi); };
+window._factieBoonEdit = (fi, i, bi, field, v) => { const b = _factiesDraft[fi]?.rangen?.[i]?.boons?.[bi]; if (b) b[field] = v; };
+window._factieBoonToevoegen = (fi, i) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) { (r.boons = r.boons || []).push({ icoon: '', naam: '', tekst: '' }); _renderFactieRangen(fi); } };
+window._factieBoonVerwijder = (fi, i, bi) => { _factiesDraft[fi]?.rangen?.[i]?.boons?.splice(bi, 1); _renderFactieRangen(fi); };
+window._factieSetRang = async (id, rang) => {
+  try { await api.factieSetRang(id, parseInt(rang)); const f = _factiesDraft.find(x => x.id === id); if (f) f.huidigeRang = parseInt(rang); }
+  catch (e) { alert(e.message); }
+};
+window._factiesSave = async () => {
+  const payload = _factiesDraft.map(f => ({
+    id: f.id, naam: (f.naam || '').trim(), embleem: (f.embleem || '').trim(), stijl: (f.stijl || '').trim(), beschrijving: (f.beschrijving || '').trim(),
+    rangen: (f.rangen || []).filter(r => (r.naam || '').trim()).map(r => ({
+      naam: r.naam.trim(), voordelen: (r.voordelen || '').trim(), titel: (r.titel || '').trim(),
+      boons: (r.boons || []).filter(b => (b.naam || '').trim() || (b.tekst || '').trim())
+        .map(b => ({ icoon: (b.icoon || '').trim(), naam: (b.naam || '').trim(), tekst: (b.tekst || '').trim() })),
+    })),
+  }));
+  try { await api.saveFactiesConfig(payload); await _renderFactiesSettings(); }
+  catch (e) { alert('Opslaan mislukt: ' + e.message); }
+};
+
 window._hbTogglePurse = async () => {
   try {
     await api.togglePartyCurrency();
@@ -5233,6 +5501,18 @@ async function _renderBerichten() {
           <input id="post-datum" type="text" class="dm-input" placeholder="bijv. 4 Grasmaand MDCCLXXII" style="width:100%">
         </div>
 
+        <!-- Briefstijl / thema -->
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label">Briefstijl</label>
+          <select id="post-thema" class="dm-select" style="width:100%">
+            <option value="">Standaard perkament</option>
+            <option value="ursula">Madame Ursula — lila brief</option>
+            <option value="gock">De Gock — logo &amp; typemachine</option>
+            <option value="tweespalt">De Tweespalt — haastig briefje</option>
+            <option value="heeren">De Heeren van de Nacht — schaduwbrief</option>
+          </select>
+        </div>
+
         <!-- Tekst -->
         <div class="dm-form-row" style="flex-direction:column;gap:4px">
           <label class="dm-form-label">Inhoud</label>
@@ -5388,6 +5668,7 @@ async function _postSend() {
   const afzender       = document.getElementById('post-afzender')?.value.trim();
   const datum          = document.getElementById('post-datum')?.value.trim();
   const npcId          = document.getElementById('post-npc')?.value;
+  const thema          = document.getElementById('post-thema')?.value || '';
   const statusEl       = document.getElementById('post-send-status');
 
   if (!tekst) {
@@ -5405,11 +5686,16 @@ async function _postSend() {
 
   const npc = npcId ? _berichtenNPCs.find(n => n.id === npcId) : null;
 
+  // Vul een passende afzender in als er geen is gekozen
+  const THEMA_AFZENDER = { ursula: 'Madame Ursula', gock: 'De Gock', tweespalt: 'De Tweespalt', heeren: 'De Heeren van de Nacht' };
+  const afzenderDef = afzender || (thema ? THEMA_AFZENDER[thema] : '');
+
   const payload = {
     titel,
     tekst,
-    afzender,
+    afzender: afzenderDef,
     datum,
+    thema,
     entityId:   npc ? npc.id   : null,
     entityType: npc ? 'personages' : null,
     characterId: ontvangerType === 'speler' ? spelerId : null,
@@ -5430,6 +5716,7 @@ async function _postSend() {
     document.getElementById('post-datum').value      = '';
     document.getElementById('post-npc').value        = '';
     document.getElementById('post-npc-search').value = '';
+    const themaSel = document.getElementById('post-thema'); if (themaSel) themaSel.value = '';
     setTimeout(() => _renderBerichten(), 400);
   } catch (err) {
     if (statusEl) { statusEl.textContent = 'Fout: ' + err.message; statusEl.className = 'bericht-status bericht-status--err'; statusEl.classList.remove('hidden'); }

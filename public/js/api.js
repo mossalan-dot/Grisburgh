@@ -291,6 +291,22 @@ export const api = {
   gockOpgehaald:   ()              => request('/gock/opgehaald', { method: 'PUT' }),
   saveGockConfig:  (data)          => request('/meta/gock',      { method: 'PUT',  body: JSON.stringify(data) }),
 
+  // De Heeren van de Nacht (dievengilde)
+  getHeeren:          ()           => request('/heeren'),
+  heerenGenereer:     ()           => request('/heeren/genereer',            { method: 'POST' }),
+  heerenAanneem:      (id)         => request(`/heeren/job/${id}/aanneem`,   { method: 'POST' }),
+  heerenUitslag:      (id, uitkomst) => request(`/heeren/job/${id}/uitslag`, { method: 'POST', body: JSON.stringify({ uitkomst }) }),
+  heerenSetRang:      (rang)       => request('/heeren/rang',                { method: 'POST', body: JSON.stringify({ rang }) }),
+  heerenBetaalBoete:  (boeteId)    => request(`/heeren/boete/${boeteId}/betaal`,   { method: 'POST' }),
+  heerenAdvocaat:     (boeteId)    => request(`/heeren/boete/${boeteId}/advocaat`, { method: 'POST' }),
+  heerenKwijt:        (characterId, boeteId) => request('/heeren/kwijt',      { method: 'POST', body: JSON.stringify({ characterId, boeteId }) }),
+  saveHeerenConfig:   (data)       => request('/meta/heeren',                { method: 'PUT',  body: JSON.stringify(data) }),
+
+  // Facties & Aanzien (organisaties met rangspoor)
+  getFacties:         ()           => request('/facties'),
+  factieSetRang:      (id, rang)   => request(`/facties/${id}/rang`, { method: 'POST', body: JSON.stringify({ rang }) }),
+  saveFactiesConfig:  (facties)    => request('/meta/facties',       { method: 'PUT',  body: JSON.stringify({ facties }) }),
+
   // Locatie (Grisburgh verlaten)
   setLocatie:              (data)     => request('/locatie',          { method: 'PUT', body: JSON.stringify(data) }),
   toggleLocatieEntiteit:   (entityId) => request('/locatie/entiteit', { method: 'PUT', body: JSON.stringify({ entityId }) }),
