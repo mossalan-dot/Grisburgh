@@ -4,7 +4,8 @@ import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLo
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
-import { initSocket } from './socket-client.js?v=11';
+import { renderNetwerk } from './render-netwerk.js?v=1';
+import { initSocket } from './socket-client.js?v=12';
 import { initDmPanel } from './dm-panel.js?v=38';
 
 // ── Icon helper ──
@@ -1565,13 +1566,57 @@ async function refreshSection(section) {
   else if (section === 'documenten') await renderDocumenten();
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await _renderKaartSection();
-  else if (section === 'relatiemap') await renderRelatiemap();
+  else if (section === 'relatiemap') await _renderRelatiemapSection();
   else if (section === 'herberg') await renderHerberg();
   else if (section === 'tweespalt') await renderTweespalt();
   else if (section === 'gock') await renderGock();
   else if (section === 'mijn-karakter') await renderMijnKarakter();
   else if (section === 'spelers') await renderSpelersTab();
   else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
+}
+
+// ── Relatiemap-sectie: view-switcher tussen automatisch netwerk en prikbord ──
+// Het netwerk loopt dwars door alle secties (relaties verbinden personages,
+// locaties, organisaties, voorwerpen én documenten), dus dit is een globale
+// view en geen per-sectie variant van de kaartjes.
+let _relatiemapMode = 'netwerk'; // 'netwerk' | 'prikbord'
+
+async function _renderRelatiemapSection() {
+  const container = document.getElementById('section-relatiemap');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="kaart-mode-bar">
+      <button class="kaart-mode-btn ${_relatiemapMode==='netwerk'?'active':''}" data-mode="netwerk">
+        ${icon('users')} Netwerk
+      </button>
+      <button class="kaart-mode-btn ${_relatiemapMode==='prikbord'?'active':''}" data-mode="prikbord">
+        ${icon('map')} Prikbord
+      </button>
+    </div>
+    <div class="kaart-mode-content" id="relatiemap-mode-content" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;"></div>`;
+
+  container.querySelectorAll('.kaart-mode-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (_relatiemapMode === btn.dataset.mode) return;
+      _relatiemapMode = btn.dataset.mode;
+      container.querySelectorAll('.kaart-mode-btn').forEach(b => b.classList.toggle('active', b === btn));
+      await _renderRelatiemapContent();
+    });
+  });
+
+  await _renderRelatiemapContent();
+}
+
+async function _renderRelatiemapContent() {
+  const content = document.getElementById('relatiemap-mode-content');
+  if (!content) return;
+  content.innerHTML = '';
+  if (_relatiemapMode === 'prikbord') {
+    await renderRelatiemap(content);
+  } else {
+    await renderNetwerk(content);
+  }
 }
 
 // ── Kaart-sectie: toggle tussen Wereldkaarten en Dungeons ──

@@ -11959,6 +11959,159 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   .pb-panel-meer-info, .pb-panel-remove { width: auto; flex: 1 1 auto; }
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   Relatie-netwerk — automatische graaf (alternatief voor de kaartjes)
+   ════════════════════════════════════════════════════════════════════ */
+.nw-toolbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 9px 14px; flex-shrink: 0;
+  background: linear-gradient(180deg, #1e1409 0%, #130d05 100%);
+  border-bottom: 2px solid #3a2508;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+}
+.nw-search-wrap { position: relative; display: flex; align-items: center; }
+.nw-search-icon { position: absolute; left: 8px; width: 14px; height: 14px; color: #6a4d22; pointer-events: none; }
+.nw-search {
+  padding: 5px 10px 5px 28px; width: 200px;
+  background: #0c0804; border: 1px solid #4a3010; border-radius: 2px;
+  color: #c8a860; caret-color: #c8a860;
+  font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 0.8rem;
+}
+.nw-search::placeholder { color: #4a3010; }
+.nw-search:focus { outline: none; border-color: #a08040; box-shadow: 0 0 8px rgba(180,140,60,0.25); }
+
+.nw-legend { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.nw-legend-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 9px; cursor: pointer; border-radius: 13px;
+  background: rgba(200,160,80,0.06); border: 1px solid #3a2810;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.68rem; color: #c8a860; letter-spacing: 0.03em;
+  transition: opacity 0.15s, background 0.15s;
+}
+.nw-legend-item:hover { background: rgba(200,160,80,0.18); }
+.nw-legend-item--off { opacity: 0.38; }
+.nw-legend-item--off .nw-legend-label { text-decoration: line-through; }
+.nw-legend-dot { width: 11px; height: 11px; border-radius: 50%; border: 2px solid; flex-shrink: 0; }
+
+.nw-toolbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.nw-count { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: #7a5828; letter-spacing: 0.04em; }
+.nw-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 11px; cursor: pointer; border-radius: 2px;
+  background: rgba(200,160,80,0.08); border: 1px solid #4a3010;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.7rem; color: #c8a860; letter-spacing: 0.05em;
+  transition: background 0.15s, border-color 0.15s;
+}
+.nw-btn:hover { background: rgba(200,160,80,0.22); border-color: #a08040; }
+.nw-btn .icon { width: 13px; height: 13px; }
+
+.nw-stage {
+  flex: 1; min-height: 0; position: relative; overflow: hidden;
+  background-color: #2a2418;
+  background-image:
+    radial-gradient(ellipse at 28% 32%, rgba(120,96,50,0.30) 0%, transparent 55%),
+    radial-gradient(ellipse at 74% 70%, rgba(80,62,32,0.28) 0%, transparent 52%),
+    repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(0,0,0,0.10) 23px, rgba(0,0,0,0.10) 24px),
+    repeating-linear-gradient(90deg, transparent, transparent 23px, rgba(0,0,0,0.10) 23px, rgba(0,0,0,0.10) 24px);
+}
+.nw-svg { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+.nw-svg:active { cursor: grabbing; }
+
+/* Randen (draden) */
+.nw-edge { stroke: rgba(214,180,110,0.30); stroke-width: 1.5; transition: stroke 0.15s, stroke-width 0.15s; }
+.nw-svg.nw-focusing .nw-edge { stroke: rgba(214,180,110,0.10); }
+.nw-edge--hi { stroke: rgba(232,200,110,0.95) !important; stroke-width: 2.5 !important; }
+.nw-edge--faded { stroke: rgba(214,180,110,0.06) !important; }
+
+/* Knopen */
+.nw-node { cursor: pointer; transition: opacity 0.18s; }
+.nw-node-ring { transition: stroke-width 0.12s, stroke 0.12s; }
+.nw-node:hover .nw-node-ring { stroke: #e8c870; stroke-width: 3.5; }
+.nw-node--sel .nw-node-ring { stroke: #f0d480; stroke-width: 4; filter: drop-shadow(0 0 7px rgba(240,200,90,0.7)); }
+.nw-node--faded { opacity: 0.22; }
+.nw-node--dim   { opacity: 0.3; }
+.nw-node--dead .nw-node-ring { filter: grayscale(0.6) brightness(0.85); }
+.nw-node-initial {
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 20px;
+  fill: rgba(255,255,255,0.92); pointer-events: none; user-select: none;
+}
+.nw-node-label {
+  font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; font-weight: 600;
+  fill: #f0e6cf; paint-order: stroke; stroke: rgba(20,14,6,0.85); stroke-width: 3px; stroke-linejoin: round;
+  pointer-events: none; user-select: none;
+}
+
+/* Zijpaneel */
+.nw-panel {
+  position: absolute; top: 12px; right: 12px; bottom: 12px; width: 280px;
+  background: linear-gradient(180deg, #faf4e6 0%, #f2e9d2 100%);
+  border: 1px solid rgba(120,86,40,0.55); border-radius: 6px;
+  box-shadow: 0 8px 26px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; overflow-y: auto; padding: 14px;
+  z-index: 5;
+}
+.nw-panel.hidden { display: none; }
+.nw-panel-close {
+  position: absolute; top: 6px; right: 8px; width: 26px; height: 26px;
+  border: none; background: transparent; cursor: pointer; border-radius: 50%;
+  font-size: 1.3rem; line-height: 1; color: var(--color-ink-dim, #8a7050);
+}
+.nw-panel-close:hover { background: rgba(180,50,40,0.14); color: #8b2a2a; }
+.nw-panel-head { display: flex; gap: 11px; align-items: center; padding-right: 22px; }
+.nw-panel-img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+  border: 2px solid rgba(120,86,40,0.5); box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
+.nw-panel-img--ph { display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.5rem; color: #fff; }
+.nw-panel-name { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.02rem; color: var(--color-ink-bright, #2a1a08); line-height: 1.15; }
+.nw-panel-type { display: flex; align-items: center; gap: 5px; margin-top: 3px;
+  font-size: 0.74rem; color: var(--color-ink-dim, #8a7050); }
+.nw-panel-vague { margin: 14px 0 0; font-style: italic; font-size: 0.82rem; color: var(--color-ink-dim, #8a7050); }
+.nw-panel-meer {
+  display: inline-flex; align-items: center; gap: 6px; justify-content: center;
+  margin-top: 12px; padding: 7px 12px; width: 100%; cursor: pointer;
+  background: rgba(196,168,122,0.16); border: 1px solid rgba(120,86,40,0.4); border-radius: 4px;
+  font-family: 'Crimson Text', serif; font-size: 0.9rem; color: var(--color-ink-bright, #2a1a08);
+}
+.nw-panel-meer:hover { background: rgba(196,168,122,0.3); }
+.nw-panel-meer .icon { width: 15px; height: 15px; }
+.nw-panel-conns { margin-top: 14px; border-top: 1px solid rgba(120,86,40,0.25); padding-top: 10px; }
+.nw-panel-sub { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--color-ink-faint, #9a8060); margin-bottom: 8px; }
+.nw-panel-none { font-style: italic; font-size: 0.82rem; color: var(--color-ink-faint, #9a8060); }
+.nw-conn-group { margin-bottom: 10px; }
+.nw-conn-head { display: flex; align-items: center; gap: 6px; font-size: 0.74rem; font-weight: 700;
+  color: var(--color-ink-medium, #5a4030); margin-bottom: 4px; }
+.nw-conn-n { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--color-ink-faint, #9a8060); }
+.nw-conn-item {
+  display: flex; align-items: center; gap: 6px; width: 100%; text-align: left;
+  padding: 4px 8px; margin-bottom: 2px; cursor: pointer; border-radius: 3px;
+  background: transparent; border: 1px solid transparent;
+  font-family: 'Crimson Text', serif; font-size: 0.88rem; color: var(--color-ink-bright, #2a1a08);
+}
+.nw-conn-item:hover { background: rgba(196,168,122,0.18); border-color: rgba(120,86,40,0.3); }
+.nw-conn-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nw-conn-dead { color: #8b2a2a; }
+
+/* Lege staat */
+.nw-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; text-align: center; padding: 40px; color: var(--color-ink-dim, #8a7050);
+  background-color: #2a2418;
+}
+.nw-empty p { color: #d8cbb0; max-width: 460px; }
+.nw-empty-sub { font-size: 0.85rem; color: #a8987a !important; }
+.nw-empty-icon { font-size: 2.4rem; opacity: 0.5; }
+.nw-empty-icon .icon { width: 46px; height: 46px; color: #8a7050; }
+
+/* Mobiel: zijpaneel onderaan */
+@media (max-width: 700px) {
+  .nw-panel { top: auto; right: 6px; left: 6px; bottom: 6px; width: auto; max-height: 48%; }
+  .nw-search { width: 130px; }
+  .nw-toolbar { gap: 8px; padding: 8px; }
+}
+
 /* ══ Witte tekst op donkere backdrop (Tweespalt, Ursula, Gock) ══════════════ */
 
 /* Basis: alle tekst in content-paneel met backdrop lichter maken */

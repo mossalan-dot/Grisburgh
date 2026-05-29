@@ -20,6 +20,8 @@ export function initSocket() {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
       import('./render-dashboard.js').then(m => m.renderDashboard());
+    } else if (section === 'relatiemap') {
+      window.app.refreshSection('relatiemap');
     }
   });
 
@@ -29,6 +31,8 @@ export function initSocket() {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
       import('./render-dashboard.js').then(m => m.renderDashboard());
+    } else if (section === 'relatiemap') {
+      window.app.refreshSection('relatiemap');
     }
     // Kaartoverlay voor spelers bij onthulling
     if (!window.app.isDM() && visibility && visibility !== 'hidden' && name) {
@@ -526,13 +530,13 @@ export function initSocket() {
 
   socket.on('relations:updated', () => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js').then(m => m.renderRelatiemap());
+      window.app.refreshSection('relatiemap');
     }
   });
 
   socket.on('relations:revealed', ({ id } = {}) => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js').then(m => m.renderRelatiemap());
+      window.app.refreshSection('relatiemap');
     }
     if (!window.app.isDM()) {
       _showToast(`🕸️ <strong>Nieuwe verbinding onthuld!</strong>`, () => {
