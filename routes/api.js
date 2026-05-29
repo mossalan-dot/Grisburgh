@@ -688,6 +688,25 @@ router.put('/berichten/sjablonen', requireDM, (req, res) => {
 // ── Brieven (DM → speler/party) ──
 // Opgeslagen in berichten.json als { type:'brief', titel, tekst, afzender, entityId, entityType, deletedAt }
 
+// Bezorg programmatisch een (gethematiseerde) brief in de berichtenbox van een speler
+function _bezorgBrief(req, cid, { titel = '', tekst = '', afzender = '', thema = '', entityId = null, entityType = null, datum = '' }) {
+  if (!cid || !tekst) return null;
+  const berichten = storage.readJSON('berichten.json') || {};
+  if (!berichten[cid]) berichten[cid] = [];
+  const now = Date.now();
+  const post = {
+    id: `post_${now}_${Math.random().toString(36).substr(2, 4)}`,
+    type: 'brief', titel, tekst, afzender, entityId, entityType, datum, thema,
+    timestamp: now, deletedAt: null,
+  };
+  berichten[cid].unshift(post);
+  storage.writeJSON('berichten.json', berichten);
+  const io = req.app.get('io');
+  const socketId = req.app.get('playerSockets')?.get(cid);
+  if (socketId) io.to(socketId).emit('bericht:nieuw', { msg: post });
+  return post;
+}
+
 router.post('/post', requireDM, (req, res) => {
   const { titel, tekst, afzender, entityId, entityType, characterId, groepId, datum, thema } = req.body;
   if (!tekst?.trim()) return res.status(400).json({ error: 'Tekst is verplicht' });
@@ -3897,6 +3916,15 @@ router.put('/gock/opgehaald', attachRole, (req, res) => {
   };
   dmState.playerItems[characterId].push(rapport);
   storage.writeJSON('dm-state.json', dmState);
+  // Bezorg het dossier ook als gethematiseerde brief (logo + typemachine) in de berichtenbox
+  _bezorgBrief(req, characterId, {
+    titel: 'Onderzoeksrapport — ' + geval.entityName,
+    tekst: geval.tekst,
+    afzender: 'De Gock',
+    thema: 'gock',
+    entityId: geval.entityId,
+    entityType: geval.entityType,
+  });
   const io = req.app.get('io');
   io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
   res.json({ ok: true });
@@ -4419,7 +4447,7 @@ function _tsFormatCl(cl) {
   return parts.length ? parts.join(', ') : '0 cl';
 }
 
-function _tsResolveEvent(dmState, event, io) {
+function _tsResolveEvent(dmState, event, io, campaignId = 'main') {
   let winnaarId = event.uitkomstModus === 'dm' ? event.uitkomst : null;
 
   if (!winnaarId) {
@@ -4468,7 +4496,7 @@ function _tsResolveEvent(dmState, event, io) {
   storage.writeJSON('gok-log.json', gokLog);
 
   if (io) {
-    io.to(req.session?.campaignId||'main').emit('tweespalt:uitslag', {
+    io.to(campaignId).emit('tweespalt:uitslag', {
       eventId:     event.id,
       eventNaam:   event.naam,
       winnaarId,
@@ -4477,7 +4505,7 @@ function _tsResolveEvent(dmState, event, io) {
     });
     for (const [charId, ut] of Object.entries(uitbetalingen)) {
       if (ut.gewonnen) {
-        io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId: charId, currency: dmState.playerCurrency[charId] });
+        io.to(campaignId).emit('player:currency-updated', { characterId: charId, currency: dmState.playerCurrency[charId] });
       }
     }
   }
@@ -4495,7 +4523,7 @@ router.get('/tweespalt', attachRole, (req, res) => {
   for (const event of ts.events) {
     if (event.status === 'open' && event.uitkomstModus === 'auto' && event.sluitTijd) {
       if (new Date(event.sluitTijd) <= now) {
-        _tsResolveEvent(dmState, event, io);
+        _tsResolveEvent(dmState, event, io, req.session?.campaignId || 'main');
         needsSave = true;
       }
     }
@@ -4671,8 +4699,20 @@ router.post('/tweespalt/events/:id/uitslag', requireDM, (req, res) => {
   if (event.uitkomstModus === 'dm' && req.body.uitkomst) event.uitkomst = req.body.uitkomst;
 
   const io = req.app.get('io');
-  const result = _tsResolveEvent(dmState, event, io);
+  const result = _tsResolveEvent(dmState, event, io, req.session?.campaignId || 'main');
   storage.writeJSON('dm-state.json', dmState);
+
+  // Haastig gekrabbeld briefje aan elke wedder met de uitslag
+  const winNaam = result.winnaarOptie?.naam || '';
+  for (const [charId, ut] of Object.entries(result.uitbetalingen || {})) {
+    const inzet = event.inzetten?.[charId];
+    const mijnOptie = event.opties.find(o => o.id === inzet?.optieId)?.naam || '';
+    const tekst = ut.gewonnen
+      ? `Gewonnen! "${event.naam}" — uitkomst: ${winNaam}. Je zette ${_tsFormatCl(ut.inzetCl)} op ${mijnOptie} en haalt ${_tsFormatCl(ut.uitbetaaldCl || 0)} op. Kom je winst halen, vriend.`
+      : `Pech gehad. "${event.naam}" — uitkomst: ${winNaam}. Je inzet van ${_tsFormatCl(ut.inzetCl)} op ${mijnOptie} ben je kwijt. Volgende keer beter.`;
+    _bezorgBrief(req, charId, { titel: event.naam, tekst, afzender: 'De Tweespalt', thema: 'tweespalt' });
+  }
+
   res.json({ ok: true, winnaarId: event.uitkomst, ...result });
 });
 
