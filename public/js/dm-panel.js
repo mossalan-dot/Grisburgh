@@ -5397,6 +5397,18 @@ async function _renderBerichten() {
           <input id="post-datum" type="text" class="dm-input" placeholder="bijv. 4 Grasmaand MDCCLXXII" style="width:100%">
         </div>
 
+        <!-- Briefstijl / thema -->
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label">Briefstijl</label>
+          <select id="post-thema" class="dm-select" style="width:100%">
+            <option value="">Standaard perkament</option>
+            <option value="ursula">Madame Ursula — lila brief</option>
+            <option value="gock">De Gock — logo &amp; typemachine</option>
+            <option value="tweespalt">De Tweespalt — haastig briefje</option>
+            <option value="heeren">De Heeren van de Nacht — schaduwbrief</option>
+          </select>
+        </div>
+
         <!-- Tekst -->
         <div class="dm-form-row" style="flex-direction:column;gap:4px">
           <label class="dm-form-label">Inhoud</label>
@@ -5552,6 +5564,7 @@ async function _postSend() {
   const afzender       = document.getElementById('post-afzender')?.value.trim();
   const datum          = document.getElementById('post-datum')?.value.trim();
   const npcId          = document.getElementById('post-npc')?.value;
+  const thema          = document.getElementById('post-thema')?.value || '';
   const statusEl       = document.getElementById('post-send-status');
 
   if (!tekst) {
@@ -5569,11 +5582,16 @@ async function _postSend() {
 
   const npc = npcId ? _berichtenNPCs.find(n => n.id === npcId) : null;
 
+  // Vul een passende afzender in als er geen is gekozen
+  const THEMA_AFZENDER = { ursula: 'Madame Ursula', gock: 'De Gock', tweespalt: 'De Tweespalt', heeren: 'De Heeren van de Nacht' };
+  const afzenderDef = afzender || (thema ? THEMA_AFZENDER[thema] : '');
+
   const payload = {
     titel,
     tekst,
-    afzender,
+    afzender: afzenderDef,
     datum,
+    thema,
     entityId:   npc ? npc.id   : null,
     entityType: npc ? 'personages' : null,
     characterId: ontvangerType === 'speler' ? spelerId : null,
@@ -5594,6 +5612,7 @@ async function _postSend() {
     document.getElementById('post-datum').value      = '';
     document.getElementById('post-npc').value        = '';
     document.getElementById('post-npc-search').value = '';
+    const themaSel = document.getElementById('post-thema'); if (themaSel) themaSel.value = '';
     setTimeout(() => _renderBerichten(), 400);
   } catch (err) {
     if (statusEl) { statusEl.textContent = 'Fout: ' + err.message; statusEl.className = 'bericht-status bericht-status--err'; statusEl.classList.remove('hidden'); }

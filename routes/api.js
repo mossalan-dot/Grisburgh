@@ -689,8 +689,12 @@ router.put('/berichten/sjablonen', requireDM, (req, res) => {
 // Opgeslagen in berichten.json als { type:'brief', titel, tekst, afzender, entityId, entityType, deletedAt }
 
 router.post('/post', requireDM, (req, res) => {
-  const { titel, tekst, afzender, entityId, entityType, characterId, groepId, datum } = req.body;
+  const { titel, tekst, afzender, entityId, entityType, characterId, groepId, datum, thema } = req.body;
   if (!tekst?.trim()) return res.status(400).json({ error: 'Tekst is verplicht' });
+  const THEMAS = ['ursula', 'gock', 'tweespalt', 'heeren'];
+  const veiligThema = THEMAS.includes(thema) ? thema : '';
+  const THEMA_AFZENDER = { ursula: 'Madame Ursula', gock: 'De Gock', tweespalt: 'De Tweespalt', heeren: 'De Heeren van de Nacht' };
+  const afzenderDef = (afzender?.trim()) || (veiligThema ? THEMA_AFZENDER[veiligThema] : '');
 
   const berichten = storage.readJSON('berichten.json') || {};
   const io          = req.app.get('io');
@@ -720,10 +724,11 @@ router.post('/post', requireDM, (req, res) => {
       type: 'brief',
       titel: titel?.trim() || '',
       tekst: tekst.trim(),
-      afzender: afzender?.trim() || '',
+      afzender: afzenderDef,
       entityId: entityId || null,
       entityType: entityType || null,
       datum: datum?.trim() || '',
+      thema: veiligThema,
       timestamp: now,
       deletedAt: null,
     };

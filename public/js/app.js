@@ -3553,6 +3553,17 @@ function _fmtBerichtDate(iso) {
          d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
 }
 
+// Briefhoofd per dienst-thema (boven aan een gethematiseerde brief)
+function _briefLetterhead(thema) {
+  switch (thema) {
+    case 'ursula':    return '<span class="lh-zegel">✦</span> Madame Ursula <span class="lh-sub">— Waarzegster der Sterren</span>';
+    case 'gock':      return '<span class="lh-zegel">⌖</span> DE GOCK <span class="lh-sub">— Onderzoeksbureau</span>';
+    case 'tweespalt': return '<span class="lh-zegel">🎲</span> De Tweespalt';
+    case 'heeren':    return '<span class="lh-zegel">🌑</span> De Heeren van de Nacht';
+    default:          return '';
+  }
+}
+
 window._updateBerichtenBadge = function() {
   const count = window._berichtenUnread || 0;
   const btn = document.querySelector('.player-subtab[data-tab="berichten"]');
@@ -3597,8 +3608,9 @@ async function renderMijnKarakter(opts = {}) {
   let pinnedTraits  = [];
   let inspired      = false;
   let berichtenLijst = [];
+  let heerenData = null;
   try {
-    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst] = await Promise.all([
+    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, heerenData] = await Promise.all([
       api.getPlayerHp(charId).catch(() => ({ current: null, max: null })),
       api.getEntity('personages', charId).catch(() => null),
       api.getCombat().catch(() => null),
@@ -3617,6 +3629,7 @@ async function renderMijnKarakter(opts = {}) {
       api.getPlayerTraits(charId).catch(() => []),
       api.getInspiration(charId).catch(() => ({ inspired: false })),
       api.getBerichten().then(d => d.berichten || []).catch(() => []),
+      (window.app?.state?.meta?.heeren ? api.getHeeren().catch(() => null) : Promise.resolve(null)),
     ]);
   } catch { /* ok */ }
 
@@ -4218,6 +4231,17 @@ async function renderMijnKarakter(opts = {}) {
           </div>
         </div>` : ''}
 
+        ${heerenData ? `
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">🌑 Aanzien bij de Heeren</div>
+          <div class="renown-card">
+            <div class="renown-rang">${esc(heerenData.rang?.naam || '')}<span class="renown-trap">${(heerenData.rang?.index ?? 0) + 1}/${heerenData.rang?.aantal || 1}</span></div>
+            ${heerenData.rang?.voordelen ? `<div class="renown-voordelen">${esc(heerenData.rang.voordelen)}</div>` : ''}
+            ${heerenData.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(heerenData.rang.volgende.naam)}</strong>${heerenData.rang.volgende.voordelen ? `: ${esc(heerenData.rang.volgende.voordelen)}` : ''}</div>` : ''}
+            ${(heerenData.boetes && heerenData.boetes.length) ? `<div class="renown-boete">⚖️ ${heerenData.boetes.length} openstaande boete${heerenData.boetes.length > 1 ? 's' : ''} bij de Luimpoort</div>` : ''}
+          </div>
+        </div>` : ''}
+
         <!-- Kenmerken & Eigenschappen -->
         <div class="player-dash-section">
           <div class="player-dash-section-title">
@@ -4661,7 +4685,8 @@ async function renderMijnKarakter(opts = {}) {
             out += `<div class="player-dash-section">
               <div class="player-dash-section-title">${icon('mail')} Brieven &amp; berichten</div>
               ${brieven.map(m => `
-                <div class="speler-brief-card${m.gelezen ? '' : ' speler-brief-card--nieuw'}" data-mid="${esc(m.id)}" onclick="window._briefToggle('${esc(m.id)}')">
+                <div class="speler-brief-card${m.gelezen ? '' : ' speler-brief-card--nieuw'}${m.thema ? ` speler-brief-card--${esc(m.thema)}` : ''}" data-mid="${esc(m.id)}" onclick="window._briefToggle('${esc(m.id)}')">
+                  ${m.thema ? `<div class="speler-brief-letterhead speler-brief-letterhead--${esc(m.thema)}">${_briefLetterhead(m.thema)}</div>` : ''}
                   <div class="speler-brief-header">
                     <div class="speler-brief-header-main">
                       ${m.titel ? `<div class="speler-brief-titel">${esc(m.titel)}</div>` : ''}
