@@ -4270,6 +4270,115 @@ router.put('/meta/heeren', requireDM, (req, res) => {
   res.json(meta.heeren);
 });
 
+// ── Facties & Aanzien (organisaties met een rangspoor) ──
+
+const FACTIES_DEFAULT = [
+  {
+    id: 'cooperatie', naam: 'De Coöperatie', embleem: '🌿',
+    beschrijving: 'Het verbond van druïden dat over de wouden en wateren rond Grisburgh waakt.',
+    rangen: [
+      { naam: 'Buitenstaander', voordelen: 'Geen aanzien; de druïden houden je op afstand.' },
+      { naam: 'Zaailing',       voordelen: 'Je mag de buitenste hagen betreden en kruiden ruilen.' },
+      { naam: 'Wortelganger',   voordelen: 'Toegang tot de gemeenschappelijke kruidtuin.' },
+      { naam: 'Hoeder',         voordelen: 'De Coöperatie deelt voortekenen en veilige paden met je.' },
+      { naam: 'Boomspreker',    voordelen: 'Je stem telt in de Kring; druïden staan je bij in nood.' },
+      { naam: 'Aartsdruïde',    voordelen: 'De wouden zelf lijken je gunstig gezind.' },
+    ],
+  },
+  {
+    id: 'eendragt', naam: 'De Eendragt', embleem: '⚙️',
+    beschrijving: 'Het artifexgilde dat het vakmanschap en de uitvindingen van de stad bewaakt.',
+    rangen: [
+      { naam: 'Vreemdeling',     voordelen: 'Geen aanzien; het gilde sluit zijn werkplaatsen voor je.' },
+      { naam: 'Leerjongen',      voordelen: 'Toegang tot de gildewerkplaats en eenvoudig gereedschap.' },
+      { naam: 'Gezel',           voordelen: 'Korting op vakwerk en materialen van het gilde.' },
+      { naam: 'Vakmeester',      voordelen: 'Het gilde neemt opdrachten van je aan met voorrang.' },
+      { naam: 'Meester-artifex', voordelen: 'Toegang tot zeldzame ontwerpen en materialen.' },
+      { naam: 'Gildemeester',    voordelen: 'Je woord weegt zwaar in de raad van De Eendragt.' },
+    ],
+  },
+  {
+    id: 'roodzwaarden', naam: 'De Roodzwaarden', embleem: '🗡️',
+    beschrijving: 'De stadswacht van Grisburgh — gehard, en niet zonder eigenbelang.',
+    rangen: [
+      { naam: 'Verdachte',    voordelen: 'Geen aanzien; de wacht houdt je in de gaten.' },
+      { naam: 'Geduld',       voordelen: 'De wacht laat je met rust en beantwoordt je vragen.' },
+      { naam: 'Rekruut',      voordelen: 'Je mag premies innen en kleine zaken melden.' },
+      { naam: 'Schildwacht',  voordelen: 'Toegang tot het wachthuis en hogere premies.' },
+      { naam: 'Wachtmeester', voordelen: 'De wacht verleent je doortocht en bijstand.' },
+      { naam: 'Kapitein',     voordelen: 'Je geniet het volle vertrouwen van de Roodzwaarden.' },
+    ],
+  },
+];
+
+function _factiesConfig(meta) {
+  const c = meta.facties;
+  return (Array.isArray(c) && c.length) ? c : FACTIES_DEFAULT;
+}
+
+function _factieRangView(factie, rangIdx) {
+  const rangen = (factie.rangen && factie.rangen.length) ? factie.rangen : [{ naam: '—', voordelen: '' }];
+  const idx = Math.max(0, Math.min(rangIdx || 0, rangen.length - 1));
+  const rang = rangen[idx];
+  const volgende = rangen[idx + 1] || null;
+  return {
+    naam: rang.naam, index: idx, aantal: rangen.length, voordelen: rang.voordelen || '',
+    volgende: volgende ? { naam: volgende.naam, voordelen: volgende.voordelen || '' } : null,
+  };
+}
+
+router.get('/facties', attachRole, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const config = _factiesConfig(meta);
+  const dmState = readDmState();
+  const state = getGroup(dmState).facties || {};
+  const isDM = req.role === 'dm';
+  const facties = config.map(f => {
+    const view = {
+      id: f.id, naam: f.naam, embleem: f.embleem || '🏛️', beschrijving: f.beschrijving || '',
+      rang: _factieRangView(f, state[f.id]?.rang || 0),
+    };
+    if (isDM) view.rangen = f.rangen || [];
+    return view;
+  });
+  res.json({ facties });
+});
+
+router.post('/facties/:id/rang', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const factie = _factiesConfig(meta).find(f => f.id === req.params.id);
+  if (!factie) return res.status(404).json({ error: 'Factie niet gevonden' });
+  const maxIdx = (factie.rangen?.length || 1) - 1;
+  const rang = parseInt(req.body.rang);
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  if (!g.facties) g.facties = {};
+  if (!g.facties[factie.id]) g.facties[factie.id] = { rang: 0 };
+  g.facties[factie.id].rang = isNaN(rang) ? 0 : Math.max(0, Math.min(rang, maxIdx));
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('facties:updated');
+  res.json({ ok: true, id: factie.id, rang: g.facties[factie.id].rang });
+});
+
+router.put('/meta/facties', requireDM, (req, res) => {
+  if (!Array.isArray(req.body.facties)) return res.status(400).json({ error: 'facties-array vereist' });
+  const meta = storage.readJSON('meta.json');
+  meta.facties = req.body.facties.map(f => ({
+    id: String(f.id || ('factie_' + Math.random().toString(36).slice(2, 7))).trim(),
+    naam: String(f.naam || 'Naamloze factie').trim(),
+    embleem: (f.embleem || '🏛️').toString().slice(0, 4),
+    beschrijving: String(f.beschrijving || '').trim(),
+    rangen: (Array.isArray(f.rangen) && f.rangen.length)
+      ? f.rangen.map(r => ({ naam: String(r.naam || '—').trim(), voordelen: String(r.voordelen || '').trim() }))
+      : [{ naam: '—', voordelen: '' }],
+  }));
+  storage.writeJSON('meta.json', meta);
+  const io = req.app.get('io');
+  io.to(req.session?.campaignId||'main').emit('meta:updated');
+  io.to(req.session?.campaignId||'main').emit('facties:updated');
+  res.json({ facties: meta.facties });
+});
+
 // ── Locatie (Grisburgh verlaten) ──
 
 router.put('/locatie', requireDM, (req, res) => {

@@ -110,6 +110,10 @@ export function initSocket() {
     if (window.app?.state?.activeSection === 'heeren') window.app?.refreshSection?.('heeren');
   });
 
+  socket.on('facties:updated', () => {
+    if (window.app?.state?.activeSection === 'mijn-karakter') window.app?.refreshSection?.('mijn-karakter');
+  });
+
   socket.on('chapter-visibility:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
       import('./render-archief.js').then(m => m.renderLogboek());

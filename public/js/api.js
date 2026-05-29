@@ -302,6 +302,11 @@ export const api = {
   heerenKwijt:        (characterId, boeteId) => request('/heeren/kwijt',      { method: 'POST', body: JSON.stringify({ characterId, boeteId }) }),
   saveHeerenConfig:   (data)       => request('/meta/heeren',                { method: 'PUT',  body: JSON.stringify(data) }),
 
+  // Facties & Aanzien (organisaties met rangspoor)
+  getFacties:         ()           => request('/facties'),
+  factieSetRang:      (id, rang)   => request(`/facties/${id}/rang`, { method: 'POST', body: JSON.stringify({ rang }) }),
+  saveFactiesConfig:  (facties)    => request('/meta/facties',       { method: 'PUT',  body: JSON.stringify({ facties }) }),
+
   // Locatie (Grisburgh verlaten)
   setLocatie:              (data)     => request('/locatie',          { method: 'PUT', body: JSON.stringify(data) }),
   toggleLocatieEntiteit:   (entityId) => request('/locatie/entiteit', { method: 'PUT', body: JSON.stringify({ entityId }) }),
