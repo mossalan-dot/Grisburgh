@@ -1817,6 +1817,7 @@ body::before {
 .section-banner--logboek     { --bc: 72,52,22;   --bc-text: #4a3410; }
 .section-banner--almanak     { --bc: 58,74,138;  --bc-text: #2e3a6e; }
 .section-banner--weer        { --bc: 70,110,150; --bc-text: #2e5070; }
+.section-banner--orakel      { --bc: 110,70,150; --bc-text: #5a3a7a; }
 
 .section-banner--entity {
   padding: 16px 24px 0;
@@ -17082,3 +17083,200 @@ input.alm-cfg-input[type="color"] { padding: 2px; height: 36px; cursor: pointer;
 .inv-det-rarity[data-rarity="legendary"] { color: #c47e1a; }
 .inv-det-rarity[data-rarity="very-rare"],
 .inv-det-rarity[data-rarity="legendary"] { box-shadow: 0 0 9px -3px currentColor; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Het Orakel der Sterren — omenkaart-waarzeggerij
+   ══════════════════════════════════════════════════════════════════ */
+.orakel-wrap { padding: 0 24px 56px; max-width: 1000px; margin: 0 auto; }
+.orakel-error {
+  padding: 40px 24px; text-align: center;
+  font-family: 'IM Fell English', serif; font-style: italic; color: #8a7050;
+}
+.orakel-disabled-badge {
+  margin-left: auto; align-self: center;
+  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+  color: #6a3a8a; background: rgba(110,70,150,0.12);
+  border: 1px solid rgba(110,70,150,0.3); border-radius: 20px; padding: 4px 12px;
+}
+.orakel-altaar {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 24px 0 8px;
+}
+.orakel-intro {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: 16px; color: #6a5a7a; margin-bottom: 22px; text-align: center;
+}
+
+/* ── Kaart + 3D-flip ── */
+.orakel-card-stage { perspective: 1600px; width: min(280px, 78vw); }
+.orakel-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(0.4, 0.1, 0.2, 1);
+}
+.orakel-card.is-flipped { transform: rotateY(180deg); }
+.orakel-face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 14px 36px rgba(30,20,50,0.4), 0 0 0 1px rgba(0,0,0,0.15);
+}
+.orakel-face--back { background: #100d22; }
+.orakel-back-svg { width: 100%; height: 100%; display: block; }
+.orakel-back-star { animation: orakel-twinkle 3.4s ease-in-out infinite; }
+@keyframes orakel-twinkle { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
+.orakel-face--front { transform: rotateY(180deg); }
+
+/* ── Voorkant van de kaart ── */
+.orakel-front-inner {
+  --ok: #b8862b;
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 22px 18px;
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--ok) 16%, transparent), transparent 60%),
+    linear-gradient(170deg, #faf4e6 0%, #f1e6cb 100%);
+  text-align: center;
+}
+.orakel-front-frame {
+  position: absolute; inset: 8px;
+  border: 1.5px solid var(--ok);
+  border-radius: 9px;
+  opacity: 0.7;
+  pointer-events: none;
+  box-shadow: inset 0 0 22px -8px color-mix(in srgb, var(--ok) 60%, transparent);
+}
+.orakel-front-symbool {
+  font-size: clamp(46px, 13vw, 64px);
+  line-height: 1; margin-top: 14px;
+  filter: drop-shadow(0 3px 8px color-mix(in srgb, var(--ok) 40%, transparent));
+}
+.orakel-front-titel {
+  font-family: 'Cinzel', serif; font-weight: 700;
+  font-size: clamp(17px, 5vw, 22px);
+  letter-spacing: 0.5px;
+  color: color-mix(in srgb, var(--ok) 72%, #2a1a08);
+  margin-top: 14px;
+}
+.orakel-front-rule {
+  display: flex; align-items: center; gap: 8px; width: 70%;
+  margin: 9px 0;
+}
+.orakel-front-rule::before, .orakel-front-rule::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(to right, transparent, var(--ok), transparent);
+  opacity: 0.6;
+}
+.orakel-front-rule span { color: var(--ok); font-size: 9px; }
+.orakel-front-omen {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: clamp(13px, 3.6vw, 15px); line-height: 1.45;
+  color: #4a3a28;
+}
+.orakel-front-duiding {
+  margin-top: auto;
+  font-family: 'Crimson Text', serif; font-size: 12.5px; line-height: 1.4;
+  color: #6a5a44;
+  border-top: 1px dashed color-mix(in srgb, var(--ok) 45%, transparent);
+  padding-top: 9px; width: 92%;
+}
+
+/* ── Trek-knop ── */
+.orakel-draw-row { margin-top: 26px; }
+.orakel-draw-btn {
+  font-family: 'Cinzel', serif; font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
+  color: #fdf3e0;
+  background: linear-gradient(to bottom, #6e4896, #4a2e6e);
+  border: 1px solid #3a2456;
+  border-radius: 10px;
+  padding: 11px 22px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+  box-shadow: 0 5px 16px rgba(74,46,110,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.orakel-draw-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(74,46,110,0.5), inset 0 1px 0 rgba(255,255,255,0.18); }
+.orakel-draw-btn .icon { width: 16px; height: 16px; }
+.orakel-draw-btn--busy { filter: saturate(0.6) brightness(0.9); pointer-events: none; }
+.orakel-draw-btn--busy .icon { animation: orakel-spin 0.7s linear infinite; }
+@keyframes orakel-spin { to { transform: rotate(360deg); } }
+.orakel-last { min-height: 20px; margin-top: 14px; }
+.orakel-last-by {
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: 12.5px; color: #8a7a90;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orakel-card { transition: none; }
+  .orakel-back-star { animation: none; }
+}
+
+/* ── DM-paneel ── */
+.orakel-dm-toggle { margin-top: 30px; text-align: center; }
+.orakel-dm-panel {
+  margin-top: 30px;
+  background: linear-gradient(170deg, #f3ead0 0%, #ecdfbe 100%);
+  border: 1px solid var(--color-room-border); border-radius: 16px;
+  padding: 18px 20px 22px; box-shadow: 0 6px 22px rgba(90,64,30,0.1);
+}
+.orakel-dm-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(196,168,122,0.4);
+}
+.orakel-dm-panel-head h3 {
+  font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; color: #3a2a0e;
+  margin: 0; display: flex; align-items: center; gap: 8px;
+}
+.orakel-dm-panel-head .icon { width: 16px; height: 16px; }
+.orakel-cfg-check {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Cinzel', serif; font-size: 12px; color: #4a3418; cursor: pointer; margin-bottom: 12px;
+}
+.orakel-cfg-check input { width: 16px; height: 16px; cursor: pointer; }
+.orakel-cfg-field {
+  display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px;
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.5px; color: #6a4818;
+}
+.orakel-cfg-input {
+  font-family: 'Crimson Text', serif; font-size: 14px; color: #2a1a08;
+  background: #fffdf6; border: 1px solid var(--color-room-border);
+  border-radius: 7px; padding: 7px 10px; outline: none; transition: border-color 0.15s;
+}
+.orakel-cfg-input:focus { border-color: var(--color-gold-bright); }
+.orakel-cfg-deck-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+  color: #8a6a30; margin: 16px 0 8px;
+}
+.orakel-cfg-deck { display: flex; flex-direction: column; gap: 10px; }
+.orakel-cfg-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px; border: 1px solid rgba(196,168,122,0.45); border-radius: 9px;
+  background: rgba(255,253,246,0.6);
+}
+.orakel-cfg-card-head { display: flex; gap: 6px; align-items: center; }
+.orakel-cf-symbool { width: 52px; text-align: center; }
+.orakel-cf-titel { flex: 1; }
+.orakel-cf-kleur { width: 34px; height: 34px; padding: 2px; border: 1px solid var(--color-room-border); border-radius: 7px; background: #fffdf6; cursor: pointer; }
+.orakel-btn {
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: #4a3418;
+  background: linear-gradient(to bottom, #f0e2bd, #e2cf9f);
+  border: 1px solid var(--color-room-border); border-radius: 8px; padding: 7px 13px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; transition: 0.15s ease;
+}
+.orakel-btn:hover { background: linear-gradient(to bottom, #f5e9c8, #e8d6a8); border-color: var(--color-gold-dim); transform: translateY(-1px); }
+.orakel-btn .icon { width: 14px; height: 14px; }
+.orakel-btn--small { font-size: 11px; padding: 5px 10px; }
+.orakel-btn--save { color: #fdf8ea; background: linear-gradient(to bottom, #b8860b, #9a7008); border-color: #8a6206; }
+.orakel-btn--save:hover { background: linear-gradient(to bottom, #cda021, #aa7d10); }
+.orakel-dm-panel-foot { margin-top: 16px; text-align: right; }
+.orakel-icon-btn {
+  width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(196,168,122,0.14); border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 7px; cursor: pointer; color: #6a4818; transition: 0.15s ease; flex-shrink: 0;
+}
+.orakel-icon-btn:hover { background: rgba(184,134,11,0.18); border-color: var(--color-gold-dim); }
+.orakel-icon-btn .icon { width: 14px; height: 14px; }
+.orakel-icon-btn--danger { color: #9a3a2a; }
+.orakel-icon-btn--danger:hover { background: rgba(154,58,42,0.14); border-color: rgba(154,58,42,0.4); }

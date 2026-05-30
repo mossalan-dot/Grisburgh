@@ -73,6 +73,7 @@ Geeft een publieke URL (bijv. `https://iets.trycloudflare.com`). Deel die met sp
 | **Logboek** | Sessieverslagen per akte (hoofdstuk) met afbeeldingen, entiteitskoppelingen en documenten |
 | **Almanak** | In-wereld kalender met maanfasen, seizoenen en gebeurtenissen |
 | **Hemel** | Real-time weer- & luchtscène boven Grisburgh (dagdeel, conditie, wind, temperatuur) |
+| **Orakel** | Het Orakel der Sterren — trek een omenkaart met voorteken en duiding |
 | **Herberg** | Spelers kunnen de waard bevragen voor roddels over zichtbare personages en locaties |
 | **Mijn Karakter** | Persoonlijk spelerdashboard: HP, valuta, spreukenslots, voorwerpen, bladwijzers en meer |
 
@@ -359,6 +360,25 @@ Standaard gevuld met archaïsche Nederlandse maandnamen (Louwmaand, Sprokkelmaan
 
 ---
 
+## Het Orakel der Sterren 🔮
+
+Een sfeervolle waarzeggerij: trek een **omenkaart** die met een 3D-flip
+opengedraaid wordt, met een voorteken en een duiding.
+
+- Klik op **Trek een kaart** — de kaart draait van een ornamentele
+  sterrenachterkant naar het voorteken (symbool, titel, omen en duiding,
+  met een kleuraccent per kaart)
+- **Gedeeld tafelmoment** — trekt de DM (of een speler) een kaart, dan
+  verschijnt diezelfde kaart in real-time bij alle spelers; wie elders kijkt
+  krijgt een sfeervolle hint
+- Komt met een poëtisch **standaarddek** van 18 generieke voortekens, dus het
+  werkt meteen
+- De DM kan het orakel **in/uitschakelen**, de introtekst aanpassen en het
+  **dek bewerken** (symbool, titel, kleur, voorteken en duiding per kaart)
+- Respecteert `prefers-reduced-motion`
+
+---
+
 ## De Hemel boven Grisburgh 🌧️
 
 Een levende, real-time luchtscène die de DM instelt en alle spelers tegelijk zien — bedoeld voor de sfeer aan tafel.
@@ -497,6 +517,7 @@ routes/
 lib/
   almanak.js               # Pure datum-/maanfase-berekeningen voor de Almanak (unit-getest)
   weer.js                  # Weer-catalogus + gewogen weerworp voor de Hemel (unit-getest)
+  orakel.js                # Orakel-dek + kaarttrekking (unit-getest)
   storage.js               # JSON-bestandsopslag + afbeeldingen/PDFs/audio per campagne
   snapshot.js              # HTML-snapshot en campagneboek-export
 public/
@@ -511,6 +532,7 @@ public/
     render-dashboard.js    # Spelersdashboard: HP, valuta, spreukenslots, trackers, bladwijzers
     render-almanak.js      # Almanak: in-wereld kalender, maanfasen, seizoenen, gebeurtenissen
     render-weer.js         # Hemel: real-time weer- & luchtscène (SVG + CSS-animaties)
+    render-orakel.js       # Orakel: omenkaart-waarzeggerij met 3D-flip
     api.js                 # Fetch-wrapper, fileUrl, thumbUrl, entity name lookup
     socket-client.js       # Real-time updates en geluidsevents via Socket.io
     combat-canvas.js       # Canvas-gebaseerde gevechtsvisualisatie

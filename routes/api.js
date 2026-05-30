@@ -8,6 +8,7 @@ const { requireDM, attachRole } = require('./auth');
 const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 const almanak = require('../lib/almanak');
 const weer = require('../lib/weer');
+const orakel = require('../lib/orakel');
 
 let _sharp = null;
 try { _sharp = require('sharp'); } catch {}
@@ -3074,6 +3075,59 @@ router.put('/weer', requireDM, (req, res) => {
   writeWeer(clean);
   req.app.get('io').to(req.session?.campaignId || 'main').emit('weer:updated', { conditie: clean.conditie });
   res.json(clean);
+});
+
+// ── Het Orakel der Sterren ───────────────────────────────────────
+
+function readOrakel() {
+  const meta = storage.readJSON('meta.json');
+  return orakel.ensureOrakel(meta.orakel);
+}
+function writeOrakel(o) {
+  const meta = storage.readJSON('meta.json');
+  meta.orakel = o;
+  storage.writeJSON('meta.json', meta);
+}
+
+// GET — rolbewust; verborgen voor spelers als de DM het orakel heeft uitgezet.
+router.get('/orakel', attachRole, (req, res) => {
+  const o = readOrakel();
+  if (!o.enabled && req.role !== 'dm') return res.json({ enabled: false });
+  const lastCard = o.lastDraw ? (o.deck.find(c => c.id === o.lastDraw.cardId) || null) : null;
+  res.json({
+    enabled: o.enabled,
+    intro:   o.intro,
+    deck:    o.deck,
+    lastDraw: o.lastDraw ? { ...o.lastDraw, card: lastCard } : null,
+    isDM:    req.role === 'dm',
+  });
+});
+
+// PUT /config — orakel in/uitschakelen, intro en dek bijwerken (DM).
+router.put('/orakel/config', requireDM, (req, res) => {
+  const o = readOrakel();
+  const b = req.body || {};
+  if (b.enabled !== undefined) o.enabled = !!b.enabled;
+  if (b.intro   !== undefined) o.intro   = String(b.intro);
+  if (Array.isArray(b.deck))   o.deck    = b.deck;
+  const clean = orakel.ensureOrakel(o);
+  writeOrakel(clean);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('orakel:updated', {});
+  res.json({ ok: true });
+});
+
+// POST /draw — trek een kaart; de uitkomst wordt naar alle clients gebroadcast.
+router.post('/orakel/draw', attachRole, (req, res) => {
+  const o = readOrakel();
+  if (!o.enabled && req.role !== 'dm') return res.status(403).json({ error: 'Het orakel zwijgt.' });
+  const cardId = orakel.drawCardId(o.deck);
+  if (!cardId) return res.status(400).json({ error: 'Leeg dek' });
+  const by = req.role === 'dm' ? 'De Verteller' : (req.playerName || 'Een ziel');
+  o.lastDraw = { cardId, at: Date.now(), by };
+  writeOrakel(o);
+  const card = o.deck.find(c => c.id === cardId) || null;
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('orakel:drawn', { card, by });
+  res.json({ card, by });
 });
 
 // ── Kaart ──

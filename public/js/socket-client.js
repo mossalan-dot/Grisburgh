@@ -255,6 +255,25 @@ export function initSocket() {
     if (window._isDisplayMode) window._displayRefreshSky?.();
   });
 
+  socket.on('orakel:updated', () => {
+    import('./api.js').then(({ api }) => api.meta().then(m => {
+      if (window.app?.state) window.app.state.meta = m;
+      window.app?.applyRole?.();
+      if (window.app?.state?.activeSection === 'orakel') window.app.refreshSection('orakel');
+    }).catch(() => {}));
+  });
+
+  socket.on('orakel:drawn', ({ card, by } = {}) => {
+    // Toon de getrokken kaart bij iedereen die het orakel openheeft…
+    if (window.app?.state?.activeSection === 'orakel' && window.orakel?.onDrawn) {
+      window.orakel.onDrawn(card, by);
+    } else if (card && !window.app?.isDM?.()) {
+      // …en geef anderen een sfeervolle hint
+      _showToast(`🔮 Het Orakel spreekt: <strong>${(card.titel || '').replace(/</g,'&lt;')}</strong>`,
+        () => window.app?.switchSection?.('orakel'), 6000);
+    }
+  });
+
   socket.on('entity:deceased', ({ id, type, name } = {}) => {
     // Herlaad de huidige sectie zodat het kaartje meteen grijs wordt
     const section = window.app.state.activeSection;

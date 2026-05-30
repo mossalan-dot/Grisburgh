@@ -6,6 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=17';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { renderAlmanak } from './render-almanak.js?v=1';
 import { renderWeer, renderDisplaySky } from './render-weer.js?v=1';
+import { renderOrakel } from './render-orakel.js?v=1';
 import { initSocket } from './socket-client.js?v=11';
 import { initDmPanel } from './dm-panel.js?v=38';
 
@@ -220,6 +221,7 @@ function switchSection(section) {
     relatiemap:    'rgba(80,42,122,0.55)',
     almanak:       'rgba(58,74,138,0.55)',
     weer:          'rgba(70,110,150,0.55)',
+    orakel:        'rgba(110,70,150,0.55)',
     logboek:       'rgba(184,134,11,0.55)',
     herberg:       'rgba(160,90,20,0.65)',
     tweespalt:     'rgba(90,20,20,0.65)',
@@ -527,6 +529,13 @@ function applyRole() {
   if (weerTab) {
     const weerAan = state.role === 'dm' || !(state.meta?.weer && state.meta.weer.enabled === false);
     weerTab.classList.toggle('hidden', !weerAan);
+  }
+
+  // Orakel-tab: zichtbaar voor de DM, of voor iedereen tenzij expliciet uitgezet
+  const orakelTab = document.getElementById('orakel-tab');
+  if (orakelTab) {
+    const orakelAan = state.role === 'dm' || !(state.meta?.orakel && state.meta.orakel.enabled === false);
+    orakelTab.classList.toggle('hidden', !orakelAan);
   }
 
   // Diensten dropdown: alleen zichtbaar voor benoemde spelers
@@ -1587,6 +1596,7 @@ async function refreshSection(section) {
   else if (section === 'relatiemap') await renderRelatiemap();
   else if (section === 'almanak') await renderAlmanak();
   else if (section === 'weer') await renderWeer();
+  else if (section === 'orakel') await renderOrakel();
   else if (section === 'herberg') await renderHerberg();
   else if (section === 'tweespalt') await renderTweespalt();
   else if (section === 'gock') await renderGock();

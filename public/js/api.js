@@ -101,6 +101,11 @@ export const api = {
   weer:     ()     => request('/weer'),
   saveWeer: (data) => request('/weer', { method: 'PUT', body: JSON.stringify(data) }),
 
+  // Het Orakel der Sterren
+  orakel:           ()     => request('/orakel'),
+  saveOrakelConfig: (data) => request('/orakel/config', { method: 'PUT', body: JSON.stringify(data) }),
+  drawOrakel:       ()     => request('/orakel/draw', { method: 'POST' }),
+
   // Kaart
   listMaps:     ()         => request('/map/maps'),
   createMap:    (data)     => request('/map/maps',      { method: 'POST',   body: JSON.stringify(data) }),
