@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=201">
+  <link rel="stylesheet" href="/css/theme.css?v=202">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -414,6 +414,18 @@
       <span class="dice-panel-title">⚄ Dobbelstenen</span>
       <button class="dice-panel-close" onclick="window.dice.toggle()" title="Sluiten">&times;</button>
     </div>
+    <div class="dice-controls">
+      <div class="dice-adv-group">
+        <button class="dice-adv-btn" data-adv="1"  onclick="window.dice.setAdv(1)"  title="Voordeel: 2×d20, hoogste telt">Voordeel</button>
+        <button class="dice-adv-btn" data-adv="-1" onclick="window.dice.setAdv(-1)" title="Nadeel: 2×d20, laagste telt">Nadeel</button>
+      </div>
+      <div class="dice-mod-group">
+        <span class="dice-mod-label">Bonus</span>
+        <button class="dice-mod-btn" onclick="window.dice.adjustMod(-1)" title="Bonus omlaag">−</button>
+        <span class="dice-mod-val" onclick="window.dice.resetMod()" title="Klik om te resetten">+0</span>
+        <button class="dice-mod-btn" onclick="window.dice.adjustMod(1)" title="Bonus omhoog">+</button>
+      </div>
+    </div>
     <div class="dice-panel-grid">
       <button class="dice-btn" onclick="window.dice.roll(4)">d4</button>
       <button class="dice-btn" onclick="window.dice.roll(6)">d6</button>
@@ -449,6 +461,18 @@
       <span id="dm-dice-count-display" class="dm-dice-count">1</span>
       <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dice.adjustCount(1)">+</button>
     </div>
+    <div class="dice-controls">
+      <div class="dice-adv-group">
+        <button class="dice-adv-btn" data-adv="1"  onclick="window.dice.setAdv(1)"  title="Voordeel: 2×d20, hoogste telt">Voordeel</button>
+        <button class="dice-adv-btn" data-adv="-1" onclick="window.dice.setAdv(-1)" title="Nadeel: 2×d20, laagste telt">Nadeel</button>
+      </div>
+      <div class="dice-mod-group">
+        <span class="dice-mod-label">Bonus</span>
+        <button class="dice-mod-btn" onclick="window.dice.adjustMod(-1)" title="Bonus omlaag">−</button>
+        <span class="dice-mod-val" onclick="window.dice.resetMod()" title="Klik om te resetten">+0</span>
+        <button class="dice-mod-btn" onclick="window.dice.adjustMod(1)" title="Bonus omhoog">+</button>
+      </div>
+    </div>
     <div class="dice-panel-grid">
       <button class="dice-btn" onclick="window.dice.rollDm(4)">d4</button>
       <button class="dice-btn" onclick="window.dice.rollDm(6)">d6</button>
@@ -476,6 +500,6 @@
   </div>
 
   <script type="module" src="/js/sound-manager.js?v=1"></script>
-  <script type="module" src="/js/app.js?v=234"></script>
+  <script type="module" src="/js/app.js?v=235"></script>
 </body>
 </html>

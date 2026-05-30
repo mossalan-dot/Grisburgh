@@ -6132,6 +6132,11 @@ async function refreshAll() {
 ;(() => {
   const _history = [];
   let _dmCount = 1;
+  let _adv = 0;   // -1 = nadeel, 0 = normaal, 1 = voordeel
+  let _mod = 0;   // vaste bonus bij de worp
+
+  const _rnd = (sides) => Math.floor(Math.random() * sides) + 1;
+  const _modStr = (m) => m > 0 ? ` + ${m}` : m < 0 ? ` − ${Math.abs(m)}` : '';
 
   // Geeft alle actieve result-elementen terug (spelers-paneel én DM-paneel)
   function _els(suffix) {
@@ -6189,40 +6194,20 @@ async function refreshAll() {
       if (el) el.textContent = _dmCount;
     },
 
-    roll(sides) {
-      const result   = Math.floor(Math.random() * sides) + 1;
-      const numEls   = _els('result-num');
-      const lblEls   = _els('result-label');
-      const boxEls   = _els('result');
-      if (!numEls.length) return;
-      const dieLabel = sides === 100 ? 'd%' : `d${sides}`;
-      const isCrit   = sides === 20 && result === 20;
-      const isFumble = sides === 20 && result === 1;
-      const lbl      = isCrit   ? `${dieLabel} \u2014 \u2736 Critical Hit!`
-                     : isFumble ? `${dieLabel} \u2014 \u2715 Critical Fail!`
-                     :             dieLabel;
-      _animate(numEls, lblEls, boxEls,
-        () => Math.floor(Math.random() * sides) + 1,
-        result, lbl,
-        { sides, result, count: 1, crit: isCrit, fumble: isFumble });
+    // Voordeel/nadeel instellen (toggelt terug naar normaal bij nogmaals klikken)
+    setAdv(mode) {
+      _adv = (_adv === mode) ? 0 : mode;
+      _renderControls();
     },
+    // Vaste bonus bijstellen
+    adjustMod(delta) {
+      _mod = Math.max(-20, Math.min(30, _mod + delta));
+      _renderControls();
+    },
+    resetMod() { _mod = 0; _renderControls(); },
 
-    rollDm(sides) {
-      if (_dmCount === 1) { this.roll(sides); return; }
-      const count  = _dmCount;
-      const rolls  = Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1);
-      const total  = rolls.reduce((a, b) => a + b, 0);
-      const numEls = _els('result-num');
-      const lblEls = _els('result-label');
-      const boxEls = _els('result');
-      if (!numEls.length) return;
-      const dieLabel = sides === 100 ? 'd%' : `d${sides}`;
-      const min = count, max = count * sides;
-      _animate(numEls, lblEls, boxEls,
-        () => Math.floor(Math.random() * (max - min + 1)) + min,
-        total, `${count}${dieLabel} \u2014 ${rolls.join(' + ')}`,
-        { sides, result: total, count, rolls, crit: false, fumble: false });
-    },
+    roll(sides)   { _doRoll(sides, 1); },
+    rollDm(sides) { _doRoll(sides, _dmCount); },
 
     // Rolt een formule zoals "4d4+4 Healing" of "1d8+1 Slashing"
     // inlineResultId: optioneel element-ID voor inline resultaat in modal
@@ -6273,6 +6258,65 @@ async function refreshAll() {
     },
   };
 
+  // Gedeelde worp-afhandeling voor speler- en DM-paneel.
+  // Voordeel/nadeel geldt alleen voor een enkele d20; de bonus telt altijd mee.
+  function _doRoll(sides, count) {
+    const numEls = _els('result-num');
+    const lblEls = _els('result-label');
+    const boxEls = _els('result');
+    if (!numEls.length) return;
+
+    const dieLabel = sides === 100 ? 'd%' : `d${sides}`;
+    const useAdv   = sides === 20 && count === 1 && _adv !== 0;
+
+    let rolls, kept, natural;
+    if (useAdv) {
+      const a = _rnd(sides), b = _rnd(sides);
+      kept    = _adv > 0 ? Math.max(a, b) : Math.min(a, b);
+      natural = kept;
+      rolls   = [a, b];
+    } else {
+      rolls   = Array.from({ length: count }, () => _rnd(sides));
+      kept    = rolls.reduce((x, y) => x + y, 0);
+      natural = count === 1 ? rolls[0] : null;
+    }
+
+    const total    = kept + _mod;
+    const isCrit    = sides === 20 && natural === 20;
+    const isFumble  = sides === 20 && natural === 1;
+
+    // Label opbouwen
+    const prefix    = count > 1 ? `${count}${dieLabel}` : dieLabel;
+    const advWord   = useAdv ? (_adv > 0 ? ' voordeel' : ' nadeel') : '';
+    let breakdown   = '';
+    if (useAdv)            breakdown = `${rolls[0]}, ${rolls[1]} → ${kept}${_modStr(_mod)}`;
+    else if (count > 1)   breakdown = `${rolls.join(' + ')}${_modStr(_mod)}`;
+    else if (_mod !== 0)  breakdown = `${rolls[0]}${_modStr(_mod)}`;
+
+    let lbl = prefix + advWord;
+    if (breakdown) lbl += ` — ${breakdown}`;
+    if (isCrit)        lbl += ' — ✶ Critical Hit!';
+    else if (isFumble) lbl += ' — ✕ Critical Fail!';
+
+    const minRoll = (useAdv ? 1 : count) + _mod;
+    const maxRoll = (useAdv ? sides : count * sides) + _mod;
+    _animate(numEls, lblEls, boxEls,
+      () => Math.floor(Math.random() * (maxRoll - minRoll + 1)) + minRoll,
+      total, lbl,
+      { sides, result: total, count, crit: isCrit, fumble: isFumble });
+  }
+
+  // Houdt de voordeel/nadeel-knoppen en bonusweergave in beide panelen in sync
+  function _renderControls() {
+    document.querySelectorAll('.dice-adv-btn').forEach(btn => {
+      btn.classList.toggle('dice-adv-btn--on', Number(btn.dataset.adv) === _adv && _adv !== 0);
+    });
+    document.querySelectorAll('.dice-mod-val').forEach(el => {
+      el.textContent = _mod > 0 ? `+${_mod}` : `${_mod}`;
+      el.classList.toggle('dice-mod-val--active', _mod !== 0);
+    });
+  }
+
   function _renderHistory() {
     const html = _history.map(({ sides, result, count = 1, crit, fumble }) => {
       const cls = crit ? ' dice-hist-crit' : fumble ? ' dice-hist-fumble' : '';
@@ -6282,6 +6326,8 @@ async function refreshAll() {
     }).join('');
     _els('history').forEach(el => { el.innerHTML = html; });
   }
+
+  _renderControls();
 })();
 
 // ── Globaal zoeken ──
