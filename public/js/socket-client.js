@@ -274,6 +274,19 @@ export function initSocket() {
     }
   });
 
+  socket.on('downtime:updated', (info = {}) => {
+    import('./api.js').then(({ api }) => api.meta().then(m => {
+      if (window.app?.state) window.app.state.meta = m;
+      window.app?.applyRole?.();
+      if (window.app?.state?.activeSection === 'downtime') window.app.refreshSection('downtime');
+    }).catch(() => {}));
+    // De DM krijgt een seintje als een speler een rustdag inplant
+    if (info.nieuw && info.naam && window.app?.isDM?.()) {
+      _showToast(`📓 <strong>${String(info.naam).replace(/</g,'&lt;')}</strong> plant een rustdag`,
+        () => window.app?.switchSection?.('downtime'), 6000);
+    }
+  });
+
   socket.on('entity:deceased', ({ id, type, name } = {}) => {
     // Herlaad de huidige sectie zodat het kaartje meteen grijs wordt
     const section = window.app.state.activeSection;

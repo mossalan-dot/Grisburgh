@@ -1818,6 +1818,7 @@ body::before {
 .section-banner--almanak     { --bc: 58,74,138;  --bc-text: #2e3a6e; }
 .section-banner--weer        { --bc: 70,110,150; --bc-text: #2e5070; }
 .section-banner--orakel      { --bc: 110,70,150; --bc-text: #5a3a7a; }
+.section-banner--downtime    { --bc: 120,100,60; --bc-text: #6a5420; }
 
 .section-banner--entity {
   padding: 16px 24px 0;
@@ -17280,3 +17281,221 @@ input.alm-cfg-input[type="color"] { padding: 2px; height: 36px; cursor: pointer;
 .orakel-icon-btn .icon { width: 14px; height: 14px; }
 .orakel-icon-btn--danger { color: #9a3a2a; }
 .orakel-icon-btn--danger:hover { background: rgba(154,58,42,0.14); border-color: rgba(154,58,42,0.4); }
+
+/* ══════════════════════════════════════════════════════════════════
+   Rustdagen — downtime tussen sessies
+   ══════════════════════════════════════════════════════════════════ */
+.dt-wrap { padding: 0 24px 56px; max-width: 1080px; margin: 0 auto; }
+.dt-error, .dt-empty {
+  padding: 28px 24px; text-align: center;
+  font-family: 'IM Fell English', serif; font-style: italic; color: #8a7050;
+}
+.dt-empty { padding: 18px; }
+.dt-disabled-badge {
+  margin-left: auto; align-self: center;
+  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+  color: #8a6a30; background: rgba(184,134,11,0.12);
+  border: 1px solid rgba(184,134,11,0.3); border-radius: 20px; padding: 4px 12px;
+}
+.dt-section-title {
+  font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;
+  color: #3a2a0e; margin: 26px 0 12px; display: flex; align-items: center; gap: 8px;
+}
+.dt-section-title .icon { width: 16px; height: 16px; color: var(--color-gold-dim); }
+
+/* ── Fase-balk ── */
+.dt-fase {
+  display: flex; align-items: center; gap: 16px;
+  margin-top: 18px; padding: 16px 20px; border-radius: 14px;
+  border: 1px solid var(--color-room-border);
+}
+.dt-fase--twaalfdaagse {
+  background: radial-gradient(120% 120% at 12% 0%, rgba(214,158,74,0.16), transparent 60%),
+              linear-gradient(165deg, #2a2138 0%, #1e1830 100%);
+  color: #e8dcc4; border-color: rgba(160,120,180,0.3);
+}
+.dt-fase--open {
+  background: linear-gradient(165deg, #fdf6e3 0%, #f4e7c6 100%);
+  color: #3a2a0e;
+}
+.dt-fase-icon { font-size: 34px; line-height: 1; flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3)); }
+.dt-fase-label { font-family: 'Cinzel', serif; font-weight: 700; font-size: 18px; letter-spacing: 0.5px; }
+.dt-fase-omschrijving { font-family: 'IM Fell English', serif; font-style: italic; font-size: 13.5px; opacity: 0.9; margin-top: 2px; }
+.dt-fase-switch { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0; }
+.dt-fase-btn {
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+  padding: 7px 11px; border-radius: 8px; cursor: pointer;
+  background: rgba(196,168,122,0.16); border: 1px solid rgba(196,168,122,0.4); color: inherit;
+  transition: 0.15s ease;
+}
+.dt-fase-btn:hover { background: rgba(196,168,122,0.28); }
+.dt-fase-btn--active { background: var(--color-gold-dim); border-color: #8a6206; color: #fdf8ea; }
+
+/* ── Activiteiten-grid ── */
+.dt-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px; margin-top: 20px;
+}
+.dt-card {
+  display: flex; flex-direction: column;
+  background: linear-gradient(168deg, #faf4e6 0%, #f1e6cb 100%);
+  border: 1px solid var(--color-room-border); border-radius: 12px;
+  padding: 15px 16px 14px;
+  box-shadow: 0 2px 10px rgba(90,64,30,0.08), inset 0 1px 0 rgba(255,255,255,0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.dt-card:hover { transform: translateY(-3px); box-shadow: 0 8px 22px rgba(90,64,30,0.15); }
+.dt-card--vergrendeld { opacity: 0.62; filter: saturate(0.7); }
+.dt-card--vergrendeld:hover { transform: none; box-shadow: 0 2px 10px rgba(90,64,30,0.08); }
+.dt-card-head { display: flex; align-items: center; gap: 10px; }
+.dt-card-emoji { font-size: 26px; line-height: 1; }
+.dt-card-titel-wrap { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.dt-card-naam { font-family: 'Cinzel', serif; font-weight: 700; font-size: 16px; color: #3a2a0e; }
+.dt-card-cat {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+  color: #a07a30;
+}
+.dt-card-avond { font-size: 14px; opacity: 0.8; }
+.dt-card-omschrijving {
+  font-family: 'Crimson Text', serif; font-size: 14px; line-height: 1.42; color: #5a4632;
+  margin: 10px 0 11px; flex: 1;
+}
+.dt-card-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.dt-meta-pill {
+  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.3px;
+  color: #6a5430; background: rgba(196,168,122,0.18);
+  border: 1px solid rgba(196,168,122,0.4); border-radius: 20px; padding: 2px 9px;
+}
+.dt-card-opbrengst {
+  font-family: 'Crimson Text', serif; font-size: 12.5px; color: #4a6a3a;
+  border-top: 1px dashed rgba(106,138,74,0.4); padding-top: 8px; margin-bottom: 10px;
+}
+.dt-card-opbrengst span {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+  color: #6a8a4a; display: block;
+}
+.dt-card-foot { margin-top: auto; }
+.dt-plan-btn {
+  width: 100%;
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700;
+  color: #fdf8ea; background: linear-gradient(to bottom, #b8860b, #9a7008);
+  border: 1px solid #8a6206; border-radius: 8px; padding: 8px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  transition: 0.15s ease;
+}
+.dt-plan-btn:hover { background: linear-gradient(to bottom, #cda021, #aa7d10); }
+.dt-plan-btn .icon { width: 13px; height: 13px; }
+.dt-vergrendeld-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Cinzel', serif; font-size: 11px; color: #8a7a55;
+}
+
+/* ── Logboek + status ── */
+.dt-logboek, .dt-inzendingen {
+  margin-top: 8px;
+  background: linear-gradient(170deg, #faf3df 0%, #f3e8cc 100%);
+  border: 1px solid var(--color-room-border); border-radius: 14px;
+  padding: 6px 18px 18px;
+}
+.dt-log-row, .dt-dm-entry { display: flex; gap: 12px; padding: 11px 0; border-bottom: 1px solid rgba(196,168,122,0.3); }
+.dt-log-row:last-child { border-bottom: none; }
+.dt-dm-entry { flex-direction: column; gap: 8px; }
+.dt-log-emoji { font-size: 22px; line-height: 1.1; flex-shrink: 0; }
+.dt-log-body { flex: 1; min-width: 0; }
+.dt-log-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dt-log-naam { font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px; color: #3a2a0e; }
+.dt-status {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.6px; text-transform: uppercase;
+  padding: 2px 9px; border-radius: 12px; border: 1px solid;
+}
+.dt-status--gepland { color: #7a6a4a; background: rgba(150,130,90,0.12); border-color: rgba(150,130,90,0.4); }
+.dt-status--bezig   { color: #a06a1a; background: rgba(184,134,11,0.14); border-color: rgba(184,134,11,0.45); }
+.dt-status--klaar   { color: #3f7a4a; background: rgba(63,122,74,0.14); border-color: rgba(63,122,74,0.45); }
+.dt-log-notitie { font-family: 'Crimson Text', serif; font-size: 13.5px; color: #5a4632; margin-top: 3px; }
+.dt-log-uitkomst {
+  font-family: 'Crimson Text', serif; font-size: 13px; color: #3f5a6a; margin-top: 5px;
+  background: rgba(60,100,130,0.08); border-left: 3px solid rgba(60,100,130,0.4);
+  padding: 5px 9px; border-radius: 0 6px 6px 0;
+}
+.dt-log-uitkomst span, .dt-card-opbrengst span {
+  font-family: 'Cinzel', serif; font-size: 8.5px; letter-spacing: 1px; text-transform: uppercase;
+}
+.dt-log-uitkomst span { color: #3f5a6a; }
+
+/* ── DM inzendingen ── */
+.dt-inzending-groep { padding: 10px 0; border-bottom: 1px solid rgba(196,168,122,0.35); }
+.dt-inzending-groep:last-child { border-bottom: none; }
+.dt-inzending-naam {
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;
+  color: #6a4818; margin-bottom: 4px;
+}
+.dt-dm-entry { background: rgba(255,253,246,0.5); border: 1px solid rgba(196,168,122,0.4); border-radius: 9px; padding: 10px 12px; margin: 6px 0; }
+.dt-dm-entry-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dt-dm-status, .dt-dm-uitkomst-input, .dt-cfg-input {
+  font-family: 'Crimson Text', serif; font-size: 13.5px; color: #2a1a08;
+  background: #fffdf6; border: 1px solid var(--color-room-border);
+  border-radius: 7px; padding: 6px 9px; outline: none;
+}
+.dt-dm-status { margin-left: auto; font-size: 12px; }
+.dt-dm-uitkomst-row { display: flex; gap: 6px; }
+.dt-dm-uitkomst-input { flex: 1; }
+.dt-cfg-input:focus, .dt-dm-uitkomst-input:focus { border-color: var(--color-gold-bright); }
+
+/* ── DM-instelpaneel ── */
+.dt-dm-toggle { margin-top: 26px; text-align: center; }
+.dt-dm-panel {
+  margin-top: 24px;
+  background: linear-gradient(170deg, #f3ead0 0%, #ecdfbe 100%);
+  border: 1px solid var(--color-room-border); border-radius: 16px;
+  padding: 18px 20px 22px; box-shadow: 0 6px 22px rgba(90,64,30,0.1);
+}
+.dt-dm-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(196,168,122,0.4);
+}
+.dt-dm-panel-head h3 { font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; color: #3a2a0e; margin: 0; display: flex; align-items: center; gap: 8px; }
+.dt-dm-panel-head .icon { width: 16px; height: 16px; }
+.dt-cfg-check { display: flex; align-items: center; gap: 8px; font-family: 'Cinzel', serif; font-size: 12px; color: #4a3418; cursor: pointer; margin-bottom: 12px; }
+.dt-cfg-check input { width: 16px; height: 16px; cursor: pointer; }
+.dt-cfg-deck-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+  color: #8a6a30; margin: 14px 0 8px;
+}
+.dt-cfg-deck { display: flex; flex-direction: column; gap: 10px; }
+.dt-cfg-act { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid rgba(196,168,122,0.45); border-radius: 9px; background: rgba(255,253,246,0.6); }
+.dt-cfg-act-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.dt-cf-emoji { width: 50px; text-align: center; }
+.dt-cf-naam { flex: 1; min-width: 110px; }
+.dt-cf-cat { width: 110px; }
+.dt-cf-avond { display: inline-flex; align-items: center; gap: 4px; font-family: 'Cinzel', serif; font-size: 10px; color: #6a4818; white-space: nowrap; }
+.dt-cfg-act-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+.dt-cfg-act-meta .dt-cfg-input { flex: 1; min-width: 90px; }
+.dt-dm-panel-foot { margin-top: 16px; text-align: right; }
+
+/* ── Knoppen ── */
+.dt-btn {
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: #4a3418;
+  background: linear-gradient(to bottom, #f0e2bd, #e2cf9f);
+  border: 1px solid var(--color-room-border); border-radius: 8px; padding: 7px 13px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; transition: 0.15s ease;
+}
+.dt-btn:hover { background: linear-gradient(to bottom, #f5e9c8, #e8d6a8); border-color: var(--color-gold-dim); transform: translateY(-1px); }
+.dt-btn .icon { width: 14px; height: 14px; }
+.dt-btn--small { font-size: 11px; padding: 5px 9px; }
+.dt-btn--save { color: #fdf8ea; background: linear-gradient(to bottom, #b8860b, #9a7008); border-color: #8a6206; }
+.dt-btn--save:hover { background: linear-gradient(to bottom, #cda021, #aa7d10); }
+.dt-icon-btn {
+  width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(196,168,122,0.14); border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 7px; cursor: pointer; color: #6a4818; transition: 0.15s ease; flex-shrink: 0;
+}
+.dt-icon-btn:hover { background: rgba(184,134,11,0.18); border-color: var(--color-gold-dim); }
+.dt-icon-btn .icon { width: 13px; height: 13px; }
+.dt-icon-btn--danger { color: #9a3a2a; }
+.dt-icon-btn--danger:hover { background: rgba(154,58,42,0.14); border-color: rgba(154,58,42,0.4); }
+
+/* ── Plan-modal ── */
+.dt-form { display: flex; flex-direction: column; gap: 12px; }
+.dt-form > label { display: flex; flex-direction: column; gap: 5px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.5px; color: #6a4818; }
+.dt-plan-intro { font-family: 'Crimson Text', serif; font-size: 14px; line-height: 1.45; color: #4a3a28; }

@@ -7,6 +7,7 @@ import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { renderAlmanak } from './render-almanak.js?v=1';
 import { renderWeer, renderDisplaySky } from './render-weer.js?v=1';
 import { renderOrakel } from './render-orakel.js?v=1';
+import { renderDowntime } from './render-downtime.js?v=1';
 import { initSocket } from './socket-client.js?v=11';
 import { initDmPanel } from './dm-panel.js?v=38';
 
@@ -222,6 +223,7 @@ function switchSection(section) {
     almanak:       'rgba(58,74,138,0.55)',
     weer:          'rgba(70,110,150,0.55)',
     orakel:        'rgba(110,70,150,0.55)',
+    downtime:      'rgba(120,100,60,0.55)',
     logboek:       'rgba(184,134,11,0.55)',
     herberg:       'rgba(160,90,20,0.65)',
     tweespalt:     'rgba(90,20,20,0.65)',
@@ -536,6 +538,13 @@ function applyRole() {
   if (orakelTab) {
     const orakelAan = state.role === 'dm' || !(state.meta?.orakel && state.meta.orakel.enabled === false);
     orakelTab.classList.toggle('hidden', !orakelAan);
+  }
+
+  // Rustdagen-tab: zichtbaar voor de DM, of voor iedereen tenzij expliciet uitgezet
+  const downtimeTab = document.getElementById('downtime-tab');
+  if (downtimeTab) {
+    const downtimeAan = state.role === 'dm' || !(state.meta?.downtime && state.meta.downtime.enabled === false);
+    downtimeTab.classList.toggle('hidden', !downtimeAan);
   }
 
   // Diensten dropdown: alleen zichtbaar voor benoemde spelers
@@ -1597,6 +1606,7 @@ async function refreshSection(section) {
   else if (section === 'almanak') await renderAlmanak();
   else if (section === 'weer') await renderWeer();
   else if (section === 'orakel') await renderOrakel();
+  else if (section === 'downtime') await renderDowntime();
   else if (section === 'herberg') await renderHerberg();
   else if (section === 'tweespalt') await renderTweespalt();
   else if (section === 'gock') await renderGock();

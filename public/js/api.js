@@ -106,6 +106,13 @@ export const api = {
   saveOrakelConfig: (data) => request('/orakel/config', { method: 'PUT', body: JSON.stringify(data) }),
   drawOrakel:       ()     => request('/orakel/draw', { method: 'POST' }),
 
+  // Rustdagen (downtime)
+  downtime:           ()         => request('/downtime'),
+  saveDowntimeConfig: (data)     => request('/downtime/config', { method: 'PUT', body: JSON.stringify(data) }),
+  addDowntimeLog:     (data)     => request('/downtime/log', { method: 'POST', body: JSON.stringify(data) }),
+  updateDowntimeLog:  (id, data) => request(`/downtime/log/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteDowntimeLog:  (id)       => request(`/downtime/log/${id}`, { method: 'DELETE' }),
+
   // Kaart
   listMaps:     ()         => request('/map/maps'),
   createMap:    (data)     => request('/map/maps',      { method: 'POST',   body: JSON.stringify(data) }),

@@ -73,6 +73,7 @@ Geeft een publieke URL (bijv. `https://iets.trycloudflare.com`). Deel die met sp
 | **Logboek** | Sessieverslagen per akte (hoofdstuk) met afbeeldingen, entiteitskoppelingen en documenten |
 | **Almanak** | In-wereld kalender met maanfasen, seizoenen en gebeurtenissen |
 | **Hemel** | Real-time weer- & luchtscène boven Grisburgh (dagdeel, conditie, wind, temperatuur) |
+| **Rustdagen** | Downtime tussen sessies (2024 PHB), gefilterd op de campagnefase |
 | **Orakel** | Het Orakel der Sterren — trek een omenkaart met voorteken en duiding |
 | **Herberg** | Spelers kunnen de waard bevragen voor roddels over zichtbare personages en locaties |
 | **Mijn Karakter** | Persoonlijk spelerdashboard: HP, valuta, spreukenslots, voorwerpen, bladwijzers en meer |
@@ -360,6 +361,32 @@ Standaard gevuld met archaïsche Nederlandse maandnamen (Louwmaand, Sprokkelmaan
 
 ---
 
+## Rustdagen (downtime) 🛠️
+
+Een bord met **downtime-activiteiten** (geïnspireerd op de 2024 PHB) die
+spelers tussen sessies door kunnen ondernemen — gefilterd op de **fase** van
+de campagne:
+
+- **De Heilige Twaalfdaagse** — alleen de avonden zijn vrij; enkel activiteiten
+  die in een avond passen (Werken, Verbroederen, Onderzoek, Gebed & Devotie,
+  Herstel, Spreuken overschrijven) zijn beschikbaar
+- **Na Lichtmis** — de dagen liggen open; ook langere ondernemingen (Ambacht,
+  Training) worden mogelijk
+
+Verdere mogelijkheden:
+
+- Elke activiteit is een kaart met emoji, categorie, omschrijving, duur,
+  kosten en wat het oplevert; niet-beschikbare bezigheden tonen "🔒 Pas na
+  Lichtmis"
+- Spelers **plannen** een activiteit in hun eigen **logboek** (met een notitie);
+  de server dwingt de fase-regel af
+- De DM ziet alle **inzendingen** in real-time, kan de status zetten
+  (Gepland → Bezig → Voltooid) en een **uitkomst** toevoegen
+- De DM schakelt tussen fasen, beheert de activiteiten-catalogus en kan de
+  rustdagen in/uitschakelen voor spelers
+
+---
+
 ## Het Orakel der Sterren 🔮
 
 Een sfeervolle waarzeggerij: trek een **omenkaart** die met een 3D-flip
@@ -518,6 +545,7 @@ lib/
   almanak.js               # Pure datum-/maanfase-berekeningen voor de Almanak (unit-getest)
   weer.js                  # Weer-catalogus + gewogen weerworp voor de Hemel (unit-getest)
   orakel.js                # Orakel-dek + kaarttrekking (unit-getest)
+  downtime.js              # Downtime-catalogus + fase-regels (unit-getest)
   storage.js               # JSON-bestandsopslag + afbeeldingen/PDFs/audio per campagne
   snapshot.js              # HTML-snapshot en campagneboek-export
 public/
@@ -533,6 +561,7 @@ public/
     render-almanak.js      # Almanak: in-wereld kalender, maanfasen, seizoenen, gebeurtenissen
     render-weer.js         # Hemel: real-time weer- & luchtscène (SVG + CSS-animaties)
     render-orakel.js       # Orakel: omenkaart-waarzeggerij met 3D-flip
+    render-downtime.js     # Rustdagen: downtime-activiteiten + fase + logboek
     api.js                 # Fetch-wrapper, fileUrl, thumbUrl, entity name lookup
     socket-client.js       # Real-time updates en geluidsevents via Socket.io
     combat-canvas.js       # Canvas-gebaseerde gevechtsvisualisatie

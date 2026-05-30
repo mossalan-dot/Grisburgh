@@ -9,6 +9,7 @@ const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 const almanak = require('../lib/almanak');
 const weer = require('../lib/weer');
 const orakel = require('../lib/orakel');
+const downtime = require('../lib/downtime');
 
 let _sharp = null;
 try { _sharp = require('sharp'); } catch {}
@@ -3128,6 +3129,137 @@ router.post('/orakel/draw', attachRole, (req, res) => {
   const card = o.deck.find(c => c.id === cardId) || null;
   req.app.get('io').to(req.session?.campaignId || 'main').emit('orakel:drawn', { card, by });
   res.json({ card, by });
+});
+
+// ── Rustdagen (downtime tussen sessies) ──────────────────────────
+
+function readDowntime() {
+  const meta = storage.readJSON('meta.json');
+  return downtime.ensureDowntime(meta.downtime);
+}
+function writeDowntime(d) {
+  const meta = storage.readJSON('meta.json');
+  meta.downtime = d;
+  storage.writeJSON('meta.json', meta);
+}
+function _charName(characterId) {
+  if (!characterId) return null;
+  const entities = storage.readJSON('entities.json');
+  return (entities.personages || []).find(e => e.id === characterId)?.name || null;
+}
+function emitDowntime(req, extra) {
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('downtime:updated', extra || {});
+}
+
+// GET — rolbewust. Spelers zien de catalogus + hun eigen logboek; de DM ziet
+// alle inzendingen.
+router.get('/downtime', attachRole, (req, res) => {
+  const d = readDowntime();
+  const isDM = req.role === 'dm';
+  if (!d.enabled && !isDM) return res.json({ enabled: false });
+
+  const dmState = readDmState();
+  const logs = dmState.playerDowntime || {};
+  const characterId = req.session.characterId || null;
+
+  const activiteiten = d.activiteiten.map(a => ({ ...a, beschikbaar: downtime.beschikbaar(a, d.fase) }));
+
+  const payload = {
+    enabled:   d.enabled,
+    fase:      d.fase,
+    faseInfo:  downtime.faseInfo(d.fase),
+    activiteiten,
+    isDM,
+    characterId,
+    mijnLog:   characterId ? (logs[characterId] || []) : [],
+  };
+
+  if (isDM) {
+    payload.allLogs = Object.entries(logs)
+      .filter(([, entries]) => Array.isArray(entries) && entries.length)
+      .map(([charId, entries]) => ({ characterId: charId, naam: _charName(charId) || 'Onbekend', entries }));
+  }
+  res.json(payload);
+});
+
+// PUT /config — fase, beschikbaarheid en catalogus bijwerken (DM).
+router.put('/downtime/config', requireDM, (req, res) => {
+  const d = readDowntime();
+  const b = req.body || {};
+  if (b.enabled !== undefined) d.enabled = !!b.enabled;
+  if (b.fase    !== undefined) d.fase    = b.fase;
+  if (Array.isArray(b.activiteiten)) d.activiteiten = b.activiteiten;
+  const clean = downtime.ensureDowntime(d);
+  writeDowntime(clean);
+  emitDowntime(req);
+  res.json({ ok: true });
+});
+
+// POST /log — een speler plant een activiteit (fase-regel wordt afgedwongen).
+router.post('/downtime/log', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+  const d = readDowntime();
+  if (!d.enabled) return res.status(403).json({ error: 'Rustdagen zijn niet beschikbaar' });
+  const act = d.activiteiten.find(a => a.id === req.body?.activiteitId);
+  if (!act) return res.status(404).json({ error: 'Onbekende activiteit' });
+  if (!downtime.beschikbaar(act, d.fase)) {
+    return res.status(400).json({ error: 'Deze bezigheid past niet in de avonden van de Twaalfdaagse — pas na Lichtmis.' });
+  }
+  const dmState = readDmState();
+  if (!dmState.playerDowntime) dmState.playerDowntime = {};
+  if (!dmState.playerDowntime[characterId]) dmState.playerDowntime[characterId] = [];
+  const entry = {
+    id:          'dt_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    activiteitId: act.id,
+    notitie:     String(req.body?.notitie || ''),
+    status:      'gepland',
+    uitkomst:    '',
+    at:          Date.now(),
+  };
+  dmState.playerDowntime[characterId].push(entry);
+  storage.writeJSON('dm-state.json', dmState);
+  emitDowntime(req, { characterId, naam: _charName(characterId), nieuw: true });
+  res.json(entry);
+});
+
+// Zoek een log-entry over alle personages heen.
+function _findDowntimeEntry(dmState, entryId) {
+  for (const [charId, entries] of Object.entries(dmState.playerDowntime || {})) {
+    const entry = (entries || []).find(e => e.id === entryId);
+    if (entry) return { charId, entry, entries };
+  }
+  return null;
+}
+
+// PUT /log/:id — DM handelt af (status/uitkomst); speler past eigen notitie aan.
+router.put('/downtime/log/:id', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const found = _findDowntimeEntry(dmState, req.params.id);
+  if (!found) return res.status(404).json({ error: 'Niet gevonden' });
+  const isDM = req.role === 'dm';
+  if (!isDM && found.charId !== req.session.characterId) return res.status(403).json({ error: 'Geen toegang' });
+  const b = req.body || {};
+  if (isDM) {
+    if (b.status   !== undefined) found.entry.status   = ['gepland', 'bezig', 'klaar'].includes(b.status) ? b.status : found.entry.status;
+    if (b.uitkomst !== undefined) found.entry.uitkomst = String(b.uitkomst);
+  }
+  if (b.notitie !== undefined) found.entry.notitie = String(b.notitie);
+  storage.writeJSON('dm-state.json', dmState);
+  emitDowntime(req, { characterId: found.charId });
+  res.json(found.entry);
+});
+
+// DELETE /log/:id — speler verwijdert eigen inzending; DM mag alles.
+router.delete('/downtime/log/:id', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const found = _findDowntimeEntry(dmState, req.params.id);
+  if (!found) return res.status(404).json({ error: 'Niet gevonden' });
+  if (req.role !== 'dm' && found.charId !== req.session.characterId) return res.status(403).json({ error: 'Geen toegang' });
+  dmState.playerDowntime[found.charId] = found.entries.filter(e => e.id !== req.params.id);
+  storage.writeJSON('dm-state.json', dmState);
+  emitDowntime(req, { characterId: found.charId });
+  res.json({ ok: true });
 });
 
 // ── Kaart ──
