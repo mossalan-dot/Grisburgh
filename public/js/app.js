@@ -1,5 +1,5 @@
 import { api } from './api.js?v=221';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=79';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=80';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=31';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
@@ -8,6 +8,7 @@ import { renderAlmanak } from './render-almanak.js?v=1';
 import { renderWeer, renderDisplaySky } from './render-weer.js?v=1';
 import { renderOrakel } from './render-orakel.js?v=1';
 import { renderDowntime } from './render-downtime.js?v=1';
+import { initGlossary } from './glossary.js?v=1';
 import { initSocket } from './socket-client.js?v=11';
 import { initDmPanel } from './dm-panel.js?v=38';
 
@@ -1824,7 +1825,8 @@ function _renderSpellDesc(rawDesc, opts = {}) {
     html += `<p>${_spellMd(line, opts)}</p>`;
     i++;
   }
-  return html;
+  // Begrippen voorzien van hover-uitleg (D&D-terminologie)
+  return window.glossary?.annotate?.(html) ?? html;
 }
 
 // Returns a CSS color for dice spans based on damage type in spell.damage
@@ -3558,7 +3560,7 @@ function _invRenderEntityDetail(panel, it) {
           ${typeLabel ? `<span class="inv-det-type-badge">${esc(typeLabel)}</span>` : ''}
           ${rarityLabel ? `<span class="inv-det-rarity"${rarityKey ? ` data-rarity="${rarityKey}"` : ''}>${rarityKey ? '<span class="inv-rarity-gem" aria-hidden="true">◆</span>' : ''}${esc(rarityLabel)}</span>` : ''}
         </div>
-        ${desc ? `<div class="inv-det-desc">${_spellMd(desc)}</div>` : ''}
+        ${desc ? `<div class="inv-det-desc">${window.glossary?.annotate?.(_spellMd(desc)) ?? _spellMd(desc)}</div>` : ''}
         ${flavour ? `<blockquote class="inv-det-flavour">${esc(flavour)}</blockquote>` : ''}
       </div>
     </div>`;
@@ -6539,6 +6541,7 @@ async function init() {
   document.getElementById('header-subtitle-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') window.app.saveHeader(); if (e.key === 'Escape') window.app.cancelHeader(); });
 
   applyRole();
+  initGlossary();            // D&D-begrippenlijst voor hover-uitleg (voorwerpen + spreuken)
   _wlAcInit();
   initCampagne();
   initArchief();

@@ -17499,3 +17499,62 @@ input.alm-cfg-input[type="color"] { padding: 2px; height: 36px; cursor: pointer;
 .dt-form { display: flex; flex-direction: column; gap: 12px; }
 .dt-form > label { display: flex; flex-direction: column; gap: 5px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.5px; color: #6a4818; }
 .dt-plan-intro { font-family: 'Crimson Text', serif; font-size: 14px; line-height: 1.45; color: #4a3a28; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Begrippenlijst — hover-uitleg bij D&D-terminologie
+   ══════════════════════════════════════════════════════════════════ */
+.gloss-term {
+  border-bottom: 1px dotted rgba(120,90,40,0.7);
+  cursor: help;
+  text-decoration: none;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.gloss-term:hover,
+.gloss-term:focus-visible {
+  background: rgba(184,134,11,0.12);
+  border-bottom-color: var(--color-gold-dim);
+  outline: none;
+}
+/* Op donkere ondergronden (spreukenboek-pagina e.d.) iets lichter */
+.sb-desc .gloss-term { border-bottom-color: rgba(120,90,40,0.6); }
+
+.gloss-tip {
+  position: fixed;
+  z-index: 99999;              /* boven alle overlays (spreukenboek/knapzak ~9100, reveals 9999) */
+  max-width: 320px;
+  padding: 11px 14px;
+  background: linear-gradient(168deg, #fbf5e6 0%, #f3e8cc 100%);
+  border: 1px solid var(--color-room-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(40,28,8,0.32), inset 0 1px 0 rgba(255,255,255,0.5);
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+.gloss-tip--show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.gloss-tip-head {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 5px; padding-bottom: 5px;
+  border-bottom: 1px solid rgba(196,168,122,0.4);
+}
+.gloss-tip-term {
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px;
+  letter-spacing: 0.3px; color: #3a2a0e;
+}
+.gloss-tip-cat {
+  font-family: 'Cinzel', serif; font-size: 8.5px; letter-spacing: 1px;
+  text-transform: uppercase; color: #a07a30;
+  background: rgba(184,134,11,0.12); border: 1px solid rgba(184,134,11,0.3);
+  border-radius: 10px; padding: 1px 7px; margin-left: auto;
+}
+.gloss-tip-def {
+  font-family: 'Crimson Text', serif; font-size: 13.5px; line-height: 1.5;
+  color: #4a3826;
+}
+.gloss-tip-def strong { color: #6a4818; font-weight: 700; }
+.gloss-tip-bron {
+  margin-top: 7px; padding-top: 6px; border-top: 1px solid rgba(196,168,122,0.3);
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: 10px;
+  color: #9a8458;
+}

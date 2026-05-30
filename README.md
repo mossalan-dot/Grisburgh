@@ -492,6 +492,25 @@ Toegankelijk via de ⚔-knop rechtsonder.
 
 ---
 
+## Begrippenlijst (hover-uitleg) 📖
+
+D&D-terminologie in **voorwerp- en spreukbeschrijvingen** krijgt automatisch
+een hover-uitleg, zodat spelers niet hoeven te zoeken.
+
+- ~78 begrippen: alle 14 condities, advantage/disadvantage, cover (half/
+  three-quarters/total), saving throws, resistance/vulnerability/immunity,
+  concentration, spell slots, schadetypen, zintuigen (darkvision/blindsight/
+  truesight), attunement en meer
+- Bekende termen krijgen een subtiele stippel-onderstreping; bij **hover**
+  (desktop) of **tik** (tablet) verschijnt een nette popover met de definitie
+- **Officiële SRD 5.2-tekst** (2024), met bronvermelding (CC BY 4.0)
+- Alleen actief in voorwerp- en spreukteksten; ambigue alledaagse woorden
+  (fire, range, action …) worden bewust niet gemarkeerd om ruis te vermijden
+- De lijst staat als statische `public/data/glossary.json` (geen web search
+  nodig) en is eenvoudig uit te breiden
+
+---
+
 ## Visueel ontwerp
 
 - **Perkamentthema** — linnenpatroon over de volledige achtergrond
@@ -550,6 +569,7 @@ lib/
   snapshot.js              # HTML-snapshot en campagneboek-export
 public/
   index.html               # SPA-shell (Tailwind CSS + PDF.js + Socket.io)
+  data/glossary.json        # ~78 D&D-begrippen (SRD 5.2, CC BY 4.0) voor hover-uitleg
   assets/                  # Statische kaartafbeeldingen
   js/
     app.js                 # App-shell, auth, modals, sectionrouting, dobbelsteenpaneel
@@ -563,6 +583,7 @@ public/
     render-orakel.js       # Orakel: omenkaart-waarzeggerij met 3D-flip
     render-downtime.js     # Rustdagen: downtime-activiteiten + fase + logboek
     api.js                 # Fetch-wrapper, fileUrl, thumbUrl, entity name lookup
+    glossary.js            # D&D-begrippenlijst: hover-uitleg in voorwerp- & spreukteksten
     socket-client.js       # Real-time updates en geluidsevents via Socket.io
     combat-canvas.js       # Canvas-gebaseerde gevechtsvisualisatie
     sound-manager.js       # Geluidsbeheer (laden, afspelen, emotes)
