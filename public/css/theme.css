@@ -16098,3 +16098,22 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   background: linear-gradient(135deg, #3a2a10 0%, #5c3a18 100%);
   border-color: rgba(180,130,60,0.62);
 }
+
+/* ── Dobbelsteen: vrije-formule-invoer ── */
+.dice-formula { display: flex; gap: 6px; margin: 8px 0 4px; }
+.dice-formula-input {
+  flex: 1; min-width: 0;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px;
+  color: #2a1a08; background: #fffdf6;
+  border: 1px solid var(--color-room-border); border-radius: 7px;
+  padding: 6px 9px; outline: none;
+}
+.dice-formula-input::placeholder { color: #b09870; font-family: 'Crimson Text', serif; font-style: italic; }
+.dice-formula-input:focus { border-color: var(--color-gold-bright); }
+.dice-formula-btn {
+  flex-shrink: 0;
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: #fdf8ea;
+  background: linear-gradient(to bottom, #b8860b, #9a7008); border: 1px solid #8a6206;
+  border-radius: 7px; padding: 6px 14px; cursor: pointer;
+}
+.dice-formula-btn:hover { background: linear-gradient(to bottom, #cda021, #aa7d10); }

@@ -6175,6 +6175,79 @@ async function refreshAll() {
     tick();
   }
 
+  // ── Pure formule-roller ──
+  // Ondersteunt meerdere termen (1d8+1d6+3), losse getallen, keep-highest/
+  // lowest (4d6kh3 / 2d20kl1), voordeel/nadeel (adv/dis/voordeel/nadeel) op
+  // een enkele d20, en een vrij label erachter (bv. schadetype). Geeft een
+  // resultaatobject terug; rng is injecteerbaar voor tests.
+  function _rollFormula(str, rng) {
+    rng = rng || Math.random;
+    const rollDie = s => Math.floor(rng() * s) + 1;
+    let work = String(str == null ? '' : str).trim();
+    if (!work) return { ok: false };
+    let adv = 0;
+    if (/\b(adv|advantage|voordeel)\b/i.test(work)) { adv = 1; work = work.replace(/\b(adv|advantage|voordeel)\b/i, ' '); }
+    else if (/\b(dis|disadv|disadvantage|nadeel)\b/i.test(work)) { adv = -1; work = work.replace(/\b(dis|disadv|disadvantage|nadeel)\b/i, ' '); }
+
+    const re = /\s*([+-])?\s*(?:(\d*)d(\d+)((?:kh|kl|k)\d+)?|(\d+))/iy;
+    const terms = [];
+    let m, end = 0;
+    while ((m = re.exec(work)) !== null) {
+      const sign = m[1] === '-' ? -1 : 1;
+      if (m[3] !== undefined) {
+        terms.push({ kind: 'dice', sign, n: m[2] ? parseInt(m[2]) : 1, sides: parseInt(m[3]), keep: m[4] || null });
+      } else {
+        terms.push({ kind: 'flat', sign, value: parseInt(m[5]) });
+      }
+      end = re.lastIndex;
+    }
+    if (!terms.length) return { ok: false };
+    const label = work.slice(end).trim().replace(/\s+/g, ' ');
+
+    let total = 0, totalDice = 0, critDie = null, minP = 0, maxP = 0;
+    const parts = [];
+    for (let ti = 0; ti < terms.length; ti++) {
+      const t = terms[ti];
+      const op = t.sign < 0 ? '−' : (ti ? '+' : '');
+      if (t.kind === 'flat') {
+        total += t.sign * t.value; minP += t.sign * t.value; maxP += t.sign * t.value;
+        parts.push(op + ' ' + t.value);
+        continue;
+      }
+      let n = Math.max(1, Math.min(t.n, 100)), keepKind = null, keepN = null;
+      if (t.keep) { const k = t.keep.match(/(kh|kl|k)(\d+)/i); keepKind = k[1].toLowerCase() === 'kl' ? 'kl' : 'kh'; keepN = parseInt(k[2]); }
+      if (adv && t.sides === 20 && t.n === 1 && !t.keep) { n = 2; keepKind = adv > 0 ? 'kh' : 'kl'; keepN = 1; }
+      const rolls = Array.from({ length: n }, () => rollDie(t.sides));
+      let kept = rolls, dropped = [];
+      if (keepN != null && keepN < rolls.length) {
+        const idx = rolls.map((v, i) => [v, i]).sort((a, b) => keepKind === 'kh' ? b[0] - a[0] : a[0] - b[0]);
+        const keepSet = new Set(idx.slice(0, keepN).map(x => x[1]));
+        kept = rolls.filter((_, i) => keepSet.has(i));
+        dropped = rolls.filter((_, i) => !keepSet.has(i));
+      }
+      const sub = kept.reduce((a, b) => a + b, 0);
+      total += t.sign * sub; totalDice += kept.length;
+      minP += t.sign * kept.length; maxP += t.sign * kept.length * t.sides;
+      if (t.sides === 20) critDie = kept.length === 1 ? kept[0] : null;
+      const dropStr = dropped.length ? ` (➖ ${dropped.join(', ')})` : '';
+      parts.push(`${op} ${kept.join(' + ')}${dropStr}`.trim());
+    }
+    const crit = critDie === 20 && totalDice === 1;
+    const fumble = critDie === 1 && totalDice === 1;
+    const formula = terms.map((t, i) => {
+      const sg = t.sign < 0 ? '−' : (i ? '+' : '');
+      return t.kind === 'flat' ? `${sg}${t.value}` : `${sg}${(t.n > 1 || t.keep) ? t.n : ''}d${t.sides}${t.keep || ''}`;
+    }).join(' ').trim() + (adv > 0 ? ' (voordeel)' : adv < 0 ? ' (nadeel)' : '');
+
+    return {
+      ok: true, total, label, crit, fumble,
+      breakdown: parts.join(' ').replace(/^\+\s*/, '').trim(),
+      formula,
+      tickMin: Math.max(1, Math.min(minP, maxP)),
+      tickMax: Math.max(2, Math.max(minP, maxP)),
+    };
+  }
+
   window.dice = {
     toggle() {
       document.getElementById('dice-panel')?.classList.toggle('open');
@@ -6224,61 +6297,55 @@ async function refreshAll() {
         { sides, result: total, count, rolls, crit: false, fumble: false });
     },
 
-    // Rolt een formule zoals "4d4+4 Healing" of "1d8+1 Slashing"
-    // inlineResultId: optioneel element-ID voor inline resultaat in modal
+    // Rolt een vrije formule, bv. "4d4+4 Healing", "1d20+5 adv", "1d8+1d6 fire".
+    // inlineResultId: optioneel element-ID voor inline resultaat in een modal.
     rollFormula(formulaStr, inlineResultId = null) {
-      const m = String(formulaStr).match(/^(\d+)d(\d+)([+-]\d+)?\s*(.*)/i);
-      if (!m) return;
-      const count     = parseInt(m[1]);
-      const sides     = parseInt(m[2]);
-      const bonus     = m[3] ? parseInt(m[3]) : 0;
-      const typeLabel = m[4]?.trim() || '';
+      const r = _rollFormula(formulaStr);
+      if (!r.ok) return;
 
-      const rolls     = Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1);
-      const diceTotal = rolls.reduce((a, b) => a + b, 0);
-      const total     = diceTotal + bonus;
-
-      const numEls = _els('result-num');
-      const lblEls = _els('result-label');
-      const boxEls = _els('result');
-
-      const bonusStr    = bonus !== 0 ? (bonus > 0 ? '+' : '') + bonus : '';
-      const dieLabel    = `${count}d${sides}${bonusStr}`;
-      const fullLabel   = typeLabel ? `${dieLabel} ${typeLabel}` : dieLabel;
-      const bonusPart   = bonus > 0 ? ` + ${bonus}` : bonus < 0 ? ` \u2212 ${Math.abs(bonus)}` : '';
-      const breakdown   = count > 1 ? `${rolls.join(' + ')}${bonusPart}` : `${rolls[0]}${bonusPart}`;
+      const critTag   = r.crit ? '  \u2736 Critical!' : r.fumble ? '  \u2715 Fumble!' : '';
+      const fullLabel = (r.label ? `${r.formula} ${r.label}` : r.formula) + critTag;
 
       // Inline resultaat tonen in modal (meteen, zonder animatie)
       if (inlineResultId) {
         const inlineEl = document.getElementById(inlineResultId);
         if (inlineEl) {
-          inlineEl.textContent = `\u2192 ${total}`;
+          inlineEl.textContent = `\u2192 ${r.total}`;
           inlineEl.classList.remove('dmg-result--flash');
           void inlineEl.offsetWidth; // reflow voor herstart animatie
           inlineEl.classList.add('dmg-result--flash');
+          return;   // bij inline-resultaat geen paneel-animatie
         }
       }
 
-      // Dice panel alleen openen als er geen inline resultaat is (kaartoverzicht)
-      if (!inlineResultId) {
-        document.getElementById('dice-panel')?.classList.add('open');
-      }
+      document.getElementById('dice-panel')?.classList.add('open');
 
-      const minRoll = count + bonus;
-      const maxRoll = count * sides + bonus;
+      const numEls = _els('result-num');
+      const lblEls = _els('result-label');
+      const boxEls = _els('result');
+      const span   = Math.max(1, r.tickMax - r.tickMin);
       _animate(numEls, lblEls, boxEls,
-        () => Math.floor(Math.random() * (maxRoll - minRoll + 1)) + minRoll,
-        total, `${fullLabel} \u2014 ${breakdown}`,
-        { sides, result: total, count, rolls, crit: false, fumble: false });
+        () => Math.floor(Math.random() * (span + 1)) + r.tickMin,
+        r.total, `${fullLabel} \u2014 ${r.breakdown}`,
+        { result: r.total, label: r.formula, crit: r.crit, fumble: r.fumble });
+    },
+
+    // Rolt de formule uit een invoerveld (paneel).
+    rollText(inputId) {
+      const el = document.getElementById(inputId);
+      const v = el && el.value;
+      if (v && v.trim()) this.rollFormula(v.trim());
     },
   };
 
   function _renderHistory() {
-    const html = _history.map(({ sides, result, count = 1, crit, fumble }) => {
+    const html = _history.map(({ sides, result, count = 1, crit, fumble, label }) => {
       const cls = crit ? ' dice-hist-crit' : fumble ? ' dice-hist-fumble' : '';
-      const lbl = sides === 100 ? '%' : sides;
-      const pfx = count > 1 ? `${count}d` : 'd';
-      return `<span class="dice-hist-chip${cls}">${pfx}${lbl}\u00b7${result}</span>`;
+      // Formule-entries (vrije roller) tonen hun formule; losse dobbelstenen d{n}.
+      const pfx = label != null
+        ? esc(label.length > 14 ? label.slice(0, 13) + '\u2026' : label)
+        : `${count > 1 ? count + 'd' : 'd'}${sides === 100 ? '%' : sides}`;
+      return `<span class="dice-hist-chip${cls}">${pfx}\u00b7${result}</span>`;
     }).join('');
     _els('history').forEach(el => { el.innerHTML = html; });
   }

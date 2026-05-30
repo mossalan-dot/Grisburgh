@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=201">
+  <link rel="stylesheet" href="/css/theme.css?v=202">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -422,6 +422,11 @@
       <button class="dice-btn dice-btn--featured" onclick="window.dice.roll(20)">d20</button>
       <button class="dice-btn" onclick="window.dice.roll(100)">d%</button>
     </div>
+    <div class="dice-formula">
+      <input id="dice-formula-input" class="dice-formula-input" type="text" autocomplete="off" spellcheck="false"
+        placeholder="bv. 1d20+5, 2d6+3 vuur, adv" onkeydown="if(event.key==='Enter')window.dice.rollText('dice-formula-input')">
+      <button class="dice-formula-btn" onclick="window.dice.rollText('dice-formula-input')">Rol</button>
+    </div>
     <div class="dice-result" id="dice-result">
       <div class="dice-result-num" id="dice-result-num">—</div>
       <div class="dice-result-label" id="dice-result-label">Kies een dobbelsteen</div>
@@ -457,6 +462,11 @@
       <button class="dice-btn dice-btn--featured" onclick="window.dice.rollDm(20)">d20</button>
       <button class="dice-btn" onclick="window.dice.rollDm(100)">d%</button>
     </div>
+    <div class="dice-formula">
+      <input id="dm-dice-formula-input" class="dice-formula-input" type="text" autocomplete="off" spellcheck="false"
+        placeholder="bv. 1d20+7, 8d6 fire, 4d6kh3" onkeydown="if(event.key==='Enter')window.dice.rollText('dm-dice-formula-input')">
+      <button class="dice-formula-btn" onclick="window.dice.rollText('dm-dice-formula-input')">Rol</button>
+    </div>
     <div class="dice-result" id="dm-dice-result">
       <div class="dice-result-num" id="dm-dice-result-num">—</div>
       <div class="dice-result-label" id="dm-dice-result-label">Kies een dobbelsteen</div>
@@ -476,6 +486,6 @@
   </div>
 
   <script type="module" src="/js/sound-manager.js?v=1"></script>
-  <script type="module" src="/js/app.js?v=234"></script>
+  <script type="module" src="/js/app.js?v=235"></script>
 </body>
 </html>

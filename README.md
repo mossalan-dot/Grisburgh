@@ -347,10 +347,16 @@ Toegankelijk via de ⚔-knop rechtsonder.
 
 - Goudkleurig knopje rechtsonder in het scherm — schuift een paneel omhoog
 - d4, d6, d8, d12, d20 en d% (percentagedés)
+- **Vrije-formule-invoer** — typ een worp en druk Enter: meerdere termen
+  (`1d8+1d6+3`), modifiers (`2d6+3`), losse getallen, **keep-highest/lowest**
+  (`4d6kh3`, `2d20kl1`), **voordeel/nadeel** (`1d20+5 adv` / `nadeel`) en een
+  vrij label erachter (bv. `8d6 vuur`). De uitslag toont de uitsplitsing
+  (afgevallen dobbelstenen apart) en markeert crit/fumble bij een enkele d20
 - Ticker-animatie bij elke gooi (versneld → vertraagd → uitkomst)
 - d20 = 20 → **Critical Hit!** (groen), d20 = 1 → **Critical Fail!** (rood)
-- Rolgeschiedenis van de laatste 10 gooien
-- Toegankelijk voor zowel DM als spelers
+- Rolgeschiedenis van de laatste 10 gooien (formules tonen hun formule)
+- Toegankelijk voor zowel DM als spelers; schade-knoppen op voorwerp- en
+  monster-kaartjes gebruiken dezelfde formule-roller
 
 ---
 
