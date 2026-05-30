@@ -3491,6 +3491,20 @@ function _invRenderDetail() {
   else _invRenderEntityDetail(panel, it);
 }
 
+// Normaliseer een rariteit (NL/EN) naar een sleutel voor de knapzak-styling.
+function _invRarityKey(r) {
+  if (!r) return '';
+  const map = {
+    'common':'common','gewoon':'common',
+    'uncommon':'uncommon','ongewoon':'uncommon',
+    'rare':'rare','zeldzaam':'rare',
+    'very rare':'very-rare','zeer zeldzaam':'very-rare',
+    'legendary':'legendary','legendarisch':'legendary',
+    'artifact':'legendary','artefact':'legendary',
+  };
+  return map[String(r).trim().toLowerCase()] || '';
+}
+
 function _invRenderEntityDetail(panel, it) {
   const seed = it.id ? it.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) : 42;
   // Grotere rotatie-range — kaartjes zien eruit alsof ze willekeurig neergelegd zijn
@@ -3500,13 +3514,14 @@ function _invRenderEntityDetail(panel, it) {
   const typeIcon = _invTypeEmoji(it);
   const desc = it.data?.desc || '';
   const flavour = it.data?.flavour || '';
-  const rarity = it.data?.rarity || '';
+  const rarity = it.data?.rariteit || it.data?.rarity || '';
+  const rarityKey = _invRarityKey(rarity);
   const rarityLabel = { Common:'Gewoon', Uncommon:'Ongewoon', Rare:'Zeldzaam', 'Very Rare':'Zeer zeldzaam', Legendary:'Legendarisch', Artifact:'Artefact' }[rarity] || rarity;
   const paperBgs = ['#f8f3e5', '#f5eed6', '#f2ecd4', '#faf6eb'];
   const bg = paperBgs[seed % paperBgs.length];
   const clipPath = _invTornEdgePath(seed);
   panel.innerHTML = `
-    <div class="inv-det-page" style="transform:rotate(${rot}deg);clip-path:${clipPath};background:${bg}">
+    <div class="inv-det-page" style="transform:rotate(${rot}deg);clip-path:${clipPath};background:${bg}"${rarityKey ? ` data-rarity="${rarityKey}"` : ''}>
       <div class="inv-img-zone inv-img-zone--sheet">
         <img class="inv-det-img" src="${api.fileUrl(it.id)}" alt="${esc(it.name)}"
           onload="this.closest('.inv-img-zone').classList.add('inv-has-img')"
@@ -3521,7 +3536,7 @@ function _invRenderEntityDetail(panel, it) {
         <div class="inv-det-name">${esc(it.name)}</div>
         <div class="inv-det-meta-row">
           ${typeLabel ? `<span class="inv-det-type-badge">${esc(typeLabel)}</span>` : ''}
-          ${rarityLabel ? `<span class="inv-det-rarity">${esc(rarityLabel)}</span>` : ''}
+          ${rarityLabel ? `<span class="inv-det-rarity"${rarityKey ? ` data-rarity="${rarityKey}"` : ''}>${rarityKey ? '<span class="inv-rarity-gem" aria-hidden="true">◆</span>' : ''}${esc(rarityLabel)}</span>` : ''}
         </div>
         ${desc ? `<div class="inv-det-desc">${_spellMd(desc)}</div>` : ''}
         ${flavour ? `<blockquote class="inv-det-flavour">${esc(flavour)}</blockquote>` : ''}

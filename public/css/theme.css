@@ -17060,3 +17060,25 @@ input.alm-cfg-input[type="color"] { padding: 2px; height: 36px; cursor: pointer;
 .detail-item-rarity[data-rarity="rare"]       { color: #3a7bd5; }
 .detail-item-rarity[data-rarity="very-rare"]  { color: #9b59b6; }
 .detail-item-rarity[data-rarity="legendary"]  { color: #c47e1a; }
+
+/* ── Zeldzaamheid in de knapzak (boedelinventaris) ── */
+.inv-det-rarity[data-rarity] {
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 9px;
+  border-radius: 11px;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.inv-rarity-gem { font-size: 8px; line-height: 1; transform: translateY(-0.5px); }
+.inv-det-rarity[data-rarity="common"]    { color: #8a7a55; }
+.inv-det-rarity[data-rarity="uncommon"]  { color: #3f9a4e; }
+.inv-det-rarity[data-rarity="rare"]      { color: #3a7bd5; }
+.inv-det-rarity[data-rarity="very-rare"] { color: #9b59b6; }
+.inv-det-rarity[data-rarity="legendary"] { color: #c47e1a; }
+.inv-det-rarity[data-rarity="very-rare"],
+.inv-det-rarity[data-rarity="legendary"] { box-shadow: 0 0 9px -3px currentColor; }
