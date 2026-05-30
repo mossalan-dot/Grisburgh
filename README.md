@@ -228,6 +228,17 @@ Locaties en personages van het type **Verkoper** kunnen een winkelconfiguratie h
 - Buiten gevecht: geluid speelt lokaal op het apparaat van de speler
 - Tijdens gevecht: geluid wordt gebroadcast naar de DM-laptop
 
+### Progressie (skill trees)
+
+Onderaan het dashboard verschijnt automatisch een **progressie-tijdlijn (1–20)** op basis van de ingevulde **klasse**, **subklasse**, **soort** en **level** — geen handmatige invoer meer nodig.
+
+- Per level zie je wat je personage ontgrendelt: **class- en subclass-features** (naam + korte beschrijving), Ability Score Improvements, de subklasse-keuze en de Epic Boon
+- Reeds bereikte levels zijn gemarkeerd, het huidige level uitgelicht en toekomstige levels als preview
+- **Soort/ras-traits** verschijnen in een apart blok
+- **Tolerante naam-matching** (hoofdletter-ongevoelig, met aliassen, bijv. "Magiër" → Wizard), plus multiclass-ondersteuning
+- De data is een **samengevat 2024-startpunt** (SRD 5.2, CC BY 4.0) in `public/data/class-progression.json` met alle 12 klassen + de SRD-subklasse en de kern-soorten
+- De **DM kan de progressie bewerken** (klassen, subklassen, soorten, features per level toevoegen/aanpassen) via de editor; aanpassingen worden per campagne opgeslagen en zijn terug te zetten naar de startdata
+
 ---
 
 ## Partybalk

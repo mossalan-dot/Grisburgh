@@ -82,6 +82,11 @@ export const api = {
   deleteSessieLog: (id) => request(`/sessieLog/${id}`, { method: 'DELETE' }),
   resetChapterImages: (key) => request(`/sessieLog/chapter/${encodeURIComponent(key)}/reset-images`, { method: 'PUT' }),
 
+  // Klasse-progressie (skill trees)
+  progression:      ()     => request('/progression'),
+  saveProgression:  (data) => request('/progression', { method: 'PUT', body: JSON.stringify(data) }),
+  resetProgression: ()     => request('/progression', { method: 'DELETE' }),
+
   // Meta
   meta: () => request('/meta'),
   saveHoofdstuk:  (key, data)   => request(`/meta/hoofdstuk/${key}`, { method: 'PUT', body: JSON.stringify(data) }),
