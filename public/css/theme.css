@@ -16695,3 +16695,104 @@ body:has(#dm-dice-panel.open) #dm-dice-fab { display: none !important; }
 .inv-det-rarity[data-rarity="legendary"] { color: #c47e1a; }
 .inv-det-rarity[data-rarity="very-rare"],
 .inv-det-rarity[data-rarity="legendary"] { box-shadow: 0 0 9px -3px currentColor; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Progressie / skill trees op het personagetabblad
+   ══════════════════════════════════════════════════════════════════ */
+#dash-progressie { margin-top: 18px; }
+.prog-panel {
+  background: linear-gradient(170deg, #faf3df 0%, #f1e6c8 100%);
+  border: 1px solid var(--color-room-border);
+  border-radius: 14px;
+  padding: 14px 16px 16px;
+  box-shadow: 0 4px 16px rgba(90,64,30,0.1);
+}
+.prog-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.prog-title { font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; color: #3a2a0e; margin: 0; display: flex; align-items: center; gap: 8px; }
+.prog-title .icon { width: 16px; height: 16px; color: var(--color-gold-dim); }
+.prog-head-right { display: flex; align-items: center; gap: 8px; }
+.prog-bron { font-family: 'Cinzel', serif; font-size: 8.5px; letter-spacing: 1px; text-transform: uppercase; color: #a07a30; background: rgba(184,134,11,0.12); border: 1px solid rgba(184,134,11,0.3); border-radius: 10px; padding: 2px 8px; cursor: help; }
+.prog-edit-btn { font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; color: #4a3418; background: rgba(196,168,122,0.16); border: 1px solid rgba(196,168,122,0.4); border-radius: 7px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.prog-edit-btn:hover { background: rgba(184,134,11,0.18); border-color: var(--color-gold-dim); }
+.prog-edit-btn .icon { width: 12px; height: 12px; }
+.prog-missing { font-family: 'IM Fell English', serif; font-style: italic; font-size: 13px; color: #8a7050; padding: 8px 4px; }
+
+.prog-sub-title { font-family: 'Cinzel', serif; font-weight: 700; font-size: 13.5px; color: #5a3a10; display: flex; align-items: center; gap: 7px; margin: 12px 0 7px; }
+.prog-sub-title .icon { width: 14px; height: 14px; }
+.prog-sub-meta { font-family: 'IM Fell English', serif; font-style: italic; font-size: 11.5px; color: #9a8458; font-weight: 400; letter-spacing: 0.3px; }
+
+/* Soort-traits */
+.prog-traits { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
+.prog-trait { background: rgba(255,253,246,0.6); border: 1px solid rgba(196,168,122,0.4); border-radius: 8px; padding: 6px 9px; display: flex; flex-direction: column; }
+.prog-trait-name { font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: #3a2a0e; }
+.prog-trait-desc { font-family: 'Crimson Text', serif; font-size: 12.5px; color: #5a4632; line-height: 1.35; margin-top: 1px; }
+.prog-lvl-chip { font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: 0.5px; color: #a07a30; }
+.prog-trait.prog-locked { opacity: 0.55; }
+
+/* Klasse-tijdlijn */
+.prog-class--multi { margin-top: 10px; padding-top: 8px; border-top: 1px dashed rgba(196,168,122,0.5); }
+.prog-timeline { position: relative; padding-left: 6px; }
+.prog-row { display: flex; gap: 12px; padding: 5px 0; position: relative; }
+.prog-lvl { flex-shrink: 0; width: 30px; display: flex; justify-content: center; position: relative; }
+.prog-lvl::before { content: ''; position: absolute; top: 0; bottom: -10px; left: 50%; width: 2px; background: rgba(196,168,122,0.45); transform: translateX(-50%); }
+.prog-row:last-child .prog-lvl::before { display: none; }
+.prog-lvl-num {
+  position: relative; z-index: 1;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 12px;
+  background: #efe3c5; border: 2px solid rgba(196,168,122,0.6); color: #6a5430;
+}
+.prog-unlocked .prog-lvl-num { background: linear-gradient(160deg, #e9cf86, #cda83f); border-color: var(--color-gold-dim); color: #4a3410; }
+.prog-current .prog-lvl-num { box-shadow: 0 0 0 3px rgba(184,134,11,0.35); border-color: var(--color-gold-bright); }
+.prog-preview { opacity: 0.6; }
+.prog-feats { flex: 1; display: flex; flex-direction: column; gap: 4px; padding-top: 1px; }
+.prog-feat { background: rgba(255,253,246,0.55); border: 1px solid rgba(196,168,122,0.35); border-radius: 7px; padding: 5px 9px; }
+.prog-feat--sub { border-left: 3px solid #7a5aaa; }
+.prog-feat--shared { border-left: 3px solid rgba(150,130,90,0.6); background: rgba(196,168,122,0.1); }
+.prog-feat-name { font-family: 'Cinzel', serif; font-size: 12.5px; font-weight: 700; color: #3a2a0e; display: block; }
+.prog-feat-tag { font-family: 'Cinzel', serif; font-size: 7.5px; letter-spacing: 0.5px; text-transform: uppercase; color: #7a5aaa; background: rgba(122,90,170,0.12); border-radius: 8px; padding: 1px 6px; vertical-align: middle; }
+.prog-feat-desc { font-family: 'Crimson Text', serif; font-size: 13px; color: #5a4632; line-height: 1.4; }
+.prog-current .prog-feat { border-color: rgba(184,134,11,0.5); }
+
+/* ── Editor (in een brede modal) ── */
+.modal.modal--wide { max-width: min(1040px, 95vw) !important; width: min(1040px, 95vw); }
+.prog-ed { display: flex; gap: 14px; max-height: 64vh; }
+.prog-ed-side { flex-shrink: 0; width: 170px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.prog-ed-group-head { display: flex; align-items: center; justify-content: space-between; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #8a6a30; margin-bottom: 5px; }
+.prog-ed-add { background: rgba(196,168,122,0.16); border: 1px solid rgba(196,168,122,0.4); border-radius: 6px; color: #6a4818; cursor: pointer; padding: 2px 6px; display: inline-flex; align-items: center; gap: 4px; font-family: 'Cinzel', serif; font-size: 10px; }
+.prog-ed-add .icon { width: 11px; height: 11px; }
+.prog-ed-item { display: block; width: 100%; text-align: left; font-family: 'Crimson Text', serif; font-size: 13.5px; color: #4a3418; background: rgba(255,253,246,0.5); border: 1px solid rgba(196,168,122,0.35); border-radius: 6px; padding: 5px 9px; margin-bottom: 3px; cursor: pointer; }
+.prog-ed-item:hover { background: rgba(255,248,230,0.8); }
+.prog-ed-item.active { background: var(--color-gold-dim); color: #fdf8ea; border-color: #8a6206; font-weight: 700; }
+.prog-ed-empty { font-family: 'IM Fell English', serif; font-style: italic; font-size: 12px; color: #9a8458; padding: 6px; }
+.prog-ed-main { flex: 1; overflow-y: auto; padding-right: 4px; }
+.prog-ed-main-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.prog-ed-main-head h4 { font-family: 'Cinzel', serif; font-size: 15px; color: #3a2a0e; margin: 0; }
+.prog-ed-main-head h4 span { font-family: 'IM Fell English', serif; font-style: italic; font-size: 11px; color: #9a8458; font-weight: 400; }
+.prog-ed-removeentry { font-family: 'Cinzel', serif; font-size: 10px; color: #9a3a2a; background: rgba(154,58,42,0.1); border: 1px solid rgba(154,58,42,0.3); border-radius: 6px; padding: 4px 8px; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+.prog-ed-removeentry .icon { width: 11px; height: 11px; }
+.prog-ed-lvl { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px solid rgba(196,168,122,0.25); }
+.prog-ed-lvl--empty { align-items: center; opacity: 0.7; }
+.prog-ed-lvlnum { flex-shrink: 0; width: 34px; font-family: 'Cinzel', serif; font-weight: 700; font-size: 12px; color: #6a5430; padding-top: 5px; }
+.prog-ed-feats { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.prog-ed-feat { display: flex; gap: 5px; align-items: center; }
+.prog-ed-in { font-family: 'Crimson Text', serif; font-size: 13px; color: #2a1a08; background: #fffdf6; border: 1px solid var(--color-room-border); border-radius: 6px; padding: 4px 7px; outline: none; }
+.prog-ed-name { flex: 0 0 34%; font-weight: 600; }
+.prog-ed-desc { flex: 1; }
+.prog-ed-in:focus { border-color: var(--color-gold-bright); }
+.prog-ed-del { width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; background: rgba(154,58,42,0.1); border: 1px solid rgba(154,58,42,0.25); border-radius: 6px; color: #9a3a2a; cursor: pointer; }
+.prog-ed-del .icon { width: 11px; height: 11px; }
+.prog-ed-addfeat { font-family: 'Cinzel', serif; font-size: 10px; color: #6a4818; background: rgba(196,168,122,0.12); border: 1px dashed rgba(196,168,122,0.5); border-radius: 6px; padding: 3px 8px; cursor: pointer; align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; }
+.prog-ed-addfeat .icon { width: 10px; height: 10px; }
+.prog-ed-subs { margin-top: 14px; border-top: 1px solid rgba(196,168,122,0.4); padding-top: 10px; }
+.prog-ed-subs-head { display: flex; align-items: center; justify-content: space-between; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #8a6a30; margin-bottom: 6px; }
+.prog-ed-subblock { background: rgba(122,90,170,0.05); border: 1px solid rgba(122,90,170,0.2); border-radius: 8px; padding: 8px; margin-bottom: 8px; }
+.prog-ed-subhead { display: flex; align-items: center; justify-content: space-between; font-family: 'Cinzel', serif; font-weight: 700; font-size: 12.5px; color: #5a3a7a; margin-bottom: 5px; }
+.prog-ed-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(196,168,122,0.4); }
+.prog-ed-save { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; color: #fdf8ea; background: linear-gradient(to bottom, #b8860b, #9a7008); border: 1px solid #8a6206; border-radius: 8px; padding: 8px 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.prog-ed-save:hover { background: linear-gradient(to bottom, #cda021, #aa7d10); }
+.prog-ed-save .icon { width: 13px; height: 13px; }
+.prog-ed-reset { font-family: 'Cinzel', serif; font-size: 11px; color: #6a4818; background: rgba(196,168,122,0.14); border: 1px solid rgba(196,168,122,0.4); border-radius: 7px; padding: 6px 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.prog-ed-reset .icon { width: 12px; height: 12px; }
+@media (max-width: 640px) { .prog-ed { flex-direction: column; max-height: none; } .prog-ed-side { width: 100%; flex-direction: row; flex-wrap: wrap; } }

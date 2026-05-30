@@ -5,6 +5,7 @@ import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { initGlossary } from "./glossary.js?v=1";
+import { renderProgressie } from './render-progressie.js?v=1';
 import { initSocket } from "./socket-client.js?v=13";
 import { initDmPanel } from "./dm-panel.js?v=52";
 
@@ -1073,7 +1074,7 @@ async function playerLogout() {
 // ── Modal ──
 function openModal(title, subtitle, bodyHtml) {
   const modal = document.querySelector('#modal-overlay .modal');
-  if (modal) modal.style.minHeight = '';   // reset bij heropenen
+  if (modal) { modal.style.minHeight = ''; modal.classList.remove('modal--wide'); }   // reset bij heropenen
   // Annuleer eventueel lopende portret-load van vorige modal
   const _mPortraitWrap = document.getElementById('m-portrait-wrap');
   const _mPortraitImg  = document.getElementById('m-portrait');
@@ -4067,6 +4068,11 @@ async function renderMijnKarakter(opts = {}) {
   // Bookmarks in state cachen zodat renderCard ze kan lezen
   state.bookmarks = Array.isArray(playerProfile.bookmarks) ? playerProfile.bookmarks : [];
 
+  // Sla context op voor lazy-render van het progressie-subtabblad
+  window._lastPlayerProfile = playerProfile;
+  window._lastPlayerEntity  = entity;
+  window._lastCharId        = charId;
+
   // Geclaimde & stapelbare voorwerpen van deze speler
   const myItemMap = {}; // itemId → { qty }
   for (const [itemId, ownerData] of Object.entries(ownershipData.owners || {})) {
@@ -4297,6 +4303,8 @@ async function renderMijnKarakter(opts = {}) {
           data-tab="personage" onclick="window._setPlayerSubTab('personage')">${icon('swords')} Personage</button>
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
           data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">${icon('scroll-text')} Boedel</button>
+        <button class="player-subtab${_playerSubTab === 'progressie' ? ' active' : ''}"
+          data-tab="progressie" onclick="window._setPlayerSubTab('progressie')">${icon('clipboard-list')} Progressie</button>
         <button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
           data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('book-open')} Spreukenboek</button>
         <button class="player-subtab${_playerSubTab === 'berichten' ? ' active' : ''}"
@@ -5078,6 +5086,11 @@ async function renderMijnKarakter(opts = {}) {
             <button class="player-dash-add-item-btn" onclick="window._dashAddItem()">+</button>
           </div>
         </div>
+      </div>
+
+      <!-- ═══ TAB: Progressie ═══ -->
+      <div id="pst-progressie" class="player-subtab-panel${_playerSubTab !== 'progressie' ? ' hidden' : ''}">
+        <!-- Progressie wordt lazy geladen bij tab-switch -->
       </div>
 
       <!-- ═══ TAB: Mijn spreukenboek ═══ -->
@@ -5891,7 +5904,7 @@ async function renderMijnKarakter(opts = {}) {
   window._setPlayerSubTab = function(tab) {
     _playerSubTab = tab;
     localStorage.setItem('_playerSubTab', tab);
-    ['party', 'personage', 'knapzak', 'spreukenboek', 'berichten'].forEach(t => {
+    ['party', 'personage', 'knapzak', 'progressie', 'spreukenboek', 'berichten'].forEach(t => {
       const panel = document.getElementById('pst-' + t);
       if (panel) panel.classList.toggle('hidden', t !== tab);
       const btn = document.querySelector(`.player-subtab[data-tab="${t}"]`);
@@ -5902,6 +5915,26 @@ async function renderMijnKarakter(opts = {}) {
     if (tab === 'berichten') {
       window._berichtenUnread = 0;
       window._updateBerichtenBadge?.();
+    }
+    // Progressie lazy renderen bij eerste keer of na data-update
+    if (tab === 'progressie') {
+      const _pm = document.getElementById('pst-progressie');
+      if (_pm) {
+        const _pp = window._lastPlayerProfile || {};
+        const _pe = window._lastPlayerEntity || {};
+        renderProgressie(_pm, {
+          klasse:           _pp.klasse || _pe?.data?.klasse || '',
+          klasseLevel:      parseInt(_pp.klasseLevel) || parseInt(_pp.level) || 1,
+          level:            parseInt(_pp.level) || 1,
+          subclass:         _pp.subclass || '',
+          multiclass:       _pp.multiclass === 'true' || _pp.multiclass === true,
+          multiKlasse:      _pp.multiKlasse || '',
+          multiKlasseLevel: parseInt(_pp.multiKlasseLevel) || 0,
+          species:          _pe?.data?.ras || _pp.ras || '',
+          charId:           window._lastCharId || null,
+          favorites:        (() => { try { return JSON.parse(_pp.featFavorites || '[]'); } catch { return []; } })(),
+        });
+      }
     }
     // Auto-open spellbook when navigating to spreukenboek tab
     if (tab === 'spreukenboek' && _sbState.spells.length > 0) {
@@ -6593,6 +6626,7 @@ async function renderMijnKarakter(opts = {}) {
       );
     } catch { /* ok */ }
   };
+
 }
 
 async function renderSpelersTab(selectedCharId) {

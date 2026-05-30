@@ -1,0 +1,308 @@
+{
+  "bron": "Samengevat naar het 2024-spelsysteem (D&D 2024 / SRD 5.2, CC BY 4.0). Een startpunt — niet woordelijk en niet uitputtend. Controleer en pas aan in de DM-editor.",
+  "samenvatting": true,
+  "gedeeld": {
+    "asiLevels": [4, 8, 12, 16],
+    "subclassLevel": 3,
+    "epicBoonLevel": 19
+  },
+  "classes": {
+    "Barbarian": {
+      "subclassLabel": "Primal Path", "subclassLevel": 3,
+      "aliassen": ["barbaar"],
+      "subclassDefault": "Path of the Berserker",
+      "levels": {
+        "1": [{"name":"Rage","desc":"Ga in Rage: bonusschade bij melee, voordeel op Strength-checks/-saves en weerstand tegen bludgeoning/piercing/slashing."},{"name":"Unarmored Defense","desc":"Zonder harnas is je AC 10 + Dex-mod + Con-mod."},{"name":"Weapon Mastery","desc":"Gebruik de mastery-eigenschap van 2 wapens naar keuze."}],
+        "2": [{"name":"Danger Sense","desc":"Voordeel op Dex-saves tegen effecten die je kunt zien."},{"name":"Reckless Attack","desc":"Val roekeloos aan voor voordeel — maar aanvallers krijgen ook voordeel op jou."}],
+        "3": [{"name":"Primal Knowledge","desc":"Extra skill-proficiency en je kunt bepaalde checks met Strength doen tijdens Rage."}],
+        "5": [{"name":"Extra Attack","desc":"Val tweemaal aan met de Attack-actie."},{"name":"Fast Movement","desc":"+10 voet snelheid zonder zwaar harnas."}],
+        "7": [{"name":"Feral Instinct","desc":"Voordeel op initiatief."},{"name":"Instinctive Pounce","desc":"Beweeg de helft van je snelheid als je Rage ingaat."}],
+        "9": [{"name":"Brutal Strike","desc":"Sla Reckless Attack-voordeel af voor extra schade en een hindereffect."}],
+        "11": [{"name":"Relentless Rage","desc":"Met een Con-save blijf je op 1 HP in plaats van naar 0 te gaan."}],
+        "13": [{"name":"Improved Brutal Strike","desc":"Extra, sterkere Brutal Strike-opties."}],
+        "15": [{"name":"Persistent Rage","desc":"Je Rage eindigt niet vroegtijdig en je kunt 'm gratis hernieuwen."}],
+        "18": [{"name":"Indomitable Might","desc":"Een Strength-check is minimaal gelijk aan je Strength-score."}],
+        "20": [{"name":"Primal Champion","desc":"+4 op Strength en Constitution (tot maximaal 25)."}]
+      },
+      "subclasses": {
+        "Path of the Berserker": {"levels": {
+          "3": [{"name":"Frenzy","desc":"Tijdens Rage extra schade als je Brutal Strike inzet."}],
+          "6": [{"name":"Mindless Rage","desc":"Je kunt tijdens Rage niet charmed of frightened worden."}],
+          "10": [{"name":"Retaliation","desc":"Als reactie terugslaan wanneer een vijand vlakbij je raakt."}],
+          "14": [{"name":"Intimidating Presence","desc":"Jaag wezens in de buurt angst aan."}]
+        }}
+      }
+    },
+    "Bard": {
+      "subclassLabel": "Bard College", "subclassLevel": 3,
+      "subclassDefault": "College of Lore",
+      "levels": {
+        "1": [{"name":"Spellcasting","desc":"Cast Bard-spreuken met Charisma."},{"name":"Bardic Inspiration","desc":"Geef een bondgenoot een Bardic Inspiration-die (d6) om aan een worp toe te voegen."}],
+        "2": [{"name":"Expertise","desc":"Verdubbel je proficiency op twee skills."},{"name":"Jack of All Trades","desc":"Halve proficiency op checks waarin je niet proficient bent."}],
+        "3": [{"name":"Expertise","desc":"Nog twee skills met verdubbelde proficiency."}],
+        "5": [{"name":"Font of Inspiration","desc":"Bardic Inspiration herstelt op een Short of Long Rest; de die groeit (d8)."}],
+        "7": [{"name":"Countercharm","desc":"Geef bondgenoten voordeel tegen frightened en charmed."}],
+        "9": [{"name":"Expertise / grotere inspiratie","desc":"Bardic Inspiration-die wordt d10."}],
+        "10": [{"name":"Magical Secrets","desc":"Leer spreuken uit de Cleric-, Druid- en Wizard-lijsten."}],
+        "15": [{"name":"Grotere inspiratie","desc":"Bardic Inspiration-die wordt d12."}],
+        "18": [{"name":"Superior Inspiration","desc":"Krijg Bardic Inspiration terug bij initiatief als je er geen meer hebt."}],
+        "20": [{"name":"Words of Creation","desc":"Je kent Power Word Heal en Power Word Kill."}]
+      },
+      "subclasses": {
+        "College of Lore": {"levels": {
+          "3": [{"name":"Bonus Proficiencies","desc":"Proficiency in drie extra skills."},{"name":"Cutting Words","desc":"Gebruik Bardic Inspiration als reactie om de worp van een vijand te verlagen."}],
+          "6": [{"name":"Magical Discoveries","desc":"Leer spreuken uit andere klassenlijsten."}],
+          "14": [{"name":"Peerless Skill","desc":"Gebruik Bardic Inspiration op je eigen checks en aanvallen."}]
+        }}
+      }
+    },
+    "Cleric": {
+      "subclassLabel": "Divine Domain", "subclassLevel": 3,
+      "aliassen": ["priester","klerk"],
+      "subclassDefault": "Life Domain",
+      "levels": {
+        "1": [{"name":"Spellcasting","desc":"Cast Cleric-spreuken met Wisdom."},{"name":"Divine Order","desc":"Kies Protector (wapen/harnas) of Thaumaturge (extra cantrip & kennis)."}],
+        "2": [{"name":"Channel Divinity","desc":"Kanaliseer goddelijke energie, o.a. Turn Undead en Divine Spark."}],
+        "5": [{"name":"Sear Undead","desc":"Turn Undead doet ook radiant schade."}],
+        "7": [{"name":"Blessed Strikes","desc":"Voeg extra radiant/necrotic schade toe of versterk een cantrip."}],
+        "10": [{"name":"Divine Intervention","desc":"Roep de hulp van je god aan met een gegarandeerd effect."}],
+        "14": [{"name":"Improved Blessed Strikes","desc":"Sterkere versie van Blessed Strikes."}],
+        "20": [{"name":"Greater Divine Intervention","desc":"Divine Intervention wordt krachtiger en herstelt sneller."}]
+      },
+      "subclasses": {
+        "Life Domain": {"levels": {
+          "3": [{"name":"Disciple of Life","desc":"Genezingsspreuken herstellen extra HP."},{"name":"Life Domain Spells","desc":"Altijd voorbereide domeinspreuken (o.a. Bless, Cure Wounds)."}],
+          "6": [{"name":"Channel Divinity: Preserve Life","desc":"Verdeel genezing over wezens in de buurt."}],
+          "17": [{"name":"Supreme Healing","desc":"Genezingsdobbelstenen tellen als hun maximum."}]
+        }}
+      }
+    },
+    "Druid": {
+      "subclassLabel": "Druid Circle", "subclassLevel": 3,
+      "subclassDefault": "Circle of the Land",
+      "levels": {
+        "1": [{"name":"Spellcasting","desc":"Cast Druid-spreuken met Wisdom."},{"name":"Druidic","desc":"Je kent de geheime taal Druidic."},{"name":"Wild Companion","desc":"Roep met Wild Shape een familiar op."}],
+        "2": [{"name":"Wild Shape","desc":"Verander in een dier; gebruikt twee keer per Short/Long Rest."}],
+        "5": [{"name":"Wild Resurgence","desc":"Wissel tussen spell slots en Wild Shape-gebruik."}],
+        "7": [{"name":"Elemental Fury","desc":"Extra schade bij elementaire spreuken of Wild Shape-aanvallen."}],
+        "15": [{"name":"Improved Elemental Fury","desc":"Sterkere Elemental Fury."}],
+        "18": [{"name":"Beast Spells","desc":"Cast spreuken terwijl je in Wild Shape bent."}],
+        "20": [{"name":"Archdruid","desc":"Onbeperkt Wild Shape; vertraag veroudering."}]
+      },
+      "subclasses": {
+        "Circle of the Land": {"levels": {
+          "3": [{"name":"Circle of the Land Spells","desc":"Extra spreuken op basis van je gekozen landschap."},{"name":"Land's Aid","desc":"Verbruik Wild Shape voor genezing en necrotic schade in een gebied."}],
+          "6": [{"name":"Natural Recovery","desc":"Herstel spell slots op een Short Rest."}],
+          "10": [{"name":"Nature's Ward","desc":"Immuun voor poisoned en weerstand tegen een schadetype van je landschap."}],
+          "14": [{"name":"Nature's Sanctuary","desc":"Roep een beschermend terrein op dat bondgenoten helpt."}]
+        }}
+      }
+    },
+    "Fighter": {
+      "subclassLabel": "Martial Archetype", "subclassLevel": 3,
+      "aliassen": ["krijger","vechter"],
+      "subclassDefault": "Champion",
+      "levels": {
+        "1": [{"name":"Fighting Style","desc":"Kies een gevechtsstijl (feat)."},{"name":"Second Wind","desc":"Herstel als bonusactie wat HP."},{"name":"Weapon Mastery","desc":"Gebruik de mastery van 3 wapens."}],
+        "2": [{"name":"Action Surge","desc":"Neem een extra actie in je beurt."},{"name":"Tactical Mind","desc":"Verbruik Second Wind om een mislukte check te helpen."}],
+        "5": [{"name":"Extra Attack","desc":"Val tweemaal aan met de Attack-actie."},{"name":"Tactical Shift","desc":"Beweeg gratis bij Second Wind."}],
+        "9": [{"name":"Indomitable","desc":"Gooi een mislukte saving throw over."},{"name":"Tactical Master","desc":"Wissel de mastery-eigenschap van je wapen."}],
+        "11": [{"name":"Two Extra Attacks","desc":"Val driemaal aan met de Attack-actie."}],
+        "13": [{"name":"Indomitable (2x)","desc":"Twee keer per rust een save herkansen; Studied Attacks."}],
+        "17": [{"name":"Action Surge (2x)","desc":"Twee keer Action Surge per rust."},{"name":"Indomitable (3x)","desc":"Drie keer per rust een save herkansen."}],
+        "20": [{"name":"Three Extra Attacks","desc":"Val viermaal aan met de Attack-actie."}]
+      },
+      "subclasses": {
+        "Champion": {"levels": {
+          "3": [{"name":"Improved Critical","desc":"Je raakt kritiek bij een 19–20."},{"name":"Remarkable Athlete","desc":"Voordeel op initiatief en Strength (Athletics); extra beweging bij een crit."}],
+          "7": [{"name":"Additional Fighting Style","desc":"Een tweede gevechtsstijl."}],
+          "10": [{"name":"Heroic Warrior","desc":"Krijg regelmatig Heroic Inspiration in gevecht."}],
+          "15": [{"name":"Superior Critical","desc":"Je raakt kritiek bij een 18–20."}],
+          "18": [{"name":"Survivor","desc":"Voordeel op death saves en herstel HP elke beurt als je gewond bent."}]
+        }}
+      }
+    },
+    "Monk": {
+      "subclassLabel": "Monastic Tradition", "subclassLevel": 3,
+      "subclassDefault": "Warrior of the Open Hand",
+      "levels": {
+        "1": [{"name":"Martial Arts","desc":"Ongewapend vechten met Dex; bonusactie-aanval."},{"name":"Unarmored Defense","desc":"AC = 10 + Dex-mod + Wis-mod."}],
+        "2": [{"name":"Monk's Focus","desc":"Focus Points (Ki): Flurry of Blows, Patient Defense, Step of the Wind."},{"name":"Unarmored Movement","desc":"+10 voet snelheid zonder harnas."},{"name":"Uncanny Metabolism","desc":"Herstel focus en wat HP bij initiatief."}],
+        "3": [{"name":"Deflect Attacks","desc":"Verminder schade van aanvallen als reactie."}],
+        "4": [{"name":"Slow Fall","desc":"Verminder valschade."}],
+        "5": [{"name":"Extra Attack","desc":"Val tweemaal aan."},{"name":"Stunning Strike","desc":"Verbruik focus om een doelwit te stunnen."}],
+        "6": [{"name":"Empowered Strikes","desc":"Je ongewapende aanvallen tellen als magisch (force-schade optioneel)."}],
+        "7": [{"name":"Evasion","desc":"Bij een Dex-save voor halve schade: bij succes geen, bij falen half."}],
+        "9": [{"name":"Acrobatic Movement","desc":"Beweeg langs muren en over water."}],
+        "10": [{"name":"Heightened Focus","desc":"Sterkere Flurry/Patient Defense/Step of the Wind."},{"name":"Self-Restoration","desc":"Verwijder charmed/frightened/poisoned bij begin beurt."}],
+        "13": [{"name":"Deflect Energy","desc":"Deflect Attacks werkt nu ook tegen alle schadetypes."}],
+        "14": [{"name":"Disciplined Survivor","desc":"Proficiency op alle saves; verbruik focus om te herrollen."}],
+        "15": [{"name":"Perfect Focus","desc":"Herstel focus als je met weinig de strijd ingaat."}],
+        "18": [{"name":"Superior Defense","desc":"Verbruik focus voor weerstand tegen alle schade behalve force."}],
+        "20": [{"name":"Body and Mind","desc":"+4 Dexterity en Wisdom (tot 25)."}]
+      },
+      "subclasses": {
+        "Warrior of the Open Hand": {"levels": {
+          "3": [{"name":"Open Hand Technique","desc":"Flurry of Blows kan ook duwen, omverwerpen of reacties blokkeren."}],
+          "6": [{"name":"Wholeness of Body","desc":"Genees jezelf met focus."}],
+          "11": [{"name":"Fleet Step","desc":"Gebruik Step of the Wind gratis bij een andere actie."}],
+          "17": [{"name":"Quivering Palm","desc":"Plaats trillingen die later verwoestende schade kunnen doen."}]
+        }}
+      }
+    },
+    "Paladin": {
+      "subclassLabel": "Sacred Oath", "subclassLevel": 3,
+      "aliassen": ["paladijn"],
+      "subclassDefault": "Oath of Devotion",
+      "levels": {
+        "1": [{"name":"Lay on Hands","desc":"Een poel genezing om HP te herstellen en ziekte/gif te genezen."},{"name":"Spellcasting","desc":"Cast Paladin-spreuken met Charisma."},{"name":"Weapon Mastery","desc":"Gebruik de mastery van 2 wapens."}],
+        "2": [{"name":"Fighting Style","desc":"Kies een gevechtsstijl."},{"name":"Divine Smite","desc":"Verbruik een spell slot voor extra radiant schade bij een rake aanval."}],
+        "3": [{"name":"Channel Divinity","desc":"Goddelijke kracht op basis van je Oath."}],
+        "5": [{"name":"Extra Attack","desc":"Val tweemaal aan."},{"name":"Faithful Steed","desc":"Roep altijd Find Steed op."}],
+        "6": [{"name":"Aura of Protection","desc":"Jij en bondgenoten in de buurt krijgen een bonus op saves (= Cha-mod)."}],
+        "9": [{"name":"Abjure Foes","desc":"Channel Divinity om vijanden lam te leggen."}],
+        "10": [{"name":"Aura of Courage","desc":"Jij en bondgenoten in de buurt kunnen niet frightened worden."}],
+        "11": [{"name":"Radiant Strikes","desc":"Je melee-aanvallen doen extra radiant schade."}],
+        "14": [{"name":"Restoring Touch","desc":"Lay on Hands kan ook condities opheffen."}],
+        "18": [{"name":"Aura Expansion","desc":"Je aura's bereiken verder."}],
+        "20": [{"name":"Oath-capstone","desc":"De krachtigste manifestatie van je Sacred Oath."}]
+      },
+      "subclasses": {
+        "Oath of Devotion": {"levels": {
+          "3": [{"name":"Sacred Weapon","desc":"Channel Divinity: voeg Cha-mod en licht toe aan je wapen."},{"name":"Oath Spells","desc":"Altijd voorbereide spreuken (o.a. Protection from Evil and Good)."}],
+          "7": [{"name":"Aura of Devotion","desc":"Jij en bondgenoten kunnen niet charmed worden."}],
+          "15": [{"name":"Smite of Protection","desc":"Divine Smite verleent ook dekking/bescherming."}],
+          "20": [{"name":"Holy Nimbus","desc":"Word een baken van licht dat vijanden schaadt en je sterkt."}]
+        }}
+      }
+    },
+    "Ranger": {
+      "subclassLabel": "Ranger Archetype", "subclassLevel": 3,
+      "aliassen": ["jager","verkenner"],
+      "subclassDefault": "Hunter",
+      "levels": {
+        "1": [{"name":"Spellcasting","desc":"Cast Ranger-spreuken met Wisdom."},{"name":"Favored Enemy","desc":"Ken altijd Hunter's Mark en cast 'm enkele keren gratis."},{"name":"Weapon Mastery","desc":"Gebruik de mastery van 2 wapens."}],
+        "2": [{"name":"Deft Explorer","desc":"Expertise in een skill, extra taal, en betere verkenning."},{"name":"Fighting Style","desc":"Kies een gevechtsstijl."}],
+        "3": [{"name":"Subclass feature","desc":"Een vermogen van je Ranger Archetype."}],
+        "5": [{"name":"Extra Attack","desc":"Val tweemaal aan."}],
+        "6": [{"name":"Roving","desc":"+10 voet snelheid en een klim-/zwemsnelheid."}],
+        "9": [{"name":"Expertise","desc":"Verdubbelde proficiency op twee skills."}],
+        "10": [{"name":"Tireless","desc":"Verminder exhaustion en geef jezelf tijdelijke HP."}],
+        "13": [{"name":"Relentless Hunter","desc":"Hunter's Mark wordt niet verbroken door schade."}],
+        "14": [{"name":"Nature's Veil","desc":"Word kort onzichtbaar als bonusactie."}],
+        "17": [{"name":"Precise Hunter","desc":"Voordeel tegen je Hunter's Mark-doelwit."}],
+        "18": [{"name":"Feral Senses","desc":"Bemerk en raak onzichtbare wezens beter."}],
+        "20": [{"name":"Foe Slayer","desc":"Je Hunter's Mark-schade wordt aanzienlijk groter."}]
+      },
+      "subclasses": {
+        "Hunter": {"levels": {
+          "3": [{"name":"Hunter's Lore","desc":"Leer weerstanden/immuniteiten van je Hunter's Mark-doelwit."},{"name":"Hunter's Prey","desc":"Kies Colossus Slayer, Horde Breaker of Beast Slayer."}],
+          "7": [{"name":"Defensive Tactics","desc":"Kies Escape the Horde, Multiattack Defense of Steel Will."}],
+          "11": [{"name":"Superior Hunter's Prey","desc":"Je Hunter's Mark slaat over op een tweede doelwit."}],
+          "15": [{"name":"Superior Hunter's Defense","desc":"Weerstand en bescherming als je geraakt wordt."}]
+        }}
+      }
+    },
+    "Rogue": {
+      "subclassLabel": "Roguish Archetype", "subclassLevel": 3,
+      "aliassen": ["schurk","dief"],
+      "subclassDefault": "Thief",
+      "levels": {
+        "1": [{"name":"Expertise","desc":"Verdubbelde proficiency op twee skills."},{"name":"Sneak Attack","desc":"Extra schade als je voordeel hebt of een bondgenoot vlakbij het doel staat."},{"name":"Thieves' Cant","desc":"De geheime taal en tekens van dieven."},{"name":"Weapon Mastery","desc":"Gebruik de mastery van 2 wapens."}],
+        "2": [{"name":"Cunning Action","desc":"Dash, Disengage of Hide als bonusactie."}],
+        "3": [{"name":"Steady Aim","desc":"Sta stil voor voordeel (en dus Sneak Attack)."}],
+        "5": [{"name":"Cunning Strike","desc":"Ruil Sneak Attack-schade voor effecten (gif, omverwerpen, beroven)."},{"name":"Uncanny Dodge","desc":"Halveer de schade van een aanval die je raakt als reactie."}],
+        "7": [{"name":"Evasion","desc":"Bij een Dex-save voor halve schade: succes = geen, falen = half."},{"name":"Reliable Talent","desc":"Behandel een d20 ≤ 9 als 10 op checks waarin je proficient bent."}],
+        "11": [{"name":"Improved Cunning Strike","desc":"Combineer twee Cunning Strike-effecten."}],
+        "14": [{"name":"Devious Strikes","desc":"Krachtige nieuwe Cunning Strike-opties (knock out, daze, obscure)."}],
+        "15": [{"name":"Slippery Mind","desc":"Proficiency op Wisdom- en Charisma-saves."}],
+        "18": [{"name":"Elusive","desc":"Aanvallen tegen jou hebben nooit voordeel zolang je niet incapacitated bent."}],
+        "20": [{"name":"Stroke of Luck","desc":"Verander een mislukte check of aanval één keer per rust in een succes."}]
+      },
+      "subclasses": {
+        "Thief": {"levels": {
+          "3": [{"name":"Fast Hands","desc":"Gebruik Cunning Action voor sleight of hand, tools of een voorwerp."},{"name":"Second-Story Work","desc":"Beter klimmen en verder springen."}],
+          "9": [{"name":"Supreme Sneak","desc":"Verbeterde Hide en sluipsnelheid."}],
+          "13": [{"name":"Use Magic Device","desc":"Gebruik magische voorwerpen ongeacht klasse/level."}],
+          "17": [{"name":"Thief's Reflexes","desc":"Neem twee beurten in de eerste gevechtsronde."}]
+        }}
+      }
+    },
+    "Sorcerer": {
+      "subclassLabel": "Sorcerous Origin", "subclassLevel": 3,
+      "aliassen": ["tovenaar"],
+      "subclassDefault": "Draconic Sorcery",
+      "levels": {
+        "1": [{"name":"Spellcasting","desc":"Cast Sorcerer-spreuken met Charisma."},{"name":"Innate Sorcery","desc":"Versterk je magie korte tijd: voordeel op spell-aanvallen en hogere save-DC."}],
+        "2": [{"name":"Font of Magic","desc":"Sorcery Points: zet om in spell slots en omgekeerd."},{"name":"Metamagic","desc":"Pas je spreuken aan (o.a. Quickened, Twinned)."}],
+        "5": [{"name":"Sorcerous Restoration","desc":"Herstel Sorcery Points op een Short Rest."}],
+        "7": [{"name":"Sorcery Incarnate","desc":"Activeer Innate Sorcery en gebruik meer Metamagic tegelijk."}],
+        "20": [{"name":"Arcane Apotheosis","desc":"Gebruik één Metamagic gratis bij elke beurt."}]
+      },
+      "subclasses": {
+        "Draconic Sorcery": {"levels": {
+          "3": [{"name":"Draconic Resilience","desc":"Extra HP en een AC van 13 + Dex-mod zonder harnas."},{"name":"Draconic Spells","desc":"Altijd voorbereide drakenspreuken."}],
+          "6": [{"name":"Elemental Affinity","desc":"Voeg Cha-mod toe aan schade van je drakentype en koop weerstand."}],
+          "14": [{"name":"Dragon Wings","desc":"Laat drakenvleugels groeien en vlieg."}],
+          "18": [{"name":"Dragon Companion","desc":"Roep een drakenbondgenoot op of versterk je drakenmagie."}]
+        }}
+      }
+    },
+    "Warlock": {
+      "subclassLabel": "Otherworldly Patron", "subclassLevel": 3,
+      "subclassDefault": "Fiend Patron",
+      "levels": {
+        "1": [{"name":"Pact Magic","desc":"Weinig maar krachtige spell slots die op een Short Rest herstellen."},{"name":"Eldritch Invocations","desc":"Permanente magische talenten naar keuze."}],
+        "2": [{"name":"Magical Cunning","desc":"Herstel als ritueel een deel van je Pact-slots."}],
+        "3": [{"name":"Pact Boon","desc":"Pact of the Blade, Chain, Tome of Talisman."}],
+        "5": [{"name":"Invocations groeien","desc":"Meer en sterkere Eldritch Invocations."}],
+        "9": [{"name":"Contact Patron","desc":"Spreek je patroon en cast altijd Contact Other Plane."}],
+        "11": [{"name":"Mystic Arcanum (6e)","desc":"Cast één 6e-niveau spreuk per rust."}],
+        "13": [{"name":"Mystic Arcanum (7e)","desc":"Cast één 7e-niveau spreuk per rust."}],
+        "15": [{"name":"Mystic Arcanum (8e)","desc":"Cast één 8e-niveau spreuk per rust."}],
+        "17": [{"name":"Mystic Arcanum (9e)","desc":"Cast één 9e-niveau spreuk per rust."}],
+        "20": [{"name":"Eldritch Master","desc":"Herstel al je Pact-slots door je patroon aan te roepen."}]
+      },
+      "subclasses": {
+        "Fiend Patron": {"levels": {
+          "3": [{"name":"Dark One's Blessing","desc":"Krijg tijdelijke HP als je een vijand velt."},{"name":"Fiend Spells","desc":"Altijd voorbereide duivelse spreuken."}],
+          "6": [{"name":"Dark One's Own Luck","desc":"Voeg een d10 toe aan een check of save."}],
+          "10": [{"name":"Fiendish Resilience","desc":"Kies weerstand tegen een schadetype na een rust."}],
+          "14": [{"name":"Hurl Through Hell","desc":"Slinger een geraakt doelwit kort door de hel voor zware psychic schade."}]
+        }}
+      }
+    },
+    "Wizard": {
+      "subclassLabel": "Arcane Tradition", "subclassLevel": 3,
+      "aliassen": ["magiër","tovenares","mage"],
+      "subclassDefault": "Evoker",
+      "levels": {
+        "1": [{"name":"Spellcasting","desc":"Cast Wizard-spreuken uit je spreukenboek met Intelligence."},{"name":"Ritual Adept","desc":"Cast elke rituele spreuk uit je boek zonder slot."},{"name":"Arcane Recovery","desc":"Herstel enkele spell slots op een Short Rest."}],
+        "2": [{"name":"Scholar","desc":"Expertise in een arcane/kennis-skill."}],
+        "5": [{"name":"Memorize Spell","desc":"Wissel na een Short Rest een voorbereide spreuk."}],
+        "18": [{"name":"Spell Mastery","desc":"Cast een gekozen 1e- en 2e-niveau spreuk gratis naar believen."}],
+        "20": [{"name":"Signature Spells","desc":"Cast twee gekozen 3e-niveau spreuken gratis per rust."}]
+      },
+      "subclasses": {
+        "Evoker": {"levels": {
+          "3": [{"name":"Evocation Savant","desc":"Goedkoper evocation-spreuken aan je boek toevoegen."},{"name":"Potent Cantrip","desc":"Cantrips doen toch schade als het doelwit z'n save haalt."}],
+          "6": [{"name":"Sculpt Spells","desc":"Bescherm bondgenoten tegen je eigen evocation-spreuken."}],
+          "10": [{"name":"Empowered Evocation","desc":"Voeg Int-mod toe aan de schade van evocation-spreuken."}],
+          "14": [{"name":"Overchannel","desc":"Maximaliseer de schade van een spreuk (met een prijs)."}]
+        }}
+      }
+    }
+  },
+  "species": {
+    "Human": {"aliassen":["mens"], "levels": {"1":[{"name":"Resourceful","desc":"Krijg Heroic Inspiration na elke Long Rest."},{"name":"Skillful","desc":"Proficiency in een extra skill."},{"name":"Versatile","desc":"Een Origin-feat naar keuze."}]}},
+    "Elf": {"aliassen":["elf"], "levels": {"1":[{"name":"Darkvision","desc":"Zicht in schemer/donker tot 60 voet."},{"name":"Fey Ancestry","desc":"Voordeel tegen charmed."},{"name":"Keen Senses","desc":"Proficiency in Perception, Insight of Survival."},{"name":"Trance","desc":"4 uur mediteren telt als een Long Rest."},{"name":"Elven Lineage","desc":"Kies een afkomst (Drow/High/Wood) met bijbehorende magie."}], "3":[{"name":"Lineage-spreuk (1e)","desc":"Je lineage geeft op level 3 een gratis spreuk."}], "5":[{"name":"Lineage-spreuk (2e)","desc":"Een tweede lineage-spreuk op level 5."}]}},
+    "Dwarf": {"aliassen":["dwerg"], "levels": {"1":[{"name":"Darkvision","desc":"Zicht in het donker tot 120 voet."},{"name":"Dwarven Resilience","desc":"Weerstand tegen poison en voordeel tegen poisoned."},{"name":"Dwarven Toughness","desc":"+1 HP per level."},{"name":"Stonecunning","desc":"Voel trillingen via steen (tremorsense) als bonusactie."}]}},
+    "Halfling": {"aliassen":["halfling"], "levels": {"1":[{"name":"Brave","desc":"Voordeel tegen frightened."},{"name":"Halfling Nimbleness","desc":"Beweeg door de ruimte van grotere wezens."},{"name":"Luck","desc":"Herrol een natuurlijke 1 op een d20-test."},{"name":"Naturally Stealthy","desc":"Verstop je achter grotere wezens."}]}},
+    "Dragonborn": {"aliassen":["draconiër","dragonborn"], "levels": {"1":[{"name":"Draconic Ancestry","desc":"Kies een drakentype dat je schade en weerstand bepaalt."},{"name":"Breath Weapon","desc":"Adem een kegel/lijn van elementaire schade uit."},{"name":"Damage Resistance","desc":"Weerstand tegen het schadetype van je voorouder."},{"name":"Darkvision","desc":"Zicht in het donker tot 60 voet."}], "5":[{"name":"Draconic Flight","desc":"Laat tijdelijk vleugels groeien en vlieg."}]}},
+    "Gnome": {"aliassen":["gnoom"], "levels": {"1":[{"name":"Darkvision","desc":"Zicht in het donker tot 60 voet."},{"name":"Gnomish Cunning","desc":"Voordeel op Int-, Wis- en Cha-saves."},{"name":"Gnomish Lineage","desc":"Kies Forest of Rock voor extra magie of vakmanschap."}]}},
+    "Orc": {"aliassen":["ork"], "levels": {"1":[{"name":"Adrenaline Rush","desc":"Dash als bonusactie en krijg tijdelijke HP."},{"name":"Darkvision","desc":"Zicht in het donker tot 120 voet."},{"name":"Relentless Endurance","desc":"Blijf eens per Long Rest op 1 HP in plaats van 0."}]}},
+    "Tiefling": {"aliassen":["tiefling"], "levels": {"1":[{"name":"Darkvision","desc":"Zicht in het donker tot 60 voet."},{"name":"Fiendish Legacy","desc":"Kies Abyssal/Chthonic/Infernal voor weerstand en spreuken."},{"name":"Otherworldly Presence","desc":"Je kent de Thaumaturgy-cantrip."}], "3":[{"name":"Legacy-spreuk (1e)","desc":"Een gratis spreuk uit je legacy op level 3."}], "5":[{"name":"Legacy-spreuk (2e)","desc":"Een tweede legacy-spreuk op level 5."}]}},
+    "Goliath": {"aliassen":["goliath"], "levels": {"1":[{"name":"Giant Ancestry","desc":"Kies een reuzenvoorouder met een bijbehorend talent."},{"name":"Large Form","desc":"Word vanaf level 5 tijdelijk Large."},{"name":"Powerful Build","desc":"Tel als groter voor draagvermogen en grappling."}], "5":[{"name":"Large Form","desc":"Word als bonusactie tijdelijk Large voor extra bereik en kracht."}]}},
+    "Aasimar": {"aliassen":["aasimar"], "levels": {"1":[{"name":"Darkvision","desc":"Zicht in het donker tot 60 voet."},{"name":"Celestial Resistance","desc":"Weerstand tegen necrotic en radiant schade."},{"name":"Healing Hands","desc":"Genees met een aanraking (een poel = je level aan d4's)."},{"name":"Light Bearer","desc":"Je kent de Light-cantrip."}], "3":[{"name":"Celestial Revelation","desc":"Transformeer (Heavenly Wings, Inner Radiance of Necrotic Shroud) voor extra schade."}]}}
+  }
+}
