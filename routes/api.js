@@ -2832,6 +2832,49 @@ router.put('/sounds', requireDM, (req, res) => {
   res.json(data);
 });
 
+// ── Klasse-progressie (skill trees) ──────────────────────────────
+// GET geeft de campagne-eigen progressie terug, of anders de meegeleverde
+// 2024-seed (public/data/class-progression.json). De DM kan een eigen versie
+// opslaan; resetten verwijdert de override.
+
+const _PROGRESSION_SEED = path.join(__dirname, '..', 'public', 'data', 'class-progression.json');
+
+function _readProgressionSeed() {
+  try { return JSON.parse(fs.readFileSync(_PROGRESSION_SEED, 'utf8')); }
+  catch { return { classes: {}, species: {} }; }
+}
+
+router.get('/progression', attachRole, (req, res) => {
+  const saved = storage.readJSON('progression.json');
+  if (saved && saved.classes && Object.keys(saved.classes).length) {
+    return res.json({ ...saved, _custom: true });
+  }
+  res.json({ ..._readProgressionSeed(), _custom: false });
+});
+
+router.put('/progression', requireDM, (req, res) => {
+  const body = req.body || {};
+  if (!body.classes || typeof body.classes !== 'object') {
+    return res.status(400).json({ error: 'Ongeldige progressie-data' });
+  }
+  const clean = {
+    bron:    String(body.bron || 'Aangepast door de DM'),
+    classes: body.classes,
+    species: body.species && typeof body.species === 'object' ? body.species : {},
+    gedeeld: body.gedeeld || undefined,
+  };
+  storage.writeJSON('progression.json', clean);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('progression:updated', {});
+  res.json({ ok: true });
+});
+
+// Reset naar de meegeleverde seed (verwijder de campagne-override).
+router.delete('/progression', requireDM, (req, res) => {
+  storage.writeJSON('progression.json', {});
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('progression:updated', {});
+  res.json({ ok: true });
+});
+
 // ── Meta ──
 
 router.get('/meta', (req, res) => {

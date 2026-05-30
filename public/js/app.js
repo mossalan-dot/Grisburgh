@@ -1,10 +1,11 @@
-import { api } from './api.js?v=220';
+import { api } from './api.js?v=221';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=78';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=31';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
-import { initSocket } from './socket-client.js?v=11';
+import { renderProgressie } from './render-progressie.js?v=1';
+import { initSocket } from './socket-client.js?v=12';
 import { initDmPanel } from './dm-panel.js?v=38';
 
 // ── Icon helper ──
@@ -909,7 +910,7 @@ async function playerLogout() {
 // ── Modal ──
 function openModal(title, subtitle, bodyHtml) {
   const modal = document.querySelector('#modal-overlay .modal');
-  if (modal) modal.style.minHeight = '';   // reset bij heropenen
+  if (modal) { modal.style.minHeight = ''; modal.classList.remove('modal--wide'); }   // reset bij heropenen
   // Annuleer eventueel lopende portret-load van vorige modal
   const _mPortraitWrap = document.getElementById('m-portrait-wrap');
   const _mPortraitImg  = document.getElementById('m-portrait');
@@ -6072,6 +6073,25 @@ async function renderMijnKarakter(opts = {}) {
       );
     } catch { /* ok */ }
   };
+
+  // ── Progressie (skill trees) onderaan het dashboard ──
+  try {
+    const _dash = el.querySelector('.player-dashboard');
+    if (_dash) {
+      let _pm = _dash.querySelector('#dash-progressie');
+      if (!_pm) { _pm = document.createElement('div'); _pm.id = 'dash-progressie'; _dash.appendChild(_pm); }
+      renderProgressie(_pm, {
+        klasse:           playerProfile.klasse || entity?.data?.klasse || '',
+        klasseLevel:      parseInt(playerProfile.klasseLevel) || parseInt(playerProfile.level) || 1,
+        level:            parseInt(playerProfile.level) || 1,
+        subclass:         playerProfile.subclass || '',
+        multiclass:       playerProfile.multiclass === 'true' || playerProfile.multiclass === true,
+        multiKlasse:      playerProfile.multiKlasse || '',
+        multiKlasseLevel: parseInt(playerProfile.multiKlasseLevel) || 0,
+        species:          entity?.data?.ras || playerProfile.ras || '',
+      });
+    }
+  } catch (e) { console.warn('progressie render mislukt', e); }
 }
 
 async function renderSpelersTab(selectedCharId) {

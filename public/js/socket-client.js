@@ -304,6 +304,14 @@ export function initSocket() {
     }
   });
 
+  // ── Klasse-progressie (skill trees) door de DM aangepast ──
+  socket.on('progression:updated', () => {
+    window.dispatchEvent(new Event('progression:reload'));
+    if (window.app?.state?.activeSection === 'mijn-karakter') {
+      window.app.refreshSection('mijn-karakter');
+    }
+  });
+
   // ── Voorwerpen eigendom ──
   socket.on('items:ownership-updated', (data) => {
     if (data) window._setOwnership?.(data);
