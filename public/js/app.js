@@ -1,9 +1,10 @@
 import { api } from './api.js?v=220';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=78';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=79';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=31';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
+import { initGlossary } from './glossary.js?v=1';
 import { initSocket } from './socket-client.js?v=11';
 import { initDmPanel } from './dm-panel.js?v=38';
 
@@ -1783,7 +1784,8 @@ function _renderSpellDesc(rawDesc, opts = {}) {
     html += `<p>${_spellMd(line, opts)}</p>`;
     i++;
   }
-  return html;
+  // Begrippen voorzien van hover-uitleg (D&D-terminologie)
+  return window.glossary?.annotate?.(html) ?? html;
 }
 
 // Returns a CSS color for dice spans based on damage type in spell.damage
@@ -3502,7 +3504,7 @@ function _invRenderEntityDetail(panel, it) {
           ${typeLabel ? `<span class="inv-det-type-badge">${esc(typeLabel)}</span>` : ''}
           ${rarityLabel ? `<span class="inv-det-rarity">${esc(rarityLabel)}</span>` : ''}
         </div>
-        ${desc ? `<div class="inv-det-desc">${_spellMd(desc)}</div>` : ''}
+        ${desc ? `<div class="inv-det-desc">${window.glossary?.annotate?.(_spellMd(desc)) ?? _spellMd(desc)}</div>` : ''}
         ${flavour ? `<blockquote class="inv-det-flavour">${esc(flavour)}</blockquote>` : ''}
       </div>
     </div>`;
@@ -6483,6 +6485,7 @@ async function init() {
   document.getElementById('header-subtitle-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') window.app.saveHeader(); if (e.key === 'Escape') window.app.cancelHeader(); });
 
   applyRole();
+  initGlossary();            // D&D-begrippenlijst voor hover-uitleg (voorwerpen + spreuken)
   _wlAcInit();
   initCampagne();
   initArchief();

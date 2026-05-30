@@ -1420,7 +1420,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     </div>`;
   }
   if (_descVal) {
-    infoHtml += `<div class="detail-desc mb-4">${mdToHtml(_descVal)}</div>`;
+    // Voorwerpbeschrijvingen krijgen hover-uitleg bij D&D-begrippen
+    const _descHtml = mdToHtml(_descVal);
+    infoHtml += `<div class="detail-desc mb-4">${tab === 'voorwerpen' ? (window.glossary?.annotate?.(_descHtml) ?? _descHtml) : _descHtml}</div>`;
   }
 
   // Persoonlijkheid (DM only)
