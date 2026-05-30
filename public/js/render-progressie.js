@@ -20,6 +20,9 @@ let _view = (typeof localStorage !== 'undefined' && localStorage.getItem('progVi
 let _featIndex = [];       // platte lijst van features voor de kaart-detailweergave
 let _lastCtx = null;
 let _lastContainer = null;
+let _favs = new Set();     // favoriet-sleutels van de huidige speler
+let _favFilter = false;    // toon alleen favorieten?
+let _charId = null;        // huidige speler (voor opslaan favorieten)
 
 // Klassen waarvoor een illustratie bestaat in /img/classes/
 const _CLASS_ART = new Set(['Barbarian','Bard','Cleric','Druid','Fighter','Monk','Paladin','Ranger','Rogue','Sorcerer','Warlock','Wizard']);
@@ -39,16 +42,48 @@ const _CATS = [
   { id: 'kennis',   label: 'Kennis',        emoji: '📜', kw: ['expertise','skill','proficien','cunning','lore','knowledge','scholar','cant','talents','versatility','jack of all','secrets','study','use magic device','reliable'] },
   { id: 'zintuig',  label: 'Zintuig',       emoji: '👁️', kw: ['darkvision','eyes of night','sense','keen','feral senses','vigilant','tremor'] },
 ];
+const _TALENT = { id: 'talent', label: 'Talent', emoji: '✦' };
+const _CAT_ALL = [..._CATS, _TALENT];
+const _catById = id => _CAT_ALL.find(c => c.id === id) || _TALENT;
+// Keuzes voor de DM-editor (auto-markers weggelaten — die volgen uit naam/kind)
+const _CAT_CHOICES = ['magie','aanval','verdediging','genezing','beweging','sociaal','kennis','zintuig','talent'];
+
 function _featCat(name, kind) {
   if (kind === 'subclass') return _CATS[0];
   const n = String(name || '').toLowerCase();
   for (let i = 1; i < _CATS.length; i++) {
     if (_CATS[i].kw.some(k => n.includes(k))) return _CATS[i];
   }
-  return { id: 'talent', label: 'Talent', emoji: '✦' };
+  return _TALENT;
+}
+// Categorie van een feature: DM-veld 'cat' wint, anders heuristiek op de naam.
+function _resolveCat(feat, kind) {
+  if (feat && feat.cat) return _catById(feat.cat);
+  return _featCat(feat?.name, kind);
 }
 function _kindLabel(kind) {
   return kind === 'sub' ? 'subklasse' : kind === 'species' ? 'soort' : kind === 'shared' ? 'algemeen' : kind === 'subclass' ? 'keuze' : 'klasse';
+}
+
+// Stabiele sleutel per feature (voor favorieten).
+function _featKey(scope, level, name) { return `${scope}|${level}|${name}`; }
+
+// Totaal character-level (voor soort-unlocks, ook bij multiclass).
+function _totalLevel(ctx) {
+  return ctx.level || ((ctx.klasseLevel || 0) + (ctx.multiKlasseLevel || 0)) || ctx.klasseLevel || 1;
+}
+
+// Media-element (afbeelding of filmpje) voor kaart-achtergrond of detail.
+function _mediaArt(feat, artKey, big) {
+  if (feat && feat.img) {
+    const url = api.fileUrl(feat.img);
+    if (feat.imgKind === 'video') {
+      return `<video class="prog-card-art${big ? ' prog-detail-art' : ''}" src="${url}" autoplay muted loop playsinline></video>`;
+    }
+    return `<div class="prog-card-art${big ? ' prog-detail-art' : ''}" style="background-image:url('${url}')"></div>`;
+  }
+  if (artKey) return `<div class="prog-card-art${big ? ' prog-detail-art' : ''}" style="background-image:url('/img/classes/${artKey}.png')"></div>`;
+  return '';
 }
 
 async function _loadProg(force) {
@@ -116,6 +151,8 @@ function _featuresForLevel(classData, subclass, level) {
 export async function renderProgressie(container, ctx) {
   if (!container) return;
   _lastCtx = ctx; _lastContainer = container;
+  _charId = ctx.charId || null;
+  if (Array.isArray(ctx.favorites)) _favs = new Set(ctx.favorites);
   try { await _loadProg(); } catch { container.innerHTML = ''; return; }
   if (!_prog?.classes) { container.innerHTML = ''; return; }
   _featIndex = [];
@@ -134,6 +171,7 @@ function _buildPanel(ctx) {
           <button class="prog-view-btn${!kaarten ? ' active' : ''}" onclick="window.progressie.setView('tijdlijn')" title="Tijdlijn">${icon('clipboard-list')}</button>
           <button class="prog-view-btn${kaarten ? ' active' : ''}" onclick="window.progressie.setView('kaarten')" title="Kaarten">${icon('image')}</button>
         </div>
+        ${_charId ? `<button class="prog-fav-toggle${_favFilter ? ' active' : ''}" onclick="window.progressie.toggleFavFilter()" title="Toon alleen favorieten">${_favFilter ? '★' : '☆'}</button>` : ''}
         ${_prog.samenvatting ? `<span class="prog-bron" title="Samengevat startpunt — controleer/pas aan in de editor">samengevat</span>` : ''}
         ${isDM() ? `<button class="prog-edit-btn" onclick="window.progressie.openEditor()">${icon('pencil')} Bewerk</button>` : ''}
       </div>
@@ -158,28 +196,37 @@ function _buildPanel(ctx) {
     body += `<div class="prog-missing">Vul je klasse in bij je profiel om je progressie te zien.</div>`;
   }
 
-  // Multiclass
+  // Multiclass — geef de subklasse aan beide klassen; de naam-match koppelt 'm
+  // automatisch aan de juiste klasse (een subklasse-naam is uniek per klasse).
   if (ctx.multiclass && ctx.multiKlasse) {
     const cls2 = _findClass(ctx.multiKlasse);
-    if (cls2) body += kaarten ? _classCards(cls2, '', ctx.multiKlasseLevel || 1, true) : _classTimeline(cls2, '', ctx.multiKlasseLevel || 1, true);
+    if (cls2) body += kaarten ? _classCards(cls2, ctx.subclass, ctx.multiKlasseLevel || 1, true) : _classTimeline(cls2, ctx.subclass, ctx.multiKlasseLevel || 1, true);
     else body += `<div class="prog-missing">Geen data voor multiclass <strong>${esc(ctx.multiKlasse)}</strong>.</div>`;
+  }
+
+  // Lege favorieten-melding
+  if (_favFilter && !_featIndex.some(f => f._fav)) {
+    body += `<div class="prog-missing">Nog geen favorieten — tik op het sterretje van een kaart.</div>`;
   }
 
   return `<div class="prog-panel">${head}${body}</div>`;
 }
 
 // ── Kaartweergave ──────────────────────────────────────────────────
-function _featCard(feat, level, artKey, kind, unlocked) {
-  const cat = _featCat(feat.name, kind);
-  const fi = _featIndex.push({ name: feat.name, desc: feat.desc || '', level, artKey, kind, cat }) - 1;
-  const art = artKey
-    ? `<div class="prog-card-art" style="background-image:url('/img/classes/${artKey}.png')"></div>`
-    : '';
+function _featCard(feat, level, artKey, kind, unlocked, scope) {
+  const cat = _resolveCat(feat, kind);
+  const key = _featKey(scope, level, feat.name);
+  const fav = _favs.has(key);
+  if (_favFilter && !fav) return '';   // favorieten-filter
+  const fi = _featIndex.push({ name: feat.name, desc: feat.desc || '', level, artKey, kind, cat, img: feat.img, imgKind: feat.imgKind, key, _fav: fav }) - 1;
+  const art = _mediaArt(feat, artKey, false);
+  const star = _charId ? `<span class="prog-card-fav${fav ? ' on' : ''}" onclick="event.stopPropagation();window.progressie.toggleFav(${fi})" title="Favoriet">${fav ? '★' : '☆'}</span>` : '';
   return `
-    <button class="prog-card${unlocked ? '' : ' prog-card--locked'} prog-card--${cat.id}" onclick="window.progressie.openFeature(${fi})">
+    <button class="prog-card${unlocked ? '' : ' prog-card--locked'} prog-card--${cat.id}${fav ? ' prog-card--fav' : ''}" onclick="window.progressie.openFeature(${fi})">
       ${art}<div class="prog-card-veil"></div>
       <span class="prog-card-cat" title="${esc(cat.label)}">${cat.emoji}</span>
       <span class="prog-card-lvl">${level}</span>
+      ${star}
       ${unlocked ? '' : '<span class="prog-card-lock">🔒</span>'}
       <div class="prog-card-foot">
         <span class="prog-card-name">${esc(feat.name)}</span>
@@ -197,7 +244,7 @@ function _classCards(cls, subclassName, charLevel, isMulti) {
       // De subklasse-keuzemarker zonder gekozen subklasse slaan we over in kaartmodus
       if (f._kind === 'subclass' && !subclass) continue;
       const feat = (f._kind === 'subclass' && subclass) ? { name: `${f.name}: ${subclass.key}`, desc: f.desc } : f;
-      cards.push(_featCard(feat, lvl, artKey, f._kind, lvl <= charLevel));
+      cards.push(_featCard(feat, lvl, artKey, f._kind, lvl <= charLevel, cls.key));
     }
   }
   const subLabel = subclassName ? (subclass ? esc(subclass.key) : `${esc(subclassName)} (geen data)`) : 'nog geen subklasse';
@@ -209,11 +256,11 @@ function _classCards(cls, subclassName, charLevel, isMulti) {
 }
 
 function _speciesCards(species, ctx) {
-  const charLvl = ctx.klasseLevel || ctx.level || 1;
+  const charLvl = _totalLevel(ctx);
   const levels = species.data.levels || {};
   const cards = [];
   for (const lvl of Object.keys(levels).map(Number).sort((a, b) => a - b)) {
-    for (const f of levels[lvl]) cards.push(_featCard(f, lvl, null, 'species', lvl <= charLvl));
+    for (const f of levels[lvl]) cards.push(_featCard(f, lvl, null, 'species', lvl <= charLvl, 'soort:' + species.key));
   }
   return `
     <div class="prog-species">
@@ -223,7 +270,7 @@ function _speciesCards(species, ctx) {
 }
 
 function _speciesBlock(species, ctx) {
-  const charLvl = ctx.klasseLevel || ctx.level || 1;
+  const charLvl = _totalLevel(ctx);
   const levels = species.data.levels || {};
   const items = [];
   for (const lvl of Object.keys(levels).map(Number).sort((a, b) => a - b)) {
@@ -294,9 +341,18 @@ const _api = {
   openFeature(fi) {
     const f = _featIndex[fi];
     if (!f) return;
-    const art = f.artKey
-      ? `<div class="prog-detail-art" style="background-image:url('/img/classes/${f.artKey}.png')"></div>`
-      : `<div class="prog-detail-art prog-detail-art--glyph">${f.cat.emoji}</div>`;
+    let art;
+    if (f.img) {
+      const url = api.fileUrl(f.img);
+      art = f.imgKind === 'video'
+        ? `<video class="prog-detail-art" src="${url}" autoplay muted loop playsinline></video>`
+        : `<div class="prog-detail-art" style="background-image:url('${url}')"></div>`;
+    } else if (f.artKey) {
+      art = `<div class="prog-detail-art" style="background-image:url('/img/classes/${f.artKey}.png')"></div>`;
+    } else {
+      art = `<div class="prog-detail-art prog-detail-art--glyph">${f.cat.emoji}</div>`;
+    }
+    const favBtn = _charId ? `<button class="prog-detail-fav${f._fav ? ' on' : ''}" onclick="window.progressie.toggleFav(${fi})">${f._fav ? '★ Favoriet' : '☆ Favoriet'}</button>` : '';
     const body = `
       <div class="prog-detail">
         ${art}<div class="prog-detail-veil"></div>
@@ -305,11 +361,29 @@ const _api = {
             <span class="prog-detail-chip">${f.cat.emoji} ${esc(f.cat.label)}</span>
             <span class="prog-detail-chip">Level ${f.level}</span>
             <span class="prog-detail-chip prog-chip--${f.kind || 'class'}">${_kindLabel(f.kind)}</span>
+            ${favBtn}
           </div>
           <p class="prog-detail-desc">${esc(f.desc || 'Geen beschrijving — vul aan in de editor.')}</p>
         </div>
       </div>`;
     window.app.openModal(f.name, '', body);
+  },
+
+  toggleFavFilter() {
+    _favFilter = !_favFilter;
+    if (_lastContainer && _lastCtx) renderProgressie(_lastContainer, _lastCtx);
+  },
+
+  async toggleFav(fi) {
+    const f = _featIndex[fi];
+    if (!f || !_charId) return;
+    if (_favs.has(f.key)) _favs.delete(f.key); else _favs.add(f.key);
+    const arr = [..._favs];
+    if (_lastCtx) _lastCtx.favorites = arr;   // houd de werkkopie in sync
+    try { await api.patchPlayerProfile(_charId, { featFavorites: JSON.stringify(arr) }); } catch {}
+    // Detailmodal kan openstaan; sluiten zodat de bijgewerkte staat klopt
+    if (document.querySelector('#modal-overlay.active') && document.querySelector('.prog-detail')) window.app.closeModal();
+    if (_lastContainer && _lastCtx) renderProgressie(_lastContainer, _lastCtx);
   },
 
   async openEditor() {
@@ -388,6 +462,26 @@ const _api = {
     if (node?.levels?.[level]?.[idx]) node.levels[level][idx][field] = value;
   },
 
+  async uploadMedia(scope, sub, level, idx, input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const id = 'feat_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    try {
+      await api.uploadFile(id, file);
+      const node = _scopeNode(scope, sub);
+      const feat = node?.levels?.[level]?.[idx];
+      if (feat) { feat.img = id; feat.imgKind = (file.type || '').startsWith('video') ? 'video' : 'image'; }
+      _refreshEditor();
+      _toast('Media toegevoegd — vergeet niet op te slaan.');
+    } catch (e) { alert('Upload mislukt: ' + e.message); }
+  },
+  removeMedia(scope, sub, level, idx) {
+    const node = _scopeNode(scope, sub);
+    const feat = node?.levels?.[level]?.[idx];
+    if (feat) { delete feat.img; delete feat.imgKind; }
+    _refreshEditor();
+  },
+
   async save() {
     try {
       await api.saveProgression({ bron: 'Aangepast door de DM', classes: _edit.classes, species: _edit.species, gedeeld: _edit.gedeeld });
@@ -443,6 +537,26 @@ function _editorHtml() {
     </div>`;
 }
 
+// Eén bewerkbare feature-rij: naam, beschrijving, categorie-select en media.
+function _featRow(scope, sub, lvl, i, f) {
+  const s = scope, su = sub || '';
+  const cur = f.cat || '';
+  const opts = ['<option value="">— auto —</option>',
+    ..._CAT_CHOICES.map(c => `<option value="${c}"${cur === c ? ' selected' : ''}>${_catById(c).emoji} ${_catById(c).label}</option>`)].join('');
+  const hasMedia = !!f.img;
+  return `
+      <div class="prog-ed-feat">
+        <input class="prog-ed-in prog-ed-name" value="${esc(f.name)}" placeholder="Naam"
+          oninput="window.progressie.editFeature('${s}','${su}',${lvl},${i},'name',this.value)">
+        <input class="prog-ed-in prog-ed-desc" value="${esc(f.desc || '')}" placeholder="Beschrijving"
+          oninput="window.progressie.editFeature('${s}','${su}',${lvl},${i},'desc',this.value)">
+        <select class="prog-ed-cat" title="Categorie" onchange="window.progressie.editFeature('${s}','${su}',${lvl},${i},'cat',this.value)">${opts}</select>
+        <label class="prog-ed-media${hasMedia ? ' has' : ''}" title="${hasMedia ? 'Media vervangen' : 'Afbeelding of filmpje toevoegen'}">${hasMedia ? (f.imgKind === 'video' ? '🎞️' : '🖼️') : '📎'}<input type="file" accept="image/*,video/mp4,video/webm" style="display:none" onchange="window.progressie.uploadMedia('${s}','${su}',${lvl},${i},this)"></label>
+        ${hasMedia ? `<button class="prog-ed-del" title="Media verwijderen" onclick="window.progressie.removeMedia('${s}','${su}',${lvl},${i})">⊘</button>` : ''}
+        <button class="prog-ed-del" title="Feature verwijderen" onclick="window.progressie.removeFeature('${s}','${su}',${lvl},${i})">${icon('x')}</button>
+      </div>`;
+}
+
 function _levelEditor(scope, sub, levels) {
   let html = '';
   for (let lvl = 1; lvl <= 20; lvl++) {
@@ -451,14 +565,7 @@ function _levelEditor(scope, sub, levels) {
       html += `<div class="prog-ed-lvl prog-ed-lvl--empty"><span class="prog-ed-lvlnum">${lvl}</span><button class="prog-ed-addfeat" onclick="window.progressie.addFeature('${scope}','${sub || ''}',${lvl})">${icon('plus')} feature</button></div>`;
       continue;
     }
-    const rows = feats.map((f, i) => `
-      <div class="prog-ed-feat">
-        <input class="prog-ed-in prog-ed-name" value="${esc(f.name)}" placeholder="Naam"
-          oninput="window.progressie.editFeature('${scope}','${sub || ''}',${lvl},${i},'name',this.value)">
-        <input class="prog-ed-in prog-ed-desc" value="${esc(f.desc || '')}" placeholder="Beschrijving"
-          oninput="window.progressie.editFeature('${scope}','${sub || ''}',${lvl},${i},'desc',this.value)">
-        <button class="prog-ed-del" onclick="window.progressie.removeFeature('${scope}','${sub || ''}',${lvl},${i})">${icon('x')}</button>
-      </div>`).join('');
+    const rows = feats.map((f, i) => _featRow(scope, sub, lvl, i, f)).join('');
     html += `<div class="prog-ed-lvl"><span class="prog-ed-lvlnum">${lvl}</span><div class="prog-ed-feats">${rows}<button class="prog-ed-addfeat" onclick="window.progressie.addFeature('${scope}','${sub || ''}',${lvl})">${icon('plus')} feature</button></div></div>`;
   }
   // species: ook hogere levels tonen alleen als ze bestaan — voor species beperken we tot bestaande + lvl 1
@@ -467,14 +574,7 @@ function _levelEditor(scope, sub, levels) {
     const lvls = new Set([1, ...Object.keys(levels || {}).map(Number)]);
     for (const lvl of [...lvls].sort((a, b) => a - b)) {
       const feats = levels?.[lvl] || [];
-      const rows = feats.map((f, i) => `
-        <div class="prog-ed-feat">
-          <input class="prog-ed-in prog-ed-name" value="${esc(f.name)}" placeholder="Naam"
-            oninput="window.progressie.editFeature('species','',${lvl},${i},'name',this.value)">
-          <input class="prog-ed-in prog-ed-desc" value="${esc(f.desc || '')}" placeholder="Beschrijving"
-            oninput="window.progressie.editFeature('species','',${lvl},${i},'desc',this.value)">
-          <button class="prog-ed-del" onclick="window.progressie.removeFeature('species','',${lvl},${i})">${icon('x')}</button>
-        </div>`).join('');
+      const rows = feats.map((f, i) => _featRow('species', '', lvl, i, f)).join('');
       html += `<div class="prog-ed-lvl"><span class="prog-ed-lvlnum">lvl ${lvl}</span><div class="prog-ed-feats">${rows}<button class="prog-ed-addfeat" onclick="window.progressie.addFeature('species','',${lvl})">${icon('plus')} feature</button></div></div>`;
     }
   }
@@ -517,14 +617,7 @@ function _levelEditorSub(subName, levels) {
       html += `<div class="prog-ed-lvl prog-ed-lvl--empty"><span class="prog-ed-lvlnum">${lvl}</span><button class="prog-ed-addfeat" onclick="window.progressie.addFeature('class','${esc(subName)}',${lvl})">${icon('plus')}</button></div>`;
       continue;
     }
-    const rows = feats.map((f, i) => `
-      <div class="prog-ed-feat">
-        <input class="prog-ed-in prog-ed-name" value="${esc(f.name)}" placeholder="Naam"
-          oninput="window.progressie.editFeature('class','${esc(subName)}',${lvl},${i},'name',this.value)">
-        <input class="prog-ed-in prog-ed-desc" value="${esc(f.desc || '')}" placeholder="Beschrijving"
-          oninput="window.progressie.editFeature('class','${esc(subName)}',${lvl},${i},'desc',this.value)">
-        <button class="prog-ed-del" onclick="window.progressie.removeFeature('class','${esc(subName)}',${lvl},${i})">${icon('x')}</button>
-      </div>`).join('');
+    const rows = feats.map((f, i) => _featRow('class', subName, lvl, i, f)).join('');
     html += `<div class="prog-ed-lvl"><span class="prog-ed-lvlnum">${lvl}</span><div class="prog-ed-feats">${rows}<button class="prog-ed-addfeat" onclick="window.progressie.addFeature('class','${esc(subName)}',${lvl})">${icon('plus')}</button></div></div>`;
   }
   return html;

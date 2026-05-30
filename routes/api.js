@@ -1815,7 +1815,7 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
     'languages', 'senses',
     'multiclass', 'klasseLevel', 'multiKlasse', 'multiKlasseLevel',
     'bookmarks', 'weapons',
-    'swimSpeed', 'flySpeed', 'spellFavorites',
+    'swimSpeed', 'flySpeed', 'spellFavorites', 'featFavorites',
   ];
   const updated = { ...existing };
   for (const key of allowed) {

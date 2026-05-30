@@ -4,7 +4,7 @@ import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLo
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
-import { renderProgressie } from './render-progressie.js?v=2';
+import { renderProgressie } from './render-progressie.js?v=3';
 import { initSocket } from './socket-client.js?v=12';
 import { initDmPanel } from './dm-panel.js?v=38';
 
@@ -6089,6 +6089,8 @@ async function renderMijnKarakter(opts = {}) {
         multiKlasse:      playerProfile.multiKlasse || '',
         multiKlasseLevel: parseInt(playerProfile.multiKlasseLevel) || 0,
         species:          entity?.data?.ras || playerProfile.ras || '',
+        charId:           charId,
+        favorites:        (() => { try { return JSON.parse(playerProfile.featFavorites || '[]'); } catch { return []; } })(),
       });
     }
   } catch (e) { console.warn('progressie render mislukt', e); }
