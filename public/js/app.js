@@ -5,7 +5,7 @@ import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { initGlossary } from "./glossary.js?v=1";
-import { renderProgressie } from './render-progressie.js?v=1';
+import { renderProgressie } from './render-progressie.js?v=2';
 import { initSocket } from "./socket-client.js?v=13";
 import { initDmPanel } from "./dm-panel.js?v=52";
 

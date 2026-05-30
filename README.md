@@ -234,6 +234,7 @@ Onderaan het dashboard verschijnt automatisch een **progressie-tijdlijn (1–20)
 
 - Per level zie je wat je personage ontgrendelt: **class- en subclass-features** (naam + korte beschrijving), Ability Score Improvements, de subklasse-keuze en de Epic Boon
 - Reeds bereikte levels zijn gemarkeerd, het huidige level uitgelicht en toekomstige levels als preview
+- **Twee weergaven** (omschakelbaar): een **tijdlijn** (1–20) of een **kaartweergave** — elke feature een kaartje met de **klasse-illustratie** als achtergrond, een **categorie-icoon** (Magie/Aanval/Verdediging/Genezing/Beweging/Sociaal/Kennis/Zintuig…) in een eigen kleur, een level-badge en een type-chip; vergrendelde features staan in grijstint met een slotje. Klik een kaartje voor een **detailvenster** met grote illustratie en de volledige beschrijving
 - **Soort/ras-traits** verschijnen in een apart blok
 - **Tolerante naam-matching** (hoofdletter-ongevoelig, met aliassen, bijv. "Magiër" → Wizard), plus multiclass-ondersteuning
 - De data is een **samengevat 2024-startpunt** (SRD 5.2, CC BY 4.0) in `public/data/class-progression.json` met alle 12 klassen + de SRD-subklasse en de kern-soorten

@@ -16,6 +16,40 @@ const isDM = () => window.app?.isDM?.();
 
 let _prog = null;          // gecachte progressie-data
 let _progPromise = null;
+let _view = (typeof localStorage !== 'undefined' && localStorage.getItem('progView')) || 'tijdlijn';
+let _featIndex = [];       // platte lijst van features voor de kaart-detailweergave
+let _lastCtx = null;
+let _lastContainer = null;
+
+// Klassen waarvoor een illustratie bestaat in /img/classes/
+const _CLASS_ART = new Set(['Barbarian','Bard','Cleric','Druid','Fighter','Monk','Paladin','Ranger','Rogue','Sorcerer','Warlock','Wizard']);
+const _classArtKey = key => _CLASS_ART.has(key) ? key : null;
+
+// Categorie-inschatting op basis van de feature-naam (voor icoon + tint).
+const _CATS = [
+  { id: 'subklasse', label: 'Subklasse',   emoji: '🌟', kw: [] },
+  { id: 'versterking', label: 'Versterking', emoji: '➕', kw: ['ability score'] },
+  { id: 'epic',     label: 'Epische gave',  emoji: '🏆', kw: ['epic boon'] },
+  { id: 'magie',    label: 'Magie',         emoji: '✨', kw: ['spell','cantrip','ritual','magic','arcan','eldritch','metamagic','sorcer','wild magic','mystic','invocation','channel divinity','smite','font of magic','signature','words of creation','potent','sculpt','evocation','draconic spells','fiend spells','spellcasting'] },
+  { id: 'genezing', label: 'Genezing',      emoji: '💚', kw: ['heal','lay on hands','cure','preserve life','wholeness','blessing','sanctuary','restoration'] },
+  { id: 'aanval',   label: 'Aanval',        emoji: '⚔️', kw: ['rage','attack','strike','weapon mastery','brutal','reckless','frenzy','sneak','flurry','stunning','quivering','divine smite','breath weapon','action surge','fighting style','hunter','foe slayer','bombardment'] },
+  { id: 'verdediging', label: 'Verdediging', emoji: '🛡️', kw: ['defense','resist','unarmored','armor','dodge','uncanny','evasion','endurance','relentless','indomitable','aura','shroud','deflect','superior defense','danger sense','survivor','elusive','ward','toughness','resilien','mindless rage'] },
+  { id: 'beweging', label: 'Beweging',      emoji: '🪶', kw: ['speed','flight','fly','step','dash','movement','agility','wings','roving','talons','pounce','tireless','nimble','acrobatic','disengage'] },
+  { id: 'sociaal',  label: 'Sociaal',       emoji: '🎭', kw: ['inspiration','bardic','panache','audacity','countercharm','intimidating','luck','charm','persuasion'] },
+  { id: 'kennis',   label: 'Kennis',        emoji: '📜', kw: ['expertise','skill','proficien','cunning','lore','knowledge','scholar','cant','talents','versatility','jack of all','secrets','study','use magic device','reliable'] },
+  { id: 'zintuig',  label: 'Zintuig',       emoji: '👁️', kw: ['darkvision','eyes of night','sense','keen','feral senses','vigilant','tremor'] },
+];
+function _featCat(name, kind) {
+  if (kind === 'subclass') return _CATS[0];
+  const n = String(name || '').toLowerCase();
+  for (let i = 1; i < _CATS.length; i++) {
+    if (_CATS[i].kw.some(k => n.includes(k))) return _CATS[i];
+  }
+  return { id: 'talent', label: 'Talent', emoji: '✦' };
+}
+function _kindLabel(kind) {
+  return kind === 'sub' ? 'subklasse' : kind === 'species' ? 'soort' : kind === 'shared' ? 'algemeen' : kind === 'subclass' ? 'keuze' : 'klasse';
+}
 
 async function _loadProg(force) {
   if (_prog && !force) return _prog;
@@ -81,18 +115,25 @@ function _featuresForLevel(classData, subclass, level) {
 // ── Publieke render-entry voor het dashboard ───────────────────────
 export async function renderProgressie(container, ctx) {
   if (!container) return;
+  _lastCtx = ctx; _lastContainer = container;
   try { await _loadProg(); } catch { container.innerHTML = ''; return; }
   if (!_prog?.classes) { container.innerHTML = ''; return; }
+  _featIndex = [];
   container.innerHTML = _buildPanel(ctx);
 }
 
 function _buildPanel(ctx) {
   const cls = _findClass(ctx.klasse);
   const species = _findSpecies(ctx.species);
+  const kaarten = _view === 'kaarten';
   const head = `
     <div class="prog-head">
       <h3 class="prog-title">${icon('sparkles')} Progressie</h3>
       <div class="prog-head-right">
+        <div class="prog-view-toggle">
+          <button class="prog-view-btn${!kaarten ? ' active' : ''}" onclick="window.progressie.setView('tijdlijn')" title="Tijdlijn">${icon('clipboard-list')}</button>
+          <button class="prog-view-btn${kaarten ? ' active' : ''}" onclick="window.progressie.setView('kaarten')" title="Kaarten">${icon('image')}</button>
+        </div>
         ${_prog.samenvatting ? `<span class="prog-bron" title="Samengevat startpunt — controleer/pas aan in de editor">samengevat</span>` : ''}
         ${isDM() ? `<button class="prog-edit-btn" onclick="window.progressie.openEditor()">${icon('pencil')} Bewerk</button>` : ''}
       </div>
@@ -101,14 +142,16 @@ function _buildPanel(ctx) {
   let body = '';
   // Soort / ras
   if (species) {
-    body += _speciesBlock(species, ctx);
+    body += kaarten ? _speciesCards(species, ctx) : _speciesBlock(species, ctx);
   } else if (ctx.species) {
     body += `<div class="prog-missing">Geen data voor soort <strong>${esc(ctx.species)}</strong>.${isDM() ? ' Voeg toe in de editor.' : ''}</div>`;
   }
 
   // Hoofdklasse
   if (cls) {
-    body += _classTimeline(cls, ctx.subclass, ctx.klasseLevel || ctx.level || 1, false);
+    body += kaarten
+      ? _classCards(cls, ctx.subclass, ctx.klasseLevel || ctx.level || 1, false)
+      : _classTimeline(cls, ctx.subclass, ctx.klasseLevel || ctx.level || 1, false);
   } else if (ctx.klasse) {
     body += `<div class="prog-missing">Geen progressie-data voor klasse <strong>${esc(ctx.klasse)}</strong>.${isDM() ? ' Voeg toe in de editor of pas de naam aan.' : ' Vraag de DM om deze klasse toe te voegen.'}</div>`;
   } else {
@@ -118,11 +161,65 @@ function _buildPanel(ctx) {
   // Multiclass
   if (ctx.multiclass && ctx.multiKlasse) {
     const cls2 = _findClass(ctx.multiKlasse);
-    if (cls2) body += _classTimeline(cls2, '', ctx.multiKlasseLevel || 1, true);
+    if (cls2) body += kaarten ? _classCards(cls2, '', ctx.multiKlasseLevel || 1, true) : _classTimeline(cls2, '', ctx.multiKlasseLevel || 1, true);
     else body += `<div class="prog-missing">Geen data voor multiclass <strong>${esc(ctx.multiKlasse)}</strong>.</div>`;
   }
 
   return `<div class="prog-panel">${head}${body}</div>`;
+}
+
+// ── Kaartweergave ──────────────────────────────────────────────────
+function _featCard(feat, level, artKey, kind, unlocked) {
+  const cat = _featCat(feat.name, kind);
+  const fi = _featIndex.push({ name: feat.name, desc: feat.desc || '', level, artKey, kind, cat }) - 1;
+  const art = artKey
+    ? `<div class="prog-card-art" style="background-image:url('/img/classes/${artKey}.png')"></div>`
+    : '';
+  return `
+    <button class="prog-card${unlocked ? '' : ' prog-card--locked'} prog-card--${cat.id}" onclick="window.progressie.openFeature(${fi})">
+      ${art}<div class="prog-card-veil"></div>
+      <span class="prog-card-cat" title="${esc(cat.label)}">${cat.emoji}</span>
+      <span class="prog-card-lvl">${level}</span>
+      ${unlocked ? '' : '<span class="prog-card-lock">🔒</span>'}
+      <div class="prog-card-foot">
+        <span class="prog-card-name">${esc(feat.name)}</span>
+        <span class="prog-card-chip prog-chip--${kind || 'class'}">${_kindLabel(kind)}</span>
+      </div>
+    </button>`;
+}
+
+function _classCards(cls, subclassName, charLevel, isMulti) {
+  const subclass = _findSubclass(cls.data, subclassName);
+  const artKey = _classArtKey(cls.key);
+  const cards = [];
+  for (let lvl = 1; lvl <= 20; lvl++) {
+    for (const f of _featuresForLevel(cls.data, subclass, lvl)) {
+      // De subklasse-keuzemarker zonder gekozen subklasse slaan we over in kaartmodus
+      if (f._kind === 'subclass' && !subclass) continue;
+      const feat = (f._kind === 'subclass' && subclass) ? { name: `${f.name}: ${subclass.key}`, desc: f.desc } : f;
+      cards.push(_featCard(feat, lvl, artKey, f._kind, lvl <= charLevel));
+    }
+  }
+  const subLabel = subclassName ? (subclass ? esc(subclass.key) : `${esc(subclassName)} (geen data)`) : 'nog geen subklasse';
+  return `
+    <div class="prog-class${isMulti ? ' prog-class--multi' : ''}">
+      <div class="prog-sub-title">${icon('crossed-swords', { cls: 'icon-gi' })} ${esc(cls.key)} <span class="prog-sub-meta">level ${charLevel} · ${subLabel}</span></div>
+      <div class="prog-cardgrid">${cards.join('')}</div>
+    </div>`;
+}
+
+function _speciesCards(species, ctx) {
+  const charLvl = ctx.klasseLevel || ctx.level || 1;
+  const levels = species.data.levels || {};
+  const cards = [];
+  for (const lvl of Object.keys(levels).map(Number).sort((a, b) => a - b)) {
+    for (const f of levels[lvl]) cards.push(_featCard(f, lvl, null, 'species', lvl <= charLvl));
+  }
+  return `
+    <div class="prog-species">
+      <div class="prog-sub-title">${icon('user')} ${esc(species.key)} <span class="prog-sub-meta">soort</span></div>
+      <div class="prog-cardgrid">${cards.join('')}</div>
+    </div>`;
 }
 
 function _speciesBlock(species, ctx) {
@@ -188,6 +285,33 @@ let _edit = null;       // werkkopie tijdens bewerken
 let _editSel = null;    // { type:'class'|'species', key }
 
 const _api = {
+  setView(v) {
+    _view = (v === 'kaarten') ? 'kaarten' : 'tijdlijn';
+    try { localStorage.setItem('progView', _view); } catch {}
+    if (_lastContainer && _lastCtx) renderProgressie(_lastContainer, _lastCtx);
+  },
+
+  openFeature(fi) {
+    const f = _featIndex[fi];
+    if (!f) return;
+    const art = f.artKey
+      ? `<div class="prog-detail-art" style="background-image:url('/img/classes/${f.artKey}.png')"></div>`
+      : `<div class="prog-detail-art prog-detail-art--glyph">${f.cat.emoji}</div>`;
+    const body = `
+      <div class="prog-detail">
+        ${art}<div class="prog-detail-veil"></div>
+        <div class="prog-detail-body">
+          <div class="prog-detail-chips">
+            <span class="prog-detail-chip">${f.cat.emoji} ${esc(f.cat.label)}</span>
+            <span class="prog-detail-chip">Level ${f.level}</span>
+            <span class="prog-detail-chip prog-chip--${f.kind || 'class'}">${_kindLabel(f.kind)}</span>
+          </div>
+          <p class="prog-detail-desc">${esc(f.desc || 'Geen beschrijving — vul aan in de editor.')}</p>
+        </div>
+      </div>`;
+    window.app.openModal(f.name, '', body);
+  },
+
   async openEditor() {
     try { await _loadProg(true); } catch {}
     _edit = JSON.parse(JSON.stringify(_prog || { classes: {}, species: {} }));
