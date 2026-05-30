@@ -3564,6 +3564,50 @@ window._updateBerichtenBadge = function() {
   }
 };
 
+// Spelervriendelijke uitleg + icoon per status (NL). Gedeeld door renderMijnKarakter
+// en de tap-popover window._condInfo.
+const PLAYER_COND_INFO = {
+  blinded:       { label: 'Verblind',       desc: 'Kan niet zien. Aanvallen tegen jou hebben voordeel; jouw aanvallen hebben nadeel.' },
+  charmed:       { label: 'Betoverd',       desc: 'Je kunt de betoveraar niet aanvallen. Die heeft voordeel op sociale checks tegen jou.' },
+  deafened:      { label: 'Doof',           desc: 'Kan niet horen. Faalt automatisch checks die gehoor vereisen.' },
+  exhaustion:    { label: 'Uitputting',     desc: 'Stapelt in 6 niveaus: 1 nadeel op checks · 2 snelheid gehalveerd · 3 nadeel op saves · 4 snelheid 0 · 5 nadeel op aanvallen · 6 dood.' },
+  frightened:    { label: 'Bevreesd',       desc: 'Nadeel op checks en aanvallen zolang de bron in zicht is. Je kunt niet vrijwillig dichterbij komen.' },
+  grappled:      { label: 'Vastgegrepen',   desc: 'Snelheid wordt 0. Eindigt als de grijper buiten gevecht raakt of je buiten bereik komt.' },
+  incapacitated: { label: 'Buiten gevecht', desc: 'Kan geen acties of reacties nemen.' },
+  invisible:     { label: 'Onzichtbaar',    desc: 'Kan niet gezien worden. Aanvallen tegen jou hebben nadeel; jouw aanvallen hebben voordeel.' },
+  paralyzed:     { label: 'Verlamd',        desc: 'Buiten gevecht, kan niet bewegen of spreken. Faalt STR/DEX-saves. Aanvallen hebben voordeel; treffers binnen 1,5 m zijn kritiek.' },
+  petrified:     { label: 'Versteend',      desc: 'Veranderd in steen. Buiten gevecht. Resistent tegen alle schade. Immuun voor gif en ziekte.' },
+  poisoned:      { label: 'Vergiftigd',     desc: 'Nadeel op aanvallen en ability checks.' },
+  prone:         { label: 'Neergevallen',   desc: 'Nadeel op aanvallen. Aanvallen binnen 1,5 m hebben voordeel, van verder weg nadeel. Opstaan kost de helft van je snelheid.' },
+  restrained:    { label: 'Vastgehouden',   desc: 'Snelheid wordt 0. Nadeel op aanvallen en DEX-saves. Aanvallen tegen jou hebben voordeel.' },
+  stunned:       { label: 'Verdoofd',       desc: 'Buiten gevecht, kan niet bewegen, spreekt hooguit haperend. Faalt STR/DEX-saves. Aanvallen tegen jou hebben voordeel.' },
+  unconscious:   { label: 'Bewusteloos',    desc: 'Buiten gevecht, neergevallen en niet bij bewustzijn. Faalt STR/DEX-saves. Aanvallen hebben voordeel; treffers binnen 1,5 m zijn kritiek.' },
+  concentration: { label: 'Concentratie',   desc: 'Je concentreert op een spreuk. Eindigt bij schade (CON-save, DC 10 of de helft van de schade) of buiten gevecht raken.' },
+  bleeding:      { label: 'Bloedend',       desc: 'Verliest bloed: 1d4 schade aan het begin van elke beurt. Eindigt bij genezing of een geslaagde Medicijnen-check (DC 10).' },
+  burning:       { label: 'In brand',       desc: 'In brand: 1d6 vuurschade aan het begin van elke beurt. Een actie kan de vlammen doven.' },
+};
+// Welke statussen een icoon hebben in /img/conditions/
+const PLAYER_COND_ICONS = new Set(Object.keys(PLAYER_COND_INFO));
+
+// Tap op een status-chip toont/verbergt de uitleg eronder
+window._condInfo = function(cid) {
+  const box = document.getElementById('player-cond-detail');
+  if (!box) return;
+  document.querySelectorAll('.player-dash-cond-chip').forEach(c =>
+    c.classList.toggle('player-dash-cond-chip--active', c.dataset.cid === cid && box.dataset.cid !== cid));
+  if (box.dataset.cid === cid) { box.classList.add('hidden'); box.dataset.cid = ''; return; }
+  const info = PLAYER_COND_INFO[cid] || { label: cid, desc: 'Geen beschrijving beschikbaar.' };
+  const hasIcon = PLAYER_COND_ICONS.has(cid);
+  box.dataset.cid = cid;
+  box.innerHTML = `
+    ${hasIcon ? `<img src="/img/conditions/${cid}.png" class="player-cond-detail-icon" alt="">` : ''}
+    <div class="player-cond-detail-text">
+      <div class="player-cond-detail-title">${esc(info.label)}</div>
+      <div class="player-cond-detail-desc">${esc(info.desc)}</div>
+    </div>`;
+  box.classList.remove('hidden');
+};
+
 async function renderMijnKarakter(opts = {}) {
   const charId     = opts.charId     || state.characterId;
   const playerName = opts.playerName || state.playerName;
@@ -4204,16 +4248,16 @@ async function renderMijnKarakter(opts = {}) {
           <div class="player-dash-section-title">${icon('zap')} Actieve statussen</div>
           <div class="player-dash-conditions">
             ${conditions.map(cid => {
-              const COND_LABELS = {
-                blinded:'Verblind', charmed:'Betoverd', deafened:'Doof', exhaustion:'Uitputting',
-                frightened:'Bevreesd', grappled:'Vastgegrepen', incapacitated:'Buiten gevecht',
-                invisible:'Onzichtbaar', paralyzed:'Verlamd', petrified:'Versteend',
-                poisoned:'Vergiftigd', prone:'Neergevallen', restrained:'Vastgehouden',
-                stunned:'Verdoofd', unconscious:'Bewusteloos', concentration:'Concentratie'
-              };
-              return `<span class="player-dash-cond-chip">${esc(COND_LABELS[cid] || cid)}</span>`;
+              const info    = PLAYER_COND_INFO[cid] || { label: cid };
+              const hasIcon = PLAYER_COND_ICONS.has(cid);
+              return `<button class="player-dash-cond-chip" data-cid="${esc(cid)}"
+                onclick="window._condInfo('${escJS(cid)}')" title="${esc(info.desc || 'Tik voor uitleg')}">
+                ${hasIcon ? `<img src="/img/conditions/${esc(cid)}.png" class="player-dash-cond-icon" alt="">` : ''}
+                <span>${esc(info.label)}</span>
+              </button>`;
             }).join('')}
           </div>
+          <div id="player-cond-detail" class="player-cond-detail hidden" data-cid=""></div>
         </div>` : ''}
 
         <!-- Kenmerken & Eigenschappen -->

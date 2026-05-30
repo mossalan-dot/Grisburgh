@@ -5842,6 +5842,9 @@ details.player-dash-collapsible[open] > summary {
   gap: 6px;
 }
 .player-dash-cond-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: 'Cinzel', serif;
   font-size: 9px;
   font-weight: 700;
@@ -5851,7 +5854,53 @@ details.player-dash-collapsible[open] > summary {
   color: #8b2a2a;
   border: 1px solid rgba(139,42,42,0.3);
   border-radius: 4px;
-  padding: 3px 7px;
+  padding: 3px 7px 3px 5px;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, box-shadow 0.14s;
+}
+.player-dash-cond-chip:hover { background: rgba(139,42,42,0.2); }
+.player-dash-cond-chip--active {
+  background: rgba(139,42,42,0.22);
+  border-color: rgba(139,42,42,0.55);
+  box-shadow: 0 0 8px rgba(139,42,42,0.2);
+}
+.player-dash-cond-icon {
+  width: 16px; height: 16px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+/* Uitklapbare uitleg onder de statussen */
+.player-cond-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 9px 11px;
+  background: rgba(139,42,42,0.07);
+  border: 1px solid rgba(139,42,42,0.25);
+  border-left: 3px solid rgba(139,42,42,0.5);
+  border-radius: 6px;
+  animation: fadeIn 0.18s ease;
+}
+.player-cond-detail.hidden { display: none; }
+.player-cond-detail-icon {
+  width: 34px; height: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+}
+.player-cond-detail-title {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8b2a2a;
+  margin-bottom: 2px;
+}
+.player-cond-detail-desc {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #5a4030;
 }
 .player-dash-hint {
   font-size: 12px;
