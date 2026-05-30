@@ -259,18 +259,18 @@ export function initSocket() {
     import('./api.js').then(({ api }) => api.meta().then(m => {
       if (window.app?.state) window.app.state.meta = m;
       window.app?.applyRole?.();
-      if (window.app?.state?.activeSection === 'orakel') window.app.refreshSection('orakel');
+      if (window.app?.state?.activeSection === 'ursula') window.app.refreshSection('ursula');
     }).catch(() => {}));
   });
 
   socket.on('orakel:drawn', ({ card, by } = {}) => {
-    // Toon de getrokken kaart bij iedereen die het orakel openheeft…
-    if (window.app?.state?.activeSection === 'orakel' && window.orakel?.onDrawn) {
+    // Toon de gelegde kaart bij iedereen die bij Madame Ursula kijkt…
+    if (window.app?.state?.activeSection === 'ursula' && window.orakel?.onDrawn) {
       window.orakel.onDrawn(card, by);
     } else if (card && !window.app?.isDM?.()) {
       // …en geef anderen een sfeervolle hint
-      _showToast(`🔮 Het Orakel spreekt: <strong>${(card.titel || '').replace(/</g,'&lt;')}</strong>`,
-        () => window.app?.switchSection?.('orakel'), 6000);
+      _showToast(`🔮 Madame Ursula legt <strong>${(card.titel || '').replace(/</g,'&lt;')}</strong>`,
+        () => window.app?.switchSection?.('ursula'), 6000);
     }
   });
 

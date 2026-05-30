@@ -17280,3 +17280,78 @@ input.alm-cfg-input[type="color"] { padding: 2px; height: 36px; cursor: pointer;
 .orakel-icon-btn .icon { width: 14px; height: 14px; }
 .orakel-icon-btn--danger { color: #9a3a2a; }
 .orakel-icon-btn--danger:hover { background: rgba(154,58,42,0.14); border-color: rgba(154,58,42,0.4); }
+
+/* ══════════════════════════════════════════════════════════════════
+   Madame Ursula's parlor — onderkomen van Het Orakel
+   ══════════════════════════════════════════════════════════════════ */
+.ursula-parlor {
+  position: relative;
+  margin: 18px auto 0 !important;
+  padding: 0 !important;
+  border-radius: 16px;
+  overflow: hidden;
+  background: radial-gradient(130% 110% at 50% -10%, #3a2350 0%, #211641 48%, #140d24 100%);
+  border: 1px solid rgba(150,110,190,0.3);
+  box-shadow: 0 14px 38px rgba(20,12,40,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.ursula-parlor[data-has-bg="1"] {
+  background-image: var(--ursula-bg);
+  background-size: cover;
+  background-position: center;
+}
+.ursula-veil {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 45% at 50% 16%, rgba(214,158,74,0.20), transparent 60%),
+    linear-gradient(to bottom, rgba(20,13,34,0.55) 0%, rgba(20,13,34,0.82) 100%);
+}
+.ursula-inner {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 34px 22px 42px;
+}
+.ursula-medium { display: flex; flex-direction: column; align-items: center; }
+.ursula-portret {
+  position: relative;
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(214,178,110,0.6);
+  box-shadow: 0 0 28px -4px rgba(214,158,74,0.5), inset 0 0 18px rgba(0,0,0,0.4);
+  background: radial-gradient(circle at 50% 40%, #3a2a52, #1a1230);
+  display: flex; align-items: center; justify-content: center;
+}
+.ursula-portret img { width: 100%; height: 100%; object-fit: cover; }
+.ursula-portret--fallback img { display: none; }
+.ursula-portret-glyph { font-size: 46px; filter: drop-shadow(0 2px 8px rgba(214,158,74,0.5)); }
+.ursula-flame {
+  position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%);
+  width: 8px; height: 12px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: radial-gradient(circle at 50% 70%, #fff3c4, #f0a83c 60%, rgba(240,168,60,0));
+  box-shadow: 0 0 14px 4px rgba(240,168,60,0.6);
+  animation: ursula-flicker 2.4s ease-in-out infinite;
+}
+@keyframes ursula-flicker {
+  0%, 100% { opacity: 0.85; transform: translateX(-50%) scaleY(1); }
+  45%      { opacity: 1;    transform: translateX(-50%) scaleY(1.18); }
+  70%      { opacity: 0.7;  transform: translateX(-52%) scaleY(0.92); }
+}
+.ursula-naam {
+  font-family: 'Cinzel', serif; font-weight: 700;
+  font-size: clamp(20px, 5vw, 26px); letter-spacing: 1px;
+  color: #f0e2c4; margin-top: 14px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+.ursula-titel {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: 12.5px; letter-spacing: 1px;
+  color: #c6a8d8; margin-top: 2px;
+}
+/* Tekst leesbaar op de donkere parlor-achtergrond */
+.ursula-parlor .orakel-intro { color: #ddcdef; margin: 18px 0 22px; }
+.ursula-parlor .orakel-last-by { color: #b9a6cc; }
+.ursula-parlor .orakel-disabled-badge {
+  margin-top: 10px; color: #f0d28a;
+  background: rgba(214,158,74,0.16); border-color: rgba(214,158,74,0.4);
+}
+.ursula-parlor .orakel-dm-panel { width: 100%; max-width: 640px; }
