@@ -235,10 +235,14 @@ Onderaan het dashboard verschijnt automatisch een **progressie-tijdlijn (1–20)
 - Per level zie je wat je personage ontgrendelt: **class- en subclass-features** (naam + korte beschrijving), Ability Score Improvements, de subklasse-keuze en de Epic Boon
 - Reeds bereikte levels zijn gemarkeerd, het huidige level uitgelicht en toekomstige levels als preview
 - **Twee weergaven** (omschakelbaar): een **tijdlijn** (1–20) of een **kaartweergave** — elke feature een kaartje met de **klasse-illustratie** als achtergrond, een **categorie-icoon** (Magie/Aanval/Verdediging/Genezing/Beweging/Sociaal/Kennis/Zintuig…) in een eigen kleur, een level-badge en een type-chip; vergrendelde features staan in grijstint met een slotje. Klik een kaartje voor een **detailvenster** met grote illustratie en de volledige beschrijving
-- **Soort/ras-traits** verschijnen in een apart blok
-- **Tolerante naam-matching** (hoofdletter-ongevoelig, met aliassen, bijv. "Magiër" → Wizard), plus multiclass-ondersteuning
-- De data is een **samengevat 2024-startpunt** (SRD 5.2, CC BY 4.0) in `public/data/class-progression.json` met alle 12 klassen + de SRD-subklasse en de kern-soorten
-- De **DM kan de progressie bewerken** (klassen, subklassen, soorten, features per level toevoegen/aanpassen) via de editor; aanpassingen worden per campagne opgeslagen en zijn terug te zetten naar de startdata
+- **Categorie per feature** — automatisch ingeschat (Magie/Aanval/Verdediging/Genezing/Beweging/Sociaal/Kennis/Zintuig/Talent) en door de DM te overschrijven met een eigen veld; bepaalt icoon en kleur
+- **Eigen afbeeldingen of filmpjes** per feature — de DM kan per feature een beeld of (loop)video uploaden (bijv. om veelgebruikte features te animeren); valt anders terug op de klasse-illustratie
+- **Favorieten** — spelers markeren features met een ster en kunnen met één knop op **alleen favorieten** filteren (per speler opgeslagen)
+- **Soort/ras-traits** met level-unlocks verschijnen in een apart blok; de ontgrendeling volgt het **totale** character-level (ook bij multiclass)
+- **Multiclass** — elke klasse krijgt een eigen progressie (features gaan per klasse-level); de subklasse wordt automatisch aan de juiste klasse gekoppeld
+- **Tolerante naam-matching** (hoofdletter-ongevoelig, met aliassen, bijv. "Magiër" → Wizard, "Chaos Sorcerer" → Sorcerer)
+- De data is een **samengevat 2024-startpunt** (SRD 5.2, CC BY 4.0) in `public/data/class-progression.json` met alle 12 klassen + de SRD-subklasse en de kern-soorten — afgestemd op de Grisburgh-roster (Swashbuckler, Twilight Domain, Wild Magic, Aarakocra, Tabaxi, Half-Elf)
+- De **DM kan de progressie bewerken** (klassen, subklassen, soorten, features per level, categorie en media) via de editor; aanpassingen worden per campagne opgeslagen en zijn terug te zetten naar de startdata
 
 ---
 
