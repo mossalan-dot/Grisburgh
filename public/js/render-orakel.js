@@ -17,54 +17,44 @@ let _data    = null;
 let _dmOpen  = false;
 let _flipped = false;
 let _busy    = false;
-let _ursula  = null;   // config van Madame Ursula (naam/portret/backdrop)
 
-// Madame Ursula's parlor — het Orakel woont in haar kraam.
-export async function renderUrsula(containerEl) {
-  const container = containerEl || document.getElementById('section-ursula');
+export async function renderOrakel(containerEl) {
+  const container = containerEl || document.getElementById('section-orakel');
   if (!container) return;
   window.orakel = _api;
   try {
     _data = await api.orakel();
   } catch (err) {
-    container.innerHTML = `<div class="orakel-error">Madame Ursula's tent blijft gesloten: ${esc(String(err.message))}</div>`;
+    container.innerHTML = `<div class="orakel-error">Kon het orakel niet raadplegen: ${esc(String(err.message))}</div>`;
     return;
   }
-  try { _ursula = (await api.getUrsula())?.config || null; } catch { _ursula = null; }
-
   if (!_data.enabled && !isDM()) {
-    container.innerHTML = `<div class="orakel-error">De gordijnen van Madame Ursula zijn dicht.</div>`;
+    container.innerHTML = `<div class="orakel-error">Het orakel zwijgt voorlopig.</div>`;
     return;
   }
   _flipped = !!_data.lastDraw?.card;
   container.innerHTML = _buildHtml();
 }
 
-// Behoud de oude naam als alias voor het geval iets ernaar verwijst.
-export { renderUrsula as renderOrakel };
-
 function _buildHtml() {
   const last = _data.lastDraw;
   const frontCard = last?.card || _data.deck[0];
-  const naam = _ursula?.naam || 'Madame Ursula';
-  const portret = _ursula?.imageId ? api.fileUrl(_ursula.imageId) : null;
-  const backdrop = _ursula?.backdropId ? api.fileUrl(_ursula.backdropId) : null;
-  const intro = _data.intro || 'Madame Ursula schudt de kaarten en tuurt in het kaarslicht…';
   return `
-    <div class="orakel-wrap ursula-parlor"${backdrop ? ` style="--ursula-bg:url('${backdrop}')"` : ''} data-has-bg="${backdrop ? '1' : '0'}">
-      <div class="ursula-veil"></div>
-      <div class="ursula-inner">
-        <div class="ursula-medium">
-          <div class="ursula-portret${portret ? '' : ' ursula-portret--fallback'}">
-            ${portret ? `<img src="${portret}" alt="${esc(naam)}" onerror="this.closest('.ursula-portret').classList.add('ursula-portret--fallback')">` : '<span class="ursula-portret-glyph">🔮</span>'}
-            <span class="ursula-flame" aria-hidden="true"></span>
+    <div class="orakel-wrap">
+      <div class="section-banner section-banner--entity section-banner--orakel">
+        <div class="section-banner-head">
+          <div class="section-banner-icon-wrap">${icon('sparkles')}</div>
+          <div class="section-banner-info">
+            <div class="section-banner-label">Het Orakel der Sterren</div>
+            <div class="section-banner-desc-line">Bevraag het lot — trek een kaart</div>
           </div>
-          <div class="ursula-naam">${esc(naam)}</div>
-          <div class="ursula-titel">Waarzegster · Het Orakel der Sterren</div>
           ${!_data.enabled && isDM() ? `<div class="orakel-disabled-badge">Verborgen voor spelers</div>` : ''}
         </div>
+        <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
+      </div>
 
-        <p class="orakel-intro">${esc(intro)}</p>
+      <div class="orakel-altaar">
+        <p class="orakel-intro">${esc(_data.intro || '')}</p>
         <div class="orakel-card-stage">
           <div class="orakel-card${_flipped ? ' is-flipped' : ''}" id="orakel-card">
             <div class="orakel-face orakel-face--back">${_cardBack()}</div>
@@ -72,12 +62,12 @@ function _buildHtml() {
           </div>
         </div>
         <div class="orakel-draw-row">
-          <button class="orakel-draw-btn" onclick="window.orakel.draw()">${icon('sparkles')} ${_flipped ? 'Leg een nieuwe kaart' : 'Laat Ursula een kaart leggen'}</button>
+          <button class="orakel-draw-btn" onclick="window.orakel.draw()">${icon('sparkles')} ${_flipped ? 'Trek opnieuw' : 'Trek een kaart'}</button>
         </div>
-        <div class="orakel-last" id="orakel-last">${last?.by ? `<span class="orakel-last-by">Laatst gelegd door ${esc(last.by)}</span>` : ''}</div>
-
-        ${isDM() ? _dmPaneel() : ''}
+        <div class="orakel-last" id="orakel-last">${last?.by ? `<span class="orakel-last-by">Laatst getrokken door ${esc(last.by)}</span>` : ''}</div>
       </div>
+
+      ${isDM() ? _dmPaneel() : ''}
     </div>`;
 }
 

@@ -73,7 +73,7 @@ Geeft een publieke URL (bijv. `https://iets.trycloudflare.com`). Deel die met sp
 | **Logboek** | Sessieverslagen per akte (hoofdstuk) met afbeeldingen, entiteitskoppelingen en documenten |
 | **Almanak** | In-wereld kalender met maanfasen, seizoenen en gebeurtenissen |
 | **Hemel** | Real-time weer- & luchtscène boven Grisburgh (dagdeel, conditie, wind, temperatuur) |
-| **Madame Ursula** | Waarzegster — laat haar een omenkaart leggen met voorteken en duiding |
+| **Orakel** | Het Orakel der Sterren — trek een omenkaart met voorteken en duiding |
 | **Herberg** | Spelers kunnen de waard bevragen voor roddels over zichtbare personages en locaties |
 | **Mijn Karakter** | Persoonlijk spelerdashboard: HP, valuta, spreukenslots, voorwerpen, bladwijzers en meer |
 
@@ -360,16 +360,14 @@ Standaard gevuld met archaïsche Nederlandse maandnamen (Louwmaand, Sprokkelmaan
 
 ---
 
-## Madame Ursula — Het Orakel der Sterren 🔮
+## Het Orakel der Sterren 🔮
 
-In de kaarslicht-parlor van **Madame Ursula**, de waarzegster, woont het
-Orakel der Sterren: laat haar een **omenkaart** leggen die met een 3D-flip
-opengedraaid wordt, met een voorteken en een duiding. (Haar portret,
-naam en achtergrond komen uit haar bestaande configuratie in `meta.ursula`.)
+Een sfeervolle waarzeggerij: trek een **omenkaart** die met een 3D-flip
+opengedraaid wordt, met een voorteken en een duiding.
 
-- Klik op **Laat Ursula een kaart leggen** — de kaart draait van een
-  ornamentele sterrenachterkant naar het voorteken (symbool, titel, omen en
-  duiding, met een kleuraccent per kaart)
+- Klik op **Trek een kaart** — de kaart draait van een ornamentele
+  sterrenachterkant naar het voorteken (symbool, titel, omen en duiding,
+  met een kleuraccent per kaart)
 - **Gedeeld tafelmoment** — trekt de DM (of een speler) een kaart, dan
   verschijnt diezelfde kaart in real-time bij alle spelers; wie elders kijkt
   krijgt een sfeervolle hint
@@ -534,7 +532,7 @@ public/
     render-dashboard.js    # Spelersdashboard: HP, valuta, spreukenslots, trackers, bladwijzers
     render-almanak.js      # Almanak: in-wereld kalender, maanfasen, seizoenen, gebeurtenissen
     render-weer.js         # Hemel: real-time weer- & luchtscène (SVG + CSS-animaties)
-    render-orakel.js       # Madame Ursula's parlor: omenkaart-waarzeggerij (3D-flip)
+    render-orakel.js       # Orakel: omenkaart-waarzeggerij met 3D-flip
     api.js                 # Fetch-wrapper, fileUrl, thumbUrl, entity name lookup
     socket-client.js       # Real-time updates en geluidsevents via Socket.io
     combat-canvas.js       # Canvas-gebaseerde gevechtsvisualisatie
