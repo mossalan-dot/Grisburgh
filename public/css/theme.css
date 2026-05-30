@@ -16199,3 +16199,73 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 .prog-ed-reset { font-family: 'Cinzel', serif; font-size: 11px; color: #6a4818; background: rgba(196,168,122,0.14); border: 1px solid rgba(196,168,122,0.4); border-radius: 7px; padding: 6px 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
 .prog-ed-reset .icon { width: 12px; height: 12px; }
 @media (max-width: 640px) { .prog-ed { flex-direction: column; max-height: none; } .prog-ed-side { width: 100%; flex-direction: row; flex-wrap: wrap; } }
+
+/* ── Progressie: view-toggle ── */
+.prog-view-toggle { display: inline-flex; border: 1px solid rgba(196,168,122,0.5); border-radius: 8px; overflow: hidden; }
+.prog-view-btn { background: rgba(255,253,246,0.5); border: none; padding: 4px 8px; cursor: pointer; color: #8a7050; display: inline-flex; align-items: center; }
+.prog-view-btn + .prog-view-btn { border-left: 1px solid rgba(196,168,122,0.5); }
+.prog-view-btn .icon { width: 14px; height: 14px; }
+.prog-view-btn:hover { background: rgba(255,248,230,0.8); color: #5a4030; }
+.prog-view-btn.active { background: var(--color-gold-dim); color: #fdf8ea; }
+
+/* ── Progressie: kaartweergave ── */
+.prog-cardgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; margin-top: 4px; }
+.prog-card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 11px;
+  overflow: hidden;
+  border: 1px solid var(--color-room-border);
+  background: linear-gradient(165deg, #2a2336, #16121f);
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(30,20,40,0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  --cat: 196,168,122;
+}
+.prog-card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(30,20,40,0.32), 0 0 0 1px rgba(var(--cat),0.6); }
+.prog-card-art { position: absolute; inset: 0; background-size: cover; background-position: center 18%; }
+.prog-card-veil { position: absolute; inset: 0; background: linear-gradient(to top, rgba(12,9,20,0.92) 0%, rgba(12,9,20,0.35) 48%, rgba(12,9,20,0.15) 100%); }
+.prog-card-cat { position: absolute; top: 6px; left: 7px; font-size: 16px; z-index: 2; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
+.prog-card-lvl {
+  position: absolute; top: 5px; right: 6px; z-index: 2;
+  min-width: 19px; height: 19px; padding: 0 4px; border-radius: 10px;
+  background: rgba(var(--cat),0.92); color: #fff;
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 10.5px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.prog-card-lock { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-60%); font-size: 22px; z-index: 2; opacity: 0.85; }
+.prog-card-foot { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 7px 8px 8px; display: flex; flex-direction: column; gap: 3px; }
+.prog-card-name { font-family: 'Cinzel', serif; font-weight: 700; font-size: 12px; line-height: 1.15; color: #f3ecda; text-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+.prog-card-chip { align-self: flex-start; font-family: 'Cinzel', serif; font-size: 7.5px; letter-spacing: 0.5px; text-transform: uppercase; color: #e8dcc4; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.22); border-radius: 8px; padding: 1px 6px; }
+.prog-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: rgba(var(--cat),0.9); z-index: 2; }
+/* categorie-tinten */
+.prog-card--magie       { --cat: 122,90,200; }
+.prog-card--aanval      { --cat: 178,58,46; }
+.prog-card--verdediging { --cat: 70,110,150; }
+.prog-card--genezing    { --cat: 63,138,90; }
+.prog-card--beweging    { --cat: 90,150,170; }
+.prog-card--sociaal     { --cat: 196,106,160; }
+.prog-card--kennis      { --cat: 150,120,60; }
+.prog-card--zintuig     { --cat: 110,90,170; }
+.prog-card--subklasse   { --cat: 184,134,11; }
+.prog-card--versterking { --cat: 120,120,120; }
+.prog-card--epic        { --cat: 200,150,40; }
+.prog-card--talent      { --cat: 150,130,90; }
+.prog-card--locked { filter: grayscale(0.85) brightness(0.7); opacity: 0.7; }
+.prog-card--locked:hover { transform: translateY(-2px); filter: grayscale(0.5) brightness(0.8); }
+.prog-chip--sub { background: rgba(122,90,170,0.3); border-color: rgba(122,90,170,0.5); }
+.prog-chip--species { background: rgba(63,138,90,0.3); border-color: rgba(63,138,90,0.5); }
+.prog-chip--shared { background: rgba(150,130,90,0.3); }
+
+/* ── Progressie: feature-detail (in de modal) ── */
+.prog-detail { position: relative; margin: -4px -2px 0; }
+.prog-detail-art { height: 180px; border-radius: 12px; background-size: cover; background-position: center 20%; }
+.prog-detail-art--glyph { display: flex; align-items: center; justify-content: center; font-size: 78px; background: radial-gradient(circle at 50% 35%, #2c2540, #16121f); }
+.prog-detail-veil { position: absolute; top: 0; left: 0; right: 0; height: 180px; border-radius: 12px; background: linear-gradient(to top, rgba(20,15,28,0.55), transparent 70%); pointer-events: none; }
+.prog-detail-body { padding: 14px 4px 4px; }
+.prog-detail-chips { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; }
+.prog-detail-chip { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.5px; color: #5a4030; background: rgba(196,168,122,0.16); border: 1px solid rgba(196,168,122,0.4); border-radius: 12px; padding: 3px 10px; }
+.prog-detail-desc { font-family: 'Crimson Text', serif; font-size: 15px; line-height: 1.55; color: #3a2a14; }
