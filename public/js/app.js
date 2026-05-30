@@ -1,5 +1,5 @@
 import { api } from './api.js?v=220';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=78';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=79';
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=31';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
@@ -6328,14 +6328,29 @@ window.app.closeGlobalSearch = function(e) {
   document.getElementById('global-search-overlay')?.classList.add('hidden');
 };
 
+let _gsResults = [];   // platte lijst {type,id} in weergavevolgorde (toetsenbordnav)
+let _gsActive  = -1;
+
+// Markeer gevonden woorden in een naam (na HTML-escaping).
+function _gsHighlight(name, tokens) {
+  let safe = esc(name);
+  for (const t of tokens) {
+    if (!t) continue;
+    const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+    safe = safe.replace(re, '\x01$1\x02');
+  }
+  return safe.replace(/\x01/g, '<mark class="gs-hl">').replace(/\x02/g, '</mark>');
+}
+
 window.app._globalSearchRun = async function(q) {
   const resultsEl = document.getElementById('global-search-results');
-  if (!q.trim()) { resultsEl.innerHTML = ''; return; }
+  if (!q.trim()) { resultsEl.innerHTML = ''; _gsResults = []; _gsActive = -1; return; }
 
   const TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
   const meta  = window._entityTypeMeta || {};
   const cache = window._entityCache    || {};
   const filter = window._entityFilter  || (() => []);
+  const tokens = window._searchTokens ? window._searchTokens(q) : [q.toLowerCase()];
 
   // Fetch documenten eenmalig
   if (!_archiefCache) {
@@ -6344,42 +6359,68 @@ window.app._globalSearchRun = async function(q) {
   }
 
   let html = '';
-  const ql = q.toLowerCase();
+  _gsResults = [];
 
-  // Entiteiten per type
+  // Entiteiten per type (score-gerangschikt door _entityFilter)
   for (const type of TYPES) {
     if (_gsTypeFilter && _gsTypeFilter !== type) continue;
-    const list   = cache[type] || [];
-    const hits   = filter(type, list, q).slice(0, 8);
+    const list = cache[type] || [];
+    const hits = filter(type, list, q).slice(0, 8);
     if (!hits.length) continue;
     const m = meta[type] || { icon: '📄', label: type };
-    html += `<div class="gs-group">
-      <div class="gs-group-label">${m.icon} ${m.label}</div>
-      ${hits.map(e => `
-        <button class="gs-result" onclick="window.app._globalSearchGo('${type}','${esc(e.id)}')">
-          <span class="gs-result-name">${esc(e.name)}</span>
+    html += `<div class="gs-group"><div class="gs-group-label">${m.icon} ${m.label}</div>`;
+    for (const e of hits) {
+      const idx = _gsResults.push({ type, id: e.id }) - 1;
+      html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('${type}','${esc(e.id)}')">
+          <span class="gs-result-name">${_gsHighlight(e.name, tokens)}</span>
           ${e.subtype ? `<span class="gs-result-sub">${esc(e.subtype)}</span>` : ''}
-        </button>`).join('')}
-    </div>`;
+        </button>`;
+    }
+    html += `</div>`;
   }
 
-  // Documenten (archief)
+  // Documenten (archief) — genormaliseerd matchen
   if (!_gsTypeFilter || _gsTypeFilter === 'documenten') {
-    const docHits = (_archiefCache).filter(d =>
-      (d.name || d.title || '').toLowerCase().includes(ql)
-    ).slice(0, 8);
+    const norm = window._normSearch || (s => String(s || '').toLowerCase());
+    const docHits = (_archiefCache).filter(d => {
+      const hay = norm((d.name || d.title || '') + ' ' + (d.type || ''));
+      return tokens.every(t => hay.includes(t));
+    }).slice(0, 8);
     if (docHits.length) {
-      html += `<div class="gs-group">
-        <div class="gs-group-label">📜 Documenten</div>
-        ${docHits.map(d => `
-          <button class="gs-result" onclick="window.app._globalSearchGo('documenten','${esc(d.id)}')">
-            <span class="gs-result-name">${esc(d.name || d.title || d.id)}</span>
-          </button>`).join('')}
-      </div>`;
+      html += `<div class="gs-group"><div class="gs-group-label">📜 Documenten</div>`;
+      for (const d of docHits) {
+        const idx = _gsResults.push({ type: 'documenten', id: d.id }) - 1;
+        html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('documenten','${esc(d.id)}')">
+            <span class="gs-result-name">${_gsHighlight(d.name || d.title || d.id, tokens)}</span>
+          </button>`;
+      }
+      html += `</div>`;
     }
   }
 
   resultsEl.innerHTML = html || `<p class="gs-empty">Geen resultaten gevonden voor "<em>${esc(q)}</em>".</p>`;
+  _gsSetActive(_gsResults.length ? 0 : -1);
+};
+
+function _gsSetActive(idx) {
+  _gsActive = idx;
+  const btns = document.querySelectorAll('#global-search-results .gs-result');
+  btns.forEach(b => b.classList.toggle('gs-result--active', +b.dataset.gsIdx === idx));
+  const cur = [...btns].find(b => +b.dataset.gsIdx === idx);
+  cur?.scrollIntoView({ block: 'nearest' });
+}
+
+// Toetsenbordnavigatie in de zoekoverlay (pijltjes + Enter).
+window.app._gsKey = function(e) {
+  if (e.key === 'Escape') { window.app.closeGlobalSearch(); return; }
+  if (!_gsResults.length) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); _gsSetActive((_gsActive + 1) % _gsResults.length); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); _gsSetActive((_gsActive - 1 + _gsResults.length) % _gsResults.length); }
+  else if (e.key === 'Enter') {
+    e.preventDefault();
+    const r = _gsResults[_gsActive] || _gsResults[0];
+    if (r) window.app._globalSearchGo(r.type, r.id);
+  }
 };
 
 window.app._globalSearchGo = function(type, id) {

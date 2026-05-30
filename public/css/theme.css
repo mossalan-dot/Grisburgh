@@ -16098,3 +16098,8 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   background: linear-gradient(135deg, #3a2a10 0%, #5c3a18 100%);
   border-color: rgba(180,130,60,0.62);
 }
+
+/* ── Globaal zoeken: toetsenbordnavigatie + match-highlight ── */
+.gs-result--active { background: rgba(184,134,11,0.16); outline: 1px solid rgba(184,134,11,0.45); }
+.gs-result.gs-result--active .gs-result-name { color: #3a2a0e; }
+.gs-hl { background: rgba(184,134,11,0.32); color: inherit; border-radius: 3px; padding: 0 1px; font-weight: 700; }

@@ -123,8 +123,14 @@ Geeft een publieke URL (bijv. `https://iets.trycloudflare.com`). Deel die met sp
 ### Globale zoekfunctie
 
 - Doorzoekt tegelijk: personages, locaties, organisaties, voorwerpen en documenten
+- **Diakriet- en hoofdletter-ongevoelig** (zoek "ursula" → vindt "Madame Úrsula")
+- **Meerdere woorden** moeten allemaal matchen (AND), bijv. "sarbek rogue"
+- **Relevantie-ranking** — exacte en naam-treffers boven meta-/beschrijvingstreffers
+- **Toetsenbordnavigatie** — ↑/↓ door de resultaten, Enter opent de gemarkeerde
+- **Match-highlighting** — gevonden woorden worden in de resultaten benadrukt
 - Gegroepeerde resultaten per type, direct klikbaar naar detailmodal
 - Volledig zichtbaarheidsbewust — verborgen entiteiten niet zichtbaar voor spelers
+- Dezelfde slimme matcher wordt ook gebruikt door de **zoekbalk per sectie**
 
 ### Detail-modal
 
