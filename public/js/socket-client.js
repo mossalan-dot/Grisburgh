@@ -304,6 +304,18 @@ export function initSocket() {
     }
   });
 
+  // ── Spelerdata hersteld vanuit een back-up ──
+  socket.on('player:restored', ({ characterIds } = {}) => {
+    const mine = window.app?.state?.characterId;
+    const raaktMij = !mine || !Array.isArray(characterIds) || characterIds.includes(mine);
+    if (window.app?.state?.activeSection === 'mijn-karakter' && raaktMij) {
+      window.app.refreshSection('mijn-karakter');
+    }
+    if (!window.app?.isDM?.() && raaktMij) {
+      _showToast('🛟 Je personagegegevens zijn door de Verteller hersteld.');
+    }
+  });
+
   // ── Voorwerpen eigendom ──
   socket.on('items:ownership-updated', (data) => {
     if (data) window._setOwnership?.(data);

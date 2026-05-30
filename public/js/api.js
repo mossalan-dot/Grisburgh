@@ -183,6 +183,12 @@ export const api = {
   partyLongRest:       ()       => request('/party/long-rest', { method: 'POST' }),
   setTradeAllowed:     (allowed)       => request('/items/trade-allowed',              { method: 'PUT',    body: JSON.stringify({ allowed }) }),
 
+  // Speler-back-ups (per akte)
+  createPlayerBackup:  (data)       => request('/player-backups', { method: 'POST', body: JSON.stringify(data || {}) }),
+  listPlayerBackups:   ()           => request('/player-backups'),
+  restorePlayerBackup: (id, data)   => request(`/player-backups/${id}/restore`, { method: 'POST', body: JSON.stringify(data || {}) }),
+  deletePlayerBackup:  (id)         => request(`/player-backups/${id}`, { method: 'DELETE' }),
+
   // Speler HP
   getPlayerHp:     (characterId)        => request(`/player-hp/${characterId}`),
   setPlayerHp:     (characterId, data)  => request(`/player-hp/${characterId}`, { method: 'PATCH', body: JSON.stringify(data) }),

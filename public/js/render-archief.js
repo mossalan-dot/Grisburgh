@@ -1,4 +1,4 @@
-import { api } from './api.js?v=2';
+import { api } from './api.js?v=3';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -1153,10 +1153,13 @@ window._toggleChapterVisibility = async (ch, currentlyHidden) => {
 // Activeer regie-balk voor een akte vanuit het logboek (reveal strip niet meer nodig)
 window._speelAkte = async (ch, num, title) => {
   if (!window.dmPanel) return;
+  const akteTitle = `Akte ${num} · ${title}`;
+  // Maak automatisch een back-up van alle spelerdata bij de start van de akte
+  try { await api.createPlayerBackup({ label: akteTitle, akteKey: ch, auto: true }); }
+  catch (e) { console.warn('speler-back-up mislukt', e); }
   try { await api.resetChapterImages(ch); } catch (e) { console.warn('reset images failed', e); }
   window.dmPanel.closeRevealStrip?.();   // sluit de oude reveal strip als die open staat
   window.app?.setActiveAkte?.(ch, num, title);
-  const akteTitle = `Akte ${num} · ${title}`;
   window.dmPanel.regieBalkLoad(ch, akteTitle);
 };
 

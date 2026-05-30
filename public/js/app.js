@@ -1,10 +1,10 @@
-import { api } from './api.js?v=220';
+import { api } from './api.js?v=221';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=78';
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=31';
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=32';
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=17';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
-import { initSocket } from './socket-client.js?v=11';
+import { initSocket } from './socket-client.js?v=12';
 import { initDmPanel } from './dm-panel.js?v=38';
 
 // ── Icon helper ──
@@ -3564,6 +3564,15 @@ window._updateBerichtenBadge = function() {
   }
 };
 
+// Bewerkbaar veld? (input/textarea/select/contenteditable)
+function _isEditableEl(el) {
+  if (!el) return false;
+  const t = el.tagName;
+  return t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || el.isContentEditable === true;
+}
+// Uitgestelde dashboard-render terwijl er getypt wordt (voorkomt dataverlies)
+let _karakterRenderPending = null;
+
 async function renderMijnKarakter(opts = {}) {
   const charId     = opts.charId     || state.characterId;
   const playerName = opts.playerName || state.playerName;
@@ -3573,6 +3582,28 @@ async function renderMijnKarakter(opts = {}) {
     el.innerHTML = '<div class="p-8 text-center text-ink-dim italic font-fell">Kies eerst een karakter om dit dashboard te zien.</div>';
     return;
   }
+  // ── Invoerbescherming ──
+  // Her-render NIET terwijl de speler/DM in een veld typt (bv. door een
+  // binnenkomend socket-event), anders gaat de nog niet opgeslagen invoer
+  // verloren. De render wordt uitgesteld tot het veld de focus verliest.
+  const _ae = document.activeElement;
+  if (_ae && el.contains(_ae) && _isEditableEl(_ae)) {
+    _karakterRenderPending = opts;
+    if (!_ae._karakterDeferBound) {
+      _ae._karakterDeferBound = true;
+      _ae.addEventListener('blur', () => {
+        _ae._karakterDeferBound = false;
+        if (_karakterRenderPending) {
+          const o = _karakterRenderPending;
+          _karakterRenderPending = null;
+          // korte vertraging zodat de onblur-/onchange-save eerst landt
+          setTimeout(() => renderMijnKarakter(o), 200);
+        }
+      }, { once: true });
+    }
+    return;
+  }
+  _karakterRenderPending = null;
   // Allow inline HTML event handlers to re-render with same opts
   window._reRenderKarakter = () => renderMijnKarakter(opts);
 
@@ -6409,6 +6440,82 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ── Init ──
+// ── Speler-back-ups (herstel spelerdata) ──
+
+function _bkToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'map-toast';
+  t.innerHTML = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('map-toast--show'));
+  setTimeout(() => {
+    t.classList.remove('map-toast--show');
+    t.addEventListener('transitionend', () => t.remove(), { once: true });
+  }, 3000);
+}
+
+window._openSpelerBackups = function() {
+  openModal('Speler-back-ups', 'Momentopnames van alle spelerdata — herstel bij verlies', '<div id="bk-modal-body" class="bk-modal"><p class="bk-empty">Laden…</p></div>');
+  _renderBackupsList();
+};
+
+async function _renderBackupsList() {
+  const cont = document.getElementById('bk-modal-body');
+  if (!cont) return;
+  let list = [];
+  try { list = await api.listPlayerBackups(); }
+  catch { cont.innerHTML = '<p class="bk-empty">Kon back-ups niet laden.</p>'; return; }
+  const rows = list.map(_backupRow).join('');
+  cont.innerHTML = `
+    <div class="bk-toolbar">
+      <button class="bk-btn bk-btn--make" onclick="window._makeBackupNow()">${icon('save')} Maak nu een back-up</button>
+      <span class="bk-hint">Wordt automatisch gemaakt bij het spelen van een akte.</span>
+    </div>
+    <div class="bk-list">${rows || '<p class="bk-empty">Nog geen back-ups. Speel een akte of maak er handmatig één.</p>'}</div>`;
+}
+
+function _backupRow(b) {
+  const datum = new Date(b.at).toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const opts = (b.spelers || []).map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+  return `
+    <div class="bk-row" data-id="${esc(b.id)}">
+      <div class="bk-row-info">
+        <span class="bk-row-label">${esc(b.label)}${b.auto ? ' <span class="bk-auto">auto</span>' : ''}</span>
+        <span class="bk-row-meta">${esc(datum)} · ${(b.spelers || []).length} spelers</span>
+      </div>
+      <div class="bk-row-actions">
+        <select class="bk-select" id="bk-sel-${esc(b.id)}"><option value="">Alle spelers</option>${opts}</select>
+        <button class="bk-btn bk-btn--restore" onclick="window._restoreBackup('${esc(b.id)}')">${icon('refresh-cw')} Herstel</button>
+        <button class="bk-icon-btn bk-icon-btn--del" onclick="window._deleteBackup('${esc(b.id)}')" title="Verwijderen">${icon('trash')}</button>
+      </div>
+    </div>`;
+}
+
+window._makeBackupNow = async function() {
+  try {
+    await api.createPlayerBackup({ label: 'Handmatige back-up', auto: false });
+    _renderBackupsList();
+    _bkToast('🛟 Back-up gemaakt.');
+  } catch (e) { alert('Back-up mislukt: ' + e.message); }
+};
+
+window._restoreBackup = async function(id) {
+  const sel = document.getElementById('bk-sel-' + id);
+  const charId = sel?.value || '';
+  const who = charId ? (sel.options[sel.selectedIndex]?.text || 'deze speler') : 'ALLE spelers';
+  if (!confirm(`Spelerdata terugzetten voor ${who}?\n\nDe huidige waarden (voorwerpen, spreuken, stats, HP, berichten) worden overschreven door deze back-up.`)) return;
+  try {
+    const r = await api.restorePlayerBackup(id, charId ? { characterId: charId } : {});
+    _bkToast(`🛟 Hersteld (${r.hersteld} speler${r.hersteld === 1 ? '' : 's'}).`);
+    if (state.activeSection === 'mijn-karakter') refreshSection('mijn-karakter');
+  } catch (e) { alert('Herstellen mislukt: ' + e.message); }
+};
+
+window._deleteBackup = async function(id) {
+  if (!confirm('Deze back-up verwijderen?')) return;
+  try { await api.deletePlayerBackup(id); _renderBackupsList(); } catch (e) { alert(e.message); }
+};
+
 // ── App header (titel + ondertitel) ──
 
 function applyAppMeta(meta) {

@@ -492,6 +492,23 @@ tests/                     # Automatische tests
 
 ---
 
+## Speler-data & back-ups
+
+Om te voorkomen dat ingevulde spelerinformatie verloren gaat, zijn er twee voorzieningen:
+
+### Invoerbescherming
+Het spelerdashboard (Mijn Karakter) her-rendert real-time op socket-events. Als een speler of de DM op dat moment in een veld typt, werd die nog niet opgeslagen invoer voorheen weggegooid. Nu wordt een her-render **uitgesteld** zolang een veld de focus heeft, en pas uitgevoerd nadat het veld is verlaten (en de waarde is opgeslagen).
+
+### Per-akte back-ups
+Bij het **spelen van een akte** wordt automatisch een momentopname gemaakt van alle spelerdata: profiel & stats, HP, valuta, voorwerpen, spreuken, spreukenslots, trackers, traits, inspiratie en geheime berichten.
+
+- De DM opent het back-up-overzicht via het ⟳-knopje in de DM-party-balk
+- Naast de automatische back-ups kan de DM ook **handmatig** een momentopname maken
+- **Herstellen** kan voor **alle spelers** tegelijk of voor **één speler** (kies de speler in de keuzelijst); de huidige waarden worden overschreven door de back-up en alle clients verversen direct
+- De laatste 40 back-ups worden bewaard in `data/campaigns/<id>/player-backups.json`
+
+---
+
 ## Data & Back-up
 
 Alle data staat in `data/` als JSON-bestanden. Deze map is gitignored. Afbeeldingen, PDFs en audiobestanden staan in `data/campaigns/<id>/files/`. Automatisch gegenereerde thumbnails staan in `data/campaigns/<id>/thumbs/` — deze map kan veilig verwijderd worden; thumbnails worden opnieuw aangemaakt bij het eerste verzoek.

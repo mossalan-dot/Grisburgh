@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=201">
+  <link rel="stylesheet" href="/css/theme.css?v=202">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -152,6 +152,7 @@
     <div class="dm-party-bar hidden" id="dm-party-bar">
       <div id="group-switcher" class="dm-party-groups"></div>
       <div id="party-bar" class="dm-party-portraits"></div>
+      <button class="dm-backup-btn" id="dm-backup-btn" onclick="window._openSpelerBackups()" title="Speler-back-ups — herstel verloren spelerdata"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-refresh-cw"/></svg></button>
     </div>
 
     <!-- Contextueel sectie-accent -->
@@ -476,6 +477,6 @@
   </div>
 
   <script type="module" src="/js/sound-manager.js?v=1"></script>
-  <script type="module" src="/js/app.js?v=234"></script>
+  <script type="module" src="/js/app.js?v=235"></script>
 </body>
 </html>

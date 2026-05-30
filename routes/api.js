@@ -1507,6 +1507,111 @@ router.post('/party/long-rest', requireDM, (req, res) => {
   res.json({ ok: true, spelers: spelers.length, resetCount, rollLog });
 });
 
+// ── Speler-back-ups (per akte) ───────────────────────────────────
+// Snapshot van alle spelerdata (dm-state player*-sleutels + geheime
+// berichten) zodat de DM bij dataverlies kan terugzetten.
+
+const BACKUP_LIMIT = 40;
+
+function _collectPlayerState(dmState) {
+  const out = {};
+  for (const k of Object.keys(dmState)) {
+    if (k.startsWith('player') && dmState[k] && typeof dmState[k] === 'object' && !Array.isArray(dmState[k])) {
+      out[k] = dmState[k];
+    }
+  }
+  return out;
+}
+
+function _spelerLijst() {
+  const entities = storage.readJSON('entities.json');
+  return (entities.personages || [])
+    .filter(e => e.subtype === 'speler')
+    .map(e => ({ id: e.id, name: e.name }));
+}
+
+// POST — maak een snapshot (automatisch bij akte-start, of handmatig).
+router.post('/player-backups', requireDM, (req, res) => {
+  const dmState   = readDmState();
+  const berichten = storage.readJSON('berichten.json') || {};
+  const store     = storage.readJSON('player-backups.json');
+  const list      = Array.isArray(store.list) ? store.list : [];
+  const snap = {
+    id:          'bk_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    label:       String(req.body?.label || 'Handmatige back-up'),
+    akteKey:     req.body?.akteKey || null,
+    at:          Date.now(),
+    auto:        !!req.body?.auto,
+    spelers:     _spelerLijst(),
+    playerState: JSON.parse(JSON.stringify(_collectPlayerState(dmState))),
+    berichten:   JSON.parse(JSON.stringify(berichten)),
+  };
+  list.unshift(snap);
+  while (list.length > BACKUP_LIMIT) list.pop();
+  storage.writeJSON('player-backups.json', { list });
+  res.json({ id: snap.id, label: snap.label, at: snap.at, akteKey: snap.akteKey, auto: snap.auto, aantalSpelers: snap.spelers.length });
+});
+
+// GET — lijst van back-ups (zonder de zware data).
+router.get('/player-backups', requireDM, (req, res) => {
+  const store = storage.readJSON('player-backups.json');
+  const list  = Array.isArray(store.list) ? store.list : [];
+  res.json(list.map(b => ({ id: b.id, label: b.label, at: b.at, akteKey: b.akteKey, auto: b.auto, spelers: b.spelers || [] })));
+});
+
+// POST /:id/restore — herstel alle spelers, of één (characterId in body).
+router.post('/player-backups/:id/restore', requireDM, (req, res) => {
+  const store = storage.readJSON('player-backups.json');
+  const list  = Array.isArray(store.list) ? store.list : [];
+  const snap  = list.find(b => b.id === req.params.id);
+  if (!snap) return res.status(404).json({ error: 'Back-up niet gevonden' });
+
+  const onlyChar = req.body?.characterId || null;
+  let charIds;
+  if (onlyChar) {
+    charIds = [onlyChar];
+  } else {
+    const set = new Set();
+    for (const k of Object.keys(snap.playerState || {})) {
+      for (const cid of Object.keys(snap.playerState[k] || {})) set.add(cid);
+    }
+    for (const cid of Object.keys(snap.berichten || {})) set.add(cid);
+    charIds = [...set];
+  }
+
+  const dmState = readDmState();
+  for (const k of Object.keys(snap.playerState || {})) {
+    if (!dmState[k] || typeof dmState[k] !== 'object') dmState[k] = {};
+    for (const cid of charIds) {
+      if (Object.prototype.hasOwnProperty.call(snap.playerState[k], cid)) {
+        dmState[k][cid] = JSON.parse(JSON.stringify(snap.playerState[k][cid]));
+      } else {
+        delete dmState[k][cid];
+      }
+    }
+  }
+  storage.writeJSON('dm-state.json', dmState);
+
+  const berichten = storage.readJSON('berichten.json') || {};
+  for (const cid of charIds) {
+    if (snap.berichten && Object.prototype.hasOwnProperty.call(snap.berichten, cid)) {
+      berichten[cid] = JSON.parse(JSON.stringify(snap.berichten[cid]));
+    }
+  }
+  storage.writeJSON('berichten.json', berichten);
+
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('player:restored', { characterIds: charIds });
+  res.json({ ok: true, hersteld: charIds.length });
+});
+
+// DELETE — verwijder een back-up.
+router.delete('/player-backups/:id', requireDM, (req, res) => {
+  const store = storage.readJSON('player-backups.json');
+  const list  = (Array.isArray(store.list) ? store.list : []).filter(b => b.id !== req.params.id);
+  storage.writeJSON('player-backups.json', { list });
+  res.json({ ok: true });
+});
+
 // ── Speler HP (buiten gevecht) ──
 
 router.get('/player-hp/:characterId', attachRole, (req, res) => {
