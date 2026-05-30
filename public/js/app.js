@@ -65,6 +65,9 @@ window.app = {
   openLightbox,
   openLightboxAt,
   lbNavigate,
+  lbZoomIn,
+  lbZoomOut,
+  lbZoomReset,
   closeLightbox,
   refreshSection,
   switchSection,
@@ -953,29 +956,91 @@ function closeModal() {
 }
 
 // ── Lightbox ──
+const LB_ZOOM_MIN = 1;     // niet onder werkelijke grootte; bij 1 toont object-contain
+const LB_ZOOM_MAX = 6;
 let lbZoom    = 1;
+let lbPanX    = 0;
+let lbPanY    = 0;
 let _lbImages = null;   // [{src, title}] of huidige reeks
 let _lbIdx    = 0;
+
+// Sleep- en pinch-status
+let _lbDragging = false;
+let _lbStartX = 0, _lbStartY = 0, _lbPanStartX = 0, _lbPanStartY = 0;
+let _lbMoved = false;
+const _lbPointers = new Map();      // pointerId -> {x, y}
+let _lbPinchDist = 0;
+let _lbPinchZoom = 1;
+
+// Schrijf zoom + pan naar de transform van het beeld
+function _lbApply() {
+  const img = $('#lb-img');
+  if (!img) return;
+  if (lbZoom <= LB_ZOOM_MIN + 0.001) { lbPanX = 0; lbPanY = 0; }
+  _lbClampPan();
+  const live = _lbDragging || _lbPointers.size >= 2;
+  img.style.transition = live ? 'none' : 'transform 0.12s ease-out';
+  img.style.transform = `translate(${lbPanX}px, ${lbPanY}px) scale(${lbZoom})`;
+  img.style.cursor = lbZoom > LB_ZOOM_MIN ? (_lbDragging ? 'grabbing' : 'grab') : '';
+  const zoomed = lbZoom > LB_ZOOM_MIN + 0.001;
+  $('#lb-zoom-reset')?.classList.toggle('opacity-40', !zoomed);
+  // Bij ingezoomd beeld de navigatiepijlen verbergen zodat slepen niet botst
+  if (zoomed) {
+    $('#lb-nav-left')?.classList.add('hidden');
+    $('#lb-nav-right')?.classList.add('hidden');
+  } else {
+    _lbUpdateNav();
+  }
+}
+
+// Begrens het pannen zodat de afbeelding binnen beeld blijft
+function _lbClampPan() {
+  const img = $('#lb-img');
+  if (!img) return;
+  const extraX = img.clientWidth  * (lbZoom - 1) / 2;
+  const extraY = img.clientHeight * (lbZoom - 1) / 2;
+  lbPanX = Math.max(-extraX, Math.min(extraX, lbPanX));
+  lbPanY = Math.max(-extraY, Math.min(extraY, lbPanY));
+}
+
+// Zoom rond een punt (px relatief t.o.v. midden van het beeld)
+function _lbZoomTo(newZoom, cx, cy) {
+  newZoom = Math.max(LB_ZOOM_MIN, Math.min(LB_ZOOM_MAX, newZoom));
+  if (cx != null && cy != null) {
+    const ratio = newZoom / lbZoom;
+    lbPanX = cx - (cx - lbPanX) * ratio;
+    lbPanY = cy - (cy - lbPanY) * ratio;
+  }
+  lbZoom = newZoom;
+  _lbApply();
+}
+
+function _lbUpdateNav() {
+  const multi = (_lbImages?.length || 0) > 1;
+  const left  = $('#lb-nav-left');
+  const right = $('#lb-nav-right');
+  if (left)  left.classList.toggle('hidden',  !multi || _lbIdx <= 0);
+  if (right) right.classList.toggle('hidden', !multi || _lbIdx >= _lbImages.length - 1);
+}
 
 function _lbShowCurrent() {
   const entry = _lbImages?.[_lbIdx];
   if (!entry) return;
-  lbZoom = 1;
+  lbZoom = 1; lbPanX = 0; lbPanY = 0;
   const img = $('#lb-img');
   img.src = entry.src;
   img.style.transform = '';
+  img.style.cursor = '';
   $('#lb-title').textContent = entry.title || '';
 
   const multi = (_lbImages?.length || 0) > 1;
-  const left  = $('#lb-nav-left');
-  const right = $('#lb-nav-right');
   const cnt   = $('#lb-counter');
-  if (left)  left.classList.toggle('hidden',  !multi || _lbIdx <= 0);
-  if (right) right.classList.toggle('hidden', !multi || _lbIdx >= _lbImages.length - 1);
+  _lbUpdateNav();
   if (cnt) {
     cnt.textContent = multi ? `${_lbIdx + 1} / ${_lbImages.length}` : '';
     cnt.classList.toggle('hidden', !multi);
   }
+  $('#lb-zoom-reset')?.classList.add('opacity-40');
 }
 
 // Enkelvoudige afbeelding (achterwaarts compatibel)
@@ -1004,26 +1069,110 @@ function lbNavigate(dir) {
   _lbShowCurrent();
 }
 
+// Zoomknoppen (touch-vriendelijk)
+function lbZoomIn()  { _lbZoomTo(lbZoom + 0.5, 0, 0); }
+function lbZoomOut() { _lbZoomTo(lbZoom - 0.5, 0, 0); }
+function lbZoomReset() { lbZoom = 1; lbPanX = 0; lbPanY = 0; _lbApply(); }
+
 function closeLightbox() {
   const lb = $('#lightbox');
   lb.classList.add('hidden');
   lb.classList.remove('flex');
-  $('#lb-img').src = '';
+  const img = $('#lb-img');
+  img.src = '';
+  img.style.transform = '';
   _lbImages = null;
+  lbZoom = 1; lbPanX = 0; lbPanY = 0;
+  _lbPointers.clear();
+  _lbDragging = false;
 }
 
+// Wiel-zoom rond de cursor
 $('#lightbox').addEventListener('wheel', (e) => {
   e.preventDefault();
-  lbZoom += e.deltaY > 0 ? -0.15 : 0.15;
-  lbZoom = Math.max(0.5, Math.min(5, lbZoom));
-  $('#lb-img').style.transform = `scale(${lbZoom})`;
+  const img = $('#lb-img');
+  const r = img.getBoundingClientRect();
+  const cx = e.clientX - (r.left + r.width / 2);
+  const cy = e.clientY - (r.top + r.height / 2);
+  _lbZoomTo(lbZoom + (e.deltaY > 0 ? -0.3 : 0.3), cx, cy);
+}, { passive: false });
+
+// Dubbelklik / dubbeltik: in- of uitzoomen op het aangewezen punt
+$('#lb-img').addEventListener('dblclick', (e) => {
+  e.stopPropagation();
+  const img = $('#lb-img');
+  const r = img.getBoundingClientRect();
+  if (lbZoom > LB_ZOOM_MIN + 0.001) {
+    lbZoomReset();
+  } else {
+    const cx = e.clientX - (r.left + r.width / 2);
+    const cy = e.clientY - (r.top + r.height / 2);
+    _lbZoomTo(2.5, cx, cy);
+  }
 });
+
+// Pointer-gebaren: slepen (pan) en pinch-zoom
+(function () {
+  const img = $('#lb-img');
+
+  img.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    _lbPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    img.setPointerCapture?.(e.pointerId);
+    _lbMoved = false;
+    if (_lbPointers.size === 2) {
+      const pts = [..._lbPointers.values()];
+      _lbPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      _lbPinchZoom = lbZoom;
+      _lbDragging = false;
+    } else if (lbZoom > LB_ZOOM_MIN) {
+      _lbDragging = true;
+      _lbStartX = e.clientX; _lbStartY = e.clientY;
+      _lbPanStartX = lbPanX; _lbPanStartY = lbPanY;
+      _lbApply();
+    }
+  });
+
+  img.addEventListener('pointermove', (e) => {
+    if (!_lbPointers.has(e.pointerId)) return;
+    _lbPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (_lbPointers.size === 2) {
+      // Pinch-zoom rond het midden tussen de twee vingers
+      const pts = [..._lbPointers.values()];
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (_lbPinchDist > 0) {
+        const r = img.getBoundingClientRect();
+        const midX = (pts[0].x + pts[1].x) / 2 - (r.left + r.width / 2);
+        const midY = (pts[0].y + pts[1].y) / 2 - (r.top + r.height / 2);
+        _lbZoomTo(_lbPinchZoom * (dist / _lbPinchDist), midX, midY);
+      }
+      _lbMoved = true;
+    } else if (_lbDragging) {
+      lbPanX = _lbPanStartX + (e.clientX - _lbStartX);
+      lbPanY = _lbPanStartY + (e.clientY - _lbStartY);
+      if (Math.abs(e.clientX - _lbStartX) > 4 || Math.abs(e.clientY - _lbStartY) > 4) _lbMoved = true;
+      _lbApply();
+    }
+  });
+
+  function endPointer(e) {
+    _lbPointers.delete(e.pointerId);
+    if (_lbPointers.size < 2) _lbPinchDist = 0;
+    if (_lbPointers.size === 0) { _lbDragging = false; _lbApply(); }
+  }
+  img.addEventListener('pointerup', endPointer);
+  img.addEventListener('pointercancel', endPointer);
+})();
 
 document.addEventListener('keydown', (e) => {
   if ($('#lightbox').classList.contains('hidden')) return;
   if (e.key === 'Escape')      closeLightbox();
   if (e.key === 'ArrowLeft')   lbNavigate(-1);
   if (e.key === 'ArrowRight')  lbNavigate(1);
+  if (e.key === '+' || e.key === '=') lbZoomIn();
+  if (e.key === '-' || e.key === '_') lbZoomOut();
+  if (e.key === '0')           lbZoomReset();
 });
 
 // ── HTML escape ──
