@@ -58,7 +58,7 @@
     },
     "Cleric": {
       "subclassLabel": "Divine Domain", "subclassLevel": 3,
-      "aliassen": ["priester","klerk"],
+      "aliassen": ["priester","klerk","twilight cleric"],
       "subclassDefault": "Life Domain",
       "levels": {
         "1": [{"name":"Spellcasting","desc":"Cast Cleric-spreuken met Wisdom."},{"name":"Divine Order","desc":"Kies Protector (wapen/harnas) of Thaumaturge (extra cantrip & kennis)."}],
@@ -74,6 +74,11 @@
           "3": [{"name":"Disciple of Life","desc":"Genezingsspreuken herstellen extra HP."},{"name":"Life Domain Spells","desc":"Altijd voorbereide domeinspreuken (o.a. Bless, Cure Wounds)."}],
           "6": [{"name":"Channel Divinity: Preserve Life","desc":"Verdeel genezing over wezens in de buurt."}],
           "17": [{"name":"Supreme Healing","desc":"Genezingsdobbelstenen tellen als hun maximum."}]
+        }},
+        "Twilight Domain": {"levels": {
+          "3": [{"name":"Eyes of Night","desc":"Geef jezelf (en bondgenoten) darkvision tot 300 voet."},{"name":"Vigilant Blessing","desc":"Geef een wezen voordeel op zijn volgende initiatief."},{"name":"Twilight Domain Spells","desc":"Altijd voorbereide domeinspreuken (o.a. Faerie Fire, Sleep, Aid)."}],
+          "6": [{"name":"Channel Divinity: Twilight Sanctuary","desc":"Een aura die bondgenoten elke beurt tijdelijke HP geeft of charmed/frightened opheft."},{"name":"Steps of Night","desc":"Krijg een vliegsnelheid wanneer je in schemer of duisternis bent."}],
+          "17": [{"name":"Twilight Shroud","desc":"Jij en bondgenoten in je Twilight Sanctuary krijgen half cover."}]
         }}
       }
     },
@@ -225,12 +230,18 @@
           "9": [{"name":"Supreme Sneak","desc":"Verbeterde Hide en sluipsnelheid."}],
           "13": [{"name":"Use Magic Device","desc":"Gebruik magische voorwerpen ongeacht klasse/level."}],
           "17": [{"name":"Thief's Reflexes","desc":"Neem twee beurten in de eerste gevechtsronde."}]
+        }},
+        "Swashbuckler": {"levels": {
+          "3": [{"name":"Fancy Footwork","desc":"Een wezen dat je in melee aanvalt kan die beurt geen opportunity attack tegen jou maken."},{"name":"Rakish Audacity","desc":"Voeg Cha-mod toe aan je initiatief; je krijgt Sneak Attack ook zonder voordeel zolang geen ander wezen vlak bij je doel staat."}],
+          "9": [{"name":"Panache","desc":"Daag een wezen uit of charmeer het met een Charisma (Persuasion)-check."}],
+          "13": [{"name":"Elegant Maneuver","desc":"Geef jezelf als bonusactie voordeel op je volgende Acrobatics- of Athletics-check."}],
+          "17": [{"name":"Master Duelist","desc":"Herrol een gemiste melee-aanval met voordeel (eens per Short/Long Rest)."}]
         }}
       }
     },
     "Sorcerer": {
       "subclassLabel": "Sorcerous Origin", "subclassLevel": 3,
-      "aliassen": ["tovenaar"],
+      "aliassen": ["tovenaar","chaos sorcerer","wildmagiër"],
       "subclassDefault": "Draconic Sorcery",
       "levels": {
         "1": [{"name":"Spellcasting","desc":"Cast Sorcerer-spreuken met Charisma."},{"name":"Innate Sorcery","desc":"Versterk je magie korte tijd: voordeel op spell-aanvallen en hogere save-DC."}],
@@ -245,6 +256,12 @@
           "6": [{"name":"Elemental Affinity","desc":"Voeg Cha-mod toe aan schade van je drakentype en koop weerstand."}],
           "14": [{"name":"Dragon Wings","desc":"Laat drakenvleugels groeien en vlieg."}],
           "18": [{"name":"Dragon Companion","desc":"Roep een drakenbondgenoot op of versterk je drakenmagie."}]
+        }},
+        "Wild Magic (Chaos)": {"levels": {
+          "3": [{"name":"Wild Magic Surge","desc":"Je magie kan een willekeurig chaotisch effect ontketenen (rol op de Wild Magic-tabel)."},{"name":"Tides of Chaos","desc":"Geef jezelf voordeel op een d20-test; daarna kan de DM een Surge laten plaatsvinden."}],
+          "6": [{"name":"Bend Luck","desc":"Verbruik Sorcery Points om de worp van een ander wezen met ±1d4 te beïnvloeden."}],
+          "14": [{"name":"Controlled Chaos","desc":"Rol bij een Wild Magic Surge tweemaal en kies welk effect plaatsvindt."}],
+          "18": [{"name":"Spell Bombardment","desc":"Gooi je hoogste schadedobbelsteen nog eens als die het maximum toont."}]
         }}
       }
     },
@@ -303,6 +320,9 @@
     "Orc": {"aliassen":["ork"], "levels": {"1":[{"name":"Adrenaline Rush","desc":"Dash als bonusactie en krijg tijdelijke HP."},{"name":"Darkvision","desc":"Zicht in het donker tot 120 voet."},{"name":"Relentless Endurance","desc":"Blijf eens per Long Rest op 1 HP in plaats van 0."}]}},
     "Tiefling": {"aliassen":["tiefling"], "levels": {"1":[{"name":"Darkvision","desc":"Zicht in het donker tot 60 voet."},{"name":"Fiendish Legacy","desc":"Kies Abyssal/Chthonic/Infernal voor weerstand en spreuken."},{"name":"Otherworldly Presence","desc":"Je kent de Thaumaturgy-cantrip."}], "3":[{"name":"Legacy-spreuk (1e)","desc":"Een gratis spreuk uit je legacy op level 3."}], "5":[{"name":"Legacy-spreuk (2e)","desc":"Een tweede legacy-spreuk op level 5."}]}},
     "Goliath": {"aliassen":["goliath"], "levels": {"1":[{"name":"Giant Ancestry","desc":"Kies een reuzenvoorouder met een bijbehorend talent."},{"name":"Large Form","desc":"Word vanaf level 5 tijdelijk Large."},{"name":"Powerful Build","desc":"Tel als groter voor draagvermogen en grappling."}], "5":[{"name":"Large Form","desc":"Word als bonusactie tijdelijk Large voor extra bereik en kracht."}]}},
-    "Aasimar": {"aliassen":["aasimar"], "levels": {"1":[{"name":"Darkvision","desc":"Zicht in het donker tot 60 voet."},{"name":"Celestial Resistance","desc":"Weerstand tegen necrotic en radiant schade."},{"name":"Healing Hands","desc":"Genees met een aanraking (een poel = je level aan d4's)."},{"name":"Light Bearer","desc":"Je kent de Light-cantrip."}], "3":[{"name":"Celestial Revelation","desc":"Transformeer (Heavenly Wings, Inner Radiance of Necrotic Shroud) voor extra schade."}]}}
+    "Aasimar": {"aliassen":["aasimar"], "levels": {"1":[{"name":"Darkvision","desc":"Zicht in het donker tot 60 voet."},{"name":"Celestial Resistance","desc":"Weerstand tegen necrotic en radiant schade."},{"name":"Healing Hands","desc":"Genees met een aanraking (een poel = je level aan d4's)."},{"name":"Light Bearer","desc":"Je kent de Light-cantrip."}], "3":[{"name":"Celestial Revelation","desc":"Transformeer (Heavenly Wings, Inner Radiance of Necrotic Shroud) voor extra schade."}]}},
+    "Aarakocra": {"aliassen":["aarakocra","arakocra"], "levels": {"1":[{"name":"Flight","desc":"Vliegsnelheid van 50 voet zolang je geen zwaar harnas draagt."},{"name":"Talons","desc":"Je klauwen zijn natuurlijke wapens die slashing schade doen."},{"name":"Wind Caller","desc":"Op level 3: cast Gust of Wind eens per Long Rest (en vaker met spell slots)."}]}},
+    "Tabaxi": {"aliassen":["tabaxi"], "levels": {"1":[{"name":"Darkvision","desc":"Zicht in het donker tot 60 voet."},{"name":"Cat's Talents","desc":"Proficiency in Perception en Stealth."},{"name":"Cat's Claws","desc":"Klauwen als natuurlijke wapens en een klimsnelheid van 20 voet."},{"name":"Feline Agility","desc":"Verdubbel je snelheid kort in gevecht; herlaadt als je een beurt niet beweegt."}]}},
+    "Half-Elf": {"aliassen":["half-elf","half elf","halfelf","halfelf","half-elf","halfelf"], "levels": {"1":[{"name":"Darkvision","desc":"Zicht in het donker tot 60 voet."},{"name":"Fey Ancestry","desc":"Voordeel tegen charmed en je kunt niet magisch in slaap gebracht worden."},{"name":"Skill Versatility","desc":"Proficiency in twee skills naar keuze."}]}}
   }
 }
