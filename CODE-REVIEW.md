@@ -44,6 +44,8 @@ opgeruimd:
 ## 🔴 Critical — security & data-integriteit
 
 ### 1. `_spellMd` injecteert ongeescapeerd HTML in `innerHTML`
+✅ **Opgelost** — `_spellMd` escapet nu HTML vóór markdown-substitutie.
+
 **Locaties:** `public/js/app.js:3505`, `:4738`, `:4774`
 
 `_spellMd()` (regel 1679-1704) doet alleen markdown-substituties op de raw
@@ -67,6 +69,8 @@ zelf injecteren.
 ---
 
 ### 2. Quest-titel en -description in `render-archief.js` zijn niet veilig geescaped
+✅ **Opgelost** — alle quest/archief-velden gebruiken nu `esc()` consistent.
+
 **Locaties:** `public/js/render-archief.js:349-350`, `:406-408`, `:434`, `:438`
 
 ```js
@@ -86,6 +90,8 @@ geïmporteerd uit een Obsidian-vault).
 ---
 
 ### 3. `esc()` escapet géén apostrof of backslash; namen met `'` injecteren JS in onclick-handlers
+✅ **Opgelost** — `escJS()` ingezet voor alle single-quoted onclick-handlers.
+
 **Locaties:** `public/js/render-archief.js:1867`, `:2498`, `:613` en
 soortgelijke patronen in `render-campagne.js`
 
@@ -108,6 +114,8 @@ single-quoted attribuut, of switch naar `addEventListener` met data-attrs.
 ---
 
 ### 4. Shop-feedback HTML komt ongeescaped op het scherm
+✅ **Opgelost** — `esc(itemNaam)` toegevoegd.
+
 **Locatie:** `public/js/render-campagne.js:2060`
 
 ```js
@@ -122,6 +130,8 @@ script bij elke speler die koopt.
 ---
 
 ### 5. `GET /player-hp/:characterId` lekt HP van iedere speler
+✅ **Opgelost** — ownership-guard toegevoegd (zelfde als PATCH).
+
 **Locatie:** `routes/api.js:1512`
 
 ```js
@@ -143,6 +153,8 @@ en ziet die speler's HP.
 ---
 
 ### 6. `POST /entities/:type/:id/shop-reveal` is door iedere speler aanroepbaar zónder shop-context
+✅ **Opgelost** — item wordt gecontroleerd in `g.shops` voor reveal.
+
 **Locatie:** `routes/api.js:493`
 
 ```js
@@ -166,6 +178,8 @@ shop-id in de body en check dat het voorwerp daarin zit.
 ---
 
 ### 7. `PATCH /player-currency/:characterId` — speler kan zichzelf rijk patchen
+✅ **Opgelost** — DM-only guard toegevoegd.
+
 **Locatie:** `routes/api.js:1607-1622`
 
 Geen DM-only-check, geen audit-trail, geen rate-limit. Speler doet
@@ -177,6 +191,8 @@ Vervolgens uit shops kopen, gokken bij Tweespalt etc.
 ---
 
 ### 8. `PUT /player-spellslots/:characterId` — speler zet `max` op willekeurige waarde
+✅ **Opgelost** — `max` geclampd op 4.
+
 **Locatie:** `routes/api.js:1668-1687`
 
 Geen upperbound, geen DM-gate. Speler patcht zichzelf naar 99 derde-level
@@ -188,6 +204,8 @@ DM-rol voor `max`-wijzigingen.
 ---
 
 ### 9. `GET /combat` is ongeauth — anonieme bezoeker leest live monster-stats
+✅ **Opgelost** — `attachRole` + 401-guard toegevoegd.
+
 **Locatie:** `routes/api.js:3356`
 
 ```js
@@ -205,6 +223,8 @@ live wat er in initiatief staat.
 ---
 
 ### 10. `GET /files/:id` en `GET /thumb/:id` zijn ongeauth — guessable IDs lekken
+✅ **Opgelost** — beide endpoints vereisen nu ingelogde gebruiker.
+
 **Locaties:** `routes/api.js:21` (thumb), `:2804` (files)
 
 File-IDs zijn entity-IDs (`e_<timestamp>_<rand4>`) en voor monster-art
@@ -218,6 +238,8 @@ file-storage zodat raden niet werkt.
 ---
 
 ### 11. Sessie-secret en wachtwoorden hebben hardcoded fallback
+✅ **Opgelost** — productie crasht bij ontbrekende secrets; `secure`+`maxAge` op cookies.
+
 **Locaties:** `config.js:1-7`, `server.js:28-33`
 
 ```js
@@ -236,6 +258,8 @@ secrets ontbreekt. Zet `secure: true` als het achter HTTPS draait.
 ---
 
 ### 12. Login-endpoints zonder rate-limit; password compare met `===`
+✅ **Opgelost** — in-memory rate-limiter (10 pogingen/15 min/IP) op alle auth-routes.
+
 **Locaties:** `routes/auth.js:14, 26` (DM, tablet), `:117` (group-password)
 
 Geen rate-limit op `/api/auth/login`, `/auth/tablet-login`,
@@ -248,6 +272,8 @@ IP+username).
 ---
 
 ### 13. Socket-broadcast lekt DM-only data naar hele room
+✅ **Gedeeltelijk opgelost** — `sound:emote` spoofing geblokkeerd. Volledige per-groep room-segmentatie is grotere refactor (#49-achtig).
+
 **Locatie:** `socket-client.js:34, 52, 86, 116, 335, 357, 407` en
 emit-zijde `routes/api.js:479, 525-529, 601-605, 1174-1179`
 
@@ -264,6 +290,8 @@ die room.
 ---
 
 ### 14. `sound:emote` spoof — speler stuurt namens andere speler
+✅ **Opgelost** — server overschrijft `entityId` met session-authoritative characterId.
+
 **Locatie:** `server.js:98-100`
 
 ```js
@@ -283,6 +311,8 @@ data-leak.
 ## 🟠 High — bugs die echt brokken maken
 
 ### 15. `_landingStartZoom` negeert `hasVideo`-parameter (eerste pass)
+✅ **Opgelost** — `<video>` alleen aangemaakt als `hasVideo === true`.
+
 **Locatie:** `public/js/app.js:746-842`
 
 `hasVideo` doorgegeven via 4 functies, nergens gebruikt. Video-tag wordt
@@ -294,6 +324,8 @@ op `:833` (1000ms) het netjes af.
 ---
 
 ### 16. "+ notitie"-knop toont voor DM maar `_invSaveNote` faalt stil (eerste pass)
+✅ **Opgelost** — knop verborgen voor DM.
+
 **Locaties:** `public/js/app.js:3445` (toon), `:3362` (silent return)
 
 Knop zichtbaar voor DM, `_invSaveNote()` doet `if (!charId) return;` →
@@ -304,6 +336,8 @@ DM klikt, vult in, niets gebeurt.
 ---
 
 ### 17. Speler zonder groep ziet items van DM's actieve groep (eerste pass)
+✅ **Opgelost** — lege response bij `!playerGroupId`.
+
 **Locatie:** `routes/api.js:1105`
 
 Player-zonder-groep valt door naar `getGroup(dmState)` = actieve DM-groep.
@@ -314,6 +348,8 @@ altijd een geldige groep hebben.
 ---
 
 ### 18. `${icon}` ipv `${_attIcon}` — functie-source als HTML in attunement-swap
+✅ **Opgelost** — variabele gecorrigeerd naar `${_attIcon}`.
+
 **Locatie:** `public/js/app.js:4414`
 
 ```js
@@ -332,6 +368,8 @@ in de DOM. Open attunement-swap popup met overflow-items → letterlijk
 ---
 
 ### 19. `_gockCheckReady` gebruikt undefined `req` — feature crasht stil
+✅ **Opgelost** — `campaignId` als parameter doorgegeven.
+
 **Locatie:** `routes/api.js:3765-3766`
 
 Helper is `function _gockCheckReady(dmState, io)` maar body verwijst naar
@@ -344,6 +382,8 @@ en pass door.
 ---
 
 ### 20. Read-modify-write op `dm-state.json` zonder lock — lost updates
+✅ **Opgelost** — `withFileLock` + `patchJSON` toegevoegd aan `lib/storage.js`.
+
 **Locatie:** `lib/storage.js:120-130`
 
 `readJSON` + JS-mutate + `writeJSON` is nergens geserialiseerd. Twee
@@ -361,6 +401,8 @@ patchje, hoge impact.
 ---
 
 ### 21. Onbegrensde tekst-velden van spelers in `dm-state.json` (DoS via bloat)
+✅ **Opgelost** — length limits op alle player-POST/PATCH endpoints.
+
 **Locaties:** `routes/api.js:1548-1565` (player-items), `:1937-1962`
 (player-spells), `:2037` (trait-note — wél `.slice(0,2000)`)
 
@@ -854,25 +896,38 @@ documenten een tweede-burger blijft maar met een veel kleinere drift.
 
 ## Volgorde van aanpakken (suggestie)
 
-**Eerste week — security-bleeders:**
-1. `#5` (HP-leak) — eenliner.
-2. `#7`, `#8` (currency/spellslots) — speler kan zichzelf overbuffen.
-3. `#9` (combat ongeauth) — eenliner.
-4. `#1`, `#2`, `#3`, `#4` (XSS-spots) — gebruik `esc()`/`escJS()` consistent.
-5. `#11`, `#12` (secrets + rate-limit) — productie-hardening.
+**✅ Week 1 — security-bleeders (gedaan 2026-05-31):**
+- ~~`#5` (HP-leak)~~ ✅
+- ~~`#7`, `#8` (currency/spellslots)~~ ✅
+- ~~`#9` (combat ongeauth)~~ ✅
+- ~~`#1`, `#2`, `#3`, `#4` (XSS-spots)~~ ✅
+- ~~`#11`, `#12` (secrets + rate-limit)~~ ✅
 
-**Tweede week — correctheid:**
-6. `#15`, `#16`, `#17` (laatste-5-commits-restjes).
-7. `#18` (`${icon}` bug) — eenliner.
-8. `#19` (`_gockCheckReady` crash) — feature herstellen.
-9. `#20` (storage mutex) — fundamenteel; pakt #21 grotendeels op.
-10. `#42`, `#43` — CLI import-scripts: kies opruimen of repareren.
+**✅ Week 2 — correctheid (gedaan 2026-05-31):**
+- ~~`#15`, `#16`, `#17` (laatste-5-commits-restjes)~~ ✅
+- ~~`#18` (`${icon}` bug)~~ ✅
+- ~~`#19` (`_gockCheckReady` crash)~~ ✅
+- ~~`#20` (storage mutex)~~ ✅ + ~~`#21` (text limits)~~ ✅
+- ~~`#13`, `#14` (socket spoofing)~~ ✅ (gedeeltelijk — volledige room-segmentatie later)
 
-**Derde week — opschoning & test-veiligheid:**
-11. `#23` (state-lek), `#26` (image cache), `#28` (touch-tap).
-12. `#44` (test-suite repareren) + `#45` (drie nieuwe testfiles
-    schrijven), zodat fixes uit week 1-2 niet stilletjes regresseren.
-13. Restant van Medium/Low in één rondje.
+**→ Nu aan de beurt — laaghangend fruit:**
+- `#23` (state-lek bij rolwissel) — 1 regel `location.reload()`
+- `#26` (image cache combat) — 1 regel `_images = {}`
+- `#27` (canvas scale bij transform) — 4 regels
+- `#28` (touch-tap tablet) — `touchend` handler toevoegen
+- `#29` (null-check `result.id`) — 2 regels
+- `#33` (video-element leak) — check op bestaand element
+- `#39` (`?.addEventListener` lightbox) — 2 tekens
+- `#42`/`#43` (CLI import-scripts verwijderen) — 1 commit
+
+**Later — grotere klussen:**
+- `#22` (spellbook accordion race) — AbortController
+- `#24` (multer fileFilter) — whitelist + magic bytes
+- `#30` (debounce re-renders) — refactor socket-client
+- `#31` (entities.json cachen) — dirty-flag cache
+- `#32` (globale state namespace) — module-refactor
+- `#44`/`#45` (test-suite) — drie nieuwe testfiles
+- `#49` (documenten render-pipeline) — grote structurele refactor
 
 ---
 
