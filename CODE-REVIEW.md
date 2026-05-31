@@ -766,6 +766,78 @@ hem stilletjes mee te exporteren.
 
 ---
 
+## 🟠 High — vierde pass (structurele divergentie)
+
+### 49. Documenten heeft een eigen parallelle render-pipeline; aanpassingen aan de gedeelde flow raken het niet
+**Locaties:** `public/js/render-campagne.js` (gedeeld) vs.
+`public/js/render-archief.js` (alleen documenten)
+
+`personages`, `locaties`, `organisaties` en `voorwerpen` lopen allemaal
+door `renderEntitySection(type)` (`render-campagne.js:474`). `documenten`
+heeft een aparte `renderDocumenten()` in `render-archief.js:124` met
+eigen card-render (`renderDocCard` :1971), eigen detail-modal (`_openDoc`
+:1997), eigen state-locals (`archiefData`, `searchQuery`), eigen
+visibility-flow (`_toggleDocState` :2129 vs. entity `_toggleVis` :2160).
+
+**Concrete gevolg:** elke verbetering aan `renderCard`, `_openDetail`,
+`_toggleVis`, bookmark-knop, `searchQueries`/`subtypeFilters` of de
+claim/owner-flow moet handmatig worden gekopieerd naar
+`renderDocCard`/`_openDoc`/`_toggleDocState`. Vergeten = documenten loopt
+achter (wat de gebruiker dagelijks merkt).
+
+**Features die documenten daadwerkelijk mist t.o.v. entities:**
+
+1. **Secret-reveal**: entities hebben `data.geheim` + secret-badge
+   (`render-campagne.js:865-873`) + `_toggleSecret` (:2175) + socket-pad.
+   Documenten: niet bestaand.
+2. **DM-notes in detail-modal**: entities laden notes in `_openDetail`
+   (:1262, render :1516). `_openDoc` (`render-archief.js:1997`) doet
+   dit niet.
+3. **Bookmarks**: `★/☆`-knop bestaat alleen op entity-cards
+   (`render-campagne.js:813-822`); spelers kunnen documenten niet
+   bookmarken hoewel het dashboard wel een gedeelde bladwijzerlijst
+   rendert.
+4. **Subtype-filter chips**: entities hebben `subtypeFilters[type]`
+   (:535-539); documenten alleen vrij-tekst search.
+5. **`.no-img`-CSS-fallback**: entity `<img onerror>` zet `.no-img` op
+   de container (:810); documenten niet (`render-archief.js:1974`). CSS
+   die op `.no-img` mikt geldt niet voor documenten.
+6. **`_navigateTo`-chips** (`render-campagne.js:767-768`): alleen entities.
+7. **Visibility-semantiek divergeert**: entities `_visibility` is
+   `visible/vague/hidden` en **globaal**; documenten `state` is
+   `hidden/blurred/revealed` en **per groep** (`api.toggleVisibility`
+   vs. `api.setArchiefGroupVisibility`). Shift+klik betekent niet
+   hetzelfde op beide kaarten — verwarrend voor de DM.
+
+**Schema-divergentie:**
+- entities: `e.name/subtype/data.{...}/links/_visibility/_secretReveal`
+- documenten: `d.name/type/desc/hoofdstuk/state/npcs/locs/orgs/items/
+  docs/hiddenLinks/tekstContent`
+
+**Aanpak — twee opties:**
+
+- **Optie A — lichte refactor** (~1 dag): trek een gedeelde
+  `renderEntityCard()` helper uit `renderCard` en `renderDocCard` die
+  type-specifieke slots krijgt (badges/overlays/owner). Laat documenten
+  meedoen in `searchQueries`/`subtypeFilters`. Verplaats bookmark-knop
+  en `.no-img`-handler naar die helper. Dekt ~80% van de drift zonder
+  schema-wissel.
+
+- **Optie B — volledige migratie** naar `renderEntitySection('documenten')`
+  (~3-5 dagen): schema-adapter (`state` ↔ `_visibility`, `hiddenLinks`
+  ↔ `links`), per-groep visibility uitbreiden naar entities of als
+  documenten-extensie houden, legacy-velden (`tekstContent` perkament,
+  PDF/audio-embed in `_openDoc`) als type-specifieke hooks in de
+  gedeelde pipeline, server-endpoints (`/archief/:id/state`,
+  `/archief/:id/group-visibility`, `/archief/:id/hidden-links`) ofwel
+  achter de generieke entity-route ofwel als variant.
+
+**Aanbeveling:** begin met Optie A. Pak Optie B later op als het aantal
+type-specifieke hooks beheersbaar blijkt; anders accepteer je dat
+documenten een tweede-burger blijft maar met een veel kleinere drift.
+
+---
+
 ## ℹ️ Geen issue (gecheckt en weggestreept)
 
 - **`/party` voor DM** is correct: `routes/api.js:1761` returnt vroeg.
