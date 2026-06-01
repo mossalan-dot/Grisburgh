@@ -460,6 +460,7 @@ async function testLoginSubmit() {
     closeTestLoginModal();
     state.playerName  = result.playerName;
     state.characterId = result.characterId;
+    state.role        = 'player';
     applyRole();
     try { localStorage.setItem('_lastLogin', JSON.stringify({ charId: result.characterId, ts: Date.now() })); } catch { /* ok */ }
     if (result.characterId && window._socket) window._socket.emit('player:register', result.characterId);
