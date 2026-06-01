@@ -13191,20 +13191,19 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 
 /* ══ Item Carousel (knapzak) ══ */
 .item-carousel {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
+  position: relative;
   width: 100%;
   margin-bottom: 12px;
 }
 .item-carousel-nav {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  position: absolute;
+  top: 8px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 1px solid #c4a87a;
-  background: transparent;
+  background: rgba(242,232,210,0.88);
   color: #8a6000;
   font-size: 1.2rem;
   line-height: 1;
@@ -13214,11 +13213,12 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   justify-content: center;
   transition: background 0.15s, color 0.15s;
 }
-.item-carousel-nav:hover { background: rgba(196,168,122,0.18); color: #5a3000; }
+.item-carousel-nav:first-child { left: 8px; }
+.item-carousel-nav:last-child  { right: 8px; }
+.item-carousel-nav:hover { background: rgba(196,168,122,0.55); color: #5a3000; }
 .item-carousel-nav:disabled { opacity: 0.3; cursor: default; }
 .item-carousel-track {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   overflow: hidden;
 }
 .item-carousel-slide {
@@ -13226,7 +13226,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 12px 8px;
+  padding: 52px 8px 12px;
   background: #f2e8d2;
   border: 1px solid #c8a060;
   border-radius: 10px;

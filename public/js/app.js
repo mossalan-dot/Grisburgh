@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { initGlossary } from "./glossary.js?v=1";
 import { initSocket } from "./socket-client.js?v=13";
-import { initDmPanel } from "./dm-panel.js?v=51";
+import { initDmPanel } from "./dm-panel.js?v=52";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -4911,29 +4911,6 @@ async function renderMijnKarakter(opts = {}) {
           };
 
           return _attSectionHtml(slotIds);
-        })()}
-
-        <!-- Boedelinventaris open -->
-        ${(() => {
-          window._invItems         = myItems;
-          window._invSimpleItems   = simpleItems;
-          window._invCharName      = entity?.name || state.playerName || '—';
-          window._invCurrency      = currency;
-          window._invPartyCurrency = partyCurrency;
-          window._invCurrencyNames = _cNames;
-          window._invPartyMembers  = partyMembers.map(m => m.name || m.playerName || '').filter(Boolean);
-          const total = myItems.length + simpleItems.length;
-          return `<div class="player-dash-section inv-open-section">
-            <div class="player-dash-section-title">
-              ${icon('scroll-text')} Boedelinventaris
-              <button class="inv-open-btn" onclick="window._openInventaris(window._invItems||[], window._invSimpleItems||[], window._invCharName||'', window._invCurrency, window._invPartyCurrency, window._invCurrencyNames, window._invPartyMembers)">
-                Bekijk inventaris
-              </button>
-            </div>
-            <p class="player-dash-empty" style="margin:6px 0 4px">
-              ${total > 0 ? `${total} ${total === 1 ? 'voorwerp' : 'voorwerpen'} geregistreerd — bekijk uw officiële eigendomsopgave.` : 'Nog geen voorwerpen geregistreerd bij de notaris.'}
-            </p>
-          </div>`;
         })()}
 
         <!-- Geclaimde & losse voorwerpen -->
