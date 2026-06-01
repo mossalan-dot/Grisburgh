@@ -4114,6 +4114,8 @@ window._heerenKwijt    = async (cid, bid) => { if (!confirm('Deze boete kwijtsch
 
 let _tempelGodenDraft = [];
 let _tempelBackdropPending = null;
+let _tempelEntityPortretOpties = [];
+let _tempelBackdropOpties = [];
 
 async function _renderTempelSettings() {
   const el = _tabEl('tempel');
@@ -4130,6 +4132,14 @@ async function _renderTempelSettings() {
   try { personages = await api.listEntities('personages'); } catch {}
   try { locaties  = await api.listEntities('locaties');  } catch {}
   const alle = [...personages, ...locaties];
+
+  // Build entity option lists for per-god image pickers
+  _tempelEntityPortretOpties = [...personages, ...locaties]
+    .filter(e => e.imageId)
+    .map(e => ({ value: e.imageId, label: e.naam || e.name || e.id }));
+  _tempelBackdropOpties = locaties
+    .filter(e => e.imageId)
+    .map(e => ({ value: e.imageId, label: e.naam || e.name || e.id }));
 
   el.innerHTML = `
     <div class="dm-feature-section">
@@ -4169,7 +4179,7 @@ async function _renderTempelSettings() {
         <label class="dm-form-label">Achtergrondafbeelding</label>
         ${config.backdropId ? `<img id="tempel-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="tempel-backdrop-preview" style="display:none"></span>'}
         <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">
-          📷
+          ${icon('image')}
           <input type="file" accept="image/*" class="hidden" onchange="window._tempelUploadBackdrop(this.files[0])">
         </label>
         <div class="dm-form-row">
@@ -4192,7 +4202,7 @@ async function _renderTempelSettings() {
       </div>
 
       <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._tempelSettingsSave()" title="Opslaan">💾</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._tempelSettingsSave()" title="Opslaan">${icon('save')}</button>
       </div>
     </div>
   `;
@@ -4242,7 +4252,7 @@ function _renderTempelGodenRows() {
       <div class="dm-form-row" style="gap:6px;align-items:center">
         <input class="dm-input" style="flex:1" placeholder="Naam (bijv. Matall, de Maker)" value="${esc(g.naam || '')}" oninput="window._tempelGodEdit(${i},'naam',this.value)">
         <input class="dm-input" type="number" min="0" style="width:64px" placeholder="fl" value="${(g.prijs && g.prijs.fl) || ''}" oninput="window._tempelGodEdit(${i},'prijsFl',this.value)" title="Eigen prijs (leeg = standaard)">
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelGodVerwijderen(${i})" title="Verwijderen">🗑️</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelGodVerwijderen(${i})" title="Verwijderen">${icon('trash')}</button>
       </div>
       <div class="dm-form-row" style="gap:6px">
         <input class="dm-input" style="flex:1" placeholder="Domein" value="${esc(g.domein || '')}" oninput="window._tempelGodEdit(${i},'domein',this.value)">
@@ -4258,6 +4268,32 @@ function _renderTempelGodenRows() {
         <label class="dm-form-label" style="opacity:.7">Eenmalige zegens (één per regel, max 4 = d4)</label>
         <textarea class="dm-input" rows="4" style="resize:vertical;font-size:11px" placeholder="bijv. Herrol een mislukte death save."
           oninput="window._tempelGodEditLines(${i}, this.value)">${esc((g.eenmaligeZegens || []).join('\n'))}</textarea>
+      </div>
+      <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;margin-top:4px">
+        <div style="flex:1;min-width:140px">
+          <label class="dm-form-label" style="opacity:.65;display:block;margin-bottom:2px;font-size:10px">God-portret</label>
+          <select class="dm-select" style="font-size:11px" onchange="window._tempelGodEdit(${i},'imageId',this.value)">
+            <option value="">— geen —</option>
+            ${_tempelEntityPortretOpties.map(e => `<option value="${esc(e.value)}"${g.imageId===e.value?' selected':''}>${esc(e.label)}</option>`).join('')}
+          </select>
+        </div>
+        <div style="flex:1;min-width:140px">
+          <label class="dm-form-label" style="opacity:.65;display:block;margin-bottom:2px;font-size:10px">Priester/NPC</label>
+          <select class="dm-select" style="font-size:11px" onchange="window._tempelGodEdit(${i},'priestImageId',this.value)">
+            <option value="">— geen —</option>
+            ${_tempelEntityPortretOpties.map(e => `<option value="${esc(e.value)}"${g.priestImageId===e.value?' selected':''}>${esc(e.label)}</option>`).join('')}
+          </select>
+        </div>
+        <div style="flex:1;min-width:140px">
+          <label class="dm-form-label" style="opacity:.65;display:block;margin-bottom:2px;font-size:10px">Tempel-backdrop</label>
+          <select class="dm-select" style="font-size:11px" onchange="window._tempelGodEdit(${i},'backdropId',this.value)">
+            <option value="">— geen —</option>
+            ${_tempelBackdropOpties.map(e => `<option value="${esc(e.value)}"${g.backdropId===e.value?' selected':''}>${esc(e.label)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="dm-form-row" style="margin-top:4px">
+        <input class="dm-input" style="flex:1;font-size:11px" placeholder="Priester-begroeting (optioneel)" value="${esc(g.priesterGreet || '')}" oninput="window._tempelGodEdit(${i},'priesterGreet',this.value)">
       </div>
     </div>
   `).join('') || '<p class="dm-form-label" style="opacity:.6">Nog geen goden toegevoegd.</p>';
@@ -4323,7 +4359,11 @@ window._tempelSettingsSave = async () => {
       zegen: (g.zegen || '').trim(),
       vloek: (g.vloek || '').trim(),
       eenmaligeZegens: (g.eenmaligeZegens || []).filter(Boolean),
-      ...(g.prijs ? { prijs: g.prijs } : {}),
+      ...(g.prijs        ? { prijs:        g.prijs }        : {}),
+      ...(g.imageId      ? { imageId:      g.imageId }      : {}),
+      ...(g.priestImageId? { priestImageId:g.priestImageId } : {}),
+      ...(g.backdropId   ? { backdropId:   g.backdropId }   : {}),
+      ...(g.priesterGreet? { priesterGreet:g.priesterGreet } : {}),
     }));
   try {
     await api.saveTempelConfig({ naam, prijs: { fl }, eedPrijs: { fl: eedFl }, boetePrijs: { fl: boeteFl }, voorwerpNaam, imageId, backdropId, goden });

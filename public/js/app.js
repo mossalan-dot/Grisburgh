@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { initGlossary } from "./glossary.js?v=1";
 import { initSocket } from "./socket-client.js?v=13";
-import { initDmPanel } from "./dm-panel.js?v=50";
+import { initDmPanel } from "./dm-panel.js?v=51";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -5071,7 +5071,7 @@ async function renderMijnKarakter(opts = {}) {
             return `
               ${gewone.length ? `<ul class="player-dash-simple-list">${gewone.map(_row).join('')}</ul>` : ''}
               ${zegens.length ? `
-                <div class="player-dash-section-title" style="margin-top:10px">⚜️ Zegeningen &amp; vloeken</div>
+                <div class="player-dash-section-title" style="margin-top:10px">${icon('sparkles')} Zegeningen &amp; vloeken</div>
                 <ul class="player-dash-simple-list player-dash-zegen-list">${zegens.map(_row).join('')}</ul>` : ''}
             `;
           })()}
@@ -7704,125 +7704,213 @@ async function renderUrsula() {
     </div>`;
 }
 
+// ── De Tempel ──────────────────────────────────────────────────────────────
+
+let _tempelActiveGodId = null; // null = godlijst, string = temple interior
+
 async function renderTempel() {
   const el = document.getElementById('section-tempel');
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh) {
-    _dienstNietBereikbaar(el, meta.tempel?.naam || 'De Tempel');
-    return;
-  }
+  if (meta.buitenGrisburgh) { _dienstNietBereikbaar(el, meta.tempel?.naam || 'De Tempel'); return; }
 
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
 
   let data;
   try { data = await api.getTempel(); }
-  catch (e) {
-    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`;
-    return;
-  }
+  catch (e) { el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`; return; }
 
   const { config, huidigeZegen, huidigeEed, currency } = data;
   const goden = config.goden || [];
-
   const beursTekst = (cur) =>
     [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
   const prijsTekst = (p) =>
     [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
-  const prijsLabel = (g) => prijsTekst((g.prijs && g.prijs.fl) ? g.prijs : config.prijs);
 
-  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
-  const portret  = config.imageId
-    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
-    : `<div class="gock-portret-fallback">⛪</div>`;
+  const activeGod = _tempelActiveGodId ? goden.find(g => g.id === _tempelActiveGodId) : null;
 
-  const eedGebonden = !!huidigeEed;
-  const isVloek = huidigeEed && huidigeEed.status === 'vloek';
+  if (activeGod) {
+    // ── VIEW 2: Temple interior ────────────────────────────────────────────
+    _renderTempelInterior(el, activeGod, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst);
+  } else {
+    // ── VIEW 1: God list ──────────────────────────────────────────────────
+    _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst);
+  }
+}
+
+function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst) {
+  const statusBlokken = [];
+  if (huidigeEed) {
+    const isVloek = huidigeEed.status === 'vloek';
+    statusBlokken.push(`<div class="tempel-status-chip${isVloek ? ' tempel-status-chip--vloek' : ' tempel-status-chip--eed'}">
+      ${isVloek ? icon('skull') : icon('scroll-text')}
+      ${isVloek ? 'Vloek' : 'Eed'}: <em>${esc(huidigeEed.godNaam || '')}</em>
+    </div>`);
+  }
+  if (huidigeZegen) {
+    statusBlokken.push(`<div class="tempel-status-chip tempel-status-chip--zegen">
+      ${icon('sparkles')} Zegening: <em>${esc(huidigeZegen.godNaam || '')}</em>
+      ${huidigeZegen.usesMax ? `· ${huidigeZegen.uses || 0}/${huidigeZegen.usesMax}` : ''}
+    </div>`);
+  }
 
   el.innerHTML = `
-    <div class="herberg-scene gock-scene" ${backdrop}>
+    <div class="herberg-scene tempel-scene-list">
       <div class="herberg-content">
-        <div class="herberg-portrait-wrap">${portret}</div>
-        <p class="herberg-groet">Welkom in ${esc(config.naam)}. Tot welke god wil je bidden?</p>
+        <p class="herberg-groet">${esc(config.naam || 'De Tempel')}</p>
         ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
-
-        ${huidigeEed ? `
-          <div class="gock-dossier"${isVloek ? ' style="border-color:rgba(150,40,40,0.6)"' : ''}>
-            <div class="gock-dossier-head">${isVloek ? '☠️ Vloek' : '⚖️ Jouw eed'}</div>
-            <p class="gock-dossier-tekst">${esc(huidigeEed.name)}${huidigeEed.note ? ' — ' + esc(huidigeEed.note) : ''}</p>
-            ${isVloek
-              ? `<button class="ts-wedden-btn" style="margin-top:6px" onclick="window._tempelBoete()">🙏 Doe boete (${esc(prijsTekst(config.boetePrijs))}) — hef de vloek op</button>`
-              : `<p class="ts-beurs">Een blijvende eed (overleeft een lange rust). Verzaak je 'm, dan roept ${esc(huidigeEed.godNaam || 'de god')} een vloek over je af.</p>`}
-          </div>` : ''}
-
-        ${huidigeZegen ? `
-          <div class="gock-dossier">
-            <div class="gock-dossier-head">✨ Huidige zegen</div>
-            <p class="gock-dossier-tekst">${esc(huidigeZegen.name)}${huidigeZegen.note ? ' — ' + esc(huidigeZegen.note) : ''}</p>
-            ${huidigeZegen.kind === 'eenmalig' && huidigeZegen.usesMax ? `
-              <div class="tempel-charges" style="display:flex;align-items:center;gap:6px;margin:6px 0;flex-wrap:wrap">
-                ${Array.from({ length: huidigeZegen.usesMax }).map((_, i) =>
-                  `<span class="spell-slot-dot${i < (huidigeZegen.uses || 0) ? '' : ' used'}" style="cursor:default"></span>`).join('')}
-                <span class="ts-beurs" style="margin:0">${huidigeZegen.uses || 0}/${huidigeZegen.usesMax} over</span>
-                <button class="ts-wedden-btn" style="margin-left:6px;padding:2px 10px" onclick="window._tempelVerbruik()" ${(huidigeZegen.uses || 0) <= 0 ? 'disabled' : ''}>✓ Gebruik</button>
-              </div>` : ''}
-            <p class="ts-beurs">Je kunt maar één eenmalige zegen tegelijk dragen; opnieuw bidden vervangt deze.</p>
-          </div>` : ''}
-
+        ${statusBlokken.length ? `<div class="tempel-status-chips">${statusBlokken.join('')}</div>` : ''}
         ${goden.length === 0
           ? `<p class="herberg-cooldown-tekst">Er zijn nog geen goden bekend in deze tempel.</p>`
-          : `<div class="herberg-lijst tempel-goden">
+          : `<div class="tempel-goden-grid">
               ${goden.map(g => {
-                const eenmalig = (g.eenmaligeZegens || []).filter(Boolean);
                 const actiefEed = huidigeEed && huidigeEed.godId === g.id;
+                const avatar = g.imageId
+                  ? `<img src="${api.fileUrl(g.imageId)}" class="tempel-god-avatar" alt="${esc(g.naam)}">`
+                  : `<div class="tempel-god-avatar-fallback">${icon('star')}</div>`;
                 return `
-                <div class="tempel-god-kaart${actiefEed ? ' tempel-god--actief' : ''}" style="border:1px solid rgba(196,168,122,0.3);border-radius:10px;padding:10px;margin-bottom:8px;text-align:left">
-                  <div style="margin-bottom:6px">
-                    <span class="herberg-item-naam">${esc(g.naam)}</span>
-                    ${g.domein ? `<span class="herberg-item-type" style="display:block;opacity:.75">${esc(g.domein)}</span>` : ''}
-                  </div>
-                  <div style="display:flex;flex-wrap:wrap;gap:6px">
-                    <button class="ts-wedden-btn" onclick="window._tempelEed('${esc(g.id)}','${esc(g.naam)}')" ${eedGebonden ? 'disabled' : ''}
-                      title="${eedGebonden ? 'Je bent al door een eed gebonden' : 'Leg een blijvende eed af'}">
-                      ⚖️ Eed${g.zegen ? ': ' + esc(g.zegen) : ''} · ${esc(prijsTekst(config.eedPrijs))}
-                    </button>
-                    ${eenmalig.length ? `
-                    <button class="ts-wedden-btn" onclick="window._tempelKies('${esc(g.id)}','${esc(g.naam)}')">
-                      🎲 Eenmalig (d${eenmalig.length}) · ${esc(prijsLabel(g))}
-                    </button>` : ''}
-                  </div>
-                </div>`;
+                  <div class="tempel-god-kaart${actiefEed ? ' tempel-god--actief' : ''}"
+                       onclick="window._tempelBinnenTreden('${esc(g.id)}')">
+                    ${avatar}
+                    <div class="tempel-god-naam">${esc(g.naam)}</div>
+                    ${g.domein ? `<div class="tempel-god-domein">${esc(g.domein)}</div>` : ''}
+                    ${actiefEed ? `<div class="tempel-god-eed-badge">${icon('scroll-text')} eed</div>` : ''}
+                  </div>`;
               }).join('')}
             </div>`}
       </div>
     </div>`;
 }
 
+function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst) {
+  const eedGebonden = !!huidigeEed;
+  const isVloek     = huidigeEed?.status === 'vloek';
+  const actiefEed   = huidigeEed && huidigeEed.godId === g.id;
+  const eenmalig    = (g.eenmaligeZegens || []).filter(Boolean);
+
+  const backdrop    = g.backdropId ? `style="background-image:url('${api.fileUrl(g.backdropId)}')"` : '';
+  const portret     = g.priestImageId
+    ? `<img src="${api.fileUrl(g.priestImageId)}" class="herberg-portrait-round" alt="Priester">`
+    : `<div class="herberg-portrait-round herberg-portrait-fallback">${icon('church')}</div>`;
+
+  el.innerHTML = `
+    <div class="herberg-scene gock-scene" ${backdrop}>
+      <div class="herberg-content">
+        <button class="tempel-terug-btn" onclick="window._tempelTerugNaarLijst()">${icon('chevron-left')} Terug</button>
+        <div class="herberg-portrait-wrap">${portret}</div>
+        <p class="herberg-groet">${esc(g.priesterGreet || 'Welkom, pelgrim. Waarvoor bent u hier?')}</p>
+        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
+
+        ${huidigeEed ? `
+          <div class="gock-dossier"${isVloek ? ' style="border-color:rgba(150,40,40,0.6)"' : ''}>
+            <div class="gock-dossier-head">${isVloek ? icon('skull') + ' Vloek' : icon('scroll-text') + ' Jouw eed'}</div>
+            <p class="gock-dossier-tekst">${esc(huidigeEed.name)}${huidigeEed.note ? ' — ' + esc(huidigeEed.note) : ''}</p>
+            ${isVloek
+              ? `<button class="ts-wedden-btn" style="margin-top:6px" onclick="window._tempelBoete()">${icon('sparkles')} Doe boete (${esc(prijsTekst(config.boetePrijs))}) — hef de vloek op</button>`
+              : `<p class="ts-beurs">Een blijvende eed (overleeft een lange rust). Verzaak je 'm, dan roept ${esc(huidigeEed.godNaam || 'de god')} een vloek over je af.</p>`}
+          </div>` : ''}
+
+        ${huidigeZegen ? `
+          <div class="gock-dossier">
+            <div class="gock-dossier-head">${icon('sparkles')} Jouw zegening</div>
+            <p class="gock-dossier-tekst">${esc(huidigeZegen.name)}${huidigeZegen.note ? ' — ' + esc(huidigeZegen.note) : ''}</p>
+            ${huidigeZegen.kind === 'eenmalig' && huidigeZegen.usesMax ? `
+              <div class="tempel-charges" style="display:flex;align-items:center;gap:6px;margin:6px 0;flex-wrap:wrap">
+                ${Array.from({ length: huidigeZegen.usesMax }).map((_, i) =>
+                  `<span class="spell-slot-dot${i < (huidigeZegen.uses || 0) ? '' : ' used'}" style="cursor:default"></span>`).join('')}
+                <span class="ts-beurs" style="margin:0">${huidigeZegen.uses || 0}/${huidigeZegen.usesMax} over</span>
+                <button class="ts-wedden-btn" style="margin-left:6px;padding:2px 10px" onclick="window._tempelVerbruik()" ${(huidigeZegen.uses || 0) <= 0 ? 'disabled' : ''}>${icon('check')} Gebruik</button>
+              </div>` : ''}
+            <p class="ts-beurs">Je kunt maar één zegening tegelijk dragen; opnieuw bidden vervangt deze.</p>
+          </div>` : ''}
+
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+          <button class="ts-wedden-btn" onclick="window._tempelEedCinema('${esc(g.id)}','${esc(g.naam)}','${esc(g.zegen||'')}','${esc(g.vloek||'')}',${JSON.stringify(config.eedPrijs)})"
+            ${eedGebonden ? 'disabled' : ''}
+            title="${eedGebonden ? 'Je bent al door een eed gebonden' : 'Leg een blijvende eed af'}">
+            ${icon('scroll-text')} Eed afleggen${g.zegen ? ': ' + esc(g.zegen) : ''} · ${esc(prijsTekst(config.eedPrijs))}
+          </button>
+          ${eenmalig.length ? `
+          <button class="ts-wedden-btn" onclick="window._tempelKies('${esc(g.id)}','${esc(g.naam)}')">
+            ${icon('dice')} Zegening (d${eenmalig.length}) · ${esc(prijsTekst((g.prijs && g.prijs.fl) ? g.prijs : config.prijs))}
+          </button>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+window._tempelBinnenTreden = (godId) => {
+  _tempelActiveGodId = godId;
+  renderTempel();
+};
+
+window._tempelTerugNaarLijst = () => {
+  _tempelActiveGodId = null;
+  renderTempel();
+};
+
 window._tempelKies = async (godId, godNaam) => {
-  if (!confirm(`${godNaam}: een eenmalige zegen (met dobbelworp) ontvangen? De betaling vindt direct plaats; het voorwerp komt in je knapzak.`)) return;
+  if (!confirm(`${godNaam}: een zegening (met dobbelworp) ontvangen? De betaling vindt direct plaats; het voorwerp komt in je knapzak.`)) return;
   try {
     const r = await api.tempelZegen({ godId });
     await renderTempel();
     if (r.rolls) {
-      _tsToast(`🎲 d${r.rolls.zegenAantal}=${r.rolls.zegenRoll} → ${r.item.zegenEffect} (${r.rolls.usesRoll}× te gebruiken)`);
+      _tsToast(`${icon('dice')} d${r.rolls.zegenAantal}=${r.rolls.zegenRoll} → ${r.item.zegenEffect} (${r.rolls.usesRoll}× te gebruiken)`);
     } else {
-      _tsToast('✨ Zegen ontvangen. Zie je knapzak.');
+      _tsToast(`${icon('sparkles')} Zegening ontvangen. Zie je knapzak.`);
     }
   } catch (err) {
     _tsToast(err.message || 'Het offer werd niet aanvaard.');
   }
 };
 
-window._tempelEed = async (godId, godNaam) => {
-  if (!confirm(`Een eed afleggen aan ${godNaam}? Dit is een blijvende belofte: de zegen geldt zolang je trouw blijft, maar verzaking roept een vloek op. Betaling vindt direct plaats.`)) return;
-  try {
-    await api.tempelEed({ godId });
-    await renderTempel();
-    _tsToast(`⚖️ Je hebt een eed afgelegd aan ${godNaam}.`);
-  } catch (err) {
-    _tsToast(err.message || 'De eed werd niet aanvaard.');
-  }
+window._tempelEedCinema = (godId, godNaam, zegenTekst, vloekTekst, prijsObj) => {
+  // Remove any existing overlay
+  document.getElementById('tempel-eed-cinema')?.remove();
+
+  const playerName = window.app?.state?.playerName || 'Pelgrim';
+  const prijsTekst = (p) => [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
+  const fullText = `Ik, ${playerName}, zweer een eed aan ${godNaam}.\n\nZolang ik deze eed nakome, verleen ${godNaam} mij:\n${zegenTekst || '—'}.\n\nVerzaak ik mijn eed, dan treft mij de toorn van ${godNaam}:\n${vloekTekst || '—'}.\n\nDit is mijn belofte, nu en altijd.\n\nPrijs: ${prijsTekst(prijsObj)}.`;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'tempel-eed-cinema';
+  overlay.innerHTML = `
+    <div id="tempel-eed-text"></div>
+    <div id="tempel-eed-btns" style="display:none">
+      <button id="tempel-eed-confirm" class="ts-wedden-btn" style="min-width:140px">${icon('scroll-text')} Eed afleggen</button>
+      <button id="tempel-eed-cancel" class="ts-wedden-btn" style="min-width:140px;background:rgba(60,20,20,0.6)">${icon('x')} Bedenk je</button>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const textEl = document.getElementById('tempel-eed-text');
+  const btnsEl = document.getElementById('tempel-eed-btns');
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i < fullText.length) {
+      textEl.textContent = fullText.slice(0, ++i);
+    } else {
+      clearInterval(interval);
+      btnsEl.style.display = 'flex';
+    }
+  }, 22);
+
+  const close = () => { clearInterval(interval); overlay.remove(); };
+
+  document.getElementById('tempel-eed-confirm').onclick = async () => {
+    close();
+    try {
+      await api.tempelEed({ godId });
+      await renderTempel();
+      _tsToast(`${icon('scroll-text')} Je hebt een eed afgelegd aan ${godNaam}.`);
+    } catch (err) {
+      _tsToast(err.message || 'De eed werd niet aanvaard.');
+    }
+  };
+  document.getElementById('tempel-eed-cancel').onclick = close;
+
+  const onEsc = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); } };
+  document.addEventListener('keydown', onEsc);
 };
 
 window._tempelBoete = async () => {
@@ -7830,7 +7918,7 @@ window._tempelBoete = async () => {
   try {
     await api.tempelBoete();
     await renderTempel();
-    _tsToast('🙏 Je hebt boete gedaan; de vloek is opgeheven.');
+    _tsToast(`${icon('sparkles')} Je hebt boete gedaan; de vloek is opgeheven.`);
   } catch (err) {
     _tsToast(err.message || 'Boete mislukt.');
   }
@@ -7840,7 +7928,7 @@ window._tempelVerbruik = async () => {
   try {
     await api.tempelVerbruik();
     await renderTempel();
-    _tsToast('✓ Eén gebruik afgevinkt.');
+    _tsToast('Gebruik afgevinkt.');
   } catch (err) {
     _tsToast(err.message || 'Afvinken mislukt.');
   }
