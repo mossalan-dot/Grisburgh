@@ -3907,8 +3907,8 @@ function _briefLetterhead(thema) {
   switch (thema) {
     case 'ursula':    return '<span class="lh-zegel">✦</span> Madame Ursula <span class="lh-sub">— Waarzegster der Sterren</span>';
     case 'gock':      return '<span class="lh-zegel">⌖</span> DE GOCK <span class="lh-sub">— Onderzoeksbureau</span>';
-    case 'tweespalt': return '<span class="lh-zegel">🎲</span> De Tweespalt';
-    case 'heeren':    return '<span class="lh-zegel">🌑</span> De Heeren van de Nacht';
+    case 'tweespalt': return `<span class="lh-zegel">${icon('dice')}</span> De Tweespalt`;
+    case 'heeren':    return `<span class="lh-zegel">${icon('moon')}</span> De Heeren van de Nacht`;
     default:          return '';
   }
 }
@@ -5174,7 +5174,7 @@ async function renderMijnKarakter(opts = {}) {
                     ${m.afzender ? `<div class="speler-brief-afzender">
                       Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.65rem;padding:1px 4px;line-height:1.3;margin-left:3px" onclick="event.stopPropagation();window._openDetail('${esc(m.entityType)}','${esc(m.entityId)}')" title="Open kaartje">↗</button>` : ''}
                     </div>` : ''}
-                    <div class="speler-brief-tekst">${esc(m.tekst).replace(/\n/g, '<br>')}</div>
+                    <div class="speler-brief-tekst">${esc(m.tekst).replace(/👁/g,icon('eye')).replace(/👂/g,icon('zap')).replace(/👃/g,icon('flask-conical')).replace(/👅/g,icon('potion')).replace(/✋/g,icon('heart')).replace(/\n/g, '<br>')}</div>
                   </div>
                 </div>`).join('')}
             </div>`;
@@ -7628,6 +7628,28 @@ window._gockOpgehaald = async () => {
 
 // ── Madame Ursula / Waarzegger ───────────────────────────────────────────────
 
+// Zintuig-label → Lucide-icoon (emoji uit de API worden genegeerd)
+const _URSULA_ICONS = { Zien: 'eye', Horen: 'zap', Ruiken: 'flask-conical', Proeven: 'potion', Voelen: 'heart' };
+
+function _ursulaOnthuldHtml(onthuld, roll, doorNaam) {
+  const rollLabel  = roll === 6 ? 'Volledig visioen!' : `Worp: ${roll}`;
+  const doorLabel  = doorNaam ? ` — gevraagd door ${esc(doorNaam)}` : '';
+  const zinHtml    = (onthuld?.zintuigen || []).map(z => `
+    <div class="ursula-zintuig">
+      <span class="ursula-zintuig-icon">${icon(_URSULA_ICONS[z.label] || 'sparkles')}</span>
+      <span class="ursula-zintuig-label">${esc(z.label)}</span>
+      <span class="ursula-zintuig-tekst">${esc(z.tekst)}</span>
+    </div>`).join('');
+  const conHtml    = onthuld?.concreet
+    ? `<div class="ursula-concreet">${icon('star')} <em>${esc(onthuld.concreet)}</em></div>`
+    : '';
+  return `
+    <div class="ursula-onthuld">
+      <p class="ursula-roll-label">${rollLabel}${doorLabel}</p>
+      ${zinHtml}${conHtml}
+    </div>`;
+}
+
 async function renderUrsula() {
   const el = document.getElementById('section-ursula');
   if (!el) return;
@@ -7649,7 +7671,7 @@ async function renderUrsula() {
   const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
   const portret = config.imageId
     ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round${weg ? ' herberg-portrait--weg' : ''}" alt="${esc(config.naam)}">`
-    : `<div class="herberg-portrait-round herberg-portrait-fallback${weg ? ' herberg-portrait--weg' : ''}">🔮</div>`;
+    : `<div class="herberg-portrait-round herberg-portrait-fallback${weg ? ' herberg-portrait--weg' : ''}">${icon('sparkles')}</div>`;
 
   const groet = geenSessie
     ? `Op de deur hangt een briefje: <em>“${esc(config.naam)} is even een fles jenever halen.”</em>`
@@ -7669,7 +7691,7 @@ async function renderUrsula() {
       <p class="ts-beurs">Een blik op wat komen gaat — één worp per akte, voor de hele groep.</p>
       ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
       <p class="ts-beurs">Offer: <strong>${prijsTekst(config.prijs)}</strong></p>
-      <button class="ts-wedden-btn" style="margin-top:8px" onclick="window._ursulaVoorspel()">🔮 Werp de d6 — vraag de voorspelling</button>`;
+      <button class="ts-wedden-btn" style="margin-top:8px" onclick="window._ursulaVoorspel()">${icon('sparkles')} Werp de d6 — vraag de voorspelling</button>`;
   }
 
   el.innerHTML = `

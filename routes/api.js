@@ -3974,7 +3974,7 @@ router.post('/ursula/voorspel', attachRole, (req, res) => {
   const onthuld = _ursulaOnthulling(def, g.voorspellingen[doel.key]);
   const briefRegels = [];
   for (const z of onthuld.zintuigen) {
-    briefRegels.push(z.icon + ' ' + z.label + ': ' + z.tekst);
+    briefRegels.push(z.label + ': ' + z.tekst);
   }
   if (onthuld.concreet) briefRegels.push('\u2736 ' + onthuld.concreet);
   if (briefRegels.length) {
