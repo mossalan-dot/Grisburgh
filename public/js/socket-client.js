@@ -106,6 +106,18 @@ export function initSocket() {
     }
   });
 
+  socket.on('heeren:updated', () => {
+    if (window.app?.state?.activeSection === 'heeren') window.app?.refreshSection?.('heeren');
+  });
+
+  socket.on('facties:updated', () => {
+    const section = window.app?.state?.activeSection;
+    if (section === 'mijn-karakter') window.app?.refreshSection?.('mijn-karakter');
+    if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
+      import('./render-archief.js').then(m => m.renderLogboek());
+    }
+  });
+
   socket.on('chapter-visibility:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
       import('./render-archief.js').then(m => m.renderLogboek());
@@ -219,11 +231,19 @@ export function initSocket() {
       // Re-render active dienst tab when locatie-flag changes
       if (buitenChanged) {
         const sec = window.app?.state?.activeSection;
-        if (['herberg','tweespalt','ursula','gock'].includes(sec)) {
+        if (['herberg','tweespalt','ursula','gock','tempel'].includes(sec)) {
           window.app?.navigateTo?.(sec);
         }
       }
     }));
+  });
+
+  socket.on('ursula:updated', () => {
+    if (window.app?.state?.activeSection === 'ursula') window.app?.refreshSection?.('ursula');
+  });
+
+  socket.on('diensten:toegang:updated', () => {
+    window.app?._loadDienstenToegang?.();
   });
 
   socket.on('entity:deceased', ({ id, type, name } = {}) => {

@@ -461,14 +461,53 @@ export function initCampagne() {}
 
 // Expose for global search
 window._entityTypeMeta = TYPE_META;
+// ── Genormaliseerd, gescoord zoeken (gedeeld door sectie- en globaal zoeken) ──
+// Diakriet- en hoofdletter-ongevoelig; meerdere woorden moeten allemaal
+// ergens matchen (AND); resultaten krijgen een relevantiescore.
+function _normSearch(s) {
+  return String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+function _searchTokens(q) {
+  return _normSearch(q).split(/\s+/).filter(Boolean);
+}
+function _entityHaystacks(e) {
+  const d = e.data || {};
+  return {
+    name: _normSearch(e.name),
+    meta: _normSearch([e.subtype, d.rol, d.ras, d.klasse, d.locType, d.orgType, d.itemType, d.wijk, d.rariteit, d.motto].filter(Boolean).join(' ')),
+    rest: _normSearch([...Object.values(d), ...Object.values(e.links || {}).flat()].join(' ')),
+  };
+}
+// Score voor één entiteit tegen reeds-getokeniseerde query. -1 = geen match.
+function _searchScore(e, tokens) {
+  if (!tokens || !tokens.length) return 0;
+  const h = _entityHaystacks(e);
+  let score = 0;
+  for (const t of tokens) {
+    let best = 0;
+    if (h.name === t) best = 1000;
+    else if (h.name.startsWith(t)) best = 600;
+    else if (new RegExp('\\b' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(h.name)) best = 400;
+    else if (h.name.includes(t)) best = 250;
+    else if (h.meta.includes(t)) best = 120;
+    else if (h.rest.includes(t)) best = 60;
+    if (best === 0) return -1;   // dit woord komt nergens voor → geen match
+    score += best;
+  }
+  return score;
+}
+window._normSearch  = _normSearch;
+window._searchTokens = _searchTokens;
+window._searchScore = _searchScore;
+
 window._entityFilter = (type, list, q) => {
-  if (!q) return list;
-  const ql = q.toLowerCase();
-  return list.filter(e => {
-    const fields = [e.name, e.subtype, ...Object.values(e.data || {})].join(' ').toLowerCase();
-    const links = Object.values(e.links || {}).flat().join(' ').toLowerCase();
-    return fields.includes(ql) || links.includes(ql);
-  });
+  const tokens = _searchTokens(q);
+  if (!tokens.length) return list;
+  return list
+    .map(e => ({ e, s: _searchScore(e, tokens) }))
+    .filter(x => x.s >= 0)
+    .sort((a, b) => b.s - a.s)
+    .map(x => x.e);
 };
 
 async function renderEntitySection(type) {
@@ -698,12 +737,8 @@ function filterEntities(type, list) {
   const sf = subtypeFilters[type] || null;
   let filtered = list;
   if (q) {
-    const ql = q.toLowerCase();
-    filtered = filtered.filter(e => {
-      const fields = [e.name, e.subtype, ...Object.values(e.data || {})].join(' ').toLowerCase();
-      const links  = Object.values(e.links || {}).flat().join(' ').toLowerCase();
-      return fields.includes(ql) || links.includes(ql);
-    });
+    const tokens = _searchTokens(q);
+    filtered = filtered.filter(e => _searchScore(e, tokens) >= 0);
   }
   if (sf) {
     filtered = filtered.filter(e => _getEntitySubtypeVal(type, e) === sf);
@@ -1420,7 +1455,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     </div>`;
   }
   if (_descVal) {
-    infoHtml += `<div class="detail-desc mb-4">${mdToHtml(_descVal)}</div>`;
+    // Voorwerpbeschrijvingen krijgen hover-uitleg bij D&D-begrippen
+    const _descHtml = mdToHtml(_descVal);
+    infoHtml += `<div class="detail-desc mb-4">${tab === 'voorwerpen' ? (window.glossary?.annotate?.(_descHtml) ?? _descHtml) : _descHtml}</div>`;
   }
 
   // Persoonlijkheid (DM only)

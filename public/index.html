@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=201">
+  <link rel="stylesheet" href="/css/theme.css?v=211">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -78,7 +78,7 @@
         <div class="relative flex-shrink-0" id="archief-nav-group">
           <button class="section-tab archief-tab active" id="archief-nav-btn"
             onclick="window.app.toggleArchiefMenu()">
-            <span id="archief-nav-label" class="tab-label">Archief</span><span class="archief-arrow tab-label">▾</span>
+            <svg class="icon tab-mob-icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-folder-open"/></svg><span id="archief-nav-label" class="tab-label">Archief</span><span class="archief-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="archief-menu">
             <button class="archief-menu-item active" data-section="personages"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-user"/></svg> Personages</button>
@@ -92,7 +92,7 @@
         <!-- Logboek dropdown -->
         <div class="relative flex-shrink-0" id="logboek-nav-group">
           <button class="section-tab" id="logboek-nav-btn" onclick="window.app.toggleLogboekMenu()">
-            <span id="logboek-nav-label" class="tab-label">Logboek</span><span class="archief-arrow tab-label">▾</span>
+            <svg class="icon tab-mob-icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-book-open"/></svg><span id="logboek-nav-label" class="tab-label">Logboek</span><span class="archief-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="logboek-menu">
             <button class="archief-menu-item" data-logtab="verslagen"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-book-open"/></svg> Logboek</button>
@@ -107,10 +107,12 @@
             ⚜️ <span id="diensten-nav-label" class="tab-label">Diensten</span><span class="diensten-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="diensten-menu">
-            <button class="archief-menu-item" data-section="herberg" id="diensten-herberg-item"><span id="diensten-herberg-label"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-beer"/></svg> Herberg</span></button>
-            <button class="archief-menu-item" data-section="tweespalt"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-dice"/></svg> De Tweespalt</button>
-            <button class="archief-menu-item" data-section="gock"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-search"/></svg> De Gock</button>
-          </div>
+            <button class="archief-menu-item" data-section="herberg" id="diensten-herberg-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-beer"/></svg><span id="diensten-herberg-label">Herberg</span></button>
+            <button class="archief-menu-item" data-section="tweespalt" id="diensten-tweespalt-item"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-dice"/></svg> De Tweespalt</button>
+            <button class="archief-menu-item" data-section="gock" id="diensten-gock-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-search"/></svg> De Gock</button>
+         <button class="archief-menu-item" data-section="ursula" id="diensten-ursula-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-sparkles"/></svg> Madame Ursula</button>
+            <button class="archief-menu-item" data-section="tempel" id="diensten-tempel-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-church"/></svg> De Tempel</button>
+            <button class="archief-menu-item" data-section="heeren" id="diensten-heeren-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-eye"/></svg> Heeren van de Nacht</button>          </div>
         </div>
         <button class="section-tab hidden" data-section="mijn-karakter"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-user"/></svg> <span class="tab-label">Mijn karakter</span></button>
         <button class="section-tab hidden" data-section="spelers" id="spelers-tab"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-users"/></svg> <span class="tab-label">Spelers</span></button>
@@ -163,9 +165,10 @@
       <div class="global-search-input-wrap">
         <span class="global-search-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-search"/></svg></span>
         <input id="global-search-input" class="global-search-input" type="text"
-          placeholder=""
+          placeholder="Zoek personages, locaties, voorwerpen… (↑↓ Enter)"
+          autocomplete="off" spellcheck="false"
           oninput="window.app._globalSearchRun(this.value)"
-          onkeydown="if(event.key==='Escape')window.app.closeGlobalSearch()">
+          onkeydown="window.app._gsKey(event)">
       </div>
       <div id="gs-type-chips" class="gs-type-chips">
         <button class="gs-type-chip gs-type-chip--active" data-gs-type="" onclick="window.app._gsSetTypeFilter(null)">Alles</button>
@@ -190,7 +193,9 @@
       <div class="section" id="section-herberg"></div>
       <div class="section" id="section-tweespalt"></div>
       <div class="section" id="section-gock"></div>
-      <div class="section" id="section-kaart"></div>
+   <div class="section" id="section-ursula"></div>
+      <div class="section" id="section-tempel"></div>
+      <div class="section" id="section-heeren"></div>      <div class="section" id="section-kaart"></div>
       <div class="section" id="section-relatiemap"></div>
       <div class="section" id="section-mijn-karakter"></div>
       <div class="section" id="section-spelers"></div>
@@ -236,6 +241,15 @@
           <div class="dm-tab-content" data-tab="tweespalt"></div>
           <!-- Gock tab -->
           <div class="dm-tab-content" data-tab="gock"></div>
+       <!-- Ursula tab -->
+          <div class="dm-tab-content" data-tab="ursula"></div>
+          <!-- Tempel tab -->
+          <div class="dm-tab-content" data-tab="tempel"></div>
+          <!-- Heeren van de Nacht tab -->
+          <div class="dm-tab-content" data-tab="heeren"></div>
+          <!-- Facties & Aanzien tab -->
+          <div class="dm-tab-content" data-tab="facties"></div>
+          <div class="dm-tab-content" data-tab="toegang"></div>
           <!-- Gedeelde beurs tab -->
           <div class="dm-tab-content" data-tab="beurs"></div>
           <!-- Berichten tab -->
@@ -296,6 +310,25 @@
     </div>
   </div>
 
+  <!-- Test login modal -->
+  <div class="modal-overlay" id="test-login-overlay">
+    <div class="modal max-w-sm animate-modal-in">
+      <div class="modal-head">
+        <div class="font-cinzel text-lg text-gold font-bold">🧪 Testomgeving</div>
+        <button class="modal-close" onclick="window.app.closeTestLoginModal()">&times;</button>
+      </div>
+      <div class="p-5">
+        <p class="text-ink-dim text-sm font-crimson mb-3">Voer het DM-wachtwoord in om de testomgeving te openen.</p>
+        <input type="password" id="test-login-password" placeholder="DM-wachtwoord…"
+          class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
+          onkeydown="if(event.key==='Enter')window.app.testLoginSubmit()">
+        <div id="test-login-error" class="hidden text-seal text-sm mt-2">Verkeerd wachtwoord</div>
+        <button onclick="window.app.testLoginSubmit()"
+          class="w-full mt-3 px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">Inloggen</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Sandbox login modal -->
   <div class="modal-overlay" id="sandbox-login-overlay">
     <div class="modal max-w-sm animate-modal-in">
@@ -328,10 +361,10 @@
         <p class="landing-loading">Laden…</p>
       </div>
       <div class="landing-footer">
-        <button class="landing-footer-btn" onclick="window.app.toggleLoginModal()"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-crossed-swords"/></svg> Dungeon Master</button>
-        <button class="landing-footer-btn landing-footer-btn--showcase" onclick="window.app.toggleSandboxModal()" title="Verken de app in een lege demo-omgeving"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-flask-conical"/></svg> Showcase</button>
-        <button class="landing-footer-btn landing-footer-btn--ipad" onclick="window.app.toggleTabletModal()" title="Tabletweergave activeren"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-monitor"/></svg> Tablet</button>
-        <button class="landing-footer-btn" onclick="window.app.testLogin()" title="Inloggen als Test McTestface"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-flask-conical"/></svg> Testomgeving</button>
+        <button class="landing-footer-btn" onclick="window.app._landingDmLogin()"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-crossed-swords"/></svg> Dungeon Master</button>
+        <button class="landing-footer-btn landing-footer-btn--showcase" onclick="window.app._landingSandboxLogin()" title="Verken de app in een lege demo-omgeving"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-flask-conical"/></svg> Showcase</button>
+        <button class="landing-footer-btn landing-footer-btn--ipad" onclick="window.app._landingTabletLogin()" title="Tabletweergave activeren"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-monitor"/></svg> Tablet</button>
+        <button class="landing-footer-btn" onclick="window.app._landingTestLogin()" title="Inloggen als Test McTestface"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-flask-conical"/></svg> Testomgeving</button>
       </div>
     </div>
   </div>
@@ -368,7 +401,16 @@
       class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-white text-5xl z-10 w-14 h-14 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70 transition-colors select-none"
       style="text-shadow:0 0 8px #000">&#8250;</button>
     <!-- Afbeelding -->
-    <img id="lb-img" class="max-w-[82vw] max-h-[88vh] object-contain rounded" src="" onclick="event.stopPropagation()">
+    <img id="lb-img" class="max-w-[82vw] max-h-[88vh] object-contain rounded" src="" style="touch-action:none;will-change:transform" onclick="event.stopPropagation()" draggable="false">
+    <!-- Zoomknoppen (touch-vriendelijk) -->
+    <div class="absolute bottom-5 right-4 z-10 flex flex-col gap-2" onclick="event.stopPropagation()">
+      <button onclick="window.app.lbZoomIn()" title="Inzoomen (+)"
+        class="w-11 h-11 flex items-center justify-center rounded-full bg-black/45 hover:bg-black/75 text-white text-2xl leading-none select-none transition-colors">+</button>
+      <button id="lb-zoom-reset" onclick="window.app.lbZoomReset()" title="Standaardgrootte (0)"
+        class="w-11 h-11 flex items-center justify-center rounded-full bg-black/45 hover:bg-black/75 text-white text-lg leading-none select-none transition-colors opacity-40">&#8634;</button>
+      <button onclick="window.app.lbZoomOut()" title="Uitzoomen (&minus;)"
+        class="w-11 h-11 flex items-center justify-center rounded-full bg-black/45 hover:bg-black/75 text-white text-2xl leading-none select-none transition-colors">&minus;</button>
+    </div>
     <!-- Teller bovenin -->
     <div id="lb-counter" class="hidden absolute top-4 left-1/2 -translate-x-1/2 text-white/50 text-xs font-mono bg-black/30 px-3 py-1 rounded-full" onclick="event.stopPropagation()"></div>
     <!-- Titel onderaan -->
@@ -421,6 +463,14 @@
       <button class="dice-btn" onclick="window.dice.roll(12)">d12</button>
       <button class="dice-btn dice-btn--featured" onclick="window.dice.roll(20)">d20</button>
       <button class="dice-btn" onclick="window.dice.roll(100)">d%</button>
+      <button class="dice-adv-instant dice-adv-instant--adv" onclick="window.dice.rollAdv(1)" title="Roll d20 with Advantage">Advantage</button>
+      <button class="dice-adv-instant dice-adv-instant--dis" onclick="window.dice.rollAdv(-1)" title="Roll d20 with Disadvantage">Disadvantage</button>
+    </div>
+    <button class="dice-formula-toggle" onclick="window.dice.toggleFormula(this)" title="Formule-invoer in-/uitklappen">▶ Formula</button>
+    <div class="dice-formula">
+      <input id="dice-formula-input" class="dice-formula-input" type="text" autocomplete="off" spellcheck="false"
+        placeholder="bv. 1d20+5, 2d6+3 vuur, adv" onkeydown="if(event.key==='Enter')window.dice.rollText('dice-formula-input')">
+      <button class="dice-formula-btn" onclick="window.dice.rollText('dice-formula-input')">Rol</button>
     </div>
     <div class="dice-result" id="dice-result">
       <div class="dice-result-num" id="dice-result-num">—</div>
@@ -456,6 +506,14 @@
       <button class="dice-btn" onclick="window.dice.rollDm(12)">d12</button>
       <button class="dice-btn dice-btn--featured" onclick="window.dice.rollDm(20)">d20</button>
       <button class="dice-btn" onclick="window.dice.rollDm(100)">d%</button>
+      <button class="dice-adv-instant dice-adv-instant--adv" onclick="window.dice.rollAdv(1)" title="Roll d20 with Advantage">Advantage</button>
+      <button class="dice-adv-instant dice-adv-instant--dis" onclick="window.dice.rollAdv(-1)" title="Roll d20 with Disadvantage">Disadvantage</button>
+    </div>
+    <button class="dice-formula-toggle" onclick="window.dice.toggleFormula(this)" title="Formule-invoer in-/uitklappen">▶ Formula</button>
+    <div class="dice-formula">
+      <input id="dm-dice-formula-input" class="dice-formula-input" type="text" autocomplete="off" spellcheck="false"
+        placeholder="bv. 1d20+7, 8d6 fire, 4d6kh3" onkeydown="if(event.key==='Enter')window.dice.rollText('dm-dice-formula-input')">
+      <button class="dice-formula-btn" onclick="window.dice.rollText('dm-dice-formula-input')">Rol</button>
     </div>
     <div class="dice-result" id="dm-dice-result">
       <div class="dice-result-num" id="dm-dice-result-num">—</div>
@@ -476,6 +534,6 @@
   </div>
 
   <script type="module" src="/js/sound-manager.js?v=1"></script>
-  <script type="module" src="/js/app.js?v=234"></script>
+  <script type="module" src="/js/app.js?v=262"></script>
 </body>
 </html>

@@ -310,6 +310,7 @@ body::before {
   font-weight: 700;
 }
 
+/* Dienst vergrendeld (zichtbaar maar niet beschikbaar) */.archief-menu-item.dienst-vergrendeld {  opacity: .55;  cursor: default;  pointer-events: none;}/* Toegang-toggle knoppen */.toegang-toggle.staat-verborgen  { background: rgba(80,80,80,.15);   color: #888; border-color: rgba(120,120,120,.3); }.toegang-toggle.staat-zichtbaar  { background: rgba(180,130,0,.12);   color: #8a6000; border-color: rgba(180,130,0,.3); }.toegang-toggle.staat-beschikbaar{ background: rgba(0,140,60,.1);    color: #0a6030; border-color: rgba(0,140,60,.3); }
 /* Sections */
 .section { display: none; height: 100%; overflow-y: auto; }
 /* Standaard: block — content heeft zijn eigen hoogte, section scrolt */
@@ -2142,7 +2143,7 @@ body::before {
   z-index: 44;
   transition: bottom 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.dice-panel.open { bottom: 0; }
+.dice-panel.open { bottom: 0; z-index: 46; }
 .dice-panel-head {
   display: flex;
   align-items: center;
@@ -2210,6 +2211,67 @@ body::before {
   background: linear-gradient(to bottom, #fef6e4 0%, #fae8c0 100%);
   box-shadow: 0 4px 14px rgba(184,134,11,0.28), inset 0 1px 0 rgba(255,255,255,0.45);
 }
+
+/* Voordeel/nadeel + bonus-besturing */
+.dice-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 13px 0;
+  flex-wrap: wrap;
+}
+.dice-adv-group { display: flex; gap: 5px; }
+.dice-adv-btn {
+  font-family: 'IM Fell English', serif;
+  font-size: 11.5px;
+  color: #6a5040;
+  background: rgba(196,168,122,0.14);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 7px;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, border-color 0.14s, box-shadow 0.14s;
+}
+.dice-adv-btn:hover { background: rgba(196,168,122,0.26); }
+.dice-adv-btn[data-adv="1"].dice-adv-btn--on {
+  color: #2a6a3a; border-color: rgba(42,106,58,0.55);
+  background: rgba(42,106,58,0.14); box-shadow: 0 0 8px rgba(42,106,58,0.18);
+}
+.dice-adv-btn[data-adv="-1"].dice-adv-btn--on {
+  color: #8b2a2a; border-color: rgba(139,42,42,0.55);
+  background: rgba(139,42,42,0.13); box-shadow: 0 0 8px rgba(139,42,42,0.18);
+}
+.dice-mod-group { display: flex; align-items: center; gap: 5px; }
+.dice-mod-label {
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  color: #8a7050;
+  margin-right: 1px;
+}
+.dice-mod-btn {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(196,168,122,0.5);
+  background: rgba(196,168,122,0.14);
+  color: #5a4030;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.14s;
+}
+.dice-mod-btn:hover { background: rgba(196,168,122,0.3); }
+.dice-mod-val {
+  min-width: 28px;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: #8a7050;
+  cursor: pointer;
+}
+.dice-mod-val--active { color: #b8860b; font-weight: 700; }
 
 /* Result display */
 .dice-result {
@@ -2341,7 +2403,7 @@ body::before {
   z-index: 44;
   transition: bottom 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.dm-dice-panel.open { bottom: 0; }
+.dm-dice-panel.open { bottom: 0; z-index: 46; }
 
 /* Aantal-rij in DM dice panel */
 .dm-dice-panel-count {
@@ -5842,6 +5904,9 @@ details.player-dash-collapsible[open] > summary {
   gap: 6px;
 }
 .player-dash-cond-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: 'Cinzel', serif;
   font-size: 9px;
   font-weight: 700;
@@ -5851,7 +5916,53 @@ details.player-dash-collapsible[open] > summary {
   color: #8b2a2a;
   border: 1px solid rgba(139,42,42,0.3);
   border-radius: 4px;
-  padding: 3px 7px;
+  padding: 3px 7px 3px 5px;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, box-shadow 0.14s;
+}
+.player-dash-cond-chip:hover { background: rgba(139,42,42,0.2); }
+.player-dash-cond-chip--active {
+  background: rgba(139,42,42,0.22);
+  border-color: rgba(139,42,42,0.55);
+  box-shadow: 0 0 8px rgba(139,42,42,0.2);
+}
+.player-dash-cond-icon {
+  width: 16px; height: 16px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+/* Uitklapbare uitleg onder de statussen */
+.player-cond-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 9px 11px;
+  background: rgba(139,42,42,0.07);
+  border: 1px solid rgba(139,42,42,0.25);
+  border-left: 3px solid rgba(139,42,42,0.5);
+  border-radius: 6px;
+  animation: fadeIn 0.18s ease;
+}
+.player-cond-detail.hidden { display: none; }
+.player-cond-detail-icon {
+  width: 34px; height: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+}
+.player-cond-detail-title {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8b2a2a;
+  margin-bottom: 2px;
+}
+.player-cond-detail-desc {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #5a4030;
 }
 .player-dash-hint {
   font-size: 12px;
@@ -5977,6 +6088,28 @@ details.player-dash-collapsible[open] > summary {
   font-family: 'Crimson Text', Georgia, serif;
   flex: 1;
 }
+
+/* Eed-kaartje: subtiel gouden accent */
+.player-dash-simple-item--eed {
+  background: #f3ead0;
+  border-color: #b8902f;
+  box-shadow: inset 3px 0 0 #b8902f;
+}
+
+/* Zegen-kaartje: lichte hemelse tint */
+.player-dash-simple-item--zegen {
+  background: #eef0e0;
+  border-color: #9aa86a;
+}
+
+/* Vloek-kaartje: zwart, zoals overleden NPC's */
+.player-dash-simple-item--vloek {
+  background: #111;
+  border-color: #333;
+}
+.player-dash-simple-item--vloek .player-dash-simple-name { color: #e8e8e8; text-shadow: none; }
+.player-dash-simple-item--vloek .player-dash-simple-note { color: #9a8a8a; }
+.player-dash-simple-item--vloek .player-dash-simple-del  { color: #c46; }
 
 .player-dash-simple-del {
   background: none;
@@ -12018,6 +12151,91 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   border-left-color: #8b2a2a;
   background: #fdf5e4;
 }
+
+/* ── Gethematiseerde brieven (diensten) ── */
+.speler-brief-letterhead {
+  font-family: 'Cinzel', serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid currentColor;
+  opacity: 0.9;
+}
+.speler-brief-letterhead .lh-zegel { font-size: 0.95rem; margin-right: 4px; }
+.speler-brief-letterhead .lh-sub { font-weight: 400; text-transform: none; letter-spacing: 0; font-style: italic; opacity: 0.8; }
+
+/* Madame Ursula — lila brief */
+.speler-brief-card--ursula { background: linear-gradient(180deg,#efe6f7 0%,#e7dbf3 100%); border-color:#b79cd6; border-left-color:#7d4fae; }
+.speler-brief-card--ursula.speler-brief-card--nieuw { background:#f3ecfa; border-left-color:#9b59b6; }
+.speler-brief-card--ursula .speler-brief-titel,
+.speler-brief-card--ursula .speler-brief-letterhead { color:#5b3a86; }
+.speler-brief-card--ursula .speler-brief-tekst { color:#42255f; font-family:'Crimson Text','IM Fell English',serif; }
+.speler-brief-card--ursula .speler-brief-afzender,
+.speler-brief-card--ursula .speler-brief-afzender-inline { color:#6c4a9b; font-family:'Dancing Script',cursive; font-size:1rem; }
+
+/* De Gock — kantooromslag met logo & typemachinetekst */
+.speler-brief-card--gock { background:#f4f1e8; border-color:#8a8170; border-left-color:#4a463c; }
+.speler-brief-card--gock .speler-brief-letterhead { color:#33302a; border-bottom:2px double #4a463c; text-align:center; letter-spacing:0.14em; }
+.speler-brief-card--gock .speler-brief-titel { font-family:'Courier New',monospace; color:#2a2722; letter-spacing:0; }
+.speler-brief-card--gock .speler-brief-tekst { font-family:'Courier New',Courier,monospace; font-size:0.86rem; color:#2a2722; line-height:1.7; }
+.speler-brief-card--gock .speler-brief-afzender,
+.speler-brief-card--gock .speler-brief-afzender-inline { font-family:'Courier New',monospace; color:#4a463c; }
+
+/* De Tweespalt — haastig gekrabbeld briefje */
+.speler-brief-card--tweespalt { background:#fbf7ec; border:1px dashed #b9a06a; border-left:3px dashed #8a6d2a; transform:rotate(-0.5deg); }
+.speler-brief-card--tweespalt .speler-brief-letterhead { color:#7a5a1a; border-bottom:1px dashed #b9a06a; font-family:'Kalam',cursive; text-transform:none; letter-spacing:0; }
+.speler-brief-card--tweespalt .speler-brief-titel { font-family:'Kalam',cursive; color:#5a4012; letter-spacing:0; }
+.speler-brief-card--tweespalt .speler-brief-tekst { font-family:'Kalam',cursive; font-size:0.98rem; color:#3f2e0a; line-height:1.5; }
+.speler-brief-card--tweespalt .speler-brief-afzender,
+.speler-brief-card--tweespalt .speler-brief-afzender-inline { font-family:'Kalam',cursive; color:#6a4d12; }
+
+/* De Heeren van de Nacht — schaduwbrief */
+.speler-brief-card--heeren { background: linear-gradient(180deg,#e9e6ea 0%,#ddd9e0 100%); border-color:#6a6470; border-left-color:#2a2630; }
+.speler-brief-card--heeren .speler-brief-titel,
+.speler-brief-card--heeren .speler-brief-letterhead { color:#2a2630; }
+.speler-brief-card--heeren .speler-brief-tekst { color:#26222c; }
+
+/* ── Aanzien / renown-kaart (spelersoverzicht) ── */
+.renown-card { background: linear-gradient(180deg,#26222c 0%,#1c1922 100%); border:1px solid #4a4350; border-radius:8px; padding:10px 12px; color:#e7e2ee; }
+.renown-rang { font-family:'Cinzel',serif; font-size:1.02rem; font-weight:700; color:#d8c98f; display:flex; align-items:baseline; gap:8px; }
+.renown-trap { font-size:0.72rem; color:#9a93a6; font-family:'IM Fell English',serif; font-weight:400; }
+.renown-voordelen { font-family:'IM Fell English',serif; font-size:0.86rem; color:#c9c2d6; margin-top:4px; }
+.renown-volgende { font-size:0.76rem; color:#8f8a9c; margin-top:6px; }
+.renown-boete { font-size:0.8rem; color:#e0a36a; margin-top:6px; }
+
+/* ── Facties & Aanzien ── */
+.factie-boons { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.factie-boon { font-size:0.74rem; background:rgba(196,168,122,0.12); border:1px solid rgba(196,168,122,0.28); border-radius:10px; padding:2px 8px; color:#d8cdb0; cursor:default; }
+.renown-card.factie-card--hout   { border-color:#7a5a30; }
+.renown-card.factie-card--metaal { border-color:#c4a840; }
+.renown-card.factie-card--staal  { border-color:#7a2a2a; }
+
+.factie-band { display:flex; gap:16px; flex-wrap:wrap; padding:16px 24px 0; }
+.factie-ladder { flex:1; min-width:240px; max-width:330px; border-radius:10px; padding:12px 14px; border:1px solid rgba(0,0,0,0.3); box-shadow:0 2px 10px rgba(0,0,0,0.28); }
+.factie-ladder-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.factie-ladder-embleem { font-size:1.3rem; }
+.factie-ladder-naam { font-family:'Cinzel',serif; font-weight:700; flex:1; }
+.factie-ladder-rang { font-size:0.72rem; opacity:0.85; text-align:right; }
+.factie-ladder-rungs { display:flex; flex-direction:column; gap:4px; }
+.factie-rung { border-radius:6px; padding:5px 9px; display:flex; flex-direction:column; gap:2px; }
+.factie-rung--bereikt { background:rgba(255,255,255,0.10); }
+.factie-rung--locked { opacity:0.42; }
+.factie-rung--huidig { outline:2px solid rgba(255,255,255,0.55); }
+.factie-rung-naam { font-family:'Cinzel',serif; font-weight:700; font-size:0.78rem; }
+.factie-rung-boon { font-size:0.74rem; opacity:0.92; }
+.factie-rung-titel { font-style:italic; font-weight:400; opacity:0.85; font-family:'IM Fell English',serif; }
+
+/* Per-factie stijlen — houtpatroon, metaalglans, gehard staal */
+.factie-ladder--hout   { background:linear-gradient(160deg,#5a4226 0%,#3a2a17 100%); color:#f0e2c8; border-color:#7a5a30; }
+.factie-ladder--metaal { background:linear-gradient(160deg,#b8a766 0%,#6a5d3a 45%,#9c8c54 100%); color:#1e1b12; border-color:#d8bf63; }
+.factie-ladder--metaal .factie-rung--bereikt { background:rgba(255,250,225,0.30); }
+.factie-ladder--metaal .factie-rung--huidig  { outline-color:rgba(60,45,15,0.7); }
+.factie-ladder--staal  { background:linear-gradient(160deg,#3a3f48 0%,#23272e 100%); color:#e6e8ec; border-color:#7a2a2a; }
+.factie-ladder--staal .factie-ladder-rang { color:#e08a8a; }
+
 .speler-brief-header {
   display: flex;
   align-items: center;
@@ -16098,3 +16316,137 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   background: linear-gradient(135deg, #3a2a10 0%, #5c3a18 100%);
   border-color: rgba(180,130,60,0.62);
 }
+
+/* ── Dobbelsteen: vrije-formule-invoer ── */
+/* dice-formula collapse managed below */
+.dice-formula-input {
+  flex: 1; min-width: 0;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px;
+  color: #2a1a08; background: #fffdf6;
+  border: 1px solid var(--color-room-border); border-radius: 7px;
+  padding: 6px 9px; outline: none;
+}
+.dice-formula-input::placeholder { color: #b09870; font-family: 'Crimson Text', serif; font-style: italic; }
+.dice-formula-input:focus { border-color: var(--color-gold-bright); }
+.dice-formula-btn {
+  flex-shrink: 0;
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: #fdf8ea;
+  background: linear-gradient(to bottom, #b8860b, #9a7008); border: 1px solid #8a6206;
+  border-radius: 7px; padding: 6px 14px; cursor: pointer;
+}
+.dice-formula-btn:hover { background: linear-gradient(to bottom, #cda021, #aa7d10); }
+/* ══════════════════════════════════════════════════════════════════
+   Begrippenlijst — hover-uitleg bij D&D-terminologie
+   ══════════════════════════════════════════════════════════════════ */
+.gloss-term {
+  border-bottom: 1px dotted rgba(120,90,40,0.7);
+  cursor: help;
+  text-decoration: none;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.gloss-term:hover,
+.gloss-term:focus-visible {
+  background: rgba(184,134,11,0.12);
+  border-bottom-color: var(--color-gold-dim);
+  outline: none;
+}
+/* Op donkere ondergronden (spreukenboek-pagina e.d.) iets lichter */
+.sb-desc .gloss-term { border-bottom-color: rgba(120,90,40,0.6); }
+
+.gloss-tip {
+  position: fixed;
+  z-index: 99999;              /* boven alle overlays (spreukenboek/knapzak ~9100, reveals 9999) */
+  max-width: 320px;
+  padding: 11px 14px;
+  background: linear-gradient(168deg, #fbf5e6 0%, #f3e8cc 100%);
+  border: 1px solid var(--color-room-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(40,28,8,0.32), inset 0 1px 0 rgba(255,255,255,0.5);
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+.gloss-tip--show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.gloss-tip-head {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 5px; padding-bottom: 5px;
+  border-bottom: 1px solid rgba(196,168,122,0.4);
+}
+.gloss-tip-term {
+  font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px;
+  letter-spacing: 0.3px; color: #3a2a0e;
+}
+.gloss-tip-cat {
+  font-family: 'Cinzel', serif; font-size: 8.5px; letter-spacing: 1px;
+  text-transform: uppercase; color: #a07a30;
+  background: rgba(184,134,11,0.12); border: 1px solid rgba(184,134,11,0.3);
+  border-radius: 10px; padding: 1px 7px; margin-left: auto;
+}
+.gloss-tip-def {
+  font-family: 'Crimson Text', serif; font-size: 13.5px; line-height: 1.5;
+  color: #4a3826;
+}
+.gloss-tip-def strong { color: #6a4818; font-weight: 700; }
+.gloss-tip-bron {
+  margin-top: 7px; padding-top: 6px; border-top: 1px solid rgba(196,168,122,0.3);
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: 10px;
+  color: #9a8458;
+}
+/* ── Globaal zoeken: toetsenbordnavigatie + match-highlight ── */
+.gs-result--active { background: rgba(184,134,11,0.16); outline: 1px solid rgba(184,134,11,0.45); }
+.gs-result.gs-result--active .gs-result-name { color: #3a2a0e; }
+.gs-hl { background: rgba(184,134,11,0.32); color: inherit; border-radius: 3px; padding: 0 1px; font-weight: 700; }
+
+/* Desktop: tab-mob-icon is hidden — the JS-updated label provides its own icon */
+@media (min-width: 481px) {
+  .tab-mob-icon { display: none; }
+}
+/* ── Dice formula: collapsible ── */
+.dice-formula { display: none; }
+.dice-formula--open { display: flex; gap: 6px; margin: 4px 13px 0; }
+.dice-formula-toggle {
+  text-align: left;
+  padding: 4px 10px;
+  margin: 5px 13px 0;
+  background: none;
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 6px;
+  font-family: 'Crimson Text', serif;
+  font-size: 12px;
+  color: #7a5c2e;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.dice-formula-toggle:hover { background: rgba(196,168,122,0.18); }
+
+/* ── FAB: hide when dice panel is open (no z-index fight) ── */
+body:has(#dice-panel.open) #dice-fab { display: none !important; }
+body:has(#dm-dice-panel.open) #dm-dice-fab { display: none !important; }
+
+/* ── Advantage / Disadvantage — instant d20 buttons in grid ── */
+.dice-adv-instant {
+  padding: 5px 6px;
+  border-radius: 7px;
+  border: 1px solid;
+  font-family: 'Cinzel', serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.1s;
+  line-height: 1.3;
+}
+.dice-adv-instant:active { transform: translateY(1px); }
+.dice-adv-instant--adv {
+  background: rgba(42,106,58,0.10);
+  color: #256435;
+  border-color: rgba(42,106,58,0.38);
+}
+.dice-adv-instant--adv:hover { background: rgba(42,106,58,0.22); }
+.dice-adv-instant--dis {
+  background: rgba(139,42,42,0.10);
+  color: #8b2a2a;
+  border-color: rgba(139,42,42,0.38);
+}
+.dice-adv-instant--dis:hover { background: rgba(139,42,42,0.22); }

@@ -1,11 +1,12 @@
-import { api } from './api.js?v=220';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from './render-campagne.js?v=78';
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from './render-archief.js?v=31';
+import { api } from './api.js?v=222';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=80";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=32";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
-import { renderDungeon } from './render-dungeon.js?v=17';
+import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
-import { initSocket } from './socket-client.js?v=11';
-import { initDmPanel } from './dm-panel.js?v=38';
+import { initGlossary } from "./glossary.js?v=1";
+import { initSocket } from "./socket-client.js?v=13";
+import { initDmPanel } from "./dm-panel.js?v=50";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -35,6 +36,7 @@ const state = {
   characterId: null,    // ID van bijbehorend personage-kaartje
   activeSection: 'personages',
   meta: null,
+  dienstenToegang: {},  // { herberg:'beschikbaar', ... } per groep
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -58,6 +60,13 @@ window.app = {
   closeTabletModal,
   tabletLoginSubmit,
   testLogin,
+  closeTestLoginModal,
+  testLoginSubmit,
+  _landingShowFooterPrompt,
+  _landingDmLogin,
+  _landingSandboxLogin,
+  _landingTabletLogin,
+  _landingTestLogin,
   dmToggleClick,
   onFabClick,
   openModal,
@@ -65,6 +74,9 @@ window.app = {
   openLightbox,
   openLightboxAt,
   lbNavigate,
+  lbZoomIn,
+  lbZoomOut,
+  lbZoomReset,
   closeLightbox,
   refreshSection,
   switchSection,
@@ -197,6 +209,10 @@ function switchSection(section) {
   $$('#logboek-menu .archief-menu-item').forEach(b =>
     b.classList.toggle('active', isLogboek && b.dataset.logtab === (window._logboekActiveTab || 'verslagen')));
 
+  // Diensten-knop: actief als een diensten-sectie actief is
+  const dienstenNavBtn = $('#diensten-nav-btn');
+  if (dienstenNavBtn) dienstenNavBtn.classList.toggle('active', ['herberg','tweespalt','gock','ursula','tempel','heeren','facties'].includes(section));
+
   $$('.section').forEach(s => s.classList.toggle('active', s.id === `section-${section}`));
   // Verberg de floating reveal-strip in de Meesterkamer (die heeft eigen ruimte)
   const revealStrip = document.getElementById('dm-reveal-strip');
@@ -219,7 +235,9 @@ function switchSection(section) {
     herberg:       'rgba(160,90,20,0.65)',
     tweespalt:     'rgba(90,20,20,0.65)',
     gock:          'rgba(20,50,80,0.65)',
-    'mijn-karakter': 'rgba(42,90,138,0.55)',
+ ursula:        'rgba(80,40,110,0.65)',
+    tempel:        'rgba(120,90,150,0.6)',
+    heeren:        'rgba(30,30,45,0.7)',    'mijn-karakter': 'rgba(42,90,138,0.55)',
     meesterkamer:  'rgba(139,42,42,0.55)',
   };
   const accentBar = document.getElementById('section-accent-bar');
@@ -366,15 +384,9 @@ async function login() {
 
 async function logout() {
   await api.logout();
-  state.role      = 'player';
-  state.dmPreview = false;
-  state.isSandbox = false;
-  _activeGroupId  = null;
-  window._activeGroupId = null;
-  applyRole();
-  // Herbouw de naamindex voor anonieme weergave na uitloggen
-  _rebuildEntityIndex();
-  refreshAll();
+  // #23: hard-reload om DM-state-caches (monsters, combat, berichten, enz.)
+  // volledig te wissen — voorkomt data-lek naar speler-weergave in dezelfde tab.
+  location.reload();
 }
 
 async function dmLogout() {
@@ -422,8 +434,154 @@ async function tabletLoginSubmit() {
   }
 }
 
-async function testLogin() {
-  await playerLogin('e_1778689148089_pypw');
+function testLogin() {
+  const overlay = document.getElementById('test-login-overlay');
+  const pw      = document.getElementById('test-login-password');
+  const errEl   = document.getElementById('test-login-error');
+  if (!overlay) return;
+  errEl?.classList.add('hidden');
+  if (pw) pw.value = '';
+  overlay.classList.add('active');
+  setTimeout(() => pw?.focus(), 100);
+}
+
+function closeTestLoginModal() {
+  document.getElementById('test-login-overlay')?.classList.remove('active');
+}
+
+async function testLoginSubmit() {
+  const pw     = document.getElementById('test-login-password')?.value || '';
+  const errEl  = document.getElementById('test-login-error');
+  const btn    = document.querySelector('#test-login-overlay button[onclick*="testLoginSubmit"]');
+  errEl?.classList.add('hidden');
+  if (btn) btn.disabled = true;
+  try {
+    const result = await api.playerLogin('e_1778689148089_pypw', pw);
+    closeTestLoginModal();
+    state.playerName  = result.playerName;
+    state.characterId = result.characterId;
+    applyRole();
+    try { localStorage.setItem('_lastLogin', JSON.stringify({ charId: result.characterId, ts: Date.now() })); } catch { /* ok */ }
+    if (result.characterId && window._socket) window._socket.emit('player:register', result.characterId);
+    _rebuildEntityIndex();
+    window._pendingPlayerSubTab = 'personage';
+    switchSection('mijn-karakter');
+  } catch {
+    errEl?.classList.remove('hidden');
+    if (btn) btn.disabled = false;
+    document.getElementById('test-login-password')?.select();
+  }
+}
+
+// ── Landing footer: inline login-prompts (vervangt modal-overlays op de landingspagina) ──
+
+function _landingShowFooterPrompt({ title, iconName, placeholder, submitLabel, onSubmit }) {
+  document.getElementById('landing-footer-prompt')?.remove();
+  const prompt = document.createElement('div');
+  prompt.id        = 'landing-footer-prompt';
+  prompt.className = 'landing-pw-prompt landing-footer-prompt';
+  prompt.innerHTML = `
+    <div class="landing-footer-prompt-title">${icon(iconName)} ${esc(title)}</div>
+    <input id="landing-footer-pw" type="password" class="landing-pw-input"
+      placeholder="${esc(placeholder)}" autocomplete="current-password">
+    <div id="landing-footer-error" class="landing-pw-error hidden">Verkeerd wachtwoord</div>
+    <div class="landing-pw-actions">
+      <button class="landing-pw-cancel" id="landing-footer-cancel">Annuleren</button>
+      <button class="landing-pw-submit" id="landing-footer-submit">${submitLabel}</button>
+    </div>`;
+  document.querySelector('.landing-footer')?.after(prompt);
+  requestAnimationFrame(() => prompt.classList.add('landing-pw-prompt--in'));
+  const input     = document.getElementById('landing-footer-pw');
+  const errorEl   = document.getElementById('landing-footer-error');
+  const submitBtn = document.getElementById('landing-footer-submit');
+  const cancelFn  = () => {
+    prompt.classList.remove('landing-pw-prompt--in');
+    setTimeout(() => prompt.remove(), 220);
+  };
+  const submitFn  = async () => {
+    errorEl.classList.add('hidden');
+    submitBtn.disabled = true;
+    try { await onSubmit(input.value); }
+    catch { errorEl.classList.remove('hidden'); submitBtn.disabled = false; input.select(); input.focus(); }
+  };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submitFn(); if (e.key === 'Escape') cancelFn(); });
+  submitBtn.addEventListener('click', submitFn);
+  document.getElementById('landing-footer-cancel')?.addEventListener('click', cancelFn);
+  setTimeout(() => input.focus(), 50);
+}
+
+function _landingDmLogin() {
+  _landingShowFooterPrompt({
+    title: 'Dungeon Master', iconName: 'crossed-swords',
+    placeholder: 'Wachtwoord…', submitLabel: 'Inloggen ↵',
+    onSubmit: async pw => {
+      await api.login(pw);
+      document.getElementById('landing-footer-prompt')?.remove();
+      state.role = 'dm';
+      applyRole();
+      try {
+        const { groups, activeGroup } = await api.listGroups();
+        _activeGroupId = activeGroup;
+        window.renderGroupSwitcher(groups, activeGroup);
+      } catch { /* ok */ }
+      _rebuildEntityIndex();
+      refreshAll();
+      window.dmPanel?.refreshCombatOverlay();
+    }
+  });
+}
+
+function _landingSandboxLogin() {
+  _landingShowFooterPrompt({
+    title: 'Showcase', iconName: 'flask-conical',
+    placeholder: 'Wachtwoord (indien vereist)…', submitLabel: 'Showcase starten ↵',
+    onSubmit: async pw => {
+      const result = await api.sandboxLogin(pw);
+      document.getElementById('landing-footer-prompt')?.remove();
+      state.role      = result.role || 'dm';
+      state.isSandbox = true;
+      applyRole();
+      try {
+        const { groups, activeGroup } = await api.listGroups();
+        _activeGroupId = activeGroup;
+        window.renderGroupSwitcher(groups, activeGroup);
+      } catch { /* ok */ }
+      _rebuildEntityIndex();
+      refreshAll();
+      window.dmPanel?.refreshCombatOverlay();
+    }
+  });
+}
+
+function _landingTabletLogin() {
+  _landingShowFooterPrompt({
+    title: 'Tablet', iconName: 'monitor',
+    placeholder: 'Wachtwoord…', submitLabel: 'Activeren ↵',
+    onSubmit: async pw => {
+      await api.tabletLogin(pw);
+      document.getElementById('landing-footer-prompt')?.remove();
+      window.app.activateDisplayMode();
+    }
+  });
+}
+
+function _landingTestLogin() {
+  _landingShowFooterPrompt({
+    title: 'Testomgeving', iconName: 'flask-conical',
+    placeholder: 'DM-wachtwoord…', submitLabel: 'Inloggen ↵',
+    onSubmit: async pw => {
+      const result = await api.playerLogin('e_1778689148089_pypw', pw);
+      document.getElementById('landing-footer-prompt')?.remove();
+      state.playerName  = result.playerName;
+      state.characterId = result.characterId;
+      applyRole();
+      try { localStorage.setItem('_lastLogin', JSON.stringify({ charId: result.characterId, ts: Date.now() })); } catch { /* ok */ }
+      if (result.characterId && window._socket) window._socket.emit('player:register', result.characterId);
+      _rebuildEntityIndex();
+      window._pendingPlayerSubTab = 'personage';
+      switchSection('mijn-karakter');
+    }
+  });
 }
 
 async function sandboxLoginSubmit() {
@@ -520,13 +678,16 @@ function applyRole() {
     herbergItem.classList.toggle('hidden', !state.meta?.herberg);
     const herbergNaam = state.meta?.herberg?.naam;
     const herbergLabel = document.getElementById('diensten-herberg-label');
-    if (herbergLabel) herbergLabel.innerHTML = icon('beer') + ' ' + esc(herbergNaam || 'Herberg');
+    if (herbergLabel) herbergLabel.textContent = herbergNaam || 'De Swarte Cat';
   }
 
   // Diensten-knop active-state als een diensten-sectie actief is
-  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock'];
+  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren'];
   const dienstenBtn = document.getElementById('diensten-nav-btn');
   if (dienstenBtn) dienstenBtn.classList.toggle('active', DIENSTEN_SECTIONS.includes(state.activeSection));
+
+  // Toegangsstaten diensten updaten
+  if (!window.app.isDM()) _updateDienstenMenu();
 
   // Eigen-karakter-tabblad
   const myCharTab = document.querySelector('.section-tab[data-section="mijn-karakter"]');
@@ -776,9 +937,9 @@ async function _landingStartZoom(charId, portraitEl, hasVideo = false) {
     <div class="landing-zoom-portrait">
       <img class="landing-zoom-img" src="/api/files/${esc(charId)}"
         onerror="this.style.display='none'">
-      <video id="landing-zoom-video" class="landing-zoom-video" autoplay muted playsinline>
+      ${hasVideo ? `<video id="landing-zoom-video" class="landing-zoom-video" autoplay muted playsinline>
         <source src="/api/files/${esc(charId)}_video" type="video/mp4">
-      </video>
+      </video>` : ''}
     </div>
     <svg class="landing-zoom-ring" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -856,6 +1017,7 @@ function _landingFinishLogin({ playerName, characterId: cid }) {
   document.body.classList.remove('display-kiosk'); // speler ingelogd → geen pure kiosk
   closePlayerPicker();
   applyRole();
+  _loadDienstenToegang().catch(() => {});
   try { localStorage.setItem('_lastLogin', JSON.stringify({ charId: cid, ts: Date.now() })); } catch { /* ok */ }
   if (cid && window._socket) window._socket.emit('player:register', cid);
   window._pendingPlayerSubTab = 'personage';
@@ -877,6 +1039,7 @@ async function playerLogin(characterId) {
     state.characterId = cid;
     closePlayerPicker();
     applyRole();
+    _loadDienstenToegang().catch(() => {});
     // Sla login op voor animatie-skip bij herlogin binnen 15 minuten
     try { localStorage.setItem('_lastLogin', JSON.stringify({ charId: cid, ts: Date.now() })); } catch { /* ok */ }
     // Registreer socket zodat DM directe berichten kan sturen
@@ -953,29 +1116,91 @@ function closeModal() {
 }
 
 // ── Lightbox ──
+const LB_ZOOM_MIN = 1;     // niet onder werkelijke grootte; bij 1 toont object-contain
+const LB_ZOOM_MAX = 6;
 let lbZoom    = 1;
+let lbPanX    = 0;
+let lbPanY    = 0;
 let _lbImages = null;   // [{src, title}] of huidige reeks
 let _lbIdx    = 0;
+
+// Sleep- en pinch-status
+let _lbDragging = false;
+let _lbStartX = 0, _lbStartY = 0, _lbPanStartX = 0, _lbPanStartY = 0;
+let _lbMoved = false;
+const _lbPointers = new Map();      // pointerId -> {x, y}
+let _lbPinchDist = 0;
+let _lbPinchZoom = 1;
+
+// Schrijf zoom + pan naar de transform van het beeld
+function _lbApply() {
+  const img = $('#lb-img');
+  if (!img) return;
+  if (lbZoom <= LB_ZOOM_MIN + 0.001) { lbPanX = 0; lbPanY = 0; }
+  _lbClampPan();
+  const live = _lbDragging || _lbPointers.size >= 2;
+  img.style.transition = live ? 'none' : 'transform 0.12s ease-out';
+  img.style.transform = `translate(${lbPanX}px, ${lbPanY}px) scale(${lbZoom})`;
+  img.style.cursor = lbZoom > LB_ZOOM_MIN ? (_lbDragging ? 'grabbing' : 'grab') : '';
+  const zoomed = lbZoom > LB_ZOOM_MIN + 0.001;
+  $('#lb-zoom-reset')?.classList.toggle('opacity-40', !zoomed);
+  // Bij ingezoomd beeld de navigatiepijlen verbergen zodat slepen niet botst
+  if (zoomed) {
+    $('#lb-nav-left')?.classList.add('hidden');
+    $('#lb-nav-right')?.classList.add('hidden');
+  } else {
+    _lbUpdateNav();
+  }
+}
+
+// Begrens het pannen zodat de afbeelding binnen beeld blijft
+function _lbClampPan() {
+  const img = $('#lb-img');
+  if (!img) return;
+  const extraX = img.clientWidth  * (lbZoom - 1) / 2;
+  const extraY = img.clientHeight * (lbZoom - 1) / 2;
+  lbPanX = Math.max(-extraX, Math.min(extraX, lbPanX));
+  lbPanY = Math.max(-extraY, Math.min(extraY, lbPanY));
+}
+
+// Zoom rond een punt (px relatief t.o.v. midden van het beeld)
+function _lbZoomTo(newZoom, cx, cy) {
+  newZoom = Math.max(LB_ZOOM_MIN, Math.min(LB_ZOOM_MAX, newZoom));
+  if (cx != null && cy != null) {
+    const ratio = newZoom / lbZoom;
+    lbPanX = cx - (cx - lbPanX) * ratio;
+    lbPanY = cy - (cy - lbPanY) * ratio;
+  }
+  lbZoom = newZoom;
+  _lbApply();
+}
+
+function _lbUpdateNav() {
+  const multi = (_lbImages?.length || 0) > 1;
+  const left  = $('#lb-nav-left');
+  const right = $('#lb-nav-right');
+  if (left)  left.classList.toggle('hidden',  !multi || _lbIdx <= 0);
+  if (right) right.classList.toggle('hidden', !multi || _lbIdx >= _lbImages.length - 1);
+}
 
 function _lbShowCurrent() {
   const entry = _lbImages?.[_lbIdx];
   if (!entry) return;
-  lbZoom = 1;
+  lbZoom = 1; lbPanX = 0; lbPanY = 0;
   const img = $('#lb-img');
   img.src = entry.src;
   img.style.transform = '';
+  img.style.cursor = '';
   $('#lb-title').textContent = entry.title || '';
 
   const multi = (_lbImages?.length || 0) > 1;
-  const left  = $('#lb-nav-left');
-  const right = $('#lb-nav-right');
   const cnt   = $('#lb-counter');
-  if (left)  left.classList.toggle('hidden',  !multi || _lbIdx <= 0);
-  if (right) right.classList.toggle('hidden', !multi || _lbIdx >= _lbImages.length - 1);
+  _lbUpdateNav();
   if (cnt) {
     cnt.textContent = multi ? `${_lbIdx + 1} / ${_lbImages.length}` : '';
     cnt.classList.toggle('hidden', !multi);
   }
+  $('#lb-zoom-reset')?.classList.add('opacity-40');
 }
 
 // Enkelvoudige afbeelding (achterwaarts compatibel)
@@ -1004,26 +1229,110 @@ function lbNavigate(dir) {
   _lbShowCurrent();
 }
 
+// Zoomknoppen (touch-vriendelijk)
+function lbZoomIn()  { _lbZoomTo(lbZoom + 0.5, 0, 0); }
+function lbZoomOut() { _lbZoomTo(lbZoom - 0.5, 0, 0); }
+function lbZoomReset() { lbZoom = 1; lbPanX = 0; lbPanY = 0; _lbApply(); }
+
 function closeLightbox() {
   const lb = $('#lightbox');
   lb.classList.add('hidden');
   lb.classList.remove('flex');
-  $('#lb-img').src = '';
+  const img = $('#lb-img');
+  img.src = '';
+  img.style.transform = '';
   _lbImages = null;
+  lbZoom = 1; lbPanX = 0; lbPanY = 0;
+  _lbPointers.clear();
+  _lbDragging = false;
 }
 
-$('#lightbox').addEventListener('wheel', (e) => {
+// Wiel-zoom rond de cursor
+$('#lightbox')?.addEventListener('wheel', (e) => {
   e.preventDefault();
-  lbZoom += e.deltaY > 0 ? -0.15 : 0.15;
-  lbZoom = Math.max(0.5, Math.min(5, lbZoom));
-  $('#lb-img').style.transform = `scale(${lbZoom})`;
+  const img = $('#lb-img');
+  const r = img.getBoundingClientRect();
+  const cx = e.clientX - (r.left + r.width / 2);
+  const cy = e.clientY - (r.top + r.height / 2);
+  _lbZoomTo(lbZoom + (e.deltaY > 0 ? -0.3 : 0.3), cx, cy);
+}, { passive: false });
+
+// Dubbelklik / dubbeltik: in- of uitzoomen op het aangewezen punt
+$('#lb-img').addEventListener('dblclick', (e) => {
+  e.stopPropagation();
+  const img = $('#lb-img');
+  const r = img.getBoundingClientRect();
+  if (lbZoom > LB_ZOOM_MIN + 0.001) {
+    lbZoomReset();
+  } else {
+    const cx = e.clientX - (r.left + r.width / 2);
+    const cy = e.clientY - (r.top + r.height / 2);
+    _lbZoomTo(2.5, cx, cy);
+  }
 });
+
+// Pointer-gebaren: slepen (pan) en pinch-zoom
+(function () {
+  const img = $('#lb-img');
+
+  img.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    _lbPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    img.setPointerCapture?.(e.pointerId);
+    _lbMoved = false;
+    if (_lbPointers.size === 2) {
+      const pts = [..._lbPointers.values()];
+      _lbPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      _lbPinchZoom = lbZoom;
+      _lbDragging = false;
+    } else if (lbZoom > LB_ZOOM_MIN) {
+      _lbDragging = true;
+      _lbStartX = e.clientX; _lbStartY = e.clientY;
+      _lbPanStartX = lbPanX; _lbPanStartY = lbPanY;
+      _lbApply();
+    }
+  });
+
+  img.addEventListener('pointermove', (e) => {
+    if (!_lbPointers.has(e.pointerId)) return;
+    _lbPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (_lbPointers.size === 2) {
+      // Pinch-zoom rond het midden tussen de twee vingers
+      const pts = [..._lbPointers.values()];
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (_lbPinchDist > 0) {
+        const r = img.getBoundingClientRect();
+        const midX = (pts[0].x + pts[1].x) / 2 - (r.left + r.width / 2);
+        const midY = (pts[0].y + pts[1].y) / 2 - (r.top + r.height / 2);
+        _lbZoomTo(_lbPinchZoom * (dist / _lbPinchDist), midX, midY);
+      }
+      _lbMoved = true;
+    } else if (_lbDragging) {
+      lbPanX = _lbPanStartX + (e.clientX - _lbStartX);
+      lbPanY = _lbPanStartY + (e.clientY - _lbStartY);
+      if (Math.abs(e.clientX - _lbStartX) > 4 || Math.abs(e.clientY - _lbStartY) > 4) _lbMoved = true;
+      _lbApply();
+    }
+  });
+
+  function endPointer(e) {
+    _lbPointers.delete(e.pointerId);
+    if (_lbPointers.size < 2) _lbPinchDist = 0;
+    if (_lbPointers.size === 0) { _lbDragging = false; _lbApply(); }
+  }
+  img.addEventListener('pointerup', endPointer);
+  img.addEventListener('pointercancel', endPointer);
+})();
 
 document.addEventListener('keydown', (e) => {
   if ($('#lightbox').classList.contains('hidden')) return;
   if (e.key === 'Escape')      closeLightbox();
   if (e.key === 'ArrowLeft')   lbNavigate(-1);
   if (e.key === 'ArrowRight')  lbNavigate(1);
+  if (e.key === '+' || e.key === '=') lbZoomIn();
+  if (e.key === '-' || e.key === '_') lbZoomOut();
+  if (e.key === '0')           lbZoomReset();
 });
 
 // ── HTML escape ──
@@ -1566,10 +1875,48 @@ async function refreshSection(section) {
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await _renderKaartSection();
   else if (section === 'relatiemap') await renderRelatiemap();
-  else if (section === 'herberg') await renderHerberg();
-  else if (section === 'tweespalt') await renderTweespalt();
-  else if (section === 'gock') await renderGock();
-  else if (section === 'mijn-karakter') await renderMijnKarakter();
+  else if (section === 'herberg') {
+    if (!window.app.isDM() && _getDienstToegang('herberg') === 'zichtbaar') {
+      const _el = document.getElementById('section-herberg'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.herberg?.naam || 'De Herberg');
+    } else if (!window.app.isDM() && _getDienstToegang('herberg') === 'verborgen') {
+      const _el = document.getElementById('section-herberg'); if (_el) _el.innerHTML = '';
+    } else await renderHerberg();
+  }
+  else if (section === 'tweespalt') {
+    if (!window.app.isDM() && _getDienstToegang('tweespalt') === 'zichtbaar') {
+      const _el = document.getElementById('section-tweespalt'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.tweespalt?.naam || 'De Tweespalt');
+    } else if (!window.app.isDM() && _getDienstToegang('tweespalt') === 'verborgen') {
+      const _el = document.getElementById('section-tweespalt'); if (_el) _el.innerHTML = '';
+    } else await renderTweespalt();
+  }
+  else if (section === 'gock') {
+    if (!window.app.isDM() && _getDienstToegang('gock') === 'zichtbaar') {
+      const _el = document.getElementById('section-gock'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.gock?.naam || 'De Gock');
+    } else if (!window.app.isDM() && _getDienstToegang('gock') === 'verborgen') {
+      const _el = document.getElementById('section-gock'); if (_el) _el.innerHTML = '';
+    } else await renderGock();
+  }
+  else if (section === 'ursula') {
+    if (!window.app.isDM() && _getDienstToegang('ursula') === 'zichtbaar') {
+      const _el = document.getElementById('section-ursula'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.ursula?.naam || 'Madame Ursula');
+    } else if (!window.app.isDM() && _getDienstToegang('ursula') === 'verborgen') {
+      const _el = document.getElementById('section-ursula'); if (_el) _el.innerHTML = '';
+    } else await renderUrsula();
+  }
+  else if (section === 'tempel') {
+    if (!window.app.isDM() && _getDienstToegang('tempel') === 'zichtbaar') {
+      const _el = document.getElementById('section-tempel'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.tempel?.naam || 'De Tempel');
+    } else if (!window.app.isDM() && _getDienstToegang('tempel') === 'verborgen') {
+      const _el = document.getElementById('section-tempel'); if (_el) _el.innerHTML = '';
+    } else await renderTempel();
+  }
+  else if (section === 'heeren') {
+    if (!window.app.isDM() && _getDienstToegang('heeren') === 'zichtbaar') {
+      const _el = document.getElementById('section-heeren'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.heeren?.naam || 'Heeren van de Nacht');
+    } else if (!window.app.isDM() && _getDienstToegang('heeren') === 'verborgen') {
+      const _el = document.getElementById('section-heeren'); if (_el) _el.innerHTML = '';
+    } else await renderHeeren();
+  }  else if (section === 'mijn-karakter') await renderMijnKarakter();
   else if (section === 'spelers') await renderSpelersTab();
   else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
 }
@@ -1680,7 +2027,8 @@ function _spellMd(t, { diceColor } = {}) {
   const diceStyle = diceColor
     ? ` style="color:${diceColor};text-decoration-color:${diceColor}66"`
     : '';
-  return String(t ?? '')
+  let s = esc(String(t ?? ''));
+  return s
     // ── Auto-highlights (applied to plain text before markdown) ──
     // Dice notation: 2d6, 1d20+5, 4d8 – tinted by damage type, clickable
     .replace(/\b(\d+d\d+(?:\s*[+\-]\s*\d+)?)\b/gi,
@@ -1783,7 +2131,8 @@ function _renderSpellDesc(rawDesc, opts = {}) {
     html += `<p>${_spellMd(line, opts)}</p>`;
     i++;
   }
-  return html;
+  // Begrippen voorzien van hover-uitleg (D&D-terminologie)
+  return window.glossary?.annotate?.(html) ?? html;
 }
 
 // Returns a CSS color for dice spans based on damage type in spell.damage
@@ -3362,6 +3711,7 @@ window._invSaveNote = async function() {
   if (!charId) return;
   try {
     const result = await api.addPlayerItem(charId, { name, note });
+    if (!result?.id) { console.warn('Notitie toevoegen: server gaf geen id terug'); return; }
     _invState.items.push({ _kind: 'note', id: result.id, name: result.name, note: result.note || '' });
     _invState.selectedIdx = _invState.items.length - 1;
     _invState.page = Math.floor((_invState.items.length - 1) / INV_PAGE_SIZE);
@@ -3426,9 +3776,9 @@ function _invRender() {
       <button class="inv-page-btn" onclick="window._invPageNext()" ${_invState.page >= totalPages - 1 ? 'disabled' : ''}>→</button>`;
   }
 
-  // Add-note trigger visibility — zichtbaar voor spelers (eigen karakter) en DM
+  // Add-note trigger visibility — alleen zichtbaar voor spelers met een karakter (niet voor DM)
   const addTrigger = document.getElementById('inv-add-note-trigger');
-  if (addTrigger) addTrigger.style.display = (state.characterId || state.role === 'dm') ? '' : 'none';
+  if (addTrigger) addTrigger.style.display = state.characterId ? '' : 'none';
 
   // Beurs
   const beurs = document.getElementById('inv-beurs');
@@ -3502,7 +3852,7 @@ function _invRenderEntityDetail(panel, it) {
           ${typeLabel ? `<span class="inv-det-type-badge">${esc(typeLabel)}</span>` : ''}
           ${rarityLabel ? `<span class="inv-det-rarity">${esc(rarityLabel)}</span>` : ''}
         </div>
-        ${desc ? `<div class="inv-det-desc">${_spellMd(desc)}</div>` : ''}
+        ${desc ? `<div class="inv-det-desc">${window.glossary?.annotate?.(_spellMd(desc)) ?? _spellMd(desc)}</div>` : ''}
         ${flavour ? `<blockquote class="inv-det-flavour">${esc(flavour)}</blockquote>` : ''}
       </div>
     </div>`;
@@ -3551,6 +3901,17 @@ function _fmtBerichtDate(iso) {
          d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
 }
 
+// Briefhoofd per dienst-thema (boven aan een gethematiseerde brief)
+function _briefLetterhead(thema) {
+  switch (thema) {
+    case 'ursula':    return '<span class="lh-zegel">✦</span> Madame Ursula <span class="lh-sub">— Waarzegster der Sterren</span>';
+    case 'gock':      return '<span class="lh-zegel">⌖</span> DE GOCK <span class="lh-sub">— Onderzoeksbureau</span>';
+    case 'tweespalt': return '<span class="lh-zegel">🎲</span> De Tweespalt';
+    case 'heeren':    return '<span class="lh-zegel">🌑</span> De Heeren van de Nacht';
+    default:          return '';
+  }
+}
+
 window._updateBerichtenBadge = function() {
   const count = window._berichtenUnread || 0;
   const btn = document.querySelector('.player-subtab[data-tab="berichten"]');
@@ -3564,17 +3925,64 @@ window._updateBerichtenBadge = function() {
   }
 };
 
+// Spelervriendelijke uitleg + icoon per status (NL). Gedeeld door renderMijnKarakter
+// en de tap-popover window._condInfo.
+const PLAYER_COND_INFO = {
+  blinded:       { label: 'Verblind',       desc: 'Kan niet zien. Aanvallen tegen jou hebben voordeel; jouw aanvallen hebben nadeel.' },
+  charmed:       { label: 'Betoverd',       desc: 'Je kunt de betoveraar niet aanvallen. Die heeft voordeel op sociale checks tegen jou.' },
+  deafened:      { label: 'Doof',           desc: 'Kan niet horen. Faalt automatisch checks die gehoor vereisen.' },
+  exhaustion:    { label: 'Uitputting',     desc: 'Stapelt in 6 niveaus: 1 nadeel op checks · 2 snelheid gehalveerd · 3 nadeel op saves · 4 snelheid 0 · 5 nadeel op aanvallen · 6 dood.' },
+  frightened:    { label: 'Bevreesd',       desc: 'Nadeel op checks en aanvallen zolang de bron in zicht is. Je kunt niet vrijwillig dichterbij komen.' },
+  grappled:      { label: 'Vastgegrepen',   desc: 'Snelheid wordt 0. Eindigt als de grijper buiten gevecht raakt of je buiten bereik komt.' },
+  incapacitated: { label: 'Buiten gevecht', desc: 'Kan geen acties of reacties nemen.' },
+  invisible:     { label: 'Onzichtbaar',    desc: 'Kan niet gezien worden. Aanvallen tegen jou hebben nadeel; jouw aanvallen hebben voordeel.' },
+  paralyzed:     { label: 'Verlamd',        desc: 'Buiten gevecht, kan niet bewegen of spreken. Faalt STR/DEX-saves. Aanvallen hebben voordeel; treffers binnen 1,5 m zijn kritiek.' },
+  petrified:     { label: 'Versteend',      desc: 'Veranderd in steen. Buiten gevecht. Resistent tegen alle schade. Immuun voor gif en ziekte.' },
+  poisoned:      { label: 'Vergiftigd',     desc: 'Nadeel op aanvallen en ability checks.' },
+  prone:         { label: 'Neergevallen',   desc: 'Nadeel op aanvallen. Aanvallen binnen 1,5 m hebben voordeel, van verder weg nadeel. Opstaan kost de helft van je snelheid.' },
+  restrained:    { label: 'Vastgehouden',   desc: 'Snelheid wordt 0. Nadeel op aanvallen en DEX-saves. Aanvallen tegen jou hebben voordeel.' },
+  stunned:       { label: 'Verdoofd',       desc: 'Buiten gevecht, kan niet bewegen, spreekt hooguit haperend. Faalt STR/DEX-saves. Aanvallen tegen jou hebben voordeel.' },
+  unconscious:   { label: 'Bewusteloos',    desc: 'Buiten gevecht, neergevallen en niet bij bewustzijn. Faalt STR/DEX-saves. Aanvallen hebben voordeel; treffers binnen 1,5 m zijn kritiek.' },
+  concentration: { label: 'Concentratie',   desc: 'Je concentreert op een spreuk. Eindigt bij schade (CON-save, DC 10 of de helft van de schade) of buiten gevecht raken.' },
+  bleeding:      { label: 'Bloedend',       desc: 'Verliest bloed: 1d4 schade aan het begin van elke beurt. Eindigt bij genezing of een geslaagde Medicijnen-check (DC 10).' },
+  burning:       { label: 'In brand',       desc: 'In brand: 1d6 vuurschade aan het begin van elke beurt. Een actie kan de vlammen doven.' },
+};
+// Welke statussen een icoon hebben in /img/conditions/
+const PLAYER_COND_ICONS = new Set(Object.keys(PLAYER_COND_INFO));
+
+// Tap op een status-chip toont/verbergt de uitleg eronder
+window._condInfo = function(cid) {
+  const box = document.getElementById('player-cond-detail');
+  if (!box) return;
+  document.querySelectorAll('.player-dash-cond-chip').forEach(c =>
+    c.classList.toggle('player-dash-cond-chip--active', c.dataset.cid === cid && box.dataset.cid !== cid));
+  if (box.dataset.cid === cid) { box.classList.add('hidden'); box.dataset.cid = ''; return; }
+  const info = PLAYER_COND_INFO[cid] || { label: cid, desc: 'Geen beschrijving beschikbaar.' };
+  const hasIcon = PLAYER_COND_ICONS.has(cid);
+  box.dataset.cid = cid;
+  box.innerHTML = `
+    ${hasIcon ? `<img src="/img/conditions/${cid}.png" class="player-cond-detail-icon" alt="">` : ''}
+    <div class="player-cond-detail-text">
+      <div class="player-cond-detail-title">${esc(info.label)}</div>
+      <div class="player-cond-detail-desc">${esc(info.desc)}</div>
+    </div>`;
+  box.classList.remove('hidden');
+};
+
 async function renderMijnKarakter(opts = {}) {
   const charId     = opts.charId     || state.characterId;
   const playerName = opts.playerName || state.playerName;
   const el         = opts.el         || document.getElementById('section-mijn-karakter');
   if (!el) return;
+  // #33: pauzeer en verwijder een nog-spelende portret-video vóór re-render
+  el.querySelector('.portrait-inline-video')?.pause();
   if (!playerName || !charId) {
     el.innerHTML = '<div class="p-8 text-center text-ink-dim italic font-fell">Kies eerst een karakter om dit dashboard te zien.</div>';
     return;
   }
   // Allow inline HTML event handlers to re-render with same opts
   window._reRenderKarakter = () => renderMijnKarakter(opts);
+
 
   // Laad data parallel
   let hpData = { current: null, max: null };
@@ -3595,8 +4003,10 @@ async function renderMijnKarakter(opts = {}) {
   let pinnedTraits  = [];
   let inspired      = false;
   let berichtenLijst = [];
+  let heerenData = null;
+  let factiesData = [];
   try {
-    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst] = await Promise.all([
+    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, heerenData, factiesData] = await Promise.all([
       api.getPlayerHp(charId).catch(() => ({ current: null, max: null })),
       api.getEntity('personages', charId).catch(() => null),
       api.getCombat().catch(() => null),
@@ -3615,6 +4025,8 @@ async function renderMijnKarakter(opts = {}) {
       api.getPlayerTraits(charId).catch(() => []),
       api.getInspiration(charId).catch(() => ({ inspired: false })),
       api.getBerichten().then(d => d.berichten || []).catch(() => []),
+      (window.app?.state?.meta?.heeren ? api.getHeeren().catch(() => null) : Promise.resolve(null)),
+      api.getFacties().then(d => d.facties || []).catch(() => []),
     ]);
   } catch { /* ok */ }
 
@@ -3705,6 +4117,7 @@ async function renderMijnKarakter(opts = {}) {
   let _skillProfs = {};
   try { _skillProfs = JSON.parse(playerProfile.skillProfs || '{}'); } catch { _skillProfs = {}; }
   let _skillAdj = {};
+  let _extraSpeeds = [];
   try { _skillAdj = JSON.parse(playerProfile.skillAdj || '{}'); } catch { _skillAdj = {}; }
   const _saveProfs  = new Set((playerProfile.saveProfs || '').split(',').filter(Boolean));
   const _profBonusNum = parseInt(playerProfile.profBonus) || 0;
@@ -3839,6 +4252,17 @@ async function renderMijnKarakter(opts = {}) {
             <div class="ppf-row"><label class="ppf-label">Background</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.background ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('background', this.value)"></div>
+            ${(() => {
+              const ontgrendeld = [...new Set((factiesData || []).flatMap(f => (f.ladder || []).filter(r => r.bereikt && r.index > 0 && r.titel).map(r => r.titel)))];
+              const cur = playerProfile.factieTitel || '';
+              if (cur && !ontgrendeld.includes(cur)) ontgrendeld.unshift(cur);
+              if (!ontgrendeld.length) return '';
+              return `<div class="ppf-row"><label class="ppf-label">Titel</label>
+                <select class="ppf-input" onchange="window._saveProfileField('factieTitel', this.value)">
+                  <option value="" ${cur ? '' : 'selected'}>— geen —</option>
+                  ${ontgrendeld.map(t => `<option value="${esc(t)}" ${t === cur ? 'selected' : ''}>${esc(t)}</option>`).join('')}
+                </select></div>`;
+            })()}
             <div class="ppf-row"><label class="ppf-label">${isHp ? 'House' : 'Origin'}</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.origin ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('origin', this.value)"></div>
@@ -3960,9 +4384,30 @@ async function renderMijnKarakter(opts = {}) {
               const isActive = i === combat.currentTurn;
               const isMe = c.entityId === charId || c.name === playerName;
               const displayName = c.type === 'player' ? c.name.split(' ')[0] : c.name;
+              const COND_ICONS_MAP = {
+                poisoned:'flask-conical', grappled:'lock', restrained:'lock', paralyzed:'lock',
+                stunned:'zap', blinded:'eye-off', frightened:'skull', prone:'minus',
+                incapacitated:'skull', unconscious:'skull', exhaustion:'minus',
+                charmed:'sparkles', deafened:'volume-2', invisible:'eye-off',
+                petrified:'mountain', concentration:'target'
+              };
+              const COND_LBL_MAP = {
+                blinded:'Verblind', charmed:'Betoverd', deafened:'Doof', exhaustion:'Uitputting',
+                frightened:'Bevreesd', grappled:'Vastgegrepen', incapacitated:'Buiten gevecht',
+                invisible:'Onzichtbaar', paralyzed:'Verlamd', petrified:'Versteend',
+                poisoned:'Vergiftigd', prone:'Neergevallen', restrained:'Vastgehouden',
+                stunned:'Verdoofd', unconscious:'Bewusteloos', concentration:'Concentratie'
+              };
+              const conds = (c.conditions || []).slice(0, 3);
+              const condHtml = conds.map(cid => {
+                const icn = COND_ICONS_MAP[cid] || 'zap';
+                const lbl = COND_LBL_MAP[cid] || cid;
+                return `<span class="player-dash-init-cond" title="${esc(lbl)}">${icon(icn)}</span>`;
+              }).join('');
               return `<div class="player-dash-init-row${isActive ? ' player-dash-init-active' : ''}${isMe ? ' player-dash-init-me' : ''}">
                 <span class="player-dash-init-num">${i + 1}</span>
                 <span class="player-dash-init-name">${esc(displayName)}</span>
+                ${condHtml ? `<span class="player-dash-init-conds">${condHtml}</span>` : ''}
               </div>`;
             }).join('')}
           </div>
@@ -3992,27 +4437,31 @@ async function renderMijnKarakter(opts = {}) {
               value="${esc(playerProfile.ac ?? '')}" placeholder="—"
               onblur="window._saveProfileField('ac', this.value)">
           </div>
+          ${(() => {
+            _extraSpeeds = (() => { try { const a = JSON.parse(playerProfile.extraSpeeds || '[]'); if(Array.isArray(a)) return a; } catch{} const m=[]; if(playerProfile.swimSpeed) m.push({label:'Swim',value:playerProfile.swimSpeed}); if(playerProfile.flySpeed) m.push({label:'Fly',value:playerProfile.flySpeed}); return m; })();
+            return '';
+          })()}
           <div class="pcs-item">
             <span class="pcs-label">Speed</span>
             <div class="pcs-input-row">
               <input class="pcs-input" type="text"
                 value="${esc(playerProfile.speed ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('speed', this.value)">
-              <button class="pcs-extra-speed-btn${(playerProfile.swimSpeed || playerProfile.flySpeed) ? ' pcs-extra-speed-btn--on' : ''}"
-                onclick="window._toggleExtraSpeed()" title="Zwem/vliegsnelheid">${(playerProfile.swimSpeed || playerProfile.flySpeed) ? '−' : '+'}</button>
+              <button class="pcs-extra-speed-btn${_extraSpeeds.length ? ' pcs-extra-speed-btn--on' : ''}"
+                onclick="window._addExtraSpeed()" title="Extra snelheid toevoegen">+</button>
             </div>
           </div>
-          <div id="pcs-extra-speeds" ${!(playerProfile.swimSpeed || playerProfile.flySpeed) ? 'style="display:none"' : ''} class="pcs-extra-speeds-wrap">
-            <div class="pcs-item">
-              <span class="pcs-label">Swim</span>
-              <input class="pcs-input" type="text" value="${esc(playerProfile.swimSpeed ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('swimSpeed', this.value)">
-            </div>
-            <div class="pcs-item">
-              <span class="pcs-label">Fly</span>
-              <input class="pcs-input" type="text" value="${esc(playerProfile.flySpeed ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('flySpeed', this.value)">
-            </div>
+          <div id="pcs-extra-speeds" class="pcs-extra-speeds-wrap"${_extraSpeeds.length ? '' : ' style="display:none"'}>
+            ${_extraSpeeds.map((s, i) => `
+            <div class="pcs-item pcs-extra-speed-item">
+              <input class="pcs-speed-label-input" type="text" value="${esc(s.label ?? '')}" placeholder="Label…"
+                onblur="window._saveExtraSpeedFull()">
+              <div class="pcs-input-row">
+                <input class="pcs-input" type="text" value="${esc(s.value ?? '')}" placeholder="—"
+                  onblur="window._saveExtraSpeedFull()">
+                <button class="pcs-extra-speed-del" onclick="window._removeExtraSpeed(${i})" title="Verwijder">${icon('x')}</button>
+              </div>
+            </div>`).join('')}
           </div>
           <div class="pcs-item">
             <span class="pcs-label">Initiative</span>
@@ -4065,7 +4514,7 @@ async function renderMijnKarakter(opts = {}) {
                 <button class="player-hp-temp-btn" onclick="window._dashTempHpChange(1)" title="Verhoog">+</button>
               </div>
             </div>
-            ${myCombatant ? '<p class="player-dash-hp-note">${icon(\'swords\')} Actief in gevecht</p>' : ''}
+            ${myCombatant ? `<p class="player-dash-hp-note">${icon('swords')} Actief in gevecht</p>` : ''}
           </div>
         </div>
 
@@ -4204,17 +4653,45 @@ async function renderMijnKarakter(opts = {}) {
           <div class="player-dash-section-title">${icon('zap')} Actieve statussen</div>
           <div class="player-dash-conditions">
             ${conditions.map(cid => {
-              const COND_LABELS = {
-                blinded:'Verblind', charmed:'Betoverd', deafened:'Doof', exhaustion:'Uitputting',
-                frightened:'Bevreesd', grappled:'Vastgegrepen', incapacitated:'Buiten gevecht',
-                invisible:'Onzichtbaar', paralyzed:'Verlamd', petrified:'Versteend',
-                poisoned:'Vergiftigd', prone:'Neergevallen', restrained:'Vastgehouden',
-                stunned:'Verdoofd', unconscious:'Bewusteloos', concentration:'Concentratie'
-              };
-              return `<span class="player-dash-cond-chip">${esc(COND_LABELS[cid] || cid)}</span>`;
+              const info    = PLAYER_COND_INFO[cid] || { label: cid };
+              const hasIcon = PLAYER_COND_ICONS.has(cid);
+              return `<button class="player-dash-cond-chip" data-cid="${esc(cid)}"
+                onclick="window._condInfo('${escJS(cid)}')" title="${esc(info.desc || 'Tik voor uitleg')}">
+                ${hasIcon ? `<img src="/img/conditions/${esc(cid)}.png" class="player-dash-cond-icon" alt="">` : ''}
+                <span>${esc(info.label)}</span>
+              </button>`;
             }).join('')}
           </div>
+          <div id="player-cond-detail" class="player-cond-detail hidden" data-cid=""></div>
         </div>` : ''}
+
+        ${heerenData ? `
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">🌑 Aanzien bij de Heeren</div>
+          <div class="renown-card">
+            <div class="renown-rang">${esc(heerenData.rang?.naam || '')}<span class="renown-trap">${(heerenData.rang?.index ?? 0) + 1}/${heerenData.rang?.aantal || 1}</span></div>
+            ${heerenData.rang?.voordelen ? `<div class="renown-voordelen">${esc(heerenData.rang.voordelen)}</div>` : ''}
+            ${heerenData.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(heerenData.rang.volgende.naam)}</strong>${heerenData.rang.volgende.voordelen ? `: ${esc(heerenData.rang.volgende.voordelen)}` : ''}</div>` : ''}
+            ${(heerenData.boetes && heerenData.boetes.length) ? `<div class="renown-boete">⚖️ ${heerenData.boetes.length} openstaande boete${heerenData.boetes.length > 1 ? 's' : ''} bij de Luimpoort</div>` : ''}
+          </div>
+        </div>` : ''}
+
+        ${(factiesData || []).filter(f => (f.rang?.index ?? 0) > 0).map(f => {
+          const stijl = (f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase();
+          const ladder = f.ladder || [];
+          const verworven = ladder.filter(r => r.bereikt).flatMap(r => r.boons || []);
+          const next = ladder.find(r => !r.bereikt && (r.boons || []).length);
+          return `
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">${esc(f.embleem || '🏛️')} Aanzien bij ${esc(f.naam)}</div>
+          <div class="renown-card factie-card--${stijl}">
+            <div class="renown-rang">${esc(f.rang?.naam || '')}<span class="renown-trap">${(f.rang?.index ?? 0) + 1}/${f.rang?.aantal || 1}</span></div>
+            ${f.rang?.voordelen ? `<div class="renown-voordelen">${esc(f.rang.voordelen)}</div>` : ''}
+            ${verworven.length ? `<div class="factie-boons">${verworven.map(b => `<span class="factie-boon" title="${esc(b.tekst || '')}">${esc(b.icoon || '•')} ${esc(b.naam || '')}</span>`).join('')}</div>` : ''}
+            ${next ? `<div class="renown-volgende">🔒 Volgende — <strong>${esc(next.naam)}</strong>${next.boons[0] ? `: ${esc(next.boons[0].icoon || '')} ${esc(next.boons[0].naam || '')}` : ''}</div>`
+                   : (f.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(f.rang.volgende.naam)}</strong></div>` : '')}
+          </div>
+        </div>`; }).join('')}
 
         <!-- Kenmerken & Eigenschappen -->
         <div class="player-dash-section">
@@ -4411,7 +4888,7 @@ async function renderMijnKarakter(opts = {}) {
               if (!it) return '';
               const _attIcon = _ATT_TYPE_ICON[it.data?.itemType] || icon('sparkles');
               return `<button class="att-swap-option" onclick="window._attDoSwap(${slotIdx},'${esc(id)}')">
-                <span>${icon}</span> ${esc(it.name)}
+                <span>${_attIcon}</span> ${esc(it.name)}
               </button>`;
             }).join('');
             wrap.appendChild(popup);
@@ -4567,22 +5044,44 @@ async function renderMijnKarakter(opts = {}) {
               </div>
               ${_dotsHtml}`;
           })() : ''}
-          ${simpleItems.length > 0 ? `
-          <ul class="player-dash-simple-list">
-            ${simpleItems.map(si => `
-              <li class="player-dash-simple-item">
+          ${(() => {
+            const _sub = (si) => si.subtype || (si.eed ? (si.status === 'vloek' ? 'vloek' : 'eed') : (si.zegen ? 'zegen' : null));
+            const _row = (si) => {
+              const sub = _sub(si);
+              const cls = sub === 'vloek' ? ' player-dash-simple-item--vloek'
+                        : sub === 'eed'   ? ' player-dash-simple-item--eed'
+                        : sub === 'zegen' ? ' player-dash-simple-item--zegen' : '';
+              return `
+              <li class="player-dash-simple-item${cls}">
                 <span class="player-dash-simple-name">${esc(si.name)}</span>
                 ${si.note ? `<span class="player-dash-simple-note">${esc(si.note)}</span>` : ''}
+                ${sub === 'zegen' && si.usesMax ? `
+                <span class="player-dash-zegen-charges" style="display:inline-flex;align-items:center;gap:4px;margin-left:6px">
+                  ${Array.from({ length: si.usesMax }).map((_, i) =>
+                    `<span class="spell-slot-dot${i < (si.uses || 0) ? '' : ' used'}" style="width:11px;height:11px;cursor:default"></span>`).join('')}
+                  <button class="ts-wedden-btn" style="padding:1px 7px;font-size:.7rem" onclick="window._dashZegenVerbruik()" ${(si.uses || 0) <= 0 ? 'disabled' : ''} title="Vink één gebruik af">✓</button>
+                </span>` : ''}
                 ${si.entityId ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:0.65rem;padding:1px 4px;line-height:1.3;" onclick="window._openDetail('${esc(si.entityType)}','${esc(si.entityId)}')" title="Open kaartje">↗</button>` : ''}
-                <button class="player-dash-simple-del" onclick="window._dashRemoveItem('${esc(si.id)}')" title="Verwijder">×</button>
-              </li>`).join('')}
-          </ul>` : ''}
+                ${si.eed ? '' : `<button class="player-dash-simple-del" onclick="window._dashRemoveItem('${esc(si.id)}')" title="Verwijder">×</button>`}
+              </li>`;
+            };
+            const gewone = simpleItems.filter(si => !_sub(si));
+            const zegens = simpleItems.filter(si => _sub(si));
+            return `
+              ${gewone.length ? `<ul class="player-dash-simple-list">${gewone.map(_row).join('')}</ul>` : ''}
+              ${zegens.length ? `
+                <div class="player-dash-section-title" style="margin-top:10px">⚜️ Zegeningen &amp; vloeken</div>
+                <ul class="player-dash-simple-list player-dash-zegen-list">${zegens.map(_row).join('')}</ul>` : ''}
+            `;
+          })()}
           ${myItems.length === 0 && simpleItems.length === 0 ? '<p class="player-dash-empty">Nog geen voorwerpen.</p>' : ''}
           <div class="player-dash-add-item">
             <input id="dash-item-name" class="player-dash-add-item-input" type="text"
-              placeholder="Naam voorwerp…" maxlength="80">
+              placeholder="Naam voorwerp…" maxlength="80"
+              onkeydown="if(event.key==='Enter')window._dashAddItem()">
             <input id="dash-item-note" class="player-dash-add-item-note" type="text"
-              placeholder="Notitie (optioneel)" maxlength="500">
+              placeholder="Notitie (optioneel)" maxlength="500"
+              onkeydown="if(event.key==='Enter')window._dashAddItem()">
             <button class="player-dash-add-item-btn" onclick="window._dashAddItem()">+</button>
           </div>
         </div>
@@ -4659,7 +5158,8 @@ async function renderMijnKarakter(opts = {}) {
             out += `<div class="player-dash-section">
               <div class="player-dash-section-title">${icon('mail')} Brieven &amp; berichten</div>
               ${brieven.map(m => `
-                <div class="speler-brief-card${m.gelezen ? '' : ' speler-brief-card--nieuw'}" data-mid="${esc(m.id)}" onclick="window._briefToggle('${esc(m.id)}')">
+                <div class="speler-brief-card${m.gelezen ? '' : ' speler-brief-card--nieuw'}${m.thema ? ` speler-brief-card--${esc(m.thema)}` : ''}" data-mid="${esc(m.id)}" onclick="window._briefToggle('${esc(m.id)}')">
+                  ${m.thema ? `<div class="speler-brief-letterhead speler-brief-letterhead--${esc(m.thema)}">${_briefLetterhead(m.thema)}</div>` : ''}
                   <div class="speler-brief-header">
                     <div class="speler-brief-header-main">
                       ${m.titel ? `<div class="speler-brief-titel">${esc(m.titel)}</div>` : ''}
@@ -5278,6 +5778,13 @@ async function renderMijnKarakter(opts = {}) {
     } catch { /* ok */ }
   };
 
+  window._dashZegenVerbruik = async function() {
+    try {
+      await api.tempelVerbruik();
+      renderMijnKarakter(opts);
+    } catch { /* ok */ }
+  };
+
   // ── Stapelbaar voorwerp: qty aanpassen ──
   window._dashQtyAdj = async function(itemId, characterId, delta, currentQty) {
     const newQty = (currentQty || 1) + delta;
@@ -5397,6 +5904,7 @@ async function renderMijnKarakter(opts = {}) {
       const btn = document.querySelector(`.player-subtab[data-tab="${t}"]`);
       if (btn) btn.classList.toggle('active', t === tab);
     });
+
     // Berichten gelezen markeren als tab geopend wordt
     if (tab === 'berichten') {
       window._berichtenUnread = 0;
@@ -5481,16 +5989,36 @@ async function renderMijnKarakter(opts = {}) {
         .replace(/\*([^*\n]+)\*/g,'<em>$1</em>')
         .replace(/\n/g,'<br>');
 
+      const _itemDmg   = item.data?.damage;
+      const _itemProps = (() => { try { return JSON.parse(item.data?.weaponProperties || '[]'); } catch { return []; } })();
+      const _acPill    = _calcArmorAC(item.data, _mod('dex'));
+      const _stlth     = item.data?.stealthDisadvantage === true || item.data?.stealthDisadvantage === 'true';
+      const _srq       = parseInt(item.data?.strengthRequirement) || 0;
+
       track.innerHTML = `<div class="item-carousel-slide">
         <div class="item-carousel-img-wrap" onclick="window._openDetail('voorwerpen','${esc(item.id)}')" title="Bekijk kaartje" style="cursor:pointer">
           <img src="${iImgUrl}" class="item-carousel-img"
             onerror="this.closest('.item-carousel-img-wrap').style.display='none'">
+          ${_acPill ? `<span class="item-carousel-ac-pill" title="${esc(_acPill.tooltip)}">${esc(_acPill.pill)}</span>` : ''}
         </div>
         <div class="item-carousel-namerow">
           <span class="item-carousel-type-icon">${typeIcon}</span>
           <span class="item-carousel-name">${esc(item.name)}</span>
         </div>
         ${desc ? `<div class="item-carousel-desc">${_mdI(desc)}</div>` : ''}
+        ${_itemDmg ? (() => {
+          const _h = /heal/i.test(_itemDmg);
+          return `<div class="item-carousel-damage" onclick="event.stopPropagation()">
+            <button class="item-damage-pill item-damage-pill--sm${_h ? ' item-damage-pill--heal' : ''}"
+              onclick="window.dice?.rollFormula('${escJS(_itemDmg)}')"
+              title="Gooi ${escJS(_itemDmg)}">${icon('dice',{cls:'icon-gi'})} ${esc(_itemDmg)}</button>
+          </div>`;
+        })() : ''}
+        ${_itemProps.length ? `<div class="item-carousel-props">${_itemProps.map(p => `<span class="card-weapon-tag" title="${esc(_weaponPropTitle(p))}">${esc(p)}</span>`).join('')}</div>` : ''}
+        ${(_stlth || _srq) ? `<div class="item-carousel-props">
+          ${_stlth ? `<span class="card-armor-tag card-armor-tag--stealth" title="You have disadvantage on Dexterity (Stealth) checks while wearing this armor.">Stealth ↓</span>` : ''}
+          ${_srq   ? `<span class="card-armor-tag card-armor-tag--str" title="Your speed is reduced by 10 feet unless you have a Strength score of ${_srq} or higher.">Str ${_srq}</span>` : ''}
+        </div>` : ''}
         ${qtyHtml}
         ${chargesHtml}
       </div>`;
@@ -6132,6 +6660,11 @@ async function refreshAll() {
 ;(() => {
   const _history = [];
   let _dmCount = 1;
+  let _adv = 0;   // -1 = nadeel, 0 = normaal, 1 = voordeel
+  let _mod = 0;   // vaste bonus bij de worp
+
+  const _rnd = (sides) => Math.floor(Math.random() * sides) + 1;
+  const _modStr = (m) => m > 0 ? ` + ${m}` : m < 0 ? ` − ${Math.abs(m)}` : '';
 
   // Geeft alle actieve result-elementen terug (spelers-paneel én DM-paneel)
   function _els(suffix) {
@@ -6175,6 +6708,79 @@ async function refreshAll() {
     tick();
   }
 
+  // ── Pure formule-roller ──
+  // Ondersteunt meerdere termen (1d8+1d6+3), losse getallen, keep-highest/
+  // lowest (4d6kh3 / 2d20kl1), voordeel/nadeel (adv/dis/voordeel/nadeel) op
+  // een enkele d20, en een vrij label erachter (bv. schadetype). Geeft een
+  // resultaatobject terug; rng is injecteerbaar voor tests.
+  function _rollFormula(str, rng) {
+    rng = rng || Math.random;
+    const rollDie = s => Math.floor(rng() * s) + 1;
+    let work = String(str == null ? '' : str).trim();
+    if (!work) return { ok: false };
+    let adv = 0;
+    if (/\b(adv|advantage|voordeel)\b/i.test(work)) { adv = 1; work = work.replace(/\b(adv|advantage|voordeel)\b/i, ' '); }
+    else if (/\b(dis|disadv|disadvantage|nadeel)\b/i.test(work)) { adv = -1; work = work.replace(/\b(dis|disadv|disadvantage|nadeel)\b/i, ' '); }
+
+    const re = /\s*([+-])?\s*(?:(\d*)d(\d+)((?:kh|kl|k)\d+)?|(\d+))/iy;
+    const terms = [];
+    let m, end = 0;
+    while ((m = re.exec(work)) !== null) {
+      const sign = m[1] === '-' ? -1 : 1;
+      if (m[3] !== undefined) {
+        terms.push({ kind: 'dice', sign, n: m[2] ? parseInt(m[2]) : 1, sides: parseInt(m[3]), keep: m[4] || null });
+      } else {
+        terms.push({ kind: 'flat', sign, value: parseInt(m[5]) });
+      }
+      end = re.lastIndex;
+    }
+    if (!terms.length) return { ok: false };
+    const label = work.slice(end).trim().replace(/\s+/g, ' ');
+
+    let total = 0, totalDice = 0, critDie = null, minP = 0, maxP = 0;
+    const parts = [];
+    for (let ti = 0; ti < terms.length; ti++) {
+      const t = terms[ti];
+      const op = t.sign < 0 ? '−' : (ti ? '+' : '');
+      if (t.kind === 'flat') {
+        total += t.sign * t.value; minP += t.sign * t.value; maxP += t.sign * t.value;
+        parts.push(op + ' ' + t.value);
+        continue;
+      }
+      let n = Math.max(1, Math.min(t.n, 100)), keepKind = null, keepN = null;
+      if (t.keep) { const k = t.keep.match(/(kh|kl|k)(\d+)/i); keepKind = k[1].toLowerCase() === 'kl' ? 'kl' : 'kh'; keepN = parseInt(k[2]); }
+      if (adv && t.sides === 20 && t.n === 1 && !t.keep) { n = 2; keepKind = adv > 0 ? 'kh' : 'kl'; keepN = 1; }
+      const rolls = Array.from({ length: n }, () => rollDie(t.sides));
+      let kept = rolls, dropped = [];
+      if (keepN != null && keepN < rolls.length) {
+        const idx = rolls.map((v, i) => [v, i]).sort((a, b) => keepKind === 'kh' ? b[0] - a[0] : a[0] - b[0]);
+        const keepSet = new Set(idx.slice(0, keepN).map(x => x[1]));
+        kept = rolls.filter((_, i) => keepSet.has(i));
+        dropped = rolls.filter((_, i) => !keepSet.has(i));
+      }
+      const sub = kept.reduce((a, b) => a + b, 0);
+      total += t.sign * sub; totalDice += kept.length;
+      minP += t.sign * kept.length; maxP += t.sign * kept.length * t.sides;
+      if (t.sides === 20) critDie = kept.length === 1 ? kept[0] : null;
+      const dropStr = dropped.length ? ` (➖ ${dropped.join(', ')})` : '';
+      parts.push(`${op} ${kept.join(' + ')}${dropStr}`.trim());
+    }
+    const crit = critDie === 20 && totalDice === 1;
+    const fumble = critDie === 1 && totalDice === 1;
+    const formula = terms.map((t, i) => {
+      const sg = t.sign < 0 ? '−' : (i ? '+' : '');
+      return t.kind === 'flat' ? `${sg}${t.value}` : `${sg}${(t.n > 1 || t.keep) ? t.n : ''}d${t.sides}${t.keep || ''}`;
+    }).join(' ').trim() + (adv > 0 ? ' (advantage)' : adv < 0 ? ' (disadvantage)' : '');
+
+    return {
+      ok: true, total, label, crit, fumble,
+      breakdown: parts.join(' ').replace(/^\+\s*/, '').trim(),
+      formula,
+      tickMin: Math.max(1, Math.min(minP, maxP)),
+      tickMax: Math.max(2, Math.max(minP, maxP)),
+    };
+  }
+
   window.dice = {
     toggle() {
       document.getElementById('dice-panel')?.classList.toggle('open');
@@ -6189,99 +6795,148 @@ async function refreshAll() {
       if (el) el.textContent = _dmCount;
     },
 
-    roll(sides) {
-      const result   = Math.floor(Math.random() * sides) + 1;
-      const numEls   = _els('result-num');
-      const lblEls   = _els('result-label');
-      const boxEls   = _els('result');
-      if (!numEls.length) return;
-      const dieLabel = sides === 100 ? 'd%' : `d${sides}`;
-      const isCrit   = sides === 20 && result === 20;
-      const isFumble = sides === 20 && result === 1;
-      const lbl      = isCrit   ? `${dieLabel} \u2014 \u2736 Critical Hit!`
-                     : isFumble ? `${dieLabel} \u2014 \u2715 Critical Fail!`
-                     :             dieLabel;
-      _animate(numEls, lblEls, boxEls,
-        () => Math.floor(Math.random() * sides) + 1,
-        result, lbl,
-        { sides, result, count: 1, crit: isCrit, fumble: isFumble });
+    // Voordeel/nadeel instellen (toggelt terug naar normaal bij nogmaals klikken)
+    setAdv(mode) {
+      _adv = (_adv === mode) ? 0 : mode;
+      _renderControls();
     },
-
-    rollDm(sides) {
-      if (_dmCount === 1) { this.roll(sides); return; }
-      const count  = _dmCount;
-      const rolls  = Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1);
-      const total  = rolls.reduce((a, b) => a + b, 0);
-      const numEls = _els('result-num');
-      const lblEls = _els('result-label');
-      const boxEls = _els('result');
-      if (!numEls.length) return;
-      const dieLabel = sides === 100 ? 'd%' : `d${sides}`;
-      const min = count, max = count * sides;
-      _animate(numEls, lblEls, boxEls,
-        () => Math.floor(Math.random() * (max - min + 1)) + min,
-        total, `${count}${dieLabel} \u2014 ${rolls.join(' + ')}`,
-        { sides, result: total, count, rolls, crit: false, fumble: false });
+    // Vaste bonus bijstellen
+    adjustMod(delta) {
+      _mod = Math.max(-20, Math.min(30, _mod + delta));
+      _renderControls();
     },
+    resetMod() { _mod = 0; _renderControls(); },
 
-    // Rolt een formule zoals "4d4+4 Healing" of "1d8+1 Slashing"
-    // inlineResultId: optioneel element-ID voor inline resultaat in modal
+    roll(sides)   { _doRoll(sides, 1); },
+    rollDm(sides) { _doRoll(sides, _dmCount); },
+
+    // Rolt een vrije formule, bv. "4d4+4 Healing", "1d20+5 adv", "1d8+1d6 fire".
+    // inlineResultId: optioneel element-ID voor inline resultaat in een modal.
     rollFormula(formulaStr, inlineResultId = null) {
-      const m = String(formulaStr).match(/^(\d+)d(\d+)([+-]\d+)?\s*(.*)/i);
-      if (!m) return;
-      const count     = parseInt(m[1]);
-      const sides     = parseInt(m[2]);
-      const bonus     = m[3] ? parseInt(m[3]) : 0;
-      const typeLabel = m[4]?.trim() || '';
+      const r = _rollFormula(formulaStr);
+      if (!r.ok) return;
 
-      const rolls     = Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1);
-      const diceTotal = rolls.reduce((a, b) => a + b, 0);
-      const total     = diceTotal + bonus;
-
-      const numEls = _els('result-num');
-      const lblEls = _els('result-label');
-      const boxEls = _els('result');
-
-      const bonusStr    = bonus !== 0 ? (bonus > 0 ? '+' : '') + bonus : '';
-      const dieLabel    = `${count}d${sides}${bonusStr}`;
-      const fullLabel   = typeLabel ? `${dieLabel} ${typeLabel}` : dieLabel;
-      const bonusPart   = bonus > 0 ? ` + ${bonus}` : bonus < 0 ? ` \u2212 ${Math.abs(bonus)}` : '';
-      const breakdown   = count > 1 ? `${rolls.join(' + ')}${bonusPart}` : `${rolls[0]}${bonusPart}`;
+      const critTag   = r.crit ? '  \u2736 Critical!' : r.fumble ? '  \u2715 Fumble!' : '';
+      const fullLabel = (r.label ? `${r.formula} ${r.label}` : r.formula) + critTag;
 
       // Inline resultaat tonen in modal (meteen, zonder animatie)
       if (inlineResultId) {
         const inlineEl = document.getElementById(inlineResultId);
         if (inlineEl) {
-          inlineEl.textContent = `\u2192 ${total}`;
+          inlineEl.textContent = `\u2192 ${r.total}`;
           inlineEl.classList.remove('dmg-result--flash');
           void inlineEl.offsetWidth; // reflow voor herstart animatie
           inlineEl.classList.add('dmg-result--flash');
+          return;   // bij inline-resultaat geen paneel-animatie
         }
       }
 
-      // Dice panel alleen openen als er geen inline resultaat is (kaartoverzicht)
-      if (!inlineResultId) {
-        document.getElementById('dice-panel')?.classList.add('open');
-      }
+      document.getElementById('dice-panel')?.classList.add('open');
 
-      const minRoll = count + bonus;
-      const maxRoll = count * sides + bonus;
+      const numEls = _els('result-num');
+      const lblEls = _els('result-label');
+      const boxEls = _els('result');
+      const span   = Math.max(1, r.tickMax - r.tickMin);
       _animate(numEls, lblEls, boxEls,
-        () => Math.floor(Math.random() * (maxRoll - minRoll + 1)) + minRoll,
-        total, `${fullLabel} \u2014 ${breakdown}`,
-        { sides, result: total, count, rolls, crit: false, fumble: false });
+        () => Math.floor(Math.random() * (span + 1)) + r.tickMin,
+        r.total, `${fullLabel} \u2014 ${r.breakdown}`,
+        { result: r.total, label: r.formula, crit: r.crit, fumble: r.fumble });
+    },
+
+    // Rolt de formule uit een invoerveld (paneel).
+    rollText(inputId) {
+      const el = document.getElementById(inputId);
+      const v = el && el.value;
+      if (v && v.trim()) this.rollFormula(v.trim());
+    },
+    // One-shot d20 roll with advantage or disadvantage (mode: 1=adv, -1=dis)
+    rollAdv(mode) {
+      const prev = _adv;
+      _adv = mode;
+      _doRoll(20, 1);
+      _adv = prev;
+    },
+
+    toggleFormula(btn) {
+      const wrap = btn.nextElementSibling;
+      if (!wrap || !wrap.classList.contains('dice-formula')) return;
+      const isOpen = wrap.classList.toggle('dice-formula--open');
+      btn.textContent = isOpen ? '▼ Formula' : '▶ Formula';
     },
   };
 
+  // Gedeelde worp-afhandeling voor speler- en DM-paneel.
+  // Voordeel/nadeel geldt alleen voor een enkele d20; de bonus telt altijd mee.
+  function _doRoll(sides, count) {
+    const numEls = _els('result-num');
+    const lblEls = _els('result-label');
+    const boxEls = _els('result');
+    if (!numEls.length) return;
+
+    const dieLabel = sides === 100 ? 'd%' : `d${sides}`;
+    const useAdv   = sides === 20 && count === 1 && _adv !== 0;
+
+    let rolls, kept, natural;
+    if (useAdv) {
+      const a = _rnd(sides), b = _rnd(sides);
+      kept    = _adv > 0 ? Math.max(a, b) : Math.min(a, b);
+      natural = kept;
+      rolls   = [a, b];
+    } else {
+      rolls   = Array.from({ length: count }, () => _rnd(sides));
+      kept    = rolls.reduce((x, y) => x + y, 0);
+      natural = count === 1 ? rolls[0] : null;
+    }
+
+    const total    = kept + _mod;
+    const isCrit    = sides === 20 && natural === 20;
+    const isFumble  = sides === 20 && natural === 1;
+
+    // Label opbouwen
+    const prefix    = count > 1 ? `${count}${dieLabel}` : dieLabel;
+    const advWord   = useAdv ? (_adv > 0 ? ' advantage' : ' disadvantage') : '';
+    let breakdown   = '';
+    if (useAdv)            breakdown = `${rolls[0]}, ${rolls[1]} → ${kept}${_modStr(_mod)}`;
+    else if (count > 1)   breakdown = `${rolls.join(' + ')}${_modStr(_mod)}`;
+    else if (_mod !== 0)  breakdown = `${rolls[0]}${_modStr(_mod)}`;
+
+    let lbl = prefix + advWord;
+    if (breakdown) lbl += ` — ${breakdown}`;
+    if (isCrit)        lbl += ' — ✶ Critical Hit!';
+    else if (isFumble) lbl += ' — ✕ Critical Fail!';
+
+    const minRoll = (useAdv ? 1 : count) + _mod;
+    const maxRoll = (useAdv ? sides : count * sides) + _mod;
+    _animate(numEls, lblEls, boxEls,
+      () => Math.floor(Math.random() * (maxRoll - minRoll + 1)) + minRoll,
+      total, lbl,
+      { sides, result: total, count, crit: isCrit, fumble: isFumble });
+  }
+
+  // Houdt de voordeel/nadeel-knoppen en bonusweergave in beide panelen in sync
+  function _renderControls() {
+    document.querySelectorAll('.dice-adv-btn').forEach(btn => {
+      btn.classList.toggle('dice-adv-btn--on', Number(btn.dataset.adv) === _adv && _adv !== 0);
+    });
+    document.querySelectorAll('.dice-mod-val').forEach(el => {
+      el.textContent = _mod > 0 ? `+${_mod}` : `${_mod}`;
+      el.classList.toggle('dice-mod-val--active', _mod !== 0);
+    });
+  }
+
   function _renderHistory() {
-    const html = _history.map(({ sides, result, count = 1, crit, fumble }) => {
+    const html = _history.map(({ sides, result, count = 1, crit, fumble, label }) => {
       const cls = crit ? ' dice-hist-crit' : fumble ? ' dice-hist-fumble' : '';
-      const lbl = sides === 100 ? '%' : sides;
-      const pfx = count > 1 ? `${count}d` : 'd';
-      return `<span class="dice-hist-chip${cls}">${pfx}${lbl}\u00b7${result}</span>`;
+      // Formule-entries (vrije roller) tonen hun formule; losse dobbelstenen d{n}.
+      const pfx = label != null
+        ? esc(label.length > 14 ? label.slice(0, 13) + '\u2026' : label)
+        : `${count > 1 ? count + 'd' : 'd'}${sides === 100 ? '%' : sides}`;
+      return `<span class="dice-hist-chip${cls}">${pfx}\u00b7${result}</span>`;
     }).join('');
     _els('history').forEach(el => { el.innerHTML = html; });
   }
+
+  _renderControls();
 })();
 
 // ── Globaal zoeken ──
@@ -6328,14 +6983,29 @@ window.app.closeGlobalSearch = function(e) {
   document.getElementById('global-search-overlay')?.classList.add('hidden');
 };
 
+let _gsResults = [];   // platte lijst {type,id} in weergavevolgorde (toetsenbordnav)
+let _gsActive  = -1;
+
+// Markeer gevonden woorden in een naam (na HTML-escaping).
+function _gsHighlight(name, tokens) {
+  let safe = esc(name);
+  for (const t of tokens) {
+    if (!t) continue;
+    const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+    safe = safe.replace(re, '\x01$1\x02');
+  }
+  return safe.replace(/\x01/g, '<mark class="gs-hl">').replace(/\x02/g, '</mark>');
+}
+
 window.app._globalSearchRun = async function(q) {
   const resultsEl = document.getElementById('global-search-results');
-  if (!q.trim()) { resultsEl.innerHTML = ''; return; }
+  if (!q.trim()) { resultsEl.innerHTML = ''; _gsResults = []; _gsActive = -1; return; }
 
   const TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
   const meta  = window._entityTypeMeta || {};
   const cache = window._entityCache    || {};
   const filter = window._entityFilter  || (() => []);
+  const tokens = window._searchTokens ? window._searchTokens(q) : [q.toLowerCase()];
 
   // Fetch documenten eenmalig
   if (!_archiefCache) {
@@ -6344,42 +7014,68 @@ window.app._globalSearchRun = async function(q) {
   }
 
   let html = '';
-  const ql = q.toLowerCase();
+  _gsResults = [];
 
-  // Entiteiten per type
+  // Entiteiten per type (score-gerangschikt door _entityFilter)
   for (const type of TYPES) {
     if (_gsTypeFilter && _gsTypeFilter !== type) continue;
-    const list   = cache[type] || [];
-    const hits   = filter(type, list, q).slice(0, 8);
+    const list = cache[type] || [];
+    const hits = filter(type, list, q).slice(0, 8);
     if (!hits.length) continue;
     const m = meta[type] || { icon: '📄', label: type };
-    html += `<div class="gs-group">
-      <div class="gs-group-label">${m.icon} ${m.label}</div>
-      ${hits.map(e => `
-        <button class="gs-result" onclick="window.app._globalSearchGo('${type}','${esc(e.id)}')">
-          <span class="gs-result-name">${esc(e.name)}</span>
+    html += `<div class="gs-group"><div class="gs-group-label">${m.icon} ${m.label}</div>`;
+    for (const e of hits) {
+      const idx = _gsResults.push({ type, id: e.id }) - 1;
+      html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('${type}','${esc(e.id)}')">
+          <span class="gs-result-name">${_gsHighlight(e.name, tokens)}</span>
           ${e.subtype ? `<span class="gs-result-sub">${esc(e.subtype)}</span>` : ''}
-        </button>`).join('')}
-    </div>`;
+        </button>`;
+    }
+    html += `</div>`;
   }
 
-  // Documenten (archief)
+  // Documenten (archief) — genormaliseerd matchen
   if (!_gsTypeFilter || _gsTypeFilter === 'documenten') {
-    const docHits = (_archiefCache).filter(d =>
-      (d.name || d.title || '').toLowerCase().includes(ql)
-    ).slice(0, 8);
+    const norm = window._normSearch || (s => String(s || '').toLowerCase());
+    const docHits = (_archiefCache).filter(d => {
+      const hay = norm((d.name || d.title || '') + ' ' + (d.type || ''));
+      return tokens.every(t => hay.includes(t));
+    }).slice(0, 8);
     if (docHits.length) {
-      html += `<div class="gs-group">
-        <div class="gs-group-label">📜 Documenten</div>
-        ${docHits.map(d => `
-          <button class="gs-result" onclick="window.app._globalSearchGo('documenten','${esc(d.id)}')">
-            <span class="gs-result-name">${esc(d.name || d.title || d.id)}</span>
-          </button>`).join('')}
-      </div>`;
+      html += `<div class="gs-group"><div class="gs-group-label">📜 Documenten</div>`;
+      for (const d of docHits) {
+        const idx = _gsResults.push({ type: 'documenten', id: d.id }) - 1;
+        html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('documenten','${esc(d.id)}')">
+            <span class="gs-result-name">${_gsHighlight(d.name || d.title || d.id, tokens)}</span>
+          </button>`;
+      }
+      html += `</div>`;
     }
   }
 
   resultsEl.innerHTML = html || `<p class="gs-empty">Geen resultaten gevonden voor "<em>${esc(q)}</em>".</p>`;
+  _gsSetActive(_gsResults.length ? 0 : -1);
+};
+
+function _gsSetActive(idx) {
+  _gsActive = idx;
+  const btns = document.querySelectorAll('#global-search-results .gs-result');
+  btns.forEach(b => b.classList.toggle('gs-result--active', +b.dataset.gsIdx === idx));
+  const cur = [...btns].find(b => +b.dataset.gsIdx === idx);
+  cur?.scrollIntoView({ block: 'nearest' });
+}
+
+// Toetsenbordnavigatie in de zoekoverlay (pijltjes + Enter).
+window.app._gsKey = function(e) {
+  if (e.key === 'Escape') { window.app.closeGlobalSearch(); return; }
+  if (!_gsResults.length) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); _gsSetActive((_gsActive + 1) % _gsResults.length); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); _gsSetActive((_gsActive - 1 + _gsResults.length) % _gsResults.length); }
+  else if (e.key === 'Enter') {
+    e.preventDefault();
+    const r = _gsResults[_gsActive] || _gsResults[0];
+    if (r) window.app._globalSearchGo(r.type, r.id);
+  }
 };
 
 window.app._globalSearchGo = function(type, id) {
@@ -6478,11 +7174,15 @@ async function init() {
     applyAppMeta(state.meta);
   } catch { /* ok */ }
 
+  // Diensten-toegangsstaten laden voor spelers
+  await _loadDienstenToegang().catch(() => {});
+
   // Enter in header-editor slaat op
   document.getElementById('header-title-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') window.app.saveHeader(); if (e.key === 'Escape') window.app.cancelHeader(); });
   document.getElementById('header-subtitle-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') window.app.saveHeader(); if (e.key === 'Escape') window.app.cancelHeader(); });
 
   applyRole();
+  initGlossary();            // D&D-begrippenlijst voor hover-uitleg (voorwerpen + spreuken)
   _wlAcInit();
   initCampagne();
   initArchief();
@@ -6525,11 +7225,11 @@ function _initDisplayMode() {
     const el = document.getElementById('display-campaign-title');
     if (el && meta?.title) el.textContent = meta.title;
   }).catch(() => {});
-  // Als gevecht al actief is bij openen, zorg dat overlay niet geminimaliseerd is
+  // Als gevecht al actief is bij openen: minimized-staat geeft de tablet de gecentreerde weergave
   api.getCombat().then(combat => {
     if (combat?.active) {
       const overlay = document.getElementById('combat-overlay');
-      if (overlay) overlay.classList.remove('minimized');
+      if (overlay) overlay.classList.add('minimized');
     }
   }).catch(() => {});
 }
@@ -6572,6 +7272,51 @@ window._displayIdle = function() {
 };
 
 // ── Herberg ──
+
+// ── Diensten toegang ──
+async function _loadDienstenToegang() {
+  if (state.role !== 'player' || !state.playerName) { state.dienstenToegang = {}; _updateDienstenMenu(); return; }
+  try { state.dienstenToegang = await api.getDienstenToegang(); }
+  catch { state.dienstenToegang = {}; }
+  _updateDienstenMenu();
+  const DIENST_SECTIES = ['herberg','tweespalt','gock','ursula','tempel','heeren','facties'];
+  if (DIENST_SECTIES.includes(state.activeSection)) refreshSection(state.activeSection);
+}
+window.app._loadDienstenToegang = _loadDienstenToegang;
+
+function _getDienstToegang(dienst) {
+  return state.dienstenToegang?.[dienst] || 'beschikbaar';
+}
+
+function _dienstNietBeschikbaar(el, naam) {
+  el.innerHTML = `
+    <div class="herberg-scene" style="justify-content:center;align-items:center;min-height:220px">
+      <div class="herberg-content" style="text-align:center;padding:2rem 1.5rem">
+        <div style="font-size:2.2rem;margin-bottom:.6rem">${icon('lock')}</div>
+        <p class="herberg-groet" style="margin:0">${esc(naam)} is momenteel niet beschikbaar.</p>
+        <p style="opacity:.5;font-size:.85rem;margin-top:.5rem">De DM heeft deze dienst tijdelijk gesloten.</p>
+      </div>
+    </div>`;
+}
+
+function _updateDienstenMenu() {
+  const KNOPPEN = {
+    herberg:   document.getElementById('diensten-herberg-item'),
+    tweespalt: document.getElementById('diensten-tweespalt-item'),
+    gock:      document.getElementById('diensten-gock-item'),
+    ursula:    document.getElementById('diensten-ursula-item'),
+    tempel:    document.getElementById('diensten-tempel-item'),
+    heeren:    document.getElementById('diensten-heeren-item'),
+    facties:   document.getElementById('diensten-facties-item'),
+  };
+  for (const [dienst, btn] of Object.entries(KNOPPEN)) {
+    if (!btn) continue;
+    const staat = _getDienstToegang(dienst);
+    if (dienst !== 'herberg') btn.classList.toggle('hidden', staat === 'verborgen');
+    else if (staat === 'verborgen') btn.classList.add('hidden');
+    btn.classList.toggle('dienst-vergrendeld', staat === 'zichtbaar');
+  }
+}
 
 function _dienstNietBereikbaar(el, naam) {
   el.innerHTML = `
@@ -6686,14 +7431,30 @@ window._updateKlasseIcon = (klasse) => {
   }
 };
 
-window._toggleExtraSpeed = function() {
-  const el = document.getElementById('pcs-extra-speeds');
-  const btn = document.querySelector('.pcs-extra-speed-btn');
-  if (!el) return;
-  const isHidden = el.style.display === 'none';
-  el.style.display = isHidden ? '' : 'none';
-  btn?.classList.toggle('pcs-extra-speed-btn--on', isHidden);
-  if (btn) btn.textContent = isHidden ? '−' : '+';
+window._getExtraSpeedsFromDOM = function() {
+  return Array.from(document.querySelectorAll('.pcs-extra-speed-item')).map(item => ({
+    label: item.querySelector('.pcs-speed-label-input')?.value || '',
+    value: item.querySelector('.pcs-input')?.value || ''
+  }));
+};
+
+window._saveExtraSpeedFull = async function() {
+  const extras = window._getExtraSpeedsFromDOM();
+  await window._saveProfileField('extraSpeeds', JSON.stringify(extras));
+};
+
+window._addExtraSpeed = async function() {
+  const extras = window._getExtraSpeedsFromDOM();
+  extras.push({ label: '', value: '' });
+  await window._saveProfileField('extraSpeeds', JSON.stringify(extras));
+  window.app.refreshSection('mijn-karakter');
+};
+
+window._removeExtraSpeed = async function(idx) {
+  const extras = window._getExtraSpeedsFromDOM();
+  extras.splice(idx, 1);
+  await window._saveProfileField('extraSpeeds', JSON.stringify(extras));
+  window.app.refreshSection('mijn-karakter');
 };
 
 window._herbergFilter = (q) => {
@@ -6783,7 +7544,7 @@ async function renderGock() {
   const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
   const portret  = config.imageId
     ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
-    : `<div class="gock-portret-fallback">🔍</div>`;
+    : `<div class="gock-portret-fallback">${icon('search')}</div>`;
 
   el.innerHTML = `
     <div class="herberg-scene gock-scene" ${backdrop}>
@@ -6795,7 +7556,7 @@ async function renderGock() {
 
         ${heeftKlaarZaak ? `
           <div class="gock-dossier">
-            <div class="gock-dossier-head">📁 Dossier: ${esc(geval.entityName)}</div>
+            <div class="gock-dossier-head">${icon('folder-open')} Dossier: ${esc(geval.entityName)}</div>
             <p class="gock-dossier-tekst">${esc(geval.tekst)}</p>
             ${geval.isGeheim && geval.entityId
               ? `<button class="herberg-bubble-card-btn gock-kaartje-btn"
@@ -6807,7 +7568,7 @@ async function renderGock() {
 
         ${heeftLopendeZaak ? `
           <div class="gock-lopend">
-            <p>🔎 <strong>${esc(config.naam)}</strong> doet onderzoek naar <strong>${esc(geval.entityName)}</strong>.</p>
+            <p>${icon('search')} <strong>${esc(config.naam)}</strong> doet onderzoek naar <strong>${esc(geval.entityName)}</strong>.</p>
             ${restTijdTekst ? `<p class="ts-beurs">Geschatte doorlooptijd: nog ${restTijdTekst}</p>` : '<p class="ts-beurs">Het rapport is bijna klaar…</p>'}
           </div>` : ''}
 
@@ -6853,7 +7614,7 @@ window._gockKies = async (entityId, entityType, entityName) => {
   try {
     await api.gockOpdracht({ entityId, entityType });
     await renderGock();
-    _tsToast('🔍 Opdracht ingediend. Rapport volgt binnen 24 uur.');
+    _tsToast('Opdracht ingediend. Rapport volgt binnen 24 uur.');
   } catch (err) {
     _tsToast(err.message || 'Fout bij indienen opdracht.');
   }
@@ -6862,6 +7623,292 @@ window._gockKies = async (entityId, entityType, entityName) => {
 window._gockOpgehaald = async () => {
   try { await api.gockOpgehaald(); } catch { /* ok */ }
   await renderGock();
+};
+
+// ── Madame Ursula / Waarzegger ───────────────────────────────────────────────
+
+async function renderUrsula() {
+  const el = document.getElementById('section-ursula');
+  if (!el) return;
+
+  const meta = window.app?.state?.meta || {};
+  if (meta.buitenGrisburgh) { _dienstNietBereikbaar(el, meta.ursula?.naam || 'Madame Ursula'); return; }
+
+  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+
+  let data;
+  try { data = await api.getUrsula(); }
+  catch (e) { el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`; return; }
+
+  const { config, beschikbaar, geenSessie, geenAkte, alGeworpen, roll, doorNaam, onthuld, currency } = data;
+  const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+  const prijsTekst = (p) => [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
+
+  const weg = geenSessie; // Ursula is er niet wanneer er geen sessie/akte loopt
+  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const portret = config.imageId
+    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round${weg ? ' herberg-portrait--weg' : ''}" alt="${esc(config.naam)}">`
+    : `<div class="herberg-portrait-round herberg-portrait-fallback${weg ? ' herberg-portrait--weg' : ''}">🔮</div>`;
+
+  const groet = geenSessie
+    ? `Op de deur hangt een briefje: <em>“${esc(config.naam)} is even een fles jenever halen.”</em>`
+    : `${esc(config.naam)} legt haar handen op de kristallen bol.`;
+
+  let body;
+  if (geenSessie) {
+    body = `<p class="herberg-cooldown-tekst">Er is nu niemand die de toekomst leest. Kom terug wanneer er een sessie loopt.</p>`;
+  } else if (geenAkte) {
+    body = `<p class="herberg-cooldown-tekst">${esc(config.naam)} schudt haar hoofd: voorbij dit punt is de toekomst nog ongeschreven.</p>`;
+  } else if (!beschikbaar) {
+    body = `<p class="herberg-cooldown-tekst">${esc(config.naam)} tuurt in haar bol… maar de nevelen tonen nu niets.</p>`;
+  } else if (alGeworpen && onthuld) {
+    body = _ursulaOnthuldHtml(onthuld, roll, doorNaam);
+  } else {
+    body = `
+      <p class="ts-beurs">Een blik op wat komen gaat — één worp per akte, voor de hele groep.</p>
+      ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
+      <p class="ts-beurs">Offer: <strong>${prijsTekst(config.prijs)}</strong></p>
+      <button class="ts-wedden-btn" style="margin-top:8px" onclick="window._ursulaVoorspel()">🔮 Werp de d6 — vraag de voorspelling</button>`;
+  }
+
+  el.innerHTML = `
+    <div class="herberg-scene gock-scene" ${backdrop}>
+      <div class="herberg-content">
+        <div class="herberg-portrait-wrap">${portret}</div>
+        <p class="herberg-groet">${groet}</p>
+        ${body}
+      </div>
+    </div>`;
+}
+
+async function renderTempel() {
+  const el = document.getElementById('section-tempel');
+  if (!el) return;
+
+  const meta = window.app?.state?.meta || {};
+  if (meta.buitenGrisburgh) {
+    _dienstNietBereikbaar(el, meta.tempel?.naam || 'De Tempel');
+    return;
+  }
+
+  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+
+  let data;
+  try { data = await api.getTempel(); }
+  catch (e) {
+    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`;
+    return;
+  }
+
+  const { config, huidigeZegen, huidigeEed, currency } = data;
+  const goden = config.goden || [];
+
+  const beursTekst = (cur) =>
+    [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+  const prijsTekst = (p) =>
+    [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
+  const prijsLabel = (g) => prijsTekst((g.prijs && g.prijs.fl) ? g.prijs : config.prijs);
+
+  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const portret  = config.imageId
+    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
+    : `<div class="gock-portret-fallback">⛪</div>`;
+
+  const eedGebonden = !!huidigeEed;
+  const isVloek = huidigeEed && huidigeEed.status === 'vloek';
+
+  el.innerHTML = `
+    <div class="herberg-scene gock-scene" ${backdrop}>
+      <div class="herberg-content">
+        <div class="herberg-portrait-wrap">${portret}</div>
+        <p class="herberg-groet">Welkom in ${esc(config.naam)}. Tot welke god wil je bidden?</p>
+        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
+
+        ${huidigeEed ? `
+          <div class="gock-dossier"${isVloek ? ' style="border-color:rgba(150,40,40,0.6)"' : ''}>
+            <div class="gock-dossier-head">${isVloek ? '☠️ Vloek' : '⚖️ Jouw eed'}</div>
+            <p class="gock-dossier-tekst">${esc(huidigeEed.name)}${huidigeEed.note ? ' — ' + esc(huidigeEed.note) : ''}</p>
+            ${isVloek
+              ? `<button class="ts-wedden-btn" style="margin-top:6px" onclick="window._tempelBoete()">🙏 Doe boete (${esc(prijsTekst(config.boetePrijs))}) — hef de vloek op</button>`
+              : `<p class="ts-beurs">Een blijvende eed (overleeft een lange rust). Verzaak je 'm, dan roept ${esc(huidigeEed.godNaam || 'de god')} een vloek over je af.</p>`}
+          </div>` : ''}
+
+        ${huidigeZegen ? `
+          <div class="gock-dossier">
+            <div class="gock-dossier-head">✨ Huidige zegen</div>
+            <p class="gock-dossier-tekst">${esc(huidigeZegen.name)}${huidigeZegen.note ? ' — ' + esc(huidigeZegen.note) : ''}</p>
+            ${huidigeZegen.kind === 'eenmalig' && huidigeZegen.usesMax ? `
+              <div class="tempel-charges" style="display:flex;align-items:center;gap:6px;margin:6px 0;flex-wrap:wrap">
+                ${Array.from({ length: huidigeZegen.usesMax }).map((_, i) =>
+                  `<span class="spell-slot-dot${i < (huidigeZegen.uses || 0) ? '' : ' used'}" style="cursor:default"></span>`).join('')}
+                <span class="ts-beurs" style="margin:0">${huidigeZegen.uses || 0}/${huidigeZegen.usesMax} over</span>
+                <button class="ts-wedden-btn" style="margin-left:6px;padding:2px 10px" onclick="window._tempelVerbruik()" ${(huidigeZegen.uses || 0) <= 0 ? 'disabled' : ''}>✓ Gebruik</button>
+              </div>` : ''}
+            <p class="ts-beurs">Je kunt maar één eenmalige zegen tegelijk dragen; opnieuw bidden vervangt deze.</p>
+          </div>` : ''}
+
+        ${goden.length === 0
+          ? `<p class="herberg-cooldown-tekst">Er zijn nog geen goden bekend in deze tempel.</p>`
+          : `<div class="herberg-lijst tempel-goden">
+              ${goden.map(g => {
+                const eenmalig = (g.eenmaligeZegens || []).filter(Boolean);
+                const actiefEed = huidigeEed && huidigeEed.godId === g.id;
+                return `
+                <div class="tempel-god-kaart${actiefEed ? ' tempel-god--actief' : ''}" style="border:1px solid rgba(196,168,122,0.3);border-radius:10px;padding:10px;margin-bottom:8px;text-align:left">
+                  <div style="margin-bottom:6px">
+                    <span class="herberg-item-naam">${esc(g.naam)}</span>
+                    ${g.domein ? `<span class="herberg-item-type" style="display:block;opacity:.75">${esc(g.domein)}</span>` : ''}
+                  </div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px">
+                    <button class="ts-wedden-btn" onclick="window._tempelEed('${esc(g.id)}','${esc(g.naam)}')" ${eedGebonden ? 'disabled' : ''}
+                      title="${eedGebonden ? 'Je bent al door een eed gebonden' : 'Leg een blijvende eed af'}">
+                      ⚖️ Eed${g.zegen ? ': ' + esc(g.zegen) : ''} · ${esc(prijsTekst(config.eedPrijs))}
+                    </button>
+                    ${eenmalig.length ? `
+                    <button class="ts-wedden-btn" onclick="window._tempelKies('${esc(g.id)}','${esc(g.naam)}')">
+                      🎲 Eenmalig (d${eenmalig.length}) · ${esc(prijsLabel(g))}
+                    </button>` : ''}
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>`}
+      </div>
+    </div>`;
+}
+
+window._tempelKies = async (godId, godNaam) => {
+  if (!confirm(`${godNaam}: een eenmalige zegen (met dobbelworp) ontvangen? De betaling vindt direct plaats; het voorwerp komt in je knapzak.`)) return;
+  try {
+    const r = await api.tempelZegen({ godId });
+    await renderTempel();
+    if (r.rolls) {
+      _tsToast(`🎲 d${r.rolls.zegenAantal}=${r.rolls.zegenRoll} → ${r.item.zegenEffect} (${r.rolls.usesRoll}× te gebruiken)`);
+    } else {
+      _tsToast('✨ Zegen ontvangen. Zie je knapzak.');
+    }
+  } catch (err) {
+    _tsToast(err.message || 'Het offer werd niet aanvaard.');
+  }
+};
+
+window._tempelEed = async (godId, godNaam) => {
+  if (!confirm(`Een eed afleggen aan ${godNaam}? Dit is een blijvende belofte: de zegen geldt zolang je trouw blijft, maar verzaking roept een vloek op. Betaling vindt direct plaats.`)) return;
+  try {
+    await api.tempelEed({ godId });
+    await renderTempel();
+    _tsToast(`⚖️ Je hebt een eed afgelegd aan ${godNaam}.`);
+  } catch (err) {
+    _tsToast(err.message || 'De eed werd niet aanvaard.');
+  }
+};
+
+window._tempelBoete = async () => {
+  if (!confirm('Boete doen om je van de vloek te bevrijden? De betaling vindt direct plaats.')) return;
+  try {
+    await api.tempelBoete();
+    await renderTempel();
+    _tsToast('🙏 Je hebt boete gedaan; de vloek is opgeheven.');
+  } catch (err) {
+    _tsToast(err.message || 'Boete mislukt.');
+  }
+};
+
+window._tempelVerbruik = async () => {
+  try {
+    await api.tempelVerbruik();
+    await renderTempel();
+    _tsToast('✓ Eén gebruik afgevinkt.');
+  } catch (err) {
+    _tsToast(err.message || 'Afvinken mislukt.');
+  }
+};
+
+// ── Madame Ursula / Waarzegger ───────────────────────────────────────────────
+
+async function renderHeeren() {
+  const el = document.getElementById('section-heeren');
+  if (!el) return;
+  const meta = window.app?.state?.meta || {};
+  if (meta.buitenGrisburgh) { _dienstNietBereikbaar(el, meta.heeren?.naam || 'De Heeren van de Nacht'); return; }
+
+  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+  let data;
+  try { data = await api.getHeeren(); }
+  catch (e) { el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`; return; }
+
+  const { config, rang, luimpoort, advocaat, jobs = [], boetes = [], currency } = data;
+  const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+  const clTekst = (cl) => { const f = Math.floor(cl / 100), k = Math.floor((cl % 100) / 10), c = cl % 10; return [f && `${f} fl`, k && `${k} kn`, c && `${c} cl`].filter(Boolean).join(' ') || '0 cl'; };
+  const honorariumTekst = beursTekst(config.honorarium);
+  const typeIcon = { zakkenrollen: '🤚', inbraak: '🗝️', oplichting: '🎭' };
+
+  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const portret = config.imageId
+    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
+    : `<div class="gock-portret-fallback">🌑</div>`;
+  const kaartLink = (e) => (e && e.zichtbaar) ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:.65rem;padding:1px 4px" onclick="window._openDetail('${esc(e.type)}','${esc(e.id)}')" title="Bekijk kaartje">↗</button>` : '';
+
+  const boetesHtml = boetes.length ? `
+    <div class="gock-dossier" style="border-color:rgba(150,40,40,0.6)">
+      <div class="gock-dossier-head">⚖️ Openstaande boetes${luimpoort ? ' — ' + esc(luimpoort.naam) + kaartLink(luimpoort) : ''}</div>
+      ${boetes.map(b => `
+        <div style="border-top:1px solid rgba(196,168,122,0.2);padding:6px 0">
+          <p class="gock-dossier-tekst">${esc(b.reden)} — <strong>${clTekst(b.bedragCl)}</strong></p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+            <button class="ts-wedden-btn" onclick="window._heerenBetaal('${esc(b.id)}','${esc(clTekst(b.bedragCl))}')">Betaal ${esc(clTekst(b.bedragCl))}</button>
+            <button class="ts-wedden-btn" onclick="window._heerenAdvocaat('${esc(b.id)}')">⚖️ Huur ${advocaat ? esc(advocaat.naam) : 'Zilvertong en Zemelaar'} (${esc(honorariumTekst)})</button>
+            ${advocaat ? kaartLink(advocaat) : ''}
+          </div>
+        </div>`).join('')}
+    </div>` : '';
+
+  const jobsHtml = jobs.length ? jobs.map(j => `
+    <div class="tempel-god-kaart" style="border:1px solid rgba(196,168,122,0.3);border-radius:10px;padding:10px;margin-bottom:8px;text-align:left">
+      <div style="margin-bottom:4px">
+        <span class="herberg-item-naam">${typeIcon[j.type] || '🌑'} ${esc(j.typeNaam)}</span>
+        <span class="herberg-item-type" style="display:block;opacity:.8">${esc(j.omschrijving)} ${j.doelZichtbaar ? kaartLink({ type: j.doelType, id: j.doelId, zichtbaar: true }) : ''}</span>
+      </div>
+      <p class="ts-beurs" style="margin:2px 0">Buit: <strong>${j.payout} fl</strong></p>
+      ${j.status === 'open'
+        ? `<button class="ts-wedden-btn" onclick="window._heerenAanneem('${esc(j.id)}')">Neem aan</button>`
+        : `<p class="ts-beurs" style="opacity:.8">Aangenomen door ${esc(j.doorNaam || 'iemand')} — de DM beslist de uitkomst.</p>`}
+    </div>`).join('') : `<p class="herberg-cooldown-tekst">Er hangen nu geen klussen op het bord. Kom later terug.</p>`;
+
+  el.innerHTML = `
+    <div class="herberg-scene gock-scene" ${backdrop}>
+      <div class="herberg-content">
+        <div class="herberg-portrait-wrap">${portret}</div>
+        <p class="herberg-groet">${esc(config.naam)} — "Werk zat, als je vingers los zitten."</p>
+        <p class="ts-beurs">Aanzien: <strong>${esc(rang.naam)}</strong> (${rang.index + 1}/${rang.aantal})</p>
+        ${rang.voordelen ? `<p class="herberg-item-type" style="opacity:.85">Voordelen: ${esc(rang.voordelen)}</p>` : ''}
+        ${rang.volgende ? `<p class="herberg-item-type" style="opacity:.5;font-size:.8em">Volgende — ${esc(rang.volgende.naam)}${rang.volgende.voordelen ? ': ' + esc(rang.volgende.voordelen) : ''}</p>` : ''}
+        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
+        ${boetesHtml}
+        <div class="herberg-lijst">${jobsHtml}</div>
+      </div>
+    </div>`;
+}
+
+window._heerenAanneem = async (id) => {
+  if (!confirm("Deze klus aannemen? Speel 'm uit aan tafel; de DM bepaalt de uitkomst.")) return;
+  try { await api.heerenAanneem(id); await renderHeeren(); _tsToast('🌑 Klus aangenomen.'); }
+  catch (err) { _tsToast(err.message || 'Kon de klus niet aannemen.'); }
+};
+
+window._heerenBetaal = async (boeteId, label) => {
+  if (!confirm(`Boete betalen (${label})?`)) return;
+  try { await api.heerenBetaalBoete(boeteId); await renderHeeren(); _tsToast('⚖️ Boete voldaan.'); }
+  catch (err) { _tsToast(err.message || 'Betalen mislukt.'); }
+};
+
+window._heerenAdvocaat = async (boeteId) => {
+  if (!confirm('Zilvertong en Zemelaar inhuren? Het honorarium wordt direct betaald, ongeacht de uitkomst.')) return;
+  try {
+    const r = await api.heerenAdvocaat(boeteId);
+    await renderHeeren();
+    const uit = r.uitkomst === 'kwijtgescholden' ? 'de boete is kwijtgescholden!' : r.uitkomst === 'gehalveerd' ? 'de boete is gehalveerd.' : 'het mocht niet baten.';
+    _tsToast(`⚖️ Pleidooi: ${r.totaal} (d20 ${r.worp}${r.bonus >= 0 ? '+' : ''}${r.bonus}) — ${uit}`);
+  } catch (err) { _tsToast(err.message || 'Inhuren mislukt.'); }
 };
 
 // ── Tweespalt / Gokkantoor ──────────────────────────────────────────────────
