@@ -46,7 +46,7 @@ const HP_LABELS = [
 function hpStatus(hp, maxHp) {
   const pct = maxHp > 0 ? hp / maxHp : 0;
   return HP_LABELS.find(l => pct >= l.min) || HP_LABELS[HP_LABELS.length - 1];
-}
+};
 
 let _activeTab = 'gevecht';
 let _tables = [];
@@ -114,7 +114,7 @@ let _setupPersonages        = [];
 function esc(s) {
   if (!s) return '';
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+};
 
 export function initDmPanel() {
   window.dmPanel = {
@@ -340,14 +340,14 @@ export function initDmPanel() {
     const minimize = !window.app?.isDM?.() && !window._isDisplayMode;
     _renderCombatOverlay(c, minimize);
   }).catch(() => {});
-}
+};
 
 // ── Tab knoppen bouwen ──
 
 // Welke tabs zijn "gevecht & monsters"?
 const _GEVECHT_TABS = new Set(['gevecht', 'monsters', 'encounters']);
 // Welke tabs zijn "diensten"?
-const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock']);
+const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'toegang']);
 // Welke tabs zijn "instellingen" (niet als tab getoond)?
 const _INSTELLINGEN_TABS = new Set(['campagnes', 'wereld', 'beurs', 'dobbelstenen']);
 
@@ -356,7 +356,7 @@ function _tabToParent(tab) {
   if (_GEVECHT_TABS.has(tab))     return 'gevecht';
   if (_DIENSTEN_TABS.has(tab))    return 'diensten';
   return tab;
-}
+};
 
 function _buildTabs() {
   const container = document.getElementById('dm-section-tabs');
@@ -371,7 +371,7 @@ function _buildTabs() {
     <button class="dm-tab-btn${activeParent==='berichten'?' active':''}" data-tab="berichten" onclick="window.dmPanel.switchTab('berichten')" title="Berichten">${icon('message-circle')}</button>
     <button class="dm-tab-btn dm-tab-btn--settings" onclick="window._dmInstellingenOpen()" title="Instellingen">${icon('settings')}</button>
   `;
-}
+};
 
 // ── Tab switching ──
 
@@ -400,13 +400,13 @@ function _switchTab(tab) {
   if (tab === 'berichten') _renderBerichten();
   if (tab === 'gevecht' || tab === 'monsters' || tab === 'encounters') _renderGevechtEnMonsters(tab);
   if (tab === 'diensten' || _DIENSTEN_TABS.has(tab)) _renderDiensten(tab);
-}
+};
 
 // ── Spreuken ──
 
 function _isHpCampaign() {
   return window.app?.state?.meta?.spellSource === 'wands-wizards';
-}
+};
 
 // ── Gevecht & Monsters (gecombineerde tab) ──
 
@@ -463,7 +463,7 @@ function _renderGevechtEnMonsters(subTab) {
   } else {
     _loadAndRenderMonsters();
   }
-}
+};
 
 // Helper: zoek de juiste container voor een "logische" tab-naam,
 // ook als die tab is samengevoegd in een parent-tab of de instellingen-modal.
@@ -472,7 +472,7 @@ function _tabEl(name) {
       || document.getElementById(`dm-diensten-${name}`)
       || document.getElementById(`dm-delen-${name}`)
       || document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
-}
+};
 
 // ── Diensten (Herberg + Tweespalt + Gock gecombineerd) ──
 
@@ -493,29 +493,116 @@ function _renderDiensten(subTab) {
     <button class="dm-subtab-btn${_dienstenSubTab==='herberg'   ?' active':''}" onclick="window.dmPanel.switchTab('herberg')" title="Herberg">${icon('beer')}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='tweespalt' ?' active':''}" onclick="window.dmPanel.switchTab('tweespalt')" title="Tweespalt">${icon('dice',{cls:'icon-gi'})}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='gock'      ?' active':''}" onclick="window.dmPanel.switchTab('gock')" title="De Gock">${icon('search')}</button>
+ <button class="dm-subtab-btn${_dienstenSubTab==='ursula'    ?' active':''}" onclick="window.dmPanel.switchTab('ursula')" title="Madame Ursula">${icon('sparkles')}</button>
+    <button class="dm-subtab-btn${_dienstenSubTab==='tempel'    ?' active':''}" onclick="window.dmPanel.switchTab('tempel')" title="De Tempel">${icon('church')}</button>
+    <button class="dm-subtab-btn${_dienstenSubTab==='heeren'    ?' active':''}" onclick="window.dmPanel.switchTab('heeren')" title="Heeren van de Nacht">${icon('eye')}</button>
+    <button class="dm-subtab-btn${_dienstenSubTab==='facties'   ?' active':''}" onclick="window.dmPanel.switchTab('facties')" title="Facties & Aanzien">${icon('landmark')}</button>
+    <button class="dm-subtab-btn${_dienstenSubTab==='toegang'   ?' active':''}" onclick="window.dmPanel.switchTab('toegang')" title="Toegang per groep">${icon('lock')}</button>
   `;
 
   // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
-  ['herberg','tweespalt','gock'].forEach(name => {
+  ['herberg','tweespalt','gock','ursula','tempel','heeren','facties','toegang'].forEach(name => {
     let legacy = document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
-    if (!legacy) return;
-    // Verplaats content naar sub-div in diensten-tab
-    let sub = el.querySelector(`#dm-diensten-${name}`);
-    if (!sub) {
-      sub = document.createElement('div');
-      sub.id = `dm-diensten-${name}`;
-      // Steek children van legacy erin
-      while (legacy.firstChild) sub.appendChild(legacy.firstChild);
-      el.appendChild(sub);
+    if (legacy && legacy.closest('.dm-tab-content[data-tab="diensten"]') == null) {
+      el.appendChild(legacy);
     }
-    sub.classList.toggle('hidden', _dienstenSubTab !== name);
-    legacy.classList.remove('active'); // legacy nooit actief
+  });
+
+  // Toon alleen de actieve subtab
+  ['herberg','tweespalt','gock','ursula','tempel','heeren','facties','toegang'].forEach(name => {
+    const div = el.querySelector('.dm-tab-content[data-tab="' + name + '"]');
+    if (div) div.classList.toggle('active', name === _dienstenSubTab);
   });
 
   if (_dienstenSubTab === 'herberg')   _renderHerbergSettings();
   if (_dienstenSubTab === 'tweespalt') _renderTweespaltDM();
   if (_dienstenSubTab === 'gock')      _renderGockSettings();
-}
+  if (_dienstenSubTab === 'ursula')    _renderUrsulaSettings();
+  if (_dienstenSubTab === 'tempel')    _renderTempelSettings();
+  if (_dienstenSubTab === 'heeren')    _renderHeerenSettings();
+  if (_dienstenSubTab === 'facties')   _renderFactiesSettings();
+  if (_dienstenSubTab === 'toegang')   _renderDienstenToegang();
+};
+
+
+// ── Diensten toegang per groep ──
+const _DIENSTEN_TOEGANG_INFO = [
+  { key: 'herberg',   label: 'Herberg',            icon: 'beer'      },
+  { key: 'tweespalt', label: 'De Tweespalt',        icon: 'dice'      },
+  { key: 'gock',      label: 'De Gock',             icon: 'search'    },
+  { key: 'ursula',    label: 'Madame Ursula',        icon: 'sparkles'  },
+  { key: 'tempel',    label: 'De Tempel',            icon: 'church'    },
+  { key: 'heeren',    label: 'Heeren v.d. Nacht',    icon: 'eye'       },
+  { key: 'facties',   label: 'Facties & Aanzien',    icon: 'landmark'  },
+];
+
+const _STAAT_LABELS = {
+  verborgen:    { label: 'Verborgen',    icoon: () => icon('eye-off'),   cls: 'staat-verborgen'    },
+  zichtbaar:    { label: 'Zichtbaar',    icoon: () => icon('eye'),       cls: 'staat-zichtbaar'    },
+  beschikbaar:  { label: 'Beschikbaar',  icoon: () => icon('lock-open'), cls: 'staat-beschikbaar'  },
+};
+const _STAAT_CYCLE = ['verborgen', 'zichtbaar', 'beschikbaar'];
+
+async function _renderDienstenToegang() {
+  const el = _tabEl('toegang');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  let data;
+  try { data = await api.getDienstenToegang(); }
+  catch { el.innerHTML = '<div class="dm-feature-section"><p class="dm-form-label" style="opacity:.6">Kon toegangsdata niet laden.</p></div>'; return; }
+
+  const { alle = {}, groups = [] } = data;
+
+  // Bouw de tabel op
+  const colHeaders = groups.map(g =>
+    `<th style="min-width:90px;text-align:center;font-size:.8rem;padding:4px 6px;word-break:break-word">${esc(g.name)}${g.active ? ' <span style="opacity:.5">(actief)</span>' : ''}</th>`
+  ).join('');
+
+  const rows = _DIENSTEN_TOEGANG_INFO.map(d => {
+    const cols = groups.map(g => {
+      const staat = (alle[g.id] || {})[d.key] || 'beschikbaar';
+      const s = _STAAT_LABELS[staat];
+      return `<td style="text-align:center;padding:3px">
+        <button class="dm-btn dm-btn-ghost toegang-toggle ${s.cls}"
+          style="min-width:100px;font-size:.78rem;padding:3px 7px"
+          onclick="window._toggleDienstToegang('${esc(g.id)}','${esc(d.key)}','${staat}')"
+          title="Klik om te wisselen">
+          ${s.icoon()} ${s.label}
+        </button></td>`;
+    }).join('');
+    return `<tr>
+      <td style="padding:4px 8px 4px 0;white-space:nowrap;font-size:.85rem">
+        ${icon(d.icon, d.key === 'tweespalt' ? {cls:'icon-gi'} : {})} ${esc(d.label)}
+      </td>
+      ${cols}
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Toegang per groep</div>
+      <p class="dm-form-label" style="opacity:.7;margin:0 0 10px">Bepaal per dienst en per groep of die zichtbaar en/of beschikbaar is.</p>
+      <div style="overflow-x:auto">
+        <table style="border-collapse:collapse;width:100%">
+          <thead><tr>
+            <th style="text-align:left;padding:4px 8px 4px 0;font-size:.8rem">Dienst</th>
+            ${colHeaders}
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+};
+
+window._toggleDienstToegang = async (groepId, dienst, huidig) => {
+  const idx = _STAAT_CYCLE.indexOf(huidig);
+  const nieuw = _STAAT_CYCLE[(idx + 1) % _STAAT_CYCLE.length];
+  try {
+    await api.setDienstToegang(groepId, dienst, nieuw);
+    _renderDienstenToegang();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
 
 // ── Delen (Tunnel + Export gecombineerd) ──
 
@@ -553,7 +640,7 @@ function _renderDelen(subTab) {
 
   if (_delenSubTab === 'tunnel') _renderTunnel();
   if (_delenSubTab === 'export') _renderExportTab();
-}
+};
 
 async function _loadSpells() {
   const url = _isHpCampaign()
@@ -567,7 +654,7 @@ async function _loadSpells() {
     _spellList = [];
   }
   if (_activeTab === 'spreuken') _renderSpreuken();
-}
+};
 
 function _renderSpreuken() {
   const el = document.querySelector('.dm-tab-content[data-tab="spreuken"]');
@@ -593,7 +680,7 @@ function _renderSpreuken() {
     }, 0);
   }
   _updateSpellResults();
-}
+};
 
 function _updateSpellResults() {
   const loading   = document.getElementById('dm-spell-loading');
@@ -612,7 +699,7 @@ function _updateSpellResults() {
   results.innerHTML = filtered.map(s =>
     `<div class="dm-spell-row" onclick="window.dmPanel.spellOpen('${esc(s.index)}')">${esc(s.name)}</div>`
   ).join('');
-}
+};
 
 function _spellDetailHtml(s) {
   const schoolMap = {
@@ -674,7 +761,7 @@ function _spellDetailHtml(s) {
         </label>
       </div>
     </div>`;
-}
+};
 
 async function _spellOpen(index) {
   const el = document.querySelector('.dm-tab-content[data-tab="spreuken"]');
@@ -693,17 +780,17 @@ async function _spellOpen(index) {
   } catch {
     if (el) el.innerHTML = '<p class="dm-hint" style="padding:12px">Laden mislukt.</p>';
   }
-}
+};
 
 function _spellBack() {
   _spellDetail = null;
   _renderSpreuken();
-}
+};
 
 function _spellSearch(q) {
   _spellQuery = q;
   _updateSpellResults();
-}
+};
 
 // ── Tunnel ──
 
@@ -733,7 +820,7 @@ async function _tunnelToggle() {
   }
   if (btn) btn.disabled = false;
   _renderTunnel();
-}
+};
 
 function _showTunnelError(msg) {
   const el = document.getElementById('dm-tunnel-content');
@@ -743,7 +830,7 @@ function _showTunnelError(msg) {
   err.textContent = '⚠️ ' + msg;
   el.appendChild(err);
   setTimeout(() => err.remove(), 6000);
-}
+};
 
 function _tunnelCopy() {
   const url = window._dmPanelTunnelUrl;
@@ -752,7 +839,7 @@ function _tunnelCopy() {
     const btn = document.getElementById('dm-tunnel-copy');
     if (btn) { const orig = btn.textContent; btn.textContent = '✓'; setTimeout(() => { btn.textContent = orig; }, 1500); }
   });
-}
+};
 
 function _renderExportTab() {
   const el = document.getElementById('dm-export-content');
@@ -819,7 +906,7 @@ function _renderExportTab() {
       </div>
     </div>
   `;
-}
+};
 
 async function _importObsidian(files) {
   const resultsEl = document.getElementById('import-md-results');
@@ -853,7 +940,7 @@ async function _importObsidian(files) {
   } catch (err) {
     resultsEl.innerHTML = `<div class="import-md-row import-md-err">✕ Fout: ${err.message}</div>`;
   }
-}
+};
 
 async function _exportFile(type) {
   const btnId = type === 'campagneboek' ? 'export-btn-boek' : 'export-btn-snapshot';
@@ -879,11 +966,11 @@ async function _exportFile(type) {
   } catch (err) {
     if (btn) { btn.textContent = '✕ Fout'; setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 3000); }
   }
-}
+};
 
 async function _exportSnapshot() {
   await _exportFile('snapshot');
-}
+};
 
 function _renderTunnel() {
   const el = document.getElementById('dm-tunnel-content');
@@ -905,7 +992,7 @@ function _renderTunnel() {
     </div>
 
   `;
-}
+};
 
 // ── Reveal strip ──
 
@@ -917,7 +1004,7 @@ function _positionRevealStrip() {
     const top = Math.round(main.getBoundingClientRect().top);
     el.style.top = top + 'px';
   }
-}
+};
 
 function _renderRevealStrip() {
   const el = document.getElementById('dm-reveal-strip');
@@ -964,7 +1051,7 @@ function _renderRevealStrip() {
               </div>`).join('')
           + (more > 0 ? `<div style="font-size:9px;color:var(--color-ink-dim);text-align:center;padding:4px 0">+${more} meer verborgen</div>` : '')
     }`;
-}
+};
 
 async function _loadRevealQueue(chapterKey) {
   _revealQueue = [];
@@ -991,7 +1078,7 @@ async function _loadRevealQueue(chapterKey) {
     _revealLoading = false;
     _renderRevealStrip();
   }
-}
+};
 
 async function _revealImage(sessieId, imgId) {
   // Animate the thumbnail out
@@ -1018,7 +1105,7 @@ async function _revealImage(sessieId, imgId) {
   } catch (err) {
     console.error('Reveal failed', err);
   }
-}
+};
 
 // ── Regie-balk ──
 
@@ -1063,7 +1150,7 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
     _rbScript = window.app?.state?.meta?.hoofdstukken?.[chapterKey]?.script || [];
   }
   _renderRegieBalk();
-}
+};
 
 function _renderRegieBalkItem(item) {
   const revealed = _rbRevealed.has(item.id);
@@ -1105,7 +1192,7 @@ function _renderRegieBalkItem(item) {
         : ''}
     </div>
   </div>`;
-}
+};
 
 function _renderRegieBalk() {
   const el = document.getElementById('dm-regie-balk');
@@ -1175,7 +1262,7 @@ function _renderRegieBalk() {
   // Verberg geminimaliseerde combat-balk als aktebar open is
   document.body.classList.add('dm-rb-active');
   requestAnimationFrame(_rbInitDrag);
-}
+};
 
 // Scroll de regie-balk met de pijlknoppen
 window._rbScroll = (dir) => {
@@ -1207,7 +1294,7 @@ function _rbInitDrag() {
     const walk = (x - startX) * 1.5;
     el.scrollLeft = scrollLeft - walk;
   });
-}
+};
 
 async function _revealRegieBalkItem(itemId) {
   const item = _rbScript.find(x => x.id === itemId);
@@ -1235,7 +1322,7 @@ async function _revealRegieBalkItem(itemId) {
   } catch (err) {
     console.error('Regie-balk reveal failed', err);
   }
-}
+};
 
 // ── Namen ──
 
@@ -1310,7 +1397,7 @@ function _weerSeason(btn) {
   _weerSeizoen = btn.dataset.season;
   document.querySelectorAll('.dm-weer-season-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-}
+};
 
 const _WEER = {
   Lente: {
@@ -1343,7 +1430,7 @@ function _weerRoll(tabel) {
     if (d <= grens) return label;
   }
   return tabel[tabel.length - 1][1];
-}
+};
 
 function _weerGenereer() {
   const s = _WEER[_weerSeizoen];
@@ -1356,7 +1443,7 @@ function _weerGenereer() {
   const result = `🌡 ${temp} &nbsp;·&nbsp; 💧 ${neersl} &nbsp;·&nbsp; 🌬 ${wind}${bijz}`;
   const el = document.getElementById('dm-weer-result');
   if (el) { el.innerHTML = result; el.classList.remove('hidden'); }
-}
+};
 
 // ── Naamgenerator ─────────────────────────────────────────────────────────────
 
@@ -1371,7 +1458,7 @@ function _naamGenereer(geslacht) {
     el.className = 'dm-naam-result dm-naam-reveal';
     el.innerHTML = `${voornaam}<span class="dm-naam-achter"> ${achternaam}</span>`;
   }
-}
+};
 
 // ── Tafels ──
 
@@ -1380,7 +1467,7 @@ async function _loadAndRenderTafels() {
     _tables = await api.listTables();
   } catch { _tables = []; }
   _renderTafels();
-}
+};
 
 function _renderTafels() {
   const el = document.getElementById('dm-tafels-content');
@@ -1432,7 +1519,7 @@ function _renderTafels() {
     </div>
   `;
 
-}
+};
 
 function _renderTafelEditor(el) {
   const isNew = _editingTableId === '__new__';
@@ -1482,7 +1569,7 @@ function _renderTafelEditor(el) {
       </div>
     </div>
   `;
-}
+};
 
 function _renderTafelResult(results) {
   const el = document.getElementById('dm-tabel-result');
@@ -1493,7 +1580,7 @@ function _renderTafelResult(results) {
   el.innerHTML = items.map((r, i) =>
     `<span class="dm-tabel-result-text">${items.length > 1 ? `<span class="dm-tabel-num">${i + 1}.</span> ` : ''}${esc(r)}</span>`
   ).join('');
-}
+};
 
 function _tabelRoll() {
   const sel = document.getElementById('dm-tabel-select');
@@ -1533,14 +1620,14 @@ function _tabelRoll() {
     const shuffled = [...entries].sort(() => Math.random() - 0.5);
     _renderTafelResult(shuffled.slice(0, Math.min(rolls, entries.length)));
   }
-}
+};
 
 function _tabelEdit(id) {
   _editingTableId = id;
   const table = _tables.find(t => t.id === id);
   _editingTableType = table?.type || 'simple';
   _renderTafels();
-}
+};
 
 async function _tabelDelete(id) {
   const table = _tables.find(t => t.id === id);
@@ -1551,7 +1638,7 @@ async function _tabelDelete(id) {
     _tables = _tables.filter(t => t.id !== id);
     _renderTafels();
   } catch (e) { alert('Fout: ' + e.message); }
-}
+};
 
 async function _tabelSave(idOrNew) {
   const name    = document.getElementById('dm-tbl-name')?.value.trim();
@@ -1574,13 +1661,13 @@ async function _tabelSave(idOrNew) {
     _editingTableId = null;
     _renderTafels();
   } catch (e) { alert('Fout: ' + e.message); }
-}
+};
 
 function _tabelNew() {
   _editingTableId = '__new__';
   _editingTableType = 'simple';
   _renderTafels();
-}
+};
 
 // ── Monsters ──
 
@@ -1588,25 +1675,25 @@ function _tabelNew() {
 function _sbMod(score) {
   const m = Math.floor(((score || 10) - 10) / 2);
   return (m >= 0 ? '+' : '') + m;
-}
+};
 
 function _sbMdLine(text) {
   return (text || '').replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>');
-}
+};
 
 function _sbMdBlock(text) {
   return (text || '').split('\n').filter(l => l.trim())
     .map(l => `<p class="sb-p">${_sbMdLine(esc(l))}</p>`).join('');
-}
+};
 
 function _hasStatblock(m) {
   if (!m?.statblock) return false;
   const sb = m.statblock;
   return !!(sb.type || sb.ac || sb.hp || sb.traits || sb.actions ||
     sb.str || sb.dex || sb.con || sb.int || sb.wis || sb.cha);
-}
+};
 
 function _statblockHtml(m) {
   const sb = m.statblock || {};
@@ -1650,7 +1737,7 @@ function _statblockHtml(m) {
     ${sb.reactions ? `<div class="sb-rule"></div><div class="sb-section-label">Reactions</div>${_sbMdBlock(sb.reactions)}` : ''}
     ${sb.legendaryActions ? `<div class="sb-rule"></div><div class="sb-section-label">Legendary Actions</div>${_sbMdBlock(sb.legendaryActions)}` : ''}
   </div>`;
-}
+};
 
 function _showStatblock(mId) {
   const m = _monsters.find(x => x.id === mId);
@@ -1658,7 +1745,7 @@ function _showStatblock(mId) {
   const sb = m.statblock || {};
   const subtitle = [sb.size, sb.type, sb.alignment].filter(Boolean).join(' ');
   window.app.openModal(m.name, subtitle, _statblockHtml(m));
-}
+};
 
 function _showStatblockForCombatant(cId) {
   const c = _combat?.combatants?.find(x => x.id === cId);
@@ -1668,7 +1755,7 @@ function _showStatblockForCombatant(cId) {
   const sb = m.statblock || {};
   const subtitle = [sb.size, sb.type, sb.alignment].filter(Boolean).join(' ');
   window.app.openModal(m.name, subtitle, _statblockHtml(m));
-}
+};
 
 function _statblockEditorHtml(sb) {
   sb = sb || {};
@@ -1778,7 +1865,7 @@ function _statblockEditorHtml(sb) {
         </div>
       </div>
     </details>`;
-}
+};
 
 function _readStatblockFromForm() {
   const v = k => document.getElementById('dm-mon-sb-' + k)?.value?.trim() || '';
@@ -1811,7 +1898,7 @@ function _readStatblockFromForm() {
     reactions:             v('reactions'),
     legendaryActions:      v('legendaryActions'),
   };
-}
+};
 
 async function _loadAndRenderMonsters() {
   try {
@@ -1821,7 +1908,7 @@ async function _loadAndRenderMonsters() {
     _monsters = [];
   }
   _renderMonsters();
-}
+};
 
 function _monsterRow(m) {
   return `
@@ -1840,16 +1927,16 @@ function _monsterRow(m) {
         <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterDelete('${esc(m.id)}')" title="Verwijderen">${icon('x')}</button>
       </div>
     </div>`;
-}
+};
 
 function _metaHk() {
   return window.app?.state?.meta?.hoofdstukken || {};
-}
+};
 
 function _hkLabel(key) {
   const hk = _metaHk();
   return hk[key] ? hk[key].short : key;
-}
+};
 
 function _hkOptions(selectedKey) {
   const hk = _metaHk();
@@ -1857,7 +1944,7 @@ function _hkOptions(selectedKey) {
     .sort(([, a], [, b]) => a.num - b.num)
     .map(([k, v]) => `<option value="${esc(k)}"${selectedKey === k ? ' selected' : ''}>${esc(v.short)}</option>`)
     .join('');
-}
+};
 
 const MONSTER_PAGE_SIZE = 5;
 
@@ -1913,7 +2000,7 @@ function _renderMonsters() {
       ${paginationHtml}
     </div>
   `;
-}
+};
 
 function _renderMonsterEditor(el) {
   const isNew  = _editingMonsterIsNew;
@@ -1996,7 +2083,7 @@ function _renderMonsterEditor(el) {
       </div>
     </div>
   `;
-}
+};
 
 function _monsterNew() {
   _editingMonsterId        = 'm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
@@ -2004,7 +2091,7 @@ function _monsterNew() {
   _editingMonsterImageId   = null;
   _editingMonsterBackdropId = null;
   _renderMonsters();
-}
+};
 
 function _monsterEdit(id) {
   const m = _monsters.find(x => x.id === id);
@@ -2014,24 +2101,24 @@ function _monsterEdit(id) {
   _editingMonsterImageId   = m.imageId   || null;
   _editingMonsterBackdropId = m.backdropId || null;
   _renderMonsters();
-}
+};
 
 function _monsterFilterChapter(chapter) {
   _monsterChapterFilter = chapter;
   _monsterPage = 0;
   _renderMonsters();
-}
+};
 
 function _monsterPage_set(page) {
   _monsterPage = page;
   _renderMonsters();
-}
+};
 
 function _monsterCancel() {
   _editingMonsterId = null;
   _editingMonsterIsNew = false;
   _renderMonsters();
-}
+};
 
 async function _srdSearch() {
   const q = document.getElementById('dm-srd-q')?.value.trim();
@@ -2048,7 +2135,7 @@ async function _srdSearch() {
   } catch (err) {
     if (resultsEl) resultsEl.innerHTML = `<div class="dm-hint" style="color:#c44">Fout: ${esc(err.message)}</div>`;
   }
-}
+};
 
 async function _srdImport(index) {
   const resultsEl = document.getElementById('dm-srd-results');
@@ -2107,7 +2194,7 @@ async function _srdImport(index) {
   } catch (err) {
     if (resultsEl) resultsEl.innerHTML = `<div class="dm-hint" style="color:#c44">Fout: ${esc(err.message)}</div>`;
   }
-}
+};
 
 async function _monsterSave() {
   const name    = document.getElementById('dm-mon-name')?.value.trim();
@@ -2130,7 +2217,7 @@ async function _monsterSave() {
     _editingMonsterIsNew = false;
     _renderMonsters();
   } catch (e) { alert('Opslaan mislukt: ' + e.message); }
-}
+};
 
 async function _monsterDelete(id) {
   const m = _monsters.find(x => x.id === id);
@@ -2143,7 +2230,7 @@ async function _monsterDelete(id) {
     _monsters = _monsters.filter(x => x.id !== id);
     _renderMonsters();
   } catch (e) { alert('Verwijderen mislukt: ' + e.message); }
-}
+};
 
 async function _monsterUpload(monsterId, type, inputEl) {
   const file = inputEl.files[0];
@@ -2162,7 +2249,7 @@ async function _monsterUpload(monsterId, type, inputEl) {
     }
     _redrawMonsterImageRow(type, fileId);
   } catch (e) { alert('Upload mislukt: ' + e.message); }
-}
+};
 
 async function _monsterRemoveImage(type) {
   const fileId = type === 'image' ? _editingMonsterImageId : _editingMonsterBackdropId;
@@ -2178,7 +2265,7 @@ async function _monsterRemoveImage(type) {
     } catch (_) {}
   }
   _redrawMonsterImageRow(type, null);
-}
+};
 
 function _redrawMonsterImageRow(type, fileId) {
   const rows = document.querySelectorAll('.dm-upload-row');
@@ -2197,7 +2284,7 @@ function _redrawMonsterImageRow(type, fileId) {
     </label>
     ${fileId ? `<button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterRemoveImage('${type}')" title="Verwijderen">${icon('x')}</button>` : ''}
   `;
-}
+};
 
 async function _monsterAddToCombat(id) {
   const m = _monsters.find(x => x.id === id);
@@ -2215,7 +2302,7 @@ async function _monsterAddToCombat(id) {
     });
     _switchTab('gevecht');
   } catch (e) { alert('Toevoegen aan gevecht mislukt: ' + e.message); }
-}
+};
 
 // ── Encounters ──────────────────────────────────────────────────────────────
 
@@ -2251,7 +2338,7 @@ async function _loadEncounters() {
   } catch (e) {
     _encounters = [];
   }
-}
+};
 
 async function _renderEncounters() {
   const el = document.getElementById('dm-encounters-content');
@@ -2269,7 +2356,7 @@ async function _renderEncounters() {
   } else {
     _renderEncounterList(el);
   }
-}
+};
 
 function _renderEncounterList(el) {
   const html = _encounters.length === 0
@@ -2303,7 +2390,7 @@ function _renderEncounterList(el) {
       </div>
       <div class="dm-enc-list">${html}</div>
     </div>`;
-}
+};
 
 function _renderEncounterEditor(el) {
   const isNew  = _encIsNew;
@@ -2408,7 +2495,7 @@ function _renderEncounterEditor(el) {
         <button class="script-add-btn" onclick="window.dmPanel.encSave()" title="Opslaan" style="background:rgba(80,140,80,0.35);border-color:rgba(100,180,100,0.6)">${icon('check')}</button>
       </div>
     </div>`;
-}
+};
 
 function _encNew() {
   _editingEncId    = 'new';
@@ -2419,7 +2506,7 @@ function _encNew() {
   _encName         = '';
   _encAkteId       = '';
   _renderEncounters();
-}
+};
 
 function _encEdit(id) {
   const enc = _encounters.find(e => e.id === id);
@@ -2432,13 +2519,13 @@ function _encEdit(id) {
   _encName         = enc.name    || '';
   _encAkteId       = enc.akteId  || '';
   _renderEncounters();
-}
+};
 
 function _encCancel() {
   _editingEncId = null;
   _encIsNew     = false;
   _renderEncounterList(document.getElementById('dm-encounters-content'));
-}
+};
 
 async function _encSave() {
   const name   = document.getElementById('dm-enc-name')?.value.trim();
@@ -2467,7 +2554,7 @@ async function _encSave() {
     _encIsNew     = false;
     _renderEncounterList(document.getElementById('dm-encounters-content'));
   } catch (e) { alert('Opslaan mislukt: ' + e.message); }
-}
+};
 
 async function _encDelete(id) {
   const enc = _encounters.find(e => e.id === id);
@@ -2481,7 +2568,7 @@ async function _encDelete(id) {
     _encIsNew     = false;
     _renderEncounterList(document.getElementById('dm-encounters-content'));
   } catch (e) { alert('Verwijderen mislukt: ' + e.message); }
-}
+};
 
 async function _encStart(id) {
   if (_combat?.active) {
@@ -2499,7 +2586,7 @@ async function _encStart(id) {
     _renderGevecht();
     _renderCombatOverlay(combat);
   } catch (e) { alert('Starten mislukt: ' + e.message); }
-}
+};
 
 function _encAddRow() {
   const first = _monsters[0];
@@ -2511,12 +2598,12 @@ function _encAddRow() {
     hp:         first?.maxHp      ?? 10,
   });
   _renderEncounterEditor(document.getElementById('dm-encounters-content'));
-}
+};
 
 function _encRemoveRow(idx) {
   _encMonsterRows.splice(idx, 1);
   _renderEncounterEditor(document.getElementById('dm-encounters-content'));
-}
+};
 
 function _encRowMonsterChange(idx, monsterId) {
   const m = _monsters.find(x => x.id === monsterId);
@@ -2528,7 +2615,7 @@ function _encRowMonsterChange(idx, monsterId) {
   }
   // Re-render so Init/HP fields update to monster defaults
   _renderEncounterEditor(document.getElementById('dm-encounters-content'));
-}
+};
 
 // Houdt naam/akte in sync met de state-vars zodat re-renders de waarden bewaren
 window._encFieldChange = function(field, value) {
@@ -2545,7 +2632,7 @@ window._encRowNameChange = function(idx, name) {
 function _encRowChange(idx, field, value) {
   const num = parseInt(value);
   _encMonsterRows[idx][field] = isNaN(num) ? value : num;
-}
+};
 
 async function _encBackdropUpload(inputEl) {
   const file = inputEl.files[0];
@@ -2558,13 +2645,13 @@ async function _encBackdropUpload(inputEl) {
     _encBackdropId = fileId;
     _renderEncounterEditor(document.getElementById('dm-encounters-content'));
   } catch (e) { alert('Upload mislukt: ' + e.message); }
-}
+};
 
 function _encBackdropClear() {
   if (_encBackdropId) api.deleteFile(_encBackdropId).catch(() => {});
   _encBackdropId = null;
   _renderEncounterEditor(document.getElementById('dm-encounters-content'));
-}
+};
 
 // ── Gevecht ──
 
@@ -2573,7 +2660,7 @@ function _setupTypeChange(type) {
   _setupSelectedPresetId  = null;
   _setupSelectedEntityId  = null;
   _renderGevecht();
-}
+};
 
 function _setupPresetChange(presetId) {
   _setupSelectedPresetId = presetId || null;
@@ -2588,7 +2675,7 @@ function _setupPresetChange(presetId) {
   } else {
     if (nameEl) nameEl.value = '';
   }
-}
+};
 
 async function _setupEntityChange(entityId) {
   _setupSelectedEntityId = entityId || null;
@@ -2616,7 +2703,7 @@ async function _setupEntityChange(entityId) {
     // Sla max op als data-attribuut zodat _setupAddSubmit het kan gebruiken
     maxhpEl.dataset.maxHp = maxHp;
   }
-}
+};
 
 // Synchroniseert hp én maxHp van bestaande speler-combatants met dm-state
 async function _syncSpelerHp() {
@@ -2632,7 +2719,7 @@ async function _syncSpelerHp() {
     } catch (_) {}
   }
   _combat = await api.getCombat().catch(() => _combat);
-}
+};
 
 async function _autoAddSpelers() {
   const spelers = _setupPersonages.filter(e =>
@@ -2658,7 +2745,7 @@ async function _autoAddSpelers() {
     }).catch(() => {});
   }
   _combat = await api.getCombat().catch(() => _combat);
-}
+};
 
 async function _setupAddSubmit() {
   const name       = document.getElementById('dm-setup-name')?.value.trim();
@@ -2693,7 +2780,7 @@ async function _setupAddSubmit() {
     _setupSelectedEntityId = null;
     _renderGevecht();
   } catch (e) { alert('Fout: ' + e.message); }
-}
+};
 
 async function _setupInitChange(combatantId, value) {
   const init = parseInt(value);
@@ -2703,7 +2790,7 @@ async function _setupInitChange(combatantId, value) {
     const c = _combat?.combatants?.find(x => x.id === combatantId);
     if (c) c.initiative = init;
   } catch (e) { /* stil falen */ }
-}
+};
 
 async function _setupReset() {
   if (!confirm('Remove all combatants?')) return;
@@ -2714,7 +2801,7 @@ async function _setupReset() {
     await _autoAddSpelers();
     _renderGevecht();
   } catch (e) { alert('Fout: ' + e.message); }
-}
+};
 
 async function _combatStart() {
   if ((_combat?.combatants?.length || 0) === 0) {
@@ -2725,7 +2812,7 @@ async function _combatStart() {
     _renderGevecht();
     _renderCombatOverlay(_combat);
   } catch (e) { alert('Fout: ' + e.message); }
-}
+};
 
 async function _combatEnd() {
   if (!confirm('End combat?')) return;
@@ -2735,7 +2822,7 @@ async function _combatEnd() {
     _renderGevecht();
     _renderCombatOverlay(_combat);
   } catch (e) { alert('Fout: ' + e.message); }
-}
+};
 
 // Geeft de indices terug van alle deelnemers die dezelfde beurt delen.
 // Monsters met dezelfde initiative delen een beurt; spelers + summons op gelijk initiative ook.
@@ -2757,7 +2844,7 @@ function _getTurnGroup(combatants, currentTurn) {
       .map(({ i }) => i);
   }
   return [currentTurn];
-}
+};
 
 async function _combatNextTurn() {
   if (!_combat?.active) return;
@@ -2771,7 +2858,7 @@ async function _combatNextTurn() {
   if (next === 0) round++;
   try { await api.updateCombat({ currentTurn: next, round }); }
   catch (e) { alert('Fout: ' + e.message); }
-}
+};
 
 async function _combatPrevTurn() {
   if (!_combat?.active) return;
@@ -2787,7 +2874,7 @@ async function _combatPrevTurn() {
   if (first === 0 && round > 1) round--;
   try { await api.updateCombat({ currentTurn: prevStart, round }); }
   catch (e) { alert('Fout: ' + e.message); }
-}
+};
 
 function _combatAddTypeChange(type) {
   const presetRow = document.getElementById('co-add-preset-row');
@@ -2795,7 +2882,7 @@ function _combatAddTypeChange(type) {
   // Reset preset when switching type
   const preset = document.getElementById('co-add-preset');
   if (preset && type !== 'monster') preset.value = '';
-}
+};
 
 function _combatAddPresetChange(presetId) {
   if (!presetId) return;
@@ -2807,7 +2894,7 @@ function _combatAddPresetChange(presetId) {
   if (nameEl) nameEl.value = m.name;
   if (initEl) initEl.value = m.initiative ?? 10;
   if (hpEl)   hpEl.value   = m.maxHp ?? 10;
-}
+};
 
 async function _combatAddSubmit() {
   const name    = document.getElementById('co-add-name')?.value.trim();
@@ -2824,7 +2911,7 @@ async function _combatAddSubmit() {
     });
     document.getElementById('co-add-form')?.classList.add('hidden');
   } catch (e) { alert('Fout: ' + e.message); }
-}
+};
 
 async function _combatApplyDamage(id) {
   const inp = document.getElementById('co-dmg-input-' + id);
@@ -2832,7 +2919,7 @@ async function _combatApplyDamage(id) {
   if (!amount || amount <= 0) return;
   await _combatHpChange(id, -amount);
   if (inp) inp.value = '';
-}
+};
 
 async function _combatApplyHeal(id) {
   const inp = document.getElementById('co-dmg-input-' + id);
@@ -2840,7 +2927,7 @@ async function _combatApplyHeal(id) {
   if (!amount || amount <= 0) return;
   await _combatHpChange(id, amount);
   if (inp) inp.value = '';
-}
+};
 
 async function _combatHpChange(id, delta) {
   const c = _combat?.combatants?.find(x => x.id === id);
@@ -2874,7 +2961,7 @@ async function _combatHpChange(id, delta) {
       await api.updateCombatant(id, updates);
     }
   } catch (e) { console.error(e); }
-}
+};
 
 async function _combatHpInput(id, val) {
   const newHp = parseInt(val);
@@ -2896,7 +2983,7 @@ async function _combatHpInput(id, val) {
   }
   try { await api.updateCombatant(id, updates); }
   catch (e) { console.error(e); }
-}
+};
 
 // ── Speler past eigen HP aan in gevecht ──
 
@@ -2906,7 +2993,7 @@ async function _playerHpChange(id, delta) {
   const newHp = Math.max(0, Math.min(c.maxHp || 999, (c.hp || 0) + delta));
   try { await api.combatPlayerHp(id, newHp); }
   catch (e) { console.error(e); }
-}
+};
 
 async function _playerHpInput(id, val) {
   const c = _combat?.combatants?.find(x => x.id === id);
@@ -2914,28 +3001,28 @@ async function _playerHpInput(id, val) {
   const newHp = Math.max(0, Math.min(c.maxHp || 999, parseInt(val) || 0));
   try { await api.combatPlayerHp(id, newHp); }
   catch (e) { console.error(e); }
-}
+};
 
 async function _combatThpChange(id, delta) {
   const c = _combat?.combatants?.find(x => x.id === id);
   if (!c) return;
   try { await api.updateCombatant(id, { tempHp: Math.max(0, (c.tempHp || 0) + delta) }); }
   catch (e) { console.error(e); }
-}
+};
 
 async function _combatThpInput(id, val) {
   const newThp = parseInt(val);
   if (isNaN(newThp)) return;
   try { await api.updateCombatant(id, { tempHp: Math.max(0, newThp) }); }
   catch (e) { console.error(e); }
-}
+};
 
 async function _combatInitChange(id, val) {
   const init = parseInt(val);
   if (isNaN(init)) return;
   try { await api.updateCombatant(id, { initiative: init }); }
   catch (e) { console.error(e); }
-}
+};
 
 async function _combatCondToggle(id, condId) {
   const c = _combat?.combatants?.find(x => x.id === id);
@@ -2946,17 +3033,17 @@ async function _combatCondToggle(id, condId) {
     : [...conditions, condId];
   try { await api.updateCombatant(id, { conditions }); }
   catch (e) { console.error(e); }
-}
+};
 
 async function _combatRemove(id) {
   try { await api.removeCombatant(id); }
   catch (e) { alert('Fout: ' + e.message); }
-}
+};
 
 async function _combatSetWinner(winner) {
   try { await api.setCombatWinner(winner); }
   catch (e) { alert('Fout: ' + e.message); }
-}
+};
 
 async function _combatDeathSave(id, type) {
   const c = _combat?.combatants?.find(x => x.id === id);
@@ -2989,7 +3076,7 @@ async function _combatDeathSave(id, type) {
     try { await api.updateCombatant(id, updates); }
     catch (e) { console.error(e); }
   }
-}
+};
 
 function _showToast(msg, duration = 4500) {
   const existing = document.getElementById('combat-toast');
@@ -3006,7 +3093,7 @@ function _showToast(msg, duration = 4500) {
     el.classList.remove('combat-toast-in');
     setTimeout(() => el.remove(), 350);
   }, duration);
-}
+};
 
 // ── Campagnes ─────────────────────────────────────────────────────────────────
 
@@ -3020,7 +3107,7 @@ async function _loadAndRenderCampagnes() {
   } catch (err) {
     el.innerHTML = `<p class="dm-empty" style="padding:16px;color:#c44">Fout: ${esc(err.message)}</p>`;
   }
-}
+};
 
 function _renderCampagnes(el, campaigns, activeCampaign) {
   const THEMES = { default: 'Fantasy (standaard)', hp: 'Harry Potter' };
@@ -3067,7 +3154,7 @@ function _renderCampagnes(el, campaigns, activeCampaign) {
       </div>
       <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
     </div>`;
-}
+};
 
 async function _campagneSwitchTo(id) {
   if (!confirm(`Wil je wisselen naar campagne "${id}"? Alle spelers worden automatisch uitgelogd.`)) return;
@@ -3077,12 +3164,12 @@ async function _campagneSwitchTo(id) {
   } catch (err) {
     alert('Wisselen mislukt: ' + err.message);
   }
-}
+};
 
 function _campagneCreate() {
   const form = document.getElementById('campagne-create-form');
   if (form) { form.style.display = 'block'; document.getElementById('campagne-new-id')?.focus(); }
-}
+};
 
 async function _campagneSubmit() {
   const id       = document.getElementById('campagne-new-id')?.value.trim();
@@ -3159,7 +3246,7 @@ async function _renderWereldTab() {
           </label>
         </div>`).join('')}
     </div>` : ''}`;
-}
+};
 
 window._wereldToggle = async () => {
   const meta = window.app?.state?.meta || {};
@@ -3236,7 +3323,7 @@ async function _renderHerbergSettings() {
         <button class="dm-btn dm-btn-primary" onclick="window._hbSave()" title="Opslaan">💾</button>
       </div>
     </div>`;
-}
+};
 
 async function _renderBeursTab() {
   const el = _tabEl('beurs');
@@ -3273,7 +3360,7 @@ async function _renderBeursTab() {
         Activeer de gedeelde beurs zodat alle spelers hetzelfde saldo zien.
       </p>`}
     </div>`;
-}
+};
 
 window._hbSelectWaard = (entityId) => {
   const p = _hbPersonages.find(p => p.id === entityId);
@@ -3498,7 +3585,7 @@ async function _renderTweespaltDM() {
   window._tsAddOptie();
   window._tsAddOptie();
   window._tsToonModusVelden();
-}
+};
 
 let _tsOptieCount = 0;
 
@@ -3690,7 +3777,7 @@ async function _renderGockSettings() {
     </div>
 
     `;
-}
+};
 
 window._gockUploadBackdrop = async (file) => {
   if (!file) return;
@@ -3723,6 +3810,633 @@ window._gockSettingsSave = async () => {
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
 };
 
+// ── Madame Ursula — DM-instellingen ──
+
+let _ursulaBackdropPending = null;
+let _ursulaAktes = [];
+let _ursulaActiveAkte = null;
+let _ursulaSelectedAkte = null;
+
+async function _renderUrsulaSettings() {
+  const el = _tabEl('ursula');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  const meta = window.app?.state?.meta || {};
+  const config = meta.ursula || {};
+  let personages = [], locaties = [];
+  try { personages = await api.listEntities('personages'); } catch {}
+  try { locaties  = await api.listEntities('locaties');  } catch {}
+  const alle = [...personages, ...locaties];
+
+  try { const r = await api.ursulaAktes(); _ursulaAktes = r.aktes || []; _ursulaActiveAkte = r.activeAkte || null; }
+  catch { _ursulaAktes = []; _ursulaActiveAkte = null; }
+  // Normaliseer: { num: null } betekent geen actieve akte
+  if (_ursulaActiveAkte?.num == null) _ursulaActiveAkte = null;
+  if ((!_ursulaSelectedAkte || !_ursulaAktes.some(a => a.key === _ursulaSelectedAkte)) && _ursulaAktes.length) {
+    const next = _ursulaActiveAkte ? _ursulaAktes.find(a => a.num > (_ursulaActiveAkte.num ?? -1)) : null;
+    _ursulaSelectedAkte = (next || _ursulaAktes[0]).key;
+  }
+
+  const prijs = config.prijs || { fl: 20 };
+  const sel = _ursulaAktes.find(a => a.key === _ursulaSelectedAkte) || null;
+  const v = sel?.voorspelling || {};
+  const actiefLabel = _ursulaActiveAkte ? `Akte ${_ursulaActiveAkte.num} — ${esc(_ursulaActiveAkte.title || '')}` : 'geen';
+  const doel = _ursulaActiveAkte ? _ursulaAktes.find(a => a.num > (_ursulaActiveAkte.num ?? -1)) : null;
+  const actiefInfo = _ursulaActiveAkte
+    ? `<p class="dm-form-label" style="opacity:.7;margin:0 0 6px">Actieve akte: <strong>${actiefLabel}</strong>${doel ? ' \u00b7 spelers voorzien nu <strong>Akte ' + doel.num + ' \u2014 ' + esc(doel.title || '') + '</strong>' : ' \u00b7 (geen volgende akte)'}</p>`
+    : '<p class="dm-form-label" style="color:#c0392b;font-weight:600;margin:0 0 8px">' + icon('lock') + ' Geen actieve akte \u2014 Ursula is momenteel niet beschikbaar voor spelers.</p>';
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Madame Ursula — Instellingen</div>
+
+      <div class="dm-form-row"><label class="dm-form-label">Naam</label>
+        <input id="ursula-naam" class="dm-input" value="${esc(config.naam || 'Madame Ursula')}"></div>
+      <div class="dm-form-row"><label class="dm-form-label">Prijs (fl)</label>
+        <input id="ursula-prijs-fl" class="dm-input" type="number" min="0" value="${prijs.fl || 20}" style="width:70px"></div>
+
+      <div class="dm-form-row"><label class="dm-form-label">Portret (NPC of locatie)</label>
+        <select id="ursula-portret-select" class="dm-select">
+          <option value="">— Kies een entiteit —</option>
+          ${alle.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select></div>
+      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrondafbeelding</label>
+        ${config.backdropId ? `<img id="ursula-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="ursula-backdrop-preview" style="display:none"></span>'}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">📷
+          <input type="file" accept="image/*" class="hidden" onchange="window._ursulaUploadBackdrop(this.files[0])"></label>
+        <div class="dm-form-row"><label class="dm-form-label">Of kies uit entiteiten</label>
+          <select id="ursula-backdrop-select" class="dm-select">
+            <option value="">— Entiteit als backdrop —</option>
+            ${alle.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+          </select></div>
+      </div>
+      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._ursulaSettingsSave()" title="Opslaan">💾</button></div>
+
+      <div class="dm-section-label" style="margin-top:14px">Voorspellingen per akte</div>
+      ${actiefInfo}
+
+      ${_ursulaAktes.length === 0 ? '<p class="dm-form-label" style="opacity:.6">Nog geen aktes/hoofdstukken gedefinieerd.</p>' : `
+      <div class="dm-form-row"><label class="dm-form-label">Akte</label>
+        <select id="ursula-akte-select" class="dm-select" onchange="window._ursulaSelectAkte(this.value)">
+          ${_ursulaAktes.map(a => `<option value="${esc(a.key)}" ${a.key === _ursulaSelectedAkte ? 'selected' : ''}>Akte ${a.num} — ${esc(a.title)}${a.voorspelling ? ' ✓' : ''}</option>`).join('')}
+        </select></div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label">👁 Zien</label><textarea id="ursula-zien" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.zien || '')}</textarea>
+        <label class="dm-form-label">👂 Horen</label><textarea id="ursula-horen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.horen || '')}</textarea>
+        <label class="dm-form-label">👃 Ruiken</label><textarea id="ursula-ruiken" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.ruiken || '')}</textarea>
+        <label class="dm-form-label">👅 Proeven</label><textarea id="ursula-proeven" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.proeven || '')}</textarea>
+        <label class="dm-form-label">✋ Voelen</label><textarea id="ursula-voelen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.voelen || '')}</textarea>
+        <label class="dm-form-label">✦ Concrete kern (naam/locatie — onthuld bij een 6)</label><textarea id="ursula-concreet" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.concreet || '')}</textarea>
+      </div>
+      <div class="dm-form-row" style="gap:6px">
+        <button class="dm-btn dm-btn-primary" onclick="window._ursulaVoorspellingSave()" title="Voorspelling opslaan">💾 Voorspelling</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window._ursulaResetParty()" title="Wis de party-worp voor deze akte zodat opnieuw geworpen kan worden">↺ Reset party-worp</button>
+      </div>`}
+    </div>`;
+};
+
+window._ursulaSelectAkte = (key) => { _ursulaSelectedAkte = key; _renderUrsulaSettings(); };
+
+window._ursulaUploadBackdrop = async (file) => {
+  if (!file) return;
+  const id = 'ursula-backdrop-' + Date.now();
+  try {
+    await api.uploadFile(id, file);
+    _ursulaBackdropPending = id;
+    const prev = document.getElementById('ursula-backdrop-preview');
+    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
+    const sel2 = document.getElementById('ursula-backdrop-select'); if (sel2) sel2.value = '';
+  } catch (err) { alert('Upload mislukt: ' + err.message); }
+};
+
+window._ursulaSettingsSave = async () => {
+  const config = window.app?.state?.meta?.ursula || {};
+  const naam = document.getElementById('ursula-naam')?.value.trim() || 'Madame Ursula';
+  const fl = parseInt(document.getElementById('ursula-prijs-fl')?.value) || 20;
+  const imageId = document.getElementById('ursula-portret-select')?.value || config.imageId || '';
+  const backdropFromSelect = document.getElementById('ursula-backdrop-select')?.value || null;
+  const backdropId = _ursulaBackdropPending || backdropFromSelect || config.backdropId || '';
+  try {
+    await api.saveUrsulaConfig({ naam, prijs: { fl }, imageId, backdropId });
+    const newMeta = await api.meta(); if (window.app?.state) window.app.state.meta = newMeta;
+    _ursulaBackdropPending = null;
+    await _renderUrsulaSettings();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+window._ursulaVoorspellingSave = async () => {
+  if (!_ursulaSelectedAkte) return;
+  const g = (id) => document.getElementById(id)?.value || '';
+  try {
+    await api.saveUrsulaVoorspelling(_ursulaSelectedAkte, {
+      zien: g('ursula-zien'), horen: g('ursula-horen'), ruiken: g('ursula-ruiken'),
+      proeven: g('ursula-proeven'), voelen: g('ursula-voelen'), concreet: g('ursula-concreet'),
+    });
+    await _renderUrsulaSettings();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+window._ursulaResetParty = async () => {
+  if (!confirm('De party-voorspelling voor deze akte wissen zodat de groep opnieuw kan werpen?')) return;
+  try { await api.ursulaReset(_ursulaSelectedAkte || undefined); }
+  catch (err) { alert('Reset mislukt: ' + err.message); }
+};
+
+
+// ── De Heeren van de Nacht — DM-instellingen ──
+
+let _heerenBackdropPending = null;
+let _heerenRangenDraft = [];
+
+function _heerenClTekst(cl) {
+  const f = Math.floor(cl / 100), k = Math.floor((cl % 100) / 10), c = cl % 10;
+  return [f && `${f} fl`, k && `${k} kn`, c && `${c} cl`].filter(Boolean).join(' ') || '0 cl';
+};
+
+async function _renderHeerenSettings() {
+  const el = _tabEl('heeren');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  const meta = window.app?.state?.meta || {};
+  const config = meta.heeren || {};
+  let personages = [], locaties = [], organisaties = [];
+  try { personages   = await api.listEntities('personages'); } catch {}
+  try { locaties     = await api.listEntities('locaties'); } catch {}
+  try { organisaties = await api.listEntities('organisaties'); } catch {}
+  const advOpties = [...personages, ...organisaties];
+
+  let data = null;
+  try { data = await api.getHeeren(); } catch {}
+  const rang = data?.rang || { naam: '', index: 0, aantal: 0 };
+  const jobs = data?.jobs || [];
+  const alleBoetes = data?.alleBoetes || [];
+
+  const rangen = (config.rangen && config.rangen.length) ? config.rangen : [
+    { naam: 'Schoffie', min: 10, max: 30, voordelen: 'Toegang tot het klussenbord.' },
+    { naam: 'Beurzensnijder', min: 25, max: 70, voordelen: 'Betere klussen; de heler knijpt een oogje toe.' },
+    { naam: 'Inbreker', min: 60, max: 150, voordelen: 'Hogere buit en eerste keus uit de klussen.' },
+    { naam: 'Schaduw', min: 140, max: 300, voordelen: 'Een goed woordje bij Zilvertong en Zemelaar.' },
+    { naam: 'Meesterdief', min: 280, max: 600, voordelen: 'De Heeren staan voor je in bij de Luimpoort.' },
+  ];
+  _heerenRangenDraft = rangen.map(r => ({ ...r }));
+  const honFl = (config.honorarium && config.honorarium.fl) || 50;
+  const typeIcon = { zakkenrollen: '🤚', inbraak: '🗝️', oplichting: '🎭' };
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">De Heeren van de Nacht — Instellingen</div>
+
+      <div class="dm-form-row"><label class="dm-form-label">Naam</label>
+        <input id="heeren-naam" class="dm-input" value="${esc(config.naam || 'De Heeren van de Nacht')}"></div>
+      <div class="dm-form-row"><label class="dm-form-label">Contact-portret</label>
+        <select id="heeren-portret" class="dm-select"><option value="">— entiteit —</option>
+          ${[...personages, ...locaties, ...organisaties].map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select></div>
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrond</label>
+        ${config.backdropId ? `<img id="heeren-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:90px;object-fit:cover;border-radius:6px">` : '<span id="heeren-backdrop-preview" style="display:none"></span>'}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">📷<input type="file" accept="image/*" class="hidden" onchange="window._heerenUploadBackdrop(this.files[0])"></label>
+      </div>
+      <div class="dm-form-row"><label class="dm-form-label">Gerechtshof (de Luimpoort)</label>
+        <select id="heeren-luimpoort" class="dm-select"><option value="">— locatie —</option>
+          ${locaties.map(e => `<option value="${esc(e.id)}" ${config.luimpoortId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select></div>
+      <div class="dm-form-row"><label class="dm-form-label">Advocaat (Zilvertong en Zemelaar)</label>
+        <select id="heeren-advocaat" class="dm-select"><option value="">— personage/organisatie —</option>
+          ${advOpties.map(e => `<option value="${esc(e.id)}" ${config.advocaatId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select></div>
+      <div class="dm-form-row"><label class="dm-form-label">Honorarium advocaat (fl)</label>
+        <input id="heeren-honorarium" class="dm-input" type="number" min="0" value="${honFl}" style="width:70px"></div>
+      <div class="dm-form-row"><label class="dm-form-label">Boete = buit ×</label>
+        <input id="heeren-boetefactor" class="dm-input" type="number" min="1" step="0.5" value="${config.boeteFactor ?? 2}" style="width:70px"></div>
+      <div class="dm-form-row"><label class="dm-form-label">Bordgrootte</label>
+        <input id="heeren-bordgrootte" class="dm-input" type="number" min="1" max="12" value="${config.bordGrootte ?? 4}" style="width:70px"></div>
+
+      <div class="dm-section-label" style="margin-top:12px">Rangen (aanzien)</div>
+      <div id="heeren-rangen"></div>
+      <div class="dm-form-row"><button class="dm-btn dm-btn-ghost" onclick="window._heerenRangToevoegen()">＋ Rang</button></div>
+      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._heerenSettingsSave()">💾 Instellingen</button></div>
+
+      <div class="dm-section-label" style="margin-top:14px">Huidige rang van de party</div>
+      <div class="dm-form-row"><label class="dm-form-label">Rang</label>
+        <select id="heeren-huidige-rang" class="dm-select" onchange="window._heerenSetRang(this.value)">
+          ${rangen.map((r, i) => `<option value="${i}" ${i === rang.index ? 'selected' : ''}>${esc(r.naam)} (${r.min}–${r.max} fl)</option>`).join('')}
+        </select></div>
+
+      <div class="dm-section-label" style="margin-top:14px">Klussenbord</div>
+      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._heerenGenereer()">🎲 Genereer / ververs bord</button></div>
+      <div id="heeren-jobs">
+        ${jobs.length ? jobs.map(j => `
+          <div style="border:1px solid rgba(196,168,122,0.25);border-radius:8px;padding:8px;margin-bottom:8px">
+            <div><strong>${typeIcon[j.type] || ''} ${esc(j.typeNaam)}</strong> — buit ${j.payout} fl ${j.doelZichtbaar ? '' : '<span style="opacity:.6">(doelwit nog onontdekt)</span>'}</div>
+            <div style="opacity:.8;font-size:12px">${esc(j.omschrijving)}</div>
+            ${j.status === 'aangenomen'
+              ? `<div style="margin-top:4px"><span style="opacity:.8;font-size:12px">Aangenomen door ${esc(j.doorNaam || '?')}</span>
+                 <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+                   <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','geslaagd')">✓ Geslaagd</button>
+                   <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','mislukt')">✗ Mislukt</button>
+                   <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','ontsnapt')">🏃 Betrapt → ontsnapt</button>
+                   <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','gearresteerd')">⛓️ Betrapt → gearresteerd</button>
+                 </div></div>`
+              : `<div style="opacity:.6;font-size:12px;margin-top:4px">Open — wacht op een speler</div>`}
+          </div>`).join('') : '<p class="dm-form-label" style="opacity:.6">Bord is leeg. Genereer klussen.</p>'}
+      </div>
+
+      <div class="dm-section-label" style="margin-top:14px">Openstaande boetes</div>
+      <div id="heeren-boetes">
+        ${alleBoetes.length ? alleBoetes.map(b => `
+          <div class="dm-form-row" style="gap:6px;align-items:center;border:1px solid rgba(196,168,122,0.2);border-radius:6px;padding:6px;margin-bottom:6px">
+            <span style="flex:1">⚖️ <strong>${esc(b.characterNaam)}</strong> — ${esc(b.reden)} (${_heerenClTekst(b.bedragCl)})</span>
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._heerenKwijt('${esc(b.characterId)}','${esc(b.id)}')">Kwijtschelden</button>
+          </div>`).join('') : '<p class="dm-form-label" style="opacity:.6">Geen openstaande boetes.</p>'}
+      </div>
+    </div>`;
+  _renderHeerenRangen();
+};
+
+function _renderHeerenRangen() {
+  const wrap = document.getElementById('heeren-rangen');
+  if (!wrap) return;
+  wrap.innerHTML = _heerenRangenDraft.map((r, i) => `
+    <div style="border:1px solid rgba(196,168,122,0.2);border-radius:6px;padding:6px;margin-bottom:6px">
+      <div class="dm-form-row" style="gap:6px;align-items:center;margin-bottom:4px">
+        <input class="dm-input" style="flex:1" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._heerenRangEdit(${i},'naam',this.value)">
+        <input class="dm-input" type="number" style="width:60px" placeholder="min" value="${r.min ?? ''}" oninput="window._heerenRangEdit(${i},'min',this.value)">
+        <input class="dm-input" type="number" style="width:60px" placeholder="max" value="${r.max ?? ''}" oninput="window._heerenRangEdit(${i},'max',this.value)">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._heerenRangVerwijder(${i})">🗑️</button>
+      </div>
+      <input class="dm-input" style="width:100%" placeholder="Voordelen (bijv. korting, safehouse, contacten…)" value="${esc(r.voordelen || '')}" oninput="window._heerenRangEdit(${i},'voordelen',this.value)">
+    </div>`).join('') || '<p class="dm-form-label" style="opacity:.6">Geen rangen.</p>';
+};
+
+window._heerenRangEdit = (i, f, v) => { const r = _heerenRangenDraft[i]; if (!r) return; r[f] = (f === 'naam' || f === 'voordelen') ? v : (parseInt(v) || 0); };
+window._heerenRangToevoegen = () => { _heerenRangenDraft.push({ naam: '', min: 0, max: 0 }); _renderHeerenRangen(); };
+window._heerenRangVerwijder = (i) => { _heerenRangenDraft.splice(i, 1); _renderHeerenRangen(); };
+
+window._heerenUploadBackdrop = async (file) => {
+  if (!file) return;
+  const id = 'heeren-backdrop-' + Date.now();
+  try { await api.uploadFile(id, file); _heerenBackdropPending = id; const p = document.getElementById('heeren-backdrop-preview'); if (p) { p.src = api.fileUrl(id); p.style.display = ''; } }
+  catch (e) { alert('Upload mislukt: ' + e.message); }
+};
+
+window._heerenSettingsSave = async () => {
+  const config = window.app?.state?.meta?.heeren || {};
+  const naam = document.getElementById('heeren-naam')?.value.trim() || 'De Heeren van de Nacht';
+  const imageId = document.getElementById('heeren-portret')?.value || '';
+  const backdropId = _heerenBackdropPending || config.backdropId || '';
+  const luimpoortId = document.getElementById('heeren-luimpoort')?.value || '';
+  const advocaatId = document.getElementById('heeren-advocaat')?.value || '';
+  const honorarium = { fl: parseInt(document.getElementById('heeren-honorarium')?.value) || 50 };
+  const boeteFactor = parseFloat(document.getElementById('heeren-boetefactor')?.value) || 2;
+  const bordGrootte = parseInt(document.getElementById('heeren-bordgrootte')?.value) || 4;
+  const rangen = _heerenRangenDraft.filter(r => (r.naam || '').trim()).map(r => ({ naam: r.naam.trim(), min: r.min || 0, max: Math.max(r.min || 0, r.max || 0), voordelen: (r.voordelen || '').trim() }));
+  try {
+    await api.saveHeerenConfig({ naam, imageId, backdropId, luimpoortId, advocaatId, honorarium, boeteFactor, bordGrootte, rangen });
+    const newMeta = await api.meta(); if (window.app?.state) window.app.state.meta = newMeta;
+    _heerenBackdropPending = null;
+    await _renderHeerenSettings();
+  } catch (e) { alert('Opslaan mislukt: ' + e.message); }
+};
+
+window._heerenSetRang  = async (rang) => { try { await api.heerenSetRang(parseInt(rang)); await _renderHeerenSettings(); } catch (e) { alert(e.message); } };
+window._heerenGenereer = async () => { try { await api.heerenGenereer(); await _renderHeerenSettings(); } catch (e) { alert(e.message); } };
+window._heerenUitslag  = async (id, uitkomst) => { try { await api.heerenUitslag(id, uitkomst); await _renderHeerenSettings(); } catch (e) { alert(e.message); } };
+window._heerenKwijt    = async (cid, bid) => { if (!confirm('Deze boete kwijtschelden?')) return; try { await api.heerenKwijt(cid, bid); await _renderHeerenSettings(); } catch (e) { alert(e.message); } };
+
+
+// ── De Tempel — DM-instellingen ──
+
+let _tempelGodenDraft = [];
+let _tempelBackdropPending = null;
+
+async function _renderTempelSettings() {
+  const el = _tabEl('tempel');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  let data;
+  try { data = await api.getTempel(); }
+  catch (e) { el.innerHTML = `<div class="dm-feature-section"><div class="dm-section-label">Fout: ${esc(String(e?.message || e))}</div></div>`; return; }
+  const config = data.config || {};
+  _tempelGodenDraft = (config.goden || []).map(g => ({ ...g }));
+
+  let personages = [], locaties = [];
+  try { personages = await api.listEntities('personages'); } catch {}
+  try { locaties  = await api.listEntities('locaties');  } catch {}
+  const alle = [...personages, ...locaties];
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">De Tempel — Instellingen</div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Naam</label>
+        <input id="tempel-naam" class="dm-input" value="${esc(config.naam || 'De Tempel')}">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Prijs eenmalige zegen (fl)</label>
+        <input id="tempel-prijs-fl" class="dm-input" type="number" min="0" value="${(config.prijs && config.prijs.fl) || 25}" style="width:70px">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Prijs eed (fl)</label>
+        <input id="tempel-eedprijs-fl" class="dm-input" type="number" min="0" value="${(config.eedPrijs && config.eedPrijs.fl) || 50}" style="width:70px">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Boeteprijs vloek (fl)</label>
+        <input id="tempel-boeteprijs-fl" class="dm-input" type="number" min="0" value="${(config.boetePrijs && config.boetePrijs.fl) || 100}" style="width:70px">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Voorwerpnaam ({god})</label>
+        <input id="tempel-voorwerp" class="dm-input" value="${esc(config.voorwerpNaam || 'Votiefmunt van {god}')}">
+      </div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Portret (NPC of locatie)</label>
+        <select id="tempel-portret-select" class="dm-select">
+          <option value="">— Kies een entiteit —</option>
+          ${alle.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select>
+      </div>
+      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrondafbeelding</label>
+        ${config.backdropId ? `<img id="tempel-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="tempel-backdrop-preview" style="display:none"></span>'}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">
+          📷
+          <input type="file" accept="image/*" class="hidden" onchange="window._tempelUploadBackdrop(this.files[0])">
+        </label>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Of kies uit entiteiten</label>
+          <select id="tempel-backdrop-select" class="dm-select">
+            <option value="">— Entiteit als backdrop —</option>
+            ${alle.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="dm-section-label" style="margin-top:14px">Actieve eden &amp; vloeken</div>
+      <div id="tempel-eden"></div>
+
+      <div class="dm-section-label" style="margin-top:14px">Goden &amp; zegeningen</div>
+      <p class="dm-form-label" style="opacity:.7;margin:0 0 6px">Eigen prijs per god is optioneel — leeg = standaardprijs.</p>
+      <div id="tempel-goden"></div>
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-ghost" onclick="window._tempelGodToevoegen()" title="God toevoegen">＋ God</button>
+      </div>
+
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-primary" onclick="window._tempelSettingsSave()" title="Opslaan">💾</button>
+      </div>
+    </div>
+  `;
+  _renderTempelGodenRows();
+  _renderTempelEden();
+};
+
+async function _renderTempelEden() {
+  const wrap = document.getElementById('tempel-eden');
+  if (!wrap) return;
+  let eden = [];
+  try { eden = await api.tempelEden(); } catch {}
+  if (!eden.length) {
+    wrap.innerHTML = '<p class="dm-form-label" style="opacity:.6">Geen actieve eden of vloeken.</p>';
+    return;
+  }
+  wrap.innerHTML = eden.map(e => `
+    <div class="dm-form-row" style="gap:6px;align-items:center;border:1px solid rgba(196,168,122,0.2);border-radius:6px;padding:6px;margin-bottom:6px">
+      <span style="flex:1">
+        ${e.status === 'vloek' ? '☠️' : '⚖️'} <strong>${esc(e.characterName)}</strong> — ${esc(e.godNaam)}
+        <span style="display:block;opacity:.7;font-size:11px">${esc(e.effect || '')}</span>
+      </span>
+      ${e.status === 'vloek'
+        ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedHef('${esc(e.characterId)}')" title="Hef de vloek op">Hef op</button>`
+        : `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedVerbreek('${esc(e.characterId)}')" title="Verbreek de eed → vloek">Verbreek</button>
+           <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelEedHef('${esc(e.characterId)}')" title="Eed opheffen (correctie)">✕</button>`}
+    </div>`).join('');
+};
+
+window._tempelEedVerbreek = async (characterId) => {
+  if (!confirm('Deze eed verbreken? De speler wordt vervloekt tot er boete is gedaan.')) return;
+  try { await api.tempelEedVerbreek(characterId); await _renderTempelEden(); }
+  catch (err) { alert(err.message || 'Mislukt'); }
+};
+
+window._tempelEedHef = async (characterId) => {
+  if (!confirm('Deze eed of vloek opheffen?')) return;
+  try { await api.tempelEedHef(characterId); await _renderTempelEden(); }
+  catch (err) { alert(err.message || 'Mislukt'); }
+};
+
+function _renderTempelGodenRows() {
+  const wrap = document.getElementById('tempel-goden');
+  if (!wrap) return;
+  wrap.innerHTML = _tempelGodenDraft.map((g, i) => `
+    <div class="dm-tempel-god" style="border:1px solid rgba(196,168,122,0.25);border-radius:8px;padding:8px;margin-bottom:8px">
+      <div class="dm-form-row" style="gap:6px;align-items:center">
+        <input class="dm-input" style="flex:1" placeholder="Naam (bijv. Matall, de Maker)" value="${esc(g.naam || '')}" oninput="window._tempelGodEdit(${i},'naam',this.value)">
+        <input class="dm-input" type="number" min="0" style="width:64px" placeholder="fl" value="${(g.prijs && g.prijs.fl) || ''}" oninput="window._tempelGodEdit(${i},'prijsFl',this.value)" title="Eigen prijs (leeg = standaard)">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._tempelGodVerwijderen(${i})" title="Verwijderen">🗑️</button>
+      </div>
+      <div class="dm-form-row" style="gap:6px">
+        <input class="dm-input" style="flex:1" placeholder="Domein" value="${esc(g.domein || '')}" oninput="window._tempelGodEdit(${i},'domein',this.value)">
+        <input class="dm-input" style="flex:1" placeholder="Zegen (bijv. Con +1)" value="${esc(g.zegen || '')}" oninput="window._tempelGodEdit(${i},'zegen',this.value)">
+      </div>
+      <div class="dm-form-row">
+        <input class="dm-input" style="flex:1" placeholder="Symbool" value="${esc(g.symbool || '')}" oninput="window._tempelGodEdit(${i},'symbool',this.value)">
+      </div>
+      <div class="dm-form-row">
+        <input class="dm-input" style="flex:1" placeholder="Vloek bij verzaakte eed (bijv. Con -1; …)" value="${esc(g.vloek || '')}" oninput="window._tempelGodEdit(${i},'vloek',this.value)">
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label" style="opacity:.7">Eenmalige zegens (één per regel, max 4 = d4)</label>
+        <textarea class="dm-input" rows="4" style="resize:vertical;font-size:11px" placeholder="bijv. Herrol een mislukte death save."
+          oninput="window._tempelGodEditLines(${i}, this.value)">${esc((g.eenmaligeZegens || []).join('\n'))}</textarea>
+      </div>
+    </div>
+  `).join('') || '<p class="dm-form-label" style="opacity:.6">Nog geen goden toegevoegd.</p>';
+};
+
+window._tempelGodEdit = (i, field, value) => {
+  const g = _tempelGodenDraft[i];
+  if (!g) return;
+  if (field === 'prijsFl') {
+    const fl = parseInt(value);
+    if (fl > 0) g.prijs = { fl }; else delete g.prijs;
+  } else {
+    g[field] = value;
+  }
+};
+
+window._tempelGodEditLines = (i, value) => {
+  const g = _tempelGodenDraft[i];
+  if (!g) return;
+  g.eenmaligeZegens = value.split('\n').map(l => l.trim()).filter(Boolean);
+};
+
+window._tempelGodToevoegen = () => {
+  _tempelGodenDraft.push({ id: 'god_' + Date.now(), naam: '', domein: '', symbool: '', zegen: '', vloek: '', eenmaligeZegens: [] });
+  _renderTempelGodenRows();
+};
+
+window._tempelGodVerwijderen = (i) => {
+  _tempelGodenDraft.splice(i, 1);
+  _renderTempelGodenRows();
+};
+
+window._tempelUploadBackdrop = async (file) => {
+  if (!file) return;
+  const id = 'tempel-backdrop-' + Date.now();
+  try {
+    await api.uploadFile(id, file);
+    _tempelBackdropPending = id;
+    const prev = document.getElementById('tempel-backdrop-preview');
+    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
+    const sel = document.getElementById('tempel-backdrop-select');
+    if (sel) sel.value = '';
+  } catch (err) { alert('Upload mislukt: ' + err.message); }
+};
+
+window._tempelSettingsSave = async () => {
+  const config = window.app?.state?.meta?.tempel || {};
+  const naam = document.getElementById('tempel-naam')?.value.trim() || 'De Tempel';
+  const fl = parseInt(document.getElementById('tempel-prijs-fl')?.value) || 25;
+  const eedFl = parseInt(document.getElementById('tempel-eedprijs-fl')?.value) || 50;
+  const boeteFl = parseInt(document.getElementById('tempel-boeteprijs-fl')?.value) || 100;
+  const voorwerpNaam = document.getElementById('tempel-voorwerp')?.value.trim() || 'Votiefmunt van {god}';
+  const imageId = document.getElementById('tempel-portret-select')?.value || config.imageId || '';
+  const backdropFromSelect = document.getElementById('tempel-backdrop-select')?.value || null;
+  const backdropId = _tempelBackdropPending || backdropFromSelect || config.backdropId || '';
+  const goden = _tempelGodenDraft
+    .filter(g => (g.naam || '').trim())
+    .map(g => ({
+      id: g.id || ('god_' + Math.random().toString(36).slice(2, 8)),
+      naam: g.naam.trim(),
+      domein: (g.domein || '').trim(),
+      symbool: (g.symbool || '').trim(),
+      zegen: (g.zegen || '').trim(),
+      vloek: (g.vloek || '').trim(),
+      eenmaligeZegens: (g.eenmaligeZegens || []).filter(Boolean),
+      ...(g.prijs ? { prijs: g.prijs } : {}),
+    }));
+  try {
+    await api.saveTempelConfig({ naam, prijs: { fl }, eedPrijs: { fl: eedFl }, boetePrijs: { fl: boeteFl }, voorwerpNaam, imageId, backdropId, goden });
+    const newMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = newMeta;
+    _tempelBackdropPending = null;
+    await _renderTempelSettings();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+
+// ── Facties & Aanzien ──
+
+let _factiesDraft = [];
+
+async function _renderFactiesSettings() {
+  const el = _tabEl('facties');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+  let data = null;
+  try { data = await api.getFacties(); } catch {}
+  _factiesDraft = (data?.facties || []).map(f => ({
+    id: f.id, naam: f.naam, embleem: f.embleem, stijl: f.stijl || '', beschrijving: f.beschrijving,
+    rangen: (f.rangen || []).map(r => ({
+      naam: r.naam, voordelen: r.voordelen || '', titel: r.titel || '',
+      boons: (r.boons || []).map(b => ({ icoon: b.icoon || '', naam: b.naam || '', tekst: b.tekst || '' })),
+    })),
+    huidigeRang: f.rang?.index ?? 0,
+  }));
+  _renderFactiesDM();
+};
+
+function _renderFactiesDM() {
+  const el = _tabEl('facties');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Facties &amp; Aanzien</div>
+      <p class="dm-form-label" style="opacity:.7;margin-bottom:10px">Stel per organisatie de huidige rang van de party in. Bij rang 0 verschijnt er niets op het spelersdashboard.</p>
+      ${_factiesDraft.map((f, fi) => `
+        <div style="border:1px solid rgba(196,168,122,0.25);border-radius:8px;padding:10px;margin-bottom:10px">
+          <div class="dm-form-row" style="gap:6px;align-items:center">
+            <input class="dm-input" style="width:48px;text-align:center" value="${esc(f.embleem || '')}" oninput="window._factieEdit(${fi},'embleem',this.value)">
+            <input class="dm-input" style="flex:1" placeholder="Naam" value="${esc(f.naam || '')}" oninput="window._factieEdit(${fi},'naam',this.value)">
+          </div>
+          <input class="dm-input" style="width:100%;margin-top:4px" placeholder="Beschrijving" value="${esc(f.beschrijving || '')}" oninput="window._factieEdit(${fi},'beschrijving',this.value)">
+          <div class="dm-form-row" style="margin-top:4px"><label class="dm-form-label">Stijl</label>
+            <select class="dm-select" onchange="window._factieEdit(${fi},'stijl',this.value)">
+              ${['', 'hout', 'metaal', 'staal'].map(s => `<option value="${s}" ${(f.stijl || '') === s ? 'selected' : ''}>${s ? s : '— standaard —'}</option>`).join('')}
+            </select></div>
+          <div class="dm-form-row" style="margin-top:8px"><label class="dm-form-label">Huidige rang</label>
+            <select class="dm-select" onchange="window._factieSetRang('${esc(f.id)}',this.value)">
+              ${f.rangen.map((r, i) => `<option value="${i}" ${i === f.huidigeRang ? 'selected' : ''}>${i}. ${esc(r.naam)}</option>`).join('')}
+            </select></div>
+          <div class="dm-section-label" style="margin-top:8px">Rangen (aanzien)</div>
+          <div id="factie-rangen-${fi}"></div>
+          <div class="dm-form-row"><button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangToevoegen(${fi})">＋ Rang</button></div>
+        </div>`).join('')}
+      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._factiesSave()">💾 Facties opslaan</button></div>
+    </div>`;
+  _factiesDraft.forEach((_, fi) => _renderFactieRangen(fi));
+};
+
+function _renderFactieRangen(fi) {
+  const wrap = document.getElementById(`factie-rangen-${fi}`);
+  if (!wrap) return;
+  const f = _factiesDraft[fi];
+  wrap.innerHTML = (f.rangen || []).map((r, i) => `
+    <div style="border:1px solid rgba(196,168,122,0.18);border-radius:6px;padding:6px;margin-bottom:6px">
+      <div class="dm-form-row" style="gap:6px;align-items:center;margin-bottom:4px">
+        <span style="opacity:.5;width:16px;text-align:right">${i}</span>
+        <input class="dm-input" style="width:120px" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._factieRangEdit(${fi},${i},'naam',this.value)">
+        <input class="dm-input" style="flex:1" placeholder="Voordelen (korte regel)" value="${esc(r.voordelen || '')}" oninput="window._factieRangEdit(${fi},${i},'voordelen',this.value)">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangVerwijder(${fi},${i})">🗑️</button>
+      </div>
+      <input class="dm-input" style="width:100%;margin-bottom:4px" placeholder="Titel bij deze rang (optioneel)" value="${esc(r.titel || '')}" oninput="window._factieRangEdit(${fi},${i},'titel',this.value)">
+      <div style="padding-left:22px">
+        ${(r.boons || []).map((b, bi) => `
+          <div class="dm-form-row" style="gap:4px;align-items:center;margin-bottom:3px">
+            <input class="dm-input" style="width:42px;text-align:center" placeholder="🎁" value="${esc(b.icoon || '')}" oninput="window._factieBoonEdit(${fi},${i},${bi},'icoon',this.value)">
+            <input class="dm-input" style="width:110px" placeholder="Boon" value="${esc(b.naam || '')}" oninput="window._factieBoonEdit(${fi},${i},${bi},'naam',this.value)">
+            <input class="dm-input" style="flex:1" placeholder="Wat het doet" value="${esc(b.tekst || '')}" oninput="window._factieBoonEdit(${fi},${i},${bi},'tekst',this.value)">
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonVerwijder(${fi},${i},${bi})">✕</button>
+          </div>`).join('')}
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonToevoegen(${fi},${i})">＋ Boon</button>
+      </div>
+    </div>`).join('') || '<p class="dm-form-label" style="opacity:.6">Geen rangen.</p>';
+};
+
+window._factieEdit = (fi, field, v) => { const f = _factiesDraft[fi]; if (f) f[field] = v; };
+window._factieRangEdit = (fi, i, field, v) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) r[field] = v; };
+window._factieRangToevoegen = (fi) => { _factiesDraft[fi]?.rangen.push({ naam: '', voordelen: '', titel: '', boons: [] }); _renderFactieRangen(fi); };
+window._factieRangVerwijder = (fi, i) => { _factiesDraft[fi]?.rangen.splice(i, 1); _renderFactieRangen(fi); };
+window._factieBoonEdit = (fi, i, bi, field, v) => { const b = _factiesDraft[fi]?.rangen?.[i]?.boons?.[bi]; if (b) b[field] = v; };
+window._factieBoonToevoegen = (fi, i) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) { (r.boons = r.boons || []).push({ icoon: '', naam: '', tekst: '' }); _renderFactieRangen(fi); } };
+window._factieBoonVerwijder = (fi, i, bi) => { _factiesDraft[fi]?.rangen?.[i]?.boons?.splice(bi, 1); _renderFactieRangen(fi); };
+window._factieSetRang = async (id, rang) => {
+  try { await api.factieSetRang(id, parseInt(rang)); const f = _factiesDraft.find(x => x.id === id); if (f) f.huidigeRang = parseInt(rang); }
+  catch (e) { alert(e.message); }
+};
+window._factiesSave = async () => {
+  const payload = _factiesDraft.map(f => ({
+    id: f.id, naam: (f.naam || '').trim(), embleem: (f.embleem || '').trim(), stijl: (f.stijl || '').trim(), beschrijving: (f.beschrijving || '').trim(),
+    rangen: (f.rangen || []).filter(r => (r.naam || '').trim()).map(r => ({
+      naam: r.naam.trim(), voordelen: (r.voordelen || '').trim(), titel: (r.titel || '').trim(),
+      boons: (r.boons || []).filter(b => (b.naam || '').trim() || (b.tekst || '').trim())
+        .map(b => ({ icoon: (b.icoon || '').trim(), naam: (b.naam || '').trim(), tekst: (b.tekst || '').trim() })),
+    })),
+  }));
+  try { await api.saveFactiesConfig(payload); await _renderFactiesSettings(); }
+  catch (e) { alert('Opslaan mislukt: ' + e.message); }
+};
+
 window._hbTogglePurse = async () => {
   try {
     await api.togglePartyCurrency();
@@ -3752,7 +4466,7 @@ async function _sndPatch(body) {
     body: JSON.stringify(body),
   });
   window.soundManager?.reloadSounds();
-}
+};
 
 async function _sndUploadFile(file) {
   const id = `snd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -3760,19 +4474,19 @@ async function _sndUploadFile(file) {
   fd.append('file', file);
   await fetch(`/api/files/${id}`, { method: 'POST', body: fd });
   return id;
-}
+};
 
 async function _sndGetData() {
   const r = await fetch('/api/sounds');
   return r.ok ? r.json() : { standard: { damage: null, healing: null, win: null, loss: null }, emotes: {} };
-}
+};
 
 function _sndPlayerData(sounds, pid) {
   const raw = sounds.emotes?.[pid];
   // Support both old flat-array format and new {library, selected} format
   if (!raw || Array.isArray(raw)) return { library: [], selected: [] };
   return { library: raw.library || [], selected: raw.selected || [] };
-}
+};
 
 async function _renderGeluiden() {
   const el = document.getElementById('dm-geluiden-content');
@@ -4033,7 +4747,7 @@ async function _renderGeluiden() {
     }}});
     _renderGeluiden();
   };
-}
+};
 
 // DM panel Gevecht tab — setup fase
 function _renderGevecht() {
@@ -4160,7 +4874,7 @@ function _renderGevecht() {
       if (statusEl) statusEl.textContent = 'Fout: ' + (err.message || '?');
     }
   };
-}
+};
 
 // ── Detail-panel: klik op portret ────────────────────────────────────────────
 
@@ -4258,7 +4972,7 @@ function _combatSelectCombatant(id) {
     ${deathSaves}
   `;
   panel.classList.remove('hidden');
-}
+};
 
 // Combat overlay — zichtbaar voor iedereen tijdens gevecht
 function _renderCombatOverlay(combat, startMinimized = false) {
@@ -4599,7 +5313,7 @@ function _renderCombatOverlay(combat, startMinimized = false) {
       combatModal.classList.add('co-entering');
     }
   }
-}
+};
 
 // ── Combat overlay tab-switching ──────────────────────────────────────────────
 
@@ -4665,7 +5379,7 @@ async function _loadCombatCharTab(tab) {
   } catch (e) {
     panel.innerHTML = `<p class="co-char-err">Fout bij laden: ${esc(String(e?.message || e))}</p>`;
   }
-}
+};
 
 function _buildCombatPersonagePanel(profile, hpData, combat, charId, traits) {
   const _ab      = (ab) => parseInt(profile[ab]) || 10;
@@ -4815,7 +5529,7 @@ function _buildCombatPersonagePanel(profile, hpData, combat, charId, traits) {
       <div class="co-traits-list">${traitsHtml}</div>
     </div>
   `;
-}
+};
 
 function _buildCombatSpreukenPanel(slots, spells, charId, profile = {}) {
   const lvls = [1,2,3,4,5,6,7,8,9];
@@ -4882,7 +5596,7 @@ function _buildCombatSpreukenPanel(slots, spells, charId, profile = {}) {
       <div class="co-spell-accordions">${spellAccordionsHtml}</div>
     </div>` : ''}
   `;
-}
+};
 
 function _buildCombatKnapzakPanel(simpleItems, currency, ownership, voorwerpen, charId) {
   const myItemMap = {};
@@ -4935,7 +5649,7 @@ function _buildCombatKnapzakPanel(simpleItems, currency, ownership, voorwerpen, 
     </div>` : ''}
     ${!myItems.length && !simpleItems.length ? '<p class="co-char-empty">Geen items in knapzak.</p>' : ''}
   `;
-}
+};
 
 // ── Spell-accordion lazy-loader voor combat overlay ──
 let _coSpellList = null; // cache HP-spells
@@ -4993,7 +5707,7 @@ function _attachCombatSpellAccordionListeners(container) {
       }
     });
   });
-}
+};
 
 // ── Kenmerk-accordion lazy-loader voor combat overlay ──
 function _attachCombatTraitAccordionListeners(container) {
@@ -5041,7 +5755,7 @@ function _attachCombatTraitAccordionListeners(container) {
       }
     });
   });
-}
+};
 
 window._coCombatToggleSlot = async (lvl, idx, charId) => {
   const current = await api.getPlayerSpellSlots(charId).catch(() => ({}));
@@ -5092,7 +5806,7 @@ async function _populateDmEmoteBar(combat) {
         </button>`;
       }).join('')}
     </div>`;
-}
+};
 
 async function _populateEmoteBar(combat) {
   const bar = document.getElementById('co-emote-bar');
@@ -5142,7 +5856,7 @@ async function _populateEmoteBar(combat) {
       window._socket.emit('sound:emote', { entityId: myCharId, index });
     }
   };
-}
+};
 
 // ── Berichten ─────────────────────────────────────────────────────────────────
 
@@ -5186,7 +5900,7 @@ async function _renderBerichten() {
     <div class="dm-feature-section">
 
       <!-- ═══ STUUR BRIEF (rijker format) ═══ -->
-      <div class="dm-section-label">✉️ Stuur brief</div>
+      <div class="dm-section-label">${icon('mail')} Stuur brief</div>
       <div class="bericht-compose post-compose">
 
         <!-- Ontvanger -->
@@ -5233,6 +5947,18 @@ async function _renderBerichten() {
           <input id="post-datum" type="text" class="dm-input" placeholder="bijv. 4 Grasmaand MDCCLXXII" style="width:100%">
         </div>
 
+        <!-- Briefstijl / thema -->
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label">Briefstijl</label>
+          <select id="post-thema" class="dm-select" style="width:100%">
+            <option value="">Standaard perkament</option>
+            <option value="ursula">Madame Ursula — lila brief</option>
+            <option value="gock">De Gock — logo &amp; typemachine</option>
+            <option value="tweespalt">De Tweespalt — haastig briefje</option>
+            <option value="heeren">De Heeren van de Nacht — schaduwbrief</option>
+          </select>
+        </div>
+
         <!-- Tekst -->
         <div class="dm-form-row" style="flex-direction:column;gap:4px">
           <label class="dm-form-label">Inhoud</label>
@@ -5240,13 +5966,13 @@ async function _renderBerichten() {
         </div>
 
         <div class="dm-form-row" style="justify-content:flex-end;gap:6px">
-          <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.postSend()" title="Brief sturen">📜</button>
+          <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.postSend()" title="Brief sturen">${icon('scroll-text')}</button>
         </div>
         <div id="post-send-status" class="bericht-status hidden"></div>
       </div>
 
       <!-- ═══ STUUR SNEL BERICHT (eenvoudig format) ═══ -->
-      <div class="dm-section-label" style="margin-top:16px">💬 Snel bericht${totalUnread ? ` <span class="bericht-badge">${totalUnread}</span>` : ''}</div>
+      <div class="dm-section-label" style="margin-top:16px">${icon('message-circle')} Snel bericht${totalUnread ? ` <span class="bericht-badge">${totalUnread}</span>` : ''}</div>
       <div class="bericht-compose">
         <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;align-items:center">
           <label class="dm-form-label" style="min-width:60px">Aan</label>
@@ -5325,14 +6051,14 @@ async function _renderBerichten() {
           </details>`;
       }).join('')}
     </div>`;
-}
+};
 
 function _fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
   return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }) + ' ' +
          d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-}
+};
 
 window._berichtDmDelete = async (characterId, msgId) => {
   try {
@@ -5388,6 +6114,7 @@ async function _postSend() {
   const afzender       = document.getElementById('post-afzender')?.value.trim();
   const datum          = document.getElementById('post-datum')?.value.trim();
   const npcId          = document.getElementById('post-npc')?.value;
+  const thema          = document.getElementById('post-thema')?.value || '';
   const statusEl       = document.getElementById('post-send-status');
 
   if (!tekst) {
@@ -5405,11 +6132,16 @@ async function _postSend() {
 
   const npc = npcId ? _berichtenNPCs.find(n => n.id === npcId) : null;
 
+  // Vul een passende afzender in als er geen is gekozen
+  const THEMA_AFZENDER = { ursula: 'Madame Ursula', gock: 'De Gock', tweespalt: 'De Tweespalt', heeren: 'De Heeren van de Nacht' };
+  const afzenderDef = afzender || (thema ? THEMA_AFZENDER[thema] : '');
+
   const payload = {
     titel,
     tekst,
-    afzender,
+    afzender: afzenderDef,
     datum,
+    thema,
     entityId:   npc ? npc.id   : null,
     entityType: npc ? 'personages' : null,
     characterId: ontvangerType === 'speler' ? spelerId : null,
@@ -5430,11 +6162,12 @@ async function _postSend() {
     document.getElementById('post-datum').value      = '';
     document.getElementById('post-npc').value        = '';
     document.getElementById('post-npc-search').value = '';
+    const themaSel = document.getElementById('post-thema'); if (themaSel) themaSel.value = '';
     setTimeout(() => _renderBerichten(), 400);
   } catch (err) {
     if (statusEl) { statusEl.textContent = 'Fout: ' + err.message; statusEl.className = 'bericht-status bericht-status--err'; statusEl.classList.remove('hidden'); }
   }
-}
+};
 
 window._berichtenToggleSjablonen = () => {
   const el = document.getElementById('bericht-sjablonen-lijst');
@@ -5480,13 +6213,13 @@ async function _berichtSend() {
     if (statusEl) { statusEl.textContent = 'Fout: ' + err.message; statusEl.className = 'bericht-status bericht-status--err'; }
   }
   if (statusEl) statusEl.classList.remove('hidden');
-}
+};
 
 async function _sjabloonDelete(index) {
   _sjablonen.splice(index, 1);
   try { await api.saveSjablonen(_sjablonen); } catch { /* ok */ }
   _renderBerichten();
-}
+};
 
 // ── DM Instellingen modal ─────────────────────────────────────────────────────
 
@@ -5615,7 +6348,7 @@ async function _renderInstellingen() {
   // Render wereld en beurs in de juiste containers
   _renderWereldTab();
   _renderBeursTab();
-}
+};
 
 window._instTitelSave = async () => {
   const title    = document.getElementById('inst-app-title')?.value.trim();
