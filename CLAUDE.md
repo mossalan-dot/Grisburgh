@@ -281,11 +281,15 @@ npm test           # Jest (tests/ map)
 ## Git push-strategie
 
 **Standaard: push aan het einde van elke werksessie**, niet na elke deploy.
-`origin/main` fungeert als dagelijkse back-up; de server is de bron van waarheid.
+De **server is de bron van waarheid**; `origin/main` is back-up van de lokale main.
 
 ```bash
 git push origin main
 ```
+
+Als origin/main afwijkt (bijv. door feature-branches die daar direct gemerged zijn):
+gebruik `git push --force-with-lease origin main`. De Facties/feature-commits
+blijven beschikbaar via hun eigen branch; ze hoeven niet in main te zitten.
 
 ---
 
