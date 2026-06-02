@@ -5291,7 +5291,7 @@ body::before {
 /* ── Spelersdashboard ── */
 
 .player-dashboard {
-  max-width: 560px;
+  max-width: 680px;
   margin: 0 auto;
   padding: 24px 20px 40px;
 }
@@ -13494,15 +13494,19 @@ a.wikilink:not([class*="wikilink--"]) { color: #6a4a10; background: rgba(184,134
 .pcs-extra-speed-btn--on { opacity: 1; border-color: rgba(196,168,122,0.8); }
 .pcs-speed-label-select {
   font-family: 'Cinzel', serif;
-  font-size: 10px;
-  font-weight: 600;
-  color: #5a4010;
-  background: #f5edda;
-  border: 1px solid rgba(196,168,122,0.6);
-  border-radius: 4px;
-  padding: 2px 4px;
-  cursor: pointer;
+  font-size: 7.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #9a7008;
+  background: transparent;
+  border: none;
   outline: none;
+  cursor: pointer;
+  padding: 0;
+  -webkit-appearance: auto;
+  appearance: auto;
+  max-width: 60px;
 }
 
 /* ── Change 5: Knapzak damage pills + props ── */
