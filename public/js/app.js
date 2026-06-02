@@ -5933,6 +5933,7 @@ async function renderMijnKarakter(opts = {}) {
           species:          _pe?.data?.ras || _pp.ras || '',
           charId:           window._lastCharId || null,
           favorites:        (() => { try { return JSON.parse(_pp.featFavorites || '[]'); } catch { return []; } })(),
+          choices:          (() => { try { return JSON.parse(_pp.featChoices   || '{}'); } catch { return {}; } })(),
         });
       }
     }

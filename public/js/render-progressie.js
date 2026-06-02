@@ -23,6 +23,7 @@ let _lastContainer = null;
 let _favs = new Set();     // favoriet-sleutels van de huidige speler
 let _favFilter = false;    // toon alleen favorieten?
 let _charId = null;        // huidige speler (voor opslaan favorieten)
+let _choices = {};         // { featKey → keuze-tekst } van de huidige speler
 
 // Klassen waarvoor een illustratie bestaat in /img/classes/
 const _CLASS_ART = new Set(['Barbarian','Bard','Cleric','Druid','Fighter','Monk','Paladin','Ranger','Rogue','Sorcerer','Warlock','Wizard']);
@@ -153,6 +154,7 @@ export async function renderProgressie(container, ctx) {
   _lastCtx = ctx; _lastContainer = container;
   _charId = ctx.charId || null;
   if (Array.isArray(ctx.favorites)) _favs = new Set(ctx.favorites);
+  _choices = (ctx.choices && typeof ctx.choices === 'object') ? ctx.choices : {};
   try { await _loadProg(); } catch { container.innerHTML = ''; return; }
   if (!_prog?.classes) { container.innerHTML = ''; return; }
   _featIndex = [];
@@ -212,6 +214,29 @@ function _buildPanel(ctx) {
   return `<div class="prog-panel">${head}${body}</div>`;
 }
 
+// ── Keuze-helper ──────────────────────────────────────────────────
+// Een feature is een "keuze-feature" als de DM `choice: true` heeft gezet,
+// of als het een automatisch gegenereerd gedeeld marker is (ASI, Epic Boon).
+function _isChoiceFeat(feat) {
+  return feat.choice === true || feat._kind === 'shared';
+}
+
+// Rendert het keuze-invoerveld voor tijdlijn en detail-modal.
+// Alleen zichtbaar als speler ingelogd is (charId aanwezig).
+function _choiceField(key, unlocked) {
+  if (!_charId) return '';
+  const saved = esc(_choices[key] || '');
+  const ph = 'Noteer jouw keuze…';
+  return `<div class="prog-choice-row">
+    <input class="prog-choice-input" type="text"
+      placeholder="${ph}"
+      value="${saved}"
+      ${!unlocked ? 'disabled' : ''}
+      onchange="event.stopPropagation();window.progressie.saveChoice('${esc(key)}',this.value)"
+      onclick="event.stopPropagation()">
+  </div>`;
+}
+
 // ── Kaartweergave ──────────────────────────────────────────────────
 function _featCard(feat, level, artKey, kind, unlocked, scope) {
   const cat = _resolveCat(feat, kind);
@@ -228,6 +253,7 @@ function _featCard(feat, level, artKey, kind, unlocked, scope) {
       <span class="prog-card-lvl">${level}</span>
       ${star}
       ${unlocked ? '' : '<span class="prog-card-lock">🔒</span>'}
+      ${(_isChoiceFeat(feat) && _choices[key]) ? `<span class="prog-card-choice">${esc(_choices[key])}</span>` : ''}
       <div class="prog-card-foot">
         <span class="prog-card-name">${esc(feat.name)}</span>
         <span class="prog-card-chip prog-chip--${kind || 'class'}">${_kindLabel(kind)}</span>
@@ -303,9 +329,12 @@ function _classTimeline(cls, subclassName, charLevel, isMulti) {
       let label = esc(f.name);
       if (f._kind === 'subclass' && subclass) label = `${esc(f.name)}: ${esc(subclass.key)}`;
       const cls2 = f._kind === 'shared' ? ' prog-feat--shared' : (f._kind === 'sub' ? ' prog-feat--sub' : '');
+      const fKey = _featKey(cls.key, lvl, f.name);
+      const choiceHtml = _isChoiceFeat(f) ? _choiceField(fKey, unlocked) : '';
       return `<div class="prog-feat${cls2}">
         <span class="prog-feat-name">${label}${f._kind === 'sub' ? ' <span class="prog-feat-tag">subklasse</span>' : ''}</span>
         ${f.desc ? `<span class="prog-feat-desc">${esc(f.desc)}</span>` : ''}
+        ${choiceHtml}
       </div>`;
     }).join('');
     rows.push(`
@@ -353,6 +382,12 @@ const _api = {
       art = `<div class="prog-detail-art prog-detail-art--glyph">${icon(f.cat.icon)}</div>`;
     }
     const favBtn = _charId ? `<button class="prog-detail-fav${f._fav ? ' on' : ''}" onclick="window.progressie.toggleFav(${fi})">${f._fav ? '★ Favoriet' : '☆ Favoriet'}</button>` : '';
+    const isChoice = _isChoiceFeat(f);
+    const detailChoiceHtml = isChoice ? `
+      <div class="prog-detail-choice">
+        <label class="prog-detail-choice-label">${icon('pencil')} Jouw keuze</label>
+        ${_choiceField(f.key, true)}
+      </div>` : '';
     const body = `
       <div class="prog-detail">
         ${art}<div class="prog-detail-veil"></div>
@@ -364,6 +399,7 @@ const _api = {
             ${favBtn}
           </div>
           <p class="prog-detail-desc">${esc(f.desc || 'Geen beschrijving — vul aan in de editor.')}</p>
+          ${detailChoiceHtml}
         </div>
       </div>`;
     window.app.openModal(f.name, '', body);
@@ -372,6 +408,30 @@ const _api = {
   toggleFavFilter() {
     _favFilter = !_favFilter;
     if (_lastContainer && _lastCtx) renderProgressie(_lastContainer, _lastCtx);
+  },
+
+  async saveChoice(key, value) {
+    if (!_charId) return;
+    if (value && value.trim()) {
+      _choices[key] = value.trim();
+    } else {
+      delete _choices[key];
+    }
+    if (_lastCtx) _lastCtx.choices = { ..._choices };
+    try {
+      await api.patchPlayerProfile(_charId, { featChoices: JSON.stringify(_choices) });
+    } catch {}
+    // Kaart-chip bijwerken zonder volledige re-render
+    const card = document.querySelector(`.prog-card-choice`);
+    if (_lastContainer) {
+      // Alleen de choice-chips in kaartweergave herrenderen (subtiel)
+      _lastContainer.querySelectorAll('.prog-card').forEach(btn => {
+        const chip = btn.querySelector('.prog-card-choice');
+        // we kunnen de key niet teruglezen uit de DOM — doe een stille re-render
+      });
+      // Full re-render om kaart-chips en tijdlijn synchroon te houden
+      if (_lastCtx) renderProgressie(_lastContainer, _lastCtx);
+    }
   },
 
   async toggleFav(fi) {

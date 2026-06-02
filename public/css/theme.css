@@ -16755,6 +16755,47 @@ body:has(#dm-dice-panel.open) #dm-dice-fab { display: none !important; }
 .prog-feat-desc { font-family: 'Crimson Text', serif; font-size: 13px; color: #5a4632; line-height: 1.4; }
 .prog-current .prog-feat { border-color: rgba(184,134,11,0.5); }
 
+/* ── Keuze-invoerveld in tijdlijn en detail ── */
+.prog-choice-row { margin-top: 5px; }
+.prog-choice-input {
+  width: 100%;
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  color: #3a2a0e;
+  background: rgba(255,253,246,0.8);
+  border: 1px solid rgba(196,168,122,0.5);
+  border-radius: 5px;
+  padding: 3px 7px;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.prog-choice-input:focus { border-color: #c4a87a; background: #fff; }
+.prog-choice-input:disabled { opacity: 0.45; cursor: default; }
+.prog-choice-input::placeholder { color: #b09870; font-style: italic; }
+/* Keuze-chip op kaartje */
+.prog-card-choice {
+  position: absolute;
+  bottom: 32px;
+  left: 6px; right: 6px;
+  background: rgba(30,20,8,0.72);
+  color: rgba(220,195,140,0.95);
+  font-family: 'Crimson Text', serif;
+  font-size: 11px;
+  font-style: italic;
+  border-radius: 4px;
+  padding: 2px 5px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+/* Keuze-sectie in detail-modal */
+.prog-detail-choice { margin-top: 10px; border-top: 1px solid rgba(196,168,122,0.3); padding-top: 10px; }
+.prog-detail-choice-label { display: flex; align-items: center; gap: 5px; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; color: #8a6a30; margin-bottom: 5px; }
+.prog-detail-choice-label .icon { width: 11px; height: 11px; }
+
 /* ── Editor (in een brede modal) ── */
 .modal.modal--wide { max-width: min(1040px, 95vw) !important; width: min(1040px, 95vw); }
 .prog-ed { display: flex; gap: 14px; max-height: 64vh; }
