@@ -3,6 +3,40 @@
 D&D-campagne-manager: Node/Express backend, vanilla JS frontend (ES-modules),
 Socket.io voor realtime updates. Geen framework, geen bundler.
 
+> **Wachtwoorden** staan in `CLAUDE.local.md` (gitignored, niet op GitHub).
+
+---
+
+## UI & campagne-afspraken
+
+- **Taal: altijd Nederlands.** Labels, knopteksten, toastberichten, foutmeldingen — alles NL.
+  Engelse D&D-termen (cantrip, feat, ASI, proficiency) zijn toegestaan als er geen gangbare NL-vertaling is.
+- **Geen destructieve DM-acties zonder expliciete bevestiging.** Verwijderen, resetten en
+  overschrijven altijd via `confirm()` of een zichtbare knop die de actie beschrijft.
+  Nooit stilletjes iets wissen op basis van een impliciet pad.
+- **Perkament/middeleeuws thema bewaken.** Geen moderne UI-patronen die het thema doorbreken.
+  Fonts: Cinzel (koppen), Crimson Text (broodtekst), IM Fell English (cursieve notities).
+  Kleuren: warme okertinten (`#c4a87a`, `#f2e8d2`, `#2a1a08`). Geen vlakke Material/Bootstrap-look.
+  Icoontjes via `icon()`, nooit emoji in gerenderde HTML.
+
+---
+
+## Testomgeving
+
+**Testgroep:** Groep 3 (ID: `groep_1777039899017_94g1`)
+
+| Karakter | ID | Klasse |
+|---|---|---|
+| Test McTestface | `e_1778689148089_pypw` | Wizard L7, subklasse Evoker |
+| Dummy Drakenbaard | `e_test_1779133509945_f2rbc` | — |
+| Proto Toverstaf | `e_test_1779133509946_yzhly` | — |
+
+**Browser-testlogin** (als speler): `window.app.testLogin()` → wachtwoord + karakterkeuze.
+Wachtwoord groep 3: zie `CLAUDE.local.md`.
+
+**Aandachtspunt sessie-cookies:** DM en speler kunnen niet tegelijk in dezelfde browser ingelogd zijn.
+Gebruik tab 1 voor DM, open een incognito-venster of ander apparaat voor de spelerstestlogin.
+
 ---
 
 ## Server & Deploy
