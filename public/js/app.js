@@ -7817,8 +7817,8 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
                   ? api.fileUrl(g.imageId)
                   : godPortraitMap[(g.naam || '').trim().toLowerCase()];
                 const avatar = portraitUrl
-                  ? `<img src="${portraitUrl}" class="tempel-god-avatar" alt="${esc(g.naam)}" onerror="this.closest('.tempel-god-avatar-wrap').innerHTML='<div class=\\'tempel-god-avatar-fallback\\'>${icon('star').replace(/'/g, "\\'")}</div>'">`
-                  : `<div class="tempel-god-avatar-fallback">${icon('star')}</div>`;
+                  ? `<img src="${portraitUrl}" class="tempel-god-avatar" alt="${esc(g.naam)}" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=\\'tempel-god-avatar-fallback\\'></div>')">`
+                  : `<div class="tempel-god-avatar-fallback"></div>`;
                 return `
                   <div class="tempel-god-kaart${actiefEed ? ' tempel-god--actief' : ''}"
                        onclick="window._tempelBinnenTreden('${esc(g.id)}')">

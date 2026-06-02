@@ -11791,11 +11791,16 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .tempel-status-chip--vloek{ border-color: rgba(160,60,60,0.5); color: rgba(220,130,130,0.85); }
 .tempel-status-chip--zegen{ border-color: rgba(100,160,100,0.4); color: rgba(150,220,150,0.85); }
 
+.tempel-scene-list .herberg-content {
+  max-width: 640px;
+  align-items: stretch;
+}
 .tempel-goden-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   padding: 8px 0 4px;
+  width: 100%;
 }
 @media (min-width: 560px) {
   .tempel-goden-grid { grid-template-columns: repeat(4, 1fr); }
