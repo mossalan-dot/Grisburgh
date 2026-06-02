@@ -312,3 +312,58 @@ Cherry-picken via `git cherry-pick <sha> …` — versienummer-conflicten altijd
 De rarity-commits uit `app-feature-exploration` zijn al gemerged.
 `dobbelsteen-formules` en `dobbelsteen-voordeel` zijn al gemerged (dice-roller is live).
 `grisburgh-code-review-WGRUg` bevat een CODE-REVIEW.md + snapshot-verwijdering — apart beoordelen.
+
+---
+
+## Te testen — wijzigingen vanaf 1 juni 2026
+
+Testlogin: `window.app.testLogin()` → Test McTestface (groep 3, wachtwoord in `CLAUDE.local.md`).
+
+### Diensten-toegang per groep
+- [ ] DM-paneel → groepsinstellingen: schakelaar per dienst zichtbaar
+- [ ] Dienst op "verborgen" zetten → speler ziet die dienst niet meer
+- [ ] Terugzetten → dienst verschijnt weer
+
+### Ursula: voorspelsessie + brief
+- [ ] Diensten → Ursula → "Voorspelling vragen": zintuigenformulier verschijnt
+- [ ] Vier zintuigen kiezen + bevestigen → voorspelling getoond
+- [ ] Berichten-tab: brief van Ursula aanwezig met SVG-iconen (geen emoji)
+
+### Tempel redesign
+- [ ] Godlijst: ronde avatars, naam + doméin, eed-badge bij actieve eed
+- [ ] Klik op god → interieur met terug-knop, priester-begroeting, Zegening + Eed knoppen
+- [ ] Eed-cinema: zwart overlay, typewriter-tekst, bevestigen/annuleren werken
+- [ ] Na eed: andere eden geblokkeerd voor deze speler
+- [ ] Zegening: betaling + verschijnt in Boedel
+- [ ] DM-paneel → tempel: per god imageId / priestImageId / backdropId / priesterGreet instelbaar
+
+### Knapzak
+- [ ] Geen "Boedelinventaris"-sectie meer zichtbaar
+- [ ] Navigatiepijltjes staan **linksboven en rechtsboven** op het kaartje (niet verticaal gecentreerd)
+- [ ] Damage pill klikken → dobbelsteenpaneel opent
+
+### Zeldzaamheid op voorwerpkaartjes
+- [ ] Archief → Voorwerpen: gekleurde rand per tier (grijs/groen/blauw/paars/goud)
+- [ ] Very Rare + Legendary: permanente gloed + shimmer-animatie
+- [ ] Detail-modal: rariteit in bijpassende kleur
+- [ ] Boedel-carousel: rariteit-pill zichtbaar (◆ + label + glow voor VR/Leg)
+
+*Testdata: Test McTestface heeft 5 items met elke zeldzaamheid.*
+
+### Skill trees (Progressie-tabblad)
+- [ ] Tab "Progressie" zichtbaar tussen Boedel en Spreukenboek
+- [ ] Tijdlijn: Wizard-features op juiste levels, Evoker-features met "subklasse"-tag
+- [ ] Human soort-traits zichtbaar (Resourceful, Skillful, Versatile)
+- [ ] Levels > 7 zijn visueel vergrendeld
+- [ ] Alle categorie-iconen zijn SVG (geen emoji)
+- [ ] Kaartweergave: schakelbaar, vergrendelde kaartjes hebben slot
+- [ ] Favorieten (☆ → ★) bewaard na herladen
+- [ ] Feature-detail modal opent bij klikken
+- [ ] DM: "✏️ Bewerk"-knop zichtbaar, editor werkt (klasse aanmaken, feature toevoegen, opslaan)
+
+### Keuze-registratie bij features
+- [ ] "Ability Score Improvement" in tijdlijn heeft invoerveld "Noteer jouw keuze…"
+- [ ] Waarde invullen + verlaten → opgeslagen na herladen
+- [ ] Kaartweergave: ingevulde keuze toont als donkere chip op de kaart
+- [ ] Detail-modal: "Jouw keuze"-sectie aanwezig
+- [ ] Vergrendeld niveau: invoerveld uitgeschakeld (grijs)
