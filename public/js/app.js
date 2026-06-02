@@ -4478,8 +4478,10 @@ async function renderMijnKarakter(opts = {}) {
           <div id="pcs-extra-speeds" class="pcs-extra-speeds-wrap"${_extraSpeeds.length ? '' : ' style="display:none"'}>
             ${_extraSpeeds.map((s, i) => `
             <div class="pcs-item pcs-extra-speed-item">
-              <input class="pcs-speed-label-input" type="text" value="${esc(s.label ?? '')}" placeholder="Label…"
-                onblur="window._saveExtraSpeedFull()">
+              <select class="pcs-speed-label-select" onchange="window._saveExtraSpeedFull()">
+                ${['Swim','Fly','Climb','Burrow','Hover'].map(t =>
+                  `<option value="${t}"${(s.label||'Swim')===t?' selected':''}>${t}</option>`).join('')}
+              </select>
               <div class="pcs-input-row">
                 <input class="pcs-input" type="text" value="${esc(s.value ?? '')}" placeholder="—"
                   onblur="window._saveExtraSpeedFull()">
@@ -7461,7 +7463,7 @@ window._updateKlasseIcon = (klasse) => {
 
 window._getExtraSpeedsFromDOM = function() {
   return Array.from(document.querySelectorAll('.pcs-extra-speed-item')).map(item => ({
-    label: item.querySelector('.pcs-speed-label-input')?.value || '',
+    label: item.querySelector('.pcs-speed-label-select')?.value || item.querySelector('.pcs-speed-label-input')?.value || '',
     value: item.querySelector('.pcs-input')?.value || ''
   }));
 };
@@ -7473,7 +7475,9 @@ window._saveExtraSpeedFull = async function() {
 
 window._addExtraSpeed = async function() {
   const extras = window._getExtraSpeedsFromDOM();
-  extras.push({ label: '', value: '' });
+  const used = new Set(extras.map(e => e.label));
+  const next = ['Swim','Fly','Climb','Burrow','Hover'].find(t => !used.has(t)) || 'Swim';
+  extras.push({ label: next, value: '' });
   await window._saveProfileField('extraSpeeds', JSON.stringify(extras));
   window.app.refreshSection('mijn-karakter');
 };
