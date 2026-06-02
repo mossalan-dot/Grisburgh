@@ -30,19 +30,19 @@ const _classArtKey = key => _CLASS_ART.has(key) ? key : null;
 
 // Categorie-inschatting op basis van de feature-naam (voor icoon + tint).
 const _CATS = [
-  { id: 'subklasse', label: 'Subklasse',   emoji: '🌟', kw: [] },
-  { id: 'versterking', label: 'Versterking', emoji: '➕', kw: ['ability score'] },
-  { id: 'epic',     label: 'Epische gave',  emoji: '🏆', kw: ['epic boon'] },
-  { id: 'magie',    label: 'Magie',         emoji: '✨', kw: ['spell','cantrip','ritual','magic','arcan','eldritch','metamagic','sorcer','wild magic','mystic','invocation','channel divinity','smite','font of magic','signature','words of creation','potent','sculpt','evocation','draconic spells','fiend spells','spellcasting'] },
-  { id: 'genezing', label: 'Genezing',      emoji: '💚', kw: ['heal','lay on hands','cure','preserve life','wholeness','blessing','sanctuary','restoration'] },
-  { id: 'aanval',   label: 'Aanval',        emoji: '⚔️', kw: ['rage','attack','strike','weapon mastery','brutal','reckless','frenzy','sneak','flurry','stunning','quivering','divine smite','breath weapon','action surge','fighting style','hunter','foe slayer','bombardment'] },
-  { id: 'verdediging', label: 'Verdediging', emoji: '🛡️', kw: ['defense','resist','unarmored','armor','dodge','uncanny','evasion','endurance','relentless','indomitable','aura','shroud','deflect','superior defense','danger sense','survivor','elusive','ward','toughness','resilien','mindless rage'] },
-  { id: 'beweging', label: 'Beweging',      emoji: '🪶', kw: ['speed','flight','fly','step','dash','movement','agility','wings','roving','talons','pounce','tireless','nimble','acrobatic','disengage'] },
-  { id: 'sociaal',  label: 'Sociaal',       emoji: '🎭', kw: ['inspiration','bardic','panache','audacity','countercharm','intimidating','luck','charm','persuasion'] },
-  { id: 'kennis',   label: 'Kennis',        emoji: '📜', kw: ['expertise','skill','proficien','cunning','lore','knowledge','scholar','cant','talents','versatility','jack of all','secrets','study','use magic device','reliable'] },
-  { id: 'zintuig',  label: 'Zintuig',       emoji: '👁️', kw: ['darkvision','eyes of night','sense','keen','feral senses','vigilant','tremor'] },
+  { id: 'subklasse',   label: 'Subklasse',    icon: 'sparkles',      kw: [] },
+  { id: 'versterking', label: 'Versterking',  icon: 'plus',          kw: ['ability score'] },
+  { id: 'epic',        label: 'Epische gave', icon: 'star',          kw: ['epic boon'] },
+  { id: 'magie',       label: 'Magie',        icon: 'zap',           kw: ['spell','cantrip','ritual','magic','arcan','eldritch','metamagic','sorcer','wild magic','mystic','invocation','channel divinity','smite','font of magic','signature','words of creation','potent','sculpt','evocation','draconic spells','fiend spells','spellcasting'] },
+  { id: 'genezing',    label: 'Genezing',     icon: 'heart',         kw: ['heal','lay on hands','cure','preserve life','wholeness','blessing','sanctuary','restoration'] },
+  { id: 'aanval',      label: 'Aanval',       icon: 'crossed-swords',kw: ['rage','attack','strike','weapon mastery','brutal','reckless','frenzy','sneak','flurry','stunning','quivering','divine smite','breath weapon','action surge','fighting style','hunter','foe slayer','bombardment'] },
+  { id: 'verdediging', label: 'Verdediging',  icon: 'shield',        kw: ['defense','resist','unarmored','armor','dodge','uncanny','evasion','endurance','relentless','indomitable','aura','shroud','deflect','superior defense','danger sense','survivor','elusive','ward','toughness','resilien','mindless rage'] },
+  { id: 'beweging',    label: 'Beweging',     icon: 'target',        kw: ['speed','flight','fly','step','dash','movement','agility','wings','roving','talons','pounce','tireless','nimble','acrobatic','disengage'] },
+  { id: 'sociaal',     label: 'Sociaal',      icon: 'users',         kw: ['inspiration','bardic','panache','audacity','countercharm','intimidating','luck','charm','persuasion'] },
+  { id: 'kennis',      label: 'Kennis',       icon: 'scroll-text',   kw: ['expertise','skill','proficien','cunning','lore','knowledge','scholar','cant','talents','versatility','jack of all','secrets','study','use magic device','reliable'] },
+  { id: 'zintuig',     label: 'Zintuig',      icon: 'eye',           kw: ['darkvision','eyes of night','sense','keen','feral senses','vigilant','tremor'] },
 ];
-const _TALENT = { id: 'talent', label: 'Talent', emoji: '✦' };
+const _TALENT = { id: 'talent', label: 'Talent', icon: 'hexagon' };
 const _CAT_ALL = [..._CATS, _TALENT];
 const _catById = id => _CAT_ALL.find(c => c.id === id) || _TALENT;
 // Keuzes voor de DM-editor (auto-markers weggelaten — die volgen uit naam/kind)
@@ -224,7 +224,7 @@ function _featCard(feat, level, artKey, kind, unlocked, scope) {
   return `
     <button class="prog-card${unlocked ? '' : ' prog-card--locked'} prog-card--${cat.id}${fav ? ' prog-card--fav' : ''}" onclick="window.progressie.openFeature(${fi})">
       ${art}<div class="prog-card-veil"></div>
-      <span class="prog-card-cat" title="${esc(cat.label)}">${cat.emoji}</span>
+      <span class="prog-card-cat" title="${esc(cat.label)}">${icon(cat.icon)}</span>
       <span class="prog-card-lvl">${level}</span>
       ${star}
       ${unlocked ? '' : '<span class="prog-card-lock">🔒</span>'}
@@ -350,7 +350,7 @@ const _api = {
     } else if (f.artKey) {
       art = `<div class="prog-detail-art" style="background-image:url('/img/classes/${f.artKey}.png')"></div>`;
     } else {
-      art = `<div class="prog-detail-art prog-detail-art--glyph">${f.cat.emoji}</div>`;
+      art = `<div class="prog-detail-art prog-detail-art--glyph">${icon(f.cat.icon)}</div>`;
     }
     const favBtn = _charId ? `<button class="prog-detail-fav${f._fav ? ' on' : ''}" onclick="window.progressie.toggleFav(${fi})">${f._fav ? '★ Favoriet' : '☆ Favoriet'}</button>` : '';
     const body = `
@@ -358,7 +358,7 @@ const _api = {
         ${art}<div class="prog-detail-veil"></div>
         <div class="prog-detail-body">
           <div class="prog-detail-chips">
-            <span class="prog-detail-chip">${f.cat.emoji} ${esc(f.cat.label)}</span>
+            <span class="prog-detail-chip">${icon(f.cat.icon)} ${esc(f.cat.label)}</span>
             <span class="prog-detail-chip">Level ${f.level}</span>
             <span class="prog-detail-chip prog-chip--${f.kind || 'class'}">${_kindLabel(f.kind)}</span>
             ${favBtn}
@@ -542,7 +542,7 @@ function _featRow(scope, sub, lvl, i, f) {
   const s = scope, su = sub || '';
   const cur = f.cat || '';
   const opts = ['<option value="">— auto —</option>',
-    ..._CAT_CHOICES.map(c => `<option value="${c}"${cur === c ? ' selected' : ''}>${_catById(c).emoji} ${_catById(c).label}</option>`)].join('');
+    ..._CAT_CHOICES.map(c => `<option value="${c}"${cur === c ? ' selected' : ''}>${_catById(c).label}</option>`)].join('');
   const hasMedia = !!f.img;
   return `
       <div class="prog-ed-feat">
@@ -551,8 +551,8 @@ function _featRow(scope, sub, lvl, i, f) {
         <input class="prog-ed-in prog-ed-desc" value="${esc(f.desc || '')}" placeholder="Beschrijving"
           oninput="window.progressie.editFeature('${s}','${su}',${lvl},${i},'desc',this.value)">
         <select class="prog-ed-cat" title="Categorie" onchange="window.progressie.editFeature('${s}','${su}',${lvl},${i},'cat',this.value)">${opts}</select>
-        <label class="prog-ed-media${hasMedia ? ' has' : ''}" title="${hasMedia ? 'Media vervangen' : 'Afbeelding of filmpje toevoegen'}">${hasMedia ? (f.imgKind === 'video' ? '🎞️' : '🖼️') : '📎'}<input type="file" accept="image/*,video/mp4,video/webm" style="display:none" onchange="window.progressie.uploadMedia('${s}','${su}',${lvl},${i},this)"></label>
-        ${hasMedia ? `<button class="prog-ed-del" title="Media verwijderen" onclick="window.progressie.removeMedia('${s}','${su}',${lvl},${i})">⊘</button>` : ''}
+        <label class="prog-ed-media${hasMedia ? ' has' : ''}" title="${hasMedia ? 'Media vervangen' : 'Afbeelding of filmpje toevoegen'}">${hasMedia ? (f.imgKind === 'video' ? icon('play') : icon('image')) : icon('image')}<input type="file" accept="image/*,video/mp4,video/webm" style="display:none" onchange="window.progressie.uploadMedia('${s}','${su}',${lvl},${i},this)"></label>
+        ${hasMedia ? `<button class="prog-ed-del" title="Media verwijderen" onclick="window.progressie.removeMedia('${s}','${su}',${lvl},${i})">${icon('x')}</button>` : ''}
         <button class="prog-ed-del" title="Feature verwijderen" onclick="window.progressie.removeFeature('${s}','${su}',${lvl},${i})">${icon('x')}</button>
       </div>`;
 }
