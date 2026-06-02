@@ -7748,9 +7748,16 @@ async function renderTempel() {
 
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
 
-  let data;
+  let data, personages = [];
   try { data = await api.getTempel(); }
   catch (e) { el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`; return; }
+  try { personages = await api.listEntities('personages'); } catch {}
+
+  // Bouw een naam → portret-URL mapping voor auto-matching van god-avatars
+  const _godPortraitMap = {};
+  for (const p of personages) {
+    if (p.name) _godPortraitMap[p.name.trim().toLowerCase()] = api.fileUrl(p.id);
+  }
 
   const { config, huidigeZegen, huidigeEed, currency } = data;
   const goden = config.goden || [];
@@ -7766,11 +7773,11 @@ async function renderTempel() {
     _renderTempelInterior(el, activeGod, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst);
   } else {
     // ── VIEW 1: God list ──────────────────────────────────────────────────
-    _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst);
+    _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst, _godPortraitMap);
   }
 }
 
-function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst) {
+function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst, godPortraitMap = {}) {
   const statusBlokken = [];
   if (huidigeEed) {
     const isVloek = huidigeEed.status === 'vloek';
@@ -7786,8 +7793,12 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
     </div>`);
   }
 
+  const backdrop = config.backdropId
+    ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"`
+    : '';
+
   el.innerHTML = `
-    <div class="herberg-scene tempel-scene-list">
+    <div class="herberg-scene tempel-scene-list" ${backdrop}>
       <div class="herberg-content">
         <p class="herberg-groet">${esc(config.naam || 'De Tempel')}</p>
         ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
@@ -7797,13 +7808,17 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
           : `<div class="tempel-goden-grid">
               ${goden.map(g => {
                 const actiefEed = huidigeEed && huidigeEed.godId === g.id;
-                const avatar = g.imageId
-                  ? `<img src="${api.fileUrl(g.imageId)}" class="tempel-god-avatar" alt="${esc(g.naam)}">`
+                // Portret: DM-geconfigureerde imageId → anders automatisch entity-match op naam
+                const portraitUrl = g.imageId
+                  ? api.fileUrl(g.imageId)
+                  : godPortraitMap[(g.naam || '').trim().toLowerCase()];
+                const avatar = portraitUrl
+                  ? `<img src="${portraitUrl}" class="tempel-god-avatar" alt="${esc(g.naam)}" onerror="this.closest('.tempel-god-avatar-wrap').innerHTML='<div class=\\'tempel-god-avatar-fallback\\'>${icon('star').replace(/'/g, "\\'")}</div>'">`
                   : `<div class="tempel-god-avatar-fallback">${icon('star')}</div>`;
                 return `
                   <div class="tempel-god-kaart${actiefEed ? ' tempel-god--actief' : ''}"
                        onclick="window._tempelBinnenTreden('${esc(g.id)}')">
-                    ${avatar}
+                    <div class="tempel-god-avatar-wrap">${avatar}</div>
                     <div class="tempel-god-naam">${esc(g.naam)}</div>
                     ${g.domein ? `<div class="tempel-god-domein">${esc(g.domein)}</div>` : ''}
                     ${actiefEed ? `<div class="tempel-god-eed-badge">${icon('scroll-text')} eed</div>` : ''}
