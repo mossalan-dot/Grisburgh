@@ -5,7 +5,7 @@ import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { initGlossary } from "./glossary.js?v=1";
-import { renderProgressie } from './render-progressie.js?v=3';
+import { renderProgressie } from './render-progressie.js?v=4';
 import { initSocket } from "./socket-client.js?v=13";
 import { initDmPanel } from "./dm-panel.js?v=52";
 
@@ -5922,6 +5922,7 @@ async function renderMijnKarakter(opts = {}) {
     if (tab === 'progressie') {
       const _pm = document.getElementById('pst-progressie');
       if (_pm) {
+        _pm.innerHTML = '<p style="opacity:.45;text-align:center;padding:24px;font-family:\'Cinzel\',serif;font-size:11px">Laden…</p>';
         const _pp = window._lastPlayerProfile || {};
         const _pe = window._lastPlayerEntity || {};
         renderProgressie(_pm, {
@@ -5936,6 +5937,9 @@ async function renderMijnKarakter(opts = {}) {
           charId:           window._lastCharId || null,
           favorites:        (() => { try { return JSON.parse(_pp.featFavorites || '[]'); } catch { return []; } })(),
           choices:          (() => { try { return JSON.parse(_pp.featChoices   || '{}'); } catch { return {}; } })(),
+        }).catch(err => {
+          console.error('[progressie] render mislukt:', err);
+          if (_pm) _pm.innerHTML = `<p style="color:#8a3020;text-align:center;padding:24px;font-size:13px">Kon progressie niet laden — probeer opnieuw.</p>`;
         });
       }
     }
