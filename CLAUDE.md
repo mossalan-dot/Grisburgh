@@ -10,7 +10,9 @@ Socket.io voor realtime updates. Geen framework, geen bundler.
 ## UI & campagne-afspraken
 
 - **Taal: altijd Nederlands.** Labels, knopteksten, toastberichten, foutmeldingen — alles NL.
-  Engelse D&D-termen (cantrip, feat, ASI, proficiency) zijn toegestaan als er geen gangbare NL-vertaling is.
+- **D&D-terminologie altijd in het Engels.** Spellnamen, feats, abilities, class features,
+  conditions (Frightened, Poisoned…) — altijd de Engelse PHB-term gebruiken, ook in beschrijvingen.
+  Voorbeelden: "Spell Slots", "Cunning Action", "Channel Divinity", "Saving Throw".
 - **Geen destructieve DM-acties zonder expliciete bevestiging.** Verwijderen, resetten en
   overschrijven altijd via `confirm()` of een zichtbare knop die de actie beschrijft.
   Nooit stilletjes iets wissen op basis van een impliciet pad.
@@ -18,6 +20,15 @@ Socket.io voor realtime updates. Geen framework, geen bundler.
   Fonts: Cinzel (koppen), Crimson Text (broodtekst), IM Fell English (cursieve notities).
   Kleuren: warme okertinten (`#c4a87a`, `#f2e8d2`, `#2a1a08`). Geen vlakke Material/Bootstrap-look.
   Icoontjes via `icon()`, nooit emoji in gerenderde HTML.
+- **Backup vóór elke wijziging aan spelersdata.** Voordat code of data op de server aangepast
+  wordt die het spelerstabblad raakt (playerProfiles, playerItems, playerSpells, berichten, boedel),
+  eerst een backup maken:
+  ```bash
+  ssh root@46.224.156.154 "cd /var/www/grisburgh/data/campaigns/grisburgh && \
+    cp dm-state.json dm-state.bak.$(date +%Y%m%d_%H%M%S).json && \
+    cp archief.json  archief.bak.$(date +%Y%m%d_%H%M%S).json"
+  ```
+  Backupbestanden zijn gitignored (staan in `data/`). Verwijder ze handmatig na succesvolle test.
 
 ---
 
