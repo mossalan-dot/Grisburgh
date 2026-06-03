@@ -270,6 +270,20 @@ Ontbrekend = onbekend. Per groep, dus opgeslagen onder `groups[gid].bestiarium`.
 ### Open keuze (later)
 - Moet "deels" ook automatisch komen na X rondes vechten, of altijd handmatig? (Nu: handmatig.)
 
+### Visuele look (aansluiten bij de rest)
+- **Tab-grid**: dezelfde perkament-kaartjesgrid als de Archief-entiteiten (hergebruik de
+  kaart-stijl uit `render-campagne.js`). Kaart = portret (`imageId`) of silhouet-fallback
+  `icon('skull')`, naam-banner in **Cinzel**, subtitel `size · type` in Crimson.
+- **Detail = statblock**: klik → modal met de gedeelde `renderStatblock`-helper, die de **bestaande**
+  statblock-CSS hergebruikt (`.sb-block`, `.sb-header`, `.sb-prop`, `.sb-scores`, `.sb-rule`,
+  `.sb-section-label`) — zo ziet de speler exact dezelfde stijl als de DM nu in de bibliotheek ziet.
+- **Vergrendelde tiers**: niet-ontgrendelde secties tonen gedimd met `icon('lock')` + "Nog niet
+  onderzocht" (perkament met lichte waas), in plaats van weglaten — zo zie je dát er meer is.
+- **Relatieve HP-balk** (naam-niveau): hergebruik de combat-HP-balkklassen
+  (`hp-healthy`/`hp-wounded`/…) zónder getallen.
+- **Geruchten-sectie**: stijl als het `gock-dossier`-blok, met de roddel-tekst in cursieve
+  **IM Fell English** (de "notitie"-conventie) en `icon('message-circle')` als kop.
+
 ---
 
 ## 4. Login / onthaal-scherm — GEPARKEERD
@@ -344,3 +358,15 @@ Mechanisch te bouwen als kopie van de Gock-flow (betaal + wacht + rapport via `g
 achtig event), maar met `monsters.json` als doelwit i.p.v. entities. Past in de Diensten-dropdown
 naast Herberg/Tweespalt/Gock/Ursula/Tempel/Heeren (`_DIENSTEN_NAMEN`, api.js ~3895).
 **Volgorde:** pas oppakken nadat het Bestiarium zelf staat.
+
+**Visuele look (aansluiten bij de rest):** hergebruik het gedeelde diensten-skelet 1:1 —
+`.herberg-scene` + nieuwe modifier `.magizoo-scene`, `.herberg-content`, rond portret
+`.herberg-portrait-round` (config.`imageId`) met fallback `icon('paw-print')`, cursieve
+`.herberg-groet` (in-character: de magizoöloog kijkt op van een kooi/notitieboek), `.ts-beurs` voor
+beurs + vooruitbetaling, en de zoek/kies-lijst (`.herberg-zoek-wrap`/`.herberg-lijst`/`.herberg-item`)
+maar gevuld met **monsters** (alleen ≥ naam-niveau bekend) i.p.v. personen. Resultaat = een
+`gock-dossier`-achtig **"veldnotitie"**-blok. Config spiegelt de Gock: `naam`, `imageId`,
+`backdropId`, `prijs` + een inhoudspool. Iconografie `paw-print` / `flask-conical`; als subtiel
+accent de bestaande `green-wax`-tint (`#2a6a3a`, zit al in het palet) voor een naturalist-sfeer —
+binnen het perkament-thema, niets nieuws qua fonts/kleurwereld. Registreren in `_DIENSTEN_NAMEN`,
+de Diensten-dropdown en de toegang-config (zichtbaar/verborgen per groep, net als de andere diensten).
