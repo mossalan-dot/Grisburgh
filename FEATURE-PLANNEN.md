@@ -377,6 +377,35 @@ op een `icon()`-portret en de generieke `/img/herberg-bg.jpeg`. Custom art tilt 
 > Magizoöloog voeg je één regel `.magizoo-scene.herberg-scene[style]::before { background: rgba(20,45,25,0.40); }`
 > toe — dan hoeft de backdrop zelf niet exact qua kleur te kloppen.
 
+### Brieven: logo's & zegels
+Diensten sturen gethematiseerde brieven (Ursula, Gock, Tweespalt, Heeren). Het briefhoofd is nu
+**glyph-gebaseerd**: `_briefLetterhead(thema)` (app.js ~3922) zet een `.lh-zegel`-teken (✦ / ⌖ /
+`icon()`) + afzendernaam neer. Twee art-toevoegingen tillen dat op:
+
+- **Briefhoofd-logo / embleem** per dienst — bovenaan de brief, vervangt de huidige glyph.
+- **Wassen zegel (wax seal)** per dienst — onderaan bij de afsluiting, licht geroteerd ("verzegeld").
+
+**Specs:**
+| Asset | Voorkeur | Maat | Aandachtspunt |
+|---|---|---|---|
+| Logo/embleem | **SVG** (sepia line-art, transparant) of PNG met alpha | ~400×400 (1:1) | moet op perkament werken; één-kleurig inkt-/sepia-look |
+| Wassen zegel | **PNG met transparantie** (geperst-was-look + schaduw) of SVG (heraldisch/plat) | rond, ~400–512px | kleur per dienst-thema |
+
+Zegel-kleur per thema (sluit aan op de bestaande tints): Ursula paars, Gock blauw-zwart, Heeren
+nachtblauw, Tweespalt donker, Tempel goud, **Magizoöloog green-wax**. SVG heeft de voorkeur waar het
+kan: gaat ongewijzigd door (geen 600px-resize), is haarscherp en in CSS te tinten.
+
+**Codekant (klein):**
+- Voeg `logoId` + `zegelId` toe aan de dienst-config in `meta.<dienst>` (DM stelt ze in, net als
+  `imageId`/`backdropId`).
+- `_briefLetterhead(thema)` → render `<img class="lh-logo">` als `logoId` bestaat, anders de huidige
+  glyph (fallback blijft werken).
+- Nieuw `_briefZegel(thema)` onderaan de brief → `<img class="brief-zegel">` als `zegelId` bestaat
+  (CSS: rond, `transform: rotate(-6deg)`, lichte drop-shadow).
+
+**Boodschappenlijstje:** logo + zegel voor Ursula, Gock, Tweespalt, Heeren én de nieuwe Magizoöloog;
+optioneel één algemeen campagne-wapen + zegel voor generieke DM-brieven.
+
 ## Niet gekozen (parkeren voor later)
 Uit de brainstorm wél geopperd maar nu niet uitgewerkt: **De Meester vraagt een worp**
 (groepsworp), **Almanak & Wereldklok**, **Downtime-activiteiten**, **De Kroniek (mijlpalen)**,
