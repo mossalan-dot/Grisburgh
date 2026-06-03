@@ -204,6 +204,28 @@ Kort gezegd: **naam** = "wat is het + hoe gewond" (observeerbaar); **deels** = v
 (je weet hoe taai het is); **volledig** = het complete repertoire (traits/actions) + CR. Vergrendelde
 secties tonen `icon('lock')` met een "Nog niet onderzocht"-placeholder.
 
+### Geruchten (roddel) — losse sectie, via de Herberg
+> **Beslissing:** monsters krijgen alleen een **roddel** (géén "geheim" — dat voelt geforceerd);
+> ontgrendeld via de **Herberg**; getoond in een **aparte sectie** op de kaart, los van de
+> statblock-tiers. (Diepere monster-kennis ⇒ zie de geparkeerde dienst "Magizoöloog" onderaan.)
+
+- **Nieuw monsterveld** `roddel` (string, of array van meerdere geruchten) in `monsters.json`.
+  Spiegelt exact de bestaande entity-conventie `data.flavour` + `flavourUitgesproken`.
+- **Koppeling Herberg**: breid `POST /herberg/vraag` (~5059) uit zodat de zoektocht naast
+  `personages`/`locaties` (~5090) ook `monsters.json` doorzoekt. Bij een monster met `roddel`:
+  de roddel onthullen en **per groep** als gehoord markeren in dm-state
+  (`groups[gid].bestiariumRoddels[monsterId] = true`); zet het monster meteen op minstens
+  `naam`-niveau zodat het in het Bestiarium verschijnt. Cooldown/max-vragen blijven gelden.
+- **Weergave**: aparte sectie "Geruchten" (`icon('message-circle')`) op de Bestiarium-kaart,
+  zichtbaar zodra gehoord — onafhankelijk van naam/deels/volledig. Nog niet gehoord ⇒ subtiele hint
+  "Vraag ernaar in de Herberg".
+- `GET /bestiarium` neemt de gehoorde roddels per groep mee; `GET /herberg` mag monsters met `roddel`
+  als kiesbaar onderwerp aanbieden (thematisch: tavernepraat over beesten).
+
+**Aandachtspunt:** de Herberg laat spelers nu alleen `personages`/`locaties` kiezen — monsters als
+onderwerp toevoegen is een bewuste UI-uitbreiding (toon bv. alleen monsters die al op `naam`-niveau
+bekend zijn, of laat de DM per monster een `roddelInHerberg`-vlag zetten om spoilers te beperken).
+
 ### Datamodel (`dm-state.json`, per groep — net als visibility)
 ```json
 "bestiarium": { "<monsterId>": "naam" | "deels" | "volledig" }
@@ -309,3 +331,14 @@ Uit de brainstorm wél geopperd maar nu niet uitgewerkt: **De Meester vraagt een
 (groepsworp), **Almanak & Wereldklok**, **Downtime-activiteiten**, **De Kroniek (mijlpalen)**,
 **Attunement & magische voorwerpen**. Pitches staan in de chatgeschiedenis; bij interesse hier
 later een plan aan toevoegen.
+
+### Nieuwe dienst: "De Magizoöloog" (idee, parkeren)
+Een nieuwe dienst — een magizoöloog/beestenkenner (à la Newt Scamander) die spelers kunnen inhuren om
+een monster diepgaand te **onderzoeken**, als tegenhanger van de Gock (die personen onderzoekt).
+Sluit aan op het Bestiarium: waar de Herberg slechts een **roddel** geeft, levert de Magizoöloog
+*echte kennis* — bv. het automatisch verhogen van het kennisniveau (`naam → deels` of `deels →
+volledig`) of een uniek "veldnotitie"-stukje per monster (een nieuw veld `veldnotitie`/`observatie`).
+Mechanisch te bouwen als kopie van de Gock-flow (betaal + wacht + rapport via `gock:rapport-klaar`-
+achtig event), maar met `monsters.json` als doelwit i.p.v. entities. Past in de Diensten-dropdown
+naast Herberg/Tweespalt/Gock/Ursula/Tempel/Heeren (`_DIENSTEN_NAMEN`, api.js ~3895).
+**Volgorde:** pas oppakken nadat het Bestiarium zelf staat.
