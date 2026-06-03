@@ -238,6 +238,52 @@ sky/space in the upper area for a title, painterly
 > anders sluipt er tekst in. Verwijder na generatie de achtergrond als de generator geen echte alpha
 > levert (bv. via remove.bg of handmatig).
 
+### 4d. Diensten (per-campagne) — portret · backdrop · brief-logo · zegel
+> Per dienst vier complete prompts. Portret = 1:1 (rond getoond), backdrop = 16:10, logo = transparant
+> 1:1, zegel = rond transparant. Pas de personage-/plaatsbeschrijving gerust aan je eigen NPC's aan.
+
+**Herberg (de Roddelwaard)**
+- *Portret:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, soft candlelit lighting, no text, no watermark: head-and-chest portrait of a rotund jovial innkeeper with rolled sleeves and a stained apron, wiping a pewter tankard, warm knowing smile, dark vignette, composed for a circular crop`
+- *Backdrop:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, soft candlelit lighting, no text, no watermark: wide atmospheric interior of a cozy crowded medieval tavern, roaring hearth, heavy wooden beams, hanging lanterns and barrels, focal interest upper-center, lower third darker for overlay, no characters in focus`
+- *Brief-logo:* `sepia ink woodcut emblem, monochrome, flat bold silhouette, centered, fully transparent background, no text, no frame: a frothing tankard within a wheat wreath`
+- *Zegel:* `top-down round pressed wax seal, rich amber honey-brown sealing wax with soft shadow, embossed relief of a frothing tankard, irregular organic edge, transparent background, photorealistic wax, no text`
+
+**De Tweespalt (gokhal)**
+- *Portret:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, soft candlelit lighting, no text, no watermark: head-and-chest portrait of a sly well-dressed croupier with a sharp grin and ringed fingers, fanning playing cards, dark vignette, composed for a circular crop`
+- *Backdrop:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, dim smoky lighting, no text, no watermark: wide atmospheric interior of a shadowy gambling den, gaming tables strewn with dice cards and coins, low hanging lamps, hazy smoke, focal interest upper-center, lower third darker for overlay, no characters in focus`
+- *Brief-logo:* `sepia ink woodcut emblem, monochrome, flat bold silhouette, centered, fully transparent background, no text, no frame: a pair of dice over two crossed playing cards`
+- *Zegel:* `top-down round pressed wax seal, rich charcoal-black sealing wax with soft shadow, embossed relief of two dice, irregular organic edge, transparent background, photorealistic wax, no text`
+
+**De Gock (onderzoeksbureau / detective)**
+- *Portret:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, moody desk-lamp lighting, no text, no watermark: head-and-chest portrait of a sharp-eyed detective in a long coat seated at a cluttered desk, holding a magnifying glass, one eyebrow raised, dark vignette, composed for a circular crop`
+- *Backdrop:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, dim lighting, no text, no watermark: wide atmospheric interior of a cluttered investigator's office, stacked case files and pinned notes, a single desk lamp, foggy window, focal interest upper-center, lower third darker for overlay, no characters in focus`
+- *Brief-logo:* `sepia ink woodcut emblem, monochrome, flat bold silhouette, centered, fully transparent background, no text, no frame: a magnifying glass over a folded dossier`
+- *Zegel:* `top-down round pressed wax seal, rich deep blue-black sealing wax with soft shadow, embossed relief of a magnifying glass, irregular organic edge, transparent background, photorealistic wax, no text`
+
+**Madame Ursula (waarzegster)**
+- *Portret:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, candlelit mystical lighting, no text, no watermark: head-and-chest portrait of a mysterious veiled fortune-teller with kohl-rimmed eyes and a star-patterned shawl, hands hovering over a glowing crystal orb, dark vignette, composed for a circular crop`
+- *Backdrop:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, candlelit purple-tinted lighting, no text, no watermark: wide atmospheric interior of a fortune-teller's tent draped in star-patterned cloth, a crystal ball, scattered tarot cards and curling incense smoke, focal interest upper-center, lower third darker for overlay, no characters in focus`
+- *Brief-logo:* `sepia ink woodcut emblem, monochrome, flat bold silhouette, centered, fully transparent background, no text, no frame: an open eye within a crescent moon surrounded by stars`
+- *Zegel:* `top-down round pressed wax seal, rich deep violet sealing wax with soft shadow, embossed relief of a crescent moon and stars, irregular organic edge, transparent background, photorealistic wax, no text`
+
+**De Tempel** (algemeen; voor per-god portret/backdrop: gebruik de STYLE-sjablonen met het domein van die god)
+- *Priester-portret:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, golden sacred lighting, no text, no watermark: head-and-chest portrait of a serene robed high priest holding a holy symbol, hands raised in blessing, soft halo glow, dark vignette, composed for a circular crop`
+- *Backdrop:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, golden sacred lighting, no text, no watermark: wide atmospheric interior of a grand candlelit temple, tall stone columns, an altar bathed in radiant light, drifting incense, focal interest upper-center, lower third darker for overlay, no characters in focus`
+- *Brief-logo:* `sepia ink woodcut emblem, monochrome, flat bold silhouette, centered, fully transparent background, no text, no frame: a radiant sunburst over an altar`
+- *Zegel:* `top-down round pressed wax seal, rich gold sealing wax with soft shadow, embossed relief of a radiant sun, irregular organic edge, transparent background, photorealistic wax, no text`
+
+**Heeren van de Nacht (dievengilde)**
+- *Portret:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, moonlit low-key lighting, no text, no watermark: head-and-chest portrait of a hooded shadowy figure with one glinting eye and a concealed dagger, face half in shadow, dark vignette, composed for a circular crop`
+- *Backdrop:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, moonlit night-blue lighting, no text, no watermark: wide atmospheric scene of a hidden cellar safehouse lit by a single candle, or a moonlit rooftop over the city, deep shadows, focal interest upper-center, lower third darker for overlay, no characters in focus`
+- *Brief-logo:* `sepia ink woodcut emblem, monochrome, flat bold silhouette, centered, fully transparent background, no text, no frame: a watching eye within a crescent moon above a dagger`
+- *Zegel:* `top-down round pressed wax seal, rich night-blue indigo sealing wax with soft shadow, embossed relief of an eye within a crescent moon, irregular organic edge, transparent background, photorealistic wax, no text`
+
+**De Magizoöloog (nieuwe dienst)**
+- *Portret:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, lantern lighting with faint moss-green accents, no text, no watermark: head-and-chest portrait of a weathered beast-scholar in worn leather field gear, brass-rimmed monocle and a small glowing specimen vial at the belt, kind sharp eyes, dark vignette, composed for a circular crop`
+- *Backdrop:* `hand-painted fantasy illustration, weathered illuminated-manuscript look, warm parchment ochre/cream/sepia palette, painterly oil texture, dim lantern lighting with moss-green undertone, no text, no watermark: wide atmospheric interior of a naturalist's study filled with mounted beasts, jars of specimens, hanging skeletons and pinned field sketches, focal interest upper-center, lower third darker for overlay, no characters in focus`
+- *Brief-logo:* `sepia ink woodcut emblem, monochrome, flat bold silhouette, centered, fully transparent background, no text, no frame: a paw-print over an open book`
+- *Zegel:* `top-down round pressed wax seal, rich moss-green sealing wax with soft shadow, embossed relief of a paw-print over an open book, irregular organic edge, transparent background, photorealistic wax, no text`
+
 ## 5. Werkwijze
 1. Kies de categorie en het bijbehorende basisblok (STYLE / ICON-BASE / SEAL-BASE).
 2. Vul de `{PLACEHOLDERS}` in; plak de NEGATIVE-prompt erachter.
