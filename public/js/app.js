@@ -5,7 +5,7 @@ import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { initGlossary } from "./glossary.js?v=1";
-import { renderProgressie } from './render-progressie.js?v=4';
+import { renderProgressie, getUnlockedFeatures } from './render-progressie.js?v=5';
 import { initSocket } from "./socket-client.js?v=13";
 import { initDmPanel } from "./dm-panel.js?v=52";
 
@@ -4073,6 +4073,22 @@ async function renderMijnKarakter(opts = {}) {
   window._lastPlayerEntity  = entity;
   window._lastCharId        = charId;
 
+  // Ontgrendelde progressie-features (klasse/subklasse/soort op huidig niveau)
+  // — getoond in de Kenmerken-sectie naast de handmatig vastgezette kenmerken.
+  let autoFeatures = [];
+  try {
+    autoFeatures = await getUnlockedFeatures({
+      klasse:           playerProfile.klasse || entity?.data?.klasse || '',
+      klasseLevel:      parseInt(playerProfile.klasseLevel) || parseInt(playerProfile.level) || 1,
+      level:            parseInt(playerProfile.level) || 1,
+      subclass:         playerProfile.subclass || '',
+      multiclass:       playerProfile.multiclass === 'true' || playerProfile.multiclass === true,
+      multiKlasse:      playerProfile.multiKlasse || '',
+      multiKlasseLevel: parseInt(playerProfile.multiKlasseLevel) || 0,
+      species:          entity?.data?.ras || playerProfile.ras || '',
+    });
+  } catch { autoFeatures = []; }
+
   // Geclaimde & stapelbare voorwerpen van deze speler
   const myItemMap = {}; // itemId → { qty }
   for (const [itemId, ownerData] of Object.entries(ownershipData.owners || {})) {
@@ -4240,10 +4256,10 @@ async function renderMijnKarakter(opts = {}) {
             <div class="ppf-row"><label class="ppf-label">Level</label>
               <input class="ppf-input ppf-level" type="number" min="1" max="20"
                 value="${esc(playerProfile.level ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('level', this.value)"></div>
+                onblur="window._saveProgField('level', this.value)"></div>
             <div class="ppf-row"><label class="ppf-label">Class</label>
               <select class="ppf-input ppf-select" id="ppf-klasse-select"
-                onchange="window._saveProfileField('klasse', this.value); window._updateMulticlassTheme()">
+                onchange="window._updateMulticlassTheme(); window._saveProgField('klasse', this.value)">
                 <option value="">—</option>
                 ${_getKlassen().map(k =>
                   `<option value="${k}"${playerProfile.klasse === k ? ' selected' : ''}>${k}</option>`
@@ -4251,14 +4267,14 @@ async function renderMijnKarakter(opts = {}) {
               </select>
               ${_isMulticlass ? `<input class="ppf-input ppf-level" id="ppf-klasse-level" type="number" min="1" max="20"
                 value="${esc(playerProfile.klasseLevel ?? '')}" placeholder="Niv"
-                onblur="window._saveProfileField('klasseLevel', this.value); window._updateMulticlassTheme()">` : ''}
+                onblur="window._updateMulticlassTheme(); window._saveProgField('klasseLevel', this.value)">` : ''}
               <button class="ppf-multiclass-toggle${_isMulticlass ? ' ppf-multiclass-toggle--active' : ''}"
                 onclick="window._toggleMulticlass()"
                 title="${_isMulticlass ? 'Multiclass uitschakelen' : 'Multiclass inschakelen'}">⊕</button>
             </div>
             ${_isMulticlass ? `<div class="ppf-row"><label class="ppf-label">Multiclass</label>
               <select class="ppf-input ppf-select" id="ppf-multi-select"
-                onchange="window._saveProfileField('multiKlasse', this.value); window._updateMulticlassTheme()">
+                onchange="window._updateMulticlassTheme(); window._saveProgField('multiKlasse', this.value)">
                 <option value="">—</option>
                 ${_getKlassen().map(k =>
                   `<option value="${k}"${playerProfile.multiKlasse === k ? ' selected' : ''}>${k}</option>`
@@ -4266,11 +4282,11 @@ async function renderMijnKarakter(opts = {}) {
               </select>
               <input class="ppf-input ppf-level" id="ppf-multi-level" type="number" min="1" max="20"
                 value="${esc(playerProfile.multiKlasseLevel ?? '')}" placeholder="Niv"
-                onblur="window._saveProfileField('multiKlasseLevel', this.value); window._updateMulticlassTheme()">
+                onblur="window._updateMulticlassTheme(); window._saveProgField('multiKlasseLevel', this.value)">
             </div>` : ''}
             <div class="ppf-row"><label class="ppf-label">${isHp ? 'School of Magic' : 'Subclass'}</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.subclass ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('subclass', this.value)"></div>
+                onblur="window._saveProgField('subclass', this.value)"></div>
             <div class="ppf-row"><label class="ppf-label">Background</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.background ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('background', this.value)"></div>
@@ -4734,6 +4750,28 @@ async function renderMijnKarakter(opts = {}) {
             <div id="player-trait-results" class="player-spell-results"></div>
           </div>
 
+          <!-- Automatisch ontgrendeld via progressie (read-only) -->
+          ${(() => {
+            const _pinNames = new Set(pinnedTraits.map(t => String(t.name || '').toLowerCase()));
+            const auto = autoFeatures.filter(f => !_pinNames.has(String(f.name).toLowerCase()));
+            if (!auto.length) return '';
+            return `
+          <div class="player-auto-traits">
+            <div class="player-auto-traits-cap">${icon('sparkles')} Ontgrendeld op niveau</div>
+            ${auto.map(f => `
+              <details class="player-trait-accordion player-trait-accordion--auto">
+                <summary class="player-pinned-spell-summary">
+                  <span class="player-pinned-spell-chevron">▾</span>
+                  <span class="player-pinned-spell-name">${esc(f.name)}</span>
+                  ${f.meta ? `<span class="player-pinned-spell-meta">${esc(f.meta)}</span>` : ''}
+                </summary>
+                <div class="player-spell-accordion-body player-auto-trait-body">
+                  <p class="player-auto-trait-desc">${f.desc ? esc(f.desc) : '<span style="opacity:.55">Geen beschrijving.</span>'}</p>
+                </div>
+              </details>`).join('')}
+          </div>`;
+          })()}
+
           <!-- Vastgezette kenmerken (gesorteerd op niveau dan naam) -->
           ${pinnedTraits.length > 0 ? (() => {
             const _traitLevel = t => {
@@ -4778,7 +4816,7 @@ async function renderMijnKarakter(opts = {}) {
               </details>`;
             }).join('')}
           </div>`;
-          })() : '<p class="player-dash-empty" style="margin-top:8px">Nog geen kenmerken vastgezet.</p>'}
+          })() : (autoFeatures.length ? '' : '<p class="player-dash-empty" style="margin-top:8px">Nog geen kenmerken vastgezet.</p>')}
 
           <!-- Inline formulier: nieuw kenmerk -->
           <div id="player-trait-custom-form" class="player-trait-custom-form hidden">
@@ -5645,9 +5683,22 @@ async function renderMijnKarakter(opts = {}) {
   // Profiel-velden opslaan
   window._saveProfileField = async function(field, value) {
     if (!charId) return;
+    // Houd de lokale profielcopy (= window._lastPlayerProfile) in sync, anders
+    // leest het lazy-gerenderde Progressie-subtabblad oude data.
+    playerProfile[field] = value;
     try {
       await api.patchPlayerProfile(charId, { [field]: value });
     } catch (e) { console.warn('Profiel opslaan mislukt', e); }
+  };
+
+  // Progressie-relevante velden (level, klasse, subklasse…): opslaan én de
+  // sectie herrenderen zodat de ontgrendelde features in de Kenmerken-sectie
+  // en de Progressie-tijdlijn direct meebewegen. Alleen herrenderen bij een
+  // echte wijziging (onblur vuurt ook zonder dat er iets veranderde).
+  window._saveProgField = async function(field, value) {
+    const changed = String(playerProfile[field] ?? '') !== String(value ?? '');
+    await window._saveProfileField(field, value);
+    if (changed && typeof window._reRenderKarakter === 'function') window._reRenderKarakter();
   };
 
   // Multiclass toggle

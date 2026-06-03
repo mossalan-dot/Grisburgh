@@ -148,6 +148,57 @@ function _featuresForLevel(classData, subclass, level) {
   return out;
 }
 
+// ── Ontgrendelde features voor de Kenmerken-sectie ─────────────────
+// Verzamelt alle klasse-, subklasse- en soort-features die op het huidige
+// niveau zijn ontgrendeld (level ≤ charLevel). De generieke keuze-markers
+// (ASI, Epic Boon, "Kies je subklasse") worden overgeslagen — dat zijn geen
+// benoemde kenmerken. Dedupt op naam (eerste wint). Gooit nooit.
+export async function getUnlockedFeatures(ctx) {
+  try { await _loadProg(); } catch { return []; }
+  if (!_prog?.classes || !ctx) return [];
+  const out = [];
+  const seen = new Set();
+  const push = (name, desc, meta, kind, level) => {
+    if (!name) return;
+    const k = _norm(name);
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push({ name, desc: desc || '', meta: meta || '', kind, level: level || 0 });
+  };
+
+  // Soort-traits (op basis van totaal character-level, ook bij multiclass)
+  const species = _findSpecies(ctx.species);
+  if (species) {
+    const charLvl = _totalLevel(ctx);
+    const levels = species.data.levels || {};
+    for (const lvl of Object.keys(levels).map(Number).sort((a, b) => a - b)) {
+      if (lvl > charLvl) continue;
+      for (const f of levels[lvl]) push(f.name, f.desc, `${species.key}${lvl > 1 ? ` · Niv. ${lvl}` : ''}`, 'species', lvl);
+    }
+  }
+
+  // Hoofdklasse
+  const cls = _findClass(ctx.klasse);
+  if (cls) _collectClassFeatures(push, cls, ctx.subclass, ctx.klasseLevel || ctx.level || 1);
+
+  // Multiclass — subklasse-naam matcht automatisch de juiste klasse
+  if (ctx.multiclass && ctx.multiKlasse) {
+    const cls2 = _findClass(ctx.multiKlasse);
+    if (cls2) _collectClassFeatures(push, cls2, ctx.subclass, ctx.multiKlasseLevel || 1);
+  }
+
+  return out.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+}
+
+function _collectClassFeatures(push, cls, subclassName, charLevel) {
+  const subclass = _findSubclass(cls.data, subclassName);
+  const max = Math.max(0, Math.min(20, charLevel || 1));
+  for (let lvl = 1; lvl <= max; lvl++) {
+    for (const f of (cls.data.levels?.[lvl] || [])) push(f.name, f.desc, `${cls.key} · Niv. ${lvl}`, 'class', lvl);
+    if (subclass) for (const f of (subclass.data.levels?.[lvl] || [])) push(f.name, f.desc, `${subclass.key} · Niv. ${lvl}`, 'sub', lvl);
+  }
+}
+
 // ── Publieke render-entry voor het dashboard ───────────────────────
 export async function renderProgressie(container, ctx) {
   if (!container) return;
