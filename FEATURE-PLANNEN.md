@@ -344,6 +344,10 @@ Per type tellen; `ontdekt` = aantal in {vague, visible}, `totaal` = aantal niet-
 
 ## Benodigde art (diensten + Bestiarium)
 
+> **App-brede art-inventaris + kant-en-klare generator-prompts staan in `ART-GIDS.md`.** Hieronder
+> alleen de feature-specifieke samenvatting.
+
+
 **Waarom:** elke dienst heeft twee art-slots — een **portret** (de uitbater, rond getoond via
 `.herberg-portrait-round`) en een **backdrop** (volledige scène, `background-size:cover`,
 `center top`, met een donkere tint-overlay + leespaneel eroverheen). Ontbreekt art, dan valt 'm terug
