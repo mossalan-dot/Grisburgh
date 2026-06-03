@@ -171,10 +171,38 @@ entries, met een dunne **kennis-laag** per groep eroverheen. Concreet:
 2. DM-bibliotheek én speler-Bestiarium roepen **dezelfde** helper aan; alleen het `niveau`-argument
    verschilt (DM = altijd `volledig`).
 
-### Kennis-laag (drie-traps)
-- `naam`: alleen naam + afbeelding (silhouet/perkament-kaart, rest vergrendeld met `icon('lock')`).
-- `deels`: + type, AC, een **HP-balk zonder exacte waarde**, bekende resistances/immunities.
-- `volledig`: hele statblock.
+### Veld-inventaris (bron: `monsters.json` + `dm-panel.js` `_statblockHtml`/`_statblockEditorHtml`)
+**Top-level (monster):** `id`, `name`, `chapter` (organisatie/DM-only), `maxHp`, `initiative`
+(DM-only), `imageId` (portret), `backdropId` (sfeerachtergrond).
+**`statblock` (sb):** `size`, `type`, `alignment` · `ac`, `hp` (formule-tekst), `speed` ·
+ability scores `str`/`dex`/`con`/`int`/`wis`/`cha` · `savingThrows`, `skills` ·
+`damageVulnerabilities`, `damageResistances`, `damageImmunities`, `conditionImmunities` ·
+`senses`, `languages` · `cr`, `xp` · markdown-blokken `traits`, `actions`, `reactions`,
+`legendaryActions`.
+
+### Kennis-laag (drie-traps) — veld → niveau
+
+| Veld | `naam` | `deels` | `volledig` |
+|---|:--:|:--:|:--:|
+| `name` + `imageId` (portret) | ✓ | ✓ | ✓ |
+| `size` · `type` · `alignment` (subtitel) | ✓ | ✓ | ✓ |
+| HP als **relatieve balk** (gewond/gezond, géén getal) | ✓ | ✓ | ✓ |
+| `ac` | — | ✓ | ✓ |
+| exacte `maxHp` + `hp`-formule | — | ✓ | ✓ |
+| `speed` | — | ✓ | ✓ |
+| ability scores (STR…CHA) | — | ✓ | ✓ |
+| `savingThrows` · `skills` | — | ✓ | ✓ |
+| `damageVulnerabilities`/`Resistances`/`Immunities` · `conditionImmunities` | — | ✓ | ✓ |
+| `senses` · `languages` | — | ✓ | ✓ |
+| `traits` | — | — | ✓ |
+| `actions` · `reactions` · `legendaryActions` | — | — | ✓ |
+| `cr` · `xp` | — | — | ✓ |
+| `backdropId` als kaart-achtergrond | — | — | ✓ |
+| `chapter` · `initiative` | **nooit** (DM-only) | | |
+
+Kort gezegd: **naam** = "wat is het + hoe gewond" (observeerbaar); **deels** = verdediging & stats
+(je weet hoe taai het is); **volledig** = het complete repertoire (traits/actions) + CR. Vergrendelde
+secties tonen `icon('lock')` met een "Nog niet onderzocht"-placeholder.
 
 ### Datamodel (`dm-state.json`, per groep — net als visibility)
 ```json
@@ -209,6 +237,11 @@ Ontbrekend = onbekend. Per groep, dus opgeslagen onder `groups[gid].bestiarium`.
 - Backward-compat: geen `bestiarium` in een groep = alles onbekend.
 - Eén render-helper delen tussen DM en speler — dat is de kern van "geen dubbel werk".
 - Auto-onthulling alleen voor groepen die daadwerkelijk in het gevecht zitten.
+- **Auto-onthulling werkt alleen voor combatants met een `presetId`** (gekoppeld aan een
+  bibliotheek-monster). Combatants met een inline-`statblock` zonder preset (`_showStatblockForCombatant`,
+  dm-panel.js ~1750) staan niet in `monsters.json` en verschijnen dus niet in het Bestiarium — of we
+  promoveren zo'n inline-monster eerst naar de bibliotheek.
+- `imageId` ontbreekt vaak → val terug op een silhouet/`icon('skull')`-placeholder op `naam`-niveau.
 
 ### Open keuze (later)
 - Moet "deels" ook automatisch komen na X rondes vechten, of altijd handmatig? (Nu: handmatig.)
