@@ -342,6 +342,41 @@ Per type tellen; `ontdekt` = aantal in {vague, visible}, `totaal` = aantal niet-
 
 ---
 
+## Benodigde art (diensten + Bestiarium)
+
+**Waarom:** elke dienst heeft twee art-slots — een **portret** (de uitbater, rond getoond via
+`.herberg-portrait-round`) en een **backdrop** (volledige scène, `background-size:cover`,
+`center top`, met een donkere tint-overlay + leespaneel eroverheen). Ontbreekt art, dan valt 'm terug
+op een `icon()`-portret en de generieke `/img/herberg-bg.jpeg`. Custom art tilt het scherm op.
+
+**Technische specs (geldt voor alle slots):**
+- Verwerkt naar **600px-brede WebP** bij het serveren (origineel tot 1200px). Lever dus ~**1200px**
+  aan; groter heeft geen zin. Max upload 50MB, maar mik op kleine bestanden.
+- Formaten: **JPG / PNG / WebP** (worden geresized). SVG/GIF gaan ongewijzigd door.
+- Stijl: perkament/middeleeuws, schilderachtig, warm. Backdrops mogen **donker/moody** zijn — de
+  tint + het `rgba(0,0,0,0.52)`-paneel zorgen voor leesbaarheid.
+
+| Slot | Per | Verhouding / maat | Aandachtspunt |
+|---|---|---|---|
+| **Portret** | elke dienst-uitbater | vierkant **1:1**, ~600–1200px | onderwerp gecentreerd (ronde uitsnede) |
+| **Backdrop** | elke dienst | liggend **16:10** (of 16:9), ≥1200px breed | focuspunt **boven-midden**; onderkant 60–100% wordt donker overlapt |
+| **God-portret + priester-portret + backdrop** | per god (Tempel) | idem (3 per god) | Tempel heeft `imageId` / `priestImageId` / `backdropId` |
+| **Monster-portret** | per monster (Bestiarium) | vierkant **1:1** | fallback = silhouet/`icon('skull')` op naam-niveau |
+| **Monster-backdrop** (optioneel) | per monster | liggend | alleen als kaart-achtergrond op `volledig`-tier |
+
+**Concreet "boodschappenlijstje" als je art laat maken:**
+1. **Magizoöloog** (nieuwe dienst): 1 portret (beestenkenner, naturalist-sfeer, evt. met flesje/kooi)
+   + 1 backdrop (studeerkamer vol opgezette beesten / veldtent). Accenttint green-wax.
+2. **Bestaande diensten zonder eigen art**: portret + backdrop per stuk dat nu nog op de fallback
+   draait (Herberg/Tweespalt/Gock/Ursula/Tempel/Heeren — check per campagne in de DM-config welke nog
+   leeg zijn).
+3. **Bestiarium**: monster-portretten voor de monsters in je `monsters.json` (grootste sfeerwinst);
+   optioneel een backdrop per "boss"-monster.
+
+> Tip: een **per-dienst tint-overlay** bestaat al (`.ursula-scene`, `.gock-scene`, …). Voor de
+> Magizoöloog voeg je één regel `.magizoo-scene.herberg-scene[style]::before { background: rgba(20,45,25,0.40); }`
+> toe — dan hoeft de backdrop zelf niet exact qua kleur te kloppen.
+
 ## Niet gekozen (parkeren voor later)
 Uit de brainstorm wél geopperd maar nu niet uitgewerkt: **De Meester vraagt een worp**
 (groepsworp), **Almanak & Wereldklok**, **Downtime-activiteiten**, **De Kroniek (mijlpalen)**,
