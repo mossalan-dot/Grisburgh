@@ -222,9 +222,11 @@ secties tonen `icon('lock')` met een "Nog niet onderzocht"-placeholder.
 - `GET /bestiarium` neemt de gehoorde roddels per groep mee; `GET /herberg` mag monsters met `roddel`
   als kiesbaar onderwerp aanbieden (thematisch: tavernepraat over beesten).
 
-**Aandachtspunt:** de Herberg laat spelers nu alleen `personages`/`locaties` kiezen — monsters als
-onderwerp toevoegen is een bewuste UI-uitbreiding (toon bv. alleen monsters die al op `naam`-niveau
-bekend zijn, of laat de DM per monster een `roddelInHerberg`-vlag zetten om spoilers te beperken).
+**Beslissing (Herberg-onderwerpen):** een monster is pas kiesbaar als Herberg-onderwerp zodra het
+voor de groep op **minstens `naam`-niveau** bekend is (dus al in combat tegengekomen). Voorkomt
+spoilers over monsters die de party nog nooit zag. `GET /herberg` filtert de monster-onderwerpen dus
+op `bestiarium[monsterId] >= 'naam'` voor de groep; `POST /herberg/vraag` weigert een monster dat nog
+onbekend is (404, net als bij ontbrekende roddel).
 
 ### Datamodel (`dm-state.json`, per groep — net als visibility)
 ```json
