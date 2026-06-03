@@ -3,6 +3,8 @@
 > Werkdocument met uitgewerkte bouwplannen voor gekozen features. **Nog niet gebouwd.**
 > Pak één feature per branch; cherry-picken naar `main` blijft omslachtig, dus liever
 > kleine, op zichzelf staande commits per feature.
+>
+> Keuzes zijn vastgelegd na een tweak-ronde (zie **Beslissingen** bij elke feature).
 
 **Algemene afspraken** (uit `CLAUDE.md`, gelden voor élke feature hieronder):
 - UI-taal **Nederlands**, D&D-termen **Engels** (Concentration, Saving Throw, Condition…).
@@ -15,15 +17,15 @@
 
 ## Prioriteit & inschatting
 
-| # | Feature | Impact | Inschatting | Afhankelijk van |
+| # | Feature | Impact | Inschatting | Status |
 |---|---|---|---|---|
-| 1 | Concentratie & aflopende condities | Hoog (tafelspel) | M | combat |
-| 2 | Geluidsdecors (ambiance) | Midden (sfeer) | S–M | sounds + socket |
-| 3 | Bestiarium / Onderzoek | Hoog (ontdekking) | M–L | monsters + combat |
-| 4 | Login/onthaal-scherm | Laag (cosmetisch) | S | index.html + auth |
-| 5 | Ontdekkings-teller | Midden (gamification) | S | entity-visibility |
+| 1 | Concentratie-waarschuwing | Midden (tafelspel) | S | Klaar om te bouwen |
+| 2 | Geluidsdecors (ambiance) | Midden (sfeer) | S–M | Klaar om te bouwen |
+| 3 | Bestiarium / Onderzoek | Hoog (ontdekking) | M–L | Klaar om te bouwen |
+| 4 | Login/onthaal-scherm | Laag (cosmetisch) | S | **Geparkeerd** (beeldkeuze open) |
+| 5 | Ontdekkings-teller | Midden (gamification) | S | Klaar om te bouwen |
 
-Aanbevolen volgorde: **4 → 2 → 5 → 1 → 3** (oplopend in complexiteit en risico).
+Aanbevolen volgorde: **2 → 5 → 1 → 3** (login geparkeerd).
 
 ---
 
@@ -33,9 +35,9 @@ Aanbevolen volgorde: **4 → 2 → 5 → 1 → 3** (oplopend in complexiteit en 
 - Combatant aangemaakt: `POST /combat/combatant` (~3566), veld `conditions: req.body.conditions || []` (~3580).
 - Combatant bijwerken: `PUT /combat/combatant/:id` (~3590).
 - HP wijzigen in gevecht: `PATCH /combat/player-hp/:combatantId` (~3624) — kent de vorige HP vóór de update.
+- Gevecht starten: `POST /combat/start` (~3527); combatants met `entityId` zijn spelers (~3511).
 - Beurt/ronde: `PUT /combat` (~3549), beurtwissel-log bij `currentTurn`-verandering (~3557).
 - Combat-log helper: `_combatLog(combat, text)` (~3503).
-- Condities geleegd bij reset: ~1525–1530.
 - Frontend speler: `app.js` ~4117 `conditions = myCombatant?.conditions || []`.
 
 **Sounds** — `routes/api.js` `GET /sounds` (~2906), `PUT /sounds` (~2913, merge via `Object.assign`).
@@ -44,6 +46,7 @@ Client: `public/js/sound-manager.js` (speelt **alleen op DM-browser**, regel 33/
 Socket-relay: `socket-client.js` ~315 `socket.on('sound:emote', …)`; spelers emitten via `window._socket`.
 
 **Monsters** — `routes/api.js` `/monsters` (~3383, allemaal `requireDM`). `monsters.json` = `{ monsters:[…] }`.
+Statblock-render zit nu in `dm-panel.js` — moet **geëxtraheerd** worden naar een gedeelde helper (zie feature 3).
 
 **Entity-zichtbaarheid** — `routes/api.js`
 - Per groep: `dmState.groups[gid].visibility[entityId]` = `'hidden' | 'vague' | 'visible'`; daarnaast `secretReveals[entityId]`.
@@ -54,56 +57,50 @@ Socket-relay: `socket-client.js` ~315 `socket.on('sound:emote', …)`; spelers e
 **Login** — `public/index.html`: DM-login-overlay (~277), tablet (~295), test (~313).
 Auth: `routes/auth.js` `POST /login`, `POST /player-login`, `GET /players`.
 
+**Nav / secties** — `public/index.html` Archief-dropdown (~87–94, `data-section="…"`).
+`app.js` `switchSection` + `refreshSection` schakelen secties; nieuwe sectie hier registreren.
+
 ---
 
-## 1. Concentratie & aflopende condities
+## 1. Concentratie-waarschuwing
+
+> **Beslissingen:** geen automatische save (DM regelt de uitkomst); melding = **speler-waarschuwing
+> op het scherm + combat-logregel**; condities blijven **handmatig** (géén rondeteller — dat deel
+> is geschrapt).
 
 ### Wat & waarom
-Twee veelvergeten regels automatiseren tijdens combat:
-1. **Concentration**: zodra een geconcentreerde speler/monster schade krijgt → automatisch een
-   Concentration-saveprompt (DC = `max(10, floor(schade/2))`).
-2. **Aflopende condities**: een condition kan een rondeteller krijgen die vanzelf afloopt en
-   verdwijnt, met logregel.
+Helpt de veelvergeten Concentration-regel: zodra een geconcentreerde combatant schade krijgt,
+verschijnt bij die speler een waarschuwing "Maak een Concentration Saving Throw — DC X" en komt er
+een regel in het combat-log. De speler rolt zelf (bestaande dice-roller); de DM/speler haalt de
+concentratie-vlag handmatig weg als de save mislukt. Niets wordt automatisch beslist.
 
 ### Datamodel (combat.json → `combatants[]`)
-Backward-compatible uitbreiden:
-- `concentratie: { actief: boolean, spreuk: string }` — default `{ actief:false }`.
-- `conditions`: nu een array van **strings**; uitbreiden zodat ook objecten mogen:
-  `{ naam: 'Frightened', rondes: 3 }` (rondes optioneel/`null` = onbepaald). Render-laag moet
-  beide vormen aankunnen (`typeof c === 'string' ? c : c.naam`).
+- Nieuw veld `concentratie: { actief: boolean, spreuk: string }` — default `{ actief:false }`.
+- Tijdelijke prompt op combat-niveau: `combat.concentratiePrompt = { combatantId, dc, ts }` (of `null`).
+- **Condities ongewijzigd** (blijven strings; handmatig beheer zoals nu).
 
 ### Server (`routes/api.js`)
-- **Concentration-trigger** in `PATCH /combat/player-hp/:combatantId` (~3624):
-  bereken `schade = vorigeHp - nieuweHp`. Als `schade > 0 && combatant.concentratie?.actief`:
-  zet `combat.concentratiePrompt = { combatantId, dc: Math.max(10, Math.floor(schade/2)), ts: Date.now() }`
-  en log via `_combatLog`. Emit `combat:updated`.
-- **Save afhandelen**: hergebruik de bestaande dobbelsteen-uitkomst, of nieuw
-  `POST /combat/concentratie/:combatantId` met `{ gehaald: boolean }` → bij `false`
-  `concentratie.actief=false` + log "Concentration verbroken"; prompt wissen. Emit.
-- **Condities aftellen**: in `PUT /combat` bij beurtwissel (~3557) of rondewissel: loop over
-  combatants, decrementeer `rondes` van objecten-condities (kies één conventie: aftellen aan het
-  **begin van de eigen beurt** is het meest 5e-correct). `rondes <= 0` → verwijderen + `_combatLog`.
+- In `PATCH /combat/player-hp/:combatantId` (~3624): bereken `schade = vorigeHp - nieuweHp`.
+  Als `schade > 0 && combatant.concentratie?.actief`:
+  - `combat.concentratiePrompt = { combatantId, dc: Math.max(10, Math.floor(schade/2)), ts: Date.now() }`.
+  - `_combatLog(combat, 'Concentration save nodig — DC X (…spreuk…)')`.
+  - emit `combat:updated`.
+- Concentratie-vlag zetten/weghalen kan via bestaande `PUT /combat/combatant/:id` (geen nieuw endpoint nodig).
 
 ### Frontend
-- **Character sheet** (`app.js` ~4117): conditions-render aanpassen voor beide vormen; bij
-  objecten een `rondes`-chip tonen (`icon('refresh-cw')` + getal). Concentratie-indicator
-  (`icon('sparkles')` + spreuknaam) als `concentratie.actief`.
-- **Concentratie-overlay** voor de betrokken speler: luister op `combat:updated`; als
-  `concentratiePrompt.combatantId === mijnCombatantId` → perkament-overlay "Maak een Concentration
-  Saving Throw — DC X" met een rol-knop die de bestaande dice-roller opent (CON-save). Resultaat ≥ DC
-  → knop "Gehaald", anders "Verbroken" → `POST …/concentratie`.
-- **DM-paneel combat**: per combatant een toggle "Concentreert op…" (tekstveld) en bij conditions
-  een optioneel rondes-veld.
+- **DM-paneel combat**: per combatant een toggle "Concentreert op…" (checkbox + tekstveld spreuknaam)
+  → `PUT /combat/combatant/:id` met `concentratie`.
+- **Speler-waarschuwing**: luister op `combat:updated`; als
+  `concentratiePrompt.combatantId === mijnCombatantId` én `ts` nieuwer dan laatst gezien → toon een
+  perkament-toast/overlay "Concentration Saving Throw — DC X" met knop "Rol CON-save" (opent de
+  bestaande dice-roller). Geen automatische afhandeling.
+- **Character sheet** (`app.js` ~4117 e.o.): concentratie-indicator (`icon('sparkles')` + spreuknaam)
+  als `concentratie.actief`.
 
 ### Aandachtspunten
-- Backward-compat: oude string-condities mogen niet breken.
-- Geen dubbele prompts: `concentratiePrompt.ts` of een `afgehandeld`-flag.
-- DM moet handmatig kunnen overrulen (save automatisch gehaald verklaren).
-
-### Open keuzes
-- Aftellen aan begin eigen beurt vs. einde ronde?
-- Concentratie-save volledig automatisch (server rolt) of speler rolt zelf? (advies: speler rolt,
-  past bij de bestaande dice-cultuur.)
+- Dubbele toasts voorkomen via `ts`-vergelijking (onthoud laatst getoonde ts per client).
+- Backward-compat: ontbrekend `concentratie`-veld = niet actief.
+- Vlag weghalen is handmatig — bewust, want de DM beslist de uitkomst.
 
 ---
 
@@ -141,108 +138,113 @@ Nieuw blok naast `standard/emotes/playerTurn`:
 - **sound-manager.js**: nieuwe `setAmbiance({fileId, volume})`: houd één langlevende
   `Audio`-instantie met `loop=true`; fade in/out; stop bij `actief=null`. **Niet** achter de
   `isDM`-guard. Respecteer de client-toggle + autoplay-gesture.
-- **Speler-UI**: klein luidspreker-knopje (`icon('volume-2')`) ergens in de header/Party-tab dat
+- **Speler-UI**: klein luidspreker-knopje (`icon('volume-2')`) in de header/Party-tab dat
   ambiance lokaal dempt en de huidige scène-naam toont.
 - **DM-paneel → Geluiden**: nieuwe sectie "Geluidsdecors": lijst scènes (label + icoon + upload via
-  bestaande file-upload), klik = afspelen bij iedereen, "Stop" knop, volume-slider.
+  bestaande file-upload), klik = afspelen bij iedereen, "Stop"-knop, volume-slider.
 
 ### Aandachtspunten
 - Autoplay-policy: toon "Tik om geluid aan te zetten" als de eerste `play()` faalt.
 - Mobiel: één Audio-element hergebruiken (geen stapel).
-- Nieuwe scène-speler die later inlogt: stuur de huidige `actief`-staat mee in de eerste
-  `/api/sounds`-load, zodat hij de loop oppakt.
+- Late binnenkomer: stuur de huidige `actief`-staat mee in de eerste `/api/sounds`-load, zodat hij
+  de loop oppakt.
 
 ---
 
 ## 3. Bestiarium / Onderzoek
 
+> **Beslissingen:** eigen **tabblad in de Archief-dropdown**; **drie-traps** kennis
+> (naam → deels → volledig); **auto op naam-niveau bij combat**, daarna handmatig verdiepen;
+> kennis geldt **alleen voor de betrokken groep(en)**; hergebruik de bestaande monsterbibliotheek
+> + **gedeelde statblock-render** (geen dubbele data, geen dubbele render).
+
 ### Wat & waarom
 Spelers ontgrendelen geleidelijk de statblocks van monsters die ze tegenkomen (BG3-"Examine"-gevoel).
-Beloont strijd met kennis; DM bepaalt wat bekend wordt. Eigen Bestiarium-weergave met
+Beloont strijd met kennis; DM bepaalt hoe diep de kennis gaat. Eigen Bestiarium-tabblad met
 perkament-statkaarten.
 
-### Datamodel
-Kennis is **per groep** (net als entity-visibility). In `dm-state.json` per groep:
-```json
-"bestiarium": {
-  "<monsterId>": { "niveau": "naam" | "deels" | "volledig", "ts": 169… }
-}
-```
-- `naam`: alleen naam + afbeelding zichtbaar.
-- `deels`: + type, AC, HP-balk (geen exacte waarden), bekende resistances.
+### Integratie met de monsterbibliotheek (geen dubbel werk)
+Het Bestiarium is **geen aparte dataset** — het is een speler-view van diezelfde `monsters.json`-
+entries, met een dunne **kennis-laag** per groep eroverheen. Concreet:
+1. **Extraheer** de statblock-render uit `dm-panel.js` naar een gedeelde helper
+   (bv. `public/js/render-statblock.js` met `renderStatblock(monster, { niveau })`).
+2. DM-bibliotheek én speler-Bestiarium roepen **dezelfde** helper aan; alleen het `niveau`-argument
+   verschilt (DM = altijd `volledig`).
+
+### Kennis-laag (drie-traps)
+- `naam`: alleen naam + afbeelding (silhouet/perkament-kaart, rest vergrendeld met `icon('lock')`).
+- `deels`: + type, AC, een **HP-balk zonder exacte waarde**, bekende resistances/immunities.
 - `volledig`: hele statblock.
 
+### Datamodel (`dm-state.json`, per groep — net als visibility)
+```json
+"bestiarium": { "<monsterId>": "naam" | "deels" | "volledig" }
+```
+Ontbrekend = onbekend. Per groep, dus opgeslagen onder `groups[gid].bestiarium`.
+
 ### Server (`routes/api.js`)
-- **Speler-endpoint** `GET /bestiarium` (`attachRole`): retourneer voor de groep van de speler de
-  monsters met kennis ≥ `naam`, gefilterd op kennisniveau (server schoont velden weg die de speler
-  nog niet mag zien — net als de entity-`vague`-logica ~148).
-- **DM-toggle** `PUT /bestiarium/:monsterId` (`requireDM`) `{ niveau }` → opslaan in actieve groep +
-  `io.to(campaignId).emit('bestiarium:updated')`.
-- **Sneltoegang vanuit combat**: knop bij een monster-combatant "Onthul aan party" → roept
-  bovenstaande aan met `deels`/`volledig`.
+- **Auto-onthulling bij combat**: in `POST /combat/start` (~3527) — bepaal de groep(en) van de
+  speler-combatants (`combatants.filter(c=>c.entityId)` → `_groupForPlayer`); zet voor elke
+  monster-combatant `bestiarium[monsterId] = max(huidig, 'naam')` in **alleen die groep(en)**.
+  emit `bestiarium:updated`.
+- **DM verdiept**: `PUT /bestiarium/:monsterId` (`requireDM`) `{ niveau, groep? }` → opslaan in
+  (actieve of meegegeven) groep + emit `bestiarium:updated`. Knop in de Monsterbibliotheek én bij een
+  monster-combatant in combat ("Onthul aan party: Naam / Deels / Volledig").
+- **Speler-endpoint** `GET /bestiarium` (`attachRole`): groep van de speler bepalen, monsters met
+  kennis ≥ `naam` teruggeven, en **server-side de velden wegfilteren** die boven het kennisniveau
+  liggen (zoals de `vague`-entity-logica ~148). Nooit verborgen statwaarden naar de client sturen.
 
 ### Frontend
-- **Nieuwe sectie of subtab "Bestiarium"** (speler). Twee opties:
-  - a) Onder Archief-dropdown (naast Personages/Locaties…) — past in bestaande nav.
-  - b) Player-subtab. *(Advies: a — het is archief-achtige naslag.)*
-  - Render: grid van monster-kaartjes; vergrendelde delen tonen `icon('lock')` / silhouet.
-  - Hergebruik de bestaande statblock-render uit het DM-paneel (extraheren naar gedeelde helper).
-- **DM-paneel → Monsters / Combat**: kennisniveau-selector per monster (Onbekend / Naam / Deels /
-  Volledig) + "Onthul aan party"-knop.
+- **Nieuw tabblad**: registreer "Bestiarium" in de Archief-dropdown (`index.html` ~87–94) +
+  `switchSection`/`refreshSection` in `app.js`. Nieuw bestand `public/js/render-bestiarium.js`
+  (import met `?v=N`, registreren in `app.js` + CLAUDE.md versietabel).
+- Render: grid van monster-kaartjes; per kaart het juiste kennisniveau via `renderStatblock`.
+  Vergrendelde delen tonen `icon('lock')` / silhouet.
+- **DM**: kennisniveau-selector (Onbekend / Naam / Deels / Volledig) in de Monsterbibliotheek en in
+  combat.
 - Realtime: `socket-client.js` → `bestiarium:updated` → her-render als de sectie open is.
 
 ### Aandachtspunten
-- Server moet velden écht wegfilteren (niet alleen client-side verbergen) — anti-cheat, zoals bij
-  `vague` entities.
-- Backward-compat: geen `bestiarium` in dm-state = alles onbekend.
-- Statblock-render-helper delen tussen DM en speler om duplicatie te voorkomen.
+- Velden écht server-side wegfilteren (anti-cheat).
+- Backward-compat: geen `bestiarium` in een groep = alles onbekend.
+- Eén render-helper delen tussen DM en speler — dat is de kern van "geen dubbel werk".
+- Auto-onthulling alleen voor groepen die daadwerkelijk in het gevecht zitten.
 
-### Open keuzes
-- Auto-onthullen bij gevecht-start (naam) ja/nee? (advies: ja, naam automatisch bij toevoegen aan
-  combat; diepere kennis handmatig of via een "Onderzoek"-actie.)
+### Open keuze (later)
+- Moet "deels" ook automatisch komen na X rondes vechten, of altijd handmatig? (Nu: handmatig.)
 
 ---
 
-## 4. Login / onthaal-scherm
+## 4. Login / onthaal-scherm — GEPARKEERD
 
-### Wat & waarom
-Het publieke scherm vóór inloggen sfeervoller maken: campagne-titel, perkament-art, korte teaser.
-Puur cosmetisch onthaal — eerste indruk.
+> **Beslissing:** voorlopig niet bouwen; de keuze voor het achtergrondbeeld
+> ("welk bestaand beeld?") is nog open. Hieronder de aanpak voor als we het oppakken.
 
 ### Aanpak (`public/index.html` + `theme.css`)
-- De bestaande overlays (`#login-overlay` ~277 e.a.) blijven functioneel; voeg een **onthaal-laag**
-  toe die getoond wordt zolang niemand is ingelogd:
-  - Volledig perkament-achtergrond (`url(...)` uit `img/`), donker vignet.
-  - Grote campagne-titel in Cinzel + ondertitel (lees uit `meta.json` → titel/ondertitel; al
-    beschikbaar via de bestaande header-data).
-  - Eén centrale "Betreed"-knop → opent de bestaande speler-login (`/players` → karakterkeuze) of
-    DM-login.
-  - Optioneel: subtiele animatie (kaarslicht-flikker via CSS `@keyframes`, geen JS nodig).
-- **Geen** nieuwe server-logica nodig; titel/ondertitel/achtergrond komen uit bestaande
-  campagne-meta. Eventueel een `meta.loginBackdropId` toevoegen die de DM in instellingen kiest.
+Onthaal-laag boven de bestaande login-overlays (`#login-overlay` ~277 e.a.), getoond zolang niemand
+is ingelogd: perkament-achtergrond + vignet, grote campagne-titel (Cinzel) + ondertitel uit
+`meta.json`, één centrale "Betreed"-knop naar speler-/DM-login. Geen nieuwe serverlogica nodig.
 
-### Aandachtspunten
-- Niet de DM/tablet/test-loginflow breken — onthaal-laag is een schil eromheen.
-- Mobiel-vriendelijk (achtergrond `cover`, knop groot genoeg).
-- Respecteer dat DM en speler niet samen in één browser kunnen (bestaande cookie-regel).
-
-### Open keuzes
-- Wil je de achtergrond per campagne instelbaar maken (DM-instellingen) of vaste art?
+### Nog te beslissen
+- **Welk bestaand beeld** als achtergrond: wereldkaart, één door de DM aangewezen beeld, of een
+  wisselend reeds onthuld locatie-/sfeerbeeld. (Hier zijn we voor nu "even gaan zitten".)
 
 ---
 
 ## 5. Ontdekkings-teller (revealed kaartjes)
 
+> **Beslissingen:** toon **X / Y met voortgangsbalk**; **één teller** (alles wat niet meer `hidden`
+> is telt als ontdekt — `vague` + `visible` samen).
+
 ### Wat & waarom
 Gamified verzamel-/ontdekkingsvoortgang voor spelers: *"Personages 23/40 ontdekt"* per
-archiefcategorie. Maakt zichtbaar hoeveel van de wereld de party al heeft blootgelegd.
+archiefcategorie, met een dunne perkament-voortgangsbalk. Maakt zichtbaar hoeveel van de wereld de
+party al heeft blootgelegd.
 
 ### Datamodel
-Geen nieuwe opslag nodig — afleidbaar uit bestaande `dmState.groups[gid].visibility`.
-- **Ontdekt** = entities met visibility `vague` óf `visible` (eventueel twee tellers:
-  "gespot" = vague, "bekend" = visible).
-- **Totaal** = alle niet-getrashte entities van dat type (DM kent de noemer; speler niet — daarom
-  server-side berekenen).
+Geen nieuwe opslag — afgeleid uit bestaande `dmState.groups[gid].visibility`.
+- **Ontdekt** = entities met `visibility[id]` ∈ {`vague`, `visible`}.
+- **Totaal** = alle niet-getrashte entities van dat type.
 
 ### Server (`routes/api.js`)
 Nieuw `GET /ontdekkingen` (`attachRole`): bepaal de groep van de speler en geef terug:
@@ -254,26 +256,18 @@ Nieuw `GET /ontdekkingen` (`attachRole`): bepaal de groep van de speler en geef 
   "voorwerpen":   { "ontdekt": 7,  "totaal": 30 }
 }
 ```
-Tel per type de entities waar `visibility[id]` ∈ {vague, visible}; `totaal` = aantal entities van het
-type. (Documenten via `docStates` als je die wilt meenemen.)
+Per type tellen; `ontdekt` = aantal in {vague, visible}, `totaal` = aantal niet-getrashte entities.
 
 ### Frontend
-- **Plek**: bovenaan de **Party-subtab** (de speler-"thuisbasis"), als rij perkament-meters.
-  Per categorie: `icon(...)` + label + `X / Y` + een dunne voortgangsbalk. Subtiel, themavast.
-- Laden in `renderMijnKarakter` (Party-render) via `api` (nieuwe wrapper `ontdekkingen()` in
-  `public/js/api.js`).
+- **Plek**: bovenaan de **Party-subtab**, als rij perkament-meters. Per categorie: `icon(...)` +
+  label + `X / Y` + dunne voortgangsbalk (CSS, themavast).
+- Laden in de Party-render via nieuwe wrapper `ontdekkingen()` in `public/js/api.js`.
 - Realtime: luister op `entity:visibility` / `entity:updated` → meters verversen.
 
-### Aandachtszaken
-- Alleen voor spelers tonen (niet de DM, die ziet alles).
-- Noemer kan "spoilen" hoeveel er nog komt — overweeg een DM-schakelaar
-  `meta.toonOntdekkingsTeller` om de feature per campagne aan/uit te zetten, of toon alleen
-  "ontdekt" zonder totaal als de DM dat wil.
-- 0 entities van een type → meter verbergen (geen "0/0").
-
-### Open keuzes
-- Eén teller (visible) of twee-traps (gespot/bekend)?
-- Totaal tonen of verbergen (anti-spoiler)?
+### Aandachtspunten
+- Alleen voor spelers tonen (niet de DM — die ziet alles).
+- Categorie met 0 entities → meter verbergen (geen "0/0").
+- Geen DM-schakelaar nodig: X/Y is bewust gekozen (totalen mogen zichtbaar zijn).
 
 ---
 
