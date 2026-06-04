@@ -2,9 +2,11 @@ const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+// #47: geïsoleerde tmpdir; env-var in before() gezet (gedeeld proces).
+const DATA_DIR = path.join(os.tmpdir(), `grisburgh-test-filter-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
 function req(server, method, path, body, cookie) {
   return new Promise((resolve, reject) => {
@@ -36,7 +38,8 @@ describe('Server-side filtering', () => {
   let server, io, dmCookie;
 
   before(async () => {
-    if (fs.existsSync(DATA_DIR)) fs.rmSync(DATA_DIR, { recursive: true });
+    process.env.GRISBURGH_DATA_DIR = DATA_DIR;
+    if (fs.existsSync(DATA_DIR)) fs.rmSync(DATA_DIR, { recursive: true, force: true });
     delete require.cache[require.resolve('../server')];
     delete require.cache[require.resolve('../lib/storage')];
     delete require.cache[require.resolve('../routes/api')];
@@ -52,7 +55,7 @@ describe('Server-side filtering', () => {
   after(async () => {
     await io.close();
     await new Promise(r => server.close(r));
-    if (fs.existsSync(DATA_DIR)) fs.rmSync(DATA_DIR, { recursive: true });
+    if (fs.existsSync(DATA_DIR)) fs.rmSync(DATA_DIR, { recursive: true, force: true });
   });
 
   it('hidden entity is omitted for players', async () => {
@@ -64,20 +67,33 @@ describe('Server-side filtering', () => {
   });
 
   it('geheim field is stripped for players unless secretReveal', async () => {
+    // Ingelogde speler in de actieve groep (groep1, zonder wachtwoord in een verse DB).
+    const playerChar = await req(server, 'POST', '/api/entities/personages', {
+      name: 'Speler Een', subtype: 'speler', data: { groep: 'groep1' },
+    }, dmCookie);
+    const login = await req(server, 'POST', '/api/auth/player-login', { characterId: playerChar.body.id });
+    const playerCookie = login.cookie;
+    assert.ok(playerCookie, 'speler moet kunnen inloggen');
+
     const create = await req(server, 'POST', '/api/entities/personages', {
       name: 'Secret NPC', data: { desc: 'Visible', geheim: 'Top secret' },
     }, dmCookie);
     const id = create.body.id;
-    // Make visible
+    // Zichtbaar maken voor de groep
     await req(server, 'PUT', `/api/entities/personages/${id}/visibility`, null, dmCookie);
-    // Player sees desc but not geheim
-    let player = await req(server, 'GET', '/api/entities/personages');
-    assert.strictEqual(player.body[0].data.desc, 'Visible');
-    assert.strictEqual(player.body[0].data.geheim, undefined);
-    // Toggle secret reveal
+
+    // Speler ziet desc maar niet geheim
+    let player = await req(server, 'GET', '/api/entities/personages', null, playerCookie);
+    const npc = player.body.find(e => e.id === id);
+    assert.ok(npc, 'speler moet de zichtbare NPC zien');
+    assert.strictEqual(npc.data.desc, 'Visible');
+    assert.strictEqual(npc.data.geheim, undefined);
+
+    // Na secret-reveal ziet de speler geheim wél
     await req(server, 'PUT', `/api/entities/personages/${id}/secret`, null, dmCookie);
-    player = await req(server, 'GET', '/api/entities/personages');
-    assert.strictEqual(player.body[0].data.geheim, 'Top secret');
+    player = await req(server, 'GET', '/api/entities/personages', null, playerCookie);
+    const npc2 = player.body.find(e => e.id === id);
+    assert.strictEqual(npc2.data.geheim, 'Top secret');
   });
 
   it('hidden archief documents are invisible to players', async () => {

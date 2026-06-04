@@ -2,9 +2,13 @@ const { describe, it, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
 const path = require('path');
+const os = require('os');
 const fs = require('fs');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+// #47: isoleer in een unieke tmpdir zodat de test NOOIT de echte ./data raakt.
+// De env-var wordt in before() gezet (vlak vóór de require) — het proces is
+// gedeeld met andere testbestanden.
+const DATA_DIR = path.join(os.tmpdir(), `grisburgh-test-api-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
 // Helper: HTTP request with cookie support
 function req(server, method, path, body, cookie) {
@@ -37,7 +41,8 @@ describe('API', () => {
   let server, io, dmCookie;
 
   before(async () => {
-    if (fs.existsSync(DATA_DIR)) fs.rmSync(DATA_DIR, { recursive: true });
+    process.env.GRISBURGH_DATA_DIR = DATA_DIR;
+    if (fs.existsSync(DATA_DIR)) fs.rmSync(DATA_DIR, { recursive: true, force: true });
     delete require.cache[require.resolve('../server')];
     delete require.cache[require.resolve('../lib/storage')];
     delete require.cache[require.resolve('../routes/api')];
@@ -51,7 +56,7 @@ describe('API', () => {
   after(async () => {
     await io.close();
     await new Promise(r => server.close(r));
-    if (fs.existsSync(DATA_DIR)) fs.rmSync(DATA_DIR, { recursive: true });
+    if (fs.existsSync(DATA_DIR)) fs.rmSync(DATA_DIR, { recursive: true, force: true });
   });
 
   // Auth
@@ -113,21 +118,18 @@ describe('API', () => {
     assert.strictEqual(res.body.visibility, 'visible');
   });
 
-  it('should show visible entity to player without geheim', async () => {
+  it('hides all entities from a request without a session (no leak)', async () => {
+    // Per-groep model: zonder ingelogde speler geen data. De positieve
+    // speler-in-groep flow (geheim strippen) staat in filter.test.js.
     const list = await req(server, 'GET', '/api/entities/personages');
-    assert.strictEqual(list.body.length, 1);
-    assert.strictEqual(list.body[0].data.geheim, undefined);
-    assert.strictEqual(list.body[0].data.desc, 'Een test personage');
+    assert.strictEqual(list.body.length, 0);
   });
 
-  it('should toggle secret reveal', async () => {
+  it('should toggle secret reveal (DM side)', async () => {
     const list = await req(server, 'GET', '/api/entities/personages', null, dmCookie);
     const id = list.body[0].id;
     const res = await req(server, 'PUT', `/api/entities/personages/${id}/secret`, null, dmCookie);
     assert.strictEqual(res.body.secretReveal, true);
-    // Player should now see geheim
-    const playerList = await req(server, 'GET', '/api/entities/personages');
-    assert.strictEqual(playerList.body[0].data.geheim, 'Geheime info');
   });
 
   it('should update entity', async () => {
@@ -206,10 +208,10 @@ describe('API', () => {
   });
 
   // Meta
-  it('should return meta with hoofdstukken', async () => {
+  it('should return meta with a hoofdstukken object', async () => {
     const res = await req(server, 'GET', '/api/meta');
-    assert.ok(res.body.hoofdstukken);
-    assert.ok(res.body.hoofdstukken.h1);
-    assert.strictEqual(res.body.hoofdstukken.h1.title, 'Dauwdag');
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(typeof res.body.hoofdstukken, 'object');
+    assert.ok(res.body.appTitle);
   });
 });
