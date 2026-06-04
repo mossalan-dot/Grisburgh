@@ -6,11 +6,24 @@ export function initSocket() {
 
   const ENTITY_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 
+  // #30: debounce volledige sectie-renders per sectie. Snel opeenvolgende
+  // socket-events (combat-ticks, item-acties die meerdere emits geven) leiden
+  // anders tot meerdere volledige refreshSection-calls — merkbaar op tablets.
+  const _refreshTimers = new Map();
+  function _refreshSectionDebounced(section, delay = 100) {
+    if (!section) return;
+    if (_refreshTimers.has(section)) clearTimeout(_refreshTimers.get(section));
+    _refreshTimers.set(section, setTimeout(() => {
+      _refreshTimers.delete(section);
+      window.app?.refreshSection?.(section);
+    }, delay));
+  }
+
   // Helper: herlaad de actieve entiteitsectie via window.app (zelfde module-instantie als app.js,
   // zodat searchQueries/subtypeFilters behouden blijven)
   function _refreshEntitySection(section) {
     if (ENTITY_SECTIONS.includes(section)) {
-      window.app.refreshSection(section);
+      _refreshSectionDebounced(section);
     }
   }
 
@@ -112,7 +125,7 @@ export function initSocket() {
 
   socket.on('facties:updated', () => {
     const section = window.app?.state?.activeSection;
-    if (section === 'mijn-karakter') window.app?.refreshSection?.('mijn-karakter');
+    if (section === 'mijn-karakter') _refreshSectionDebounced('mijn-karakter');
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
       import('./render-archief.js').then(m => m.renderLogboek());
     }
@@ -320,7 +333,7 @@ export function initSocket() {
     // Herlaad dashboard als dit de eigen speler is
     if (window.app?.state?.characterId === characterId &&
         window.app?.state?.activeSection === 'mijn-karakter') {
-      window.app.refreshSection('mijn-karakter');
+      _refreshSectionDebounced('mijn-karakter');
     }
   });
 
@@ -346,7 +359,7 @@ export function initSocket() {
 
     // Herlaad de volledige sectie als die nu actief is
     if (window.app?.state?.activeSection === 'mijn-karakter') {
-      window.app.refreshSection('mijn-karakter');
+      _refreshSectionDebounced('mijn-karakter');
     } else {
       // Sectie niet actief: markeer dat herlaad nodig is bij volgende bezoek
       window._pendingKarakterRefresh = true;
@@ -357,7 +370,7 @@ export function initSocket() {
   socket.on('progression:updated', () => {
     window.dispatchEvent(new Event('progression:reload'));
     if (window.app?.state?.activeSection === 'mijn-karakter') {
-      window.app.refreshSection('mijn-karakter');
+      _refreshSectionDebounced('mijn-karakter');
     }
   });
 
@@ -368,7 +381,7 @@ export function initSocket() {
       window.app.refreshSection('voorwerpen');
     }
     // Altijd de knapzak bijwerken (ook als de tab niet actief is)
-    window.app.refreshSection('mijn-karakter');
+    _refreshSectionDebounced('mijn-karakter');
     // Toast voor de speler wiens item is teruggenomen
     if (!window.app.isDM() && data?.takenBack) {
       const myCharId = window.app?.state?.characterId;
@@ -382,7 +395,7 @@ export function initSocket() {
   socket.on('player:items-updated', ({ characterId } = {}) => {
     const myCharId = window.app?.state?.characterId;
     if (!characterId || characterId === myCharId) {
-      window.app.refreshSection('mijn-karakter');
+      _refreshSectionDebounced('mijn-karakter');
     }
   });
 
@@ -445,7 +458,7 @@ export function initSocket() {
       _showToast(`⚔️ <strong>${name}</strong> vergezelt nu de groep`);
     }
     if (window.app?.state?.activeSection === 'mijn-karakter') {
-      window.app.refreshSection('mijn-karakter');
+      _refreshSectionDebounced('mijn-karakter');
     }
   });
 
@@ -454,7 +467,7 @@ export function initSocket() {
       _showToast(`↩ <strong>${name}</strong> heeft de groep verlaten`);
     }
     if (window.app?.state?.activeSection === 'mijn-karakter') {
-      window.app.refreshSection('mijn-karakter');
+      _refreshSectionDebounced('mijn-karakter');
     }
   });
 
@@ -470,7 +483,7 @@ export function initSocket() {
     if (window.app?.isDM?.()) window.renderParty?.();
     // Speler: herrender dashboard als actief
     if (isMe && window.app?.state?.activeSection === 'mijn-karakter') {
-      window.app.refreshSection('mijn-karakter');
+      _refreshSectionDebounced('mijn-karakter');
     }
   });
 
@@ -519,7 +532,7 @@ export function initSocket() {
     );
     // Als de spelerspagina open is, herrender direct
     if (window.app?.state?.activeSection === 'mijn-karakter') {
-      window.app.refreshSection('mijn-karakter');
+      _refreshSectionDebounced('mijn-karakter');
     }
     // Unread badge bijwerken
     window._berichtenUnread = (window._berichtenUnread || 0) + 1;
@@ -532,7 +545,7 @@ export function initSocket() {
     const myGroupId = window._myGroupId;
     if (groupId && myGroupId && groupId !== myGroupId) return;
     if (window.app?.state?.activeSection === 'mijn-karakter') {
-      window.app.refreshSection('mijn-karakter');
+      _refreshSectionDebounced('mijn-karakter');
     }
     if (actor && actor !== 'DM' && currency) {
       _showToast(`💰 <strong>${actor}</strong> heeft de gedeelde beurs bijgewerkt`);
