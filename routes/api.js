@@ -213,13 +213,27 @@ function _deductCurrency(dmState, characterId, prijsCl) {
 }
 
 // Bepaal de groep van een speler op basis van het karakter-entity
+// #31: characterId → groep wordt op elke polltick opgevraagd. I.p.v. heel
+// entities.json per call te lezen/parsen, cachen we een lichte id→groep-map
+// per campagne en herbouwen die alleen als entities.json wijzigt (mtime). De
+// map is read-only, dus veilig te cachen (anders dan de gemuteerde dm-state).
+const _groepCacheByDir = new Map(); // dataDir → { mtimeMs, map }
 function _playerGroupId(dmState, characterId) {
   if (!characterId) return null;
-  const entities = storage.readJSON('entities.json');
-  const char = (entities.personages || []).find(e => e.id === characterId);
-  const groep = char?.data?.groep;
-  if (groep && dmState.groups?.[groep]) return groep;
-  return null;
+  const dir = storage.DATA_DIR;
+  const fp  = path.join(dir, 'entities.json');
+  let mtimeMs = -1;
+  try { mtimeMs = fs.statSync(fp).mtimeMs; } catch {}
+  let cached = _groepCacheByDir.get(dir);
+  if (!cached || cached.mtimeMs !== mtimeMs) {
+    const entities = storage.readJSON('entities.json');
+    const map = new Map();
+    for (const e of (entities.personages || [])) if (e?.data?.groep) map.set(e.id, e.data.groep);
+    cached = { mtimeMs, map };
+    _groepCacheByDir.set(dir, cached);
+  }
+  const groep = cached.map.get(characterId);
+  return (groep && dmState.groups?.[groep]) ? groep : null;
 }
 
 function filterEntityForPlayer(entity, dmState, groupId) {
