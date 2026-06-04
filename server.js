@@ -94,9 +94,16 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Relay player emote trigger — only to sockets in the same campaign room
+  // Relay player emote trigger — only to sockets in the same campaign room.
+  // #14: entityId is session-authoritatief. Een speler kan alleen namens
+  // zichzelf emoten; de DM mag namens elke entiteit; anoniem heeft geen recht.
   socket.on('sound:emote', (data) => {
-    socket.to(campaignId).emit('sound:emote', data);
+    const sess = socket.request.session;
+    let entityId;
+    if (sess?.characterId)      entityId = sess.characterId;   // speler: alleen zichzelf
+    else if (sess?.role === 'dm') entityId = data?.entityId;   // DM: elke entiteit
+    else return;                                                // anoniem: negeren
+    socket.to(campaignId).emit('sound:emote', { ...data, entityId });
   });
 
   socket.on('disconnect', () => {
