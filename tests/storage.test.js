@@ -1,30 +1,36 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
-const TEST_DATA = path.join(__dirname, '..', 'data');
+// #47: isoleer in een tmpdir. #44: storage schrijft per-campagne onder
+// campaigns/<id> (default 'grisburgh'), niet meer plat in data/.
+const TEST_BASE = path.join(os.tmpdir(), `grisburgh-test-storage-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+const CAMP_DIR = path.join(TEST_BASE, 'campaigns', 'grisburgh');
 
 describe('Storage', () => {
   let storage;
 
   before(() => {
-    if (fs.existsSync(TEST_DATA)) fs.rmSync(TEST_DATA, { recursive: true });
+    // Env vlak vóór de require zetten — proces is gedeeld met andere testbestanden,
+    // dus een module-top-assignment zou door een ander bestand overschreven kunnen zijn.
+    process.env.GRISBURGH_DATA_DIR = TEST_BASE;
     delete require.cache[require.resolve('../lib/storage')];
     storage = require('../lib/storage');
   });
 
   after(() => {
-    if (fs.existsSync(TEST_DATA)) fs.rmSync(TEST_DATA, { recursive: true });
+    if (fs.existsSync(TEST_BASE)) fs.rmSync(TEST_BASE, { recursive: true, force: true });
   });
 
   it('should auto-create data files on init', () => {
     storage.init();
-    assert.ok(fs.existsSync(path.join(TEST_DATA, 'entities.json')));
-    assert.ok(fs.existsSync(path.join(TEST_DATA, 'archief.json')));
-    assert.ok(fs.existsSync(path.join(TEST_DATA, 'dm-state.json')));
-    assert.ok(fs.existsSync(path.join(TEST_DATA, 'meta.json')));
-    assert.ok(fs.existsSync(path.join(TEST_DATA, 'files')));
+    assert.ok(fs.existsSync(path.join(CAMP_DIR, 'entities.json')));
+    assert.ok(fs.existsSync(path.join(CAMP_DIR, 'archief.json')));
+    assert.ok(fs.existsSync(path.join(CAMP_DIR, 'dm-state.json')));
+    assert.ok(fs.existsSync(path.join(CAMP_DIR, 'meta.json')));
+    assert.ok(fs.existsSync(path.join(CAMP_DIR, 'files')));
   });
 
   it('should read/write JSON roundtrip', () => {
@@ -59,7 +65,7 @@ describe('Storage', () => {
   it('should use atomic writes (temp file rename)', () => {
     storage.writeJSON('entities.json', { atomic: true });
     // The .tmp file should not exist after write
-    assert.ok(!fs.existsSync(path.join(TEST_DATA, 'entities.json.tmp')));
+    assert.ok(!fs.existsSync(path.join(CAMP_DIR, 'entities.json.tmp')));
     assert.strictEqual(storage.readJSON('entities.json').atomic, true);
   });
 });
