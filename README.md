@@ -436,15 +436,15 @@ Toegankelijk via de ⚔-knop rechtsonder.
 
 ---
 
-## Importscripts
+## Importeren vanuit Obsidian
 
-| Script | Functie |
-|---|---|
-| `import-schaduwvin.js` | Importeert personages, locaties, organisaties en voorwerpen vanuit een Obsidian-vault |
-| `import-obsidian.js` | Importeert documenten vanuit een Obsidian-vault |
-| `import-verhaal.js` | Importeert Obsidian-hoofdstukken als DM-notities in het sessielogboek |
+Entiteiten (personages, locaties, organisaties, voorwerpen) en documenten importeer je
+**in de app**: DM-paneel → Exporteren/Importeren → "Markdown-bestanden importeren". Deze route
+is campagne-bewust (loopt via `lib/storage.js`) en herkent het `type`-veld in de frontmatter.
 
-De scripts lezen Markdown-bestanden en embedded media uit de vault en schrijven direct naar `data/archief.json` en `data/dm-state.json`.
+> De oude losse CLI-scripts (`import-schaduwvin.js`, `import-obsidian.js`, `import-verhaal.js`)
+> zijn verwijderd: ze schreven naar een legacy data-pad dat de server niet meer leest.
+> De in-app import vervangt de entity- en documentimport.
 
 ---
 
@@ -489,9 +489,6 @@ data/                      # Persistente data (gitignored)
       shop-log.json        # Aankooplogboek per winkel
       files/               # Geüploade afbeeldingen, PDFs en audio
       thumbs/              # Gegenereerde WebP-thumbnails (automatisch)
-import-schaduwvin.js       # Obsidian entity-importscript
-import-obsidian.js         # Obsidian document-importscript
-import-verhaal.js          # Obsidian verhaal/logboek-importscript
 tests/                     # Automatische tests
 ```
 

@@ -638,6 +638,103 @@ body::before {
   color: #777 !important;
   border-color: rgba(255,255,255,0.1) !important;
 }
+/* ── Goddelijke Voorzienigheid kaartjes ── */
+
+/* Zegening — subtiele groene gloed */
+.entity-card.card-goddelijk--zegen {
+  --rar: rgba(80,160,90,0.6);
+  --rar-soft: rgba(80,160,90,0.18);
+  box-shadow:
+    0 1px 2px rgba(20,60,20,0.08),
+    0 3px 10px var(--rar-soft),
+    inset 0 0 0 1px rgba(120,200,130,0.2);
+}
+.entity-card.card-goddelijk--zegen .card-accent {
+  background: linear-gradient(to right, rgba(80,160,90,0.7), transparent);
+}
+
+/* Eed — gouden glans-sweep (zelfde als legendary) */
+.entity-card.card-goddelijk--eed {
+  --rar: rgba(196,168,80,0.8);
+  --rar-soft: rgba(196,168,80,0.28);
+  box-shadow:
+    0 1px 2px rgba(60,40,10,0.10),
+    0 4px 14px var(--rar-soft),
+    inset 0 0 0 1px rgba(255,220,100,0.28);
+  border-color: rgba(196,168,80,0.45);
+}
+.entity-card.card-goddelijk--eed .card-accent {
+  background: linear-gradient(to right, rgba(196,168,80,0.8), transparent);
+}
+.entity-card.card-goddelijk--eed::before {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: -70%;
+  width: 50%;
+  height: 120%;
+  background: linear-gradient(105deg, transparent 0%, rgba(255,240,160,0.55) 50%, transparent 100%);
+  transform: skewX(-18deg);
+  pointer-events: none;
+  z-index: 6;
+  animation: card-sheen 7s ease-in-out infinite;
+}
+
+/* Vloek — donker à la card-deceased */
+.entity-card.card-goddelijk--vloek {
+  background: #160e0e;
+  border-color: #3a1a1a;
+  box-shadow:
+    0 1px 2px rgba(60,0,0,0.15),
+    0 4px 14px rgba(120,20,20,0.25),
+    inset 0 0 0 1px rgba(180,60,60,0.15);
+}
+.entity-card.card-goddelijk--vloek:hover {
+  background: #1e1010;
+  border-color: #4a2020;
+}
+.entity-card.card-goddelijk--vloek .card-img {
+  filter: grayscale(60%) brightness(0.5) sepia(40%);
+}
+.entity-card.card-goddelijk--vloek .card-name {
+  color: #e8c8c8;
+  text-shadow: 0 0 12px rgba(180,40,40,0.4);
+}
+.entity-card.card-goddelijk--vloek .card-name-sep {
+  background: linear-gradient(to right, rgba(180,60,60,0.5), transparent);
+}
+.entity-card.card-goddelijk--vloek .card-accent {
+  background: linear-gradient(to right, rgba(160,40,40,0.8), transparent);
+}
+.entity-card.card-goddelijk--vloek .text-ink-medium,
+.entity-card.card-goddelijk--vloek .text-ink-dim,
+.entity-card.card-goddelijk--vloek .text-ink-faint,
+.entity-card.card-goddelijk--vloek p {
+  color: #a07070 !important;
+}
+.entity-card.card-goddelijk--vloek .flavour-preview {
+  background: rgba(180,40,40,0.10);
+  border-color: rgba(180,40,40,0.2);
+}
+.entity-card.card-goddelijk--vloek .flavour-preview-text {
+  color: #c09090;
+}
+/* Rode gloed-sweep op vloeken */
+.entity-card.card-goddelijk--vloek::before {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: -70%;
+  width: 45%;
+  height: 120%;
+  background: linear-gradient(105deg, transparent 0%, rgba(200,60,60,0.2) 50%, transparent 100%);
+  transform: skewX(-18deg);
+  pointer-events: none;
+  z-index: 6;
+  animation: card-sheen 10s ease-in-out infinite;
+  animation-delay: -3s;
+}
+
 .card-name-dagger {
   font-family: 'Cinzel', serif;
   font-size: 0.78em;
@@ -1301,6 +1398,32 @@ body::before {
 }
 .detail-armor-tag--str:hover { background: rgba(160,120,30,0.32); }
 /* ── Scroll spell stats (detail view) ── */
+.detail-divine-block {
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  background: rgba(255,250,235,0.5);
+}
+.detail-divine-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: #5a3d10;
+  margin-bottom: 8px;
+}
+.detail-divine-header .icon { width: 15px; height: 15px; }
+.detail-divine-effect {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.95rem;
+  color: rgba(50,30,5,0.8);
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
 .detail-scroll-stats {
   display: flex;
   flex-wrap: wrap;
@@ -7494,6 +7617,7 @@ details.player-dash-collapsible[open] > summary {
   border-bottom: 2px solid #c4a87a;
   margin-bottom: 0;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -11764,7 +11888,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 
 /* ── Tempel: godlijst en interior ── */
 .tempel-scene-list {
-  background-color: rgba(15,10,5,0.85);
+  background-color: rgba(38,26,10,0.70);
   background-size: cover;
   background-position: center;
   background-blend-mode: multiply;
@@ -11811,8 +11935,8 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   flex-shrink: 0;
 }
 .tempel-god-kaart {
-  background: rgba(25,18,8,0.6);
-  border: 1px solid rgba(196,168,122,0.22);
+  background: rgba(55,40,16,0.65);
+  border: 1px solid rgba(196,168,122,0.30);
   border-radius: 10px;
   padding: 12px 8px 10px;
   text-align: center;
@@ -11824,12 +11948,12 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   gap: 5px;
 }
 .tempel-god-kaart:hover {
-  border-color: rgba(196,168,122,0.5);
-  background: rgba(38,28,12,0.75);
+  border-color: rgba(196,168,122,0.6);
+  background: rgba(72,52,20,0.80);
 }
 .tempel-god-kaart.tempel-god--actief {
-  border-color: rgba(196,168,122,0.7);
-  background: rgba(55,42,18,0.65);
+  border-color: rgba(196,168,122,0.75);
+  background: rgba(85,62,24,0.75);
 }
 .tempel-god-avatar {
   width: 56px;
@@ -11846,8 +11970,8 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(40,28,12,0.55);
-  color: rgba(196,168,122,0.6);
+  background: rgba(65,46,18,0.65);
+  color: rgba(196,168,122,0.75);
 }
 .tempel-god-avatar-fallback .icon { width: 26px; height: 26px; }
 .tempel-god-naam {
@@ -11888,32 +12012,204 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .tempel-terug-btn .icon { width: 14px; height: 14px; }
 
 /* Eed cinema overlay */
+@keyframes eed-flits {
+  0%   { background: rgba(0,0,0,0.96); }
+  30%  { background: rgba(210,170,60,0.95); }
+  60%  { background: rgba(255,230,120,0.98); }
+  100% { background: rgba(0,0,0,0.96); }
+}
+@keyframes eed-fadeout {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes eed-bezegeld-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
 #tempel-eed-cinema {
   position: fixed;
   inset: 0;
-  background: #000;
+  background: rgba(0,0,0,0.96);
   z-index: 9999;
+  transition: background 0.3s;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 24px;
+  padding: 48px 32px;
 }
-#tempel-eed-text {
-  font-family: var(--font-body, serif);
-  font-size: 1.1rem;
-  line-height: 1.9;
-  color: #c4a87a;
+.tempel-eed-body {
+  font-family: 'IM Fell English', 'Crimson Text', Georgia, serif;
+  font-size: 1.15rem;
+  line-height: 2;
+  color: #c9a96e;
   text-align: center;
-  max-width: 500px;
+  max-width: 560px;
   white-space: pre-line;
+  letter-spacing: 0.01em;
 }
-#tempel-eed-btns {
-  margin-top: 36px;
+.tempel-eed-btns {
+  margin-top: 40px;
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
   justify-content: center;
+}
+.tempel-eed-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  padding: 10px 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(196,168,122,0.5);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.tempel-eed-btn--bevestig {
+  background: rgba(80,55,15,0.85);
+  color: #f0dba0;
+  border-color: rgba(196,168,122,0.7);
+}
+.tempel-eed-btn--bevestig:hover { background: rgba(110,75,18,0.95); }
+.tempel-eed-btn--annuleer {
+  background: rgba(70,20,15,0.75);
+  color: #e0b0a0;
+  border-color: rgba(160,80,70,0.5);
+}
+.tempel-eed-btn--annuleer:hover { background: rgba(100,30,20,0.9); }
+#tempel-eed-cinema.tempel-eed-flits {
+  animation: eed-flits 0.6s ease-out forwards;
+}
+#tempel-eed-cinema.tempel-eed-fadeout {
+  animation: eed-fadeout 0.9s ease-in forwards;
+}
+.tempel-eed-bezegeld {
+  font-family: 'Cinzel', serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.06em;
+  color: #e8c97a;
+  text-align: center;
+  line-height: 2.2;
+  animation: eed-bezegeld-in 0.7s ease-out;
+}
+.tempel-eed-bezegeld .icon {
+  width: 40px;
+  height: 40px;
+  opacity: 0.85;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 12px rgba(220,180,80,0.7));
+}
+.tempel-eed-bezegeld span {
+  display: block;
+  font-size: 1.5rem;
+  margin-bottom: 6px;
+}
+.tempel-eed-bezegeld em {
+  font-style: italic;
+  font-family: 'IM Fell English', serif;
+  font-size: 1rem;
+  color: rgba(210,180,120,0.75);
+  letter-spacing: 0.02em;
+}
+
+/* Vloek-cinema */
+@keyframes vloek-trilling {
+  0%,100% { transform: translate(0,0); }
+  20%      { transform: translate(-3px, 2px); }
+  40%      { transform: translate(3px,-2px); }
+  60%      { transform: translate(-2px, 3px); }
+  80%      { transform: translate(2px,-1px); }
+}
+#tempel-vloek-cinema {
+  position: fixed;
+  inset: 0;
+  background: rgba(60,0,0,0);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  cursor: pointer;
+  transition: background 0.4s;
+}
+#tempel-vloek-cinema.tempel-vloek--zichtbaar {
+  background: rgba(60,0,0,0.93);
+  animation: vloek-trilling 0.5s ease-out 0.1s;
+}
+#tempel-vloek-cinema.tempel-vloek--weg {
+  opacity: 0;
+  transition: opacity 0.7s;
+}
+.tempel-vloek-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  max-width: 520px;
+  animation: eed-bezegeld-in 0.6s ease-out 0.15s both;
+}
+.tempel-vloek-body .icon {
+  width: 48px;
+  height: 48px;
+  color: #c04040;
+  filter: drop-shadow(0 0 14px rgba(200,40,40,0.8));
+}
+.tempel-vloek-body span {
+  font-family: 'Cinzel', serif;
+  font-size: 1.4rem;
+  letter-spacing: 0.06em;
+  color: #e07070;
+}
+.tempel-vloek-body em {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 1rem;
+  color: rgba(220,150,150,0.85);
+  line-height: 1.7;
+}
+/* Goddelijke interventie kaartjes */
+.goddelijk-kaarten { display: flex; flex-direction: column; gap: 10px; }
+.goddelijk-kaart {
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: rgba(255,250,240,0.6);
+}
+.goddelijk-kaart-type {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(100,75,30,0.65);
+  margin-bottom: 6px;
+}
+.goddelijk-kaart-type .icon { width: 13px; height: 13px; }
+.goddelijk-kaart-naam {
+  font-family: 'Cinzel', serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #3a2508;
+  margin-bottom: 4px;
+}
+.goddelijk-kaart-note {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.88rem;
+  color: rgba(60,40,10,0.75);
+  line-height: 1.5;
+}
+
+.tempel-vloek-body small {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.85rem;
+  color: rgba(200,120,120,0.55);
+  margin-top: 8px;
 }
 
 .gock-kaartje-btn {
@@ -16788,13 +17084,98 @@ body:has(#dm-dice-panel.open) #dm-dice-fab { display: none !important; }
 .prog-feat { background: rgba(255,253,246,0.55); border: 1px solid rgba(196,168,122,0.35); border-radius: 7px; padding: 5px 9px; }
 .prog-feat--sub { border-left: 3px solid #7a5aaa; }
 .prog-feat--shared { border-left: 3px solid rgba(150,130,90,0.6); background: rgba(196,168,122,0.1); }
+/* Feature header: naam + favoriet naast elkaar */
+.prog-feat-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+/* Klikbare feature-naam knop */
+.prog-feat-name-btn { font-family: 'Cinzel', serif; font-size: 12.5px; font-weight: 700; color: #3a2a0e; background: none; border: none; padding: 0; cursor: pointer; text-align: left; flex: 1; }
+.prog-feat-name-btn:hover { color: #8a5a10; text-decoration: underline; text-decoration-style: dotted; }
+/* Favoriet-knop in tijdlijn */
+.prog-tl-fav { background: none; border: none; font-size: 14px; color: #c4a87a; cursor: pointer; padding: 0 2px; line-height: 1; flex-shrink: 0; }
+.prog-tl-fav.on { color: #c4920a; }
+.prog-tl-fav:hover { color: #a07010; }
+/* Legacy: behoud voor kaartweergave */
 .prog-feat-name { font-family: 'Cinzel', serif; font-size: 12.5px; font-weight: 700; color: #3a2a0e; display: block; }
 .prog-feat-tag { font-family: 'Cinzel', serif; font-size: 7.5px; letter-spacing: 0.5px; text-transform: uppercase; color: #7a5aaa; background: rgba(122,90,170,0.12); border-radius: 8px; padding: 1px 6px; vertical-align: middle; }
 .prog-feat-desc { font-family: 'Crimson Text', serif; font-size: 13px; color: #5a4632; line-height: 1.4; }
+.prog-feat-desc p, .prog-feat-desc ul { margin: 3px 0; }
+.prog-feat-desc ul { padding-left: 16px; }
+.prog-feat-desc em { font-style: italic; }
+.prog-feat-desc strong { font-weight: 700; color: #3a2a0e; }
+
+/* Uitklapbare beschrijving */
+.prog-feat-details { font-family: 'Crimson Text', serif; font-size: 13px; color: #5a4632; line-height: 1.4; }
+.prog-feat-details { display: inline; }
+.prog-feat-summary { cursor: pointer; list-style: none; display: inline; font-size: 11px; color: #c4a87a; margin-left: 4px; }
+.prog-feat-summary::-webkit-details-marker { display: none; }
+details[open] .prog-feat-summary { color: #8a6020; }
+.prog-feat-details-body { margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(196,168,122,0.3); }
+.prog-feat-details-body p, .prog-feat-details-body ul { margin: 4px 0; }
+.prog-feat-details-body ul { padding-left: 16px; }
+.prog-feat-details-body em { font-style: italic; }
+.prog-feat-details-body strong { font-weight: 700; color: #3a2a0e; }
+
 .prog-current .prog-feat { border-color: rgba(184,134,11,0.5); }
 
 /* ── Keuze-invoerveld in tijdlijn en detail ── */
 .prog-choice-row { margin-top: 5px; }
+.prog-choice-row--feat { display: flex; flex-direction: column; gap: 5px; }
+
+/* Feat context (andere features op hetzelfde level) */
+.prog-feat-context { font-family: 'IM Fell English', serif; font-style: italic; font-size: 11.5px; color: #9a8060; }
+.prog-feat-context em { font-style: normal; font-weight: 600; color: #6a5030; }
+
+/* Dropdown */
+.prog-feat-select {
+  width: 100%; font-family: 'Crimson Text', serif; font-size: 13px; color: #3a2a0e;
+  background: rgba(255,253,246,0.9); border: 1px solid rgba(196,168,122,0.5);
+  border-radius: 5px; padding: 4px 7px; outline: none; cursor: pointer; box-sizing: border-box;
+}
+.prog-feat-select:focus { border-color: #c4a87a; }
+.prog-feat-select:disabled { opacity: 0.45; cursor: default; }
+
+/* Preview na selectie */
+.prog-feat-preview { margin-top: 2px; }
+.prog-feat-preview-body { background: rgba(255,253,240,0.9); border: 1px solid rgba(196,168,122,0.4); border-radius: 7px; padding: 8px 10px; }
+.prog-feat-preview-name { font-family: 'Cinzel', serif; font-size: 12.5px; color: #3a2a0e; display: block; margin-bottom: 4px; }
+.prog-feat-preview-desc { font-family: 'Crimson Text', serif; font-size: 13px; color: #4a3820; line-height: 1.45; }
+.prog-feat-preview-desc p { margin: 3px 0; }
+.prog-feat-preview-desc ul { padding-left: 16px; margin: 3px 0; }
+.prog-feat-preview-desc em { font-style: italic; }
+.prog-feat-preview-desc strong { font-weight: 700; }
+.prog-feat-actions { display: flex; gap: 6px; margin-top: 7px; }
+.prog-feat-confirm {
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+  background: #5a3a10; color: #f5edda; border: none; border-radius: 5px;
+  padding: 5px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+}
+.prog-feat-confirm:hover { background: #7a4a18; }
+.prog-feat-confirm .icon { width: 11px; height: 11px; }
+.prog-feat-cancel {
+  font-family: 'Crimson Text', serif; font-size: 13px; color: #8a7050;
+  background: none; border: 1px solid rgba(196,168,122,0.4); border-radius: 5px;
+  padding: 4px 10px; cursor: pointer;
+}
+.prog-feat-cancel:hover { background: rgba(196,168,122,0.1); }
+
+/* Bevestigde feat */
+.prog-feat-confirmed { background: rgba(250,248,235,0.8); border: 1px solid rgba(184,134,11,0.35); border-radius: 7px; padding: 8px 10px; margin-top: 3px; }
+.prog-feat-confirmed-label { font-family: 'IM Fell English', serif; font-style: italic; font-size: 11.5px; color: #7a6040; display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+.prog-feat-confirmed-label .icon { width: 11px; height: 11px; color: #5a8a30; }
+.prog-feat-confirmed-name { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; color: #3a2a0e; display: flex; align-items: center; gap: 5px; margin-bottom: 4px; background: none; border: none; padding: 0; cursor: pointer; text-align: left; }
+.prog-feat-confirmed-name:hover { color: #7a4a10; text-decoration: underline; text-decoration-style: dotted; }
+.prog-feat-eye { width: 12px; height: 12px; color: #c4a87a; flex-shrink: 0; }
+.prog-feat-confirmed-desc { font-family: 'Crimson Text', serif; font-size: 12.5px; color: #4a3820; line-height: 1.4; }
+.prog-feat-confirmed-desc p { margin: 3px 0; }
+.prog-feat-confirmed-desc ul { padding-left: 16px; margin: 3px 0; }
+.prog-feat-wijzigen {
+  margin-top: 5px; font-family: 'Crimson Text', serif; font-size: 12px; color: #8a6040;
+  background: none; border: 1px solid rgba(196,168,122,0.35); border-radius: 4px;
+  padding: 2px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+}
+.prog-feat-wijzigen:hover { background: rgba(196,168,122,0.1); }
+.prog-feat-wijzigen .icon { width: 10px; height: 10px; }
+
+.prog-choice-custom.hidden { display: none; }
 .prog-choice-input {
   width: 100%;
   font-family: 'Crimson Text', serif;
@@ -16945,6 +17326,10 @@ body:has(#dm-dice-panel.open) #dm-dice-fab { display: none !important; }
 .prog-detail-chips { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; }
 .prog-detail-chip { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.5px; color: #5a4030; background: rgba(196,168,122,0.16); border: 1px solid rgba(196,168,122,0.4); border-radius: 12px; padding: 3px 10px; }
 .prog-detail-desc { font-family: 'Crimson Text', serif; font-size: 15px; line-height: 1.55; color: #3a2a14; }
+.prog-detail-desc p { margin: 6px 0; }
+.prog-detail-desc ul { padding-left: 20px; margin: 6px 0; }
+.prog-detail-desc em { font-style: italic; }
+.prog-detail-desc strong { font-weight: 700; }
 
 /* ── Progressie: favorieten + media + editor-uitbreidingen ── */
 .prog-fav-toggle { background: rgba(255,253,246,0.5); border: 1px solid rgba(196,168,122,0.5); border-radius: 8px; padding: 3px 8px; cursor: pointer; color: #b08a3a; font-size: 13px; line-height: 1; }

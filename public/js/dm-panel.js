@@ -1,5 +1,5 @@
 import { api } from './api.js?v=2';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=5';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=6';
 
 // ── DM Panel ──
 // icon() helper is defined globally in app.js; grab a local alias for template use.
@@ -4161,19 +4161,8 @@ async function _renderTempelSettings() {
         <label class="dm-form-label">Boeteprijs vloek (fl)</label>
         <input id="tempel-boeteprijs-fl" class="dm-input" type="number" min="0" value="${(config.boetePrijs && config.boetePrijs.fl) || 100}" style="width:70px">
       </div>
-      <div class="dm-form-row">
-        <label class="dm-form-label">Voorwerpnaam ({god})</label>
-        <input id="tempel-voorwerp" class="dm-input" value="${esc(config.voorwerpNaam || 'Votiefmunt van {god}')}">
-      </div>
-
-      <div class="dm-form-row">
-        <label class="dm-form-label">Portret (NPC of locatie)</label>
-        <select id="tempel-portret-select" class="dm-select">
-          <option value="">— Kies een entiteit —</option>
-          ${alle.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
-        </select>
-      </div>
-      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
+      <input id="tempel-voorwerp" type="hidden" value="${esc(config.voorwerpNaam || 'Votiefmunt van {god}')}">
+      <input id="tempel-portret-select" type="hidden" value="${esc(config.imageId || '')}">
 
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Achtergrondafbeelding</label>
@@ -4222,7 +4211,7 @@ async function _renderTempelEden() {
   wrap.innerHTML = eden.map(e => `
     <div class="dm-form-row" style="gap:6px;align-items:center;border:1px solid rgba(196,168,122,0.2);border-radius:6px;padding:6px;margin-bottom:6px">
       <span style="flex:1">
-        ${e.status === 'vloek' ? '☠️' : '⚖️'} <strong>${esc(e.characterName)}</strong> — ${esc(e.godNaam)}
+        ${e.status === 'vloek' ? icon('skull') : icon('scroll-text')} <strong>${esc(e.characterName)}</strong> — ${esc(e.godNaam)}
         <span style="display:block;opacity:.7;font-size:11px">${esc(e.effect || '')}</span>
       </span>
       ${e.status === 'vloek'

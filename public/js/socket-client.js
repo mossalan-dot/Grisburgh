@@ -324,6 +324,35 @@ export function initSocket() {
     }
   });
 
+  // ── Profiel gewijzigd (level, klasse, etc.) ──
+  socket.on('player:profile-updated', ({ characterId, profile } = {}) => {
+    const myId = window.app?.state?.characterId;
+    if (myId !== characterId) return; // niet onze speler
+
+    // Werk _lastProgCtx direct bij zodat de progressie-tab de juiste data heeft
+    // zodra de speler ernaartoe navigeert — ook als de sectie nu niet actief is
+    if (window._lastProgCtx && profile) {
+      window._lastProgCtx = {
+        ...window._lastProgCtx,
+        klasse:           profile.klasse           ?? window._lastProgCtx.klasse,
+        klasseLevel:      parseInt(profile.klasseLevel) || window._lastProgCtx.klasseLevel,
+        level:            parseInt(profile.level)       || window._lastProgCtx.level,
+        subclass:         profile.subclass         ?? window._lastProgCtx.subclass,
+        multiclass:       profile.multiclass === 'true' || profile.multiclass === true,
+        multiKlasse:      profile.multiKlasse      ?? window._lastProgCtx.multiKlasse,
+        multiKlasseLevel: parseInt(profile.multiKlasseLevel) || window._lastProgCtx.multiKlasseLevel,
+      };
+    }
+
+    // Herlaad de volledige sectie als die nu actief is
+    if (window.app?.state?.activeSection === 'mijn-karakter') {
+      window.app.refreshSection('mijn-karakter');
+    } else {
+      // Sectie niet actief: markeer dat herlaad nodig is bij volgende bezoek
+      window._pendingKarakterRefresh = true;
+    }
+  });
+
   // ── Klasse-progressie (skill trees) door de DM aangepast ──
   socket.on('progression:updated', () => {
     window.dispatchEvent(new Event('progression:reload'));
@@ -355,6 +384,12 @@ export function initSocket() {
     if (!characterId || characterId === myCharId) {
       window.app.refreshSection('mijn-karakter');
     }
+  });
+
+  socket.on('player:vloek', ({ characterId, godNaam, vloekEffect } = {}) => {
+    const myCharId = window.app?.state?.characterId;
+    if (characterId && characterId !== myCharId) return;
+    window._tempelVloekCinema?.(godNaam, vloekEffect);
   });
 
   socket.on('items:request', (data) => {

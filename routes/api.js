@@ -124,6 +124,45 @@ function _effectiveCurrency(dmState, characterId) {
   return (dmState.playerCurrency || {})[characterId] || { fl: 0, kn: 0, cl: 0 };
 }
 
+// Zoek een goddelijk voorwerp-entity op godNaam + type (zegen/eed/vloek) en onthul het aan de groep
+function _koppelGoddelijkEntity(dmState, characterId, godNaam, goddelijkType, playerItem) {
+  const entities = storage.readJSON('entities.json');
+  const effectText = playerItem.zegenEffect || '';
+  const match = (entities.voorwerpen || []).find(e =>
+    e.data?.itemType === 'Blessing' &&
+    (e.data?.godNaam || '').trim().toLowerCase() === (godNaam || '').trim().toLowerCase() &&
+    (e.data?.goddelijkType || '') === goddelijkType &&
+    (goddelijkType !== 'zegen' || (e.data?.effect || '').startsWith(effectText.split(':')[0]))
+  );
+  if (!match) return;
+  playerItem.entityId   = match.id;
+  playerItem.entityType = 'voorwerpen';
+  // Onthul entiteit aan de groep van de speler
+  const groupId = _playerGroupId(dmState, characterId);
+  if (groupId) {
+    const g = getGroup(dmState, groupId);
+    if (!g.visibility) g.visibility = {};
+    if (g.visibility[match.id] === 'hidden' || !g.visibility[match.id]) {
+      g.visibility[match.id] = 'visible';
+    }
+  }
+}
+
+// Schrijf valuta af van de juiste bron (gedeeld of individueel) en geef de nieuwe waarde terug
+function _deductCurrency(dmState, characterId, prijsCl) {
+  const playerGroupId = _playerGroupId(dmState, characterId);
+  const pg = playerGroupId ? getGroup(dmState, playerGroupId) : null;
+  if (pg?.sharedPurse?.enabled) {
+    pg.sharedPurse = fromCl(toCl(pg.sharedPurse) - prijsCl);
+    pg.sharedPurse.enabled = true;
+    return { shared: true, currency: { fl: pg.sharedPurse.fl, kn: pg.sharedPurse.kn, cl: pg.sharedPurse.cl } };
+  }
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const cur = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  dmState.playerCurrency[characterId] = fromCl(toCl(cur) - prijsCl);
+  return { shared: false, currency: dmState.playerCurrency[characterId] };
+}
+
 // Bepaal de groep van een speler op basis van het karakter-entity
 function _playerGroupId(dmState, characterId) {
   if (!characterId) return null;
@@ -1359,9 +1398,9 @@ router.delete('/items/:itemId/owner', requireDM, (req, res) => {
 router.patch('/items/:itemId/owner/:characterId', attachRole, (req, res) => {
   const { itemId, characterId } = req.params;
   const { delta } = req.body;
-  const sessionCharId = req.session?.characterId;
-  const isPlayerRole  = !!req.playerName;
-  if (isPlayerRole && sessionCharId !== characterId) {
+  // #25: zelfde guard als /charges en /maxCharges — DM mag alles, een speler
+  // alleen zijn eigen eigendom; een anonieme request wordt geweigerd.
+  if (req.role !== 'dm' && req.session?.characterId !== characterId) {
     return res.status(403).json({ error: 'Geen toegang' });
   }
   const dmState  = readDmState();
@@ -1906,6 +1945,9 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
   }
   dmState.playerProfiles[characterId] = updated;
   storage.writeJSON('dm-state.json', dmState);
+  // Laat alle clients weten dat het profiel gewijzigd is (level, klasse, etc.)
+  req.app.get('io')?.to(req.session?.campaignId || 'main')
+    .emit('player:profile-updated', { characterId, profile: updated });
   res.json(updated);
 });
 
@@ -3816,73 +3858,73 @@ const GOCK_TIDBITS_DEFAULT = [
 // Hoofdgoden met een zegening. Mindere goden en De Verborgene (geen zegen) zijn weggelaten.
 // Elke god heeft een eed-zegen (+1, blijvend), een vloek (bij verzaking) en een d4-tabel van eenmalige zegens.
 const TEMPEL_GODEN_DEFAULT = [
-  { id: 'matall',   naam: 'Matall, de Maker',     domein: 'Oppergod — de zon en de maan',           symbool: 'Een witte hamer voor een rode zon',                                  zegen: 'Con +1', vloek: 'Con -1; Matall onthoudt je zijn licht — je herwint geen Hit Dice tijdens een korte rust.', eenmaligeZegens: [
+  { id: 'matall',   naam: 'Matall, de Maker',     domein: 'Oppergod — de zon en de maan',     eedTitel: 'Zolang de hamer heft en het hemelvuur brandt.',     eedTekst: 'Bij de vlam van de dageraad en het zilver van de nacht, zweer ik de orde van de kosmos te bewaren. Ik zal mijn rug krommen onder de last van de schepping en mijn hand niet wenden van het aambeeld des levens. Laat mijn geest zo standvastig zijn als de berekende koers van zon en maan, en moge mijn vlees verharden tot graniet wanneer het onrecht mij tracht te buigen.',           symbool: 'Een witte hamer voor een rode zon',                                  zegen: 'Con +1', vloek: 'Con -1; Matall onthoudt je zijn licht — je herwint geen Hit Dice tijdens een korte rust.',   locatieEntityId: 'e_1773523435069_ymn996', priesterEntityId: 'e_1773523435099_otvhpp', eenmaligeZegens: [
     'Licht des Makers: roep naar believen helder licht op (als de Light-cantrip).',
     'Levensadem: herrol een mislukte death save.',
     'Dageraad: herwin 1d4 HP bij het eerste daglicht dat je ziet.',
     'Maanblik: voordeel op één redding tegen betovering.',
   ] },
-  { id: 'seldari',  naam: 'Seldari, Stormoog',    domein: 'Gerechtigheid en bescherming',           symbool: 'Een blauw, driehoekig schild met een oog en gesperde hand',          zegen: 'Str +1', vloek: 'Str -1; Stormoog onttrekt haar schild — nadeel op redding tegen omvergeworpen of vastgegrepen worden.', eenmaligeZegens: [
+  { id: 'seldari',  naam: 'Seldari, Stormoog',    domein: 'Gerechtigheid en bescherming',     eedTitel: 'Ik ben het schild dat niet wijkt, de hand die niet aarzelt.',     eedTekst: 'Onder het wakend oog des hemels hef ik mijn schild tegen de schaduw. Ik beloof de zwakken te beschutten met mijn eigen bloed, en het zwaard der gerechtigheid te trekken zonder vrees of vooringenomenheid. Laat mijn arm niet verslappen en mijn blik niet vertroebelen; waar chaos dreigt, zal mijn standvastigheid een baken zijn.',           symbool: 'Een blauw, driehoekig schild met een oog en gesperde hand',          zegen: 'Str +1', vloek: 'Str -1; Stormoog onttrekt haar schild — nadeel op redding tegen omvergeworpen of vastgegrepen worden.', locatieEntityId: 'e_1773523435072_v8a1kq', priesterEntityId: 'e_1773523435090_v44q5f', eenmaligeZegens: [
     'Wachters reactie: trek één aanval op een bondgenoot binnen 1,5 m naar jezelf.',
     'Schildmuur: +2 AC tegen één aanval (reactie).',
     'Rechtvaardige slag: voordeel op één aanval tegen wie net een bondgenoot raakte.',
     'Onwankelbaar: voordeel op één redding tegen omvergeworpen of geduwd worden.',
   ] },
-  { id: 'ghon',     naam: 'Ghon, de Loper',       domein: 'Kennis, uitvinding en wijsheid',         symbool: 'Een purperen waterrad',                                              zegen: 'Int +1', vloek: 'Int -1; de Loper sluit zijn kennis — nadeel op Arcana-, History- en Investigation-checks.', eenmaligeZegens: [
+  { id: 'ghon',     naam: 'Ghon, de Loper',       domein: 'Kennis, uitvinding en wijsheid',   eedTitel: 'Het rad wentelt, de geest ontwaakt.',     eedTekst: 'Ik zweer het pad der onwetenheid te verlaten en de eeuwige stroom van het intellect te volgen. Zoals het waterrad nimmer rust, zo zal mijn geest nimmer ophouden met zoeken, bouwen en doorgronden. Ik beloof de vonk van uitvinding te beschermen tegen de duisternis van de vergetelheid, en mijn wijsheid te delen met hen die dwalen.',         symbool: 'Een purperen waterrad',                                              zegen: 'Int +1', vloek: 'Int -1; de Loper sluit zijn kennis — nadeel op Arcana-, History- en Investigation-checks.',   locatieEntityId: 'e_1773523435074_6u2qaz', priesterEntityId: 'e_1773523435100_h7c4br', eenmaligeZegens: [
     'Inzicht van Ghon: voordeel op één Arcana-, History- of Investigation-check.',
     'Vraag aan de Loper: krijg één waar feit van de DM.',
     'Uitvindersgeest: voordeel op één check om een mechanisme, slot of puzzel te ontcijferen.',
     'Herinnering: herrol één mislukte kennis-check.',
   ] },
-  { id: 'tirimet',  naam: 'Tirimet, Elvenluit',   domein: 'Beschaving en de vrije kunsten',         symbool: 'Een gele luit',                                                      zegen: 'Cha +1', vloek: 'Cha -1; de muze verstomt — nadeel op Performance- en Persuasion-checks.', eenmaligeZegens: [
+  { id: 'tirimet',  naam: 'Tirimet, Elvenluit',   domein: 'Beschaving en de vrije kunsten',   eedTitel: 'Laat de snaren zingen en de muren van de rede herrijzen.',     eedTekst: 'Bij de gouden snaren van de beschaving zweer ik de stem van de rede en de schoonheid van de kunst te verdedigen. Ik beloof de wildernis in de harten der mensen te temmen met harmonie, en de vrije kunsten te koesteren als het hoogste goed. Moge mijn tong nimmer valse noten spreken, en mijn daden een lofzang zijn op de vrede.',         symbool: 'Een gele luit',                                                      zegen: 'Cha +1', vloek: 'Cha -1; de muze verstomt — nadeel op Performance- en Persuasion-checks.',                  locatieEntityId: 'e_1773523435074_33l7q0', eenmaligeZegens: [
     'Muze: geef een bondgenoot een d6-inspiratie (als Bardic Inspiration).',
     'Hoffelijkheid: voordeel op één sociale check in beschaafd gezelschap.',
     'Meesterwerk: voordeel op één check met gereedschap of een kunstvorm.',
     'Betoverend optreden: voordeel op één Performance-check.',
   ] },
-  { id: 'oronoe',   naam: 'Oronoë, de Zephir',    domein: 'Zeeën, wind, scheepvaart en verkenning', symbool: 'Drie blauwe kronkellijnen, gekruist door een zwarte bliksemschicht', zegen: 'Dex +1', vloek: 'Dex -1; de wind keert zich tegen je — nadeel op redding tegen vallen en op zwemmen.', eenmaligeZegens: [
+  { id: 'oronoe',   naam: 'Oronoë, de Zephir',    domein: 'Zeeën, wind, scheepvaart en verkenning', eedTitel: 'De horizon roept, de storm getemd.',     eedTekst: 'Ik bind mijn ziel aan de rusteloze winden en de peilloze diepten der zee. Ik beloof nimmer te verstarren, maar de horizon na te jagen over onbekende wateren. Laat mijn moed standhouden wanneer de bliksem de hemel splijt, en moge ik de gids zijn voor hen die over de baren dwalen op zoek naar nieuwe kusten.', symbool: 'Drie blauwe kronkellijnen, gekruist door een zwarte bliksemschicht', zegen: 'Dex +1', vloek: 'Dex -1; de wind keert zich tegen je — nadeel op redding tegen vallen en op zwemmen.',       locatieEntityId: 'e_1773523435080_vuriy3', priesterEntityId: 'e_1773523435089_x425rx', eenmaligeZegens: [
     'Rugwind: +3 m snelheid deze beurt.',
     'Zeebenen: adem 10 minuten onder water of voordeel tegen verdrinken.',
     'Stuurmanskunst: voordeel op één check om te navigeren of een vaartuig te besturen.',
     'Wendbaar: herrol één Acrobatics-check of Dex-redding.',
   ] },
-  { id: 'velurut',  naam: 'Velurut, de Jager',    domein: 'De natuur en de jacht',                  symbool: 'Een hoefijzer',                                                      zegen: 'Wis +1', vloek: 'Wis -1; de jacht verstoot je — dieren zijn wantrouwig en je hebt nadeel op Survival-checks.', eenmaligeZegens: [
+  { id: 'velurut',  naam: 'Velurut, de Jager',    domein: 'De natuur en de jacht',            eedTitel: 'Het spoor is getrokken, de wet van het woud is heilig.',     eedTekst: 'Bij het ijzer en het woud zweer ik de balans van de wildernis te eerbiedigen. Ik zal slechts jagen om te voeden, en de natuur beschermen tegen de gulzigheid der steden. Laat mijn voetstappen geruisloos zijn en mijn pijlen zuiver; ik ben het roofdier dat de orde bewaakt, verbonden met het ritme van de aarde.',                  symbool: 'Een hoefijzer',                                                      zegen: 'Wis +1', vloek: 'Wis -1; de jacht verstoot je — dieren zijn wantrouwig en je hebt nadeel op Survival-checks.', locatieEntityId: 'e_1773523435065_ux8z44', priesterEntityId: 'e_1773523435091_do32ym', eenmaligeZegens: [
     'Jagersoog: voordeel op één aanval tegen een door jou gemerkte prooi.',
     'Stille jacht: voordeel op Stealth in de wildernis (één scène).',
     'Spoorzoeker: voordeel op één Survival-check om te sporen of de weg te vinden.',
     'Roep van het wild: voordeel op één Animal Handling-check.',
   ] },
-  { id: 'qirell',   naam: 'Qirell, Vuurhand',     domein: 'Landbouw en oogst',                      symbool: 'Een zwarte en groene boom, achter elkaar',                           zegen: 'Nature/Animal Handling +1', vloek: 'Nature/Animal Handling -1; je voorraden bederven snel — nadeel op redding tegen uitputting.', eenmaligeZegens: [
+  { id: 'qirell',   naam: 'Qirell, Vuurhand',     domein: 'Landbouw en oogst',                eedTitel: 'Uit de as ontspruit het koren, door het zweet bloeit het land.',     eedTekst: 'Ik zweer trouw aan de cyclus van zaaien en oogsten, aan de zwarte aarde en het groene blad. Met deze handen zal ik het land hoeden, de beesten beschermen en de hongerigen voeden. Moge de hitte van de zon mijn gewassen zegenen en mijn arbeid vruchtbaar zijn, opdat de schuren nimmer leegraken en het leven overwint.',                      symbool: 'Een zwarte en groene boom, achter elkaar',                           zegen: 'Nature/Animal Handling +1', vloek: 'Nature/Animal Handling -1; je voorraden bederven snel — nadeel op redding tegen uitputting.', locatieEntityId: 'e_1773523435081_9t0m87', priesterEntityId: 'e_1773523435090_jv7fl0', eenmaligeZegens: [
     'Overvloed: jouw rantsoenen bederven niet en je hebt voordeel tegen uitputting.',
     'Zegen van de oogst: herwin 1d4 extra HP bij een korte rust.',
     'Vruchtbare hand: laat genoeg voedsel en water voor één maaltijd ontstaan.',
     'Aardse band: voordeel op één Nature-check.',
   ] },
-  { id: 'cylline',  naam: 'Cylline, Nymfenblad',  domein: 'Nacht, passie, dronkenschap en extase',  symbool: 'Drie paarse druiven',                                                zegen: 'Performance/Intimidation +1', vloek: 'Performance/Intimidation -1; de roes wordt een kater — nadeel op redding tegen angst en betovering.', eenmaligeZegens: [
+  { id: 'cylline',  naam: 'Cylline, Nymfenblad',  domein: 'Nacht, passie, dronkenschap en extase', eedTitel: 'In de nacht bloeit de waarheid, in de roes de vrijheid.',     eedTekst: 'Bij de purperen vrucht en de diepe schaduwen van de nacht, zweer ik de ketenen van de sleur af te werpen. Ik beloof de passie te vieren, de extase te omarmen en de harten van stervelingen te vullen met de zoete dronkenschap van het bestaan. Laat de angst wijken voor het verlangen, en moge mijn stem de nacht doen beven.',  symbool: 'Drie paarse druiven',                                                zegen: 'Performance/Intimidation +1', vloek: 'Performance/Intimidation -1; de roes wordt een kater — nadeel op redding tegen angst en betovering.', locatieEntityId: 'e_1773523435079_qmyktf', priesterEntityId: 'e_1773523435097_wr01o4', eenmaligeZegens: [
     'Roes: immuun voor de nadelen van dronkenschap en voordeel tegen angst.',
     'Nachtwandelaar: schemerzicht of voordeel op Stealth in het donker (één scène).',
     'Betovering: voordeel op één check om te verleiden of te intimideren.',
     'Extatische roep: herrol één mislukte redding tegen angst of betovering.',
   ] },
-  { id: 'sehan',    naam: 'Sehan, de Weegschaal', domein: 'Handel en welvaart',                     symbool: 'Een metalen weegschaal',                                             zegen: 'Insight/Perception +1', vloek: 'Insight/Perception -1; de weegschaal slaat door — handelaren rekenen je het dubbele.', eenmaligeZegens: [
+  { id: 'sehan',    naam: 'Sehan, de Weegschaal', domein: 'Handel en welvaart',               eedTitel: 'De balans slaat door, de munt spreekt recht.',     eedTekst: 'Ik zweer bij het zuivere metaal van de weegschaal dat mijn handel eerlijk zal zijn en mijn blik onbevooroordeeld. Ik beloof de welvaart te zoeken, niet door bedrog, maar door inzicht en scherpzinnigheid. Laat mijn geest de verborgen intenties der mensen doorzien, opdat rechtvaardige rijkdom de wereld mag voeden.',                     symbool: 'Een metalen weegschaal',                                             zegen: 'Insight/Perception +1', vloek: 'Insight/Perception -1; de weegschaal slaat door — handelaren rekenen je het dubbele.',    locatieEntityId: 'e_1773523435071_17hfyn', eenmaligeZegens: [
     'Koopmansoog: ken de eerlijke waarde van een voorwerp en voordeel bij afdingen.',
     'Gewogen oordeel: voordeel op één Insight-check om een leugen te doorzien.',
     'Scherpe blik: voordeel op één Perception-check.',
     'Eerlijke deal: herrol één mislukte Persuasion-check over geld.',
   ] },
-  { id: 'yrdus',    naam: 'Yrdus, de Ringdrager', domein: 'Liefde, huwelijk en familie',            symbool: 'Een rode ring',                                                      zegen: 'Persuasion/History +1', vloek: 'Persuasion/History -1; de band breekt — je kunt geen tijdelijke HP van bondgenoten ontvangen.', eenmaligeZegens: [
+  { id: 'yrdus',    naam: 'Yrdus, de Ringdrager', domein: 'Liefde, huwelijk en familie',      eedTitel: 'Verbonden in bloed, gesmeed in liefde.',     eedTekst: 'Bij de rode ring die geen einde kent, zweer ik mijn naasten lief te hebben en de haard van de familie te beschermen tegen de kou. Ik beloof trouw te blijven in voor- en tegenspoed, en de banden van het bloed en het huwelijk te eren als het fundament van de wereld. Mijn hart is het anker, mijn eed is onbreekbaar.',            symbool: 'Een rode ring',                                                      zegen: 'Persuasion/History +1', vloek: 'Persuasion/History -1; de band breekt — je kunt geen tijdelijke HP van bondgenoten ontvangen.',  locatieEntityId: 'e_1773523435073_817487', priesterEntityId: 'e_1773523435093_4yk7bk', eenmaligeZegens: [
     'Band van Yrdus: als je een bondgenoot helpt, krijgt die 1d4 tijdelijke HP.',
     'Verzoening: voordeel op één check om iemand te kalmeren of vrede te sluiten.',
     'Trouwe eed: voordeel op één redding tegen betovering terwijl je een dierbare beschermt.',
     'Familieverhaal: voordeel op één History-check.',
   ] },
-  { id: 'corellin', naam: 'Corellin, Vlasbaard',  domein: 'Dieven, zieken en buitenbeentjes',       symbool: 'Een gesloten oog',                                                   zegen: 'Sleight of Hand/Deception +1', vloek: 'Sleight of Hand/Deception -1; het oog opent zich — nadeel op Stealth-checks.', eenmaligeZegens: [
+  { id: 'corellin', naam: 'Corellin, Vlasbaard',  domein: 'Dieven, zieken en buitenbeentjes', eedTitel: 'Het gesloten oog ziet de verschoppeling, de vlugge hand deelt uit.',     eedTekst: 'Ik zweer de schaduwen te delen met hen die door het licht zijn uitgespuugd. Ik beloof de zieken te troosten, de buitenbeentjes te herbergen en de spot te drijven met de hoogmoedigen. Moge mijn hand vlug genoeg zijn om de rijken te verlichten en mijn tong listig genoeg om de onrechtvaardigen te misleiden, dwalend in de marge der wereld.',       symbool: 'Een gesloten oog',                                                   zegen: 'Sleight of Hand/Deception +1', vloek: 'Sleight of Hand/Deception -1; het oog opent zich — nadeel op Stealth-checks.',      locatieEntityId: 'e_1773523435078_6wlml1', priesterEntityId: 'e_1773523435099_rwd7x5', eenmaligeZegens: [
     'Schaduwhand: voordeel op één check om ongezien te stelen of een slot te kraken.',
     'Geluk van de verschoppeling: herrol één d20 naar keuze.',
     'Vermomming: voordeel op één Deception-check om je voor een ander uit te geven.',
     'Glipper: voordeel op één check om door een menigte of nauwe ruimte te ontkomen.',
   ] },
-  { id: 'denava',   naam: 'Denava',               domein: 'Verandering',                            symbool: 'Vier zandlopers',                                                    zegen: 'Survival/Nature +1', vloek: 'Survival/Nature -1; het lot keert zich — eenmaal per sessie laat de DM je een geslaagde worp opnieuw gooien.', eenmaligeZegens: [
+  { id: 'denava',   naam: 'Denava',               domein: 'Verandering',                      eedTitel: 'Het zand stroomt, de wereld kantelt.',     eedTekst: 'Bij de vier zandlopers die de eeuwigheid meten, zweer ik het getij van verandering te omarmen. Ik zal mij niet vastklampen aan het verleden, noch vrezen wat komen gaat. Ik beloof te overleven in de storm van de tijd, mij aan te passen aan elke nieuwe dageraad en te transformeren zoals de seizoenen dat doen.',                            symbool: 'Vier zandlopers',                                                    zegen: 'Survival/Nature +1', vloek: 'Survival/Nature -1; het lot keert zich — eenmaal per sessie laat de DM je een geslaagde worp opnieuw gooien.',  locatieEntityId: 'e_1773523435081_yduaof', eenmaligeZegens: [
     'Wending van het lot: zet één nadeel-worp om naar een normale worp.',
     'Aanpassing: voordeel op één redding tegen een effect dat je verplaatst of vervormt.',
     'Reizigerszegen: voordeel op één check om je aan te passen aan vreemd terrein of klimaat.',
@@ -4310,8 +4352,7 @@ router.post('/tempel/zegen', attachRole, (req, res) => {
 
   const prijs = (god.prijs && toCl(god.prijs) > 0) ? god.prijs : (config.prijs || { fl: 25 });
   const prijsCl = toCl(prijs);
-  if (!dmState.playerCurrency) dmState.playerCurrency = {};
-  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  const pc = _effectiveCurrency(dmState, characterId);
   if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
 
   // Eén eenmalige zegen per speler tegelijk (los van de eed): vervang de vorige
@@ -4324,7 +4365,7 @@ router.post('/tempel/zegen', attachRole, (req, res) => {
   const rolls = { zegenRoll, zegenAantal: eenmalige.length, usesRoll };
   const item = {
     id: 'zegen_' + godId + '_' + Date.now(),
-    name: '✨ ' + voorwerpNaam,
+    name: voorwerpNaam,
     note: `Eenmalige zegen van ${god.naam}: ${effect} Vink af na elk gebruik; vervalt bij je volgende lange rust.`,
     zegen: true,
     kind: 'eenmalig',
@@ -4336,16 +4377,18 @@ router.post('/tempel/zegen', attachRole, (req, res) => {
     usesMax: usesRoll,
     qty: usesRoll,
   };
+  _koppelGoddelijkEntity(dmState, characterId, god.naam, 'zegen', item);
   dmState.playerItems[characterId].push(item);
 
-  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  const { shared: _zs, currency: _zc } = _deductCurrency(dmState, characterId, prijsCl);
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  if (_zs) io.to(req.session?.campaignId||'main').emit('party-currency:updated', { currency: _zc });
+  else io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _zc });
   io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
 
-  res.json({ ok: true, item, rolls, currency: dmState.playerCurrency[characterId] });
+  res.json({ ok: true, item, rolls, currency: _zc });
 });
 
 router.post('/tempel/verbruik', attachRole, (req, res) => {
@@ -4395,13 +4438,12 @@ router.post('/tempel/eed', attachRole, (req, res) => {
 
   const prijs = config.eedPrijs || config.prijs || { fl: 50 };
   const prijsCl = toCl(prijs);
-  if (!dmState.playerCurrency) dmState.playerCurrency = {};
-  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  const pc = _effectiveCurrency(dmState, characterId);
   if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
 
   const item = {
     id: 'eed_' + godId + '_' + Date.now(),
-    name: '⚖️ Eed aan ' + god.naam,
+    name: 'Eed aan ' + god.naam,
     note: `Eed aan ${god.naam}${god.domein ? ' — ' + god.domein : ''}. Zegen: ${god.zegen || '—'}. Een blijvende eed; verzaking roept een vloek op.`,
     eed: true,
     kind: 'eed',
@@ -4412,16 +4454,18 @@ router.post('/tempel/eed', attachRole, (req, res) => {
     zegenEffect: god.zegen || '',
     vloekEffect: god.vloek || '',
   };
+  _koppelGoddelijkEntity(dmState, characterId, god.naam, 'eed', item);
   dmState.playerItems[characterId].push(item);
 
-  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  const { shared: _es, currency: _ec } = _deductCurrency(dmState, characterId, prijsCl);
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  if (_es) io.to(req.session?.campaignId||'main').emit('party-currency:updated', { currency: _ec });
+  else io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _ec });
   io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
 
-  res.json({ ok: true, item, currency: dmState.playerCurrency[characterId] });
+  res.json({ ok: true, item, currency: _ec });
 });
 
 // Boete: speler koopt zich vrij van een vloek.
@@ -4439,19 +4483,19 @@ router.post('/tempel/boete', attachRole, (req, res) => {
 
   const prijs = config.boetePrijs || { fl: 100 };
   const prijsCl = toCl(prijs);
-  if (!dmState.playerCurrency) dmState.playerCurrency = {};
-  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  const pc = _effectiveCurrency(dmState, characterId);
   if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo voor de boete' });
 
   dmState.playerItems[characterId] = lijst.filter(i => i.id !== vloek.id);
-  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  const { shared: _bs, currency: _bc } = _deductCurrency(dmState, characterId, prijsCl);
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  if (_bs) io.to(req.session?.campaignId||'main').emit('party-currency:updated', { currency: _bc });
+  else io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _bc });
   io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
 
-  res.json({ ok: true, currency: dmState.playerCurrency[characterId] });
+  res.json({ ok: true, currency: _bc });
 });
 
 // DM-beheer: overzicht van actieve eden/vloeken
@@ -4484,12 +4528,13 @@ router.post('/tempel/eed/verbreek', requireDM, (req, res) => {
 
   eed.status = 'vloek';
   eed.subtype = 'vloek';
-  eed.name = '☠️ Vloek van ' + (eed.godNaam || 'een god');
+  eed.name = 'Vloek van ' + (eed.godNaam || 'een god');
   eed.note = `Vloek van ${eed.godNaam || 'een god'} wegens een verzaakte eed: ${eed.vloekEffect || ''} Doe boete in de tempel om je te bevrijden.`;
   storage.writeJSON('dm-state.json', dmState);
 
   const io = req.app.get('io');
   io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+  io.to(req.session?.campaignId||'main').emit('player:vloek', { characterId, godNaam: eed.godNaam || 'een god', vloekEffect: eed.vloekEffect || '' });
   res.json({ ok: true });
 });
 

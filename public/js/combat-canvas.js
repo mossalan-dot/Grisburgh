@@ -72,6 +72,7 @@ let _canvas    = null;
 let _ctx       = null;
 let _combat    = null;
 let _images    = {};      // fileId -> HTMLImageElement | null (null = loading/failed)
+let _lastTouch = null;     // #28: laatste touch-coords voor tap → selecteer
 let _animFrame = null;
 let _t0        = 0;
 let _hitAreas  = [];      // [{x, y, w, h, condId}] — herbouwd elke frame
@@ -115,6 +116,7 @@ export function init(canvasEl, combat) {
   _canvas.addEventListener('mousemove',  _onMouseMove);
   _canvas.addEventListener('mouseleave', _onMouseLeave);
   _canvas.addEventListener('touchstart', _onTouch, { passive: true });
+  _canvas.addEventListener('touchend',   _onTouchEnd);   // #28: tap → selecteer combatant
   _canvas.addEventListener('click',      _onClick);
   _updateState(combat);
   _loop();
@@ -136,8 +138,11 @@ function _stop() {
     _canvas.removeEventListener('mousemove',  _onMouseMove);
     _canvas.removeEventListener('mouseleave', _onMouseLeave);
     _canvas.removeEventListener('touchstart', _onTouch);
+    _canvas.removeEventListener('touchend',   _onTouchEnd);
     _canvas.removeEventListener('click',      _onClick);
   }
+  _images = {};   // #26: gedecodeerde afbeeldingen vrijgeven (anders monotone groei)
+  _lastTouch = null;
 }
 
 function _updateState(combat) {
@@ -1229,10 +1234,17 @@ function _fxRestrained(ctx, cx, cy, r, t) {
 
 // ── Muisinteractie — condition tooltip ───────────────────────────────────────
 
-function _onMouseMove(e) {
+// #27: reken client-coords om naar canvas-pixelruimte (hitareas/posities staan in
+// _canvas.offsetWidth-eenheden). Corrigeert voor CSS-scale/transform op een parent.
+function _canvasCoords(clientX, clientY) {
   const rect = _canvas.getBoundingClientRect();
-  const mx = (e.clientX - rect.left);
-  const my = (e.clientY - rect.top);
+  const sx = rect.width  ? _canvas.offsetWidth  / rect.width  : 1;
+  const sy = rect.height ? _canvas.offsetHeight / rect.height : 1;
+  return { mx: (clientX - rect.left) * sx, my: (clientY - rect.top) * sy };
+}
+
+function _onMouseMove(e) {
+  const { mx, my } = _canvasCoords(e.clientX, e.clientY);
   _hoverX = mx;
   _hoverY = my;
   _hoverCond = null;
@@ -1251,13 +1263,20 @@ function _onMouseLeave() {
 
 function _onTouch(e) {
   const touch = e.touches[0];
-  if (touch) _onMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
+  if (touch) {
+    _lastTouch = { clientX: touch.clientX, clientY: touch.clientY };
+    _onMouseMove(_lastTouch);
+  }
+}
+
+// #28: tap-einde → behandel als klik (selecteer combatant) op de laatste touch-positie.
+function _onTouchEnd() {
+  if (_lastTouch) _onClick(_lastTouch);
+  _hoverCond = null;
 }
 
 function _onClick(e) {
-  const rect = _canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+  const { mx, my } = _canvasCoords(e.clientX, e.clientY);
   for (const [id, pos] of Object.entries(_positions)) {
     const dx = mx - pos.cx;
     const dy = my - pos.cy;

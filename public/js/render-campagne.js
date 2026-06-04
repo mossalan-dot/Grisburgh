@@ -165,7 +165,7 @@ const SCHEMA = {
   },
   voorwerpen: {
     fields: [
-      { key: 'itemType', label: 'Type', type: 'select', options: ['Weapon','Magic Item','Potion','Armor','Shield','Scroll','Ring','Amulet','Consumable','Wondrous item','Musical instrument','Feature','Other'] },
+      { key: 'itemType', label: 'Type', type: 'select', options: ['Weapon','Magic Item','Potion','Armor','Shield','Scroll','Ring','Amulet','Consumable','Wondrous item','Musical instrument','Feature','Blessing','Other'] },
       { key: 'rariteit', label: 'Rarity', type: 'select', options: ['Common','Uncommon','Rare','Very Rare','Legendary'] },
       { key: 'prijs', label: 'Prijs', type: 'text' },
       { key: 'attunement', label: 'Requires attunement', type: 'checkbox' },
@@ -184,6 +184,13 @@ const SCHEMA = {
       ]},
       { key: 'rechargeRoll', label: 'Dobbelformule (bijv. 1d3)', type: 'text', inReveal: '_chargesToggle' },
       { key: 'playerMaxAdjustable', label: 'Max. door spelers in te stellen', type: 'checkbox', inReveal: '_chargesToggle' },
+      { key: 'godNaam', label: 'God', type: 'text', showFor: ['Blessing'] },
+      { key: 'goddelijkType', label: 'Soort', type: 'select', showFor: ['Blessing'], options: [
+        { value: 'zegen', label: 'Zegening' },
+        { value: 'eed',   label: 'Eed' },
+        { value: 'vloek', label: 'Vloek' },
+      ]},
+      { key: 'effect', label: 'Effect (mechanisch)', type: 'textarea', showFor: ['Blessing'] },
       { key: 'damage', label: 'Schade / Genezing (bijv. 1d8+1 Slashing)', type: 'text', showFor: ['Weapon', 'Wapen'] },
       { key: 'weaponProperties', label: 'Wapeneigenschappen', type: 'weapon-tags', showFor: ['Weapon', 'Wapen'] },
       { key: 'armorType', label: 'Harnas type', type: 'select', showFor: ['Armor', 'Shield'], options: [
@@ -251,6 +258,7 @@ function _getAutoIconMap(type) {
       voorwerpen: {
         'Weapon':     icon('sword'),    'Wapen':      icon('sword'),
         'Magic Item': icon('sparkles'), 'Toveritem':  icon('sparkles'),
+        'Blessing': icon('sparkles'),
         'Potion':     icon('flask-conical'), 'Drank':  icon('flask-conical'),
         'Armor':      icon('shield'),   'Uitrusting': icon('shield'),
         'Shield':     icon('shield'),
@@ -835,8 +843,9 @@ function renderCard(type, e) {
                   : _threeState       ? 'Zichtbaar maken  ·  Shift: vaag tonen'
                   :                    'Zichtbaar maken';
 
+  const _goddelijkType = (type === 'voorwerpen' && e.data?.itemType === 'Blessing') ? (e.data?.goddelijkType || '') : '';
   return `
-    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}
+    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}
       onclick="window._openDetail('${type}','${e.id}')">
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
@@ -1446,12 +1455,27 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     }
   }
 
+  // Blessing block
+  if (tab === 'voorwerpen' && e.data?.itemType === 'Blessing') {
+    const _gType   = e.data?.goddelijkType || '';
+    const _gGod    = e.data?.godNaam || '';
+    const _gEffect = e.data?.effect || '';
+    const _eedTekst = e.data?.eedTekst || '';
+    const _typeLabel = _gType === 'zegen' ? 'Zegening' : _gType === 'eed' ? 'Eed' : _gType === 'vloek' ? 'Vloek' : 'Blessing';
+    const _typeIcon  = _gType === 'vloek' ? icon('skull') : _gType === 'eed' ? icon('scroll-text') : icon('sparkles');
+    infoHtml += `<div class="detail-divine-block">
+      <div class="detail-divine-header">${_typeIcon} ${esc(_typeLabel)}${_gGod ? ` van ${esc(_gGod)}` : ''}</div>
+      ${_gEffect ? `<div class="detail-divine-effect detail-divine-effect--titel">${esc(_gEffect)}</div>` : ''}
+      ${_eedTekst ? `<div class="detail-divine-effect" style="margin-top:10px;font-style:italic">${esc(_eedTekst)}</div>` : ''}
+    </div>`;
+  }
+
   // Short metadata → labeled pills; description → block
   const _metaPills = [];
   let _descVal = '';
   for (const field of (schema.fields || [])) {
     if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid'].includes(field.key)) continue;
-    if (tab === 'voorwerpen' && ['itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration'].includes(field.key)) continue;
+    if (tab === 'voorwerpen' && ['itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect'].includes(field.key)) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
     if (field.key === 'desc') {
