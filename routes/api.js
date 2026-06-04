@@ -11,7 +11,56 @@ let _sharp = null;
 try { _sharp = require('sharp'); } catch {}
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+
+// #24: gescheiden upload-instances met whitelist-fileFilter i.p.v. één
+// ongefilterde upload. Media (afbeeldingen/audio/video/pdf) en tekst (.md-import)
+// hebben verschillende toegestane types en groottes.
+const MEDIA_MIME = new Set([
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml',
+  'application/pdf', 'audio/mpeg', 'audio/ogg', 'audio/wav', 'video/mp4', 'video/webm',
+]);
+const uploadMedia = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, MEDIA_MIME.has(file.mimetype)),
+});
+const uploadText = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 50 },
+  fileFilter: (req, file, cb) => {
+    const ok = /\.md$/i.test(file.originalname) ||
+      file.mimetype.startsWith('text/') || file.mimetype === 'application/octet-stream';
+    cb(null, ok);
+  },
+});
+
+// Magic-byte sniff: verifieert dat de inhoud écht een toegestaan mediatype is,
+// zodat een verkeerd-getypeerd/hernoemd bestand (bv. .exe als .png) wordt geweigerd.
+// SVG is tekst en wordt apart herkend (begint met '<' na optionele BOM/whitespace).
+function _sniffMedia(buf) {
+  if (!buf || buf.length < 4) return false;
+  const b = buf;
+  const hex = (...n) => n.every((v, i) => b[i] === v);
+  if (hex(0x89, 0x50, 0x4e, 0x47)) return true;                         // PNG
+  if (hex(0xff, 0xd8, 0xff)) return true;                                // JPEG
+  if (hex(0x47, 0x49, 0x46, 0x38)) return true;                          // GIF
+  if (hex(0x25, 0x50, 0x44, 0x46)) return true;                          // PDF (%PDF)
+  if (hex(0x4f, 0x67, 0x67, 0x53)) return true;                          // OGG
+  if (hex(0x1a, 0x45, 0xdf, 0xa3)) return true;                          // WEBM/Matroska (EBML)
+  if (hex(0x49, 0x44, 0x33)) return true;                                // MP3 (ID3)
+  if (b[0] === 0xff && (b[1] & 0xe0) === 0xe0) return true;              // MP3 (frame sync)
+  // RIFF-containers: WEBP / WAV (controleer subtype op offset 8)
+  if (hex(0x52, 0x49, 0x46, 0x46) && b.length >= 12) {
+    const sub = b.toString('ascii', 8, 12);
+    if (sub === 'WEBP' || sub === 'WAVE') return true;
+  }
+  // MP4/MOV: 'ftyp' op offset 4
+  if (b.length >= 8 && b.toString('ascii', 4, 8) === 'ftyp') return true;
+  // SVG (tekst): eerste niet-witruimte teken is '<'
+  const head = b.toString('utf8', 0, Math.min(b.length, 256)).replace(/^﻿/, '').trimStart();
+  if (head.startsWith('<')) return true;
+  return false;
+}
 
 const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 
@@ -2334,7 +2383,7 @@ function _importMd(content, filename) {
   return { ok: true, id, name, type: collection };
 }
 
-router.post('/import/obsidian', requireDM, upload.array('files', 50), (req, res) => {
+router.post('/import/obsidian', requireDM, uploadText.array('files', 50), (req, res) => {
   if (!req.files?.length) return res.status(400).json({ error: 'Geen bestanden ontvangen' });
   const results = [];
   for (const file of req.files) {
@@ -2925,8 +2974,10 @@ router.delete('/quests/:id', requireDM, (req, res) => {
 
 // ── Files ──
 
-router.post('/files/:id', requireDM, upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Geen bestand' });
+router.post('/files/:id', requireDM, uploadMedia.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Geen bestand of niet-toegestaan type' });
+  if (!_sniffMedia(req.file.buffer))
+    return res.status(415).json({ error: 'Bestandsinhoud komt niet overeen met een toegestaan mediatype' });
   const filename = storage.saveFile(req.params.id, req.file.buffer, req.file.mimetype);
   res.json({ filename });
 });

@@ -99,8 +99,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=230   app.js?v=319
-app.js      : api.js?v=222      render-campagne.js?v=85   render-archief.js?v=32
+index.html  : theme.css?v=230   app.js?v=320
+app.js      : api.js?v=222      render-campagne.js?v=86   render-archief.js?v=32
               render-kaart.js?v=3  render-dungeon.js?v=18  render-relatiemap.js?v=10
               render-progressie.js?v=21  socket-client.js?v=16
               dm-panel.js?v=55
