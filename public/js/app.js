@@ -1,13 +1,12 @@
 import { api } from './api.js?v=222';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=81";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=85";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=32";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
-import { initGlossary } from "./glossary.js?v=1";
-import { renderProgressie } from './render-progressie.js?v=4';
-import { initSocket } from "./socket-client.js?v=13";
-import { initDmPanel } from "./dm-panel.js?v=52";
+import { renderProgressie } from './render-progressie.js?v=21';
+import { initSocket } from "./socket-client.js?v=16";
+import { initDmPanel } from "./dm-panel.js?v=55";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -1918,7 +1917,10 @@ async function refreshSection(section) {
     } else if (!window.app.isDM() && _getDienstToegang('heeren') === 'verborgen') {
       const _el = document.getElementById('section-heeren'); if (_el) _el.innerHTML = '';
     } else await renderHeeren();
-  }  else if (section === 'mijn-karakter') await renderMijnKarakter();
+  }  else if (section === 'mijn-karakter') {
+    await renderMijnKarakter();
+    window._pendingKarakterRefresh = false; // verwerk eventuele pending refresh
+  }
   else if (section === 'spelers') await renderSpelersTab();
   else if (section === 'meesterkamer') { if (state.role === 'dm') window.dmPanel?.renderMeesterkamer?.(); }
 }
@@ -2016,6 +2018,31 @@ function _getSkills() {
 }
 function _getKlassen() {
   return state.meta?.klassen?.length ? state.meta.klassen : _KLASSEN_DEFAULT;
+}
+
+// Zoek de canonieke klasse-key in de progressie-data (hoofdletter-ongevoelig + aliassen).
+function _progClassKey(prog, klasse) {
+  if (!prog?.classes || !klasse) return null;
+  const n = String(klasse).trim().toLowerCase();
+  for (const [key, data] of Object.entries(prog.classes)) {
+    if (key.toLowerCase() === n) return key;
+    if ((data.aliassen || []).some(a => String(a).toLowerCase() === n)) return key;
+  }
+  for (const key of Object.keys(prog.classes)) if (n.startsWith(key.toLowerCase())) return key;
+  return null;
+}
+
+// Bouw een profiel-dropdown. Bestaande (mogelijk niet-canonieke) waarde blijft selecteerbaar
+// zodat er geen data verloren gaat; de speler kan zo overstappen op een canonieke optie.
+function _ppfSelectField(field, current, options, placeholder, extraOnchange = '') {
+  const cur = current ?? '';
+  const opts = [...options];
+  if (cur && !opts.includes(cur)) opts.unshift(cur);
+  return `<select class="ppf-input ppf-select"
+    onchange="window._saveProfileField('${field}', this.value)${extraOnchange ? '; ' + extraOnchange : ''}">
+    <option value="">${placeholder}</option>
+    ${opts.map(o => `<option value="${esc(o)}"${o === cur ? ' selected' : ''}>${esc(o)}</option>`).join('')}
+  </select>`;
 }
 const _AB_LABELS = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' };
 
@@ -3987,6 +4014,8 @@ window._condInfo = function(cid) {
 };
 
 async function renderMijnKarakter(opts = {}) {
+  // Flush pending currency save only if user has typed a change (dirty)
+  if (typeof window._dashCurrencyFlush === 'function') await window._dashCurrencyFlush();
   const charId     = opts.charId     || state.characterId;
   const playerName = opts.playerName || state.playerName;
   const el         = opts.el         || document.getElementById('section-mijn-karakter');
@@ -4022,8 +4051,9 @@ async function renderMijnKarakter(opts = {}) {
   let berichtenLijst = [];
   let heerenData = null;
   let factiesData = [];
+  let progData = null;
   try {
-    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, heerenData, factiesData] = await Promise.all([
+    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, heerenData, factiesData, progData] = await Promise.all([
       api.getPlayerHp(charId).catch(() => ({ current: null, max: null })),
       api.getEntity('personages', charId).catch(() => null),
       api.getCombat().catch(() => null),
@@ -4044,6 +4074,7 @@ async function renderMijnKarakter(opts = {}) {
       api.getBerichten().then(d => d.berichten || []).catch(() => []),
       (window.app?.state?.meta?.heeren ? api.getHeeren().catch(() => null) : Promise.resolve(null)),
       api.getFacties().then(d => d.facties || []).catch(() => []),
+      api.progression().catch(() => null),
     ]);
   } catch { /* ok */ }
 
@@ -4155,6 +4186,13 @@ async function renderMijnKarakter(opts = {}) {
   const _cNames = window._currency || state.meta?.currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' };
   const isHp = state.meta?.skillSet === 'hp';
 
+  // Origin- en subclass-opties uit de progressie-data (voorkomt alias-mismatch).
+  // Niet voor de HP-variant (House / School of Magic zijn campagne-eigen, niet in de progressie-data).
+  const _originOpts   = (!isHp && progData?.species) ? Object.keys(progData.species) : null;
+  const _progClsKey   = _progClassKey(progData, playerProfile.klasse);
+  const _subclassOpts = (!isHp && _progClsKey && progData.classes[_progClsKey]?.subclasses)
+    ? Object.keys(progData.classes[_progClsKey].subclasses) : null;
+
   // Wapens & damage cantrips
   let weapons = [];
   try { weapons = JSON.parse(playerProfile.weapons || '[]'); } catch {}
@@ -4240,7 +4278,7 @@ async function renderMijnKarakter(opts = {}) {
             <div class="ppf-row"><label class="ppf-label">Level</label>
               <input class="ppf-input ppf-level" type="number" min="1" max="20"
                 value="${esc(playerProfile.level ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('level', this.value)"></div>
+                onchange="window._saveProfileField('level', this.value)"></div>
             <div class="ppf-row"><label class="ppf-label">Class</label>
               <select class="ppf-input ppf-select" id="ppf-klasse-select"
                 onchange="window._saveProfileField('klasse', this.value); window._updateMulticlassTheme()">
@@ -4251,7 +4289,7 @@ async function renderMijnKarakter(opts = {}) {
               </select>
               ${_isMulticlass ? `<input class="ppf-input ppf-level" id="ppf-klasse-level" type="number" min="1" max="20"
                 value="${esc(playerProfile.klasseLevel ?? '')}" placeholder="Niv"
-                onblur="window._saveProfileField('klasseLevel', this.value); window._updateMulticlassTheme()">` : ''}
+                onchange="window._saveProfileField('klasseLevel', this.value); window._updateMulticlassTheme()">` : ''}
               <button class="ppf-multiclass-toggle${_isMulticlass ? ' ppf-multiclass-toggle--active' : ''}"
                 onclick="window._toggleMulticlass()"
                 title="${_isMulticlass ? 'Multiclass uitschakelen' : 'Multiclass inschakelen'}">⊕</button>
@@ -4266,11 +4304,13 @@ async function renderMijnKarakter(opts = {}) {
               </select>
               <input class="ppf-input ppf-level" id="ppf-multi-level" type="number" min="1" max="20"
                 value="${esc(playerProfile.multiKlasseLevel ?? '')}" placeholder="Niv"
-                onblur="window._saveProfileField('multiKlasseLevel', this.value); window._updateMulticlassTheme()">
+                onchange="window._saveProfileField('multiKlasseLevel', this.value); window._updateMulticlassTheme()">
             </div>` : ''}
             <div class="ppf-row"><label class="ppf-label">${isHp ? 'School of Magic' : 'Subclass'}</label>
-              <input class="ppf-input" type="text" value="${esc(playerProfile.subclass ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('subclass', this.value)"></div>
+              ${_subclassOpts
+                ? _ppfSelectField('subclass', playerProfile.subclass, _subclassOpts, '—')
+                : `<input class="ppf-input" type="text" value="${esc(playerProfile.subclass ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('subclass', this.value)">`}</div>
             <div class="ppf-row"><label class="ppf-label">Background</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.background ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('background', this.value)"></div>
@@ -4286,8 +4326,10 @@ async function renderMijnKarakter(opts = {}) {
                 </select></div>`;
             })()}
             <div class="ppf-row"><label class="ppf-label">${isHp ? 'House' : 'Origin'}</label>
-              <input class="ppf-input" type="text" value="${esc(playerProfile.origin ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('origin', this.value)"></div>
+              ${_originOpts
+                ? _ppfSelectField('origin', playerProfile.origin, _originOpts, '—')
+                : `<input class="ppf-input" type="text" value="${esc(playerProfile.origin ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('origin', this.value)">`}</div>
             ${isHp ? `<div class="ppf-row"><label class="ppf-label">Blood Status</label>
               <input class="ppf-input" type="text" value="${esc(playerProfile.bloodStatus ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('bloodStatus', this.value)"></div>` : ''}
@@ -4822,7 +4864,7 @@ async function renderMijnKarakter(opts = {}) {
                 <span class="player-currency-name">${esc(_cNames.fl || 'Florinde')}</span>
                 <input class="player-currency-input" type="number" min="0" id="dash-cur-fl"
                   value="${partyCurrency.enabled ? partyCurrency.fl : currency.fl}"
-                  onblur="window._dashCurrencySave()">
+                  oninput="window._dashCurrencySave()">
               </div>
             </div>
             <div class="player-currency-item player-currency-silver">
@@ -4831,7 +4873,7 @@ async function renderMijnKarakter(opts = {}) {
                 <span class="player-currency-name">${esc(_cNames.kn || 'Knaker')}</span>
                 <input class="player-currency-input" type="number" min="0" id="dash-cur-kn"
                   value="${partyCurrency.enabled ? partyCurrency.kn : currency.kn}"
-                  onblur="window._dashCurrencySave()">
+                  oninput="window._dashCurrencySave()">
               </div>
             </div>
             <div class="player-currency-item player-currency-copper">
@@ -4840,7 +4882,7 @@ async function renderMijnKarakter(opts = {}) {
                 <span class="player-currency-name">${esc(_cNames.cl || 'Centeling')}</span>
                 <input class="player-currency-input" type="number" min="0" id="dash-cur-cl"
                   value="${partyCurrency.enabled ? partyCurrency.cl : currency.cl}"
-                  onblur="window._dashCurrencySave()">
+                  oninput="window._dashCurrencySave()">
               </div>
             </div>
           </div>
@@ -4943,13 +4985,21 @@ async function renderMijnKarakter(opts = {}) {
           <div class="player-dash-section-title">${icon('package')} Jouw voorwerpen</div>
           ${myItems.length > 0 ? (() => {
             const _ITEM_CATS = [
-              { key: 'Wapen',     label: 'Wapens',     icon: icon('sword') },
-              { key: 'Uitrusting',label: 'Uitrusting',  icon: icon('shield') },
-              { key: 'Toveritem', label: 'Toveritems',  icon: icon('sparkles') },
-              { key: 'Drank',     label: 'Drankjes',    icon: icon('flask-conical') },
-              { key: 'Scroll',    label: 'Scrolls',     icon: icon('scroll-text') },
-              { key: 'Ring',      label: 'Ringen',      icon: icon('star') },
-              { key: 'Amulet',    label: 'Amuletten',   icon: icon('sparkles') },
+              { key: 'Wapen',                 label: 'Wapens',      icon: icon('sword') },
+              { key: 'Weapon',                label: 'Wapens',      icon: icon('sword') },
+              { key: 'Uitrusting',            label: 'Uitrusting',  icon: icon('shield') },
+              { key: 'Armor',                 label: 'Uitrusting',  icon: icon('shield') },
+              { key: 'Shield',                label: 'Uitrusting',  icon: icon('shield') },
+              { key: 'Toveritem',             label: 'Toveritems',  icon: icon('sparkles') },
+              { key: 'Magic Item',            label: 'Toveritems',  icon: icon('sparkles') },
+              { key: 'Wondrous item',         label: 'Toveritems',  icon: icon('sparkles') },
+              { key: 'Drank',                 label: 'Drankjes',    icon: icon('flask-conical') },
+              { key: 'Potion',                label: 'Drankjes',    icon: icon('flask-conical') },
+              { key: 'Scroll',                label: 'Scrolls',     icon: icon('scroll-text') },
+              { key: 'Ring',                  label: 'Ringen',      icon: icon('star') },
+              { key: 'Amulet',                label: 'Amuletten',   icon: icon('sparkles') },
+              { key: 'Musical instrument',    label: 'Instrument',  icon: icon('volume-2') },
+              { key: 'Consumable',            label: 'Verbruiksitem', icon: icon('flask-conical') },
             ];
             // Sort items by category order, then overig
             const _catOrder = _ITEM_CATS.map(c => c.key);
@@ -5048,36 +5098,17 @@ async function renderMijnKarakter(opts = {}) {
               ${_dotsHtml}`;
           })() : ''}
           ${(() => {
-            const _sub = (si) => si.subtype || (si.eed ? (si.status === 'vloek' ? 'vloek' : 'eed') : (si.zegen ? 'zegen' : null));
-            const _row = (si) => {
-              const sub = _sub(si);
-              const cls = sub === 'vloek' ? ' player-dash-simple-item--vloek'
-                        : sub === 'eed'   ? ' player-dash-simple-item--eed'
-                        : sub === 'zegen' ? ' player-dash-simple-item--zegen' : '';
-              return `
-              <li class="player-dash-simple-item${cls}">
+            const _isGoddelijk = (si) => si.eed || si.zegen || si.subtype === 'eed' || si.subtype === 'zegen' || si.subtype === 'vloek';
+            const gewone = simpleItems.filter(si => !_isGoddelijk(si));
+            return gewone.length ? `<ul class="player-dash-simple-list">${gewone.map(si => `
+              <li class="player-dash-simple-item">
                 <span class="player-dash-simple-name">${esc(si.name)}</span>
                 ${si.note ? `<span class="player-dash-simple-note">${esc(si.note)}</span>` : ''}
-                ${sub === 'zegen' && si.usesMax ? `
-                <span class="player-dash-zegen-charges" style="display:inline-flex;align-items:center;gap:4px;margin-left:6px">
-                  ${Array.from({ length: si.usesMax }).map((_, i) =>
-                    `<span class="spell-slot-dot${i < (si.uses || 0) ? '' : ' used'}" style="width:11px;height:11px;cursor:default"></span>`).join('')}
-                  <button class="ts-wedden-btn" style="padding:1px 7px;font-size:.7rem" onclick="window._dashZegenVerbruik()" ${(si.uses || 0) <= 0 ? 'disabled' : ''} title="Vink één gebruik af">✓</button>
-                </span>` : ''}
                 ${si.entityId ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:0.65rem;padding:1px 4px;line-height:1.3;" onclick="window._openDetail('${esc(si.entityType)}','${esc(si.entityId)}')" title="Open kaartje">↗</button>` : ''}
-                ${si.eed ? '' : `<button class="player-dash-simple-del" onclick="window._dashRemoveItem('${esc(si.id)}')" title="Verwijder">×</button>`}
-              </li>`;
-            };
-            const gewone = simpleItems.filter(si => !_sub(si));
-            const zegens = simpleItems.filter(si => _sub(si));
-            return `
-              ${gewone.length ? `<ul class="player-dash-simple-list">${gewone.map(_row).join('')}</ul>` : ''}
-              ${zegens.length ? `
-                <div class="player-dash-section-title" style="margin-top:10px">${icon('sparkles')} Zegeningen &amp; vloeken</div>
-                <ul class="player-dash-simple-list player-dash-zegen-list">${zegens.map(_row).join('')}</ul>` : ''}
-            `;
+                <button class="player-dash-simple-del" onclick="window._dashRemoveItem('${esc(si.id)}')" title="Verwijder">×</button>
+              </li>`).join('')}</ul>` : '';
           })()}
-          ${myItems.length === 0 && simpleItems.length === 0 ? '<p class="player-dash-empty">Nog geen voorwerpen.</p>' : ''}
+          ${myItems.length === 0 && simpleItems.filter(si => !si.eed && !si.zegen).length === 0 ? '<p class="player-dash-empty">Nog geen voorwerpen.</p>' : ''}
           <div class="player-dash-add-item">
             <input id="dash-item-name" class="player-dash-add-item-input" type="text"
               placeholder="Naam voorwerp…" maxlength="80"
@@ -5088,12 +5119,74 @@ async function renderMijnKarakter(opts = {}) {
             <button class="player-dash-add-item-btn" onclick="window._dashAddItem()">+</button>
           </div>
         </div>
+
+        <!-- Zegeningen & Vloeken — aparte sectie onder Jouw voorwerpen -->
+        ${(() => {
+          const goddelijk = simpleItems.filter(si => si.eed || si.zegen);
+          if (!goddelijk.length) return '';
+          const _renderGoddelijkSlide = (si) => {
+            const isVloek = si.status === 'vloek';
+            const isEed   = si.eed && !isVloek;
+            const typeIcon  = isVloek ? icon('skull') : isEed ? icon('scroll-text') : icon('sparkles');
+            const typeColor = isVloek ? '#c04040' : isEed ? '#c4a87a' : '#5a9060';
+            const chargesHtml = si.zegen && si.usesMax ? `
+              <div class="item-carousel-charges" onclick="event.stopPropagation()">
+                <div class="item-charge-dots-row">
+                  <div class="item-charge-dots">
+                    ${Array.from({length: si.usesMax}, (_, i) =>
+                      `<button class="spell-slot-dot ${i < (si.uses||0) ? 'free' : 'used'}"
+                        onclick="window._dashZegenVerbruik()"></button>`).join('')}
+                  </div>
+                </div>
+              </div>` : '';
+            const linkHtml = si.entityId
+              ? `<button class="herberg-bubble-card-btn" style="margin-top:8px;font-size:0.72rem;padding:3px 8px" onclick="window._openDetail('${esc(si.entityType||'voorwerpen')}','${esc(si.entityId)}')" title="Open kaartje">${icon('open-book')} Bekijk kaartje</button>`
+              : '';
+            const boeteHtml = isVloek ? `
+              <div style="margin-top:8px">
+                <button class="ts-wedden-btn" onclick="window._tempelBoete()">${icon('sparkles')} Doe boete in de tempel</button>
+              </div>` : '';
+            const entityNaam = si.entityId ? (allVoorwerpen.find(v => v.id === si.entityId)?.name || si.name) : si.name;
+            const slideClick = si.entityId ? `onclick="window._openDetail('${esc(si.entityType||'voorwerpen')}','${esc(si.entityId)}')" style="cursor:pointer"` : '';
+            return `<div class="item-carousel-slide" ${slideClick}>
+              <div class="item-carousel-namerow">
+                <span class="item-carousel-type-icon" style="color:${typeColor}">${typeIcon}</span>
+                <span class="item-carousel-name">${esc(entityNaam)}</span>
+                ${si.entityId ? `<span style="font-size:0.7rem;opacity:0.5;margin-left:4px" title="Bekijk kaartje">${icon('open-book')}</span>` : ''}
+              </div>
+              <div style="font-size:0.65rem;font-family:'Cinzel',serif;letter-spacing:.07em;text-transform:uppercase;color:rgba(100,75,30,0.6);margin-bottom:6px">Blessing</div>
+              ${si.note ? `<div class="item-carousel-desc" onclick="event.stopPropagation()">${esc(si.note)}</div>` : ''}
+              ${chargesHtml}
+              ${boeteHtml}
+            </div>`;
+          };
+          window._knapzakGoddelijkItems = goddelijk;
+          window._knapzakGoddelijkIdx   = 0;
+          window._knapzakGoddelijkGoTo  = (n) => {
+            window._knapzakGoddelijkIdx = Math.max(0, Math.min(goddelijk.length - 1, n));
+            const t = document.getElementById('goddelijk-carousel-track');
+            if (t) t.innerHTML = _renderGoddelijkSlide(window._knapzakGoddelijkItems[window._knapzakGoddelijkIdx]);
+            document.querySelectorAll('#goddelijk-carousel .item-carousel-dot').forEach((d,i) => d.classList.toggle('active', i === window._knapzakGoddelijkIdx));
+            document.getElementById('goddelijk-nav-prev')?.style.setProperty('visibility', window._knapzakGoddelijkIdx <= 0 ? 'hidden' : 'visible');
+            document.getElementById('goddelijk-nav-next')?.style.setProperty('visibility', window._knapzakGoddelijkIdx >= window._knapzakGoddelijkItems.length - 1 ? 'hidden' : 'visible');
+          };
+          window._knapzakGoddelijkNav = (d) => window._knapzakGoddelijkGoTo(window._knapzakGoddelijkIdx + d);
+          const _dotsG = goddelijk.length > 1 ? `<div class="item-carousel-dots">${goddelijk.map((_,i) => `<button class="item-carousel-dot${i===0?' active':''}" onclick="window._knapzakGoddelijkGoTo(${i})"></button>`).join('')}</div>` : '';
+          return `
+            <div class="player-dash-section">
+              <div class="player-dash-section-title">${icon('sparkles')} Zegeningen &amp; Vloeken</div>
+              <div class="item-carousel" id="goddelijk-carousel">
+                <button class="item-carousel-nav" id="goddelijk-nav-prev" onclick="window._knapzakGoddelijkNav(-1)" ${goddelijk.length <= 1 ? 'style="visibility:hidden"' : ''}>&#8249;</button>
+                <div class="item-carousel-track" id="goddelijk-carousel-track">${_renderGoddelijkSlide(goddelijk[0])}</div>
+                <button class="item-carousel-nav" id="goddelijk-nav-next" onclick="window._knapzakGoddelijkNav(1)" ${goddelijk.length <= 1 ? 'style="visibility:hidden"' : ''}>&#8250;</button>
+              </div>
+              ${_dotsG}
+            </div>`;
+        })()}
       </div>
 
       <!-- ═══ TAB: Progressie ═══ -->
-      <div id="pst-progressie" class="player-subtab-panel${_playerSubTab !== 'progressie' ? ' hidden' : ''}">
-        <!-- Progressie wordt lazy geladen bij tab-switch -->
-      </div>
+      <div id="pst-progressie" class="player-subtab-panel${_playerSubTab !== 'progressie' ? ' hidden' : ''}"></div>
 
       <!-- ═══ TAB: Mijn spreukenboek ═══ -->
       <div id="pst-spreukenboek" class="player-subtab-panel${_playerSubTab !== 'spreukenboek' ? ' hidden' : ''}">
@@ -5215,6 +5308,27 @@ async function renderMijnKarakter(opts = {}) {
       </div>
 
     </div>`;
+
+  // ── Progressie: sla context op; render via requestAnimationFrame zodat
+  //    de DOM zeker stable is en geen re-render de content overschrijft ──
+  window._lastProgCtx = {
+    klasse:           playerProfile.klasse || entity?.data?.klasse || '',
+    klasseLevel:      parseInt(playerProfile.klasseLevel) || parseInt(playerProfile.level) || 1,
+    level:            parseInt(playerProfile.level) || 1,
+    subclass:         playerProfile.subclass || '',
+    multiclass:       playerProfile.multiclass === 'true' || playerProfile.multiclass === true,
+    multiKlasse:      playerProfile.multiKlasse || '',
+    multiKlasseLevel: parseInt(playerProfile.multiKlasseLevel) || 0,
+    species:          entity?.data?.ras || playerProfile.ras || '',
+    charId:           charId || null,
+    favorites:        (() => { try { return JSON.parse(playerProfile.featFavorites || '[]'); } catch { return []; } })(),
+    choices:          (() => { try { return JSON.parse(playerProfile.featChoices   || '{}'); } catch { return {}; } })(),
+  };
+  // Render progressie alleen als de tab actief is (anders is het verspilling)
+  if (_playerSubTab === 'progressie') {
+    const _pmEl = document.getElementById('pst-progressie');
+    if (_pmEl) renderProgressie(_pmEl, window._lastProgCtx);
+  }
 
   // ── Spreuk-accordion: beschrijving lazy laden ──
   document.querySelectorAll('.player-spell-accordion').forEach(details => {
@@ -5647,7 +5761,23 @@ async function renderMijnKarakter(opts = {}) {
     if (!charId) return;
     try {
       await api.patchPlayerProfile(charId, { [field]: value });
-    } catch (e) { console.warn('Profiel opslaan mislukt', e); }
+      playerProfile[field] = value;
+    } catch (e) { console.warn('Profiel opslaan mislukt', e); return; }
+    // Na level- of klassewijziging: sync nieuwe features naar Kenmerken & Eigenschappen
+    const syncFields = new Set(['level', 'klasseLevel', 'klasse', 'subclass', 'multiKlasseLevel', 'multiKlasse']);
+    if (syncFields.has(field) && window.progressie?.triggerSync) {
+      const ctx = {
+        klasse:           playerProfile.klasse           || '',
+        subclass:         playerProfile.subclass         || '',
+        klasseLevel:      parseInt(playerProfile.klasseLevel) || parseInt(playerProfile.level) || 1,
+        level:            parseInt(playerProfile.level)  || 1,
+        multiKlasse:      playerProfile.multiKlasse      || '',
+        multiKlasseLevel: parseInt(playerProfile.multiKlasseLevel) || 0,
+      };
+      window.progressie.triggerSync(charId, ctx).then(() => {
+        window.app.refreshSection('mijn-karakter');
+      });
+    }
   };
 
   // Multiclass toggle
@@ -5815,6 +5945,8 @@ async function renderMijnKarakter(opts = {}) {
   };
 
   // ── Valuta ──
+  window._dashCurrencyFlush = async function() { /* no-op: saves happen immediately on input */ };
+
   window._dashCurrencySave = async function() {
     const fl = Math.max(0, parseInt(document.getElementById('dash-cur-fl')?.value) || 0);
     const kn = Math.max(0, parseInt(document.getElementById('dash-cur-kn')?.value) || 0);
@@ -5904,6 +6036,8 @@ async function renderMijnKarakter(opts = {}) {
 
   // ── Subtab switcher ──
   window._setPlayerSubTab = function(tab) {
+    // Beurs opslaan vóórdat de DOM vervangen wordt (alleen als dirty)
+    if (typeof window._dashCurrencyFlush === 'function') window._dashCurrencyFlush();
     _playerSubTab = tab;
     localStorage.setItem('_playerSubTab', tab);
     ['party', 'personage', 'knapzak', 'progressie', 'spreukenboek', 'berichten'].forEach(t => {
@@ -5918,30 +6052,25 @@ async function renderMijnKarakter(opts = {}) {
       window._berichtenUnread = 0;
       window._updateBerichtenBadge?.();
     }
-    // Progressie lazy renderen bij eerste keer of na data-update
+    // Progressie lazy renderen bij tab-wissel
     if (tab === 'progressie') {
-      const _pm = document.getElementById('pst-progressie');
-      if (_pm) {
-        _pm.innerHTML = '<p style="opacity:.45;text-align:center;padding:24px;font-family:\'Cinzel\',serif;font-size:11px">Laden…</p>';
-        const _pp = window._lastPlayerProfile || {};
-        const _pe = window._lastPlayerEntity || {};
-        renderProgressie(_pm, {
-          klasse:           _pp.klasse || _pe?.data?.klasse || '',
-          klasseLevel:      parseInt(_pp.klasseLevel) || parseInt(_pp.level) || 1,
-          level:            parseInt(_pp.level) || 1,
-          subclass:         _pp.subclass || '',
-          multiclass:       _pp.multiclass === 'true' || _pp.multiclass === true,
-          multiKlasse:      _pp.multiKlasse || '',
-          multiKlasseLevel: parseInt(_pp.multiKlasseLevel) || 0,
-          species:          _pe?.data?.ras || _pp.ras || '',
-          charId:           window._lastCharId || null,
-          favorites:        (() => { try { return JSON.parse(_pp.featFavorites || '[]'); } catch { return []; } })(),
-          choices:          (() => { try { return JSON.parse(_pp.featChoices   || '{}'); } catch { return {}; } })(),
-        }).catch(err => {
-          console.error('[progressie] render mislukt:', err);
-          if (_pm) _pm.innerHTML = `<p style="color:#8a3020;text-align:center;padding:24px;font-size:13px">Kon progressie niet laden — probeer opnieuw.</p>`;
-        });
-      }
+      const _pm  = document.getElementById('pst-progressie');
+      const _pp  = window._lastPlayerProfile || {};
+      const _pe  = window._lastPlayerEntity  || {};
+      const _ctx = window._lastProgCtx || {
+        klasse:           _pp.klasse || _pe?.data?.klasse || '',
+        klasseLevel:      parseInt(_pp.klasseLevel) || parseInt(_pp.level) || 1,
+        level:            parseInt(_pp.level) || 1,
+        subclass:         _pp.subclass || '',
+        multiclass:       _pp.multiclass === 'true' || _pp.multiclass === true,
+        multiKlasse:      _pp.multiKlasse || '',
+        multiKlasseLevel: parseInt(_pp.multiKlasseLevel) || 0,
+        species:          _pe?.data?.ras || _pp.ras || '',
+        charId:           window._lastCharId || null,
+        favorites:        (() => { try { return JSON.parse(_pp.featFavorites || '[]'); } catch { return []; } })(),
+        choices:          (() => { try { return JSON.parse(_pp.featChoices   || '{}'); } catch { return {}; } })(),
+      };
+      if (_pm) renderProgressie(_pm, _ctx);
     }
     // Auto-open spellbook when navigating to spreukenboek tab
     if (tab === 'spreukenboek' && _sbState.spells.length > 0) {
@@ -7216,7 +7345,6 @@ async function init() {
   document.getElementById('header-subtitle-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') window.app.saveHeader(); if (e.key === 'Escape') window.app.cancelHeader(); });
 
   applyRole();
-  initGlossary();            // D&D-begrippenlijst voor hover-uitleg (voorwerpen + spreuken)
   _wlAcInit();
   initCampagne();
   initArchief();
@@ -7834,14 +7962,19 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
 }
 
 function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst) {
+  // Sla god + config op voor de cinema (voorkomt lange inline onclick-strings)
+  window._tempelCinemaGod    = g;
+  window._tempelCinemaConfig = config;
   const eedGebonden = !!huidigeEed;
   const isVloek     = huidigeEed?.status === 'vloek';
   const actiefEed   = huidigeEed && huidigeEed.godId === g.id;
   const eenmalig    = (g.eenmaligeZegens || []).filter(Boolean);
 
-  const backdrop    = g.backdropId ? `style="background-image:url('${api.fileUrl(g.backdropId)}')"` : '';
-  const portret     = g.priestImageId
-    ? `<img src="${api.fileUrl(g.priestImageId)}" class="herberg-portrait-round" alt="Priester">`
+  const backdropFileId  = g.backdropId   || g.locatieEntityId  || null;
+  const priestFileId    = g.priestImageId || g.priesterEntityId || null;
+  const backdrop    = backdropFileId ? `style="background-image:url('${api.fileUrl(backdropFileId)}')"` : '';
+  const portret     = priestFileId
+    ? `<img src="${api.fileUrl(priestFileId)}" class="herberg-portrait-round" alt="Priester" onerror="this.style.display='none'">`
     : `<div class="herberg-portrait-round herberg-portrait-fallback">${icon('church')}</div>`;
 
   el.innerHTML = `
@@ -7876,7 +8009,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
           </div>` : ''}
 
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
-          <button class="ts-wedden-btn" onclick="window._tempelEedCinema('${esc(g.id)}','${esc(g.naam)}','${esc(g.zegen||'')}','${esc(g.vloek||'')}',${JSON.stringify(config.eedPrijs)})"
+          <button class="ts-wedden-btn" onclick="window._tempelEedCinema()"
             ${eedGebonden ? 'disabled' : ''}
             title="${eedGebonden ? 'Je bent al door een eed gebonden' : 'Leg een blijvende eed af'}">
             ${icon('scroll-text')} Eed afleggen${g.zegen ? ': ' + esc(g.zegen) : ''} · ${esc(prijsTekst(config.eedPrijs))}
@@ -7915,21 +8048,27 @@ window._tempelKies = async (godId, godNaam) => {
   }
 };
 
-window._tempelEedCinema = (godId, godNaam, zegenTekst, vloekTekst, prijsObj) => {
-  // Remove any existing overlay
+window._tempelEedCinema = () => {
+  const g      = window._tempelCinemaGod;
+  const config = window._tempelCinemaConfig;
+  if (!g) return;
+
   document.getElementById('tempel-eed-cinema')?.remove();
 
   const playerName = window.app?.state?.playerName || 'Pelgrim';
   const prijsTekst = (p) => [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
-  const fullText = `Ik, ${playerName}, zweer een eed aan ${godNaam}.\n\nZolang ik deze eed nakome, verleen ${godNaam} mij:\n${zegenTekst || '—'}.\n\nVerzaak ik mijn eed, dan treft mij de toorn van ${godNaam}:\n${vloekTekst || '—'}.\n\nDit is mijn belofte, nu en altijd.\n\nPrijs: ${prijsTekst(prijsObj)}.`;
+
+  const titel    = g.eedTitel || '';
+  const eedTekst = g.eedTekst || `Ik, ${playerName}, zweer een eed aan ${g.naam}.\n\nZolang ik deze eed nakome, verleen ${g.naam} mij:\n${g.zegen || '—'}.\n\nVerzaak ik mijn eed, dan treft mij de toorn van ${g.naam}:\n${g.vloek || '—'}.\n\nDit is mijn belofte, nu en altijd.`;
+  const fullText = (titel ? titel + '\n\n' : '') + eedTekst + `\n\nPrijs: ${prijsTekst(config.eedPrijs)}.`;
 
   const overlay = document.createElement('div');
   overlay.id = 'tempel-eed-cinema';
   overlay.innerHTML = `
-    <div id="tempel-eed-text"></div>
-    <div id="tempel-eed-btns" style="display:none">
-      <button id="tempel-eed-confirm" class="ts-wedden-btn" style="min-width:140px">${icon('scroll-text')} Eed afleggen</button>
-      <button id="tempel-eed-cancel" class="ts-wedden-btn" style="min-width:140px;background:rgba(60,20,20,0.6)">${icon('x')} Bedenk je</button>
+    <div id="tempel-eed-text" class="tempel-eed-body"></div>
+    <div id="tempel-eed-btns" class="tempel-eed-btns" style="display:none">
+      <button id="tempel-eed-confirm" class="tempel-eed-btn tempel-eed-btn--bevestig">${icon('scroll-text')} Eed afleggen</button>
+      <button id="tempel-eed-cancel" class="tempel-eed-btn tempel-eed-btn--annuleer">${icon('x')} Bedenk je</button>
     </div>`;
   document.body.appendChild(overlay);
 
@@ -7948,19 +8087,56 @@ window._tempelEedCinema = (godId, godNaam, zegenTekst, vloekTekst, prijsObj) => 
   const close = () => { clearInterval(interval); overlay.remove(); };
 
   document.getElementById('tempel-eed-confirm').onclick = async () => {
-    close();
-    try {
-      await api.tempelEed({ godId });
-      await renderTempel();
-      _tsToast(`${icon('scroll-text')} Je hebt een eed afgelegd aan ${godNaam}.`);
-    } catch (err) {
-      _tsToast(err.message || 'De eed werd niet aanvaard.');
+    clearInterval(interval);
+    btnsEl.style.display = 'none';
+    // Fase 1: goudkleurige lichtflits
+    overlay.classList.add('tempel-eed-flits');
+    await new Promise(r => setTimeout(r, 600));
+    // Fase 2: bezegelingstekst
+    textEl.className = 'tempel-eed-bezegeld';
+    textEl.innerHTML = `${icon('scroll-text')}<br><span>De eed is bezegeld.</span><br><em>${esc(g.naam)} heeft jouw belofte aanvaard.</em>`;
+    overlay.classList.remove('tempel-eed-flits');
+    // Fase 3: api-aanroep terwijl tekst zichtbaar is
+    try { await api.tempelEed({ godId: g.id }); } catch (err) {
+      textEl.innerHTML = `<span style="color:#e06060">${esc(err.message || 'De eed werd niet aanvaard.')}</span>`;
+      await new Promise(r => setTimeout(r, 2500));
+      overlay.remove();
+      return;
     }
+    // Fase 4: fade-out en sluit
+    await new Promise(r => setTimeout(r, 2200));
+    overlay.classList.add('tempel-eed-fadeout');
+    await new Promise(r => setTimeout(r, 900));
+    overlay.remove();
+    await renderTempel();
   };
   document.getElementById('tempel-eed-cancel').onclick = close;
 
   const onEsc = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); } };
   document.addEventListener('keydown', onEsc);
+};
+
+window._tempelVloekCinema = async (godNaam, vloekEffect) => {
+  const overlay = document.createElement('div');
+  overlay.id = 'tempel-vloek-cinema';
+  overlay.innerHTML = `
+    <div class="tempel-vloek-body">
+      ${icon('skull')}
+      <span>${esc(godNaam)} heeft je verlaten.</span>
+      <em>${esc(vloekEffect)}</em>
+      <small>Doe boete in de tempel om je van de vloek te bevrijden.</small>
+    </div>`;
+  document.body.appendChild(overlay);
+  // Laat verschijnen
+  requestAnimationFrame(() => overlay.classList.add('tempel-vloek--zichtbaar'));
+  // Sluit na klik of 6 seconden
+  const sluit = async () => {
+    overlay.classList.add('tempel-vloek--weg');
+    await new Promise(r => setTimeout(r, 700));
+    overlay.remove();
+  };
+  overlay.addEventListener('click', sluit, { once: true });
+  setTimeout(sluit, 6000);
 };
 
 window._tempelBoete = async () => {
@@ -8308,7 +8484,7 @@ function _tsTaevinPrompt(eventId, optieId, tekortCl) {
 function _tsToast(msg) {
   const t = document.createElement('div');
   t.className = 'map-toast';
-  t.textContent = msg;
+  t.innerHTML = msg;
   document.body.appendChild(t);
   requestAnimationFrame(() => t.classList.add('map-toast--show'));
   setTimeout(() => {

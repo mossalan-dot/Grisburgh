@@ -150,6 +150,23 @@ function parseSpellFile(filepath) {
   };
 }
 
+// #48: valideer een geparste spell vóór export. Retourneert een lijst problemen
+// (leeg = geldig). Zo belandt een mismaakt PHB-bestand in de error-log i.p.v.
+// stil in spells-2024.json (wat de spellbook voor iedereen kan breken).
+const KNOWN_CLASSES = ['Bard','Cleric','Druid','Paladin','Ranger','Sorcerer','Warlock','Wizard','Artificer'];
+function validateSpell(s) {
+  const problems = [];
+  if (!s.name || typeof s.name !== 'string') problems.push('lege naam');
+  if (!Number.isInteger(s.level) || s.level < 0 || s.level > 9)
+    problems.push(`ongeldig level "${s.level}" (verwacht 0-9)`);
+  if (!s.school?.name || !SCHOOLS.includes(s.school.name))
+    problems.push(`onbekende school "${s.school?.name || ''}"`);
+  for (const c of (s.classes || []))
+    if (!KNOWN_CLASSES.includes(c.name))
+      problems.push(`onbekende klasse "${c.name}"`);
+  return problems;
+}
+
 // ── Main ──
 console.log(`Reading spells from: ${SPELLS_DIR}`);
 
@@ -164,8 +181,13 @@ function walkDir(dir) {
     } else if (entry.name.endsWith('.md')) {
       try {
         const spell = parseSpellFile(full);
-        if (spell) spells.push(spell);
-        else errors.push(`Skipped (no name): ${full}`);
+        if (!spell) { errors.push(`Skipped (no name): ${full}`); continue; }
+        const problems = validateSpell(spell);
+        if (problems.length) {
+          errors.push(`Ongeldig (${path.basename(full)}): ${problems.join('; ')}`);
+          continue;   // niet exporteren — fail loud
+        }
+        spells.push(spell);
       } catch (e) {
         errors.push(`Error parsing ${full}: ${e.message}`);
       }
@@ -196,6 +218,7 @@ console.log(`✓ Imported ${deduped.length} spells → ${OUT_FILE}`);
 if (errors.length) {
   console.log(`⚠ ${errors.length} errors:`);
   errors.forEach(e => console.log('  ', e));
+  process.exitCode = 1;   // #48: signaleer falen zodat het niet onopgemerkt blijft
 }
 
 // Quick stats

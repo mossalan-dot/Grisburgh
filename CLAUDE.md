@@ -99,11 +99,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=214   app.js?v=269
-app.js      : api.js?v=222      render-campagne.js?v=81   render-archief.js?v=32
+index.html  : theme.css?v=230   app.js?v=319
+app.js      : api.js?v=222      render-campagne.js?v=85   render-archief.js?v=32
               render-kaart.js?v=3  render-dungeon.js?v=18  render-relatiemap.js?v=10
-              glossary.js?v=1   render-progressie.js?v=3   socket-client.js?v=13
-              dm-panel.js?v=52
+              render-progressie.js?v=21  socket-client.js?v=16
+              dm-panel.js?v=55
+dm-panel.js : combat-canvas.js?v=6
+              (glossary.js verwijderd — feature gerevert, zie Veelgemaakte fouten)
 ```
 
 ---
@@ -262,6 +264,7 @@ Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in ren
 - **`sed` met speciale tekens op de server** → schrijf een tijdelijk .js-bestand en voer dat uit met `node`.
 - **DM en speler dezelfde browser** → session cookie gedeeld. Gebruik incognito of ander apparaat voor gelijktijdig testen.
 - **Socket-event naar verkeerde campagne** → altijd `io.to(campaignId).emit()`, nooit `io.emit()`.
+- **Dangling module-import na een revert** → als een feature wordt teruggedraaid, verwijder óók de `import`-regel in `app.js`. Een import van een verwijderd `.js`-bestand laat de node-server `index.html` (HTML) terugsturen i.p.v. JS → **de hele app.js module-graaf faalt stil** (`window.app` half-geïnitialiseerd, `window.progressie`/andere globals undefined, geen console-error). Symptoom: spelerstab half kapot, sync/handlers werken niet. Zo ging het mis met `glossary.js` (juni 2026): productie bleef werken omdat het oude bestand daar nog stond, maar een verse checkout was stuk.
 
 ---
 
