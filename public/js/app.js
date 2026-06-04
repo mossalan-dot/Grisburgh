@@ -1,5 +1,5 @@
 import { api } from './api.js?v=222';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=85";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=86";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=32";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=18';
@@ -5377,6 +5377,9 @@ async function renderMijnKarakter(opts = {}) {
           const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
           s = await r.json();
         }
+        // #22: tijdens de await kan de accordion gesloten of de tab her-rendered
+        // zijn — dan is `body` losgekoppeld. Niet schrijven naar een dode node.
+        if (!body.isConnected) return;
         const desc = (s.desc || []).map(_spellMd).join('<br><br>');
         const higher = s.higher_level?.length
           ? `<p class="player-spell-higher"><strong>At Higher Levels:</strong> ${s.higher_level.join(' ')}</p>` : '';
@@ -5399,7 +5402,7 @@ async function renderMijnKarakter(opts = {}) {
         body.dataset.loaded = 'true';
         _attachSpellEditListeners(body, index, charId);
       } catch {
-        body.innerHTML = '<p class="player-spell-err">Beschrijving kon niet worden geladen.</p>';
+        if (body.isConnected) body.innerHTML = '<p class="player-spell-err">Beschrijving kon niet worden geladen.</p>';
       }
     });
   });
@@ -5479,6 +5482,7 @@ async function renderMijnKarakter(opts = {}) {
                       : 'features';
         const r = await fetch(`https://www.dnd5eapi.co/api/${apiType}/${index}`);
         const f = await r.json();
+        if (!body.isConnected) return;   // #22: accordion gesloten/her-rendered tijdens fetch
         const _md = t => String(t)
           .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -5505,6 +5509,7 @@ async function renderMijnKarakter(opts = {}) {
         _appendTraitUsesRow(body);
         _appendTraitNoteSection(body);
       } catch {
+        if (!body.isConnected) return;
         body.innerHTML = '<p class="player-spell-err">Beschrijving kon niet worden geladen.</p>';
         _appendTraitUsesRow(body);
         _appendTraitNoteSection(body);

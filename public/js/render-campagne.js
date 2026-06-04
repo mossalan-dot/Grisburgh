@@ -2988,17 +2988,17 @@ window._openEditor = async (tab, editId) => {
     });
   };
 
-  // ── Ctrl+S sneltoets ──
-  if (window._lastEditorKeyFn) document.removeEventListener('keydown', window._lastEditorKeyFn);
-  window._lastEditorKeyFn = (ev) => {
-    if ((ev.ctrlKey || ev.metaKey) && ev.key === 's') {
-      const form = document.getElementById('entity-form');
-      if (!form) { document.removeEventListener('keydown', window._lastEditorKeyFn); return; }
-      ev.preventDefault();
-      form.requestSubmit();
-    }
-  };
-  document.addEventListener('keydown', window._lastEditorKeyFn);
+  // ── Ctrl+S sneltoets (#34: gescoped op het formulier i.p.v. een globale
+  // document-listener — sterft met de editor, geen collision tussen editors) ──
+  const _editorForm = document.getElementById('entity-form');
+  if (_editorForm) {
+    _editorForm.addEventListener('keydown', (ev) => {
+      if ((ev.ctrlKey || ev.metaKey) && ev.key === 's') {
+        ev.preventDefault();
+        _editorForm.requestSubmit();
+      }
+    });
+  }
 
   // ── Medestander toggle (enkelvoudig, aan/uit voor eerste groep) ──
   if (tab === 'personages' && editId && e?.subtype?.toLowerCase() === 'npc' && isDM() && _editorGroups.length > 0) {
@@ -3275,7 +3275,6 @@ window._openEditor = async (tab, editId) => {
       for (const id of entityEditorImagesToDelete) {
         await api.deleteFile(id).catch(() => {});
       }
-      document.removeEventListener('keydown', window._lastEditorKeyFn);
       closeModal();
       renderEntitySection(tab);
     } catch (err) {
@@ -3344,7 +3343,6 @@ function refreshTags(lt) {
 window._deleteEntity = async (tab, id) => {
   if (!confirm('Weet je zeker dat je dit wilt verwijderen?')) return;
   await api.deleteEntity(tab, id);
-  document.removeEventListener('keydown', window._lastEditorKeyFn);
   window.app.closeModal();
   renderEntitySection(tab);
 };
