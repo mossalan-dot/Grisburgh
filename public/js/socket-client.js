@@ -315,6 +315,14 @@ export function initSocket() {
   socket.on('combat:updated', (combat) => {
     if (window.dmPanel) window.dmPanel.onCombatUpdated(combat);
     window.soundManager?.onCombatUpdated(combat);
+    // #1: Concentration-save-waarschuwing voor de betrokken speler.
+    // Recency-guard zodat een oude prompt niet popt bij herladen mid-combat.
+    const cp = combat?.concentratiePrompt;
+    if (cp && cp.ts > _lastConcTs && (Date.now() - cp.ts) < 15000 && !window.app?.isDM?.()) {
+      const myId = window.app?.state?.characterId;
+      const mine = (combat.combatants || []).find(c => c.entityId === myId);
+      if (mine && mine.id === cp.combatantId) { _lastConcTs = cp.ts; _showConcentrationPrompt(cp); }
+    }
     // Herlaad spelersdashboard als dat actief is (HP-balk bijwerken)
     if (window.app?.state?.activeSection === 'mijn-karakter') {
       window.app?.refreshSection('mijn-karakter');
@@ -695,6 +703,19 @@ function _showEntityReveal({ id, type, name, icon, label }) {
       setTimeout(() => overlay.remove(), 600);
     }
   }, 300000);
+}
+
+// #1: waarschuwing dat de speler een Concentration Saving Throw moet maken.
+let _lastConcTs = 0;
+function _showConcentrationPrompt(p) {
+  const ic = window.icon ? window.icon('sparkles') : '';
+  const spreuk = String(p.spreuk || '').replace(/</g, '&lt;');
+  _showToast(
+    `${ic} <strong>Concentration Saving Throw — DC ${p.dc}</strong><br>` +
+    `<span style="opacity:.8">${spreuk} · tik om te rollen</span>`,
+    () => { window.dice?.toggle?.(); },
+    9000
+  );
 }
 
 function _showToast(html, onClick, duration = 4500) {

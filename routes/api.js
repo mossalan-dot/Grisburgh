@@ -2199,7 +2199,7 @@ router.patch('/player-spells/:characterId/:spellIndex', attachRole, (req, res) =
   const spells  = (dmState.playerSpells || {})[characterId] || [];
   const spell   = spells.find(s => s.index === spellIndex);
   if (!spell) return res.status(404).json({ error: 'Spreuk niet gevonden' });
-  const { school, desc, damage, casting_time, range, components, duration, incantation } = req.body;
+  const { school, desc, damage, casting_time, range, components, duration, incantation, concentrationActive } = req.body;
   if (school       !== undefined) spell.school       = school;
   if (desc         !== undefined) spell.desc         = desc;
   if (damage       !== undefined) spell.damage       = damage;
@@ -2208,6 +2208,12 @@ router.patch('/player-spells/:characterId/:spellIndex', attachRole, (req, res) =
   if (components   !== undefined) spell.components   = components;
   if (duration     !== undefined) spell.duration     = duration;
   if (incantation  !== undefined) spell.incantation  = incantation;
+  // #1: concentratie-vlag (gebruikt door de Concentration-save-waarschuwing in combat).
+  // Exclusief: maar één spreuk tegelijk actief.
+  if (concentrationActive !== undefined) {
+    spell.concentrationActive = !!concentrationActive;
+    if (spell.concentrationActive) for (const s of spells) if (s !== spell) s.concentrationActive = false;
+  }
   storage.writeJSON('dm-state.json', dmState);
   res.json({ ok: true });
 });
@@ -3700,6 +3706,23 @@ function _combatLog(combat, text) {
   if (combat.log.length > 100) combat.log = combat.log.slice(-100);
 }
 
+// #1: zet een Concentration-save-prompt als een geconcentreerde combatant schade krijgt.
+// Bron: voor spelers hun spreukenboek (concentrationActive), voor monsters de DM-vlag
+// combatant.concentratie. Geen automatische save — de speler rolt zelf, DM/speler beslist.
+function _maybeConcentrationPrompt(combat, combatant, damage, dmState) {
+  if (!combatant || !(damage > 0)) return;
+  let spreuk = null;
+  if (combatant.entityId && dmState) {
+    const conc = ((dmState.playerSpells || {})[combatant.entityId] || []).find(s => s.concentrationActive);
+    if (conc) spreuk = conc.name || conc.index || 'een spreuk';
+  }
+  if (!spreuk && combatant.concentratie?.actief) spreuk = combatant.concentratie.spreuk || 'een spreuk';
+  if (!spreuk) return;
+  const dc = Math.max(10, Math.floor(damage / 2));
+  combat.concentratiePrompt = { combatantId: combatant.id, dc, ts: Date.now(), spreuk, naam: combatant.name };
+  _combatLog(combat, `Concentration Saving Throw — DC ${dc} (${combatant.name}: ${spreuk})`);
+}
+
 // Synchroniseer HP van speler-combatanten terug naar dm-state.playerHp
 function _flushPlayerHpToDmState(combat, io, room) {
   const players = (combat.combatants || []).filter(c => c.entityId);
@@ -3796,6 +3819,7 @@ router.put('/combat/combatant/:id', requireDM, (req, res) => {
     const diff = req.body.hp - prev.hp;
     if (diff < 0) _combatLog(combat, `💥 ${prev.name} ontvangt ${-diff} schade (${req.body.hp}/${prev.maxHp || '?'} HP)`);
     else          _combatLog(combat, `💚 ${prev.name} geneest ${diff} HP (${req.body.hp}/${prev.maxHp || '?'} HP)`);
+    if (diff < 0) _maybeConcentrationPrompt(combat, combat.combatants[idx], -diff, readDmState()); // #1
   }
   // Auto-detect: all monsters at 0 HP → players win
   if (!combat.winner && req.body.hp !== undefined) {
@@ -3833,9 +3857,10 @@ router.patch('/combat/player-hp/:combatantId', attachRole, (req, res) => {
     if (hpDiff < 0) _combatLog(combat, `💥 ${c.name} ontvangt ${-hpDiff} schade (${newHp}/${c.maxHp || '?'} HP)`);
     else            _combatLog(combat, `💚 ${c.name} geneest ${hpDiff} HP (${newHp}/${c.maxHp || '?'} HP)`);
   }
+  const dmState = readDmState();
+  if (hpDiff < 0) _maybeConcentrationPrompt(combat, combat.combatants[idx], -hpDiff, dmState); // #1
   storage.writeJSON('combat.json', combat);
   // Persisteer ook in playerHp
-  const dmState = readDmState();
   if (!dmState.playerHp) dmState.playerHp = {};
   dmState.playerHp[c.entityId || c.name] = { current: newHp, max: c.maxHp || newHp };
   storage.writeJSON('dm-state.json', dmState);
