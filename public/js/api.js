@@ -243,6 +243,7 @@ export const api = {
   updatePlayerSpell:  (charId, spellIdx, data) => request(`/player-spells/${charId}/${spellIdx}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Vastgezette kenmerken
+  ontdekkingen:       ()                   => request('/ontdekkingen'),
   getPlayerTraits:    (charId)             => request(`/player-traits/${charId}`),
   addPlayerTrait:     (charId, data)       => request(`/player-traits/${charId}`, { method: 'POST', body: JSON.stringify(data) }),
   patchPlayerTrait:   (charId, traitId, data) => request(`/player-traits/${charId}/${traitId}`, { method: 'PATCH', body: JSON.stringify(data) }),
