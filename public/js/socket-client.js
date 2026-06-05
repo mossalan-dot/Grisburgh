@@ -356,6 +356,12 @@ export function initSocket() {
     window.dmPanel?.syncAmbiance?.(); // DM: regie-balk-snelknop bijwerken
   });
 
+  // Geluid bij een reveal (regie-balk): loop → ambiance, anders one-shot sting.
+  socket.on('sound:reveal', (data) => {
+    window.soundManager?.playReveal?.(data);
+    if (data?.loop) window.dmPanel?.syncAmbiance?.();
+  });
+
   socket.on('player:hp-updated', ({ characterId } = {}) => {
     // Herlaad dashboard als dit de eigen speler is
     if (window.app?.state?.characterId === characterId &&

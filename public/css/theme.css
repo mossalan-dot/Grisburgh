@@ -3515,6 +3515,19 @@ body::before {
 .dm-rb-reveal-btn:hover { background: var(--color-gold, #b8860b); }
 
 /* ── Logboek: akte script-sectie ── */
+/* ── Regie-script: geluid per reveal-item ── */
+.script-item-snd-chip { display: inline-flex; align-items: center; gap: 2px; font-size: 0.66rem; color: #2a6a3a; background: rgba(42,106,58,0.14); border-radius: 999px; padding: 1px 6px; flex-shrink: 0; }
+.script-item-snd-chip .icon { width: 12px; height: 12px; }
+.script-icon-btn--snd-on { color: #2a6a3a; }
+.script-snd-editor { margin: 2px 0 6px; padding: 7px 9px; background: rgba(42,106,58,0.06); border: 1px dashed rgba(42,106,58,0.3); border-radius: 7px; display: flex; flex-direction: column; gap: 6px; }
+.script-snd-row { display: flex; gap: 6px; align-items: center; }
+.script-snd-select { flex: 1; min-width: 0; font-size: 12px; }
+.script-snd-upload-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 28px; padding: 0 7px; cursor: pointer; border: 1px solid var(--color-room-border); border-radius: 6px; background: #fffdf6; color: #6a5238; font-size: 13px; }
+.script-snd-upload-btn:hover { border-color: var(--color-gold-dim); color: #2a1a08; }
+.script-snd-row2 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.script-snd-loop { display: inline-flex; align-items: center; gap: 5px; font-family: 'Crimson Text', serif; font-size: 12px; color: #4a3a24; cursor: pointer; }
+.script-snd-current { font-family: 'IM Fell English', serif; font-style: italic; font-size: 12px; color: #2a6a3a; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* ── Meesterkamer → Aktes (voorbereiding & regie) ── */
 .dm-akte-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .dm-akte-grp-hint { font-family: 'Crimson Text', serif; font-size: 11px; color: #6a5238; opacity: 0.85; margin: 0 0 10px; }

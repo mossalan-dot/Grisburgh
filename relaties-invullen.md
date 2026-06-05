@@ -1,0 +1,513 @@
+# Relatie-invullijst — Grisburgh
+
+<!-- Format: Naam A → Naam B | zichtbaar label | verborgen label (optioneel)
+     Laat label leeg voor ongetypeerde verbinding.
+     Verborgen label = wat DM ziet VOOR een reveal; zichtbaar = wat spelers zien NA reveal.
+     Pre-ingevulde labels zijn suggesties — aanpassen mag! -->
+
+## Personages ↔ Personages
+
+- Alenya Cassalanter → Elias Cassalanter |  | 
+- Alenya Cassalanter → Balina Cassalanter |  | 
+- Alenya Cassalanter → Piotr Cassalanter |  | 
+- Alenya Cassalanter → Henry Cassalanter |  | 
+- Alexander Achtermaans → Igor Grasduin |  | 
+- Amalia Becchi → Xerxes en Sarabi |  | 
+- Antonin Schaljaar → Ruud Bathmen-Ginsbergen |  | 
+- Ārslän → Hugo Grisburgh |  | 
+- Auguste Escargouffier → Taevin Woekeling |  | 
+- Auguste Escargouffier → Tommen |  | 
+- Balina Cassalanter → Boris Cassalanter |  | 
+- Balina Cassalanter → Elias Cassalanter |  | 
+- Balina Cassalanter → Henry Cassalanter |  | 
+- Balina Cassalanter → Piotr Cassalanter |  | 
+- Barry → Salazar Zwartbaard |  | 
+- Barry → Gerhard Leeuwenvelder |  | 
+- Berend Swering → Ursûn Rogarr |  | 
+- Berend Swering → Isidora Swering |  | 
+- Boris Cassalanter → Alenya Cassalanter |  | 
+- Boris Cassalanter → Elias Cassalanter |  | 
+- Boris Cassalanter → Henry Cassalanter |  | 
+- Boris Cassalanter → Piotr Cassalanter |  | 
+- Calvin Crespin → Henry Cassalanter |  | 
+- Camma Chosach → Kyrie |  | 
+- Camma Chosach → Emrys |  | 
+- Cleopas Purper → Lindar Wildebras |  | 
+- Cleopas Purper → Mercule Tomes |  | 
+- Darqesh → Merlow |  | 
+- Darqesh → Sarbek |  | 
+- Dilla en Fana → Iridan Rogarr |  | 
+- Dilla en Fana → Ethuil Bosschage |  | 
+- Eberhard Knappzak → Joachim Knappzak |  | 
+- Elias Cassalanter → Piotr Cassalanter |  | 
+- Elias Cassalanter → Henry Cassalanter |  | 
+- Emrys → Kyrie |  | 
+- Ezra van Donkelburcht → Alexander Achtermaans |  | 
+- Fantasia → Larynxius Zilvertong |  | 
+- Freddy → Gerhard Leeuwenvelder |  | 
+- Grum'shar → Kraus |  | 
+- Hadewych → dr. T. (Terminus) Riage |  | 
+- Harmen Jonker → Wilfrid Kalmhand |  | 
+- Henry Cassalanter → Piotr Cassalanter |  | 
+- Henry Cassalanter → Sasja |  | 
+- Hiëronymus Haringh → Pares XIV |  | 
+- Hiëronymus Haringh → Salazar Zwartbaard |  | 
+- Hugo Grisburgh → Isabella Grisburgh |  | 
+- Hugo Grisburgh → Wilfrid Kalmhand |  | 
+- Hugo Grisburgh → Pares XIV |  | 
+- Hugoline Grisburgh → Hugo Grisburgh |  | 
+- Hugoline Grisburgh → Marinus Poolster |  | 
+- Hugoline Grisburgh → Salazar Mora |  | 
+- Hyardak → Sarbek |  | 
+- Ida Kalkwind → Alexander Achtermaans |  | 
+- Ilona Findabair → Harmen Jonker |  | 
+- Ilona Findabair → Ursûn Rogarr |  | 
+- Ilona Findabair → Wilfrid Kalmhand |  | 
+- Ilyana → Volke |  | 
+- Imelda Heelhart → Yrdus, de Ringdrager |  | 
+- Iridan Rogarr → Ethuil Bosschage |  | 
+- Isabella Grisburgh → Ārslän |  | 
+- Isidora Swering → Ursûn Rogarr |  | 
+- Jelle-Pieter Woelstra → Roos Gheelvliet |  | 
+- Jip → Gerhard Leeuwenvelder |  | 
+- Kraus → Zemik |  | 
+- Larynxius Zilvertong → Grum'shar |  | 
+- Larynxius Zilvertong → Zamantha Zemelaar |  | 
+- Lucibaldo → Marianne Kallebas |  | 
+- Lucien de Clairmont → Salazar Mora |  | 
+- Lysander → Mikail |  | 
+- Marell → Lucibaldo |  | 
+- Marianne Kallebas → Stormgast Blaeck |  | 
+- Marinus Poolster → Salazar Mora |  | 
+- Mercule Tomes → Lindar Wildebras |  | 
+- Mercule Tomes → Sharari Duskwalker |  | 
+- Merlow → Sarbek |  | 
+- Messen Jochem → Salazar Zwartbaard |  | 
+- Mikail → Iridan Rogarr |  | 
+- Miraal Ezelsoor → Iridan Rogarr |  | 
+- Myra en Anjo → Vader Pasternak |  | 
+- Mystique → Gerhard Leeuwenvelder |  | 
+- Orphéan Vanverres → Sarbek |  | 
+- Pares XIV → Iridan Rogarr |  | 
+- R4V3N → Gerhard Leeuwenvelder |  | 
+- Sabrina 'Bonny' Charbonneau → Ilona Findabair |  | 
+- Sabrina 'Bonny' Charbonneau → Wilfrid Kalmhand |  | 
+- Sabrina 'Bonny' Charbonneau → Ursûn Rogarr |  | 
+- Salazar Mora → Isabella Grisburgh |  | 
+- Salazar Zwartbaard → Ilona Findabair |  | 
+- Salazar Zwartbaard → Jacobus 'Sjaak' Spreeuw |  | 
+- Sharari Duskwalker → Lindar Wildebras |  | 
+- Sherry Tippel → Cylline, Nymfenblad |  | 
+- Stephan Scheurblad → Iridan Rogarr |  | 
+- Strum → Taevin Woekeling |  | 
+- Thaddeus Zilverhoed → Harmen Jonker |  | 
+- Thaddeus Zilverhoed → Vader Pasternak |  | 
+- Ursûn Rogarr → Iridan Rogarr |  | 
+- Ursûn Rogarr → Wilfrid Kalmhand |  | 
+- Vader Pasternak → Pares XIV |  | 
+- Vader Pasternak → Corellin, Vlasbaard |  | 
+- Wilfrid Kalmhand → Isabella Grisburgh |  | 
+- Wilfrid Kalmhand → Ārslän |  | 
+- Wilfrid Kalmhand → Matall, de Maker |  | 
+- Wilhelm A. Dockermakker → Ghon, de Loper |  | 
+- Yra en Ary Ravell → Ghon, de Loper |  | 
+- Zamantha Zemelaar → Grum'shar |  | 
+
+## Personages ↔ Locaties
+
+- Alenya Cassalanter → Villa Cassalanter | eigenaar van | 
+- Alenya Cassalanter → Raadkamer |  | 
+- Alenya Cassalanter → Duvelingh |  | 
+- Alexander Achtermaans → Breeckglas BV |  | 
+- Alexander Achtermaans → Achtermaanstoren | eigenaar van | 
+- Alexander Achtermaans → Luimpoort |  | 
+- Alfira en Ramella Bleekhamer → De Knipogende Kip | eigenaar van | 
+- Alfira en Ramella Bleekhamer → Medeweg |  | 
+- Alfira en Ramella Bleekhamer → Amberwoud |  | 
+- Amalia Becchi → Bibliotheek van het Arkanium |  | 
+- Amalia Becchi → Arkanium |  | 
+- Antonin Schaljaar → Luimgericht |  | 
+- Antonin Schaljaar → Luimpoort |  | 
+- Auguste Escargouffier → Bistro De Ratz | eigenaar van | 
+- Auguste Escargouffier → Duvelingh |  | 
+- Avi en Embric → Stoom en Staal | eigenaar van | 
+- Balina Cassalanter → Villa Cassalanter |  | 
+- Balina Cassalanter → Duvelingh |  | 
+- Barthen → De Swarte Cat |  | 
+- Behr → Het Hijgende Paard | eigenaar van | 
+- Behr → Mistheuvel |  | 
+- Berend Swering → De Eendragt |  | 
+- Birtha → Villa Cassalanter |  | 
+- Bob → Kalkwijk |  | 
+- Bob → Bobs Tattoos | eigenaar van | 
+- Bobo → Bobo's Biologische Brouwsels (BBB) | eigenaar van | 
+- Bobo → Fort Adhmaid |  | 
+- Bobo → Amberwoud |  | 
+- Boris Cassalanter → Villa Cassalanter |  | 
+- Boris Cassalanter → Duvelingh |  | 
+- Brandt Remius → Tempel van Oronoë |  | 
+- Brandt Remius → Purperhaven |  | 
+- Brok → Medeweg |  | 
+- Brok → Fort Adhmaid |  | 
+- Brÿlwaen → De Swarte Cat | eigenaar van | 
+- Brÿlwaen → Haveplein |  | 
+- Calvin Crespin → Maenfort |  | 
+- Camma Chosach → De Coöperatie | eigenaar van | 
+- Camma Chosach → Westerweg |  | 
+- Cornelia Stoompijp → De Blaasbalg | eigenaar van | 
+- Cornelia Stoompijp → Purperhaven |  | 
+- Cylline, Nymfenblad → A.S.C. Het Nymfenblad |  | 
+- Cymbelline → Gierlag | eigenaar van | 
+- Cymbelline → Fort Adhmaid |  | 
+- Cymbelline → Amberwoud |  | 
+- De Verborgene → Tempel van de Verborgene |  | 
+- Delvan → Bistro De Ratz |  | 
+- Denava → Tempel van Denava |  | 
+- Dilla en Fana → Het Eksteroog |  | 
+- Dilla en Fana → Fort Adhmaid |  | 
+- Dilla en Fana → Amberwoud |  | 
+- dr. T. (Terminus) Riage → Het Fortunaziekenhuis | eigenaar van | 
+- dr. T. (Terminus) Riage → Dragonder |  | 
+- Eberhard Knappzak → Tempel van Seldari | eigenaar van | 
+- Eberhard Knappzak → Haveplein |  | 
+- Edmond → Het Hijgende Paard |  | 
+- Edmond → Mistheuvel |  | 
+- Elhired → Tempel van Qirell | eigenaar van | 
+- Elhired → Westerweg |  | 
+- Elias Cassalanter → Villa Cassalanter |  | 
+- Elias Cassalanter → Duvelingh |  | 
+- Elvin → Fort Adhmaid |  | 
+- Elvin → Amberwoud |  | 
+- Emrys → De Coöperatie |  | 
+- Emrys → Westerweg |  | 
+- Esmeralde Vlinder → Madame Vlinder | eigenaar van | 
+- Esmeralde Vlinder → Oosterkwartier |  | 
+- Ethuil Bosschage → Het Eksteroog | eigenaar van | 
+- Ethuil Bosschage → Fort Adhmaid | eigenaar van | 
+- Ethuil Bosschage → Amberwoud |  | 
+- Ezra van Donkelburcht → Luimpoort |  | 
+- Fala Lefaliir → Noorddorp |  | 
+- Fala Lefaliir → Veluruts Vaandel | eigenaar van | 
+- Fantasia → Zilvertong & Zemelaar, Advocaten |  | 
+- Fantasia → Breeckglas BV |  | 
+- Fantasia → Noorddorp |  | 
+- Ferdinand Anderling Haen → De Nachtvlam | eigenaar van | 
+- Ferdinand Anderling Haen → Haveplein |  | 
+- Floralinde Knoest → Fort Adhmaid |  | 
+- Floralinde Knoest → Amberwoud |  | 
+- Floralinde Knoest → Knoest en Dochters | eigenaar van | 
+- Geralt Groenbladt → Purperhaven |  | 
+- Ghon, de Loper → Tempel van Ghon |  | 
+- Grum'shar → Mistheuvel |  | 
+- Gulthias → Gulthiasboom |  | 
+- Hadewych → Het Fortunaziekenhuis |  | 
+- Hadewych → Dragonder |  | 
+- Hannie Mensch → De Grisburgh Gazette |  | 
+- Hannie Mensch → Kalkwijk |  | 
+- Hansel de Oudere en Hansel de Jongere → Kerkers van de Grifburgh |  | 
+- Hansel de Oudere en Hansel de Jongere → Arkanium |  | 
+- Harmen Jonker → Luimpoort |  | 
+- Haverling → Mistheuvel |  | 
+- Haverling → Medeweg |  | 
+- Hendrika Beaujolais → Zilvertong & Zemelaar, Advocaten |  | 
+- Hendrika Beaujolais → Breeckglas BV |  | 
+- Hendrika Beaujolais → stadsarchief van Grisburgh |  | 
+- Hendrika Beaujolais → Arkanium |  | 
+- Henry Cassalanter → Maenfort |  | 
+- Henry Cassalanter → Villa Cassalanter |  | 
+- Henry Cassalanter → Duvelingh |  | 
+- Herbert Hoogdraver → De Schunnige Egel | eigenaar van | 
+- Herbert Hoogdraver → Haveplein |  | 
+- Hershay Hagendas → Luimpoort |  | 
+- Hugo Grisburgh → Lhute |  | 
+- Hugo Grisburgh → Maenfort |  | 
+- Hugo Grisburgh → Amberwoud |  | 
+- Hugoline Grisburgh → Arkanium |  | 
+- Igor Grasduin → Achtermaanstoren |  | 
+- Igor Grasduin → Luimpoort |  | 
+- Ilona Findabair → Arkanium |  | 
+- Ilona Findabair → Ter Velde | eigenaar van | 
+- Imelda Heelhart → Tempel van Yrdus | eigenaar van | 
+- Imelda Heelhart → Kalkwijk |  | 
+- Iridan Rogarr → Pastorie van Velurut | eigenaar van | 
+- Iridan Rogarr → Gulthiasboom | eigenaar van | 
+- Isabella Grisburgh → Grisburgh |  | 
+- Isidora Swering → De Eendragt |  | 
+- Jacobus 'Sjaak' Spreeuw → De Dobberende Dodo | eigenaar van | 
+- Jelle-Pieter Woelstra → Schuttershuis |  | 
+- Jelle-Pieter Woelstra → Luimpoort |  | 
+- Joachim Knappzak → Tempel van Seldari |  | 
+- Joachim Knappzak → Haveplein |  | 
+- Jonathan Argus → De Weering |  | 
+- Jonathan Argus → Oosterkwartier |  | 
+- Juliaan de Gock → De Gock, detective | eigenaar van | 
+- Juliaan de Gock → Mistheuvel |  | 
+- Justin-Kees Breeckglas → Breeckglas BV | eigenaar van | 
+- Justin-Kees Breeckglas → Noorddorp |  | 
+- Korporaal Standhall → De Tweespalt | eigenaar van | 
+- Korporaal Standhall → Mistheuvel |  | 
+- Kraus → Mistheuvel |  | 
+- Kyrie → De Coöperatie |  | 
+- Kyrie → Westerweg |  | 
+- Larynxius Zilvertong → Zilvertong & Zemelaar, Advocaten |  | 
+- Larynxius Zilvertong → Noorddorp |  | 
+- Lucibaldo → Het Hijgende Paard |  | 
+- Lysander → Amberwoud |  | 
+- Marell → Fort Adhmaid |  | 
+- Marianne Kallebas → Theater De Zeester |  | 
+- Marianne Kallebas → Lhute |  | 
+- Marinus Poolster → Maenfort |  | 
+- Matall, de Maker → Arkanium |  | 
+- Mikail → Amberwoud |  | 
+- Mikail → Gierlag |  | 
+- Mikail → Fort Adhmaid |  | 
+- Mikail → Gulthiasboom |  | 
+- Miraal Ezelsoor → Boekenwyrm | eigenaar van | 
+- Miraal Ezelsoor → Arkanium |  | 
+- Miraal Ezelsoor → Luimpoort |  | 
+- Myra en Anjo → Oosterkwartier |  | 
+- Oronoë, de Zephir → Tempel van Oronoë |  | 
+- Pares XIV → Lhute | eigenaar van | 
+- Pares XIV → Maenfort |  | 
+- Pares XIV → Amberwoud |  | 
+- Petrus Lelacq → De Grisburgh Gazette | eigenaar van | 
+- Petrus Lelacq → Werveling |  | 
+- Petrus Lelacq → Kalkwijk |  | 
+- Piotr Cassalanter → Duvelingh |  | 
+- Plumella Pulp → De Grisburgh Gazette |  | 
+- Plumella Pulp → Kalkwijk |  | 
+- Prinses Ophelia → Lhute |  | 
+- Qirell, Vuurhand → Tempel van Qirell |  | 
+- Roos Gheelvliet → Oosterkwartier |  | 
+- Ruud Bathmen-Ginsbergen → Luimgericht |  | 
+- Ruud Bathmen-Ginsbergen → Luimpoort |  | 
+- Sabrina 'Bonny' Charbonneau → Bibliotheek van het Arkanium |  | 
+- Sabrina 'Bonny' Charbonneau → Arkanium |  | 
+- Salazar Mora → Grisburgh |  | 
+- Salazar Mora → Werveling |  | 
+- Sasja → Villa Cassalanter |  | 
+- Sehan, de Weegschaal → Tempel van Sehan |  | 
+- Seldari, Stormoog → Tempel van Seldari |  | 
+- Sherry Tippel → A.S.C. Het Nymfenblad | eigenaar van | 
+- Sherry Tippel → Purperhaven |  | 
+- Stephan Scheurblad → Wortel en Tak | eigenaar van | 
+- Stephan Scheurblad → Fort Adhmaid |  | 
+- Stormgast Blaeck → Theater De Zeester | eigenaar van | 
+- Stormgast Blaeck → Oosterkwartier |  | 
+- Strum → Dragonder |  | 
+- Sybolt van den Slooten → De Weering |  | 
+- Sybolt van den Slooten → Oosterkwartier |  | 
+- Taevin Woekeling → Woekeling & Co. | eigenaar van | 
+- Taevin Woekeling → Dragonder |  | 
+- Tempees Hora → Arkanium |  | 
+- Tempees Hora → Toorn des Tijds | eigenaar van | 
+- Thaddeus Zilverhoed → De Spil | eigenaar van | 
+- Thaddeus Zilverhoed → Noorddorp |  | 
+- Thalion → Mystieke Magazijn | eigenaar van | 
+- Thalion → Luimpoort |  | 
+- Tirimet, Elvenluit → Tempel van Tirimet |  | 
+- Tommen → Bistro De Ratz |  | 
+- Tommen → Duvelingh |  | 
+- Ursûn Rogarr → De Eendragt | eigenaar van | 
+- Ursûn Rogarr → Arkanium |  | 
+- Vader Pasternak → Oosterkwartier |  | 
+- Varistradi ‘Vinny’ Veeltak → De Kromme Spijker | eigenaar van | 
+- Varistradi ‘Vinny’ Veeltak → Luimpoort |  | 
+- Velurut, de Jager → Pastorie van Velurut |  | 
+- Ward → Villa Cassalanter |  | 
+- Wilfrid Kalmhand → Tempel van Matall | eigenaar van | 
+- Wilfrid Kalmhand → Arkanium |  | 
+- Wilhelm A. Dockermakker → Arkanium |  | 
+- Xerxes en Sarabi → Bibliotheek van het Arkanium |  | 
+- Xerxes en Sarabi → Arkanium |  | 
+- Yra en Ary Ravell → Tempel van Ghon | eigenaar van | 
+- Yra en Ary Ravell → Spijkerstad |  | 
+- Yra en Ary Ravell → Luimpoort |  | 
+- Yrdus, de Ringdrager → Tempel van Yrdus |  | 
+- Zamantha Zemelaar → Zilvertong & Zemelaar, Advocaten |  | 
+- Zamantha Zemelaar → Noorddorp |  | 
+- Zemik → Mistheuvel |  | 
+
+## Personages ↔ Organisaties
+
+- Alenya Cassalanter → Cassalanter Compagnie |  | 
+- Balina Cassalanter → Cassalanter Compagnie |  | 
+- Barthen → Heeren van de Nacht |  | 
+- Birtha → Heeren van de Nacht |  | 
+- Bobo → Druïden van het Amberwoud |  | 
+- Boris Cassalanter → Cassalanter Compagnie |  | 
+- Camma Chosach → Druïden van het Amberwoud |  | 
+- Cymbelline → Druïden van het Amberwoud |  | 
+- Delvan → Heeren van de Nacht |  | 
+- Dilla en Fana → Druïden van het Amberwoud |  | 
+- Elias Cassalanter → Cassalanter Compagnie |  | 
+- Elvin → Druïden van het Amberwoud |  | 
+- Emrys → Druïden van het Amberwoud |  | 
+- Ethuil Bosschage → Druïden van het Amberwoud |  | 
+- Floralinde Knoest → Druïden van het Amberwoud |  | 
+- Grum'shar → Heeren van de Nacht |  | 
+- Grum'shar → Roodzwaarden |  | 
+- Harmen Jonker → Roodzwaarden |  | 
+- Henry Cassalanter → Cassalanter Compagnie |  | 
+- Ida Kalkwind → Zwarte Ambt |  | 
+- Ilona Findabair → Roodzwaarden |  | 
+- Ilyana → Heeren van de Nacht |  | 
+- Iridan Rogarr → Druïden van het Amberwoud |  | 
+- Jelle-Pieter Woelstra → Roodzwaarden |  | 
+- Korporaal Standhall → Roodzwaarden |  | 
+- Kraus → Heeren van de Nacht |  | 
+- Kyrie → Druïden van het Amberwoud |  | 
+- Larynxius Zilvertong → Heeren van de Nacht |  | 
+- Mercule Tomes → Roodzwaarden |  | 
+- Piotr Cassalanter → Cassalanter Compagnie |  | 
+- Ricfer Staaloog → Heeren van de Nacht |  | 
+- Sabrina 'Bonny' Charbonneau → Raad van de Vier |  | 
+- Stephan Scheurblad → Druïden van het Amberwoud |  | 
+- Stormgast Blaeck → Heeren van de Nacht |  | 
+- Ursûn Rogarr → Raad van de Vier |  | 
+- Volke → Heeren van de Nacht |  | 
+- Wilfrid Kalmhand → Raad van de Vier |  | 
+- Zamantha Zemelaar → Heeren van de Nacht |  | 
+- Zemik → Heeren van de Nacht |  | 
+
+
+## Locaties ↔ Personages
+
+- Achtermaans' Emporium → Alexander Achtermaans | eigenaar van | 
+- Achtermaans' Emporium → Ezra van Donkelburcht |  | 
+- Arkanium → Hugo Grisburgh |  | 
+- De Coninck en Zonen → Eldrina de Coninck | eigenaar van | 
+- De Grisburgh Gazette → Ursûn Rogarr |  | 
+- Dreghaven → Grum'shar | eigenaar van | 
+- Dreghaven → Zemik |  | 
+- Dreghaven → Kraus |  | 
+- Het Nieuwe Vlashuis → Vader Pasternak | eigenaar van | 
+- Het Nieuwe Vlashuis → Myra en Anjo |  | 
+- Het Nieuwe Vlashuis → Corellin, Vlasbaard |  | 
+- Raadkamer → Ursûn Rogarr |  | 
+- Raadkamer → Wilfrid Kalmhand |  | 
+- Raadkamer → Ilona Findabair |  | 
+- Raadkamer → Sabrina 'Bonny' Charbonneau |  | 
+- Villa Cassalanter → Piotr Cassalanter |  | 
+- Woekeling & Co. → Strum |  | 
+
+## Locaties ↔ Locaties
+
+- A.S.C. Het Nymfenblad → Purperhaven |  | 
+- Achtermaanstoren → Luimpoort |  | 
+- Achtermaanstoren → Achtermaans' Emporium |  | 
+- Amberwoud → Fort Adhmaid |  | 
+- Amberwoud → Pastorie van Velurut |  | 
+- Amberwoud → Medeweg |  | 
+- Amberwoud → Isfār |  | 
+- Arkanium → Grisburgh |  | 
+- Arkanium → Ter Velde |  | 
+- Arkanium → Bibliotheek van het Arkanium |  | 
+- Arkanium → Kerkers van de Grifburgh |  | 
+- Arkanium → Raadkamer |  | 
+- Arkanium → Tempel van Matall |  | 
+- Bistro De Ratz → Duvelingh |  | 
+- Bistro De Ratz → Lhute |  | 
+- Bobo's Biologische Brouwsels (BBB) → Fort Adhmaid |  | 
+- Bobs Tattoos → Kalkwijk |  | 
+- Boekenwyrm → Luimpoort |  | 
+- Breeckglas BV → Noorddorp |  | 
+- De Blaasbalg → Purperhaven |  | 
+- De Coninck en Zonen → Het Oude Glasblazershuis |  | 
+- De Coöperatie → Westerweg |  | 
+- De Gock, detective → Mistheuvel |  | 
+- De Grisburgh Gazette → Kalkwijk |  | 
+- De Knipogende Kip → Medeweg |  | 
+- De Kromme Spijker → Luimpoort |  | 
+- De Nachtvlam → Haveplein |  | 
+- De Schunnige Egel → Haveplein |  | 
+- De Spil → Noorddorp |  | 
+- De Swarte Cat → Haveplein |  | 
+- De Tweespalt → Mistheuvel |  | 
+- De Tweespalt → Dragonder |  | 
+- De Weering → Oosterkwartier |  | 
+- Dragonder → Grisburgh |  | 
+- Dragonder → Madame Ursula |  | 
+- Dragonder → Het Fortunaziekenhuis |  | 
+- Dragonder → Woekeling & Co. |  | 
+- Dreghaven → Mistheuvel |  | 
+- Duvelingh → Grisburgh |  | 
+- Duvelingh → Villa Cassalanter |  | 
+- Duvelingh → Tempel van Sehan |  | 
+- Evermijn → Kroonrotsen |  | 
+- Evermijn → Schemerheuvels |  | 
+- Evermijn → Spijkerstad |  | 
+- Fort Adhmaid → Het Eksteroog |  | 
+- Fort Adhmaid → Wortel en Tak |  | 
+- Fort Adhmaid → Gierlag |  | 
+- Fort Adhmaid → Knoest en Dochters |  | 
+- Gierlag → Amberwoud |  | 
+- Grisburgh → Haveplein |  | 
+- Grisburgh → Kalkwijk |  | 
+- Grisburgh → Luimpoort |  | 
+- Grisburgh → Mistheuvel |  | 
+- Grisburgh → Noorddorp |  | 
+- Grisburgh → Oosterkwartier |  | 
+- Grisburgh → Het Oude Glasblazershuis |  | 
+- Grisburgh → Purperhaven |  | 
+- Grisburgh → De Tweespalt |  | 
+- Grisburgh → Westerweg |  | 
+- Gulthiasboom → Pastorie van Velurut |  | 
+- Gulthiasboom → Amberwoud |  | 
+- Haveplein → Tempel van Seldari |  | 
+- Het Eksteroog → Amberwoud |  | 
+- Het Fortunaziekenhuis → Oosterkwartier |  | 
+- Het Hijgende Paard → Mistheuvel |  | 
+- Het Nieuwe Vlashuis → Oosterkwartier |  | 
+- Het Oude Glasblazershuis → Arkanium |  | 
+- Het Oude Glasblazershuis → Stoom en Staal |  | 
+- Isfār → Grisburgh |  | 
+- Kaarssteeg → Mistheuvel |  | 
+- Kalkwijk → Tempel van Yrdus |  | 
+- Knoest en Dochters → Amberwoud |  | 
+- Luimgericht → Luimpoort |  | 
+- Luimpoort → Schuttershuis |  | 
+- Luimpoort → Mystieke Magazijn |  | 
+- Luimpoort → Tempel van Ghon |  | 
+- Luimpoort → Tempel van Tirimet |  | 
+- Luimpoort → Achtermaans' Emporium |  | 
+- Madame Vlinder → Oosterkwartier |  | 
+- Noorddorp → Tempel van de Verborgene |  | 
+- Noorddorp → Veluruts Vaandel |  | 
+- Noorddorp → Zilvertong & Zemelaar, Advocaten |  | 
+- Oosterkwartier → Theater De Zeester |  | 
+- Purperhaven → Tempel van Oronoë |  | 
+- Purperhaven → De Dobberende Dodo |  | 
+- stadsarchief van Grisburgh → Arkanium |  | 
+- Tempel van de Verborgene → Westerweg |  | 
+- Tempel van Denava → Westerweg |  | 
+- Tempel van Qirell → Westerweg |  | 
+- Toorn des Tijds → Grisburgh |  | 
+- Toorn des Tijds → Arkanium |  | 
+- Wintertop → Amberwoud |  | 
+- Wortel en Tak → Amberwoud |  | 
+
+## Locaties ↔ Organisaties
+
+- Amberwoud → Druïden van het Amberwoud |  | 
+- Arkanium → Raad van de Vier |  | 
+- De Coöperatie → Druïden van het Amberwoud |  | 
+- Dreghaven → Heeren van de Nacht |  | 
+- Fort Adhmaid → Druïden van het Amberwoud |  | 
+- Het Eksteroog → Druïden van het Amberwoud |  | 
+- Het Nieuwe Vlashuis → Heeren van de Nacht |  | 
+- Het Oude Glasblazershuis → Raad van de Vier |  | 
+- Pastorie van Velurut → Druïden van het Amberwoud |  | 
+- Raadkamer → Raad van de Vier |  | 
+- Schuttershuis → Roodzwaarden |  | 
+- Villa Cassalanter → Cassalanter Compagnie |  | 
+
+
+## Organisaties ↔ Personages
+
+- Raad van de Vier → Ilona Findabair |  | 
+
+## Organisaties ↔ Organisaties
+
+- Zwarte Ambt → Heeren van de Nacht |  | 
+
