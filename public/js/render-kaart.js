@@ -72,36 +72,17 @@ export async function renderKaart(container, openId) {
 }
 
 // ── Shell ──
+// Compacte weergave in de fullscreen-galerij-overlay: alleen centreren + zoomen.
+// Navigeren/toevoegen/hernoemen gaat via de kaartgalerij.
 function _buildShell() {
   return `
-    <div class="section-banner">
-      <div class="section-banner-title">
-        <span>${icon('map')}</span>
-        <span>Kaarten</span>
-        <span class="font-fell font-normal normal-case tracking-normal text-ink-faint text-xs italic ml-1">${esc(window.app?.state?.meta?.appTitle || 'De wereld')} op de kaart</span>
-      </div>
-      <div class="section-banner-line"></div>
-    </div>
-    <div class="flex-1 min-h-0 overflow-auto bg-room-bg flex flex-col items-center py-6 px-4" id="map-scroll">
-      <div class="flex items-center gap-3 mb-4 flex-wrap justify-center">
-        <button id="map-prev" class="map-nav-btn" title="Vorige kaart"
-          ${MAPS.length <= 1 ? 'disabled' : ''}>${icon('chevron-left')}</button>
-        <div class="flex items-center gap-1">
-          <div class="font-cinzel font-bold text-gold text-lg tracking-widest min-w-[120px] text-center"
-            id="map-title">${esc(MAPS[currentMapIdx].label)}</div>
-          ${isDM() ? `
-            <button id="map-rename-btn" class="map-nav-btn px-1.5 w-auto rounded" title="Naam wijzigen">${icon('pencil')}</button>
-            ${!MAPS[currentMapIdx].src ? `<button id="map-delete-btn" class="map-nav-btn px-1.5 w-auto rounded text-seal hover:bg-seal/20" title="Kaart verwijderen">${icon('trash')}</button>` : ''}
-          ` : ''}
-        </div>
-        <button id="map-next" class="map-nav-btn" title="Volgende kaart"
-          ${MAPS.length <= 1 ? 'disabled' : ''}>${icon('chevron-right')}</button>
-        <div class="w-px h-5 bg-room-border mx-1"></div>
-        <button id="map-zoom-out" class="map-nav-btn" title="Uitzoomen">${icon('minus')}</button>
-        <span id="map-zoom-label" class="text-xs font-mono text-ink-dim w-10 text-center">—</span>
-        <button id="map-zoom-in"  class="map-nav-btn" title="Inzoomen">${icon('plus')}</button>
-        <button id="map-zoom-fit" class="map-nav-btn px-2 w-auto rounded-md" title="Passend maken">${icon('maximize-2')}</button>
-        ${isDM() ? `<button id="map-add-btn" class="map-nav-btn px-2 w-auto rounded-md text-gold border-gold/30" title="Kaart toevoegen">${icon('plus')} Kaart</button>` : ''}
+    <div class="flex-1 min-h-0 overflow-auto bg-room-bg flex flex-col items-center pt-3 pb-6 px-4" id="map-scroll">
+      <div class="map-toolbar-min" id="map-toolbar">
+        <button id="map-zoom-out" class="map-mini-btn" title="Uitzoomen">${icon('minus')}</button>
+        <span id="map-zoom-label" class="map-zoom-label">—</span>
+        <button id="map-zoom-in"  class="map-mini-btn" title="Inzoomen">${icon('plus')}</button>
+        <span class="map-toolbar-sep"></span>
+        <button id="map-zoom-fit" class="map-mini-btn" title="Centreren / passend maken">${icon('maximize-2')}</button>
       </div>
       <div id="map-area" class="flex flex-col items-center w-full shrink-0 overflow-hidden"></div>
     </div>`;
