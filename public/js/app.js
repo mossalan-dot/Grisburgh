@@ -2494,9 +2494,9 @@ function _ensureSpellbookOverlay() {
         <div class="sb-manage-body">
           <div class="sb-manage-section">
             <div class="sb-manage-label">Incantatie</div>
-            <input type="text" class="sb-manage-input sb-manage-input--quill" id="sb-manage-incant"
-              placeholder="Eigen incantatie…" maxlength="120"
-              onblur="window._sbSaveIncantation(this.value)">
+            <textarea class="sb-manage-input sb-manage-input--quill sb-manage-textarea" id="sb-manage-incant"
+              rows="2" placeholder="Eigen incantatie…" maxlength="200"
+              onblur="window._sbSaveIncantation(this.value)"></textarea>
           </div>
           <div class="sb-manage-section">
             <div class="sb-manage-label">Op welk level verkregen</div>
@@ -2516,8 +2516,8 @@ function _ensureSpellbookOverlay() {
             <div class="sb-manage-label">Marginalia</div>
             <div id="sb-manage-marginalia-list"></div>
             <div class="sb-manage-icon-picker" id="sb-manage-icon-picker"></div>
-            <input type="text" class="sb-manage-input sb-manage-input--quill" id="sb-manage-icon-label"
-              placeholder="Eigen toelichting…" maxlength="80" style="margin-top:6px">
+            <textarea class="sb-manage-input sb-manage-input--quill sb-manage-textarea" id="sb-manage-icon-label"
+              rows="2" placeholder="Eigen toelichting…" maxlength="200" style="margin-top:6px"></textarea>
             <button class="sb-manage-add-btn" onclick="window._sbAddMarginalia()">＋ Toevoegen</button>
           </div>
         </div>

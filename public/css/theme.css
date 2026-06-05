@@ -17438,3 +17438,6 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 .best-badge--deels { color: #2a5a8a; background: rgba(42,90,138,0.14); }
 .best-badge--volledig { color: #8b2a2a; background: rgba(139,42,42,0.14); }
 .best-niv-select { flex-shrink: 0; font-family: 'Crimson Text', serif; font-size: 12px; color: #2a1a08; background: #fffdf6; border: 1px solid var(--color-room-border); border-radius: 6px; padding: 3px 5px; cursor: pointer; }
+
+/* ── Spreukenboek-beheer: meerregelige tekstvelden (bug 4c) ── */
+.sb-manage-textarea { resize: vertical; min-height: 2.4em; line-height: 1.35; font-family: inherit; }
