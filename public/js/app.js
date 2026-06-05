@@ -7,7 +7,7 @@ import { renderRelatiemap } from './render-relatiemap.js?v=11';
 import { renderProgressie } from './render-progressie.js?v=22';
 import { renderBestiarium } from './render-bestiarium.js?v=6';
 import { initSocket } from "./socket-client.js?v=27";
-import { initDmPanel } from "./dm-panel.js?v=65";
+import { initDmPanel } from "./dm-panel.js?v=66";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.

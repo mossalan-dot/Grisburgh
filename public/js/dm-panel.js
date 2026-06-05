@@ -584,12 +584,12 @@ async function _renderAktes() {
                 <span class="dm-akte-toggle">${open ? '▾' : '▸'}</span>
               </div>
               <div class="dm-akte-actions">
-                <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.akteSpeel('${esc(ch)}')" title="Speel akte — laad de regie-balk">${icon('play')} Speel</button>
-                <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.akteBewerk('${esc(ch)}')" title="Akte bewerken (titel, banner, samenvatting)">${icon('pencil')} Bewerken</button>
-                ${grp ? `<button class="dm-btn dm-btn-sm${hidden ? ' dm-btn-danger-sm' : ''}"
+                <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window.dmPanel.akteSpeel('${esc(ch)}')" title="Speel akte — laad de regie-balk">${icon('play')}</button>
+                <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window.dmPanel.akteBewerk('${esc(ch)}')" title="Akte bewerken (titel, banner, samenvatting)">${icon('pencil')}</button>
+                ${grp ? `<button class="dm-btn dm-btn-sm dm-btn-icon${hidden ? ' dm-btn-danger-sm' : ''}"
                   onclick="window.dmPanel.akteVisToggle('${esc(ch)}',${hidden})"
-                  title="${hidden ? 'Toon akte voor ' + esc(grpName) : 'Verberg akte voor ' + esc(grpName)}">
-                  ${hidden ? icon('lock') + ' Verborgen' : icon('eye') + ' Zichtbaar'}</button>` : ''}
+                  title="${hidden ? 'Akte verborgen voor ' + esc(grpName) + ' — klik om te tonen' : 'Akte zichtbaar voor ' + esc(grpName) + ' — klik om te verbergen'}">
+                  ${hidden ? icon('lock') : icon('eye')}</button>` : ''}
               </div>
               ${open ? `<div class="dm-akte-script logboek-chapter-script" id="logboek-script-section-${esc(ch)}">${(window._akteScriptHtml ? window._akteScriptHtml(ch) : '')}</div>` : ''}
             </div>`;
