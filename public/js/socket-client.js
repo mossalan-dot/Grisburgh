@@ -33,6 +33,8 @@ export function initSocket() {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
       import('./render-dashboard.js').then(m => m.renderDashboard());
+    } else if (section === 'mijn-karakter') {
+      _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     }
   });
 
@@ -42,6 +44,8 @@ export function initSocket() {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
       import('./render-dashboard.js').then(m => m.renderDashboard());
+    } else if (section === 'mijn-karakter') {
+      _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     }
     // Kaartoverlay voor spelers bij onthulling
     if (!window.app.isDM() && visibility && visibility !== 'hidden' && name) {

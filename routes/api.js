@@ -328,6 +328,34 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
   });
 });
 
+// ── Ontdekkings-teller (feature #5) ──
+// Per entiteitstype: hoeveel de groep van de speler heeft ontdekt (visibility
+// vague|visible) t.o.v. het totaal aantal (niet-getrashte) entiteiten.
+router.get('/ontdekkingen', attachRole, (req, res) => {
+  const dmState  = readDmState();
+  const entities = storage.readJSON('entities.json');
+  let g;
+  if (req.role === 'dm') {
+    g = getGroup(dmState);
+  } else {
+    if (!req.session.characterId) return res.json({});
+    g = getGroup(dmState, _playerGroupId(dmState, req.session.characterId));
+  }
+  const vis = g?.visibility || {};
+  const out = {};
+  for (const type of ENTITY_TYPES) {
+    let list = entities[type] || [];
+    // Eigen party telt niet mee — de teller meet wereld-ontdekking, geen spelers.
+    if (type === 'personages') list = list.filter(e => e.subtype !== 'speler');
+    const ontdekt = list.filter(e => {
+      const v = vis[e.id];
+      return v === 'vague' || v === 'visible';
+    }).length;
+    out[type] = { ontdekt, totaal: list.length };
+  }
+  res.json(out);
+});
+
 router.post('/entities/:type', requireDM, (req, res) => {
   try {
     const { type } = req.params;

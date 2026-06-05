@@ -1,11 +1,11 @@
-import { api } from './api.js?v=222';
+import { api } from './api.js?v=223';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=86";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=32";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { renderProgressie } from './render-progressie.js?v=21';
-import { initSocket } from "./socket-client.js?v=17";
+import { initSocket } from "./socket-client.js?v=18";
 import { initDmPanel } from "./dm-panel.js?v=55";
 
 // ── Icon helper ──
@@ -4052,8 +4052,9 @@ async function renderMijnKarakter(opts = {}) {
   let heerenData = null;
   let factiesData = [];
   let progData = null;
+  let ontdekkingenData = null;
   try {
-    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, heerenData, factiesData, progData] = await Promise.all([
+    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, heerenData, factiesData, progData, ontdekkingenData] = await Promise.all([
       api.getPlayerHp(charId).catch(() => ({ current: null, max: null })),
       api.getEntity('personages', charId).catch(() => null),
       api.getCombat().catch(() => null),
@@ -4075,6 +4076,7 @@ async function renderMijnKarakter(opts = {}) {
       (window.app?.state?.meta?.heeren ? api.getHeeren().catch(() => null) : Promise.resolve(null)),
       api.getFacties().then(d => d.facties || []).catch(() => []),
       api.progression().catch(() => null),
+      (window.app?.isDM?.() ? Promise.resolve(null) : api.ontdekkingen().catch(() => null)),
     ]);
   } catch { /* ok */ }
 
@@ -4355,6 +4357,33 @@ async function renderMijnKarakter(opts = {}) {
 
       <!-- ═══ TAB: Party ═══ -->
       <div id="pst-party" class="player-subtab-panel${_playerSubTab !== 'party' ? ' hidden' : ''}">
+
+        ${(() => {
+          // Feature #5: ontdekkings-teller (alleen voor spelers; data is null voor DM)
+          if (!ontdekkingenData) return '';
+          const _OD = [
+            { key: 'personages',   label: 'Personages',   ic: 'user' },
+            { key: 'locaties',     label: 'Locaties',     ic: 'castle' },
+            { key: 'organisaties', label: 'Organisaties', ic: 'landmark' },
+            { key: 'voorwerpen',   label: 'Voorwerpen',   ic: 'package' },
+          ];
+          const rows = _OD.map(c => {
+            const d = ontdekkingenData[c.key];
+            if (!d || !d.totaal) return ''; // categorie zonder entiteiten verbergen
+            const pct = Math.round((d.ontdekt / d.totaal) * 100);
+            return `<div class="ontdek-meter">
+              <span class="ontdek-meter-icon">${icon(c.ic)}</span>
+              <span class="ontdek-meter-label">${c.label}</span>
+              <div class="ontdek-bar"><div class="ontdek-bar-fill" style="width:${pct}%"></div></div>
+              <span class="ontdek-meter-count">${d.ontdekt} / ${d.totaal}</span>
+            </div>`;
+          }).join('');
+          if (!rows.trim()) return '';
+          return `<div class="player-dash-section ontdek-section">
+            <div class="player-dash-section-title">${icon('eye')} Ontdekt in Grisburgh</div>
+            <div class="ontdek-meters">${rows}</div>
+          </div>`;
+        })()}
 
         ${inspired ? `
         <div class="player-dash-section player-inspiration-section">
