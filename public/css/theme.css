@@ -17617,7 +17617,6 @@ textarea:focus-visible { outline: none; box-shadow: var(--gb-ring); }
   background: rgba(40,26,8,0.5) !important;
   -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   box-shadow: 0 1px 3px rgba(0,0,0,0.22);
-  ring-width: 0;
 }
 .entity-card .dm-only.absolute > button:hover { background: rgba(40,26,8,0.82) !important; }
 
@@ -17630,3 +17629,26 @@ textarea:focus-visible { outline: none; box-shadow: var(--gb-ring); }
     repeating-linear-gradient(135deg, rgba(150,120,70,0.045) 0 2px, transparent 2px 7px);
 }
 .entity-card.no-img .card-body > * { position: relative; z-index: 1; }
+
+/* ── POLISH-PASS #2 — typografie, status, touch ── */
+
+/* Sectiekop minder schreeuwerig: van ALL-CAPS naar elegante Cinzel-titel */
+.section-banner-label {
+  text-transform: none;
+  letter-spacing: 0.03em;
+  font-size: 18px;
+}
+
+/* DM-status rustiger: geen gloed, gedempt goud i.p.v. een luide pill */
+.dm-seal--active {
+  background: rgba(196,168,122,0.12);
+  border-color: rgba(196,147,10,0.4);
+  box-shadow: none;
+}
+.dm-seal--active .dm-seal-label { color: #9a7008; }
+.dm-seal--active .dm-seal-icon  { color: #b8860b; }
+
+/* Touch-apparaten (tablet): DM-hoekknoppen altijd zichtbaar — geen hover nodig */
+@media (hover: none) {
+  .entity-card .dm-only.absolute { opacity: 1; transform: none; }
+}
