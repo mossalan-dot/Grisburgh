@@ -191,6 +191,8 @@ const SCHEMA = {
         { value: 'vloek', label: 'Vloek' },
       ]},
       { key: 'effect', label: 'Effect (mechanisch)', type: 'textarea', showFor: ['Blessing'] },
+      { key: 'permanenteZegen', label: 'Permanente zegen (alleen op de eed-kaart)', type: 'text', showFor: ['Blessing'] },
+      { key: 'eedTekst', label: 'Eedtekst (volledige belofte, op de eed-kaart)', type: 'textarea', showFor: ['Blessing'] },
       { key: 'damage', label: 'Schade / Genezing (bijv. 1d8+1 Slashing)', type: 'text', showFor: ['Weapon', 'Wapen'] },
       { key: 'weaponProperties', label: 'Wapeneigenschappen', type: 'weapon-tags', showFor: ['Weapon', 'Wapen'] },
       { key: 'armorType', label: 'Harnas type', type: 'select', showFor: ['Armor', 'Shield'], options: [
@@ -1485,11 +1487,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _gGod    = e.data?.godNaam || '';
     const _gEffect = e.data?.effect || '';
     const _eedTekst = e.data?.eedTekst || '';
+    const _permZegen = e.data?.permanenteZegen || '';
     const _typeLabel = _gType === 'zegen' ? 'Zegening' : _gType === 'eed' ? 'Eed' : _gType === 'vloek' ? 'Vloek' : 'Blessing';
     const _typeIcon  = _gType === 'vloek' ? icon('skull') : _gType === 'eed' ? icon('scroll-text') : icon('sparkles');
     infoHtml += `<div class="detail-divine-block">
       <div class="detail-divine-header">${_typeIcon} ${esc(_typeLabel)}${_gGod ? ` van ${esc(_gGod)}` : ''}</div>
       ${_gEffect ? `<div class="detail-divine-effect detail-divine-effect--titel">${esc(_gEffect)}</div>` : ''}
+      ${(_gType === 'eed' && _permZegen) ? `<div class="detail-divine-effect" style="margin-top:8px"><strong>Permanente zegen:</strong> ${esc(_permZegen)}</div>` : ''}
       ${_eedTekst ? `<div class="detail-divine-effect" style="margin-top:10px;font-style:italic">${esc(_eedTekst)}</div>` : ''}
     </div>`;
   }
@@ -1499,7 +1503,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   let _descVal = '';
   for (const field of (schema.fields || [])) {
     if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid'].includes(field.key)) continue;
-    if (tab === 'voorwerpen' && ['itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect'].includes(field.key)) continue;
+    if (tab === 'voorwerpen' && ['itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
     if (field.key === 'desc') {
