@@ -337,6 +337,11 @@ export function initSocket() {
     window.soundManager?.playEmote(data);
   });
 
+  // #2: ambiance-scène starten/stoppen bij iedereen
+  socket.on('sound:ambiance', (data) => {
+    window.soundManager?.setAmbiance(data);
+  });
+
   socket.on('player:hp-updated', ({ characterId } = {}) => {
     // Herlaad dashboard als dit de eigen speler is
     if (window.app?.state?.characterId === characterId &&

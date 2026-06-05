@@ -4638,7 +4638,38 @@ async function _renderGeluiden() {
   }).join('');
 
   const stdOpen = _sndOpenPid === '__std__';
+  // ── Geluidsdecors (ambiance, feature #2) ──
+  const amb = sounds.ambiance || { scenes: [], actief: null, volume: 0.5 };
+  const ambScenes = (amb.scenes || []).map(s => `
+    <div class="dm-amb-scene${amb.actief === s.id ? ' dm-amb-scene--actief' : ''}">
+      <input class="dm-amb-label" value="${esc(s.label || '')}" placeholder="Scènenaam"
+        onchange="window._ambSetLabel('${esc(s.id)}', this.value)">
+      <div class="dm-amb-scene-actions">
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay (alleen jij)" onclick="window._sndPlay('${esc(s.fileId)}')">▶</button>
+        ${amb.actief === s.id
+          ? `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._ambStop()">${icon('square')} Stop</button>`
+          : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._ambPlay('${esc(s.id)}')">${icon('play')} Speel</button>`}
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._ambDelete('${esc(s.id)}')" title="Verwijderen">${icon('trash')}</button>
+      </div>
+    </div>`).join('');
+  const ambSection = `
+    <div class="dm-sound-section">
+      <div class="dm-sound-section-title">${icon('volume-2')} Geluidsdecors</div>
+      <p class="dm-hint">Speel een sfeerloop bij iedereen. Klinkt vooral op de <strong>tabletmodus</strong> (tafelspeaker); spelers kunnen 'm op hun eigen toestel aanzetten via de dempknop in de header.</p>
+      <div class="dm-amb-volume">
+        <span class="dm-form-label">Volume</span>
+        <input type="range" min="0" max="1" step="0.05" value="${amb.volume ?? 0.5}"
+          onchange="window._ambSetVolume(this.value)">
+      </div>
+      <div class="dm-amb-scenes">${ambScenes || '<p class="dm-hint" style="opacity:.6">Nog geen scènes — voeg er één toe.</p>'}</div>
+      <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Audio uploaden">
+        ${icon('plus')} Scène toevoegen
+        <input type="file" accept="audio/*" style="display:none" onchange="window._ambAddScene(this)">
+      </label>
+    </div>`;
+
   el.innerHTML = `
+    ${ambSection}
     <div class="dm-sound-section">
       <div class="dm-sound-section-title">🎭 Spelersemotes</div>
       <p class="dm-hint">Stel per speler een beurtgeluid in en maak een emotebibliotheek. Selecteer max. 5 emotes voor gevecht (✓ = actief).</p>
@@ -4674,6 +4705,42 @@ async function _renderGeluiden() {
 
   window._sndPlay = (fileId) => {
     new Audio(`/api/files/${fileId}`).play().catch(() => {});
+  };
+
+  // ── Geluidsdecors (ambiance, feature #2) ──
+  const _ambBroadcast = (actief) => fetch('/api/sounds/ambiance', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ actief }),
+  });
+  window._ambAddScene = async (input) => {
+    const file = input.files[0]; if (!file) return;
+    const fileId = await _sndUploadFile(file);
+    const sd  = await _sndGetData();
+    const amb = sd.ambiance || { scenes: [], volume: 0.5 };
+    const scene = { id: `amb_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+      label: file.name.replace(/\.[^.]+$/, ''), fileId };
+    await _sndPatch({ ambiance: { scenes: [...(amb.scenes || []), scene], volume: amb.volume ?? 0.5 } });
+    _renderGeluiden();
+  };
+  window._ambSetLabel = async (id, value) => {
+    const sd = await _sndGetData();
+    const scenes = (sd.ambiance?.scenes || []).map(s => s.id === id ? { ...s, label: value } : s);
+    await _sndPatch({ ambiance: { scenes, volume: sd.ambiance?.volume ?? 0.5 } });
+  };
+  window._ambDelete = async (id) => {
+    if (!confirm('Deze scène verwijderen?')) return;
+    const sd = await _sndGetData();
+    if (sd.ambiance?.actief === id) await _ambBroadcast(null);
+    const scenes = (sd.ambiance?.scenes || []).filter(s => s.id !== id);
+    await _sndPatch({ ambiance: { scenes, volume: sd.ambiance?.volume ?? 0.5 } });
+    _renderGeluiden();
+  };
+  window._ambPlay = async (id) => { await _ambBroadcast(id); _renderGeluiden(); };
+  window._ambStop = async () => { await _ambBroadcast(null); _renderGeluiden(); };
+  window._ambSetVolume = async (v) => {
+    const sd = await _sndGetData();
+    await _sndPatch({ ambiance: { scenes: sd.ambiance?.scenes || [], volume: parseFloat(v) } });
+    if (sd.ambiance?.actief) await _ambBroadcast(sd.ambiance.actief); // live volume toepassen
   };
 
   window._sndUploadStd = async (key, input) => {

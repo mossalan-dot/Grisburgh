@@ -5,8 +5,8 @@ import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { renderProgressie } from './render-progressie.js?v=21';
-import { initSocket } from "./socket-client.js?v=19";
-import { initDmPanel } from "./dm-panel.js?v=55";
+import { initSocket } from "./socket-client.js?v=20";
+import { initDmPanel } from "./dm-panel.js?v=56";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -287,6 +287,24 @@ window._updateDiscoveryChip = async function(force) {
   fill.style.width = pct + '%';
   fill.style.background = meta.accent;
   chip.classList.remove('hidden');
+};
+
+// ── Ambiance-dempknop in de header (feature #2) ──
+// Aangeroepen door sound-manager.js wanneer een scène start/stopt of de
+// dempstatus wisselt. Toont de knop alleen als er een scène actief is.
+window._onAmbianceChange = function({ active, label, enabled } = {}) {
+  const btn = document.getElementById('ambiance-toggle');
+  if (!btn) return;
+  if (!active) { btn.classList.add('hidden'); return; }
+  btn.classList.remove('hidden');
+  btn.classList.toggle('ambiance-toggle--muted', !enabled);
+  const iconEl  = document.getElementById('ambiance-toggle-icon');
+  const labelEl = document.getElementById('ambiance-toggle-label');
+  if (iconEl)  iconEl.innerHTML = icon('volume-2');
+  if (labelEl) labelEl.textContent = label || '';
+  btn.title = enabled
+    ? `Ambiance: ${label || ''} — tik om te dempen`
+    : 'Ambiance gedempt — tik om aan te zetten';
 };
 
 // ── Toon locatie op de kaart (aanroepbaar vanuit entity-cards en detail) ──

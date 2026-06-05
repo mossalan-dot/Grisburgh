@@ -18,6 +18,62 @@ function _play(fileId) {
   } catch { /* ignore */ }
 }
 
+// ── Ambiance (feature #2) ──────────────────────────────────────────────────────
+// Eén blijvende loop-Audio. Speelt standaard op de tabletmodus (de tafelspeaker);
+// andere clients (DM-laptop, telefoons) kunnen 'm zelf aanzetten. Niet achter de
+// DM-guard. Per-campagne: de server stuurt de actieve scène naar de hele room.
+let _ambAudio  = null;
+let _ambFileId = null;   // fileId van de huidige scène (of null)
+let _ambLabel  = null;
+let _ambVolume = 0.5;    // mastervolume (door DM gezet)
+let _ambFadeIv = null;
+let _ambGestureArmed = false;
+
+function _ambEnabledDefault() {
+  const v = (typeof localStorage !== 'undefined') ? localStorage.getItem('ambianceEnabled') : null;
+  if (v === '1') return true;
+  if (v === '0') return false;
+  return !!window._isDisplayMode;   // standaard: alleen de tablet speelt af
+}
+let _ambEnabled = _ambEnabledDefault();
+
+function _ambEnsureAudio() {
+  if (!_ambAudio) { _ambAudio = new Audio(); _ambAudio.loop = true; _ambAudio.preload = 'auto'; }
+  return _ambAudio;
+}
+
+function _ambFadeTo(target, done) {
+  if (_ambFadeIv) { clearInterval(_ambFadeIv); _ambFadeIv = null; }
+  const a = _ambAudio; if (!a) { done?.(); return; }
+  const clamp = v => Math.max(0, Math.min(1, v));
+  const step = (target - a.volume) / 12 || (target > a.volume ? 0.08 : -0.08);
+  _ambFadeIv = setInterval(() => {
+    let v = a.volume + step;
+    const reached = step >= 0 ? v >= target : v <= target;
+    if (reached) { a.volume = clamp(target); clearInterval(_ambFadeIv); _ambFadeIv = null; done?.(); }
+    else a.volume = clamp(v);
+  }, 40);
+}
+
+function _ambArmGesture() {
+  if (_ambGestureArmed) return;
+  _ambGestureArmed = true;
+  const h = () => { _ambGestureArmed = false; if (_ambFileId && _ambEnabled) _ambApply(); };
+  document.addEventListener('pointerdown', h, { once: true });
+}
+
+// Start/stop op basis van huidige scène + enable-vlag.
+function _ambApply() {
+  const a = _ambEnsureAudio();
+  if (_ambFileId && _ambEnabled) {
+    const src = `/api/files/${_ambFileId}`;
+    if (!a.src.endsWith(src)) { a.src = src; a.volume = 0; }
+    a.play().then(() => _ambFadeTo(_ambVolume)).catch(() => _ambArmGesture());
+  } else {
+    _ambFadeTo(0, () => { try { a.pause(); } catch { /* ok */ } });
+  }
+}
+
 // ── Load config ───────────────────────────────────────────────────────────────
 
 async function _loadSounds() {
@@ -109,6 +165,30 @@ window.soundManager = {
   },
   onCombatUpdated: _onCombatUpdated,
   reloadSounds:    _loadSounds,
+
+  // ── Ambiance (feature #2) ──
+  setAmbiance({ actief, fileId, label, volume } = {}) {
+    if (typeof volume === 'number') _ambVolume = volume;
+    _ambFileId = actief ? (fileId || null) : null;
+    _ambLabel  = actief ? (label || _ambLabel) : null;
+    _ambApply();
+    window._onAmbianceChange?.({ active: !!_ambFileId, label: _ambLabel, enabled: _ambEnabled });
+  },
+  toggleAmbiance() {
+    _ambEnabled = !_ambEnabled;
+    try { localStorage.setItem('ambianceEnabled', _ambEnabled ? '1' : '0'); } catch { /* ok */ }
+    _ambApply();
+    window._onAmbianceChange?.({ active: !!_ambFileId, label: _ambLabel, enabled: _ambEnabled });
+    return _ambEnabled;
+  },
+  ambianceState() { return { active: !!_ambFileId, label: _ambLabel, enabled: _ambEnabled }; },
 };
 
-_loadSounds();
+async function _initAmbianceFromLoaded() {
+  const amb = _sounds.ambiance;
+  if (!amb?.actief) return;
+  const scene = (amb.scenes || []).find(s => s.id === amb.actief);
+  if (scene) window.soundManager.setAmbiance({ actief: amb.actief, fileId: scene.fileId, label: scene.label, volume: amb.volume });
+}
+
+_loadSounds().then(_initAmbianceFromLoaded);
