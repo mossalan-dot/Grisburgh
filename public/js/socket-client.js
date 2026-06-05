@@ -36,6 +36,7 @@ export function initSocket() {
     } else if (section === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     }
+    window._updateDiscoveryChip?.(true); // #5: header-meter verversen
   });
 
   socket.on('entity:visibility', ({ id, type, name, visibility } = {}) => {
@@ -47,6 +48,7 @@ export function initSocket() {
     } else if (section === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     }
+    window._updateDiscoveryChip?.(true); // #5: header-meter verversen
     // Kaartoverlay voor spelers bij onthulling
     if (!window.app.isDM() && visibility && visibility !== 'hidden' && name) {
       const icon  = ENTITY_ICONS[type] || '📜';
@@ -91,6 +93,7 @@ export function initSocket() {
     } else if (section === 'logboek') {
       import('./render-archief.js').then(m => m.renderLogboek());
     }
+    window._updateDiscoveryChip?.(true); // #5: header-meter (documenten) verversen
   });
 
   socket.on('archief:stateChanged', ({ name, state, groupId } = {}) => {
@@ -100,6 +103,7 @@ export function initSocket() {
     } else if (section === 'logboek') {
       import('./render-archief.js').then(m => m.renderLogboek());
     }
+    window._updateDiscoveryChip?.(true); // #5: header-meter (documenten) verversen
     if (!window.app.isDM() && state === 'revealed' && name) {
       // Toon toast alleen aan spelers van de juiste groep
       const myGroup = window._myGroupId;

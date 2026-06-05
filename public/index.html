@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=231">
+  <link rel="stylesheet" href="/css/theme.css?v=232">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -126,6 +126,12 @@
           <span class="active-akte-dot">▶</span>
           <span id="active-akte-label"></span>
           <button class="active-akte-stop" onclick="window.app.stopAkte()" title="Stop akte">×</button>
+        </div>
+        <!-- Ontdekkings-meter voor de huidige archiefcategorie (feature #5) -->
+        <div id="discovery-chip" class="discovery-chip hidden" title="Ontdekt in deze categorie">
+          <span class="discovery-chip-icon" id="discovery-chip-icon"></span>
+          <span class="discovery-chip-count" id="discovery-chip-count"></span>
+          <span class="discovery-chip-bar"><span class="discovery-chip-fill" id="discovery-chip-fill"></span></span>
         </div>
         <!-- Zoekbalk (expandeert) -->
         <div class="app-search-wrap" id="app-search-wrap">
@@ -534,6 +540,6 @@
   </div>
 
   <script type="module" src="/js/sound-manager.js?v=1"></script>
-  <script type="module" src="/js/app.js?v=322"></script>
+  <script type="module" src="/js/app.js?v=323"></script>
 </body>
 </html>

@@ -334,13 +334,14 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
 router.get('/ontdekkingen', attachRole, (req, res) => {
   const dmState  = readDmState();
   const entities = storage.readJSON('entities.json');
-  let g;
+  let gid;
   if (req.role === 'dm') {
-    g = getGroup(dmState);
+    gid = dmState.activeGroup;
   } else {
     if (!req.session.characterId) return res.json({});
-    g = getGroup(dmState, _playerGroupId(dmState, req.session.characterId));
+    gid = _playerGroupId(dmState, req.session.characterId) || dmState.activeGroup;
   }
+  const g   = getGroup(dmState, gid);
   const vis = g?.visibility || {};
   const out = {};
   for (const type of ENTITY_TYPES) {
@@ -353,6 +354,18 @@ router.get('/ontdekkingen', attachRole, (req, res) => {
     }).length;
     out[type] = { ontdekt, totaal: list.length };
   }
+  // Documenten hebben een eigen zichtbaarheidsmodel (hidden|blurred|revealed),
+  // per groep via docVisibility met fallback op globale docStates.
+  const archief    = storage.readJSON('archief.json');
+  const docs       = archief.documents || [];
+  const groupDocVis = g?.docVisibility || null;
+  const docOntdekt = docs.filter(d => {
+    const state = (groupDocVis && d.id in groupDocVis)
+      ? groupDocVis[d.id]
+      : (dmState.docStates?.[d.id] || 'hidden');
+    return state !== 'hidden';
+  }).length;
+  out.documenten = { ontdekt: docOntdekt, totaal: docs.length };
   res.json(out);
 });
 

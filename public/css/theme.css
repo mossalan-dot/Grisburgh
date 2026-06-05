@@ -17372,3 +17372,13 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 .ontdek-bar { height: 7px; background: rgba(90,64,48,0.18); border: 1px solid var(--color-room-border); border-radius: 4px; overflow: hidden; }
 .ontdek-bar-fill { height: 100%; background: linear-gradient(90deg, #b8860b, #d8b35a); border-radius: 3px; transition: width 0.45s ease; }
 .ontdek-meter-count { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5a4030; white-space: nowrap; min-width: 46px; text-align: right; }
+
+/* ── Ontdekkings-meter in de header (feature #5) ── */
+.discovery-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; background: rgba(196,168,122,0.12); border: 1px solid rgba(196,168,122,0.35); white-space: nowrap; user-select: none; }
+.discovery-chip.hidden { display: none; }
+.discovery-chip-icon { display: inline-flex; align-items: center; color: #8a6a3a; }
+.discovery-chip-icon .icon { width: 13px; height: 13px; }
+.discovery-chip-count { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5a4030; letter-spacing: 0.02em; }
+.discovery-chip-bar { width: 34px; height: 4px; border-radius: 3px; background: rgba(90,64,48,0.18); overflow: hidden; }
+.discovery-chip-fill { display: block; height: 100%; width: 0; background: #b8860b; border-radius: 3px; transition: width 0.4s ease; }
+@media (max-width: 680px) { .discovery-chip-bar { display: none; } }
