@@ -291,7 +291,12 @@ router.get('/entities/:type', attachRole, (req, res) => {
   if (req.role !== 'dm') {
     if (!req.session.characterId) return res.json([]);
     const playerGid = _playerGroupId(dmState, req.session.characterId);
-    list = list.map(e => filterEntityForPlayer(e, dmState, playerGid)).filter(Boolean);
+    const pg = getGroup(dmState, playerGid);
+    list = list.map(e => {
+      const fe = filterEntityForPlayer(e, dmState, playerGid);
+      if (fe) fe._gockOnderzocht = !!pg.gockOnderzocht?.[e.id];
+      return fe;
+    }).filter(Boolean);
   } else {
     list = list.map(e => ({
       ...e,
@@ -299,6 +304,7 @@ router.get('/entities/:type', attachRole, (req, res) => {
       _secretReveal: !!g.secretReveals[e.id],
       _deceased:     !!(g.deceased?.[e.id]),
       _dmNote:       dmState.dmNotes[e.id]  || '',
+      _gockOnderzocht: !!g.gockOnderzocht?.[e.id],
     }));
   }
   res.json(list);
@@ -3660,13 +3666,27 @@ router.get('/bestiarium', attachRole, (req, res) => {
   const monsters = (storage.readJSON('monsters.json').monsters || [])
     .filter(m => m.inBestiarium !== false);
   if (req.role === 'dm') {
-    const kennis = getGroup(dmState)?.bestiarium || {};
-    // DM ziet alles volledig + het kennisniveau van de actieve groep.
-    return res.json({ role: 'dm', monsters: monsters.map(m => ({ ...m, _niveau: kennis[m.id] || null })) });
+    const g = getGroup(dmState);
+    const kennis  = g?.bestiarium || {};
+    const roddels = g?.bestiariumRoddels || {};
+    const bron    = g?.bestiariumBron || {};
+    // DM ziet alles volledig + het kennisniveau/roddel-status van de actieve groep.
+    return res.json({ role: 'dm', monsters: monsters.map(m => ({
+      ...m, _niveau: kennis[m.id] || null,
+      _roddelGehoord: !!roddels[m.id], _bron: bron[m.id] || null,
+    })) });
   }
   if (!req.session.characterId) return res.json({ role: 'player', monsters: [] });
-  const kennis = getGroup(dmState, _playerGroupId(dmState, req.session.characterId))?.bestiarium || {};
-  const out = monsters.filter(m => kennis[m.id]).map(m => _bestiariumForTier(m, kennis[m.id]));
+  const g = getGroup(dmState, _playerGroupId(dmState, req.session.characterId));
+  const kennis  = g?.bestiarium || {};
+  const roddels = g?.bestiariumRoddels || {};
+  const bron    = g?.bestiariumBron || {};
+  const out = monsters.filter(m => kennis[m.id]).map(m => {
+    const o = _bestiariumForTier(m, kennis[m.id]);
+    o._roddel = roddels[m.id] ? (m.roddel || '') : '';   // alleen tonen als gehoord
+    o._bron   = bron[m.id] || null;
+    return o;
+  });
   res.json({ role: 'player', monsters: out });
 });
 
@@ -4204,7 +4224,7 @@ const TEMPEL_GODEN_DEFAULT = [
 
 
 // ── Diensten toegang per groep ──
-const _DIENSTEN_NAMEN = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties'];
+const _DIENSTEN_NAMEN = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'magizoo'];
 
 function _getDienstToegang(dmState, dienstNaam, groupId) {
   const g = getGroup(dmState, groupId);
@@ -4524,6 +4544,13 @@ router.put('/gock/opgehaald', attachRole, (req, res) => {
     entityType: geval.entityType,
   };
   dmState.playerItems[characterId].push(rapport);
+  // Markeer de entiteit als 'onderzocht door De Gock' voor de groep (kaart-badge).
+  if (geval.entityId) {
+    const gid = _playerGroupId(dmState, characterId);
+    const grp = getGroup(dmState, gid);
+    if (!grp.gockOnderzocht) grp.gockOnderzocht = {};
+    grp.gockOnderzocht[geval.entityId] = true;
+  }
   storage.writeJSON('dm-state.json', dmState);
   // Bezorg het dossier ook als gethematiseerde brief (logo + typemachine) in de berichtenbox
   _bezorgBrief(req, characterId, {
@@ -4564,6 +4591,133 @@ router.put('/meta/gock', requireDM, (req, res) => {
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
   res.json(meta.gock);
+});
+
+// ── De Magizoöloog ──────────────────────────────────────────────────────────
+// Beestenkenner die monsters die de party al kent (≥ naam) dieper onderzoekt.
+// Per onderzoek één trede omhoog: naam→deels (+ roddel) → volledig. Premium-optie:
+// direct naar volledig tegen hogere prijs. Resultaat instant; korte cooldown.
+const _MAGIZOO_TIER_NEXT = { naam: 'deels', deels: 'volledig' };
+const _MAGIZOO_TIER_RANK = { naam: 1, deels: 2, volledig: 3 };
+
+// Bouwt de lijst onderzoekbare monsters voor een groep (bekend ≥ naam).
+function _magizooMonsterList(dmState, gid) {
+  const g = getGroup(dmState, gid);
+  const kennis  = g?.bestiarium || {};
+  const roddels = g?.bestiariumRoddels || {};
+  const bron    = g?.bestiariumBron || {};
+  const monsters = (storage.readJSON('monsters.json').monsters || [])
+    .filter(m => m.inBestiarium !== false && kennis[m.id]); // alleen al ontdekt
+  return monsters.map(m => {
+    const sb = m.statblock || {};
+    return {
+      id: m.id, name: m.name, imageId: m.imageId || null,
+      type: sb.type || '', size: sb.size || '',
+      niveau: kennis[m.id], volgende: _MAGIZOO_TIER_NEXT[kennis[m.id]] || null,
+      roddelGehoord: !!roddels[m.id], heeftRoddel: !!m.roddel,
+      bron: bron[m.id] || null,
+    };
+  });
+}
+
+router.get('/magizoo', attachRole, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const config = meta.magizoo || {};
+  const dmState = readDmState();
+  const characterId = req.session.characterId;
+  const gid = characterId ? _playerGroupId(dmState, characterId) : undefined;
+  const cooldown = characterId ? ((dmState.magizooState || {})[characterId]?.cooldownTot || null) : null;
+  res.json({
+    config: {
+      naam:    config.naam || 'De Magizoöloog',
+      groet:   config.groet || '',
+      imageId: config.imageId || null,
+      backdropId: config.backdropId || null,
+      prijs:         config.prijs         || { fl: 25 },
+      prijsVolledig: config.prijsVolledig || { fl: 60 },
+      cooldownMinuten: config.cooldownMinuten ?? 5,
+    },
+    monsters: _magizooMonsterList(dmState, gid),
+    currency: _effectiveCurrency(dmState, characterId),
+    cooldownTot: (cooldown && new Date(cooldown) > new Date()) ? cooldown : null,
+  });
+});
+
+router.post('/magizoo/onderzoek', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+  const { monsterId, modus } = req.body;          // modus: 'stap' | 'volledig'
+  if (!monsterId) return res.status(400).json({ error: 'monsterId vereist' });
+
+  const dmState = readDmState();
+  const gid = _playerGroupId(dmState, characterId);
+  const g = getGroup(dmState, gid);
+  if (!g.bestiarium)        g.bestiarium = {};
+  if (!g.bestiariumRoddels) g.bestiariumRoddels = {};
+  if (!g.bestiariumBron)    g.bestiariumBron = {};
+
+  const huidig = g.bestiarium[monsterId];
+  if (!huidig) return res.status(404).json({ error: 'Dit wezen is nog niet ontdekt — de Magizoöloog onderzoekt alleen bekende monsters.' });
+  if (huidig === 'volledig') return res.status(400).json({ error: 'Dit wezen is al volledig onderzocht.' });
+
+  // Cooldown
+  if (!dmState.magizooState) dmState.magizooState = {};
+  const st = dmState.magizooState[characterId] || {};
+  if (st.cooldownTot && new Date(st.cooldownTot) > new Date()) {
+    return res.status(429).json({ error: 'De Magizoöloog heeft nog tijd nodig.', cooldownTot: st.cooldownTot });
+  }
+
+  const monster = (storage.readJSON('monsters.json').monsters || []).find(m => m.id === monsterId);
+  if (!monster) return res.status(404).json({ error: 'Monster niet gevonden' });
+
+  const meta = storage.readJSON('meta.json');
+  const config = meta.magizoo || {};
+  const naarVolledig = modus === 'volledig';
+  const prijs = naarVolledig ? (config.prijsVolledig || { fl: 60 }) : (config.prijs || { fl: 25 });
+
+  const prijsCl = toCl(prijs);
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
+
+  // Nieuw kennisniveau bepalen
+  const nieuw = naarVolledig ? 'volledig' : (_MAGIZOO_TIER_NEXT[huidig] || huidig);
+  g.bestiarium[monsterId] = nieuw;
+  // Roddel onthullen zodra het wezen ≥ deels bereikt (naam→deels + roddel).
+  let roddelOnthuld = null;
+  if (_MAGIZOO_TIER_RANK[nieuw] >= _MAGIZOO_TIER_RANK.deels && monster.roddel && !g.bestiariumRoddels[monsterId]) {
+    g.bestiariumRoddels[monsterId] = true;
+    roddelOnthuld = monster.roddel;
+  }
+  g.bestiariumBron[monsterId] = 'magizoo';
+
+  // Betaling + cooldown
+  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  const cooldownMin = config.cooldownMinuten ?? 5;
+  dmState.magizooState[characterId] = { cooldownTot: new Date(Date.now() + cooldownMin * 60 * 1000).toISOString() };
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('bestiarium:updated');
+  io.to(room).emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+
+  res.json({
+    ok: true, monsterId, naam: monster.name,
+    niveau: nieuw, roddel: roddelOnthuld,
+    currency: dmState.playerCurrency[characterId],
+    cooldownTot: dmState.magizooState[characterId].cooldownTot,
+  });
+});
+
+router.put('/meta/magizoo', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.magizoo) meta.magizoo = {};
+  ['naam', 'groet', 'imageId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten']
+    .forEach(f => { if (req.body[f] !== undefined) meta.magizoo[f] = req.body[f]; });
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  res.json(meta.magizoo);
 });
 
 // ── De Tempel / Zegeningen ──

@@ -67,6 +67,10 @@ function _card(m, i, dm) {
     .filter(Boolean).map(esc).join(' · ');
   const hasImg = !!m.imageId;
   const nivKey = niv || 'onbekend';
+  const viaMagizoo = m._bron === 'magizoo';
+  // Roddel: speler ziet _roddel (alleen als gehoord); DM ziet de eigen roddel + status.
+  const roddelTekst = dm ? (m.roddel || '') : (m._roddel || '');
+  const roddelGehoord = dm ? !!m._roddelGehoord : !!m._roddel;
 
   return `
     <div class="entity-card best-entity-card${dm && !niv ? ' card-hidden' : ''}" onclick="window.bestiarium.open(${i})">
@@ -87,6 +91,7 @@ function _card(m, i, dm) {
           onerror="this.style.display='none'">` : ''}
         <div class="card-img-fade"></div>
         ${typePill ? `<span class="best-type-pill">${typePill}</span>` : ''}
+        ${viaMagizoo ? `<span class="best-bron-badge" title="Onderzocht door de Magizoöloog">${icon('paw-print')}</span>` : ''}
       </div>
       <div class="card-body px-3 pt-2 pb-2">
         <div class="mb-1.5">
@@ -95,6 +100,11 @@ function _card(m, i, dm) {
           <div class="card-meta"><span class="card-meta-sub">${metaBits}</span></div>` : ''}
         </div>
         ${m.description ? `<p class="best-card-desc">${esc(m.description)}</p>` : ''}
+        ${roddelGehoord && roddelTekst
+          ? `<div class="best-roddel">${icon('message-circle')} <em>${esc(roddelTekst)}</em></div>`
+          : (dm && m.roddel && !roddelGehoord
+              ? `<div class="best-roddel best-roddel--ongehoord">${icon('message-circle')} <em>${esc(m.roddel)}</em> <span class="best-roddel-hint">(nog niet gehoord)</span></div>`
+              : '')}
       </div>
     </div>`;
 }

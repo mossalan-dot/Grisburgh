@@ -889,6 +889,7 @@ function renderCard(type, e) {
             title="Gooi ${escJS(e.data.damage)}">${icon('dice',{cls:'icon-gi'})} ${esc(e.data.damage)}</button>`;
         })() : ''}
         ${_cardAcr ? `<span class="card-armor-ac-pill" title="${escJS(_cardAcr.tooltip)}">${esc(_cardAcr.pill)}</span>` : ''}
+        ${e._gockOnderzocht ? `<span class="card-gock-badge" title="Onderzocht door De Gock">${icon('search')}</span>` : ''}
       </div>
       <div class="card-body px-3 pt-2 pb-2">
         <div class="mb-1.5">

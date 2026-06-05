@@ -9942,6 +9942,7 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .ursula-scene.herberg-scene[style]::before    { background: rgba(40,5,65,0.38); }
 .gock-scene.herberg-scene[style]::before      { background: rgba(5,25,50,0.40); }
 .tweespalt-scene.herberg-scene[style]::before { background: rgba(8,8,22,0.38); }
+.magizoo-scene.herberg-scene[style]::before   { background: rgba(20,45,25,0.40); }
 /* Content boven de overlay: positie + leesbaarheidspaneel */
 .herberg-scene[style] .herberg-content {
   position: relative;
@@ -17498,6 +17499,43 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 /* Beschrijving bovenaan het statblock. */
 .sb-description { font-family: 'Crimson Text', serif; font-size: 0.92rem; line-height: 1.5; color: #4a3a24; margin: 6px 0 2px; }
 .sb-description .sb-p { margin: 0 0 5px; }
+
+/* Roddel (statblock + kaart) — cursieve notitie-conventie. */
+.sb-roddel { display: flex; gap: 7px; align-items: flex-start; font-family: 'IM Fell English', serif; font-size: 0.9rem; color: #2a6a3a; background: rgba(42,106,58,0.07); border-left: 3px solid rgba(42,106,58,0.45); border-radius: 0 6px 6px 0; padding: 7px 10px; margin: 6px 0 2px; }
+.sb-roddel .icon { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; opacity: 0.8; }
+.best-roddel { display: flex; gap: 6px; align-items: flex-start; font-family: 'IM Fell English', serif; font-size: 0.8rem; color: #2a6a3a; margin-top: 5px; line-height: 1.35; }
+.best-roddel .icon { width: 13px; height: 13px; flex-shrink: 0; margin-top: 1px; opacity: 0.75; }
+.best-roddel--ongehoord { opacity: 0.55; }
+.best-roddel-hint { font-style: normal; font-size: 0.72rem; opacity: 0.7; }
+
+/* Bron-badge (Magizoöloog) op de bestiariumkaart. */
+.best-bron-badge { position: absolute; right: 8px; bottom: 8px; z-index: 6; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 999px; color: #d7ecd9; background: rgba(42,106,58,0.85); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 1px 4px rgba(0,0,0,0.35); backdrop-filter: blur(3px); }
+.best-bron-badge .icon { width: 14px; height: 14px; }
+
+/* De Gock-badge op entity-kaarten. */
+.card-gock-badge { position: absolute; right: 9px; bottom: 9px; z-index: 5; display: flex; align-items: center; justify-content: center; width: 23px; height: 23px; border-radius: 999px; color: #cfe0f0; background: rgba(20,50,80,0.82); border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 1px 4px rgba(0,0,0,0.35); backdrop-filter: blur(3px); }
+.card-gock-badge .icon { width: 13px; height: 13px; }
+
+/* ── De Magizoöloog — dienst-specifiek ── */
+.magizoo-lijst { display: flex; flex-direction: column; gap: 8px; }
+.magizoo-item { background: rgba(245,237,216,0.55); border: 1px solid rgba(42,106,58,0.25); border-radius: 9px; padding: 9px 11px; }
+.magizoo-item-head { display: flex; align-items: center; gap: 8px; }
+.magizoo-item-head .herberg-item-naam { font-family: 'Cinzel', serif; font-size: 0.95rem; color: #2a1a08; }
+.magizoo-item-tier { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; padding: 2px 8px; border-radius: 999px; margin-left: auto; }
+.magizoo-tier--naam     { color: #6a4f30; background: rgba(154,112,80,0.16); }
+.magizoo-tier--deels    { color: #2a5a8a; background: rgba(42,90,138,0.16); }
+.magizoo-tier--volledig { color: #2a6a3a; background: rgba(42,106,58,0.18); }
+.magizoo-item-bron { color: #2a6a3a; display: inline-flex; }
+.magizoo-item-bron .icon { width: 14px; height: 14px; }
+.magizoo-item-acties { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.magizoo-btn { font-size: 0.82rem; padding: 6px 12px; }
+.magizoo-btn--premium { background: rgba(42,106,58,0.16); border-color: rgba(42,106,58,0.45); color: #2a6a3a; }
+.magizoo-btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.magizoo-item-klaar { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.82rem; color: #2a6a3a; margin-top: 4px; }
+.magizoo-dossier { border-color: rgba(42,106,58,0.4); }
+.magizoo-dossier-tier { font-family: 'Crimson Text', serif; font-size: 0.88rem; color: #4a3a24; margin: 2px 0 6px; }
+.magizoo-roddel { display: flex; gap: 7px; align-items: flex-start; font-family: 'IM Fell English', serif; font-size: 0.9rem; color: #2a6a3a; }
+.magizoo-roddel .icon { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; opacity: 0.8; }
 
 /* ── Spreukenboek-beheer: meerregelige tekstvelden (bug 4c) ── */
 .sb-manage-textarea { resize: vertical; min-height: 2.4em; line-height: 1.35; font-family: inherit; }
