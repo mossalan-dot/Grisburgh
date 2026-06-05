@@ -88,7 +88,6 @@ let _monsterPage             = 0;
 let _editingMonsterId        = null;
 let _editingMonsterIsNew     = false;
 let _editingMonsterImageId   = null;
-let _editingMonsterBackdropId = null;
 
 // ── Reveal strip state ──
 let _revealChapter = null;
@@ -1990,7 +1989,6 @@ function _renderMonsterEditor(el) {
     maxHp:      stored.maxHp       ?? 10,
     initiative: stored.initiative  ?? 10,
     imageId:    _editingMonsterImageId,
-    backdropId: _editingMonsterBackdropId,
     statblock:  stored.statblock   || null,
     inBestiarium: stored.inBestiarium !== false,
     description: stored.description || '',
@@ -2053,20 +2051,6 @@ function _renderMonsterEditor(el) {
           ${m.imageId ? `<button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterRemoveImage('image')" title="Verwijderen">${icon('x')}</button>` : ''}
         </div>
       </div>
-      <div class="dm-form-row">
-        <label class="dm-form-label">Backdrop</label>
-        <div class="dm-upload-row">
-          ${m.backdropId
-            ? `<img class="dm-mon-preview dm-mon-preview-wide" src="${api.fileUrl(m.backdropId)}" alt="">`
-            : `<div class="dm-mon-preview dm-mon-preview-wide dm-mon-preview-empty">🌄</div>`}
-          <label class="dm-btn dm-btn-sm dm-upload-label" title="Afbeelding uploaden">
-            ⬆
-            <input type="file" accept="image/*" style="display:none"
-              onchange="window.dmPanel.monsterUpload('${m.id}', 'backdrop', this)">
-          </label>
-          ${m.backdropId ? `<button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterRemoveImage('backdrop')" title="Verwijderen">${icon('x')}</button>` : ''}
-        </div>
-      </div>
       ${_statblockEditorHtml(m.statblock)}
       <div class="dm-feature-row" style="margin-top:4px">
         <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.monsterSave()" title="Opslaan">${icon('save')}</button>
@@ -2080,7 +2064,6 @@ function _monsterNew() {
   _editingMonsterId        = 'm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
   _editingMonsterIsNew     = true;
   _editingMonsterImageId   = null;
-  _editingMonsterBackdropId = null;
   _renderMonsters();
 };
 
@@ -2090,7 +2073,6 @@ function _monsterEdit(id) {
   _editingMonsterId        = id;
   _editingMonsterIsNew     = false;
   _editingMonsterImageId   = m.imageId   || null;
-  _editingMonsterBackdropId = m.backdropId || null;
   _renderMonsters();
 };
 
@@ -2196,7 +2178,7 @@ async function _monsterSave() {
   const statblock = _readStatblockFromForm();
   const inBestiarium = document.getElementById('dm-mon-inbest')?.checked !== false;
   const description = document.getElementById('dm-mon-desc')?.value?.trim() || '';
-  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, backdropId: _editingMonsterBackdropId, statblock, inBestiarium, description };
+  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, statblock, inBestiarium, description };
   try {
     if (_editingMonsterIsNew) {
       const created = await api.createMonster({ id: _editingMonsterId, ...payload });
@@ -2228,54 +2210,48 @@ async function _monsterDelete(id) {
 async function _monsterUpload(monsterId, type, inputEl) {
   const file = inputEl.files[0];
   if (!file) return;
-  const fileId = type === 'image' ? `${monsterId}_img` : `${monsterId}_bg`;
+  const fileId = `${monsterId}_img`;
   try {
     await api.uploadFile(fileId, file);
-    if (type === 'image') _editingMonsterImageId   = fileId;
-    else                  _editingMonsterBackdropId = fileId;
+    _editingMonsterImageId = fileId;
     // For existing monsters, persist immediately
     if (!_editingMonsterIsNew) {
-      const patch = type === 'image' ? { imageId: fileId } : { backdropId: fileId };
-      const updated = await api.updateMonster(monsterId, patch);
+      const updated = await api.updateMonster(monsterId, { imageId: fileId });
       const idx = _monsters.findIndex(m => m.id === monsterId);
       if (idx !== -1) _monsters[idx] = updated;
     }
-    _redrawMonsterImageRow(type, fileId);
+    _redrawMonsterImageRow(fileId);
   } catch (e) { alert('Upload mislukt: ' + e.message); }
 };
 
-async function _monsterRemoveImage(type) {
-  const fileId = type === 'image' ? _editingMonsterImageId : _editingMonsterBackdropId;
+async function _monsterRemoveImage() {
+  const fileId = _editingMonsterImageId;
   if (fileId) api.deleteFile(fileId).catch(() => {});
-  if (type === 'image') _editingMonsterImageId   = null;
-  else                  _editingMonsterBackdropId = null;
+  _editingMonsterImageId = null;
   if (!_editingMonsterIsNew) {
-    const patch = type === 'image' ? { imageId: null } : { backdropId: null };
     try {
-      const updated = await api.updateMonster(_editingMonsterId, patch);
+      const updated = await api.updateMonster(_editingMonsterId, { imageId: null });
       const idx = _monsters.findIndex(m => m.id === _editingMonsterId);
       if (idx !== -1) _monsters[idx] = updated;
     } catch (_) {}
   }
-  _redrawMonsterImageRow(type, null);
+  _redrawMonsterImageRow(null);
 };
 
-function _redrawMonsterImageRow(type, fileId) {
-  const rows = document.querySelectorAll('.dm-upload-row');
-  const row = rows[type === 'image' ? 0 : 1];
+function _redrawMonsterImageRow(fileId) {
+  const row = document.querySelector('.dm-upload-row');
   if (!row) return;
   const id = _editingMonsterId;
-  const isWide = type === 'backdrop';
   row.innerHTML = `
     ${fileId
-      ? `<img class="dm-mon-preview${isWide ? ' dm-mon-preview-wide' : ''}" src="${api.fileUrl(fileId)}" alt="">`
-      : `<div class="dm-mon-preview${isWide ? ' dm-mon-preview-wide' : ''} dm-mon-preview-empty">${isWide ? '🌄' : '👾'}</div>`}
+      ? `<img class="dm-mon-preview" src="${api.fileUrl(fileId)}" alt="">`
+      : `<div class="dm-mon-preview dm-mon-preview-empty">👾</div>`}
     <label class="dm-btn dm-btn-sm dm-upload-label" title="Afbeelding uploaden">
       ⬆
       <input type="file" accept="image/*" style="display:none"
-        onchange="window.dmPanel.monsterUpload('${id}', '${type}', this)">
+        onchange="window.dmPanel.monsterUpload('${id}', 'image', this)">
     </label>
-    ${fileId ? `<button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterRemoveImage('${type}')" title="Verwijderen">${icon('x')}</button>` : ''}
+    ${fileId ? `<button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterRemoveImage('image')" title="Verwijderen">${icon('x')}</button>` : ''}
   `;
 };
 
@@ -2290,7 +2266,6 @@ async function _monsterAddToCombat(id) {
       hp:         m.maxHp,
       maxHp:      m.maxHp,
       imageId:    m.imageId    || null,
-      backdropId: m.backdropId || null,
       presetId:   m.id,
     });
     _switchTab('gevecht');
