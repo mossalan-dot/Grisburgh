@@ -17764,3 +17764,21 @@ textarea:focus-visible { outline: none; box-shadow: var(--gb-ring); }
 .kaart-fs-close:hover { background: rgba(40,26,8,0.92); }
 .kaart-fs-close .icon { width: 19px; height: 19px; }
 body.kaart-fs-active { overflow: hidden; }
+
+/* ── Fullscreen-kaart: compacte zoom/centreer-balk (subtiele pill) ── */
+.map-toolbar-min {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin: 0 0 10px; padding: 4px 8px;
+  background: rgba(245,237,216,0.82); border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 999px; box-shadow: 0 1px 5px rgba(60,40,10,0.12);
+  backdrop-filter: blur(4px);
+}
+.map-mini-btn {
+  width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: none; background: transparent; color: #6a5238; cursor: pointer;
+  transition: background .12s ease, color .12s ease;
+}
+.map-mini-btn:hover { background: rgba(196,168,122,0.22); color: #2a1a08; }
+.map-mini-btn .icon { width: 15px; height: 15px; }
+.map-zoom-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8a7050; min-width: 34px; text-align: center; }
+.map-toolbar-sep { width: 1px; height: 16px; background: rgba(196,168,122,0.45); margin: 0 3px; }
