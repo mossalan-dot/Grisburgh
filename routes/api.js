@@ -2482,7 +2482,17 @@ function _impCaptionFromFile(file) {
 }
 function _impMonsterFromUrl(url, label) {
   try {
-    let slug = String(url).split(/[?#]/)[0].split('/').filter(Boolean).pop() || '';
+    const u = String(url);
+    const hashIdx = u.indexOf('#');
+    // 5e.tools: naam staat in de hash (#mimic_mm). items.html e.d. zijn geen monsters.
+    if (/5e\.tools/i.test(u)) {
+      if (!/bestiary/i.test(u) || hashIdx < 0) return '';
+      let h = u.slice(hashIdx + 1).split('_')[0];
+      h = decodeURIComponent(h).replace(/[+]/g, ' ').replace(/[-_]+/g, ' ').trim();
+      return h;
+    }
+    // roll20/dndbeyond: laatste pad-segment.
+    let slug = u.split(/[?#]/)[0].split('/').filter(Boolean).pop() || '';
     slug = decodeURIComponent(slug).replace(/^\d+-/, '').replace(/[-_]+/g, ' ').trim();
     return slug || (label || '').trim();
   } catch { return (label || '').trim(); }
@@ -2509,7 +2519,7 @@ function _parseAkteMarkdown(md) {
       if (name) found.push({ idx: m.index + (m[1] ? m[1].length : 0), kind: 'entity', name });
     }
     reMon.lastIndex = 0;
-    while ((m = reMon.exec(line))) found.push({ idx: m.index, kind: 'monster', name: _impMonsterFromUrl(m[2], m[1]) });
+    while ((m = reMon.exec(line))) { const mn = _impMonsterFromUrl(m[2], m[1]); if (mn) found.push({ idx: m.index, kind: 'monster', name: mn }); }
     found.sort((a, b) => a.idx - b.idx);
     for (const f of found) { f.section = section; tokens.push(f); }
   }
