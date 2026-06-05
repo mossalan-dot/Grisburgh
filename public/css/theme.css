@@ -7661,30 +7661,38 @@ details.player-dash-collapsible[open] > summary {
 .player-subtabs::-webkit-scrollbar { display: none; }
 .player-subtab {
   font-family: 'Cinzel', serif;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.03em;
-  padding: 6px 11px;
-  border: 1px solid #c4a87a;
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
-  background: #efe3c5;
-  color: #8a6000;
+  padding: 7px 13px 9px;
+  border: none;
+  background: transparent;
+  color: #9a8468;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: color 0.15s ease, background 0.15s ease;
   white-space: nowrap;
   flex-shrink: 0;
-}
-.player-subtab:hover { background: #e6d5ad; }
-.player-subtab.active {
-  background: #f8f0de;
-  color: #3a2410;
-  border-color: #c4a87a;
-  border-bottom: 2px solid #f8f0de;
-  margin-bottom: -2px;
   position: relative;
+  border-radius: 6px 6px 0 0;
+  margin-bottom: -2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.player-subtab .icon { width: 13px; height: 13px; }
+/* Gouden onderlijn-indicator voor de actieve subtab */
+.player-subtab::after {
+  content: ''; position: absolute; left: 10px; right: 10px; bottom: 0; height: 2.5px;
+  border-radius: 2px; background: transparent; transition: background 0.15s ease;
+}
+.player-subtab:hover:not(.active) { color: #7a5e2a; background: rgba(196,168,100,0.1); }
+.player-subtab.active {
+  color: #9a7008;
+  font-weight: 700;
+  background: transparent;
   z-index: 1;
 }
+.player-subtab.active::after { background: linear-gradient(to right, var(--color-gold-dim), #d8b35a); }
 .player-subtab-panel { padding-top: 4px; }
 .player-subtab-panel.hidden { display: none; }
 
