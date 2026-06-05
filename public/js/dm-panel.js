@@ -1,6 +1,6 @@
 import { api } from './api.js?v=2';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=6';
-import { renderStatblock } from './render-statblock.js?v=1';
+import { renderStatblock } from './render-statblock.js?v=2';
 
 // ── DM Panel ──
 // icon() helper is defined globally in app.js; grab a local alias for template use.
@@ -1741,7 +1741,7 @@ function _statblockEditorHtml(sb) {
   const v = (k, placeholder, type='text') => `<input id="dm-mon-sb-${k}" class="dm-input dm-input-sm" type="${type}" value="${esc(sb[k] ?? '')}" placeholder="${placeholder}">`;
   const ta = (k, placeholder) => `<textarea id="dm-mon-sb-${k}" class="dm-input dm-sb-textarea" placeholder="${placeholder}">${esc(sb[k] || '')}</textarea>`;
   return `
-    <details class="dm-sb-editor">
+    <details class="dm-sb-editor" open>
       <summary class="dm-sb-summary">${icon('clipboard-list')} Statblock</summary>
       <div class="dm-sb-fields">
         <div class="dm-feature-row" style="gap:6px;flex-wrap:wrap">
@@ -1993,6 +1993,7 @@ function _renderMonsterEditor(el) {
     backdropId: _editingMonsterBackdropId,
     statblock:  stored.statblock   || null,
     inBestiarium: stored.inBestiarium !== false,
+    description: stored.description || '',
   };
 
   el.innerHTML = `
@@ -2022,6 +2023,11 @@ function _renderMonsterEditor(el) {
           <input type="checkbox" id="dm-mon-inbest"${m.inBestiarium ? ' checked' : ''}>
           <span>Toon in Bestiarium</span>
         </label>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Beschrijving</label>
+        <textarea id="dm-mon-desc" class="dm-input dm-sb-textarea" rows="3"
+          placeholder="Korte beschrijving / lore — zichtbaar op de bestiariumkaart en bovenaan het statblock.">${esc(m.description || '')}</textarea>
       </div>
       <div class="dm-feature-row">
         <div class="dm-form-row" style="flex:1">
@@ -2189,7 +2195,8 @@ async function _monsterSave() {
   if (!name) { alert('Voer een naam in.'); return; }
   const statblock = _readStatblockFromForm();
   const inBestiarium = document.getElementById('dm-mon-inbest')?.checked !== false;
-  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, backdropId: _editingMonsterBackdropId, statblock, inBestiarium };
+  const description = document.getElementById('dm-mon-desc')?.value?.trim() || '';
+  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, backdropId: _editingMonsterBackdropId, statblock, inBestiarium, description };
   try {
     if (_editingMonsterIsNew) {
       const created = await api.createMonster({ id: _editingMonsterId, ...payload });

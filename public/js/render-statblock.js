@@ -33,10 +33,15 @@ export function renderStatblock(m, { niveau = 'volledig' } = {}) {
       <div class="sb-sub">${[sb.size, sb.type, sb.alignment].filter(Boolean).map(esc).join(' ')}</div>
     </div>`;
 
+  const description = m.description
+    ? `<div class="sb-description">${_sbMdBlock(m.description)}</div>`
+    : '';
+
   // ── Naam-niveau: alleen identiteit ──
   if (tier < 1) {
     return `<div class="sb-block">
       ${header}
+      ${description}
       <div class="sb-rule"></div>
       <div class="sb-locked">${_icon('lock')} Nog niet onderzocht — vecht ertegen of laat het onderzoeken om meer te onthullen.</div>
     </div>`;
@@ -89,6 +94,7 @@ export function renderStatblock(m, { niveau = 'volledig' } = {}) {
 
   return `<div class="sb-block">
     ${header}
+    ${description}
     <div class="sb-rule"></div>
     ${defensive}
     <div class="sb-rule"></div>
