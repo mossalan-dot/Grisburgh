@@ -345,6 +345,11 @@ export function initSocket() {
     window.soundManager?.playEmote(data);
   });
 
+  // #3: bestiarium-kennis gewijzigd → her-render als de speler/DM daar is
+  socket.on('bestiarium:updated', () => {
+    window.bestiarium?.refresh?.();
+  });
+
   // #2: ambiance-scène starten/stoppen bij iedereen
   socket.on('sound:ambiance', (data) => {
     window.soundManager?.setAmbiance(data);

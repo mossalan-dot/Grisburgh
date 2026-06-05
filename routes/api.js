@@ -3618,6 +3618,65 @@ router.delete('/monsters/:id', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Bestiarium (feature #3) ──
+// Spelers ontgrendelen geleidelijk monster-statblocks. Kennis per groep:
+// dmState.groups[gid].bestiarium = { <monsterId>: 'naam' | 'deels' | 'volledig' }.
+// Velden BOVEN het kennisniveau worden server-side weggefilterd (anti-cheat);
+// chapter/initiative gaan nooit naar spelers.
+const _BEST_NIVEAUS = ['naam', 'deels', 'volledig'];
+function _bestiariumForTier(m, niveau) {
+  const sb = m.statblock || {};
+  const out = {
+    id: m.id, name: m.name, imageId: m.imageId || null, _niveau: niveau,
+    statblock: { size: sb.size, type: sb.type, alignment: sb.alignment },
+  };
+  if (niveau === 'naam') return out;
+  out.maxHp = m.maxHp;
+  Object.assign(out.statblock, {
+    ac: sb.ac, hp: sb.hp, speed: sb.speed,
+    str: sb.str, dex: sb.dex, con: sb.con, int: sb.int, wis: sb.wis, cha: sb.cha,
+    savingThrows: sb.savingThrows, skills: sb.skills,
+    damageVulnerabilities: sb.damageVulnerabilities, damageResistances: sb.damageResistances,
+    damageImmunities: sb.damageImmunities, conditionImmunities: sb.conditionImmunities,
+    senses: sb.senses, languages: sb.languages,
+  });
+  if (niveau === 'deels') return out;
+  out.backdropId = m.backdropId || null;
+  Object.assign(out.statblock, {
+    traits: sb.traits, actions: sb.actions, reactions: sb.reactions,
+    legendaryActions: sb.legendaryActions, cr: sb.cr, xp: sb.xp,
+  });
+  return out;
+}
+
+router.get('/bestiarium', attachRole, (req, res) => {
+  const dmState  = readDmState();
+  const monsters = storage.readJSON('monsters.json').monsters || [];
+  if (req.role === 'dm') {
+    const kennis = getGroup(dmState)?.bestiarium || {};
+    // DM ziet alles volledig + het kennisniveau van de actieve groep.
+    return res.json({ role: 'dm', monsters: monsters.map(m => ({ ...m, _niveau: kennis[m.id] || null })) });
+  }
+  if (!req.session.characterId) return res.json({ role: 'player', monsters: [] });
+  const kennis = getGroup(dmState, _playerGroupId(dmState, req.session.characterId))?.bestiarium || {};
+  const out = monsters.filter(m => kennis[m.id]).map(m => _bestiariumForTier(m, kennis[m.id]));
+  res.json({ role: 'player', monsters: out });
+});
+
+router.put('/bestiarium/:monsterId', requireDM, (req, res) => {
+  const { monsterId } = req.params;
+  const niveau  = req.body.niveau || null;
+  const dmState = readDmState();
+  const g = getGroup(dmState, req.body.groep || dmState.activeGroup);
+  if (!g.bestiarium) g.bestiarium = {};
+  if (!niveau || niveau === 'onbekend') delete g.bestiarium[monsterId];
+  else if (_BEST_NIVEAUS.includes(niveau)) g.bestiarium[monsterId] = niveau;
+  else return res.status(400).json({ error: 'Ongeldig niveau' });
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('bestiarium:updated');
+  res.json({ ok: true });
+});
+
 // ── SRD Monster Import (proxy naar dnd5eapi) ──
 router.get('/srd/monsters', attachRole, requireDM, async (req, res) => {
   const q = (req.query.q || '').trim();
