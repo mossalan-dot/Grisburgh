@@ -37,11 +37,18 @@ export function renderStatblock(m, { niveau = 'volledig' } = {}) {
     ? `<div class="sb-description">${_sbMdBlock(m.description)}</div>`
     : '';
 
+  // Roddel (los van de tiers): speler ziet _roddel als gehoord; DM ziet roddel.
+  const roddelTekst = m._roddel || m.roddel || '';
+  const roddel = roddelTekst
+    ? `<div class="sb-roddel">${_icon('message-circle')} <em>${esc(roddelTekst)}</em></div>`
+    : '';
+
   // ── Naam-niveau: alleen identiteit ──
   if (tier < 1) {
     return `<div class="sb-block">
       ${header}
       ${description}
+      ${roddel}
       <div class="sb-rule"></div>
       <div class="sb-locked">${_icon('lock')} Nog niet onderzocht — vecht ertegen of laat het onderzoeken om meer te onthullen.</div>
     </div>`;
@@ -95,6 +102,7 @@ export function renderStatblock(m, { niveau = 'volledig' } = {}) {
   return `<div class="sb-block">
     ${header}
     ${description}
+    ${roddel}
     <div class="sb-rule"></div>
     ${defensive}
     <div class="sb-rule"></div>

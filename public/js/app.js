@@ -1,13 +1,13 @@
 import { api } from './api.js?v=224';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=86";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=87";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=32";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { renderProgressie } from './render-progressie.js?v=21';
-import { renderBestiarium } from './render-bestiarium.js?v=5';
+import { renderBestiarium } from './render-bestiarium.js?v=6';
 import { initSocket } from "./socket-client.js?v=26";
-import { initDmPanel } from "./dm-panel.js?v=62";
+import { initDmPanel } from "./dm-panel.js?v=63";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -212,7 +212,7 @@ function switchSection(section) {
 
   // Diensten-knop: actief als een diensten-sectie actief is
   const dienstenNavBtn = $('#diensten-nav-btn');
-  if (dienstenNavBtn) dienstenNavBtn.classList.toggle('active', ['herberg','tweespalt','gock','ursula','tempel','heeren','facties'].includes(section));
+  if (dienstenNavBtn) dienstenNavBtn.classList.toggle('active', ['herberg','tweespalt','gock','ursula','tempel','heeren','facties','magizoo'].includes(section));
 
   $$('.section').forEach(s => s.classList.toggle('active', s.id === `section-${section}`));
   // Verberg de floating reveal-strip in de Meesterkamer (die heeft eigen ruimte)
@@ -239,7 +239,9 @@ function switchSection(section) {
     gock:          'rgba(20,50,80,0.65)',
  ursula:        'rgba(80,40,110,0.65)',
     tempel:        'rgba(120,90,150,0.6)',
-    heeren:        'rgba(30,30,45,0.7)',    'mijn-karakter': 'rgba(42,90,138,0.55)',
+    heeren:        'rgba(30,30,45,0.7)',
+    magizoo:       'rgba(42,106,58,0.55)',
+    'mijn-karakter': 'rgba(42,90,138,0.55)',
     meesterkamer:  'rgba(139,42,42,0.55)',
   };
   const accentBar = document.getElementById('section-accent-bar');
@@ -260,6 +262,7 @@ function switchSection(section) {
 const _DIENST_AMB_LABELS = {
   herberg: 'De Herberg', tweespalt: 'De Tweespalt', gock: 'De Gock',
   ursula: 'Madame Ursula', tempel: 'De Tempel', heeren: 'Heeren van de Nacht',
+  magizoo: 'De Magizoöloog',
 };
 
 // ── Ontdekkings-meter in de header (feature #5) ──
@@ -754,7 +757,7 @@ function applyRole() {
   }
 
   // Diensten-knop active-state als een diensten-sectie actief is
-  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren'];
+  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'magizoo'];
   const dienstenBtn = document.getElementById('diensten-nav-btn');
   if (dienstenBtn) dienstenBtn.classList.toggle('active', DIENSTEN_SECTIONS.includes(state.activeSection));
 
@@ -1968,6 +1971,13 @@ async function refreshSection(section) {
     } else if (!window.app.isDM() && _getDienstToegang('gock') === 'verborgen') {
       const _el = document.getElementById('section-gock'); if (_el) _el.innerHTML = '';
     } else await renderGock();
+  }
+  else if (section === 'magizoo') {
+    if (!window.app.isDM() && _getDienstToegang('magizoo') === 'zichtbaar') {
+      const _el = document.getElementById('section-magizoo'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.magizoo?.naam || 'De Magizoöloog');
+    } else if (!window.app.isDM() && _getDienstToegang('magizoo') === 'verborgen') {
+      const _el = document.getElementById('section-magizoo'); if (_el) _el.innerHTML = '';
+    } else await renderMagizoo();
   }
   else if (section === 'ursula') {
     if (!window.app.isDM() && _getDienstToegang('ursula') === 'zichtbaar') {
@@ -7570,7 +7580,7 @@ async function _loadDienstenToegang() {
   try { state.dienstenToegang = await api.getDienstenToegang(); }
   catch { state.dienstenToegang = {}; }
   _updateDienstenMenu();
-  const DIENST_SECTIES = ['herberg','tweespalt','gock','ursula','tempel','heeren','facties'];
+  const DIENST_SECTIES = ['herberg','tweespalt','gock','ursula','tempel','heeren','facties','magizoo'];
   if (DIENST_SECTIES.includes(state.activeSection)) refreshSection(state.activeSection);
 }
 window.app._loadDienstenToegang = _loadDienstenToegang;
@@ -7599,6 +7609,7 @@ function _updateDienstenMenu() {
     tempel:    document.getElementById('diensten-tempel-item'),
     heeren:    document.getElementById('diensten-heeren-item'),
     facties:   document.getElementById('diensten-facties-item'),
+    magizoo:   document.getElementById('diensten-magizoo-item'),
   };
   for (const [dienst, btn] of Object.entries(KNOPPEN)) {
     if (!btn) continue;
@@ -7916,6 +7927,129 @@ window._gockKies = async (entityId, entityType, entityName) => {
 window._gockOpgehaald = async () => {
   try { await api.gockOpgehaald(); } catch { /* ok */ }
   await renderGock();
+};
+
+// ── De Magizoöloog ───────────────────────────────────────────────────────────
+// Onderzoekt monsters die de party al kent (≥ naam). Per onderzoek één trede
+// omhoog (naam→deels + roddel → volledig) of premium direct naar volledig.
+let _magizooData = null;
+
+function _magizooBeurs(cur) {
+  return [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+}
+function _magizooPrijs(p) {
+  return [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
+}
+const _MAGIZOO_NIV_LABEL = { naam: 'Naam', deels: 'Deels', volledig: 'Volledig' };
+
+async function renderMagizoo() {
+  const el = document.getElementById('section-magizoo');
+  if (!el) return;
+
+  const meta = window.app?.state?.meta || {};
+  if (meta.buitenGrisburgh) { _dienstNietBereikbaar(el, meta.magizoo?.naam || 'De Magizoöloog'); return; }
+
+  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+
+  let data;
+  try { data = await api.getMagizoo(); }
+  catch (e) {
+    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`;
+    return;
+  }
+  _magizooData = data;
+  const { config, monsters = [], currency, cooldownTot } = data;
+
+  const cooldownActief = cooldownTot && new Date(cooldownTot) > new Date();
+  let cooldownTekst = '';
+  if (cooldownActief) {
+    const min = Math.ceil((new Date(cooldownTot) - Date.now()) / 60000);
+    cooldownTekst = `De Magizoöloog werkt zijn aantekeningen nog bij — nog ± ${min} min.`;
+  }
+
+  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const portret  = config.imageId
+    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
+    : `<div class="gock-portret-fallback">${icon('paw-print')}</div>`;
+
+  const onderzoekbaar = monsters.filter(m => m.volgende || m.niveau !== 'volledig');
+
+  el.innerHTML = `
+    <div class="herberg-scene magizoo-scene" ${backdrop}>
+      <div class="herberg-content">
+        <div class="herberg-portrait-wrap">${portret}</div>
+        <p class="herberg-groet">${config.groet ? esc(config.groet) : `${esc(config.naam)} kijkt op van een kooi en veegt een inktvlek van zijn notitieboek.`}</p>
+        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${_magizooBeurs(currency)}</strong></p>` : ''}
+        <p class="ts-beurs">Onderzoek: <strong>${_magizooPrijs(config.prijs)}</strong> per trede · Volledig ineens: <strong>${_magizooPrijs(config.prijsVolledig)}</strong></p>
+
+        ${cooldownActief ? `<div class="gock-lopend"><p class="herberg-cooldown-tekst">${icon('paw-print')} ${cooldownTekst}</p></div>` : ''}
+
+        <div id="magizoo-resultaat"></div>
+
+        ${monsters.length === 0
+          ? `<p class="herberg-cooldown-tekst">De party kent nog geen wezens om te laten onderzoeken. Kom terug nadat je iets bent tegengekomen.</p>`
+          : `<div class="herberg-zoek-wrap">
+              <p class="herberg-teller">Welk wezen wil je laten onderzoeken?</p>
+              <div class="herberg-lijst magizoo-lijst">
+                ${monsters.map(m => _magizooItem(m, cooldownActief)).join('')}
+              </div>
+            </div>`}
+      </div>
+    </div>`;
+}
+
+function _magizooItem(m, cooldownActief) {
+  const klaar = m.niveau === 'volledig';
+  const nivLabel = _MAGIZOO_NIV_LABEL[m.niveau] || '—';
+  const volgendeLabel = m.volgende ? _MAGIZOO_NIV_LABEL[m.volgende] : null;
+  const disabled = cooldownActief || klaar;
+  return `
+    <div class="magizoo-item">
+      <div class="magizoo-item-head">
+        <span class="herberg-item-naam">${esc(m.name)}</span>
+        <span class="magizoo-item-tier magizoo-tier--${m.niveau}">${nivLabel}</span>
+        ${m.bron === 'magizoo' ? `<span class="magizoo-item-bron" title="Onderzocht door de Magizoöloog">${icon('paw-print')}</span>` : ''}
+      </div>
+      ${klaar
+        ? `<p class="magizoo-item-klaar">Volledig onderzocht.</p>`
+        : `<div class="magizoo-item-acties">
+            <button class="ts-wedden-btn magizoo-btn" ${disabled ? 'disabled' : ''}
+              onclick="window._magizooOnderzoek('${esc(m.id)}','stap')">
+              Onderzoek → ${esc(volgendeLabel || '')}</button>
+            ${m.niveau === 'naam'
+              ? `<button class="ts-wedden-btn magizoo-btn magizoo-btn--premium" ${disabled ? 'disabled' : ''}
+                  onclick="window._magizooOnderzoek('${esc(m.id)}','volledig')">
+                  Volledig ineens</button>`
+              : ''}
+          </div>`}
+    </div>`;
+}
+
+window._magizooOnderzoek = async (monsterId, modus) => {
+  const m = _magizooData?.monsters?.find(x => x.id === monsterId);
+  const premie = modus === 'volledig';
+  const prijs = premie ? _magizooData?.config?.prijsVolledig : _magizooData?.config?.prijs;
+  if (!confirm(`${premie ? 'Volledig onderzoek' : 'Onderzoek'} naar "${m?.name || 'dit wezen'}" voor ${_magizooPrijs(prijs)}? Betaling vindt direct plaats.`)) return;
+  try {
+    const res = await api.magizooOnderzoek({ monsterId, modus });
+    // Resultaat-blok tonen
+    const rb = document.getElementById('magizoo-resultaat');
+    if (rb) {
+      rb.innerHTML = `
+        <div class="gock-dossier magizoo-dossier">
+          <div class="gock-dossier-head">${icon('paw-print')} Veldnotitie — ${esc(res.naam)}</div>
+          <p class="magizoo-dossier-tier">Kennisniveau nu: <strong>${_MAGIZOO_NIV_LABEL[res.niveau] || res.niveau}</strong>. Bekijk het volledige statblock in het Bestiarium.</p>
+          ${res.roddel ? `<div class="magizoo-roddel">${icon('message-circle')} <em>${esc(res.roddel)}</em></div>` : ''}
+        </div>`;
+      rb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    _tsToast('Onderzoek voltooid.');
+    // Lijst + beurs verversen (na korte tel zodat de toast zichtbaar is)
+    await renderMagizoo();
+    if (window.bestiarium?.refresh) window.bestiarium.refresh();
+  } catch (err) {
+    _tsToast(err.message || 'Onderzoek mislukt.');
+  }
 };
 
 // ── Madame Ursula / Waarzegger ───────────────────────────────────────────────

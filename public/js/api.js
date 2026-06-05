@@ -301,6 +301,9 @@ export const api = {
   gockOpdracht:    (data)          => request('/gock/opdracht',   { method: 'POST', body: JSON.stringify(data) }),
   gockOpgehaald:   ()              => request('/gock/opgehaald', { method: 'PUT' }),
   saveGockConfig:  (data)          => request('/meta/gock',      { method: 'PUT',  body: JSON.stringify(data) }),
+  getMagizoo:        ()            => request('/magizoo'),
+  magizooOnderzoek:  (data)        => request('/magizoo/onderzoek', { method: 'POST', body: JSON.stringify(data) }),
+  saveMagizooConfig: (data)        => request('/meta/magizoo',    { method: 'PUT',  body: JSON.stringify(data) }),
 
 // De Tempel
   getTempel:        ()              => request('/tempel'),

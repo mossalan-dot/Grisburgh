@@ -1,6 +1,6 @@
 import { api } from './api.js?v=2';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=6';
-import { renderStatblock } from './render-statblock.js?v=2';
+import { renderStatblock } from './render-statblock.js?v=3';
 
 // ── DM Panel ──
 // icon() helper is defined globally in app.js; grab a local alias for template use.
@@ -349,7 +349,7 @@ export function initDmPanel() {
 // Welke tabs zijn "gevecht & monsters"?
 const _GEVECHT_TABS = new Set(['gevecht', 'monsters', 'encounters']);
 // Welke tabs zijn "diensten"?
-const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'toegang']);
+const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'magizoo', 'toegang']);
 // Welke tabs zijn "instellingen" (niet als tab getoond)?
 const _INSTELLINGEN_TABS = new Set(['campagnes', 'wereld', 'beurs', 'dobbelstenen']);
 
@@ -499,11 +499,12 @@ function _renderDiensten(subTab) {
     <button class="dm-subtab-btn${_dienstenSubTab==='tempel'    ?' active':''}" onclick="window.dmPanel.switchTab('tempel')" title="De Tempel">${icon('church')}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='heeren'    ?' active':''}" onclick="window.dmPanel.switchTab('heeren')" title="Heeren van de Nacht">${icon('eye')}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='facties'   ?' active':''}" onclick="window.dmPanel.switchTab('facties')" title="Facties & Aanzien">${icon('landmark')}</button>
+    <button class="dm-subtab-btn${_dienstenSubTab==='magizoo'   ?' active':''}" onclick="window.dmPanel.switchTab('magizoo')" title="De Magizoöloog">${icon('paw-print')}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='toegang'   ?' active':''}" onclick="window.dmPanel.switchTab('toegang')" title="Toegang per groep">${icon('lock')}</button>
   `;
 
   // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
-  ['herberg','tweespalt','gock','ursula','tempel','heeren','facties','toegang'].forEach(name => {
+  ['herberg','tweespalt','gock','ursula','tempel','heeren','facties','magizoo','toegang'].forEach(name => {
     let legacy = document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
     if (legacy && legacy.closest('.dm-tab-content[data-tab="diensten"]') == null) {
       el.appendChild(legacy);
@@ -511,7 +512,7 @@ function _renderDiensten(subTab) {
   });
 
   // Toon alleen de actieve subtab
-  ['herberg','tweespalt','gock','ursula','tempel','heeren','facties','toegang'].forEach(name => {
+  ['herberg','tweespalt','gock','ursula','tempel','heeren','facties','magizoo','toegang'].forEach(name => {
     const div = el.querySelector('.dm-tab-content[data-tab="' + name + '"]');
     if (div) div.classList.toggle('active', name === _dienstenSubTab);
   });
@@ -523,6 +524,7 @@ function _renderDiensten(subTab) {
   if (_dienstenSubTab === 'tempel')    _renderTempelSettings();
   if (_dienstenSubTab === 'heeren')    _renderHeerenSettings();
   if (_dienstenSubTab === 'facties')   _renderFactiesSettings();
+  if (_dienstenSubTab === 'magizoo')   _renderMagizooSettings();
   if (_dienstenSubTab === 'toegang')   _renderDienstenToegang();
 };
 
@@ -536,6 +538,7 @@ const _DIENSTEN_TOEGANG_INFO = [
   { key: 'tempel',    label: 'De Tempel',            icon: 'church'    },
   { key: 'heeren',    label: 'Heeren v.d. Nacht',    icon: 'eye'       },
   { key: 'facties',   label: 'Facties & Aanzien',    icon: 'landmark'  },
+  { key: 'magizoo',   label: 'De Magizoöloog',       icon: 'paw-print' },
 ];
 
 const _STAAT_LABELS = {
@@ -1992,6 +1995,7 @@ function _renderMonsterEditor(el) {
     statblock:  stored.statblock   || null,
     inBestiarium: stored.inBestiarium !== false,
     description: stored.description || '',
+    roddel: stored.roddel || '',
   };
 
   el.innerHTML = `
@@ -2026,6 +2030,11 @@ function _renderMonsterEditor(el) {
         <label class="dm-form-label">Beschrijving</label>
         <textarea id="dm-mon-desc" class="dm-input dm-sb-textarea" rows="3"
           placeholder="Korte beschrijving / lore — zichtbaar op de bestiariumkaart en bovenaan het statblock.">${esc(m.description || '')}</textarea>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Roddel</label>
+        <textarea id="dm-mon-roddel" class="dm-input dm-sb-textarea" rows="2"
+          placeholder="Een gerucht/observatie die de Magizoöloog onthult bij onderzoek (op Deels-niveau).">${esc(m.roddel || '')}</textarea>
       </div>
       <div class="dm-feature-row">
         <div class="dm-form-row" style="flex:1">
@@ -2178,7 +2187,8 @@ async function _monsterSave() {
   const statblock = _readStatblockFromForm();
   const inBestiarium = document.getElementById('dm-mon-inbest')?.checked !== false;
   const description = document.getElementById('dm-mon-desc')?.value?.trim() || '';
-  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, statblock, inBestiarium, description };
+  const roddel = document.getElementById('dm-mon-roddel')?.value?.trim() || '';
+  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, statblock, inBestiarium, description, roddel };
   try {
     if (_editingMonsterIsNew) {
       const created = await api.createMonster({ id: _editingMonsterId, ...payload });
@@ -3775,6 +3785,114 @@ window._gockSettingsSave = async () => {
     if (window.app?.state) window.app.state.meta = newMeta;
     window._gockBackdropPending = null;
     await _renderGockSettings();
+  } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+// ── De Magizoöloog — DM-instellingen ──
+async function _renderMagizooSettings() {
+  const el = _tabEl('magizoo');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  const meta = window.app?.state?.meta || {};
+  const config = meta.magizoo || {};
+  const prijs = config.prijs || { fl: 25 };
+  const prijsVol = config.prijsVolledig || { fl: 60 };
+
+  let personages = [], locaties = [];
+  try { personages = await api.listEntities('personages'); } catch {}
+  try { locaties   = await api.listEntities('locaties');   } catch {}
+  const alle = [...personages, ...locaties];
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-section-label">De Magizoöloog — Instellingen</div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Naam</label>
+        <input id="magizoo-naam" class="dm-input" value="${esc(config.naam || 'De Magizoöloog')}">
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label">Groet (in-character, cursief)</label>
+        <textarea id="magizoo-groet" class="dm-input" rows="2" style="resize:vertical"
+          placeholder="Bijv: De Beestenkenner kijkt op van een kooi en veegt een inktvlek weg.">${esc(config.groet || '')}</textarea>
+      </div>
+      <div class="dm-feature-row" style="gap:6px">
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label">Prijs per trede (fl)</label>
+          <input id="magizoo-prijs-fl" class="dm-input dm-input-sm" type="number" min="0" value="${prijs.fl || 25}">
+        </div>
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label">Volledig ineens (fl)</label>
+          <input id="magizoo-prijsvol-fl" class="dm-input dm-input-sm" type="number" min="0" value="${prijsVol.fl || 60}">
+        </div>
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label">Cooldown (min)</label>
+          <input id="magizoo-cooldown" class="dm-input dm-input-sm" type="number" min="0" value="${config.cooldownMinuten ?? 5}">
+        </div>
+      </div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Portret (NPC of locatie)</label>
+        <select id="magizoo-portret-select" class="dm-select">
+          <option value="">— Kies een entiteit —</option>
+          ${alle.map(e => `<option value="${esc(e.id)}" ${config.imageId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+        </select>
+      </div>
+      ${config.imageId ? `<div class="dm-form-row"><img src="${api.fileUrl(config.imageId)}" style="width:56px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)"></div>` : ''}
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrondafbeelding</label>
+        ${config.backdropId ? `<img id="magizoo-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="magizoo-backdrop-preview" style="display:none"></span>'}
+        <label class="dm-btn dm-btn-ghost" title="Achtergrondafbeelding uploaden" style="cursor:pointer;align-self:flex-start">
+          ${icon('image')}
+          <input type="file" accept="image/*" class="hidden" onchange="window._magizooUploadBackdrop(this.files[0])">
+        </label>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Of kies uit entiteiten</label>
+          <select id="magizoo-backdrop-select" class="dm-select">
+            <option value="">— Entiteit als backdrop —</option>
+            ${alle.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <p class="dm-hint" style="font-size:11px;opacity:0.75;margin:4px 0">De roddel per monster stel je in bij de Monsterbibliotheek (veld "Roddel").</p>
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-primary" onclick="window._magizooSettingsSave()" title="Opslaan">${icon('save')}</button>
+      </div>
+    </div>`;
+};
+
+window._magizooUploadBackdrop = async (file) => {
+  if (!file) return;
+  const id = 'magizoo-backdrop-' + Date.now();
+  try {
+    await api.uploadFile(id, file);
+    window._magizooBackdropPending = id;
+    const prev = document.getElementById('magizoo-backdrop-preview');
+    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
+    const sel = document.getElementById('magizoo-backdrop-select');
+    if (sel) sel.value = '';
+  } catch (err) { alert('Upload mislukt: ' + err.message); }
+};
+
+window._magizooSettingsSave = async () => {
+  const config = window.app?.state?.meta?.magizoo || {};
+  const naam = document.getElementById('magizoo-naam')?.value.trim() || 'De Magizoöloog';
+  const groet = document.getElementById('magizoo-groet')?.value.trim() || '';
+  const fl = parseInt(document.getElementById('magizoo-prijs-fl')?.value) || 0;
+  const flVol = parseInt(document.getElementById('magizoo-prijsvol-fl')?.value) || 0;
+  const cooldownMinuten = parseInt(document.getElementById('magizoo-cooldown')?.value) || 0;
+  const imageId = document.getElementById('magizoo-portret-select')?.value || config.imageId || '';
+  const backdropFromSelect = document.getElementById('magizoo-backdrop-select')?.value || null;
+  const backdropId = window._magizooBackdropPending || backdropFromSelect || config.backdropId || '';
+  try {
+    await api.saveMagizooConfig({ naam, groet, prijs: { fl }, prijsVolledig: { fl: flVol }, cooldownMinuten, imageId, backdropId });
+    const newMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = newMeta;
+    window._magizooBackdropPending = null;
+    await _renderMagizooSettings();
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
 };
 
