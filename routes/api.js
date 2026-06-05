@@ -3805,6 +3805,33 @@ router.post('/combat/start', requireDM, (req, res) => {
   _combatLog(combat, '⚔️ Gevecht begonnen');
   if (combatants[0]) _combatLog(combat, `▶ Beurt van ${combatants[0].name}`);
   storage.writeJSON('combat.json', combat);
+
+  // #3: Bestiarium-auto-onthulling op 'naam' voor de groepen van de speler-
+  // combatants. Alleen bibliotheek-monsters (presetId); antagonisten (entityId
+  // zonder presetId) en allies blijven buiten het Bestiarium. Alleen ophogen
+  // vanuit onbekend, nooit een hoger niveau verlagen.
+  const dmState = readDmState();
+  const groepen = new Set();
+  for (const c of combatants) {
+    if (c.type !== 'player' || !c.entityId) continue;
+    const gid = _playerGroupId(dmState, c.entityId);
+    if (gid) groepen.add(gid);
+  }
+  const presets = [...new Set(combatants.filter(c => c.presetId).map(c => c.presetId))];
+  if (groepen.size && presets.length) {
+    let changed = false;
+    for (const gid of groepen) {
+      const g = dmState.groups[gid];
+      if (!g) continue;
+      if (!g.bestiarium) g.bestiarium = {};
+      for (const mid of presets) if (!g.bestiarium[mid]) { g.bestiarium[mid] = 'naam'; changed = true; }
+    }
+    if (changed) {
+      storage.writeJSON('dm-state.json', dmState);
+      req.app.get('io').to(req.session?.campaignId||'main').emit('bestiarium:updated');
+    }
+  }
+
   req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
   res.json(combat);
 });
