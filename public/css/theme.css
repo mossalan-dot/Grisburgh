@@ -17566,3 +17566,67 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 
 /* ── Spreukenboek-beheer: meerregelige tekstvelden (bug 4c) ── */
 .sb-manage-textarea { resize: vertical; min-height: 2.4em; line-height: 1.35; font-family: inherit; }
+
+/* ════════════════════════════════════════════════════════════════════
+   POLISH-PASS #1 — gelikter perkament (proef op Personages, gedeeld)
+   ════════════════════════════════════════════════════════════════════ */
+
+:root { --gb-ease: cubic-bezier(.4,0,.2,1); --gb-ring: 0 0 0 2px rgba(184,134,11,0.5); }
+
+/* Nette, consistente focus-ring (toetsenbord) i.p.v. de browserdefault */
+.app :focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible { outline: none; box-shadow: var(--gb-ring); }
+
+/* Nav: minder schreeuwerig — normaal gewicht tot actief, fijnere spacing */
+.section-tab { font-weight: 600; letter-spacing: 0.015em; }
+.section-tab.active { font-weight: 700; }
+
+/* Header & rolbalk: meer lucht, rustiger banden */
+.app-header { min-height: 56px; }
+.dm-party-bar {
+  padding-top: 4px; padding-bottom: 4px;
+  border-bottom-color: rgba(196,168,122,0.22);
+  background: linear-gradient(180deg, rgba(240,228,196,0.32) 0%, rgba(232,216,172,0.18) 100%);
+}
+
+/* Sectiekop: subtielere onderlijn, iets meer ademruimte */
+.section-banner, .archief-section-header { letter-spacing: 0.01em; }
+
+/* Kaarten: zachtere rand, ruimere radius, strakkere elevatie-schaal */
+.entity-card {
+  border-color: rgba(196,168,122,0.38);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(60,40,10,0.05), 0 6px 16px rgba(60,40,10,0.06);
+  transition: transform 0.2s var(--gb-ease), box-shadow 0.2s var(--gb-ease);
+}
+.entity-card:hover {
+  box-shadow: 0 4px 10px rgba(60,40,10,0.10), 0 14px 30px rgba(60,40,10,0.10);
+}
+
+/* DM-hoekknoppen: reveal-on-hover + zachter/translucent (minder contrastbots) */
+.entity-card .dm-only.absolute {
+  opacity: 0; transform: translateY(-3px);
+  transition: opacity .16s var(--gb-ease), transform .16s var(--gb-ease);
+}
+.entity-card:hover .dm-only.absolute,
+.entity-card:focus-within .dm-only.absolute { opacity: 1; transform: none; }
+.entity-card .dm-only.absolute > button {
+  background: rgba(40,26,8,0.5) !important;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.22);
+  ring-width: 0;
+}
+.entity-card .dm-only.absolute > button:hover { background: rgba(40,26,8,0.82) !important; }
+
+/* Lege kaart (zonder portret): subtiele textuur + warme glans i.p.v. kaal vlak */
+.entity-card.no-img .card-body { position: relative; min-height: 92px; }
+.entity-card.no-img .card-body::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; border-radius: inherit;
+  background:
+    radial-gradient(120% 80% at 50% -15%, rgba(196,168,122,0.14), rgba(196,168,122,0) 62%),
+    repeating-linear-gradient(135deg, rgba(150,120,70,0.045) 0 2px, transparent 2px 7px);
+}
+.entity-card.no-img .card-body > * { position: relative; z-index: 1; }
