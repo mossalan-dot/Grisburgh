@@ -3963,11 +3963,18 @@ body::before {
 .dm-namen-section { border-bottom: 1px solid rgba(196,168,122,0.45); padding-bottom: 12px; margin-bottom: 4px; }
 .dm-section-label {
   font-family: 'Cinzel', serif;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   color: #7a6040;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.dm-section-label::before {
+  content: ''; width: 3px; height: 13px; border-radius: 2px;
+  background: rgba(196,168,122,0.7); flex-shrink: 0;
 }
 .dm-naam-btn { flex: 1; justify-content: center; }
 .dm-naam-result {
