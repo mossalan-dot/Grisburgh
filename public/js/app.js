@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { renderProgressie } from './render-progressie.js?v=21';
 import { renderBestiarium } from './render-bestiarium.js?v=1';
-import { initSocket } from "./socket-client.js?v=24";
+import { initSocket } from "./socket-client.js?v=26";
 import { initDmPanel } from "./dm-panel.js?v=59";
 
 // ── Icon helper ──
@@ -5421,7 +5421,7 @@ async function renderMijnKarakter(opts = {}) {
     multiclass:       playerProfile.multiclass === 'true' || playerProfile.multiclass === true,
     multiKlasse:      playerProfile.multiKlasse || '',
     multiKlasseLevel: parseInt(playerProfile.multiKlasseLevel) || 0,
-    species:          entity?.data?.ras || playerProfile.ras || '',
+    species:          playerProfile.origin || entity?.data?.ras || playerProfile.ras || '',
     charId:           charId || null,
     favorites:        (() => { try { return JSON.parse(playerProfile.featFavorites || '[]'); } catch { return []; } })(),
     choices:          (() => { try { return JSON.parse(playerProfile.featChoices   || '{}'); } catch { return {}; } })(),
@@ -5430,6 +5430,22 @@ async function renderMijnKarakter(opts = {}) {
   if (_playerSubTab === 'progressie') {
     const _pmEl = document.getElementById('pst-progressie');
     if (_pmEl) renderProgressie(_pmEl, window._lastProgCtx);
+  }
+
+  // #1: zodra de speler klaar is met het bewerken van de profielvelden (focus
+  // verlaat de sectie) een eventuele pending Kenmerk-refresh verwerken.
+  const _profFields = document.querySelector('.player-profile-fields');
+  if (_profFields) {
+    _profFields.addEventListener('focusout', (e) => {
+      if (_profFields.contains(e.relatedTarget)) return; // focus blijft binnen de velden
+      if (window._pendingKarakterRefresh && state.activeSection === 'mijn-karakter') {
+        setTimeout(() => {
+          if (window._pendingKarakterRefresh && !document.querySelector('.player-profile-fields')?.contains(document.activeElement)) {
+            window.app.refreshSection('mijn-karakter');
+          }
+        }, 200);
+      }
+    });
   }
 
   // ── Spreuk-accordion: beschrijving lazy laden ──
@@ -5566,7 +5582,9 @@ async function renderMijnKarakter(opts = {}) {
       const index  = body.dataset.traitIndex;
       const stored = body.dataset.traitDesc;
 
-      if (source === 'custom') {
+      // Opgeslagen beschrijving heeft voorrang (custom én progressie-gesyncte
+      // features dragen hun eigen tekst; alleen 'kale' PHB-traits hebben er geen).
+      if (stored || source === 'custom' || source === 'progression') {
         body.innerHTML = stored
           ? `<div class="player-spell-desc">${esc(stored).replace(/\n/g,'<br>')}</div>`
           : '<p class="player-spell-err" style="opacity:.5">Geen beschrijving.</p>';
@@ -5575,7 +5593,7 @@ async function renderMijnKarakter(opts = {}) {
         _appendTraitNoteSection(body);
         return;
       }
-      // PHB: ophalen via dnd5eapi — source bepaalt endpoint
+      // PHB zonder opgeslagen tekst: ophalen via dnd5eapi — source bepaalt endpoint
       try {
         if (!index) throw new Error('geen index');
         // Backward compat: 'phb' → features, 'phb-features' → features, 'phb-traits' → traits, 'phb-feats' → feats
@@ -5881,8 +5899,11 @@ async function renderMijnKarakter(opts = {}) {
         multiKlasse:      playerProfile.multiKlasse      || '',
         multiKlasseLevel: parseInt(playerProfile.multiKlasseLevel) || 0,
       };
+      // Sync features naar Kenmerken; de re-render volgt via de (gerguarde)
+      // player:profile-updated socket-echo — niet hier forceren, anders wordt
+      // de speler tijdens het invullen uit het veld gegooid.
       window.progressie.triggerSync(charId, ctx).then(() => {
-        window.app.refreshSection('mijn-karakter');
+        window._pendingKarakterRefresh = true;
       });
     }
   };
@@ -6172,7 +6193,7 @@ async function renderMijnKarakter(opts = {}) {
         multiclass:       _pp.multiclass === 'true' || _pp.multiclass === true,
         multiKlasse:      _pp.multiKlasse || '',
         multiKlasseLevel: parseInt(_pp.multiKlasseLevel) || 0,
-        species:          _pe?.data?.ras || _pp.ras || '',
+        species:          _pp.origin || _pe?.data?.ras || _pp.ras || '',
         charId:           window._lastCharId || null,
         favorites:        (() => { try { return JSON.parse(_pp.featFavorites || '[]'); } catch { return []; } })(),
         choices:          (() => { try { return JSON.parse(_pp.featChoices   || '{}'); } catch { return {}; } })(),
