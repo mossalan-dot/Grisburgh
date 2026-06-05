@@ -1,4 +1,4 @@
-import { api } from './api.js?v=2';
+import { api } from './api.js?v=225';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=6';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -597,23 +597,60 @@ async function _renderAktes() {
     </div>`;
 };
 
-async function _akteNieuw() {
+function _akteNieuw() {
   const meta = window.app?.state?.meta || {};
   const hk = meta.hoofdstukken || {};
   const nums = Object.values(hk).map(v => v.num).filter(n => n < 90);
   const nextNum = nums.length ? Math.max(...nums) + 1 : 1;
   const nextKey = 'h' + nextNum;
-  const title = prompt('Titel van de nieuwe akte:', '');
-  if (title === null) return;
-  const t = title.trim() || ('Akte ' + nextNum);
-  const short = `A${nextNum} · ${t.length > 22 ? t.slice(0, 22) + '…' : t}`;
-  try {
-    await api.saveHoofdstuk(nextKey, { num: nextNum, title: t, dag: '', short });
-    const newMeta = await api.meta();
-    if (window.app?.state) window.app.state.meta = newMeta;
-    _akteOpen.add(nextKey);
-    _renderAktes();
-  } catch (e) { alert('Aanmaken mislukt: ' + e.message); }
+
+  const body = `
+    <form id="dm-akte-nieuw-form" class="dm-feature-section" style="margin:0">
+      <div class="dm-feature-row" style="gap:8px">
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label">Nummer</label>
+          <input id="dm-akte-n-num" class="dm-input dm-input-sm" type="number" min="1" value="${nextNum}">
+        </div>
+        <div class="dm-form-row" style="flex:2">
+          <label class="dm-form-label" title="Unieke interne sleutel, bv. h${nextNum}">Sleutel</label>
+          <input id="dm-akte-n-key" class="dm-input dm-input-sm" value="${esc(nextKey)}" placeholder="h${nextNum}">
+        </div>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Titel</label>
+        <input id="dm-akte-n-title" class="dm-input" placeholder="De nieuwe akte…" autofocus>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">In-game dag (optioneel)</label>
+        <input id="dm-akte-n-dag" class="dm-input" placeholder="Dag van …">
+      </div>
+      <div class="dm-feature-row" style="margin-top:6px">
+        <button type="submit" class="dm-btn dm-btn-primary">${icon('save')} Aanmaken</button>
+        <button type="button" class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
+      </div>
+    </form>`;
+  window.app.openModal('Nieuwe akte', 'Voeg een akte toe aan de campagne', body);
+
+  document.getElementById('dm-akte-nieuw-form')?.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const num = parseInt(document.getElementById('dm-akte-n-num')?.value) || nextNum;
+    const key = (document.getElementById('dm-akte-n-key')?.value || '').trim() || ('h' + num);
+    const title = (document.getElementById('dm-akte-n-title')?.value || '').trim() || ('Akte ' + num);
+    const dag = (document.getElementById('dm-akte-n-dag')?.value || '').trim();
+    if ((window.app?.state?.meta?.hoofdstukken || {})[key]) {
+      alert(`Sleutel "${key}" bestaat al — kies een andere.`);
+      return;
+    }
+    const short = `A${num} · ${title.length > 22 ? title.slice(0, 22) + '…' : title}`;
+    try {
+      await api.saveHoofdstuk(key, { num, title, dag, short });
+      const newMeta = await api.meta();
+      if (window.app?.state) window.app.state.meta = newMeta;
+      _akteOpen.add(key);
+      window.app.closeModal();
+      _renderAktes();
+    } catch (e) { alert('Aanmaken mislukt: ' + e.message); }
+  });
 };
 
 
@@ -1425,6 +1462,10 @@ async function _revealRegieBalkItem(itemId) {
       _combat = combat;
       _combatLoaded = true;
       _renderCombatOverlay(combat);
+    }
+    // Optioneel geluid bij deze reveal (speelt via de tablet; loop → ambiance).
+    if (item.soundFileId) {
+      api.revealSound({ fileId: item.soundFileId, label: item.soundLabel || '', loop: !!item.soundLoop }).catch(() => {});
     }
   } catch (err) {
     console.error('Regie-balk reveal failed', err);

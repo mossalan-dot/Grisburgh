@@ -1,4 +1,4 @@
-import { api } from './api.js?v=2';
+import { api } from './api.js?v=225';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -33,6 +33,8 @@ let meta = null;
 // ── Regie-script state per akte ──
 let _scriptPickerState = {}; // { [ch]: { mode: null|'image'|'entity'|'encounter', entityType, entityQuery, entities, encounters } }
 let _scriptOpenChapters = new Set(); // welke aktes hun script-panel open hebben
+let _scriptSoundOpen   = new Set();  // script-item-ids met geopende geluidskiezer
+let _scriptScenesCache = undefined;  // ambiance-scènes (lazy geladen)
 
 // Lazy proxies — window.app isn't set yet when ES modules evaluate
 const $ = (...a) => window.app.$(...a);
@@ -1199,18 +1201,26 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         const thumb = item.type === 'image'
           ? `<img src="${api.fileUrl(item.fileId)}" style="width:40px;height:30px;object-fit:cover;border-radius:3px;flex-shrink:0">`
           : '';
-        return `<div class="script-item">
-          ${thumb}
-          <span class="script-item-icon">${itemIcon}</span>
-          <span class="script-item-name">${esc(name)}</span>
-          <div class="script-item-actions">
-            ${!isFirst ? `<button class="script-icon-btn"
-              onclick="window._scriptMove('${esc(ch)}','${esc(item.id)}',-1)" title="Omhoog">↑</button>` : ''}
-            ${!isLast  ? `<button class="script-icon-btn"
-              onclick="window._scriptMove('${esc(ch)}','${esc(item.id)}',1)" title="Omlaag">↓</button>` : ''}
-            <button class="script-icon-btn script-icon-btn--del"
-              onclick="window._scriptRemove('${esc(ch)}','${esc(item.id)}')" title="Verwijderen">${icon('x')}</button>
+        const hasSnd  = !!item.soundFileId;
+        const sndOpen = _scriptSoundOpen.has(item.id);
+        return `<div class="script-item-wrap">
+          <div class="script-item">
+            ${thumb}
+            <span class="script-item-icon">${itemIcon}</span>
+            <span class="script-item-name">${esc(name)}</span>
+            ${hasSnd ? `<span class="script-item-snd-chip" title="Geluid: ${esc(item.soundLabel || 'geluid')}${item.soundLoop ? ' (loop)' : ''}">${icon('volume-2')}${item.soundLoop ? ' ⟳' : ''}</span>` : ''}
+            <div class="script-item-actions">
+              <button class="script-icon-btn${hasSnd ? ' script-icon-btn--snd-on' : ''}${sndOpen ? ' is-active' : ''}"
+                onclick="window._scriptToggleSoundEditor('${esc(ch)}','${esc(item.id)}')" title="Geluid bij reveal">${icon('volume-2')}</button>
+              ${!isFirst ? `<button class="script-icon-btn"
+                onclick="window._scriptMove('${esc(ch)}','${esc(item.id)}',-1)" title="Omhoog">↑</button>` : ''}
+              ${!isLast  ? `<button class="script-icon-btn"
+                onclick="window._scriptMove('${esc(ch)}','${esc(item.id)}',1)" title="Omlaag">↓</button>` : ''}
+              <button class="script-icon-btn script-icon-btn--del"
+                onclick="window._scriptRemove('${esc(ch)}','${esc(item.id)}')" title="Verwijderen">${icon('x')}</button>
+            </div>
           </div>
+          ${sndOpen ? `<div class="script-snd-editor">${_scriptSoundEditorHtml(ch, item)}</div>` : ''}
         </div>`;
       }).join('')
     : `<p class="dm-hint" style="margin:4px 0 0">Geen script-items. Voeg afbeeldingen, kaartjes of gevechten toe via de knoppen hieronder.</p>`;
@@ -1293,6 +1303,95 @@ function _refreshScriptSection(ch) {
   const chEntries = (archiefData.sessieLog || []).filter(e => e.hoofdstuk === ch);
   container.innerHTML = _renderAkteScriptInner(ch, info, chEntries);
 }
+
+// ── Geluid bij een reveal (per script-item: scène of upload + loop) ──
+function _scriptSoundEditorHtml(ch, item) {
+  const scenes = _scriptScenesCache;
+  const sel = item.soundFileId
+    ? (scenes || []).find(s => s.fileId === item.soundFileId)?.id || ''
+    : '';
+  return `
+    <div class="script-snd-row">
+      <select class="dm-input dm-input-sm script-snd-select"
+        onchange="window._scriptSetSceneSound('${esc(ch)}','${esc(item.id)}', this.value)">
+        <option value="">— kies een scène —</option>
+        ${scenes === undefined
+          ? '<option disabled>Laden…</option>'
+          : scenes.map(s => `<option value="${esc(s.id)}"${sel === s.id ? ' selected' : ''}>${esc(s.label || 'Scène')}</option>`).join('')}
+      </select>
+      <label class="script-snd-upload-btn" title="Eigen geluid uploaden">⬆
+        <input type="file" accept="audio/*" style="display:none"
+          onchange="window._scriptUploadSound('${esc(ch)}','${esc(item.id)}', this.files[0])"></label>
+    </div>
+    <div class="script-snd-row2">
+      <label class="script-snd-loop">
+        <input type="checkbox"${item.soundLoop ? ' checked' : ''}
+          onchange="window._scriptToggleSoundLoop('${esc(ch)}','${esc(item.id)}')"> Loop
+      </label>
+      ${item.soundFileId ? `
+        <button class="script-icon-btn" title="Voorbeeld afspelen"
+          onclick="window._scriptPreviewSound('${esc(item.soundFileId)}')">${icon('play')}</button>
+        <span class="script-snd-current" title="${esc(item.soundLabel || '')}">${esc(item.soundLabel || 'Geluid')}</span>
+        <button class="script-icon-btn script-icon-btn--del" title="Geluid verwijderen"
+          onclick="window._scriptClearSound('${esc(ch)}','${esc(item.id)}')">${icon('x')}</button>
+      ` : '<span class="dm-hint" style="opacity:.6">Nog geen geluid gekozen.</span>'}
+    </div>`;
+}
+
+function _scriptItemPatch(ch, itemId, patch) {
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  const it = script.find(x => x.id === itemId);
+  if (!it) return null;
+  Object.assign(it, patch);
+  return script;
+}
+
+async function _scriptLoadScenes(ch) {
+  try { const sd = await api.getSounds(); _scriptScenesCache = sd?.ambiance?.scenes || []; }
+  catch { _scriptScenesCache = []; }
+  _refreshScriptSection(ch);
+}
+
+window._scriptToggleSoundEditor = (ch, itemId) => {
+  if (_scriptSoundOpen.has(itemId)) _scriptSoundOpen.delete(itemId);
+  else {
+    _scriptSoundOpen.add(itemId);
+    if (_scriptScenesCache === undefined) _scriptLoadScenes(ch);
+  }
+  _refreshScriptSection(ch);
+};
+
+window._scriptSetSceneSound = async (ch, itemId, sceneId) => {
+  const scene = (_scriptScenesCache || []).find(s => s.id === sceneId);
+  const patch = sceneId
+    ? { soundFileId: scene?.fileId || null, soundLabel: scene?.label || 'Scène' }
+    : { soundFileId: null, soundLabel: '' };
+  const script = _scriptItemPatch(ch, itemId, patch);
+  if (script) await _scriptSave(ch, script);
+};
+
+window._scriptUploadSound = async (ch, itemId, file) => {
+  if (!file) return;
+  const id = 'akte-snd-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+  try {
+    await api.uploadFile(id, file);
+    const script = _scriptItemPatch(ch, itemId, { soundFileId: id, soundLabel: file.name.replace(/\.[^.]+$/, '') });
+    if (script) await _scriptSave(ch, script);
+  } catch (e) { alert('Upload mislukt: ' + e.message); }
+};
+
+window._scriptToggleSoundLoop = async (ch, itemId) => {
+  const cur = (meta?.hoofdstukken?.[ch]?.script || []).find(x => x.id === itemId);
+  const script = _scriptItemPatch(ch, itemId, { soundLoop: !cur?.soundLoop });
+  if (script) await _scriptSave(ch, script);
+};
+
+window._scriptClearSound = async (ch, itemId) => {
+  const script = _scriptItemPatch(ch, itemId, { soundFileId: null, soundLabel: '', soundLoop: false });
+  if (script) await _scriptSave(ch, script);
+};
+
+window._scriptPreviewSound = (fileId) => window.soundManager?.preview?.(fileId);
 
 // ── Akte-beheer hergebruik vanuit de Meesterkamer (tab 'Aktes') ──
 // De akte-voorbereiding (regie-script, bewerken, speel, zichtbaarheid) is

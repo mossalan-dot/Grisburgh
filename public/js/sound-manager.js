@@ -199,6 +199,15 @@ window.soundManager = {
     _svcLabel  = fid ? (label || section) : null;
     _ambApplyAll();
   },
+  // Geluid bij een reveal (regie-balk). loop → wordt de (loopende) ambiance op
+  // de tablet; anders een eenmalige sting over de huidige ambiance heen.
+  playReveal({ fileId, label, loop } = {}) {
+    if (!fileId) return;
+    if (loop) this.setAmbiance({ actief: 'reveal', fileId, label: label || 'Reveal', volume: _ambVolume });
+    else _play(fileId);
+  },
+  // Lokale preview (DM) van een geluidsbestand zonder broadcast.
+  preview(fileId) { if (fileId) _play(fileId); },
   toggleAmbiance() {
     _ambEnabled = !_ambEffectivePlaying(); // speelt iets → dempen; stil → aanzetten
     try { localStorage.setItem('ambianceEnabled', _ambEnabled ? '1' : '0'); } catch { /* ok */ }

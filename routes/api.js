@@ -3127,6 +3127,20 @@ router.post('/sounds/ambiance', requireDM, (req, res) => {
   res.json({ ok: true, actief: data.ambiance.actief });
 });
 
+// Speel een geluid bij een reveal (regie-balk). loop=true → loopende ambiance
+// (broadcast wint, vervangt de achtergrond); loop=false → eenmalige sting.
+// Transient: niets opgeslagen, alleen broadcast naar de (tablet-)clients.
+router.post('/sounds/reveal', requireDM, (req, res) => {
+  const { fileId, label, loop } = req.body;
+  if (!fileId) return res.status(400).json({ error: 'fileId vereist' });
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('sound:reveal', {
+    fileId: String(fileId),
+    label:  label ? String(label).slice(0, 100) : '',
+    loop:   !!loop,
+  });
+  res.json({ ok: true });
+});
+
 // ── Klasse-progressie (skill trees) ──────────────────────────────
 // GET geeft de campagne-eigen progressie terug, of anders de meegeleverde
 // 2024-seed (public/data/class-progression.json). De DM kan een eigen versie
