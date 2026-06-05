@@ -3599,6 +3599,7 @@ router.post('/monsters', requireDM, (req, res) => {
   };
   data.monsters = [...(data.monsters || []), monster];
   storage.writeJSON('monsters.json', data);
+  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('bestiarium:updated');
   res.status(201).json(monster);
 });
 
@@ -3608,6 +3609,7 @@ router.put('/monsters/:id', requireDM, (req, res) => {
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
   data.monsters[idx] = { ...data.monsters[idx], ...req.body, id: req.params.id };
   storage.writeJSON('monsters.json', data);
+  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('bestiarium:updated');
   res.json(data.monsters[idx]);
 });
 
@@ -3615,6 +3617,7 @@ router.delete('/monsters/:id', requireDM, (req, res) => {
   const data = storage.readJSON('monsters.json');
   data.monsters = (data.monsters || []).filter(m => m.id !== req.params.id);
   storage.writeJSON('monsters.json', data);
+  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('bestiarium:updated');
   res.json({ ok: true });
 });
 
@@ -3651,7 +3654,10 @@ function _bestiariumForTier(m, niveau) {
 
 router.get('/bestiarium', attachRole, (req, res) => {
   const dmState  = readDmState();
-  const monsters = storage.readJSON('monsters.json').monsters || [];
+  // Alleen monsters die in het bestiarium thuishoren (inBestiarium !== false).
+  // Zo blijven handmatig toegevoegde personages (bv. Barthen) uit het bestiarium.
+  const monsters = (storage.readJSON('monsters.json').monsters || [])
+    .filter(m => m.inBestiarium !== false);
   if (req.role === 'dm') {
     const kennis = getGroup(dmState)?.bestiarium || {};
     // DM ziet alles volledig + het kennisniveau van de actieve groep.

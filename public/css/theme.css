@@ -577,6 +577,13 @@ body::before {
     0 0 0 1px rgba(154,106,42,0.18),
     inset 0 0 0 1px rgba(255,255,255,0.22);
 }
+.entity-card:has(.bar-bestiarium):hover {
+  box-shadow:
+    0 5px 16px rgba(120,42,42,0.30),
+    0 10px 28px rgba(120,42,42,0.15),
+    0 0 0 1px rgba(120,42,42,0.20),
+    inset 0 0 0 1px rgba(255,255,255,0.22);
+}
 .entity-card.card-hidden { opacity: 0.5; }
 
 /* ── Subtiele type-tint per kaart — heel zacht, tekst blijft volledig leesbaar ── */
@@ -585,12 +592,14 @@ body::before {
 .entity-card:has(.bar-organisaties){ background: #f8f0f0; }
 .entity-card:has(.bar-voorwerpen)  { background: #faf3e0; }
 .entity-card:has(.bar-documenten)  { background: #f5f2f8; }
+.entity-card:has(.bar-bestiarium)  { background: #f8efef; }
 /* Bijpassende fade-gradient zodat de afbeelding naadloos overvloeit */
 .entity-card:has(.bar-personages)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f5f7ee 100%); }
 .entity-card:has(.bar-locaties)    .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f0f3f8 100%); }
 .entity-card:has(.bar-organisaties).card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f8f0f0 100%); }
 .entity-card:has(.bar-voorwerpen)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #faf3e0 100%); }
 .entity-card:has(.bar-documenten)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f5f2f8 100%); }
+.entity-card:has(.bar-bestiarium)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f8efef 100%); }
 
 /* ── 3D tilt: tijdens muisbeweging alleen box-shadow transitioneren, transform instant ── */
 .entity-card.card-tilting {
@@ -1715,6 +1724,7 @@ body::before {
 .bar-voorwerpen  { background: linear-gradient(to bottom, #c99560 0%, #9a6a2a 100%); }
 .bar-documenten  { background: linear-gradient(to bottom, #8a60b0 0%, #5a3a7a 100%); }
 .bar-logboek     { background: linear-gradient(to bottom, #e0b030 0%, #b8860b 100%); }
+.bar-bestiarium  { background: linear-gradient(to bottom, #a84a4a 0%, #782a2a 100%); }
 
 /* ── Logbook session detail ── */
 .log-dateline {
@@ -17419,25 +17429,25 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 .best-count { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #8a7050; background: rgba(196,168,122,0.18); border-radius: 999px; padding: 2px 9px; }
 .best-empty, .best-loading, .best-err { font-family: 'IM Fell English', serif; font-style: italic; color: #6a5238; padding: 20px 4px; }
 .best-err { color: #8a3020; }
-.best-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-.best-card { display: flex; align-items: center; gap: 11px; text-align: left; padding: 10px; background: #f5edd8; border: 1px solid var(--color-room-border); border-radius: 10px; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
-.best-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.22); border-color: var(--color-gold-dim); }
-.best-card--onbekend { opacity: 0.6; }
-.best-card--naam { border-left: 3px solid #9a7050; }
-.best-card--deels { border-left: 3px solid #2a5a8a; }
-.best-card--volledig { border-left: 3px solid #8b2a2a; }
-.best-card-portrait-wrap { width: 52px; height: 52px; flex-shrink: 0; border-radius: 50%; overflow: hidden; background: rgba(90,64,48,0.12); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(196,168,122,0.5); }
-.best-card-portrait { width: 100%; height: 100%; object-fit: cover; }
-.best-card-silhouet { display: flex; align-items: center; justify-content: center; color: #8a6a4a; }
-.best-card-silhouet .icon { width: 26px; height: 26px; opacity: 0.55; }
-.best-card-body { flex: 1; min-width: 0; }
-.best-card-name { font-family: 'Cinzel', serif; font-size: 0.98rem; color: #2a1a08; line-height: 1.15; }
-.best-card-sub { font-family: 'Crimson Text', serif; font-size: 0.8rem; color: #6a5238; font-style: italic; margin-top: 2px; }
-.best-card-badge { flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; padding: 2px 7px; border-radius: 999px; }
-.best-badge--naam { color: #6a4f30; background: rgba(154,112,80,0.16); }
-.best-badge--deels { color: #2a5a8a; background: rgba(42,90,138,0.14); }
-.best-badge--volledig { color: #8b2a2a; background: rgba(139,42,42,0.14); }
-.best-niv-select { flex-shrink: 0; font-family: 'Crimson Text', serif; font-size: 12px; color: #2a1a08; background: #fffdf6; border: 1px solid var(--color-room-border); border-radius: 6px; padding: 3px 5px; cursor: pointer; }
+/* Bestiariumkaartjes hergebruiken de .entity-card-opmaak van de archief-tabbladen. */
+.best-card-img-wrap { min-height: 158px; background: rgba(120,42,42,0.06); }
+.best-card-img { position: relative; z-index: 1; }
+.best-silhouet-fill { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #9a5a5a; z-index: 0; }
+.best-silhouet-fill .icon { width: 54px; height: 54px; opacity: 0.38; }
+
+/* Hoek-knoppen (bewerken / verwijderen) — zelfde stijl als de archiefkaarten. */
+.best-card-ctrl { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: rgba(0,0,0,0.75); color: #fff; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; backdrop-filter: blur(2px); transition: background .15s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.best-card-ctrl:hover { background: rgba(0,0,0,0.95); }
+.best-card-ctrl--danger:hover { background: rgba(170,40,40,0.92); }
+.best-card-ctrl .icon { width: 14px; height: 14px; }
+
+/* Niveau-keuze (DM) / kennis-badge (speler) over de onderrand van het portret. */
+.best-niv-overlay, .best-badge-overlay { position: absolute; left: 8px; bottom: 8px; z-index: 4; }
+.best-niv-select { font-family: 'Crimson Text', serif; font-size: 12px; color: #2a1a08; background: rgba(255,253,246,0.94); border: 1px solid var(--color-room-border); border-radius: 6px; padding: 3px 6px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+.best-card-badge { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; padding: 3px 9px; border-radius: 999px; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+.best-badge--naam { color: #6a4f30; background: rgba(245,237,216,0.95); }
+.best-badge--deels { color: #fff; background: rgba(42,90,138,0.92); }
+.best-badge--volledig { color: #fff; background: rgba(139,42,42,0.92); }
 
 /* ── Spreukenboek-beheer: meerregelige tekstvelden (bug 4c) ── */
 .sb-manage-textarea { resize: vertical; min-height: 2.4em; line-height: 1.35; font-family: inherit; }

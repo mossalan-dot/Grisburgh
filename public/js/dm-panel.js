@@ -1992,6 +1992,7 @@ function _renderMonsterEditor(el) {
     imageId:    _editingMonsterImageId,
     backdropId: _editingMonsterBackdropId,
     statblock:  stored.statblock   || null,
+    inBestiarium: stored.inBestiarium !== false,
   };
 
   el.innerHTML = `
@@ -2015,6 +2016,12 @@ function _renderMonsterEditor(el) {
           <option value="">— geen akte —</option>
           ${_hkOptions(m.chapter)}
         </select>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-checkbox" title="Verschijnt dit wezen als kaart in het Bestiarium? Zet uit voor personages/NPC's die je alleen voor de strijd toevoegt.">
+          <input type="checkbox" id="dm-mon-inbest"${m.inBestiarium ? ' checked' : ''}>
+          <span>Toon in Bestiarium</span>
+        </label>
       </div>
       <div class="dm-feature-row">
         <div class="dm-form-row" style="flex:1">
@@ -2181,7 +2188,8 @@ async function _monsterSave() {
   const init    = parseInt(document.getElementById('dm-mon-init')?.value) || 10;
   if (!name) { alert('Voer een naam in.'); return; }
   const statblock = _readStatblockFromForm();
-  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, backdropId: _editingMonsterBackdropId, statblock };
+  const inBestiarium = document.getElementById('dm-mon-inbest')?.checked !== false;
+  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, backdropId: _editingMonsterBackdropId, statblock, inBestiarium };
   try {
     if (_editingMonsterIsNew) {
       const created = await api.createMonster({ id: _editingMonsterId, ...payload });
