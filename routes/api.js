@@ -4278,9 +4278,37 @@ router.put('/diensten/toegang', requireDM, (req, res) => {
   if (!g) return res.status(404).json({ error: 'Groep niet gevonden' });
   if (!g.dienstenToegang) g.dienstenToegang = {};
   g.dienstenToegang[dienst] = staat;
+
+  // Bij onthullen (staat ≠ 'verborgen'): onthul automatisch het gekoppelde
+  // personage (portret = config.imageId) en de locatie (backdrop = config.backdropId)
+  // van de dienst voor deze groep — mits het echte entiteiten zijn (geen geüploade
+  // bestanden). Nooit auto-verbergen.
+  const onthuld = [];
+  if (staat !== 'verborgen') {
+    const meta = storage.readJSON('meta.json');
+    const cfg  = meta[dienst] || {};
+    const entities = storage.readJSON('entities.json');
+    if (!g.visibility) g.visibility = {};
+    for (const eid of [cfg.imageId, cfg.backdropId]) {
+      if (!eid || g.visibility[eid] === 'visible') continue;
+      let found = null, foundType = null;
+      for (const t of ENTITY_TYPES) {
+        const e = (entities[t] || []).find(x => x.id === eid);
+        if (e) { found = e; foundType = t; break; }
+      }
+      if (found) {
+        g.visibility[eid] = 'visible';
+        onthuld.push({ id: eid, type: foundType, name: found.name });
+      }
+    }
+  }
+
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('diensten:toegang:updated');
-  res.json({ ok: true });
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('diensten:toegang:updated');
+  for (const o of onthuld) io.to(room).emit('entity:visibility', { id: o.id, type: o.type, name: o.name, visibility: 'visible' });
+  res.json({ ok: true, onthuld: onthuld.map(o => o.name) });
 });
 
 function _dienstenBeschikbaar(dmState) {
