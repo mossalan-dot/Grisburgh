@@ -3290,6 +3290,7 @@ router.put('/map/maps/:id', requireDM, (req, res) => {
   const map = mapData.maps.find(m => m.id === req.params.id);
   if (!map) return res.status(404).json({ error: 'Niet gevonden' });
   if (label) map.label = label;
+  if (req.body.description !== undefined) map.description = String(req.body.description || '').slice(0, 600);
   storage.writeJSON('map.json', mapData);
   req.app.get('io').to(req.session?.campaignId||'main').emit('map:updated');
   res.json(map);
@@ -6304,6 +6305,8 @@ router.put('/dungeons/:id', requireDM, (req, res) => {
   if (req.body.name        !== undefined) map.name        = req.body.name;
   if (req.body.hoofdstukId !== undefined) map.hoofdstukId = req.body.hoofdstukId;
   if (req.body.fileId      !== undefined) map.fileId      = req.body.fileId;
+  if (req.body.description !== undefined) map.description = String(req.body.description || '').slice(0, 600);
+  if (req.body.thumbId     !== undefined) map.thumbId     = req.body.thumbId || '';
   _writeDungeons(maps);
   req.app.get('io').to(req.session?.campaignId||'main').emit('dungeon:updated');
   res.json(map);
