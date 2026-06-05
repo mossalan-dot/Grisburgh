@@ -4741,8 +4741,59 @@ router.put('/meta/magizoo', requireDM, (req, res) => {
 
 // ── De Tempel / Zegeningen ──
 
+// Goden worden afgeleid uit de Blessing-kaartjes (de bron). Per god (gegroepeerd
+// op godNaam): eenmalige zegens = de zegen-kaarten, eed = de eed-kaart (titel =
+// effect, tekst = eedTekst, permanente zegen = data.permanenteZegen), vloek = de
+// vloek-kaart. Metadata (domein, symbool, prijs, naam-volgorde) komt uit de
+// Meesterkamer-config (meta.tempel.goden), gekoppeld op naam.
 function _tempelGoden(config) {
-  return config.goden?.length ? config.goden : TEMPEL_GODEN_DEFAULT;
+  const entities  = storage.readJSON('entities.json');
+  const blessings = (entities.voorwerpen || []).filter(e => (e.data?.itemType) === 'Blessing' && (e.data?.godNaam || '').trim());
+  if (!blessings.length) {
+    // Geen kaarten → terugvallen op de (oude) config/seed.
+    return config.goden?.length ? config.goden : TEMPEL_GODEN_DEFAULT;
+  }
+  const cfgList   = config.goden?.length ? config.goden : TEMPEL_GODEN_DEFAULT;
+  const cfgByNaam = {};
+  cfgList.forEach(g => { if (g.naam) cfgByNaam[g.naam.trim().toLowerCase()] = g; });
+
+  const byGod = new Map();
+  for (const e of blessings) {
+    const naam = (e.data.godNaam || '').trim();
+    if (!byGod.has(naam)) byGod.set(naam, []);
+    byGod.get(naam).push(e);
+  }
+
+  const goden = [];
+  for (const [naam, cards] of byGod) {
+    const cfg = cfgByNaam[naam.toLowerCase()] || {};
+    const eedCard   = cards.find(c => c.data.goddelijkType === 'eed');
+    const vloekCard = cards.find(c => c.data.goddelijkType === 'vloek');
+    const zegenCards = cards.filter(c => c.data.goddelijkType === 'zegen');
+    goden.push({
+      id:       cfg.id || ('god_' + naam.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')),
+      naam,
+      domein:   cfg.domein  || '',
+      symbool:  cfg.symbool || '',
+      prijs:    cfg.prijs   || null,
+      // Permanente zegen: leidend van de eed-kaart, anders de oude config-waarde.
+      zegen:    (eedCard?.data?.permanenteZegen) || cfg.zegen || '',
+      eedTitel: eedCard?.data?.effect   || cfg.eedTitel || '',
+      eedTekst: eedCard?.data?.eedTekst || cfg.eedTekst || '',
+      vloek:    vloekCard?.data?.effect || cfg.vloek    || '',
+      // Eenmalige zegens = de effecten van de zegen-kaarten (in archief-volgorde).
+      eenmaligeZegens: zegenCards.map(z => z.data.effect).filter(Boolean),
+      eedEntityId:   eedCard?.id   || null,
+      vloekEntityId: vloekCard?.id || null,
+    });
+  }
+  // Sorteer in de config-/seed-volgorde waar mogelijk; onbekende achteraan.
+  const order = cfgList.map(g => (g.naam || '').toLowerCase());
+  goden.sort((a, b) => {
+    const ia = order.indexOf(a.naam.toLowerCase()); const ib = order.indexOf(b.naam.toLowerCase());
+    return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+  });
+  return goden;
 }
 
 router.get('/tempel', attachRole, (req, res) => {

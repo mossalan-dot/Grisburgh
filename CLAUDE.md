@@ -99,12 +99,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=254   app.js?v=348   sound-manager.js?v=4
-app.js      : api.js?v=225      render-campagne.js?v=90   render-archief.js?v=36
+index.html  : theme.css?v=254   app.js?v=349   sound-manager.js?v=4
+app.js      : api.js?v=225      render-campagne.js?v=91   render-archief.js?v=36
               render-kaart.js?v=6  render-dungeon.js?v=20  render-relatiemap.js?v=11
               render-progressie.js?v=22  socket-client.js?v=28
               render-bestiarium.js?v=8  render-statblock.js?v=3
-              dm-panel.js?v=66
+              dm-panel.js?v=67
 dm-panel.js : combat-canvas.js?v=6   render-statblock.js?v=1
               (glossary.js verwijderd — feature gerevert, zie Veelgemaakte fouten)
 ```

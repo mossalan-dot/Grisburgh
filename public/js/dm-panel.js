@@ -4398,8 +4398,8 @@ async function _renderTempelSettings() {
       <div class="dm-section-label" style="margin-top:14px">Actieve eden &amp; vloeken</div>
       <div id="tempel-eden"></div>
 
-      <div class="dm-section-label" style="margin-top:14px">Goden &amp; zegeningen</div>
-      <p class="dm-form-label" style="opacity:.7;margin:0 0 6px">Eigen prijs per god is optioneel — leeg = standaardprijs.</p>
+      <div class="dm-section-label" style="margin-top:14px">Goden — metadata</div>
+      <p class="dm-form-label" style="opacity:.7;margin:0 0 6px">Naam, domein, symbool, afbeeldingen en (optioneel) een eigen prijs. De zegen/vloek/eed-inhoud staat op de Blessing-kaartjes.</p>
       <div id="tempel-goden"></div>
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-ghost" onclick="window._tempelGodToevoegen()" title="God toevoegen">＋ God</button>
@@ -4460,19 +4460,9 @@ function _renderTempelGodenRows() {
       </div>
       <div class="dm-form-row" style="gap:6px">
         <input class="dm-input" style="flex:1" placeholder="Domein" value="${esc(g.domein || '')}" oninput="window._tempelGodEdit(${i},'domein',this.value)">
-        <input class="dm-input" style="flex:1" placeholder="Zegen (bijv. Con +1)" value="${esc(g.zegen || '')}" oninput="window._tempelGodEdit(${i},'zegen',this.value)">
-      </div>
-      <div class="dm-form-row">
         <input class="dm-input" style="flex:1" placeholder="Symbool" value="${esc(g.symbool || '')}" oninput="window._tempelGodEdit(${i},'symbool',this.value)">
       </div>
-      <div class="dm-form-row">
-        <input class="dm-input" style="flex:1" placeholder="Vloek bij verzaakte eed (bijv. Con -1; …)" value="${esc(g.vloek || '')}" oninput="window._tempelGodEdit(${i},'vloek',this.value)">
-      </div>
-      <div class="dm-form-row" style="flex-direction:column;gap:4px">
-        <label class="dm-form-label" style="opacity:.7">Eenmalige zegens (één per regel, max 4 = d4)</label>
-        <textarea class="dm-input" rows="4" style="resize:vertical;font-size:11px" placeholder="bijv. Herrol een mislukte death save."
-          oninput="window._tempelGodEditLines(${i}, this.value)">${esc((g.eenmaligeZegens || []).join('\n'))}</textarea>
-      </div>
+      <p class="dm-form-label" style="opacity:.6;margin:2px 0 0;font-size:10px">Zegen, vloek, eed-tekst, permanente zegen en de eenmalige zegens beheer je op de Blessing-kaartjes in het archief (die zijn leidend).</p>
       <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;margin-top:4px">
         <div style="flex:1;min-width:140px">
           <label class="dm-form-label" style="opacity:.65;display:block;margin-bottom:2px;font-size:10px">God-portret</label>
