@@ -1609,24 +1609,24 @@ window._editAkte = (ch) => {
     <form id="akte-edit-form" class="space-y-4">
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Nummer</label>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Nummer</label>
           <input type="number" id="akte-num" value="${esc(String(info.num || ''))}" min="1"
             class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
         </div>
         <div>
-          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">In-game dag</label>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">In-game dag</label>
           <input id="akte-dag" value="${esc(info.dag || '')}" placeholder="Dag van …"
             class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
         </div>
       </div>
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Titel</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Titel</label>
         <input id="akte-title" value="${esc(info.title || '')}"
           class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
       </div>
       ${allChImgIds.length > 1 ? `
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Bannerafbeelding</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Bannerafbeelding</label>
         <div class="flex flex-wrap gap-2 mt-2">
           ${allChImgIds.map(imgId => `
             <button type="button" class="banner-img-thumb${(info.bannerImg || _firstImgId) === imgId ? ' banner-img-thumb--sel' : ''}"
@@ -1638,7 +1638,7 @@ window._editAkte = (ch) => {
         <input type="hidden" id="banner-img-input" value="${esc(info.bannerImg || '')}">
       </div>` : `<input type="hidden" id="banner-img-input" value="${esc(info.bannerImg || '')}">`}
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Bannerfocus</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Bannerfocus</label>
         ${bannerImgSrc ? `
           <div id="fp-wrap" class="relative rounded overflow-hidden mt-1 mb-1 select-none"
             style="height:140px;cursor:crosshair"
@@ -1662,7 +1662,7 @@ window._editAkte = (ch) => {
         `}
       </div>
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Spelerssamenvatting</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Spelerssamenvatting</label>
         <div class="mt-1">
           ${fmtToolbar('akte-samenvatting-ta')}
           <textarea id="akte-samenvatting-ta" rows="10"
@@ -1761,7 +1761,7 @@ window._openSessieEditor = async (editId) => {
   const body = `<form id="sessie-form" class="space-y-4">
     <div class="grid grid-cols-2 gap-3">
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Akte</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Akte</label>
         <div class="flex gap-1 mt-1">
           <select id="hk-select" name="hoofdstuk" class="flex-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
             <option value="">—</option>
@@ -1774,7 +1774,7 @@ window._openSessieEditor = async (editId) => {
             class="px-2.5 py-1 bg-room-elevated border border-room-border rounded text-ink-dim hover:text-gold hover:border-gold-dim transition text-base leading-none">+</button>
         </div>
         <div id="new-hk-panel" class="hidden mt-2 p-3 bg-room-elevated/60 border border-room-border rounded space-y-2">
-          <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">Nieuwe akte</div>
+          <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Nieuwe akte</div>
           <div class="grid grid-cols-3 gap-2">
             <div class="col-span-2">
               <label class="text-[10px] text-ink-faint uppercase">Sleutel</label>
@@ -1802,25 +1802,25 @@ window._openSessieEditor = async (editId) => {
         </div>
       </div>
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Sessiedatum</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Sessiedatum</label>
         <input type="date" name="datum" value="${esc(e?.datum || '')}"
           class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
       </div>
     </div>
     <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Korte samenvatting</label>
+      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Korte samenvatting</label>
       <input name="korteSamenvatting" value="${esc(e?.korteSamenvatting || '')}"
         placeholder="Één zin die de sessie omschrijft..."
         class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
     </div>
     <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Citaat (optioneel)</label>
+      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Citaat (optioneel)</label>
       <input name="citaat" value="${esc(e?.citaat || '')}"
         placeholder="Een opvallend citaat of motto uit deze sessie…"
         class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none font-fell italic">
     </div>
     <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Uitgebreide samenvatting</label>
+      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Uitgebreide samenvatting</label>
       <div class="mt-1">
         ${fmtToolbar('ta_samenvatting')}
         <textarea id="ta_samenvatting" name="samenvatting" rows="12"
@@ -1829,21 +1829,21 @@ window._openSessieEditor = async (editId) => {
       </div>
     </div>
     <div>
-      <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2 pb-1 border-b border-room-border">\ud83d\udc64 Personages</div>
+      <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-2 pb-1 border-b border-room-border">\ud83d\udc64 Personages</div>
       <div class="grid grid-cols-2 gap-3">
         ${renderLogTagEditor('nieuwPersonages',       '\u2728 Nieuw',       'bg-gold/10 border-gold/30 text-gold')}
         ${renderLogTagEditor('terugkerendPersonages', '\ud83d\udd04 Terugkerend', 'bg-blue-ink/10 border-blue-ink/30 text-[#7ab0d4]')}
       </div>
     </div>
     <div>
-      <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2 pb-1 border-b border-room-border">\ud83c\udff0 Locaties</div>
+      <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-2 pb-1 border-b border-room-border">\ud83c\udff0 Locaties</div>
       <div class="grid grid-cols-2 gap-3">
         ${renderLogTagEditor('nieuwLocaties',       '\u2728 Nieuw',       'bg-green-wax/10 border-green-wax/30 text-green-wax')}
         ${renderLogTagEditor('terugkerendLocaties', '\ud83d\udd04 Terugkerend', 'bg-green-wax/10 border-green-wax/20 text-green-wax')}
       </div>
     </div>
     <div>
-      <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2 pb-1 border-b border-room-border">\ud83c\udfdb\ufe0f Organisaties</div>
+      <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-2 pb-1 border-b border-room-border">\ud83c\udfdb\ufe0f Organisaties</div>
       ${renderLogTagEditor('organisaties', 'Organisaties', 'bg-seal/10 border-seal/30 text-seal')}
     </div>
     <div class="grid grid-cols-2 gap-3">
@@ -1851,7 +1851,7 @@ window._openSessieEditor = async (editId) => {
       ${renderLogTagEditor('docs',       '\ud83d\udcdc Documenten', 'bg-purple-codex/15 border-purple-codex/35 text-purple-codex')}
     </div>
     <div>
-      <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2">\ud83d\uddbc\ufe0f Afbeeldingen</div>
+      <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-2">\ud83d\uddbc\ufe0f Afbeeldingen</div>
       <div id="log-img-preview" class="flex flex-wrap gap-2 mb-2 min-h-[2rem] items-center">
         <span class="text-xs text-ink-faint italic">Nog geen afbeeldingen</span>
       </div>
@@ -1912,7 +1912,7 @@ window._openSessieEditor = async (editId) => {
 function renderLogTagEditor(field, label, chipCls) {
   return `
     <div>
-      <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">${label}</div>
+      <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">${label}</div>
       <div id="log-tags-${field}" class="flex flex-wrap gap-1 mb-1">
         ${logEditorTags[field].map(n => `
           <span class="px-2 py-0.5 text-xs rounded-full border font-crimson ${chipCls}">${esc(n)}
@@ -2381,7 +2381,7 @@ window._openArchiefEditor = async (editId) => {
   body += `<div class="editor-col-left">`;
   body += `
     <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Bestand</label>
+      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Bestand</label>
       <div id="editor-file-preview" class="mt-1 mb-2 rounded overflow-hidden">
         ${editId ? `<img src="${api.fileUrl(editId)}" class="w-full max-h-40 object-contain rounded" onerror="window._docPreviewFallback(this,'${editId}')">` : ''}
       </div>
@@ -2398,18 +2398,18 @@ window._openArchiefEditor = async (editId) => {
   body += `<div class="editor-col-right">`;
   body += `
     <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Titel</label>
+      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Titel</label>
       <input name="name" value="${esc(d?.name || '')}" required
         class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
     </div>
     <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Type</label>
+      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Type</label>
       <select name="type" class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
         ${DOC_TYPES.map(t => `<option value="${t}" ${d?.type === t ? 'selected' : ''}>${t}</option>`).join('')}
       </select>
     </div>
     <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Hoofdstuk</label>
+      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Hoofdstuk</label>
       <select name="hoofdstuk" class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
         <option value="">—</option>
         ${Object.entries(meta?.hoofdstukken || {}).map(([k, v]) => `<option value="${k}" ${d?.hoofdstuk === k ? 'selected' : ''}>${v.short}</option>`).join('')}
@@ -2422,7 +2422,7 @@ window._openArchiefEditor = async (editId) => {
   // ── Beschrijving (volledige breedte) ──
   body += `
     <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Beschrijving</label>
+      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Beschrijving</label>
       <div class="mt-1">
         ${fmtToolbar('ta_desc')}
         <textarea id="ta_desc" name="desc" rows="4"
@@ -2472,7 +2472,7 @@ window._openArchiefEditor = async (editId) => {
   for (const [field, fm] of Object.entries(tagMeta)) {
     body += `
       <div>
-        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">${fm.label}</div>
+        <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">${fm.label}</div>
         <div id="atags-${field}" class="flex flex-wrap gap-1 mb-1">
           ${editorTags[field].map(n => `<span class="chip ${fm.chip}">${esc(n)} <span class="cursor-pointer ml-1" data-field="${field}" data-name="${esc(n)}" onclick="window._removeATag(this.dataset.field,this.dataset.name)">×</span></span>`).join('')}
         </div>
