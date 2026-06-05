@@ -2581,7 +2581,12 @@ router.post('/import/akte/preview', requireDM, (req, res) => {
   const md = req.body?.md;
   if (!md || typeof md !== 'string') return res.status(400).json({ error: 'Geen markdown ontvangen' });
   const { plan, reports } = _buildAktePlan(md, req.body.imageNames || []);
-  res.json({ plan, reports, chapterKey: req.body.chapterKey || '' });
+  // Volledige kaartenlijst zodat de DM een (niet-)match handmatig kan koppelen.
+  const entities = storage.readJSON('entities.json');
+  const entityOptions = [];
+  for (const t of ENTITY_TYPES) for (const e of (entities[t] || [])) entityOptions.push({ type: t, id: e.id, name: e.name });
+  entityOptions.sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
+  res.json({ plan, reports, entityOptions, chapterKey: req.body.chapterKey || '' });
 });
 
 // Commit: bouw sessieLog-afbeeldingen, encounters en het regie-script.
