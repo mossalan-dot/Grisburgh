@@ -244,6 +244,8 @@ export const api = {
 
   // Vastgezette kenmerken
   ontdekkingen:       ()                   => request('/ontdekkingen'),
+  bestiarium:         ()                   => request('/bestiarium'),
+  setBestiarium:      (monsterId, niveau, groep) => request(`/bestiarium/${monsterId}`, { method: 'PUT', body: JSON.stringify({ niveau, groep }) }),
   getPlayerTraits:    (charId)             => request(`/player-traits/${charId}`),
   addPlayerTrait:     (charId, data)       => request(`/player-traits/${charId}`, { method: 'POST', body: JSON.stringify(data) }),
   patchPlayerTrait:   (charId, traitId, data) => request(`/player-traits/${charId}/${traitId}`, { method: 'PATCH', body: JSON.stringify(data) }),

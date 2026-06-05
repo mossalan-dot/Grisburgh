@@ -1,11 +1,12 @@
-import { api } from './api.js?v=223';
+import { api } from './api.js?v=224';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=86";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=32";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { renderProgressie } from './render-progressie.js?v=21';
-import { initSocket } from "./socket-client.js?v=23";
+import { renderBestiarium } from './render-bestiarium.js?v=1';
+import { initSocket } from "./socket-client.js?v=24";
 import { initDmPanel } from "./dm-panel.js?v=59";
 
 // ── Icon helper ──
@@ -229,6 +230,7 @@ function switchSection(section) {
     organisaties:  'rgba(139,42,42,0.55)',
     voorwerpen:    'rgba(154,106,42,0.55)',
     documenten:    'rgba(90,58,122,0.55)',
+    bestiarium:    'rgba(120,42,42,0.55)',
     kaart:         'rgba(42,90,70,0.55)',
     relatiemap:    'rgba(80,42,122,0.55)',
     logboek:       'rgba(184,134,11,0.55)',
@@ -382,13 +384,14 @@ const LOGBOEK_LABELS = {
 };
 
 const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
-const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'kaart', 'relatiemap'];
+const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'kaart', 'relatiemap'];
 const ARCHIEF_LABELS = {
   personages:   `${icon('user')} Personages`,
   locaties:     `${icon('castle', {cls:'icon-gi'})} Locaties`,
   organisaties: `${icon('landmark')} Organisaties`,
   voorwerpen:   `${icon('package')} Voorwerpen`,
   documenten:   `${icon('scroll-text')} Documenten`,
+  bestiarium:   `${icon('skull')} Bestiarium`,
   kaart:        `${icon('map')} Kaarten`,
   relatiemap:   `${icon('users')} Relatiemap`,
 };
@@ -1941,6 +1944,7 @@ async function refreshSection(section) {
   else if (section === 'organisaties') await renderOrganisaties();
   else if (section === 'voorwerpen') await renderVoorwerpen();
   else if (section === 'documenten') await renderDocumenten();
+  else if (section === 'bestiarium') await renderBestiarium();
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await _renderKaartSection();
   else if (section === 'relatiemap') await renderRelatiemap();
