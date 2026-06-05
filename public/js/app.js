@@ -5,8 +5,8 @@ import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { renderProgressie } from './render-progressie.js?v=21';
-import { initSocket } from "./socket-client.js?v=20";
-import { initDmPanel } from "./dm-panel.js?v=56";
+import { initSocket } from "./socket-client.js?v=21";
+import { initDmPanel } from "./dm-panel.js?v=57";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.

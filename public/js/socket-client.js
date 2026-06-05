@@ -340,6 +340,7 @@ export function initSocket() {
   // #2: ambiance-scène starten/stoppen bij iedereen
   socket.on('sound:ambiance', (data) => {
     window.soundManager?.setAmbiance(data);
+    window.dmPanel?.syncAmbiance?.(); // DM: regie-balk-snelknop bijwerken
   });
 
   socket.on('player:hp-updated', ({ characterId } = {}) => {
