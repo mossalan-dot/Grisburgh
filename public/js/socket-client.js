@@ -378,17 +378,22 @@ export function initSocket() {
         klasseLevel:      parseInt(profile.klasseLevel) || window._lastProgCtx.klasseLevel,
         level:            parseInt(profile.level)       || window._lastProgCtx.level,
         subclass:         profile.subclass         ?? window._lastProgCtx.subclass,
+        species:          profile.origin           ?? window._lastProgCtx.species, // #3: origin → progressie
         multiclass:       profile.multiclass === 'true' || profile.multiclass === true,
         multiKlasse:      profile.multiKlasse      ?? window._lastProgCtx.multiKlasse,
         multiKlasseLevel: parseInt(profile.multiKlasseLevel) || window._lastProgCtx.multiKlasseLevel,
       };
     }
 
-    // Herlaad de volledige sectie als die nu actief is
-    if (window.app?.state?.activeSection === 'mijn-karakter') {
+    // Herlaad de volledige sectie als die nu actief is — maar NIET terwijl de
+    // speler een profielveld bewerkt (eigen echo): dan zou de re-render hem uit
+    // het invoerveld gooien. Markeer in dat geval een pending refresh.
+    const ae = document.activeElement;
+    const bewerktProfiel = ae && (ae.classList?.contains('ppf-input') || ae.closest?.('.player-profile-fields'));
+    if (window.app?.state?.activeSection === 'mijn-karakter' && !bewerktProfiel) {
       _refreshSectionDebounced('mijn-karakter');
     } else {
-      // Sectie niet actief: markeer dat herlaad nodig is bij volgende bezoek
+      // Sectie niet actief óf speler is aan het typen: herlaad bij volgende bezoek.
       window._pendingKarakterRefresh = true;
     }
   });
