@@ -1,5 +1,6 @@
 import { api } from './api.js?v=2';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=6';
+import { renderStatblock } from './render-statblock.js?v=1';
 
 // ── DM Panel ──
 // icon() helper is defined globally in app.js; grab a local alias for template use.
@@ -1711,48 +1712,9 @@ function _hasStatblock(m) {
     sb.str || sb.dex || sb.con || sb.int || sb.wis || sb.cha);
 };
 
+// Delegeert naar de gedeelde getierde render (feature #3). DM ziet altijd alles.
 function _statblockHtml(m) {
-  const sb = m.statblock || {};
-  const ATTRS = ['str','dex','con','int','wis','cha'];
-  const LABELS = ['STR','DEX','CON','INT','WIS','CHA'];
-  const props = [
-    ['savingThrows',          'Saving Throws'],
-    ['skills',                'Skills'],
-    ['damageVulnerabilities', 'Damage Vulnerabilities'],
-    ['damageResistances',     'Damage Resistances'],
-    ['damageImmunities',      'Damage Immunities'],
-    ['conditionImmunities',   'Condition Immunities'],
-    ['senses',                'Senses'],
-    ['languages',             'Languages'],
-  ].filter(([k]) => sb[k]).map(([k, label]) =>
-    `<div class="sb-prop"><span class="sb-prop-label">${label}</span>${esc(sb[k])}</div>`
-  ).join('');
-  const cr = (sb.cr || sb.xp) ? `<div class="sb-prop"><span class="sb-prop-label">Challenge</span>${esc(sb.cr||'?')}${sb.xp ? ` (${sb.xp} XP)` : ''}</div>` : '';
-
-  return `<div class="sb-block">
-    <div class="sb-header">
-      <div class="sb-name">${esc(m.name)}</div>
-      <div class="sb-sub">${[sb.size, sb.type, sb.alignment].filter(Boolean).map(esc).join(' ')}</div>
-    </div>
-    <div class="sb-rule"></div>
-    ${sb.ac    ? `<div class="sb-prop"><span class="sb-prop-label">Armor Class</span>${esc(sb.ac)}</div>` : ''}
-    ${(sb.hp || m.maxHp) ? `<div class="sb-prop"><span class="sb-prop-label">Hit Points</span>${m.maxHp}${sb.hp ? ` (${esc(sb.hp)})` : ''}</div>` : ''}
-    ${sb.speed ? `<div class="sb-prop"><span class="sb-prop-label">Speed</span>${esc(sb.speed)}</div>` : ''}
-    <div class="sb-rule"></div>
-    <div class="sb-scores">
-      ${LABELS.map((lbl, i) => `<div class="sb-score-cell">
-        <div class="sb-score-label">${lbl}</div>
-        <div class="sb-score-val">${sb[ATTRS[i]] ?? 10}</div>
-        <div class="sb-score-mod">(${_sbMod(sb[ATTRS[i]] ?? 10)})</div>
-      </div>`).join('')}
-    </div>
-    <div class="sb-rule"></div>
-    ${props}${cr}
-    ${sb.traits ? `<div class="sb-rule"></div>${_sbMdBlock(sb.traits)}` : ''}
-    ${sb.actions ? `<div class="sb-rule"></div><div class="sb-section-label">Actions</div>${_sbMdBlock(sb.actions)}` : ''}
-    ${sb.reactions ? `<div class="sb-rule"></div><div class="sb-section-label">Reactions</div>${_sbMdBlock(sb.reactions)}` : ''}
-    ${sb.legendaryActions ? `<div class="sb-rule"></div><div class="sb-section-label">Legendary Actions</div>${_sbMdBlock(sb.legendaryActions)}` : ''}
-  </div>`;
+  return renderStatblock(m, { niveau: 'volledig' });
 };
 
 function _showStatblock(mId) {
