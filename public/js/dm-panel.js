@@ -1,4 +1,4 @@
-import { api } from './api.js?v=225';
+import { api } from './api.js?v=226';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=6';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -285,6 +285,12 @@ export function initDmPanel() {
 
     // Aktes (voorbereiding & regie — verhuisd vanuit het Logboek)
     akteNieuw:    () => _akteNieuw(),
+    akteImport:   () => _akteImportWizard(),
+    akteImpAnalyse: () => _akteImpAnalyse(),
+    akteImpToggle:  (id) => _akteImpToggle(id),
+    akteImpField:   (id, f, val) => _akteImpField(id, f, val),
+    akteImpMonField:(id, mi, f, val) => _akteImpMonField(id, mi, f, val),
+    akteImpApply:   () => _akteImpApply(),
     akteToggle:   (ch) => { if (_akteOpen.has(ch)) _akteOpen.delete(ch); else _akteOpen.add(ch); _renderAktes(); },
     akteSpeel:    (ch) => { const i = (window.app?.state?.meta?.hoofdstukken || {})[ch] || {}; window._speelAkte?.(ch, i.num, i.title || ch); },
     akteBewerk:   (ch) => window._editAkte?.(ch),
@@ -567,7 +573,10 @@ async function _renderAktes() {
     <div class="dm-feature-section">
       <div class="dm-akte-head">
         <div class="dm-section-label" style="margin:0">Aktes — voorbereiding &amp; regie</div>
-        <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window.dmPanel.akteNieuw()" title="Nieuwe akte">${icon('plus')} Nieuwe akte</button>
+        <div class="dm-feature-row" style="gap:6px;margin:0">
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.akteImport()" title="Importeer een Obsidian-hoofdstuk (.md) als regie-script">${icon('upload')} Importeer</button>
+          <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window.dmPanel.akteNieuw()" title="Nieuwe akte">${icon('plus')} Nieuwe akte</button>
+        </div>
       </div>
       ${grpName ? `<p class="dm-akte-grp-hint">Zichtbaarheid geldt voor de actieve groep: <strong>${esc(grpName)}</strong></p>` : ''}
       ${aktes.length === 0
@@ -652,6 +661,182 @@ function _akteNieuw() {
     } catch (e) { alert('Aanmaken mislukt: ' + e.message); }
   });
 };
+
+// ── Akte-importer (Obsidian-hoofdstuk → regie-script) ──
+let _akteImp = { plan: [], files: new Map(), chapterKey: '', reports: null };
+
+function _impNormJs(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+}
+function _impBaseJs(p) { return String(p || '').split(/[\\/]/).pop().trim(); }
+
+function _akteImportWizard() {
+  const hk = window.app?.state?.meta?.hoofdstukken || {};
+  const aktes = Object.entries(hk).filter(([, v]) => (v.num ?? 99) < 90)
+    .sort((a, b) => (a[1].num || 99) - (b[1].num || 99));
+  if (!aktes.length) { alert('Maak eerst een akte aan met „Nieuwe akte".'); return; }
+  _akteImp = { plan: [], files: new Map(), chapterKey: aktes[0][0], reports: null };
+
+  const body = `
+    <div class="dm-feature-section" style="margin:0">
+      <p class="dm-hint" style="margin-top:0">Upload een hoofdstuk-<code>.md</code> uit Obsidian plus de bijbehorende afbeeldingen.
+      De importer matcht <code>[[wikilinks]]</code> op bestaande kaarten, leest <code>![[afbeeldingen]]</code> en
+      herkent monster-encounters. Je controleert alles vóór het wegschrijven.</p>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Doel-akte</label>
+        <select id="akte-imp-key" class="dm-input dm-input-sm" onchange="window.dmPanel.akteImpField('__key','key',this.value)">
+          ${aktes.map(([k, v]) => `<option value="${esc(k)}">Akte ${esc(String(v.num ?? '?'))} — ${esc(v.title || k)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="dm-feature-row" style="gap:10px">
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label">Hoofdstuk (.md)</label>
+          <input id="akte-imp-md" class="dm-input dm-input-sm" type="file" accept=".md,text/markdown,text/plain">
+        </div>
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label">Afbeeldingen (meerdere)</label>
+          <input id="akte-imp-imgs" class="dm-input dm-input-sm" type="file" accept="image/*" multiple>
+        </div>
+      </div>
+      <div class="dm-feature-row" style="margin-top:4px">
+        <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window.dmPanel.akteImpAnalyse()">${icon('search')} Analyseer</button>
+      </div>
+      <div id="akte-imp-results" style="margin-top:10px"></div>
+    </div>`;
+  window.app.openModal('Importeer uit Obsidian', 'Hoofdstuk → regie-script', body);
+}
+
+async function _akteImpAnalyse() {
+  const keyEl = document.getElementById('akte-imp-key');
+  _akteImp.chapterKey = keyEl ? keyEl.value : _akteImp.chapterKey;
+  const mdEl = document.getElementById('akte-imp-md');
+  const imgEl = document.getElementById('akte-imp-imgs');
+  const out = document.getElementById('akte-imp-results');
+  const mdFile = mdEl?.files?.[0];
+  if (!mdFile) { if (out) out.innerHTML = '<p class="dm-hint" style="color:var(--gb-danger,#b44)">Kies eerst een .md-bestand.</p>'; return; }
+  if (out) out.innerHTML = '<p class="dm-hint">Analyseren…</p>';
+
+  _akteImp.files = new Map();
+  const imageNames = [];
+  for (const f of (imgEl?.files || [])) { _akteImp.files.set(_impNormJs(_impBaseJs(f.name)), f); imageNames.push(f.name); }
+
+  let md = '';
+  try { md = await mdFile.text(); } catch { if (out) out.innerHTML = '<p class="dm-hint">Kon het bestand niet lezen.</p>'; return; }
+
+  try {
+    const r = await api.importAktePreview({ md, imageNames, chapterKey: _akteImp.chapterKey });
+    _akteImp.plan = r.plan || [];
+    _akteImp.reports = r.reports || {};
+    _renderAkteImpPlan();
+  } catch (e) {
+    if (out) out.innerHTML = `<p class="dm-hint" style="color:var(--gb-danger,#b44)">Analyse mislukt: ${esc(e.message)}</p>`;
+  }
+}
+
+function _renderAkteImpPlan() {
+  const out = document.getElementById('akte-imp-results');
+  if (!out) return;
+  const plan = _akteImp.plan;
+  const ENT_ICON = { personages: 'user', locaties: 'map-pin', organisaties: 'landmark', voorwerpen: 'package' };
+  const nImg = plan.filter(s => s.type === 'image' && s.include).length;
+  const nEnt = plan.filter(s => s.type === 'entity' && s.include).length;
+  const nEnc = plan.filter(s => s.type === 'encounter' && s.include).length;
+  const existing = (window.app?.state?.meta?.hoofdstukken?.[_akteImp.chapterKey]?.script || []).length;
+
+  const rows = plan.map(s => {
+    const off = s.include ? '' : ' style="opacity:.4"';
+    const chk = `<input type="checkbox" ${s.include ? 'checked' : ''} onchange="window.dmPanel.akteImpToggle('${s.id}')">`;
+    if (s.type === 'image') {
+      const miss = s._status === 'missing';
+      return `<div class="dm-imp-row"${off}>
+        ${chk} ${icon('image')}
+        <input class="dm-input dm-input-sm" style="flex:1" value="${esc(s.caption || '')}"
+          oninput="window.dmPanel.akteImpField('${s.id}','caption',this.value)" placeholder="Onderschrift">
+        ${miss ? `<span class="dm-imp-tag dm-imp-tag--warn" title="Bestand niet meegeüpload">${esc(s.file)} — ontbreekt</span>`
+               : `<span class="dm-imp-tag dm-imp-tag--ok">${esc(s.file)}</span>`}</div>`;
+    }
+    if (s.type === 'entity') {
+      const um = s._status === 'unmatched';
+      return `<div class="dm-imp-row"${off}>
+        ${chk} ${icon(ENT_ICON[s.entityType] || 'help-circle')}
+        <span style="flex:1">${esc(s.name)}</span>
+        ${um ? '<span class="dm-imp-tag dm-imp-tag--warn">geen kaart-match</span>'
+             : `<span class="dm-imp-tag dm-imp-tag--ok">${esc(s.entityType)}</span>`}</div>`;
+    }
+    // encounter
+    const mons = (s.monsters || []).map((m, mi) => `
+      <div class="dm-imp-mon">
+        <input class="dm-input dm-input-sm" style="width:42px" type="number" min="1" value="${m.count}"
+          onchange="window.dmPanel.akteImpMonField('${s.id}',${mi},'count',this.value)">×
+        <input class="dm-input dm-input-sm" style="flex:1" value="${esc(m.name)}"
+          oninput="window.dmPanel.akteImpMonField('${s.id}',${mi},'name',this.value)">
+        ${m.matched ? `<span class="dm-imp-tag dm-imp-tag--ok">statblock</span>`
+                    : `<span class="dm-imp-tag dm-imp-tag--warn">geen statblock</span>`}
+      </div>`).join('');
+    return `<div class="dm-imp-row dm-imp-row--enc"${off}>
+      <div style="display:flex;align-items:center;gap:6px">${chk} ${icon('crossed-swords')}
+        <input class="dm-input dm-input-sm" style="flex:1" value="${esc(s.name)}"
+          oninput="window.dmPanel.akteImpField('${s.id}','name',this.value)" placeholder="Encounter-naam"></div>
+      <div class="dm-imp-mons">${mons || '<span class="dm-hint">geen monsters herkend</span>'}</div></div>`;
+  }).join('');
+
+  out.innerHTML = `
+    <div class="dm-imp-summary">${nImg} afbeelding(en) · ${nEnt} kaart(en) · ${nEnc} encounter(s)</div>
+    <div class="dm-imp-list">${rows || '<p class="dm-hint">Niets herkend in dit bestand.</p>'}</div>
+    <div class="dm-feature-row" style="margin-top:8px;gap:14px;align-items:center">
+      <label class="dm-imp-mode"><input type="radio" name="akte-imp-mode" value="replace" checked> Vervang script${existing ? ` (${existing} stappen worden vervangen)` : ''}</label>
+      <label class="dm-imp-mode"><input type="radio" name="akte-imp-mode" value="append"> Voeg toe aan bestaand</label>
+    </div>
+    <div class="dm-feature-row" style="margin-top:8px">
+      <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.akteImpApply()">${icon('save')} Importeer in akte</button>
+      <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
+    </div>`;
+}
+
+function _akteImpToggle(id) {
+  const s = _akteImp.plan.find(x => x.id === id);
+  if (s) { s.include = !s.include; _renderAkteImpPlan(); }
+}
+function _akteImpField(id, f, val) {
+  if (id === '__key' && f === 'key') { _akteImp.chapterKey = val; return; }
+  const s = _akteImp.plan.find(x => x.id === id);
+  if (s) s[f] = val;
+}
+function _akteImpMonField(id, mi, f, val) {
+  const s = _akteImp.plan.find(x => x.id === id);
+  if (s && s.monsters && s.monsters[mi]) s.monsters[mi][f] = f === 'count' ? (parseInt(val) || 1) : val;
+}
+
+async function _akteImpApply() {
+  const modeEl = document.querySelector('input[name="akte-imp-mode"]:checked');
+  const mode = modeEl ? modeEl.value : 'replace';
+  const out = document.getElementById('akte-imp-results');
+  const fd = new FormData();
+  fd.append('plan', JSON.stringify(_akteImp.plan));
+  fd.append('chapterKey', _akteImp.chapterKey);
+  fd.append('mode', mode);
+  // Alleen bestanden voor opgenomen, aanwezige image-stappen meesturen.
+  const sent = new Set();
+  for (const s of _akteImp.plan) {
+    if (s.type !== 'image' || !s.include) continue;
+    const key = _impNormJs(_impBaseJs(s.file));
+    if (sent.has(key)) continue;
+    const f = _akteImp.files.get(key);
+    if (f) { fd.append('images', f, f.name); sent.add(key); }
+  }
+  try {
+    const r = await api.importAkteApply(fd);
+    const newMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = newMeta;
+    if (out) out.innerHTML = `<div class="dm-imp-summary" style="color:var(--gb-ok,#3a7)">
+      ✓ Geïmporteerd in ${esc(r.chapterKey)} — ${r.stepsAdded} stappen toegevoegd
+      (${r.imagesUploaded} afbeeldingen, ${r.encountersCreated} encounters). Script telt nu ${r.scriptLength} stappen.</div>
+      <div class="dm-feature-row" style="margin-top:8px"><button class="dm-btn dm-btn-primary" onclick="window.app.closeModal()">${icon('check')} Klaar</button></div>`;
+    _renderAktes();
+  } catch (e) {
+    if (out) out.innerHTML = `<p class="dm-hint" style="color:var(--gb-danger,#b44)">Import mislukt: ${esc(e.message)}</p>`;
+  }
+}
 
 
 // ── Diensten toegang per groep ──
