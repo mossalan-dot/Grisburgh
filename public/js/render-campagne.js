@@ -1582,7 +1582,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                      :                    'Zichtbaar maken';
     infoHtml += `
       <div class="dm-only mt-4 pt-4 border-t border-room-border">
-        <div class="flex flex-wrap gap-2 mb-3">
+        <div class="detail-dm-tools flex flex-wrap gap-2 mb-3">
           <button class="dm-btn dm-btn-icon${vis !== 'hidden' ? ' dm-btn--active' : ''}"
             title="${_mVisTitle}"
             onclick="window._toggleVis('${tab}','${e.id}',event)">
@@ -1606,7 +1606,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             ${icon('pencil')}
           </button>
         </div>
-        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">DM Notities</div>
+        <div class="detail-label mb-1">DM Notities</div>
         <textarea id="dm-note-${e.id}" class="w-full min-h-[80px] px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
           placeholder="Notities...">${esc(e._dmNote || '')}</textarea>
         <div id="note-save-${e.id}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>
@@ -1617,7 +1617,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     if (playerNotesData?.notes && Object.keys(playerNotesData.notes).length > 0) {
       infoHtml += `
         <div class="dm-only mt-3 pt-3 border-t border-room-border/50">
-          <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2">Spelersaantekeningen</div>
+          <div class="detail-label mb-2">Spelersaantekeningen</div>
           ${Object.entries(playerNotesData.notes).map(([name, text]) => `
             <div class="mb-2">
               <div class="text-xs text-gold font-cinzel font-semibold mb-0.5">${esc(name)}</div>
@@ -1635,7 +1635,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const myNote = playerNotesData?.note || '';
     infoHtml += `
       <div class="mt-4 pt-4 border-t border-room-border">
-        <div class="text-xs font-cinzel text-gold font-bold uppercase tracking-wider mb-1">✏ Mijn aantekeningen</div>
+        <div class="detail-label detail-label--gold mb-1">${icon('pencil')} Mijn aantekeningen</div>
         <textarea id="player-note-${e.id}"
           class="w-full min-h-[70px] px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
           placeholder="Notities voor jezelf...">${esc(myNote)}</textarea>
@@ -1726,7 +1726,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const lm = TYPE_META[lt] || { get icon() { return icon('scroll-text'); }, chip: 'chip-doc' };
     verbHtml += `
       <div class="mb-4">
-        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-2">${LINK_LABELS[lt] || lt}</div>
+        <div class="detail-label mb-2">${LINK_LABELS[lt] || lt}</div>
         <div class="flex flex-wrap gap-1.5">
           ${names.map(n => `<span class="chip ${lm.chip} cursor-pointer" data-tab="${lt}" data-name="${esc(n)}" onclick="window._navigateTo(this.dataset.tab,this.dataset.name)">${lm.svgIcon || lm.icon} ${esc(n)}</span>`).join('')}
         </div>
