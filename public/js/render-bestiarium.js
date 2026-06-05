@@ -37,15 +37,26 @@ export async function renderBestiarium(container) {
 function _renderGrid() {
   const dm = _data.role === 'dm';
   const monsters = _data.monsters || [];
-  const head = `<div class="best-head">
-    ${icon('skull')} <span class="best-title">Bestiarium</span>
-    ${monsters.length ? `<span class="best-count">${monsters.length}</span>` : ''}
-    ${dm ? `<button class="best-lib-btn" onclick="window.bestiarium.openLibrary()"
-       title="Naar de monsterbibliotheek in de Meesterkamer">${icon('book-open')} Monsterbibliotheek</button>` : ''}
-  </div>`;
+  // Sectiekop in dezelfde stijl als de archief-tabbladen (section-banner).
+  const head = `
+    <div class="section-banner section-banner--entity section-banner--bestiarium">
+      <div class="section-banner-head">
+        <div class="section-banner-icon-wrap">${icon('skull')}</div>
+        <div class="section-banner-info">
+          <div class="section-banner-label">Bestiarium</div>
+          <div class="section-banner-desc-line">Wezens en hun geheimen</div>
+        </div>
+        <div class="section-banner-search">
+          ${dm ? `<button class="best-lib-btn" onclick="window.bestiarium.openLibrary()"
+            title="Naar de monsterbibliotheek in de Meesterkamer">${icon('book-open')} Monsterbibliotheek</button>` : ''}
+          <span class="results-count sbs-count">${monsters.length} ${monsters.length === 1 ? 'wezen' : 'wezens'}</span>
+        </div>
+      </div>
+      <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
+    </div>`;
 
   if (!monsters.length) {
-    _container.innerHTML = `<div class="best-wrap">${head}
+    _container.innerHTML = `${head}<div class="best-wrap">
       <p class="best-empty">${dm
         ? 'Nog geen monsters in de bibliotheek. Voeg ze toe in de Meesterkamer → Monsters.'
         : 'Nog niets ontdekt. Versla monsters in de strijd om hun geheimen te leren.'}</p>
@@ -53,7 +64,7 @@ function _renderGrid() {
     return;
   }
   const cards = monsters.map((m, i) => _card(m, i, dm)).join('');
-  _container.innerHTML = `<div class="best-wrap">${head}
+  _container.innerHTML = `${head}<div class="best-wrap">
     <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">${cards}</div>
   </div>`;
   // Zelfde 3D-tilt bij hover als de archief-tabbladen.

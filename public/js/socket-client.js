@@ -348,6 +348,7 @@ export function initSocket() {
   // #3: bestiarium-kennis gewijzigd → her-render als de speler/DM daar is
   socket.on('bestiarium:updated', () => {
     window.bestiarium?.refresh?.();
+    window._updateDiscoveryChip?.(true); // onthul-teller verversen
   });
 
   // #2: ambiance-scène starten/stoppen bij iedereen
