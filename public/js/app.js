@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { renderProgressie } from './render-progressie.js?v=21';
 import { initSocket } from "./socket-client.js?v=21";
-import { initDmPanel } from "./dm-panel.js?v=57";
+import { initDmPanel } from "./dm-panel.js?v=58";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -248,7 +248,17 @@ function switchSection(section) {
   refreshSection(section);
   updateFab();
   _updateDiscoveryChip();
+  // #2: dienst-ambiance — start de lokale sfeerloop van deze dienst, of stop 'm.
+  if (_DIENST_AMB_LABELS[section]) {
+    window.soundManager?.setServiceAmbiance?.(section, state.meta?.[section]?.naam || _DIENST_AMB_LABELS[section]);
+  } else {
+    window.soundManager?.setServiceAmbiance?.(null);
+  }
 }
+const _DIENST_AMB_LABELS = {
+  herberg: 'De Herberg', tweespalt: 'De Tweespalt', gock: 'De Gock',
+  ursula: 'Madame Ursula', tempel: 'De Tempel', heeren: 'Heeren van de Nacht',
+};
 
 // ── Ontdekkings-meter in de header (feature #5) ──
 // Toont voor de huidige archiefcategorie hoeveel de (actieve) groep ontdekt heeft.

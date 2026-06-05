@@ -3057,8 +3057,11 @@ function _ensureAmbiance(data) {
   if (!Array.isArray(data.ambiance.scenes)) data.ambiance.scenes = [];
   if (typeof data.ambiance.volume !== 'number') data.ambiance.volume = 0.5;
   if (!('actief' in data.ambiance)) data.ambiance.actief = null;
+  // Per-dienst sfeerloop (speelt lokaal bij het openen van een dienst).
+  if (!data.serviceAmbiance || typeof data.serviceAmbiance !== 'object') data.serviceAmbiance = {};
   return data;
 }
+const _DIENST_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren'];
 
 router.get('/sounds', (req, res) => {
   let data = storage.readJSON('sounds.json');
@@ -3081,6 +3084,13 @@ router.put('/sounds', requireDM, (req, res) => {
     if (Array.isArray(req.body.ambiance.scenes)) data.ambiance.scenes = req.body.ambiance.scenes.slice(0, 60);
     if (typeof req.body.ambiance.volume === 'number')
       data.ambiance.volume = Math.min(1, Math.max(0, req.body.ambiance.volume));
+  }
+  if (req.body.serviceAmbiance && typeof req.body.serviceAmbiance === 'object') {
+    for (const [k, v] of Object.entries(req.body.serviceAmbiance)) {
+      if (!_DIENST_KEYS.includes(k)) continue;          // alleen bekende diensten
+      if (v === null) delete data.serviceAmbiance[k];
+      else data.serviceAmbiance[k] = String(v).slice(0, 100);
+    }
   }
   storage.writeJSON('sounds.json', data);
   res.json(data);

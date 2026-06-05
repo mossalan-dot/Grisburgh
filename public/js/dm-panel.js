@@ -4703,8 +4703,41 @@ async function _renderGeluiden() {
       </label>
     </div>`;
 
+  // ── Diensten-sfeerloops (feature #2, lokaal per dienst) ──
+  const _DIENSTEN = [
+    { key: 'herberg',   label: 'De Herberg' },        { key: 'tweespalt', label: 'De Tweespalt' },
+    { key: 'gock',      label: 'De Gock' },            { key: 'ursula',    label: 'Madame Ursula' },
+    { key: 'tempel',    label: 'De Tempel' },          { key: 'heeren',    label: 'Heeren van de Nacht' },
+  ];
+  const svcAmb = sounds.serviceAmbiance || {};
+  const svcRows = _DIENSTEN.map(d => {
+    const fid = svcAmb[d.key];
+    return `
+      <div class="dm-sound-row">
+        <span class="dm-sound-slot-label">${d.label}</span>
+        <div class="dm-sound-controls">
+          ${fid
+            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(fid)}')">▶</button>
+               <span class="dm-sound-set">✓ Ingesteld</span>
+               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._svcAmbRemove('${d.key}')">${icon('x')}</button>`
+            : `<span class="dm-sound-empty">Geen loop</span>`}
+          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
+            ↑ Upload
+            <input type="file" accept="audio/*" style="display:none" onchange="window._svcAmbUpload('${d.key}', this)">
+          </label>
+        </div>
+      </div>`;
+  }).join('');
+  const svcSection = `
+    <div class="dm-sound-section">
+      <div class="dm-sound-section-title">${icon('volume-2')} Diensten-sfeerloops</div>
+      <p class="dm-hint">Een sfeerloop per dienst die <strong>lokaal</strong> speelt zodra iemand die dienst opent — los van een sessie, geen tablet nodig. Een lopende broadcast-scène heeft voorrang.</p>
+      <div class="dm-sound-list">${svcRows}</div>
+    </div>`;
+
   el.innerHTML = `
     ${ambSection}
+    ${svcSection}
     <div class="dm-sound-section">
       <div class="dm-sound-section-title">🎭 Spelersemotes</div>
       <p class="dm-hint">Stel per speler een beurtgeluid in en maak een emotebibliotheek. Selecteer max. 5 emotes voor gevecht (✓ = actief).</p>
@@ -4771,6 +4804,18 @@ async function _renderGeluiden() {
     const sd = await _sndGetData();
     await _sndPatch({ ambiance: { scenes: sd.ambiance?.scenes || [], volume: parseFloat(v) } });
     if (sd.ambiance?.actief) await _ambBroadcast(sd.ambiance.actief); // live volume toepassen
+  };
+
+  // ── Diensten-sfeerloops (feature #2) ──
+  window._svcAmbUpload = async (key, input) => {
+    const file = input.files[0]; if (!file) return;
+    const fileId = await _sndUploadFile(file);
+    await _sndPatch({ serviceAmbiance: { [key]: fileId } });
+    _renderGeluiden();
+  };
+  window._svcAmbRemove = async (key) => {
+    await _sndPatch({ serviceAmbiance: { [key]: null } });
+    _renderGeluiden();
   };
 
   window._sndUploadStd = async (key, input) => {
