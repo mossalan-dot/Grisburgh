@@ -45,7 +45,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=232">
+  <link rel="stylesheet" href="/css/theme.css?v=233">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -127,6 +127,12 @@
           <span id="active-akte-label"></span>
           <button class="active-akte-stop" onclick="window.app.stopAkte()" title="Stop akte">×</button>
         </div>
+        <!-- Ambiance-dempknop (feature #2): zichtbaar als er een scène speelt -->
+        <button id="ambiance-toggle" class="ambiance-toggle hidden"
+          onclick="window.soundManager?.toggleAmbiance()" title="Ambiance">
+          <span class="ambiance-toggle-icon" id="ambiance-toggle-icon"></span>
+          <span class="ambiance-toggle-label" id="ambiance-toggle-label"></span>
+        </button>
         <!-- Ontdekkings-meter voor de huidige archiefcategorie (feature #5) -->
         <div id="discovery-chip" class="discovery-chip hidden" title="Ontdekt in deze categorie">
           <span class="discovery-chip-icon" id="discovery-chip-icon"></span>
@@ -539,7 +545,7 @@
     </div>
   </div>
 
-  <script type="module" src="/js/sound-manager.js?v=1"></script>
-  <script type="module" src="/js/app.js?v=323"></script>
+  <script type="module" src="/js/sound-manager.js?v=2"></script>
+  <script type="module" src="/js/app.js?v=324"></script>
 </body>
 </html>

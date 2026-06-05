@@ -3051,10 +3051,20 @@ router.delete('/files/:id', requireDM, (req, res) => {
 
 // ── Sounds ──
 
+// Zorg dat het ambiance-blok (feature #2) altijd bestaat met sane defaults.
+function _ensureAmbiance(data) {
+  if (!data.ambiance) data.ambiance = { scenes: [], actief: null, volume: 0.5 };
+  if (!Array.isArray(data.ambiance.scenes)) data.ambiance.scenes = [];
+  if (typeof data.ambiance.volume !== 'number') data.ambiance.volume = 0.5;
+  if (!('actief' in data.ambiance)) data.ambiance.actief = null;
+  return data;
+}
+
 router.get('/sounds', (req, res) => {
   let data = storage.readJSON('sounds.json');
   if (!data) data = { standard: {}, emotes: {}, playerTurn: {} };
   if (!data.playerTurn) data.playerTurn = {};
+  _ensureAmbiance(data);
   res.json(data);
 });
 
@@ -3062,11 +3072,37 @@ router.put('/sounds', requireDM, (req, res) => {
   let data = storage.readJSON('sounds.json');
   if (!data) data = { standard: {}, emotes: {}, playerTurn: {} };
   if (!data.playerTurn) data.playerTurn = {};
+  _ensureAmbiance(data);
   if (req.body.standard)    Object.assign(data.standard,    req.body.standard);
   if (req.body.emotes)      Object.assign(data.emotes,      req.body.emotes);
   if (req.body.playerTurn)  Object.assign(data.playerTurn,  req.body.playerTurn);
+  if (req.body.ambiance) {
+    // Scènebeheer + mastervolume; 'actief' blijft via POST /sounds/ambiance gaan.
+    if (Array.isArray(req.body.ambiance.scenes)) data.ambiance.scenes = req.body.ambiance.scenes.slice(0, 60);
+    if (typeof req.body.ambiance.volume === 'number')
+      data.ambiance.volume = Math.min(1, Math.max(0, req.body.ambiance.volume));
+  }
   storage.writeJSON('sounds.json', data);
   res.json(data);
+});
+
+// Speel een ambiance-scène af bij iedereen (of stop met actief:null).
+router.post('/sounds/ambiance', requireDM, (req, res) => {
+  let data = storage.readJSON('sounds.json');
+  if (!data) data = { standard: {}, emotes: {}, playerTurn: {} };
+  _ensureAmbiance(data);
+  const actief = req.body.actief || null;
+  const scene  = actief ? data.ambiance.scenes.find(s => s.id === actief) : null;
+  if (actief && !scene) return res.status(404).json({ error: 'Scène niet gevonden' });
+  data.ambiance.actief = scene ? scene.id : null;
+  storage.writeJSON('sounds.json', data);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('sound:ambiance', {
+    actief: data.ambiance.actief,
+    fileId: scene?.fileId || null,
+    label:  scene?.label  || null,
+    volume: data.ambiance.volume,
+  });
+  res.json({ ok: true, actief: data.ambiance.actief });
 });
 
 // ── Klasse-progressie (skill trees) ──────────────────────────────
