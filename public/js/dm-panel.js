@@ -290,6 +290,8 @@ export function initDmPanel() {
       _renderRegieBalk();
     },
     regieBalkToggleMinimize() { _rbMinimized = !_rbMinimized; _renderRegieBalk(); },
+    // #2: ververs de ambiance-snelknop in de regie-balk (bij socket-wijziging)
+    syncAmbiance() { _refreshAmbCache().then(() => _renderRegieBalk()); },
 
     // Campagnes
     campagneSwitchTo:  _campagneSwitchTo,
@@ -1117,6 +1119,8 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
   _rbMinimized = false;
   _rbScript    = [];  // leeg tot data geladen is
   _renderRegieBalk();
+  // Ambiance-scènes voor de snelknop in de balk laden, dan opnieuw renderen.
+  _refreshAmbCache().then(() => _renderRegieBalk());
 
   try {
     // Haal verse meta én archief parallel op
@@ -1241,6 +1245,18 @@ function _renderRegieBalk() {
           </div>
         </div>
         <div class="dm-regie-balk-header-right">
+          <div class="dm-rb-amb">${
+            _ambCache.actief
+              ? `<button class="dm-regie-balk-btn dm-rb-amb-btn--on" onclick="window._ambStop()"
+                   title="Stop ambiance: ${esc(_ambCache.scenes.find(s => s.id === _ambCache.actief)?.label || '')}">${icon('volume-2')}</button>`
+              : (_ambCache.scenes.length
+                ? `<select class="dm-rb-amb-select" title="Ambiance afspelen bij iedereen"
+                     onchange="if(this.value)window._ambPlay(this.value)">
+                     <option value="">${icon ? '' : ''}♪ Ambiance…</option>
+                     ${_ambCache.scenes.map(s => `<option value="${esc(s.id)}">${esc(s.label || 'Scène')}</option>`).join('')}
+                   </select>`
+                : '')
+          }</div>
           <button class="dm-regie-balk-btn dm-rb-combat-btn${_combat?.active ? '' : ' hidden'}" id="dm-rb-combat-btn"
             onclick="window.dmPanel.combatExpand()" title="Gevecht uitklappen">${icon('stiletto',{cls:'icon-gi'})}</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkToggleMinimize()" title="Minimaliseren">−</button>
@@ -4517,6 +4533,25 @@ function _sndPlayerData(sounds, pid) {
   return { library: raw.library || [], selected: raw.selected || [] };
 };
 
+// ── Ambiance broadcast (feature #2) — module-scope zodat ook de regie-balk
+// de scènes kan tonen/bedienen, niet alleen de Geluiden-tab. ──
+let _ambCache = { scenes: [], actief: null };
+async function _refreshAmbCache() {
+  try {
+    const sd = await _sndGetData();
+    _ambCache = { scenes: sd.ambiance?.scenes || [], actief: sd.ambiance?.actief || null };
+  } catch { /* houd oude cache */ }
+}
+async function _ambBroadcast(actief) {
+  await fetch('/api/sounds/ambiance', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ actief }),
+  });
+  await _refreshAmbCache();
+}
+window._ambPlay = async (id) => { await _ambBroadcast(id);   _renderGeluiden(); _renderRegieBalk(); };
+window._ambStop = async ()   => { await _ambBroadcast(null); _renderGeluiden(); _renderRegieBalk(); };
+
 async function _renderGeluiden() {
   const el = document.getElementById('dm-geluiden-content');
   if (!el) return;
@@ -4707,11 +4742,8 @@ async function _renderGeluiden() {
     new Audio(`/api/files/${fileId}`).play().catch(() => {});
   };
 
-  // ── Geluidsdecors (ambiance, feature #2) ──
-  const _ambBroadcast = (actief) => fetch('/api/sounds/ambiance', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ actief }),
-  });
+  // ── Geluidsdecors (ambiance, feature #2) — scènebeheer ──
+  // (_ambBroadcast / _ambPlay / _ambStop staan op module-scope, zie boven.)
   window._ambAddScene = async (input) => {
     const file = input.files[0]; if (!file) return;
     const fileId = await _sndUploadFile(file);
@@ -4735,8 +4767,6 @@ async function _renderGeluiden() {
     await _sndPatch({ ambiance: { scenes, volume: sd.ambiance?.volume ?? 0.5 } });
     _renderGeluiden();
   };
-  window._ambPlay = async (id) => { await _ambBroadcast(id); _renderGeluiden(); };
-  window._ambStop = async () => { await _ambBroadcast(null); _renderGeluiden(); };
   window._ambSetVolume = async (v) => {
     const sd = await _sndGetData();
     await _sndPatch({ ambiance: { scenes: sd.ambiance?.scenes || [], volume: parseFloat(v) } });
