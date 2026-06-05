@@ -1949,6 +1949,7 @@ body::before {
 .section-banner--voorwerpen  { --bc: 154,106,42; --bc-text: #7a5610; }
 .section-banner--documenten  { --bc: 128,92,42;  --bc-text: #6a4818; }
 .section-banner--logboek     { --bc: 72,52,22;   --bc-text: #4a3410; }
+.section-banner--bestiarium  { --bc: 120,42,42;  --bc-text: #7a2a2a; }
 
 .section-banner--entity {
   padding: 16px 24px 0;

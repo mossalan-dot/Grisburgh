@@ -372,6 +372,10 @@ router.get('/ontdekkingen', attachRole, (req, res) => {
     return state !== 'hidden';
   }).length;
   out.documenten = { ontdekt: docOntdekt, totaal: docs.length };
+  // Bestiarium: wezens die de groep al kent (≥ naam) van alle bestiarium-monsters.
+  const bestMonsters = (storage.readJSON('monsters.json').monsters || []).filter(m => m.inBestiarium !== false);
+  const bestKennis   = g?.bestiarium || {};
+  out.bestiarium = { ontdekt: bestMonsters.filter(m => bestKennis[m.id]).length, totaal: bestMonsters.length };
   res.json(out);
 });
 

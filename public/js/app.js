@@ -5,8 +5,8 @@ import { renderKaart, queueFlyTo } from './render-kaart.js?v=4';
 import { renderDungeon } from './render-dungeon.js?v=19';
 import { renderRelatiemap } from './render-relatiemap.js?v=11';
 import { renderProgressie } from './render-progressie.js?v=22';
-import { renderBestiarium } from './render-bestiarium.js?v=7';
-import { initSocket } from "./socket-client.js?v=27";
+import { renderBestiarium } from './render-bestiarium.js?v=8';
+import { initSocket } from "./socket-client.js?v=28";
 import { initDmPanel } from "./dm-panel.js?v=66";
 
 // ── Icon helper ──
@@ -274,6 +274,7 @@ const _DISCOVERY_META = {
   organisaties: { ic: 'landmark',    accent: '#8b2a2a' },
   voorwerpen:   { ic: 'package',     accent: '#9a6a2a' },
   documenten:   { ic: 'scroll-text', accent: '#5a3a7a' },
+  bestiarium:   { ic: 'skull',       accent: '#782a2a' },
 };
 let _discoveryCache = null;
 let _discoveryFetching = false;
