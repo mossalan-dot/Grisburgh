@@ -599,7 +599,7 @@ body::before {
 .entity-card:has(.bar-organisaties).card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f8f0f0 100%); }
 .entity-card:has(.bar-voorwerpen)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #faf3e0 100%); }
 .entity-card:has(.bar-documenten)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f5f2f8 100%); }
-.entity-card:has(.bar-bestiarium)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f8efef 100%); }
+.entity-card:has(.bar-bestiarium)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f8efef 100%); z-index: 2; }
 
 /* ── 3D tilt: tijdens muisbeweging alleen box-shadow transitioneren, transform instant ── */
 .entity-card.card-tilting {
@@ -17430,24 +17430,51 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 .best-empty, .best-loading, .best-err { font-family: 'IM Fell English', serif; font-style: italic; color: #6a5238; padding: 20px 4px; }
 .best-err { color: #8a3020; }
 /* Bestiariumkaartjes hergebruiken de .entity-card-opmaak van de archief-tabbladen. */
-.best-card-img-wrap { min-height: 158px; background: rgba(120,42,42,0.06); }
-.best-card-img { position: relative; z-index: 1; }
-.best-silhouet-fill { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #9a5a5a; z-index: 0; }
-.best-silhouet-fill .icon { width: 54px; height: 54px; opacity: 0.38; }
+.best-card-img-wrap { min-height: 158px; max-height: 196px; overflow: hidden; }
+/* Zelfde portret-formaat & hover-pan als de archiefkaarten. */
+.best-card-img { position: relative; z-index: 1; min-height: 158px; max-height: 196px; }
+/* Silhouet als er geen portret is: subtiel verlopend vlak dat naadloos in de
+   kaart-body overgaat (geen harde scheidingsband). */
+.best-silhouet-fill {
+  position: absolute; inset: 0; z-index: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #8b3a3a;
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(168,74,74,0.13) 0%, rgba(168,74,74,0) 62%),
+    linear-gradient(to bottom, #f3e4e4 0%, #f8efef 100%);
+}
+.best-silhouet-fill .icon { width: 56px; height: 56px; opacity: 0.34; }
 
-/* Hoek-knoppen (bewerken / verwijderen) — zelfde stijl als de archiefkaarten. */
+/* Hoek-knoppen (bewerken / verwijderen) — identiek aan de archiefkaarten. */
 .best-card-ctrl { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: rgba(0,0,0,0.75); color: #fff; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; backdrop-filter: blur(2px); transition: background .15s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
 .best-card-ctrl:hover { background: rgba(0,0,0,0.95); }
 .best-card-ctrl--danger:hover { background: rgba(170,40,40,0.92); }
 .best-card-ctrl .icon { width: 14px; height: 14px; }
 
-/* Niveau-keuze (DM) / kennis-badge (speler) over de onderrand van het portret. */
-.best-niv-overlay, .best-badge-overlay { position: absolute; left: 8px; bottom: 8px; z-index: 4; }
-.best-niv-select { font-family: 'Crimson Text', serif; font-size: 12px; color: #2a1a08; background: rgba(255,253,246,0.94); border: 1px solid var(--color-room-border); border-radius: 6px; padding: 3px 6px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
-.best-card-badge { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; padding: 3px 9px; border-radius: 999px; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
-.best-badge--naam { color: #6a4f30; background: rgba(245,237,216,0.95); }
-.best-badge--deels { color: #fff; background: rgba(42,90,138,0.92); }
-.best-badge--volledig { color: #fff; background: rgba(139,42,42,0.92); }
+/* Niveau-keuze (DM) / kennis-badge (speler) over de onderrand van het portret —
+   donkere, halftransparante pil in dezelfde stijl als de hoekknoppen. */
+.best-niv-overlay, .best-badge-overlay { position: absolute; left: 8px; bottom: 8px; z-index: 6; }
+.best-niv-select {
+  font-family: 'Cinzel', serif; font-size: 10.5px; letter-spacing: 0.04em;
+  color: #f3e7d4; background: rgba(0,0,0,0.62);
+  border: 1px solid rgba(255,255,255,0.22); border-radius: 999px;
+  padding: 3px 22px 3px 11px; cursor: pointer;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M1 3l4 4 4-4' fill='none' stroke='%23f3e7d4' stroke-width='1.5'/></svg>");
+  background-repeat: no-repeat; background-position: right 8px center;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.best-niv-select:hover { background-color: rgba(0,0,0,0.8); border-color: var(--color-gold-dim); }
+.best-niv-select option { color: #2a1a08; background: #fffdf6; font-family: 'Crimson Text', serif; }
+.best-card-badge { font-family: 'Cinzel', serif; font-size: 10.5px; letter-spacing: 0.04em; padding: 3px 11px; border-radius: 999px; box-shadow: 0 1px 4px rgba(0,0,0,0.35); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.18); }
+.best-badge--naam { color: #f3e7d4; background: rgba(122,86,52,0.86); }
+.best-badge--deels { color: #fff; background: rgba(42,90,138,0.88); }
+.best-badge--volledig { color: #fff; background: rgba(139,42,42,0.9); }
+/* Onbekend (DM-only) kaart is gedimd; iets minder hard dan de archief-hidden. */
+.best-entity-card.card-hidden { opacity: 0.62; }
+.best-entity-card.card-hidden:hover { opacity: 0.85; }
 
 /* ── Spreukenboek-beheer: meerregelige tekstvelden (bug 4c) ── */
 .sb-manage-textarea { resize: vertical; min-height: 2.4em; line-height: 1.35; font-family: inherit; }
