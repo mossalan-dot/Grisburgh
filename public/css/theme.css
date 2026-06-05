@@ -1792,11 +1792,10 @@ body::before {
 .log-chip-section { display: flex; flex-direction: column; gap: 5px; }
 .log-chip-section-label {
   font-family: 'Cinzel', serif;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.8px;
-  color: #7a5c28;
+  letter-spacing: 0.03em;
+  color: #6a5238;
   padding-bottom: 5px;
   border-bottom: 1px solid rgba(196,168,122,0.4);
   margin-bottom: 4px;
@@ -4130,7 +4129,8 @@ body::before {
 .sb-score-label { font-size: 0.75rem; font-weight: 700; color: #58180d; }
 .sb-score-val { font-size: 1rem; font-weight: 700; }
 .sb-score-mod { font-size: 0.78rem; color: #333; }
-.sb-section-label { font-family: 'Cinzel', serif; font-size: 0.82rem; font-weight: 700; color: #58180d; letter-spacing: .04em; margin-bottom: 4px; }
+.sb-section-label { font-family: 'Cinzel', serif; font-size: 0.82rem; font-weight: 700; color: #58180d; letter-spacing: .02em; margin-bottom: 4px; display: flex; align-items: center; gap: 7px; }
+.sb-section-label::before { content: ''; width: 3px; height: 13px; border-radius: 2px; background: rgba(88,24,13,0.5); flex-shrink: 0; }
 .sb-p { font-size: 0.88rem; line-height: 1.65; margin: 0 0 6px; }
 
 /* Statblock button in gevecht detail */

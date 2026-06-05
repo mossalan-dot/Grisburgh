@@ -2194,7 +2194,7 @@ window._openDoc = async (id) => {
           }
         } else if (ct.includes('audio')) {
           fileContainer.innerHTML = `<div class="bg-room-elevated rounded-lg p-4">
-            <div class="text-xs font-cinzel text-ink-dim uppercase tracking-wide mb-2">🎵 Geluidsfragment</div>
+            <div class="detail-label mb-2">${icon('volume-2')} Geluidsfragment</div>
             <audio controls class="w-full" src="${fileUrl}"></audio>
           </div>`;
         } else if (ct.includes('pdf')) {
