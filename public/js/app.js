@@ -1,5 +1,5 @@
 import { api } from './api.js?v=225';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=91";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=92";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=36";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=6';
 import { renderDungeon } from './render-dungeon.js?v=20';
@@ -4987,7 +4987,7 @@ async function renderMijnKarakter(opts = {}) {
             <div class="renown-rang">${esc(heerenData.rang?.naam || '')}<span class="renown-trap">${(heerenData.rang?.index ?? 0) + 1}/${heerenData.rang?.aantal || 1}</span></div>
             ${heerenData.rang?.voordelen ? `<div class="renown-voordelen">${esc(heerenData.rang.voordelen)}</div>` : ''}
             ${heerenData.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(heerenData.rang.volgende.naam)}</strong>${heerenData.rang.volgende.voordelen ? `: ${esc(heerenData.rang.volgende.voordelen)}` : ''}</div>` : ''}
-            ${(heerenData.boetes && heerenData.boetes.length) ? `<div class="renown-boete">⚖️ ${heerenData.boetes.length} openstaande boete${heerenData.boetes.length > 1 ? 's' : ''} bij de Luimpoort</div>` : ''}
+            ${(heerenData.boetes && heerenData.boetes.length) ? `<div class="renown-boete">${icon('landmark')} ${heerenData.boetes.length} openstaande boete${heerenData.boetes.length > 1 ? 's' : ''} bij de Luimpoort</div>` : ''}
           </div>
         </div>` : ''}
 
@@ -4998,7 +4998,7 @@ async function renderMijnKarakter(opts = {}) {
           const next = ladder.find(r => !r.bereikt && (r.boons || []).length);
           return `
         <div class="player-dash-section">
-          <div class="player-dash-section-title">${esc(f.embleem || '🏛️')} Aanzien bij ${esc(f.naam)}</div>
+          <div class="player-dash-section-title">${f.embleem ? esc(f.embleem) : icon('landmark')} Aanzien bij ${esc(f.naam)}</div>
           <div class="renown-card factie-card--${stijl}">
             <div class="renown-rang">${esc(f.rang?.naam || '')}<span class="renown-trap">${(f.rang?.index ?? 0) + 1}/${f.rang?.aantal || 1}</span></div>
             ${f.rang?.voordelen ? `<div class="renown-voordelen">${esc(f.rang.voordelen)}</div>` : ''}
@@ -7478,7 +7478,7 @@ window.app._globalSearchRun = async function(q) {
       return tokens.every(t => hay.includes(t));
     }).slice(0, 8);
     if (docHits.length) {
-      html += `<div class="gs-group"><div class="gs-group-label">📜 Documenten</div>`;
+      html += `<div class="gs-group"><div class="gs-group-label">${icon('scroll-text')} Documenten</div>`;
       for (const d of docHits) {
         const idx = _gsResults.push({ type: 'documenten', id: d.id }) - 1;
         html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('documenten','${esc(d.id)}')">
@@ -7816,7 +7816,7 @@ async function renderHerberg() {
         <div class="herberg-portrait-wrap">
           ${config.imageId
             ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round${cooldownActief ? ' herberg-portrait--weg' : ''}" alt="${esc(config.waard)}">`
-            : `<div class="herberg-portrait-round herberg-portrait-fallback${cooldownActief ? ' herberg-portrait--weg' : ''}">🍺</div>`}
+            : `<div class="herberg-portrait-round herberg-portrait-fallback${cooldownActief ? ' herberg-portrait--weg' : ''}">${icon('beer')}</div>`}
         </div>
         <p class="herberg-groet">${_groetTekst}</p>
 
@@ -7845,7 +7845,7 @@ async function renderHerberg() {
                     <button class="herberg-item herberg-item--shuffle"
                       onclick="window._herbergShuffle()"
                       title="Andere suggesties">
-                      <span class="herberg-item-naam">🎲 Andere suggesties…</span>
+                      <span class="herberg-item-naam">${icon('dice',{cls:'icon-gi'})} Andere suggesties…</span>
                     </button>` : ''}
                 </div>
               </div>`
@@ -8584,13 +8584,13 @@ async function renderHeeren() {
 
   const boetesHtml = boetes.length ? `
     <div class="gock-dossier" style="border-color:rgba(150,40,40,0.6)">
-      <div class="gock-dossier-head">⚖️ Openstaande boetes${luimpoort ? ' — ' + esc(luimpoort.naam) + kaartLink(luimpoort) : ''}</div>
+      <div class="gock-dossier-head">${icon('landmark')} Openstaande boetes${luimpoort ? ' — ' + esc(luimpoort.naam) + kaartLink(luimpoort) : ''}</div>
       ${boetes.map(b => `
         <div style="border-top:1px solid rgba(196,168,122,0.2);padding:6px 0">
           <p class="gock-dossier-tekst">${esc(b.reden)} — <strong>${clTekst(b.bedragCl)}</strong></p>
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
             <button class="ts-wedden-btn" onclick="window._heerenBetaal('${esc(b.id)}','${esc(clTekst(b.bedragCl))}')">Betaal ${esc(clTekst(b.bedragCl))}</button>
-            <button class="ts-wedden-btn" onclick="window._heerenAdvocaat('${esc(b.id)}')">⚖️ Huur ${advocaat ? esc(advocaat.naam) : 'Zilvertong en Zemelaar'} (${esc(honorariumTekst)})</button>
+            <button class="ts-wedden-btn" onclick="window._heerenAdvocaat('${esc(b.id)}')">${icon('landmark')} Huur ${advocaat ? esc(advocaat.naam) : 'Zilvertong en Zemelaar'} (${esc(honorariumTekst)})</button>
             ${advocaat ? kaartLink(advocaat) : ''}
           </div>
         </div>`).join('')}
@@ -8734,7 +8734,7 @@ async function renderTweespalt() {
     return `
       <div class="ts-event${isAfgerond ? ' ts-event--afgerond' : ''}">
         <div class="ts-event-head">
-          <span class="ts-event-type">${event.type === 'godenwedden' ? '⚡ Godenwedden' : '⚔️ Gevecht'}</span>
+          <span class="ts-event-type">${event.type === 'godenwedden' ? `${icon('zap')} Godenwedden` : `${icon('crossed-swords',{cls:'icon-gi'})} Gevecht`}</span>
           <span class="ts-event-naam">${esc(event.naam)}</span>
           ${event.uitkomstModus === 'auto' && minRest !== null && !isAfgerond
             ? `<span class="ts-event-timer">${minRest < 60 ? `${minRest} min` : `${Math.ceil(minRest/60)} uur`}</span>`
@@ -8754,7 +8754,7 @@ async function renderTweespalt() {
 
   const leningBanner = lening
     ? `<div class="ts-lening-banner">
-        📜 Openstaande lening bij Taevin Woekeling — oorspronkelijk ${formatCl(lening.bedragCl)},
+        ${icon('scroll-text')} Openstaande lening bij Taevin Woekeling — oorspronkelijk ${formatCl(lening.bedragCl)},
         huidig verschuldigd: <strong>${formatCl(lening.huidigVerschuldigdCl)}</strong>
         <span class="ts-lening-sub">(30% rente per dag)</span>
        </div>` : '';
@@ -8762,7 +8762,7 @@ async function renderTweespalt() {
   const tsBackdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
   const tsPortret  = config.imageId
     ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam || 'De Tweespalt')}">`
-    : `<div class="ts-portrait-fallback">🎲</div>`;
+    : `<div class="ts-portrait-fallback">${icon('dice',{cls:'icon-gi'})}</div>`;
 
   el.innerHTML = `
     <div class="herberg-scene tweespalt-scene" ${tsBackdrop}>

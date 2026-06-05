@@ -1688,13 +1688,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         ['reactions','Reactions'],
         ['legendaryActions','Legendary Actions'],
       ].filter(([k]) => s[k]).map(([k, label]) =>
-        `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-1">${label}</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s[k])}</div></div>`
+        `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">${label}</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s[k])}</div></div>`
       ).join('');
 
       // Spells
       const _spells = [
-        s.cantrips ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-1">Cantrips</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.cantrips)}</div></div>` : '',
-        s.spells ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-1">Spells</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.spells)}</div></div>` : '',
+        s.cantrips ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">Cantrips</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.cantrips)}</div></div>` : '',
+        s.spells ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">Spells</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.spells)}</div></div>` : '',
       ].join('');
 
       sheetHtml += `
@@ -1754,8 +1754,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           <table class="w-full text-sm">
             <thead>
               <tr class="bg-room-elevated border-b border-room-border">
-                <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Speler</th>
-                ${isStapelbaarVoorwerp ? `<th class="px-4 py-2.5 text-center font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Aantal</th>` : ''}
+                <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] tracking-wide">Speler</th>
+                ${isStapelbaarVoorwerp ? `<th class="px-4 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide">Aantal</th>` : ''}
                 <th class="px-4 py-2.5 w-8"></th>
               </tr>
             </thead>
@@ -1891,10 +1891,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           <table class="w-full text-sm">
             <thead>
               <tr class="bg-room-elevated border-b border-room-border">
-                <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Voorwerp</th>
-                <th class="px-4 py-2.5 text-right font-cinzel text-ink-dim text-[10px] uppercase tracking-wider">Prijs</th>
+                <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] tracking-wide">Voorwerp</th>
+                <th class="px-4 py-2.5 text-right font-cinzel text-ink-dim text-[10px] tracking-wide">Prijs</th>
                 ${isDM() && roterend ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] uppercase" title="Actief voor spelers">✦</th>` : ''}
-                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] uppercase tracking-wider" title="Uitverkocht">UV</th>` : ''}
+                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide" title="Uitverkocht">UV</th>` : ''}
                 ${!isDM() ? `<th class="px-2 py-2.5"></th>` : ''}
               </tr>
             </thead>
@@ -2489,7 +2489,7 @@ window._openEditor = async (tab, editId) => {
     const [fx, fy] = (focusVal.match(/(\d+)%\s*(\d+)%/) || [null,'50','50']).slice(1).map(Number);
     body += `
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Afbeelding</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Afbeelding</label>
         <div class="mt-1">
           ${fileUrl ? `
             <div id="fp-wrap" class="relative rounded overflow-hidden mb-1 select-none"
@@ -2522,13 +2522,13 @@ window._openEditor = async (tab, editId) => {
         </div>
       </div>
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Onderschrift</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Onderschrift</label>
         <input name="data_imgCaption" value="${esc(e?.data?.imgCaption || '')}"
           placeholder="Bijschrift\u2026"
           class="w-full mt-1 px-2 py-1.5 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
       </div>
       <div>
-        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">Extra afbeeldingen</div>
+        <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Extra afbeeldingen</div>
         <div id="entity-img-preview" class="editor-img-grid mb-2">
           <span class="text-xs text-ink-faint italic">Nog geen</span>
         </div>
@@ -2545,7 +2545,7 @@ window._openEditor = async (tab, editId) => {
   body += `<div class="editor-col-right">`;
   body += `
     <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Naam</label>
+      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Naam</label>
       <input name="name" value="${esc(e?.name || '')}" required
         class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
     </div>
@@ -2555,7 +2555,7 @@ window._openEditor = async (tab, editId) => {
   if (schema.subtypes) {
     body += `
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Subtype</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Subtype</label>
         <select name="subtype" id="subtype-select"
           onchange="window._onSubtypeChange(this.value)"
           class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
@@ -2572,7 +2572,7 @@ window._openEditor = async (tab, editId) => {
     const currentGroep = e?.data?.groep || '';
     body += `
       <div id="groep-section"${isSpeler ? '' : ' style="display:none"'}>
-        <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">Spelersgroep</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Spelersgroep</label>
         <select name="data_groep"
           class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
           <option value="">Alle groepen</option>
@@ -2608,7 +2608,7 @@ window._openEditor = async (tab, editId) => {
           <input type="checkbox" id="toggle-${field.key}" class="rounded"
             ${hasData ? 'checked' : ''}
             onchange="window._onRevealToggle('${field.key}', this.checked)">
-          <label for="toggle-${field.key}" class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider cursor-pointer">${esc(field.label)}</label>
+          <label for="toggle-${field.key}" class="text-xs font-cinzel text-ink-dim font-bold tracking-wide cursor-pointer">${esc(field.label)}</label>
         </div>
         <div id="reveal-group-${field.key}" style="${hasData ? 'display:contents' : 'display:none'}">
       `;
@@ -2623,7 +2623,7 @@ window._openEditor = async (tab, editId) => {
           <input type="checkbox" id="cb_${field.key}" class="rounded"
             ${checked ? 'checked' : ''}
             onchange="this.previousElementSibling.value=this.checked?'true':''">
-          <label for="cb_${field.key}" class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider cursor-pointer">${esc(field.label)}</label>
+          <label for="cb_${field.key}" class="text-xs font-cinzel text-ink-dim font-bold tracking-wide cursor-pointer">${esc(field.label)}</label>
         </div>
       `;
     } else if (field.type === 'select') {
@@ -2634,7 +2634,7 @@ window._openEditor = async (tab, editId) => {
         : '';
       body += `
         <div>
-          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <select name="data_${field.key}"${_selOnchange} class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
             <option value="">—</option>
             ${field.options.map(o => typeof o === 'object' ? `<option value="${o.value}" ${val === o.value ? 'selected' : ''}>${o.label}</option>` : `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
@@ -2645,7 +2645,7 @@ window._openEditor = async (tab, editId) => {
       const _sel = (() => { try { return JSON.parse(val || '[]'); } catch { return []; } })();
       body += `
         <div class="weapon-tags-editor-wrap">
-          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <input type="hidden" name="data_${field.key}" id="wt_${field.key}" value="${esc(val)}">
           <div class="weapon-tags-picker">
             ${Object.keys(WEAPON_PROPERTIES).map(prop => {
@@ -2679,7 +2679,7 @@ window._openEditor = async (tab, editId) => {
     } else {
       body += `
         <div>
-          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <input name="data_${field.key}" value="${esc(val)}"
             class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
         </div>
@@ -2743,7 +2743,7 @@ window._openEditor = async (tab, editId) => {
     } else {
       body += `
         <div>
-          <label class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider">${esc(field.label)}</label>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <div class="mt-1">${_taHtml}</div>
         </div>
       `;
@@ -2779,7 +2779,7 @@ window._openEditor = async (tab, editId) => {
     body += `
       <div id="voorraad-section"${_showVoorraad ? '' : ' style="display:none"'}
         class="p-4 bg-room-elevated rounded border border-room-border">
-        <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-3">\ud83c\udfec Voorraad</div>
+        <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-3">\ud83c\udfec Voorraad</div>
         <div class="voorraad-inladen-wrap mb-3">
           <button type="button" onclick="window._voorraadInladenToggle()"
             class="text-xs text-ink-dim hover:text-gold transition flex items-center gap-1">
@@ -2803,7 +2803,7 @@ window._openEditor = async (tab, editId) => {
         </button>
         <!-- Winkelconfig: rotatie-instellingen -->
         <div class="mt-4 pt-3 border-t border-room-border/60">
-          <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-2">🔄 Rotatie-instellingen</div>
+          <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-2">🔄 Rotatie-instellingen</div>
           <input type="hidden" name="data_winkelConfig" id="winkelconfig-hidden" value="${esc(e?.data?.winkelConfig || '')}">
           <div class="space-y-2">
             <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer">
@@ -2834,7 +2834,7 @@ window._openEditor = async (tab, editId) => {
         </div>
         <!-- Sfeer & Onderhandelen instellingen -->
         <div class="mt-4 pt-3 border-t border-room-border/60">
-          <div class="text-xs font-cinzel text-gold-dim font-bold uppercase tracking-wider mb-2">🎭 Sfeer & onderhandelen</div>
+          <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-2">🎭 Sfeer & onderhandelen</div>
           <div class="space-y-2">
             <div>
               <label class="text-xs text-ink-dim block mb-1">Sfeertekst (bovenaan voorraad)</label>
@@ -2908,12 +2908,12 @@ window._openEditor = async (tab, editId) => {
               ${_si('cr','Challenge Rating',true)}${_si('profBonus','Prof. Bonus',true)}
             </div>
             <div class="cs-divider"></div>
-            <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Eigenschappen</div>
+            <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Eigenschappen</div>
             <div class="grid grid-cols-3 gap-2">
               ${['str','dex','con','int','wis','cha'].map(k => _si(k, k.toUpperCase(), true)).join('')}
             </div>
             <div class="cs-divider"></div>
-            <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Proficiencies &amp; Verdedigingen</div>
+            <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Proficiencies &amp; Verdedigingen</div>
             <div class="space-y-2">
               ${_si('savingThrows','Saving Throws')}
               ${_si('skills','Skills')}
@@ -2923,7 +2923,7 @@ window._openEditor = async (tab, editId) => {
               ${_si('conditionImmunities','Condition Immunities')}
             </div>
             <div class="cs-divider"></div>
-            <div class="text-[10px] font-cinzel text-ink-dim uppercase tracking-wider">Zintuigen &amp; Talen</div>
+            <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Zintuigen &amp; Talen</div>
             <div class="space-y-2">
               ${_si('senses','Senses')}
               ${_si('languages','Languages')}
@@ -2964,7 +2964,7 @@ window._openEditor = async (tab, editId) => {
     const lm = TYPE_META[lt] || { get svgIcon() { return icon('scroll-text'); }, icon: '\ud83d\udcdc', label: lt, chip: 'chip-doc' };
     body += `
       <div>
-        <div class="text-xs font-cinzel text-ink-dim font-bold uppercase tracking-wider mb-1">${LINK_LABELS[lt] || lm.label || lt}</div>
+        <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">${LINK_LABELS[lt] || lm.label || lt}</div>
         <div id="tags-${lt}" class="flex flex-wrap gap-1 mb-1">
           ${editorTags[lt].map(n => `
             <span class="chip ${lm.chip}">${esc(n)} <span class="cursor-pointer ml-1" data-lt="${lt}" data-name="${esc(n)}" onclick="window._removeTag(this.dataset.lt,this.dataset.name)">\u00d7</span></span>
