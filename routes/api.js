@@ -3631,6 +3631,7 @@ function _bestiariumForTier(m, niveau) {
   const sb = m.statblock || {};
   const out = {
     id: m.id, name: m.name, imageId: m.imageId || null, _niveau: niveau,
+    description: m.description || '',
     statblock: { size: sb.size, type: sb.type, alignment: sb.alignment },
   };
   if (niveau === 'naam') return out;

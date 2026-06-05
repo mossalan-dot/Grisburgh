@@ -17451,30 +17451,53 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 .best-card-ctrl--danger:hover { background: rgba(170,40,40,0.92); }
 .best-card-ctrl .icon { width: 14px; height: 14px; }
 
-/* Niveau-keuze (DM) / kennis-badge (speler) over de onderrand van het portret —
-   donkere, halftransparante pil in dezelfde stijl als de hoekknoppen. */
-.best-niv-overlay, .best-badge-overlay { position: absolute; left: 8px; bottom: 8px; z-index: 6; }
-.best-niv-select {
-  font-family: 'Cinzel', serif; font-size: 10.5px; letter-spacing: 0.04em;
-  color: #f3e7d4; background: rgba(0,0,0,0.62);
-  border: 1px solid rgba(255,255,255,0.22); border-radius: 999px;
-  padding: 3px 22px 3px 11px; cursor: pointer;
-  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+/* Niveau-knop: derde hoekknop onder bewerken/verwijderen die het kennisniveau
+   cyclet (O → N → D → V). Eén letter, kleur per niveau. */
+.best-card-niv { font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; line-height: 1; }
+.best-card-niv--onbekend { background: rgba(0,0,0,0.62); color: #cbb89a; }
+.best-card-niv--naam     { background: rgba(122,86,52,0.92); color: #f3e7d4; border-color: rgba(196,168,122,0.6); }
+.best-card-niv--deels    { background: rgba(42,90,138,0.92);  color: #fff; border-color: rgba(120,170,220,0.6); }
+.best-card-niv--volledig { background: rgba(139,42,42,0.94);  color: #fff; border-color: rgba(210,120,120,0.6); }
+
+/* Type-pill linksonder op het portret (size + type), in dezelfde stijl als de
+   subtype-badge van de archiefkaarten. */
+.best-type-pill {
+  position: absolute; left: 8px; bottom: 8px; z-index: 6;
+  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
+  color: #f3e7d4; background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.18); border-radius: 999px;
+  padding: 3px 10px; max-width: calc(100% - 16px);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   box-shadow: 0 1px 4px rgba(0,0,0,0.35);
-  appearance: none; -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M1 3l4 4 4-4' fill='none' stroke='%23f3e7d4' stroke-width='1.5'/></svg>");
-  background-repeat: no-repeat; background-position: right 8px center;
-  transition: background-color .15s ease, border-color .15s ease;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  pointer-events: none;
 }
-.best-niv-select:hover { background-color: rgba(0,0,0,0.8); border-color: var(--color-gold-dim); }
-.best-niv-select option { color: #2a1a08; background: #fffdf6; font-family: 'Crimson Text', serif; }
-.best-card-badge { font-family: 'Cinzel', serif; font-size: 10.5px; letter-spacing: 0.04em; padding: 3px 11px; border-radius: 999px; box-shadow: 0 1px 4px rgba(0,0,0,0.35); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.18); }
-.best-badge--naam { color: #f3e7d4; background: rgba(122,86,52,0.86); }
-.best-badge--deels { color: #fff; background: rgba(42,90,138,0.88); }
-.best-badge--volledig { color: #fff; background: rgba(139,42,42,0.9); }
+
+/* Beschrijving-preview in de body (zoals de archiefkaarten). */
+.best-card-desc {
+  font-family: 'Crimson Text', serif; font-size: 0.82rem; line-height: 1.4;
+  color: #5a4a32; margin-top: 2px;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* 'Monsterbibliotheek'-knop in de bestiarium-kop (DM). */
+.best-lib-btn {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Cinzel', serif; font-size: 0.78rem; color: #7a2a2a;
+  background: rgba(139,42,42,0.08); border: 1px solid rgba(139,42,42,0.32);
+  border-radius: 8px; padding: 5px 12px; cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.best-lib-btn:hover { background: rgba(139,42,42,0.16); border-color: rgba(139,42,42,0.5); }
+.best-lib-btn .icon { width: 15px; height: 15px; }
+
 /* Onbekend (DM-only) kaart is gedimd; iets minder hard dan de archief-hidden. */
 .best-entity-card.card-hidden { opacity: 0.62; }
 .best-entity-card.card-hidden:hover { opacity: 0.85; }
+
+/* Beschrijving bovenaan het statblock. */
+.sb-description { font-family: 'Crimson Text', serif; font-size: 0.92rem; line-height: 1.5; color: #4a3a24; margin: 6px 0 2px; }
+.sb-description .sb-p { margin: 0 0 5px; }
 
 /* ── Spreukenboek-beheer: meerregelige tekstvelden (bug 4c) ── */
 .sb-manage-textarea { resize: vertical; min-height: 2.4em; line-height: 1.35; font-family: inherit; }
