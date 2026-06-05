@@ -26,7 +26,9 @@ const _NIV_LABEL  = { '': 'Onbekend', naam: 'Naam', deels: 'Deels', volledig: 'V
 export async function renderBestiarium(container) {
   _container = container || document.getElementById('section-bestiarium');
   if (!_container) return;
-  _container.innerHTML = `<div class="best-wrap"><p class="best-loading">Bestiarium laden…</p></div>`;
+  _container.innerHTML = `<div class="best-wrap">
+    <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">${window._skelCards?.(6) || '<p class="best-loading">Bestiarium laden…</p>'}</div>
+  </div>`;
   try { _data = await api.bestiarium(); }
   catch { _container.innerHTML = `<div class="best-wrap"><p class="best-err">Kon het bestiarium niet laden.</p></div>`; return; }
   _renderGrid();

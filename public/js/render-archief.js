@@ -558,7 +558,7 @@ function _buildChapterImgStrip(chEntries, ch) {
 function _buildLogboekBody(entries, hk, isSearchMode = false) {
   if (entries.length === 0) {
     return `<div class="text-center py-20 text-ink-faint">
-      <div class="text-5xl mb-4 opacity-40">📖</div>
+      <div class="logboek-empty-icon mb-4 opacity-40">${icon('book-open')}</div>
       <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">
         ${logboekSearch ? 'Geen resultaten gevonden.' : 'Het archief is nog leeg...'}
       </div>
@@ -883,7 +883,7 @@ function _renderAkteSamenvattingCard(ch, info) {
       onclick="window._openAkteSamenvatting('${esc(ch)}')">
       <div class="logboek-tl-card logboek-tl-card--h logboek-tl-card--samenvatting">
         <div class="logboek-card-thumb logboek-card-thumb--samenvatting">
-          <span class="logboek-samenvatting-icon">📖</span>
+          <span class="logboek-samenvatting-icon">${icon('book-open')}</span>
         </div>
         <div class="logboek-card-hbody">
           <div class="logboek-card-hmeta">
@@ -950,7 +950,7 @@ function renderSessieEntry(e, sessieNum = null, chLabel = null) {
           <div class="logboek-card-thumb">
             <img src="${firstImg}" class="logboek-card-thumb-img" onerror="this.closest('.logboek-card-thumb').style.display='none'">
           </div>
-        ` : `<div class="logboek-card-thumb logboek-card-thumb--empty"><span>📖</span></div>`}
+        ` : `<div class="logboek-card-thumb logboek-card-thumb--empty">${icon('book-open')}</div>`}
         <div class="logboek-card-hbody">
           <div class="logboek-card-hmeta">
             ${chLabel ? `<span class="logboek-card-chapter-lbl-plain">${esc(chLabel)}</span>` : ''}

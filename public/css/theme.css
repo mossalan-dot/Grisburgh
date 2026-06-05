@@ -17652,3 +17652,32 @@ textarea:focus-visible { outline: none; box-shadow: var(--gb-ring); }
 @media (hover: none) {
   .entity-card .dm-only.absolute { opacity: 1; transform: none; }
 }
+
+/* ── POLISH-PASS #3 — skeleton-loaders, icoon-sizing, contrast ── */
+
+/* Skeleton-shimmer voor laad-states (entiteiten-grid, bestiarium) */
+@keyframes gb-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.gb-skel {
+  background: linear-gradient(90deg, rgba(196,168,122,0.10) 25%, rgba(196,168,122,0.22) 37%, rgba(196,168,122,0.10) 63%);
+  background-size: 200% 100%;
+  animation: gb-shimmer 1.4s linear infinite;
+  border-radius: 6px;
+}
+@media (prefers-reduced-motion: reduce) { .gb-skel { animation: none; } }
+.gb-skel-card {
+  border: 1px solid rgba(196,168,122,0.28);
+  border-radius: 12px; overflow: hidden; background: #faf4e6;
+  box-shadow: 0 1px 2px rgba(60,40,10,0.04), 0 6px 16px rgba(60,40,10,0.04);
+}
+.gb-skel-img { height: 158px; border-radius: 0; }
+.gb-skel-body { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.gb-skel-line { height: 12px; }
+.gb-skel-line--sm { height: 9px; }
+
+/* Icoon-sizing voor de van-emoji-vervangen plekken */
+.logboek-empty-icon .icon { width: 52px; height: 52px; }
+.logboek-samenvatting-icon .icon { width: 22px; height: 22px; }
+.logboek-card-thumb--empty .icon { width: 30px; height: 30px; opacity: 0.55; }
+
+/* Kleur-discipline: iets diepere inkt voor secundaire leestekst (contrast) */
+.section-banner-desc-line { color: #6f5736; }

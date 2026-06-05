@@ -518,8 +518,31 @@ window._entityFilter = (type, list, q) => {
     .map(x => x.e);
 };
 
+// Gedeelde skeleton-kaartjes voor laad-states (ook gebruikt door het Bestiarium).
+window._skelCards = (n = 6) => {
+  let s = '';
+  for (let i = 0; i < n; i++) {
+    s += `<div class="gb-skel-card">
+      <div class="gb-skel gb-skel-img"></div>
+      <div class="gb-skel-body">
+        <div class="gb-skel gb-skel-line" style="width:68%"></div>
+        <div class="gb-skel gb-skel-line" style="width:42%"></div>
+        <div class="gb-skel gb-skel-line gb-skel-line--sm" style="width:88%"></div>
+        <div class="gb-skel gb-skel-line gb-skel-line--sm" style="width:74%"></div>
+      </div>
+    </div>`;
+  }
+  return s;
+};
+
 async function renderEntitySection(type) {
   const container = $(`#section-${type}`);
+
+  // Skeleton tijdens het laden (alleen eerste keer, vóór de fetch). Aparte klasse
+  // (gb-skel-grid) zodat de bestaande '.cards-grid'-check verderop niet matcht.
+  if (container && !container.querySelector('.cards-grid')) {
+    container.innerHTML = `<div class="gb-skel-grid grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-6">${window._skelCards?.(8) || ''}</div>`;
+  }
 
   try {
     entities[type] = await api.listEntities(type);

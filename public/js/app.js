@@ -1,11 +1,11 @@
 import { api } from './api.js?v=225';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=88";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=34";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=89";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=35";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=4';
 import { renderDungeon } from './render-dungeon.js?v=19';
 import { renderRelatiemap } from './render-relatiemap.js?v=11';
 import { renderProgressie } from './render-progressie.js?v=22';
-import { renderBestiarium } from './render-bestiarium.js?v=6';
+import { renderBestiarium } from './render-bestiarium.js?v=7';
 import { initSocket } from "./socket-client.js?v=27";
 import { initDmPanel } from "./dm-panel.js?v=66";
 
