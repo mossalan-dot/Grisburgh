@@ -40,8 +40,12 @@ let _panAbort    = null;
 // ──────────────────────────────────────────────────────────────────
 // Public entry point
 // ──────────────────────────────────────────────────────────────────
-export async function renderDungeon(container) {
+export async function renderDungeon(container, openId) {
   _maps = await api.listDungeons();
+  if (openId) {
+    const i = _maps.findIndex(m => m.id === openId);
+    if (i >= 0) _mapIdx = i;
+  }
   if (_mapIdx >= _maps.length) _mapIdx = 0;
 
   container.innerHTML = _buildShell();

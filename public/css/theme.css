@@ -17682,3 +17682,85 @@ textarea:focus-visible { outline: none; box-shadow: var(--gb-ring); }
 
 /* Kleur-discipline: iets diepere inkt voor secundaire leestekst (contrast) */
 .section-banner-desc-line { color: #6f5736; }
+
+/* ════════════════════════════════════════════════════════════════════
+   KAARTEN-GALERIJ (onder Logboek) — hoofdkaarten + dungeons als kaartjes
+   ════════════════════════════════════════════════════════════════════ */
+.section-banner--kaart { --bc: 46,96,120; --bc-text: #245466; }
+
+.kaart-galerij { padding: 18px 24px 40px; overflow-y: auto; flex: 1; min-height: 0; }
+.kg-group { margin-bottom: 22px; }
+.kg-group-head {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  font-family: 'Cinzel', serif; font-size: 1rem; color: #5a4010;
+}
+.kg-group-head .icon { width: 17px; height: 17px; opacity: 0.8; }
+.kg-add-btn {
+  margin-left: 6px; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 7px; border: 1px solid rgba(196,168,122,0.5); background: rgba(196,168,122,0.12);
+  color: #7a5e2a; cursor: pointer; transition: background .15s ease, border-color .15s ease;
+}
+.kg-add-btn:hover { background: rgba(184,134,11,0.18); border-color: var(--color-gold-dim); }
+.kg-add-btn .icon { width: 14px; height: 14px; }
+
+.kg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.kg-empty { font-family: 'IM Fell English', serif; font-style: italic; color: #8a7050; padding: 4px 2px; }
+
+.kg-card {
+  background: #faf4e6; border: 1px solid rgba(196,168,122,0.38); border-radius: 12px; overflow: hidden; cursor: pointer;
+  box-shadow: 0 1px 2px rgba(60,40,10,0.05), 0 6px 16px rgba(60,40,10,0.06);
+  transition: transform .2s var(--gb-ease), box-shadow .2s var(--gb-ease);
+  display: flex; flex-direction: column;
+}
+.kg-card:hover { transform: translateY(-4px); box-shadow: 0 5px 14px rgba(60,40,10,0.13), 0 14px 32px rgba(60,40,10,0.12); }
+.kg-card-thumbwrap { position: relative; height: 132px; background: linear-gradient(135deg, #efe3c5, #e6d5ad); overflow: hidden; }
+.kg-card-thumb { width: 100%; height: 100%; object-fit: cover; display: block; position: relative; z-index: 1; }
+.kg-card-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #9a7e4e; z-index: 0; }
+.kg-card-fallback .icon { width: 40px; height: 40px; opacity: 0.45; }
+.kg-card--noimg .kg-card-thumb { display: none; }
+/* Type-onderscheid: accent-rand links + badge-kleur */
+.kg-card--wereld  { border-left: 3px solid rgba(46,96,120,0.7); }
+.kg-card--dungeon { border-left: 3px solid rgba(120,42,42,0.7); }
+.kg-card--dungeon .kg-card-thumbwrap { background: linear-gradient(135deg, #e7d6cf, #d8c2b6); }
+.kg-card--dungeon .kg-card-fallback { color: #9a5a4e; }
+
+.kg-card-badge {
+  position: absolute; top: 8px; left: 8px; z-index: 3;
+  font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 2px 9px; border-radius: 999px; color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3); backdrop-filter: blur(3px);
+}
+.kg-badge--wereld  { background: rgba(46,96,120,0.88); }
+.kg-badge--dungeon { background: rgba(120,42,42,0.88); }
+.kg-card-edit {
+  position: absolute; top: 8px; right: 8px; z-index: 3; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center; border-radius: 6px;
+  background: rgba(40,26,8,0.55); color: #fff; border: 1px solid rgba(255,255,255,0.2);
+  cursor: pointer; opacity: 0; transition: opacity .15s var(--gb-ease), background .15s ease; backdrop-filter: blur(4px);
+}
+.kg-card:hover .kg-card-edit { opacity: 1; }
+.kg-card-edit:hover { background: rgba(40,26,8,0.85); }
+.kg-card-edit .icon { width: 14px; height: 14px; }
+@media (hover: none) { .kg-card-edit { opacity: 1; } }
+
+.kg-card-body { padding: 10px 12px 12px; }
+.kg-card-name { font-family: 'Cinzel', serif; font-size: 0.98rem; color: #2a1a08; line-height: 1.2; }
+.kg-card-desc { font-family: 'Crimson Text', serif; font-size: 0.82rem; color: #5a4a32; line-height: 1.4; margin-top: 4px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.kg-card-desc--empty { font-style: italic; opacity: 0.6; }
+
+.kaart-edit-thumb { width: 130px; height: 86px; object-fit: cover; border-radius: 7px; border: 1px solid rgba(196,168,122,0.4); }
+
+/* ── Fullscreen-overlay: hergebruikt de bestaande kaart-/dungeon-weergave ── */
+.kaart-fs-overlay { position: fixed; inset: 0; z-index: 1200; background: #f5edd8; display: none; }
+.kaart-fs-overlay.open { display: block; }
+.kaart-fs-content { position: absolute; inset: 0; display: flex; flex-direction: column; min-height: 0; }
+.kaart-fs-close {
+  position: absolute; top: 14px; right: 16px; z-index: 1210; width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  background: rgba(40,26,8,0.72); color: #f3e7d4; border: 1px solid rgba(255,255,255,0.25);
+  cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.35); backdrop-filter: blur(4px); transition: background .15s ease;
+}
+.kaart-fs-close:hover { background: rgba(40,26,8,0.92); }
+.kaart-fs-close .icon { width: 19px; height: 19px; }
+body.kaart-fs-active { overflow: hidden; }

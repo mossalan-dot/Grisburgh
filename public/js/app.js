@@ -1,8 +1,8 @@
 import { api } from './api.js?v=225';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=89";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=35";
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=4';
-import { renderDungeon } from './render-dungeon.js?v=19';
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=5';
+import { renderDungeon } from './render-dungeon.js?v=20';
 import { renderRelatiemap } from './render-relatiemap.js?v=11';
 import { renderProgressie } from './render-progressie.js?v=22';
 import { renderBestiarium } from './render-bestiarium.js?v=8';
@@ -150,11 +150,15 @@ $$('#diensten-menu .archief-menu-item').forEach(btn => {
   btn.addEventListener('click', () => { switchSection(btn.dataset.section); });
 });
 
-// Logboek dropdown items
+// Logboek dropdown items (logtabs + de Kaarten-sectie)
 $$('#logboek-menu .archief-menu-item').forEach(btn => {
   btn.addEventListener('click', () => {
-    window._logboekActiveTab = btn.dataset.logtab;
-    switchSection('logboek');
+    if (btn.dataset.section) {
+      switchSection(btn.dataset.section);   // bv. Kaarten
+    } else {
+      window._logboekActiveTab = btn.dataset.logtab;
+      switchSection('logboek');
+    }
     closeLogboekMenu();
   });
 });
@@ -197,18 +201,23 @@ function switchSection(section) {
   $$('#archief-menu .archief-menu-item').forEach(b =>
     b.classList.toggle('active', b.dataset.section === section));
 
-  // Logboek-knop: actief als logboek actief is
+  // Logboek-knop: actief als logboek óf de Kaarten-sectie actief is
   const logboekBtn   = $('#logboek-nav-btn');
   const logboekLabel = $('#logboek-nav-label');
   const isLogboek    = section === 'logboek';
-  if (logboekBtn) logboekBtn.classList.toggle('active', isLogboek);
+  const isKaart      = section === 'kaart';
+  if (logboekBtn) logboekBtn.classList.toggle('active', isLogboek || isKaart);
   if (logboekLabel) {
     const activeTab = window._logboekActiveTab || 'verslagen';
-    logboekLabel.innerHTML = isLogboek ? (LOGBOEK_LABELS[activeTab] || `${icon('book-open')} Logboek`) : `${icon('book-open')} Logboek`;
+    logboekLabel.innerHTML = isKaart
+      ? `${icon('map')} Kaarten`
+      : (isLogboek ? (LOGBOEK_LABELS[activeTab] || `${icon('book-open')} Logboek`) : `${icon('book-open')} Logboek`);
   }
   // Logboek dropdown-items
   $$('#logboek-menu .archief-menu-item').forEach(b =>
-    b.classList.toggle('active', isLogboek && b.dataset.logtab === (window._logboekActiveTab || 'verslagen')));
+    b.classList.toggle('active',
+      (isKaart && b.dataset.section === 'kaart') ||
+      (isLogboek && b.dataset.logtab === (window._logboekActiveTab || 'verslagen'))));
 
   // Diensten-knop: actief als een diensten-sectie actief is
   const dienstenNavBtn = $('#diensten-nav-btn');
@@ -388,7 +397,7 @@ const LOGBOEK_LABELS = {
 };
 
 const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
-const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'kaart', 'relatiemap'];
+const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'relatiemap'];
 const ARCHIEF_LABELS = {
   personages:   `${icon('user')} Personages`,
   locaties:     `${icon('castle', {cls:'icon-gi'})} Locaties`,
@@ -2009,51 +2018,175 @@ async function refreshSection(section) {
 }
 
 // ── Kaart-sectie: toggle tussen Wereldkaarten en Dungeons ──
-let _kaartMode = 'wereld'; // 'wereld' | 'dungeon'
+// ── Kaarten-galerij (onder Logboek) — hoofdkaarten + dungeons als kaartjes ──
+let _kaartFsType = null; // 'wereld' | 'dungeon' wanneer fullscreen open is
 
 async function _renderKaartSection() {
   const container = document.getElementById('section-kaart');
   if (!container) return;
-
-  // Toggle-bar bovenaan; de inhoud eronder wordt gevuld door de sub-renderer
   container.innerHTML = `
-    <div class="kaart-mode-bar">
-      <button class="kaart-mode-btn ${_kaartMode==='wereld'?'active':''}" data-mode="wereld">
-        ${icon('map')} Kaarten
-      </button>
-      <button class="kaart-mode-btn ${_kaartMode==='dungeon'?'active':''}" data-mode="dungeon">
-        ${icon('swords')} Dungeons
-      </button>
+    <div class="section-banner section-banner--entity section-banner--kaart">
+      <div class="section-banner-head">
+        <div class="section-banner-icon-wrap">${icon('map')}</div>
+        <div class="section-banner-info">
+          <div class="section-banner-label">Kaarten</div>
+          <div class="section-banner-desc-line">Hoofdkaarten en dungeons van de wereld</div>
+        </div>
+      </div>
+      <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
     </div>
-    <div class="kaart-mode-content" id="kaart-mode-content" style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;"></div>`;
-
-  container.querySelectorAll('.kaart-mode-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      _kaartMode = btn.dataset.mode;
-      container.querySelectorAll('.kaart-mode-btn').forEach(b => b.classList.toggle('active', b===btn));
-      await _renderKaartContent();
-    });
-  });
-
-  await _renderKaartContent();
+    <div class="kaart-galerij" id="kaart-galerij">
+      <div class="kg-grid">${window._skelCards?.(4) || ''}</div>
+    </div>`;
+  await _renderKaartGalerij();
 }
 
-async function _renderKaartContent() {
-  const content = document.getElementById('kaart-mode-content');
-  if (!content) return;
-  if (_kaartMode === 'wereld') {
-    // renderKaart werkt op #section-kaart; geef het de content-div
-    content.innerHTML = '';
-    // renderKaart verwacht section-kaart als container — we wrappen het tijdelijk
-    const tmp = document.createElement('div');
-    tmp.style.cssText = 'flex:1;display:flex;flex-direction:column;min-height:0;height:100%;';
-    tmp.id = 'section-kaart-inner';
-    content.appendChild(tmp);
-    await renderKaart(tmp);
-  } else {
-    await renderDungeon(content);
+async function _renderKaartGalerij() {
+  const host = document.getElementById('kaart-galerij');
+  if (!host) return;
+  const dm = window.app?.isDM?.();
+  let maps = [], dungeons = [];
+  try { [maps, dungeons] = await Promise.all([api.listMaps(), api.listDungeons()]); } catch { /* leeg */ }
+
+  const worldCards = maps.map(m => _kaartCard('wereld', m, dm)).join('');
+  const dngCards   = dungeons.map(d => _kaartCard('dungeon', d, dm)).join('');
+
+  host.innerHTML = `
+    <div class="kg-group">
+      <div class="kg-group-head">${icon('map')} <span>Hoofdkaarten</span>
+        ${dm ? `<button class="kg-add-btn" onclick="window._openKaartFullscreen('wereld',null)" title="Kaart toevoegen / beheren">${icon('plus')}</button>` : ''}</div>
+      <div class="kg-grid">${worldCards || '<p class="kg-empty">Nog geen hoofdkaarten.</p>'}</div>
+    </div>
+    <div class="kg-group">
+      <div class="kg-group-head">${icon('swords')} <span>Dungeons</span>
+        ${dm ? `<button class="kg-add-btn" onclick="window._openKaartFullscreen('dungeon',null)" title="Dungeon toevoegen / beheren">${icon('plus')}</button>` : ''}</div>
+      <div class="kg-grid">${dngCards || `<p class="kg-empty">${dm ? 'Nog geen dungeons — gebruik + om er een te maken.' : 'Nog geen dungeons ontdekt.'}</p>`}</div>
+    </div>`;
+}
+
+function _kaartCard(type, m, dm) {
+  const id   = m.id;
+  const name = type === 'wereld' ? (m.label || 'Kaart') : (m.name || 'Dungeon');
+  const desc = m.description || '';
+  const thumbSrc = type === 'wereld'
+    ? (m.src || api.fileUrl(m.id))
+    : (m.thumbId ? api.fileUrl(m.thumbId) : '');
+  const thumb = thumbSrc
+    ? `<img class="kg-card-thumb" loading="lazy" src="${thumbSrc}" onerror="this.style.display='none';this.closest('.kg-card').classList.add('kg-card--noimg')">`
+    : '';
+  return `
+    <div class="kg-card kg-card--${type}${!thumbSrc ? ' kg-card--noimg' : ''}" onclick="window._openKaartFullscreen('${type}','${esc(id)}')">
+      <div class="kg-card-thumbwrap">
+        ${thumb}
+        <div class="kg-card-fallback">${icon(type === 'wereld' ? 'map' : 'swords')}</div>
+        <span class="kg-card-badge kg-badge--${type}">${type === 'wereld' ? 'Hoofdkaart' : 'Dungeon'}</span>
+        ${dm ? `<button class="kg-card-edit" onclick="event.stopPropagation();window._kaartEdit('${type}','${esc(id)}')" title="Naam/beschrijving${type === 'dungeon' ? '/thumbnail' : ''} bewerken">${icon('pencil')}</button>` : ''}
+      </div>
+      <div class="kg-card-body">
+        <div class="kg-card-name">${esc(name)}</div>
+        ${desc
+          ? `<p class="kg-card-desc">${esc(desc)}</p>`
+          : (dm ? `<p class="kg-card-desc kg-card-desc--empty">Geen beschrijving — klik op ${'✎'} om er een toe te voegen.</p>` : '')}
+      </div>
+    </div>`;
+}
+
+// ── Fullscreen-overlay: hergebruikt de bestaande kaart-/dungeon-weergave ──
+window._openKaartFullscreen = async function(type, id) {
+  let ov = document.getElementById('kaart-fs-overlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'kaart-fs-overlay';
+    ov.className = 'kaart-fs-overlay';
+    document.body.appendChild(ov);
   }
-}
+  ov.innerHTML = `
+    <button class="kaart-fs-close" onclick="window._closeKaartFullscreen()" title="Sluiten (Esc)">${icon('x')}</button>
+    <div class="kaart-fs-content" id="kaart-fs-content"></div>`;
+  ov.classList.add('open');
+  document.body.classList.add('kaart-fs-active');
+  _kaartFsType = type;
+  const fsHost = document.getElementById('kaart-fs-content');
+  try {
+    if (type === 'wereld') await renderKaart(fsHost, id || undefined);
+    else                   await renderDungeon(fsHost, id || undefined);
+  } catch (e) { fsHost.innerHTML = `<p style="padding:24px">Kon de kaart niet laden: ${esc(e.message)}</p>`; }
+};
+
+window._closeKaartFullscreen = function() {
+  const ov = document.getElementById('kaart-fs-overlay');
+  if (ov) { ov.classList.remove('open'); ov.innerHTML = ''; }
+  document.body.classList.remove('kaart-fs-active');
+  _kaartFsType = null;
+  if (state.activeSection === 'kaart') _renderKaartGalerij(); // naam/desc/thumb kunnen gewijzigd zijn
+};
+
+// Esc sluit de fullscreen-kaart
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('kaart-fs-overlay')?.classList.contains('open')) {
+    window._closeKaartFullscreen();
+  }
+});
+
+// ── DM: naam/beschrijving/thumbnail bewerken ──
+window._kaartEdit = async function(type, id) {
+  let item;
+  try {
+    if (type === 'wereld') item = (await api.listMaps()).find(m => m.id === id);
+    else                   item = (await api.listDungeons()).find(m => m.id === id);
+  } catch {}
+  if (!item) return;
+  const naam = type === 'wereld' ? (item.label || '') : (item.name || '');
+  window._kaartEditThumbPending = null;
+  const body = `
+    <div class="dm-feature-section" style="margin:0">
+      <div class="dm-form-row"><label class="dm-form-label">Naam</label>
+        <input id="kaart-edit-naam" class="dm-input" value="${esc(naam)}"></div>
+      <div class="dm-form-row"><label class="dm-form-label">Beschrijving</label>
+        <textarea id="kaart-edit-desc" class="dm-input" rows="3" placeholder="Korte omschrijving voor op het kaartje…">${esc(item.description || '')}</textarea></div>
+      ${type === 'dungeon' ? `
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Thumbnail</label>
+        ${item.thumbId ? `<img id="kaart-edit-thumb-prev" src="${api.fileUrl(item.thumbId)}" class="kaart-edit-thumb">` : '<span id="kaart-edit-thumb-prev"></span>'}
+        <label class="dm-btn dm-btn-sm" style="cursor:pointer;align-self:flex-start" title="Thumbnail uploaden">${icon('image')} Upload
+          <input type="file" accept="image/*" style="display:none" onchange="window._kaartEditThumbUpload(this.files[0])"></label>
+      </div>` : ''}
+      <div class="dm-feature-row" style="margin-top:6px">
+        <button class="dm-btn dm-btn-primary" onclick="window._kaartEditSave('${type}','${esc(id)}')">${icon('save')} Opslaan</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
+      </div>
+    </div>`;
+  window.app.openModal('Kaart bewerken', naam, body);
+};
+
+window._kaartEditThumbUpload = async function(file) {
+  if (!file) return;
+  const fid = 'dng-thumb-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+  try {
+    await api.uploadFile(fid, file);
+    window._kaartEditThumbPending = fid;
+    const prev = document.getElementById('kaart-edit-thumb-prev');
+    const img = document.createElement('img');
+    img.id = 'kaart-edit-thumb-prev'; img.className = 'kaart-edit-thumb'; img.src = api.fileUrl(fid);
+    prev?.replaceWith(img);
+  } catch (e) { alert('Upload mislukt: ' + e.message); }
+};
+
+window._kaartEditSave = async function(type, id) {
+  const naam = document.getElementById('kaart-edit-naam')?.value.trim();
+  const desc = document.getElementById('kaart-edit-desc')?.value.trim() || '';
+  try {
+    if (type === 'wereld') {
+      await api.updateMap(id, { label: naam || undefined, description: desc });
+    } else {
+      const patch = { name: naam || undefined, description: desc };
+      if (window._kaartEditThumbPending) patch.thumbId = window._kaartEditThumbPending;
+      await api.updateDungeon(id, patch);
+    }
+    window.app.closeModal();
+    _renderKaartGalerij();
+  } catch (e) { alert('Opslaan mislukt: ' + e.message); }
+};
 
 const _SKILLS = [
   { key: 'acrobatics',    label: 'Acrobatics',     ab: 'dex' },

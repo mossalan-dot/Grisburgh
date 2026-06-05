@@ -34,11 +34,16 @@ function _mapImgSrc(map) {
 }
 
 // ── Public entry point ──
-export async function renderKaart(container) {
+export async function renderKaart(container, openId) {
   MAPS = await api.listMaps();
   if (!MAPS.length) {
     const title = window.app?.state?.meta?.appTitle || 'Wereld';
     MAPS = [{ id: 'grisburgh', label: title, src: '/assets/map-grisburgh.jpg' }];
+  }
+  // Optioneel: open direct een specifieke kaart (vanuit de galerij).
+  if (openId) {
+    const i = MAPS.findIndex(m => m.id === openId);
+    if (i >= 0) currentMapIdx = i;
   }
   if (currentMapIdx >= MAPS.length) currentMapIdx = 0;
 
