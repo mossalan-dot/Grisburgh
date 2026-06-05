@@ -20,6 +20,13 @@ Socket.io voor realtime updates. Geen framework, geen bundler.
   Fonts: Cinzel (koppen), Crimson Text (broodtekst), IM Fell English (cursieve notities).
   Kleuren: warme okertinten (`#c4a87a`, `#f2e8d2`, `#2a1a08`). Geen vlakke Material/Bootstrap-look.
   Icoontjes via `icon()`, nooit emoji in gerenderde HTML.
+- **Archief-tabbladen leven in meerdere bestanden — pas wijzigingen overal toe.** Een UI-/styling-
+  aanpassing aan "de archief-tabbladen" raakt niet één bestand:
+  - `render-campagne.js` — personages, locaties, organisaties, voorwerpen (kaarten, detailvenster, editor)
+  - `render-archief.js` — **documenten** + logboek + aktes (eigen editor & viewer, NIET het detailvenster van render-campagne)
+  - `render-bestiarium.js` + `render-statblock.js` — **bestiarium** (eigen kaart + statblock-modal, eigen editor in `dm-panel.js`)
+  Documenten en bestiarium delen wél de `.entity-card`-kaartstijl, maar hebben **eigen** detail-/editor-
+  vensters. Doe je iets aan labels/kaarten/vensters van de archief-tabs, check dan al deze bestanden.
 - **Backup vóór elke wijziging aan spelersdata.** Voordat code of data op de server aangepast
   wordt die het spelerstabblad raakt (playerProfiles, playerItems, playerSpells, berichten, boedel),
   eerst een backup maken:
@@ -99,8 +106,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=256   app.js?v=350   sound-manager.js?v=4
-app.js      : api.js?v=225      render-campagne.js?v=92   render-archief.js?v=36
+index.html  : theme.css?v=256   app.js?v=351   sound-manager.js?v=4
+app.js      : api.js?v=225      render-campagne.js?v=92   render-archief.js?v=37
               render-kaart.js?v=6  render-dungeon.js?v=20  render-relatiemap.js?v=11
               render-progressie.js?v=22  socket-client.js?v=28
               render-bestiarium.js?v=8  render-statblock.js?v=3
