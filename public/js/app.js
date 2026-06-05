@@ -3063,11 +3063,12 @@ window._sbTocPin = async function(index, name) {
     _sbState.spells.push(newEntry);
     _sbState.spells.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
     _sbState.idx = _sbState.spells.findIndex(s => s.index === index);
-    // Sluit TOC zodat de spreuk zichtbaar is
-    _sbState.tocOpen = false;
-    const toc = document.getElementById('sb-toc-panel');
-    if (toc) toc.classList.remove('sb-toc-open');
+    // Paneel open laten zodat je meteen nóg een spreuk kunt toevoegen;
+    // boek navigeert naar de nieuwe spreuk en de inhoudsopgave werkt direct bij.
     _sbRender();
+    if (_sbState.tocOpen) {
+      _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
+    }
     if (typeof window._reRenderKarakter === 'function') window._reRenderKarakter();
   } catch(e) { console.warn('Spreuk toevoegen mislukt:', e); }
 };
