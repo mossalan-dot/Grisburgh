@@ -5,7 +5,7 @@ import { renderKaart, queueFlyTo } from './render-kaart.js?v=3';
 import { renderDungeon } from './render-dungeon.js?v=18';
 import { renderRelatiemap } from './render-relatiemap.js?v=10';
 import { renderProgressie } from './render-progressie.js?v=21';
-import { initSocket } from "./socket-client.js?v=18";
+import { initSocket } from "./socket-client.js?v=19";
 import { initDmPanel } from "./dm-panel.js?v=55";
 
 // ── Icon helper ──
@@ -247,7 +247,47 @@ function switchSection(section) {
 
   refreshSection(section);
   updateFab();
+  _updateDiscoveryChip();
 }
+
+// ── Ontdekkings-meter in de header (feature #5) ──
+// Toont voor de huidige archiefcategorie hoeveel de (actieve) groep ontdekt heeft.
+// Zichtbaar voor speler én DM; alleen op de archief-categorieën.
+const _DISCOVERY_META = {
+  personages:   { ic: 'user',        accent: '#2a6a3a' },
+  locaties:     { ic: 'castle',      accent: '#2a5a8a' },
+  organisaties: { ic: 'landmark',    accent: '#8b2a2a' },
+  voorwerpen:   { ic: 'package',     accent: '#9a6a2a' },
+  documenten:   { ic: 'scroll-text', accent: '#5a3a7a' },
+};
+let _discoveryCache = null;
+let _discoveryFetching = false;
+async function _ensureDiscoveryData(force) {
+  if (_discoveryCache && !force) return _discoveryCache;
+  if (_discoveryFetching) return _discoveryCache;
+  _discoveryFetching = true;
+  try { _discoveryCache = await api.ontdekkingen(); } catch { /* oude cache behouden */ }
+  finally { _discoveryFetching = false; }
+  return _discoveryCache;
+}
+window._updateDiscoveryChip = async function(force) {
+  const chip = document.getElementById('discovery-chip');
+  if (!chip) return;
+  const section = state.activeSection;
+  const meta = _DISCOVERY_META[section];
+  if (!meta) { chip.classList.add('hidden'); return; }
+  const data = await _ensureDiscoveryData(force);
+  if (state.activeSection !== section) return; // tijdens fetch van sectie gewisseld
+  const d = data?.[section];
+  if (!d || !d.totaal) { chip.classList.add('hidden'); return; }
+  const pct = Math.round((d.ontdekt / d.totaal) * 100);
+  document.getElementById('discovery-chip-icon').innerHTML = icon(meta.ic);
+  document.getElementById('discovery-chip-count').textContent = `${d.ontdekt}/${d.totaal}`;
+  const fill = document.getElementById('discovery-chip-fill');
+  fill.style.width = pct + '%';
+  fill.style.background = meta.accent;
+  chip.classList.remove('hidden');
+};
 
 // ── Toon locatie op de kaart (aanroepbaar vanuit entity-cards en detail) ──
 window._toonOpKaart = (locId) => {
@@ -4366,6 +4406,7 @@ async function renderMijnKarakter(opts = {}) {
             { key: 'locaties',     label: 'Locaties',     ic: 'castle' },
             { key: 'organisaties', label: 'Organisaties', ic: 'landmark' },
             { key: 'voorwerpen',   label: 'Voorwerpen',   ic: 'package' },
+            { key: 'documenten',   label: 'Documenten',   ic: 'scroll-text' },
           ];
           const rows = _OD.map(c => {
             const d = ontdekkingenData[c.key];
