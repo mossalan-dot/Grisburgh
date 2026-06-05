@@ -602,18 +602,14 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
     ? (window._groups?.find(g => g.id === _cvGrp)?.name || _cvGrp)
     : null;
 
-  let html = isDM() && _cvGrp && !isSearchMode ? `
-    <div class="logboek-visibility-bar">
-      <span class="logboek-visibility-bar-label">Zichtbaarheid instellen voor: <strong>${esc(_activeGrpName)}</strong></span>
-    </div>` : '';
+  // Akte-beheer (zichtbaarheid, regie-script, bewerken) is verhuisd naar de
+  // Meesterkamer → Aktes. Het Logboek is nu de schone journaal-weergave.
+  let html = '';
 
   for (const ch of sortedChapters) {
     const info = hk[ch] || { title: ch, dag: '', num: '?' };
     const chEntries = groups[ch].slice().sort((a, b) => (a.datum || '').localeCompare(b.datum || ''));
     const isCollapsed = _collapsedChapters.has(ch);
-
-    // Is deze akte verborgen voor de actieve groep? (alleen relevant voor DM)
-    const isHiddenForGroup = isDM() && _cvGrp && _cv[_cvGrp]?.[ch] === false;
 
     const firstEntryWithImg = chEntries.find(e => (e.images || []).length > 0);
     const firstRawImg = firstEntryWithImg?.images?.[0];
@@ -623,7 +619,7 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
 
     const bannerFocusVal = info.bannerFocus || '50% 30%';
     html += `
-      <div class="logboek-chapter${isHiddenForGroup ? ' logboek-chapter--hidden-for-group' : ''}" id="logboek-ch-${esc(ch)}">
+      <div class="logboek-chapter" id="logboek-ch-${esc(ch)}">
         <div class="logboek-chapter-banner${bannerImgSrc ? ' logboek-chapter-banner--img' : ''}"
           ${bannerImgSrc ? `style="background-image:url('${bannerImgSrc}');background-position:${esc(bannerFocusVal)}"` : ''}
           onclick="window._toggleChapter('${esc(ch)}')">
@@ -634,30 +630,11 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
             ${info.dag ? `<div class="logboek-chapter-dag">${esc(info.dag)}</div>` : ''}
           </div>
           <div class="logboek-chapter-toggle-wrap">
-            ${isDM() ? `
-              <button class="logboek-chapter-speel-btn dm-only"
-                title="Speel akte — onthul afbeeldingen"
-                onclick="event.stopPropagation();window._speelAkte('${esc(ch)}',${JSON.stringify(info.num)},'${esc(info.title)}')">${icon('play')} Speel</button>
-              <button class="logboek-chapter-script-btn dm-only${_scriptOpenChapters.has(ch) ? ' is-open' : ''}"
-                title="Regie-script — voorbereiding voor deze akte"
-                onclick="event.stopPropagation();window._toggleScriptPanel('${esc(ch)}')">${icon('clipboard-list')}</button>
-              <button class="logboek-chapter-edit-btn dm-only" title="Akte bewerken"
-                onclick="event.stopPropagation();window._editAkte('${esc(ch)}')">${icon('pencil')}</button>
-              ${_cvGrp ? `<button class="logboek-chapter-visibility-btn dm-only${isHiddenForGroup ? ' is-hidden' : ''}"
-                title="${isHiddenForGroup ? 'Toon akte voor ' + _activeGrpName : 'Verberg akte voor ' + _activeGrpName}"
-                onclick="event.stopPropagation();window._toggleChapterVisibility('${esc(ch)}',${isHiddenForGroup})">
-                ${isHiddenForGroup ? icon('lock') : icon('eye')}
-              </button>` : ''}
-            ` : ''}
             <div class="logboek-chapter-toggle">${isCollapsed ? '▸' : '▾'}</div>
           </div>
         </div>
 
         <div class="logboek-chapter-content${isCollapsed ? ' hidden' : ''}">
-          ${isHiddenForGroup ? `
-            <div class="logboek-chapter-hidden-notice dm-only">
-              ${icon('lock')} Verborgen voor <strong>${esc(_activeGrpName)}</strong> — sessies en afbeeldingen hieronder zijn <em>niet</em> zichtbaar voor spelers van deze groep, ongeacht de afzonderlijke zichtbaarheidsinstellingen
-            </div>` : ''}
           ${_buildChapterImgStrip(chEntries, ch)}
           <div class="logboek-timeline">
             ${chEntries.map((e, idx) => renderSessieEntry(e, idx + 1)).join('')}
@@ -671,7 +648,6 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
             </div>
           </div>` : ''}
         </div>
-        ${isDM() && _scriptOpenChapters.has(ch) ? _renderAkteScript(ch, info, chEntries) : ''}
       </div>
     `;
   }
@@ -903,11 +879,6 @@ function _renderAkteSamenvattingCard(ch, info) {
   return `
     <div class="logboek-tl-entry logboek-tl-entry--h logboek-tl-entry--samenvatting"
       onclick="window._openAkteSamenvatting('${esc(ch)}')">
-      ${isDM() ? `
-        <div class="dm-only absolute top-2 right-2 z-10 flex gap-1">
-          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            title="Bewerken" onclick="event.stopPropagation();window._editAkte('${esc(ch)}')">${icon('pencil')}</button>
-        </div>` : ''}
       <div class="logboek-tl-card logboek-tl-card--h logboek-tl-card--samenvatting">
         <div class="logboek-card-thumb logboek-card-thumb--samenvatting">
           <span class="logboek-samenvatting-icon">📖</span>
@@ -932,12 +903,7 @@ window._openAkteSamenvatting = (ch) => {
   const body = info.spelersSamenvatting
     ? `<div class="log-entry">${mdToHtml(info.spelersSamenvatting)}</div>`
     : `<div class="text-ink-faint italic text-sm">Nog geen samenvatting toegevoegd.</div>`;
-  const dmBar = isDM() ? `
-    <div class="dm-only mt-4 pt-4 border-t border-room-border">
-      <button class="px-3 py-1.5 text-sm rounded bg-gold-dim text-room-bg font-cinzel font-semibold hover:bg-gold transition"
-        onclick="window.app.closeModal();window._editAkte('${esc(ch)}')">${icon('pencil')} Bewerken</button>
-    </div>` : '';
-  openModal(`Akte ${info.num} · ${esc(info.title)}`, 'Spelerssamenvatting', body + dmBar);
+  openModal(`Akte ${info.num} · ${esc(info.title)}`, 'Spelerssamenvatting', body);
 };
 
 function _truncateWords(text, maxLen) {
@@ -1174,6 +1140,7 @@ window._toggleChapterVisibility = async (ch, currentlyHidden) => {
   try {
     await api.setChapterVisibility(groepId, ch, newVisible);
     await renderLogboek();
+    _akteBeheerChanged();
   } catch (err) { console.error('Chapter visibility toggle failed:', err); }
 };
 
@@ -1186,6 +1153,7 @@ window._speelAkte = async (ch, num, title) => {
   api.setActiveAkte(ch, num, title).catch(() => {});   // onthoud serverzijde (o.a. voor Ursula)
   const akteTitle = `Akte ${num} · ${title}`;
   window.dmPanel.regieBalkLoad(ch, akteTitle);
+  _akteBeheerChanged();
 };
 
 // ── Regie-script helpers ──
@@ -1325,6 +1293,25 @@ function _refreshScriptSection(ch) {
   const chEntries = (archiefData.sessieLog || []).filter(e => e.hoofdstuk === ch);
   container.innerHTML = _renderAkteScriptInner(ch, info, chEntries);
 }
+
+// ── Akte-beheer hergebruik vanuit de Meesterkamer (tab 'Aktes') ──
+// De akte-voorbereiding (regie-script, bewerken, speel, zichtbaarheid) is
+// verhuisd naar de Meesterkamer. Deze helpers laten dm-panel.js de bestaande
+// (globale) akte-functies hergebruiken zonder het Logboek te hoeven openen.
+window._akteScriptHtml = (ch) => {
+  const info      = meta?.hoofdstukken?.[ch] || {};
+  const chEntries = (archiefData.sessieLog || []).filter(e => e.hoofdstuk === ch);
+  return _renderAkteScriptInner(ch, info, chEntries);
+};
+// Laad archief-data + meta zodat de akte-functies werken vóór het Logboek bezocht is.
+window._loadAkteData = async () => {
+  try { archiefData = await api.listArchief(); } catch {}
+  meta = window.app?.state?.meta || meta;
+  return { meta, archiefData };
+};
+// Hook die dm-panel zet; aangeroepen na elke akte-wijziging om de Aktes-tab te verversen.
+window._onAkteBeheerChange = null;
+function _akteBeheerChanged() { if (typeof window._onAkteBeheerChange === 'function') window._onAkteBeheerChange(); }
 
 window._scriptTogglePicker = (ch, mode) => {
   const state = _scriptPickerState[ch] || {};
@@ -1608,6 +1595,7 @@ window._editAkte = (ch) => {
       if (window.app?.state) window.app.state.meta = newMeta;
       closeModal();
       renderLogboek();
+      _akteBeheerChanged();
     } catch (err) { alert('Fout: ' + err.message); }
   });
 };

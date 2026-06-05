@@ -94,6 +94,9 @@ let _revealChapter = null;
 let _revealQueue   = []; // [{sessieId, imgId, caption, url}]
 let _revealLoading = false;
 
+// ── Aktes-tab state ──
+let _akteOpen = new Set();      // welke aktes hun regie-script uitgeklapt hebben
+
 // ── Regie-balk state ──
 let _rbScript     = [];        // script items voor huidige akte
 let _rbChapter    = null;      // huidige akte key
@@ -280,6 +283,13 @@ export function initDmPanel() {
       }
     },
 
+    // Aktes (voorbereiding & regie — verhuisd vanuit het Logboek)
+    akteNieuw:    () => _akteNieuw(),
+    akteToggle:   (ch) => { if (_akteOpen.has(ch)) _akteOpen.delete(ch); else _akteOpen.add(ch); _renderAktes(); },
+    akteSpeel:    (ch) => { const i = (window.app?.state?.meta?.hoofdstukken || {})[ch] || {}; window._speelAkte?.(ch, i.num, i.title || ch); },
+    akteBewerk:   (ch) => window._editAkte?.(ch),
+    akteVisToggle:(ch, hidden) => window._toggleChapterVisibility?.(ch, hidden),
+
     // Regie-balk
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
@@ -366,6 +376,7 @@ function _buildTabs() {
   const activeParent = _tabToParent(_activeTab);
   container.innerHTML = `
     <button class="dm-tab-btn${activeParent==='gevecht'  ?' active':''}" data-tab="gevecht"   onclick="window.dmPanel.switchTab('gevecht')"   title="Gevecht & Monsters">${icon('crossed-swords',{cls:'icon-gi'})}</button>
+    <button class="dm-tab-btn${activeParent==='aktes'    ?' active':''}" data-tab="aktes"     onclick="window.dmPanel.switchTab('aktes')"     title="Aktes — voorbereiding & regie">${icon('clipboard-list')}</button>
     <button class="dm-tab-btn${activeParent==='geluiden' ?' active':''}" data-tab="geluiden"  onclick="window.dmPanel.switchTab('geluiden')"  title="Geluiden">${icon('volume-2')}</button>
     <button class="dm-tab-btn${activeParent==='spreuken' ?' active':''}" data-tab="spreuken"  onclick="window.dmPanel.switchTab('spreuken')"  title="Spreuken">${icon('open-book',{cls:'icon-gi'})}</button>
     <button class="dm-tab-btn${activeParent==='tafels'   ?' active':''}" data-tab="tafels"    onclick="window.dmPanel.switchTab('tafels')"    title="Willekeur — tafels & namen">${icon('dice',{cls:'icon-gi'})}</button>
@@ -396,6 +407,7 @@ function _switchTab(tab) {
     c.classList.toggle('active', c.dataset.tab === parentTab);
   });
 
+  if (tab === 'aktes')     _renderAktes();
   if (tab === 'spreuken')  _renderSpreuken();
   if (tab === 'tafels')    _loadAndRenderTafels();
   if (tab === 'geluiden')  _renderGeluiden();
@@ -526,6 +538,82 @@ function _renderDiensten(subTab) {
   if (_dienstenSubTab === 'facties')   _renderFactiesSettings();
   if (_dienstenSubTab === 'magizoo')   _renderMagizooSettings();
   if (_dienstenSubTab === 'toegang')   _renderDienstenToegang();
+};
+
+// ── Aktes — voorbereiding & regie (verhuisd vanuit het Logboek) ──
+async function _renderAktes() {
+  const el = _tabEl('aktes');
+  if (!el) return;
+  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+
+  // Archief-data + meta laden zodat de regie-script-secties werken (ook zonder
+  // dat het Logboek bezocht is). Helpers staan in render-archief.js.
+  let archief = {};
+  try { const r = await window._loadAkteData?.(); archief = r?.archiefData || {}; } catch {}
+  const meta = window.app?.state?.meta || {};
+  const hk   = meta.hoofdstukken || {};
+  const cv   = archief.chapterVisibility || {};
+  const grp  = window._activeGroupId || null;
+  const grpName = window._groups?.find(g => g.id === grp)?.name || null;
+
+  // Re-render-hook zodat de bestaande akte-functies deze tab verversen.
+  window._onAkteBeheerChange = () => { if (_activeTab === 'aktes') _renderAktes(); };
+
+  const aktes = Object.entries(hk)
+    .filter(([, v]) => (v.num ?? 99) < 90)
+    .sort((a, b) => (a[1].num || 99) - (b[1].num || 99));
+
+  el.innerHTML = `
+    <div class="dm-feature-section">
+      <div class="dm-akte-head">
+        <div class="dm-section-label" style="margin:0">Aktes — voorbereiding &amp; regie</div>
+        <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window.dmPanel.akteNieuw()" title="Nieuwe akte">${icon('plus')} Nieuwe akte</button>
+      </div>
+      ${grpName ? `<p class="dm-akte-grp-hint">Zichtbaarheid geldt voor de actieve groep: <strong>${esc(grpName)}</strong></p>` : ''}
+      ${aktes.length === 0
+        ? '<p class="dm-hint" style="opacity:.7">Nog geen aktes. Maak er een aan met „Nieuwe akte".</p>'
+        : aktes.map(([ch, info]) => {
+            const hidden = grp && cv[grp]?.[ch] === false;
+            const open   = _akteOpen.has(ch);
+            return `
+            <div class="dm-akte-card${hidden ? ' dm-akte-card--hidden' : ''}">
+              <div class="dm-akte-card-head" onclick="window.dmPanel.akteToggle('${esc(ch)}')">
+                <span class="dm-akte-num">Akte ${esc(String(info.num ?? '?'))}</span>
+                <span class="dm-akte-title">${esc(info.title || ch)}</span>
+                ${info.dag ? `<span class="dm-akte-dag">${esc(info.dag)}</span>` : ''}
+                <span class="dm-akte-toggle">${open ? '▾' : '▸'}</span>
+              </div>
+              <div class="dm-akte-actions">
+                <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.akteSpeel('${esc(ch)}')" title="Speel akte — laad de regie-balk">${icon('play')} Speel</button>
+                <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.akteBewerk('${esc(ch)}')" title="Akte bewerken (titel, banner, samenvatting)">${icon('pencil')} Bewerken</button>
+                ${grp ? `<button class="dm-btn dm-btn-sm${hidden ? ' dm-btn-danger-sm' : ''}"
+                  onclick="window.dmPanel.akteVisToggle('${esc(ch)}',${hidden})"
+                  title="${hidden ? 'Toon akte voor ' + esc(grpName) : 'Verberg akte voor ' + esc(grpName)}">
+                  ${hidden ? icon('lock') + ' Verborgen' : icon('eye') + ' Zichtbaar'}</button>` : ''}
+              </div>
+              ${open ? `<div class="dm-akte-script logboek-chapter-script" id="logboek-script-section-${esc(ch)}">${(window._akteScriptHtml ? window._akteScriptHtml(ch) : '')}</div>` : ''}
+            </div>`;
+          }).join('')}
+    </div>`;
+};
+
+async function _akteNieuw() {
+  const meta = window.app?.state?.meta || {};
+  const hk = meta.hoofdstukken || {};
+  const nums = Object.values(hk).map(v => v.num).filter(n => n < 90);
+  const nextNum = nums.length ? Math.max(...nums) + 1 : 1;
+  const nextKey = 'h' + nextNum;
+  const title = prompt('Titel van de nieuwe akte:', '');
+  if (title === null) return;
+  const t = title.trim() || ('Akte ' + nextNum);
+  const short = `A${nextNum} · ${t.length > 22 ? t.slice(0, 22) + '…' : t}`;
+  try {
+    await api.saveHoofdstuk(nextKey, { num: nextNum, title: t, dag: '', short });
+    const newMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = newMeta;
+    _akteOpen.add(nextKey);
+    _renderAktes();
+  } catch (e) { alert('Aanmaken mislukt: ' + e.message); }
 };
 
 

@@ -3515,6 +3515,20 @@ body::before {
 .dm-rb-reveal-btn:hover { background: var(--color-gold, #b8860b); }
 
 /* ── Logboek: akte script-sectie ── */
+/* ── Meesterkamer → Aktes (voorbereiding & regie) ── */
+.dm-akte-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.dm-akte-grp-hint { font-family: 'Crimson Text', serif; font-size: 11px; color: #6a5238; opacity: 0.85; margin: 0 0 10px; }
+.dm-akte-card { border: 1px solid rgba(196,168,122,0.4); border-radius: 9px; background: rgba(245,237,216,0.5); margin-bottom: 9px; overflow: hidden; }
+.dm-akte-card--hidden { opacity: 0.7; border-color: rgba(139,42,42,0.4); }
+.dm-akte-card-head { display: flex; align-items: center; gap: 9px; padding: 9px 11px; cursor: pointer; }
+.dm-akte-card-head:hover { background: rgba(196,168,122,0.1); }
+.dm-akte-num { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: #8a6a3a; background: rgba(184,134,11,0.14); padding: 2px 8px; border-radius: 999px; flex-shrink: 0; }
+.dm-akte-title { font-family: 'Cinzel', serif; font-size: 0.95rem; color: #2a1a08; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dm-akte-dag { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.8rem; color: #6a5238; flex-shrink: 0; }
+.dm-akte-toggle { color: #8a7050; flex-shrink: 0; }
+.dm-akte-actions { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 11px 9px; }
+.dm-akte-script { margin: 0 9px 9px; }
+
 .logboek-chapter-script {
   background: rgba(196, 168, 122, 0.07);
   border: 1px dashed rgba(196, 168, 122, 0.38);
