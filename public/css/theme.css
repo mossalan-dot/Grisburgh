@@ -17887,3 +17887,17 @@ body.kaart-fs-active { overflow: hidden; }
 .herberg-portrait-fallback .icon { width: 3rem; height: 3rem; color: #d8c4a0; }
 .ts-portrait-fallback .icon { width: 38px; height: 38px; }
 .renown-boete .icon, .gs-group-label .icon { width: 14px; height: 14px; vertical-align: -2px; }
+
+/* ── Akte-importer (Obsidian → regie-script) ── */
+.dm-imp-summary { font-size:.78rem; letter-spacing:.02em; opacity:.85; margin-bottom:6px; }
+.dm-imp-list { max-height:46vh; overflow-y:auto; border:1px solid rgba(120,90,50,.25); border-radius:8px; padding:6px; background:rgba(40,30,18,.18); }
+.dm-imp-row { display:flex; align-items:center; gap:8px; padding:4px 6px; border-radius:6px; font-size:.82rem; }
+.dm-imp-row + .dm-imp-row { border-top:1px solid rgba(120,90,50,.12); }
+.dm-imp-row .icon { width:15px; height:15px; opacity:.8; flex:0 0 auto; }
+.dm-imp-row--enc { flex-direction:column; align-items:stretch; gap:5px; background:rgba(120,40,30,.10); }
+.dm-imp-mons { padding-left:24px; display:flex; flex-direction:column; gap:4px; }
+.dm-imp-mon { display:flex; align-items:center; gap:5px; font-size:.8rem; }
+.dm-imp-tag { font-size:.66rem; padding:1px 6px; border-radius:10px; white-space:nowrap; flex:0 0 auto; }
+.dm-imp-tag--ok   { background:rgba(60,140,90,.22); color:#bfe5cc; }
+.dm-imp-tag--warn { background:rgba(170,90,40,.22); color:#f0cba8; }
+.dm-imp-mode { font-size:.78rem; display:flex; align-items:center; gap:5px; cursor:pointer; }

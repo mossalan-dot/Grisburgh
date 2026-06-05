@@ -72,6 +72,13 @@ export const api = {
     if (!res.ok) throw new Error('Upload mislukt');
     return res.json();
   },
+  // Akte-importer (Obsidian → regie-script)
+  importAktePreview: (payload) => request('/import/akte/preview', { method: 'POST', body: JSON.stringify(payload) }),
+  importAkteApply: async (formData) => {
+    const r = await fetch(`${BASE}/import/akte/apply`, { method: 'POST', body: formData, credentials: 'include' });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Import mislukt'); }
+    return r.json();
+  },
   fileUrl:  (id) => `${BASE}/files/${id}`,
   thumbUrl: (id) => `${BASE}/thumb/${id}`,
   deleteFile: (id) => request(`/files/${id}`, { method: 'DELETE' }),

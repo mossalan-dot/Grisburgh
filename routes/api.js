@@ -2464,6 +2464,206 @@ router.post('/import/obsidian', requireDM, uploadText.array('files', 50), (req, 
   res.json({ results });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Akte-importer: zet een narratief Obsidian-hoofdstuk (.md vol [[wikilinks]],
+// ![[embeds]] en monster-compendiumlinks) om naar een geordend regie-script.
+// Twee stappen: /preview (tekst-analyse, geen schrijfacties) en /apply (commit).
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _impNorm(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ').trim();
+}
+function _impBasename(p) {
+  return String(p || '').split(/[\\/]/).pop().trim();
+}
+function _impCaptionFromFile(file) {
+  return _impBasename(file).replace(/\.[a-z0-9]+$/i, '').replace(/[_]+/g, ' ').trim();
+}
+function _impMonsterFromUrl(url, label) {
+  try {
+    let slug = String(url).split(/[?#]/)[0].split('/').filter(Boolean).pop() || '';
+    slug = decodeURIComponent(slug).replace(/^\d+-/, '').replace(/[-_]+/g, ' ').trim();
+    return slug || (label || '').trim();
+  } catch { return (label || '').trim(); }
+}
+
+// Parseert markdown → geordende tokens (image | entity | monster) met sectie-context.
+function _parseAkteMarkdown(md) {
+  const lines = String(md || '').split(/\r?\n/);
+  const tokens = [];
+  let section = '';
+  const reImg  = /!\[\[([^\]|#\\]+?)(?:\\?[#|][^\]]*)?\]\]/g;
+  const reWiki = /(^|[^!])\[\[([^\]|#\\]+?)(?:\\?[#|][^\]]*)?\]\]/g;
+  const reMon  = /\[([^\]]+)\]\((https?:\/\/[^)\s]*(?:roll20\.net\/compendium|dndbeyond\.com\/monsters|5e\.tools)[^)\s]*)\)/gi;
+  for (const line of lines) {
+    const h = line.match(/^#{1,6}\s+(.*)$/);
+    if (h) { section = h[1].replace(/\[\[|\]\]/g, '').replace(/[#*]/g, '').trim(); continue; }
+    const found = [];
+    let m;
+    reImg.lastIndex = 0;
+    while ((m = reImg.exec(line))) found.push({ idx: m.index, kind: 'image', file: _impBasename(m[1].trim()) });
+    reWiki.lastIndex = 0;
+    while ((m = reWiki.exec(line))) {
+      const name = m[2].trim();
+      if (name) found.push({ idx: m.index + (m[1] ? m[1].length : 0), kind: 'entity', name });
+    }
+    reMon.lastIndex = 0;
+    while ((m = reMon.exec(line))) found.push({ idx: m.index, kind: 'monster', name: _impMonsterFromUrl(m[2], m[1]) });
+    found.sort((a, b) => a.idx - b.idx);
+    for (const f of found) { f.section = section; tokens.push(f); }
+  }
+  return tokens;
+}
+
+// Bouwt een review-plan uit de tokens. `imageNames` = bestandsnamen die de DM meelevert.
+function _buildAktePlan(md, imageNames) {
+  const tokens   = _parseAkteMarkdown(md);
+  const entities = storage.readJSON('entities.json');
+  const monData  = storage.readJSON('monsters.json');
+  const monsters = (monData && monData.monsters) || [];
+
+  const entIdx = {};
+  for (const t of ENTITY_TYPES) for (const e of (entities[t] || [])) {
+    const k = _impNorm(e.name); (entIdx[k] = entIdx[k] || []).push({ type: t, id: e.id, name: e.name });
+  }
+  const monIdx = {};
+  for (const mo of monsters) monIdx[_impNorm(mo.name)] = { id: mo.id, name: mo.name, hp: mo.maxHp || 10 };
+
+  const provided = new Set((imageNames || []).map(n => _impNorm(_impBasename(n))));
+  const plan = [];
+  const seenEntity = new Set();
+  const encBySection = {};
+  const reports = { unmatchedEntities: [], missingImages: [], unmatchedMonsters: [] };
+  let sid = 0;
+  const nid = () => 'pi_' + (sid++).toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+
+  for (const tk of tokens) {
+    if (tk.kind === 'image') {
+      const ok = provided.has(_impNorm(tk.file));
+      plan.push({ id: nid(), type: 'image', file: tk.file, caption: _impCaptionFromFile(tk.file),
+        include: true, _status: ok ? 'ok' : 'missing' });
+      if (!ok && !reports.missingImages.includes(tk.file)) reports.missingImages.push(tk.file);
+    } else if (tk.kind === 'entity') {
+      const k = _impNorm(tk.name);
+      if (seenEntity.has(k)) continue;
+      seenEntity.add(k);
+      const cands = entIdx[k] || [];
+      if (cands.length) {
+        const c = cands[0];
+        plan.push({ id: nid(), type: 'entity', name: c.name, entityType: c.type, entityId: c.id,
+          include: true, _status: 'ok', _candidates: cands });
+      } else {
+        plan.push({ id: nid(), type: 'entity', name: tk.name, entityType: null, entityId: null,
+          include: false, _status: 'unmatched' });
+        if (!reports.unmatchedEntities.includes(tk.name)) reports.unmatchedEntities.push(tk.name);
+      }
+    } else if (tk.kind === 'monster') {
+      const sec = tk.section || 'Encounter';
+      if (!encBySection[sec]) {
+        encBySection[sec] = { id: nid(), type: 'encounter', name: sec, monsters: [], include: true, _status: 'ok' };
+        plan.push(encBySection[sec]);
+      }
+      const enc = encBySection[sec];
+      const k = _impNorm(tk.name);
+      if (enc.monsters.some(r => _impNorm(r.name) === k)) continue;
+      const mm = monIdx[k];
+      enc.monsters.push({ name: mm ? mm.name : tk.name, count: 1, matched: !!mm,
+        monsterId: mm ? mm.id : null, hp: mm ? mm.hp : 10 });
+      if (!mm && !reports.unmatchedMonsters.includes(tk.name)) reports.unmatchedMonsters.push(tk.name);
+    }
+  }
+  return { plan, reports };
+}
+
+// Analyse: lever een review-plan terug, schrijft niets weg.
+router.post('/import/akte/preview', requireDM, (req, res) => {
+  const md = req.body?.md;
+  if (!md || typeof md !== 'string') return res.status(400).json({ error: 'Geen markdown ontvangen' });
+  const { plan, reports } = _buildAktePlan(md, req.body.imageNames || []);
+  res.json({ plan, reports, chapterKey: req.body.chapterKey || '' });
+});
+
+// Commit: bouw sessieLog-afbeeldingen, encounters en het regie-script.
+router.post('/import/akte/apply', requireDM, uploadMedia.array('images', 100), (req, res) => {
+  let plan;
+  try { plan = JSON.parse(req.body.plan || '[]'); } catch { return res.status(400).json({ error: 'Ongeldig plan' }); }
+  if (!Array.isArray(plan)) return res.status(400).json({ error: 'Ongeldig plan' });
+  const chapterKey = (req.body.chapterKey || '').trim();
+  if (!chapterKey) return res.status(400).json({ error: 'Geen akte gekozen' });
+  const mode = req.body.mode === 'append' ? 'append' : 'replace';
+
+  const fileByName = {};
+  for (const f of (req.files || [])) fileByName[_impNorm(f.originalname)] = f;
+
+  const script = [];
+  const sessieImages = [];
+  const imageScriptRefs = [];   // script-items die nog een sessieId nodig hebben
+  const encounters = storage.readJSON('encounters.json');
+  if (!Array.isArray(encounters.encounters)) encounters.encounters = [];
+  let imagesUploaded = 0, encountersCreated = 0;
+  const newId = (p) => `${p}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
+  for (const step of plan) {
+    if (step.include === false) continue;
+    if (step.type === 'image') {
+      const f = fileByName[_impNorm(step.file)];
+      if (!f || !_sniffMedia(f.buffer)) continue;
+      const fid = 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      storage.saveFile(fid, f.buffer, f.mimetype);
+      sessieImages.push({ id: fid, caption: step.caption || '', visible: false });
+      const item = { id: newId('s'), type: 'image', fileId: fid, sessieId: null, caption: step.caption || '' };
+      script.push(item); imageScriptRefs.push(item);
+      imagesUploaded++;
+    } else if (step.type === 'entity' && step.entityId && step.entityType) {
+      script.push({ id: newId('s'), type: 'entity', entityType: step.entityType, entityId: step.entityId, name: step.name || '' });
+    } else if (step.type === 'encounter') {
+      const mons = (step.monsters || []).map(r => ({
+        name: r.name, count: Math.max(1, parseInt(r.count) || 1), initiative: 10, hp: parseInt(r.hp) || 10,
+      }));
+      const eid = newId('enc');
+      encounters.encounters.push({
+        id: eid, name: step.name || 'Encounter', akteId: chapterKey,
+        backdropId: 'enc-backdrop-' + eid, canvasPreset: 'plain', canvasColors: null, monsters: mons,
+      });
+      encountersCreated++;
+      script.push({ id: newId('s'), type: 'encounter', encounterId: eid, name: step.name || 'Encounter' });
+    }
+  }
+
+  // Sessie-entry voor de afbeeldingen (zodat onthullen → speler-lightbox werkt).
+  let sessieId = null;
+  if (sessieImages.length) {
+    const archief = storage.readJSON('archief.json');
+    if (!archief.sessieLog) archief.sessieLog = [];
+    sessieId = 'sl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 4);
+    archief.sessieLog.push({
+      id: sessieId, hoofdstuk: chapterKey, datum: '', korteSamenvatting: 'Geïmporteerde scène-afbeeldingen',
+      samenvatting: '', images: sessieImages,
+      nieuwPersonages: [], terugkerendPersonages: [], nieuwLocaties: [], terugkerendLocaties: [],
+      organisaties: [], voorwerpen: [], docs: [], nieuw: [], terugkerend: [],
+    });
+    storage.writeJSON('archief.json', archief);
+    for (const ref of imageScriptRefs) ref.sessieId = sessieId;
+  }
+
+  if (encountersCreated) storage.writeJSON('encounters.json', encounters);
+
+  const meta = storage.readJSON('meta.json');
+  if (!meta.hoofdstukken) meta.hoofdstukken = {};
+  if (!meta.hoofdstukken[chapterKey]) meta.hoofdstukken[chapterKey] = {};
+  const existing = Array.isArray(meta.hoofdstukken[chapterKey].script) ? meta.hoofdstukken[chapterKey].script : [];
+  meta.hoofdstukken[chapterKey].script = mode === 'append' ? existing.concat(script) : script;
+  storage.writeJSON('meta.json', meta);
+
+  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  io.to(room).emit('meta:updated');
+  if (sessieId) io.to(room).emit('logboek:updated', { id: sessieId });
+
+  res.json({ ok: true, chapterKey, mode, scriptLength: meta.hoofdstukken[chapterKey].script.length,
+    stepsAdded: script.length, imagesUploaded, encountersCreated, sessieId });
+});
+
 // ── Groepen ──
 
 router.get('/groups', requireDM, (req, res) => {
