@@ -289,6 +289,7 @@ export function initDmPanel() {
     akteImpAnalyse: () => _akteImpAnalyse(),
     akteImpToggle:  (id) => _akteImpToggle(id),
     akteImpField:   (id, f, val) => _akteImpField(id, f, val),
+    akteImpEntityPick: (id, val) => _akteImpEntityPick(id, val),
     akteImpMonField:(id, mi, f, val) => _akteImpMonField(id, mi, f, val),
     akteImpApply:   () => _akteImpApply(),
     akteToggle:   (ch) => { if (_akteOpen.has(ch)) _akteOpen.delete(ch); else _akteOpen.add(ch); _renderAktes(); },
@@ -663,7 +664,7 @@ function _akteNieuw() {
 };
 
 // ── Akte-importer (Obsidian-hoofdstuk → regie-script) ──
-let _akteImp = { plan: [], files: new Map(), chapterKey: '', reports: null };
+let _akteImp = { plan: [], files: new Map(), chapterKey: '', reports: null, entityOptions: [] };
 
 function _impNormJs(s) {
   return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
@@ -727,6 +728,7 @@ async function _akteImpAnalyse() {
     const r = await api.importAktePreview({ md, imageNames, chapterKey: _akteImp.chapterKey });
     _akteImp.plan = r.plan || [];
     _akteImp.reports = r.reports || {};
+    _akteImp.entityOptions = r.entityOptions || [];
     _renderAkteImpPlan();
   } catch (e) {
     if (out) out.innerHTML = `<p class="dm-hint" style="color:var(--gb-danger,#b44)">Analyse mislukt: ${esc(e.message)}</p>`;
@@ -757,11 +759,16 @@ function _renderAkteImpPlan() {
     }
     if (s.type === 'entity') {
       const um = s._status === 'unmatched';
+      const sel = s.entityId ? `${s.entityType}::${s.entityId}` : '';
       return `<div class="dm-imp-row"${off}>
         ${chk} ${icon(ENT_ICON[s.entityType] || 'help-circle')}
-        <span style="flex:1">${esc(s.name)}</span>
-        ${um ? '<span class="dm-imp-tag dm-imp-tag--warn">geen kaart-match</span>'
-             : `<span class="dm-imp-tag dm-imp-tag--ok">${esc(s.entityType)}</span>`}</div>`;
+        <span style="flex:0 1 auto;min-width:0;${um ? 'color:#f0cba8' : ''}" title="Naam in het hoofdstuk">${esc(s.name)}</span>
+        ${um ? '<span class="dm-imp-tag dm-imp-tag--warn">geen match</span>'
+             : `<span class="dm-imp-tag dm-imp-tag--ok">${esc(s.entityType)}</span>`}
+        <select class="dm-input dm-input-sm" style="flex:1;min-width:120px" onchange="window.dmPanel.akteImpEntityPick('${s.id}',this.value)">
+          <option value="">${um ? '— koppel aan kaart —' : '— wijzig kaart —'}</option>
+          ${_akteImpEntityOptionsHtml(sel)}
+        </select></div>`;
     }
     // encounter
     const mons = (s.monsters || []).map((m, mi) => `
@@ -801,6 +808,24 @@ function _akteImpField(id, f, val) {
   if (id === '__key' && f === 'key') { _akteImp.chapterKey = val; return; }
   const s = _akteImp.plan.find(x => x.id === id);
   if (s) s[f] = val;
+}
+const _ENT_TYPE_LABEL = { personages: 'Personages', locaties: 'Locaties', organisaties: 'Organisaties', voorwerpen: 'Voorwerpen' };
+function _akteImpEntityOptionsHtml(selected) {
+  const byType = {};
+  for (const o of (_akteImp.entityOptions || [])) (byType[o.type] = byType[o.type] || []).push(o);
+  return Object.keys(byType).map(t => `<optgroup label="${esc(_ENT_TYPE_LABEL[t] || t)}">${
+    byType[t].map(o => { const v = `${o.type}::${o.id}`; return `<option value="${esc(v)}"${v === selected ? ' selected' : ''}>${esc(o.name)}</option>`; }).join('')
+  }</optgroup>`).join('');
+}
+function _akteImpEntityPick(id, val) {
+  const s = _akteImp.plan.find(x => x.id === id);
+  if (!s) return;
+  if (!val) { return; } // niets gekozen — laat huidige staat staan
+  const [type, eid] = val.split('::');
+  const opt = (_akteImp.entityOptions || []).find(o => o.type === type && o.id === eid);
+  if (!opt) return;
+  s.entityType = type; s.entityId = eid; s.name = opt.name; s._status = 'manual'; s.include = true;
+  _renderAkteImpPlan();
 }
 function _akteImpMonField(id, mi, f, val) {
   const s = _akteImp.plan.find(x => x.id === id);
