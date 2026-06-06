@@ -124,6 +124,7 @@ export const api = {
   revealDungeonRoom:    (id, data)  => request(`/dungeons/${id}/reveal`,    { method: 'POST',   body: JSON.stringify(data) }),
   hideDungeonRoom:      (id, data)  => request(`/dungeons/${id}/reveal`,    { method: 'DELETE', body: JSON.stringify(data) }),
   setDungeonPartyAccess:(id, list, completed=[]) => request(`/dungeons/${id}/party-access`, { method: 'PUT', body: JSON.stringify({ partyAccess: list, partyCompleted: completed }) }),
+  grantDungeonAccess:   (id, groupId) => request(`/dungeons/${id}/grant-access`, { method: 'POST', body: JSON.stringify({ groupId }) }),
 
   // Tunnel
   tunnelStart:  ()     => request('/tunnel/start',  { method: 'POST' }),

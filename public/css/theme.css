@@ -17901,3 +17901,11 @@ body.kaart-fs-active { overflow: hidden; }
 .dm-imp-tag--ok   { background:rgba(60,140,90,.22); color:#bfe5cc; }
 .dm-imp-tag--warn { background:rgba(170,90,40,.22); color:#f0cba8; }
 .dm-imp-mode { font-size:.78rem; display:flex; align-items:center; gap:5px; cursor:pointer; }
+
+/* ── Regie-script: dungeon-stappen ── */
+.dm-rb-entity-dungeon { background:rgba(70,90,140,.30); color:#cdd7f0; }
+.script-dng-block { margin-bottom:6px; }
+.script-dng-block > .dm-btn { width:100%; }
+.script-dng-rooms { display:flex; flex-direction:column; gap:3px; margin:3px 0 0 14px;
+  padding-left:8px; border-left:2px solid rgba(120,90,50,.25); }
+.script-dng-rooms .dm-btn { width:100%; font-size:.76rem; }

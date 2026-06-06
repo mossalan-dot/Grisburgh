@@ -6674,6 +6674,20 @@ router.put('/dungeons/:id/party-access', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/dungeons/:id/grant-access — geef één groep toegang (additief; voor regie-balk)
+router.post('/dungeons/:id/grant-access', requireDM, (req, res) => {
+  const { groupId } = req.body;
+  if (!groupId) return res.status(400).json({ error: 'groupId vereist' });
+  const maps = _readDungeons();
+  const map  = maps.find(m => m.id === req.params.id);
+  if (!map) return res.status(404).json({ error: 'Niet gevonden' });
+  if (!Array.isArray(map.partyAccess)) map.partyAccess = [];
+  if (!map.partyAccess.includes(groupId)) map.partyAccess.push(groupId);
+  _writeDungeons(maps);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('dungeon:updated');
+  res.json({ ok: true, partyAccess: map.partyAccess });
+});
+
 // ── Encounters (voorbereide gevechten) ──
 
 router.get('/encounters', requireDM, (req, res) => {
