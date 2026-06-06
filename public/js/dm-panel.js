@@ -1,4 +1,4 @@
-import { api } from './api.js?v=226';
+import { api } from './api.js?v=227';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=6';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -1500,7 +1500,9 @@ function _renderRegieBalkItem(item) {
     ? icon('image')
     : item.type === 'entity'
       ? icon('eye')
-      : icon('crossed-swords', { cls: 'icon-gi' });
+      : item.type === 'dungeon'
+        ? icon('castle')
+        : icon('crossed-swords', { cls: 'icon-gi' });
   const name      = item.type === 'image' ? (item.caption || 'Afbeelding') : (item.name || '—');
 
   const ENTITY_ICONS = {
@@ -1513,6 +1515,9 @@ function _renderRegieBalkItem(item) {
   let thumbHtml;
   if (item.type === 'image') {
     thumbHtml = `<img class="dm-rb-item-img" src="${esc(api.fileUrl(item.fileId))}" loading="lazy" draggable="false">`;
+  } else if (item.type === 'dungeon') {
+    const dIcon = item.roomId ? icon('map-pin') : icon('castle');
+    thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-dungeon">${dIcon}</div>`;
   } else {
     const entityIcon = item.type === 'entity'
       ? (ENTITY_ICONS[item.entityType] || icon('eye'))
@@ -1561,6 +1566,7 @@ function _renderRegieBalk() {
     { key: 'image',     label: icon('image') },
     { key: 'entity',    label: icon('eye') },
     { key: 'encounter', label: icon('swords') },
+    { key: 'dungeon',   label: icon('castle') },
   ];
 
   const items = _rbFilter === 'all'
@@ -1672,6 +1678,12 @@ async function _revealRegieBalkItem(itemId) {
       _combat = combat;
       _combatLoaded = true;
       _renderCombatOverlay(combat);
+    } else if (item.type === 'dungeon') {
+      const grp = window._activeGroupId;
+      if (!grp) { alert('Geen actieve groep — kies eerst een groep.'); _rbRevealed.delete(itemId); _renderRegieBalk(); return; }
+      // Geef de groep eerst toegang tot de dungeon, onthul daarna eventueel de kamer.
+      await api.grantDungeonAccess(item.dungeonId, grp);
+      if (item.roomId) await api.revealDungeonRoom(item.dungeonId, { roomId: item.roomId, groupId: grp });
     }
     // Optioneel geluid bij deze reveal (speelt via de tablet; loop → ambiance).
     if (item.soundFileId) {

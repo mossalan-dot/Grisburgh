@@ -9,7 +9,7 @@
  * en een beschrijving-preview in de body.
  */
 
-import { api } from './api.js?v=226';
+import { api } from './api.js?v=227';
 import { renderStatblock } from './render-statblock.js?v=2';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

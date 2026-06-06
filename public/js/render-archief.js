@@ -1,4 +1,4 @@
-import { api } from './api.js?v=226';
+import { api } from './api.js?v=227';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -1187,6 +1187,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
   const addedFileIds    = new Set(script.filter(x => x.type === 'image').map(x => x.fileId));
   const addedEntityIds  = new Set(script.filter(x => x.type === 'entity').map(x => x.entityId));
   const addedEncIds     = new Set(script.filter(x => x.type === 'encounter').map(x => x.encounterId));
+  const addedDungeonKeys= new Set(script.filter(x => x.type === 'dungeon').map(x => x.dungeonId + '|' + (x.roomId || '')));
 
   // Script item list
   const scriptHtml = script.length > 0
@@ -1196,7 +1197,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
           ? icon('image')
           : item.type === 'entity'
             ? icon('eye')
-            : icon('crossed-swords', { cls: 'icon-gi' });
+            : item.type === 'dungeon'
+              ? icon(item.roomId ? 'map-pin' : 'castle')
+              : icon('crossed-swords', { cls: 'icon-gi' });
         const name  = item.type === 'image' ? (item.caption || 'Afbeelding') : (item.name || '—');
         const thumb = item.type === 'image'
           ? `<img src="${api.fileUrl(item.fileId)}" style="width:40px;height:30px;object-fit:cover;border-radius:3px;flex-shrink:0">`
@@ -1272,6 +1275,33 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         style="width:100%;font-size:12px"
         onchange="window._scriptEncounterPick('${esc(ch)}', this.value); this.value=''">
       <datalist id="script-enc-dl-${esc(ch)}">${dlEncOptions}</datalist>`;
+  } else if (pickerState.mode === 'dungeon') {
+    const dungeons = pickerState.dungeons;
+    if (dungeons === undefined) {
+      pickerHtml = `<p class="dm-hint">Laden…</p>`;
+    } else if (dungeons.length === 0) {
+      pickerHtml = `<p class="dm-hint">Geen dungeon-kaarten voor dit hoofdstuk. Maak er eerst een aan onder Kaarten.</p>`;
+    } else {
+      pickerHtml = dungeons.map(d => {
+        const openAdded = addedDungeonKeys.has(d.id + '|');
+        const rooms = d.rooms || [];
+        return `<div class="script-dng-block">
+          <button class="dm-btn dm-btn-sm${openAdded ? ' dm-btn-ghost' : ''}" ${openAdded ? 'disabled' : ''}
+            style="text-align:left;${openAdded ? 'opacity:.5' : ''}"
+            onclick="window._scriptAddDungeon('${esc(ch)}','${esc(d.id)}','')">
+            ${icon('castle')} ${openAdded ? '✓ ' : ''}Open “${esc(d.name || 'Dungeon')}”</button>
+          ${rooms.length
+            ? `<div class="script-dng-rooms">${rooms.map(r => {
+                const added = addedDungeonKeys.has(d.id + '|' + r.id);
+                return `<button class="dm-btn dm-btn-sm${added ? ' dm-btn-ghost' : ''}" ${added ? 'disabled' : ''}
+                  style="text-align:left;${added ? 'opacity:.5' : ''}"
+                  onclick="window._scriptAddDungeon('${esc(ch)}','${esc(d.id)}','${esc(r.id)}')">
+                  ${icon('map-pin')} ${added ? '✓ ' : ''}${esc(r.name || 'Kamer')}</button>`;
+              }).join('')}</div>`
+            : `<p class="dm-hint" style="margin:2px 0 0 6px">Geen kamers ingetekend.</p>`}
+        </div>`;
+      }).join('');
+    }
   }
 
   return `
@@ -1287,6 +1317,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         <button class="script-add-btn${pickerState.mode === 'encounter'? ' is-active' : ''}"
           title="Gevecht toevoegen"
           onclick="window._scriptTogglePicker('${esc(ch)}','encounter')">${icon('crossed-swords',{cls:'icon-gi'})}</button>
+        <button class="script-add-btn${pickerState.mode === 'dungeon'? ' is-active' : ''}"
+          title="Dungeon of kamer toevoegen"
+          onclick="window._scriptTogglePicker('${esc(ch)}','dungeon')">${icon('castle')}</button>
       </div>
     </div>
     <div class="logboek-script-items">${scriptHtml}</div>
@@ -1422,6 +1455,8 @@ window._scriptTogglePicker = (ch, mode) => {
     _scriptLoadAllEntities(ch);
   } else if (state.mode === 'encounter' && state.encounters === undefined) {
     _scriptLoadEncounters(ch);
+  } else if (state.mode === 'dungeon' && state.dungeons === undefined) {
+    _scriptLoadDungeons(ch);
   }
   // Auto-focus search when opening entity picker
   if (state.mode === 'entity') {
@@ -1534,6 +1569,34 @@ async function _scriptLoadEncounters(ch) {
     }
   } catch (err) { console.warn('encounter load failed', err); }
 }
+
+async function _scriptLoadDungeons(ch) {
+  try {
+    const all = await api.listDungeons();
+    const state = _scriptPickerState[ch] || {};
+    // Alleen dungeons van dit hoofdstuk (val terug op alle als hoofdstukId leeg is).
+    state.dungeons = (all || []).filter(d => !d.hoofdstukId || d.hoofdstukId === ch);
+    _scriptPickerState[ch] = state;
+    _refreshScriptSection(ch);
+  } catch (err) { console.warn('dungeon load failed', err); }
+}
+
+window._scriptAddDungeon = async (ch, dungeonId, roomId) => {
+  const dungeons = (_scriptPickerState[ch] || {}).dungeons || [];
+  const d = dungeons.find(x => x.id === dungeonId);
+  if (!d) return;
+  let name;
+  if (roomId) {
+    const r = (d.rooms || []).find(x => x.id === roomId);
+    name = (d.name ? d.name + ' — ' : '') + (r?.name || 'Kamer');
+  } else {
+    name = 'Open: ' + (d.name || 'Dungeon');
+  }
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  if (script.some(x => x.type === 'dungeon' && x.dungeonId === dungeonId && (x.roomId || '') === (roomId || ''))) return;
+  script.push({ id: _scriptGenId(), type: 'dungeon', dungeonId, roomId: roomId || null, name });
+  await _scriptSave(ch, script);
+};
 
 function _scriptGenId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
