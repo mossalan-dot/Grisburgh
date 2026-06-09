@@ -344,6 +344,7 @@ export const api = {
   getFacties:         ()              => request('/facties'),
   factieSetRang:      (id, rang)      => request(`/facties/${id}/rang`,   { method: 'POST', body: JSON.stringify({ rang }) }),
   factieReveal:       (id)            => request(`/facties/${id}/reveal`,  { method: 'POST' }),
+  factieUitnodiging:  (id)            => request(`/facties/${id}/uitnodiging`, { method: 'POST' }),
   factieRenown:       (id, delta)     => request(`/facties/${id}/renown`,  { method: 'POST', body: JSON.stringify({ delta }) }),
   saveFactiesConfig:  (facties)       => request('/meta/facties',          { method: 'PUT',  body: JSON.stringify({ facties }) }),
   // Missies
@@ -363,6 +364,7 @@ export const api = {
   saveTweespaltConfig:   (data)          => request('/meta/tweespalt',                        { method: 'PUT',    body: JSON.stringify(data) }),
   getDienstenToegang: ()                   => request('/diensten/toegang'),
   setDienstToegang:   (groepId, dienst, staat) => request('/diensten/toegang', { method: 'PUT', body: JSON.stringify({ groepId, dienst, staat }) }),
+  dienstUitnodiging:  (dienst)        => request(`/diensten/${dienst}/uitnodiging`, { method: 'POST' }),
   getTweespalt:          ()              => request('/tweespalt'),
   createTweespaltEvent:  (data)          => request('/tweespalt/events',                    { method: 'POST',   body: JSON.stringify(data) }),
   updateTweespaltEvent:  (id, data)      => request(`/tweespalt/events/${id}`,              { method: 'PUT',    body: JSON.stringify(data) }),

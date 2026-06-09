@@ -113,14 +113,22 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=282   app.js?v=408   sound-manager.js?v=4
-app.js      : api.js?v=231      render-campagne.js?v=94   render-archief.js?v=42
+index.html  : theme.css?v=284   app.js?v=412   sound-manager.js?v=4
+app.js      : api.js?v=233      render-campagne.js?v=94   render-archief.js?v=42
               render-kaart.js?v=8  render-dungeon.js?v=22  render-relatiemap.js?v=13
-              render-progressie.js?v=34  socket-client.js?v=33
+              render-progressie.js?v=34  socket-client.js?v=34
               render-bestiarium.js?v=11  render-statblock.js?v=3
-              dm-panel.js?v=82
+              dm-panel.js?v=86
 dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=1
 ```
+
+> **Verzegelde uitnodigingsbrieven (reveal-by-letter).** Een factie of dienst kan zich per
+> brief voorstellen aan de actieve groep — dat onthult het doel én bezorgt elke speler een
+> cinematische, verzegelde brief. Hergebruikt het brief-systeem (`_bezorgBrief`, thema `factie`
+> met `kop`/`embleem`/`kleur`). Endpoints: `POST /facties/:id/uitnodiging`, `POST /diensten/:dienst/uitnodiging`.
+> DM-triggers: knop in het Facties-paneel, mail-icoon per dienst in "Toegang per groep", én een
+> mail-snelknop in de **regie-balk** (akteplay) met een factie/dienst-picker. Cinematic +
+> lakzegel-styling: `_briefCinematic()` + `.brief-cinematic-*` / `.speler-brief-card--factie` (CSS).
 
 > **Glossary/hover-uitleg:** geen los `glossary.js`-bestand (die revert staat hieronder). De
 > hover-uitleg van D&D-termen leeft **inline in app.js**: `_SB_GLOSSARY` (termen + tips),

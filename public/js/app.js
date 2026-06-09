@@ -1,4 +1,4 @@
-import { api } from './api.js?v=231';
+import { api } from './api.js?v=233';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=94";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=42";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=8';
@@ -7,8 +7,8 @@ import { renderRelatiemap } from './render-relatiemap.js?v=13';
 import { renderProgressie } from './render-progressie.js?v=34';
 import { renderBestiarium } from './render-bestiarium.js?v=11';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=33";
-import { initDmPanel } from "./dm-panel.js?v=82";
+import { initSocket } from "./socket-client.js?v=34";
+import { initDmPanel } from "./dm-panel.js?v=86";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -4472,15 +4472,88 @@ function _fmtBerichtDate(iso) {
 }
 
 // Briefhoofd per dienst-thema (boven aan een gethematiseerde brief)
-function _briefLetterhead(thema) {
+// Factiekleur (stijl hout/metaal/staal) → hex voor lakzegel & letterhead.
+function _factieKleurHex(kleur) {
+  return { hout: '#8a5a2a', metaal: '#9a9aa8', staal: '#5b7a9a' }[kleur] || '#b8860b';
+}
+
+function _briefLetterhead(m) {
+  const thema = typeof m === 'string' ? m : m?.thema;
   switch (thema) {
     case 'ursula':    return '<span class="lh-zegel">✦</span> Madame Ursula <span class="lh-sub">— Waarzegster der Sterren</span>';
     case 'gock':      return '<span class="lh-zegel">⌖</span> DE GOCK <span class="lh-sub">— Onderzoeksbureau</span>';
     case 'tweespalt': return `<span class="lh-zegel">${icon('dice')}</span> De Tweespalt`;
     case 'heeren':    return `<span class="lh-zegel">${icon('moon')}</span> De Heeren van de Nacht`;
+    case 'factie': {
+      const emb  = (typeof m === 'object' && m.embleem) ? m.embleem : 'landmark';
+      const naam = (typeof m === 'object' && (m.kop || m.afzender)) || 'Een factie';
+      return `<span class="lh-zegel">${icon(emb)}</span> ${esc(naam)}`;
+    }
     default:          return '';
   }
 }
+
+// Subtiel "brief valt + zegel" geluid via Web Audio (geen asset nodig).
+function _briefCinematicSound() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ac = new Ctx();
+    const now = ac.currentTime;
+    // zachte papier-/plof-ruis
+    const dur = 0.5;
+    const buf = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+    const src = ac.createBufferSource(); src.buffer = buf;
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+    const g = ac.createGain(); g.gain.setValueAtTime(0.18, now); g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    src.connect(lp); lp.connect(g); g.connect(ac.destination); src.start(now);
+    // korte "zegel-druk" toon
+    const o = ac.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(180, now + 0.42); o.frequency.exponentialRampToValueAtTime(70, now + 0.62);
+    const og = ac.createGain(); og.gain.setValueAtTime(0.0001, now + 0.42); og.gain.exponentialRampToValueAtTime(0.12, now + 0.46); og.gain.exponentialRampToValueAtTime(0.001, now + 0.68);
+    o.connect(og); og.connect(ac.destination); o.start(now + 0.42); o.stop(now + 0.7);
+    setTimeout(() => ac.close().catch(() => {}), 1200);
+  } catch { /* stilte is ook goed */ }
+}
+
+// Cinematische aankomst van een verzegelde factie-uitnodiging.
+window._briefCinematic = (msg) => {
+  document.getElementById('brief-cinematic')?.remove();
+  const kleur = _factieKleurHex(msg.kleur);
+  const emb   = msg.embleem || 'landmark';
+  const naam  = msg.kop || msg.afzender || 'een factie';
+  const ov = document.createElement('div');
+  ov.id = 'brief-cinematic';
+  ov.className = 'brief-cinematic-overlay';
+  ov.style.setProperty('--brief-kleur', kleur);
+  ov.innerHTML = `
+    <div class="brief-cinematic-scene">
+      <div class="brief-cinematic-brief">
+        <div class="brief-cinematic-zegel">${icon(emb)}</div>
+      </div>
+      <div class="brief-cinematic-tekst">
+        <div class="brief-cinematic-kop">Een verzegelde brief is bezorgd</div>
+        <div class="brief-cinematic-sub">van <strong>${esc(naam)}</strong></div>
+        <button class="brief-cinematic-knop">${icon('mail')} Open in Berichten</button>
+        <div class="brief-cinematic-hint">klik om te sluiten</div>
+      </div>
+    </div>`;
+  const dismiss = (goBerichten) => {
+    if (ov.dataset.dicht) return; ov.dataset.dicht = '1';
+    ov.classList.add('brief-cinematic-overlay--uit');
+    setTimeout(() => ov.remove(), 420);
+    if (goBerichten) { window.app.switchSection('mijn-karakter'); window._setPlayerSubTab?.('berichten'); }
+  };
+  ov.addEventListener('click', (e) => {
+    if (e.target.closest('.brief-cinematic-knop')) dismiss(true);
+    else dismiss(false);
+  });
+  document.body.appendChild(ov);
+  // geluid pas wanneer de brief 'landt'
+  setTimeout(_briefCinematicSound, 650);
+  setTimeout(() => dismiss(false), 9000);
+};
 
 window._updateBerichtenBadge = function() {
   const count = window._berichtenUnread || 0;
@@ -5808,8 +5881,8 @@ async function renderMijnKarakter(opts = {}) {
             out += `<div class="player-dash-section">
               <div class="player-dash-section-title">${icon('mail')} Brieven &amp; berichten</div>
               ${brieven.map(m => `
-                <div class="speler-brief-card${m.gelezen ? '' : ' speler-brief-card--nieuw'}${m.thema ? ` speler-brief-card--${esc(m.thema)}` : ''}" data-mid="${esc(m.id)}" onclick="window._briefToggle('${esc(m.id)}')">
-                  ${m.thema ? `<div class="speler-brief-letterhead speler-brief-letterhead--${esc(m.thema)}">${_briefLetterhead(m.thema)}</div>` : ''}
+                <div class="speler-brief-card${m.gelezen ? '' : ' speler-brief-card--nieuw'}${m.thema ? ` speler-brief-card--${esc(m.thema)}` : ''}${m.thema === 'factie' && !m.gelezen ? ' speler-brief-card--verzegeld' : ''}" data-mid="${esc(m.id)}"${m.thema === 'factie' ? ` style="--brief-kleur:${_factieKleurHex(m.kleur)}"` : ''} onclick="window._briefToggle('${esc(m.id)}')">
+                  ${m.thema ? `<div class="speler-brief-letterhead speler-brief-letterhead--${esc(m.thema)}">${_briefLetterhead(m)}</div>` : ''}
                   <div class="speler-brief-header">
                     <div class="speler-brief-header-main">
                       ${m.titel ? `<div class="speler-brief-titel">${esc(m.titel)}</div>` : ''}
@@ -5823,7 +5896,7 @@ async function renderMijnKarakter(opts = {}) {
                     ${m.afzender ? `<div class="speler-brief-afzender">
                       Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.65rem;padding:1px 4px;line-height:1.3;margin-left:3px" onclick="event.stopPropagation();window._openDetail('${esc(m.entityType)}','${esc(m.entityId)}')" title="Open kaartje">↗</button>` : ''}
                     </div>` : ''}
-                    <div class="speler-brief-tekst">${esc(m.tekst).replace(/👁/g,icon('eye')).replace(/👂/g,icon('zap')).replace(/👃/g,icon('flask-conical')).replace(/👅/g,icon('potion')).replace(/✋/g,icon('heart')).replace(/\n/g, '<br>')}</div>
+                    <div class="speler-brief-tekst">${mdToHtml(m.tekst).replace(/👁/g,icon('eye')).replace(/👂/g,icon('zap')).replace(/👃/g,icon('flask-conical')).replace(/👅/g,icon('potion')).replace(/✋/g,icon('heart'))}</div>
                   </div>
                 </div>`).join('')}
             </div>`;

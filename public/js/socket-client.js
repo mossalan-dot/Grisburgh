@@ -602,14 +602,19 @@ export function initSocket() {
   socket.on('bericht:nieuw', ({ msg } = {}) => {
     if (!msg?.tekst) return;
     const isBrief = msg.type === 'brief';
-    const toastLabel = isBrief
-      ? `✉️ <strong>${msg.titel ? `Brief: ${msg.titel}` : 'Nieuwe brief ontvangen'}</strong>`
-      : `💬 <strong>Geheim bericht van de DM</strong>`;
-    _showToast(
-      toastLabel,
-      () => { window.app.switchSection('mijn-karakter'); window._setPlayerSubTab?.('berichten'); },
-      8000
-    );
+    // Verzegelde factie-uitnodiging → cinematische aankomst i.p.v. een toast
+    if (msg.cinematic && window._briefCinematic) {
+      window._briefCinematic(msg);
+    } else {
+      const toastLabel = isBrief
+        ? `✉️ <strong>${msg.titel ? `Brief: ${msg.titel}` : 'Nieuwe brief ontvangen'}</strong>`
+        : `💬 <strong>Geheim bericht van de DM</strong>`;
+      _showToast(
+        toastLabel,
+        () => { window.app.switchSection('mijn-karakter'); window._setPlayerSubTab?.('berichten'); },
+        8000
+      );
+    }
     // Als de spelerspagina open is, herrender direct
     if (window.app?.state?.activeSection === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter');
