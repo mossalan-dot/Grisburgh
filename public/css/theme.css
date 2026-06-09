@@ -16341,6 +16341,27 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   pointer-events: none;
   border-radius: inherit;
 }
+/* Niet-voorbereide spreuk: slot-zone vervangen door 'bereid voor'-knop */
+.sb-slot-unprepared {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(60,40,20,0.55); border: 1px dashed rgba(255,255,255,0.4); color: #f2e8d2;
+  border-radius: 8px; padding: 7px 12px; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.04em; cursor: pointer; line-height: 1.1; text-align: center;
+}
+.sb-slot-unprepared:hover { background: rgba(80,55,28,0.7); border-color: rgba(255,255,255,0.6); }
+.sb-slot-unprepared .icon { width: 13px; height: 13px; }
+/* Niet-voorbereid stempel op de spreukpagina */
+.sb-spell-unprep {
+  position: absolute; top: 60px; right: 26px; z-index: 7; pointer-events: none;
+  font-family: 'Cinzel', serif; font-size: 14px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(150,40,40,0.42); border: 2.5px solid rgba(150,40,40,0.38); border-radius: 7px;
+  padding: 5px 12px; transform: rotate(-11deg);
+  box-shadow: 0 0 0 1px rgba(150,40,40,0.12) inset; opacity: 0.85;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.25);
+}
+/* Lichte ontkleuring van het boek bij niet-voorbereid */
+.sb-book--unprepared .sb-page-right { filter: saturate(0.78) brightness(0.985); }
+
 .sb-spell-fade::after {
   content: 'Geen slots beschikbaar';
   position: absolute;

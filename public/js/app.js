@@ -2867,6 +2867,8 @@ function _ensureSpellbookOverlay() {
         <div class="sb-conc-fold sb-conc-fold--hidden" id="sb-conc-fold"></div>
         <!-- No-slots-available fade overlay -->
         <div class="sb-spell-fade" id="sb-spell-fade" style="display:none"></div>
+        <!-- Niet-voorbereid stempel -->
+        <div class="sb-spell-unprep" id="sb-spell-unprep" style="display:none">Niet voorbereid</div>
         <div class="sb-right-content" id="sb-right-content"></div>
       </div>
       <!-- Book spine — raised leather binding at the centre -->
@@ -3782,6 +3784,14 @@ function _sbRenderSlots() {
   const baseLvl = spell?.level;
   if (!baseLvl || baseLvl < 1) { zone.innerHTML = ''; return; }
 
+  // Niet-voorbereide leveled spreuk: geen slot afvinken — eerst voorbereiden.
+  if (!spell.prepared && !spell.alwaysPrepared) {
+    zone.innerHTML = `<button class="sb-slot-unprepared" onclick="window._sbCyclePrepared()"
+      title="Je kunt deze spreuk pas casten als hij voorbereid is — klik om voor te bereiden">
+      ${icon('book-open')} Bereid voor om te casten</button>`;
+    return;
+  }
+
   // Determine shown cast level; keep within valid slot range
   let castLvl = _sbState.castSlotLevel ?? baseLvl;
   // Clamp to a level that actually has slots, preferring the requested level
@@ -3846,6 +3856,16 @@ window._sbUploadImage = async function(file) {
   if (fi) fi.value = '';
 };
 
+// Werk het 'Niet voorbereid'-stempel + pagina-ontkleuring bij voor de huidige spreuk.
+function _sbUpdateUnprepStamp() {
+  const spell = _sbState.spells[_sbState.idx];
+  const isUnprep = !!spell && (spell.level || 0) >= 1 && !spell.prepared && !spell.alwaysPrepared;
+  const unprepEl = document.getElementById('sb-spell-unprep');
+  if (unprepEl) unprepEl.style.display = isUnprep ? '' : 'none';
+  const bookEl = document.getElementById('sb-book');
+  if (bookEl) bookEl.classList.toggle('sb-book--unprepared', isUnprep);
+}
+
 // Telt alleen "echt" voorbereide spreuken (niet de gratis 'altijd paraat' of cantrips).
 function _sbPreparedCount() {
   return _sbState.spells.filter(s => s.prepared && !s.alwaysPrepared && (s.level || 0) >= 1).length;
@@ -3884,9 +3904,11 @@ window._sbCyclePrepared = async () => {
   const prev = { prepared: spell.prepared, alwaysPrepared: spell.alwaysPrepared };
   spell.prepared = prepared; spell.alwaysPrepared = alwaysPrepared;
   _sbRenderPrepared();
+  _sbRenderSlots();          // slot-pips ↔ 'bereid voor om te casten'
+  _sbUpdateUnprepStamp();    // 'Niet voorbereid'-stempel
   if (_sbState.tocOpen) _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
   try { await api.updatePlayerSpell(_sbState.charId, spell.index, { prepared, alwaysPrepared }); }
-  catch { Object.assign(spell, prev); _sbRenderPrepared(); }
+  catch { Object.assign(spell, prev); _sbRenderPrepared(); _sbRenderSlots(); _sbUpdateUnprepStamp(); }
 };
 
 window._sbEditPreparedMax = async () => {
@@ -4137,6 +4159,9 @@ function _sbRender() {
   // ── Spell fade when no slots available ──
   const fadeEl = document.getElementById('sb-spell-fade');
   if (fadeEl) fadeEl.style.display = _sbHasNoSlots(spell) ? '' : 'none';
+
+  // ── Niet-voorbereid stempel (leveled spreuk die niet paraat is) ──
+  _sbUpdateUnprepStamp();
 
   // ── Page yellowing based on acquisition level ──
   if (rightPage) {
