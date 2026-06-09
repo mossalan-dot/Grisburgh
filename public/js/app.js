@@ -3520,6 +3520,39 @@ function _spellTypes(s) {
 }
 const _SP_TYPE_LABELS = { schade:'Schade', gebied:'Gebied', genezing:'Genezing', controle:'Controle', hulp:'Hulp' };
 
+// Cantrips known per klasse (2024) — drempel-levels, waarde geldt vanaf dat level.
+const _CANTRIPS_KNOWN = {
+  wizard:    { 1: 3, 4: 4, 10: 5 },
+  sorcerer:  { 1: 4, 4: 5, 10: 6 },
+  bard:      { 1: 2, 4: 3, 10: 4 },
+  cleric:    { 1: 3, 4: 4, 10: 5 },
+  druid:     { 1: 2, 4: 3, 10: 4 },
+  warlock:   { 1: 2, 4: 3, 10: 4 },
+  artificer: { 1: 2, 10: 3, 14: 4 },
+  // paladin & ranger: geen cantrips
+};
+function _cantripsKnown(klasseEN, level) {
+  const tbl = _CANTRIPS_KNOWN[String(klasseEN || '').toLowerCase()];
+  if (!tbl) return 0;
+  let v = 0;
+  for (const lv of Object.keys(tbl).map(Number).sort((a, b) => a - b)) if (level >= lv) v = tbl[lv];
+  return v;
+}
+function _sbAddSpHint() {
+  const klasseEN = _spellClassEN(_sbState.klasse);
+  const lvl = parseInt(_sbState.klasseLevel) || parseInt(window._lastPlayerProfile?.klasseLevel) || parseInt(window._lastPlayerProfile?.level) || 0;
+  if (!klasseEN || !lvl) return '';
+  const curC = _sbState.spells.filter(s => (s.level || 0) === 0).length;
+  const curS = _sbState.spells.filter(s => (s.level || 0) >= 1).length;
+  const knownC = _cantripsKnown(klasseEN, lvl);
+  const isBook = /wizard|artificer/i.test(klasseEN);
+  const spreukDeel = isBook
+    ? `je <strong>spreukenboek</strong> groeit met <strong>2 spreuken</strong> per level`
+    : (_sbState.preparedMax ? `je kunt tot <strong>${_sbState.preparedMax} spreuken</strong> voorbereiden` : 'je bereidt spreuken voor uit je lijst');
+  const cantripDeel = knownC ? `doorgaans <strong>${knownC} cantrip${knownC === 1 ? '' : 's'}</strong> (je hebt er nu ${curC})` : 'geen cantrips';
+  return `<div class="sb-addspells-hint">${icon('sparkles')} Als <strong>${esc(klasseEN)}</strong> op level ${lvl}: ${cantripDeel}, en ${spreukDeel}. Je boek telt nu ${curC} cantrip${curC === 1 ? '' : 's'} en ${curS} spreuk${curS === 1 ? '' : 'en'}.</div>`;
+}
+
 const _addSp = { klasseOnly: true, levels: new Set(), types: new Set(), ritueel: false, concentratie: false, query: '', selected: new Set() };
 
 window._sbOpenAddSpells = async function() {
@@ -3542,6 +3575,7 @@ window._sbOpenAddSpells = async function() {
         <button class="sb-addspells-class" id="sb-addspells-class" onclick="window._sbAddSpToggleClass()"></button>
         <button class="sb-addspells-close" onclick="window._sbCloseAddSpells()" title="Sluiten">${icon('x')}</button>
       </div>
+      ${_sbAddSpHint()}
       <input type="text" class="sb-addspells-search" id="sb-addspells-search" placeholder="Zoek op naam…"
         oninput="window._sbAddSpSearch(this.value)">
       <div class="sb-addspells-filters" id="sb-addspells-filters"></div>
@@ -4992,6 +5026,7 @@ async function renderMijnKarakter(opts = {}) {
   _sbState.spellSaveDC      = playerProfile.spellSaveDC      ?? null;
   _sbState.spellAttackBonus = playerProfile.spellAttackBonus ?? null;
   _sbState.klasse           = playerProfile.klasse || playerProfile.multiKlasse || '';
+  _sbState.klasseLevel      = playerProfile.klasseLevel || playerProfile.level || '';
 
   // Sla unread bericht-teller op (niet resetten als berichten-tab open is)
   const unreadCount = berichtenLijst.filter(m => !m.gelezen).length;
