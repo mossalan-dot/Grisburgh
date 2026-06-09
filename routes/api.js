@@ -2053,6 +2053,7 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
     'multiclass', 'klasseLevel', 'multiKlasse', 'multiKlasseLevel',
     'bookmarks', 'weapons',
     "swimSpeed", "flySpeed", "extraSpeeds", "spellFavorites", "factieTitel", "featFavorites", "featChoices",
+    "preparedMax",
   ];
   const updated = { ...existing };
   for (const key of allowed) {
@@ -2210,7 +2211,8 @@ router.patch('/player-spells/:characterId/:spellIndex', attachRole, (req, res) =
   const spells  = (dmState.playerSpells || {})[characterId] || [];
   const spell   = spells.find(s => s.index === spellIndex);
   if (!spell) return res.status(404).json({ error: 'Spreuk niet gevonden' });
-  const { school, desc, damage, casting_time, range, components, duration, incantation, concentrationActive } = req.body;
+  const { school, desc, damage, casting_time, range, components, duration, incantation, concentrationActive, prepared } = req.body;
+  if (prepared     !== undefined) spell.prepared     = !!prepared;
   if (school       !== undefined) spell.school       = school;
   if (desc         !== undefined) spell.desc         = desc;
   if (damage       !== undefined) spell.damage       = damage;

@@ -2511,6 +2511,24 @@ const _sbState = {
   castSlotLevel: null, // ephemeral: chosen cast level for current spell
 };
 const _sbDescCache = new Map(); // spell.index → fetched desc string
+
+// ── Spell preparation (2024) ──────────────────────────────────────
+// Spellcasting-ability per klasse → modifier voor het voorbereid-limiet.
+function _spellAbility(klasse) {
+  const k = String(klasse || '').toLowerCase();
+  if (/wizard|artificer|magi[eë]r|tovenaar/.test(k)) return 'int';
+  if (/cleric|druid|ranger|priester|klerk|verkenner/.test(k)) return 'wis';
+  return 'cha'; // bard, paladin, sorcerer, warlock + onbekend
+}
+// Auto-suggestie voor het aantal voorbereide spreuken (cantrips tellen niet mee).
+function _preparedLimit(klasse, level, mod) {
+  const k = String(klasse || '').toLowerCase();
+  const lvl = parseInt(level) || 0;
+  if (!lvl) return 0;
+  if (/warlock/.test(k))                      return Math.max(1, Math.min(lvl + 1, 15));
+  if (/paladin|ranger|artificer/.test(k))     return Math.max(1, Math.floor(lvl / 2) + mod); // half-caster
+  return Math.max(1, lvl + mod);              // vol-caster (bard/cleric/druid/sorcerer/wizard)
+}
 let _sbOpenRafId = null;        // rAF token for the open animation — cancelled on close
 
 // ── Subtle sound effects (Web Audio — no files needed) ──
@@ -2799,6 +2817,7 @@ function _ensureSpellbookOverlay() {
       <button class="sb-ctrl-btn sb-ctrl-conc" id="sb-conc-ctrl-btn" onclick="window._sbToggleConcentration()" title="Concentratie" style="display:none">
         🕯 Concentratie
       </button>
+      <div class="sb-prepared-zone" id="sb-prepared-zone"></div>
       <button class="sb-ctrl-btn sb-ctrl-help" id="sb-help-btn" onclick="window._sbToggleHelp()" title="Help">
         ${icon('book-open')} Help
       </button>
@@ -3802,6 +3821,46 @@ window._sbUploadImage = async function(file) {
   if (fi) fi.value = '';
 };
 
+// Prepared-teller + toggle voor de huidige spreuk (cantrips = altijd paraat).
+function _sbRenderPrepared() {
+  const zone = document.getElementById('sb-prepared-zone');
+  if (!zone) return;
+  const spell = _sbState.spells[_sbState.idx];
+  const count = _sbState.spells.filter(s => s.prepared && (s.level || 0) >= 1).length;
+  const max   = _sbState.preparedMax ?? 0;
+  const over  = count > max;
+  const isCantrip = (spell?.level || 0) === 0;
+  const toggle = !spell ? '' : isCantrip
+    ? `<span class="sb-prep-btn sb-prep-btn--cantrip" title="Cantrips zijn altijd paraat">${icon('check')} Altijd paraat</span>`
+    : `<button class="sb-prep-btn${spell.prepared ? ' sb-prep-btn--on' : ''}" onclick="window._sbTogglePrepared()"
+         title="${spell.prepared ? 'Voorbereiding opheffen' : 'Deze spreuk voorbereiden'}">
+         ${spell.prepared ? icon('check') + ' Paraat' : icon('book-open') + ' Bereid voor'}</button>`;
+  zone.innerHTML = `${toggle}<button class="sb-prep-counter${over ? ' sb-prep-counter--over' : ''}"
+    onclick="window._sbEditPreparedMax()" title="Voorbereide spreuken (klik om het maximum aan te passen)">${count} / ${max}</button>`;
+}
+
+window._sbTogglePrepared = async () => {
+  const spell = _sbState.spells[_sbState.idx];
+  if (!spell || (spell.level || 0) === 0 || !_sbState.charId) return;
+  spell.prepared = !spell.prepared;
+  _sbRenderPrepared();
+  try { await api.updatePlayerSpell(_sbState.charId, spell.index, { prepared: spell.prepared }); }
+  catch { spell.prepared = !spell.prepared; _sbRenderPrepared(); }
+};
+
+window._sbEditPreparedMax = async () => {
+  const auto = _sbState.preparedAuto ?? 0;
+  const cur  = _sbState.preparedMax ?? '';
+  const val  = prompt(`Maximaal aantal voorbereide spreuken?\n(laat leeg voor automatisch op basis van klasse + level: ${auto})`, String(cur));
+  if (val === null) return;
+  const t = val.trim();
+  _sbState.preparedMax = t === '' ? auto : (Math.max(0, parseInt(t) || 0));
+  _sbRenderPrepared();
+  if (_sbState.charId) {
+    try { await api.patchPlayerProfile(_sbState.charId, { preparedMax: t === '' ? '' : String(_sbState.preparedMax) }); } catch {}
+  }
+};
+
 function _sbRender() {
   const spell = _sbState.spells[_sbState.idx];
   if (!spell) return;
@@ -3906,6 +3965,9 @@ function _sbRender() {
 
   // ── Left: spell slots ──
   _sbRenderSlots();
+
+  // ── Prepared-teller + toggle ──
+  _sbRenderPrepared();
 
   // ── Left: school + level ──
   const schoolEl = document.getElementById('sb-left-school');
@@ -4775,6 +4837,18 @@ async function renderMijnKarakter(opts = {}) {
   try { _skillAdj = JSON.parse(playerProfile.skillAdj || '{}'); } catch { _skillAdj = {}; }
   const _saveProfs  = new Set(Array.isArray(playerProfile.saveProfs) ? playerProfile.saveProfs : (playerProfile.saveProfs || '').split(',').filter(Boolean));
   const _profBonusNum = parseInt(playerProfile.profBonus) || 0;
+
+  // Spell preparation: voorbereid-limiet (auto uit klasse+level+ability, overschrijfbaar)
+  {
+    const _spLvl   = parseInt(playerProfile.klasseLevel) || parseInt(playerProfile.level) || 0;
+    const _spMod   = _mod(_spellAbility(playerProfile.klasse));
+    const _autoMax = _preparedLimit(playerProfile.klasse, _spLvl, _spMod);
+    const _ovRaw   = playerProfile.preparedMax;
+    const _override = (_ovRaw != null && String(_ovRaw).trim() !== '') ? parseInt(_ovRaw) : null;
+    _sbState.preparedAuto = _autoMax;
+    _sbState.preparedMax  = (_override != null && !isNaN(_override)) ? _override : _autoMax;
+  }
+
   const _percProf     = _skillProfs['perception'] || null;
   const _passivePerc  = 10 + _mod('wis') + (_percProf === 'expert' ? _profBonusNum * 2 : _percProf === 'prof' ? _profBonusNum : 0);
   const _dsSucc = Math.min(3, Math.max(0, parseInt(playerProfile.deathSaveSuccesses) || 0));
