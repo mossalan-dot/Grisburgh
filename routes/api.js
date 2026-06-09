@@ -2211,8 +2211,9 @@ router.patch('/player-spells/:characterId/:spellIndex', attachRole, (req, res) =
   const spells  = (dmState.playerSpells || {})[characterId] || [];
   const spell   = spells.find(s => s.index === spellIndex);
   if (!spell) return res.status(404).json({ error: 'Spreuk niet gevonden' });
-  const { school, desc, damage, casting_time, range, components, duration, incantation, concentrationActive, prepared } = req.body;
-  if (prepared     !== undefined) spell.prepared     = !!prepared;
+  const { school, desc, damage, casting_time, range, components, duration, incantation, concentrationActive, prepared, alwaysPrepared } = req.body;
+  if (prepared       !== undefined) spell.prepared       = !!prepared;
+  if (alwaysPrepared !== undefined) spell.alwaysPrepared = !!alwaysPrepared;
   if (school       !== undefined) spell.school       = school;
   if (desc         !== undefined) spell.desc         = desc;
   if (damage       !== undefined) spell.damage       = damage;

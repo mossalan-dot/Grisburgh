@@ -15067,6 +15067,17 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 }
 .sb-prep-counter:hover { border-color: rgba(255,255,255,0.4); }
 .sb-prep-counter--over { background: rgba(154,40,40,0.6); border-color: #d9745a; color: #ffe6df; }
+.sb-prep-btn--always { background: linear-gradient(to bottom, #7a5aaa, #5a3a8a); border-color: #a98ad0; color: #fff; font-weight: 700; }
+.sb-prep-btn--always:hover { background: linear-gradient(to bottom, #8a6aba, #6a4a9a); }
+/* TOC: 'alleen paraat'-filter + markers */
+.sb-toc-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sb-toc-prep-filter { font-family: 'Cinzel', serif; font-size: 10px; color: #6a5430; background: rgba(196,168,122,0.16); border: 1px solid rgba(196,168,122,0.45); border-radius: 6px; padding: 3px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.sb-toc-prep-filter .icon { width: 11px; height: 11px; }
+.sb-toc-prep-filter--on { background: linear-gradient(to bottom, #b8860b, #8a6206); border-color: #d9b24a; color: #fff8ea; }
+.sb-toc-prep-mark { display: inline-flex; align-items: center; justify-content: center; width: 15px; flex-shrink: 0; }
+.sb-toc-prep-mark .icon { width: 11px; height: 11px; }
+.sb-toc-prep-mark--on { color: #2a8a4a; }
+.sb-toc-prep-mark--always { color: #b8860b; font-size: 12px; line-height: 1; }
 .sb-ctrl-btn {
   background: rgba(255,255,255,0.10);
   border: 1px solid rgba(255,255,255,0.18);

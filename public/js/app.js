@@ -2504,6 +2504,7 @@ const _sbState = {
   favs: new Set(),
   charId: null,
   tocOpen: false,
+  tocPreparedOnly: false,
   manageOpen: false,
   slots: {},           // { 1: { max: 3, used: 1 }, ... }
   spellSaveDC: null,
@@ -2888,7 +2889,11 @@ function _ensureSpellbookOverlay() {
       <!-- TOC panel: slides from left -->
       <div class="sb-toc-panel" id="sb-toc-panel">
         <div class="sb-toc-header">
-          <div class="sb-toc-title">Inhoudsopgave</div>
+          <div class="sb-toc-title-row">
+            <div class="sb-toc-title">Inhoudsopgave</div>
+            <button class="sb-toc-prep-filter" id="sb-toc-prep-filter" onclick="window._sbTocTogglePreparedOnly()"
+              title="Toon alleen voorbereide spreuken">${icon('check')} Alleen paraat</button>
+          </div>
           <input type="text" class="sb-toc-search" id="sb-toc-search"
             placeholder="Zoek spreuk…" oninput="window._sbTocSearch(this.value)">
         </div>
@@ -3599,6 +3604,10 @@ window._sbCustomSpellSave = async function() {
 };
 
 window._sbTocSearch = function(q) { _sbRenderTocList(q); };
+window._sbTocTogglePreparedOnly = function() {
+  _sbState.tocPreparedOnly = !_sbState.tocPreparedOnly;
+  _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
+};
 
 function _sbRenderTocList(q) {
   const list = document.getElementById('sb-toc-list');
@@ -3607,13 +3616,28 @@ function _sbRenderTocList(q) {
   const pinnedIndices = new Set(_sbState.spells.map(s => s.index));
   let html = '';
 
+  // Reflecteer de filter-knop-staat
+  const prepFilterBtn = document.getElementById('sb-toc-prep-filter');
+  if (prepFilterBtn) prepFilterBtn.classList.toggle('sb-toc-prep-filter--on', !!_sbState.tocPreparedOnly);
+
+  // Is een spreuk 'paraat'? (cantrip = altijd, of voorbereid, of altijd-paraat)
+  const _ready = s => (s.level || 0) === 0 || s.prepared || s.alwaysPrepared;
+  // Markertje per spreuk in de lijst
+  const _mark = s => (s.level || 0) === 0 || s.alwaysPrepared
+    ? '<span class="sb-toc-prep-mark sb-toc-prep-mark--always" title="Altijd paraat">★</span>'
+    : (s.prepared ? `<span class="sb-toc-prep-mark sb-toc-prep-mark--on" title="Voorbereid">${icon('check')}</span>` : '');
+
   if (!query) {
     // Lege zoekterm: toon toegevoegde spreuken per level met verwijderknop
+    const bron = _sbState.tocPreparedOnly ? _sbState.spells.filter(_ready) : _sbState.spells;
     if (_sbState.spells.length === 0) {
       html = '<div class="sb-toc-empty">Nog geen spreuken toegevoegd.<br>Zoek er een op om te beginnen.</div>';
+    } else if (bron.length === 0) {
+      html = '<div class="sb-toc-empty">Geen voorbereide spreuken.<br>Bereid er een voor met de knop bovenaan.</div>';
     } else {
       const groups = {};
       _sbState.spells.forEach((s, i) => {
+        if (_sbState.tocPreparedOnly && !_ready(s)) return;
         const k = s.level || 0;
         if (!groups[k]) groups[k] = [];
         groups[k].push({ s, i });
@@ -3626,6 +3650,7 @@ function _sbRenderTocList(q) {
           const active = i === _sbState.idx;
           const school = s.school?.name || (typeof s.school === 'string' ? s.school : '');
           html += `<div class="sb-toc-item${active ? ' sb-toc-active' : ''}">
+            ${_mark(s)}
             <span class="sb-toc-item-name" onclick="window._sbGoTo(${i}, true)">${esc(s.name)}</span>
             ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}
             <button class="sb-toc-item-del" onclick="window._sbTocUnpin('${esc(s.index)}')" title="Verwijderen">×</button>
@@ -3821,31 +3846,47 @@ window._sbUploadImage = async function(file) {
   if (fi) fi.value = '';
 };
 
-// Prepared-teller + toggle voor de huidige spreuk (cantrips = altijd paraat).
+// Telt alleen "echt" voorbereide spreuken (niet de gratis 'altijd paraat' of cantrips).
+function _sbPreparedCount() {
+  return _sbState.spells.filter(s => s.prepared && !s.alwaysPrepared && (s.level || 0) >= 1).length;
+}
+// Prepared-teller + 3-standen-toggle: Bereid voor → Paraat → Altijd paraat (gratis).
 function _sbRenderPrepared() {
   const zone = document.getElementById('sb-prepared-zone');
   if (!zone) return;
   const spell = _sbState.spells[_sbState.idx];
-  const count = _sbState.spells.filter(s => s.prepared && (s.level || 0) >= 1).length;
+  const count = _sbPreparedCount();
   const max   = _sbState.preparedMax ?? 0;
   const over  = count > max;
   const isCantrip = (spell?.level || 0) === 0;
-  const toggle = !spell ? '' : isCantrip
-    ? `<span class="sb-prep-btn sb-prep-btn--cantrip" title="Cantrips zijn altijd paraat">${icon('check')} Altijd paraat</span>`
-    : `<button class="sb-prep-btn${spell.prepared ? ' sb-prep-btn--on' : ''}" onclick="window._sbTogglePrepared()"
-         title="${spell.prepared ? 'Voorbereiding opheffen' : 'Deze spreuk voorbereiden'}">
-         ${spell.prepared ? icon('check') + ' Paraat' : icon('book-open') + ' Bereid voor'}</button>`;
+  let toggle = '';
+  if (spell && isCantrip) {
+    toggle = `<span class="sb-prep-btn sb-prep-btn--cantrip" title="Cantrips zijn altijd paraat">${icon('check')} Altijd paraat</span>`;
+  } else if (spell && spell.alwaysPrepared) {
+    toggle = `<button class="sb-prep-btn sb-prep-btn--always" onclick="window._sbCyclePrepared()" title="Altijd paraat (telt niet mee) — klik om op te heffen">★ Altijd paraat</button>`;
+  } else if (spell && spell.prepared) {
+    toggle = `<button class="sb-prep-btn sb-prep-btn--on" onclick="window._sbCyclePrepared()" title="Paraat — klik voor 'altijd paraat'">${icon('check')} Paraat</button>`;
+  } else if (spell) {
+    toggle = `<button class="sb-prep-btn" onclick="window._sbCyclePrepared()" title="Klik om voor te bereiden">${icon('book-open')} Bereid voor</button>`;
+  }
   zone.innerHTML = `${toggle}<button class="sb-prep-counter${over ? ' sb-prep-counter--over' : ''}"
     onclick="window._sbEditPreparedMax()" title="Voorbereide spreuken (klik om het maximum aan te passen)">${count} / ${max}</button>`;
 }
 
-window._sbTogglePrepared = async () => {
+// Cycle: niet voorbereid → paraat (telt mee) → altijd paraat (gratis) → niet voorbereid.
+window._sbCyclePrepared = async () => {
   const spell = _sbState.spells[_sbState.idx];
   if (!spell || (spell.level || 0) === 0 || !_sbState.charId) return;
-  spell.prepared = !spell.prepared;
+  let prepared, alwaysPrepared;
+  if (!spell.prepared && !spell.alwaysPrepared)      { prepared = true;  alwaysPrepared = false; }
+  else if (spell.prepared && !spell.alwaysPrepared)  { prepared = false; alwaysPrepared = true;  }
+  else                                               { prepared = false; alwaysPrepared = false; }
+  const prev = { prepared: spell.prepared, alwaysPrepared: spell.alwaysPrepared };
+  spell.prepared = prepared; spell.alwaysPrepared = alwaysPrepared;
   _sbRenderPrepared();
-  try { await api.updatePlayerSpell(_sbState.charId, spell.index, { prepared: spell.prepared }); }
-  catch { spell.prepared = !spell.prepared; _sbRenderPrepared(); }
+  if (_sbState.tocOpen) _sbRenderTocList(document.getElementById('sb-toc-search')?.value || '');
+  try { await api.updatePlayerSpell(_sbState.charId, spell.index, { prepared, alwaysPrepared }); }
+  catch { Object.assign(spell, prev); _sbRenderPrepared(); }
 };
 
 window._sbEditPreparedMax = async () => {
