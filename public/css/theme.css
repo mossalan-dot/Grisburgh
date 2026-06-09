@@ -18632,3 +18632,65 @@ body.kaart-fs-active { overflow: hidden; }
 .dm-rb-brief-grid { display:flex; flex-wrap:wrap; gap:6px; }
 .dm-rb-brief-item { display:inline-flex; align-items:center; gap:6px; }
 .dm-rb-brief-item .icon { width:14px; height:14px; }
+
+/* ════════════════════════════════════════════════════════
+   SPREUKEN TOEVOEGEN — kies-overlay (klasse + level + type)
+   ════════════════════════════════════════════════════════ */
+.sb-addspells-overlay {
+  position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center; justify-content: center;
+  background: rgba(20,12,4,0.72); padding: 20px; animation: fadeIn 0.2s ease;
+}
+.sb-addspells-panel {
+  width: min(640px, 96vw); max-height: 86vh; display: flex; flex-direction: column;
+  background: linear-gradient(180deg, #f7eed7 0%, #efe2c2 100%);
+  border: 1px solid #c4a87a; border-radius: 12px; box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+  overflow: hidden;
+}
+.sb-addspells-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid rgba(196,168,122,0.4); }
+.sb-addspells-title { font-family: 'Cinzel', serif; font-size: 1.05rem; font-weight: 700; color: #5a3a10; display: flex; align-items: center; gap: 7px; }
+.sb-addspells-title .icon { width: 18px; height: 18px; }
+.sb-addspells-class { margin-left: auto; font-family: 'Crimson Text', serif; font-size: 12px; color: #6a5430; background: rgba(196,168,122,0.16); border: 1px solid rgba(196,168,122,0.45); border-radius: 7px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.sb-addspells-class .icon { width: 12px; height: 12px; }
+.sb-addspells-class-switch { color: #9a6a2a; text-decoration: underline; text-decoration-style: dotted; }
+.sb-addspells-close { background: none; border: none; color: #8a6a40; cursor: pointer; padding: 4px; display: inline-flex; }
+.sb-addspells-close .icon { width: 16px; height: 16px; }
+.sb-addspells-search { margin: 10px 16px 0; font-family: 'Crimson Text', serif; font-size: 14px; color: #2a1a08; background: #fffdf6; border: 1px solid var(--color-room-border); border-radius: 8px; padding: 7px 11px; outline: none; }
+.sb-addspells-search:focus { border-color: var(--color-gold-bright); }
+.sb-addspells-filters { padding: 8px 16px 4px; display: flex; flex-direction: column; gap: 6px; }
+.sb-addsp-chiprow { display: flex; flex-wrap: wrap; gap: 5px; }
+.sb-addsp-chip { font-family: 'Cinzel', serif; font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em; color: #6a5430; background: rgba(255,253,246,0.7); border: 1px solid rgba(196,168,122,0.5); border-radius: 999px; padding: 3px 11px; cursor: pointer; transition: all 0.12s; }
+.sb-addsp-chip:hover { border-color: var(--color-gold-bright); }
+.sb-addsp-chip.on { background: linear-gradient(to bottom, #b8860b, #8a6206); border-color: #d9b24a; color: #fff8ea; }
+.sb-addsp-chip--type.on { background: linear-gradient(to bottom, #7a5aaa, #5a3a8a); border-color: #a98ad0; color: #fff; }
+.sb-addsp-chip--flag.on { background: linear-gradient(to bottom, #3a7a5a, #2a5a3a); border-color: #6ab98a; color: #fff; }
+.sb-addspells-list { flex: 1; overflow-y: auto; padding: 8px 16px; display: flex; flex-direction: column; gap: 7px; }
+.sb-addsp-empty { text-align: center; color: #8a7050; font-style: italic; font-family: 'IM Fell English', serif; padding: 30px 10px; }
+.sb-addsp-card { display: flex; gap: 10px; background: rgba(255,253,246,0.6); border: 1px solid rgba(196,168,122,0.4); border-radius: 9px; padding: 9px 11px; cursor: pointer; transition: all 0.12s; }
+.sb-addsp-card:hover { border-color: var(--color-gold-bright); background: rgba(255,253,246,0.85); }
+.sb-addsp-card--sel { border-color: #b8860b; background: rgba(184,134,11,0.12); box-shadow: 0 0 0 1px rgba(184,134,11,0.3) inset; }
+.sb-addsp-card--has { opacity: 0.6; cursor: default; }
+.sb-addsp-card--has:hover { border-color: rgba(196,168,122,0.4); background: rgba(255,253,246,0.6); }
+.sb-addsp-check { width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px; border: 1.5px solid rgba(150,120,70,0.5); display: flex; align-items: center; justify-content: center; margin-top: 2px; color: #fff; }
+.sb-addsp-card--sel .sb-addsp-check { background: #b8860b; border-color: #b8860b; }
+.sb-addsp-card--has .sb-addsp-check { background: #5aaa6a; border-color: #5aaa6a; }
+.sb-addsp-check .icon { width: 13px; height: 13px; }
+.sb-addsp-main { flex: 1; min-width: 0; }
+.sb-addsp-cardtop { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.sb-addsp-name { font-family: 'Cinzel', serif; font-size: 13.5px; font-weight: 700; color: #3a2a0e; }
+.sb-addsp-meta { font-family: 'IM Fell English', serif; font-size: 11px; color: #8a7050; }
+.sb-addsp-badges { display: flex; flex-wrap: wrap; gap: 4px; margin: 3px 0; }
+.sb-addsp-badge { font-family: 'Cinzel', serif; font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-radius: 4px; padding: 1px 6px; color: #fff; }
+.sb-addsp-badge--schade { background: #b3543a; }
+.sb-addsp-badge--gebied { background: #b8860b; }
+.sb-addsp-badge--genezing { background: #3f8a5a; }
+.sb-addsp-badge--controle { background: #7a5aaa; }
+.sb-addsp-badge--hulp { background: #8a8170; }
+.sb-addsp-inbook { font-family: 'IM Fell English', serif; font-size: 9.5px; font-style: italic; color: #5aaa6a; text-transform: none; letter-spacing: 0; align-self: center; }
+.sb-addsp-preview { font-family: 'Crimson Text', serif; font-size: 12px; color: #5a4632; line-height: 1.35; }
+.sb-addspells-foot { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-top: 1px solid rgba(196,168,122,0.4); }
+.sb-addspells-count { font-family: 'IM Fell English', serif; font-size: 12px; color: #8a7050; }
+.sb-addspells-confirm { margin-left: auto; font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; color: #fdf8ea; background: linear-gradient(to bottom, #b8860b, #9a7008); border: 1px solid #8a6206; border-radius: 8px; padding: 8px 18px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.sb-addspells-confirm:hover:not(:disabled) { background: linear-gradient(to bottom, #cda021, #aa7d10); }
+.sb-addspells-confirm:disabled { opacity: 0.45; cursor: default; }
+.sb-addspells-confirm .icon { width: 13px; height: 13px; }
+.sb-toc-custom-btn--primary { background: linear-gradient(to bottom, rgba(184,134,11,0.18), rgba(184,134,11,0.1)); border-color: rgba(184,134,11,0.5); color: #6a4818; font-weight: 700; }
