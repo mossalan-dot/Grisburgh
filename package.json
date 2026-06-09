@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
+    "dev": "DEV_AUTO_DM=1 node --watch server.js",
     "pretest": "[ -d node_modules ] || npm install",
     "test": "node --test --test-concurrency=1 'tests/*.test.js'",
     "test:watch": "node --test --watch --test-concurrency=1 'tests/*.test.js'",

@@ -4,4 +4,8 @@ module.exports = {
   sessionSecret:   process.env.SESSION_SECRET   || 'parel-van-het-oosten-secret',
   sandboxPassword: process.env.SANDBOX_PASSWORD || '',   // leeg = geen wachtwoord vereist
   tabletPassword:  process.env.TABLET_PASSWORD  || 'FortunaM4jor!',
+  // Lokale ontwikkeling: automatisch als DM ingelogd (geen wachtwoord nodig).
+  // Alleen aan als DEV_AUTO_DM=1 — dat staat uitsluitend in het `npm run dev`-script,
+  // dus productie (PM2 → `node server.js`) krijgt dit NOOIT.
+  devAutoDM:       process.env.DEV_AUTO_DM === '1',
 };

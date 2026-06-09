@@ -1,4 +1,16 @@
-/* Parchment texture overlay */
+/* Achtergrond: verlichte tafeloppervlak met radiale vignette */
+body {
+  background:
+    radial-gradient(
+      ellipse 130% 110% at 50% 18%,
+      #faf2de 0%,
+      #f0e2b8 50%,
+      #d8c48c 100%
+    );
+  min-height: 100dvh;
+}
+
+/* Parchment texture overlay — iets meer zichtbaar voor tastbare textuur */
 body::before {
   content: '';
   position: fixed;
@@ -10,15 +22,15 @@ body::before {
       -38deg,
       transparent 0px,
       transparent 6px,
-      rgba(130, 90, 30, 0.009) 6px,
-      rgba(130, 90, 30, 0.009) 7px
+      rgba(130, 90, 30, 0.022) 6px,
+      rgba(130, 90, 30, 0.022) 7px
     ),
     repeating-linear-gradient(
       52deg,
       transparent 0px,
       transparent 9px,
-      rgba(130, 90, 30, 0.006) 9px,
-      rgba(130, 90, 30, 0.006) 10px
+      rgba(130, 90, 30, 0.015) 9px,
+      rgba(130, 90, 30, 0.015) 10px
     );
 }
 
@@ -536,9 +548,10 @@ body::before {
   display: flex;
   flex-direction: column;
   box-shadow:
-    0 1px 2px rgba(60,40,10,0.08),
-    0 3px 8px rgba(60,40,10,0.07),
-    inset 0 0 0 1px rgba(255,255,255,0.22);
+    0 1px 2px rgba(60,40,10,0.12),
+    0 4px 12px rgba(60,40,10,0.13),
+    0 14px 36px rgba(60,40,10,0.09),
+    inset 0 0 0 1px rgba(255,255,255,0.32);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .entity-card:hover {
@@ -1982,6 +1995,20 @@ body::before {
   margin-left: auto;
   flex-shrink: 0;
 }
+.section-banner-search-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 24px 10px; background: rgba(196,168,100,0.05);
+  border-top: 1px solid rgba(196,168,100,0.15);
+}
+.section-banner-search-row .section-banner-search {
+  flex: 1; max-width: 400px; margin-left: 0;
+  font-family: 'Crimson Text', serif; font-size: 15px;
+  padding: 6px 12px; border-radius: 6px; width: 100%;
+}
+.section-banner-count {
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .05em; color: #9a8050; white-space: nowrap;
+}
 .sbs-input-wrap {
   position: relative;
   display: flex;
@@ -2746,9 +2773,12 @@ body::before {
   display: flex;
   align-items: center;
   gap: 0;
-  background: linear-gradient(180deg, #f0e4c4 0%, #e8d8ac 100%);
-  border-bottom: 1px solid rgba(196,168,122,0.6);
-  box-shadow: 0 2px 8px rgba(60,30,0,0.12);
+  background: linear-gradient(180deg, #f5eacb 0%, #e2cc90 60%, #d8be80 100%);
+  border-bottom: 2px solid rgba(180,140,60,0.75);
+  box-shadow:
+    inset 0 1px 0 rgba(255,245,195,0.55),
+    0 3px 6px rgba(0,0,0,0.10),
+    0 8px 24px rgba(60,30,0,0.16);
   position: relative;
   z-index: 60;
   min-height: 52px;
@@ -3886,17 +3916,17 @@ body::before {
 }
 .dm-btn-primary:hover { background: linear-gradient(to bottom, #d4a318, #b08010); }
 .dm-btn-ghost {
-  background: rgba(255,255,255,0.5);
-  border-color: #c4a87a;
-  color: #7a5c2a;
+  background: rgba(255,255,255,0.55);
+  border-color: rgba(160,128,72,0.7);
+  color: #5a3e14;
 }
-.dm-btn-ghost:hover { background: rgba(196,168,122,0.25); color: #3a2410; }
+.dm-btn-ghost:hover { background: rgba(196,168,122,0.3); color: #2a1a08; border-color: rgba(160,128,72,0.9); }
 .dm-btn-danger {
-  background: rgba(139,42,42,0.12);
-  border-color: rgba(139,42,42,0.38);
-  color: #c84040;
+  background: rgba(139,42,42,0.10);
+  border-color: rgba(139,42,42,0.5);
+  color: #a83030;
 }
-.dm-btn-danger:hover { background: rgba(139,42,42,0.25); border-color: rgba(139,42,42,0.55); }
+.dm-btn-danger:hover { background: rgba(139,42,42,0.22); border-color: rgba(139,42,42,0.7); color: #7a1a1a; }
 .dm-btn-danger-sm { font-size: 10px; padding: 4px 8px; line-height: 1; }
 .dm-btn-sm {
   font-family: system-ui, -apple-system, sans-serif;
@@ -4269,15 +4299,24 @@ body::before {
 .hp-dead     { background: #555; }
 
 /* ── Combat overlay ── */
+@keyframes combat-enter {
+  from { opacity: 0; transform: scale(0.94) translateY(28px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes combat-bg-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 .combat-overlay {
   position: fixed;
   top: 52px;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.45);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: radial-gradient(ellipse at 50% 40%, rgba(40,15,0,0.6) 0%, rgba(0,0,0,0.82) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 55;
   display: flex;
   align-items: center;
@@ -4285,6 +4324,13 @@ body::before {
   padding: 16px 16px 80px;
 }
 .combat-overlay.hidden { display: none; }
+
+.combat-overlay:not(.hidden):not(.minimized) {
+  animation: combat-bg-enter 0.3s ease both;
+}
+.combat-overlay:not(.hidden):not(.minimized) .combat-modal {
+  animation: combat-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 
 /* Geminimaliseerde staat — alleen de header als balk onderaan */
 .combat-overlay.minimized {
@@ -4298,6 +4344,7 @@ body::before {
 }
 .combat-overlay.minimized .combat-modal {
   border-radius: 10px 10px 0 0;
+  clip-path: none;
   border-bottom: none;
   width: auto;
   max-width: 480px;
@@ -4315,25 +4362,29 @@ body::before {
 .co-minimize-btn {
   background: none;
   border: none;
-  color: #9a7050;
+  color: #c4906a;
   cursor: pointer;
   font-size: 12px;
   padding: 2px 6px;
   border-radius: 4px;
   transition: background 0.15s, transform 0.2s;
 }
-.co-minimize-btn:hover { background: rgba(196,168,122,0.25); }
+.co-minimize-btn:hover { background: rgba(180,80,30,0.25); }
 
 .combat-modal {
   background: #f0e8d4;
-  border: 2px solid #c4a87a;
-  border-radius: 12px;
+  border: 2px solid #9a4a2a;
+  border-radius: 0;
+  clip-path: polygon(28px 0%, calc(100% - 28px) 0%, 100% 28px, 100% 100%, 0% 100%, 0% 28px);
   width: 100%;
   max-width: 100%;
   height: 100%;
   max-height: 100%;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+  box-shadow:
+    0 0 0 1px rgba(140,50,20,0.35),
+    0 0 48px rgba(150,45,15,0.22),
+    0 30px 80px rgba(0,0,0,0.75);
   display: flex;
   flex-direction: column;
 }
@@ -4348,11 +4399,10 @@ body::before {
 .co-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
-  border-bottom: 2px solid #c4a87a;
-  background: #e6d5ad;
-  border-radius: 10px 10px 0 0;
+  gap: 10px;
+  padding: 13px 32px 11px;
+  border-bottom: 2px solid #7a3010;
+  background: linear-gradient(180deg, #1e0c04 0%, #3a1508 60%, #4a2010 100%);
   flex-shrink: 0;
   position: sticky;
   top: 0;
@@ -4360,27 +4410,29 @@ body::before {
 }
 .co-title {
   font-family: 'Cinzel', serif;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
-  color: #2a1a08;
+  color: #e8c870;
+  text-shadow: 0 0 16px rgba(230,160,40,0.5), 0 1px 3px rgba(0,0,0,0.6);
+  letter-spacing: 0.06em;
 }
 .co-round {
   font-family: 'Cinzel', serif;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
-  color: #3d2200;
-  background: linear-gradient(135deg, rgba(196,147,10,0.28) 0%, rgba(220,175,50,0.14) 100%);
-  border: 1.5px solid rgba(196,147,10,0.5);
-  padding: 4px 14px;
+  color: #f0c840;
+  background: rgba(180,100,20,0.22);
+  border: 1.5px solid rgba(220,140,30,0.45);
+  padding: 3px 12px;
   border-radius: 20px;
   letter-spacing: 0.05em;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,220,100,0.25);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,200,80,0.15);
 }
 .co-current-name {
   font-family: 'IM Fell English', serif;
   font-style: italic;
   font-size: 13px;
-  color: #4a2e08;
+  color: #d4b07a;
   flex: 1;
 }
 .co-end-btn {
@@ -5612,25 +5664,6 @@ body::before {
   align-items: center;
   justify-content: center;
 }
-.player-class-icon-wrap {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 3px solid #c4a87a;
-  background: radial-gradient(ellipse at center, #f0e4c4 30%, #d4b878 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.player-class-icon {
-  width: 80px;
-  height: 80px;
-  object-fit: contain;
-  opacity: 0.92;
-  filter: drop-shadow(0 1px 4px rgba(60,30,0,0.22));
-}
-
 /* Spreuk-statistieken (Spell Save DC + Attack Bonus) */
 .player-spell-stats {
   display: flex;
@@ -7385,6 +7418,81 @@ details.player-dash-collapsible[open] > summary {
 .player-dash-init-arrow {
   color: #c4930a;
   font-size: 11px;
+}
+.player-dash-init-studied {
+  border-left: 2px solid rgba(80,160,220,0.55);
+}
+.player-dash-init-kennis {
+  color: #4aa0dc;
+  font-size: 12px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+.player-dash-init-conds {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Gevecht: monster stat block panel (spelersweergave) ─────────────────── */
+.combat-monster-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+.cmp-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10,6,2,0.55);
+}
+.cmp-sheet {
+  position: relative;
+  background: #f2e8d2;
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.45);
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.cmp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid rgba(196,168,122,0.4);
+  background: rgba(196,168,122,0.15);
+}
+.cmp-tier-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+}
+.cmp-tier-naam     { background: rgba(100,80,50,0.15); color: #5a4020; }
+.cmp-tier-deels    { background: rgba(80,140,200,0.15); color: #2060a0; }
+.cmp-tier-volledig { background: rgba(60,160,80,0.15); color: #205a30; }
+.cmp-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9a8060;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 4px;
+}
+.cmp-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 8px 14px 16px;
 }
 
 /* ── Initiative-nummer in gevechtsoverlay (spelersweergave) ─────────────── */
@@ -10935,9 +11043,6 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .player-dashboard[data-klasse] .party-portrait-img,
 .player-dashboard[data-klasse] .party-portrait-fallback { box-shadow: 0 0 0 2px rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.4); }
 
-/* Klasse-icoon is klikbaar */
-.player-dashboard[data-klasse] #player-class-icon-wrap { cursor: pointer; }
-
 /* Zoekbalk (kenmerken & spreuken) */
 .player-dashboard[data-klasse] .player-spell-search-input,
 .player-dashboard[data-klasse] .herberg-search {
@@ -11332,34 +11437,6 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   transition: color 0.15s, border-color 0.15s;
 }
 .player-hero-collapse-btn:hover { color: rgba(196,168,122,0.9); }
-
-/* Klein klasse-thema-knopje naast de collapse-btn */
-.player-klasse-theme-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 6px;
-  margin-left: 4px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: rgba(196,168,122,0.08);
-  border: 1px solid rgba(196,168,122,0.25);
-  cursor: pointer;
-  opacity: 0.45;
-  transition: opacity 0.15s, border-color 0.15s;
-  vertical-align: middle;
-  padding: 0;
-  overflow: hidden;
-  line-height: 1;
-  font-size: 11px;
-  color: rgba(196,168,122,0.7);
-}
-.player-klasse-theme-btn:hover { opacity: 0.8; border-color: rgba(196,168,122,0.55); }
-.player-klasse-theme-btn--on { opacity: 0.85; border-color: rgba(196,168,122,0.65); }
-.player-klasse-theme-icon { width: 14px; height: 14px; object-fit: contain; display: block; }
-.player-dashboard[data-klasse] .player-klasse-theme-btn { border-color: rgba(255,255,255,0.2); }
-.player-dashboard[data-klasse] .player-klasse-theme-btn:hover { border-color: rgba(255,255,255,0.5); }
 
 /* data-klasse varianten voor spell-badge, level chips */
 .player-dashboard[data-klasse] .spell-lvl-chip { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.55); }
@@ -12050,19 +12127,259 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   gap: 3px;
 }
 .tempel-god-eed-badge .icon { width: 10px; height: 10px; }
-.tempel-terug-btn {
+/* ── Help-knop & modal ──────────────────────────────────────────────────────*/
+.help-btn {
+  background: none;
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  cursor: pointer;
+  color: rgba(196,168,122,0.6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.help-btn:hover { color: #c4a87a; border-color: rgba(196,168,122,0.7); }
+.help-btn .icon { width: 12px; height: 12px; }
+
+.help-btn-wrap { display: inline-flex; align-items: center; gap: 3px; }
+.help-edit-btn {
   background: none;
   border: none;
-  color: rgba(196,168,122,0.65);
+  padding: 0;
   cursor: pointer;
-  padding: 0 0 8px 0;
+  color: rgba(196,168,122,0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  transition: color 0.15s;
+}
+.help-edit-btn:hover { color: rgba(196,168,122,0.8); }
+.help-edit-btn .icon { width: 10px; height: 10px; }
+
+.help-editor-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; max-height: 60vh; overflow-y: auto; }
+.help-editor-label { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; letter-spacing: .05em; color: #9a8050; text-transform: uppercase; }
+.help-editor-input { width: 100%; }
+.he-stap { background: rgba(196,168,122,0.06); border: 1px solid rgba(196,168,122,0.18); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; }
+.he-stap-head { display: flex; align-items: center; justify-content: space-between; }
+.he-stap-nr { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; color: #9a8050; letter-spacing: .05em; text-transform: uppercase; }
+.help-editor-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-top: 1px solid rgba(196,168,122,0.15); }
+
+.help-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10,6,2,0.5);
+  padding: 16px;
+}
+.help-modal {
+  background: #f2e8d2;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.help-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid rgba(196,168,122,0.35);
+  background: rgba(196,168,122,0.12);
+  flex-shrink: 0;
+}
+.help-modal-titel {
+  font-family: 'Cinzel', serif;
   font-size: 0.82rem;
+  font-weight: 700;
+  color: #4a2e08;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.help-modal-titel .icon { width: 14px; height: 14px; }
+.help-modal-nav-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.help-modal-stap {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  color: #9a7050;
+}
+.help-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9a7050;
+  padding: 2px;
+  line-height: 1;
+  display: flex;
+}
+.help-modal-close .icon { width: 14px; height: 14px; }
+.help-modal-afbeelding {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.help-modal-body {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+.help-modal-stap-titel {
+  font-family: 'Cinzel', serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #3a1a08;
+  margin-bottom: 8px;
+}
+.help-modal-tekst {
+  font-family: 'Crimson Text', serif;
+  font-size: 1rem;
+  color: #3a2a10;
+  line-height: 1.6;
+  margin: 0;
+}
+.help-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid rgba(196,168,122,0.3);
+  flex-shrink: 0;
+}
+.help-modal-prev,
+.help-modal-next {
+  background: none;
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  color: #6a4a20;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 4px;
+  transition: background 0.12s;
 }
-.tempel-terug-btn:hover { color: rgba(196,168,122,1); }
-.tempel-terug-btn .icon { width: 14px; height: 14px; }
+.help-modal-prev:hover,
+.help-modal-next:hover { background: rgba(196,168,122,0.18); }
+.help-modal-prev:disabled,
+.help-modal-next:disabled { opacity: 0.3; cursor: default; }
+.help-modal-prev .icon,
+.help-modal-next .icon { width: 12px; height: 12px; }
+.help-modal-dots {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.help-modal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(196,168,122,0.35);
+  transition: background 0.15s;
+}
+.help-modal-dot--actief { background: #c4a87a; }
+
+/* ── Generieke beurs-topbar voor alle diensten ── */
+.dienst-beurs-topbar {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+.tempel-list-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 10px;
+}
+.tempel-interior-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 4px;
+}
+.tempel-beurs-top {
+  font-size: 0.78rem;
+  color: rgba(196,168,122,0.7);
+  margin: 0;
+}
+.tempel-priester-naam {
+  font-family: 'Cinzel', serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(196,168,122,0.8);
+  margin: -4px 0 8px;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+.tempel-terug-btn {
+  background: none;
+  border: none;
+  color: rgba(196,168,122,0.45);
+  cursor: pointer;
+  padding: 2px 0 10px 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  align-self: flex-start;
+  transition: color 0.15s;
+}
+.tempel-terug-btn:hover { color: rgba(196,168,122,0.85); }
+.tempel-terug-btn .icon { width: 12px; height: 12px; }
+
+/* Actieve zegening — compacte statusregel */
+.tempel-zegen-actief {
+  font-size: 0.82rem;
+  color: rgba(196,168,122,0.8);
+  margin: 4px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.tempel-zegen-actief .icon { width: 13px; height: 13px; color: #c4930a; }
+.tempel-zegen-actief em { font-style: italic; color: #c4930a; }
+.tempel-vloek-actief { color: rgba(180,60,40,0.8); }
+.tempel-vloek-actief .icon { color: rgba(180,60,40,0.9); }
+.tempel-vloek-actief em { color: rgba(200,60,40,1); }
+.tempel-zegen-link {
+  background: none;
+  border: none;
+  color: rgba(196,168,122,0.7);
+  cursor: pointer;
+  font-size: 0.78rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tempel-zegen-link:hover { color: #c4930a; }
+.tempel-zegen-link .icon { width: 11px; height: 11px; }
 
 /* Eed cinema overlay */
 @keyframes eed-flits {
@@ -12318,6 +12635,8 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .quest-card-title { font-family: 'Cinzel', serif; font-size: 0.85rem; font-weight: 700; color: #2a1e10; margin-bottom: 4px; line-height: 1.3; }
 .quest-card-desc  { font-size: 0.78rem; color: #4a3820; line-height: 1.5; max-height: 80px; overflow: hidden; margin-top: 4px; }
 .quest-card-chapter { font-size: 0.68rem; color: #8a7450; margin-top: 6px; font-style: italic; }
+.quest-card-factie  { font-size: 0.68rem; color: #5a3a8a; margin-top: 4px; display: flex; align-items: center; gap: 3px; }
+.quest-card-factie .icon { width: 10px; height: 10px; }
 .quest-card-actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 3px; opacity: 0; transition: opacity 0.15s; }
 .quest-card:hover .quest-card-actions { opacity: 1; }
 .quest-card-btn { background: rgba(0,0,0,0.1); border: none; border-radius: 3px; cursor: pointer; font-size: 0.7rem; padding: 2px 5px; color: #4a3820; }
@@ -12745,6 +13064,93 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .factie-ladder--metaal .factie-rung--huidig  { outline-color:rgba(60,45,15,0.7); }
 .factie-ladder--staal  { background:linear-gradient(160deg,#3a3f48 0%,#23272e 100%); color:#e6e8ec; border-color:#7a2a2a; }
 .factie-ladder--staal .factie-ladder-rang { color:#e08a8a; }
+
+/* ── Factie-sectie (speler-weergave) ── */
+/* ── Factie grid-lijst ── */
+.factie-sectie { padding: 16px; max-width: 900px; margin: 0 auto; }
+.factie-sectie-header { margin-bottom: 20px; }
+.factie-sectie-header h2 { font-family: 'Cinzel', serif; font-size: 1.1rem; color: #4a2e08; display: flex; align-items: center; gap: 8px; }
+.factie-sectie-sub { font-family: 'IM Fell English', serif; font-style: italic; color: #8a7050; font-size: .9rem; margin-top: 4px; }
+
+.factie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+.factie-kaart { background: #faf4e6; border: 1.5px solid rgba(196,168,122,0.7); border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(60,40,10,0.10), 0 6px 20px rgba(60,40,10,0.07); }
+.factie-kaart--hout   { border-color: #8a6030; }
+.factie-kaart--metaal { border-color: #c4a840; }
+.factie-kaart--staal  { border-color: #8a3030; }
+
+.factie-kaart-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: linear-gradient(180deg, #e8d8ac 0%, #dcc890 100%); border-bottom: 1px solid rgba(196,168,122,0.5); }
+.factie-kaart-embleem { font-size: 1.4rem; flex-shrink: 0; }
+.factie-kaart-embleem .icon { width: 28px; height: 28px; color: #5a3a10; }
+.factie-kaart-titels { flex: 1; min-width: 0; }
+.factie-kaart-naam { font-family: 'Cinzel', serif; font-size: .9rem; font-weight: 700; color: #2a1a08; display: block; }
+.factie-kaart-rang { font-family: 'IM Fell English', serif; font-size: .8rem; color: #7a5a30; font-style: italic; }
+.factie-kaart-link { background: none; border: none; color: #8a6030; cursor: pointer; padding: 4px; border-radius: 4px; flex-shrink: 0; }
+.factie-kaart-link:hover { background: rgba(196,168,122,0.25); }
+
+.factie-kaart-body { padding: 12px 14px; }
+.factie-voordelen { font-family: 'IM Fell English', serif; font-size: .85rem; color: #5a4030; margin-bottom: 10px; line-height: 1.45; }
+.factie-kaart-onbekend { font-family: 'IM Fell English', serif; font-style: italic; color: #9a8060; font-size: .85rem; }
+
+.factie-progress-wrap { height: 6px; background: rgba(196,168,122,0.3); border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
+.factie-progress-bar { height: 100%; background: linear-gradient(90deg, #b8860b, #d4a318); border-radius: 3px; transition: width 0.4s ease; }
+.factie-progress-label { font-size: .75rem; color: #8a7050; margin-bottom: 8px; }
+
+.factie-boon-chip { font-family: 'Crimson Text', serif; font-size: .78rem; background: rgba(184,134,11,0.12); border: 1px solid rgba(184,134,11,0.35); color: #5a3800; padding: 2px 8px; border-radius: 12px; cursor: default; display: inline-flex; align-items: center; gap: 4px; }
+.factie-boon-chip:hover { background: rgba(184,134,11,0.22); }
+.factie-boon-chip--link { cursor: pointer; border-color: rgba(184,134,11,0.6); }
+.factie-boon-chip--link:hover { background: rgba(184,134,11,0.28); color: #3a2000; text-decoration: none; }
+.factie-boon-chip--link .icon { width: 11px; height: 11px; opacity: .65; }
+
+/* ── Factie DM-kaart ── */
+.factie-dm-kaart { border: 1px solid rgba(196,168,122,0.3); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; background: rgba(250,244,230,0.4); }
+.factie-icon-picker { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.factie-icon-btn { background: rgba(196,168,122,0.12); border: 1.5px solid rgba(196,168,122,0.25); border-radius: 6px; padding: 5px 7px; cursor: pointer; color: #7a5a30; transition: background 0.12s, border-color 0.12s; }
+.factie-icon-btn:hover { background: rgba(196,168,122,0.28); border-color: rgba(196,168,122,0.6); }
+.factie-icon-btn--actief { background: rgba(196,168,122,0.45); border-color: #c4a87a; color: #3a1a08; }
+.factie-icon-btn .icon { width: 16px; height: 16px; display: block; }
+.factie-dm-kaart-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.factie-dm-oog { background: none; border: 1px solid rgba(196,168,122,0.4); border-radius: 5px; padding: 3px 6px; cursor: pointer; color: #8a7050; }
+.factie-dm-oog--aan { color: #3a7a30; border-color: #4a9a40; background: rgba(74,154,64,0.08); }
+.factie-dm-naam { font-family: 'Cinzel', serif; font-weight: 700; font-size: .9rem; flex: 1; }
+.factie-dm-renown-badge { font-size: .75rem; color: #7a6040; background: rgba(196,168,122,0.18); border-radius: 10px; padding: 2px 8px; }
+.factie-dm-renown-knoppen { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+.factie-dm-boon-label { font-size: .73rem; color: #4a7a40; margin-left: 6px; display: flex; align-items: center; gap: 3px; }
+.factie-dm-rang-bereikt { font-size: .8rem; color: #2a7a20; background: rgba(42,122,32,0.1); border: 1px solid rgba(42,122,32,0.3); border-radius: 5px; padding: 3px 8px; margin-top: 4px; animation: factie-fade-out 4s forwards; }
+@keyframes factie-fade-out { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
+
+/* ── Factie interieur-view ── */
+.factie-interieur-scene .herberg-content { gap: 10px; }
+.factie-interieur-rang { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
+.factie-rang-chip { font-family: 'Cinzel', serif; font-size: .8rem; font-weight: 700; padding: 3px 12px; border-radius: 14px; background: rgba(196,168,122,0.2); border: 1px solid rgba(196,168,122,0.5); color: #4a2e08; display: inline-flex; align-items: center; gap: 5px; }
+.factie-rang-chip .icon { width: 14px; height: 14px; }
+.factie-progress-wrap--interieur { width: 80%; max-width: 280px; }
+.factie-boons--interieur { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.factie-portret-klikbaar { cursor: pointer; transition: filter 0.15s; }
+.factie-portret-klikbaar:hover { filter: brightness(1.1); }
+
+/* ── Missies in factie-interieur ── */
+.factie-missies-sectie { width: 100%; margin-top: 6px; }
+.factie-missies-label { font-family: 'Cinzel', serif; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #9a7050; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+.factie-missies-label .icon { width: 13px; height: 13px; }
+.factie-missie { background: rgba(250,244,230,0.85); border: 1px solid rgba(196,168,122,0.45); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.factie-missie--hout   { border-color: rgba(138,96,48,0.6); }
+.factie-missie--metaal { border-color: rgba(196,168,64,0.6); }
+.factie-missie--staal  { border-color: rgba(138,48,48,0.6); }
+.factie-missie-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+.factie-missie-titel { font-family: 'Cinzel', serif; font-size: .85rem; font-weight: 700; color: #2a1a08; }
+.factie-missie-pills { display: flex; gap: 5px; flex-shrink: 0; }
+.factie-missie-renown { font-size: .72rem; background: rgba(184,134,11,0.15); border: 1px solid rgba(184,134,11,0.4); color: #5a3800; border-radius: 10px; padding: 1px 7px; }
+.factie-missie-valuta { font-size: .72rem; background: rgba(42,122,32,0.12); border: 1px solid rgba(42,122,32,0.35); color: #1a4a10; border-radius: 10px; padding: 1px 7px; }
+.factie-missie-tekst { font-family: 'Crimson Text', serif; font-size: .88rem; color: #5a4020; margin: 4px 0 8px; }
+.factie-missie-btn { margin-top: 4px; padding: 4px 14px; font-size: .82rem; }
+.factie-missie-status-chip { font-size: .78rem; color: #7a6040; opacity: .8; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
+.factie-missie-status-chip--actief { color: #2a6a20; opacity: 1; }
+.factie-missie-status-chip .icon { width: 12px; height: 12px; }
+
+/* ── DM: missie-aanvraag toast met actieknoppen ── */
+.missie-aanvraag-toast { max-width: 300px; padding: 12px 14px; }
+.missie-aanvraag-toast em { font-style: italic; opacity: .85; }
 
 .speler-brief-header {
   display: flex;
@@ -13847,9 +14253,7 @@ a.wikilink:not([class*="wikilink--"]) { color: #6a4a10; background: rgba(184,134
 
 /* ── Change 3: Extra speed (swim/fly) ── */
 .pcs-extra-speeds-wrap { display: contents; }
-.pcs-input-row {
-  display: flex; align-items: center; justify-content: center; gap: 3px;
-}
+.pcs-input-row { display: contents; }   /* input vult de volle breedte van pcs-item */
 .pcs-extra-speed-btn {
   font-size: 12px; font-weight: 700; line-height: 1;
   width: 16px; height: 16px; padding: 0;
@@ -13858,6 +14262,7 @@ a.wikilink:not([class*="wikilink--"]) { color: #6a4a10; background: rgba(184,134
   flex-shrink: 0;
 }
 .pcs-extra-speed-btn--on { opacity: 1; border-color: rgba(196,168,122,0.8); }
+/* Select ziet eruit als pcs-label — geen native pijltjes */
 .pcs-speed-label-select {
   font-family: 'Cinzel', serif;
   font-size: 7.5px;
@@ -13870,10 +14275,35 @@ a.wikilink:not([class*="wikilink--"]) { color: #6a4a10; background: rgba(184,134
   outline: none;
   cursor: pointer;
   padding: 0;
-  -webkit-appearance: auto;
-  appearance: auto;
-  max-width: 60px;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: center;
 }
+/* Extra speed item: relatief voor de hoek-×-knop */
+.pcs-extra-speed-item {
+  position: relative;
+}
+/* ×-knop als klein hoekbadge rechtsboven op de kaart */
+.pcs-extra-speed-del {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  background: rgba(180,60,40,0.75);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 1;
+}
+.pcs-extra-speed-del svg { width: 9px; height: 9px; stroke: #fff; }
+.pcs-extra-speed-item:hover .pcs-extra-speed-del { opacity: 1; }
 
 /* ── Change 5: Knapzak damage pills + props ── */
 .item-carousel-damage { margin: 4px 0; }
@@ -15057,6 +15487,34 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
+/* ── Glossary term tooltips ── */
+.sb-gloss {
+  border-bottom: 1px dotted rgba(100,55,8,0.5);
+  cursor: help;
+}
+#sb-gloss-tip {
+  position: fixed;
+  background: #1c0d02;
+  color: #f2e8d2;
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+  max-width: 240px;
+  padding: 7px 11px;
+  border-radius: 5px;
+  border: 1px solid rgba(196,168,100,0.4);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  pointer-events: none;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+#sb-gloss-tip.visible { opacity: 1; }
 /* Drop cap on opening paragraph (only real paragraphs, not headings) */
 .sb-desc p:not(.sb-desc-h):first-of-type::first-letter,
 .sb-desc > p:first-child:not(.sb-desc-h)::first-letter {
@@ -15329,10 +15787,12 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   overflow-y: auto;
   padding: 4px 0 8px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.1) transparent;
+  scrollbar-color: rgba(196,168,100,0.25) transparent;
 }
 .sb-toc-list::-webkit-scrollbar { width: 3px; }
-.sb-toc-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+.sb-toc-list::-webkit-scrollbar-track { background: transparent; }
+.sb-toc-list::-webkit-scrollbar-thumb { background: rgba(196,168,100,0.28); border-radius: 3px; }
+.sb-toc-list::-webkit-scrollbar-thumb:hover { background: rgba(196,168,100,0.5); }
 .sb-toc-level-header {
   font-size: 9px;
   font-weight: 700;
@@ -16067,6 +16527,7 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   transition: background 0.15s, color 0.15s;
 }
 .sb-toc-item-add:hover { background: rgba(160,220,120,0.15); color: #9de06a; }
+.sb-toc-item-add--done { color: #9de06a !important; opacity: 0.7; cursor: default; pointer-events: none; }
 .sb-toc-empty {
   padding: 12px 10px; color: rgba(255,255,255,0.28);
   font-size: 12px; font-style: italic; line-height: 1.5;
@@ -17300,26 +17761,48 @@ details[open] .prog-feat-summary { color: #8a6020; }
 .prog-ed-lvl { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px solid rgba(196,168,122,0.25); }
 .prog-ed-lvl--empty { align-items: center; opacity: 0.7; }
 .prog-ed-lvlnum { flex-shrink: 0; width: 34px; font-family: 'Cinzel', serif; font-weight: 700; font-size: 12px; color: #6a5430; padding-top: 5px; }
-.prog-ed-feats { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-.prog-ed-feat { display: flex; gap: 5px; align-items: center; }
-.prog-ed-in { font-family: 'Crimson Text', serif; font-size: 13px; color: #2a1a08; background: #fffdf6; border: 1px solid var(--color-room-border); border-radius: 6px; padding: 4px 7px; outline: none; }
-.prog-ed-name { flex: 0 0 34%; font-weight: 600; }
-.prog-ed-desc { flex: 1; }
+.prog-ed-feats { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.prog-ed-feat { display: flex; gap: 6px; align-items: stretch; background: rgba(255,253,246,0.5); border: 1px solid rgba(196,168,122,0.3); border-radius: 8px; padding: 6px; }
+.prog-ed-feat-fields { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.prog-ed-feat-tools { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; flex-shrink: 0; }
+.prog-ed-in { font-family: 'Crimson Text', serif; font-size: 13px; color: #2a1a08; background: #fffdf6; border: 1px solid var(--color-room-border); border-radius: 6px; padding: 4px 7px; outline: none; width: 100%; box-sizing: border-box; }
+.prog-ed-name { font-weight: 600; }
+.prog-ed-desc { resize: vertical; min-height: 2.4em; line-height: 1.35; font-family: 'Crimson Text', serif; }
 .prog-ed-in:focus { border-color: var(--color-gold-bright); }
 .prog-ed-del { width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; background: rgba(154,58,42,0.1); border: 1px solid rgba(154,58,42,0.25); border-radius: 6px; color: #9a3a2a; cursor: pointer; }
 .prog-ed-del .icon { width: 11px; height: 11px; }
+
+/* Gedeelde markers (ASI / subklasse / Epic Boon) — read-only info */
+.prog-ed-markers { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 2px; }
+.prog-ed-marker { display: inline-flex; align-items: center; gap: 4px; font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: 0.3px; text-transform: uppercase; border-radius: 6px; padding: 2px 7px; border: 1px dashed; }
+.prog-ed-marker .icon { width: 11px; height: 11px; }
+.prog-ed-marker--sub  { color: #5a3a7a; background: rgba(122,90,170,0.08); border-color: rgba(122,90,170,0.4); }
+.prog-ed-marker--asi  { color: #8a6206; background: rgba(184,134,11,0.1);  border-color: rgba(184,134,11,0.45); }
+.prog-ed-marker--boon { color: #1f6f5c; background: rgba(31,111,92,0.09);  border-color: rgba(31,111,92,0.4); }
+
+/* Feat-bibliotheek */
+.prog-ed-hint { font-family: 'Crimson Text', serif; font-size: 12.5px; color: #6a5638; background: rgba(196,168,122,0.1); border: 1px solid rgba(196,168,122,0.3); border-radius: 7px; padding: 6px 9px; margin: 0 0 10px; display: flex; align-items: center; gap: 6px; }
+.prog-ed-hint .icon { width: 13px; height: 13px; flex-shrink: 0; }
+.prog-ed-featlib-group { margin-bottom: 14px; }
+.prog-ed-count { font-family: 'Crimson Text', serif; font-style: italic; text-transform: none; letter-spacing: 0; color: #9a8050; font-size: 11px; }
 .prog-ed-addfeat { font-family: 'Cinzel', serif; font-size: 10px; color: #6a4818; background: rgba(196,168,122,0.12); border: 1px dashed rgba(196,168,122,0.5); border-radius: 6px; padding: 3px 8px; cursor: pointer; align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; }
 .prog-ed-addfeat .icon { width: 10px; height: 10px; }
 .prog-ed-subs { margin-top: 14px; border-top: 1px solid rgba(196,168,122,0.4); padding-top: 10px; }
 .prog-ed-subs-head { display: flex; align-items: center; justify-content: space-between; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #8a6a30; margin-bottom: 6px; }
 .prog-ed-subblock { background: rgba(122,90,170,0.05); border: 1px solid rgba(122,90,170,0.2); border-radius: 8px; padding: 8px; margin-bottom: 8px; }
 .prog-ed-subhead { display: flex; align-items: center; justify-content: space-between; font-family: 'Cinzel', serif; font-weight: 700; font-size: 12.5px; color: #5a3a7a; margin-bottom: 5px; }
-.prog-ed-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(196,168,122,0.4); }
+.prog-ed-foot { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(196,168,122,0.4); }
+.prog-ed-foot-spacer { flex: 1; }
 .prog-ed-save { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; color: #fdf8ea; background: linear-gradient(to bottom, #b8860b, #9a7008); border: 1px solid #8a6206; border-radius: 8px; padding: 8px 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 .prog-ed-save:hover { background: linear-gradient(to bottom, #cda021, #aa7d10); }
 .prog-ed-save .icon { width: 13px; height: 13px; }
-.prog-ed-reset { font-family: 'Cinzel', serif; font-size: 11px; color: #6a4818; background: rgba(196,168,122,0.14); border: 1px solid rgba(196,168,122,0.4); border-radius: 7px; padding: 6px 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
-.prog-ed-reset .icon { width: 12px; height: 12px; }
+.prog-ed-cancel { font-family: 'Cinzel', serif; font-size: 12px; color: #6a5430; background: rgba(196,168,122,0.12); border: 1px solid rgba(196,168,122,0.4); border-radius: 8px; padding: 7px 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.prog-ed-cancel:hover { background: rgba(196,168,122,0.22); }
+.prog-ed-cancel .icon { width: 12px; height: 12px; }
+/* Reset: bewust onopvallend, links in de hoek */
+.prog-ed-reset { width: 30px; height: 30px; flex-shrink: 0; color: #9a7a4a; background: transparent; border: 1px solid rgba(196,168,122,0.3); border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; opacity: 0.6; }
+.prog-ed-reset:hover { opacity: 1; color: #9a3a2a; border-color: rgba(154,58,42,0.4); background: rgba(154,58,42,0.06); }
+.prog-ed-reset .icon { width: 13px; height: 13px; }
 @media (max-width: 640px) { .prog-ed { flex-direction: column; max-height: none; } .prog-ed-side { width: 100%; flex-direction: row; flex-wrap: wrap; } }
 
 /* ── Progressie: view-toggle ── */
@@ -17380,6 +17863,7 @@ details[open] .prog-feat-summary { color: #8a6020; }
 .prog-card--locked:hover { transform: translateY(-2px); filter: grayscale(0.5) brightness(0.8); }
 .prog-chip--sub { background: rgba(122,90,170,0.3); border-color: rgba(122,90,170,0.5); }
 .prog-chip--species { background: rgba(63,138,90,0.3); border-color: rgba(63,138,90,0.5); }
+.prog-chip--background { background: rgba(154,106,42,0.28); border-color: rgba(154,106,42,0.5); }
 .prog-chip--shared { background: rgba(150,130,90,0.3); }
 
 /* ── Progressie: feature-detail (in de modal) ── */
@@ -17423,7 +17907,8 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 .prog-detail-fav.on { color: #8a6206; background: rgba(255,206,58,0.25); }
 
 /* editor: categorie-select + media-knop */
-.prog-ed-cat { flex: 0 0 118px; font-family: 'Crimson Text', serif; font-size: 12px; color: #2a1a08; background: #fffdf6; border: 1px solid var(--color-room-border); border-radius: 6px; padding: 4px 6px; }
+.prog-ed-cat { width: 116px; font-family: 'Crimson Text', serif; font-size: 12px; color: #2a1a08; background: #fffdf6; border: 1px solid var(--color-room-border); border-radius: 6px; padding: 4px 6px; }
+.prog-ed-feat-icons { display: flex; gap: 4px; justify-content: flex-end; }
 .prog-ed-media { flex-shrink: 0; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; background: rgba(196,168,122,0.14); border: 1px solid rgba(196,168,122,0.4); border-radius: 6px; cursor: pointer; font-size: 13px; }
 .prog-ed-media:hover { background: rgba(184,134,11,0.18); border-color: var(--color-gold-dim); }
 .prog-ed-media.has { background: rgba(63,138,90,0.16); border-color: rgba(63,138,90,0.45); }
@@ -17909,3 +18394,102 @@ body.kaart-fs-active { overflow: hidden; }
 .script-dng-rooms { display:flex; flex-direction:column; gap:3px; margin:3px 0 0 14px;
   padding-left:8px; border-left:2px solid rgba(120,90,50,.25); }
 .script-dng-rooms .dm-btn { width:100%; font-size:.76rem; }
+
+/* ── Spellbook help panel ── */
+.sb-help-panel {
+  position: absolute; inset: 0; z-index: 20;
+  background: linear-gradient(160deg, #2b1a0e 0%, #1e1208 100%);
+  border-radius: inherit;
+  transform: translateX(101%);
+  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  display: flex; flex-direction: column;
+  overflow: hidden; pointer-events: none;
+}
+.sb-help-panel.sb-manage-open { transform: translateX(0); pointer-events: all; }
+.sb-help-body { flex: 1; overflow-y: auto; padding: 12px 16px 20px;
+  scrollbar-width: thin; scrollbar-color: rgba(196,168,100,0.25) transparent; }
+.sb-help-section { margin-bottom: 20px; }
+.sb-help-section-title {
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: rgba(196,168,100,0.85); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 5px;
+}
+.sb-help-body p {
+  font-family: 'IM Fell English', serif; font-size: 13px; line-height: 1.6;
+  color: rgba(255,255,255,0.72); margin: 0 0 8px;
+}
+.sb-help-body p strong { color: rgba(196,168,100,0.9); font-weight: 600; }
+.sb-help-body p em { font-style: italic; color: rgba(255,255,255,0.55); }
+
+/* ── Progressie: feature detail pagina's ── */
+.prog-detail-pages-wrap { position: relative; }
+.prog-detail-page { display: none; }
+.prog-detail-page--active { display: block; }
+.prog-detail-page-img {
+  width: 100%; height: 160px; border-radius: 6px; margin-bottom: 12px;
+  background-size: cover; background-position: center;
+}
+.prog-detail-page-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 14px; gap: 8px;
+}
+.prog-page-nav-btn {
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600;
+  color: rgba(196,168,100,0.8); background: none;
+  border: 1px solid rgba(196,168,100,0.3); border-radius: 4px;
+  padding: 4px 10px; cursor: pointer; transition: all 0.15s;
+}
+.prog-page-nav-btn:hover { background: rgba(196,168,100,0.1); color: #c4a87a; }
+.prog-page-counter {
+  font-family: 'Cinzel', serif; font-size: 10px;
+  color: rgba(196,168,100,0.45); letter-spacing: .05em;
+}
+.prog-detail-edit-btn {
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 14px; font-family: 'Cinzel', serif; font-size: 11px;
+  color: rgba(196,168,100,0.6); background: none;
+  border: 1px dashed rgba(196,168,100,0.25); border-radius: 5px;
+  padding: 6px 12px; cursor: pointer; transition: all 0.15s; width: 100%;
+}
+.prog-detail-edit-btn:hover { border-color: rgba(196,168,100,0.5); color: rgba(196,168,100,0.9); background: rgba(196,168,100,0.05); }
+
+/* ── Feature detail editor ── */
+.prog-fed { display: flex; flex-direction: column; gap: 16px; }
+.prog-fed-label { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; color: #8a7050;
+  display: block; margin-bottom: 5px; }
+.prog-fed-input { width: 100%; font-family: 'Crimson Text', serif; font-size: 15px;
+  color: #2a1a08; background: rgba(255,255,255,0.6);
+  border: 1.5px solid rgba(196,168,122,0.4); border-radius: 5px;
+  padding: 6px 10px; box-sizing: border-box; }
+.prog-fed-pages { display: flex; flex-direction: column; gap: 14px; }
+.prog-fed-page { background: rgba(196,168,100,0.06); border: 1px solid rgba(196,168,100,0.2);
+  border-radius: 7px; padding: 12px; }
+.prog-fed-page-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.prog-fed-page-label { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .06em; color: #9a8050; text-transform: uppercase; }
+.pfed-page-del { background: none; border: none; color: #c05040; cursor: pointer; padding: 0 2px; }
+.pfed-page-text { width: 100%; font-family: 'Crimson Text', serif; font-size: 14px;
+  color: #2a1a08; background: rgba(255,255,255,0.55); border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 4px; padding: 7px; box-sizing: border-box; resize: vertical; }
+.pfed-img-upload { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
+  font-family: 'Cinzel', serif; font-size: 10px; color: #9a8050;
+  border: 1px dashed rgba(196,168,100,0.3); border-radius: 4px; padding: 5px 10px; cursor: pointer; }
+.pfed-img-preview { width: 100%; height: 100px; margin-top: 8px; border-radius: 4px;
+  background-size: cover; background-position: center; position: relative; }
+.pfed-img-remove { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6);
+  color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px;
+  cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+.prog-fed-add-page { font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600;
+  color: rgba(196,168,100,0.7); background: none;
+  border: 1px dashed rgba(196,168,100,0.3); border-radius: 5px;
+  padding: 7px; cursor: pointer; display: flex; align-items: center; gap: 5px; justify-content: center; }
+.prog-fed-actions { display: flex; justify-content: space-between; gap: 10px; }
+.prog-fed-save { font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700;
+  color: #2a1a08; background: rgba(196,168,100,0.8); border: none;
+  border-radius: 5px; padding: 8px 20px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+.prog-fed-save:hover { background: rgba(196,168,100,1); }
+.prog-fed-del { font-family: 'Cinzel', serif; font-size: 11px;
+  color: #c05040; background: none; border: 1px solid rgba(192,80,64,0.3);
+  border-radius: 5px; padding: 8px 14px; cursor: pointer; display: flex; align-items: center; gap: 5px; }

@@ -90,9 +90,13 @@ export const api = {
   resetChapterImages: (key) => request(`/sessieLog/chapter/${encodeURIComponent(key)}/reset-images`, { method: 'PUT' }),
 
   // Klasse-progressie (skill trees)
-  progression:      ()     => request('/progression'),
-  saveProgression:  (data) => request('/progression', { method: 'PUT', body: JSON.stringify(data) }),
-  resetProgression: ()     => request('/progression', { method: 'DELETE' }),
+  progression:        ()          => request('/progression'),
+  saveProgression:    (data)      => request('/progression', { method: 'PUT', body: JSON.stringify(data) }),
+  resetProgression:   ()          => request('/progression', { method: 'DELETE' }),
+  // Help-teksten (DM-aanpasbaar)
+  getHelpContent:  ()          => request('/help-content'),
+  saveHelpContent: (key, data) => request(`/help-content/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteHelpContent:(key)      => request(`/help-content/${encodeURIComponent(key)}`, { method: 'DELETE' }),
 
   // Meta
   meta: () => request('/meta'),
@@ -337,9 +341,19 @@ export const api = {
   saveHeerenConfig:   (data)       => request('/meta/heeren',                { method: 'PUT',  body: JSON.stringify(data) }),
 
   // Facties & Aanzien (organisaties met rangspoor)
-  getFacties:         ()           => request('/facties'),
-  factieSetRang:      (id, rang)   => request(`/facties/${id}/rang`, { method: 'POST', body: JSON.stringify({ rang }) }),
-  saveFactiesConfig:  (facties)    => request('/meta/facties',       { method: 'PUT',  body: JSON.stringify({ facties }) }),
+  getFacties:         ()              => request('/facties'),
+  factieSetRang:      (id, rang)      => request(`/facties/${id}/rang`,   { method: 'POST', body: JSON.stringify({ rang }) }),
+  factieReveal:       (id)            => request(`/facties/${id}/reveal`,  { method: 'POST' }),
+  factieRenown:       (id, delta)     => request(`/facties/${id}/renown`,  { method: 'POST', body: JSON.stringify({ delta }) }),
+  saveFactiesConfig:  (facties)       => request('/meta/facties',          { method: 'PUT',  body: JSON.stringify({ facties }) }),
+  // Missies
+  getMissies:           ()            => request('/missies'),
+  createMissie:         (data)        => request('/missies',                 { method: 'POST',   body: JSON.stringify(data) }),
+  updateMissie:         (id, data)    => request(`/missies/${id}`,           { method: 'PUT',    body: JSON.stringify(data) }),
+  missieAccepteer:      (id)          => request(`/quests/${id}/accepteer`,  { method: 'POST' }),
+  missieGoedkeuren:     (id)          => request(`/missies/${id}/goedkeuren`,{ method: 'POST' }),
+  missieVoltooien:      (id)          => request(`/missies/${id}/voltooien`, { method: 'POST' }),
+  missieFalen:          (id)          => request(`/missies/${id}/falen`,     { method: 'POST' }),
 
   // Locatie (Grisburgh verlaten)
   setLocatie:              (data)     => request('/locatie',          { method: 'PUT', body: JSON.stringify(data) }),

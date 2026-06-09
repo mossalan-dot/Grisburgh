@@ -33,6 +33,18 @@ const sessionMiddleware = session({
 });
 app.use(sessionMiddleware);
 
+// ── Lokale ontwikkeling: automatisch DM, geen login nodig ──
+// Alleen actief met DEV_AUTO_DM=1 (gezet door `npm run dev`). Productie draait
+// via PM2 zonder die env-var, dus deze bypass is daar uitgeschakeld.
+// Zet de rol alleen als die nog niet bestaat, zodat speler-testlogin blijft werken.
+if (config.devAutoDM) {
+  console.warn('⚠️  DEV_AUTO_DM actief — iedereen is automatisch DM. Niet gebruiken in productie!');
+  app.use((req, res, next) => {
+    if (!req.session.role) req.session.role = 'dm';
+    next();
+  });
+}
+
 // ── Per-request campaign scoping ──
 // When session.campaignId is set (e.g. sandbox), run all storage operations in
 // that campaign's directory via AsyncLocalStorage. No changes needed in api.js.

@@ -935,6 +935,32 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
     ctx.restore();
   }
 
+  // ── Bestudeerd-badge (top-right): zichtbaar voor spelers bij deels/volledig kennis ──
+  if (c.type === 'monster' && c._niveau && c._niveau !== 'naam' && !window.app?.isDM?.()) {
+    const bR = Math.max(7, Math.min(10, AVTR_R * 0.32));
+    const bX = cx + AVTR_R * 0.72;
+    const bY = cy - AVTR_R * 0.72;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(bX, bY, bR, 0, Math.PI * 2);
+    ctx.fillStyle   = 'rgba(80,160,220,0.88)';
+    ctx.shadowColor = 'rgba(40,120,200,0.7)';
+    ctx.shadowBlur  = 5;
+    ctx.fill();
+    ctx.shadowBlur  = 0;
+    // Oog-symbool als kleine lijn
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth   = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(bX, bY, bR * 0.55, bR * 0.32, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(bX, bY, bR * 0.18, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.restore();
+  }
+
   // ── HP bar (directly below circle) ──
   const barW = Math.min(w * 0.72, AVTR_R * 2.2);
   const barH = 5;
@@ -1281,12 +1307,19 @@ function _onClick(e) {
     const dx = mx - pos.cx;
     const dy = my - pos.cy;
     if (Math.sqrt(dx * dx + dy * dy) <= pos.r + 4) {
-      window.dmPanel?.combatSelectCombatant?.(id);
+      if (window.app?.isDM?.()) {
+        window.dmPanel?.combatSelectCombatant?.(id);
+      } else {
+        // Speler: open stat block panel als het monster bestudeerd is
+        const c = _combat?.combatants?.find(c => c.id === id);
+        if (c?.type === 'monster' && c._niveau) {
+          window.app?.openCombatMonsterPanel?.(c);
+        }
+      }
       return;
     }
   }
-  // Klik buiten elk portret → sluit detail-panel
-  window.dmPanel?.combatSelectCombatant?.(null);
+  if (window.app?.isDM?.()) window.dmPanel?.combatSelectCombatant?.(null);
 }
 
 function _drawCondTooltip(ctx, W, H, condId, mx, my) {
@@ -1420,6 +1453,20 @@ function _drawHpBar(ctx, c, x, y, w, h) {
   const tempHp = c.tempHp || 0;
   const pct    = hp / maxHp;
   const isDM   = window.app?.isDM?.();
+  const niveau = c._niveau || null;  // null | 'naam' | 'deels' | 'volledig'
+
+  // Voor monsters zonder kennisniveau altijd een ruwe 3-segmenten bar tonen
+  // (gezond / gewond / kritiek), zonder exacte procenten.
+  // Bij deels/volledig: vloeiende 5-kleurige bar + exacte getallen (zoals DM).
+  const isMonster    = c.type === 'monster';
+  const hasKennis    = niveau === 'deels' || niveau === 'volledig';
+  const useCoarse    = isMonster && !isDM && !hasKennis;
+  const showExact    = isDM || (isMonster && hasKennis);
+
+  // Render-percentage: bij ruwe modus afkappen op 3 segmenten
+  const renderPct = useCoarse
+    ? (pct > 0.66 ? 1 : pct > 0.33 ? 0.60 : pct > 0 ? 0.25 : 0)
+    : pct;
 
   // Background
   ctx.save();
@@ -1428,24 +1475,36 @@ function _drawHpBar(ctx, c, x, y, w, h) {
   ctx.fill();
   ctx.restore();
 
-  // HP fill (5 colour states) met glow voor zichtbaarheid
+  // HP fill
   const color = pct >= 1    ? '#48e048'
               : pct >= 0.75 ? '#a0d020'
               : pct >= 0.50 ? '#f0b020'
               : pct >= 0.25 ? '#e85020'
               : pct >  0    ? '#d01818'
                             : '#505050';
-  if (pct > 0) {
+  if (renderPct > 0) {
     ctx.save();
     ctx.shadowColor = color;
-    ctx.shadowBlur  = 5;
+    ctx.shadowBlur  = useCoarse ? 2 : 5;
     ctx.fillStyle   = color;
-    _roundRect(ctx, x, y, w * pct, h, 2);
+    _roundRect(ctx, x, y, w * renderPct, h, 2);
     ctx.fill();
+    // Ruwe modus: verticale scheidingslijntjes tonen de 3 segmenten
+    if (useCoarse) {
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.lineWidth   = 1;
+      [1/3, 2/3].forEach(frac => {
+        ctx.beginPath();
+        ctx.moveTo(x + w * frac, y);
+        ctx.lineTo(x + w * frac, y + h);
+        ctx.stroke();
+      });
+    }
     ctx.restore();
   }
 
-  // Temp HP (blue, above the bar)
+  // Temp HP (blauw, boven de balk)
   if (tempHp > 0) {
     const tpct = Math.min(tempHp / maxHp, 1);
     ctx.save();
@@ -1455,8 +1514,8 @@ function _drawHpBar(ctx, c, x, y, w, h) {
     ctx.restore();
   }
 
-  // DM: exact numbers below the bar (only when alive — dying shows death save dots)
-  if (isDM && hp > 0) {
+  // Exacte getallen onder de balk (DM altijd; speler bij deels/volledig kennis)
+  if (showExact && hp > 0) {
     ctx.save();
     ctx.font         = `bold 8px sans-serif`;
     ctx.textAlign    = 'center';

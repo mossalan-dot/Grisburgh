@@ -1,10 +1,11 @@
 import { api } from './api.js?v=227';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=6';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 // ── DM Panel ──
 // icon() helper is defined globally in app.js; grab a local alias for template use.
-const icon = (...a) => window.icon(...a);
+const icon    = (...a) => window.icon(...a);
+const helpBtn = (key)  => window._helpBtn?.(key) ?? '';
 
 const CONDITIONS = [
   { id: 'blinded',       label: 'Blinded',        desc: 'Cannot see. Attack rolls against it have advantage; its attack rolls have disadvantage.' },
@@ -461,6 +462,7 @@ function _renderGevechtEnMonsters(subTab) {
     <button class="dm-subtab-btn${_gevechtSubTab==='gevecht'  ?' active':''}" onclick="window.dmPanel.switchTab('gevecht')" title="Gevecht">${icon('crossed-swords',{cls:'icon-gi'})}</button>
     <button class="dm-subtab-btn${_gevechtSubTab==='monsters' ?' active':''}" onclick="window.dmPanel.switchTab('monsters')" title="Monsters">${icon('skull')}</button>
     <button class="dm-subtab-btn${_gevechtSubTab==='encounters'?' active':''}" onclick="window.dmPanel.switchTab('encounters')" title="Encounters">${icon('clipboard-list')}</button>
+    <span style="margin-left:auto">${helpBtn('dm_gevecht')}</span>
   `;
 
   // Toon/verberg de juiste sub-content
@@ -516,14 +518,13 @@ function _renderDiensten(subTab) {
     <button class="dm-subtab-btn${_dienstenSubTab==='gock'      ?' active':''}" onclick="window.dmPanel.switchTab('gock')" title="De Gock">${icon('search')}</button>
  <button class="dm-subtab-btn${_dienstenSubTab==='ursula'    ?' active':''}" onclick="window.dmPanel.switchTab('ursula')" title="Madame Ursula">${icon('sparkles')}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='tempel'    ?' active':''}" onclick="window.dmPanel.switchTab('tempel')" title="De Tempel">${icon('church')}</button>
-    <button class="dm-subtab-btn${_dienstenSubTab==='heeren'    ?' active':''}" onclick="window.dmPanel.switchTab('heeren')" title="Heeren van de Nacht">${icon('eye')}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='facties'   ?' active':''}" onclick="window.dmPanel.switchTab('facties')" title="Facties & Aanzien">${icon('landmark')}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='magizoo'   ?' active':''}" onclick="window.dmPanel.switchTab('magizoo')" title="De Magizoöloog">${icon('paw-print')}</button>
     <button class="dm-subtab-btn${_dienstenSubTab==='toegang'   ?' active':''}" onclick="window.dmPanel.switchTab('toegang')" title="Toegang per groep">${icon('lock')}</button>
   `;
 
   // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
-  ['herberg','tweespalt','gock','ursula','tempel','heeren','facties','magizoo','toegang'].forEach(name => {
+  ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo','toegang'].forEach(name => {
     let legacy = document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
     if (legacy && legacy.closest('.dm-tab-content[data-tab="diensten"]') == null) {
       el.appendChild(legacy);
@@ -531,7 +532,7 @@ function _renderDiensten(subTab) {
   });
 
   // Toon alleen de actieve subtab
-  ['herberg','tweespalt','gock','ursula','tempel','heeren','facties','magizoo','toegang'].forEach(name => {
+  ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo','toegang'].forEach(name => {
     const div = el.querySelector('.dm-tab-content[data-tab="' + name + '"]');
     if (div) div.classList.toggle('active', name === _dienstenSubTab);
   });
@@ -541,7 +542,6 @@ function _renderDiensten(subTab) {
   if (_dienstenSubTab === 'gock')      _renderGockSettings();
   if (_dienstenSubTab === 'ursula')    _renderUrsulaSettings();
   if (_dienstenSubTab === 'tempel')    _renderTempelSettings();
-  if (_dienstenSubTab === 'heeren')    _renderHeerenSettings();
   if (_dienstenSubTab === 'facties')   _renderFactiesSettings();
   if (_dienstenSubTab === 'magizoo')   _renderMagizooSettings();
   if (_dienstenSubTab === 'toegang')   _renderDienstenToegang();
@@ -573,7 +573,10 @@ async function _renderAktes() {
   el.innerHTML = `
     <div class="dm-feature-section">
       <div class="dm-akte-head">
-        <div class="dm-section-label" style="margin:0">Aktes — voorbereiding &amp; regie</div>
+        <div style="display:flex;align-items:center;gap:6px;margin:0">
+          <div class="dm-section-label" style="margin:0">Aktes — voorbereiding &amp; regie</div>
+          ${helpBtn('dm_aktes')}
+        </div>
         <div class="dm-feature-row" style="gap:6px;margin:0">
           <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.akteImport()" title="Importeer een Obsidian-hoofdstuk (.md) als regie-script">${icon('upload')} Importeer</button>
           <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window.dmPanel.akteNieuw()" title="Nieuwe akte">${icon('plus')} Nieuwe akte</button>
@@ -871,7 +874,7 @@ const _DIENSTEN_TOEGANG_INFO = [
   { key: 'gock',      label: 'De Gock',             icon: 'search'    },
   { key: 'ursula',    label: 'Madame Ursula',        icon: 'sparkles'  },
   { key: 'tempel',    label: 'De Tempel',            icon: 'church'    },
-  { key: 'heeren',    label: 'Heeren v.d. Nacht',    icon: 'eye'       },
+
   { key: 'facties',   label: 'Facties & Aanzien',    icon: 'landmark'  },
   { key: 'magizoo',   label: 'De Magizoöloog',       icon: 'paw-print' },
 ];
@@ -921,7 +924,7 @@ async function _renderDienstenToegang() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">Toegang per groep</div>
+      <div style="display:flex;align-items:center;gap:6px"><div class="dm-section-label">Toegang per groep</div>${helpBtn('dm_toegang')}</div>
       <p class="dm-form-label" style="opacity:.7;margin:0 0 10px">Bepaal per dienst en per groep of die zichtbaar en/of beschikbaar is.</p>
       <div style="overflow-x:auto">
         <table style="border-collapse:collapse;width:100%">
@@ -1006,9 +1009,10 @@ function _renderSpreuken() {
   if (!document.getElementById('dm-spell-search')) {
     el.innerHTML = `
       <div class="dm-feature-section" style="padding-bottom:8px">
-        <div class="dm-feature-row">
+        <div class="dm-feature-row" style="align-items:center">
           <input class="dm-input" id="dm-spell-search" placeholder="Zoek spreuk…"
             oninput="window.dmPanel.spellSearch(this.value)">
+          ${helpBtn('dm_spreuken')}
         </div>
         <p id="dm-spell-loading" class="dm-hint"></p>
       </div>
@@ -1167,7 +1171,7 @@ function _showTunnelError(msg) {
   if (!el) return;
   const err = document.createElement('p');
   err.className = 'dm-hint dm-hint-error';
-  err.textContent = '⚠️ ' + msg;
+  err.innerHTML = icon('x') + ' ' + msg;
   el.appendChild(err);
   setTimeout(() => err.remove(), 6000);
 };
@@ -1189,25 +1193,25 @@ function _renderExportTab() {
       <div class="dm-feature-label">Exporteren</div>
 
       <div class="export-option-card" id="export-card-snapshot">
-        <div class="export-option-icon">📷</div>
+        <div class="export-option-icon">${icon('camera')}</div>
         <div class="export-option-body">
           <div class="export-option-title">Snapshot</div>
           <div class="export-option-desc">Interactieve HTML-versie van de campagnedata voor spelers — met kaarten, modals en alle onthuld materiaal.</div>
           <button class="dm-btn dm-btn-primary export-option-btn" id="export-btn-snapshot"
             onclick="window.dmPanel.exportFile('snapshot')">
-            📥 Snapshot downloaden
+            ${icon('download')} Snapshot downloaden
           </button>
         </div>
       </div>
 
       <div class="export-option-card" id="export-card-boek">
-        <div class="export-option-icon">📖</div>
+        <div class="export-option-icon">${icon('book-open')}</div>
         <div class="export-option-body">
           <div class="export-option-title">Campagneboek</div>
           <div class="export-option-desc">Lineair, printklaar boek met inhoudsopgave, alle sessies per hoofdstuk, afbeeldingen en een register van personages, locaties en meer. Gebruik Afdrukken → Opslaan als PDF.</div>
           <button class="dm-btn dm-btn-primary export-option-btn" id="export-btn-boek"
             onclick="window.dmPanel.exportFile('campagneboek')">
-            📖 Campagneboek downloaden
+            ${icon('book-open')} Campagneboek downloaden
           </button>
         </div>
       </div>
@@ -1848,7 +1852,7 @@ function _renderTafels() {
   const hasTables = sortedTables.length > 0;
   el.innerHTML = `
     <div class="dm-feature-section dm-namen-section">
-      <div class="dm-section-label">Namen</div>
+      <div style="display:flex;align-items:center;gap:6px"><div class="dm-section-label">Namen</div>${helpBtn('dm_tafels')}</div>
       <div class="dm-feature-row">
         <button class="dm-btn dm-btn-ghost dm-naam-btn" onclick="window.dmPanel.naamGenereer('m')" title="Mannennaam">♂</button>
         <button class="dm-btn dm-btn-ghost dm-naam-btn" onclick="window.dmPanel.naamGenereer('v')" title="Vrouwennaam">♀</button>
@@ -3549,7 +3553,7 @@ async function _renderWereldTab() {
       <div class="dm-form-row" style="flex-direction:column;gap:10px">
         <button id="wereld-toggle-btn" class="dm-btn${buitenGrisburgh ? ' dm-btn-danger' : ' dm-btn-primary'}"
           onclick="window._wereldToggle()" style="font-size:1rem;padding:10px 18px">
-          ${buitenGrisburgh ? '🔒 Grisburgh verlaten — klik om terug te keren' : '🏙️ In Grisburgh — klik om te verlaten'}
+          ${buitenGrisburgh ? `${icon('lock')} Grisburgh verlaten — klik om terug te keren` : `${icon('castle')} In Grisburgh — klik om te verlaten`}
         </button>
         <p style="font-size:11px;opacity:.6">
           Als de groep Grisburgh verlaat, worden alle Grisburgh-diensten
@@ -3610,7 +3614,7 @@ async function _renderHerbergSettings() {
 
   el.innerHTML = `
     <div class="dm-feature-section">
-      <div class="dm-section-label">Herberginstellingen</div>
+      <div style="display:flex;align-items:center;gap:6px"><div class="dm-section-label">Herberginstellingen</div>${helpBtn('dm_herberg')}</div>
 
       <div class="dm-form-row">
         <label class="dm-form-label">Naam van de herberg</label>
@@ -3649,7 +3653,7 @@ async function _renderHerbergSettings() {
       </div>
 
       <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._hbSave()" title="Opslaan">💾</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._hbSave()" title="Opslaan">${icon('save')}</button>
       </div>
     </div>`;
 };
@@ -3683,7 +3687,7 @@ async function _renderBeursTab() {
           placeholder="KN" value="${_partyCurrency.kn}">
         <input id="hb-purse-cl" class="dm-input" type="number" min="0" style="width:80px"
           placeholder="CL" value="${_partyCurrency.cl}">
-        <button class="dm-btn dm-btn-ghost" onclick="window._hbSavePurse()" title="Bijwerken">💾</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window._hbSavePurse()" title="Bijwerken">${icon('save')}</button>
       </div>` : `
       <p style="font-size:12px;color:var(--color-ink-dim,#888);margin-top:8px">
         Activeer de gedeelde beurs zodat alle spelers hetzelfde saldo zien.
@@ -3858,7 +3862,7 @@ async function _renderTweespaltDM() {
       </div>
 
       <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._tsSettingsSave()" title="Instellingen opslaan">💾</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._tsSettingsSave()" title="Instellingen opslaan">${icon('save')}</button>
       </div>
     </div>
 
@@ -3873,7 +3877,7 @@ async function _renderTweespaltDM() {
       <div class="dm-form-row">
         <label class="dm-form-label">Type</label>
         <select id="ts-type" class="dm-select" onchange="window._tsToggleGodenwedden()">
-          <option value="gevecht">⚔️ Gevecht</option>
+          <option value="gevecht">Gevecht</option>
           <option value="godenwedden">⚡ Godenwedden</option>
         </select>
       </div>
@@ -3906,7 +3910,7 @@ async function _renderTweespaltDM() {
       </div>
 
       <div class="dm-form-row" style="margin-top:12px">
-        <button class="dm-btn dm-btn-primary" onclick="window._tsDmOpslaan()" title="Event aanmaken">💾</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._tsDmOpslaan()" title="Event aanmaken">${icon('save')}</button>
       </div>
     </div>
     </div>`;
@@ -4101,7 +4105,7 @@ async function _renderGockSettings() {
           placeholder="Laat leeg voor standaard tidbits…">${esc(tidbitsWaarde)}</textarea>
       </div>
       <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._gockSettingsSave()" title="Opslaan">💾</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._gockSettingsSave()" title="Opslaan">${icon('save')}</button>
       </div>
     </div>
 
@@ -4311,7 +4315,7 @@ async function _renderUrsulaSettings() {
             ${alle.map(e => `<option value="${esc(e.id)}" ${config.backdropId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
           </select></div>
       </div>
-      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._ursulaSettingsSave()" title="Opslaan">💾</button></div>
+      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._ursulaSettingsSave()" title="Opslaan">${icon('save')}</button></div>
 
       <div class="dm-section-label" style="margin-top:14px">Voorspellingen per akte</div>
       ${actiefInfo}
@@ -4322,15 +4326,15 @@ async function _renderUrsulaSettings() {
           ${_ursulaAktes.map(a => `<option value="${esc(a.key)}" ${a.key === _ursulaSelectedAkte ? 'selected' : ''}>Akte ${a.num} — ${esc(a.title)}${a.voorspelling ? ' ✓' : ''}</option>`).join('')}
         </select></div>
       <div class="dm-form-row" style="flex-direction:column;gap:4px">
-        <label class="dm-form-label">👁 Zien</label><textarea id="ursula-zien" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.zien || '')}</textarea>
-        <label class="dm-form-label">👂 Horen</label><textarea id="ursula-horen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.horen || '')}</textarea>
-        <label class="dm-form-label">👃 Ruiken</label><textarea id="ursula-ruiken" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.ruiken || '')}</textarea>
-        <label class="dm-form-label">👅 Proeven</label><textarea id="ursula-proeven" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.proeven || '')}</textarea>
-        <label class="dm-form-label">✋ Voelen</label><textarea id="ursula-voelen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.voelen || '')}</textarea>
+        <label class="dm-form-label">${icon('eye')} Zien</label><textarea id="ursula-zien" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.zien || '')}</textarea>
+        <label class="dm-form-label">${icon('volume-2')} Horen</label><textarea id="ursula-horen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.horen || '')}</textarea>
+        <label class="dm-form-label">${icon('zap')} Ruiken</label><textarea id="ursula-ruiken" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.ruiken || '')}</textarea>
+        <label class="dm-form-label">${icon('flask-conical')} Proeven</label><textarea id="ursula-proeven" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.proeven || '')}</textarea>
+        <label class="dm-form-label">${icon('mouse-pointer-2')} Voelen</label><textarea id="ursula-voelen" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.voelen || '')}</textarea>
         <label class="dm-form-label">✦ Concrete kern (naam/locatie — onthuld bij een 6)</label><textarea id="ursula-concreet" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.concreet || '')}</textarea>
       </div>
       <div class="dm-form-row" style="gap:6px">
-        <button class="dm-btn dm-btn-primary" onclick="window._ursulaVoorspellingSave()" title="Voorspelling opslaan">💾 Voorspelling</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._ursulaVoorspellingSave()" title="Voorspelling opslaan">${icon('save')} Voorspelling</button>
         <button class="dm-btn dm-btn-ghost" onclick="window._ursulaResetParty()" title="Wis de party-worp voor deze akte zodat opnieuw geworpen kan worden">↺ Reset party-worp</button>
       </div>`}
     </div>`;
@@ -4422,7 +4426,7 @@ async function _renderHeerenSettings() {
   ];
   _heerenRangenDraft = rangen.map(r => ({ ...r }));
   const honFl = (config.honorarium && config.honorarium.fl) || 50;
-  const typeIcon = { zakkenrollen: '🤚', inbraak: '🗝️', oplichting: '🎭' };
+  const typeIcon = { zakkenrollen: icon('stiletto'), inbraak: icon('lock-open'), oplichting: icon('eye') };
 
   el.innerHTML = `
     <div class="dm-feature-section">
@@ -4457,7 +4461,7 @@ async function _renderHeerenSettings() {
       <div class="dm-section-label" style="margin-top:12px">Rangen (aanzien)</div>
       <div id="heeren-rangen"></div>
       <div class="dm-form-row"><button class="dm-btn dm-btn-ghost" onclick="window._heerenRangToevoegen()">＋ Rang</button></div>
-      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._heerenSettingsSave()">💾 Instellingen</button></div>
+      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._heerenSettingsSave()">${icon('save')} Instellingen</button></div>
 
       <div class="dm-section-label" style="margin-top:14px">Huidige rang van de party</div>
       <div class="dm-form-row"><label class="dm-form-label">Rang</label>
@@ -4466,7 +4470,7 @@ async function _renderHeerenSettings() {
         </select></div>
 
       <div class="dm-section-label" style="margin-top:14px">Klussenbord</div>
-      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._heerenGenereer()">🎲 Genereer / ververs bord</button></div>
+      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._heerenGenereer()">${icon('refresh-cw')} Genereer / ververs bord</button></div>
       <div id="heeren-jobs">
         ${jobs.length ? jobs.map(j => `
           <div style="border:1px solid rgba(196,168,122,0.25);border-radius:8px;padding:8px;margin-bottom:8px">
@@ -4478,7 +4482,7 @@ async function _renderHeerenSettings() {
                    <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','geslaagd')">✓ Geslaagd</button>
                    <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','mislukt')">✗ Mislukt</button>
                    <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','ontsnapt')">🏃 Betrapt → ontsnapt</button>
-                   <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','gearresteerd')">⛓️ Betrapt → gearresteerd</button>
+                   <button class="dm-btn dm-btn-sm" onclick="window._heerenUitslag('${esc(j.id)}','gearresteerd')">${icon('lock')} Betrapt → gearresteerd</button>
                  </div></div>`
               : `<div style="opacity:.6;font-size:12px;margin-top:4px">Open — wacht op een speler</div>`}
           </div>`).join('') : '<p class="dm-form-label" style="opacity:.6">Bord is leeg. Genereer klussen.</p>'}
@@ -4488,7 +4492,7 @@ async function _renderHeerenSettings() {
       <div id="heeren-boetes">
         ${alleBoetes.length ? alleBoetes.map(b => `
           <div class="dm-form-row" style="gap:6px;align-items:center;border:1px solid rgba(196,168,122,0.2);border-radius:6px;padding:6px;margin-bottom:6px">
-            <span style="flex:1">⚖️ <strong>${esc(b.characterNaam)}</strong> — ${esc(b.reden)} (${_heerenClTekst(b.bedragCl)})</span>
+            <span style="flex:1"><strong>${esc(b.characterNaam)}</strong> — ${esc(b.reden)} (${_heerenClTekst(b.bedragCl)})</span>
             <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._heerenKwijt('${esc(b.characterId)}','${esc(b.id)}')">Kwijtschelden</button>
           </div>`).join('') : '<p class="dm-form-label" style="opacity:.6">Geen openstaande boetes.</p>'}
       </div>
@@ -4505,7 +4509,7 @@ function _renderHeerenRangen() {
         <input class="dm-input" style="flex:1" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._heerenRangEdit(${i},'naam',this.value)">
         <input class="dm-input" type="number" style="width:60px" placeholder="min" value="${r.min ?? ''}" oninput="window._heerenRangEdit(${i},'min',this.value)">
         <input class="dm-input" type="number" style="width:60px" placeholder="max" value="${r.max ?? ''}" oninput="window._heerenRangEdit(${i},'max',this.value)">
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._heerenRangVerwijder(${i})">🗑️</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._heerenRangVerwijder(${i})" title="Verwijderen">${icon('trash')}</button>
       </div>
       <input class="dm-input" style="width:100%" placeholder="Voordelen (bijv. korting, safehouse, contacten…)" value="${esc(r.voordelen || '')}" oninput="window._heerenRangEdit(${i},'voordelen',this.value)">
     </div>`).join('') || '<p class="dm-form-label" style="opacity:.6">Geen rangen.</p>';
@@ -4571,12 +4575,10 @@ async function _renderTempelSettings() {
   const alle = [...personages, ...locaties];
 
   // Build entity option lists for per-god image pickers
-  _tempelEntityPortretOpties = [...personages, ...locaties]
-    .filter(e => e.imageId)
-    .map(e => ({ value: e.imageId, label: e.naam || e.name || e.id }));
-  _tempelBackdropOpties = locaties
-    .filter(e => e.imageId)
-    .map(e => ({ value: e.imageId, label: e.naam || e.name || e.id }));
+  _tempelEntityPortretOpties = [{ value: '', label: '— geen —' }, ...[...personages, ...locaties]
+    .map(e => ({ value: e.id, label: e.name || e.id }))];
+  _tempelBackdropOpties = [{ value: '', label: '— geen —' }, ...locaties
+    .map(e => ({ value: e.id, label: e.name || e.id }))];
 
   el.innerHTML = `
     <div class="dm-feature-section">
@@ -4793,7 +4795,15 @@ window._tempelSettingsSave = async () => {
 
 // ── Facties & Aanzien ──
 
+const _FACTIE_ICON_OPTIES = ['landmark','tree-pine','hexagon','crossed-swords','shield','moon','star','castle','heart','users','globe','mountain','scroll-text','coins','sword','swords','zap'];
+const _FACTIE_ICON_SET = new Set(_FACTIE_ICON_OPTIES);
+
 let _factiesDraft = [];
+let _factiesLiveData = [];
+let _factiesVoorwerpen   = [];
+let _factiesOrganisaties = [];
+let _factiesLocaties     = [];
+let _factiesPersonages   = [];
 
 async function _renderFactiesSettings() {
   const el = _tabEl('facties');
@@ -4801,13 +4811,30 @@ async function _renderFactiesSettings() {
   el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
   let data = null;
   try { data = await api.getFacties(); } catch {}
-  _factiesDraft = (data?.facties || []).map(f => ({
-    id: f.id, naam: f.naam, embleem: f.embleem, stijl: f.stijl || '', beschrijving: f.beschrijving,
+  try {
+    const [vd, od, ld, pd] = await Promise.all([
+      api.listEntities('voorwerpen').catch(() => []),
+      api.listEntities('organisaties').catch(() => []),
+      api.listEntities('locaties').catch(() => []),
+      api.listEntities('personages').catch(() => []),
+    ]);
+    _factiesVoorwerpen   = vd || [];
+    _factiesOrganisaties = od || [];
+    _factiesLocaties     = ld || [];
+    _factiesPersonages   = pd || [];
+  } catch { _factiesVoorwerpen = []; _factiesOrganisaties = []; _factiesLocaties = []; _factiesPersonages = []; }
+  _factiesLiveData = data?.facties || [];
+  _factiesDraft = _factiesLiveData.map(f => ({
+    id: f.id, naam: f.naam, embleem: f.embleem || 'landmark', stijl: f.stijl || '',
+    beschrijving: f.beschrijving, entityId: f.entityId || '',
+    locatieEntityId: f.locatieEntityId || '',
+    npcEntityId:     f.npcEntityId     || '',
+    npcGreet:        f.npcGreet        || '',
+    renownDrempels: (f.renownDrempels || [0,1,3,10,25,50]).join(','),
     rangen: (f.rangen || []).map(r => ({
       naam: r.naam, voordelen: r.voordelen || '', titel: r.titel || '',
-      boons: (r.boons || []).map(b => ({ icoon: b.icoon || '', naam: b.naam || '', tekst: b.tekst || '' })),
+      boons: (r.boons || []).map(b => ({ entityId: b.entityId || '', naam: b.naam || '' })),
     })),
-    huidigeRang: f.rang?.index ?? 0,
   }));
   _renderFactiesDM();
 };
@@ -4815,30 +4842,98 @@ async function _renderFactiesSettings() {
 function _renderFactiesDM() {
   const el = _tabEl('facties');
   if (!el) return;
+
+  const _iconPicker = (fi, huidig) => `
+    <div class="factie-icon-picker">
+      ${_FACTIE_ICON_OPTIES.map(n => `
+        <button type="button" class="factie-icon-btn${huidig === n ? ' factie-icon-btn--actief' : ''}"
+          title="${n}" onclick="window._factieIconKies(${fi},'${n}',this)">
+          ${icon(n)}
+        </button>`).join('')}
+    </div>`;
+
   el.innerHTML = `
     <div class="dm-feature-section">
       <div class="dm-section-label">Facties &amp; Aanzien</div>
-      <p class="dm-form-label" style="opacity:.7;margin-bottom:10px">Stel per organisatie de huidige rang van de party in. Bij rang 0 verschijnt er niets op het spelersdashboard.</p>
-      ${_factiesDraft.map((f, fi) => `
-        <div style="border:1px solid rgba(196,168,122,0.25);border-radius:8px;padding:10px;margin-bottom:10px">
-          <div class="dm-form-row" style="gap:6px;align-items:center">
-            <input class="dm-input" style="width:48px;text-align:center" value="${esc(f.embleem || '')}" oninput="window._factieEdit(${fi},'embleem',this.value)">
-            <input class="dm-input" style="flex:1" placeholder="Naam" value="${esc(f.naam || '')}" oninput="window._factieEdit(${fi},'naam',this.value)">
+      <p class="dm-form-label" style="opacity:.7;margin-bottom:10px">Stel per factie de zichtbaarheid in en pas het renown aan. Spelers zien een factie pas als de DM die onthuld heeft.</p>
+      ${_factiesDraft.map((f, fi) => {
+        const live = _factiesLiveData.find(x => x.id === f.id) || {};
+        const renown = live.renown ?? 0;
+        const zichtbaar = live.zichtbaar ?? false;
+        const rangNaam = live.rang?.naam || 'Buitenstaander';
+        const boonGegeven = (live.ladder || []).filter(r => r.bereikt && r.index > 0).flatMap(r => r.boons || []);
+        return `
+        <div class="factie-dm-kaart" id="factie-dm-kaart-${f.id}">
+          <div class="factie-dm-kaart-header">
+            <button id="factie-dm-oog-${esc(f.id)}" class="factie-dm-oog${zichtbaar ? ' factie-dm-oog--aan' : ''}" onclick="window._factieReveal('${esc(f.id)}')" title="${zichtbaar ? 'Verberg factie' : 'Onthul factie voor spelers'}">
+              ${zichtbaar ? icon('eye') : icon('eye-off')}
+            </button>
+            <span class="factie-dm-naam">${esc(f.naam)}</span>
+            <span id="factie-dm-badge-${esc(f.id)}" class="factie-dm-renown-badge">renown: ${renown} | ${esc(rangNaam)}</span>
           </div>
-          <input class="dm-input" style="width:100%;margin-top:4px" placeholder="Beschrijving" value="${esc(f.beschrijving || '')}" oninput="window._factieEdit(${fi},'beschrijving',this.value)">
-          <div class="dm-form-row" style="margin-top:4px"><label class="dm-form-label">Stijl</label>
-            <select class="dm-select" onchange="window._factieEdit(${fi},'stijl',this.value)">
-              ${['', 'hout', 'metaal', 'staal'].map(s => `<option value="${s}" ${(f.stijl || '') === s ? 'selected' : ''}>${s ? s : '— standaard —'}</option>`).join('')}
-            </select></div>
-          <div class="dm-form-row" style="margin-top:8px"><label class="dm-form-label">Huidige rang</label>
-            <select class="dm-select" onchange="window._factieSetRang('${esc(f.id)}',this.value)">
-              ${f.rangen.map((r, i) => `<option value="${i}" ${i === f.huidigeRang ? 'selected' : ''}>${i}. ${esc(r.naam)}</option>`).join('')}
-            </select></div>
-          <div class="dm-section-label" style="margin-top:8px">Rangen (aanzien)</div>
-          <div id="factie-rangen-${fi}"></div>
-          <div class="dm-form-row"><button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangToevoegen(${fi})">＋ Rang</button></div>
-        </div>`).join('')}
-      <div class="dm-form-row"><button class="dm-btn dm-btn-primary" onclick="window._factiesSave()">💾 Facties opslaan</button></div>
+          <div class="factie-dm-renown-knoppen">
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',1)">+1</button>
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',3)">+3</button>
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',5)">+5</button>
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',-1)">-1</button>
+            ${boonGegeven.length ? `<span class="factie-dm-boon-label">${icon('check-circle')} ${boonGegeven.length} boon${boonGegeven.length > 1 ? 's' : ''} uitgedeeld</span>` : ''}
+          </div>
+          <details style="margin-top:6px">
+            <summary class="dm-form-label" style="cursor:pointer;user-select:none">Configuratie bewerken</summary>
+            <div style="margin-top:6px">
+              <div class="dm-form-row" style="gap:6px;align-items:center;margin-bottom:4px">
+                <input class="dm-input" style="flex:1" placeholder="Naam" value="${esc(f.naam || '')}" oninput="window._factieEdit(${fi},'naam',this.value)">
+              </div>
+              ${_iconPicker(fi, f.embleem)}
+              <textarea class="dm-input" style="width:100%;margin-top:6px;min-height:64px;resize:vertical" placeholder="Beschrijving" oninput="window._factieEdit(${fi},'beschrijving',this.value)">${esc(f.beschrijving || '')}</textarea>
+              <div class="dm-form-row" style="margin-top:4px">
+                <label class="dm-form-label">Kleur berichten</label>
+                <select class="dm-select" onchange="window._factieEdit(${fi},'stijl',this.value)">
+                  ${['', 'hout', 'metaal', 'staal'].map(s => `<option value="${s}" ${(f.stijl || '') === s ? 'selected' : ''}>${s ? s : '— standaard —'}</option>`).join('')}
+                </select>
+              </div>
+              <div class="dm-form-row" style="margin-top:4px;flex-direction:column;gap:3px">
+                <label class="dm-form-label">Organisatiekaartje</label>
+                <select class="dm-select" style="width:100%" onchange="window._factieEdit(${fi},'entityId',this.value)">
+                  <option value="">— geen koppeling —</option>
+                  ${_factiesOrganisaties.sort((a,b)=>a.name.localeCompare(b.name)).map(o =>
+                    `<option value="${esc(o.id)}" ${o.id === (f.entityId||'') ? 'selected' : ''}>${esc(o.name)}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="dm-form-row" style="margin-top:4px;flex-direction:column;gap:3px">
+                <label class="dm-form-label">Locatie (backdrop interieur)</label>
+                <select class="dm-select" style="width:100%" onchange="window._factieEdit(${fi},'locatieEntityId',this.value)">
+                  <option value="">— geen —</option>
+                  ${[..._factiesLocaties].sort((a,b)=>a.name.localeCompare(b.name)).map(o =>
+                    `<option value="${esc(o.id)}" ${o.id === (f.locatieEntityId||'') ? 'selected' : ''}>${esc(o.name)}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="dm-form-row" style="margin-top:4px;flex-direction:column;gap:3px">
+                <label class="dm-form-label">NPC-hoofd (portretje interieur)</label>
+                <select class="dm-select" style="width:100%" onchange="window._factieEdit(${fi},'npcEntityId',this.value)">
+                  <option value="">— geen —</option>
+                  ${[..._factiesPersonages].sort((a,b)=>a.name.localeCompare(b.name)).map(o =>
+                    `<option value="${esc(o.id)}" ${o.id === (f.npcEntityId||'') ? 'selected' : ''}>${esc(o.name)}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <input class="dm-input" style="width:100%;margin-top:4px" placeholder="Openingszin NPC (optioneel)" value="${esc(f.npcGreet || '')}" oninput="window._factieEdit(${fi},'npcGreet',this.value)">
+              <div class="dm-form-row" style="margin-top:4px">
+                <label class="dm-form-label">Renown-drempels</label>
+                <input class="dm-input" style="flex:1" placeholder="0,1,3,10,25,50" value="${esc(f.renownDrempels || '0,1,3,10,25,50')}" oninput="window._factieEdit(${fi},'renownDrempels',this.value)">
+              </div>
+              <div class="dm-section-label" style="margin-top:8px">Rangen</div>
+              <div id="factie-rangen-${fi}"></div>
+              <div class="dm-form-row"><button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangToevoegen(${fi})">${icon('plus')} Rang</button></div>
+            </div>
+          </details>
+        </div>`; }).join('')}
+      <div class="dm-form-row" style="margin-top:10px;gap:8px">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieNieuw()">${icon('plus')} Nieuwe factie</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._factiesSave()">${icon('save')} Facties opslaan</button>
+      </div>
     </div>`;
   _factiesDraft.forEach((_, fi) => _renderFactieRangen(fi));
 };
@@ -4847,46 +4942,151 @@ function _renderFactieRangen(fi) {
   const wrap = document.getElementById(`factie-rangen-${fi}`);
   if (!wrap) return;
   const f = _factiesDraft[fi];
-  wrap.innerHTML = (f.rangen || []).map((r, i) => `
+  const drempels = String(f.renownDrempels || '0,1,3,10,25,50').split(',').map(s => parseInt(s.trim()) || 0);
+
+  wrap.innerHTML = (f.rangen || []).map((r, i) => {
+    const drempelLabel = drempels[i] !== undefined ? `${drempels[i]} renown` : `rang ${i}`;
+    return `
     <div style="border:1px solid rgba(196,168,122,0.18);border-radius:6px;padding:6px;margin-bottom:6px">
       <div class="dm-form-row" style="gap:6px;align-items:center;margin-bottom:4px">
-        <span style="opacity:.5;width:16px;text-align:right">${i}</span>
-        <input class="dm-input" style="width:120px" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._factieRangEdit(${fi},${i},'naam',this.value)">
-        <input class="dm-input" style="flex:1" placeholder="Voordelen (korte regel)" value="${esc(r.voordelen || '')}" oninput="window._factieRangEdit(${fi},${i},'voordelen',this.value)">
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangVerwijder(${fi},${i})">🗑️</button>
+        <span class="dm-hint" style="white-space:nowrap;width:60px;text-align:right;flex-shrink:0">${drempelLabel}</span>
+        <input class="dm-input" style="width:130px" placeholder="Rangnaam" value="${esc(r.naam || '')}" oninput="window._factieRangEdit(${fi},${i},'naam',this.value)">
+        <textarea class="dm-input" style="flex:1;min-height:48px;resize:vertical" placeholder="Voordelen / omschrijving" oninput="window._factieRangEdit(${fi},${i},'voordelen',this.value)">${esc(r.voordelen || '')}</textarea>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRangVerwijder(${fi},${i})" title="Verwijderen">${icon('trash')}</button>
       </div>
-      <input class="dm-input" style="width:100%;margin-bottom:4px" placeholder="Titel bij deze rang (optioneel)" value="${esc(r.titel || '')}" oninput="window._factieRangEdit(${fi},${i},'titel',this.value)">
-      <div style="padding-left:22px">
-        ${(r.boons || []).map((b, bi) => `
-          <div class="dm-form-row" style="gap:4px;align-items:center;margin-bottom:3px">
-            <input class="dm-input" style="width:42px;text-align:center" placeholder="🎁" value="${esc(b.icoon || '')}" oninput="window._factieBoonEdit(${fi},${i},${bi},'icoon',this.value)">
-            <input class="dm-input" style="width:110px" placeholder="Boon" value="${esc(b.naam || '')}" oninput="window._factieBoonEdit(${fi},${i},${bi},'naam',this.value)">
-            <input class="dm-input" style="flex:1" placeholder="Wat het doet" value="${esc(b.tekst || '')}" oninput="window._factieBoonEdit(${fi},${i},${bi},'tekst',this.value)">
-            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonVerwijder(${fi},${i},${bi})">✕</button>
-          </div>`).join('')}
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonToevoegen(${fi},${i})">＋ Boon</button>
+      <div style="padding-left:68px">
+        ${(r.boons || []).map((b, bi) => {
+          const selectId = `boon-select-${fi}-${i}-${bi}`;
+          const zoekId   = `boon-zoek-${fi}-${i}-${bi}`;
+          const huidigNaam = _factiesVoorwerpen.find(v => v.id === b.entityId)?.name || '';
+          return `
+          <div style="margin-bottom:6px">
+            <div class="dm-form-row" style="gap:4px;align-items:center;margin-bottom:2px">
+              <input id="${zoekId}" class="dm-input" style="flex:1" placeholder="Zoek voorwerp…"
+                value="${esc(huidigNaam)}"
+                oninput="window._filterBoonPicker(this,'${selectId}')">
+              <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonVerwijder(${fi},${i},${bi})" title="Verwijderen">${icon('trash')}</button>
+            </div>
+            <select id="${selectId}" class="dm-select" style="width:100%;display:none" size="6"
+              onchange="window._factieBoonKies(${fi},${i},${bi},'${zoekId}','${selectId}',this.value)">
+              <option value="">— geen voorwerp —</option>
+              ${_factiesVoorwerpen.sort((a,b)=>a.name.localeCompare(b.name)).map(v =>
+                `<option value="${esc(v.id)}" ${v.id === (b.entityId||'') ? 'selected' : ''}>${esc(v.name)}</option>`
+              ).join('')}
+            </select>
+          </div>`; }).join('')}
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieBoonToevoegen(${fi},${i})">${icon('plus')} Boon</button>
       </div>
-    </div>`).join('') || '<p class="dm-form-label" style="opacity:.6">Geen rangen.</p>';
+    </div>`;
+  }).join('') || '<p class="dm-form-label" style="opacity:.6">Geen rangen.</p>';
+};
+
+window._filterBoonPicker = (input, selectId) => {
+  const q = input.value.toLowerCase().trim();
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  // Toon dropdown zodra de gebruiker begint te typen
+  sel.style.display = q ? '' : 'none';
+  Array.from(sel.options).forEach(opt => {
+    opt.hidden = !!q && !opt.text.toLowerCase().includes(q);
+  });
+};
+
+window._factieBoonKies = (fi, i, bi, zoekId, selectId, value) => {
+  // Keuze gemaakt: vul zoekveld met naam, verberg dropdown, sla op
+  const sel = document.getElementById(selectId);
+  const zoek = document.getElementById(zoekId);
+  const naam = sel?.options[sel.selectedIndex]?.text || '';
+  if (zoek) zoek.value = naam === '— geen voorwerp —' ? '' : naam;
+  if (sel) sel.style.display = 'none';
+  window._factieBoonEdit(fi, i, bi, 'entityId', value);
 };
 
 window._factieEdit = (fi, field, v) => { const f = _factiesDraft[fi]; if (f) f[field] = v; };
+
+window._factieIconKies = (fi, naam, btn) => {
+  window._factieEdit(fi, 'embleem', naam);
+  // Update visueel actieve staat
+  btn.closest('.factie-icon-picker')?.querySelectorAll('.factie-icon-btn').forEach(b => b.classList.remove('factie-icon-btn--actief'));
+  btn.classList.add('factie-icon-btn--actief');
+};
+
+window._factieNieuw = () => {
+  _factiesDraft.push({ id: 'factie_' + Date.now(), naam: 'Nieuwe factie', embleem: 'landmark', beschrijving: '', stijl: '', rangen: [], renownDrempels: '0,1,3,10,25,50' });
+  _renderFactiesDM();
+  // Open de details van de nieuwe factie
+  const kaarten = document.querySelectorAll('.factie-dm-kaart details');
+  kaarten[kaarten.length - 1]?.setAttribute('open', '');
+};
 window._factieRangEdit = (fi, i, field, v) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) r[field] = v; };
 window._factieRangToevoegen = (fi) => { _factiesDraft[fi]?.rangen.push({ naam: '', voordelen: '', titel: '', boons: [] }); _renderFactieRangen(fi); };
 window._factieRangVerwijder = (fi, i) => { _factiesDraft[fi]?.rangen.splice(i, 1); _renderFactieRangen(fi); };
 window._factieBoonEdit = (fi, i, bi, field, v) => { const b = _factiesDraft[fi]?.rangen?.[i]?.boons?.[bi]; if (b) b[field] = v; };
-window._factieBoonToevoegen = (fi, i) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) { (r.boons = r.boons || []).push({ icoon: '', naam: '', tekst: '' }); _renderFactieRangen(fi); } };
+window._factieBoonToevoegen = (fi, i) => { const r = _factiesDraft[fi]?.rangen?.[i]; if (r) { (r.boons = r.boons || []).push({ entityId: '', naam: '' }); _renderFactieRangen(fi); } };
 window._factieBoonVerwijder = (fi, i, bi) => { _factiesDraft[fi]?.rangen?.[i]?.boons?.splice(bi, 1); _renderFactieRangen(fi); };
+
+window._factieReveal = async (id) => {
+  try {
+    const res = await api.factieReveal(id);
+    // Directe DOM-update — accordion blijft open
+    const btn = document.getElementById(`factie-dm-oog-${id}`);
+    if (btn) {
+      const nu = res.zichtbaar;
+      btn.className = `factie-dm-oog${nu ? ' factie-dm-oog--aan' : ''}`;
+      btn.title = nu ? 'Verberg factie voor spelers' : 'Onthul factie voor spelers';
+      btn.innerHTML = nu ? icon('eye') : icon('eye-off');
+    }
+    const live = _factiesLiveData.find(f => f.id === id);
+    if (live) live.zichtbaar = res.zichtbaar;
+  } catch (e) { alert('Fout: ' + e.message); }
+};
+
+window._factieRenown = async (id, delta) => {
+  try {
+    const res = await api.factieRenown(id, delta);
+    // Directe DOM-update renown-badge — accordion blijft open
+    const badge = document.getElementById(`factie-dm-badge-${id}`);
+    if (badge) {
+      // Bereken rang lokaal uit draft + drempels
+      const f = _factiesDraft.find(x => x.id === id);
+      const drempels = String(f?.renownDrempels || '0,1,3,10,25,50').split(',').map(s => parseInt(s.trim()) || 0);
+      const rangen = f?.rangen || [];
+      let idx = 0;
+      for (let i = 0; i < drempels.length && i < rangen.length; i++) {
+        if (res.renown >= drempels[i]) idx = i;
+      }
+      const rangNaam = rangen[Math.min(idx, rangen.length - 1)]?.naam || 'Buitenstaander';
+      badge.textContent = `renown: ${res.renown} | ${rangNaam}`;
+    }
+    if (res.boons > 0) {
+      const kaart = document.getElementById(`factie-dm-kaart-${id}`);
+      if (kaart) {
+        const notif = document.createElement('div');
+        notif.className = 'factie-dm-rang-bereikt';
+        notif.textContent = `Rang bereikt — ${res.boons} boon${res.boons > 1 ? 's' : ''} uitgedeeld`;
+        kaart.appendChild(notif);
+        setTimeout(() => notif.remove(), 4000);
+      }
+    }
+    const live = _factiesLiveData.find(f => f.id === id);
+    if (live) live.renown = res.renown;
+  } catch (e) { alert('Fout: ' + e.message); }
+};
+
 window._factieSetRang = async (id, rang) => {
-  try { await api.factieSetRang(id, parseInt(rang)); const f = _factiesDraft.find(x => x.id === id); if (f) f.huidigeRang = parseInt(rang); }
+  try { await api.factieSetRang(id, parseInt(rang)); }
   catch (e) { alert(e.message); }
 };
 window._factiesSave = async () => {
   const payload = _factiesDraft.map(f => ({
-    id: f.id, naam: (f.naam || '').trim(), embleem: (f.embleem || '').trim(), stijl: (f.stijl || '').trim(), beschrijving: (f.beschrijving || '').trim(),
+    id: f.id, naam: (f.naam || '').trim(), embleem: (f.embleem || 'landmark').trim(),
+    stijl: (f.stijl || '').trim(), beschrijving: (f.beschrijving || '').trim(),
+    entityId: (f.entityId || '').trim() || null,
+    renownDrempels: String(f.renownDrempels || '0,1,3,10,25,50').split(',').map(n => parseInt(n.trim()) || 0),
     rangen: (f.rangen || []).filter(r => (r.naam || '').trim()).map(r => ({
       naam: r.naam.trim(), voordelen: (r.voordelen || '').trim(), titel: (r.titel || '').trim(),
-      boons: (r.boons || []).filter(b => (b.naam || '').trim() || (b.tekst || '').trim())
-        .map(b => ({ icoon: (b.icoon || '').trim(), naam: (b.naam || '').trim(), tekst: (b.tekst || '').trim() })),
+      boons: (r.boons || []).filter(b => (b.entityId || '').trim())
+        .map(b => ({ entityId: (b.entityId || '').trim(), naam: (b.naam || '').trim() })),
     })),
   }));
   try { await api.saveFactiesConfig(payload); await _renderFactiesSettings(); }
@@ -4980,12 +5180,12 @@ async function _renderGeluiden() {
   const spelers = personages.filter(p => p.subtype === 'speler');
 
   const STANDARD_SLOTS = [
-    { key: 'damage',    label: '💥 Schade'         },
-    { key: 'healing',   label: '💚 Healing'         },
-    { key: 'win',       label: '🏆 Winst'           },
-    { key: 'loss',      label: '💀 Verlies'         },
-    { key: 'nextRound', label: '🔔 Volgende ronde'  },
-    { key: 'nextTurn',  label: '▶ Volgende beurt (standaard)' },
+    { key: 'damage',    label: `${icon('sword')} Schade`          },
+    { key: 'healing',   label: `${icon('heart')} Healing`         },
+    { key: 'win',       label: `${icon('star')} Winst`            },
+    { key: 'loss',      label: `${icon('skull')} Verlies`         },
+    { key: 'nextRound', label: `${icon('zap')} Volgende ronde`    },
+    { key: 'nextTurn',  label: `${icon('play')} Volgende beurt (standaard)` },
   ];
 
   const standardRows = STANDARD_SLOTS.map(({ key, label }) => {
@@ -5150,7 +5350,7 @@ async function _renderGeluiden() {
     ${ambSection}
     ${svcSection}
     <div class="dm-sound-section">
-      <div class="dm-sound-section-title">🎭 Spelersemotes</div>
+      <div class="dm-sound-section-title" style="display:flex;align-items:center;gap:6px">Spelersemotes ${helpBtn('dm_geluiden')}</div>
       <p class="dm-hint">Stel per speler een beurtgeluid in en maak een emotebibliotheek. Selecteer max. 5 emotes voor gevecht (✓ = actief).</p>
       ${spelers.length === 0
         ? `<p class="dm-hint" style="opacity:.6">Geen spelers-personages gevonden (subtype = speler).</p>`
@@ -5646,7 +5846,7 @@ function _renderCombatOverlay(combat, startMinimized = false) {
           <div class="co-row-head">
             <span class="co-turn-num">${i + 1}</span>
             <span class="co-type-dot ${c.type === 'player' ? 'co-type-player' : c.type === 'ally' ? 'co-type-ally' : c.type === 'summon' ? 'co-type-summon' : 'co-type-monster'}"></span>
-            <span class="co-name">${isActive ? '▶ ' : ''}${esc(c.name)}</span>${hasConc ? '<span class="co-conc-badge" title="Concentratie actief">🔮</span>' : ''}
+            <span class="co-name">${isActive ? '▶ ' : ''}${esc(c.name)}</span>${hasConc ? `<span class="co-conc-badge" title="Concentratie actief">${icon('zap')}</span>` : ''}
             <label class="co-init-wrap">Init
               <input class="co-init-input" type="number" value="${c.initiative}"
                 onchange="window.dmPanel.combatInitChange('${esc(c.id)}',this.value)"
@@ -5751,7 +5951,7 @@ function _renderCombatOverlay(combat, startMinimized = false) {
 
   const _coLog = (combat.log?.length > 0) ? `
     <details class="co-log">
-      <summary class="co-log-summary">📜 Gevechtslog (${combat.log.length})</summary>
+      <summary class="co-log-summary">${icon('scroll-text')} Gevechtslog (${combat.log.length})</summary>
       <div class="co-log-entries" id="co-log-entries">
         ${[...combat.log].slice(-30).map(e =>
           `<div class="co-log-entry"><span class="co-log-round">R${e.round}</span> ${esc(e.text)}</div>`
@@ -5792,7 +5992,7 @@ function _renderCombatOverlay(combat, startMinimized = false) {
           <button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatPrevTurn()" title="Vorige beurt">${icon('chevron-left')}</button>
           <button class="co-ctrl-btn co-ctrl-primary" onclick="window.dmPanel.combatNextTurn()" title="Volgende beurt">${icon('chevron-right')}</button>
         ` : ''}
-        <button class="co-ctrl-btn co-win-btn"  onclick="window.dmPanel.combatSetWinner('players')"  title="Spelers winnen" style="${combat.winner === 'players'  ? 'opacity:1' : 'opacity:0.55'}">🏆</button>
+        <button class="co-ctrl-btn co-win-btn"  onclick="window.dmPanel.combatSetWinner('players')"  title="Spelers winnen" style="${combat.winner === 'players'  ? 'opacity:1' : 'opacity:0.55'}">${icon('star')}</button>
         <button class="co-ctrl-btn co-lose-btn" onclick="window.dmPanel.combatSetWinner('monsters')" title="Monsters winnen" style="${combat.winner === 'monsters' ? 'opacity:1' : 'opacity:0.55'}">${icon('skull')}</button>
         ${combat.winner ? `<button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatSetWinner(null)" title="Reset winnaar" style="margin-left:4px">${icon('refresh-cw')}</button>` : ''}
         <button class="co-ctrl-btn co-ctrl-ghost co-add-btn" onclick="window.dmPanel.combatAddForm()" style="margin-left:auto" title="Deelnemer toevoegen">${icon('plus')}</button>
@@ -5835,8 +6035,8 @@ function _renderCombatOverlay(combat, startMinimized = false) {
       <!-- Speler: tabbladen in de gevechtsoverlay -->
       <div class="co-tabs" id="co-tabs">
         <button class="co-tab${_combatOverlayTab==='gevecht'?' active':''}" data-tab="gevecht" onclick="window._setCombatOverlayTab('gevecht')">${icon('swords')} Gevecht</button>
-        <button class="co-tab${_combatOverlayTab==='personage'?' active':''}" data-tab="personage" onclick="window._setCombatOverlayTab('personage')">📖 Stats</button>
-        <button class="co-tab${_combatOverlayTab==='spreuken'?' active':''}" data-tab="spreuken" onclick="window._setCombatOverlayTab('spreuken')">✨ Spreuken</button>
+        <button class="co-tab${_combatOverlayTab==='personage'?' active':''}" data-tab="personage" onclick="window._setCombatOverlayTab('personage')">${icon('book-open')} Stats</button>
+        <button class="co-tab${_combatOverlayTab==='spreuken'?' active':''}" data-tab="spreuken" onclick="window._setCombatOverlayTab('spreuken')">${icon('sparkles')} Spreuken</button>
         <button class="co-tab${_combatOverlayTab==='knapzak'?' active':''}" data-tab="knapzak" onclick="window._setCombatOverlayTab('knapzak')">🎒 Items</button>
       </div>
 
@@ -6099,7 +6299,7 @@ function _buildCombatPersonagePanel(profile, hpData, combat, charId, traits) {
       <div class="co-ability-grid">${absHtml}</div>
     </div>
     <div class="co-char-section">
-      <div class="co-char-section-title">🎯 Skills</div>
+      <div class="co-char-section-title">${icon('target')} Skills</div>
       <div class="co-skills-list">${skillsHtml}</div>
     </div>
     <div class="co-char-section">
@@ -6107,7 +6307,7 @@ function _buildCombatPersonagePanel(profile, hpData, combat, charId, traits) {
       ${weaponsHtml}
     </div>
     <div class="co-char-section">
-      <div class="co-char-section-title">✨ Kenmerken &amp; Eigenschappen</div>
+      <div class="co-char-section-title">${icon('sparkles')} Kenmerken &amp; Eigenschappen</div>
       <div class="co-traits-list">${traitsHtml}</div>
     </div>
   `;
@@ -6158,7 +6358,7 @@ function _buildCombatSpreukenPanel(slots, spells, charId, profile = {}) {
   const atk       = profile.spellAttackBonus != null ? profile.spellAttackBonus : null;
   const spellStatsHtml = (saveDC != null || atk != null) ? `
     <div class="co-char-section">
-      <div class="co-char-section-title">🎯 Spreukwaarden</div>
+      <div class="co-char-section-title">${icon('target')} Spreukwaarden</div>
       <div class="co-spell-stats-row">
         ${saveDC != null ? `<div class="co-spell-stat"><span class="co-spell-stat-label">Spreuk Redding DC</span><span class="co-spell-stat-val">${saveDC}</span></div>` : ''}
         ${atk    != null ? `<div class="co-spell-stat"><span class="co-spell-stat-label">Spreuk Aanvalsbonus</span><span class="co-spell-stat-val">${atk >= 0 ? '+' : ''}${atk}</span></div>` : ''}
@@ -6169,12 +6369,12 @@ function _buildCombatSpreukenPanel(slots, spells, charId, profile = {}) {
     ${spellStatsHtml}
     ${hasSlots ? `
     <div class="co-char-section">
-      <div class="co-char-section-title">🔮 Spreukslots</div>
+      <div class="co-char-section-title">${icon('zap')} Spreukslots</div>
       <div class="player-dash-spell-slots">${slotsHtml}</div>
     </div>` : '<p class="co-char-empty">Geen spreukslots geconfigureerd.</p>'}
     ${pinnedSpells.length ? `
     <div class="co-char-section">
-      <div class="co-char-section-title">📌 Gepinde spreuken</div>
+      <div class="co-char-section-title">${icon('pin')} Gepinde spreuken</div>
       <div class="co-spell-accordions">${spellAccordionsHtml}</div>
     </div>` : ''}
   `;
@@ -6378,7 +6578,7 @@ async function _populateDmEmoteBar(combat) {
 
   bar.innerHTML = `
     <div class="co-emote-bar-inner">
-      <span class="co-emote-bar-label">🎭 ${esc(current.name)}</span>
+      <span class="co-emote-bar-label">${esc(current.name)}</span>
       ${active.map(e => {
         const icon  = e.item.icon  || '';
         const label = e.item.label || '';
@@ -6422,7 +6622,7 @@ async function _populateEmoteBar(combat) {
 
   bar.innerHTML = `
     <div class="co-emote-bar-inner">
-      <span class="co-emote-bar-label">🎭 Jouw beurt</span>
+      <span class="co-emote-bar-label">Jouw beurt</span>
       ${active.map(e => {
         const icon  = e.item.icon  || '';
         const label = e.item.label || '';
@@ -6482,7 +6682,7 @@ async function _renderBerichten() {
     <div class="dm-feature-section">
 
       <!-- ═══ STUUR BRIEF (rijker format) ═══ -->
-      <div class="dm-section-label">${icon('mail')} Stuur brief</div>
+      <div style="display:flex;align-items:center;gap:6px"><div class="dm-section-label">${icon('mail')} Stuur brief</div>${helpBtn('dm_berichten')}</div>
       <div class="bericht-compose post-compose">
 
         <!-- Ontvanger -->
@@ -6576,7 +6776,7 @@ async function _renderBerichten() {
                 <button class="bericht-sjabloon-del" onclick="window.dmPanel.sjabloonDelete(${i})" title="Verwijder">${icon('x')}</button>
               </div>`).join('')}
             ${_sjablonen.length < 20 ? `
-              <button class="dm-btn dm-btn-sm dm-btn-ghost" style="margin-top:4px;width:100%" onclick="window._berichtenSaveCurrentAsSjabloon()" title="Huidige tekst opslaan als sjabloon">💾</button>
+              <button class="dm-btn dm-btn-sm dm-btn-ghost" style="margin-top:4px;width:100%" onclick="window._berichtenSaveCurrentAsSjabloon()" title="Huidige tekst opslaan als sjabloon">${icon('save')}</button>
             ` : ''}
           </div>
           <textarea id="bericht-tekst" class="dm-textarea" rows="3" placeholder="Geheim bericht aan de speler…" style="resize:vertical"></textarea>
@@ -6613,7 +6813,7 @@ async function _renderBerichten() {
                           <div class="bericht-brief-tekst-preview">${esc(m.tekst.substring(0, 120))}${m.tekst.length > 120 ? '…' : ''}</div>
                         </div>
                         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-                          ${m.deletedAt ? `<span class="bericht-brief-deleted-badge" title="Weggegooid op ${_fmtDate(m.deletedAt)}">🗑 weggegooid</span>` : ''}
+                          ${m.deletedAt ? `<span class="bericht-brief-deleted-badge" title="Weggegooid op ${_fmtDate(m.deletedAt)}">${icon('trash')} weggegooid</span>` : ''}
                         </div>
                       </div>
                       <span class="bericht-history-meta">${_fmtDate(m.timestamp)}${m.gelezen ? ' · gelezen' : ' · ongelezen'}${m.deletedAt ? ' · weggegooid' : ''}</span>
@@ -6877,7 +7077,7 @@ async function _renderInstellingen() {
         <input id="inst-app-subtitle" class="dm-input" value="${esc(meta.appSubtitle || '')}" placeholder="Ondertitel (optioneel)">
       </div>
       <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._instTitelSave()" title="Opslaan">💾</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._instTitelSave()" title="Opslaan">${icon('save')}</button>
         <span id="inst-titel-status" class="bericht-status hidden" style="margin-left:8px"></span>
       </div>
     </div>
@@ -6925,6 +7125,23 @@ async function _renderInstellingen() {
 
     <!-- Gedeelde beurs (idem) -->
     <div id="dm-inst-beurs"></div>
+
+    <!-- Export & backup -->
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Export &amp; backup</div>
+      <div class="dm-form-row" style="flex-direction:column;gap:8px">
+        <a href="/api/export" download class="dm-btn" style="text-align:center;text-decoration:none">
+          ${icon('download')} Snapshot downloaden
+        </a>
+        <a href="/api/export/campagneboek" download class="dm-btn dm-btn-ghost" style="text-align:center;text-decoration:none">
+          ${icon('book-open')} Campagneboek downloaden
+        </a>
+        <p class="dm-hint" style="margin:0">
+          Snapshot: HTML-overzicht van alle spelersdata en entities.<br>
+          Campagneboek: narratief document van de campagne.
+        </p>
+      </div>
+    </div>
   `;
 
   // Render wereld en beurs in de juiste containers
