@@ -3489,6 +3489,179 @@ function _sbHasNoSlots(spell) {
   return Object.keys(_sbState.slots).length > 0; // only fade if slot data is loaded
 }
 
+// ════════════════════════════════════════════════════════════
+// SPREUKEN TOEVOEGEN — gerichte kies-pagina (klasse + level + type)
+// ════════════════════════════════════════════════════════════
+const _KLASSE_ALIAS = {
+  'magiër': 'Wizard', 'magier': 'Wizard', 'tovenaar': 'Sorcerer', 'hekserij': 'Warlock',
+  'barde': 'Bard', 'klerk': 'Cleric', 'priester': 'Cleric', 'verkenner': 'Ranger',
+  'paladijn': 'Paladin', 'wachter': 'Ranger',
+};
+function _spellClassEN(klasse) {
+  const k = String(klasse || '').trim();
+  return _KLASSE_ALIAS[k.toLowerCase()] || (k.charAt(0).toUpperCase() + k.slice(1));
+}
+function _spellMatchesClass(spell, klasseEN) {
+  if (!klasseEN) return true;
+  return (spell.classes || []).some(c => (c.name || '').toLowerCase() === klasseEN.toLowerCase());
+}
+// Afgeleide roltypes uit de spreukdata (een spreuk kan meerdere tags hebben).
+const _SP_TYPE_DEFS = [
+  { key: 'schade',   label: 'Schade',   test: s => !!s.damage },
+  { key: 'gebied',   label: 'Gebied',   test: s => /\b(cone|cube|sphere|line|cylinder|emanation|radius|each creature)\b/i.test((s.desc||[]).join(' ') + ' ' + (s.range||'')) },
+  { key: 'genezing', label: 'Genezing', test: s => /regain|hit points|heal/i.test((s.desc||[]).join(' ')) },
+  { key: 'controle', label: 'Controle', test: s => /\b(restrained|stunned|paralyzed|frightened|charmed|prone|grappled|incapacitated|blinded|deafened|poisoned|can.t move|can.t take|speed becomes 0)\b/i.test((s.desc||[]).join(' ')) },
+];
+function _spellTypes(s) {
+  const t = new Set();
+  for (const d of _SP_TYPE_DEFS) if (d.test(s)) t.add(d.key);
+  if (!t.has('schade') && !t.has('genezing') && !t.has('controle')) t.add('hulp'); // utility/buff
+  return t;
+}
+const _SP_TYPE_LABELS = { schade:'Schade', gebied:'Gebied', genezing:'Genezing', controle:'Controle', hulp:'Hulp' };
+
+const _addSp = { klasseOnly: true, levels: new Set(), types: new Set(), ritueel: false, concentratie: false, query: '', selected: new Set() };
+
+window._sbOpenAddSpells = async function() {
+  // Spreukenlijst laden indien nodig
+  if (!_playerSpellList) {
+    try { _playerSpellList = (await fetch('/data/spells-2024.json').then(r => r.json())).results || []; }
+    catch { _playerSpellList = []; }
+  }
+  _addSp.selected = new Set();
+  _addSp.query = '';
+  document.getElementById('sb-addspells')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'sb-addspells';
+  ov.className = 'sb-addspells-overlay';
+  const klasseEN = _spellClassEN(_sbState.klasse);
+  ov.innerHTML = `
+    <div class="sb-addspells-panel" onclick="event.stopPropagation()">
+      <div class="sb-addspells-head">
+        <div class="sb-addspells-title">${icon('open-book',{cls:'icon-gi'})} Spreuken toevoegen</div>
+        <button class="sb-addspells-class" id="sb-addspells-class" onclick="window._sbAddSpToggleClass()"></button>
+        <button class="sb-addspells-close" onclick="window._sbCloseAddSpells()" title="Sluiten">${icon('x')}</button>
+      </div>
+      <input type="text" class="sb-addspells-search" id="sb-addspells-search" placeholder="Zoek op naam…"
+        oninput="window._sbAddSpSearch(this.value)">
+      <div class="sb-addspells-filters" id="sb-addspells-filters"></div>
+      <div class="sb-addspells-list" id="sb-addspells-list"></div>
+      <div class="sb-addspells-foot">
+        <span class="sb-addspells-count" id="sb-addspells-count"></span>
+        <button class="sb-addspells-confirm" id="sb-addspells-confirm" onclick="window._sbAddSpCommit()" disabled>${icon('plus')} Toevoegen</button>
+      </div>
+    </div>`;
+  ov.addEventListener('click', () => window._sbCloseAddSpells());
+  document.body.appendChild(ov);
+  _sbAddSpRenderFilters();
+  _sbAddSpRenderList();
+};
+window._sbCloseAddSpells = function() { document.getElementById('sb-addspells')?.remove(); };
+window._sbAddSpToggleClass = function() { _addSp.klasseOnly = !_addSp.klasseOnly; _sbAddSpRenderFilters(); _sbAddSpRenderList(); };
+window._sbAddSpSearch = function(q) { _addSp.query = q || ''; _sbAddSpRenderList(); };
+window._sbAddSpToggleLevel = function(l) { l = +l; _addSp.levels.has(l) ? _addSp.levels.delete(l) : _addSp.levels.add(l); _sbAddSpRenderFilters(); _sbAddSpRenderList(); };
+window._sbAddSpToggleType = function(t) { _addSp.types.has(t) ? _addSp.types.delete(t) : _addSp.types.add(t); _sbAddSpRenderFilters(); _sbAddSpRenderList(); };
+window._sbAddSpToggleFlag = function(f) { _addSp[f] = !_addSp[f]; _sbAddSpRenderFilters(); _sbAddSpRenderList(); };
+
+function _sbAddSpPool() {
+  const klasseEN = _spellClassEN(_sbState.klasse);
+  return (_playerSpellList || []).filter(s => !_addSp.klasseOnly || _spellMatchesClass(s, klasseEN));
+}
+function _sbAddSpRenderFilters() {
+  const klasseEN = _spellClassEN(_sbState.klasse);
+  const classBtn = document.getElementById('sb-addspells-class');
+  if (classBtn) classBtn.innerHTML = _addSp.klasseOnly
+    ? `${icon('user')} ${esc(klasseEN || 'Klasse')} · <span class="sb-addspells-class-switch">toon alle</span>`
+    : `${icon('users')} Alle klassen · <span class="sb-addspells-class-switch">alleen ${esc(klasseEN || 'klasse')}</span>`;
+  const el = document.getElementById('sb-addspells-filters');
+  if (!el) return;
+  const pool = _sbAddSpPool();
+  const levelsPresent = [...new Set(pool.map(s => s.level || 0))].sort((a, b) => a - b);
+  const levelChips = levelsPresent.map(l => `<button class="sb-addsp-chip${_addSp.levels.has(l) ? ' on' : ''}" onclick="window._sbAddSpToggleLevel(${l})">${l === 0 ? 'Cantrips' : 'Lvl ' + l}</button>`).join('');
+  const typeChips = Object.entries(_SP_TYPE_LABELS).map(([k, lbl]) => `<button class="sb-addsp-chip sb-addsp-chip--type${_addSp.types.has(k) ? ' on' : ''}" onclick="window._sbAddSpToggleType('${k}')">${esc(lbl)}</button>`).join('');
+  el.innerHTML = `
+    <div class="sb-addsp-chiprow">${levelChips}</div>
+    <div class="sb-addsp-chiprow">${typeChips}
+      <button class="sb-addsp-chip sb-addsp-chip--flag${_addSp.ritueel ? ' on' : ''}" onclick="window._sbAddSpToggleFlag('ritueel')">Ritueel</button>
+      <button class="sb-addsp-chip sb-addsp-chip--flag${_addSp.concentratie ? ' on' : ''}" onclick="window._sbAddSpToggleFlag('concentratie')">Concentratie</button>
+    </div>`;
+}
+function _sbAddSpFiltered() {
+  const q = _addSp.query.toLowerCase().trim();
+  return _sbAddSpPool().filter(s => {
+    if (_addSp.levels.size && !_addSp.levels.has(s.level || 0)) return false;
+    if (_addSp.types.size) { const t = _spellTypes(s); if (![..._addSp.types].some(x => t.has(x))) return false; }
+    if (_addSp.ritueel && !s.ritual) return false;
+    if (_addSp.concentratie && !s.concentration) return false;
+    if (q && !s.name.toLowerCase().includes(q)) return false;
+    return true;
+  }).sort((a, b) => (a.level || 0) - (b.level || 0) || a.name.localeCompare(b.name));
+}
+function _sbAddSpRenderList() {
+  const el = document.getElementById('sb-addspells-list');
+  if (!el) return;
+  const inBook = new Set(_sbState.spells.map(s => s.index));
+  const list = _sbAddSpFiltered();
+  if (!list.length) { el.innerHTML = '<div class="sb-addsp-empty">Geen spreuken gevonden met deze filters.</div>'; }
+  else {
+    el.innerHTML = list.map(s => {
+      const has = inBook.has(s.index);
+      const sel = _addSp.selected.has(s.index);
+      const types = [..._spellTypes(s)].map(t => `<span class="sb-addsp-badge sb-addsp-badge--${t}">${esc(_SP_TYPE_LABELS[t])}</span>`).join('');
+      const school = s.school?.name || '';
+      const lvl = (s.level || 0) === 0 ? 'Cantrip' : 'Lvl ' + s.level;
+      const preview = (s.desc || []).join(' ').replace(/\s+/g, ' ').slice(0, 130);
+      return `<div class="sb-addsp-card${has ? ' sb-addsp-card--has' : ''}${sel ? ' sb-addsp-card--sel' : ''}"
+          ${has ? '' : `onclick="window._sbAddSpToggleSelect('${esc(s.index)}')"`}>
+        <div class="sb-addsp-check">${has ? icon('check') : (sel ? icon('check') : '')}</div>
+        <div class="sb-addsp-main">
+          <div class="sb-addsp-cardtop"><span class="sb-addsp-name">${esc(s.name)}</span>
+            <span class="sb-addsp-meta">${lvl}${school ? ' · ' + esc(school) : ''}${s.concentration ? ' · C' : ''}${s.ritual ? ' · R' : ''}</span></div>
+          <div class="sb-addsp-badges">${types}${has ? '<span class="sb-addsp-inbook">in je boek</span>' : ''}</div>
+          <div class="sb-addsp-preview">${esc(preview)}${preview.length >= 130 ? '…' : ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  const n = _addSp.selected.size;
+  const cnt = document.getElementById('sb-addspells-count');
+  if (cnt) cnt.textContent = n ? `${n} geselecteerd` : `${list.length} spreuk${list.length === 1 ? '' : 'en'}`;
+  const btn = document.getElementById('sb-addspells-confirm');
+  if (btn) { btn.disabled = n === 0; btn.innerHTML = `${icon('plus')} Toevoegen${n ? ` (${n})` : ''}`; }
+}
+window._sbAddSpToggleSelect = function(index) {
+  _addSp.selected.has(index) ? _addSp.selected.delete(index) : _addSp.selected.add(index);
+  _sbAddSpRenderList();
+};
+window._sbAddSpCommit = async function() {
+  if (!_sbState.charId || !_addSp.selected.size) return;
+  const btn = document.getElementById('sb-addspells-confirm');
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Toevoegen…'; }
+  const indices = [..._addSp.selected];
+  for (const index of indices) {
+    if (_sbState.spells.find(s => s.index === index)) continue;
+    const full = (_playerSpellList || []).find(s => s.index === index);
+    if (!full) continue;
+    const desc   = (full.desc || []).join('\n\n');
+    const school = full.school?.name || '';
+    const concentration = !!full.concentration;
+    const ritual = !!full.ritual;
+    try {
+      await api.addPlayerSpell(_sbState.charId, {
+        index, name: full.name, level: full.level || 0, school, concentration, ritual,
+        source: full.source || 'phb2024', desc,
+        casting_time: full.casting_time || '', range: full.range || '', duration: full.duration || '',
+        components: Array.isArray(full.components) ? full.components.join(', ') + (full.material ? ` (${full.material})` : '') : (full.components || ''),
+      });
+      _sbState.spells.push({ ...full, index, name: full.name, school, source: full.source || 'phb2024', concentration, ritual, level: full.level || 0, desc });
+    } catch (e) { console.warn('Spreuk toevoegen mislukt:', e); }
+  }
+  _sbState.spells.sort((a, b) => (a.level || 0) - (b.level || 0) || a.name.localeCompare(b.name));
+  window._sbCloseAddSpells();
+  _sbRender();
+  if (typeof window._reRenderKarakter === 'function') window._reRenderKarakter();
+};
+
 window._sbTocPin = async function(index, name, btnEl) {
   if (btnEl) { btnEl.innerHTML = icon('check'); btnEl.disabled = true; btnEl.classList.add('sb-toc-item-add--done'); }
   if (_sbState.spells.find(s => s.index === index)) return;
@@ -3703,8 +3876,9 @@ function _sbRenderTocList(q) {
     }
   }
 
-  // Eigen spreuk knop altijd onderaan
+  // Toevoeg-knoppen altijd onderaan
   html += `<div class="sb-toc-custom-btn-row">
+    <button class="sb-toc-custom-btn sb-toc-custom-btn--primary" onclick="window._sbOpenAddSpells()">${icon('open-book',{cls:'icon-gi'})} Spreuken toevoegen</button>
     <button class="sb-toc-custom-btn" onclick="window._sbCustomSpellOpen()">＋ Eigen spreuk</button>
   </div>`;
 
@@ -4817,6 +4991,7 @@ async function renderMijnKarakter(opts = {}) {
   _sbState.slots            = { ...spellSlots }; // copy so mutations don't affect the closure
   _sbState.spellSaveDC      = playerProfile.spellSaveDC      ?? null;
   _sbState.spellAttackBonus = playerProfile.spellAttackBonus ?? null;
+  _sbState.klasse           = playerProfile.klasse || playerProfile.multiKlasse || '';
 
   // Sla unread bericht-teller op (niet resetten als berichten-tab open is)
   const unreadCount = berichtenLijst.filter(m => !m.gelezen).length;
