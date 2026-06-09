@@ -138,6 +138,15 @@ function _resolveCat(feat, kind) {
   if (feat?.cat) return _catById(feat.cat);
   return _featCat(feat?.name, kind);
 }
+// Glossary-hover toepassen op de beschrijving(en) in de open modal.
+// Synchroon (geen requestAnimationFrame): openModal zet de inhoud al synchroon,
+// en rAF wordt op achtergrond-tabs gepauzeerd waardoor de uitleg niet verscheen.
+function _applyGlossaryToModal() {
+  const mbody = document.getElementById('m-body');
+  if (!mbody || !window.glossary?.applyDom) return;
+  mbody.querySelectorAll('.prog-detail-desc').forEach(el => window.glossary.applyDom(el));
+}
+
 function _kindLabel(kind) {
   return kind === 'sub' ? 'Subclass' : kind === 'species' ? 'Origin' : kind === 'background' ? 'Background' : kind === 'shared' ? 'General' : kind === 'subclass' ? 'Feature' : 'Class';
 }
@@ -821,11 +830,7 @@ window.progressie = {
       const mbody = document.getElementById('m-body');
       if (!mbody) return;
       mbody.innerHTML = html;
-      // Glossary toepassen
-      requestAnimationFrame(() => {
-        if (!window.glossary?.applyDom) return;
-        mbody.querySelectorAll('.prog-detail-desc').forEach(el => window.glossary.applyDom(el));
-      });
+      _applyGlossaryToModal();
     };
 
     const desc = _featDesc(featName);
@@ -839,13 +844,7 @@ window.progressie = {
            </p>`
     );
 
-    if (desc) {
-      requestAnimationFrame(() => {
-        const mbody = document.getElementById('m-body');
-        if (!mbody || !window.glossary?.applyDom) return;
-        mbody.querySelectorAll('.prog-detail-desc').forEach(el => window.glossary.applyDom(el));
-      });
-    }
+    if (desc) _applyGlossaryToModal();
   },
 
   openFeature(fi) {
@@ -874,11 +873,7 @@ window.progressie = {
           ${detailChoice}
         </div>
       </div>`);
-    requestAnimationFrame(() => {
-      const mbody = document.getElementById('m-body');
-      if (!mbody || !window.glossary?.applyDom) return;
-      mbody.querySelectorAll('.prog-detail-desc').forEach(el => window.glossary.applyDom(el));
-    });
+    _applyGlossaryToModal();
   },
 
   async toggleFav(fi) {
