@@ -101,31 +101,40 @@ router.get('/players', (req, res) => {
 // ── Speler-login: kies karakter op basis van ID ──
 
 router.post('/player-login', (req, res) => {
-  try {
-    const { characterId, password } = req.body;
-    if (!characterId) return res.status(400).json({ error: 'Geen karakter opgegeven' });
-    const entities = storage.readJSON('entities.json');
-    const dmState  = storage.readJSON('dm-state.json');
-    const groups   = dmState.groups || {};
-    const character = (entities.personages || []).find(
-      e => e.id === characterId && e.subtype === 'speler'
-    );
-    if (!character) return res.status(404).json({ error: 'Karakter niet gevonden' });
-    // Controleer groepswachtwoord (alleen als er een is ingesteld)
-    const groepId    = character.data?.groep;
-    const groepPw    = groepId ? groups[groepId]?.password : null;
-    if (groepPw && password !== groepPw) {
-      return res.status(401).json({ error: 'Verkeerd wachtwoord' });
+  // Player-login altijd in de hoofd-campagne uitvoeren (nooit sandbox),
+  // ook als de sessie nog een sandbox-campaignId heeft.
+  const doLogin = () => {
+    try {
+      const { characterId, password } = req.body;
+      if (!characterId) return res.status(400).json({ error: 'Geen karakter opgegeven' });
+      const entities = storage.readJSON('entities.json');
+      const dmState  = storage.readJSON('dm-state.json');
+      const groups   = dmState.groups || {};
+      const character = (entities.personages || []).find(
+        e => e.id === characterId && e.subtype === 'speler'
+      );
+      if (!character) return res.status(404).json({ error: 'Karakter niet gevonden' });
+      const groepId = character.data?.groep;
+      const groepPw = groepId ? groups[groepId]?.password : null;
+      if (groepPw && password !== groepPw) {
+        return res.status(401).json({ error: 'Verkeerd wachtwoord' });
+      }
+      // Wis sandbox-sessie zodat speler in de hoofdcampagne terechtkimt
+      delete req.session.campaignId;
+      req.session.role        = 'player'; // expliciet, zodat lokale DEV_AUTO_DM-bypass wordt overschreven
+      req.session.playerName  = character.name;
+      req.session.characterId = character.id;
+      _emit(req, 'player:joined', { playerName: character.name, characterId: character.id });
+      res.json({ playerName: character.name, characterId: character.id });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
     }
-    req.session.playerName  = character.name;
-    req.session.characterId = character.id;
-    _emit(req, 'player:joined', {
-      playerName:  character.name,
-      characterId: character.id,
-    });
-    res.json({ playerName: character.name, characterId: character.id });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  };
+  // Als sessie in sandbox zit, eerst uit sandbox-context stappen
+  if (req.session?.campaignId && req.session.campaignId !== 'main') {
+    storage.runInCampaign('grisburgh', doLogin);
+  } else {
+    doLogin();
   }
 });
 

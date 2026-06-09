@@ -58,6 +58,8 @@ Geeft een publieke URL (bijv. `https://iets.trycloudflare.com`). Deel die met sp
 - **DM**: klik op "DM" in de header en gebruik het wachtwoord uit `config.js`
 - **Spelers**: klik op "Speler" en kies een personage
 
+> **Lokaal ontwikkelen?** `npm run dev` zet `DEV_AUTO_DM=1` en logt je automatisch als DM in — geen wachtwoord nodig. Deze bypass is **alleen lokaal** actief; productie (`npm start`) vereist gewoon de DM-login. Als speler testen kan via "Speler" → personage kiezen.
+
 ---
 
 ## Secties
@@ -69,10 +71,11 @@ Geeft een publieke URL (bijv. `https://iets.trycloudflare.com`). Deel die met sp
 | **Organisaties** | Gildes, facties, religieuze, politieke, criminele en militaire groepen |
 | **Voorwerpen** | Wapens, magische items, drankjes, uitrustingen, spreukenrollen, ringen, amuletten en meer |
 | **Documenten** | Brieven, kranten, kaarten, manuscripten, dagboeken en audiofragmenten |
-| **Kaarten** | Interactieve stad- en wereldkaarten met zoom, pan en klikbare locatiepins |
+| **Bestiarium** | Wezens met statblok en gefaseerde onthulling (naam → deels → volledig) via De Magizoöloog |
+| **Kaarten** | Interactieve stad- en wereldkaarten + dungeon-kaarten met zoom, pan en klikbare pins |
 | **Logboek** | Sessieverslagen per akte (hoofdstuk) met afbeeldingen, entiteitskoppelingen en documenten |
-| **Herberg** | Spelers kunnen de waard bevragen voor roddels over zichtbare personages en locaties |
-| **Mijn Karakter** | Persoonlijk spelerdashboard: HP, valuta, spreukenslots, voorwerpen, bladwijzers en meer |
+| **Diensten** | Stadsdiensten: Herberg, Tempel, Madame Ursula, De Magizoöloog, Facties, Tweespalt, De Gock |
+| **Mijn Karakter** | Persoonlijk spelerdashboard: HP, valuta, spreukenslots, progressie, spreukenboek, voorwerpen, bladwijzers en meer |
 
 ---
 
@@ -208,6 +211,12 @@ Locaties en personages van het type **Verkoper** kunnen een winkelconfiguratie h
 - Configureerbare trackers voor klasse- en rascapaciteiten (bijv. Bardic Inspiration, Ki Points, Sorcery Points)
 - Naam, huidige waarde en maximum per tracker
 
+### Spreukenboek
+
+- Een doorbladerbaar **spreukenboek** met de spreuken van het personage (D&D 5e-referentie)
+- Volledige spreukbeschrijvingen met **hover-uitleg van D&D-termen** (Concentration, Saving Throw, condities, schadetypes…) en **klikbare dobbelnotatie** (rol direct vanuit de tekst)
+- Toetsenbordnavigatie (pijltjes) en een inhoudsopgave
+
 ### Vastgezette spreuken
 
 - Spelers kunnen spreuken (uit de spellenreferentie) vastpinnen op hun dashboard
@@ -230,19 +239,29 @@ Locaties en personages van het type **Verkoper** kunnen een winkelconfiguratie h
 
 ### Progressie (skill trees)
 
-Onderaan het dashboard verschijnt automatisch een **progressie-tijdlijn (1–20)** op basis van de ingevulde **klasse**, **subklasse**, **soort** en **level** — geen handmatige invoer meer nodig.
+Onderaan het dashboard verschijnt automatisch een **progressie-tijdlijn (1–20)** op basis van de ingevulde **klasse**, **subklasse**, **soort**, **background** en **level** — geen handmatige invoer meer nodig.
 
-- Per level zie je wat je personage ontgrendelt: **class- en subclass-features** (naam + korte beschrijving), Ability Score Improvements, de subklasse-keuze en de Epic Boon
+- Per level zie je wat je personage ontgrendelt: **class- en subclass-features** (naam + volledige beschrijving), Ability Score Improvements, de subklasse-keuze en de Epic Boon
 - Reeds bereikte levels zijn gemarkeerd, het huidige level uitgelicht en toekomstige levels als preview
-- **Twee weergaven** (omschakelbaar): een **tijdlijn** (1–20) of een **kaartweergave** — elke feature een kaartje met de **klasse-illustratie** als achtergrond, een **categorie-icoon** (Magie/Aanval/Verdediging/Genezing/Beweging/Sociaal/Kennis/Zintuig…) in een eigen kleur, een level-badge en een type-chip; vergrendelde features staan in grijstint met een slotje. Klik een kaartje voor een **detailvenster** met grote illustratie en de volledige beschrijving
-- **Categorie per feature** — automatisch ingeschat (Magie/Aanval/Verdediging/Genezing/Beweging/Sociaal/Kennis/Zintuig/Talent) en door de DM te overschrijven met een eigen veld; bepaalt icoon en kleur
-- **Eigen afbeeldingen of filmpjes** per feature — de DM kan per feature een beeld of (loop)video uploaden (bijv. om veelgebruikte features te animeren); valt anders terug op de klasse-illustratie
+- **Detailvenster** per feature: klik op een titel voor een modal met categorie-chip, level, type en de volledige regeltekst. **Soort-** en **background-onderdelen** delen dezelfde compacte titel-+-modal-opzet als de klasse-features
+- **Hover-uitleg van D&D-termen** — in het detailvenster (en het spreukenboek) worden begrippen als *Saving Throw*, *Concentration*, *Frightened*, *Advantage* onderstreept; hover/tik geeft een korte uitleg
+- **Categorie per feature** — automatisch ingeschat (Magic/Combat/Defense/Healing/Movement/Social/Knowledge/Senses/Talent) en door de DM te overschrijven; bepaalt icoon en kleur
 - **Favorieten** — spelers markeren features met een ster en kunnen met één knop op **alleen favorieten** filteren (per speler opgeslagen)
-- **Soort/ras-traits** met level-unlocks verschijnen in een apart blok; de ontgrendeling volgt het **totale** character-level (ook bij multiclass)
+- **Background** (2024) — de gekozen background toont een eigen sectie met Ability Scores, Origin-feat, Skill Proficiencies, Tool Proficiency en Equipment (16 PHB-backgrounds als startdata; alleen tonen, skills worden niet automatisch gezet)
+- **Soort/ras-traits** en **background-onderdelen** verschijnen in aparte blokken; level-unlocks van soort-traits volgen het **totale** character-level (ook bij multiclass)
 - **Multiclass** — elke klasse krijgt een eigen progressie (features gaan per klasse-level); de subklasse wordt automatisch aan de juiste klasse gekoppeld
 - **Tolerante naam-matching** (hoofdletter-ongevoelig, met aliassen, bijv. "Magiër" → Wizard, "Chaos Sorcerer" → Sorcerer)
-- De data is een **samengevat 2024-startpunt** (SRD 5.2, CC BY 4.0) in `public/data/class-progression.json` met alle 12 klassen + de SRD-subklasse en de kern-soorten — afgestemd op de Grisburgh-roster (Swashbuckler, Twilight Domain, Wild Magic, Aarakocra, Tabaxi, Half-Elf)
-- De **DM kan de progressie bewerken** (klassen, subklassen, soorten, features per level, categorie en media) via de editor; aanpassingen worden per campagne opgeslagen en zijn terug te zetten naar de startdata
+- **Officiële Engelse 2024-tekst** — alle feature- en trait-beschrijvingen komen uit de SRD 5.2 (CC BY 4.0, [`5e-bits/5e-database`](https://github.com/5e-bits/5e-database)), aangevuld met de niet-SRD subklassen/species/backgrounds uit het 2024-PHB. De data staat in `public/data/class-progression.json` + `public/data/backgrounds-2024.json`; de regeneratie-scripts in `scripts/srd-2024/`
+
+#### De DM-editor
+
+De **DM kan de volledige progressie bewerken** via de editor (potlood-knop):
+
+- **Klassen, subklassen en soorten** — features per level toevoegen/bewerken/verwijderen, met categorie en eigen afbeelding/loop-video per feature
+- **Feat-bibliotheek** — General Feats + Epic Boons met naam en beschrijving; deze voeden de keuzelijst die spelers op ASI- en Epic Boon-levels zien (leeg = SRD-standaard)
+- **Backgrounds** — alle 16 PHB-backgrounds als startdata, vrij aan te passen of zelf aan te maken
+- **Gedeelde markers** — ASI-, subklasse-keuze- en Epic Boon-levels worden automatisch in de tijdlijn getoond
+- Aanpassingen worden **per campagne** opgeslagen; een (dubbel-bevestigde) reset zet alles terug naar de 2024-startdata
 
 ---
 
@@ -337,6 +356,21 @@ Onderaan het dashboard verschijnt automatisch een **progressie-tijdlijn (1–20)
 
 ---
 
+## Grisburgh-diensten
+
+Onder het **Diensten**-menu staan stadsdiensten waarmee spelers tussen avonturen door kunnen interacteren. Elke dienst is per groep aan/uit te zetten (DM-paneel → Diensten → **Toegang per groep**) en verschijnt alleen als hij geconfigureerd is.
+
+| Dienst | Wat het doet |
+|---|---|
+| **De Tempel** | Bezoek de goden van Grisburgh. Per god een eigen priester, domein en gunsten. **Zegeningen** (tijdelijke voordelen via een dobbelworp), **Eden** (permanente bonus met een vloek-risico) en **Vloeken** (afkoopbaar met boete). Eed-cinema met typewriter-tekst; één eed en één zegening tegelijk |
+| **Madame Ursula** | Voorspellingen via een zintuigenformulier (zien/horen/ruiken/proeven/voelen). De speler ontvangt een brief in de Berichten-tab. Alleen beschikbaar tijdens een actieve akte |
+| **De Magizoöloog** | Onderzoekt wezens die de party heeft ontmoet; onthult per onderzoek een niveau meer in het bestiarium (naam → deels → volledig). Kost goud, met afkoeltijd |
+| **Facties & Aanzien** | Organisaties waarmee de party een band opbouwt. Missies voltooien geeft **renown**; hogere rangen leveren automatisch **boons** (permanente voordelen in de knapzak) en **titels** op |
+| **De Tweespalt** | Een kans-/gokdienst met instelbare regels |
+| **De Gock** | Informatiedienst — naslag/zoeken binnen de campagne |
+
+---
+
 ## DM-paneel (Meesterkamer ⚔)
 
 Toegankelijk via de ⚔-knop rechtsonder.
@@ -351,6 +385,8 @@ Toegankelijk via de ⚔-knop rechtsonder.
 | **Geluiden** | Gevechtsklanken (schade, genezing, winst, verlies) en speleremotes beheren |
 | **Monsters** | Monsterbibliotheek CRUD, statblokken, per-hoofdstuk organisatie |
 | **Gevecht** | Gevecht opzetten en beheren (deelnemers, beurten, condities, HP) |
+| **Aktes** | Voorbereiding & regie per hoofdstuk; **akte-importer** zet een Obsidian-hoofdstuk (.md) om in een speelbaar regie-script, inclusief monster-/kaart-/entiteitkoppeling en stapsgewijze onthulling van kamers en dungeons |
+| **Diensten** | Configuratie van alle stadsdiensten (Herberg, Tempel, Madame Ursula, De Magizoöloog, Facties & Aanzien, De Tweespalt, De Gock) en **toegang per groep** |
 | **Herberg** | Naam, NPC-portret, achtergrond, begroetingstekst, max vragen en cooldown instellen |
 | **Berichten** | Privéberichten naar individuele spelers sturen |
 | **Campagnes** | Wisselen tussen meerdere campagnes of een nieuwe aanmaken |
@@ -463,16 +499,27 @@ public/
   index.html               # SPA-shell (Tailwind CSS + PDF.js + Socket.io)
   assets/                  # Statische kaartafbeeldingen
   js/
-    app.js                 # App-shell, auth, modals, sectionrouting, dobbelsteenpaneel
+    app.js                 # App-shell, auth, modals, sectionrouting, dobbelsteenpaneel,
+                           #   spelersdashboard, spreukenboek + D&D-term-glossary, diensten (tempel etc.)
     render-campagne.js     # Entity CRUD, kaarten, winkels, eigendom, filters, zoeken
     render-archief.js      # Documenten, logboek, akte-editor, PDF-viewer, audiospeler
-    render-kaart.js        # Interactieve kaarten met zoom, pan en locatiepins
-    dm-panel.js            # DM-paneel: alle tabs (tunnel, spreuken, gevecht, monsters, geluiden, etc.)
-    render-dashboard.js    # Spelersdashboard: HP, valuta, spreukenslots, trackers, bladwijzers
+    render-progressie.js   # Progressie-tijdlijn + DM-editor (klassen, soorten, feats, backgrounds)
+    render-bestiarium.js   # Bestiarium-kaarten + onthullingsniveaus
+    render-statblock.js    # Monster-statblok-modal
+    render-kaart.js        # Interactieve wereld-/stadkaarten met zoom, pan en locatiepins
+    render-dungeon.js      # Dungeon-kaarten met kamer-onthulling
+    render-relatiemap.js   # Cytoscape-relatienetwerk tussen entiteiten
+    dm-panel.js            # DM-paneel: alle tabs (gevecht, aktes, diensten, spreuken, geluiden, etc.)
     api.js                 # Fetch-wrapper, fileUrl, thumbUrl, entity name lookup
     socket-client.js       # Real-time updates en geluidsevents via Socket.io
     combat-canvas.js       # Canvas-gebaseerde gevechtsvisualisatie
     sound-manager.js       # Geluidsbeheer (laden, afspelen, emotes)
+  data/                    # Meegeleverde startdata (SRD 5.2 2024)
+    class-progression.json # Klassen, subklassen, soorten + features per level
+    backgrounds-2024.json  # 16 PHB-backgrounds
+    feature-descriptions.json # Engelse SRD-feature/feat-beschrijvingen
+scripts/
+  srd-2024/                # Regeneratie van de Engelse 2024-progressiedata (5e-bits + 5etools)
   css/
     theme.css              # Volledig perkamentthema (kaartjes, modals, panelen, animaties, thema's)
 data/                      # Persistente data (gitignored)

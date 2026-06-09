@@ -122,9 +122,14 @@ export function initSocket() {
   });
 
   socket.on('quests:updated', () => {
-    if (window.app.state.activeSection === 'logboek') {
+    const section = window.app?.state?.activeSection;
+    if (section === 'logboek') {
       import('./render-archief.js').then(m => m.renderLogboek());
     }
+    // Factie-interieur herlaadt ook (missies zijn quests met factieId)
+    if (section === 'facties') _refreshSectionDebounced('facties');
+    // DM: toon badge als er aangevraagde missies zijn
+    window.dmPanel?.checkMissieAanvragen?.();
   });
 
   socket.on('heeren:updated', () => {
@@ -133,9 +138,45 @@ export function initSocket() {
 
   socket.on('facties:updated', () => {
     const section = window.app?.state?.activeSection;
+    if (section === 'facties') _refreshSectionDebounced('facties');
     if (section === 'mijn-karakter') _refreshSectionDebounced('mijn-karakter');
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
       import('./render-archief.js').then(m => m.renderLogboek());
+    }
+    window._updateDienstenMenuFromSocket?.();
+  });
+
+  socket.on('missies:updated', () => {
+    if (window.app?.state?.activeSection === 'facties') _refreshSectionDebounced('facties');
+    window.dmPanel?.refreshMissieAanvragen?.();
+  });
+
+  socket.on('missie:aanvraag', (data) => {
+    // DM: toon toast + badge
+    if (window.app?.isDM?.()) {
+      window.app?.showMissieAanvraagToast?.(data);
+    }
+  });
+
+  socket.on('missie:geactiveerd', (data) => {
+    if (!window.app?.isDM?.()) {
+      window.app?._tsToast?.(`${window.icon?.('check-circle') || ''} Missie <strong>${data.titel}</strong> is goedgekeurd en actief.`);
+      if (window.app?.state?.activeSection === 'facties') _refreshSectionDebounced('facties');
+    }
+  });
+
+  socket.on('missie:voltooid', (data) => {
+    const msg = data.nieuweRang
+      ? `${window.icon?.('sparkles') || ''} Missie voltooid! Nieuwe rang: <strong>${data.nieuweRang}</strong>`
+      : `${window.icon?.('check') || ''} Missie <strong>${data.titel}</strong> voltooid. +${data.renownBeloning} renown.`;
+    window.app?._tsToast?.(msg);
+    if (window.app?.state?.activeSection === 'facties') _refreshSectionDebounced('facties');
+  });
+
+  socket.on('missie:gefaald', (data) => {
+    if (!window.app?.isDM?.()) {
+      window.app?._tsToast?.(`${window.icon?.('skull') || ''} Missie <strong>${data.titel}</strong> is gefaald.`);
+      if (window.app?.state?.activeSection === 'facties') _refreshSectionDebounced('facties');
     }
   });
 

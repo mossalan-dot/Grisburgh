@@ -1,13 +1,14 @@
-import { api } from './api.js?v=227';
+import { api } from './api.js?v=231';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=94";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=39";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=42";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=8';
 import { renderDungeon } from './render-dungeon.js?v=22';
 import { renderRelatiemap } from './render-relatiemap.js?v=13';
-import { renderProgressie } from './render-progressie.js?v=24';
-import { renderBestiarium } from './render-bestiarium.js?v=10';
-import { initSocket } from "./socket-client.js?v=30";
-import { initDmPanel } from "./dm-panel.js?v=70";
+import { renderProgressie } from './render-progressie.js?v=33';
+import { renderBestiarium } from './render-bestiarium.js?v=11';
+import { renderStatblock } from './render-statblock.js?v=3';
+import { initSocket } from "./socket-client.js?v=33";
+import { initDmPanel } from "./dm-panel.js?v=82";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -42,6 +43,40 @@ const state = {
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
+
+// ── Gevecht: monster stat block panel voor spelers ──────────────────────────
+const _combatMonsterCache = new Map();  // combatant id → combatant object
+
+function openCombatMonsterPanel(c) {
+  const existing = document.getElementById('combat-monster-panel');
+  if (existing) existing.remove();
+
+  const niveau = c._niveau || 'naam';
+  const NIV_LABEL = { naam: 'Naam bekend', deels: 'Deels onderzocht', volledig: 'Volledig onderzocht' };
+
+  // Bouw een tijdelijk monster-object voor renderStatblock
+  const m = c._statblock ? {
+    ...c._statblock,
+    name: c._statblock.name || c.name,
+    _niveau: niveau,
+  } : { name: c.name, _niveau: niveau, statblock: {} };
+
+  const html = renderStatblock(m, { niveau });
+
+  const panel = document.createElement('div');
+  panel.id = 'combat-monster-panel';
+  panel.className = 'combat-monster-panel';
+  panel.innerHTML = `
+    <div class="cmp-backdrop" onclick="document.getElementById('combat-monster-panel')?.remove()"></div>
+    <div class="cmp-sheet">
+      <div class="cmp-header">
+        <span class="cmp-tier-badge cmp-tier-${niveau}">${NIV_LABEL[niveau] || niveau}</span>
+        <button class="cmp-close" onclick="document.getElementById('combat-monster-panel')?.remove()">${window.icon?.('x') || '✕'}</button>
+      </div>
+      <div class="cmp-body">${html}</div>
+    </div>`;
+  document.body.appendChild(panel);
+}
 
 // ── Expose globals ──
 window.app = {
@@ -115,7 +150,11 @@ window.app = {
     hideLanding();
     _initDisplayMode();
   },
+  openCombatMonsterPanel,
+  showMissieAanvraagToast,
+  _tsToast,
 };
+window._combatMonsterCache = _combatMonsterCache;
 
 // ── Actieve akte (reveal-modus vanuit logboek) ──
 function setActiveAkte(ch, num, title) {
@@ -221,7 +260,7 @@ function switchSection(section) {
 
   // Diensten-knop: actief als een diensten-sectie actief is
   const dienstenNavBtn = $('#diensten-nav-btn');
-  if (dienstenNavBtn) dienstenNavBtn.classList.toggle('active', ['herberg','tweespalt','gock','ursula','tempel','heeren','facties','magizoo'].includes(section));
+  if (dienstenNavBtn) dienstenNavBtn.classList.toggle('active', ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo'].includes(section));
 
   $$('.section').forEach(s => s.classList.toggle('active', s.id === `section-${section}`));
   // Verberg de floating reveal-strip in de Meesterkamer (die heeft eigen ruimte)
@@ -653,12 +692,13 @@ function _landingTabletLogin() {
 function _landingTestLogin() {
   _landingShowFooterPrompt({
     title: 'Testomgeving', iconName: 'flask-conical',
-    placeholder: 'DM-wachtwoord…', submitLabel: 'Inloggen ↵',
+    placeholder: 'Groepswachtwoord groep 3…', submitLabel: 'Inloggen ↵',
     onSubmit: async pw => {
       const result = await api.playerLogin('e_1778689148089_pypw', pw);
       document.getElementById('landing-footer-prompt')?.remove();
       state.playerName  = result.playerName;
       state.characterId = result.characterId;
+      state.role        = 'player';
       applyRole();
       try { localStorage.setItem('_lastLogin', JSON.stringify({ charId: result.characterId, ts: Date.now() })); } catch { /* ok */ }
       if (result.characterId && window._socket) window._socket.emit('player:register', result.characterId);
@@ -767,7 +807,7 @@ function applyRole() {
   }
 
   // Diensten-knop active-state als een diensten-sectie actief is
-  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'magizoo'];
+  const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'magizoo'];
   const dienstenBtn = document.getElementById('diensten-nav-btn');
   if (dienstenBtn) dienstenBtn.classList.toggle('active', DIENSTEN_SECTIONS.includes(state.activeSection));
 
@@ -1116,6 +1156,24 @@ function _landingFinishLogin({ playerName, characterId: cid }) {
 // closePlayerPicker blijft als no-op zodat bestaande aanroepen vanuit playerLogin werken.
 function openPlayerPicker() { showLanding(); }
 function closePlayerPicker() { /* panel niet meer in gebruik */ }
+
+// ── Auto-inlog animatie bij geldige sessie ──
+// Toont de landing-pagina en speelt de zoom-animatie af zonder wachtwoord te vragen.
+async function _landingAutoLogin(charId, playerName) {
+  await showLanding();
+  // Wacht één extra frame zodat de DOM zeker gereed is
+  await new Promise(r => requestAnimationFrame(r));
+  const portraitEl = document.querySelector(`.landing-portrait[data-char-id="${CSS.escape(charId)}"]`);
+  if (!portraitEl) { switchSection('mijn-karakter'); return; }
+  portraitEl.classList.add('landing-portrait--chosen');
+  const hasVideo = portraitEl.dataset.portraitVideo === '1';
+  try {
+    await _landingStartZoom(charId, portraitEl, hasVideo);
+    _landingFinishLogin({ playerName, characterId: charId });
+  } catch {
+    switchSection('mijn-karakter');
+  }
+}
 
 async function playerLogin(characterId) {
   try {
@@ -1538,9 +1596,11 @@ function mdToHtml(s) {
     .replace(/^### (.+)$/gm,  '<h3>$1</h3>')
     .replace(/^## (.+)$/gm,   '<h2>$1</h2>')
     .replace(/^# (.+)$/gm,    '<h1>$1</h1>')
+    .replace(/^#([A-Za-z].+)$/gm, '<h3>$1</h3>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(?!\*)(.+?)\*/g, '<em>$1</em>')
     .replace(/__(.+?)__/g, '<u>$1</u>')
+    .replace(/_([^_\n]+?)_/g, '<em>$1</em>')
     .replace(/~~(.+?)~~/g, '<s>$1</s>')
     .replace(/==(.+?)==/g, '<mark class="md-mark">$1</mark>')
     .replace(/\^(.+?)\^/g, '<span class="md-smallcaps">$1</span>')
@@ -2009,7 +2069,9 @@ async function refreshSection(section) {
     } else if (!window.app.isDM() && _getDienstToegang('heeren') === 'verborgen') {
       const _el = document.getElementById('section-heeren'); if (_el) _el.innerHTML = '';
     } else await renderHeeren();
-  }  else if (section === 'mijn-karakter') {
+  } else if (section === 'facties') {
+    await renderFacties();
+  } else if (section === 'mijn-karakter') {
     await renderMijnKarakter();
     window._pendingKarakterRefresh = false; // verwerk eventuele pending refresh
   }
@@ -2275,8 +2337,8 @@ function _spellMd(t, { diceColor } = {}) {
   let s = esc(String(t ?? ''));
   return s
     // ── Auto-highlights (applied to plain text before markdown) ──
-    // Dice notation: 2d6, 1d20+5, 4d8 – tinted by damage type, clickable
-    .replace(/\b(\d+d\d+(?:\s*[+\-]\s*\d+)?)\b/gi,
+    // Dice notation: 2d6, 1d20+5, 4d8, d4 – tinted by damage type, clickable
+    .replace(/\b(\d*d\d+(?:\s*[+\-]\s*\d+)?)\b/gi,
       (_, f) => `<span class="sb-hl-dice"${diceStyle} title="Klik om te gooien">${f}</span>`)
     // DC values and saving throws / ability checks
     .replace(/\bDC\s+\d+\b/g,
@@ -2286,10 +2348,13 @@ function _spellMd(t, { diceColor } = {}) {
     // Range mentions: "30 feet", "60-foot cone", "120 feet", etc.
     .replace(/\b\d+[‐\-]foot\b|\b\d+\s+feet?\b/gi,
       (m) => `<span class="sb-hl-range">${m}</span>`)
-    // ── Markdown ──
+    // ── Markdown (*, _ varianten) ──
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/___(.+?)___/g,       '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>')
+    .replace(/__(.+?)__/g,         '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g,         '<em>$1</em>')
+    .replace(/_(.+?)_/g,           '<em>$1</em>')
     // ── User color syntax: {red:text} or {#8060ff:text} ──
     .replace(/\{([a-zA-Z#][a-zA-Z0-9#]*):([^}]+)\}/g, (_, color, text) =>
       /^(#[0-9a-fA-F]{3,6}|[a-zA-Z]{2,30})$/.test(color)
@@ -2345,8 +2410,14 @@ function _renderSpellDesc(rawDesc, opts = {}) {
       i++; continue;
     }
 
-    // Import tag artefact: "#Word" with no space (e.g. "#Wondrous item, #Common")
-    if (/^#[A-Za-z]/.test(line)) { i++; continue; }
+    // "#Word" without space: section sub-header (e.g. "#Cantrip Upgrade.") or tag artefact.
+    // Render as h3 if it contains a space or ends with '.'/':'  — skip pure single-word tags.
+    if (/^#[A-Za-z]/.test(line)) {
+      if (/\s/.test(line) || /[.:]$/.test(line)) {
+        html += `<p class="sb-desc-h sb-desc-h3">${_spellMd(line.slice(1).trim(), opts)}</p>`;
+      }
+      i++; continue;
+    }
 
     // Table: collect consecutive | lines
     if (line.startsWith('|')) {
@@ -2493,11 +2564,165 @@ const _SB_ICONS = {
   social:    `<path d="M5 6 H15 a1 1 0 0 1 1 1 V12 a1 1 0 0 1-1 1 H8 L5 16 V13 H5 a1 1 0 0 1-1-1 V7 a1 1 0 0 1 1-1 Z"/>`,
 };
 const _SB_ICON_LABELS = {
-  damage:'Schade', aoe:'Area of Effect', buff:'Buff / Versterking', control:'Crowd Control',
-  healing:'Genezing', mobility:'Mobiliteit', utility:'Hulpfunctie', divination:'Informatie / Divination',
-  stealth:'Stealth / Illusie', reaction:'Reactie', ritual:'Ritueel', social:'Sociaal',
+  damage:'Damage', aoe:'Area of Effect', buff:'Buff', control:'Crowd Control',
+  healing:'Healing', mobility:'Movement', utility:'Utility', divination:'Divination',
+  stealth:'Stealth / Illusion', reaction:'Reaction', ritual:'Ritual', social:'Social',
 };
 let   _sbFlipping  = false;    // prevent overlapping flip animations
+
+// Glossary: D&D terms → Dutch explanation (shown as hover tooltip)
+const _SB_GLOSSARY = [
+  // Casting time / actions — longest phrases first to avoid partial matches
+  { t: /\bBonus Action\b/gi,    tip: 'Bonus Action: a special action you can take on your turn if a feature allows it. Only one per turn.' },
+  { t: /\bAttack Roll\b/gi,     tip: 'Attack Roll: roll a d20 + ability modifier + proficiency bonus and compare to the target\'s AC.' },
+  { t: /\bSpell Attack\b/gi,    tip: 'Spell Attack: an attack roll made as part of a spell; uses your Spellcasting Ability modifier + Proficiency Bonus.' },
+  { t: /\bSaving Throw\b/gi,    tip: 'Saving Throw: roll a d20 + ability modifier to resist an effect. Meet or beat the DC to succeed.' },
+  { t: /\bSpell Slot\b/gi,      tip: 'Spell Slot: a resource expended to cast a spell of 1st level or higher. Recovered on a Long Rest.' },
+  { t: /\bProficiency Bonus\b/gi, tip: 'Proficiency Bonus: a bonus added to attack rolls, saving throws, and skill checks you\'re proficient in. Increases with character level.' },
+  { t: /\bTemporary Hit Points\b/gi, tip: 'Temporary Hit Points: a buffer of HP that absorbs damage first. They don\'t stack; take the higher pool.' },
+  { t: /\bHit Points\b/gi,      tip: 'Hit Points (HP): measure of a creature\'s durability. At 0 HP you fall unconscious and begin making Death Saving Throws.' },
+  { t: /\bDifficult Terrain\b/gi, tip: 'Difficult Terrain: every foot of movement costs 1 extra foot of speed (2 ft of speed spent per foot moved).' },
+  { t: /\bArmor Class\b/gi,     tip: 'Armor Class (AC): the number an attack roll must meet or beat to hit a creature.' },
+  { t: /\bReaction\b/gi,        tip: 'Reaction: an instant response to a trigger. You get one per round and regain it at the start of your next turn.' },
+  { t: /\bAction\b/gi,          tip: 'Action: the primary thing you do on your turn — attack, cast a spell, Dash, Disengage, Dodge, Help, Hide, etc.' },
+  // Components
+  { t: /\bVerbal\b/gi,          tip: 'Verbal (V): the spell requires speaking a specific mystic incantation. Silence prevents casting.' },
+  { t: /\bSomatic\b/gi,         tip: 'Somatic (S): the spell requires a specific hand gesture. You need at least one free hand.' },
+  { t: /\bMaterial\b/gi,        tip: 'Material (M): the spell requires a physical component. A spellcasting focus can replace components without a listed cost.' },
+  // Duration / concentration
+  { t: /\bConcentration\b/gi,   tip: 'Concentration: you maintain the spell\'s effect. Taking damage requires a Constitution saving throw (DC 10 or half the damage taken) or the spell ends.' },
+  { t: /\bInstantaneous\b/gi,   tip: 'Instantaneous: the spell\'s effects happen at the moment of casting and cannot be dispelled.' },
+  // Spell types
+  { t: /\bCantrip\b/gi,         tip: 'Cantrip: a 0-level spell that can be cast at will without expending a Spell Slot. Damage scales with character level.' },
+  { t: /\bRitual\b/gi,          tip: 'Ritual: can be cast without expending a Spell Slot if you add 10 minutes to the casting time. You must have it prepared or in your spellbook.' },
+  { t: /\bSave\b/gi,            tip: 'Save: short for Saving Throw. Roll a d20 + ability modifier and meet or beat the caster\'s Spell Save DC.' },
+  // Damage types
+  { t: /\bNecrotic\b/gi,        tip: 'Necrotic damage: withering energy that rots flesh and bone. Undead and constructs are often immune.' },
+  { t: /\bRadiant\b/gi,         tip: 'Radiant damage: searing holy light. Particularly effective against undead and fiends.' },
+  { t: /\bPsychic\b/gi,         tip: 'Psychic damage: a mental assault that assails the mind. Few creatures have resistance to it.' },
+  { t: /\bForce\b/gi,           tip: 'Force damage: pure magical energy. Almost nothing is immune or resistant to it.' },
+  { t: /\bThunder\b/gi,         tip: 'Thunder damage: concussive sonic energy — a burst of sound or a shockwave.' },
+  // Conditions
+  { t: /\bFrightened\b/gi,      tip: 'Frightened: Disadvantage on Ability Checks and Attack Rolls while the source of fear is in line of sight. Can\'t willingly move closer to it.' },
+  { t: /\bCharmed\b/gi,         tip: 'Charmed: can\'t attack the charmer or target it with harmful effects. The charmer has Advantage on social checks against the creature.' },
+  { t: /\bParalyzed\b/gi,       tip: 'Paralyzed: Incapacitated and can\'t move or speak. Auto-fails Str and Dex saves. Attacks against it have Advantage and hits from within 5 ft. are critical hits.' },
+  { t: /\bIncapacitated\b/gi,   tip: 'Incapacitated: can\'t take Actions or Reactions.' },
+  { t: /\bRestrained\b/gi,      tip: 'Restrained: speed becomes 0. Attack rolls against it have Advantage; its own attack rolls have Disadvantage. Disadvantage on Dexterity saving throws.' },
+  { t: /\bProne\b/gi,           tip: 'Prone: the creature is on the ground. Ranged attacks against it have Disadvantage; melee attacks have Advantage. Must spend half movement to stand up.' },
+  { t: /\bBlinded\b/gi,         tip: 'Blinded: can\'t see, auto-fails checks that require sight. Attack rolls against it have Advantage; its attack rolls have Disadvantage.' },
+  { t: /\bDeafened\b/gi,        tip: 'Deafened: can\'t hear, auto-fails checks that require hearing.' },
+  { t: /\bPoisoned\b/gi,        tip: 'Poisoned: Disadvantage on Attack Rolls and Ability Checks.' },
+  { t: /\bStunned\b/gi,         tip: 'Stunned: Incapacitated, can\'t move, and can only speak falteringly. Auto-fails Str and Dex saves. Attacks against it have Advantage.' },
+  { t: /\bPetrified\b/gi,       tip: 'Petrified: transformed into solid stone; Incapacitated. Resistant to all damage, immune to poison and disease.' },
+  { t: /\bGrappled\b/gi,        tip: 'Grappled: speed becomes 0. Ends if the grappler is Incapacitated or the creature is moved out of reach.' },
+  // Advantage / Disadvantage
+  { t: /\bAdvantage\b/gi,       tip: 'Advantage: roll two d20s and use the higher result.' },
+  { t: /\bDisadvantage\b/gi,    tip: 'Disadvantage: roll two d20s and use the lower result.' },
+];
+
+// Walk a live DOM node and wrap glossary terms in tooltip spans.
+function _sbApplyGlossary_DOM(rootEl) {
+  if (!rootEl) return;
+  _sbGlossWalk(rootEl);
+}
+
+function _sbGlossWalk(node) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    let text = node.textContent;
+    // Find first matching term
+    let best = null, bestIdx = Infinity;
+    for (const entry of _SB_GLOSSARY) {
+      entry.t.lastIndex = 0;
+      const m = entry.t.exec(text);
+      if (m && m.index < bestIdx) { best = { entry, match: m }; bestIdx = m.index; }
+    }
+    if (!best) return;
+    const { entry, match } = best;
+    const before = text.slice(0, match.index);
+    const after  = text.slice(match.index + match[0].length);
+    const span = document.createElement('span');
+    span.className = 'sb-gloss';
+    span.setAttribute('data-tip', entry.tip);
+    span.textContent = match[0];
+    const frag = document.createDocumentFragment();
+    if (before) frag.appendChild(document.createTextNode(before));
+    frag.appendChild(span);
+    if (after) frag.appendChild(document.createTextNode(after));
+    node.parentNode.replaceChild(frag, node);
+    // Recurse on the after-text node (new text node is last child of frag in parent)
+    const afterNode = span.nextSibling;
+    if (afterNode) _sbGlossWalk(afterNode);
+  } else if (node.nodeType === Node.ELEMENT_NODE) {
+    // Skip elements that are themselves glossary spans, dice links, or headings
+    if (node.classList.contains('sb-gloss') || node.classList.contains('sb-hl-dice')) return;
+    // Iterate over a static copy since we'll be mutating childNodes
+    for (const child of Array.from(node.childNodes)) _sbGlossWalk(child);
+  }
+}
+
+// ── Globale glossary-tooltip ──────────────────────────────────────
+// Werkt voor elke .sb-gloss-span overal in het document (spreukenboek,
+// feature-detailmodal, voorwerp-detail, …). Eén gedeeld zwevend tip-element.
+let _glossTipEl = null;
+function _glossTipGet() {
+  _glossTipEl = document.getElementById('sb-gloss-tip');
+  if (!_glossTipEl) {
+    _glossTipEl = document.createElement('div');
+    _glossTipEl.id = 'sb-gloss-tip';
+    document.body.appendChild(_glossTipEl);
+  }
+  return _glossTipEl;
+}
+function _glossTipShow(g) {
+  const tip = _glossTipGet();
+  tip.textContent = g.getAttribute('data-tip');
+  tip.classList.add('visible');
+  const margin = 8, vw = window.innerWidth;
+  tip.style.maxWidth = Math.min(240, vw - margin * 2) + 'px';
+  tip.style.left = '0'; tip.style.top = '0';
+  const r = g.getBoundingClientRect();
+  const tipH = tip.offsetHeight;
+  let x = r.left + r.width / 2 - tip.offsetWidth / 2;
+  let y = r.top - tipH - 8;
+  x = Math.max(margin, Math.min(x, vw - tip.offsetWidth - margin));
+  if (y < margin) y = r.bottom + 8;
+  tip.style.left = x + 'px';
+  tip.style.top  = y + 'px';
+}
+function _glossTipHide() { document.getElementById('sb-gloss-tip')?.classList.remove('visible'); }
+
+let _glossGlobalInit = false;
+function _initGlobalGlossary() {
+  if (_glossGlobalInit) return;
+  _glossGlobalInit = true;
+  document.addEventListener('mouseenter', e => {
+    const t = e.target;
+    const g = t?.nodeType === 1 ? t.closest('.sb-gloss') : null;
+    if (g) _glossTipShow(g);
+  }, true);
+  document.addEventListener('mouseleave', e => {
+    const t = e.target;
+    if (t?.nodeType === 1 && t.closest('.sb-gloss')) _glossTipHide();
+  }, true);
+  document.addEventListener('click', e => {
+    const g = e.target?.nodeType === 1 ? e.target.closest('.sb-gloss') : null;
+    if (g) {
+      e.stopPropagation();
+      const tip = _glossTipGet();
+      const same = tip.classList.contains('visible') && tip.textContent === g.getAttribute('data-tip');
+      if (same) _glossTipHide(); else _glossTipShow(g);
+    } else {
+      _glossTipHide();
+    }
+  }, true);
+  document.addEventListener('scroll', _glossTipHide, true);
+}
+
+// Publieke glossary-API — gebruikt door render-progressie.js e.a.
+window.glossary = {
+  ready: true,
+  applyDom: (rootEl) => { _initGlobalGlossary(); _sbApplyGlossary_DOM(rootEl); },
+};
 
 // Dutch translations for common D&D metadata values
 function _sbNl(s) {
@@ -2527,7 +2752,8 @@ function _sbNl(s) {
 
 function _sbSchoolKey(school) {
   if (!school) return null;
-  return school.toLowerCase().replace(/[\s-]/g, '');
+  const s = typeof school === 'object' ? (school.name || '') : school;
+  return s.toLowerCase().replace(/[\s-]/g, '');
 }
 
 function _sbSchoolLabel(school) {
@@ -2555,6 +2781,9 @@ function _ensureSpellbookOverlay() {
       </button>
       <button class="sb-ctrl-btn sb-ctrl-conc" id="sb-conc-ctrl-btn" onclick="window._sbToggleConcentration()" title="Concentratie" style="display:none">
         🕯 Concentratie
+      </button>
+      <button class="sb-ctrl-btn sb-ctrl-help" id="sb-help-btn" onclick="window._sbToggleHelp()" title="Help">
+        ${icon('book-open')} Help
       </button>
       <button class="sb-ctrl-btn sb-ctrl-close" onclick="window._sbCloseAndReturn()" title="Sluit spreukenboek">
         ✕ Sluit spreukenboek
@@ -2663,6 +2892,32 @@ function _ensureSpellbookOverlay() {
             <textarea class="sb-manage-input sb-manage-input--quill sb-manage-textarea" id="sb-manage-icon-label"
               rows="2" placeholder="Eigen toelichting…" maxlength="200" style="margin-top:6px"></textarea>
             <button class="sb-manage-add-btn" onclick="window._sbAddMarginalia()">＋ Toevoegen</button>
+          </div>
+        </div>
+      </div>
+      <!-- Help panel: slides from right -->
+      <div class="sb-help-panel" id="sb-help-panel">
+        <div class="sb-manage-header">
+          <div class="sb-manage-title">${icon('book-open')} Help</div>
+          <button class="sb-manage-close-btn" onclick="window._sbToggleHelp()" title="Sluit help">✕</button>
+        </div>
+        <div class="sb-help-body">
+          <div class="sb-help-section">
+            <div class="sb-help-section-title">${icon('clipboard-list')} Inhoud</div>
+            <p>Hier vind je een overzicht van al je spreuken per level. Je kunt ook zoeken: typ een naam of school en klik <strong>+</strong> om een spreuk toe te voegen aan je boek.</p>
+            <p>Spreuken die je al hebt staan bovenaan onder <em>Jouw spreuken</em> — klik op de naam om er direct naartoe te gaan.</p>
+          </div>
+          <div class="sb-help-section">
+            <div class="sb-help-section-title">${icon('pencil')} Beheer</div>
+            <p><strong>Incantatie</strong> — schrijf de spreukformule die jij uitspreekt. Verschijnt als een briefje op de linkerpagina.</p>
+            <p><strong>Level verkregen</strong> — op welk level heb je deze spreuk geleerd? Puur ter herinnering.</p>
+            <p><strong>Concentratie</strong> — activeer/deactiveer de concentratie-tracker voor een actieve spreuk.</p>
+            <p><strong>Marginalia</strong> — kleine symbolen in de kantlijn die het type spreuk aangeven (schade, healing, utility…). Kies een icoon, typ optioneel een toelichting en klik +.</p>
+          </div>
+          <div class="sb-help-section">
+            <div class="sb-help-section-title">${icon('chevron-left')} Navigatie</div>
+            <p>Gebruik de pijlen links en rechts om door je spreuken te bladeren. Je kunt ook klikken op een spreuk in de Inhoud.</p>
+            <p>Het gouden lint in het boek geeft aan of een spreuk als favoriet is gemarkeerd (klik op het lint).</p>
           </div>
         </div>
       </div>
@@ -2800,9 +3055,9 @@ window._sbNext = function() {
 
 // Flashy dice roll overlay
 window._sbFlashRoll = function(formula, spellName) {
-  const m = formula.match(/(\d+)d(\d+)([+-]\d+)?/i);
+  const m = formula.match(/(\d*)d(\d+)([+-]\d+)?/i);
   if (!m) return;
-  const num = parseInt(m[1]), die = parseInt(m[2]), mod = m[3] ? parseInt(m[3]) : 0;
+  const num = parseInt(m[1]) || 1, die = parseInt(m[2]), mod = m[3] ? parseInt(m[3]) : 0;
   let total = mod;
   for (let i = 0; i < num; i++) total += Math.floor(Math.random() * die) + 1;
 
@@ -2898,12 +3153,25 @@ window._sbToggleManage = function() {
   _sbState.manageOpen = !_sbState.manageOpen;
   if (_sbState.manageOpen) {
     _sbState.tocOpen = false;
-    const toc = document.getElementById('sb-toc-panel');
-    if (toc) toc.classList.remove('sb-toc-open');
+    _sbState.helpOpen = false;
+    document.getElementById('sb-toc-panel')?.classList.remove('sb-toc-open');
+    document.getElementById('sb-help-panel')?.classList.remove('sb-manage-open');
   }
   const mp = document.getElementById('sb-manage-panel');
   if (mp) mp.classList.toggle('sb-manage-open', _sbState.manageOpen);
   if (_sbState.manageOpen) _sbManageRefresh();
+};
+
+window._sbToggleHelp = function() {
+  _sbState.helpOpen = !_sbState.helpOpen;
+  if (_sbState.helpOpen) {
+    _sbState.tocOpen = false;
+    _sbState.manageOpen = false;
+    document.getElementById('sb-toc-panel')?.classList.remove('sb-toc-open');
+    document.getElementById('sb-manage-panel')?.classList.remove('sb-manage-open');
+  }
+  document.getElementById('sb-help-panel')?.classList.toggle('sb-manage-open', _sbState.helpOpen);
+  document.getElementById('sb-help-btn')?.classList.toggle('active', _sbState.helpOpen);
 };
 
 window._sbCloseAndReturn = function() {
@@ -3178,7 +3446,8 @@ function _sbHasNoSlots(spell) {
   return Object.keys(_sbState.slots).length > 0; // only fade if slot data is loaded
 }
 
-window._sbTocPin = async function(index, name) {
+window._sbTocPin = async function(index, name, btnEl) {
+  if (btnEl) { btnEl.innerHTML = icon('check'); btnEl.disabled = true; btnEl.classList.add('sb-toc-item-add--done'); }
   if (_sbState.spells.find(s => s.index === index)) return;
   if (!_sbState.charId) return;
   const fullSpell =
@@ -3201,9 +3470,11 @@ window._sbTocPin = async function(index, name) {
         : (fullSpell.components || ''),
     });
     // Lokaal toevoegen en naar de nieuwe spreuk navigeren
-    const newEntry = { ...fullSpell, index, name, school: { name: school },
+    // Let op: school als string (niet object) en desc als string (niet array),
+    // zodat _sbSchoolKey en _renderSpellDesc direct werken zonder hard refresh.
+    const newEntry = { ...fullSpell, index, name, school,
       source, concentration, ritual, level: fullSpell.level || 0,
-      desc: fullSpell.desc || [] };
+      desc };
     _sbState.spells.push(newEntry);
     _sbState.spells.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
     _sbState.idx = _sbState.spells.findIndex(s => s.index === index);
@@ -3320,7 +3591,7 @@ function _sbRenderTocList(q) {
           const school = s.school?.name || (typeof s.school === 'string' ? s.school : '');
           html += `<div class="sb-toc-item${active ? ' sb-toc-active' : ''}">
             <span class="sb-toc-item-name" onclick="window._sbGoTo(${i}, true)">${esc(s.name)}</span>
-            ${school ? `<span class="sb-toc-item-school">${esc(school.slice(0,8))}</span>` : ''}
+            ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}
             <button class="sb-toc-item-del" onclick="window._sbTocUnpin('${esc(s.index)}')" title="Verwijderen">×</button>
           </div>`;
         }
@@ -3348,7 +3619,7 @@ function _sbRenderTocList(q) {
         const school = s.school?.name || '';
         html += `<div class="sb-toc-item${active ? ' sb-toc-active' : ''}">
           <span class="sb-toc-item-name" onclick="window._sbGoTo(${navIdx}, true)">${esc(s.name)}</span>
-          ${school ? `<span class="sb-toc-item-school">${esc(school.slice(0,8))}</span>` : ''}
+          ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}
           <button class="sb-toc-item-del" onclick="window._sbTocUnpin('${esc(s.index)}')" title="Verwijderen">×</button>
         </div>`;
       }
@@ -3359,8 +3630,8 @@ function _sbRenderTocList(q) {
         const school = s.school?.name || '';
         html += `<div class="sb-toc-item">
           <span class="sb-toc-item-name">${esc(s.name)}</span>
-          ${school ? `<span class="sb-toc-item-school">${esc(school.slice(0,8))}</span>` : ''}
-          <button class="sb-toc-item-add" onclick="window._sbTocPin('${esc(s.index)}','${esc(s.name)}')" title="Toevoegen aan boek">+</button>
+          ${school ? `<span class="sb-toc-item-school">${esc(school)}</span>` : ''}
+          <button class="sb-toc-item-add" onclick="window._sbTocPin('${esc(s.index)}','${esc(s.name)}',this)" title="Toevoegen aan boek">+</button>
         </div>`;
       }
     }
@@ -3392,6 +3663,13 @@ async function _sbFetchDesc(spell) {
   if (_sbDescCache.has(idx)) return;
   _sbDescCache.set(idx, ''); // mark as fetching
   try {
+    // Laad de lokale lijst als die er nog niet is
+    if (!_playerSpellList) {
+      try {
+        const d = await fetch('/data/spells-2024.json').then(r => r.json());
+        _playerSpellList = d.results || [];
+      } catch { _playerSpellList = []; }
+    }
     // Try local 2024 list first (fast, no network needed)
     const local = (_playerSpellList || []).find(s => s.index === idx);
     if (local?.desc?.length) {
@@ -3425,7 +3703,8 @@ async function _sbFetchDesc(spell) {
       if (!sp.casting_time && s.casting_time) sp.casting_time = s.casting_time;
       if (!sp.range        && s.range)        sp.range        = s.range;
       if (!sp.duration     && s.duration)     sp.duration     = s.duration;
-      if (!sp.components   && s.components?.length) sp.components = s.components.join(', ');
+      if (!sp.components   && s.components?.length) sp.components =
+        s.components.join(', ') + (s.material ? ` (${s.material})` : '');
       if (!sp.school       && s.school?.name) sp.school       = s.school.name;
       if (!sp.higher_level && s.higher_level?.length)
         sp.higher_level = s.higher_level;           // ← needed for the "at higher levels" toggle
@@ -3663,11 +3942,22 @@ function _sbRender() {
     const rawDesc = spell.desc || _sbDescCache.get(spell.index) || '';
 
     // Lazy-load SRD description if missing
-    if (!rawDesc && spell.source !== 'custom' && !spell.index.startsWith('custom_')) {
+    // Guard: only fetch if we haven't already tried (cache would be set to '' on failure)
+    const alreadyTried = _sbDescCache.has(spell.index);
+    if (!rawDesc && !alreadyTried && spell.source !== 'custom' && !spell.index.startsWith('custom_')) {
       contentEl.innerHTML = `<h2 class="sb-spell-name">${esc(spell.name)}</h2>
         <p style="color:#8a6030;font-style:italic;margin-top:20px">Beschrijving laden…</p>`;
       contentEl.scrollTop = 0;
-      _sbFetchDesc(spell).then(() => { if (_sbState.idx === curIdx) _sbRender(); });
+      _sbFetchDesc(spell).then(() => {
+        // Alleen re-renderen als er daadwerkelijk iets gevonden is
+        const found = _sbDescCache.get(spell.index) || spell.desc;
+        if (_sbState.idx === curIdx && found) _sbRender();
+        else if (_sbState.idx === curIdx && !found) {
+          // Niets gevonden — toon spell-naam zonder beschrijving
+          contentEl.innerHTML = `<h2 class="sb-spell-name">${esc(spell.name)}</h2>
+            <p style="color:#8a6030;font-style:italic;margin-top:20px;opacity:.6">Geen beschrijving beschikbaar.</p>`;
+        }
+      });
     } else {
       const diceColor = _sbDiceColor(spell.damage);
       const desc = _renderSpellDesc(rawDesc, { diceColor });
@@ -3701,6 +3991,8 @@ function _sbRender() {
         ${(badges || metaRows.length) ? '<div class="sb-divider"></div>' : ''}
         <div class="sb-desc">${desc || '<em>Geen beschrijving beschikbaar.</em>'}</div>`;
       contentEl.scrollTop = 0;
+      // Apply glossary tooltips to the rendered content (text nodes only)
+      _sbApplyGlossary_DOM(contentEl);
     }
   }
 
@@ -4391,7 +4683,7 @@ async function renderMijnKarakter(opts = {}) {
   let _skillAdj = {};
   let _extraSpeeds = [];
   try { _skillAdj = JSON.parse(playerProfile.skillAdj || '{}'); } catch { _skillAdj = {}; }
-  const _saveProfs  = new Set((playerProfile.saveProfs || '').split(',').filter(Boolean));
+  const _saveProfs  = new Set(Array.isArray(playerProfile.saveProfs) ? playerProfile.saveProfs : (playerProfile.saveProfs || '').split(',').filter(Boolean));
   const _profBonusNum = parseInt(playerProfile.profBonus) || 0;
   const _percProf     = _skillProfs['perception'] || null;
   const _passivePerc  = 10 + _mod('wis') + (_percProf === 'expert' ? _profBonusNum * 2 : _percProf === 'prof' ? _profBonusNum : 0);
@@ -4408,6 +4700,8 @@ async function renderMijnKarakter(opts = {}) {
   // Origin- en subclass-opties uit de progressie-data (voorkomt alias-mismatch).
   // Niet voor de HP-variant (House / School of Magic zijn campagne-eigen, niet in de progressie-data).
   const _originOpts   = (!isHp && progData?.species) ? Object.keys(progData.species) : null;
+  const _backgroundOpts = (!isHp && progData?.backgrounds && Object.keys(progData.backgrounds).length)
+    ? Object.keys(progData.backgrounds).sort() : null;
   const _progClsKey   = _progClassKey(progData, playerProfile.klasse);
   const _subclassOpts = (!isHp && _progClsKey && progData.classes[_progClsKey]?.subclasses)
     ? Object.keys(progData.classes[_progClsKey].subclasses) : null;
@@ -4487,11 +4781,7 @@ async function renderMijnKarakter(opts = {}) {
         <div class="player-dash-hero-info">
           <h2 class="player-dash-name">${esc(playerName)}</h2>
           <button class="player-hero-collapse-btn${localStorage.getItem('_heroCollapsed') === '1' ? ' collapsed' : ''}"
-            onclick="window._toggleHeroCollapse()" title="Verberg/toon karakterinfo">▲</button>${_klasseKey && window.app.isDM() ? `<button
-            class="player-klasse-theme-btn${_klasseThemeOn ? ' player-klasse-theme-btn--on' : ''}"
-            id="player-class-icon-wrap"
-            onclick="window._toggleKlasseTheme()"
-            title="${_klasseThemeOn ? 'Schakel naar standaard look' : 'Schakel naar klasse-look'}">${_KLASSEN_MET_ICON.has(_dominantKlasse) ? `<img src="/img/classes/${esc(_dominantKlasse)}.png" class="player-klasse-theme-icon" alt="">` : '✦'}</button>` : ''}
+            onclick="window._toggleHeroCollapse()" title="Verberg/toon karakterinfo">▲</button>
           ${sub ? `<p class="player-dash-sub">${esc(sub)}</p>` : ''}
           <div class="player-profile-fields">
             <div class="ppf-row"><label class="ppf-label">Level</label>
@@ -4531,8 +4821,10 @@ async function renderMijnKarakter(opts = {}) {
                 : `<input class="ppf-input" type="text" value="${esc(playerProfile.subclass ?? '')}" placeholder="—"
                 onblur="window._saveProfileField('subclass', this.value)">`}</div>
             <div class="ppf-row"><label class="ppf-label">Background</label>
-              <input class="ppf-input" type="text" value="${esc(playerProfile.background ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('background', this.value)"></div>
+              ${_backgroundOpts
+                ? _ppfSelectField('background', playerProfile.background, _backgroundOpts, '—')
+                : `<input class="ppf-input" type="text" value="${esc(playerProfile.background ?? '')}" placeholder="—"
+                onblur="window._saveProfileField('background', this.value)">`}</div>
             ${(() => {
               const ontgrendeld = [...new Set((factiesData || []).flatMap(f => (f.ladder || []).filter(r => r.bereikt && r.index > 0 && r.titel).map(r => r.titel)))];
               const cur = playerProfile.factieTitel || '';
@@ -4574,6 +4866,7 @@ async function renderMijnKarakter(opts = {}) {
 
       <!-- ═══ TAB: Party ═══ -->
       <div id="pst-party" class="player-subtab-panel${_playerSubTab !== 'party' ? ' hidden' : ''}">
+        <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('party')}</div>
 
         ${(() => {
           // Feature #5: ontdekkings-teller (alleen voor spelers; data is null voor DM)
@@ -4717,9 +5010,13 @@ async function renderMijnKarakter(opts = {}) {
                 const lbl = COND_LBL_MAP[cid] || cid;
                 return `<span class="player-dash-init-cond" title="${esc(lbl)}">${icon(icn)}</span>`;
               }).join('');
-              return `<div class="player-dash-init-row${isActive ? ' player-dash-init-active' : ''}${isMe ? ' player-dash-init-me' : ''}">
+              const isStudied = c.type === 'monster' && c._niveau && c._niveau !== 'naam';
+              if (isStudied) _combatMonsterCache.set(c.id, c);
+              const clickAttr = isStudied ? `onclick="window.app.openCombatMonsterPanel(window._combatMonsterCache?.get('${esc(c.id)}'))" style="cursor:pointer"` : '';
+              return `<div class="player-dash-init-row${isActive ? ' player-dash-init-active' : ''}${isMe ? ' player-dash-init-me' : ''}${isStudied ? ' player-dash-init-studied' : ''}" ${clickAttr}>
                 <span class="player-dash-init-num">${i + 1}</span>
                 <span class="player-dash-init-name">${esc(displayName)}</span>
+                ${isStudied ? `<span class="player-dash-init-kennis" title="Bestudeerd — klik voor stat block">${icon('book-open')}</span>` : ''}
                 ${condHtml ? `<span class="player-dash-init-conds">${condHtml}</span>` : ''}
               </div>`;
             }).join('')}
@@ -4729,6 +5026,7 @@ async function renderMijnKarakter(opts = {}) {
 
       <!-- ═══ TAB: Mijn personage ═══ -->
       <div id="pst-personage" class="player-subtab-panel${_playerSubTab !== 'personage' ? ' hidden' : ''}">
+        <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('personage')}</div>
 
         ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
         <div class="player-dash-section wild-magic-section">
@@ -4750,33 +5048,11 @@ async function renderMijnKarakter(opts = {}) {
               value="${esc(playerProfile.ac ?? '')}" placeholder="—"
               onblur="window._saveProfileField('ac', this.value)">
           </div>
-          ${(() => {
-            _extraSpeeds = (() => { try { const a = JSON.parse(playerProfile.extraSpeeds || '[]'); if(Array.isArray(a)) return a; } catch{} const m=[]; if(playerProfile.swimSpeed) m.push({label:'Swim',value:playerProfile.swimSpeed}); if(playerProfile.flySpeed) m.push({label:'Fly',value:playerProfile.flySpeed}); return m; })();
-            return '';
-          })()}
           <div class="pcs-item">
             <span class="pcs-label">Speed</span>
-            <div class="pcs-input-row">
-              <input class="pcs-input" type="text"
-                value="${esc(playerProfile.speed ?? '')}" placeholder="—"
-                onblur="window._saveProfileField('speed', this.value)">
-              <button class="pcs-extra-speed-btn${_extraSpeeds.length ? ' pcs-extra-speed-btn--on' : ''}"
-                onclick="window._addExtraSpeed()" title="Extra snelheid toevoegen">+</button>
-            </div>
-          </div>
-          <div id="pcs-extra-speeds" class="pcs-extra-speeds-wrap"${_extraSpeeds.length ? '' : ' style="display:none"'}>
-            ${_extraSpeeds.map((s, i) => `
-            <div class="pcs-item pcs-extra-speed-item">
-              <select class="pcs-speed-label-select" onchange="window._saveExtraSpeedFull()">
-                ${['Swim','Fly','Climb','Burrow','Hover'].map(t =>
-                  `<option value="${t}"${(s.label||'Swim')===t?' selected':''}>${t}</option>`).join('')}
-              </select>
-              <div class="pcs-input-row">
-                <input class="pcs-input" type="text" value="${esc(s.value ?? '')}" placeholder="—"
-                  onblur="window._saveExtraSpeedFull()">
-                <button class="pcs-extra-speed-del" onclick="window._removeExtraSpeed(${i})" title="Verwijder">${icon('x')}</button>
-              </div>
-            </div>`).join('')}
+            <input class="pcs-input" type="text"
+              value="${esc(playerProfile.speed ?? '')}" placeholder="—"
+              onblur="window._saveProfileField('speed', this.value)">
           </div>
           <div class="pcs-item">
             <span class="pcs-label">Initiative</span>
@@ -4982,7 +5258,7 @@ async function renderMijnKarakter(opts = {}) {
 
         ${heerenData ? `
         <div class="player-dash-section">
-          <div class="player-dash-section-title">🌑 Aanzien bij de Heeren</div>
+          <div class="player-dash-section-title">${icon('moon')} Aanzien bij de Heeren</div>
           <div class="renown-card">
             <div class="renown-rang">${esc(heerenData.rang?.naam || '')}<span class="renown-trap">${(heerenData.rang?.index ?? 0) + 1}/${heerenData.rang?.aantal || 1}</span></div>
             ${heerenData.rang?.voordelen ? `<div class="renown-voordelen">${esc(heerenData.rang.voordelen)}</div>` : ''}
@@ -4998,12 +5274,12 @@ async function renderMijnKarakter(opts = {}) {
           const next = ladder.find(r => !r.bereikt && (r.boons || []).length);
           return `
         <div class="player-dash-section">
-          <div class="player-dash-section-title">${f.embleem ? esc(f.embleem) : icon('landmark')} Aanzien bij ${esc(f.naam)}</div>
+          <div class="player-dash-section-title">${_FACTIE_ICON_SET_APP.has(f.embleem) ? icon(f.embleem) : icon('landmark')} Aanzien bij ${esc(f.naam)}</div>
           <div class="renown-card factie-card--${stijl}">
             <div class="renown-rang">${esc(f.rang?.naam || '')}<span class="renown-trap">${(f.rang?.index ?? 0) + 1}/${f.rang?.aantal || 1}</span></div>
             ${f.rang?.voordelen ? `<div class="renown-voordelen">${esc(f.rang.voordelen)}</div>` : ''}
             ${verworven.length ? `<div class="factie-boons">${verworven.map(b => `<span class="factie-boon" title="${esc(b.tekst || '')}">${esc(b.icoon || '•')} ${esc(b.naam || '')}</span>`).join('')}</div>` : ''}
-            ${next ? `<div class="renown-volgende">🔒 Volgende — <strong>${esc(next.naam)}</strong>${next.boons[0] ? `: ${esc(next.boons[0].icoon || '')} ${esc(next.boons[0].naam || '')}` : ''}</div>`
+            ${next ? `<div class="renown-volgende">${icon('lock')} Volgende — <strong>${esc(next.naam)}</strong>${next.boons[0] ? `: ${esc(next.boons[0].naam || '')}` : ''}</div>`
                    : (f.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(f.rang.volgende.naam)}</strong></div>` : '')}
           </div>
         </div>`; }).join('')}
@@ -5026,7 +5302,7 @@ async function renderMijnKarakter(opts = {}) {
           <!-- Vastgezette kenmerken (gesorteerd op niveau dan naam) -->
           ${pinnedTraits.length > 0 ? (() => {
             const _traitLevel = t => {
-              const m = (t.meta || '').match(/Niv\.\s*(\d+)/i);
+              const m = (t.meta || '').match(/(?:Niv\.|Lv\.)\s*(\d+)/i);
               return m ? parseInt(m[1]) : (t.source === 'phb-feats' ? 99 : 0);
             };
             const sorted = [...pinnedTraits].sort((a, b) =>
@@ -5097,6 +5373,7 @@ async function renderMijnKarakter(opts = {}) {
 
       <!-- ═══ TAB: Mijn knapzak ═══ -->
       <div id="pst-knapzak" class="player-subtab-panel${_playerSubTab !== 'knapzak' ? ' hidden' : ''}">
+        <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('knapzak')}</div>
 
         <!-- Valuta -->
         <div class="player-dash-section">
@@ -5395,14 +5672,21 @@ async function renderMijnKarakter(opts = {}) {
               </div>` : '';
             const entityNaam = si.entityId ? (allVoorwerpen.find(v => v.id === si.entityId)?.name || si.name) : si.name;
             const slideClick = si.entityId ? `onclick="window._openDetail('${esc(si.entityType||'voorwerpen')}','${esc(si.entityId)}')" style="cursor:pointer"` : '';
+            const imgId = si.entityId || null;
+            const godLabel = isVloek ? `Vloek van ${si.godNaam || ''}` : isEed ? `Eed aan ${si.godNaam || ''}` : `Zegen van ${si.godNaam || ''}`;
+            const descTekst = allVoorwerpen.find(v => v.id === si.entityId)?.data?.desc || '';
             return `<div class="item-carousel-slide" ${slideClick}>
+              ${imgId ? `<div class="item-carousel-img-wrap">
+                <img src="${api.fileUrl(imgId)}" class="item-carousel-img"
+                  onerror="this.closest('.item-carousel-img-wrap').style.display='none'">
+              </div>` : ''}
               <div class="item-carousel-namerow">
                 <span class="item-carousel-type-icon" style="color:${typeColor}">${typeIcon}</span>
                 <span class="item-carousel-name">${esc(entityNaam)}</span>
                 ${si.entityId ? `<span style="font-size:0.7rem;opacity:0.5;margin-left:4px" title="Bekijk kaartje">${icon('open-book')}</span>` : ''}
               </div>
-              <div style="font-size:0.65rem;font-family:'Cinzel',serif;letter-spacing:.07em;text-transform:uppercase;color:rgba(100,75,30,0.6);margin-bottom:6px">Blessing</div>
-              ${si.note ? `<div class="item-carousel-desc" onclick="event.stopPropagation()">${esc(si.note)}</div>` : ''}
+              <div style="font-size:0.65rem;font-family:'Cinzel',serif;letter-spacing:.07em;text-transform:uppercase;color:rgba(100,75,30,0.6);margin-bottom:6px">${esc(godLabel)}</div>
+              ${descTekst ? `<div class="item-carousel-desc" onclick="event.stopPropagation()">${mdToHtml(descTekst)}</div>` : ''}
               ${chargesHtml}
               ${boeteHtml}
             </div>`;
@@ -5437,6 +5721,7 @@ async function renderMijnKarakter(opts = {}) {
 
       <!-- ═══ TAB: Mijn spreukenboek ═══ -->
       <div id="pst-spreukenboek" class="player-subtab-panel${_playerSubTab !== 'spreukenboek' ? ' hidden' : ''}">
+        <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('spreukenboek')}</div>
 
         <!-- Spreuk-statistieken -->
         <div class="player-spell-stats">
@@ -5558,15 +5843,17 @@ async function renderMijnKarakter(opts = {}) {
 
   // ── Progressie: sla context op; render via requestAnimationFrame zodat
   //    de DOM zeker stable is en geen re-render de content overschrijft ──
+  const _isMulti = playerProfile.multiclass === 'true' || playerProfile.multiclass === true;
   window._lastProgCtx = {
     klasse:           playerProfile.klasse || entity?.data?.klasse || '',
-    klasseLevel:      parseInt(playerProfile.klasseLevel) || parseInt(playerProfile.level) || 1,
+    klasseLevel:      _isMulti ? (parseInt(playerProfile.klasseLevel) || parseInt(playerProfile.level) || 1) : (parseInt(playerProfile.level) || 1),
     level:            parseInt(playerProfile.level) || 1,
     subclass:         playerProfile.subclass || '',
-    multiclass:       playerProfile.multiclass === 'true' || playerProfile.multiclass === true,
+    multiclass:       _isMulti,
     multiKlasse:      playerProfile.multiKlasse || '',
     multiKlasseLevel: parseInt(playerProfile.multiKlasseLevel) || 0,
     species:          playerProfile.origin || entity?.data?.ras || playerProfile.ras || '',
+    background:        playerProfile.background || '',
     charId:           charId || null,
     favorites:        (() => { try { return JSON.parse(playerProfile.featFavorites || '[]'); } catch { return []; } })(),
     choices:          (() => { try { return JSON.parse(playerProfile.featChoices   || '{}'); } catch { return {}; } })(),
@@ -5620,7 +5907,7 @@ async function renderMijnKarakter(opts = {}) {
         body.innerHTML = metaHtml
           + _incantHtmlC
           + (stored
-            ? `<div class="player-spell-desc">${_spellMd(stored).replace(/\n/g,'<br>')}</div>`
+            ? (() => { const h = _renderSpellDesc(stored, {}); return `<div class="player-spell-desc">${window.glossary?.annotate?.(h) ?? h}</div>`; })()
             : '<p class="player-spell-err" style="opacity:.5">Geen beschrijving.</p>')
           + _buildSpellEditForm(index, body);
         body.dataset.loaded = 'true';
@@ -5643,14 +5930,18 @@ async function renderMijnKarakter(opts = {}) {
         // #22: tijdens de await kan de accordion gesloten of de tab her-rendered
         // zijn — dan is `body` losgekoppeld. Niet schrijven naar een dode node.
         if (!body.isConnected) return;
-        const desc = (s.desc || []).map(_spellMd).join('<br><br>');
+        const rawDescArr = s.desc || [];
+        const descHtml = _renderSpellDesc(rawDescArr.join('\n\n'), {});
+        const desc = window.glossary?.annotate?.(descHtml) ?? descHtml;
         const higher = s.higher_level?.length
-          ? `<p class="player-spell-higher"><strong>At Higher Levels:</strong> ${s.higher_level.join(' ')}</p>` : '';
+          ? `<p class="player-spell-higher"><strong>At Higher Levels:</strong> ${_spellMd(s.higher_level.join(' '))}</p>` : '';
+        const componentsStr = s.components?.length
+          ? s.components.join(', ') + (s.material ? ` (${s.material})` : '') : '';
         const metaParts = [
-          s.casting_time ? `Casting Time: ${s.casting_time}` : '',
-          s.range        ? `Range: ${s.range}` : '',
-          s.components?.length ? `Components: ${s.components.join(', ')}` : '',
-          s.duration     ? `Duration: ${s.duration}` : '',
+          s.casting_time  ? `Casting Time: ${s.casting_time}` : '',
+          s.range         ? `Range: ${s.range}` : '',
+          componentsStr   ? `Components: ${componentsStr}` : '',
+          s.duration      ? `Duration: ${s.duration}` : '',
           s.concentration ? 'Concentration' : '',
         ].filter(Boolean);
         const _pinnedSp    = pinnedSpells.find(ps => ps.index === index) || {};
@@ -5659,7 +5950,7 @@ async function renderMijnKarakter(opts = {}) {
         body.innerHTML = `
           ${metaParts.length ? `<div class="player-spell-meta2">${metaParts.join(' · ')}</div>` : ''}
           ${_incantHtmlS}
-          <div class="player-spell-desc">${desc}</div>
+          <div class="player-spell-desc">${desc || ''}</div>
           ${higher}
           ${_buildSpellEditForm(index, body)}`;
         body.dataset.loaded = 'true';
@@ -5731,7 +6022,7 @@ async function renderMijnKarakter(opts = {}) {
       // features dragen hun eigen tekst; alleen 'kale' PHB-traits hebben er geen).
       if (stored || source === 'custom' || source === 'progression') {
         body.innerHTML = stored
-          ? `<div class="player-spell-desc">${esc(stored).replace(/\n/g,'<br>')}</div>`
+          ? `<div class="player-spell-desc">${mdToHtml(stored)}</div>`
           : '<p class="player-spell-err" style="opacity:.5">Geen beschrijving.</p>';
         body.dataset.loaded = 'true';
         _appendTraitUsesRow(body);
@@ -5756,16 +6047,16 @@ async function renderMijnKarakter(opts = {}) {
         let metaParts = [];
         if (apiType === 'features') {
           metaParts = [
-            f.class?.name ? `Klasse: ${f.class.name}` : '',
-            f.subclass?.name ? `Subklasse: ${f.subclass.name}` : '',
-            f.level ? `Niveau ${f.level}` : '',
+            f.class?.name ? `Class: ${f.class.name}` : '',
+            f.subclass?.name ? `Subclass: ${f.subclass.name}` : '',
+            f.level ? `Level ${f.level}` : '',
           ].filter(Boolean);
         } else if (apiType === 'traits') {
           const races = (f.races || []).map(x => x.name).join(', ');
-          if (races) metaParts = [`Ras: ${races}`];
+          if (races) metaParts = [`Race: ${races}`];
         } else if (apiType === 'feats') {
           const prereq = (f.prerequisites || []).map(p => p.ability_score?.name || '').filter(Boolean);
-          if (prereq.length) metaParts = [`Vereiste: ${prereq.join(', ')}`];
+          if (prereq.length) metaParts = [`Prerequisite: ${prereq.join(', ')}`];
         }
         body.innerHTML = `
           ${metaParts.length ? `<div class="player-spell-meta2">${metaParts.join(' · ')}</div>` : ''}
@@ -6036,10 +6327,11 @@ async function renderMijnKarakter(opts = {}) {
     // Na level- of klassewijziging: sync nieuwe features naar Kenmerken & Eigenschappen
     const syncFields = new Set(['level', 'klasseLevel', 'klasse', 'subclass', 'multiKlasseLevel', 'multiKlasse']);
     if (syncFields.has(field) && window.progressie?.triggerSync) {
+      const _ctxMulti = playerProfile.multiclass === 'true' || playerProfile.multiclass === true;
       const ctx = {
         klasse:           playerProfile.klasse           || '',
         subclass:         playerProfile.subclass         || '',
-        klasseLevel:      parseInt(playerProfile.klasseLevel) || parseInt(playerProfile.level) || 1,
+        klasseLevel:      _ctxMulti ? (parseInt(playerProfile.klasseLevel) || parseInt(playerProfile.level) || 1) : (parseInt(playerProfile.level) || 1),
         level:            parseInt(playerProfile.level)  || 1,
         multiKlasse:      playerProfile.multiKlasse      || '',
         multiKlasseLevel: parseInt(playerProfile.multiKlasseLevel) || 0,
@@ -6067,15 +6359,6 @@ async function renderMijnKarakter(opts = {}) {
     const kLvl   = parseInt(document.getElementById('ppf-klasse-level')?.value) || 0;
     const mkLvl  = parseInt(document.getElementById('ppf-multi-level')?.value) || 0;
     const dominant = (mklass && mkLvl > kLvl) ? mklass : klass;
-    // Icon
-    const wrap = document.getElementById('player-class-icon-wrap');
-    if (wrap) {
-      if (dominant && _KLASSEN_MET_ICON.has(dominant)) {
-        wrap.innerHTML = `<img src="/img/classes/${dominant}.png" class="player-class-icon" alt="${dominant}">`;
-      } else {
-        wrap.innerHTML = '';
-      }
-    }
     // Theme
     const dash = document.querySelector('.player-dashboard');
     if (dash) {
@@ -6281,17 +6564,14 @@ async function renderMijnKarakter(opts = {}) {
     const hero  = document.getElementById('player-dash-hero');
     const btn   = document.querySelector('.player-hero-collapse-btn');
     const fields = hero?.querySelector('.player-profile-fields');
-    const icon   = hero?.querySelector('.player-class-icon-wrap');
     const collapsed = localStorage.getItem('_heroCollapsed') === '1';
     if (collapsed) {
       localStorage.setItem('_heroCollapsed', '0');
       if (fields) fields.style.display = '';
-      if (icon)   icon.style.display   = '';
       if (btn)  { btn.textContent = '▲'; btn.classList.remove('collapsed'); }
     } else {
       localStorage.setItem('_heroCollapsed', '1');
       if (fields) fields.style.display = 'none';
-      if (icon)   icon.style.display   = 'none';
       if (btn)  { btn.textContent = '▼'; btn.classList.add('collapsed'); }
     }
   };
@@ -6301,9 +6581,7 @@ async function renderMijnKarakter(opts = {}) {
     setTimeout(() => {
       const hero  = document.getElementById('player-dash-hero');
       const fields = hero?.querySelector('.player-profile-fields');
-      const icon   = hero?.querySelector('.player-class-icon-wrap');
       if (fields) fields.style.display = 'none';
-      if (icon)   icon.style.display   = 'none';
     }, 0);
   }
 
@@ -6330,15 +6608,17 @@ async function renderMijnKarakter(opts = {}) {
       const _pm  = document.getElementById('pst-progressie');
       const _pp  = window._lastPlayerProfile || {};
       const _pe  = window._lastPlayerEntity  || {};
+      const _ctxM2 = _pp.multiclass === 'true' || _pp.multiclass === true;
       const _ctx = window._lastProgCtx || {
         klasse:           _pp.klasse || _pe?.data?.klasse || '',
-        klasseLevel:      parseInt(_pp.klasseLevel) || parseInt(_pp.level) || 1,
+        klasseLevel:      _ctxM2 ? (parseInt(_pp.klasseLevel) || parseInt(_pp.level) || 1) : (parseInt(_pp.level) || 1),
         level:            parseInt(_pp.level) || 1,
         subclass:         _pp.subclass || '',
-        multiclass:       _pp.multiclass === 'true' || _pp.multiclass === true,
+        multiclass:       _ctxM2,
         multiKlasse:      _pp.multiKlasse || '',
         multiKlasseLevel: parseInt(_pp.multiKlasseLevel) || 0,
         species:          _pp.origin || _pe?.data?.ras || _pp.ras || '',
+        background:        _pp.background || '',
         charId:           window._lastCharId || null,
         favorites:        (() => { try { return JSON.parse(_pp.featFavorites || '[]'); } catch { return []; } })(),
         choices:          (() => { try { return JSON.parse(_pp.featChoices   || '{}'); } catch { return {}; } })(),
@@ -6550,14 +6830,9 @@ async function renderMijnKarakter(opts = {}) {
     _klasseThemeOn = !_klasseThemeOn;
     localStorage.setItem('_klasseThemeOn', _klasseThemeOn);
     const dash = document.querySelector('.player-dashboard');
-    const btn  = document.getElementById('player-class-icon-wrap');
     if (dash) {
       if (_klasseThemeOn && _klasseKey) dash.setAttribute('data-klasse', _klasseKey);
       else dash.removeAttribute('data-klasse');
-    }
-    if (btn) {
-      btn.title = _klasseThemeOn ? 'Schakel naar standaard look' : 'Schakel naar klasse-look';
-      btn.classList.toggle('player-klasse-theme-btn--on', _klasseThemeOn);
     }
   };
 
@@ -7613,6 +7888,12 @@ async function init() {
   // Diensten-toegangsstaten laden voor spelers
   await _loadDienstenToegang().catch(() => {});
 
+  // Help-overschrijvingen laden
+  api.getHelpContent().then(d => { _helpOverrides = d || {}; }).catch(() => {});
+
+  // Globale glossary-tooltip (hover-uitleg van D&D-termen) activeren
+  _initGlobalGlossary();
+
   // Enter in header-editor slaat op
   document.getElementById('header-title-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') window.app.saveHeader(); if (e.key === 'Escape') window.app.cancelHeader(); });
   document.getElementById('header-subtitle-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') window.app.saveHeader(); if (e.key === 'Escape') window.app.cancelHeader(); });
@@ -7643,6 +7924,9 @@ async function init() {
   // iPad kiosk-modus: sla landingspagina over, toon display canvas
   if (window._isDisplayMode) {
     _initDisplayMode();
+  } else if (state.role === 'player' && state.playerName && state.characterId) {
+    // Geldige sessie: toon welkomst-animatie, dan direct door naar karakter
+    _landingAutoLogin(state.characterId, state.playerName);
   } else if (state.role === 'player' && !state.playerName) {
     showLanding();
   }
@@ -7714,7 +7998,7 @@ async function _loadDienstenToegang() {
   try { state.dienstenToegang = await api.getDienstenToegang(); }
   catch { state.dienstenToegang = {}; }
   _updateDienstenMenu();
-  const DIENST_SECTIES = ['herberg','tweespalt','gock','ursula','tempel','heeren','facties','magizoo'];
+  const DIENST_SECTIES = ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo'];
   if (DIENST_SECTIES.includes(state.activeSection)) refreshSection(state.activeSection);
 }
 window.app._loadDienstenToegang = _loadDienstenToegang;
@@ -7741,7 +8025,6 @@ function _updateDienstenMenu() {
     gock:      document.getElementById('diensten-gock-item'),
     ursula:    document.getElementById('diensten-ursula-item'),
     tempel:    document.getElementById('diensten-tempel-item'),
-    heeren:    document.getElementById('diensten-heeren-item'),
     facties:   document.getElementById('diensten-facties-item'),
     magizoo:   document.getElementById('diensten-magizoo-item'),
   };
@@ -7752,7 +8035,21 @@ function _updateDienstenMenu() {
     else if (staat === 'verborgen') btn.classList.add('hidden');
     btn.classList.toggle('dienst-vergrendeld', staat === 'zichtbaar');
   }
+  // Facties: zichtbaar zodra er minstens één revealed factie is
+  api.getFacties().then(d => {
+    const heeftRevealed = (d?.facties || []).some(f => f.zichtbaar);
+    const factiesBtn = document.getElementById('diensten-facties-item');
+    if (factiesBtn) factiesBtn.classList.toggle('hidden', !heeftRevealed);
+  }).catch(() => {});
 }
+
+window._updateDienstenMenuFromSocket = () => {
+  api.getFacties().then(d => {
+    const heeftRevealed = (d?.facties || []).some(f => f.zichtbaar);
+    const factiesBtn = document.getElementById('diensten-facties-item');
+    if (factiesBtn) factiesBtn.classList.toggle('hidden', !heeftRevealed);
+  }).catch(() => {});
+};
 
 function _dienstNietBereikbaar(el, naam) {
   el.innerHTML = `
@@ -7813,6 +8110,7 @@ async function renderHerberg() {
   el.innerHTML = `
     <div class="herberg-scene">
       <div class="herberg-content">
+        <div class="dienst-beurs-topbar" style="justify-content:flex-end">${_helpBtn('herberg')}</div>
         <div class="herberg-portrait-wrap">
           ${config.imageId
             ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round${cooldownActief ? ' herberg-portrait--weg' : ''}" alt="${esc(config.waard)}">`
@@ -7856,17 +8154,6 @@ async function renderHerberg() {
   `;
 }
 
-const _KLASSEN_MET_ICON = new Set(['Barbarian','Bard','Cleric','Druid','Fighter','Monk','Paladin','Ranger','Rogue','Sorcerer','Warlock','Wizard']);
-window._updateKlasseIcon = (klasse) => {
-  const wrap = document.getElementById('player-class-icon-wrap');
-  if (!wrap) return;
-  if (klasse && _KLASSEN_MET_ICON.has(klasse)) {
-    wrap.innerHTML = `<img src="/img/classes/${klasse}.png" class="player-class-icon" alt="${klasse}">`;
-  } else {
-    wrap.innerHTML = '';
-  }
-};
-
 window._getExtraSpeedsFromDOM = function() {
   return Array.from(document.querySelectorAll('.pcs-extra-speed-item')).map(item => ({
     label: item.querySelector('.pcs-speed-label-select')?.value || item.querySelector('.pcs-speed-label-input')?.value || '',
@@ -7875,23 +8162,29 @@ window._getExtraSpeedsFromDOM = function() {
 };
 
 window._saveExtraSpeedFull = async function() {
+  const charId = state.characterId;
+  if (!charId) return;
   const extras = window._getExtraSpeedsFromDOM();
-  await window._saveProfileField('extraSpeeds', JSON.stringify(extras));
+  await api.patchPlayerProfile(charId, { extraSpeeds: JSON.stringify(extras) }).catch(e => console.warn('extraSpeeds opslaan mislukt', e));
 };
 
 window._addExtraSpeed = async function() {
+  const charId = state.characterId;
+  if (!charId) return;
   const extras = window._getExtraSpeedsFromDOM();
   const used = new Set(extras.map(e => e.label));
   const next = ['Swim','Fly','Climb','Burrow','Hover'].find(t => !used.has(t)) || 'Swim';
   extras.push({ label: next, value: '' });
-  await window._saveProfileField('extraSpeeds', JSON.stringify(extras));
+  await api.patchPlayerProfile(charId, { extraSpeeds: JSON.stringify(extras) }).catch(e => console.warn('extraSpeeds opslaan mislukt', e));
   window.app.refreshSection('mijn-karakter');
 };
 
 window._removeExtraSpeed = async function(idx) {
+  const charId = state.characterId;
+  if (!charId) return;
   const extras = window._getExtraSpeedsFromDOM();
   extras.splice(idx, 1);
-  await window._saveProfileField('extraSpeeds', JSON.stringify(extras));
+  await api.patchPlayerProfile(charId, { extraSpeeds: JSON.stringify(extras) }).catch(e => console.warn('extraSpeeds opslaan mislukt', e));
   window.app.refreshSection('mijn-karakter');
 };
 
@@ -7987,9 +8280,12 @@ async function renderGock() {
   el.innerHTML = `
     <div class="herberg-scene gock-scene" ${backdrop}>
       <div class="herberg-content">
+        <div class="dienst-beurs-topbar">
+          ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
+          ${_helpBtn('gock')}
+        </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         <p class="herberg-groet">${esc(config.naam)} kijkt op van zijn bureau en trekt een wenkbrauw op.</p>
-        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
         <p class="ts-beurs">Vooruitbetaling: <strong>${prijsTekst(config.prijs)}</strong> · Resultaat binnen 24 uur</p>
 
         ${heeftKlaarZaak ? `
@@ -8063,6 +8359,22 @@ window._gockOpgehaald = async () => {
   await renderGock();
 };
 
+window._magizooFilter = (q) => {
+  const lijst = document.getElementById('magizoo-lijst');
+  const hint  = document.getElementById('magizoo-hint');
+  if (!lijst) return;
+  const s = q.trim().toLowerCase();
+  if (!s) {
+    lijst.querySelectorAll('.magizoo-item').forEach(el => { el.style.display = 'none'; });
+    if (hint) hint.style.display = '';
+    return;
+  }
+  if (hint) hint.style.display = 'none';
+  lijst.querySelectorAll('.magizoo-item').forEach(el => {
+    el.style.display = el.dataset.naam.includes(s) ? '' : 'none';
+  });
+};
+
 // ── De Magizoöloog ───────────────────────────────────────────────────────────
 // Onderzoekt monsters die de party al kent (≥ naam). Per onderzoek één trede
 // omhoog (naam→deels + roddel → volledig) of premium direct naar volledig.
@@ -8111,9 +8423,12 @@ async function renderMagizoo() {
   el.innerHTML = `
     <div class="herberg-scene magizoo-scene" ${backdrop}>
       <div class="herberg-content">
+        <div class="dienst-beurs-topbar">
+          ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${_magizooBeurs(currency)}</strong></span>` : ''}
+          ${_helpBtn('magizoo')}
+        </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         <p class="herberg-groet">${config.groet ? esc(config.groet) : `${esc(config.naam)} kijkt op van een kooi en veegt een inktvlek van zijn notitieboek.`}</p>
-        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${_magizooBeurs(currency)}</strong></p>` : ''}
         <p class="ts-beurs">Onderzoek: <strong>${_magizooPrijs(config.prijs)}</strong> per trede · Volledig ineens: <strong>${_magizooPrijs(config.prijsVolledig)}</strong></p>
 
         ${cooldownActief ? `<div class="gock-lopend"><p class="herberg-cooldown-tekst">${icon('paw-print')} ${cooldownTekst}</p></div>` : ''}
@@ -8124,21 +8439,24 @@ async function renderMagizoo() {
           ? `<p class="herberg-cooldown-tekst">De party kent nog geen wezens om te laten onderzoeken. Kom terug nadat je iets bent tegengekomen.</p>`
           : `<div class="herberg-zoek-wrap">
               <p class="herberg-teller">Welk wezen wil je laten onderzoeken?</p>
-              <div class="herberg-lijst magizoo-lijst">
-                ${monsters.map(m => _magizooItem(m, cooldownActief)).join('')}
+              <input type="text" class="herberg-zoek-input" placeholder="Typ een naam…"
+                oninput="window._magizooFilter(this.value)"
+                id="magizoo-zoek" autocomplete="off">
+              <p class="herberg-zoek-hint" id="magizoo-hint">Begin met typen om te zoeken.</p>
+              <div class="herberg-lijst magizoo-lijst" id="magizoo-lijst">
+                ${monsters.map(m => `<div class="magizoo-item" data-naam="${esc(m.name.toLowerCase())}" style="display:none">${_magizooItemBody(m, cooldownActief)}</div>`).join('')}
               </div>
             </div>`}
       </div>
     </div>`;
 }
 
-function _magizooItem(m, cooldownActief) {
+function _magizooItemBody(m, cooldownActief) {
   const klaar = m.niveau === 'volledig';
   const nivLabel = _MAGIZOO_NIV_LABEL[m.niveau] || '—';
   const volgendeLabel = m.volgende ? _MAGIZOO_NIV_LABEL[m.volgende] : null;
   const disabled = cooldownActief || klaar;
   return `
-    <div class="magizoo-item">
       <div class="magizoo-item-head">
         <span class="herberg-item-naam">${esc(m.name)}</span>
         <span class="magizoo-item-tier magizoo-tier--${m.niveau}">${nivLabel}</span>
@@ -8155,8 +8473,7 @@ function _magizooItem(m, cooldownActief) {
                   onclick="window._magizooOnderzoek('${esc(m.id)}','volledig')">
                   Volledig ineens</button>`
               : ''}
-          </div>`}
-    </div>`;
+          </div>`}`;
 }
 
 window._magizooOnderzoek = async (monsterId, modus) => {
@@ -8249,7 +8566,6 @@ async function renderUrsula() {
   } else {
     body = `
       <p class="ts-beurs">Een blik op wat komen gaat — één worp per akte, voor de hele groep.</p>
-      ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
       <p class="ts-beurs">Offer: <strong>${prijsTekst(config.prijs)}</strong></p>
       <button class="ts-wedden-btn" style="margin-top:8px" onclick="window._ursulaVoorspel()">${icon('sparkles')} Werp de d6 — vraag de voorspelling</button>`;
   }
@@ -8257,6 +8573,10 @@ async function renderUrsula() {
   el.innerHTML = `
     <div class="herberg-scene gock-scene" ${backdrop}>
       <div class="herberg-content">
+        <div class="dienst-beurs-topbar">
+          ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
+          ${_helpBtn('ursula')}
+        </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         <p class="herberg-groet">${groet}</p>
         ${body}
@@ -8299,7 +8619,7 @@ async function renderTempel() {
 
   if (activeGod) {
     // ── VIEW 2: Temple interior ────────────────────────────────────────────
-    _renderTempelInterior(el, activeGod, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst);
+    _renderTempelInterior(el, activeGod, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst, personages);
   } else {
     // ── VIEW 1: God list ──────────────────────────────────────────────────
     _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst, _godPortraitMap);
@@ -8329,9 +8649,13 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
   el.innerHTML = `
     <div class="herberg-scene tempel-scene-list" ${backdrop}>
       <div class="herberg-content">
-        <p class="herberg-groet">${esc(config.naam || 'De Tempel')}</p>
-        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
-        ${statusBlokken.length ? `<div class="tempel-status-chips">${statusBlokken.join('')}</div>` : ''}
+        <div class="tempel-list-topbar">
+          ${statusBlokken.length ? `<div class="tempel-status-chips">${statusBlokken.join('')}</div>` : '<div></div>'}
+          <div style="display:flex;align-items:center;gap:8px">
+            ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
+            ${_helpBtn('tempel')}
+          </div>
+        </div>
         ${goden.length === 0
           ? `<p class="herberg-cooldown-tekst">Er zijn nog geen goden bekend in deze tempel.</p>`
           : `<div class="tempel-goden-grid">
@@ -8358,7 +8682,7 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
     </div>`;
 }
 
-function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst) {
+function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency, beursTekst, prijsTekst, personages = []) {
   // Sla god + config op voor de cinema (voorkomt lange inline onclick-strings)
   window._tempelCinemaGod    = g;
   window._tempelCinemaConfig = config;
@@ -8370,47 +8694,59 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
   const backdropFileId  = g.backdropId   || g.locatieEntityId  || null;
   const priestFileId    = g.priestImageId || g.priesterEntityId || null;
   const backdrop    = backdropFileId ? `style="background-image:url('${api.fileUrl(backdropFileId)}')"` : '';
+  const priesterEntityId = g.priesterEntityId || null;
+  const priesterNaam = priesterEntityId
+    ? (personages.find(p => p.id === priesterEntityId)?.name || '')
+    : '';
+  const portretClick = priesterEntityId
+    ? `onclick="window._openDetail('personages','${esc(priesterEntityId)}')" style="cursor:pointer" title="Bekijk kaartje"`
+    : '';
   const portret     = priestFileId
-    ? `<img src="${api.fileUrl(priestFileId)}" class="herberg-portrait-round" alt="Priester" onerror="this.style.display='none'">`
-    : `<div class="herberg-portrait-round herberg-portrait-fallback">${icon('church')}</div>`;
+    ? `<img src="${api.fileUrl(priestFileId)}" class="herberg-portrait-round" alt="Priester" onerror="this.style.display='none'" ${portretClick}>`
+    : `<div class="herberg-portrait-round herberg-portrait-fallback" ${portretClick}>${icon('church')}</div>`;
 
   el.innerHTML = `
     <div class="herberg-scene gock-scene" ${backdrop}>
       <div class="herberg-content">
-        <button class="tempel-terug-btn" onclick="window._tempelTerugNaarLijst()">${icon('chevron-left')} Terug</button>
+        <div class="tempel-interior-topbar">
+          <button class="tempel-terug-btn" onclick="window._tempelTerugNaarLijst()">${icon('chevron-left')} Terug</button>
+          <div style="display:flex;align-items:center;gap:8px">
+            ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
+            ${_helpBtn('tempel')}
+          </div>
+        </div>
         <div class="herberg-portrait-wrap">${portret}</div>
+        ${priesterNaam ? `<p class="tempel-priester-naam">${esc(priesterNaam)}</p>` : ''}
         <p class="herberg-groet">${esc(g.priesterGreet || 'Welkom, pelgrim. Waarvoor bent u hier?')}</p>
-        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
 
-        ${huidigeEed ? `
-          <div class="gock-dossier"${isVloek ? ' style="border-color:rgba(150,40,40,0.6)"' : ''}>
-            <div class="gock-dossier-head">${isVloek ? icon('skull') + ' Vloek' : icon('scroll-text') + ' Jouw eed'}</div>
-            <p class="gock-dossier-tekst">${esc(huidigeEed.name)}${huidigeEed.note ? ' — ' + esc(huidigeEed.note) : ''}</p>
-            ${isVloek
-              ? `<button class="ts-wedden-btn" style="margin-top:6px" onclick="window._tempelBoete()">${icon('sparkles')} Doe boete (${esc(prijsTekst(config.boetePrijs))}) — hef de vloek op</button>`
-              : `<p class="ts-beurs">Een blijvende eed (overleeft een lange rust). Verzaak je 'm, dan roept ${esc(huidigeEed.godNaam || 'de god')} een vloek over je af.</p>`}
+        ${huidigeEed && isVloek ? `
+          <div class="tempel-zegen-actief tempel-vloek-actief">
+            ${icon('skull')} Vloek van <em>${esc(huidigeEed.godNaam || '')}</em>
+            ${huidigeEed.entityId
+              ? ` · <button class="tempel-zegen-link" onclick="window._openDetail('${esc(huidigeEed.entityType||'voorwerpen')}','${esc(huidigeEed.entityId)}')">${icon('scroll-text')} bekijk vloek</button>`
+              : ''}
+          </div>
+          <button class="ts-wedden-btn" style="margin-bottom:8px" onclick="window._tempelBoete()">${icon('sparkles')} Doe boete (${esc(prijsTekst(config.boetePrijs))}) — hef de vloek op</button>
+        ` : huidigeEed ? `
+          <div class="tempel-zegen-actief">
+            ${icon('scroll-text')} Eed aan <em>${esc(huidigeEed.godNaam || '')}</em> actief
+            ${huidigeEed.entityId
+              ? ` · <button class="tempel-zegen-link" onclick="window._openDetail('${esc(huidigeEed.entityType||'voorwerpen')}','${esc(huidigeEed.entityId)}')">${icon('scroll-text')} bekijk eed</button>`
+              : ''}
           </div>` : ''}
-
         ${huidigeZegen ? `
-          <div class="gock-dossier">
-            <div class="gock-dossier-head">${icon('sparkles')} Jouw zegening</div>
-            <p class="gock-dossier-tekst">${esc(huidigeZegen.name)}${huidigeZegen.note ? ' — ' + esc(huidigeZegen.note) : ''}</p>
-            ${huidigeZegen.kind === 'eenmalig' && huidigeZegen.usesMax ? `
-              <div class="tempel-charges" style="display:flex;align-items:center;gap:6px;margin:6px 0;flex-wrap:wrap">
-                ${Array.from({ length: huidigeZegen.usesMax }).map((_, i) =>
-                  `<span class="spell-slot-dot${i < (huidigeZegen.uses || 0) ? '' : ' used'}" style="cursor:default"></span>`).join('')}
-                <span class="ts-beurs" style="margin:0">${huidigeZegen.uses || 0}/${huidigeZegen.usesMax} over</span>
-                <button class="ts-wedden-btn" style="margin-left:6px;padding:2px 10px" onclick="window._tempelVerbruik()" ${(huidigeZegen.uses || 0) <= 0 ? 'disabled' : ''}>${icon('check')} Gebruik</button>
-              </div>` : ''}
-            <p class="ts-beurs">Je kunt maar één zegening tegelijk dragen; opnieuw bidden vervangt deze.</p>
+          <div class="tempel-zegen-actief">
+            ${icon('sparkles')} Zegening van <em>${esc(huidigeZegen.godNaam || '')}</em> actief
+            ${huidigeZegen.entityId
+              ? ` · <button class="tempel-zegen-link" onclick="window._openDetail('voorwerpen','${esc(huidigeZegen.entityId)}')">${icon('sparkles')} bekijk zegening</button>`
+              : ''}
           </div>` : ''}
 
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
-          <button class="ts-wedden-btn" onclick="window._tempelEedCinema()"
-            ${eedGebonden ? 'disabled' : ''}
-            title="${eedGebonden ? 'Je bent al door een eed gebonden' : 'Leg een blijvende eed af'}">
-            ${icon('scroll-text')} Eed afleggen${g.zegen ? ': ' + esc(g.zegen) : ''} · ${esc(prijsTekst(config.eedPrijs))}
-          </button>
+          ${!eedGebonden ? `
+          <button class="ts-wedden-btn" onclick="window._tempelEedCinema()">
+            ${icon('scroll-text')} Eed afleggen · ${esc(prijsTekst(config.eedPrijs))}
+          </button>` : ''}
           ${eenmalig.length ? `
           <button class="ts-wedden-btn" onclick="window._tempelKies('${esc(g.id)}','${esc(g.naam)}')">
             ${icon('dice')} Zegening (d${eenmalig.length}) · ${esc(prijsTekst((g.prijs && g.prijs.fl) ? g.prijs : config.prijs))}
@@ -8435,11 +8771,7 @@ window._tempelKies = async (godId, godNaam) => {
   try {
     const r = await api.tempelZegen({ godId });
     await renderTempel();
-    if (r.rolls) {
-      _tsToast(`${icon('dice')} d${r.rolls.zegenAantal}=${r.rolls.zegenRoll} → ${r.item.zegenEffect} (${r.rolls.usesRoll}× te gebruiken)`);
-    } else {
-      _tsToast(`${icon('sparkles')} Zegening ontvangen. Zie je knapzak.`);
-    }
+    _tsToast(`${icon('sparkles')} Zegening ${esc(r.item?.naam || r.item?.name || '')} ontvangen.`);
   } catch (err) {
     _tsToast(err.message || 'Het offer werd niet aanvaard.');
   }
@@ -8611,12 +8943,12 @@ async function renderHeeren() {
   el.innerHTML = `
     <div class="herberg-scene gock-scene" ${backdrop}>
       <div class="herberg-content">
+        ${currency ? `<div class="dienst-beurs-topbar"><span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span></div>` : ''}
         <div class="herberg-portrait-wrap">${portret}</div>
         <p class="herberg-groet">${esc(config.naam)} — "Werk zat, als je vingers los zitten."</p>
         <p class="ts-beurs">Aanzien: <strong>${esc(rang.naam)}</strong> (${rang.index + 1}/${rang.aantal})</p>
         ${rang.voordelen ? `<p class="herberg-item-type" style="opacity:.85">Voordelen: ${esc(rang.voordelen)}</p>` : ''}
         ${rang.volgende ? `<p class="herberg-item-type" style="opacity:.5;font-size:.8em">Volgende — ${esc(rang.volgende.naam)}${rang.volgende.voordelen ? ': ' + esc(rang.volgende.voordelen) : ''}</p>` : ''}
-        ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
         ${boetesHtml}
         <div class="herberg-lijst">${jobsHtml}</div>
       </div>
@@ -8767,10 +9099,13 @@ async function renderTweespalt() {
   el.innerHTML = `
     <div class="herberg-scene tweespalt-scene" ${tsBackdrop}>
       <div class="herberg-content ts-content">
+        <div class="dienst-beurs-topbar">
+          ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
+          ${_helpBtn('tweespalt')}
+        </div>
         <div class="herberg-portrait-wrap">${tsPortret}</div>
         <div>
           <p class="herberg-groet">Welkom bij ${esc(config.naam || 'De Tweespalt')}. Korporaal Standhall knikt je toe.</p>
-          ${currency ? `<p class="ts-beurs">Jouw beurs: <strong>${beursTekst(currency)}</strong></p>` : ''}
         </div>
 
         ${leningBanner}
@@ -8876,6 +9211,758 @@ function _tsTaevinPrompt(eventId, optieId, tekortCl) {
       _tsToast(err.message || 'Fout.');
     }
   });
+}
+
+// ── Facties & Aanzien (speler-sectie) ──────────────────────────────────────
+
+const _FACTIE_ICON_SET_APP = new Set(['landmark','tree-pine','hexagon','crossed-swords','shield','moon','star','castle','heart','users','globe','mountain','scroll-text','coins','sword','swords','zap']);
+
+let _factieActiveId   = null;
+let _factieData       = null;  // gecachete API-response
+let _factieMissieData = null;
+
+async function renderFacties() {
+  const el = document.getElementById('section-facties');
+  if (!el) return;
+
+  let data, missieData;
+  try { data = await api.getFacties(); }
+  catch {
+    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-groet">Facties konden niet geladen worden.</p></div></div>`;
+    return;
+  }
+  // Haal quests op; factie-missies zijn quests met een factieId
+  let allQuests = [];
+  try { allQuests = await api.listQuests(); } catch {}
+  const missies = allQuests.filter(q => q.factieId);
+  _factieData       = data;
+  _factieMissieData = { missies };
+
+  if (_factieActiveId) {
+    const actief = data.facties?.find(f => f.id === _factieActiveId);
+    if (actief) { _renderFactieInterieur(el, actief, missieData.missies || []); return; }
+    _factieActiveId = null;
+  }
+
+  const { facties } = data;
+  const zichtbaar = window.app.isDM() ? facties : facties.filter(f => f.zichtbaar);
+
+  if (!zichtbaar.length) {
+    el.innerHTML = `<div class="herberg-scene" style="justify-content:center;align-items:center;min-height:200px"><div class="herberg-content" style="text-align:center"><p class="herberg-groet" style="margin:0">${icon('landmark')} Nog geen facties onthuld.</p></div></div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="factie-sectie">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:4px">${_helpBtn('facties')}</div>
+      <div class="factie-grid">
+        ${zichtbaar.map(f => _renderFactieKaart(f)).join('')}
+      </div>
+    </div>`;
+}
+
+function _renderFactieInterieur(el, f, missies) {
+  const backdrop = f.locatieEntityId ? `style="background-image:url('${api.fileUrl(f.locatieEntityId)}')"` : '';
+  const stijl    = (f.stijl || '').replace(/[^a-z]/gi,'').toLowerCase();
+
+  // Dag/nacht NPC: npcEntityIdDag = 06:00–18:00, npcEntityId = 18:00–06:00
+  const _uur    = new Date().getHours();
+  const _isNacht = _uur < 6 || _uur >= 18;
+  const actieveNpcId = (f.npcEntityIdDag && !_isNacht) ? f.npcEntityIdDag : (f.npcEntityId || null);
+  const portretUrl   = actieveNpcId ? api.fileUrl(actieveNpcId) : null;
+  const npcNaam      = f._npcNaam || '';
+
+  const portret = portretUrl
+    ? `<img src="${portretUrl}" class="herberg-portrait-round factie-portret-klikbaar" alt="${esc(f.naam)}"
+         onclick="window._openDetail('personages','${esc(actieveNpcId)}')"
+         title="Bekijk kaartje" onerror="this.outerHTML='<div class=\\'herberg-portrait-round herberg-portrait-fallback\\'>${icon('users').replace(/'/g,"\\'")}</div>'">`
+    : `<div class="herberg-portrait-round herberg-portrait-fallback">${icon('users')}</div>`;
+
+  const ladder = f.ladder || [];
+  const verworven = ladder.filter(r => r.bereikt && r.index > 0).flatMap(r => r.boons || []);
+  const isMax = !f.drempelVolgende;
+  const pct = isMax ? 100 : Math.min(100, Math.round(((f.renown || 0) / f.drempelVolgende) * 100));
+  const nextRang = ladder.find(r => !r.bereikt);
+
+  const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
+  const currency = window._lastCurrency;   // gevuld bij renderen spelerstabblad
+
+  // Quest-statussen: 'actief' = beschikbaar voor spelers, 'aangevraagd' = wacht op DM, 'in-uitvoering' = actief
+  const beschikbaar = missies.filter(m => m.factieId === f.id && m.status === 'actief');
+  const aangevraagd = missies.filter(m => m.factieId === f.id && m.status === 'aangevraagd');
+  const actief      = missies.filter(m => m.factieId === f.id && m.status === 'in-uitvoering');
+  // Party kan max. 1 actieve missie per factie hebben
+  const heeftActief = aangevraagd.length > 0 || actief.length > 0;
+
+  const _missieHtml = (m, type) => {
+    const renownPill = m.renownBeloning ? `<span class="factie-missie-renown">+${m.renownBeloning} renown</span>` : '';
+    const _valutaCl  = (v) => ((v?.fl||0)*100) + ((v?.kn||0)*10) + (v?.cl||0);
+    const valutaPill = m.valuta && _valutaCl(m.valuta) > 0 ? `<span class="factie-missie-valuta">${beursTekst(m.valuta)}</span>` : '';
+    const actieHtml  = type === 'beschikbaar'
+      ? heeftActief
+        ? `<span class="factie-missie-status-chip" title="Rond eerst de actieve missie af">${icon('lock')} Al een missie actief</span>`
+        : `<button class="ts-wedden-btn factie-missie-btn" onclick="window._factieAccepteer('${esc(m.id)}','${esc(m.title||m.titel||'')}')">${icon('check')} Accepteer</button>`
+      : type === 'aangevraagd'
+        ? `<span class="factie-missie-status-chip">${icon('clock')} Wacht op DM-goedkeuring</span>`
+        : `<span class="factie-missie-status-chip factie-missie-status-chip--actief">${icon('swords')} Actief</span>`;
+    return `<div class="factie-missie${stijl ? ' factie-missie--' + stijl : ''}">
+      <div class="factie-missie-header">
+        <span class="factie-missie-titel">${esc(m.title || m.titel || '')}</span>
+        <div class="factie-missie-pills">${renownPill}${valutaPill}</div>
+      </div>
+      ${(m.description||m.tekst) ? `<p class="factie-missie-tekst">${esc(m.description||m.tekst)}</p>` : ''}
+      ${actieHtml}
+    </div>`;
+  };
+
+  el.innerHTML = `
+    <div class="herberg-scene gock-scene factie-interieur-scene${stijl ? ' factie-scene--' + stijl : ''}" ${backdrop}>
+      <div class="herberg-content">
+        <div class="tempel-interior-topbar">
+          <button class="tempel-terug-btn" onclick="window._factieTerugNaarLijst()">${icon('chevron-left')} Terug</button>
+          <div style="display:flex;align-items:center;gap:8px">
+            ${currency ? `<span class="ts-beurs tempel-beurs-top">Beurs: <strong>${beursTekst(currency)}</strong></span>` : ''}
+            ${_helpBtn('facties')}
+          </div>
+        </div>
+        <div class="herberg-portrait-wrap">${portret}</div>
+        ${npcNaam ? `<p class="tempel-priester-naam">${esc(npcNaam)}</p>` : ''}
+        <p class="herberg-groet">${esc(f.npcGreet || `Welkom bij ${f.naam}.`)}</p>
+
+        <div class="factie-interieur-rang">
+          <span class="factie-rang-chip${stijl ? ' factie-rang-chip--' + stijl : ''}">${icon(f.embleem || 'landmark')} ${esc(f.rang?.naam || 'Buitenstaander')}</span>
+          <div class="factie-progress-wrap factie-progress-wrap--interieur">
+            <div class="factie-progress-bar" style="width:${pct}%"></div>
+          </div>
+          <span class="factie-progress-label">${isMax ? 'Max aanzien bereikt' : `${f.renown || 0} / ${f.drempelVolgende} renown`}${nextRang ? ` — volgende: <strong>${esc(nextRang.naam)}</strong>` : ''}</span>
+        </div>
+
+        ${verworven.length ? `
+        <div class="factie-boons factie-boons--interieur">
+          ${verworven.map(b => b.entityId
+            ? `<button class="factie-boon-chip factie-boon-chip--link" onclick="window._openDetail('${esc(b.entityType||'voorwerpen')}','${esc(b.entityId)}')">${esc(b.naam)} ${icon('open-book')}</button>`
+            : `<span class="factie-boon-chip">${esc(b.naam)}</span>`
+          ).join('')}
+        </div>` : ''}
+
+        ${beschikbaar.length || actief.length || aangevraagd.length ? `
+        <div class="factie-missies-sectie">
+          <div class="factie-missies-label">${icon('scroll-text')} Missies</div>
+          ${[...beschikbaar.map(m => _missieHtml(m,'beschikbaar')),
+             ...aangevraagd.map(m => _missieHtml(m,'aangevraagd')),
+             ...actief.map(m => _missieHtml(m,'actief'))].join('')}
+        </div>` : ''}
+      </div>
+    </div>`;
+
+  // NPC-naam asynchroon ophalen als nog niet bekend
+  if (actieveNpcId && !npcNaam) {
+    api.listEntities('personages').then(list => {
+      const npc = list.find(p => p.id === actieveNpcId);
+      if (npc) {
+        const nameEl = el.querySelector('.tempel-priester-naam');
+        if (nameEl) nameEl.textContent = npc.name;
+        else {
+          const groet = el.querySelector('.herberg-groet');
+          if (groet) groet.insertAdjacentHTML('beforebegin', `<p class="tempel-priester-naam">${esc(npc.name)}</p>`);
+        }
+      }
+    }).catch(() => {});
+  }
+}
+
+window._factieOpen = (id) => { _factieActiveId = id; renderFacties(); };
+window._factieTerugNaarLijst = () => { _factieActiveId = null; renderFacties(); };
+
+window._factieAccepteer = async (id, titel) => {
+  if (!confirm(`Missie "${titel}" aanvragen? De DM moet dit goedkeuren.`)) return;
+  try {
+    await api.missieAccepteer(id);
+    _tsToast(`${icon('scroll-text')} Aanvraag ingediend — wacht op DM-goedkeuring.`);
+    await renderFacties();
+  } catch (err) {
+    _tsToast(err.message || 'Aanvraag mislukt.');
+  }
+};
+
+function _renderFactieKaart(f) {
+  const embIcon = _FACTIE_ICON_SET_APP.has(f.embleem) ? icon(f.embleem) : icon('landmark');
+  const stijl = (f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase();
+  const isMax = !f.drempelVolgende;
+  const pct = isMax ? 100 : Math.min(100, Math.round(((f.renown || 0) / f.drempelVolgende) * 100));
+  const ladder = f.ladder || [];
+  const verworven = ladder.filter(r => r.bereikt && r.index > 0).flatMap(r => r.boons || []);
+  const nextRang = ladder.find(r => !r.bereikt);
+  const rangIdx = f.rang?.index ?? 0;
+
+  return `
+  <div class="factie-kaart${stijl ? ' factie-kaart--' + stijl : ''}" onclick="window._factieOpen('${esc(f.id)}')" style="cursor:pointer">
+    <div class="factie-kaart-header">
+      <span class="factie-kaart-embleem">${embIcon}</span>
+      <div class="factie-kaart-titels">
+        <span class="factie-kaart-naam">${esc(f.naam)}</span>
+        <span class="factie-kaart-rang">${esc(f.rang?.naam || 'Buitenstaander')}</span>
+      </div>
+      ${f.entityId ? `<button class="factie-kaart-link" onclick="event.stopPropagation();window._openDetail('organisaties','${esc(f.entityId)}')" title="Bekijk organisatiekaartje">${icon('open-book')}</button>` : ''}
+    </div>
+    ${rangIdx > 0 ? `
+    <div class="factie-kaart-body">
+      ${f.rang?.voordelen ? `<p class="factie-voordelen">${esc(f.rang.voordelen)}</p>` : ''}
+      <div class="factie-progress-wrap">
+        <div class="factie-progress-bar" style="width:${pct}%"></div>
+      </div>
+      <div class="factie-progress-label">
+        ${isMax ? 'Max aanzien bereikt' : `${f.renown || 0} / ${f.drempelVolgende} renown`}${nextRang ? ` — volgende: <strong>${esc(nextRang.naam)}</strong>` : ''}
+      </div>
+      ${verworven.length ? `
+      <div class="factie-boons">
+        ${verworven.map(b => b.entityId
+          ? `<button class="factie-boon-chip factie-boon-chip--link" onclick="window._openDetail('${esc(b.entityType||'voorwerpen')}','${esc(b.entityId)}')" title="${esc(b.tekst || 'Bekijk kaartje')}">${esc(b.naam)} ${icon('open-book')}</button>`
+          : `<span class="factie-boon-chip" title="${esc(b.tekst || '')}">${esc(b.naam)}</span>`
+        ).join('')}
+      </div>` : ''}
+    </div>` : `
+    <div class="factie-kaart-body">
+      <p class="factie-kaart-onbekend">Je kent deze factie, maar hebt nog geen aanzien opgebouwd.</p>
+      ${nextRang ? `<p class="factie-progress-label">Eerste rang: <strong>${esc(nextRang.naam)}</strong> (${f.drempelVolgende ?? 1} renown)</p>` : ''}
+    </div>`}
+  </div>`;
+}
+
+function showMissieAanvraagToast({ missieId, titel, door, factieId }) {
+  // DM-specifieke toast met goedkeur/weiger-knoppen
+  const existing = document.getElementById('missie-aanvraag-toast-' + missieId);
+  if (existing) return;
+  const t = document.createElement('div');
+  t.id = 'missie-aanvraag-toast-' + missieId;
+  t.className = 'map-toast missie-aanvraag-toast';
+  t.innerHTML = `
+    <div style="margin-bottom:6px">${icon('scroll-text')} <strong>${esc(door)}</strong> vraagt missie aan:<br><em>${esc(titel)}</em></div>
+    <div style="display:flex;gap:8px">
+      <button class="ts-wedden-btn" style="padding:3px 10px;font-size:0.8rem" onclick="window._dmMissieGoedkeuren('${esc(missieId)}','${esc(titel)}',this.closest('.missie-aanvraag-toast'))">${icon('check')} Goedkeuren</button>
+      <button class="ts-wedden-btn" style="padding:3px 10px;font-size:0.8rem;opacity:0.7" onclick="this.closest('.missie-aanvraag-toast').remove()">${icon('x')} Negeer</button>
+    </div>`;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('map-toast--show'));
+  // Geen auto-verwijder — DM moet actie ondernemen
+}
+
+window._dmMissieGoedkeuren = async (id, titel, toastEl) => {
+  try {
+    await api.missieGoedkeuren(id);
+    _tsToast(`${icon('check-circle')} Missie <strong>${esc(titel)}</strong> goedgekeurd.`);
+    toastEl?.remove();
+  } catch (err) {
+    _tsToast(err.message || 'Goedkeuren mislukt.');
+  }
+};
+
+// ── Help-systeem ─────────────────────────────────────────────────────────────
+
+const HELP_CONFIG = {
+  tempel: () => {
+    const naam = window.app?.state?.meta?.tempel?.naam || 'De Tempel';
+    return {
+      titel: naam,
+      stappen: [
+        {
+          titel: naam,
+          tekst: `${naam} is de plek waar je de goden van Grisburgh kunt bezoeken. Elke god heeft een eigen priester, een eigen domein en eigen gunsten. Bezoeken kost goud — maar de zegeningen en eden die je ontvangt, kunnen je lot in gevecht bepalen.`,
+          afbeelding: null,
+        },
+        {
+          titel: 'Zegeningen',
+          tekst: 'Een zegening is een tijdelijk voordeel van een god. Je rolt een dobbelworp en ontvangt één van de eenmalige zegens van die god — elk met een ander effect. Je kunt maar één zegening tegelijk dragen. Ontvang je een nieuwe, dan verdwijnt de oude. Gebruik je hem op, dan is hij weg tot je een nieuwe koopt.',
+          afbeelding: null,
+        },
+        {
+          titel: 'Eden & Vloeken',
+          tekst: 'Een eed is een permanente verbintenis met een god. Je ontvangt een blijvende bonus (bijv. STR +1), maar als je de eed verzaakt krijg je een vloek. Een vloek kun je afkopen door boete te doen in de tempel. Je kunt maar één eed tegelijk dragen.',
+          afbeelding: null,
+        },
+      ],
+    };
+  },
+
+  facties: () => ({
+    titel: 'Facties & Aanzien',
+    stappen: [
+      {
+        titel: 'Facties & Aanzien',
+        tekst: 'Facties zijn organisaties in Grisburgh waarmee de party een band kan opbouwen. Door missies te voltooien bouw je renown op bij een factie. Hoe meer renown, hoe hoger je rang — en hoe meer voordelen je krijgt.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Rangen & Boons',
+        tekst: 'Elke factie heeft een rangstructuur. Als je genoeg renown hebt bereikt voor de volgende rang, ontvang je automatisch een boon — een permanent voordeel dat in je knapzak terechtkomt. Bekijk het kaartje voor de exacte werking.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Missies accepteren',
+        tekst: 'In het interieur van een factie staan beschikbare missies. Klik op "Accepteer" om een missie aan te vragen — de DM keurt dit goed of af. De party kan per factie maar één actieve missie tegelijk hebben.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Renown & beloning',
+        tekst: 'Als de DM een missie markeert als voltooid, ontvang je automatisch de renown-beloning. Bereik je daarmee een nieuwe rang, dan worden bijbehorende boons direct uitgedeeld. Een eventuele valuta-beloning gaat naar de groepskas of wordt eerlijk verdeeld.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
+  magizoo: () => {
+    const naam = window.app?.state?.meta?.magizoo?.naam || 'De Magizoöloog';
+    return {
+      titel: naam,
+      stappen: [
+        {
+          titel: naam,
+          tekst: `${naam} onderzoekt wezens die de party heeft ontmoet. Per onderzoek onthult hij een niveau meer over het wezen in je bestiarium — van naam naar deels naar volledig. Elk onderzoek kost goud en heeft een afkoeltijd.`,
+          afbeelding: null,
+        },
+        {
+          titel: 'Kennisniveaus & gevecht',
+          tekst: 'Naam — alleen de identiteit van het wezen. Deels — verdediging, ability scores, resistances en talen. Volledig — traits, actions en Challenge Rating. Hoe meer je weet, hoe beter je de HP-balk in gevecht kunt aflezen: bij deels/volledig zie je exacte HP.',
+          afbeelding: null,
+        },
+      ],
+    };
+  },
+
+  ursula: () => {
+    const naam = window.app?.state?.meta?.ursula?.naam || 'Madame Ursula';
+    return {
+      titel: naam,
+      stappen: [
+        {
+          titel: naam,
+          tekst: `${naam} leest de toekomst via de zintuigen van het lot. Eén keer per akte kan de groep een voorspelling vragen — de uitslag is voor iedereen tegelijk zichtbaar. De voorspelling is vaag en poëtisch, nooit een garantie.`,
+          afbeelding: null,
+        },
+        {
+          titel: 'De zintuigen',
+          tekst: 'Je kiest vijf zintuigen die je wilt bevragen: Zien, Horen, Ruiken, Proeven, Voelen. Ursula rolt een d6: op een 1–5 onthult ze één zintuig, op een 6 alle vijf. Welk zintuig ze kiest is aan het lot.',
+          afbeelding: null,
+        },
+      ],
+    };
+  },
+
+  progressie: () => ({
+    titel: 'Progressie',
+    stappen: [
+      {
+        titel: 'Jouw progressie',
+        tekst: 'Dit tabblad toont alle class features en abilities van je karakter, geordend per level. Vergrendelde levels (hoger dan je huidige level) zijn grijs weergegeven. Je kunt wisselen tussen tijdlijn- en kaartweergave.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Favorieten & keuzes',
+        tekst: 'Markeer een feature als favoriet door op ☆ te klikken — zo vind je hem snel terug. Bij keuze-features (zoals Ability Score Improvement) kun je je keuze noteren. Dit wordt opgeslagen en is zichtbaar op het kaartje.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
+  bestiarium: () => ({
+    titel: 'Bestiarium',
+    stappen: [
+      {
+        titel: 'Bestiarium',
+        tekst: 'Het bestiarium toont alle wezens die de party heeft ontmoet. Hoe meer je van een wezen weet, hoe meer info je ziet. De DM onthult wezens automatisch bij eerste contact — verdere kennis moet je verdienen.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Kennisniveaus',
+        tekst: 'Naam — je herkent het wezen maar weet verder niets. Deels — je kent de basisstats, wapenresistenties en zintuigen. Volledig — je kent alles: traits, actions en Challenge Rating. De Magizoöloog kan het niveau verhogen.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
+  gevecht: () => ({
+    titel: 'Gevecht',
+    stappen: [
+      {
+        titel: 'Gevechtsweergave',
+        tekst: 'Tijdens een gevecht zie je bovenaan de initiatiefvolgorde met wie er aan de beurt is. De actieve deelnemer is goudgekleurd gemarkeerd. Condities (vergiftigd, verblind, etc.) zijn zichtbaar als iconen naast de naam.',
+        afbeelding: null,
+      },
+      {
+        titel: 'HP-balken van vijanden',
+        tekst: 'Vijanden zonder bestiarium-kennis tonen een ruwe balk in drie segmenten: gezond, gewond, kritiek. Als je het wezen deels of volledig kent (via de Magizoöloog), zie je een nauwkeurige balk met exacte HP.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
+  spreukenboek: () => ({
+    titel: 'Spreukenboek',
+    stappen: [
+      {
+        titel: 'Spreukenboek',
+        tekst: 'Hier staan al je spreuken, geordend op level. Bovenaan zie je je Spell Save DC, spell attack bonus en beschikbare spell slots. Klik op een spreuk voor de volledige beschrijving.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Spell slots',
+        tekst: 'Je spell slots worden weergegeven als bolletjes per level. Een gevuld bolletje is beschikbaar, een leeg bolletje is verbruikt. Klik op een bolletje om het te markeren als verbruikt, of klik opnieuw om het terug te zetten. Slots herstellen na een lange rust.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Vastgepinde spreuken',
+        tekst: 'Veelgebruikte spreuken kun je vastpinnen via de ster (★) op het kaartje. Ze verschijnen dan ook als snelknoppen op het Party-tabblad, zodat je ze snel kunt raadplegen tijdens gevecht.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
+  knapzak: () => ({
+    titel: 'Boedel',
+    stappen: [
+      {
+        titel: 'Boedel & Knapzak',
+        tekst: 'Hier staan al je bezittingen: je beurs, jouw voorwerpen en de Zegeningen & Vloeken die je draagt. Scroll door de carrousel om al je voorwerpen te zien. Klik op een kaartje om het volledig te bekijken.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Charges & gebruik',
+        tekst: 'Sommige voorwerpen hebben charges (oplaadpunten). Klik op een bolletje om een charge te verbruiken. Wapens met schade tonen een klikbare pill — klik erop om het dobbelsteenpaneel te openen.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Zegeningen & Vloeken',
+        tekst: 'Je actieve zegening en eventuele vloek van een factie of tempel staan apart vermeld. Klik op "bekijk zegening" of "bekijk eed" om het bijbehorende voorwerpkaartje te openen.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
+  party: () => ({
+    titel: 'Party',
+    stappen: [
+      {
+        titel: 'Party-overzicht',
+        tekst: 'Dit tabblad toont de andere leden van jouw groep. Je kunt zien wie aanwezig is voor de sessie. Bovenaan staan eventuele ontdekkingen, inspiratie en de initiatiefvolgorde als er een gevecht actief is.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Vastgepinde spreuken & boons',
+        tekst: 'Als je spreuken of factie-boons hebt vastgepind, verschijnen ze hier als snelknoppen. Handig om snel een spreukbeschrijving te raadplegen tijdens een gevecht zonder door je spreukenboek te bladeren.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
+  personage: () => ({
+    titel: 'Mijn personage',
+    stappen: [
+      {
+        titel: 'Combat stats',
+        tekst: 'Hier stel je je gevechtswaarden in: AC, snelheid, initiative, proficiency bonus en hit die. Deze worden niet automatisch berekend — vul ze in vanuit je character sheet. Passive Perception wordt automatisch berekend vanuit je Wisdom modifier en proficiency.',
+        afbeelding: null,
+      },
+      {
+        titel: 'HP bijhouden',
+        tekst: 'Gebruik de + en − knoppen om HP bij te houden tijdens gevecht. Je kunt ook Temporary HP instellen. De waarden worden live gesynchroniseerd met de DM.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Ability Scores & Skills',
+        tekst: 'Je ability scores en skill proficiencies stel je in op dit tabblad. Modifiers worden automatisch berekend. Skill totalen combineren de modifier met je proficiency bonus als je het skill aangevinkt hebt.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
+  herberg: () => {
+    const naam = window.app?.state?.meta?.herberg?.naam || 'De Herberg';
+    return {
+      titel: naam,
+      stappen: [
+        {
+          titel: naam,
+          tekst: `Bij ${naam} kun je overnachten en rusten. Een lange rust herstelt je HP en spell slots volledig. Je kunt ook inkopen doen als er een voorraad beschikbaar is.`,
+          afbeelding: null,
+        },
+        {
+          titel: 'Lange rust',
+          tekst: 'Na een lange rust worden je HP en spell slots volledig hersteld. Ook je Hit Dice worden deels aangevuld (helft van je level, afgerond naar boven). De kosten voor een overnachting worden automatisch van je beurs afgeschreven.',
+          afbeelding: null,
+        },
+      ],
+    };
+  },
+
+  tweespalt: () => {
+    const naam = window.app?.state?.meta?.tweespalt?.naam || 'De Tweespalt';
+    return {
+      titel: naam,
+      stappen: [
+        {
+          titel: naam,
+          tekst: `Bij ${naam} kun je wedden op uitkomsten van events in de campagne. Kies een weddenschapsoptie, bepaal je inzet en bevestig. Als de uitkomst in jouw voordeel uitvalt, keert de DM de winst uit.`,
+          afbeelding: null,
+        },
+        {
+          titel: 'Leningen',
+          tekst: 'Als je goud tekortkomt kun je een lening afsluiten bij de bank. Let op: leningen hebben rente en moeten terugbetaald worden. Kom je niet na, dan volgen er consequenties.',
+          afbeelding: null,
+        },
+      ],
+    };
+  },
+
+  gock: () => {
+    const naam = window.app?.state?.meta?.gock?.naam || 'De Gock';
+    return {
+      titel: naam,
+      stappen: [
+        {
+          titel: naam,
+          tekst: `${naam} is een particulier onderzoeksbureau. Je kunt hem inhuren om een persoon, locatie of organisatie te onderzoeken. Na een sessie (24 uur) levert hij een rapport op dat in het archief verschijnt.`,
+          afbeelding: null,
+        },
+      ],
+    };
+  },
+
+  logboek: () => ({
+    titel: 'Logboek',
+    stappen: [
+      {
+        titel: 'Verslagen',
+        tekst: 'Hier staan de sessieverslagen van de campagne, aangevuld met notities van de DM. Je kunt door aktes bladeren via de navigatie bovenaan.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Missies (prikbord)',
+        tekst: 'Op het prikbord staan alle missies van de campagne, ingedeeld op status: Beschikbaar, In uitvoering, Voltooid en Mislukt. Klik op een missiekaartje voor de details.',
+        afbeelding: null,
+      },
+    ],
+  }),
+};
+
+// ── DM-panel HELP_CONFIG entries ──
+Object.assign(HELP_CONFIG, {
+  dm_gevecht: () => ({
+    titel: 'Gevecht & Monsters',
+    stappen: [
+      { titel: 'Initiative tracker', tekst: 'Voeg spelers en monsters toe aan het gevecht. Klik op "Start gevecht" om de initiative-ronde te beginnen. Het combat-scherm is zichtbaar voor alle spelers.', afbeelding: null },
+      { titel: 'HP beheren', tekst: 'Klik op het HP-getal van een combatant om schade of genezing toe te passen. Gebruik het schildicoon voor tijdelijke HP.', afbeelding: null },
+      { titel: 'Monsters toevoegen', tekst: 'Ga naar het subtabblad "Monsters" om monsters uit het bestiarium toe te voegen. Kies een encounter of voeg individuele monsters toe.', afbeelding: null },
+    ],
+  }),
+  dm_aktes: () => ({
+    titel: 'Aktes & Regie',
+    stappen: [
+      { titel: 'Aktes', tekst: 'Aktes zijn de verhaalscènes van je sessie. Maak een nieuwe akte aan via "+ Nieuwe akte" of importeer een Obsidian-hoofdstuk.', afbeelding: null },
+      { titel: 'Regie-balk', tekst: 'Speel een akte om de regie-balk te activeren. De regie-balk geeft je per stap inzicht in welke entiteiten, locaties en tekst relevant zijn.', afbeelding: null },
+      { titel: 'Onthullen', tekst: 'Klik op een entiteit of locatie in de regie-balk om deze te onthullen voor de spelers. Onthulde items worden zichtbaar in het archief.', afbeelding: null },
+    ],
+  }),
+  dm_geluiden: () => ({
+    titel: 'Geluiden & Sfeer',
+    stappen: [
+      { titel: 'Geluidsbibliotheek', tekst: 'Beheer hier de geluiden en sfeerloops voor je campagne. Klik op een geluid om het af te spelen voor alle spelers.', afbeelding: null },
+      { titel: 'Geluidsdecors', tekst: 'Geluidsdecors zijn achtergrondloops (wind, regen, herbergruis). Ze spelen automatisch door totdat je ze stopt.', afbeelding: null },
+    ],
+  }),
+  dm_spreuken: () => ({
+    titel: 'Spreukenbibliotheek',
+    stappen: [
+      { titel: 'Spreuken beheren', tekst: 'Zoek en bekijk spreukbeschrijvingen. Gebruik de filters om op niveau, school of klasse te filteren.', afbeelding: null },
+      { titel: 'Spellbron', tekst: 'De spellbron (2014 of 2024 PHB) stel je in via de campagne-instellingen. Dit bepaalt welke spreuklijst getoond wordt.', afbeelding: null },
+    ],
+  }),
+  dm_tafels: () => ({
+    titel: 'Willekeurstafels & Namen',
+    stappen: [
+      { titel: 'Willekeurstafels', tekst: 'Rol op een willekeurstafel om een resultaat te genereren. Gebruik dit voor random encounters, weersinvloeden, beloningen of namen.', afbeelding: null },
+      { titel: 'Namenlijsten', tekst: 'Genereer NPC-namen op basis van cultuur of origine. Klik op een naam om hem te kopiëren.', afbeelding: null },
+    ],
+  }),
+  dm_berichten: () => ({
+    titel: 'Berichten',
+    stappen: [
+      { titel: 'Berichten sturen', tekst: 'Stuur persoonlijke berichten naar individuele spelers. De speler ontvangt een notificatie en kan de brief lezen in zijn berichtentabblad.', afbeelding: null },
+      { titel: 'Geheime informatie', tekst: 'Gebruik berichten voor geheime informatie die alleen die speler mag weten — visioenen, dromen, geheime contacten.', afbeelding: null },
+    ],
+  }),
+  dm_herberg: () => ({
+    titel: 'Herberg (DM)',
+    stappen: [
+      { titel: 'Herberg beheren', tekst: 'Stel hier de beschikbare kamers en maaltijden in. Spelers kunnen vanuit hun scherm een kamer of maaltijd bestellen.', afbeelding: null },
+      { titel: 'Prijs en beschikbaarheid', tekst: 'Pas de prijs en beschikbaarheid per kamer aan. Uitgeschakelde items zijn niet zichtbaar voor spelers.', afbeelding: null },
+    ],
+  }),
+  dm_toegang: () => ({
+    titel: 'Toegang per groep',
+    stappen: [
+      { titel: 'Diensten per groep', tekst: 'Schakel hier per groep de zichtbaarheid van diensten in of uit. Verborgen diensten zijn onzichtbaar voor die groep.', afbeelding: null },
+    ],
+  }),
+});
+
+// Overschrijvingen vanuit de server (laden in init)
+let _helpOverrides = {};
+
+window._helpBtn = function _helpBtn(key, opts = {}) {
+  const cls = opts.cls || '';
+  const editBtn = window.app?.isDM?.()
+    ? `<button class="help-edit-btn" onclick="event.stopPropagation();window._openHelpEditor('${key}')" title="Help-tekst bewerken">${icon('pencil')}</button>`
+    : '';
+  return `<span class="help-btn-wrap">${editBtn}<button class="help-btn ${cls}" onclick="event.stopPropagation();window._openHelp('${key}')" title="Uitleg">${icon('book-open')}</button></span>`;
+}
+
+function _resolveHelp(key) {
+  const override = _helpOverrides[key];
+  if (override?.stappen?.length) return override;
+  const fn = HELP_CONFIG[key];
+  return fn ? fn() : null;
+}
+
+window._openHelp = (key) => {
+  document.getElementById('help-modal')?.remove();
+  const config = _resolveHelp(key);
+  if (!config) return;
+  _renderHelpModal(config, 0);
+};
+
+function _renderHelpModal(config, idx) {
+  document.getElementById('help-modal')?.remove();
+  const stap    = config.stappen[idx];
+  const totaal  = config.stappen.length;
+  const isFirst = idx === 0;
+  const isLast  = idx === totaal - 1;
+
+  const modal = document.createElement('div');
+  modal.id = 'help-modal';
+  modal.className = 'help-modal-overlay';
+  modal.innerHTML = `
+    <div class="help-modal" onclick="event.stopPropagation()">
+      <div class="help-modal-header">
+        <span class="help-modal-titel">${icon('book-open')} ${esc(config.titel)}</span>
+        <div class="help-modal-nav-info">
+          ${totaal > 1 ? `<span class="help-modal-stap">${idx + 1} / ${totaal}</span>` : ''}
+          <button class="help-modal-close" onclick="document.getElementById('help-modal').remove()">${icon('x')}</button>
+        </div>
+      </div>
+      ${stap.afbeelding ? `<img src="${esc(stap.afbeelding)}" class="help-modal-afbeelding" alt="">` : ''}
+      <div class="help-modal-body">
+        <div class="help-modal-stap-titel">${esc(stap.titel)}</div>
+        <p class="help-modal-tekst">${esc(stap.tekst)}</p>
+      </div>
+      ${totaal > 1 ? `
+      <div class="help-modal-footer">
+        <button class="help-modal-prev" onclick="window._helpStap(${idx - 1})" ${isFirst ? 'disabled' : ''}>${icon('chevron-left')} Vorige</button>
+        <div class="help-modal-dots">
+          ${config.stappen.map((_, i) => `<span class="help-modal-dot${i === idx ? ' help-modal-dot--actief' : ''}"></span>`).join('')}
+        </div>
+        <button class="help-modal-next" onclick="window._helpStap(${idx + 1})" ${isLast ? 'disabled' : ''}>Volgende ${icon('chevron-right')}</button>
+      </div>` : ''}
+    </div>`;
+  modal.addEventListener('click', () => modal.remove());
+  document.body.appendChild(modal);
+  window._helpModalConfig = config;
+}
+
+window._helpStap = (idx) => {
+  if (!window._helpModalConfig) return;
+  _renderHelpModal(window._helpModalConfig, idx);
+};
+
+// ── Help-editor (DM only) ──
+window._openHelpEditor = (key) => {
+  document.getElementById('help-editor-modal')?.remove();
+  const defaults = HELP_CONFIG[key]?.() || { titel: key, stappen: [{ titel: '', tekst: '' }] };
+  const current  = _helpOverrides[key] || defaults;
+
+  const modal = document.createElement('div');
+  modal.id = 'help-editor-modal';
+  modal.className = 'help-modal-overlay';
+
+  const renderEditor = (config) => {
+    modal.innerHTML = `
+      <div class="help-modal help-editor" onclick="event.stopPropagation()" style="max-width:520px">
+        <div class="help-modal-header">
+          <span class="help-modal-titel">${icon('pencil')} Help-tekst bewerken</span>
+          <button class="help-modal-close" onclick="document.getElementById('help-editor-modal').remove()">${icon('x')}</button>
+        </div>
+        <div class="help-editor-body">
+          <label class="help-editor-label">Titel</label>
+          <input id="he-titel" class="dm-input help-editor-input" value="${esc(config.titel)}">
+          <div id="he-stappen">
+            ${config.stappen.map((s, i) => `
+              <div class="he-stap" data-i="${i}">
+                <div class="he-stap-head">
+                  <span class="he-stap-nr">Stap ${i + 1}</span>
+                  ${config.stappen.length > 1 ? `<button class="help-editor-del-stap dm-btn dm-btn-ghost dm-btn-sm" data-i="${i}" title="Stap verwijderen">${icon('trash')}</button>` : ''}
+                </div>
+                <label class="help-editor-label">Titel stap</label>
+                <input class="dm-input help-editor-input he-stap-titel" data-i="${i}" value="${esc(s.titel)}">
+                <label class="help-editor-label">Tekst</label>
+                <textarea class="dm-input he-stap-tekst" data-i="${i}" rows="4" style="resize:vertical">${esc(s.tekst)}</textarea>
+              </div>`).join('')}
+          </div>
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" id="he-add-stap" style="margin-top:6px">${icon('plus')} Stap toevoegen</button>
+        </div>
+        <div class="help-editor-footer">
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" id="he-reset" title="Terug naar standaardtekst">${icon('refresh-cw')} Standaard herstellen</button>
+          <div style="display:flex;gap:6px">
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="document.getElementById('help-editor-modal').remove()">${icon('x')} Annuleren</button>
+            <button class="dm-btn dm-btn-primary dm-btn-sm" id="he-save">${icon('save')} Opslaan</button>
+          </div>
+        </div>
+      </div>`;
+
+    modal.querySelector('#he-add-stap').onclick = () => {
+      const cfg = _readEditorForm(modal);
+      cfg.stappen.push({ titel: '', tekst: '' });
+      renderEditor(cfg);
+    };
+
+    modal.querySelectorAll('.help-editor-del-stap').forEach(btn => {
+      btn.onclick = () => {
+        const cfg = _readEditorForm(modal);
+        cfg.stappen.splice(+btn.dataset.i, 1);
+        renderEditor(cfg);
+      };
+    });
+
+    modal.querySelector('#he-reset').onclick = async () => {
+      if (!confirm('Standaardtekst herstellen? Jouw aanpassingen gaan verloren.')) return;
+      await api.deleteHelpContent(key);
+      delete _helpOverrides[key];
+      document.getElementById('help-editor-modal').remove();
+    };
+
+    modal.querySelector('#he-save').onclick = async () => {
+      const cfg = _readEditorForm(modal);
+      try {
+        await api.saveHelpContent(key, cfg);
+        _helpOverrides[key] = cfg;
+        document.getElementById('help-editor-modal').remove();
+      } catch(e) {
+        alert('Opslaan mislukt: ' + e.message);
+      }
+    };
+  };
+
+  renderEditor(current);
+  modal.addEventListener('click', () => modal.remove());
+  document.body.appendChild(modal);
+};
+
+function _readEditorForm(modal) {
+  const titel   = modal.querySelector('#he-titel')?.value || '';
+  const stappen = Array.from(modal.querySelectorAll('.he-stap')).map(el => ({
+    titel: el.querySelector('.he-stap-titel')?.value || '',
+    tekst: el.querySelector('.he-stap-tekst')?.value || '',
+    afbeelding: null,
+  }));
+  return { titel, stappen };
 }
 
 function _tsToast(msg) {

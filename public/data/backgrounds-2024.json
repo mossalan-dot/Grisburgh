@@ -1,0 +1,418 @@
+{
+  "Acolyte": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Intelligence, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Magic Initiate (Cleric)"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight, Religion"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Calligrapher's Supplies"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Calligrapher's Supplies, Book (prayers), Holy Symbol, Parchment (10 sheets), Robe, 8 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Artisan": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Dexterity, Intelligence"
+        },
+        {
+          "name": "Feat",
+          "desc": "Crafter"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Investigation, Persuasion"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Choose one kind of Artisan's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Artisan's Tools (same as above), 2 Pouches, Traveler's Clothes, 32 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Charlatan": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Constitution, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Skilled"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Deception, Sleight of Hand"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Forgery Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Forgery Kit, Costume, Fine Clothes, 15 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Criminal": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Constitution, Intelligence"
+        },
+        {
+          "name": "Feat",
+          "desc": "Alert"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Sleight of Hand, Stealth"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Thieves' Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) 2 Daggers, Thieves' Tools, Crowbar, 2 Pouches, Traveler's Clothes, 16 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Entertainer": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Dexterity, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Musician"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Acrobatics, Performance"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Choose one kind of Musical Instrument"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Musical Instrument (same as above), 2 Costumes, Mirror, Perfume, Traveler's Clothes, 11 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Farmer": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Constitution, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Tough"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Animal Handling, Nature"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Carpenter's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Sickle, Carpenter's Tools, Healer's Kit, Iron Pot, Shovel, 30 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Guard": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Intelligence, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Alert"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics, Perception"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Choose one kind of Gaming Set"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Spear, Light Crossbow, 20 Bolts, Gaming Set (same as above), Hooded Lantern, Manacles, Quiver, Traveler's Clothes, 12 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Guide": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Constitution, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Magic Initiate (Druid)"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Stealth, Survival"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Cartographer's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Shortbow, 20 Arrows, Cartographer's Tools, Bedroll, Quiver, Tent, Traveler's Clothes, 3 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Hermit": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Healer"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Medicine, Religion"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Herbalism Kit"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Quarterstaff, Herbalism Kit, Bedroll, Book (philosophy), Lamp, Oil (3 flasks), Traveler's Clothes, 16 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Merchant": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Intelligence, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Lucky"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Animal Handling, Persuasion"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Navigator's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Navigator's Tools, 2 Pouches, Traveler's Clothes, 22 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Noble": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Intelligence, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Skilled"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "History, Persuasion"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Choose one kind of Gaming Set"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Gaming Set (same as above), Fine Clothes, Perfume, 29 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Sage": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Constitution, Intelligence, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Magic Initiate (Wizard)"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Arcana, History"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Calligrapher's Supplies"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Quarterstaff, Calligrapher's Supplies, Book (history), Parchment (8 sheets), Robe, 8 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Sailor": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Dexterity, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Tavern Brawler"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Acrobatics, Perception"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Navigator's Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Dagger, Navigator's Tools, Rope, Traveler's Clothes, 20 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Scribe": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Intelligence, Wisdom"
+        },
+        {
+          "name": "Feat",
+          "desc": "Skilled"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Investigation, Perception"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Calligrapher's Supplies"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Calligrapher's Supplies, Fine Clothes, Lamp, Oil (3 flasks), Parchment (12 sheets), 23 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Soldier": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Strength, Dexterity, Constitution"
+        },
+        {
+          "name": "Feat",
+          "desc": "Savage Attacker"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Athletics, Intimidation"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Choose one kind of Gaming Set"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) Spear, Shortbow, 20 Arrows, Gaming Set (same as above), Healer's Kit, Quiver, Traveler's Clothes, 14 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  },
+  "Wayfarer": {
+    "levels": {
+      "1": [
+        {
+          "name": "Ability Scores",
+          "desc": "Dexterity, Wisdom, Charisma"
+        },
+        {
+          "name": "Feat",
+          "desc": "Lucky"
+        },
+        {
+          "name": "Skill Proficiencies",
+          "desc": "Insight, Stealth"
+        },
+        {
+          "name": "Tool Proficiency",
+          "desc": "Thieves' Tools"
+        },
+        {
+          "name": "Equipment",
+          "desc": "Choose A or B: (A) 2 Daggers, Thieves' Tools, Gaming Set (any), Bedroll, 2 Pouches, Traveler's Clothes, 16 GP; or (B) 50 GP"
+        }
+      ]
+    }
+  }
+}

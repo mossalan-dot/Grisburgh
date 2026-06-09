@@ -3249,6 +3249,48 @@ router.put('/quests/:id', requireDM, (req, res) => {
   res.json({ ...data.quests[idx], status: status ?? undefined });
 });
 
+// Speler accepteert een factie-missie. Controleert of de groep al een actieve
+// missie heeft voor dezelfde factie (max. 1 actief per factie per groep).
+router.post('/quests/:id/accepteer', attachRole, (req, res) => {
+  const charId = req.session.characterId;
+  if (!charId) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+
+  const data = storage.readJSON('quests.json');
+  const quest = (data.quests || []).find(q => q.id === req.params.id);
+  if (!quest) return res.status(404).json({ error: 'Missie niet gevonden' });
+  if (!quest.factieId) return res.status(400).json({ error: 'Dit is geen factie-missie' });
+
+  const dmState = readDmState();
+  const groepId = _playerGroupId(dmState, charId);
+  if (!groepId) return res.status(400).json({ error: 'Geen groep gevonden' });
+
+  const states = _readQuestStates(groepId);
+
+  // Controleer huidige status van déze quest
+  const huidig = states[quest.id] || 'verborgen';
+  if (huidig !== 'actief') return res.status(400).json({ error: 'Missie is niet beschikbaar' });
+
+  // Controleer of de groep al een actieve missie heeft voor dezelfde factie
+  const actieveStatussen = new Set(['aangevraagd', 'in-uitvoering']);
+  const heeftActief = (data.quests || []).some(q =>
+    q.id !== quest.id &&
+    q.factieId === quest.factieId &&
+    actieveStatussen.has(states[q.id])
+  );
+  if (heeftActief) return res.status(400).json({ error: 'De party heeft al een actieve missie voor deze factie' });
+
+  // Sla aanvraag op
+  states[quest.id] = 'aangevraagd';
+  _writeQuestStates(groepId, states);
+
+  const char = (storage.readJSON('entities.json').personages || []).find(e => e.id === charId);
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('quests:updated');
+  io.to(room).emit('missie:aanvraag', { missieId: quest.id, titel: quest.title, door: char?.name || 'Onbekende speler', factieId: quest.factieId });
+  res.json({ ok: true });
+});
+
 router.delete('/quests/:id', requireDM, (req, res) => {
   const data = storage.readJSON('quests.json');
   if (!data.quests) return res.json({});
@@ -3366,18 +3408,28 @@ router.post('/sounds/reveal', requireDM, (req, res) => {
 // opslaan; resetten verwijdert de override.
 
 const _PROGRESSION_SEED = path.join(__dirname, '..', 'public', 'data', 'class-progression.json');
+const _BACKGROUNDS_SEED = path.join(__dirname, '..', 'public', 'data', 'backgrounds-2024.json');
 
 function _readProgressionSeed() {
   try { return JSON.parse(fs.readFileSync(_PROGRESSION_SEED, 'utf8')); }
   catch { return { classes: {}, species: {} }; }
 }
+function _readBackgroundsSeed() {
+  try { return JSON.parse(fs.readFileSync(_BACKGROUNDS_SEED, 'utf8')); }
+  catch { return {}; }
+}
 
 router.get('/progression', attachRole, (req, res) => {
   const saved = storage.readJSON('progression.json');
-  if (saved && saved.classes && Object.keys(saved.classes).length) {
-    return res.json({ ...saved, _custom: true });
+  const base = (saved && saved.classes && Object.keys(saved.classes).length)
+    ? { ...saved, _custom: true }
+    : { ..._readProgressionSeed(), _custom: false };
+  // Backgrounds-fallback: vul de meegeleverde 2024-bibliotheek aan als er nog
+  // geen campagne-eigen backgrounds zijn opgeslagen.
+  if (!base.backgrounds || !Object.keys(base.backgrounds).length) {
+    base.backgrounds = _readBackgroundsSeed();
   }
-  res.json({ ..._readProgressionSeed(), _custom: false });
+  res.json(base);
 });
 
 router.put('/progression', requireDM, (req, res) => {
@@ -3390,6 +3442,8 @@ router.put('/progression', requireDM, (req, res) => {
     classes: body.classes,
     species: body.species && typeof body.species === 'object' ? body.species : {},
     gedeeld: body.gedeeld || undefined,
+    feats:   body.feats && typeof body.feats === 'object' ? body.feats : undefined,
+    backgrounds: body.backgrounds && typeof body.backgrounds === 'object' ? body.backgrounds : undefined,
   };
   storage.writeJSON('progression.json', clean);
   req.app.get('io').to(req.session?.campaignId || 'main').emit('progression:updated', {});
@@ -3400,6 +3454,31 @@ router.put('/progression', requireDM, (req, res) => {
 router.delete('/progression', requireDM, (req, res) => {
   storage.writeJSON('progression.json', {});
   req.app.get('io').to(req.session?.campaignId || 'main').emit('progression:updated', {});
+  res.json({ ok: true });
+});
+
+// ── Help-teksten (DM-aanpasbare inhoud van helpknoppen) ──
+
+router.get('/help-content', attachRole, (req, res) => {
+  const dm = readDmState();
+  res.json(dm.helpContent || {});
+});
+
+router.put('/help-content/:key', requireDM, (req, res) => {
+  const dm = readDmState();
+  if (!dm.helpContent) dm.helpContent = {};
+  const key = decodeURIComponent(req.params.key);
+  const { titel, stappen } = req.body || {};
+  if (!Array.isArray(stappen)) return res.status(400).json({ error: 'stappen vereist' });
+  dm.helpContent[key] = { titel: titel || null, stappen };
+  storage.writeJSON('dm-state.json', dm);
+  res.json({ ok: true });
+});
+
+router.delete('/help-content/:key', requireDM, (req, res) => {
+  const dm = readDmState();
+  if (dm.helpContent) delete dm.helpContent[decodeURIComponent(req.params.key)];
+  storage.writeJSON('dm-state.json', dm);
   res.json({ ok: true });
 });
 
@@ -4017,7 +4096,28 @@ function _emitCombat(req) {
 
 router.get('/combat', attachRole, (req, res) => {
   if (!req.role) return res.status(401).json({ error: 'Niet ingelogd' });
-  res.json(storage.readJSON('combat.json'));
+  const combat = storage.readJSON('combat.json');
+  if (req.role === 'dm') return res.json(combat);
+
+  // Speler: voeg kennisniveau + gefilterd statblock toe aan monster-combatants
+  // zodat de spelersinterface het bekende stat block kan tonen.
+  const dmState  = readDmState();
+  const gid      = req.session.characterId ? _playerGroupId(dmState, req.session.characterId) : null;
+  const kennis   = gid ? (getGroup(dmState, gid)?.bestiarium || {}) : {};
+  const monsters = (storage.readJSON('monsters.json').monsters || []);
+
+  const enriched = {
+    ...combat,
+    combatants: (combat.combatants || []).map(c => {
+      if (c.type !== 'monster' || !c.presetId) return c;
+      const niveau = kennis[c.presetId] || null;
+      if (!niveau) return { ...c, _niveau: null };
+      const m = monsters.find(m => m.id === c.presetId);
+      if (!m) return { ...c, _niveau: niveau };
+      return { ...c, _niveau: niveau, _statblock: _bestiariumForTier(m, niveau) };
+    }),
+  };
+  res.json(enriched);
 });
 
 function _combatLog(combat, text) {
@@ -4143,8 +4243,8 @@ router.post('/combat/combatant', requireDM, (req, res) => {
     ac:         req.body.ac         || '',
     conditions: req.body.conditions || [],
   };
+  if (!Array.isArray(combat.combatants)) combat.combatants = [];
   combat.combatants.push(c);
-  // Sorteer op initiative (hoog → laag)
   combat.combatants.sort((a, b) => b.initiative - a.initiative);
   storage.writeJSON('combat.json', combat);
   req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
@@ -4938,9 +5038,8 @@ router.post('/magizoo/onderzoek', attachRole, (req, res) => {
   const prijs = naarVolledig ? (config.prijsVolledig || { fl: 60 }) : (config.prijs || { fl: 25 });
 
   const prijsCl = toCl(prijs);
-  if (!dmState.playerCurrency) dmState.playerCurrency = {};
-  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
-  if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
+  const huidigeSaldo = _effectiveCurrency(dmState, characterId);
+  if (toCl(huidigeSaldo) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
 
   // Nieuw kennisniveau bepalen
   const nieuw = naarVolledig ? 'volledig' : (_MAGIZOO_TIER_NEXT[huidig] || huidig);
@@ -4954,7 +5053,7 @@ router.post('/magizoo/onderzoek', attachRole, (req, res) => {
   g.bestiariumBron[monsterId] = 'magizoo';
 
   // Betaling + cooldown
-  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  const { currency: nieuweSaldo } = _deductCurrency(dmState, characterId, prijsCl);
   const cooldownMin = config.cooldownMinuten ?? 5;
   dmState.magizooState[characterId] = { cooldownTot: new Date(Date.now() + cooldownMin * 60 * 1000).toISOString() };
 
@@ -4962,12 +5061,12 @@ router.post('/magizoo/onderzoek', attachRole, (req, res) => {
   const io = req.app.get('io');
   const room = req.session?.campaignId || 'main';
   io.to(room).emit('bestiarium:updated');
-  io.to(room).emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  io.to(room).emit('player:currency-updated', { characterId, currency: nieuweSaldo });
 
   res.json({
     ok: true, monsterId, naam: monster.name,
     niveau: nieuw, roddel: roddelOnthuld,
-    currency: dmState.playerCurrency[characterId],
+    currency: nieuweSaldo,
     cooldownTot: dmState.magizooState[characterId].cooldownTot,
   });
 });
@@ -5028,6 +5127,13 @@ function _tempelGoden(config) {
       eenmaligeZegens: zegenCards.map(z => z.data.effect).filter(Boolean),
       eedEntityId:   eedCard?.id   || null,
       vloekEntityId: vloekCard?.id || null,
+      // Visuele koppeling — overgenomen uit DM-config
+      imageId:          cfg.imageId          || null,
+      priestImageId:    cfg.priestImageId    || null,
+      backdropId:       cfg.backdropId       || null,
+      locatieEntityId:  cfg.locatieEntityId  || null,
+      priesterEntityId: cfg.priesterEntityId || null,
+      priesterGreet:    cfg.priesterGreet    || '',
     });
   }
   // Sorteer in de config-/seed-volgorde waar mogelijk; onbekende achteraan.
@@ -5614,54 +5720,57 @@ router.put('/meta/heeren', requireDM, (req, res) => {
 
 const FACTIES_DEFAULT = [
   {
-    id: 'cooperatie', naam: 'De Coöperatie', embleem: '🌿', stijl: 'hout',
+    id: 'cooperatie', naam: 'De Coöperatie', embleem: 'tree-pine', stijl: 'hout',
     beschrijving: 'Het verbond van druïden dat over de wouden en wateren rond Grisburgh waakt.',
+    renownDrempels: [0, 1, 3, 10, 25, 50], entityId: null,
     rangen: [
       { naam: 'Buitenstaander', voordelen: 'Geen aanzien; de Kring houdt je op afstand.' },
       { naam: 'Zaailing',       voordelen: 'Je wordt geduld in de buitenste hagen; ruil van kruiden toegestaan.',
-        boons: [{ icoon: '🌱', naam: 'Kruidruil', tekst: 'Koop genezende kruiden en eenvoudige remedies tegen kostprijs.' }] },
+        boons: [{ naam: 'Kruidruil', tekst: 'Koop genezende kruiden en eenvoudige remedies tegen kostprijs.' }] },
       { naam: 'Wortelganger',   voordelen: 'Toegang tot de gemeenschappelijke kruidtuin en de raad.',
-        boons: [{ icoon: '🍵', naam: 'Kruidtuin', tekst: 'Eens per lange rust een gratis dosis genezende thee.' }] },
+        boons: [{ naam: 'Kruidtuin', tekst: 'Eens per lange rust een gratis dosis genezende thee.' }] },
       { naam: 'Hagenhoeder',    voordelen: 'Druïden delen voortekenen en veilige paden met je.', titel: 'Hagenhoeder van de Coöperatie',
-        boons: [{ icoon: '🧭', naam: 'Veilige paden', tekst: 'Voordeel op overlevingsworpen in de wildernis rond Grisburgh.' }] },
+        boons: [{ naam: 'Veilige paden', tekst: 'Voordeel op overlevingsworpen in de wildernis rond Grisburgh.' }] },
       { naam: 'Boomspreker',    voordelen: 'Je stem telt in de Kring; de Coöperatie staat je bij in nood.', titel: 'Boomspreker der Coöperatie',
-        boons: [{ icoon: '🦉', naam: 'Dierbode', tekst: 'Stuur eens per dag een dierbode met een kort bericht.' }] },
+        boons: [{ naam: 'Dierbode', tekst: 'Stuur eens per dag een dierbode met een kort bericht.' }] },
       { naam: 'Eikhart',        voordelen: 'De wouden zelf lijken je gunstig gezind.', titel: 'Eikhart van de Kring',
-        boons: [{ icoon: '🌳', naam: 'Gunst van het woud', tekst: 'Eens per lange rust een druïdische zegen van de Kring.' }] },
+        boons: [{ naam: 'Gunst van het woud', tekst: 'Eens per lange rust een druïdische zegen van de Kring.' }] },
     ],
   },
   {
-    id: 'eendragt', naam: 'De Eendragt', embleem: '⚙️', stijl: 'metaal',
+    id: 'eendragt', naam: 'De Eendragt', embleem: 'hexagon', stijl: 'metaal',
     beschrijving: 'Het artifexgilde dat het vakmanschap en de uitvindingen van de stad bewaakt.',
+    renownDrempels: [0, 1, 3, 10, 25, 50], entityId: null,
     rangen: [
       { naam: 'Vreemdeling',     voordelen: 'Geen aanzien; het gilde sluit zijn werkplaatsen voor je.' },
       { naam: 'Leerjongen',      voordelen: 'Toegang tot de gildewerkplaats en eenvoudig gereedschap.',
-        boons: [{ icoon: '🔧', naam: 'Werkplaats', tekst: 'Gebruik van het gildegereedschap; reparaties tegen kostprijs.' }] },
+        boons: [{ naam: 'Werkplaats', tekst: 'Gebruik van het gildegereedschap; reparaties tegen kostprijs.' }] },
       { naam: 'Gezel',           voordelen: 'Korting op vakwerk en materialen van het gilde.',
-        boons: [{ icoon: '💰', naam: 'Gildekorting', tekst: '10% korting op vakwerk, gereedschap en materialen.' }] },
+        boons: [{ naam: 'Gildekorting', tekst: '10% korting op vakwerk, gereedschap en materialen.' }] },
       { naam: 'Vakmeester',      voordelen: 'Het gilde neemt opdrachten van je aan met voorrang.', titel: 'Vakmeester van De Eendragt',
-        boons: [{ icoon: '📜', naam: 'Voorrang', tekst: 'Je opdrachten worden met voorrang vervaardigd.' }] },
+        boons: [{ naam: 'Voorrang', tekst: 'Je opdrachten worden met voorrang vervaardigd.' }] },
       { naam: 'Meester-artifex', voordelen: 'Toegang tot zeldzame ontwerpen en materialen.', titel: 'Meester-artifex',
-        boons: [{ icoon: '⚗️', naam: 'Zeldzame ontwerpen', tekst: 'Toegang tot zeldzame blauwdrukken; magische voorwerpen identificeren.' }] },
+        boons: [{ naam: 'Zeldzame ontwerpen', tekst: 'Toegang tot zeldzame blauwdrukken; magische voorwerpen identificeren.' }] },
       { naam: 'Gildemeester',    voordelen: 'Je woord weegt zwaar in de raad van De Eendragt.', titel: 'Gildemeester van De Eendragt',
-        boons: [{ icoon: '🛠️', naam: 'Maatwerk', tekst: 'Laat eens per boog een uniek voorwerp op maat vervaardigen.' }] },
+        boons: [{ naam: 'Maatwerk', tekst: 'Laat eens per boog een uniek voorwerp op maat vervaardigen.' }] },
     ],
   },
   {
-    id: 'roodzwaarden', naam: 'De Roodzwaarden', embleem: '🗡️', stijl: 'staal',
+    id: 'roodzwaarden', naam: 'De Roodzwaarden', embleem: 'crossed-swords', stijl: 'staal',
     beschrijving: 'De stadswacht van Grisburgh — gehard, en niet zonder eigenbelang.',
+    renownDrempels: [0, 1, 3, 10, 25, 50], entityId: null,
     rangen: [
       { naam: 'Verdachte',     voordelen: 'Geen aanzien; de wacht houdt je in de gaten.' },
       { naam: 'Gedoogde',      voordelen: 'De wacht laat je met rust en beantwoordt je vragen.',
-        boons: [{ icoon: '🗣️', naam: 'Goodwill', tekst: 'De wacht beantwoordt vragen en geeft tips.' }] },
+        boons: [{ naam: 'Goodwill', tekst: 'De wacht beantwoordt vragen en geeft tips.' }] },
       { naam: 'Vertrouweling', voordelen: 'Toegang tot het wachthuis; je mag kleine zaken melden.',
-        boons: [{ icoon: '🏛️', naam: 'Wachthuis', tekst: 'Toegang tot het wachthuis en het premiebord.' }] },
+        boons: [{ naam: 'Wachthuis', tekst: 'Toegang tot het wachthuis en het premiebord.' }] },
       { naam: 'Bondgenoot',    voordelen: 'Je mag premies innen en krijgt eerste keus uit het premiebord.', titel: 'Bondgenoot van de Roodzwaarden',
-        boons: [{ icoon: '📋', naam: 'Premiejager', tekst: 'Eerste keus uit premies en een hogere uitbetaling.' }] },
+        boons: [{ naam: 'Premiejager', tekst: 'Eerste keus uit premies en een hogere uitbetaling.' }] },
       { naam: 'Schildgenoot',  voordelen: 'De wacht verleent je doortocht en bijstand bij gevaar.', titel: 'Schildgenoot der Roodzwaarden',
-        boons: [{ icoon: '🛡️', naam: 'Bijstand', tekst: 'Roep eens per dag een wachtpatrouille op als rugdekking.' }] },
+        boons: [{ naam: 'Bijstand', tekst: 'Roep eens per dag een wachtpatrouille op als rugdekking.' }] },
       { naam: 'Erezwaard',     voordelen: 'Je geniet het volle vertrouwen van de Roodzwaarden.', titel: 'Erezwaard van Grisburgh',
-        boons: [{ icoon: '⚖️', naam: 'Vrijgeleide', tekst: 'De wacht knijpt eenmalig een oogje toe bij een klein vergrijp.' }] },
+        boons: [{ naam: 'Vrijgeleide', tekst: 'De wacht knijpt eenmalig een oogje toe bij een klein vergrijp.' }] },
     ],
   },
 ];
@@ -5669,6 +5778,15 @@ const FACTIES_DEFAULT = [
 function _factiesConfig(meta) {
   const c = meta.facties;
   return (Array.isArray(c) && c.length) ? c : FACTIES_DEFAULT;
+}
+
+function _rangIdxVanRenown(renown, drempels, maxRangen) {
+  const d = (drempels && drempels.length) ? drempels : [0, 1, 3, 10, 25, 50];
+  let idx = 0;
+  for (let i = 0; i < d.length && i < maxRangen; i++) {
+    if (renown >= d[i]) idx = i;
+  }
+  return Math.min(idx, maxRangen - 1);
 }
 
 function _factieRangView(factie, rangIdx) {
@@ -5686,28 +5804,64 @@ router.get('/facties', attachRole, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const config = _factiesConfig(meta);
   const dmState = readDmState();
-  const state = getGroup(dmState).facties || {};
+  const entities = storage.readJSON('entities.json');
+  const voorwerpen = entities.voorwerpen || [];
+  const g = getGroup(dmState);
+  const factieZichtbaar = g.factieZichtbaar || {};
+  const factieRenown    = g.factieRenown    || {};
   const isDM = req.role === 'dm';
   const titels = [];
+
+  // Helper: los boon op via voorwerp-entityId
+  function _resolveBoon(b) {
+    if (b.entityId) {
+      const e = voorwerpen.find(v => v.id === b.entityId);
+      if (e) return {
+        naam: b.naam || e.name,
+        tekst: e.data?.beschrijving || e.data?.description || e.data?.note || '',
+        entityId: b.entityId,
+        entityType: 'voorwerpen',
+      };
+    }
+    return { naam: b.naam || '', tekst: b.tekst || '', entityId: null, entityType: null };
+  }
+
   const facties = config.map(f => {
+    const zichtbaar = factieZichtbaar[f.id] === true;
+    if (!isDM && !zichtbaar) return null;
+
     const rangen = (f.rangen && f.rangen.length) ? f.rangen : [{ naam: '—', voordelen: '' }];
-    const idx = Math.max(0, Math.min(state[f.id]?.rang || 0, rangen.length - 1));
+    const renown = factieRenown[f.id] || 0;
+    const drempels = f.renownDrempels || [0, 1, 3, 10, 25, 50];
+    const idx = _rangIdxVanRenown(renown, drempels, rangen.length);
+    const isMax = idx >= rangen.length - 1;
+    const drempelVolgende = isMax ? null : drempels[idx + 1] ?? null;
+
     const ladder = rangen.map((r, i) => ({
       index: i, naam: r.naam, voordelen: r.voordelen || '', titel: r.titel || null,
-      boons: (r.boons || []).map(b => ({ icoon: b.icoon || '•', naam: b.naam || '', tekst: b.tekst || '' })),
+      boons: (r.boons || []).map(b => _resolveBoon(b)),
       bereikt: i <= idx, huidig: i === idx,
     }));
-    rangen.forEach((r, i) => { if (i > 0 && i <= idx && r.titel) titels.push({ titel: r.titel, factie: f.id, factieNaam: f.naam, embleem: f.embleem || '🏛️' }); });
+    rangen.forEach((r, i) => { if (i > 0 && i <= idx && r.titel) titels.push({ titel: r.titel, factie: f.id, factieNaam: f.naam, embleem: f.embleem || 'landmark' }); });
+
     const view = {
-      id: f.id, naam: f.naam, embleem: f.embleem || '🏛️', beschrijving: f.beschrijving || '',
+      id: f.id, naam: f.naam, embleem: f.embleem || 'landmark', beschrijving: f.beschrijving || '',
       stijl: f.stijl || '', rang: _factieRangView(f, idx), ladder,
+      renown, zichtbaar, drempelVolgende, entityId: f.entityId || null,
+      // Visuele koppeling (interieur-view)
+      locatieEntityId:  f.locatieEntityId  || null,
+      npcEntityId:      f.npcEntityId      || null,
+      npcEntityIdDag:   f.npcEntityIdDag   || null,
+      npcGreet:         f.npcGreet         || '',
     };
     if (isDM) view.rangen = f.rangen || [];
     return view;
-  });
+  }).filter(Boolean);
+
   res.json({ facties, titels });
 });
 
+// Behoud oud rang-endpoint voor backwards-compatibiliteit (non-breaking)
 router.post('/facties/:id/rang', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const factie = _factiesConfig(meta).find(f => f.id === req.params.id);
@@ -5724,22 +5878,139 @@ router.post('/facties/:id/rang', requireDM, (req, res) => {
   res.json({ ok: true, id: factie.id, rang: g.facties[factie.id].rang });
 });
 
+router.post('/facties/:id/reveal', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const config = _factiesConfig(meta);
+  const factie = config.find(f => f.id === req.params.id);
+  if (!factie) return res.status(404).json({ error: 'Factie niet gevonden' });
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  if (!g.factieZichtbaar) g.factieZichtbaar = {};
+  const wasZichtbaar = g.factieZichtbaar[factie.id] === true;
+  g.factieZichtbaar[factie.id] = !wasZichtbaar;
+  // Koppel entity-zichtbaarheid
+  if (factie.entityId) {
+    if (!g.visibility) g.visibility = {};
+    g.visibility[factie.entityId] = wasZichtbaar ? 'hidden' : 'zichtbaar';
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('facties:updated');
+  if (factie.entityId) io.to(room).emit('visibility:updated');
+  res.json({ ok: true, id: factie.id, zichtbaar: g.factieZichtbaar[factie.id] });
+});
+
+router.post('/facties/:id/renown', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const config = _factiesConfig(meta);
+  const factie = config.find(f => f.id === req.params.id);
+  if (!factie) return res.status(404).json({ error: 'Factie niet gevonden' });
+  const delta = parseInt(req.body.delta) || 0;
+  const dmState = readDmState();
+  const g = getGroup(dmState);
+  if (!g.factieRenown) g.factieRenown = {};
+  if (!g.factieBoonsGegeven) g.factieBoonsGegeven = {};
+  const oudRenown = g.factieRenown[factie.id] || 0;
+  const nieuwRenown = Math.max(0, oudRenown + delta);
+  g.factieRenown[factie.id] = nieuwRenown;
+  const rangen = (factie.rangen && factie.rangen.length) ? factie.rangen : [{ naam: '—', voordelen: '' }];
+  const drempels = factie.renownDrempels || [0, 1, 3, 10, 25, 50];
+  const oudeRangIdx = _rangIdxVanRenown(oudRenown, drempels, rangen.length);
+  const nieuweRangIdx = _rangIdxVanRenown(nieuwRenown, drempels, rangen.length);
+  const boonGegeven = g.factieBoonsGegeven[factie.id] || [];
+  const nieuweItems = [];
+
+  if (nieuweRangIdx > oudeRangIdx) {
+    for (let ri = oudeRangIdx + 1; ri <= nieuweRangIdx; ri++) {
+      const rang = rangen[ri];
+      if (!rang) continue;
+      (rang.boons || []).forEach((boon, bi) => {
+        const boonKey = `${ri}_${bi}`;
+        if (boonGegeven.includes(boonKey)) return;
+        boonGegeven.push(boonKey);
+        // Los naam/tekst op via voorwerp-entity als entityId aanwezig
+        let boonNaam = boon.naam || '';
+        let boonNote = boon.tekst || '';
+        if (boon.entityId) {
+          const ent = (storage.readJSON('entities.json').voorwerpen || []).find(v => v.id === boon.entityId);
+          if (ent) {
+            boonNaam = boon.naam || ent.name;
+            boonNote = ent.data?.beschrijving || ent.data?.description || ent.data?.note || '';
+          }
+        }
+        const item = {
+          id: `factie_boon_${factie.id}_${ri}_${bi}_${Date.now()}`,
+          name: `${boonNaam || '?'} — ${factie.naam}`,
+          note: boonNote,
+          entityId: boon.entityId || null,
+          entityType: boon.entityId ? 'voorwerpen' : null,
+          factieId: factie.id,
+          factieRang: ri,
+          factieBoonIdx: bi,
+        };
+        nieuweItems.push(item);
+      });
+    }
+  }
+  g.factieBoonsGegeven[factie.id] = boonGegeven;
+
+  // Deel boons uit aan alle spelers van de actieve groep
+  if (nieuweItems.length) {
+    if (!dmState.playerItems) dmState.playerItems = {};
+    const entityData = storage.readJSON('entities.json');
+    const spelers = (entityData.personages || []).filter(p => p.subtype === 'speler');
+    const groepSpelers = spelers.filter(p => {
+      return Object.values(dmState.groups || {}).some(grp => {
+        return grp === g && (grp.characters || []).includes(p.id);
+      }) || true; // fallback: alle spelers krijgen de boon
+    });
+    const targetIds = groepSpelers.length ? groepSpelers.map(p => p.id) : spelers.map(p => p.id);
+    targetIds.forEach(charId => {
+      if (!dmState.playerItems[charId]) dmState.playerItems[charId] = [];
+      nieuweItems.forEach(item => dmState.playerItems[charId].push({ ...item, id: item.id + '_' + charId }));
+    });
+  }
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('facties:updated');
+  if (nieuweItems.length) io.to(room).emit('player:items-updated', {});
+  res.json({ ok: true, id: factie.id, renown: nieuwRenown, rangIdx: nieuweRangIdx, boons: nieuweItems.length });
+});
+
 router.put('/meta/facties', requireDM, (req, res) => {
   if (!Array.isArray(req.body.facties)) return res.status(400).json({ error: 'facties-array vereist' });
   const meta = storage.readJSON('meta.json');
   meta.facties = req.body.facties.map(f => ({
     id: String(f.id || ('factie_' + Math.random().toString(36).slice(2, 7))).trim(),
     naam: String(f.naam || 'Naamloze factie').trim(),
-    embleem: (f.embleem || '🏛️').toString().slice(0, 4),
+    embleem: String(f.embleem || 'landmark').trim(),
     stijl: String(f.stijl || '').trim(),
     beschrijving: String(f.beschrijving || '').trim(),
+    entityId:        f.entityId        ? String(f.entityId).trim()        : null,
+    locatieEntityId: f.locatieEntityId ? String(f.locatieEntityId).trim() : null,
+    npcEntityId:     f.npcEntityId     ? String(f.npcEntityId).trim()     : null,
+    npcEntityIdDag:  f.npcEntityIdDag  ? String(f.npcEntityIdDag).trim()  : null,
+    npcGreet:        f.npcGreet        ? String(f.npcGreet).trim()        : '',
+    renownDrempels: (Array.isArray(f.renownDrempels) && f.renownDrempels.length)
+      ? f.renownDrempels.map(n => parseInt(n) || 0)
+      : [0, 1, 3, 10, 25, 50],
     rangen: (Array.isArray(f.rangen) && f.rangen.length)
       ? f.rangen.map(r => {
           const rang = { naam: String(r.naam || '—').trim(), voordelen: String(r.voordelen || '').trim() };
           if (r.titel && String(r.titel).trim()) rang.titel = String(r.titel).trim();
           const boons = (Array.isArray(r.boons) ? r.boons : [])
-            .map(b => ({ icoon: (b.icoon || '•').toString().slice(0, 4), naam: String(b.naam || '').trim(), tekst: String(b.tekst || '').trim() }))
-            .filter(b => b.naam || b.tekst);
+            .map(b => {
+              const out = {};
+              if (b.entityId && String(b.entityId).trim()) out.entityId = String(b.entityId).trim();
+              if (b.naam && String(b.naam).trim()) out.naam = String(b.naam).trim();
+              // Bewaar tekst voor backward compat (boons zonder entityId)
+              if (!out.entityId && b.tekst && String(b.tekst).trim()) out.tekst = String(b.tekst).trim();
+              return out;
+            })
+            .filter(b => b.entityId || b.naam || b.tekst);
           if (boons.length) rang.boons = boons;
           return rang;
         })
@@ -5750,6 +6021,226 @@ router.put('/meta/facties', requireDM, (req, res) => {
   io.to(req.session?.campaignId||'main').emit('meta:updated');
   io.to(req.session?.campaignId||'main').emit('facties:updated');
   res.json({ facties: meta.facties });
+});
+
+// ── Facties: Missies ─────────────────────────────────────────────────────────
+// Missies leven in archief.json als logEntries met type='missie'.
+
+function _readMissies() {
+  const archief = storage.readJSON('archief.json');
+  return (archief.logEntries || []).filter(e => e.type === 'missie');
+}
+
+function _writeMissie(missie) {
+  const archief = storage.readJSON('archief.json');
+  if (!Array.isArray(archief.logEntries)) archief.logEntries = [];
+  const idx = archief.logEntries.findIndex(e => e.id === missie.id);
+  if (idx >= 0) archief.logEntries[idx] = missie;
+  else archief.logEntries.push(missie);
+  storage.writeJSON('archief.json', archief);
+}
+
+// GET /missies — speler ziet beschikbare+actieve missies van zijn groep;
+//                DM ziet alles
+router.get('/missies', attachRole, (req, res) => {
+  if (!req.role) return res.status(401).json({ error: 'Niet ingelogd' });
+  const missies = _readMissies();
+  const dmState = readDmState();
+  const meta = storage.readJSON('meta.json');
+
+  if (req.role === 'dm') {
+    return res.json({ missies });
+  }
+  const charId = req.session.characterId;
+  const gid    = charId ? _playerGroupId(dmState, charId) : null;
+  const renowns = gid ? (getGroup(dmState, gid).factieRenown || {}) : {};
+  const zichtbaar = new Set(Object.keys(getGroup(dmState, gid)?.factieZichtbaar || {})
+    .filter(id => getGroup(dmState, gid)?.factieZichtbaar[id]));
+
+  const zichtbareMissies = missies.filter(m => {
+    if (!zichtbaar.has(m.factieId)) return false;
+    if (m.status === 'voltooid' || m.status === 'gefaald') return false;
+    if (m.status === 'beschikbaar') {
+      return (renowns[m.factieId] || 0) >= (m.vereistRenown || 0);
+    }
+    // actief/aangevraagd: toon als de groep bij betrokken is
+    return m.groepId === gid;
+  });
+  res.json({ missies: zichtbareMissies });
+});
+
+// POST /missies — DM maakt een nieuwe missie aan
+router.post('/missies', requireDM, (req, res) => {
+  const { factieId, titel, tekst, vereistRenown, renownBeloning, valuta, stijl } = req.body;
+  if (!factieId || !titel) return res.status(400).json({ error: 'factieId en titel vereist' });
+  const missie = {
+    id:             'missie_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+    type:           'missie',
+    factieId:       String(factieId),
+    titel:          String(titel).trim(),
+    tekst:          String(tekst || '').trim(),
+    vereistRenown:  parseInt(vereistRenown) || 0,
+    renownBeloning: parseInt(renownBeloning) || 0,
+    valuta:         valuta || null,   // { fl, kn, cl }
+    stijl:          stijl || '',
+    status:         'beschikbaar',
+    groepId:        null,
+    aangevraagdDoor: null,
+    ts:             Date.now(),
+  };
+  _writeMissie(missie);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('missies:updated');
+  res.status(201).json(missie);
+});
+
+// PUT /missies/:id — DM bewerkt missie
+router.put('/missies/:id', requireDM, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  const idx = (archief.logEntries || []).findIndex(e => e.id === req.params.id && e.type === 'missie');
+  if (idx < 0) return res.status(404).json({ error: 'Missie niet gevonden' });
+  const allowed = ['titel','tekst','vereistRenown','renownBeloning','valuta','stijl','status','factieId'];
+  allowed.forEach(f => { if (req.body[f] !== undefined) archief.logEntries[idx][f] = req.body[f]; });
+  storage.writeJSON('archief.json', archief);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('missies:updated');
+  res.json(archief.logEntries[idx]);
+});
+
+// POST /missies/:id/accepteer — speler vraagt missie aan
+router.post('/missies/:id/accepteer', attachRole, (req, res) => {
+  const charId = req.session.characterId;
+  if (!charId) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+  const archief = storage.readJSON('archief.json');
+  const idx = (archief.logEntries || []).findIndex(e => e.id === req.params.id && e.type === 'missie');
+  if (idx < 0) return res.status(404).json({ error: 'Missie niet gevonden' });
+  const missie = archief.logEntries[idx];
+  if (missie.status !== 'beschikbaar') return res.status(400).json({ error: 'Missie niet beschikbaar' });
+  const dmState = readDmState();
+  const gid = _playerGroupId(dmState, charId);
+  const char = (storage.readJSON('entities.json').personages || []).find(e => e.id === charId);
+  missie.status = 'aangevraagd';
+  missie.groepId = gid;
+  missie.aangevraagdDoor = charId;
+  missie.aangevraagdNaam = char?.name || 'Onbekende speler';
+  storage.writeJSON('archief.json', archief);
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('missies:updated');
+  io.to(room).emit('missie:aanvraag', { missieId: missie.id, titel: missie.titel, door: missie.aangevraagdNaam, factieId: missie.factieId });
+  res.json({ ok: true });
+});
+
+// POST /missies/:id/goedkeuren — DM keurt aanvraag goed
+router.post('/missies/:id/goedkeuren', requireDM, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  const idx = (archief.logEntries || []).findIndex(e => e.id === req.params.id && e.type === 'missie');
+  if (idx < 0) return res.status(404).json({ error: 'Missie niet gevonden' });
+  const missie = archief.logEntries[idx];
+  if (missie.status !== 'aangevraagd') return res.status(400).json({ error: 'Geen openstaande aanvraag' });
+  missie.status = 'actief';
+  storage.writeJSON('archief.json', archief);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('missies:updated');
+  req.app.get('io').to(req.session?.campaignId||'main').emit('missie:geactiveerd', { missieId: missie.id, titel: missie.titel });
+  res.json({ ok: true });
+});
+
+// POST /missies/:id/voltooien — DM markeert als voltooid → renown + valuta
+router.post('/missies/:id/voltooien', requireDM, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  const idx = (archief.logEntries || []).findIndex(e => e.id === req.params.id && e.type === 'missie');
+  if (idx < 0) return res.status(404).json({ error: 'Missie niet gevonden' });
+  const missie = archief.logEntries[idx];
+  if (!['actief','aangevraagd'].includes(missie.status)) return res.status(400).json({ error: 'Missie is niet actief' });
+  missie.status = 'voltooid';
+  storage.writeJSON('archief.json', archief);
+
+  const dmState = readDmState();
+  const gid = missie.groepId;
+  const g = gid ? getGroup(dmState, gid) : null;
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  let nieuweRang = null;
+
+  if (g && missie.renownBeloning > 0 && missie.factieId) {
+    if (!g.factieRenown) g.factieRenown = {};
+    const meta = storage.readJSON('meta.json');
+    const factie = _factiesConfig(meta).find(f => f.id === missie.factieId);
+    const oud = g.factieRenown[missie.factieId] || 0;
+    const nieuw = oud + missie.renownBeloning;
+    g.factieRenown[missie.factieId] = nieuw;
+
+    // Controleer rang-up + automatische boons
+    if (factie) {
+      const drempels = factie.renownDrempels || [0,1,3,10,25,50];
+      const rangen   = factie.rangen || [];
+      const oudIdx   = _rangIdxVanRenown(oud,   drempels, rangen.length);
+      const nieuwIdx = _rangIdxVanRenown(nieuw,  drempels, rangen.length);
+      if (nieuwIdx > oudIdx) {
+        nieuweRang = rangen[nieuwIdx]?.naam || null;
+        // Uitdelen boons voor alle nieuwe rangen
+        const voorwerpen = storage.readJSON('entities.json').voorwerpen || [];
+        const groepPersonages = Object.entries(dmState.playerProfiles || {})
+          .filter(([_, p]) => _playerGroupId(dmState, _) === gid)
+          .map(([charId]) => charId);
+        for (let ri = oudIdx + 1; ri <= nieuwIdx; ri++) {
+          for (const boon of (rangen[ri]?.boons || [])) {
+            if (!boon.entityId) continue;
+            const voorwerp = voorwerpen.find(v => v.id === boon.entityId);
+            if (!voorwerp) continue;
+            for (const charId of groepPersonages) {
+              if (!dmState.playerItems) dmState.playerItems = {};
+              if (!dmState.playerItems[charId]) dmState.playerItems[charId] = [];
+              dmState.playerItems[charId].push({
+                id:         voorwerp.id,
+                name:       boon.naam || voorwerp.name,
+                entityId:   voorwerp.id,
+                entityType: 'voorwerpen',
+                kind:       'boon',
+                factieId:   missie.factieId,
+              });
+            }
+          }
+        }
+      }
+    }
+    storage.writeJSON('dm-state.json', dmState);
+    io.to(room).emit('facties:updated');
+  }
+
+  // Valuta-uitkering
+  if (g && missie.valuta && toCl(missie.valuta) > 0) {
+    const spelers = Object.entries(dmState.playerProfiles || {})
+      .filter(([_, p]) => _playerGroupId(dmState, _) === gid)
+      .map(([charId]) => charId);
+    if (g.sharedPurse?.enabled) {
+      g.sharedPurse = fromCl(toCl(g.sharedPurse) + toCl(missie.valuta));
+      g.sharedPurse.enabled = true;
+    } else if (spelers.length > 0) {
+      const perSpeler = Math.floor(toCl(missie.valuta) / spelers.length);
+      if (!dmState.playerCurrency) dmState.playerCurrency = {};
+      for (const charId of spelers) {
+        const cur = dmState.playerCurrency[charId] || { fl: 0, kn: 0, cl: 0 };
+        dmState.playerCurrency[charId] = fromCl(toCl(cur) + perSpeler);
+        io.to(room).emit('player:currency-updated', { characterId: charId, currency: dmState.playerCurrency[charId] });
+      }
+    }
+    storage.writeJSON('dm-state.json', dmState);
+  }
+
+  io.to(room).emit('missies:updated');
+  io.to(room).emit('missie:voltooid', { missieId: missie.id, titel: missie.titel, renownBeloning: missie.renownBeloning, nieuweRang });
+  res.json({ ok: true, nieuweRang });
+});
+
+// POST /missies/:id/falen — DM markeert als gefaald
+router.post('/missies/:id/falen', requireDM, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  const idx = (archief.logEntries || []).findIndex(e => e.id === req.params.id && e.type === 'missie');
+  if (idx < 0) return res.status(404).json({ error: 'Missie niet gevonden' });
+  archief.logEntries[idx].status = 'gefaald';
+  storage.writeJSON('archief.json', archief);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('missies:updated');
+  req.app.get('io').to(req.session?.campaignId||'main').emit('missie:gefaald', { missieId: archief.logEntries[idx].id, titel: archief.logEntries[idx].titel });
+  res.json({ ok: true });
 });
 
 // ── Locatie (Grisburgh verlaten) ──

@@ -10,9 +10,16 @@ Socket.io voor realtime updates. Geen framework, geen bundler.
 ## UI & campagne-afspraken
 
 - **Taal: altijd Nederlands.** Labels, knopteksten, toastberichten, foutmeldingen — alles NL.
-- **D&D-terminologie altijd in het Engels.** Spellnamen, feats, abilities, class features,
-  conditions (Frightened, Poisoned…) — altijd de Engelse PHB-term gebruiken, ook in beschrijvingen.
-  Voorbeelden: "Spell Slots", "Cunning Action", "Channel Divinity", "Saving Throw".
+- **D&D-terminologie altijd in het Engels — nooit vertalen.** Spellnamen, feats, abilities,
+  class features, conditions, categorielabels in progressie — altijd de Engelse PHB-term gebruiken,
+  ook in beschrijvingen, chips, badges en knoppen die D&D-inhoud beschrijven.
+  Voorbeelden: "Spell Slots", "Cunning Action", "Channel Divinity", "Saving Throw",
+  "Ability Score Improvement" (niet "Versterking"), "Epic Boon" (niet "Epische gave"),
+  "Combat" (niet "Aanval"), "Defense" (niet "Verdediging"), "Movement" (niet "Beweging"),
+  "Healing" (niet "Genezing"), "Knowledge" (niet "Kennis"), "Senses" (niet "Zintuig"),
+  "Magic" (niet "Magie"), "Social" (niet "Sociaal"), "General" (niet "Algemeen"),
+  "Class" (niet "Klasse" als D&D-term), "Subclass" (niet "Subklasse").
+  **Vuistregel:** als de term in de PHB voorkomt, staat hij in het Engels.
 - **Geen destructieve DM-acties zonder expliciete bevestiging.** Verwijderen, resetten en
   overschrijven altijd via `confirm()` of een zichtbare knop die de actie beschrijft.
   Nooit stilletjes iets wissen op basis van een impliciet pad.
@@ -106,15 +113,20 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=258   app.js?v=354   sound-manager.js?v=4
-app.js      : api.js?v=227      render-campagne.js?v=94   render-archief.js?v=39
+index.html  : theme.css?v=282   app.js?v=405   sound-manager.js?v=4
+app.js      : api.js?v=231      render-campagne.js?v=94   render-archief.js?v=42
               render-kaart.js?v=8  render-dungeon.js?v=22  render-relatiemap.js?v=13
-              render-progressie.js?v=24  socket-client.js?v=30
-              render-bestiarium.js?v=10  render-statblock.js?v=3
-              dm-panel.js?v=70
-dm-panel.js : combat-canvas.js?v=6   render-statblock.js?v=1
-              (glossary.js verwijderd — feature gerevert, zie Veelgemaakte fouten)
+              render-progressie.js?v=33  socket-client.js?v=33
+              render-bestiarium.js?v=11  render-statblock.js?v=3
+              dm-panel.js?v=82
+dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=1
 ```
+
+> **Glossary/hover-uitleg:** geen los `glossary.js`-bestand (die revert staat hieronder). De
+> hover-uitleg van D&D-termen leeft **inline in app.js**: `_SB_GLOSSARY` (termen + tips),
+> `_sbApplyGlossary_DOM()` (wrapt termen in `.sb-gloss`-spans) en een globale tooltip-handler
+> (`_initGlobalGlossary`, geactiveerd in `init()`). Publieke API: `window.glossary.applyDom(el)`.
+> Gebruikt door spreukenboek én het progressie-detailmodal.
 
 ---
 
@@ -248,6 +260,39 @@ Context voor lazy render staat in `window._lastPlayerProfile`, `window._lastPlay
 - Keuzes opgeslagen in `playerProfile.featChoices` (JSON-string: `{ featKey → tekst }`)
 - featKey-formaat: `"KlasseNaam|level|FeatureNaam"`
 
+### Feature-beschrijvingen: Engelse SRD-bron (2024)
+
+Alle `desc`-velden zijn **officiële Engelse 2024-tekst** (geen NL-vertalingen). Bron + regeneratie via
+`scripts/srd-2024/`:
+
+- **SRD 5.2 (CC-BY-4.0):** [`5e-bits/5e-database`](https://github.com/5e-bits/5e-database) →
+  `src/2024/en/5e-SRD-Features.json` (class/subclass features) + `…-Traits.json` (species) +
+  `…-Feats.json`. Dekt ~90% (alle basisklassen + de 12 SRD-subklassen).
+- **Niet-SRD subklassen/species** (Twilight Domain, Swashbuckler, Wild Magic, Aasimar, Aarakocra,
+  Tabaxi, Half-Elf): geëxtraheerd uit [`5etools-mirror-3/5etools-src`](https://github.com/5etools-mirror-3/5etools-src)
+  `data/class/class-*.json` + `data/races.json` via `extract-5et.js` (`{@tag}`-stripper).
+- **Structurele placeholders** (Divine Smite, lineage/legacy-spreuk-rijen): korte Engelse regels in
+  de `PLACEHOLDERS`-map in `merge-srd.js`.
+
+Regenereren: download de bronbestanden naar `/tmp`, draai `extract-5et.js` dan `merge-srd.js <file> --write`.
+De seed én de campagne-eigen `data/campaigns/*/progression.json` moeten beide gemerged worden
+(grisburgh heeft een custom; prewett/sandbox gebruiken de seed).
+
+### Backgrounds (2024)
+
+Naast Klassen/Soorten/Feats kent de progressie ook **backgrounds** (vierde editor-categorie).
+Een background = `{ levels: { "1": [{name, desc}] } }` (zelfde vorm als species, dus hergebruikt
+species-rendering en de level-editor — maar zonder level-labels). Onderdelen: Ability Scores,
+Origin-feat, Skill Proficiencies, Tool Proficiency, Equipment.
+
+- **Bibliotheek:** 16 PHB-2024-backgrounds in `public/data/backgrounds-2024.json` (geëxtraheerd uit
+  5etools via `scripts/srd-2024/extract-backgrounds.js`).
+- **Server:** `GET /api/progression` vult `backgrounds` aan uit dat bestand als de campagne nog geen
+  eigen versie heeft opgeslagen (`PUT` bewaart `body.backgrounds`). Net als de class-seed-fallback.
+- **Koppeling:** `playerProfile.background` (op het character sheet — nu een **dropdown** gevoed door
+  `progData.backgrounds`, niet meer vrij tekstveld) → matcht fuzzy op de bibliotheek → toont een
+  "Background"-sectie in de progressie-tijdlijn (alleen tonen; skills worden níét automatisch gezet).
+
 ---
 
 ## Zeldzaamheid (rarity) voor voorwerpen
@@ -289,9 +334,16 @@ Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in ren
 
 ```bash
 cd "/Users/alan/Library/Mobile Documents/com~apple~CloudDocs/DnD app/Grisburgh-main"
-npm start          # of: node server.js
+npm run dev        # node --watch (auto-reload) + DEV_AUTO_DM=1
 # → http://localhost:3000
 ```
+
+> **`npm run dev` logt je automatisch in als DM** — geen wachtwoord nodig. Dit komt door
+> `DEV_AUTO_DM=1` in het dev-script (zie `config.js` → `devAutoDM`, middleware in `server.js`).
+> Een verse sessie krijgt `role: 'dm'`. **Alleen lokaal:** productie draait via PM2 zonder die
+> env-var, dus daar geldt de normale DM-login. Wil je lokaal als speler testen? `window.app.testLogin()`
+> zet de rol expliciet op `player` (overschrijft de auto-DM). `npm start` (= `node server.js`) heeft de
+> bypass óók niet — gebruik `npm run dev` voor de DM-bypass.
 
 Tests:
 ```bash

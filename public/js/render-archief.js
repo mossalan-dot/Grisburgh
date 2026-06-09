@@ -148,18 +148,16 @@ export async function renderDocumenten() {
           <div class="section-banner-label">Documenten</div>
           <div class="section-banner-desc-line">Brieven, kranten, kaarten en manuscripten</div>
         </div>
+        <div class="section-banner-search">
+          <div class="sbs-input-wrap">
+            <span class="sbs-icon">\u2315</span>
+            <input type="text" class="sbs-input search-input"
+              placeholder="Zoek document\u2026" value="${esc(searchQuery)}" oninput="window._documentenSearch(this.value)">
+          </div>
+          <span class="results-count sbs-count" id="doc-results-count">${docs.length} resultaten</span>
+        </div>
       </div>
-      <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
-    </div>
-
-    <!-- Search -->
-    <div class="flex items-center gap-3 px-6 py-3 bg-room-surface/30">
-      <div class="relative flex-1 max-w-md">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint">\u2315</span>
-        <input type="text" class="search-input w-full pl-9 pr-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none"
-          placeholder="Zoek document..." value="${esc(searchQuery)}" oninput="window._documentenSearch(this.value)">
-      </div>
-      <span class="results-count text-ink-faint text-xs font-mono">${docs.length} resultaten</span>
+      <div class="section-banner-rule"><span class="section-banner-ornament">\u25c6</span></div>
     </div>
 
     <!-- Content -->
@@ -174,6 +172,8 @@ export async function renderDocumenten() {
     searchQuery = q;
     const filtered = filterDocs();
     _refreshDocGrid(filtered, container);
+    const cnt = container.querySelector('#doc-results-count');
+    if (cnt) cnt.textContent = `${filtered.length} resultaten`;
   };
 }
 
@@ -223,7 +223,11 @@ export async function renderLogboek() {
 
   // Build static skeleton on first render (geen subtabbalk — navigatie via dropdown in header)
   if (!container.querySelector('#logboek-tab-content')) {
-    container.innerHTML = `<div id="logboek-tab-content" class="flex-1 overflow-y-auto"></div>`;
+    container.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;padding:6px 12px 0">
+        <button class="help-btn" onclick="window._openHelp?.('logboek')" title="Uitleg">${icon('book-open')}</button>
+      </div>
+      <div id="logboek-tab-content" class="flex-1 overflow-y-auto"></div>`;
   }
 
   const tabContent = container.querySelector('#logboek-tab-content');
@@ -323,14 +327,16 @@ async function _renderPrikbord(container) {
 
   // Verborgen staat links — de →-knop werkt dan van links naar rechts
   const cols = [
-    ...(isDm ? [{ key: 'verborgen', label: `${icon('lock')} Verborgen` }] : []),
-    { key: 'actief',   label: `${icon('pin')} Actief` },
-    { key: 'voltooid', label: `${icon('check')} Voltooid` },
-    { key: 'mislukt',  label: `${icon('x')} Mislukt` },
+    ...(isDm ? [{ key: 'verborgen',     label: `${icon('lock')} Verborgen` }] : []),
+    { key: 'actief',        label: `${icon('pin')} Beschikbaar` },
+    ...(isDm ? [{ key: 'aangevraagd',   label: `${icon('clock')} Aangevraagd` }] : []),
+    { key: 'in-uitvoering', label: `${icon('swords')} In uitvoering` },
+    { key: 'voltooid',      label: `${icon('check')} Voltooid` },
+    { key: 'mislukt',       label: `${icon('x')} Mislukt` },
   ];
 
-  // Volgorde voor de →-knop: verborgen→actief→voltooid→mislukt (geen terug naar verborgen)
-  const STATUS_CYCLE = ['verborgen', 'actief', 'voltooid', 'mislukt'];
+  // Volgorde voor de →-knop
+  const STATUS_CYCLE = ['verborgen', 'actief', 'aangevraagd', 'in-uitvoering', 'voltooid', 'mislukt'];
 
   const questCard = (q, col) => {
     const chLabel    = q.chapter && hk[q.chapter] ? hk[q.chapter].short : '';
@@ -354,6 +360,7 @@ async function _renderPrikbord(container) {
         <div class="quest-card-title">${q.title.replace(/</g,'&lt;')}</div>
         ${showDesc ? `<div class="quest-card-desc">${q.description.replace(/</g,'&lt;')}</div>` : ''}
         ${chLabel ? `<div class="quest-card-chapter">${chLabel.replace(/</g,'&lt;')}</div>` : ''}
+        ${q.factieId ? `<div class="quest-card-factie">${icon('landmark')} Factie-missie</div>` : ''}
       </div>`;
   };
 
@@ -444,13 +451,22 @@ async function _renderPrikbord(container) {
   };
 }
 
-function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
+async function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
   document.getElementById('quest-modal-overlay')?.remove();
   const hk = meta?.hoofdstukken || {};
   const chOptions = Object.entries(hk)
     .sort(([,a],[,b]) => (a.num || 0) - (b.num || 0))
     .map(([k,v]) => `<option value="${k}" ${existingQuest?.chapter === k ? 'selected' : ''}>${(v.short || k).replace(/</g,'&lt;')}</option>`)
     .join('');
+
+  // Laad facties voor de koppeling
+  let factieOpties = '<option value="">— geen factie —</option>';
+  try {
+    const fd = await api.getFacties();
+    factieOpties += (fd.facties || []).map(f =>
+      `<option value="${f.id}" ${existingQuest?.factieId === f.id ? 'selected' : ''}>${f.naam}</option>`
+    ).join('');
+  } catch {}
 
   const overlay = document.createElement('div');
   overlay.id = 'quest-modal-overlay';
@@ -469,10 +485,12 @@ function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
       <div class="quest-modal-row">
         <label class="quest-modal-label">Status</label>
         <select id="qm-status" class="dm-select">
-          <option value="verborgen" ${(existingQuest?.status ?? defaultStatus) === 'verborgen' ? 'selected':''}>🔒 Verborgen (alleen DM)</option>
-          <option value="actief"    ${(existingQuest?.status ?? defaultStatus) === 'actief'    ? 'selected':''}>📌 Actief</option>
-          <option value="voltooid"  ${(existingQuest?.status ?? defaultStatus) === 'voltooid'  ? 'selected':''}>✓ Voltooid</option>
-          <option value="mislukt"   ${(existingQuest?.status ?? defaultStatus) === 'mislukt'   ? 'selected':''}>✗ Mislukt</option>
+          <option value="verborgen"     ${(existingQuest?.status ?? defaultStatus) === 'verborgen'     ? 'selected':''}>Verborgen (alleen DM)</option>
+          <option value="actief"        ${(existingQuest?.status ?? defaultStatus) === 'actief'        ? 'selected':''}>Beschikbaar voor spelers</option>
+          <option value="aangevraagd"   ${(existingQuest?.status ?? defaultStatus) === 'aangevraagd'   ? 'selected':''}>Aangevraagd</option>
+          <option value="in-uitvoering" ${(existingQuest?.status ?? defaultStatus) === 'in-uitvoering' ? 'selected':''}>In uitvoering</option>
+          <option value="voltooid"      ${(existingQuest?.status ?? defaultStatus) === 'voltooid'      ? 'selected':''}>Voltooid</option>
+          <option value="mislukt"       ${(existingQuest?.status ?? defaultStatus) === 'mislukt'       ? 'selected':''}>Mislukt</option>
         </select>
       </div>
       <div class="quest-modal-row">
@@ -481,6 +499,32 @@ function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
           <option value="">— geen akte —</option>
           ${chOptions}
         </select>
+      </div>
+      <hr style="border:none;border-top:1px solid rgba(196,168,122,0.3);margin:8px 0">
+      <div class="quest-modal-row">
+        <label class="quest-modal-label">Factie</label>
+        <select id="qm-factie" class="dm-select">${factieOpties}</select>
+      </div>
+      <div id="qm-factie-velden" style="${existingQuest?.factieId ? '' : 'display:none'}">
+        <div class="quest-modal-row">
+          <label class="quest-modal-label">Vereist renown</label>
+          <input id="qm-vereist-renown" class="dm-input" type="number" min="0" style="width:80px"
+            value="${existingQuest?.vereistRenown ?? 0}">
+        </div>
+        <div class="quest-modal-row">
+          <label class="quest-modal-label">Renown-beloning</label>
+          <input id="qm-renown-beloning" class="dm-input" type="number" min="0" style="width:80px"
+            value="${existingQuest?.renownBeloning ?? 1}">
+        </div>
+        <div class="quest-modal-row" style="gap:6px">
+          <label class="quest-modal-label">Valuta-beloning</label>
+          <input id="qm-valuta-fl" class="dm-input" type="number" min="0" style="width:60px" placeholder="fl"
+            value="${existingQuest?.valuta?.fl ?? ''}">
+          <input id="qm-valuta-kn" class="dm-input" type="number" min="0" style="width:60px" placeholder="kn"
+            value="${existingQuest?.valuta?.kn ?? ''}">
+          <input id="qm-valuta-cl" class="dm-input" type="number" min="0" style="width:60px" placeholder="cl"
+            value="${existingQuest?.valuta?.cl ?? ''}">
+        </div>
       </div>
       <div class="quest-modal-actions">
         <button class="dm-btn dm-btn-ghost" onclick="document.getElementById('quest-modal-overlay').remove()">Annuleren</button>
@@ -492,15 +536,29 @@ function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
   document.body.appendChild(overlay);
   document.getElementById('qm-title')?.focus();
 
+  // Toon/verberg factie-velden bij wijziging factie-select
+  document.getElementById('qm-factie')?.addEventListener('change', (e) => {
+    document.getElementById('qm-factie-velden').style.display = e.target.value ? '' : 'none';
+  });
+
   window._questSave = async (id) => {
-    const title   = document.getElementById('qm-title')?.value.trim();
-    const desc    = document.getElementById('qm-desc')?.value.trim();
-    const status  = document.getElementById('qm-status')?.value || 'actief';
-    const chapter = document.getElementById('qm-chapter')?.value || '';
+    const title         = document.getElementById('qm-title')?.value.trim();
+    const desc          = document.getElementById('qm-desc')?.value.trim();
+    const status        = document.getElementById('qm-status')?.value || 'actief';
+    const chapter       = document.getElementById('qm-chapter')?.value || '';
+    const factieId      = document.getElementById('qm-factie')?.value || null;
+    const vereistRenown = parseInt(document.getElementById('qm-vereist-renown')?.value) || 0;
+    const renownBeloning = parseInt(document.getElementById('qm-renown-beloning')?.value) || 0;
+    const fl = parseInt(document.getElementById('qm-valuta-fl')?.value) || 0;
+    const kn = parseInt(document.getElementById('qm-valuta-kn')?.value) || 0;
+    const cl = parseInt(document.getElementById('qm-valuta-cl')?.value) || 0;
+    const valuta = (fl || kn || cl) ? { fl, kn, cl } : null;
     if (!title) { alert('Vul een titel in.'); return; }
+    const payload = { title, description: desc, status, chapter,
+      factieId: factieId || null, vereistRenown, renownBeloning, valuta };
     try {
-      if (id) await api.updateQuest(id, { title, description: desc, status, chapter });
-      else    await api.createQuest({ title, description: desc, status, chapter });
+      if (id) await api.updateQuest(id, payload);
+      else    await api.createQuest(payload);
       document.getElementById('quest-modal-overlay')?.remove();
       await renderLogboek();
     } catch (err) { alert('Opslaan mislukt: ' + err.message); }

@@ -50,6 +50,7 @@ function _renderGrid() {
           ${dm ? `<button class="best-lib-btn" onclick="window.bestiarium.openLibrary()"
             title="Naar de monsterbibliotheek in de Meesterkamer">${icon('book-open')} Monsterbibliotheek</button>` : ''}
           <span class="results-count sbs-count">${monsters.length} ${monsters.length === 1 ? 'wezen' : 'wezens'}</span>
+          <button class="help-btn" onclick="window._openHelp?.('bestiarium')" title="Uitleg">${icon('book-open')}</button>
         </div>
       </div>
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
