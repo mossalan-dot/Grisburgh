@@ -4,7 +4,7 @@ import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLo
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=8';
 import { renderDungeon } from './render-dungeon.js?v=22';
 import { renderRelatiemap } from './render-relatiemap.js?v=13';
-import { renderProgressie } from './render-progressie.js?v=33';
+import { renderProgressie } from './render-progressie.js?v=34';
 import { renderBestiarium } from './render-bestiarium.js?v=11';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=33";
@@ -2620,6 +2620,13 @@ const _SB_GLOSSARY = [
   { t: /\bDisadvantage\b/gi,    tip: 'Disadvantage: roll two d20s and use the lower result.' },
 ];
 
+// Maak alle termen meervoud-tolerant: een afsluitende \b wordt s?\b zodat
+// "Spell Slots", "Cantrips", "Saving Throws" enz. ook matchen.
+for (const _e of _SB_GLOSSARY) {
+  const src = _e.t.source;
+  if (src.endsWith('\\b')) _e.t = new RegExp(src.slice(0, -2) + 's?\\b', _e.t.flags);
+}
+
 // Walk a live DOM node and wrap glossary terms in tooltip spans.
 function _sbApplyGlossary_DOM(rootEl) {
   if (!rootEl) return;
@@ -2722,6 +2729,16 @@ function _initGlobalGlossary() {
 window.glossary = {
   ready: true,
   applyDom: (rootEl) => { _initGlobalGlossary(); _sbApplyGlossary_DOM(rootEl); },
+  // String → string: wrap glossary-termen in al-gerenderde HTML. Gebruikt door
+  // voorwerp-beschrijvingen en het speler-spreukpaneel (mdToHtml-output).
+  annotate: (html) => {
+    if (!html) return html;
+    _initGlobalGlossary();
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    _sbApplyGlossary_DOM(tmp);
+    return tmp.innerHTML;
+  },
 };
 
 // Dutch translations for common D&D metadata values
@@ -9852,7 +9869,7 @@ function _renderHelpModal(config, idx) {
       ${stap.afbeelding ? `<img src="${esc(stap.afbeelding)}" class="help-modal-afbeelding" alt="">` : ''}
       <div class="help-modal-body">
         <div class="help-modal-stap-titel">${esc(stap.titel)}</div>
-        <p class="help-modal-tekst">${esc(stap.tekst)}</p>
+        <div class="help-modal-tekst">${mdToHtml(stap.tekst)}</div>
       </div>
       ${totaal > 1 ? `
       <div class="help-modal-footer">
@@ -9874,6 +9891,27 @@ window._helpStap = (idx) => {
 };
 
 // ── Help-editor (DM only) ──
+// Compacte opmaak-werkbalk voor een help-textarea (hergebruikt de globale
+// _fmt/_fmtKleurSelect-helpers en dezelfde markdown als mdToHtml).
+function _helpFmtBar(id) {
+  const kleuren = Object.keys(_FMT_KLEUR_HEX).map(k =>
+    `<option value="${k}" style="background:#1a1410;color:${_FMT_KLEUR_HEX[k]}">${k}</option>`).join('');
+  return `<div class="fmt-toolbar">
+    <button type="button" class="fmt-btn fmt-btn-b" title="Vet (Ctrl+B)" onclick="window._fmt('${id}','**')">B</button>
+    <button type="button" class="fmt-btn fmt-btn-i" title="Cursief (Ctrl+I)" onclick="window._fmt('${id}','*')">I</button>
+    <button type="button" class="fmt-btn fmt-btn-u" title="Onderstreept" onclick="window._fmt('${id}','__')">U</button>
+    <button type="button" class="fmt-btn fmt-btn-s" title="Doorhalen" onclick="window._fmt('${id}','~~')">S</button>
+    <button type="button" class="fmt-btn fmt-btn-mark" title="Markering" onclick="window._fmt('${id}','==')">▌</button>
+    <div class="fmt-toolbar-sep"></div>
+    <div class="fmt-kleur-wrap">
+      <select class="fmt-kleur-select" id="fmt-kleur-${id}" onchange="window._fmtKleurSelect('${id}', this)">
+        <option value="">🎨 kleur</option>${kleuren}
+      </select>
+      <span class="fmt-kleur-dot" id="fmt-kleur-dot-${id}"></span>
+    </div>
+  </div>`;
+}
+
 window._openHelpEditor = (key) => {
   document.getElementById('help-editor-modal')?.remove();
   const defaults = HELP_CONFIG[key]?.() || { titel: key, stappen: [{ titel: '', tekst: '' }] };
@@ -9903,7 +9941,9 @@ window._openHelpEditor = (key) => {
                 <label class="help-editor-label">Titel stap</label>
                 <input class="dm-input help-editor-input he-stap-titel" data-i="${i}" value="${esc(s.titel)}">
                 <label class="help-editor-label">Tekst</label>
-                <textarea class="dm-input he-stap-tekst" data-i="${i}" rows="4" style="resize:vertical">${esc(s.tekst)}</textarea>
+                ${_helpFmtBar(`he-stap-tekst-${i}`)}
+                <textarea id="he-stap-tekst-${i}" class="dm-input he-stap-tekst" data-i="${i}" rows="4" style="resize:vertical"
+                  onkeydown="window._fmtKey(event)">${esc(s.tekst)}</textarea>
               </div>`).join('')}
           </div>
           <button class="dm-btn dm-btn-ghost dm-btn-sm" id="he-add-stap" style="margin-top:6px">${icon('plus')} Stap toevoegen</button>
