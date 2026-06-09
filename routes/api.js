@@ -850,7 +850,7 @@ router.put('/berichten/sjablonen', requireDM, (req, res) => {
 // Opgeslagen in berichten.json als { type:'brief', titel, tekst, afzender, entityId, entityType, deletedAt }
 
 // Bezorg programmatisch een (gethematiseerde) brief in de berichtenbox van een speler
-function _bezorgBrief(req, cid, { titel = '', tekst = '', afzender = '', thema = '', entityId = null, entityType = null, datum = '' }) {
+function _bezorgBrief(req, cid, { titel = '', tekst = '', afzender = '', thema = '', entityId = null, entityType = null, datum = '', embleem = '', kleur = '', kop = '', cinematic = false }) {
   if (!cid || !tekst) return null;
   const berichten = storage.readJSON('berichten.json') || {};
   if (!berichten[cid]) berichten[cid] = [];
@@ -858,6 +858,7 @@ function _bezorgBrief(req, cid, { titel = '', tekst = '', afzender = '', thema =
   const post = {
     id: `post_${now}_${Math.random().toString(36).substr(2, 4)}`,
     type: 'brief', titel, tekst, afzender, entityId, entityType, datum, thema,
+    embleem: embleem || undefined, kleur: kleur || undefined, kop: kop || undefined, cinematic: cinematic || undefined,
     timestamp: now, deletedAt: null,
   };
   berichten[cid].unshift(post);
@@ -4626,6 +4627,67 @@ router.put('/diensten/toegang', requireDM, (req, res) => {
   res.json({ ok: true, onthuld: onthuld.map(o => o.name) });
 });
 
+// Brief-styling per dienst (embleem + kleur) voor de verzegelde uitnodiging.
+const _DIENST_BRIEF = {
+  herberg:   { icon: 'beer',      kleur: 'hout',   naam: 'De Herberg' },
+  tweespalt: { icon: 'dice',      kleur: 'staal',  naam: 'De Tweespalt' },
+  gock:      { icon: 'search',    kleur: 'metaal', naam: 'De Gock' },
+  ursula:    { icon: 'sparkles',  kleur: '',       naam: 'Madame Ursula' },
+  tempel:    { icon: 'church',    kleur: 'hout',   naam: 'De Tempel' },
+  heeren:    { icon: 'moon',      kleur: 'staal',  naam: 'De Heeren van de Nacht' },
+  facties:   { icon: 'landmark',  kleur: 'metaal', naam: 'De Facties' },
+  magizoo:   { icon: 'paw-print', kleur: 'hout',   naam: 'De Magizoöloog' },
+};
+
+// Onthul een dienst (beschikbaar) voor de actieve groep én bezorg een verzegelde uitnodiging.
+router.post('/diensten/:dienst/uitnodiging', requireDM, (req, res) => {
+  const dienst = req.params.dienst;
+  if (!_DIENSTEN_NAMEN.includes(dienst)) return res.status(400).json({ error: 'Onbekende dienst' });
+  const dmState = readDmState();
+  const groepId = dmState.activeGroup;
+  const g = getGroup(dmState);
+
+  // 1) Dienst beschikbaar maken voor de actieve groep + gekoppelde entiteiten onthullen
+  if (!g.dienstenToegang) g.dienstenToegang = {};
+  g.dienstenToegang[dienst] = 'beschikbaar';
+  const meta = storage.readJSON('meta.json');
+  const cfg  = meta[dienst] || {};
+  const entities = storage.readJSON('entities.json');
+  if (!g.visibility) g.visibility = {};
+  for (const eid of [cfg.imageId, cfg.backdropId]) {
+    if (!eid || g.visibility[eid] === 'visible') continue;
+    for (const t of ENTITY_TYPES) {
+      if ((entities[t] || []).some(x => x.id === eid)) { g.visibility[eid] = 'visible'; break; }
+    }
+  }
+  storage.writeJSON('dm-state.json', dmState);
+
+  // 2) Ontvangers
+  const leden = (entities.personages || []).filter(e => e.subtype === 'speler' && e.data?.groep === groepId);
+  if (!leden.length) return res.status(400).json({ error: 'Geen spelers in de actieve groep' });
+
+  // 3) Brief opbouwen (verzegelde-uitnodiging-stijl, thema 'factie')
+  const bief = _DIENST_BRIEF[dienst] || { icon: 'landmark', kleur: '', naam: dienst };
+  const naam = (cfg.naam && String(cfg.naam).trim()) || bief.naam;
+  const tekst = (cfg.uitnodiging && String(cfg.uitnodiging).trim())
+    || `Geachte avonturier,\n\n**${naam}** opent haar deuren voor u. Wij verwelkomen u graag — kom langs wanneer het u uitkomt.\n\nMet achting,\n${naam}`;
+
+  let bezorgd = 0;
+  for (const lid of leden) {
+    const post = _bezorgBrief(req, lid.id, {
+      titel: 'Een uitnodiging', tekst, afzender: naam, thema: 'factie',
+      embleem: bief.icon, kleur: bief.kleur, kop: naam, cinematic: true,
+    });
+    if (post) bezorgd++;
+  }
+
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('diensten:toegang:updated');
+  io.to(room).emit('visibility:updated');
+  res.json({ ok: true, bezorgd });
+});
+
 function _dienstenBeschikbaar(dmState) {
   const entities = storage.readJSON('entities.json');
   const g = getGroup(dmState);
@@ -5901,6 +5963,63 @@ router.post('/facties/:id/reveal', requireDM, (req, res) => {
   res.json({ ok: true, id: factie.id, zichtbaar: g.factieZichtbaar[factie.id] });
 });
 
+// Standaard-uitnodigingstekst als de factie er nog geen heeft opgeslagen.
+function _standaardUitnodiging(factie, afzender, locatie) {
+  const waar = locatie ? ` Kom langs in **${locatie}**.` : '';
+  const greet = factie.npcGreet ? `\n\n_"${factie.npcGreet}"_` : '';
+  return `Geachte avonturier,\n\nUw daden in Grisburgh zijn ons niet ontgaan. **${factie.naam}** nodigt u uit om kennis te maken.${waar} Wij menen dat een verbond ons beiden tot voordeel kan strekken.${greet}\n\nMet achting,\n${afzender}`;
+}
+
+// Onthul de factie voor de actieve groep én bezorg elke speler een verzegelde uitnodigingsbrief.
+router.post('/facties/:id/uitnodiging', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const factie = _factiesConfig(meta).find(f => f.id === req.params.id);
+  if (!factie) return res.status(404).json({ error: 'Factie niet gevonden' });
+
+  const dmState = readDmState();
+  const groepId = dmState.activeGroup;
+  const g = getGroup(dmState);
+
+  // 1) Onthul de factie voor de actieve groep
+  if (!g.factieZichtbaar) g.factieZichtbaar = {};
+  g.factieZichtbaar[factie.id] = true;
+  if (factie.entityId) {
+    if (!g.visibility) g.visibility = {};
+    g.visibility[factie.entityId] = 'zichtbaar';
+  }
+  storage.writeJSON('dm-state.json', dmState);
+
+  // 2) Ontvangers = spelers in de actieve groep
+  const entities = storage.readJSON('entities.json');
+  const leden = (entities.personages || []).filter(e => e.subtype === 'speler' && e.data?.groep === groepId);
+  if (!leden.length) return res.status(400).json({ error: 'Geen spelers in de actieve groep' });
+
+  // 3) Afzender = NPC-hoofd, anders de factienaam; locatie voor het sjabloon
+  const npc = factie.npcEntityId ? (entities.personages || []).find(e => e.id === factie.npcEntityId) : null;
+  const afzender = npc?.name || factie.naam;
+  const locatie  = factie.locatieEntityId ? ((entities.locaties || []).find(e => e.id === factie.locatieEntityId)?.name || '') : '';
+
+  const tekst = (factie.uitnodiging && factie.uitnodiging.trim()) || _standaardUitnodiging(factie, afzender, locatie);
+  const titel = (factie.uitnodigingTitel && factie.uitnodigingTitel.trim()) || 'Een uitnodiging';
+
+  // 4) Bezorg de verzegelde brief bij elk lid
+  let bezorgd = 0;
+  for (const lid of leden) {
+    const post = _bezorgBrief(req, lid.id, {
+      titel, tekst, afzender, thema: 'factie',
+      entityId: factie.entityId || null, entityType: factie.entityId ? 'organisaties' : null,
+      embleem: factie.embleem || 'landmark', kleur: factie.stijl || '', kop: factie.naam, cinematic: true,
+    });
+    if (post) bezorgd++;
+  }
+
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('facties:updated');
+  if (factie.entityId) io.to(room).emit('visibility:updated');
+  res.json({ ok: true, bezorgd, zichtbaar: true });
+});
+
 router.post('/facties/:id/renown', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   const config = _factiesConfig(meta);
@@ -5994,6 +6113,8 @@ router.put('/meta/facties', requireDM, (req, res) => {
     npcEntityId:     f.npcEntityId     ? String(f.npcEntityId).trim()     : null,
     npcEntityIdDag:  f.npcEntityIdDag  ? String(f.npcEntityIdDag).trim()  : null,
     npcGreet:        f.npcGreet        ? String(f.npcGreet).trim()        : '',
+    uitnodiging:      f.uitnodiging      ? String(f.uitnodiging).trim()      : '',
+    uitnodigingTitel: f.uitnodigingTitel ? String(f.uitnodigingTitel).trim() : '',
     renownDrempels: (Array.isArray(f.renownDrempels) && f.renownDrempels.length)
       ? f.renownDrempels.map(n => parseInt(n) || 0)
       : [0, 1, 3, 10, 25, 50],

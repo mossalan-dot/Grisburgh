@@ -1,4 +1,4 @@
-import { api } from './api.js?v=227';
+import { api } from './api.js?v=233';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -119,6 +119,10 @@ function esc(s) {
   if (!s) return '';
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 };
+// JS-string-escape voor inline onclick-handlers (apostrof, quote, backslash, newline).
+function escJS(s) {
+  return String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '');
+}
 
 export function initDmPanel() {
   window.dmPanel = {
@@ -308,6 +312,7 @@ export function initDmPanel() {
       _renderRegieBalk();
     },
     regieBalkToggleMinimize() { _rbMinimized = !_rbMinimized; _renderRegieBalk(); },
+    regieBalkBrief() { _openRegieBriefPicker(); },
     // #2: ververs de ambiance-snelknop in de regie-balk (bij socket-wijziging)
     syncAmbiance() { _refreshAmbCache().then(() => _renderRegieBalk()); },
 
@@ -917,6 +922,9 @@ async function _renderDienstenToegang() {
     return `<tr>
       <td style="padding:4px 8px 4px 0;white-space:nowrap;font-size:.85rem">
         ${icon(d.icon, d.key === 'tweespalt' ? {cls:'icon-gi'} : {})} ${esc(d.label)}
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:6px;padding:2px 7px"
+          onclick="window._dienstStuurUitnodiging('${esc(d.key)}','${esc(d.label)}')"
+          title="Verzegelde uitnodiging sturen naar de actieve groep (maakt de dienst beschikbaar)">${icon('mail')}</button>
       </td>
       ${cols}
     </tr>`;
@@ -945,6 +953,40 @@ window._toggleDienstToegang = async (groepId, dienst, huidig) => {
     await api.setDienstToegang(groepId, dienst, nieuw);
     _renderDienstenToegang();
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
+};
+
+window._dienstStuurUitnodiging = async (dienst, label) => {
+  if (!confirm(`Stuur een verzegelde uitnodiging voor "${label}" naar de actieve groep?\n\nDe dienst wordt hiermee beschikbaar gemaakt.`)) return;
+  try {
+    const res = await api.dienstUitnodiging(dienst);
+    _showToast(`${icon('mail')} Uitnodiging voor ${label} bezorgd bij ${res.bezorgd} speler${res.bezorgd === 1 ? '' : 's'}.`);
+    _renderDienstenToegang();
+  } catch (err) { alert('Versturen mislukt: ' + err.message); }
+};
+
+// Regie-balk: snelkeuze om tijdens het spelen een factie- of dienstbrief te sturen.
+async function _openRegieBriefPicker() {
+  let facties = [];
+  try { facties = (await api.getFacties()).facties || []; } catch {}
+  const factieBtns = facties.length
+    ? facties.map(f => `<button class="dm-btn dm-btn-ghost dm-rb-brief-item" onclick="window._regieBriefVerstuur('factie','${esc(f.id)}','${escJS(f.naam)}')">${icon(f.embleem || 'landmark')} ${esc(f.naam)}</button>`).join('')
+    : '<p class="dm-hint" style="opacity:.7">Nog geen facties ingesteld.</p>';
+  const dienstBtns = _DIENSTEN_TOEGANG_INFO.map(d =>
+    `<button class="dm-btn dm-btn-ghost dm-rb-brief-item" onclick="window._regieBriefVerstuur('dienst','${esc(d.key)}','${escJS(d.label)}')">${icon(d.icon)} ${esc(d.label)}</button>`).join('');
+  window.app.openModal('Verzegelde uitnodiging sturen', 'Onthult het doel voor de actieve groep én bezorgt elke speler een cinematische brief', `
+    <div class="dm-rb-brief-picker">
+      <div class="dm-section-label">${icon('landmark')} Facties</div>
+      <div class="dm-rb-brief-grid">${factieBtns}</div>
+      <div class="dm-section-label" style="margin-top:14px">${icon('church')} Diensten</div>
+      <div class="dm-rb-brief-grid">${dienstBtns}</div>
+    </div>`);
+}
+window._regieBriefVerstuur = async (soort, id, naam) => {
+  try {
+    const res = soort === 'factie' ? await api.factieUitnodiging(id) : await api.dienstUitnodiging(id);
+    window.app.closeModal();
+    _showToast(`${icon('mail')} Verzegelde uitnodiging voor ${esc(naam)} bezorgd bij ${res.bezorgd} speler${res.bezorgd === 1 ? '' : 's'}.`);
+  } catch (e) { alert('Versturen mislukt: ' + e.message); }
 };
 
 // ── Delen (Tunnel + Export gecombineerd) ──
@@ -1607,6 +1649,7 @@ function _renderRegieBalk() {
           }</div>
           <button class="dm-regie-balk-btn dm-rb-combat-btn${_combat?.active ? '' : ' hidden'}" id="dm-rb-combat-btn"
             onclick="window.dmPanel.combatExpand()" title="Gevecht uitklappen">${icon('stiletto',{cls:'icon-gi'})}</button>
+          <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')}</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkToggleMinimize()" title="Minimaliseren">−</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkClose()" title="Sluiten">${icon('x')}</button>
         </div>
@@ -4830,6 +4873,8 @@ async function _renderFactiesSettings() {
     locatieEntityId: f.locatieEntityId || '',
     npcEntityId:     f.npcEntityId     || '',
     npcGreet:        f.npcGreet        || '',
+    uitnodiging:      f.uitnodiging      || '',
+    uitnodigingTitel: f.uitnodigingTitel || '',
     renownDrempels: (f.renownDrempels || [0,1,3,10,25,50]).join(','),
     rangen: (f.rangen || []).map(r => ({
       naam: r.naam, voordelen: r.voordelen || '', titel: r.titel || '',
@@ -4877,6 +4922,10 @@ function _renderFactiesDM() {
             <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',5)">+5</button>
             <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieRenown('${esc(f.id)}',-1)">-1</button>
             ${boonGegeven.length ? `<span class="factie-dm-boon-label">${icon('check-circle')} ${boonGegeven.length} boon${boonGegeven.length > 1 ? 's' : ''} uitgedeeld</span>` : ''}
+            <button class="dm-btn dm-btn-primary dm-btn-sm factie-dm-uitnodiging" style="margin-left:auto"
+              onclick="window._factieStuurUitnodiging('${esc(f.id)}')"
+              title="Onthul de factie voor de actieve groep én bezorg elke speler een verzegelde uitnodigingsbrief">
+              ${icon('mail')} Stuur uitnodiging</button>
           </div>
           <details style="margin-top:6px">
             <summary class="dm-form-label" style="cursor:pointer;user-select:none">Configuratie bewerken</summary>
@@ -4920,7 +4969,16 @@ function _renderFactiesDM() {
                 </select>
               </div>
               <input class="dm-input" style="width:100%;margin-top:4px" placeholder="Openingszin NPC (optioneel)" value="${esc(f.npcGreet || '')}" oninput="window._factieEdit(${fi},'npcGreet',this.value)">
-              <div class="dm-form-row" style="margin-top:4px">
+
+              <div class="dm-section-label" style="margin-top:10px;display:flex;align-items:center;gap:6px">
+                ${icon('mail')} Uitnodigingsbrief
+                <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:auto" onclick="window._factieUitnodigingSjabloon(${fi})" title="Standaard-sjabloon invullen">${icon('refresh-cw')} Sjabloon</button>
+              </div>
+              <p class="dm-hint" style="margin:0 0 4px">Deze brief wordt verzegeld bezorgd bij elke speler wanneer je op "Stuur uitnodiging" klikt. Opmaak met **vet**, *cursief*, {goud:kleur} kan.</p>
+              <input class="dm-input" style="width:100%;margin-bottom:4px" placeholder="Titel van de brief (bv. Een uitnodiging)" value="${esc(f.uitnodigingTitel || '')}" oninput="window._factieEdit(${fi},'uitnodigingTitel',this.value)">
+              <textarea id="factie-uitnodiging-${fi}" class="dm-input" style="width:100%;min-height:120px;resize:vertical" placeholder="Schrijf hier de uitnodiging, of klik op Sjabloon…" oninput="window._factieEdit(${fi},'uitnodiging',this.value)">${esc(f.uitnodiging || '')}</textarea>
+
+              <div class="dm-form-row" style="margin-top:6px">
                 <label class="dm-form-label">Renown-drempels</label>
                 <input class="dm-input" style="flex:1" placeholder="0,1,3,10,25,50" value="${esc(f.renownDrempels || '0,1,3,10,25,50')}" oninput="window._factieEdit(${fi},'renownDrempels',this.value)">
               </div>
@@ -5077,11 +5135,16 @@ window._factieSetRang = async (id, rang) => {
   try { await api.factieSetRang(id, parseInt(rang)); }
   catch (e) { alert(e.message); }
 };
-window._factiesSave = async () => {
-  const payload = _factiesDraft.map(f => ({
+function _factiesPayload() {
+  return _factiesDraft.map(f => ({
     id: f.id, naam: (f.naam || '').trim(), embleem: (f.embleem || 'landmark').trim(),
     stijl: (f.stijl || '').trim(), beschrijving: (f.beschrijving || '').trim(),
     entityId: (f.entityId || '').trim() || null,
+    locatieEntityId: (f.locatieEntityId || '').trim() || null,
+    npcEntityId: (f.npcEntityId || '').trim() || null,
+    npcGreet: (f.npcGreet || '').trim(),
+    uitnodiging: (f.uitnodiging || '').trim(),
+    uitnodigingTitel: (f.uitnodigingTitel || '').trim(),
     renownDrempels: String(f.renownDrempels || '0,1,3,10,25,50').split(',').map(n => parseInt(n.trim()) || 0),
     rangen: (f.rangen || []).filter(r => (r.naam || '').trim()).map(r => ({
       naam: r.naam.trim(), voordelen: (r.voordelen || '').trim(), titel: (r.titel || '').trim(),
@@ -5089,8 +5152,44 @@ window._factiesSave = async () => {
         .map(b => ({ entityId: (b.entityId || '').trim(), naam: (b.naam || '').trim() })),
     })),
   }));
-  try { await api.saveFactiesConfig(payload); await _renderFactiesSettings(); }
+}
+window._factiesSave = async () => {
+  try { await api.saveFactiesConfig(_factiesPayload()); await _renderFactiesSettings(); }
   catch (e) { alert('Opslaan mislukt: ' + e.message); }
+};
+
+// Vul de uitnodiging-textarea met een standaard-sjabloon uit de factiedata.
+window._factieUitnodigingSjabloon = (fi) => {
+  const f = _factiesDraft[fi]; if (!f) return;
+  const npc = _factiesPersonages.find(p => p.id === f.npcEntityId);
+  const afzender = npc?.name || f.naam || 'de factie';
+  const loc = _factiesLocaties.find(l => l.id === f.locatieEntityId);
+  const waar = loc ? ` Kom langs in **${loc.name}**.` : '';
+  const greet = (f.npcGreet || '').trim() ? `\n\n_"${f.npcGreet.trim()}"_` : '';
+  const tekst = `Geachte avonturier,\n\nUw daden in Grisburgh zijn ons niet ontgaan. **${f.naam}** nodigt u uit om kennis te maken.${waar} Wij menen dat een verbond ons beiden tot voordeel kan strekken.${greet}\n\nMet achting,\n${afzender}`;
+  f.uitnodiging = tekst;
+  const ta = document.getElementById(`factie-uitnodiging-${fi}`);
+  if (ta) ta.value = tekst;
+  if (!(f.uitnodigingTitel || '').trim()) {
+    f.uitnodigingTitel = 'Een uitnodiging';
+    const ti = ta?.closest('details')?.querySelector('input[placeholder^="Titel van de brief"]');
+    if (ti) ti.value = f.uitnodigingTitel;
+  }
+};
+
+// Bewaar de config én verstuur de verzegelde uitnodiging naar de actieve groep.
+window._factieStuurUitnodiging = async (id) => {
+  const naam = (_factiesDraft.find(f => f.id === id)?.naam || 'deze factie').trim();
+  if (!confirm(`Stuur de verzegelde uitnodiging van "${naam}" naar alle spelers in de actieve groep?\n\nDe factie wordt hiermee onthuld.`)) return;
+  try {
+    await api.saveFactiesConfig(_factiesPayload());        // bewaar de laatste brieftekst
+    const res = await api.factieUitnodiging(id);
+    const live = _factiesLiveData.find(f => f.id === id);
+    if (live) live.zichtbaar = true;
+    const btn = document.getElementById(`factie-dm-oog-${id}`);
+    if (btn) { btn.className = 'factie-dm-oog factie-dm-oog--aan'; btn.innerHTML = icon('eye'); btn.title = 'Verberg factie voor spelers'; }
+    _showToast(`${icon('mail')} Verzegelde uitnodiging bezorgd bij ${res.bezorgd} speler${res.bezorgd === 1 ? '' : 's'}.`);
+  } catch (e) { alert('Versturen mislukt: ' + e.message); }
 };
 
 window._hbTogglePurse = async () => {
