@@ -1,4 +1,4 @@
-import { api } from './api.js?v=233';
+import { api } from './api.js?v=234';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -923,8 +923,8 @@ async function _renderDienstenToegang() {
       <td style="padding:4px 8px 4px 0;white-space:nowrap;font-size:.85rem">
         ${icon(d.icon, d.key === 'tweespalt' ? {cls:'icon-gi'} : {})} ${esc(d.label)}
         <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:6px;padding:2px 7px"
-          onclick="window._dienstStuurUitnodiging('${esc(d.key)}','${esc(d.label)}')"
-          title="Verzegelde uitnodiging sturen naar de actieve groep (maakt de dienst beschikbaar)">${icon('mail')}</button>
+          onclick="window._dienstUitnodigingEditor('${esc(d.key)}','${escJS(d.label)}')"
+          title="Uitnodigingsbrief schrijven en/of versturen naar de actieve groep">${icon('mail')}</button>
       </td>
       ${cols}
     </tr>`;
@@ -955,13 +955,45 @@ window._toggleDienstToegang = async (groepId, dienst, huidig) => {
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
 };
 
-window._dienstStuurUitnodiging = async (dienst, label) => {
-  if (!confirm(`Stuur een verzegelde uitnodiging voor "${label}" naar de actieve groep?\n\nDe dienst wordt hiermee beschikbaar gemaakt.`)) return;
+// Editor: schrijf/bewerk de uitnodigingsbrief van een dienst en bewaar of verstuur.
+window._dienstUitnodigingEditor = async (dienst, label) => {
+  let data = { uitnodiging: '', uitnodigingTitel: '', naam: label };
+  try { data = await api.getDienstUitnodiging(dienst); } catch {}
+  const naam = data.naam || label;
+  window.app.openModal(`Uitnodiging — ${label}`, 'Schrijf de verzegelde uitnodiging; bewaar of verstuur naar de actieve groep', `
+    <div class="dienst-uitnod-editor" data-naam="${esc(naam)}">
+      <label class="dm-form-label">Titel</label>
+      <input id="du-titel" class="dm-input" style="width:100%;margin-bottom:8px" placeholder="Een uitnodiging" value="${esc(data.uitnodigingTitel || '')}">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <label class="dm-form-label" style="margin:0">Brieftekst</label>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:auto" onclick="window._duSjabloon('${escJS(naam)}')" title="Standaard-sjabloon invullen">${icon('refresh-cw')} Sjabloon</button>
+      </div>
+      <p class="dm-hint" style="margin:0 0 4px">Opmaak met **vet**, *cursief*, {goud:kleur} kan. Leeg = standaard sjabloon.</p>
+      <textarea id="du-tekst" class="dm-input" style="width:100%;min-height:150px;resize:vertical" placeholder="Schrijf hier de uitnodiging, of klik op Sjabloon…">${esc(data.uitnodiging || '')}</textarea>
+      <div class="dm-form-row" style="margin-top:10px;justify-content:flex-end;gap:8px">
+        <button class="dm-btn dm-btn-ghost" onclick="window._duOpslaan('${esc(dienst)}',false)">${icon('save')} Opslaan</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._duOpslaan('${esc(dienst)}',true,'${escJS(label)}')">${icon('mail')} Opslaan &amp; versturen</button>
+      </div>
+    </div>`);
+};
+window._duSjabloon = (naam) => {
+  const ta = document.getElementById('du-tekst');
+  if (ta) ta.value = `Geachte avonturier,\n\nUw daden in Grisburgh zijn ons niet ontgaan. **${naam}** opent haar deuren voor u en nodigt u uit om langs te komen. Wij menen dat u hier welkom zult zijn.\n\nMet achting,\n${naam}`;
+};
+window._duOpslaan = async (dienst, verstuur, label) => {
+  const uitnodiging      = document.getElementById('du-tekst')?.value || '';
+  const uitnodigingTitel = document.getElementById('du-titel')?.value || '';
   try {
-    const res = await api.dienstUitnodiging(dienst);
-    _showToast(`${icon('mail')} Uitnodiging voor ${label} bezorgd bij ${res.bezorgd} speler${res.bezorgd === 1 ? '' : 's'}.`);
-    _renderDienstenToegang();
-  } catch (err) { alert('Versturen mislukt: ' + err.message); }
+    await api.saveDienstUitnodiging(dienst, { uitnodiging, uitnodigingTitel });
+    if (verstuur) {
+      const res = await api.dienstUitnodiging(dienst);
+      window.app.closeModal();
+      _showToast(`${icon('mail')} Uitnodiging voor ${label} bezorgd bij ${res.bezorgd} speler${res.bezorgd === 1 ? '' : 's'}.`);
+      _renderDienstenToegang();
+    } else {
+      _showToast(`${icon('save')} Uitnodigingstekst opgeslagen.`);
+    }
+  } catch (e) { alert('Mislukt: ' + e.message); }
 };
 
 // Regie-balk: snelkeuze om tijdens het spelen een factie- of dienstbrief te sturen.

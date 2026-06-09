@@ -4671,11 +4671,12 @@ router.post('/diensten/:dienst/uitnodiging', requireDM, (req, res) => {
   const naam = (cfg.naam && String(cfg.naam).trim()) || bief.naam;
   const tekst = (cfg.uitnodiging && String(cfg.uitnodiging).trim())
     || `Geachte avonturier,\n\n**${naam}** opent haar deuren voor u. Wij verwelkomen u graag — kom langs wanneer het u uitkomt.\n\nMet achting,\n${naam}`;
+  const titel = (cfg.uitnodigingTitel && String(cfg.uitnodigingTitel).trim()) || 'Een uitnodiging';
 
   let bezorgd = 0;
   for (const lid of leden) {
     const post = _bezorgBrief(req, lid.id, {
-      titel: 'Een uitnodiging', tekst, afzender: naam, thema: 'factie',
+      titel, tekst, afzender: naam, thema: 'factie',
       embleem: bief.icon, kleur: bief.kleur, kop: naam, cinematic: true,
     });
     if (post) bezorgd++;
@@ -4686,6 +4687,31 @@ router.post('/diensten/:dienst/uitnodiging', requireDM, (req, res) => {
   io.to(room).emit('diensten:toegang:updated');
   io.to(room).emit('visibility:updated');
   res.json({ ok: true, bezorgd });
+});
+
+// GET huidige uitnodigingstekst van een dienst (voor de DM-editor)
+router.get('/diensten/:dienst/uitnodiging-tekst', requireDM, (req, res) => {
+  const dienst = req.params.dienst;
+  if (!_DIENSTEN_NAMEN.includes(dienst)) return res.status(400).json({ error: 'Onbekende dienst' });
+  const cfg  = (storage.readJSON('meta.json'))[dienst] || {};
+  const bief = _DIENST_BRIEF[dienst] || { naam: dienst };
+  res.json({
+    uitnodiging: cfg.uitnodiging || '',
+    uitnodigingTitel: cfg.uitnodigingTitel || '',
+    naam: (cfg.naam && String(cfg.naam).trim()) || bief.naam,
+  });
+});
+
+// PUT uitnodigingstekst van een dienst opslaan
+router.put('/diensten/:dienst/uitnodiging-tekst', requireDM, (req, res) => {
+  const dienst = req.params.dienst;
+  if (!_DIENSTEN_NAMEN.includes(dienst)) return res.status(400).json({ error: 'Onbekende dienst' });
+  const meta = storage.readJSON('meta.json');
+  if (!meta[dienst]) meta[dienst] = {};
+  meta[dienst].uitnodiging      = String(req.body.uitnodiging || '').trim();
+  meta[dienst].uitnodigingTitel = String(req.body.uitnodigingTitel || '').trim();
+  storage.writeJSON('meta.json', meta);
+  res.json({ ok: true });
 });
 
 function _dienstenBeschikbaar(dmState) {
