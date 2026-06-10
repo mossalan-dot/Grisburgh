@@ -13189,6 +13189,16 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 
 /* ── Factie-sectie (speler-weergave) ── */
 /* ── Factie grid-lijst ── */
+/* Facties-overzicht als dienst-scene met Grisburgh-backdrop (uniform met andere diensten) */
+.facties-lijst-scene { position: relative; }
+.facties-lijst-scene::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(244,236,212,0.82) 0%, rgba(240,228,196,0.72) 100%);
+}
+.facties-lijst-scene > * { position: relative; z-index: 1; }
+.facties-lijst-scene--leeg { justify-content: center; align-items: center; min-height: 200px; }
+.facties-lijst-scene .factie-sectie { width: 100%; }
+
 .factie-sectie { padding: 16px; max-width: 900px; margin: 0 auto; }
 .factie-sectie-header { margin-bottom: 20px; }
 .factie-sectie-header h2 { font-family: 'Cinzel', serif; font-size: 1.1rem; color: #4a2e08; display: flex; align-items: center; gap: 8px; }
