@@ -5902,6 +5902,20 @@ router.get('/facties', attachRole, (req, res) => {
   const factieRenown    = g.factieRenown    || {};
   const isDM = req.role === 'dm';
   const titels = [];
+  const personages = entities.personages || [];
+  const visibility = g.visibility || {};
+
+  // Leden van een factie resolven (portret = entityId, naam + rol uit het personage).
+  // Spelers zien alleen leden waarvan het personage zichtbaar is (volgt entity-visibility).
+  function _resolveLeden(f) {
+    return (f.leden || []).map(l => {
+      const e = personages.find(p => p.id === l.entityId);
+      if (!e) return null;
+      const vis = visibility[e.id] || 'hidden';
+      if (!isDM && (vis === 'hidden' || vis === 'vague')) return null;
+      return { entityId: e.id, naam: e.name, rol: e.data?.rol || '', rang: l.rang || '' };
+    }).filter(Boolean);
+  }
 
   // Helper: los boon op via voorwerp-entityId
   function _resolveBoon(b) {
@@ -5944,6 +5958,7 @@ router.get('/facties', attachRole, (req, res) => {
       npcEntityId:      f.npcEntityId      || null,
       npcEntityIdDag:   f.npcEntityIdDag   || null,
       npcGreet:         f.npcGreet         || '',
+      leden:            _resolveLeden(f),
     };
     if (isDM) view.rangen = f.rangen || [];
     return view;
@@ -6142,6 +6157,9 @@ router.put('/meta/facties', requireDM, (req, res) => {
     npcEntityId:     f.npcEntityId     ? String(f.npcEntityId).trim()     : null,
     npcEntityIdDag:  f.npcEntityIdDag  ? String(f.npcEntityIdDag).trim()  : null,
     npcGreet:        f.npcGreet        ? String(f.npcGreet).trim()        : '',
+    leden: (Array.isArray(f.leden) ? f.leden : [])
+      .filter(l => l && l.entityId)
+      .map(l => ({ entityId: String(l.entityId).trim(), rang: String(l.rang || '').trim() })),
     uitnodiging:      f.uitnodiging      ? String(f.uitnodiging).trim()      : '',
     uitnodigingTitel: f.uitnodigingTitel ? String(f.uitnodigingTitel).trim() : '',
     renownDrempels: (Array.isArray(f.renownDrempels) && f.renownDrempels.length)

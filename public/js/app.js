@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=34';
 import { renderBestiarium } from './render-bestiarium.js?v=11';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=34";
-import { initDmPanel } from "./dm-panel.js?v=88";
+import { initDmPanel } from "./dm-panel.js?v=89";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -9992,6 +9992,41 @@ function _renderFactieInterieur(el, f, missies) {
     </div>`;
   };
 
+  // ── Leden: portret + naam + rol, gegroepeerd per rang (volgorde van toevoegen) ──
+  const _ledenHtml = (() => {
+    const leden = f.leden || [];
+    if (!leden.length) return '';
+    const groepen = [];
+    const idxVan = {};
+    for (const l of leden) {
+      const key = (l.rang || '').trim() || '__leden__';
+      if (idxVan[key] === undefined) { idxVan[key] = groepen.length; groepen.push({ rang: key, leden: [] }); }
+      groepen[idxVan[key]].leden.push(l);
+    }
+    // Groep zonder rang-label altijd onderaan.
+    groepen.sort((a, b) => (a.rang === '__leden__' ? 1 : 0) - (b.rang === '__leden__' ? 1 : 0));
+    const _lid = (l) => `
+      <button class="factie-lid" onclick="window._openDetail('personages','${esc(l.entityId)}')" title="Bekijk ${esc(l.naam)}">
+        <span class="factie-lid-portret-wrap">
+          <img class="factie-lid-portret" src="${api.fileUrl(l.entityId)}" alt=""
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <span class="factie-lid-portret factie-lid-portret--fallback" style="display:none">${icon('user')}</span>
+        </span>
+        <span class="factie-lid-naam">${esc(l.naam)}</span>
+        ${l.rol ? `<span class="factie-lid-rol">${esc(l.rol)}</span>` : ''}
+      </button>`;
+    const meerdereGroepen = groepen.length > 1 || groepen[0].rang !== '__leden__';
+    return `
+      <div class="factie-leden-sectie">
+        <div class="factie-missies-label">${icon('users')} Leden</div>
+        ${groepen.map(g => `
+          <div class="factie-leden-groep">
+            ${meerdereGroepen ? `<div class="factie-leden-rang-kop">${g.rang === '__leden__' ? 'Leden' : esc(g.rang)}</div>` : ''}
+            <div class="factie-leden-grid">${g.leden.map(_lid).join('')}</div>
+          </div>`).join('')}
+      </div>`;
+  })();
+
   el.innerHTML = `
     <div class="herberg-scene gock-scene factie-interieur-scene${stijl ? ' factie-scene--' + stijl : ''}" ${backdrop}>
       <div class="herberg-content">
@@ -10029,6 +10064,8 @@ function _renderFactieInterieur(el, f, missies) {
              ...aangevraagd.map(m => _missieHtml(m,'aangevraagd')),
              ...actief.map(m => _missieHtml(m,'actief'))].join('')}
         </div>` : ''}
+
+        ${_ledenHtml}
       </div>
     </div>`;
 

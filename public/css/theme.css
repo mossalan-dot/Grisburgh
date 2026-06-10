@@ -13261,6 +13261,44 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .factie-portret-klikbaar { cursor: pointer; transition: filter 0.15s; }
 .factie-portret-klikbaar:hover { filter: brightness(1.1); }
 
+/* ── Leden in factie-interieur ── */
+.factie-leden-sectie { width: 100%; margin-top: 10px; }
+.factie-leden-groep { margin-bottom: 12px; }
+.factie-leden-rang-kop {
+  font-family: 'Cinzel', serif; font-size: .72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: #9a7050; text-align: center; margin: 6px 0 8px;
+  display: flex; align-items: center; gap: 10px; justify-content: center;
+}
+.factie-leden-rang-kop::before, .factie-leden-rang-kop::after {
+  content: ''; height: 1px; flex: 1; max-width: 60px; background: rgba(196,168,122,0.5);
+}
+.factie-leden-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+.factie-lid {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; width: 84px;
+  background: none; border: none; cursor: pointer; padding: 4px; border-radius: 8px;
+  transition: background 0.15s;
+}
+.factie-lid:hover { background: rgba(250,244,230,0.5); }
+.factie-lid-portret-wrap { width: 56px; height: 56px; }
+.factie-lid-portret {
+  width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
+  border: 2px solid rgba(196,168,122,0.8); box-shadow: 0 1px 4px rgba(60,40,10,0.18);
+}
+.factie-lid:hover .factie-lid-portret { border-color: #b8860b; }
+.factie-lid-portret--fallback {
+  display: none; align-items: center; justify-content: center;
+  background: rgba(196,168,122,0.25); color: #8a7050;
+}
+.factie-lid-portret--fallback .icon { width: 24px; height: 24px; }
+.factie-lid-naam {
+  font-family: 'Cinzel', serif; font-size: .72rem; font-weight: 700; color: #2a1a08;
+  line-height: 1.15; text-align: center; max-width: 84px;
+}
+.factie-lid-rol {
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: .7rem;
+  color: #7a5a30; text-align: center; line-height: 1.1;
+}
+
 /* ── Missies in factie-interieur ── */
 .factie-missies-sectie { width: 100%; margin-top: 6px; }
 .factie-missies-label { font-family: 'Cinzel', serif; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #9a7050; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
