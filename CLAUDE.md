@@ -282,6 +282,15 @@ Geen losse `<div style="display:flex…">`-wrappers om label+knop heen.
 vaste content-id (`dm-tafels-content`, `dm-geluiden-content`) houden hun
 `getElementById` — verander die niet zonder de bijbehorende HTML mee te wijzigen.
 
+**6. Knoppen.** Gebruik altijd `.dm-btn` + een modifier — `-primary` (goud, voor
+bevestigen/opslaan/versturen), `-ghost` (outline, secundair), `-danger` (rood),
+`-sm`/`-icon` (compact). Geen losse knop-klassen buiten dit systeem in nieuwe code.
+Een **losse actieknop in een `.dm-form-row`** rekt door de CSS-regel
+`.dm-form-row:has(> .dm-btn:only-child) { align-items: flex-start; }` **niet** meer
+uit tot volle breedte — opslaan-knoppen staan overal op natuurlijke breedte,
+links uitgelijnd (net als in een `.dm-feature-row`). Zet hem dus niet handmatig
+op `width:100%`.
+
 Skelet voor een nieuwe tab → kopieer een bestaande enkel-content-tab (Spreuken/
 Berichten) als referentie.
 
