@@ -8629,11 +8629,9 @@ function _updateDienstenMenu() {
 // elke dienst kan openen en bekijken zoals spelers die zien. De toegang-sloten
 // in de routing zijn al met !isDM-guards uitgezet, dus de DM krijgt de echte render.
 function _updateDienstenMenuDM() {
-  // Herberg + Facties volgen hun eigen config-/reveal-zichtbaarheid (elders gezet);
-  // alleen het 'vergrendeld'-slotje weghalen voor de DM.
-  document.getElementById('diensten-herberg-item')?.classList.remove('dienst-vergrendeld');
-  document.getElementById('diensten-facties-item')?.classList.remove('dienst-vergrendeld', 'hidden');
-  for (const d of ['tweespalt', 'gock', 'ursula', 'tempel', 'magizoo']) {
+  // DM ziet alle diensten — ook Herberg en Facties — ongeacht config/toegang,
+  // zodat hij elke dienst kan openen en inspecteren.
+  for (const d of ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo', 'facties']) {
     document.getElementById(`diensten-${d}-item`)?.classList.remove('hidden', 'dienst-vergrendeld');
   }
 }
@@ -8662,7 +8660,7 @@ async function renderHerberg() {
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh) {
+  if (meta.buitenGrisburgh && !window.app.isDM()) {
     _dienstNietBereikbaar(el, meta.herberg?.naam || 'De herberg');
     return;
   }
@@ -8832,7 +8830,7 @@ async function renderGock() {
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh) {
+  if (meta.buitenGrisburgh && !window.app.isDM()) {
     _dienstNietBereikbaar(el, meta.gock?.naam || 'De Gock');
     return;
   }
@@ -8988,7 +8986,7 @@ async function renderMagizoo() {
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh) { _dienstNietBereikbaar(el, meta.magizoo?.naam || 'De Magizoöloog'); return; }
+  if (meta.buitenGrisburgh && !window.app.isDM()) { _dienstNietBereikbaar(el, meta.magizoo?.naam || 'De Magizoöloog'); return; }
 
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
 
@@ -9127,7 +9125,7 @@ async function renderUrsula() {
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh) { _dienstNietBereikbaar(el, meta.ursula?.naam || 'Madame Ursula'); return; }
+  if (meta.buitenGrisburgh && !window.app.isDM()) { _dienstNietBereikbaar(el, meta.ursula?.naam || 'Madame Ursula'); return; }
 
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
 
@@ -9188,7 +9186,7 @@ async function renderTempel() {
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh) { _dienstNietBereikbaar(el, meta.tempel?.naam || 'De Tempel'); return; }
+  if (meta.buitenGrisburgh && !window.app.isDM()) { _dienstNietBereikbaar(el, meta.tempel?.naam || 'De Tempel'); return; }
 
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
 
@@ -9490,7 +9488,7 @@ async function renderHeeren() {
   const el = document.getElementById('section-heeren');
   if (!el) return;
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh) { _dienstNietBereikbaar(el, meta.heeren?.naam || 'De Heeren van de Nacht'); return; }
+  if (meta.buitenGrisburgh && !window.app.isDM()) { _dienstNietBereikbaar(el, meta.heeren?.naam || 'De Heeren van de Nacht'); return; }
 
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
   let data;
@@ -9579,7 +9577,7 @@ async function renderTweespalt() {
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh) {
+  if (meta.buitenGrisburgh && !window.app.isDM()) {
     _dienstNietBereikbaar(el, 'De Tweespalt');
     return;
   }
