@@ -502,6 +502,21 @@ function _tabEl(name) {
       || document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
 };
 
+// ── Gouden standaard: uniforme tab-kop + laad-state ──
+// Elke meesterkamer-tab begint met _dmTabHead(...). Acties (help-knop) staan
+// altijd rechts; gebruik geen ad-hoc inline-flex wrappers meer.
+function _dmTabHead({ icon: ic, title, sub = '', actions = '' } = {}) {
+  return `<div class="dm-tab-head">
+    ${ic ? `<span class="dm-tab-head-icon">${icon(ic)}</span>` : ''}
+    <span class="dm-tab-head-title">${title}</span>
+    ${sub ? `<span class="dm-tab-head-sub">${sub}</span>` : ''}
+    ${actions ? `<span class="dm-tab-head-actions">${actions}</span>` : ''}
+  </div>`;
+}
+function _dmLoading(text = 'Laden…') {
+  return `<div class="dm-feature-section"><div class="dm-section-label">${text}</div></div>`;
+}
+
 // ── Diensten (Herberg + Tweespalt + Gock gecombineerd) ──
 
 let _dienstenSubTab = 'herberg'; // 'herberg' | 'tweespalt' | 'gock'
@@ -556,7 +571,7 @@ function _renderDiensten(subTab) {
 async function _renderAktes() {
   const el = _tabEl('aktes');
   if (!el) return;
-  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+  el.innerHTML = _dmLoading();
 
   // Archief-data + meta laden zodat de regie-script-secties werken (ook zonder
   // dat het Logboek bezocht is). Helpers staan in render-archief.js.
@@ -576,17 +591,14 @@ async function _renderAktes() {
     .sort((a, b) => (a[1].num || 99) - (b[1].num || 99));
 
   el.innerHTML = `
+    ${_dmTabHead({
+      icon: 'clipboard-list', title: 'Aktes', sub: 'voorbereiding & regie',
+      actions: `
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.akteImport()" title="Importeer een Obsidian-hoofdstuk (.md) als regie-script">${icon('upload')} Importeer</button>
+        <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window.dmPanel.akteNieuw()" title="Nieuwe akte">${icon('plus')} Nieuwe akte</button>
+        ${helpBtn('dm_aktes')}`,
+    })}
     <div class="dm-feature-section">
-      <div class="dm-akte-head">
-        <div style="display:flex;align-items:center;gap:6px;margin:0">
-          <div class="dm-section-label" style="margin:0">Aktes — voorbereiding &amp; regie</div>
-          ${helpBtn('dm_aktes')}
-        </div>
-        <div class="dm-feature-row" style="gap:6px;margin:0">
-          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.akteImport()" title="Importeer een Obsidian-hoofdstuk (.md) als regie-script">${icon('upload')} Importeer</button>
-          <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window.dmPanel.akteNieuw()" title="Nieuwe akte">${icon('plus')} Nieuwe akte</button>
-        </div>
-      </div>
       ${grpName ? `<p class="dm-akte-grp-hint">Zichtbaarheid geldt voor de actieve groep: <strong>${esc(grpName)}</strong></p>` : ''}
       ${aktes.length === 0
         ? '<p class="dm-hint" style="opacity:.7">Nog geen aktes. Maak er een aan met „Nieuwe akte".</p>'
@@ -1082,11 +1094,11 @@ function _renderSpreuken() {
   // Only rebuild the DOM when the search input doesn't exist yet
   if (!document.getElementById('dm-spell-search')) {
     el.innerHTML = `
-      <div class="dm-feature-section" style="padding-bottom:8px">
-        <div class="dm-feature-row" style="align-items:center">
+      ${_dmTabHead({ icon: 'open-book', title: 'Spreuken', actions: helpBtn('dm_spreuken') })}
+      <div class="dm-feature-section">
+        <div class="dm-feature-row">
           <input class="dm-input" id="dm-spell-search" placeholder="Zoek spreuk…"
             oninput="window.dmPanel.spellSearch(this.value)">
-          ${helpBtn('dm_spreuken')}
         </div>
         <p id="dm-spell-loading" class="dm-hint"></p>
       </div>
@@ -1926,8 +1938,9 @@ function _renderTafels() {
   const sortedTables = [..._tables].sort((a, b) => a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' }));
   const hasTables = sortedTables.length > 0;
   el.innerHTML = `
+    ${_dmTabHead({ icon: 'dice', title: 'Willekeur', sub: 'tafels & namen', actions: helpBtn('dm_tafels') })}
     <div class="dm-feature-section dm-namen-section">
-      <div style="display:flex;align-items:center;gap:6px"><div class="dm-section-label">Namen</div>${helpBtn('dm_tafels')}</div>
+      <div class="dm-section-label">Namen</div>
       <div class="dm-feature-row">
         <button class="dm-btn dm-btn-ghost dm-naam-btn" onclick="window.dmPanel.naamGenereer('m')" title="Mannennaam">♂</button>
         <button class="dm-btn dm-btn-ghost dm-naam-btn" onclick="window.dmPanel.naamGenereer('v')" title="Vrouwennaam">♀</button>
@@ -5478,10 +5491,11 @@ async function _renderGeluiden() {
     </div>`;
 
   el.innerHTML = `
+    ${_dmTabHead({ icon: 'volume-2', title: 'Geluiden', actions: helpBtn('dm_geluiden') })}
     ${ambSection}
     ${svcSection}
     <div class="dm-sound-section">
-      <div class="dm-sound-section-title" style="display:flex;align-items:center;gap:6px">Spelersemotes ${helpBtn('dm_geluiden')}</div>
+      <div class="dm-sound-section-title">Spelersemotes</div>
       <p class="dm-hint">Stel per speler een beurtgeluid in en maak een emotebibliotheek. Selecteer max. 5 emotes voor gevecht (✓ = actief).</p>
       ${spelers.length === 0
         ? `<p class="dm-hint" style="opacity:.6">Geen spelers-personages gevonden (subtype = speler).</p>`
@@ -6782,7 +6796,7 @@ let _sjabloonMode     = false;
 async function _renderBerichten() {
   const el = document.querySelector('.dm-tab-content[data-tab="berichten"]');
   if (!el) return;
-  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+  el.innerHTML = _dmLoading();
 
   try {
     const [berichtenRes, sjablonenRes, allPersonages, groepen] = await Promise.all([
@@ -6803,17 +6817,18 @@ async function _renderBerichten() {
     // listGroups geeft { groups: [...] } terug
     window._berichtenGroepen = groepen.groups || groepen || [];
   } catch (err) {
-    el.innerHTML = `<div class="dm-feature-section"><div class="dm-section-label">Fout: ${esc(err.message)}</div></div>`;
+    el.innerHTML = _dmLoading(`Fout: ${esc(err.message)}`);
     return;
   }
 
   const totalUnread = Object.values(_berichtenData).flat().filter(m => !m.gelezen && !m.deletedAt).length;
 
   el.innerHTML = `
+    ${_dmTabHead({ icon: 'message-circle', title: 'Berichten', actions: helpBtn('dm_berichten') })}
     <div class="dm-feature-section">
 
       <!-- ═══ STUUR BRIEF (rijker format) ═══ -->
-      <div style="display:flex;align-items:center;gap:6px"><div class="dm-section-label">${icon('mail')} Stuur brief</div>${helpBtn('dm_berichten')}</div>
+      <div class="dm-section-label">${icon('mail')} Stuur brief</div>
       <div class="bericht-compose post-compose">
 
         <!-- Ontvanger -->

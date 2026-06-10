@@ -4006,6 +4006,34 @@ body::before {
   content: ''; width: 3px; height: 13px; border-radius: 2px;
   background: rgba(196,168,122,0.7); flex-shrink: 0;
 }
+/* ── Meesterkamer — uniforme tab-kop (gouden standaard) ──
+   Elke top-tab begint hiermee: icoon + titel + optionele subtitel links,
+   acties (help-knop e.d.) altijd rechts. */
+.dm-tab-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid rgba(196,168,122,0.45);
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+.dm-tab-head-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 6px;
+  background: rgba(154,112,8,0.12); color: #9a7008; flex-shrink: 0;
+}
+.dm-tab-head-icon .icon { width: 16px; height: 16px; }
+.dm-tab-head-title {
+  font-family: 'Cinzel', serif; font-size: 14px; font-weight: 700;
+  color: #5a4030; letter-spacing: 0.02em;
+}
+.dm-tab-head-sub {
+  font-family: 'Crimson Text', Georgia, serif; font-style: italic;
+  font-size: 12px; color: #9a8060;
+}
+.dm-tab-head-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+
 .dm-naam-btn { flex: 1; justify-content: center; }
 .dm-naam-result {
   min-height: 36px;
