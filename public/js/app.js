@@ -2648,6 +2648,28 @@ const _SB_GLOSSARY = [
   // Advantage / Disadvantage
   { t: /\bAdvantage\b/gi,       tip: 'Advantage: roll two d20s and use the higher result.' },
   { t: /\bDisadvantage\b/gi,    tip: 'Disadvantage: roll two d20s and use the lower result.' },
+  // ── Rust & herstel ──
+  { t: /\bLong Rest\b/gi,       tip: 'Long Rest: at least 8 hours of rest. Regain all Hit Points, half your total Hit Dice, and reset most expended features and Spell Slots.' },
+  { t: /\bShort Rest\b/gi,      tip: 'Short Rest: at least 1 hour of light activity. Spend Hit Dice to heal and recover features that recharge on a Short Rest.' },
+  { t: /\bHeroic Inspiration\b/gi, tip: 'Heroic Inspiration: when you have it, you can reroll any one d20 and use either roll. You can hold only one at a time.' },
+  { t: /\bHit Dice\b/gi,        tip: 'Hit Dice: dice (one per character level) spent during a Short Rest to regain Hit Points. You regain half your total on a Long Rest.' },
+  { t: /\bHit Die\b/gi,         tip: 'Hit Die: the die used by your class for Hit Points (e.g. d8). Spend one during a Short Rest to heal.' },
+  // ── Kernbegrippen die in features voorkomen ──
+  { t: /\bAbility Score Improvement\b/gi, tip: 'Ability Score Improvement (ASI): increase one ability score by 2 or two scores by 1 (max 20), or take a feat instead.' },
+  { t: /\bAbility Check\b/gi,   tip: 'Ability Check: a d20 + ability modifier (+ Proficiency Bonus if proficient) to overcome a challenge, set against a DC.' },
+  { t: /\bAbility Score\b/gi,   tip: 'Ability Score: one of the six core stats (Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma). Determines its modifier.' },
+  { t: /\bSpellcasting Ability\b/gi, tip: 'Spellcasting Ability: the ability your class casts with (Int, Wis, or Cha). Sets your Spell Save DC and spell attack bonus.' },
+  { t: /\bSpellcasting Focus\b/gi,   tip: 'Spellcasting Focus: an object (e.g. an arcane focus or holy symbol) used in place of material components that have no listed cost.' },
+  { t: /\bSpell Save DC\b/gi,   tip: 'Spell Save DC: the number a target must meet or beat on a saving throw against your spell. 8 + Spellcasting modifier + Proficiency Bonus.' },
+  { t: /\bDeath Saving Throw\b/gi, tip: 'Death Saving Throw: at 0 HP, roll a d20 at the start of your turns. Three successes stabilize; three failures mean death. 10+ succeeds.' },
+  { t: /\bOpportunity Attack\b/gi, tip: 'Opportunity Attack: a Reaction to make one melee attack against a creature that leaves your reach without Disengaging.' },
+  { t: /\bUnarmed Strike\b/gi,  tip: 'Unarmed Strike: use your body to Damage (1 + Str mod bludgeoning), Grapple, or Shove a creature within reach.' },
+  { t: /\bInitiative\b/gi,      tip: 'Initiative: a Dexterity check at the start of combat that sets turn order, highest first.' },
+  { t: /\bDarkvision\b/gi,      tip: 'Darkvision: within a set range you see in dim light as if bright, and in darkness as if dim (in shades of grey).' },
+  { t: /\bExpertise\b/gi,       tip: 'Expertise: double your Proficiency Bonus on ability checks with the chosen skill (or tool).' },
+  { t: /\bExhaustion\b/gi,      tip: 'Exhaustion: a condition with 6 levels. Each level gives −2 to d20 Tests and −5 ft speed (per level). Level 6 is death. A Long Rest removes one level.' },
+  { t: /\bInvisible\b/gi,       tip: 'Invisible: can\'t be seen without special senses. Attacks against you have Disadvantage; your attacks have Advantage. You\'re Surprise-friendly but still make noise.' },
+  { t: /\bUnconscious\b/gi,     tip: 'Unconscious: Incapacitated, can\'t move or speak, unaware of surroundings, drop what you hold and fall Prone. Attacks against you have Advantage; hits within 5 ft are critical.' },
 ];
 
 // Maak alle termen meervoud-tolerant: een afsluitende \b wordt s?\b zodat
