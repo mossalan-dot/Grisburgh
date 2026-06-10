@@ -2670,6 +2670,52 @@ const _SB_GLOSSARY = [
   { t: /\bExhaustion\b/gi,      tip: 'Exhaustion: a condition with 6 levels. Each level gives −2 to d20 Tests and −5 ft speed (per level). Level 6 is death. A Long Rest removes one level.' },
   { t: /\bInvisible\b/gi,       tip: 'Invisible: can\'t be seen without special senses. Attacks against you have Disadvantage; your attacks have Advantage. You\'re Surprise-friendly but still make noise.' },
   { t: /\bUnconscious\b/gi,     tip: 'Unconscious: Incapacitated, can\'t move or speak, unaware of surroundings, drop what you hold and fall Prone. Attacks against you have Advantage; hits within 5 ft are critical.' },
+  // ── Algemene martial-features ──
+  { t: /\bExtra Attack\b/gi,    tip: 'Extra Attack: when you take the Attack action, you can attack twice (more at higher levels) instead of once.' },
+  { t: /\bFighting Style\b/gi,  tip: 'Fighting Style: a feat that grants an ongoing combat benefit (e.g. Archery, Defense, Dueling, Great Weapon Fighting).' },
+  { t: /\bWeapon Mastery\b/gi,  tip: 'Weapon Mastery (2024): use the special mastery property of weapons you know (Cleave, Push, Sap, Slow, Topple, Vex, etc.).' },
+  { t: /\bUnarmored Defense\b/gi, tip: 'Unarmored Defense: while wearing no armor, your AC is 10 + Dexterity modifier + another ability modifier (Constitution for Barbarian, Wisdom for Monk).' },
+  // ── Barbarian ──
+  { t: /\bReckless Attack\b/gi, tip: 'Reckless Attack: gain Advantage on Strength-based melee attack rolls this turn, but attacks against you have Advantage until your next turn.' },
+  { t: /\bRage\b/gi,            tip: 'Rage: a Bonus Action that grants Resistance to Bludgeoning/Piercing/Slashing damage, bonus melee damage, and Advantage on Strength checks & saves. Limited uses per Long Rest.' },
+  // ── Bard ──
+  { t: /\bBardic Inspiration\b/gi, tip: 'Bardic Inspiration: a Bonus Action giving an ally a die they can add to one d20 Test or damage roll. Uses equal your Charisma modifier, regained on a Long Rest (Short Rest at higher levels).' },
+  // ── Cleric / Paladin ──
+  { t: /\bChannel Divinity\b/gi, tip: 'Channel Divinity: channel divine energy to fuel magical effects (e.g. Turn Undead). Regained on a Short or Long Rest.' },
+  { t: /\bTurn Undead\b/gi,     tip: 'Turn Undead: a Channel Divinity that forces nearby Undead to make a Wisdom save or flee from you for 1 minute.' },
+  { t: /\bLay on Hands\b/gi,    tip: 'Lay on Hands: a pool of healing (5 × Paladin level) you can spend as a Bonus Action to restore HP or end one disease/poison. Refills on a Long Rest.' },
+  { t: /\bDivine Smite\b/gi,    tip: 'Divine Smite: expend a Spell Slot when you hit with a melee weapon to deal extra Radiant damage (2d8, +1d8 per slot level above 1st; +1d8 vs Undead/Fiends).' },
+  { t: /\bAura of Protection\b/gi, tip: 'Aura of Protection: you and allies within 10 ft add your Charisma modifier (min +1) to saving throws.' },
+  // ── Druid ──
+  { t: /\bWild Shape\b/gi,      tip: 'Wild Shape: a Bonus Action to transform into a Beast you know. Limited uses per Short/Long Rest; lasts a number of hours equal to half your Druid level.' },
+  // ── Fighter ──
+  { t: /\bSecond Wind\b/gi,     tip: 'Second Wind: a Bonus Action to regain 1d10 + Fighter level HP. Limited uses, regained on a Short or Long Rest.' },
+  { t: /\bAction Surge\b/gi,    tip: 'Action Surge: take one additional action on your turn. Once (twice at high level) per Short or Long Rest.' },
+  { t: /\bIndomitable\b/gi,     tip: 'Indomitable: reroll a failed saving throw, taking the new result. Limited uses per Long Rest.' },
+  // ── Monk ──
+  { t: /\bMartial Arts\b/gi,    tip: 'Martial Arts: use Dexterity for unarmed strikes and Monk weapons, roll the Martial Arts die for their damage, and make an unarmed strike as a Bonus Action.' },
+  { t: /\bFocus Points\b/gi,    tip: 'Focus Points (2024, formerly Ki): a pool fueling Flurry of Blows, Patient Defense, Step of the Wind, etc. Regained on a Short or Long Rest.' },
+  { t: /\bFlurry of Blows\b/gi, tip: 'Flurry of Blows: spend 1 Focus Point to make two unarmed strikes as a Bonus Action.' },
+  { t: /\bPatient Defense\b/gi, tip: 'Patient Defense: take the Disengage action as a Bonus Action (free), or spend 1 Focus Point to also Dodge.' },
+  { t: /\bStep of the Wind\b/gi, tip: 'Step of the Wind: take Disengage or Dash as a Bonus Action (free), or spend 1 Focus Point to do both and jump farther.' },
+  { t: /\bStunning Strike\b/gi, tip: 'Stunning Strike: spend 1 Focus Point on a hit to force a Constitution save or Stun the target until the end of your next turn.' },
+  { t: /\bUnarmored Movement\b/gi, tip: 'Unarmored Movement: bonus speed while unarmored and not using a shield; later lets you move along walls and across liquids.' },
+  // ── Rogue ──
+  { t: /\bSneak Attack\b/gi,    tip: 'Sneak Attack: once per turn, deal extra damage when you have Advantage (or an ally is adjacent to the target) and use a Finesse or ranged weapon.' },
+  { t: /\bCunning Action\b/gi,  tip: 'Cunning Action: a Bonus Action each turn to Dash, Disengage, or Hide.' },
+  { t: /\bUncanny Dodge\b/gi,   tip: 'Uncanny Dodge: use your Reaction to halve the damage of one attack that hits you.' },
+  { t: /\bEvasion\b/gi,         tip: 'Evasion: on a Dexterity save for half damage, take no damage on a success and half on a failure.' },
+  // ── Sorcerer ──
+  { t: /\bSorcery Points\b/gi,  tip: 'Sorcery Points: a resource fueling Metamagic; convert to/from Spell Slots via Font of Magic. Regained on a Long Rest.' },
+  { t: /\bMetamagic\b/gi,       tip: 'Metamagic: spend Sorcery Points to bend your spells (e.g. Twinned, Quickened, Subtle, Distant).' },
+  { t: /\bFont of Magic\b/gi,   tip: 'Font of Magic: convert Sorcery Points into Spell Slots, or Spell Slots into Sorcery Points.' },
+  // ── Warlock ──
+  { t: /\bEldritch Invocations\b/gi, tip: 'Eldritch Invocations: special abilities (passive or active) you learn and can swap on level-up; some have prerequisites.' },
+  { t: /\bPact Magic\b/gi,      tip: 'Pact Magic: the Warlock\'s casting — few but high-level Spell Slots that all recharge on a Short or Long Rest.' },
+  { t: /\bMystic Arcanum\b/gi,  tip: 'Mystic Arcanum: a high-level spell (6th–9th) you can cast once without a Spell Slot, regained on a Long Rest.' },
+  // ── Wizard ──
+  { t: /\bArcane Recovery\b/gi, tip: 'Arcane Recovery: once per day on a Short Rest, recover expended Spell Slots with a combined level up to half your Wizard level.' },
+  { t: /\bHunter's Mark\b/gi,   tip: 'Hunter\'s Mark: a spell marking a target for bonus damage on your weapon hits; moves to a new target when the original drops.' },
 ];
 
 // Maak alle termen meervoud-tolerant: een afsluitende \b wordt s?\b zodat
@@ -2688,12 +2734,15 @@ function _sbApplyGlossary_DOM(rootEl) {
 function _sbGlossWalk(node) {
   if (node.nodeType === Node.TEXT_NODE) {
     let text = node.textContent;
-    // Find first matching term
-    let best = null, bestIdx = Infinity;
+    // Find the earliest matching term; bij gelijke startpositie wint de langste
+    // match (zodat bijv. "Action Surge" niet als "Action" wordt gewrapt).
+    let best = null, bestIdx = Infinity, bestLen = 0;
     for (const entry of _SB_GLOSSARY) {
       entry.t.lastIndex = 0;
       const m = entry.t.exec(text);
-      if (m && m.index < bestIdx) { best = { entry, match: m }; bestIdx = m.index; }
+      if (m && (m.index < bestIdx || (m.index === bestIdx && m[0].length > bestLen))) {
+        best = { entry, match: m }; bestIdx = m.index; bestLen = m[0].length;
+      }
     }
     if (!best) return;
     const { entry, match } = best;
