@@ -113,7 +113,7 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=292   app.js?v=422   sound-manager.js?v=4
+index.html  : theme.css?v=293   app.js?v=422   sound-manager.js?v=4
 app.js      : api.js?v=234      render-campagne.js?v=94   render-archief.js?v=42
               render-kaart.js?v=9  render-dungeon.js?v=22  render-relatiemap.js?v=13
               render-progressie.js?v=34  socket-client.js?v=34

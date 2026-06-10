@@ -3991,18 +3991,25 @@ body::before {
 
 /* Namen */
 .dm-namen-section { border-bottom: 1px solid rgba(196,168,122,0.45); padding-bottom: 12px; margin-bottom: 4px; }
-.dm-section-label {
+/* Gouden standaard — één uniforme sectie-titel voor alle DM-tabs.
+   dm-sound-section-title en dm-feature-title delen dezelfde stijl. */
+.dm-section-label,
+.dm-sound-section-title,
+.dm-feature-title {
   font-family: 'Cinzel', serif;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  text-transform: none;
   color: #7a6040;
   margin-bottom: 8px;
   display: flex;
   align-items: center;
   gap: 7px;
 }
-.dm-section-label::before {
+.dm-section-label::before,
+.dm-sound-section-title::before,
+.dm-feature-title::before {
   content: ''; width: 3px; height: 13px; border-radius: 2px;
   background: rgba(196,168,122,0.7); flex-shrink: 0;
 }
@@ -7251,15 +7258,7 @@ details.player-dash-collapsible[open] > summary {
   border-bottom: 1px solid rgba(196,168,122,0.4);
 }
 .dm-sound-section:last-child { border-bottom: none; }
-.dm-sound-section-title {
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #8a6000;
-  margin-bottom: 4px;
-}
+/* .dm-sound-section-title — gestyled via de gedeelde sectie-titel-regel (gouden standaard) */
 .dm-sound-list {
   display: flex;
   flex-direction: column;
@@ -14848,14 +14847,7 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   gap: 6px;
 }
 
-.dm-feature-title {
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--color-ink-medium, #7a6040);
-  text-transform: uppercase;
-}
+/* .dm-feature-title — gestyled via de gedeelde sectie-titel-regel (gouden standaard) */
 
 /* ── Attunement sectie (knapzak) ────────────────────────────────────────── */
 .player-dash-section--attunement {
