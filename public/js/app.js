@@ -798,9 +798,10 @@ function applyRole() {
     document.documentElement.style.removeProperty('--herberg-backdrop-url');
   }
 
-  // Diensten dropdown: alleen zichtbaar voor benoemde spelers
+  // Diensten dropdown: zichtbaar voor benoemde spelers én voor de DM
+  // (DM kan zo elke dienst openen en inspecteren zoals spelers die zien).
   const dienstenGroup = document.getElementById('diensten-nav-group');
-  if (dienstenGroup) dienstenGroup.classList.toggle('hidden', !isNamedPlayer);
+  if (dienstenGroup) dienstenGroup.classList.toggle('hidden', !isNamedPlayer && !window.app.isDM());
 
   // Herberg-item in dropdown: label aanpassen + verbergen als niet geconfigureerd
   const herbergItem = document.getElementById('diensten-herberg-item');
@@ -818,6 +819,7 @@ function applyRole() {
 
   // Toegangsstaten diensten updaten
   if (!window.app.isDM()) _updateDienstenMenu();
+  else _updateDienstenMenuDM();
 
   // Eigen-karakter-tabblad
   const myCharTab = document.querySelector('.section-tab[data-section="mijn-karakter"]');
@@ -2334,7 +2336,7 @@ function _ppfSelectField(field, current, options, placeholder, extraOnchange = '
 const _AB_LABELS = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' };
 
 let _playerSubTab    = localStorage.getItem('_playerSubTab') || 'party';
-let _klasseThemeOn   = localStorage.getItem('_klasseThemeOn') !== 'false'; // standaard aan
+let _klasseThemeOn   = localStorage.getItem('_klasseThemeOn') === 'true'; // standaard uit (klasse-afhankelijke CSS uitgezet)
 let _playerSpellList = null;
 
 // Markdown → HTML voor spreukomschrijvingen (bold, italic, {color:text}, auto-highlights)
@@ -5322,8 +5324,11 @@ async function renderMijnKarakter(opts = {}) {
   })();
 
   const _klasseKey = _dominantKlasse.toLowerCase().replace(/\s+/g, '-');
-  // Klasse-thema is alleen beschikbaar voor de DM (spelers zien altijd standaard CSS)
-  const _themeAttr  = (_klasseThemeOn && _klasseKey && window.app.isDM()) ? ` data-klasse="${esc(_klasseKey)}"` : '';
+  // Klasse-thema (klasse-afhankelijke CSS) is volledig uitgezet — zowel voor
+  // spelers als voor de DM die een spelerstabblad bekijkt. Iedereen ziet de
+  // standaard CSS. (Toggle via window._toggleKlasseTheme blijft beschikbaar
+  // voor wie het expliciet wil aanzetten.)
+  const _themeAttr  = (_klasseThemeOn && _klasseKey) ? ` data-klasse="${esc(_klasseKey)}"` : '';
 
   el.innerHTML = `
     <div class="player-dashboard"${_themeAttr}>
@@ -8618,6 +8623,19 @@ function _updateDienstenMenu() {
     const factiesBtn = document.getElementById('diensten-facties-item');
     if (factiesBtn) factiesBtn.classList.toggle('hidden', !heeftRevealed);
   }).catch(() => {});
+}
+
+// DM-inspectie: toon alle diensten-items ongeacht groep-toegang, zodat de DM
+// elke dienst kan openen en bekijken zoals spelers die zien. De toegang-sloten
+// in de routing zijn al met !isDM-guards uitgezet, dus de DM krijgt de echte render.
+function _updateDienstenMenuDM() {
+  // Herberg + Facties volgen hun eigen config-/reveal-zichtbaarheid (elders gezet);
+  // alleen het 'vergrendeld'-slotje weghalen voor de DM.
+  document.getElementById('diensten-herberg-item')?.classList.remove('dienst-vergrendeld');
+  document.getElementById('diensten-facties-item')?.classList.remove('dienst-vergrendeld', 'hidden');
+  for (const d of ['tweespalt', 'gock', 'ursula', 'tempel', 'magizoo']) {
+    document.getElementById(`diensten-${d}-item`)?.classList.remove('hidden', 'dienst-vergrendeld');
+  }
 }
 
 window._updateDienstenMenuFromSocket = () => {
