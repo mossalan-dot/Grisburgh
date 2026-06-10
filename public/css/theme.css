@@ -3833,6 +3833,10 @@ body::before {
 }
 .dm-feature-row-sm { gap: 5px; }
 .dm-form-row { display: flex; flex-direction: column; gap: 3px; }
+/* Gouden standaard: een losse actieknop in een dm-form-row rekt niet over de
+   volle breedte, maar krijgt natuurlijke breedte (links uitgelijnd) — net als
+   knoppen in een dm-feature-row. Voorkomt afwijkende volle-breedte gouden balken. */
+.dm-form-row:has(> .dm-btn:only-child) { align-items: flex-start; }
 .dm-form-label {
   font-family: 'Cinzel', serif;
   font-size: 9.5px;
