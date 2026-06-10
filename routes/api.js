@@ -2053,7 +2053,7 @@ router.patch('/player-profile/:characterId', attachRole, (req, res) => {
     'multiclass', 'klasseLevel', 'multiKlasse', 'multiKlasseLevel',
     'bookmarks', 'weapons',
     "swimSpeed", "flySpeed", "extraSpeeds", "spellFavorites", "factieTitel", "featFavorites", "featChoices",
-    "preparedMax",
+    "preparedMax", "signatureState",
   ];
   const updated = { ...existing };
   for (const key of allowed) {

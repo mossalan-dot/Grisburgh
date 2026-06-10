@@ -4948,6 +4948,129 @@ window._condInfo = function(cid) {
   box.classList.remove('hidden');
 };
 
+// ════════════════════════════════════════════════════════════
+// SIGNATUUR-KAART — klasse-eigen kernfeature bovenaan Personage
+// Uitbreidbaar per klasse; start met Barbarian/Rage. Beschrijving
+// komt uit de progressie-data (single source of truth).
+// ════════════════════════════════════════════════════════════
+const _SIGNATURE = {
+  barbarian: {
+    feature: 'Rage', icon: 'crossed-swords', iconGi: true, key: 'rage', kleur: '#b3402a',
+    activeOff: 'Activeer Rage', activeOn: 'Razend',
+    naslag: 'Resistance tegen Bludgeoning, Piercing & Slashing damage; Advantage op Strength checks & saves.',
+    uses: { 1: 2, 3: 3, 6: 4, 10: 5, 17: 6 },
+    extra: lvl => `Rage Damage +${_sigThresh({ 1: 2, 9: 3, 16: 4 }, lvl)}`,
+  },
+};
+function _sigThresh(table, level) {
+  let v = 0;
+  for (const t of Object.keys(table).map(Number).sort((a, b) => a - b)) if ((level || 0) >= t) v = table[t];
+  return v;
+}
+function _findClassFeatureDesc(progData, classKey, featureName) {
+  const cls = progData?.classes?.[classKey];
+  if (!cls) return '';
+  const nn = String(featureName).toLowerCase().replace(/[^a-z0-9]/g, '');
+  for (const arr of Object.values(cls.levels || {}))
+    for (const f of (arr || [])) if (String(f.name || '').toLowerCase().replace(/[^a-z0-9]/g, '') === nn) return f.desc || '';
+  return '';
+}
+function _sigReadState(pp) { try { return JSON.parse(pp?.signatureState || '{}'); } catch { return {}; } }
+function _sigCfgFor(klasse) { return _SIGNATURE[String(klasse || '').toLowerCase()]; }
+function _sigCurMax(cfg, pp, level) {
+  const st = _sigReadState(pp)[cfg.key] || {};
+  const auto = _sigThresh(cfg.uses, level) || 0;
+  return (st.maxOverride != null && String(st.maxOverride) !== '') ? (parseInt(st.maxOverride) || 0) : auto;
+}
+
+function _renderSignatureCard(klasse, level, progData, pp) {
+  const cfg = _sigCfgFor(klasse);
+  if (!cfg) return '';
+  const lvl = parseInt(level) || 0;
+  const st = _sigReadState(pp)[cfg.key] || {};
+  const max = _sigCurMax(cfg, pp, lvl);
+  const used = Math.min(st.used || 0, max);
+  const remaining = max - used;
+  const active = !!st.active;
+  const desc = _findClassFeatureDesc(progData, _progClassKey(progData, klasse), cfg.feature);
+  const dots = max > 0
+    ? Array.from({ length: max }, (_, i) => `<button class="sig-dot${i < used ? ' used' : ''}" onclick="window._sigToggleUse(${i})" title="${i < used ? 'Verbruikt — klik om vrij te geven' : 'Vrij — klik om te verbruiken'}"></button>`).join('')
+    : '<span class="sig-none">—</span>';
+  return `
+  <div class="sig-card${active ? ' sig-card--active' : ''}" style="--sig-kleur:${cfg.kleur}">
+    <div class="sig-card-head">
+      <span class="sig-card-icon">${icon(cfg.icon, cfg.iconGi ? { cls: 'icon-gi' } : {})}</span>
+      <span class="sig-card-name">${esc(cfg.feature)}</span>
+      <span class="sig-card-tag">Signatuur · ${esc(klasse)}</span>
+      ${desc ? `<button class="sig-card-info" onclick="window._sigToggleInfo()" title="Volledige uitleg">${icon('book-open')}</button>` : ''}
+      <button class="sig-card-reset" onclick="window._sigReset()" title="Herstel na Long Rest">${icon('refresh-cw')}</button>
+    </div>
+    <div class="sig-card-body">
+      <button class="sig-toggle${active ? ' on' : ''}" onclick="window._sigToggleActive()">
+        ${active ? icon('check') + ' ' + esc(cfg.activeOn) : esc(cfg.activeOff)}
+      </button>
+      <div class="sig-uses">
+        <div class="sig-dots">${dots}</div>
+        <button class="sig-uses-count" onclick="window._sigEditMax()" title="Maximum aanpassen (leeg = automatisch)">${remaining} / ${max}</button>
+      </div>
+    </div>
+    <div class="sig-card-extra">${cfg.extra ? esc(cfg.extra(lvl)) + ' · ' : ''}${esc(cfg.naslag)}</div>
+    ${desc ? `<div class="sig-card-desc hidden" id="sig-card-desc">${mdToHtml(desc)}</div>` : ''}
+  </div>`;
+}
+
+function _sigRefreshDynamic() {
+  const pp = window._lastPlayerProfile || {};
+  const cfg = _sigCfgFor(pp.klasse) || _sigCfgFor(pp.multiKlasse);
+  const card = document.querySelector('.sig-card');
+  if (!cfg || !card) return;
+  const lvl = parseInt(pp.klasseLevel) || parseInt(pp.level) || 0;
+  const st = _sigReadState(pp)[cfg.key] || {};
+  const max = _sigCurMax(cfg, pp, lvl);
+  const used = Math.min(st.used || 0, max);
+  card.classList.toggle('sig-card--active', !!st.active);
+  const dotsEl = card.querySelector('.sig-dots');
+  if (dotsEl) dotsEl.innerHTML = max > 0
+    ? Array.from({ length: max }, (_, i) => `<button class="sig-dot${i < used ? ' used' : ''}" onclick="window._sigToggleUse(${i})"></button>`).join('')
+    : '<span class="sig-none">—</span>';
+  const cnt = card.querySelector('.sig-uses-count');
+  if (cnt) cnt.textContent = `${max - used} / ${max}`;
+  const tog = card.querySelector('.sig-toggle');
+  if (tog) { tog.classList.toggle('on', !!st.active); tog.innerHTML = st.active ? icon('check') + ' ' + esc(cfg.activeOn) : esc(cfg.activeOff); }
+}
+async function _sigMutate(fn) {
+  const pp = window._lastPlayerProfile;
+  const cfg = _sigCfgFor(pp?.klasse) || _sigCfgFor(pp?.multiKlasse);
+  if (!pp || !cfg) return;
+  const lvl = parseInt(pp.klasseLevel) || parseInt(pp.level) || 0;
+  const all = _sigReadState(pp);
+  const st = all[cfg.key] || {};
+  fn(st, _sigCurMax(cfg, pp, lvl));
+  all[cfg.key] = st;
+  pp.signatureState = JSON.stringify(all);
+  _sigRefreshDynamic();
+  if (window._lastCharId) { try { await api.patchPlayerProfile(window._lastCharId, { signatureState: pp.signatureState }); } catch {} }
+}
+window._sigToggleActive = () => _sigMutate((st, max) => {
+  if (!st.active) { st.active = true; if (max > 0) st.used = Math.min((st.used || 0) + 1, max); }
+  else st.active = false;
+});
+window._sigToggleUse = (i) => _sigMutate((st, max) => { const used = Math.min(st.used || 0, max); st.used = i < used ? i : i + 1; });
+window._sigReset = () => _sigMutate(st => { st.used = 0; st.active = false; });
+window._sigToggleInfo = () => document.getElementById('sig-card-desc')?.classList.toggle('hidden');
+window._sigEditMax = () => {
+  const pp = window._lastPlayerProfile;
+  const cfg = _sigCfgFor(pp?.klasse) || _sigCfgFor(pp?.multiKlasse);
+  if (!pp || !cfg) return;
+  const lvl = parseInt(pp.klasseLevel) || parseInt(pp.level) || 0;
+  const auto = _sigThresh(cfg.uses, lvl) || 0;
+  const cur = (_sigReadState(pp)[cfg.key] || {}).maxOverride ?? '';
+  const v = prompt(`Maximaal aantal ${cfg.feature}-uses?\n(laat leeg voor automatisch op basis van level: ${auto})`, String(cur));
+  if (v === null) return;
+  const t = v.trim();
+  _sigMutate(st => { if (t === '') delete st.maxOverride; else st.maxOverride = Math.max(0, parseInt(t) || 0); });
+};
+
 async function renderMijnKarakter(opts = {}) {
   // Flush pending currency save only if user has typed a change (dirty)
   if (typeof window._dashCurrencyFlush === 'function') await window._dashCurrencyFlush();
@@ -5467,6 +5590,11 @@ async function renderMijnKarakter(opts = {}) {
       <!-- ═══ TAB: Mijn personage ═══ -->
       <div id="pst-personage" class="player-subtab-panel${_playerSubTab !== 'personage' ? ' hidden' : ''}">
         <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('personage')}</div>
+
+        ${_renderSignatureCard(
+          _dominantKlasse,
+          (_isMulticlass && playerProfile.multiKlasse && _mkLvl > _kLvl) ? _mkLvl : (_kLvl || parseInt(playerProfile.level) || 0),
+          progData, playerProfile)}
 
         ${_dominantKlasse.toLowerCase().includes('sorcerer') ? `
         <div class="player-dash-section wild-magic-section">
