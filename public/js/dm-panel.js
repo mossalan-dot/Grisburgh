@@ -4918,6 +4918,7 @@ async function _renderFactiesSettings() {
     locatieEntityId: f.locatieEntityId || '',
     npcEntityId:     f.npcEntityId     || '',
     npcGreet:        f.npcGreet        || '',
+    leden: (f.leden || []).map(l => ({ entityId: l.entityId, rang: l.rang || '' })),
     uitnodiging:      f.uitnodiging      || '',
     uitnodigingTitel: f.uitnodigingTitel || '',
     renownDrempels: (f.renownDrempels || [0,1,3,10,25,50]).join(','),
@@ -5015,6 +5016,18 @@ function _renderFactiesDM() {
               </div>
               <input class="dm-input" style="width:100%;margin-top:4px" placeholder="Openingszin NPC (optioneel)" value="${esc(f.npcGreet || '')}" oninput="window._factieEdit(${fi},'npcGreet',this.value)">
 
+              <div class="dm-section-label" style="margin-top:10px">${icon('users')} Leden</div>
+              <p class="dm-hint" style="margin:0 0 6px">Kies personages als lid. De rol komt automatisch uit het personage; de rang bepaalt de groepering (leeg = onder "Leden"). Volgorde = hiërarchie. Spelers zien alleen leden waarvan het personage zichtbaar is.</p>
+              <div id="factie-leden-${fi}">${_ledenEditor(fi, f.leden || [])}</div>
+              <div class="dm-form-row" style="flex-direction:row;gap:6px;margin-top:4px;align-items:center">
+                <select class="dm-select" id="factie-lid-add-${fi}" style="flex:1">
+                  <option value="">— kies personage —</option>
+                  ${[..._factiesPersonages].sort((a,b)=>a.name.localeCompare(b.name)).map(o =>
+                    `<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}
+                </select>
+                <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieLidAdd(${fi})">${icon('plus')} Toevoegen</button>
+              </div>
+
               <div class="dm-section-label" style="margin-top:10px;display:flex;align-items:center;gap:6px">
                 ${icon('mail')} Uitnodigingsbrief
                 <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:auto" onclick="window._factieUitnodigingSjabloon(${fi})" title="Standaard-sjabloon invullen">${icon('refresh-cw')} Sjabloon</button>
@@ -5107,6 +5120,42 @@ window._factieBoonKies = (fi, i, bi, zoekId, selectId, value) => {
 
 window._factieEdit = (fi, field, v) => { const f = _factiesDraft[fi]; if (f) f[field] = v; };
 
+// ── Factie-leden bewerken ──
+function _ledenEditor(fi, leden) {
+  if (!leden.length) return '<p class="dm-hint" style="opacity:.6;margin:0 0 4px">Nog geen leden.</p>';
+  const naamVan = id => (_factiesPersonages.find(p => p.id === id)?.name) || '(onbekend personage)';
+  return leden.map((l, li) => `
+    <div class="factie-lid-rij" style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+      <span style="flex:1;min-width:0;font-size:13px;color:#3a2410;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(naamVan(l.entityId))}</span>
+      <input class="dm-input dm-input-sm" style="width:130px;flex:none" placeholder="Rang (optioneel)" value="${esc(l.rang || '')}" oninput="window._factieLidRang(${fi},${li},this.value)">
+      <button class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-icon" onclick="window._factieLidMove(${fi},${li},-1)" title="Omhoog" ${li === 0 ? 'disabled' : ''}>▲</button>
+      <button class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-icon" onclick="window._factieLidMove(${fi},${li},1)" title="Omlaag" ${li === leden.length - 1 ? 'disabled' : ''}>▼</button>
+      <button class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-icon dm-btn-danger" onclick="window._factieLidRemove(${fi},${li})" title="Verwijderen">${icon('x')}</button>
+    </div>`).join('');
+}
+function _ledenHerteken(fi) {
+  const c = document.getElementById(`factie-leden-${fi}`);
+  if (c) c.innerHTML = _ledenEditor(fi, _factiesDraft[fi]?.leden || []);
+}
+window._factieLidAdd = (fi) => {
+  const sel = document.getElementById(`factie-lid-add-${fi}`);
+  const id = sel?.value;
+  const f = _factiesDraft[fi];
+  if (!id || !f) return;
+  if (!Array.isArray(f.leden)) f.leden = [];
+  if (f.leden.some(l => l.entityId === id)) { sel.value = ''; return; }  // geen duplicaten
+  f.leden.push({ entityId: id, rang: '' });
+  sel.value = '';
+  _ledenHerteken(fi);
+};
+window._factieLidRemove = (fi, li) => { const f = _factiesDraft[fi]; if (!f?.leden) return; f.leden.splice(li, 1); _ledenHerteken(fi); };
+window._factieLidRang = (fi, li, v) => { const f = _factiesDraft[fi]; if (f?.leden?.[li]) f.leden[li].rang = v; };
+window._factieLidMove = (fi, li, dir) => {
+  const f = _factiesDraft[fi]; if (!f?.leden) return;
+  const ni = li + dir; if (ni < 0 || ni >= f.leden.length) return;
+  const [m] = f.leden.splice(li, 1); f.leden.splice(ni, 0, m); _ledenHerteken(fi);
+};
+
 window._factieIconKies = (fi, naam, btn) => {
   window._factieEdit(fi, 'embleem', naam);
   // Update visueel actieve staat
@@ -5188,6 +5237,8 @@ function _factiesPayload() {
     locatieEntityId: (f.locatieEntityId || '').trim() || null,
     npcEntityId: (f.npcEntityId || '').trim() || null,
     npcGreet: (f.npcGreet || '').trim(),
+    leden: (f.leden || []).filter(l => l && l.entityId)
+      .map(l => ({ entityId: String(l.entityId).trim(), rang: (l.rang || '').trim() })),
     uitnodiging: (f.uitnodiging || '').trim(),
     uitnodigingTitel: (f.uitnodigingTitel || '').trim(),
     renownDrempels: String(f.renownDrempels || '0,1,3,10,25,50').split(',').map(n => parseInt(n.trim()) || 0),
