@@ -10079,6 +10079,11 @@ body.herberg-actief {
   background-color: #0e0804 !important;
 }
 body.herberg-actief::before { opacity: 0 !important; } /* parchment-texture uitschakelen */
+/* DM-party-bar (subbar) niet doorzichtig over de herberg-backdrop — opake parchment
+   zodat de balk consistent is met de andere diensten. */
+body.herberg-actief .dm-party-bar {
+  background: linear-gradient(180deg, #f0e4c4 0%, #e8d8ac 100%);
+}
 /* Vaste gradient overlay — bedekt altijd het volledige scherm, ongeacht inhoudhoogte */
 body.herberg-actief::after {
   content: '';
