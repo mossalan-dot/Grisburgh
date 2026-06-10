@@ -7868,15 +7868,18 @@ details.player-dash-collapsible[open] > summary {
   animation: wild-magic-flash 0.6s ease-out forwards;
 }
 
+/* Uniform met de overige player-dash-secties (perkament), gouden accent als
+   linkerrand i.p.v. een afwijkende gele achtergrond. */
 .player-inspiration-section {
-  background: linear-gradient(135deg, #fffbe6 0%, #fef3c7 100%);
-  border: 1.5px solid #f0b429 !important;
+  border-left: 4px solid #f0b429;
 }
+.player-inspiration-section .player-dash-section-title { color: #b07d12; }
 .player-inspiration-block {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 4px 0;
+  flex-wrap: wrap;
 }
 .player-inspiration-badge {
   font-family: 'Cinzel', serif;
