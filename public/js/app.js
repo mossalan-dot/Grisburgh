@@ -9813,6 +9813,7 @@ const _FACTIE_ICON_SET_APP = new Set(['landmark','tree-pine','hexagon','crossed-
 let _factieActiveId   = null;
 let _factieData       = null;  // gecachete API-response
 let _factieMissieData = null;
+let _grisburghLocId   = undefined;  // id van het 'Grisburgh'-locatiekaartje (backdrop facties-lijst); undefined = nog niet opgezocht
 
 async function renderFacties() {
   const el = document.getElementById('section-facties');
@@ -9840,16 +9841,28 @@ async function renderFacties() {
   const { facties } = data;
   const zichtbaar = window.app.isDM() ? facties : facties.filter(f => f.zichtbaar);
 
+  // Backdrop: afbeelding van het Grisburgh-locatiekaartje (uniform met de andere
+  // diensten die een sfeer-backdrop hebben). Eénmalig opzoeken op naam + cachen.
+  if (_grisburghLocId === undefined) {
+    try {
+      const locs = await api.listEntities('locaties');
+      _grisburghLocId = locs.find(l => (l.name || '').trim().toLowerCase() === 'grisburgh')?.id || null;
+    } catch { _grisburghLocId = null; }
+  }
+  const _factieBackdrop = _grisburghLocId ? `style="background-image:url('${api.fileUrl(_grisburghLocId)}')"` : '';
+
   if (!zichtbaar.length) {
-    el.innerHTML = `<div class="herberg-scene" style="justify-content:center;align-items:center;min-height:200px"><div class="herberg-content" style="text-align:center"><p class="herberg-groet" style="margin:0">${icon('landmark')} Nog geen facties onthuld.</p></div></div>`;
+    el.innerHTML = `<div class="herberg-scene gock-scene facties-lijst-scene facties-lijst-scene--leeg" ${_factieBackdrop}><div class="herberg-content" style="text-align:center"><p class="herberg-groet" style="margin:0">${icon('landmark')} Nog geen facties onthuld.</p></div></div>`;
     return;
   }
 
   el.innerHTML = `
-    <div class="factie-sectie">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:4px">${_helpBtn('facties')}</div>
-      <div class="factie-grid">
-        ${zichtbaar.map(f => _renderFactieKaart(f)).join('')}
+    <div class="herberg-scene gock-scene facties-lijst-scene" ${_factieBackdrop}>
+      <div class="factie-sectie">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:4px">${_helpBtn('facties')}</div>
+        <div class="factie-grid">
+          ${zichtbaar.map(f => _renderFactieKaart(f)).join('')}
+        </div>
       </div>
     </div>`;
 }
