@@ -89,7 +89,10 @@ router.get('/players', (req, res) => {
           groep:            groepId,
           groepNaam:        groep?.name             || null,
           groepHasPassword: !!groep?.password,
-          portraitVideoId:  e.data?.portraitVideoId || null,
+          // hasVideo afgeleid van het werkelijke bestand op schijf — het
+          // portraitVideoId-dataveld bleek na een update onbetrouwbaar (gewist
+          // voor de meeste karakters), terwijl het _video-bestand wél bestaat.
+          portraitVideoId:  e.data?.portraitVideoId || (storage.getFile(`${e.id}_video`) ? `${e.id}_video` : null),
         };
       });
     res.json(spelers);

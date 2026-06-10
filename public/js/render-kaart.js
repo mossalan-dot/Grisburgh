@@ -296,6 +296,16 @@ function _attachPanAndClick() {
   }, { signal });
 }
 
+// Opent het locatie-detail vanaf een pin. Als de kaart in de fullscreen-overlay
+// staat (z-index 1200) moet die eerst dicht, anders opent het detail-modal
+// (z-index 70) onzichtbaar eronder — dit brak sinds de fullscreen-galerij-update.
+function _openLocDetailFromPin(locId) {
+  if (document.getElementById('kaart-fs-overlay')?.classList.contains('open')) {
+    window._closeKaartFullscreen?.();
+  }
+  window._openDetail('locaties', locId);
+}
+
 // ── Render pins ──
 function _renderPins() {
   const layer = document.getElementById('map-pins-layer');
@@ -357,7 +367,7 @@ function _renderPins() {
       el.addEventListener('click', () => {
         const pin = mapPins.find(p => p.id === el.dataset.pinId);
         if (pin?.visibility === 'vague') return;
-        window._openDetail('locaties', el.dataset.locId);
+        _openLocDetailFromPin(el.dataset.locId);
       });
     }
   });
@@ -401,7 +411,7 @@ function _attachDrag(el) {
     el.classList.remove('pin-dragging');
 
     if (!moved) {
-      window._openDetail('locaties', el.dataset.locId);
+      _openLocDetailFromPin(el.dataset.locId);
       return;
     }
 

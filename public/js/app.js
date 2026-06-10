@@ -1,7 +1,7 @@
 import { api } from './api.js?v=234';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=94";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=42";
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=8';
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=9';
 import { renderDungeon } from './render-dungeon.js?v=22';
 import { renderRelatiemap } from './render-relatiemap.js?v=13';
 import { renderProgressie } from './render-progressie.js?v=34';
@@ -601,6 +601,11 @@ async function testLoginSubmit() {
 
 function _landingShowFooterPrompt({ title, iconName, placeholder, submitLabel, onSubmit }) {
   document.getElementById('landing-footer-prompt')?.remove();
+  // Sluit een eventueel openstaande speler-wachtwoordprompt + reset gekozen portret,
+  // anders staan er twee inlogvelden tegelijk op de landingspagina.
+  document.getElementById('landing-pw-prompt')?.remove();
+  document.querySelectorAll('.landing-portrait').forEach(p =>
+    p.classList.remove('landing-portrait--chosen', 'landing-portrait--dimmed'));
   const prompt = document.createElement('div');
   prompt.id        = 'landing-footer-prompt';
   prompt.className = 'landing-pw-prompt landing-footer-prompt';
@@ -951,6 +956,10 @@ async function showLanding() {
 async function _landingPortraitClick(charId, portraitEl) {
   if (document.getElementById('landing-zoom')) return;
   if (portraitEl.classList.contains('landing-portrait--chosen')) return;
+
+  // Sluit een eventueel openstaande footer-login (DM/sandbox/tablet/test),
+  // anders verschijnt er een tweede inlogveld naast de speler-prompt.
+  document.getElementById('landing-footer-prompt')?.remove();
 
   // Highlight gekozen portret, dim de rest licht
   document.querySelectorAll('.landing-portrait').forEach(p => {
