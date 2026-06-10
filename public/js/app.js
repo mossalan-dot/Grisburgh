@@ -9818,7 +9818,7 @@ async function renderFacties() {
   const el = document.getElementById('section-facties');
   if (!el) return;
 
-  let data, missieData;
+  let data;
   try { data = await api.getFacties(); }
   catch {
     el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-groet">Facties konden niet geladen worden.</p></div></div>`;
@@ -9833,7 +9833,7 @@ async function renderFacties() {
 
   if (_factieActiveId) {
     const actief = data.facties?.find(f => f.id === _factieActiveId);
-    if (actief) { _renderFactieInterieur(el, actief, missieData.missies || []); return; }
+    if (actief) { _renderFactieInterieur(el, actief, missies); return; }
     _factieActiveId = null;
   }
 
