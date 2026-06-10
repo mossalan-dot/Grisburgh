@@ -116,6 +116,60 @@ En onderaan (na de bestaande scripts) SW-registratie:
    en iPhone, offline-gedrag checken.
 5. Versie-discipline: cachenaam-bump opnemen in het `?v=N`-deploylijstje in CLAUDE.md.
 
+## Installatie-instructies op de landingspagina
+
+Spelers moeten weten *hoe* ze installeren — vooral op iOS, waar geen install-knop
+bestaat. Toon daarom een kleine, niet-opdringerige helper onderaan de landing
+(`#landing-footer`), platform-bewust.
+
+### Gedrag
+- **Verberg volledig** als de app al als PWA draait:
+  `window.matchMedia('(display-mode: standalone)').matches` of (iOS)
+  `navigator.standalone === true`.
+- **Android/Chrome:** vang het `beforeinstallprompt`-event op, `preventDefault()`,
+  bewaar het, en toon een **echte knop** "Installeer Grisburgh" die `prompt()` aanroept.
+- **iOS/Safari:** geen prompt-API → toon een korte visuele instructie:
+  "Tik op ⎙ (Deel) → *Zet op beginscherm*".
+- **Desktop:** optioneel verbergen of een subtiele hint tonen.
+- **Dismissible:** een ✕ die de keuze in `localStorage` onthoudt (niet elke sessie
+  opnieuw tonen).
+
+### Schets (los van bestaande code, in app.js bij de landing)
+```js
+function _initInstallHint() {
+  const al = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (al || localStorage.getItem('_installHintDismissed') === '1') return;
+
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/.test(ua) && !window.MSStream;
+
+  let deferred = null;
+  window.addEventListener('beforeinstallprompt', (e) => {   // Android/Chrome
+    e.preventDefault(); deferred = e; _toonInstallKnop();
+  });
+
+  function _toonInstallKnop() { /* render knop in #landing-footer → deferred.prompt() */ }
+  function _toonIOSUitleg()   { /* render tekst + Deel-icoon-instructie */ }
+
+  if (isIOS) _toonIOSUitleg();
+  // Android: wacht op beforeinstallprompt; gebeurt niets → toon niets (al installeerbaar
+  // via menu) of een generieke "Voeg toe aan beginscherm via je browsermenu".
+}
+```
+
+### CSS/stijl
+Perkament-pill onderaan de landing, in lijn met `.landing-footer-prompt`. Klein
+deel-icoon (kan via `icon()` of een inline SVG). Subtiel, één regel + knop/uitleg.
+
+### Valkuilen
+- `beforeinstallprompt` vuurt **alleen** als manifest + SW + HTTPS kloppen én de app
+  nog niet geïnstalleerd is. Test op een echt toestel, niet alleen desktop-emulatie.
+- iOS-instructie alleen tonen in **Safari** (niet in een in-app webview, daar werkt
+  "Zet op beginscherm" niet).
+- Houd 't bij de landing/login — niet midden in het spel pushen.
+
+---
+
 ## Daarna (apart traject): Capacitor-store-app
 - `npx @capacitor/cli init`, iOS + Android platform toevoegen, de site/build laden.
 - Native toevoegen zodat Apple guideline 4.2 't doorlaat: splash, push-notificaties
