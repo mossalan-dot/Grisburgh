@@ -13298,6 +13298,23 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   font-family: 'IM Fell English', serif; font-style: italic; font-size: .7rem;
   color: #7a5a30; text-align: center; line-height: 1.1;
 }
+/* Leider-accent: groter portret + gouden ring + ster-badge voor de bovenste rang */
+.factie-leden-groep--hoofd .factie-leden-grid { gap: 18px; }
+.factie-lid--hoofd { width: 100px; }
+.factie-lid--hoofd .factie-lid-portret-wrap { width: 74px; height: 74px; }
+.factie-lid--hoofd .factie-lid-portret {
+  width: 74px; height: 74px; border-width: 3px; border-color: #c79a2e;
+  box-shadow: 0 2px 10px rgba(184,134,11,0.4);
+}
+.factie-lid--hoofd .factie-lid-naam { font-size: .78rem; max-width: 100px; }
+.factie-lid-kroon {
+  position: absolute; top: -6px; right: -2px; width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  background: linear-gradient(180deg, #f0d264, #c79a2e); color: #4a3208;
+  border: 1.5px solid #fff6e0; box-shadow: 0 1px 4px rgba(60,40,10,0.35);
+}
+.factie-lid-kroon .icon { width: 12px; height: 12px; }
+.factie-lid-portret-wrap { position: relative; }
 
 /* ── Missies in factie-interieur ── */
 .factie-missies-sectie { width: 100%; margin-top: 6px; }

@@ -10005,25 +10005,30 @@ function _renderFactieInterieur(el, f, missies) {
     }
     // Groep zonder rang-label altijd onderaan.
     groepen.sort((a, b) => (a.rang === '__leden__' ? 1 : 0) - (b.rang === '__leden__' ? 1 : 0));
-    const _lid = (l) => `
-      <button class="factie-lid" onclick="window._openDetail('personages','${esc(l.entityId)}')" title="Bekijk ${esc(l.naam)}">
+    const _lid = (l, isHoofd) => `
+      <button class="factie-lid${isHoofd ? ' factie-lid--hoofd' : ''}" onclick="window._openDetail('personages','${esc(l.entityId)}')" title="Bekijk ${esc(l.naam)}">
         <span class="factie-lid-portret-wrap">
           <img class="factie-lid-portret" src="${api.fileUrl(l.entityId)}" alt=""
             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <span class="factie-lid-portret factie-lid-portret--fallback" style="display:none">${icon('user')}</span>
+          ${isHoofd ? `<span class="factie-lid-kroon" title="Leiding">${icon('star')}</span>` : ''}
         </span>
         <span class="factie-lid-naam">${esc(l.naam)}</span>
         ${l.rol ? `<span class="factie-lid-rol">${esc(l.rol)}</span>` : ''}
       </button>`;
     const meerdereGroepen = groepen.length > 1 || groepen[0].rang !== '__leden__';
+    // De bovenste, benoemde rang-groep krijgt een leider-accent (alleen bij een echte hiërarchie).
     return `
       <div class="factie-leden-sectie">
         <div class="factie-missies-label">${icon('users')} Leden</div>
-        ${groepen.map(g => `
-          <div class="factie-leden-groep">
+        ${groepen.map((g, gi) => {
+          const isHoofdGroep = meerdereGroepen && gi === 0 && g.rang !== '__leden__';
+          return `
+          <div class="factie-leden-groep${isHoofdGroep ? ' factie-leden-groep--hoofd' : ''}">
             ${meerdereGroepen ? `<div class="factie-leden-rang-kop">${g.rang === '__leden__' ? 'Leden' : esc(g.rang)}</div>` : ''}
-            <div class="factie-leden-grid">${g.leden.map(_lid).join('')}</div>
-          </div>`).join('')}
+            <div class="factie-leden-grid">${g.leden.map(l => _lid(l, isHoofdGroep)).join('')}</div>
+          </div>`;
+        }).join('')}
       </div>`;
   })();
 
