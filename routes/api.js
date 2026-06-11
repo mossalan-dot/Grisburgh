@@ -1820,10 +1820,13 @@ router.delete('/player-items/:characterId/:itemId', attachRole, (req, res) => {
   // Spelers mogen geen IOU's (schuldbewijs) of boetes zelf verwijderen — alleen de DM
   const isIOU = itemId.startsWith('ts_leen_');
   const isBoete = itemId.startsWith('heeren_boete_');
+  const isTrofee = itemId.startsWith('trofee_');
   if (isIOU && req.role !== 'dm')
     return res.status(403).json({ error: 'Schuldbrieven kunnen alleen door de DM worden verwijderd' });
   if (isBoete && req.role !== 'dm')
     return res.status(403).json({ error: 'Een boete los je af bij de Luimpoort, niet door het kaartje weg te gooien' });
+  if (isTrofee && req.role !== 'dm')
+    return res.status(403).json({ error: 'Een trofee leg je af bij de Trofeeënwand in de herberg' });
 
   const dmState = readDmState();
 
@@ -1839,6 +1842,17 @@ router.delete('/player-items/:characterId/:itemId', attachRole, (req, res) => {
   // Als het een IOU is: ook de openstaande lening wissen
   if (isIOU && dmState.tweespalt?.leningen?.[characterId]) {
     delete dmState.tweespalt.leningen[characterId];
+  }
+
+  // Als de DM een gedragen trofee-kaartje weggooit: de trofee hangt weer vrij aan de wand
+  if (isTrofee) {
+    const archief = storage.readJSON('archief.json');
+    const t = (archief.trofeeen || []).find(x => `trofee_${x.id}` === itemId);
+    if (t?.gedragenDoor) {
+      delete t.gedragenDoor;
+      storage.writeJSON('archief.json', archief);
+      req.app.get('io').to(req.session?.campaignId||'main').emit('trofeeen:updated');
+    }
   }
 
   storage.writeJSON('dm-state.json', dmState);
@@ -3717,10 +3731,107 @@ router.post('/trofeeen', requireDM, (req, res) => {
 
 router.delete('/trofeeen/:id', requireDM, (req, res) => {
   const archief = storage.readJSON('archief.json');
-  archief.trofeeen = (archief.trofeeen || []).filter(t => t.id !== req.params.id);
+  const t = (archief.trofeeen || []).find(x => x.id === req.params.id);
+  // Wordt de trofee gedragen? Dan eerst afleggen (boedelkaartje weghalen)
+  if (t?.gedragenDoor?.characterId) {
+    const dmState = readDmState();
+    _trofeeNeemAf(dmState, t, req);
+    storage.writeJSON('dm-state.json', dmState);
+  }
+  archief.trofeeen = (archief.trofeeen || []).filter(x => x.id !== req.params.id);
   storage.writeJSON('archief.json', archief);
   req.app.get('io').to(req.session?.campaignId||'main').emit('trofeeen:updated');
   res.json({});
+});
+
+// ── Trofeeën dragen (Witcher-stijl) ──
+// De DM geeft een trofee een boon; een speler kan er één tegelijk dragen.
+// Een gedragen trofee staat als kaartje in de Boedel (playerItems, prefix
+// 'trofee_') en afleggen gaat via de wand — niet door het kaartje weg te gooien.
+
+function _trofeeNeemAf(dmState, trofee, req) {
+  const cid = trofee.gedragenDoor?.characterId;
+  if (!cid) return;
+  if (dmState.playerItems?.[cid]) {
+    dmState.playerItems[cid] = dmState.playerItems[cid].filter(i => i.id !== `trofee_${trofee.id}`);
+    req.app.get('io').to(req.session?.campaignId||'main')
+      .emit('player:items-updated', { characterId: cid, items: dmState.playerItems[cid] });
+  }
+  delete trofee.gedragenDoor;
+}
+
+router.put('/trofeeen/:id', requireDM, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  const t = (archief.trofeeen || []).find(x => x.id === req.params.id);
+  if (!t) return res.status(404).json({ error: 'Trofee niet gevonden' });
+  if (req.body.boon !== undefined) t.boon = String(req.body.boon || '').trim().slice(0, 300);
+  storage.writeJSON('archief.json', archief);
+  // Boedelkaartje van de drager meebewegen met de nieuwe boon
+  if (t.gedragenDoor?.characterId) {
+    const dmState = readDmState();
+    const item = (dmState.playerItems?.[t.gedragenDoor.characterId] || []).find(i => i.id === `trofee_${t.id}`);
+    if (item) {
+      item.note = [t.boon, 'Afleggen kan bij de Trofeeënwand in de herberg.'].filter(Boolean).join('\n');
+      storage.writeJSON('dm-state.json', dmState);
+      req.app.get('io').to(req.session?.campaignId||'main')
+        .emit('player:items-updated', { characterId: t.gedragenDoor.characterId, items: dmState.playerItems[t.gedragenDoor.characterId] });
+    }
+  }
+  req.app.get('io').to(req.session?.campaignId||'main').emit('trofeeen:updated');
+  res.json(t);
+});
+
+router.post('/trofeeen/:id/draag', attachRole, (req, res) => {
+  const cid = req.session.characterId;
+  if (!cid) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+  const dmState = readDmState();
+  const gid = _playerGroupId(dmState, cid);
+  const archief = storage.readJSON('archief.json');
+  const t = (archief.trofeeen || []).find(x => x.id === req.params.id);
+  if (!t || t.groepId !== gid) return res.status(404).json({ error: 'Trofee niet gevonden' });
+  if (t.gedragenDoor?.characterId && t.gedragenDoor.characterId !== cid)
+    return res.status(400).json({ error: `Deze trofee wordt al gedragen door ${t.gedragenDoor.naam}` });
+
+  // Eén trofee per drager: een eerder gedragen trofee wordt automatisch afgelegd
+  (archief.trofeeen || []).forEach(x => {
+    if (x.id !== t.id && x.gedragenDoor?.characterId === cid) _trofeeNeemAf(dmState, x, req);
+  });
+
+  const char = (storage.readJSON('entities.json').personages || []).find(e => e.id === cid);
+  t.gedragenDoor = { characterId: cid, naam: char?.name || 'Onbekend', sinds: new Date().toISOString() };
+
+  if (!dmState.playerItems) dmState.playerItems = {};
+  if (!dmState.playerItems[cid]) dmState.playerItems[cid] = [];
+  if (!dmState.playerItems[cid].some(i => i.id === `trofee_${t.id}`)) {
+    dmState.playerItems[cid].push({
+      id:   `trofee_${t.id}`,
+      name: `Trofee: ${t.naam}`,
+      note: [t.boon, 'Afleggen kan bij de Trofeeënwand in de herberg.'].filter(Boolean).join('\n'),
+    });
+  }
+  storage.writeJSON('archief.json', archief);
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('player:items-updated', { characterId: cid, items: dmState.playerItems[cid] });
+  io.to(room).emit('trofeeen:updated');
+  res.json({ ok: true });
+});
+
+router.post('/trofeeen/:id/afleggen', attachRole, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  const t = (archief.trofeeen || []).find(x => x.id === req.params.id);
+  if (!t) return res.status(404).json({ error: 'Trofee niet gevonden' });
+  const cid = t.gedragenDoor?.characterId;
+  if (!cid) return res.json({ ok: true });
+  if (req.role !== 'dm' && req.session.characterId !== cid)
+    return res.status(403).json({ error: 'Alleen de drager (of de DM) kan deze trofee afleggen' });
+  const dmState = readDmState();
+  _trofeeNeemAf(dmState, t, req);
+  storage.writeJSON('archief.json', archief);
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('trofeeen:updated');
+  res.json({ ok: true });
 });
 
 // ── Buit (loot-verdeler) ──

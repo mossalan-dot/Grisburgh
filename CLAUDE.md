@@ -540,6 +540,13 @@ Testlogin: `window.app.testLogin()` → Test McTestface (groep 3, wachtwoord in 
 - [ ] Plaquette: monsterportret (of schedel), koperen naamplaat, akte + datum; klik → groot detail
 - [ ] DM: trofee verwijderen (met bevestiging) en handmatig toevoegen uit het bestiarium
 - [ ] Per groep: andere groep ziet eigen wand
+- [ ] **Dragen (Witcher-stijl):** DM zet via potlood-knop een boon op een trofee (gouden chip op de plaquette)
+- [ ] Speler: "Draag deze trofee" → gloed + "Jij draagt deze"; kaartje "Trofee: …" met boon in de Boedel
+- [ ] Tweede trofee dragen → bevestiging, eerste wordt automatisch teruggehangen (max. 1 per jager)
+- [ ] Andere speler ziet "Gedragen door …" en kan hem niet ook dragen
+- [ ] Trofee-kaartje in Boedel weggooien als speler → geweigerd ("leg af bij de Trofeeënwand")
+- [ ] "Leg af" bij de wand → kaartje uit Boedel, trofee hangt weer vrij; DM kan ook afleggen
+- [ ] Boon wijzigen terwijl gedragen → kaartje in Boedel verandert mee
 
 ### Buit (loot-verdeler) — 11 juni 2026
 - [ ] DM: pakket-knop in regie-balk én in Gevecht-tab → Rust & buit; opent composer

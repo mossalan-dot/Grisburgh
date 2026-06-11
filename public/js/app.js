@@ -8959,9 +8959,13 @@ window._herbergTrofeeen = async function() {
   const plaque = (t) => {
     const akte = t.hoofdstuk && hk[t.hoofdstuk] ? hk[t.hoofdstuk].short : '';
     const datum = t.datum ? new Date(t.datum).toLocaleDateString('nl-NL') : '';
+    const drager = t.gedragenDoor || null;
+    const ikDraag = drager?.characterId && drager.characterId === state.characterId;
     return `
-      <button class="trofee-plaque" onclick="window._trofeeDetail('${esc(t.id)}')">
-        ${isDm ? `<span class="trofee-del" onclick="event.stopPropagation();window._trofeeVerwijder('${esc(t.id)}')" title="Verwijderen">${icon('x')}</span>` : ''}
+      <button class="trofee-plaque${drager ? ' trofee-plaque--gedragen' : ''}" onclick="window._trofeeDetail('${esc(t.id)}')">
+        ${isDm ? `
+          <span class="trofee-del" onclick="event.stopPropagation();window._trofeeVerwijder('${esc(t.id)}')" title="Verwijderen">${icon('x')}</span>
+          <span class="trofee-del trofee-boon-edit" onclick="event.stopPropagation();window._trofeeBoonEdit('${esc(t.id)}')" title="Boon instellen">${icon('pencil')}</span>` : ''}
         <span class="trofee-kop-wrap">
           ${t.imageId
             ? `<img class="trofee-kop" src="${api.thumbUrl(t.imageId)}" alt="" onerror="this.outerHTML='<span class=\\'trofee-kop trofee-kop--leeg\\'>'+window.icon('skull')+'</span>'">`
@@ -8969,7 +8973,15 @@ window._herbergTrofeeen = async function() {
           ${(t.aantal || 1) > 1 ? `<span class="trofee-aantal">×${esc(String(t.aantal))}</span>` : ''}
         </span>
         <span class="trofee-naamplaat">${esc(t.naam)}</span>
+        ${t.boon ? `<span class="trofee-boon">${icon('sparkles')} ${esc(t.boon)}</span>` : ''}
         ${(akte || datum) ? `<span class="trofee-meta">${esc([akte, datum].filter(Boolean).join(' · '))}</span>` : ''}
+        ${drager ? `<span class="trofee-drager-chip">${icon('user')} ${ikDraag ? 'Jij draagt deze' : `Gedragen door ${esc(drager.naam)}`}</span>` : ''}
+        ${!isDm && state.characterId && !drager
+          ? `<span class="trofee-actie" onclick="event.stopPropagation();window._trofeeDraag('${esc(t.id)}')">Draag deze trofee</span>` : ''}
+        ${ikDraag
+          ? `<span class="trofee-actie trofee-actie--af" onclick="event.stopPropagation();window._trofeeAfleggen('${esc(t.id)}')">Leg af</span>` : ''}
+        ${isDm && drager && !ikDraag
+          ? `<span class="trofee-actie trofee-actie--af" onclick="event.stopPropagation();window._trofeeAfleggen('${esc(t.id)}')">Leg af (DM)</span>` : ''}
       </button>`;
   };
 
@@ -8981,7 +8993,7 @@ window._herbergTrofeeen = async function() {
           ${_helpBtn('herberg')}
         </div>
         <div class="aanplakbord-kop">${icon('skull')} De trofeeënwand</div>
-        <p class="aanplakbord-sub">Boven de haard hangt de roem van de party.</p>
+        <p class="aanplakbord-sub">Boven de haard hangt de roem van de party. Een jager mag één trofee dragen — en oogst er de gunsten van.</p>
         <div class="trofeewand">
           <div class="trofeewand-haardgloed"></div>
           ${_trofeeLijst.length === 0
@@ -9017,6 +9029,8 @@ window._trofeeDetail = function(id) {
         ? `<img class="trofee-detail-img" src="${api.fileUrl(t.imageId)}" alt="">`
         : `<span class="trofee-kop trofee-kop--leeg trofee-detail-leeg">${icon('skull')}</span>`}
       <div class="trofee-detail-naam">${esc(t.naam)}${(t.aantal || 1) > 1 ? ` <span class="trofee-aantal">×${esc(String(t.aantal))}</span>` : ''}</div>
+      ${t.boon ? `<div class="trofee-detail-boon">${icon('sparkles')} ${esc(t.boon)}</div>` : ''}
+      ${t.gedragenDoor ? `<div class="trofee-detail-meta">Gedragen door ${esc(t.gedragenDoor.naam)}</div>` : ''}
       ${akte ? `<div class="trofee-detail-meta">${esc(akte)}</div>` : ''}
       ${datum ? `<div class="trofee-detail-meta">Geveld op ${esc(datum)}</div>` : ''}
       <div class="aanplakbord-detail-hint">klik om terug te hangen</div>
@@ -9036,6 +9050,30 @@ window._trofeeToevoegen = async function() {
   if (!sel?.value) return;
   try { await api.createTrofee({ monsterId: sel.value }); await window._herbergTrofeeen(); }
   catch (err) { alert('Toevoegen mislukt: ' + (err?.message || '?')); }
+};
+
+// Witcher-stijl: een trofee dragen voor een boon (één per jager)
+window._trofeeDraag = async function(id) {
+  const t = _trofeeLijst.find(x => x.id === id);
+  const huidige = _trofeeLijst.find(x => x.gedragenDoor?.characterId === state.characterId);
+  if (huidige && !confirm(`Je draagt al "${huidige.naam}" — die leg je dan terug. Doorgaan?`)) return;
+  try { await api.draagTrofee(id); await window._herbergTrofeeen(); }
+  catch (err) { alert(err?.message || 'Dragen mislukte'); }
+};
+
+window._trofeeAfleggen = async function(id) {
+  try { await api.legTrofeeAf(id); await window._herbergTrofeeen(); }
+  catch (err) { alert(err?.message || 'Afleggen mislukte'); }
+};
+
+// DM: boon-tekst instellen of aanpassen
+window._trofeeBoonEdit = async function(id) {
+  const t = _trofeeLijst.find(x => x.id === id);
+  if (!t) return;
+  const boon = prompt(`Boon van "${t.naam}" (leeg = geen boon):`, t.boon || '');
+  if (boon === null) return;
+  try { await api.updateTrofee(id, { boon }); await window._herbergTrofeeen(); }
+  catch (err) { alert(err?.message || 'Opslaan mislukte'); }
 };
 
 // ── Kampvuurmodus (lange rust) ──
