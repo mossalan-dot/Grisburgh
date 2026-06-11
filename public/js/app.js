@@ -1,14 +1,14 @@
-import { api } from './api.js?v=234';
+import { api } from './api.js?v=235';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=94";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=42";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=43";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=8';
 import { renderDungeon } from './render-dungeon.js?v=22';
 import { renderRelatiemap } from './render-relatiemap.js?v=13';
 import { renderProgressie } from './render-progressie.js?v=34';
 import { renderBestiarium } from './render-bestiarium.js?v=11';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=34";
-import { initDmPanel } from "./dm-panel.js?v=87";
+import { initSocket } from "./socket-client.js?v=35";
+import { initDmPanel } from "./dm-panel.js?v=88";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -16,7 +16,7 @@ import { initDmPanel } from "./dm-panel.js?v=87";
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=3#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=4#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -431,6 +431,7 @@ function closeLogboekMenu() {
 
 const LOGBOEK_LABELS = {
   verslagen: `${icon('book-open')} Logboek`,
+  kroniek:   `${icon('scroll-text')} Kroniek`,
   quests:    `${icon('map-pin')} Missies`,
   prikbord:  `${icon('map')} Prikbord`,
 };
@@ -8481,6 +8482,10 @@ async function init() {
   } catch { /* niet ingelogd als DM */ }
 
   renderParty();
+
+  // Brandend kampvuur herstellen na herladen (speler: eigen groep; DM: actieve groep)
+  if (state.characterId || state.role === 'dm') window._kampvuurRestore();
+
   const hashSection   = location.hash.replace('#', '');
   const validSections = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'logboek', 'kaart', 'mijn-karakter'];
   const startSection  = validSections.includes(hashSection) ? hashSection : 'personages';
@@ -8717,10 +8722,242 @@ async function renderHerberg() {
               </div>`
         }
         <div id="herberg-antwoord" class="herberg-antwoord hidden"></div>
+
+        <button class="aanplakbord-link" onclick="window._herbergBord()" title="Bekijk het aanplakbord">
+          ${icon('pin')} <span>Aanplakbord</span>
+          <span class="aanplakbord-link-sub">bekijk de berichten aan het bord</span>
+        </button>
       </div>
     </div>
   `;
 }
+
+// ── Aanplakbord (in de herberg) ──
+// Vergeelde posters aan het bord: DM-berichten (gezocht/oproep/nieuws) plus de
+// beschikbare missies uit het quest-prikbord. Eén databron — geen tweede questsysteem.
+
+let _bordPosters = [];
+
+function _bordRot(id) {
+  let h = 0;
+  for (let i = 0; i < String(id).length; i++) h = (h * 31 + String(id).charCodeAt(i)) & 0xffff;
+  return ((h % 9) - 4) * 0.8; // −3.2° … +3.2°
+}
+
+const _BORD_SOORT_LABELS = { gezocht: 'Gezocht', oproep: 'Oproep', nieuws: 'Nieuws', missie: 'Missie' };
+
+window._herbergBord = async function() {
+  const el = document.getElementById('section-herberg');
+  if (!el) return;
+
+  let berichten = [];
+  let quests = [];
+  try { berichten = (await api.getAanplakbord()).berichten || []; } catch { /* leeg bord */ }
+  try { quests = (await api.listQuests()).filter(q => q.status === 'actief'); } catch { /* geen missies */ }
+
+  _bordPosters = [
+    ...berichten.map(b => ({ ...b, _bron: 'bericht' })),
+    ...quests.map(q => ({
+      id: q.id, soort: 'missie', titel: q.title || 'Naamloze missie',
+      tekst: q.description || '', beloning: '', _bron: 'missie',
+    })),
+  ];
+
+  const config = window.app?.state?.meta?.herberg || {};
+  const naam = config.naam || 'de herberg';
+
+  el.innerHTML = `
+    <div class="herberg-scene aanplakbord-scene">
+      <div class="herberg-content aanplakbord-content">
+        <div class="tempel-interior-topbar">
+          <button class="tempel-terug-btn" onclick="window.app.refreshSection('herberg')">${icon('chevron-left')} Terug</button>
+          ${_helpBtn('herberg')}
+        </div>
+        <div class="aanplakbord-kop">${icon('pin')} Het aanplakbord</div>
+        <p class="aanplakbord-sub">Vergeelde papieren, vastgespijkerd bij de deur van ${esc(naam)}.</p>
+        <div class="aanplakbord-bord">
+          ${_bordPosters.length === 0
+            ? `<p class="aanplakbord-leeg">Het bord is leeg. Iemand heeft alle berichten meegenomen…</p>`
+            : _bordPosters.map(p => `
+              <button class="aanplakbord-poster aanplakbord-poster--${esc(p.soort)}"
+                style="--ap-rot:${_bordRot(p.id)}deg"
+                onclick="window._bordPoster('${esc(p.id)}')">
+                <span class="aanplakbord-spijker"></span>
+                <span class="aanplakbord-poster-soort">${_BORD_SOORT_LABELS[p.soort] || 'Bericht'}</span>
+                <span class="aanplakbord-poster-titel">${esc(p.titel)}</span>
+                ${p.tekst ? `<span class="aanplakbord-poster-tekst">${esc(p.tekst.length > 110 ? p.tekst.slice(0, 110) + '…' : p.tekst)}</span>` : ''}
+                ${p.beloning ? `<span class="aanplakbord-poster-beloning">${icon('coins')} ${esc(p.beloning)}</span>` : ''}
+              </button>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+window._bordPoster = function(id) {
+  const p = _bordPosters.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('aanplakbord-detail')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'aanplakbord-detail';
+  ov.className = 'aanplakbord-detail-overlay';
+  ov.innerHTML = `
+    <div class="aanplakbord-detail aanplakbord-poster--${esc(p.soort)}">
+      <span class="aanplakbord-spijker"></span>
+      <div class="aanplakbord-poster-soort">${_BORD_SOORT_LABELS[p.soort] || 'Bericht'}</div>
+      <div class="aanplakbord-detail-titel">${esc(p.titel)}</div>
+      ${p.tekst ? `<div class="aanplakbord-detail-tekst">${esc(p.tekst)}</div>` : ''}
+      ${p.beloning ? `<div class="aanplakbord-poster-beloning">${icon('coins')} ${esc(p.beloning)}</div>` : ''}
+      <div class="aanplakbord-detail-hint">klik om terug te hangen</div>
+    </div>`;
+  ov.addEventListener('click', () => ov.remove());
+  document.body.appendChild(ov);
+};
+
+// ── Kampvuurmodus (lange rust) ──
+// De DM ontsteekt het vuur; spelers van de groep krijgen het rustscherm en kunnen
+// een korte gedachte delen. Gedachten verschijnen live bij iedereen rond het vuur
+// en belanden via archief.kampvuren in de Kroniek.
+
+let _kampvuurQuotes = [];
+
+window._kampvuurSync = function(data) {
+  if (!data) return;
+  // Spelers: alleen het vuur van de eigen groep. (Bij restore via GET /kampvuur is
+  // de groep al server-side bepaald; _myGroupId kan dan nog null zijn → accepteren.)
+  if (!window.app?.isDM?.() && data.groepId && window._myGroupId && data.groepId !== window._myGroupId) return;
+  if (data.actief) _kampvuurToon(data.quotes || []);
+  else _kampvuurDoof();
+};
+
+function _kampvuurQuotesHtml(quotes) {
+  return quotes.map((q, i) => `
+    <div class="kampvuur-quote" style="--kv-rot:${((i * 37) % 7 - 3) * 0.6}deg">
+      <span class="kampvuur-quote-tekst">"${esc(q.tekst)}"</span>
+      <span class="kampvuur-quote-naam">— ${esc(q.naam)}</span>
+    </div>`).join('');
+}
+
+function _kampvuurVoetHtml() {
+  const isDm = window.app?.isDM?.();
+  if (isDm) {
+    return `
+      <button class="kampvuur-doof-btn" onclick="window._dmKampvuurDoof()">${icon('moon')} Doof het vuur</button>
+      <p class="kampvuur-hint">Gedachten van spelers verschijnen hier live en komen in de Kroniek.</p>`;
+  }
+  const eigen = _kampvuurQuotes.filter(q => q.characterId === state.characterId).length;
+  if (!state.characterId) return `<p class="kampvuur-hint">De party rust uit bij het vuur.</p>`;
+  if (eigen >= 3) return `<p class="kampvuur-hint">Je staart in de vlammen. Je gedachten zijn gedeeld.</p>`;
+  return `
+    <div class="kampvuur-deel-wrap">
+      <textarea id="kampvuur-input" class="kampvuur-input" rows="2" maxlength="280"
+        placeholder="Wat houdt je bezig, hier bij het vuur…?"></textarea>
+      <button class="kampvuur-deel-btn" onclick="window._kampvuurDeel()">${icon('sparkles')} Deel bij het vuur</button>
+      <span id="kampvuur-deel-fout" class="kampvuur-fout"></span>
+    </div>`;
+}
+
+function _kampvuurToon(quotes) {
+  _kampvuurQuotes = quotes;
+  let ov = document.getElementById('kampvuur-overlay');
+  if (ov) {
+    // Alleen quotes + voet bijwerken — het vuur blijft rustig branden
+    const qEl = ov.querySelector('#kampvuur-quotes');
+    if (qEl) qEl.innerHTML = _kampvuurQuotesHtml(quotes);
+    const vEl = ov.querySelector('#kampvuur-voet');
+    if (vEl && !ov.querySelector('#kampvuur-input:focus')) vEl.innerHTML = _kampvuurVoetHtml();
+    return;
+  }
+  document.getElementById('kampvuur-ember')?.remove();
+  ov = document.createElement('div');
+  ov.id = 'kampvuur-overlay';
+  ov.className = 'kampvuur-overlay';
+  ov.innerHTML = `
+    <div class="kampvuur-nacht"></div>
+    <button class="kampvuur-min-btn" onclick="window._kampvuurMin()" title="Even wegkijken van het vuur">${icon('minus')}</button>
+    <div class="kampvuur-kop">De party rust bij het kampvuur</div>
+    <div class="kampvuur-quotes" id="kampvuur-quotes">${_kampvuurQuotesHtml(quotes)}</div>
+    <div class="kampvuur-vuur" aria-hidden="true">
+      <span class="kv-vonk kv-vonk-1"></span><span class="kv-vonk kv-vonk-2"></span>
+      <span class="kv-vonk kv-vonk-3"></span><span class="kv-vonk kv-vonk-4"></span>
+      <span class="kv-vonk kv-vonk-5"></span><span class="kv-vonk kv-vonk-6"></span>
+      <div class="kv-gloed"></div>
+      <div class="kv-vlam kv-vlam-3"></div>
+      <div class="kv-vlam kv-vlam-2"></div>
+      <div class="kv-vlam kv-vlam-1"></div>
+      <div class="kv-houtblok kv-houtblok-1"></div>
+      <div class="kv-houtblok kv-houtblok-2"></div>
+    </div>
+    <div class="kampvuur-voet" id="kampvuur-voet">${_kampvuurVoetHtml()}</div>`;
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add('kampvuur-overlay--aan'));
+}
+
+function _kampvuurDoof() {
+  _kampvuurQuotes = [];
+  document.getElementById('kampvuur-ember')?.remove();
+  const ov = document.getElementById('kampvuur-overlay');
+  if (!ov) return;
+  ov.classList.add('kampvuur-overlay--uit');
+  setTimeout(() => ov.remove(), 900);
+}
+
+window._kampvuurDeel = async function() {
+  const input = document.getElementById('kampvuur-input');
+  const fout = document.getElementById('kampvuur-deel-fout');
+  const tekst = (input?.value || '').trim();
+  if (!tekst) return;
+  try {
+    await api.kampvuurQuote(tekst);
+    if (input) input.value = '';
+    if (fout) fout.textContent = '';
+    // De socket-update (kampvuur:update) rendert de nieuwe quote bij iedereen
+  } catch (err) {
+    if (fout) fout.textContent = err?.message || 'Delen mislukte';
+  }
+};
+
+// Sluimerstand: overlay verbergen achter een gloeiend sintel-knopje
+window._kampvuurMin = function() {
+  const ov = document.getElementById('kampvuur-overlay');
+  if (!ov) return;
+  ov.classList.add('kampvuur-overlay--min');
+  if (!document.getElementById('kampvuur-ember')) {
+    const ember = document.createElement('button');
+    ember.id = 'kampvuur-ember';
+    ember.className = 'kampvuur-ember';
+    ember.title = 'Terug naar het kampvuur';
+    ember.innerHTML = icon('flame');
+    ember.onclick = () => {
+      document.getElementById('kampvuur-overlay')?.classList.remove('kampvuur-overlay--min');
+      ember.remove();
+    };
+    document.body.appendChild(ember);
+  }
+};
+
+// DM: doven vanaf het overlay zelf
+window._dmKampvuurDoof = async function() {
+  try { await api.kampvuurStop(); } catch { /* socket ruimt op */ }
+};
+
+// DM: aan/uit voor de actieve groep (knoppen in regie-balk en Rust-paneel).
+// De statuswissel komt via socket kampvuur:update bij iedereen terug.
+window._dmKampvuurToggle = async function() {
+  try {
+    const st = await api.getKampvuur();
+    if (st?.actief) await api.kampvuurStop();
+    else await api.kampvuurStart();
+  } catch (err) { alert('Kampvuur: ' + (err?.message || '?')); }
+};
+
+// Bij (her)laden: brandend kampvuur van de eigen groep herstellen
+window._kampvuurRestore = async function() {
+  try {
+    const st = await api.getKampvuur();
+    if (st?.actief) window._kampvuurSync(st);
+  } catch { /* geen vuur */ }
+};
 
 window._getExtraSpeedsFromDOM = function() {
   return Array.from(document.querySelectorAll('.pcs-extra-speed-item')).map(item => ({

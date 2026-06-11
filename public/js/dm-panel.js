@@ -1681,6 +1681,7 @@ function _renderRegieBalk() {
           }</div>
           <button class="dm-regie-balk-btn dm-rb-combat-btn${_combat?.active ? '' : ' hidden'}" id="dm-rb-combat-btn"
             onclick="window.dmPanel.combatExpand()" title="Gevecht uitklappen">${icon('stiletto',{cls:'icon-gi'})}</button>
+          <button class="dm-regie-balk-btn" onclick="window._dmKampvuurToggle()" title="Kampvuur ontsteken of doven (rustscherm bij de spelers)">${icon('flame')}</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')}</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkToggleMinimize()" title="Minimaliseren">−</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkClose()" title="Sluiten">${icon('x')}</button>
@@ -3730,7 +3731,106 @@ async function _renderHerbergSettings() {
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-primary" onclick="window._hbSave()" title="Opslaan">${icon('save')}</button>
       </div>
+    </div>
+
+    <div class="dm-feature-section" id="hb-aanplak-sectie">
+      <div class="dm-section-label">${icon('pin')} Aanplakbord</div>
+      <div class="dm-hint" style="font-size:11px;margin-bottom:6px">
+        Berichten aan het bord in de herberg. Actieve missies van het quest-prikbord hangen er automatisch bij.
+      </div>
+      <div id="hb-aanplak-body">Laden…</div>
     </div>`;
+
+  _renderAanplakDM();
+};
+
+// ── Aanplakbord-beheer (DM) ──
+
+let _apBerichten = [];
+let _apEditId = null; // null = geen editor open · 'nieuw' = nieuw bericht · anders berichtId
+
+async function _renderAanplakDM() {
+  const el = document.getElementById('hb-aanplak-body');
+  if (!el) return;
+  try { _apBerichten = (await api.getAanplakbord()).berichten || []; } catch { _apBerichten = []; }
+  const groepen = window._groups || [];
+  const soortLabel = { gezocht: 'Gezocht', oproep: 'Oproep', nieuws: 'Nieuws' };
+
+  const editorHtml = () => {
+    const b = _apEditId === 'nieuw' ? {} : (_apBerichten.find(x => x.id === _apEditId) || {});
+    return `
+      <div class="dm-feature-section" style="margin:6px 0;padding:10px;border:1px dashed rgba(196,168,122,0.5);border-radius:6px">
+        <div class="dm-form-row">
+          <label class="dm-form-label">Soort</label>
+          <select id="ap-soort" class="dm-select">
+            ${['gezocht','oproep','nieuws'].map(s => `<option value="${s}" ${b.soort === s ? 'selected' : ''}>${soortLabel[s]}</option>`).join('')}
+          </select>
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Titel</label>
+          <input id="ap-titel" class="dm-input" value="${esc(b.titel || '')}" placeholder="GEZOCHT: Grom de Verschrikkelijke">
+        </div>
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label">Tekst</label>
+          <textarea id="ap-tekst" class="dm-input" rows="3" style="resize:vertical">${esc(b.tekst || '')}</textarea>
+        </div>
+        <div class="dm-form-row">
+          <label class="dm-form-label">Beloning (optioneel)</label>
+          <input id="ap-beloning" class="dm-input" value="${esc(b.beloning || '')}" placeholder="200 florijnen">
+        </div>
+        <div class="dm-form-row" style="flex-direction:column;gap:4px">
+          <label class="dm-form-label">Zichtbaar voor</label>
+          ${groepen.length === 0 ? '<span class="dm-hint">Geen groepen gevonden</span>' : groepen.map(g => `
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px">
+              <input type="checkbox" class="ap-groep-cb" value="${esc(g.id)}" ${(b.groepen || []).includes(g.id) ? 'checked' : ''}> ${esc(g.name || g.id)}
+            </label>`).join('')}
+        </div>
+        <div class="dm-form-row" style="gap:6px">
+          <button class="dm-btn dm-btn-primary" onclick="window._apOpslaan()" title="Opslaan">${icon('save')}</button>
+          <button class="dm-btn dm-btn-ghost" onclick="window._apAnnuleer()" title="Annuleren">${icon('x')}</button>
+        </div>
+      </div>`;
+  };
+
+  el.innerHTML = `
+    ${_apBerichten.length === 0 && _apEditId === null ? '<div class="dm-hint" style="font-size:11px">Nog geen berichten geprikt.</div>' : ''}
+    ${_apBerichten.map(b => _apEditId === b.id ? editorHtml() : `
+      <div class="dm-feature-row" style="gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(196,168,122,0.2)">
+        <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.6;width:54px">${soortLabel[b.soort] || 'Bericht'}</span>
+        <span style="flex:1;font-size:12px">${esc(b.titel)}</span>
+        <span class="dm-hint" style="font-size:10px">${(b.groepen || []).length} groep(en)</span>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._apBewerk('${esc(b.id)}')" title="Bewerken">${icon('pencil')}</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._apVerwijder('${esc(b.id)}')" title="Verwijderen">${icon('trash')}</button>
+      </div>`).join('')}
+    ${_apEditId === 'nieuw' ? editorHtml() : ''}
+    ${_apEditId === null ? `<div class="dm-feature-row" style="margin-top:6px">
+      <button class="dm-btn dm-btn-ghost" onclick="window._apNieuw()" title="Bericht aan het bord prikken">${icon('plus')} Bericht prikken</button>
+    </div>` : ''}`;
+}
+
+window._apNieuw     = () => { _apEditId = 'nieuw'; _renderAanplakDM(); };
+window._apBewerk    = (id) => { _apEditId = id; _renderAanplakDM(); };
+window._apAnnuleer  = () => { _apEditId = null; _renderAanplakDM(); };
+window._apOpslaan   = async () => {
+  const payload = {
+    soort:    document.getElementById('ap-soort')?.value,
+    titel:    document.getElementById('ap-titel')?.value || '',
+    tekst:    document.getElementById('ap-tekst')?.value || '',
+    beloning: document.getElementById('ap-beloning')?.value || '',
+    groepen:  Array.from(document.querySelectorAll('.ap-groep-cb:checked')).map(cb => cb.value),
+  };
+  try {
+    if (_apEditId === 'nieuw') await api.createAanplakbord(payload);
+    else await api.updateAanplakbord(_apEditId, payload);
+    _apEditId = null;
+    await _renderAanplakDM();
+  } catch (err) { alert('Opslaan mislukt: ' + (err?.message || '?')); }
+};
+window._apVerwijder = async (id) => {
+  const b = _apBerichten.find(x => x.id === id);
+  if (!confirm(`Bericht "${b?.titel || id}" van het aanplakbord verwijderen?`)) return;
+  try { await api.deleteAanplakbord(id); await _renderAanplakDM(); }
+  catch (err) { alert('Verwijderen mislukt: ' + (err?.message || '?')); }
 };
 
 async function _renderBeursTab() {
@@ -5764,6 +5864,7 @@ function _renderGevecht() {
       <div class="dm-section-label">${icon('moon')} Rust</div>
       <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
         <button class="dm-btn dm-btn-ghost" onclick="window._dmLangeRust()" title="Lange rust — herlaadt alle item-charges">${icon('moon')}</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window._dmKampvuurToggle()" title="Kampvuur ontsteken of doven — rustscherm bij alle spelers van de actieve groep">${icon('flame')}</button>
         <span id="dm-rust-status" style="font-size:11px;color:#6a9050"></span>
       </div>
     </div>
