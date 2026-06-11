@@ -247,6 +247,12 @@ export async function renderLogboek() {
     return;
   }
 
+  if (_logboekActiveTab === 'kroniek') {
+    tabContent.style.cssText = '';
+    tabContent.innerHTML = _buildKroniek(visibleEntries, hk);
+    return;
+  }
+
   // Verslagen tab
   tabContent.style.cssText = '';
   tabContent.innerHTML = `
@@ -611,6 +617,85 @@ function _buildChapterImgStrip(chEntries, ch) {
         onclick="event.stopPropagation();document.getElementById('${stripId}').scrollBy({left:200,behavior:'smooth'})"
         aria-label="Naar rechts">&#8250;</button>
     </div>`;
+}
+
+// ── Kroniek: doorlopende leesmodus van de campagne ──
+// Geen kaartjes maar één boekrol: volledige samenvattingen, citaten als pull-quotes
+// en de kampvuur-momenten (gedeelde gedachten van de party) ertussen. Bewust géén
+// chips/carrousels — daarvoor is de Verslagen-weergave.
+
+function _buildKroniek(entries, hk) {
+  const kampvuren = archiefData.kampvuren || [];
+
+  if (entries.length === 0 && kampvuren.length === 0) {
+    return `<div class="text-center py-20 text-ink-faint">
+      <div class="logboek-empty-icon mb-4 opacity-40">${icon('scroll-text')}</div>
+      <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">De kroniek is nog niet geschreven…</div>
+    </div>`;
+  }
+
+  // Groepeer sessies én kampvuren per akte
+  const perAkte = {};
+  for (const e of entries) {
+    const ch = e.hoofdstuk || '_';
+    (perAkte[ch] = perAkte[ch] || { sessies: [], vuren: [] }).sessies.push(e);
+  }
+  for (const k of kampvuren) {
+    const ch = k.hoofdstuk || '_';
+    (perAkte[ch] = perAkte[ch] || { sessies: [], vuren: [] }).vuren.push(k);
+  }
+  const aktes = Object.keys(perAkte).sort((a, b) => (hk[a]?.num || 99) - (hk[b]?.num || 99));
+
+  const sessieHtml = (e) => `
+    <article class="kroniek-sessie${isDM() && !e.visible ? ' kroniek-sessie--verborgen' : ''}"
+      onclick="window._openSessieDetail('${e.id}')" title="Open het verslag">
+      <div class="kroniek-dateline">
+        ${e.datum ? `<span>${esc(e.datum)}</span>` : ''}
+        ${isDM() && !e.visible ? `<span class="kroniek-verborgen-chip">${icon('lock')} verborgen</span>` : ''}
+      </div>
+      <h3 class="kroniek-sessie-titel">${esc(e.korteSamenvatting || 'Naamloos')}</h3>
+      ${e.citaat ? `<blockquote class="kroniek-citaat">"${mdToHtml(e.citaat)}"</blockquote>` : ''}
+      ${e.samenvatting ? `<div class="kroniek-tekst">${mdToHtml(e.samenvatting)}</div>` : ''}
+    </article>`;
+
+  const kampvuurHtml = (k) => {
+    const grpNaam = isDM()
+      ? (window._groups?.find(g => g.id === k.groepId)?.name || '')
+      : '';
+    return `
+      <aside class="kroniek-kampvuur">
+        <div class="kroniek-kampvuur-kop">
+          ${icon('flame')} Bij het kampvuur${grpNaam ? ` <span class="kroniek-kampvuur-groep">· ${esc(grpNaam)}</span>` : ''}
+        </div>
+        ${(k.quotes || []).map(q => `
+          <div class="kroniek-kampvuur-quote">
+            <span class="kroniek-kampvuur-tekst">"${esc(q.tekst)}"</span>
+            <span class="kroniek-kampvuur-naam">— ${esc(q.naam)}</span>
+          </div>`).join('')}
+      </aside>`;
+  };
+
+  let html = `<div class="kroniek-wrap"><div class="kroniek-scroll">
+    <div class="kroniek-titel">${icon('scroll-text')} De Kroniek</div>`;
+
+  for (const ch of aktes) {
+    const info = hk[ch] || {};
+    const titel = ch === '_' ? 'Buiten de aktes' : (info.title || ch);
+    const sessies = perAkte[ch].sessies.slice().sort((a, b) => (a.datum || '').localeCompare(b.datum || ''));
+    const vuren   = perAkte[ch].vuren.slice().sort((a, b) => (a.gestart || '').localeCompare(b.gestart || ''));
+    html += `
+      <section class="kroniek-akte">
+        <header class="kroniek-akte-kop">
+          ${info.num != null ? `<span class="kroniek-akte-num">Akte ${esc(String(info.num))}</span>` : ''}
+          <h2 class="kroniek-akte-titel">${esc(titel)}</h2>
+          ${info.dag ? `<span class="kroniek-akte-dag">${esc(info.dag)}</span>` : ''}
+        </header>
+        ${sessies.map(sessieHtml).join('')}
+        ${vuren.map(kampvuurHtml).join('')}
+      </section>`;
+  }
+  html += `</div></div>`;
+  return html;
 }
 
 function _buildLogboekBody(entries, hk, isSearchMode = false) {

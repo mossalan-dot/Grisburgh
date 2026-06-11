@@ -172,6 +172,18 @@ export const api = {
   updateQuest:  (id, data)   => request(`/quests/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
   deleteQuest:  (id)         => request(`/quests/${id}`, { method: 'DELETE' }),
 
+  // Aanplakbord (herberg)
+  getAanplakbord:    ()         => request('/aanplakbord'),
+  createAanplakbord: (data)     => request('/aanplakbord',       { method: 'POST',   body: JSON.stringify(data) }),
+  updateAanplakbord: (id, data) => request(`/aanplakbord/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
+  deleteAanplakbord: (id)       => request(`/aanplakbord/${id}`, { method: 'DELETE' }),
+
+  // Kampvuur (lange rust bij het vuur)
+  getKampvuur:   ()        => request('/kampvuur'),
+  kampvuurStart: (groepId) => request('/kampvuur/start', { method: 'POST', body: JSON.stringify({ groepId }) }),
+  kampvuurStop:  (groepId) => request('/kampvuur/stop',  { method: 'POST', body: JSON.stringify({ groepId }) }),
+  kampvuurQuote: (tekst)   => request('/kampvuur/quote', { method: 'POST', body: JSON.stringify({ tekst }) }),
+
   // Groepen
   listGroups:   ()           => request('/groups'),
 

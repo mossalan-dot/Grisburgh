@@ -308,6 +308,16 @@ export function initSocket() {
     window.app?._loadDienstenToegang?.();
   });
 
+  // Aanplakbord (herberg) bijgewerkt → herberg-sectie verversen
+  socket.on('aanplakbord:updated', () => {
+    if (window.app?.state?.activeSection === 'herberg') window.app?.refreshSection?.('herberg');
+  });
+
+  // Kampvuur ontstoken/gedoofd/nieuwe gedachte → overlay synchroniseren
+  socket.on('kampvuur:update', (data) => {
+    window._kampvuurSync?.(data);
+  });
+
   socket.on('entity:deceased', ({ id, type, name } = {}) => {
     // Herlaad de huidige sectie zodat het kaartje meteen grijs wordt
     const section = window.app.state.activeSection;

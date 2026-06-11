@@ -2801,6 +2801,17 @@ router.get('/archief', attachRole, (req, res) => {
             ...e,
             images: (e.images || []).filter(img => typeof img === 'string' || img.visible !== false),
           })),
+    // Kampvuur-momenten voor de Kroniek: spelers zien alleen die van hun eigen
+    // groep (met minstens één gedeelde gedachte, in een zichtbare akte)
+    kampvuren: req.role === 'dm'
+      ? (archief.kampvuren || [])
+      : !playerGroepId
+        ? []
+        : (archief.kampvuren || []).filter(k =>
+            k.groepId === playerGroepId &&
+            (k.quotes || []).length > 0 &&
+            _chapterVisible(cv, playerGroepId, k.hoofdstuk || '_')
+          ),
     chapterVisibility: req.role === 'dm' ? cv : undefined,
     hiddenLinks:  req.role === 'dm' ? archief.hiddenLinks : {},
     tekstContent: req.role === 'dm'
@@ -3302,6 +3313,172 @@ router.delete('/quests/:id', requireDM, (req, res) => {
   storage.writeJSON('quests.json', data);
   req.app.get('io').to(req.session?.campaignId||'main').emit('quests:updated');
   res.json({});
+});
+
+// ── Aanplakbord (herberg) ──
+// Berichten die de DM aan het bord in de herberg prikt. Zichtbaarheid per groep
+// via `groepen: [groepId]`. Actieve missies verschijnen client-side óók op het
+// bord (uit quests.json) — die hebben hier geen eigen opslag.
+
+const _AANPLAK_SOORTEN = ['gezocht', 'oproep', 'nieuws'];
+
+function _aanplakSaneer(body, bestaand = {}) {
+  return {
+    soort:    _AANPLAK_SOORTEN.includes(body.soort) ? body.soort : (bestaand.soort || 'nieuws'),
+    titel:    String(body.titel ?? bestaand.titel ?? 'Zonder titel').slice(0, 120),
+    tekst:    String(body.tekst ?? bestaand.tekst ?? '').slice(0, 2000),
+    beloning: String(body.beloning ?? bestaand.beloning ?? '').slice(0, 120),
+    groepen:  Array.isArray(body.groepen) ? body.groepen : (bestaand.groepen || []),
+  };
+}
+
+router.get('/aanplakbord', attachRole, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  let berichten = archief.aanplakbord || [];
+  if (req.role !== 'dm') {
+    const dmState = readDmState();
+    const gid = _playerGroupId(dmState, req.session?.characterId);
+    berichten = gid ? berichten.filter(b => (b.groepen || []).includes(gid)) : [];
+  }
+  res.json({ berichten });
+});
+
+router.post('/aanplakbord', requireDM, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  if (!archief.aanplakbord) archief.aanplakbord = [];
+  const bericht = {
+    id: `ap_${Date.now()}`,
+    ..._aanplakSaneer(req.body),
+    aangemaakt: new Date().toISOString(),
+  };
+  archief.aanplakbord.push(bericht);
+  storage.writeJSON('archief.json', archief);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('aanplakbord:updated');
+  res.json(bericht);
+});
+
+router.put('/aanplakbord/:id', requireDM, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  const idx = (archief.aanplakbord || []).findIndex(b => b.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Bericht niet gevonden' });
+  const oud = archief.aanplakbord[idx];
+  archief.aanplakbord[idx] = { ...oud, ..._aanplakSaneer(req.body, oud) };
+  storage.writeJSON('archief.json', archief);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('aanplakbord:updated');
+  res.json(archief.aanplakbord[idx]);
+});
+
+router.delete('/aanplakbord/:id', requireDM, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  archief.aanplakbord = (archief.aanplakbord || []).filter(b => b.id !== req.params.id);
+  storage.writeJSON('archief.json', archief);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('aanplakbord:updated');
+  res.json({});
+});
+
+// ── Kampvuur (lange rust bij het vuur) ──
+// De DM ontsteekt een kampvuur voor een groep; spelers van die groep krijgen het
+// rustscherm en kunnen een korte gedachte delen. Gedachten worden bewaard in
+// archief.json → kampvuren (voor de Kroniek). De actieve staat leeft per groep
+// in dm-state.json → groups[gid].kampvuur.
+
+function _kampvuurEmit(req, groepId, actief, quotes) {
+  req.app.get('io').to(req.session?.campaignId||'main')
+    .emit('kampvuur:update', { groepId, actief, quotes: quotes || [] });
+}
+
+router.get('/kampvuur', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const gid = req.role === 'dm'
+    ? dmState.activeGroup
+    : _playerGroupId(dmState, req.session?.characterId);
+  const kv = gid ? dmState.groups?.[gid]?.kampvuur : null;
+  if (!gid || !kv?.actief) return res.json({ actief: false });
+  const archief = storage.readJSON('archief.json');
+  const entry = (archief.kampvuren || []).find(k => k.id === kv.kampvuurId);
+  res.json({ actief: true, groepId: gid, quotes: entry?.quotes || [] });
+});
+
+router.post('/kampvuur/start', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = (req.body?.groepId && dmState.groups?.[req.body.groepId])
+    ? req.body.groepId
+    : dmState.activeGroup;
+  if (!gid || !dmState.groups?.[gid]) return res.status(400).json({ error: 'Geen actieve groep' });
+  if (dmState.groups[gid].kampvuur?.actief) return res.json({ ok: true, alActief: true });
+
+  const archief = storage.readJSON('archief.json');
+  if (!archief.kampvuren) archief.kampvuren = [];
+  const kampvuur = {
+    id:        `kv_${Date.now()}`,
+    groepId:   gid,
+    hoofdstuk: dmState.activeAkte?.key || null,
+    gestart:   new Date().toISOString(),
+    quotes:    [],
+  };
+  archief.kampvuren.push(kampvuur);
+  dmState.groups[gid].kampvuur = { actief: true, kampvuurId: kampvuur.id };
+  storage.writeJSON('archief.json', archief);
+  storage.writeJSON('dm-state.json', dmState);
+  _kampvuurEmit(req, gid, true, []);
+  res.json({ ok: true, kampvuurId: kampvuur.id });
+});
+
+router.post('/kampvuur/stop', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = (req.body?.groepId && dmState.groups?.[req.body.groepId])
+    ? req.body.groepId
+    : dmState.activeGroup;
+  const kv = gid ? dmState.groups?.[gid]?.kampvuur : null;
+  if (!kv?.actief) return res.json({ ok: true });
+
+  const archief = storage.readJSON('archief.json');
+  const entry = (archief.kampvuren || []).find(k => k.id === kv.kampvuurId);
+  if (entry) {
+    if ((entry.quotes || []).length === 0) {
+      // Geen gedeelde gedachten → niet bewaren in de kroniek
+      archief.kampvuren = archief.kampvuren.filter(k => k.id !== entry.id);
+    } else {
+      entry.beeindigd = new Date().toISOString();
+    }
+    storage.writeJSON('archief.json', archief);
+  }
+  dmState.groups[gid].kampvuur = { actief: false };
+  storage.writeJSON('dm-state.json', dmState);
+  _kampvuurEmit(req, gid, false);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('logboek:updated');
+  res.json({ ok: true });
+});
+
+router.post('/kampvuur/quote', attachRole, (req, res) => {
+  const charId = req.session.characterId;
+  if (!charId) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+  const tekst = String(req.body?.tekst || '').trim().slice(0, 280);
+  if (!tekst) return res.status(400).json({ error: 'Deel eerst een gedachte' });
+
+  const dmState = readDmState();
+  const gid = _playerGroupId(dmState, charId);
+  const kv = gid ? dmState.groups?.[gid]?.kampvuur : null;
+  if (!kv?.actief) return res.status(400).json({ error: 'Het kampvuur brandt niet' });
+
+  const archief = storage.readJSON('archief.json');
+  const entry = (archief.kampvuren || []).find(k => k.id === kv.kampvuurId);
+  if (!entry) return res.status(404).json({ error: 'Kampvuur niet gevonden' });
+  if (!entry.quotes) entry.quotes = [];
+  if (entry.quotes.filter(q => q.characterId === charId).length >= 3) {
+    return res.status(400).json({ error: 'Je hebt al drie gedachten gedeeld bij dit vuur' });
+  }
+
+  const char = (storage.readJSON('entities.json').personages || []).find(e => e.id === charId);
+  entry.quotes.push({
+    characterId: charId,
+    naam:        char?.name || 'Onbekende avonturier',
+    tekst,
+    tijd:        new Date().toISOString(),
+  });
+  storage.writeJSON('archief.json', archief);
+  _kampvuurEmit(req, gid, true, entry.quotes);
+  res.json({ ok: true });
 });
 
 // ── Files ──

@@ -18865,3 +18865,672 @@ body.kaart-fs-active { overflow: hidden; }
   50%     { box-shadow: 0 0 0 1px var(--sig-kleur,#b3402a), 0 2px 30px color-mix(in srgb, var(--sig-kleur,#b3402a) 50%, transparent); }
 }
 @media (prefers-reduced-motion: reduce) { .sig-card--active { animation: none; } }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AANPLAKBORD — vergeelde posters aan het bord in de herberg
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.aanplakbord-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 18px auto 0;
+  padding: 10px 22px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(212,168,67,0.45);
+  border-radius: 8px;
+  color: rgba(245,225,180,0.95);
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.aanplakbord-link:hover {
+  background: rgba(0,0,0,0.55);
+  border-color: rgba(212,168,67,0.8);
+  transform: translateY(-1px);
+}
+.aanplakbord-link .icon { width: 16px; height: 16px; }
+.aanplakbord-link-sub {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.72rem;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.65;
+}
+
+/* Het bord zelf: donkere houten planken */
+.aanplakbord-scene.herberg-scene[style]::before,
+.aanplakbord-scene.herberg-scene::before {
+  background: rgba(12,7,2,0.45);
+}
+.aanplakbord-content { max-width: 860px; width: 100%; }
+.aanplakbord-kop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: rgba(245,225,180,0.97);
+  text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+}
+.aanplakbord-kop .icon { width: 20px; height: 20px; }
+.aanplakbord-sub {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  text-align: center;
+  font-size: 0.9rem;
+  color: rgba(245,225,180,0.7);
+  margin: 4px 0 16px;
+}
+.aanplakbord-bord {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 22px 18px;
+  padding: 26px 22px 30px;
+  border-radius: 10px;
+  border: 6px solid #3a2412;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.65), 0 10px 30px rgba(0,0,0,0.55);
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(0,0,0,0.18) 0 2px, transparent 2px 96px),
+    linear-gradient(105deg, #5a3a1e 0%, #4a2f16 38%, #56381c 62%, #432a13 100%);
+}
+.aanplakbord-leeg {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  color: rgba(235,215,170,0.6);
+  padding: 28px 0;
+}
+
+/* Poster: vergeeld papier, scheef gespijkerd */
+.aanplakbord-poster {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 22px 14px 14px;
+  text-align: center;
+  transform: rotate(var(--ap-rot, 0deg));
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 0%, rgba(120,80,30,0.16), transparent 70%),
+    linear-gradient(168deg, #f2e4bc 0%, #e8d6a6 55%, #dcc68e 100%);
+  border: 1px solid rgba(90,60,20,0.35);
+  border-radius: 2px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.55);
+  color: #2a1a08;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.aanplakbord-poster:hover {
+  transform: rotate(var(--ap-rot, 0deg)) scale(1.04);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.65);
+  z-index: 2;
+}
+.aanplakbord-spijker {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #c8c2b4, #6a655c 55%, #2e2b25);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.7);
+}
+.aanplakbord-poster-soort {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: 0.92rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #5a4030;
+}
+.aanplakbord-poster--gezocht .aanplakbord-poster-soort { color: #8b2a2a; }
+.aanplakbord-poster--missie  .aanplakbord-poster-soort { color: #2a5a8a; }
+.aanplakbord-poster-titel {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+.aanplakbord-poster-tekst {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #4a3520;
+}
+.aanplakbord-poster-beloning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.82rem;
+  color: #7a5408;
+}
+.aanplakbord-poster-beloning .icon { width: 13px; height: 13px; }
+
+/* Posterdetail: groot vel over het scherm */
+.aanplakbord-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8,4,1,0.72);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease;
+  cursor: pointer;
+}
+.aanplakbord-detail {
+  position: relative;
+  max-width: 460px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 30px 26px 20px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 0%, rgba(120,80,30,0.16), transparent 70%),
+    linear-gradient(168deg, #f2e4bc 0%, #e8d6a6 55%, #dcc68e 100%);
+  border: 1px solid rgba(90,60,20,0.35);
+  border-radius: 2px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.8);
+  color: #2a1a08;
+  transform: rotate(-0.6deg);
+}
+.aanplakbord-detail-titel {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  margin: 6px 0 10px;
+}
+.aanplakbord-detail-tekst {
+  font-family: 'Crimson Text', serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  text-align: left;
+}
+.aanplakbord-detail-hint {
+  margin-top: 14px;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.75rem;
+  opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KRONIEK — doorlopende leesmodus van de campagne
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.kroniek-wrap { padding: 12px 16px 48px; }
+.kroniek-scroll {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 34px 40px;
+  background: linear-gradient(178deg, #f7eed6 0%, #f0e2bc 70%, #e8d6a6 100%);
+  border: 1px solid rgba(196,168,122,0.55);
+  border-radius: 4px;
+  box-shadow: 0 10px 34px rgba(42,26,8,0.25), inset 0 0 60px rgba(196,168,122,0.12);
+}
+.kroniek-titel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: 1.5rem;
+  color: #2a1a08;
+  padding-bottom: 14px;
+  margin-bottom: 22px;
+  border-bottom: 2px solid rgba(184,134,11,0.4);
+}
+.kroniek-titel .icon { width: 22px; height: 22px; color: #9a7008; }
+
+.kroniek-akte { margin-bottom: 34px; }
+.kroniek-akte-kop {
+  text-align: center;
+  margin: 26px 0 18px;
+}
+.kroniek-akte-num {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #9a7008;
+}
+.kroniek-akte-titel {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: #2a1a08;
+  margin: 2px 0;
+}
+.kroniek-akte-dag {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: #8a7050;
+}
+
+.kroniek-sessie {
+  margin: 0 0 26px;
+  padding-left: 16px;
+  border-left: 2px solid rgba(196,168,122,0.45);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+.kroniek-sessie:hover { border-left-color: rgba(184,134,11,0.8); }
+.kroniek-sessie--verborgen { opacity: 0.55; }
+.kroniek-dateline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8a7050;
+}
+.kroniek-verborgen-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border: 1px solid rgba(139,42,42,0.4);
+  border-radius: 999px;
+  color: #8b2a2a;
+}
+.kroniek-verborgen-chip .icon { width: 10px; height: 10px; }
+.kroniek-sessie-titel {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #2a1a08;
+  margin: 3px 0 8px;
+}
+.kroniek-citaat {
+  margin: 10px 0 12px;
+  padding: 4px 0 4px 14px;
+  border-left: 3px solid rgba(184,134,11,0.55);
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 1.02rem;
+  line-height: 1.45;
+  color: #5a4030;
+}
+.kroniek-tekst {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.98rem;
+  line-height: 1.62;
+  color: #3a2a16;
+}
+.kroniek-tekst p { margin: 0 0 0.7em; }
+.kroniek-tekst p:first-of-type::first-letter {
+  font-family: 'UnifrakturMaguntia', 'Cinzel', serif;
+  font-size: 2.6em;
+  line-height: 0.85;
+  float: left;
+  padding: 2px 6px 0 0;
+  color: #9a7008;
+}
+
+/* Kampvuur-moment in de kroniek */
+.kroniek-kampvuur {
+  margin: 4px 0 26px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: linear-gradient(165deg, #241409 0%, #1a0e05 100%);
+  border: 1px solid rgba(212,140,40,0.35);
+  box-shadow: inset 0 0 26px rgba(255,140,30,0.07);
+}
+.kroniek-kampvuur-kop {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #e0a050;
+  margin-bottom: 8px;
+}
+.kroniek-kampvuur-kop .icon { width: 14px; height: 14px; }
+.kroniek-kampvuur-groep {
+  font-family: 'Crimson Text', serif;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+.kroniek-kampvuur-quote {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+.kroniek-kampvuur-tekst {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: rgba(245,225,185,0.92);
+}
+.kroniek-kampvuur-naam {
+  align-self: flex-end;
+  font-family: 'Crimson Text', serif;
+  font-size: 0.8rem;
+  color: rgba(224,160,80,0.85);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KAMPVUURMODUS — rustscherm met brandend vuur en gedeelde gedachten
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.kampvuur-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9980; /* onder de brief-cinematic (9998) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 24px 16px 28px;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+  overflow: hidden;
+}
+.kampvuur-overlay--aan { opacity: 1; }
+.kampvuur-overlay--uit { opacity: 0; }
+.kampvuur-overlay--min { display: none; }
+
+.kampvuur-nacht {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 130% 90% at 50% 110%, rgba(120,60,10,0.35), transparent 55%),
+    radial-gradient(ellipse 120% 100% at 50% -10%, #0a1224 0%, #060a16 55%, #04060d 100%);
+}
+/* sterrenhemel: twee lagen puntjes */
+.kampvuur-nacht::before, .kampvuur-nacht::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.8), transparent 100%),
+    radial-gradient(1px 1px at 28% 8%,  rgba(255,255,255,0.6), transparent 100%),
+    radial-gradient(1.5px 1.5px at 41% 22%, rgba(255,250,230,0.7), transparent 100%),
+    radial-gradient(1px 1px at 57% 12%, rgba(255,255,255,0.5), transparent 100%),
+    radial-gradient(1px 1px at 66% 25%, rgba(255,255,255,0.75), transparent 100%),
+    radial-gradient(1.5px 1.5px at 78% 9%, rgba(255,250,225,0.65), transparent 100%),
+    radial-gradient(1px 1px at 88% 19%, rgba(255,255,255,0.55), transparent 100%),
+    radial-gradient(1px 1px at 8% 38%,  rgba(255,255,255,0.45), transparent 100%),
+    radial-gradient(1px 1px at 93% 36%, rgba(255,255,255,0.5), transparent 100%);
+  animation: kv-ster 5.5s ease-in-out infinite alternate;
+}
+.kampvuur-nacht::after {
+  background-image:
+    radial-gradient(1px 1px at 19% 30%, rgba(255,255,255,0.6), transparent 100%),
+    radial-gradient(1px 1px at 35% 15%, rgba(255,255,255,0.5), transparent 100%),
+    radial-gradient(1.5px 1.5px at 50% 6%, rgba(255,250,235,0.75), transparent 100%),
+    radial-gradient(1px 1px at 72% 17%, rgba(255,255,255,0.45), transparent 100%),
+    radial-gradient(1px 1px at 83% 29%, rgba(255,255,255,0.6), transparent 100%);
+  animation-delay: -2.7s;
+}
+@keyframes kv-ster { from { opacity: 0.55; } to { opacity: 1; } }
+
+.kampvuur-kop {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+  color: rgba(245,225,185,0.92);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+  margin-bottom: 10px;
+}
+
+.kampvuur-quotes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(560px, 92vw);
+  max-height: 34vh;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  scrollbar-width: thin;
+}
+.kampvuur-quote {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(20,10,3,0.65);
+  border: 1px solid rgba(212,140,40,0.3);
+  transform: rotate(var(--kv-rot, 0deg));
+  animation: kv-quote-in 0.7s ease both;
+}
+@keyframes kv-quote-in {
+  from { opacity: 0; transform: translateY(10px) rotate(var(--kv-rot, 0deg)); }
+  to   { opacity: 1; transform: translateY(0)    rotate(var(--kv-rot, 0deg)); }
+}
+.kampvuur-quote-tekst {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.98rem;
+  line-height: 1.4;
+  color: rgba(245,228,190,0.95);
+}
+.kampvuur-quote-naam {
+  align-self: flex-end;
+  font-family: 'Crimson Text', serif;
+  font-size: 0.8rem;
+  color: rgba(224,160,80,0.85);
+}
+
+/* Het vuur zelf */
+.kampvuur-vuur {
+  position: relative;
+  width: 180px;
+  height: 150px;
+  margin-bottom: 6px;
+}
+.kv-gloed {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 300px;
+  height: 130px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 100%, rgba(255,150,40,0.4), rgba(255,100,20,0.12) 55%, transparent 75%);
+  animation: kv-gloed 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes kv-gloed {
+  0%,100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
+  50%     { opacity: 1;    transform: translateX(-50%) scale(1.07); }
+}
+.kv-vlam {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform-origin: 50% 100%;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+}
+.kv-vlam-1 {
+  width: 54px; height: 88px; margin-left: -27px;
+  background: linear-gradient(to top, #ffdf80 0%, #ffb030 45%, #ff7a10 80%, rgba(255,90,10,0.0) 100%);
+  animation: kv-vlam 1.15s ease-in-out infinite alternate;
+}
+.kv-vlam-2 {
+  width: 78px; height: 112px; margin-left: -39px;
+  background: linear-gradient(to top, #ff9c28 0%, #f06010 55%, rgba(220,60,10,0) 100%);
+  opacity: 0.85;
+  animation: kv-vlam 1.45s ease-in-out infinite alternate-reverse;
+}
+.kv-vlam-3 {
+  width: 104px; height: 132px; margin-left: -52px;
+  background: linear-gradient(to top, rgba(200,60,10,0.85) 0%, rgba(160,40,8,0.55) 55%, rgba(120,30,5,0) 100%);
+  opacity: 0.7;
+  animation: kv-vlam 1.8s ease-in-out infinite alternate;
+}
+@keyframes kv-vlam {
+  0%   { transform: scaleY(1)    scaleX(1)    skewX(0deg); }
+  35%  { transform: scaleY(1.06) scaleX(0.96) skewX(-2.5deg); }
+  70%  { transform: scaleY(0.94) scaleX(1.05) skewX(2deg); }
+  100% { transform: scaleY(1.08) scaleX(0.97) skewX(-1.5deg); }
+}
+.kv-houtblok {
+  position: absolute;
+  bottom: 6px;
+  width: 96px;
+  height: 16px;
+  border-radius: 8px;
+  background: linear-gradient(to bottom, #4a2c12, #2c1808);
+  box-shadow: inset 0 2px 3px rgba(120,70,30,0.5);
+}
+.kv-houtblok-1 { left: 50%; margin-left: -56px; transform: rotate(-9deg); }
+.kv-houtblok-2 { left: 50%; margin-left: -38px; transform: rotate(10deg); }
+.kv-vonk {
+  position: absolute;
+  left: 50%;
+  bottom: 70px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffc860;
+  box-shadow: 0 0 6px 1px rgba(255,170,60,0.8);
+  opacity: 0;
+  animation: kv-vonk 2.4s linear infinite;
+}
+.kv-vonk-1 { margin-left: -14px; animation-delay: 0s;    --kv-drift: -22px; }
+.kv-vonk-2 { margin-left: 8px;   animation-delay: 0.45s; --kv-drift: 16px; }
+.kv-vonk-3 { margin-left: -2px;  animation-delay: 0.9s;  --kv-drift: -8px; }
+.kv-vonk-4 { margin-left: 16px;  animation-delay: 1.3s;  --kv-drift: 26px; }
+.kv-vonk-5 { margin-left: -20px; animation-delay: 1.7s;  --kv-drift: -30px; }
+.kv-vonk-6 { margin-left: 4px;   animation-delay: 2.05s; --kv-drift: 10px; }
+@keyframes kv-vonk {
+  0%   { opacity: 0; transform: translate(0, 0) scale(1); }
+  12%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--kv-drift, 0px), -110px) scale(0.4); }
+}
+
+/* Voet: invoer (speler) of doofknop (DM) */
+.kampvuur-voet { width: min(560px, 92vw); text-align: center; }
+.kampvuur-deel-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.kampvuur-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(15,8,2,0.75);
+  border: 1px solid rgba(212,140,40,0.4);
+  color: rgba(245,228,190,0.95);
+  font-family: 'Crimson Text', serif;
+  font-size: 0.95rem;
+  resize: none;
+}
+.kampvuur-input:focus {
+  outline: none;
+  border-color: rgba(255,170,60,0.7);
+  box-shadow: 0 0 12px rgba(255,150,40,0.2);
+}
+.kampvuur-input::placeholder { color: rgba(220,190,140,0.45); font-style: italic; }
+.kampvuur-deel-btn, .kampvuur-doof-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(212,140,40,0.5);
+  background: linear-gradient(to bottom, rgba(120,60,15,0.8), rgba(80,38,8,0.85));
+  color: rgba(250,230,195,0.95);
+  font-family: 'Cinzel', serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+.kampvuur-deel-btn:hover, .kampvuur-doof-btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+.kampvuur-deel-btn .icon, .kampvuur-doof-btn .icon { width: 15px; height: 15px; }
+.kampvuur-fout { font-size: 0.78rem; color: #e08868; font-style: italic; min-height: 1em; }
+.kampvuur-hint {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: rgba(235,210,170,0.6);
+  margin: 6px 0 0;
+}
+
+.kampvuur-min-btn {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(212,140,40,0.4);
+  background: rgba(15,8,2,0.6);
+  color: rgba(245,228,190,0.85);
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+.kampvuur-min-btn:hover { filter: brightness(1.3); }
+.kampvuur-min-btn .icon { width: 16px; height: 16px; }
+
+/* Sluimerstand: gloeiend sintel-knopje rechtsonder */
+.kampvuur-ember {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9981;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255,150,40,0.55);
+  background: radial-gradient(circle at 50% 60%, #5a2c08, #2a1404);
+  color: #ffb050;
+  cursor: pointer;
+  animation: kv-ember 2.2s ease-in-out infinite;
+}
+.kampvuur-ember .icon { width: 22px; height: 22px; }
+@keyframes kv-ember {
+  0%,100% { box-shadow: 0 0 10px 2px rgba(255,140,30,0.35); }
+  50%     { box-shadow: 0 0 22px 6px rgba(255,150,40,0.55); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kv-vlam, .kv-gloed, .kv-vonk, .kampvuur-nacht::before, .kampvuur-nacht::after,
+  .kampvuur-ember, .kampvuur-quote { animation: none; }
+  .kampvuur-quote { opacity: 1; }
+}

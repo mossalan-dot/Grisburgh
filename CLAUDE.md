@@ -113,7 +113,7 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=298   app.js?v=431   sound-manager.js?v=4
+index.html  : theme.css?v=298   app.js?v=431   sound-manager.js?v=4   icons.svg?v=4
 app.js      : api.js?v=234      render-campagne.js?v=95   render-archief.js?v=43
               render-kaart.js?v=10  render-dungeon.js?v=23  render-relatiemap.js?v=14
               render-progressie.js?v=35  socket-client.js?v=35
@@ -186,7 +186,7 @@ data/
 |---|---|
 | `entities.json` | personages, locaties, organisaties, voorwerpen |
 | `dm-state.json` | groepen, zichtbaarheid, playerProfiles, playerItems, combat, tempel-config, … |
-| `archief.json` | documenten, logEntries, sessieLog, brieven |
+| `archief.json` | documenten, logEntries, sessieLog, brieven, aanplakbord, kampvuren |
 | `combat.json` | actief gevecht, combatants |
 | `map.json` | kaartpins |
 | `monsters.json` | monster-statblokken |
@@ -209,10 +209,10 @@ icon('heart', { cls: 'icon-lg' })     // met extra CSS-klasse
 icon('shield', { title: 'Verdediging' }) // met tooltip
 ```
 
-**Beschikbare iconen** (icons.svg, v=3):
+**Beschikbare iconen** (icons.svg, v=4):
 `beer` `book-open` `building` `camera` `castle` `check` `check-circle`
 `chevron-left` `chevron-right` `church` `clipboard-list` `coins` `crossed-swords`
-`dice` `download` `eye` `eye-off` `flask-conical` `folder-open` `globe`
+`dice` `download` `eye` `eye-off` `flame` `flask-conical` `folder-open` `globe`
 `heart` `hexagon` `house` `image` `landmark` `link` `lock` `lock-open`
 `mail` `map` `map-pin` `maximize-2` `message-circle` `minus` `monitor`
 `moon` `mountain` `mouse-pointer-2` `open-book` `package` `paw-print`
@@ -503,3 +503,28 @@ Testlogin: `window.app.testLogin()` → Test McTestface (groep 3, wachtwoord in 
 - [ ] Kaartweergave: ingevulde keuze toont als donkere chip op de kaart
 - [ ] Detail-modal: "Jouw keuze"-sectie aanwezig
 - [ ] Vergrendeld niveau: invoerveld uitgeschakeld (grijs)
+
+### Aanplakbord (herberg) — 11 juni 2026
+- [ ] Herberg: knop "Aanplakbord" onder de roddel-lijst; klik → houten bord met posters
+- [ ] DM-paneel → Diensten → Herberg: sectie "Aanplakbord" — bericht prikken (soort/titel/tekst/beloning/groepen)
+- [ ] Bericht alleen zichtbaar voor aangevinkte groepen; andere groep ziet het niet
+- [ ] Actieve missies (quest-prikbord status "actief") hangen automatisch op het bord
+- [ ] Poster aanklikken → groot vel; klik sluit; terug-knop → herberg
+- [ ] Verwijderen vraagt om bevestiging
+
+### Kampvuurmodus — 11 juni 2026
+- [ ] DM: vlam-knop in regie-balk én in Gevecht-tab → Rust; toggle ontsteekt/dooft
+- [ ] Speler (actieve groep): rustscherm met vuur + sterrenhemel verschijnt live
+- [ ] Speler: gedachte delen → verschijnt live bij alle groepsleden én DM (max 3 p.p., 280 tekens)
+- [ ] Min-knop → sintel-knopje rechtsonder; klik → overlay terug
+- [ ] Herladen tijdens brandend vuur → overlay komt terug (restore via GET /kampvuur)
+- [ ] DM dooft → overlay vervaagt bij iedereen; quotes staan daarna in de Kroniek
+- [ ] Kampvuur zonder quotes gedoofd → geen leeg blok in de Kroniek
+
+### Kroniek (logboek-leesmodus) — 11 juni 2026
+- [ ] Logboek-dropdown: item "Kroniek" tussen Logboek en Kaarten
+- [ ] Doorlopende boekrol: aktekoppen, datum, titel, citaat als pull-quote, volledige samenvatting (markdown)
+- [ ] Initiaal (sierletter) op de eerste alinea per verslag
+- [ ] Kampvuur-momenten als donker blok met vlam-icoon tussen de verslagen van de akte
+- [ ] Speler ziet alleen zichtbare verslagen/aktes van eigen groep; DM ziet alles ("verborgen"-chip)
+- [ ] Klik op verslag → bestaand detailvenster opent
