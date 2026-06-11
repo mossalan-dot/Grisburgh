@@ -1693,6 +1693,7 @@ function _renderRegieBalk() {
           }</div>
           <button class="dm-regie-balk-btn dm-rb-combat-btn${_combat?.active ? '' : ' hidden'}" id="dm-rb-combat-btn"
             onclick="window.dmPanel.combatExpand()" title="Gevecht uitklappen">${icon('stiletto',{cls:'icon-gi'})}</button>
+          <button class="dm-regie-balk-btn" onclick="window._dmBuitKnop()" title="Buit samenstellen of openen (loot verdelen)">${icon('package')}</button>
           <button class="dm-regie-balk-btn" onclick="window._dmShortRestToggle()" title="Korte rust starten of hervatten (adempauze met Hit Dice)">${icon('hourglass')}</button>
           <button class="dm-regie-balk-btn" onclick="window._dmKampvuurToggle()" title="Kampvuur ontsteken of doven (rustscherm bij de spelers)">${icon('flame')}</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')}</button>
@@ -5927,11 +5928,12 @@ function _renderGevecht() {
     </div>
 
     <div class="dm-feature-section" style="margin-top:4px;border-top:1px solid rgba(196,168,122,0.25);padding-top:12px">
-      <div class="dm-section-label">${icon('moon')} Rust</div>
+      <div class="dm-section-label">${icon('moon')} Rust &amp; buit</div>
       <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
         <button class="dm-btn dm-btn-ghost" onclick="window._dmLangeRust()" title="Lange rust — herlaadt alle item-charges">${icon('moon')}</button>
         <button class="dm-btn dm-btn-ghost" onclick="window._dmShortRestToggle()" title="Korte rust — adempauze met Hit Dice voor de actieve groep">${icon('hourglass')}</button>
         <button class="dm-btn dm-btn-ghost" onclick="window._dmKampvuurToggle()" title="Kampvuur ontsteken of doven — rustscherm bij alle spelers van de actieve groep">${icon('flame')}</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window._dmBuitKnop()" title="Buit samenstellen of openen — loot verdelen onder de actieve groep">${icon('package')}</button>
         <span id="dm-rust-status" style="font-size:11px;color:#6a9050"></span>
       </div>
     </div>

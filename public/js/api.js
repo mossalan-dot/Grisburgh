@@ -190,6 +190,19 @@ export const api = {
   shortRestStop:   (groepId)  => request('/shortrest/stop',   { method: 'POST', body: JSON.stringify({ groepId }) }),
   shortRestHitDie: (uitkomst) => request('/shortrest/hitdie', { method: 'POST', body: JSON.stringify({ uitkomst }) }),
 
+  // Trofeeënwand (herberg)
+  getTrofeeen:  ()     => request('/trofeeen'),
+  createTrofee: (data) => request('/trofeeen',        { method: 'POST',   body: JSON.stringify(data) }),
+  deleteTrofee: (id)   => request(`/trofeeen/${id}`,  { method: 'DELETE' }),
+
+  // Buit (loot-verdeler)
+  getBuit:      ()       => request('/buit'),
+  buitStart:    (data)   => request('/buit/start',    { method: 'POST', body: JSON.stringify(data) }),
+  buitClaim:    (itemId) => request('/buit/claim',    { method: 'POST', body: JSON.stringify({ itemId }) }),
+  buitHerstel:  (itemId) => request('/buit/herstel',  { method: 'POST', body: JSON.stringify({ itemId }) }),
+  buitSluit:    ()       => request('/buit/sluit',    { method: 'POST', body: JSON.stringify({}) }),
+  buitAnnuleer: ()       => request('/buit/annuleer', { method: 'POST', body: JSON.stringify({}) }),
+
   // Groepen
   listGroups:   ()           => request('/groups'),
 

@@ -3664,6 +3664,222 @@ router.post('/shortrest/hitdie', attachRole, (req, res) => {
   res.json({ ok: true, beschikbaar: Math.max(0, level - (used + 1)), hp });
 });
 
+// ── Trofeeënwand (herberg) ──
+// Verslagen monsters komen als trofee aan de wand in de herberg, per groep,
+// met akte en datum. Automatisch bij het opruimen van een gewonnen gevecht
+// (DELETE /combat); de DM kan trofeeën ook handmatig toevoegen/verwijderen.
+
+function _trofeeVoegToe(archief, { groepId, naam, aantal, imageId, monsterId, hoofdstuk }) {
+  if (!archief.trofeeen) archief.trofeeen = [];
+  archief.trofeeen.push({
+    id:        'tr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    groepId,
+    naam,
+    aantal:    aantal || 1,
+    imageId:   imageId || null,
+    monsterId: monsterId || null,
+    hoofdstuk: hoofdstuk || null,
+    datum:     new Date().toISOString(),
+  });
+}
+
+router.get('/trofeeen', attachRole, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  const dmState = readDmState();
+  const gid = req.role === 'dm'
+    ? dmState.activeGroup
+    : _playerGroupId(dmState, req.session?.characterId);
+  res.json({ trofeeen: (archief.trofeeen || []).filter(t => t.groepId === gid) });
+});
+
+router.post('/trofeeen', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = dmState.activeGroup;
+  if (!gid) return res.status(400).json({ error: 'Geen actieve groep' });
+  let { naam, imageId, monsterId, aantal } = req.body || {};
+  if (monsterId) {
+    const m = (storage.readJSON('monsters.json').monsters || []).find(x => x.id === monsterId);
+    if (m) { naam = naam || m.name; imageId = imageId || m.imageId; }
+  }
+  if (!naam || !String(naam).trim()) return res.status(400).json({ error: 'Naam vereist' });
+  const archief = storage.readJSON('archief.json');
+  _trofeeVoegToe(archief, {
+    groepId:   gid,
+    naam:      String(naam).trim().slice(0, 120),
+    aantal:    Math.max(1, parseInt(aantal, 10) || 1),
+    imageId, monsterId,
+    hoofdstuk: dmState.activeAkte?.key || null,
+  });
+  storage.writeJSON('archief.json', archief);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('trofeeen:updated');
+  res.json({ ok: true });
+});
+
+router.delete('/trofeeen/:id', requireDM, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  archief.trofeeen = (archief.trofeeen || []).filter(t => t.id !== req.params.id);
+  storage.writeJSON('archief.json', archief);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('trofeeen:updated');
+  res.json({});
+});
+
+// ── Buit (loot-verdeler) ──
+// De DM stelt na een encounter een buit samen; spelers claimen items (claims
+// zijn reserveringen). Pas bij "sluit" gaat alles definitief naar playerItems
+// en wordt het muntgeld gelijk verdeeld over de groep.
+
+function _buitEmit(req, groepId, buit) {
+  req.app.get('io').to(req.session?.campaignId||'main').emit('buit:update', {
+    groepId,
+    actief: !!buit?.actief,
+    items:  buit?.items  || [],
+    munten: buit?.munten || { fl: 0, kn: 0, cl: 0 },
+  });
+}
+
+function _buitGeclaimd(item) {
+  return (item.claims || []).reduce((s, c) => s + (c.aantal || 0), 0);
+}
+
+router.get('/buit', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const gid = req.role === 'dm'
+    ? dmState.activeGroup
+    : _playerGroupId(dmState, req.session?.characterId);
+  const buit = gid ? dmState.groups?.[gid]?.buit : null;
+  if (!gid || !buit?.actief) return res.json({ actief: false });
+  res.json({ actief: true, groepId: gid, items: buit.items || [], munten: buit.munten || { fl: 0, kn: 0, cl: 0 } });
+});
+
+router.post('/buit/start', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = dmState.activeGroup;
+  if (!gid || !dmState.groups?.[gid]) return res.status(400).json({ error: 'Geen actieve groep' });
+  const items = (Array.isArray(req.body?.items) ? req.body.items : [])
+    .filter(i => i && String(i.naam || '').trim())
+    .slice(0, 30)
+    .map(i => ({
+      id:     'bi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      naam:   String(i.naam).trim().slice(0, 120),
+      info:   String(i.info || '').trim().slice(0, 500),
+      aantal: Math.min(99, Math.max(1, parseInt(i.aantal, 10) || 1)),
+      claims: [],
+    }));
+  const m = req.body?.munten || {};
+  const munten = {
+    fl: Math.max(0, parseInt(m.fl, 10) || 0),
+    kn: Math.max(0, parseInt(m.kn, 10) || 0),
+    cl: Math.max(0, parseInt(m.cl, 10) || 0),
+  };
+  if (!items.length && !toCl(munten)) return res.status(400).json({ error: 'De buit is leeg' });
+  dmState.groups[gid].buit = { actief: true, gestart: new Date().toISOString(), items, munten };
+  storage.writeJSON('dm-state.json', dmState);
+  _buitEmit(req, gid, dmState.groups[gid].buit);
+  res.json({ ok: true });
+});
+
+router.post('/buit/claim', attachRole, (req, res) => {
+  const cid = req.session.characterId;
+  if (!cid) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+  const dmState = readDmState();
+  const gid = _playerGroupId(dmState, cid);
+  const buit = gid ? dmState.groups?.[gid]?.buit : null;
+  if (!buit?.actief) return res.status(400).json({ error: 'Er is geen buit te verdelen' });
+  const item = (buit.items || []).find(i => i.id === req.body?.itemId);
+  if (!item) return res.status(404).json({ error: 'Item niet gevonden' });
+  if (_buitGeclaimd(item) >= item.aantal) return res.status(400).json({ error: 'Al vergeven' });
+  const char = (storage.readJSON('entities.json').personages || []).find(e => e.id === cid);
+  const eigen = (item.claims = item.claims || []).find(c => c.characterId === cid);
+  if (eigen) eigen.aantal++;
+  else item.claims.push({ characterId: cid, naam: char?.name || 'Onbekend', aantal: 1 });
+  storage.writeJSON('dm-state.json', dmState);
+  _buitEmit(req, gid, buit);
+  res.json({ ok: true });
+});
+
+router.post('/buit/herstel', attachRole, (req, res) => {
+  const cid = req.session.characterId;
+  if (!cid) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+  const dmState = readDmState();
+  const gid = _playerGroupId(dmState, cid);
+  const buit = gid ? dmState.groups?.[gid]?.buit : null;
+  if (!buit?.actief) return res.status(400).json({ error: 'Er is geen buit te verdelen' });
+  const item = (buit.items || []).find(i => i.id === req.body?.itemId);
+  const eigen = item?.claims?.find(c => c.characterId === cid);
+  if (!eigen) return res.status(400).json({ error: 'Je hebt dit niet geclaimd' });
+  eigen.aantal--;
+  if (eigen.aantal <= 0) item.claims = item.claims.filter(c => c !== eigen);
+  storage.writeJSON('dm-state.json', dmState);
+  _buitEmit(req, gid, buit);
+  res.json({ ok: true });
+});
+
+router.post('/buit/sluit', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = dmState.activeGroup;
+  const buit = gid ? dmState.groups?.[gid]?.buit : null;
+  if (!buit?.actief) return res.json({ ok: true });
+
+  let entities = {};
+  try { entities = storage.readJSON('entities.json'); } catch { /* ok */ }
+  const spelers = (entities.personages || []).filter(
+    e => e.subtype === 'speler' && e.data?.groep === gid
+  );
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  const datum = new Date().toLocaleDateString('nl-NL');
+
+  // 1. Geclaimde items → playerItems
+  if (!dmState.playerItems) dmState.playerItems = {};
+  const bedeelde = new Set();
+  (buit.items || []).forEach(item => {
+    (item.claims || []).forEach(claim => {
+      const cid = claim.characterId;
+      if (!dmState.playerItems[cid]) dmState.playerItems[cid] = [];
+      dmState.playerItems[cid].push({
+        id:   'buit_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        name: claim.aantal > 1 ? `${item.naam} (×${claim.aantal})` : item.naam,
+        note: [item.info, `Buitgemaakt op ${datum}`].filter(Boolean).join('\n'),
+      });
+      bedeelde.add(cid);
+    });
+  });
+
+  // 2. Munten gelijk verdelen over de groep (rest blijft bij de DM)
+  let perSpelerCl = 0, restCl = 0;
+  const totaalCl = toCl(buit.munten || {});
+  if (totaalCl > 0 && spelers.length > 0) {
+    perSpelerCl = Math.floor(totaalCl / spelers.length);
+    restCl = totaalCl - perSpelerCl * spelers.length;
+    if (!dmState.playerCurrency) dmState.playerCurrency = {};
+    spelers.forEach(char => {
+      const cur = dmState.playerCurrency[char.id] || { fl: 0, kn: 0, cl: 0 };
+      dmState.playerCurrency[char.id] = fromCl(toCl(cur) + perSpelerCl);
+      if (io) io.to(room).emit('player:currency-updated', { characterId: char.id, currency: dmState.playerCurrency[char.id] });
+    });
+  } else {
+    restCl = totaalCl;
+  }
+
+  dmState.groups[gid].buit = { actief: false };
+  storage.writeJSON('dm-state.json', dmState);
+  if (io) bedeelde.forEach(cid =>
+    io.to(room).emit('player:items-updated', { characterId: cid, items: dmState.playerItems[cid] }));
+  _buitEmit(req, gid, dmState.groups[gid].buit);
+  res.json({ ok: true, bedeeld: bedeelde.size, perSpelerCl, restCl });
+});
+
+router.post('/buit/annuleer', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = dmState.activeGroup;
+  if (gid && dmState.groups?.[gid]?.buit?.actief) {
+    dmState.groups[gid].buit = { actief: false };
+    storage.writeJSON('dm-state.json', dmState);
+    _buitEmit(req, gid, dmState.groups[gid].buit);
+  }
+  res.json({ ok: true });
+});
+
 // ── Files ──
 
 router.post('/files/:id', requireDM, uploadMedia.single('file'), (req, res) => {
@@ -4565,6 +4781,33 @@ router.delete('/combat', requireDM, (req, res) => {
   // Persisteer speler-HP naar dm-state vóór het wissen van het gevecht
   const prevCombat = storage.readJSON('combat.json');
   _flushPlayerHpToDmState(prevCombat, req.app.get('io'), req.session?.campaignId||'main');
+  // Trofeeënwand: bij een gewonnen gevecht komen de verslagen monsters aan de wand
+  try {
+    const monsters = (prevCombat.combatants || []).filter(c => c.type === 'monster');
+    const verslagen = monsters.filter(c => (c.hp || 0) <= 0);
+    const gewonnen = prevCombat.winner === 'players' ||
+      (monsters.length > 0 && monsters.every(c => (c.hp || 0) <= 0));
+    if (prevCombat.active && gewonnen && verslagen.length) {
+      const dmState = readDmState();
+      const archief = storage.readJSON('archief.json');
+      const perNaam = {};
+      verslagen.forEach(c => {
+        const key = c.name || 'Onbekend monster';
+        if (!perNaam[key]) perNaam[key] = { aantal: 0, imageId: c.imageId || null, monsterId: c.presetId || null };
+        perNaam[key].aantal++;
+      });
+      Object.entries(perNaam).forEach(([naam, info]) => _trofeeVoegToe(archief, {
+        groepId:   dmState.activeGroup,
+        naam,
+        aantal:    info.aantal,
+        imageId:   info.imageId,
+        monsterId: info.monsterId,
+        hoofdstuk: dmState.activeAkte?.key || null,
+      }));
+      storage.writeJSON('archief.json', archief);
+      req.app.get('io').to(req.session?.campaignId||'main').emit('trofeeen:updated');
+    }
+  } catch { /* trofeeën mogen het opruimen nooit blokkeren */ }
   const combat = { active: false, round: 1, currentTurn: 0, combatants: [] };
   storage.writeJSON('combat.json', combat);
   req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
