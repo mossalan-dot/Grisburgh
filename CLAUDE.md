@@ -197,6 +197,7 @@ data/
 | `relations.json` | relatienetwerk (edges, posities) |
 | `dungeon-maps.json` | dungeon-kaarten |
 | `player-notes.json` | per-speler notities |
+| `media.json` | mediabibliotheek: per fileId weergavenaam + auto-info (type, MIME, afmetingen, upload-datum). Gebruik wordt NIET opgeslagen maar live berekend via `lib/media-usage.js` |
 
 ---
 

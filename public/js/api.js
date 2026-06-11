@@ -65,12 +65,24 @@ export const api = {
   saveTekst: (id, tekst) => request(`/archief/${id}/tekst`, { method: 'PUT', body: JSON.stringify({ tekst }) }),
 
   // Files
-  uploadFile: async (id, file) => {
+  uploadFile: async (id, file, naam) => {
     const form = new FormData();
     form.append('file', file);
+    if (naam) form.append('naam', naam);
     const res = await fetch(`${BASE}/files/${id}`, { method: 'POST', body: form });
     if (!res.ok) throw new Error('Upload mislukt');
     return res.json();
+  },
+
+  // Mediabibliotheek (DM-only)
+  listMedia:   ()           => request('/media'),
+  renameMedia: (id, naam)   => request(`/media/${id}`, { method: 'PATCH', body: JSON.stringify({ naam }) }),
+  deleteMedia: async (id, force = false) => {
+    const res = await fetch(`${BASE}/media/${id}${force ? '?force=1' : ''}`, { method: 'DELETE' });
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 409) { const e = new Error('in-gebruik'); e.gebruik = body.gebruik || []; e.inUse = true; throw e; }
+    if (!res.ok) throw new Error(body.error || 'Verwijderen mislukt');
+    return body;
   },
   // Akte-importer (Obsidian → regie-script)
   importAktePreview: (payload) => request('/import/akte/preview', { method: 'POST', body: JSON.stringify(payload) }),
