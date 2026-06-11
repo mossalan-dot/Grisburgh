@@ -4,6 +4,7 @@ const fs      = require('fs');
 const path    = require('path');
 const { spawn } = require('child_process');
 const storage = require('../lib/storage');
+const mediaUsage = require('../lib/media-usage');
 const { requireDM, attachRole } = require('./auth');
 const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 
@@ -577,8 +578,9 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   // Spelerskaarten: portret-bestand NIET wissen — het wordt hergebruikt in party-weergave,
   // berichten en de tempel, en moet bij herstel uit de prullenbak weer beschikbaar zijn.
+  // Voor de rest: guarded delete (alleen wissen als het bestand nergens meer gebruikt wordt).
   const _isPlayerCard = type === 'personages' && dying.subtype === 'speler';
-  if (!_isPlayerCard) storage.deleteFile(id);
+  if (!_isPlayerCard) _deleteFileIfUnused(id);
   req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type, id, deleted: true });
   req.app.get('io').to(req.session?.campaignId||'main').emit('entity:trashed', { type, id, name: dying.name });
   res.json({ ok: true });
@@ -3699,7 +3701,7 @@ router.delete('/archief/:id', requireDM, (req, res) => {
   }
   storage.writeJSON('archief.json', archief);
   storage.writeJSON('dm-state.json', dmState);
-  storage.deleteFile(req.params.id);
+  _deleteFileIfUnused(req.params.id);
   req.app.get('io').to(req.session?.campaignId||'main').emit('archief:updated', { id: req.params.id, deleted: true });
   res.json({ ok: true });
 });
@@ -4110,11 +4112,19 @@ router.delete('/quests/:id', requireDM, (req, res) => {
 
 // ── Files ──
 
-router.post('/files/:id', requireDM, uploadMedia.single('file'), (req, res) => {
+router.post('/files/:id', requireDM, uploadMedia.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Geen bestand of niet-toegestaan type' });
   if (!_sniffMedia(req.file.buffer))
     return res.status(415).json({ error: 'Bestandsinhoud komt niet overeen met een toegestaan mediatype' });
   const filename = storage.saveFile(req.params.id, req.file.buffer, req.file.mimetype);
+  // Registreer in de mediabibliotheek (naam, MIME, datum, afmetingen).
+  await _registerMedia(req.params.id, {
+    mime:          req.file.mimetype,
+    grootte:       req.file.size,
+    origineleNaam: req.file.originalname || '',
+    naam:          (req.body?.naam || '').trim() || null,
+    buffer:        req.file.buffer,
+  });
   res.json({ filename });
 });
 
@@ -4127,7 +4137,129 @@ router.get('/files/:id', attachRole, (req, res) => {
 
 router.delete('/files/:id', requireDM, (req, res) => {
   storage.deleteFile(req.params.id);
+  _unregisterMedia(req.params.id);
   res.json({ ok: true });
+});
+
+// ── Mediabibliotheek ──
+// media.json registreert per fileId een bewerkbare weergavenaam + auto-info.
+// ID ≠ naam: verwijzingen in de data gebruiken het fileId, de naam leeft alleen
+// hier — hernoemen is dus altijd veilig.
+
+const _MIME_TYPE_GROEP = (mime) =>
+  (mime || '').startsWith('audio/') ? 'audio'
+  : (mime || '').startsWith('video/') ? 'video'
+  : (mime || '') === 'application/pdf' ? 'pdf'
+  : 'afbeelding';
+
+// Registreer of werk een bestand bij in media.json. `buffer` optioneel — als het
+// een afbeelding is bepalen we breedte/hoogte via sharp.
+async function _registerMedia(id, { mime, grootte, origineleNaam, naam, buffer } = {}) {
+  const media = storage.readJSON('media.json');
+  if (!media.files) media.files = {};
+  const bestaand = media.files[id] || {};
+  const type = _MIME_TYPE_GROEP(mime);
+  let breedte = bestaand.breedte ?? null, hoogte = bestaand.hoogte ?? null;
+  if (type === 'afbeelding' && _sharp && buffer && mime !== 'image/svg+xml') {
+    try { const m = await _sharp(buffer).metadata(); breedte = m.width || null; hoogte = m.height || null; } catch {}
+  }
+  media.files[id] = {
+    naam:          naam || bestaand.naam || id,
+    type,
+    mime:          mime || bestaand.mime || '',
+    grootte:       grootte ?? bestaand.grootte ?? null,
+    breedte, hoogte,
+    geupload:      bestaand.geupload || new Date().toISOString(),
+    origineleNaam: origineleNaam || bestaand.origineleNaam || '',
+  };
+  storage.writeJSON('media.json', media);
+}
+
+function _unregisterMedia(id) {
+  const media = storage.readJSON('media.json');
+  if (media.files && media.files[id]) {
+    delete media.files[id];
+    storage.writeJSON('media.json', media);
+  }
+}
+
+// Guarded cascade-delete: wis een bestand alleen als er na het verwijderen van
+// het bron-record géén verwijzing meer naar over is (anders blijft het bestand
+// staan voor de overige gebruikers). ROEP AAN nadat het record is weggeschreven.
+function _deleteFileIfUnused(id) {
+  if (mediaUsage.isUsed(id)) return false;
+  storage.deleteFile(id);
+  _unregisterMedia(id);
+  return true;
+}
+
+// Backfill: voeg bestanden uit files/ toe die nog niet in media.json staan
+// (naam = fileId, mtime als upload-datum, afmetingen lazy via sharp).
+async function _backfillMedia() {
+  const media = storage.readJSON('media.json');
+  if (!media.files) media.files = {};
+  let dir;
+  try { dir = fs.readdirSync(storage.FILES_DIR); } catch { return media; }
+  let dirty = false;
+  for (const fname of dir) {
+    const id = fname.replace(/\.[^.]+$/, '');
+    if (media.files[id]) continue;
+    const file = storage.getFile(id);
+    if (!file) continue;
+    let grootte = null, geupload = new Date().toISOString();
+    try { const st = fs.statSync(file.path); grootte = st.size; geupload = st.mtime.toISOString(); } catch {}
+    const type = _MIME_TYPE_GROEP(file.mimetype);
+    let breedte = null, hoogte = null;
+    if (type === 'afbeelding' && _sharp && file.mimetype !== 'image/svg+xml') {
+      try { const m = await _sharp(file.path).metadata(); breedte = m.width || null; hoogte = m.height || null; } catch {}
+    }
+    media.files[id] = { naam: id, type, mime: file.mimetype || '', grootte, breedte, hoogte, geupload, origineleNaam: '' };
+    dirty = true;
+  }
+  if (dirty) storage.writeJSON('media.json', media);
+  return media;
+}
+
+// Lijst: metadata + live berekend gebruik per bestand.
+router.get('/media', requireDM, async (req, res) => {
+  try {
+    const media = await _backfillMedia();
+    const ids = Object.keys(media.files || {});
+    const usage = mediaUsage.scanUsage(ids);
+    const files = ids.map(id => ({
+      id,
+      ...media.files[id],
+      gebruik: usage[id] || [],
+    })).sort((a, b) => (b.geupload || '').localeCompare(a.geupload || ''));
+    res.json({ files });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Weergavenaam wijzigen.
+router.patch('/media/:id', requireDM, (req, res) => {
+  const media = storage.readJSON('media.json');
+  if (!media.files || !media.files[req.params.id]) return res.status(404).json({ error: 'Niet gevonden' });
+  const naam = (req.body?.naam || '').trim();
+  if (!naam) return res.status(400).json({ error: 'Naam vereist' });
+  media.files[req.params.id].naam = naam.slice(0, 200);
+  storage.writeJSON('media.json', media);
+  res.json({ id: req.params.id, naam: media.files[req.params.id].naam });
+});
+
+// Verwijderen. Weigert (409 + gebruikslijst) zolang het bestand in gebruik is,
+// tenzij ?force=1. Geen stille verwijdering — campagneregel.
+router.delete('/media/:id', requireDM, (req, res) => {
+  const id = req.params.id;
+  const force = req.query.force === '1';
+  const gebruik = mediaUsage.scanUsage([id])[id] || [];
+  if (gebruik.length && !force) {
+    return res.status(409).json({ error: 'Bestand is nog in gebruik', gebruik });
+  }
+  storage.deleteFile(id);
+  _unregisterMedia(id);
+  res.json({ ok: true, verwijderd: id, wasGebruikt: gebruik });
 });
 
 // ── Sounds ──
@@ -4431,10 +4563,10 @@ router.delete('/map/maps/:id', requireDM, (req, res) => {
   const mapData = storage.readJSON('map.json');
   if (!mapData.maps) mapData.maps = [...DEFAULT_MAPS];
   const map = mapData.maps.find(m => m.id === req.params.id);
-  if (map && !map.src) storage.deleteFile(map.id);  // clean up upload if not a static asset
   mapData.maps = mapData.maps.filter(m => m.id !== req.params.id);
   mapData.pins = (mapData.pins || []).filter(p => (p.mapId || 'grisburgh') !== req.params.id);
   storage.writeJSON('map.json', mapData);
+  if (map && !map.src) _deleteFileIfUnused(map.id);  // clean up upload if not a static asset
   req.app.get('io').to(req.session?.campaignId||'main').emit('map:updated');
   res.json({ ok: true });
 });
@@ -4771,8 +4903,11 @@ router.put('/monsters/:id', requireDM, (req, res) => {
 
 router.delete('/monsters/:id', requireDM, (req, res) => {
   const data = storage.readJSON('monsters.json');
+  const dying = (data.monsters || []).find(m => m.id === req.params.id);
   data.monsters = (data.monsters || []).filter(m => m.id !== req.params.id);
   storage.writeJSON('monsters.json', data);
+  // Geüploade afbeeldingen opruimen als ze nergens anders meer gebruikt worden
+  for (const fid of [dying?.imageId, dying?.backdropId]) if (fid) _deleteFileIfUnused(fid);
   req.app.get('io')?.to(req.session?.campaignId || 'main').emit('bestiarium:updated');
   res.json({ ok: true });
 });
@@ -8534,8 +8669,10 @@ router.put('/encounters/:id', requireDM, (req, res) => {
 
 router.delete('/encounters/:id', requireDM, (req, res) => {
   const data = storage.readJSON('encounters.json');
+  const dying = (data.encounters || []).find(e => e.id === req.params.id);
   data.encounters = (data.encounters || []).filter(e => e.id !== req.params.id);
   storage.writeJSON('encounters.json', data);
+  if (dying?.backdropId) _deleteFileIfUnused(dying.backdropId);
   res.json({ ok: true });
 });
 
