@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=34';
 import { renderBestiarium } from './render-bestiarium.js?v=11';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=37";
-import { initDmPanel } from "./dm-panel.js?v=91";
+import { initDmPanel } from "./dm-panel.js?v=92";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -9805,7 +9805,11 @@ async function renderMagizoo() {
   if (!window.app?.isDM?.() && state.characterId) {
     try { ruweTrofeeen = (await api.getPlayerItems(state.characterId)).filter(i => i.ruweTrofee); } catch { /* leeg */ }
   }
-  const trofeePrijs = Math.max(0, parseInt(config.trofeePrijs, 10) || 25);
+  // Prepareerprijs = factor × trofeewaarde, minimaal 5 fl (server rekent gezaghebbend)
+  const _tf = parseFloat(config.trofeeFactor);
+  const trofeeFactor = Number.isFinite(_tf) && _tf >= 0 ? _tf : 1.5;
+  const _prepPrijs = (rt) => Math.max(5, Math.round(trofeeFactor *
+    Math.max(0, parseInt(rt.prijs, 10) || 0) * Math.max(1, rt.aantal || 1)));
 
   const cooldownActief = cooldownTot && new Date(cooldownTot) > new Date();
   let cooldownTekst = '';
@@ -9851,14 +9855,15 @@ async function renderMagizoo() {
 
         ${ruweTrofeeen.length ? `
           <div class="trofee-jachtbuit magizoo-prepareer">
-            <div class="trofee-jachtbuit-kop">${icon('skull')} Trofeeën prepareren — ${trofeePrijs} fl per stuk</div>
-            <p class="trofee-jachtbuit-hint">"Breng me zo'n kop en ik maak er iets bijzonders van. Wát precies? Dat merk je vanzelf… draag hem maar eens tijdens een rust."</p>
+            <div class="trofee-jachtbuit-kop">${icon('skull')} Trofeeën prepareren</div>
+            <p class="trofee-jachtbuit-hint">"Breng me zo'n kop en ik maak er iets bijzonders van. Wát precies? Dat merk je vanzelf… draag hem maar eens tijdens een rust. Hoe indrukwekkender het beest, hoe prijziger het werk."</p>
             ${ruweTrofeeen.map(i => {
               const rt = i.ruweTrofee;
+              const prijs = _prepPrijs(rt);
               return `
                 <div class="trofee-jachtbuit-rij">
                   <span class="trofee-jachtbuit-naam">${esc(rt.naam)}${(rt.aantal || 1) > 1 ? ` ×${esc(String(rt.aantal))}` : ''}</span>
-                  <button class="buit-claim-btn" onclick="window._trofeePrepareer('${esc(i.id)}', ${trofeePrijs})">Laat prepareren (${trofeePrijs} fl)</button>
+                  <button class="buit-claim-btn" onclick="window._trofeePrepareer('${esc(i.id)}', ${prijs})">Laat prepareren (${prijs} fl)</button>
                 </div>`;
             }).join('')}
           </div>` : ''}

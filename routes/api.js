@@ -3709,6 +3709,31 @@ router.post('/shortrest/hitdie', attachRole, (req, res) => {
 // met akte en datum. Automatisch bij het opruimen van een gewonnen gevecht
 // (DELETE /combat); de DM kan trofeeën ook handmatig toevoegen/verwijderen.
 
+// CR → trofeewaarde in florijnen (≈ 25 fl per CR, breuken naar rato)
+function _crNaarFl(cr) {
+  if (cr == null || cr === '') return 0;
+  const s = String(cr).trim().split(/[\s(]/)[0]; // "5 (1,800 XP)" → "5"
+  let num;
+  if (s.includes('/')) {
+    const [t, n] = s.split('/').map(Number);
+    num = n ? t / n : 0;
+  } else {
+    num = parseFloat(s.replace(',', '.'));
+  }
+  if (!Number.isFinite(num) || num <= 0) return 0;
+  return Math.max(1, Math.round(num * 25));
+}
+
+// Trofeewaarde van een monsterkaart: handmatige prijs wint; leeg = auto via CR
+function _trofeeWaarde(kaart) {
+  if (!kaart) return 0;
+  const expl = kaart.trofeePrijs;
+  if (expl !== null && expl !== undefined && expl !== '' && Number.isFinite(parseInt(expl, 10))) {
+    return Math.max(0, parseInt(expl, 10));
+  }
+  return _crNaarFl(kaart.statblock?.cr);
+}
+
 function _trofeeVoegToe(archief, { groepId, naam, aantal, imageId, monsterId, hoofdstuk }) {
   if (!archief.trofeeen) archief.trofeeen = [];
   archief.trofeeen.push({
@@ -3942,7 +3967,13 @@ router.post('/trofeeen/prepareer', attachRole, (req, res) => {
   const rt = item.ruweTrofee;
 
   const meta = storage.readJSON('meta.json');
-  const prijsFl = Math.max(0, parseInt(meta.magizoo?.trofeePrijs, 10) || 25);
+  // Prepareerprijs = factor × trofeewaarde (minimaal 5 fl, ook bij waarde 0)
+  const factor = (() => {
+    const f = parseFloat(meta.magizoo?.trofeeFactor);
+    return Number.isFinite(f) && f >= 0 ? f : 1.5;
+  })();
+  const waarde = Math.max(0, parseInt(rt.prijs, 10) || 0) * Math.max(1, rt.aantal || 1);
+  const prijsFl = Math.max(5, Math.round(factor * waarde));
   if (!dmState.playerCurrency) dmState.playerCurrency = {};
   const cur = dmState.playerCurrency[cid] || { fl: 0, kn: 0, cl: 0 };
   if (toCl(cur) < prijsFl * 100)
@@ -5107,7 +5138,7 @@ router.delete('/combat', requireDM, (req, res) => {
           aantal:    info.aantal,
           imageId:   kaart?.imageId || info.imageId,
           monsterId: info.monsterId,
-          prijs:     Math.max(0, parseInt(kaart?.trofeePrijs, 10) || 0),
+          prijs:     _trofeeWaarde(kaart),
           hoofdstuk: dmState.activeAkte?.key || null,
           datum:     new Date().toISOString(),
         });
@@ -6000,6 +6031,7 @@ router.get('/magizoo', attachRole, (req, res) => {
       prijs:         config.prijs         || { fl: 25 },
       prijsVolledig: config.prijsVolledig || { fl: 60 },
       cooldownMinuten: config.cooldownMinuten ?? 5,
+      trofeeFactor: config.trofeeFactor ?? 1.5,
     },
     monsters: _magizooMonsterList(dmState, gid),
     currency: _effectiveCurrency(dmState, characterId),
@@ -6076,7 +6108,7 @@ router.post('/magizoo/onderzoek', attachRole, (req, res) => {
 router.put('/meta/magizoo', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.magizoo) meta.magizoo = {};
-  ['naam', 'groet', 'imageId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten', 'trofeePrijs']
+  ['naam', 'groet', 'imageId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten', 'trofeeFactor']
     .forEach(f => { if (req.body[f] !== undefined) meta.magizoo[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');

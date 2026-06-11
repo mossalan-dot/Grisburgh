@@ -113,12 +113,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=295   app.js?v=426   sound-manager.js?v=4   icons.svg?v=4
+index.html  : theme.css?v=295   app.js?v=427   sound-manager.js?v=4   icons.svg?v=4
 app.js      : api.js?v=239      render-campagne.js?v=94   render-archief.js?v=43
               render-kaart.js?v=8  render-dungeon.js?v=22  render-relatiemap.js?v=13
               render-progressie.js?v=34  socket-client.js?v=37
               render-bestiarium.js?v=11  render-statblock.js?v=3
-              dm-panel.js?v=91
+              dm-panel.js?v=92
 dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=1
 ```
 
@@ -480,6 +480,7 @@ Testlogin: `window.app.testLogin()` → Test McTestface (groep 3, wachtwoord in 
 
 ### Trofeeënwand + jacht-economie (herberg/magizoo) — 11 juni 2026
 - [ ] Monsterbibliotheek: per kaart vinkje "Levert trofee" (standaard aan) + "Trofeewaarde (fl)"
+      — leeg gelaten = automatisch via CR uit het statblock (±25 fl per CR, hint toont het bedrag)
 - [ ] Gevecht winnen (alle monsters 0 HP) + opruimen → verslagen monsters in de **jachtbuit**
       (zelfde naam = één regel met ×N; uitgevinkte monsters ontbreken)
 - [ ] Verloren/afgebroken gevecht → géén jachtbuit
@@ -487,8 +488,9 @@ Testlogin: `window.app.testLogin()` → Test McTestface (groep 3, wachtwoord in 
 - [ ] Trofee claimen + buit sluiten → kaartje "Onbewerkte trofee: …" in Boedel van de claimer
 - [ ] Trofeeënwand → "Jouw jachtbuit": **verkoop** tegen kaartprijs → munten erbij, kop aan de wand
       met "Verkocht door …"; waarde 0 = "de waard heeft geen interesse"
-- [ ] Magizoo → "Trofeeën prepareren" (prijs uit magizoo-instellingen, standaard 25 fl): betalen →
-      trofee gedragen aan de wand met paarse chip "de werking is een mysterie"
+- [ ] Magizoo → "Trofeeën prepareren": prijs = prepareerfactor (magizoo-instellingen, standaard 1.5)
+      × trofeewaarde, minimaal 5 fl; betalen → trofee gedragen aan de wand met paarse chip
+      "de werking is een mysterie"
 - [ ] Te weinig munten → preparatie geweigerd met nette foutmelding
 - [ ] DM zet boon via potlood; speler ziet hem NIET (paarse chip), DM ziet "… (geheim)"
 - [ ] **Attunement:** korte rust afronden mét gedragen geprepareerde trofee → boon onthuld op wand
