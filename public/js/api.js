@@ -191,9 +191,12 @@ export const api = {
   shortRestHitDie: (uitkomst) => request('/shortrest/hitdie', { method: 'POST', body: JSON.stringify({ uitkomst }) }),
 
   // Trofeeënwand (herberg)
-  getTrofeeen:  ()     => request('/trofeeen'),
-  createTrofee: (data) => request('/trofeeen',        { method: 'POST',   body: JSON.stringify(data) }),
-  deleteTrofee: (id)   => request(`/trofeeen/${id}`,  { method: 'DELETE' }),
+  getTrofeeen:  ()         => request('/trofeeen'),
+  createTrofee: (data)     => request('/trofeeen',                 { method: 'POST',   body: JSON.stringify(data) }),
+  updateTrofee: (id, data) => request(`/trofeeen/${id}`,           { method: 'PUT',    body: JSON.stringify(data) }),
+  deleteTrofee: (id)       => request(`/trofeeen/${id}`,           { method: 'DELETE' }),
+  draagTrofee:  (id)       => request(`/trofeeen/${id}/draag`,     { method: 'POST',   body: JSON.stringify({}) }),
+  legTrofeeAf:  (id)       => request(`/trofeeen/${id}/afleggen`,  { method: 'POST',   body: JSON.stringify({}) }),
 
   // Buit (loot-verdeler)
   getBuit:      ()       => request('/buit'),

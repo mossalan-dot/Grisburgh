@@ -113,8 +113,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=293   app.js?v=424   sound-manager.js?v=4   icons.svg?v=4
-app.js      : api.js?v=237      render-campagne.js?v=94   render-archief.js?v=43
+index.html  : theme.css?v=294   app.js?v=425   sound-manager.js?v=4   icons.svg?v=4
+app.js      : api.js?v=238      render-campagne.js?v=94   render-archief.js?v=43
               render-kaart.js?v=8  render-dungeon.js?v=22  render-relatiemap.js?v=13
               render-progressie.js?v=34  socket-client.js?v=37
               render-bestiarium.js?v=11  render-statblock.js?v=3
@@ -486,6 +486,13 @@ Testlogin: `window.app.testLogin()` → Test McTestface (groep 3, wachtwoord in 
 - [ ] Plaquette: monsterportret (of schedel), koperen naamplaat, akte + datum; klik → groot detail
 - [ ] DM: trofee verwijderen (met bevestiging) en handmatig toevoegen uit het bestiarium
 - [ ] Per groep: andere groep ziet eigen wand
+- [ ] **Dragen (Witcher-stijl):** DM zet via potlood-knop een boon op een trofee (gouden chip op de plaquette)
+- [ ] Speler: "Draag deze trofee" → gloed + "Jij draagt deze"; kaartje "Trofee: …" met boon in de Boedel
+- [ ] Tweede trofee dragen → bevestiging, eerste wordt automatisch teruggehangen (max. 1 per jager)
+- [ ] Andere speler ziet "Gedragen door …" en kan hem niet ook dragen
+- [ ] Trofee-kaartje in Boedel weggooien als speler → geweigerd ("leg af bij de Trofeeënwand")
+- [ ] "Leg af" bij de wand → kaartje uit Boedel, trofee hangt weer vrij; DM kan ook afleggen
+- [ ] Boon wijzigen terwijl gedragen → kaartje in Boedel verandert mee
 
 ### Buit (loot-verdeler) — 11 juni 2026
 - [ ] DM: pakket-knop in regie-balk én in Gevecht-tab → Rust & buit; opent composer

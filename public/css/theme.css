@@ -20028,3 +20028,69 @@ body.kaart-fs-active { overflow: hidden; }
   .trofeewand-haardgloed, .buit-item { animation: none; }
   .buit-item { opacity: 1; }
 }
+
+/* ── Trofeeën dragen (Witcher-stijl) ── */
+.trofee-plaque--gedragen {
+  border-color: rgba(224,176,80,0.75);
+  box-shadow: inset 0 1px 2px rgba(220,170,90,0.3), 0 0 16px rgba(224,176,80,0.35), 0 6px 14px rgba(0,0,0,0.6);
+}
+.trofee-boon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(184,134,11,0.18);
+  border: 1px solid rgba(224,176,80,0.4);
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.7rem;
+  line-height: 1.3;
+  color: #ecd9a8;
+}
+.trofee-boon .icon { width: 11px; height: 11px; flex-shrink: 0; color: #e0b050; }
+.trofee-drager-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Crimson Text', serif;
+  font-size: 0.72rem;
+  color: rgba(245,225,185,0.85);
+}
+.trofee-drager-chip .icon { width: 11px; height: 11px; }
+.trofee-actie {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(212,168,80,0.55);
+  background: linear-gradient(to bottom, rgba(140,100,20,0.75), rgba(95,65,10,0.8));
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #f5e6c0;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+.trofee-actie:hover { filter: brightness(1.3); }
+.trofee-actie--af {
+  background: rgba(15,8,2,0.55);
+  border-color: rgba(212,168,80,0.35);
+  color: rgba(245,228,190,0.75);
+}
+.trofee-boon-edit { right: 32px; }
+.trofee-detail-boon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(184,134,11,0.2);
+  border: 1px solid rgba(224,176,80,0.45);
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.92rem;
+  color: #f0dcae;
+  text-align: center;
+}
+.trofee-detail-boon .icon { width: 14px; height: 14px; color: #e0b050; }
