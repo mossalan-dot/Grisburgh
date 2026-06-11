@@ -186,7 +186,7 @@ data/
 |---|---|
 | `entities.json` | personages, locaties, organisaties, voorwerpen |
 | `dm-state.json` | groepen, zichtbaarheid, playerProfiles, playerItems, combat, tempel-config, … |
-| `archief.json` | documenten, logEntries, sessieLog, brieven, aanplakbord, kampvuren, trofeeen |
+| `archief.json` | documenten, logEntries, sessieLog, brieven, aanplakbord, kampvuren, trofeeen, jachtbuit |
 | `combat.json` | actief gevecht, combatants |
 | `map.json` | kaartpins |
 | `monsters.json` | monster-statblokken |
@@ -532,21 +532,30 @@ Testlogin: `window.app.testLogin()` → Test McTestface (groep 3, wachtwoord in 
 - [ ] Lange rust: helft van de Hit Dice terug (min. 1) en shortRest-items laden óók (was een gat)
 - [ ] Herladen tijdens adempauze → overlay komt terug (GET /shortrest)
 
-### Trofeeënwand (herberg) — 11 juni 2026
+### Trofeeënwand + jacht-economie (herberg/magizoo) — 11 juni 2026
+- [ ] Monsterbibliotheek: per kaart vinkje "Levert trofee" (standaard aan) + "Trofeewaarde (fl)"
+- [ ] Gevecht winnen (alle monsters 0 HP) + opruimen → verslagen monsters in de **jachtbuit**
+      (zelfde naam = één regel met ×N; uitgevinkte monsters ontbreken)
+- [ ] Verloren/afgebroken gevecht → géén jachtbuit
+- [ ] Buit-composer: sectie "Trofeeën van de jacht" (aangevinkt, met waarde); prullenbak gooit weg
+- [ ] Trofee claimen + buit sluiten → kaartje "Onbewerkte trofee: …" in Boedel van de claimer
+- [ ] Trofeeënwand → "Jouw jachtbuit": **verkoop** tegen kaartprijs → munten erbij, kop aan de wand
+      met "Verkocht door …"; waarde 0 = "de waard heeft geen interesse"
+- [ ] Magizoo → "Trofeeën prepareren" (prijs uit magizoo-instellingen, standaard 25 fl): betalen →
+      trofee gedragen aan de wand met paarse chip "de werking is een mysterie"
+- [ ] Te weinig munten → preparatie geweigerd met nette foutmelding
+- [ ] DM zet boon via potlood; speler ziet hem NIET (paarse chip), DM ziet "… (geheim)"
+- [ ] **Attunement:** korte rust afronden mét gedragen geprepareerde trofee → boon onthuld op wand
+      én op het Boedel-kaartje
 - [ ] Herberg: knop "Trofeeënwand" naast het Aanplakbord; klik → donkere wand met haardgloed
-- [ ] Gevecht winnen (alle monsters 0 HP) + gevecht opruimen → verslagen monsters verschijnen
-      als plaquettes (zelfde naam = één plaquette met ×N)
-- [ ] Verloren/afgebroken gevecht → géén trofeeën
 - [ ] Plaquette: monsterportret (of schedel), koperen naamplaat, akte + datum; klik → groot detail
 - [ ] DM: trofee verwijderen (met bevestiging) en handmatig toevoegen uit het bestiarium
 - [ ] Per groep: andere groep ziet eigen wand
-- [ ] **Dragen (Witcher-stijl):** DM zet via potlood-knop een boon op een trofee (gouden chip op de plaquette)
-- [ ] Speler: "Draag deze trofee" → gloed + "Jij draagt deze"; kaartje "Trofee: …" met boon in de Boedel
 - [ ] Tweede trofee dragen → bevestiging, eerste wordt automatisch teruggehangen (max. 1 per jager)
 - [ ] Andere speler ziet "Gedragen door …" en kan hem niet ook dragen
 - [ ] Trofee-kaartje in Boedel weggooien als speler → geweigerd ("leg af bij de Trofeeënwand")
 - [ ] "Leg af" bij de wand → kaartje uit Boedel, trofee hangt weer vrij; DM kan ook afleggen
-- [ ] Boon wijzigen terwijl gedragen → kaartje in Boedel verandert mee
+- [ ] Boon wijzigen terwijl gedragen (en attuned) → kaartje in Boedel verandert mee
 
 ### Buit (loot-verdeler) — 11 juni 2026
 - [ ] DM: pakket-knop in regie-balk én in Gevecht-tab → Rust & buit; opent composer
