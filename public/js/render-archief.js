@@ -1,4 +1,4 @@
-import { api } from './api.js?v=227';
+import { api } from './api.js?v=234';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -242,7 +242,7 @@ export async function renderLogboek() {
   if (_logboekActiveTab === 'prikbord') {
     tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
     tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
-    const { renderRelatiemap } = await import('./render-relatiemap.js?v=8');
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=14');
     await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
     return;
   }
@@ -375,14 +375,14 @@ async function _renderPrikbord(container) {
         return `
         <div class="factie-ladder factie-ladder--${stijl}">
           <div class="factie-ladder-head">
-            <span class="factie-ladder-embleem">${esc(f.embleem || '🏛️')}</span>
+            <span class="factie-ladder-embleem">${icon(/^[a-z0-9-]+$/.test(f.embleem || '') ? f.embleem : 'landmark')}</span>
             <span class="factie-ladder-naam">${esc(f.naam || '')}</span>
             <span class="factie-ladder-rang">${esc(f.rang?.naam || '')}</span>
           </div>
           <div class="factie-ladder-rungs">
             ${rungs.map(r => `
               <div class="factie-rung ${r.bereikt ? 'factie-rung--bereikt' : 'factie-rung--locked'} ${r.huidig ? 'factie-rung--huidig' : ''}">
-                <span class="factie-rung-naam">${r.bereikt ? '' : '🔒 '}${esc(r.naam || '')}${r.titel ? ` <span class="factie-rung-titel">🏷️ ${esc(r.titel)}</span>` : ''}</span>
+                <span class="factie-rung-naam">${r.bereikt ? '' : icon('lock') + ' '}${esc(r.naam || '')}${r.titel ? ` <span class="factie-rung-titel">${icon('star')} ${esc(r.titel)}</span>` : ''}</span>
                 ${(r.boons || []).map(b => `<span class="factie-rung-boon" title="${esc(b.tekst || '')}">${esc(b.icoon || '•')} ${esc(b.naam || '')}</span>`).join('')}
               </div>`).join('')}
           </div>
@@ -2233,6 +2233,11 @@ function renderDocCard(d) {
 window._openDoc = async (id) => {
   let d;
   try { d = await api.getArchief(id); } catch { return; }
+  // Wikilinks kunnen een document openen vóór de archief-tab ooit geladen is —
+  // haal dan eerst de archiefdata op (nodig voor tekstContent).
+  if (!archiefData.documents.length) {
+    try { archiefData = await api.listArchief(); } catch {}
+  }
   window._currentArchiefDocId    = id;
   window._currentArchiefSessieId = null;
   const state      = (isDM() && d._activeState !== undefined) ? d._activeState : (d.state || 'hidden');

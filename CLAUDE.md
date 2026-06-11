@@ -113,14 +113,21 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=298   app.js?v=430   sound-manager.js?v=4
-app.js      : api.js?v=234      render-campagne.js?v=94   render-archief.js?v=42
-              render-kaart.js?v=9  render-dungeon.js?v=22  render-relatiemap.js?v=13
-              render-progressie.js?v=34  socket-client.js?v=34
-              render-bestiarium.js?v=11  render-statblock.js?v=3
-              dm-panel.js?v=89
-dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=1
+index.html  : theme.css?v=298   app.js?v=431   sound-manager.js?v=4
+app.js      : api.js?v=234      render-campagne.js?v=95   render-archief.js?v=43
+              render-kaart.js?v=10  render-dungeon.js?v=23  render-relatiemap.js?v=14
+              render-progressie.js?v=35  socket-client.js?v=35
+              render-bestiarium.js?v=12  render-statblock.js?v=3
+              dm-panel.js?v=89    render-dashboard.js?v=2
+dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=3
 ```
+
+> **Eén bestand = één URL.** ES-modules met verschillende `?v=`-nummers zijn aparte
+> module-instanties (eigen state!) én omzeilen de cache-busting. Bij een versiebump dus
+> **alle** importerende bestanden meenemen — ook de dynamische `import(...)`-aanroepen in
+> `socket-client.js` en `render-archief.js`. Controle:
+> `grep -ohE "\./[a-z-]+\.js(\?v=[0-9]+)?" public/js/*.js | sort | uniq -c`
+> — elk bestand mag maar mét één versie voorkomen.
 
 > **Verzegelde uitnodigingsbrieven (reveal-by-letter).** Een factie of dienst kan zich per
 > brief voorstellen aan de actieve groep — dat onthult het doel én bezorgt elke speler een
@@ -144,7 +151,7 @@ dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=1
 server.js              Express + Socket.io entry point
 config.js              PORT, sessionSecret, dmPassword (uit env)
 lib/storage.js         Lees/schrijf JSON-bestanden, per-campagne via AsyncLocalStorage
-lib/api.js             (lib/snapshot.js is legacy, niet meer in gebruik)
+lib/snapshot.js        HTML-export (/api/export + /api/export/campagneboek)
 routes/api.js          Alle REST-endpoints (~3000 regels)
 routes/auth.js         Login (DM + speler), session
 public/

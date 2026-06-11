@@ -1,13 +1,13 @@
 import { api } from './api.js?v=234';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=94";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=42";
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=9';
-import { renderDungeon } from './render-dungeon.js?v=22';
-import { renderRelatiemap } from './render-relatiemap.js?v=13';
-import { renderProgressie } from './render-progressie.js?v=34';
-import { renderBestiarium } from './render-bestiarium.js?v=11';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=95";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=43";
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=10';
+import { renderDungeon } from './render-dungeon.js?v=23';
+import { renderRelatiemap } from './render-relatiemap.js?v=14';
+import { renderProgressie } from './render-progressie.js?v=35';
+import { renderBestiarium } from './render-bestiarium.js?v=12';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=34";
+import { initSocket } from "./socket-client.js?v=35";
 import { initDmPanel } from "./dm-panel.js?v=89";
 
 // ── Icon helper ──
@@ -1680,7 +1680,11 @@ function _resolveWikilink(name, isFirst) {
   if (!isFirst) return safeName;
 
   // Klikbare link met typespecifieke kleur via data-attribuut
-  return `<a class="wikilink wikilink--${type}" data-wl-type="${type}" onclick="event.stopPropagation();window._openDetail('${type}','${id}')" title="${safeName}">${safeName}</a>`;
+  // Documenten hebben een eigen viewer (render-archief), geen detailvenster
+  const open = type === 'documenten'
+    ? `window._openDoc('${id}')`
+    : `window._openDetail('${type}','${id}')`;
+  return `<a class="wikilink wikilink--${type}" data-wl-type="${type}" onclick="event.stopPropagation();${open}" title="${safeName}">${safeName}</a>`;
 }
 
 // ── Wikilink autocomplete ───────────────────────────────────────────
@@ -1689,13 +1693,20 @@ let _wlAcTriggerEl = null;
 // Herbouw de wikilink-naamindex op basis van de huidige sessie (speler of DM).
 // Aanroepen na elke login/logout zodat de index altijd de juiste zichtbare entiteiten bevat.
 function _rebuildEntityIndex() {
-  const WL_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
+  const WL_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
   window._entityNameIndex = {};           // leeg voordat we herbouwen
-  window._entityIndexReady = Promise.all(WL_TYPES.map(t =>
-    api.listEntities(t)
-      .then(list => window._buildEntityIndex(t, list))
-      .catch(() => {})
-  ));
+  window._entityIndexReady = Promise.all([
+    ...WL_TYPES.map(t =>
+      api.listEntities(t)
+        .then(list => window._buildEntityIndex(t, list))
+        .catch(() => {})
+    ),
+    // Documenten leven onder /api/archief (niet /api/entities); de server
+    // filtert daar al op zichtbaarheid per speler/groep.
+    api.listArchief()
+      .then(a => window._buildEntityIndex('documenten', a.documents))
+      .catch(() => {}),
+  ]);
   return window._entityIndexReady;
 }
 
@@ -8860,7 +8871,6 @@ window._herbergFilter = (q) => {
 
 window._herbergShuffle = () => {
   // Herlaad herberg zodat een nieuwe sample getoond wordt
-  import('./app.js').catch(() => {});
   window.app?.refreshSection('herberg');
 };
 
