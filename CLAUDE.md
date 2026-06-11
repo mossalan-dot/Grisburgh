@@ -534,6 +534,7 @@ Testlogin: `window.app.testLogin()` → Test McTestface (groep 3, wachtwoord in 
 
 ### Trofeeënwand + jacht-economie (herberg/magizoo) — 11 juni 2026
 - [ ] Monsterbibliotheek: per kaart vinkje "Levert trofee" (standaard aan) + "Trofeewaarde (fl)"
+      — leeg gelaten = automatisch via CR uit het statblock (±25 fl per CR, hint toont het bedrag)
 - [ ] Gevecht winnen (alle monsters 0 HP) + opruimen → verslagen monsters in de **jachtbuit**
       (zelfde naam = één regel met ×N; uitgevinkte monsters ontbreken)
 - [ ] Verloren/afgebroken gevecht → géén jachtbuit
@@ -541,8 +542,9 @@ Testlogin: `window.app.testLogin()` → Test McTestface (groep 3, wachtwoord in 
 - [ ] Trofee claimen + buit sluiten → kaartje "Onbewerkte trofee: …" in Boedel van de claimer
 - [ ] Trofeeënwand → "Jouw jachtbuit": **verkoop** tegen kaartprijs → munten erbij, kop aan de wand
       met "Verkocht door …"; waarde 0 = "de waard heeft geen interesse"
-- [ ] Magizoo → "Trofeeën prepareren" (prijs uit magizoo-instellingen, standaard 25 fl): betalen →
-      trofee gedragen aan de wand met paarse chip "de werking is een mysterie"
+- [ ] Magizoo → "Trofeeën prepareren": prijs = prepareerfactor (magizoo-instellingen, standaard 1.5)
+      × trofeewaarde, minimaal 5 fl; betalen → trofee gedragen aan de wand met paarse chip
+      "de werking is een mysterie"
 - [ ] Te weinig munten → preparatie geweigerd met nette foutmelding
 - [ ] DM zet boon via potlood; speler ziet hem NIET (paarse chip), DM ziet "… (geheim)"
 - [ ] **Attunement:** korte rust afronden mét gedragen geprepareerde trofee → boon onthuld op wand

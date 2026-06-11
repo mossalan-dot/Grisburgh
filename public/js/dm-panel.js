@@ -2443,8 +2443,18 @@ function _renderMonsterEditor(el) {
     description: stored.description || '',
     roddel: stored.roddel || '',
     levertTrofee: stored.levertTrofee !== false,
-    trofeePrijs: stored.trofeePrijs ?? 0,
+    trofeePrijs: stored.trofeePrijs ?? '',
   };
+  // Automatische trofeewaarde uit CR (zelfde formule als de server: ±25 fl per CR)
+  const _crFl = (cr) => {
+    if (cr == null || cr === '') return 0;
+    const s = String(cr).trim().split(/[\s(]/)[0];
+    let num;
+    if (s.includes('/')) { const [t, n] = s.split('/').map(Number); num = n ? t / n : 0; }
+    else num = parseFloat(s.replace(',', '.'));
+    return (!Number.isFinite(num) || num <= 0) ? 0 : Math.max(1, Math.round(num * 25));
+  };
+  const autoWaarde = _crFl(m.statblock?.cr);
 
   el.innerHTML = `
     <div class="dm-feature-section">
@@ -2482,10 +2492,12 @@ function _renderMonsterEditor(el) {
           </label>
         </div>
         <div class="dm-form-row" style="flex:1">
-          <label class="dm-form-label" title="Wat de waard van de herberg voor deze trofee betaalt. 0 = geen interesse (alleen prepareren mogelijk).">Trofeewaarde (fl)</label>
-          <input id="dm-mon-trofeeprijs" class="dm-input dm-input-sm" type="number" min="0" value="${m.trofeePrijs}">
+          <label class="dm-form-label" title="Wat de waard van de herberg voor deze trofee betaalt. Leeg = automatisch op basis van CR (±25 fl per CR). Expliciet 0 = geen interesse.">Trofeewaarde (fl)</label>
+          <input id="dm-mon-trofeeprijs" class="dm-input dm-input-sm" type="number" min="0"
+            value="${m.trofeePrijs}" placeholder="${autoWaarde ? `auto: ${autoWaarde}` : 'auto via CR'}">
         </div>
       </div>
+      ${autoWaarde ? `<span class="dm-hint" style="font-size:10px;opacity:.7">Leeg gelaten = ${autoWaarde} fl (CR ${esc(String(m.statblock?.cr ?? ''))})</span>` : ''}
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
         <textarea id="dm-mon-desc" class="dm-input dm-sb-textarea" rows="3"
@@ -2649,7 +2661,8 @@ async function _monsterSave() {
   const description = document.getElementById('dm-mon-desc')?.value?.trim() || '';
   const roddel = document.getElementById('dm-mon-roddel')?.value?.trim() || '';
   const levertTrofee = document.getElementById('dm-mon-trofee')?.checked !== false;
-  const trofeePrijs = Math.max(0, parseInt(document.getElementById('dm-mon-trofeeprijs')?.value) || 0);
+  const _tpRaw = (document.getElementById('dm-mon-trofeeprijs')?.value || '').trim();
+  const trofeePrijs = _tpRaw === '' ? null : Math.max(0, parseInt(_tpRaw) || 0); // null = auto via CR
   const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, statblock, inBestiarium, description, roddel, levertTrofee, trofeePrijs };
   try {
     if (_editingMonsterIsNew) {
@@ -4392,8 +4405,8 @@ async function _renderMagizooSettings() {
           <input id="magizoo-cooldown" class="dm-input dm-input-sm" type="number" min="0" value="${config.cooldownMinuten ?? 5}">
         </div>
         <div class="dm-form-row" style="flex:1">
-          <label class="dm-form-label" title="Wat het prepareren van een jachttrofee kost (geheime boon, onthult via attunement).">Trofee prepareren (fl)</label>
-          <input id="magizoo-trofeeprijs" class="dm-input dm-input-sm" type="number" min="0" value="${config.trofeePrijs ?? 25}">
+          <label class="dm-form-label" title="Prepareren kost factor × trofeewaarde (minimaal 5 fl). Bijv. 1.5 = anderhalf keer wat de waard ervoor zou betalen.">Prepareerfactor (× waarde)</label>
+          <input id="magizoo-trofeefactor" class="dm-input dm-input-sm" type="number" min="0" step="0.1" value="${config.trofeeFactor ?? 1.5}">
         </div>
       </div>
 
@@ -4449,12 +4462,13 @@ window._magizooSettingsSave = async () => {
   const fl = parseInt(document.getElementById('magizoo-prijs-fl')?.value) || 0;
   const flVol = parseInt(document.getElementById('magizoo-prijsvol-fl')?.value) || 0;
   const cooldownMinuten = parseInt(document.getElementById('magizoo-cooldown')?.value) || 0;
-  const trofeePrijs = Math.max(0, parseInt(document.getElementById('magizoo-trofeeprijs')?.value) || 0);
+  const _tfRaw = parseFloat(document.getElementById('magizoo-trofeefactor')?.value);
+  const trofeeFactor = Number.isFinite(_tfRaw) && _tfRaw >= 0 ? _tfRaw : 1.5;
   const imageId = document.getElementById('magizoo-portret-select')?.value || config.imageId || '';
   const backdropFromSelect = document.getElementById('magizoo-backdrop-select')?.value || null;
   const backdropId = window._magizooBackdropPending || backdropFromSelect || config.backdropId || '';
   try {
-    await api.saveMagizooConfig({ naam, groet, prijs: { fl }, prijsVolledig: { fl: flVol }, cooldownMinuten, trofeePrijs, imageId, backdropId });
+    await api.saveMagizooConfig({ naam, groet, prijs: { fl }, prijsVolledig: { fl: flVol }, cooldownMinuten, trofeeFactor, imageId, backdropId });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     window._magizooBackdropPending = null;
