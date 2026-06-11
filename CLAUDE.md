@@ -113,12 +113,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=292   app.js?v=423   sound-manager.js?v=4   icons.svg?v=4
-app.js      : api.js?v=236      render-campagne.js?v=94   render-archief.js?v=43
+index.html  : theme.css?v=293   app.js?v=424   sound-manager.js?v=4   icons.svg?v=4
+app.js      : api.js?v=237      render-campagne.js?v=94   render-archief.js?v=43
               render-kaart.js?v=8  render-dungeon.js?v=22  render-relatiemap.js?v=13
-              render-progressie.js?v=34  socket-client.js?v=36
+              render-progressie.js?v=34  socket-client.js?v=37
               render-bestiarium.js?v=11  render-statblock.js?v=3
-              dm-panel.js?v=89
+              dm-panel.js?v=90
 dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=1
 ```
 
@@ -179,7 +179,7 @@ data/
 |---|---|
 | `entities.json` | personages, locaties, organisaties, voorwerpen |
 | `dm-state.json` | groepen, zichtbaarheid, playerProfiles, playerItems, combat, tempel-config, … |
-| `archief.json` | documenten, logEntries, sessieLog, brieven, aanplakbord, kampvuren |
+| `archief.json` | documenten, logEntries, sessieLog, brieven, aanplakbord, kampvuren, trofeeen |
 | `combat.json` | actief gevecht, combatants |
 | `map.json` | kaartpins |
 | `monsters.json` | monster-statblokken |
@@ -477,6 +477,28 @@ Testlogin: `window.app.testLogin()` → Test McTestface (groep 3, wachtwoord in 
       "Herlaadt bij korte rust" naar max
 - [ ] Lange rust: helft van de Hit Dice terug (min. 1) en shortRest-items laden óók (was een gat)
 - [ ] Herladen tijdens adempauze → overlay komt terug (GET /shortrest)
+
+### Trofeeënwand (herberg) — 11 juni 2026
+- [ ] Herberg: knop "Trofeeënwand" naast het Aanplakbord; klik → donkere wand met haardgloed
+- [ ] Gevecht winnen (alle monsters 0 HP) + gevecht opruimen → verslagen monsters verschijnen
+      als plaquettes (zelfde naam = één plaquette met ×N)
+- [ ] Verloren/afgebroken gevecht → géén trofeeën
+- [ ] Plaquette: monsterportret (of schedel), koperen naamplaat, akte + datum; klik → groot detail
+- [ ] DM: trofee verwijderen (met bevestiging) en handmatig toevoegen uit het bestiarium
+- [ ] Per groep: andere groep ziet eigen wand
+
+### Buit (loot-verdeler) — 11 juni 2026
+- [ ] DM: pakket-knop in regie-balk én in Gevecht-tab → Rust & buit; opent composer
+      (regels: voorwerp/aantal/info + munten FL/KN/CL)
+- [ ] "Open de buit" → spelers van de actieve groep krijgen de buit-overlay live
+- [ ] Speler claimt item → claim-chip live bij iedereen; "teruggeven"-knopje (−) werkt;
+      op = "vergeven"
+- [ ] Claims zijn reserveringen: vóór sluiten staat er níéts in de Boedel
+- [ ] DM "Verdeel en sluit" (met bevestiging) → geclaimde items in Boedel van de claimers,
+      munten gelijk verdeeld (rest blijft bij de DM), overlay sluit bij iedereen
+- [ ] DM "Annuleer" → niets uitgedeeld
+- [ ] Herladen tijdens open buit → overlay komt terug (GET /buit)
+- [ ] DM-knop bij lopende buit → heropent de overlay i.p.v. een nieuwe composer
 
 ### Kroniek (logboek-leesmodus) — 11 juni 2026
 - [ ] Logboek-dropdown: item "Kroniek" tussen Logboek en Kaarten

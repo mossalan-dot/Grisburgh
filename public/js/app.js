@@ -1,4 +1,4 @@
-import { api } from './api.js?v=236';
+import { api } from './api.js?v=237';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=94";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=43";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=8';
@@ -7,8 +7,8 @@ import { renderRelatiemap } from './render-relatiemap.js?v=13';
 import { renderProgressie } from './render-progressie.js?v=34';
 import { renderBestiarium } from './render-bestiarium.js?v=11';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=36";
-import { initDmPanel } from "./dm-panel.js?v=89";
+import { initSocket } from "./socket-client.js?v=37";
+import { initDmPanel } from "./dm-panel.js?v=90";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -8483,11 +8483,12 @@ async function init() {
 
   renderParty();
 
-  // Brandend kampvuur of lopende adempauze herstellen na herladen
-  // (speler: eigen groep; DM: actieve groep)
+  // Brandend kampvuur, lopende adempauze of openstaande buit herstellen na
+  // herladen (speler: eigen groep; DM: actieve groep)
   if (state.characterId || state.role === 'dm') {
     window._kampvuurRestore();
     window._shortRestRestore();
+    window._buitRestore();
   }
 
   const hashSection   = location.hash.replace('#', '');
@@ -8727,10 +8728,16 @@ async function renderHerberg() {
         }
         <div id="herberg-antwoord" class="herberg-antwoord hidden"></div>
 
-        <button class="aanplakbord-link" onclick="window._herbergBord()" title="Bekijk het aanplakbord">
-          ${icon('pin')} <span>Aanplakbord</span>
-          <span class="aanplakbord-link-sub">bekijk de berichten aan het bord</span>
-        </button>
+        <div class="herberg-links-rij">
+          <button class="aanplakbord-link" onclick="window._herbergBord()" title="Bekijk het aanplakbord">
+            ${icon('pin')} <span>Aanplakbord</span>
+            <span class="aanplakbord-link-sub">berichten aan het bord</span>
+          </button>
+          <button class="aanplakbord-link" onclick="window._herbergTrofeeen()" title="Bekijk de trofeeënwand">
+            ${icon('skull')} <span>Trofeeënwand</span>
+            <span class="aanplakbord-link-sub">de roem van de party</span>
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -8816,6 +8823,112 @@ window._bordPoster = function(id) {
     </div>`;
   ov.addEventListener('click', () => ov.remove());
   document.body.appendChild(ov);
+};
+
+// ── Trofeeënwand (in de herberg) ──
+// Verslagen monsters uit gewonnen gevechten hangen als trofee boven de haard.
+// Automatisch gevuld bij het opruimen van een gewonnen gevecht; DM kan
+// toevoegen en verwijderen, spelers kijken alleen.
+
+let _trofeeLijst = [];
+
+window._herbergTrofeeen = async function() {
+  const el = document.getElementById('section-herberg');
+  if (!el) return;
+
+  try { _trofeeLijst = (await api.getTrofeeen()).trofeeen || []; } catch { _trofeeLijst = []; }
+  const isDm = window.app?.isDM?.();
+  const hk = window.app?.state?.meta?.hoofdstukken || {};
+
+  let monsterOpties = '';
+  if (isDm) {
+    try {
+      const md = await api.listMonsters();
+      const monsters = (md?.monsters || []).slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl'));
+      monsterOpties = monsters.map(m => `<option value="${esc(m.id)}">${esc(m.name || '?')}</option>`).join('');
+    } catch { /* geen bestiarium */ }
+  }
+
+  const plaque = (t) => {
+    const akte = t.hoofdstuk && hk[t.hoofdstuk] ? hk[t.hoofdstuk].short : '';
+    const datum = t.datum ? new Date(t.datum).toLocaleDateString('nl-NL') : '';
+    return `
+      <button class="trofee-plaque" onclick="window._trofeeDetail('${esc(t.id)}')">
+        ${isDm ? `<span class="trofee-del" onclick="event.stopPropagation();window._trofeeVerwijder('${esc(t.id)}')" title="Verwijderen">${icon('x')}</span>` : ''}
+        <span class="trofee-kop-wrap">
+          ${t.imageId
+            ? `<img class="trofee-kop" src="${api.thumbUrl(t.imageId)}" alt="" onerror="this.outerHTML='<span class=\\'trofee-kop trofee-kop--leeg\\'>'+window.icon('skull')+'</span>'">`
+            : `<span class="trofee-kop trofee-kop--leeg">${icon('skull')}</span>`}
+          ${(t.aantal || 1) > 1 ? `<span class="trofee-aantal">×${esc(String(t.aantal))}</span>` : ''}
+        </span>
+        <span class="trofee-naamplaat">${esc(t.naam)}</span>
+        ${(akte || datum) ? `<span class="trofee-meta">${esc([akte, datum].filter(Boolean).join(' · '))}</span>` : ''}
+      </button>`;
+  };
+
+  el.innerHTML = `
+    <div class="herberg-scene aanplakbord-scene" id="trofeewand-scene">
+      <div class="herberg-content aanplakbord-content">
+        <div class="tempel-interior-topbar">
+          <button class="tempel-terug-btn" onclick="window.app.refreshSection('herberg')">${icon('chevron-left')} Terug</button>
+          ${_helpBtn('herberg')}
+        </div>
+        <div class="aanplakbord-kop">${icon('skull')} De trofeeënwand</div>
+        <p class="aanplakbord-sub">Boven de haard hangt de roem van de party.</p>
+        <div class="trofeewand">
+          <div class="trofeewand-haardgloed"></div>
+          ${_trofeeLijst.length === 0
+            ? `<p class="aanplakbord-leeg">De wand is nog kaal. Roem wacht op de dapperen…</p>`
+            : _trofeeLijst.map(plaque).join('')}
+        </div>
+        ${isDm ? `
+          <div class="trofeewand-dm-rij dm-only">
+            <select id="trofee-monster-select" class="dm-select" style="max-width:220px">
+              <option value="">— Monster uit het bestiarium —</option>
+              ${monsterOpties}
+            </select>
+            <button class="dm-btn dm-btn-ghost" onclick="window._trofeeToevoegen()" title="Trofee ophangen">${icon('plus')}</button>
+          </div>` : ''}
+      </div>
+    </div>
+  `;
+};
+
+window._trofeeDetail = function(id) {
+  const t = _trofeeLijst.find(x => x.id === id);
+  if (!t) return;
+  const hk = window.app?.state?.meta?.hoofdstukken || {};
+  const akte = t.hoofdstuk && hk[t.hoofdstuk] ? `Akte ${hk[t.hoofdstuk].num}: ${hk[t.hoofdstuk].title}` : '';
+  const datum = t.datum ? new Date(t.datum).toLocaleDateString('nl-NL') : '';
+  document.getElementById('trofee-detail')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'trofee-detail';
+  ov.className = 'aanplakbord-detail-overlay';
+  ov.innerHTML = `
+    <div class="trofee-detail-kaart">
+      ${t.imageId
+        ? `<img class="trofee-detail-img" src="${api.fileUrl(t.imageId)}" alt="">`
+        : `<span class="trofee-kop trofee-kop--leeg trofee-detail-leeg">${icon('skull')}</span>`}
+      <div class="trofee-detail-naam">${esc(t.naam)}${(t.aantal || 1) > 1 ? ` <span class="trofee-aantal">×${esc(String(t.aantal))}</span>` : ''}</div>
+      ${akte ? `<div class="trofee-detail-meta">${esc(akte)}</div>` : ''}
+      ${datum ? `<div class="trofee-detail-meta">Geveld op ${esc(datum)}</div>` : ''}
+      <div class="aanplakbord-detail-hint">klik om terug te hangen</div>
+    </div>`;
+  ov.addEventListener('click', () => ov.remove());
+  document.body.appendChild(ov);
+};
+
+window._trofeeVerwijder = async function(id) {
+  const t = _trofeeLijst.find(x => x.id === id);
+  if (!confirm(`Trofee "${t?.naam || id}" van de wand halen?`)) return;
+  try { await api.deleteTrofee(id); await window._herbergTrofeeen(); } catch { /* socket ververst */ }
+};
+
+window._trofeeToevoegen = async function() {
+  const sel = document.getElementById('trofee-monster-select');
+  if (!sel?.value) return;
+  try { await api.createTrofee({ monsterId: sel.value }); await window._herbergTrofeeen(); }
+  catch (err) { alert('Toevoegen mislukt: ' + (err?.message || '?')); }
 };
 
 // ── Kampvuurmodus (lange rust) ──
@@ -9120,6 +9233,214 @@ window._shortRestRestore = async function() {
       _shortRestToon(st.bestedingen || []);
     }
   } catch { /* geen rust */ }
+};
+
+// ── Buit (loot-verdeler) ──
+// De DM stelt na een encounter een buit samen; spelers claimen items als
+// reservering. Pas bij "Verdeel en sluit" gaan items naar de Boedel en wordt
+// het muntgeld gelijk verdeeld.
+
+let _buitItems = [];
+let _buitMunten = { fl: 0, kn: 0, cl: 0 };
+
+window._buitSync = function(data) {
+  if (!data) return;
+  if (!window.app?.isDM?.() && data.groepId && window._myGroupId && data.groepId !== window._myGroupId) return;
+  if (data.actief) _buitToon(data);
+  else _buitDoof();
+};
+
+function _buitMuntenTekst(m) {
+  const delen = [];
+  if (m.fl) delen.push(`${m.fl} FL`);
+  if (m.kn) delen.push(`${m.kn} KN`);
+  if (m.cl) delen.push(`${m.cl} CL`);
+  return delen.join(' · ');
+}
+
+function _buitItemHtml(item) {
+  const geclaimd = (item.claims || []).reduce((s, c) => s + (c.aantal || 0), 0);
+  const over = item.aantal - geclaimd;
+  const isDm = window.app?.isDM?.();
+  const eigen = (item.claims || []).find(c => c.characterId === state.characterId);
+  return `
+    <div class="buit-item">
+      <div class="buit-item-info">
+        <span class="buit-item-naam">${esc(item.naam)}${item.aantal > 1 ? ` <span class="buit-item-aantal">${over}/${item.aantal} over</span>` : ''}</span>
+        ${item.info ? `<span class="buit-item-detail">${esc(item.info)}</span>` : ''}
+        ${(item.claims || []).length ? `<span class="buit-item-claims">${item.claims.map(c =>
+          `<span class="buit-claim-chip">${esc(c.naam)}${c.aantal > 1 ? ` ×${c.aantal}` : ''}</span>`).join('')}</span>` : ''}
+      </div>
+      <div class="buit-item-acties">
+        ${!isDm && state.characterId && over > 0 ? `<button class="buit-claim-btn" onclick="window._buitClaim('${esc(item.id)}')">Claim</button>` : ''}
+        ${!isDm && eigen ? `<button class="buit-herstel-btn" onclick="window._buitHerstel('${esc(item.id)}')" title="Leg terug">${icon('minus')}</button>` : ''}
+        ${!isDm && over <= 0 && !eigen ? `<span class="buit-vergeven">vergeven</span>` : ''}
+      </div>
+    </div>`;
+}
+
+function _buitVoetHtml() {
+  if (!window.app?.isDM?.()) {
+    return `<p class="kampvuur-hint">De DM verdeelt de buit zodra iedereen gekozen heeft.</p>`;
+  }
+  return `
+    <div class="buit-dm-rij">
+      <button class="kampvuur-deel-btn" onclick="window._dmBuitSluit()">${icon('coins')} Verdeel en sluit</button>
+      <button class="kampvuur-doof-btn" onclick="window._dmBuitAnnuleer()">${icon('x')} Annuleer</button>
+    </div>
+    <p class="kampvuur-hint">Sluiten geeft geclaimde items aan de spelers en verdeelt de munten gelijk.</p>`;
+}
+
+function _buitToon(data) {
+  _buitItems = data.items || [];
+  _buitMunten = data.munten || { fl: 0, kn: 0, cl: 0 };
+  const muntenTekst = _buitMuntenTekst(_buitMunten);
+  let ov = document.getElementById('buit-overlay');
+  const inhoud = `
+    ${muntenTekst ? `<div class="buit-munten">${icon('coins')} In de pot: <strong>${muntenTekst}</strong> <span class="buit-munten-sub">— wordt gelijk verdeeld</span></div>` : ''}
+    <div class="buit-lijst">${_buitItems.length ? _buitItems.map(_buitItemHtml).join('') : '<p class="aanplakbord-leeg">Alleen muntgeld in deze buit.</p>'}</div>`;
+  if (ov) {
+    const c = ov.querySelector('#buit-inhoud');
+    if (c) c.innerHTML = inhoud;
+    return;
+  }
+  document.getElementById('buit-ember')?.remove();
+  ov = document.createElement('div');
+  ov.id = 'buit-overlay';
+  ov.className = 'buit-overlay';
+  ov.innerHTML = `
+    <div class="buit-achtergrond"></div>
+    <button class="kampvuur-min-btn" onclick="window._buitMin()" title="Even opzij leggen">${icon('minus')}</button>
+    <div class="kampvuur-kop">${icon('package')} De buit wordt verdeeld</div>
+    <p class="shortrest-sub">Kies wat je meeneemt — wees hoffelijk tegenover je reisgenoten.</p>
+    <div class="buit-paneel" id="buit-inhoud">${inhoud}</div>
+    <div class="kampvuur-voet">${_buitVoetHtml()}</div>`;
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add('buit-overlay--aan'));
+}
+
+function _buitDoof() {
+  _buitItems = [];
+  document.getElementById('buit-ember')?.remove();
+  document.getElementById('buit-composer')?.remove();
+  const ov = document.getElementById('buit-overlay');
+  if (!ov) return;
+  ov.classList.add('buit-overlay--uit');
+  setTimeout(() => ov.remove(), 700);
+}
+
+window._buitClaim   = async function(itemId) {
+  try { await api.buitClaim(itemId); } catch (err) { alert(err?.message || 'Claimen mislukte'); }
+};
+window._buitHerstel = async function(itemId) {
+  try { await api.buitHerstel(itemId); } catch { /* socket ververst */ }
+};
+
+window._buitMin = function() {
+  const ov = document.getElementById('buit-overlay');
+  if (!ov) return;
+  ov.classList.add('buit-overlay--min');
+  if (!document.getElementById('buit-ember')) {
+    const ember = document.createElement('button');
+    ember.id = 'buit-ember';
+    ember.className = 'kampvuur-ember kampvuur-ember--buit';
+    ember.title = 'Terug naar de buit';
+    ember.innerHTML = icon('package');
+    ember.onclick = () => {
+      document.getElementById('buit-overlay')?.classList.remove('buit-overlay--min');
+      ember.remove();
+    };
+    document.body.appendChild(ember);
+  }
+};
+
+// DM: samenstellen en starten
+window._dmBuitKnop = async function() {
+  try {
+    const st = await api.getBuit();
+    if (st?.actief) {
+      // Buit loopt al → overlay (terug) tonen
+      document.getElementById('buit-ember')?.remove();
+      document.getElementById('buit-overlay')?.classList.remove('buit-overlay--min');
+      window._buitSync(st);
+      return;
+    }
+  } catch { /* geen buit */ }
+  window._dmBuitOpen();
+};
+
+window._dmBuitOpen = function() {
+  document.getElementById('buit-composer')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'buit-composer';
+  ov.className = 'aanplakbord-detail-overlay';
+  const rij = () => `
+    <div class="buit-comp-rij">
+      <input class="buit-comp-naam dm-input" placeholder="Voorwerp (bv. Zilveren dolk)" maxlength="120">
+      <input class="buit-comp-aantal dm-input" type="number" min="1" max="99" value="1" title="Aantal">
+      <input class="buit-comp-info dm-input" placeholder="Bijzonderheden (optioneel)" maxlength="500">
+    </div>`;
+  ov.innerHTML = `
+    <div class="buit-composer-kaart" onclick="event.stopPropagation()">
+      <div class="buit-composer-kop">${icon('package')} Buit samenstellen</div>
+      <div id="buit-comp-rijen">${rij()}${rij()}${rij()}</div>
+      <button class="dm-btn dm-btn-ghost" id="buit-comp-meer">${icon('plus')} Regel erbij</button>
+      <div class="buit-comp-munten">
+        <span class="buit-comp-munt-label">${icon('coins')} Munten:</span>
+        <input id="buit-comp-fl" class="dm-input" type="number" min="0" value="0" title="Florijnen"> FL
+        <input id="buit-comp-kn" class="dm-input" type="number" min="0" value="0" title="Knopen"> KN
+        <input id="buit-comp-cl" class="dm-input" type="number" min="0" value="0" title="Centen"> CL
+      </div>
+      <div class="buit-dm-rij">
+        <button class="kampvuur-deel-btn" id="buit-comp-start">${icon('package')} Open de buit</button>
+        <button class="kampvuur-doof-btn" id="buit-comp-sluit">${icon('x')} Sluiten</button>
+      </div>
+      <span id="buit-comp-fout" class="kampvuur-fout"></span>
+    </div>`;
+  ov.addEventListener('click', () => ov.remove());
+  document.body.appendChild(ov);
+  document.getElementById('buit-comp-meer').onclick = () => {
+    document.getElementById('buit-comp-rijen').insertAdjacentHTML('beforeend', rij());
+  };
+  document.getElementById('buit-comp-sluit').onclick = () => ov.remove();
+  document.getElementById('buit-comp-start').onclick = async () => {
+    const items = Array.from(ov.querySelectorAll('.buit-comp-rij')).map(r => ({
+      naam:   r.querySelector('.buit-comp-naam')?.value || '',
+      aantal: r.querySelector('.buit-comp-aantal')?.value || 1,
+      info:   r.querySelector('.buit-comp-info')?.value || '',
+    })).filter(i => i.naam.trim());
+    const munten = {
+      fl: document.getElementById('buit-comp-fl')?.value || 0,
+      kn: document.getElementById('buit-comp-kn')?.value || 0,
+      cl: document.getElementById('buit-comp-cl')?.value || 0,
+    };
+    try {
+      await api.buitStart({ items, munten });
+      ov.remove();
+    } catch (err) {
+      const fout = document.getElementById('buit-comp-fout');
+      if (fout) fout.textContent = err?.message || 'Starten mislukte';
+    }
+  };
+};
+
+window._dmBuitSluit = async function() {
+  const claims = _buitItems.reduce((s, i) => s + (i.claims || []).length, 0);
+  if (!confirm(`Buit verdelen en sluiten? ${claims ? 'Geclaimde items gaan definitief naar de spelers' : 'Er is nog niets geclaimd'}${_buitMuntenTekst(_buitMunten) ? ' en de munten worden gelijk verdeeld' : ''}.`)) return;
+  try { await api.buitSluit(); } catch (err) { alert(err?.message || 'Sluiten mislukte'); }
+};
+
+window._dmBuitAnnuleer = async function() {
+  if (!confirm('Buit annuleren? Niets wordt uitgedeeld.')) return;
+  try { await api.buitAnnuleer(); } catch { /* socket ruimt op */ }
+};
+
+// Bij (her)laden: openstaande buit van de eigen groep herstellen
+window._buitRestore = async function() {
+  try {
+    const st = await api.getBuit();
+    if (st?.actief) window._buitSync(st);
+  } catch { /* geen buit */ }
 };
 
 window._getExtraSpeedsFromDOM = function() {

@@ -323,6 +323,16 @@ export function initSocket() {
     window._shortRestSync?.(data);
   });
 
+  // Trofeeënwand bijgewerkt → her-render als die open staat
+  socket.on('trofeeen:updated', () => {
+    if (document.getElementById('trofeewand-scene')) window._herbergTrofeeen?.();
+  });
+
+  // Buit gestart/geclaimd/gesloten → overlay synchroniseren
+  socket.on('buit:update', (data) => {
+    window._buitSync?.(data);
+  });
+
   socket.on('entity:deceased', ({ id, type, name } = {}) => {
     // Herlaad de huidige sectie zodat het kaartje meteen grijs wordt
     const section = window.app.state.activeSection;
