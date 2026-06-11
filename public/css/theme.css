@@ -19437,3 +19437,212 @@ body.kaart-fs-active { overflow: hidden; }
   .kampvuur-ember, .kampvuur-quote { animation: none; }
   .kampvuur-quote { opacity: 1; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KORTE RUST — adempauze met Hit Dice (zusje van de kampvuurmodus)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.shortrest-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9979; /* net onder het kampvuur — die wint als beide ooit samenvallen */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 24px 16px 28px;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+  overflow: hidden;
+}
+.shortrest-overlay--aan { opacity: 1; }
+.shortrest-overlay--uit { opacity: 0; }
+.shortrest-overlay--min { display: none; }
+
+/* Warm middaglicht: gouden lucht, lage zon, zwevend stof */
+.shortrest-lucht {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 140% 80% at 50% 115%, rgba(170,110,40,0.5), transparent 60%),
+    linear-gradient(to bottom, #2c2416 0%, #4a3a1e 45%, #6a5226 75%, #8a6c30 100%);
+}
+.shortrest-zon {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  width: 140px;
+  height: 140px;
+  margin-left: -70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,225,150,0.85) 0%, rgba(255,195,100,0.4) 45%, transparent 70%);
+  animation: sr-zon 6s ease-in-out infinite alternate;
+}
+@keyframes sr-zon { from { opacity: 0.75; } to { opacity: 1; } }
+.sr-pluis {
+  position: absolute;
+  bottom: 18%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255,235,180,0.7);
+  box-shadow: 0 0 5px 1px rgba(255,225,160,0.5);
+  opacity: 0;
+  animation: sr-pluis 7s linear infinite;
+}
+.sr-pluis-1 { left: 22%; animation-delay: 0s;   --sr-drift: 34px; }
+.sr-pluis-2 { left: 38%; animation-delay: 1.6s; --sr-drift: -26px; }
+.sr-pluis-3 { left: 55%; animation-delay: 3.1s; --sr-drift: 20px; }
+.sr-pluis-4 { left: 68%; animation-delay: 4.4s; --sr-drift: -38px; }
+.sr-pluis-5 { left: 81%; animation-delay: 5.8s; --sr-drift: 24px; }
+@keyframes sr-pluis {
+  0%   { opacity: 0; transform: translate(0, 0); }
+  10%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--sr-drift, 0px), -46vh); }
+}
+
+.shortrest-sub {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.92rem;
+  color: rgba(245,230,195,0.75);
+  margin: -4px 0 12px;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+}
+
+/* Bestedingenlijst */
+.shortrest-lijst {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(520px, 92vw);
+  max-height: 30vh;
+  overflow-y: auto;
+  margin-bottom: 14px;
+  scrollbar-width: thin;
+}
+.shortrest-leeg {
+  text-align: center;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.88rem;
+  color: rgba(240,222,180,0.55);
+}
+.shortrest-regel {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: rgba(30,20,6,0.6);
+  border: 1px solid rgba(212,168,80,0.3);
+  animation: kv-quote-in 0.6s ease both;
+}
+.shortrest-regel-naam {
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: rgba(245,228,190,0.95);
+}
+.shortrest-regel-tekst {
+  flex: 1;
+  font-family: 'Crimson Text', serif;
+  font-size: 0.85rem;
+  color: rgba(235,215,175,0.7);
+}
+.shortrest-regel-hp {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #8fd08a;
+}
+
+/* HP-balk + Hit Dice */
+.shortrest-hp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+.shortrest-hp-balk {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(15,8,2,0.7);
+  border: 1px solid rgba(212,168,80,0.35);
+  overflow: hidden;
+}
+.shortrest-hp-vulling {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(to right, #6a9a4a, #8fd08a);
+  transition: width 0.6s ease;
+}
+.shortrest-hp-tekst {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: rgba(245,228,190,0.9);
+  white-space: nowrap;
+}
+.shortrest-hd {
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: rgba(245,228,190,0.9);
+  margin-bottom: 10px;
+}
+.shortrest-hd-dots {
+  letter-spacing: 0.18em;
+  color: #e0b050;
+  margin: 0 4px;
+}
+.shortrest-hd-die {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  opacity: 0.75;
+}
+
+/* Invoer */
+.shortrest-uitleg {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.9rem;
+  color: rgba(240,222,185,0.85);
+  margin: 0;
+}
+.shortrest-invoer-rij {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  justify-content: center;
+}
+.shortrest-input {
+  width: 86px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(20,12,4,0.75);
+  border: 1px solid rgba(212,168,80,0.4);
+  color: rgba(245,228,190,0.95);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.05rem;
+  text-align: center;
+}
+.shortrest-input:focus {
+  outline: none;
+  border-color: rgba(255,200,90,0.7);
+  box-shadow: 0 0 12px rgba(255,190,70,0.2);
+}
+
+/* Sluimerknopje in zandloper-tint */
+.kampvuur-ember--sr {
+  border-color: rgba(255,200,90,0.55);
+  background: radial-gradient(circle at 50% 60%, #5a4408, #2a2004);
+  color: #ffd870;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shortrest-zon, .sr-pluis, .shortrest-regel { animation: none; }
+  .shortrest-regel { opacity: 1; }
+}

@@ -1610,7 +1610,7 @@ router.post('/characters/:characterId/long-rest', attachRole, (req, res) => {
     const baseMax = parseInt(item?.data?.maxCharges);
     const effectiveMax = (g.itemMaxCharges?.[characterId]?.[itemId]) ?? baseMax;
     const rechargeOn = item?.data?.rechargeOn || 'longRest';
-    if (effectiveMax > 0 && (rechargeOn === 'longRest' || rechargeOn === 'dawn')) {
+    if (effectiveMax > 0 && (rechargeOn === 'longRest' || rechargeOn === 'dawn' || rechargeOn === 'shortRest')) {
       g.itemCharges[characterId][itemId] = effectiveMax;
     } else if (effectiveMax > 0 && rechargeOn === 'longRestRoll') {
       const rolled = rollDice(item?.data?.rechargeRoll || '1d3');
@@ -1618,6 +1618,15 @@ router.post('/characters/:characterId/long-rest', attachRole, (req, res) => {
       g.itemCharges[characterId][itemId] = Math.min(effectiveMax, current + rolled);
     }
   });
+  // Hit Dice: helft van het maximum terug (2024-regel), minimaal 1
+  {
+    const profile = dmState.playerProfiles?.[characterId] || {};
+    const lvl = parseInt(profile.level ?? profile.klasseLevel, 10);
+    const maxHd = Number.isFinite(lvl) && lvl > 0 ? lvl : 1;
+    if (!dmState.playerHitDice) dmState.playerHitDice = {};
+    const used = dmState.playerHitDice[characterId] || 0;
+    dmState.playerHitDice[characterId] = Math.max(0, used - Math.max(1, Math.floor(maxHd / 2)));
+  }
   // Tempel-zegens vervallen bij een lange rust
   if (dmState.playerItems?.[characterId]?.some(i => i.zegen)) {
     dmState.playerItems[characterId] = dmState.playerItems[characterId].filter(i => !i.zegen);
@@ -1660,6 +1669,16 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     for (const lvl of Object.keys(slots)) {
       slots[lvl].used = 0;
     }
+  });
+
+  // ── 2a. Hit Dice: helft van het maximum terug (2024-regel), minimaal 1 ──
+  if (!dmState.playerHitDice) dmState.playerHitDice = {};
+  spelers.forEach(char => {
+    const profile = dmState.playerProfiles?.[char.id] || {};
+    const lvl = parseInt(profile.level ?? profile.klasseLevel, 10);
+    const maxHd = Number.isFinite(lvl) && lvl > 0 ? lvl : 1;
+    const used = dmState.playerHitDice[char.id] || 0;
+    dmState.playerHitDice[char.id] = Math.max(0, used - Math.max(1, Math.floor(maxHd / 2)));
   });
 
   // ── 2b. Tempel-zegens vervallen ──
@@ -1715,7 +1734,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       const baseMax = parseInt(item?.data?.maxCharges);
       const effectiveMax = (g.itemMaxCharges?.[cid]?.[itemId]) ?? baseMax;
       const rechargeOn = item?.data?.rechargeOn || 'longRest';
-      if (effectiveMax > 0 && (rechargeOn === 'longRest' || rechargeOn === 'dawn')) {
+      if (effectiveMax > 0 && (rechargeOn === 'longRest' || rechargeOn === 'dawn' || rechargeOn === 'shortRest')) {
         g.itemCharges[cid][itemId] = effectiveMax; resetCount++;
       } else if (effectiveMax > 0 && rechargeOn === 'longRestRoll') {
         const rolled = rollDice(item?.data?.rechargeRoll || '1d3');
@@ -3479,6 +3498,170 @@ router.post('/kampvuur/quote', attachRole, (req, res) => {
   storage.writeJSON('archief.json', archief);
   _kampvuurEmit(req, gid, true, entry.quotes);
   res.json({ ok: true });
+});
+
+// ── Korte rust (short rest met Hit Dice) ──
+// De DM start een adempauze voor een groep; spelers besteden Hit Dice door hun
+// fysieke worp (d{X} + CON) in te vullen. HP en verbruik leven in dm-state
+// (playerHp / playerHitDice); bestedingen zijn per rust (groups[gid].shortRest).
+
+function _hitDieMax(profile) {
+  const expl = parseInt(String(profile?.hitDie || '').replace(/\D/g, ''), 10);
+  if (expl >= 4 && expl <= 12) return expl;
+  const klasse = String(profile?.klasse || profile?.multiKlasse || '');
+  if (/barbar/i.test(klasse)) return 12;
+  if (/fighter|paladin|ranger/i.test(klasse)) return 10;
+  if (/sorcerer|wizard/i.test(klasse)) return 6;
+  return 8; // bard, cleric, druid, monk, rogue, warlock, artificer
+}
+function _conModVan(profile) {
+  const con = parseInt(profile?.con, 10);
+  return Number.isFinite(con) ? Math.floor((con - 10) / 2) : 0;
+}
+function _hdNiveau(profile) {
+  const lvl = parseInt(profile?.level ?? profile?.klasseLevel, 10);
+  return Number.isFinite(lvl) && lvl > 0 ? lvl : 1;
+}
+function _shortRestEmit(req, groepId, actief, bestedingen) {
+  req.app.get('io').to(req.session?.campaignId||'main')
+    .emit('shortrest:update', { groepId, actief, bestedingen: bestedingen || [] });
+}
+
+router.get('/shortrest', attachRole, (req, res) => {
+  const dmState = readDmState();
+  const gid = req.role === 'dm'
+    ? dmState.activeGroup
+    : _playerGroupId(dmState, req.session?.characterId);
+  const sr = gid ? dmState.groups?.[gid]?.shortRest : null;
+  const out = { actief: !!sr?.actief, groepId: gid, bestedingen: sr?.bestedingen || [] };
+  if (req.role !== 'dm' && req.session?.characterId) {
+    const cid     = req.session.characterId;
+    const profile = dmState.playerProfiles?.[cid] || {};
+    const level   = _hdNiveau(profile);
+    const used    = dmState.playerHitDice?.[cid] || 0;
+    out.mijn = {
+      hitDie:      _hitDieMax(profile),
+      conMod:      _conModVan(profile),
+      level,
+      beschikbaar: Math.max(0, level - used),
+      hp:          dmState.playerHp?.[cid] || { current: null, max: null },
+    };
+  }
+  res.json(out);
+});
+
+router.post('/shortrest/start', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = (req.body?.groepId && dmState.groups?.[req.body.groepId])
+    ? req.body.groepId
+    : dmState.activeGroup;
+  if (!gid || !dmState.groups?.[gid]) return res.status(400).json({ error: 'Geen actieve groep' });
+  if (dmState.groups[gid].shortRest?.actief) return res.json({ ok: true, alActief: true });
+  dmState.groups[gid].shortRest = { actief: true, gestart: new Date().toISOString(), bestedingen: [] };
+  storage.writeJSON('dm-state.json', dmState);
+  _shortRestEmit(req, gid, true, []);
+  res.json({ ok: true });
+});
+
+router.post('/shortrest/stop', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = (req.body?.groepId && dmState.groups?.[req.body.groepId])
+    ? req.body.groepId
+    : dmState.activeGroup;
+  const sr = gid ? dmState.groups?.[gid]?.shortRest : null;
+  if (!sr?.actief) return res.json({ ok: true });
+
+  let entities = {};
+  try { entities = storage.readJSON('entities.json'); } catch { /* ok */ }
+  const spelers = (entities.personages || []).filter(
+    e => e.subtype === 'speler' && e.data?.groep === gid
+  );
+  const io = req.app.get('io');
+  const g = dmState.groups[gid];
+
+  // Warlock: Pact Magic-slots herstellen bij een korte rust
+  let warlocks = 0;
+  spelers.forEach(char => {
+    const profile = dmState.playerProfiles?.[char.id] || {};
+    const klasse = `${profile.klasse || ''} ${profile.multiKlasse || ''}`;
+    if (!/warlock/i.test(klasse)) return;
+    const slots = dmState.playerSpellSlots?.[char.id];
+    if (!slots) return;
+    for (const lvl of Object.keys(slots)) slots[lvl].used = 0;
+    warlocks++;
+  });
+
+  // Items met rechargeOn 'shortRest' → charges naar max
+  let chargesHersteld = 0;
+  if (!g.itemCharges) g.itemCharges = {};
+  spelers.forEach(char => {
+    const cid = char.id;
+    if (!g.itemCharges[cid]) g.itemCharges[cid] = {};
+    Object.keys(g.itemOwners || {}).forEach(itemId => {
+      const owners = g.itemOwners[itemId];
+      const isOwned = Array.isArray(owners)
+        ? owners.some(o => o.characterId === cid)
+        : owners?.characterId === cid;
+      if (!isOwned) return;
+      const item = (entities.voorwerpen || []).find(e => e.id === itemId);
+      if (item?.data?.rechargeOn !== 'shortRest') return;
+      const baseMax = parseInt(item?.data?.maxCharges);
+      const effectiveMax = (g.itemMaxCharges?.[cid]?.[itemId]) ?? baseMax;
+      if (effectiveMax > 0 && g.itemCharges[cid][itemId] !== effectiveMax) {
+        g.itemCharges[cid][itemId] = effectiveMax;
+        chargesHersteld++;
+      }
+    });
+  });
+
+  g.shortRest = { actief: false };
+  storage.writeJSON('dm-state.json', dmState);
+  _shortRestEmit(req, gid, false);
+  if (io && (warlocks || chargesHersteld)) io.to(req.session?.campaignId||'main').emit('player:items-updated', {});
+  res.json({ ok: true, warlocks, chargesHersteld });
+});
+
+router.post('/shortrest/hitdie', attachRole, (req, res) => {
+  const cid = req.session.characterId;
+  if (!cid) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+  const uitkomst = parseInt(req.body?.uitkomst, 10);
+  if (!Number.isFinite(uitkomst) || uitkomst < 0 || uitkomst > 50)
+    return res.status(400).json({ error: 'Vul de uitkomst van je worp in (0–50)' });
+
+  const dmState = readDmState();
+  const gid = _playerGroupId(dmState, cid);
+  const sr = gid ? dmState.groups?.[gid]?.shortRest : null;
+  if (!sr?.actief) return res.status(400).json({ error: 'Er is geen korte rust gaande' });
+
+  const profile = dmState.playerProfiles?.[cid] || {};
+  const level   = _hdNiveau(profile);
+  if (!dmState.playerHitDice) dmState.playerHitDice = {};
+  const used = dmState.playerHitDice[cid] || 0;
+  if (used >= level) return res.status(400).json({ error: 'Je hebt geen Hit Dice meer over' });
+
+  // HP bijwerken (alleen als er HP-administratie is)
+  let hp = dmState.playerHp?.[cid] || null;
+  if (hp && hp.max != null) {
+    const huidig = hp.current ?? hp.max;
+    hp = { current: Math.min(hp.max, huidig + uitkomst), max: hp.max };
+    dmState.playerHp[cid] = hp;
+    req.app.get('io').to(req.session?.campaignId||'main')
+      .emit('player:hp-updated', { characterId: cid, ...hp });
+  }
+  dmState.playerHitDice[cid] = used + 1;
+
+  const char = (storage.readJSON('entities.json').personages || []).find(e => e.id === cid);
+  if (!sr.bestedingen) sr.bestedingen = [];
+  sr.bestedingen.push({
+    characterId: cid,
+    naam:        char?.name || 'Onbekende avonturier',
+    uitkomst,
+    hpNa:        hp?.current ?? null,
+    tijd:        new Date().toISOString(),
+  });
+  storage.writeJSON('dm-state.json', dmState);
+  _shortRestEmit(req, gid, true, sr.bestedingen);
+  res.json({ ok: true, beschikbaar: Math.max(0, level - (used + 1)), hp });
 });
 
 // ── Files ──
