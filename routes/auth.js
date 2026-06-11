@@ -21,9 +21,13 @@ router.post('/login', (req, res) => {
 
 // ── Tablet login ──
 // Alleen wachtwoordcontrole — geen sessierol-wijziging.
+// Zonder TABLET_PASSWORD in de omgeving is tablet-login uitgeschakeld.
 router.post('/tablet-login', (req, res) => {
   const { password } = req.body;
-  if (password === config.tabletPassword) {
+  if (!config.tabletPassword) {
+    return res.status(403).json({ error: 'Tablet-login is niet geconfigureerd' });
+  }
+  if (typeof password === 'string' && password === config.tabletPassword) {
     return res.json({ ok: true });
   }
   res.status(401).json({ error: 'Verkeerd wachtwoord' });
@@ -134,8 +138,9 @@ router.post('/player-login', (req, res) => {
     }
   };
   // Als sessie in sandbox zit, eerst uit sandbox-context stappen
+  // (naar de actieve hoofdcampagne, niet hardcoded grisburgh)
   if (req.session?.campaignId && req.session.campaignId !== 'main') {
-    storage.runInCampaign('grisburgh', doLogin);
+    storage.runInCampaign(storage.getActiveCampaignId(), doLogin);
   } else {
     doLogin();
   }
