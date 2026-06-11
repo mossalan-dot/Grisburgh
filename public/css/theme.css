@@ -20094,3 +20094,103 @@ body.kaart-fs-active { overflow: hidden; }
   text-align: center;
 }
 .trofee-detail-boon .icon { width: 14px; height: 14px; color: #e0b050; }
+
+/* ── Jacht-economie: jachtbuit, verkopen, prepareren, geheime boons ── */
+.trofee-boon--geheim {
+  background: rgba(90,58,122,0.22);
+  border-color: rgba(160,110,200,0.45);
+  color: #d8c2ec;
+}
+.trofee-boon--geheim .icon { color: #b48ae0; }
+
+.trofee-jachtbuit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(20,12,4,0.6);
+  border: 1px solid rgba(212,168,80,0.35);
+}
+.trofee-jachtbuit-kop {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #e0b050;
+}
+.trofee-jachtbuit-kop .icon { width: 14px; height: 14px; }
+.trofee-jachtbuit-rij {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(212,168,80,0.15);
+}
+.trofee-jachtbuit-rij:last-of-type { border-bottom: none; }
+.trofee-jachtbuit-naam {
+  font-family: 'Cinzel', serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #f2e2ba;
+}
+.trofee-jachtbuit-hint {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.8rem;
+  color: rgba(235,215,175,0.6);
+  margin: 0;
+}
+
+/* Jachtbuit-rijen in de buit-composer */
+.buit-comp-jacht {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(90,60,20,0.12);
+  border: 1px dashed rgba(140,100,40,0.45);
+}
+.buit-comp-jacht-kop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6a4a14;
+}
+.buit-comp-jacht-kop .icon { width: 13px; height: 13px; }
+.buit-comp-jacht-rij {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  cursor: pointer;
+  font-family: 'Crimson Text', serif;
+  font-size: 0.88rem;
+  color: #3a2a16;
+}
+.buit-comp-jacht-naam { font-weight: 600; flex: 1; }
+.buit-comp-jacht-prijs {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.78rem;
+  color: #7a5408;
+}
+.buit-comp-jacht .buit-herstel-btn {
+  border-color: rgba(140,100,40,0.4);
+  background: rgba(90,60,20,0.1);
+  color: #6a4a14;
+}
+
+.magizoo-prepareer { margin-top: 20px; }

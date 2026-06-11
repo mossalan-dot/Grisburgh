@@ -2429,6 +2429,8 @@ function _renderMonsterEditor(el) {
     inBestiarium: stored.inBestiarium !== false,
     description: stored.description || '',
     roddel: stored.roddel || '',
+    levertTrofee: stored.levertTrofee !== false,
+    trofeePrijs: stored.trofeePrijs ?? 0,
   };
 
   el.innerHTML = `
@@ -2458,6 +2460,18 @@ function _renderMonsterEditor(el) {
           <input type="checkbox" id="dm-mon-inbest"${m.inBestiarium ? ' checked' : ''}>
           <span>Toon in Bestiarium</span>
         </label>
+      </div>
+      <div class="dm-feature-row">
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-checkbox" title="Levert dit wezen na een gewonnen gevecht een trofee op (jachtbuit voor de buit-verdeler)?">
+            <input type="checkbox" id="dm-mon-trofee"${m.levertTrofee ? ' checked' : ''}>
+            <span>Levert trofee</span>
+          </label>
+        </div>
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label" title="Wat de waard van de herberg voor deze trofee betaalt. 0 = geen interesse (alleen prepareren mogelijk).">Trofeewaarde (fl)</label>
+          <input id="dm-mon-trofeeprijs" class="dm-input dm-input-sm" type="number" min="0" value="${m.trofeePrijs}">
+        </div>
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
@@ -2621,7 +2635,9 @@ async function _monsterSave() {
   const inBestiarium = document.getElementById('dm-mon-inbest')?.checked !== false;
   const description = document.getElementById('dm-mon-desc')?.value?.trim() || '';
   const roddel = document.getElementById('dm-mon-roddel')?.value?.trim() || '';
-  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, statblock, inBestiarium, description, roddel };
+  const levertTrofee = document.getElementById('dm-mon-trofee')?.checked !== false;
+  const trofeePrijs = Math.max(0, parseInt(document.getElementById('dm-mon-trofeeprijs')?.value) || 0);
+  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, statblock, inBestiarium, description, roddel, levertTrofee, trofeePrijs };
   try {
     if (_editingMonsterIsNew) {
       const created = await api.createMonster({ id: _editingMonsterId, ...payload });
@@ -4362,6 +4378,10 @@ async function _renderMagizooSettings() {
           <label class="dm-form-label">Cooldown (min)</label>
           <input id="magizoo-cooldown" class="dm-input dm-input-sm" type="number" min="0" value="${config.cooldownMinuten ?? 5}">
         </div>
+        <div class="dm-form-row" style="flex:1">
+          <label class="dm-form-label" title="Wat het prepareren van een jachttrofee kost (geheime boon, onthult via attunement).">Trofee prepareren (fl)</label>
+          <input id="magizoo-trofeeprijs" class="dm-input dm-input-sm" type="number" min="0" value="${config.trofeePrijs ?? 25}">
+        </div>
       </div>
 
       <div class="dm-form-row">
@@ -4416,11 +4436,12 @@ window._magizooSettingsSave = async () => {
   const fl = parseInt(document.getElementById('magizoo-prijs-fl')?.value) || 0;
   const flVol = parseInt(document.getElementById('magizoo-prijsvol-fl')?.value) || 0;
   const cooldownMinuten = parseInt(document.getElementById('magizoo-cooldown')?.value) || 0;
+  const trofeePrijs = Math.max(0, parseInt(document.getElementById('magizoo-trofeeprijs')?.value) || 0);
   const imageId = document.getElementById('magizoo-portret-select')?.value || config.imageId || '';
   const backdropFromSelect = document.getElementById('magizoo-backdrop-select')?.value || null;
   const backdropId = window._magizooBackdropPending || backdropFromSelect || config.backdropId || '';
   try {
-    await api.saveMagizooConfig({ naam, groet, prijs: { fl }, prijsVolledig: { fl: flVol }, cooldownMinuten, imageId, backdropId });
+    await api.saveMagizooConfig({ naam, groet, prijs: { fl }, prijsVolledig: { fl: flVol }, cooldownMinuten, trofeePrijs, imageId, backdropId });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     window._magizooBackdropPending = null;

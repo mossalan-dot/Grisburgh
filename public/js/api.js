@@ -197,6 +197,12 @@ export const api = {
   deleteTrofee: (id)       => request(`/trofeeen/${id}`,           { method: 'DELETE' }),
   draagTrofee:  (id)       => request(`/trofeeen/${id}/draag`,     { method: 'POST',   body: JSON.stringify({}) }),
   legTrofeeAf:  (id)       => request(`/trofeeen/${id}/afleggen`,  { method: 'POST',   body: JSON.stringify({}) }),
+  verkoopTrofee:  (itemId) => request('/trofeeen/verkoop',         { method: 'POST',   body: JSON.stringify({ itemId }) }),
+  prepareerTrofee:(itemId) => request('/trofeeen/prepareer',       { method: 'POST',   body: JSON.stringify({ itemId }) }),
+
+  // Jachtbuit (trofeeën van gewonnen gevechten, voor de buit-verdeler)
+  getJachtbuit:    ()   => request('/jachtbuit'),
+  deleteJachtbuit: (id) => request(`/jachtbuit/${id}`, { method: 'DELETE' }),
 
   // Buit (loot-verdeler)
   getBuit:      ()       => request('/buit'),

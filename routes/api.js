@@ -3628,10 +3628,36 @@ router.post('/shortrest/stop', requireDM, (req, res) => {
     });
   });
 
+  // Attunement: een gedragen, nog niet attuned trofee onthult zijn boon na de rust
+  const room = req.session?.campaignId || 'main';
+  try {
+    const archief = storage.readJSON('archief.json');
+    let veranderd = false;
+    (archief.trofeeen || []).forEach(t => {
+      const dragerId = t.gedragenDoor?.characterId;
+      if (!t.geprepareerd || t.attuned || !dragerId) return;
+      if (!spelers.some(s => s.id === dragerId)) return;
+      t.attuned = true;
+      veranderd = true;
+      const kaart = (dmState.playerItems?.[dragerId] || []).find(i => i.id === `trofee_${t.id}`);
+      if (kaart) {
+        kaart.note = [
+          t.boon || 'Attuned — de werking openbaart zich zodra de magizoöloog zijn aantekeningen afmaakt.',
+          'Afleggen kan bij de Trofeeënwand in de herberg.',
+        ].join('\n');
+        if (io) io.to(room).emit('player:items-updated', { characterId: dragerId, items: dmState.playerItems[dragerId] });
+      }
+    });
+    if (veranderd) {
+      storage.writeJSON('archief.json', archief);
+      if (io) io.to(room).emit('trofeeen:updated');
+    }
+  } catch { /* attunement mag de rust nooit blokkeren */ }
+
   g.shortRest = { actief: false };
   storage.writeJSON('dm-state.json', dmState);
   _shortRestEmit(req, gid, false);
-  if (io && (warlocks || chargesHersteld)) io.to(req.session?.campaignId||'main').emit('player:items-updated', {});
+  if (io && (warlocks || chargesHersteld)) io.to(room).emit('player:items-updated', {});
   res.json({ ok: true, warlocks, chargesHersteld });
 });
 
@@ -3703,7 +3729,13 @@ router.get('/trofeeen', attachRole, (req, res) => {
   const gid = req.role === 'dm'
     ? dmState.activeGroup
     : _playerGroupId(dmState, req.session?.characterId);
-  res.json({ trofeeen: (archief.trofeeen || []).filter(t => t.groepId === gid) });
+  let trofeeen = (archief.trofeeen || []).filter(t => t.groepId === gid);
+  // Geheime boons (geprepareerd maar nog niet attuned) niet naar spelers lekken
+  if (req.role !== 'dm') {
+    trofeeen = trofeeen.map(t =>
+      t.geprepareerd && !t.attuned ? { ...t, boon: undefined, boonGeheim: true } : t);
+  }
+  res.json({ trofeeen });
 });
 
 router.post('/trofeeen', requireDM, (req, res) => {
@@ -3766,12 +3798,17 @@ router.put('/trofeeen/:id', requireDM, (req, res) => {
   if (!t) return res.status(404).json({ error: 'Trofee niet gevonden' });
   if (req.body.boon !== undefined) t.boon = String(req.body.boon || '').trim().slice(0, 300);
   storage.writeJSON('archief.json', archief);
-  // Boedelkaartje van de drager meebewegen met de nieuwe boon
+  // Boedelkaartje van de drager meebewegen met de nieuwe boon — maar een
+  // geheime boon (geprepareerd, nog niet attuned) blijft een mysterie
   if (t.gedragenDoor?.characterId) {
     const dmState = readDmState();
     const item = (dmState.playerItems?.[t.gedragenDoor.characterId] || []).find(i => i.id === `trofee_${t.id}`);
     if (item) {
-      item.note = [t.boon, 'Afleggen kan bij de Trofeeënwand in de herberg.'].filter(Boolean).join('\n');
+      const geheim = t.geprepareerd && !t.attuned;
+      item.note = [
+        geheim ? 'De werking is een mysterie — draag de trofee tijdens een korte rust om hem te leren kennen.' : t.boon,
+        'Afleggen kan bij de Trofeeënwand in de herberg.',
+      ].filter(Boolean).join('\n');
       storage.writeJSON('dm-state.json', dmState);
       req.app.get('io').to(req.session?.campaignId||'main')
         .emit('player:items-updated', { characterId: t.gedragenDoor.characterId, items: dmState.playerItems[t.gedragenDoor.characterId] });
@@ -3834,6 +3871,123 @@ router.post('/trofeeen/:id/afleggen', attachRole, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Jachtbuit (onbewerkte trofeeën uit gewonnen gevechten) ──
+// Gevuld bij het opruimen van een gewonnen gevecht; de DM deelt ze uit via de
+// buit-verdeler. Een geclaimde trofee wordt een 'ruwetrofee_'-kaartje in de
+// Boedel, dat de speler verkoopt aan de waard of laat prepareren.
+
+router.get('/jachtbuit', requireDM, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  const dmState = readDmState();
+  res.json({ jachtbuit: (archief.jachtbuit || []).filter(j => j.groepId === dmState.activeGroup) });
+});
+
+router.delete('/jachtbuit/:id', requireDM, (req, res) => {
+  const archief = storage.readJSON('archief.json');
+  archief.jachtbuit = (archief.jachtbuit || []).filter(j => j.id !== req.params.id);
+  storage.writeJSON('archief.json', archief);
+  res.json({});
+});
+
+// Speler verkoopt een onbewerkte trofee aan de waard: vaste prijs van de
+// monsterkaart, de kop komt aan de wand te hangen op naam van de verkoper.
+router.post('/trofeeen/verkoop', attachRole, (req, res) => {
+  const cid = req.session.characterId;
+  if (!cid) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+  const dmState = readDmState();
+  const item = (dmState.playerItems?.[cid] || []).find(i => i.id === req.body?.itemId);
+  if (!item?.ruweTrofee) return res.status(404).json({ error: 'Trofee niet gevonden' });
+  const rt = item.ruweTrofee;
+  const prijsFl = Math.max(0, parseInt(rt.prijs, 10) || 0) * Math.max(1, rt.aantal || 1);
+  if (prijsFl <= 0) return res.status(400).json({ error: 'De waard heeft geen interesse in deze trofee' });
+
+  // Munten erbij, kaartje eruit
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const cur = dmState.playerCurrency[cid] || { fl: 0, kn: 0, cl: 0 };
+  dmState.playerCurrency[cid] = fromCl(toCl(cur) + prijsFl * 100);
+  dmState.playerItems[cid] = dmState.playerItems[cid].filter(i => i.id !== item.id);
+
+  // Aan de wand, op naam van de verkoper
+  const char = (storage.readJSON('entities.json').personages || []).find(e => e.id === cid);
+  const archief = storage.readJSON('archief.json');
+  _trofeeVoegToe(archief, {
+    groepId:   _playerGroupId(dmState, cid),
+    naam:      rt.naam,
+    aantal:    rt.aantal || 1,
+    imageId:   rt.imageId,
+    monsterId: rt.monsterId,
+    hoofdstuk: rt.hoofdstuk || dmState.activeAkte?.key || null,
+  });
+  archief.trofeeen[archief.trofeeen.length - 1].verkochtDoor = char?.name || 'Onbekend';
+  storage.writeJSON('archief.json', archief);
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('player:currency-updated', { characterId: cid, currency: dmState.playerCurrency[cid] });
+  io.to(room).emit('player:items-updated', { characterId: cid, items: dmState.playerItems[cid] });
+  io.to(room).emit('trofeeen:updated');
+  res.json({ ok: true, prijs: prijsFl });
+});
+
+// Speler laat een onbewerkte trofee prepareren bij de magizoöloog: betaalt het
+// tarief, de trofee komt gedragen aan de wand met een geheime boon. De werking
+// onthult zich via attunement (een korte rust mét de trofee).
+router.post('/trofeeen/prepareer', attachRole, (req, res) => {
+  const cid = req.session.characterId;
+  if (!cid) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+  const dmState = readDmState();
+  const item = (dmState.playerItems?.[cid] || []).find(i => i.id === req.body?.itemId);
+  if (!item?.ruweTrofee) return res.status(404).json({ error: 'Trofee niet gevonden' });
+  const rt = item.ruweTrofee;
+
+  const meta = storage.readJSON('meta.json');
+  const prijsFl = Math.max(0, parseInt(meta.magizoo?.trofeePrijs, 10) || 25);
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const cur = dmState.playerCurrency[cid] || { fl: 0, kn: 0, cl: 0 };
+  if (toCl(cur) < prijsFl * 100)
+    return res.status(400).json({ error: `Prepareren kost ${prijsFl} fl — daarvoor is je beurs te licht` });
+  dmState.playerCurrency[cid] = fromCl(toCl(cur) - prijsFl * 100);
+  dmState.playerItems[cid] = dmState.playerItems[cid].filter(i => i.id !== item.id);
+
+  const archief = storage.readJSON('archief.json');
+  const char = (storage.readJSON('entities.json').personages || []).find(e => e.id === cid);
+
+  // Eén trofee per jager: eerder gedragen exemplaar wordt afgelegd
+  (archief.trofeeen || []).forEach(x => {
+    if (x.gedragenDoor?.characterId === cid) _trofeeNeemAf(dmState, x, req);
+  });
+
+  _trofeeVoegToe(archief, {
+    groepId:   _playerGroupId(dmState, cid),
+    naam:      rt.naam,
+    aantal:    rt.aantal || 1,
+    imageId:   rt.imageId,
+    monsterId: rt.monsterId,
+    hoofdstuk: rt.hoofdstuk || dmState.activeAkte?.key || null,
+  });
+  const t = archief.trofeeen[archief.trofeeen.length - 1];
+  t.geprepareerd = true;
+  t.attuned = false;
+  t.gedragenDoor = { characterId: cid, naam: char?.name || 'Onbekend', sinds: new Date().toISOString() };
+
+  if (!dmState.playerItems[cid]) dmState.playerItems[cid] = [];
+  dmState.playerItems[cid].push({
+    id:   `trofee_${t.id}`,
+    name: `Trofee: ${t.naam}`,
+    note: 'De werking is een mysterie — draag de trofee tijdens een korte rust om hem te leren kennen.\nAfleggen kan bij de Trofeeënwand in de herberg.',
+  });
+  storage.writeJSON('archief.json', archief);
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('player:currency-updated', { characterId: cid, currency: dmState.playerCurrency[cid] });
+  io.to(room).emit('player:items-updated', { characterId: cid, items: dmState.playerItems[cid] });
+  io.to(room).emit('trofeeen:updated');
+  res.json({ ok: true, prijs: prijsFl });
+});
+
 // ── Buit (loot-verdeler) ──
 // De DM stelt na een encounter een buit samen; spelers claimen items (claims
 // zijn reserveringen). Pas bij "sluit" gaat alles definitief naar playerItems
@@ -3882,6 +4036,27 @@ router.post('/buit/start', requireDM, (req, res) => {
     kn: Math.max(0, parseInt(m.kn, 10) || 0),
     cl: Math.max(0, parseInt(m.cl, 10) || 0),
   };
+
+  // Jachtbuit (trofeeën van gewonnen gevechten) meegeven aan deze buit
+  const jachtIds = Array.isArray(req.body?.jachtbuit) ? req.body.jachtbuit : [];
+  if (jachtIds.length) {
+    const archief = storage.readJSON('archief.json');
+    jachtIds.forEach(jid => {
+      const j = (archief.jachtbuit || []).find(x => x.id === jid && x.groepId === gid);
+      if (!j) return;
+      items.push({
+        id:     'bi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        naam:   `Trofee: ${j.naam}`,
+        info:   'Onbewerkte jachttrofee — verkoop hem aan de waard bij de Trofeeënwand, of laat hem prepareren bij de magizoöloog.',
+        aantal: Math.max(1, j.aantal || 1),
+        claims: [],
+        trofee: { naam: j.naam, imageId: j.imageId, monsterId: j.monsterId, prijs: j.prijs || 0, hoofdstuk: j.hoofdstuk },
+      });
+      archief.jachtbuit = archief.jachtbuit.filter(x => x.id !== jid);
+    });
+    storage.writeJSON('archief.json', archief);
+  }
+
   if (!items.length && !toCl(munten)) return res.status(400).json({ error: 'De buit is leeg' });
   dmState.groups[gid].buit = { actief: true, gestart: new Date().toISOString(), items, munten };
   storage.writeJSON('dm-state.json', dmState);
@@ -3947,11 +4122,21 @@ router.post('/buit/sluit', requireDM, (req, res) => {
     (item.claims || []).forEach(claim => {
       const cid = claim.characterId;
       if (!dmState.playerItems[cid]) dmState.playerItems[cid] = [];
-      dmState.playerItems[cid].push({
-        id:   'buit_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        name: claim.aantal > 1 ? `${item.naam} (×${claim.aantal})` : item.naam,
-        note: [item.info, `Buitgemaakt op ${datum}`].filter(Boolean).join('\n'),
-      });
+      if (item.trofee) {
+        // Jachttrofee: wordt een onbewerkte trofee (verkopen of laten prepareren)
+        dmState.playerItems[cid].push({
+          id:   'ruwetrofee_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          name: claim.aantal > 1 ? `Onbewerkte trofee: ${item.trofee.naam} (×${claim.aantal})` : `Onbewerkte trofee: ${item.trofee.naam}`,
+          note: 'Verkoop hem aan de waard bij de Trofeeënwand, of laat hem prepareren bij de magizoöloog.',
+          ruweTrofee: { ...item.trofee, aantal: claim.aantal },
+        });
+      } else {
+        dmState.playerItems[cid].push({
+          id:   'buit_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          name: claim.aantal > 1 ? `${item.naam} (×${claim.aantal})` : item.naam,
+          note: [item.info, `Buitgemaakt op ${datum}`].filter(Boolean).join('\n'),
+        });
+      }
       bedeelde.add(cid);
     });
   });
@@ -4892,7 +5077,9 @@ router.delete('/combat', requireDM, (req, res) => {
   // Persisteer speler-HP naar dm-state vóór het wissen van het gevecht
   const prevCombat = storage.readJSON('combat.json');
   _flushPlayerHpToDmState(prevCombat, req.app.get('io'), req.session?.campaignId||'main');
-  // Trofeeënwand: bij een gewonnen gevecht komen de verslagen monsters aan de wand
+  // Jachtbuit: bij een gewonnen gevecht worden de verslagen monsters trofeeën
+  // die de DM via de buit-verdeler kan uitdelen (monsterkaart bepaalt of een
+  // wezen een trofee oplevert en wat de waard ervoor betaalt)
   try {
     const monsters = (prevCombat.combatants || []).filter(c => c.type === 'monster');
     const verslagen = monsters.filter(c => (c.hp || 0) <= 0);
@@ -4901,24 +5088,34 @@ router.delete('/combat', requireDM, (req, res) => {
     if (prevCombat.active && gewonnen && verslagen.length) {
       const dmState = readDmState();
       const archief = storage.readJSON('archief.json');
+      const kaarten = storage.readJSON('monsters.json').monsters || [];
       const perNaam = {};
       verslagen.forEach(c => {
         const key = c.name || 'Onbekend monster';
         if (!perNaam[key]) perNaam[key] = { aantal: 0, imageId: c.imageId || null, monsterId: c.presetId || null };
         perNaam[key].aantal++;
       });
-      Object.entries(perNaam).forEach(([naam, info]) => _trofeeVoegToe(archief, {
-        groepId:   dmState.activeGroup,
-        naam,
-        aantal:    info.aantal,
-        imageId:   info.imageId,
-        monsterId: info.monsterId,
-        hoofdstuk: dmState.activeAkte?.key || null,
-      }));
-      storage.writeJSON('archief.json', archief);
-      req.app.get('io').to(req.session?.campaignId||'main').emit('trofeeen:updated');
+      if (!archief.jachtbuit) archief.jachtbuit = [];
+      let toegevoegd = false;
+      Object.entries(perNaam).forEach(([naam, info]) => {
+        const kaart = info.monsterId ? kaarten.find(m => m.id === info.monsterId) : null;
+        if (kaart && kaart.levertTrofee === false) return; // DM heeft trofee uitgevinkt
+        archief.jachtbuit.push({
+          id:        'jb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          groepId:   dmState.activeGroup,
+          naam,
+          aantal:    info.aantal,
+          imageId:   kaart?.imageId || info.imageId,
+          monsterId: info.monsterId,
+          prijs:     Math.max(0, parseInt(kaart?.trofeePrijs, 10) || 0),
+          hoofdstuk: dmState.activeAkte?.key || null,
+          datum:     new Date().toISOString(),
+        });
+        toegevoegd = true;
+      });
+      if (toegevoegd) storage.writeJSON('archief.json', archief);
     }
-  } catch { /* trofeeën mogen het opruimen nooit blokkeren */ }
+  } catch { /* jachtbuit mag het opruimen nooit blokkeren */ }
   const combat = { active: false, round: 1, currentTurn: 0, combatants: [] };
   storage.writeJSON('combat.json', combat);
   req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
@@ -5879,7 +6076,7 @@ router.post('/magizoo/onderzoek', attachRole, (req, res) => {
 router.put('/meta/magizoo', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.magizoo) meta.magizoo = {};
-  ['naam', 'groet', 'imageId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten']
+  ['naam', 'groet', 'imageId', 'backdropId', 'prijs', 'prijsVolledig', 'cooldownMinuten', 'trofeePrijs']
     .forEach(f => { if (req.body[f] !== undefined) meta.magizoo[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');

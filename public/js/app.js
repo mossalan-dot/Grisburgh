@@ -1,4 +1,4 @@
-import { api } from './api.js?v=238';
+import { api } from './api.js?v=239';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=94";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=43";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=8';
@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=34';
 import { renderBestiarium } from './render-bestiarium.js?v=11';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=37";
-import { initDmPanel } from "./dm-panel.js?v=90";
+import { initDmPanel } from "./dm-panel.js?v=91";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -8840,6 +8840,12 @@ window._herbergTrofeeen = async function() {
   const isDm = window.app?.isDM?.();
   const hk = window.app?.state?.meta?.hoofdstukken || {};
 
+  // Onbewerkte trofeeën van deze speler (verkoopbaar aan de waard)
+  let ruweTrofeeen = [];
+  if (!isDm && state.characterId) {
+    try { ruweTrofeeen = (await api.getPlayerItems(state.characterId)).filter(i => i.ruweTrofee); } catch { /* leeg */ }
+  }
+
   let monsterOpties = '';
   if (isDm) {
     try {
@@ -8854,6 +8860,12 @@ window._herbergTrofeeen = async function() {
     const datum = t.datum ? new Date(t.datum).toLocaleDateString('nl-NL') : '';
     const drager = t.gedragenDoor || null;
     const ikDraag = drager?.characterId && drager.characterId === state.characterId;
+    const geheim = t.boonGeheim || (t.geprepareerd && !t.attuned);
+    const boonHtml = geheim
+      ? (isDm
+          ? `<span class="trofee-boon trofee-boon--geheim">${icon('sparkles')} ${t.boon ? esc(t.boon) : 'nog geen boon'} (geheim)</span>`
+          : `<span class="trofee-boon trofee-boon--geheim">${icon('sparkles')} de werking is een mysterie…</span>`)
+      : (t.boon ? `<span class="trofee-boon">${icon('sparkles')} ${esc(t.boon)}</span>` : '');
     return `
       <button class="trofee-plaque${drager ? ' trofee-plaque--gedragen' : ''}" onclick="window._trofeeDetail('${esc(t.id)}')">
         ${isDm ? `
@@ -8866,8 +8878,9 @@ window._herbergTrofeeen = async function() {
           ${(t.aantal || 1) > 1 ? `<span class="trofee-aantal">×${esc(String(t.aantal))}</span>` : ''}
         </span>
         <span class="trofee-naamplaat">${esc(t.naam)}</span>
-        ${t.boon ? `<span class="trofee-boon">${icon('sparkles')} ${esc(t.boon)}</span>` : ''}
+        ${boonHtml}
         ${(akte || datum) ? `<span class="trofee-meta">${esc([akte, datum].filter(Boolean).join(' · '))}</span>` : ''}
+        ${t.verkochtDoor ? `<span class="trofee-meta">Verkocht door ${esc(t.verkochtDoor)}</span>` : ''}
         ${drager ? `<span class="trofee-drager-chip">${icon('user')} ${ikDraag ? 'Jij draagt deze' : `Gedragen door ${esc(drager.naam)}`}</span>` : ''}
         ${!isDm && state.characterId && !drager
           ? `<span class="trofee-actie" onclick="event.stopPropagation();window._trofeeDraag('${esc(t.id)}')">Draag deze trofee</span>` : ''}
@@ -8893,6 +8906,22 @@ window._herbergTrofeeen = async function() {
             ? `<p class="aanplakbord-leeg">De wand is nog kaal. Roem wacht op de dapperen…</p>`
             : _trofeeLijst.map(plaque).join('')}
         </div>
+        ${ruweTrofeeen.length ? `
+          <div class="trofee-jachtbuit">
+            <div class="trofee-jachtbuit-kop">${icon('package')} Jouw jachtbuit</div>
+            ${ruweTrofeeen.map(i => {
+              const rt = i.ruweTrofee;
+              const prijs = Math.max(0, parseInt(rt.prijs, 10) || 0) * Math.max(1, rt.aantal || 1);
+              return `
+                <div class="trofee-jachtbuit-rij">
+                  <span class="trofee-jachtbuit-naam">${esc(rt.naam)}${(rt.aantal || 1) > 1 ? ` ×${esc(String(rt.aantal))}` : ''}</span>
+                  ${prijs > 0
+                    ? `<button class="buit-claim-btn" onclick="window._trofeeVerkoop('${esc(i.id)}', ${prijs})">Verkoop (${prijs} fl)</button>`
+                    : `<span class="buit-vergeven">de waard heeft geen interesse</span>`}
+                </div>`;
+            }).join('')}
+            <p class="trofee-jachtbuit-hint">Liever een voordeel dan goud? De magizoöloog prepareert je trofee — tegen betaling.</p>
+          </div>` : ''}
         ${isDm ? `
           <div class="trofeewand-dm-rij dm-only">
             <select id="trofee-monster-select" class="dm-select" style="max-width:220px">
@@ -8904,6 +8933,13 @@ window._herbergTrofeeen = async function() {
       </div>
     </div>
   `;
+};
+
+// Speler verkoopt een onbewerkte trofee aan de waard (vaste prijs van de monsterkaart)
+window._trofeeVerkoop = async function(itemId, prijs) {
+  if (!confirm(`Deze trofee verkopen aan de waard voor ${prijs} fl? Hij komt dan aan de wand te hangen.`)) return;
+  try { await api.verkoopTrofee(itemId); await window._herbergTrofeeen(); }
+  catch (err) { alert(err?.message || 'Verkopen mislukte'); }
 };
 
 window._trofeeDetail = function(id) {
@@ -8922,8 +8958,11 @@ window._trofeeDetail = function(id) {
         ? `<img class="trofee-detail-img" src="${api.fileUrl(t.imageId)}" alt="">`
         : `<span class="trofee-kop trofee-kop--leeg trofee-detail-leeg">${icon('skull')}</span>`}
       <div class="trofee-detail-naam">${esc(t.naam)}${(t.aantal || 1) > 1 ? ` <span class="trofee-aantal">×${esc(String(t.aantal))}</span>` : ''}</div>
-      ${t.boon ? `<div class="trofee-detail-boon">${icon('sparkles')} ${esc(t.boon)}</div>` : ''}
+      ${(t.boonGeheim || (t.geprepareerd && !t.attuned))
+        ? `<div class="trofee-detail-boon trofee-boon--geheim">${icon('sparkles')} De werking is een mysterie…</div>`
+        : (t.boon ? `<div class="trofee-detail-boon">${icon('sparkles')} ${esc(t.boon)}</div>` : '')}
       ${t.gedragenDoor ? `<div class="trofee-detail-meta">Gedragen door ${esc(t.gedragenDoor.naam)}</div>` : ''}
+      ${t.verkochtDoor ? `<div class="trofee-detail-meta">Verkocht door ${esc(t.verkochtDoor)}</div>` : ''}
       ${akte ? `<div class="trofee-detail-meta">${esc(akte)}</div>` : ''}
       ${datum ? `<div class="trofee-detail-meta">Geveld op ${esc(datum)}</div>` : ''}
       <div class="aanplakbord-detail-hint">klik om terug te hangen</div>
@@ -9407,8 +9446,13 @@ window._dmBuitKnop = async function() {
   window._dmBuitOpen();
 };
 
-window._dmBuitOpen = function() {
+window._dmBuitOpen = async function() {
   document.getElementById('buit-composer')?.remove();
+
+  // Jachtbuit: trofeeën van gewonnen gevechten, klaar om mee te geven
+  let jachtbuit = [];
+  try { jachtbuit = (await api.getJachtbuit()).jachtbuit || []; } catch { /* geen jacht */ }
+
   const ov = document.createElement('div');
   ov.id = 'buit-composer';
   ov.className = 'aanplakbord-detail-overlay';
@@ -9418,9 +9462,22 @@ window._dmBuitOpen = function() {
       <input class="buit-comp-aantal dm-input" type="number" min="1" max="99" value="1" title="Aantal">
       <input class="buit-comp-info dm-input" placeholder="Bijzonderheden (optioneel)" maxlength="500">
     </div>`;
+  const jachtHtml = jachtbuit.length ? `
+    <div class="buit-comp-jacht">
+      <div class="buit-comp-jacht-kop">${icon('skull')} Trofeeën van de jacht</div>
+      ${jachtbuit.map(j => `
+        <label class="buit-comp-jacht-rij" data-jacht-rij="${esc(j.id)}">
+          <input type="checkbox" class="buit-comp-jacht-cb" value="${esc(j.id)}" checked>
+          <span class="buit-comp-jacht-naam">${esc(j.naam)}${(j.aantal || 1) > 1 ? ` ×${esc(String(j.aantal))}` : ''}</span>
+          <span class="buit-comp-jacht-prijs">${j.prijs ? `waarde ${esc(String(j.prijs))} fl` : 'geen handelswaarde'}</span>
+          <button type="button" class="buit-herstel-btn" title="Weggooien (kop is niets waard)"
+            onclick="event.preventDefault();window._dmJachtbuitWeg('${esc(j.id)}')">${icon('trash')}</button>
+        </label>`).join('')}
+    </div>` : '';
   ov.innerHTML = `
     <div class="buit-composer-kaart" onclick="event.stopPropagation()">
       <div class="buit-composer-kop">${icon('package')} Buit samenstellen</div>
+      ${jachtHtml}
       <div id="buit-comp-rijen">${rij()}${rij()}${rij()}</div>
       <button class="dm-btn dm-btn-ghost" id="buit-comp-meer">${icon('plus')} Regel erbij</button>
       <div class="buit-comp-munten">
@@ -9452,14 +9509,24 @@ window._dmBuitOpen = function() {
       kn: document.getElementById('buit-comp-kn')?.value || 0,
       cl: document.getElementById('buit-comp-cl')?.value || 0,
     };
+    const jacht = Array.from(ov.querySelectorAll('.buit-comp-jacht-cb:checked')).map(cb => cb.value);
     try {
-      await api.buitStart({ items, munten });
+      await api.buitStart({ items, munten, jachtbuit: jacht });
       ov.remove();
     } catch (err) {
       const fout = document.getElementById('buit-comp-fout');
       if (fout) fout.textContent = err?.message || 'Starten mislukte';
     }
   };
+};
+
+// DM: jachttrofee weggooien vanuit de composer (kop is niets waard)
+window._dmJachtbuitWeg = async function(id) {
+  if (!confirm('Deze jachttrofee weggooien? Hij komt dan niet in de buit.')) return;
+  try {
+    await api.deleteJachtbuit(id);
+    document.querySelector(`[data-jacht-rij="${id}"]`)?.remove();
+  } catch { /* blijft staan */ }
 };
 
 window._dmBuitSluit = async function() {
@@ -9733,6 +9800,13 @@ async function renderMagizoo() {
   _magizooData = data;
   const { config, monsters = [], currency, cooldownTot } = data;
 
+  // Onbewerkte trofeeën van deze speler (te prepareren tegen betaling)
+  let ruweTrofeeen = [];
+  if (!window.app?.isDM?.() && state.characterId) {
+    try { ruweTrofeeen = (await api.getPlayerItems(state.characterId)).filter(i => i.ruweTrofee); } catch { /* leeg */ }
+  }
+  const trofeePrijs = Math.max(0, parseInt(config.trofeePrijs, 10) || 25);
+
   const cooldownActief = cooldownTot && new Date(cooldownTot) > new Date();
   let cooldownTekst = '';
   if (cooldownActief) {
@@ -9774,9 +9848,32 @@ async function renderMagizoo() {
                 ${monsters.map(m => `<div class="magizoo-item" data-naam="${esc(m.name.toLowerCase())}" style="display:none">${_magizooItemBody(m, cooldownActief)}</div>`).join('')}
               </div>
             </div>`}
+
+        ${ruweTrofeeen.length ? `
+          <div class="trofee-jachtbuit magizoo-prepareer">
+            <div class="trofee-jachtbuit-kop">${icon('skull')} Trofeeën prepareren — ${trofeePrijs} fl per stuk</div>
+            <p class="trofee-jachtbuit-hint">"Breng me zo'n kop en ik maak er iets bijzonders van. Wát precies? Dat merk je vanzelf… draag hem maar eens tijdens een rust."</p>
+            ${ruweTrofeeen.map(i => {
+              const rt = i.ruweTrofee;
+              return `
+                <div class="trofee-jachtbuit-rij">
+                  <span class="trofee-jachtbuit-naam">${esc(rt.naam)}${(rt.aantal || 1) > 1 ? ` ×${esc(String(rt.aantal))}` : ''}</span>
+                  <button class="buit-claim-btn" onclick="window._trofeePrepareer('${esc(i.id)}', ${trofeePrijs})">Laat prepareren (${trofeePrijs} fl)</button>
+                </div>`;
+            }).join('')}
+          </div>` : ''}
       </div>
     </div>`;
 }
+
+// Speler laat een trofee prepareren: betaalt, krijgt hem gedragen terug met geheime boon
+window._trofeePrepareer = async function(itemId, prijs) {
+  if (!confirm(`Deze trofee laten prepareren voor ${prijs} fl? Je draagt hem daarna — zijn werking ontdek je tijdens een korte rust (attunement).`)) return;
+  try {
+    await api.prepareerTrofee(itemId);
+    await renderMagizoo();
+  } catch (err) { alert(err?.message || 'Prepareren mislukte'); }
+};
 
 function _magizooItemBody(m, cooldownActief) {
   const klaar = m.niveau === 'volledig';
