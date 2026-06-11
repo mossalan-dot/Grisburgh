@@ -11007,6 +11007,14 @@ Object.assign(HELP_CONFIG, {
       { titel: 'Diensten per groep', tekst: 'Schakel hier per groep de zichtbaarheid van diensten in of uit. Verborgen diensten zijn onzichtbaar voor die groep.', afbeelding: null },
     ],
   }),
+  dm_media: () => ({
+    titel: 'Mediabibliotheek',
+    stappen: [
+      { titel: 'Eén overzicht', tekst: 'Alle geüploade afbeeldingen en audio op één plek. Zoek op naam, filter op type en sorteer op datum of naam. Klik een afbeelding aan om hem groot te bekijken; speel audio af met de afspeelknop.', afbeelding: null },
+      { titel: 'Hernoemen is veilig', tekst: 'Klik op de naam (potlood) om een bestand een duidelijke weergavenaam te geven, bijvoorbeeld "gareth-personages". De naam staat los van het bestand zelf — verwijzingen blijven altijd intact.', afbeelding: null },
+      { titel: 'Ongebruikte bestanden', tekst: 'Het Wezen-filter toont bestanden die nergens meer gebruikt worden. Die kun je veilig (en in bulk) opruimen. Een bestand dat nog in gebruik is, vraagt eerst een extra bevestiging voordat het weg mag.', afbeelding: null },
+    ],
+  }),
 });
 
 // Overschrijvingen vanuit de server (laden in init)

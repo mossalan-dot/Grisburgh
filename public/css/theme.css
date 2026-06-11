@@ -19703,3 +19703,156 @@ body.kaart-fs-active { overflow: hidden; }
   50%     { box-shadow: 0 0 0 1px var(--sig-kleur,#b3402a), 0 2px 30px color-mix(in srgb, var(--sig-kleur,#b3402a) 50%, transparent); }
 }
 @media (prefers-reduced-motion: reduce) { .sig-card--active { animation: none; } }
+
+/* ═══ Mediabibliotheek (DM-tab) ═══════════════════════════════════════════ */
+.media-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.media-search {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 160px;
+  background: rgba(255,255,255,0.55);
+  border: 1px solid #c4a87a;
+  border-radius: 4px;
+  padding: 0 8px;
+  color: #8a7050;
+}
+.media-search .icon { width: 14px; height: 14px; flex-shrink: 0; }
+.media-search .dm-input { border: none; background: none; padding: 5px 0; flex: 1; }
+.media-search .dm-input:focus { border: none; }
+.media-filter-group { display: flex; gap: 3px; }
+.media-filter-group .dm-btn .icon { width: 14px; height: 14px; }
+.media-sort { flex-shrink: 0; max-width: 150px; }
+
+.media-bulkbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 11px;
+  margin-bottom: 8px;
+  background: rgba(139,42,42,0.08);
+  border: 1px solid rgba(139,42,42,0.3);
+  border-radius: 5px;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 13px;
+  color: #6a2020;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.media-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,0.4);
+  border: 1px solid #c4a87a;
+  border-radius: 7px;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.media-card:hover { border-color: #9a7008; box-shadow: 0 2px 10px rgba(90,60,20,0.15); }
+.media-card--wees { border-style: dashed; border-color: #b89a6a; }
+.media-card--sel { border-color: #8b2a2a; box-shadow: 0 0 0 2px rgba(139,42,42,0.25); }
+
+.media-card-check {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  background: rgba(245,237,216,0.85);
+  border-radius: 4px;
+  padding: 2px;
+  line-height: 0;
+  cursor: pointer;
+}
+.media-card-check input { cursor: pointer; accent-color: #8b2a2a; }
+
+.media-card-img {
+  aspect-ratio: 1 / 1;
+  background: repeating-conic-gradient(rgba(196,168,122,0.18) 0% 25%, transparent 0% 50%) 0 / 18px 18px;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+.media-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-card-img--broken { display: flex; align-items: center; justify-content: center; }
+.media-card-img--broken img { display: none; }
+.media-card-img--broken::after {
+  content: '⌧';
+  font-size: 28px;
+  color: #b09870;
+}
+
+.media-card-audio {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(90,58,122,0.1), rgba(42,90,138,0.08));
+  color: #5a3a7a;
+}
+.media-card-audio .icon-lg { width: 40px; height: 40px; opacity: 0.7; }
+
+.media-card-body {
+  padding: 7px 8px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+.media-card-naam {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3a2410;
+  cursor: text;
+  line-height: 1.25;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.media-card-naam:hover { color: #8a6000; }
+.media-naam-pen { width: 11px; height: 11px; opacity: 0; flex-shrink: 0; transition: opacity 0.15s; }
+.media-card-naam:hover .media-naam-pen { opacity: 0.6; }
+.media-card-meta {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 11px;
+  color: #8a7050;
+}
+.media-card-gebruik,
+.media-card-wees-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 11px;
+  margin-top: 2px;
+}
+.media-card-gebruik { color: #2a6a3a; cursor: help; }
+.media-card-wees-badge { color: #9a7008; }
+.media-card-gebruik .icon,
+.media-card-wees-badge .icon { width: 12px; height: 12px; }
+
+.media-card-del {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.media-card:hover .media-card-del { opacity: 1; }
+.media-card-audio .media-play { opacity: 0.85; }

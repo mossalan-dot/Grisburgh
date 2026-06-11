@@ -148,6 +148,17 @@ export function initDmPanel() {
       } catch(e) { console.warn('Afbeelding uploaden mislukt:', e); }
     },
 
+    // Mediabibliotheek
+    mediaSearch:        _mediaSearch,
+    mediaSetType:       _mediaSetType,
+    mediaToggleWezen:   _mediaToggleWezen,
+    mediaSetSort:       _mediaSetSort,
+    mediaToggleSel:     _mediaToggleSel,
+    mediaRename:        _mediaRename,
+    mediaDelete:        _mediaDelete,
+    mediaDeleteSelected: _mediaDeleteSelected,
+    mediaPlay:          _mediaPlay,
+
     // Tunnel
     tunnelToggle:  _tunnelToggle,
     tunnelCopy:    _tunnelCopy,
@@ -418,6 +429,7 @@ function _buildTabs() {
     <button class="dm-tab-btn${activeParent==='spreuken' ?' active':''}" data-tab="spreuken"  onclick="window.dmPanel.switchTab('spreuken')"  title="Spreuken">${icon('open-book',{cls:'icon-gi'})}</button>
     <button class="dm-tab-btn${activeParent==='tafels'   ?' active':''}" data-tab="tafels"    onclick="window.dmPanel.switchTab('tafels')"    title="Willekeur — tafels & namen">${icon('dice',{cls:'icon-gi'})}</button>
     <button class="dm-tab-btn${activeParent==='diensten' ?' active':''}" data-tab="diensten"  onclick="window.dmPanel.switchTab('diensten')"  title="Grisburgh-diensten">${icon('building')}</button>
+    <button class="dm-tab-btn${activeParent==='media'    ?' active':''}" data-tab="media"     onclick="window.dmPanel.switchTab('media')"     title="Mediabibliotheek">${icon('image')}</button>
     <button class="dm-tab-btn${activeParent==='berichten'?' active':''}" data-tab="berichten" onclick="window.dmPanel.switchTab('berichten')" title="Berichten">${icon('message-circle')}</button>
     <button class="dm-tab-btn dm-tab-btn--settings" onclick="window._dmInstellingenOpen()" title="Instellingen">${icon('settings')}</button>
   `;
@@ -450,6 +462,7 @@ function _switchTab(tab) {
   if (tab === 'tafels')    _loadAndRenderTafels();
   if (tab === 'geluiden')  _renderGeluiden();
   if (tab === 'berichten') _renderBerichten();
+  if (tab === 'media')     _renderMedia();
   if (tab === 'gevecht' || tab === 'monsters' || tab === 'encounters') _renderGevechtEnMonsters(tab);
   if (tab === 'diensten' || _DIENSTEN_TABS.has(tab)) _renderDiensten(tab);
 };
@@ -7267,6 +7280,204 @@ let _berichtenSpelers = [];
 let _berichtenNPCs    = [];
 let _berichtenData    = {};   // { characterId: [{ id, tekst|brief-velden, timestamp, gelezen }] }
 let _sjablonen        = [];
+// ── Mediabibliotheek ────────────────────────────────────────────────────────
+let _mediaFiles   = [];      // [{ id, naam, type, mime, grootte, breedte, hoogte, geupload, gebruik }]
+let _mediaQuery   = '';
+let _mediaType    = 'alle';  // 'alle' | 'afbeelding' | 'audio'
+let _mediaWezen   = false;   // alleen ongebruikte tonen
+let _mediaSort    = 'nieuw'; // 'nieuw' | 'naam'
+let _mediaSel     = new Set();
+
+function _mediaFmtGrootte(b) {
+  if (!b && b !== 0) return '';
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(0)} kB`;
+  return `${(b / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function _mediaFmtDatum(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  catch { return ''; }
+}
+
+function _mediaFiltered() {
+  const q = _mediaQuery.trim().toLowerCase();
+  let lijst = _mediaFiles.filter(f => {
+    if (_mediaType !== 'alle' && f.type !== _mediaType) return false;
+    if (_mediaWezen && (f.gebruik || []).length > 0) return false;
+    if (q && !((f.naam || '').toLowerCase().includes(q) || (f.origineleNaam || '').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  lijst.sort((a, b) => _mediaSort === 'naam'
+    ? (a.naam || '').localeCompare(b.naam || '', 'nl')
+    : (b.geupload || '').localeCompare(a.geupload || ''));
+  return lijst;
+}
+
+async function _renderMedia() {
+  const el = _tabEl('media');
+  if (!el) return;
+  el.innerHTML = _dmLoading();
+  try {
+    const res = await api.listMedia();
+    _mediaFiles = res.files || [];
+  } catch (err) {
+    el.innerHTML = _dmTabHead({ icon: 'image', title: 'Mediabibliotheek' }) + _dmLoading(`Fout: ${esc(err.message)}`);
+    return;
+  }
+  // Selectie opschonen: verwijderde bestanden uit de set halen
+  const bestaande = new Set(_mediaFiles.map(f => f.id));
+  for (const id of [..._mediaSel]) if (!bestaande.has(id)) _mediaSel.delete(id);
+  _paintMedia();
+}
+
+function _paintMedia() {
+  const el = _tabEl('media');
+  if (!el) return;
+
+  const lijst    = _mediaFiltered();
+  const wezenCnt = _mediaFiles.filter(f => (f.gebruik || []).length === 0).length;
+  const selWezen = [..._mediaSel].filter(id => {
+    const f = _mediaFiles.find(x => x.id === id);
+    return f && (f.gebruik || []).length === 0;
+  });
+
+  const sub = `${_mediaFiles.length} bestand${_mediaFiles.length === 1 ? '' : 'en'} · ${wezenCnt} ongebruikt`;
+
+  el.innerHTML = `
+    ${_dmTabHead({ icon: 'image', title: 'Mediabibliotheek', sub, actions: helpBtn('dm_media') })}
+    <div class="dm-feature-section">
+      <div class="media-toolbar">
+        <div class="media-search">
+          ${icon('search')}
+          <input type="text" class="dm-input dm-input-sm" placeholder="Zoek op naam…"
+            value="${esc(_mediaQuery)}" oninput="window.dmPanel.mediaSearch(this.value)">
+        </div>
+        <div class="media-filter-group">
+          <button class="dm-btn dm-btn-sm${_mediaType==='alle'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('alle')">Alle</button>
+          <button class="dm-btn dm-btn-sm${_mediaType==='afbeelding'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('afbeelding')" title="Afbeeldingen">${icon('image')}</button>
+          <button class="dm-btn dm-btn-sm${_mediaType==='audio'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('audio')" title="Audio">${icon('volume-2')}</button>
+        </div>
+        <button class="dm-btn dm-btn-sm${_mediaWezen?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaToggleWezen()" title="Alleen ongebruikte bestanden">${icon('eye-off')} Wezen</button>
+        <select class="dm-select dm-input-sm media-sort" onchange="window.dmPanel.mediaSetSort(this.value)">
+          <option value="nieuw"${_mediaSort==='nieuw'?' selected':''}>Nieuwste eerst</option>
+          <option value="naam"${_mediaSort==='naam'?' selected':''}>Op naam</option>
+        </select>
+      </div>
+
+      ${selWezen.length ? `
+        <div class="media-bulkbar">
+          <span>${selWezen.length} ongebruikt geselecteerd</span>
+          <button class="dm-btn dm-btn-sm dm-btn-danger" onclick="window.dmPanel.mediaDeleteSelected()">${icon('trash')} Verwijder geselecteerde wezen</button>
+        </div>` : ''}
+
+      ${lijst.length ? `<div class="media-grid">${lijst.map(_mediaCard).join('')}</div>`
+        : `<div class="dm-hint" style="text-align:center;padding:32px 0">${_mediaFiles.length ? 'Geen bestanden voor dit filter.' : 'Nog geen media geüpload.'}</div>`}
+    </div>`;
+}
+
+function _mediaCard(f) {
+  const gebruik   = f.gebruik || [];
+  const isWees    = gebruik.length === 0;
+  const isAudio   = f.type === 'audio';
+  const sel       = _mediaSel.has(f.id);
+  const afm       = (f.breedte && f.hoogte) ? `${f.breedte}×${f.hoogte}` : '';
+  const meta      = [afm, _mediaFmtGrootte(f.grootte), _mediaFmtDatum(f.geupload)].filter(Boolean).join(' · ');
+  const gebruikTitel = gebruik.join('\n');
+
+  const preview = isAudio
+    ? `<div class="media-card-audio">
+         ${icon('volume-2', { cls: 'icon-lg' })}
+         <button class="dm-btn dm-btn-icon dm-btn-sm media-play" onclick="window.dmPanel.mediaPlay('${escJS(f.id)}')" title="Afspelen">${icon('play')}</button>
+       </div>`
+    : `<div class="media-card-img" onclick="window.app.openLightbox('${escJS(api.fileUrl(f.id))}','${escJS(f.naam)}')">
+         <img src="${api.thumbUrl(f.id)}" loading="lazy" alt="${esc(f.naam)}"
+              onerror="this.closest('.media-card-img').classList.add('media-card-img--broken')">
+       </div>`;
+
+  return `
+    <div class="media-card${isWees ? ' media-card--wees' : ''}${sel ? ' media-card--sel' : ''}" data-id="${esc(f.id)}">
+      ${isWees ? `<label class="media-card-check" title="Selecteer voor bulk-verwijdering">
+        <input type="checkbox" ${sel ? 'checked' : ''} onchange="window.dmPanel.mediaToggleSel('${escJS(f.id)}')"></label>` : ''}
+      ${preview}
+      <div class="media-card-body">
+        <div class="media-card-naam" title="Hernoemen" onclick="window.dmPanel.mediaRename('${escJS(f.id)}')">
+          ${esc(f.naam)} ${icon('pencil', { cls: 'media-naam-pen' })}
+        </div>
+        <div class="media-card-meta">${esc(meta)}</div>
+        ${isWees
+          ? `<div class="media-card-wees-badge">${icon('eye-off')} Ongebruikt</div>`
+          : `<div class="media-card-gebruik" title="${esc(gebruikTitel)}">${icon('link')} ${gebruik.length}× in gebruik</div>`}
+      </div>
+      <button class="dm-btn dm-btn-icon dm-btn-sm dm-btn-danger media-card-del"
+        onclick="window.dmPanel.mediaDelete('${escJS(f.id)}')" title="Verwijderen">${icon('trash')}</button>
+    </div>`;
+}
+
+// Audio-afspelen: één tegelijk.
+let _mediaAudioEl = null;
+function _mediaPlay(id) {
+  try {
+    if (_mediaAudioEl) { _mediaAudioEl.pause(); _mediaAudioEl = null; }
+    _mediaAudioEl = new Audio(api.fileUrl(id));
+    _mediaAudioEl.play().catch(() => {});
+  } catch {}
+}
+
+function _mediaSearch(v)      { _mediaQuery = v; _paintMedia(); }
+function _mediaSetType(t)     { _mediaType = t; _paintMedia(); }
+function _mediaToggleWezen()  { _mediaWezen = !_mediaWezen; _paintMedia(); }
+function _mediaSetSort(s)     { _mediaSort = s; _paintMedia(); }
+function _mediaToggleSel(id)  { if (_mediaSel.has(id)) _mediaSel.delete(id); else _mediaSel.add(id); _paintMedia(); }
+
+async function _mediaRename(id) {
+  const f = _mediaFiles.find(x => x.id === id);
+  if (!f) return;
+  const naam = prompt('Nieuwe weergavenaam (tip: [naam]-[categorie], bijv. gareth-personages):', f.naam || '');
+  if (naam == null) return;
+  const trimmed = naam.trim();
+  if (!trimmed || trimmed === f.naam) return;
+  try {
+    await api.renameMedia(id, trimmed);
+    f.naam = trimmed;
+    _paintMedia();
+  } catch (err) {
+    alert('Hernoemen mislukt: ' + err.message);
+  }
+}
+
+async function _mediaDelete(id) {
+  const f = _mediaFiles.find(x => x.id === id);
+  if (!f) return;
+  const gebruik = f.gebruik || [];
+  if (gebruik.length > 0) {
+    const lijst = gebruik.map(g => '• ' + g).join('\n');
+    if (!confirm(`"${f.naam}" is nog in gebruik door:\n\n${lijst}\n\nTóch verwijderen? De verwijzingen blijven achter als kapotte links.`)) return;
+    try { await api.deleteMedia(id, true); } catch (err) { alert('Verwijderen mislukt: ' + err.message); return; }
+  } else {
+    if (!confirm(`"${f.naam}" verwijderen? Dit bestand wordt nergens gebruikt.`)) return;
+    try { await api.deleteMedia(id, false); } catch (err) { alert('Verwijderen mislukt: ' + err.message); return; }
+  }
+  _mediaFiles = _mediaFiles.filter(x => x.id !== id);
+  _mediaSel.delete(id);
+  _paintMedia();
+}
+
+async function _mediaDeleteSelected() {
+  const ids = [..._mediaSel].filter(id => {
+    const f = _mediaFiles.find(x => x.id === id);
+    return f && (f.gebruik || []).length === 0;
+  });
+  if (!ids.length) return;
+  if (!confirm(`${ids.length} ongebruikt bestand${ids.length === 1 ? '' : 'en'} verwijderen?`)) return;
+  for (const id of ids) {
+    try { await api.deleteMedia(id, false); _mediaFiles = _mediaFiles.filter(x => x.id !== id); _mediaSel.delete(id); }
+    catch { /* in gebruik geraakt sinds laatste scan — sla over */ }
+  }
+  _paintMedia();
+}
+
 let _sjabloonMode     = false;
 const _BERICHTEN_PAGINA = 10;            // berichten per "pagina" in de geschiedenis
 let _berichtenOpenPid   = new Set();     // welke speler-groepen zijn uitgeklapt
