@@ -318,6 +318,11 @@ export function initSocket() {
     window._kampvuurSync?.(data);
   });
 
+  // Korte rust gestart/gestopt/Hit Die besteed → overlay synchroniseren
+  socket.on('shortrest:update', (data) => {
+    window._shortRestSync?.(data);
+  });
+
   socket.on('entity:deceased', ({ id, type, name } = {}) => {
     // Herlaad de huidige sectie zodat het kaartje meteen grijs wordt
     const section = window.app.state.activeSection;

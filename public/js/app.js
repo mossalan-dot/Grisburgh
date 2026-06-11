@@ -8579,8 +8579,12 @@ async function init() {
 
   renderParty();
 
-  // Brandend kampvuur herstellen na herladen (speler: eigen groep; DM: actieve groep)
-  if (state.characterId || state.role === 'dm') window._kampvuurRestore();
+  // Brandend kampvuur of lopende adempauze herstellen na herladen
+  // (speler: eigen groep; DM: actieve groep)
+  if (state.characterId || state.role === 'dm') {
+    window._kampvuurRestore();
+    window._shortRestRestore();
+  }
 
   const hashSection   = location.hash.replace('#', '');
   const validSections = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'logboek', 'kaart', 'mijn-karakter'];
@@ -9064,6 +9068,165 @@ window._kampvuurRestore = async function() {
     const st = await api.getKampvuur();
     if (st?.actief) window._kampvuurSync(st);
   } catch { /* geen vuur */ }
+};
+
+// ── Korte rust (short rest met Hit Dice) ──
+// De DM start een adempauze; spelers besteden Hit Dice door hun fysieke worp
+// (d{X} + CON) in te vullen. HP wordt server-side bijgewerkt; bestedingen
+// verschijnen live bij de hele groep.
+
+let _srMijn = null;        // { hitDie, conMod, level, beschikbaar, hp }
+let _srBestedingen = [];
+
+window._shortRestSync = function(data) {
+  if (!data) return;
+  if (!window.app?.isDM?.() && data.groepId && window._myGroupId && data.groepId !== window._myGroupId) return;
+  if (data.actief) _shortRestToon(data.bestedingen || []);
+  else _shortRestDoof();
+};
+
+function _srLijstHtml(bestedingen) {
+  if (!bestedingen.length) {
+    return `<p class="shortrest-leeg">Nog niemand heeft een Hit Die besteed.</p>`;
+  }
+  return bestedingen.map(b => `
+    <div class="shortrest-regel">
+      <span class="shortrest-regel-naam">${esc(b.naam)}</span>
+      <span class="shortrest-regel-tekst">besteedt een Hit Die</span>
+      <span class="shortrest-regel-hp">+${esc(String(b.uitkomst))} HP</span>
+    </div>`).join('');
+}
+
+function _srVoetHtml() {
+  if (window.app?.isDM?.()) {
+    return `
+      <button class="kampvuur-doof-btn" onclick="window._dmShortRestToggle()">${icon('hourglass')} Hervat de tocht</button>
+      <p class="kampvuur-hint">Bij het hervatten: Pact Magic-slots (Warlock) en korte-rust-items herladen automatisch.</p>`;
+  }
+  if (!state.characterId || !_srMijn) return `<p class="kampvuur-hint">De party rust een uur uit.</p>`;
+  const m = _srMijn;
+  const hpBekend = m.hp && m.hp.max != null;
+  const hpHuidig = hpBekend ? (m.hp.current ?? m.hp.max) : null;
+  const dots = '●'.repeat(m.beschikbaar) + '○'.repeat(Math.max(0, m.level - m.beschikbaar));
+  const conTxt = (m.conMod >= 0 ? '+' : '−') + Math.abs(m.conMod);
+  return `
+    ${hpBekend ? `
+      <div class="shortrest-hp">
+        <div class="shortrest-hp-balk"><div class="shortrest-hp-vulling" style="width:${Math.max(0, Math.min(100, Math.round(hpHuidig / m.hp.max * 100)))}%"></div></div>
+        <span class="shortrest-hp-tekst">${esc(String(hpHuidig))} / ${esc(String(m.hp.max))} HP</span>
+      </div>` : ''}
+    <div class="shortrest-hd">Hit Dice <span class="shortrest-hd-dots">${dots}</span> <span class="shortrest-hd-die">d${esc(String(m.hitDie))}</span></div>
+    ${m.beschikbaar <= 0
+      ? `<p class="kampvuur-hint">Je hebt geen Hit Dice meer over. Rust verder uit.</p>`
+      : `<div class="kampvuur-deel-wrap">
+          <p class="shortrest-uitleg">Gooi je Hit Die (<strong>d${esc(String(m.hitDie))} ${conTxt} CON</strong>) en vul het totaal in:</p>
+          <div class="shortrest-invoer-rij">
+            <input id="shortrest-input" class="shortrest-input" type="number" min="0" max="50" inputmode="numeric" placeholder="0">
+            <button class="kampvuur-deel-btn" onclick="window._shortRestBesteed()">${icon('heart')} Besteed Hit Die</button>
+          </div>
+          <span id="shortrest-fout" class="kampvuur-fout"></span>
+        </div>`}`;
+}
+
+async function _shortRestToon(bestedingen) {
+  _srBestedingen = bestedingen;
+  let ov = document.getElementById('shortrest-overlay');
+  if (ov) {
+    const lijst = ov.querySelector('#shortrest-lijst');
+    if (lijst) lijst.innerHTML = _srLijstHtml(bestedingen);
+    return;
+  }
+  // Eigen Hit Dice/HP ophalen vóór de eerste render (tenzij al bekend via restore)
+  if (state.characterId && !_srMijn) {
+    try { _srMijn = (await api.getShortRest())?.mijn || null; } catch { _srMijn = null; }
+  }
+  document.getElementById('shortrest-ember')?.remove();
+  ov = document.createElement('div');
+  ov.id = 'shortrest-overlay';
+  ov.className = 'shortrest-overlay';
+  ov.innerHTML = `
+    <div class="shortrest-lucht">
+      <div class="shortrest-zon"></div>
+      <span class="sr-pluis sr-pluis-1"></span><span class="sr-pluis sr-pluis-2"></span>
+      <span class="sr-pluis sr-pluis-3"></span><span class="sr-pluis sr-pluis-4"></span>
+      <span class="sr-pluis sr-pluis-5"></span>
+    </div>
+    <button class="kampvuur-min-btn" onclick="window._shortRestMin()" title="Even doorwerken">${icon('minus')}</button>
+    <div class="kampvuur-kop">De party neemt een adempauze</div>
+    <p class="shortrest-sub">Een uur rust onderweg — wonden verbinden, krachten herladen.</p>
+    <div class="shortrest-lijst" id="shortrest-lijst">${_srLijstHtml(bestedingen)}</div>
+    <div class="kampvuur-voet" id="shortrest-voet">${_srVoetHtml()}</div>`;
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add('shortrest-overlay--aan'));
+}
+
+function _shortRestDoof() {
+  _srBestedingen = [];
+  _srMijn = null;
+  document.getElementById('shortrest-ember')?.remove();
+  const ov = document.getElementById('shortrest-overlay');
+  if (!ov) return;
+  ov.classList.add('shortrest-overlay--uit');
+  setTimeout(() => ov.remove(), 900);
+}
+
+window._shortRestBesteed = async function() {
+  const input = document.getElementById('shortrest-input');
+  const fout = document.getElementById('shortrest-fout');
+  const uitkomst = parseInt(input?.value, 10);
+  if (!Number.isFinite(uitkomst)) {
+    if (fout) fout.textContent = 'Vul eerst de uitkomst van je worp in';
+    return;
+  }
+  try {
+    const r = await api.shortRestHitDie(uitkomst);
+    if (_srMijn) {
+      _srMijn.beschikbaar = r.beschikbaar;
+      if (r.hp) _srMijn.hp = r.hp;
+    }
+    const voet = document.getElementById('shortrest-voet');
+    if (voet) voet.innerHTML = _srVoetHtml();
+  } catch (err) {
+    if (fout) fout.textContent = err?.message || 'Besteden mislukte';
+  }
+};
+
+window._shortRestMin = function() {
+  const ov = document.getElementById('shortrest-overlay');
+  if (!ov) return;
+  ov.classList.add('shortrest-overlay--min');
+  if (!document.getElementById('shortrest-ember')) {
+    const ember = document.createElement('button');
+    ember.id = 'shortrest-ember';
+    ember.className = 'kampvuur-ember kampvuur-ember--sr';
+    ember.title = 'Terug naar de adempauze';
+    ember.innerHTML = icon('hourglass');
+    ember.onclick = () => {
+      document.getElementById('shortrest-overlay')?.classList.remove('shortrest-overlay--min');
+      ember.remove();
+    };
+    document.body.appendChild(ember);
+  }
+};
+
+// DM: aan/uit voor de actieve groep (knoppen in regie-balk, Rust-paneel en overlay)
+window._dmShortRestToggle = async function() {
+  try {
+    const st = await api.getShortRest();
+    if (st?.actief) await api.shortRestStop();
+    else await api.shortRestStart();
+  } catch (err) { alert('Korte rust: ' + (err?.message || '?')); }
+};
+
+// Bij (her)laden: lopende adempauze van de eigen groep herstellen
+window._shortRestRestore = async function() {
+  try {
+    const st = await api.getShortRest();
+    if (st?.actief) {
+      if (st.mijn) _srMijn = st.mijn;
+      _shortRestToon(st.bestedingen || []);
+    }
+  } catch { /* geen rust */ }
 };
 
 window._getExtraSpeedsFromDOM = function() {

@@ -213,7 +213,7 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 `beer` `book-open` `building` `camera` `castle` `check` `check-circle`
 `chevron-left` `chevron-right` `church` `clipboard-list` `coins` `crossed-swords`
 `dice` `download` `eye` `eye-off` `flame` `flask-conical` `folder-open` `globe`
-`heart` `hexagon` `house` `image` `landmark` `link` `lock` `lock-open`
+`heart` `hexagon` `hourglass` `house` `image` `landmark` `link` `lock` `lock-open`
 `mail` `map` `map-pin` `maximize-2` `message-circle` `minus` `monitor`
 `moon` `mountain` `mouse-pointer-2` `open-book` `package` `paw-print`
 `pencil` `pin` `play` `plus` `potion` `refresh-cw` `save` `scroll-text`
@@ -520,6 +520,17 @@ Testlogin: `window.app.testLogin()` → Test McTestface (groep 3, wachtwoord in 
 - [ ] Herladen tijdens brandend vuur → overlay komt terug (restore via GET /kampvuur)
 - [ ] DM dooft → overlay vervaagt bij iedereen; quotes staan daarna in de Kroniek
 - [ ] Kampvuur zonder quotes gedoofd → geen leeg blok in de Kroniek
+
+### Korte rust (short rest met Hit Dice) — 11 juni 2026
+- [ ] DM: zandloper-knop in regie-balk én in Gevecht-tab → Rust; toggle start/hervat
+- [ ] Speler (actieve groep): adempauze-overlay (gouden lucht, lage zon, zwevend stof) verschijnt live
+- [ ] Speler ziet HP-balk, Hit Dice-stippen (●○) en het juiste die-type (profiel `hitDie`, anders klasse-mapping)
+- [ ] Worp invullen + "Besteed Hit Die" → HP stijgt (max. tot maximum), teller omlaag, regel live bij de hele groep
+- [ ] Geen Hit Dice meer → invoer verdwijnt ("Je hebt geen Hit Dice meer over")
+- [ ] DM "Hervat de tocht" → overlay vervaagt; Warlock-spelers krijgen Pact Magic-slots terug; items met
+      "Herlaadt bij korte rust" naar max
+- [ ] Lange rust: helft van de Hit Dice terug (min. 1) en shortRest-items laden óók (was een gat)
+- [ ] Herladen tijdens adempauze → overlay komt terug (GET /shortrest)
 
 ### Kroniek (logboek-leesmodus) — 11 juni 2026
 - [ ] Logboek-dropdown: item "Kroniek" tussen Logboek en Kaarten

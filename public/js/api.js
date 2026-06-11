@@ -184,6 +184,12 @@ export const api = {
   kampvuurStop:  (groepId) => request('/kampvuur/stop',  { method: 'POST', body: JSON.stringify({ groepId }) }),
   kampvuurQuote: (tekst)   => request('/kampvuur/quote', { method: 'POST', body: JSON.stringify({ tekst }) }),
 
+  // Korte rust (short rest met Hit Dice)
+  getShortRest:    ()         => request('/shortrest'),
+  shortRestStart:  (groepId)  => request('/shortrest/start',  { method: 'POST', body: JSON.stringify({ groepId }) }),
+  shortRestStop:   (groepId)  => request('/shortrest/stop',   { method: 'POST', body: JSON.stringify({ groepId }) }),
+  shortRestHitDie: (uitkomst) => request('/shortrest/hitdie', { method: 'POST', body: JSON.stringify({ uitkomst }) }),
+
   // Groepen
   listGroups:   ()           => request('/groups'),
 
