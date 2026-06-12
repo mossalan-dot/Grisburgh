@@ -580,7 +580,10 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
   // berichten en de tempel, en moet bij herstel uit de prullenbak weer beschikbaar zijn.
   // Voor de rest: guarded delete (alleen wissen als het bestand nergens meer gebruikt wordt).
   const _isPlayerCard = type === 'personages' && dying.subtype === 'speler';
-  if (!_isPlayerCard) _deleteFileIfUnused(id);
+  if (!_isPlayerCard) {
+    _deleteFileIfUnused(id);                                   // oud portret op /files/{id}
+    if (dying.data?.imageId) _deleteFileIfUnused(dying.data.imageId);  // bibliotheek-portret
+  }
   req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type, id, deleted: true });
   req.app.get('io').to(req.session?.campaignId||'main').emit('entity:trashed', { type, id, name: dying.name });
   res.json({ ok: true });

@@ -158,7 +158,7 @@ function renderDashCard(e) {
   return `
     <div class="bg-room-surface border border-room-border rounded-lg cursor-pointer hover:-translate-y-0.5 hover:shadow-deep hover:border-room-border-light transition"
       onclick="window._openDashDetail('${activePanel}','${e.id}')">
-      <img class="w-full h-28 object-cover rounded-t-lg" src="${api.fileUrl(e.id)}"
+      <img class="w-full h-28 object-cover rounded-t-lg" src="${api.fileForEntity(e)}"
         onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
       <div class="h-1 bar-${activePanel} rounded-t-lg" style="display:none"></div>
       <div class="p-4">
@@ -184,7 +184,7 @@ window._openDashDetail = async (panel, id) => {
   let body = '';
 
   // Image
-  body += `<div class="mb-4"><img src="${api.fileUrl(e.id)}" class="w-full max-h-64 object-contain rounded" onerror="this.parentElement.style.display='none'"></div>`;
+  body += `<div class="mb-4"><img src="${api.fileForEntity(e)}" class="w-full max-h-64 object-contain rounded" onerror="this.parentElement.style.display='none'"></div>`;
 
 
   // Description and fields

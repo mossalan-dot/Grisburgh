@@ -93,6 +93,12 @@ export const api = {
   },
   fileUrl:  (id) => `${BASE}/files/${id}`,
   thumbUrl: (id) => `${BASE}/thumb/${id}`,
+  // Portret-URL voor een entiteit: gebruikt het losse data.imageId als dat
+  // gezet is (mediabibliotheek-hergebruik), anders het entity-id zelf
+  // (oude portretten staan op /files/{entityId}). Fallback dus backward-compat.
+  entityImgId:   (e) => (e?.data?.imageId || e?.id),
+  fileForEntity: (e) => `${BASE}/files/${e?.data?.imageId || e?.id}`,
+  thumbForEntity:(e) => `${BASE}/thumb/${e?.data?.imageId || e?.id}`,
   deleteFile: (id) => request(`/files/${id}`, { method: 'DELETE' }),
 
   // Sessie Log
