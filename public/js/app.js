@@ -9,6 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=41";
 import { initDmPanel } from "./dm-panel.js?v=103";
+import './media-picker.js?v=1';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
