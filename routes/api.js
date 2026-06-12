@@ -2874,6 +2874,7 @@ router.post('/archief', requireDM, (req, res) => {
     desc:      req.body.desc      || '',
     icon:      req.body.icon      || '\u2709\ufe0f',
     hoofdstuk: req.body.hoofdstuk || '',
+    imageId:   req.body.imageId   || '',
     npcs:      req.body.npcs      || [],
     locs:      req.body.locs      || [],
     orgs:      req.body.orgs      || [],
@@ -2941,7 +2942,8 @@ router.delete('/archief/:id', requireDM, (req, res) => {
   }
   storage.writeJSON('archief.json', archief);
   storage.writeJSON('dm-state.json', dmState);
-  _deleteFileIfUnused(req.params.id);
+  _deleteFileIfUnused(req.params.id);                                                  // bestand op /files/{docId}
+  if (deletingDoc?.imageId) _deleteFileIfUnused(deletingDoc.imageId);                  // bibliotheek-afbeelding
   req.app.get('io').to(req.session?.campaignId||'main').emit('archief:updated', { id: req.params.id, deleted: true });
   res.json({ ok: true });
 });

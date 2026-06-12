@@ -1,4 +1,4 @@
-import { api } from './api.js?v=240';
+import { api } from './api.js?v=242';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -2252,7 +2252,7 @@ function renderDocCardCompact(d) {
     <div class="flex items-center gap-2 w-44 shrink-0 bg-room-elevated border border-room-border rounded-lg overflow-hidden cursor-pointer hover:border-room-border-light transition${dimmed ? ' opacity-60' : ''}"
       onclick="window._openDoc('${d.id}')">
       <img class="w-10 h-12 object-cover shrink-0${isBlurred ? ' blur-sm' : ''}"
-        src="${api.fileUrl(d.id)}" onerror="this.style.display='none'">
+        src="${api.fileForEntity(d)}" onerror="this.style.display='none'">
       <div class="min-w-0 flex-1 py-1.5 pr-2">
         <div class="text-[11px] font-cinzel font-semibold text-ink-bright leading-tight truncate${isBlurred ? ' blur-sm select-none' : ''}">${esc(d.name)}</div>
         ${d.type ? `<div class="text-[10px] text-ink-faint italic mt-0.5">${esc(d.type)}</div>` : ''}
@@ -2292,7 +2292,7 @@ function renderDocCard(d) {
       <div class="card-accent bar-documenten"></div>
       <div class="card-img-wrap">
         <img class="card-img w-full object-cover${isBlurred ? ' blur-lg select-none pointer-events-none' : ''}"
-          loading="lazy" src="${api.thumbUrl(d.id)}" onerror="this.style.display='none'">
+          loading="lazy" src="${api.thumbForEntity(d)}" onerror="this.style.display='none'">
         <div class="card-img-fade"></div>
         ${d.type ? `<div class="card-subtype-badge badge-doc">${esc(d.type)}</div>` : ''}
       </div>
@@ -2329,8 +2329,8 @@ window._openDoc = async (id) => {
   const isBlurred  = !isDM() && state === 'blurred';
   const hoofdstuk  = meta?.hoofdstukken?.[d.hoofdstuk];
   const tekst      = archiefData.tekstContent?.[id] || '';
-  const thumbUrl   = api.thumbUrl(id);
-  const fileUrl    = api.fileUrl(id);
+  const thumbUrl   = api.thumbForEntity(d);
+  const fileUrl    = api.fileForEntity(d);
 
   let body = '';
 
@@ -2497,6 +2497,25 @@ window._uploadDocFile = async (id, file) => {
   window._openDoc(id);
 };
 
+// Kies een bestaande afbeelding uit de mediabibliotheek voor dit document.
+// Zet het verborgen imageId-veld (gaat mee bij opslaan) en werkt de preview bij.
+window._docPickImage = () => {
+  const naamHint = (document.querySelector('#archief-form [name="name"]')?.value || '').trim().toLowerCase().replace(/\s+/g, '-');
+  window.mediaPicker.open({
+    type: 'afbeelding',
+    suggestedName: naamHint || '',
+    onSelect: (fileId) => {
+      const hidden = document.getElementById('editor-doc-imageid');
+      if (hidden) hidden.value = fileId;
+      const preview = document.getElementById('editor-file-preview');
+      if (preview) preview.innerHTML = `<img src="${api.fileUrl(fileId)}" class="w-full max-h-40 object-contain rounded">`;
+      // Een eventuele upload-keuze vervalt — bibliotheekafbeelding wint
+      const fileInput = document.getElementById('editor-file-input');
+      if (fileInput) fileInput.value = '';
+    },
+  });
+};
+
 // If img fails to load, check if it's a PDF or audio and embed accordingly
 window._tryPdfEmbed = async (id, imgEl) => {
   const container = document.getElementById(`doc-file-container-${id}`);
@@ -2594,10 +2613,12 @@ window._openArchiefEditor = async (editId) => {
     <div>
       <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Bestand</label>
       <div id="editor-file-preview" class="mt-1 mb-2 rounded overflow-hidden">
-        ${editId ? `<img src="${api.fileUrl(editId)}" class="w-full max-h-40 object-contain rounded" onerror="window._docPreviewFallback(this,'${editId}')">` : ''}
+        ${(d?.imageId || editId) ? `<img src="${api.fileForEntity(d)}" class="w-full max-h-40 object-contain rounded" onerror="window._docPreviewFallback(this,'${d?.imageId || editId}')">` : ''}
       </div>
-      <div class="upload-zone mt-1" onclick="document.getElementById('editor-file-input').click()">
-        📂 Afbeelding, PDF of audio (max 50MB)
+      <input type="hidden" id="editor-doc-imageid" value="${esc(d?.imageId || '')}">
+      <div class="flex gap-2 mt-1">
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._docPickImage()" title="Kies een afbeelding uit de bibliotheek">${icon('image')} Uit bibliotheek</button>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="document.getElementById('editor-file-input').click()" title="Afbeelding, PDF of audio uploaden">${icon('folder-open')} Upload bestand</button>
       </div>
       <input type="file" id="editor-file-input" accept="image/*,.pdf,application/pdf,audio/mpeg,.mp3,audio/ogg,.ogg,audio/wav,.wav" class="hidden">
       <div id="editor-file-status" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>
@@ -2737,6 +2758,9 @@ window._openArchiefEditor = async (editId) => {
     const file = ev.target.files[0];
     if (!file) return;
     if (file.size > 50 * 1024 * 1024) { alert('Max 50MB'); ev.target.value = ''; return; }
+    // Een nieuwe upload vervangt een eventueel gekozen bibliotheekafbeelding
+    const imgIdEl = document.getElementById('editor-doc-imageid');
+    if (imgIdEl) imgIdEl.value = '';
     const preview = document.getElementById('editor-file-preview');
     const status = document.getElementById('editor-file-status');
     if (file.type.startsWith('audio/')) {
@@ -2760,6 +2784,7 @@ window._openArchiefEditor = async (editId) => {
       type: form.get('type'),
       hoofdstuk: form.get('hoofdstuk'),
       desc: form.get('desc'),
+      imageId: document.getElementById('editor-doc-imageid')?.value || '',
       npcs:  editorTags.npcs,
       locs:  editorTags.locs,
       orgs:  editorTags.orgs,

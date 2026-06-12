@@ -93,12 +93,13 @@ export const api = {
   },
   fileUrl:  (id) => `${BASE}/files/${id}`,
   thumbUrl: (id) => `${BASE}/thumb/${id}`,
-  // Portret-URL voor een entiteit: gebruikt het losse data.imageId als dat
-  // gezet is (mediabibliotheek-hergebruik), anders het entity-id zelf
-  // (oude portretten staan op /files/{entityId}). Fallback dus backward-compat.
-  entityImgId:   (e) => (e?.data?.imageId || e?.id),
-  fileForEntity: (e) => `${BASE}/files/${e?.data?.imageId || e?.id}`,
-  thumbForEntity:(e) => `${BASE}/thumb/${e?.data?.imageId || e?.id}`,
+  // Portret-/afbeelding-URL voor een record (entiteit óf document): gebruikt het
+  // losse imageId als dat gezet is (mediabibliotheek-hergebruik) — entiteiten
+  // dragen het in data.imageId, documenten top-level imageId — anders het
+  // record-id zelf (oude bestanden staan op /files/{id}). Fallback = backward-compat.
+  entityImgId:   (e) => (e?.data?.imageId || e?.imageId || e?.id),
+  fileForEntity: (e) => `${BASE}/files/${e?.data?.imageId || e?.imageId || e?.id}`,
+  thumbForEntity:(e) => `${BASE}/thumb/${e?.data?.imageId || e?.imageId || e?.id}`,
   deleteFile: (id) => request(`/files/${id}`, { method: 'DELETE' }),
 
   // Sessie Log
