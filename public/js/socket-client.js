@@ -216,7 +216,7 @@ export function initSocket() {
 
   socket.on('map:updated', () => {
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=10').then(m => m.renderKaart());
+      import('./render-kaart.js?v=11').then(m => m.renderKaart());
     }
   });
 
@@ -245,7 +245,7 @@ export function initSocket() {
   socket.on('map:pinRevealed', () => {
     // Herlaad kaart als de speler daar is (toast wordt al getoond via entity:visibility)
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=10').then(m => m.renderKaart());
+      import('./render-kaart.js?v=11').then(m => m.renderKaart());
     }
   });
 
@@ -258,7 +258,7 @@ export function initSocket() {
       8000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=10').then(m => m.renderKaart());
+      import('./render-kaart.js?v=11').then(m => m.renderKaart());
     }
   });
 
@@ -269,7 +269,7 @@ export function initSocket() {
       6000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=10').then(m => m.renderKaart());
+      import('./render-kaart.js?v=11').then(m => m.renderKaart());
     }
   });
 
@@ -280,7 +280,7 @@ export function initSocket() {
       5000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=10').then(m => m.renderKaart());
+      import('./render-kaart.js?v=11').then(m => m.renderKaart());
     }
   });
 
