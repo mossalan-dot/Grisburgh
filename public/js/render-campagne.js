@@ -2076,7 +2076,16 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           ${shopHumeurData.entries.map(h => `
             <div class="shop-humeur-dm-rij">
               <span class="shop-humeur-dm-naam">${esc(h.playerName || h.characterId)}</span>
-              <span class="shop-humeur shop-humeur--${esc(h.tier)}">${esc(TIER_LABEL[h.tier] || h.tier)} (${h.score > 0 ? '+' : ''}${h.score})</span>
+              <span class="shop-humeur-meter" title="${h.score > 0 ? '+' : ''}${h.score}">
+                ${Array.from({ length: 7 }, (_, i) => {
+                  const v = i - 3;
+                  const kant = v < 0 ? 'min' : v > 0 ? 'plus' : 'nul';
+                  const actief = v === 0 ? h.score === 0
+                    : (h.score < 0 ? (v >= h.score && v < 0) : (v > 0 && v <= h.score));
+                  return `<span class="shop-humeur-pip shop-humeur-pip--${kant}${actief ? ' shop-humeur-pip--actief' : ''}"></span>`;
+                }).join('')}
+              </span>
+              <span class="shop-humeur shop-humeur--${esc(h.tier)}">${esc(TIER_LABEL[h.tier] || h.tier)}</span>
               <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Humeur omlaag"
                 onclick="window._dmHumeurBump('${esc(e.id)}','${esc(h.characterId)}',-1)">${icon('minus')}</button>
               <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Humeur omhoog"

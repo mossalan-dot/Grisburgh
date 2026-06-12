@@ -11862,10 +11862,17 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 
 /* Onderhandelen */
 .shop-onderhandel-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid rgba(196,168,122,0.2);
 }
+.shop-onderhandel-wrap > .shop-onderhandel-panel,
+.shop-onderhandel-wrap > .shop-onderhandel-result,
+.shop-onderhandel-wrap > .shop-onderhandel-geblokkeerd { flex-basis: 100%; }
 .shop-onderhandel-btn {
   padding: 5px 14px;
   background: rgba(196,168,122,0.08);
@@ -11928,7 +11935,6 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   cursor: not-allowed;
 }
 .shop-onderhandel-geblokkeerd {
-  margin-left: 8px;
   font-size: 0.78rem;
   font-style: italic;
   color: var(--color-ink-dim);
@@ -11939,7 +11945,6 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
   padding: 4px 10px;
   border-radius: 5px;
   font-size: 0.8rem;
@@ -11980,13 +11985,34 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   gap: 8px;
   padding: 3px 0;
 }
-.shop-humeur-dm-rij .shop-humeur { margin-bottom: 0; }
 .shop-humeur-dm-naam {
   min-width: 140px;
   font-family: 'Crimson Text', serif;
   color: var(--color-ink-bright);
   font-size: 0.88rem;
 }
+
+/* Humeurmeter: zeven ruitjes van -3 (links, rood) tot +3 (rechts, goud) */
+.shop-humeur-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.shop-humeur-pip {
+  width: 7px;
+  height: 7px;
+  transform: rotate(45deg);
+  border: 1px solid rgba(196,168,122,0.55);
+  background: transparent;
+}
+.shop-humeur-pip--nul {
+  width: 9px;
+  height: 9px;
+  border-color: rgba(90,64,48,0.5);
+}
+.shop-humeur-pip--actief.shop-humeur-pip--min  { background: #8b2a2a; border-color: #8b2a2a; }
+.shop-humeur-pip--actief.shop-humeur-pip--plus { background: #b8860b; border-color: #b8860b; }
+.shop-humeur-pip--actief.shop-humeur-pip--nul  { background: rgba(90,64,48,0.45); }
 
 /* ══ Tweespalt / Gokkantoor ══════════════════════════════════════════════════ */
 
