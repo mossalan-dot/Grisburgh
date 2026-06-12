@@ -1,14 +1,14 @@
-import { api } from './api.js?v=235';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=96";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=43";
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=10';
-import { renderDungeon } from './render-dungeon.js?v=23';
-import { renderRelatiemap } from './render-relatiemap.js?v=14';
-import { renderProgressie } from './render-progressie.js?v=35';
-import { renderBestiarium } from './render-bestiarium.js?v=12';
+import { api } from './api.js?v=236';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=97";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=44";
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=11';
+import { renderDungeon } from './render-dungeon.js?v=24';
+import { renderRelatiemap } from './render-relatiemap.js?v=15';
+import { renderProgressie } from './render-progressie.js?v=36';
+import { renderBestiarium } from './render-bestiarium.js?v=13';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=35";
-import { initDmPanel } from "./dm-panel.js?v=89";
+import { initSocket } from "./socket-client.js?v=36";
+import { initDmPanel } from "./dm-panel.js?v=90";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.

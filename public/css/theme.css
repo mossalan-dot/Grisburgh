@@ -11923,6 +11923,70 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .shop-onderhandel-loading { color: var(--color-ink-dim); }
 .shop-onderhandel-result--ok { background: rgba(34,100,54,0.10); border: 1px solid rgba(34,100,54,0.28); color: #1a5c30; }
 .shop-onderhandel-result--fout { background: rgba(139,42,42,0.08); border: 1px solid rgba(139,42,42,0.25); color: #8b2a2a; }
+.shop-onderhandel-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.shop-onderhandel-geblokkeerd {
+  margin-left: 8px;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--color-ink-dim);
+}
+
+/* Winkelier-humeur (sfeerregel + tier-kleuren) */
+.shop-humeur {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-style: italic;
+  font-family: 'IM Fell English', serif;
+  border: 1px solid rgba(196,168,122,0.25);
+  color: var(--color-ink-dim);
+}
+.shop-humeur svg { width: 14px; height: 14px; flex-shrink: 0; }
+.shop-humeur--vijandig    { background: rgba(139,42,42,0.10); border-color: rgba(139,42,42,0.3); color: #8b2a2a; }
+.shop-humeur--stug        { background: rgba(139,90,42,0.08); border-color: rgba(139,90,42,0.25); color: #8b5a2a; }
+.shop-humeur--vriendelijk { background: rgba(34,100,54,0.08); border-color: rgba(34,100,54,0.22); color: #2a6436; }
+.shop-humeur--hartelijk   { background: rgba(196,147,10,0.10); border-color: rgba(196,147,10,0.32); color: #8a6a10; }
+
+/* Humeur-overzicht in het DM-logtabblad */
+.shop-humeur-dm {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(196,168,122,0.25);
+  border-radius: 6px;
+  background: rgba(196,168,122,0.04);
+}
+.shop-humeur-dm-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+}
+.shop-humeur-dm-head svg { width: 14px; height: 14px; }
+.shop-humeur-dm-rij {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+}
+.shop-humeur-dm-rij .shop-humeur { margin-bottom: 0; }
+.shop-humeur-dm-naam {
+  min-width: 140px;
+  font-family: 'Crimson Text', serif;
+  color: var(--color-ink-bright);
+  font-size: 0.88rem;
+}
 
 /* ══ Tweespalt / Gokkantoor ══════════════════════════════════════════════════ */
 

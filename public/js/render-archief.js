@@ -1,4 +1,4 @@
-import { api } from './api.js?v=235';
+import { api } from './api.js?v=236';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -242,7 +242,7 @@ export async function renderLogboek() {
   if (_logboekActiveTab === 'prikbord') {
     tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
     tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
-    const { renderRelatiemap } = await import('./render-relatiemap.js?v=14');
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=15');
     await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
     return;
   }

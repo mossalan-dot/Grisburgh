@@ -1,4 +1,4 @@
-import { api } from './api.js?v=235';
+import { api } from './api.js?v=236';
 
 const icon = (...a) => window.icon(...a);
 
@@ -1344,6 +1344,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
 
   let e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData, shopVerkoopData;
   let shopLogData = null;
+  let shopHumeurData = null;
   const _isShopTab = (tab === 'locaties' || tab === 'personages');
   try {
     [e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData, shopVerkoopData] = await Promise.all([
@@ -1367,7 +1368,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ]);
   } catch { return; }
   if (_isShopTab && isDM()) {
-    shopLogData = await api.getShopLog(id).catch(() => null);
+    [shopLogData, shopHumeurData] = await Promise.all([
+      api.getShopLog(id).catch(() => null),
+      api.getShopHumeur(id).catch(() => null),
+    ]);
   }
   // Zorg dat de wikilink-naamindex volledig geladen is voor we de beschrijving renderen
   await window._entityIndexReady?.catch(() => {});
@@ -1874,6 +1878,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       const _fmt = (b) => b ? `${b.fl} ${esc(_cN.fl)} · ${b.kn} ${esc(_cN.kn)} · ${b.cl} ${esc(_cN.cl)}` : '—';
       const _items = shopVerkoopData.items || [];
       const _ratio = shopVerkoopData.ratio || 50;
+      const _bonusPct = shopVerkoopData.bonusPct || 0;
       const rijen = _items.length ? _items.map((it, i) => `
         <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0${it.verkoopbaar ? '' : ' shop-verkoop-rij--nope'}">
           <td class="px-4 py-2.5 font-crimson">
@@ -1902,6 +1907,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         <div class="shop-verkoop-section">
           <div class="shop-verkoop-head">${icon('coins')} Verkopen aan deze winkel
             <span class="shop-verkoop-ratio">koopt voor ${_ratio}% van de waarde</span>
+            ${_bonusPct > 0 ? `<span class="shop-korting-badge">+${_bonusPct}% onderhandeld</span>` : ''}
           </div>
           <div class="rounded border border-room-border overflow-hidden">
             <table class="w-full text-sm">
@@ -1920,12 +1926,22 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     })() : '';
 
     if (voorraadItems.length > 0) {
-      // Onderhandelen button (alleen voor spelers)
+      // Onderhandelen button (alleen voor spelers) — met winkelier-humeur
+      const _oh = beschikbaarData?.onderhandel || null;
+      const humeurHtml = _oh?.tekst
+        ? `<div class="shop-humeur shop-humeur--${esc(_oh.tier)}">${icon('message-circle')} <span>${esc(_oh.tekst)}</span></div>`
+        : '';
       const onderhandelHtml = !isDM() ? `
         <div id="shop-onderhandel-wrap" class="shop-onderhandel-wrap">
-          <button class="shop-onderhandel-btn" onclick="window._onderhandelOpen('${esc(_shopId)}')">
-            🎲 Onderhandelen
+          ${humeurHtml}
+          ${_oh && !_oh.kan ? `
+          <button class="shop-onderhandel-btn" disabled title="${esc(_oh.reden)}">
+            ${icon('dice')} Onderhandelen
           </button>
+          <span class="shop-onderhandel-geblokkeerd">${esc(_oh.reden)}</span>` : `
+          <button class="shop-onderhandel-btn" onclick="window._onderhandelOpen('${esc(_shopId)}')">
+            ${icon('dice')} Onderhandelen
+          </button>`}
           <div id="shop-onderhandel-panel-${esc(_shopId)}" class="shop-onderhandel-panel hidden">
             <div class="flex items-center gap-2">
               <label class="text-xs text-ink-dim">CHA-modifier:</label>
@@ -2049,6 +2065,25 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         </div>`;
     } else {
       logHtml = `<div class="text-center py-10 text-ink-faint font-fell italic">Nog geen aankopen geregistreerd</div>`;
+    }
+
+    // Winkelier-humeur per character (DM kan bijstellen)
+    if (shopHumeurData?.entries?.length) {
+      const TIER_LABEL = { vijandig: 'Vijandig', stug: 'Stug', neutraal: 'Neutraal', vriendelijk: 'Vriendelijk', hartelijk: 'Hartelijk' };
+      const humeurDmHtml = `
+        <div class="shop-humeur-dm">
+          <div class="shop-humeur-dm-head">${icon('message-circle')} Winkelier-humeur</div>
+          ${shopHumeurData.entries.map(h => `
+            <div class="shop-humeur-dm-rij">
+              <span class="shop-humeur-dm-naam">${esc(h.playerName || h.characterId)}</span>
+              <span class="shop-humeur shop-humeur--${esc(h.tier)}">${esc(TIER_LABEL[h.tier] || h.tier)} (${h.score > 0 ? '+' : ''}${h.score})</span>
+              <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Humeur omlaag"
+                onclick="window._dmHumeurBump('${esc(e.id)}','${esc(h.characterId)}',-1)">${icon('minus')}</button>
+              <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Humeur omhoog"
+                onclick="window._dmHumeurBump('${esc(e.id)}','${esc(h.characterId)}',1)">${icon('plus')}</button>
+            </div>`).join('')}
+        </div>`;
+      logHtml = humeurDmHtml + logHtml;
     }
   }
 
@@ -2288,11 +2323,15 @@ window._onderhandelRoll = async (shopId) => {
     const r = await api.onderhandelShop(shopId, { modifier });
     const modStr = r.modifier >= 0 ? `+${r.modifier}` : `${r.modifier}`;
     const kleur = r.geslaagd ? 'shop-onderhandel-result--ok' : 'shop-onderhandel-result--fout';
-    const tekst = r.geslaagd
-      ? `✓ Geslaagd! (${r.diceRoll}${modStr !== '+0' ? ` ${modStr}` : ''} = ${r.totaal} ≥ ${r.dc}) — ${r.kortingPct}% korting actief voor 1 uur.`
-      : r.boetePct > 0
-        ? `✗ Mislukt. (${r.diceRoll}${modStr !== '+0' ? ` ${modStr}` : ''} = ${r.totaal} < ${r.dc}) — Prijs ${r.boetePct}% hoger voor 1 uur.`
-        : `✗ Mislukt. (${r.diceRoll}${modStr !== '+0' ? ` ${modStr}` : ''} = ${r.totaal} < ${r.dc})`;
+    const rolStr = `(${r.diceRoll}${modStr !== '+0' ? ` ${modStr}` : ''} = ${r.totaal} vs DC ${r.dc})`;
+    let tekst;
+    if (r.geslaagd) {
+      tekst = `${r.nat20 ? '✦ Natuurlijke 20! ' : '✓ Geslaagd! '}${rolStr} — ${r.kortingPct}% voordeel bij kopen én verkopen, 1 uur geldig.`;
+      if (r.humeurGestegen) tekst += ' De winkelier waardeert je lef.';
+    } else {
+      tekst = `${r.nat1 ? '✗ Natuurlijke 1! ' : '✗ Mislukt. '}${rolStr}`;
+      tekst += r.nat1 ? ' De winkelier is beledigd…' : (r.humeurGedaald ? ' De winkelier kijkt je nors aan.' : '');
+    }
     if (resultEl) {
       resultEl.className = `shop-onderhandel-result ${kleur}`;
       resultEl.textContent = tekst;
@@ -2305,6 +2344,16 @@ window._onderhandelRoll = async (shopId) => {
     }
   } catch (err) {
     if (resultEl) { resultEl.className = 'shop-onderhandel-result shop-onderhandel-result--fout'; resultEl.textContent = err.message || 'Fout'; }
+  }
+};
+
+// ── Winkel: humeur bijstellen (DM) ──
+window._dmHumeurBump = async (shopId, characterId, delta) => {
+  try {
+    await api.bumpShopHumeur(shopId, { characterId, delta });
+    await window._openDetail(window._currentDetailTab, shopId, false, 'log');
+  } catch (err) {
+    alert('Fout: ' + err.message);
   }
 };
 

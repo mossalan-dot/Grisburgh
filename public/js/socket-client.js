@@ -32,7 +32,7 @@ export function initSocket() {
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
-      import('./render-dashboard.js?v=2').then(m => m.renderDashboard());
+      import('./render-dashboard.js?v=3').then(m => m.renderDashboard());
     } else if (section === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     }
@@ -44,7 +44,7 @@ export function initSocket() {
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
-      import('./render-dashboard.js?v=2').then(m => m.renderDashboard());
+      import('./render-dashboard.js?v=3').then(m => m.renderDashboard());
     } else if (section === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     }
@@ -79,7 +79,7 @@ export function initSocket() {
     const section = window.app.state.activeSection;
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
       // Herlaad alleen de relatiemap, niet het hele logboek
-      import('./render-relatiemap.js?v=14').then(m => {
+      import('./render-relatiemap.js?v=15').then(m => {
         const el = document.getElementById('pb-relatiemap-container');
         if (el) m.renderRelatiemap(el);
       });
@@ -89,9 +89,9 @@ export function initSocket() {
   socket.on('archief:updated', () => {
     const section = window.app.state.activeSection;
     if (section === 'documenten') {
-      import('./render-archief.js?v=43').then(m => m.renderDocumenten());
+      import('./render-archief.js?v=44').then(m => m.renderDocumenten());
     } else if (section === 'logboek') {
-      import('./render-archief.js?v=43').then(m => m.renderLogboek());
+      import('./render-archief.js?v=44').then(m => m.renderLogboek());
     }
     window._updateDiscoveryChip?.(true); // #5: header-meter (documenten) verversen
   });
@@ -99,9 +99,9 @@ export function initSocket() {
   socket.on('archief:stateChanged', ({ name, state, groupId } = {}) => {
     const section = window.app.state.activeSection;
     if (section === 'documenten') {
-      import('./render-archief.js?v=43').then(m => m.renderDocumenten());
+      import('./render-archief.js?v=44').then(m => m.renderDocumenten());
     } else if (section === 'logboek') {
-      import('./render-archief.js?v=43').then(m => m.renderLogboek());
+      import('./render-archief.js?v=44').then(m => m.renderLogboek());
     }
     window._updateDiscoveryChip?.(true); // #5: header-meter (documenten) verversen
     if (!window.app.isDM() && state === 'revealed' && name) {
@@ -117,14 +117,14 @@ export function initSocket() {
 
   socket.on('logboek:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=43').then(m => m.renderLogboek());
+      import('./render-archief.js?v=44').then(m => m.renderLogboek());
     }
   });
 
   socket.on('quests:updated', () => {
     const section = window.app?.state?.activeSection;
     if (section === 'logboek') {
-      import('./render-archief.js?v=43').then(m => m.renderLogboek());
+      import('./render-archief.js?v=44').then(m => m.renderLogboek());
     }
     // Factie-interieur herlaadt ook (missies zijn quests met factieId)
     if (section === 'facties') _refreshSectionDebounced('facties');
@@ -141,7 +141,7 @@ export function initSocket() {
     if (section === 'facties') _refreshSectionDebounced('facties');
     if (section === 'mijn-karakter') _refreshSectionDebounced('mijn-karakter');
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
-      import('./render-archief.js?v=43').then(m => m.renderLogboek());
+      import('./render-archief.js?v=44').then(m => m.renderLogboek());
     }
     window._updateDienstenMenuFromSocket?.();
   });
@@ -182,7 +182,7 @@ export function initSocket() {
 
   socket.on('chapter-visibility:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=43').then(m => m.renderLogboek());
+      import('./render-archief.js?v=44').then(m => m.renderLogboek());
     }
   });
 
@@ -198,7 +198,7 @@ export function initSocket() {
 
   socket.on('logboek:imageRevealed', ({ imageId, caption, samenvatting } = {}) => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=43').then(m => m.renderLogboek());
+      import('./render-archief.js?v=44').then(m => m.renderLogboek());
     }
     if (!window.app.isDM()) {
       if (window._isDisplayMode) {
@@ -216,7 +216,7 @@ export function initSocket() {
 
   socket.on('map:updated', () => {
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=10').then(m => m.renderKaart());
+      import('./render-kaart.js?v=11').then(m => m.renderKaart());
     }
   });
 
@@ -228,7 +228,7 @@ export function initSocket() {
     }
     if (window.app.state.activeSection !== 'kaart') return;
     if (window.app.state.role === 'dm') return; // DM al bijgewerkt via _renderSvg()
-    import('./render-dungeon.js?v=23').then(m => {
+    import('./render-dungeon.js?v=24').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -236,7 +236,7 @@ export function initSocket() {
   // Dungeon meta bijgewerkt (nieuwe map, party-access) → iedereen herlaadt
   socket.on('dungeon:updated', () => {
     if (window.app.state.activeSection !== 'kaart') return;
-    import('./render-dungeon.js?v=23').then(m => {
+    import('./render-dungeon.js?v=24').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -245,7 +245,7 @@ export function initSocket() {
   socket.on('map:pinRevealed', () => {
     // Herlaad kaart als de speler daar is (toast wordt al getoond via entity:visibility)
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=10').then(m => m.renderKaart());
+      import('./render-kaart.js?v=11').then(m => m.renderKaart());
     }
   });
 
@@ -258,7 +258,7 @@ export function initSocket() {
       8000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=10').then(m => m.renderKaart());
+      import('./render-kaart.js?v=11').then(m => m.renderKaart());
     }
   });
 
@@ -269,7 +269,7 @@ export function initSocket() {
       6000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=10').then(m => m.renderKaart());
+      import('./render-kaart.js?v=11').then(m => m.renderKaart());
     }
   });
 
@@ -280,12 +280,12 @@ export function initSocket() {
       5000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=10').then(m => m.renderKaart());
+      import('./render-kaart.js?v=11').then(m => m.renderKaart());
     }
   });
 
   socket.on('meta:updated', () => {
-    import('./api.js?v=235').then(({ api }) => api.meta().then(m => {
+    import('./api.js?v=236').then(({ api }) => api.meta().then(m => {
       const prev = window.app?.state?.meta;
       const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;
@@ -335,7 +335,7 @@ export function initSocket() {
     }
     // Documenten ook verversen (zichtbaarheid is per groep)
     if (activeSection === 'documenten') {
-      import('./render-archief.js?v=43').then(m => m.renderDocumenten());
+      import('./render-archief.js?v=44').then(m => m.renderDocumenten());
     }
   });
 
@@ -687,13 +687,13 @@ export function initSocket() {
 
   socket.on('relations:updated', () => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=14').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=15').then(m => m.renderRelatiemap());
     }
   });
 
   socket.on('relations:revealed', ({ id } = {}) => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=14').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=15').then(m => m.renderRelatiemap());
     }
     if (!window.app.isDM()) {
       _showToast(`🕸️ <strong>Nieuwe verbinding onthuld!</strong>`, () => {
