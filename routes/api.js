@@ -572,7 +572,8 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
   delete dmState.dmNotes[id];
   storage.writeJSON('entities.json', entities);
   storage.writeJSON('dm-state.json', dmState);
-  _deleteFileIfUnused(id);
+  _deleteFileIfUnused(id);                                   // oud portret op /files/{id}
+  if (dying.data?.imageId) _deleteFileIfUnused(dying.data.imageId);  // bibliotheek-portret
   req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type, id, deleted: true });
   req.app.get('io').to(req.session?.campaignId||'main').emit('entity:trashed', { type, id, name: dying.name });
   res.json({ ok: true });

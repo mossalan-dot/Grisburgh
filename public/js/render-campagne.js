@@ -1,4 +1,4 @@
-import { api } from './api.js?v=240';
+import { api } from './api.js?v=241';
 
 const icon = (...a) => window.icon(...a);
 
@@ -331,7 +331,6 @@ function getSubtypeBadge(type, e) {
 const searchQueries = { personages: '', locaties: '', organisaties: '', voorwerpen: '' };
 let entities = {};
 let editorTags = {};
-let pendingFile = null;
 let pendingAudioFile = null;
 let _editorOldAudioId = null;
 let entityEditorImages = [];
@@ -814,7 +813,7 @@ function renderCard(type, e) {
       <div class="entity-card card-vague">
         <div class="card-accent bar-${type}" style="opacity:0.5"></div>
         <div class="card-img-wrap">
-          <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbUrl(e.id)}"
+          <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbForEntity(e)}"
             style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
             onerror="this.closest('.entity-card').classList.add('no-img')">
           <div class="card-vague-overlay">?</div>
@@ -889,7 +888,7 @@ function renderCard(type, e) {
       ` : ''}
       <div class="card-accent bar-${type}"></div>
       <div class="card-img-wrap">
-        <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbUrl(e.id)}"
+        <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbForEntity(e)}"
           style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
           onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
         <div class="card-img-fade"></div>
@@ -1161,7 +1160,7 @@ async function _buildItemGivePicker(itemId, spelers, groupNames) {
           if (isStapelbaar) return `
             <div class="item-give-player-row">
               <div class="item-give-player-info">
-                <img src="${api.fileUrl(s.id)}" class="item-give-avatar" onerror="this.style.display='none'">
+                <img src="${api.fileForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
                 <span>${esc(s.name)}</span>
                 ${qtyBadge}
               </div>
@@ -1175,7 +1174,7 @@ async function _buildItemGivePicker(itemId, spelers, groupNames) {
           if (isGedeeld) return `
             <button class="item-give-player-btn${hasIt ? ' item-give-player-btn--has' : ''}"
               onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}',1)">
-              <img src="${api.fileUrl(s.id)}" class="item-give-avatar" onerror="this.style.display='none'">
+              <img src="${api.fileForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
               <span>${esc(s.name)}</span>
               ${qtyBadge}
             </button>`;
@@ -1183,7 +1182,7 @@ async function _buildItemGivePicker(itemId, spelers, groupNames) {
           return `
             <button class="item-give-player-btn${hasIt ? ' item-give-player-btn--has' : ''}"
               onclick="window._itemAssignToPlayer('${esc(itemId)}','${esc(s.id)}','${escJS(s.name)}','${escJS(s.data?.groep || '')}')">
-              <img src="${api.fileUrl(s.id)}" class="item-give-avatar" onerror="this.style.display='none'">
+              <img src="${api.fileForEntity(s)}" class="item-give-avatar" onerror="this.style.display='none'">
               <span>${esc(s.name)}</span>
               ${qtyBadge}
             </button>`;
@@ -1371,7 +1370,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const vis = e._visibility || 'visible';
   const isPersonage = tab === 'personages';
   const showSheet = isPersonage && isDM();
-  const fileUrl = api.fileUrl(e.id);
+  const fileUrl = api.fileForEntity(e);
 
   // ── Tab: Info ──
   let infoHtml = '';
@@ -2398,20 +2397,24 @@ window._onRevealToggle = (groupId, checked) => {
   }
 };
 
-window._editorFileSelected = (file) => {
-  if (!file) return;
-  if (file.size > 10 * 1024 * 1024) { alert('Max 10MB'); return; }
-  pendingFile = file;
-  const zone = document.getElementById('editor-upload-zone');
-  if (zone) {
-    if (file.type.startsWith('image/')) {
-      const url = URL.createObjectURL(file);
-      zone.style.padding = '4px';
-      zone.innerHTML = `<img src="${url}" style="width:100%;height:80px;object-fit:cover;border-radius:4px;display:block"><div class="text-[10px] text-ink-dim mt-1 truncate px-1">${esc(file.name)}</div>`;
-    } else {
-      zone.innerHTML = `<div style="font-size:1.5rem">📄</div><div class="text-xs text-ink-dim mt-1 truncate">${esc(file.name)}</div>`;
-    }
-  }
+// Portret kiezen/uploaden via de mediabibliotheek. Zet het verborgen
+// data_imageId-veld (gaat mee in de payload) en werkt de preview bij.
+window._editorPickImage = () => {
+  const naamHint = (document.querySelector('[name="name"]')?.value || '').trim().toLowerCase().replace(/\s+/g, '-');
+  window.mediaPicker.open({
+    type: 'afbeelding',
+    suggestedName: naamHint || '',
+    onSelect: (fileId) => {
+      const hidden = document.getElementById('editor-image-id');
+      if (hidden) hidden.value = fileId;
+      const wrap = document.getElementById('fp-wrap');
+      const img  = document.getElementById('editor-img-preview');
+      const hint = document.getElementById('fp-hint');
+      if (img)  img.src = api.fileUrl(fileId);
+      if (wrap) wrap.classList.remove('hidden');
+      if (hint) hint.classList.remove('hidden');
+    },
+  });
 };
 
 window._uploadFile = async (tab, id, file) => {
@@ -2463,7 +2466,6 @@ window._openEditor = async (tab, editId) => {
   try { const { groups } = await api.listGroups(); _editorGroups = groups; } catch { /* ok */ }
 
   editorTags = {};
-  pendingFile = null;
   pendingAudioFile = null;
   _editorOldAudioId = e?.data?.audioId || null;
   for (const lt of LINK_TYPES) {
@@ -2484,41 +2486,37 @@ window._openEditor = async (tab, editId) => {
   // ── Linker kolom: afbeelding ──
   body += `<div class="editor-col-left">`;
   {
-    const fileUrl = editId ? api.fileUrl(editId) : null;
+    // Effectief portret-fileId: data.imageId (bibliotheek) of het entity-id zelf.
+    const curImgId = e?.data?.imageId || (editId || '');
+    const hasImg   = !!(e?.data?.imageId) || !!editId;
+    const fileUrl  = hasImg ? api.fileUrl(curImgId) : '';
     const focusVal = e?.data?.imgFocus || '50% 50%';
     const [fx, fy] = (focusVal.match(/(\d+)%\s*(\d+)%/) || [null,'50','50']).slice(1).map(Number);
     body += `
       <div>
         <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Afbeelding</label>
         <div class="mt-1">
-          ${fileUrl ? `
-            <div id="fp-wrap" class="relative rounded overflow-hidden mb-1 select-none"
-              style="height:140px;cursor:crosshair"
-              onmousedown="window._fpDown(event)"
-              onmousemove="window._fpMove(event)">
-              <img id="editor-img-preview" src="${fileUrl}"
-                class="w-full h-full object-cover pointer-events-none"
-                style="object-position:${focusVal}"
-                onerror="this.parentElement.style.display='none'">
-              <div id="fp-crosshair" class="absolute pointer-events-none"
-                style="left:${fx}%;top:${fy}%;transform:translate(-50%,-50%)">
-                <div style="width:22px;height:22px;border-radius:50%;
-                  border:2px solid #fff;
-                  box-shadow:0 0 0 1.5px rgba(0,0,0,0.55),inset 0 0 0 1.5px rgba(0,0,0,0.3)"></div>
-              </div>
+          <div id="fp-wrap" class="relative rounded overflow-hidden mb-1 select-none${hasImg ? '' : ' hidden'}"
+            style="height:140px;cursor:crosshair"
+            onmousedown="window._fpDown(event)"
+            onmousemove="window._fpMove(event)">
+            <img id="editor-img-preview" src="${fileUrl}"
+              class="w-full h-full object-cover pointer-events-none"
+              style="object-position:${focusVal}"
+              onerror="this.parentElement.classList.add('hidden')">
+            <div id="fp-crosshair" class="absolute pointer-events-none"
+              style="left:${fx}%;top:${fy}%;transform:translate(-50%,-50%)">
+              <div style="width:22px;height:22px;border-radius:50%;
+                border:2px solid #fff;
+                box-shadow:0 0 0 1.5px rgba(0,0,0,0.55),inset 0 0 0 1.5px rgba(0,0,0,0.3)"></div>
             </div>
-            <p class="text-[10px] text-ink-dim mb-1">Klik om focuspunt in te stellen</p>
-            <input type="hidden" name="data_imgFocus" id="fp-input" value="${focusVal}">
-          ` : ''}
-          <div class="upload-zone" id="editor-upload-zone"
-            onclick="document.getElementById('editor-file-input').click()"
-            ondragover="event.preventDefault();this.classList.add('upload-zone--drag')"
-            ondragleave="this.classList.remove('upload-zone--drag')"
-            ondrop="event.preventDefault();this.classList.remove('upload-zone--drag');window._editorFileSelected(event.dataTransfer.files[0])">
-            <div id="upload-zone-content">\ud83d\udcf7 Sleep of klik (max 10MB)</div>
           </div>
-          <input type="file" id="editor-file-input" accept="image/*,.pdf,application/pdf" class="hidden"
-            onchange="window._editorFileSelected(this.files[0])">
+          <p class="text-[10px] text-ink-dim mb-1${hasImg ? '' : ' hidden'}" id="fp-hint">Klik om focuspunt in te stellen</p>
+          <input type="hidden" name="data_imgFocus" id="fp-input" value="${focusVal}">
+          <input type="hidden" name="data_imageId" id="editor-image-id" value="${esc(e?.data?.imageId || '')}">
+          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._editorPickImage()" title="Kies uit bibliotheek of upload nieuw">
+            ${icon('image')} ${hasImg ? 'Afbeelding wijzigen' : 'Afbeelding kiezen'}
+          </button>
         </div>
       </div>
       <div>
@@ -3281,12 +3279,12 @@ window._openEditor = async (tab, editId) => {
       } catch { /* ok — niet blokkeren bij API-fout */ }
     }
     try {
+      // Portret loopt nu via data.imageId (mediabibliotheek) — geen losse
+      // upload-naar-entity-id meer; de picker heeft het bestand al opgeslagen.
       if (editId) {
         await api.updateEntity(tab, editId, payload);
-        if (pendingFile) await api.uploadFile(editId, pendingFile);
       } else {
-        const created = await api.createEntity(tab, payload);
-        if (pendingFile && created?.id) await api.uploadFile(created.id, pendingFile);
+        await api.createEntity(tab, payload);
       }
       // Upload/verwijder audio
       if (pendingAudioFile && data.audioId) {

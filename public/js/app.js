@@ -1,5 +1,5 @@
-import { api } from './api.js?v=240';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=95";
+import { api } from './api.js?v=241';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=96";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=44";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=10';
 import { renderDungeon } from './render-dungeon.js?v=23';
@@ -4838,7 +4838,7 @@ function _invRenderEntityDetail(panel, it) {
   panel.innerHTML = `
     <div class="inv-det-page" style="transform:rotate(${rot}deg);clip-path:${clipPath};background:${bg}"${rarityKey ? ` data-rarity="${rarityKey}"` : ''}>
       <div class="inv-img-zone inv-img-zone--sheet">
-        <img class="inv-det-img" src="${api.fileUrl(it.id)}" alt="${esc(it.name)}"
+        <img class="inv-det-img" src="${api.fileForEntity(it)}" alt="${esc(it.name)}"
           onload="this.closest('.inv-img-zone').classList.add('inv-has-img')"
           onerror="this.closest('.inv-img-zone').classList.add('inv-no-img')">
         <div class="inv-img-fallback">
@@ -5598,7 +5598,7 @@ async function renderMijnKarakter(opts = {}) {
             })()}
             ${partyMembers.length > 0 ? '<div class="party-bar-divider"></div>' : ''}
             ${partyMembers.map(e => {
-              const pImgUrl   = api.fileUrl(e.id);
+              const pImgUrl   = api.fileForEntity(e);
               const firstName = esc(e.name.split(' ')[0]);
               const psub      = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
               const pHp       = typeof e.hp === 'number' ? e.hp : null;
@@ -5626,7 +5626,7 @@ async function renderMijnKarakter(opts = {}) {
             }).join('')}
             ${companions.length > 0 ? '<div class="party-bar-divider"></div>' : ''}
             ${companions.map(e => {
-              const pImgUrl   = api.fileUrl(e.id);
+              const pImgUrl   = api.fileForEntity(e);
               const firstName = esc(e.name.split(' ')[0]);
               const psub      = [e.data?.ras, e.data?.klasse].filter(Boolean).join(' · ');
               return `<div class="party-portrait party-portrait--companion" onclick="window._openDetail('personages','${esc(e.id)}')">
@@ -6208,7 +6208,7 @@ async function renderMijnKarakter(opts = {}) {
             const _mdInline = s => mdToHtml(s);
             const _renderCarouselSlide = (item) => {
               if (!item) return '<div class="item-carousel-slide"><p style="color:#8a7050;font-style:italic">Geen voorwerpen</p></div>';
-              const iImgUrl = api.fileUrl(item.id);
+              const iImgUrl = api.fileForEntity(item);
               const typeIcon = _ITEM_CATS.find(c => c.key === (item.data?.itemType || item.subtype || ''))?.icon || icon('package');
               const typeLabel = item.data?.itemType || item.subtype || 'Overig';
               const desc = item.data?.desc || '';
@@ -7331,7 +7331,7 @@ async function renderMijnKarakter(opts = {}) {
         return;
       }
 
-      const iImgUrl   = api.fileUrl(item.id);
+      const iImgUrl   = api.fileForEntity(item);
       const typeIcon  = _catIconMap[item.data?.itemType || item.subtype || ''] || icon('package');
       const typeLabel = item.data?.itemType || item.subtype || 'Overig';
       const desc      = item.data?.desc || '';

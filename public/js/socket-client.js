@@ -32,7 +32,7 @@ export function initSocket() {
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
-      import('./render-dashboard.js?v=2').then(m => m.renderDashboard());
+      import('./render-dashboard.js?v=3').then(m => m.renderDashboard());
     } else if (section === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     }
@@ -44,7 +44,7 @@ export function initSocket() {
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
     } else if (section === 'dashboard') {
-      import('./render-dashboard.js?v=2').then(m => m.renderDashboard());
+      import('./render-dashboard.js?v=3').then(m => m.renderDashboard());
     } else if (section === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter'); // #5: ontdekkings-teller bijwerken
     }
@@ -285,7 +285,7 @@ export function initSocket() {
   });
 
   socket.on('meta:updated', () => {
-    import('./api.js?v=240').then(({ api }) => api.meta().then(m => {
+    import('./api.js?v=241').then(({ api }) => api.meta().then(m => {
       const prev = window.app?.state?.meta;
       const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;
