@@ -285,7 +285,7 @@ export function initSocket() {
   });
 
   socket.on('meta:updated', () => {
-    import('./api.js?v=236').then(({ api }) => api.meta().then(m => {
+    import('./api.js?v=237').then(({ api }) => api.meta().then(m => {
       const prev = window.app?.state?.meta;
       const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;
@@ -483,6 +483,11 @@ export function initSocket() {
     const myCharId = window.app?.state?.characterId;
     if (characterId && characterId !== myCharId) return;
     window._tempelVloekCinema?.(godNaam, vloekEffect);
+  });
+
+  // ── Party-rust cinematic (DM-getriggerd, party-breed) ──
+  socket.on('party:rest', (payload) => {
+    window._rustCinematic?.(payload);
   });
 
   socket.on('items:request', (data) => {

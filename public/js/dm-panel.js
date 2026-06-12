@@ -1,4 +1,4 @@
-import { api } from './api.js?v=236';
+import { api } from './api.js?v=237';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -3710,6 +3710,12 @@ async function _renderHerbergSettings() {
       </div>
 
       <div class="dm-form-row">
+        <label class="dm-form-label">Overnachting (prijs p.p.)</label>
+        <input id="hb-overnachting" class="dm-input" value="${esc(config.overnachtingPrijs || '1 fl.')}" placeholder="1 fl.">
+        <span class="dm-hint" style="font-size:11px">Afgeschreven per speler bij een lange rust hier; levert 2 roddels p.p. op.</span>
+      </div>
+
+      <div class="dm-form-row">
         <label class="dm-form-label">Waard (NPC)</label>
         <select id="hb-waard-select" class="dm-select" onchange="window._hbSelectWaard(this.value)">
           <option value="">— Kies een personage —</option>
@@ -3825,12 +3831,14 @@ window._hbSave = async () => {
   const entityId = select?.value || '';
   const p = _hbPersonages.find(p => p.id === entityId);
   const groet = document.getElementById('hb-groet')?.value.trim() || '';
+  const overnachtingPrijs = document.getElementById('hb-overnachting')?.value.trim() || '1 fl.';
   const payload = {
     naam,
     waard:      p?.name || config.waard || '',
     imageId:    entityId || config.imageId || '',
     backdropId: _hbPendingBackdropId || config.backdropId || '',
     groet,
+    overnachtingPrijs,
   };
   try {
     await api.saveHerberg(payload);
@@ -5827,27 +5835,43 @@ function _renderGevecht() {
 
     <div class="dm-feature-section" style="margin-top:4px;border-top:1px solid rgba(196,168,122,0.25);padding-top:12px">
       <div class="dm-section-label">${icon('moon')} Rust</div>
+      <div class="dm-rust-locatie" role="group" aria-label="Rustlocatie" style="display:flex;gap:6px;margin-bottom:8px">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm dm-rust-loc-btn is-actief" data-loc="veld"
+          onclick="window._dmRustKiesLoc('veld')">${icon('tree-pine')} In het veld</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm dm-rust-loc-btn" data-loc="herberg"
+          onclick="window._dmRustKiesLoc('herberg')">${icon('beer')} ${esc(window.app?.state?.meta?.herberg?.naam || 'De herberg')}</button>
+      </div>
       <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
-        <button class="dm-btn dm-btn-ghost" onclick="window._dmLangeRust()" title="Lange rust — herlaadt alle item-charges">${icon('moon')}</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._dmRust('long')" title="Lange rust — party-breed">${icon('moon')} Lange rust</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window._dmRust('short')" title="Korte rust — party-breed">${icon('zap')} Korte rust</button>
         <span id="dm-rust-status" style="font-size:11px;color:#6a9050"></span>
       </div>
     </div>
   `;
 
-  window._dmLangeRust = async function() {
+  window._dmRustLocatie = window._dmRustLocatie || 'veld';
+  window._dmRustKiesLoc = function(loc) {
+    window._dmRustLocatie = loc;
+    document.querySelectorAll('.dm-rust-loc-btn').forEach(b => b.classList.toggle('is-actief', b.dataset.loc === loc));
+  };
+
+  window._dmRust = async function(type) {
     const statusEl = document.getElementById('dm-rust-status');
+    const locatie = window._dmRustLocatie || 'veld';
+    if (statusEl) statusEl.textContent = '…';
     try {
-      const r = await api.partyLongRest();
-      if (statusEl) {
-        let msg = `✓ Lange rust uitgevoerd (${r.resetCount} charges herladen)`;
-        if (r.rollLog && r.rollLog.length) {
-          msg += ' — Dobbelrollen: ' + r.rollLog.map(e =>
-            `${e.charName} / ${e.itemName}: +${e.rolled} → ${e.newCharges}/${e.max}`
-          ).join(', ');
-        }
-        statusEl.textContent = msg;
-        setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 8000);
+      if (type === 'short') {
+        const r = await api.partyShortRest({ locatie });
+        if (statusEl) statusEl.textContent = `✓ Korte rust uitgevoerd voor ${r.spelers} speler(s)`;
+      } else {
+        const r = await api.partyLongRest({ locatie });
+        let msg = `✓ Lange rust (${r.resetCount} charges herladen`;
+        if (r.kosten) msg += `, ${r.kosten.totaal.fl} fl. ${r.kosten.totaal.kn} kn. afgeschreven`;
+        if (r.roddelsOnthuld) msg += `, ${r.roddelsOnthuld} roddels onthuld`;
+        msg += ')';
+        if (statusEl) statusEl.textContent = msg;
       }
+      if (statusEl) setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 8000);
     } catch(err) {
       if (statusEl) statusEl.textContent = 'Fout: ' + (err.message || '?');
     }

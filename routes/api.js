@@ -1919,6 +1919,56 @@ function rollDice(formula) {
   return total;
 }
 
+// ── Hit Dice ───────────────────────────────────────────────────────────────
+// Hit die per klasse (2024 PHB). Klassenamen Engels, case-insensitief.
+const CLASS_HIT_DIE = {
+  barbarian: 12,
+  fighter: 10, paladin: 10, ranger: 10,
+  sorcerer: 6, wizard: 6,
+  artificer: 8, bard: 8, cleric: 8, druid: 8, monk: 8, rogue: 8, warlock: 8,
+};
+function _hitDieForClass(naam) {
+  return CLASS_HIT_DIE[String(naam || '').trim().toLowerCase()] || null;
+}
+// Leidt de Hit Dice-pool af uit klasse + level (incl. multiklasse). Keyed op
+// aantal zijden: { 10: 3, 6: 2 }. Fallback bij onbekende klasse: hitDie-veld of d8×level.
+function _hitDicePool(profile) {
+  const p = profile || {};
+  const pool = {};
+  const add = (klasse, lvl) => {
+    const n = parseInt(lvl);
+    const sides = _hitDieForClass(klasse);
+    if (sides && n > 0) pool[sides] = (pool[sides] || 0) + n;
+  };
+  add(p.klasse, p.klasseLevel ?? p.level);
+  if ((p.multiclass === true || p.multiclass === 'true') && p.multiKlasse) {
+    add(p.multiKlasse, p.multiKlasseLevel);
+  }
+  if (Object.keys(pool).length === 0) {
+    const m = String(p.hitDie || '').match(/d(\d+)/i);
+    pool[m ? parseInt(m[1]) : 8] = parseInt(p.level ?? p.klasseLevel) || 1;
+  }
+  return pool;
+}
+function _hitDiceTotaal(pool) {
+  return Object.values(pool).reduce((a, b) => a + b, 0);
+}
+function _conMod(profile) {
+  const con = parseInt(profile?.con);
+  return Number.isFinite(con) ? Math.floor((con - 10) / 2) : 0;
+}
+// Herstel n Hit Dice, grootste type eerst (muteert spent in-place).
+function _herstelHitDice(pool, spent, n) {
+  let teGaan = n, hersteld = 0;
+  for (const sides of Object.keys(pool).map(Number).sort((a, b) => b - a)) {
+    if (teGaan <= 0) break;
+    const verbruikt = spent[sides] || 0;
+    const terug = Math.min(verbruikt, teGaan);
+    if (terug > 0) { spent[sides] = verbruikt - terug; teGaan -= terug; hersteld += terug; }
+  }
+  return hersteld;
+}
+
 // ── Item charges ──
 
 router.patch('/items/:itemId/owner/:characterId/charges', attachRole, (req, res) => {
@@ -1995,6 +2045,7 @@ router.post('/characters/:characterId/long-rest', attachRole, (req, res) => {
 
 // Party-brede lange rust (DM-actie)
 router.post('/party/long-rest', requireDM, (req, res) => {
+  const locatie = req.body?.locatie === 'herberg' ? 'herberg' : 'veld';
   let entities = {};
   try { entities = storage.readJSON('entities.json'); } catch { /* ok */ }
   const dmState = readDmState();
@@ -2007,11 +2058,16 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     e => e.subtype === 'speler' && e.data?.groep === activeGroepId
   );
 
+  // Per-speler-samenvatting voor de cinematic
+  const perPlayer = {};
+  const _sum = id => (perPlayer[id] = perPlayer[id] || { hpVan: null, hpNaar: null, slotsHersteld: 0, hitDiceTerug: 0, chargesHersteld: 0 });
+
   // ── 1. HP → max ──
   if (!dmState.playerHp) dmState.playerHp = {};
   spelers.forEach(char => {
     const hp = dmState.playerHp[char.id];
     if (hp && hp.max !== null) {
+      const s = _sum(char.id); s.hpVan = hp.current; s.hpNaar = hp.max;
       dmState.playerHp[char.id] = { current: hp.max, max: hp.max };
       if (io) io.to(req.session?.campaignId||'main').emit('player:hp-updated', { characterId: char.id, current: hp.max, max: hp.max });
     }
@@ -2023,8 +2079,22 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     const slots = dmState.playerSpellSlots[char.id];
     if (!slots) return;
     for (const lvl of Object.keys(slots)) {
+      _sum(char.id).slotsHersteld += (slots[lvl].used || 0);
       slots[lvl].used = 0;
     }
+  });
+
+  // ── 2c. Hit Dice → helft terug (grootste type eerst) ──
+  if (!dmState.playerHitDice) dmState.playerHitDice = {};
+  spelers.forEach(char => {
+    const profile = (dmState.playerProfiles || {})[char.id] || {};
+    const pool = _hitDicePool(profile);
+    const totaal = _hitDiceTotaal(pool);
+    if (totaal <= 0) return;
+    const hd = (dmState.playerHitDice[char.id] = dmState.playerHitDice[char.id] || { spent: {} });
+    if (!hd.spent) hd.spent = {};
+    const terug = _herstelHitDice(pool, hd.spent, Math.max(1, Math.ceil(totaal / 2)));
+    _sum(char.id).hitDiceTerug = terug;
   });
 
   // ── 2b. Tempel-zegens vervallen ──
@@ -2081,20 +2151,175 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       const effectiveMax = (g.itemMaxCharges?.[cid]?.[itemId]) ?? baseMax;
       const rechargeOn = item?.data?.rechargeOn || 'longRest';
       if (effectiveMax > 0 && (rechargeOn === 'longRest' || rechargeOn === 'dawn')) {
-        g.itemCharges[cid][itemId] = effectiveMax; resetCount++;
+        g.itemCharges[cid][itemId] = effectiveMax; resetCount++; _sum(cid).chargesHersteld++;
       } else if (effectiveMax > 0 && rechargeOn === 'longRestRoll') {
         const rolled = rollDice(item?.data?.rechargeRoll || '1d3');
         const current = g.itemCharges[cid][itemId] ?? effectiveMax;
         const newCharges = Math.min(effectiveMax, current + rolled);
         g.itemCharges[cid][itemId] = newCharges;
         rollLog.push({ charName: char.name, itemName: item.name, rolled, newCharges, max: effectiveMax });
-        resetCount++;
+        resetCount++; _sum(cid).chargesHersteld++;
       }
     });
   });
 
+  // ── 5. Herberg: overnachtingskosten + roddel-onthulling ──
+  const meta = storage.readJSON('meta.json');
+  const herberg = meta.herberg || {};
+  let kosten = null;
+  const roddels = [];
+  if (locatie === 'herberg') {
+    // Per speler de overnachtingsprijs afschrijven
+    const prijs = parsePrijs(herberg.overnachtingPrijs || '1 fl.');
+    const prijsCl = prijs ? toCl(prijs) : 0;
+    if (prijsCl > 0) {
+      spelers.forEach(char => { _deductCurrency(dmState, char.id, prijsCl); });
+      kosten = { perSpeler: prijs, totaal: fromCl(prijsCl * spelers.length) };
+    }
+    // 2 roddels per speler onthullen uit de gedeelde pool (personages + locaties)
+    const aantal = 2 * spelers.length;
+    const pool = [];
+    for (const type of ['personages', 'locaties']) {
+      (entities[type] || []).forEach(e => {
+        const uitgesproken = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
+        if (e.data?.flavour && !uitgesproken) pool.push({ type, e });
+      });
+    }
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    pool.slice(0, aantal).forEach(({ type, e }) => {
+      e.data.flavourUitgesproken = 'true';
+      roddels.push({ id: e.id, type, name: e.name, flavour: e.data.flavour });
+      if (io) io.to(req.session?.campaignId||'main').emit('entity:updated', { type, id: e.id });
+    });
+    if (roddels.length) storage.writeJSON('entities.json', entities);
+  }
+
   storage.writeJSON('dm-state.json', dmState);
-  res.json({ ok: true, spelers: spelers.length, resetCount, rollLog });
+
+  // Cinematic naar alle spelers in de campagne
+  if (io) io.to(req.session?.campaignId||'main').emit('party:rest', {
+    type: 'long', locatie,
+    backdropId: locatie === 'herberg' ? (herberg.backdropId || null) : null,
+    waard: herberg.waard || '', herbergNaam: herberg.naam || '',
+    roddels, perPlayer,
+  });
+
+  res.json({ ok: true, spelers: spelers.length, resetCount, rollLog, kosten, roddelsOnthuld: roddels.length });
+});
+
+// ── Party korte rust (DM-only) ──
+router.post('/party/short-rest', requireDM, (req, res) => {
+  const locatie = req.body?.locatie === 'herberg' ? 'herberg' : 'veld';
+  let entities = {};
+  try { entities = storage.readJSON('entities.json'); } catch { /* ok */ }
+  const dmState = readDmState();
+  const io = req.app.get('io');
+  const g = getGroup(dmState);
+
+  const activeGroepId = dmState.activeGroup || Object.keys(dmState.groups || {})[0];
+  const spelers = (entities.personages || []).filter(
+    e => e.subtype === 'speler' && e.data?.groep === activeGroepId
+  );
+
+  if (!g.itemCharges) g.itemCharges = {};
+  if (!dmState.playerSpellSlots) dmState.playerSpellSlots = {};
+  if (!dmState.playerHitDice) dmState.playerHitDice = {};
+  const ownedItemIds = Object.keys(g.itemOwners || {});
+  const perPlayer = {};
+
+  spelers.forEach(char => {
+    const cid = char.id;
+    const profile = (dmState.playerProfiles || {})[cid] || {};
+    let chargesHersteld = 0;
+
+    // Items met rechargeOn === 'shortRest' → max
+    if (!g.itemCharges[cid]) g.itemCharges[cid] = {};
+    ownedItemIds.forEach(itemId => {
+      const owners = g.itemOwners[itemId];
+      const isOwned = Array.isArray(owners) ? owners.some(o => o.characterId === cid) : owners?.characterId === cid;
+      if (!isOwned) return;
+      const item = (entities.voorwerpen || []).find(e => e.id === itemId);
+      const baseMax = parseInt(item?.data?.maxCharges);
+      const effectiveMax = (g.itemMaxCharges?.[cid]?.[itemId]) ?? baseMax;
+      if (effectiveMax > 0 && item?.data?.rechargeOn === 'shortRest') {
+        g.itemCharges[cid][itemId] = effectiveMax; chargesHersteld++;
+      }
+    });
+
+    // Warlock pact-slots herstellen op korte rust
+    const klassen = [profile.klasse, profile.multiKlasse].map(k => String(k || '').toLowerCase());
+    let pactReset = false;
+    if (klassen.includes('warlock')) {
+      const slots = dmState.playerSpellSlots[cid];
+      if (slots) { for (const lvl of Object.keys(slots)) { if (slots[lvl].used) { slots[lvl].used = 0; pactReset = true; } } }
+    }
+
+    // Hit Dice-info voor het interactieve paneel
+    const pool = _hitDicePool(profile);
+    const hd = (dmState.playerHitDice[cid] = dmState.playerHitDice[cid] || { spent: {} });
+    if (!hd.spent) hd.spent = {};
+    perPlayer[cid] = { chargesHersteld, pactReset, hitDice: { pool, spent: hd.spent, conMod: _conMod(profile) } };
+  });
+
+  storage.writeJSON('dm-state.json', dmState);
+
+  const meta = storage.readJSON('meta.json');
+  const herberg = meta.herberg || {};
+  if (io) io.to(req.session?.campaignId||'main').emit('party:rest', {
+    type: 'short', locatie,
+    backdropId: locatie === 'herberg' ? (herberg.backdropId || null) : null,
+    perPlayer,
+  });
+
+  res.json({ ok: true, spelers: spelers.length });
+});
+
+// ── Hit Die besteden (speler of DM) ──
+router.post('/characters/:characterId/spend-hit-die', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+
+  const sides = parseInt(String(req.body?.die || '').replace(/^d/i, ''));
+  if (!sides) return res.status(400).json({ error: 'Ongeldig dobbeltype' });
+
+  const dmState = readDmState();
+  const profile = (dmState.playerProfiles || {})[characterId] || {};
+  const pool = _hitDicePool(profile);
+  if (!dmState.playerHitDice) dmState.playerHitDice = {};
+  const hd = (dmState.playerHitDice[characterId] = dmState.playerHitDice[characterId] || { spent: {} });
+  if (!hd.spent) hd.spent = {};
+
+  const beschikbaar = (pool[sides] || 0) - (hd.spent[sides] || 0);
+  if (beschikbaar <= 0) return res.status(409).json({ error: 'Geen Hit Dice van dit type meer' });
+
+  const conMod = _conMod(profile);
+  const rolled = Math.floor(Math.random() * sides) + 1;
+  const heal = Math.max(1, rolled + conMod);
+
+  if (!dmState.playerHp) dmState.playerHp = {};
+  const hp = dmState.playerHp[characterId] || { current: 0, max: null };
+  const current = hp.max != null ? Math.min(hp.max, (hp.current || 0) + heal) : (hp.current || 0) + heal;
+  dmState.playerHp[characterId] = { current, max: hp.max };
+  hd.spent[sides] = (hd.spent[sides] || 0) + 1;
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  if (io) io.to(req.session?.campaignId||'main').emit('player:hp-updated', { characterId, current, max: hp.max });
+
+  res.json({ rolled, conMod, heal, hp: { current, max: hp.max }, hitDice: { pool, spent: hd.spent } });
+});
+
+// ── Hit Dice-stand opvragen (voor de character sheet) ──
+router.get('/characters/:characterId/hit-dice', attachRole, (req, res) => {
+  const { characterId } = req.params;
+  if (req.role !== 'dm' && req.session?.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+  const dmState = readDmState();
+  const profile = (dmState.playerProfiles || {})[characterId] || {};
+  const pool = _hitDicePool(profile);
+  const spent = (dmState.playerHitDice?.[characterId]?.spent) || {};
+  res.json({ pool, spent, conMod: _conMod(profile), totaal: _hitDiceTotaal(pool) });
 });
 
 // ── Speler HP (buiten gevecht) ──
@@ -3909,7 +4134,7 @@ router.post('/akte/actief', requireDM, (req, res) => {
 router.put('/meta/herberg', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.herberg) meta.herberg = {};
-  const allowed = ['naam','waard','imageId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet'];
+  const allowed = ['naam','waard','imageId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet','overnachtingPrijs'];
   for (const f of allowed) {
     if (req.body[f] !== undefined) meta.herberg[f] = req.body[f];
   }

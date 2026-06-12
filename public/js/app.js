@@ -1,4 +1,4 @@
-import { api } from './api.js?v=236';
+import { api } from './api.js?v=237';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=98";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=44";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=11';
@@ -7,8 +7,8 @@ import { renderRelatiemap } from './render-relatiemap.js?v=15';
 import { renderProgressie } from './render-progressie.js?v=36';
 import { renderBestiarium } from './render-bestiarium.js?v=13';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=36";
-import { initDmPanel } from "./dm-panel.js?v=90";
+import { initSocket } from "./socket-client.js?v=37";
+import { initDmPanel } from "./dm-panel.js?v=91";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -4984,6 +4984,159 @@ window._briefCinematic = (msg) => {
   setTimeout(() => dismiss(false), 9000);
 };
 
+// ── Hit Dice (afgeleid uit klasse + level, incl. multiklasse) ────────────────
+const CLASS_HIT_DIE = {
+  barbarian: 12, fighter: 10, paladin: 10, ranger: 10, sorcerer: 6, wizard: 6,
+  artificer: 8, bard: 8, cleric: 8, druid: 8, monk: 8, rogue: 8, warlock: 8,
+};
+function _clientHitDicePool(profile) {
+  const p = profile || {};
+  const pool = {};
+  const add = (klasse, lvl) => {
+    const n = parseInt(lvl);
+    const sides = CLASS_HIT_DIE[String(klasse || '').trim().toLowerCase()];
+    if (sides && n > 0) pool[sides] = (pool[sides] || 0) + n;
+  };
+  add(p.klasse, p.klasseLevel ?? p.level);
+  if ((p.multiclass === true || p.multiclass === 'true') && p.multiKlasse) add(p.multiKlasse, p.multiKlasseLevel);
+  if (Object.keys(pool).length === 0) {
+    const m = String(p.hitDie || '').match(/d(\d+)/i);
+    pool[m ? parseInt(m[1]) : 8] = parseInt(p.level ?? p.klasseLevel) || 1;
+  }
+  return pool;
+}
+// Korte samenvatting voor het stats-grid, bijv. "d10×3 · d6×2"
+function _hitDiceKort(profile) {
+  const pool = _clientHitDicePool(profile);
+  const sides = Object.keys(pool).map(Number).sort((a, b) => b - a);
+  if (!sides.length) return '—';
+  return sides.map(s => `d${s}×${pool[s]}`).join(' · ');
+}
+// Hit Dice-dots-rij op de character sheet (totaal/verbruikt). spent async geladen.
+function _hitDiceDotsHtml(pool, spent) {
+  const sides = Object.keys(pool).map(Number).sort((a, b) => b - a);
+  if (!sides.length) return '';
+  return sides.map(s => {
+    const totaal = pool[s], vrij = totaal - ((spent || {})[s] || 0);
+    const dots = Array.from({ length: totaal }, (_, i) => `<span class="hd-dot ${i < vrij ? 'vrij' : 'gebruikt'}"></span>`).join('');
+    return `<span class="player-hd-groep"><span class="player-hd-type">d${s}</span>${dots}</span>`;
+  }).join('');
+}
+window._loadSheetHitDice = async function(charId, profile) {
+  const wrap = document.getElementById('player-dash-hd-' + charId);
+  if (!wrap) return;
+  const pool = _clientHitDicePool(profile);
+  let spent = {};
+  try { const r = await api.getHitDice(charId); spent = r.spent || {}; } catch { /* dots tonen als vrij */ }
+  wrap.innerHTML = _hitDiceDotsHtml(pool, spent);
+};
+
+// ── Rust-cinematic (party-breed, DM-getriggerd) ──────────────────────────────
+function _rustHitDicePaneel(charId, hd) {
+  const pool = hd.pool || {}, spent = hd.spent || {};
+  const sides = Object.keys(pool).map(Number).sort((a, b) => b - a);
+  if (!sides.length) return '';
+  const conMod = hd.conMod || 0;
+  const conStr = conMod ? ` <span class="rust-hd-con">(${conMod >= 0 ? '+' : ''}${conMod} CON per worp)</span>` : '';
+  const rows = sides.map(s => {
+    const totaal = pool[s], vrij = totaal - (spent[s] || 0);
+    const dots = Array.from({ length: totaal }, (_, i) => `<span class="hd-dot ${i < vrij ? 'vrij' : 'gebruikt'}"></span>`).join('');
+    return `<div class="rust-hd-rij" data-sides="${s}">
+      <span class="rust-hd-type">d${s}</span>
+      <span class="rust-hd-dots">${dots}</span>
+      <button class="rust-hd-besteed" ${vrij <= 0 ? 'disabled' : ''} onclick="window._rustSpendHitDie('${esc(charId)}',${s})">${icon('dice')} Besteed</button>
+    </div>`;
+  }).join('');
+  return `<div class="rust-hd-paneel">
+    <div class="rust-hd-kop">${icon('heart')} Hit Dice besteden${conStr}</div>
+    ${rows}
+    <div class="rust-hd-feedback" id="rust-hd-feedback"></div>
+  </div>`;
+}
+window._rustSpendHitDie = async function(charId, sides) {
+  const fb = document.getElementById('rust-hd-feedback');
+  try {
+    const r = await api.spendHitDie(charId, 'd' + sides);
+    const modStr = r.conMod ? ` ${r.conMod >= 0 ? '+' : ''}${r.conMod}` : '';
+    if (fb) fb.innerHTML = `${icon('dice')} ${r.rolled}${modStr} = +${r.heal} HP → <strong>${r.hp.current}${r.hp.max != null ? '/' + r.hp.max : ''}</strong>`;
+    document.querySelectorAll('.rust-hd-rij').forEach(row => {
+      const s = Number(row.dataset.sides);
+      const totaal = (r.hitDice.pool || {})[s] || 0, vrij = totaal - ((r.hitDice.spent || {})[s] || 0);
+      const dotsEl = row.querySelector('.rust-hd-dots');
+      if (dotsEl) dotsEl.innerHTML = Array.from({ length: totaal }, (_, i) => `<span class="hd-dot ${i < vrij ? 'vrij' : 'gebruikt'}"></span>`).join('');
+      const btn = row.querySelector('.rust-hd-besteed');
+      if (btn) btn.disabled = vrij <= 0;
+    });
+  } catch (err) {
+    if (fb) fb.textContent = err.message || 'Geen Hit Dice meer';
+  }
+};
+window._rustCinematic = (payload) => {
+  if (!payload) return;
+  document.getElementById('rust-cinematic')?.remove();
+  const { type, locatie, backdropId, roddels = [], perPlayer = {}, herbergNaam } = payload;
+  const isLong = type === 'long';
+  const myCharId = window.app?.state?.characterId;
+  const mine = myCharId ? perPlayer[myCharId] : null;
+
+  const ov = document.createElement('div');
+  ov.id = 'rust-cinematic';
+  ov.className = `rust-cinematic-overlay rust-cinematic--${isLong ? 'lang' : 'kort'} rust-cinematic--${esc(locatie || 'veld')}`;
+  if (locatie === 'herberg' && backdropId) ov.style.setProperty('--rust-bg', `url('${api.fileUrl(backdropId)}')`);
+
+  const sceneEl = isLong ? '<div class="rust-maan"></div>' : `<div class="rust-vuur">${icon('zap')}</div>`;
+  const titel = isLong
+    ? (locatie === 'herberg' ? `Een nacht in ${esc(herbergNaam || 'de herberg')}` : 'Een lange rust onder de sterren')
+    : (locatie === 'herberg' ? `Even op adem in ${esc(herbergNaam || 'de herberg')}` : 'Even op adem komen');
+
+  let samenvatting = '';
+  if (mine && isLong) {
+    const parts = [];
+    if (mine.hpNaar != null) parts.push(`${icon('heart')} HP volledig hersteld`);
+    if (mine.slotsHersteld) parts.push(`${icon('sparkles')} ${mine.slotsHersteld} spell slot(s) terug`);
+    if (mine.hitDiceTerug) parts.push(`${icon('dice')} ${mine.hitDiceTerug} Hit Dice terug`);
+    if (mine.chargesHersteld) parts.push(`${icon('zap')} ${mine.chargesHersteld} voorwerp(en) herladen`);
+    if (parts.length) samenvatting = `<ul class="rust-samenvatting">${parts.map(p => `<li>${p}</li>`).join('')}</ul>`;
+  } else if (mine && !isLong) {
+    const parts = [];
+    if (mine.chargesHersteld) parts.push(`${icon('zap')} ${mine.chargesHersteld} voorwerp(en) herladen`);
+    if (mine.pactReset) parts.push(`${icon('sparkles')} Pact-slots terug`);
+    if (parts.length) samenvatting = `<ul class="rust-samenvatting">${parts.map(p => `<li>${p}</li>`).join('')}</ul>`;
+  }
+
+  let roddelHtml = '';
+  if (isLong && roddels.length) {
+    roddelHtml = `<div class="rust-roddels">
+      <div class="rust-roddels-kop">${icon('message-circle')} Wat je opving deze nacht</div>
+      ${roddels.map(r => `<div class="rust-roddel-kaart"><p class="rust-roddel-tekst">„${esc(r.flavour)}”</p><p class="rust-roddel-bron">— over ${esc(r.name)}</p></div>`).join('')}
+    </div>`;
+  }
+
+  const hitDiceHtml = (!isLong && mine?.hitDice) ? _rustHitDicePaneel(myCharId, mine.hitDice) : '';
+
+  ov.innerHTML = `
+    <div class="rust-cinematic-scene">
+      ${sceneEl}
+      <div class="rust-cinematic-kop">${titel}</div>
+      ${samenvatting}
+      ${hitDiceHtml}
+      ${roddelHtml}
+      <button class="rust-cinematic-sluit">${isLong ? 'Sluiten' : 'Klaar met rusten'}</button>
+      ${isLong ? '<div class="rust-cinematic-hint">klik buiten het venster om te sluiten</div>' : ''}
+    </div>`;
+
+  const dismiss = () => {
+    if (ov.dataset.dicht) return; ov.dataset.dicht = '1';
+    ov.classList.add('rust-cinematic-overlay--uit');
+    setTimeout(() => ov.remove(), 420);
+  };
+  ov.querySelector('.rust-cinematic-sluit')?.addEventListener('click', dismiss);
+  // Klik buiten de scene sluit (lange rust auto-sluit ook); korte rust blijft staan voor interactie
+  ov.addEventListener('click', (e) => { if (!e.target.closest('.rust-cinematic-scene')) dismiss(); });
+  if (isLong) setTimeout(dismiss, 13000);
+  document.body.appendChild(ov);
+};
+
 window._updateBerichtenBadge = function() {
   const count = window._berichtenUnread || 0;
   const btn = document.querySelector('.player-subtab[data-tab="berichten"]');
@@ -5731,10 +5884,8 @@ async function renderMijnKarakter(opts = {}) {
               onblur="window._saveProfileField('profBonus', this.value); window._reRenderKarakter()">
           </div>
           <div class="pcs-item">
-            <span class="pcs-label">Hit Die</span>
-            <input class="pcs-input" type="text"
-              value="${esc(playerProfile.hitDie ?? '')}" placeholder="—"
-              onblur="window._saveProfileField('hitDie', this.value)">
+            <span class="pcs-label">Hit Dice</span>
+            <div class="pcs-value" title="Afgeleid uit klasse + level">${_hitDiceKort(playerProfile)}</div>
           </div>
           <div class="pcs-item">
             <span class="pcs-label">Pass. Perc</span>
@@ -5770,6 +5921,10 @@ async function renderMijnKarakter(opts = {}) {
               </div>
             </div>
             ${myCombatant ? `<p class="player-dash-hp-note">${icon('swords')} Actief in gevecht</p>` : ''}
+          </div>
+          <div class="player-hd-row">
+            <span class="player-hd-label">${icon('dice')} Hit Dice</span>
+            <span class="player-hd-dots-wrap" id="player-dash-hd-${esc(charId)}">${_hitDiceDotsHtml(_clientHitDicePool(playerProfile), {})}</span>
           </div>
         </div>
 
@@ -6893,6 +7048,9 @@ async function renderMijnKarakter(opts = {}) {
       }
     }
   }
+
+  // Hit Dice-stand (verbruikt) na-laden op de sheet
+  window._loadSheetHitDice?.(charId, playerProfile);
 
   window._traitToggleUse = async function(traitId, idx, maxUses, currentUses) {
     const newCur = Math.min(Math.max(0, idx < currentUses ? currentUses - 1 : currentUses + 1), maxUses);

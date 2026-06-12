@@ -113,12 +113,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=301   app.js?v=433   sound-manager.js?v=4
-app.js      : api.js?v=236      render-campagne.js?v=98   render-archief.js?v=44
+index.html  : theme.css?v=302   app.js?v=434   sound-manager.js?v=4
+app.js      : api.js?v=237      render-campagne.js?v=98   render-archief.js?v=44
               render-kaart.js?v=11  render-dungeon.js?v=24  render-relatiemap.js?v=15
-              render-progressie.js?v=36  socket-client.js?v=36
+              render-progressie.js?v=36  socket-client.js?v=37
               render-bestiarium.js?v=13  render-statblock.js?v=3
-              dm-panel.js?v=90    render-dashboard.js?v=3
+              dm-panel.js?v=91    render-dashboard.js?v=3
 dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=3
 ```
 
@@ -136,6 +136,17 @@ dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=3
 > DM-triggers: knop in het Facties-paneel, mail-icoon per dienst in "Toegang per groep", én een
 > mail-snelknop in de **regie-balk** (akteplay) met een factie/dienst-picker. Cinematic +
 > lakzegel-styling: `_briefCinematic()` + `.brief-cinematic-*` / `.speler-brief-card--factie` (CSS).
+
+> **Lange & korte rust (party-breed, cinematisch).** DM triggert via het rust-paneel (`dm-panel.js`,
+> rond de oude maanknop): **Lange rust** / **Korte rust** + locatie-toggle **Veld / herberg**. Endpoints:
+> `POST /party/long-rest` (HP→max, slots, item-charges, Hit Dice helft; bij herberg `overnachtingPrijs` p.p.
+> afschrijven + `2×spelers` entiteit-roddels onthullen via `flavourUitgesproken`), `POST /party/short-rest`
+> (shortRest-items + Warlock pact-slots; Hit Dice interactief), `POST /characters/:id/spend-hit-die`,
+> `GET /characters/:id/hit-dice`. Server emit `party:rest` → `socket-client.js` → `window._rustCinematic`
+> (fullscreen overlay, nacht/maan vs. kampvuur). **Hit Dice afgeleid** uit klasse+level (incl. multiklasse) via
+> `CLASS_HIT_DIE`/`_hitDicePool` (server) + `_clientHitDicePool` (app.js); verbruik per dobbeltype in
+> `dmState.playerHitDice[charId].spent`. Het oude handmatige `hitDie`-tekstveld op de sheet is vervangen door
+> een afgeleide dots-weergave (alleen fallback voor onbekende klassen). Herberg-config kreeg `overnachtingPrijs`.
 
 > **Glossary/hover-uitleg:** geen los `glossary.js`-bestand (die revert staat hieronder). De
 > hover-uitleg van D&D-termen leeft **inline in app.js**: `_SB_GLOSSARY` (termen + tips),

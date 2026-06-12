@@ -13402,6 +13402,88 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   .brief-cinematic-brief, .brief-cinematic-zegel, .brief-cinematic-tekst, .brief-cinematic-overlay { animation-duration:0.01s !important; }
 }
 
+/* ══ Rust-cinematic (lange & korte rust) ════════════════════════════════════ */
+.rust-cinematic-overlay {
+  position:fixed; inset:0; z-index:9998; display:flex; align-items:center; justify-content:center; padding:20px;
+  background: radial-gradient(ellipse at 50% 30%, rgba(18,22,40,0.86) 0%, rgba(6,7,14,0.96) 100%);
+  animation: brief-cine-in 0.5s ease both; cursor:pointer;
+}
+.rust-cinematic--kort { background: radial-gradient(ellipse at 50% 65%, rgba(40,22,10,0.86) 0%, rgba(12,7,4,0.96) 100%); }
+.rust-cinematic--herberg::before {
+  content:''; position:absolute; inset:0; background-image:var(--rust-bg); background-size:cover; background-position:center;
+  opacity:0.22; filter:saturate(0.8) brightness(0.7); pointer-events:none;
+}
+.rust-cinematic-overlay--uit { animation: brief-cine-out 0.4s ease both; }
+.rust-cinematic-scene {
+  position:relative; z-index:1; cursor:default; max-width:560px; width:100%; max-height:88vh; overflow-y:auto;
+  text-align:center; color:#f2e8d2; padding:26px 24px;
+  background: linear-gradient(180deg, rgba(28,24,16,0.72) 0%, rgba(16,13,8,0.78) 100%);
+  border:1px solid rgba(196,168,122,0.3); border-radius:14px; box-shadow:0 12px 48px rgba(0,0,0,0.55);
+}
+/* Maan (lange rust) */
+.rust-maan {
+  width:64px; height:64px; margin:0 auto 14px; border-radius:50%;
+  background: radial-gradient(circle at 38% 35%, #fff7e0 0%, #e8d9a8 55%, #b8a06a 100%);
+  box-shadow:0 0 30px 8px rgba(232,217,168,0.45), inset -8px -6px 14px rgba(120,100,60,0.5);
+  animation: rust-maan-op 1.3s ease both;
+}
+@keyframes rust-maan-op { from { transform:translateY(28px) scale(0.7); opacity:0; } to { transform:none; opacity:1; } }
+/* Vuur (korte rust) */
+.rust-vuur {
+  width:60px; height:60px; margin:0 auto 14px; display:flex; align-items:center; justify-content:center; border-radius:50%;
+  background: radial-gradient(circle at 50% 60%, #ffb347 0%, #c4630a 60%, #6a2a05 100%);
+  box-shadow:0 0 26px 6px rgba(196,99,10,0.5); animation: rust-vuur-flikker 1.6s ease-in-out infinite;
+}
+.rust-vuur .icon { width:30px; height:30px; color:#fff3d8; }
+@keyframes rust-vuur-flikker { 0%,100% { transform:scale(1); filter:brightness(1); } 50% { transform:scale(1.06); filter:brightness(1.18); } }
+.rust-cinematic-kop { font-family:'Cinzel',serif; font-size:1.35rem; letter-spacing:0.02em; margin-bottom:14px; color:#f2e8d2; }
+.rust-samenvatting { list-style:none; padding:0; margin:0 auto 16px; display:inline-flex; flex-direction:column; gap:6px; text-align:left; }
+.rust-samenvatting li { display:flex; align-items:center; gap:8px; font-family:'Crimson Text',serif; font-size:0.95rem; color:#e6d9b8; }
+.rust-samenvatting .icon { width:16px; height:16px; flex-shrink:0; color:#c4a87a; }
+/* Roddel-kaartjes */
+.rust-roddels { margin-top:6px; border-top:1px solid rgba(196,168,122,0.2); padding-top:14px; }
+.rust-roddels-kop { font-family:'Cinzel',serif; font-size:0.72rem; letter-spacing:0.07em; text-transform:uppercase; color:#b09870; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px; }
+.rust-roddels-kop .icon { width:14px; height:14px; }
+.rust-roddel-kaart { background:rgba(196,168,122,0.07); border:1px solid rgba(196,168,122,0.22); border-radius:8px; padding:10px 12px; margin-bottom:8px; text-align:left; }
+.rust-roddel-tekst { font-family:'IM Fell English',serif; font-style:italic; font-size:0.95rem; color:#efe3c5; margin:0 0 4px; }
+.rust-roddel-bron { font-family:'Cinzel',serif; font-size:0.7rem; color:#b09870; margin:0; }
+/* Interactief Hit Dice-paneel (korte rust) */
+.rust-hd-paneel { margin:6px 0 12px; border-top:1px solid rgba(196,168,122,0.2); padding-top:14px; }
+.rust-hd-kop { font-family:'Cinzel',serif; font-size:0.78rem; letter-spacing:0.04em; color:#d8c79a; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:7px; }
+.rust-hd-kop .icon { width:15px; height:15px; color:#c4a87a; }
+.rust-hd-con { font-family:'Crimson Text',serif; font-size:0.78rem; color:#9a8a60; letter-spacing:0; }
+.rust-hd-rij { display:flex; align-items:center; gap:10px; justify-content:center; flex-wrap:wrap; padding:5px 0; }
+.rust-hd-type { font-family:'Cinzel',serif; font-size:0.85rem; color:#e6d9b8; min-width:34px; text-align:right; }
+.rust-hd-dots { display:inline-flex; gap:5px; flex-wrap:nowrap; justify-content:center; }
+.rust-hd-besteed {
+  font-family:'Cinzel',serif; font-size:0.72rem; color:#f2e8d2; background:rgba(196,147,10,0.16);
+  border:1px solid rgba(196,147,10,0.45); border-radius:5px; padding:4px 10px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;
+}
+.rust-hd-besteed:hover:not(:disabled) { background:rgba(196,147,10,0.28); }
+.rust-hd-besteed:disabled { opacity:0.4; cursor:not-allowed; }
+.rust-hd-besteed .icon { width:13px; height:13px; }
+.rust-hd-feedback { min-height:20px; margin-top:8px; font-family:'IM Fell English',serif; font-style:italic; font-size:0.9rem; color:#8fd49a; }
+/* Hit Dice-dots (gedeeld: overlay + sheet) */
+.hd-dot { width:13px; height:13px; border-radius:50%; border:2px solid #c4930a; display:inline-block; background:transparent; }
+.hd-dot.gebruikt { background:transparent; border-color:rgba(120,100,60,0.5); opacity:0.5; }
+.hd-dot.vrij { background:#c4930a; }
+.rust-cinematic-sluit {
+  margin-top:8px; font-family:'Cinzel',serif; font-size:0.85rem; color:#f2e8d2;
+  background:rgba(196,168,122,0.14); border:1px solid rgba(196,168,122,0.45); border-radius:7px; padding:8px 20px; cursor:pointer;
+}
+.rust-cinematic-sluit:hover { background:rgba(196,168,122,0.26); }
+.rust-cinematic-hint { margin-top:10px; font-family:'IM Fell English',serif; font-size:0.72rem; font-style:italic; color:rgba(242,232,210,0.4); }
+/* Hit Dice-rij op de character sheet */
+.player-hd-row { display:flex; align-items:center; gap:10px; margin-top:10px; padding-top:10px; border-top:1px solid var(--color-room-border); flex-wrap:wrap; }
+.player-hd-label { display:inline-flex; align-items:center; gap:6px; font-family:'Cinzel',serif; font-size:0.72rem; letter-spacing:0.04em; color:var(--color-ink-dim); }
+.player-hd-label .icon { width:14px; height:14px; }
+.player-hd-dots-wrap { display:inline-flex; gap:10px; flex-wrap:wrap; }
+.player-hd-groep { display:inline-flex; align-items:center; gap:4px; }
+.player-hd-type { font-family:'Cinzel',serif; font-size:0.75rem; color:var(--color-ink-medium); margin-right:2px; }
+@media (prefers-reduced-motion: reduce) {
+  .rust-maan, .rust-vuur, .rust-cinematic-overlay { animation-duration:0.01s !important; }
+}
+
 /* ── Aanzien / renown-kaart (spelersoverzicht) ── */
 .renown-card { background: linear-gradient(180deg,#26222c 0%,#1c1922 100%); border:1px solid #4a4350; border-radius:8px; padding:10px 12px; color:#e7e2ee; }
 .renown-rang { font-family:'Cinzel',serif; font-size:1.02rem; font-weight:700; color:#d8c98f; display:flex; align-items:baseline; gap:8px; }

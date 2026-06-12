@@ -203,7 +203,10 @@ export const api = {
   patchItemCharges:    (itemId, charId, charges)    => request(`/items/${itemId}/owner/${charId}/charges`,    { method: 'PATCH', body: JSON.stringify({ charges }) }),
   patchItemMaxCharges: (itemId, charId, maxCharges) => request(`/items/${itemId}/owner/${charId}/maxCharges`, { method: 'PATCH', body: JSON.stringify({ maxCharges }) }),
   longRest:            (charId) => request(`/characters/${charId}/long-rest`, { method: 'POST' }),
-  partyLongRest:       ()       => request('/party/long-rest', { method: 'POST' }),
+  partyLongRest:       (data)   => request('/party/long-rest',  { method: 'POST', body: JSON.stringify(data || {}) }),
+  partyShortRest:      (data)   => request('/party/short-rest', { method: 'POST', body: JSON.stringify(data || {}) }),
+  spendHitDie:         (charId, die) => request(`/characters/${charId}/spend-hit-die`, { method: 'POST', body: JSON.stringify({ die }) }),
+  getHitDice:          (charId) => request(`/characters/${charId}/hit-dice`),
   setTradeAllowed:     (allowed)       => request('/items/trade-allowed',              { method: 'PUT',    body: JSON.stringify({ allowed }) }),
 
   // Speler HP

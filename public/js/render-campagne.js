@@ -1,4 +1,4 @@
-import { api } from './api.js?v=236';
+import { api } from './api.js?v=237';
 
 const icon = (...a) => window.icon(...a);
 
