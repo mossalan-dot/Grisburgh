@@ -106,6 +106,7 @@ export const api = {
   revealSound:    (data)        => request('/sounds/reveal', { method: 'POST', body: JSON.stringify(data) }),
   saveAppMeta: (data) => request('/meta/app', { method: 'PUT', body: JSON.stringify(data) }),
   saveHerberg: (data) => request('/meta/herberg', { method: 'PUT', body: JSON.stringify(data) }),
+  saveRust:    (data) => request('/meta/rust',    { method: 'PUT', body: JSON.stringify(data) }),
 
   // Kaart
   listMaps:     ()         => request('/map/maps'),

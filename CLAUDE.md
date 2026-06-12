@@ -113,12 +113,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=302   app.js?v=434   sound-manager.js?v=4
-app.js      : api.js?v=237      render-campagne.js?v=98   render-archief.js?v=44
+index.html  : theme.css?v=303   app.js?v=435   sound-manager.js?v=4
+app.js      : api.js?v=238      render-campagne.js?v=98   render-archief.js?v=44
               render-kaart.js?v=11  render-dungeon.js?v=24  render-relatiemap.js?v=15
               render-progressie.js?v=36  socket-client.js?v=37
               render-bestiarium.js?v=13  render-statblock.js?v=3
-              dm-panel.js?v=91    render-dashboard.js?v=3
+              dm-panel.js?v=92    render-dashboard.js?v=3
 dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=3
 ```
 
@@ -147,6 +147,15 @@ dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=3
 > `CLASS_HIT_DIE`/`_hitDicePool` (server) + `_clientHitDicePool` (app.js); verbruik per dobbeltype in
 > `dmState.playerHitDice[charId].spent`. Het oude handmatige `hitDie`-tekstveld op de sheet is vervangen door
 > een afgeleide dots-weergave (alleen fallback voor onbekende klassen). Herberg-config kreeg `overnachtingPrijs`.
+> **Sfeer-uitbreidingen:** (1) lange-rust-overlay toont de **actuele maanfase** (`_moonPhase`/`_moonSvg` in app.js,
+> SVG-terminator uit de datum). (2) **Backdrops** per scenario via `meta.rust` (`veldBackdropId`,
+> `korteRustBackdropId`; herberg hergebruikt `meta.herberg.backdropId`) — `_rustBackdrop()` server-side, overlay toont
+> ze via `.rust-cinematic--has-bg` + `--rust-bg`. Ingesteld in de Rust-sectie van het herberg-paneel (`PUT /meta/rust`).
+> (3) **d100-rustgebeurtenis** bij lange rust: `_rolRustGebeurtenis()` rolt de in `meta.rust.eventTableId` gekozen
+> **weighted** tabel; een regel kan een valuta-token bevatten dat automatisch verrekend wordt — formaat
+> `1-5: tekst {+3kn}` (of `{-1fl}`, optioneel `{+2kn @party}`); standaard treft het een willekeurige speler,
+> `@party` iedereen. (4) **Tabletmodus**: op het gedeelde scherm (`_isDisplayMode`, geen `characterId`) toont de overlay
+> een party-brede variant zonder per-speler-knoppen.
 
 > **Glossary/hover-uitleg:** geen los `glossary.js`-bestand (die revert staat hieronder). De
 > hover-uitleg van D&D-termen leeft **inline in app.js**: `_SB_GLOSSARY` (termen + tips),

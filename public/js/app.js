@@ -1,4 +1,4 @@
-import { api } from './api.js?v=237';
+import { api } from './api.js?v=238';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=98";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=44";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=11';
@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=36';
 import { renderBestiarium } from './render-bestiarium.js?v=13';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=37";
-import { initDmPanel } from "./dm-panel.js?v=91";
+import { initDmPanel } from "./dm-panel.js?v=92";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -5071,20 +5071,57 @@ window._rustSpendHitDie = async function(charId, sides) {
     if (fb) fb.textContent = err.message || 'Geen Hit Dice meer';
   }
 };
+// Actuele maanfase uit de datum (synodische maand). illum 0=nieuw → 1=vol.
+function _moonPhase(date = new Date()) {
+  const synodic = 29.53058867;
+  const ref = Date.UTC(2000, 0, 6, 18, 14, 0) / 86400000; // bekende nieuwe maan, in dagen
+  let frac = (((date.getTime() / 86400000) - ref) / synodic) % 1;
+  if (frac < 0) frac += 1;
+  return { frac, illum: (1 - Math.cos(2 * Math.PI * frac)) / 2, waxing: frac < 0.5 };
+}
+const _MOON_NAAM = ['Nieuwe maan', 'Wassende sikkel', 'Eerste kwartier', 'Wassende maan', 'Volle maan', 'Afnemende maan', 'Laatste kwartier', 'Afnemende sikkel'];
+function _moonFaseNaam(frac) { return _MOON_NAAM[Math.round(frac * 8) % 8]; }
+// SVG-maan met correcte terminator voor de actuele fase.
+function _moonSvg(size = 70) {
+  const { frac, waxing } = _moonPhase();
+  const R = size / 2, cx = R, cy = R, r = R - 2;
+  const cosA = Math.cos(2 * Math.PI * frac);
+  const rx = Math.max(0.5, r * Math.abs(cosA));
+  const gibbous = cosA < 0;
+  // Lit-pad: halve cirkel (lit-limb) + halve ellips (terminator). Bij een sikkel volgt de terminator
+  // dezelfde bocht als de limb (dunne sikkel); bij gibbous de tegengestelde (groot lit-vlak).
+  const limbSweep = waxing ? 1 : 0;
+  const termSweep = gibbous ? limbSweep : (1 - limbSweep);
+  const top = `${cx} ${cy - r}`, bot = `${cx} ${cy + r}`;
+  const litPath = `M ${top} A ${r} ${r} 0 0 ${limbSweep} ${bot} A ${rx} ${r} 0 0 ${termSweep} ${top} Z`;
+  return `<svg class="rust-maan-svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="#2a2a38"/>
+    <path d="${litPath}" fill="url(#moonGrad)"/>
+    <defs><radialGradient id="moonGrad" cx="40%" cy="38%" r="70%">
+      <stop offset="0%" stop-color="#fff7e0"/><stop offset="60%" stop-color="#e8d9a8"/><stop offset="100%" stop-color="#b8a06a"/>
+    </radialGradient></defs>
+  </svg>`;
+}
+
 window._rustCinematic = (payload) => {
   if (!payload) return;
   document.getElementById('rust-cinematic')?.remove();
-  const { type, locatie, backdropId, roddels = [], perPlayer = {}, herbergNaam } = payload;
+  const { type, locatie, backdropId, roddels = [], perPlayer = {}, herbergNaam, gebeurtenis } = payload;
   const isLong = type === 'long';
+  const isDisplay = !!window._isDisplayMode;
   const myCharId = window.app?.state?.characterId;
-  const mine = myCharId ? perPlayer[myCharId] : null;
+  // Op het gedeelde tafelscherm (geen eigen karakter) tonen we een party-brede variant.
+  const mine = (!isDisplay && myCharId) ? perPlayer[myCharId] : null;
 
   const ov = document.createElement('div');
   ov.id = 'rust-cinematic';
-  ov.className = `rust-cinematic-overlay rust-cinematic--${isLong ? 'lang' : 'kort'} rust-cinematic--${esc(locatie || 'veld')}`;
-  if (locatie === 'herberg' && backdropId) ov.style.setProperty('--rust-bg', `url('${api.fileUrl(backdropId)}')`);
+  ov.className = `rust-cinematic-overlay rust-cinematic--${isLong ? 'lang' : 'kort'} rust-cinematic--${esc(locatie || 'veld')}${backdropId ? ' rust-cinematic--has-bg' : ''}`;
+  if (backdropId) ov.style.setProperty('--rust-bg', `url('${api.fileUrl(backdropId)}')`);
 
-  const sceneEl = isLong ? '<div class="rust-maan"></div>' : `<div class="rust-vuur">${icon('zap')}</div>`;
+  const maanNaam = isLong ? _moonFaseNaam(_moonPhase().frac) : '';
+  const sceneEl = isLong
+    ? `<div class="rust-maan" title="${esc(maanNaam)}">${_moonSvg(70)}</div>${maanNaam ? `<div class="rust-maan-naam">${esc(maanNaam)}</div>` : ''}`
+    : `<div class="rust-vuur">${icon('zap')}</div>`;
   const titel = isLong
     ? (locatie === 'herberg' ? `Een nacht in ${esc(herbergNaam || 'de herberg')}` : 'Een lange rust onder de sterren')
     : (locatie === 'herberg' ? `Even op adem in ${esc(herbergNaam || 'de herberg')}` : 'Even op adem komen');
@@ -5102,6 +5139,8 @@ window._rustCinematic = (payload) => {
     if (mine.chargesHersteld) parts.push(`${icon('zap')} ${mine.chargesHersteld} voorwerp(en) herladen`);
     if (mine.pactReset) parts.push(`${icon('sparkles')} Pact-slots terug`);
     if (parts.length) samenvatting = `<ul class="rust-samenvatting">${parts.map(p => `<li>${p}</li>`).join('')}</ul>`;
+  } else if (isDisplay) {
+    samenvatting = `<p class="rust-party-regel">${isLong ? 'De groep slaat de tent op en rust de nacht door.' : 'De groep komt even op adem.'}</p>`;
   }
 
   let roddelHtml = '';
@@ -5109,6 +5148,18 @@ window._rustCinematic = (payload) => {
     roddelHtml = `<div class="rust-roddels">
       <div class="rust-roddels-kop">${icon('message-circle')} Wat je opving deze nacht</div>
       ${roddels.map(r => `<div class="rust-roddel-kaart"><p class="rust-roddel-tekst">„${esc(r.flavour)}”</p><p class="rust-roddel-bron">— over ${esc(r.name)}</p></div>`).join('')}
+    </div>`;
+  }
+
+  // d100-rustgebeurtenis (lange rust)
+  let eventHtml = '';
+  if (isLong && gebeurtenis?.tekst) {
+    const g = gebeurtenis;
+    const muntStr = g.currency
+      ? `<p class="rust-event-munt">→ ${esc(g.targetName)}: ${g.currency.bedrag >= 0 ? '+' : ''}${g.currency.bedrag} ${esc(g.currency.unit)}</p>` : '';
+    eventHtml = `<div class="rust-event">
+      <div class="rust-event-kop">${icon('dice')} Deze nacht</div>
+      <p class="rust-event-tekst">${esc(g.tekst)}</p>${muntStr}
     </div>`;
   }
 
@@ -5120,9 +5171,10 @@ window._rustCinematic = (payload) => {
       <div class="rust-cinematic-kop">${titel}</div>
       ${samenvatting}
       ${hitDiceHtml}
+      ${eventHtml}
       ${roddelHtml}
-      <button class="rust-cinematic-sluit">${isLong ? 'Sluiten' : 'Klaar met rusten'}</button>
-      ${isLong ? '<div class="rust-cinematic-hint">klik buiten het venster om te sluiten</div>' : ''}
+      <button class="rust-cinematic-sluit">${(!isLong && hitDiceHtml) ? 'Klaar met rusten' : 'Sluiten'}</button>
+      ${(isLong || !hitDiceHtml) ? '<div class="rust-cinematic-hint">klik buiten het venster om te sluiten</div>' : ''}
     </div>`;
 
   const dismiss = () => {
@@ -5131,9 +5183,9 @@ window._rustCinematic = (payload) => {
     setTimeout(() => ov.remove(), 420);
   };
   ov.querySelector('.rust-cinematic-sluit')?.addEventListener('click', dismiss);
-  // Klik buiten de scene sluit (lange rust auto-sluit ook); korte rust blijft staan voor interactie
+  // Klik buiten de scene sluit; alleen de interactieve korte rust (Hit Dice-paneel) blijft staan
   ov.addEventListener('click', (e) => { if (!e.target.closest('.rust-cinematic-scene')) dismiss(); });
-  if (isLong) setTimeout(dismiss, 13000);
+  if (isLong || !hitDiceHtml) setTimeout(dismiss, isLong ? 14000 : 9000);
   document.body.appendChild(ov);
 };
 

@@ -285,7 +285,7 @@ export function initSocket() {
   });
 
   socket.on('meta:updated', () => {
-    import('./api.js?v=237').then(({ api }) => api.meta().then(m => {
+    import('./api.js?v=238').then(({ api }) => api.meta().then(m => {
       const prev = window.app?.state?.meta;
       const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;

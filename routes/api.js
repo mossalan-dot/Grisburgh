@@ -1969,6 +1969,58 @@ function _herstelHitDice(pool, spent, n) {
   return hersteld;
 }
 
+// ── Rust: backdrop-keuze + d100-gebeurtenis ──────────────────────────────────
+// Kies de juiste achtergrond per rust-type/locatie (herberg hergebruikt de
+// herberg-backdrop; veld/korte rust hebben hun eigen instelbare backdrop).
+function _rustBackdrop(type, locatie, meta) {
+  const h = meta.herberg || {}, r = meta.rust || {};
+  if (locatie === 'herberg') return h.backdropId || null;
+  if (type === 'short') return r.korteRustBackdropId || null;
+  return r.veldBackdropId || null;
+}
+
+const _MUNT_CL = { fl: 100, kn: 10, cl: 1 };
+// Rolt de aangewezen weighted-tabel (d100) en verrekent een eventueel valuta-token
+// {+3kn} / {-1fl} (optioneel @party). Geeft het gebeurtenis-object terug (of null).
+function _rolRustGebeurtenis(meta, dmState, spelers, io, campaignId) {
+  const tableId = meta.rust?.eventTableId;
+  if (!tableId || !spelers.length) return null;
+  let tablesData = {};
+  try { tablesData = storage.readJSON('tables.json'); } catch { return null; }
+  const table = (tablesData.tables || []).find(t => t.id === tableId);
+  if (!table || table.type !== 'weighted' || !(table.entries || []).length) return null;
+
+  const d100 = Math.floor(Math.random() * 100) + 1;
+  let tekst = null;
+  for (const entry of table.entries) {
+    const m = String(entry).match(/^(\d+)[-–](\d+):\s*(.+)$/);
+    if (m && d100 >= parseInt(m[1]) && d100 <= parseInt(m[2])) { tekst = m[3].trim(); break; }
+  }
+  if (!tekst) return { roll: d100, tekst: '(geen treffer op de gebeurtenissen-tabel)', currency: null, targetName: '' };
+
+  // Valuta-token parsen + uit de weergavetekst halen
+  const tok = tekst.match(/\{\s*([+-]\d+)\s*(fl|kn|cl)\s*(@party)?\s*\}/i);
+  let currency = null, targetName = '';
+  if (tok) {
+    tekst = tekst.replace(tok[0], '').replace(/\s{2,}/g, ' ').trim();
+    const bedrag = parseInt(tok[1]);
+    const unit = tok[2].toLowerCase();
+    const party = !!tok[3];
+    let deltaCl = bedrag * (_MUNT_CL[unit] || 1);
+    const doelen = party ? spelers : [spelers[Math.floor(Math.random() * spelers.length)]];
+    doelen.forEach(char => {
+      // Negatief bedrag clampen zodat de beurs niet onder 0 komt
+      const huidigCl = toCl(_effectiveCurrency(dmState, char.id) || { fl: 0, kn: 0, cl: 0 });
+      const effDelta = deltaCl < 0 ? -Math.min(huidigCl, -deltaCl) : deltaCl;
+      const { currency: nieuw } = _deductCurrency(dmState, char.id, -effDelta);
+      if (io) io.to(campaignId).emit('player:currency-updated', { characterId: char.id, currency: nieuw });
+    });
+    targetName = party ? 'de groep' : doelen[0].name;
+    currency = { bedrag, unit, party };
+  }
+  return { roll: d100, tekst, currency, targetName };
+}
+
 // ── Item charges ──
 
 router.patch('/items/:itemId/owner/:characterId/charges', attachRole, (req, res) => {
@@ -2194,17 +2246,21 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     if (roddels.length) storage.writeJSON('entities.json', entities);
   }
 
+  // ── 6. d100-rustgebeurtenis (binnen én buiten) ──
+  const campaignId = req.session?.campaignId || 'main';
+  const gebeurtenis = _rolRustGebeurtenis(meta, dmState, spelers, io, campaignId);
+
   storage.writeJSON('dm-state.json', dmState);
 
   // Cinematic naar alle spelers in de campagne
-  if (io) io.to(req.session?.campaignId||'main').emit('party:rest', {
+  if (io) io.to(campaignId).emit('party:rest', {
     type: 'long', locatie,
-    backdropId: locatie === 'herberg' ? (herberg.backdropId || null) : null,
+    backdropId: _rustBackdrop('long', locatie, meta),
     waard: herberg.waard || '', herbergNaam: herberg.naam || '',
-    roddels, perPlayer,
+    roddels, perPlayer, gebeurtenis,
   });
 
-  res.json({ ok: true, spelers: spelers.length, resetCount, rollLog, kosten, roddelsOnthuld: roddels.length });
+  res.json({ ok: true, spelers: spelers.length, resetCount, rollLog, kosten, roddelsOnthuld: roddels.length, gebeurtenis });
 });
 
 // ── Party korte rust (DM-only) ──
@@ -2264,10 +2320,9 @@ router.post('/party/short-rest', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
 
   const meta = storage.readJSON('meta.json');
-  const herberg = meta.herberg || {};
   if (io) io.to(req.session?.campaignId||'main').emit('party:rest', {
     type: 'short', locatie,
-    backdropId: locatie === 'herberg' ? (herberg.backdropId || null) : null,
+    backdropId: _rustBackdrop('short', locatie, meta),
     perPlayer,
   });
 
@@ -4141,6 +4196,19 @@ router.put('/meta/herberg', requireDM, (req, res) => {
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
   res.json(meta.herberg);
+});
+
+// ── Rust-instellingen (backdrops + gebeurtenissen-tabel) ──
+router.put('/meta/rust', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.rust) meta.rust = {};
+  const allowed = ['veldBackdropId', 'korteRustBackdropId', 'eventTableId'];
+  for (const f of allowed) {
+    if (req.body[f] !== undefined) meta.rust[f] = req.body[f];
+  }
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  res.json(meta.rust);
 });
 
 // ── Kaart ──

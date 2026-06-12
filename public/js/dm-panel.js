@@ -1,4 +1,4 @@
-import { api } from './api.js?v=237';
+import { api } from './api.js?v=238';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -3688,6 +3688,9 @@ window._wereldToggleEntiteit = async (entityId) => {
 
 let _hbPersonages = [];
 let _hbPendingBackdropId = null;
+let _hbTables = [];
+let _rustPendingVeldBg = null;
+let _rustPendingKorteBg = null;
 
 async function _renderHerbergSettings() {
   const el = _tabEl('herberg');
@@ -3695,8 +3698,12 @@ async function _renderHerbergSettings() {
   el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
 
   const config = window.app?.state?.meta?.herberg || {};
+  const rustCfg = window.app?.state?.meta?.rust || {};
   try { _hbPersonages = await api.listEntities('personages'); } catch { _hbPersonages = []; }
+  try { _hbTables = ((await api.listTables())?.tables || []).filter(t => t.type === 'weighted'); } catch { _hbTables = []; }
   _hbPendingBackdropId = null;
+  _rustPendingVeldBg = null;
+  _rustPendingKorteBg = null;
 
   const selectedP = _hbPersonages.find(p => p.id === config.imageId);
 
@@ -3748,6 +3755,43 @@ async function _renderHerbergSettings() {
 
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-primary" onclick="window._hbSave()" title="Opslaan">${icon('save')}</button>
+      </div>
+    </div>
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('moon')} Rust — sfeer & gebeurtenissen</div>
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrond — lange rust buiten (veld)</label>
+        ${rustCfg.veldBackdropId ? `<img id="rust-veld-preview" src="${api.fileUrl(rustCfg.veldBackdropId)}"
+          style="width:100%;max-height:90px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : ''}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">📷
+          <input type="file" accept="image/*" class="hidden" onchange="window._rustUploadBg('veld', this.files[0])">
+        </label>
+      </div>
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrond — korte rust</label>
+        ${rustCfg.korteRustBackdropId ? `<img id="rust-korte-preview" src="${api.fileUrl(rustCfg.korteRustBackdropId)}"
+          style="width:100%;max-height:90px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : ''}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">📷
+          <input type="file" accept="image/*" class="hidden" onchange="window._rustUploadBg('korte', this.files[0])">
+        </label>
+        <span class="dm-hint" style="font-size:11px">De herberg gebruikt automatisch zijn eigen achtergrond hierboven.</span>
+      </div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Gebeurtenissen-tabel (lange rust)</label>
+        <select id="rust-event-table" class="dm-select">
+          <option value="">— Geen —</option>
+          ${_hbTables.map(t => `<option value="${esc(t.id)}" ${rustCfg.eventTableId === t.id ? 'selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
+        </select>
+        <span class="dm-hint" style="font-size:11px">Weighted d100-tabel. Valuta-effect per regel: <code>{+3kn}</code> / <code>{-1fl}</code>, optioneel <code>@party</code>.</span>
+      </div>
+
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-primary" onclick="window._rustSave()" title="Rust-instellingen opslaan">${icon('save')}</button>
+        <span id="rust-save-status" style="font-size:11px;color:#6a9050"></span>
       </div>
     </div>`;
 };
@@ -3822,6 +3866,42 @@ window._hbUploadBackdrop = async (file) => {
       }
     }
   } catch (err) { alert('Upload mislukt: ' + err.message); }
+};
+
+window._rustUploadBg = async (welk, file) => {
+  if (!file) return;
+  const id = `rust-${welk}-bg-` + Date.now();
+  try {
+    await api.uploadFile(id, file);
+    if (welk === 'veld') _rustPendingVeldBg = id; else _rustPendingKorteBg = id;
+    const prevId = welk === 'veld' ? 'rust-veld-preview' : 'rust-korte-preview';
+    let img = document.getElementById(prevId);
+    if (img) { img.src = api.fileUrl(id); }
+    else {
+      const row = document.querySelector(`[onchange*="_rustUploadBg('${welk}'"]`)?.closest('.dm-form-row');
+      if (row) {
+        img = document.createElement('img'); img.id = prevId; img.src = api.fileUrl(id);
+        img.style.cssText = 'width:100%;max-height:90px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)';
+        row.querySelector('label')?.before(img);
+      }
+    }
+  } catch (err) { alert('Upload mislukt: ' + err.message); }
+};
+
+window._rustSave = async () => {
+  const cfg = window.app?.state?.meta?.rust || {};
+  const statusEl = document.getElementById('rust-save-status');
+  const payload = {
+    veldBackdropId:      _rustPendingVeldBg  || cfg.veldBackdropId || '',
+    korteRustBackdropId: _rustPendingKorteBg || cfg.korteRustBackdropId || '',
+    eventTableId:        document.getElementById('rust-event-table')?.value || '',
+  };
+  try {
+    await api.saveRust(payload);
+    const newMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = newMeta;
+    if (statusEl) { statusEl.textContent = '✓ Opgeslagen'; setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 4000); }
+  } catch (err) { if (statusEl) statusEl.textContent = 'Fout: ' + err.message; }
 };
 
 window._hbSave = async () => {
