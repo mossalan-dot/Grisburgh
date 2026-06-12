@@ -20692,3 +20692,42 @@ body.kaart-fs-active { overflow: hidden; }
   font-weight: 700;
   letter-spacing: 1px;
 }
+
+/* ═══ Media-tab: namen opschonen (review-modal) ══════════════════════════ */
+.media-rename-modal { display: flex; flex-direction: column; gap: 10px; }
+.media-rename-toolbar { display: flex; gap: 6px; }
+.media-rename-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 52vh;
+  overflow-y: auto;
+  border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 6px;
+  padding: 4px;
+  background: rgba(255,255,255,0.35);
+}
+.media-rename-row {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto minmax(0,1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 12px;
+}
+.media-rename-row:hover { background: rgba(196,168,122,0.18); }
+.media-rename-check { accent-color: #9a7008; cursor: pointer; }
+.media-rename-old { color: #8a7050; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-rename-arrow { width: 13px; height: 13px; color: #b09870; flex-shrink: 0; }
+.media-rename-new { color: #2a6a3a; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-rename-use {
+  font-size: 10px;
+  color: #8a7050;
+  font-style: italic;
+  white-space: nowrap;
+  justify-self: end;
+}
+.media-rename-actions { display: flex; gap: 8px; justify-content: flex-end; }
