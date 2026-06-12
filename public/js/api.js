@@ -185,6 +185,8 @@ export const api = {
   toggleShopUitverkocht: (shopId, itemNaam) => request(`/shops/${shopId}/uitverkocht`, { method: 'PUT', body: JSON.stringify({ itemNaam }) }),
   getShopBeschikbaar: (shopId)         => request(`/shops/${shopId}/beschikbaar`),
   koopShopItem:       (shopId, data)   => request(`/shops/${shopId}/koop`, { method: 'POST', body: JSON.stringify(data) }),
+  getShopVerkoopbaar: (shopId)         => request(`/shops/${shopId}/verkoopbaar`),
+  verkoopShopItem:    (shopId, data)   => request(`/shops/${shopId}/verkoop`, { method: 'POST', body: JSON.stringify(data) }),
   getShopLog:         (shopId)         => request(`/shops/${shopId}/log`),
   onderhandelShop:    (shopId, data)   => request(`/shops/${shopId}/onderhandel`, { method: 'POST', body: JSON.stringify(data) }),
 

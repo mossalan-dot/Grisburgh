@@ -571,7 +571,10 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
   delete dmState.dmNotes[id];
   storage.writeJSON('entities.json', entities);
   storage.writeJSON('dm-state.json', dmState);
-  storage.deleteFile(id);
+  // Spelerskaarten: portret-bestand NIET wissen — het wordt hergebruikt in party-weergave,
+  // berichten en de tempel, en moet bij herstel uit de prullenbak weer beschikbaar zijn.
+  const _isPlayerCard = type === 'personages' && dying.subtype === 'speler';
+  if (!_isPlayerCard) storage.deleteFile(id);
   req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type, id, deleted: true });
   req.app.get('io').to(req.session?.campaignId||'main').emit('entity:trashed', { type, id, name: dying.name });
   res.json({ ok: true });
@@ -1225,6 +1228,175 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
   }
 
   res.json({ ok: true, itemNaam: item.naam, prijs });
+});
+
+// ── Winkel-inkoop: hulpfuncties ──────────────────────────────────────────
+// Een winkel koopt voorwerpen in als winkelConfig.koopt actief is. Per winkel
+// kan een set categorieën (itemType) ingesteld zijn; leeg = alle categorieën.
+function _winkelKoopConfig(winkelConfig) {
+  const koopt = winkelConfig.koopt === true || winkelConfig.koopt === 'true';
+  const ratio = Math.min(100, Math.max(1, parseInt(winkelConfig.koopRatio) || 50));
+  let categorieen = [];
+  if (Array.isArray(winkelConfig.koopCategorieen)) categorieen = winkelConfig.koopCategorieen.filter(Boolean);
+  return { koopt, ratio, categorieen };
+}
+
+// Bepaalt of één voorwerp-entiteit verkoopbaar is + de reden als dat niet kan.
+function _voorwerpVerkoopbaar(vw, koopCfg) {
+  const d = vw?.data || {};
+  if (!vw) return { ok: false, reden: 'Onbekend voorwerp' };
+  if (d.itemType === 'Blessing') return { ok: false, reden: 'Gebonden (Blessing)' };
+  if (d.nietVerkoopbaar === 'true' || d.nietVerkoopbaar === true) return { ok: false, reden: 'Niet verkoopbaar' };
+  const waarde = parsePrijs(d.prijs);
+  if (!waarde || toCl(waarde) <= 0) return { ok: false, reden: 'Geen waarde' };
+  if (koopCfg.categorieen.length && !koopCfg.categorieen.includes(d.itemType || '')) {
+    return { ok: false, reden: `Koopt geen ${d.itemType || 'dit type'}` };
+  }
+  const aanbodCl = Math.max(1, Math.round(toCl(waarde) * koopCfg.ratio / 100));
+  return { ok: true, aanbodCl };
+}
+
+// ── Winkel: verkoopbare voorwerpen van de ingelogde speler ─────────────────
+router.get('/shops/:shopId/verkoopbaar', attachRole, (req, res) => {
+  const characterId = req.session?.characterId;
+  if (!characterId) return res.json({ koopt: false, items: [] });
+
+  const { shopId } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const allShops = [...(entities.personages || []), ...(entities.locaties || [])];
+  const shop = allShops.find(e => e.id === shopId);
+  if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+
+  let winkelConfig = {};
+  try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}
+  const koopCfg = _winkelKoopConfig(winkelConfig);
+  if (!koopCfg.koopt) return res.json({ koopt: false, items: [], ratio: koopCfg.ratio, categorieen: koopCfg.categorieen });
+
+  const dmState = readDmState();
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
+  const owners = g.itemOwners || {};
+  const voorwerpen = entities.voorwerpen || [];
+
+  const items = [];
+  for (const [entityId, owner] of Object.entries(owners)) {
+    let qty = 0;
+    if (Array.isArray(owner)) {
+      const mine = owner.find(o => o.characterId === characterId);
+      qty = mine ? (mine.qty || 1) : 0;
+    } else if (owner && owner.characterId === characterId) {
+      qty = 1;
+    }
+    if (qty <= 0) continue;
+    const vw = voorwerpen.find(e => e.id === entityId);
+    if (!vw) continue;
+    const check = _voorwerpVerkoopbaar(vw, koopCfg);
+    items.push({
+      entityId,
+      naam: vw.name,
+      itemType: vw.data?.itemType || '',
+      prijs: vw.data?.prijs || '',
+      stapelbaar: vw.data?.stapelbaar === 'true',
+      qty,
+      verkoopbaar: check.ok,
+      reden: check.reden || '',
+      aanbod: check.ok ? fromCl(check.aanbodCl) : null,
+    });
+  }
+  // Verkoopbare items eerst, daarna op naam
+  items.sort((a, b) => (b.verkoopbaar - a.verkoopbaar) || a.naam.localeCompare(b.naam, 'nl'));
+  res.json({ koopt: true, ratio: koopCfg.ratio, categorieen: koopCfg.categorieen, items });
+});
+
+// ── Winkel: voorwerp verkopen (inkoop door winkel) ─────────────────────────
+router.post('/shops/:shopId/verkoop', attachRole, (req, res) => {
+  const characterId = req.session?.characterId;
+  if (!characterId) return res.status(401).json({ error: 'Log in als speler om te verkopen' });
+
+  const { shopId } = req.params;
+  const { entityId, aantal: aantalRaw } = req.body;
+  if (!entityId) return res.status(400).json({ error: 'entityId vereist' });
+
+  const entities = storage.readJSON('entities.json');
+  const allShops = [...(entities.personages || []), ...(entities.locaties || [])];
+  const shop = allShops.find(e => e.id === shopId);
+  if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+
+  let winkelConfig = {};
+  try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}
+  const koopCfg = _winkelKoopConfig(winkelConfig);
+  if (!koopCfg.koopt) return res.status(409).json({ error: 'Deze winkel koopt geen voorwerpen in' });
+
+  const vw = (entities.voorwerpen || []).find(e => e.id === entityId);
+  if (!vw) return res.status(404).json({ error: 'Voorwerp niet gevonden' });
+
+  const check = _voorwerpVerkoopbaar(vw, koopCfg);
+  if (!check.ok) return res.status(409).json({ error: check.reden });
+
+  const dmState = readDmState();
+  const buyerGroupId = _playerGroupId(dmState, characterId);
+  const g = getGroup(dmState, buyerGroupId);
+  if (!g.itemOwners) g.itemOwners = {};
+  const owner = g.itemOwners[entityId];
+  const isStapelbaar = vw.data?.stapelbaar === 'true';
+
+  // Eigendom + aantal controleren
+  let bezit = 0, ownerEntry = null;
+  if (Array.isArray(owner)) {
+    ownerEntry = owner.find(o => o.characterId === characterId);
+    bezit = ownerEntry ? (ownerEntry.qty || 1) : 0;
+  } else if (owner && owner.characterId === characterId) {
+    bezit = 1;
+  }
+  if (bezit <= 0) return res.status(403).json({ error: 'Je bezit dit voorwerp niet' });
+
+  const aantal = isStapelbaar ? Math.min(bezit, Math.max(1, parseInt(aantalRaw) || 1)) : 1;
+  const opbrengstCl = check.aanbodCl * aantal;
+
+  // Eigendom bijwerken
+  if (isStapelbaar && Array.isArray(owner)) {
+    ownerEntry.qty = bezit - aantal;
+    if (ownerEntry.qty <= 0) {
+      g.itemOwners[entityId] = owner.filter(o => o.characterId !== characterId);
+      if (g.itemOwners[entityId].length === 0) delete g.itemOwners[entityId];
+    }
+  } else {
+    delete g.itemOwners[entityId];
+  }
+
+  // Munten bijschrijven
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  dmState.playerCurrency[characterId] = fromCl(toCl(pc) + opbrengstCl);
+
+  storage.writeJSON('dm-state.json', dmState);
+
+  // Shop-log (verkoop)
+  try {
+    const shopLog = storage.readJSON('shop-log.json');
+    if (!shopLog[shopId]) shopLog[shopId] = [];
+    const aanbod = fromCl(check.aanbodCl * aantal);
+    shopLog[shopId].push({
+      ts: new Date().toISOString(),
+      characterId,
+      playerName: req.playerName || 'Speler',
+      itemNaam: vw.name,
+      prijs: `${aanbod.fl} fl. ${aanbod.kn} kn. ${aanbod.cl} cl.`,
+      aantal,
+      type: 'verkoop',
+    });
+    if (shopLog[shopId].length > 200) shopLog[shopId] = shopLog[shopId].slice(-200);
+    storage.writeJSON('shop-log.json', shopLog);
+  } catch { /* stil falen */ }
+
+  const io = req.app.get('io');
+  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  io.to(req.session?.campaignId||'main').emit('items:ownership-updated', {
+    owners: g.itemOwners || {},
+    requests: g.itemRequests || [],
+    tradeAllowed: g.tradeAllowed !== false,
+  });
+
+  res.json({ ok: true, itemNaam: vw.name, aantal, opbrengst: fromCl(opbrengstCl), currency: dmState.playerCurrency[characterId] });
 });
 
 // ── Winkel: onderhandelen ──

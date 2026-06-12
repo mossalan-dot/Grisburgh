@@ -702,6 +702,56 @@ body::before {
   animation: card-sheen 7s ease-in-out infinite;
 }
 
+/* ── Spelerskaart (protagonist): vergulde, beschermde uitstraling ──
+   Portret/filmpje wordt overal hergebruikt → de kaart staat visueel boven NPC's. */
+.entity-card.card-protagonist {
+  border-color: rgba(196,168,80,0.55);
+  box-shadow:
+    0 1px 2px rgba(60,40,10,0.10),
+    0 5px 16px rgba(196,168,80,0.22),
+    inset 0 0 0 1px rgba(255,220,120,0.30);
+}
+.entity-card.card-protagonist:hover {
+  box-shadow:
+    0 2px 4px rgba(60,40,10,0.14),
+    0 10px 26px rgba(196,168,80,0.34),
+    inset 0 0 0 1px rgba(255,225,135,0.42);
+}
+.entity-card.card-protagonist .card-accent {
+  height: 9px;
+  background: linear-gradient(to right, #d8b35a, rgba(196,168,80,0.55), #d8b35a);
+}
+/* Gouden hoekflourish rechtsboven */
+.entity-card.card-protagonist::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 34px; height: 34px;
+  background:
+    linear-gradient(225deg, rgba(216,179,90,0.85) 0%, rgba(216,179,90,0.0) 60%);
+  border-top-right-radius: inherit;
+  pointer-events: none;
+  z-index: 5;
+}
+/* Subtiele, trage sheen — hergebruikt card-sheen-animatie */
+.entity-card.card-protagonist .card-img-wrap::before {
+  content: '';
+  position: absolute;
+  top: -10%; left: -70%;
+  width: 45%; height: 120%;
+  background: linear-gradient(105deg, transparent 0%, rgba(255,240,170,0.40) 50%, transparent 100%);
+  transform: skewX(-18deg);
+  pointer-events: none;
+  z-index: 6;
+  animation: card-sheen 9s ease-in-out infinite;
+}
+.entity-card.card-protagonist .card-subtype-badge.badge-speler {
+  background: linear-gradient(135deg, #8a6d1e, #b8902f);
+  color: #fff6d8;
+  border: 1px solid rgba(255,225,135,0.55);
+  box-shadow: 0 1px 3px rgba(60,40,10,0.35);
+}
+
 /* Vloek — donker à la card-deceased */
 .entity-card.card-goddelijk--vloek {
   background: #160e0e;
@@ -10330,6 +10380,119 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ── Undo-toast (na verwijderen) ── */
+.undo-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(30,22,10,0.95);
+  color: #f2e8d2;
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 14px;
+  padding: 10px 14px 10px 18px;
+  font-size: 0.85rem;
+  font-family: 'Crimson Text', serif;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 10000;
+}
+.undo-toast--visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.undo-toast-text { display: inline-flex; align-items: center; gap: 6px; }
+.undo-toast-text svg { width: 15px; height: 15px; opacity: 0.7; }
+.undo-toast-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(196,168,80,0.18);
+  color: #f0c840;
+  border: 1px solid rgba(196,168,122,0.5);
+  border-radius: 9px;
+  padding: 5px 12px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.undo-toast-btn:hover { background: rgba(196,168,80,0.3); border-color: rgba(196,168,122,0.8); }
+.undo-toast-btn svg { width: 14px; height: 14px; }
+
+/* ── Verwijdercontrole spelerskaart ── */
+.delete-guard-overlay {
+  position: fixed; inset: 0;
+  background: rgba(12,8,3,0.72);
+  backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10001;
+  padding: 20px;
+}
+.delete-guard-modal {
+  background: #f2e8d2;
+  color: #2a1a08;
+  border: 1px solid rgba(120,60,40,0.5);
+  border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,220,120,0.25);
+  width: min(440px, 100%);
+  padding: 22px;
+  font-family: 'Crimson Text', serif;
+}
+.delete-guard-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.delete-guard-portret {
+  width: 56px; height: 56px; object-fit: cover; border-radius: 8px;
+  border: 1px solid rgba(120,60,40,0.4); flex-shrink: 0;
+}
+.delete-guard-title {
+  font-family: 'Cinzel', serif; font-size: 0.95rem; font-weight: 700;
+  color: #7a1a1a; display: inline-flex; align-items: center; gap: 7px;
+}
+.delete-guard-title svg { width: 18px; height: 18px; }
+.delete-guard-name { font-size: 1.25rem; font-weight: 600; line-height: 1.2; }
+.delete-guard-warn { font-size: 0.9rem; line-height: 1.5; margin-bottom: 10px; }
+.delete-guard-list {
+  list-style: disc; padding-left: 20px; margin-bottom: 14px;
+  font-size: 0.85rem; color: #4a3418; display: flex; flex-direction: column; gap: 4px;
+}
+.delete-guard-label { display: block; font-size: 0.82rem; margin-bottom: 6px; color: #4a3418; }
+.delete-guard-input {
+  width: 100%; padding: 8px 12px; margin-bottom: 16px;
+  background: #fff; border: 1px solid rgba(120,60,40,0.45); border-radius: 8px;
+  font-family: 'Crimson Text', serif; font-size: 1rem; color: #2a1a08;
+}
+.delete-guard-input:focus { outline: none; border-color: #7a1a1a; box-shadow: 0 0 0 2px rgba(122,26,26,0.18); }
+.delete-guard-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.delete-guard-actions .dm-btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Winkel-inkoop (verkopen aan winkel) ── */
+.shop-verkoop-section { margin-top: 20px; padding-top: 16px; border-top: 1px dashed rgba(196,168,122,0.4); }
+.shop-verkoop-head {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  font-family: 'Cinzel', serif; font-size: 0.82rem; color: var(--color-gold, #b8860b);
+  margin-bottom: 10px;
+}
+.shop-verkoop-head svg { width: 16px; height: 16px; }
+.shop-verkoop-ratio {
+  font-family: 'Crimson Text', serif; font-size: 0.78rem; font-style: italic;
+  color: var(--color-ink-dim, rgba(120,90,50,0.7)); margin-left: auto;
+}
+.shop-verkoop-cat {
+  margin-left: 8px; font-size: 0.7rem; padding: 1px 7px; border-radius: 9px;
+  background: rgba(196,168,122,0.18); color: var(--color-ink-dim, #7a5a32);
+}
+.shop-verkoop-qty { margin-left: 6px; font-size: 0.75rem; opacity: 0.6; }
+.shop-verkoop-rij--nope { opacity: 0.5; }
+.shop-verkoop-reden { font-size: 0.78rem; font-style: italic; color: var(--color-ink-faint, rgba(120,90,50,0.55)); }
+.shop-verkoop-btn {
+  padding: 5px 14px; border-radius: 8px;
+  background: rgba(120,90,40,0.14); color: var(--color-gold, #b8860b);
+  border: 1px solid rgba(196,168,122,0.5);
+  font-family: 'Cinzel', serif; font-size: 0.78rem; cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.shop-verkoop-btn:hover:not(:disabled) { background: rgba(196,168,80,0.26); border-color: rgba(196,168,122,0.8); }
+.shop-verkoop-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* ── Voorraad inladen paneel ── */
 .voorraad-inladen-wrap { border-top: 1px solid var(--color-room-border); padding-top: 8px; }

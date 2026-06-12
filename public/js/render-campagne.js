@@ -1,4 +1,4 @@
-import { api } from './api.js?v=234';
+import { api } from './api.js?v=235';
 
 const icon = (...a) => window.icon(...a);
 
@@ -168,6 +168,7 @@ const SCHEMA = {
       { key: 'itemType', label: 'Type', type: 'select', options: ['Weapon','Magic Item','Potion','Armor','Shield','Scroll','Ring','Amulet','Consumable','Wondrous item','Musical instrument','Feature','Blessing','Other'] },
       { key: 'rariteit', label: 'Rarity', type: 'select', options: ['Common','Uncommon','Rare','Very Rare','Legendary'] },
       { key: 'prijs', label: 'Prijs', type: 'text' },
+      { key: 'nietVerkoopbaar', label: 'Niet verkoopbaar (winkels kopen dit niet in)', type: 'checkbox' },
       { key: 'attunement', label: 'Requires attunement', type: 'checkbox' },
       { key: 'gebruik', label: 'Gebruik', type: 'select', options: [
         { value: 'uniek',      label: 'Uniek — één speler heeft het voorwerp' },
@@ -869,8 +870,11 @@ function renderCard(type, e) {
                   :                    'Zichtbaar maken';
 
   const _goddelijkType = (type === 'voorwerpen' && e.data?.itemType === 'Blessing') ? (e.data?.goddelijkType || '') : '';
+  // Spelerskaarten (protagonisten) krijgen een vergulde, beschermde uitstraling — hun
+  // portret/filmpje wordt overal hergebruikt, dus de kaart staat visueel boven NPC's.
+  const _isProtagonist = type === 'personages' && (e.subtype === 'speler');
   return `
-    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}
+    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}${_isProtagonist ? ' card-protagonist' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}${_isProtagonist ? ' data-protagonist="true"' : ''}
       onclick="window._openDetail('${type}','${e.id}')">
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
@@ -1338,11 +1342,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   window._currentDetailTab = tab;
   window._currentDetailId  = id;
 
-  let e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData;
+  let e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData, shopVerkoopData;
   let shopLogData = null;
   const _isShopTab = (tab === 'locaties' || tab === 'personages');
   try {
-    [e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData] = await Promise.all([
+    [e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData, shopVerkoopData] = await Promise.all([
       api.getEntity(tab, id),
       api.getPlayerNotes(id).catch(() => null),
       _isShopTab
@@ -1356,6 +1360,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             api.getPlayerCurrency(window.app?.state?.characterId).catch(() => ({ fl: 0, kn: 0, cl: 0 })),
             api.getPartyCurrency().catch(() => ({ enabled: false, fl: 0, kn: 0, cl: 0 })),
           ]).then(([player, party]) => ({ player, party }))
+        : Promise.resolve(null),
+      (_isShopTab && !isDM())
+        ? api.getShopVerkoopbaar(id).catch(() => null)
         : Promise.resolve(null),
     ]);
   } catch { return; }
@@ -1502,7 +1509,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _metaPills = [];
   let _descVal = '';
   for (const field of (schema.fields || [])) {
-    if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid'].includes(field.key)) continue;
+    if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid', 'nietVerkoopbaar'].includes(field.key)) continue;
     if (tab === 'voorwerpen' && ['itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
@@ -1861,6 +1868,57 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         ? `<div class="shop-korting-banner shop-korting-banner--malus">🎲 Prijs ${Math.abs(discountPct)}% hoger</div>`
         : '';
 
+    // ── Inkoop: speler verkoopt voorwerpen aan de winkel ──
+    const verkoopHtml = (!isDM() && shopVerkoopData?.koopt) ? (() => {
+      const _cN = window._currency || { fl: 'fl', kn: 'kn', cl: 'cl' };
+      const _fmt = (b) => b ? `${b.fl} ${esc(_cN.fl)} · ${b.kn} ${esc(_cN.kn)} · ${b.cl} ${esc(_cN.cl)}` : '—';
+      const _items = shopVerkoopData.items || [];
+      const _ratio = shopVerkoopData.ratio || 50;
+      const rijen = _items.length ? _items.map((it, i) => `
+        <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0${it.verkoopbaar ? '' : ' shop-verkoop-rij--nope'}">
+          <td class="px-4 py-2.5 font-crimson">
+            <span class="cursor-pointer hover:text-gold transition underline decoration-dotted"
+              onclick="window._openDetailFromShop('${esc(it.entityId)}')">${esc(it.naam)}</span>
+            ${it.itemType ? `<span class="shop-verkoop-cat">${esc(it.itemType)}</span>` : ''}
+            ${it.qty > 1 ? `<span class="shop-verkoop-qty">×${it.qty}</span>` : ''}
+          </td>
+          <td class="px-4 py-2.5 text-right font-crimson text-ink-medium">
+            ${it.verkoopbaar ? _fmt(it.aanbod) : `<span class="shop-verkoop-reden">${esc(it.reden)}</span>`}
+          </td>
+          <td class="px-2 py-2.5 text-right">
+            ${it.verkoopbaar ? `
+              <div class="flex items-center gap-1 justify-end">
+                ${it.stapelbaar && it.qty > 1 ? `<input type="number" min="1" max="${it.qty}" value="1"
+                  class="shop-qty-input" id="shop-verkoop-qty-${i}"
+                  onclick="event.stopPropagation()" oninput="this.value=Math.min(${it.qty},Math.max(1,parseInt(this.value)||1))">` : ''}
+                <button class="shop-verkoop-btn"
+                  onclick="window._verkoopItem('${esc(_shopId)}','${esc(it.entityId)}',this,${it.stapelbaar && it.qty > 1 ? `parseInt(document.getElementById('shop-verkoop-qty-${i}')?.value)||1` : '1'})">
+                  Verkopen
+                </button>
+              </div>` : ''}
+          </td>
+        </tr>`).join('') : `<tr><td colspan="3" class="text-center py-6 text-ink-faint font-fell italic">Je hebt niets dat deze winkel inkoopt</td></tr>`;
+      return `
+        <div class="shop-verkoop-section">
+          <div class="shop-verkoop-head">${icon('coins')} Verkopen aan deze winkel
+            <span class="shop-verkoop-ratio">koopt voor ${_ratio}% van de waarde</span>
+          </div>
+          <div class="rounded border border-room-border overflow-hidden">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-room-elevated border-b border-room-border">
+                  <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] tracking-wide">Jouw voorwerp</th>
+                  <th class="px-4 py-2.5 text-right font-cinzel text-ink-dim text-[10px] tracking-wide">Bod</th>
+                  <th class="px-2 py-2.5"></th>
+                </tr>
+              </thead>
+              <tbody>${rijen}</tbody>
+            </table>
+          </div>
+          <div id="shop-verkoop-feedback" class="shop-koop-feedback hidden"></div>
+        </div>`;
+    })() : '';
+
     if (voorraadItems.length > 0) {
       // Onderhandelen button (alleen voor spelers)
       const onderhandelHtml = !isDM() ? `
@@ -1951,9 +2009,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           </table>
         </div>
         ${onderhandelHtml}
-        <div id="shop-koop-feedback" class="shop-koop-feedback hidden"></div>`;
+        <div id="shop-koop-feedback" class="shop-koop-feedback hidden"></div>
+        ${verkoopHtml}`;
     } else {
-      voorraadHtml = `${sfeerHtml}${kortingBannerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>`;
+      voorraadHtml = `${sfeerHtml}${kortingBannerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>${verkoopHtml}`;
     }
     } // end else (niet buitenGrisburgh)
   }
@@ -2178,6 +2237,39 @@ window._koopItem = async (shopId, itemNaam, entityId, btn, aantal = 1) => {
       setTimeout(() => feedback.classList.add('hidden'), 5000);
     }
     if (btn) { btn.disabled = false; btn.textContent = 'Kopen'; }
+  }
+};
+
+// ── Winkel: voorwerp verkopen aan de winkel ──
+window._verkoopItem = async (shopId, entityId, btn, aantal = 1) => {
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  const feedback = document.getElementById('shop-verkoop-feedback');
+  try {
+    const res = await api.verkoopShopItem(shopId, { entityId, aantal });
+    const _cN = window._currency || { fl: 'fl', kn: 'kn', cl: 'cl' };
+    const b = res?.opbrengst || { fl: 0, kn: 0, cl: 0 };
+    // Herlaad de modal maar blijf op de voorraadtab
+    if (window._currentDetailTab && window._currentDetailId) {
+      await window._openDetail(window._currentDetailTab, window._currentDetailId, false, 'voorraad');
+    }
+    const fb = document.getElementById('shop-verkoop-feedback');
+    if (fb) {
+      fb.innerHTML = `✓ Verkocht voor <strong>${b.fl} ${esc(_cN.fl)} · ${b.kn} ${esc(_cN.kn)} · ${b.cl} ${esc(_cN.cl)}</strong>`;
+      fb.className = 'shop-koop-feedback shop-koop-feedback--ok';
+      fb.classList.remove('hidden');
+      setTimeout(() => fb.classList.add('hidden'), 4000);
+    }
+    // Refresh knapzak/kaarten zodat het verkochte item meteen verdwijnt
+    window.app?.refreshSection?.('mijn-karakter');
+  } catch (err) {
+    const msg = err.message || 'Kon niet verkopen';
+    if (feedback) {
+      feedback.textContent = '⚠ ' + msg;
+      feedback.className = 'shop-koop-feedback shop-koop-feedback--fout';
+      feedback.classList.remove('hidden');
+      setTimeout(() => feedback.classList.add('hidden'), 5000);
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Verkopen'; }
   }
 };
 
@@ -2861,6 +2953,33 @@ window._openEditor = async (tab, editId) => {
             </div>
           </div>
         </div>
+        <!-- Inkoop: winkel koopt voorwerpen van spelers -->
+        <div class="mt-4 pt-3 border-t border-room-border/60">
+          <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-2">${icon('coins')} Inkoop</div>
+          <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer mb-2">
+            <input type="checkbox" id="wc-koopt" ${winkelConfigEditor.koopt ? 'checked' : ''} onchange="window._wcUpdate()">
+            Koopt voorwerpen van spelers
+          </label>
+          <div id="wc-koop-extra" class="${winkelConfigEditor.koopt ? '' : 'hidden'} space-y-2 pl-4">
+            <div class="flex gap-2 items-center">
+              <label class="text-xs text-ink-dim w-40" title="Percentage van de voorwerpprijs dat de winkel uitbetaalt">Bod (% van waarde)</label>
+              <input type="number" id="wc-koopratio" min="1" max="100" value="${winkelConfigEditor.koopRatio ?? 50}"
+                oninput="window._wcUpdate()"
+                class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            </div>
+            <div>
+              <div class="text-xs text-ink-dim mb-1">Koopt deze categorieën <span class="opacity-60">(geen aangevinkt = alles)</span></div>
+              <div class="flex flex-wrap gap-x-3 gap-y-1">
+                ${['Weapon','Armor','Shield','Potion','Scroll','Ring','Amulet','Magic Item','Wondrous item','Consumable','Musical instrument','Other'].map(cat => {
+                  const _on = Array.isArray(winkelConfigEditor.koopCategorieen) && winkelConfigEditor.koopCategorieen.includes(cat);
+                  return `<label class="flex items-center gap-1 text-xs text-ink-medium cursor-pointer">
+                    <input type="checkbox" class="wc-koopcat" data-cat="${esc(cat)}" ${_on ? 'checked' : ''} onchange="window._wcUpdate()"> ${esc(cat)}
+                  </label>`;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -3229,6 +3348,9 @@ window._openEditor = async (tab, editId) => {
     window._wcUpdate = () => {
       const roterend = document.getElementById('wc-roterend')?.checked || false;
       document.getElementById('wc-extra')?.classList.toggle('hidden', !roterend);
+      const koopt = document.getElementById('wc-koopt')?.checked || false;
+      document.getElementById('wc-koop-extra')?.classList.toggle('hidden', !koopt);
+      const koopCategorieen = Array.from(document.querySelectorAll('.wc-koopcat:checked')).map(cb => cb.dataset.cat);
       const config = {
         roterend,
         aantalItems: parseInt(document.getElementById('wc-aantal')?.value) || 3,
@@ -3238,6 +3360,9 @@ window._openEditor = async (tab, editId) => {
         onderhandelDC: parseInt(document.getElementById('wc-onderhandel-dc')?.value) || 15,
         onderhandelKorting: parseInt(document.getElementById('wc-onderhandel-korting')?.value) || 10,
         onderhandelBoete: parseInt(document.getElementById('wc-onderhandel-boete')?.value) || 0,
+        koopt,
+        koopRatio: parseInt(document.getElementById('wc-koopratio')?.value) || 50,
+        koopCategorieen,
       };
       const hidden = document.getElementById('winkelconfig-hidden');
       if (hidden) hidden.value = JSON.stringify(config);
@@ -3368,9 +3493,98 @@ function refreshTags(lt) {
 }
 
 // ── Delete ──
+// Spelerskaarten (protagonisten) krijgen extra verwijdercontrole: hun portret/filmpje
+// wordt overal hergebruikt, dus we eisen het intypen van de naam i.p.v. een kale confirm().
+// Elke verwijdering toont daarna een "Ongedaan maken"-toast (herstel uit de prullenbak).
 window._deleteEntity = async (tab, id) => {
+  let ent = null;
+  try { ent = await api.getEntity(tab, id); } catch {}
+  const isProtagonist = tab === 'personages' && ent?.subtype === 'speler';
+  if (isProtagonist) { _openDeleteGuard(tab, id, ent); return; }
   if (!confirm('Weet je zeker dat je dit wilt verwijderen?')) return;
   await api.deleteEntity(tab, id);
   window.app.closeModal();
   renderEntitySection(tab);
+  _showUndoToast(tab, id, ent?.name || '');
 };
+
+// Rijke bevestigingsmodal voor spelerskaarten — vereist het typen van de naam.
+function _openDeleteGuard(tab, id, ent) {
+  document.getElementById('delete-guard-overlay')?.remove();
+  const naam = ent?.name || 'dit personage';
+  const groep = ent?.data?.groep ? `<li>Lid van groep <strong>${esc(ent.data.groep)}</strong></li>` : '';
+  const ov = document.createElement('div');
+  ov.id = 'delete-guard-overlay';
+  ov.className = 'delete-guard-overlay';
+  ov.innerHTML = `
+    <div class="delete-guard-modal" role="dialog" aria-modal="true">
+      <div class="delete-guard-head">
+        <img class="delete-guard-portret" src="${api.thumbUrl(id)}" alt="" onerror="this.style.display='none'">
+        <div>
+          <div class="delete-guard-title">${icon('skull')} Spelerskaart verwijderen</div>
+          <div class="delete-guard-name">${esc(naam)}</div>
+        </div>
+      </div>
+      <p class="delete-guard-warn">Het portret en filmpje van deze speler worden <strong>hergebruikt</strong> in de
+        party-weergave, berichten en de tempel. Verwijderen haalt het personage uit alle groepen.</p>
+      <ul class="delete-guard-list">
+        ${groep}
+        <li>De kaart belandt in de prullenbak — je kunt direct daarna <strong>Ongedaan maken</strong>.</li>
+      </ul>
+      <label class="delete-guard-label">Typ de naam <strong>${esc(naam)}</strong> om te bevestigen:</label>
+      <input type="text" id="delete-guard-input" class="delete-guard-input" autocomplete="off" placeholder="${esc(naam)}">
+      <div class="delete-guard-actions">
+        <button class="dm-btn dm-btn-ghost" id="delete-guard-cancel">Annuleren</button>
+        <button class="dm-btn dm-btn-danger" id="delete-guard-confirm" disabled>${icon('trash')} Verwijderen</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const input = ov.querySelector('#delete-guard-input');
+  const confirmBtn = ov.querySelector('#delete-guard-confirm');
+  const close = () => ov.remove();
+  input.addEventListener('input', () => {
+    confirmBtn.disabled = input.value.trim().toLowerCase() !== (naam || '').trim().toLowerCase();
+  });
+  input.focus();
+  ov.querySelector('#delete-guard-cancel').addEventListener('click', close);
+  ov.addEventListener('click', (ev) => { if (ev.target === ov) close(); });
+  confirmBtn.addEventListener('click', async () => {
+    if (confirmBtn.disabled) return;
+    confirmBtn.disabled = true;
+    try {
+      await api.deleteEntity(tab, id);
+      close();
+      window.app.closeModal();
+      renderEntitySection(tab);
+      _showUndoToast(tab, id, naam);
+    } catch (err) {
+      confirmBtn.disabled = false;
+      alert('Verwijderen mislukt: ' + (err.message || 'onbekende fout'));
+    }
+  });
+}
+
+// Toast met "Ongedaan maken" — ontsluit de bestaande prullenbak/restore-backend.
+function _showUndoToast(tab, id, naam) {
+  document.getElementById('undo-toast')?.remove();
+  const t = document.createElement('div');
+  t.id = 'undo-toast';
+  t.className = 'undo-toast';
+  t.innerHTML = `
+    <span class="undo-toast-text">${icon('trash')} ${esc(naam || 'Item')} verwijderd</span>
+    <button class="undo-toast-btn" id="undo-toast-btn">${icon('refresh-cw')} Ongedaan maken</button>`;
+  document.body.appendChild(t);
+  setTimeout(() => t.classList.add('undo-toast--visible'), 10);
+  const dismiss = () => { t.classList.remove('undo-toast--visible'); setTimeout(() => t.remove(), 300); };
+  const timer = setTimeout(dismiss, 8000);
+  t.querySelector('#undo-toast-btn').addEventListener('click', async () => {
+    clearTimeout(timer);
+    try {
+      await api.restoreEntity(id);
+      renderEntitySection(tab);
+    } catch (err) {
+      alert('Herstellen mislukt: ' + (err.message || 'onbekende fout'));
+    }
+    dismiss();
+  });
+}
