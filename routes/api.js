@@ -4545,6 +4545,7 @@ router.post('/map/maps', requireDM, (req, res) => {
   const mapData = storage.readJSON('map.json');
   if (!mapData.maps) mapData.maps = [...DEFAULT_MAPS];
   const map = { id: 'map_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4), label };
+  if (req.body.imageId) map.imageId = req.body.imageId;  // mediabibliotheek-afbeelding
   mapData.maps.push(map);
   storage.writeJSON('map.json', mapData);
   req.app.get('io').to(req.session?.campaignId||'main').emit('map:updated');
@@ -4571,7 +4572,9 @@ router.delete('/map/maps/:id', requireDM, (req, res) => {
   mapData.maps = mapData.maps.filter(m => m.id !== req.params.id);
   mapData.pins = (mapData.pins || []).filter(p => (p.mapId || 'grisburgh') !== req.params.id);
   storage.writeJSON('map.json', mapData);
-  if (map && !map.src) _deleteFileIfUnused(map.id);  // clean up upload if not a static asset
+  if (map && !map.src) {                              // ingebouwde kaarten (src) overslaan
+    _deleteFileIfUnused(map.imageId || map.id);       // bibliotheek-afbeelding of oude upload op map-id
+  }
   req.app.get('io').to(req.session?.campaignId||'main').emit('map:updated');
   res.json({ ok: true });
 });

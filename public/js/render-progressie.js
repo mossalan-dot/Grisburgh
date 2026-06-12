@@ -1003,6 +1003,17 @@ window.progressie = {
       _refreshEditor(); _toast('Media toegevoegd — vergeet niet op te slaan.');
     } catch(e) { alert('Upload mislukt: ' + e.message); }
   },
+  pickMedia(scope, sub, level, idx) {
+    window.mediaPicker.open({
+      type: 'afbeelding',
+      onSelect: (fileId) => {
+        const node = _scopeNode(scope, sub);
+        const feat = node?.levels?.[level]?.[idx];
+        if (feat) { feat.img = fileId; feat.imgKind = 'image'; _editDirty = true; }
+        _refreshEditor(); _toast('Afbeelding gekoppeld — vergeet niet op te slaan.');
+      },
+    });
+  },
   removeMedia(scope, sub, level, idx) {
     const node = _scopeNode(scope, sub);
     const feat = node?.levels?.[level]?.[idx];
@@ -1114,7 +1125,9 @@ function _featRow(scope, sub, lvl, i, f) {
       <div class="prog-ed-feat-tools">
         <select class="prog-ed-cat" title="Categorie" onchange="window.progressie.editFeature('${s}','${su}',${lvl},${i},'cat',this.value)">${opts}</select>
         <div class="prog-ed-feat-icons">
-          <label class="prog-ed-media${hasMedia?' has':''}" title="${hasMedia?'Media vervangen':'Afbeelding of filmpje toevoegen'}"
+          <button class="prog-ed-media" title="Afbeelding uit bibliotheek kiezen"
+            onclick="window.progressie.pickMedia('${s}','${su}',${lvl},${i})">${icon('folder-open')}</button>
+          <label class="prog-ed-media${hasMedia?' has':''}" title="${hasMedia?'Media vervangen':'Afbeelding of filmpje uploaden'}"
             >${hasMedia?(f.imgKind==='video'?icon('play'):icon('image')):icon('image')}
             <input type="file" accept="image/*,video/mp4,video/webm" style="display:none"
               onchange="window.progressie.uploadMedia('${s}','${su}',${lvl},${i},this)"></label>

@@ -30,7 +30,9 @@ function _syncPinnedSet() {
 }
 
 function _mapImgSrc(map) {
-  return map.src || api.fileUrl(map.id);
+  // Ingebouwde kaart: statische src. Anders het losse imageId (mediabibliotheek)
+  // of, voor oudere kaarten, het map-id zelf (/files/{map.id}).
+  return map.src || api.fileUrl(map.imageId || map.id);
 }
 
 // ── Public entry point ──
@@ -653,10 +655,10 @@ function _openMapAdder() {
       </div>
       <div>
         <label class="text-[10px] text-ink-faint uppercase">Afbeelding</label>
-        <label class="flex items-center gap-2 mt-1 px-2 py-1.5 bg-room-elevated border border-room-border rounded cursor-pointer hover:border-gold-dim transition text-sm text-ink-dim">
-          ${icon('folder-open')} <span id="map-add-file-name">Kies bestand…</span>
-          <input id="map-add-file" type="file" accept="image/*" class="hidden">
-        </label>
+        <button type="button" id="map-add-pick"
+          class="flex items-center gap-2 mt-1 px-2 py-1.5 bg-room-elevated border border-room-border rounded cursor-pointer hover:border-gold-dim transition text-sm text-ink-dim w-full">
+          ${icon('image')} <span id="map-add-file-name">Kies of upload afbeelding…</span>
+        </button>
       </div>
     </div>
     <div class="flex gap-2 mt-3">
@@ -667,20 +669,26 @@ function _openMapAdder() {
     </div>`;
   document.body.appendChild(popup);
 
-  popup.querySelector('#map-add-file').addEventListener('change', (ev) => {
-    const file = ev.target.files[0];
-    if (file) popup.querySelector('#map-add-file-name').textContent = file.name;
+  let _pickedImageId = null;
+  popup.querySelector('#map-add-pick').addEventListener('click', () => {
+    const naamHint = (popup.querySelector('#map-add-label').value || '').trim().toLowerCase().replace(/\s+/g, '-');
+    window.mediaPicker.open({
+      type: 'afbeelding',
+      suggestedName: naamHint ? `${naamHint}-kaart` : 'kaart',
+      onSelect: (fileId) => {
+        _pickedImageId = fileId;
+        popup.querySelector('#map-add-file-name').textContent = 'Afbeelding gekozen ✓';
+      },
+    });
   });
 
   popup.querySelector('#map-add-cancel').addEventListener('click', () => popup.remove());
   popup.querySelector('#map-add-confirm').addEventListener('click', async () => {
     const label = popup.querySelector('#map-add-label').value.trim();
-    const file  = popup.querySelector('#map-add-file').files[0];
     if (!label) { alert('Vul een naam in.'); return; }
-    if (!file)  { alert('Kies een afbeelding.'); return; }
+    if (!_pickedImageId) { alert('Kies een afbeelding.'); return; }
     try {
-      const map = await api.createMap({ label });
-      await api.uploadFile(map.id, file);
+      const map = await api.createMap({ label, imageId: _pickedImageId });
       popup.remove();
       await renderKaart();
       // Switch to new map

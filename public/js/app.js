@@ -2302,8 +2302,7 @@ window._kaartEdit = async function(type, id) {
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Thumbnail</label>
         ${item.thumbId ? `<img id="kaart-edit-thumb-prev" src="${api.fileUrl(item.thumbId)}" class="kaart-edit-thumb">` : '<span id="kaart-edit-thumb-prev"></span>'}
-        <label class="dm-btn dm-btn-sm" style="cursor:pointer;align-self:flex-start" title="Thumbnail uploaden">${icon('image')} Upload
-          <input type="file" accept="image/*" style="display:none" onchange="window._kaartEditThumbUpload(this.files[0])"></label>
+        <button type="button" class="dm-btn dm-btn-sm" style="align-self:flex-start" onclick="window._kaartEditPickThumb()" title="Thumbnail kiezen of uploaden">${icon('image')} Afbeelding</button>
       </div>` : ''}
       <div class="dm-feature-row" style="margin-top:6px">
         <button class="dm-btn dm-btn-primary" onclick="window._kaartEditSave('${type}','${esc(id)}')">${icon('save')} Opslaan</button>
@@ -2313,17 +2312,19 @@ window._kaartEdit = async function(type, id) {
   window.app.openModal('Kaart bewerken', naam, body);
 };
 
-window._kaartEditThumbUpload = async function(file) {
-  if (!file) return;
-  const fid = 'dng-thumb-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
-  try {
-    await api.uploadFile(fid, file);
-    window._kaartEditThumbPending = fid;
-    const prev = document.getElementById('kaart-edit-thumb-prev');
-    const img = document.createElement('img');
-    img.id = 'kaart-edit-thumb-prev'; img.className = 'kaart-edit-thumb'; img.src = api.fileUrl(fid);
-    prev?.replaceWith(img);
-  } catch (e) { alert('Upload mislukt: ' + e.message); }
+window._kaartEditPickThumb = function() {
+  const naamHint = (document.getElementById('kaart-edit-naam')?.value || '').trim().toLowerCase().replace(/\s+/g, '-');
+  window.mediaPicker.open({
+    type: 'afbeelding',
+    suggestedName: naamHint ? `${naamHint}-kaart` : '',
+    onSelect: (fileId) => {
+      window._kaartEditThumbPending = fileId;
+      const prev = document.getElementById('kaart-edit-thumb-prev');
+      const img = document.createElement('img');
+      img.id = 'kaart-edit-thumb-prev'; img.className = 'kaart-edit-thumb'; img.src = api.fileUrl(fileId);
+      prev?.replaceWith(img);
+    },
+  });
 };
 
 window._kaartEditSave = async function(type, id) {
