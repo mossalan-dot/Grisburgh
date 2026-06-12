@@ -1198,7 +1198,7 @@ function _spellDetailHtml(s) {
           style="max-width:100%;max-height:110px;border-radius:6px;display:block;margin-bottom:8px"
           onerror="this.style.display='none'" alt="">
         <label class="dm-btn dm-btn-ghost dm-btn-sm" style="gap:5px">
-          📷 Afbeelding instellen
+          ${icon('image')} Afbeelding instellen
           <input type="file" accept="image/*" style="display:none"
             onchange="window.dmPanel.uploadSpellImage('${esc(s.index)}', this.files[0])">
         </label>
@@ -3724,6 +3724,43 @@ window._wereldToggleEntiteit = async (entityId) => {
 let _hbPersonages = [];
 let _hbPendingBackdropId = null;
 
+// ── Diensten-backdrops via de mediabibliotheek ──────────────────────────────
+// Alle diensten delen één picker-flow. De registry koppelt elke dienst aan z'n
+// preview-element + de manier waarop de "pending backdrop"-state wordt gezet
+// (sommige zijn module-vars, andere window-globals — bestaande save-logica
+// leest die door).
+const _SVC_BACKDROP = {
+  hb:      { preview: 'hb-backdrop-preview',      suggested: 'herberg-backdrop',   set: v => { _hbPendingBackdropId = v; } },
+  ts:      { preview: 'ts-backdrop-preview',      suggested: 'tweespalt-backdrop', set: v => { window._tsBackdropPending = v; } },
+  gock:    { preview: 'gock-backdrop-preview',    suggested: 'gock-backdrop',      set: v => { window._gockBackdropPending = v; } },
+  magizoo: { preview: 'magizoo-backdrop-preview', suggested: 'magizoo-backdrop',   set: v => { window._magizooBackdropPending = v; } },
+  ursula:  { preview: 'ursula-backdrop-preview',  suggested: 'ursula-backdrop',    set: v => { _ursulaBackdropPending = v; } },
+  heeren:  { preview: 'heeren-backdrop-preview',  suggested: 'heeren-backdrop',    set: v => { _heerenBackdropPending = v; } },
+  tempel:  { preview: 'tempel-backdrop-preview',  suggested: 'tempel-backdrop',    set: v => { _tempelBackdropPending = v; } },
+};
+
+function _updateBackdropPreview(previewId, fileId) {
+  const el = document.getElementById(previewId);
+  if (!el) return;
+  if (el.tagName === 'IMG') { el.src = api.fileUrl(fileId); el.style.display = ''; return; }
+  // Placeholder-<span> vervangen door een echte <img>
+  const img = document.createElement('img');
+  img.id = previewId;
+  img.src = api.fileUrl(fileId);
+  img.style.cssText = 'width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)';
+  el.replaceWith(img);
+}
+
+window._pickServiceBackdrop = (svc) => {
+  const cfg = _SVC_BACKDROP[svc];
+  if (!cfg) return;
+  window.mediaPicker.open({
+    type: 'afbeelding',
+    suggestedName: cfg.suggested,
+    onSelect: (fileId) => { cfg.set(fileId); _updateBackdropPreview(cfg.preview, fileId); },
+  });
+};
+
 async function _renderHerbergSettings() {
   const el = _tabEl('herberg');
   if (!el) return;
@@ -3761,10 +3798,7 @@ async function _renderHerbergSettings() {
         <label class="dm-form-label">Achtergrondafbeelding</label>
         ${config.backdropId ? `<img id="hb-backdrop-preview" src="${api.fileUrl(config.backdropId)}"
           style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : ''}
-        <label class="dm-btn dm-btn-ghost" title="Achtergrondafbeelding kiezen" style="cursor:pointer;align-self:flex-start">
-          📷
-          <input type="file" accept="image/*" class="hidden" onchange="window._hbUploadBackdrop(this.files[0])">
-        </label>
+        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('hb')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
       </div>
 
       <div class="dm-form-row" style="flex-direction:column;gap:4px">
@@ -3929,28 +3963,6 @@ window._hbSelectWaard = (entityId) => {
   }
 };
 
-window._hbUploadBackdrop = async (file) => {
-  if (!file) return;
-  const id = 'herberg-backdrop-' + Date.now();
-  try {
-    await api.uploadFile(id, file);
-    _hbPendingBackdropId = id;
-    // Show/update preview
-    const existing = document.getElementById('hb-backdrop-preview');
-    if (existing) {
-      existing.src = api.fileUrl(id);
-    } else {
-      const label = document.querySelector('[onchange*="_hbUploadBackdrop"]')?.closest('.dm-form-row');
-      if (label) {
-        const img = document.createElement('img');
-        img.id = 'hb-backdrop-preview';
-        img.src = api.fileUrl(id);
-        img.style.cssText = 'width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)';
-        label.prepend(img);
-      }
-    }
-  } catch (err) { alert('Upload mislukt: ' + err.message); }
-};
 
 window._hbSave = async () => {
   const config = window.app?.state?.meta?.herberg || {};
@@ -4070,10 +4082,7 @@ async function _renderTweespaltDM() {
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Achtergrondafbeelding</label>
         ${tsConfig.backdropId ? `<img id="ts-backdrop-preview" src="${api.fileUrl(tsConfig.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="ts-backdrop-preview" style="display:none"></span>'}
-        <label class="dm-btn dm-btn-ghost" title="Achtergrondafbeelding kiezen" style="cursor:pointer;align-self:flex-start">
-          📷
-          <input type="file" accept="image/*" class="hidden" onchange="window._tsUploadBackdrop(this.files[0])">
-        </label>
+        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('ts')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
         <div class="dm-form-row">
           <label class="dm-form-label">Of kies uit entiteiten</label>
           <select id="ts-backdrop-select" class="dm-select">
@@ -4238,19 +4247,6 @@ window._tsDmVerwijder = async (eventId) => {
   } catch (err) { alert('Fout: ' + err.message); }
 };
 
-window._tsUploadBackdrop = async (file) => {
-  if (!file) return;
-  const id = 'ts-backdrop-' + Date.now();
-  try {
-    await api.uploadFile(id, file);
-    window._tsBackdropPending = id;
-    const prev = document.getElementById('ts-backdrop-preview');
-    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
-    const sel = document.getElementById('ts-backdrop-select');
-    if (sel) sel.value = '';
-  } catch (err) { alert('Upload mislukt: ' + err.message); }
-};
-
 window._tsSettingsSave = async () => {
   const naam      = document.getElementById('ts-naam-config')?.value.trim() || 'De Tweespalt';
   const imageId   = document.getElementById('ts-portret-select')?.value || null;
@@ -4308,10 +4304,7 @@ async function _renderGockSettings() {
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Achtergrondafbeelding</label>
         ${config.backdropId ? `<img id="gock-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="gock-backdrop-preview" style="display:none"></span>'}
-        <label class="dm-btn dm-btn-ghost" title="Achtergrondafbeelding uploaden" style="cursor:pointer;align-self:flex-start">
-          📷
-          <input type="file" accept="image/*" class="hidden" onchange="window._gockUploadBackdrop(this.files[0])">
-        </label>
+        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('gock')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
         <div class="dm-form-row">
           <label class="dm-form-label">Of kies uit entiteiten</label>
           <select id="gock-backdrop-select" class="dm-select">
@@ -4332,19 +4325,6 @@ async function _renderGockSettings() {
     </div>
 
     `;
-};
-
-window._gockUploadBackdrop = async (file) => {
-  if (!file) return;
-  const id = 'gock-backdrop-' + Date.now();
-  try {
-    await api.uploadFile(id, file);
-    window._gockBackdropPending = id;
-    const prev = document.getElementById('gock-backdrop-preview');
-    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
-    const sel = document.getElementById('gock-backdrop-select');
-    if (sel) sel.value = '';
-  } catch (err) { alert('Upload mislukt: ' + err.message); }
 };
 
 window._gockSettingsSave = async () => {
@@ -4425,10 +4405,7 @@ async function _renderMagizooSettings() {
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Achtergrondafbeelding</label>
         ${config.backdropId ? `<img id="magizoo-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="magizoo-backdrop-preview" style="display:none"></span>'}
-        <label class="dm-btn dm-btn-ghost" title="Achtergrondafbeelding uploaden" style="cursor:pointer;align-self:flex-start">
-          ${icon('image')}
-          <input type="file" accept="image/*" class="hidden" onchange="window._magizooUploadBackdrop(this.files[0])">
-        </label>
+        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('magizoo')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
         <div class="dm-form-row">
           <label class="dm-form-label">Of kies uit entiteiten</label>
           <select id="magizoo-backdrop-select" class="dm-select">
@@ -4443,19 +4420,6 @@ async function _renderMagizooSettings() {
         <button class="dm-btn dm-btn-primary" onclick="window._magizooSettingsSave()" title="Opslaan">${icon('save')}</button>
       </div>
     </div>`;
-};
-
-window._magizooUploadBackdrop = async (file) => {
-  if (!file) return;
-  const id = 'magizoo-backdrop-' + Date.now();
-  try {
-    await api.uploadFile(id, file);
-    window._magizooBackdropPending = id;
-    const prev = document.getElementById('magizoo-backdrop-preview');
-    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
-    const sel = document.getElementById('magizoo-backdrop-select');
-    if (sel) sel.value = '';
-  } catch (err) { alert('Upload mislukt: ' + err.message); }
 };
 
 window._magizooSettingsSave = async () => {
@@ -4535,8 +4499,7 @@ async function _renderUrsulaSettings() {
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Achtergrondafbeelding</label>
         ${config.backdropId ? `<img id="ursula-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="ursula-backdrop-preview" style="display:none"></span>'}
-        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">📷
-          <input type="file" accept="image/*" class="hidden" onchange="window._ursulaUploadBackdrop(this.files[0])"></label>
+        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('ursula')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
         <div class="dm-form-row"><label class="dm-form-label">Of kies uit entiteiten</label>
           <select id="ursula-backdrop-select" class="dm-select">
             <option value="">— Entiteit als backdrop —</option>
@@ -4569,18 +4532,6 @@ async function _renderUrsulaSettings() {
 };
 
 window._ursulaSelectAkte = (key) => { _ursulaSelectedAkte = key; _renderUrsulaSettings(); };
-
-window._ursulaUploadBackdrop = async (file) => {
-  if (!file) return;
-  const id = 'ursula-backdrop-' + Date.now();
-  try {
-    await api.uploadFile(id, file);
-    _ursulaBackdropPending = id;
-    const prev = document.getElementById('ursula-backdrop-preview');
-    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
-    const sel2 = document.getElementById('ursula-backdrop-select'); if (sel2) sel2.value = '';
-  } catch (err) { alert('Upload mislukt: ' + err.message); }
-};
 
 window._ursulaSettingsSave = async () => {
   const config = window.app?.state?.meta?.ursula || {};
@@ -4669,7 +4620,7 @@ async function _renderHeerenSettings() {
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Achtergrond</label>
         ${config.backdropId ? `<img id="heeren-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:90px;object-fit:cover;border-radius:6px">` : '<span id="heeren-backdrop-preview" style="display:none"></span>'}
-        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">📷<input type="file" accept="image/*" class="hidden" onchange="window._heerenUploadBackdrop(this.files[0])"></label>
+        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('heeren')" title="Achtergrond kiezen of uploaden">${icon('image')}</button>
       </div>
       <div class="dm-form-row"><label class="dm-form-label">Gerechtshof (de Luimpoort)</label>
         <select id="heeren-luimpoort" class="dm-select"><option value="">— locatie —</option>
@@ -4746,13 +4697,6 @@ function _renderHeerenRangen() {
 window._heerenRangEdit = (i, f, v) => { const r = _heerenRangenDraft[i]; if (!r) return; r[f] = (f === 'naam' || f === 'voordelen') ? v : (parseInt(v) || 0); };
 window._heerenRangToevoegen = () => { _heerenRangenDraft.push({ naam: '', min: 0, max: 0 }); _renderHeerenRangen(); };
 window._heerenRangVerwijder = (i) => { _heerenRangenDraft.splice(i, 1); _renderHeerenRangen(); };
-
-window._heerenUploadBackdrop = async (file) => {
-  if (!file) return;
-  const id = 'heeren-backdrop-' + Date.now();
-  try { await api.uploadFile(id, file); _heerenBackdropPending = id; const p = document.getElementById('heeren-backdrop-preview'); if (p) { p.src = api.fileUrl(id); p.style.display = ''; } }
-  catch (e) { alert('Upload mislukt: ' + e.message); }
-};
 
 window._heerenSettingsSave = async () => {
   const config = window.app?.state?.meta?.heeren || {};
@@ -4834,10 +4778,7 @@ async function _renderTempelSettings() {
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Achtergrondafbeelding</label>
         ${config.backdropId ? `<img id="tempel-backdrop-preview" src="${api.fileUrl(config.backdropId)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : '<span id="tempel-backdrop-preview" style="display:none"></span>'}
-        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">
-          ${icon('image')}
-          <input type="file" accept="image/*" class="hidden" onchange="window._tempelUploadBackdrop(this.files[0])">
-        </label>
+        <button type="button" class="dm-btn dm-btn-ghost" style="align-self:flex-start" onclick="window._pickServiceBackdrop('tempel')" title="Achtergrondafbeelding kiezen of uploaden">${icon('image')}</button>
         <div class="dm-form-row">
           <label class="dm-form-label">Of kies uit entiteiten</label>
           <select id="tempel-backdrop-select" class="dm-select">
@@ -4970,19 +4911,6 @@ window._tempelGodToevoegen = () => {
 window._tempelGodVerwijderen = (i) => {
   _tempelGodenDraft.splice(i, 1);
   _renderTempelGodenRows();
-};
-
-window._tempelUploadBackdrop = async (file) => {
-  if (!file) return;
-  const id = 'tempel-backdrop-' + Date.now();
-  try {
-    await api.uploadFile(id, file);
-    _tempelBackdropPending = id;
-    const prev = document.getElementById('tempel-backdrop-preview');
-    if (prev) { prev.src = api.fileUrl(id); prev.style.display = ''; }
-    const sel = document.getElementById('tempel-backdrop-select');
-    if (sel) sel.value = '';
-  } catch (err) { alert('Upload mislukt: ' + err.message); }
 };
 
 window._tempelSettingsSave = async () => {
