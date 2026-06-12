@@ -5387,14 +5387,6 @@ async function _sndPatch(body) {
   window.soundManager?.reloadSounds();
 };
 
-async function _sndUploadFile(file) {
-  const id = `snd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-  const fd = new FormData();
-  fd.append('file', file);
-  await fetch(`/api/files/${id}`, { method: 'POST', body: fd });
-  return id;
-};
-
 async function _sndGetData() {
   const r = await fetch('/api/sounds');
   return r.ok ? r.json() : { standard: { damage: null, healing: null, win: null, loss: null }, emotes: {} };
@@ -5462,11 +5454,7 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemoveStd('${key}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
-            ↑ Upload
-            <input type="file" accept="audio/*" style="display:none"
-              onchange="window._sndUploadStd('${key}', this)">
-          </label>
+          <button type="button" class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Geluid kiezen of uploaden" onclick="window._sndPickStd('${key}')">${icon('volume-2')}</button>
         </div>
       </div>`;
   }).join('');
@@ -5485,11 +5473,7 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemovePlayerTurn('${esc(p.id)}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
-            ↑ Upload
-            <input type="file" accept="audio/*" style="display:none"
-              onchange="window._sndUploadPlayerTurn('${esc(p.id)}', this)">
-          </label>
+          <button type="button" class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Geluid kiezen of uploaden" onclick="window._sndPickPlayerTurn('${esc(p.id)}')">${icon('volume-2')}</button>
         </div>
       </div>`;
 
@@ -5515,11 +5499,7 @@ async function _renderGeluiden() {
                  <span class="dm-sound-set">✓</span>
                  <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndClearFile('${esc(p.id)}','${esc(item.id)}')">${icon('x')}</button>`
               : `<span class="dm-sound-empty">Geen audio</span>`}
-            <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
-              ↑
-              <input type="file" accept="audio/*" style="display:none"
-                onchange="window._sndUploadEmote('${esc(p.id)}','${esc(item.id)}',this)">
-            </label>
+            <button type="button" class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Geluid kiezen of uploaden" onclick="window._sndPickEmote('${esc(p.id)}','${esc(item.id)}')">${icon('volume-2')}</button>
             <button class="dm-btn dm-btn-sm dm-btn-danger" onclick="window._sndDeleteEmote('${esc(p.id)}','${esc(item.id)}')" title="Emote verwijderen">${icon('trash')}</button>
           </div>
         </div>`;
@@ -5571,10 +5551,7 @@ async function _renderGeluiden() {
           onchange="window._ambSetVolume(this.value)">
       </div>
       <div class="dm-amb-scenes">${ambScenes || '<p class="dm-hint" style="opacity:.6">Nog geen scènes — voeg er één toe.</p>'}</div>
-      <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Audio uploaden">
-        ${icon('plus')} Scène toevoegen
-        <input type="file" accept="audio/*" style="display:none" onchange="window._ambAddScene(this)">
-      </label>
+      <button type="button" class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Geluid kiezen of uploaden" onclick="window._ambPickScene()">${icon('plus')} Scène toevoegen</button>
     </div>`;
 
   // ── Diensten-sfeerloops (feature #2, lokaal per dienst) ──
@@ -5595,10 +5572,7 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._svcAmbRemove('${d.key}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen loop</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
-            ↑ Upload
-            <input type="file" accept="audio/*" style="display:none" onchange="window._svcAmbUpload('${d.key}', this)">
-          </label>
+          <button type="button" class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Geluid kiezen of uploaden" onclick="window._svcAmbPick('${d.key}')">${icon('volume-2')}</button>
         </div>
       </div>`;
   }).join('');
@@ -5652,15 +5626,14 @@ async function _renderGeluiden() {
 
   // ── Geluidsdecors (ambiance, feature #2) — scènebeheer ──
   // (_ambBroadcast / _ambPlay / _ambStop staan op module-scope, zie boven.)
-  window._ambAddScene = async (input) => {
-    const file = input.files[0]; if (!file) return;
-    const fileId = await _sndUploadFile(file);
-    const sd  = await _sndGetData();
-    const amb = sd.ambiance || { scenes: [], volume: 0.5 };
-    const scene = { id: `amb_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
-      label: file.name.replace(/\.[^.]+$/, ''), fileId };
-    await _sndPatch({ ambiance: { scenes: [...(amb.scenes || []), scene], volume: amb.volume ?? 0.5 } });
-    _renderGeluiden();
+  window._ambPickScene = () => {
+    window.mediaPicker.open({ type: 'audio', suggestedName: 'ambiance', onSelect: async (fileId) => {
+      const sd  = await _sndGetData();
+      const amb = sd.ambiance || { scenes: [], volume: 0.5 };
+      const scene = { id: `amb_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, label: 'Nieuwe scène', fileId };
+      await _sndPatch({ ambiance: { scenes: [...(amb.scenes || []), scene], volume: amb.volume ?? 0.5 } });
+      _renderGeluiden();
+    }});
   };
   window._ambSetLabel = async (id, value) => {
     const sd = await _sndGetData();
@@ -5682,22 +5655,22 @@ async function _renderGeluiden() {
   };
 
   // ── Diensten-sfeerloops (feature #2) ──
-  window._svcAmbUpload = async (key, input) => {
-    const file = input.files[0]; if (!file) return;
-    const fileId = await _sndUploadFile(file);
-    await _sndPatch({ serviceAmbiance: { [key]: fileId } });
-    _renderGeluiden();
+  window._svcAmbPick = (key) => {
+    window.mediaPicker.open({ type: 'audio', suggestedName: `${key}-ambiance`, onSelect: async (fileId) => {
+      await _sndPatch({ serviceAmbiance: { [key]: fileId } });
+      _renderGeluiden();
+    }});
   };
   window._svcAmbRemove = async (key) => {
     await _sndPatch({ serviceAmbiance: { [key]: null } });
     _renderGeluiden();
   };
 
-  window._sndUploadStd = async (key, input) => {
-    const file = input.files[0]; if (!file) return;
-    const fileId = await _sndUploadFile(file);
-    await _sndPatch({ standard: { [key]: fileId } });
-    _renderGeluiden();
+  window._sndPickStd = (key) => {
+    window.mediaPicker.open({ type: 'audio', suggestedName: key, onSelect: async (fileId) => {
+      await _sndPatch({ standard: { [key]: fileId } });
+      _renderGeluiden();
+    }});
   };
 
   window._sndRemoveStd = async (key) => {
@@ -5705,12 +5678,12 @@ async function _renderGeluiden() {
     _renderGeluiden();
   };
 
-  window._sndUploadPlayerTurn = async (pid, input) => {
+  window._sndPickPlayerTurn = (pid) => {
     _sndOpenPid = pid;
-    const file = input.files[0]; if (!file) return;
-    const fileId = await _sndUploadFile(file);
-    await _sndPatch({ playerTurn: { [pid]: fileId } });
-    _renderGeluiden();
+    window.mediaPicker.open({ type: 'audio', suggestedName: 'beurtgeluid', onSelect: async (fileId) => {
+      await _sndPatch({ playerTurn: { [pid]: fileId } });
+      _renderGeluiden();
+    }});
   };
 
   window._sndRemovePlayerTurn = async (pid) => {
@@ -5770,17 +5743,17 @@ async function _renderGeluiden() {
     }}});
   };
 
-  window._sndUploadEmote = async (pid, eid, input) => {
+  window._sndPickEmote = (pid, eid) => {
     _sndOpenPid = pid;
-    const file = input.files[0]; if (!file) return;
-    const fileId = await _sndUploadFile(file);
-    const sd = await _sndGetData();
-    const { library, selected } = _sndPlayerData(sd, pid);
-    await _sndPatch({ emotes: { [pid]: {
-      library:  library.map(e => e.id === eid ? { ...e, fileId } : e),
-      selected,
-    }}});
-    _renderGeluiden();
+    window.mediaPicker.open({ type: 'audio', suggestedName: 'emote', onSelect: async (fileId) => {
+      const sd = await _sndGetData();
+      const { library, selected } = _sndPlayerData(sd, pid);
+      await _sndPatch({ emotes: { [pid]: {
+        library:  library.map(e => e.id === eid ? { ...e, fileId } : e),
+        selected,
+      }}});
+      _renderGeluiden();
+    }});
   };
 
   window._sndClearFile = async (pid, eid) => {
@@ -6991,6 +6964,8 @@ function _paintMedia() {
           <button class="dm-btn dm-btn-sm${_mediaType==='alle'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('alle')">Alle</button>
           <button class="dm-btn dm-btn-sm${_mediaType==='afbeelding'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('afbeelding')" title="Afbeeldingen">${icon('image')}</button>
           <button class="dm-btn dm-btn-sm${_mediaType==='audio'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('audio')" title="Audio">${icon('volume-2')}</button>
+          <button class="dm-btn dm-btn-sm${_mediaType==='video'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('video')" title="Video">${icon('play')}</button>
+          <button class="dm-btn dm-btn-sm${_mediaType==='pdf'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('pdf')" title="PDF's">${icon('scroll-text')}</button>
         </div>
         <button class="dm-btn dm-btn-sm${_mediaWezen?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaToggleWezen()" title="Alleen ongebruikte bestanden">${icon('eye-off')} Wezen</button>
         <select class="dm-select dm-input-sm media-sort" onchange="window.dmPanel.mediaSetSort(this.value)">
@@ -7013,21 +6988,34 @@ function _paintMedia() {
 function _mediaCard(f) {
   const gebruik   = f.gebruik || [];
   const isWees    = gebruik.length === 0;
-  const isAudio   = f.type === 'audio';
   const sel       = _mediaSel.has(f.id);
   const afm       = (f.breedte && f.hoogte) ? `${f.breedte}×${f.hoogte}` : '';
   const meta      = [afm, _mediaFmtGrootte(f.grootte), _mediaFmtDatum(f.geupload)].filter(Boolean).join(' · ');
   const gebruikTitel = gebruik.join('\n');
 
-  const preview = isAudio
-    ? `<div class="media-card-audio">
+  let preview;
+  if (f.type === 'audio') {
+    preview = `<div class="media-card-audio">
          ${icon('volume-2', { cls: 'icon-lg' })}
          <button class="dm-btn dm-btn-icon dm-btn-sm media-play" onclick="window.dmPanel.mediaPlay('${escJS(f.id)}')" title="Afspelen">${icon('play')}</button>
-       </div>`
-    : `<div class="media-card-img" onclick="window.app.openLightbox('${escJS(api.fileUrl(f.id))}','${escJS(f.naam)}')">
+       </div>`;
+  } else if (f.type === 'video') {
+    preview = `<div class="media-card-video">
+         <video src="${api.fileUrl(f.id)}" preload="metadata" muted playsinline
+           onmouseover="this.play().catch(()=>{})" onmouseout="this.pause()"></video>
+         <div class="media-card-video-badge">${icon('play')}</div>
+       </div>`;
+  } else if (f.type === 'pdf') {
+    preview = `<div class="media-card-doc" onclick="window.open('${escJS(api.fileUrl(f.id))}','_blank')" title="PDF openen">
+         ${icon('scroll-text', { cls: 'icon-lg' })}
+         <span class="media-card-doc-ext">PDF</span>
+       </div>`;
+  } else {
+    preview = `<div class="media-card-img" onclick="window.app.openLightbox('${escJS(api.fileUrl(f.id))}','${escJS(f.naam)}')">
          <img src="${api.thumbUrl(f.id)}" loading="lazy" alt="${esc(f.naam)}"
               onerror="this.closest('.media-card-img').classList.add('media-card-img--broken')">
        </div>`;
+  }
 
   return `
     <div class="media-card${isWees ? ' media-card--wees' : ''}${sel ? ' media-card--sel' : ''}" data-id="${esc(f.id)}">
