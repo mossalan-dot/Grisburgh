@@ -158,6 +158,9 @@ export function initDmPanel() {
     mediaDelete:        _mediaDelete,
     mediaDeleteSelected: _mediaDeleteSelected,
     mediaPlay:          _mediaPlay,
+    mediaCleanupNames:   _mediaCleanupNames,
+    mediaRenameToggleAll: _mediaRenameToggleAll,
+    mediaRenameApply:    _mediaRenameApply,
 
     // Tunnel
     tunnelToggle:  _tunnelToggle,
@@ -7256,7 +7259,8 @@ function _paintMedia() {
   const sub = `${_mediaFiles.length} bestand${_mediaFiles.length === 1 ? '' : 'en'} · ${wezenCnt} ongebruikt`;
 
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'image', title: 'Mediabibliotheek', sub, actions: helpBtn('dm_media') })}
+    ${_dmTabHead({ icon: 'image', title: 'Mediabibliotheek', sub, actions:
+      `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.mediaCleanupNames()" title="Stel nette namen voor bij bestanden die maar één keer gebruikt worden">${icon('pencil')} Namen opschonen</button>${helpBtn('dm_media')}` })}
     <div class="dm-feature-section">
       <div class="media-toolbar">
         <div class="media-search">
@@ -7401,6 +7405,84 @@ async function _mediaDeleteSelected() {
     catch { /* in gebruik geraakt sinds laatste scan — sla over */ }
   }
   _paintMedia();
+}
+
+// ── Namen opschonen ─────────────────────────────────────────────────────────
+// Voor bestanden die precies één keer gebruikt worden, stelt het gebruikslabel
+// (bv. "Dungeon: Oostermagazijn") een nette naam voor: "Oostermagazijn - dungeon".
+// Hernoemen is veilig (ID≠naam); meervoudig-gebruikte en wees-bestanden blijven
+// met rust.
+function _mediaProposeName(f) {
+  if ((f.gebruik || []).length !== 1) return null;
+  const m = String(f.gebruik[0]).match(/^([^:]+):\s*(.+)$/);
+  if (!m) return null;
+  const type = m[1].trim().toLowerCase();
+  const rest = m[2].trim();
+  // Suffix-vorm "Naam · startscherm-video" → "Naam - startscherm-video"
+  const suf = rest.match(/^(.*?)\s*·\s*(.+)$/);
+  const naam = suf ? `${suf[1].trim()} - ${suf[2].trim()}` : `${rest} - ${type}`;
+  return naam.slice(0, 200);
+}
+
+function _mediaCleanupNames() {
+  const voorstellen = _mediaFiles
+    .map(f => ({ f, naam: _mediaProposeName(f) }))
+    .filter(x => x.naam && x.naam !== x.f.naam);
+
+  if (!voorstellen.length) {
+    alert('Geen voorstellen: alle één-keer-gebruikte bestanden hebben al een passende naam.');
+    return;
+  }
+
+  const rows = voorstellen.map(({ f, naam }) => `
+    <label class="media-rename-row">
+      <input type="checkbox" class="media-rename-check" data-id="${esc(f.id)}" data-naam="${esc(naam)}" checked>
+      <span class="media-rename-old" title="${esc(f.naam)}">${esc(f.naam)}</span>
+      ${icon('chevron-right', { cls: 'media-rename-arrow' })}
+      <span class="media-rename-new">${esc(naam)}</span>
+      <span class="media-rename-use">${esc(f.gebruik[0])}</span>
+    </label>`).join('');
+
+  window.app.openModal(
+    `${icon('pencil')} Namen opschonen`,
+    `${voorstellen.length} bestand${voorstellen.length === 1 ? '' : 'en'} met één gebruiker — controleer en pas toe`,
+    `<div class="media-rename-modal">
+       <div class="media-rename-toolbar">
+         <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.mediaRenameToggleAll(true)">Alles aan</button>
+         <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.mediaRenameToggleAll(false)">Alles uit</button>
+       </div>
+       <div class="media-rename-list">${rows}</div>
+       <div id="media-rename-status" class="dm-hint" style="min-height:18px"></div>
+       <div class="media-rename-actions">
+         <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.mediaRenameApply()">${icon('save')} Pas geselecteerde namen toe</button>
+         <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
+       </div>
+     </div>`
+  );
+}
+
+function _mediaRenameToggleAll(on) {
+  document.querySelectorAll('.media-rename-check').forEach(c => { c.checked = on; });
+}
+
+async function _mediaRenameApply() {
+  const checks = [...document.querySelectorAll('.media-rename-check:checked')];
+  if (!checks.length) { window.app.closeModal(); return; }
+  const status = document.getElementById('media-rename-status');
+  let done = 0, fail = 0;
+  for (const c of checks) {
+    const id = c.dataset.id, naam = c.dataset.naam;
+    try {
+      await api.renameMedia(id, naam);
+      const f = _mediaFiles.find(x => x.id === id);
+      if (f) f.naam = naam;
+      done++;
+    } catch { fail++; }
+    if (status) status.textContent = `Bezig… ${done + fail}/${checks.length}`;
+  }
+  window.app.closeModal();
+  _paintMedia();
+  _showToast(`${done} naam${done === 1 ? '' : 'en'} opgeschoond${fail ? ` (${fail} mislukt)` : ''}.`);
 }
 
 let _sjabloonMode     = false;
