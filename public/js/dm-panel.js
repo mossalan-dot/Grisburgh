@@ -5573,11 +5573,7 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemovePlayerTurn('${esc(p.id)}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
-          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
-            ↑ Upload
-            <input type="file" accept="audio/*" style="display:none"
-              onchange="window._sndUploadPlayerTurn('${esc(p.id)}', this)">
-          </label>
+          <button type="button" class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Geluid kiezen of uploaden" onclick="window._sndPickPlayerTurn('${esc(p.id)}')">${icon('volume-2')}</button>
         </div>
       </div>`;
 
@@ -5593,11 +5589,7 @@ async function _renderGeluiden() {
                  <span class="dm-sound-set">✓</span>
                  <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndClearFile('${esc(p.id)}','${esc(item.id)}')">${icon('x')}</button>`
               : `<span class="dm-sound-empty">Geen audio</span>`}
-            <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
-              ↑
-              <input type="file" accept="audio/*" style="display:none"
-                onchange="window._sndUploadEmote('${esc(p.id)}','${esc(item.id)}',this)">
-            </label>
+            <button type="button" class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Geluid kiezen of uploaden" onclick="window._sndPickEmote('${esc(p.id)}','${esc(item.id)}')">${icon('volume-2')}</button>
             <button class="dm-btn dm-btn-sm dm-btn-danger" onclick="window._sndDeleteEmote('${esc(p.id)}','${esc(item.id)}')" title="Emote verwijderen">${icon('trash')}</button>
           </div>
         </div>`;
@@ -5793,7 +5785,7 @@ async function _renderGeluiden() {
     _renderGeluiden();
   };
 
-  window._sndUploadPlayerTurn = async (pid, input) => {
+  window._sndPickPlayerTurn = (pid) => {
     _sndOpenPid = pid;
     const file = input.files[0]; if (!file) return;
     const fileId = await _sndUploadFile(file); if (!fileId) return;
@@ -5836,7 +5828,7 @@ async function _renderGeluiden() {
     await _sndWriteEmotes(pid, library.map(e => e.id === eid ? { ...e, label } : e));
   };
 
-  window._sndUploadEmote = async (pid, eid, input) => {
+  window._sndPickEmote = (pid, eid) => {
     _sndOpenPid = pid;
     const file = input.files[0]; if (!file) return;
     const fileId = await _sndUploadFile(file); if (!fileId) return;
@@ -7276,6 +7268,8 @@ function _paintMedia() {
           <button class="dm-btn dm-btn-sm${_mediaType==='alle'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('alle')">Alle</button>
           <button class="dm-btn dm-btn-sm${_mediaType==='afbeelding'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('afbeelding')" title="Afbeeldingen">${icon('image')}</button>
           <button class="dm-btn dm-btn-sm${_mediaType==='audio'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('audio')" title="Audio">${icon('volume-2')}</button>
+          <button class="dm-btn dm-btn-sm${_mediaType==='video'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('video')" title="Video">${icon('play')}</button>
+          <button class="dm-btn dm-btn-sm${_mediaType==='pdf'?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaSetType('pdf')" title="PDF's">${icon('scroll-text')}</button>
         </div>
         <button class="dm-btn dm-btn-sm${_mediaWezen?' dm-btn-primary':' dm-btn-ghost'}" onclick="window.dmPanel.mediaToggleWezen()" title="Alleen ongebruikte bestanden">${icon('eye-off')} Wezen</button>
         <select class="dm-select dm-input-sm media-sort" onchange="window.dmPanel.mediaSetSort(this.value)">
@@ -7298,21 +7292,34 @@ function _paintMedia() {
 function _mediaCard(f) {
   const gebruik   = f.gebruik || [];
   const isWees    = gebruik.length === 0;
-  const isAudio   = f.type === 'audio';
   const sel       = _mediaSel.has(f.id);
   const afm       = (f.breedte && f.hoogte) ? `${f.breedte}×${f.hoogte}` : '';
   const meta      = [afm, _mediaFmtGrootte(f.grootte), _mediaFmtDatum(f.geupload)].filter(Boolean).join(' · ');
   const gebruikTitel = gebruik.join('\n');
 
-  const preview = isAudio
-    ? `<div class="media-card-audio">
+  let preview;
+  if (f.type === 'audio') {
+    preview = `<div class="media-card-audio">
          ${icon('volume-2', { cls: 'icon-lg' })}
          <button class="dm-btn dm-btn-icon dm-btn-sm media-play" onclick="window.dmPanel.mediaPlay('${escJS(f.id)}')" title="Afspelen">${icon('play')}</button>
-       </div>`
-    : `<div class="media-card-img" onclick="window.app.openLightbox('${escJS(api.fileUrl(f.id))}','${escJS(f.naam)}')">
+       </div>`;
+  } else if (f.type === 'video') {
+    preview = `<div class="media-card-video">
+         <video src="${api.fileUrl(f.id)}" preload="metadata" muted playsinline
+           onmouseover="this.play().catch(()=>{})" onmouseout="this.pause()"></video>
+         <div class="media-card-video-badge">${icon('play')}</div>
+       </div>`;
+  } else if (f.type === 'pdf') {
+    preview = `<div class="media-card-doc" onclick="window.open('${escJS(api.fileUrl(f.id))}','_blank')" title="PDF openen">
+         ${icon('scroll-text', { cls: 'icon-lg' })}
+         <span class="media-card-doc-ext">PDF</span>
+       </div>`;
+  } else {
+    preview = `<div class="media-card-img" onclick="window.app.openLightbox('${escJS(api.fileUrl(f.id))}','${escJS(f.naam)}')">
          <img src="${api.thumbUrl(f.id)}" loading="lazy" alt="${esc(f.naam)}"
               onerror="this.closest('.media-card-img').classList.add('media-card-img--broken')">
        </div>`;
+  }
 
   return `
     <div class="media-card${isWees ? ' media-card--wees' : ''}${sel ? ' media-card--sel' : ''}" data-id="${esc(f.id)}">

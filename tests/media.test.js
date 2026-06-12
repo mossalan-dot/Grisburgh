@@ -131,4 +131,26 @@ describe('Mediabibliotheek', () => {
     const r = await jsonReq(server, 'GET', '/api/media', null, null);
     assert.strictEqual(r.status, 403);
   });
+
+  // Minimale geldige MP4 (ftyp-box op offset 4) — voldoende voor de magic-byte-sniff.
+  const MP4_MIN = Buffer.concat([Buffer.from([0,0,0,0x18]), Buffer.from('ftypmp42'), Buffer.alloc(16)]);
+
+  it('beschermt de speler-portretvideo ({id}_video) tegen wees-verwijdering', async () => {
+    // Maak een personage en upload de portretvideo op de vaste-naam-conventie.
+    const ent = await jsonReq(server, 'POST', '/api/entities/personages', { name: 'Held', subtype: 'speler' }, dmCookie);
+    const charId = ent.body.id;
+    const up = await uploadReq(server, `/api/files/${charId}_video`, dmCookie, {
+      filename: 'intro.mp4', contentType: 'video/mp4', content: MP4_MIN,
+    });
+    assert.strictEqual(up.status, 200);
+    // De usage-scan moet de video als 'in gebruik' zien, ondanks dat geen dataveld ernaar verwijst.
+    const list = await jsonReq(server, 'GET', '/api/media', null, dmCookie);
+    const vid = list.body.files.find(f => f.id === `${charId}_video`);
+    assert.ok(vid, 'video staat in de bibliotheek');
+    assert.strictEqual(vid.type, 'video');
+    assert.ok(vid.gebruik.some(l => /Held/.test(l) && /startscherm-video/.test(l)), 'gelabeld als startscherm-video');
+    // Verwijderen zonder force moet 409 geven (in gebruik).
+    const del = await jsonReq(server, 'DELETE', `/api/media/${charId}_video`, null, dmCookie);
+    assert.strictEqual(del.status, 409);
+  });
 });
