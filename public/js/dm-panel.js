@@ -191,7 +191,7 @@ export function initDmPanel() {
     srdImport:           _srdImport,
     monsterFilterChapter: _monsterFilterChapter,
     monsterPage:          _monsterPage_set,
-    monsterUpload:      _monsterUpload,
+    monsterPickImage:   _monsterPickImage,
     monsterRemoveImage: _monsterRemoveImage,
     monsterAddToCombat: _monsterAddToCombat,
     monsterStatblock:   _showStatblock,
@@ -208,7 +208,7 @@ export function initDmPanel() {
     encRemoveRow:       _encRemoveRow,
     encRowMonsterChange: _encRowMonsterChange,
     encRowChange:       _encRowChange,
-    encBackdropUpload:  _encBackdropUpload,
+    encPickBackdrop:    _encPickBackdrop,
     encBackdropClear:   _encBackdropClear,
     encSetPreset: (id) => {
       _encCanvasPreset = (_encCanvasPreset === id) ? null : id; // toggle
@@ -2354,7 +2354,7 @@ function _monsterRow(m) {
     <div class="dm-monster-row">
       ${m.imageId
         ? `<img class="dm-monster-thumb" src="${api.fileUrl(m.imageId)}" alt="">`
-        : `<div class="dm-monster-thumb dm-monster-thumb-empty">👾</div>`}
+        : `<div class="dm-monster-thumb dm-monster-thumb-empty">${icon('skull')}</div>`}
       <div class="dm-monster-info">
         <span class="dm-monster-name">${esc(m.name)}</span>
         <span class="dm-monster-meta">HP ${m.maxHp} · Init ${m.initiative}</span>
@@ -2533,17 +2533,7 @@ function _renderMonsterEditor(el) {
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Portret</label>
-        <div class="dm-upload-row">
-          ${m.imageId
-            ? `<img class="dm-mon-preview" src="${api.fileUrl(m.imageId)}" alt="">`
-            : `<div class="dm-mon-preview dm-mon-preview-empty">👾</div>`}
-          <label class="dm-btn dm-btn-sm dm-upload-label" title="Afbeelding uploaden">
-            ⬆
-            <input type="file" accept="image/*" style="display:none"
-              onchange="window.dmPanel.monsterUpload('${m.id}', 'image', this)">
-          </label>
-          ${m.imageId ? `<button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterRemoveImage('image')" title="Verwijderen">${icon('x')}</button>` : ''}
-        </div>
+        <div class="dm-upload-row">${_monsterImgRowHtml(m.imageId)}</div>
       </div>
       ${_statblockEditorHtml(m.statblock)}
       <div class="dm-feature-row" style="margin-top:4px">
@@ -2697,34 +2687,51 @@ async function _monsterDelete(id) {
   if (!m) return;
   if (!confirm(`Delete "${m.name}"?`)) return;
   try {
+    // De server ruimt imageId/backdropId guarded op (alleen als nergens meer
+    // gebruikt) — geen losse, ongeguarde client-delete meer.
     await api.deleteMonster(id);
-    if (m.imageId)    api.deleteFile(m.imageId).catch(() => {});
-    if (m.backdropId) api.deleteFile(m.backdropId).catch(() => {});
     _monsters = _monsters.filter(x => x.id !== id);
     _renderMonsters();
   } catch (e) { alert('Verwijderen mislukt: ' + e.message); }
 };
 
-async function _monsterUpload(monsterId, type, inputEl) {
-  const file = inputEl.files[0];
-  if (!file) return;
-  const fileId = `${monsterId}_img`;
-  try {
-    await api.uploadFile(fileId, file);
-    _editingMonsterImageId = fileId;
-    // For existing monsters, persist immediately
-    if (!_editingMonsterIsNew) {
-      const updated = await api.updateMonster(monsterId, { imageId: fileId });
-      const idx = _monsters.findIndex(m => m.id === monsterId);
+// Markup voor de portret-rij (gedeeld door editor + redraw). Kies/upload via de
+// mediabibliotheek; geen losse <input type=file> meer.
+function _monsterImgRowHtml(fileId) {
+  return `
+    ${fileId
+      ? `<img class="dm-mon-preview" src="${api.fileUrl(fileId)}" alt="">`
+      : `<div class="dm-mon-preview dm-mon-preview-empty">${icon('skull')}</div>`}
+    <button type="button" class="dm-btn dm-btn-sm" onclick="window.dmPanel.monsterPickImage()" title="Kies of upload afbeelding">${icon('image')}</button>
+    ${fileId ? `<button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterRemoveImage('image')" title="Verwijderen">${icon('x')}</button>` : ''}
+  `;
+}
+
+function _monsterPickImage() {
+  const m = _monsters.find(x => x.id === _editingMonsterId);
+  window.mediaPicker.open({
+    type: 'afbeelding',
+    suggestedName: ((m?.name || '').trim().toLowerCase().replace(/\s+/g, '-') || 'monster') + '-monster',
+    onSelect: (fileId) => _monsterSetImage(fileId),
+  });
+}
+
+async function _monsterSetImage(fileId) {
+  _editingMonsterImageId = fileId;
+  // Bestaand monster: meteen opslaan
+  if (!_editingMonsterIsNew) {
+    try {
+      const updated = await api.updateMonster(_editingMonsterId, { imageId: fileId });
+      const idx = _monsters.findIndex(m => m.id === _editingMonsterId);
       if (idx !== -1) _monsters[idx] = updated;
-    }
-    _redrawMonsterImageRow(fileId);
-  } catch (e) { alert('Upload mislukt: ' + e.message); }
-};
+    } catch (e) { alert('Opslaan mislukt: ' + e.message); }
+  }
+  _redrawMonsterImageRow(fileId);
+}
 
 async function _monsterRemoveImage() {
-  const fileId = _editingMonsterImageId;
-  if (fileId) api.deleteFile(fileId).catch(() => {});
+  // Alleen de verwijzing wissen — het bestand kan elders hergebruikt zijn en
+  // blijft in de bibliotheek staan (verwijderen kan via de Media-tab, met guard).
   _editingMonsterImageId = null;
   if (!_editingMonsterIsNew) {
     try {
@@ -2739,18 +2746,7 @@ async function _monsterRemoveImage() {
 function _redrawMonsterImageRow(fileId) {
   const row = document.querySelector('.dm-upload-row');
   if (!row) return;
-  const id = _editingMonsterId;
-  row.innerHTML = `
-    ${fileId
-      ? `<img class="dm-mon-preview" src="${api.fileUrl(fileId)}" alt="">`
-      : `<div class="dm-mon-preview dm-mon-preview-empty">👾</div>`}
-    <label class="dm-btn dm-btn-sm dm-upload-label" title="Afbeelding uploaden">
-      ⬆
-      <input type="file" accept="image/*" style="display:none"
-        onchange="window.dmPanel.monsterUpload('${id}', 'image', this)">
-    </label>
-    ${fileId ? `<button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.monsterRemoveImage('image')" title="Verwijderen">${icon('x')}</button>` : ''}
-  `;
+  row.innerHTML = _monsterImgRowHtml(fileId);
 };
 
 async function _monsterAddToCombat(id) {
@@ -2863,17 +2859,13 @@ function _renderEncounterEditor(el) {
   const name   = _encName;
   const akteId = _encAkteId;
 
-  // Backdrop row
+  // Backdrop row — kies/upload via de mediabibliotheek
   const bdHtml = `
     <div class="dm-upload-row dm-enc-bd-row">
       ${_encBackdropId
         ? `<img class="dm-mon-preview dm-mon-preview-wide" src="${api.fileUrl(_encBackdropId)}" alt="">`
         : `<div class="dm-mon-preview dm-mon-preview-wide dm-mon-preview-empty">${icon('image')}</div>`}
-      <label class="script-add-btn" title="Backdrop uploaden" style="cursor:pointer">
-        ${icon('image')}
-        <input type="file" accept="image/*" style="display:none"
-          onchange="window.dmPanel.encBackdropUpload(this)">
-      </label>
+      <button type="button" class="script-add-btn" onclick="window.dmPanel.encPickBackdrop()" title="Kies of upload backdrop">${icon('image')}</button>
       ${_encBackdropId ? `<button class="script-icon-btn script-icon-btn--del" onclick="window.dmPanel.encBackdropClear()" title="Verwijderen">${icon('x')}</button>` : ''}
     </div>`;
 
@@ -3027,7 +3019,7 @@ async function _encDelete(id) {
   if (!enc) return;
   if (!confirm(`Encounter "${enc.name}" verwijderen?`)) return;
   try {
-    if (enc.backdropId) api.deleteFile(enc.backdropId).catch(() => {});
+    // backdropId wordt server-side guarded opgeruimd (alleen als ongebruikt).
     await api.deleteEncounter(id);
     _encounters = _encounters.filter(e => e.id !== id);
     _editingEncId = null;
@@ -3100,21 +3092,19 @@ function _encRowChange(idx, field, value) {
   _encMonsterRows[idx][field] = isNaN(num) ? value : num;
 };
 
-async function _encBackdropUpload(inputEl) {
-  const file = inputEl.files[0];
-  if (!file) return;
-  // For new encounters we need a temp id; for existing we use the real id
-  const encId = _encIsNew ? ('new-' + Date.now()) : _editingEncId;
-  try {
-    const fileId = await api.uploadEncounterBackdrop(encId, file);
-    if (_encBackdropId && _encBackdropId !== fileId) api.deleteFile(_encBackdropId).catch(() => {});
-    _encBackdropId = fileId;
-    _renderEncounterEditor(document.getElementById('dm-encounters-content'));
-  } catch (e) { alert('Upload mislukt: ' + e.message); }
-};
+function _encPickBackdrop() {
+  window.mediaPicker.open({
+    type: 'afbeelding',
+    suggestedName: ((_encName || '').trim().toLowerCase().replace(/\s+/g, '-') || 'encounter') + '-backdrop',
+    onSelect: (fileId) => {
+      _encBackdropId = fileId;
+      _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+    },
+  });
+}
 
 function _encBackdropClear() {
-  if (_encBackdropId) api.deleteFile(_encBackdropId).catch(() => {});
+  // Alleen de verwijzing wissen — bestand kan elders gebruikt worden.
   _encBackdropId = null;
   _renderEncounterEditor(document.getElementById('dm-encounters-content'));
 };
