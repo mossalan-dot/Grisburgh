@@ -113,7 +113,7 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=303   app.js?v=436   sound-manager.js?v=4
+index.html  : theme.css?v=304   app.js?v=437   sound-manager.js?v=4
 app.js      : api.js?v=238      render-campagne.js?v=98   render-archief.js?v=44
               render-kaart.js?v=11  render-dungeon.js?v=24  render-relatiemap.js?v=15
               render-progressie.js?v=36  socket-client.js?v=37
@@ -154,7 +154,9 @@ dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=3
 > (3) **d100-rustgebeurtenis** bij lange rust: `_rolRustGebeurtenis()` rolt de in `meta.rust.eventTableId` gekozen
 > **weighted** tabel; een regel kan een valuta-token bevatten dat automatisch verrekend wordt — formaat
 > `1-5: tekst {+3kn}` (of `{-1fl}`, optioneel `{+2kn @party}`); standaard treft het een willekeurige speler,
-> `@party` iedereen. **Aparte tabel per locatie**: `meta.rust.veldEventTableId` (buiten) en `herbergEventTableId`
+> `@party` iedereen. **Per speler**: bij een lange rust rolt elke speler een eigen voorval (eigen tekst + eigen
+> valuta op zichzelf); de speler ziet in de overlay alleen zijn eigen regel, het tafelscherm (display) een lijst van
+> allen. Payload: `perPlayer[charId].gebeurtenis` + platte `gebeurtenissen[]` voor display/DM. **Aparte tabel per locatie**: `meta.rust.veldEventTableId` (buiten) en `herbergEventTableId`
 > (binnen); `eventTableId` is een fallback. De campagne heeft twee md-bronnen omgezet naar tabellen
 > `tbl_rust_wildernis` + `tbl_rust_herberg` (conversiescript-patroon: md-rij `| 01-02 | **Naam** | Beschrijving | \`+6 knakers\` |`
 > → `1-2: Naam — Beschrijving {+6kn}`; munt-namen florinde/knaker/centeling → fl/kn/cl). (4) **Tabletmodus**: op het gedeelde scherm (`_isDisplayMode`, geen `characterId`) toont de overlay

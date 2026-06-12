@@ -1980,8 +1980,9 @@ function _rustBackdrop(type, locatie, meta) {
 }
 
 const _MUNT_CL = { fl: 100, kn: 10, cl: 1 };
-// Rolt de bij de locatie horende weighted-tabel (d100) en verrekent een eventueel
-// valuta-token {+3kn} / {-1fl} (optioneel @party). Geeft het gebeurtenis-object terug (of null).
+// Rolt PER SPELER een eigen voorval uit de bij de locatie horende weighted-tabel (d100)
+// en verrekent een eventueel valuta-token {+3kn} / {-1fl} op die speler zelf.
+// Geeft een map terug: { [characterId]: { roll, tekst, currency } } (of null).
 function _rolRustGebeurtenis(meta, locatie, dmState, spelers, io, campaignId) {
   const r = meta.rust || {};
   const tableId = (locatie === 'herberg' ? r.herbergEventTableId : r.veldEventTableId) || r.eventTableId;
@@ -1991,35 +1992,34 @@ function _rolRustGebeurtenis(meta, locatie, dmState, spelers, io, campaignId) {
   const table = (tablesData.tables || []).find(t => t.id === tableId);
   if (!table || table.type !== 'weighted' || !(table.entries || []).length) return null;
 
-  const d100 = Math.floor(Math.random() * 100) + 1;
-  let tekst = null;
-  for (const entry of table.entries) {
-    const m = String(entry).match(/^(\d+)[-–](\d+):\s*(.+)$/);
-    if (m && d100 >= parseInt(m[1]) && d100 <= parseInt(m[2])) { tekst = m[3].trim(); break; }
-  }
-  if (!tekst) return { roll: d100, tekst: '(geen treffer op de gebeurtenissen-tabel)', currency: null, targetName: '' };
+  const perSpeler = {};
+  spelers.forEach(char => {
+    const d100 = Math.floor(Math.random() * 100) + 1;
+    let tekst = null;
+    for (const entry of table.entries) {
+      const m = String(entry).match(/^(\d+)[-–](\d+):\s*(.+)$/);
+      if (m && d100 >= parseInt(m[1]) && d100 <= parseInt(m[2])) { tekst = m[3].trim(); break; }
+    }
+    if (!tekst) { perSpeler[char.id] = { roll: d100, tekst: '', currency: null }; return; }
 
-  // Valuta-token parsen + uit de weergavetekst halen
-  const tok = tekst.match(/\{\s*([+-]\d+)\s*(fl|kn|cl)\s*(@party)?\s*\}/i);
-  let currency = null, targetName = '';
-  if (tok) {
-    tekst = tekst.replace(tok[0], '').replace(/\s{2,}/g, ' ').trim();
-    const bedrag = parseInt(tok[1]);
-    const unit = tok[2].toLowerCase();
-    const party = !!tok[3];
-    let deltaCl = bedrag * (_MUNT_CL[unit] || 1);
-    const doelen = party ? spelers : [spelers[Math.floor(Math.random() * spelers.length)]];
-    doelen.forEach(char => {
+    // Valuta-token parsen + uit de weergavetekst halen; effect treft de speler zelf.
+    const tok = tekst.match(/\{\s*([+-]\d+)\s*(fl|kn|cl)\s*(?:@party)?\s*\}/i);
+    let currency = null;
+    if (tok) {
+      tekst = tekst.replace(tok[0], '').replace(/\s{2,}/g, ' ').trim();
+      const bedrag = parseInt(tok[1]);
+      const unit = tok[2].toLowerCase();
+      const deltaCl = bedrag * (_MUNT_CL[unit] || 1);
       // Negatief bedrag clampen zodat de beurs niet onder 0 komt
       const huidigCl = toCl(_effectiveCurrency(dmState, char.id) || { fl: 0, kn: 0, cl: 0 });
       const effDelta = deltaCl < 0 ? -Math.min(huidigCl, -deltaCl) : deltaCl;
       const { currency: nieuw } = _deductCurrency(dmState, char.id, -effDelta);
       if (io) io.to(campaignId).emit('player:currency-updated', { characterId: char.id, currency: nieuw });
-    });
-    targetName = party ? 'de groep' : doelen[0].name;
-    currency = { bedrag, unit, party };
-  }
-  return { roll: d100, tekst, currency, targetName };
+      currency = { bedrag, unit };
+    }
+    perSpeler[char.id] = { roll: d100, tekst, currency };
+  });
+  return perSpeler;
 }
 
 // ── Item charges ──
@@ -2249,7 +2249,16 @@ router.post('/party/long-rest', requireDM, (req, res) => {
 
   // ── 6. d100-rustgebeurtenis (binnen én buiten) ──
   const campaignId = req.session?.campaignId || 'main';
-  const gebeurtenis = _rolRustGebeurtenis(meta, locatie, dmState, spelers, io, campaignId);
+  const perSpelerEvents = _rolRustGebeurtenis(meta, locatie, dmState, spelers, io, campaignId);
+  const gebeurtenissen = []; // platte lijst (voor het tafelscherm + DM-overzicht)
+  if (perSpelerEvents) {
+    spelers.forEach(char => {
+      const ev = perSpelerEvents[char.id];
+      if (!ev) return;
+      (perPlayer[char.id] = perPlayer[char.id] || {}).gebeurtenis = ev;
+      if (ev.tekst) gebeurtenissen.push({ naam: char.name, tekst: ev.tekst, currency: ev.currency });
+    });
+  }
 
   storage.writeJSON('dm-state.json', dmState);
 
@@ -2258,10 +2267,10 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     type: 'long', locatie,
     backdropId: _rustBackdrop('long', locatie, meta),
     waard: herberg.waard || '', herbergNaam: herberg.naam || '',
-    roddels, perPlayer, gebeurtenis,
+    roddels, perPlayer, gebeurtenissen,
   });
 
-  res.json({ ok: true, spelers: spelers.length, resetCount, rollLog, kosten, roddelsOnthuld: roddels.length, gebeurtenis });
+  res.json({ ok: true, spelers: spelers.length, resetCount, rollLog, kosten, roddelsOnthuld: roddels.length, gebeurtenissen });
 });
 
 // ── Party korte rust (DM-only) ──

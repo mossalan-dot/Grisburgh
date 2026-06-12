@@ -13449,6 +13449,8 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .rust-event-kop .icon { width:14px; height:14px; }
 .rust-event-tekst { font-family:'IM Fell English',serif; font-style:italic; font-size:1rem; color:#efe3c5; margin:0; }
 .rust-event-munt { font-family:'Cinzel',serif; font-size:0.82rem; color:#d8b25a; margin:6px 0 0; }
+.rust-event-munt-inline { font-family:'Cinzel',serif; font-size:0.82rem; color:#d8b25a; }
+.rust-event--lijst .rust-event-tekst { margin-bottom:8px; }
 /* Roddel-kaartjes */
 .rust-roddels { margin-top:6px; border-top:1px solid rgba(196,168,122,0.2); padding-top:14px; }
 .rust-roddels-kop { font-family:'Cinzel',serif; font-size:0.72rem; letter-spacing:0.07em; text-transform:uppercase; color:#b09870; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px; }

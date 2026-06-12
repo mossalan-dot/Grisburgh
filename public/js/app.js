@@ -5106,7 +5106,7 @@ function _moonSvg(size = 70) {
 window._rustCinematic = (payload) => {
   if (!payload) return;
   document.getElementById('rust-cinematic')?.remove();
-  const { type, locatie, backdropId, roddels = [], perPlayer = {}, herbergNaam, gebeurtenis } = payload;
+  const { type, locatie, backdropId, roddels = [], perPlayer = {}, herbergNaam, gebeurtenissen = [] } = payload;
   const isLong = type === 'long';
   const isDisplay = !!window._isDisplayMode;
   const myCharId = window.app?.state?.characterId;
@@ -5151,15 +5151,20 @@ window._rustCinematic = (payload) => {
     </div>`;
   }
 
-  // d100-rustgebeurtenis (lange rust)
+  // d100-rustgebeurtenis (lange rust) — per speler een eigen voorval
+  const _muntStr = c => c ? ` <span class="rust-event-munt-inline">(${c.bedrag >= 0 ? '+' : ''}${c.bedrag} ${esc(c.unit)})</span>` : '';
   let eventHtml = '';
-  if (isLong && gebeurtenis?.tekst) {
-    const g = gebeurtenis;
-    const muntStr = g.currency
-      ? `<p class="rust-event-munt">→ ${esc(g.targetName)}: ${g.currency.bedrag >= 0 ? '+' : ''}${g.currency.bedrag} ${esc(g.currency.unit)}</p>` : '';
+  if (isLong && !isDisplay && mine?.gebeurtenis?.tekst) {
+    const g = mine.gebeurtenis;
+    const muntStr = g.currency ? `<p class="rust-event-munt">${g.currency.bedrag >= 0 ? '+' : ''}${g.currency.bedrag} ${esc(g.currency.unit)} voor jou</p>` : '';
     eventHtml = `<div class="rust-event">
       <div class="rust-event-kop">${icon('dice')} Deze nacht</div>
       <p class="rust-event-tekst">${esc(g.tekst)}</p>${muntStr}
+    </div>`;
+  } else if (isLong && isDisplay && gebeurtenissen.length) {
+    eventHtml = `<div class="rust-event">
+      <div class="rust-event-kop">${icon('dice')} Deze nacht</div>
+      ${gebeurtenissen.map(g => `<p class="rust-event-tekst"><strong>${esc(g.naam)}:</strong> ${esc(g.tekst)}${_muntStr(g.currency)}</p>`).join('')}
     </div>`;
   }
 
