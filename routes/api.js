@@ -1980,10 +1980,11 @@ function _rustBackdrop(type, locatie, meta) {
 }
 
 const _MUNT_CL = { fl: 100, kn: 10, cl: 1 };
-// Rolt de aangewezen weighted-tabel (d100) en verrekent een eventueel valuta-token
-// {+3kn} / {-1fl} (optioneel @party). Geeft het gebeurtenis-object terug (of null).
-function _rolRustGebeurtenis(meta, dmState, spelers, io, campaignId) {
-  const tableId = meta.rust?.eventTableId;
+// Rolt de bij de locatie horende weighted-tabel (d100) en verrekent een eventueel
+// valuta-token {+3kn} / {-1fl} (optioneel @party). Geeft het gebeurtenis-object terug (of null).
+function _rolRustGebeurtenis(meta, locatie, dmState, spelers, io, campaignId) {
+  const r = meta.rust || {};
+  const tableId = (locatie === 'herberg' ? r.herbergEventTableId : r.veldEventTableId) || r.eventTableId;
   if (!tableId || !spelers.length) return null;
   let tablesData = {};
   try { tablesData = storage.readJSON('tables.json'); } catch { return null; }
@@ -2248,7 +2249,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
 
   // ── 6. d100-rustgebeurtenis (binnen én buiten) ──
   const campaignId = req.session?.campaignId || 'main';
-  const gebeurtenis = _rolRustGebeurtenis(meta, dmState, spelers, io, campaignId);
+  const gebeurtenis = _rolRustGebeurtenis(meta, locatie, dmState, spelers, io, campaignId);
 
   storage.writeJSON('dm-state.json', dmState);
 
@@ -4202,7 +4203,7 @@ router.put('/meta/herberg', requireDM, (req, res) => {
 router.put('/meta/rust', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.rust) meta.rust = {};
-  const allowed = ['veldBackdropId', 'korteRustBackdropId', 'eventTableId'];
+  const allowed = ['veldBackdropId', 'korteRustBackdropId', 'eventTableId', 'veldEventTableId', 'herbergEventTableId'];
   for (const f of allowed) {
     if (req.body[f] !== undefined) meta.rust[f] = req.body[f];
   }

@@ -3781,10 +3781,18 @@ async function _renderHerbergSettings() {
       </div>
 
       <div class="dm-form-row">
-        <label class="dm-form-label">Gebeurtenissen-tabel (lange rust)</label>
-        <select id="rust-event-table" class="dm-select">
+        <label class="dm-form-label">Gebeurtenissen-tabel — lange rust buiten</label>
+        <select id="rust-event-veld" class="dm-select">
           <option value="">— Geen —</option>
-          ${_hbTables.map(t => `<option value="${esc(t.id)}" ${rustCfg.eventTableId === t.id ? 'selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
+          ${_hbTables.map(t => `<option value="${esc(t.id)}" ${(rustCfg.veldEventTableId || rustCfg.eventTableId) === t.id ? 'selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Gebeurtenissen-tabel — lange rust herberg</label>
+        <select id="rust-event-herberg" class="dm-select">
+          <option value="">— Geen —</option>
+          ${_hbTables.map(t => `<option value="${esc(t.id)}" ${rustCfg.herbergEventTableId === t.id ? 'selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
         </select>
         <span class="dm-hint" style="font-size:11px">Weighted d100-tabel. Valuta-effect per regel: <code>{+3kn}</code> / <code>{-1fl}</code>, optioneel <code>@party</code>.</span>
       </div>
@@ -3894,7 +3902,8 @@ window._rustSave = async () => {
   const payload = {
     veldBackdropId:      _rustPendingVeldBg  || cfg.veldBackdropId || '',
     korteRustBackdropId: _rustPendingKorteBg || cfg.korteRustBackdropId || '',
-    eventTableId:        document.getElementById('rust-event-table')?.value || '',
+    veldEventTableId:    document.getElementById('rust-event-veld')?.value || '',
+    herbergEventTableId: document.getElementById('rust-event-herberg')?.value || '',
   };
   try {
     await api.saveRust(payload);
