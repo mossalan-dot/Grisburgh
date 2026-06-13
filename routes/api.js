@@ -1263,7 +1263,8 @@ function _winkelKoopConfig(winkelConfig) {
 function _voorwerpVerkoopbaar(vw, koopCfg) {
   const d = vw?.data || {};
   if (!vw) return { ok: false, reden: 'Onbekend voorwerp' };
-  if (d.itemType === 'Blessing') return { ok: false, reden: 'Gebonden (Blessing)' };
+  // Gebonden categorieën: tempel-zegeningen (Blessing), factie-gunsten (Boon) en class-features.
+  if (['Blessing', 'Boon', 'Feature'].includes(d.itemType)) return { ok: false, reden: 'Gebonden' };
   if (d.nietVerkoopbaar === 'true' || d.nietVerkoopbaar === true) return { ok: false, reden: 'Niet verkoopbaar' };
   const waarde = parsePrijs(d.prijs);
   if (!waarde || toCl(waarde) <= 0) return { ok: false, reden: 'Geen waarde' };

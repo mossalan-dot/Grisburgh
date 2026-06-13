@@ -1989,6 +1989,10 @@ body::before {
 }
 .sf-chip:hover { background: rgba(196,168,122,0.15); color: var(--color-ink-bright, #2a1a08); }
 .sf-chip--active { background: rgba(196,168,122,0.25); color: var(--color-ink-bright, #2a1a08); border-color: #9a7008; }
+/* Speciale chips (Winkel, Zegeningen & Gunsten) — gouden accent + iconen */
+.sf-chip--special { border-color: #b8860b; color: #9a7008; }
+.sf-chip--special.sf-chip--active { background: rgba(184,134,11,0.22); color: #6a4e08; }
+.sf-chip--special svg { width: 11px; height: 11px; vertical-align: -1px; margin-right: 2px; }
 
 /* ── Section banner ── */
 .section-banner {

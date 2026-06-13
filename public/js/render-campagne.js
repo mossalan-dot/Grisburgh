@@ -578,8 +578,16 @@ async function renderEntitySection(type) {
     const v = (_getEntitySubtypeVal(type, e) || '').trim();
     if (v && !_sfSeen.has(v.toLowerCase())) _sfSeen.set(v.toLowerCase(), v);
   });
-  const sfVals = [..._sfSeen.values()].sort((a, b) => a.localeCompare(b, 'nl'));
+  let sfVals = [..._sfSeen.values()].sort((a, b) => a.localeCompare(b, 'nl'));
+  // Voorwerpen: Blessing/Boon niet als losse chips — die vallen onder "Zegeningen & Gunsten"
+  if (type === 'voorwerpen') sfVals = sfVals.filter(v => !['Blessing', 'Boon'].includes(v));
   const sfActive = subtypeFilters[type] || '';
+  // Speciale chips per type (los van de auto-verzamelde subtype-waarden)
+  const _specialChips = type === 'locaties'   ? [{ val: '__winkel__', label: `${icon('building')} Winkel` }]
+                      : type === 'voorwerpen' ? [{ val: '__gewijd__', label: `${icon('sparkles')} Zegeningen & Gunsten` }]
+                      : [];
+  // Filterbalk tonen als er een speciale chip is, of als er ≥2 gewone subtype-waarden zijn
+  const _showSf = _specialChips.length > 0 || sfVals.length >= 2;
 
   container.innerHTML = `
     <!-- Section banner -->
@@ -597,7 +605,7 @@ async function renderEntitySection(type) {
               placeholder="Zoek ${TYPE_META[type].label.toLowerCase()}..." value="${esc(searchQueries[type])}"
               oninput="window._entitySearch('${type}',this.value)">
           </div>
-          ${sfVals.length >= 2 ? `<button class="sf-toggle-btn${sfActive ? ' sf-toggle-btn--active' : ''}" onclick="window._toggleSubtypeBar('${type}')" title="Filter op subtype"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : ''}
+          ${_showSf ? `<button class="sf-toggle-btn${sfActive ? ' sf-toggle-btn--active' : ''}" onclick="window._toggleSubtypeBar('${type}')" title="Filter op subtype"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : ''}
           <span class="results-count sbs-count">${list.length} resultaten</span>
         </div>
       </div>
@@ -605,9 +613,10 @@ async function renderEntitySection(type) {
     </div>
 
     <!-- Subtype filter chips (standaard verborgen, toggle via knop) -->
-    ${sfVals.length >= 2 ? `
+    ${_showSf ? `
     <div class="subtype-filter-bar${sfActive ? '' : ' subtype-filter-bar--hidden'}">
       <button class="sf-chip${sfActive === '' ? ' sf-chip--active' : ''}" data-sf-val="" onclick="window._entitySubtypeFilter('${type}', null)">Alle</button>
+      ${_specialChips.map(c => `<button class="sf-chip sf-chip--special${sfActive === c.val ? ' sf-chip--active' : ''}" data-sf-val="${esc(c.val)}" onclick="window._entitySubtypeFilter('${type}', this.classList.contains('sf-chip--active') ? null : this.dataset.sfVal)">${c.label}</button>`).join('')}
       ${sfVals.map(v => `<button class="sf-chip${sfActive === v ? ' sf-chip--active' : ''}" data-sf-val="${esc(v)}" onclick="window._entitySubtypeFilter('${type}', this.classList.contains('sf-chip--active') ? null : this.dataset.sfVal)">${esc(v)}</button>`).join('')}
     </div>` : ''}
 
@@ -774,8 +783,16 @@ function filterEntities(type, list) {
     const tokens = _searchTokens(q);
     filtered = filtered.filter(e => _searchScore(e, tokens) >= 0);
   }
-  if (sf) {
+  if (sf === '__winkel__' && type === 'locaties') {
+    filtered = filtered.filter(e => e.data?.locType === 'Winkel');
+  } else if (sf === '__gewijd__' && type === 'voorwerpen') {
+    filtered = filtered.filter(e => ['Blessing', 'Boon'].includes(e.data?.itemType));
+  } else if (sf) {
     filtered = filtered.filter(e => _getEntitySubtypeVal(type, e) === sf);
+  } else if (type === 'voorwerpen' && !q) {
+    // Standaard-browse: zegeningen/gunsten (Blessing/Boon) uit de hoofdlijst houden.
+    // (Tijdens zoeken niet uitsluiten, zodat alles vindbaar blijft.)
+    filtered = filtered.filter(e => !['Blessing', 'Boon'].includes(e.data?.itemType));
   }
   return filtered.slice().sort((a, b) => {
     if (type === 'locaties') {
