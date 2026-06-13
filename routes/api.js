@@ -17,7 +17,10 @@ const router = express.Router();
 // hebben verschillende toegestane types en groottes.
 const MEDIA_MIME = new Set([
   'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml',
-  'application/pdf', 'audio/mpeg', 'audio/ogg', 'audio/wav', 'video/mp4', 'video/webm',
+  'application/pdf', 'video/mp4', 'video/webm',
+  // Audio — inclusief Apple-formaten (.m4a/AAC) die Mac/iOS standaard exporteert.
+  'audio/mpeg', 'audio/mp3', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/wave',
+  'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/aac', 'audio/flac', 'audio/x-flac', 'audio/webm',
 ]);
 const uploadMedia = multer({
   storage: multer.memoryStorage(),
@@ -48,7 +51,8 @@ function _sniffMedia(buf) {
   if (hex(0x4f, 0x67, 0x67, 0x53)) return true;                          // OGG
   if (hex(0x1a, 0x45, 0xdf, 0xa3)) return true;                          // WEBM/Matroska (EBML)
   if (hex(0x49, 0x44, 0x33)) return true;                                // MP3 (ID3)
-  if (b[0] === 0xff && (b[1] & 0xe0) === 0xe0) return true;              // MP3 (frame sync)
+  if (hex(0x66, 0x4c, 0x61, 0x43)) return true;                          // FLAC ('fLaC')
+  if (b[0] === 0xff && (b[1] & 0xe0) === 0xe0) return true;              // MP3/AAC-ADTS (frame sync)
   // RIFF-containers: WEBP / WAV (controleer subtype op offset 8)
   if (hex(0x52, 0x49, 0x46, 0x46) && b.length >= 12) {
     const sub = b.toString('ascii', 8, 12);

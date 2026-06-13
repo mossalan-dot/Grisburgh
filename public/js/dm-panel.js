@@ -5437,7 +5437,16 @@ async function _sndUploadFile(file) {
   const id = `snd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   const fd = new FormData();
   fd.append('file', file);
-  await fetch(`/api/files/${id}`, { method: 'POST', body: fd });
+  const r = await fetch(`/api/files/${id}`, { method: 'POST', body: fd });
+  if (!r.ok) {
+    // Upload geweigerd (bv. niet-toegestaan formaat). Geen dode fileId teruggeven —
+    // anders toont de rij "✓ Ingesteld" terwijl er geen bestand op schijf staat.
+    let msg = 'Upload mislukt';
+    try { msg = (await r.json()).error || msg; } catch { /* geen json */ }
+    window.app?._tsToast?.(`${window.icon?.('alert-triangle') || ''} ${msg} (${file.name})`)
+      ?? alert(`${msg}\n\n${file.name}`);
+    return null;
+  }
   return id;
 };
 
@@ -5541,10 +5550,6 @@ async function _renderGeluiden() {
     const libraryRows = library.map(item => {
       return `
         <div class="dm-sound-emote-item">
-          <input class="dm-input dm-sound-emote-icon" type="text"
-            placeholder="🎭" value="${esc(item.icon || '')}"
-            title="Icoon (emoji)" maxlength="4"
-            onchange="window._sndUpdateIcon('${esc(p.id)}','${esc(item.id)}',this.value)">
           <input class="dm-input dm-sound-emote-label" type="text"
             placeholder="Label…" value="${esc(item.label || '')}"
             onchange="window._sndUpdateLabel('${esc(p.id)}','${esc(item.id)}',this.value)">
@@ -5664,7 +5669,7 @@ async function _renderGeluiden() {
     ${svcSection}
     <div class="dm-sound-section">
       <div class="dm-sound-section-title">Spelersemotes</div>
-      <p class="dm-hint">Stel per speler een beurtgeluid in en maak een emotebibliotheek. Selecteer max. 5 emotes voor gevecht (✓ = actief).</p>
+      <p class="dm-hint">Stel per speler een beurtgeluid in en tot 4 emotes (label + geluid). De emotes verschijnen als knoppen op het spelerskaartje en in de gevechtsoverlay.</p>
       ${spelers.length === 0
         ? `<p class="dm-hint" style="opacity:.6">Geen spelers-personages gevonden (subtype = speler).</p>`
         : playerBlocks}
@@ -5703,7 +5708,7 @@ async function _renderGeluiden() {
   // (_ambBroadcast / _ambPlay / _ambStop staan op module-scope, zie boven.)
   window._ambAddScene = async (input) => {
     const file = input.files[0]; if (!file) return;
-    const fileId = await _sndUploadFile(file);
+    const fileId = await _sndUploadFile(file); if (!fileId) return;
     const sd  = await _sndGetData();
     const amb = sd.ambiance || { scenes: [], volume: 0.5 };
     const scene = { id: `amb_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
@@ -5733,7 +5738,7 @@ async function _renderGeluiden() {
   // ── Diensten-sfeerloops (feature #2) ──
   window._svcAmbUpload = async (key, input) => {
     const file = input.files[0]; if (!file) return;
-    const fileId = await _sndUploadFile(file);
+    const fileId = await _sndUploadFile(file); if (!fileId) return;
     await _sndPatch({ serviceAmbiance: { [key]: fileId } });
     _renderGeluiden();
   };
@@ -5744,7 +5749,7 @@ async function _renderGeluiden() {
 
   window._sndUploadStd = async (key, input) => {
     const file = input.files[0]; if (!file) return;
-    const fileId = await _sndUploadFile(file);
+    const fileId = await _sndUploadFile(file); if (!fileId) return;
     await _sndPatch({ standard: { [key]: fileId } });
     _renderGeluiden();
   };
@@ -5757,7 +5762,7 @@ async function _renderGeluiden() {
   window._sndUploadPlayerTurn = async (pid, input) => {
     _sndOpenPid = pid;
     const file = input.files[0]; if (!file) return;
-    const fileId = await _sndUploadFile(file);
+    const fileId = await _sndUploadFile(file); if (!fileId) return;
     await _sndPatch({ playerTurn: { [pid]: fileId } });
     _renderGeluiden();
   };
@@ -5797,16 +5802,10 @@ async function _renderGeluiden() {
     await _sndWriteEmotes(pid, library.map(e => e.id === eid ? { ...e, label } : e));
   };
 
-  window._sndUpdateIcon = async (pid, eid, icon) => {
-    const sd = await _sndGetData();
-    const { library } = _sndPlayerData(sd, pid);
-    await _sndWriteEmotes(pid, library.map(e => e.id === eid ? { ...e, icon } : e));
-  };
-
   window._sndUploadEmote = async (pid, eid, input) => {
     _sndOpenPid = pid;
     const file = input.files[0]; if (!file) return;
-    const fileId = await _sndUploadFile(file);
+    const fileId = await _sndUploadFile(file); if (!fileId) return;
     const sd = await _sndGetData();
     const { library } = _sndPlayerData(sd, pid);
     await _sndWriteEmotes(pid, library.map(e => e.id === eid ? { ...e, fileId } : e));
