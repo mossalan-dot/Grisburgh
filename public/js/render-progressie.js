@@ -348,7 +348,7 @@ function _buildPanel(prog, ctx, charId, favs, choices) {
         ${isDM() ? `<button class="prog-edit-btn" onclick="window.progressie.openEditor()"
           title="Klassen, subklassen en soorten bewerken — inclusief afbeeldingen per ability"
           >${icon('pencil')} Bewerk</button>` : ''}
-        <button class="help-btn" onclick="window._openHelp?.('progressie')" title="Uitleg">${icon('book-open')}</button>
+        ${window._helpBtn?.('progressie') ?? ''}
       </div>
     </div>`;
 

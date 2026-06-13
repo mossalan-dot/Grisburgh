@@ -88,6 +88,7 @@ function _buildShell() {
           <button class="dng-btn dng-btn-sm" id="dng-party-btn">Party-toegang</button>
         </div>
         ` : ''}
+        <span style="margin-left:auto">${window._helpBtn?.('dungeon') ?? ''}</span>
       </div>
       <div class="dng-workspace" id="dng-workspace">
         <div class="dng-map-area" id="dng-map-area"></div>

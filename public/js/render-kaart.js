@@ -83,6 +83,8 @@ function _buildShell() {
         <button id="map-zoom-in"  class="map-mini-btn" title="Inzoomen">${icon('plus')}</button>
         <span class="map-toolbar-sep"></span>
         <button id="map-zoom-fit" class="map-mini-btn" title="Centreren / passend maken">${icon('maximize-2')}</button>
+        <span class="map-toolbar-sep"></span>
+        ${window._helpBtn?.('kaart') ?? ''}
       </div>
       <div id="map-area" class="flex flex-col items-center w-full shrink-0 overflow-hidden"></div>
     </div>`;

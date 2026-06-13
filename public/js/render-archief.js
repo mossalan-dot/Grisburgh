@@ -155,6 +155,7 @@ export async function renderDocumenten() {
               placeholder="Zoek document\u2026" value="${esc(searchQuery)}" oninput="window._documentenSearch(this.value)">
           </div>
           <span class="results-count sbs-count" id="doc-results-count">${docs.length} resultaten</span>
+          ${window._helpBtn?.('documenten') ?? ''}
         </div>
       </div>
       <div class="section-banner-rule"><span class="section-banner-ornament">\u25c6</span></div>
@@ -237,7 +238,7 @@ export async function renderLogboek() {
   if (!container.querySelector('#logboek-tab-content')) {
     container.innerHTML = `
       <div style="display:flex;justify-content:flex-end;padding:6px 12px 0">
-        <button class="help-btn" onclick="window._openHelp?.('logboek')" title="Uitleg">${icon('book-open')}</button>
+        ${window._helpBtn?.('logboek') ?? ''}
       </div>
       <div id="logboek-tab-content" class="flex-1 overflow-y-auto"></div>`;
   }

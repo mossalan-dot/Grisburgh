@@ -1,13 +1,13 @@
 import { api } from './api.js?v=238';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=100";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=47";
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=11';
-import { renderDungeon } from './render-dungeon.js?v=24';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=101";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=48";
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=12';
+import { renderDungeon } from './render-dungeon.js?v=25';
 import { renderRelatiemap } from './render-relatiemap.js?v=15';
-import { renderProgressie } from './render-progressie.js?v=36';
-import { renderBestiarium } from './render-bestiarium.js?v=13';
+import { renderProgressie } from './render-progressie.js?v=37';
+import { renderBestiarium } from './render-bestiarium.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=38";
+import { initSocket } from "./socket-client.js?v=39";
 import { initDmPanel } from "./dm-panel.js?v=96";
 
 // ── Icon helper ──
@@ -2116,6 +2116,7 @@ async function _renderKaartSection() {
           <div class="section-banner-label">Kaarten</div>
           <div class="section-banner-desc-line">Hoofdkaarten en dungeons van de wereld</div>
         </div>
+        <div style="margin-left:auto">${window._helpBtn?.('kaart') ?? ''}</div>
       </div>
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
     </div>
@@ -5730,7 +5731,7 @@ async function renderMijnKarakter(opts = {}) {
         <button class="player-subtab${_playerSubTab === 'progressie' ? ' active' : ''}"
           data-tab="progressie" onclick="window._setPlayerSubTab('progressie')">${icon('clipboard-list')} Progressie</button>
         <button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
-          data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('book-open')} Spreukenboek</button>
+          data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('sparkles')} Spreukenboek</button>
         <button class="player-subtab${_playerSubTab === 'berichten' ? ' active' : ''}"
           data-tab="berichten" onclick="window._setPlayerSubTab('berichten')">${icon('message-circle')} Berichten${window._berichtenUnread ? ` <span class="bericht-badge">${window._berichtenUnread}</span>` : ''}</button>
       </div>
@@ -10415,6 +10416,14 @@ window._dmMissieGoedkeuren = async (id, titel, toastEl) => {
 // ── Help-systeem ─────────────────────────────────────────────────────────────
 
 const HELP_CONFIG = {
+  personages: () => ({ titel: 'Personages', stappen: [{ titel: 'Personages', tekst: 'Hier vind je de **personages** die je hebt ontmoet — NPC’s én de avonturiers van het gezelschap. Klik een kaart voor details, geheimen en relaties. De DM bepaalt wie zichtbaar is.', afbeelding: null }] }),
+  locaties:   () => ({ titel: 'Locaties', stappen: [{ titel: 'Locaties', tekst: 'De **plekken** van Grisburgh en daarbuiten. Een locatie met het type *Winkel* heeft een voorraad waar je kunt kopen en verkopen. Filter via de trechter op o.a. *Winkel*. Klik een kaart voor meer.', afbeelding: null }] }),
+  organisaties: () => ({ titel: 'Organisaties', stappen: [{ titel: 'Organisaties', tekst: 'Gilden, ordes en groeperingen in de wereld. Klik een kaart voor hun doel, leden en banden met andere partijen.', afbeelding: null }] }),
+  voorwerpen: () => ({ titel: 'Voorwerpen', stappen: [{ titel: 'Voorwerpen', tekst: 'Wapens, uitrusting en magische items. Je kunt voorwerpen claimen, ruilen en in winkels kopen/verkopen. **Zegeningen & Gunsten** (tempel- en factie-beloningen) staan onder een eigen filter, los van de gewone spullen.', afbeelding: null }] }),
+  documenten: () => ({ titel: 'Documenten', stappen: [{ titel: 'Documenten', tekst: 'Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzamelt. De DM onthult documenten wanneer ze relevant worden.', afbeelding: null }] }),
+  kaart:      () => ({ titel: 'De kaart', stappen: [{ titel: 'Wereld- en stadskaart', tekst: 'Wissel tussen de **wereldkaart** en de **stadskaart**. Pins markeren ontdekte locaties — klik een pin om het bijbehorende kaartje te openen. Zoom met de knoppen of scroll.', afbeelding: null }] }),
+  dungeon:    () => ({ titel: 'Dungeon-kaarten', stappen: [{ titel: 'Dungeon verkennen', tekst: 'Verken kerkers en gebouwen kamer voor kamer. De DM onthult ruimtes naarmate je vordert; verbindingen tonen hoe alles samenhangt.', afbeelding: null }] }),
+
   tempel: () => {
     const naam = window.app?.state?.meta?.tempel?.naam || 'De Tempel';
     return {
@@ -10929,7 +10938,8 @@ window._openHelpEditor = (key) => {
   };
 
   renderEditor(current);
-  modal.addEventListener('click', () => modal.remove());
+  // Bewust GÉÉN klik-buiten-sluit op de editor: dat sloot 'm soms af zonder opslaan
+  // (o.a. via de kleur-dropdown). Sluiten kan alleen via × of Annuleren.
   document.body.appendChild(modal);
 };
 
