@@ -400,7 +400,6 @@ async function _renderPrikbord(container) {
     </details>` : '';
 
   bodyEl.innerHTML = `
-    ${factieBand}
     <div class="prikbord">
       ${cols.map(col => `
         <div class="prikbord-col prikbord-col--${col.key}">
@@ -417,6 +416,7 @@ async function _renderPrikbord(container) {
         </div>
       `).join('')}
     </div>
+    ${factieBand}
   `;
 
   window._factieBandToggle = (open) => { try { localStorage.setItem('factieBandOpen', open ? '1' : '0'); } catch { /* ok */ } };
