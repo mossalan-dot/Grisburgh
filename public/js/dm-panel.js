@@ -6954,6 +6954,9 @@ let _berichtenNPCs    = [];
 let _berichtenData    = {};   // { characterId: [{ id, tekst|brief-velden, timestamp, gelezen }] }
 let _sjablonen        = [];
 let _sjabloonMode     = false;
+const _BERICHTEN_PAGINA = 10;            // berichten per "pagina" in de geschiedenis
+let _berichtenOpenPid   = new Set();     // welke speler-groepen zijn uitgeklapt
+let _berichtenLimiet    = {};            // characterId → aantal getoonde berichten
 
 async function _renderBerichten() {
   const el = document.querySelector('.dm-tab-content[data-tab="berichten"]');
@@ -7102,14 +7105,21 @@ async function _renderBerichten() {
       ${_berichtenSpelers.map(p => {
         const msgs = (_berichtenData[p.id] || []).slice().reverse();
         if (!msgs.length) return '';
+        const unread = msgs.filter(m => !m.gelezen && !m.deletedAt).length;
+        const limiet = _berichtenLimiet[p.id] || _BERICHTEN_PAGINA;
+        const getoond = msgs.slice(0, limiet);
+        const resterend = msgs.length - getoond.length;
+        const open = _berichtenOpenPid.has(p.id);
         return `
-          <details class="bericht-history-group" open>
+          <details class="bericht-history-group" ${open ? 'open' : ''}
+            ontoggle="window._berichtenGroupToggle && window._berichtenGroupToggle('${esc(p.id)}', this.open)">
             <summary class="bericht-history-head">
               ${esc(p.name)}
+              ${unread ? `<span class="bericht-badge">${unread}</span>` : ''}
               <span class="bericht-history-count">${msgs.length}</span>
             </summary>
             <div class="bericht-history-body">
-              ${msgs.map(m => {
+              ${getoond.map(m => {
                 if (m.type === 'brief') {
                   // Brief: rijke documentkaart
                   return `
@@ -7137,10 +7147,24 @@ async function _renderBerichten() {
                     <span class="bericht-history-meta">${_fmtDate(m.timestamp)}${m.gelezen ? ' · gelezen' : ' · ongelezen'}</span>
                   </div>`;
               }).join('')}
+              ${resterend > 0 ? `
+                <button class="dm-btn dm-btn-sm dm-btn-ghost bericht-meer-btn" style="width:100%;margin-top:4px"
+                  onclick="window._berichtenMeer('${esc(p.id)}')">
+                  ${icon('chevron-right')} Toon ${Math.min(_BERICHTEN_PAGINA, resterend)} oudere (nog ${resterend})
+                </button>` : ''}
             </div>
           </details>`;
       }).join('')}
     </div>`;
+};
+
+window._berichtenGroupToggle = (pid, open) => {
+  if (open) _berichtenOpenPid.add(pid); else _berichtenOpenPid.delete(pid);
+};
+window._berichtenMeer = (pid) => {
+  _berichtenLimiet[pid] = (_berichtenLimiet[pid] || _BERICHTEN_PAGINA) + _BERICHTEN_PAGINA;
+  _berichtenOpenPid.add(pid);   // blijf uitgeklapt na re-render
+  _renderBerichten();
 };
 
 function _fmtDate(iso) {
