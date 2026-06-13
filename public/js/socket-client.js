@@ -382,6 +382,11 @@ export function initSocket() {
   });
 
   // ── Geluiden ──
+  // Sound-config gewijzigd door de DM → herladen + huidige loop opnieuw toepassen
+  socket.on('sounds:updated', () => {
+    window.soundManager?.refreshConfig?.();
+  });
+
   socket.on('sound:emote', (data) => {
     window.soundManager?.playEmote(data);
   });

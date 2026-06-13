@@ -27,8 +27,9 @@ function _play(fileId) {
 // clients kunnen 't zelf aanzetten via de header-dempknop. Niet achter de DM-guard.
 let _ambAudio  = null;   // broadcast
 let _svcAudio  = null;   // dienst-loop
+let _restAudio = null;   // rust-overlay-loop (transient)
 let _ambFileId = null, _ambLabel = null;
-let _svcFileId = null, _svcLabel = null;
+let _svcFileId = null, _svcLabel = null, _svcSection = null;
 let _ambVolume = 0.5;    // mastervolume (door DM gezet)
 let _ambGestureArmed = false;
 
@@ -184,6 +185,12 @@ window.soundManager = {
   },
   onCombatUpdated: _onCombatUpdated,
   reloadSounds:    _loadSounds,
+  // Herlaad de sound-config en pas de loop van het huidige scherm opnieuw toe
+  // (zodat een net door de DM ingestelde dienst-loop direct begint te spelen).
+  async refreshConfig() {
+    await _loadSounds();
+    this.setServiceAmbiance(_svcSection, _svcLabel);
+  },
 
   // ── Ambiance (feature #2) ──
   setAmbiance({ actief, fileId, label, volume } = {}) {
@@ -192,8 +199,9 @@ window.soundManager = {
     _ambLabel  = actief ? (label || _ambLabel) : null;
     _ambApplyAll();
   },
-  // Dienst-loop voor het huidige scherm; section = dienst-id (of null bij verlaten).
+  // Dienst-loop voor het huidige scherm; section = serviceAmbiance-key (of null bij verlaten).
   setServiceAmbiance(section, label) {
+    _svcSection = section || null;
     const fid = section ? (_sounds.serviceAmbiance?.[section] || null) : null;
     _svcFileId = fid;
     _svcLabel  = fid ? (label || section) : null;
@@ -206,6 +214,15 @@ window.soundManager = {
     if (loop) this.setAmbiance({ actief: 'reveal', fileId, label: label || 'Reveal', volume: _ambVolume });
     else _play(fileId);
   },
+  // Rust-sfeerloop tijdens de rust-overlay (party-breed, transient). Eigen audio,
+  // los van broadcast/dienst-loop; respecteert dezelfde dempvoorkeur als de dienst-loop.
+  playRestLoop(fileId) {
+    if (!_restAudio) { _restAudio = new Audio(); _restAudio.loop = true; _restAudio.preload = 'auto'; }
+    if (!fileId || !_ambServiceAllowed()) { _ambSet(_restAudio, null, false); return; }
+    _ambSet(_restAudio, fileId, true);
+  },
+  stopRestLoop() { if (_restAudio) _ambSet(_restAudio, null, false); },
+
   // Lokale preview (DM) van een geluidsbestand zonder broadcast.
   preview(fileId) { if (fileId) _play(fileId); },
   toggleAmbiance() {

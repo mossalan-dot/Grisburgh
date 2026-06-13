@@ -7,8 +7,8 @@ import { renderRelatiemap } from './render-relatiemap.js?v=15';
 import { renderProgressie } from './render-progressie.js?v=36';
 import { renderBestiarium } from './render-bestiarium.js?v=13';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=37";
-import { initDmPanel } from "./dm-panel.js?v=93";
+import { initSocket } from "./socket-client.js?v=38";
+import { initDmPanel } from "./dm-panel.js?v=94";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -309,8 +309,8 @@ function switchSection(section) {
 }
 const _DIENST_AMB_LABELS = {
   herberg: 'De Herberg', tweespalt: 'De Tweespalt', gock: 'De Gock',
-  ursula: 'Madame Ursula', tempel: 'De Tempel', heeren: 'Heeren van de Nacht',
-  magizoo: 'De Magizoöloog',
+  ursula: 'Madame Ursula', tempel: 'De Tempel', magizoo: 'De Magizoöloog',
+  // 'facties' heeft géén sectie-loop: de loop schakelt per geopende factie (zie _factieOpen).
 };
 
 // ── Ontdekkings-meter in de header (feature #5) ──
@@ -5106,7 +5106,7 @@ function _moonSvg(size = 70) {
 window._rustCinematic = (payload) => {
   if (!payload) return;
   document.getElementById('rust-cinematic')?.remove();
-  const { type, locatie, backdropId, roddels = [], perPlayer = {}, herbergNaam, gebeurtenissen = [] } = payload;
+  const { type, locatie, backdropId, loopFileId, roddels = [], perPlayer = {}, herbergNaam, gebeurtenissen = [] } = payload;
   const isLong = type === 'long';
   const isDisplay = !!window._isDisplayMode;
   const myCharId = window.app?.state?.characterId;
@@ -5184,9 +5184,11 @@ window._rustCinematic = (payload) => {
 
   const dismiss = () => {
     if (ov.dataset.dicht) return; ov.dataset.dicht = '1';
+    window.soundManager?.stopRestLoop?.();
     ov.classList.add('rust-cinematic-overlay--uit');
     setTimeout(() => ov.remove(), 420);
   };
+  if (loopFileId) window.soundManager?.playRestLoop?.(loopFileId);
   ov.querySelector('.rust-cinematic-sluit')?.addEventListener('click', dismiss);
   // Klik buiten de scene sluit; alleen de interactieve korte rust (Hit Dice-paneel) blijft staan
   ov.addEventListener('click', (e) => { if (!e.target.closest('.rust-cinematic-scene')) dismiss(); });
@@ -10315,8 +10317,16 @@ function _renderFactieInterieur(el, f, missies) {
   }
 }
 
-window._factieOpen = (id) => { _factieActiveId = id; renderFacties(); };
-window._factieTerugNaarLijst = () => { _factieActiveId = null; renderFacties(); };
+window._factieOpen = (id) => {
+  _factieActiveId = id; renderFacties();
+  // Per-factie sfeerloop: schakel naar de loop van deze factie.
+  const naam = (window.app?.state?.meta?.facties || []).find(f => f.id === id)?.naam || 'Factie';
+  window.soundManager?.setServiceAmbiance?.('factie:' + id, naam);
+};
+window._factieTerugNaarLijst = () => {
+  _factieActiveId = null; renderFacties();
+  window.soundManager?.setServiceAmbiance?.(null); // terug naar lijst = geen factie-loop
+};
 
 window._factieAccepteer = async (id, titel) => {
   if (!confirm(`Missie "${titel}" aanvragen? De DM moet dit goedkeuren.`)) return;

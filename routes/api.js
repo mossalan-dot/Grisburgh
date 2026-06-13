@@ -1978,6 +1978,12 @@ function _rustBackdrop(type, locatie, meta) {
   if (type === 'short') return r.korteRustBackdropId || null;
   return r.veldBackdropId || null;
 }
+// Sfeerloop-fileId voor de rust-overlay (uit sounds.json → serviceAmbiance).
+function _rustLoopFileId(type, locatie) {
+  const key = type === 'short' ? 'rust-kort' : (locatie === 'herberg' ? 'rust-herberg' : 'rust-veld');
+  try { return (storage.readJSON('sounds.json').serviceAmbiance || {})[key] || null; }
+  catch { return null; }
+}
 
 const _MUNT_CL = { fl: 100, kn: 10, cl: 1 };
 // Rolt PER SPELER een eigen voorval uit de bij de locatie horende weighted-tabel (d100)
@@ -2266,6 +2272,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
   if (io) io.to(campaignId).emit('party:rest', {
     type: 'long', locatie,
     backdropId: _rustBackdrop('long', locatie, meta),
+    loopFileId: _rustLoopFileId('long', locatie),
     waard: herberg.waard || '', herbergNaam: herberg.naam || '',
     roddels, perPlayer, gebeurtenissen,
   });
@@ -2333,6 +2340,7 @@ router.post('/party/short-rest', requireDM, (req, res) => {
   if (io) io.to(req.session?.campaignId||'main').emit('party:rest', {
     type: 'short', locatie,
     backdropId: _rustBackdrop('short', locatie, meta),
+    loopFileId: _rustLoopFileId('short', locatie),
     perPlayer,
   });
 
@@ -3993,7 +4001,21 @@ function _ensureAmbiance(data) {
   if (!data.serviceAmbiance || typeof data.serviceAmbiance !== 'object') data.serviceAmbiance = {};
   return data;
 }
-const _DIENST_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren'];
+// Geldige serviceAmbiance-keys: huidige diensten, per-factie (factie:<id> tegen
+// meta.facties) en de rust-loops. Vervangt de oude vaste _DIENST_KEYS-lijst.
+const _DIENST_SVC_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo'];
+const _REST_SVC_KEYS = ['rust-veld', 'rust-herberg', 'rust-kort'];
+function _validSvcKey(key) {
+  if (_DIENST_SVC_KEYS.includes(key) || _REST_SVC_KEYS.includes(key)) return true;
+  const m = String(key).match(/^factie:(.+)$/);
+  if (m) {
+    try {
+      const meta = storage.readJSON('meta.json');
+      return (meta.facties || []).some(f => f.id === m[1]);
+    } catch { return false; }
+  }
+  return false;
+}
 
 router.get('/sounds', (req, res) => {
   let data = storage.readJSON('sounds.json');
@@ -4019,12 +4041,14 @@ router.put('/sounds', requireDM, (req, res) => {
   }
   if (req.body.serviceAmbiance && typeof req.body.serviceAmbiance === 'object') {
     for (const [k, v] of Object.entries(req.body.serviceAmbiance)) {
-      if (!_DIENST_KEYS.includes(k)) continue;          // alleen bekende diensten
+      if (!_validSvcKey(k)) continue;                   // diensten + factie:<id> + rust-*
       if (v === null) delete data.serviceAmbiance[k];
       else data.serviceAmbiance[k] = String(v).slice(0, 100);
     }
   }
   storage.writeJSON('sounds.json', data);
+  // Clients hun sound-config laten herladen (fixt staleness van nieuw ingestelde loops).
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('sounds:updated');
   res.json(data);
 });
 

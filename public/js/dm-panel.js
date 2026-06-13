@@ -5501,8 +5501,7 @@ async function _renderGeluiden() {
   }).join('');
 
   const playerBlocks = spelers.map(p => {
-    const { library, selected } = _sndPlayerData(sounds, p.id);
-    const selCount = selected.filter(Boolean).length;
+    const { library } = _sndPlayerData(sounds, p.id);
     const turnFileId = sounds.playerTurn?.[p.id] || null;
 
     const turnRow = `
@@ -5523,14 +5522,8 @@ async function _renderGeluiden() {
       </div>`;
 
     const libraryRows = library.map(item => {
-      const isSelected = selected.includes(item.id);
-      const canSelect  = isSelected || selCount < 5;
       return `
         <div class="dm-sound-emote-item">
-          <label class="dm-sound-emote-check" title="${isSelected ? 'Actief in gevecht' : selCount >= 5 ? 'Max 5 geselecteerd' : 'Selecteren voor gevecht'}">
-            <input type="checkbox" ${isSelected ? 'checked' : ''} ${!canSelect ? 'disabled' : ''}
-              onchange="window._sndToggleSelect('${esc(p.id)}','${esc(item.id)}',this.checked)">
-          </label>
           <input class="dm-input dm-sound-emote-icon" type="text"
             placeholder="🎭" value="${esc(item.icon || '')}"
             title="Icoon (emoji)" maxlength="4"
@@ -5554,7 +5547,6 @@ async function _renderGeluiden() {
         </div>`;
     }).join('');
 
-    const selBadge = selected.filter(Boolean).length;
     const isOpen   = _sndOpenPid === p.id;
 
     return `
@@ -5562,15 +5554,17 @@ async function _renderGeluiden() {
         <button class="dm-sound-player-summary" onclick="window._sndTogglePlayer('${esc(p.id)}')">
           <span class="dm-sound-arrow">${isOpen ? '▼' : '▶'}</span>
           <span class="dm-sound-player-name">${esc(p.name)}</span>
-          <span class="dm-sound-sel-badge">${selBadge}/5 actief</span>
+          <span class="dm-sound-sel-badge">${library.length}/4 emotes</span>
         </button>
         <div class="dm-sound-player-body" ${isOpen ? '' : 'hidden'}>
           ${turnRow}
           ${library.length === 0
-            ? `<p class="dm-hint" style="margin:0 0 8px">Nog geen emotes. Voeg er hieronder een toe.</p>`
+            ? `<p class="dm-hint" style="margin:0 0 8px">Nog geen emotes. Voeg er hieronder een toe (max. 4).</p>`
             : libraryRows}
-          <button class="dm-btn dm-btn-sm dm-btn-ghost" style="margin-top:6px"
-            onclick="window._sndAddEmote('${esc(p.id)}')" title="Emote toevoegen">+</button>
+          ${library.length < 4
+            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" style="margin-top:6px"
+                 onclick="window._sndAddEmote('${esc(p.id)}')" title="Emote toevoegen">+ Emote</button>`
+            : `<p class="dm-hint" style="margin:6px 0 0;opacity:.6">Maximaal 4 emotes.</p>`}
         </div>
       </div>`;
   }).join('');
@@ -5606,36 +5600,45 @@ async function _renderGeluiden() {
       </label>
     </div>`;
 
-  // ── Diensten-sfeerloops (feature #2, lokaal per dienst) ──
-  const _DIENSTEN = [
-    { key: 'herberg',   label: 'De Herberg' },        { key: 'tweespalt', label: 'De Tweespalt' },
-    { key: 'gock',      label: 'De Gock' },            { key: 'ursula',    label: 'Madame Ursula' },
-    { key: 'tempel',    label: 'De Tempel' },          { key: 'heeren',    label: 'Heeren van de Nacht' },
-  ];
+  // ── Diensten-sfeerloops (lokaal per dienst/factie/rust) ──
   const svcAmb = sounds.serviceAmbiance || {};
-  const svcRows = _DIENSTEN.map(d => {
-    const fid = svcAmb[d.key];
+  const svcRow = (key, label) => {
+    const fid = svcAmb[key];
     return `
       <div class="dm-sound-row">
-        <span class="dm-sound-slot-label">${d.label}</span>
+        <span class="dm-sound-slot-label">${esc(label)}</span>
         <div class="dm-sound-controls">
           ${fid
             ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(fid)}')">▶</button>
                <span class="dm-sound-set">✓ Ingesteld</span>
-               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._svcAmbRemove('${d.key}')">${icon('x')}</button>`
+               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._svcAmbRemove('${esc(key)}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen loop</span>`}
           <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
             ↑ Upload
-            <input type="file" accept="audio/*" style="display:none" onchange="window._svcAmbUpload('${d.key}', this)">
+            <input type="file" accept="audio/*" style="display:none" onchange="window._svcAmbUpload('${esc(key)}', this)">
           </label>
         </div>
       </div>`;
-  }).join('');
+  };
+  const _DIENSTEN = [
+    { key: 'herberg', label: 'De Herberg' }, { key: 'tweespalt', label: 'De Tweespalt' },
+    { key: 'gock', label: 'De Gock' }, { key: 'ursula', label: 'Madame Ursula' },
+    { key: 'tempel', label: 'De Tempel' }, { key: 'magizoo', label: 'De Magizoöloog' },
+  ];
+  const facties = window.app?.state?.meta?.facties || [];
+  const _REST = [
+    { key: 'rust-veld', label: 'Lange rust — buiten' }, { key: 'rust-herberg', label: 'Lange rust — herberg' },
+    { key: 'rust-kort', label: 'Korte rust' },
+  ];
   const svcSection = `
     <div class="dm-sound-section">
       <div class="dm-sound-section-title">${icon('volume-2')} Diensten-sfeerloops</div>
-      <p class="dm-hint">Een sfeerloop per dienst die <strong>lokaal</strong> speelt zodra iemand die dienst opent — los van een sessie, geen tablet nodig. Een lopende broadcast-scène heeft voorrang.</p>
-      <div class="dm-sound-list">${svcRows}</div>
+      <p class="dm-hint">Een sfeerloop die <strong>lokaal</strong> speelt zodra iemand die dienst opent — los van een sessie, geen tablet nodig. Een lopende broadcast-scène heeft voorrang.</p>
+      <div class="dm-sound-list">${_DIENSTEN.map(d => svcRow(d.key, d.label)).join('')}</div>
+      <div class="dm-section-label" style="margin-top:10px">Facties</div>
+      <div class="dm-sound-list">${facties.length ? facties.map(f => svcRow('factie:' + f.id, f.naam || f.id)).join('') : '<p class="dm-hint" style="opacity:.6">Geen facties geconfigureerd.</p>'}</div>
+      <div class="dm-section-label" style="margin-top:10px">Rust</div>
+      <div class="dm-sound-list">${_REST.map(r => svcRow(r.key, r.label)).join('')}</div>
     </div>`;
 
   el.innerHTML = `
@@ -5748,55 +5751,39 @@ async function _renderGeluiden() {
     _renderGeluiden();
   };
 
+  // Schrijf de emote-set weg; alle 4 slots zijn actief, dus selected = alle library-id's
+  // (zo blijft de spelerskaart/gevecht-code die 'selected' leest werken).
+  const _sndWriteEmotes = (pid, library) =>
+    _sndPatch({ emotes: { [pid]: { library, selected: library.map(e => e.id) } } });
+
   window._sndAddEmote = async (pid) => {
     _sndOpenPid = pid;   // blijf open na re-render
     const sd = await _sndGetData();
-    const { library, selected } = _sndPlayerData(sd, pid);
-    const newItem = { id: `em_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, label: '', fileId: null };
-    await _sndPatch({ emotes: { [pid]: { library: [...library, newItem], selected } } });
+    const { library } = _sndPlayerData(sd, pid);
+    if (library.length >= 4) { _renderGeluiden(); return; }   // max 4 slots
+    const newItem = { id: `em_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, icon: '', label: '', fileId: null };
+    await _sndWriteEmotes(pid, [...library, newItem]);
     _renderGeluiden();
   };
 
   window._sndDeleteEmote = async (pid, eid) => {
     _sndOpenPid = pid;
     const sd = await _sndGetData();
-    const { library, selected } = _sndPlayerData(sd, pid);
-    await _sndPatch({ emotes: { [pid]: {
-      library:  library.filter(e => e.id !== eid),
-      selected: selected.filter(id => id !== eid),
-    }}});
-    _renderGeluiden();
-  };
-
-  window._sndToggleSelect = async (pid, eid, checked) => {
-    _sndOpenPid = pid;
-    const sd = await _sndGetData();
-    const { library, selected } = _sndPlayerData(sd, pid);
-    let newSel = selected.filter(id => id !== eid);
-    if (checked) {
-      if (newSel.length >= 5) { _renderGeluiden(); return; }
-      newSel.push(eid);
-    }
-    await _sndPatch({ emotes: { [pid]: { library, selected: newSel } } });
+    const { library } = _sndPlayerData(sd, pid);
+    await _sndWriteEmotes(pid, library.filter(e => e.id !== eid));
     _renderGeluiden();
   };
 
   window._sndUpdateLabel = async (pid, eid, label) => {
     const sd = await _sndGetData();
-    const { library, selected } = _sndPlayerData(sd, pid);
-    await _sndPatch({ emotes: { [pid]: {
-      library:  library.map(e => e.id === eid ? { ...e, label } : e),
-      selected,
-    }}});
+    const { library } = _sndPlayerData(sd, pid);
+    await _sndWriteEmotes(pid, library.map(e => e.id === eid ? { ...e, label } : e));
   };
 
   window._sndUpdateIcon = async (pid, eid, icon) => {
     const sd = await _sndGetData();
-    const { library, selected } = _sndPlayerData(sd, pid);
-    await _sndPatch({ emotes: { [pid]: {
-      library:  library.map(e => e.id === eid ? { ...e, icon } : e),
-      selected,
-    }}});
+    const { library } = _sndPlayerData(sd, pid);
+    await _sndWriteEmotes(pid, library.map(e => e.id === eid ? { ...e, icon } : e));
   };
 
   window._sndUploadEmote = async (pid, eid, input) => {
@@ -5804,22 +5791,16 @@ async function _renderGeluiden() {
     const file = input.files[0]; if (!file) return;
     const fileId = await _sndUploadFile(file);
     const sd = await _sndGetData();
-    const { library, selected } = _sndPlayerData(sd, pid);
-    await _sndPatch({ emotes: { [pid]: {
-      library:  library.map(e => e.id === eid ? { ...e, fileId } : e),
-      selected,
-    }}});
+    const { library } = _sndPlayerData(sd, pid);
+    await _sndWriteEmotes(pid, library.map(e => e.id === eid ? { ...e, fileId } : e));
     _renderGeluiden();
   };
 
   window._sndClearFile = async (pid, eid) => {
     _sndOpenPid = pid;
     const sd = await _sndGetData();
-    const { library, selected } = _sndPlayerData(sd, pid);
-    await _sndPatch({ emotes: { [pid]: {
-      library:  library.map(e => e.id === eid ? { ...e, fileId: null } : e),
-      selected,
-    }}});
+    const { library } = _sndPlayerData(sd, pid);
+    await _sndWriteEmotes(pid, library.map(e => e.id === eid ? { ...e, fileId: null } : e));
     _renderGeluiden();
   };
 };
