@@ -405,6 +405,11 @@ Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in ren
 - **DM en speler dezelfde browser** → session cookie gedeeld. Gebruik incognito of ander apparaat voor gelijktijdig testen.
 - **Socket-event naar verkeerde campagne** → altijd `io.to(campaignId).emit()`, nooit `io.emit()`.
 - **Dangling module-import na een revert** → als een feature wordt teruggedraaid, verwijder óók de `import`-regel in `app.js`. Een import van een verwijderd `.js`-bestand laat de node-server `index.html` (HTML) terugsturen i.p.v. JS → **de hele app.js module-graaf faalt stil** (`window.app` half-geïnitialiseerd, `window.progressie`/andere globals undefined, geen console-error). Symptoom: spelerstab half kapot, sync/handlers werken niet. Zo ging het mis met `glossary.js` (juni 2026): productie bleef werken omdat het oude bestand daar nog stond, maar een verse checkout was stuk.
+- **Nieuwe dienst toevoegen → Geluiden-tab meenemen.** Een nieuwe dienst-sectie (zoals herberg/tempel/magizoo) heeft een sfeerloop nodig op drie plekken, anders speelt 'm niet en/of staat de lijst scheef:
+  1. `routes/api.js` → `_DIENST_SVC_KEYS` (validator voor `serviceAmbiance`-keys in `PUT /sounds`).
+  2. `public/js/app.js` → `_DIENST_AMB_LABELS` (section-key → label; `switchSection` triggert hierop `setServiceAmbiance`).
+  3. `public/js/dm-panel.js` → `_DIENSTEN` in `_renderGeluiden` (rij waar de DM de loop instelt).
+  Facties zijn al dynamisch (uit `meta.facties`, key `factie:<id>`); rust-loops zijn vast (`rust-veld|rust-herberg|rust-kort`). Een sectie zonder per-stuk-wisseling (zoals het Facties-overzicht) krijgt géén entry in `_DIENST_AMB_LABELS` — de loop schakelt dan in de open-handler (bv. `_factieOpen`).
 
 ---
 
