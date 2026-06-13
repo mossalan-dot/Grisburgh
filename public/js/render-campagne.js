@@ -862,7 +862,7 @@ function renderCard(type, e) {
   // ── DM toggle icon / title — 3-state for personages + locaties ──
   const _threeState = ['personages', 'locaties'].includes(type);
   const _visIcon  = vis === 'visible' ? icon('eye')
-                  : vis === 'vague'   ? icon('user')
+                  : vis === 'vague'   ? icon('eye-off')
                   :                    icon('lock');
   const _visTitle = vis === 'visible' ? 'Verbergen  ·  Shift: vaag tonen'
                   : vis === 'vague'   ? 'Volledig tonen  ·  Shift: vaag houden'
@@ -876,6 +876,7 @@ function renderCard(type, e) {
   return `
     <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}${_isProtagonist ? ' card-protagonist' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}${_isProtagonist ? ' data-protagonist="true"' : ''}
       onclick="window._openDetail('${type}','${e.id}')">
+      ${vis === 'vague' && isDM() ? `<span class="card-vague-flag" title="Vaag getoond voor spelers">${icon('eye-off')} Vaag</span>` : ''}
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
           <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
@@ -1589,7 +1590,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (isDM()) {
     const _ts = ['personages', 'locaties'].includes(tab);
     const _mVisIcon  = vis === 'visible' ? icon('eye')
-                     : vis === 'vague'   ? icon('user')
+                     : vis === 'vague'   ? icon('eye-off')
                      :                    icon('lock');
     const _mVisTitle = vis === 'visible' ? 'Verbergen  ·  Shift: vaag tonen'
                      : vis === 'vague'   ? 'Volledig tonen  ·  Shift: vaag houden'

@@ -177,6 +177,16 @@ export async function renderDocumenten() {
   };
 }
 
+// Schaalt de kaartnaam terug tot hij op één regel past (gelijk aan render-campagne).
+function _fitTextDoc(el) {
+  el.style.fontSize = '';
+  if (el.scrollWidth <= el.clientWidth) return;
+  for (let size = 13; size >= 9; size--) {
+    el.style.fontSize = size + 'px';
+    if (el.scrollWidth <= el.clientWidth) break;
+  }
+}
+
 function _refreshDocGrid(docs, container) {
   const grid = container.querySelector('.doc-grid');
   if (!grid) return;
@@ -192,6 +202,8 @@ function _refreshDocGrid(docs, container) {
           : ''}
        </div>`
     : docs.map(d => renderDocCard(d)).join('');
+  // Namen passend maken (zelfde gedrag als de andere entity-kaarten)
+  requestAnimationFrame(() => grid.querySelectorAll('[data-fittext]').forEach(_fitTextDoc));
   const countEl = container.querySelector('.results-count');
   if (countEl) countEl.textContent = `${docs.length} resultaten`;
   requestAnimationFrame(() => window._attachCardTilt?.(grid));
@@ -2223,15 +2235,13 @@ function renderDocCard(d) {
       </div>
       <div class="card-body px-3 pt-2 pb-2">
         <div class="mb-1.5">
-          <div class="flex items-center gap-1.5">
-            <span class="card-name truncate">${esc(d.name)}</span>
-          </div>
-          <span class="card-name-sep"></span>
-          ${chapterLabel ? `<div class="card-meta"><span class="card-meta-sub">${esc(chapterLabel)}</span></div>` : ''}
+          <span class="card-name block" data-fittext>${esc(d.name)}</span>
+          ${chapterLabel ? `<span class="card-name-sep"></span>
+          <div class="card-meta"><span class="card-meta-sub">${esc(chapterLabel)}</span></div>` : ''}
         </div>
         ${isBlurred
           ? `<p class="text-xs text-ink-faint italic font-crimson">Nog niet volledig onthuld\u2026</p>`
-          : `${d.desc ? `<p class="text-xs text-ink-medium line-clamp-2 font-crimson leading-relaxed">${mdToHtml(d.desc)}</p>` : ''}`
+          : `${d.desc ? `<p class="text-xs text-ink-medium line-clamp-4 mb-1 font-crimson leading-relaxed">${mdToHtml(d.desc)}</p>` : ''}`
         }
       </div>
     </div>
