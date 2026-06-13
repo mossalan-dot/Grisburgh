@@ -4519,13 +4519,22 @@ async function _renderUrsulaSettings() {
         <label class="dm-form-label">✦ Concrete kern (naam/locatie — onthuld bij een 6)</label><textarea id="ursula-concreet" class="dm-input" rows="2" style="font-size:11px;resize:vertical">${esc(v.concreet || '')}</textarea>
       </div>
       <div class="dm-form-row" style="gap:6px">
-        <button class="dm-btn dm-btn-primary" onclick="window._ursulaVoorspellingSave()" title="Voorspelling opslaan">${icon('save')} Voorspelling</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._ursulaVoorspellingSave(event)" title="Voorspelling opslaan">${icon('save')} Voorspelling</button>
         <button class="dm-btn dm-btn-ghost" onclick="window._ursulaResetParty()" title="Wis de party-worp voor deze akte zodat opnieuw geworpen kan worden">↺ Reset party-worp</button>
       </div>`}
     </div>`;
 };
 
-window._ursulaSelectAkte = (key) => { _ursulaSelectedAkte = key; _renderUrsulaSettings(); };
+// Akte wisselen: alleen de voorspelling-tekstvelden verversen — géén volledige
+// re-render (die zou de scroll resetten en niet-opgeslagen naam/prijs wissen).
+window._ursulaSelectAkte = (key) => {
+  _ursulaSelectedAkte = key;
+  const v = (_ursulaAktes.find(a => a.key === key) || {}).voorspelling || {};
+  ['zien', 'horen', 'ruiken', 'proeven', 'voelen', 'concreet'].forEach(f => {
+    const ta = document.getElementById('ursula-' + f);
+    if (ta) ta.value = v[f] || '';
+  });
+};
 
 window._ursulaUploadBackdrop = async (file) => {
   if (!file) return;
@@ -4554,15 +4563,23 @@ window._ursulaSettingsSave = async () => {
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
 };
 
-window._ursulaVoorspellingSave = async () => {
+window._ursulaVoorspellingSave = async (ev) => {
   if (!_ursulaSelectedAkte) return;
   const g = (id) => document.getElementById(id)?.value || '';
+  const voorspelling = {
+    zien: g('ursula-zien'), horen: g('ursula-horen'), ruiken: g('ursula-ruiken'),
+    proeven: g('ursula-proeven'), voelen: g('ursula-voelen'), concreet: g('ursula-concreet'),
+  };
+  const btn = ev?.currentTarget;
   try {
-    await api.saveUrsulaVoorspelling(_ursulaSelectedAkte, {
-      zien: g('ursula-zien'), horen: g('ursula-horen'), ruiken: g('ursula-ruiken'),
-      proeven: g('ursula-proeven'), voelen: g('ursula-voelen'), concreet: g('ursula-concreet'),
-    });
-    await _renderUrsulaSettings();
+    await api.saveUrsulaVoorspelling(_ursulaSelectedAkte, voorspelling);
+    // In-memory bijwerken + ✓ in de optie — géén volledige re-render (anders springt
+    // de scroll omhoog en verdwijnt een niet-opgeslagen prijs/naam).
+    const a = _ursulaAktes.find(x => x.key === _ursulaSelectedAkte);
+    if (a) a.voorspelling = voorspelling;
+    const opt = document.querySelector(`#ursula-akte-select option[value="${CSS.escape(_ursulaSelectedAkte)}"]`);
+    if (opt && !opt.textContent.includes('✓')) opt.textContent += ' ✓';
+    if (btn) { const orig = btn.innerHTML; btn.innerHTML = `${icon('check')} Opgeslagen`; setTimeout(() => { btn.innerHTML = orig; }, 2000); }
   } catch (err) { alert('Opslaan mislukt: ' + err.message); }
 };
 
