@@ -367,7 +367,15 @@ async function _renderPrikbord(container) {
   const bodyEl = container.querySelector('#logboek-tab-content');
   if (!bodyEl) return;
 
+  const _factieBandOpen = (() => { try { return localStorage.getItem('factieBandOpen') === '1'; } catch { return false; } })();
   const factieBand = facties.length ? `
+    <details class="factie-band-details" ${_factieBandOpen ? 'open' : ''} ontoggle="window._factieBandToggle && window._factieBandToggle(this.open)">
+      <summary class="factie-band-summary">
+        <span class="factie-band-summary-titel">${icon('landmark')} Facties &amp; aanzien</span>
+        <span class="factie-band-chips">
+          ${facties.map(f => `<span class="factie-band-chip factie-band-chip--${(f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase()}">${esc(f.naam || '')}: <strong>${esc(f.rang?.naam || '—')}</strong></span>`).join('')}
+        </span>
+      </summary>
     <div class="factie-band">
       ${facties.map(f => {
         const stijl = (f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase();
@@ -388,7 +396,8 @@ async function _renderPrikbord(container) {
           </div>
         </div>`;
       }).join('')}
-    </div>` : '';
+    </div>
+    </details>` : '';
 
   bodyEl.innerHTML = `
     ${factieBand}
@@ -410,6 +419,7 @@ async function _renderPrikbord(container) {
     </div>
   `;
 
+  window._factieBandToggle = (open) => { try { localStorage.setItem('factieBandOpen', open ? '1' : '0'); } catch { /* ok */ } };
   window._questNew    = (status) => _openQuestModal(null, status);
   window._questEdit   = (id) => { const q = quests.find(x => x.id === id); if (q) _openQuestModal(q); };
   window._questDelete = async (id) => {

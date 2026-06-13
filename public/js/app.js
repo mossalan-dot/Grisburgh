@@ -1,6 +1,6 @@
 import { api } from './api.js?v=238';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=98";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=44";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=45";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=11';
 import { renderDungeon } from './render-dungeon.js?v=24';
 import { renderRelatiemap } from './render-relatiemap.js?v=15';
@@ -10179,7 +10179,8 @@ function _renderFactieInterieur(el, f, missies) {
   const portret = portretUrl
     ? `<img src="${portretUrl}" class="herberg-portrait-round factie-portret-klikbaar" alt="${esc(f.naam)}"
          onclick="window._openDetail('personages','${esc(actieveNpcId)}')"
-         title="Bekijk kaartje" onerror="this.outerHTML='<div class=\\'herberg-portrait-round herberg-portrait-fallback\\'>${icon('users').replace(/'/g,"\\'")}</div>'">`
+         title="Bekijk kaartje" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+       <div class="herberg-portrait-round herberg-portrait-fallback" style="display:none">${icon('users')}</div>`
     : `<div class="herberg-portrait-round herberg-portrait-fallback">${icon('users')}</div>`;
 
   const ladder = f.ladder || [];

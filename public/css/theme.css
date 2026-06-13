@@ -13511,7 +13511,29 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .renown-card.factie-card--metaal { border-color:#c4a840; }
 .renown-card.factie-card--staal  { border-color:#7a2a2a; }
 
-.factie-band { display:flex; gap:16px; flex-wrap:wrap; padding:16px 24px 0; }
+/* Inklapbare factie-band op het prikbord (standaard dicht, compacte strip) */
+.factie-band-details { margin:0 0 4px; }
+.factie-band-summary {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap; cursor:pointer; list-style:none;
+  padding:8px 24px; font-family:'Cinzel',serif; color:var(--color-ink-dim);
+}
+.factie-band-summary::-webkit-details-marker { display:none; }
+.factie-band-summary::before { content:'▸'; color:var(--color-ink-faint); font-size:0.8rem; transition:transform 0.15s; }
+.factie-band-details[open] .factie-band-summary::before { transform:rotate(90deg); }
+.factie-band-summary-titel { display:inline-flex; align-items:center; gap:6px; font-size:0.74rem; letter-spacing:0.05em; text-transform:uppercase; }
+.factie-band-summary-titel svg { width:14px; height:14px; }
+.factie-band-chips { display:inline-flex; gap:6px; flex-wrap:wrap; }
+.factie-band-chip {
+  font-family:'Crimson Text',serif; font-size:0.78rem; color:var(--color-ink-medium);
+  background:rgba(196,168,122,0.14); border:1px solid rgba(196,168,122,0.3);
+  border-radius:999px; padding:1px 9px;
+}
+.factie-band-chip--hout   { background:rgba(90,66,38,0.16); border-color:rgba(122,90,48,0.45); }
+.factie-band-chip--metaal { background:rgba(184,167,102,0.20); border-color:rgba(216,191,99,0.5); }
+.factie-band-chip--staal  { background:rgba(58,63,72,0.14); border-color:rgba(122,42,42,0.45); }
+
+.factie-band-details:not([open]) .factie-band { display:none !important; }
+.factie-band { display:flex; gap:16px; flex-wrap:wrap; padding:8px 24px 4px; }
 .factie-ladder { flex:1; min-width:240px; max-width:330px; border-radius:10px; padding:12px 14px; border:1px solid rgba(0,0,0,0.3); box-shadow:0 2px 10px rgba(0,0,0,0.28); }
 .factie-ladder-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
 .factie-ladder-embleem { font-size:1.3rem; }
