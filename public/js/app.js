@@ -263,6 +263,14 @@ function switchSection(section) {
   if (dienstenNavBtn) dienstenNavBtn.classList.toggle('active', ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo'].includes(section));
 
   $$('.section').forEach(s => s.classList.toggle('active', s.id === `section-${section}`));
+  // Eenmalige kaart-entree-animatie bij het openen van een sectie (niet bij zoeken/
+  // filteren — die renderen zonder deze klasse). CSS: .section-cards-enter .entity-card.
+  const _secEl = document.getElementById(`section-${section}`);
+  if (_secEl) {
+    _secEl.classList.add('section-cards-enter');
+    clearTimeout(window._secEnterT);
+    window._secEnterT = setTimeout(() => _secEl.classList.remove('section-cards-enter'), 900);
+  }
   // Verberg de floating reveal-strip in de Meesterkamer (die heeft eigen ruimte)
   const revealStrip = document.getElementById('dm-reveal-strip');
   if (revealStrip && revealStrip.classList.contains('dm-reveal-strip--visible')) {
