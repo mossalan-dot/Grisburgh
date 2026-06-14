@@ -269,7 +269,7 @@ function switchSection(section) {
   if (_secEl) {
     _secEl.classList.add('section-cards-enter');
     clearTimeout(window._secEnterT);
-    window._secEnterT = setTimeout(() => _secEl.classList.remove('section-cards-enter'), 900);
+    window._secEnterT = setTimeout(() => _secEl.classList.remove('section-cards-enter'), 1300);
   }
   // Verberg de floating reveal-strip in de Meesterkamer (die heeft eigen ruimte)
   const revealStrip = document.getElementById('dm-reveal-strip');
@@ -302,7 +302,10 @@ function switchSection(section) {
   };
   const accentBar = document.getElementById('section-accent-bar');
   if (accentBar) {
-    accentBar.style.background = SECTION_COLORS[section] || 'rgba(196,168,122,0.35)';
+    const _accentCol = SECTION_COLORS[section] || 'rgba(196,168,122,0.35)';
+    accentBar.style.background = _accentCol;
+    // Voedt ook de zachte sectie-lichtgloed (.section-accent-bar::after).
+    accentBar.style.setProperty('--section-color', _accentCol);
   }
 
   refreshSection(section);

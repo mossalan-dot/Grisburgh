@@ -544,18 +544,18 @@ body::before {
   from { opacity: 0; transform: translateY(10px) scale(0.985); }
   to   { opacity: 1; transform: none; }
 }
-.section-cards-enter .entity-card { animation: cardIn 0.42s cubic-bezier(.2,.7,.3,1) both; }
+.section-cards-enter .entity-card { animation: cardIn 0.6s cubic-bezier(.2,.7,.3,1) both; }
 .section-cards-enter .entity-card:nth-child(1)  { animation-delay: 0s; }
-.section-cards-enter .entity-card:nth-child(2)  { animation-delay: .03s; }
-.section-cards-enter .entity-card:nth-child(3)  { animation-delay: .06s; }
-.section-cards-enter .entity-card:nth-child(4)  { animation-delay: .09s; }
-.section-cards-enter .entity-card:nth-child(5)  { animation-delay: .12s; }
-.section-cards-enter .entity-card:nth-child(6)  { animation-delay: .15s; }
-.section-cards-enter .entity-card:nth-child(7)  { animation-delay: .18s; }
-.section-cards-enter .entity-card:nth-child(8)  { animation-delay: .21s; }
-.section-cards-enter .entity-card:nth-child(9)  { animation-delay: .24s; }
-.section-cards-enter .entity-card:nth-child(10) { animation-delay: .27s; }
-.section-cards-enter .entity-card:nth-child(n+11) { animation-delay: .30s; }
+.section-cards-enter .entity-card:nth-child(2)  { animation-delay: .055s; }
+.section-cards-enter .entity-card:nth-child(3)  { animation-delay: .11s; }
+.section-cards-enter .entity-card:nth-child(4)  { animation-delay: .165s; }
+.section-cards-enter .entity-card:nth-child(5)  { animation-delay: .22s; }
+.section-cards-enter .entity-card:nth-child(6)  { animation-delay: .275s; }
+.section-cards-enter .entity-card:nth-child(7)  { animation-delay: .33s; }
+.section-cards-enter .entity-card:nth-child(8)  { animation-delay: .385s; }
+.section-cards-enter .entity-card:nth-child(9)  { animation-delay: .44s; }
+.section-cards-enter .entity-card:nth-child(10) { animation-delay: .495s; }
+.section-cards-enter .entity-card:nth-child(n+11) { animation-delay: .55s; }
 @media (prefers-reduced-motion: reduce) {
   .section-cards-enter .entity-card { animation: none; }
 }
@@ -3176,6 +3176,25 @@ body::before {
   background: var(--section-color, rgba(196,168,122,0.35));
   transition: background 0.3s ease;
   flex-shrink: 0;
+  position: relative;
+}
+/* Zachte, kleur-per-sectie lichtgloed die vanaf de accentbalk over de sectie
+   waaiert — "gekleurd licht van bovenaf". Subtiel; kaarten/controls zijn opaak
+   en bedekken 'm, dus alleen de perkamentruimte ertussen kleurt licht mee. */
+.section-accent-bar::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 160px;
+  background: linear-gradient(to bottom, var(--section-color, transparent), transparent 85%);
+  opacity: 0.35;
+  pointer-events: none;
+  transition: background 0.4s ease, opacity 0.4s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-accent-bar::after { transition: none; }
 }
 
 /* ── Desktop: nav-tabs mag overflow tonen (voor Archief-dropdown) ── */
