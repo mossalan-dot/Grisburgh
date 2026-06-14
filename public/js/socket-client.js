@@ -577,19 +577,10 @@ export function initSocket() {
     }
   });
 
-  // ── Undo toast bij verwijderde entiteit ──
-  socket.on('entity:trashed', ({ type, id, name } = {}) => {
-    if (!window.app?.isDM?.()) return;
-    _showToast(
-      `🗑 <strong>${name}</strong> verwijderd — <u style="cursor:pointer">↩ Ongedaan</u>`,
-      async () => {
-        try {
-          await window.api?.restoreEntity?.(id);
-        } catch { /* ok */ }
-      },
-      8000
-    );
-  });
+  // Verwijdering wordt al afgehandeld via 'entity:updated' (view-refresh) + de
+  // lokale undo-toast (_showUndoToast in render-campagne.js) op de client die
+  // verwijdert. Géén aparte 'entity:trashed'-toast meer — die dupliceerde de
+  // melding op de verwijderende DM (en gebruikte een emoji).
 
   // ── Campagnewisseling ──
   socket.on('campaign:switched', ({ id, meta } = {}) => {

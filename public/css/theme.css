@@ -858,15 +858,6 @@ body::before {
     0 3px 8px rgba(60,40,10,0.12),
     inset 0 0 0 1px rgba(255,255,255,0.22);
 }
-/* Duidelijke "Vaag"-vlag op een vage kaart (alleen DM) */
-.card-vague-flag {
-  position: absolute; top: 6px; left: 6px; z-index: 30;
-  font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-  color: #3a2a08; background: linear-gradient(to bottom, #e6c869, #c4930a);
-  padding: 2px 7px; border-radius: 999px; box-shadow: 0 1px 3px rgba(60,40,10,0.4);
-  display: inline-flex; align-items: center; gap: 3px;
-}
-.card-vague-flag svg { width: 10px; height: 10px; }
 
 .card-accent { height: 7px; flex-shrink: 0; }
 /* card-body grows to fill available space, pushing flavour to the bottom */
