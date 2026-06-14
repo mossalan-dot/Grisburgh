@@ -1124,8 +1124,18 @@ body::before {
   background-size: cover;
   background-position: center;
   filter: blur(14px) brightness(0.42) saturate(1.35);
-  transform: scale(1.1);
+  transform: scale(1.12);
   z-index: 0;
+  /* Trage cinematische drift — de wazige vulling 'leeft', als een schilderij
+     in fakkellicht. Subtiel, lang, heen-en-weer. */
+  animation: heroDrift 26s ease-in-out infinite alternate;
+}
+@keyframes heroDrift {
+  from { transform: scale(1.12) translate(-1.5%, -1%); }
+  to   { transform: scale(1.2)  translate(1.5%, 1.5%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-hero-bg { animation: none; transform: scale(1.12); }
 }
 .detail-hero-rol {
   position: absolute;
