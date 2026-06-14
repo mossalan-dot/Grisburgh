@@ -1414,12 +1414,15 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // Armor AC pill — berekend voor hero-overlay en chips-sectie
   const _detailDexMod = (typeof window._playerDexMod === 'number') ? window._playerDexMod : null;
   const _detailAcResult = (tab === 'voorwerpen' && e.data?.armorType) ? _calcArmorAC(e.data, _detailDexMod) : null;
+  const _rolVal = e.data?.rol;
+  let _rolInHero = false;
   if (_extraImgs.length > 0) {
     const _allImgs = [{ id: e.id, caption: _primaryCaption }, ..._extraImgs];
     infoHtml += _entityCarouselHtml(e.id, _allImgs);
   } else {
     infoHtml += `
-      <div class="detail-hero mb-6" id="detail-img-wrap-${e.id}" onclick="window.app.openLightbox('${fileUrl}','${escJS(e.name)}')">
+      <div class="detail-hero detail-hero--portret mb-6" id="detail-img-wrap-${e.id}" onclick="window.app.openLightbox('${fileUrl}','${escJS(e.name)}')">
+        <div class="detail-hero-bg" style="background-image:url('${fileUrl}')"></div>
         <img src="${fileUrl}" class="detail-hero-img"
           style="${_d.imgFocus ? `object-position:${_d.imgFocus}` : ''}"
           onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
@@ -1428,16 +1431,18 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           ? `<span class="detail-hero-ac-badge" data-wptip="${escJS(_detailAcResult.tooltip)}">${esc(_detailAcResult.pill)}</span>`
           : `<div class="detail-hero-icon">${getAutoIconSvg(tab, e)}</div>`}
         ${_heroBadge ? `<div class="detail-hero-badge badge ${_heroBadge.cls}">${esc(_heroBadge.label)}</div>` : ''}
+        ${_rolVal ? `<div class="detail-hero-rol">${esc(_rolVal)}</div>` : ''}
       </div>
       ${_primaryCaption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(_primaryCaption)}</p>` : ''}
     `;
+    if (_rolVal) _rolInHero = true;
   }
 
   // Upload en audio-beheer staan in de bewerkmodus (openEditor), niet in de detailview
 
-  // Rol badge
+  // Rol badge — alleen los tonen als 'ie niet al als overlay op het beeld staat
   const rolVal = e.data?.rol;
-  if (rolVal) {
+  if (rolVal && !_rolInHero) {
     infoHtml += `<div class="text-center mb-4"><span class="detail-role-badge">${esc(rolVal)}</span></div>`;
   }
 
@@ -1562,7 +1567,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (persVal && isDM()) {
     infoHtml += `
       <div class="dm-only mb-4">
-        <div class="detail-field-label">\ud83c\udfad Persoonlijkheid</div>
+        <div class="detail-field-label">Persoonlijkheid</div>
         <div class="detail-dm-block">${mdToHtml(persVal)}</div>
       </div>
     `;

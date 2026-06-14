@@ -1063,22 +1063,26 @@ body::before {
     0 6px 24px rgba(60,40,10,0.28);
 }
 .detail-hero-img {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-height: 260px;
+  max-height: 340px;
   object-fit: contain;
-  background: #f5edd8; /* perkamentkleur op de zijvlakken */
+  background: transparent; /* lege randen worden gevuld door .detail-hero-bg */
   display: block;
 }
 .detail-hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(25,12,3,0.55) 0%, rgba(25,12,3,0.12) 35%, transparent 60%);
+  z-index: 2;
+  background: linear-gradient(to top, rgba(25,12,3,0.62) 0%, rgba(25,12,3,0.14) 38%, transparent 62%);
   pointer-events: none;
 }
 .detail-hero-badge {
   position: absolute;
-  bottom: 10px;
+  top: 10px;
   left: 12px;
+  z-index: 3;
   font-size: 9.5px;
   font-family: 'Cinzel', serif;
   font-weight: 700;
@@ -1100,10 +1104,26 @@ body::before {
   transform: scale(1.1);
   z-index: 0;
 }
+.detail-hero-rol {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  right: 12px;
+  z-index: 3;
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #f7eccb;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+  pointer-events: none;
+  line-height: 1.15;
+}
 .detail-hero-icon {
   position: absolute;
   top: 10px;
   right: 12px;
+  z-index: 3;
   font-size: 1.6rem;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.55));
   pointer-events: none;
@@ -1395,7 +1415,7 @@ body::before {
   position: absolute;
   top: 10px;
   right: 12px;
-  z-index: 2;
+  z-index: 3;
   font-family: 'Cinzel', serif;
   font-size: 11px;
   font-weight: 700;
