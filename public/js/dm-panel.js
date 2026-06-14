@@ -105,6 +105,7 @@ let _rbTitle      = '';        // weergavetitel
 let _rbFilter     = 'all';     // 'all' | 'image' | 'entity' | 'encounter'
 let _rbRevealed   = new Set(); // item-IDs die al onthuld zijn (session-local)
 let _rbMinimized  = false;
+let _rbSecretIds  = new Set(); // entity-IDs in deze akte die een geheim hebben
 
 // ── Spreuken state ──
 let _spellList   = null;   // null = not yet loaded, [] = loaded (possibly empty)
@@ -305,6 +306,9 @@ export function initDmPanel() {
     // Regie-balk
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
+    regieBalkRevealVague:    (id) => _revealRegieBalkItem(id, 'vague'),
+    regieBalkRevealSecret:   (id) => _revealRegieBalkSecretItem(id),
+    regieBalkRevealNext:     () => _revealRegieBalkNext(),
     regieBalkFilter:         (f) => { _rbFilter = f; _renderRegieBalk(); },
     regieBalkClose() {
       _rbScript = []; _rbChapter = null; _rbMinimized = false;
@@ -1583,6 +1587,17 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
     // Fallback naar gecachte meta
     _rbScript = window.app?.state?.meta?.hoofdstukken?.[chapterKey]?.script || [];
   }
+  // Markeer welke entity-items een geheim hebben → bepaalt de 'Geheim'-knop.
+  _rbSecretIds = new Set();
+  try {
+    const entTypes = [...new Set(_rbScript.filter(x => x.type === 'entity' && x.entityType && x.entityType !== 'documenten').map(x => x.entityType))];
+    const lists = await Promise.all(entTypes.map(t => api.listEntities(t).catch(() => [])));
+    for (const list of lists) {
+      for (const e of (list || [])) {
+        if ((e.data?.geheim || '').trim()) _rbSecretIds.add(e.id);
+      }
+    }
+  } catch { /* ok */ }
   _renderRegieBalk();
 };
 
@@ -1618,6 +1633,24 @@ function _renderRegieBalkItem(item) {
     thumbHtml = `<div class="dm-rb-item-entity-thumb ${cls}">${entityIcon}</div>`;
   }
 
+  // Onthul-acties. Entiteiten krijgen meerdere modi (volledig/vaag/geheim) en
+  // blijven bedienbaar na een reveal zodat de DM kan opschalen (vaag → volledig
+  // → geheim). Overige items (afbeelding/encounter/dungeon) houden één reveal.
+  const isEntity   = item.type === 'entity' && item.entityType !== 'documenten';
+  const canVague   = isEntity && (item.entityType === 'personages' || item.entityType === 'locaties');
+  const hasSecret  = isEntity && _rbSecretIds.has(item.entityId);
+  let actions;
+  if (isEntity) {
+    actions = `
+      ${canVague ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--vaag" onclick="window.dmPanel.regieBalkRevealVague('${esc(item.id)}')" title="Vaag onthullen">${icon('eye-off')}</button>` : ''}
+      <button class="dm-rb-reveal-btn dm-rb-reveal-btn--vol" onclick="window.dmPanel.regieBalkReveal('${esc(item.id)}')" title="Volledig onthullen">${icon('eye')}</button>
+      ${hasSecret ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--geheim" onclick="window.dmPanel.regieBalkRevealSecret('${esc(item.id)}')" title="Geheim onthullen">${icon('lock')}</button>` : ''}`;
+  } else {
+    actions = !revealed
+      ? `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkReveal('${esc(item.id)}')" title="Onthul">${icon('play')}</button>`
+      : '';
+  }
+
   return `<div class="dm-rb-item${revealed ? ' dm-rb-item--revealed' : ''}">
     <div class="dm-rb-item-thumb-wrap">
       ${thumbHtml}
@@ -1626,9 +1659,7 @@ function _renderRegieBalkItem(item) {
     <div class="dm-rb-item-foot">
       <span class="dm-rb-item-icon">${typeIcon}</span>
       <span class="dm-rb-item-name" title="${esc(name)}">${esc(name)}</span>
-      ${!revealed
-        ? `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkReveal('${esc(item.id)}')" title="Onthul">${icon('play')}</button>`
-        : ''}
+      <span class="dm-rb-item-actions">${actions}</span>
     </div>
   </div>`;
 };
@@ -1673,7 +1704,7 @@ function _renderRegieBalk() {
       <div class="dm-regie-balk-header">
         <div class="dm-regie-balk-header-left">
           <span class="dm-regie-balk-akte-label">${icon('clipboard-list')} ${esc(_rbTitle)}</span>
-          ${totalCount > 0 ? `<span class="dm-rb-progress">${revealedCount}/${totalCount}</span>` : ''}
+          ${totalCount > 0 ? `<button class="dm-rb-progress dm-rb-progress--btn" onclick="window.dmPanel.regieBalkRevealNext()" title="Volgende onthullen" ${revealedCount >= totalCount ? 'disabled' : ''}>${revealedCount}/${totalCount} ${icon('chevron-right')}</button>` : ''}
           <div class="dm-regie-balk-filters">
             ${FILTER_TABS.map(t => `
               <button class="dm-regie-balk-filter${_rbFilter === t.key ? ' active' : ''}"
@@ -1695,6 +1726,16 @@ function _renderRegieBalk() {
           }</div>
           <button class="dm-regie-balk-btn dm-rb-combat-btn${_combat?.active ? '' : ' hidden'}" id="dm-rb-combat-btn"
             onclick="window.dmPanel.combatExpand()" title="Gevecht uitklappen">${icon('stiletto',{cls:'icon-gi'})}</button>
+          <span class="dm-rb-sep"></span>
+          <div class="dm-rb-rust" title="Party-brede rust — kies locatie + lange/korte rust">
+            <button class="dm-regie-balk-btn dm-rust-loc-btn${(window._dmRustLocatie || 'veld') === 'veld' ? ' is-actief' : ''}" data-loc="veld"
+              onclick="window._dmRustKiesLoc('veld')" title="In het veld">${icon('tree-pine')}</button>
+            <button class="dm-regie-balk-btn dm-rust-loc-btn${(window._dmRustLocatie || 'veld') === 'herberg' ? ' is-actief' : ''}" data-loc="herberg"
+              onclick="window._dmRustKiesLoc('herberg')" title="${esc(window.app?.state?.meta?.herberg?.naam || 'De herberg')}">${icon('beer')}</button>
+            <button class="dm-regie-balk-btn" onclick="window._dmRust('long')" title="Lange rust">${icon('moon')}</button>
+            <button class="dm-regie-balk-btn" onclick="window._dmRust('short')" title="Korte rust">${icon('zap')}</button>
+          </div>
+          <span class="dm-rb-sep"></span>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')}</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkToggleMinimize()" title="Minimaliseren">−</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkClose()" title="Sluiten">${icon('x')}</button>
@@ -1749,7 +1790,7 @@ function _rbInitDrag() {
   });
 };
 
-async function _revealRegieBalkItem(itemId) {
+async function _revealRegieBalkItem(itemId, mode = 'visible') {
   const item = _rbScript.find(x => x.id === itemId);
   if (!item) return;
   // Optimistic UI update
@@ -1763,7 +1804,8 @@ async function _revealRegieBalkItem(itemId) {
       if (item.entityType === 'documenten') {
         await api.setArchiefState(item.entityId, 'visible');
       } else {
-        await api.toggleVisibility(item.entityType, item.entityId, 'visible');
+        // mode = 'visible' (volledig) of 'vague' (vaag, alleen personages/locaties).
+        await api.toggleVisibility(item.entityType, item.entityId, mode === 'vague' ? 'vague' : 'visible');
       }
     } else if (item.type === 'encounter') {
       await api.startEncounter(item.encounterId);
@@ -1786,6 +1828,23 @@ async function _revealRegieBalkItem(itemId) {
     console.error('Regie-balk reveal failed', err);
   }
 };
+
+// Onthul het geheim van een entity-item (los van de zichtbaarheid van het kaartje).
+async function _revealRegieBalkSecretItem(itemId) {
+  const item = _rbScript.find(x => x.id === itemId);
+  if (!item || item.type !== 'entity' || !item.entityType) return;
+  try {
+    await api.toggleSecret(item.entityType, item.entityId);
+  } catch (err) {
+    console.error('Regie-balk geheim-reveal failed', err);
+  }
+};
+
+// Onthul het eerstvolgende nog niet-onthulde item (volledig).
+function _revealRegieBalkNext() {
+  const next = _rbScript.find(x => !_rbRevealed.has(x.id));
+  if (next) _revealRegieBalkItem(next.id);
+}
 
 // ── Namen ──
 
@@ -5950,34 +6009,34 @@ async function _renderRust() {
         <span id="rust-save-status" style="font-size:11px;color:#6a9050"></span>
       </div>
     </div>`;
+};
 
-  window._dmRustLocatie = window._dmRustLocatie || 'veld';
-  window._dmRustKiesLoc = function(l) {
-    window._dmRustLocatie = l;
-    document.querySelectorAll('.dm-rust-loc-btn').forEach(b => b.classList.toggle('is-actief', b.dataset.loc === l));
-  };
-
-  window._dmRust = async function(type) {
-    const statusEl = document.getElementById('dm-rust-status');
-    const locatie = window._dmRustLocatie || 'veld';
-    if (statusEl) statusEl.textContent = '…';
-    try {
-      if (type === 'short') {
-        const r = await api.partyShortRest({ locatie });
-        if (statusEl) statusEl.textContent = `✓ Korte rust uitgevoerd voor ${r.spelers} speler(s)`;
-      } else {
-        const r = await api.partyLongRest({ locatie });
-        let msg = `✓ Lange rust (${r.resetCount} charges herladen`;
-        if (r.kosten) msg += `, ${r.kosten.totaal.fl} fl. ${r.kosten.totaal.kn} kn. afgeschreven`;
-        if (r.roddelsOnthuld) msg += `, ${r.roddelsOnthuld} roddels onthuld`;
-        msg += ')';
-        if (statusEl) statusEl.textContent = msg;
-      }
-      if (statusEl) setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 8000);
-    } catch(err) {
-      if (statusEl) statusEl.textContent = 'Fout: ' + (err.message || '?');
+// ── Gedeelde rust-helpers (Rust-tab én regie-balk gebruiken deze) ──
+window._dmRustLocatie = window._dmRustLocatie || 'veld';
+window._dmRustKiesLoc = function(l) {
+  window._dmRustLocatie = l;
+  document.querySelectorAll('.dm-rust-loc-btn').forEach(b => b.classList.toggle('is-actief', b.dataset.loc === l));
+};
+window._dmRust = async function(type) {
+  const statusEl = document.getElementById('dm-rust-status');
+  const locatie = window._dmRustLocatie || 'veld';
+  if (statusEl) statusEl.textContent = '…';
+  try {
+    if (type === 'short') {
+      const r = await api.partyShortRest({ locatie });
+      if (statusEl) statusEl.textContent = `✓ Korte rust uitgevoerd voor ${r.spelers} speler(s)`;
+    } else {
+      const r = await api.partyLongRest({ locatie });
+      let msg = `✓ Lange rust (${r.resetCount} charges herladen`;
+      if (r.kosten) msg += `, ${r.kosten.totaal.fl} fl. ${r.kosten.totaal.kn} kn. afgeschreven`;
+      if (r.roddelsOnthuld) msg += `, ${r.roddelsOnthuld} roddels onthuld`;
+      msg += ')';
+      if (statusEl) statusEl.textContent = msg;
     }
-  };
+    if (statusEl) setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 8000);
+  } catch(err) {
+    if (statusEl) statusEl.textContent = 'Fout: ' + (err.message || '?');
+  }
 };
 
 // ── Detail-panel: klik op portret ────────────────────────────────────────────

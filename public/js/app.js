@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=37';
 import { renderBestiarium } from './render-bestiarium.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=40";
-import { initDmPanel } from "./dm-panel.js?v=98";
+import { initDmPanel } from "./dm-panel.js?v=99";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.

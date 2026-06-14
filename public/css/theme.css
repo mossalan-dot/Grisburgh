@@ -3622,6 +3622,35 @@ body::before {
   transition: background 0.15s;
 }
 .dm-rb-reveal-btn:hover { background: var(--color-gold, #b8860b); }
+.dm-rb-reveal-btn .icon { width: 12px; height: 12px; vertical-align: middle; }
+/* Onthul-modi per entity-item */
+.dm-rb-item-actions { display: inline-flex; gap: 3px; flex-shrink: 0; }
+.dm-rb-reveal-btn--vaag   { background: var(--blue-ink, #2a5a8a); }
+.dm-rb-reveal-btn--vaag:hover { background: #3a6aa0; }
+.dm-rb-reveal-btn--geheim { background: var(--seal, #8b2a2a); }
+.dm-rb-reveal-btn--geheim:hover { background: #a83434; }
+
+/* Regie-balk header: scheidingsstreepje, klikbare voortgang, rust-snelacties */
+.dm-rb-sep {
+  width: 1px; align-self: stretch; margin: 4px 3px;
+  background: rgba(196, 168, 122, 0.4); flex-shrink: 0;
+}
+.dm-rb-progress--btn {
+  display: inline-flex; align-items: center; gap: 2px; cursor: pointer;
+  background: none; border: 1px solid rgba(196, 168, 122, 0.4); border-radius: 100px;
+  padding: 1px 8px; transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.dm-rb-progress--btn .icon { width: 11px; height: 11px; }
+.dm-rb-progress--btn:hover:not(:disabled) {
+  background: var(--color-gold-dim, #9a7008); border-color: var(--color-gold-dim, #9a7008);
+  color: var(--color-room-bg, #f5edd8);
+}
+.dm-rb-progress--btn:disabled { opacity: 0.5; cursor: default; }
+.dm-rb-rust { display: inline-flex; align-items: center; gap: 2px; }
+.dm-regie-balk-btn.dm-rust-loc-btn.is-actief {
+  color: var(--color-room-bg, #f5edd8);
+  background: var(--color-gold-dim, #9a7008);
+}
 
 /* ── Logboek: akte script-sectie ── */
 /* ── Regie-script: geluid per reveal-item ── */
