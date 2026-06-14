@@ -5073,6 +5073,7 @@ function _renderFactiesDM() {
     <div class="dm-feature-section">
       <div class="dm-section-label">Facties &amp; Aanzien</div>
       <p class="dm-form-label" style="opacity:.7;margin-bottom:10px">Stel per factie de zichtbaarheid in en pas het renown aan. Spelers zien een factie pas als de DM die onthuld heeft.</p>
+      <datalist id="factie-pers-dl">${[..._factiesPersonages].sort((a,b)=>a.name.localeCompare(b.name)).map(o => `<option value="${esc(o.name)}"></option>`).join('')}</datalist>
       ${_factiesDraft.map((f, fi) => {
         const live = _factiesLiveData.find(x => x.id === f.id) || {};
         const renown = live.renown ?? 0;
@@ -5146,11 +5147,9 @@ function _renderFactiesDM() {
               <p class="dm-hint" style="margin:0 0 6px">Kies personages als lid. De rol komt automatisch uit het personage; de rang bepaalt de groepering (leeg = onder "Leden"). Volgorde = hiërarchie. Spelers zien alleen leden waarvan het personage zichtbaar is.</p>
               <div id="factie-leden-${fi}">${_ledenEditor(fi, f.leden || [])}</div>
               <div class="dm-form-row" style="flex-direction:row;gap:6px;margin-top:4px;align-items:center">
-                <select class="dm-select" id="factie-lid-add-${fi}" style="flex:1">
-                  <option value="">— kies personage —</option>
-                  ${[..._factiesPersonages].sort((a,b)=>a.name.localeCompare(b.name)).map(o =>
-                    `<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}
-                </select>
+                <input class="dm-input dm-input-sm" id="factie-lid-add-${fi}" style="flex:1" list="factie-pers-dl"
+                  placeholder="Zoek personage…" autocomplete="off"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();window._factieLidAdd(${fi});}">
                 <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._factieLidAdd(${fi})">${icon('plus')} Toevoegen</button>
               </div>
 
@@ -5264,14 +5263,18 @@ function _ledenHerteken(fi) {
   if (c) c.innerHTML = _ledenEditor(fi, _factiesDraft[fi]?.leden || []);
 }
 window._factieLidAdd = (fi) => {
-  const sel = document.getElementById(`factie-lid-add-${fi}`);
-  const id = sel?.value;
+  const inp = document.getElementById(`factie-lid-add-${fi}`);
   const f = _factiesDraft[fi];
-  if (!id || !f) return;
+  if (!inp || !f) return;
+  const naam = (inp.value || '').trim();
+  if (!naam) return;
+  // Resolveer de getypte/gekozen naam naar een personage-id (datalist-zoekveld).
+  const p = _factiesPersonages.find(x => x.name.toLowerCase() === naam.toLowerCase());
+  if (!p) { inp.classList.add('dm-input--err'); setTimeout(() => inp.classList.remove('dm-input--err'), 1200); return; }
   if (!Array.isArray(f.leden)) f.leden = [];
-  if (f.leden.some(l => l.entityId === id)) { sel.value = ''; return; }  // geen duplicaten
-  f.leden.push({ entityId: id, rang: '' });
-  sel.value = '';
+  if (f.leden.some(l => l.entityId === p.id)) { inp.value = ''; return; }  // geen duplicaten
+  f.leden.push({ entityId: p.id, rang: '' });
+  inp.value = '';
   _ledenHerteken(fi);
 };
 window._factieLidRemove = (fi, li) => { const f = _factiesDraft[fi]; if (!f?.leden) return; f.leden.splice(li, 1); _ledenHerteken(fi); };

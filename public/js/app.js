@@ -1,5 +1,5 @@
 import { api } from './api.js?v=238';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=103";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=104";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=48";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=12';
 import { renderDungeon } from './render-dungeon.js?v=25';
@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=37';
 import { renderBestiarium } from './render-bestiarium.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=40";
-import { initDmPanel } from "./dm-panel.js?v=99";
+import { initDmPanel } from "./dm-panel.js?v=100";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.

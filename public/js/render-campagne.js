@@ -178,10 +178,10 @@ const SCHEMA = {
       { key: '_chargesToggle', label: 'Heeft charges', type: 'reveal-toggle' },
       { key: 'maxCharges', label: 'Max. charges', type: 'text', inReveal: '_chargesToggle' },
       { key: 'rechargeOn', label: 'Herlaadt bij', type: 'select', inReveal: '_chargesToggle', options: [
-        { value: 'longRest',     label: '🌙 Lange rust' },
-        { value: 'shortRest',    label: '☀️ Korte rust' },
-        { value: 'dawn',         label: '🌅 Dageraad' },
-        { value: 'longRestRoll', label: '🎲 Lange rust (dobbelrol)' },
+        { value: 'longRest',     label: 'Lange rust' },
+        { value: 'shortRest',    label: 'Korte rust' },
+        { value: 'dawn',         label: 'Dageraad' },
+        { value: 'longRestRoll', label: 'Lange rust (dobbelrol)' },
       ]},
       { key: 'rechargeRoll', label: 'Dobbelformule (bijv. 1d3)', type: 'text', inReveal: '_chargesToggle' },
       { key: 'playerMaxAdjustable', label: 'Max. door spelers in te stellen', type: 'checkbox', inReveal: '_chargesToggle' },
@@ -402,7 +402,7 @@ window._editorAudioSelected = (file) => {
   }
   pendingAudioFile = file;
   const label = document.getElementById('editor-audio-name');
-  if (label) { label.textContent = '🔊 ' + file.name; label.classList.remove('hidden'); }
+  if (label) { label.textContent = file.name; label.classList.remove('hidden'); }
 };
 
 window._editorClearAudio = () => {
@@ -1018,7 +1018,7 @@ window._toggleBookmark = async function(type, id, name) {
   // Toast-melding
   const toast = document.createElement('div');
   toast.className = 'bookmark-toast';
-  toast.textContent = active ? '⭐ Bladwijzer toegevoegd' : '☆ Bladwijzer verwijderd';
+  toast.textContent = active ? '★ Bladwijzer toegevoegd' : '☆ Bladwijzer verwijderd';
   document.body.appendChild(toast);
   setTimeout(() => toast.classList.add('bookmark-toast--visible'), 10);
   setTimeout(() => { toast.classList.remove('bookmark-toast--visible'); setTimeout(() => toast.remove(), 300); }, 2000);
@@ -1874,7 +1874,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       const diff = new Date(geldigTot) - Date.now();
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
-      roterendHtml = `<div class="shop-rotatie-info">🔄 Assortiment ververst over ${h > 0 ? h + 'u ' : ''}${m}m</div>`;
+      roterendHtml = `<div class="shop-rotatie-info">${icon('refresh-cw')} Assortiment ververst over ${h > 0 ? h + 'u ' : ''}${m}m</div>`;
     }
 
     const _shopId = e.id;
@@ -1890,9 +1890,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       </div>` : '';
 
     const kortingBannerHtml = discountPct > 0
-      ? `<div class="shop-korting-banner shop-korting-banner--ok">🎲 ${discountPct}% korting actief!</div>`
+      ? `<div class="shop-korting-banner shop-korting-banner--ok">${icon('dice',{cls:'icon-gi'})} ${discountPct}% korting actief!</div>`
       : discountPct < 0
-        ? `<div class="shop-korting-banner shop-korting-banner--malus">🎲 Prijs ${Math.abs(discountPct)}% hoger</div>`
+        ? `<div class="shop-korting-banner shop-korting-banner--malus">${icon('dice',{cls:'icon-gi'})} Prijs ${Math.abs(discountPct)}% hoger</div>`
         : '';
 
     // ── Inkoop: speler verkoopt voorwerpen aan de winkel ──
@@ -2125,7 +2125,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ...(showSheet ? [{ key: 'sheet', label: 'Character Sheet' }] : []),
     ...(isStapelbaarVoorwerp && isDM() ? [{ key: 'eigenaren', label: 'Eigenaren' }] : []),
     ...(heeftVoorraad ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
-    ...(heeftVoorraad && isDM() ? [{ key: 'log', label: '📋 Log' }] : []),
+    ...(heeftVoorraad && isDM() ? [{ key: 'log', label: 'Log' }] : []),
     ...(isDM() ? [{ key: 'verbindingen', label: 'Verbindingen' }] : []),
   ];
 
@@ -2350,7 +2350,7 @@ window._onderhandelRoll = async (shopId) => {
   const modEl = document.getElementById(`shop-cha-mod-${shopId}`);
   const resultEl = document.getElementById(`shop-onderhandel-result-${shopId}`);
   const modifier = parseInt(modEl?.value) || 0;
-  if (resultEl) { resultEl.classList.remove('hidden'); resultEl.innerHTML = '<span class="shop-onderhandel-loading">🎲 …</span>'; }
+  if (resultEl) { resultEl.classList.remove('hidden'); resultEl.innerHTML = `<span class="shop-onderhandel-loading">${icon('dice',{cls:'icon-gi'})} …</span>`; }
   try {
     const r = await api.onderhandelShop(shopId, { modifier });
     const modStr = r.modifier >= 0 ? `+${r.modifier}` : `${r.modifier}`;
@@ -2582,7 +2582,7 @@ window._editorFileSelected = (file) => {
       zone.style.padding = '4px';
       zone.innerHTML = `<img src="${url}" style="width:100%;height:80px;object-fit:cover;border-radius:4px;display:block"><div class="text-[10px] text-ink-dim mt-1 truncate px-1">${esc(file.name)}</div>`;
     } else {
-      zone.innerHTML = `<div style="font-size:1.5rem">📄</div><div class="text-xs text-ink-dim mt-1 truncate">${esc(file.name)}</div>`;
+      zone.innerHTML = `<div style="font-size:1.5rem">${icon('scroll-text')}</div><div class="text-xs text-ink-dim mt-1 truncate">${esc(file.name)}</div>`;
     }
   }
 };
@@ -2976,7 +2976,7 @@ window._openEditor = async (tab, editId) => {
         </button>
         <!-- Winkelconfig: rotatie-instellingen -->
         <div class="mt-4 pt-3 border-t border-room-border/60">
-          <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-2">🔄 Rotatie-instellingen</div>
+          <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-2">${icon('refresh-cw')} Rotatie-instellingen</div>
           <input type="hidden" name="data_winkelConfig" id="winkelconfig-hidden" value="${esc(e?.data?.winkelConfig || '')}">
           <div class="space-y-2">
             <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer">
@@ -3007,7 +3007,7 @@ window._openEditor = async (tab, editId) => {
         </div>
         <!-- Sfeer & Onderhandelen instellingen -->
         <div class="mt-4 pt-3 border-t border-room-border/60">
-          <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-2">🎭 Sfeer & onderhandelen</div>
+          <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-2">Sfeer & onderhandelen</div>
           <div class="space-y-2">
             <div>
               <label class="text-xs text-ink-dim block mb-1">Sfeertekst (bovenaan voorraad)</label>
@@ -3090,7 +3090,7 @@ window._openEditor = async (tab, editId) => {
     body += `
       <details class="cs-accordion"${_hasStats ? ' open' : ''}>
         <summary class="cs-accordion-head">
-          <span>⚔ Character Sheet</span>
+          <span>${icon('swords')} Character Sheet</span>
           <span class="cs-accordion-chevron">▾</span>
         </summary>
         <div class="cs-accordion-body">
@@ -3331,7 +3331,7 @@ window._openEditor = async (tab, editId) => {
               oninput="window._updateVoorraadItem(${idx},'prijs',this.value)"
               class="w-28 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
             <div class="relative flex items-center gap-1">
-              <input list="voorraad-entity-dl" placeholder="🔗 Koppel aan kaartje…"
+              <input list="voorraad-entity-dl" placeholder="Koppel aan kaartje…"
                 value="${esc(entityDisplayName)}"
                 onchange="window._updateVoorraadEntityLink(${idx}, this.value)"
                 title="Koppel aan een bestaand voorwerpkaartje"

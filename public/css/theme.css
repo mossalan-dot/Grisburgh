@@ -3966,6 +3966,7 @@ body::before {
   min-width: 0;
 }
 .dm-input:focus { outline: none; border-color: #9a7008; }
+.dm-input--err { border-color: var(--seal, #8b2a2a) !important; box-shadow: 0 0 0 2px rgba(139,42,42,0.25); }
 .dm-input-sm { padding: 4px 6px; font-size: 12px; }
 .dm-textarea {
   background: rgba(255,255,255,0.55);
