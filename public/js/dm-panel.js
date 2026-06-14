@@ -389,6 +389,7 @@ function _buildTabs() {
   const activeParent = _tabToParent(_activeTab);
   container.innerHTML = `
     <button class="dm-tab-btn${activeParent==='gevecht'  ?' active':''}" data-tab="gevecht"   onclick="window.dmPanel.switchTab('gevecht')"   title="Gevecht & Monsters">${icon('crossed-swords',{cls:'icon-gi'})}</button>
+    <button class="dm-tab-btn${activeParent==='rust'     ?' active':''}" data-tab="rust"      onclick="window.dmPanel.switchTab('rust')"      title="Rust — lange & korte rust">${icon('moon')}</button>
     <button class="dm-tab-btn${activeParent==='aktes'    ?' active':''}" data-tab="aktes"     onclick="window.dmPanel.switchTab('aktes')"     title="Aktes — voorbereiding & regie">${icon('clipboard-list')}</button>
     <button class="dm-tab-btn${activeParent==='geluiden' ?' active':''}" data-tab="geluiden"  onclick="window.dmPanel.switchTab('geluiden')"  title="Geluiden">${icon('volume-2')}</button>
     <button class="dm-tab-btn${activeParent==='spreuken' ?' active':''}" data-tab="spreuken"  onclick="window.dmPanel.switchTab('spreuken')"  title="Spreuken">${icon('open-book',{cls:'icon-gi'})}</button>
@@ -420,6 +421,7 @@ function _switchTab(tab) {
     c.classList.toggle('active', c.dataset.tab === parentTab);
   });
 
+  if (tab === 'rust')      _renderRust();
   if (tab === 'aktes')     _renderAktes();
   if (tab === 'spreuken')  _renderSpreuken();
   if (tab === 'tafels')    _loadAndRenderTafels();
@@ -3698,12 +3700,8 @@ async function _renderHerbergSettings() {
   el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
 
   const config = window.app?.state?.meta?.herberg || {};
-  const rustCfg = window.app?.state?.meta?.rust || {};
   try { _hbPersonages = await api.listEntities('personages'); } catch { _hbPersonages = []; }
-  try { _hbTables = ((await api.listTables())?.tables || []).filter(t => t.type === 'weighted'); } catch { _hbTables = []; }
   _hbPendingBackdropId = null;
-  _rustPendingVeldBg = null;
-  _rustPendingKorteBg = null;
 
   const selectedP = _hbPersonages.find(p => p.id === config.imageId);
 
@@ -3755,51 +3753,6 @@ async function _renderHerbergSettings() {
 
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-primary" onclick="window._hbSave()" title="Opslaan">${icon('save')}</button>
-      </div>
-    </div>
-
-    <div class="dm-feature-section">
-      <div class="dm-section-label">${icon('moon')} Rust — sfeer & gebeurtenissen</div>
-
-      <div class="dm-form-row" style="flex-direction:column;gap:6px">
-        <label class="dm-form-label">Achtergrond — lange rust buiten (veld)</label>
-        ${rustCfg.veldBackdropId ? `<img id="rust-veld-preview" src="${api.fileUrl(rustCfg.veldBackdropId)}"
-          style="width:100%;max-height:90px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : ''}
-        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">📷
-          <input type="file" accept="image/*" class="hidden" onchange="window._rustUploadBg('veld', this.files[0])">
-        </label>
-      </div>
-
-      <div class="dm-form-row" style="flex-direction:column;gap:6px">
-        <label class="dm-form-label">Achtergrond — korte rust</label>
-        ${rustCfg.korteRustBackdropId ? `<img id="rust-korte-preview" src="${api.fileUrl(rustCfg.korteRustBackdropId)}"
-          style="width:100%;max-height:90px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : ''}
-        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">📷
-          <input type="file" accept="image/*" class="hidden" onchange="window._rustUploadBg('korte', this.files[0])">
-        </label>
-        <span class="dm-hint" style="font-size:11px">De herberg gebruikt automatisch zijn eigen achtergrond hierboven.</span>
-      </div>
-
-      <div class="dm-form-row">
-        <label class="dm-form-label">Gebeurtenissen-tabel — lange rust buiten</label>
-        <select id="rust-event-veld" class="dm-select">
-          <option value="">— Geen —</option>
-          ${_hbTables.map(t => `<option value="${esc(t.id)}" ${(rustCfg.veldEventTableId || rustCfg.eventTableId) === t.id ? 'selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
-        </select>
-      </div>
-
-      <div class="dm-form-row">
-        <label class="dm-form-label">Gebeurtenissen-tabel — lange rust herberg</label>
-        <select id="rust-event-herberg" class="dm-select">
-          <option value="">— Geen —</option>
-          ${_hbTables.map(t => `<option value="${esc(t.id)}" ${rustCfg.herbergEventTableId === t.id ? 'selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
-        </select>
-        <span class="dm-hint" style="font-size:11px">Weighted d100-tabel. Valuta-effect per regel: <code>{+3kn}</code> / <code>{-1fl}</code>, optioneel <code>@party</code>.</span>
-      </div>
-
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._rustSave()" title="Rust-instellingen opslaan">${icon('save')}</button>
-        <span id="rust-save-status" style="font-size:11px;color:#6a9050"></span>
       </div>
     </div>`;
 };
@@ -5918,27 +5871,90 @@ function _renderGevecht() {
           onclick="window.dmPanel.combatStart()" ${cs.length === 0 ? 'disabled' : ''} title="Start gevecht">${icon('swords')}</button>
       </div>
     </div>
+  `;
+};
 
-    <div class="dm-feature-section" style="margin-top:4px;border-top:1px solid rgba(196,168,122,0.25);padding-top:12px">
-      <div class="dm-section-label">${icon('moon')} Rust</div>
+// ── Rust (eigen tab) — party-brede lange/korte rust + sfeerconfig ─────────────
+async function _renderRust() {
+  const el = _tabEl('rust');
+  if (!el) return;
+  el.innerHTML = _dmLoading('Laden…');
+  const rustCfg = window.app?.state?.meta?.rust || {};
+  let tables = [];
+  try { tables = ((await api.listTables())?.tables || []).filter(t => t.type === 'weighted'); } catch { tables = []; }
+  _rustPendingVeldBg = null;
+  _rustPendingKorteBg = null;
+  const herbergNaam = window.app?.state?.meta?.herberg?.naam || 'De herberg';
+  const loc = window._dmRustLocatie || 'veld';
+
+  el.innerHTML = `
+    ${_dmTabHead({ icon: 'moon', title: 'Rust', sub: 'party-breed — lange & korte rust', actions: helpBtn('dm_rust') })}
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('moon')} Rust starten</div>
       <div class="dm-rust-locatie" role="group" aria-label="Rustlocatie" style="display:flex;gap:6px;margin-bottom:8px">
-        <button class="dm-btn dm-btn-ghost dm-btn-sm dm-rust-loc-btn is-actief" data-loc="veld"
+        <button class="dm-btn dm-btn-ghost dm-btn-sm dm-rust-loc-btn${loc==='veld'?' is-actief':''}" data-loc="veld"
           onclick="window._dmRustKiesLoc('veld')">${icon('tree-pine')} In het veld</button>
-        <button class="dm-btn dm-btn-ghost dm-btn-sm dm-rust-loc-btn" data-loc="herberg"
-          onclick="window._dmRustKiesLoc('herberg')">${icon('beer')} ${esc(window.app?.state?.meta?.herberg?.naam || 'De herberg')}</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm dm-rust-loc-btn${loc==='herberg'?' is-actief':''}" data-loc="herberg"
+          onclick="window._dmRustKiesLoc('herberg')">${icon('beer')} ${esc(herbergNaam)}</button>
       </div>
       <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
         <button class="dm-btn dm-btn-primary" onclick="window._dmRust('long')" title="Lange rust — party-breed">${icon('moon')} Lange rust</button>
         <button class="dm-btn dm-btn-ghost" onclick="window._dmRust('short')" title="Korte rust — party-breed">${icon('zap')} Korte rust</button>
         <span id="dm-rust-status" style="font-size:11px;color:#6a9050"></span>
       </div>
+      <span class="dm-hint" style="font-size:11px">Party-breed en cinematisch. Lange rust in ${esc(herbergNaam)} schrijft de overnachtingsprijs p.p. af en onthult 2 roddels p.p.</span>
     </div>
-  `;
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${icon('moon')} Sfeer & gebeurtenissen</div>
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrond — lange rust buiten (veld)</label>
+        ${rustCfg.veldBackdropId ? `<img id="rust-veld-preview" src="${api.fileUrl(rustCfg.veldBackdropId)}"
+          style="width:100%;max-height:90px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : ''}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">${icon('camera')}
+          <input type="file" accept="image/*" class="hidden" onchange="window._rustUploadBg('veld', this.files[0])">
+        </label>
+      </div>
+
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Achtergrond — korte rust</label>
+        ${rustCfg.korteRustBackdropId ? `<img id="rust-korte-preview" src="${api.fileUrl(rustCfg.korteRustBackdropId)}"
+          style="width:100%;max-height:90px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : ''}
+        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">${icon('camera')}
+          <input type="file" accept="image/*" class="hidden" onchange="window._rustUploadBg('korte', this.files[0])">
+        </label>
+        <span class="dm-hint" style="font-size:11px">De herberg gebruikt automatisch zijn eigen achtergrond (Diensten → ${esc(herbergNaam)}).</span>
+      </div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Gebeurtenissen-tabel — lange rust buiten</label>
+        <select id="rust-event-veld" class="dm-select">
+          <option value="">— Geen —</option>
+          ${tables.map(t => `<option value="${esc(t.id)}" ${(rustCfg.veldEventTableId || rustCfg.eventTableId) === t.id ? 'selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="dm-form-row">
+        <label class="dm-form-label">Gebeurtenissen-tabel — lange rust herberg</label>
+        <select id="rust-event-herberg" class="dm-select">
+          <option value="">— Geen —</option>
+          ${tables.map(t => `<option value="${esc(t.id)}" ${rustCfg.herbergEventTableId === t.id ? 'selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
+        </select>
+        <span class="dm-hint" style="font-size:11px">Weighted d100-tabel. Valuta-effect per regel: <code>{+3kn}</code> / <code>{-1fl}</code>, optioneel <code>@party</code>.</span>
+      </div>
+
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-primary" onclick="window._rustSave()" title="Rust-instellingen opslaan">${icon('save')}</button>
+        <span id="rust-save-status" style="font-size:11px;color:#6a9050"></span>
+      </div>
+    </div>`;
 
   window._dmRustLocatie = window._dmRustLocatie || 'veld';
-  window._dmRustKiesLoc = function(loc) {
-    window._dmRustLocatie = loc;
-    document.querySelectorAll('.dm-rust-loc-btn').forEach(b => b.classList.toggle('is-actief', b.dataset.loc === loc));
+  window._dmRustKiesLoc = function(l) {
+    window._dmRustLocatie = l;
+    document.querySelectorAll('.dm-rust-loc-btn').forEach(b => b.classList.toggle('is-actief', b.dataset.loc === l));
   };
 
   window._dmRust = async function(type) {

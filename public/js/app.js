@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=37';
 import { renderBestiarium } from './render-bestiarium.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=39";
-import { initDmPanel } from "./dm-panel.js?v=97";
+import { initDmPanel } from "./dm-panel.js?v=98";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -10716,6 +10716,13 @@ Object.assign(HELP_CONFIG, {
       { titel: 'Initiative tracker', tekst: 'Voeg spelers en monsters toe aan het gevecht. Klik op "Start gevecht" om de initiative-ronde te beginnen. Het combat-scherm is zichtbaar voor alle spelers.', afbeelding: null },
       { titel: 'HP beheren', tekst: 'Klik op het HP-getal van een combatant om schade of genezing toe te passen. Gebruik het schildicoon voor tijdelijke HP.', afbeelding: null },
       { titel: 'Monsters toevoegen', tekst: 'Ga naar het subtabblad "Monsters" om monsters uit het bestiarium toe te voegen. Kies een encounter of voeg individuele monsters toe.', afbeelding: null },
+    ],
+  }),
+  dm_rust: () => ({
+    titel: 'Rust (DM)',
+    stappen: [
+      { titel: 'Rust starten', tekst: 'Kies een locatie (in het veld of de herberg) en start een lange of korte rust. De rust is party-breed en toont elke speler een cinematische overlay. Een lange rust in de herberg schrijft de overnachtingsprijs per speler af en onthult 2 roddels per speler.', afbeelding: null },
+      { titel: 'Sfeer & gebeurtenissen', tekst: 'Stel per scenario een achtergrondafbeelding in (veld / korte rust; de herberg gebruikt zijn eigen achtergrond). Koppel een weighted d100-tabel als gebeurtenissen-tabel — elke speler rolt bij een lange rust een eigen voorval, met optioneel een valuta-effect per regel.', afbeelding: null },
     ],
   }),
   dm_aktes: () => ({
