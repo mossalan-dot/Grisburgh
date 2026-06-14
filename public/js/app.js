@@ -10248,8 +10248,8 @@ function _renderFactieInterieur(el, f, missies) {
     const meerdereGroepen = groepen.length > 1 || groepen[0].rang !== '__leden__';
     // De bovenste, benoemde rang-groep krijgt een leider-accent (alleen bij een echte hiërarchie).
     return `
-      <div class="factie-leden-sectie">
-        <div class="factie-missies-label">${icon('users')} Leden</div>
+      <details class="factie-leden-sectie factie-leden-details">
+        <summary class="factie-missies-label factie-leden-summary">${icon('users')} Leden <span class="factie-leden-aantal">${leden.length}</span>${icon('chevron-right', { cls: 'factie-leden-chev' })}</summary>
         ${groepen.map((g, gi) => {
           const isHoofdGroep = meerdereGroepen && gi === 0 && g.rang !== '__leden__';
           return `
@@ -10258,7 +10258,7 @@ function _renderFactieInterieur(el, f, missies) {
             <div class="factie-leden-grid">${g.leden.map(l => _lid(l, isHoofdGroep)).join('')}</div>
           </div>`;
         }).join('')}
-      </div>`;
+      </details>`;
   })();
 
   el.innerHTML = `

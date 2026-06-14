@@ -13630,11 +13630,33 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 .factie-rang-chip .icon { width: 14px; height: 14px; }
 .factie-progress-wrap--interieur { width: 80%; max-width: 280px; }
 .factie-boons--interieur { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+/* De interieur-scene heeft een donkere achtergrond — boon-chips dus licht i.p.v. donkerbruin. */
+.factie-boons--interieur .factie-boon-chip {
+  color: #f4e7c4;
+  background: rgba(184,134,11,0.28);
+  border-color: rgba(230,200,120,0.6);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.factie-boons--interieur .factie-boon-chip--link:hover { background: rgba(230,200,120,0.42); color: #fff6e2; }
+.factie-boons--interieur .factie-boon-chip .icon { opacity: .9; }
 .factie-portret-klikbaar { cursor: pointer; transition: filter 0.15s; }
 .factie-portret-klikbaar:hover { filter: brightness(1.1); }
 
 /* ── Leden in factie-interieur ── */
 .factie-leden-sectie { width: 100%; margin-top: 10px; }
+/* Inklapbaar ledenstuk (native <details>) */
+.factie-leden-summary {
+  cursor: pointer; list-style: none; justify-content: center;
+  user-select: none; padding: 4px 0;
+}
+.factie-leden-summary::-webkit-details-marker { display: none; }
+.factie-leden-aantal {
+  font-family: 'Crimson Text', serif; font-size: .72rem; font-weight: 700;
+  color: #f4e7c4; background: rgba(184,134,11,0.28); border: 1px solid rgba(230,200,120,0.5);
+  border-radius: 999px; padding: 0 7px; line-height: 1.5;
+}
+.factie-leden-chev { width: 13px; height: 13px; transition: transform .18s ease; }
+.factie-leden-details[open] .factie-leden-chev { transform: rotate(90deg); }
 .factie-leden-groep { margin-bottom: 12px; }
 .factie-leden-rang-kop {
   font-family: 'Cinzel', serif; font-size: .72rem; font-weight: 700; text-transform: uppercase;
