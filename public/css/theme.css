@@ -264,6 +264,10 @@ body::before {
   transform: rotate(180deg);
 }
 
+@keyframes menuDrop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
 .archief-menu {
   position: absolute;
   top: calc(100% + 6px);
@@ -278,8 +282,12 @@ body::before {
     0 -1px 0 rgba(120,80,20,0.12) inset;
   min-width: 175px;
   padding: 5px 0;
-  animation: fadeIn 0.15s ease;
+  transform-origin: top center;
+  animation: menuDrop 0.18s cubic-bezier(.2,.8,.3,1);
   overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .archief-menu { animation: none; }
 }
 
 .archief-menu-item {
@@ -2394,8 +2402,10 @@ body::before {
 .dice-fab svg { margin-top: -2px; }
 
 /* Toevoeg-FAB (#fab) krijgt dezelfde warme schaduw als de dobbel-FAB's (was shadow-deep: donker/zwaar) */
-#fab { box-shadow: 0 3px 10px rgba(60,40,10,0.28), 0 1px 3px rgba(60,40,10,0.16); }
-#fab:hover { box-shadow: 0 5px 16px rgba(60,40,10,0.32); }
+#fab { box-shadow: 0 3px 10px rgba(60,40,10,0.28), 0 1px 3px rgba(60,40,10,0.16); transition: box-shadow 0.18s ease, transform 0.12s ease; }
+#fab:hover { box-shadow: 0 5px 16px rgba(60,40,10,0.32); transform: scale(1.06); }
+#fab:active { transform: scale(0.93); }
+@media (prefers-reduced-motion: reduce) { #fab:hover, #fab:active { transform: none; } }
 
 /* Panel — spelers */
 .dice-panel {
