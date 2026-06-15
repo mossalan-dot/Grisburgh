@@ -6045,13 +6045,15 @@ async function renderMijnKarakter(opts = {}) {
                     value="${_ab(ab)}"
                     onblur="window._saveAbilityScore('${ab}', this.value)">
                   <div class="player-ability-mod-wrap">
-                    <span class="player-ability-mod">${_modStr(ab)}</span>
+                    <span class="player-ability-mod player-roll" title="Rol ${_AB_LABELS[ab]}-check"
+                      onclick="window.dice?.rollFormula('1d20${_mod(ab) >= 0 ? '+' + _mod(ab) : _mod(ab)} ${_AB_LABELS[ab]} check')">${_modStr(ab)}</span>
                   </div>
                   <button class="player-save-dot${isProf ? ' active' : ''}"
                     onclick="window._toggleSaveProf('${ab}', ${!isProf})"
-                    title="Saving throw: ${saveBonusStr}">
+                    title="Proficiency wisselen">
                   </button>
-                  <span class="player-save-val">${saveBonusStr}</span>
+                  <span class="player-save-val player-roll" title="Rol ${_AB_LABELS[ab]} save"
+                    onclick="window.dice?.rollFormula('1d20${saveBonus >= 0 ? '+' + saveBonus : saveBonus} ${_AB_LABELS[ab]} save')">${saveBonusStr}</span>
                 </div>`;
             }).join('')}
           </div>
@@ -6072,7 +6074,8 @@ async function renderMijnKarakter(opts = {}) {
                   onclick="window._cycleSkillProf('${skill.key}')"
                   title="${prof === 'expert' ? 'Expertise' : prof === 'prof' ? 'Proficient' : 'Geen proficiency'}"></button>
                 <span class="player-skill-bonus${bonusCls}">${bonusStr}</span>
-                <span class="player-skill-name">${skill.label}</span>
+                <span class="player-skill-name player-roll" title="Rol ${skill.label}"
+                  onclick="window.dice?.rollFormula('1d20${bonus >= 0 ? '+' + bonus : bonus} ${skill.label}')">${skill.label}</span>
                 <span class="player-skill-ab">${skill.ab.toUpperCase()}</span>
                 <span class="skill-adj-ctrl">
                   <button class="skill-adj-arrow" onclick="window._adjSkill('${skill.key}', 1)" title="Bonus +1">▲</button>

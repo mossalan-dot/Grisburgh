@@ -9189,6 +9189,9 @@ details.player-dash-collapsible[open] > summary {
 }
 .player-save-dot.active { background: #c8a840; }
 .player-save-val { font-family: 'Cinzel', serif; font-size: 9px; color: #7a5008; font-weight: 700; }
+/* Klik-om-te-rollen op de sheet (ability check / save / skill) */
+.player-roll { cursor: pointer; transition: color 0.12s, text-shadow 0.12s; }
+.player-roll:hover { color: var(--color-gold, #b8860b); text-shadow: 0 0 8px rgba(184,134,11,0.4); }
 
 /* ── Skills ── */
 .player-skills-list {
