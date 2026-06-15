@@ -2569,8 +2569,46 @@ body::before {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 .dice-result.dice-shaking { animation: diceShake 0.35s ease; }
+
+/* Natural 20 — gouden uitbarsting: een uitdijende lichtring + warme gloed. */
+.dice-result.dice-crit-burst { animation: critGlow 0.7s ease-out; }
+.dice-result.dice-crit-burst::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 10px;
+  border: 2px solid rgba(184,134,11,0.9);
+  pointer-events: none;
+  animation: critRing 0.7s ease-out forwards;
+}
+@keyframes critGlow {
+  0%   { box-shadow: 0 0 0 0 rgba(184,134,11,0); }
+  30%  { box-shadow: 0 0 26px 6px rgba(212,168,67,0.55); }
+  100% { box-shadow: 0 0 0 0 rgba(184,134,11,0); }
+}
+@keyframes critRing {
+  0%   { transform: scale(1);    opacity: 0.9; }
+  100% { transform: scale(1.45); opacity: 0; }
+}
+/* Natural 1 — rode huiver: korte schok + rode inval. */
+.dice-result.dice-fumble-shudder { animation: fumbleShudder 0.5s ease; }
+@keyframes fumbleShudder {
+  0%   { transform: translateX(0);     box-shadow: 0 0 0 0 rgba(139,42,42,0); }
+  15%  { transform: translateX(-5px);  box-shadow: inset 0 0 22px rgba(139,42,42,0.4); }
+  30%  { transform: translateX(5px); }
+  45%  { transform: translateX(-4px); }
+  60%  { transform: translateX(3px); }
+  75%  { transform: translateX(-2px); }
+  100% { transform: translateX(0);     box-shadow: 0 0 0 0 rgba(139,42,42,0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dice-result.dice-crit-burst,
+  .dice-result.dice-fumble-shudder { animation: none; }
+  .dice-result.dice-crit-burst::after { display: none; }
+}
 
 .dice-result-num {
   font-family: 'Cinzel', serif;

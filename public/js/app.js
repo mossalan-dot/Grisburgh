@@ -8303,6 +8303,16 @@ async function refreshAll() {
           if (histEntry.crit)   n.classList.add('dice-crit');
           if (histEntry.fumble) n.classList.add('dice-fumble');
         });
+        // Viering op de box bij een natural 20 (gouden uitbarsting) of 1 (rode huiver).
+        if (histEntry.crit || histEntry.fumble) {
+          const cls = histEntry.crit ? 'dice-crit-burst' : 'dice-fumble-shudder';
+          boxEls.forEach(box => {
+            box.classList.remove('dice-crit-burst', 'dice-fumble-shudder');
+            void box.offsetWidth;
+            box.classList.add(cls);
+            box.addEventListener('animationend', () => box.classList.remove(cls), { once: true });
+          });
+        }
         lblEls.forEach(l => l.textContent = finalLbl);
         _history.unshift(histEntry);
         if (_history.length > 10) _history.pop();
