@@ -207,6 +207,7 @@ const SCHEMA = {
       { key: 'armorDexCap', label: 'Dex cap (alleen bij Other)', type: 'text', showFor: ['Armor', 'Shield'] },
       { key: 'stealthDisadvantage', label: 'Stealth Disadvantage', type: 'checkbox', showFor: ['Armor', 'Shield'] },
       { key: 'strengthRequirement', label: 'Strength Requirement', type: 'text', showFor: ['Armor', 'Shield'] },
+      { key: 'spellPick', label: 'Spell kiezen — vult de velden hieronder + de omschrijving', type: 'spell-picker', showFor: ['Scroll'] },
       { key: 'spellCastingTime', label: 'Casting Time', type: 'text', showFor: ['Scroll'] },
       { key: 'spellRange',       label: 'Range',         type: 'text', showFor: ['Scroll'] },
       { key: 'spellComponents',  label: 'Components',    type: 'text', showFor: ['Scroll'] },
@@ -1537,7 +1538,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   let _descVal = '';
   for (const field of (schema.fields || [])) {
     if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid', 'nietVerkoopbaar'].includes(field.key)) continue;
-    if (tab === 'voorwerpen' && ['itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
+    if (tab === 'voorwerpen' && ['itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellPick', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
     if (field.key === 'desc') {
@@ -2624,6 +2625,24 @@ export function openEditor(type) {
 }
 
 let allNames = {};
+let _scrollSpellList = null;  // volledige spell-lijst voor de Scroll-spell-picker (lazy)
+
+// Scroll-spell-picker: vult bij keuze de scroll-statvelden + omschrijving (+ naam indien leeg).
+window._scrollPickSpell = (naam) => {
+  const sp = (_scrollSpellList || []).find(s => (s.name || '').toLowerCase() === String(naam || '').toLowerCase());
+  if (!sp) return;
+  const form = document.getElementById('entity-form');
+  if (!form) return;
+  const setVal = (n, v) => { const el = form.querySelector(`[name="${n}"]`); if (el) el.value = v; };
+  const comp = (Array.isArray(sp.components) ? sp.components.join(', ') : (sp.components || '')) + (sp.material ? ` (${sp.material})` : '');
+  setVal('data_spellCastingTime', sp.casting_time || '');
+  setVal('data_spellRange',       sp.range || '');
+  setVal('data_spellComponents',  comp);
+  setVal('data_spellDuration',    sp.duration || '');
+  setVal('data_desc',             (sp.desc || []).join('\n\n'));
+  const nameEl = form.querySelector('[name="name"]');
+  if (nameEl && !nameEl.value.trim()) nameEl.value = `Scroll of ${sp.name}`;
+};
 
 window._openEditor = async (tab, editId) => {
   const schema = SCHEMA[tab];
@@ -2632,6 +2651,11 @@ window._openEditor = async (tab, editId) => {
     try { e = await api.getEntity(tab, editId); } catch { return; }
   }
   allNames = await api.allNames();
+  // Scroll-spell-picker: laad de spell-lijst één keer (voor de datalist + autofill).
+  if (tab === 'voorwerpen' && !_scrollSpellList) {
+    try { _scrollSpellList = (await fetch('/data/spells-2024.json').then(r => r.json())).results || []; }
+    catch { _scrollSpellList = []; }
+  }
   let _editorGroups = [];
   try { const { groups } = await api.listGroups(); _editorGroups = groups; } catch { /* ok */ }
 
@@ -2847,6 +2871,17 @@ window._openEditor = async (tab, editId) => {
                 onclick="window._toggleWeaponTag('${escJS(field.key)}','${escJS(prop)}',this)">${esc(prop)}</button>`;
             }).join('')}
           </div>
+        </div>
+      `;
+    } else if (field.type === 'spell-picker') {
+      const _spells = _scrollSpellList || [];
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input list="scroll-spell-dl" id="scroll-spell-pick" placeholder="Zoek een spell…" autocomplete="off"
+            onchange="window._scrollPickSpell(this.value)"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          <datalist id="scroll-spell-dl">${_spells.map(s => `<option value="${esc(s.name)}"></option>`).join('')}</datalist>
         </div>
       `;
     } else {
