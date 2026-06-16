@@ -5737,6 +5737,8 @@ async function renderMijnKarakter(opts = {}) {
           data-tab="party" onclick="window._setPlayerSubTab('party')">${icon('users')} Party</button>
         <button class="player-subtab${_playerSubTab === 'personage' ? ' active' : ''}"
           data-tab="personage" onclick="window._setPlayerSubTab('personage')">${icon('swords')} Personage</button>
+        <button class="player-subtab${_playerSubTab === 'facties' ? ' active' : ''}"
+          data-tab="facties" onclick="window._setPlayerSubTab('facties')">${icon('landmark')} Facties</button>
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
           data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">${icon('scroll-text')} Boedel</button>
         <button class="player-subtab${_playerSubTab === 'progressie' ? ' active' : ''}"
@@ -6149,34 +6151,6 @@ async function renderMijnKarakter(opts = {}) {
           <div id="player-cond-detail" class="player-cond-detail hidden" data-cid=""></div>
         </div>` : ''}
 
-        ${heerenData ? `
-        <div class="player-dash-section">
-          <div class="player-dash-section-title">${icon('moon')} Aanzien bij de Heeren</div>
-          <div class="renown-card">
-            <div class="renown-rang">${esc(heerenData.rang?.naam || '')}<span class="renown-trap">${(heerenData.rang?.index ?? 0) + 1}/${heerenData.rang?.aantal || 1}</span></div>
-            ${heerenData.rang?.voordelen ? `<div class="renown-voordelen">${esc(heerenData.rang.voordelen)}</div>` : ''}
-            ${heerenData.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(heerenData.rang.volgende.naam)}</strong>${heerenData.rang.volgende.voordelen ? `: ${esc(heerenData.rang.volgende.voordelen)}` : ''}</div>` : ''}
-            ${(heerenData.boetes && heerenData.boetes.length) ? `<div class="renown-boete">${icon('landmark')} ${heerenData.boetes.length} openstaande boete${heerenData.boetes.length > 1 ? 's' : ''} bij de Luimpoort</div>` : ''}
-          </div>
-        </div>` : ''}
-
-        ${(factiesData || []).filter(f => (f.rang?.index ?? 0) > 0).map(f => {
-          const stijl = (f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase();
-          const ladder = f.ladder || [];
-          const verworven = ladder.filter(r => r.bereikt).flatMap(r => r.boons || []);
-          const next = ladder.find(r => !r.bereikt && (r.boons || []).length);
-          return `
-        <div class="player-dash-section">
-          <div class="player-dash-section-title">${_FACTIE_ICON_SET_APP.has(f.embleem) ? icon(f.embleem) : icon('landmark')} Aanzien bij ${esc(f.naam)}</div>
-          <div class="renown-card factie-card--${stijl}">
-            <div class="renown-rang">${esc(f.rang?.naam || '')}<span class="renown-trap">${(f.rang?.index ?? 0) + 1}/${f.rang?.aantal || 1}</span></div>
-            ${f.rang?.voordelen ? `<div class="renown-voordelen">${esc(f.rang.voordelen)}</div>` : ''}
-            ${verworven.length ? `<div class="factie-boons">${verworven.map(b => `<span class="factie-boon" title="${esc(b.tekst || '')}">${esc(b.icoon || '•')} ${esc(b.naam || '')}</span>`).join('')}</div>` : ''}
-            ${next ? `<div class="renown-volgende">${icon('lock')} Volgende — <strong>${esc(next.naam)}</strong>${next.boons[0] ? `: ${esc(next.boons[0].naam || '')}` : ''}</div>`
-                   : (f.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(f.rang.volgende.naam)}</strong></div>` : '')}
-          </div>
-        </div>`; }).join('')}
-
         <!-- Kenmerken & Eigenschappen -->
         <div class="player-dash-section">
           <div class="player-dash-section-title">
@@ -6262,6 +6236,41 @@ async function renderMijnKarakter(opts = {}) {
               </button>`).join('')}
           </div>
         </div>` : ''}
+      </div>
+
+      <!-- ═══ TAB: Facties & Aanzien ═══ -->
+      <div id="pst-facties" class="player-subtab-panel${_playerSubTab !== 'facties' ? ' hidden' : ''}">
+        <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('facties')}</div>
+        ${(!heerenData && !(factiesData || []).some(f => (f.rang?.index ?? 0) > 0))
+          ? `<div class="player-dash-section"><p class="dm-hint" style="opacity:.7;text-align:center;padding:24px 0">Je hebt nog geen aanzien bij facties.</p></div>`
+          : ''}
+        ${heerenData ? `
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">${icon('moon')} Aanzien bij de Heeren</div>
+          <div class="renown-card">
+            <div class="renown-rang">${esc(heerenData.rang?.naam || '')}<span class="renown-trap">${(heerenData.rang?.index ?? 0) + 1}/${heerenData.rang?.aantal || 1}</span></div>
+            ${heerenData.rang?.voordelen ? `<div class="renown-voordelen">${esc(heerenData.rang.voordelen)}</div>` : ''}
+            ${heerenData.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(heerenData.rang.volgende.naam)}</strong>${heerenData.rang.volgende.voordelen ? `: ${esc(heerenData.rang.volgende.voordelen)}` : ''}</div>` : ''}
+            ${(heerenData.boetes && heerenData.boetes.length) ? `<div class="renown-boete">${icon('landmark')} ${heerenData.boetes.length} openstaande boete${heerenData.boetes.length > 1 ? 's' : ''} bij de Luimpoort</div>` : ''}
+          </div>
+        </div>` : ''}
+
+        ${(factiesData || []).filter(f => (f.rang?.index ?? 0) > 0).map(f => {
+          const stijl = (f.stijl || '').replace(/[^a-z]/gi, '').toLowerCase();
+          const ladder = f.ladder || [];
+          const verworven = ladder.filter(r => r.bereikt).flatMap(r => r.boons || []);
+          const next = ladder.find(r => !r.bereikt && (r.boons || []).length);
+          return `
+        <div class="player-dash-section">
+          <div class="player-dash-section-title">${_FACTIE_ICON_SET_APP.has(f.embleem) ? icon(f.embleem) : icon('landmark')} Aanzien bij ${esc(f.naam)}</div>
+          <div class="renown-card factie-card--${stijl}">
+            <div class="renown-rang">${esc(f.rang?.naam || '')}<span class="renown-trap">${(f.rang?.index ?? 0) + 1}/${f.rang?.aantal || 1}</span></div>
+            ${f.rang?.voordelen ? `<div class="renown-voordelen">${esc(f.rang.voordelen)}</div>` : ''}
+            ${verworven.length ? `<div class="factie-boons">${verworven.map(b => `<span class="factie-boon" title="${esc(b.tekst || b.naam || '')}">${esc(b.naam || '')}</span>`).join('')}</div>` : ''}
+            ${next ? `<div class="renown-volgende">${icon('lock')} Volgende — <strong>${esc(next.naam)}</strong>${next.boons[0] ? `: ${esc(next.boons[0].naam || '')}` : ''}</div>`
+                   : (f.rang?.volgende ? `<div class="renown-volgende">Volgende — <strong>${esc(f.rang.volgende.naam)}</strong></div>` : '')}
+          </div>
+        </div>`; }).join('')}
       </div>
 
       <!-- ═══ TAB: Mijn knapzak ═══ -->
@@ -7487,7 +7496,7 @@ async function renderMijnKarakter(opts = {}) {
     if (typeof window._dashCurrencyFlush === 'function') window._dashCurrencyFlush();
     _playerSubTab = tab;
     localStorage.setItem('_playerSubTab', tab);
-    ['party', 'personage', 'knapzak', 'progressie', 'spreukenboek', 'berichten'].forEach(t => {
+    ['party', 'personage', 'facties', 'knapzak', 'progressie', 'spreukenboek', 'berichten'].forEach(t => {
       const panel = document.getElementById('pst-' + t);
       if (panel) panel.classList.toggle('hidden', t !== tab);
       const btn = document.querySelector(`.player-subtab[data-tab="${t}"]`);
