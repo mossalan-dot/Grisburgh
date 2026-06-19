@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>De Glazen Bol — Grisburgh</title>
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --orb: min(340px, 70vmin);
+      --gold: #c4a87a;
+      --gold-dim: rgba(196,168,122,0.35);
+      --bg: #05020f;
+      --purple: rgba(110,55,220,1);
+    }
+
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+
+    body {
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'IM Fell English', serif;
+      color: var(--gold);
+      position: relative;
+    }
+
+    /* ── Stars background ── */
+    #bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── Scene layout ── */
+    .scene {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.4rem;
+      padding: 1rem 1.5rem;
+      max-height: 100vh;
+    }
+
+    /* ── Title ── */
+    .title {
+      font-family: 'Cinzel', serif;
+      font-weight: 400;
+      font-size: clamp(0.9rem, 2.5vw, 1.5rem);
+      letter-spacing: 0.35em;
+      color: var(--gold);
+      text-shadow: 0 0 25px rgba(196,168,122,0.45), 0 0 60px rgba(196,168,122,0.15);
+      text-align: center;
+      display: flex;
+      align-items: center;
+      gap: 0.9em;
+      user-select: none;
+    }
+    .title-orn {
+      font-size: 0.55em;
+      opacity: 0.5;
+      letter-spacing: 0;
+    }
+
+    /* ── Orb wrapper ── */
+    .orb-wrap {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      filter: drop-shadow(0 0 50px rgba(90,45,200,0.28)) drop-shadow(0 0 100px rgba(60,25,160,0.14));
+      animation: orbGlow 5s ease-in-out infinite;
+    }
+
+    @keyframes orbGlow {
+      0%, 100% { filter: drop-shadow(0 0 50px rgba(90,45,200,0.28)) drop-shadow(0 0 100px rgba(60,25,160,0.14)); }
+      50%       { filter: drop-shadow(0 0 70px rgba(110,60,230,0.45)) drop-shadow(0 0 140px rgba(80,40,200,0.22)); }
+    }
+
+    /* ── The orb itself ── */
+    .orb {
+      width: var(--orb);
+      height: var(--orb);
+      border-radius: 50%;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .orb:active { transform: scale(0.985); }
+
+    /* Fog canvas — fills the entire orb */
+    #fog {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Glass depth overlay */
+    .orb-glass {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 38% 30%,
+          rgba(255,255,255,0.16) 0%,
+          rgba(255,255,255,0.04) 22%,
+          transparent 48%
+        ),
+        radial-gradient(circle at 63% 68%,
+          rgba(255,255,255,0.04) 0%,
+          transparent 28%
+        ),
+        radial-gradient(circle at 50% 50%,
+          transparent 38%,
+          rgba(0,0,12,0.55) 100%
+        );
+      pointer-events: none;
+    }
+
+    /* Primary highlight */
+    .orb-hi1 {
+      position: absolute;
+      top: 7%; left: 11%;
+      width: 38%; height: 23%;
+      background: radial-gradient(ellipse, rgba(255,255,255,0.62) 0%, transparent 70%);
+      border-radius: 50%;
+      transform: rotate(-22deg);
+      pointer-events: none;
+    }
+
+    /* Secondary highlight */
+    .orb-hi2 {
+      position: absolute;
+      bottom: 16%; right: 11%;
+      width: 14%; height: 9%;
+      background: radial-gradient(ellipse, rgba(255,255,255,0.18) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    /* Vision text */
+    .vision-wrap {
+      position: absolute;
+      inset: 20%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .vision {
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: clamp(0.5rem, 1.9vmin, 0.82rem);
+      color: rgba(228, 208, 255, 0.95);
+      text-shadow:
+        0 0 8px  rgba(180,120,255,0.9),
+        0 0 22px rgba(140,75,220,0.55),
+        0 0 45px rgba(100,40,180,0.25);
+      line-height: 1.6;
+      opacity: 0;
+      transition: opacity 1.3s ease;
+      max-width: 88%;
+    }
+    .vision.show { opacity: 1; }
+
+    /* Click hint ring — subtle, fades in on hover */
+    .orb::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(196,168,122,0);
+      transition: border-color 0.4s ease;
+      pointer-events: none;
+    }
+    .orb:hover::after {
+      border-color: rgba(196,168,122,0.12);
+    }
+
+    /* ── Stand ── */
+    .stand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: -1px;
+    }
+    .stand-neck {
+      width: calc(var(--orb) * 0.11);
+      height: calc(var(--orb) * 0.075);
+      background: linear-gradient(160deg, #9a6830 0%, #4a2c0a 50%, #2a1608 100%);
+      border-radius: 0 0 5px 5px;
+    }
+    .stand-cup {
+      width: calc(var(--orb) * 0.38);
+      height: calc(var(--orb) * 0.055);
+      background: linear-gradient(to bottom, #7a5520 0%, #3a2208 60%, #1e1004 100%);
+      border-radius: 0 0 60% 60% / 0 0 100% 100%;
+      position: relative;
+    }
+    .stand-cup::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -6%;
+      width: 112%; height: 3px;
+      background: linear-gradient(to right, transparent 0%, #c4a87a 30%, #f2e8d2 50%, #c4a87a 70%, transparent 100%);
+      border-radius: 50%;
+    }
+    .stand-foot {
+      width: calc(var(--orb) * 0.48);
+      height: calc(var(--orb) * 0.022);
+      background: linear-gradient(to bottom, #5a3b12 0%, #1e0e04 100%);
+      border-radius: 4px;
+      box-shadow: 0 6px 25px rgba(0,0,0,0.6);
+    }
+
+    /* ── Combat banner ── */
+    .combat-banner {
+      font-family: 'Cinzel', serif;
+      font-weight: 600;
+      font-size: clamp(0.7rem, 1.8vw, 1rem);
+      letter-spacing: 0.2em;
+      color: #f87171;
+      text-shadow: 0 0 12px rgba(239,68,68,0.85), 0 0 28px rgba(239,68,68,0.4);
+      animation: combatPulse 1.4s ease-in-out infinite;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      gap: 1em;
+      min-height: 1.5em;
+    }
+    .combat-banner.hidden { visibility: hidden; }
+
+    @keyframes combatPulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.35; }
+    }
+
+    /* ── Party grid ── */
+    .party-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.7rem;
+      max-width: min(860px, 94vw);
+    }
+
+    .party-card {
+      background: rgba(12, 6, 30, 0.88);
+      border: 1px solid rgba(196,168,122,0.18);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      min-width: 145px;
+      max-width: 210px;
+      flex: 1;
+      backdrop-filter: blur(6px);
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+    .party-card.critical {
+      border-color: rgba(239,68,68,0.45);
+      animation: cardCrit 2.2s ease-in-out infinite;
+    }
+    @keyframes cardCrit {
+      0%, 100% { box-shadow: 0 0 10px rgba(239,68,68,0.15); }
+      50%       { box-shadow: 0 0 22px rgba(239,68,68,0.38); }
+    }
+    .party-card.down {
+      border-color: rgba(100,80,180,0.3);
+      opacity: 0.6;
+    }
+
+    .card-name {
+      font-family: 'Cinzel', serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      color: var(--gold);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 0.2rem;
+    }
+    .card-sub {
+      font-size: 0.6rem;
+      color: rgba(196,168,122,0.45);
+      font-style: italic;
+      margin-bottom: 0.45rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hp-bar-wrap {
+      background: rgba(0,0,0,0.5);
+      border-radius: 3px;
+      height: 4px;
+      overflow: hidden;
+    }
+    .hp-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 1s ease, background 0.5s ease;
+    }
+    .hp-bar.full  { background: linear-gradient(to right, #16a34a, #4ade80); }
+    .hp-bar.half  { background: linear-gradient(to right, #d97706, #fcd34d); }
+    .hp-bar.low   { background: linear-gradient(to right, #dc2626, #f87171); }
+    .hp-bar.dead  { background: #4b5563; width: 0 !important; }
+
+    .hp-label {
+      font-size: 0.58rem;
+      color: rgba(196,168,122,0.4);
+      margin-top: 0.28rem;
+      font-family: 'Cinzel', serif;
+      letter-spacing: 0.04em;
+    }
+    .hp-label b { color: rgba(196,168,122,0.7); }
+    .hp-unknown {
+      font-size: 0.58rem;
+      color: rgba(196,168,122,0.25);
+      font-style: italic;
+      margin-top: 0.28rem;
+    }
+
+    /* Temp HP indicator */
+    .temp-hp {
+      display: inline-block;
+      font-size: 0.55rem;
+      color: rgba(125,211,252,0.7);
+      margin-left: 0.3em;
+      letter-spacing: 0;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      position: fixed;
+      bottom: 0.7rem;
+      right: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.57rem;
+      font-family: 'Cinzel', serif;
+      letter-spacing: 0.08em;
+      color: rgba(196,168,122,0.22);
+      z-index: 10;
+      user-select: none;
+    }
+    .dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #4b5563;
+      transition: background 0.5s ease;
+    }
+    .dot.ok  { background: #22c55e; }
+    .dot.err { background: #ef4444; }
+    .sep { opacity: 0.35; }
+
+    /* ── Click flash ── */
+    .orb-flash {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: rgba(200,160,255,0.12);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+    .orb-flash.active { opacity: 1; transition: opacity 0.05s; }
+
+    /* ── Responsive hide ── */
+    @media (max-height: 560px) {
+      .party-grid { display: none; }
+      .scene { gap: 0.8rem; }
+    }
+    @media (max-width: 380px) {
+      :root { --orb: 240px; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="scene">
+  <div class="title">
+    <span class="title-orn">✦</span>
+    De Glazen Bol
+    <span class="title-orn">✦</span>
+  </div>
+
+  <div class="orb-wrap">
+    <div class="orb" id="orb">
+      <canvas id="fog"></canvas>
+      <div class="orb-glass"></div>
+      <div class="orb-hi1"></div>
+      <div class="orb-hi2"></div>
+      <div class="orb-flash" id="flash"></div>
+      <div class="vision-wrap">
+        <div class="vision" id="vision"></div>
+      </div>
+    </div>
+    <div class="stand">
+      <div class="stand-neck"></div>
+      <div class="stand-cup"></div>
+      <div class="stand-foot"></div>
+    </div>
+  </div>
+
+  <div id="combat-banner" class="combat-banner hidden">
+    <span>⚔</span>
+    <span id="combat-label">Gevecht gaande</span>
+    <span>⚔</span>
+  </div>
+
+  <div class="party-grid" id="party-grid"></div>
+</div>
+
+<div class="footer">
+  <span class="dot" id="dot"></span>
+  <span id="conn-label">verbinden</span>
+  <span class="sep">·</span>
+  <span id="update-label">—</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+const S = {
+  combat: null,
+  party: [],
+  sessieLog: [],
+  combatActive: false,
+};
+
+// ═══════════════════════════════════════════════════════════
+//  BACKGROUND STARS
+// ═══════════════════════════════════════════════════════════
+const bgCvs = document.getElementById('bg');
+const bgCtx = bgCvs.getContext('2d');
+
+let starList = [];
+
+function initStars() {
+  bgCvs.width = window.innerWidth;
+  bgCvs.height = window.innerHeight;
+  starList = Array.from({ length: 280 }, () => ({
+    x: Math.random() * bgCvs.width,
+    y: Math.random() * bgCvs.height,
+    r: 0.25 + Math.random() * 1.5,
+    phase: Math.random() * Math.PI * 2,
+    spd: 0.004 + Math.random() * 0.018,
+    base: 0.15 + Math.random() * 0.75,
+  }));
+}
+
+function animateStars() {
+  bgCtx.clearRect(0, 0, bgCvs.width, bgCvs.height);
+  for (const s of starList) {
+    s.phase += s.spd;
+    const a = s.base * (0.55 + 0.45 * Math.sin(s.phase));
+    bgCtx.beginPath();
+    bgCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    bgCtx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+    bgCtx.fill();
+  }
+}
+
+window.addEventListener('resize', initStars);
+initStars();
+
+// ═══════════════════════════════════════════════════════════
+//  ORB FOG CANVAS
+// ═══════════════════════════════════════════════════════════
+const fogCvs = document.getElementById('fog');
+const fogCtx = fogCvs.getContext('2d');
+const orbEl = document.getElementById('orb');
+
+function resizeFog() {
+  const s = orbEl.offsetWidth;
+  fogCvs.width = s;
+  fogCvs.height = s;
+}
+
+// Blobs: colour shifts to blood-red when combat is active
+const BLOBS = [
+  { a: 0,    or: 0.12, sp: 0.00034, r: 0.38, rA: 0.06, rP: 0,   col: [108, 52, 222] },
+  { a: 2.09, or: 0.21, sp:-0.00027, r: 0.33, rA: 0.05, rP: 1.2, col: [48,  98, 232] },
+  { a: 4.19, or: 0.17, sp: 0.00041, r: 0.43, rA: 0.08, rP: 2.4, col: [170, 48, 198] },
+  { a: 1.00, or: 0.07, sp:-0.00019, r: 0.52, rA: 0.04, rP: 0.8, col: [88,  68, 244] },
+  { a: 3.49, or: 0.27, sp: 0.00030, r: 0.28, rA: 0.06, rP: 3.1, col: [28, 138, 210] },
+  { a: 5.76, or: 0.14, sp:-0.00037, r: 0.36, rA: 0.07, rP: 1.7, col: [182, 78, 220] },
+  { a: 0.72, or: 0.04, sp: 0.00052, r: 0.26, rA: 0.03, rP: 2.9, col: [198, 158, 255] },
+  { a: 2.80, or: 0.32, sp:-0.00023, r: 0.22, rA: 0.05, rP: 0.4, col: [60,  180, 200] },
+];
+
+// Floating particles
+const PARTS = Array.from({ length: 22 }, () => ({
+  x: 0.2  + Math.random() * 0.6,
+  y: 0.15 + Math.random() * 0.85,
+  vy: -(0.00018 + Math.random() * 0.00038),
+  vx: (Math.random() - 0.5) * 0.00008,
+  r:  0.0028 + Math.random() * 0.0058,
+  ph: Math.random() * Math.PI * 2,
+  sp: 0.0008 + Math.random() * 0.0022,
+}));
+
+function drawFog(t) {
+  const s   = fogCvs.width;
+  const cx  = s / 2;
+  const cy  = s / 2;
+  const R   = s / 2;
+  const c   = S.combatActive;
+
+  fogCtx.save();
+  fogCtx.beginPath();
+  fogCtx.arc(cx, cy, R - 0.5, 0, Math.PI * 2);
+  fogCtx.clip();
+
+  // Dark base
+  fogCtx.fillStyle = 'rgba(4,2,18,1)';
+  fogCtx.fillRect(0, 0, s, s);
+
+  fogCtx.globalCompositeOperation = 'screen';
+
+  // Draw blobs
+  for (const b of BLOBS) {
+    const angle = b.a + t * b.sp;
+    const rPulse = b.r + b.rA * Math.sin(t * 0.00075 + b.rP);
+    const bx  = cx + Math.cos(angle) * b.or * R;
+    const by  = cy + Math.sin(angle) * b.or * R * 0.72;
+    const br  = rPulse * R;
+
+    let [r, g, bl] = b.col;
+    let alpha = 0.30;
+    if (c) {
+      // Shift toward deep crimson
+      r  = Math.min(255, r  + (200 - r) * 0.65);
+      g  = Math.max(0,   g  * 0.22);
+      bl = Math.max(0,   bl * 0.18);
+      alpha = 0.44;
+    }
+
+    const grad = fogCtx.createRadialGradient(bx, by, 0, bx, by, br);
+    grad.addColorStop(0,   `rgba(${r|0},${g|0},${bl|0},${alpha})`);
+    grad.addColorStop(0.5, `rgba(${r|0},${g|0},${bl|0},${(alpha*0.45).toFixed(3)})`);
+    grad.addColorStop(1,   'rgba(0,0,0,0)');
+    fogCtx.fillStyle = grad;
+    fogCtx.beginPath();
+    fogCtx.arc(bx, by, br, 0, Math.PI * 2);
+    fogCtx.fill();
+  }
+
+  // Inner shimmer (white-blue centre glow)
+  const shimA = (c ? 0.04 : 0.07) + 0.04 * Math.sin(t * 0.0013);
+  const sg = fogCtx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.28);
+  sg.addColorStop(0, `rgba(205,185,255,${shimA})`);
+  sg.addColorStop(1, 'rgba(0,0,0,0)');
+  fogCtx.fillStyle = sg;
+  fogCtx.fillRect(0, 0, s, s);
+
+  // Floating particles
+  fogCtx.globalCompositeOperation = 'screen';
+  for (const p of PARTS) {
+    p.ph += p.sp;
+    p.y  += p.vy;
+    p.x  += p.vx;
+    if (p.y < 0.04) { p.y = 0.96; p.x = 0.2 + Math.random() * 0.6; }
+    if (p.x < 0.05 || p.x > 0.95) p.vx *= -1;
+
+    const px = p.x * s;
+    const py = p.y * s;
+    const pr = p.r * s;
+    const dist = Math.hypot(px - cx, py - cy);
+    if (dist < R * 0.88) {
+      const pa = (0.35 + 0.65 * Math.abs(Math.sin(p.ph))) * 0.75;
+      const col = c ? `rgba(255,120,80,${pa})` : `rgba(220,200,255,${pa})`;
+      fogCtx.beginPath();
+      fogCtx.arc(px, py, pr, 0, Math.PI * 2);
+      fogCtx.fillStyle = col;
+      fogCtx.fill();
+    }
+  }
+
+  fogCtx.globalCompositeOperation = 'source-over';
+  fogCtx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════════════════
+function loop(t) {
+  animateStars(t);
+  drawFog(t);
+  requestAnimationFrame(loop);
+}
+
+resizeFog();
+window.addEventListener('resize', () => { resizeFog(); initStars(); });
+requestAnimationFrame(loop);
+
+// ═══════════════════════════════════════════════════════════
+//  VISION SYSTEM
+// ═══════════════════════════════════════════════════════════
+const STATIC = [
+  'De draden van het lot weven hun patroon doorheen Grisburgh...',
+  'Oude machten roeren zich in het duister onder de stad...',
+  'Wat verborgen blijft, onthult de bol aan wie durft te kijken...',
+  'Grisburgh\'s geheimen zijn als lagen van perkament — elk onthult een ander...',
+  'De sterren fluisteren van avonturen die nog komen...',
+  'Elk lot begint met een keuze — welke keuze maakten jullie vandaag?',
+  'Schaduwen bewegen waar ogen niet durven te kijken...',
+  'De toekomst is niet vastgeschreven. Nog niet.',
+  'Vergeten namen fluisteren in de stenen van de oude stad...',
+  'Wat ziet de bol? Klik, en het visioen ontvouwt zich...',
+];
+
+const visionEl = document.getElementById('vision');
+let visions = [...STATIC];
+let vIdx = 0;
+let vTimer = null;
+
+function buildVisions() {
+  visions = [];
+
+  if (S.combatActive && S.combat) {
+    const c = S.combat;
+    visions.push('Het zwaard zingt — bloed kleurt de grond rood...');
+    visions.push(`Ronde ${c.round || 1}: de strijders houden stand!`);
+
+    const sorted = [...(c.combatants || [])]
+      .filter(x => x.initiative != null)
+      .sort((a, b) => b.initiative - a.initiative);
+    const turn = sorted[c.currentTurn ?? 0];
+    if (turn) visions.push(`Nu is het de beurt van ${turn.name}...`);
+
+    const players = (c.combatants || []).filter(x => x.type !== 'monster');
+    if (players.length) {
+      visions.push(`${players.map(p => p.name).join(' en ')} staan oog in oog met het gevaar...`);
+    }
+    const monsters = (c.combatants || []).filter(x => x.type === 'monster');
+    if (monsters.length) {
+      visions.push(`Zij bevechten ${monsters.map(m => m.name).join(', ')}...`);
+    }
+  }
+
+  for (const m of S.party) {
+    const hp = m.hp; const max = m.maxHp;
+    if (hp == null || !max) continue;
+    const pct = hp / max;
+    if (pct <= 0)       visions.push(`${m.name} is gevallen — de vlam is gedoofd...`);
+    else if (pct < 0.25) visions.push(`${m.name} hangt aan een zijden draadje — de dood staat nabij...`);
+    else if (pct < 0.5)  visions.push(`${m.name} bloeit maar heeft wonden die aandacht vragen...`);
+    else if (pct > 0.9)  visions.push(`${m.name}'s kracht straalt als een fakkel in de nacht...`);
+  }
+
+  for (const e of S.sessieLog.slice(-4)) {
+    if (e.titel || e.title) visions.push(`De bol toont: "${e.titel || e.title}"...`);
+  }
+
+  if (visions.length < 3) visions.push(...STATIC);
+
+  // Shuffle
+  for (let i = visions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [visions[i], visions[j]] = [visions[j], visions[i]];
+  }
+  vIdx = 0;
+}
+
+function showVision(msg) {
+  visionEl.classList.remove('show');
+  setTimeout(() => { visionEl.textContent = msg; visionEl.classList.add('show'); }, 1250);
+}
+
+function nextVision() {
+  if (!visions.length) return;
+  vIdx = (vIdx + 1) % visions.length;
+  showVision(visions[vIdx]);
+}
+
+function startCycle() {
+  if (vTimer) clearInterval(vTimer);
+  buildVisions();
+  showVision(visions[0]);
+  vTimer = setInterval(nextVision, 7500);
+}
+
+// Click → next vision + flash
+const flashEl = document.getElementById('flash');
+orbEl.addEventListener('click', () => {
+  nextVision();
+  flashEl.classList.add('active');
+  setTimeout(() => flashEl.classList.remove('active'), 400);
+});
+
+// ═══════════════════════════════════════════════════════════
+//  PARTY CARDS
+// ═══════════════════════════════════════════════════════════
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderParty() {
+  const grid = document.getElementById('party-grid');
+  if (!S.party.length) { grid.innerHTML = ''; return; }
+
+  grid.innerHTML = S.party.map(m => {
+    const hp = m.hp; const max = m.maxHp; const temp = m.temp || 0;
+    const has = hp != null && max;
+    const pct = has ? Math.max(0, Math.min(100, (hp / max) * 100)) : null;
+
+    let cls = 'full', cardCls = '';
+    if (pct !== null) {
+      if (pct <= 0)  { cls = 'dead';  cardCls = ' down'; }
+      else if (pct <= 25) { cls = 'low'; cardCls = ' critical'; }
+      else if (pct <= 50)   cls = 'half';
+    }
+
+    const profile = m.data?.klasse || '';
+
+    return `<div class="party-card${cardCls}">
+  <div class="card-name">${esc(m.name)}</div>
+  ${profile ? `<div class="card-sub">${esc(profile)}</div>` : ''}
+  ${has ? `
+    <div class="hp-bar-wrap">
+      <div class="hp-bar ${cls}" style="width:${pct.toFixed(1)}%"></div>
+    </div>
+    <div class="hp-label"><b>${hp}</b> / ${max} HP${temp > 0 ? ` <span class="temp-hp">+${temp} tijdelijk</span>` : ''}</div>
+  ` : '<div class="hp-unknown">HP onbekend</div>'}
+</div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  COMBAT BANNER
+// ═══════════════════════════════════════════════════════════
+function updateCombat() {
+  const banner = document.getElementById('combat-banner');
+  const label  = document.getElementById('combat-label');
+  if (S.combatActive && S.combat) {
+    banner.classList.remove('hidden');
+    label.textContent = `Gevecht — ronde ${S.combat.round || 1}`;
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  STATUS
+// ═══════════════════════════════════════════════════════════
+function setConn(ok, label) {
+  document.getElementById('dot').className = `dot ${ok ? 'ok' : 'err'}`;
+  document.getElementById('conn-label').textContent = label;
+}
+function setTime() {
+  document.getElementById('update-label').textContent =
+    new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DATA FETCHING
+// ═══════════════════════════════════════════════════════════
+async function fetchAll() {
+  try {
+    const [combatRes, personagesRes, archiefRes] = await Promise.allSettled([
+      fetch('/api/combat'),
+      fetch('/api/entities/personages'),
+      fetch('/api/archief'),
+    ]);
+
+    // Combat
+    if (combatRes.status === 'fulfilled' && combatRes.value.ok) {
+      const cm = await combatRes.value.json();
+      S.combat = cm;
+      S.combatActive = !!cm.active;
+    } else {
+      S.combat = null;
+      S.combatActive = false;
+    }
+
+    // Party (only player characters) + their HP
+    if (personagesRes.status === 'fulfilled' && personagesRes.value.ok) {
+      const ents = await personagesRes.value.json();
+      const spelers = ents.filter(e => e.subtype === 'speler');
+
+      const hpFetches = await Promise.allSettled(
+        spelers.map(s =>
+          fetch(`/api/player-hp/${s.id}`)
+            .then(r => r.ok ? r.json() : null)
+            .catch(() => null)
+        )
+      );
+
+      S.party = spelers.map((s, i) => {
+        const hp = hpFetches[i].status === 'fulfilled' ? hpFetches[i].value : null;
+        return { ...s, hp: hp?.current ?? null, maxHp: hp?.max ?? null, temp: hp?.temp ?? 0 };
+      });
+    }
+
+    // Session log for atmospheric visions
+    if (archiefRes.status === 'fulfilled' && archiefRes.value.ok) {
+      const a = await archiefRes.value.json();
+      S.sessieLog = (a.sessieLog || []).slice(-6);
+    }
+
+    updateCombat();
+    renderParty();
+    startCycle();
+    setConn(true, 'verbonden');
+    setTime();
+
+  } catch (e) {
+    console.error('[glazen-bol] fetch error', e);
+    setConn(false, 'fout');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SOCKET.IO — real-time updates
+// ═══════════════════════════════════════════════════════════
+function initSocket() {
+  if (!window.io) return;
+  const sock = window.io({ transports: ['websocket', 'polling'] });
+
+  sock.on('connect',    () => setConn(true, 'live'));
+  sock.on('disconnect', () => setConn(false, 'verbroken'));
+
+  sock.on('combat:updated', cm => {
+    S.combat = cm;
+    S.combatActive = !!cm.active;
+    updateCombat();
+    buildVisions();
+  });
+
+  sock.on('player:hp-updated', ({ characterId, current, max, temp }) => {
+    const m = S.party.find(x => x.id === characterId);
+    if (m) { m.hp = current; m.maxHp = max; m.temp = temp ?? 0; renderParty(); buildVisions(); }
+  });
+
+  // On any broader update, refetch
+  sock.on('groups:updated',  fetchAll);
+  sock.on('archief:updated', fetchAll);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+fetchAll();
+setInterval(fetchAll, 35000);
+
+// Load socket.io dynamically (only works when served from the Grisburgh app)
+const scr = document.createElement('script');
+scr.src = '/socket.io/socket.io.js';
+scr.onload = initSocket;
+scr.onerror = () => console.info('[glazen-bol] Geen Socket.io — polling modus actief');
+document.head.appendChild(scr);
+</script>
+
+</body>
+</html>
