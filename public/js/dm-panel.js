@@ -169,6 +169,7 @@ export function initDmPanel() {
       document.getElementById('dm-tabel-select').value = id;
       _renderTafelResult(null);
     },
+    importDefaultTables: _importDefaultTables,
 
     // Monster library
     monsterNew:          _monsterNew,
@@ -1974,9 +1975,15 @@ function _renderTafels() {
           <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window.dmPanel.tabelDelete(document.getElementById('dm-tabel-select').value)" title="Verwijderen">${icon('x')}</button>
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.tabelNew()" style="margin-left:auto" title="Nieuwe tafel">+</button>
         </div>
+        <div class="dm-feature-row dm-feature-row-sm" style="margin-top:4px">
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.importDefaultTables()" title="Laad standaard tabellen">${icon('sparkles')} Laad standaard</button>
+        </div>
       ` : `
         <p class="dm-hint">Nog geen tabellen aangemaakt.</p>
-        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.tabelNew()" title="Nieuwe tafel">+</button>
+        <div class="dm-feature-row">
+          <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.tabelNew()" title="Nieuwe tafel">+</button>
+          <button class="dm-btn dm-btn-ghost" onclick="window.dmPanel.importDefaultTables()" title="Laad standaard tabellen">${icon('sparkles')} Laad standaard</button>
+        </div>
       `}
     </div>
   `;
@@ -2129,6 +2136,20 @@ function _tabelNew() {
   _editingTableId = '__new__';
   _editingTableType = 'simple';
   _renderTafels();
+};
+
+async function _importDefaultTables() {
+  try {
+    const res = await api.importDefaultTables();
+    if (res.added === 0) {
+      alert('Alle standaard tabellen zijn al aanwezig.');
+      return;
+    }
+    _tables = await api.listTables();
+    _renderTafels();
+    const namen = res.tables.map(t => t.name).join(', ');
+    alert(`${res.added} tabellen toegevoegd: ${namen}`);
+  } catch (e) { alert('Fout: ' + e.message); }
 };
 
 // ── Monsters ──

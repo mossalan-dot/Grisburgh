@@ -3901,6 +3901,26 @@ router.delete('/tables/:id', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+const _TABLES_SEED = path.join(__dirname, '..', 'public', 'data', 'default-tables.json');
+
+router.post('/tables/import-defaults', requireDM, (req, res) => {
+  let seed;
+  try { seed = JSON.parse(fs.readFileSync(_TABLES_SEED, 'utf8')); }
+  catch { return res.status(500).json({ error: 'Standaardtabellen niet gevonden' }); }
+  const data = storage.readJSON('tables.json');
+  if (!data.tables) data.tables = [];
+  const existing = new Set(data.tables.map(t => t.name.toLowerCase()));
+  const added = [];
+  for (const tbl of seed.tables || []) {
+    if (existing.has(tbl.name.toLowerCase())) continue;
+    const row = { ...tbl, id: 'tbl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4) };
+    data.tables.push(row);
+    added.push(row);
+  }
+  storage.writeJSON('tables.json', data);
+  res.json({ added: added.length, tables: added });
+});
+
 // ── Monsters (Library) ──
 
 router.get('/monsters', requireDM, (req, res) => {
