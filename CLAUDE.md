@@ -114,11 +114,11 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 
 ```
 index.html  : theme.css?v=300   app.js?v=431   sound-manager.js?v=4
-app.js      : api.js?v=234      render-campagne.js?v=96   render-archief.js?v=44
-              render-kaart.js?v=10  render-dungeon.js?v=23  render-relatiemap.js?v=14
+app.js      : api.js?v=234      render-campagne.js?v=97   render-archief.js?v=44
+              render-kaart.js?v=10  render-dungeon.js?v=23  render-relatiemap.js?v=15
               render-progressie.js?v=35  socket-client.js?v=35
               render-bestiarium.js?v=12  render-statblock.js?v=3
-              dm-panel.js?v=89    render-dashboard.js?v=2
+              dm-panel.js?v=90    render-dashboard.js?v=2
 dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=3
 ```
 

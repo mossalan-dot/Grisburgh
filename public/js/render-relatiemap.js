@@ -394,7 +394,7 @@ async function _openAddCardDialog() {
     <div class="rel-modal" onclick="event.stopPropagation()">
       <div class="rel-modal-title">Kaartje toevoegen</div>
       <div class="rel-modal-row">
-        <input class="rel-input" id="pb-card-search" placeholder="🔍 Zoek persoon, locatie…"
+        <input class="rel-input" id="pb-card-search" placeholder="Zoek persoon, locatie…"
                autofocus oninput="window._pbCardFilter(this.value)">
       </div>
       <div class="pb-entity-list" id="pb-entity-list">

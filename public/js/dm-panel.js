@@ -7237,7 +7237,7 @@ async function _renderInstellingen() {
         onchange="window._instGroepRename('${esc(g.id)}', this.value)"
         placeholder="Naam party">
       <input class="dm-input dm-inst-group-pw" type="password"
-        placeholder="${g.hasPassword ? '🔒 Wachtwoord wijzigen…' : 'Wachtwoord instellen…'}"
+        placeholder="${g.hasPassword ? 'Wachtwoord wijzigen…' : 'Wachtwoord instellen…'}"
         onchange="window._instGroepSetPw('${esc(g.id)}', this.value)"
         title="${g.hasPassword ? 'Er is een wachtwoord ingesteld. Typ een nieuw wachtwoord om het te wijzigen, of laat leeg om het te verwijderen.' : 'Wachtwoord instellen voor deze party'}">
       <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"

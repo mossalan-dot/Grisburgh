@@ -253,7 +253,7 @@ export async function renderLogboek() {
   if (_logboekActiveTab === 'prikbord') {
     tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
     tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
-    const { renderRelatiemap } = await import('./render-relatiemap.js?v=14');
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=15');
     await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
     return;
   }

@@ -79,7 +79,7 @@ export function initSocket() {
     const section = window.app.state.activeSection;
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
       // Herlaad alleen de relatiemap, niet het hele logboek
-      import('./render-relatiemap.js?v=14').then(m => {
+      import('./render-relatiemap.js?v=15').then(m => {
         const el = document.getElementById('pb-relatiemap-container');
         if (el) m.renderRelatiemap(el);
       });
@@ -687,13 +687,13 @@ export function initSocket() {
 
   socket.on('relations:updated', () => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=14').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=15').then(m => m.renderRelatiemap());
     }
   });
 
   socket.on('relations:revealed', ({ id } = {}) => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=14').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=15').then(m => m.renderRelatiemap());
     }
     if (!window.app.isDM()) {
       _showToast(`🕸️ <strong>Nieuwe verbinding onthuld!</strong>`, () => {

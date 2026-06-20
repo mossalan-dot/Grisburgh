@@ -3143,7 +3143,7 @@ window._openEditor = async (tab, editId) => {
               oninput="window._updateVoorraadItem(${idx},'prijs',this.value)"
               class="w-28 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
             <div class="relative flex items-center gap-1">
-              <input list="voorraad-entity-dl" placeholder="🔗 Koppel aan kaartje…"
+              <input list="voorraad-entity-dl" placeholder="Koppel aan kaartje…"
                 value="${esc(entityDisplayName)}"
                 onchange="window._updateVoorraadEntityLink(${idx}, this.value)"
                 title="Koppel aan een bestaand voorwerpkaartje"
