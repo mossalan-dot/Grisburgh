@@ -152,7 +152,10 @@ export async function renderDocumenten() {
           <div class="sbs-input-wrap">
             <span class="sbs-icon">\u2315</span>
             <input type="text" class="sbs-input search-input"
-              placeholder="Zoek document\u2026" value="${esc(searchQuery)}" oninput="window._documentenSearch(this.value)">
+              placeholder="Zoek document\u2026" value="${esc(searchQuery)}" oninput="window._documentenSearch(this.value)"
+              onkeydown="if(event.key==='Escape'){window._documentenClearSearch();}">
+            <button type="button" class="sbs-clear" title="Wis zoekopdracht" aria-label="Wis zoekopdracht"
+              onclick="window._documentenClearSearch()">\u00d7</button>
           </div>
           <span class="results-count sbs-count" id="doc-results-count">${docs.length} resultaten</span>
         </div>
@@ -174,6 +177,14 @@ export async function renderDocumenten() {
     _refreshDocGrid(filtered, container);
     const cnt = container.querySelector('#doc-results-count');
     if (cnt) cnt.textContent = `${filtered.length} resultaten`;
+  };
+
+  // Wis-knop (×) en Escape: documenten-zoekveld leegmaken en focus teruggeven
+  window._documentenClearSearch = () => {
+    const input = container.querySelector('.sbs-input');
+    if (input) input.value = '';
+    window._documentenSearch('');
+    input?.focus();
   };
 }
 
@@ -251,9 +262,15 @@ export async function renderLogboek() {
   tabContent.style.cssText = '';
   tabContent.innerHTML = `
     <div class="logboek-search-wrap" style="padding: 0 24px 8px">
-      <input type="text" class="logboek-search-input" id="logboek-search-input"
-        placeholder="🔍  Zoek in het logboek…" value="${esc(logboekSearch)}"
-        oninput="window._logboekSearch(this.value)">
+      <div class="logboek-search-field">
+        <span class="logboek-search-icon">\u2315</span>
+        <input type="text" class="logboek-search-input" id="logboek-search-input"
+          placeholder="Zoek in het logboek…" value="${esc(logboekSearch)}"
+          oninput="window._logboekSearch(this.value)"
+          onkeydown="if(event.key==='Escape'){window._logboekClearSearch();}">
+        <button type="button" class="logboek-search-clear" title="Wis zoekopdracht" aria-label="Wis zoekopdracht"
+          onclick="window._logboekClearSearch()">×</button>
+      </div>
     </div>
     <div class="flex-1 overflow-y-auto px-6 pb-6" id="logboek-body">
       ${_buildLogboekBody(visibleEntries, hk)}
@@ -269,6 +286,14 @@ export async function renderLogboek() {
         : _logboekCache.allEntries;
       body.innerHTML = _buildLogboekBody(filtered, _logboekCache.hk, !!q.trim());
     }
+  };
+
+  // Wis-knop (×) en Escape: logboek-zoekveld leegmaken en focus teruggeven
+  window._logboekClearSearch = () => {
+    const input = document.getElementById('logboek-search-input');
+    if (input) input.value = '';
+    window._logboekSearch('');
+    input?.focus();
   };
 
   window._toggleChapter = (chKey) => {

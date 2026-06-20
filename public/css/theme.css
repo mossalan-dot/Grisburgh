@@ -9313,10 +9313,24 @@ details.player-dash-collapsible[open] > summary {
   background: rgba(240,228,196,0.2);
   border-bottom: 1px solid rgba(196,168,122,0.2);
 }
-.logboek-search-input {
+.logboek-search-field {
+  position: relative;
   width: 100%;
   max-width: 520px;
-  padding: 8px 16px;
+}
+.logboek-search-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: rgba(42,26,8,0.45);
+  pointer-events: none;
+  line-height: 1;
+}
+.logboek-search-input {
+  width: 100%;
+  padding: 8px 34px 8px 32px;
   background: rgba(255,255,255,0.55);
   border: 1px solid rgba(196,168,122,0.45);
   border-radius: 20px;
@@ -9325,6 +9339,28 @@ details.player-dash-collapsible[open] > summary {
   color: #2a1a08;
 }
 .logboek-search-input:focus { outline: none; border-color: #c8a840; background: rgba(255,255,255,0.8); }
+.logboek-search-clear {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(42,26,8,0.12);
+  color: rgba(42,26,8,0.6);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.logboek-search-clear:hover { background: rgba(42,26,8,0.25); color: #2a1a08; }
+.logboek-search-input:placeholder-shown ~ .logboek-search-clear { display: none; }
 
 .logboek-chapter { margin-bottom: 28px; }
 
