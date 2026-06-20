@@ -2024,7 +2024,7 @@ body::before {
 }
 .sbs-input {
   width: 200px;
-  padding: 5px 10px 5px 28px;
+  padding: 5px 26px 5px 28px;
   font-family: 'IM Fell English', serif;
   font-size: 12.5px;
   color: #3a2a0e;
@@ -2040,6 +2040,32 @@ body::before {
   background: rgba(var(--bc), 0.10);
   border-color: rgba(var(--bc), 0.50);
 }
+/* Wis-knop (×) — alleen zichtbaar als er tekst staat (placeholder niet getoond) */
+.sbs-clear {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(var(--bc), 0.14);
+  color: rgba(var(--bc), 0.65);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.sbs-clear:hover {
+  background: rgba(var(--bc), 0.28);
+  color: var(--bc-text);
+}
+.sbs-input:placeholder-shown ~ .sbs-clear { display: none; }
 .sbs-count {
   font-family: 'Cinzel', serif;
   font-size: 9.5px;

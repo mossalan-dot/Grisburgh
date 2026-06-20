@@ -594,7 +594,10 @@ async function renderEntitySection(type) {
             <span class="sbs-icon">\u2315</span>
             <input type="text" class="sbs-input search-input"
               placeholder="Zoek ${TYPE_META[type].label.toLowerCase()}..." value="${esc(searchQueries[type])}"
-              oninput="window._entitySearch('${type}',this.value)">
+              oninput="window._entitySearch('${type}',this.value)"
+              onkeydown="if(event.key==='Escape'){window._entityClearSearch('${type}');}">
+            <button type="button" class="sbs-clear" title="Wis zoekopdracht" aria-label="Wis zoekopdracht"
+              onclick="window._entityClearSearch('${type}')">×</button>
           </div>
           ${sfVals.length >= 2 ? `<button class="sf-toggle-btn${sfActive ? ' sf-toggle-btn--active' : ''}" onclick="window._toggleSubtypeBar('${type}')" title="Filter op subtype"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : ''}
           <span class="results-count sbs-count">${list.length} resultaten</span>
@@ -627,6 +630,15 @@ async function renderEntitySection(type) {
     _refreshGrid(t, filtered, c);
     const countEl = c.querySelector('.results-count');
     if (countEl) countEl.textContent = `${filtered.length} resultaten`;
+  };
+
+  // Wis-knop (×) en Escape: zoekveld leegmaken en focus teruggeven
+  window._entityClearSearch = (t) => {
+    const c = $(`#section-${t}`);
+    const input = c?.querySelector('.sbs-input');
+    if (input) input.value = '';
+    window._entitySearch(t, '');
+    input?.focus();
   };
 
   window._entitySubtypeFilter = (t, subtype) => {
