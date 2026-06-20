@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Donjon Generator — Grisburgh</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a0e04;
+      overflow: hidden;
+      font-family: 'IM Fell English', serif;
+      color: #c4a87a;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.45rem 1rem;
+      background: linear-gradient(to bottom, #2a1a08, #1e1004);
+      border-bottom: 1px solid rgba(196,168,122,0.2);
+      flex-wrap: wrap;
+    }
+
+    .logo {
+      font-family: 'Cinzel', serif;
+      font-size: 0.95rem;
+      letter-spacing: 0.18em;
+      color: #c4a87a;
+      margin-right: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .toolbar-sep {
+      width: 1px; height: 20px;
+      background: rgba(196,168,122,0.2);
+      flex-shrink: 0;
+    }
+
+    .tb-btn {
+      font-family: 'Cinzel', serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      color: #c4a87a;
+      background: rgba(196,168,122,0.07);
+      border: 1px solid rgba(196,168,122,0.25);
+      border-radius: 4px;
+      padding: 0.3rem 0.8rem;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      flex-shrink: 0;
+    }
+    .tb-btn:hover { background: rgba(196,168,122,0.15); border-color: rgba(196,168,122,0.5); }
+    .tb-btn:active { transform: scale(0.97); }
+    .tb-btn.primary {
+      background: rgba(196,168,122,0.12);
+      border-color: rgba(196,168,122,0.45);
+      color: #f2e8d2;
+    }
+    .tb-btn.primary:hover { background: rgba(196,168,122,0.22); }
+
+    .size-group {
+      display: flex;
+      gap: 0.3rem;
+      align-items: center;
+    }
+    .size-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.65rem;
+      color: rgba(196,168,122,0.5);
+      letter-spacing: 0.1em;
+    }
+    .size-btn {
+      font-family: 'Cinzel', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.06em;
+      color: rgba(196,168,122,0.6);
+      background: transparent;
+      border: 1px solid rgba(196,168,122,0.15);
+      border-radius: 3px;
+      padding: 0.2rem 0.5rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .size-btn:hover { border-color: rgba(196,168,122,0.4); color: #c4a87a; }
+    .size-btn.active {
+      background: rgba(196,168,122,0.12);
+      border-color: rgba(196,168,122,0.4);
+      color: #c4a87a;
+    }
+
+    .seed-info {
+      margin-left: auto;
+      font-size: 0.6rem;
+      color: rgba(196,168,122,0.3);
+      font-family: 'Cinzel', serif;
+      letter-spacing: 0.08em;
+      flex-shrink: 0;
+    }
+    .seed-info span {
+      color: rgba(196,168,122,0.55);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .seed-info span:hover { color: #c4a87a; }
+
+    #map-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      height: calc(100vh - 44px);
+    }
+
+    #map {
+      display: block;
+      cursor: default;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 1.2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20,10,4,0.92);
+      border: 1px solid rgba(196,168,122,0.3);
+      border-radius: 6px;
+      padding: 0.5rem 1.2rem;
+      font-family: 'Cinzel', serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      color: #c4a87a;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div class="toolbar">
+  <span class="logo">✦ Donjon Generator</span>
+  <div class="toolbar-sep"></div>
+  <button class="tb-btn primary" id="btnGen">Genereer Nieuwe Kaart</button>
+  <button class="tb-btn" id="btnDl">Download PNG</button>
+  <div class="toolbar-sep"></div>
+  <div class="size-group">
+    <span class="size-label">Grootte:</span>
+    <button class="size-btn" data-size="klein">Klein</button>
+    <button class="size-btn active" data-size="middel">Middel</button>
+    <button class="size-btn" data-size="groot">Groot</button>
+  </div>
+  <div class="seed-info">Zaad: <span id="seedDisplay" title="Klik om in te voeren">—</span></div>
+</div>
+
+<div id="map-wrap">
+  <canvas id="map"></canvas>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════
+
+const CELL = 15; // pixels per grid tile
+
+const SIZES = {
+  klein: { rooms: [6, 9],   w: 52, h: 36 },
+  middel: { rooms: [9, 14], w: 70, h: 46 },
+  groot: { rooms: [12, 18], w: 90, h: 58 },
+};
+
+let sizeKey = 'middel';
+let currentSeed = 0;
+
+// Parchment palette
+const CLR = {
+  paper:      '#e8d8b0',
+  paperDark:  '#dbc898',
+  floor:      '#ede0c0',
+  floorShad:  '#d8c898',
+  wallLine:   '#2c1a06',
+  wallHatch:  'rgba(44,26,6,0.16)',
+  door:       '#5a3210',
+  doorBg:     '#c8a870',
+  text:       '#1e0f04',
+  textFaded:  'rgba(30,15,4,0.45)',
+  gold:       '#9a7030',
+  goldBright: '#c4a050',
+  red:        '#6a1a0a',
+};
+
+// ═══════════════════════════════════════════════════════════
+//  SEEDED RNG
+// ═══════════════════════════════════════════════════════════
+function mkRng(seed) {
+  let s = (seed ^ 0xdeadbeef) >>> 0;
+  return () => {
+    s ^= s << 13; s ^= s >> 17; s ^= s << 5;
+    return (s >>> 0) / 0x100000000;
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DUNGEON GENERATION
+// ═══════════════════════════════════════════════════════════
+
+const WALL = 0, FLOOR = 1;
+
+function generate(seed, cfg) {
+  const rng = mkRng(seed);
+  const { w: GW, h: GH } = cfg;
+  const [minRooms, maxRooms] = cfg.rooms;
+  const TARGET = minRooms + Math.floor(rng() * (maxRooms - minRooms + 1));
+
+  const grid = Array.from({ length: GH }, () => new Uint8Array(GW).fill(WALL));
+
+  // ── Place rooms ──────────────────────────────────────────
+  const rooms = [];
+  const MARGIN = 2;
+
+  for (let att = 0; att < 1200 && rooms.length < TARGET; att++) {
+    const w = 4 + Math.floor(rng() * 8);
+    const h = 3 + Math.floor(rng() * 6);
+    const x = MARGIN + Math.floor(rng() * (GW - w - MARGIN * 2));
+    const y = MARGIN + Math.floor(rng() * (GH - h - MARGIN * 2));
+
+    if (x < MARGIN || y < MARGIN || x + w > GW - MARGIN || y + h > GH - MARGIN) continue;
+
+    const overlaps = rooms.some(r =>
+      x - MARGIN < r.x + r.w && x + w + MARGIN > r.x &&
+      y - MARGIN < r.y + r.h && y + h + MARGIN > r.y
+    );
+    if (overlaps) continue;
+
+    rooms.push({ id: rooms.length, x, y, w, h, cx: x + w / 2, cy: y + h / 2 });
+    for (let ry = y; ry < y + h; ry++)
+      for (let rx = x; rx < x + w; rx++)
+        grid[ry][rx] = FLOOR;
+  }
+
+  if (rooms.length < 2) return null;
+
+  // ── Assign types ─────────────────────────────────────────
+  const byArea = [...rooms].sort((a, b) => b.w * b.h - a.w * a.h);
+  byArea[0].type = 'baas';
+  const entranceIdx = rooms.length > 1 ? Math.floor(rng() * Math.min(3, rooms.length - 1)) + 1 : 0;
+  byArea[entranceIdx].type = 'ingang';
+
+  const extraTypes = ['schat', 'val', 'archief', 'altaar'];
+  let ei = 0;
+  for (const r of rooms) {
+    if (!r.type) {
+      r.type = ei < extraTypes.length && rng() < 0.42 ? extraTypes[ei++] : 'leeg';
+    }
+  }
+
+  // ── MST via Kruskal ──────────────────────────────────────
+  const allEdges = [];
+  for (let i = 0; i < rooms.length; i++)
+    for (let j = i + 1; j < rooms.length; j++)
+      allEdges.push([i, j, Math.hypot(rooms[i].cx - rooms[j].cx, rooms[i].cy - rooms[j].cy)]);
+  allEdges.sort((a, b) => a[2] - b[2]);
+
+  const par = rooms.map((_, i) => i);
+  function find(x) { return par[x] === x ? x : (par[x] = find(par[x])); }
+
+  const edges = [];
+  for (const [i, j] of allEdges) {
+    if (find(i) !== find(j)) {
+      edges.push([i, j]);
+      par[find(i)] = find(j);
+    }
+  }
+
+  // Extra edges (loops)
+  const nonTree = allEdges.filter(([i, j]) =>
+    !edges.some(([ei, ej]) => (ei === i && ej === j) || (ei === j && ej === i))
+  );
+  const extra = 1 + Math.floor(rng() * 2);
+  for (let k = 0; k < extra && k < nonTree.length; k++) edges.push([nonTree[k][0], nonTree[k][1]]);
+
+  // ── Carve corridors ──────────────────────────────────────
+  const corridors = []; // { x, y, w, h }
+
+  for (const [i, j] of edges) {
+    const a = rooms[i], b = rooms[j];
+
+    // Pick exit points on walls facing each other
+    const ax = Math.round(a.cx), ay = Math.round(a.cy);
+    const bx = Math.round(b.cx), by = Math.round(b.cy);
+
+    const hFirst = rng() < 0.5;
+    const mx = hFirst ? bx : ax;
+    const my = hFirst ? ay : by;
+
+    const corrW = 1 + (rng() < 0.25 ? 1 : 0); // occasionally 2-wide
+
+    // Horizontal leg
+    const hx = Math.min(ax, mx), hw = Math.abs(bx - ax) + (hFirst ? 0 : 1);
+    if (hw > 0) {
+      const hy = my - Math.floor(corrW / 2);
+      corridors.push({ x: Math.min(ax, mx), y: hy, w: Math.abs(ax - mx) + 1, h: corrW });
+      for (let ry = hy; ry < hy + corrW; ry++)
+        for (let rx = Math.min(ax, mx); rx <= Math.max(ax, mx); rx++)
+          if (rx >= 0 && rx < GW && ry >= 0 && ry < GH)
+            if (grid[ry][rx] === WALL) grid[ry][rx] = FLOOR;
+    }
+
+    // Vertical leg
+    if (Math.abs(ay - by) > 0) {
+      const vx = mx - Math.floor(corrW / 2);
+      corridors.push({ x: vx, y: Math.min(ay, my), w: corrW, h: Math.abs(ay - my) + 1 });
+      for (let rx = vx; rx < vx + corrW; rx++)
+        for (let ry = Math.min(ay, my); ry <= Math.max(ay, my); ry++)
+          if (rx >= 0 && rx < GW && ry >= 0 && ry < GH)
+            if (grid[ry][rx] === WALL) grid[ry][rx] = FLOOR;
+    }
+  }
+
+  // ── Find door positions ───────────────────────────────────
+  // A "door" is where a corridor cell is directly adjacent to a room cell
+  // and the corridor is exactly 1 cell wide at that junction.
+  const doorSet = new Set();
+
+  for (const r of rooms) {
+    // Scan perimeter of each room
+    const { x, y, w, h } = r;
+    // Top & bottom edges
+    for (let rx = x; rx < x + w; rx++) {
+      if (y > 0 && grid[y - 1][rx] === FLOOR) doorSet.add(`${rx},${y}`);
+      if (y + h < GH && grid[y + h][rx] === FLOOR) doorSet.add(`${rx},${y + h - 1}`);
+    }
+    // Left & right edges
+    for (let ry = y; ry < y + h; ry++) {
+      if (x > 0 && grid[ry][x - 1] === FLOOR) doorSet.add(`${x},${ry}`);
+      if (x + w < GW && grid[ry][x + w] === FLOOR) doorSet.add(`${x + w - 1},${ry}`);
+    }
+  }
+
+  const doors = [...doorSet].map(k => {
+    const [dx, dy] = k.split(',').map(Number);
+    return { x: dx, y: dy };
+  });
+
+  return { grid, rooms, edges, doors, GW, GH };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DRAWING HELPERS
+// ═══════════════════════════════════════════════════════════
+
+let hatchPattern = null;
+
+function buildHatchPattern(canvas_ctx) {
+  const pc = document.createElement('canvas');
+  pc.width = 8; pc.height = 8;
+  const c = pc.getContext('2d');
+  c.strokeStyle = CLR.wallHatch;
+  c.lineWidth = 0.9;
+  // NW→SE diagonal
+  c.beginPath();
+  c.moveTo(-1, 5); c.lineTo(5, -1);
+  c.moveTo(3, 9); c.lineTo(9, 3);
+  c.stroke();
+  // Lighter SE→NW cross-hatch
+  c.strokeStyle = 'rgba(44,26,6,0.08)';
+  c.lineWidth = 0.7;
+  c.beginPath();
+  c.moveTo(-1, 3); c.lineTo(3, -1);
+  c.moveTo(5, 9); c.lineTo(9, 5);
+  c.stroke();
+  return canvas_ctx.createPattern(pc, 'repeat');
+}
+
+// Draw a single room icon by type
+function drawRoomIcon(ctx, type, cx, cy, size) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.strokeStyle = CLR.wallLine;
+  ctx.fillStyle = CLR.wallLine;
+  ctx.lineWidth = 1.2;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  const s = size * 0.38;
+
+  switch (type) {
+    case 'ingang': {
+      // Staircase steps (downward arrow style)
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const tx = -s + i * s * 0.6;
+        const ty = -s * 0.5 + i * s * 0.4;
+        if (i === 0) ctx.moveTo(tx, ty); else ctx.lineTo(tx, ty);
+        ctx.lineTo(tx + s * 0.6, ty);
+        ctx.lineTo(tx + s * 0.6, ty + s * 0.4);
+      }
+      ctx.stroke();
+      break;
+    }
+    case 'baas': {
+      // 6-pointed star
+      for (let i = 0; i < 6; i++) {
+        const a = (i * Math.PI / 3) - Math.PI / 2;
+        const r1 = s * 0.95, r2 = s * 0.42;
+        const a2 = a + Math.PI / 6;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a) * r1, Math.sin(a) * r1);
+        ctx.lineTo(Math.cos(a2) * r2, Math.sin(a2) * r2);
+        ctx.closePath();
+        ctx.fill();
+      }
+      break;
+    }
+    case 'schat': {
+      // Chest outline
+      const hw = s * 0.85, hh = s * 0.6;
+      ctx.strokeRect(-hw, -hh * 0.2, hw * 2, hh);
+      ctx.strokeRect(-hw, -hh - hh * 0.3, hw * 2, hh * 0.5);
+      // Lock
+      ctx.beginPath();
+      ctx.arc(0, hh * 0.25, s * 0.13, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+    case 'val': {
+      // Spiked X
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(-s, -s); ctx.lineTo(s, s);
+      ctx.moveTo(s, -s);  ctx.lineTo(-s, s);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      // Small circle in center
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.25, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    }
+    case 'archief': {
+      // Open book
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.7);
+      ctx.lineTo(0, s * 0.7);
+      ctx.stroke();
+      ctx.strokeRect(-s * 0.85, -s * 0.7, s * 0.85, s * 1.4);
+      ctx.strokeRect(0, -s * 0.7, s * 0.85, s * 1.4);
+      // Lines suggesting text
+      for (let i = 0; i < 3; i++) {
+        const ly = -s * 0.35 + i * s * 0.38;
+        ctx.beginPath();
+        ctx.moveTo(-s * 0.7, ly); ctx.lineTo(-s * 0.15, ly);
+        ctx.moveTo(s * 0.15, ly); ctx.lineTo(s * 0.7, ly);
+        ctx.stroke();
+      }
+      break;
+    }
+    case 'altaar': {
+      // Flame / altar cross
+      ctx.lineWidth = 1.4;
+      // Pillar
+      ctx.strokeRect(-s * 0.2, 0, s * 0.4, s * 0.8);
+      // Flame
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.2);
+      ctx.bezierCurveTo(s * 0.5, -s * 0.8, s * 0.5, -s * 1.1, 0, -s * 1.2);
+      ctx.bezierCurveTo(-s * 0.5, -s * 1.1, -s * 0.5, -s * 0.8, 0, -s * 0.2);
+      ctx.stroke();
+      break;
+    }
+    default:
+      break; // leeg — no icon
+  }
+
+  ctx.restore();
+}
+
+// Compass rose
+function drawCompass(ctx, cx, cy, size) {
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  const s = size;
+
+  // Outer circle
+  ctx.strokeStyle = CLR.gold;
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.arc(0, 0, s, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Cardinal points
+  const dirs = [
+    { label: 'N', angle: -Math.PI / 2, major: true },
+    { label: 'O', angle: 0, major: false },
+    { label: 'Z', angle: Math.PI / 2, major: false },
+    { label: 'W', angle: Math.PI, major: false },
+  ];
+
+  for (const { label, angle, major } of dirs) {
+    const r1 = major ? s * 0.55 : s * 0.45;
+    const r2 = s * 0.85;
+
+    // Pointer
+    ctx.fillStyle = major ? CLR.red : CLR.gold;
+    ctx.beginPath();
+    const tip = { x: Math.cos(angle) * r2, y: Math.sin(angle) * r2 };
+    const base1 = { x: Math.cos(angle + Math.PI / 2) * s * 0.12, y: Math.sin(angle + Math.PI / 2) * s * 0.12 };
+    const base2 = { x: Math.cos(angle - Math.PI / 2) * s * 0.12, y: Math.sin(angle - Math.PI / 2) * s * 0.12 };
+    ctx.moveTo(tip.x, tip.y);
+    ctx.lineTo(base1.x, base1.y);
+    ctx.lineTo(base2.x, base2.y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Label
+    const lx = Math.cos(angle) * (r2 + s * 0.22);
+    const ly = Math.sin(angle) * (r2 + s * 0.22);
+    ctx.fillStyle = CLR.text;
+    ctx.font = `${major ? 'bold ' : ''}${Math.round(s * 0.32)}px Cinzel, serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, lx, ly);
+  }
+
+  // Diagonal ticks
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI / 2 + Math.PI / 4;
+    ctx.strokeStyle = CLR.gold;
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * s * 0.55, Math.sin(a) * s * 0.55);
+    ctx.lineTo(Math.cos(a) * s * 0.75, Math.sin(a) * s * 0.75);
+    ctx.stroke();
+  }
+
+  // Center dot
+  ctx.fillStyle = CLR.goldBright;
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 0.08, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// Draw a decorative title border (ornate lines + text)
+function drawTitleArea(ctx, W, H) {
+  const margin = 12;
+
+  // Outer frame
+  ctx.strokeStyle = CLR.wallLine;
+  ctx.lineWidth = 2;
+  roundRect(ctx, margin, margin, W - margin * 2, H - margin * 2, 3);
+  ctx.stroke();
+
+  // Inner frame (slightly inset)
+  ctx.lineWidth = 0.7;
+  ctx.strokeStyle = CLR.gold;
+  roundRect(ctx, margin + 4, margin + 4, W - (margin + 4) * 2, H - (margin + 4) * 2, 2);
+  ctx.stroke();
+
+  // Corner ornaments
+  const corners = [
+    [margin + 8, margin + 8],
+    [W - margin - 8, margin + 8],
+    [margin + 8, H - margin - 8],
+    [W - margin - 8, H - margin - 8],
+  ];
+  for (const [cx, cy] of corners) {
+    ctx.fillStyle = CLR.goldBright;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MAIN RENDER
+// ═══════════════════════════════════════════════════════════
+
+function render(canvas, dungeon) {
+  const ctx = canvas.getContext('2d');
+  const { grid, rooms, edges, doors, GW, GH } = dungeon;
+  const W = canvas.width, H = canvas.height;
+
+  // ── Build hatch pattern ───────────────────────────────
+  if (!hatchPattern) hatchPattern = buildHatchPattern(ctx);
+
+  // ── Layer 1: Parchment background ────────────────────
+  ctx.fillStyle = CLR.paper;
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle paper noise
+  for (let i = 0; i < 6000; i++) {
+    const nx = Math.random() * W, ny = Math.random() * H;
+    const na = Math.random() * 0.04;
+    ctx.fillStyle = `rgba(180,140,60,${na})`;
+    ctx.fillRect(nx, ny, 1.5, 1.5);
+  }
+
+  // ── Layer 2: Crosshatch walls ─────────────────────────
+  // Tile everything, then we'll "punch out" the floor areas
+  ctx.fillStyle = hatchPattern;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Layer 3: Floor tiles ──────────────────────────────
+  // Small gradient between rows for subtle depth
+  for (let y = 0; y < GH; y++) {
+    for (let x = 0; x < GW; x++) {
+      if (grid[y][x] === FLOOR) {
+        const px = x * CELL, py = y * CELL;
+        // Slightly textured floor
+        ctx.fillStyle = CLR.floor;
+        ctx.fillRect(px, py, CELL, CELL);
+        // Very subtle inner shading
+        ctx.fillStyle = 'rgba(44,26,6,0.03)';
+        ctx.fillRect(px, py, CELL, 1);
+        ctx.fillRect(px, py, 1, CELL);
+      }
+    }
+  }
+
+  // ── Layer 4: Wall outlines ────────────────────────────
+  // For every floor tile, draw thick border on any side adjacent to a wall
+  ctx.strokeStyle = CLR.wallLine;
+  ctx.lineWidth = 1.8;
+  ctx.lineCap = 'square';
+
+  const neighbours = [[-1,0],[1,0],[0,-1],[0,1]];
+  for (let y = 0; y < GH; y++) {
+    for (let x = 0; x < GW; x++) {
+      if (grid[y][x] !== FLOOR) continue;
+      for (const [dy, dx] of neighbours) {
+        const ny2 = y + dy, nx2 = x + dx;
+        const isWall = nx2 < 0 || ny2 < 0 || nx2 >= GW || ny2 >= GH || grid[ny2][nx2] !== FLOOR;
+        if (!isWall) continue;
+
+        const px = x * CELL, py = y * CELL;
+        ctx.beginPath();
+        if (dy === -1) { ctx.moveTo(px, py); ctx.lineTo(px + CELL, py); }
+        if (dy ===  1) { ctx.moveTo(px, py + CELL); ctx.lineTo(px + CELL, py + CELL); }
+        if (dx === -1) { ctx.moveTo(px, py); ctx.lineTo(px, py + CELL); }
+        if (dx ===  1) { ctx.moveTo(px + CELL, py); ctx.lineTo(px + CELL, py + CELL); }
+        ctx.stroke();
+      }
+    }
+  }
+
+  // ── Layer 5: Rooms — inner shadow + second outline ────
+  for (const r of rooms) {
+    const rx = r.x * CELL, ry = r.y * CELL;
+    const rw = r.w * CELL, rh = r.h * CELL;
+
+    // Subtle floor texture gradient inside rooms
+    const grad = ctx.createLinearGradient(rx, ry, rx + rw, ry + rh);
+    grad.addColorStop(0,   'rgba(255,245,220,0.18)');
+    grad.addColorStop(0.5, 'rgba(255,245,220,0.0)');
+    grad.addColorStop(1,   'rgba(44,26,6,0.08)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(rx, ry, rw, rh);
+  }
+
+  // ── Layer 6: Doors ────────────────────────────────────
+  // Find door positions: floor cells on the border of a room
+  // where the neighbouring cell outside the room is also floor (corridor)
+  const roomSet = new Set();
+  for (const r of rooms) {
+    for (let dy = r.y; dy < r.y + r.h; dy++)
+      for (let dx = r.x; dx < r.x + r.w; dx++)
+        roomSet.add(`${dx},${dy}`);
+  }
+
+  const doorDrawn = new Set();
+
+  for (const r of rooms) {
+    const perim = [];
+    for (let dx = r.x; dx < r.x + r.w; dx++) {
+      perim.push({ x: dx, y: r.y,       dir: 'h' }); // top
+      perim.push({ x: dx, y: r.y + r.h - 1, dir: 'h' }); // bottom
+    }
+    for (let dy = r.y + 1; dy < r.y + r.h - 1; dy++) {
+      perim.push({ x: r.x, y: dy, dir: 'v' }); // left
+      perim.push({ x: r.x + r.w - 1, y: dy, dir: 'v' }); // right
+    }
+
+    for (const { x, y, dir } of perim) {
+      for (const [dy2, dx2] of neighbours) {
+        const nx2 = x + dx2, ny2 = y + dy2;
+        if (nx2 < 0 || ny2 < 0 || nx2 >= GW || ny2 >= GH) continue;
+        if (grid[ny2][nx2] !== FLOOR) continue;
+        if (roomSet.has(`${nx2},${ny2}`)) continue; // other side is also room
+
+        const dk = `${Math.min(x,nx2)},${Math.min(y,ny2)},${dx2},${dy2}`;
+        if (doorDrawn.has(dk)) continue;
+        doorDrawn.add(dk);
+
+        // Draw door at the boundary
+        const px = x * CELL, py = y * CELL;
+        const npx = nx2 * CELL, npy = ny2 * CELL;
+        const mx = (px + npx) / 2 + (dx2 !== 0 ? CELL / 2 : 0);
+        const my = (py + npy) / 2 + (dy2 !== 0 ? CELL / 2 : 0);
+
+        ctx.fillStyle = CLR.doorBg;
+        ctx.strokeStyle = CLR.door;
+        ctx.lineWidth = 1.2;
+
+        if (dy2 !== 0) {
+          // Horizontal wall — door perpendicular bar
+          ctx.fillRect(mx - CELL * 0.3, my - 2, CELL * 0.6, 4);
+          ctx.strokeRect(mx - CELL * 0.3, my - 2, CELL * 0.6, 4);
+        } else {
+          // Vertical wall
+          ctx.fillRect(mx - 2, my - CELL * 0.3, 4, CELL * 0.6);
+          ctx.strokeRect(mx - 2, my - CELL * 0.3, 4, CELL * 0.6);
+        }
+      }
+    }
+  }
+
+  // ── Layer 7: Room numbers + icons ────────────────────
+  const typeLabel = {
+    ingang:  'Ingang',
+    baas:    'Baas',
+    schat:   'Schat',
+    val:     'Val',
+    archief: 'Archief',
+    altaar:  'Altaar',
+    leeg:    '',
+  };
+
+  for (const r of rooms) {
+    const cx = (r.x + r.w / 2) * CELL;
+    const cy = (r.y + r.h / 2) * CELL;
+    const rw = r.w * CELL, rh = r.h * CELL;
+
+    const iconSize = Math.min(rw, rh) * 0.22;
+    const numOffset = r.type && r.type !== 'leeg' ? iconSize * 1.5 : 0;
+
+    // Draw room icon
+    if (r.type && r.type !== 'leeg') {
+      drawRoomIcon(ctx, r.type, cx, cy - numOffset * 0.4, iconSize * 1.8);
+    }
+
+    // Room number circle
+    const nr = iconSize * 0.75;
+    const ny2 = cy + (r.type && r.type !== 'leeg' ? numOffset * 0.9 : 0);
+    ctx.fillStyle = CLR.wallLine;
+    ctx.beginPath();
+    ctx.arc(cx, ny2, nr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = CLR.paper;
+    ctx.font = `bold ${Math.round(nr * 1.2)}px Cinzel, serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(r.id + 1, cx, ny2 + 0.5);
+
+    // Type label (for non-empty rooms with enough space)
+    if (r.type && r.type !== 'leeg' && rw > CELL * 4) {
+      ctx.fillStyle = CLR.textFaded;
+      ctx.font = `italic ${Math.min(10, Math.round(iconSize * 0.65))}px 'IM Fell English', serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(typeLabel[r.type] || '', cx, ny2 + nr + 3);
+    }
+  }
+
+  // ── Layer 8: Compass rose ─────────────────────────────
+  const compassR = 28;
+  const compassX = W - 16 - compassR - compassR * 1.2;
+  const compassY = H - 16 - compassR - compassR * 1.2;
+  drawCompass(ctx, compassX, compassY, compassR);
+
+  // ── Layer 9: Legend ───────────────────────────────────
+  const legendX = 24, legendY = H - 14;
+  const legendItems = [
+    { type: 'ingang', label: 'Ingang' },
+    { type: 'baas',   label: 'Baas'   },
+    { type: 'schat',  label: 'Schat'  },
+    { type: 'val',    label: 'Val'    },
+  ];
+
+  ctx.save();
+  let lx = legendX;
+  for (const item of legendItems) {
+    // Mini icon
+    ctx.save();
+    ctx.translate(lx + 8, legendY - 8);
+    ctx.scale(0.55, 0.55);
+    drawRoomIcon(ctx, item.type, 0, 0, 14);
+    ctx.restore();
+
+    ctx.fillStyle = CLR.textFaded;
+    ctx.font = `italic 9px 'IM Fell English', serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(item.label, lx + 18, legendY - 8);
+    lx += 62;
+  }
+  ctx.restore();
+
+  // ── Layer 10: Title + decorative border ──────────────
+  drawTitleArea(ctx, W, H);
+
+  // Title text (only if enough room at top)
+  const topClear = rooms.reduce((acc, r) => Math.min(acc, r.y * CELL), H);
+  if (topClear > 48) {
+    ctx.fillStyle = CLR.text;
+    ctx.font = `700 ${Math.min(16, Math.round(topClear * 0.38))}px Cinzel, serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('KAART DER VERGETEN DONJON', W / 2, topClear / 2);
+
+    // Ornamental lines beside title
+    const tw = ctx.measureText('KAART DER VERGETEN DONJON').width;
+    ctx.strokeStyle = CLR.goldBright;
+    ctx.lineWidth = 0.8;
+    const lineY = topClear / 2;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - tw / 2 - 30, lineY); ctx.lineTo(W / 2 - tw / 2 - 8, lineY);
+    ctx.moveTo(W / 2 + tw / 2 + 8, lineY); ctx.lineTo(W / 2 + tw / 2 + 30, lineY);
+    ctx.stroke();
+  }
+
+  // Scale bar
+  const scaleLen = 5 * CELL; // 5 tiles
+  const scaleX = W / 2 - scaleLen / 2;
+  const scaleY = H - 20;
+  ctx.strokeStyle = CLR.wallLine;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(scaleX, scaleY); ctx.lineTo(scaleX + scaleLen, scaleY);
+  ctx.moveTo(scaleX, scaleY - 3); ctx.lineTo(scaleX, scaleY + 3);
+  ctx.moveTo(scaleX + scaleLen, scaleY - 3); ctx.lineTo(scaleX + scaleLen, scaleY + 3);
+  ctx.stroke();
+  ctx.fillStyle = CLR.textFaded;
+  ctx.font = `8px Cinzel, serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('5 vakken', scaleX + scaleLen / 2, scaleY - 4);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CANVAS SETUP
+// ═══════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('map');
+
+function setupCanvas(cfg) {
+  const wrap = document.getElementById('map-wrap');
+  const avW = wrap.clientWidth   - 4;
+  const avH = wrap.clientHeight  - 4;
+
+  // Use configured grid, but scale CELL to fit screen
+  const scaledCell = Math.min(CELL, Math.floor(avW / cfg.w), Math.floor(avH / cfg.h));
+  const cW = cfg.w * scaledCell;
+  const cH = cfg.h * scaledCell;
+
+  canvas.width  = cW;
+  canvas.height = cH;
+  return { ...cfg, _cell: scaledCell };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════════════════
+
+function generateNew() {
+  currentSeed = Math.floor(Math.random() * 0x7fffffff);
+  doGenerate();
+}
+
+function doGenerate() {
+  hatchPattern = null;
+  const cfg = { ...SIZES[sizeKey] };
+  const scaled = setupCanvas(cfg);
+
+  const dungeon = generate(currentSeed, cfg);
+  if (!dungeon) { showToast('Generatie mislukt — probeer opnieuw'); return; }
+
+  dungeon.GW = cfg.w;
+  dungeon.GH = cfg.h;
+
+  render(canvas, dungeon);
+  document.getElementById('seedDisplay').textContent = currentSeed.toString(16).padStart(8, '0').toUpperCase();
+}
+
+document.getElementById('btnGen').addEventListener('click', generateNew);
+
+document.getElementById('btnDl').addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.download = `donjon-${currentSeed.toString(16).padStart(8,'0')}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast('Kaart gedownload als PNG');
+});
+
+document.querySelectorAll('.size-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    sizeKey = btn.dataset.size;
+    doGenerate();
+  });
+});
+
+document.getElementById('seedDisplay').addEventListener('click', () => {
+  const input = prompt('Voer een zaad-nummer in (hexadecimaal of decimaal):',
+    currentSeed.toString(16).padStart(8, '0').toUpperCase());
+  if (!input) return;
+  const parsed = parseInt(input.replace(/^0x/i, ''), input.toLowerCase().startsWith('0x') ? 16 : 16);
+  if (isNaN(parsed)) { showToast('Ongeldig zaad'); return; }
+  currentSeed = parsed >>> 0;
+  doGenerate();
+});
+
+window.addEventListener('resize', () => doGenerate());
+
+// ═══════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Init ────────────────────────────────────────────────
+generateNew();
+</script>
+
+</body>
+</html>
