@@ -4146,6 +4146,19 @@ router.delete('/files/:id', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// Kopieer een bestaand bestand (uit de bibliotheek of net geüpload) naar een vaste
+// fileId zoals spell-img-<index>. Zo kan de DM een spreukafbeelding uit de bibliotheek
+// kiezen zonder de vaste-id-conventie van het render-pad te wijzigen.
+router.post('/files/:id/copy-from/:src', requireDM, async (req, res) => {
+  const src = storage.getFile(req.params.src);
+  if (!src) return res.status(404).json({ error: 'Bronbestand niet gevonden' });
+  let buffer;
+  try { buffer = fs.readFileSync(src.path); } catch { return res.status(500).json({ error: 'Lezen mislukt' }); }
+  storage.saveFile(req.params.id, buffer, src.mimetype);
+  await _registerMedia(req.params.id, { mime: src.mimetype, grootte: buffer.length, buffer });
+  res.json({ ok: true });
+});
+
 // ── Mediabibliotheek ──
 // media.json registreert per fileId een bewerkbare weergavenaam + auto-info.
 // ID ≠ naam: verwijzingen in de data gebruiken het fileId, de naam leeft alleen

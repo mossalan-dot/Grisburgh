@@ -137,15 +137,20 @@ export function initDmPanel() {
     spellSearch: _spellSearch,
     spellOpen:   _spellOpen,
     spellBack:   _spellBack,
-    uploadSpellImage: async function(index, file) {
-      if (!file) return;
-      const fd = new FormData();
-      fd.append('file', file);
-      try {
-        await fetch(`/api/files/spell-img-${index}`, { method: 'POST', body: fd, credentials: 'include' });
-        const thumb = document.getElementById('dm-spell-img-thumb');
-        if (thumb) { thumb.src = `/api/files/spell-img-${index}?t=${Date.now()}`; thumb.style.display = 'block'; }
-      } catch(e) { console.warn('Afbeelding uploaden mislukt:', e); }
+    // Spreukafbeelding via de mediabibliotheek: kies bestaand óf upload nieuw; de gekozen
+    // file wordt server-side gekopieerd naar de vaste id spell-img-<index>.
+    pickSpellImage: function(index, naam) {
+      window.mediaPicker.open({
+        type: 'afbeelding',
+        suggestedName: (naam || 'spreuk').toLowerCase().replace(/\s+/g, '-'),
+        onSelect: async (srcId) => {
+          try {
+            await fetch(`/api/files/spell-img-${index}/copy-from/${srcId}`, { method: 'POST', credentials: 'include' });
+            const thumb = document.getElementById('dm-spell-img-thumb');
+            if (thumb) { thumb.src = `/api/files/spell-img-${index}?t=${Date.now()}`; thumb.style.display = 'block'; }
+          } catch(e) { console.warn('Afbeelding instellen mislukt:', e); }
+        },
+      });
     },
 
     // Mediabibliotheek
@@ -1225,11 +1230,10 @@ function _spellDetailHtml(s) {
         <img id="dm-spell-img-thumb" src="/api/files/spell-img-${esc(s.index)}?t=${Date.now()}"
           style="max-width:100%;max-height:110px;border-radius:6px;display:block;margin-bottom:8px"
           onerror="this.style.display='none'" alt="">
-        <label class="dm-btn dm-btn-ghost dm-btn-sm" style="gap:5px">
-          ${icon('image')} Afbeelding instellen
-          <input type="file" accept="image/*" style="display:none"
-            onchange="window.dmPanel.uploadSpellImage('${esc(s.index)}', this.files[0])">
-        </label>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" style="gap:5px"
+          onclick="window.dmPanel.pickSpellImage('${esc(s.index)}','${escJS(s.name || '')}')">
+          ${icon('image')} Afbeelding kiezen of uploaden
+        </button>
       </div>
     </div>`;
 };

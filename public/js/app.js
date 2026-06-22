@@ -3008,13 +3008,11 @@ function _ensureSpellbookOverlay() {
         <div class="sb-wax-seal" id="sb-wax-seal"></div>
         <!-- Spell stats: Save DC + Attack Bonus (bottom-right) -->
         <div class="sb-spell-stats" id="sb-spell-stats"></div>
-        <!-- Upload image button — DM only -->
+        <!-- Afbeelding kiezen uit bibliotheek of uploaden — DM only -->
         ${app.isDM() ? `
-        <button class="sb-img-btn" onclick="document.getElementById('sb-img-file').click()" title="Afbeelding uploaden">
+        <button class="sb-img-btn" onclick="window._sbPickImage()" title="Afbeelding kiezen of uploaden">
           ${icon('camera')}
-        </button>
-        <input type="file" id="sb-img-file" accept="image/*" style="display:none"
-          onchange="window._sbUploadImage(this.files[0])">` : ''}
+        </button>` : ''}
       </div>
       <!-- Right page: parchment -->
       <div class="sb-page-right" id="sb-page-right">
@@ -4209,23 +4207,26 @@ window._sbToggleSlot = async function(lvl, i) {
   }
 };
 
-window._sbUploadImage = async function(file) {
-  if (!file) return;
+// Spreukafbeelding: kies uit de mediabibliotheek óf upload nieuw via de picker.
+// De gekozen file wordt server-side gekopieerd naar de vaste id spell-img-<index>,
+// zodat het render-pad (en de fallback) ongewijzigd blijft.
+window._sbPickImage = function() {
   const spell = _sbState.spells[_sbState.idx];
   if (!spell) return;
   const fileId = 'spell-img-' + spell.index;
-  const fd = new FormData();
-  fd.append('file', file);
-  try {
-    await fetch(`/api/files/${fileId}`, { method: 'POST', body: fd, credentials: 'include' });
-    const imgEl = document.getElementById('sb-left-img');
-    if (imgEl) { imgEl.src = `/api/files/${fileId}?t=${Date.now()}`; imgEl.style.display = 'block'; }
-    const iconEl = document.getElementById('sb-left-icon');
-    if (iconEl) iconEl.style.opacity = '0.08'; // dim icon behind image
-  } catch (e) { console.error('Afbeelding uploaden mislukt:', e); }
-  // Reset file input
-  const fi = document.getElementById('sb-img-file');
-  if (fi) fi.value = '';
+  window.mediaPicker.open({
+    type: 'afbeelding',
+    suggestedName: (spell.name || 'spreuk').toLowerCase().replace(/\s+/g, '-'),
+    onSelect: async (srcId) => {
+      try {
+        await fetch(`/api/files/${fileId}/copy-from/${srcId}`, { method: 'POST', credentials: 'include' });
+        const imgEl = document.getElementById('sb-left-img');
+        if (imgEl) { imgEl.src = `/api/files/${fileId}?t=${Date.now()}`; imgEl.style.display = 'block'; }
+        const iconEl = document.getElementById('sb-left-icon');
+        if (iconEl) iconEl.style.opacity = '0.08'; // dim icon behind image
+      } catch (e) { console.error('Afbeelding instellen mislukt:', e); }
+    },
+  });
 };
 
 // Werk het 'Niet voorbereid'-stempel + pagina-ontkleuring bij voor de huidige spreuk.
