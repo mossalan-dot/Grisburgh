@@ -1,4 +1,4 @@
-import { api } from './api.js?v=242';
+import { api } from './api.js?v=243';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -5580,7 +5580,11 @@ async function _renderGeluiden() {
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemovePlayerTurn('${esc(p.id)}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
-          <button type="button" class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Geluid kiezen of uploaden" onclick="window._sndPickPlayerTurn('${esc(p.id)}')">${icon('volume-2')}</button>
+          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
+            ↑ Upload
+            <input type="file" accept="audio/*" style="display:none"
+              onchange="window._sndUploadPlayerTurn('${esc(p.id)}', this)">
+          </label>
         </div>
       </div>`;
 
@@ -5596,7 +5600,11 @@ async function _renderGeluiden() {
                  <span class="dm-sound-set">✓</span>
                  <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndClearFile('${esc(p.id)}','${esc(item.id)}')">${icon('x')}</button>`
               : `<span class="dm-sound-empty">Geen audio</span>`}
-            <button type="button" class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Geluid kiezen of uploaden" onclick="window._sndPickEmote('${esc(p.id)}','${esc(item.id)}')">${icon('volume-2')}</button>
+            <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
+              ↑
+              <input type="file" accept="audio/*" style="display:none"
+                onchange="window._sndUploadEmote('${esc(p.id)}','${esc(item.id)}',this)">
+            </label>
             <button class="dm-btn dm-btn-sm dm-btn-danger" onclick="window._sndDeleteEmote('${esc(p.id)}','${esc(item.id)}')" title="Emote verwijderen">${icon('trash')}</button>
           </div>
         </div>`;
@@ -5792,7 +5800,7 @@ async function _renderGeluiden() {
     _renderGeluiden();
   };
 
-  window._sndPickPlayerTurn = (pid) => {
+  window._sndUploadPlayerTurn = async (pid, input) => {
     _sndOpenPid = pid;
     const file = input.files[0]; if (!file) return;
     const fileId = await _sndUploadFile(file); if (!fileId) return;
@@ -5835,7 +5843,7 @@ async function _renderGeluiden() {
     await _sndWriteEmotes(pid, library.map(e => e.id === eid ? { ...e, label } : e));
   };
 
-  window._sndPickEmote = (pid, eid) => {
+  window._sndUploadEmote = async (pid, eid, input) => {
     _sndOpenPid = pid;
     const file = input.files[0]; if (!file) return;
     const fileId = await _sndUploadFile(file); if (!fileId) return;

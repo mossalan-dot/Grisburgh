@@ -1,14 +1,14 @@
-import { api } from './api.js?v=242';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=109";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=48";
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=12';
-import { renderDungeon } from './render-dungeon.js?v=25';
-import { renderRelatiemap } from './render-relatiemap.js?v=15';
-import { renderProgressie } from './render-progressie.js?v=37';
-import { renderBestiarium } from './render-bestiarium.js?v=14';
+import { api } from './api.js?v=243';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=110";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=49";
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=13';
+import { renderDungeon } from './render-dungeon.js?v=26';
+import { renderRelatiemap } from './render-relatiemap.js?v=16';
+import { renderProgressie } from './render-progressie.js?v=38';
+import { renderBestiarium } from './render-bestiarium.js?v=15';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=41";
-import { initDmPanel } from "./dm-panel.js?v=103";
+import { initSocket } from "./socket-client.js?v=42";
+import { initDmPanel } from "./dm-panel.js?v=104";
 import './media-picker.js?v=1';
 
 // ── Icon helper ──
