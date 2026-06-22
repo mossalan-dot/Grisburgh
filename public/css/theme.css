@@ -733,6 +733,33 @@ body::before {
   animation: card-sheen 7s ease-in-out infinite;
 }
 
+/* Boon (Epic Boon / gunst) — arcane violette gloed, duidelijk anders dan de goddelijke zegeningen */
+.entity-card.card-boon {
+  --rar: rgba(150,90,210,0.7);
+  --rar-soft: rgba(150,90,210,0.22);
+  box-shadow:
+    0 1px 2px rgba(50,20,75,0.10),
+    0 4px 16px var(--rar-soft),
+    inset 0 0 0 1px rgba(185,125,235,0.30);
+  border-color: rgba(150,90,210,0.48);
+}
+.entity-card.card-boon .card-accent {
+  background: linear-gradient(to right, rgba(160,100,225,0.85), transparent);
+}
+.entity-card.card-boon::before {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: -70%;
+  width: 50%;
+  height: 120%;
+  background: linear-gradient(105deg, transparent 0%, rgba(205,160,245,0.45) 50%, transparent 100%);
+  transform: skewX(-18deg);
+  pointer-events: none;
+  z-index: 6;
+  animation: card-sheen 8.5s ease-in-out infinite;
+}
+
 /* ── Spelerskaart (protagonist): vergulde, beschermde uitstraling ──
    Portret/filmpje wordt overal hergebruikt → de kaart staat visueel boven NPC's. */
 .entity-card.card-protagonist {
@@ -960,6 +987,11 @@ body::before {
 .badge-item-ring    { background: rgba(100,60,10,0.85);  color: #ffd8a0; border: 1px solid rgba(190,120,30,0.45); }
 .badge-item-amulet  { background: rgba(50,40,80,0.85);   color: #d8c8ff; border: 1px solid rgba(110,90,190,0.45); }
 .badge-item-other   { background: rgba(52,44,32,0.80);   color: #ddd4c4; border: 1px solid rgba(130,110,80,0.4); }
+/* Zegeningen & Gunsten — duidelijk te onderscheiden badges */
+.badge-goddelijk--zegen { background: rgba(20,80,40,0.85); color: #bdf0cc; border: 1px solid rgba(70,170,100,0.5); }
+.badge-goddelijk--eed   { background: rgba(95,72,12,0.88); color: #ffe6a0; border: 1px solid rgba(210,175,70,0.55); }
+.badge-goddelijk--vloek { background: rgba(80,16,16,0.88); color: #ffc2c2; border: 1px solid rgba(180,50,50,0.55); }
+.badge-boon { background: rgba(70,30,120,0.88); color: #e7ccff; border: 1px solid rgba(170,110,235,0.6); box-shadow: 0 0 8px rgba(150,90,230,0.35); }
 .card-icon { font-size: 1.2rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
 
 /* Card title styling */
@@ -6012,7 +6044,7 @@ body::before {
 }
 .player-weapons-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 2fr 2fr 22px;
+  grid-template-columns: 2fr 1fr 2fr 22px;
   gap: 4px;
   padding: 0 2px 4px;
   border-bottom: 1.5px solid rgba(196,168,122,0.45);
@@ -6025,15 +6057,82 @@ body::before {
   letter-spacing: 0.06em;
   color: #9a7050;
 }
-.player-weapon-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 2fr 2fr 22px;
-  gap: 4px;
-  align-items: center;
-  padding: 3px 0;
+.player-weapon-entry {
+  padding: 4px 0 6px;
   border-bottom: 1px solid rgba(196,168,122,0.15);
 }
-.player-weapon-row:last-child { border-bottom: none; }
+.player-weapon-entry:last-child { border-bottom: none; }
+.player-weapon-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr 22px;
+  gap: 4px;
+  align-items: center;
+}
+.player-weapon-props {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 5px;
+  padding-left: 2px;
+}
+.weapon-props-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.player-weapon-props-label {
+  flex-shrink: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9a7050;
+}
+/* Gekozen eigenschap — compacte gevulde chip, klik = verwijderen */
+.weapon-prop-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #fff;
+  background: #7a4a1a;
+  border: 1.5px solid #7a4a1a;
+  border-radius: 12px;
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.weapon-prop-chip:hover { background: #8b2a2a; border-color: #8b2a2a; }
+.weapon-prop-chip-x { font-size: 12px; line-height: 1; opacity: 0.8; }
+/* "+ Eigenschap" — subtiele, gestippelde knop die de lijst opent */
+.weapon-prop-add {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #7a6040;
+  background: transparent;
+  border: 1.5px dashed rgba(196,168,122,0.6);
+  border-radius: 12px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.weapon-prop-add:hover { background: rgba(196,168,122,0.18); border-color: #c4a87a; }
+.weapon-prop-add.is-open {
+  color: #fff;
+  background: rgba(122,74,26,0.55);
+  border-style: solid;
+  border-color: rgba(122,74,26,0.7);
+}
+.player-weapon-props .weapon-tags-picker { margin-top: 0; }
 .pw-input {
   font-family: 'Crimson Text', serif;
   font-size: 13px;
@@ -9398,6 +9497,14 @@ details.player-dash-collapsible[open] > summary {
   width: 100%;
   padding: 0;
   text-align: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+/* Native number-spinner weg: bedrag blijft zo écht gecentreerd onder de munt (en past bij het thema) */
+.player-currency-input::-webkit-outer-spin-button,
+.player-currency-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 .player-currency-input:focus { outline: none; border-bottom-color: #c8a840; }
 
@@ -11809,7 +11916,36 @@ body.herberg-actief #section-tabs { background: #efe3c5 !important; }
 /* ── Klasselook: Weapons & Damage Cantrips ── */
 .player-dashboard[data-klasse] .player-weapons-header { border-bottom-color: rgba(255,255,255,0.15); }
 .player-dashboard[data-klasse] .player-weapons-header span { color: rgba(255,255,255,0.45); }
-.player-dashboard[data-klasse] .player-weapon-row { border-bottom-color: rgba(255,255,255,0.08); }
+.player-dashboard[data-klasse] .player-weapon-entry { border-bottom-color: rgba(255,255,255,0.08); }
+.player-dashboard[data-klasse] .player-weapon-props-label { color: rgba(255,255,255,0.5); }
+.player-dashboard[data-klasse] .weapon-prop-chip {
+  background: rgba(255,255,255,0.32);
+  border-color: rgba(255,255,255,0.6);
+  color: #fff;
+}
+.player-dashboard[data-klasse] .weapon-prop-chip:hover { background: rgba(255,120,120,0.5); border-color: rgba(255,120,120,0.7); }
+.player-dashboard[data-klasse] .weapon-prop-add {
+  color: rgba(255,255,255,0.65);
+  border-color: rgba(255,255,255,0.3);
+}
+.player-dashboard[data-klasse] .weapon-prop-add:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.5); }
+.player-dashboard[data-klasse] .weapon-prop-add.is-open { color: #fff; background: rgba(255,255,255,0.28); border-color: rgba(255,255,255,0.55); }
+.player-dashboard[data-klasse] .weapon-tag-pick {
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.25);
+}
+.player-dashboard[data-klasse] .weapon-tag-pick:hover { background: rgba(255,255,255,0.18); }
+.player-dashboard[data-klasse] .weapon-tag-pick--on {
+  color: #fff;
+  background: rgba(255,255,255,0.32);
+  border-color: rgba(255,255,255,0.6);
+}
+.player-dashboard[data-klasse] .weapon-tag-param-inp {
+  color: rgba(255,255,255,0.92);
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.35);
+}
 .player-dashboard[data-klasse] .pw-input {
   background: rgba(255,255,255,0.1);
   border-color: rgba(255,255,255,0.22);
@@ -18854,6 +18990,160 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 .magizoo-dossier-tier { font-family: 'Crimson Text', serif; font-size: 0.88rem; color: #4a3a24; margin: 2px 0 6px; }
 .magizoo-roddel { display: flex; gap: 7px; align-items: flex-start; font-family: 'IM Fell English', serif; font-size: 0.9rem; color: #2a6a3a; }
 .magizoo-roddel .icon { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; opacity: 0.8; }
+
+/* ── Magizoöloog: metgezel-adoptie ── */
+.magizoo-adopt-wrap { margin: 16px 0; }
+.magizoo-adopt-wrap .herberg-teller { display: inline-flex; align-items: center; gap: 7px; }
+.magizoo-adopt-wrap .herberg-teller .icon { width: 17px; height: 17px; color: #2a6a3a; }
+.magizoo-adopt-lijst { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.magizoo-adopt-kaart {
+  display: flex; gap: 12px; align-items: stretch;
+  background: rgba(245,237,216,0.55); border: 1px solid rgba(42,106,58,0.25);
+  border-radius: 11px; padding: 10px 12px;
+}
+.magizoo-adopt-portret {
+  width: 64px; height: 64px; flex-shrink: 0; object-fit: cover;
+  border-radius: 10px; border: 1.5px solid rgba(42,106,58,0.35); background: rgba(42,106,58,0.08);
+}
+.magizoo-adopt-portret--fallback { display: flex; align-items: center; justify-content: center; color: #2a6a3a; }
+.magizoo-adopt-portret--fallback .icon { width: 30px; height: 30px; opacity: 0.7; }
+.magizoo-adopt-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.magizoo-adopt-naam { font-family: 'Cinzel', serif; font-size: 0.98rem; color: #2a1a08; }
+.magizoo-adopt-soort { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.82rem; color: #6b5638; }
+.magizoo-adopt-sam { font-family: 'Crimson Text', serif; font-size: 0.86rem; color: #4a3a24; margin-top: 2px; }
+.magizoo-adopt-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+.magizoo-adopt-naamveld { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; font-family: 'Cinzel', serif; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; color: #6b5638; }
+.magizoo-adopt-naamveld input {
+  font-family: 'Crimson Text', serif; font-size: 0.95rem; text-transform: none; letter-spacing: 0;
+  padding: 5px 8px; border: 1.5px solid rgba(42,106,58,0.35); border-radius: 7px;
+  background: rgba(245,237,216,0.7); color: #2a1a08;
+}
+.magizoo-adopt-naamveld input:focus { outline: none; border-color: #2a6a3a; }
+
+/* ── Huisdier-editor (DM, in de entity-editor) ── */
+.pet-editor { border: 1px solid rgba(196,168,122,0.4); border-radius: 9px; padding: 12px; background: rgba(196,168,122,0.07); display: flex; flex-direction: column; gap: 10px; }
+.pet-editor-head { font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.9rem; color: #7a4a1a; display: flex; align-items: center; gap: 7px; }
+.pet-editor-head .icon { width: 17px; height: 17px; }
+.pet-editor-subhead { font-family: 'Cinzel', serif; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9a7050; border-top: 1px solid rgba(196,168,122,0.3); padding-top: 8px; }
+.pet-editor-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.pet-fld { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 90px; font-family: 'Cinzel', serif; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #9a7050; }
+.pet-fld--sm { flex: 0 0 90px; }
+.pet-fld--xs { flex: 0 0 52px; min-width: 0; }
+.pet-fld--wide { flex: 1 1 45%; }
+.pet-fld--full { flex: 1 1 100%; }
+.pet-fld input, .pet-fld textarea {
+  font-family: 'Crimson Text', serif; font-size: 0.9rem; text-transform: none; letter-spacing: 0; font-weight: 400;
+  padding: 4px 7px; border: 1px solid rgba(196,168,122,0.45); border-radius: 5px;
+  background: var(--room-bg, #f2e8d2); color: #2a1a08; width: 100%;
+}
+.pet-fld input:focus, .pet-fld textarea:focus { outline: none; border-color: #c4a87a; }
+.pet-tier-row { border: 1px solid rgba(196,168,122,0.35); border-radius: 8px; padding: 9px; margin-bottom: 8px; background: rgba(245,237,216,0.45); display: flex; flex-direction: column; gap: 7px; }
+.pet-tier-row-head { display: flex; align-items: center; justify-content: space-between; }
+.pet-tier-badge { font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.72rem; color: #7a4a1a; }
+.pet-tier-del { background: none; border: none; color: #9a7050; cursor: pointer; padding: 2px; display: inline-flex; }
+.pet-tier-del:hover { color: #8b2a2a; }
+.pet-tier-del .icon { width: 15px; height: 15px; }
+.pet-tier-empty { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.85rem; color: #9a7050; }
+.pet-abilities { gap: 5px; }
+
+/* ── Lootverdeler — spelerpaneel (schatkist-stijl) ── */
+.player-loot-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #e0a020; margin-left: 5px; vertical-align: middle; box-shadow: 0 0 6px rgba(224,160,32,0.9); animation: loot-badge-pulse 1.6s ease-in-out infinite; }
+@keyframes loot-badge-pulse { 0%,100% { box-shadow: 0 0 5px rgba(224,160,32,0.7); } 50% { box-shadow: 0 0 11px rgba(224,160,32,1); } }
+
+.player-loot-panel {
+  position: relative; overflow: hidden; border-radius: 14px; padding: 16px 14px 14px; margin-bottom: 16px;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(224,176,60,0.28), rgba(201,122,26,0.06) 55%, rgba(196,168,122,0.04) 100%),
+    linear-gradient(180deg, rgba(60,40,12,0.06), rgba(40,26,8,0.10));
+  border: 1.5px solid transparent;
+  box-shadow: 0 0 0 1.5px rgba(201,150,40,0.55), 0 6px 22px rgba(80,50,10,0.22), inset 0 1px 0 rgba(255,240,200,0.5);
+  animation: loot-pop 0.45s cubic-bezier(0.2,0.9,0.3,1.2) both;
+}
+@keyframes loot-pop { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
+/* Goudgloed-randje dat langzaam ademt */
+.player-loot-panel::before {
+  content: ''; position: absolute; inset: 0; border-radius: 14px; pointer-events: none;
+  box-shadow: inset 0 0 24px rgba(224,176,60,0.18); animation: loot-glow 3.2s ease-in-out infinite;
+}
+@keyframes loot-glow { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+.player-loot-head {
+  position: relative; font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.15rem; letter-spacing: 0.02em;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  color: #8a5a12; background: linear-gradient(90deg, #b8801c, #e8b94a 45%, #fff0c0 50%, #e8b94a 55%, #b8801c);
+  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: loot-shimmer 3.5s linear infinite; text-shadow: 0 1px 0 rgba(255,255,255,0.15);
+}
+@keyframes loot-shimmer { 0% { background-position: 120% 0; } 100% { background-position: -120% 0; } }
+.player-loot-head .icon { width: 20px; height: 20px; color: #c9a227; -webkit-text-fill-color: initial; filter: drop-shadow(0 0 4px rgba(224,176,60,0.7)); }
+
+.player-loot-item { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 8px; margin-top: 7px; border-radius: 9px; background: rgba(255,248,228,0.5); border: 1px solid rgba(196,168,122,0.3); transition: transform 0.12s, box-shadow 0.12s; }
+.player-loot-item:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(120,80,20,0.16); }
+.player-loot-item-main { display: flex; align-items: flex-start; gap: 9px; flex: 1; min-width: 0; }
+.player-loot-diamond { font-size: 1.05rem; color: #8a7a5a; line-height: 1.3; flex-shrink: 0; }
+.player-loot-item-naam { font-family: 'Crimson Text', serif; font-size: 1rem; color: #2a1a08; font-weight: 600; }
+.player-loot-link { cursor: pointer; color: #7a4a12; border-bottom: 1px dotted rgba(122,74,18,0.5); transition: color 0.12s; }
+.player-loot-link:hover { color: #a8651a; }
+.player-loot-link-ico .icon { width: 13px; height: 13px; vertical-align: -2px; opacity: 0.7; }
+.player-loot-rar { font-size: 0.78rem; color: #6b5638; font-weight: 400; }
+.player-loot-item-desc { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.85rem; color: #5a4a30; }
+.player-loot-claimcount { font-size: 0.76rem; color: #c97a1a; margin-top: 2px; }
+.player-loot-claim-btn {
+  flex-shrink: 0; font-family: 'Cinzel', serif; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+  padding: 6px 14px; border-radius: 10px; border: 1.5px solid rgba(201,150,40,0.6);
+  background: linear-gradient(180deg, rgba(232,185,74,0.32), rgba(201,122,26,0.18)); color: #7a4a12;
+  display: inline-flex; align-items: center; gap: 4px; transition: filter 0.12s, transform 0.1s;
+}
+.player-loot-claim-btn:hover { filter: brightness(1.08); }
+.player-loot-claim-btn:active { transform: scale(0.96); }
+.player-loot-claim-btn .icon { width: 13px; height: 13px; }
+.player-loot-claim-btn.is-claimed { background: linear-gradient(180deg, #8a5414, #6b3e10); border-color: #6b3e10; color: #fff2cc; box-shadow: 0 0 8px rgba(201,150,40,0.5); }
+.player-loot-empty { font-family: 'IM Fell English', serif; font-style: italic; color: #9a7050; font-size: 0.88rem; }
+.player-loot-goud { margin-top: 10px; padding: 9px 8px 0; border-top: 1px solid rgba(201,150,40,0.3); font-family: 'Crimson Text', serif; font-size: 0.95rem; color: #4a3a24; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.player-loot-goud strong { color: #8a5a12; }
+.player-loot-goud .icon { width: 16px; height: 16px; color: #c9a227; filter: drop-shadow(0 0 3px rgba(224,176,60,0.6)); }
+.player-loot-goud-note { font-size: 0.78rem; font-style: italic; color: #8a7a5a; }
+/* Rariteitskleur + gloed op de ◆ */
+.player-loot-diamond[data-rarity="common"]    { color: #8a8a8a; }
+.player-loot-diamond[data-rarity="uncommon"]  { color: #3a8a3a; text-shadow: 0 0 6px rgba(58,138,58,0.5); }
+.player-loot-diamond[data-rarity="rare"]      { color: #2a6ab0; text-shadow: 0 0 6px rgba(42,106,176,0.55); }
+.player-loot-diamond[data-rarity="very-rare"] { color: #9a3ad0; text-shadow: 0 0 7px rgba(154,58,208,0.6); }
+.player-loot-diamond[data-rarity="legendary"] { color: #e0a020; text-shadow: 0 0 9px rgba(224,160,32,0.85); }
+/* Very Rare + Legendary: extra rand-gloed op de hele rij */
+.player-loot-item.loot-rar-very-rare { border-color: rgba(154,58,208,0.45); box-shadow: 0 0 10px rgba(154,58,208,0.18) inset; }
+.player-loot-item.loot-rar-legendary { border-color: rgba(224,160,32,0.55); box-shadow: 0 0 12px rgba(224,160,32,0.25) inset; }
+.loot-linked { color: #2a6a3a; display: inline-flex; align-items: center; }
+.loot-linked .icon { width: 14px; height: 14px; }
+
+/* DM loot-modal */
+.loot-modal { display: flex; flex-direction: column; gap: 4px; }
+.loot-goud-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.loot-lbl { font-family: 'Cinzel', serif; font-size: 0.8rem; color: #9a7050; display: inline-flex; align-items: center; gap: 5px; }
+.loot-lbl .icon { width: 15px; height: 15px; }
+.loot-items { display: flex; flex-direction: column; gap: 6px; margin: 4px 0; }
+.loot-edit-row { display: flex; align-items: center; gap: 6px; }
+.loot-edit-row .loot-edit-naam { flex: 2; min-width: 0; }
+.loot-claim-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-top: 1px solid rgba(196,168,122,0.25); }
+.loot-claim-naam { font-family: 'Crimson Text', serif; color: #2a1a08; }
+.loot-claim-count { font-size: 0.8rem; color: #c97a1a; font-weight: 700; margin-left: auto; }
+.loot-claim-namen { font-size: 0.78rem; color: #6b5638; font-style: italic; flex-basis: 100%; }
+.loot-uitslag-row { font-family: 'Crimson Text', serif; font-size: 0.92rem; color: #3a2a14; padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+.loot-uitslag-row .icon { width: 15px; height: 15px; color: #c9a227; }
+.loot-rar-pill { font-size: 0.72rem; padding: 1px 7px; border-radius: 999px; background: rgba(138,138,138,0.2); color: #555; }
+.loot-rar-pill[data-rarity="uncommon"] { background: rgba(58,138,58,0.18); color: #2a6a2a; }
+.loot-rar-pill[data-rarity="rare"]     { background: rgba(42,106,176,0.18); color: #2a6ab0; }
+.loot-rar-pill[data-rarity="very-rare"]{ background: rgba(138,58,176,0.18); color: #8a3ab0; }
+.loot-rar-pill[data-rarity="legendary"]{ background: rgba(201,162,39,0.22); color: #9a7a1a; }
+
+/* ── Huisdier-statblock in detailvenster ── */
+.pet-statblock-slot { margin-top: 10px; }
+.pet-tier-indicator {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  font-family: 'Crimson Text', serif; font-size: 0.88rem; color: #4a3a24;
+  background: rgba(42,106,58,0.10); border: 1px solid rgba(42,106,58,0.28);
+  border-radius: 9px; padding: 7px 11px; margin-bottom: 10px;
+}
+.pet-tier-indicator .icon { width: 16px; height: 16px; color: #2a6a3a; flex-shrink: 0; }
 
 /* ── Spreukenboek-beheer: meerregelige tekstvelden (bug 4c) ── */
 .sb-manage-textarea { resize: vertical; min-height: 2.4em; line-height: 1.35; font-family: inherit; }

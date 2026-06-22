@@ -1,4 +1,4 @@
-import { api } from './api.js?v=238';
+import { api } from './api.js?v=242';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -196,6 +196,11 @@ export function initDmPanel() {
     encStart:           _encStart,
     encAddRow:          _encAddRow,
     encRemoveRow:       _encRemoveRow,
+    encLootGoud:        _encLootGoud,
+    encLootItemAdd:     _encLootItemAdd,
+    encLootItemRemove:  _encLootItemRemove,
+    encLootItemField:   _encLootItemField,
+    encLootPick:        _encLootPick,
     encRowMonsterChange: _encRowMonsterChange,
     encRowChange:       _encRowChange,
     encBackdropUpload:  _encBackdropUpload,
@@ -212,6 +217,7 @@ export function initDmPanel() {
     setupAddSubmit:    _setupAddSubmit,
     setupReset:        _setupReset,
     setupInitChange:   _setupInitChange,
+    voegMetgezellen:   _voegMetgezellen,
 
     // Gevecht — tijdens combat (overlay)
     combatStart:      _combatStart,
@@ -261,6 +267,19 @@ export function initDmPanel() {
     combatSetWinner:   _combatSetWinner,
     combatDeathSave:        _combatDeathSave,
     combatSelectCombatant:  _combatSelectCombatant,
+
+    // Lootverdeler
+    lootOpen:        _lootOpen,
+    lootReveal:      _lootReveal,
+    lootVerdeeld:    _lootVerdeeld,
+    lootCancel:      _lootCancel,
+    lootGoudChange:  _lootGoudChange,
+    lootItemAdd:     _lootItemAdd,
+    lootItemRemove:  _lootItemRemove,
+    lootItemField:   _lootItemField,
+    lootToewijzen:   _lootToewijzen,
+    refreshLoot:     () => { if (document.getElementById('loot-modal-body')) _renderLootModalBody(); },
+    onLootVerdeeld:  (uitslag) => { _lootLaatsteUitslag = uitslag; if (document.getElementById('loot-modal-body')) _renderLootModalBody(); },
 
     // Reveal strip
     setRevealChapter(key) { _revealChapter = key || null; _loadRevealQueue(_revealChapter); },
@@ -2793,10 +2812,12 @@ let _encLoaded          = false;
 let _editingEncId       = null;   // null = list, 'new' = new, string = edit existing
 let _encIsNew           = false;
 let _encMonsterRows     = [];     // [{monsterId,name,count,initiative,hp}]
+let _encLoot            = { goud: { fl: 0, kn: 0, cl: 0 }, items: [] };  // loot-veld (goud + items)
 let _encBackdropId      = null;
 let _encCanvasPreset    = null;   // id van het gekozen canvas-kleurpreset
 let _encName            = '';     // formulier-state: bewaart naam tussen re-renders
 let _encAkteId          = '';     // formulier-state: bewaart akte-keuze tussen re-renders
+let _encVoorwerpen      = [];     // voorwerp-entities voor de loot-kaartje-koppeling
 
 // Canvas-kleurpresets: [r,g,b] voor spelerskant en monsterkant
 // Opacities zijn hardcoded in combat-canvas.js (max 0.16) — hetzelfde voor alle presets,
@@ -2832,6 +2853,10 @@ async function _renderEncounters() {
   // Also ensure monsters are loaded for the picker
   if (_monsters.length === 0) {
     try { const d = await api.listMonsters(); _monsters = (d.monsters || []).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl')); } catch (_) {}
+  }
+  // Voorwerpen voor de loot-kaartje-koppeling
+  if (_encVoorwerpen.length === 0) {
+    try { _encVoorwerpen = (await api.listEntities('voorwerpen')).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl')); } catch (_) {}
   }
   if (_editingEncId !== null) {
     _renderEncounterEditor(el);
@@ -2972,6 +2997,29 @@ function _renderEncounterEditor(el) {
       <div id="dm-enc-rows">${rowsHtml}</div>
       <button class="script-icon-btn" onclick="window.dmPanel.encAddRow()" title="Monster toevoegen" style="margin-bottom:10px">+</button>
 
+      <div class="dm-form-label" style="margin:6px 0 4px">${icon('coins')} Loot</div>
+      <div class="dm-enc-loot-goud" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span class="dm-input-lbl">Goud</span>
+        <input class="dm-input dm-input-sm" type="number" min="0" value="${_encLoot.goud?.fl || 0}" style="width:56px" onchange="window.dmPanel.encLootGoud('fl',this.value)"> fl
+        <input class="dm-input dm-input-sm" type="number" min="0" value="${_encLoot.goud?.kn || 0}" style="width:56px" onchange="window.dmPanel.encLootGoud('kn',this.value)"> kn
+        <input class="dm-input dm-input-sm" type="number" min="0" value="${_encLoot.goud?.cl || 0}" style="width:56px" onchange="window.dmPanel.encLootGoud('cl',this.value)"> cl
+      </div>
+      <datalist id="dm-enc-voorwerpen-dl">${_encVoorwerpen.map(v => `<option value="${esc(v.name)}"></option>`).join('')}</datalist>
+      <p class="dm-hint" style="margin:0 0 4px">Koppel een item aan een voorwerpkaartje (spelers kunnen het dan openen), of typ een los item.</p>
+      <div id="dm-enc-loot-items">
+        ${(_encLoot.items || []).map((it, i) => `
+          <div class="dm-enc-monster-row" data-li="${i}">
+            <input class="dm-input dm-input-sm" type="text" list="dm-enc-voorwerpen-dl" value="${esc(it.naam || '')}" placeholder="Voorwerp of vrije naam…" style="flex:2;min-width:0" onchange="window.dmPanel.encLootPick(${i}, this.value)">
+            ${it.entityId ? `<span class="loot-linked" title="Gekoppeld aan kaartje">${icon('link')}</span>` : ''}
+            <input class="dm-input dm-input-sm" type="text" value="${esc(it.beschrijving || '')}" placeholder="Beschrijving" style="flex:2;min-width:0" onchange="window.dmPanel.encLootItemField(${i},'beschrijving',this.value)">
+            <select class="dm-select dm-select-sm" onchange="window.dmPanel.encLootItemField(${i},'rariteit',this.value)">
+              ${['', 'common', 'uncommon', 'rare', 'very-rare', 'legendary'].map(r => `<option value="${r}" ${(String(it.rariteit || '').toLowerCase() === r) ? 'selected' : ''}>${r || '—'}</option>`).join('')}
+            </select>
+            <button class="script-icon-btn script-icon-btn--del" onclick="window.dmPanel.encLootItemRemove(${i})" title="Verwijderen">${icon('x')}</button>
+          </div>`).join('')}
+      </div>
+      <button class="script-icon-btn" onclick="window.dmPanel.encLootItemAdd()" title="Loot-item toevoegen" style="margin-bottom:10px">+</button>
+
       <div class="dm-form-actions">
         <button class="script-add-btn" onclick="window.dmPanel.encCancel()" title="Annuleren">${icon('x')}</button>
         <button class="script-add-btn" onclick="window.dmPanel.encSave()" title="Opslaan" style="background:rgba(80,140,80,0.35);border-color:rgba(100,180,100,0.6)">${icon('check')}</button>
@@ -2983,6 +3031,7 @@ function _encNew() {
   _editingEncId    = 'new';
   _encIsNew        = true;
   _encMonsterRows  = [];
+  _encLoot         = { goud: { fl: 0, kn: 0, cl: 0 }, items: [] };
   _encBackdropId   = null;
   _encCanvasPreset = null;
   _encName         = '';
@@ -2996,6 +3045,7 @@ function _encEdit(id) {
   _editingEncId    = id;
   _encIsNew        = false;
   _encMonsterRows  = (enc.monsters || []).map(r => ({ ...r }));
+  _encLoot         = enc.loot ? { goud: { fl: 0, kn: 0, cl: 0, ...enc.loot.goud }, items: (enc.loot.items || []).map(i => ({ ...i })) } : { goud: { fl: 0, kn: 0, cl: 0 }, items: [] };
   _encBackdropId   = enc.backdropId || null;
   _encCanvasPreset = enc.canvasPreset || null;
   _encName         = enc.name    || '';
@@ -3008,6 +3058,31 @@ function _encCancel() {
   _encIsNew     = false;
   _renderEncounterList(document.getElementById('dm-encounters-content'));
 };
+
+// Encounter-loot handlers
+function _encLootGoud(veld, val) { _encLoot.goud = _encLoot.goud || {}; _encLoot.goud[veld] = parseInt(val) || 0; }
+function _encLootItemAdd() { _encLoot.items = _encLoot.items || []; _encLoot.items.push({ naam: '', beschrijving: '', rariteit: '', entityId: null }); _renderEncounterEditor(document.getElementById('dm-encounters-content')); }
+function _encLootItemRemove(i) { _encLoot.items.splice(i, 1); _renderEncounterEditor(document.getElementById('dm-encounters-content')); }
+function _encLootItemField(i, veld, val) { if (_encLoot.items[i]) _encLoot.items[i][veld] = val; }
+function _lootRarKey(r) {
+  const m = { common: 'common', gewoon: 'common', uncommon: 'uncommon', ongewoon: 'uncommon', rare: 'rare', zeldzaam: 'rare', 'very rare': 'very-rare', 'zeer zeldzaam': 'very-rare', 'very-rare': 'very-rare', legendary: 'legendary', legendarisch: 'legendary' };
+  return m[String(r || '').toLowerCase().trim()] || '';
+}
+function _encLootPick(i, naam) {
+  const it = _encLoot.items[i];
+  if (!it) return;
+  const v = _encVoorwerpen.find(x => (x.name || '').toLowerCase() === String(naam || '').toLowerCase().trim());
+  if (v) {
+    it.naam = v.name;
+    it.entityId = v.id;
+    it.rariteit = _lootRarKey(v.data?.rariteit);
+    if (!it.beschrijving) it.beschrijving = (v.data?.desc || '').replace(/[#*_>`]/g, '').trim().slice(0, 160);
+  } else {
+    it.naam = naam;
+    it.entityId = null;
+  }
+  _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+}
 
 async function _encSave() {
   const name   = document.getElementById('dm-enc-name')?.value.trim();
@@ -3022,6 +3097,7 @@ async function _encSave() {
     canvasPreset: _encCanvasPreset || null,
     canvasColors,
     monsters:     _encMonsterRows,
+    loot:         _encLoot,
   };
   try {
     if (_encIsNew) {
@@ -3260,6 +3336,18 @@ async function _setupAddSubmit() {
     await api.addCombatant(payload);
     _setupSelectedPresetId = null;
     _setupSelectedEntityId = null;
+    _renderGevecht();
+  } catch (e) { alert('Fout: ' + e.message); }
+};
+
+// Voeg de geadopteerde huisdieren van de party toe als summons (geschaalde statblock).
+async function _voegMetgezellen() {
+  try {
+    const res = await api.voegMetgezellen();
+    if (!res.added || res.added.length === 0) {
+      alert('Geen metgezellen om toe te voegen — de party heeft geen geadopteerde dieren, of ze staan al in het gevecht.');
+    }
+    _combat = await api.getCombat().catch(() => _combat);
     _renderGevecht();
   } catch (e) { alert('Fout: ' + e.message); }
 };
@@ -5837,6 +5925,150 @@ async function _renderGeluiden() {
 };
 
 // DM panel Gevecht tab — setup fase
+// ── Lootverdeler (DM) ────────────────────────────────────────────────────────
+let _lootData = null;
+let _lootLaatsteUitslag = null;
+
+function _lootNaam(charId) {
+  const c = (_combat?.combatants || []).find(x => x.entityId === charId);
+  if (c) return c.name;
+  const p = (_setupPersonages || []).find(e => e.id === charId);
+  return p ? p.name : charId;
+}
+
+async function _lootOpen() {
+  try {
+    _lootData = await api.getLoot();
+    if (!_lootData) _lootData = await api.lootStart(_combat?.encounterId || null);
+  } catch (e) { alert('Fout: ' + e.message); return; }
+  _lootLaatsteUitslag = null;
+  window.app.openModal(_lootData?.encounterId ? 'Loot verdelen' : 'Loot verdelen', '', `<div id="loot-modal-body"></div>`);
+  _renderLootModalBody();
+}
+
+function _rarPill(r) {
+  if (!r) return '';
+  return `<span class="loot-rar-pill" data-rarity="${esc(String(r).toLowerCase())}">${esc(r)}</span>`;
+}
+
+function _renderLootModalBody() {
+  const body = document.getElementById('loot-modal-body');
+  if (!body) return;
+  const lp = _lootData;
+  if (!lp) { body.innerHTML = `<p class="dm-hint">Geen lootfase.</p>`; return; }
+  const goud = lp.goud || { fl: 0, kn: 0, cl: 0 };
+  const deelnemers = (lp.deelnemers || []).map(_lootNaam).join(', ') || '—';
+
+  if (!lp.actief && !lp.items.some(i => i.status === 'toegewezen' || i.status === 'overgeslagen')) {
+    // ── Pre-reveal: bewerkbaar ──
+    body.innerHTML = `
+      <div class="loot-modal">
+        <div class="loot-goud-row">
+          <span class="loot-lbl">${icon('coins')} Goud</span>
+          <input type="number" min="0" class="dm-input dm-input-sm" style="width:60px" value="${goud.fl || 0}" onchange="window.dmPanel.lootGoudChange('fl',this.value)"> fl
+          <input type="number" min="0" class="dm-input dm-input-sm" style="width:60px" value="${goud.kn || 0}" onchange="window.dmPanel.lootGoudChange('kn',this.value)"> kn
+          <input type="number" min="0" class="dm-input dm-input-sm" style="width:60px" value="${goud.cl || 0}" onchange="window.dmPanel.lootGoudChange('cl',this.value)"> cl
+        </div>
+        <div class="dm-section-label" style="margin-top:10px">Items <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:8px" onclick="window.dmPanel.lootItemAdd()">${icon('plus')} Toevoegen</button></div>
+        <div class="loot-items">
+          ${lp.items.map(it => `
+            <div class="loot-edit-row">
+              <input class="dm-input dm-input-sm loot-edit-naam" value="${esc(it.naam)}" placeholder="Naam" onblur="window.dmPanel.lootItemField('${esc(it.id)}','naam',this.value)">
+              <input class="dm-input dm-input-sm" value="${esc(it.beschrijving || '')}" placeholder="Beschrijving" onblur="window.dmPanel.lootItemField('${esc(it.id)}','beschrijving',this.value)">
+              <select class="dm-select dm-select-sm" onchange="window.dmPanel.lootItemField('${esc(it.id)}','rariteit',this.value)">
+                ${['', 'common', 'uncommon', 'rare', 'very-rare', 'legendary'].map(r => `<option value="${r}" ${(String(it.rariteit || '').toLowerCase() === r) ? 'selected' : ''}>${r || '—'}</option>`).join('')}
+              </select>
+              <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.lootItemRemove('${esc(it.id)}')">${icon('x')}</button>
+            </div>`).join('') || `<p class="dm-hint">Nog geen items — voeg er toe of laat leeg voor alleen goud.</p>`}
+        </div>
+        <p class="dm-hint" style="margin-top:8px">Deelnemers: ${esc(deelnemers)}</p>
+        <div class="dm-feature-row" style="margin-top:10px">
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.lootCancel()">Annuleer</button>
+          <button class="dm-btn dm-btn-primary" style="margin-left:auto" onclick="window.dmPanel.lootReveal()">Stuur naar spelers →</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (lp.actief) {
+    // ── Reveal-fase: live claims ──
+    body.innerHTML = `
+      <div class="loot-modal">
+        <p class="dm-hint">Spelers claimen nu items. Goud (${goud.fl || 0} fl ${goud.kn || 0} kn ${goud.cl || 0} cl) wordt automatisch verdeeld.</p>
+        <div class="loot-items">
+          ${lp.items.filter(i => i.status === 'open').map(it => `
+            <div class="loot-claim-row">
+              <span class="loot-claim-naam">${_rarPill(it.rariteit)} ${esc(it.naam)}</span>
+              <span class="loot-claim-count">${(it.claims || []).length} claim(s)</span>
+              <span class="loot-claim-namen">${(it.claims || []).map(_lootNaam).map(esc).join(', ')}</span>
+            </div>`).join('') || `<p class="dm-hint">Geen items om te claimen — alleen goud.</p>`}
+        </div>
+        <div class="dm-feature-row" style="margin-top:10px">
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.lootCancel()">Annuleer</button>
+          <button class="dm-btn dm-btn-danger" style="margin-left:auto" onclick="window.dmPanel.lootVerdeeld()">Verdeling afsluiten</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // ── Na verdeling: uitslag + overgeslagen items ──
+  const u = _lootLaatsteUitslag;
+  const overgeslagen = lp.items.filter(i => i.status === 'overgeslagen');
+  body.innerHTML = `
+    <div class="loot-modal">
+      <div class="dm-section-label">Uitslag</div>
+      ${(u?.items || lp.items.filter(i => i.status === 'toegewezen').map(i => ({ naam: i.naam, winnaar: i.winnaar, dobbelrol: i.dobbelrol }))).map(r => {
+        const roll = r.dobbelrol && Object.keys(r.dobbelrol).length
+          ? ' — ' + Object.entries(r.dobbelrol).map(([c, v]) => `${_lootNaam(c)}: ${v}`).join(', ')
+          : '';
+        return `<div class="loot-uitslag-row">${icon('sparkles')} <strong>${esc(_lootNaam(r.winnaar))}</strong> wint <strong>${esc(r.naam)}</strong>${esc(roll)}</div>`;
+      }).join('') || `<p class="dm-hint">Geen items toegewezen.</p>`}
+      ${u?.goud ? `<div class="loot-uitslag-row">${icon('coins')} Goud ${u.goud.gedeeld ? 'naar de groepskas' : 'verdeeld over de deelnemers'}.</div>` : ''}
+      ${overgeslagen.length ? `
+        <div class="dm-section-label" style="margin-top:10px">Niemand claimde</div>
+        ${overgeslagen.map(it => `
+          <div class="loot-edit-row">
+            <span class="loot-claim-naam" style="flex:1">${_rarPill(it.rariteit)} ${esc(it.naam)}</span>
+            <select class="dm-select dm-select-sm" id="loot-toewijs-${esc(it.id)}">
+              <option value="">Toewijzen aan…</option>
+              ${(lp.deelnemers || []).map(c => `<option value="${esc(c)}">${esc(_lootNaam(c))}</option>`).join('')}
+            </select>
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.lootToewijzen('${esc(it.id)}')">Geef</button>
+          </div>`).join('')}` : ''}
+      <div class="dm-feature-row" style="margin-top:10px">
+        <button class="dm-btn dm-btn-primary" style="margin-left:auto" onclick="window.app.closeModal()">Klaar</button>
+      </div>
+    </div>`;
+}
+
+async function _lootSave() {
+  if (!_lootData) return;
+  try { _lootData = await api.lootUpdate({ goud: _lootData.goud, items: _lootData.items }); }
+  catch (e) { alert('Fout: ' + e.message); }
+}
+function _lootGoudChange(veld, val) { if (_lootData) { _lootData.goud = _lootData.goud || {}; _lootData.goud[veld] = parseInt(val) || 0; _lootSave(); } }
+function _lootItemAdd() { if (_lootData) { _lootData.items.push({ id: '', naam: '', beschrijving: '', rariteit: '', entityId: null, claimCount: 0, ikClaim: false, status: 'open' }); _lootSave().then(_renderLootModalBody); } }
+function _lootItemRemove(id) { if (_lootData) { _lootData.items = _lootData.items.filter(i => i.id !== id); _lootSave().then(_renderLootModalBody); } }
+function _lootItemField(id, veld, val) { if (_lootData) { const it = _lootData.items.find(i => i.id === id); if (it) { it[veld] = val; _lootSave(); } } }
+async function _lootReveal() { try { _lootData = await api.lootReveal(); _renderLootModalBody(); } catch (e) { alert('Fout: ' + e.message); } }
+async function _lootVerdeeld() {
+  if (!confirm('Verdeling afsluiten? Items worden toegewezen (dobbelrol bij meerdere claims) en goud wordt bijgeschreven.')) return;
+  try { const res = await api.lootVerdeeld(); _lootData = res.loot; _lootLaatsteUitslag = res.uitslag; _renderLootModalBody(); }
+  catch (e) { alert('Fout: ' + e.message); }
+}
+async function _lootCancel() {
+  if (!confirm('Lootfase annuleren? Niets wordt toegewezen.')) return;
+  try { await api.lootCancel(); } catch (e) { /* ok */ }
+  _lootData = null; window.app.closeModal();
+}
+async function _lootToewijzen(itemId) {
+  const sel = document.getElementById('loot-toewijs-' + itemId);
+  const characterId = sel?.value;
+  if (!characterId) return;
+  try { _lootData = await api.lootUpdate({ toewijzen: { itemId, characterId } }); _renderLootModalBody(); }
+  catch (e) { alert('Fout: ' + e.message); }
+}
+
 function _renderGevecht() {
   const el = document.getElementById('dm-gevecht-content');
   if (!el) return;
@@ -5847,10 +6079,14 @@ function _renderGevecht() {
   }
 
   if (_combat?.active) {
+    const _won = _combat.winner === 'players';
     el.innerHTML = `
       <div class="dm-feature-section">
         <p class="dm-hint">${icon('swords')} Combat active — Round ${_combat.round}. The combat screen is visible to everyone.</p>
-        <button class="dm-btn dm-btn-danger" onclick="window.dmPanel.combatEnd()" title="End combat">${icon('x')}</button>
+        <div class="dm-feature-row" style="margin-top:8px">
+          ${_won ? `<button class="dm-btn dm-btn-primary" onclick="window.dmPanel.lootOpen()" title="Verdeel loot">${icon('coins')} Verdeel loot</button>` : ''}
+          <button class="dm-btn dm-btn-danger" style="margin-left:auto" onclick="window.dmPanel.combatEnd()" title="End combat">${icon('x')}</button>
+        </div>
       </div>
     `;
     return;
@@ -5928,6 +6164,7 @@ function _renderGevecht() {
         </div>
       </div>
       <div class="dm-feature-row" style="margin-top:8px">
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.voegMetgezellen()" title="Voeg de geadopteerde huisdieren van de party toe als summons">${icon('paw-print')} Metgezellen</button>
         ${cs.length > 0 ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.setupReset()" title="Reset">↺</button>` : ''}
         <button class="dm-btn dm-btn-primary" style="margin-left:auto"
           onclick="window.dmPanel.combatStart()" ${cs.length === 0 ? 'disabled' : ''} title="Start gevecht">${icon('swords')}</button>

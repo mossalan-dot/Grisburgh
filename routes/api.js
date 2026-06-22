@@ -2611,7 +2611,7 @@ router.get('/companions', attachRole, (req, res) => {
   const companionIds = g.companions || [];
   const npcs = (entities.personages || []).filter(e => companionIds.includes(e.id));
   res.json(npcs.map(e => ({
-    id: e.id, name: e.name, subtype: e.subtype,
+    id: e.id, name: (g.companionNames || {})[e.id] || e.name, subtype: e.subtype,
     data: { ras: e.data?.ras, klasse: e.data?.klasse },
   })));
 });
@@ -2653,6 +2653,142 @@ router.delete('/companions/:npcId/:groupId', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').to(req.session?.campaignId||'main').emit('companion:unlink', { npcId, name: entity?.name || '', groupId });
   res.json({ ok: true });
+});
+
+// ── Huisdieren / metgezellen: tier-schaling ──
+// Een dier-entity (subtype 'dier') kan een reeks benoemde statblock-tiers hebben
+// (`statblockTiers: [{ minLevel, label, statblock, maxHp }]`). De actieve tier is de
+// hoogste tier met minLevel <= het level van het baasje. Zonder tiers val terug op
+// een vaste `statblock`/`maxHp` op de entity zelf.
+function _activeTier(entity, ownerLevel) {
+  const tiers = Array.isArray(entity?.statblockTiers) ? entity.statblockTiers.slice() : [];
+  if (!tiers.length) {
+    return { statblock: entity?.statblock || {}, maxHp: entity?.maxHp, label: entity?.name, index: 0, count: 0, next: null };
+  }
+  tiers.sort((a, b) => (a.minLevel || 0) - (b.minLevel || 0));
+  const lvl = parseInt(ownerLevel) || 1;
+  let idx = 0;
+  for (let i = 0; i < tiers.length; i++) if ((tiers[i].minLevel || 0) <= lvl) idx = i;
+  const t = tiers[idx];
+  const next = tiers[idx + 1] || null;
+  return { statblock: t.statblock || {}, maxHp: t.maxHp, label: t.label || entity?.name, index: idx, count: tiers.length, next: next ? (next.minLevel || null) : null };
+}
+
+// Zoek het baasje (characterId) van een huisdier over alle groepen heen.
+function _findPetOwner(dmState, petId) {
+  for (const g of Object.values(dmState.groups || {})) {
+    if (g.companionOwners && g.companionOwners[petId]) return g.companionOwners[petId];
+  }
+  return null;
+}
+
+// Bereken de geschaalde statblock-info van een huisdier. Schaalt op het level van het
+// baasje; zonder baasje op het hoogste level binnen de (opgegeven) groep.
+function _petStatblockInfo(entity, dmState, gid) {
+  const profiles = dmState.playerProfiles || {};
+  const ownerId  = _findPetOwner(dmState, entity.id);
+  let level = 1, ownerName = null;
+  if (ownerId) {
+    const p = profiles[ownerId] || {};
+    level = parseInt(p.level ?? p.klasseLevel) || 1;
+    ownerName = (storage.readJSON('entities.json').personages || []).find(e => e.id === ownerId)?.name || null;
+  } else {
+    const groepId = gid || dmState.activeGroup;
+    const spelers = (storage.readJSON('entities.json').personages || [])
+      .filter(e => e.subtype === 'speler' && e.data?.groep === groepId);
+    for (const s of spelers) {
+      const p = profiles[s.id] || {};
+      const l = parseInt(p.level ?? p.klasseLevel) || 1;
+      if (l > level) level = l;
+    }
+  }
+  const t = _activeTier(entity, level);
+  return { ...t, ownerLevel: level, ownerName, ownerId };
+}
+
+// Adoptieprijs van een dier-entity (ondersteunt zowel object {fl} als los getal adoptiePrijsFl).
+function _adoptiePrijs(e) {
+  if (e?.data?.adoptiePrijs && typeof e.data.adoptiePrijs === 'object') return e.data.adoptiePrijs;
+  const fl = parseInt(e?.data?.adoptiePrijsFl);
+  return { fl: isNaN(fl) ? 0 : fl };
+}
+
+// Heeft de groep al een huisdier (dier-companion)? Max één per party.
+function _groupHasPet(g, entities) {
+  return (g?.companions || []).some(id => (entities.personages || []).some(e => e.id === id && e.subtype === 'dier'));
+}
+
+// Het huidige huisdier van een groep (entity + display-naam), of null.
+function _groupPet(g, entities) {
+  for (const id of (g?.companions || [])) {
+    const e = (entities.personages || []).find(x => x.id === id && x.subtype === 'dier');
+    if (e) return { id: e.id, name: (g.companionNames || {})[e.id] || e.name };
+  }
+  return null;
+}
+
+// Huisdier overlijdt (na 3 gefaalde death saves): ontkoppel als companion in alle groepen,
+// wis baasje + naam, markeer als overleden. Geeft de groepen terug waarin het stierf.
+function _petDie(dmState, petId) {
+  const groups = [];
+  for (const [gid, g] of Object.entries(dmState.groups || {})) {
+    if ((g.companions || []).includes(petId)) {
+      g.companions = g.companions.filter(id => id !== petId);
+      if (g.companionOwners) delete g.companionOwners[petId];
+      if (g.companionNames)  delete g.companionNames[petId];
+      if (!g.deceased) g.deceased = {};
+      g.deceased[petId] = true;
+      groups.push(gid);
+    }
+  }
+  return groups;
+}
+
+// Lijst dier-entities die ter adoptie staan bij De Magizoöloog. Eén huisdier per party:
+// als de groep er al één heeft, is er niets te adopteren.
+function _magizooAdoptabel(dmState, gid) {
+  const entities = storage.readJSON('entities.json');
+  const g = getGroup(dmState, gid);
+  if (_groupHasPet(g, entities)) return [];
+  const owned = new Set(g?.companions || []);
+  return (entities.personages || [])
+    .filter(e => e.subtype === 'dier'
+      && (e.data?.adopteerbaar === true || e.data?.adopteerbaar === 'true')
+      && !owned.has(e.id))
+    .map(e => {
+      const tiers = Array.isArray(e.statblockTiers) ? [...e.statblockTiers].sort((a, b) => (a.minLevel || 0) - (b.minLevel || 0)) : [];
+      const sb = (tiers[0]?.statblock) || e.statblock || {};
+      const samenvatting = (sb.traits || sb.actions || '').split('\n')[0].replace(/\*/g, '').trim().slice(0, 140);
+      return {
+        id: e.id, name: e.name, imageId: e.id,
+        soortLabel: e.data?.soortLabel || e.data?.ras || '',
+        prijs: _adoptiePrijs(e),
+        naamSuggestie: e.data?.naamSuggestie || 'Jip',
+        samenvatting,
+      };
+    });
+}
+
+// Geschaalde statblock van een huisdier (voor het detailvenster).
+router.get('/companions/pet/:petId/statblock', attachRole, (req, res) => {
+  const { petId } = req.params;
+  const pet = (storage.readJSON('entities.json').personages || []).find(e => e.id === petId && e.subtype === 'dier');
+  if (!pet) return res.status(404).json({ error: 'Geen dier-entity' });
+  const dmState = readDmState();
+  const gid = req.session.characterId ? _playerGroupId(dmState, req.session.characterId) : undefined;
+  const g   = getGroup(dmState, gid);
+  const info = _petStatblockInfo(pet, dmState, gid);
+  res.json({
+    name: pet.name,
+    petName: (g.companionNames || {})[petId] || pet.name,
+    description: pet.description || '',
+    label: info.label,
+    statblock: info.statblock,
+    maxHp: info.maxHp,
+    tierIndex: info.index, tierCount: info.count,
+    nextMinLevel: info.next,
+    ownerLevel: info.ownerLevel, ownerName: info.ownerName,
+  });
 });
 
 // ── Party-leden (op basis van entity-groepveld, onafhankelijk van DM-visibility) ──
@@ -4863,7 +4999,7 @@ function _flushPlayerHpToDmState(combat, io, room) {
 router.post('/combat/start', requireDM, (req, res) => {
   const existing = storage.readJSON('combat.json');
   const combatants = [...(existing.combatants || [])].sort((a, b) => b.initiative - a.initiative);
-  const combat = { active: true, round: 1, currentTurn: 0, combatants, backdropId: existing.backdropId || null, canvasPreset: existing.canvasPreset || null, canvasColors: existing.canvasColors || null, log: [] };
+  const combat = { active: true, round: 1, currentTurn: 0, combatants, encounterId: existing.encounterId || null, backdropId: existing.backdropId || null, canvasPreset: existing.canvasPreset || null, canvasColors: existing.canvasColors || null, log: [] };
   _combatLog(combat, '⚔️ Gevecht begonnen');
   if (combatants[0]) _combatLog(combat, `▶ Beurt van ${combatants[0].name}`);
   storage.writeJSON('combat.json', combat);
@@ -4943,6 +5079,8 @@ router.post('/combat/combatant', requireDM, (req, res) => {
     maxHp:      req.body.maxHp      ?? 10,
     ac:         req.body.ac         || '',
     conditions: req.body.conditions || [],
+    ownerId:    req.body.ownerId    || null,
+    statblock:  req.body.statblock  || null,
   };
   if (!Array.isArray(combat.combatants)) combat.combatants = [];
   combat.combatants.push(c);
@@ -4950,6 +5088,47 @@ router.post('/combat/combatant', requireDM, (req, res) => {
   storage.writeJSON('combat.json', combat);
   req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
   res.status(201).json(c);
+});
+
+// Voeg alle huisdieren (dier-companions) van de actieve groep toe als summons,
+// met geschaalde (bevroren) statblock o.b.v. het level van het baasje + ownerId.
+router.post('/combat/voeg-metgezellen', requireDM, (req, res) => {
+  const combat   = storage.readJSON('combat.json');
+  const dmState  = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const g        = getGroup(dmState);
+  if (!Array.isArray(combat.combatants)) combat.combatants = [];
+
+  const added = [];
+  for (const petId of (g.companions || [])) {
+    const pet = (entities.personages || []).find(e => e.id === petId && e.subtype === 'dier');
+    if (!pet) continue;
+    if (combat.combatants.some(c => c.entityId === petId)) continue;  // niet dubbel
+    const info = _petStatblockInfo(pet, dmState, dmState.activeGroup);
+    const petName = (g.companionNames || {})[petId] || pet.name;
+    const dexMod = Math.floor(((parseInt(info.statblock?.dex) || 10) - 10) / 2);
+    const ownerCombatant = info.ownerId ? combat.combatants.find(c => c.entityId === info.ownerId) : null;
+    const initiative = ownerCombatant ? ownerCombatant.initiative : (Math.floor(Math.random() * 20) + 1 + dexMod);
+    combat.combatants.push({
+      id:         'c_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      name:       `${petName} (${info.label})`,
+      entityId:   petId, presetId: null,
+      imageId:    petId, backdropId: null,
+      type:       'summon',
+      ownerId:    info.ownerId || null,
+      initiative,
+      hp:         info.maxHp ?? 10,
+      maxHp:      info.maxHp ?? 10,
+      ac:         info.statblock?.ac || '',
+      conditions: [],
+      statblock:  info.statblock || null,
+    });
+    added.push(`${pet.name} (${info.label})`);
+  }
+  combat.combatants.sort((a, b) => b.initiative - a.initiative);
+  storage.writeJSON('combat.json', combat);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
+  res.json({ ok: true, added });
 });
 
 router.put('/combat/combatant/:id', requireDM, (req, res) => {
@@ -4982,7 +5161,22 @@ router.put('/combat/combatant/:id', requireDM, (req, res) => {
   if (req.body.hp !== undefined || req.body.maxHp !== undefined) {
     _flushPlayerHpToDmState(combat, req.app.get('io'), req.session?.campaignId||'main');
   }
-  req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
+  const io   = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  // Huisdier overlijdt na 3 gefaalde death saves → ontkoppel als companion + markeer overleden.
+  const cur = combat.combatants[idx];
+  if (req.body.deathSaves && (req.body.deathSaves.failures || 0) >= 3 && cur.entityId) {
+    const dmState = readDmState();
+    const isPet = (storage.readJSON('entities.json').personages || []).some(e => e.id === cur.entityId && e.subtype === 'dier');
+    if (isPet) {
+      const groups = _petDie(dmState, cur.entityId);
+      if (groups.length) {
+        storage.writeJSON('dm-state.json', dmState);
+        for (const gid of groups) io.to(room).emit('companion:unlink', { npcId: cur.entityId, name: cur.name, groupId: gid });
+      }
+    }
+  }
+  io.to(room).emit('combat:updated', combat);
   res.json(combat.combatants.find(c => c.id === req.params.id));
 });
 
@@ -5023,6 +5217,207 @@ router.put('/combat/winner', requireDM, (req, res) => {
   // Gevecht eindigt: persisteer finale HP naar dm-state
   _flushPlayerHpToDmState(combat, req.app.get('io'), req.session?.campaignId||'main');
   req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);
+  res.json({ ok: true });
+});
+
+// ── Lootverdeler ─────────────────────────────────────────────────────────────
+// Eén actieve lootfase tegelijk (dmState.lootPhase). Loot komt uit de encounter
+// (combat.encounterId) of wordt handmatig opgebouwd. Spelers claimen items; bij
+// afsluiting wint de hoogste worp en splitst het goud over de deelnemers.
+
+// Deelnemers = speler-combatants van het lopende gevecht; fallback: actieve groep.
+function _lootDeelnemers(combat, dmState) {
+  const fromCombat = (combat.combatants || []).filter(c => c.type === 'player' && c.entityId).map(c => c.entityId);
+  if (fromCombat.length) return [...new Set(fromCombat)];
+  const gid = dmState.activeGroup;
+  const entities = storage.readJSON('entities.json');
+  return (entities.personages || []).filter(e => e.subtype === 'speler' && e.data?.groep === gid).map(e => e.id);
+}
+
+// Lootfase voor de client; voor spelers worden claim-namen verborgen (alleen aantal + of jij claimde).
+function _lootForClient(lp, role, characterId) {
+  if (!lp) return null;
+  const isDM = role === 'dm';
+  return {
+    actief: lp.actief, encounterId: lp.encounterId, goud: lp.goud, goudVerdeeld: lp.goudVerdeeld,
+    deelnemers: lp.deelnemers,
+    items: (lp.items || []).map(it => ({
+      id: it.id, naam: it.naam, beschrijving: it.beschrijving, rariteit: it.rariteit, entityId: it.entityId || null,
+      status: it.status, winnaar: isDM ? it.winnaar : undefined,
+      claimCount: (it.claims || []).length,
+      claims: isDM ? it.claims : undefined,
+      ikClaim: characterId ? (it.claims || []).includes(characterId) : false,
+      dobbelrol: isDM ? it.dobbelrol : undefined,
+    })),
+  };
+}
+
+// Loot-item → speler-boedelitem (met optionele entity-koppeling + rariteit).
+function _lootItemToPlayerItem(it) {
+  const pi = { id: 'pi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4), name: it.naam, note: it.beschrijving || '' };
+  if (it.entityId) { pi.entityId = it.entityId; pi.entityType = 'voorwerpen'; }
+  if (it.rariteit) pi.rariteit = it.rariteit;
+  return pi;
+}
+
+// Voeg valuta toe aan een speler (individueel).
+function _addCurrency(dmState, characterId, addCl) {
+  if (!dmState.playerCurrency) dmState.playerCurrency = {};
+  const cur = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  dmState.playerCurrency[characterId] = fromCl(toCl(cur) + addCl);
+  return dmState.playerCurrency[characterId];
+}
+
+router.post('/combat/loot/start', requireDM, (req, res) => {
+  const combat  = storage.readJSON('combat.json');
+  const dmState = readDmState();
+  let goud = { fl: 0, kn: 0, cl: 0 }, items = [];
+  const encId = req.body.encounterId || combat.encounterId || null;
+  if (encId) {
+    const enc = (storage.readJSON('encounters.json').encounters || []).find(e => e.id === encId);
+    if (enc?.loot) {
+      goud = { fl: enc.loot.goud?.fl || 0, kn: enc.loot.goud?.kn || 0, cl: enc.loot.goud?.cl || 0 };
+      items = (enc.loot.items || []).map(it => ({
+        id: 'li_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        naam: it.naam || 'Voorwerp', beschrijving: it.beschrijving || '', rariteit: it.rariteit || '',
+        entityId: it.entityId || null, claims: [], winnaar: null, dobbelrol: {}, status: 'open',
+      }));
+    }
+  }
+  dmState.lootPhase = { actief: false, encounterId: encId, deelnemers: _lootDeelnemers(combat, dmState), goud, goudVerdeeld: false, items };
+  storage.writeJSON('dm-state.json', dmState);
+  res.json(_lootForClient(dmState.lootPhase, 'dm', null));
+});
+
+router.get('/combat/loot', attachRole, (req, res) => {
+  const dmState = readDmState();
+  res.json(_lootForClient(dmState.lootPhase, req.role, req.session.characterId));
+});
+
+router.put('/combat/loot', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const lp = dmState.lootPhase;
+  if (!lp) return res.status(404).json({ error: 'Geen lootfase' });
+  if (req.body.goud) lp.goud = { fl: parseInt(req.body.goud.fl) || 0, kn: parseInt(req.body.goud.kn) || 0, cl: parseInt(req.body.goud.cl) || 0 };
+  if (Array.isArray(req.body.items)) {
+    const oud = new Map((lp.items || []).map(i => [i.id, i]));
+    lp.items = req.body.items.map(it => {
+      const bestaand = it.id && oud.get(it.id);
+      return bestaand
+        ? { ...bestaand, naam: it.naam ?? bestaand.naam, beschrijving: it.beschrijving ?? bestaand.beschrijving, rariteit: it.rariteit ?? bestaand.rariteit, entityId: it.entityId ?? bestaand.entityId }
+        : { id: 'li_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), naam: it.naam || 'Voorwerp', beschrijving: it.beschrijving || '', rariteit: it.rariteit || '', entityId: it.entityId || null, claims: [], winnaar: null, dobbelrol: {}, status: 'open' };
+    });
+  }
+  if (req.body.toewijzen) {
+    const { itemId, characterId } = req.body.toewijzen;
+    const it = (lp.items || []).find(i => i.id === itemId);
+    if (it && characterId) {
+      it.winnaar = characterId; it.status = 'toegewezen';
+      if (!dmState.playerItems) dmState.playerItems = {};
+      if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];
+      dmState.playerItems[characterId].push(_lootItemToPlayerItem(it));
+      req.app.get('io').to(req.session?.campaignId || 'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
+    }
+  }
+  storage.writeJSON('dm-state.json', dmState);
+  res.json(_lootForClient(lp, 'dm', null));
+});
+
+router.post('/combat/loot/reveal', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const lp = dmState.lootPhase;
+  if (!lp) return res.status(404).json({ error: 'Geen lootfase' });
+  lp.actief = true;
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('loot:aangeboden', { deelnemers: lp.deelnemers });
+  res.json(_lootForClient(lp, 'dm', null));
+});
+
+router.post('/combat/loot/claim', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+  const dmState = readDmState();
+  const lp = dmState.lootPhase;
+  if (!lp || !lp.actief) return res.status(400).json({ error: 'Geen actieve lootfase' });
+  if (!lp.deelnemers.includes(characterId)) return res.status(403).json({ error: 'Je deed niet mee aan dit gevecht' });
+  const it = (lp.items || []).find(i => i.id === req.body.itemId);
+  if (!it || it.status !== 'open') return res.status(404).json({ error: 'Item niet beschikbaar' });
+  it.claims = it.claims || [];
+  const idx = it.claims.indexOf(characterId);
+  if (idx >= 0) it.claims.splice(idx, 1); else it.claims.push(characterId);
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('loot:claim-update', { itemId: it.id, claimCount: it.claims.length });
+  res.json({ ok: true, ikClaim: it.claims.includes(characterId), claimCount: it.claims.length });
+});
+
+router.post('/combat/loot/verdeeld', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const lp = dmState.lootPhase;
+  if (!lp) return res.status(404).json({ error: 'Geen lootfase' });
+  if (!dmState.playerItems) dmState.playerItems = {};
+  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  const geraakt = new Set();
+  const uitslag = { items: [], goud: {} };
+
+  for (const it of (lp.items || [])) {
+    if (it.status !== 'open') continue;
+    const claims = it.claims || [];
+    if (claims.length === 0) { it.status = 'overgeslagen'; continue; }
+    let winnaar;
+    if (claims.length === 1) { winnaar = claims[0]; }
+    else {
+      let kandidaten = [...claims], ronde = 0; const rolMap = {};
+      while (kandidaten.length > 1 && ronde < 5) {
+        let best = -1; const rolls = {};
+        for (const c of kandidaten) { const r = 1 + Math.floor(Math.random() * 20); rolls[c] = r; if (r > best) best = r; }
+        Object.assign(rolMap, rolls);
+        kandidaten = kandidaten.filter(c => rolls[c] === best);
+        ronde++;
+      }
+      winnaar = kandidaten[0];
+      it.dobbelrol = rolMap;
+    }
+    it.winnaar = winnaar; it.status = 'toegewezen';
+    if (!dmState.playerItems[winnaar]) dmState.playerItems[winnaar] = [];
+    dmState.playerItems[winnaar].push(_lootItemToPlayerItem(it));
+    geraakt.add(winnaar);
+    uitslag.items.push({ naam: it.naam, winnaar, dobbelrol: it.dobbelrol });
+  }
+
+  if (!lp.goudVerdeeld && toCl(lp.goud) > 0 && lp.deelnemers.length) {
+    const g = getGroup(dmState, dmState.activeGroup);
+    if (g?.sharedPurse?.enabled) {
+      g.sharedPurse = fromCl(toCl(g.sharedPurse) + toCl(lp.goud)); g.sharedPurse.enabled = true;
+      io.to(room).emit('party-currency:updated', { groupId: dmState.activeGroup, currency: g.sharedPurse, actor: 'Loot' });
+      uitslag.goud = { gedeeld: true, totaal: lp.goud };
+    } else {
+      const totaal = toCl(lp.goud); const n = lp.deelnemers.length;
+      const per = Math.floor(totaal / n); let rest = totaal - per * n;
+      const gesorteerd = [...lp.deelnemers].sort();
+      for (const cid of gesorteerd) {
+        let aandeel = per;
+        if (rest > 0 && cid === gesorteerd[0]) { aandeel += rest; rest = 0; }
+        const nieuw = _addCurrency(dmState, cid, aandeel);
+        geraakt.add(cid);
+        io.to(room).emit('player:currency-updated', { characterId: cid, currency: nieuw });
+        uitslag.goud[cid] = fromCl(aandeel);
+      }
+    }
+    lp.goudVerdeeld = true;
+  }
+
+  lp.actief = false;
+  storage.writeJSON('dm-state.json', dmState);
+  for (const cid of geraakt) io.to(room).emit('player:items-updated', { characterId: cid, items: dmState.playerItems[cid] });
+  io.to(room).emit('loot:verdeeld', { uitslag });
+  res.json({ ok: true, uitslag, loot: _lootForClient(lp, 'dm', null) });
+});
+
+router.delete('/combat/loot', requireDM, (req, res) => {
+  const dmState = readDmState();
+  delete dmState.lootPhase;
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('loot:verdeeld', { uitslag: null, geannuleerd: true });
   res.json({ ok: true });
 });
 
@@ -5788,9 +6183,68 @@ router.get('/magizoo', attachRole, (req, res) => {
       cooldownMinuten: config.cooldownMinuten ?? 5,
     },
     monsters: _magizooMonsterList(dmState, gid),
+    adoptabel: _magizooAdoptabel(dmState, gid),
+    metgezel: _groupPet(getGroup(dmState, gid), storage.readJSON('entities.json')),
     currency: _effectiveCurrency(dmState, characterId),
     cooldownTot: (cooldown && new Date(cooldown) > new Date()) ? cooldown : null,
   });
+});
+
+// Adopteer een metgezel bij De Magizoöloog (speler betaalt → companion + baasje + naam vastgelegd).
+router.post('/magizoo/adopteer', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
+  const { petId } = req.body;
+  if (!petId) return res.status(400).json({ error: 'petId vereist' });
+
+  const entities = storage.readJSON('entities.json');
+  const pet = (entities.personages || []).find(e => e.id === petId && e.subtype === 'dier');
+  if (!pet) return res.status(404).json({ error: 'Dit dier bestaat niet.' });
+  if (!(pet.data?.adopteerbaar === true || pet.data?.adopteerbaar === 'true'))
+    return res.status(400).json({ error: 'Dit dier is niet ter adoptie.' });
+
+  const dmState = readDmState();
+  const gid = _playerGroupId(dmState, characterId);
+  const g = getGroup(dmState, gid);
+  if (!g.companions) g.companions = [];
+  if (_groupHasPet(g, entities)) return res.status(400).json({ error: 'De party heeft al een metgezel — één huisdier per party.' });
+
+  // Betaling (zelfde valuta-afhandeling als magizoo/onderzoek)
+  const prijsCl = toCl(_adoptiePrijs(pet));
+  if (toCl(_effectiveCurrency(dmState, characterId)) < prijsCl)
+    return res.status(400).json({ error: 'Onvoldoende saldo' });
+  const { currency: nieuweSaldo } = _deductCurrency(dmState, characterId, prijsCl);
+
+  // Door de speler gekozen naam (met de suggestie als fallback)
+  const naam = (typeof req.body.naam === 'string' && req.body.naam.trim())
+    ? req.body.naam.trim().slice(0, 40)
+    : (pet.data?.naamSuggestie || pet.name);
+
+  // Koppelen + baasje + naam vastleggen + zichtbaar maken voor de groep
+  g.companions.push(petId);
+  if (!g.companionOwners) g.companionOwners = {};
+  g.companionOwners[petId] = characterId;
+  if (!g.companionNames) g.companionNames = {};
+  g.companionNames[petId] = naam;
+  if (!g.visibility) g.visibility = {};
+  g.visibility[petId] = 'visible';
+  if (g.deceased) delete g.deceased[petId];   // herstel bij her-adoptie van hetzelfde dier
+  storage.writeJSON('dm-state.json', dmState);
+
+  // Adoptiebewijs als brief
+  _bezorgBrief(req, characterId, {
+    titel: `Adoptiebewijs — ${naam}`,
+    tekst: `Hierbij bevestigt De Magizoöloog dat ${naam} onder jouw hoede is gekomen. Zorg goed voor je metgezel; naarmate jij in ervaring groeit, groeit ${naam} met je mee.`,
+    afzender: 'De Magizoöloog',
+    entityId: petId, entityType: 'personages',
+  });
+
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  io.to(room).emit('companion:link', { npcId: petId, name: naam, groupId: gid });
+  io.to(room).emit('player:currency-updated', { characterId, currency: nieuweSaldo });
+
+  res.json({ ok: true, petId, naam, currency: nieuweSaldo });
 });
 
 router.post('/magizoo/onderzoek', attachRole, (req, res) => {
@@ -8062,6 +8516,7 @@ router.post('/encounters', requireDM, (req, res) => {
     canvasPreset: req.body.canvasPreset || null,
     canvasColors: req.body.canvasColors || null,
     monsters:     req.body.monsters     || [],
+    loot:         req.body.loot         || { goud: { fl: 0, kn: 0, cl: 0 }, items: [] },
   };
   data.encounters.push(enc);
   storage.writeJSON('encounters.json', data);
@@ -8174,6 +8629,7 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
     round:        1,
     currentTurn:  0,
     combatants,
+    encounterId:  enc.id,
     backdropId:   enc.backdropId   || null,
     canvasPreset: enc.canvasPreset || null,
     canvasColors: enc.canvasColors || null,

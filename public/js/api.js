@@ -292,9 +292,17 @@ export const api = {
   endCombat:        ()        => request('/combat',                    { method: 'DELETE' }),
   updateCombat:     (data)    => request('/combat',                    { method: 'PUT',    body: JSON.stringify(data) }),
   addCombatant:     (data)    => request('/combat/combatant',          { method: 'POST',   body: JSON.stringify(data) }),
+  voegMetgezellen:  ()        => request('/combat/voeg-metgezellen',   { method: 'POST' }),
   updateCombatant:  (id, d)   => request(`/combat/combatant/${id}`,    { method: 'PUT',    body: JSON.stringify(d) }),
   removeCombatant:  (id)      => request(`/combat/combatant/${id}`,    { method: 'DELETE' }),
   setCombatWinner:  (winner)  => request('/combat/winner',             { method: 'PUT',    body: JSON.stringify({ winner }) }),
+  lootStart:        (encounterId) => request('/combat/loot/start',      { method: 'POST',   body: JSON.stringify({ encounterId }) }),
+  getLoot:          ()        => request('/combat/loot'),
+  lootUpdate:       (data)    => request('/combat/loot',                { method: 'PUT',    body: JSON.stringify(data) }),
+  lootReveal:       ()        => request('/combat/loot/reveal',         { method: 'POST' }),
+  lootClaim:        (itemId)  => request('/combat/loot/claim',          { method: 'POST',   body: JSON.stringify({ itemId }) }),
+  lootVerdeeld:     ()        => request('/combat/loot/verdeeld',       { method: 'POST' }),
+  lootCancel:       ()        => request('/combat/loot',                { method: 'DELETE' }),
 
   // Berichten
   getBerichten:        ()                   => request('/berichten'),
@@ -325,6 +333,8 @@ export const api = {
   saveGockConfig:  (data)          => request('/meta/gock',      { method: 'PUT',  body: JSON.stringify(data) }),
   getMagizoo:        ()            => request('/magizoo'),
   magizooOnderzoek:  (data)        => request('/magizoo/onderzoek', { method: 'POST', body: JSON.stringify(data) }),
+  adopteerPet:       (petId, naam) => request('/magizoo/adopteer', { method: 'POST', body: JSON.stringify({ petId, naam }) }),
+  getPetStatblock:   (petId)       => request(`/companions/pet/${petId}/statblock`),
   saveMagizooConfig: (data)        => request('/meta/magizoo',    { method: 'PUT',  body: JSON.stringify(data) }),
 
 // De Tempel

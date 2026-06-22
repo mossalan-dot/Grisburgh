@@ -1,5 +1,5 @@
-import { api } from './api.js?v=238';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor } from "./render-campagne.js?v=105";
+import { api } from './api.js?v=242';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=109";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=48";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=12';
 import { renderDungeon } from './render-dungeon.js?v=25';
@@ -7,8 +7,8 @@ import { renderRelatiemap } from './render-relatiemap.js?v=15';
 import { renderProgressie } from './render-progressie.js?v=37';
 import { renderBestiarium } from './render-bestiarium.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=40";
-import { initDmPanel } from "./dm-panel.js?v=100";
+import { initSocket } from "./socket-client.js?v=41";
+import { initDmPanel } from "./dm-panel.js?v=103";
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -1509,6 +1509,63 @@ function esc(s) {
 // ── JS string escape (voor names in single-quoted onclick handlers) ──
 function escJS(s) {
   return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+// ── Wapeneigenschappen-picker voor een wapenrij op het spelerblad ──
+// Hergebruikt WEAPON_PROPERTIES/PARAMETERIZABLE_PROPS + de .weapon-tags-picker-styling
+// van de voorwerpen-editor. State leeft per wapen in w.props (array van strings,
+// parameteriseerbare props als "Range (20/60)"). Opgeslagen via _saveWeapon(i,'props',…).
+// Standaard tonen we alleen de gekozen eigenschappen + een "+ Eigenschap"-knop; de volledige
+// lijst klapt pas open als de speler 'm nodig heeft (welke rijen open zijn → _openWeaponProps).
+const _openWeaponProps = new Set();
+function _weaponPropsPickerHtml(w, i) {
+  const sel  = Array.isArray(w.props) ? w.props : [];
+  const open = _openWeaponProps.has(i);
+
+  // Samenvatting: gekozen eigenschappen als compacte, verwijderbare chips
+  const selChips = sel.map(s => {
+    const base = s.replace(/\s*\(.*\)$/, '').trim();
+    const tip  = WEAPON_PROPERTIES[s] || WEAPON_PROPERTIES[base] || '';
+    return `<button type="button" class="weapon-prop-chip" data-wptip="${esc(tip)}"
+      onclick="window._toggleWeaponProp(${i},'${escJS(base)}')" title="Verwijder eigenschap">${esc(s)}<span class="weapon-prop-chip-x">×</span></button>`;
+  }).join('');
+
+  const addBtn = `<button type="button" class="weapon-prop-add${open ? ' is-open' : ''}"
+    onclick="window._toggleWeaponPropsPicker(${i})">${open ? 'Klaar' : '+ Eigenschap'}</button>`;
+
+  // Volledige keuzelijst — alleen renderen wanneer uitgeklapt
+  let grid = '';
+  if (open) {
+    const chips = Object.keys(WEAPON_PROPERTIES).map(prop => {
+      const isParam  = PARAMETERIZABLE_PROPS.has(prop);
+      const cur      = sel.find(s => s === prop || s.startsWith(prop + ' (')) || null;
+      const isOn     = !!cur;
+      const paramVal = (cur && cur !== prop) ? cur.slice(prop.length + 2, -1) : '';
+      const tip      = WEAPON_PROPERTIES[prop] || '';
+      const safeId   = 'wpp-' + i + '-' + prop.replace(/[^a-zA-Z0-9]/g, '_');
+      const btn = `<button type="button"
+          class="weapon-tag-pick${isOn ? ' weapon-tag-pick--on' : ''}" data-wptip="${esc(tip)}"
+          onclick="window._toggleWeaponProp(${i},'${escJS(prop)}')">${esc(prop)}</button>`;
+      if (isParam) {
+        const ph = prop === 'Versatile' ? '1d10' : prop === 'Ammunition' ? '80/320' : '20/60';
+        return `<span class="weapon-tag-pick-group">${btn}<input type="text" id="${safeId}"
+          class="weapon-tag-param-inp${isOn ? '' : ' hidden'}" placeholder="${ph}" value="${esc(paramVal)}"
+          onchange="window._updateWeaponPropParam(${i},'${escJS(prop)}',this.value)"
+          onclick="event.stopPropagation()"></span>`;
+      }
+      return btn;
+    }).join('');
+    grid = `<div class="weapon-tags-picker">${chips}</div>`;
+  }
+
+  return `<div class="player-weapon-props" id="wprops-${i}">
+      <div class="weapon-props-summary">
+        <span class="player-weapon-props-label">Eigenschappen</span>
+        ${selChips}
+        ${addBtn}
+      </div>
+      ${grid}
+    </div>`;
 }
 
 // ── Weapon property tooltip text (English) ──
@@ -5428,8 +5485,9 @@ async function renderMijnKarakter(opts = {}) {
   let factiesData = [];
   let progData = null;
   let ontdekkingenData = null;
+  let lootData = null;
   try {
-    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, heerenData, factiesData, progData, ontdekkingenData] = await Promise.all([
+    [hpData, entity, combat, ownershipData, allVoorwerpen, soundsData, simpleItems, currency, partyCurrency, spellSlots, playerProfile, partyMembers, companions, trackers, pinnedSpells, pinnedTraits, { inspired }, berichtenLijst, heerenData, factiesData, progData, ontdekkingenData, lootData] = await Promise.all([
       api.getPlayerHp(charId).catch(() => ({ current: null, max: null })),
       api.getEntity('personages', charId).catch(() => null),
       api.getCombat().catch(() => null),
@@ -5452,6 +5510,7 @@ async function renderMijnKarakter(opts = {}) {
       api.getFacties().then(d => d.facties || []).catch(() => []),
       api.progression().catch(() => null),
       (window.app?.isDM?.() ? Promise.resolve(null) : api.ontdekkingen().catch(() => null)),
+      api.getLoot().catch(() => null),
     ]);
   } catch { /* ok */ }
 
@@ -5740,7 +5799,7 @@ async function renderMijnKarakter(opts = {}) {
         <button class="player-subtab${_playerSubTab === 'facties' ? ' active' : ''}"
           data-tab="facties" onclick="window._setPlayerSubTab('facties')">${icon('landmark')} Facties</button>
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
-          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">${icon('scroll-text')} Boedel</button>
+          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">${icon('scroll-text')} Boedel${(lootData?.actief && lootData.deelnemers?.includes(charId)) ? '<span class="player-loot-badge" id="loot-tab-badge"></span>' : ''}</button>
         <button class="player-subtab${_playerSubTab === 'progressie' ? ' active' : ''}"
           data-tab="progressie" onclick="window._setPlayerSubTab('progressie')">${icon('clipboard-list')} Progressie</button>
         <button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
@@ -6013,20 +6072,20 @@ async function renderMijnKarakter(opts = {}) {
               <span class="pwh-name">Naam</span>
               <span class="pwh-atk">Aanval / DC</span>
               <span class="pwh-dmg">Schade &amp; Type</span>
-              <span class="pwh-notes">Notities</span>
               <span class="pwh-del"></span>
             </div>
             ${weapons.map((w, i) => `
-            <div class="player-weapon-row">
-              <input class="pw-input pw-name" type="text" value="${esc(w.name || '')}" placeholder="Rapier, Fire Bolt…"
-                onblur="window._saveWeapon(${i},'name',this.value)">
-              <input class="pw-input pw-atk" type="text" value="${esc(w.atk || '')}" placeholder="+5 / DC 14"
-                onblur="window._saveWeapon(${i},'atk',this.value)">
-              <input class="pw-input pw-dmg" type="text" value="${esc(w.dmg || '')}" placeholder="1d8+3 Piercing"
-                onblur="window._saveWeapon(${i},'dmg',this.value)">
-              <input class="pw-input pw-notes" type="text" value="${esc(w.notes || '')}" placeholder="Finesse, magic…"
-                onblur="window._saveWeapon(${i},'notes',this.value)">
-              <button class="pw-del-btn" onclick="window._deleteWeapon(${i})" title="Verwijder">×</button>
+            <div class="player-weapon-entry">
+              <div class="player-weapon-row">
+                <input class="pw-input pw-name" type="text" value="${esc(w.name || '')}" placeholder="Rapier, Fire Bolt…"
+                  onblur="window._saveWeapon(${i},'name',this.value)">
+                <input class="pw-input pw-atk" type="text" value="${esc(w.atk || '')}" placeholder="+5 / DC 14"
+                  onblur="window._saveWeapon(${i},'atk',this.value)">
+                <input class="pw-input pw-dmg" type="text" value="${esc(w.dmg || '')}" placeholder="1d8+3 Piercing"
+                  onblur="window._saveWeapon(${i},'dmg',this.value)">
+                <button class="pw-del-btn" onclick="window._deleteWeapon(${i})" title="Verwijder">×</button>
+              </div>
+              ${_weaponPropsPickerHtml(w, i)}
             </div>`).join('')}
           </div>` : `
           <p class="player-weapons-empty">Nog geen wapens toegevoegd. Klik + om te beginnen.</p>`}
@@ -6276,6 +6335,7 @@ async function renderMijnKarakter(opts = {}) {
       <!-- ═══ TAB: Mijn knapzak ═══ -->
       <div id="pst-knapzak" class="player-subtab-panel${_playerSubTab !== 'knapzak' ? ' hidden' : ''}">
         <div style="display:flex;justify-content:flex-end;padding:4px 0 0">${_helpBtn('knapzak')}</div>
+        <div id="player-loot-slot">${_playerLootPanelHtml(lootData, charId)}</div>
 
         <!-- Valuta -->
         <div class="player-dash-section">
@@ -7275,7 +7335,7 @@ async function renderMijnKarakter(opts = {}) {
 
   // ── Wapens & Damage Cantrips ──
   window._addWeapon = async function() {
-    weapons.push({ name: '', atk: '', dmg: '', notes: '' });
+    weapons.push({ name: '', atk: '', dmg: '', props: [] });
     await api.patchPlayerProfile(charId, { weapons: JSON.stringify(weapons) }).catch(() => {});
     renderMijnKarakter(opts);
   };
@@ -7291,6 +7351,51 @@ async function renderMijnKarakter(opts = {}) {
     weapons[idx][field] = value;
     await api.patchPlayerProfile(charId, { weapons: JSON.stringify(weapons) }).catch(() => {});
     // Geen re-render: de speler kan nog andere velden op dezelfde rij bewerken
+  };
+
+  // Wapeneigenschap aan/uit togglen (chip). Parameteriseerbare props tonen een invulveld.
+  // Herrender alleen de eigenschappen-blok van één wapenrij (behoudt open/dicht-state).
+  const _rerenderWeaponProps = (idx) => {
+    const el = document.getElementById('wprops-' + idx);
+    if (el) el.outerHTML = _weaponPropsPickerHtml(weapons[idx], idx);
+  };
+
+  // Klap de volledige keuzelijst open/dicht voor één wapen.
+  window._toggleWeaponPropsPicker = function(idx) {
+    if (_openWeaponProps.has(idx)) _openWeaponProps.delete(idx);
+    else _openWeaponProps.add(idx);
+    _rerenderWeaponProps(idx);
+  };
+
+  window._toggleWeaponProp = function(idx, prop) {
+    const w = weapons[idx];
+    if (!w) return;
+    if (!Array.isArray(w.props)) w.props = [];
+    const pIdx = w.props.findIndex(s => s === prop || s.startsWith(prop + ' ('));
+    let focusParam = false;
+    if (pIdx >= 0) {
+      w.props.splice(pIdx, 1);
+    } else {
+      w.props.push(prop);
+      focusParam = PARAMETERIZABLE_PROPS.has(prop) && _openWeaponProps.has(idx);
+    }
+    window._saveWeapon(idx, 'props', w.props);
+    _rerenderWeaponProps(idx);
+    if (focusParam) {
+      const inp = document.getElementById('wpp-' + idx + '-' + prop.replace(/[^a-zA-Z0-9]/g, '_'));
+      inp?.focus();
+    }
+  };
+
+  // Parameterwaarde (bv. "20/60") opslaan bij een ingeschakelde parameteriseerbare prop.
+  window._updateWeaponPropParam = function(idx, baseProp, paramVal) {
+    const w = weapons[idx];
+    if (!w || !Array.isArray(w.props)) return;
+    const pIdx = w.props.findIndex(s => s === baseProp || s.startsWith(baseProp + ' ('));
+    if (pIdx < 0) return;
+    w.props[pIdx] = paramVal.trim() ? `${baseProp} (${paramVal.trim()})` : baseProp;
+    window._saveWeapon(idx, 'props', w.props);
+    _rerenderWeaponProps(idx);
   };
 
   // HP-helpers voor het dashboard
@@ -7508,6 +7613,8 @@ async function renderMijnKarakter(opts = {}) {
       window._berichtenUnread = 0;
       window._updateBerichtenBadge?.();
     }
+    // Loot-paneel verversen bij openen van de Boedel
+    if (tab === 'knapzak') window._renderPlayerLoot?.();
     // Progressie lazy renderen bij tab-wissel
     if (tab === 'progressie') {
       const _pm  = document.getElementById('pst-progressie');
@@ -9329,7 +9436,7 @@ async function renderMagizoo() {
     return;
   }
   _magizooData = data;
-  const { config, monsters = [], currency, cooldownTot } = data;
+  const { config, monsters = [], adoptabel = [], metgezel = null, currency, cooldownTot } = data;
 
   const cooldownActief = cooldownTot && new Date(cooldownTot) > new Date();
   let cooldownTekst = '';
@@ -9359,6 +9466,15 @@ async function renderMagizoo() {
         ${cooldownActief ? `<div class="gock-lopend"><p class="herberg-cooldown-tekst">${icon('paw-print')} ${cooldownTekst}</p></div>` : ''}
 
         <div id="magizoo-resultaat"></div>
+
+        <div class="magizoo-adopt-wrap">
+          <p class="herberg-teller">${icon('paw-print')} Adopteer een metgezel</p>
+          ${metgezel
+            ? `<p class="herberg-zoek-hint">Jullie party heeft al een metgezel: <strong>${esc(metgezel.name)}</strong>. Eén huisdier per party.</p>`
+            : adoptabel.length === 0
+              ? `<p class="herberg-zoek-hint">De Magizoöloog heeft vandaag geen dieren ter adoptie.</p>`
+              : `<div class="magizoo-adopt-lijst">${adoptabel.map(p => _magizooAdoptKaart(p)).join('')}</div>`}
+        </div>
 
         ${monsters.length === 0
           ? `<p class="herberg-cooldown-tekst">De party kent nog geen wezens om te laten onderzoeken. Kom terug nadat je iets bent tegengekomen.</p>`
@@ -9400,6 +9516,90 @@ function _magizooItemBody(m, cooldownActief) {
               : ''}
           </div>`}`;
 }
+
+function _magizooAdoptKaart(p) {
+  const portret = p.imageId
+    ? `<img src="${api.fileUrl(p.imageId)}" class="magizoo-adopt-portret" alt="${esc(p.name)}" onerror="this.style.display='none'">`
+    : `<div class="magizoo-adopt-portret magizoo-adopt-portret--fallback">${icon('paw-print')}</div>`;
+  return `<div class="magizoo-adopt-kaart">
+      ${portret}
+      <div class="magizoo-adopt-body">
+        <div class="magizoo-adopt-naam">${esc(p.name)}</div>
+        ${p.soortLabel ? `<div class="magizoo-adopt-soort">${esc(p.soortLabel)}</div>` : ''}
+        ${p.samenvatting ? `<div class="magizoo-adopt-sam">${esc(p.samenvatting)}</div>` : ''}
+        <label class="magizoo-adopt-naamveld">Naam je metgezel
+          <input type="text" id="magizoo-naam-${esc(p.id)}" value="${esc(p.naamSuggestie || '')}" maxlength="40" placeholder="${esc(p.naamSuggestie || 'Naam…')}">
+        </label>
+        <div class="magizoo-adopt-foot">
+          <span class="ts-beurs">${_magizooPrijs(p.prijs)}</span>
+          <button class="ts-wedden-btn magizoo-btn" onclick="window._magizooAdopteer('${esc(p.id)}')">Adopteer</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Lootverdeler — spelerpaneel in de Boedel-subtab ──
+function _playerLootPanelHtml(loot, charId) {
+  if (!loot || !loot.actief || !charId || !(loot.deelnemers || []).includes(charId)) return '';
+  const items = (loot.items || []).filter(it => it.status === 'open');
+  const goudTotaal = (loot.goud?.fl || 0) + (loot.goud?.kn || 0) + (loot.goud?.cl || 0);
+  return `<div class="player-loot-panel">
+    <div class="player-loot-head">${icon('coins')} Loot beschikbaar!</div>
+    ${items.length ? items.map(it => {
+      const rk = _invRarityKey(it.rariteit);
+      const others = it.claimCount - (it.ikClaim ? 1 : 0);
+      const naamHtml = it.entityId
+        ? `<span class="player-loot-link" onclick="window._openDetail('voorwerpen','${esc(it.entityId)}')" title="Bekijk kaartje">${esc(it.naam)} <span class="player-loot-link-ico">${icon('open-book')}</span></span>`
+        : esc(it.naam);
+      return `<div class="player-loot-item${rk ? ' loot-rar-' + rk : ''}">
+        <div class="player-loot-item-main">
+          <span class="player-loot-diamond"${rk ? ` data-rarity="${rk}"` : ''}>◆</span>
+          <div class="player-loot-item-body">
+            <div class="player-loot-item-naam">${naamHtml}${it.rariteit ? ` <span class="player-loot-rar">(${esc(it.rariteit)})</span>` : ''}</div>
+            ${it.beschrijving ? `<div class="player-loot-item-desc">${esc(it.beschrijving)}</div>` : ''}
+            ${others > 0 ? `<div class="player-loot-claimcount">${others} ander${others > 1 ? 'e spelers claimen' : ' speler claimt'} dit ook</div>` : ''}
+          </div>
+        </div>
+        <button class="player-loot-claim-btn${it.ikClaim ? ' is-claimed' : ''}" onclick="window._lootClaim('${esc(it.id)}')">${it.ikClaim ? icon('check') + ' Geclaimd' : 'Claim'}</button>
+      </div>`;
+    }).join('') : `<p class="player-loot-empty">Alle items zijn verdeeld.</p>`}
+    ${goudTotaal ? `<div class="player-loot-goud">${icon('coins')} Goud: <strong>${_magizooPrijs(loot.goud)}</strong> <span class="player-loot-goud-note">(wordt bij afsluiting verdeeld)</span></div>` : ''}
+  </div>`;
+}
+
+window._lootClaim = async (itemId) => {
+  try { await api.lootClaim(itemId); } catch (e) { _tsToast(e.message || 'Claim mislukt.'); }
+  window._renderPlayerLoot();
+};
+
+window._renderPlayerLoot = async () => {
+  const slot = document.getElementById('player-loot-slot');
+  if (!slot) return;
+  let loot = null;
+  try { loot = await api.getLoot(); } catch { /* ok */ }
+  const charId = window._lastCharId || window.app?.state?.characterId;
+  slot.innerHTML = _playerLootPanelHtml(loot, charId);
+  const btn = document.querySelector('.player-subtab[data-tab="knapzak"]');
+  if (btn) {
+    const has = !!(loot?.actief && (loot.deelnemers || []).includes(charId) && (loot.items || []).some(i => i.status === 'open'));
+    let badge = btn.querySelector('.player-loot-badge');
+    if (has && !badge) { badge = document.createElement('span'); badge.className = 'player-loot-badge'; btn.appendChild(badge); }
+    else if (!has && badge) badge.remove();
+  }
+};
+
+window._magizooAdopteer = async (petId) => {
+  const p = _magizooData?.adoptabel?.find(x => x.id === petId);
+  const naam = (document.getElementById('magizoo-naam-' + petId)?.value || '').trim() || p?.naamSuggestie || p?.name || '';
+  if (!confirm(`${naam || 'Dit dier'} adopteren voor ${_magizooPrijs(p?.prijs)}? De kosten worden direct van je beurs afgeschreven.`)) return;
+  try {
+    const res = await api.adopteerPet(petId, naam);
+    _tsToast(`${res.naam} is nu jullie metgezel!`);
+    await renderMagizoo();
+  } catch (err) {
+    _tsToast(err.message || 'Adoptie mislukt.');
+  }
+};
 
 window._magizooOnderzoek = async (monsterId, modus) => {
   const m = _magizooData?.monsters?.find(x => x.id === monsterId);

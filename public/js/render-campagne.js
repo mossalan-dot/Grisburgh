@@ -1,11 +1,13 @@
-import { api } from './api.js?v=238';
+import { api } from './api.js?v=242';
+import { renderStatblock } from './render-statblock.js?v=3';
 
 const icon = (...a) => window.icon(...a);
 
 const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 
 // ── Wapeneigenschappen (2024 PHB) ──
-const WEAPON_PROPERTIES = {
+// Geëxporteerd zodat het spelerblad (app.js) dezelfde bron + tooltips hergebruikt.
+export const WEAPON_PROPERTIES = {
   'Ammunition': 'You can make a ranged attack with this weapon only if you have ammunition to fire from it. Each attack expends one piece of ammunition. You can recover half your expended ammunition by taking a minute to search the battlefield.',
   'Cleave':     'If you hit a creature with a melee attack using this weapon, you can make one extra melee attack against a second creature within 5 feet of the first that is also within your reach. On this extra attack, use the same ability modifier as the primary attack but don\'t add your ability modifier to the damage roll unless that modifier is negative.',
   'Finesse':    'When making an attack with a Finesse weapon, you use your choice of your Strength or Dexterity modifier for the attack and damage rolls. You must use the same modifier for both rolls.',
@@ -28,7 +30,7 @@ const WEAPON_PROPERTIES = {
 };
 
 // Eigenschappen die optioneel extra tekst tussen haakjes krijgen (bijv. "Range (30/120)")
-const PARAMETERIZABLE_PROPS = new Set(['Range', 'Versatile', 'Thrown', 'Ammunition']);
+export const PARAMETERIZABLE_PROPS = new Set(['Range', 'Versatile', 'Thrown', 'Ammunition']);
 
 // ── Armor AC berekening ──
 // dexMod = null → DM-formule weergave; getal → spelersweergave met echte modifier
@@ -315,6 +317,13 @@ function getSubtypeBadge(type, e) {
   if (type === 'voorwerpen') {
     const t = e.data?.itemType;
     if (!t) return null;
+    // Zegeningen & Gunsten: duidelijk onderscheiden — blessing per soort, boon apart.
+    if (t === 'Blessing') {
+      const g = e.data?.goddelijkType || 'zegen';
+      const gl = { zegen: 'Zegening', eed: 'Eed', vloek: 'Vloek' };
+      return { label: gl[g] || 'Zegening', cls: 'badge-goddelijk badge-goddelijk--' + g };
+    }
+    if (t === 'Boon') return { label: 'Boon', cls: 'badge-boon' };
     const clsMap = {
       'Weapon':     'badge-item-weapon',
       'Armor':      'badge-item-armor',
@@ -889,11 +898,12 @@ function renderCard(type, e) {
                   :                    'Zichtbaar maken';
 
   const _goddelijkType = (type === 'voorwerpen' && e.data?.itemType === 'Blessing') ? (e.data?.goddelijkType || '') : '';
+  const _isBoon = (type === 'voorwerpen' && e.data?.itemType === 'Boon');
   // Spelerskaarten (protagonisten) krijgen een vergulde, beschermde uitstraling — hun
   // portret/filmpje wordt overal hergebruikt, dus de kaart staat visueel boven NPC's.
   const _isProtagonist = type === 'personages' && (e.subtype === 'speler');
   return `
-    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}${_isProtagonist ? ' card-protagonist' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}${_isProtagonist ? ' data-protagonist="true"' : ''}
+    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}${_isBoon ? ' card-boon' : ''}${_isProtagonist ? ' card-protagonist' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}${_isProtagonist ? ' data-protagonist="true"' : ''}
       onclick="window._openDetail('${type}','${e.id}')">
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
@@ -2120,6 +2130,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     }
   }
 
+  // Huisdier (subtype 'dier'): geschaalde statblock-sectie (gevuld na openModal)
+  if (tab === 'personages' && e.subtype === 'dier') {
+    infoHtml += `<div id="pet-statblock-slot" class="pet-statblock-slot"><p class="text-center text-ink-faint font-fell italic py-4">Statblock laden…</p></div>`;
+  }
+
   // ── Build tabbed modal body ──
   const detailTabs = [
     { key: 'info', label: 'Info' },
@@ -2162,6 +2177,25 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _mSubEl = document.getElementById('m-sub');
   if (_mSubEl) _mSubEl.innerHTML = _subtitleHtml;
   _updateBackButton();
+
+  // Huisdier: geschaalde statblock ophalen + renderen (tier o.b.v. level van het baasje)
+  if (tab === 'personages' && e.subtype === 'dier') {
+    api.getPetStatblock(e.id).then(info => {
+      const slot = document.getElementById('pet-statblock-slot');
+      if (!slot) return;
+      // Toon de door de speler gekozen naam (companion-naam) als titel
+      if (info.petName) { const tEl = document.getElementById('m-title'); if (tEl) tEl.textContent = info.petName; }
+      const tierBadge = info.tierCount > 1
+        ? `<div class="pet-tier-indicator">${icon('paw-print')} Tier ${info.tierIndex + 1}/${info.tierCount} — <strong>${esc(info.label)}</strong>${info.ownerName ? ` · baasje ${esc(info.ownerName)} (level ${info.ownerLevel})` : ''}${info.nextMinLevel ? ` · volgende tier op level ${info.nextMinLevel}` : ''}</div>`
+        : '';
+      slot.innerHTML = tierBadge + renderStatblock(
+        { name: info.label, statblock: info.statblock, maxHp: info.maxHp, description: info.description },
+        { niveau: 'volledig' });
+    }).catch(() => {
+      const slot = document.getElementById('pet-statblock-slot');
+      if (slot) slot.innerHTML = '';
+    });
+  }
 
   // Set type accent bar
   const _accentEl = document.getElementById('m-accent');
@@ -2627,6 +2661,72 @@ export function openEditor(type) {
 let allNames = {};
 let _scrollSpellList = null;  // volledige spell-lijst voor de Scroll-spell-picker (lazy)
 
+// ── Huisdier-tier-editor (subtype 'dier') ──
+// _petTiers wordt in openEditor gevuld uit e.statblockTiers en bij submit weer uitgelezen.
+let _petTiers = [];
+
+function _petTierRowHtml(t, i) {
+  const sb = t.statblock || {};
+  const num = v => (v === 0 || v) ? esc(v) : '';
+  return `<div class="pet-tier-row" data-idx="${i}">
+    <div class="pet-tier-row-head">
+      <span class="pet-tier-badge">Tier ${i + 1}</span>
+      <button type="button" class="pet-tier-del" onclick="window._petTierRemove(${i})" title="Verwijder tier">${icon('trash')}</button>
+    </div>
+    <div class="pet-editor-row">
+      <label class="pet-fld pet-fld--sm"><span>Min. level</span><input type="number" min="1" class="pt-minlevel" value="${num(t.minLevel)}"></label>
+      <label class="pet-fld"><span>Label</span><input class="pt-label" value="${esc(t.label || '')}" placeholder="Guard Dog"></label>
+      <label class="pet-fld pet-fld--sm"><span>Max HP</span><input type="number" min="1" class="pt-maxhp" value="${num(t.maxHp)}"></label>
+    </div>
+    <div class="pet-editor-row">
+      <label class="pet-fld pet-fld--sm"><span>AC</span><input class="pt-ac" value="${esc(sb.ac || '')}"></label>
+      <label class="pet-fld pet-fld--sm"><span>HP (dice)</span><input class="pt-hp" value="${esc(sb.hp || '')}" placeholder="3d8+6"></label>
+      <label class="pet-fld"><span>Speed</span><input class="pt-speed" value="${esc(sb.speed || '')}" placeholder="40 ft."></label>
+    </div>
+    <div class="pet-editor-row">
+      <label class="pet-fld"><span>Size</span><input class="pt-size" value="${esc(sb.size || '')}" placeholder="Medium"></label>
+      <label class="pet-fld"><span>Type</span><input class="pt-type" value="${esc(sb.type || '')}" placeholder="Beast"></label>
+      <label class="pet-fld pet-fld--sm"><span>CR</span><input class="pt-cr" value="${esc(sb.cr || '')}"></label>
+    </div>
+    <div class="pet-editor-row pet-abilities">
+      ${['str','dex','con','int','wis','cha'].map(a => `<label class="pet-fld pet-fld--xs"><span>${a.toUpperCase()}</span><input type="number" class="pt-${a}" value="${num(sb[a])}"></label>`).join('')}
+    </div>
+    <div class="pet-editor-row">
+      <label class="pet-fld pet-fld--wide"><span>Skills</span><input class="pt-skills" value="${esc(sb.skills || '')}" placeholder="Perception +4"></label>
+      <label class="pet-fld pet-fld--wide"><span>Senses</span><input class="pt-senses" value="${esc(sb.senses || '')}" placeholder="Passive Perception 14"></label>
+    </div>
+    <label class="pet-fld pet-fld--full"><span>Traits</span><textarea class="pt-traits" rows="2" placeholder="***Keen Hearing and Smell.*** …">${esc(sb.traits || '')}</textarea></label>
+    <label class="pet-fld pet-fld--full"><span>Actions</span><textarea class="pt-actions" rows="2" placeholder="***Bite.*** Melee Attack Roll: +5…">${esc(sb.actions || '')}</textarea></label>
+  </div>`;
+}
+
+// Lees de tier-velden terug uit het DOM naar _petTiers (vóór add/remove en submit).
+function _petTiersCollect() {
+  const out = [];
+  document.querySelectorAll('#pet-tiers-list .pet-tier-row').forEach(row => {
+    const g = cls => (row.querySelector('.' + cls)?.value ?? '');
+    const n = cls => { const v = parseInt(g(cls)); return isNaN(v) ? undefined : v; };
+    const sb = {};
+    [['size','pt-size'],['type','pt-type'],['ac','pt-ac'],['hp','pt-hp'],['speed','pt-speed'],['skills','pt-skills'],['senses','pt-senses'],['cr','pt-cr'],['traits','pt-traits'],['actions','pt-actions']]
+      .forEach(([k, c]) => { const v = g(c).trim(); if (v) sb[k] = v; });
+    ['str','dex','con','int','wis','cha'].forEach(a => { const v = n('pt-' + a); if (v !== undefined) sb[a] = v; });
+    if (!sb.alignment) sb.alignment = 'Unaligned';
+    out.push({ minLevel: n('pt-minlevel'), label: g('pt-label').trim(), maxHp: n('pt-maxhp'), statblock: sb });
+  });
+  _petTiers = out;
+  return out;
+}
+
+window._renderPetTiers = () => {
+  const list = document.getElementById('pet-tiers-list');
+  if (!list) return;
+  list.innerHTML = _petTiers.length
+    ? _petTiers.map((t, i) => _petTierRowHtml(t, i)).join('')
+    : `<p class="pet-tier-empty">Nog geen tiers — voeg er minstens één toe (Tier 1 = laagste level).</p>`;
+};
+window._petTierAdd = () => { _petTiersCollect(); _petTiers.push({ minLevel: _petTiers.length ? undefined : 1, label: '', maxHp: undefined, statblock: {} }); window._renderPetTiers(); };
+window._petTierRemove = (idx) => { _petTiersCollect(); _petTiers.splice(idx, 1); window._renderPetTiers(); };
+
 // Scroll-spell-picker: vult bij keuze de scroll-statvelden + omschrijving (+ naam indien leeg).
 window._scrollPickSpell = (naam) => {
   const sp = (_scrollSpellList || []).find(s => (s.name || '').toLowerCase() === String(naam || '').toLowerCase());
@@ -2662,6 +2762,7 @@ window._openEditor = async (tab, editId) => {
   editorTags = {};
   pendingFile = null;
   pendingAudioFile = null;
+  _petTiers = Array.isArray(e?.statblockTiers) ? JSON.parse(JSON.stringify(e.statblockTiers)) : [];
   _editorOldAudioId = e?.data?.audioId || null;
   for (const lt of LINK_TYPES) {
     editorTags[lt] = e?.links?.[lt]?.slice() || [];
@@ -2775,6 +2876,35 @@ window._openEditor = async (tab, editId) => {
           <option value="">Alle groepen</option>
           ${_editorGroups.map(g => `<option value="${esc(g.id)}"${currentGroep === g.id ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}
         </select>
+      </div>
+    `;
+  }
+
+  // ── Huisdier-editor (subtype 'dier'): adoptie-instellingen + tier-editor ──
+  if (tab === 'personages') {
+    const isDier   = e?.subtype === 'dier';
+    const _adopt   = e?.data?.adopteerbaar === true || e?.data?.adopteerbaar === 'true';
+    const _prijsFl = e?.data?.adoptiePrijs?.fl ?? e?.data?.adoptiePrijsFl ?? '';
+    body += `
+      <div id="pet-editor-section"${isDier ? '' : ' style="display:none"'} class="pet-editor">
+        <div class="pet-editor-head">${icon('paw-print')} Huisdier — adoptie &amp; tiers</div>
+        <div class="flex items-center gap-2">
+          <input type="hidden" name="data_adopteerbaar" id="pet-adopt-hidden" value="${_adopt ? 'true' : ''}">
+          <input type="checkbox" id="pet-adopt-cb" class="rounded" ${_adopt ? 'checked' : ''}
+            onchange="document.getElementById('pet-adopt-hidden').value=this.checked?'true':''">
+          <label for="pet-adopt-cb" class="text-xs font-cinzel text-ink-dim font-bold tracking-wide cursor-pointer">Adopteerbaar via De Magizoöloog</label>
+        </div>
+        <div class="pet-editor-row">
+          <label class="pet-fld pet-fld--sm"><span>Prijs (florinde)</span>
+            <input type="number" min="0" name="data_adoptiePrijsFl" value="${esc(_prijsFl)}"></label>
+          <label class="pet-fld"><span>Soort-label</span>
+            <input name="data_soortLabel" value="${esc(e?.data?.soortLabel || '')}" placeholder="Hond"></label>
+          <label class="pet-fld"><span>Naam-suggestie</span>
+            <input name="data_naamSuggestie" value="${esc(e?.data?.naamSuggestie || '')}" placeholder="Jip"></label>
+        </div>
+        <div class="pet-editor-subhead">Tiers — schalen met het level van het baasje</div>
+        <div id="pet-tiers-list"></div>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._petTierAdd()">${icon('plus')} Tier toevoegen</button>
       </div>
     `;
   }
@@ -3240,6 +3370,9 @@ window._openEditor = async (tab, editId) => {
 
   openModal(editId ? 'Bewerken' : 'Nieuw', TYPE_META[tab].label, body);
 
+  // Huisdier-tier-editor vullen (no-op als de sectie er niet is)
+  window._renderPetTiers();
+
   // ── CS tab switcher ──
   window._csTab = (name) => {
     ['gevecht','acties','spreuken'].forEach(t => {
@@ -3399,6 +3532,8 @@ window._openEditor = async (tab, editId) => {
       if (groepSec) groepSec.style.display = val === 'speler' ? '' : 'none';
       const antagonistSec = document.getElementById('geheime-antagonist-section');
       if (antagonistSec) antagonistSec.style.display = val === 'NPC' ? '' : 'none';
+      const petSec = document.getElementById('pet-editor-section');
+      if (petSec) petSec.style.display = val === 'dier' ? '' : 'none';
     };
 
     // LocType-wissel (locaties)
@@ -3513,6 +3648,10 @@ window._openEditor = async (tab, editId) => {
       links: { ...editorTags },
       stats: tab === 'personages' ? stats : null,
     };
+    // Huisdier-tiers meesturen (alleen relevant bij subtype 'dier')
+    if (tab === 'personages' && payload.subtype === 'dier') {
+      payload.statblockTiers = _petTiersCollect().filter(t => t.label || t.minLevel != null || Object.keys(t.statblock || {}).some(k => k !== 'alignment'));
+    }
     // Duplicaatdetectie voor voorwerpen (unieke naam vereist)
     if (tab === 'voorwerpen') {
       try {

@@ -285,7 +285,7 @@ export function initSocket() {
   });
 
   socket.on('meta:updated', () => {
-    import('./api.js?v=238').then(({ api }) => api.meta().then(m => {
+    import('./api.js?v=242').then(({ api }) => api.meta().then(m => {
       const prev = window.app?.state?.meta;
       const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;
@@ -558,6 +558,29 @@ export function initSocket() {
     }
     if (window.app?.state?.activeSection === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter');
+    }
+  });
+
+  // ── Lootverdeler ──
+  socket.on('loot:aangeboden', () => {
+    if (window.app?.isDM?.()) { window.dmPanel?.refreshLoot?.(); return; }
+    window._renderPlayerLoot?.();
+    _showToast(`${window.icon?.('coins') || ''} Er is loot te verdelen — open je Boedel.`);
+  });
+  socket.on('loot:claim-update', ({ itemId, claimCount } = {}) => {
+    if (window.app?.isDM?.()) { window.dmPanel?.refreshLoot?.(); return; }
+    window._renderPlayerLoot?.();
+  });
+  socket.on('loot:verdeeld', ({ uitslag, geannuleerd } = {}) => {
+    if (window.app?.isDM?.()) { window.dmPanel?.onLootVerdeeld?.(uitslag, geannuleerd); return; }
+    window._renderPlayerLoot?.();
+    if (geannuleerd) return;
+    // Toon wat ík ontving (items naar mij + mijn goudaandeel)
+    const myId = window.app?.state?.characterId;
+    (uitslag?.items || []).filter(i => i.winnaar === myId).forEach(i => _showToast(`${window.icon?.('sparkles') || ''} Je ontvangt: <strong>${i.naam}</strong>`));
+    if (uitslag?.goud && !uitslag.goud.gedeeld && uitslag.goud[myId]) {
+      const g = uitslag.goud[myId];
+      _showToast(`${window.icon?.('coins') || ''} ${g.fl||0} fl ${g.kn||0} kn bijgeschreven`);
     }
   });
 
