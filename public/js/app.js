@@ -6,6 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=26';
 import { renderRelatiemap } from './render-relatiemap.js?v=16';
 import { renderProgressie } from './render-progressie.js?v=38';
 import { renderBestiarium } from './render-bestiarium.js?v=15';
+import { renderSpreuken } from './render-spreuken.js?v=1';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=42";
 import { initDmPanel } from "./dm-panel.js?v=104";
@@ -288,6 +289,7 @@ function switchSection(section) {
     voorwerpen:    'rgba(154,106,42,0.55)',
     documenten:    'rgba(90,58,122,0.55)',
     bestiarium:    'rgba(120,42,42,0.55)',
+    spreuken:      'rgba(90,58,140,0.55)',
     kaart:         'rgba(42,90,70,0.55)',
     relatiemap:    'rgba(80,42,122,0.55)',
     logboek:       'rgba(184,134,11,0.55)',
@@ -448,7 +450,7 @@ const LOGBOEK_LABELS = {
 };
 
 const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
-const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'relatiemap'];
+const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'spreuken', 'relatiemap'];
 const ARCHIEF_LABELS = {
   personages:   `${icon('user')} Personages`,
   locaties:     `${icon('castle', {cls:'icon-gi'})} Locaties`,
@@ -456,6 +458,7 @@ const ARCHIEF_LABELS = {
   voorwerpen:   `${icon('package')} Voorwerpen`,
   documenten:   `${icon('scroll-text')} Documenten`,
   bestiarium:   `${icon('skull')} Bestiarium`,
+  spreuken:     `${icon('sparkles')} Spreuken`,
   kaart:        `${icon('map')} Kaarten`,
   relatiemap:   `${icon('users')} Relatiemap`,
 };
@@ -2109,6 +2112,7 @@ async function refreshSection(section) {
   else if (section === 'voorwerpen') await renderVoorwerpen();
   else if (section === 'documenten') await renderDocumenten();
   else if (section === 'bestiarium') await renderBestiarium();
+  else if (section === 'spreuken') await renderSpreuken();
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await _renderKaartSection();
   else if (section === 'relatiemap') await renderRelatiemap();
