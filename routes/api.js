@@ -186,7 +186,8 @@ function _koppelGoddelijkEntity(dmState, characterId, godNaam, goddelijkType, pl
     e.data?.itemType === 'Blessing' &&
     (e.data?.godNaam || '').trim().toLowerCase() === (godNaam || '').trim().toLowerCase() &&
     (e.data?.goddelijkType || '') === goddelijkType &&
-    (goddelijkType !== 'zegen' || (e.data?.effect || '').startsWith(effectText.split(':')[0]))
+    // Zegen-mechaniek staat nu in de beschrijving; match exact (oud: effect-prefix). Fallback op effect voor de overgang.
+    (goddelijkType !== 'zegen' || (e.data?.desc || '') === effectText || (e.data?.effect || '').startsWith(effectText.split(':')[0]))
   );
   if (!match) return;
   playerItem.entityId   = match.id;
@@ -6521,8 +6522,8 @@ function _tempelGoden(config) {
       eedTitel: eedCard?.data?.effect   || cfg.eedTitel || '',
       eedTekst: eedCard?.data?.eedTekst || cfg.eedTekst || '',
       vloek:    vloekCard?.data?.effect || cfg.vloek    || '',
-      // Eenmalige zegens = de effecten van de zegen-kaarten (in archief-volgorde).
-      eenmaligeZegens: zegenCards.map(z => z.data.effect).filter(Boolean),
+      // Eenmalige zegens = de mechaniek van de zegen-kaarten (nu in de beschrijving; oud: effect), in archief-volgorde.
+      eenmaligeZegens: zegenCards.map(z => z.data.desc || z.data.effect).filter(Boolean),
       eedEntityId:   eedCard?.id   || null,
       vloekEntityId: vloekCard?.id || null,
       // Visuele koppeling — overgenomen uit DM-config

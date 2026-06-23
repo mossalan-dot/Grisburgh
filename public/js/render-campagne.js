@@ -167,7 +167,7 @@ const SCHEMA = {
   },
   voorwerpen: {
     fields: [
-      { key: 'itemType', label: 'Type', type: 'select', options: ['Weapon','Magic Item','Potion','Armor','Shield','Scroll','Ring','Amulet','Consumable','Wondrous item','Musical instrument','Feature','Blessing','Other'] },
+      { key: 'itemType', label: 'Type', type: 'select', options: ['Weapon','Magic Item','Potion','Armor','Shield','Scroll','Ring','Amulet','Consumable','Wondrous item','Musical instrument','Feature','Blessing','Boon','Other'] },
       { key: 'rariteit', label: 'Rarity', type: 'select', options: ['Common','Uncommon','Rare','Very Rare','Legendary'] },
       { key: 'prijs', label: 'Prijs', type: 'text' },
       { key: 'nietVerkoopbaar', label: 'Niet verkoopbaar (winkels kopen dit niet in)', type: 'checkbox' },
@@ -193,7 +193,7 @@ const SCHEMA = {
         { value: 'eed',   label: 'Eed' },
         { value: 'vloek', label: 'Vloek' },
       ]},
-      { key: 'effect', label: 'Effect (mechanisch)', type: 'textarea', showFor: ['Blessing'] },
+      { key: 'effect', label: 'Effect (eedtitel of vloek-mechaniek — niet voor zegen)', type: 'textarea', showFor: ['Blessing'] },
       { key: 'permanenteZegen', label: 'Permanente zegen (alleen op de eed-kaart)', type: 'text', showFor: ['Blessing'] },
       { key: 'eedTekst', label: 'Eedtekst (volledige belofte, op de eed-kaart)', type: 'textarea', showFor: ['Blessing'] },
       { key: 'damage', label: 'Schade / Genezing (bijv. 1d8+1 Slashing)', type: 'text', showFor: ['Weapon', 'Wapen'] },
@@ -2592,6 +2592,10 @@ window._onItemTypeChange = (val) => {
     const types = el.dataset.showFor.split(',');
     el.style.display = types.includes(val) ? '' : 'none';
   });
+  document.querySelectorAll('[data-hide-for]').forEach(el => {
+    const types = el.dataset.hideFor.split(',');
+    el.style.display = types.includes(val) ? 'none' : '';
+  });
 };
 
 window._onRevealToggle = (groupId, checked) => {
@@ -2924,6 +2928,11 @@ window._openEditor = async (tab, editId) => {
       const _vis = field.showFor.includes(_curItemType);
       body += `<div data-show-for="${field.showFor.join(',')}" style="${_vis ? '' : 'display:none'}">`;
     }
+    // hideFor: wrap in a togglable div, initially hidden if itemType matches
+    if (field.hideFor) {
+      const _hid = field.hideFor.includes(_curItemType);
+      body += `<div data-hide-for="${field.hideFor.join(',')}" style="${_hid ? 'display:none' : ''}">`;
+    }
     if (field.type === 'reveal-toggle') {
       const hasData = schema.fields
         .filter(f => f.inReveal === field.key)
@@ -3022,6 +3031,7 @@ window._openEditor = async (tab, editId) => {
       `;
     }
     if (field.showFor) body += `</div>`; // close showFor wrapper
+    if (field.hideFor) body += `</div>`; // close hideFor wrapper
   }
   if (_revealGroupOpen) { body += `</div>`; _revealGroupOpen = null; }
 
