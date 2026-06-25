@@ -468,18 +468,14 @@ Als origin/main afwijkt (bijv. door feature-branches die daar direct gemerged zi
 gebruik `git push --force-with-lease origin main`. De Facties/feature-commits
 blijven beschikbaar via hun eigen branch; ze hoeven niet in main te zitten.
 
-> **⚠️ Branch-wildgroei — werk-trunk = `claude/mediabibliotheek-herstel`.** `main`,
-> `claude/facties-fix` en `claude/mediabibliotheek-herstel` zijn vér uiteengelopen
-> (main mist ~296 productie-commits; geen ancestor-relatie). **Productie draait via
-> `scp` uit de werkmap, NIET uit `main`** — `main` is een aparte, achtergebleven lijn
-> (PWA-docs, oudere Facties/Glossary). De **meest complete branch die productie matcht**
-> is `claude/mediabibliotheek-herstel` (bevat de gecommitte live features loot/pets/
-> wapen-props + de herstelde mediabibliotheek). **Tak nieuwe features hiervandaan af.**
-> Zo niet, dan kan een deploy vanuit een oude branch live features overschrijven — zo
-> ging de mediabibliotheek 22 jun stil verloren (zie [[mediabibliotheek-hersteld-juni-2026]]).
-> **Mergen naar `main` NIET reflexmatig doen:** 246-vs-296-commit-divergentie, conflictrijk,
-> nul functioneel voordeel (prod draait al de juiste code). Pas opschonen tot één canonieke
-> trunk als er bewust tijd voor is.
+> **Werk-trunk = `main`** (sinds 23 jun 2026). `main` wijst nu naar de live
+> productiecode (voorheen branch `claude/mediabibliotheek-herstel`, nu opgeruimd).
+> **Tak nieuwe features af van `main`** en deploy via `scp` uit de werkmap.
+> De oude, achtergebleven main-lijn (PWA-docs, oudere Facties/Glossary — nooit op
+> productie) is gearchiveerd als `main-oud-github` + `main-oud-lokaal` op origin;
+> die hoeven niet teruggemerged. Historische context over hoe de mediabibliotheek
+> 22 jun stil verloren ging bij een deploy vanuit een oude branch: zie
+> [[mediabibliotheek-hersteld-juni-2026]].
 
 ---
 
