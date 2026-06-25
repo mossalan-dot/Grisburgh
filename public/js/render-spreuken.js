@@ -18,18 +18,18 @@ const icon = (...a) => window.icon(...a);
 const isDM = () => !!window.app?.isDM?.();
 const annot = html => (window.glossary?.annotate?.(html) ?? html);
 
-// Schoolkleuren — gelijk aan _SB_SCHOOLS in het spreukenboek (app.js).
+// Schoolkleuren + -icoon — gelijk aan _SB_SCHOOLS in het spreukenboek (app.js).
 const _SCHOOLS = {
-  abjuration:    { c1: '#0c2248', c2: '#1e4a8a' },
-  conjuration:   { c1: '#0a3020', c2: '#1a6a50' },
-  divination:    { c1: '#200c4e', c2: '#5a2e8a' },
-  enchantment:   { c1: '#4a082e', c2: '#962058' },
-  evocation:     { c1: '#4a1000', c2: '#a03810' },
-  illusion:      { c1: '#150848', c2: '#441892' },
-  necromancy:    { c1: '#040c06', c2: '#142e14' },
-  transmutation: { c1: '#301800', c2: '#7a4a08' },
+  abjuration:    { c1: '#0c2248', c2: '#1e4a8a', icon: 'shield'     },
+  conjuration:   { c1: '#0a3020', c2: '#1a6a50', icon: 'sparkles'   },
+  divination:    { c1: '#200c4e', c2: '#5a2e8a', icon: 'eye'        },
+  enchantment:   { c1: '#4a082e', c2: '#962058', icon: 'heart'      },
+  evocation:     { c1: '#4a1000', c2: '#a03810', icon: 'zap'        },
+  illusion:      { c1: '#150848', c2: '#441892', icon: 'moon'       },
+  necromancy:    { c1: '#040c06', c2: '#142e14', icon: 'skull'      },
+  transmutation: { c1: '#301800', c2: '#7a4a08', icon: 'refresh-cw' },
 };
-const _SCHOOL_DEFAULT = { c1: '#3a2a55', c2: '#5a3a8c' };
+const _SCHOOL_DEFAULT = { c1: '#3a2a55', c2: '#5a3a8c', icon: 'sparkles' };
 function _schoolCol(school) { return _SCHOOLS[(school || '').toLowerCase()] || _SCHOOL_DEFAULT; }
 
 // Klassekleuren voor de pills.
@@ -126,7 +126,7 @@ function _card(s) {
       <div class="card-accent bar-spreuken"></div>
       <span class="spreuk-card-niv">${_levelShort(s.level)}</span>
       <div class="card-img-wrap spreuk-card-img-wrap">
-        <div class="spreuk-card-silhouet">${icon('sparkles')}</div>
+        <div class="spreuk-card-silhouet">${icon(col.icon)}</div>
         <img class="spreuk-card-img" src="${_imgUrl(s)}" alt="" loading="lazy"
           style="${focus ? `object-position:${esc(focus)}` : ''}"
           onload="this.classList.add('is-on')" onerror="this.remove()">
