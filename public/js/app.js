@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=26';
 import { renderRelatiemap } from './render-relatiemap.js?v=16';
 import { renderProgressie } from './render-progressie.js?v=38';
 import { renderBestiarium } from './render-bestiarium.js?v=15';
-import { renderSpreuken } from './render-spreuken.js?v=1';
+import { renderSpreuken } from './render-spreuken.js?v=2';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=42";
 import { initDmPanel } from "./dm-panel.js?v=104";
@@ -2707,7 +2707,7 @@ const _SB_GLOSSARY = [
   { t: /\bMaterial\b/gi,        tip: 'Material (M): the spell requires a physical component. A spellcasting focus can replace components without a listed cost.' },
   // Duration / concentration
   { t: /\bConcentration\b/gi,   tip: 'Concentration: you maintain the spell\'s effect. Taking damage requires a Constitution saving throw (DC 10 or half the damage taken) or the spell ends.' },
-  { t: /\bInstantaneous\b/gi,   tip: 'Instantaneous: the spell\'s effects happen at the moment of casting and cannot be dispelled.' },
+  { t: /(?<![\w-])Instantaneous\b/gi,   tip: 'Instantaneous: the spell\'s effects happen at the moment of casting and cannot be dispelled.' },
   // Spell types
   { t: /\bCantrip\b/gi,         tip: 'Cantrip: a 0-level spell that can be cast at will without expending a Spell Slot. Damage scales with character level.' },
   { t: /\bRitual\b/gi,          tip: 'Ritual: can be cast without expending a Spell Slot if you add 10 minutes to the casting time. You must have it prepared or in your spellbook.' },
@@ -3724,7 +3724,8 @@ const _addSp = { klasseOnly: true, levels: new Set(), types: new Set(), ritueel:
 window._sbOpenAddSpells = async function() {
   // Spreukenlijst laden indien nodig
   if (!_playerSpellList) {
-    try { _playerSpellList = (await fetch('/data/spells-2024.json').then(r => r.json())).results || []; }
+    // Alleen echte spreuken: niet-spell-entries (magische voorwerpen) hebben een lege school.
+    try { _playerSpellList = ((await fetch('/data/spells-2024.json').then(r => r.json())).results || []).filter(s => s.school?.name); }
     catch { _playerSpellList = []; }
   }
   _addSp.selected = new Set();
@@ -4396,6 +4397,9 @@ function _sbRender() {
   if (imgEl) {
     const imgSrc = `/api/files/spell-img-${spell.index}`;
     imgEl.src = imgSrc;
+    // Focuspunt (object-position) overnemen uit meta — gedeeld met het Spreuken-tabblad.
+    const _spFocus = state.meta?.spellImageFocus?.[spell.index];
+    imgEl.style.objectPosition = _spFocus || '';
     imgEl.style.display = 'none'; // onerror keeps it hidden if missing
     imgEl.onerror = () => { imgEl.style.display = 'none'; iconEl_?.style && (iconEl_.style.opacity = ''); };
     imgEl.onload  = () => { imgEl.style.display = 'block'; };

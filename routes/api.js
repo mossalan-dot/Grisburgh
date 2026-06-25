@@ -4156,7 +4156,10 @@ router.post('/files/:id/copy-from/:src', requireDM, async (req, res) => {
   let buffer;
   try { buffer = fs.readFileSync(src.path); } catch { return res.status(500).json({ error: 'Lezen mislukt' }); }
   storage.saveFile(req.params.id, buffer, src.mimetype);
-  await _registerMedia(req.params.id, { mime: src.mimetype, grootte: buffer.length, buffer });
+  // spell-img-<index> is een afgeleide weergavekopie, geen bibliotheek-asset:
+  // niet registreren (anders staat 'ie dubbel naast het bronbestand).
+  if (/^spell-img-/.test(req.params.id)) _unregisterMedia(req.params.id);
+  else await _registerMedia(req.params.id, { mime: src.mimetype, grootte: buffer.length, buffer });
   res.json({ ok: true });
 });
 
@@ -4223,6 +4226,7 @@ async function _backfillMedia() {
   for (const fname of dir) {
     const id = fname.replace(/\.[^.]+$/, '');
     if (media.files[id]) continue;
+    if (/^spell-img-/.test(id)) continue;   // afgeleide spreukweergave-kopieën horen niet in de bibliotheek
     const file = storage.getFile(id);
     if (!file) continue;
     let grootte = null, geupload = new Date().toISOString();
@@ -4461,6 +4465,18 @@ router.delete('/help-content/:key', requireDM, (req, res) => {
 
 router.get('/meta', (req, res) => {
   res.json(storage.readJSON('meta.json'));
+});
+
+// Focuspunt (object-position) van een spreukafbeelding, per spell-index.
+router.put('/meta/spell-image-focus/:index', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.spellImageFocus) meta.spellImageFocus = {};
+  const focus = String(req.body.focus || '').trim();
+  if (focus) meta.spellImageFocus[req.params.index] = focus;
+  else delete meta.spellImageFocus[req.params.index];
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  res.json({ ok: true, focus });
 });
 
 router.put('/meta/app', requireDM, (req, res) => {
