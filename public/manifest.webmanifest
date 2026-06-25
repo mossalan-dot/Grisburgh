@@ -1,0 +1,15 @@
+{
+  "name": "Grisburgh",
+  "short_name": "Grisburgh",
+  "description": "Grisburgh — campagnebeheer",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5edd8",
+  "theme_color": "#1c2a6b",
+  "icons": [
+    { "src": "/img/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/img/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
