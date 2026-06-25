@@ -7,6 +7,19 @@ Socket.io voor realtime updates. Geen framework, geen bundler.
 
 ---
 
+## Werkwijze: leg het uit ("teach as you go")
+
+De gebruiker wil al doende leren — niet alleen een werkend resultaat. **Leg per
+onderdeel dat je bouwt kort uit** (2–4 zinnen, luchtig, geen college): welke
+techniek of term je gebruikt en waaróm. Voorbeelden: "`object-position` om het
+focuspunt van een afbeelding te sturen", "negatieve lookbehind in de regex zodat
+'non-instantaneous' niet matcht", "event-delegation: één handler op `document`
+i.p.v. één per element", "ES-module met `?v=`-cachebusting". Doel: de gebruiker
+snapt de codebase gaandeweg steeds beter. Hou het bij de onderdelen die je
+daadwerkelijk aanraakt; overdrijf niet.
+
+---
+
 ## UI & campagne-afspraken
 
 - **Taal: altijd Nederlands.** Labels, knopteksten, toastberichten, foutmeldingen — alles NL.
