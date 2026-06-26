@@ -3001,7 +3001,7 @@ body::before {
 }
 .app-title {
   font-family: 'Cinzel', serif;
-  font-size: 1.15rem;
+  font-size: 1.0rem;
   font-weight: 700;
   color: #4a2e08;
   letter-spacing: 0.04em;
@@ -3011,14 +3011,7 @@ body::before {
   text-overflow: ellipsis;
 }
 .app-subtitle {
-  font-family: 'IM Fell English', serif;
-  font-style: italic;
-  font-size: 0.7rem;
-  color: #8a7050;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: none; /* subtitel weg uit de header — logo + titel staan nu gecentreerd */
 }
 .app-header-edit-btn {
   font-size: 14px;
