@@ -20322,3 +20322,20 @@ body.kaart-fs-active { overflow: hidden; }
   border: 1px solid color-mix(in srgb, var(--class-c, #5a3a8c) 40%, transparent);
   border-radius: 12px; padding: 3px 10px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TELEFOON (≤540px): kop-balk en personage-header stapelen i.p.v. naast elkaar
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 540px) {
+  /* Archief/Spreuken banner: zoekvak onder de titel (i.p.v. ernaast, wat de titel platdrukte) */
+  .section-banner-head { flex-wrap: wrap; }
+  .section-banner-search { width: 100%; margin-left: 0; margin-top: 6px; flex-wrap: wrap; }
+  .section-banner-search .sbs-input-wrap { flex: 1; min-width: 0; }
+  .section-banner-search .sbs-input,
+  .section-banner-search .sbs-input:focus { width: 100%; }
+
+  /* Speler-personageblad: avatar boven, formulier op volle breedte → lange waarden
+     (bv. "College of Lore") passen zonder afkappen */
+  .player-dash-hero { flex-direction: column; }
+  .player-dash-hero-info { width: 100%; }
+}
