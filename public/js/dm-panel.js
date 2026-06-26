@@ -5719,7 +5719,7 @@ async function _renderGeluiden() {
       <div class="dm-sound-player-dropdown" data-pid="__std__">
         <button class="dm-sound-player-summary" onclick="window._sndTogglePlayer('__std__')">
           <span class="dm-sound-arrow">${stdOpen ? '▼' : '▶'}</span>
-          <span class="dm-sound-player-name">🔊 Standaardgeluiden</span>
+          <span class="dm-sound-player-name">${icon('volume-2')} Standaardgeluiden</span>
         </button>
         <div class="dm-sound-player-body" ${stdOpen ? '' : 'hidden'}>
           <p class="dm-hint" style="margin:0 0 8px">Automatisch afgespeeld bij HP-wijzigingen, beurtwisseling en gevecht-einde.</p>
