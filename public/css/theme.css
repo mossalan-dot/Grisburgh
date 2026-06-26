@@ -10420,9 +10420,9 @@ body.herberg-actief #app,
 body.herberg-actief main { background: transparent !important; }
 /* #app boven de overlay plaatsen */
 body.herberg-actief #app { position: relative; z-index: 1; }
-/* Header en navigatiebalk behouden hun solide achtergrond */
-body.herberg-actief header { background: #e6d5ad !important; }
-body.herberg-actief #section-tabs { background: #efe3c5 !important; }
+/* Header + nav houden hun normale (opake) gradient — geen kleur-override, anders
+   ontstond een twee-tonige balk (vlak #e6d5ad met lichtere nav-strip) die afweek
+   van de rest van de app. De header is al volledig opaak en ligt boven de overlay. */
 
 #section-herberg {
   background: transparent;
