@@ -355,6 +355,13 @@ export function initDmPanel() {
     },
     regieBalkToggleMinimize() { _rbMinimized = !_rbMinimized; _renderRegieBalk(); },
     regieBalkBrief() { _openRegieBriefPicker(); },
+    // Zet alle tablets/displays terug naar het sfeerscherm (leeg het gepresenteerde beeld).
+    async tabletNaarSfeer(btn) {
+      try {
+        await api.post('/display/idle', {});
+        if (btn) { btn.classList.add('is-actief'); setTimeout(() => btn.classList.remove('is-actief'), 900); }
+      } catch { _showToast('Kon de tablet niet terugzetten naar het sfeerscherm'); }
+    },
     // #2: ververs de ambiance-snelknop in de regie-balk (bij socket-wijziging)
     syncAmbiance() { _refreshAmbCache().then(() => _renderRegieBalk()); },
 
@@ -1776,6 +1783,7 @@ function _renderRegieBalk() {
           </div>
           <span class="dm-rb-sep"></span>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')}</button>
+          <button class="dm-regie-balk-btn" onclick="window.dmPanel.tabletNaarSfeer(this)" title="Tablet → sfeerscherm (leeg het gepresenteerde beeld)">${icon('monitor')}</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkToggleMinimize()" title="Minimaliseren">−</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkClose()" title="Sluiten">${icon('x')}</button>
         </div>

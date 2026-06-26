@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=334">
+  <link rel="stylesheet" href="/css/theme.css?v=335">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -464,7 +464,10 @@
   <div id="display-canvas" class="display-canvas hidden">
     <button class="display-exit-btn" onclick="window._displayExit()" title="Verlaat iPad-modus">✕</button>
     <div id="display-idle" class="display-screen display-screen--idle">
+      <div class="display-idle-glow" aria-hidden="true"></div>
+      <div id="display-idle-embers" class="display-idle-embers" aria-hidden="true"></div>
       <div class="display-idle-inner">
+        <div class="display-idle-ornament" aria-hidden="true">&#10022;</div>
         <div id="display-campaign-title" class="display-campaign-title"></div>
         <div class="display-campaign-sub">Grisburgh</div>
       </div>
@@ -577,6 +580,6 @@
   </div>
 
   <script type="module" src="/js/sound-manager.js?v=5"></script>
-  <script type="module" src="/js/app.js?v=474"></script>
+  <script type="module" src="/js/app.js?v=475"></script>
 </body>
 </html>

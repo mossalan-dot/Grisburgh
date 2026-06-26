@@ -15361,6 +15361,60 @@ body.display-mode .combat-overlay { z-index: 60; }
   text-transform: uppercase;
 }
 
+/* ── Sfeervol idle-scherm: ademende gloed + drijvende sintels ── */
+.display-screen--idle { overflow: hidden; }
+.display-idle-inner { position: relative; z-index: 2; }
+.display-campaign-title { text-shadow: 0 0 28px rgba(196,150,70,0.25); }
+.display-idle-ornament {
+  font-size: clamp(1.1rem, 3vw, 1.9rem);
+  color: rgba(196,168,122,0.4);
+  line-height: 1;
+  margin-bottom: 4px;
+  animation: display-idle-breathe-text 7s ease-in-out infinite;
+}
+@keyframes display-idle-breathe-text { 0%,100% { opacity: 0.4; } 50% { opacity: 0.85; } }
+.display-idle-glow {
+  position: absolute;
+  left: 50%; top: 56%;
+  width: 70vw; height: 70vw;
+  max-width: 900px; max-height: 900px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(196,150,70,0.16) 0%, rgba(196,150,70,0.05) 35%, transparent 68%);
+  filter: blur(6px);
+  pointer-events: none;
+  animation: display-idle-breathe 7s ease-in-out infinite;
+}
+@keyframes display-idle-breathe {
+  0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.08); }
+}
+.display-idle-embers {
+  position: absolute; inset: 0;
+  pointer-events: none; overflow: hidden;
+  z-index: 1;
+}
+.display-ember {
+  position: absolute;
+  bottom: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,201,120,0.95) 0%, rgba(214,141,51,0.55) 60%, transparent 100%);
+  box-shadow: 0 0 6px rgba(255,180,90,0.6);
+  opacity: 0;
+  animation-name: display-ember-rise;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+@keyframes display-ember-rise {
+  0%   { transform: translate(0, 0) scale(0.7); opacity: 0; }
+  12%  { opacity: 0.9; }
+  80%  { opacity: 0.55; }
+  100% { transform: translate(var(--ember-drift, 0px), -86vh) scale(1.1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .display-ember, .display-idle-glow, .display-idle-ornament { animation: none; }
+  .display-idle-glow { opacity: 0.7; }
+}
+
 /* Afbeelding-scherm */
 .display-img {
   max-width: 100%;

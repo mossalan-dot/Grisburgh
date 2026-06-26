@@ -2113,6 +2113,12 @@ router.post('/characters/:characterId/long-rest', attachRole, (req, res) => {
   res.json({ ok: true });
 });
 
+// Tablet/display → terug naar het sfeerscherm (DM leegt het gepresenteerde beeld)
+router.post('/display/idle', requireDM, (req, res) => {
+  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('display:idle');
+  res.json({ ok: true });
+});
+
 // Party-brede lange rust (DM-actie)
 router.post('/party/long-rest', requireDM, (req, res) => {
   const locatie = req.body?.locatie === 'herberg' ? 'herberg' : 'veld';

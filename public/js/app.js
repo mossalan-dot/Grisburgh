@@ -8,8 +8,8 @@ import { renderProgressie } from './render-progressie.js?v=38';
 import { renderBestiarium } from './render-bestiarium.js?v=15';
 import { renderSpreuken } from './render-spreuken.js?v=3';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=42";
-import { initDmPanel } from "./dm-panel.js?v=106";
+import { initSocket } from "./socket-client.js?v=43";
+import { initDmPanel } from "./dm-panel.js?v=107";
 import './media-picker.js?v=1';
 
 // ── Icon helper ──
@@ -5220,7 +5220,10 @@ window._rustCinematic = (payload) => {
     if (mine.pactReset) parts.push(`${icon('sparkles')} Pact-slots terug`);
     if (parts.length) samenvatting = `<ul class="rust-samenvatting">${parts.map(p => `<li>${p}</li>`).join('')}</ul>`;
   } else if (isDisplay) {
-    samenvatting = `<p class="rust-party-regel">${isLong ? 'De groep slaat de tent op en rust de nacht door.' : 'De groep komt even op adem.'}</p>`;
+    const langRegel = locatie === 'herberg'
+      ? 'De groep trekt zich terug op de kamers en rust de nacht door.'
+      : 'De groep slaat de tent op en rust de nacht door.';
+    samenvatting = `<p class="rust-party-regel">${isLong ? langRegel : 'De groep komt even op adem.'}</p>`;
   }
 
   let roddelHtml = '';
@@ -8967,16 +8970,44 @@ async function init() {
 
 // ── iPad Display Mode ──
 
+// Na een tijd zonder nieuwe presentatie keert de tablet terug naar het sfeerscherm,
+// zodat er nooit een verouderd beeld eindeloos blijft staan.
+const _DISPLAY_IDLE_MS = 8 * 60 * 1000;
+let _displayIdleTimer = null;
+function _scheduleDisplayIdle() {
+  clearTimeout(_displayIdleTimer);
+  _displayIdleTimer = setTimeout(() => window._displayIdle?.(), _DISPLAY_IDLE_MS);
+}
+
+// Genereer drijvende sintels voor het idle-sfeerscherm (puur visueel, één keer).
+function _buildIdleEmbers() {
+  const host = document.getElementById('display-idle-embers');
+  if (!host || host.childElementCount) return;
+  let html = '';
+  for (let i = 0; i < 18; i++) {
+    const left  = (Math.random() * 100).toFixed(1);
+    const dur   = (9 + Math.random() * 10).toFixed(1);   // 9–19s opstijgen
+    const delay = (-Math.random() * dur).toFixed(1);      // gespreid starten
+    const size  = (2 + Math.random() * 3).toFixed(1);     // 2–5px
+    const drift = (Math.random() * 40 - 20).toFixed(0);   // zijwaartse drift
+    html += `<span class="display-ember" style="left:${left}%;width:${size}px;height:${size}px;animation-duration:${dur}s;animation-delay:${delay}s;--ember-drift:${drift}px"></span>`;
+  }
+  host.innerHTML = html;
+}
+
 function _initDisplayMode() {
   const canvas = document.getElementById('display-canvas');
   if (canvas) canvas.classList.remove('hidden');
   // Kiosk-modus: geen speler ingelogd → verberg speler-specifieke UI
   if (!state.characterId) document.body.classList.add('display-kiosk');
-  // Zet campagnetitel
+  // Zet campagnetitel + ondertitel op het sfeerscherm
   api.getMeta?.().then(meta => {
-    const el = document.getElementById('display-campaign-title');
-    if (el && meta?.title) el.textContent = meta.title;
+    const titleEl = document.getElementById('display-campaign-title');
+    const subEl   = document.querySelector('.display-campaign-sub');
+    if (titleEl) titleEl.textContent = meta?.appTitle || meta?.title || 'Grisburgh';
+    if (subEl && meta?.appSubtitle) subEl.textContent = meta.appSubtitle;
   }).catch(() => {});
+  _buildIdleEmbers();
   // Als gevecht al actief is bij openen: minimized-staat geeft de tablet de gecentreerde weergave
   api.getCombat().then(combat => {
     if (combat?.active) {
@@ -9006,6 +9037,7 @@ window._displayShowImage = function(url, caption) {
   img.onload = () => img.classList.add('display-img--in');
   const cap = document.getElementById('display-img-caption');
   if (cap) cap.textContent = caption || '';
+  _scheduleDisplayIdle();
 };
 
 window._displayShowDungeon = function() {
@@ -9015,12 +9047,15 @@ window._displayShowDungeon = function() {
   screen.style.display = 'flex';
   const content = document.getElementById('display-dungeon-content');
   if (content) renderDungeon(content);
+  _scheduleDisplayIdle();
 };
 
 window._displayIdle = function() {
+  clearTimeout(_displayIdleTimer);
   document.getElementById('display-image-screen').style.display = 'none';
   document.getElementById('display-dungeon-screen').style.display = 'none';
   document.getElementById('display-idle').style.display = 'flex';
+  _buildIdleEmbers();
 };
 
 // ── Herberg ──

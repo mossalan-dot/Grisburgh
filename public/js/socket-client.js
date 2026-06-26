@@ -207,11 +207,16 @@ export function initSocket() {
       } else {
         // Telefoon: alleen toast, geen lightbox
         const label = caption || samenvatting || 'Logboek';
-        _showToast(`🖼️ <strong>${label}</strong> — nieuwe afbeelding onthuld`, () => {
+        _showToast(`${window.icon('image')} <strong>${label}</strong> — nieuwe afbeelding onthuld`, () => {
           window.app.switchSection('logboek');
         });
       }
     }
+  });
+
+  // DM zet de tablet terug naar het sfeerscherm (leegt het gepresenteerde beeld)
+  socket.on('display:idle', () => {
+    if (window._isDisplayMode) window._displayIdle?.();
   });
 
   socket.on('map:updated', () => {
@@ -745,7 +750,7 @@ function _showDramaticReveal(doc) {
     <div class="dramatic-reveal-backdrop" onclick="this.closest('.dramatic-reveal-overlay').remove()"></div>
     <div class="dramatic-reveal-card">
       <button class="dramatic-reveal-close" onclick="document.getElementById('dramatic-reveal-overlay').remove()" title="Sluiten">✕</button>
-      <div class="dramatic-reveal-label">📜 Nieuw document onthuld</div>
+      <div class="dramatic-reveal-label">${window.icon('scroll-text')} Nieuw document onthuld</div>
       <div class="dramatic-reveal-title">${(doc.name || '').replace(/</g,'&lt;')}</div>
       ${doc.type ? `<div class="dramatic-reveal-type">${doc.type.replace(/</g,'&lt;')}</div>` : ''}
       ${doc.imageId ? `<img class="dramatic-reveal-img" src="/api/files/${doc.imageId}" alt="${(doc.name||'').replace(/"/g,'&quot;')}">` : ''}
