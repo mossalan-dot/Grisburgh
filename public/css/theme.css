@@ -2991,7 +2991,13 @@ body::before {
 .app-header-title-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+.app-header-crest {
+  width: clamp(24px, 4vw, 30px);
+  height: clamp(24px, 4vw, 30px);
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .app-title {
   font-family: 'Cinzel', serif;
@@ -6963,6 +6969,13 @@ details.player-dash-collapsible[open] > summary {
 }
 .landing-header {
   text-align: center;
+}
+.landing-crest {
+  display: block;
+  width: clamp(72px, 12vw, 104px);
+  height: auto;
+  margin: 0 auto 14px;
+  filter: drop-shadow(0 4px 16px rgba(196,168,64,0.28));
 }
 .landing-title {
   font-family: 'Cinzel', serif;
