@@ -2433,12 +2433,17 @@ function _spellMd(t, { diceColor } = {}) {
   const diceStyle = diceColor
     ? ` style="color:${diceColor};text-decoration-color:${diceColor}66"`
     : '';
-  let s = esc(String(t ?? ''));
+  let s = esc(String(t ?? ''))
+    // 5etools-tagrestje: '#' direct na nadruk-markers weghalen (bv. **_#Cantrip Upgrade._**)
+    .replace(/([*_]+)#(?=\w)/g, '$1');
   return s
     // ── Auto-highlights (applied to plain text before markdown) ──
     // Dice notation: 2d6, 1d20+5, 4d8, d4 – tinted by damage type, clickable
     .replace(/\b(\d*d\d+(?:\s*[+\-]\s*\d+)?)\b/gi,
       (_, f) => `<span class="sb-hl-dice"${diceStyle} title="Klik om te gooien">${f}</span>`)
+    // Damage-type-woord vóór "damage" krijgt de kleur van zijn type (uniform met de dice)
+    .replace(/\b(Acid|Bludgeoning|Cold|Fire|Force|Lightning|Necrotic|Piercing|Poison|Psychic|Radiant|Slashing|Thunder)(?=\s+damage\b)/gi,
+      (m) => { const c = _sbDiceColor(m); return `<span class="sb-hl-dmg" style="color:${c};text-decoration-color:${c}66">${m}</span>`; })
     // DC values and saving throws / ability checks
     .replace(/\bDC\s+\d+\b/g,
       (m) => `<span class="sb-hl-save">${m}</span>`)
@@ -2814,18 +2819,25 @@ for (const _e of _SB_GLOSSARY) {
 }
 
 // Walk a live DOM node and wrap glossary terms in tooltip spans.
+// `seen` ontdubbelt: elke term krijgt per beschrijving maar één uitleg.
 function _sbApplyGlossary_DOM(rootEl) {
   if (!rootEl) return;
-  _sbGlossWalk(rootEl);
+  _sbGlossWalk(rootEl, new Set());
 }
 
-function _sbGlossWalk(node) {
+// Highlight-spans (dice, damage-type, save, range) zijn al visueel gemarkeerd —
+// daarbinnen geen lexicon-uitleg toevoegen (voorkomt dubbele onderstreping en
+// een verkeerde/overbodige tooltip, bv. "saving throw" in "Wisdom saving throw").
+const _GLOSS_SKIP = ['sb-gloss', 'sb-hl-dice', 'sb-hl-dmg', 'sb-hl-save', 'sb-hl-range'];
+
+function _sbGlossWalk(node, seen) {
   if (node.nodeType === Node.TEXT_NODE) {
     let text = node.textContent;
     // Find the earliest matching term; bij gelijke startpositie wint de langste
     // match (zodat bijv. "Action Surge" niet als "Action" wordt gewrapt).
     let best = null, bestIdx = Infinity, bestLen = 0;
     for (const entry of _SB_GLOSSARY) {
+      if (seen.has(entry)) continue;          // deze term is al uitgelegd
       entry.t.lastIndex = 0;
       const m = entry.t.exec(text);
       if (m && (m.index < bestIdx || (m.index === bestIdx && m[0].length > bestLen))) {
@@ -2834,6 +2846,7 @@ function _sbGlossWalk(node) {
     }
     if (!best) return;
     const { entry, match } = best;
+    seen.add(entry);                          // ontdubbelen: niet nog eens uitleggen
     const before = text.slice(0, match.index);
     const after  = text.slice(match.index + match[0].length);
     const span = document.createElement('span');
@@ -2847,12 +2860,12 @@ function _sbGlossWalk(node) {
     node.parentNode.replaceChild(frag, node);
     // Recurse on the after-text node (new text node is last child of frag in parent)
     const afterNode = span.nextSibling;
-    if (afterNode) _sbGlossWalk(afterNode);
+    if (afterNode) _sbGlossWalk(afterNode, seen);
   } else if (node.nodeType === Node.ELEMENT_NODE) {
-    // Skip elements that are themselves glossary spans, dice links, or headings
-    if (node.classList.contains('sb-gloss') || node.classList.contains('sb-hl-dice')) return;
+    // Skip elements that are themselves glossary spans, dice links, highlights of headings
+    if (_GLOSS_SKIP.some(c => node.classList.contains(c))) return;
     // Iterate over a static copy since we'll be mutating childNodes
-    for (const child of Array.from(node.childNodes)) _sbGlossWalk(child);
+    for (const child of Array.from(node.childNodes)) _sbGlossWalk(child, seen);
   }
 }
 

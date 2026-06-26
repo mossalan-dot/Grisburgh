@@ -16438,6 +16438,12 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   transition: color 0.12s;
 }
 .sb-hl-dice:hover { color: #d81818; text-decoration-color: rgba(216,24,24,0.7); }
+/* Damage-type-woord (Necrotic, Fire…) — zelfde onderstreping als de dice, kleur via inline-stijl */
+.sb-hl-dmg {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
 .sb-hl-range {
   color: #1a5a8a;
   text-decoration: underline;
