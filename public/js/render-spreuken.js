@@ -212,7 +212,13 @@ function _detailHtml(s) {
   const classes = _classNames(s);
   const desc    = _desc(s);
   const higher  = _higher(s);
-  const mdToHtml = window.app?.mdToHtml || (t => esc(t).replace(/\n/g, '<br>'));
+  const diceColor = window.app?.sbDiceColor?.(s.damage);
+  // Rijke spreuk-opmaak hergebruiken uit het spreukenboek: damage-getinte dice,
+  // DC/saves/range-highlights, bullet-lijsten (- item) en tabellen. Valt terug op mdToHtml.
+  // renderSpellDesc annoteert zelf al (glossary), dus geen extra annot() eromheen.
+  const fmt = (t) => window.app?.renderSpellDesc
+    ? window.app.renderSpellDesc(t, { diceColor })
+    : annot((window.app?.mdToHtml || (x => esc(x).replace(/\n/g, '<br>')))(t));
   return `
     <div class="spreuk-detail-card" style="--school-c1:${col.c1};--school-c2:${col.c2}">
       <button class="spreuk-detail-close" onclick="window.spreuken.close()" title="Sluiten">${icon('x')}</button>
@@ -232,8 +238,8 @@ function _detailHtml(s) {
       <div class="spreuk-detail-props">
         ${rows.map(([l, v]) => `<div class="spreuk-detail-prop"><span class="spreuk-detail-prop-lbl">${esc(l)}</span><span>${v}</span></div>`).join('')}
       </div>
-      ${desc   ? `<div class="spreuk-detail-desc">${annot(mdToHtml(desc))}</div>` : ''}
-      ${higher ? `<div class="spreuk-detail-higher"><span class="spreuk-detail-higher-lbl">Op hoger niveau.</span> ${annot(mdToHtml(higher))}</div>` : ''}
+      ${desc   ? `<div class="spreuk-detail-desc">${fmt(desc)}</div>` : ''}
+      ${higher ? `<div class="spreuk-detail-higher"><span class="spreuk-detail-higher-lbl">Op hoger niveau.</span> ${fmt(higher)}</div>` : ''}
       ${classes.length ? `<div class="spreuk-detail-classes">${classes.map(c => {
         const cc = _CLASS_COL[c] || '#5a3a8c';
         return `<span class="spreuk-class-pill" style="--class-c:${cc}">${esc(c)}</span>`;
@@ -248,6 +254,11 @@ function _ensureOverlay() {
     ov.id = 'spreuk-detail-overlay';
     ov.className = 'spreuk-detail-overlay';
     ov.addEventListener('click', e => { if (e.target === ov) window.spreuken.close(); });
+    // Inline dice-notatie (damage-getint) → klik om te gooien, net als in het spreukenboek.
+    ov.addEventListener('click', e => {
+      const dice = e.target.closest('.sb-hl-dice');
+      if (dice) { e.stopPropagation(); window._sbFlashRoll?.(dice.textContent.trim(), ''); }
+    });
     document.body.appendChild(ov);
   }
   return ov;
