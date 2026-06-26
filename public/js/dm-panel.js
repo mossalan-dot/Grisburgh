@@ -322,7 +322,7 @@ export function initDmPanel() {
         el.innerHTML = `<button onclick="window.dmPanel.toggleRevealStrip()" title="Uitklappen"
           style="writing-mode:vertical-rl;transform:rotate(180deg);background:none;border:none;cursor:pointer;
                  color:var(--color-ink-medium);font-size:10px;font-weight:600;letter-spacing:.05em;padding:8px 0;width:100%;text-align:center;">
-          🖼 Afbeeldingen
+          ${icon('image')} Afbeeldingen
         </button>`;
       }
     },
@@ -1352,20 +1352,20 @@ function _renderExportTab() {
       <div class="dm-feature-label">Importeren vanuit Obsidian</div>
 
       <div class="export-option-card">
-        <div class="export-option-icon">🗒️</div>
+        <div class="export-option-icon">${icon('scroll-text')}</div>
         <div class="export-option-body">
           <div class="export-option-title">Sjablonen downloaden</div>
           <div class="export-option-desc">Gebruik deze Obsidian-sjablonen om personages, locaties, organisaties, voorwerpen en documenten voor te bereiden. Vul het YAML-blok bovenaan in en importeer de bestanden hieronder.</div>
           <div class="export-template-links">
             ${['Personage','Locatie','Organisatie','Voorwerp','Document'].map(t =>
-              `<a class="export-template-link" href="/obsidian-templates/${t}.md" download="${t}.md">⬇ ${t}</a>`
+              `<a class="export-template-link" href="/obsidian-templates/${t}.md" download="${t}.md">${icon('download')} ${t}</a>`
             ).join('')}
           </div>
         </div>
       </div>
 
       <div class="export-option-card" id="export-card-import">
-        <div class="export-option-icon">📂</div>
+        <div class="export-option-icon">${icon('folder-open')}</div>
         <div class="export-option-body">
           <div class="export-option-title">Markdown-bestanden importeren</div>
           <div class="export-option-desc">Selecteer één of meerdere ingevulde <code>.md</code>-bestanden. Elk bestand wordt als nieuwe entiteit of document aangemaakt op basis van het <code>type</code>-veld in de frontmatter.</div>
@@ -1373,7 +1373,7 @@ function _renderExportTab() {
             <input type="file" id="import-md-input" accept=".md" multiple style="display:none"
               onchange="window.dmPanel.importObsidian(this.files)">
             <span class="dm-btn dm-btn-primary export-option-btn" onclick="document.getElementById('import-md-input').click()">
-              📂 Bestanden kiezen…
+              ${icon('folder-open')} Bestanden kiezen…
             </span>
           </label>
           <div id="import-md-results" class="import-md-results hidden"></div>
@@ -2544,11 +2544,11 @@ function _renderMonsterEditor(el) {
   el.innerHTML = `
     <div class="dm-feature-section">
       <details class="dm-srd-import-panel" id="dm-srd-panel">
-        <summary class="dm-srd-summary">🔍 SRD importeren</summary>
+        <summary class="dm-srd-summary">${icon('search')} SRD importeren</summary>
         <div class="dm-srd-search-row">
           <input id="dm-srd-q" class="dm-input dm-input-sm" placeholder="Zoek monster…"
             onkeydown="if(event.key==='Enter')window.dmPanel.srdSearch()">
-          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.srdSearch()" title="Zoeken">🔍</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.srdSearch()" title="Zoeken">${icon('search')}</button>
         </div>
         <div id="dm-srd-results" class="dm-srd-results"></div>
       </details>
@@ -4095,7 +4095,7 @@ async function _renderTweespaltDM() {
         <div class="dm-feature-row" style="justify-content:space-between;align-items:flex-start">
           <div>
             <strong>${esc(evt.naam)}</strong>
-            <span style="margin-left:8px;font-size:11px;opacity:.6">${evt.type === 'godenwedden' ? '⚡ Godenwedden' : icon('swords')+' Gevecht'}</span>
+            <span style="margin-left:8px;font-size:11px;opacity:.6">${evt.type === 'godenwedden' ? icon('zap')+' Godenwedden' : icon('swords')+' Gevecht'}</span>
             ${isAfgerond ? '<span style="margin-left:6px;font-size:11px;color:var(--color-gold)">✓ Afgerond</span>' : ''}
           </div>
           <button class="dm-btn dm-btn-sm dm-btn-danger-sm" onclick="window._tsDmVerwijder('${esc(evt.id)}')">${icon('x')}</button>
