@@ -274,6 +274,18 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 
 Sessies worden gedeeld per browsertab (één cookie). DM en speler kunnen **niet** tegelijk in dezelfde browser ingelogd zijn.
 
+> **Landing-knoppen Showcase + Testomgeving verwijderd (27 jun 2026).** De entry-knoppen
+> én hun modals zijn uit `public/index.html` gehaald — alleen **Dungeon Master + Tablet**
+> resten in de `.landing-footer`. Reden: testen gaat nu via local/prod (als DM zie je
+> sowieso alles wat spelers zien), en de showcase/sandbox liet echte speeldata (aktes)
+> doorschemeren. **De JS-handlers blijven bewust staan als dode code** — `testLogin`,
+> `testLoginSubmit`, `closeTestLoginModal`, `sandboxLoginSubmit`, `closeSandboxModal`,
+> `_landingTestLogin`, `_landingSandboxLogin` (in `app.js` + het `window.app`-object) plus
+> de server-side **sandbox-campagne** — onbereikbaar vanuit de UI, maar bewaard voor
+> mogelijke heropleving. `window.app.testLogin()` werkt nog vanaf de console. Wil je het
+> ooit écht weghalen: knoppen+modals zijn al weg, dus dan rest het opruimen van die
+> handlers + de sandbox-routing.
+
 ---
 
 ## Campagnes & scoping
