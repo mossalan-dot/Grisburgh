@@ -329,8 +329,8 @@ export function initSocket() {
   socket.on('groups:updated', ({ groups, activeGroup } = {}) => {
     // Update groepswisselaar UI (DM) en actieve groep state (iedereen)
     window.renderGroupSwitcher?.(groups, activeGroup);
-    // Herlaad party bar zodat juiste spelers getoond worden
-    window.renderParty?.();
+    // (de oude party-bar is vervangen door de header-dropdown; renderGroupSwitcher
+    //  toont nu de spelers per groep — geen aparte party-bar-render meer nodig)
     // Herlaad huidige sectie zodat zichtbaarheidsstatus klopt na groepswisseling
     const activeSection = window.app.state.activeSection;
     _refreshEntitySection(activeSection);

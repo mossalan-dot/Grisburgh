@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=343">
+  <link rel="stylesheet" href="/css/theme.css?v=344">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -166,6 +166,11 @@
             <span class="app-search-label">Zoeken</span>
           </button>
         </div>
+        <!-- Groep-selector (alleen DM): compacte pill + dropdown, vervangt de oude party-bar -->
+        <div class="group-pill-wrap dm-only hidden" id="group-pill-wrap">
+          <button class="group-pill" id="group-pill" onclick="window.app.toggleGroupDropdown()" title="Wissel van groep"></button>
+          <div class="group-dropdown hidden" id="group-dropdown"></div>
+        </div>
         <!-- DM-zegel: alleen zichtbaar als DM ingelogd (voor preview-toggle) -->
         <button class="dm-seal hidden" id="dm-toggle" onclick="window.app.dmToggleClick()" title="Dungeon Master modus">
           <span class="dm-seal-icon"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-crossed-swords"/></svg></span>
@@ -181,11 +186,6 @@
       </div>
     </header>
 
-    <!-- ══ DM-party-bar: groepswisselaar + portraits (alleen DM) ══ -->
-    <div class="dm-party-bar hidden" id="dm-party-bar">
-      <div id="group-switcher" class="dm-party-groups"></div>
-      <div id="party-bar" class="dm-party-portraits"></div>
-    </div>
 
     <!-- Contextueel sectie-accent -->
     <div class="section-accent-bar" id="section-accent-bar"></div>
@@ -542,6 +542,6 @@
   </div>
 
   <script type="module" src="/js/sound-manager.js?v=5"></script>
-  <script type="module" src="/js/app.js?v=477"></script>
+  <script type="module" src="/js/app.js?v=478"></script>
 </body>
 </html>

@@ -8,8 +8,8 @@ import { renderProgressie } from './render-progressie.js?v=38';
 import { renderBestiarium } from './render-bestiarium.js?v=15';
 import { renderSpreuken } from './render-spreuken.js?v=4';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=43";
-import { initDmPanel } from "./dm-panel.js?v=107";
+import { initSocket } from "./socket-client.js?v=44";
+import { initDmPanel } from "./dm-panel.js?v=108";
 import './media-picker.js?v=1';
 
 // ── Icon helper ──
@@ -124,6 +124,7 @@ window.app = {
   renderSpellDesc: _renderSpellDesc,
   sbDiceColor: _sbDiceColor,
   switchGroup,
+  toggleGroupDropdown,
   renameGroup,
   newGroup,
   deleteGroup,
@@ -796,9 +797,9 @@ function applyRole() {
   const spelersTab = document.getElementById('spelers-tab');
   if (spelersTab) spelersTab.classList.toggle('hidden', !isDmActive);
 
-  // DM-party-bar: groepswisselaar + party-bar, alleen zichtbaar voor actieve DM
-  const dmPartyBar = document.getElementById('dm-party-bar');
-  if (dmPartyBar) dmPartyBar.classList.toggle('hidden', !isDmActive);
+  // Groep-pill in de header: groepswisselaar, alleen zichtbaar voor actieve DM
+  const groupPillWrap = document.getElementById('group-pill-wrap');
+  if (groupPillWrap) groupPillWrap.classList.toggle('hidden', !isDmActive);
 
   // Spelerwisselknop rechts in header (zichtbaar voor alle spelers)
   const isPlayer = state.role === 'player';
@@ -2029,35 +2030,103 @@ window._togglePartyPresence = (id) => {
   const presence = _getPartyPresence();
   presence[id] = presence[id] === false ? true : false;
   _setPartyPresence(presence);
-  renderParty();
+  const absent = presence[id] === false;
+  // Stip in de groep-dropdown ter plekke bijwerken (geen re-render → geen flikker)
+  const dot = document.querySelector(`.group-dd-dot[onclick*="${id}"]`);
+  if (dot) {
+    dot.classList.toggle('absent', absent);
+    dot.classList.toggle('present', !absent);
+    dot.closest('.group-dd-player')?.classList.toggle('is-absent', absent);
+    dot.title = absent ? 'Afwezig — klik om aanwezig te maken' : 'Aanwezig — klik om af te melden';
+  }
 };
 
-// ── Groepswisselaar ──
-window.renderGroupSwitcher = function(groups, activeGroupId) {
+// ── Groepswisselaar: compacte header-pill + dropdown ──
+// Automatische kleur per groep, op volgorde uit een vast palet (themakleuren).
+const _GROUP_COLORS = ['#b8860b','#2a6a3a','#8b2a2a','#2a5a8a','#5a3a7a','#9a6a2a','#2a7a6a','#a8327a'];
+function _groupColor(idx) {
+  const n = _GROUP_COLORS.length;
+  return _GROUP_COLORS[(((idx % n) + n) % n)] || _GROUP_COLORS[0];
+}
+window._groupColor = _groupColor;
+
+window.renderGroupSwitcher = async function(groups, activeGroupId) {
   _activeGroupId = activeGroupId;
   window._activeGroupId = activeGroupId; // toegankelijk voor andere modules (render-archief)
-  window._groups = groups; // groepslijst voor naam-opzoeken
-  const container = document.getElementById('group-switcher');
-  if (!container) return;
+  window._groups = groups;               // groepslijst voor naam-opzoeken + DM-paneel
+  const wrap = document.getElementById('group-pill-wrap');
+  const pill = document.getElementById('group-pill');
+  const dd   = document.getElementById('group-dropdown');
+  if (!wrap || !pill || !dd) return;
   // Alleen zichtbaar in DM-modus
   const isDm = state.role === 'dm' && !state.dmPreview;
-  container.classList.toggle('hidden', !isDm);
+  wrap.classList.toggle('hidden', !isDm);
   if (!isDm) return;
-  container.innerHTML = groups.map(g => `
-    <span class="group-tab-wrap${g.active ? ' active' : ''}">
-      <button class="group-tab${g.active ? ' active' : ''}"
-        onclick="window.app.switchGroup('${esc(g.id)}')"
-        title="${g.active ? 'Actieve groep' : 'Wissel naar deze groep'}"
-      >${esc(g.name)}</button>
-      <button class="group-tab-rename" onclick="window.app.renameGroup('${esc(g.id)}','${escJS(g.name)}')" title="Hernoemen">${icon('pencil')}</button>
-      ${groups.length > 1 ? `<button class="group-tab-del" onclick="window.app.deleteGroup('${esc(g.id)}')" title="Groep verwijderen">×</button>` : ''}
-    </span>
-  `).join('') + `
-    <button class="group-tab-add" onclick="window.app.newGroup()" title="Nieuwe groep aanmaken">+</button>
-  `;
+  if (!groups || !groups.length) { pill.innerHTML = ''; dd.innerHTML = ''; return; }
+
+  const idxOf  = gid => groups.findIndex(g => g.id === gid);
+  const active = groups.find(g => g.id === activeGroupId) || groups.find(g => g.active) || groups[0];
+  pill.style.setProperty('--grp-c', _groupColor(idxOf(active.id)));
+  pill.innerHTML = `<span class="group-pill-dot"></span><span class="group-pill-name">${esc(active.name)}</span><span class="group-pill-caret">▾</span>`;
+  pill.title = `Groep: ${active.name} — klik om te wisselen`;
+
+  // Spelers per groep (uit personages, gefilterd op data.groep)
+  const byGroup = {};
+  try {
+    const personages = await api.listEntities('personages');
+    for (const e of personages) {
+      if (e.subtype !== 'speler') continue;
+      (byGroup[e.data?.groep || '__none__'] ||= []).push(e);
+    }
+  } catch { /* dropdown toont dan geen spelers */ }
+
+  const presence  = _getPartyPresence();
+  const playerRow = e => {
+    const absent = presence[e.id] === false;
+    return `<div class="group-dd-player${absent ? ' is-absent' : ''}">
+      <button class="group-dd-dot ${absent ? 'absent' : 'present'}"
+        onclick="event.stopPropagation();window._togglePartyPresence('${esc(e.id)}')"
+        title="${absent ? 'Afwezig — klik om aanwezig te maken' : 'Aanwezig — klik om af te melden'}"></button>
+      <span class="group-dd-player-name"
+        onclick="event.stopPropagation();window._openDetail('personages','${esc(e.id)}')">${esc(e.name)}</span>
+    </div>`;
+  };
+
+  dd.innerHTML = groups.map(g => {
+    const players = byGroup[g.id] || [];
+    return `<div class="group-dd-group${g.id === active.id ? ' is-active' : ''}" style="--grp-c:${_groupColor(idxOf(g.id))}">
+      <button class="group-dd-row" onclick="window.app.switchGroup('${esc(g.id)}')" title="Wissel naar deze groep">
+        <span class="group-dd-rowdot"></span>
+        <span class="group-dd-rowname">${esc(g.name)}</span>
+        ${g.id === active.id ? `<span class="group-dd-check">${icon('check')}</span>` : ''}
+      </button>
+      ${players.length
+        ? `<div class="group-dd-players">${players.map(playerRow).join('')}</div>`
+        : `<div class="group-dd-empty">Geen spelers in deze groep</div>`}
+    </div>`;
+  }).join('');
 };
 
+function toggleGroupDropdown() {
+  const dd   = document.getElementById('group-dropdown');
+  const wrap = document.getElementById('group-pill-wrap');
+  if (!dd) return;
+  const show = dd.classList.contains('hidden');
+  dd.classList.toggle('hidden', !show);
+  wrap?.classList.toggle('open', show);
+}
+// Sluit de dropdown bij een klik buiten de pill
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('group-pill-wrap');
+  if (wrap && !wrap.classList.contains('hidden') && !wrap.contains(e.target)) {
+    document.getElementById('group-dropdown')?.classList.add('hidden');
+    wrap.classList.remove('open');
+  }
+});
+
 async function switchGroup(groupId) {
+  document.getElementById('group-dropdown')?.classList.add('hidden');
+  document.getElementById('group-pill-wrap')?.classList.remove('open');
   try {
     await api.switchGroup(groupId);
     // groups:updated socket-event verwerkt de rest
