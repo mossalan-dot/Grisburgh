@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=341">
+  <link rel="stylesheet" href="/css/theme.css?v=342">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -354,44 +354,6 @@
     </div>
   </div>
 
-  <!-- Test login modal -->
-  <div class="modal-overlay" id="test-login-overlay">
-    <div class="modal max-w-sm animate-modal-in">
-      <div class="modal-head">
-        <div class="font-cinzel text-lg text-gold font-bold"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-flask-conical"/></svg> Testomgeving</div>
-        <button class="modal-close" onclick="window.app.closeTestLoginModal()">&times;</button>
-      </div>
-      <div class="p-5">
-        <p class="text-ink-dim text-sm font-crimson mb-3">Voer het DM-wachtwoord in om de testomgeving te openen.</p>
-        <input type="password" id="test-login-password" placeholder="DM-wachtwoord…"
-          class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
-          onkeydown="if(event.key==='Enter')window.app.testLoginSubmit()">
-        <div id="test-login-error" class="hidden text-seal text-sm mt-2">Verkeerd wachtwoord</div>
-        <button onclick="window.app.testLoginSubmit()"
-          class="w-full mt-3 px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">Inloggen</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sandbox login modal -->
-  <div class="modal-overlay" id="sandbox-login-overlay">
-    <div class="modal max-w-sm animate-modal-in">
-      <div class="modal-head">
-        <div class="font-cinzel text-lg text-gold font-bold"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-flask-conical"/></svg> Showcase</div>
-        <button class="modal-close" onclick="window.app.closeSandboxModal()">&times;</button>
-      </div>
-      <div class="p-5">
-        <p class="text-ink-dim text-sm font-crimson mb-3">Verken alle functies van de app in een lege demo-omgeving. Jouw eigen campagnedata is niet zichtbaar.</p>
-        <input type="password" id="sandbox-password" placeholder="Wachtwoord (indien vereist)…"
-          class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
-          onkeydown="if(event.key==='Enter')window.app.sandboxLoginSubmit()">
-        <div id="sandbox-error" class="hidden text-seal text-sm mt-2">Verkeerd wachtwoord</div>
-        <button onclick="window.app.sandboxLoginSubmit()"
-          class="w-full mt-3 px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">Showcase starten</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Speler karakter-kiezer — vervangen door landingspagina (panel niet meer in gebruik) -->
 
   <!-- Landing page — paginavullend portretkiezer voor niet-ingelogde bezoekers -->
@@ -407,9 +369,7 @@
       </div>
       <div class="landing-footer">
         <button class="landing-footer-btn" onclick="window.app._landingDmLogin()"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-crossed-swords"/></svg> Dungeon Master</button>
-        <button class="landing-footer-btn landing-footer-btn--showcase" onclick="window.app._landingSandboxLogin()" title="Verken de app in een lege demo-omgeving"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-flask-conical"/></svg> Showcase</button>
         <button class="landing-footer-btn landing-footer-btn--ipad" onclick="window.app._landingTabletLogin()" title="Tabletweergave activeren"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-monitor"/></svg> Tablet</button>
-        <button class="landing-footer-btn" onclick="window.app._landingTestLogin()" title="Inloggen als Test McTestface"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=3#icon-flask-conical"/></svg> Testomgeving</button>
       </div>
     </div>
   </div>

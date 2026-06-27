@@ -7204,6 +7204,12 @@ details.player-dash-collapsible[open] > summary {
   background: #1a0f05;
   flex-shrink: 0;
   transition: border-color 0.22s, box-shadow 0.22s;
+  /* Eigen GPU-laag: anders raakt de ronde clip (border-radius+overflow) kwijt tijdens
+     de carrousel-transform en verschijnt de donkere achtergrond als zwart vierkant.
+     translateZ(0) + backface-visibility is de standaard-combo (Safari/iPad het hardnekkigst). */
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 .landing-portrait:hover .landing-portrait-ring {
   border-color: rgba(196,168,122,0.85);
