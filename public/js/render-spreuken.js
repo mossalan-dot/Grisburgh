@@ -42,9 +42,17 @@ const _CLASS_COL = {
 
 let _all       = null;      // null = nog niet geladen
 let _container = null;
-let _filters   = { q: '', level: null, klasse: null };
+let _filters   = { q: '', level: null, klasse: null, mijnKlasse: true };
 let _classes   = [];
 let _myBook    = new Set(); // index-set van de spreuken in het eigen spreukenboek (speler)
+let _myClasses = [];        // genormaliseerde EN-klassenamen van de speler
+let _isCaster  = false;     // heeft de speler een klasse met spreuken?
+
+// Matcht een spreuk op een (genormaliseerde) klassenaam; valt terug op eigen check.
+function _matchClass(s, cEN) {
+  return window.app?.spellMatchesClass?.(s, cEN)
+    ?? _classNames(s).some(n => n.toLowerCase() === String(cEN).toLowerCase());
+}
 
 function _isHp() { return window.app?.state?.meta?.spellSource === 'wands-wizards'; }
 function _focusMap() { return window.app?.state?.meta?.spellImageFocus || {}; }
@@ -97,10 +105,15 @@ function _focus(s)      { return _focusMap()[s.index] || ''; }
 
 function _filtered() {
   const q = _filters.q.trim().toLowerCase();
+  const useMine = isPlayer() && _isCaster && _filters.mijnKlasse && _myClasses.length > 0;
   return (_all || []).filter(s => {
     if (q && !(s.name || '').toLowerCase().includes(q)) return false;
     if (_filters.level !== null && Number(s.level) !== Number(_filters.level)) return false;
-    if (_filters.klasse && !_classNames(s).some(n => n === _filters.klasse)) return false;
+    if (useMine) {
+      if (!_myClasses.some(cEN => _matchClass(s, cEN))) return false;
+    } else if (_filters.klasse && !_classNames(s).some(n => n === _filters.klasse)) {
+      return false;
+    }
     return true;
   }).sort((a, b) => (a.level - b.level) || String(a.name).localeCompare(b.name));
 }
@@ -154,11 +167,27 @@ function _filterBar() {
   }
   const klasOpts = ['<option value="">Alle klassen</option>']
     .concat(_classes.map(c => `<option value="${esc(c)}"${_filters.klasse === c ? ' selected' : ''}>${esc(c)}</option>`));
+  // Speler met spreuk-klasse(n): toggle "Alleen mijn klasse" (standaard aan).
+  const toggle = _isCaster
+    ? `<button class="spreuk-klasfilter${_filters.mijnKlasse ? ' active' : ''}" onclick="window.spreuken.toggleMijnKlasse()"
+         title="Toon alleen spreuken van jouw klasse${_myClasses.length ? ` (${_myClasses.join(', ')})` : ''}">${icon('user')} Alleen mijn klasse</button>`
+    : '';
+  // De handmatige klasse-select is overbodig zolang "alleen mijn klasse" aan staat.
+  const select = (_isCaster && _filters.mijnKlasse)
+    ? ''
+    : `<select class="spreuk-class-select" onchange="window.spreuken.setKlasse(this.value)">${klasOpts.join('')}</select>`;
   return `
     <div class="spreuk-filters">
       <div class="spreuk-levels">${levels.join('')}</div>
-      <select class="spreuk-class-select" onchange="window.spreuken.setKlasse(this.value)">${klasOpts.join('')}</select>
+      ${toggle}
+      ${select}
     </div>`;
+}
+
+// Herrender alleen de filterrij in-place (zonder profiel/boek opnieuw op te halen).
+function _refreshFilterBar() {
+  const fb = _container?.querySelector('.spreuk-filters');
+  if (fb) fb.outerHTML = _filterBar();
 }
 
 function _paintGrid() {
@@ -177,13 +206,23 @@ export async function renderSpreuken(container) {
   await _load();
   if (window.app?.state?.activeSection !== 'spreuken') return; // tijdens laden gewisseld
 
-  // Speler: huidige spreukenboek ophalen om reeds toegevoegde spreuken te markeren
-  _myBook = new Set();
+  // Speler: huidig spreukenboek (markeren) + eigen klasse(n) (filter "alleen mijn klasse")
+  _myBook = new Set(); _myClasses = []; _isCaster = false;
   if (isPlayer()) {
+    const charId = window.app.state.characterId;
     try {
-      const mine = await api.getPlayerSpells(window.app.state.characterId);
+      const mine = await api.getPlayerSpells(charId);
       _myBook = new Set((mine || []).map(s => s.index));
     } catch { /* leeg = niets gemarkeerd */ }
+    try {
+      const prof = await api.getPlayerProfile(charId);
+      const multiOn = prof?.multiclass === true || prof?.multiclass === 'true';
+      _myClasses = [prof?.klasse, multiOn ? prof?.multiKlasse : null]
+        .filter(Boolean)
+        .map(c => window.app?.spellClassEN?.(c) || String(c).trim())
+        .filter(Boolean);
+      _isCaster = _myClasses.length > 0 && (_all || []).some(s => _myClasses.some(cEN => _matchClass(s, cEN)));
+    } catch { /* geen klasse-info → toon alles */ }
     if (window.app?.state?.activeSection !== 'spreuken') return;
   }
 
@@ -335,8 +374,15 @@ window.spreuken = {
     if (ov) { ov.classList.remove('active'); ov.innerHTML = ''; }
   },
   search(v)    { _filters.q = v; _paintGrid(); },
-  setLevel(lv) { _filters.level = lv; renderSpreuken(_container); },
+  setLevel(lv) { _filters.level = lv; _refreshFilterBar(); _paintGrid(); },
   setKlasse(k) { _filters.klasse = k || null; _paintGrid(); },
+  // Toggle "Alleen mijn klasse" (speler) — herrendert filterrij + grid, geen herfetch.
+  toggleMijnKlasse() {
+    _filters.mijnKlasse = !_filters.mijnKlasse;
+    if (_filters.mijnKlasse) _filters.klasse = null; // handmatige klasse-keuze resetten
+    _refreshFilterBar();
+    _paintGrid();
+  },
   // Toont/verbergt de focus-hint afhankelijk van of er een afbeelding is.
   _imgReady(ok) {
     const hint = document.getElementById('spreuk-focus-hint');

@@ -20320,6 +20320,18 @@ body.kaart-fs-active { overflow: hidden; }
   background: rgba(196,168,122,0.10); border: 1px solid rgba(196,168,122,0.4);
   border-radius: 8px; padding: 7px 10px; cursor: pointer;
 }
+/* Speler-toggle "Alleen mijn klasse" */
+.spreuk-klasfilter {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 600; color: #6a5030;
+  background: rgba(196,168,122,0.10); border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 8px; padding: 7px 12px; cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.spreuk-klasfilter .icon { width: 14px; height: 14px; }
+.spreuk-klasfilter:hover { background: rgba(196,168,122,0.2); }
+.spreuk-klasfilter.active { background: rgba(184,134,11,0.9); border-color: rgba(184,134,11,0.9); color: #fff; }
+.spreuk-klasfilter.active:hover { background: #b8860b; }
 .spreuk-levels { display: flex; gap: 3px; flex-wrap: wrap; }
 .spreuk-lvl-btn {
   font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700;

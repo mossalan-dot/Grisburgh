@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=26';
 import { renderRelatiemap } from './render-relatiemap.js?v=16';
 import { renderProgressie } from './render-progressie.js?v=38';
 import { renderBestiarium } from './render-bestiarium.js?v=15';
-import { renderSpreuken } from './render-spreuken.js?v=5';
+import { renderSpreuken } from './render-spreuken.js?v=6';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=44";
 import { initDmPanel } from "./dm-panel.js?v=108";
@@ -123,6 +123,8 @@ window.app = {
   mdToHtml,
   renderSpellDesc: _renderSpellDesc,
   sbDiceColor: _sbDiceColor,
+  spellClassEN: _spellClassEN,
+  spellMatchesClass: _spellMatchesClass,
   switchGroup,
   toggleGroupDropdown,
   renameGroup,
