@@ -16,6 +16,7 @@ import { api } from './api.js?v=243';
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
 const isDM = () => !!window.app?.isDM?.();
+const isPlayer = () => window.app?.state?.role === 'player' && !!window.app?.state?.characterId;
 const annot = html => (window.glossary?.annotate?.(html) ?? html);
 
 // Schoolkleuren + -icoon — gelijk aan _SB_SCHOOLS in het spreukenboek (app.js).
@@ -43,6 +44,7 @@ let _all       = null;      // null = nog niet geladen
 let _container = null;
 let _filters   = { q: '', level: null, klasse: null };
 let _classes   = [];
+let _myBook    = new Set(); // index-set van de spreuken in het eigen spreukenboek (speler)
 
 function _isHp() { return window.app?.state?.meta?.spellSource === 'wands-wizards'; }
 function _focusMap() { return window.app?.state?.meta?.spellImageFocus || {}; }
@@ -125,6 +127,9 @@ function _card(s) {
       style="--school-c1:${col.c1};--school-c2:${col.c2}">
       <div class="card-accent bar-spreuken"></div>
       <span class="spreuk-card-niv">${_levelShort(s.level)}</span>
+      ${isPlayer() ? `<button class="spreuk-card-add${_myBook.has(s.index) ? ' is-added' : ''}" data-idx="${esc(s.index)}"
+        onclick="event.stopPropagation();window.spreuken.addToBook('${esc(s.index)}',this)"
+        title="${_myBook.has(s.index) ? 'Staat in je spreukenboek' : 'Toevoegen aan je spreukenboek'}">${icon(_myBook.has(s.index) ? 'check' : 'plus')}</button>` : ''}
       <div class="card-img-wrap spreuk-card-img-wrap">
         <div class="spreuk-card-silhouet">${icon(col.icon)}</div>
         <img class="spreuk-card-img" src="${_imgUrl(s)}" alt="" loading="lazy"
@@ -171,6 +176,16 @@ export async function renderSpreuken(container) {
   _container.innerHTML = `<div class="spreuk-wrap"><p class="spreuk-loading">Spreuken laden…</p></div>`;
   await _load();
   if (window.app?.state?.activeSection !== 'spreuken') return; // tijdens laden gewisseld
+
+  // Speler: huidige spreukenboek ophalen om reeds toegevoegde spreuken te markeren
+  _myBook = new Set();
+  if (isPlayer()) {
+    try {
+      const mine = await api.getPlayerSpells(window.app.state.characterId);
+      _myBook = new Set((mine || []).map(s => s.index));
+    } catch { /* leeg = niets gemarkeerd */ }
+    if (window.app?.state?.activeSection !== 'spreuken') return;
+  }
 
   _container.innerHTML = `
     <div class="section-banner section-banner--entity section-banner--spreuken">
@@ -235,6 +250,8 @@ function _detailHtml(s) {
       </div>
       ${isDM() ? `<button class="spreuk-detail-imgbtn dm-only" onclick="window.spreuken.setImage('${esc(s.index)}','${esc((s.name||'').replace(/'/g,''))}')">
         ${icon('image')} Afbeelding kiezen of uploaden</button>` : ''}
+      ${isPlayer() ? `<button class="spreuk-detail-addbtn${_myBook.has(s.index) ? ' is-added' : ''}" data-idx="${esc(s.index)}"
+        onclick="window.spreuken.addToBook('${esc(s.index)}',this)">${icon(_myBook.has(s.index) ? 'check' : 'plus')} ${_myBook.has(s.index) ? 'In je spreukenboek' : 'Toevoegen aan mijn spreukenboek'}</button>` : ''}
       <div class="spreuk-detail-props">
         ${rows.map(([l, v]) => `<div class="spreuk-detail-prop"><span class="spreuk-detail-prop-lbl">${esc(l)}</span><span>${v}</span></div>`).join('')}
       </div>
@@ -264,6 +281,17 @@ function _ensureOverlay() {
   return ov;
 }
 
+// Werk de add-knoppen (kaart + detail) van één spreuk bij naar de "toegevoegd"-staat.
+function _markAdded(index) {
+  const sel = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(index) : index;
+  document.querySelectorAll(`.spreuk-card-add[data-idx="${sel}"]`).forEach(b => {
+    b.classList.add('is-added'); b.innerHTML = icon('check'); b.title = 'Staat in je spreukenboek';
+  });
+  document.querySelectorAll(`.spreuk-detail-addbtn[data-idx="${sel}"]`).forEach(b => {
+    b.classList.add('is-added'); b.innerHTML = `${icon('check')} In je spreukenboek`;
+  });
+}
+
 window.spreuken = {
   open(index) {
     const s = (_all || []).find(x => x.index === index);
@@ -271,6 +299,36 @@ window.spreuken = {
     const ov = _ensureOverlay();
     ov.innerHTML = _detailHtml(s);
     ov.classList.add('active');
+  },
+  // Speler: voeg deze spreuk toe aan het eigen spreukenboek (server dedupliceert op index).
+  async addToBook(index, btn) {
+    const charId = window.app?.state?.characterId;
+    if (!charId || _myBook.has(index)) return;
+    const s = (_all || []).find(x => x.index === index);
+    if (!s) return;
+    const payload = {
+      index: s.index, name: s.name,
+      level:  s.level || 0,
+      school: _school(s),
+      source: s.source || (_isHp() ? 'hp' : 'phb2024'),
+      desc:   _desc(s),
+      casting_time: s.casting_time || '',
+      range:        s.range || '',
+      duration:     s.duration || '',
+      components:   _components(s),
+      concentration: !!s.concentration || /concentration/i.test(String(s.duration || '')),
+      ritual:        !!s.ritual,
+      damage:        s.damage || '',
+    };
+    if (btn) btn.disabled = true;
+    try {
+      await api.addPlayerSpell(charId, payload);
+      _myBook.add(index);
+      _markAdded(index);
+    } catch (e) {
+      console.error('Spell toevoegen aan spreukenboek mislukt:', e);
+      if (btn) btn.disabled = false;
+    }
   },
   close() {
     const ov = document.getElementById('spreuk-detail-overlay');
