@@ -39,7 +39,7 @@ function _ensureOverlay() {
 
 async function open({ type = 'afbeelding', onSelect, suggestedName = '' } = {}) {
   if (typeof onSelect !== 'function') return;
-  _state = { type, onSelect, suggestedName, tab: 'bibliotheek', files: [], query: '', pendingFile: null };
+  _state = { type, onSelect, suggestedName, tab: 'upload', files: [], query: '', pendingFile: null };
   const ov = _ensureOverlay();
   ov.classList.add('active');
   _paint();          // toont meteen het skelet + laad-state
@@ -79,7 +79,7 @@ function _paint() {
       </div>
       <div class="media-picker-tabs">
         <button class="media-picker-tab${_state.tab==='bibliotheek'?' active':''}" onclick="window.mediaPicker.setTab('bibliotheek')">${icon('folder-open')} Bibliotheek</button>
-        <button class="media-picker-tab${_state.tab==='upload'?' active':''}" onclick="window.mediaPicker.setTab('upload')">${icon('image')} Upload nieuw</button>
+        <button class="media-picker-tab${_state.tab==='upload'?' active':''}" onclick="window.mediaPicker.setTab('upload')">${icon('image')} Upload</button>
       </div>
       <div class="media-picker-body" id="media-picker-body"></div>
     </div>`;
@@ -147,8 +147,8 @@ function _uploadHtml() {
           value="${esc(_state.suggestedName)}">
       </label>
       <div class="media-picker-upload-actions">
-        <button class="dm-btn dm-btn-primary${f ? '' : ' dm-btn-disabled'}" ${f ? '' : 'disabled'}
-          onclick="window.mediaPicker._doUpload()">${icon('save')} Gebruik dit bestand</button>
+        <button class="dm-btn dm-btn-primary dm-btn-icon${f ? '' : ' dm-btn-disabled'}" ${f ? '' : 'disabled'}
+          title="Gebruik dit bestand" onclick="window.mediaPicker._doUpload()">${icon('save')}</button>
       </div>
       <div id="media-picker-upload-status" class="media-picker-upload-status"></div>
     </div>`;

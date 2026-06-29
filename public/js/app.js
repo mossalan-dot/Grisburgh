@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=44";
 import { initDmPanel } from "./dm-panel.js?v=108";
-import './media-picker.js?v=1';
+import './media-picker.js?v=2';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
