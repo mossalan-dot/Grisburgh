@@ -833,6 +833,14 @@ function _rarityKey(r) {
   return map[String(r).trim().toLowerCase()] || '';
 }
 
+// Toon-label voor rariteit altijd in het Engels (PHB-term); valt terug op de
+// opgeslagen waarde bij een onbekende/eigen rariteit.
+const _RARITY_EN = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', 'very-rare': 'Very Rare', legendary: 'Legendary' };
+function _rarityLabel(r) {
+  if (!r) return '';
+  return _RARITY_EN[_rarityKey(r)] || String(r);
+}
+
 function renderCard(type, e) {
   const vis = e._visibility || 'visible';
 
@@ -859,7 +867,7 @@ function renderCard(type, e) {
   const rol     = e.data?.rol || '';
   const _rarKey = type === 'voorwerpen' ? _rarityKey(e.data?.rariteit) : '';
   const _itemMeta = type === 'voorwerpen'
-    ? [e.data?.rariteit, (e.data?.attunement === 'true' || e.data?.attunement === true) ? 'Attunement' : null].filter(Boolean).join(' · ')
+    ? [_rarityLabel(e.data?.rariteit), (e.data?.attunement === 'true' || e.data?.attunement === true) ? 'Attunement' : null].filter(Boolean).join(' · ')
     : null;
   const metaText = [e.data?.locType, e.data?.orgType, _itemMeta, e.data?.ras, e.data?.klasse].filter(Boolean).join(' \u00b7 ');
   const badge   = getSubtypeBadge(type, e);
@@ -1463,7 +1471,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     if (_rar || _att) {
       const _rarK = _rarityKey(_rar);
       infoHtml += `<div class="detail-item-subtitle">
-        ${_rar ? `<span class="detail-item-rarity"${_rarK ? ` data-rarity="${_rarK}"` : ''}>${esc(_rar)}</span>` : ''}
+        ${_rar ? `<span class="detail-item-rarity"${_rarK ? ` data-rarity="${_rarK}"` : ''}>${esc(_rarityLabel(_rar))}</span>` : ''}
         ${_att ? `<span class="detail-item-attunement">Requires Attunement</span>` : ''}
       </div>`;
     }
