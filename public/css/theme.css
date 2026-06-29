@@ -20394,6 +20394,8 @@ body.kaart-fs-active { overflow: hidden; }
   opacity: 0; transition: opacity 0.3s;
 }
 .spreuk-card-img.is-on { opacity: 1; }
+/* Zelfde langzame beeld-pan bij hover als de entiteitskaartjes (vanaf het focuspunt). */
+.entity-card:hover .spreuk-card-img.is-on { animation: card-img-pan 12s ease-in-out infinite alternate; }
 .spreuk-card-body { padding: 10px 12px 12px; }
 .spreuk-card-name {
   font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; color: #2a1a08;

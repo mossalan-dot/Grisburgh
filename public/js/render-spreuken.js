@@ -75,7 +75,7 @@ async function _load() {
 // ── Helpers (defensief: alles → string) ──
 const _str = v => Array.isArray(v) ? v.filter(x => typeof x !== 'object').join('\n\n')
   : (v && typeof v === 'object' ? '' : (v ?? ''));
-const _levelLabel = lv => (Number(lv) === 0) ? 'Cantrip' : `Niveau ${lv}`;
+const _levelLabel = lv => (Number(lv) === 0) ? 'Cantrip' : `Level ${lv}`;
 const _levelShort = lv => (Number(lv) === 0) ? 'C' : String(lv);
 function _school(s)     { return (s?.school?.name || (typeof s?.school === 'string' ? s.school : '') || '').trim(); }
 function _classNames(s) { return (s.classes || []).map(c => c.name || c).filter(Boolean); }
@@ -128,8 +128,8 @@ function _card(s) {
   const col    = _schoolCol(school);
   const focus  = _focus(s);
   const markers = [
-    s.ritual        ? `<span class="spreuk-tag" title="Ritueel">${icon('scroll-text')} Ritueel</span>` : '',
-    s.concentration ? `<span class="spreuk-tag" title="Concentratie">${icon('eye')} Concentratie</span>` : '',
+    s.ritual        ? `<span class="spreuk-tag" title="Ritual">${icon('scroll-text')} Ritual</span>` : '',
+    s.concentration ? `<span class="spreuk-tag" title="Concentration">${icon('eye')} Concentration</span>` : '',
   ].filter(Boolean).join('');
   const stats = [
     _statCell('Casting', s.casting_time), _statCell('Range', s.range),
@@ -197,6 +197,8 @@ function _paintGrid() {
   grid.innerHTML = list.length
     ? list.map(_card).join('')
     : `<p class="spreuk-empty">Geen spreuken gevonden.</p>`;
+  // Zelfde 3D-hover-tilt als de entiteitskaartjes (gedeelde helper uit render-campagne).
+  window._attachCardTilt?.(grid);
 }
 
 export async function renderSpreuken(container) {
@@ -278,7 +280,7 @@ function _detailHtml(s) {
       <button class="spreuk-detail-close" onclick="window.spreuken.close()" title="Sluiten">${icon('x')}</button>
       <div class="spreuk-detail-head">
         <div class="spreuk-detail-title">${esc(s.name)}</div>
-        <div class="spreuk-detail-sub">${esc(_levelLabel(s.level))}${school ? ` · ${esc(school)}` : ''}${s.ritual ? ' · Ritueel' : ''}</div>
+        <div class="spreuk-detail-sub">${esc(_levelLabel(s.level))}${school ? ` · ${esc(school)}` : ''}${s.ritual ? ' · Ritual' : ''}</div>
       </div>
       <div class="spreuk-detail-imgwrap">
         <img class="spreuk-detail-img" id="spreuk-detail-img" src="${_imgUrl(s)}" alt=""
@@ -295,7 +297,7 @@ function _detailHtml(s) {
         ${rows.map(([l, v]) => `<div class="spreuk-detail-prop"><span class="spreuk-detail-prop-lbl">${esc(l)}</span><span>${v}</span></div>`).join('')}
       </div>
       ${desc   ? `<div class="spreuk-detail-desc">${fmt(desc)}</div>` : ''}
-      ${higher ? `<div class="spreuk-detail-higher"><span class="spreuk-detail-higher-lbl">Op hoger niveau.</span> ${fmt(higher)}</div>` : ''}
+      ${higher ? `<div class="spreuk-detail-higher"><span class="spreuk-detail-higher-lbl">At Higher Levels.</span> ${fmt(higher)}</div>` : ''}
       ${classes.length ? `<div class="spreuk-detail-classes">${classes.map(c => {
         const cc = _CLASS_COL[c] || '#5a3a8c';
         return `<span class="spreuk-class-pill" style="--class-c:${cc}">${esc(c)}</span>`;
