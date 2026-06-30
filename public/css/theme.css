@@ -275,9 +275,9 @@ body::before {
   z-index: 200;
   background: linear-gradient(160deg, #f5e9ce 0%, #ede0bc 100%);
   border: 1px solid rgba(196,168,122,0.7);
-  border-radius: 8px;
+  border-radius: 11px;
   box-shadow:
-    0 8px 28px rgba(60,30,0,0.22),
+    0 10px 30px rgba(60,30,0,0.24),
     0 1px 0 rgba(255,255,255,0.5) inset,
     0 -1px 0 rgba(120,80,20,0.12) inset;
   min-width: 175px;
@@ -291,11 +291,12 @@ body::before {
 }
 
 .archief-menu-item {
+  --sect-c: 184,134,11; /* fallback: goud */
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   width: 100%;
-  padding: 8px 16px;
+  padding: 9px 16px 9px 15px;
   text-align: left;
   font-family: 'Cinzel', serif;
   font-size: 11px;
@@ -303,31 +304,75 @@ body::before {
   color: #5a4030;
   background: none;
   border: none;
-  border-left: 3px solid transparent;
   cursor: pointer;
   letter-spacing: 0.04em;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
   position: relative;
+  overflow: hidden;
+  transition: background 0.16s ease, color 0.16s ease, padding-left 0.16s ease;
+  animation: archiefItemIn 0.24s cubic-bezier(.2,.8,.3,1) backwards;
 }
-
-.archief-menu-item + .archief-menu-item::before {
+/* Accentkleur per sectie (RGB-triple → eigen alpha's hieronder) */
+.archief-menu-item[data-section="personages"]  { --sect-c: 42,106,58; }
+.archief-menu-item[data-section="locaties"]     { --sect-c: 42,90,138; }
+.archief-menu-item[data-section="organisaties"] { --sect-c: 139,42,42; }
+.archief-menu-item[data-section="voorwerpen"]   { --sect-c: 154,106,42; }
+.archief-menu-item[data-section="documenten"]   { --sect-c: 90,58,122; }
+.archief-menu-item[data-section="bestiarium"]   { --sect-c: 120,42,42; }
+.archief-menu-item[data-section="spreuken"]     { --sect-c: 90,58,140; }
+.archief-menu-item[data-section="kaart"]        { --sect-c: 42,90,70; }
+.archief-menu-item[data-section="relatiemap"]   { --sect-c: 80,42,122; }
+.archief-menu-item[data-section="herberg"]      { --sect-c: 160,90,20; }
+.archief-menu-item[data-section="tweespalt"]    { --sect-c: 90,20,20; }
+.archief-menu-item[data-section="gock"]         { --sect-c: 20,50,80; }
+.archief-menu-item[data-section="ursula"]       { --sect-c: 80,40,110; }
+.archief-menu-item[data-section="tempel"]       { --sect-c: 120,90,150; }
+.archief-menu-item[data-section="magizoo"]      { --sect-c: 42,106,58; }
+/* Icoon: rustend gedempt goud, bij hover/active in de sectiekleur */
+.archief-menu-item .icon {
+  width: 16px; height: 16px; flex-shrink: 0;
+  color: #9a7a48;
+  transition: color 0.16s ease, transform 0.16s ease;
+}
+/* Linker accent-bar die ingroeit */
+.archief-menu-item::after {
   content: '';
-  position: absolute;
-  top: 0; left: 16px; right: 16px;
-  height: 1px;
-  background: rgba(196,168,122,0.3);
+  position: absolute; left: 0; top: 5px; bottom: 5px; width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: rgb(var(--sect-c));
+  transform: scaleY(0); transform-origin: center;
+  transition: transform 0.2s cubic-bezier(.2,.8,.3,1);
 }
-
 .archief-menu-item:hover {
-  background: rgba(196,168,122,0.28);
-  color: #3a2008;
+  background: linear-gradient(90deg, rgba(var(--sect-c),0.17) 0%, rgba(var(--sect-c),0.05) 60%, transparent 100%);
+  color: #2a1808;
+  padding-left: 19px;
 }
-
+.archief-menu-item:hover .icon { color: rgb(var(--sect-c)); transform: scale(1.15); }
+.archief-menu-item:hover::after { transform: scaleY(1); }
 .archief-menu-item.active {
-  background: rgba(154,112,8,0.13);
-  color: #7a5800;
-  border-left-color: #c4a030;
+  background: linear-gradient(90deg, rgba(var(--sect-c),0.22) 0%, rgba(var(--sect-c),0.06) 60%, transparent 100%);
+  color: #2a1808;
   font-weight: 700;
+}
+.archief-menu-item.active .icon { color: rgb(var(--sect-c)); }
+.archief-menu-item.active::after { transform: scaleY(1); }
+
+/* Gestaffelde intro: items glijden één voor één in */
+@keyframes archiefItemIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: none; }
+}
+.archief-menu-item:nth-child(1) { animation-delay: 0.03s; }
+.archief-menu-item:nth-child(2) { animation-delay: 0.055s; }
+.archief-menu-item:nth-child(3) { animation-delay: 0.08s; }
+.archief-menu-item:nth-child(4) { animation-delay: 0.105s; }
+.archief-menu-item:nth-child(5) { animation-delay: 0.13s; }
+.archief-menu-item:nth-child(6) { animation-delay: 0.155s; }
+.archief-menu-item:nth-child(7) { animation-delay: 0.18s; }
+.archief-menu-item:nth-child(8) { animation-delay: 0.205s; }
+@media (prefers-reduced-motion: reduce) {
+  .archief-menu-item { animation: none; }
+  .archief-menu-item::after, .archief-menu-item .icon { transition: none; }
 }
 
 /* Dienst vergrendeld (zichtbaar maar niet beschikbaar) */.archief-menu-item.dienst-vergrendeld {  opacity: .55;  cursor: default;  pointer-events: none;}/* Toegang-toggle knoppen */.toegang-toggle.staat-verborgen  { background: rgba(80,80,80,.15);   color: #888; border-color: rgba(120,120,120,.3); }.toegang-toggle.staat-zichtbaar  { background: rgba(180,130,0,.12);   color: #8a6000; border-color: rgba(180,130,0,.3); }.toegang-toggle.staat-beschikbaar{ background: rgba(0,140,60,.1);    color: #0a6030; border-color: rgba(0,140,60,.3); }
