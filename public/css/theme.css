@@ -50,11 +50,20 @@ body::before {
 /* Utility */
 .hidden { display: none !important; }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #efe3c5; }
-::-webkit-scrollbar-thumb { background: #c4a87a; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #b09060; }
+/* Scrollbar — zwevende gradient-thumb met marge (background-clip) */
+html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: rgba(196,168,122,0.10); }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #ccb286, #b08e58);
+  border-radius: 7px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #c0a274, #9c7e48);
+  background-clip: padding-box;
+}
 
 /* Section tabs */
 .section-tab {
@@ -2508,12 +2517,16 @@ body::before {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: linear-gradient(to bottom, #c8a840, #9a7008);
+  background: radial-gradient(circle at 38% 30%, #e0c258 0%, #c8a233 38%, #a07a10 75%, #84620a 100%);
   color: #f5edd8;
   font-size: 1.05rem;
-  border: none;
+  border: 1px solid rgba(120,82,12,0.55);
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(60,40,10,0.28), 0 1px 3px rgba(60,40,10,0.16);
+  box-shadow:
+    0 3px 10px rgba(60,40,10,0.30),
+    0 1px 3px rgba(60,40,10,0.18),
+    inset 0 1.5px 1px rgba(255,244,200,0.55),
+    inset 0 -2px 4px rgba(90,58,0,0.35);
   z-index: 45;
   display: flex;
   align-items: center;
@@ -2523,15 +2536,38 @@ body::before {
 }
 .dice-fab:hover {
   transform: scale(1.12);
-  background: linear-gradient(to bottom, #d4b448, #b08010);
-  box-shadow: 0 5px 16px rgba(60,40,10,0.32);
+  background: radial-gradient(circle at 38% 30%, #ecd070 0%, #d4b040 40%, #aa8214 78%, #8a6608 100%);
+  box-shadow:
+    0 6px 18px rgba(60,40,10,0.34),
+    0 2px 5px rgba(60,40,10,0.20),
+    inset 0 1.5px 1px rgba(255,248,210,0.60),
+    inset 0 -2px 4px rgba(90,58,0,0.35),
+    0 0 16px rgba(212,170,60,0.32);
 }
 .dice-fab:active { transform: scale(0.94); }
 .dice-fab svg { margin-top: -2px; }
 
 /* Toevoeg-FAB (#fab) krijgt dezelfde warme schaduw als de dobbel-FAB's (was shadow-deep: donker/zwaar) */
-#fab { box-shadow: 0 3px 10px rgba(60,40,10,0.28), 0 1px 3px rgba(60,40,10,0.16); transition: box-shadow 0.18s ease, transform 0.12s ease; }
-#fab:hover { box-shadow: 0 5px 16px rgba(60,40,10,0.32); transform: scale(1.06); }
+#fab {
+  background: radial-gradient(circle at 38% 30%, #e0c258 0%, #c8a233 38%, #a07a10 75%, #84620a 100%);
+  border: 1px solid rgba(120,82,12,0.55);
+  box-shadow:
+    0 3px 10px rgba(60,40,10,0.30),
+    0 1px 3px rgba(60,40,10,0.18),
+    inset 0 1.5px 1px rgba(255,244,200,0.55),
+    inset 0 -2px 4px rgba(90,58,0,0.35);
+  transition: box-shadow 0.18s ease, transform 0.12s ease, background 0.18s ease;
+}
+#fab:hover {
+  background: radial-gradient(circle at 38% 30%, #ecd070 0%, #d4b040 40%, #aa8214 78%, #8a6608 100%);
+  box-shadow:
+    0 6px 18px rgba(60,40,10,0.34),
+    0 2px 5px rgba(60,40,10,0.20),
+    inset 0 1.5px 1px rgba(255,248,210,0.60),
+    inset 0 -2px 4px rgba(90,58,0,0.35),
+    0 0 16px rgba(212,170,60,0.32);
+  transform: scale(1.08);
+}
 #fab:active { transform: scale(0.93); }
 @media (prefers-reduced-motion: reduce) { #fab:hover, #fab:active { transform: none; } }
 
@@ -2812,12 +2848,16 @@ body::before {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 50%;
-  background: linear-gradient(to bottom, #c8a840, #9a7008);
+  background: radial-gradient(circle at 38% 30%, #e0c258 0%, #c8a233 38%, #a07a10 75%, #84620a 100%);
   color: #f5edd8;
   font-size: 1.05rem;
-  border: none;
+  border: 1px solid rgba(120,82,12,0.55);
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(60,40,10,0.28), 0 1px 3px rgba(60,40,10,0.16);
+  box-shadow:
+    0 3px 10px rgba(60,40,10,0.30),
+    0 1px 3px rgba(60,40,10,0.18),
+    inset 0 1.5px 1px rgba(255,244,200,0.55),
+    inset 0 -2px 4px rgba(90,58,0,0.35);
   z-index: 45;
   display: flex;
   align-items: center;
@@ -2826,8 +2866,13 @@ body::before {
 }
 .dm-dice-fab:hover {
   transform: scale(1.10);
-  background: linear-gradient(to bottom, #d4b448, #b08010);
-  box-shadow: 0 5px 16px rgba(60,40,10,0.32);
+  background: radial-gradient(circle at 38% 30%, #ecd070 0%, #d4b040 40%, #aa8214 78%, #8a6608 100%);
+  box-shadow:
+    0 6px 18px rgba(60,40,10,0.34),
+    0 2px 5px rgba(60,40,10,0.20),
+    inset 0 1.5px 1px rgba(255,248,210,0.60),
+    inset 0 -2px 4px rgba(90,58,0,0.35),
+    0 0 16px rgba(212,170,60,0.32);
 }
 .dm-dice-fab:active { transform: scale(0.94); }
 .dm-dice-fab svg { display: block; }
