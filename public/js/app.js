@@ -9543,6 +9543,16 @@ window._magizooFilter = (q) => {
 // Onderzoekt monsters die de party al kent (≥ naam). Per onderzoek één trede
 // omhoog (naam→deels + roddel → volledig) of premium direct naar volledig.
 let _magizooData = null;
+let _magizooActiveTab = 'onderzoek';   // 'onderzoek' | 'adoptie' — onthouden over re-renders
+
+// Wissel tussen de twee magizoo-diensten (monster-onderzoek vs. adoptie).
+window._magizooTab = (name) => {
+  _magizooActiveTab = name;
+  document.querySelectorAll('#section-magizoo .dienst-subtab-panel')
+    .forEach(p => p.classList.toggle('hidden', p.id !== 'magizoo-panel-' + name));
+  document.querySelectorAll('#section-magizoo .dienst-subtab-btn')
+    .forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+};
 
 function _magizooBeurs(cur) {
   return [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
@@ -9593,33 +9603,42 @@ async function renderMagizoo() {
         </div>
         <div class="herberg-portrait-wrap">${portret}</div>
         <p class="herberg-groet">${config.groet ? esc(config.groet) : `${esc(config.naam)} kijkt op van een kooi en veegt een inktvlek van zijn notitieboek.`}</p>
-        <p class="ts-beurs">Onderzoek: <strong>${_magizooPrijs(config.prijs)}</strong> per trede · Volledig ineens: <strong>${_magizooPrijs(config.prijsVolledig)}</strong></p>
-
-        ${cooldownActief ? `<div class="gock-lopend"><p class="herberg-cooldown-tekst">${icon('paw-print')} ${cooldownTekst}</p></div>` : ''}
-
-        <div id="magizoo-resultaat"></div>
-
-        <div class="magizoo-adopt-wrap">
-          <p class="herberg-teller">${icon('paw-print')} Adopteer een metgezel</p>
-          ${metgezel
-            ? `<p class="herberg-zoek-hint">Jullie party heeft al een metgezel: <strong>${esc(metgezel.name)}</strong>. Eén huisdier per party.</p>`
-            : adoptabel.length === 0
-              ? `<p class="herberg-zoek-hint">De Magizoöloog heeft vandaag geen dieren ter adoptie.</p>`
-              : `<div class="magizoo-adopt-lijst">${adoptabel.map(p => _magizooAdoptKaart(p)).join('')}</div>`}
+        <div class="dienst-subtab-nav">
+          <button class="dienst-subtab-btn${_magizooActiveTab === 'onderzoek' ? ' active' : ''}" data-tab="onderzoek" onclick="window._magizooTab('onderzoek')">${icon('search')} Onderzoek</button>
+          <button class="dienst-subtab-btn${_magizooActiveTab === 'adoptie' ? ' active' : ''}" data-tab="adoptie" onclick="window._magizooTab('adoptie')">${icon('paw-print')} Adoptie</button>
         </div>
 
-        ${monsters.length === 0
-          ? `<p class="herberg-cooldown-tekst">De party kent nog geen wezens om te laten onderzoeken. Kom terug nadat je iets bent tegengekomen.</p>`
-          : `<div class="herberg-zoek-wrap">
-              <p class="herberg-teller">Welk wezen wil je laten onderzoeken?</p>
-              <input type="text" class="herberg-zoek-input" placeholder="Typ een naam…"
-                oninput="window._magizooFilter(this.value)"
-                id="magizoo-zoek" autocomplete="off">
-              <p class="herberg-zoek-hint" id="magizoo-hint">Begin met typen om te zoeken.</p>
-              <div class="herberg-lijst magizoo-lijst" id="magizoo-lijst">
-                ${monsters.map(m => `<div class="magizoo-item" data-naam="${esc(m.name.toLowerCase())}" style="display:none">${_magizooItemBody(m, cooldownActief)}</div>`).join('')}
-              </div>
-            </div>`}
+        <div class="dienst-subtab-panel${_magizooActiveTab === 'onderzoek' ? '' : ' hidden'}" id="magizoo-panel-onderzoek">
+          <p class="ts-beurs">Onderzoek: <strong>${_magizooPrijs(config.prijs)}</strong> per trede · Volledig ineens: <strong>${_magizooPrijs(config.prijsVolledig)}</strong></p>
+
+          ${cooldownActief ? `<div class="gock-lopend"><p class="herberg-cooldown-tekst">${icon('paw-print')} ${cooldownTekst}</p></div>` : ''}
+
+          <div id="magizoo-resultaat"></div>
+
+          ${monsters.length === 0
+            ? `<p class="herberg-cooldown-tekst">De party kent nog geen wezens om te laten onderzoeken. Kom terug nadat je iets bent tegengekomen.</p>`
+            : `<div class="herberg-zoek-wrap">
+                <p class="herberg-teller">Welk wezen wil je laten onderzoeken?</p>
+                <input type="text" class="herberg-zoek-input" placeholder="Typ een naam…"
+                  oninput="window._magizooFilter(this.value)"
+                  id="magizoo-zoek" autocomplete="off">
+                <p class="herberg-zoek-hint" id="magizoo-hint">Begin met typen om te zoeken.</p>
+                <div class="herberg-lijst magizoo-lijst" id="magizoo-lijst">
+                  ${monsters.map(m => `<div class="magizoo-item" data-naam="${esc(m.name.toLowerCase())}" style="display:none">${_magizooItemBody(m, cooldownActief)}</div>`).join('')}
+                </div>
+              </div>`}
+        </div>
+
+        <div class="dienst-subtab-panel${_magizooActiveTab === 'adoptie' ? '' : ' hidden'}" id="magizoo-panel-adoptie">
+          <div class="magizoo-adopt-wrap">
+            <p class="herberg-teller">${icon('paw-print')} Adopteer een metgezel</p>
+            ${metgezel
+              ? `<p class="herberg-zoek-hint">Jullie party heeft al een metgezel: <strong>${esc(metgezel.name)}</strong>. Eén huisdier per party.</p>`
+              : adoptabel.length === 0
+                ? `<p class="herberg-zoek-hint">De Magizoöloog heeft vandaag geen dieren ter adoptie.</p>`
+                : `<div class="magizoo-adopt-lijst">${adoptabel.map(p => _magizooAdoptKaart(p)).join('')}</div>`}
+          </div>
+        </div>
       </div>
     </div>`;
 }
