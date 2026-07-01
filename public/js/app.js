@@ -1,6 +1,6 @@
 import { api } from './api.js?v=243';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=112";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=49";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=50";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=13';
 import { renderDungeon } from './render-dungeon.js?v=26';
 import { renderRelatiemap } from './render-relatiemap.js?v=16';
@@ -18,7 +18,7 @@ import './media-picker.js?v=2';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=3#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=4#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -10163,12 +10163,12 @@ async function renderHeeren() {
   const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
   const clTekst = (cl) => { const f = Math.floor(cl / 100), k = Math.floor((cl % 100) / 10), c = cl % 10; return [f && `${f} fl`, k && `${k} kn`, c && `${c} cl`].filter(Boolean).join(' ') || '0 cl'; };
   const honorariumTekst = beursTekst(config.honorarium);
-  const typeIcon = { zakkenrollen: '🤚', inbraak: '🗝️', oplichting: '🎭' };
+  const typeIcon = { zakkenrollen: icon('stiletto'), inbraak: icon('lock-open'), oplichting: icon('eye') };
 
   const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
   const portret = config.imageId
     ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
-    : `<div class="gock-portret-fallback">🌑</div>`;
+    : `<div class="gock-portret-fallback">${icon('moon')}</div>`;
   const kaartLink = (e) => (e && e.zichtbaar) ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:.65rem;padding:1px 4px" onclick="window._openDetail('${esc(e.type)}','${esc(e.id)}')" title="Bekijk kaartje">↗</button>` : '';
 
   const boetesHtml = boetes.length ? `
@@ -10188,7 +10188,7 @@ async function renderHeeren() {
   const jobsHtml = jobs.length ? jobs.map(j => `
     <div class="tempel-god-kaart" style="border:1px solid rgba(196,168,122,0.3);border-radius:10px;padding:10px;margin-bottom:8px;text-align:left">
       <div style="margin-bottom:4px">
-        <span class="herberg-item-naam">${typeIcon[j.type] || '🌑'} ${esc(j.typeNaam)}</span>
+        <span class="herberg-item-naam">${typeIcon[j.type] || icon('moon')} ${esc(j.typeNaam)}</span>
         <span class="herberg-item-type" style="display:block;opacity:.8">${esc(j.omschrijving)} ${j.doelZichtbaar ? kaartLink({ type: j.doelType, id: j.doelId, zichtbaar: true }) : ''}</span>
       </div>
       <p class="ts-beurs" style="margin:2px 0">Buit: <strong>${j.payout} fl</strong></p>
@@ -10333,7 +10333,7 @@ async function renderTweespalt() {
           ? `<div class="ts-uitslag${gewonnen ? ' ts-uitslag--gewonnen' : verloren ? ' ts-uitslag--verloren' : ''}">
               <span class="ts-uitslag-label">Uitslag:</span>
               <strong>${esc(winnaarOptie?.naam || '—')}</strong>
-              ${gewonnen ? `<span class="ts-uitslag-winst">🏆 Gewonnen! +${formatCl(event.mijnInzet.bedragCl * winnaarOptie.payout)}</span>` : ''}
+              ${gewonnen ? `<span class="ts-uitslag-winst">${icon('coins')} Gewonnen! +${formatCl(event.mijnInzet.bedragCl * winnaarOptie.payout)}</span>` : ''}
               ${verloren ? `<span class="ts-uitslag-verlies">Niet gewonnen</span>` : ''}
             </div>`
           : `<div class="ts-opties">${event.opties.map(o => renderOptieKnop(event, o)).join('')}</div>

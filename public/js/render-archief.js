@@ -264,8 +264,9 @@ export async function renderLogboek() {
   tabContent.style.cssText = '';
   tabContent.innerHTML = `
     <div class="logboek-search-wrap" style="padding: 0 24px 8px">
+      ${icon('search', { cls: 'logboek-search-icon' })}
       <input type="text" class="logboek-search-input" id="logboek-search-input"
-        placeholder="🔍  Zoek in het logboek…" value="${esc(logboekSearch)}"
+        placeholder="Zoek in het logboek…" value="${esc(logboekSearch)}"
         oninput="window._logboekSearch(this.value)">
     </div>
     <div class="flex-1 overflow-y-auto px-6 pb-6" id="logboek-body">
@@ -1086,7 +1087,7 @@ window._openSessieDetail = async (id) => {
     ${_renderSessieChips(e)}
     ${!isDM() && playerName ? `
       <div class="log-detail-player-note">
-        <div class="log-detail-note-label">📝 Mijn aantekening</div>
+        <div class="log-detail-note-label">${icon('pencil')} Mijn aantekening</div>
         <textarea id="log-note-ta-${id}" class="log-detail-note-ta"
           placeholder="Jouw persoonlijke notities bij deze sessie…"
           onblur="window._saveLogNote('${esc(id)}', this.value)">${esc(playerNote)}</textarea>
@@ -1433,7 +1434,7 @@ function _scriptSoundEditorHtml(ch, item) {
           ? '<option disabled>Laden…</option>'
           : scenes.map(s => `<option value="${esc(s.id)}"${sel === s.id ? ' selected' : ''}>${esc(s.label || 'Scène')}</option>`).join('')}
       </select>
-      <label class="script-snd-upload-btn" title="Eigen geluid uploaden">⬆
+      <label class="script-snd-upload-btn" title="Eigen geluid uploaden">${icon('upload')}
         <input type="file" accept="audio/*" style="display:none"
           onchange="window._scriptUploadSound('${esc(ch)}','${esc(item.id)}', this.files[0])"></label>
     </div>
@@ -1586,7 +1587,7 @@ function _renderEntityResults(ch, entities, addedEntityIds, query) {
 
 async function _scriptLoadAllEntities(ch) {
   const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
-  const ICONS = { personages: '👤', locaties: '📍', organisaties: '🏛', voorwerpen: '📦', documenten: '📜' };
+  const ICONS = { personages: icon('user'), locaties: icon('map-pin'), organisaties: icon('landmark'), voorwerpen: icon('package'), documenten: icon('scroll-text') };
   try {
     const [archiefResult, ...entityLists] = await Promise.all([
       api.listArchief().catch(() => ({ documents: [] })),
@@ -1942,7 +1943,7 @@ window._openSessieEditor = async (editId) => {
               class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
           </div>
           <button type="button" onclick="window._saveNewHoofdstuk()"
-            class="px-3 py-1.5 bg-gold-dim text-room-bg text-sm font-cinzel rounded hover:bg-gold transition" title="Toevoegen">✚</button>
+            class="px-3 py-1.5 bg-gold-dim text-room-bg text-sm font-cinzel rounded hover:bg-gold transition" title="Toevoegen">${icon('plus')}</button>
         </div>
       </div>
       <div>
