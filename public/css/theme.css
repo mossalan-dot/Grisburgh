@@ -10802,6 +10802,52 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 }
 .dienst-subtab-panel.hidden { display: none; }
 
+/* ── Herberg "Aan de tap" — menu ── */
+.herberg-tap-beurs { text-align: center; font-size: 0.8rem; color: rgba(212,180,110,0.85); margin: -2px 0 12px; }
+.herberg-tap-beurs strong { color: #f2e0b0; }
+.herberg-menu-lijst { display: flex; flex-direction: column; gap: 8px; }
+.herberg-menu-kaart {
+  display: flex; align-items: stretch; gap: 10px;
+  padding: 10px 12px;
+  background: rgba(30, 18, 6, 0.62);
+  border: 1px solid rgba(196,168,122,0.28);
+  border-radius: 9px;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.herberg-menu-kaart-body { flex: 1; min-width: 0; }
+.herberg-menu-kaart-naam { font-family: 'Cinzel', serif; font-size: 0.9rem; color: #f0dcaa; }
+.herberg-menu-kaart-desc { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.82rem; color: rgba(224,206,164,0.7); margin-top: 2px; }
+.herberg-menu-effecten { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.herberg-menu-tag {
+  font-size: 0.66rem; letter-spacing: 0.03em;
+  padding: 2px 8px; border-radius: 10px;
+  background: rgba(212,170,60,0.16);
+  border: 1px solid rgba(212,170,67,0.4);
+  color: #e6c88a;
+}
+.herberg-menu-kaart-actie { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 6px; flex-shrink: 0; }
+.herberg-menu-prijs { font-size: 0.78rem; color: rgba(212,180,110,0.9); white-space: nowrap; }
+
+/* ── Actieve status-buffs op het karakterblad ── */
+.player-buffs-lijst { display: flex; flex-wrap: wrap; gap: 8px; }
+.player-buff-badge {
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 7px 12px;
+  background: linear-gradient(180deg, rgba(212,170,60,0.14), rgba(160,120,30,0.08));
+  border: 1px solid rgba(196,150,50,0.45);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255,244,200,0.35);
+}
+.player-buff-label { font-family: 'Cinzel', serif; font-size: 0.82rem; color: #7a5a12; font-weight: 600; }
+.player-buff-desc { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.76rem; color: #8a6f3a; }
+
+/* ── DM: herberg-menu-editor ── */
+.hb-menu-item { display: flex; flex-direction: column; gap: 6px; padding: 10px; margin-bottom: 8px; border: 1px solid rgba(196,168,122,0.3); border-radius: 8px; background: rgba(196,168,122,0.05); }
+.hb-menu-item-top { display: flex; gap: 6px; align-items: center; }
+.hb-menu-item-top .hb-menu-naam { flex: 1; }
+.hb-menu-item-effect { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.hb-menu-item-effect .hb-menu-bufflabel { flex: 1; min-width: 120px; }
+
 /* Antwoord bubble */
 .herberg-antwoord { width: 100%; }
 .herberg-bubble {

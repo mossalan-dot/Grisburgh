@@ -8,8 +8,8 @@ import { renderProgressie } from './render-progressie.js?v=38';
 import { renderBestiarium } from './render-bestiarium.js?v=15';
 import { renderSpreuken } from './render-spreuken.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=44";
-import { initDmPanel } from "./dm-panel.js?v=108";
+import { initSocket } from "./socket-client.js?v=45";
+import { initDmPanel } from "./dm-panel.js?v=109";
 import './media-picker.js?v=2';
 
 // ── Icon helper ──
@@ -5681,6 +5681,7 @@ async function renderMijnKarakter(opts = {}) {
   const hpPct = (hpNum !== null && maxNum) ? Math.max(0, Math.min(100, (hpNum / maxNum) * 100)) : 0;
   const hpCls = hpPct > 75 ? 'hp-healthy' : hpPct > 50 ? 'hp-lightly' : hpPct > 25 ? 'hp-wounded' : hpPct > 0 ? 'hp-critical' : 'hp-down';
   const tempNum = (typeof hpData.temp === 'number' && hpData.temp > 0) ? hpData.temp : 0;
+  const playerBuffs = Array.isArray(hpData.buffs) ? hpData.buffs : [];
 
   // Actieve conditions (uit gevecht)
   const conditions = myCombatant?.conditions || [];
@@ -6159,6 +6160,18 @@ async function renderMijnKarakter(opts = {}) {
             <span class="player-hd-dots-wrap" id="player-dash-hd-${esc(charId)}">${_hitDiceDotsHtml(_clientHitDicePool(playerProfile), {})}</span>
           </div>
         </div>
+
+        ${playerBuffs.length ? `
+        <div class="player-dash-section player-buffs-section">
+          <div class="player-dash-section-title">${icon('beer')} Aan de tap — actief tot je volgende lange rust</div>
+          <div class="player-buffs-lijst">
+            ${playerBuffs.map(b => `
+              <div class="player-buff-badge">
+                <span class="player-buff-label">${esc(b.label)}</span>
+                ${b.desc ? `<span class="player-buff-desc">${esc(b.desc)}</span>` : ''}
+              </div>`).join('')}
+          </div>
+        </div>` : ''}
 
         <!-- Weapons & Damage Cantrips -->
         <div class="player-dash-section">
@@ -9227,6 +9240,8 @@ function _dienstNietBereikbaar(el, naam) {
     </div>`;
 }
 
+let _herbergActiveTab = 'roddels';   // 'roddels' | 'tap' — onthouden over re-renders
+
 async function renderHerberg() {
   const el = document.getElementById('section-herberg');
   if (!el) return;
@@ -9241,9 +9256,11 @@ async function renderHerberg() {
   try { data = await api.get('/herberg'); }
   catch { el.innerHTML = '<p class="p-8 text-ink-dim">Herberg niet beschikbaar.</p>'; return; }
 
-  const { config, state: hState, entities, playerFirstName } = data;
+  const { config, state: hState, entities, playerFirstName, currency } = data;
   const remaining = config.maxVragen - hState.vragen;
   const cooldownActief = hState.cooldownTot && new Date(hState.cooldownTot) > new Date();
+  const menu = Array.isArray(config.menu) ? config.menu : [];
+  const heeftMenu = menu.length > 0;
 
   // Begroetingstekst — {naam} vervangen door voornaam speler
   const _groetTekst = config.groet
@@ -9272,17 +9289,8 @@ async function renderHerberg() {
         : ''
     : '';
 
-  el.innerHTML = `
-    <div class="herberg-scene">
-      <div class="herberg-content">
-        <div class="dienst-beurs-topbar" style="justify-content:flex-end">${_helpBtn('herberg')}</div>
-        <div class="herberg-portrait-wrap">
-          ${config.imageId
-            ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round${cooldownActief ? ' herberg-portrait--weg' : ''}" alt="${esc(config.waard)}">`
-            : `<div class="herberg-portrait-round herberg-portrait-fallback${cooldownActief ? ' herberg-portrait--weg' : ''}">${icon('beer')}</div>`}
-        </div>
-        <p class="herberg-groet">${_groetTekst}</p>
-
+  // Paneel 1 — Roddels (de bestaande vraag-de-waard-functie)
+  const roddelPaneel = `
         ${cooldownActief
           ? `<p class="herberg-cooldown-tekst">${esc(config.waard)} helpt even een andere klant. Ze is zo bij je terug.</p>`
           : remaining <= 0
@@ -9313,11 +9321,93 @@ async function renderHerberg() {
                 </div>
               </div>`
         }
-        <div id="herberg-antwoord" class="herberg-antwoord hidden"></div>
+        <div id="herberg-antwoord" class="herberg-antwoord hidden"></div>`;
+
+  // Paneel 2 — Aan de tap (drankjes/maaltijden: temp HP + status)
+  const tapPaneel = `
+        <p class="herberg-teller">${icon('beer')} ${esc(config.waard)} schuift wat voor je aan de tap</p>
+        ${currency ? `<p class="herberg-tap-beurs">Op zak: <strong>${_magizooBeurs(currency)}</strong></p>` : ''}
+        <div class="herberg-menu-lijst">
+          ${menu.map(m => _herbergMenuKaart(m)).join('')}
+        </div>
+        <div id="herberg-bestel-resultaat" class="herberg-antwoord hidden"></div>`;
+
+  el.innerHTML = `
+    <div class="herberg-scene">
+      <div class="herberg-content">
+        <div class="dienst-beurs-topbar" style="justify-content:flex-end">${_helpBtn('herberg')}</div>
+        <div class="herberg-portrait-wrap">
+          ${config.imageId
+            ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round${cooldownActief ? ' herberg-portrait--weg' : ''}" alt="${esc(config.waard)}">`
+            : `<div class="herberg-portrait-round herberg-portrait-fallback${cooldownActief ? ' herberg-portrait--weg' : ''}">${icon('beer')}</div>`}
+        </div>
+        <p class="herberg-groet">${_groetTekst}</p>
+
+        ${heeftMenu ? `
+          <div class="dienst-subtab-nav">
+            <button class="dienst-subtab-btn${_herbergActiveTab === 'roddels' ? ' active' : ''}" data-tab="roddels" onclick="window._herbergTab('roddels')">${icon('message-circle')} Roddels</button>
+            <button class="dienst-subtab-btn${_herbergActiveTab === 'tap' ? ' active' : ''}" data-tab="tap" onclick="window._herbergTab('tap')">${icon('beer')} Aan de tap</button>
+          </div>
+          <div class="dienst-subtab-panel${_herbergActiveTab === 'roddels' ? '' : ' hidden'}" id="herberg-panel-roddels">${roddelPaneel}</div>
+          <div class="dienst-subtab-panel${_herbergActiveTab === 'tap' ? '' : ' hidden'}" id="herberg-panel-tap">${tapPaneel}</div>
+        ` : roddelPaneel}
       </div>
     </div>
   `;
 }
+
+// Eén menukaartje in "Aan de tap"
+function _herbergMenuKaart(m) {
+  const effecten = [];
+  const tHp = parseInt(m.tempHp) || 0;
+  if (tHp > 0) effecten.push(`+${tHp} temp HP`);
+  if (m.buffLabel) effecten.push(esc(m.buffLabel));
+  return `
+    <div class="herberg-menu-kaart">
+      <div class="herberg-menu-kaart-body">
+        <div class="herberg-menu-kaart-naam">${esc(m.naam)}</div>
+        ${m.beschrijving ? `<div class="herberg-menu-kaart-desc">${esc(m.beschrijving)}</div>` : ''}
+        ${effecten.length ? `<div class="herberg-menu-effecten">${effecten.map(e => `<span class="herberg-menu-tag">${e}</span>`).join('')}</div>` : ''}
+      </div>
+      <div class="herberg-menu-kaart-actie">
+        <span class="herberg-menu-prijs">${m.prijs ? esc(m.prijs) : 'gratis'}</span>
+        <button class="ts-wedden-btn" onclick="window._herbergBestel('${esc(m.id)}')">Bestel</button>
+      </div>
+    </div>`;
+}
+
+// Wissel tussen Roddels en Aan de tap (client-side, onthouden over re-renders).
+window._herbergTab = (name) => {
+  _herbergActiveTab = name;
+  document.querySelectorAll('#section-herberg .dienst-subtab-panel')
+    .forEach(p => p.classList.toggle('hidden', p.id !== 'herberg-panel-' + name));
+  document.querySelectorAll('#section-herberg .dienst-subtab-btn')
+    .forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+};
+
+window._herbergBestel = async (itemId) => {
+  const resEl = document.getElementById('herberg-bestel-resultaat');
+  try {
+    const res = await api.post('/herberg/bestel', { itemId });
+    const effecten = [];
+    if (res.tempHp) effecten.push(`+${res.tempHp} temp HP`);
+    if (res.buff) effecten.push(esc(res.buff.label));
+    if (resEl) {
+      resEl.classList.remove('hidden');
+      resEl.innerHTML = `
+        <div class="herberg-bubble">
+          <p class="herberg-bubble-text">„${esc(res.item.beschrijving || 'Proost!')}“</p>
+          ${effecten.length ? `<div class="herberg-menu-effecten" style="margin-top:8px;justify-content:center">${effecten.map(e => `<span class="herberg-menu-tag">${e}</span>`).join('')}</div>` : ''}
+        </div>`;
+    }
+    _tsToast(`${res.item.naam} besteld — proost!`);
+    // Beurs in het tap-paneel live bijwerken
+    const beursEl = document.querySelector('#herberg-panel-tap .herberg-tap-beurs strong');
+    if (beursEl && res.currency) beursEl.textContent = _magizooBeurs(res.currency);
+  } catch (err) {
+    _tsToast(err.message || 'Bestellen mislukt');
+  }
+};
 
 window._getExtraSpeedsFromDOM = function() {
   return Array.from(document.querySelectorAll('.pcs-extra-speed-item')).map(item => ({

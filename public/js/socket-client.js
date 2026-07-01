@@ -422,6 +422,14 @@ export function initSocket() {
     }
   });
 
+  // ── Herberg-buffs ("Aan de tap") gewijzigd of vervallen ──
+  socket.on('player:buffs-updated', ({ characterId } = {}) => {
+    if (window.app?.state?.characterId === characterId &&
+        window.app?.state?.activeSection === 'mijn-karakter') {
+      _refreshSectionDebounced('mijn-karakter');
+    }
+  });
+
   // ── Profiel gewijzigd (level, klasse, etc.) ──
   socket.on('player:profile-updated', ({ characterId, profile } = {}) => {
     const myId = window.app?.state?.characterId;

@@ -2109,6 +2109,12 @@ router.post('/characters/:characterId/long-rest', attachRole, (req, res) => {
     const io = req.app.get('io');
     if (io) io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] });
   }
+  // Herberg-buffs ("Aan de tap") vervallen bij een lange rust
+  if (dmState.playerBuffs?.[characterId]?.length) {
+    dmState.playerBuffs[characterId] = [];
+    const io = req.app.get('io');
+    if (io) io.to(req.session?.campaignId||'main').emit('player:buffs-updated', { characterId, buffs: [] });
+  }
   storage.writeJSON('dm-state.json', dmState);
   res.json({ ok: true });
 });
@@ -2148,6 +2154,16 @@ router.post('/party/long-rest', requireDM, (req, res) => {
       if (io) io.to(req.session?.campaignId||'main').emit('player:hp-updated', { characterId: char.id, current: hp.max, max: hp.max });
     }
   });
+
+  // ── Herberg-buffs ("Aan de tap") vervallen bij een lange rust ──
+  if (dmState.playerBuffs) {
+    spelers.forEach(char => {
+      if (dmState.playerBuffs[char.id]?.length) {
+        dmState.playerBuffs[char.id] = [];
+        if (io) io.to(req.session?.campaignId||'main').emit('player:buffs-updated', { characterId: char.id, buffs: [] });
+      }
+    });
+  }
 
   // ── 2. Spell slots → used=0 ──
   if (!dmState.playerSpellSlots) dmState.playerSpellSlots = {};
@@ -2421,7 +2437,8 @@ router.get('/player-hp/:characterId', attachRole, (req, res) => {
   }
   const dmState = readDmState();
   const hp = (dmState.playerHp || {})[characterId] || { current: null, max: null };
-  res.json(hp);
+  const buffs = (dmState.playerBuffs || {})[characterId] || [];
+  res.json({ ...hp, buffs });
 });
 
 router.patch('/player-hp/:characterId', attachRole, (req, res) => {
@@ -4537,7 +4554,7 @@ router.post('/akte/actief', requireDM, (req, res) => {
 router.put('/meta/herberg', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.herberg) meta.herberg = {};
-  const allowed = ['naam','waard','imageId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet','overnachtingPrijs'];
+  const allowed = ['naam','waard','imageId','backdropId','maxVragen','cooldownMinutenMin','cooldownMinutenMax','groet','overnachtingPrijs','menu'];
   for (const f of allowed) {
     if (req.body[f] !== undefined) meta.herberg[f] = req.body[f];
   }
@@ -7819,6 +7836,7 @@ router.get('/herberg', attachRole, (req, res) => {
       maxVragen: config.maxVragen || 3,
       groet:     config.groet || '',
       prijs:     config.prijs || null,
+      menu:      Array.isArray(config.menu) ? config.menu : [],
     },
     state:           playerState,
     entities:        result,
@@ -7893,6 +7911,70 @@ router.post('/herberg/vraag', attachRole, (req, res) => {
     uitgesproken: true,
     vragen: playerState.vragen,
     cooldownTot: playerState.cooldownTot || null,
+  });
+});
+
+// Aan de tap: bestel een drankje/maaltijd → beurs afschrijven, temp HP + status-buff.
+router.post('/herberg/bestel', attachRole, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const config = meta.herberg;
+  if (!config) return res.status(404).json({ error: 'Herberg niet geconfigureerd' });
+
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Alleen spelers kunnen bestellen' });
+
+  const item = (Array.isArray(config.menu) ? config.menu : []).find(m => m.id === req.body.itemId);
+  if (!item) return res.status(404).json({ error: 'Item niet gevonden' });
+
+  const dmState = readDmState();
+
+  // Prijs afschrijven (gedeelde of eigen beurs, net als overnachten)
+  const prijs = parsePrijs(item.prijs || '0');
+  const prijsCl = prijs ? toCl(prijs) : 0;
+  if (prijsCl > 0) {
+    const cur = _effectiveCurrency(dmState, characterId);
+    if (toCl(cur) < prijsCl) return res.status(400).json({ error: 'Niet genoeg geld op zak.' });
+    _deductCurrency(dmState, characterId, prijsCl);
+  }
+
+  // Temp HP — telt niet op (D&D: hoogste waarde wint)
+  let tempHp = null;
+  const itemTemp = parseInt(item.tempHp) || 0;
+  if (itemTemp > 0) {
+    if (!dmState.playerHp) dmState.playerHp = {};
+    const hp = dmState.playerHp[characterId] || { current: null, max: null, temp: 0 };
+    hp.temp = Math.max(hp.temp || 0, itemTemp);
+    dmState.playerHp[characterId] = hp;
+    tempHp = hp.temp;
+  }
+
+  // Status-buff (zichtbaar op de sheet tot de volgende lange rust)
+  let buff = null;
+  if (item.buffLabel) {
+    if (!dmState.playerBuffs) dmState.playerBuffs = {};
+    const list = (dmState.playerBuffs[characterId] || []).filter(b => b.label !== item.buffLabel);
+    buff = {
+      id: 'buff_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      label: item.buffLabel,
+      desc: item.buffDesc || '',
+      bron: config.naam || 'De herberg',
+    };
+    list.push(buff);
+    dmState.playerBuffs[characterId] = list;
+  }
+
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io');
+  const room = req.session?.campaignId || 'main';
+  const currency = _effectiveCurrency(dmState, characterId);
+  io.to(room).emit('player:currency-updated', { characterId, currency });
+  if (tempHp !== null) io.to(room).emit('player:hp-updated', { characterId, ...dmState.playerHp[characterId] });
+  io.to(room).emit('player:buffs-updated', { characterId, buffs: dmState.playerBuffs?.[characterId] || [] });
+
+  res.json({
+    item: { naam: item.naam, beschrijving: item.beschrijving || '' },
+    currency, tempHp, buff,
   });
 });
 

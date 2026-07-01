@@ -3855,6 +3855,7 @@ window._wereldToggleEntiteit = async (entityId) => {
 
 let _hbPersonages = [];
 let _hbPendingBackdropId = null;
+let _hbMenu = [];   // werkkopie van het "Aan de tap"-menu tijdens bewerken
 let _hbTables = [];
 let _rustPendingVeldBg = null;
 let _rustPendingKorteBg = null;
@@ -3904,6 +3905,7 @@ async function _renderHerbergSettings() {
   const config = window.app?.state?.meta?.herberg || {};
   try { _hbPersonages = await api.listEntities('personages'); } catch { _hbPersonages = []; }
   _hbPendingBackdropId = null;
+  _hbMenu = Array.isArray(config.menu) ? config.menu.map(m => ({ ...m })) : [];
 
   const selectedP = _hbPersonages.find(p => p.id === config.imageId);
 
@@ -3950,10 +3952,67 @@ async function _renderHerbergSettings() {
         <span class="dm-hint" style="font-size:10px;color:var(--color-ink-dim,#888)">Gebruik <code>{naam}</code> voor de voornaam van de speler.</span>
       </div>
 
+      <div class="dm-section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">${icon('beer')} Aan de tap — menu</div>
+      <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 8px">Drankjes/maaltijden die spelers kunnen bestellen. Prijs schrijft van de beurs af; temp HP en status gelden tot de volgende lange rust.</span>
+      <div id="hb-menu-lijst"></div>
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-ghost" onclick="window._hbMenuAdd()" title="Menu-item toevoegen">${icon('plus')} Item</button>
+      </div>
+
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-primary" onclick="window._hbSave()" title="Opslaan">${icon('save')}</button>
       </div>
     </div>`;
+
+  _hbRenderMenuLijst();
+};
+
+// Rendert de bewerkbare menurijen uit de werkkopie _hbMenu.
+function _hbRenderMenuLijst() {
+  const el = document.getElementById('hb-menu-lijst');
+  if (!el) return;
+  el.innerHTML = _hbMenu.length === 0
+    ? `<p class="dm-hint" style="padding:4px 0">Nog geen menu-items.</p>`
+    : _hbMenu.map((m, i) => `
+      <div class="hb-menu-item" data-id="${esc(m.id || '')}">
+        <div class="hb-menu-item-top">
+          <input class="dm-input dm-input-sm hb-menu-naam" value="${esc(m.naam || '')}" placeholder="Naam (bv. Huisbier)">
+          <input class="dm-input dm-input-sm hb-menu-prijs" value="${esc(m.prijs || '')}" placeholder="Prijs (bv. 2 kn)" style="max-width:110px">
+          <button class="dm-btn dm-btn-icon dm-btn-danger dm-btn-sm" onclick="window._hbMenuRemove(${i})" title="Verwijderen">${icon('trash')}</button>
+        </div>
+        <input class="dm-input dm-input-sm hb-menu-desc" value="${esc(m.beschrijving || '')}" placeholder="Sfeerbeschrijving (wordt bij bestellen getoond)">
+        <div class="hb-menu-item-effect">
+          <label class="dm-form-label" style="min-width:auto">Temp HP</label>
+          <input class="dm-input dm-input-sm hb-menu-temphp" type="number" min="0" value="${parseInt(m.tempHp) || 0}" style="max-width:70px">
+          <input class="dm-input dm-input-sm hb-menu-bufflabel" value="${esc(m.buffLabel || '')}" placeholder="Status (bv. Kroegmoed)">
+        </div>
+        <input class="dm-input dm-input-sm hb-menu-buffdesc" value="${esc(m.buffDesc || '')}" placeholder="Wat de status doet (bv. voordeel op je eerste save)">
+      </div>`).join('');
+}
+
+// Leest de huidige menurijen terug uit de DOM (behoudt niet-opgeslagen bewerkingen).
+function _hbMenuReadDom() {
+  return [...document.querySelectorAll('#hb-menu-lijst .hb-menu-item')].map(row => ({
+    id: row.dataset.id || ('menu_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
+    naam: row.querySelector('.hb-menu-naam')?.value.trim() || '',
+    prijs: row.querySelector('.hb-menu-prijs')?.value.trim() || '',
+    beschrijving: row.querySelector('.hb-menu-desc')?.value.trim() || '',
+    tempHp: parseInt(row.querySelector('.hb-menu-temphp')?.value) || 0,
+    buffLabel: row.querySelector('.hb-menu-bufflabel')?.value.trim() || '',
+    buffDesc: row.querySelector('.hb-menu-buffdesc')?.value.trim() || '',
+  })).filter(m => m.naam);
+}
+
+window._hbMenuAdd = () => {
+  _hbMenu = _hbMenuReadDom();
+  _hbMenu.push({ id: 'menu_' + Date.now().toString(36), naam: '', prijs: '', beschrijving: '', tempHp: 0, buffLabel: '', buffDesc: '' });
+  _hbRenderMenuLijst();
+};
+
+window._hbMenuRemove = (idx) => {
+  _hbMenu = _hbMenuReadDom();
+  _hbMenu.splice(idx, 1);
+  _hbRenderMenuLijst();
 };
 
 async function _renderBeursTab() {
@@ -4058,6 +4117,7 @@ window._hbSave = async () => {
     backdropId: _hbPendingBackdropId || config.backdropId || '',
     groet,
     overnachtingPrijs,
+    menu: _hbMenuReadDom(),
   };
   try {
     await api.saveHerberg(payload);
