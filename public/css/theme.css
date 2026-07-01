@@ -733,6 +733,22 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
     0 0 0 1px rgba(120,42,42,0.20),
     inset 0 0 0 1px rgba(255,255,255,0.22);
 }
+/* Spreukkaarten: gloed in de kleur van de magieschool (color-mix op de hex-var) */
+.entity-card:has(.bar-spreuken):hover {
+  box-shadow:
+    0 5px 16px color-mix(in srgb, var(--school-c2, #5a3a8c) 42%, transparent),
+    0 10px 28px color-mix(in srgb, var(--school-c2, #5a3a8c) 22%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--school-c2, #5a3a8c) 28%, transparent),
+    inset 0 0 0 1px rgba(255,255,255,0.22);
+}
+/* Documentkaarten: paarse gloed (gelijk aan de archief-sectiekleur) */
+.entity-card:has(.bar-documenten):hover {
+  box-shadow:
+    0 5px 16px rgba(90,58,122,0.28),
+    0 10px 28px rgba(90,58,122,0.14),
+    0 0 0 1px rgba(90,58,122,0.18),
+    inset 0 0 0 1px rgba(255,255,255,0.22);
+}
 .entity-card.card-hidden { opacity: 0.5; }
 
 /* ── Subtiele type-tint per kaart — heel zacht, tekst blijft volledig leesbaar ── */
