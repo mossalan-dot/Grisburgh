@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=15';
 import { renderSpreuken } from './render-spreuken.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=45";
-import { initDmPanel } from "./dm-panel.js?v=109";
+import { initDmPanel } from "./dm-panel.js?v=110";
 import './media-picker.js?v=2';
 
 // ── Icon helper ──
@@ -10345,6 +10345,8 @@ window._heerenAdvocaat = async (boeteId) => {
 
 // ── Tweespalt / Gokkantoor ──────────────────────────────────────────────────
 
+let _tsActiveTab = 'wedden';   // 'wedden' | 'arena' — onthouden over re-renders
+
 async function renderTweespalt() {
   const el = document.getElementById('section-tweespalt');
   if (!el) return;
@@ -10364,7 +10366,7 @@ async function renderTweespalt() {
     return;
   }
 
-  const { events = [], currency, lening, nameFirst = [], nameLast = [], config = {} } = data;
+  const { events = [], currency, lening, nameFirst = [], nameLast = [], config = {}, arena = [], arenaSignups = [] } = data;
   const openEvents = events.filter(e => e.status === 'open');
   const afgerondEvents = events.filter(e => e.status === 'afgerond');
 
@@ -10476,16 +10478,73 @@ async function renderTweespalt() {
 
         ${leningBanner}
 
-        ${openEvents.length
-          ? `<div class="ts-sectie-label">Openstaande weddenschappen</div>${openEvents.map(renderEvent).join('')}`
-          : `<p class="herberg-leeg">Er zijn momenteel geen openstaande weddenschappen.</p>`}
+        ${(() => {
+          const weddenPaneel = `
+            ${openEvents.length
+              ? `<div class="ts-sectie-label">Openstaande weddenschappen</div>${openEvents.map(renderEvent).join('')}`
+              : `<p class="herberg-leeg">Er zijn momenteel geen openstaande weddenschappen.</p>`}
+            ${afgerondEvents.length
+              ? `<div class="ts-sectie-label ts-sectie-label--afgerond">Afgeronde events</div>${afgerondEvents.map(renderEvent).join('')}`
+              : ''}`;
 
-        ${afgerondEvents.length
-          ? `<div class="ts-sectie-label ts-sectie-label--afgerond">Afgeronde events</div>${afgerondEvents.map(renderEvent).join('')}`
-          : ''}
+          const arenaPaneel = `
+            ${arenaSignups.length ? `
+              <div class="ts-arena-status">
+                ${arenaSignups.map(s => `<div class="ts-arena-ingeschreven">${icon('swords',{cls:'icon-gi'})} Je staat ingeschreven voor <strong>${esc(s.boutNaam)}</strong>${s.tegenstander ? ` tegen ${esc(s.tegenstander)}` : ''}. De kamprechter roept je zo.${s.prijs ? ` Prijzengeld: ${esc(s.prijs)}.` : ''}</div>`).join('')}
+              </div>` : ''}
+            ${arena.length === 0
+              ? `<p class="herberg-leeg">Er staan nu geen partijen op het programma.</p>`
+              : arena.map(b => _arenaBoutKaart(b, arenaSignups)).join('')}`;
+
+          const heeftArena = arena.length > 0 || arenaSignups.length > 0;
+          if (!heeftArena) return weddenPaneel;
+          return `
+            <div class="dienst-subtab-nav">
+              <button class="dienst-subtab-btn${_tsActiveTab === 'wedden' ? ' active' : ''}" data-tab="wedden" onclick="window._tsTab('wedden')">${icon('coins')} Weddenschappen</button>
+              <button class="dienst-subtab-btn${_tsActiveTab === 'arena' ? ' active' : ''}" data-tab="arena" onclick="window._tsTab('arena')">${icon('crossed-swords',{cls:'icon-gi'})} Strijdperk</button>
+            </div>
+            <div class="dienst-subtab-panel${_tsActiveTab === 'wedden' ? '' : ' hidden'}" id="tweespalt-panel-wedden">${weddenPaneel}</div>
+            <div class="dienst-subtab-panel${_tsActiveTab === 'arena' ? '' : ' hidden'}" id="tweespalt-panel-arena">${arenaPaneel}</div>`;
+        })()}
       </div>
     </div>`;
 }
+
+// Eén arenapartij-kaartje
+function _arenaBoutKaart(b, signups) {
+  const ingeschreven = (signups || []).some(s => s.boutId === b.id);
+  return `
+    <div class="ts-arena-kaart">
+      <div class="ts-arena-kaart-head">
+        <span class="ts-arena-kaart-naam">${esc(b.naam || 'Arenapartij')}</span>
+        ${b.tegenstander ? `<span class="ts-arena-kaart-tegen">tegen ${esc(b.tegenstander)}</span>` : ''}
+      </div>
+      ${b.beschrijving ? `<p class="ts-arena-kaart-desc">${esc(b.beschrijving)}</p>` : ''}
+      <div class="ts-arena-kaart-foot">
+        <span class="ts-arena-kaart-prijs">${b.inzet ? `Inleg ${esc(b.inzet)} · ` : ''}Prijs: <strong>${esc(b.prijs || '—')}</strong></span>
+        ${ingeschreven
+          ? `<button class="ts-wedden-btn" disabled style="opacity:.55">Ingeschreven</button>`
+          : `<button class="ts-wedden-btn" onclick="window._arenaAanmeld('${esc(b.id)}')">Betreed het strijdperk</button>`}
+      </div>
+    </div>`;
+}
+
+window._tsTab = (name) => {
+  _tsActiveTab = name;
+  document.querySelectorAll('#section-tweespalt .dienst-subtab-panel')
+    .forEach(p => p.classList.toggle('hidden', p.id !== 'tweespalt-panel-' + name));
+  document.querySelectorAll('#section-tweespalt .dienst-subtab-btn')
+    .forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+};
+
+window._arenaAanmeld = async (boutId) => {
+  if (!confirm('Je meldt je aan voor deze arenapartij. De kamprechter roept je wanneer het zover is — een eventuele inleg wordt nu van je beurs afgeschreven. Doorgaan?')) return;
+  try {
+    await api.post(`/tweespalt/arena/${boutId}/aanmeld`, {});
+    _tsToast('Je bent ingeschreven voor het strijdperk!');
+    window.app?.refreshSection?.('tweespalt');
+  } catch (err) { _tsToast(err.message || 'Aanmelden mislukt'); }
+};
 
 // Parseert decimale florinde-invoer: "1,28" of "1.28" → { fl:1, kn:2, cl:8, bedragCl:128 }
 function _tsParseInzet(raw) {

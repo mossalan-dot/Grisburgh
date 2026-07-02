@@ -6310,7 +6310,7 @@ router.put('/gock/opgehaald', attachRole, (req, res) => {
 router.put('/meta/tweespalt', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (!meta.tweespalt) meta.tweespalt = {};
-  ['naam', 'imageId', 'backdropId'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
+  ['naam', 'imageId', 'backdropId', 'arena'].forEach(f => { if (req.body[f] !== undefined) meta.tweespalt[f] = req.body[f]; });
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
   res.json(meta.tweespalt);
@@ -7984,6 +7984,7 @@ function _tsState(dmState) {
   if (!dmState.tweespalt) dmState.tweespalt = {};
   if (!dmState.tweespalt.events) dmState.tweespalt.events = [];
   if (!dmState.tweespalt.leningen) dmState.tweespalt.leningen = {};
+  if (!dmState.tweespalt.arenaSignups) dmState.tweespalt.arenaSignups = [];
   return dmState.tweespalt;
 }
 
@@ -8117,7 +8118,14 @@ router.get('/tweespalt', attachRole, (req, res) => {
 
   const tsMeta = storage.readJSON('meta.json').tweespalt || {};
   const config = { naam: tsMeta.naam || 'De Tweespalt', imageId: tsMeta.imageId || null, backdropId: tsMeta.backdropId || null };
-  res.json({ events, currency, lening, nameFirst, nameLast, config });
+
+  // Arena — partijen (DM-config) + inschrijvingen (eigen voor speler, alle voor DM)
+  const arena = Array.isArray(tsMeta.arena) ? tsMeta.arena : [];
+  const arenaSignups = isDM
+    ? ts.arenaSignups
+    : (characterId ? ts.arenaSignups.filter(s => s.doorId === characterId) : []);
+
+  res.json({ events, currency, lening, nameFirst, nameLast, config, arena, arenaSignups });
 });
 
 router.post('/tweespalt/events', requireDM, (req, res) => {
@@ -8267,6 +8275,77 @@ router.post('/tweespalt/events/:id/uitslag', requireDM, (req, res) => {
   }
 
   res.json({ ok: true, winnaarId: event.uitkomst, ...result });
+});
+
+// ── Arena: speler meldt zich aan voor een partij; de DM beslecht het als echt gevecht ──
+router.post('/tweespalt/arena/:boutId/aanmeld', attachRole, (req, res) => {
+  const characterId = req.session.characterId;
+  if (!characterId) return res.status(403).json({ error: 'Alleen spelers kunnen het strijdperk betreden' });
+
+  const tsMeta = storage.readJSON('meta.json').tweespalt || {};
+  const bout = (Array.isArray(tsMeta.arena) ? tsMeta.arena : []).find(b => b.id === req.params.boutId);
+  if (!bout) return res.status(404).json({ error: 'Partij niet gevonden' });
+
+  const dmState = readDmState();
+  const ts = _tsState(dmState);
+  if (ts.arenaSignups.some(s => s.doorId === characterId && s.boutId === bout.id && s.status === 'aangemeld')) {
+    return res.status(400).json({ error: 'Je staat al ingeschreven voor deze partij.' });
+  }
+
+  // Inleg (optioneel) afschrijven
+  const inzet = parsePrijs(bout.inzet || '0');
+  const inzetCl = inzet ? toCl(inzet) : 0;
+  if (inzetCl > 0) {
+    const cur = _effectiveCurrency(dmState, characterId);
+    if (toCl(cur) < inzetCl) return res.status(400).json({ error: 'Niet genoeg geld voor de inleg.' });
+    _deductCurrency(dmState, characterId, inzetCl);
+  }
+
+  const signup = {
+    id: 'arena_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    boutId: bout.id, boutNaam: bout.naam || 'Arenapartij',
+    tegenstander: bout.tegenstander || '', prijs: bout.prijs || '', inzet: bout.inzet || '',
+    doorId: characterId, doorNaam: req.session.playerName || '',
+    status: 'aangemeld', op: new Date().toISOString(),
+  };
+  ts.arenaSignups.push(signup);
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  io.to(room).emit('tweespalt:updated');
+  if (inzetCl > 0) io.to(room).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
+  res.json({ ok: true, signup });
+});
+
+// DM beslecht een arenapartij: overwinning (prijzengeld) of nederlaag.
+router.post('/tweespalt/arena/signup/:id/uitslag', requireDM, (req, res) => {
+  const uitkomst = req.body?.uitkomst === 'overwinning' ? 'overwinning' : 'nederlaag';
+  const dmState = readDmState();
+  const ts = _tsState(dmState);
+  const signup = ts.arenaSignups.find(s => s.id === req.params.id);
+  if (!signup) return res.status(404).json({ error: 'Inschrijving niet gevonden' });
+
+  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  const prijs = parsePrijs(signup.prijs || '0');
+  const prijsCl = prijs ? toCl(prijs) : 0;
+
+  if (uitkomst === 'overwinning' && signup.doorId && prijsCl > 0) {
+    _deductCurrency(dmState, signup.doorId, -prijsCl);   // negatief bedrag = uitbetalen
+    io.to(room).emit('player:currency-updated', { characterId: signup.doorId, currency: _effectiveCurrency(dmState, signup.doorId) });
+  }
+
+  // Cinematisch briefje van de kamprechter
+  if (signup.doorId) {
+    const tekst = uitkomst === 'overwinning'
+      ? `Het volk brult je naam! Je versloeg ${signup.tegenstander || 'je tegenstander'} in "${signup.boutNaam}". De kamprechter telt ${signup.prijs || 'je prijzengeld'} in je hand — welverdiend, kampioen.`
+      : `Je vocht met eer in "${signup.boutNaam}", maar ${signup.tegenstander || 'je tegenstander'} was je de baas. Het zand kent geen genade. Sta op en kom sterker terug.`;
+    _bezorgBrief(req, signup.doorId, { titel: signup.boutNaam, tekst, afzender: 'De Tweespalt — het strijdperk', thema: 'tweespalt' });
+  }
+
+  ts.arenaSignups = ts.arenaSignups.filter(s => s.id !== signup.id);
+  storage.writeJSON('dm-state.json', dmState);
+  io.to(room).emit('tweespalt:updated');
+  res.json({ ok: true, uitkomst });
 });
 
 router.post('/tweespalt/leen', attachRole, (req, res) => {

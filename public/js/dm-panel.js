@@ -4143,7 +4143,8 @@ async function _renderTweespaltDM() {
     return;
   }
 
-  const { events = [], config: tsConfig = {} } = data;
+  const { events = [], config: tsConfig = {}, arena = [], arenaSignups = [] } = data;
+  _tsArena = Array.isArray(arena) ? arena.map(b => ({ ...b })) : [];
 
   function formatCl(cl) {
     const fl = Math.floor(cl / 100), kn = Math.floor((cl % 100) / 10), ce = cl % 10;
@@ -4233,10 +4234,31 @@ async function _renderTweespaltDM() {
         </div>
       </div>
 
+      <div class="dm-section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">${icon('crossed-swords')} Strijdperk — partijen</div>
+      <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 8px">Arenapartijen waar spelers zich voor kunnen aanmelden. Jij draait het gevecht zelf; bij winst krijgt de speler het prijzengeld.</span>
+      <div id="ts-arena-lijst"></div>
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-ghost" onclick="window._tsArenaAdd()" title="Partij toevoegen">${icon('plus')} Partij</button>
+      </div>
+
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-primary" onclick="window._tsSettingsSave()" title="Instellingen opslaan">${icon('save')}</button>
       </div>
     </div>
+
+    ${arenaSignups.length ? `
+    <div class="dm-feature-section" style="margin-top:14px">
+      <div class="dm-section-label" style="display:flex;align-items:center;gap:6px">${icon('swords')} Strijdperk — inschrijvingen</div>
+      ${arenaSignups.map(s => `
+        <div class="dm-feature-section" style="border:1px solid rgba(196,168,122,0.3);margin-bottom:8px;padding:10px">
+          <div><strong>${esc(s.doorNaam || s.doorId?.slice(0,8) || 'Speler')}</strong> → ${esc(s.boutNaam)}${s.tegenstander ? ` <span style="opacity:.65">tegen ${esc(s.tegenstander)}</span>` : ''}</div>
+          <div style="font-size:11px;opacity:.7;margin:3px 0 8px">Prijs bij winst: ${esc(s.prijs || '—')}${s.inzet ? ` · inleg betaald: ${esc(s.inzet)}` : ''}</div>
+          <div class="dm-feature-row" style="gap:6px">
+            <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._tsArenaUitslag('${esc(s.id)}','overwinning')" title="Overwinning — betaal prijzengeld uit">${icon('coins')} Overwinning</button>
+            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._tsArenaUitslag('${esc(s.id)}','nederlaag')" title="Nederlaag">Nederlaag</button>
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
 
     <div class="dm-feature-section" style="margin-top:14px">
       <div class="dm-section-label">De Tweespalt — Beheer</div>
@@ -4290,6 +4312,64 @@ async function _renderTweespaltDM() {
   window._tsAddOptie();
   window._tsAddOptie();
   window._tsToonModusVelden();
+  _tsRenderArenaLijst();
+};
+
+// ── Strijdperk (arena) — DM-editor ──
+let _tsArena = [];
+
+function _tsRenderArenaLijst() {
+  const el = document.getElementById('ts-arena-lijst');
+  if (!el) return;
+  el.innerHTML = _tsArena.length === 0
+    ? `<p class="dm-hint" style="padding:4px 0">Nog geen partijen.</p>`
+    : _tsArena.map((b, i) => `
+      <div class="hb-menu-item" data-id="${esc(b.id || '')}">
+        <div class="hb-menu-item-top">
+          <input class="dm-input dm-input-sm ts-arena-naam" value="${esc(b.naam || '')}" placeholder="Naam (bv. De Bronzen Beker)">
+          <button class="dm-btn dm-btn-icon dm-btn-danger dm-btn-sm" onclick="window._tsArenaRemove(${i})" title="Verwijderen">${icon('trash')}</button>
+        </div>
+        <input class="dm-input dm-input-sm ts-arena-tegen" value="${esc(b.tegenstander || '')}" placeholder="Tegenstander (bv. Grol de Verpletteraar)">
+        <input class="dm-input dm-input-sm ts-arena-desc" value="${esc(b.beschrijving || '')}" placeholder="Sfeerbeschrijving van de partij">
+        <div class="hb-menu-item-effect">
+          <label class="dm-form-label" style="min-width:auto">Inleg</label>
+          <input class="dm-input dm-input-sm ts-arena-inzet" value="${esc(b.inzet || '')}" placeholder="bv. 5 fl (optioneel)" style="max-width:130px">
+          <label class="dm-form-label" style="min-width:auto">Prijs</label>
+          <input class="dm-input dm-input-sm ts-arena-prijs" value="${esc(b.prijs || '')}" placeholder="bv. 50 fl">
+        </div>
+      </div>`).join('');
+}
+
+function _tsArenaReadDom() {
+  return [...document.querySelectorAll('#ts-arena-lijst .hb-menu-item')].map(row => ({
+    id: row.dataset.id || ('bout_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
+    naam: row.querySelector('.ts-arena-naam')?.value.trim() || '',
+    tegenstander: row.querySelector('.ts-arena-tegen')?.value.trim() || '',
+    beschrijving: row.querySelector('.ts-arena-desc')?.value.trim() || '',
+    inzet: row.querySelector('.ts-arena-inzet')?.value.trim() || '',
+    prijs: row.querySelector('.ts-arena-prijs')?.value.trim() || '',
+  })).filter(b => b.naam);
+}
+
+window._tsArenaAdd = () => {
+  _tsArena = _tsArenaReadDom();
+  _tsArena.push({ id: 'bout_' + Date.now().toString(36), naam: '', tegenstander: '', beschrijving: '', inzet: '', prijs: '' });
+  _tsRenderArenaLijst();
+};
+
+window._tsArenaRemove = (idx) => {
+  _tsArena = _tsArenaReadDom();
+  _tsArena.splice(idx, 1);
+  _tsRenderArenaLijst();
+};
+
+window._tsArenaUitslag = async (signupId, uitkomst) => {
+  const winst = uitkomst === 'overwinning';
+  if (!confirm(winst ? 'Overwinning bevestigen? Het prijzengeld wordt uitbetaald aan de speler.' : 'Nederlaag registreren voor deze speler?')) return;
+  try {
+    await api.post(`/tweespalt/arena/signup/${signupId}/uitslag`, { uitkomst });
+    await _renderTweespaltDM();
+  } catch (err) { alert('Fout: ' + err.message); }
 };
 
 let _tsOptieCount = 0;
@@ -4394,7 +4474,7 @@ window._tsSettingsSave = async () => {
   const backdropFromSelect = document.getElementById('ts-backdrop-select')?.value || null;
   const backdropId = window._tsBackdropPending || backdropFromSelect || (window.app?.state?.meta?.tweespalt?.backdropId) || null;
   try {
-    await api.saveTweespaltConfig({ naam, imageId, backdropId });
+    await api.saveTweespaltConfig({ naam, imageId, backdropId, arena: _tsArenaReadDom() });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     window._tsBackdropPending = null;
