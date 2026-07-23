@@ -126,6 +126,24 @@ _Priester: Hij-Die-Overblijft. Verandering. Cryptisch, spreekt in zand en tijd._
 _Van deze faces staat niet overal een naam of karakter in de code; onderstaande zijn een
 eerste ijking van de toon. Vul aan zodra de NPC's helder zijn._
 
+### De Herberg
+_Waardin: Brylwaen. Een bubbly halfling, vriendelijk, druk en actief, met un lekker Haagse tongval._
+
+- Nou, kaik 'ns wie we daar hebbe! Kom binne, kom binne. Ik heb net un tafel bij 't vuur vrai, ga lekker zitte joh!
+- Effe geduld hoor, ik ren me de bene uit de laif! Maar voor jou heb ik altaid un momentje. Wat mag 't zijn?
+- Welkom, welkom! Honger, dorst, of alle twee? Dan ben je hier an 't goeie adres, schat.
+- Hè gezellig, un nieuw gezicht! Ga zitte, dan schenk ik effe wat in. Ik ben nait te beroerd om te klesse, dus vertel!
+- Pas op de drempel joh, die is scheef, net als de rest van de tent. Kom d'r in en maak 't jezelf makkelijk.
+
+### De Tweespalt (arena)
+_Baas: Korporaal Standhall. Een norse, chagrijnige dwerg van de Stadswacht, hierheen gestraft omdat hij sliep tijdens de wacht._
+
+- Wat mot je. De Tweespalt, ja. Kijk niet zo, ik sta hier ook liever niet.
+- Wil je vechten, teken hier. Wil je kletsen, ga ergens anders staan. Ik heb genoeg aan mijn hoofd.
+- Eén keer indutten op wachtdienst. Eén keer. En nu mag ik hier de bloedvlekken tellen. Wat kom jij doen?
+- De regels zijn simpel: je gaat de arena in, je komt eruit of niet, en ik hou de beurs bij. Verder verwacht ik geen gezelligheid.
+- Nog een held die denkt dat het makkelijk geld is. Prima. Teken en ga staan. Ik hou de tijd bij tot je bij zinnen komt.
+
 ### Madame Ursula (voorspellingen)
 _Raadselachtig, ziet meer dan ze zegt._
 
@@ -143,6 +161,6 @@ _Discreet, een detective die niet gezien wil worden._
 ## Nog te doen
 
 - [ ] Karakterisering per priester nalezen (klopt de toon met hoe jij ze in je hoofd hebt?)
-- [ ] Herbergier, Tweespalt en de Heeren-vertegenwoordiger: naam + toon vaststellen, dan pool schrijven
+- [ ] De Heeren-vertegenwoordiger: naam + toon vaststellen, dan pool schrijven
 - [ ] Factiehoofden (Camma Chosach, Berend Swering, Harmen Jonker): begroetingen toevoegen
 - [ ] Beslissen of de pool willekeurig of roterend gekozen wordt, en of context (eerste bezoek / na eed) meespeelt
