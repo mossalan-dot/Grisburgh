@@ -127,13 +127,13 @@ _Van deze faces staat niet overal een naam of karakter in de code; onderstaande 
 eerste ijking van de toon. Vul aan zodra de NPC's helder zijn._
 
 ### De Herberg
-_Waardin: Brylwaen. Een bubbly halfling, vriendelijk, druk en actief, met un lekker Haagse tongval._
+_Waardin: Brylwaen. Een bubbly halfling, vriendelijk, druk en actief. Recht voor z'n raap en een tikkeltje plat (het accent doet de DM aan tafel)._
 
-- Nou, kaik 'ns wie we daar hebbe! Kom binne, kom binne. Ik heb net un tafel bij 't vuur vrai, ga lekker zitte joh!
-- Effe geduld hoor, ik ren me de bene uit de laif! Maar voor jou heb ik altaid un momentje. Wat mag 't zijn?
-- Welkom, welkom! Honger, dorst, of alle twee? Dan ben je hier an 't goeie adres, schat.
-- Hè gezellig, un nieuw gezicht! Ga zitte, dan schenk ik effe wat in. Ik ben nait te beroerd om te klesse, dus vertel!
-- Pas op de drempel joh, die is scheef, net als de rest van de tent. Kom d'r in en maak 't jezelf makkelijk.
+- Nou, kijk eens wie we daar hebben! Kom binnen, ga zitten. Ik heb geen tijd voor plichtplegingen, maar voor jou wel. Wat mag het zijn?
+- Ga zitten waar je wil, het is hier geen paleis. Bier, brood, of allebei? Zeg het gewoon, ik lees geen gedachten.
+- Welkom, welkom! Je ziet eruit alsof je een dag niet gegeten hebt. Geen zorgen, dat los ik zo op. Ga zitten.
+- Kom binnen joh, sta niet in de deuropening te dralen. Honger, dorst, of je verhaal kwijt? Ik heb voor alle drie wel oren.
+- Pas op de drempel, die is scheef, net als de helft van mijn gasten tegen sluitingstijd. Kom erin, maak het jezelf makkelijk.
 
 ### De Tweespalt (arena)
 _Baas: Korporaal Standhall. Een norse, chagrijnige dwerg van de Stadswacht, hierheen gestraft omdat hij sliep tijdens de wacht._
