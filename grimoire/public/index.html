@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grimoire</title>
+
+  <!-- Self-hosted fonts (geen CDN) — elk font is een 'hand' (generatie/schrijver)
+       in de familie-grimoire. Van formeel-gegraveerd (oude handen) tot gehaast-
+       gekrabbeld (jonge handen). Gegenereerd door scripts/gen-fonts.js uit @fontsource. -->
+  <link rel="stylesheet" href="/css/fonts.css?v=1">
+  <link rel="stylesheet" href="/css/grimoire.css?v=1">
+</head>
+<body>
+  <!-- Vaste kaarsvlam-gloed over het hele boek (theatraal, subtiel flikkerend). -->
+  <div class="candlelight" aria-hidden="true"></div>
+
+  <!-- Het perkament-boek. JS vult dit met de masthead + spreukpagina's. -->
+  <main id="grimoire" class="grimoire">
+    <div class="loading">Het boek wordt opengeslagen…</div>
+  </main>
+
+  <script type="module" src="/js/grimoire.js?v=1"></script>
+</body>
+</html>
