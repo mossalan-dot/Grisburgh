@@ -86,6 +86,8 @@ const _CO_SKILLS = [
 ];
 let _monsterChapterFilter    = '';
 let _monsterPage             = 0;
+let _encChapterFilter        = '';   // akte-filter voor encounters (net als monsters)
+let _encPage                 = 0;
 let _editingMonsterId        = null;
 let _editingMonsterIsNew     = false;
 let _editingMonsterImageId   = null;
@@ -208,6 +210,8 @@ export function initDmPanel() {
 
     // Encounters
     encNew:             _encNew,
+    encFilterChapter:   _encFilterChapter,
+    encPage:            _encPage_set,
     encEdit:            _encEdit,
     encCancel:          _encCancel,
     encSave:            _encSave,
@@ -336,7 +340,7 @@ export function initDmPanel() {
     akteImpEntityPick: (id, val) => _akteImpEntityPick(id, val),
     akteImpMonField:(id, mi, f, val) => _akteImpMonField(id, mi, f, val),
     akteImpApply:   () => _akteImpApply(),
-    akteToggle:   (ch) => { if (_akteOpen.has(ch)) _akteOpen.delete(ch); else _akteOpen.add(ch); _renderAktes(); },
+    akteToggle:   (ch) => { if (_akteOpen.has(ch)) _akteOpen.delete(ch); else _akteOpen.add(ch); _renderAktes(true); },
     akteSpeel:    (ch) => { const i = (window.app?.state?.meta?.hoofdstukken || {})[ch] || {}; window._speelAkte?.(ch, i.num, i.title || ch); },
     akteBewerk:   (ch) => window._editAkte?.(ch),
     akteVisToggle:(ch, hidden) => window._toggleChapterVisibility?.(ch, hidden),
@@ -621,9 +625,14 @@ function _renderDiensten(subTab) {
 };
 
 // ── Aktes — voorbereiding & regie (verhuisd vanuit het Logboek) ──
-async function _renderAktes() {
+async function _renderAktes(preserveScroll = false) {
   const el = _tabEl('aktes');
   if (!el) return;
+  // Bewaar de scrollpositie bij in-place herrenders (akte-zichtbaarheid togglen of een
+  // akte open/dicht klappen) zodat de DM niet naar boven springt. Vóór de loader
+  // vastleggen — die krimpt de inhoud en reset scrollTop anders al.
+  const scroller = document.getElementById('dm-section-body');
+  const savedScroll = preserveScroll && scroller ? scroller.scrollTop : null;
   el.innerHTML = _dmLoading();
 
   // Archief-data + meta laden zodat de regie-script-secties werken (ook zonder
@@ -637,7 +646,7 @@ async function _renderAktes() {
   const grpName = window._groups?.find(g => g.id === grp)?.name || null;
 
   // Re-render-hook zodat de bestaande akte-functies deze tab verversen.
-  window._onAkteBeheerChange = () => { if (_activeTab === 'aktes') _renderAktes(); };
+  window._onAkteBeheerChange = () => { if (_activeTab === 'aktes') _renderAktes(true); };
 
   const aktes = Object.entries(hk)
     .filter(([, v]) => (v.num ?? 99) < 90)
@@ -678,6 +687,9 @@ async function _renderAktes() {
             </div>`;
           }).join('')}
     </div>`;
+
+  // Herstel de scrollpositie na een in-place herrender (zie preserveScroll hierboven).
+  if (savedScroll != null && scroller) scroller.scrollTop = savedScroll;
 };
 
 function _akteNieuw() {
@@ -1667,7 +1679,9 @@ function _renderRegieBalkItem(item) {
 
   let thumbHtml;
   if (item.type === 'image') {
-    thumbHtml = `<img class="dm-rb-item-img" src="${esc(api.fileUrl(item.fileId))}" loading="lazy" draggable="false">`;
+    // Placeholder-icoon eronder; de afbeelding dekt het af. Ontbreekt/laadt-niet de
+    // afbeelding (bv. geluid-stap), dan blijft het icoon staan i.p.v. een broken-image-?.
+    thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-image">${icon('image')}${item.fileId ? `<img class="dm-rb-item-img" src="${esc(api.fileUrl(item.fileId))}" loading="lazy" draggable="false" onerror="this.remove()">` : ''}</div>`;
   } else if (item.type === 'dungeon') {
     const dIcon = item.roomId ? icon('map-pin') : icon('castle');
     thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-dungeon">${dIcon}</div>`;
@@ -2444,9 +2458,7 @@ async function _loadAndRenderMonsters() {
 function _monsterRow(m) {
   return `
     <div class="dm-monster-row">
-      ${m.imageId
-        ? `<img class="dm-monster-thumb" src="${api.fileUrl(m.imageId)}" alt="">`
-        : `<div class="dm-monster-thumb dm-monster-thumb-empty">${icon('skull')}</div>`}
+      <div class="dm-monster-thumb dm-monster-thumb-empty">${icon('skull')}${m.imageId ? `<img src="${api.fileUrl(m.imageId)}" alt="" onerror="this.remove()">` : ''}</div>
       <div class="dm-monster-info">
         <span class="dm-monster-name">${esc(m.name)}</span>
         <span class="dm-monster-meta">HP ${m.maxHp} · Init ${m.initiative}</span>
@@ -2889,39 +2901,82 @@ async function _renderEncounters() {
   }
 };
 
+const ENC_PAGE_SIZE = 5;
+
+function _encCard(enc) {
+  const akte = enc.akteId ? `<span class="dm-enc-akte">${esc(_hkLabel(enc.akteId))}</span>` : '';
+  const monCount = (enc.monsters || []).reduce((s, r) => s + (r.count || 1), 0);
+  const bdThumb = `<div class="dm-enc-backdrop-thumb dm-enc-backdrop-empty">${icon('image')}${enc.backdropId ? `<img src="${api.fileUrl(enc.backdropId)}" alt="" onerror="this.remove()">` : ''}</div>`;
+  return `
+    <div class="dm-enc-card">
+      ${bdThumb}
+      <div class="dm-enc-card-info">
+        <span class="dm-enc-card-name">${esc(enc.name)}</span>
+        ${akte}
+        <span class="dm-enc-meta">${monCount} monster${monCount !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="dm-enc-card-actions">
+        <button class="script-add-btn" onclick="window.dmPanel.encEdit('${esc(enc.id)}')" title="Bewerken">${icon('pencil')}</button>
+        <button class="script-add-btn" onclick="window.dmPanel.encStart('${esc(enc.id)}')" title="Gevecht starten" style="background:rgba(80,140,80,0.35);border-color:rgba(100,180,100,0.6)">${icon('play')}</button>
+      </div>
+    </div>`;
+}
+
 function _renderEncounterList(el) {
-  const html = _encounters.length === 0
-    ? `<p class="dm-hint">Nog geen encounters. Maak er een aan met +.</p>`
-    : _encounters.map(enc => {
-        const akte = enc.akteId ? `<span class="dm-enc-akte">${esc(_hkLabel(enc.akteId))}</span>` : '';
-        const monCount = (enc.monsters || []).reduce((s, r) => s + (r.count || 1), 0);
-        const bdThumb = enc.backdropId
-          ? `<img class="dm-enc-backdrop-thumb" src="${api.fileUrl(enc.backdropId)}" alt="">`
-          : `<div class="dm-enc-backdrop-thumb dm-enc-backdrop-empty">${icon('image')}</div>`;
-        return `
-          <div class="dm-enc-card">
-            ${bdThumb}
-            <div class="dm-enc-card-info">
-              <span class="dm-enc-card-name">${esc(enc.name)}</span>
-              ${akte}
-              <span class="dm-enc-meta">${monCount} monster${monCount !== 1 ? 's' : ''}</span>
-            </div>
-            <div class="dm-enc-card-actions">
-              <button class="script-add-btn" onclick="window.dmPanel.encEdit('${esc(enc.id)}')" title="Bewerken">${icon('pencil')}</button>
-              <button class="script-add-btn" onclick="window.dmPanel.encStart('${esc(enc.id)}')" title="Gevecht starten" style="background:rgba(80,140,80,0.35);border-color:rgba(100,180,100,0.6)">${icon('play')}</button>
-            </div>
-          </div>`;
-      }).join('');
+  const hk = _metaHk();
+  // Aktes die daadwerkelijk in de encounters voorkomen, op akte-nummer gesorteerd.
+  const usedKeys = [...new Set(_encounters.map(e => e.akteId || '').filter(Boolean))]
+    .sort((a, b) => (hk[a]?.num ?? 99) - (hk[b]?.num ?? 99));
+
+  // Filter op gekozen akte, dan sorteren op akte-nummer en daarbinnen op naam.
+  const filtered = (_encChapterFilter
+    ? _encounters.filter(e => (e.akteId || '') === _encChapterFilter)
+    : _encounters.slice()
+  ).sort((a, b) => {
+    const na = hk[a.akteId]?.num ?? 99, nb = hk[b.akteId]?.num ?? 99;
+    return na !== nb ? na - nb : (a.name || '').localeCompare(b.name || '', 'nl');
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ENC_PAGE_SIZE));
+  if (_encPage >= totalPages) _encPage = totalPages - 1;
+  if (_encPage < 0) _encPage = 0;
+  const pageItems = filtered.slice(_encPage * ENC_PAGE_SIZE, (_encPage + 1) * ENC_PAGE_SIZE);
+
+  let listHtml;
+  if (_encounters.length === 0) {
+    listHtml = `<p class="dm-hint">Nog geen encounters. Maak er een aan met +.</p>`;
+  } else if (filtered.length === 0) {
+    listHtml = `<p class="dm-hint">Geen encounters in dit hoofdstuk.</p>`;
+  } else {
+    listHtml = `<div class="dm-enc-list">${pageItems.map(_encCard).join('')}</div>`;
+  }
+
+  // Paginatie (← →) — net als het monster-tabblad; verschijnt pas bij >1 pagina.
+  const paginationHtml = totalPages > 1 ? `
+    <div class="dm-monster-pagination">
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" ${_encPage === 0 ? 'disabled' : ''}
+        onclick="window.dmPanel.encPage(${_encPage - 1})">←</button>
+      <span class="dm-monster-page-info">${_encPage + 1} / ${totalPages}</span>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" ${_encPage >= totalPages - 1 ? 'disabled' : ''}
+        onclick="window.dmPanel.encPage(${_encPage + 1})">→</button>
+    </div>` : '';
 
   el.innerHTML = `
     <div class="dm-feature-section">
       <div class="dm-feature-row">
-        <span class="dm-feature-title">Encounters</span>
-        <button class="script-icon-btn" onclick="window.dmPanel.encNew()" title="Nieuw encounter">+</button>
+        <select class="dm-select dm-select-sm" style="flex:1" onchange="window.dmPanel.encFilterChapter(this.value)">
+          <option value="">Alle hoofdstukken</option>
+          ${usedKeys.map(k => `<option value="${esc(k)}"${_encChapterFilter === k ? ' selected' : ''}>${esc(_hkLabel(k))}</option>`).join('')}
+        </select>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.encNew()" title="Nieuw encounter">+</button>
       </div>
-      <div class="dm-enc-list">${html}</div>
+      ${listHtml}
+      ${paginationHtml}
     </div>`;
 };
+
+function _encFilterChapter(chapter) { _encChapterFilter = chapter; _encPage = 0; _renderEncounters(); }
+function _encPage_set(page)         { _encPage = page; _renderEncounters(); }
 
 function _renderEncounterEditor(el) {
   const isNew  = _encIsNew;

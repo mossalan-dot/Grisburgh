@@ -1,6 +1,6 @@
 import { api } from './api.js?v=243';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=112";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=50";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=113";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=54";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=13';
 import { renderDungeon } from './render-dungeon.js?v=26';
 import { renderRelatiemap } from './render-relatiemap.js?v=16';
@@ -8,8 +8,8 @@ import { renderProgressie } from './render-progressie.js?v=38';
 import { renderBestiarium } from './render-bestiarium.js?v=15';
 import { renderSpreuken } from './render-spreuken.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=45";
-import { initDmPanel } from "./dm-panel.js?v=112";
+import { initSocket } from "./socket-client.js?v=47";
+import { initDmPanel } from "./dm-panel.js?v=116";
 import './media-picker.js?v=2';
 
 // ── Icon helper ──
@@ -498,16 +498,12 @@ const ARCHIEF_LABELS = {
 };
 
 function updateFab() {
+  // De zwevende +-FAB rechtsonder is vervangen door een icoon-toevoegknop in de
+  // subheader van elke sectie (zie .sbs-add-btn in render-campagne/-archief). Die
+  // botste voor de DM met de d20-knop rechtsonder. FAB blijft in de DOM als dode
+  // fallback, maar wordt altijd verborgen.
   const fab = $('#fab');
-  const editableSections = [...ENTITY_SECTIONS, 'documenten', 'logboek'];
-  // Voor logboek: FAB alleen tonen in de verslagen-subtab, niet in missies of prikbord
-  const logboekSubTabOk = state.activeSection !== 'logboek'
-    || (window._logboekActiveTab || 'verslagen') === 'verslagen';
-  if (state.role === 'dm' && !state.dmPreview && editableSections.includes(state.activeSection) && logboekSubTabOk) {
-    fab.classList.remove('hidden');
-  } else {
-    fab.classList.add('hidden');
-  }
+  if (fab) fab.classList.add('hidden');
 }
 
 function onFabClick() {

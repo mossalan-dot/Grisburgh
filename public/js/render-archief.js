@@ -156,6 +156,7 @@ export async function renderDocumenten() {
           </div>
           <span class="results-count sbs-count" id="doc-results-count">${docs.length} resultaten</span>
           ${window._helpBtn?.('documenten') ?? ''}
+          ${isDM() ? `<button class="sbs-add-btn" onclick="window.app.onFabClick()" title="Nieuw document">${icon('plus')}</button>` : ''}
         </div>
       </div>
       <div class="section-banner-rule"><span class="section-banner-ornament">\u25c6</span></div>
@@ -267,7 +268,8 @@ export async function renderLogboek() {
       ${icon('search', { cls: 'logboek-search-icon' })}
       <input type="text" class="logboek-search-input" id="logboek-search-input"
         placeholder="Zoek in het logboek…" value="${esc(logboekSearch)}"
-        oninput="window._logboekSearch(this.value)">
+        oninput="window._logboekSearch(this.value)"${isDM() ? ' style="padding-right:46px"' : ''}>
+      ${isDM() ? `<button class="sbs-add-btn" onclick="window.app.onFabClick()" title="Nieuwe log-entry" style="position:absolute;right:30px;top:50%;transform:translateY(-50%)">${icon('plus')}</button>` : ''}
     </div>
     <div class="flex-1 overflow-y-auto px-6 pb-6" id="logboek-body">
       ${_buildLogboekBody(visibleEntries, hk)}
@@ -1282,9 +1284,18 @@ function _renderAkteScriptInner(ch, info, chEntries) {
             : item.type === 'dungeon'
               ? icon(item.roomId ? 'map-pin' : 'castle')
               : icon('crossed-swords', { cls: 'icon-gi' });
-        const name  = item.type === 'image' ? (item.caption || 'Afbeelding') : (item.name || '—');
+        // Image-stappen: inline bewerkbaar onderschrift (spelers zien dit bij een reveal).
+        // Andere types tonen hun (niet-bewerkbare) entiteit-/encounter-naam.
+        const nameHtml = item.type === 'image'
+          ? `<input class="script-item-name script-item-name--input" value="${esc(item.caption || '')}" placeholder="Onderschrift…"
+               onchange="window._scriptRename('${esc(ch)}','${esc(item.id)}',this.value)"
+               onkeydown="if(event.key==='Enter'){this.blur();}">`
+          : `<span class="script-item-name">${esc(item.name || '—')}</span>`;
+        // Thumbnail-box met placeholder-icoon eronder: laadt de afbeelding niet (of
+        // ontbreekt fileId, bv. bij een geluid-stap), dan blijft het nette icoon staan
+        // i.p.v. het lelijke browser-"broken image"-vraagteken (onerror verwijdert de img).
         const thumb = item.type === 'image'
-          ? `<img src="${api.fileUrl(item.fileId)}" style="width:40px;height:30px;object-fit:cover;border-radius:3px;flex-shrink:0">`
+          ? `<span class="script-item-thumb">${icon('image', { cls: 'script-item-thumb-ph' })}${item.fileId ? `<img src="${api.fileUrl(item.fileId)}" alt="" onerror="this.remove()">` : ''}</span>`
           : '';
         const hasSnd  = !!item.soundFileId;
         const sndOpen = _scriptSoundOpen.has(item.id);
@@ -1292,7 +1303,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
           <div class="script-item">
             ${thumb}
             <span class="script-item-icon">${itemIcon}</span>
-            <span class="script-item-name">${esc(name)}</span>
+            ${nameHtml}
             ${hasSnd ? `<span class="script-item-snd-chip" title="Geluid: ${esc(item.soundLabel || 'geluid')}${item.soundLoop ? ' (loop)' : ''}">${icon('volume-2')}${item.soundLoop ? ' ⟳' : ''}</span>` : ''}
             <div class="script-item-actions">
               <button class="script-icon-btn${hasSnd ? ' script-icon-btn--snd-on' : ''}${sndOpen ? ' is-active' : ''}"
@@ -1320,7 +1331,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         ${allImages.map(img => {
           const added = addedFileIds.has(img.fileId);
           return `<div style="position:relative;cursor:${added ? 'default' : 'pointer'};opacity:${added ? '.55' : '1'}"
-            ${added ? '' : `onclick="window._scriptAddImage('${esc(ch)}','${esc(img.sessieId)}','${esc(img.fileId)}',${JSON.stringify(img.caption)})"`}>
+            ${added ? '' : `onclick="window._scriptAddImage('${esc(ch)}','${esc(img.sessieId)}','${esc(img.fileId)}','${escJS(img.caption)}')"`}>
             <img src="${api.fileUrl(img.fileId)}" style="width:72px;height:54px;object-fit:cover;border-radius:4px;
               border:2px solid ${added ? 'var(--color-gold-dim)' : 'var(--color-room-border)'}">
             ${added ? `<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
@@ -1580,7 +1591,7 @@ function _renderEntityResults(ch, entities, addedEntityIds, query) {
     const added = addedEntityIds.has(e.id);
     return `<button class="dm-btn dm-btn-sm${added ? ' dm-btn-ghost' : ''}"
       style="text-align:left;padding:3px 8px;${added ? 'opacity:.5' : ''}"
-      ${added ? 'disabled' : `onclick="window._scriptAddEntity('${esc(ch)}','${esc(e._type)}','${esc(e.id)}',${JSON.stringify(e.name || '')})"`}>
+      ${added ? 'disabled' : `onclick="window._scriptAddEntity('${esc(ch)}','${esc(e._type)}','${esc(e.id)}','${escJS(e.name || '')}')"`}>
       ${e._icon || icon('eye')} ${added ? '✓ ' : ''}${esc(e.name)}</button>`;
   }).join('');
 }
@@ -1719,6 +1730,18 @@ window._scriptAddEncounter = async (ch, encounterId, name) => {
 
 window._scriptRemove = async (ch, itemId) => {
   const script = (meta?.hoofdstukken?.[ch]?.script || []).filter(x => x.id !== itemId);
+  await _scriptSave(ch, script);
+};
+
+// Onderschrift van een image-stap hernoemen (spelers zien dit bij een reveal).
+// Raakt alleen deze script-stap, niet de mediabibliotheek-naam.
+window._scriptRename = async (ch, itemId, caption) => {
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  const item = script.find(x => x.id === itemId);
+  if (!item || item.type !== 'image') return;
+  const val = (caption || '').trim();
+  if (val === (item.caption || '')) return; // niets veranderd → geen save/re-render
+  item.caption = val;
   await _scriptSave(ch, script);
 };
 

@@ -617,6 +617,7 @@ async function renderEntitySection(type) {
           ${_showSf ? `<button class="sf-toggle-btn${sfActive ? ' sf-toggle-btn--active' : ''}" onclick="window._toggleSubtypeBar('${type}')" title="Filter op subtype"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : ''}
           <span class="results-count sbs-count">${list.length} resultaten</span>
           ${window._helpBtn?.(type) ?? ''}
+          ${isDM() ? `<button class="sbs-add-btn" onclick="window.app.onFabClick()" title="Nieuw: ${TYPE_META[type].label.toLowerCase()}">${window.icon('plus')}</button>` : ''}
         </div>
       </div>
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
