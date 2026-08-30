@@ -3983,7 +3983,7 @@ function _hbRenderMenuLijst() {
         <input class="dm-input dm-input-sm hb-menu-desc" value="${esc(m.beschrijving || '')}" placeholder="Sfeerbeschrijving (wordt bij bestellen getoond)">
         <div class="hb-menu-item-effect">
           <label class="dm-form-label" style="min-width:auto">Temp HP</label>
-          <input class="dm-input dm-input-sm hb-menu-temphp" type="number" min="0" value="${parseInt(m.tempHp) || 0}" style="max-width:70px">
+          <input class="dm-input dm-input-sm hb-menu-temphp" value="${esc(String(m.tempHp ?? '').trim())}" placeholder="0 of worp bv. 1d6" style="max-width:130px">
           <input class="dm-input dm-input-sm hb-menu-bufflabel" value="${esc(m.buffLabel || '')}" placeholder="Status (bv. Kroegmoed)">
         </div>
         <input class="dm-input dm-input-sm hb-menu-buffdesc" value="${esc(m.buffDesc || '')}" placeholder="Wat de status doet (bv. voordeel op je eerste save)">
@@ -3997,7 +3997,7 @@ function _hbMenuReadDom() {
     naam: row.querySelector('.hb-menu-naam')?.value.trim() || '',
     prijs: row.querySelector('.hb-menu-prijs')?.value.trim() || '',
     beschrijving: row.querySelector('.hb-menu-desc')?.value.trim() || '',
-    tempHp: parseInt(row.querySelector('.hb-menu-temphp')?.value) || 0,
+    tempHp: row.querySelector('.hb-menu-temphp')?.value.trim() || '',
     buffLabel: row.querySelector('.hb-menu-bufflabel')?.value.trim() || '',
     buffDesc: row.querySelector('.hb-menu-buffdesc')?.value.trim() || '',
   })).filter(m => m.naam);
@@ -4005,7 +4005,7 @@ function _hbMenuReadDom() {
 
 window._hbMenuAdd = () => {
   _hbMenu = _hbMenuReadDom();
-  _hbMenu.push({ id: 'menu_' + Date.now().toString(36), naam: '', prijs: '', beschrijving: '', tempHp: 0, buffLabel: '', buffDesc: '' });
+  _hbMenu.push({ id: 'menu_' + Date.now().toString(36), naam: '', prijs: '', beschrijving: '', tempHp: '', buffLabel: '', buffDesc: '' });
   _hbRenderMenuLijst();
 };
 
@@ -4337,6 +4337,10 @@ function _tsRenderArenaLijst() {
           <label class="dm-form-label" style="min-width:auto">Prijs</label>
           <input class="dm-input dm-input-sm ts-arena-prijs" value="${esc(b.prijs || '')}" placeholder="bv. 50 fl">
         </div>
+        <label class="dm-hint" style="display:flex;align-items:center;gap:7px;margin-top:2px;cursor:pointer">
+          <input type="checkbox" class="ts-arena-verborgen" ${b.verborgen ? 'checked' : ''}>
+          Verborgen eindbaas — verschijnt pas nadat alle andere partijen verslagen zijn
+        </label>
       </div>`).join('');
 }
 
@@ -4348,12 +4352,13 @@ function _tsArenaReadDom() {
     beschrijving: row.querySelector('.ts-arena-desc')?.value.trim() || '',
     inzet: row.querySelector('.ts-arena-inzet')?.value.trim() || '',
     prijs: row.querySelector('.ts-arena-prijs')?.value.trim() || '',
+    verborgen: row.querySelector('.ts-arena-verborgen')?.checked || false,
   })).filter(b => b.naam);
 }
 
 window._tsArenaAdd = () => {
   _tsArena = _tsArenaReadDom();
-  _tsArena.push({ id: 'bout_' + Date.now().toString(36), naam: '', tegenstander: '', beschrijving: '', inzet: '', prijs: '' });
+  _tsArena.push({ id: 'bout_' + Date.now().toString(36), naam: '', tegenstander: '', beschrijving: '', inzet: '', prijs: '', verborgen: false });
   _tsRenderArenaLijst();
 };
 

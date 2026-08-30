@@ -7937,9 +7937,17 @@ router.post('/herberg/bestel', attachRole, (req, res) => {
     _deductCurrency(dmState, characterId, prijsCl);
   }
 
-  // Temp HP — telt niet op (D&D: hoogste waarde wint)
+  // Temp HP — vast getal óf een worp (bv. "1d6"); telt niet op (D&D: hoogste waarde wint)
   let tempHp = null;
-  const itemTemp = parseInt(item.tempHp) || 0;
+  let tempRoll = null;
+  const tempSpec = String(item.tempHp ?? '').trim();
+  let itemTemp = 0;
+  if (/^\d+$/.test(tempSpec)) {
+    itemTemp = parseInt(tempSpec, 10) || 0;
+  } else if (/^\d+d\d+$/i.test(tempSpec)) {
+    itemTemp = rollDice(tempSpec);
+    tempRoll = { formule: tempSpec, resultaat: itemTemp };
+  }
   if (itemTemp > 0) {
     if (!dmState.playerHp) dmState.playerHp = {};
     const hp = dmState.playerHp[characterId] || { current: null, max: null, temp: 0 };
@@ -7974,7 +7982,7 @@ router.post('/herberg/bestel', attachRole, (req, res) => {
 
   res.json({
     item: { naam: item.naam, beschrijving: item.beschrijving || '' },
-    currency, tempHp, buff,
+    currency, tempHp, tempRoll, buff,
   });
 });
 
@@ -7985,6 +7993,7 @@ function _tsState(dmState) {
   if (!dmState.tweespalt.events) dmState.tweespalt.events = [];
   if (!dmState.tweespalt.leningen) dmState.tweespalt.leningen = {};
   if (!dmState.tweespalt.arenaSignups) dmState.tweespalt.arenaSignups = [];
+  if (!dmState.tweespalt.arenaVerslagen) dmState.tweespalt.arenaVerslagen = [];
   return dmState.tweespalt;
 }
 
@@ -8120,12 +8129,16 @@ router.get('/tweespalt', attachRole, (req, res) => {
   const config = { naam: tsMeta.naam || 'De Tweespalt', imageId: tsMeta.imageId || null, backdropId: tsMeta.backdropId || null };
 
   // Arena — partijen (DM-config) + inschrijvingen (eigen voor speler, alle voor DM)
-  const arena = Array.isArray(tsMeta.arena) ? tsMeta.arena : [];
+  const arenaAll = Array.isArray(tsMeta.arena) ? tsMeta.arena : [];
+  const gewoneBouts = arenaAll.filter(b => !b.verborgen);
+  const arenaCompleet = gewoneBouts.length > 0 && gewoneBouts.every(b => ts.arenaVerslagen.includes(b.id));
+  // Verborgen eindbaas verschijnt pas als alle gewone partijen verslagen zijn (de DM ziet 'm altijd)
+  const arena = isDM ? arenaAll : arenaAll.filter(b => !b.verborgen || arenaCompleet);
   const arenaSignups = isDM
     ? ts.arenaSignups
     : (characterId ? ts.arenaSignups.filter(s => s.doorId === characterId) : []);
 
-  res.json({ events, currency, lening, nameFirst, nameLast, config, arena, arenaSignups });
+  res.json({ events, currency, lening, nameFirst, nameLast, config, arena, arenaSignups, arenaVerslagen: ts.arenaVerslagen, arenaCompleet });
 });
 
 router.post('/tweespalt/events', requireDM, (req, res) => {
@@ -8288,6 +8301,14 @@ router.post('/tweespalt/arena/:boutId/aanmeld', attachRole, (req, res) => {
 
   const dmState = readDmState();
   const ts = _tsState(dmState);
+  if (ts.arenaVerslagen.includes(bout.id)) {
+    return res.status(400).json({ error: 'Deze tegenstander is al verslagen — de partij is gesloten.' });
+  }
+  if (bout.verborgen) {
+    const gewoon = (Array.isArray(tsMeta.arena) ? tsMeta.arena : []).filter(b => !b.verborgen);
+    const compleet = gewoon.length > 0 && gewoon.every(b => ts.arenaVerslagen.includes(b.id));
+    if (!compleet) return res.status(400).json({ error: 'Dit strijdperk is nog verzegeld.' });
+  }
   if (ts.arenaSignups.some(s => s.doorId === characterId && s.boutId === bout.id && s.status === 'aangemeld')) {
     return res.status(400).json({ error: 'Je staat al ingeschreven voor deze partij.' });
   }
@@ -8340,6 +8361,11 @@ router.post('/tweespalt/arena/signup/:id/uitslag', requireDM, (req, res) => {
       ? `Het volk brult je naam! Je versloeg ${signup.tegenstander || 'je tegenstander'} in "${signup.boutNaam}". De kamprechter telt ${signup.prijs || 'je prijzengeld'} in je hand — welverdiend, kampioen.`
       : `Je vocht met eer in "${signup.boutNaam}", maar ${signup.tegenstander || 'je tegenstander'} was je de baas. Het zand kent geen genade. Sta op en kom sterker terug.`;
     _bezorgBrief(req, signup.doorId, { titel: signup.boutNaam, tekst, afzender: 'De Tweespalt — het strijdperk', thema: 'tweespalt' });
+  }
+
+  // Overwinning: de tegenstander is verslagen → partij eenmalig sluiten
+  if (uitkomst === 'overwinning' && signup.boutId && !ts.arenaVerslagen.includes(signup.boutId)) {
+    ts.arenaVerslagen.push(signup.boutId);
   }
 
   ts.arenaSignups = ts.arenaSignups.filter(s => s.id !== signup.id);
