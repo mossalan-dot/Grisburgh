@@ -236,6 +236,7 @@ export function initDmPanel() {
     // Gevecht — setup (voor start)
     setupTypeChange:   _setupTypeChange,
     setupPresetChange: _setupPresetChange,
+    setupMonsterPick:  _setupMonsterPick,
     setupEntityChange: _setupEntityChange,
     setupAddSubmit:    _setupAddSubmit,
     setupReset:        _setupReset,
@@ -540,8 +541,8 @@ function _renderGevechtEnMonsters(subTab) {
       api.listEntities('personages').then(list => { _setupPersonages = list || []; }).catch(() => {}),
     ]).then(() => {
       if (_tabToParent(_activeTab) !== 'gevecht') return;
-      const isEmpty = !_combat?.active && (_combat?.combatants?.length || 0) === 0;
-      if (isEmpty) _autoAddSpelers().then(() => _renderGevecht());
+      // Niet-actief gevecht → deelnemers syncen met de actieve groep; actief → alleen HP bijwerken.
+      if (!_combat?.active) _syncParty().then(() => _renderGevecht());
       else _syncSpelerHp().then(() => _renderGevecht());
     });
     _renderGevecht();
@@ -2461,7 +2462,7 @@ function _monsterRow(m) {
       <div class="dm-monster-thumb dm-monster-thumb-empty">${icon('skull')}${m.imageId ? `<img src="${api.fileUrl(m.imageId)}" alt="" onerror="this.remove()">` : ''}</div>
       <div class="dm-monster-info">
         <span class="dm-monster-name">${esc(m.name)}</span>
-        <span class="dm-monster-meta">HP ${m.maxHp} · Init ${m.initiative}</span>
+        <span class="dm-monster-meta">HP ${m.maxHp}${(() => { const ac = parseInt(m.statblock?.ac); return Number.isFinite(ac) ? ` · AC ${ac}` : ''; })()}</span>
       </div>
       <div class="dm-monster-actions">
         <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.monsterAddToCombat('${esc(m.id)}')" title="Toevoegen aan gevecht">${icon('swords')}</button>
@@ -2477,8 +2478,15 @@ function _metaHk() {
 };
 
 function _hkLabel(key) {
+  // Consistent "Akte N · Titel" i.p.v. het handmatig getypte short-veld (dat inconsistent
+  // "A5 · …" vs "H6 · …" bevatte). Gebruikt door monster-, encounter- én combat-filters.
   const hk = _metaHk();
-  return hk[key] ? hk[key].short : key;
+  const v = hk[key];
+  if (!v) return key;
+  const title = v.title || (v.short || '').replace(/^[AH]?\d*\s*[·:.\-]?\s*/i, '').trim();
+  if (Number.isFinite(v.num) && title) return `Akte ${v.num} · ${title}`;
+  if (Number.isFinite(v.num))          return `Akte ${v.num}`;
+  return v.short || title || key;
 };
 
 function _hkOptions(selectedKey) {
@@ -2916,8 +2924,8 @@ function _encCard(enc) {
         <span class="dm-enc-meta">${monCount} monster${monCount !== 1 ? 's' : ''}</span>
       </div>
       <div class="dm-enc-card-actions">
-        <button class="script-add-btn" onclick="window.dmPanel.encEdit('${esc(enc.id)}')" title="Bewerken">${icon('pencil')}</button>
-        <button class="script-add-btn" onclick="window.dmPanel.encStart('${esc(enc.id)}')" title="Gevecht starten" style="background:rgba(80,140,80,0.35);border-color:rgba(100,180,100,0.6)">${icon('play')}</button>
+        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.encEdit('${esc(enc.id)}')" title="Bewerken">${icon('pencil')}</button>
+        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.encStart('${esc(enc.id)}')" title="Gevecht starten">${icon('play')}</button>
       </div>
     </div>`;
 }
@@ -3287,11 +3295,21 @@ function _encBackdropClear() {
 // ── Gevecht ──
 
 function _setupTypeChange(type) {
+  // 'Metgezellen' is een actie, geen deelnemer-type: voeg de geadopteerde huisdieren toe
+  // en laat het type ongewijzigd (de dropdown springt bij de re-render terug).
+  if (type === 'companions') { _voegMetgezellen(); return; }
   _setupSelectedType     = type;
   _setupSelectedPresetId  = null;
   _setupSelectedEntityId  = null;
   _renderGevecht();
 };
+
+// Zoekbaar monster kiezen (datalist): resolvet getypte naam → id, hergebruikt _setupPresetChange.
+function _setupMonsterPick(name) {
+  const n = (name || '').trim().toLowerCase();
+  const m = _monsters.find(x => (x.name || '').toLowerCase() === n);
+  _setupPresetChange(m ? m.id : '');
+}
 
 function _setupPresetChange(presetId) {
   _setupSelectedPresetId = presetId || null;
@@ -3377,6 +3395,27 @@ async function _autoAddSpelers() {
   }
   _combat = await api.getCombat().catch(() => _combat);
 };
+
+// Houd de deelnemers in lijn met de actieve groep zolang het gevecht níet actief is:
+// verwijder speler-deelnemers van een ándere groep (bv. blijven staan van een vorige
+// testsessie), en vul aan met de actieve-groep-spelers als er geen speler meer over is.
+async function _syncParty() {
+  if (!_combat) _combat = await api.getCombat().catch(() => null);
+  const grp = window._activeGroupId;
+  const spelers = _setupPersonages.filter(e => e.subtype === 'speler');
+  const foreign = new Set(grp ? spelers.filter(e => e.data?.groep && e.data.groep !== grp).map(e => e.id) : []);
+  let changed = false;
+  for (const c of (_combat?.combatants || [])) {
+    if (c.type === 'player' && c.entityId && foreign.has(c.entityId)) {
+      await api.removeCombatant(c.id).catch(() => {});
+      changed = true;
+    }
+  }
+  if (changed) _combat = await api.getCombat().catch(() => _combat);
+  const stillPlayers = (_combat?.combatants || []).filter(c => c.type === 'player');
+  if (grp && stillPlayers.length === 0) await _autoAddSpelers();
+  await _syncSpelerHp();
+}
 
 async function _setupAddSubmit() {
   const name       = document.getElementById('dm-setup-name')?.value.trim();
@@ -6267,14 +6306,15 @@ function _renderGevecht() {
             <option value="summon"    ${_setupSelectedType === 'summon'    ? 'selected' : ''}>Summon</option>
             <option value="ally"      ${_setupSelectedType === 'ally'      ? 'selected' : ''}>Medestander</option>
             <option value="player"    ${_setupSelectedType === 'player'    ? 'selected' : ''}>Speler</option>
+            <option value="companions">Metgezellen (huisdieren)</option>
           </select>
         </div>
         ${_setupSelectedType === 'monster' && _monsters.length > 0 ? `
-          <select id="dm-setup-preset" class="dm-select"
-              onchange="window.dmPanel.setupPresetChange(this.value)">
-            <option value="">— Handmatig invoeren —</option>
-            ${_monsters.map(m => `<option value="${esc(m.id)}" ${_setupSelectedPresetId === m.id ? 'selected' : ''}>${esc(m.name)} (HP ${m.maxHp})</option>`).join('')}
-          </select>
+          <input id="dm-setup-monster-search" class="dm-input" list="dm-setup-monster-dl" autocomplete="off"
+            placeholder="Zoek een monster… (leeg laten = handmatig)"
+            value="${_setupSelectedPresetId ? esc(_monsters.find(m => m.id === _setupSelectedPresetId)?.name || '') : ''}"
+            onchange="window.dmPanel.setupMonsterPick(this.value)">
+          <datalist id="dm-setup-monster-dl">${_monsters.map(m => `<option value="${esc(m.name)}"></option>`).join('')}</datalist>
         ` : ''}
         ${_setupSelectedType === 'player' && _setupPersonages.some(e => e.subtype === 'speler' && (!window._activeGroupId || e.data?.groep === window._activeGroupId)) ? `
           <select id="dm-setup-entity" class="dm-select"
@@ -6310,7 +6350,6 @@ function _renderGevecht() {
         </div>
       </div>
       <div class="dm-feature-row" style="margin-top:8px">
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.voegMetgezellen()" title="Voeg de geadopteerde huisdieren van de party toe als summons">${icon('paw-print')} Metgezellen</button>
         ${cs.length > 0 ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.setupReset()" title="Reset">↺</button>` : ''}
         <button class="dm-btn dm-btn-primary" style="margin-left:auto"
           onclick="window.dmPanel.combatStart()" ${cs.length === 0 ? 'disabled' : ''} title="Start gevecht">${icon('swords')}</button>
