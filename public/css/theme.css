@@ -16001,8 +16001,10 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background: rgba(196,168,122,0.07);
-  border: 1px solid rgba(196,168,122,0.22);
+  /* Witte kaartvulling + warme rand, gelijk aan .dm-monster-row (was bijna-transparant
+     en viel weg in het perkament). */
+  background: rgba(255,255,255,0.5);
+  border: 1px solid #c4a87a;
   border-radius: 8px;
 }
 
