@@ -7504,13 +7504,7 @@ function _paintMedia() {
   const el = _tabEl('media');
   if (!el) return;
 
-  const lijst    = _mediaFiltered();
   const wezenCnt = _mediaFiles.filter(f => (f.gebruik || []).length === 0).length;
-  const selWezen = [..._mediaSel].filter(id => {
-    const f = _mediaFiles.find(x => x.id === id);
-    return f && (f.gebruik || []).length === 0;
-  });
-
   const sub = `${_mediaFiles.length} bestand${_mediaFiles.length === 1 ? '' : 'en'} · ${wezenCnt} ongebruikt`;
 
   el.innerHTML = `
@@ -7537,15 +7531,31 @@ function _paintMedia() {
         </select>
       </div>
 
-      ${selWezen.length ? `
-        <div class="media-bulkbar">
-          <span>${selWezen.length} ongebruikt geselecteerd</span>
-          <button class="dm-btn dm-btn-sm dm-btn-danger" onclick="window.dmPanel.mediaDeleteSelected()">${icon('trash')} Verwijder geselecteerde wezen</button>
-        </div>` : ''}
-
-      ${lijst.length ? `<div class="media-grid">${lijst.map(_mediaCard).join('')}</div>`
-        : `<div class="dm-hint" style="text-align:center;padding:32px 0">${_mediaFiles.length ? 'Geen bestanden voor dit filter.' : 'Nog geen media geüpload.'}</div>`}
+      <div id="dm-media-results">${_mediaResultsHtml()}</div>
     </div>`;
+}
+
+// Alleen het resultatenblok (bulkbar + grid). Losgetrokken zodat zoeken enkel dít
+// hoeft te verversen — anders wordt bij elke toetsaanslag het hele tabblad (incl. het
+// zoekveld) herbouwd en verlies je de focus (voelde als "eruit gegooid").
+function _mediaResultsHtml() {
+  const lijst = _mediaFiltered();
+  const selWezen = [..._mediaSel].filter(id => {
+    const f = _mediaFiles.find(x => x.id === id);
+    return f && (f.gebruik || []).length === 0;
+  });
+  return `
+    ${selWezen.length ? `
+      <div class="media-bulkbar">
+        <span>${selWezen.length} ongebruikt geselecteerd</span>
+        <button class="dm-btn dm-btn-sm dm-btn-danger" onclick="window.dmPanel.mediaDeleteSelected()">${icon('trash')} Verwijder geselecteerde wezen</button>
+      </div>` : ''}
+    ${lijst.length ? `<div class="media-grid">${lijst.map(_mediaCard).join('')}</div>`
+      : `<div class="dm-hint" style="text-align:center;padding:32px 0">${_mediaFiles.length ? 'Geen bestanden voor dit filter.' : 'Nog geen media geüpload.'}</div>`}`;
+}
+function _paintMediaResults() {
+  const wrap = document.getElementById('dm-media-results');
+  if (wrap) wrap.innerHTML = _mediaResultsHtml();
 }
 
 function _mediaCard(f) {
@@ -7560,7 +7570,7 @@ function _mediaCard(f) {
   if (f.type === 'audio') {
     preview = `<div class="media-card-audio">
          ${icon('volume-2', { cls: 'icon-lg' })}
-         <button class="dm-btn dm-btn-icon dm-btn-sm media-play" onclick="window.dmPanel.mediaPlay('${escJS(f.id)}')" title="Afspelen">${icon('play')}</button>
+         <button class="dm-btn dm-btn-icon dm-btn-sm media-play" onclick="window.dmPanel.mediaPlay('${escJS(f.id)}', this)" title="Afspelen">${icon('play')}</button>
        </div>`;
   } else if (f.type === 'video') {
     preview = `<div class="media-card-video">
@@ -7586,8 +7596,8 @@ function _mediaCard(f) {
         <input type="checkbox" ${sel ? 'checked' : ''} onchange="window.dmPanel.mediaToggleSel('${escJS(f.id)}')"></label>` : ''}
       ${preview}
       <div class="media-card-body">
-        <div class="media-card-naam" title="Hernoemen" onclick="window.dmPanel.mediaRename('${escJS(f.id)}')">
-          ${esc(f.naam)} ${icon('pencil', { cls: 'media-naam-pen' })}
+        <div class="media-card-naam" title="${esc(f.naam)} — klik om te hernoemen" onclick="window.dmPanel.mediaRename('${escJS(f.id)}')">
+          <span class="media-card-naam-text">${esc(f.naam)}</span>${icon('pencil', { cls: 'media-naam-pen' })}
         </div>
         <div class="media-card-meta">${esc(meta)}</div>
         ${isWees
@@ -7601,15 +7611,33 @@ function _mediaCard(f) {
 
 // Audio-afspelen: één tegelijk.
 let _mediaAudioEl = null;
-function _mediaPlay(id) {
+let _mediaPlayingId = null;
+// Zet alle play-knoppen terug op het play-icoon (geen pause-icoon in de sprite → 'square' = stop).
+function _mediaResetPlayBtns() {
+  document.querySelectorAll('.media-play').forEach(b => { b.innerHTML = icon('play'); b.title = 'Afspelen'; });
+}
+function _mediaPlay(id, btn) {
   try {
+    // Klik op het bestand dat al speelt → pauzeren/stoppen.
+    if (_mediaPlayingId === id && _mediaAudioEl && !_mediaAudioEl.paused) {
+      _mediaAudioEl.pause();
+      _mediaPlayingId = null;
+      _mediaResetPlayBtns();
+      return;
+    }
+    // Ander bestand → huidige stoppen, alle knoppen resetten, nieuwe starten.
     if (_mediaAudioEl) { _mediaAudioEl.pause(); _mediaAudioEl = null; }
+    _mediaResetPlayBtns();
     _mediaAudioEl = new Audio(api.fileUrl(id));
+    _mediaPlayingId = id;
+    _mediaAudioEl.addEventListener('ended', () => { _mediaPlayingId = null; _mediaResetPlayBtns(); });
     _mediaAudioEl.play().catch(() => {});
+    if (btn) { btn.innerHTML = icon('square'); btn.title = 'Pauzeren'; }
   } catch {}
 }
 
-function _mediaSearch(v)      { _mediaQuery = v; _paintMedia(); }
+let _mediaSearchT = null;
+function _mediaSearch(v)      { _mediaQuery = v; clearTimeout(_mediaSearchT); _mediaSearchT = setTimeout(_paintMediaResults, 120); }
 function _mediaSetType(t)     { _mediaType = t; _paintMedia(); }
 function _mediaToggleWezen()  { _mediaWezen = !_mediaWezen; _paintMedia(); }
 function _mediaSetSort(s)     { _mediaSort = s; _paintMedia(); }
@@ -7737,7 +7765,7 @@ async function _mediaRenameApply() {
   }
   window.app.closeModal();
   _paintMedia();
-  _showToast(`${done} naam${done === 1 ? '' : 'en'} opgeschoond${fail ? ` (${fail} mislukt)` : ''}.`);
+  _showToast(`${done} ${done === 1 ? 'naam' : 'namen'} opgeschoond${fail ? ` (${fail} mislukt)` : ''}.`);
 }
 
 let _sjabloonMode     = false;

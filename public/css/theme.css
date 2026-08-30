@@ -20333,6 +20333,14 @@ body.kaart-fs-active { overflow: hidden; }
   display: flex;
   align-items: center;
   gap: 4px;
+  min-width: 0; /* laat de naam-tekst krimpen zodat ellipsis werkt */
+}
+/* Lange bestandsnamen netjes afkappen i.p.v. lelijk breken. */
+.media-card-naam-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .media-card-naam:hover { color: #8a6000; }
 .media-naam-pen { width: 11px; height: 11px; opacity: 0; flex-shrink: 0; transition: opacity 0.15s; }
