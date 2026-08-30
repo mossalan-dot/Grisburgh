@@ -446,7 +446,6 @@ function _buildTabs() {
     <button class="dm-tab-btn${activeParent==='rust'     ?' active':''}" data-tab="rust"      onclick="window.dmPanel.switchTab('rust')"      title="Rust — lange & korte rust">${icon('moon')}</button>
     <button class="dm-tab-btn${activeParent==='aktes'    ?' active':''}" data-tab="aktes"     onclick="window.dmPanel.switchTab('aktes')"     title="Aktes — voorbereiding & regie">${icon('clipboard-list')}</button>
     <button class="dm-tab-btn${activeParent==='geluiden' ?' active':''}" data-tab="geluiden"  onclick="window.dmPanel.switchTab('geluiden')"  title="Geluiden">${icon('volume-2')}</button>
-    <button class="dm-tab-btn${activeParent==='spreuken' ?' active':''}" data-tab="spreuken"  onclick="window.dmPanel.switchTab('spreuken')"  title="Spreuken">${icon('open-book',{cls:'icon-gi'})}</button>
     <button class="dm-tab-btn${activeParent==='tafels'   ?' active':''}" data-tab="tafels"    onclick="window.dmPanel.switchTab('tafels')"    title="Willekeur — tafels & namen">${icon('dice',{cls:'icon-gi'})}</button>
     <button class="dm-tab-btn${activeParent==='diensten' ?' active':''}" data-tab="diensten"  onclick="window.dmPanel.switchTab('diensten')"  title="Grisburgh-diensten">${icon('building')}</button>
     <button class="dm-tab-btn${activeParent==='media'    ?' active':''}" data-tab="media"     onclick="window.dmPanel.switchTab('media')"     title="Mediabibliotheek">${icon('image')}</button>
@@ -478,7 +477,6 @@ function _switchTab(tab) {
 
   if (tab === 'rust')      _renderRust();
   if (tab === 'aktes')     _renderAktes();
-  if (tab === 'spreuken')  _renderSpreuken();
   if (tab === 'tafels')    _loadAndRenderTafels();
   if (tab === 'geluiden')  _renderGeluiden();
   if (tab === 'berichten') _renderBerichten();
