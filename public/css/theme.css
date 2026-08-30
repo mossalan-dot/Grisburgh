@@ -14118,10 +14118,12 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 /* ══ Rust-cinematic (lange & korte rust) ════════════════════════════════════ */
 .rust-cinematic-overlay {
   position:fixed; inset:0; z-index:9998; display:flex; align-items:center; justify-content:center; padding:20px;
-  background: radial-gradient(ellipse at 50% 30%, rgba(18,22,40,0.86) 0%, rgba(6,7,14,0.96) 100%);
+  /* Dekkend (was 0.86/0.96) zodat de onderliggende config-pagina niet doorschijnt tijdens
+     de cinematic. De sfeer-backdrop komt subtiel terug via .rust-cinematic--has-bg::before. */
+  background: radial-gradient(ellipse at 50% 30%, rgb(18,22,40) 0%, rgb(6,7,14) 100%);
   animation: brief-cine-in 0.5s ease both; cursor:pointer;
 }
-.rust-cinematic--kort { background: radial-gradient(ellipse at 50% 65%, rgba(40,22,10,0.86) 0%, rgba(12,7,4,0.96) 100%); }
+.rust-cinematic--kort { background: radial-gradient(ellipse at 50% 65%, rgb(40,22,10) 0%, rgb(12,7,4) 100%); }
 .rust-cinematic--has-bg::before {
   content:''; position:absolute; inset:0; background-image:var(--rust-bg); background-size:cover; background-position:center;
   opacity:0.26; filter:saturate(0.85) brightness(0.72); pointer-events:none;

@@ -4165,16 +4165,11 @@ window._rustUploadBg = async (welk, file) => {
   try {
     await api.uploadFile(id, file);
     if (welk === 'veld') _rustPendingVeldBg = id; else _rustPendingKorteBg = id;
-    const prevId = welk === 'veld' ? 'rust-veld-preview' : 'rust-korte-preview';
-    let img = document.getElementById(prevId);
-    if (img) { img.src = api.fileUrl(id); }
-    else {
-      const row = document.querySelector(`[onchange*="_rustUploadBg('${welk}'"]`)?.closest('.dm-form-row');
-      if (row) {
-        img = document.createElement('img'); img.id = prevId; img.src = api.fileUrl(id);
-        img.style.cssText = 'width:100%;max-height:90px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)';
-        row.querySelector('label')?.before(img);
-      }
+    // Geen voorbeeld nodig — alleen aangeven dat er een (nieuwe) afbeelding klaarstaat.
+    const statusEl = document.getElementById(`rust-${welk}-status`);
+    if (statusEl) {
+      statusEl.style.color = '#6a9050';
+      statusEl.innerHTML = `${icon('check')} Nieuwe afbeelding — nog opslaan`;
     }
   } catch (err) { alert('Upload mislukt: ' + err.message); }
 };
@@ -6397,21 +6392,22 @@ async function _renderRust() {
 
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Achtergrond — lange rust buiten (veld)</label>
-        ${rustCfg.veldBackdropId ? `<img id="rust-veld-preview" src="${api.fileUrl(rustCfg.veldBackdropId)}"
-          style="width:100%;max-height:90px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : ''}
-        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">${icon('camera')}
-          <input type="file" accept="image/*" class="hidden" onchange="window._rustUploadBg('veld', this.files[0])">
-        </label>
+        <div class="dm-feature-row">
+          <label class="dm-btn dm-btn-ghost dm-btn-sm" style="cursor:pointer">${icon('camera')} ${rustCfg.veldBackdropId ? 'Vervang' : 'Kies afbeelding'}
+            <input type="file" accept="image/*" class="hidden" onchange="window._rustUploadBg('veld', this.files[0])">
+          </label>
+          <span id="rust-veld-status" class="dm-hint" style="display:inline-flex;align-items:center;gap:3px${rustCfg.veldBackdropId ? ';color:#6a9050' : ''}">${rustCfg.veldBackdropId ? icon('check') + ' Ingesteld' : 'Nog geen afbeelding'}</span>
+        </div>
       </div>
 
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Achtergrond — korte rust</label>
-        ${rustCfg.korteRustBackdropId ? `<img id="rust-korte-preview" src="${api.fileUrl(rustCfg.korteRustBackdropId)}"
-          style="width:100%;max-height:90px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.3)">` : ''}
-        <label class="dm-btn dm-btn-ghost" style="cursor:pointer;align-self:flex-start">${icon('camera')}
-          <input type="file" accept="image/*" class="hidden" onchange="window._rustUploadBg('korte', this.files[0])">
-        </label>
-        <span class="dm-hint" style="font-size:11px">De herberg gebruikt automatisch zijn eigen achtergrond (Diensten → ${esc(herbergNaam)}).</span>
+        <div class="dm-feature-row">
+          <label class="dm-btn dm-btn-ghost dm-btn-sm" style="cursor:pointer">${icon('camera')} ${rustCfg.korteRustBackdropId ? 'Vervang' : 'Kies afbeelding'}
+            <input type="file" accept="image/*" class="hidden" onchange="window._rustUploadBg('korte', this.files[0])">
+          </label>
+          <span id="rust-korte-status" class="dm-hint" style="display:inline-flex;align-items:center;gap:3px${rustCfg.korteRustBackdropId ? ';color:#6a9050' : ''}">${rustCfg.korteRustBackdropId ? icon('check') + ' Ingesteld' : 'Nog geen afbeelding'}</span>
+        </div>
       </div>
 
       <div class="dm-form-row">
