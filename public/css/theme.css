@@ -4132,6 +4132,21 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   text-overflow: clip;
   white-space: normal;
 }
+/* Sleep-handvat om script-stappen te herordenen (native drag). */
+.script-item-grip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  cursor: grab;
+  color: rgba(120, 90, 50, 0.4);
+  padding: 0 1px;
+}
+.script-item-grip:hover  { color: rgba(120, 90, 50, 0.8); }
+.script-item-grip:active { cursor: grabbing; }
+.script-item-wrap--dragging { opacity: 0.45; }
+/* Goud invoeglijntje boven/onder de rij waar losgelaten wordt. */
+.script-item-wrap--drop-before .script-item { box-shadow: inset 0 2px 0 var(--color-gold, #b8860b); }
+.script-item-wrap--drop-after  .script-item { box-shadow: inset 0 -2px 0 var(--color-gold, #b8860b); }
 .script-item-actions {
   display: flex;
   gap: 2px;
@@ -6999,64 +7014,40 @@ details.player-dash-collapsible[open] > summary {
 
 
 /* ── Geheim-badge op personagekaart (DM-only) ── */
-.secret-badge {
+/* Geheim-badge linksboven op de kaart (vervangt de oude onderbalk die de roddels
+   overlapte). DM ziet 'm altijd bij een geheim (slot = verborgen, oog = onthuld,
+   klikbaar om te wisselen); een speler ziet 'm alleen als het onthuld is (oog, info).
+   Directe child van .entity-card i.p.v. .card-img-wrap, zodat hij ook op kaarten
+   zonder afbeelding verschijnt. */
+.card-secret-badge {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  top: 6px;
+  left: 6px;
+  z-index: 30;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 5px 10px;
-  font-family: 'Cinzel', serif;
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  border-radius: 6px;
   background: rgba(18,9,2,0.78);
-  color: #9a8060;
-  border-top: 1px solid rgba(106,72,32,0.4);
-  border-radius: 0 0 8px 8px;
+  color: #c9a86a;
+  border: 1px solid rgba(106,72,32,0.55);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  z-index: 10;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
 }
-.secret-badge:hover {
-  background: rgba(18,9,2,0.93);
-  color: #d4b888;
+.card-secret-badge .icon { width: 14px; height: 14px; }
+.card-secret-badge:hover { background: rgba(18,9,2,0.93); color: #e8cf9a; }
+.card-secret-badge:active { transform: scale(0.92); }
+/* Onthuld: goudkleurig zodat DM én speler duidelijk zien dat het zichtbaar is. */
+.card-secret-badge--revealed {
+  background: rgba(196,148,10,0.9);
+  border-color: rgba(230,190,80,0.75);
+  color: #2a1a08;
 }
-.secret-badge--revealed {
-  background: rgba(196,148,10,0.18);
-  border-top-color: rgba(196,148,10,0.35);
-  color: #c4930a;
-}
-.secret-badge--revealed:hover {
-  background: rgba(196,148,10,0.28);
-  color: #f0c040;
-}
-.secret-badge--player {
-  cursor: default;
-  pointer-events: none;
-}
-/* Geheim onthuld-balk voor spelers — in flex flow (niet absoluut) */
-.player-secret-reveal-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 5px 10px;
-  font-family: 'Cinzel', serif;
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: rgba(196,148,10,0.18);
-  color: #c4930a;
-  border-top: 1px solid rgba(196,148,10,0.35);
-  border-radius: 0 0 8px 8px;
-  flex-shrink: 0;
-}
+.card-secret-badge--revealed:hover { background: rgba(214,172,42,0.96); color: #1a1000; }
+.card-secret-badge--player { cursor: default; pointer-events: none; }
 .attunement-badge {
   display: inline-block;
   margin: 4px 8px 2px;

@@ -6326,7 +6326,9 @@ async function _renderRust() {
   el.innerHTML = _dmLoading('Laden…');
   const rustCfg = window.app?.state?.meta?.rust || {};
   let tables = [];
-  try { tables = ((await api.listTables())?.tables || []).filter(t => t.type === 'weighted'); } catch { tables = []; }
+  // api.listTables() geeft een kále array terug (net als in de Tafels-tab), niet { tables: [...] };
+  // de oude `?.tables` liet de dropdown daarom altijd leeg → koppeling leek weg (en Opslaan wiste 'm).
+  try { tables = ((await api.listTables()) || []).filter(t => t.type === 'weighted'); } catch { tables = []; }
   _rustPendingVeldBg = null;
   _rustPendingKorteBg = null;
   const herbergNaam = window.app?.state?.meta?.herberg?.naam || 'De herberg';

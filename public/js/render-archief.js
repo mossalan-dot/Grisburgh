@@ -1244,6 +1244,9 @@ window._speelAkte = async (ch, num, title) => {
 
 // ── Regie-script helpers ──
 
+// Sleep-handvat (6-punts grip) — icons.svg heeft geen grip, dus inline.
+const GRIP_SVG = `<svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true"><circle cx="2.5" cy="3" r="1.3"/><circle cx="7.5" cy="3" r="1.3"/><circle cx="2.5" cy="8" r="1.3"/><circle cx="7.5" cy="8" r="1.3"/><circle cx="2.5" cy="13" r="1.3"/><circle cx="7.5" cy="13" r="1.3"/></svg>`;
+
 function _renderAkteScript(ch, info, chEntries) {
   return `<div class="logboek-chapter-script dm-only" id="logboek-script-section-${esc(ch)}">
     ${_renderAkteScriptInner(ch, info, chEntries)}
@@ -1299,8 +1302,13 @@ function _renderAkteScriptInner(ch, info, chEntries) {
           : '';
         const hasSnd  = !!item.soundFileId;
         const sndOpen = _scriptSoundOpen.has(item.id);
-        return `<div class="script-item-wrap">
+        return `<div class="script-item-wrap"
+            ondragover="window._scriptDragOver(event,'${esc(item.id)}')"
+            ondrop="window._scriptDrop(event,'${esc(ch)}','${esc(item.id)}')">
           <div class="script-item">
+            <span class="script-item-grip" draggable="true" title="Sleep om te herordenen"
+              ondragstart="window._scriptDragStart(event,'${esc(ch)}','${esc(item.id)}')"
+              ondragend="window._scriptDragEnd(event)">${GRIP_SVG}</span>
             ${thumb}
             <span class="script-item-icon">${itemIcon}</span>
             ${nameHtml}
@@ -1308,10 +1316,6 @@ function _renderAkteScriptInner(ch, info, chEntries) {
             <div class="script-item-actions">
               <button class="script-icon-btn${hasSnd ? ' script-icon-btn--snd-on' : ''}${sndOpen ? ' is-active' : ''}"
                 onclick="window._scriptToggleSoundEditor('${esc(ch)}','${esc(item.id)}')" title="Geluid bij reveal">${icon('volume-2')}</button>
-              ${!isFirst ? `<button class="script-icon-btn"
-                onclick="window._scriptMove('${esc(ch)}','${esc(item.id)}',-1)" title="Omhoog">↑</button>` : ''}
-              ${!isLast  ? `<button class="script-icon-btn"
-                onclick="window._scriptMove('${esc(ch)}','${esc(item.id)}',1)" title="Omlaag">↓</button>` : ''}
               <button class="script-icon-btn script-icon-btn--del"
                 onclick="window._scriptRemove('${esc(ch)}','${esc(item.id)}')" title="Verwijderen">${icon('x')}</button>
             </div>
@@ -1344,7 +1348,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
     const entityList = pickerState.entities;
     const dlOptions = entityList === undefined ? '' :
       entityList.filter(e => !addedEntityIds.has(e.id))
-        .map(e => `<option value="${esc((e._icon || '') + ' ' + (e.name || ''))}"></option>`).join('');
+        .map(e => `<option value="${esc(e.name || '')}"></option>`).join('');
     pickerHtml = `
       <input class="dm-input" type="text"
         list="script-entity-dl-${esc(ch)}"
@@ -1626,7 +1630,7 @@ async function _scriptLoadAllEntities(ch) {
           .filter(x => x.type === 'entity').map(x => x.entityId)
       );
       dlEl.innerHTML = allEntities.filter(e => !addedEntityIds.has(e.id))
-        .map(e => `<option value="${esc((e._icon || '') + ' ' + (e.name || ''))}"></option>`).join('');
+        .map(e => `<option value="${esc(e.name || '')}"></option>`).join('');
       inputEl.disabled = false;
       inputEl.placeholder = 'Zoek en selecteer een kaartje…';
       inputEl.focus();
@@ -1752,6 +1756,52 @@ window._scriptMove = async (ch, itemId, dir) => {
   const newIdx = idx + dir;
   if (newIdx < 0 || newIdx >= script.length) return;
   [script[idx], script[newIdx]] = [script[newIdx], script[idx]];
+  await _scriptSave(ch, script);
+};
+
+// ── Drag-and-drop herordenen van script-stappen (native HTML5; via het grip-handvat
+// zodat het bewerkbare onderschrift-veld niet in de weg zit). Alleen desktop/muis. ──
+let _scriptDragId = null;
+function _scriptDragClear() {
+  document.querySelectorAll('.script-item-wrap--dragging, .script-item-wrap--drop-before, .script-item-wrap--drop-after')
+    .forEach(el => el.classList.remove('script-item-wrap--dragging', 'script-item-wrap--drop-before', 'script-item-wrap--drop-after'));
+}
+window._scriptDragStart = (ev, ch, id) => {
+  _scriptDragId = id;
+  const wrap = ev.target.closest('.script-item-wrap');
+  wrap?.classList.add('script-item-wrap--dragging');
+  ev.dataTransfer.effectAllowed = 'move';
+  ev.dataTransfer.setData('text/plain', id);   // Firefox vereist data
+  if (wrap) ev.dataTransfer.setDragImage(wrap, 16, 16);
+};
+window._scriptDragEnd = () => { _scriptDragId = null; _scriptDragClear(); };
+window._scriptDragOver = (ev, overId) => {
+  if (!_scriptDragId || _scriptDragId === overId) return;
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = 'move';
+  const wrap = ev.currentTarget;
+  const rect = wrap.getBoundingClientRect();
+  const before = (ev.clientY - rect.top) < rect.height / 2;
+  document.querySelectorAll('.script-item-wrap--drop-before, .script-item-wrap--drop-after')
+    .forEach(el => el.classList.remove('script-item-wrap--drop-before', 'script-item-wrap--drop-after'));
+  wrap.classList.add(before ? 'script-item-wrap--drop-before' : 'script-item-wrap--drop-after');
+};
+window._scriptDrop = async (ev, ch, overId) => {
+  ev.preventDefault();
+  const dragId = _scriptDragId;
+  const wrap = ev.currentTarget;
+  const rect = wrap.getBoundingClientRect();
+  const before = (ev.clientY - rect.top) < rect.height / 2;
+  _scriptDragId = null;
+  _scriptDragClear();
+  if (!dragId || dragId === overId) return;
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  const from = script.findIndex(x => x.id === dragId);
+  if (from < 0) return;
+  const [moved] = script.splice(from, 1);            // eerst weghalen …
+  const to = script.findIndex(x => x.id === overId); // … dan doel-index opnieuw bepalen
+  if (to < 0) return;
+  script.splice(before ? to : to + 1, 0, moved);
   await _scriptSave(ch, script);
 };
 

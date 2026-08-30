@@ -721,6 +721,8 @@ function _refreshGrid(type, list, container) {
   const grid = container.querySelector('.cards-grid');
   if (!grid) return;
   const savedScrollY = window.scrollY;
+  const savedGridScroll = grid.scrollTop; // de grid scrollt intern (overflow-y-auto); anders
+                                          // springt hij naar boven bij bv. een geheim togglen
   const totalCount = (entities[type] || []).length;
   const isSearch = !!(searchQueries[type]);
   grid.innerHTML = list.length === 0 ? `
@@ -736,10 +738,12 @@ function _refreshGrid(type, list, container) {
         : ''}
     </div>
   ` : list.map(e => renderCard(type, e)).join('');
+  grid.scrollTop = savedGridScroll; // meteen herstellen (layout is al berekend)
   requestAnimationFrame(() => {
     window.scrollTo(0, savedScrollY);
     grid.querySelectorAll('[data-fittext]').forEach(_fitText);
     _attachCardTilt(grid);
+    grid.scrollTop = savedGridScroll; // als láátste, ná fittext (dat celhoogtes kan wijzigen)
   });
   const countEl = container.querySelector('.results-count');
   if (countEl) countEl.textContent = `${list.length} resultaten`;
@@ -928,6 +932,13 @@ function renderCard(type, e) {
             title="Verwijderen">${icon('x')}</button>
         </div>
       ` : ''}
+      ${e.data?.geheim && (isDM() || e._secretReveal) ? (isDM()
+        ? `<button class="card-secret-badge${e._secretReveal ? ' card-secret-badge--revealed' : ''}"
+             onclick="event.stopPropagation();window._toggleSecretCard('${type}','${e.id}')"
+             title="${e._secretReveal ? 'Geheim zichtbaar voor spelers — klik om te verbergen' : 'Geheim verborgen voor spelers — klik om te onthullen'}">
+             ${e._secretReveal ? icon('eye') : icon('lock')}</button>`
+        : `<span class="card-secret-badge card-secret-badge--revealed card-secret-badge--player" title="Geheim onthuld">${icon('eye')}</span>`
+      ) : ''}
       <div class="card-accent bar-${type}"></div>
       <div class="card-img-wrap">
         <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbForEntity(e)}"
@@ -988,15 +999,6 @@ function renderCard(type, e) {
         </div>
       ` : ''}
       ${type === 'voorwerpen' ? _itemOwnershipBadge(e.id) : ''}
-      ${e.data?.geheim && isDM() ? `
-        <button class="secret-badge${e._secretReveal ? ' secret-badge--revealed' : ''}"
-          onclick="event.stopPropagation();window._toggleSecretCard('${type}','${e.id}')"
-          title="${e._secretReveal ? 'Geheim zichtbaar voor spelers — klik om te verbergen' : 'Geheim verborgen voor spelers — klik om te onthullen'}">
-          ${e._secretReveal ? icon('eye') + ' Onthuld' : icon('lock') + ' Geheim'}
-        </button>
-      ` : e.data?.geheim && e._secretReveal ? `
-        <div class="player-secret-reveal-bar" title="Geheim onthuld">${icon('eye')} Onthuld</div>
-      ` : ''}
     </div>
   `;
 }
