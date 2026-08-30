@@ -45,6 +45,11 @@ body::before {
   --color-ink-faint:     #b09870;
   --color-gold-bright:   #b8860b;
   --color-gold-dim:      #9a7008;
+  /* --color-gold was nergens gedefinieerd → var(--color-gold) zonder fallback
+     viel terug op de (donkere) geërfde tekstkleur. Bv. de "Bestel"-knop in de
+     herberg werd daardoor onleesbaar op de donkere achtergrond. Waarde gelijk
+     aan de fallbacks die elders al gebruikt werden (#b8860b). */
+  --color-gold:          #b8860b;
 }
 
 /* Utility */
@@ -10872,6 +10877,28 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .ts-arena-kaart-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
 .ts-arena-kaart-prijs { font-size: 0.82rem; color: rgba(212,180,110,0.9); }
 .ts-arena-kaart-prijs strong { color: #f2e0b0; }
+.ts-arena-kaart.is-verslagen { opacity: 0.62; filter: grayscale(0.4); border-color: rgba(150,60,50,0.4); }
+.ts-arena-kaart.is-verslagen .ts-arena-kaart-naam { text-decoration: line-through; text-decoration-color: rgba(180,80,70,0.6); }
+.ts-arena-verslagen-badge {
+  display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
+  font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
+  color: #d89a8e; background: rgba(120,40,34,0.28);
+  border: 1px solid rgba(180,80,70,0.45); border-radius: 5px; padding: 2px 7px;
+}
+.ts-arena-verslagen-badge svg { width: 13px; height: 13px; }
+.ts-arena-kaart.is-legendarisch {
+  border-color: rgba(226,190,110,0.65);
+  background: linear-gradient(135deg, rgba(60,40,12,0.72), rgba(40,24,6,0.72));
+  box-shadow: 0 0 14px rgba(226,190,110,0.28), inset 0 0 0 1px rgba(226,190,110,0.18);
+}
+.ts-arena-kaart.is-legendarisch .ts-arena-kaart-naam { color: #f6dfa0; text-shadow: 0 0 8px rgba(226,190,110,0.4); }
+.ts-arena-legend-badge {
+  display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
+  font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
+  color: #2a1a08; background: linear-gradient(180deg, #f0d38a, #d4af6e);
+  border-radius: 5px; padding: 2px 8px;
+}
+.ts-arena-legend-badge svg { width: 13px; height: 13px; }
 
 /* Antwoord bubble */
 .herberg-antwoord { width: 100%; }
@@ -18668,6 +18695,23 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 @media (min-width: 481px) {
   .tab-mob-icon { display: none; }
 }
+
+/* ──────────────────────────────────────────────────────────────────
+   Compacte header (JS-gestuurd via _fitHeader in app.js): zodra de
+   volledige tab-labels niet meer naast titel + acties passen, schakelt
+   de nav naar alleen-iconen. Tab-aantal-onafhankelijk (de DM ziet meer
+   tabs dan een speler), dus geen vaste media-breakpoint maar een meting.
+   Hogere specificiteit (0,2,0) dan de desktop-regel hierboven (0,1,0),
+   zodat tab-mob-icon weer verschijnt voor Archief/Logboek (hun icoon
+   zit anders ín het verborgen label).
+   ────────────────────────────────────────────────────────────────── */
+.app-header--compact .tab-label      { display: none; }
+.app-header--compact .tab-mob-icon   { display: inline-block; }
+.app-header--compact .app-search-label { display: none; }
+.app-header--compact .app-search-btn { padding: 0 10px; }
+.app-header--compact .dm-seal-label  { display: none; }
+.app-header--compact .dm-seal        { padding: 0 10px; }
+
 /* ── Dice formula: collapsible ── */
 .dice-formula { display: none; }
 .dice-formula--open { display: flex; gap: 6px; margin: 4px 13px 0; }

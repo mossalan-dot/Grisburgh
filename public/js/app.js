@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=15';
 import { renderSpreuken } from './render-spreuken.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=45";
-import { initDmPanel } from "./dm-panel.js?v=110";
+import { initDmPanel } from "./dm-panel.js?v=112";
 import './media-picker.js?v=2';
 
 // ── Icon helper ──
@@ -216,6 +216,34 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#logboek-nav-group')) closeLogboekMenu();
 });
 
+// ── Header-fit: laat de nav naar alleen-iconen schakelen zodra de volledige
+// tab-labels niet meer naast de titel + acties passen. Omdat het tab-aantal
+// verschilt (de DM ziet Spelers/Meesterkamer, een speler niet), meten we de
+// werkelijke contentbreedte i.p.v. een vaste breakpoint te kiezen. Onder 768px
+// laten we de bestaande mobiele CSS (scroll/iconen) het werk doen.
+let _fitHeaderRaf = null;
+function _fitHeader() {
+  const header = document.getElementById('app-header');
+  const nav    = document.getElementById('section-tabs');
+  if (!header || !nav) return;
+  // Altijd eerst terug naar de volledige staat meten, anders meet je de al
+  // ingeklapte breedte en krijg je geflikker.
+  header.classList.remove('app-header--compact');
+  if (window.innerWidth <= 768) return; // mobiel: eigen CSS-layout
+  let content = 0;
+  for (const child of nav.children) {
+    if (child.offsetParent === null) continue; // verborgen tab overslaan
+    content += child.offsetWidth;
+  }
+  // +2px marge tegen sub-pixel afronding.
+  if (content > nav.clientWidth + 2) header.classList.add('app-header--compact');
+}
+function _scheduleFitHeader() {
+  if (_fitHeaderRaf) return;
+  _fitHeaderRaf = requestAnimationFrame(() => { _fitHeaderRaf = null; _fitHeader(); });
+}
+window.addEventListener('resize', _scheduleFitHeader);
+
 function switchSection(section) {
   // Sluit overlays als ze open zijn — position:fixed volgt de sectie niet
   const _sbOv = document.getElementById('sb-overlay');
@@ -319,6 +347,7 @@ function switchSection(section) {
   refreshSection(section);
   updateFab();
   _updateDiscoveryChip();
+  _scheduleFitHeader(); // actieve-tab-label kan van breedte wisselen (bv. "Archief" → "Personages")
   // #2: dienst-ambiance — start de lokale sfeerloop van deze dienst, of stop 'm.
   if (_DIENST_AMB_LABELS[section]) {
     window.soundManager?.setServiceAmbiance?.(section, state.meta?.[section]?.naam || _DIENST_AMB_LABELS[section]);
@@ -858,6 +887,7 @@ function applyRole() {
   if (state.role === 'dm' || state.playerName) hideLanding();
 
   updateFab();
+  _scheduleFitHeader(); // rolwissel toont/verbergt tabs → herbereken de fit
 }
 
 function dmToggleClick() {
@@ -9065,6 +9095,8 @@ async function init() {
   } else if (state.role === 'player' && !state.playerName) {
     showLanding();
   }
+
+  _scheduleFitHeader(); // eerste meting nadat de header gerenderd is
 }
 
 // ── iPad Display Mode ──
@@ -9359,8 +9391,9 @@ async function renderHerberg() {
 // Eén menukaartje in "Aan de tap"
 function _herbergMenuKaart(m) {
   const effecten = [];
-  const tHp = parseInt(m.tempHp) || 0;
-  if (tHp > 0) effecten.push(`+${tHp} temp HP`);
+  const tempSpec = String(m.tempHp ?? '').trim();
+  if (/^\d+d\d+$/i.test(tempSpec)) effecten.push(`${tempSpec} temp HP`);
+  else { const tHp = parseInt(tempSpec, 10) || 0; if (tHp > 0) effecten.push(`+${tHp} temp HP`); }
   if (m.buffLabel) effecten.push(esc(m.buffLabel));
   return `
     <div class="herberg-menu-kaart">
@@ -9390,7 +9423,8 @@ window._herbergBestel = async (itemId) => {
   try {
     const res = await api.post('/herberg/bestel', { itemId });
     const effecten = [];
-    if (res.tempHp) effecten.push(`+${res.tempHp} temp HP`);
+    if (res.tempRoll) effecten.push(`${icon('dice')} ${esc(res.tempRoll.formule)} → ${res.tempRoll.resultaat} temp HP`);
+    else if (res.tempHp) effecten.push(`+${res.tempHp} temp HP`);
     if (res.buff) effecten.push(esc(res.buff.label));
     if (resEl) {
       resEl.classList.remove('hidden');
@@ -10366,7 +10400,7 @@ async function renderTweespalt() {
     return;
   }
 
-  const { events = [], currency, lening, nameFirst = [], nameLast = [], config = {}, arena = [], arenaSignups = [] } = data;
+  const { events = [], currency, lening, nameFirst = [], nameLast = [], config = {}, arena = [], arenaSignups = [], arenaVerslagen = [] } = data;
   const openEvents = events.filter(e => e.status === 'open');
   const afgerondEvents = events.filter(e => e.status === 'afgerond');
 
@@ -10494,7 +10528,7 @@ async function renderTweespalt() {
               </div>` : ''}
             ${arena.length === 0
               ? `<p class="herberg-leeg">Er staan nu geen partijen op het programma.</p>`
-              : arena.map(b => _arenaBoutKaart(b, arenaSignups)).join('')}`;
+              : arena.map(b => _arenaBoutKaart(b, arenaSignups, arenaVerslagen)).join('')}`;
 
           const heeftArena = arena.length > 0 || arenaSignups.length > 0;
           if (!heeftArena) return weddenPaneel;
@@ -10511,20 +10545,26 @@ async function renderTweespalt() {
 }
 
 // Eén arenapartij-kaartje
-function _arenaBoutKaart(b, signups) {
+function _arenaBoutKaart(b, signups, verslagenIds) {
   const ingeschreven = (signups || []).some(s => s.boutId === b.id);
+  const verslagen = (verslagenIds || []).includes(b.id);
+  const legend = !!b.verborgen && !verslagen;
   return `
-    <div class="ts-arena-kaart">
+    <div class="ts-arena-kaart${verslagen ? ' is-verslagen' : ''}${legend ? ' is-legendarisch' : ''}">
       <div class="ts-arena-kaart-head">
         <span class="ts-arena-kaart-naam">${esc(b.naam || 'Arenapartij')}</span>
         ${b.tegenstander ? `<span class="ts-arena-kaart-tegen">tegen ${esc(b.tegenstander)}</span>` : ''}
+        ${verslagen ? `<span class="ts-arena-verslagen-badge">${icon('skull')} Verslagen</span>`
+          : legend ? `<span class="ts-arena-legend-badge">${icon('star')} Ontgrendeld</span>` : ''}
       </div>
       ${b.beschrijving ? `<p class="ts-arena-kaart-desc">${esc(b.beschrijving)}</p>` : ''}
       <div class="ts-arena-kaart-foot">
         <span class="ts-arena-kaart-prijs">${b.inzet ? `Inleg ${esc(b.inzet)} · ` : ''}Prijs: <strong>${esc(b.prijs || '—')}</strong></span>
-        ${ingeschreven
-          ? `<button class="ts-wedden-btn" disabled style="opacity:.55">Ingeschreven</button>`
-          : `<button class="ts-wedden-btn" onclick="window._arenaAanmeld('${esc(b.id)}')">Betreed het strijdperk</button>`}
+        ${verslagen
+          ? `<button class="ts-wedden-btn" disabled style="opacity:.5">Al verslagen</button>`
+          : ingeschreven
+            ? `<button class="ts-wedden-btn" disabled style="opacity:.55">Ingeschreven</button>`
+            : `<button class="ts-wedden-btn" onclick="window._arenaAanmeld('${esc(b.id)}')">Betreed het strijdperk</button>`}
       </div>
     </div>`;
 }
