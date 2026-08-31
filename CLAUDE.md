@@ -126,10 +126,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=378   app.js?v=516   sound-manager.js?v=6
-app.js      : api.js?v=243      render-campagne.js?v=116   render-archief.js?v=61
+index.html  : theme.css?v=378   app.js?v=517   sound-manager.js?v=6
+app.js      : api.js?v=243      render-campagne.js?v=116   render-archief.js?v=62
               render-kaart.js?v=13  render-dungeon.js?v=26  render-relatiemap.js?v=16
-              render-progressie.js?v=38  socket-client.js?v=49
+              render-progressie.js?v=38  socket-client.js?v=50
               render-bestiarium.js?v=15  render-statblock.js?v=3
               dm-panel.js?v=127    render-dashboard.js?v=4
 dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=3
@@ -186,6 +186,18 @@ dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=3
 > die alleen in `_isDisplayMode`. De **reveal** (`_briefCinematic` in app.js) is twee-traps: verzegelde
 > envelop → klik op het **zegel** (nu een `<button>`) → de volledige brief vouwt open (`.brief-cinematic-open`
 > / `.brief-cinematic-letter`). Hergebruikt door de bestaande factie-uitnodiging (ook twee-traps geworden).
+
+> **Akte-afbeeldingen uploaden vanuit de Meesterkamer.** De regie-script beeld-picker
+> (`render-archief.js` → `_renderAkteScriptInner`, `pickerState.mode==='image'`) heeft een
+> **"Upload afbeelding"**-knop (`_scriptUploadImages`). Voorheen moest je afbeeldingen eerst
+> in het Logboek uploaden (in een sessielog-entry) en pas daarna in de picker selecteren —
+> want `allImages` wordt afgeleid uit `sessieLog[].images` van die akte, en reveal draait op
+> `updateSessieLog(sessieId,{images})` (flipt `visible`). De uploadknop houdt dat datamodel
+> intact: hij maakt/hergebruikt een **verborgen** `korteSamenvatting:'Scène-afbeeldingen'`-
+> sessielog-entry (zelfde patroon als de akte-importer), uploadt elk bestand via
+> `api.uploadFile` en zet ze als `{id,caption,visible:false}` op die entry. Zo werken picker,
+> bannerkeuze (`_editAkte`), reveal én logboek-carousel meteen — géén server-wijziging nodig.
+> Uploads verschijnen als thumbnails; klikken voegt ze als beeld-stap aan het script toe.
 
 > **Glossary/hover-uitleg:** geen los `glossary.js`-bestand (die revert staat hieronder). De
 > hover-uitleg van D&D-termen leeft **inline in app.js**: `_SB_GLOSSARY` (termen + tips),

@@ -1319,10 +1319,18 @@ function _renderAkteScriptInner(ch, info, chEntries) {
   // Picker panel
   let pickerHtml = '';
   if (pickerState.mode === 'image') {
-    if (allImages.length === 0) {
-      pickerHtml = `<p class="dm-hint">Geen afbeeldingen in deze akte.</p>`;
-    } else {
-      pickerHtml = `<div style="display:flex;flex-wrap:wrap;gap:6px">
+    // Upload-knop bovenaan: afbeeldingen direct in de Meesterkamer toevoegen —
+    // geen omweg meer via het Logboek. Ze belanden in een verborgen sessielog-
+    // entry van deze akte, dus reveal/banner/logboek-carousel werken meteen.
+    const uploadBtn = `
+      <label class="dm-btn dm-btn-sm dm-btn-primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-bottom:8px">
+        ${icon('image')} Upload afbeelding
+        <input type="file" accept="image/*" multiple hidden
+          onchange="window._scriptUploadImages('${esc(ch)}', this.files); this.value=''">
+      </label>`;
+    const thumbs = allImages.length === 0
+      ? `<p class="dm-hint" style="margin:0">Nog geen afbeeldingen in deze akte — upload er hierboven een.</p>`
+      : `<div style="display:flex;flex-wrap:wrap;gap:6px">
         ${allImages.map(img => {
           const added = addedFileIds.has(img.fileId);
           return `<div style="position:relative;cursor:${added ? 'default' : 'pointer'};opacity:${added ? '.55' : '1'}"
@@ -1334,7 +1342,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
           </div>`;
         }).join('')}
       </div>`;
-    }
+    pickerHtml = `<div>${uploadBtn}${thumbs}</div>`;
   } else if (pickerState.mode === 'entity') {
     const entityList = pickerState.entities;
     const dlOptions = entityList === undefined ? '' :
@@ -1506,6 +1514,39 @@ window._scriptSetSceneSound = async (ch, itemId, sceneId) => {
     : { soundFileId: null, soundLabel: '' };
   const script = _scriptItemPatch(ch, itemId, patch);
   if (script) await _scriptSave(ch, script);
+};
+
+// Upload één of meer afbeeldingen rechtstreeks in de akte-voorbereiding (Meesterkamer).
+// De bestanden landen in een verborgen "Scène-afbeeldingen"-sessielog-entry van deze
+// akte (zelfde patroon als de akte-importer), zodat ze meteen beschikbaar zijn als
+// regie-script-stap én bannerkeuze — en tijdens het spelen via reveal zichtbaar worden
+// in het logboek. visible:false → spelers zien ze pas na een reveal.
+window._scriptUploadImages = async (ch, fileList) => {
+  const files = Array.from(fileList || []).filter(f => f && f.type?.startsWith('image/'));
+  if (!files.length) return;
+  try {
+    // Hergebruik de bestaande voorbereidings-entry van deze akte, of maak er een aan.
+    let entry = (archiefData.sessieLog || []).find(e =>
+      e.hoofdstuk === ch && /sc[eè]ne-afbeeldingen/i.test(e.korteSamenvatting || ''));
+    if (!entry) {
+      entry = await api.createSessieLog({ hoofdstuk: ch, korteSamenvatting: 'Scène-afbeeldingen', datum: '' });
+    }
+    // Elk bestand naar de mediabibliotheek uploaden; verzamel als verborgen images.
+    const nieuw = [];
+    for (const file of files) {
+      const id = 'akte-img-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+      await api.uploadFile(id, file, file.name);
+      nieuw.push({ id, caption: '', visible: false });
+    }
+    // Bestaande images normaliseren (legacy string[] → object) en de nieuwe toevoegen.
+    const bestaand = (entry.images || []).map(img =>
+      typeof img === 'string' ? { id: img, caption: '', visible: false } : img);
+    await api.updateSessieLog(entry.id, { images: [...bestaand, ...nieuw] });
+    // Archief-data verversen en de picker herteken (blijf in image-modus).
+    await window._loadAkteData?.();
+    _scriptPickerState[ch] = { ...(_scriptPickerState[ch] || {}), mode: 'image' };
+    _refreshScriptSection(ch);
+  } catch (e) { alert('Upload mislukt: ' + e.message); }
 };
 
 window._scriptUploadSound = async (ch, itemId, file) => {
