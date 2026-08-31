@@ -99,7 +99,18 @@ function _ambApplyAll() {
 async function _loadSounds() {
   try {
     const r = await fetch('/api/sounds');
-    if (r.ok) _sounds = await r.json();
+    if (r.ok) {
+      const data = await r.json();
+      // Garandeer de verwachte vorm: een campagne-sounds.json hoeft standard/emotes/
+      // playerTurn niet te bevatten. Zonder deze defaults werd _sounds.standard undefined
+      // en crashte _onCombatUpdated ("Cannot read properties of undefined (reading 'win')").
+      _sounds = {
+        ...data,
+        standard:   data.standard   || {},
+        emotes:     data.emotes     || {},
+        playerTurn: data.playerTurn || {},
+      };
+    }
   } catch { /* ok */ }
 }
 
