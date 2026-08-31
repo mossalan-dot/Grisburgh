@@ -11340,31 +11340,32 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .dm-textarea:focus { outline: none; border-color: rgba(196,168,122,0.7); }
 /* ── NPC zoek-combobox in brief-formulier ── */
 .post-npc-wrap { position: relative; }
+/* Perkament-stijl, gelijk aan de .dm-select-dropdowns (was donker #1e1710). */
 .post-npc-dropdown {
   display: none;
   position: absolute;
   top: calc(100% + 2px);
   left: 0; right: 0;
-  background: #1e1710;
-  border: 1px solid rgba(196,168,122,0.35);
-  border-radius: 4px;
+  background: #f8f0de;
+  border: 1px solid #c4a87a;
+  border-radius: 6px;
   max-height: 200px;
   overflow-y: auto;
   z-index: 200;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.55);
+  box-shadow: 0 6px 18px rgba(60,40,10,0.22);
 }
 .post-npc-dropdown.open { display: block; }
 .post-npc-item {
   padding: 6px 10px;
   font-family: 'IM Fell English', serif;
   font-size: 12.5px;
-  color: rgba(220,200,160,0.85);
+  color: #3a2410;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background 0.1s, color 0.1s;
 }
-.post-npc-item:hover { background: rgba(196,168,122,0.14); color: #d4b870; }
-.post-npc-item--none { color: rgba(196,168,122,0.40); font-style: italic; }
-.post-npc-item--none:hover { background: rgba(196,168,122,0.08); color: rgba(196,168,122,0.55); }
+.post-npc-item:hover { background: rgba(196,168,122,0.22); color: #2a1a08; }
+.post-npc-item--none { color: #8a7050; font-style: italic; }
+.post-npc-item--none:hover { background: rgba(196,168,122,0.12); color: #6a5230; }
 
 .bericht-status { font-size: 0.8rem; padding: 4px 0; }
 .bericht-status--ok  { color: #3a9c3a; }
@@ -11378,7 +11379,11 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .bericht-history-group { border: 1px solid rgba(196,168,122,0.2); border-radius: 6px; overflow: hidden; margin-top: 6px; }
 .bericht-history-head { list-style: none; padding: 8px 12px; font-size: 0.82rem; font-family: 'Cinzel', serif; color: var(--color-ink-bright); cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: rgba(196,168,122,0.08); }
 .bericht-history-head::-webkit-details-marker { display: none; }
+.bericht-history-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bericht-history-counts { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .bericht-history-count { font-size: 0.72rem; color: var(--color-ink-dim); font-family: inherit; }
+/* Ongelezen-teller: rood, rechts naast het totaal (was een gecentreerde rode badge). */
+.bericht-history-unread-count { font-size: 0.7rem; font-weight: 700; color: #c0392b; font-family: 'Crimson Text', Georgia, serif; white-space: nowrap; }
 .bericht-history-body { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; }
 .bericht-history-item { padding: 7px 10px; border-radius: 5px; background: rgba(196,168,122,0.05); border: 1px solid rgba(196,168,122,0.15); }
 .bericht-history-unread { background: rgba(196,168,122,0.14); border-color: rgba(196,168,122,0.4); }

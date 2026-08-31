@@ -7825,7 +7825,7 @@ async function _renderBerichten() {
   const totalUnread = Object.values(_berichtenData).flat().filter(m => !m.gelezen && !m.deletedAt).length;
 
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'message-circle', title: 'Berichten', actions: helpBtn('dm_berichten') })}
+    ${_dmTabHead({ icon: 'message-circle', title: 'Berichten', sub: totalUnread ? `${totalUnread} ongelezen` : '', actions: helpBtn('dm_berichten') })}
     <div class="dm-feature-section">
 
       <!-- ═══ STUUR BRIEF (rijker format) ═══ -->
@@ -7900,41 +7900,6 @@ async function _renderBerichten() {
         <div id="post-send-status" class="bericht-status hidden"></div>
       </div>
 
-      <!-- ═══ STUUR SNEL BERICHT (eenvoudig format) ═══ -->
-      <div class="dm-section-label" style="margin-top:16px">${icon('message-circle')} Snel bericht${totalUnread ? ` <span class="bericht-badge">${totalUnread}</span>` : ''}</div>
-      <div class="bericht-compose">
-        <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;align-items:center">
-          <label class="dm-form-label" style="min-width:60px">Aan</label>
-          <select id="bericht-ontvanger" class="dm-select" style="flex:1;min-width:120px">
-            <option value="">— Kies speler —</option>
-            ${_berichtenSpelers.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}
-          </select>
-        </div>
-
-        <div class="dm-form-row" style="flex-direction:column;gap:4px">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-            <label class="dm-form-label">Bericht</label>
-            ${_sjablonen.length ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._berichtenToggleSjablonen()" title="Sjablonen" style="font-size:10px">${icon('clipboard-list')}</button>` : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._berichtenToggleSjablonen()" title="Sjabloon opslaan" style="font-size:10px">${icon('clipboard-list')}</button>`}
-          </div>
-          <div id="bericht-sjablonen-lijst" class="bericht-sjablonen hidden">
-            ${_sjablonen.map((s, i) => `
-              <div class="bericht-sjabloon-row">
-                <button class="bericht-sjabloon-btn" onclick="window._berichtenUseSjabloon(${i})">${esc(s.substring(0, 60))}${s.length > 60 ? '…' : ''}</button>
-                <button class="bericht-sjabloon-del" onclick="window.dmPanel.sjabloonDelete(${i})" title="Verwijder">${icon('x')}</button>
-              </div>`).join('')}
-            ${_sjablonen.length < 20 ? `
-              <button class="dm-btn dm-btn-sm dm-btn-ghost" style="margin-top:4px;width:100%" onclick="window._berichtenSaveCurrentAsSjabloon()" title="Huidige tekst opslaan als sjabloon">${icon('save')}</button>
-            ` : ''}
-          </div>
-          <textarea id="bericht-tekst" class="dm-textarea" rows="3" placeholder="Geheim bericht aan de speler…" style="resize:vertical"></textarea>
-        </div>
-
-        <div class="dm-form-row" style="justify-content:flex-end;gap:6px">
-          <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.berichtSend()" title="Versturen">📤</button>
-        </div>
-        <div id="bericht-send-status" class="bericht-status hidden"></div>
-      </div>
-
       <!-- ═══ GESCHIEDENIS ═══ -->
       <div class="dm-section-label" style="margin-top:16px">Geschiedenis</div>
       ${_berichtenSpelers.length === 0 ? '<p class="dm-empty">Geen spelers zichtbaar.</p>' : ''}
@@ -7950,9 +7915,11 @@ async function _renderBerichten() {
           <details class="bericht-history-group" ${open ? 'open' : ''}
             ontoggle="window._berichtenGroupToggle && window._berichtenGroupToggle('${esc(p.id)}', this.open)">
             <summary class="bericht-history-head">
-              ${esc(p.name)}
-              ${unread ? `<span class="bericht-badge">${unread}</span>` : ''}
-              <span class="bericht-history-count">${msgs.length}</span>
+              <span class="bericht-history-name">${esc(p.name)}</span>
+              <span class="bericht-history-counts">
+                <span class="bericht-history-count" title="Aantal berichten">${msgs.length}</span>
+                ${unread ? `<span class="bericht-history-unread-count" title="Ongelezen berichten">${unread} ongelezen</span>` : ''}
+              </span>
             </summary>
             <div class="bericht-history-body">
               ${getoond.map(m => {
@@ -7967,6 +7934,7 @@ async function _renderBerichten() {
                           <div class="bericht-brief-tekst-preview">${esc(m.tekst.substring(0, 120))}${m.tekst.length > 120 ? '…' : ''}</div>
                         </div>
                         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+                          <button class="dm-btn dm-btn-icon dm-btn-sm" onclick="window._berichtOpenFull('${esc(p.id)}','${esc(m.id)}')" title="Volledig bericht openen">${icon('maximize-2')}</button>
                           ${m.deletedAt ? `<span class="bericht-brief-deleted-badge" title="Weggegooid op ${_fmtDate(m.deletedAt)}">${icon('trash')} weggegooid</span>` : ''}
                         </div>
                       </div>
@@ -7978,6 +7946,7 @@ async function _renderBerichten() {
                   <div class="bericht-history-item${m.gelezen ? '' : ' bericht-history-unread'}">
                     <div class="bericht-history-row">
                       <span class="bericht-history-tekst">${esc(m.tekst)}</span>
+                      <button class="dm-btn dm-btn-icon dm-btn-sm" onclick="window._berichtOpenFull('${esc(p.id)}','${esc(m.id)}')" title="Volledig bericht openen">${icon('maximize-2')}</button>
                       <button class="bericht-del-btn" title="Verwijder" onclick="window._berichtDmDelete('${esc(p.id)}','${esc(m.id)}')">${icon('x')}</button>
                     </div>
                     <span class="bericht-history-meta">${_fmtDate(m.timestamp)}${m.gelezen ? ' · gelezen' : ' · ongelezen'}</span>
@@ -7996,6 +7965,25 @@ async function _renderBerichten() {
 
 window._berichtenGroupToggle = (pid, open) => {
   if (open) _berichtenOpenPid.add(pid); else _berichtenOpenPid.delete(pid);
+};
+
+// Volledig bericht openen in een modal (de lijst toont een afgekorte preview).
+window._berichtOpenFull = (pid, msgId) => {
+  const m = (_berichtenData[pid] || []).find(x => x.id === msgId);
+  if (!m) return;
+  const naar = _berichtenSpelers.find(p => p.id === pid)?.name || '';
+  const isBrief = m.type === 'brief';
+  const meta = [];
+  if (m.afzender) meta.push(`Van: <em>${esc(m.afzender)}</em>`);
+  if (naar)       meta.push(`Aan: <em>${esc(naar)}</em>`);
+  if (m.datum)    meta.push(esc(m.datum));
+  const body = `
+    <div style="padding:2px">
+      ${meta.length ? `<div class="dm-hint" style="margin-bottom:10px">${meta.join(' · ')}</div>` : ''}
+      <div style="white-space:pre-wrap;font-family:'IM Fell English',serif;font-size:1rem;line-height:1.55;color:#2a1a08">${esc(m.tekst)}</div>
+      <div class="dm-hint" style="margin-top:12px;font-size:11px">${_fmtDate(m.timestamp)}${m.gelezen ? ' · gelezen' : ' · ongelezen'}${m.deletedAt ? ' · weggegooid' : ''}</div>
+    </div>`;
+  window.app.openModal(m.titel || (isBrief ? 'Brief' : 'Geheim bericht'), isBrief ? 'Brief' : 'Geheim bericht', body);
 };
 window._berichtenMeer = (pid) => {
   _berichtenLimiet[pid] = (_berichtenLimiet[pid] || _BERICHTEN_PAGINA) + _BERICHTEN_PAGINA;
