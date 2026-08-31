@@ -1900,8 +1900,7 @@ async function _regieBalkStuurBrief(itemId) {
       groepId:     item.ontvangerType === 'groep'  ? item.groepId  : null,
       cinematic: true,
     });
-    // _showToast rendert platte tekst (textContent) — dus geen icon()-markup meenemen.
-    _showToast(`Brief verstuurd${r.created > 1 ? ` (${r.created} ontvangers)` : ''}.`);
+    _showToast(`${icon('mail')} Brief verstuurd${r.created > 1 ? ` (${r.created} ontvangers)` : ''}.`);
   } catch (err) {
     _rbRevealed.delete(itemId);
     _renderRegieBalk();
@@ -3823,7 +3822,19 @@ function _showToast(msg, duration = 4500) {
   const el = document.createElement('div');
   el.id        = 'combat-toast';
   el.className = 'combat-toast';
-  el.textContent = msg;
+  // Ondersteun een leidend icon()-fragment: render dat als echte SVG, de rest als
+  // tekst. Zo blijven dynamische delen (namen, foutteksten) veilig via textContent —
+  // alleen ons eigen, vertrouwde icon()-fragment gaat via innerHTML.
+  const m = String(msg);
+  const iconMatch = m.match(/^\s*(<svg[\s\S]*?<\/svg>)\s*/i);
+  if (iconMatch) {
+    const span = document.createElement('span');
+    span.innerHTML = iconMatch[1];
+    el.appendChild(span);
+    el.appendChild(document.createTextNode(' ' + m.slice(iconMatch[0].length)));
+  } else {
+    el.textContent = m;
+  }
   document.body.appendChild(el);
   requestAnimationFrame(() => {
     requestAnimationFrame(() => el.classList.add('combat-toast-in'));

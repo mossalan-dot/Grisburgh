@@ -1311,7 +1311,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
           ${sndOpen ? `<div class="script-snd-editor">${_scriptSoundEditorHtml(ch, item)}</div>` : ''}
         </div>`;
       }).join('')
-    : `<p class="dm-hint" style="margin:4px 0 0">Geen script-items. Voeg afbeeldingen, kaartjes of gevechten toe via de knoppen hieronder.</p>`;
+    : `<p class="dm-hint" style="margin:4px 0 0">Geen script-items. Voeg afbeeldingen, kaartjes, gevechten, dungeons, rust of een brief toe via de knoppen hieronder.</p>`;
 
   // Picker panel
   let pickerHtml = '';
@@ -1773,7 +1773,7 @@ window._scriptBriefCompose = async (ch) => {
           style="resize:vertical;font-family:'IM Fell English',serif;font-size:0.95rem"></textarea>
       </div>
       <div id="sbrief-status" class="bericht-status hidden"></div>
-      <div class="dm-form-row" style="justify-content:flex-end;gap:6px">
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px">
         <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
         <button class="dm-btn dm-btn-primary" onclick="window._scriptBriefSave('${esc(ch)}')">${icon('mail')} Brief toevoegen</button>
       </div>

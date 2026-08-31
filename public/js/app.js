@@ -1,6 +1,6 @@
 import { api } from './api.js?v=243';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=115";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=59";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=60";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=13';
 import { renderDungeon } from './render-dungeon.js?v=26';
 import { renderRelatiemap } from './render-relatiemap.js?v=16';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=15';
 import { renderSpreuken } from './render-spreuken.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=48";
-import { initDmPanel } from "./dm-panel.js?v=126";
+import { initDmPanel } from "./dm-panel.js?v=127";
 import './media-picker.js?v=2';
 
 // ── Icon helper ──
@@ -5195,12 +5195,17 @@ window._briefCinematic = (msg) => {
     setTimeout(() => ov.remove(), 420);
     if (goBerichten) { window.app.switchSection('mijn-karakter'); window._setPlayerSubTab?.('berichten'); }
   };
-  // Sluit alleen automatisch zolang de brief nog verzegeld is (12s); na openen blijft hij staan.
-  const autoT = setTimeout(() => dismiss(false), 12000);
+  // Op de tablet blijft de verzegelde brief staan tot iemand het zegel opent; op een
+  // eigen spelerscherm sluit hij na 12s vanzelf als er niets mee gebeurt.
+  const autoT = isDisplay ? null : setTimeout(() => dismiss(false), 12000);
   ov.addEventListener('click', (e) => {
     if (e.target.closest('.brief-cinematic-zegel')) { openLetter(); return; }
     if (e.target.closest('.brief-cinematic-knop'))  { dismiss(true); return; }
     if (e.target.closest('.brief-cinematic-letter')) return; // klik in de brief zelf sluit niet
+    // Verzegelde fase: alleen het zegel opent — een mis-klik naast het zegel sluit
+    // NIET (voorkomt per ongeluk wegtikken, vooral op de tablet). Pas ná openen sluit
+    // een klik buiten de brief de cinematic.
+    if (!ov.classList.contains('brief-cinematic-overlay--geopend')) return;
     dismiss(false);
   });
   document.body.appendChild(ov);
