@@ -646,7 +646,7 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
       <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">
         ${logboekSearch ? 'Geen resultaten gevonden.' : 'Het archief is nog leeg...'}
       </div>
-      ${!logboekSearch && isDM() ? `<div class="text-xs font-fell italic mt-1">Gebruik de <span class="font-mono px-1 py-0.5 bg-room-elevated rounded">+</span> knop om een hoofdstuk toe te voegen</div>` : ''}
+      ${!logboekSearch && isDM() ? `<div class="text-xs font-fell italic mt-1">Gebruik de <span class="font-mono px-1 py-0.5 bg-room-elevated rounded">+</span> knop om een sessieverslag toe te voegen. Nieuwe aktes maak je in Meesterkamer → Aktes.</div>` : ''}
     </div>`;
   }
 
@@ -1192,30 +1192,6 @@ function _refreshLogImages() {
 }
 window._updateLogImageCaption = (idx, val) => {
   if (logEditorImages[idx]) logEditorImages[idx].caption = val;
-};
-
-window._saveNewHoofdstuk = async () => {
-  const key   = document.getElementById('hk-key')?.value.trim();
-  const num   = parseInt(document.getElementById('hk-num')?.value) || 99;
-  const title = document.getElementById('hk-title')?.value.trim();
-  const dag   = document.getElementById('hk-dag')?.value.trim() || '';
-  if (!key || !title) { alert('Sleutel en titel zijn verplicht'); return; }
-  const short = `A${num} \u00b7 ${title.length > 22 ? title.slice(0, 22) + '\u2026' : title}`;
-  try {
-    await api.saveHoofdstuk(key, { num, title, dag, short });
-    // Refresh local meta
-    const newMeta = await api.meta();
-    meta = newMeta;
-    if (window.app?.state) window.app.state.meta = newMeta;
-    // Rebuild select
-    const select = document.getElementById('hk-select');
-    const hk = newMeta?.hoofdstukken || {};
-    select.innerHTML = '<option value="">\u2014</option>' +
-      Object.entries(hk).sort(([,a],[,b]) => a.num - b.num)
-        .map(([k, v]) => `<option value="${k}" ${k === key ? 'selected' : ''}>${esc(v.short)}</option>`)
-        .join('');
-    document.getElementById('new-hk-panel').classList.add('hidden');
-  } catch (err) { alert('Fout: ' + err.message); }
 };
 
 // Toggle akte-zichtbaarheid voor de actieve groep (DM-only)
@@ -1996,10 +1972,6 @@ window._openSessieEditor = async (editId) => {
     return { id, url: api.fileUrl(id), isNew: false, caption, visible };
   });
 
-  // Suggest next chapter key/number
-  const existingNums = Object.values(hk).map(v => v.num).filter(n => n < 90);
-  const nextNum = existingNums.length ? Math.max(...existingNums) + 1 : 1;
-  const nextKey = `h${nextNum}`;
 
   const body = `<form id="sessie-form" class="space-y-4">
     <div class="grid grid-cols-2 gap-3">
@@ -2012,37 +1984,8 @@ window._openSessieEditor = async (editId) => {
               `<option value="${k}" ${e?.hoofdstuk === k ? 'selected' : ''}>${v.short}</option>`
             ).join('')}
           </select>
-          <button type="button" title="Nieuwe akte toevoegen"
-            onclick="document.getElementById('new-hk-panel').classList.toggle('hidden')"
-            class="px-2.5 py-1 bg-room-elevated border border-room-border rounded text-ink-dim hover:text-gold hover:border-gold-dim transition text-base leading-none">+</button>
         </div>
-        <div id="new-hk-panel" class="hidden mt-2 p-3 bg-room-elevated/60 border border-room-border rounded space-y-2">
-          <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Nieuwe akte</div>
-          <div class="grid grid-cols-3 gap-2">
-            <div class="col-span-2">
-              <label class="text-[10px] text-ink-faint uppercase">Sleutel</label>
-              <input id="hk-key" value="${nextKey}" placeholder="h11"
-                class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-            </div>
-            <div>
-              <label class="text-[10px] text-ink-faint uppercase">Nr.</label>
-              <input id="hk-num" type="number" value="${nextNum}" min="1"
-                class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-            </div>
-          </div>
-          <div>
-            <label class="text-[10px] text-ink-faint uppercase">Titel</label>
-            <input id="hk-title" placeholder="De nieuwe sessie…"
-              class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-          </div>
-          <div>
-            <label class="text-[10px] text-ink-faint uppercase">In-game dag (optioneel)</label>
-            <input id="hk-dag" placeholder="Dag van …"
-              class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-          </div>
-          <button type="button" onclick="window._saveNewHoofdstuk()"
-            class="px-3 py-1.5 bg-gold-dim text-room-bg text-sm font-cinzel rounded hover:bg-gold transition" title="Toevoegen">${icon('plus')}</button>
-        </div>
+        <p class="text-[10px] text-ink-faint italic mt-1">Nieuwe aktes maak je in <strong>Meesterkamer → Aktes</strong>.</p>
       </div>
       <div>
         <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Sessiedatum</label>
@@ -2110,7 +2053,7 @@ window._openSessieEditor = async (editId) => {
     </div>
   </form>`;
 
-  openModal(editId ? 'Hoofdstuk bewerken' : 'Nieuw hoofdstuk', '', body);
+  openModal(editId ? 'Sessieverslag bewerken' : 'Nieuw sessieverslag', 'Journaal-entry, gekoppeld aan een akte', body);
 
   // Init image thumbnails after modal is in DOM
   setTimeout(() => _refreshLogImages(), 0);
