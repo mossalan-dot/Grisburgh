@@ -923,6 +923,7 @@ router.post('/post', requireDM, (req, res) => {
       entityType: entityType || null,
       datum: datum?.trim() || '',
       thema: veiligThema,
+      cinematic: !!req.body.cinematic,   // grote verzegelde-brief-reveal bij de speler
       timestamp: now,
       deletedAt: null,
     };
@@ -934,6 +935,17 @@ router.post('/post', requireDM, (req, res) => {
   }
 
   storage.writeJSON('berichten.json', berichten);
+
+  // Grote reveal op het gedeelde tablet-scherm (dat geen speler-socket is): broadcast
+  // de brief naar de campagne-room; alleen display-mode reageert erop (spelers kregen
+  // 'm al via hun eigen socket hierboven).
+  if (req.body.cinematic) {
+    io.to(req.session?.campaignId || 'main').emit('brief:display', {
+      titel: titel?.trim() || '', tekst: tekst.trim(), afzender: afzenderDef,
+      datum: datum?.trim() || '', thema: veiligThema, cinematic: true,
+    });
+  }
+
   res.json({ ok: true, created });
 });
 

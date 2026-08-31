@@ -3948,6 +3948,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-rb-entity-voorwerpen    { background: rgba(140, 110, 40, 0.18); }
 .dm-rb-entity-encounter     { background: rgba(160, 50, 50, 0.18); }
 .dm-rb-entity-rust          { background: rgba(60, 70, 120, 0.20); }
+.dm-rb-entity-brief         { background: rgba(150, 120, 60, 0.22); }
 .dm-rb-entity-image         { background: rgba(120, 110, 90, 0.20); position: relative; }
 .dm-rb-entity-image .dm-rb-item-img { position: absolute; inset: 0; }
 .dm-rb-item-revealed-overlay {
@@ -14121,6 +14122,22 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .brief-cinematic-knop:hover { filter:brightness(1.1); }
 .brief-cinematic-knop .icon { width:14px; height:14px; }
 .brief-cinematic-hint { margin-top:10px; font-family:'IM Fell English',serif; font-size:0.72rem; font-style:italic; color:rgba(242,232,210,0.45); }
+/* Zegel is nu een knop (klik → brief opent): reset default button-styling. */
+.brief-cinematic-zegel { padding:0; font:inherit; -webkit-appearance:none; appearance:none; cursor:pointer; }
+.brief-cinematic-zegel:hover { filter: brightness(1.12); }
+/* Fase 2: de opengevouwen brief. */
+.brief-cinematic-open { display:flex; flex-direction:column; align-items:center; gap:12px; width:min(560px,92vw); animation: brief-cine-tekst 0.5s ease both; }
+.brief-cinematic-letter {
+  width:100%; max-height:72vh; overflow-y:auto; cursor:default; text-align:left;
+  background: linear-gradient(#f6edd7, #efe3c6);
+  border:1px solid color-mix(in srgb, var(--brief-kleur,#8a6a34) 45%, #7a5a2a);
+  border-radius:6px; padding:30px 34px; color:#2a1a08;
+  box-shadow:0 16px 50px rgba(0,0,0,0.55), inset 0 0 40px rgba(160,120,60,0.12);
+  font-family:'IM Fell English',serif;
+}
+.brief-cinematic-letter-titel { font-family:'Cinzel',serif; font-size:1.35rem; font-weight:700; color:#3a2410; margin-bottom:6px; }
+.brief-cinematic-letter-van { font-style:italic; color:#6a5230; font-size:0.85rem; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid rgba(120,90,50,0.25); }
+.brief-cinematic-letter-tekst { white-space:pre-wrap; font-size:1.12rem; line-height:1.65; }
 @media (prefers-reduced-motion: reduce) {
   .brief-cinematic-brief, .brief-cinematic-zegel, .brief-cinematic-tekst, .brief-cinematic-overlay { animation-duration:0.01s !important; }
 }

@@ -350,6 +350,7 @@ export function initDmPanel() {
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
     regieBalkRust:           (id) => _regieBalkRust(id),
+    regieBalkBrief:          (id) => _regieBalkBrief(id),
     regieBalkRevealVague:    (id) => _revealRegieBalkItem(id, 'vague'),
     regieBalkRevealSecret:   (id) => _revealRegieBalkSecretItem(id),
     regieBalkRevealNext:     () => _revealRegieBalkNext(),
@@ -1669,11 +1670,16 @@ function _renderRegieBalkItem(item) {
         ? icon('castle')
         : item.type === 'rust'
           ? icon(item.restType === 'long' ? 'moon' : 'zap')
-          : icon('crossed-swords', { cls: 'icon-gi' });
+          : item.type === 'brief'
+            ? icon('mail')
+            : icon('crossed-swords', { cls: 'icon-gi' });
   const rustLabel = item.type === 'rust'
     ? `${item.restType === 'long' ? 'Lange' : 'Korte'} rust — ${item.locatie === 'herberg' ? 'Herberg' : 'Veld'}`
     : '';
-  const name      = item.type === 'image' ? (item.caption || 'Afbeelding') : item.type === 'rust' ? rustLabel : (item.name || '—');
+  const briefLabel = item.type === 'brief'
+    ? `Brief${item.titel ? `: ${item.titel}` : ''} — ${item.ontvangerType === 'groep' ? 'Party' : (item.spelerNaam || 'Speler')}`
+    : '';
+  const name      = item.type === 'image' ? (item.caption || 'Afbeelding') : item.type === 'rust' ? rustLabel : item.type === 'brief' ? briefLabel : (item.name || '—');
 
   const ENTITY_ICONS = {
     personages:    icon('user'),
@@ -1692,6 +1698,8 @@ function _renderRegieBalkItem(item) {
     thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-dungeon">${dIcon}</div>`;
   } else if (item.type === 'rust') {
     thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-rust">${icon(item.restType === 'long' ? 'moon' : 'zap')}</div>`;
+  } else if (item.type === 'brief') {
+    thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-brief">${icon('mail')}</div>`;
   } else {
     const entityIcon = item.type === 'entity'
       ? (ENTITY_ICONS[item.entityType] || icon('eye'))
@@ -1711,6 +1719,10 @@ function _renderRegieBalkItem(item) {
     // Rust-stap: party-brede rust starten (met de locatie van de stap). Blijft klikbaar
     // (opnieuw triggeren mag); de check-overlay markeert dat 'm gedraaid is.
     actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkRust('${esc(item.id)}')" title="${item.restType === 'long' ? 'Lange' : 'Korte'} rust starten (${item.locatie === 'herberg' ? 'herberg' : 'veld'})">${icon('play')}</button>`;
+  } else if (item.type === 'brief') {
+    // Brief-stap: verstuur naar de gekozen ontvanger(s) + grote reveal op de tablet.
+    // Blijft klikbaar (opnieuw sturen mag); de check-overlay markeert dat 'm verstuurd is.
+    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkBrief('${esc(item.id)}')" title="Brief versturen (${item.ontvangerType === 'groep' ? 'party' : 'speler'})">${icon('mail')}</button>`;
   } else if (isEntity) {
     actions = `
       ${canVague ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--vaag" onclick="window.dmPanel.regieBalkRevealVague('${esc(item.id)}')" title="Vaag onthullen">${icon('eye-off')}</button>` : ''}
@@ -1869,6 +1881,31 @@ function _regieBalkRust(itemId) {
   window._dmRust?.(item.restType, item.locatie);
   _rbRevealed.add(itemId);
   _renderRegieBalk();
+}
+
+// Brief-stap in de regie-balk: verstuur de brief naar de gekozen ontvanger(s).
+// cinematic:true → speler krijgt de verzegelde-brief-reveal, tablet krijgt 'm groot
+// via de brief:display-broadcast (server).
+async function _regieBalkBrief(itemId) {
+  const item = _rbScript.find(x => x.id === itemId);
+  if (!item || item.type !== 'brief') return;
+  _rbRevealed.add(itemId);
+  _renderRegieBalk();
+  try {
+    const r = await api.sendPost({
+      titel: item.titel || '', tekst: item.tekst || '', afzender: item.afzender || '',
+      datum: item.datum || '', thema: item.thema || '',
+      entityId: item.entityId || null, entityType: item.entityType || null,
+      characterId: item.ontvangerType === 'speler' ? item.spelerId : null,
+      groepId:     item.ontvangerType === 'groep'  ? item.groepId  : null,
+      cinematic: true,
+    });
+    _showToast(`${icon('mail')} Brief verstuurd${r.created > 1 ? ` (${r.created} ontvangers)` : ''}.`);
+  } catch (err) {
+    _rbRevealed.delete(itemId);
+    _renderRegieBalk();
+    _showToast(`Kon de brief niet versturen: ${esc(err.message)}`);
+  }
 }
 
 async function _revealRegieBalkItem(itemId, mode = 'visible') {

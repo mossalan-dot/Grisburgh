@@ -1,6 +1,6 @@
 import { api } from './api.js?v=243';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=115";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=58";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=59";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=13';
 import { renderDungeon } from './render-dungeon.js?v=26';
 import { renderRelatiemap } from './render-relatiemap.js?v=16';
@@ -8,8 +8,8 @@ import { renderProgressie } from './render-progressie.js?v=38';
 import { renderBestiarium } from './render-bestiarium.js?v=15';
 import { renderSpreuken } from './render-spreuken.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=47";
-import { initDmPanel } from "./dm-panel.js?v=123";
+import { initSocket } from "./socket-client.js?v=48";
+import { initDmPanel } from "./dm-panel.js?v=124";
 import './media-picker.js?v=2';
 
 // ── Icon helper ──
@@ -5151,38 +5151,60 @@ function _briefCinematicSound() {
 window._briefCinematic = (msg) => {
   document.getElementById('brief-cinematic')?.remove();
   const kleur = _factieKleurHex(msg.kleur);
-  const emb   = msg.embleem || 'landmark';
-  const naam  = msg.kop || msg.afzender || 'een factie';
+  const emb   = msg.embleem || (msg.thema ? 'mail' : 'landmark');
+  const naam  = msg.kop || msg.afzender || 'onbekend';
+  const isDisplay = !!window._isDisplayMode;
   const ov = document.createElement('div');
   ov.id = 'brief-cinematic';
-  ov.className = 'brief-cinematic-overlay';
+  ov.className = `brief-cinematic-overlay${msg.thema ? ` brief-cinematic-overlay--${esc(msg.thema)}` : ''}`;
   ov.style.setProperty('--brief-kleur', kleur);
   ov.innerHTML = `
     <div class="brief-cinematic-scene">
-      <div class="brief-cinematic-brief">
-        <div class="brief-cinematic-zegel">${icon(emb)}</div>
+      <!-- Fase 1: verzegelde envelop -->
+      <div class="brief-cinematic-sealed">
+        <div class="brief-cinematic-brief">
+          <button class="brief-cinematic-zegel" title="Klik om te openen">${icon(emb)}</button>
+        </div>
+        <div class="brief-cinematic-tekst">
+          <div class="brief-cinematic-kop">Een verzegelde brief is bezorgd</div>
+          <div class="brief-cinematic-sub">van <strong>${esc(naam)}</strong></div>
+          <div class="brief-cinematic-hint">klik op het zegel om te openen</div>
+        </div>
       </div>
-      <div class="brief-cinematic-tekst">
-        <div class="brief-cinematic-kop">Een verzegelde brief is bezorgd</div>
-        <div class="brief-cinematic-sub">van <strong>${esc(naam)}</strong></div>
-        <button class="brief-cinematic-knop">${icon('mail')} Open in Berichten</button>
-        <div class="brief-cinematic-hint">klik om te sluiten</div>
+      <!-- Fase 2: volledige brief -->
+      <div class="brief-cinematic-open hidden">
+        <div class="brief-cinematic-letter">
+          ${msg.titel ? `<div class="brief-cinematic-letter-titel">${esc(msg.titel)}</div>` : ''}
+          ${msg.afzender ? `<div class="brief-cinematic-letter-van">van <em>${esc(msg.afzender)}</em>${msg.datum ? ` · ${esc(msg.datum)}` : ''}</div>` : ''}
+          <div class="brief-cinematic-letter-tekst">${esc(msg.tekst || '')}</div>
+        </div>
+        ${!isDisplay ? `<button class="brief-cinematic-knop">${icon('mail')} Bewaar in Berichten</button>` : ''}
+        <div class="brief-cinematic-hint">klik buiten de brief om te sluiten</div>
       </div>
     </div>`;
+  const openLetter = () => {
+    clearTimeout(autoT);
+    ov.querySelector('.brief-cinematic-sealed')?.classList.add('hidden');
+    ov.querySelector('.brief-cinematic-open')?.classList.remove('hidden');
+    ov.classList.add('brief-cinematic-overlay--geopend');
+  };
   const dismiss = (goBerichten) => {
     if (ov.dataset.dicht) return; ov.dataset.dicht = '1';
+    clearTimeout(autoT);
     ov.classList.add('brief-cinematic-overlay--uit');
     setTimeout(() => ov.remove(), 420);
     if (goBerichten) { window.app.switchSection('mijn-karakter'); window._setPlayerSubTab?.('berichten'); }
   };
+  // Sluit alleen automatisch zolang de brief nog verzegeld is (12s); na openen blijft hij staan.
+  const autoT = setTimeout(() => dismiss(false), 12000);
   ov.addEventListener('click', (e) => {
-    if (e.target.closest('.brief-cinematic-knop')) dismiss(true);
-    else dismiss(false);
+    if (e.target.closest('.brief-cinematic-zegel')) { openLetter(); return; }
+    if (e.target.closest('.brief-cinematic-knop'))  { dismiss(true); return; }
+    if (e.target.closest('.brief-cinematic-letter')) return; // klik in de brief zelf sluit niet
+    dismiss(false);
   });
   document.body.appendChild(ov);
-  // geluid pas wanneer de brief 'landt'
   setTimeout(_briefCinematicSound, 650);
-  setTimeout(() => dismiss(false), 9000);
 };
 
 // ── Hit Dice (afgeleid uit klasse + level, incl. multiklasse) ────────────────

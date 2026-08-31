@@ -1264,10 +1264,16 @@ function _renderAkteScriptInner(ch, info, chEntries) {
               ? icon(item.roomId ? 'map-pin' : 'castle')
               : item.type === 'rust'
                 ? icon(item.restType === 'long' ? 'moon' : 'zap')
-                : icon('crossed-swords', { cls: 'icon-gi' });
+                : item.type === 'brief'
+                  ? icon('mail')
+                  : icon('crossed-swords', { cls: 'icon-gi' });
         // Rust-stap: vaste, niet-bewerkbare label ("Lange rust — Herberg").
         const rustLabel = item.type === 'rust'
           ? `${item.restType === 'long' ? 'Lange' : 'Korte'} rust — ${item.locatie === 'herberg' ? 'Herberg' : 'Veld'}`
+          : '';
+        // Brief-stap: vaste label ("Brief: <titel> — Party/<speler>").
+        const briefLabel = item.type === 'brief'
+          ? `Brief${item.titel ? `: ${item.titel}` : ''} — ${item.ontvangerType === 'groep' ? 'Party' : (item.spelerNaam || 'Speler')}`
           : '';
         // Image-stappen: inline bewerkbaar onderschrift (spelers zien dit bij een reveal).
         // Andere types tonen hun (niet-bewerkbare) entiteit-/encounter-/rust-naam.
@@ -1275,7 +1281,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
           ? `<input class="script-item-name script-item-name--input" value="${esc(item.caption || '')}" placeholder="Onderschrift…"
                onchange="window._scriptRename('${esc(ch)}','${esc(item.id)}',this.value)"
                onkeydown="if(event.key==='Enter'){this.blur();}">`
-          : `<span class="script-item-name">${esc(item.type === 'rust' ? rustLabel : (item.name || '—'))}</span>`;
+          : `<span class="script-item-name">${esc(item.type === 'rust' ? rustLabel : item.type === 'brief' ? briefLabel : (item.name || '—'))}</span>`;
         // Thumbnail-box met placeholder-icoon eronder: laadt de afbeelding niet (of
         // ontbreekt fileId, bv. bij een geluid-stap), dan blijft het nette icoon staan
         // i.p.v. het lelijke browser-"broken image"-vraagteken (onerror verwijdert de img).
@@ -1389,6 +1395,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','short','veld')">${icon('zap')} Korte rust — Veld</button>
         <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','short','herberg')">${icon('zap')} Korte rust — Herberg</button>
       </div>`;
+  } else if (pickerState.mode === 'brief') {
+    pickerHtml = `<p class="dm-hint" style="margin:0 0 6px">Stel een brief op — tijdens het spelen verstuur je 'm vanuit de regie-balk (groot op de tablet + in Berichten):</p>
+      <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._scriptBriefCompose('${esc(ch)}')">${icon('mail')} Nieuwe brief opstellen…</button>`;
   }
 
   return `
@@ -1410,6 +1419,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         <button class="script-add-btn${pickerState.mode === 'rust'? ' is-active' : ''}"
           title="Rust toevoegen (lange/korte)"
           onclick="window._scriptTogglePicker('${esc(ch)}','rust')">${icon('moon')}</button>
+        <button class="script-add-btn${pickerState.mode === 'brief'? ' is-active' : ''}"
+          title="Brief toevoegen"
+          onclick="window._scriptTogglePicker('${esc(ch)}','brief')">${icon('mail')}</button>
       </div>
     </div>
     <div class="logboek-script-items">${scriptHtml}</div>
@@ -1694,6 +1706,116 @@ window._scriptAddRust = async (ch, restType, locatie) => {
   const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
   script.push({ id: _scriptGenId(), type: 'rust', restType, locatie });
   await _scriptSave(ch, script);
+};
+
+// ── Brief-stap: opstellen (compose-modal) → bewaren als regie-stap ────────────
+// Tijdens het spelen getriggerd vanuit de regie-balk: groot op de tablet
+// (verzegelde envelop → klik zegel → volledige brief) + in Berichten bij spelers.
+window._scriptBriefCompose = async (ch) => {
+  let personages = [], groepenRes = [];
+  try {
+    [personages, groepenRes] = await Promise.all([
+      api.listEntities('personages').catch(() => []),
+      api.listGroups().catch(() => []),
+    ]);
+  } catch { /* ok */ }
+  const spelers = personages.filter(p => p.subtype === 'speler');
+  const npcs    = personages.filter(p => p.subtype !== 'speler');
+  const groepen = groepenRes.groups || groepenRes || [];
+  window._scriptBriefCtx = { ch, spelers, npcs, groepen };
+
+  const body = `
+    <div class="post-compose" style="display:flex;flex-direction:column;gap:10px">
+      <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;align-items:center">
+        <label class="dm-form-label" style="min-width:60px">Aan</label>
+        <select id="sbrief-ontvanger-type" class="dm-select" style="width:120px;flex-shrink:0"
+          onchange="window._scriptBriefOntvangerTypeChange()">
+          <option value="groep">Hele party</option>
+          <option value="speler">Speler</option>
+        </select>
+        <select id="sbrief-ontvanger-groep" class="dm-select" style="flex:1;min-width:120px">
+          <option value="">— Kies groep —</option>
+          ${groepen.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('')}
+        </select>
+        <select id="sbrief-ontvanger-speler" class="dm-select hidden" style="flex:1;min-width:120px">
+          <option value="">— Kies speler —</option>
+          ${spelers.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="dm-form-row" style="gap:6px;flex-wrap:wrap;align-items:center">
+        <label class="dm-form-label" style="min-width:60px">Van</label>
+        <input id="sbrief-afzender" type="text" class="dm-input" placeholder="Naam afzender (of anoniem)" style="flex:1;min-width:120px">
+        <input id="sbrief-npc" type="text" class="dm-input" list="sbrief-npc-dl" autocomplete="off"
+          placeholder="Koppel NPC…" style="flex:1;min-width:120px">
+        <datalist id="sbrief-npc-dl">${npcs.map(n => `<option value="${esc(n.name || '')}"></option>`).join('')}</datalist>
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label">Onderwerp</label>
+        <input id="sbrief-titel" type="text" class="dm-input" placeholder="Onderwerp / titel van de brief" style="width:100%">
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label">Datum (in de spelwereld)</label>
+        <input id="sbrief-datum" type="text" class="dm-input" placeholder="bijv. 4 Grasmaand MDCCLXXII" style="width:100%">
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label">Briefstijl</label>
+        <select id="sbrief-thema" class="dm-select" style="width:100%">
+          <option value="">Standaard perkament</option>
+          <option value="ursula">Madame Ursula — lila brief</option>
+          <option value="gock">De Gock — logo &amp; typemachine</option>
+          <option value="tweespalt">De Tweespalt — haastig briefje</option>
+          <option value="heeren">De Heeren van de Nacht — schaduwbrief</option>
+        </select>
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;gap:4px">
+        <label class="dm-form-label">Inhoud</label>
+        <textarea id="sbrief-tekst" class="dm-textarea" rows="6" placeholder="Schrijf de brief hier…"
+          style="resize:vertical;font-family:'IM Fell English',serif;font-size:0.95rem"></textarea>
+      </div>
+      <div id="sbrief-status" class="bericht-status hidden"></div>
+      <div class="dm-form-row" style="justify-content:flex-end;gap:6px">
+        <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._scriptBriefSave('${esc(ch)}')">${icon('mail')} Brief toevoegen</button>
+      </div>
+    </div>`;
+  window.app.openModal('Brief opstellen', 'Verschijnt groot op de tablet + in Berichten bij de spelers', body);
+};
+
+window._scriptBriefOntvangerTypeChange = () => {
+  const t = document.getElementById('sbrief-ontvanger-type')?.value;
+  document.getElementById('sbrief-ontvanger-groep')?.classList.toggle('hidden', t !== 'groep');
+  document.getElementById('sbrief-ontvanger-speler')?.classList.toggle('hidden', t !== 'speler');
+};
+
+window._scriptBriefSave = async (ch) => {
+  const ctx = window._scriptBriefCtx || {};
+  const ontvangerType = document.getElementById('sbrief-ontvanger-type')?.value || 'groep';
+  const groepId  = document.getElementById('sbrief-ontvanger-groep')?.value || '';
+  const spelerId = document.getElementById('sbrief-ontvanger-speler')?.value || '';
+  const afzender = document.getElementById('sbrief-afzender')?.value.trim() || '';
+  const npcNaam  = document.getElementById('sbrief-npc')?.value.trim() || '';
+  const titel    = document.getElementById('sbrief-titel')?.value.trim() || '';
+  const datum    = document.getElementById('sbrief-datum')?.value.trim() || '';
+  const thema    = document.getElementById('sbrief-thema')?.value || '';
+  const tekst    = document.getElementById('sbrief-tekst')?.value.trim() || '';
+  const statusEl = document.getElementById('sbrief-status');
+  const fout = (m) => { if (statusEl) { statusEl.textContent = m; statusEl.className = 'bericht-status bericht-status--err'; statusEl.classList.remove('hidden'); } };
+  if (!tekst) return fout('Vul een briefinhoud in.');
+  if (ontvangerType === 'groep'  && !groepId)  return fout('Kies een party/groep.');
+  if (ontvangerType === 'speler' && !spelerId) return fout('Kies een speler.');
+  const npc = npcNaam ? (ctx.npcs || []).find(n => (n.name || '').toLowerCase() === npcNaam.toLowerCase()) : null;
+  const THEMA_AFZENDER = { ursula: 'Madame Ursula', gock: 'De Gock', tweespalt: 'De Tweespalt', heeren: 'De Heeren van de Nacht' };
+  const afzenderDef = afzender || (thema ? THEMA_AFZENDER[thema] : '') || (npc ? npc.name : '');
+  const spelerNaam = ontvangerType === 'speler' ? ((ctx.spelers || []).find(s => s.id === spelerId)?.name || 'Speler') : '';
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  script.push({
+    id: _scriptGenId(), type: 'brief',
+    ontvangerType, groepId: groepId || null, spelerId: spelerId || null, spelerNaam,
+    titel, tekst, afzender: afzenderDef, datum, thema,
+    entityId: npc ? npc.id : null, entityType: npc ? 'personages' : null,
+  });
+  await _scriptSave(ch, script);
+  window.app.closeModal();
 };
 
 function _scriptGenId() {

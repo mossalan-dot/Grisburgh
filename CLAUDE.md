@@ -126,12 +126,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=377   app.js?v=511   sound-manager.js?v=6
-app.js      : api.js?v=238      render-campagne.js?v=115   render-archief.js?v=58
-              render-kaart.js?v=12  render-dungeon.js?v=25  render-relatiemap.js?v=15
-              render-progressie.js?v=37  socket-client.js?v=47
-              render-bestiarium.js?v=14  render-statblock.js?v=3
-              dm-panel.js?v=123    render-dashboard.js?v=3
+index.html  : theme.css?v=378   app.js?v=512   sound-manager.js?v=6
+app.js      : api.js?v=243      render-campagne.js?v=115   render-archief.js?v=59
+              render-kaart.js?v=13  render-dungeon.js?v=26  render-relatiemap.js?v=16
+              render-progressie.js?v=38  socket-client.js?v=48
+              render-bestiarium.js?v=15  render-statblock.js?v=3
+              dm-panel.js?v=124    render-dashboard.js?v=4
 dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=3
 ```
 
@@ -174,6 +174,18 @@ dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=3
 > `tbl_rust_wildernis` + `tbl_rust_herberg` (conversiescript-patroon: md-rij `| 01-02 | **Naam** | Beschrijving | \`+6 knakers\` |`
 > → `1-2: Naam — Beschrijving {+6kn}`; munt-namen florinde/knaker/centeling → fl/kn/cl). (4) **Tabletmodus**: op het gedeelde scherm (`_isDisplayMode`, geen `characterId`) toont de overlay
 > een party-brede variant zonder per-speler-knoppen.
+
+> **Brief vanuit de akteregie (regie-stap, cinematisch).** Naast image/entity/encounter/dungeon/rust
+> kent het regie-script een **6e staptype `brief`**. De DM stelt 'm op via het mail-icoon in de
+> picker (`render-archief.js` → `_scriptBriefCompose` compose-modal: ontvanger party/speler, afzender +
+> NPC-koppeling, in-world datum, briefstijl/thema, onderwerp, tekst) → `_scriptBriefSave` bewaart de stap
+> in `meta.hoofdstukken[ch].script`. Tijdens het spelen verstuurt de DM 'm vanuit de **regie-balk**
+> (mail-knop, `dm-panel.js` → `_regieBalkBrief` → `api.sendPost({…, cinematic:true})`). Server (`POST /post`)
+> zet `cinematic` op het bericht (speler krijgt de reveal) én broadcast **`brief:display`** met de volledige
+> briefdata naar de campagne-room voor de **tablet** (die geen speler-socket is). `socket-client.js` toont
+> die alleen in `_isDisplayMode`. De **reveal** (`_briefCinematic` in app.js) is twee-traps: verzegelde
+> envelop → klik op het **zegel** (nu een `<button>`) → de volledige brief vouwt open (`.brief-cinematic-open`
+> / `.brief-cinematic-letter`). Hergebruikt door de bestaande factie-uitnodiging (ook twee-traps geworden).
 
 > **Glossary/hover-uitleg:** geen los `glossary.js`-bestand (die revert staat hieronder). De
 > hover-uitleg van D&D-termen leeft **inline in app.js**: `_SB_GLOSSARY` (termen + tips),
