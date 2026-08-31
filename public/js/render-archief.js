@@ -1286,14 +1286,20 @@ function _renderAkteScriptInner(ch, info, chEntries) {
             ? icon('eye')
             : item.type === 'dungeon'
               ? icon(item.roomId ? 'map-pin' : 'castle')
-              : icon('crossed-swords', { cls: 'icon-gi' });
+              : item.type === 'rust'
+                ? icon(item.restType === 'long' ? 'moon' : 'zap')
+                : icon('crossed-swords', { cls: 'icon-gi' });
+        // Rust-stap: vaste, niet-bewerkbare label ("Lange rust — Herberg").
+        const rustLabel = item.type === 'rust'
+          ? `${item.restType === 'long' ? 'Lange' : 'Korte'} rust — ${item.locatie === 'herberg' ? 'Herberg' : 'Veld'}`
+          : '';
         // Image-stappen: inline bewerkbaar onderschrift (spelers zien dit bij een reveal).
-        // Andere types tonen hun (niet-bewerkbare) entiteit-/encounter-naam.
+        // Andere types tonen hun (niet-bewerkbare) entiteit-/encounter-/rust-naam.
         const nameHtml = item.type === 'image'
           ? `<input class="script-item-name script-item-name--input" value="${esc(item.caption || '')}" placeholder="Onderschrift…"
                onchange="window._scriptRename('${esc(ch)}','${esc(item.id)}',this.value)"
                onkeydown="if(event.key==='Enter'){this.blur();}">`
-          : `<span class="script-item-name">${esc(item.name || '—')}</span>`;
+          : `<span class="script-item-name">${esc(item.type === 'rust' ? rustLabel : (item.name || '—'))}</span>`;
         // Thumbnail-box met placeholder-icoon eronder: laadt de afbeelding niet (of
         // ontbreekt fileId, bv. bij een geluid-stap), dan blijft het nette icoon staan
         // i.p.v. het lelijke browser-"broken image"-vraagteken (onerror verwijdert de img).
@@ -1399,6 +1405,14 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         </div>`;
       }).join('');
     }
+  } else if (pickerState.mode === 'rust') {
+    pickerHtml = `<p class="dm-hint" style="margin:0 0 6px">Voeg een rust-moment toe — tijdens het spelen trigger je 'm vanuit de regie-balk:</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','long','veld')">${icon('moon')} Lange rust — Veld</button>
+        <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','long','herberg')">${icon('moon')} Lange rust — Herberg</button>
+        <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','short','veld')">${icon('zap')} Korte rust — Veld</button>
+        <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','short','herberg')">${icon('zap')} Korte rust — Herberg</button>
+      </div>`;
   }
 
   return `
@@ -1417,6 +1431,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         <button class="script-add-btn${pickerState.mode === 'dungeon'? ' is-active' : ''}"
           title="Dungeon of kamer toevoegen"
           onclick="window._scriptTogglePicker('${esc(ch)}','dungeon')">${icon('castle')}</button>
+        <button class="script-add-btn${pickerState.mode === 'rust'? ' is-active' : ''}"
+          title="Rust toevoegen (lange/korte)"
+          onclick="window._scriptTogglePicker('${esc(ch)}','rust')">${icon('moon')}</button>
       </div>
     </div>
     <div class="logboek-script-items">${scriptHtml}</div>
@@ -1692,6 +1709,14 @@ window._scriptAddDungeon = async (ch, dungeonId, roomId) => {
   const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
   if (script.some(x => x.type === 'dungeon' && x.dungeonId === dungeonId && (x.roomId || '') === (roomId || ''))) return;
   script.push({ id: _scriptGenId(), type: 'dungeon', dungeonId, roomId: roomId || null, name });
+  await _scriptSave(ch, script);
+};
+
+// Rust-stap: lange/korte rust + locatie (veld/herberg). Wordt tijdens het spelen
+// vanuit de regie-balk getriggerd (party-brede rust + cinematic).
+window._scriptAddRust = async (ch, restType, locatie) => {
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  script.push({ id: _scriptGenId(), type: 'rust', restType, locatie });
   await _scriptSave(ch, script);
 };
 

@@ -3947,6 +3947,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-rb-entity-organisaties  { background: rgba(150, 90, 50, 0.18); }
 .dm-rb-entity-voorwerpen    { background: rgba(140, 110, 40, 0.18); }
 .dm-rb-entity-encounter     { background: rgba(160, 50, 50, 0.18); }
+.dm-rb-entity-rust          { background: rgba(60, 70, 120, 0.20); }
 .dm-rb-entity-image         { background: rgba(120, 110, 90, 0.20); position: relative; }
 .dm-rb-entity-image .dm-rb-item-img { position: absolute; inset: 0; }
 .dm-rb-item-revealed-overlay {

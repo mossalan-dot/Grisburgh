@@ -349,6 +349,7 @@ export function initDmPanel() {
     // Regie-balk
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
+    regieBalkRust:           (id) => _regieBalkRust(id),
     regieBalkRevealVague:    (id) => _revealRegieBalkItem(id, 'vague'),
     regieBalkRevealSecret:   (id) => _revealRegieBalkSecretItem(id),
     regieBalkRevealNext:     () => _revealRegieBalkNext(),
@@ -1666,8 +1667,13 @@ function _renderRegieBalkItem(item) {
       ? icon('eye')
       : item.type === 'dungeon'
         ? icon('castle')
-        : icon('crossed-swords', { cls: 'icon-gi' });
-  const name      = item.type === 'image' ? (item.caption || 'Afbeelding') : (item.name || '—');
+        : item.type === 'rust'
+          ? icon(item.restType === 'long' ? 'moon' : 'zap')
+          : icon('crossed-swords', { cls: 'icon-gi' });
+  const rustLabel = item.type === 'rust'
+    ? `${item.restType === 'long' ? 'Lange' : 'Korte'} rust — ${item.locatie === 'herberg' ? 'Herberg' : 'Veld'}`
+    : '';
+  const name      = item.type === 'image' ? (item.caption || 'Afbeelding') : item.type === 'rust' ? rustLabel : (item.name || '—');
 
   const ENTITY_ICONS = {
     personages:    icon('user'),
@@ -1684,6 +1690,8 @@ function _renderRegieBalkItem(item) {
   } else if (item.type === 'dungeon') {
     const dIcon = item.roomId ? icon('map-pin') : icon('castle');
     thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-dungeon">${dIcon}</div>`;
+  } else if (item.type === 'rust') {
+    thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-rust">${icon(item.restType === 'long' ? 'moon' : 'zap')}</div>`;
   } else {
     const entityIcon = item.type === 'entity'
       ? (ENTITY_ICONS[item.entityType] || icon('eye'))
@@ -1699,7 +1707,11 @@ function _renderRegieBalkItem(item) {
   const canVague   = isEntity && (item.entityType === 'personages' || item.entityType === 'locaties');
   const hasSecret  = isEntity && _rbSecretIds.has(item.entityId);
   let actions;
-  if (isEntity) {
+  if (item.type === 'rust') {
+    // Rust-stap: party-brede rust starten (met de locatie van de stap). Blijft klikbaar
+    // (opnieuw triggeren mag); de check-overlay markeert dat 'm gedraaid is.
+    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkRust('${esc(item.id)}')" title="${item.restType === 'long' ? 'Lange' : 'Korte'} rust starten (${item.locatie === 'herberg' ? 'herberg' : 'veld'})">${icon('play')}</button>`;
+  } else if (isEntity) {
     actions = `
       ${canVague ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--vaag" onclick="window.dmPanel.regieBalkRevealVague('${esc(item.id)}')" title="Vaag onthullen">${icon('eye-off')}</button>` : ''}
       <button class="dm-rb-reveal-btn dm-rb-reveal-btn--vol" onclick="window.dmPanel.regieBalkReveal('${esc(item.id)}')" title="Volledig onthullen">${icon('eye')}</button>
@@ -1849,6 +1861,15 @@ function _rbInitDrag() {
     el.scrollLeft = scrollLeft - walk;
   });
 };
+
+// Rust-stap in de regie-balk: start de party-brede rust met de locatie van de stap.
+function _regieBalkRust(itemId) {
+  const item = _rbScript.find(x => x.id === itemId);
+  if (!item || item.type !== 'rust') return;
+  window._dmRust?.(item.restType, item.locatie);
+  _rbRevealed.add(itemId);
+  _renderRegieBalk();
+}
 
 async function _revealRegieBalkItem(itemId, mode = 'visible') {
   const item = _rbScript.find(x => x.id === itemId);
@@ -6438,9 +6459,9 @@ window._dmRustKiesLoc = function(l) {
   window._dmRustLocatie = l;
   document.querySelectorAll('.dm-rust-loc-btn').forEach(b => b.classList.toggle('is-actief', b.dataset.loc === l));
 };
-window._dmRust = async function(type) {
+window._dmRust = async function(type, locatie) {
   const statusEl = document.getElementById('dm-rust-status');
-  const locatie = window._dmRustLocatie || 'veld';
+  locatie = locatie || window._dmRustLocatie || 'veld';
   if (statusEl) statusEl.textContent = '…';
   try {
     if (type === 'short') {
