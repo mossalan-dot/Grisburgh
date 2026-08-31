@@ -2904,7 +2904,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
    op desktop wordt het een smalle verticale tab die uit de rechterrand steekt,
    zodat de dobbelknop niet meer met de subheader-toevoegknop botst — vooral
    hinderlijk voor de DM, die zowel de d20- als de +-knop rechtsonder had. */
-@media (min-width: 769px) {
+@media (min-width: 481px) {
   .dice-fab, .dm-dice-fab {
     top: auto;
     bottom: 96px;      /* rechtsONDER, net boven de hoek — zo schuift het paneel
@@ -2975,7 +2975,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
    rand-tabje), i.p.v. omhoog vanaf de onderkant. Bewust ná beide paneel-
    basisdefinities (.dice-panel op ~2596, .dm-dice-panel hierboven) zodat deze
    override wint bij gelijke specificiteit. Op mobiel blijft het een bottom-sheet. */
-@media (min-width: 769px) {
+@media (min-width: 481px) {
   .dice-panel, .dm-dice-panel {
     bottom: 0;
     transform: translateX(100%);
@@ -3579,10 +3579,6 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   .modal-head { padding: 12px 16px; }
   .modal-close { width: 44px; height: 44px; font-size: 32px; }
 
-  /* ── Dobbelstenen-paneel: volledige breedte ── */
-  .dice-panel { width: 100%; border-radius: 10px 10px 0 0; border-left: none; border-right: none; }
-  .dice-fab { bottom: 16px; right: 16px; width: 52px; height: 52px; }
-
   /* ── Spelersdashboard ── */
   .player-dashboard { padding: 14px 12px 28px; }
   .player-dash-hero { gap: 14px; }
@@ -3612,6 +3608,11 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 
   /* ── Titelbalk verbergen zodat tabs meer ruimte krijgen ── */
   .app-header-title { display: none !important; }
+
+  /* ── Dobbelknop: op de telefoon een ronde hoekknop + volledige-breedte
+     bottom-sheet (i.p.v. het zij-uitklaptabje dat vanaf 481px geldt). ── */
+  .dice-fab { bottom: 16px; right: 16px; width: 52px; height: 52px; }
+  .dice-panel { width: 100%; border-radius: 10px 10px 0 0; border-left: none; border-right: none; }
 
   /* ── Tabs: alleen icoon, geen tekstlabel ── */
   .tab-label { display: none; }
@@ -18843,10 +18844,10 @@ body.display-mode .combat-overlay.minimized .co-canvas { display: none !importan
 .dice-formula-toggle:hover { background: rgba(196,168,122,0.18); }
 
 /* ── FAB bij open paneel ──
-   Mobiel: verberg de hoek-FAB als het bottom-sheet-paneel open is (geen z-index-gevecht).
-   Desktop: het tabje blíjft zichtbaar en dockt als handvat aan de linkerrand van het
-   paneel (zie de .dice-fab/.dm-dice-fab-regels in het min-width:769px-blok hierboven). */
-@media (max-width: 768px) {
+   Telefoon (≤480): verberg de hoek-FAB als het bottom-sheet-paneel open is (geen z-index-
+   gevecht). Vanaf 481px blíjft het tabje zichtbaar en dockt het als handvat aan de linkerrand
+   van het paneel (zie de .dice-fab/.dm-dice-fab-regels in het min-width:481px-blok hierboven). */
+@media (max-width: 480px) {
   body:has(#dice-panel.open) #dice-fab { display: none !important; }
   body:has(#dm-dice-panel.open) #dm-dice-fab { display: none !important; }
 }
