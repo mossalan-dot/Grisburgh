@@ -720,6 +720,15 @@ function _akteNieuw() {
         <label class="dm-form-label">In-game dag (optioneel)</label>
         <input id="dm-akte-n-dag" class="dm-input" placeholder="Dag van …">
       </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Afbeeldingen (optioneel)</label>
+        <label class="dm-btn dm-btn-sm dm-btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;width:max-content">
+          ${icon('image')} Kies afbeeldingen
+          <input id="dm-akte-n-imgs" type="file" accept="image/*" multiple hidden
+            onchange="document.getElementById('dm-akte-n-imgs-hint').textContent = this.files.length ? this.files.length + ' gekozen — verborgen tot je ze tijdens spel onthult' : ''">
+        </label>
+        <span id="dm-akte-n-imgs-hint" class="dm-hint" style="font-size:11px"></span>
+      </div>
       <div class="dm-feature-row" style="margin-top:6px">
         <button type="submit" class="dm-btn dm-btn-primary">${icon('save')} Aanmaken</button>
         <button type="button" class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
@@ -733,6 +742,8 @@ function _akteNieuw() {
     const key = (document.getElementById('dm-akte-n-key')?.value || '').trim() || ('h' + num);
     const title = (document.getElementById('dm-akte-n-title')?.value || '').trim() || ('Akte ' + num);
     const dag = (document.getElementById('dm-akte-n-dag')?.value || '').trim();
+    // Bestanden nu al vastleggen — de modal (en dus het input-element) verdwijnt zo.
+    const imgFiles = Array.from(document.getElementById('dm-akte-n-imgs')?.files || []);
     if ((window.app?.state?.meta?.hoofdstukken || {})[key]) {
       alert(`Sleutel "${key}" bestaat al — kies een andere.`);
       return;
@@ -742,6 +753,13 @@ function _akteNieuw() {
       await api.saveHoofdstuk(key, { num, title, dag, short });
       const newMeta = await api.meta();
       if (window.app?.state) window.app.state.meta = newMeta;
+      // Optionele afbeeldingen meteen aan de nieuwe akte hangen (verborgen sessielog-entry;
+      // hergebruikt _scriptUploadImages — zie render-archief.js). Reveal/banner/logboek
+      // werken daarna direct, net als bij uploaden vanuit de regie-picker.
+      if (imgFiles.length) {
+        try { await window._scriptUploadImages?.(key, imgFiles); }
+        catch (e2) { console.warn('Akte-afbeeldingen uploaden mislukt', e2); }
+      }
       _akteOpen.add(key);
       window.app.closeModal();
       _renderAktes();
