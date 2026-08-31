@@ -231,7 +231,9 @@ function _fitHeader() {
   // Altijd eerst terug naar de volledige staat meten, anders meet je de al
   // ingeklapte breedte en krijg je geflikker.
   header.classList.remove('app-header--compact');
-  if (window.innerWidth <= 768) return; // mobiel: eigen CSS-layout
+  // Onder 480px doet de kleine-telefoon-CSS al icon-only; daarboven bepaalt _fitHeader
+  // zelf of de labels passen (dus ook in de 481–768-band, bv. een laptop-halfvenster).
+  if (window.innerWidth <= 480) return;
   let content = 0;
   for (const child of nav.children) {
     if (child.offsetParent === null) continue; // verborgen tab overslaan
