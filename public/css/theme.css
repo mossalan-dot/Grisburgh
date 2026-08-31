@@ -3544,7 +3544,9 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     flex-wrap: nowrap;
-    justify-content: flex-start;
+    /* Centreer de (icon-only) tabs als ze passen; bij overloop terug naar start zodat
+       het eerste icoon niet buiten beeld valt (safe-keyword). */
+    justify-content: safe center;
   }
   #section-tabs::-webkit-scrollbar { display: none; }
 
