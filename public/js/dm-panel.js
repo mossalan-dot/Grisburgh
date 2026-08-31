@@ -350,7 +350,7 @@ export function initDmPanel() {
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
     regieBalkRust:           (id) => _regieBalkRust(id),
-    regieBalkBrief:          (id) => _regieBalkBrief(id),
+    regieBalkStuurBrief:     (id) => _regieBalkStuurBrief(id),
     regieBalkRevealVague:    (id) => _revealRegieBalkItem(id, 'vague'),
     regieBalkRevealSecret:   (id) => _revealRegieBalkSecretItem(id),
     regieBalkRevealNext:     () => _revealRegieBalkNext(),
@@ -1722,7 +1722,7 @@ function _renderRegieBalkItem(item) {
   } else if (item.type === 'brief') {
     // Brief-stap: verstuur naar de gekozen ontvanger(s) + grote reveal op de tablet.
     // Blijft klikbaar (opnieuw sturen mag); de check-overlay markeert dat 'm verstuurd is.
-    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkBrief('${esc(item.id)}')" title="Brief versturen (${item.ontvangerType === 'groep' ? 'party' : 'speler'})">${icon('mail')}</button>`;
+    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkStuurBrief('${esc(item.id)}')" title="Brief versturen (${item.ontvangerType === 'groep' ? 'party' : 'speler'})">${icon('mail')}</button>`;
   } else if (isEntity) {
     actions = `
       ${canVague ? `<button class="dm-rb-reveal-btn dm-rb-reveal-btn--vaag" onclick="window.dmPanel.regieBalkRevealVague('${esc(item.id)}')" title="Vaag onthullen">${icon('eye-off')}</button>` : ''}
@@ -1886,7 +1886,7 @@ function _regieBalkRust(itemId) {
 // Brief-stap in de regie-balk: verstuur de brief naar de gekozen ontvanger(s).
 // cinematic:true → speler krijgt de verzegelde-brief-reveal, tablet krijgt 'm groot
 // via de brief:display-broadcast (server).
-async function _regieBalkBrief(itemId) {
+async function _regieBalkStuurBrief(itemId) {
   const item = _rbScript.find(x => x.id === itemId);
   if (!item || item.type !== 'brief') return;
   _rbRevealed.add(itemId);
@@ -1900,11 +1900,12 @@ async function _regieBalkBrief(itemId) {
       groepId:     item.ontvangerType === 'groep'  ? item.groepId  : null,
       cinematic: true,
     });
-    _showToast(`${icon('mail')} Brief verstuurd${r.created > 1 ? ` (${r.created} ontvangers)` : ''}.`);
+    // _showToast rendert platte tekst (textContent) — dus geen icon()-markup meenemen.
+    _showToast(`Brief verstuurd${r.created > 1 ? ` (${r.created} ontvangers)` : ''}.`);
   } catch (err) {
     _rbRevealed.delete(itemId);
     _renderRegieBalk();
-    _showToast(`Kon de brief niet versturen: ${esc(err.message)}`);
+    _showToast(`Kon de brief niet versturen: ${err.message}`);
   }
 }
 
