@@ -3528,8 +3528,9 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 
   /* ── App-header op mobiel: compacter ── */
   .app-header { padding: 0 6px 0 10px; min-height: 48px; gap: 0; }
-  .app-header-title { width: 130px; }
-  .app-title { font-size: 0.95rem !important; }
+  /* Smal scherm: alleen het wapen-icoon i.p.v. de afgekapte "GRISBUR…"-titel. */
+  .app-header-title { width: auto; padding-right: 6px; }
+  .app-title { display: none; }
   .app-subtitle { display: none; }
   .app-search-label { display: none; }
   .app-search-btn { padding: 0 10px; border-radius: 6px; }
