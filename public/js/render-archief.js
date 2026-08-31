@@ -132,9 +132,11 @@ export async function renderDocumenten() {
 
   const docs = filterDocs();
 
-  // Only build the toolbar on first render; subsequent calls just refresh the grid
+  // Only build the toolbar on first render; subsequent calls just refresh the grid.
+  // Uitzondering: is de DM-status gewisseld sinds de balk gebouwd werd (inloggen ná een
+  // eerste render als gast), dan volledig herbouwen zodat de +-knop verschijnt/verdwijnt.
   const existingGrid = container.querySelector('.doc-grid');
-  if (existingGrid) {
+  if (existingGrid && container.dataset.dmBuilt === String(isDM())) {
     _refreshDocGrid(docs, container);
     return;
   }
@@ -167,6 +169,7 @@ export async function renderDocumenten() {
       <div class="doc-grid grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4"></div>
     </div>
   `;
+  container.dataset.dmBuilt = String(isDM());
 
   _refreshDocGrid(docs, container);
 

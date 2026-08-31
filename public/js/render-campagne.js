@@ -567,9 +567,12 @@ async function renderEntitySection(type) {
 
   const list = filterEntities(type, entities[type] || []);
 
-  // Only build the full toolbar+grid on first render; on subsequent calls just refresh the grid
+  // Only build the full toolbar+grid on first render; on subsequent calls just refresh the grid.
+  // Uitzondering: als de DM-status is gewisseld sinds de balk gebouwd werd (bv. inloggen ná
+  // een eerste render als gast), moet de balk volledig herbouwd worden — anders blijven de
+  // DM-only knoppen (+ en potlood) ontbreken op de default-tab. Zie dataset.dmBuilt hieronder.
   const existingGrid = container.querySelector('.cards-grid');
-  if (existingGrid) {
+  if (existingGrid && container.dataset.dmBuilt === String(isDM())) {
     _refreshGrid(type, list, container);
     return;
   }
@@ -635,6 +638,9 @@ async function renderEntitySection(type) {
     <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-6 overflow-y-auto flex-1">
     </div>
   `;
+  // Onthoud met welke DM-status deze balk gebouwd is (zie de guard bovenaan): wisselt de
+  // status (inloggen/uitloggen), dan forceert dat een volledige herbouw i.p.v. enkel grid.
+  container.dataset.dmBuilt = String(isDM());
 
   _refreshGrid(type, list, container);
 
