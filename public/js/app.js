@@ -170,12 +170,14 @@ function setActiveAkte(ch, num, title) {
   if (!chip || !label) return;
   label.textContent = `Akte ${num} — ${title}`;
   chip.classList.remove('hidden');
+  _scheduleFitHeader();
 }
 
 function stopAkte() {
   const chip = document.getElementById('active-akte-chip');
   if (chip) chip.classList.add('hidden');
   window.dmPanel?.closeRevealStrip?.();
+  _scheduleFitHeader();
 }
 
 // ── Section switching ──
@@ -385,13 +387,16 @@ async function _ensureDiscoveryData(force) {
 window._updateDiscoveryChip = async function(force) {
   const chip = document.getElementById('discovery-chip');
   if (!chip) return;
+  // De chip verbreedt/versmalt de acties-zone → header opnieuw laten fitten (async, dus
+  // ná de initiële meting; zonder deze re-fit blijft de nav in een niet-compacte overlap).
+  const hide = () => { chip.classList.add('hidden'); _scheduleFitHeader(); };
   const section = state.activeSection;
   const meta = _DISCOVERY_META[section];
-  if (!meta) { chip.classList.add('hidden'); return; }
+  if (!meta) return hide();
   const data = await _ensureDiscoveryData(force);
   if (state.activeSection !== section) return; // tijdens fetch van sectie gewisseld
   const d = data?.[section];
-  if (!d || !d.totaal) { chip.classList.add('hidden'); return; }
+  if (!d || !d.totaal) return hide();
   const pct = Math.round((d.ontdekt / d.totaal) * 100);
   document.getElementById('discovery-chip-icon').innerHTML = icon(meta.ic);
   document.getElementById('discovery-chip-count').textContent = `${d.ontdekt}/${d.totaal}`;
@@ -399,6 +404,7 @@ window._updateDiscoveryChip = async function(force) {
   fill.style.width = pct + '%';
   fill.style.background = meta.accent;
   chip.classList.remove('hidden');
+  _scheduleFitHeader();
 };
 
 // ── Ambiance-dempknop in de header (feature #2) ──
@@ -407,9 +413,10 @@ window._updateDiscoveryChip = async function(force) {
 window._onAmbianceChange = function({ active, label, enabled } = {}) {
   const btn = document.getElementById('ambiance-toggle');
   if (!btn) return;
-  if (!active) { btn.classList.add('hidden'); return; }
+  if (!active) { btn.classList.add('hidden'); _scheduleFitHeader(); return; }
   btn.classList.remove('hidden');
   btn.classList.toggle('ambiance-toggle--muted', !enabled);
+  _scheduleFitHeader();
   const iconEl  = document.getElementById('ambiance-toggle-icon');
   const labelEl = document.getElementById('ambiance-toggle-label');
   if (iconEl)  iconEl.innerHTML = icon('volume-2');
