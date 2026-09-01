@@ -4363,6 +4363,8 @@ const _CONDITION_SOUND_KEYS = new Set([
   'blinded', 'charmed', 'concentration', 'deafened', 'exhaustion', 'frightened',
   'grappled', 'incapacitated', 'invisible', 'paralyzed', 'petrified', 'poisoned',
   'prone', 'restrained', 'stunned', 'unconscious', 'bleeding', 'burning', 'flying',
+  'raging', 'dodging', 'hidden', 'readied', 'cover-half', 'cover-three-quarters',
+  'grappling', 'mounted', 'underwater',
 ]);
 
 router.put('/sounds', requireDM, (req, res) => {

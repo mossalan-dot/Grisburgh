@@ -1,5 +1,5 @@
 import { api } from './api.js?v=243';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=11';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=12';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 // ── DM Panel ──
@@ -35,6 +35,18 @@ const CONDITIONS = [
   { id: 'steady-aim',         label: 'Steady Aim',         desc: '(Rogue) Used Steady Aim bonus action. Has advantage on the next attack roll this turn. Speed is 0 until end of turn.' },
   { id: 'vigilant-blessing',  label: 'Vigilant Blessing',  desc: '(Cleric) Has advantage on the next initiative roll. Expended when rolled.' },
   { id: 'blessed',            label: 'Blessed',            desc: '(Bless spell) Adds 1d4 to attack rolls and saving throws. Concentration, up to 1 minute.' },
+  { id: 'raging',             label: 'Raging',             desc: '(Barbarian) Advantage on Strength checks and saves, bonus damage on Strength-based melee attacks, and resistance to bludgeoning, piercing and slashing damage.' },
+  // ── Situationeel/positioneel ──
+  // Geen PHB-condition en geen klassefeature, maar wel iets dat de worp verandert
+  // en dat je halverwege een gevecht kwijtraakt. Eigen groep in de picker.
+  { id: 'dodging',            label: 'Dodging',            desc: 'Took the Dodge action. Attack rolls against it have disadvantage and it has advantage on Dexterity saving throws, until the start of its next turn.' },
+  { id: 'hidden',             label: 'Hidden',             desc: 'Unseen and unheard. Has advantage on its attack roll; the hidden state ends as soon as it attacks or makes noise.' },
+  { id: 'readied',            label: 'Readied',            desc: 'Readied an action with a trigger. Spends its reaction when the trigger occurs; the action is lost at the start of its next turn.' },
+  { id: 'cover-half',         label: 'Half Cover',         desc: 'Half Cover: +2 bonus to AC and Dexterity saving throws.' },
+  { id: 'cover-three-quarters', label: 'Three-Quarters Cover', desc: 'Three-Quarters Cover: +5 bonus to AC and Dexterity saving throws.' },
+  { id: 'grappling',          label: 'Grappling',          desc: 'Holding another creature in a grapple. Ends if the grappler is incapacitated or the target is moved out of reach.' },
+  { id: 'mounted',            label: 'Mounted',            desc: 'Riding a mount. A controlled mount acts on the rider\'s initiative and shares its movement.' },
+  { id: 'underwater',         label: 'Underwater',         desc: 'Underwater. Melee and ranged weapon attacks have disadvantage unless the weapon deals piercing damage or the creature has a Swim Speed. Resistance to fire damage.' },
 ];
 
 const HP_LABELS = [
@@ -6838,7 +6850,10 @@ function _renderCombatOverlay(combat, startMinimized = false) {
     const isActive = turnGroup.includes(i);
     const hp    = hpStatus(c.hp, c.maxHp);
     const hpPct = c.maxHp > 0 ? Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100)) : 0;
-    const _CC = new Set(['bardic-inspiration','tides-of-chaos','twilight-sanctuary','patient-defense','steady-aim','vigilant-blessing','blessed']);
+    const _CC = new Set(['bardic-inspiration','tides-of-chaos','twilight-sanctuary','patient-defense','steady-aim','vigilant-blessing','blessed','raging']);
+    // Situationeel: eigen tint, zodat de drie soorten toestanden uit elkaar te
+    // houden zijn (PHB-condition / klassefeature / situatie).
+    const _SIT = new Set(['dodging','hidden','readied','cover-half','cover-three-quarters','grappling','mounted','underwater','flying']);
 
     // Concentration and initiative grouping
     const hasConc = (c.conditions || []).includes('concentration');
@@ -6851,28 +6866,27 @@ function _renderCombatOverlay(combat, startMinimized = false) {
     const conds = (c.conditions || []).map(cid => {
       const cond = CONDITIONS.find(x => x.id === cid);
       const isClass = _CC.has(cid);
+      const isSit   = _SIT.has(cid);
       return cond
-        ? `<span class="co-cond-chip${isClass ? ' co-cond-chip--class' : ''}${isDM ? ' co-cond-dm' : ''}" title="${esc(cond.desc)}"
+        ? `<span class="co-cond-chip${isClass ? ' co-cond-chip--class' : isSit ? ' co-cond-chip--sit' : ''}${isDM ? ' co-cond-dm' : ''}" title="${esc(cond.desc)}"
             ${isDM ? `onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cid}')"` : ''}
            >${esc(cond.label)}${isDM ? ' '+icon('x') : ''}</span>`
         : '';
     }).join('');
 
     if (isDM) {
+      const _pickKnop = (cond, extra) => {
+        const active = (c.conditions || []).includes(cond.id);
+        return `<button class="co-cond-pick${extra}${active ? ' active' : ''}"
+          onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cond.id}')"
+          title="${esc(cond.desc)}">${esc(cond.label)}</button>`;
+      };
       const condPicker = [
-        ...CONDITIONS.filter(x => !_CC.has(x.id)).map(cond => {
-          const active = (c.conditions || []).includes(cond.id);
-          return `<button class="co-cond-pick${active ? ' active' : ''}"
-            onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cond.id}')"
-            title="${esc(cond.desc)}">${esc(cond.label)}</button>`;
-        }),
+        ...CONDITIONS.filter(x => !_CC.has(x.id) && !_SIT.has(x.id)).map(x => _pickKnop(x, '')),
         `<div class="co-cond-divider"></div>`,
-        ...CONDITIONS.filter(x => _CC.has(x.id)).map(cond => {
-          const active = (c.conditions || []).includes(cond.id);
-          return `<button class="co-cond-pick co-cond-class${active ? ' active' : ''}"
-            onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cond.id}')"
-            title="${esc(cond.desc)}">${esc(cond.label)}</button>`;
-        }),
+        ...CONDITIONS.filter(x => _SIT.has(x.id)).map(x => _pickKnop(x, ' co-cond-sit')),
+        `<div class="co-cond-divider"></div>`,
+        ...CONDITIONS.filter(x => _CC.has(x.id)).map(x => _pickKnop(x, ' co-cond-class')),
       ].join('');
 
       return `

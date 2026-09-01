@@ -15,6 +15,7 @@ const USE_SPRITE_COND_ICONS = true;
 // conditie-id → [sprite-icoon, kleur]. Klassespecifieke toestanden krijgen
 // allemaal goud, zodat ze als groep te onderscheiden zijn van echte conditions.
 const _CLASS_GOLD = '#d4aa3c';
+const _SIT_STEEL  = '#7fa8c8';   // situationeel/positioneel
 const COND_ICON = {
   blinded:       ['eye-off',       '#8a8a8a'],
   charmed:       ['heart',         '#d06ac0'],
@@ -34,13 +35,24 @@ const COND_ICON = {
   concentration: ['sparkles',      '#7ab0e0'],
   bleeding:      ['droplet',       '#c02828'],
   burning:       ['flame',         '#e07020'],
-  'bardic-inspiration': ['volume-2',   _CLASS_GOLD],
+  'bardic-inspiration': ['music',      _CLASS_GOLD],
   'tides-of-chaos':     ['refresh-cw', _CLASS_GOLD],
   'twilight-sanctuary': ['moon',       _CLASS_GOLD],
   'patient-defense':    ['shield',     _CLASS_GOLD],
   'steady-aim':         ['target',     _CLASS_GOLD],
   'vigilant-blessing':  ['eye',        _CLASS_GOLD],
   blessed:              ['sparkle',    _CLASS_GOLD],
+  raging:               ['angry',      _CLASS_GOLD],
+  // Situationeel/positioneel: geen PHB-condition en geen klassefeature, maar wel
+  // iets dat de worp verandert. Eigen tint zodat je de drie groepen uit elkaar houdt.
+  dodging:                ['wind',          _SIT_STEEL],
+  hidden:                 ['venetian-mask', _SIT_STEEL],
+  readied:                ['hourglass',     _SIT_STEEL],
+  'cover-half':           ['shield-half',   _SIT_STEEL],
+  'cover-three-quarters': ['shield-plus',   _SIT_STEEL],
+  grappling:              ['hand',          _SIT_STEEL],
+  mounted:                ['rabbit',        _SIT_STEEL],
+  underwater:             ['waves',         _SIT_STEEL],
 };
 
 // ── Sprite → canvas ──────────────────────────────────────────────────────────
@@ -54,7 +66,7 @@ const _spriteCache = {};   // "icoon|kleur" → Image, of null zolang hij laadt
 function _ensureSprite() {
   if (_spriteDoc || _spriteBezig) return;
   _spriteBezig = true;
-  fetch('/img/icons.svg?v=5')
+  fetch('/img/icons.svg?v=6')
     .then(r => r.text())
     .then(txt => { _spriteDoc = new DOMParser().parseFromString(txt, 'image/svg+xml'); })
     .catch(() => { _spriteBezig = false; });

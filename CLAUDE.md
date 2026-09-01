@@ -128,14 +128,14 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=379   app.js?v=524   sound-manager.js?v=7
+index.html  : theme.css?v=380   app.js?v=525   sound-manager.js?v=7
 app.js      : api.js?v=243      render-campagne.js?v=116   render-archief.js?v=63
               render-kaart.js?v=13  render-dungeon.js?v=26  render-relatiemap.js?v=16
               render-progressie.js?v=38  socket-client.js?v=51
               render-bestiarium.js?v=15  render-statblock.js?v=3
-              dm-panel.js?v=134    render-dashboard.js?v=4
+              dm-panel.js?v=135    render-dashboard.js?v=4
               render-spreuken.js?v=7   media-picker.js?v=2
-dm-panel.js : combat-canvas.js?v=11   render-statblock.js?v=3
+dm-panel.js : combat-canvas.js?v=12   render-statblock.js?v=3
 ```
 
 > **Eén bestand = één URL.** ES-modules met verschillende `?v=`-nummers zijn aparte
@@ -273,12 +273,12 @@ data/
 
 ```javascript
 // Helper beschikbaar als window.icon() overal in de frontend
-icon('sword')                         // → <svg><use href="/img/icons.svg?v=5#icon-sword"/></svg>
+icon('sword')                         // → <svg><use href="/img/icons.svg?v=6#icon-sword"/></svg>
 icon('heart', { cls: 'icon-lg' })     // met extra CSS-klasse
 icon('shield', { title: 'Verdediging' }) // met tooltip
 ```
 
-**Beschikbare iconen** (icons.svg, v=5):
+**Beschikbare iconen** (icons.svg, v=6):
 `beer` `book-open` `building` `camera` `castle` `check` `check-circle`
 `chevron-left` `chevron-right` `church` `clipboard-list` `coins` `crossed-swords`
 `dice` `download` `eye` `eye-off` `flask-conical` `folder-open` `globe`
@@ -290,9 +290,17 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 `sword` `swords` `target` `trash` `tree-pine` `user` `users` `volume-2`
 `x` `zap`
 
-**Toegevoegd voor conditie-weergave** (Lucide, ISC): `arrow-down` `ban` `battery-low`
-`bed` `brick-wall` `circle-dashed` `droplet` `ear-off` `flame` `ghost` `grab` `hourglass`
-`sparkle`
+**Toegevoegd voor conditie-weergave** (Lucide, ISC): `angry` `arrow-down` `ban`
+`battery-low` `bed` `brick-wall` `circle-dashed` `droplet` `ear-off` `flame` `ghost`
+`grab` `hand` `hourglass` `music` `rabbit` `shield-half` `shield-plus` `sparkle` `venetian-mask`
+`waves` `wind`
+
+> **Conditie-iconen** leven in `COND_ICON` (`combat-canvas.js`): per conditie een
+> `[sprite-icoon, kleur]`. Drie kleurgroepen — gekleurd = PHB-condition, goud
+> (`_CLASS_GOLD`) = klassefeature, staalblauw (`_SIT_STEEL`) = situationeel
+> (Dodging, Cover, Hidden, Flying…). De picker in `dm-panel.js` groepeert met
+> `_CC` en `_SIT`. `USE_SPRITE_COND_ICONS = false` zet de oude geschilderde
+> PNG-set (`public/img/conditions/`) weer aan.
 
 **Nooit emoji gebruiken in HTML-output.** Altijd `icon()` of Unicode-tekens die een functionele staat hebben (★/☆ voor favorieten).
 

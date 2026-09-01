@@ -5894,7 +5894,29 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   border-color: rgba(184,134,11,0.4);
   color: #6a4a04;
 }
-/* Scheidingslijn tussen standaard en klasse-conditions in de picker */
+/* ── Situationele toestanden (staalblauw) ────────────────────────────────────
+   Derde groep naast PHB-conditions (neutraal) en klassefeatures (goud):
+   Dodging, Cover, Hidden, Readied, Grappling, Mounted, Underwater, Flying.
+   Eigen tint zodat in één oogopslag duidelijk is waar je naar kijkt. */
+.co-cond-pick.co-cond-sit {
+  background: rgba(90,140,180,0.08);
+  border-color: rgba(90,140,180,0.35);
+  color: #2f5875;
+}
+.co-cond-pick.co-cond-sit:hover { background: rgba(90,140,180,0.18); }
+.co-cond-pick.co-cond-sit.active {
+  background: rgba(90,140,180,0.22);
+  border-color: rgba(90,140,180,0.6);
+  color: #23425a;
+  font-weight: 600;
+}
+.co-cond-chip.co-cond-chip--sit {
+  background: rgba(90,140,180,0.12);
+  border-color: rgba(90,140,180,0.4);
+  color: #2b5170;
+}
+
+/* Scheidingslijnen tussen de drie groepen in de picker */
 .co-cond-divider {
   width: 100%;
   height: 1px;
