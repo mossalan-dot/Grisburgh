@@ -1,6 +1,6 @@
 import { api } from './api.js?v=243';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=116";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=62";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=63";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=13';
 import { renderDungeon } from './render-dungeon.js?v=26';
 import { renderRelatiemap } from './render-relatiemap.js?v=16';
@@ -8,8 +8,8 @@ import { renderProgressie } from './render-progressie.js?v=38';
 import { renderBestiarium } from './render-bestiarium.js?v=15';
 import { renderSpreuken } from './render-spreuken.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=50";
-import { initDmPanel } from "./dm-panel.js?v=128";
+import { initSocket } from "./socket-client.js?v=51";
+import { initDmPanel } from "./dm-panel.js?v=133";
 import './media-picker.js?v=2';
 
 // ── Icon helper ──
@@ -9171,13 +9171,12 @@ function _initDisplayMode() {
     if (subEl && meta?.appSubtitle) subEl.textContent = meta.appSubtitle;
   }).catch(() => {});
   _buildIdleEmbers();
-  // Als gevecht al actief is bij openen: minimized-staat geeft de tablet de gecentreerde weergave
-  api.getCombat().then(combat => {
-    if (combat?.active) {
-      const overlay = document.getElementById('combat-overlay');
-      if (overlay) overlay.classList.add('minimized');
-    }
-  }).catch(() => {});
+  // Het tafelscherm heeft een eigen, volledige gevechtsweergave (.co-display in
+  // dm-panel.js) — nooit geminimaliseerd. Voorheen werd hier 'minimized' gezet
+  // terwijl socket-client.js het er bij elke combat:updated weer afhaalde; die
+  // tegenstrijdigheid liet de tablet in de spelerslayout landen, die de kiosk-CSS
+  // volledig verbergt (leeg wit scherm). initDmPanel() rendert de overlay al met
+  // de juiste staat, dus hier is niets meer nodig.
 }
 
 window._displayExit = function() {

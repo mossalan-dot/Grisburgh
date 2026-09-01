@@ -2,7 +2,7 @@
 // Plays sounds ONLY on the DM's browser.
 // Socket events are handled by socket-client.js, which calls window.soundManager.*
 
-let _sounds     = { standard: { damage: null, healing: null, win: null, loss: null, nextRound: null, nextTurn: null }, emotes: {}, playerTurn: {} };
+let _sounds     = { standard: { damage: null, healing: null, win: null, loss: null, nextRound: null, nextTurn: null }, emotes: {}, playerTurn: {}, conditions: {} };
 let _prevHp     = {};   // combatantId → hp
 let _prevWinner = undefined;
 let _prevTurn   = undefined;
@@ -109,14 +109,86 @@ async function _loadSounds() {
         standard:   data.standard   || {},
         emotes:     data.emotes     || {},
         playerTurn: data.playerTurn || {},
+        conditions: data.conditions || {},
       };
     }
   } catch { /* ok */ }
 }
 
+// ── Conditie-geluiden ─────────────────────────────────────────────────────────
+// Spelen bewust op het TAFELSCHERM en niet op de DM-laptop: het geluid hoort bij
+// de spelers aan tafel te klinken. Daarom draait dit vóór de DM-guard in
+// _onCombatUpdated, en alleen in display-modus — zo klinkt het ook niet dubbel
+// wanneer de DM tegelijk een venster open heeft.
+let _prevConds   = {};      // combatantId → Set van conditie-id's
+let _condsPrimed = false;   // eerste update na laden: alleen vastleggen, niet spelen
+let _condRound   = undefined;  // laatst gehoorde ronde (voor de concentration-reminder)
+
+// Zwaarste eerst. Zet de DM er drie tegelijk aan, dan klinkt alleen de bovenste;
+// anders krijg je een salvo. Zelfde gedachte als CONDITION_PRIORITY in combat-canvas.js.
+const _COND_SEVERITY = [
+  'unconscious', 'petrified', 'paralyzed', 'stunned', 'incapacitated',
+  'burning', 'bleeding', 'poisoned', 'charmed', 'frightened', 'blinded',
+  'restrained', 'grappled', 'exhaustion', 'deafened', 'invisible', 'prone',
+  'concentration',
+];
+const _condRank = (id) => {
+  const i = _COND_SEVERITY.indexOf(id);
+  return i === -1 ? _COND_SEVERITY.length : i;   // onbekend → achteraan
+};
+
+function _onConditionsUpdated(combat) {
+  if (!window._isDisplayMode) return;
+  if (!combat?.active) { _prevConds = {}; _condsPrimed = false; _condRound = undefined; return; }
+
+  const nieuwe = [];
+  const ids    = new Set();
+  for (const c of (combat.combatants || [])) {
+    ids.add(c.id);
+    const nu     = new Set((c.conditions || []).filter(x => typeof x === 'string'));
+    const eerder = _prevConds[c.id];
+    if (_condsPrimed && eerder) {
+      // Concentration loopt niet via dit pad: dat is geen eenmalig signaal maar
+      // een herinnering die elke ronde opnieuw klinkt (zie hieronder).
+      for (const id of nu) if (!eerder.has(id) && id !== 'concentration') nieuwe.push(id);
+    }
+    _prevConds[c.id] = nu;
+  }
+  // Verdwenen combatants opruimen, anders groeit de map het hele gevecht door.
+  for (const id of Object.keys(_prevConds)) if (!ids.has(id)) delete _prevConds[id];
+
+  // Kom je midden in een gevecht binnen, dan zijn álle bestaande conditions
+  // "nieuw" t.o.v. een lege map. Eerste ronde dus alleen vastleggen.
+  if (!_condsPrimed) { _condsPrimed = true; _condRound = combat.round; return; }
+
+  const map = _sounds.conditions || {};
+
+  // Nieuwe conditie? Zwaarste met een ingesteld geluid wint.
+  if (nieuwe.length) {
+    nieuwe.sort((a, b) => _condRank(a) - _condRank(b));
+    const zwaarste = nieuwe.find(id => map[id]);
+    if (zwaarste) { _condRound = combat.round; _play(map[zwaarste]); return; }
+  }
+
+  // Concentration-reminder: zolang er iemand concentreert klinkt hij bij elke
+  // nieuwe ronde opnieuw, als geheugensteun aan tafel. Alleen als er verder
+  // niets te horen viel deze tick — anders overlappen twee geluiden.
+  const nieuweRonde = _condRound !== undefined && combat.round > _condRound;
+  _condRound = combat.round;
+  if (!nieuweRonde || !map.concentration) return;
+  const concentreert = (combat.combatants || [])
+    .some(c => (c.hp ?? 1) > 0 && (c.conditions || []).includes('concentration'));
+  if (concentreert) _play(map.concentration);
+}
+
 // ── Combat state tracking (HP changes + winner) ───────────────────────────────
 
 function _onCombatUpdated(combat) {
+  // Conditie-geluiden horen op het tafelscherm, dus vóór de DM-guard hieronder.
+  // _loadSounds() is fire-and-forget: bij de allereerste update speelt er toch
+  // niets (_condsPrimed), dus tegen de tweede update is de config binnen.
+  if (window._isDisplayMode) { _loadSounds(); _onConditionsUpdated(combat); }
+
   if (!window.app?.isDM?.()) return;
 
   _loadSounds();

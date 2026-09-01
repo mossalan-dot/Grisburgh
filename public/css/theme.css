@@ -15899,36 +15899,141 @@ body.dm-rb-active .combat-overlay.minimized { display: none !important; }
 /* ⚔️-knop in aktebar header */
 .dm-rb-combat-btn { font-size: 14px !important; }
 
-/* Combat overlay: in display-modus vol scherm vanaf bovenkant, nooit geminimaliseerd */
-body.display-mode .combat-overlay { top: 0; z-index: 60; }
-/* Tabjes, tabinhoud en log verborgen in pure kiosk-modus (geen speler ingelogd) */
-body.display-kiosk .combat-overlay .co-tabs,
-body.display-kiosk .combat-overlay .co-tab-panel,
-body.display-kiosk .combat-overlay .co-log { display: none !important; }
-body.display-mode .combat-overlay.minimized {
-  background: rgba(0,0,0,0.55) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  pointer-events: all !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 20px !important;
+/* ── Gevecht op het tafelscherm (tablet) ─────────────────────────────────────
+   De tablet rendert een eigen layout (.co-disp, zie _coDisplayHtml in
+   dm-panel.js) i.p.v. de spelerslayout met tabbladen. De oude regels hier
+   verborgen .co-tabs/.co-tab-panel/.co-log in kiosk-modus en probeerden dat te
+   compenseren via een '.minimized'-variant die op .co-rows stuurde — een klasse
+   die niet meer bestaat. Netto zag de tablet een lege overlay (wit scherm). */
+body.display-mode .combat-overlay {
+  top: 0;
+  z-index: 60;
+  /* Minder marge dan de spelersweergave (die 80px onderaan vrijhoudt voor de
+     navigatie): op het tafelscherm is elke pixel canvas winst. */
+  padding: 12px;
 }
-body.display-mode .combat-overlay.minimized .combat-modal {
-  border-radius: 12px !important;
-  width: 100% !important;
-  max-width: 780px !important;
-  height: auto !important;
-  max-height: 92vh !important;
-  pointer-events: all !important;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.6) !important;
+body.display-mode .combat-modal { background: rgba(244, 236, 216, 0.90); }
+/* Backdrop-afbeelding mag er doorheen komen; het canvas tekent zelf ook de
+   backdrop achter de figuren (zie combat-canvas.js). */
+body.display-mode .combat-overlay.co-has-backdrop .combat-modal {
+  background: rgba(244, 236, 216, 0.78);
 }
-/* Herstel verstopte combat-elementen in geminimaliseerde staat */
-body.display-mode .combat-overlay.minimized .co-turn-controls,
-body.display-mode .combat-overlay.minimized .co-rows { display: block !important; }
-body.display-mode .combat-overlay.minimized .co-add-form,
-body.display-mode .combat-overlay.minimized .co-detail-panel,
-body.display-mode .combat-overlay.minimized .co-canvas { display: none !important; }
+
+.co-disp {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 14px 12px;
+}
+.co-disp-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.co-disp-ronde {
+  font-family: 'Cinzel', serif;
+  font-size: 19px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #6b4a1a;
+}
+.co-disp-beurt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Cinzel', serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: #2a1a08;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+}
+.co-disp-beurt .icon { width: 26px; height: 26px; color: #b8860b; }
+
+/* Het canvas is de hoofdmoot: alles eromheen is flex-shrink:0, dit groeit. */
+.co-disp-canvas {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(154, 74, 42, 0.35);
+}
+
+.co-disp-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  padding: 4px 2px 2px;
+}
+.co-disp-pion {
+  flex: 0 0 auto;
+  width: 104px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border: 1px solid #c4a87a;
+  border-radius: 8px;
+  background: rgba(248, 240, 222, 0.82);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.co-disp-pion.is-beurt {
+  border-color: #b8860b;
+  background: rgba(255, 247, 225, 0.96);
+  box-shadow: 0 0 0 2px rgba(184,134,11,0.45), 0 0 18px rgba(184,134,11,0.35);
+}
+.co-disp-pion.is-uit { opacity: 0.42; filter: grayscale(1); }
+.co-disp-pion-portret {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 2px solid #c4a87a;
+  background-size: cover;
+  background-position: center;
+  display: flex; align-items: center; justify-content: center;
+}
+.co-disp-pion-portret--leeg { background: rgba(196,168,122,0.22); color: #8a6a3a; }
+.co-disp-pion-portret .icon { width: 24px; height: 24px; }
+.co-disp-pion-naam {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2a1a08;
+  text-align: center;
+  line-height: 1.15;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.co-disp-pion-staat {
+  font-family: 'Crimson Text', serif;
+  font-size: 11.5px;
+  font-style: italic;
+  color: #6b4a1a;
+}
+.co-disp-pion-bar {
+  display: block;
+  width: 74px; height: 5px;
+  border-radius: 3px;
+  background: rgba(90, 58, 0, 0.22);
+  overflow: hidden;
+}
+.co-disp-pion-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #7a1f1f, #b8860b);
+}
+.co-disp-leeg {
+  font-family: 'Crimson Text', serif;
+  font-style: italic;
+  color: #6b4a1a;
+  padding: 10px 4px;
+}
 
 /* ── Combat overlay backdrop & sfeer ─────────────────────────────────────── */
 

@@ -121,18 +121,21 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 | `public/js/render-campagne.js` | `public/js/app.js` → `import … render-campagne.js?v=N` |
 | `public/js/render-archief.js` | `public/js/app.js` → `import … render-archief.js?v=N` |
 | `public/js/api.js` | `public/js/app.js` → `import … api.js?v=N` |
+| `public/js/render-spreuken.js` | `public/js/app.js` → `import … render-spreuken.js?v=N` |
+| `public/js/media-picker.js` | `public/js/app.js` → `import './media-picker.js?v=N'` (side-effect import) |
 | overige render-*.js, socket-client.js | idem in app.js |
 
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=378   app.js?v=518   sound-manager.js?v=6
-app.js      : api.js?v=243      render-campagne.js?v=116   render-archief.js?v=62
+index.html  : theme.css?v=379   app.js?v=523   sound-manager.js?v=7
+app.js      : api.js?v=243      render-campagne.js?v=116   render-archief.js?v=63
               render-kaart.js?v=13  render-dungeon.js?v=26  render-relatiemap.js?v=16
-              render-progressie.js?v=38  socket-client.js?v=50
+              render-progressie.js?v=38  socket-client.js?v=51
               render-bestiarium.js?v=15  render-statblock.js?v=3
-              dm-panel.js?v=128    render-dashboard.js?v=4
-dm-panel.js : combat-canvas.js?v=7   render-statblock.js?v=3
+              dm-panel.js?v=133    render-dashboard.js?v=4
+              render-spreuken.js?v=7   media-picker.js?v=2
+dm-panel.js : combat-canvas.js?v=10   render-statblock.js?v=3
 ```
 
 > **Eén bestand = één URL.** ES-modules met verschillende `?v=`-nummers zijn aparte

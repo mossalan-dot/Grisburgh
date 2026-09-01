@@ -23,6 +23,36 @@ _COND_IDS.forEach(id => {
   img.src = `/img/conditions/${id}.png`;
 });
 
+// ── Avatar-fallback: iconen uit de gedeelde sprite ───────────────────────────
+// Zonder portret tekende het canvas hier emoji (👾/👤/⚔️/✨), terwijl de
+// initiative-strip op het tafelscherm icon('skull')/icon('user') uit
+// /img/icons.svg gebruikt — twee verschillende beelden voor dezelfde combatant.
+// We halen de symbolen uit diezelfde sprite en bakken ze als data-URL tot een
+// <img>, want een <use href="sprite#id"> is niet naar canvas te tekenen.
+const _avatarIcons = {};
+const _AVATAR_ICON_IDS = { player: 'icon-user', ally: 'icon-shield', summon: 'icon-sparkles', monster: 'icon-skull' };
+const _AVATAR_ICON_COL = '#f2e8d2';   // warm perkament — leest op de donkere placeholder
+(async () => {
+  try {
+    const txt = await fetch('/img/icons.svg?v=3').then(r => r.text());
+    const doc = new DOMParser().parseFromString(txt, 'image/svg+xml');
+    for (const [type, id] of Object.entries(_AVATAR_ICON_IDS)) {
+      const sym = doc.getElementById(id);
+      if (!sym) continue;
+      // Attributen van het <symbol> overnemen (viewBox, stroke-width, fill…) en
+      // currentColor vervangen: een losstaande SVG erft geen kleur van de pagina.
+      const attrs = [...sym.attributes]
+        .filter(a => a.name !== 'id')
+        .map(a => `${a.name}="${a.value.replace(/currentColor/g, _AVATAR_ICON_COL)}"`)
+        .join(' ');
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" ${attrs}>${sym.innerHTML.replace(/currentColor/g, _AVATAR_ICON_COL)}</svg>`;
+      const img = new Image();
+      img.onload = () => { _avatarIcons[type] = img; };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+  } catch { /* lukt het niet, dan blijft de gekleurde cirkel zonder icoon over */ }
+})();
+
 function _drawCondIcon(ctx, condId, dx, dy, dSize) {
   const img = _condImgs[condId];
   if (img) {
@@ -810,10 +840,34 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
     ? Math.sin(t * (isSlow ? 0.9 : 3.5)) * (isReduced || isSlow ? 2 : 5)
     : 0;
 
-  // Circle avatar sizing
-  const AVTR_R = Math.min(w * 0.30, h * 0.26);
+  // Circle avatar sizing.
+  // De figuren stonden altijd in één rij tegen de bovenkant geplakt (h * 0.12),
+  // waardoor op een hoog canvas — zoals het tafelscherm — de onderste helft leeg
+  // bleef. Nu groeit de avatar mee met de beschikbare hoogte én wordt het blok
+  // (avatar + HP-balk + conditie-iconen + naam) verticaal gecentreerd.
+  const AVTR_R = Math.min(w * 0.38, h * 0.30);
   const cx     = x + w / 2;
-  const cy     = y + h * 0.12 + AVTR_R + bounce;
+  // Alles onder de cirkel hangt aan cyGround + AVTR_R; ~62px dekt balk, iconen en naam.
+  const blockH = AVTR_R * 2 + 62;
+  const topY   = y + Math.max(h * 0.06, (h - blockH) / 2);
+  const cyGround = topY + AVTR_R + bounce;
+  // Flying: alleen de avatar gaat omhoog, mét grondschaduw eronder. HP-balk,
+  // iconen en naam blijven staan — die horen bij het slot, niet bij de hoogte.
+  // De trage eigen dobber (los van de beurt-bounce) maakt het zweven leesbaar.
+  const isFlying = !isDead && hasCond('flying');
+  const lift     = isFlying ? AVTR_R * 0.55 + Math.sin(t * 1.2) * (AVTR_R * 0.06) : 0;
+  const cy       = cyGround - lift;
+
+  // ── Grondschaduw bij vliegen (vóór de avatar, dus erachter) ──
+  if (isFlying) {
+    ctx.save();
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle   = '#000000';
+    ctx.beginPath();
+    ctx.ellipse(cx, cyGround + AVTR_R * 0.72, AVTR_R * 0.60, AVTR_R * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 
   // ── Effects behind / around avatar ──
   if (topCond) _fxBehind(ctx, topCond, cx, cy, AVTR_R, t);
@@ -852,11 +906,13 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
     g.addColorStop(1, c.type === 'player' ? '#2a3a60' : c.type === 'ally' ? '#1e4a30' : c.type === 'summon' ? '#4a1880' : '#4a2010');
     ctx.fillStyle = g;
     ctx.fillRect(cx - AVTR_R, cy - AVTR_R, AVTR_R * 2, AVTR_R * 2);
-    ctx.fillStyle    = 'rgba(255,255,255,0.25)';
-    ctx.font         = `${AVTR_R * 0.85}px serif`;
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(c.type === 'player' ? '👤' : c.type === 'ally' ? '⚔️' : c.type === 'summon' ? '✨' : '👾', cx, cy);
+    const ic = _avatarIcons[c.type] || _avatarIcons.monster;
+    if (ic) {
+      const s = AVTR_R * 1.0;
+      ctx.globalAlpha = 0.9;
+      ctx.drawImage(ic, cx - s / 2, cy - s / 2, s, s);
+      ctx.globalAlpha = 1;
+    }
   }
   ctx.restore();
 
@@ -965,7 +1021,7 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
   const barW = Math.min(w * 0.72, AVTR_R * 2.2);
   const barH = 5;
   const barX = cx - barW / 2;
-  const barY = cy + AVTR_R + 8;
+  const barY = cyGround + AVTR_R + 8;
   _drawHpBar(ctx, c, barX, barY, barW, barH);
 
   // ── Death saving throws (dying players) ──
@@ -976,7 +1032,7 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
   }
 
   // ── Condition icons ──
-  const allConds = isDead ? [] : (c.conditions || []);
+  const allConds = isDead ? [] : (c.conditions || []).filter(id => id !== 'flying');
   if (allConds.length > 0) {
     ctx.save();
     ctx.font         = '12px serif';

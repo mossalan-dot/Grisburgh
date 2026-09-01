@@ -1914,6 +1914,24 @@ window._scriptRename = async (ch, itemId, caption) => {
   if (val === (item.caption || '')) return; // niets veranderd → geen save/re-render
   item.caption = val;
   await _scriptSave(ch, script);
+  // Spiegel het onderschrift naar de sessieLog-afbeelding. De server stuurt bij een
+  // reveal img.caption van de sessieLog-entry mee (PUT /sessieLog/:id), niet de
+  // caption van deze script-stap — zonder deze sync toont de tablet dus de oude,
+  // uit de bestandsnaam afgeleide caption van de akte-importer.
+  if (!item.sessieId || !item.fileId) return;
+  try {
+    const archief = await api.listArchief();
+    const entry   = (archief.sessieLog || []).find(e => e.id === item.sessieId);
+    if (!entry) return;
+    // Legacy string[] meenemen in het genormaliseerde {id,caption,visible}-formaat.
+    const images = (entry.images || []).map(img => {
+      const base = typeof img === 'string' ? { id: img, caption: '', visible: true } : img;
+      return base.id === item.fileId ? { ...base, caption: val } : base;
+    });
+    await api.updateSessieLog(item.sessieId, { images });
+  } catch (err) {
+    console.error('Onderschrift kon niet naar het logboek gesynct worden', err);
+  }
 };
 
 window._scriptMove = async (ch, itemId, dir) => {

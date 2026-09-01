@@ -1,5 +1,5 @@
 import { api } from './api.js?v=243';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=7';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 // ── DM Panel ──
@@ -20,6 +20,7 @@ const CONDITIONS = [
   { id: 'petrified',     label: 'Petrified',      desc: 'Transformed to stone. Incapacitated. Resistant to all damage. Immune to poison and disease.' },
   { id: 'poisoned',      label: 'Poisoned',       desc: 'Disadvantage on attack rolls and ability checks.' },
   { id: 'prone',         label: 'Prone',          desc: 'Disadvantage on attack rolls. Attacks within 5 ft. have advantage; from farther away have disadvantage. Standing up costs half speed.' },
+  { id: 'flying',        label: 'Flying',         desc: 'Airborne. Out of reach of most melee attacks from the ground. Falls if its speed drops to 0 or it is knocked prone.' },
   { id: 'restrained',    label: 'Restrained',     desc: 'Speed becomes 0. Disadvantage on attack rolls and DEX saves. Attack rolls against it have advantage.' },
   { id: 'stunned',       label: 'Stunned',        desc: 'Incapacitated, cannot move, can speak only falteringly. Fails STR/DEX saves. Attack rolls against it have advantage.' },
   { id: 'unconscious',   label: 'Unconscious',    desc: 'Incapacitated, prone, unaware. Fails STR/DEX saves. Attacks have advantage. Hits within 5 ft. are critical hits.' },
@@ -1752,7 +1753,7 @@ function _renderRegieBalkItem(item) {
       : '';
   }
 
-  return `<div class="dm-rb-item${revealed ? ' dm-rb-item--revealed' : ''}">
+  return `<div class="dm-rb-item${revealed ? ' dm-rb-item--revealed' : ''}" data-rb-id="${esc(item.id)}">
     <div class="dm-rb-item-thumb-wrap">
       ${thumbHtml}
       ${revealed ? `<div class="dm-rb-item-revealed-overlay">${icon('check')}</div>` : ''}
@@ -1799,6 +1800,10 @@ function _renderRegieBalk() {
 
   const revealedCount = _rbRevealed.size;
   const totalCount    = _rbScript.length;
+
+  // Een innerHTML-rebuild zet scrollLeft terug op 0, waardoor de balk bij elke
+  // onthulling zichtbaar terugsprong naar het begin. Positie bewaren en herstellen.
+  const prevScroll = document.getElementById('dm-rb-scroll')?.scrollLeft || 0;
 
   el.innerHTML = `
     <div class="dm-regie-balk-inner">
@@ -1855,10 +1860,31 @@ function _renderRegieBalk() {
         <button class="dm-rb-scroll-btn dm-rb-scroll-btn--right" onclick="window._rbScroll(1)" title="Naar rechts">&#8250;</button>
       </div>
     </div>`;
+  if (prevScroll) {
+    const scrollEl = document.getElementById('dm-rb-scroll');
+    if (scrollEl) scrollEl.scrollLeft = prevScroll;
+  }
   // Verberg geminimaliseerde combat-balk als aktebar open is
   document.body.classList.add('dm-rb-active');
   requestAnimationFrame(_rbInitDrag);
 };
+
+// Werk één regie-stap bij zonder de hele balk te herbouwen. Scheelt de zichtbare
+// flits bij elke onthulling (en houdt de scrollpositie sowieso intact). Staat het
+// item niet in de DOM — bv. weggefilterd of balk geminimaliseerd — dan valt het
+// terug op een volledige render.
+function _rbUpdateItem(itemId) {
+  const item = _rbScript.find(x => x.id === itemId);
+  const row  = document.querySelector(`#dm-rb-scroll .dm-rb-item[data-rb-id="${window.CSS?.escape ? CSS.escape(itemId) : itemId}"]`);
+  if (!item || !row) { _renderRegieBalk(); return; }
+  row.outerHTML = _renderRegieBalkItem(item);
+  // Teller in de kop meelaten lopen met de nieuwe stand.
+  const prog = document.querySelector('.dm-rb-progress');
+  if (prog) {
+    prog.innerHTML = `${_rbRevealed.size}/${_rbScript.length} ${icon('chevron-right')}`;
+    prog.disabled  = _rbRevealed.size >= _rbScript.length;
+  }
+}
 
 // Scroll de regie-balk met de pijlknoppen
 window._rbScroll = (dir) => {
@@ -1898,7 +1924,7 @@ function _regieBalkRust(itemId) {
   if (!item || item.type !== 'rust') return;
   window._dmRust?.(item.restType, item.locatie);
   _rbRevealed.add(itemId);
-  _renderRegieBalk();
+  _rbUpdateItem(itemId);
 }
 
 // Brief-stap in de regie-balk: verstuur de brief naar de gekozen ontvanger(s).
@@ -1908,7 +1934,7 @@ async function _regieBalkStuurBrief(itemId) {
   const item = _rbScript.find(x => x.id === itemId);
   if (!item || item.type !== 'brief') return;
   _rbRevealed.add(itemId);
-  _renderRegieBalk();
+  _rbUpdateItem(itemId);
   try {
     const r = await api.sendPost({
       titel: item.titel || '', tekst: item.tekst || '', afzender: item.afzender || '',
@@ -1921,7 +1947,7 @@ async function _regieBalkStuurBrief(itemId) {
     _showToast(`${icon('mail')} Brief verstuurd${r.created > 1 ? ` (${r.created} ontvangers)` : ''}.`);
   } catch (err) {
     _rbRevealed.delete(itemId);
-    _renderRegieBalk();
+    _rbUpdateItem(itemId);
     _showToast(`Kon de brief niet versturen: ${err.message}`);
   }
 }
@@ -1931,7 +1957,7 @@ async function _revealRegieBalkItem(itemId, mode = 'visible') {
   if (!item) return;
   // Optimistic UI update
   _rbRevealed.add(itemId);
-  _renderRegieBalk();
+  _rbUpdateItem(itemId);
   // Perform actual reveal
   try {
     if (item.type === 'image') {
@@ -1951,7 +1977,7 @@ async function _revealRegieBalkItem(itemId, mode = 'visible') {
       _renderCombatOverlay(combat);
     } else if (item.type === 'dungeon') {
       const grp = window._activeGroupId;
-      if (!grp) { alert('Geen actieve groep — kies eerst een groep.'); _rbRevealed.delete(itemId); _renderRegieBalk(); return; }
+      if (!grp) { alert('Geen actieve groep — kies eerst een groep.'); _rbRevealed.delete(itemId); _rbUpdateItem(itemId); return; }
       // Geef de groep eerst toegang tot de dungeon, onthul daarna eventueel de kamer.
       await api.grantDungeonAccess(item.dungeonId, grp);
       if (item.roomId) await api.revealDungeonRoom(item.dungeonId, { roomId: item.roomId, groupId: grp });
@@ -5960,7 +5986,44 @@ async function _renderGeluiden() {
       </div>`;
   }).join('');
 
-  const stdOpen = _sndOpenPid === '__std__';
+  const stdOpen  = _sndOpenPid === '__std__';
+  const condOpen = _sndOpenPid === '__cond__';
+
+  // Conditie-geluiden. Bewust een selectie van de meest dramatische conditions —
+  // alle achttien zou een onwerkbaar lange lijst geven. De server accepteert de
+  // volledige set (_CONDITION_SOUND_KEYS in routes/api.js), dus uitbreiden kan.
+  // D&D-termen blijven Engels; alleen de toelichting is Nederlands.
+  const CONDITION_SLOTS = [
+    { key: 'unconscious', label: `${icon('skull')} Unconscious` },
+    { key: 'paralyzed',   label: `${icon('zap')} Paralyzed`     },
+    { key: 'stunned',     label: `${icon('star')} Stunned`      },
+    { key: 'frightened',  label: `${icon('eye-off')} Frightened`},
+    { key: 'poisoned',    label: `${icon('flask-conical')} Poisoned` },
+    { key: 'burning',     label: `${icon('flask-conical')} Burning`  },
+    { key: 'bleeding',    label: `${icon('heart')} Bleeding`    },
+    { key: 'flying',      label: `${icon('chevron-right')} Flying`   },
+    { key: 'concentration', label: `${icon('sparkles')} Concentration <span class="dm-hint" style="font-style:italic">— elke ronde</span>` },
+  ];
+
+  const conditionRows = CONDITION_SLOTS.map(({ key, label }) => {
+    const fileId = sounds.conditions?.[key];
+    return `
+      <div class="dm-sound-row">
+        <span class="dm-sound-slot-label">${label}</span>
+        <div class="dm-sound-controls">
+          ${fileId
+            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${fileId}')">▶</button>
+               <span class="dm-sound-set">✓ Ingesteld</span>
+               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemoveCond('${key}')">${icon('x')}</button>`
+            : `<span class="dm-sound-empty">Geen geluid</span>`}
+          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
+            ↑ Upload
+            <input type="file" accept="audio/*" style="display:none"
+              onchange="window._sndUploadCond('${key}', this)">
+          </label>
+        </div>
+      </div>`;
+  }).join('');
   // ── Geluidsdecors (ambiance, feature #2) ──
   const amb = sounds.ambiance || { scenes: [], actief: null, volume: 0.5 };
   const ambScenes = (amb.scenes || []).map(s => `
@@ -6054,6 +6117,18 @@ async function _renderGeluiden() {
           <div class="dm-sound-list">${standardRows}</div>
         </div>
       </div>
+    </div>
+    <div class="dm-sound-section">
+      <div class="dm-sound-player-dropdown" data-pid="__cond__">
+        <button class="dm-sound-player-summary" onclick="window._sndTogglePlayer('__cond__')">
+          <span class="dm-sound-arrow">${condOpen ? '▼' : '▶'}</span>
+          <span class="dm-sound-player-name">${icon('sparkles')} Conditie-geluiden</span>
+        </button>
+        <div class="dm-sound-player-body" ${condOpen ? '' : 'hidden'}>
+          <p class="dm-hint" style="margin:0 0 8px">Klinkt op het tafelscherm zodra je een condition toepast op een combatant. Bij meerdere tegelijk speelt alleen de zwaarste. <strong>Concentration</strong> werkt anders: die klinkt bij het begin van elke nieuwe ronde zolang er iemand concentreert.</p>
+          <div class="dm-sound-list">${conditionRows}</div>
+        </div>
+      </div>
     </div>`;
 
   // ── Window-handlers ─────────────────────────────────────────────────────────
@@ -6125,6 +6200,20 @@ async function _renderGeluiden() {
 
   window._sndRemoveStd = async (key) => {
     await _sndPatch({ standard: { [key]: null } });
+    _renderGeluiden();
+  };
+
+  window._sndUploadCond = async (key, input) => {
+    _sndOpenPid = '__cond__';
+    const file = input.files[0]; if (!file) return;
+    const fileId = await _sndUploadFile(file); if (!fileId) return;
+    await _sndPatch({ conditions: { [key]: fileId } });
+    _renderGeluiden();
+  };
+
+  window._sndRemoveCond = async (key) => {
+    _sndOpenPid = '__cond__';
+    await _sndPatch({ conditions: { [key]: null } });
     _renderGeluiden();
   };
 
@@ -6647,6 +6736,59 @@ function _combatSelectCombatant(id) {
 };
 
 // Combat overlay — zichtbaar voor iedereen tijdens gevecht
+// ── Tafelscherm (tablet): eigen gevechtsweergave ────────────────────────────
+// De tablet is geen DM en geen speler: hij kreeg daarom de spelerslayout met
+// tabbladen, die de kiosk-CSS vervolgens volledig verborg — resultaat was een
+// leeg (wit) scherm. Deze weergave is doelbewust eigen: battle map groot,
+// beurtvolgorde als strip eronder, geen bedieningsknoppen.
+
+// Vage gezondheidsstaat: op het gedeelde scherm horen spelers geen exacte
+// monster-HP te zien. Spelers zelf tonen we wél gewoon hun cijfers.
+function _coVaagHp(hp, maxHp) {
+  if (!maxHp || maxHp <= 0) return '';
+  const cur = hp ?? 0;
+  if (cur <= 0)  return 'buiten gevecht';
+  const p = cur / maxHp;
+  if (p >= 1)    return 'ongedeerd';
+  if (p >= 0.66) return 'licht gewond';
+  if (p >= 0.34) return 'gewond';
+  if (p >  0.10) return 'zwaar gewond';
+  return 'stervend';
+}
+
+function _coDisplayHtml(combat, currentLabel) {
+  const cs   = combat.combatants || [];
+  const turn = combat.currentTurn;
+
+  const strip = cs.map((c, i) => {
+    const isMonster = c.type === 'monster';
+    const uit       = (c.hp ?? 0) <= 0;
+    const staat     = isMonster
+      ? _coVaagHp(c.hp, c.maxHp)
+      : (c.maxHp ? `${Math.max(0, c.hp ?? 0)}/${c.maxHp}` : '');
+    const pct = c.maxHp ? Math.max(0, Math.min(100, ((c.hp ?? 0) / c.maxHp) * 100)) : 0;
+    return `
+      <div class="co-disp-pion${i === turn ? ' is-beurt' : ''}${uit ? ' is-uit' : ''}">
+        ${c.imageId
+          ? `<div class="co-disp-pion-portret" style="background-image:url('${api.fileUrl(c.imageId)}')"></div>`
+          : `<div class="co-disp-pion-portret co-disp-pion-portret--leeg">${icon(isMonster ? 'skull' : 'user')}</div>`}
+        <span class="co-disp-pion-naam" title="${esc(c.name || '')}">${esc(c.name || '—')}</span>
+        ${staat ? `<span class="co-disp-pion-staat">${esc(staat)}</span>` : ''}
+        ${!isMonster && c.maxHp ? `<span class="co-disp-pion-bar"><i style="width:${pct}%"></i></span>` : ''}
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="co-disp">
+      <div class="co-disp-head">
+        <span class="co-disp-ronde">Ronde ${combat.round || 1}</span>
+        <span class="co-disp-beurt">${icon('chevron-right')} ${esc(currentLabel || '—')}</span>
+      </div>
+      <canvas id="combat-canvas" class="co-canvas co-disp-canvas"></canvas>
+      <div class="co-disp-strip">${strip || '<div class="co-disp-leeg">Nog geen combatants</div>'}</div>
+    </div>`;
+}
+
 function _renderCombatOverlay(combat, startMinimized = false) {
   const overlay = document.getElementById('combat-overlay');
   if (!overlay) return;
@@ -6661,10 +6803,12 @@ function _renderCombatOverlay(combat, startMinimized = false) {
   const wasHidden = overlay.classList.contains('hidden');
   overlay.classList.remove('hidden');
 
-  const isDM   = window.app?.isDM?.();
+  const isDM      = window.app?.isDM?.();
+  const isDisplay = !!window._isDisplayMode;
+  overlay.classList.toggle('co-display', isDisplay);
 
-  // DM ziet altijd het volledige scherm; spelers starten geminimaliseerd
-  if (isDM) {
+  // DM en tafelscherm zien altijd het volledige scherm; spelers starten geminimaliseerd
+  if (isDM || isDisplay) {
     overlay.classList.remove('minimized');
   } else if (startMinimized && !overlay.classList.contains('minimized')) {
     overlay.classList.add('minimized');
@@ -6867,7 +7011,7 @@ function _renderCombatOverlay(combat, startMinimized = false) {
     overlay.classList.remove('co-has-backdrop');
   }
 
-  inner.innerHTML = `
+  inner.innerHTML = isDisplay ? _coDisplayHtml(combat, currentLabel) : `
     <div class="co-header">
       <span class="co-title">${icon('swords')} Gevecht</span>
       <span class="co-round">Ronde ${combat.round}</span>
@@ -6956,23 +7100,23 @@ function _renderCombatOverlay(combat, startMinimized = false) {
   `;
 
   // Start canvas animation loop (alleen als het canvas zichtbaar is)
-  if (_combatOverlayTab === 'gevecht' || isDM) {
+  if (_combatOverlayTab === 'gevecht' || isDM || isDisplay) {
     const canvasEl = document.getElementById('combat-canvas');
     if (canvasEl) canvasInit(canvasEl, combat);
   }
 
   // Herstel detail-panel als een combatant geselecteerd was
-  if (_selectedCombatantId) _combatSelectCombatant(_selectedCombatantId);
+  if (_selectedCombatantId && !isDisplay) _combatSelectCombatant(_selectedCombatantId);
 
-  // Emote-balken asynchroon vullen
+  // Emote-balken asynchroon vullen (het tafelscherm heeft geen emote-balk)
   if (isDM) {
     _populateDmEmoteBar(combat).catch(() => {});
-  } else if (_combatOverlayTab === 'gevecht') {
+  } else if (_combatOverlayTab === 'gevecht' && !isDisplay) {
     _populateEmoteBar(combat).catch(() => {});
   }
 
   // Laad karakter-tab als die actief is
-  if (!isDM && _combatOverlayTab !== 'gevecht') {
+  if (!isDM && !isDisplay && _combatOverlayTab !== 'gevecht') {
     _loadCombatCharTab(_combatOverlayTab).catch(() => {});
   }
 

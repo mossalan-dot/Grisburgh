@@ -4356,6 +4356,15 @@ router.get('/sounds', (req, res) => {
   res.json(data);
 });
 
+// Conditie-geluiden: whitelist zodat er geen willekeurige sleutels in sounds.json
+// belanden. Zelfde gedachte als _validSvcKey voor de dienst-loops. Lijst spiegelt
+// _COND_IDS in public/js/combat-canvas.js.
+const _CONDITION_SOUND_KEYS = new Set([
+  'blinded', 'charmed', 'concentration', 'deafened', 'exhaustion', 'frightened',
+  'grappled', 'incapacitated', 'invisible', 'paralyzed', 'petrified', 'poisoned',
+  'prone', 'restrained', 'stunned', 'unconscious', 'bleeding', 'burning', 'flying',
+]);
+
 router.put('/sounds', requireDM, (req, res) => {
   let data = storage.readJSON('sounds.json');
   if (!data) data = { standard: {}, emotes: {}, playerTurn: {} };
@@ -4375,6 +4384,14 @@ router.put('/sounds', requireDM, (req, res) => {
       if (!_validSvcKey(k)) continue;                   // diensten + factie:<id> + rust-*
       if (v === null) delete data.serviceAmbiance[k];
       else data.serviceAmbiance[k] = String(v).slice(0, 100);
+    }
+  }
+  if (req.body.conditions && typeof req.body.conditions === 'object') {
+    if (!data.conditions) data.conditions = {};
+    for (const [k, v] of Object.entries(req.body.conditions)) {
+      if (!_CONDITION_SOUND_KEYS.has(k)) continue;
+      if (v === null) delete data.conditions[k];
+      else data.conditions[k] = String(v).slice(0, 100);
     }
   }
   storage.writeJSON('sounds.json', data);
