@@ -5261,10 +5261,41 @@ router.post('/combat/start', requireDM, (req, res) => {
   res.json(combat);
 });
 
+// Schrijf het gevechtslog stilzwijgend weg naar de actieve akte. Tijdens het
+// spelen stond het alleen maar in de weg, maar achteraf wil je het wél kunnen
+// nalezen. Geen knop en geen melding: het gebeurt gewoon bij het afsluiten.
+// De entry krijgt bewust géén `visible`, dus hij is DM-only — spelers zien in
+// GET /archief alleen sessieLog-regels mét die vlag.
+function _dumpCombatLog(combat, req) {
+  const regels = (combat?.log || []).filter(r => r && r.text);
+  if (!regels.length) return;
+  const dmState = readDmState();
+  const akte = dmState.activeAkte?.key;
+  if (!akte) return;                       // geen actieve akte → nergens aan te hangen
+  const archief = storage.readJSON('archief.json');
+  if (!Array.isArray(archief.sessieLog)) archief.sessieLog = [];
+  // Monsternamen ontdubbeld (het genummerde achtervoegsel eraf) voor de titel.
+  const namen = [...new Set((combat.combatants || [])
+    .filter(c => c.type === 'monster')
+    .map(c => String(c.name || '').replace(/\s+\d+$/, '')))].filter(Boolean);
+  archief.sessieLog.push({
+    id:                    'sl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    hoofdstuk:             akte,
+    datum:                 new Date().toISOString().slice(0, 10),
+    korteSamenvatting:     'Gevechtslog' + (namen.length ? ` — ${namen.slice(0, 3).join(', ')}` : ''),
+    samenvatting:          regels.map(r => `R${r.round}  ${r.text}`).join('\n'),
+    images: [], nieuwPersonages: [], terugkerendPersonages: [], nieuwLocaties: [],
+    terugkerendLocaties: [], organisaties: [], voorwerpen: [], docs: [], nieuw: [], terugkerend: [],
+  });
+  storage.writeJSON('archief.json', archief);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('logboek:updated', {});
+}
+
 router.delete('/combat', requireDM, (req, res) => {
   // Persisteer speler-HP naar dm-state vóór het wissen van het gevecht
   const prevCombat = storage.readJSON('combat.json');
   _flushPlayerHpToDmState(prevCombat, req.app.get('io'), req.session?.campaignId||'main');
+  _dumpCombatLog(prevCombat, req);
   const combat = { active: false, round: 1, currentTurn: 0, combatants: [] };
   storage.writeJSON('combat.json', combat);
   req.app.get('io').to(req.session?.campaignId||'main').emit('combat:updated', combat);

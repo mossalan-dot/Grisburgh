@@ -5894,6 +5894,52 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   border-color: rgba(184,134,11,0.4);
   color: #6a4a04;
 }
+/* ── HP-schuif in het detailvenster ──────────────────────────────────────────
+   De +/−-knoppen zijn vervangen door een schuif over de HP-balk: sneller naar
+   een willekeurig getal dan klikken. De <input type=range> ligt onzichtbaar
+   bovenop de balk, zodat de balk zelf de visuele weergave blijft. */
+.co-hp-slider-wrap { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
+.co-hp-slider-wrap .co-hp-bar-wrap { flex: 1; }
+.co-hp-slider {
+  position: absolute;
+  inset: -4px 0;
+  width: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+.co-hp-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 22px; }
+.co-hp-slider::-moz-range-thumb { width: 18px; height: 22px; border: none; }
+.co-hp-slider-wrap:hover .co-hp-bar-wrap { box-shadow: 0 0 0 1px rgba(184,134,11,0.55); }
+
+/* THP-knop naast Schade/Genezen */
+.co-ctrl-btn.co-ctrl-thp {
+  background: rgba(90,140,180,0.16);
+  border-color: rgba(90,140,180,0.45);
+  color: #2f5875;
+}
+.co-ctrl-btn.co-ctrl-thp:hover { background: rgba(90,140,180,0.28); }
+
+/* ── Compacte conditie-bediening ─────────────────────────────────────────────
+   Actieve toestanden als chips + één zoekveld, i.p.v. 34 knoppen onder elkaar. */
+.co-cond-compact { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+.co-cond-add {
+  width: 100%;
+  padding: 4px 8px;
+  font-family: 'Crimson Text', serif;
+  font-size: 12px;
+  color: #2a1a08;
+  background: rgba(242,232,210,0.55);
+  border: 1px dashed rgba(196,168,122,0.65);
+  border-radius: 5px;
+}
+.co-cond-add:focus { outline: none; border-style: solid; border-color: rgba(184,134,11,0.75); background: #f8f0de; }
+.co-cond-add::placeholder { color: rgba(90,58,0,0.45); font-style: italic; }
+.co-input--err { border-color: #a33 !important; background: rgba(190,60,50,0.12) !important; }
+
 /* ── Situationele toestanden (staalblauw) ────────────────────────────────────
    Derde groep naast PHB-conditions (neutraal) en klassefeatures (goud):
    Dodging, Cover, Hidden, Readied, Grappling, Mounted, Underwater, Flying.

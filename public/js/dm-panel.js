@@ -1,5 +1,5 @@
 import { api } from './api.js?v=243';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=12';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=13';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 // ── DM Panel ──
@@ -48,6 +48,56 @@ const CONDITIONS = [
   { id: 'mounted',            label: 'Mounted',            desc: 'Riding a mount. A controlled mount acts on the rider\'s initiative and shares its movement.' },
   { id: 'underwater',         label: 'Underwater',         desc: 'Underwater. Melee and ranged weapon attacks have disadvantage unless the weapon deals piercing damage or the creature has a Swim Speed. Resistance to fire damage.' },
 ];
+
+// Groepen voor de conditie-weergave. Op modulescope zodat de rij in het
+// gevechtspaneel en het detailvenster dezelfde bron gebruiken.
+const _CC_SET  = new Set(['bardic-inspiration','tides-of-chaos','twilight-sanctuary',
+  'patient-defense','steady-aim','vigilant-blessing','blessed','raging']);
+const _SIT_SET = new Set(['dodging','hidden','readied','cover-half','cover-three-quarters',
+  'grappling','mounted','underwater','flying']);
+const _condGroepCls = (cid) =>
+  _CC_SET.has(cid) ? ' co-cond-chip--class' : _SIT_SET.has(cid) ? ' co-cond-chip--sit' : '';
+
+// Compacte conditie-bediening: actieve toestanden als chips (klik = weghalen)
+// plus één zoekveld, i.p.v. een muur van 34 knoppen. Volgt het huisstijlpatroon
+// voor kiezers uit CLAUDE.md: zoekbaar <input list> + gedeelde <datalist>.
+function _condChips(c, isDM) {
+  return (c.conditions || []).map(cid => {
+    const cond = CONDITIONS.find(x => x.id === cid);
+    if (!cond) return '';
+    return `<span class="co-cond-chip${_condGroepCls(cid)}${isDM ? ' co-cond-dm' : ''}"
+      title="${esc(cond.desc)}"
+      ${isDM ? `onclick="event.stopPropagation();window.dmPanel.combatCondToggle('${esc(c.id)}','${cid}')"` : ''}
+      >${esc(cond.label)}${isDM ? ' ' + icon('x') : ''}</span>`;
+  }).join('');
+}
+
+// Chips + zoekveld. De aanroeper bepaalt de omhulling, want de bestaande markup
+// wikkelt de chips soms al in een eigen <div> of <span>.
+function _condControl(c, isDM) {
+  const chips = _condChips(c, isDM);
+  if (!isDM) return chips ? `<div class="co-active-conds">${chips}</div>` : '';
+  return `<div class="co-cond-compact">
+      ${chips ? `<div class="co-active-conds">${chips}</div>` : ''}
+      <input class="co-cond-add" list="co-cond-dl" placeholder="+ Condition…"
+        onchange="window.dmPanel.combatCondAdd('${esc(c.id)}', this)"
+        onclick="event.stopPropagation()">
+    </div>`;
+}
+
+// Eén datalist voor álle conditie-zoekvelden samen. Hij hangt aan de body i.p.v.
+// in de markup, want anders zou hij per combatant-rij herhaald worden — en een
+// <datalist> met een dubbel id is ongeldig. Per optie een groepslabel, zodat je
+// in de lijst ziet of iets een klassefeature of een situatie is.
+function _ensureCondDatalist() {
+  if (document.getElementById('co-cond-dl')) return;
+  const dl = document.createElement('datalist');
+  dl.id = 'co-cond-dl';
+  dl.innerHTML = CONDITIONS.map(x =>
+    `<option value="${esc(x.label)}">${_CC_SET.has(x.id) ? 'klasse' : _SIT_SET.has(x.id) ? 'situatie' : 'condition'}</option>`
+  ).join('');
+  document.body.appendChild(dl);
+}
 
 const HP_LABELS = [
   { min: 1.00, label: 'Volledig in leven', cls: 'hp-full' },
@@ -304,6 +354,10 @@ export function initDmPanel() {
     combatSetWinner:   _combatSetWinner,
     combatDeathSave:        _combatDeathSave,
     combatSelectCombatant:  _combatSelectCombatant,
+    combatAcChange:         _combatAcChange,
+    combatHpSlide:          _combatHpSlide,
+    combatApplyThp:         _combatApplyThp,
+    combatCondAdd:          _combatCondAdd,
 
     // Lootverdeler
     lootOpen:        _lootOpen,
@@ -2964,6 +3018,7 @@ async function _monsterAddToCombat(id) {
 // ── Encounters ──────────────────────────────────────────────────────────────
 
 let _encounters         = [];
+let _encLadenVoorTitel  = false;   // eenmalige lazy load voor de overlay-titel
 let _encLoaded          = false;
 let _editingEncId       = null;   // null = list, 'new' = new, string = edit existing
 let _encIsNew           = false;
@@ -3608,8 +3663,64 @@ async function _combatStart() {
   } catch (e) { alert('Fout: ' + e.message); }
 };
 
+// AC is bewerkbaar: Haste, Shield en Mage Armor veranderen 'm tijdens het gevecht.
+async function _combatAcChange(id, val) {
+  const ac = String(val ?? '').trim();
+  try { await api.updateCombatant(id, { ac }); } catch (e) { _showToast('Kon AC niet opslaan'); }
+}
+
+// HP-schuif. Tijdens het slepen alleen lokaal bijwerken (anders vuurt elke pixel
+// een request af); pas bij loslaten — onchange — gaat het naar de server.
+async function _combatHpSlide(id, val, commit) {
+  const hpVal = Math.max(0, parseInt(val) || 0);
+  const c = _combat?.combatants?.find(x => x.id === id);
+  if (c) c.hp = hpVal;
+  const num  = document.getElementById(`co-hp-num-${id}`);
+  const fill = document.getElementById(`co-hp-fill-${id}`);
+  if (num)  num.value = hpVal;
+  if (fill && c?.maxHp) fill.style.width = Math.max(0, Math.min(100, (hpVal / c.maxHp) * 100)) + '%';
+  if (!commit) return;
+  try { await api.updateCombatant(id, { hp: hpVal }); } catch (e) { _showToast('Kon HP niet opslaan'); }
+}
+
+// Temporary HP stapelen niet: een nieuwe hoeveelheid vervangt de oude alleen als
+// hij hoger is. 0 invullen haalt ze weg.
+async function _combatApplyThp(id) {
+  const inp = document.getElementById(`co-dmg-input-${id}`);
+  const val = parseInt(inp?.value);
+  if (!Number.isFinite(val) || val < 0) { _showToast('Vul eerst een aantal Temporary HP in'); return; }
+  const c = _combat?.combatants?.find(x => x.id === id);
+  const huidig = c?.tempHp || 0;
+  if (val > 0 && val <= huidig) {
+    _showToast(`${c?.name || 'Deze combatant'} heeft al ${huidig} Temporary HP — die stapelen niet, dus het blijft ${huidig}.`);
+    if (inp) inp.value = '';
+    return;
+  }
+  try {
+    await api.updateCombatant(id, { tempHp: val });
+    if (inp) inp.value = '';
+  } catch (e) { _showToast('Kon Temporary HP niet opslaan'); }
+}
+
+// Conditie toevoegen via het zoekveld: naam → id, zoals de entiteit-kiezers.
+async function _combatCondAdd(id, input) {
+  const naam = String(input?.value || '').trim();
+  if (!naam) return;
+  const cond = CONDITIONS.find(x => x.label.toLowerCase() === naam.toLowerCase())
+            || CONDITIONS.find(x => x.label.toLowerCase().startsWith(naam.toLowerCase()));
+  if (!cond) {
+    input.classList.add('co-input--err');
+    setTimeout(() => input.classList.remove('co-input--err'), 900);
+    return;
+  }
+  input.value = '';
+  const c = _combat?.combatants?.find(x => x.id === id);
+  if ((c?.conditions || []).includes(cond.id)) return;   // stond er al
+  await _combatCondToggle(id, cond.id);
+}
+
 async function _combatEnd() {
-  if (!confirm('End combat?')) return;
+  if (!confirm('Gevecht beëindigen? Het gevechtslog wordt bij de actieve akte opgeslagen.')) return;
   try {
     await api.endCombat();
     _combat = { active: false, round: 1, currentTurn: 0, combatants: [] };
@@ -6664,22 +6775,6 @@ function _combatSelectCombatant(id) {
   const hp    = hpStatus(c.hp, c.maxHp);
   const hpPct = c.maxHp > 0 ? Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100)) : 0;
 
-  const CLASS_CONDS = new Set(['bardic-inspiration','tides-of-chaos','twilight-sanctuary','patient-defense','steady-aim','vigilant-blessing','blessed']);
-  const stdConds   = CONDITIONS.filter(x => !CLASS_CONDS.has(x.id));
-  const classConds = CONDITIONS.filter(x =>  CLASS_CONDS.has(x.id));
-  const _pickBtn = (cond) => {
-    const active   = (c.conditions || []).includes(cond.id);
-    const isClass  = CLASS_CONDS.has(cond.id);
-    return `<button class="co-cond-pick${active ? ' active' : ''}${isClass ? ' co-cond-class' : ''}"
-      onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cond.id}')"
-      title="${esc(cond.desc)}">${esc(cond.label)}</button>`;
-  };
-  const condPicker = [
-    ...stdConds.map(_pickBtn),
-    `<div class="co-cond-divider"></div>`,
-    ...classConds.map(_pickBtn),
-  ].join('');
-
   const isDying = (c.hp || 0) <= 0 && c.type === 'player';
   const ds = c.deathSaves || { successes: 0, failures: 0 };
   const deathSaves = isDying ? `
@@ -6703,7 +6798,12 @@ function _combatSelectCombatant(id) {
       <span class="co-type-dot ${c.type === 'player' ? 'co-type-player' : c.type === 'ally' ? 'co-type-ally' : c.type === 'summon' ? 'co-type-summon' : 'co-type-monster'}" style="width:10px;height:10px;flex-shrink:0"></span>
       ${esc(c.name)}
       ${isDM ? `
-        <label class="co-init-wrap" style="margin-left:8px;font-size:11px">Init
+        <label class="co-init-wrap" style="margin-left:8px;font-size:11px">AC
+          <input class="co-init-input" type="number" value="${esc(c.ac ?? '')}" placeholder="—"
+            title="Armor Class — aanpasbaar, want Haste, Shield en Mage Armor veranderen 'm"
+            onchange="window.dmPanel.combatAcChange('${esc(c.id)}',this.value)" style="width:44px">
+        </label>
+        <label class="co-init-wrap" style="font-size:11px">Init
           <input class="co-init-input" type="number" value="${c.initiative}"
             onchange="window.dmPanel.combatInitChange('${esc(c.id)}',this.value)" style="width:44px">
         </label>
@@ -6713,12 +6813,17 @@ function _combatSelectCombatant(id) {
       <button class="co-detail-close" onclick="window.dmPanel.combatSelectCombatant(null)">${icon('x')}</button>
     </div>
     <div class="co-hp-row">
-      <button class="co-hp-btn" onclick="window.dmPanel.${isDM ? 'combatHpChange' : 'playerHpChange'}('${esc(c.id)}',-1)">−</button>
-      <div class="co-hp-bar-wrap"><div class="co-hp-bar ${hp.cls}" style="width:${hpPct}%"></div></div>
-      <input class="co-hp-input" type="number" value="${c.hp}"
+      <div class="co-hp-slider-wrap">
+        <div class="co-hp-bar-wrap"><div class="co-hp-bar ${hp.cls}" id="co-hp-fill-${esc(c.id)}" style="width:${hpPct}%"></div></div>
+        <input class="co-hp-slider" type="range" min="0" max="${c.maxHp}" value="${Math.max(0, Math.min(c.maxHp, c.hp))}"
+          title="Sleep om HP te zetten"
+          oninput="window.dmPanel.combatHpSlide('${esc(c.id)}',this.value,false)"
+          onchange="window.dmPanel.combatHpSlide('${esc(c.id)}',this.value,true)"
+          onclick="event.stopPropagation()">
+      </div>
+      <input class="co-hp-input" id="co-hp-num-${esc(c.id)}" type="number" value="${c.hp}"
         onchange="window.dmPanel.${isDM ? 'combatHpInput' : 'playerHpInput'}('${esc(c.id)}',this.value)">
       <span class="co-hp-max">/${c.maxHp}</span>
-      <button class="co-hp-btn" onclick="window.dmPanel.${isDM ? 'combatHpChange' : 'playerHpChange'}('${esc(c.id)}',1)">+</button>
     </div>
     ${isDM ? `
     <div class="co-dmg-row">
@@ -6726,22 +6831,11 @@ function _combatSelectCombatant(id) {
         onkeydown="if(event.key==='Enter')window.dmPanel.combatApplyDamage('${esc(c.id)}')">
       <button class="co-ctrl-btn co-ctrl-danger" onclick="window.dmPanel.combatApplyDamage('${esc(c.id)}')" title="Schade toepassen">${icon('sword')} Schade</button>
       <button class="co-ctrl-btn co-ctrl-heal" onclick="window.dmPanel.combatApplyHeal('${esc(c.id)}')" title="Genezen">+ Genezen</button>
+      <button class="co-ctrl-btn co-ctrl-thp" onclick="window.dmPanel.combatApplyThp('${esc(c.id)}')"
+        title="Temporary HP — stapelen niet; het hoogste bedrag geldt">${icon('shield')} THP${c.tempHp ? ` (${c.tempHp})` : ''}</button>
     </div>
-    <div class="co-thp-row">
-      <span class="co-thp-label" title="Temporary HP">${icon('shield')}</span>
-      <button class="co-hp-btn" onclick="window.dmPanel.combatThpChange('${esc(c.id)}',-1)">−</button>
-      <input class="co-thp-input" type="number" min="0" value="${c.tempHp || 0}"
-        onchange="window.dmPanel.combatThpInput('${esc(c.id)}',this.value)">
-      <button class="co-hp-btn" onclick="window.dmPanel.combatThpChange('${esc(c.id)}',1)">+</button>
-    </div>
-    <div class="co-cond-picker">${condPicker}</div>
-    ` : `
-    ${(c.conditions || []).length ? `<div class="co-active-conds">${(c.conditions || []).map(cid => {
-      const cond = CONDITIONS.find(x => x.id === cid);
-      const isClass = CLASS_CONDS.has(cid);
-      return cond ? `<span class="co-cond-chip${isClass ? ' co-cond-chip--class' : ''}" title="${esc(cond.desc)}">${esc(cond.label)}</span>` : '';
-    }).join('')}</div>` : ''}
-    `}
+    ${_condControl(c, true)}
+    ` : _condControl(c, false)}
     ${deathSaves}
   `;
   panel.classList.remove('hidden');
@@ -6831,6 +6925,20 @@ function _renderCombatOverlay(combat, startMinimized = false) {
 
   const inner = document.getElementById('combat-modal-inner');
   if (!inner) return;
+  if (isDM) _ensureCondDatalist();
+
+  // Titel = de naam van de encounter, als het gevecht er een heeft. Staat die
+  // lijst nog niet in het geheugen, dan halen we 'm eenmalig op en renderen
+  // opnieuw — vandaar de vlag, anders blijft hij zichzelf aanroepen.
+  let encNaam = '';
+  if (combat.encounterId) {
+    const enc = _encounters.find(e => e.id === combat.encounterId);
+    if (enc) encNaam = enc.name || '';
+    else if (!_encLadenVoorTitel) {
+      _encLadenVoorTitel = true;
+      api.listEncounters().then(list => { _encounters = list || []; _renderCombatOverlay(_combat); }).catch(() => {});
+    }
+  }
   const cs        = combat.combatants;
   const turn      = combat.currentTurn;
   const current   = cs[turn];
@@ -6850,11 +6958,6 @@ function _renderCombatOverlay(combat, startMinimized = false) {
     const isActive = turnGroup.includes(i);
     const hp    = hpStatus(c.hp, c.maxHp);
     const hpPct = c.maxHp > 0 ? Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100)) : 0;
-    const _CC = new Set(['bardic-inspiration','tides-of-chaos','twilight-sanctuary','patient-defense','steady-aim','vigilant-blessing','blessed','raging']);
-    // Situationeel: eigen tint, zodat de drie soorten toestanden uit elkaar te
-    // houden zijn (PHB-condition / klassefeature / situatie).
-    const _SIT = new Set(['dodging','hidden','readied','cover-half','cover-three-quarters','grappling','mounted','underwater','flying']);
-
     // Concentration and initiative grouping
     const hasConc = (c.conditions || []).includes('concentration');
     const groupIndices = initGroups.get(c.initiative) || [i];
@@ -6863,31 +6966,9 @@ function _renderCombatOverlay(combat, startMinimized = false) {
     const isGroupMid   = groupIndices.length > 1 && !isGroupFirst && !isGroupLast;
     const groupClass   = isGroupFirst ? ' co-row--group-first' : isGroupLast ? ' co-row--group-last' : isGroupMid ? ' co-row--group-mid' : '';
     const concClass    = hasConc ? ' co-row--concentrating' : '';
-    const conds = (c.conditions || []).map(cid => {
-      const cond = CONDITIONS.find(x => x.id === cid);
-      const isClass = _CC.has(cid);
-      const isSit   = _SIT.has(cid);
-      return cond
-        ? `<span class="co-cond-chip${isClass ? ' co-cond-chip--class' : isSit ? ' co-cond-chip--sit' : ''}${isDM ? ' co-cond-dm' : ''}" title="${esc(cond.desc)}"
-            ${isDM ? `onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cid}')"` : ''}
-           >${esc(cond.label)}${isDM ? ' '+icon('x') : ''}</span>`
-        : '';
-    }).join('');
+    const conds = _condChips(c, isDM);
 
     if (isDM) {
-      const _pickKnop = (cond, extra) => {
-        const active = (c.conditions || []).includes(cond.id);
-        return `<button class="co-cond-pick${extra}${active ? ' active' : ''}"
-          onclick="window.dmPanel.combatCondToggle('${esc(c.id)}','${cond.id}')"
-          title="${esc(cond.desc)}">${esc(cond.label)}</button>`;
-      };
-      const condPicker = [
-        ...CONDITIONS.filter(x => !_CC.has(x.id) && !_SIT.has(x.id)).map(x => _pickKnop(x, '')),
-        `<div class="co-cond-divider"></div>`,
-        ...CONDITIONS.filter(x => _SIT.has(x.id)).map(x => _pickKnop(x, ' co-cond-sit')),
-        `<div class="co-cond-divider"></div>`,
-        ...CONDITIONS.filter(x => _CC.has(x.id)).map(x => _pickKnop(x, ' co-cond-class')),
-      ].join('');
 
       return `
         <div class="co-row${isActive ? ' co-row-active' : ''}${concClass}${groupClass}">
@@ -6934,11 +7015,7 @@ function _renderCombatOverlay(combat, startMinimized = false) {
                 <button class="co-ds-btn co-ds-rst" onclick="window.dmPanel.combatDeathSave('${esc(c.id)}','reset')"   title="Reset">↺</button>
               </div>`;
           })() : ''}
-          ${conds ? `<div class="co-active-conds">${conds}</div>` : ''}
-          <details class="co-cond-picker-wrap">
-            <summary class="co-cond-toggle">Conditions</summary>
-            <div class="co-cond-picker">${condPicker}</div>
-          </details>
+          ${_condControl(c, true)}
         </div>
       `;
     } else {
@@ -6997,15 +7074,10 @@ function _renderCombatOverlay(combat, startMinimized = false) {
   // Sla gevecht op voor tab-switching na re-renders
   _lastCombat = combat;
 
-  const _coLog = (combat.log?.length > 0) ? `
-    <details class="co-log">
-      <summary class="co-log-summary">${icon('scroll-text')} Gevechtslog (${combat.log.length})</summary>
-      <div class="co-log-entries" id="co-log-entries">
-        ${[...combat.log].slice(-30).map(e =>
-          `<div class="co-log-entry"><span class="co-log-round">R${e.round}</span> ${esc(e.text)}</div>`
-        ).join('')}
-      </div>
-    </details>` : '';
+  // Het gevechtslog stond hier als uitklappaneel, maar tijdens het spelen stond
+  // het vooral in de weg. Het wordt server-side nog gewoon bijgehouden en bij
+  // het beëindigen stilzwijgend als (DM-only) sessielog-regel aan de actieve
+  // akte gehangen — zie _dumpCombatLog in routes/api.js.
 
   // Backdrop voor de gevechtsoverlay (encounter backdrop)
   // Zet de afbeelding als achtergrond van de overlay zelf (meerdere CSS-lagen),
@@ -7027,9 +7099,10 @@ function _renderCombatOverlay(combat, startMinimized = false) {
 
   inner.innerHTML = isDisplay ? _coDisplayHtml(combat, currentLabel) : `
     <div class="co-header">
-      <span class="co-title">${icon('swords')} Gevecht</span>
-      <span class="co-round">Ronde ${combat.round}</span>
-      <span class="co-current-name">▶ ${esc(currentLabel)}</span>
+      ${encNaam ? `<span class="co-title">${icon('swords')} ${esc(encNaam)}</span>` : ''}
+      ${isDM ? '' : `
+        <span class="co-round">Ronde ${combat.round}</span>
+        <span class="co-current-name">▶ ${esc(currentLabel)}</span>`}
       <button class="co-minimize-btn" onclick="document.getElementById('combat-overlay').classList.contains('minimized')?window.dmPanel.combatExpand():window.dmPanel.combatMinimize()" title="Minimaliseren/maximaliseren">▼</button>
       ${isDM ? `<button class="co-end-btn" onclick="event.stopPropagation();window.dmPanel.combatEnd()" title="Gevecht beëindigen">${icon('x')}</button>` : ''}
     </div>
@@ -7078,7 +7151,6 @@ function _renderCombatOverlay(combat, startMinimized = false) {
       </div>
       <div id="co-detail-panel" class="co-detail-panel hidden"></div>
       <div id="co-dm-emote-bar" class="co-emote-bar"></div>
-      ${_coLog}
     ` : `
       <!-- Speler: tabbladen in de gevechtsoverlay -->
       <div class="co-tabs" id="co-tabs">
@@ -7093,8 +7165,7 @@ function _renderCombatOverlay(combat, startMinimized = false) {
         <canvas id="combat-canvas" class="co-canvas"></canvas>
         <div id="co-detail-panel" class="co-detail-panel hidden"></div>
         <div id="co-emote-bar" class="co-emote-bar"></div>
-        ${_coLog}
-      </div>
+        </div>
 
       <!-- Stats tab -->
       <div class="co-tab-panel co-char-tab${_combatOverlayTab!=='personage'?' hidden':''}" id="co-tab-personage">

@@ -1107,78 +1107,138 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
     ctx.restore();
   }
 
-  // ── HP bar (directly below circle) ──
+  // ── Metriek van het onderblok (balk, iconen, naam) ────────────────────────
+  // Vooraf berekend, want de leesplaat eronder moet weten hoe hoog en breed het
+  // blok wordt voordat er iets getekend is.
   const barW = Math.min(w * 0.72, AVTR_R * 2.2);
   const barH = 5;
   const barX = cx - barW / 2;
   const barY = cyGround + AVTR_R + 8;
+
+  const isDMView = window.app?.isDM?.();
+  const isDying  = isDead && c.type === 'player';
+  const allConds = isDead ? [] : (c.conditions || []).filter(id => id !== 'flying');
+  const condSz   = isWide
+    ? Math.max(18, Math.min(26, AVTR_R * 0.72))
+    : Math.max(16, Math.min(22, h * 0.11));
+
+  const fontSize = Math.max(9, Math.min(13, w * 0.1));
+  let nameY = barY + barH + (isDMView || isDying ? 14 : 7);
+  if (isWide && allConds.length > 0) nameY = barY + barH + 14 + condSz + 4;
+
+  ctx.save();
+  ctx.font = `bold ${fontSize}px 'Cinzel', serif`;
+  const fullName = c.type === 'player' ? c.name.split(' ')[0] : c.name;
+  let label = fullName;
+  while (ctx.measureText(label).width > w - 6 && label.length > 3) label = label.slice(0, -1);
+  if (label !== fullName) label += '…';
+  const nameW = ctx.measureText(label).width;
+  ctx.restore();
+
+  // ── Leesplaat ─────────────────────────────────────────────────────────────
+  // Balk, iconen en naam vielen weg tegen een backdrop-afbeelding. Eén
+  // halftransparante plaat eronder houdt ze leesbaar zonder de sfeer te slopen;
+  // hij groeit mee met wat er daadwerkelijk onder de figuur staat.
+  {
+    const iconsW = (isWide && allConds.length) ? allConds.length * (condSz + 3) - 3 : 0;
+    const plateW = Math.min(w - 4, Math.max(barW, nameW, iconsW) + 16);
+    const plateY = barY - 7;
+    const plateH = (nameY + fontSize + 6) - plateY;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(cx - plateW / 2, plateY, plateW, plateH, 7);
+    ctx.fillStyle = 'rgba(26, 16, 6, 0.46)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(240, 230, 205, 0.15)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
   _drawHpBar(ctx, c, barX, barY, barW, barH);
 
   // ── Death saving throws (dying players) ──
-  const isDying = isDead && c.type === 'player';
   if (isDying) {
     const ds = c.deathSaves || { successes: 0, failures: 0 };
     _drawDeathSaveDots(ctx, cx, barY + barH + 2, ds);
   }
 
   // ── Condition icons ──
-  const allConds = isDead ? [] : (c.conditions || []).filter(id => id !== 'flying');
   if (allConds.length > 0) {
     ctx.save();
-    ctx.font         = '12px serif';
-    ctx.fillStyle    = '#111111';
-    ctx.textAlign    = 'left';
-    ctx.textBaseline = 'top';
-
     if (isWide) {
-      // Horizontaal onder de HP-balk, begint bij barX
-      const sz    = Math.max(18, Math.min(26, AVTR_R * 0.72));
-      const gap   = 3;
-      let   iconX = barX;
-      const iconY = barY + barH + 14;
+      // Horizontaal onder de HP-balk, gecentreerd onder de figuur
+      const gap    = 3;
+      const rowW   = allConds.length * (condSz + gap) - gap;
+      let   iconX  = cx - rowW / 2;
+      const iconY  = barY + barH + 14;
       allConds.forEach(id => {
-        _drawCondIcon(ctx, id, iconX, iconY, sz);
-        _hitAreas.push({ x: iconX, y: iconY, w: sz, h: sz, condId: id });
-        iconX += sz + gap;
+        _drawCondIcon(ctx, id, iconX, iconY, condSz);
+        _hitAreas.push({ x: iconX, y: iconY, w: condSz, h: condSz, condId: id });
+        iconX += condSz + gap;
       });
     } else {
       // Verticaal aan de linkerzijde, gecentreerd in het slot
-      const sz     = Math.max(16, Math.min(22, h * 0.11));
-      const lineH  = sz + 3;
+      const lineH  = condSz + 3;
       const stackH = allConds.length * lineH - 3;
       const iconX  = x + 3;
       let   iconY  = y + h / 2 - stackH / 2;
       allConds.forEach(id => {
-        _drawCondIcon(ctx, id, iconX, iconY, sz);
-        _hitAreas.push({ x: iconX, y: iconY, w: sz, h: sz, condId: id });
+        _drawCondIcon(ctx, id, iconX, iconY, condSz);
+        _hitAreas.push({ x: iconX, y: iconY, w: condSz, h: condSz, condId: id });
         iconY += lineH;
       });
     }
     ctx.restore();
   }
 
-  // ── Name ──
-  const isDMView = window.app?.isDM?.();
-  const fontSize = Math.max(9, Math.min(13, w * 0.1));
-  // In wide-modus: naam onder de iconrij; anders: onder de HP-balk
-  let nameY = barY + barH + (isDMView || isDying ? 14 : 7);
-  if (isWide && allConds.length > 0) {
-    const sz = Math.max(18, Math.min(26, AVTR_R * 0.72));
-    nameY = barY + barH + 14 + sz + 4;
-  }
+  // ── Naam ──
+  // Lichte letter op de plaat; goud als het deze combatant zijn beurt is.
   ctx.save();
   ctx.font         = `bold ${fontSize}px 'Cinzel', serif`;
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'top';
-  const fullName = c.type === 'player' ? c.name.split(' ')[0] : c.name;
-  let label = fullName;
-  while (ctx.measureText(label).width > w - 6 && label.length > 3) label = label.slice(0, -1);
-  if (label !== fullName) label += '…';
-  ctx.shadowColor  = 'rgba(0,0,0,0.25)';
+  ctx.shadowColor  = 'rgba(0,0,0,0.55)';
   ctx.shadowBlur   = 3;
-  ctx.fillStyle    = isActive ? '#7a4800' : '#1e1008';
+  ctx.fillStyle    = isActive ? '#f0c040' : '#f2e8d2';
   ctx.fillText(label, cx, nameY);
   ctx.restore();
+
+  // ── AC-badge (alleen DM) ──────────────────────────────────────────────────
+  // AC stond al op de combatant maar werd nergens in het gevecht getoond, dus
+  // zat de DM steeds te zoeken. Spelers krijgen 'm bewust niet te zien.
+  if (isDMView) {
+    const acVal = String(c.ac ?? '').trim();
+    if (acVal) {
+      const fs   = Math.max(9, Math.min(13, AVTR_R * 0.36));
+      const icoS = fs * 1.05;
+      ctx.save();
+      ctx.font = `bold ${fs}px 'Cinzel', serif`;
+      const tw  = ctx.measureText(acVal).width;
+      const padX = 5, gap = 3;
+      const bw  = padX * 2 + icoS + gap + tw;
+      const bh  = fs + 8;
+      const bx  = cx + AVTR_R * 0.62 - bw / 2 + bw * 0.30;
+      const by  = cy - AVTR_R * 0.80 - bh / 2;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, bw, bh, bh / 2);
+      ctx.fillStyle   = 'rgba(26, 16, 6, 0.88)';
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur  = 5;
+      ctx.fill();
+      ctx.shadowBlur  = 0;
+      ctx.strokeStyle = 'rgba(212, 170, 60, 0.75)';
+      ctx.lineWidth   = 1;
+      ctx.stroke();
+      const sh = _spriteIcon('shield', '#d4aa3c');
+      if (sh) ctx.drawImage(sh, bx + padX, by + (bh - icoS) / 2, icoS, icoS);
+      ctx.textAlign    = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle    = '#f2e8d2';
+      ctx.fillText(acVal, bx + padX + icoS + gap, by + bh / 2 + 0.5);
+      ctx.restore();
+    }
+  }
 }
 
 // ── Condition effects — behind / around avatar ───────────────────────────────
@@ -1671,9 +1731,10 @@ function _drawHpBar(ctx, c, x, y, w, h) {
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'top';
     const txt = tempHp > 0 ? `${hp}+${tempHp}/${maxHp}` : `${hp}/${maxHp}`;
-    ctx.shadowColor = 'rgba(0,0,0,0.25)';
+    // Licht: deze getallen staan op de leesplaat, niet meer op de achtergrond.
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
     ctx.shadowBlur  = 3;
-    ctx.fillStyle   = '#1e1008';
+    ctx.fillStyle   = '#f2e8d2';
     ctx.fillText(txt, x + w / 2, y + h + 2);
     ctx.restore();
   }
