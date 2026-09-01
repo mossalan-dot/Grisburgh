@@ -2,65 +2,143 @@
 // Renders the battle scene on a <canvas> element.
 // Call init(canvasEl, combat) to start, update(combat) on each state change, stop() to halt.
 
-const CONDITION_ICONS = {
-  blinded: '🙈', charmed: '💕', deafened: '🔇', exhaustion: '😓',
-  frightened: '😱', grappled: '✊', incapacitated: '💤', invisible: '👻',
-  paralyzed: '⚡', petrified: '🪨', poisoned: '🤢', prone: '⬇️',
-  restrained: '⛓️', stunned: '⭐', unconscious: '💀', concentration: '🔮',
-  bleeding: '🩸', burning: '🔥',
+// ── Conditie-iconen ──────────────────────────────────────────────────────────
+// Alle conditions komen uit de gedeelde sprite (/img/icons.svg), monochroom en
+// per conditie ingekleurd — op ~20px leest een gekleurd lijnicoon beter dan een
+// geschilderd miniatuur, en het is één set met de rest van de UI.
+//
+// TERUGVALOPTIE: zet USE_SPRITE_COND_ICONS op false en de oude, geschilderde
+// PNG-set (/img/conditions/*.png) wordt weer gebruikt. Die bestanden blijven
+// bewust staan; alleen het preloaden slaat over zolang de sprite aan staat.
+const USE_SPRITE_COND_ICONS = true;
+
+// conditie-id → [sprite-icoon, kleur]. Klassespecifieke toestanden krijgen
+// allemaal goud, zodat ze als groep te onderscheiden zijn van echte conditions.
+const _CLASS_GOLD = '#d4aa3c';
+const COND_ICON = {
+  blinded:       ['eye-off',       '#8a8a8a'],
+  charmed:       ['heart',         '#d06ac0'],
+  deafened:      ['ear-off',       '#8a8a8a'],
+  exhaustion:    ['battery-low',  '#b08040'],
+  frightened:    ['ghost',         '#9a86d0'],
+  grappled:      ['grab',         '#b0763a'],
+  incapacitated: ['ban',          '#7a90b0'],
+  invisible:     ['circle-dashed', '#9ec8e0'],
+  paralyzed:     ['zap',           '#e0c040'],
+  petrified:     ['brick-wall',   '#9a9a90'],
+  poisoned:      ['potion',        '#5aa84a'],
+  prone:         ['arrow-down',    '#a08050'],
+  restrained:    ['link',         '#9a6a3a'],
+  stunned:       ['star',          '#e0b030'],
+  unconscious:   ['bed',          '#c0c0b8'],
+  concentration: ['sparkles',      '#7ab0e0'],
+  bleeding:      ['droplet',       '#c02828'],
+  burning:       ['flame',         '#e07020'],
+  'bardic-inspiration': ['volume-2',   _CLASS_GOLD],
+  'tides-of-chaos':     ['refresh-cw', _CLASS_GOLD],
+  'twilight-sanctuary': ['moon',       _CLASS_GOLD],
+  'patient-defense':    ['shield',     _CLASS_GOLD],
+  'steady-aim':         ['target',     _CLASS_GOLD],
+  'vigilant-blessing':  ['eye',        _CLASS_GOLD],
+  blessed:              ['sparkle',    _CLASS_GOLD],
 };
 
-// ── Condition icons (JinxShadow, transparante PNG's) ─────────────────────────
+// ── Sprite → canvas ──────────────────────────────────────────────────────────
+// Een <use href="sprite#id"> is niet naar canvas te tekenen, dus halen we het
+// <symbol> op, vervangen currentColor door een echte kleur (een losstaande SVG
+// erft niets van de pagina) en bakken het als data-URL tot een <img>.
+let _spriteDoc     = null;
+let _spriteBezig   = false;
+const _spriteCache = {};   // "icoon|kleur" → Image, of null zolang hij laadt
+
+function _ensureSprite() {
+  if (_spriteDoc || _spriteBezig) return;
+  _spriteBezig = true;
+  fetch('/img/icons.svg?v=5')
+    .then(r => r.text())
+    .then(txt => { _spriteDoc = new DOMParser().parseFromString(txt, 'image/svg+xml'); })
+    .catch(() => { _spriteBezig = false; });
+}
+
+function _spriteIcon(id, col) {
+  const key = `${id}|${col}`;
+  if (key in _spriteCache) return _spriteCache[key];
+  _ensureSprite();
+  if (!_spriteDoc) return null;
+  const sym = _spriteDoc.getElementById(`icon-${id}`);
+  if (!sym) { _spriteCache[key] = null; return null; }
+  const attrs = [...sym.attributes]
+    .filter(a => a.name !== 'id')
+    .map(a => `${a.name}="${a.value.replace(/currentColor/g, col)}"`)
+    .join(' ');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" ${attrs}>${sym.innerHTML.replace(/currentColor/g, col)}</svg>`;
+  const img = new Image();
+  _spriteCache[key] = null;                       // sleutel claimen: niet dubbel laden
+  img.onload = () => { _spriteCache[key] = img; };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  return null;
+}
+
+_ensureSprite();   // alvast ophalen: anders mist het eerste frame zijn iconen
+
+// Avatar-fallback (geen portret): zelfde sprite, zodat canvas en de strip op het
+// tafelscherm hetzelfde beeld tonen.
+const _AVATAR_ICON_IDS = { player: 'user', ally: 'shield', summon: 'sparkles', monster: 'skull' };
+const _AVATAR_ICON_COL = '#f2e8d2';   // warm perkament — leest op de donkere placeholder
+
+// ── Geschilderde PNG-set (terugvaloptie) ─────────────────────────────────────
 const _condImgs = {};
 const _COND_IDS = [
   'blinded','charmed','concentration','deafened','exhaustion','frightened',
   'grappled','incapacitated','invisible','paralyzed','petrified','poisoned',
   'prone','restrained','stunned','unconscious','bleeding','burning',
 ];
-_COND_IDS.forEach(id => {
-  const img = new Image();
-  img.onload = () => { _condImgs[id] = img; };
-  img.src = `/img/conditions/${id}.png`;
-});
+if (!USE_SPRITE_COND_ICONS) {
+  _COND_IDS.forEach(id => {
+    const img = new Image();
+    img.onload = () => { _condImgs[id] = img; };
+    img.src = `/img/conditions/${id}.png`;
+  });
+}
 
-// ── Avatar-fallback: iconen uit de gedeelde sprite ───────────────────────────
-// Zonder portret tekende het canvas hier emoji (👾/👤/⚔️/✨), terwijl de
-// initiative-strip op het tafelscherm icon('skull')/icon('user') uit
-// /img/icons.svg gebruikt — twee verschillende beelden voor dezelfde combatant.
-// We halen de symbolen uit diezelfde sprite en bakken ze als data-URL tot een
-// <img>, want een <use href="sprite#id"> is niet naar canvas te tekenen.
-const _avatarIcons = {};
-const _AVATAR_ICON_IDS = { player: 'icon-user', ally: 'icon-shield', summon: 'icon-sparkles', monster: 'icon-skull' };
-const _AVATAR_ICON_COL = '#f2e8d2';   // warm perkament — leest op de donkere placeholder
-(async () => {
-  try {
-    const txt = await fetch('/img/icons.svg?v=3').then(r => r.text());
-    const doc = new DOMParser().parseFromString(txt, 'image/svg+xml');
-    for (const [type, id] of Object.entries(_AVATAR_ICON_IDS)) {
-      const sym = doc.getElementById(id);
-      if (!sym) continue;
-      // Attributen van het <symbol> overnemen (viewBox, stroke-width, fill…) en
-      // currentColor vervangen: een losstaande SVG erft geen kleur van de pagina.
-      const attrs = [...sym.attributes]
-        .filter(a => a.name !== 'id')
-        .map(a => `${a.name}="${a.value.replace(/currentColor/g, _AVATAR_ICON_COL)}"`)
-        .join(' ');
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" ${attrs}>${sym.innerHTML.replace(/currentColor/g, _AVATAR_ICON_COL)}</svg>`;
-      const img = new Image();
-      img.onload = () => { _avatarIcons[type] = img; };
-      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    }
-  } catch { /* lukt het niet, dan blijft de gekleurde cirkel zonder icoon over */ }
-})();
+// Laatste vangnet: een compact labeltje i.p.v. een emoji of een '?'. Emoji horen
+// niet in de UI, en een '?' zei de speler niets.
+const _COND_KORT = {
+  'bardic-inspiration': 'Bardic', 'tides-of-chaos': 'Chaos',
+  'twilight-sanctuary': 'Twilight', 'patient-defense': 'Defense',
+  'steady-aim': 'Aim', 'vigilant-blessing': 'Vigilant', blessed: 'Bless',
+};
+function _drawCondLabel(ctx, condId, dx, dy, dSize) {
+  const tekst = _COND_KORT[condId] || (condId.charAt(0).toUpperCase() + condId.slice(1, 8));
+  ctx.save();
+  ctx.font         = `${Math.max(8, dSize * 0.42)}px 'Cinzel', serif`;
+  ctx.textAlign    = 'left';
+  ctx.textBaseline = 'middle';
+  const bw = ctx.measureText(tekst).width + dSize * 0.34;
+  ctx.fillStyle = 'rgba(42,26,8,0.78)';
+  ctx.beginPath();
+  ctx.roundRect(dx, dy + dSize * 0.18, bw, dSize * 0.64, dSize * 0.16);
+  ctx.fill();
+  ctx.fillStyle = '#f2e8d2';
+  ctx.fillText(tekst, dx + dSize * 0.17, dy + dSize * 0.5);
+  ctx.restore();
+}
 
 function _drawCondIcon(ctx, condId, dx, dy, dSize) {
-  const img = _condImgs[condId];
-  if (img) {
-    ctx.drawImage(img, dx, dy, dSize, dSize);
-  } else {
-    ctx.font = `${dSize}px serif`;
-    ctx.fillText(CONDITION_ICONS[condId] || '?', dx, dy);
+  if (USE_SPRITE_COND_ICONS) {
+    const m = COND_ICON[condId];
+    if (m) {
+      const img = _spriteIcon(m[0], m[1]);
+      // Nog aan het laden → dit frame overslaan; volgend frame staat hij er.
+      if (img) ctx.drawImage(img, dx, dy, dSize, dSize);
+      return;
+    }
+    _drawCondLabel(ctx, condId, dx, dy, dSize);
+    return;
   }
+  const img = _condImgs[condId];
+  if (img) ctx.drawImage(img, dx, dy, dSize, dSize);
+  else     _drawCondLabel(ctx, condId, dx, dy, dSize);
 }
 
 // Volgorde van meest naar minst ingrijpend — bepaalt welk visueel effect getoond wordt
@@ -906,7 +984,7 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
     g.addColorStop(1, c.type === 'player' ? '#2a3a60' : c.type === 'ally' ? '#1e4a30' : c.type === 'summon' ? '#4a1880' : '#4a2010');
     ctx.fillStyle = g;
     ctx.fillRect(cx - AVTR_R, cy - AVTR_R, AVTR_R * 2, AVTR_R * 2);
-    const ic = _avatarIcons[c.type] || _avatarIcons.monster;
+    const ic = _spriteIcon(_AVATAR_ICON_IDS[c.type] || _AVATAR_ICON_IDS.monster, _AVATAR_ICON_COL);
     if (ic) {
       const s = AVTR_R * 1.0;
       ctx.globalAlpha = 0.9;
@@ -1431,7 +1509,11 @@ function _drawCondTooltip(ctx, W, H, condId, mx, my) {
   ctx.font         = `bold ${titleSz}px sans-serif`;
   ctx.textAlign    = 'left';
   ctx.textBaseline = 'top';
-  ctx.fillText(`${CONDITION_ICONS[condId] || ''}  ${name}`, bx + pad, by + pad);
+  // Icoon uit de sprite vóór de titel (voorheen een emoji uit CONDITION_ICONS).
+  const tipMap = COND_ICON[condId];
+  const tipImg = tipMap ? _spriteIcon(tipMap[0], tipMap[1]) : null;
+  if (tipImg) ctx.drawImage(tipImg, bx + pad, by + pad, titleSz, titleSz);
+  ctx.fillText(name, bx + pad + (tipImg ? titleSz + 6 : 0), by + pad);
 
   // Beschrijving
   ctx.fillStyle = 'rgba(225,215,195,0.9)';
