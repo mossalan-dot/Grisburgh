@@ -1,5 +1,5 @@
 import { api } from './api.js?v=244';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=17';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=18';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 // ── DM Panel ──
@@ -6889,29 +6889,44 @@ function _coDisplayHtml(combat, currentLabel) {
   // de volgende is niet per se het kaartje ernaast — we slaan de rest van de
   // huidige beurtgroep over. Zo weet de speler die zo aan zet is dat op tijd.
   const huidig = cs[turn];
+  // Alle deelnemers die deze beurt delen (monsters met gelijke initiative gaan
+  // samen). Bepaalt hoe ver de streep boven de kaartjes doorloopt.
+  const inBeurt = (c2) => c2 && huidig && (
+    c2 === huidig ||
+    (huidig.type === 'monster' && c2.type === 'monster' && c2.initiative === huidig.initiative)
+  );
   let volgende = null;
   for (let k = 1; k <= cs.length; k++) {
     const j  = (turn + k) % cs.length;
     const c2 = cs[j];
     if (!c2) continue;
-    const zelfdeGroep = huidig && huidig.type === 'monster' && c2.type === 'monster'
-      && c2.initiative === huidig.initiative;
-    if (!zelfdeGroep) { volgende = j; break; }
+    if (!inBeurt(c2)) { volgende = j; break; }
   }
 
   const strip = cs.map((c, i) => {
     const isMonster = c.type === 'monster';
     const uit       = (c.hp ?? 0) <= 0;
-    const staat     = isMonster
-      ? _coVaagHp(c.hp, c.maxHp)
-      : (c.maxHp ? `${Math.max(0, c.hp ?? 0)}/${c.maxHp}` : '');
+    // Op het tafelscherm kijkt iedereen mee, dus ook spelers-HP blijft vaag —
+    // exacte cijfers van een ander horen daar niet. De balk mag blijven: die
+    // toont een verhouding, geen getal. Zijn eigen precieze HP ziet een speler
+    // op zijn eigen scherm.
+    const staat = _coVaagHp(c.hp, c.maxHp);
     const pct = c.maxHp ? Math.max(0, Math.min(100, ((c.hp ?? 0) / c.maxHp) * 100)) : 0;
-    // Pijl vlak vóór het kaartje dat hierna aan zet is.
-    const pijl = (i === volgende && volgende !== turn)
-      ? `<span class="co-disp-pijl" title="Hierna aan de beurt">${icon('chevron-right')}</span>`
-      : '';
-    return `${pijl}
-      <div class="co-disp-pion co-disp-pion--${esc(c.type || 'monster')}${i === turn ? ' is-beurt' : ''}${i === volgende ? ' is-volgende' : ''}${uit ? ' is-uit' : ''}">
+    // Streep boven de actieve vakjes. Loopt door over de tussenruimte wanneer de
+    // buurman óók aan de beurt is, zodat je in één blik ziet hoeveel deelnemers
+    // deze beurt delen. Een pijl was daar dubbelzinnig: die leek naar één
+    // kaartje te wijzen terwijl er drie tegelijk aan zet waren.
+    const actief = inBeurt(c);
+    const klas = [
+      'co-disp-pion',
+      `co-disp-pion--${esc(c.type || 'monster')}`,
+      actief ? 'is-beurt' : '',
+      actief && inBeurt(cs[i + 1]) ? 'beurt-door-rechts' : '',
+      i === volgende ? 'is-volgende' : '',
+      uit ? 'is-uit' : '',
+    ].filter(Boolean).join(' ');
+    return `
+      <div class="${klas}">
         ${c.imageId
           ? `<div class="co-disp-pion-portret" style="background-image:url('${api.fileUrl(c.imageId)}')"></div>`
           : `<div class="co-disp-pion-portret co-disp-pion-portret--leeg">${icon(isMonster ? 'skull' : 'user')}</div>`}

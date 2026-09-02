@@ -1214,10 +1214,40 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
 
   const isDMView = window.app?.isDM?.();
   const isDying  = isDead && c.type === 'player';
-  const allConds = isDead ? [] : (c.conditions || []).filter(id => id !== 'flying');
-  const condSz   = isWide
+  // Conditie-iconen mogen de leesplaat niet uitlopen. Eerst comprimeren: ze
+  // krimpen mee tot ze passen. Pas als ze onder de leesbaarheidsgrens zouden
+  // zakken, tonen we er minder en telt "+n" de rest. Volgorde op
+  // CONDITION_PRIORITY, zodat de zwaarste toestanden overblijven.
+  const _condsRuw = isDead ? [] : (c.conditions || []).filter(id => id !== 'flying');
+  const _condsGesorteerd = [..._condsRuw].sort((a, b) => {
+    const ia = CONDITION_PRIORITY.indexOf(a), ib = CONDITION_PRIORITY.indexOf(b);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+  const COND_GAP = 3;
+  const COND_MIN = 13;                       // kleiner wordt het onleesbaar
+  const condBasis = isWide
     ? Math.max(18, Math.min(26, AVTR_R * 0.72))
     : Math.max(16, Math.min(22, h * 0.11));
+  let condSz    = condBasis;
+  let allConds  = _condsGesorteerd;
+  let condsMeer = 0;
+  if (isWide && _condsGesorteerd.length > 1) {
+    const ruimte = Math.max(40, w - 14);     // slotbreedte minus wat marge
+    const nAll   = _condsGesorteerd.length;
+    const past   = (n, sz) => n * (sz + COND_GAP) - COND_GAP <= ruimte;
+    if (!past(nAll, condSz)) {
+      // Krimpen tot het past …
+      condSz = Math.max(COND_MIN, (ruimte - COND_GAP * (nAll - 1)) / nAll);
+      if (!past(nAll, condSz)) {
+        // … en als zelfs de minimummaat niet past: afkappen met een teller.
+        let n = nAll;
+        while (n > 1 && !past(n + 1, COND_MIN)) n--;   // +1 = ruimte voor "+n"
+        condSz    = COND_MIN;
+        allConds  = _condsGesorteerd.slice(0, n);
+        condsMeer = nAll - n;
+      }
+    }
+  }
 
   const fontSize = Math.max(9, Math.min(13, w * 0.1));
   let nameY = barY + barH + (isDMView || isDying ? 14 : 7);
@@ -1237,7 +1267,9 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
   // halftransparante plaat eronder houdt ze leesbaar zonder de sfeer te slopen;
   // hij groeit mee met wat er daadwerkelijk onder de figuur staat.
   {
-    const iconsW = (isWide && allConds.length) ? allConds.length * (condSz + 3) - 3 : 0;
+    const iconsW = (isWide && allConds.length)
+      ? allConds.length * (condSz + 3) - 3 + (condsMeer ? condSz * 0.9 : 0)
+      : 0;
     const plateW = Math.min(w - 4, Math.max(barW, nameW, iconsW) + 16);
     const plateY = barY - 7;
     const plateH = (nameY + fontSize + 6) - plateY;
@@ -1265,8 +1297,8 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
     ctx.save();
     if (isWide) {
       // Horizontaal onder de HP-balk, gecentreerd onder de figuur
-      const gap    = 3;
-      const rowW   = allConds.length * (condSz + gap) - gap;
+      const gap    = COND_GAP;
+      const rowW   = allConds.length * (condSz + gap) - gap + (condsMeer ? condSz * 0.9 : 0);
       let   iconX  = cx - rowW / 2;
       const iconY  = barY + barH + 14;
       allConds.forEach(id => {
@@ -1274,6 +1306,15 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
         _hitAreas.push({ x: iconX, y: iconY, w: condSz, h: condSz, condId: id });
         iconX += condSz + gap;
       });
+      if (condsMeer) {
+        ctx.save();
+        ctx.font         = `bold ${Math.max(9, condSz * 0.5)}px 'Cinzel', serif`;
+        ctx.textAlign    = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle    = 'rgba(242,232,210,0.75)';
+        ctx.fillText(`+${condsMeer}`, iconX, iconY + condSz / 2);
+        ctx.restore();
+      }
     } else {
       // Verticaal aan de linkerzijde, gecentreerd in het slot
       const lineH  = condSz + 3;
@@ -1285,6 +1326,15 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
         _hitAreas.push({ x: iconX, y: iconY, w: condSz, h: condSz, condId: id });
         iconY += lineH;
       });
+      if (condsMeer) {
+        ctx.save();
+        ctx.font         = `bold ${Math.max(9, condSz * 0.5)}px 'Cinzel', serif`;
+        ctx.textAlign    = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle    = 'rgba(242,232,210,0.75)';
+        ctx.fillText(`+${condsMeer}`, iconX, iconY);
+        ctx.restore();
+      }
     }
     ctx.restore();
   }

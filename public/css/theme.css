@@ -16063,9 +16063,11 @@ body.display-mode .combat-overlay.co-has-backdrop .combat-modal {
   gap: 10px;
   overflow-x: auto;
   flex-shrink: 0;
-  padding: 4px 2px 2px;
+  /* Ruimte bovenin voor de beurtstreep (die staat op top:-8px). */
+  padding: 14px 2px 2px;
 }
 .co-disp-pion {
+  position: relative;
   flex: 0 0 auto;
   /* Ruimer dan 104px: namen als "Wervelingpiraat 1" werden anders afgekapt. */
   width: 132px;
@@ -16107,17 +16109,36 @@ body.display-mode .combat-overlay.co-has-backdrop .combat-modal {
   box-shadow: 0 0 0 2px rgba(184,134,11,0.45), 0 0 18px rgba(184,134,11,0.35);
 }
 .co-disp-pion.is-uit { opacity: 0.42; filter: grayscale(1); }
-/* Wie hierna aan zet is: een pijl in de tussenruimte plus een lichte omlijning.
-   Bewust ingetogen — het beurt-goud moet het duidelijkste signaal blijven. */
-.co-disp-pijl {
-  flex: 0 0 auto;
-  align-self: center;
-  display: flex;
-  align-items: center;
-  color: rgba(184, 134, 11, 0.7);
-  margin: 0 -3px;
+/* Beurtstreep: donkere balk bóven de actieve vakjes. Delen meerdere deelnemers
+   de beurt, dan loopt hij over de tussenruimte door tot één balk — zo zie je
+   meteen hoe ver de beurt reikt. De strip heeft daarvoor wat extra ruimte
+   bovenin, anders knipt de horizontale scroll de balk weg. */
+.co-disp-pion.is-beurt::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -8px;
+  height: 4px;
+  border-radius: 2px;
+  background: #2a1a08;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.35);
 }
-.co-disp-pijl .icon { width: 20px; height: 20px; }
+/* Buurman is ook aan zet → balk over de gap (10px) doortrekken. De uiteinden
+   die tegen elkaar aan komen moeten plat zijn; met de 2px-radius bleef er
+   anders een lichte inkeping op de naad staan. */
+.co-disp-pion.is-beurt.beurt-door-rechts::before {
+  right: -11px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.co-disp-pion.is-beurt.beurt-door-rechts + .co-disp-pion.is-beurt::before {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* Wie hierna aan zet is: ingetogen gestippelde rand. Het beurt-goud en de
+   streep moeten de duidelijkste signalen blijven. */
 .co-disp-pion.is-volgende {
   border-style: dashed;
   border-color: rgba(184, 134, 11, 0.65);
