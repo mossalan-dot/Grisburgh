@@ -100,13 +100,19 @@ function _ensureCondDatalist() {
   document.body.appendChild(dl);
 }
 
+// Eén ladder voor álle vage HP-weergaven: het spelersscherm en het tafelscherm
+// hanteerden eerst verschillende woorden én verschillende drempels, zodat
+// dezelfde combatant op twee schermen naast elkaar anders werd omschreven.
+// Zeven staten (100 / 80 / 60 / 40 / 20 / >0 / 0): genoeg om spanning op te
+// bouwen zonder de exacte HP weg te geven.
 const HP_LABELS = [
-  { min: 1.00, label: 'Volledig in leven', cls: 'hp-full' },
-  { min: 0.75, label: 'Licht verwond',     cls: 'hp-light' },
-  { min: 0.50, label: 'Verwond',           cls: 'hp-wounded' },
-  { min: 0.25, label: 'Zwaar verwond',     cls: 'hp-heavy' },
-  { min: 0.01, label: 'Bijna dood',        cls: 'hp-critical' },
-  { min: -Infinity, label: 'Dood',         cls: 'hp-dead' },
+  { min: 1.00,      label: 'ongedeerd',      cls: 'hp-full' },
+  { min: 0.80,      label: 'geschaafd',      cls: 'hp-scratched' },
+  { min: 0.60,      label: 'licht gewond',   cls: 'hp-light' },
+  { min: 0.40,      label: 'gewond',         cls: 'hp-wounded' },
+  { min: 0.20,      label: 'zwaar gewond',   cls: 'hp-heavy' },
+  { min: 0.0001,    label: 'stervend',       cls: 'hp-critical' },
+  { min: -Infinity, label: 'buiten gevecht', cls: 'hp-dead' },
 ];
 
 function hpStatus(hp, maxHp) {
@@ -6872,14 +6878,7 @@ function _combatSelectCombatant(id) {
 // monster-HP te zien. Spelers zelf tonen we wél gewoon hun cijfers.
 function _coVaagHp(hp, maxHp) {
   if (!maxHp || maxHp <= 0) return '';
-  const cur = hp ?? 0;
-  if (cur <= 0)  return 'buiten gevecht';
-  const p = cur / maxHp;
-  if (p >= 1)    return 'ongedeerd';
-  if (p >= 0.66) return 'licht gewond';
-  if (p >= 0.34) return 'gewond';
-  if (p >  0.10) return 'zwaar gewond';
-  return 'stervend';
+  return hpStatus(hp, maxHp).label;   // zelfde ladder als het spelersscherm
 }
 
 function _coDisplayHtml(combat, currentLabel) {

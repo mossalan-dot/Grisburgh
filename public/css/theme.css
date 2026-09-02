@@ -4884,6 +4884,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 
 /* HP bar colors — gedeeld door DM-paneel en overlay */
 .hp-full     { background: #3a9a4a; }
+.hp-scratched{ background: #5fae3a; }
 .hp-light    { background: #7ab830; }
 .hp-wounded  { background: #d4a020; }
 .hp-heavy    { background: #c86020; }
@@ -5143,6 +5144,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   flex-shrink: 0;
 }
 .co-hp-dot-hp-full    { background: #3a9c3a; }
+.co-hp-dot-hp-scratched { background: #6fb43c; }
 .co-hp-dot-hp-light   { background: #8ec63f; }
 .co-hp-dot-hp-wounded { background: #e6b840; }
 .co-hp-dot-hp-heavy   { background: #e07020; }
