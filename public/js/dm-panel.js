@@ -525,7 +525,7 @@ function _buildTabs() {
   const activeParent = _tabToParent(_activeTab);
   container.innerHTML = `
     <button class="dm-tab-btn${activeParent==='gevecht'  ?' active':''}" data-tab="gevecht"   onclick="window.dmPanel.switchTab('gevecht')"   title="Gevecht & Monsters">${icon('crossed-swords',{cls:'icon-gi'})}</button>
-    <button class="dm-tab-btn${activeParent==='rust'     ?' active':''}" data-tab="rust"      onclick="window.dmPanel.switchTab('rust')"      title="Rust — lange & korte rust">${icon('moon')}</button>
+    <button class="dm-tab-btn${activeParent==='rust'     ?' active':''}" data-tab="rust"      onclick="window.dmPanel.switchTab('rust')"      title="Rust — Long &amp; Short Rest">${icon('moon')}</button>
     <button class="dm-tab-btn${activeParent==='aktes'    ?' active':''}" data-tab="aktes"     onclick="window.dmPanel.switchTab('aktes')"     title="Aktes — voorbereiding & regie">${icon('clipboard-list')}</button>
     <button class="dm-tab-btn${activeParent==='geluiden' ?' active':''}" data-tab="geluiden"  onclick="window.dmPanel.switchTab('geluiden')"  title="Geluiden">${icon('volume-2')}</button>
     <button class="dm-tab-btn${activeParent==='tafels'   ?' active':''}" data-tab="tafels"    onclick="window.dmPanel.switchTab('tafels')"    title="Willekeur — tafels & namen">${icon('dice',{cls:'icon-gi'})}</button>
@@ -1794,7 +1794,7 @@ function _renderRegieBalkItem(item) {
             ? icon('mail')
             : icon('crossed-swords', { cls: 'icon-gi' });
   const rustLabel = item.type === 'rust'
-    ? `${item.restType === 'long' ? 'Lange' : 'Korte'} rust — ${item.locatie === 'herberg' ? 'Herberg' : 'Veld'}`
+    ? `${item.restType === 'long' ? 'Long' : 'Short'} Rest — ${item.locatie === 'herberg' ? 'Herberg' : 'Veld'}`
     : '';
   const briefLabel = item.type === 'brief'
     ? `Brief${item.titel ? `: ${item.titel}` : ''} — ${item.ontvangerType === 'groep' ? 'Party' : (item.spelerNaam || 'Speler')}`
@@ -1843,7 +1843,7 @@ function _renderRegieBalkItem(item) {
   if (item.type === 'rust') {
     // Rust-stap: party-brede rust starten (met de locatie van de stap). Blijft klikbaar
     // (opnieuw triggeren mag); de check-overlay markeert dat 'm gedraaid is.
-    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkRust('${esc(item.id)}')" title="${item.restType === 'long' ? 'Lange' : 'Korte'} rust starten (${item.locatie === 'herberg' ? 'herberg' : 'veld'})">${icon('play')}</button>`;
+    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkRust('${esc(item.id)}')" title="${item.restType === 'long' ? 'Long' : 'Short'} Rest starten (${item.locatie === 'herberg' ? 'herberg' : 'veld'})">${icon('play')}</button>`;
   } else if (item.type === 'brief') {
     // Brief-stap: verstuur naar de gekozen ontvanger(s) + grote reveal op de tablet.
     // Blijft klikbaar (opnieuw sturen mag); de check-overlay markeert dat 'm verstuurd is.
@@ -2056,11 +2056,12 @@ function _rustMenu(ev) {
     <div class="dm-rust-menu-kop">Waar rust de party?</div>
     <div class="dm-rust-menu-loc">
       <button class="dm-rust-loc-btn${loc === 'veld' ? ' is-actief' : ''}" data-loc="veld">${icon('tree-pine')} In het veld</button>
-      <button class="dm-rust-loc-btn${loc === 'herberg' ? ' is-actief' : ''}" data-loc="herberg">${icon('beer')} ${esc(herbergNaam)}</button>
+      <button class="dm-rust-loc-btn${loc === 'herberg' ? ' is-actief' : ''}" data-loc="herberg"
+        title="${esc(herbergNaam)}">${icon('beer')} In de herberg</button>
     </div>
     <div class="dm-rust-menu-kop">Wat voor rust?</div>
-    <button class="dm-rust-start" data-type="long">${icon('moon')} <span><strong>Lange rust</strong><em>HP en slots terug, Hit Dice half</em></span></button>
-    <button class="dm-rust-start" data-type="short">${icon('zap')} <span><strong>Korte rust</strong><em>Hit Dice inzetten, pact-slots</em></span></button>`;
+    <button class="dm-rust-start" data-type="long">${icon('moon')} <strong>Long Rest</strong></button>
+    <button class="dm-rust-start" data-type="short">${icon('zap')} <strong>Short Rest</strong></button>`;
   document.body.appendChild(menu);
   const r = knop.getBoundingClientRect();
   menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8))}px`;
@@ -6376,8 +6377,8 @@ async function _renderGeluiden() {
   ];
   const facties = window.app?.state?.meta?.facties || [];
   const _REST = [
-    { key: 'rust-veld', label: 'Lange rust — buiten' }, { key: 'rust-herberg', label: 'Lange rust — herberg' },
-    { key: 'rust-kort', label: 'Korte rust' },
+    { key: 'rust-veld', label: 'Long Rest — buiten' }, { key: 'rust-herberg', label: 'Long Rest — herberg' },
+    { key: 'rust-kort', label: 'Short Rest' },
   ];
   const svcSection = `
     <div class="dm-sound-section">
@@ -6845,7 +6846,7 @@ async function _renderRust() {
   const loc = window._dmRustLocatie || 'veld';
 
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'moon', title: 'Rust', sub: 'party-breed — lange & korte rust', actions: helpBtn('dm_rust') })}
+    ${_dmTabHead({ icon: 'moon', title: 'Rust', sub: 'party-breed — Long &amp; Short Rest', actions: helpBtn('dm_rust') })}
 
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('moon')} Rust starten</div>
@@ -6856,8 +6857,8 @@ async function _renderRust() {
           onclick="window._dmRustKiesLoc('herberg')">${icon('beer')} ${esc(herbergNaam)}</button>
       </div>
       <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
-        <button class="dm-btn dm-btn-primary" onclick="window._dmRust('long')" title="Lange rust — party-breed">${icon('moon')} Lange rust</button>
-        <button class="dm-btn dm-btn-ghost" onclick="window._dmRust('short')" title="Korte rust — party-breed">${icon('zap')} Korte rust</button>
+        <button class="dm-btn dm-btn-primary" onclick="window._dmRust('long')" title="Long Rest — party-breed">${icon('moon')} Long Rest</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window._dmRust('short')" title="Short Rest — party-breed">${icon('zap')} Short Rest</button>
         <span id="dm-rust-status" style="font-size:11px;color:#6a9050"></span>
       </div>
       <span class="dm-hint" style="font-size:11px">Party-breed en cinematisch. Lange rust in ${esc(herbergNaam)} schrijft de overnachtingsprijs p.p. af en onthult 2 roddels p.p.</span>

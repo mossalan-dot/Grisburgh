@@ -4089,6 +4089,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-rust-menu .dm-rust-loc-btn {
   flex: 1;
   display: flex; align-items: center; justify-content: center; gap: 5px;
+  white-space: nowrap;
   padding: 6px 8px;
   font-family: 'Crimson Text', serif;
   font-size: 12px;
@@ -4114,9 +4115,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   color: #2a1a08;
 }
 .dm-rust-start:hover { background: #fff7e1; border-color: rgba(184,134,11,0.65); }
-.dm-rust-start span { display: flex; flex-direction: column; }
-.dm-rust-start strong { font-family: 'Cinzel', serif; font-size: 12.5px; }
-.dm-rust-start em { font-family: 'Crimson Text', serif; font-size: 11px; font-style: italic; color: #6b4a1a; }
+.dm-rust-start strong { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 600; }
 .dm-rust-start .icon { width: 18px; height: 18px; color: #8a6a3a; flex-shrink: 0; }
 .dm-regie-balk-btn.dm-rust-loc-btn.is-actief {
   color: var(--color-room-bg, #f5edd8);

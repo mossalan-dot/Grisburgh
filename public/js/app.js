@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=18';
 import { renderSpreuken } from './render-spreuken.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=55";
-import { initDmPanel } from "./dm-panel.js?v=150";
+import { initDmPanel } from "./dm-panel.js?v=151";
 import './media-picker.js?v=5';
 
 // ── Icon helper ──
