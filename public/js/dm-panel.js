@@ -1934,13 +1934,13 @@ function _renderRegieBalk() {
             onclick="window.dmPanel.combatExpand()" title="Gevecht uitklappen">${icon('stiletto',{cls:'icon-gi'})}</button>
           <span class="dm-rb-sep"></span>
           <div class="dm-rb-rust">
-            <button class="dm-regie-balk-btn" onclick="window.dmPanel.rustMenu(event)" title="Rust starten">${icon('moon')} <span class="dm-rb-rust-label">Rust</span></button>
+            <button class="dm-regie-balk-btn" onclick="window.dmPanel.rustMenu(event)" title="Rust starten">${icon('moon')} <span class="dm-rb-btn-label">Rust</span></button>
           </div>
           <span class="dm-rb-sep"></span>
-          <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')}</button>
+          <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')} <span class="dm-rb-btn-label">Uitnodiging</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.tabletNaarSfeer(this)" title="Tablet → sfeerscherm (leeg het gepresenteerde beeld)">${icon('monitor')}</button>
           <span class="dm-rb-sep"></span>
-          <button class="dm-regie-balk-btn dm-rb-pauze-btn" onclick="window.dmPanel.regieBalkPauze()" title="Akte pauzeren — legt HP en voortgang vast om later te hervatten">${icon('pause')} <span class="dm-rb-rust-label">Pauze</span></button>
+          <button class="dm-regie-balk-btn dm-rb-pauze-btn" onclick="window.dmPanel.regieBalkPauze()" title="Akte pauzeren — legt HP en voortgang vast om later te hervatten">${icon('pause')} <span class="dm-rb-btn-label">Pauze</span></button>
           <div class="dm-rb-venster">
             <button class="dm-regie-balk-btn dm-rb-venster-btn" onclick="window.dmPanel.regieBalkToggleMinimize()" title="Balk minimaliseren">−</button>
             <button class="dm-regie-balk-btn dm-rb-venster-btn" onclick="window.dmPanel.regieBalkClose()" title="Balk sluiten (de akte blijft actief)">${icon('x')}</button>
@@ -4414,7 +4414,7 @@ async function _renderHerbergSettings() {
       <div class="dm-form-row">
         <label class="dm-form-label">Overnachting (prijs p.p.)</label>
         <input id="hb-overnachting" class="dm-input" value="${esc(config.overnachtingPrijs || '1 fl.')}" placeholder="1 fl.">
-        <span class="dm-hint" style="font-size:11px">Afgeschreven per speler bij een lange rust hier; levert 2 roddels p.p. op.</span>
+        <span class="dm-hint" style="font-size:11px">Afgeschreven per speler bij een Long Rest hier; levert 2 roddels p.p. op.</span>
       </div>
 
       <div class="dm-form-row">
@@ -4446,7 +4446,7 @@ async function _renderHerbergSettings() {
       </div>
 
       <div class="dm-section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">${icon('beer')} Aan de tap — menu</div>
-      <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 8px">Drankjes/maaltijden die spelers kunnen bestellen. Prijs schrijft van de beurs af; temp HP en status gelden tot de volgende lange rust.</span>
+      <span class="dm-hint" style="font-size:11px;display:block;margin:-4px 0 8px">Drankjes/maaltijden die spelers kunnen bestellen. Prijs schrijft van de beurs af; temp HP en status gelden tot de volgende Long Rest.</span>
       <div id="hb-menu-lijst"></div>
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-ghost" onclick="window._hbMenuAdd()" title="Menu-item toevoegen">${icon('plus')} Item</button>
@@ -6821,7 +6821,7 @@ function _renderGevecht() {
   `;
 };
 
-// ── Rust (eigen tab) — party-brede lange/korte rust + sfeerconfig ─────────────
+// ── Rust (eigen tab) — party-brede Long/Short Rest + sfeerconfig ─────────────
 async function _renderRust() {
   const el = _tabEl('rust');
   if (!el) return;
@@ -6841,25 +6841,28 @@ async function _renderRust() {
 
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('moon')} Rust starten</div>
+      <div class="dm-hint" style="margin:-2px 0 5px">Waar rust de party?</div>
       <div class="dm-rust-locatie" role="group" aria-label="Rustlocatie" style="display:flex;gap:6px;margin-bottom:8px">
         <button class="dm-btn dm-btn-ghost dm-btn-sm dm-rust-loc-btn${loc==='veld'?' is-actief':''}" data-loc="veld"
           onclick="window._dmRustKiesLoc('veld')">${icon('tree-pine')} In het veld</button>
         <button class="dm-btn dm-btn-ghost dm-btn-sm dm-rust-loc-btn${loc==='herberg'?' is-actief':''}" data-loc="herberg"
-          onclick="window._dmRustKiesLoc('herberg')">${icon('beer')} ${esc(herbergNaam)}</button>
+          title="${esc(herbergNaam)}"
+          onclick="window._dmRustKiesLoc('herberg')">${icon('beer')} In de herberg</button>
       </div>
+      <div class="dm-hint" style="margin:0 0 5px">Wat voor rust?</div>
       <div class="dm-feature-row" style="gap:8px;align-items:center;flex-wrap:wrap">
         <button class="dm-btn dm-btn-primary" onclick="window._dmRust('long')" title="Long Rest — party-breed">${icon('moon')} Long Rest</button>
         <button class="dm-btn dm-btn-ghost" onclick="window._dmRust('short')" title="Short Rest — party-breed">${icon('zap')} Short Rest</button>
         <span id="dm-rust-status" style="font-size:11px;color:#6a9050"></span>
       </div>
-      <span class="dm-hint" style="font-size:11px">Party-breed en cinematisch. Lange rust in ${esc(herbergNaam)} schrijft de overnachtingsprijs p.p. af en onthult 2 roddels p.p.</span>
+      <span class="dm-hint" style="font-size:11px">Party-breed en cinematisch. Een Long Rest in ${esc(herbergNaam)} schrijft de overnachtingsprijs p.p. af en onthult 2 roddels p.p.</span>
     </div>
 
     <div class="dm-feature-section">
       <div class="dm-section-label">${icon('moon')} Sfeer & gebeurtenissen</div>
 
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
-        <label class="dm-form-label">Achtergrond — lange rust buiten (veld)</label>
+        <label class="dm-form-label">Achtergrond — Long Rest buiten (veld)</label>
         <div class="dm-feature-row">
           <label class="dm-btn dm-btn-ghost dm-btn-sm" style="cursor:pointer">${icon('camera')} ${rustCfg.veldBackdropId ? 'Vervang' : 'Kies afbeelding'}
             <input type="file" accept="image/*" class="hidden" onchange="window._rustUploadBg('veld', this.files[0])">
@@ -6869,7 +6872,7 @@ async function _renderRust() {
       </div>
 
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
-        <label class="dm-form-label">Achtergrond — korte rust</label>
+        <label class="dm-form-label">Achtergrond — Short Rest</label>
         <div class="dm-feature-row">
           <label class="dm-btn dm-btn-ghost dm-btn-sm" style="cursor:pointer">${icon('camera')} ${rustCfg.korteRustBackdropId ? 'Vervang' : 'Kies afbeelding'}
             <input type="file" accept="image/*" class="hidden" onchange="window._rustUploadBg('korte', this.files[0])">
@@ -6879,7 +6882,7 @@ async function _renderRust() {
       </div>
 
       <div class="dm-form-row">
-        <label class="dm-form-label">Gebeurtenissen-tabel — lange rust buiten</label>
+        <label class="dm-form-label">Gebeurtenissen-tabel — Long Rest buiten</label>
         <select id="rust-event-veld" class="dm-select">
           <option value="">— Geen —</option>
           ${tables.map(t => `<option value="${esc(t.id)}" ${(rustCfg.veldEventTableId || rustCfg.eventTableId) === t.id ? 'selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
@@ -6887,7 +6890,7 @@ async function _renderRust() {
       </div>
 
       <div class="dm-form-row">
-        <label class="dm-form-label">Gebeurtenissen-tabel — lange rust herberg</label>
+        <label class="dm-form-label">Gebeurtenissen-tabel — Long Rest herberg</label>
         <select id="rust-event-herberg" class="dm-select">
           <option value="">— Geen —</option>
           ${tables.map(t => `<option value="${esc(t.id)}" ${rustCfg.herbergEventTableId === t.id ? 'selected' : ''}>${esc(t.name || t.id)}</option>`).join('')}
@@ -6915,10 +6918,10 @@ window._dmRust = async function(type, locatie) {
   try {
     if (type === 'short') {
       const r = await api.partyShortRest({ locatie });
-      if (statusEl) statusEl.textContent = `✓ Korte rust uitgevoerd voor ${r.spelers} speler(s)`;
+      if (statusEl) statusEl.textContent = `✓ Short Rest uitgevoerd voor ${r.spelers} speler(s)`;
     } else {
       const r = await api.partyLongRest({ locatie });
-      let msg = `✓ Lange rust (${r.resetCount} charges herladen`;
+      let msg = `✓ Long Rest (${r.resetCount} charges herladen`;
       if (r.kosten) msg += `, ${r.kosten.totaal.fl} fl. ${r.kosten.totaal.kn} kn. afgeschreven`;
       if (r.roddelsOnthuld) msg += `, ${r.roddelsOnthuld} roddels onthuld`;
       msg += ')';

@@ -4060,7 +4060,9 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   border-color: transparent;
 }
 .dm-rb-venster-btn:hover { opacity: 1; background: rgba(196,168,122,0.18); }
-.dm-rb-rust-label { font-family: 'Cinzel', serif; font-size: 11px; margin-left: 3px; }
+/* Labels bij de knoppen die niet vanzelf spreken (Rust, Pauze, Uitnodiging).
+   Een rij kale icoontjes liet zich niet lezen; deze drie krijgen tekst erbij. */
+.dm-rb-btn-label { font-family: 'Cinzel', serif; font-size: 11px; margin-left: 3px; }
 
 /* Rustmenu: één knop i.p.v. vier icoontjes waarvan je moest raden wat locatie
    was en wat duur. Hangt aan de body zodat de regie-balk hem niet afknipt. */
