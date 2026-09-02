@@ -295,7 +295,7 @@ function _updateState(combat) {
       const cur   = cs[newTurn];
       const group = (cur?.type === 'monster') ? _getTurnGroup(cs, newTurn) : [newTurn];
       const names = group.map(i => cs[i]?.name).filter(Boolean);
-      const turnSub = names.length ? names.join(' & ') + ' is aan de beurt' : 'BEGINT';
+      const turnSub = names.length ? _beurtTitel(names) + ' is aan de beurt' : 'BEGINT';
       _announcement = { t0: performance.now(), type: 'round',
         title: `RONDE ${newRound}`, subtitle: turnSub, color: null };
     } else if (newTurn !== _prevTurn) {
@@ -310,7 +310,7 @@ function _updateState(combat) {
                   : ctype === 'summon' ? '#c090f8'
                   :                     '#f07858';
       _announcement = { t0: performance.now(), type: 'turn',
-        title: names.join(' & '), subtitle: 'is aan de beurt', color };
+        title: _beurtTitel(names), subtitle: 'is aan de beurt', color };
       // Puls-ring in themakleur rondom actieve combatant(en)
       const pulseColor = ctype === 'monster' ? _mc : _pc;
       const pulseIds   = group.map(i => cs[i]?.id).filter(Boolean);
@@ -636,6 +636,33 @@ function _drawTurnPulse(ctx) {
 
 // ── Beurt / ronde aankondiging ────────────────────────────────────────────────
 
+// Titel voor de beurt-aankondiging. Monsters met gelijke initiative gaan samen
+// aan de beurt — handig tijdens het spelen, maar "A & B & C & D" liep dwars uit
+// beeld. Genummerde varianten worden samengevat: "3 × Wervelingpiraat".
+function _beurtTitel(namen) {
+  if (namen.length <= 2) return namen.join(' & ');
+  const tel = new Map();
+  for (const n of namen) {
+    const basis = String(n).replace(/\s+\d+$/, '').trim() || String(n);
+    tel.set(basis, (tel.get(basis) || 0) + 1);
+  }
+  const delen = [...tel].map(([basis, aantal]) => (aantal > 1 ? `${aantal} × ${basis}` : basis));
+  if (delen.length <= 2) return delen.join(' & ');
+  return `${delen.slice(0, 2).join(' & ')} +${delen.length - 2}`;
+}
+
+// Krimp de tekst tot hij binnen maxW past; pas als dat niet lukt, afkappen.
+function _pasTekst(ctx, tekst, maxW, startSz, minSz, vet) {
+  let sz = startSz;
+  const zet = () => { ctx.font = `${vet ? 'bold ' : ''}${sz}px 'Cinzel', serif`; };
+  zet();
+  while (ctx.measureText(tekst).width > maxW && sz > minSz) { sz -= 1; zet(); }
+  let t = tekst;
+  while (ctx.measureText(t).width > maxW && t.length > 4) t = t.slice(0, -1);
+  if (t !== tekst) t = t.replace(/\s+$/, '') + '…';
+  return t;
+}
+
 function _drawAnnouncement(ctx, W, H, nowMs) {
   if (!_announcement) return;
   const elapsed = (nowMs - _announcement.t0) / 1000;
@@ -770,23 +797,23 @@ function _drawAnnouncement(ctx, W, H, nowMs) {
     ctx.lineTo(W * 0.94, by + 1);
     ctx.stroke();
 
-    // Naam
+    // Naam — krimpt mee zodat een gedeelde beurt niet uit beeld loopt.
     const titleSz = Math.min(bh * 0.46, 34);
-    ctx.font         = `bold ${titleSz}px 'Cinzel', serif`;
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
+    const titelTekst = _pasTekst(ctx, title, W * 0.88, titleSz, 15, true);
     ctx.shadowColor  = typeColor;
     ctx.shadowBlur   = 18;
     ctx.fillStyle    = typeColor;
-    ctx.fillText(title, W / 2, by + bh * 0.37);
+    ctx.fillText(titelTekst, W / 2, by + bh * 0.37);
 
     // "is aan de beurt"
     if (subtitle) {
       const subSz = Math.min(bh * 0.27, 17);
-      ctx.font       = `${subSz}px 'Cinzel', serif`;
+      const subTekst = _pasTekst(ctx, subtitle, W * 0.88, subSz, 11, false);
       ctx.shadowBlur = 6;
       ctx.fillStyle  = 'rgba(210,200,185,0.85)';
-      ctx.fillText(subtitle, W / 2, by + bh * 0.72);
+      ctx.fillText(subTekst, W / 2, by + bh * 0.72);
     }
   }
 
@@ -929,10 +956,14 @@ function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t, isWide) {
   const niveaus = alleenMonsters
     ? [...new Set(getoond.map(c => `${c.maxHp || 0}|${parseInt(c.ac) || 0}`))]
     : [];
-  const schaalVoor = (c) => {
-    if (!alleenMonsters || niveaus.length < 2) return 1;
+  const rangVan = (c) => {
+    if (!alleenMonsters || niveaus.length < 2) return null;      // geen hiërarchie
     const i = niveaus.indexOf(`${c.maxHp || 0}|${parseInt(c.ac) || 0}`);
-    return 1 - (i / (niveaus.length - 1)) * 0.18;
+    return 1 - i / (niveaus.length - 1);                          // 1 = zwaarste
+  };
+  const schaalVoor = (c) => {
+    const d = rangVan(c);
+    return d === null ? 1 : 0.82 + d * 0.18;
   };
 
   for (let r = 0; r < rijen; r++) {
@@ -949,6 +980,7 @@ function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t, isWide) {
       const isActive = turnGroup.includes(idx);
       const slotX    = rijX + i * (slotW + GAP);
       const schaal   = schaalVoor(c);
+      const dreiging = rangVan(c);
       // Clip per slot: alleen horizontaal (zodat effects niet in de buurman
       // bloeden), maar niet verticaal — iconen onder de HP-balk moeten
       // zichtbaar blijven.
@@ -956,7 +988,7 @@ function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t, isWide) {
       ctx.beginPath();
       ctx.rect(slotX, 0, slotW, ctx.canvas.height);
       ctx.clip();
-      _drawCombatant(ctx, c, slotX, rijY, slotW, rijH, t, isActive, isWide, idx + 1, schaal);
+      _drawCombatant(ctx, c, slotX, rijY, slotW, rijH, t, isActive, isWide, idx + 1, schaal, dreiging);
       ctx.restore();
     });
   }
@@ -972,7 +1004,7 @@ function _avatarPath(ctx, c, cx, cy, r) {
   }
 }
 
-function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, schaal = 1) {
+function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, schaal = 1, dreiging = null) {
   const isDead  = (c.hp || 0) <= 0;
   const conds   = isDead ? [] : (c.conditions || []);
   const hasCond = (name) => conds.includes(name);
@@ -1071,7 +1103,16 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
       : c.type === 'ally'   ? 'rgba(60,180,110,0.80)'
       : c.type === 'summon' ? 'rgba(180,110,255,0.80)'
       : 'rgba(210,70,45,0.75)';
-    ctx.lineWidth = 2.5;
+    // Zwaardere dreiging = dikkere rand en een diepere slagschaduw, zodat de
+    // figuur letterlijk zwaarder op het doek ligt. Geen gloed of aura: goud en
+    // pulseren betekenen al "aan de beurt", en _fxBehind tekent achter de
+    // figuur de conditie-effecten.
+    ctx.lineWidth = 2.5 + (dreiging ?? 0) * 1.8;
+    if (dreiging !== null && dreiging > 0) {
+      ctx.shadowColor   = `rgba(20, 8, 4, ${0.30 + dreiging * 0.35})`;
+      ctx.shadowBlur    = 6 + dreiging * 12;
+      ctx.shadowOffsetY = 2 + dreiging * 5;
+    }
     ctx.stroke();
     ctx.restore();
   }

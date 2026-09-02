@@ -1,5 +1,5 @@
 import { api } from './api.js?v=244';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=16';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=17';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 // ── DM Panel ──
@@ -6885,6 +6885,20 @@ function _coDisplayHtml(combat, currentLabel) {
   const cs   = combat.combatants || [];
   const turn = combat.currentTurn;
 
+  // Wie is hierna? Monsters met dezelfde initiative gaan samen aan de beurt, dus
+  // de volgende is niet per se het kaartje ernaast — we slaan de rest van de
+  // huidige beurtgroep over. Zo weet de speler die zo aan zet is dat op tijd.
+  const huidig = cs[turn];
+  let volgende = null;
+  for (let k = 1; k <= cs.length; k++) {
+    const j  = (turn + k) % cs.length;
+    const c2 = cs[j];
+    if (!c2) continue;
+    const zelfdeGroep = huidig && huidig.type === 'monster' && c2.type === 'monster'
+      && c2.initiative === huidig.initiative;
+    if (!zelfdeGroep) { volgende = j; break; }
+  }
+
   const strip = cs.map((c, i) => {
     const isMonster = c.type === 'monster';
     const uit       = (c.hp ?? 0) <= 0;
@@ -6892,8 +6906,12 @@ function _coDisplayHtml(combat, currentLabel) {
       ? _coVaagHp(c.hp, c.maxHp)
       : (c.maxHp ? `${Math.max(0, c.hp ?? 0)}/${c.maxHp}` : '');
     const pct = c.maxHp ? Math.max(0, Math.min(100, ((c.hp ?? 0) / c.maxHp) * 100)) : 0;
-    return `
-      <div class="co-disp-pion${i === turn ? ' is-beurt' : ''}${uit ? ' is-uit' : ''}">
+    // Pijl vlak vóór het kaartje dat hierna aan zet is.
+    const pijl = (i === volgende && volgende !== turn)
+      ? `<span class="co-disp-pijl" title="Hierna aan de beurt">${icon('chevron-right')}</span>`
+      : '';
+    return `${pijl}
+      <div class="co-disp-pion co-disp-pion--${esc(c.type || 'monster')}${i === turn ? ' is-beurt' : ''}${i === volgende ? ' is-volgende' : ''}${uit ? ' is-uit' : ''}">
         ${c.imageId
           ? `<div class="co-disp-pion-portret" style="background-image:url('${api.fileUrl(c.imageId)}')"></div>`
           : `<div class="co-disp-pion-portret co-disp-pion-portret--leeg">${icon(isMonster ? 'skull' : 'user')}</div>`}
