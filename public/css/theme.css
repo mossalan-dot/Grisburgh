@@ -16067,7 +16067,8 @@ body.display-mode .combat-overlay.co-has-backdrop .combat-modal {
 }
 .co-disp-pion {
   flex: 0 0 auto;
-  width: 104px;
+  /* Ruimer dan 104px: namen als "Wervelingpiraat 1" werden anders afgekapt. */
+  width: 132px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -16100,11 +16101,14 @@ body.display-mode .combat-overlay.co-has-backdrop .combat-modal {
   font-weight: 600;
   color: #2a1a08;
   text-align: center;
-  line-height: 1.15;
+  line-height: 1.2;
   max-width: 100%;
+  /* Twee regels i.p.v. afkappen; de vaste hoogte houdt alle kaartjes gelijk. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-height: 2.4em;
 }
 .co-disp-pion-staat {
   font-family: 'Crimson Text', serif;

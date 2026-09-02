@@ -898,22 +898,41 @@ function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t, isWide) {
   ctx.fillStyle = grad;
   ctx.fillRect(x, y, w, h);
 
-  const n    = group.length;
-  const GAP  = n > 1 ? Math.min(8, w * 0.02) : 0;
-  const slotW = (w - GAP * (n - 1)) / n;
-  group.forEach((c, i) => {
-    const idx    = allCs.indexOf(c);
-    const isActive = turnGroup.includes(idx);
-    const slotX  = x + i * (slotW + GAP);
-    // Clip per slot: alleen horizontaal (zodat effects niet in de buurman bloeden),
-    // maar niet verticaal — iconen onder de HP-balk moeten zichtbaar blijven
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(slotX, 0, slotW, ctx.canvas.height);
-    ctx.clip();
-    _drawCombatant(ctx, c, slotX, y, slotW, h, t, isActive, isWide, idx + 1);
-    ctx.restore();
-  });
+  const n = group.length;
+  // Vanaf vier op een zijde wordt één rij te smal: de figuren krimpen en de
+  // badges vallen buiten hun slot. We verdelen ze dan over meerdere rijen en
+  // gebruiken zo de hoogte die er toch al was.
+  const MAX_PER_RIJ = 4;
+  const rijen  = Math.max(1, Math.ceil(n / MAX_PER_RIJ));
+  const perRij = Math.ceil(n / rijen);
+  const rijH   = h / rijen;
+
+  for (let r = 0; r < rijen; r++) {
+    const rijGroep = group.slice(r * perRij, (r + 1) * perRij);
+    if (!rijGroep.length) continue;
+    const m     = rijGroep.length;
+    const GAP   = m > 1 ? Math.min(8, w * 0.02) : 0;
+    const slotW = (w - GAP * (m - 1)) / m;
+    // Laatste rij is vaak niet vol: centreer hem onder de rijen erboven.
+    const rijBreedte = m * slotW + (m - 1) * GAP;
+    const rijX = x + (w - rijBreedte) / 2;
+    const rijY = y + r * rijH;
+
+    rijGroep.forEach((c, i) => {
+      const idx      = allCs.indexOf(c);
+      const isActive = turnGroup.includes(idx);
+      const slotX    = rijX + i * (slotW + GAP);
+      // Clip per slot: alleen horizontaal (zodat effects niet in de buurman
+      // bloeden), maar niet verticaal — iconen onder de HP-balk moeten
+      // zichtbaar blijven.
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(slotX, 0, slotW, ctx.canvas.height);
+      ctx.clip();
+      _drawCombatant(ctx, c, slotX, rijY, slotW, rijH, t, isActive, isWide, idx + 1);
+      ctx.restore();
+    });
+  }
 }
 
 // Avatar-pad: cirkel voor spelers/monsters, afgerond vierkant voor medestanders
@@ -1228,7 +1247,9 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
       const padX = 5, gap = 3;
       const bw  = padX * 2 + icoS + gap + tw;
       const bh  = fs + 8;
-      const bx  = cx + AVTR_R * 0.62 - bw / 2 + bw * 0.30;
+      // Binnen het slot houden: bij vier of meer figuren op een zijde stak de
+      // badge eroverheen en knipte de slot-clip hem halverwege af.
+      const bx  = Math.max(x + 2, Math.min(cx + AVTR_R * 0.62 - bw / 2 + bw * 0.30, x + w - bw - 2));
       const by  = cy - AVTR_R * 0.80 - bh / 2;
       ctx.beginPath();
       ctx.roundRect(bx, by, bw, bh, bh / 2);
