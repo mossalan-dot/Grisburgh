@@ -4127,14 +4127,14 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-rust-start:hover { background: #fff7e1; border-color: rgba(184,134,11,0.65); }
 .dm-rust-start strong { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 600; }
 
-/* Sfeermenu: veertien stemmingen in een raster met een kleurstaal, plus de
-   eenmalige effecten eronder. Het staal gebruikt dezelfde .sfeer--*-klassen als
-   het tafelscherm, dus wat je hier ziet is precies wat daar komt. */
+/* Sfeermenu: veertien stemmingen in twee kolommen, met de eenmalige effecten
+   eronder. Eerst stond er een kleurstaal bij, maar alle sferen zijn nachtelijke
+   achtergronden — op knopformaat waren ze nagenoeg zwart en dus betekenisloos. */
 .dm-sfeer-menu { min-width: 300px; }
 .dm-sfeer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .dm-sfeer-knop {
-  display: flex; align-items: center; gap: 7px;
-  padding: 5px 7px;
+  display: block;
+  padding: 6px 9px;
   font-family: 'Crimson Text', serif;
   font-size: 12px;
   color: #4a3520;
@@ -4149,14 +4149,6 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   background: rgba(184,134,11,0.20);
   border-color: rgba(184,134,11,0.7);
   font-weight: 600;
-}
-.dm-sfeer-staal {
-  width: 20px; height: 20px;
-  flex-shrink: 0;
-  border-radius: 4px;
-  border: 1px solid rgba(90,58,0,0.35);
-  background: radial-gradient(ellipse at 50% 60%, var(--sfeer-bg1) 0%, var(--sfeer-bg2) 75%);
-  box-shadow: inset 0 0 6px rgba(var(--sfeer-gloed), 0.55);
 }
 .dm-sfeer-fx { display: flex; gap: 5px; }
 .dm-sfeer-fx .dm-rust-loc-btn { flex: 1; font-size: 11.5px; padding: 5px 4px; }

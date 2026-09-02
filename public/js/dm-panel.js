@@ -1942,10 +1942,10 @@ function _renderRegieBalk() {
           </div>
           <span class="dm-rb-sep"></span>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')} <span class="dm-rb-btn-label">Uitnodiging</span></button>
-          <button class="dm-regie-balk-btn" onclick="window.dmPanel.tabletNaarSfeer(this)" title="Tablet → sfeerscherm (leeg het gepresenteerde beeld)">${icon('monitor')}</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.sfeerMenu(event)" title="Sfeer van het tafelscherm kiezen">${icon('sparkles')} <span class="dm-rb-btn-label">Sfeer</span></button>
+          <button class="dm-regie-balk-btn" onclick="window.dmPanel.tabletNaarSfeer(this)" title="Tablet → sfeerscherm (leeg het gepresenteerde beeld)">${icon('monitor')}</button>
           <span class="dm-rb-sep"></span>
-          <button class="dm-regie-balk-btn dm-rb-pauze-btn" onclick="window.dmPanel.regieBalkPauze()" title="Akte pauzeren — legt HP en voortgang vast om later te hervatten">${icon('pause')} <span class="dm-rb-btn-label">Pauze</span></button>
+          <button class="dm-regie-balk-btn dm-rb-pauze-btn" onclick="window.dmPanel.regieBalkPauze()" title="Akte pauzeren — legt HP en voortgang vast om later te hervatten">${icon('pause')}</button>
           <div class="dm-rb-venster">
             <button class="dm-regie-balk-btn dm-rb-venster-btn" onclick="window.dmPanel.regieBalkToggleMinimize()" title="Balk minimaliseren">−</button>
             <button class="dm-regie-balk-btn dm-rb-venster-btn" onclick="window.dmPanel.regieBalkClose()" title="Balk sluiten (de akte blijft actief)">${icon('x')}</button>
@@ -2052,9 +2052,7 @@ function _sfeerMenu(ev) {
     <div class="dm-rust-menu-kop">Sfeer van het tafelscherm</div>
     <div class="dm-sfeer-grid">
       ${sferen.map(s => `
-        <button class="dm-sfeer-knop${s.id === huidig ? ' is-actief' : ''}" data-sfeer="${esc(s.id)}">
-          <span class="dm-sfeer-staal sfeer--${esc(s.id)}"></span>${esc(s.label)}
-        </button>`).join('')}
+        <button class="dm-sfeer-knop${s.id === huidig ? ' is-actief' : ''}" data-sfeer="${esc(s.id)}">${esc(s.label)}</button>`).join('')}
     </div>
     <div class="dm-rust-menu-kop">Effect — eenmalig</div>
     <div class="dm-sfeer-fx">
