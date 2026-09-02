@@ -520,21 +520,35 @@ function _tabToParent(tab) {
   return tab;
 };
 
+// Zijbalk-tabs. Het label staat er altijd in de markup maar is alleen zichtbaar
+// bij de actieve tab (zie .dm-tab-label in theme.css) — dan hoeft _switchTab
+// niets te herbouwen en zie je toch waar je bent zonder op een tooltip te
+// wachten. De klassen dm-tab-icon/-label bestonden al in de CSS maar werden
+// nergens gebruikt; deze opzet neemt ze weer in gebruik.
+const _DM_TABS = [
+  { id: 'gevecht',   label: 'Gevecht',   icoon: 'crossed-swords', cls: 'icon-gi', title: 'Gevecht & Monsters' },
+  { id: 'rust',      label: 'Rust',      icoon: 'moon',                            title: 'Rust — Long &amp; Short Rest' },
+  { id: 'aktes',     label: 'Aktes',     icoon: 'clipboard-list',                  title: 'Aktes — voorbereiding &amp; regie' },
+  { id: 'geluiden',  label: 'Geluiden',  icoon: 'volume-2',                        title: 'Geluiden' },
+  { id: 'tafels',    label: 'Tafels',    icoon: 'dice', cls: 'icon-gi',            title: 'Willekeur — tafels &amp; namen' },
+  { id: 'diensten',  label: 'Diensten',  icoon: 'building',                        title: 'Grisburgh-diensten' },
+  { id: 'media',     label: 'Media',     icoon: 'image',                           title: 'Mediabibliotheek' },
+  // 'Berichten' past niet op één regel in een kolom van 56px; liever een korter
+   // woord dan een afbreking. De tooltip houdt de volledige naam.
+  { id: 'berichten', label: 'Post',      icoon: 'message-circle',                  title: 'Berichten' },
+];
+
 function _buildTabs() {
   const container = document.getElementById('dm-section-tabs');
   if (!container) return;
   const activeParent = _tabToParent(_activeTab);
-  container.innerHTML = `
-    <button class="dm-tab-btn${activeParent==='gevecht'  ?' active':''}" data-tab="gevecht"   onclick="window.dmPanel.switchTab('gevecht')"   title="Gevecht & Monsters">${icon('crossed-swords',{cls:'icon-gi'})}</button>
-    <button class="dm-tab-btn${activeParent==='rust'     ?' active':''}" data-tab="rust"      onclick="window.dmPanel.switchTab('rust')"      title="Rust — Long &amp; Short Rest">${icon('moon')}</button>
-    <button class="dm-tab-btn${activeParent==='aktes'    ?' active':''}" data-tab="aktes"     onclick="window.dmPanel.switchTab('aktes')"     title="Aktes — voorbereiding & regie">${icon('clipboard-list')}</button>
-    <button class="dm-tab-btn${activeParent==='geluiden' ?' active':''}" data-tab="geluiden"  onclick="window.dmPanel.switchTab('geluiden')"  title="Geluiden">${icon('volume-2')}</button>
-    <button class="dm-tab-btn${activeParent==='tafels'   ?' active':''}" data-tab="tafels"    onclick="window.dmPanel.switchTab('tafels')"    title="Willekeur — tafels & namen">${icon('dice',{cls:'icon-gi'})}</button>
-    <button class="dm-tab-btn${activeParent==='diensten' ?' active':''}" data-tab="diensten"  onclick="window.dmPanel.switchTab('diensten')"  title="Grisburgh-diensten">${icon('building')}</button>
-    <button class="dm-tab-btn${activeParent==='media'    ?' active':''}" data-tab="media"     onclick="window.dmPanel.switchTab('media')"     title="Mediabibliotheek">${icon('image')}</button>
-    <button class="dm-tab-btn${activeParent==='berichten'?' active':''}" data-tab="berichten" onclick="window.dmPanel.switchTab('berichten')" title="Berichten">${icon('message-circle')}</button>
-    <button class="dm-tab-btn dm-tab-btn--settings" onclick="window._dmInstellingenOpen()" title="Instellingen">${icon('settings')}</button>
-  `;
+  container.innerHTML = _DM_TABS.map(t => `
+    <button class="dm-tab-btn${activeParent === t.id ? ' active' : ''}" data-tab="${t.id}"
+      onclick="window.dmPanel.switchTab('${t.id}')" title="${t.title}">
+      <span class="dm-tab-icon">${icon(t.icoon, t.cls ? { cls: t.cls } : undefined)}</span>
+      <span class="dm-tab-label">${esc(t.label)}</span>
+    </button>`).join('') + `
+    <button class="dm-tab-btn dm-tab-btn--settings" onclick="window._dmInstellingenOpen()" title="Instellingen">${icon('settings')}</button>`;
 };
 
 // ── Tab switching ──

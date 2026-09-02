@@ -4361,13 +4361,35 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   gap: 3px;
 }
 .dm-tab-icon { line-height: 1; display: flex; align-items: center; justify-content: center; }
+/* Label staat alleen bij de actieve tab. Zo blijft de kolom rustig — acht
+   labels onder elkaar leest als een muur — maar zie je wel meteen waar je bent,
+   zonder op een tooltip te moeten wachten. */
 .dm-tab-label {
   font-family: 'Cinzel', serif;
   font-size: 7px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
-  line-height: 1;
+  letter-spacing: 0.2px;
+  /* Iets buiten de knoppadding, zodat het langste label (Berichten) op één
+     regel past in een kolom van 56px. */
+  margin-inline: -3px;
+  line-height: 1.15;
+  max-width: 100%;
+  /* Mag over twee regels: "Gevecht" en "Willekeur" passen niet op één regel in
+     een kolom van 56px, en afkappen tot "WILLEK…" helpt niemand. */
+  /* Alle labels passen op één regel; nooit midden in een woord afbreken. */
+  white-space: nowrap;
+  overflow: hidden;
+  /* Verborgen via hoogte i.p.v. display:none, zodat het verschijnen soepel gaat
+     en de knop niet abrupt verspringt. */
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.18s ease, opacity 0.18s ease, margin-top 0.18s ease;
+}
+.dm-tab-btn.active .dm-tab-label {
+  max-height: 24px;
+  opacity: 1;
+  margin-top: 2px;
 }
 .dm-tab-btn:hover { color: #c4930a; background: rgba(196,148,10,0.07); border-left-color: rgba(196,147,10,0.35); }
 .dm-tab-btn.active { color: #9a7008; border-left-color: #9a7008; background: rgba(196,168,122,0.18); }
