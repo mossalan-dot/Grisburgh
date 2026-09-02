@@ -1,6 +1,8 @@
 const express    = require('express');
 const compression = require('compression');
 const session    = require('express-session');
+const FileStore  = require('session-file-store')(session);
+const fs         = require('fs');
 const http       = require('http');
 const { Server } = require('socket.io');
 const path       = require('path');
@@ -24,8 +26,37 @@ app.set('io', io);
 app.use(compression()); // gzip alle responses — scheelt 75-80% op JS/CSS
 app.use(express.json({ limit: '5mb' }));
 
+// ── Sessie-opslag op schijf ──────────────────────────────────────────────────
+// Zonder store houdt express-session alles in het procesgeheugen, en dan logt
+// elke herstart iedereen uit — DM, spelers én de tablet. Bij een avond met
+// meerdere deploys was dat elke keer opnieuw inloggen aan tafel.
+// Een bestandsstore past bij de rest van de opslag (JSON op schijf) en heeft
+// geen extra dienst nodig. De map ligt onder de datamap, zodat tests met hun
+// eigen GRISBURGH_DATA_DIR vanzelf hun eigen sessies krijgen.
+const SESSIE_DIR = path.join(process.env.GRISBURGH_DATA_DIR || path.join(__dirname, 'data'), 'sessions');
+const SESSIE_TTL = 60 * 60 * 24 * 30;   // 30 dagen
+
+// Verlopen bestanden eenmalig opruimen bij het opstarten. Bewust géén reaper met
+// een interval: die timer houdt het testproces open, waardoor `npm test` niet
+// afsluit.
+try {
+  fs.mkdirSync(SESSIE_DIR, { recursive: true });
+  const grens = Date.now() - SESSIE_TTL * 1000;
+  for (const naam of fs.readdirSync(SESSIE_DIR)) {
+    const bestand = path.join(SESSIE_DIR, naam);
+    try { if (fs.statSync(bestand).mtimeMs < grens) fs.unlinkSync(bestand); } catch { /* ok */ }
+  }
+} catch { /* opstarten mag hier nooit op stuklopen */ }
+
 // Session middleware extracted so it can be shared with socket.io
 const sessionMiddleware = session({
+  store: new FileStore({
+    path: SESSIE_DIR,
+    ttl: SESSIE_TTL,
+    reapInterval: -1,        // zie hierboven: geen achtergrondtimer
+    retries: 0,              // onbekende sessie-id? meteen door, geen retry-ruis
+    logFn: () => {},         // store logt anders bij elke onbekende cookie
+  }),
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,

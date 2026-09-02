@@ -83,6 +83,14 @@ Gebruik tab 1 voor DM, open een incognito-venster of ander apparaat voor de spel
 **Pad:** `/var/www/grisburgh/`  
 **Proces:** PM2, naam `grisburgh`, poort 3000 (Caddy reverse proxy → grisburgh.nl)
 
+> **Sessies overleven een herstart.** `server.js` gebruikt een bestandsstore
+> (`session-file-store`) met de sessies in `data/sessions/`. Voorheen hield
+> express-session alles in het procesgeheugen en logde elke `pm2 restart`
+> iedereen uit — DM, spelers én de tablet. Bewust géén reaper-interval: die
+> timer houdt het testproces open waardoor `npm test` niet afsluit; verlopen
+> bestanden worden eenmalig bij het opstarten opgeruimd (TTL 30 dagen).
+> Bij een deploy van `package.json` hoort een `npm install --omit=dev` op de server.
+
 ### Deploy-workflow (standaard)
 
 ```bash
