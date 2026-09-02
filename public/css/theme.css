@@ -17656,6 +17656,30 @@ body.display-mode .combat-overlay.co-has-backdrop .combat-modal {
   .sb-ctrl-btn { font-size: 10px; padding: 4px 6px; }
 }
 
+/* ── Telefoon in landschap ────────────────────────────────────────────────────
+   Alle aanpassingen hierboven hangen aan de bréédte, en een telefoon in
+   landschap is juist breed (iPhone 11: 812×375). Daardoor kreeg je daar de
+   desktoplayout met bladerknoppen van 22px — te smal om met een duim te raken.
+   Deze query kijkt naar de hoogte én naar een grof aanwijsapparaat, dus hij
+   raakt telefoons en kleine tablets in landschap, niet een laag browservenster
+   op een desktop. */
+@media (pointer: coarse) and (max-height: 500px) and (orientation: landscape) {
+  .sb-book { height: 94vh; width: min(900px, 100vw); border-radius: 0; }
+  /* Ruimere raakvlakken: 44px is de gangbare ondergrens voor een vingertik. */
+  .sb-arrow-btn { width: 44px; height: 84px; opacity: 0.9; }
+  .sb-arrow-btn--prev { left: 0; }
+  .sb-arrow-btn--next { right: 0; }
+  .sb-arrow-btn::after { font-size: 26px; }
+  /* Tekst wijkt voor de bredere knoppen, anders loopt hij eronder. */
+  .sb-right-content { padding: 10px 52px 34px 10px; }
+  .sb-page-left     { padding-left: 40px; }
+  .sb-spell-name { font-size: 15px; margin-bottom: 5px; padding-bottom: 5px; }
+  .sb-desc { font-size: 12px; line-height: 1.55; }
+  .sb-meta-key { font-size: 8px; }
+  .sb-meta-val { font-size: 11px; }
+  .sb-ctrl-btn { font-size: 11px; padding: 5px 9px; }
+}
+
 /* ── Damage-type visual effect overlay (left page) ── */
 .sb-damage-fx {
   position: absolute; inset: 0;
