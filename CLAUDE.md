@@ -128,14 +128,14 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=382   app.js?v=527   sound-manager.js?v=7
+index.html  : theme.css?v=382   app.js?v=528   sound-manager.js?v=7
 app.js      : api.js?v=243      render-campagne.js?v=116   render-archief.js?v=63
               render-kaart.js?v=13  render-dungeon.js?v=26  render-relatiemap.js?v=16
               render-progressie.js?v=38  socket-client.js?v=51
               render-bestiarium.js?v=15  render-statblock.js?v=3
-              dm-panel.js?v=137    render-dashboard.js?v=4
+              dm-panel.js?v=138    render-dashboard.js?v=4
               render-spreuken.js?v=7   media-picker.js?v=2
-dm-panel.js : combat-canvas.js?v=13   render-statblock.js?v=3
+dm-panel.js : combat-canvas.js?v=14   render-statblock.js?v=3
 ```
 
 > **Eén bestand = één URL.** ES-modules met verschillende `?v=`-nummers zijn aparte

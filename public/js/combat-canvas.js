@@ -226,6 +226,16 @@ const _PCFG = {
   default: { beh: 'drift', n:  8, sz: [1,2.5], sp: [4,12],  wob: 1.0  },
 };
 
+// Haal het kale getal uit een AC-waarde. Statblocks schrijven 'm meestal als
+// "15 (studded leather)" — 44 van de 54 monsters in de bibliotheek doen dat.
+// Rauw tonen maakt de badge onleesbaar breed; een <input type="number"> laat
+// zo'n string zelfs helemaal leeg.
+export function acGetal(v) {
+  if (v == null || v === '') return '';
+  const m = String(v).match(/-?\d+/);
+  return m ? m[0] : '';
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export function init(canvasEl, combat) {
@@ -1208,7 +1218,7 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
   // AC stond al op de combatant maar werd nergens in het gevecht getoond, dus
   // zat de DM steeds te zoeken. Spelers krijgen 'm bewust niet te zien.
   if (isDMView) {
-    const acVal = String(c.ac ?? '').trim();
+    const acVal = acGetal(c.ac);
     if (acVal) {
       const fs   = Math.max(9, Math.min(13, AVTR_R * 0.36));
       const icoS = fs * 1.05;

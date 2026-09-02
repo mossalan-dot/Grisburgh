@@ -1,5 +1,5 @@
 import { api } from './api.js?v=243';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop } from './combat-canvas.js?v=13';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 // ── DM Panel ──
@@ -3642,7 +3642,7 @@ async function _setupInitChange(combatantId, value) {
 };
 
 async function _setupReset() {
-  if (!confirm('Remove all combatants?')) return;
+  if (!confirm('Alle deelnemers uit het gevecht verwijderen?')) return;
   try {
     await api.endCombat();
     _combat = { active: false, round: 1, currentTurn: 0, combatants: [] };
@@ -3654,7 +3654,7 @@ async function _setupReset() {
 
 async function _combatStart() {
   if ((_combat?.combatants?.length || 0) === 0) {
-    alert('Add combatants first.'); return;
+    alert('Voeg eerst deelnemers toe.'); return;
   }
   try {
     _combat = await api.startCombat();
@@ -3665,7 +3665,7 @@ async function _combatStart() {
 
 // AC is bewerkbaar: Haste, Shield en Mage Armor veranderen 'm tijdens het gevecht.
 async function _combatAcChange(id, val) {
-  const ac = String(val ?? '').trim();
+  const ac = acGetal(val);
   try { await api.updateCombatant(id, { ac }); } catch (e) { _showToast('Kon AC niet opslaan'); }
 }
 
@@ -6560,10 +6560,10 @@ function _renderGevecht() {
     const _won = _combat.winner === 'players';
     el.innerHTML = `
       <div class="dm-feature-section">
-        <p class="dm-hint">${icon('swords')} Combat active — Round ${_combat.round}. The combat screen is visible to everyone.</p>
+        <p class="dm-hint">${icon('swords')} Gevecht bezig — ronde ${_combat.round}. Het gevechtsscherm is voor iedereen zichtbaar.</p>
         <div class="dm-feature-row" style="margin-top:8px">
           ${_won ? `<button class="dm-btn dm-btn-primary" onclick="window.dmPanel.lootOpen()" title="Verdeel loot">${icon('coins')} Verdeel loot</button>` : ''}
-          <button class="dm-btn dm-btn-danger" style="margin-left:auto" onclick="window.dmPanel.combatEnd()" title="End combat">${icon('x')}</button>
+          <button class="dm-btn dm-btn-danger" style="margin-left:auto" onclick="window.dmPanel.combatEnd()" title="Gevecht beëindigen">${icon('x')}</button>
         </div>
       </div>
     `;
@@ -6799,7 +6799,7 @@ function _combatSelectCombatant(id) {
       ${esc(c.name)}
       ${isDM ? `
         <label class="co-init-wrap" style="margin-left:8px;font-size:11px">AC
-          <input class="co-init-input" type="number" value="${esc(c.ac ?? '')}" placeholder="—"
+          <input class="co-init-input" type="number" value="${esc(acGetal(c.ac))}" placeholder="—"
             title="Armor Class — aanpasbaar, want Haste, Shield en Mage Armor veranderen 'm"
             onchange="window.dmPanel.combatAcChange('${esc(c.id)}',this.value)" style="width:44px">
         </label>

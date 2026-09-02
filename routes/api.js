@@ -9031,7 +9031,9 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
   for (const row of (enc.monsters || [])) {
     const count = Math.max(1, parseInt(row.count) || 1);
     const preset = row.monsterId ? monstersList.find(m => m.id === row.monsterId) : null;
-    const mAc = preset?.statblock?.ac || '';
+    // Statblocks schrijven AC als "15 (studded leather)". In het gevecht wil je
+    // alleen het getal: de omschrijving staat al in het statblock zelf.
+    const mAc = (String(preset?.statblock?.ac ?? '').match(/-?\d+/) || [''])[0];
     for (let i = 1; i <= count; i++) {
       const suffix = count > 1 ? ` ${i}` : '';
       combatants.push({
