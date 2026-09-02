@@ -16087,13 +16087,26 @@ body.display-mode .combat-overlay.co-has-backdrop .combat-modal {
   gap: 10px;
   overflow-x: auto;
   flex-shrink: 0;
-  /* Ruimte bovenin voor de beurtstreep (die staat op top:-8px). */
-  padding: 14px 2px 2px;
+  /* Ruimte bovenin voor de beurtstreep (top:-8px) en rondom voor de gouden
+     gloed van het actieve kaartje (box-shadow 0 0 18px), die anders door de
+     scroll-rand werd weggeknipt. */
+  padding: 14px 4px 8px;
+}
+/* Een scroll-container negeert zijn rechter-padding zodra de inhoud overloopt —
+   het laatste kaartje plakte daardoor tegen de rand en werd afgekapt. Deze
+   spacer dwingt de ruimte alsnog af. */
+.co-disp-strip::after {
+  content: '';
+  flex: 0 0 10px;
 }
 .co-disp-pion {
   position: relative;
-  flex: 0 0 auto;
-  /* Ruimer dan 104px: namen als "Wervelingpiraat 1" werden anders afgekapt. */
+  /* Mag krimpen als de rij anders niet past: op een tafelscherm wil je niet
+     hoeven scrollen om te zien wie er allemaal meedoen. Ondergrens 92px, daar
+     blijft de naam net leesbaar. Basis 132px — ruimer dan de oude 104px, want
+     namen als "Wervelingpiraat 1" werden anders afgekapt. */
+  flex: 0 1 132px;
+  min-width: 92px;
   width: 132px;
   display: flex;
   flex-direction: column;

@@ -1,5 +1,5 @@
 import { api } from './api.js?v=244';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=19';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=20';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 // ── DM Panel ──
@@ -7243,6 +7243,19 @@ function _renderCombatOverlay(combat, startMinimized = false) {
       </div>
     `}
   `;
+
+  // Tafelscherm: haal het actieve kaartje in beeld. Bij heel veel deelnemers
+  // past de strip niet meer, ook niet gekrompen — dan moet in elk geval te zien
+  // zijn wie er aan de beurt is. We verzetten alleen scrollLeft van de strip
+  // zelf, zodat de pagina eromheen niet meebeweegt.
+  if (isDisplay) {
+    const strip  = inner.querySelector('.co-disp-strip');
+    const actief = strip?.querySelector('.co-disp-pion.is-beurt');
+    if (strip && actief && strip.scrollWidth > strip.clientWidth) {
+      strip.scrollLeft = Math.max(0,
+        actief.offsetLeft - (strip.clientWidth - actief.offsetWidth) / 2);
+    }
+  }
 
   // Start canvas animation loop (alleen als het canvas zichtbaar is)
   if (_combatOverlayTab === 'gevecht' || isDM || isDisplay) {

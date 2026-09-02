@@ -1257,9 +1257,18 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
   ctx.save();
   ctx.font = `bold ${fontSize}px 'Cinzel', serif`;
   const fullName = c.type === 'player' ? c.name.split(' ')[0] : c.name;
+  // Meet mét het beletselteken erbij: dat werd voorheen ná het inkorten
+  // aangeplakt, waardoor de naam alsnog net breder werd dan toegestaan en over
+  // de leesplaat heen liep. Ruimere marge (w - 18) houdt hem binnen de plaat,
+  // die immers pas daarna op nameW + 16 wordt berekend.
+  const naamMax = Math.max(30, w - 18);
   let label = fullName;
-  while (ctx.measureText(label).width > w - 6 && label.length > 3) label = label.slice(0, -1);
-  if (label !== fullName) label += '…';
+  if (ctx.measureText(label).width > naamMax) {
+    while (label.length > 2 && ctx.measureText(label + '…').width > naamMax) {
+      label = label.slice(0, -1);
+    }
+    label = label.replace(/\s+$/, '') + '…';
+  }
   const nameW = ctx.measureText(label).width;
   ctx.restore();
 
