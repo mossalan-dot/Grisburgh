@@ -1100,6 +1100,9 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, scha
     ctx.save();
     ctx.beginPath();
     _avatarPath(ctx, c, cx, cy, AVTR_R);
+    // Zelfde kleurtaal als --type-* in theme.css (bolletje in de DM-rij en de
+    // kaartjes in de strip); hier iets lichter omdat ze op een donkere figuur
+    // liggen. Wijzig je er één, pas dan alle drie aan.
     ctx.strokeStyle = c.type === 'player'  ? 'rgba(100,150,255,0.75)'
       : c.type === 'ally'   ? 'rgba(60,180,110,0.80)'
       : c.type === 'summon' ? 'rgba(180,110,255,0.80)'
