@@ -3692,7 +3692,7 @@ async function _combatApplyThp(id) {
   const c = _combat?.combatants?.find(x => x.id === id);
   const huidig = c?.tempHp || 0;
   if (val > 0 && val <= huidig) {
-    _showToast(`${c?.name || 'Deze combatant'} heeft al ${huidig} Temporary HP — die stapelen niet, dus het blijft ${huidig}.`);
+    _showToast(`${c?.name || 'Deze combatant'} heeft al ${huidig} Temporary HP — die stapelen niet.`);
     if (inp) inp.value = '';
     return;
   }
