@@ -4038,6 +4038,86 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 .dm-rb-progress--btn:disabled { opacity: 0.5; cursor: default; }
 .dm-rb-rust { display: inline-flex; align-items: center; gap: 2px; }
+
+/* De balk kent drie soorten knoppen, en die liepen visueel door elkaar:
+   1. dingen die je de tafel aandoet (ambiance, gevecht, rust, brief, tablet)
+   2. iets dat de akte zelf raakt (pauzeren)
+   3. vensterbediening (minimaliseren, sluiten)
+   Pauzeren stond pal naast sluiten terwijl beide "einde" suggereren — vandaar
+   dat pauze een label kreeg en de vensterknoppen apart en gedempt staan. */
+.dm-rb-pauze-btn { border-color: rgba(184,134,11,0.55); }
+.dm-rb-venster {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 10px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(196,168,122,0.45);
+}
+.dm-rb-venster-btn {
+  opacity: 0.55;
+  background: transparent;
+  border-color: transparent;
+}
+.dm-rb-venster-btn:hover { opacity: 1; background: rgba(196,168,122,0.18); }
+.dm-rb-rust-label { font-family: 'Cinzel', serif; font-size: 11px; margin-left: 3px; }
+
+/* Rustmenu: één knop i.p.v. vier icoontjes waarvan je moest raden wat locatie
+   was en wat duur. Hangt aan de body zodat de regie-balk hem niet afknipt. */
+.dm-rust-menu {
+  position: fixed;
+  z-index: 9998;
+  min-width: 232px;
+  padding: 10px;
+  background: #f8f0de;
+  border: 1px solid #c4a87a;
+  border-radius: 9px;
+  box-shadow: 0 8px 26px rgba(40, 24, 6, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dm-rust-menu-kop {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #6b4a1a;
+  margin-top: 2px;
+}
+.dm-rust-menu-loc { display: flex; gap: 6px; }
+.dm-rust-menu .dm-rust-loc-btn {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 6px 8px;
+  font-family: 'Crimson Text', serif;
+  font-size: 12px;
+  color: #4a3520;
+  background: rgba(196,168,122,0.14);
+  border: 1px solid rgba(196,168,122,0.5);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.dm-rust-menu .dm-rust-loc-btn.is-actief {
+  background: rgba(184,134,11,0.22);
+  border-color: rgba(184,134,11,0.7);
+  font-weight: 600;
+}
+.dm-rust-start {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  background: rgba(242,232,210,0.6);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 7px;
+  cursor: pointer;
+  color: #2a1a08;
+}
+.dm-rust-start:hover { background: #fff7e1; border-color: rgba(184,134,11,0.65); }
+.dm-rust-start span { display: flex; flex-direction: column; }
+.dm-rust-start strong { font-family: 'Cinzel', serif; font-size: 12.5px; }
+.dm-rust-start em { font-family: 'Crimson Text', serif; font-size: 11px; font-style: italic; color: #6b4a1a; }
+.dm-rust-start .icon { width: 18px; height: 18px; color: #8a6a3a; flex-shrink: 0; }
 .dm-regie-balk-btn.dm-rust-loc-btn.is-actief {
   color: var(--color-room-bg, #f5edd8);
   background: var(--color-gold-dim, #9a7008);
@@ -5940,6 +6020,25 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   border-color: rgba(184,134,11,0.4);
   color: #6a4a04;
 }
+/* ── Hervat-scherm (akte pauzeren/hervatten) ────────────────────────────────
+   Vergelijkt de HP bij het pauzeren met de huidige stand. Een gemarkeerde rij
+   betekent dat het personage tussendoor is doorgegroeid — daar is het verschil
+   dus geen schade maar groei. */
+.hervat-tabel { width: 100%; border-collapse: collapse; font-family: 'Crimson Text', serif; font-size: 13.5px; }
+.hervat-tabel th {
+  text-align: left;
+  font-family: 'Cinzel', serif;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b4a1a;
+  border-bottom: 1px solid rgba(196,168,122,0.5);
+  padding: 4px 8px 5px;
+}
+.hervat-tabel td { padding: 6px 8px; border-bottom: 1px solid rgba(196,168,122,0.22); }
+.hervat-tabel tr.hervat-gegroeid { background: rgba(184,134,11,0.10); }
+.hervat-tabel label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
 /* ── HP-schuif in het detailvenster ──────────────────────────────────────────
    De +/−-knoppen zijn vervangen door een schuif over de HP-balk: sneller naar
    een willekeurig getal dan klikken. De <input type=range> ligt onzichtbaar

@@ -67,7 +67,7 @@ const _spriteCache = {};   // "icoon|kleur" → Image, of null zolang hij laadt
 function _ensureSprite() {
   if (_spriteDoc || _spriteBezig) return;
   _spriteBezig = true;
-  fetch('/img/icons.svg?v=7')
+  fetch('/img/icons.svg?v=8')
     .then(r => r.text())
     .then(txt => { _spriteDoc = new DOMParser().parseFromString(txt, 'image/svg+xml'); })
     .catch(() => { _spriteBezig = false; });

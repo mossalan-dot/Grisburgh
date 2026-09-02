@@ -1,16 +1,16 @@
-import { api } from './api.js?v=245';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=118";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=66";
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=15';
-import { renderDungeon } from './render-dungeon.js?v=28';
-import { renderRelatiemap } from './render-relatiemap.js?v=18';
-import { renderProgressie } from './render-progressie.js?v=40';
-import { renderBestiarium } from './render-bestiarium.js?v=17';
-import { renderSpreuken } from './render-spreuken.js?v=9';
+import { api } from './api.js?v=246';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=119";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=67";
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=16';
+import { renderDungeon } from './render-dungeon.js?v=29';
+import { renderRelatiemap } from './render-relatiemap.js?v=19';
+import { renderProgressie } from './render-progressie.js?v=41';
+import { renderBestiarium } from './render-bestiarium.js?v=18';
+import { renderSpreuken } from './render-spreuken.js?v=10';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=54";
-import { initDmPanel } from "./dm-panel.js?v=149";
-import './media-picker.js?v=4';
+import { initSocket } from "./socket-client.js?v=55";
+import { initDmPanel } from "./dm-panel.js?v=150";
+import './media-picker.js?v=5';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -18,7 +18,7 @@ import './media-picker.js?v=4';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=7#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=8#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 

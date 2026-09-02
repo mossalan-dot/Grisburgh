@@ -1,4 +1,4 @@
-import { api } from './api.js?v=245';
+import { api } from './api.js?v=246';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=20';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -439,6 +439,9 @@ export function initDmPanel() {
     },
     regieBalkToggleMinimize() { _rbMinimized = !_rbMinimized; _renderRegieBalk(); },
     regieBalkBrief() { _openRegieBriefPicker(); },
+    regieBalkPauze:          () => _regieBalkPauze(),
+    rustMenu:                (ev) => _rustMenu(ev),
+    akteHervatToepassen:     () => _akteHervatToepassen(),
     // Zet alle tablets/displays terug naar het sfeerscherm (leeg het gepresenteerde beeld).
     async tabletNaarSfeer(btn) {
       try {
@@ -1718,6 +1721,7 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
       if (_rbChapter !== chapterKey) return;      // ondertussen andere akte geopend
       (v?.stappen || []).forEach(id => _rbRevealed.add(id));
       _renderRegieBalk();
+      if (v?.pauze) _toonHervatScherm(chapterKey, v.pauze);
     })
     .catch(() => {});
   _rbFilter    = 'all';
@@ -1938,19 +1942,18 @@ function _renderRegieBalk() {
           <button class="dm-regie-balk-btn dm-rb-combat-btn${_combat?.active ? '' : ' hidden'}" id="dm-rb-combat-btn"
             onclick="window.dmPanel.combatExpand()" title="Gevecht uitklappen">${icon('stiletto',{cls:'icon-gi'})}</button>
           <span class="dm-rb-sep"></span>
-          <div class="dm-rb-rust" title="Party-brede rust — kies locatie + lange/korte rust">
-            <button class="dm-regie-balk-btn dm-rust-loc-btn${(window._dmRustLocatie || 'veld') === 'veld' ? ' is-actief' : ''}" data-loc="veld"
-              onclick="window._dmRustKiesLoc('veld')" title="In het veld">${icon('tree-pine')}</button>
-            <button class="dm-regie-balk-btn dm-rust-loc-btn${(window._dmRustLocatie || 'veld') === 'herberg' ? ' is-actief' : ''}" data-loc="herberg"
-              onclick="window._dmRustKiesLoc('herberg')" title="${esc(window.app?.state?.meta?.herberg?.naam || 'De herberg')}">${icon('beer')}</button>
-            <button class="dm-regie-balk-btn" onclick="window._dmRust('long')" title="Lange rust">${icon('moon')}</button>
-            <button class="dm-regie-balk-btn" onclick="window._dmRust('short')" title="Korte rust">${icon('zap')}</button>
+          <div class="dm-rb-rust">
+            <button class="dm-regie-balk-btn" onclick="window.dmPanel.rustMenu(event)" title="Rust starten">${icon('moon')} <span class="dm-rb-rust-label">Rust</span></button>
           </div>
           <span class="dm-rb-sep"></span>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')}</button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.tabletNaarSfeer(this)" title="Tablet → sfeerscherm (leeg het gepresenteerde beeld)">${icon('monitor')}</button>
-          <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkToggleMinimize()" title="Minimaliseren">−</button>
-          <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkClose()" title="Sluiten">${icon('x')}</button>
+          <span class="dm-rb-sep"></span>
+          <button class="dm-regie-balk-btn dm-rb-pauze-btn" onclick="window.dmPanel.regieBalkPauze()" title="Akte pauzeren — legt HP en voortgang vast om later te hervatten">${icon('pause')} <span class="dm-rb-rust-label">Pauze</span></button>
+          <div class="dm-rb-venster">
+            <button class="dm-regie-balk-btn dm-rb-venster-btn" onclick="window.dmPanel.regieBalkToggleMinimize()" title="Balk minimaliseren">−</button>
+            <button class="dm-regie-balk-btn dm-rb-venster-btn" onclick="window.dmPanel.regieBalkClose()" title="Balk sluiten (de akte blijft actief)">${icon('x')}</button>
+          </div>
         </div>
       </div>
       <div class="dm-regie-balk-scroll-wrap">
@@ -2036,6 +2039,122 @@ function _rbInitDrag() {
     el.scrollLeft = scrollLeft - walk;
   });
 };
+
+// Rustmenu. Vier losse icoontjes naast elkaar (boom, bierpul, maan, bliksem)
+// lieten zich niet raden: welke is nu de locatie en welke de duur? Eén knop die
+// een menu opent waarin je eerst de plek en dan de soort rust kiest.
+function _rustMenu(ev) {
+  document.getElementById('dm-rust-menu')?.remove();
+  const knop = ev?.currentTarget;
+  if (!knop) return;
+  const herbergNaam = window.app?.state?.meta?.herberg?.naam || 'De herberg';
+  const loc = window._dmRustLocatie || 'veld';
+  const menu = document.createElement('div');
+  menu.id = 'dm-rust-menu';
+  menu.className = 'dm-rust-menu';
+  menu.innerHTML = `
+    <div class="dm-rust-menu-kop">Waar rust de party?</div>
+    <div class="dm-rust-menu-loc">
+      <button class="dm-rust-loc-btn${loc === 'veld' ? ' is-actief' : ''}" data-loc="veld">${icon('tree-pine')} In het veld</button>
+      <button class="dm-rust-loc-btn${loc === 'herberg' ? ' is-actief' : ''}" data-loc="herberg">${icon('beer')} ${esc(herbergNaam)}</button>
+    </div>
+    <div class="dm-rust-menu-kop">Wat voor rust?</div>
+    <button class="dm-rust-start" data-type="long">${icon('moon')} <span><strong>Lange rust</strong><em>HP en slots terug, Hit Dice half</em></span></button>
+    <button class="dm-rust-start" data-type="short">${icon('zap')} <span><strong>Korte rust</strong><em>Hit Dice inzetten, pact-slots</em></span></button>`;
+  document.body.appendChild(menu);
+  const r = knop.getBoundingClientRect();
+  menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8))}px`;
+  menu.style.bottom = `${window.innerHeight - r.top + 6}px`;
+
+  menu.querySelectorAll('.dm-rust-loc-btn').forEach(b => b.addEventListener('click', () => {
+    window._dmRustKiesLoc?.(b.dataset.loc);
+    menu.querySelectorAll('.dm-rust-loc-btn').forEach(x => x.classList.toggle('is-actief', x === b));
+  }));
+  menu.querySelectorAll('.dm-rust-start').forEach(b => b.addEventListener('click', () => {
+    menu.remove();
+    window._dmRust?.(b.dataset.type, window._dmRustLocatie || 'veld');
+  }));
+  // Klik ernaast sluit; de openingsklik zelf niet meteen meepakken.
+  setTimeout(() => {
+    const sluit = (e) => {
+      if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', sluit); }
+    };
+    document.addEventListener('click', sluit);
+  }, 0);
+}
+
+// ── Akte pauzeren en hervatten ──────────────────────────────────────────────
+// Een sessie eindigt zelden op het einde van een akte. Pauzeren legt het moment
+// vast (HP als wónd, level, temp-HP); bij het heropenen toont de balk wat er
+// sindsdien veranderd is en beslis jij per personage wat je overneemt.
+async function _regieBalkPauze() {
+  if (!_rbChapter) return;
+  if (!confirm(`Akte "${_rbTitle}" pauzeren?\n\nDe voortgang en de HP van de party worden vastgelegd, zodat je later kunt hervatten.`)) return;
+  try {
+    const r = await api.pauzeerAkte(_rbChapter, _rbGroep);
+    _showToast(`${icon('pause')} Akte gepauzeerd — ${r.personages} personage(s) vastgelegd.`);
+    window.dmPanel.regieBalkClose();
+  } catch (e) {
+    _showToast('Pauzeren mislukt: ' + e.message);
+  }
+}
+
+let _hervatData = null;   // { akte, groep, pauze } zolang het scherm open staat
+
+function _toonHervatScherm(akte, pauze) {
+  _hervatData = { akte, groep: _rbGroep, pauze };
+  const rijen = Object.entries(pauze.personages || {}).map(([cid, p]) => {
+    const nuMax   = p.nuMax ?? p.hpMax;
+    const voorstel = (p.wond != null && nuMax) ? Math.max(0, Math.min(nuMax, nuMax - p.wond)) : null;
+    // Alleen markeren wat er écht toe doet: een gewijzigd maximum of level
+    // betekent dat het personage tussendoor is doorgegroeid.
+    const gegroeid = (p.nuMax != null && p.hpMax != null && p.nuMax !== p.hpMax)
+                  || (p.nuLevel != null && p.level != null && p.nuLevel !== p.level);
+    const ongewijzigd = p.nuCur === p.hpCur && !gegroeid;
+    return `
+      <tr class="${gegroeid ? 'hervat-gegroeid' : ''}">
+        <td><label><input type="checkbox" class="hervat-check" value="${esc(cid)}"
+              ${voorstel == null ? 'disabled' : ''}> ${esc(p.naam || cid)}</label></td>
+        <td>${p.hpCur ?? '—'}/${p.hpMax ?? '—'}${p.level != null ? ` <span class="dm-hint">L${p.level}</span>` : ''}</td>
+        <td>${p.nuCur ?? '—'}/${nuMax ?? '—'}${p.nuLevel != null ? ` <span class="dm-hint">L${p.nuLevel}</span>` : ''}</td>
+        <td><strong>${voorstel == null ? '—' : `${voorstel}/${nuMax}`}</strong>
+            ${p.wond != null ? `<span class="dm-hint"> (wond ${p.wond})</span>` : ''}</td>
+        <td class="dm-hint">${gegroeid ? 'doorgegroeid' : ongewijzigd ? 'onveranderd' : ''}</td>
+      </tr>`;
+  }).join('');
+
+  const wanneer = new Date(pauze.op).toLocaleString('nl-NL', { dateStyle: 'medium', timeStyle: 'short' });
+  window.app.openModal('Akte hervatten', `gepauzeerd op ${wanneer}`, `
+    <p class="dm-hint" style="margin:0 0 10px">
+      De onthullingen die je al deed staan er nog. Hieronder zie je de HP zoals die was
+      toen je pauzeerde, wat er nu staat, en wat het zou worden als je de <em>wond</em>
+      overneemt. Vink alleen aan wat je wilt terugzetten — heeft de party tussendoor
+      gerust of doorgespeeld, laat het dan leeg.
+    </p>
+    <table class="hervat-tabel">
+      <thead><tr><th>Personage</th><th>Bij pauze</th><th>Nu</th><th>Wordt</th><th></th></tr></thead>
+      <tbody>${rijen || '<tr><td colspan="5" class="dm-hint">Geen personages vastgelegd.</td></tr>'}</tbody>
+    </table>
+    <div class="dm-feature-row" style="margin-top:12px">
+      <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.akteHervatToepassen()">${icon('check')} Hervatten</button>
+      <span class="dm-hint">Niets aangevinkt? Dan wordt alleen het pauze-moment gewist.</span>
+    </div>`);
+}
+
+async function _akteHervatToepassen() {
+  if (!_hervatData) return;
+  const gekozen = [...document.querySelectorAll('.hervat-check:checked')].map(x => x.value);
+  try {
+    const r = await api.hervatAkte(_hervatData.akte, gekozen, _hervatData.groep);
+    _showToast(r.toegepast?.length
+      ? `${icon('check')} Hervat — HP teruggezet voor ${r.toegepast.map(t => t.naam).join(', ')}.`
+      : `${icon('check')} Hervat — HP ongewijzigd gelaten.`);
+    window.app.closeModal?.();
+    _hervatData = null;
+  } catch (e) {
+    _showToast('Hervatten mislukt: ' + e.message);
+  }
+}
 
 // Rust-stap in de regie-balk: start de party-brede rust met de locatie van de stap.
 function _regieBalkRust(itemId) {

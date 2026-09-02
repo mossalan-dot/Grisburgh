@@ -4610,7 +4610,103 @@ router.get('/akte/:key/voortgang', requireDM, (req, res) => {
   const dmState = readDmState();
   const gid = req.query.groupId || dmState.activeGroup;
   const v = (gid && dmState.groups?.[gid]?.akteVoortgang?.[req.params.key]) || null;
-  res.json({ stappen: v?.stappen || [], bijgewerkt: v?.bijgewerkt || null, groupId: gid || null });
+  // Bij een pauze ook de huidige stand meesturen, zodat de client het verschil
+  // kan tonen zonder tweede ronde requests.
+  let pauze = null;
+  if (v?.pauze) {
+    pauze = { op: v.pauze.op, personages: {} };
+    for (const [cid, snap] of Object.entries(v.pauze.personages || {})) {
+      const nu = (dmState.playerHp || {})[cid] || {};
+      const prof = (dmState.playerProfiles || {})[cid] || {};
+      pauze.personages[cid] = {
+        ...snap,
+        nuCur:   nu.current ?? null,
+        nuMax:   Number(nu.max) || null,
+        nuLevel: prof.level ?? null,
+      };
+    }
+  }
+  res.json({ stappen: v?.stappen || [], bijgewerkt: v?.bijgewerkt || null, pauze, groupId: gid || null });
+});
+
+// ── Akte pauzeren en hervatten ──────────────────────────────────────────────
+// Een sessie eindigt zelden precies op het einde van een akte. Pauzeren legt
+// het moment vast; hervatten toont wat er sindsdien veranderd is en laat de DM
+// per personage beslissen.
+//
+// HP wordt bewaard als WÓND (max - current), niet als HP-getal. Groeit een
+// personage tussendoor door naar een hogere max, dan levert de wond bij
+// hervatten het juiste nieuwe getal op — een opgeslagen "12" zou dat niet doen.
+// Toepassen gebeurt nooit automatisch: alleen de DM weet of het tussenliggende
+// spel in de fictie vóór of ná dit moment plaatsvond.
+function _spelersVanGroep(groepId) {
+  const entities = storage.readJSON('entities.json');
+  return (entities.personages || []).filter(
+    e => e.subtype === 'speler' && e.data?.groep === groepId
+  );
+}
+
+router.post('/akte/:key/pauze', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = req.body?.groupId || dmState.activeGroup;
+  if (!gid || !dmState.groups?.[gid]) return res.status(400).json({ error: 'Geen actieve groep' });
+  const g = dmState.groups[gid];
+  if (!g.akteVoortgang) g.akteVoortgang = {};
+  const huidig = g.akteVoortgang[req.params.key] || { stappen: [] };
+
+  const personages = {};
+  for (const sp of _spelersVanGroep(gid)) {
+    const hp   = (dmState.playerHp || {})[sp.id] || {};
+    const prof = (dmState.playerProfiles || {})[sp.id] || {};
+    const max  = Number(hp.max) || null;
+    const cur  = hp.current == null ? null : Number(hp.current);
+    personages[sp.id] = {
+      naam:  sp.name || '',
+      hpCur: cur,
+      hpMax: max,
+      wond:  (max != null && cur != null) ? Math.max(0, max - cur) : null,
+      level: prof.level ?? null,
+      tempHp: hp.temp ?? null,     // temp-HP leeft als playerHp[id].temp
+    };
+  }
+
+  huidig.pauze = { op: new Date().toISOString(), personages };
+  g.akteVoortgang[req.params.key] = huidig;
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, personages: Object.keys(personages).length, op: huidig.pauze.op });
+});
+
+// Hervatten: pas alleen de personages toe die de DM aanvinkt. hpNieuw =
+// huidige max - de bewaarde wond, geklemd binnen [0, max].
+router.post('/akte/:key/hervat', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = req.body?.groupId || dmState.activeGroup;
+  const g = gid && dmState.groups?.[gid];
+  const pauze = g?.akteVoortgang?.[req.params.key]?.pauze;
+  if (!pauze) return res.status(404).json({ error: 'Geen pauze-moment voor deze akte' });
+
+  const kiezen = Array.isArray(req.body?.toepassen) ? req.body.toepassen : [];
+  if (!dmState.playerHp) dmState.playerHp = {};
+  const toegepast = [];
+  for (const charId of kiezen) {
+    const snap = pauze.personages?.[charId];
+    if (!snap || snap.wond == null) continue;
+    const hp = dmState.playerHp[charId];
+    const max = Number(hp?.max) || snap.hpMax;
+    if (!max) continue;
+    const nieuw = Math.max(0, Math.min(max, max - snap.wond));
+    // Spreid het bestaande object uit: playerHp bevat naast current/max ook
+    // temp (temporary HP). Dat mag een hervatting niet wissen.
+    dmState.playerHp[charId] = { ...(hp || {}), current: nieuw, max };
+    toegepast.push({ charId, naam: snap.naam, hp: nieuw, max });
+  }
+  // Pauze is verbruikt; de voortgang (stappen) blijft staan.
+  delete g.akteVoortgang[req.params.key].pauze;
+  storage.writeJSON('dm-state.json', dmState);
+  if (toegepast.length) {
+    req.app.get('io').to(req.session?.campaignId || 'main').emit('player:hp-updated');
+  }
+  res.json({ ok: true, toegepast });
 });
 
 router.put('/akte/:key/voortgang', requireDM, (req, res) => {

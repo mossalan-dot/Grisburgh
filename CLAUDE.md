@@ -128,13 +128,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=390   app.js?v=539   sound-manager.js?v=8
-app.js      : api.js?v=245      render-campagne.js?v=118   render-archief.js?v=66
-              render-kaart.js?v=15  render-dungeon.js?v=28  render-relatiemap.js?v=18
-              render-progressie.js?v=40  socket-client.js?v=54
-              render-bestiarium.js?v=17  render-statblock.js?v=3
-              dm-panel.js?v=149    render-dashboard.js?v=6
-              render-spreuken.js?v=9   media-picker.js?v=4
+index.html  : theme.css?v=391   app.js?v=540   sound-manager.js?v=8
+app.js      : api.js?v=246      render-campagne.js?v=119   render-archief.js?v=67
+              render-kaart.js?v=16  render-dungeon.js?v=29  render-relatiemap.js?v=19
+              render-progressie.js?v=41  socket-client.js?v=55
+              render-bestiarium.js?v=18  render-statblock.js?v=3
+              dm-panel.js?v=150    render-dashboard.js?v=7
+              render-spreuken.js?v=10   media-picker.js?v=5
 dm-panel.js : combat-canvas.js?v=20   render-statblock.js?v=3
 ```
 
@@ -273,12 +273,12 @@ data/
 
 ```javascript
 // Helper beschikbaar als window.icon() overal in de frontend
-icon('sword')                         // → <svg><use href="/img/icons.svg?v=7#icon-sword"/></svg>
+icon('sword')                         // → <svg><use href="/img/icons.svg?v=8#icon-sword"/></svg>
 icon('heart', { cls: 'icon-lg' })     // met extra CSS-klasse
 icon('shield', { title: 'Verdediging' }) // met tooltip
 ```
 
-**Beschikbare iconen** (icons.svg, v=7):
+**Beschikbare iconen** (icons.svg, v=8):
 `beer` `book-open` `building` `camera` `castle` `check` `check-circle`
 `chevron-left` `chevron-right` `church` `clipboard-list` `coins` `crossed-swords`
 `dice` `download` `eye` `eye-off` `flask-conical` `folder-open` `globe`
@@ -292,7 +292,7 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 
 **Toegevoegd voor conditie-weergave** (Lucide, ISC): `angry` `arrow-down` `ban`
 `battery-low` `bed` `brick-wall` `circle-dashed` `droplet` `ear-off` `flame` `ghost`
-`fast-forward` `grab` `hand` `hourglass` `music` `rabbit` `shield-half` `shield-plus` `sparkle` `venetian-mask`
+`fast-forward` `grab` `hand` `hourglass` `music` `pause` `rabbit` `shield-half` `shield-plus` `sparkle` `venetian-mask`
 `waves` `wind`
 
 > **Conditie-iconen** leven in `COND_ICON` (`combat-canvas.js`): per conditie een

@@ -348,6 +348,9 @@ export const api = {
   // Regie-voortgang: welke script-stappen van deze akte zijn al gedaan (per groep).
   getAkteVoortgang:    (key, groupId) => request(`/akte/${encodeURIComponent(key)}/voortgang${groupId ? `?groupId=${encodeURIComponent(groupId)}` : ''}`),
   saveAkteVoortgang:   (key, stappen, groupId) => request(`/akte/${encodeURIComponent(key)}/voortgang`, { method: 'PUT', body: JSON.stringify({ stappen, groupId }) }),
+  // Akte pauzeren (legt het moment vast) en hervatten (past per personage toe).
+  pauzeerAkte:         (key, groupId) => request(`/akte/${encodeURIComponent(key)}/pauze`,  { method: 'POST', body: JSON.stringify({ groupId }) }),
+  hervatAkte:          (key, toepassen, groupId) => request(`/akte/${encodeURIComponent(key)}/hervat`, { method: 'POST', body: JSON.stringify({ toepassen, groupId }) }),
   setGockGeheim:     (type, id, tekst) => request(`/entities/${type}/${id}/gock-geheim`,   { method: 'PUT',  body: JSON.stringify({ tekst }) }),
 
   // De Gock
