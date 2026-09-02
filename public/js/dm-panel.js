@@ -1670,7 +1670,11 @@ async function _loadRevealQueue(chapterKey) {
   }
 };
 
-async function _revealImage(sessieId, imgId) {
+// `caption` is het onderschrift van de regie-stap. De server stuurt bij een
+// reveal img.caption van de sessieLog-entry mee, niet die van het script — dus
+// nemen we 'm hier meteen mee. Zo herstelt een afbeelding zichzelf zodra je 'm
+// toont, ook als de twee ooit uit elkaar zijn gelopen.
+async function _revealImage(sessieId, imgId, caption) {
   // Animate the thumbnail out
   const thumb = document.getElementById(`dm-thumb-${imgId}`);
   if (thumb) {
@@ -1684,11 +1688,13 @@ async function _revealImage(sessieId, imgId) {
     const archief = await api.listArchief();
     const entry = (archief.sessieLog || []).find(e => e.id === sessieId);
     if (!entry) return;
+    const cap = (caption || '').trim();
     const images = (entry.images || []).map(img => {
       const id = typeof img === 'string' ? img : img.id;
-      return id === imgId
-        ? { ...(typeof img === 'string' ? { id } : img), visible: true }
-        : img;
+      if (id !== imgId) return img;
+      const basis = typeof img === 'string' ? { id } : img;
+      // Leeg script-onderschrift overschrijft een bestaand onderschrift niet.
+      return { ...basis, visible: true, ...(cap ? { caption: cap } : {}) };
     });
     await api.updateSessieLog(sessieId, { images });
     // → backend emits logboek:imageRevealed → players get lightbox
@@ -2074,7 +2080,7 @@ async function _revealRegieBalkItem(itemId, mode = 'visible') {
   // Perform actual reveal
   try {
     if (item.type === 'image') {
-      await _revealImage(item.sessieId, item.fileId);
+      await _revealImage(item.sessieId, item.fileId, item.caption);
     } else if (item.type === 'entity') {
       if (item.entityType === 'documenten') {
         await api.setArchiefState(item.entityId, 'visible');
