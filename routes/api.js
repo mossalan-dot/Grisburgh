@@ -3612,6 +3612,17 @@ router.delete('/groups/:id', requireDM, (req, res) => {
 
 // ── Archief ──
 
+// Zichtbaarheid van sessieLog-afbeeldingen is per groep, net als bij entiteiten
+// en documenten. Zonder eigen waarde valt hij terug op de oude globale `visible`
+// vlag, zodat alles wat al onthuld was onthuld blijft.
+function _imgZichtbaar(dmState, groepId, img) {
+  const id = typeof img === 'string' ? img : img?.id;
+  if (!id) return false;
+  const perGroep = groepId ? dmState.groups?.[groepId]?.imageVis : null;
+  if (perGroep && id in perGroep) return !!perGroep[id];
+  return typeof img === 'string' || img.visible !== false;   // terugval: oude data
+}
+
 router.get('/archief', attachRole, (req, res) => {
   const archief = storage.readJSON('archief.json');
   const dmState = readDmState();
@@ -3651,7 +3662,7 @@ router.get('/archief', attachRole, (req, res) => {
             _chapterVisible(cv, playerGroepId, e.hoofdstuk || '_')
           ).map(e => ({
             ...e,
-            images: (e.images || []).filter(img => typeof img === 'string' || img.visible !== false),
+            images: (e.images || []).filter(img => _imgZichtbaar(dmState, playerGroepId, img)),
           })),
     chapterVisibility: req.role === 'dm' ? cv : undefined,
     hiddenLinks:  req.role === 'dm' ? archief.hiddenLinks : {},
@@ -3968,6 +3979,55 @@ router.post('/sessieLog', requireDM, (req, res) => {
   storage.writeJSON('archief.json', archief);
   req.app.get('io').to(req.session?.campaignId||'main').emit('logboek:updated', { id: entry.id });
   res.status(201).json(entry);
+});
+
+// Onthul één afbeelding voor één groep. Voorheen liep dit via de globale
+// `visible`-vlag op de sessieLog-entry, waardoor een reveal voor groep 3 ook bij
+// groep 2 op tafel lag zodra je tussen groepen afwisselde.
+router.post('/sessieLog/:id/onthul', requireDM, (req, res) => {
+  const { fileId, caption } = req.body || {};
+  if (!fileId) return res.status(400).json({ error: 'Geen fileId' });
+  const dmState = readDmState();
+  const gid = req.body?.groupId || dmState.activeGroup;
+  if (!gid || !dmState.groups?.[gid]) return res.status(400).json({ error: 'Geen actieve groep' });
+
+  const archief = storage.readJSON('archief.json');
+  const entry = (archief.sessieLog || []).find(e => e.id === req.params.id);
+  if (!entry) return res.status(404).json({ error: 'Sessie niet gevonden' });
+
+  // Onderschrift meenemen: de client stuurt dat van de regie-stap mee, zodat de
+  // twee niet uit elkaar lopen. Leeg overschrijft bewust niets.
+  const cap = String(caption || '').trim();
+  if (Array.isArray(entry.images)) {
+    entry.images = entry.images.map(img => {
+      const id = typeof img === 'string' ? img : img.id;
+      if (id !== fileId) return img;
+      const basis = typeof img === 'string' ? { id, visible: false } : img;
+      return { ...basis, ...(cap ? { caption: cap } : {}) };
+    });
+    storage.writeJSON('archief.json', archief);
+  }
+
+  const g = dmState.groups[gid];
+  if (!g.imageVis) g.imageVis = {};
+  const wasZichtbaar = _imgZichtbaar(dmState, gid, (entry.images || []).find(
+    i => (typeof i === 'string' ? i : i.id) === fileId) || { id: fileId, visible: false });
+  g.imageVis[fileId] = true;
+  storage.writeJSON('dm-state.json', dmState);
+
+  const io = req.app.get('io');
+  io?.to(req.session?.campaignId || 'main').emit('logboek:updated', { id: req.params.id });
+  if (!wasZichtbaar) {
+    const img = (entry.images || []).find(i => (typeof i === 'string' ? i : i.id) === fileId);
+    io?.to(req.session?.campaignId || 'main').emit('logboek:imageRevealed', {
+      sessieId:     req.params.id,
+      imageId:      fileId,
+      caption:      (img && typeof img === 'object' ? img.caption : '') || cap || '',
+      samenvatting: entry.korteSamenvatting || '',
+      groupId:      gid,          // clients filteren hierop
+    });
+  }
+  res.json({ ok: true, groupId: gid, alZichtbaar: wasZichtbaar });
 });
 
 router.put('/sessieLog/:id', requireDM, (req, res) => {

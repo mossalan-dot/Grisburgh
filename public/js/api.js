@@ -351,6 +351,9 @@ export const api = {
   // Akte pauzeren (legt het moment vast) en hervatten (past per personage toe).
   pauzeerAkte:         (key, groupId) => request(`/akte/${encodeURIComponent(key)}/pauze`,  { method: 'POST', body: JSON.stringify({ groupId }) }),
   hervatAkte:          (key, toepassen, groupId) => request(`/akte/${encodeURIComponent(key)}/hervat`, { method: 'POST', body: JSON.stringify({ toepassen, groupId }) }),
+  // Onthul één sessieLog-afbeelding voor één groep (i.p.v. de oude globale vlag).
+  onthulAfbeelding:    (sessieId, fileId, caption, groupId) =>
+    request(`/sessieLog/${encodeURIComponent(sessieId)}/onthul`, { method: 'POST', body: JSON.stringify({ fileId, caption, groupId }) }),
   setGockGeheim:     (type, id, tekst) => request(`/entities/${type}/${id}/gock-geheim`,   { method: 'PUT',  body: JSON.stringify({ tekst }) }),
 
   // De Gock

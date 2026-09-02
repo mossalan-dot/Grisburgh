@@ -1,4 +1,4 @@
-import { api } from './api.js?v=246';
+import { api } from './api.js?v=247';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=20';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -1686,21 +1686,12 @@ async function _revealImage(sessieId, imgId, caption) {
   }
   // Remove from queue (strip is no longer shown)
   _revealQueue = _revealQueue.filter(i => i.imgId !== imgId);
-  // Persist via the existing API (same logic as _toggleImageVisible in render-archief.js)
+  // Onthullen gaat per groep: de server zet groups[gid].imageVis en stuurt het
+  // groupId mee in het socket-event, zodat een reveal voor deze groep niet bij
+  // een andere groep op tafel belandt. Het onderschrift van de regie-stap gaat
+  // mee, zodat script en sessieLog niet uit elkaar lopen.
   try {
-    const archief = await api.listArchief();
-    const entry = (archief.sessieLog || []).find(e => e.id === sessieId);
-    if (!entry) return;
-    const cap = (caption || '').trim();
-    const images = (entry.images || []).map(img => {
-      const id = typeof img === 'string' ? img : img.id;
-      if (id !== imgId) return img;
-      const basis = typeof img === 'string' ? { id } : img;
-      // Leeg script-onderschrift overschrijft een bestaand onderschrift niet.
-      return { ...basis, visible: true, ...(cap ? { caption: cap } : {}) };
-    });
-    await api.updateSessieLog(sessieId, { images });
-    // → backend emits logboek:imageRevealed → players get lightbox
+    await api.onthulAfbeelding(sessieId, imgId, caption || '', window._activeGroupId || null);
   } catch (err) {
     console.error('Reveal failed', err);
   }
