@@ -1303,7 +1303,7 @@ function _renderAkteScriptInner(ch, info, chEntries) {
             ${thumb}
             <span class="script-item-icon">${itemIcon}</span>
             ${nameHtml}
-            ${hasSnd ? `<span class="script-item-snd-chip" title="Geluid: ${esc(item.soundLabel || 'geluid')}${item.soundLoop ? ' (loop)' : ''}">${icon('volume-2')}${item.soundLoop ? ' ⟳' : ''}</span>` : ''}
+            ${hasSnd ? `<span class="script-item-snd-chip" title="Geluid ingesteld: ${esc(item.soundLabel || 'geluid')}${item.soundLoop ? ' (loop)' : ''}">${icon('music')}${item.soundLoop ? ' ⟳' : ''}</span>` : ''}
             <div class="script-item-actions">
               <button class="script-icon-btn${hasSnd ? ' script-icon-btn--snd-on' : ''}${sndOpen ? ' is-active' : ''}"
                 onclick="window._scriptToggleSoundEditor('${esc(ch)}','${esc(item.id)}')" title="Geluid bij reveal">${icon('volume-2')}</button>
@@ -1476,7 +1476,7 @@ function _scriptSoundEditorHtml(ch, item) {
       </label>
       ${item.soundFileId ? `
         <button class="script-icon-btn" title="Voorbeeld afspelen"
-          onclick="window._scriptPreviewSound('${esc(item.soundFileId)}')">${icon('play')}</button>
+          onclick="window._scriptPreviewSound('${esc(item.soundFileId)}', this)">${icon('play')}</button>
         <span class="script-snd-current" title="${esc(item.soundLabel || '')}">${esc(item.soundLabel || 'Geluid')}</span>
         <button class="script-icon-btn script-icon-btn--del" title="Geluid verwijderen"
           onclick="window._scriptClearSound('${esc(ch)}','${esc(item.id)}')">${icon('x')}</button>
@@ -1570,7 +1570,26 @@ window._scriptClearSound = async (ch, itemId) => {
   if (script) await _scriptSave(ch, script);
 };
 
-window._scriptPreviewSound = (fileId) => window.soundManager?.preview?.(fileId);
+// Start/stop-toggle. De knop zet zijn eigen icoon om, ook wanneer het fragment
+// vanzelf afloopt (de onStop-callback). Voorheen kon je een geluid alleen
+// uitzitten — vervelend bij een lange loop.
+window._scriptPreviewSound = (fileId, btn) => {
+  const herstel = () => {
+    if (!btn) return;
+    btn.innerHTML = window.icon('play');
+    btn.title     = 'Voorbeeld afspelen';
+    btn.classList.remove('is-active');
+  };
+  const speelt = window.soundManager?.preview?.(fileId, herstel);
+  if (!btn) return;
+  if (speelt) {
+    btn.innerHTML = window.icon('square');
+    btn.title     = 'Stoppen';
+    btn.classList.add('is-active');
+  } else {
+    herstel();
+  }
+};
 
 // ── Akte-beheer hergebruik vanuit de Meesterkamer (tab 'Aktes') ──
 // De akte-voorbereiding (regie-script, bewerken, speel, zichtbaarheid) is

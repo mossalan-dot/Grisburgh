@@ -10,6 +10,19 @@ let _prevRound  = undefined;
 
 // ── Audio playback ────────────────────────────────────────────────────────────
 
+// ── Preview (DM) ──────────────────────────────────────────────────────────────
+let _previewAudio = null;
+let _previewId    = null;
+let _previewEinde = null;
+
+function _previewStop() {
+  if (_previewAudio) { try { _previewAudio.pause(); _previewAudio.currentTime = 0; } catch { /* ok */ } }
+  _previewAudio = null;
+  _previewId    = null;
+  const cb = _previewEinde; _previewEinde = null;
+  cb?.();
+}
+
 function _play(fileId) {
   if (!fileId) return;
   try {
@@ -307,7 +320,24 @@ window.soundManager = {
   stopRestLoop() { if (_restAudio) _ambSet(_restAudio, null, false); },
 
   // Lokale preview (DM) van een geluidsbestand zonder broadcast.
-  preview(fileId) { if (fileId) _play(fileId); },
+  // Werkt als toggle: dezelfde knop nog eens indrukken stopt het. Voorheen maakte
+  // _play() een losse Audio zonder referentie, dus je kon een fragment alleen
+  // uitzitten. onStop wordt aangeroepen bij zowel handmatig stoppen als afgelopen,
+  // zodat de knop zijn icoon kan terugzetten.
+  preview(fileId, onStop) {
+    const zelfde = _previewId === fileId;
+    _previewStop();
+    if (!fileId || zelfde) return false;
+    const a = new Audio(`/api/files/${fileId}`);
+    _previewAudio = a;
+    _previewId    = fileId;
+    _previewEinde = onStop || null;
+    a.addEventListener('ended', () => { if (_previewId === fileId) _previewStop(); });
+    a.play().catch(() => _previewStop());
+    return true;
+  },
+  stopPreview() { _previewStop(); },
+  previewingId() { return _previewId; },
   toggleAmbiance() {
     _ambEnabled = !_ambEffectivePlaying(); // speelt iets → dempen; stil → aanzetten
     try { localStorage.setItem('ambianceEnabled', _ambEnabled ? '1' : '0'); } catch { /* ok */ }

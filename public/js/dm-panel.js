@@ -6044,7 +6044,7 @@ async function _renderGeluiden() {
         <span class="dm-sound-slot-label">${label}</span>
         <div class="dm-sound-controls">
           ${fileId
-            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${fileId}')">▶</button>
+            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${fileId}', this)">▶</button>
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemoveStd('${key}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
@@ -6066,7 +6066,7 @@ async function _renderGeluiden() {
         <span class="dm-sound-slot-label">▶ Beurtgeluid</span>
         <div class="dm-sound-controls">
           ${turnFileId
-            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${turnFileId}')">▶</button>
+            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${turnFileId}', this)">▶</button>
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemovePlayerTurn('${esc(p.id)}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
@@ -6086,7 +6086,7 @@ async function _renderGeluiden() {
             onchange="window._sndUpdateLabel('${esc(p.id)}','${esc(item.id)}',this.value)">
           <div class="dm-sound-controls">
             ${item.fileId
-              ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(item.fileId)}')">▶</button>
+              ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(item.fileId)}', this)">▶</button>
                  <span class="dm-sound-set">✓</span>
                  <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndClearFile('${esc(p.id)}','${esc(item.id)}')">${icon('x')}</button>`
               : `<span class="dm-sound-empty">Geen audio</span>`}
@@ -6148,7 +6148,7 @@ async function _renderGeluiden() {
         <span class="dm-sound-slot-label">${label}</span>
         <div class="dm-sound-controls">
           ${fileId
-            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${fileId}')">▶</button>
+            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${fileId}', this)">▶</button>
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._sndRemoveCond('${key}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen geluid</span>`}
@@ -6167,7 +6167,7 @@ async function _renderGeluiden() {
       <input class="dm-amb-label" value="${esc(s.label || '')}" placeholder="Scènenaam"
         onchange="window._ambSetLabel('${esc(s.id)}', this.value)">
       <div class="dm-amb-scene-actions">
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay (alleen jij)" onclick="window._sndPlay('${esc(s.fileId)}')">▶</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay (alleen jij)" onclick="window._sndPlay('${esc(s.fileId)}', this)">▶</button>
         ${amb.actief === s.id
           ? `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._ambStop()">${icon('square')} Stop</button>`
           : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._ambPlay('${esc(s.id)}')">${icon('play')} Speel</button>`}
@@ -6199,7 +6199,7 @@ async function _renderGeluiden() {
         <span class="dm-sound-slot-label">${esc(label)}</span>
         <div class="dm-sound-controls">
           ${fid
-            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(fid)}')">▶</button>
+            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(fid)}', this)">▶</button>
                <span class="dm-sound-set">✓ Ingesteld</span>
                <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._svcAmbRemove('${esc(key)}')">${icon('x')}</button>`
             : `<span class="dm-sound-empty">Geen loop</span>`}
@@ -6280,8 +6280,14 @@ async function _renderGeluiden() {
     });
   };
 
-  window._sndPlay = (fileId) => {
-    new Audio(`/api/files/${fileId}`).play().catch(() => {});
+  // Testplay als start/stop-toggle, net als de voorbeeldknop in de akteregie.
+  window._sndPlay = (fileId, btn) => {
+    const herstel = () => { if (btn) { btn.textContent = '▶'; btn.title = 'Testplay'; } };
+    const speelt = window.soundManager?.preview?.(fileId, herstel);
+    if (btn) {
+      if (speelt) { btn.textContent = '■'; btn.title = 'Stoppen'; }
+      else herstel();
+    }
   };
 
   // ── Geluidsdecors (ambiance, feature #2) — scènebeheer ──
