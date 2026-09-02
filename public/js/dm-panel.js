@@ -1,4 +1,4 @@
-import { api } from './api.js?v=247';
+import { api } from './api.js?v=248';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=21';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -441,6 +441,7 @@ export function initDmPanel() {
     regieBalkBrief() { _openRegieBriefPicker(); },
     regieBalkPauze:          () => _regieBalkPauze(),
     rustMenu:                (ev) => _rustMenu(ev),
+    sfeerMenu:               (ev) => _sfeerMenu(ev),
     akteHervatToepassen:     () => _akteHervatToepassen(),
     // Zet alle tablets/displays terug naar het sfeerscherm (leeg het gepresenteerde beeld).
     async tabletNaarSfeer(btn) {
@@ -1730,6 +1731,9 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
     ]);
     if (window.app?.state) window.app.state.meta = freshMeta;
     _rbScript = freshMeta?.hoofdstukken?.[chapterKey]?.script || [];
+    // Sfeer van deze akte meteen naar het tafelscherm sturen.
+    const akteSfeer = freshMeta?.hoofdstukken?.[chapterKey]?.sfeer;
+    if (akteSfeer) api.setAkteSfeer(chapterKey, akteSfeer).catch(() => {});
 
     // Voeg alle sessie-afbeeldingen van deze akte toe die nog niet in het script staan
     const addedFileIds = new Set(_rbScript.filter(x => x.type === 'image').map(x => x.fileId));
@@ -1939,6 +1943,7 @@ function _renderRegieBalk() {
           <span class="dm-rb-sep"></span>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.regieBalkBrief()" title="Stuur een verzegelde uitnodiging (factie of dienst)">${icon('mail')} <span class="dm-rb-btn-label">Uitnodiging</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.tabletNaarSfeer(this)" title="Tablet → sfeerscherm (leeg het gepresenteerde beeld)">${icon('monitor')}</button>
+          <button class="dm-regie-balk-btn" onclick="window.dmPanel.sfeerMenu(event)" title="Sfeer van het tafelscherm kiezen">${icon('sparkles')} <span class="dm-rb-btn-label">Sfeer</span></button>
           <span class="dm-rb-sep"></span>
           <button class="dm-regie-balk-btn dm-rb-pauze-btn" onclick="window.dmPanel.regieBalkPauze()" title="Akte pauzeren — legt HP en voortgang vast om later te hervatten">${icon('pause')} <span class="dm-rb-btn-label">Pauze</span></button>
           <div class="dm-rb-venster">
@@ -2030,6 +2035,57 @@ function _rbInitDrag() {
     el.scrollLeft = scrollLeft - walk;
   });
 };
+
+// Sfeermenu voor het tafelscherm. De keuze wordt bij de akte bewaard, dus
+// volgende sessie staat hij er weer. De effecten eronder zijn eenmalig en
+// worden nergens opgeslagen — die vuur je af op een dramatisch moment.
+function _sfeerMenu(ev) {
+  document.getElementById('dm-sfeer-menu')?.remove();
+  const knop = ev?.currentTarget;
+  if (!knop) return;
+  const sferen  = window._SFEREN || [];
+  const huidig  = window.app?.state?.meta?.hoofdstukken?.[_rbChapter]?.sfeer || 'haard';
+  const menu = document.createElement('div');
+  menu.id = 'dm-sfeer-menu';
+  menu.className = 'dm-rust-menu dm-sfeer-menu';
+  menu.innerHTML = `
+    <div class="dm-rust-menu-kop">Sfeer van het tafelscherm</div>
+    <div class="dm-sfeer-grid">
+      ${sferen.map(s => `
+        <button class="dm-sfeer-knop${s.id === huidig ? ' is-actief' : ''}" data-sfeer="${esc(s.id)}">
+          <span class="dm-sfeer-staal sfeer--${esc(s.id)}"></span>${esc(s.label)}
+        </button>`).join('')}
+    </div>
+    <div class="dm-rust-menu-kop">Effect — eenmalig</div>
+    <div class="dm-sfeer-fx">
+      <button class="dm-rust-loc-btn" data-fx="bliksem">${icon('zap')} Bliksem</button>
+      <button class="dm-rust-loc-btn" data-fx="windvlaag">${icon('wind')} Windvlaag</button>
+      <button class="dm-rust-loc-btn" data-fx="duister">${icon('moon')} Duister</button>
+    </div>`;
+  document.body.appendChild(menu);
+  const r = knop.getBoundingClientRect();
+  menu.style.left = `${Math.max(8, Math.min(r.left - 60, window.innerWidth - menu.offsetWidth - 8))}px`;
+  menu.style.bottom = `${window.innerHeight - r.top + 6}px`;
+
+  menu.querySelectorAll('.dm-sfeer-knop').forEach(b => b.addEventListener('click', async () => {
+    menu.querySelectorAll('.dm-sfeer-knop').forEach(x => x.classList.toggle('is-actief', x === b));
+    if (!_rbChapter) return;
+    try {
+      await api.setAkteSfeer(_rbChapter, b.dataset.sfeer);
+      const hs = window.app?.state?.meta?.hoofdstukken?.[_rbChapter];
+      if (hs) hs.sfeer = b.dataset.sfeer;      // lokaal bijwerken, scheelt een refetch
+    } catch { _showToast('Kon de sfeer niet opslaan'); }
+  }));
+  menu.querySelectorAll('[data-fx]').forEach(b => b.addEventListener('click', () => {
+    api.displayEffect(b.dataset.fx).catch(() => _showToast('Effect kon niet worden afgevuurd'));
+  }));
+  setTimeout(() => {
+    const sluit = (e) => {
+      if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', sluit); }
+    };
+    document.addEventListener('click', sluit);
+  }, 0);
+}
 
 // Rustmenu. Vier losse icoontjes naast elkaar (boom, bierpul, maan, bliksem)
 // lieten zich niet raden: welke is nu de locatie en welke de duur? Eén knop die

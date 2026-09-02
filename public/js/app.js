@@ -1,16 +1,16 @@
-import { api } from './api.js?v=247';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=120";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=68";
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=17';
-import { renderDungeon } from './render-dungeon.js?v=30';
-import { renderRelatiemap } from './render-relatiemap.js?v=20';
-import { renderProgressie } from './render-progressie.js?v=42';
-import { renderBestiarium } from './render-bestiarium.js?v=19';
-import { renderSpreuken } from './render-spreuken.js?v=11';
+import { api } from './api.js?v=248';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=121";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=69";
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
+import { renderDungeon } from './render-dungeon.js?v=31';
+import { renderRelatiemap } from './render-relatiemap.js?v=21';
+import { renderProgressie } from './render-progressie.js?v=43';
+import { renderBestiarium } from './render-bestiarium.js?v=20';
+import { renderSpreuken } from './render-spreuken.js?v=12';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=56";
-import { initDmPanel } from "./dm-panel.js?v=154";
-import './media-picker.js?v=6';
+import { initSocket } from "./socket-client.js?v=57";
+import { initDmPanel } from "./dm-panel.js?v=155";
+import './media-picker.js?v=7';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -9163,20 +9163,82 @@ function _scheduleDisplayIdle() {
 }
 
 // Genereer drijvende sintels voor het idle-sfeerscherm (puur visueel, één keer).
-function _buildIdleEmbers() {
+// ── Sferen voor het tafelscherm ──────────────────────────────────────────────
+// De eerste negen zijn toegesneden op de aktes van deze campagne, daarna volgen
+// algemene sferen. Kleur en achtergrond zitten in CSS (.sfeer--*); hier staat
+// alleen hoe de deeltjes zich gedragen. richting: 'op' | 'val' | 'zweef'.
+const _SFEREN = [
+  { id: 'haard',        label: 'Haard',         richting: 'op',    n: 18, sz: [2, 5],   dur: [9, 19], drift: 40 },
+  { id: 'havenstad',    label: 'Havenstad',     richting: 'zweef', n: 22, sz: [1, 3],   dur: [12, 22], drift: 70 },
+  { id: 'zee',          label: 'Op zee',        richting: 'zweef', n: 26, sz: [1, 3.5], dur: [9, 16],  drift: 120 },
+  { id: 'amberwoud',    label: 'Amberwoud',     richting: 'val',   n: 20, sz: [2, 5],   dur: [11, 20], drift: 90 },
+  { id: 'bedorven',     label: 'Bedorven woud', richting: 'zweef', n: 24, sz: [1.5, 4], dur: [10, 18], drift: 60 },
+  { id: 'storm',        label: 'Storm',         richting: 'val',   n: 40, sz: [1, 2],   dur: [1.6, 3], drift: 40 },
+  { id: 'toren',        label: 'Arcane toren',  richting: 'op',    n: 20, sz: [1.5, 4], dur: [10, 20], drift: 50 },
+  { id: 'lichtmis',     label: 'Lichtmis',      richting: 'op',    n: 26, sz: [2, 4.5], dur: [12, 22], drift: 30 },
+  { id: 'schaduwrijk',  label: 'Schaduwrijk',   richting: 'val',   n: 26, sz: [1, 3],   dur: [12, 24], drift: 70 },
+  { id: 'sneeuw',       label: 'Sneeuw',        richting: 'val',   n: 34, sz: [2, 4.5], dur: [10, 20], drift: 110 },
+  { id: 'grot',         label: 'Grot',          richting: 'val',   n: 12, sz: [1, 2.5], dur: [14, 26], drift: 30 },
+  { id: 'sterrennacht', label: 'Sterrennacht',  richting: 'zweef', n: 30, sz: [1, 2.5], dur: [6, 12],  drift: 6  },
+  { id: 'dauw',         label: 'Ochtenddauw',   richting: 'op',    n: 16, sz: [1.5, 4], dur: [14, 26], drift: 50 },
+  { id: 'kerker',       label: 'Kerker',        richting: 'op',    n: 10, sz: [1.5, 3], dur: [12, 22], drift: 25 },
+];
+window._SFEREN = _SFEREN;
+let _huidigeSfeer = 'haard';
+
+function _buildIdleEmbers(sfeerId) {
   const host = document.getElementById('display-idle-embers');
-  if (!host || host.childElementCount) return;
+  if (!host) return;
+  const s = _SFEREN.find(x => x.id === sfeerId) || _SFEREN[0];
+  const klasse = s.richting === 'val' ? ' display-ember--val'
+               : s.richting === 'zweef' ? ' display-ember--zweef' : '';
+  const tussen = (a, b) => a + Math.random() * (b - a);
   let html = '';
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < s.n; i++) {
     const left  = (Math.random() * 100).toFixed(1);
-    const dur   = (9 + Math.random() * 10).toFixed(1);   // 9–19s opstijgen
+    const dur   = tussen(s.dur[0], s.dur[1]).toFixed(1);
     const delay = (-Math.random() * dur).toFixed(1);      // gespreid starten
-    const size  = (2 + Math.random() * 3).toFixed(1);     // 2–5px
-    const drift = (Math.random() * 40 - 20).toFixed(0);   // zijwaartse drift
-    html += `<span class="display-ember" style="left:${left}%;width:${size}px;height:${size}px;animation-duration:${dur}s;animation-delay:${delay}s;--ember-drift:${drift}px"></span>`;
+    const size  = tussen(s.sz[0], s.sz[1]).toFixed(1);
+    const drift = (Math.random() * s.drift - s.drift / 2).toFixed(0);
+    // Zwevende deeltjes staan verspreid over de hoogte i.p.v. aan één rand.
+    const top   = s.richting === 'zweef' ? `top:${(Math.random() * 92).toFixed(1)}%;` : '';
+    html += `<span class="display-ember${klasse}" style="left:${left}%;${top}width:${size}px;height:${size}px;`
+          + `animation-duration:${dur}s;animation-delay:${delay}s;--ember-drift:${drift}px"></span>`;
   }
   host.innerHTML = html;
 }
+
+// Zet de sfeer van het tafelscherm. Alleen de klasse wisselen zou de deeltjes
+// laten staan; die moeten opnieuw, want aantal en richting verschillen per sfeer.
+window._setDisplaySfeer = function(sfeerId) {
+  const scherm = document.getElementById('display-idle');
+  if (!scherm) return;
+  const s = _SFEREN.find(x => x.id === sfeerId) || _SFEREN[0];
+  _huidigeSfeer = s.id;
+  _SFEREN.forEach(x => scherm.classList.remove(`sfeer--${x.id}`));
+  scherm.classList.add(`sfeer--${s.id}`);
+  _buildIdleEmbers(s.id);
+};
+
+// Eenmalig effect over het sfeerscherm. Verdwijnt vanzelf; bliksem en duister
+// zijn een overlay, een windvlaag duwt de bestaande deeltjes opzij.
+window._displayEffect = function(effect) {
+  const scherm = document.getElementById('display-idle');
+  if (!scherm) return;
+  if (effect === 'windvlaag') {
+    const host = document.getElementById('display-idle-embers');
+    if (!host) return;
+    host.classList.remove('is-windvlaag');
+    void host.offsetWidth;              // herstart de animatie
+    host.classList.add('is-windvlaag');
+    setTimeout(() => host.classList.remove('is-windvlaag'), 2300);
+    return;
+  }
+  const laag = document.createElement('div');
+  laag.className = `display-fx display-fx--${effect === 'duister' ? 'duister' : 'bliksem'}`;
+  scherm.appendChild(laag);
+  setTimeout(() => laag.remove(), effect === 'duister' ? 2800 : 1300);
+};
 
 function _initDisplayMode() {
   const canvas = document.getElementById('display-canvas');
@@ -9190,7 +9252,7 @@ function _initDisplayMode() {
     if (titleEl) titleEl.textContent = meta?.appTitle || meta?.title || 'Grisburgh';
     if (subEl && meta?.appSubtitle) subEl.textContent = meta.appSubtitle;
   }).catch(() => {});
-  _buildIdleEmbers();
+  _buildIdleEmbers(_huidigeSfeer);
   // Het tafelscherm heeft een eigen, volledige gevechtsweergave (.co-display in
   // dm-panel.js) — nooit geminimaliseerd. Voorheen werd hier 'minimized' gezet
   // terwijl socket-client.js het er bij elke combat:updated weer afhaalde; die
@@ -9237,7 +9299,7 @@ window._displayIdle = function() {
   document.getElementById('display-image-screen').style.display = 'none';
   document.getElementById('display-dungeon-screen').style.display = 'none';
   document.getElementById('display-idle').style.display = 'flex';
-  _buildIdleEmbers();
+  _buildIdleEmbers(_huidigeSfeer);
 };
 
 // ── Herberg ──

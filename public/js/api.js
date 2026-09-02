@@ -352,6 +352,9 @@ export const api = {
   pauzeerAkte:         (key, groupId) => request(`/akte/${encodeURIComponent(key)}/pauze`,  { method: 'POST', body: JSON.stringify({ groupId }) }),
   hervatAkte:          (key, toepassen, groupId) => request(`/akte/${encodeURIComponent(key)}/hervat`, { method: 'POST', body: JSON.stringify({ toepassen, groupId }) }),
   // Onthul één sessieLog-afbeelding voor één groep (i.p.v. de oude globale vlag).
+  // Sfeer van het tafelscherm (bewaard bij de akte) en eenmalige effecten.
+  setAkteSfeer:        (key, sfeer) => request(`/akte/${encodeURIComponent(key)}/sfeer`, { method: 'PUT', body: JSON.stringify({ sfeer }) }),
+  displayEffect:       (effect) => request('/display/effect', { method: 'POST', body: JSON.stringify({ effect }) }),
   onthulAfbeelding:    (sessieId, fileId, caption, groupId) =>
     request(`/sessieLog/${encodeURIComponent(sessieId)}/onthul`, { method: 'POST', body: JSON.stringify({ fileId, caption, groupId }) }),
   setGockGeheim:     (type, id, tekst) => request(`/entities/${type}/${id}/gock-geheim`,   { method: 'PUT',  body: JSON.stringify({ tekst }) }),

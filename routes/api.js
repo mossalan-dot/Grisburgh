@@ -2132,6 +2132,30 @@ router.post('/characters/:characterId/long-rest', attachRole, (req, res) => {
 });
 
 // Tablet/display → terug naar het sfeerscherm (DM leegt het gepresenteerde beeld)
+// Sfeer van het tafelscherm. Bewaard bij de akte, zodat je 'm volgende sessie
+// terugkrijgt, en meteen uitgezonden naar de tablet.
+router.put('/akte/:key/sfeer', requireDM, (req, res) => {
+  const sfeer = String(req.body?.sfeer || '').trim().slice(0, 40);
+  const meta = storage.readJSON('meta.json');
+  if (!meta.hoofdstukken?.[req.params.key]) return res.status(404).json({ error: 'Akte niet gevonden' });
+  meta.hoofdstukken[req.params.key].sfeer = sfeer || null;
+  storage.writeJSON('meta.json', meta);
+  const io = req.app.get('io');
+  io?.to(req.session?.campaignId || 'main').emit('display:sfeer', { sfeer: sfeer || null });
+  io?.to(req.session?.campaignId || 'main').emit('meta:updated');
+  res.json({ ok: true, sfeer: sfeer || null });
+});
+
+// Eenmalig effect op het tafelscherm (bliksem, windvlaag, duister).
+router.post('/display/effect', requireDM, (req, res) => {
+  const effect = String(req.body?.effect || '').trim();
+  if (!['bliksem', 'windvlaag', 'duister'].includes(effect)) {
+    return res.status(400).json({ error: 'Onbekend effect' });
+  }
+  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('display:effect', { effect });
+  res.json({ ok: true, effect });
+});
+
 router.post('/display/idle', requireDM, (req, res) => {
   req.app.get('io')?.to(req.session?.campaignId || 'main').emit('display:idle');
   res.json({ ok: true });
