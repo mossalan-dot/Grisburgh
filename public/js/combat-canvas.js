@@ -907,13 +907,39 @@ function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t, isWide) {
   const perRij = Math.ceil(n / rijen);
   const rijH   = h / rijen;
 
+  // Slotbreedte volgt de vólste rij, niet de rij zelf. Anders kreeg een
+  // half-gevulde laatste rij bredere slots en dus grotere figuren — een
+  // formaatverschil dat niets betekende. Grootte draait nu alleen op dreiging.
+  const GAP   = perRij > 1 ? Math.min(8, w * 0.02) : 0;
+  const slotW = (w - GAP * (perRij - 1)) / perRij;
+
+  // Monsters worden op dreiging gerangschikt: meeste HP eerst, bij gelijke HP
+  // de hoogste AC. De zwaarste wordt ook het grootst getekend, zodat je in één
+  // oogopslag ziet waar het gevaar zit. Spelers houden bewust één maat — daar
+  // is geen hiërarchie.
+  const alleenMonsters = group.length > 0 && group.every(c => c.type === 'monster');
+  const getoond = alleenMonsters
+    ? [...group].sort((a, b) =>
+        (b.maxHp || 0) - (a.maxHp || 0) ||
+        (parseInt(b.ac) || 0) - (parseInt(a.ac) || 0))
+    : group;
+  // Schaal per dréigingsniveau, niet per positie: twee identieke piraten horen
+  // even groot te zijn. Elk uniek (HP, AC)-paar is één niveau; van 1.0 voor het
+  // zwaarste tot 0.82 voor het lichtste.
+  const niveaus = alleenMonsters
+    ? [...new Set(getoond.map(c => `${c.maxHp || 0}|${parseInt(c.ac) || 0}`))]
+    : [];
+  const schaalVoor = (c) => {
+    if (!alleenMonsters || niveaus.length < 2) return 1;
+    const i = niveaus.indexOf(`${c.maxHp || 0}|${parseInt(c.ac) || 0}`);
+    return 1 - (i / (niveaus.length - 1)) * 0.18;
+  };
+
   for (let r = 0; r < rijen; r++) {
-    const rijGroep = group.slice(r * perRij, (r + 1) * perRij);
+    const rijGroep = getoond.slice(r * perRij, (r + 1) * perRij);
     if (!rijGroep.length) continue;
-    const m     = rijGroep.length;
-    const GAP   = m > 1 ? Math.min(8, w * 0.02) : 0;
-    const slotW = (w - GAP * (m - 1)) / m;
-    // Laatste rij is vaak niet vol: centreer hem onder de rijen erboven.
+    const m = rijGroep.length;
+    // Niet-volle rij centreren onder de rijen erboven.
     const rijBreedte = m * slotW + (m - 1) * GAP;
     const rijX = x + (w - rijBreedte) / 2;
     const rijY = y + r * rijH;
@@ -922,6 +948,7 @@ function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t, isWide) {
       const idx      = allCs.indexOf(c);
       const isActive = turnGroup.includes(idx);
       const slotX    = rijX + i * (slotW + GAP);
+      const schaal   = schaalVoor(c);
       // Clip per slot: alleen horizontaal (zodat effects niet in de buurman
       // bloeden), maar niet verticaal — iconen onder de HP-balk moeten
       // zichtbaar blijven.
@@ -929,7 +956,7 @@ function _drawSide(ctx, group, allCs, turnGroup, x, y, w, h, t, isWide) {
       ctx.beginPath();
       ctx.rect(slotX, 0, slotW, ctx.canvas.height);
       ctx.clip();
-      _drawCombatant(ctx, c, slotX, rijY, slotW, rijH, t, isActive, isWide, idx + 1);
+      _drawCombatant(ctx, c, slotX, rijY, slotW, rijH, t, isActive, isWide, idx + 1, schaal);
       ctx.restore();
     });
   }
@@ -945,7 +972,7 @@ function _avatarPath(ctx, c, cx, cy, r) {
   }
 }
 
-function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
+function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex, schaal = 1) {
   const isDead  = (c.hp || 0) <= 0;
   const conds   = isDead ? [] : (c.conditions || []);
   const hasCond = (name) => conds.includes(name);
@@ -964,7 +991,7 @@ function _drawCombatant(ctx, c, x, y, w, h, t, isActive, isWide, turnIndex) {
   // waardoor op een hoog canvas — zoals het tafelscherm — de onderste helft leeg
   // bleef. Nu groeit de avatar mee met de beschikbare hoogte én wordt het blok
   // (avatar + HP-balk + conditie-iconen + naam) verticaal gecentreerd.
-  const AVTR_R = Math.min(w * 0.38, h * 0.30);
+  const AVTR_R = Math.min(w * 0.38, h * 0.30) * schaal;
   const cx     = x + w / 2;
   // Alles onder de cirkel hangt aan cyGround + AVTR_R; ~62px dekt balk, iconen en naam.
   const blockH = AVTR_R * 2 + 62;
