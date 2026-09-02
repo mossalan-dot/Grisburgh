@@ -43,6 +43,7 @@ const COND_ICON = {
   'vigilant-blessing':  ['eye',        _CLASS_GOLD],
   blessed:              ['sparkle',    _CLASS_GOLD],
   raging:               ['angry',      _CLASS_GOLD],
+  haste:                ['fast-forward', _CLASS_GOLD],
   // Situationeel/positioneel: geen PHB-condition en geen klassefeature, maar wel
   // iets dat de worp verandert. Eigen tint zodat je de drie groepen uit elkaar houdt.
   dodging:                ['wind',          _SIT_STEEL],
@@ -66,7 +67,7 @@ const _spriteCache = {};   // "icoon|kleur" → Image, of null zolang hij laadt
 function _ensureSprite() {
   if (_spriteDoc || _spriteBezig) return;
   _spriteBezig = true;
-  fetch('/img/icons.svg?v=6')
+  fetch('/img/icons.svg?v=7')
     .then(r => r.text())
     .then(txt => { _spriteDoc = new DOMParser().parseFromString(txt, 'image/svg+xml'); })
     .catch(() => { _spriteBezig = false; });

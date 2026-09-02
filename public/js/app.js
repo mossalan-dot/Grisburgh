@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=16';
 import { renderSpreuken } from './render-spreuken.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=53";
-import { initDmPanel } from "./dm-panel.js?v=144";
+import { initDmPanel } from "./dm-panel.js?v=145";
 import './media-picker.js?v=3';
 
 // ── Icon helper ──
@@ -18,7 +18,7 @@ import './media-picker.js?v=3';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=6#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=7#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 

@@ -1,5 +1,5 @@
 import { api } from './api.js?v=244';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=18';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=19';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 // ── DM Panel ──
@@ -35,6 +35,7 @@ const CONDITIONS = [
   { id: 'steady-aim',         label: 'Steady Aim',         desc: '(Rogue) Used Steady Aim bonus action. Has advantage on the next attack roll this turn. Speed is 0 until end of turn.' },
   { id: 'vigilant-blessing',  label: 'Vigilant Blessing',  desc: '(Cleric) Has advantage on the next initiative roll. Expended when rolled.' },
   { id: 'blessed',            label: 'Blessed',            desc: '(Bless spell) Adds 1d4 to attack rolls and saving throws. Concentration, up to 1 minute.' },
+  { id: 'haste',              label: 'Haste',              desc: '(Haste spell) +2 bonus to AC, advantage on Dexterity saving throws, doubled Speed and one extra action each turn (Attack, Dash, Disengage, Hide or Use an Object). When the spell ends the target cannot move or take actions until after its next turn.' },
   { id: 'raging',             label: 'Raging',             desc: '(Barbarian) Advantage on Strength checks and saves, bonus damage on Strength-based melee attacks, and resistance to bludgeoning, piercing and slashing damage.' },
   // ── Situationeel/positioneel ──
   // Geen PHB-condition en geen klassefeature, maar wel iets dat de worp verandert
@@ -52,7 +53,7 @@ const CONDITIONS = [
 // Groepen voor de conditie-weergave. Op modulescope zodat de rij in het
 // gevechtspaneel en het detailvenster dezelfde bron gebruiken.
 const _CC_SET  = new Set(['bardic-inspiration','tides-of-chaos','twilight-sanctuary',
-  'patient-defense','steady-aim','vigilant-blessing','blessed','raging']);
+  'patient-defense','steady-aim','vigilant-blessing','blessed','raging','haste']);
 const _SIT_SET = new Set(['dodging','hidden','readied','cover-half','cover-three-quarters',
   'grappling','mounted','underwater','flying']);
 const _condGroepCls = (cid) =>
@@ -7161,14 +7162,21 @@ function _renderCombatOverlay(combat, startMinimized = false) {
     ${isDM ? `
       <canvas id="combat-canvas" class="co-canvas"></canvas>
       <div class="co-turn-controls">
-        ${!combat.winner ? `
-          <button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatPrevTurn()" title="Vorige beurt">${icon('chevron-left')}</button>
-          <button class="co-ctrl-btn co-ctrl-primary" onclick="window.dmPanel.combatNextTurn()" title="Volgende beurt">${icon('chevron-right')}</button>
-        ` : ''}
-        <button class="co-ctrl-btn co-win-btn"  onclick="window.dmPanel.combatSetWinner('players')"  title="Spelers winnen" style="${combat.winner === 'players'  ? 'opacity:1' : 'opacity:0.55'}">${icon('star')}</button>
-        <button class="co-ctrl-btn co-lose-btn" onclick="window.dmPanel.combatSetWinner('monsters')" title="Monsters winnen" style="${combat.winner === 'monsters' ? 'opacity:1' : 'opacity:0.55'}">${icon('skull')}</button>
-        ${combat.winner ? `<button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatSetWinner(null)" title="Reset winnaar" style="margin-left:4px">${icon('refresh-cw')}</button>` : ''}
-        <button class="co-ctrl-btn co-ctrl-ghost co-add-btn" onclick="window.dmPanel.combatAddForm()" style="margin-left:auto" title="Deelnemer toevoegen">${icon('plus')}</button>
+        <div class="co-tc-links">
+          <button class="co-ctrl-btn co-ctrl-ghost co-add-btn" onclick="window.dmPanel.combatAddForm()" title="Deelnemer toevoegen">${icon('plus')}</button>
+        </div>
+        <div class="co-tc-midden">
+          ${!combat.winner ? `
+            <button class="co-ctrl-btn co-ctrl-ghost co-beurt-btn" onclick="window.dmPanel.combatPrevTurn()" title="Vorige beurt">${icon('chevron-left')}</button>
+            <span class="co-beurt-ronde">Ronde ${combat.round}</span>
+            <button class="co-ctrl-btn co-ctrl-primary co-beurt-btn" onclick="window.dmPanel.combatNextTurn()" title="Volgende beurt">${icon('chevron-right')}</button>
+          ` : '<span class="co-beurt-ronde">Gevecht beslist</span>'}
+        </div>
+        <div class="co-tc-rechts">
+          <button class="co-ctrl-btn co-win-btn"  onclick="window.dmPanel.combatSetWinner('players')"  title="Spelers winnen" style="${combat.winner === 'players'  ? 'opacity:1' : 'opacity:0.55'}">${icon('star')}</button>
+          <button class="co-ctrl-btn co-lose-btn" onclick="window.dmPanel.combatSetWinner('monsters')" title="Monsters winnen" style="${combat.winner === 'monsters' ? 'opacity:1' : 'opacity:0.55'}">${icon('skull')}</button>
+          ${combat.winner ? `<button class="co-ctrl-btn co-ctrl-ghost" onclick="window.dmPanel.combatSetWinner(null)" title="Reset winnaar">${icon('refresh-cw')}</button>` : ''}
+        </div>
       </div>
       <div id="co-add-form" class="co-add-form hidden">
         <div class="co-add-row">

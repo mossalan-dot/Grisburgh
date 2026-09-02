@@ -5041,14 +5041,38 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 .co-end-btn:hover { background: rgba(139,42,42,0.22); }
 
+/* Drie groepen: toevoegen links, beurtbediening gecentreerd, winst/verlies
+   rechts. De beurtknoppen stonden eerst pal naast "gevecht beslist"-knoppen,
+   waardoor je tijdens het spelen makkelijk de verkeerde raakte. De zijkanten
+   krijgen gelijke flex-ruimte, zodat het midden ook écht in het midden staat. */
 .co-turn-controls {
   display: flex;
+  align-items: center;
   gap: 6px;
   padding: 6px 12px;
   border-bottom: 1px solid rgba(196,168,122,0.4);
   background: rgba(230,213,173,0.3);
   flex-shrink: 0;
-  flex-wrap: wrap;
+}
+.co-tc-links,
+.co-tc-rechts { flex: 1 1 0; display: flex; gap: 6px; min-width: 0; }
+.co-tc-rechts { justify-content: flex-end; }
+.co-tc-midden {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* Beurtknoppen groter: dit is de knop die je het vaakst indrukt. */
+.co-ctrl-btn.co-beurt-btn { padding: 6px 14px; }
+.co-ctrl-btn.co-beurt-btn .icon { width: 20px; height: 20px; }
+.co-beurt-ronde {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b4a1a;
+  white-space: nowrap;
 }
 .co-ctrl-btn {
   font-family: 'Cinzel', serif;
