@@ -344,7 +344,10 @@ export const api = {
   ursulaAktes:         ()             => request('/ursula/aktes'),
   saveUrsulaVoorspelling: (key, data) => request(`/ursula/voorspelling/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify(data) }),
   ursulaReset:         (akteKey)      => request('/ursula/reset',    { method: 'POST', body: JSON.stringify({ akteKey }) }),
-  setActiveAkte:       (key, num, title) => request('/akte/actief',  { method: 'POST', body: JSON.stringify({ key, num, title }) }),
+  setActiveAkte:       (key, num, title, groupId) => request('/akte/actief',  { method: 'POST', body: JSON.stringify({ key, num, title, groupId }) }),
+  // Regie-voortgang: welke script-stappen van deze akte zijn al gedaan (per groep).
+  getAkteVoortgang:    (key, groupId) => request(`/akte/${encodeURIComponent(key)}/voortgang${groupId ? `?groupId=${encodeURIComponent(groupId)}` : ''}`),
+  saveAkteVoortgang:   (key, stappen, groupId) => request(`/akte/${encodeURIComponent(key)}/voortgang`, { method: 'PUT', body: JSON.stringify({ stappen, groupId }) }),
   setGockGeheim:     (type, id, tekst) => request(`/entities/${type}/${id}/gock-geheim`,   { method: 'PUT',  body: JSON.stringify({ tekst }) }),
 
   // De Gock

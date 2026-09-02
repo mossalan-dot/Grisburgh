@@ -1,4 +1,4 @@
-import { api } from './api.js?v=244';
+import { api } from './api.js?v=245';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=20';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -177,6 +177,8 @@ let _rbTitle      = '';        // weergavetitel
 let _rbFilter     = 'all';     // 'all' | 'image' | 'entity' | 'encounter'
 let _rbRevealed   = new Set(); // item-IDs die al onthuld zijn (session-local)
 let _rbMinimized  = false;
+let _rbGroep      = null; // groep waarvoor de voortgang geldt
+let _rbVoortgangT = null; // debounce-timer voor het opslaan
 let _rbEntityImg  = {};   // entityId → imageId, voor de thumbnails in de strip
 let _rbSecretIds  = new Set(); // entity-IDs in deze akte die een geheim hebben
 
@@ -1701,6 +1703,17 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
   _rbChapter   = chapterKey;
   _rbTitle     = chapterTitle || chapterKey;
   _rbRevealed  = new Set();
+  _rbGroep     = window._activeGroupId || null;
+  // Eerder gedane stappen terughalen. Zonder dit begon de balk weer op 0/x
+  // terwijl de spelers hun onthullingen gewoon hielden — je moest dan uit je
+  // hoofd weten waar je gebleven was.
+  api.getAkteVoortgang(chapterKey, _rbGroep)
+    .then(v => {
+      if (_rbChapter !== chapterKey) return;      // ondertussen andere akte geopend
+      (v?.stappen || []).forEach(id => _rbRevealed.add(id));
+      _renderRegieBalk();
+    })
+    .catch(() => {});
   _rbFilter    = 'all';
   _rbMinimized = false;
   _rbScript    = [];  // leeg tot data geladen is
@@ -1955,11 +1968,25 @@ function _renderRegieBalk() {
   requestAnimationFrame(_rbInitDrag);
 };
 
+// Voortgang wegschrijven. Gebundeld met een korte vertraging: tijdens het
+// spelen klik je soms een reeks onthullingen achter elkaar, en dat hoeft geen
+// reeks requests te worden.
+function _rbBewaarVoortgang() {
+  if (!_rbChapter) return;
+  clearTimeout(_rbVoortgangT);
+  const akte  = _rbChapter;
+  const groep = _rbGroep;
+  _rbVoortgangT = setTimeout(() => {
+    api.saveAkteVoortgang(akte, [..._rbRevealed], groep).catch(() => {});
+  }, 600);
+}
+
 // Werk één regie-stap bij zonder de hele balk te herbouwen. Scheelt de zichtbare
 // flits bij elke onthulling (en houdt de scrollpositie sowieso intact). Staat het
 // item niet in de DOM — bv. weggefilterd of balk geminimaliseerd — dan valt het
 // terug op een volledige render.
 function _rbUpdateItem(itemId) {
+  _rbBewaarVoortgang();
   const item = _rbScript.find(x => x.id === itemId);
   const row  = document.querySelector(`#dm-rb-scroll .dm-rb-item[data-rb-id="${window.CSS?.escape ? CSS.escape(itemId) : itemId}"]`);
   if (!item || !row) { _renderRegieBalk(); return; }

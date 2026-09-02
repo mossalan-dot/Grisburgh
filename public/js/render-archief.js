@@ -1,4 +1,4 @@
-import { api } from './api.js?v=244';
+import { api } from './api.js?v=245';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -259,7 +259,7 @@ export async function renderLogboek() {
   if (_logboekActiveTab === 'prikbord') {
     tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
     tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
-    const { renderRelatiemap } = await import('./render-relatiemap.js?v=17');
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=18');
     await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
     return;
   }
@@ -1215,7 +1215,8 @@ window._speelAkte = async (ch, num, title) => {
   try { await api.resetChapterImages(ch); } catch (e) { console.warn('reset images failed', e); }
   window.dmPanel.closeRevealStrip?.();   // sluit de oude reveal strip als die open staat
   window.app?.setActiveAkte?.(ch, num, title);
-  api.setActiveAkte(ch, num, title).catch(() => {});   // onthoud serverzijde (o.a. voor Ursula)
+  // Onthoud serverzijde, per groep (o.a. voor Ursula en om te kunnen hervatten).
+  api.setActiveAkte(ch, num, title, window._activeGroupId || null).catch(() => {});
   const akteTitle = `Akte ${num} · ${title}`;
   window.dmPanel.regieBalkLoad(ch, akteTitle);
   _akteBeheerChanged();

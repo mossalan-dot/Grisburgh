@@ -4579,14 +4579,52 @@ router.put('/meta/akte/:key/script', requireDM, (req, res) => {
   res.json({ script: meta.hoofdstukken[req.params.key].script });
 });
 
+// De actieve akte is per groep, zodat twee groepen tegelijk middenin een akte
+// kunnen staan. dmState.activeAkte blijft als terugval bestaan voor oudere data
+// (en voor lezers zonder groepscontext).
+function _activeAkteVoor(dmState, groupId) {
+  const gid = groupId || dmState.activeGroup;
+  return (gid && dmState.groups?.[gid]?.activeAkte) || dmState.activeAkte || null;
+}
+
 // Actieve akte onthouden (gezet wanneer de DM een akte 'speelt'). Bepaalt o.a. Ursula's doel-akte.
 router.post('/akte/actief', requireDM, (req, res) => {
-  const { key, num, title } = req.body || {};
+  const { key, num, title, groupId } = req.body || {};
   const dmState = readDmState();
-  dmState.activeAkte = { key: key || null, num: num ?? null, title: title || '' };
+  const akte = { key: key || null, num: num ?? null, title: title || '' };
+  const gid = groupId || dmState.activeGroup;
+  if (gid && dmState.groups?.[gid]) dmState.groups[gid].activeAkte = akte;
+  dmState.activeAkte = akte;   // spiegel: laatst gespeelde akte, terugval voor oude lezers
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').to(req.session?.campaignId||'main').emit('ursula:updated');
-  res.json(dmState.activeAkte);
+  res.json(akte);
+});
+
+// ── Regie-voortgang: welke script-stappen zijn al gedaan? ────────────────────
+// De effecten van een onthulling waren al persistent (zichtbaarheid per groep,
+// documentstatus, afbeeldingen), maar de administratie ervan leefde alleen in
+// het browsergeheugen van de DM. Sloot je het venster halverwege een akte, dan
+// begon de regie-balk weer op 0/x terwijl de spelers hun onthullingen hielden.
+// Per groep opgeslagen, want twee groepen spelen dezelfde akte los van elkaar.
+router.get('/akte/:key/voortgang', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = req.query.groupId || dmState.activeGroup;
+  const v = (gid && dmState.groups?.[gid]?.akteVoortgang?.[req.params.key]) || null;
+  res.json({ stappen: v?.stappen || [], bijgewerkt: v?.bijgewerkt || null, groupId: gid || null });
+});
+
+router.put('/akte/:key/voortgang', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const gid = req.body?.groupId || dmState.activeGroup;
+  if (!gid || !dmState.groups?.[gid]) return res.status(400).json({ error: 'Geen actieve groep' });
+  const stappen = Array.isArray(req.body?.stappen)
+    ? req.body.stappen.filter(x => typeof x === 'string').slice(0, 500)
+    : [];
+  const g = dmState.groups[gid];
+  if (!g.akteVoortgang) g.akteVoortgang = {};
+  g.akteVoortgang[req.params.key] = { stappen, bijgewerkt: new Date().toISOString() };
+  storage.writeJSON('dm-state.json', dmState);
+  res.json({ ok: true, aantal: stappen.length });
 });
 
 router.put('/meta/herberg', requireDM, (req, res) => {
@@ -5277,7 +5315,7 @@ function _dumpCombatLog(combat, req) {
   const regels = (combat?.log || []).filter(r => r && r.text);
   if (!regels.length) return;
   const dmState = readDmState();
-  const akte = dmState.activeAkte?.key;
+  const akte = _activeAkteVoor(dmState)?.key;
   if (!akte) return;                       // geen actieve akte → nergens aan te hangen
   const archief = storage.readJSON('archief.json');
   if (!Array.isArray(archief.sessieLog)) archief.sessieLog = [];
@@ -5794,7 +5832,7 @@ function _ursulaHeeftInhoud(def) {
 
 // De eerstvolgende akte na de actieve (laagste num strikt groter dan de actieve).
 function _ursulaVolgendeAkte(meta, dmState) {
-  const actief = dmState.activeAkte;
+  const actief = _activeAkteVoor(dmState);
   if (!actief || actief.num == null) return null;
   const hs = meta.hoofdstukken || {};
   let best = null;
@@ -6104,7 +6142,7 @@ router.get('/ursula', attachRole, (req, res) => {
   res.json({
     config: { naam: config.naam || 'Madame Ursula', prijs: config.prijs || { fl: 20 }, imageId: config.imageId || null, backdropId: config.backdropId || null },
     beschikbaar,
-    geenSessie: !dmState.activeAkte || dmState.activeAkte.num == null,
+    geenSessie: !_activeAkteVoor(dmState) || _activeAkteVoor(dmState).num == null,
     geenAkte: !doel,
     alGeworpen: !!party,
     roll: party?.roll || null,
@@ -6188,7 +6226,7 @@ router.get('/ursula/aktes', requireDM, (req, res) => {
   const aktes = Object.entries(hs)
     .map(([key, h]) => ({ key, num: h.num ?? 99, title: h.title || h.short || key, voorspelling: vs[key] || null }))
     .sort((a, b) => a.num - b.num);
-  res.json({ aktes, activeAkte: dmState.activeAkte || null });
+  res.json({ aktes, activeAkte: _activeAkteVoor(dmState) });
 });
 
 // DM: voorspelling-inhoud voor een akte opslaan
