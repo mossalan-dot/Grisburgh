@@ -2326,6 +2326,13 @@ router.post('/party/long-rest', requireDM, (req, res) => {
 });
 
 // ── Party korte rust (DM-only) ──
+// Sluit het rust-cinematic op alle schermen. De DM drukt op sluiten; zonder dit
+// bleef de tablet met overlay én geluidsloop achter, want die klikt niemand weg.
+router.post('/party/rest/close', requireDM, (req, res) => {
+  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('party:rest-close');
+  res.json({ ok: true });
+});
+
 router.post('/party/short-rest', requireDM, (req, res) => {
   const locatie = req.body?.locatie === 'herberg' ? 'herberg' : 'veld';
   let entities = {};

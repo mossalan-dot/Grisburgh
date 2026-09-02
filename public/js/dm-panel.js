@@ -1,4 +1,4 @@
-import { api } from './api.js?v=243';
+import { api } from './api.js?v=244';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -170,6 +170,7 @@ let _rbTitle      = '';        // weergavetitel
 let _rbFilter     = 'all';     // 'all' | 'image' | 'entity' | 'encounter'
 let _rbRevealed   = new Set(); // item-IDs die al onthuld zijn (session-local)
 let _rbMinimized  = false;
+let _rbEntityImg  = {};   // entityId → imageId, voor de thumbnails in de strip
 let _rbSecretIds  = new Set(); // entity-IDs in deze akte die een geheim hebben
 
 // ── Spreuken state ──
@@ -1733,12 +1734,16 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
   }
   // Markeer welke entity-items een geheim hebben → bepaalt de 'Geheim'-knop.
   _rbSecretIds = new Set();
+  _rbEntityImg = {};
   try {
     const entTypes = [...new Set(_rbScript.filter(x => x.type === 'entity' && x.entityType && x.entityType !== 'documenten').map(x => x.entityType))];
     const lists = await Promise.all(entTypes.map(t => api.listEntities(t).catch(() => [])));
     for (const list of lists) {
       for (const e of (list || [])) {
         if ((e.data?.geheim || '').trim()) _rbSecretIds.add(e.id);
+        // Portret onthouden: de strip toonde alleen een generiek icoon, waardoor
+        // je als DM moest gokken welk kaartje welke entiteit was.
+        if (e.data?.imageId) _rbEntityImg[e.id] = e.data.imageId;
       }
     }
   } catch { /* ok */ }
@@ -1790,7 +1795,12 @@ function _renderRegieBalkItem(item) {
       ? (ENTITY_ICONS[item.entityType] || icon('eye'))
       : icon('crossed-swords', { cls: 'icon-gi' });
     const cls  = item.type === 'entity' ? `dm-rb-entity-${esc(item.entityType)}` : 'dm-rb-entity-encounter';
-    thumbHtml = `<div class="dm-rb-item-entity-thumb ${cls}">${entityIcon}</div>`;
+    // Icoon blijft als onderlaag staan: laadt de thumbnail niet, dan zie je dat
+    // i.p.v. een kapot-afbeeldingsteken.
+    const imgId = item.type === 'entity' ? _rbEntityImg[item.entityId] : null;
+    thumbHtml = `<div class="dm-rb-item-entity-thumb ${cls}${imgId ? ' dm-rb-entity-image' : ''}">${entityIcon}` +
+      (imgId ? `<img class="dm-rb-item-img" src="${esc(api.thumbUrl(imgId))}" loading="lazy" draggable="false" onerror="this.remove()">` : '') +
+      `</div>`;
   }
 
   // Onthul-acties. Entiteiten krijgen meerdere modi (volledig/vaag/geheim) en
@@ -1819,15 +1829,18 @@ function _renderRegieBalkItem(item) {
       : '';
   }
 
+  // Knoppen liggen over het beeldvlak (onder elkaar, zoals de archiefkaartjes);
+  // de voet is daardoor volledig voor de naam. Voorheen verdrongen drie knoppen
+  // de tekst tot een paar letters en werd het gokken welk kaartje wat was.
   return `<div class="dm-rb-item${revealed ? ' dm-rb-item--revealed' : ''}" data-rb-id="${esc(item.id)}">
     <div class="dm-rb-item-thumb-wrap">
       ${thumbHtml}
       ${revealed ? `<div class="dm-rb-item-revealed-overlay">${icon('check')}</div>` : ''}
+      ${actions ? `<span class="dm-rb-item-actions">${actions}</span>` : ''}
     </div>
     <div class="dm-rb-item-foot">
       <span class="dm-rb-item-icon">${typeIcon}</span>
       <span class="dm-rb-item-name" title="${esc(name)}">${esc(name)}</span>
-      <span class="dm-rb-item-actions">${actions}</span>
     </div>
   </div>`;
 };

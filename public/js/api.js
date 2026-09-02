@@ -309,6 +309,8 @@ export const api = {
   getCombat:        ()        => request('/combat'),
   startCombat:      ()        => request('/combat/start',              { method: 'POST' }),
   endCombat:        ()        => request('/combat',                    { method: 'DELETE' }),
+  // Sluit het rust-cinematic bij iedereen (DM-actie; de tablet kan zichzelf niet sluiten).
+  closeRest:        ()        => request('/party/rest/close',          { method: 'POST', body: '{}' }),
   updateCombat:     (data)    => request('/combat',                    { method: 'PUT',    body: JSON.stringify(data) }),
   addCombatant:     (data)    => request('/combat/combatant',          { method: 'POST',   body: JSON.stringify(data) }),
   voegMetgezellen:  ()        => request('/combat/voeg-metgezellen',   { method: 'POST' }),

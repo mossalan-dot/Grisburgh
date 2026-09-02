@@ -3906,8 +3906,10 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 /* Item cards in the Regie-balk */
 .dm-rb-item {
-  width: 116px;
-  min-width: 116px;
+  /* Iets breder dan voorheen (116px): de naam is nu het belangrijkste element
+     op het kaartje en moet leesbaar zijn zonder direct af te kappen. */
+  width: 136px;
+  min-width: 136px;
   border-radius: 6px;
   border: 1px solid rgba(196, 168, 122, 0.4);
   background: var(--color-room-elevated, #e6d5ad);
@@ -3973,7 +3975,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-rb-item-icon { font-size: 11px; flex-shrink: 0; }
 .dm-rb-item-name {
   flex: 1;
-  font-size: 10px;
+  font-size: 11.5px;
   font-family: var(--font-crimson, 'Crimson Text', serif);
   color: var(--color-ink-medium, #5a4030);
   overflow: hidden;
@@ -3994,8 +3996,26 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 .dm-rb-reveal-btn:hover { background: var(--color-gold, #b8860b); }
 .dm-rb-reveal-btn .icon { width: 12px; height: 12px; vertical-align: middle; }
-/* Onthul-modi per entity-item */
-.dm-rb-item-actions { display: inline-flex; gap: 3px; flex-shrink: 0; }
+/* Onthul-modi per entity-item.
+   De knoppen liggen over het beeldvlak i.p.v. naast de naam: met drie knoppen
+   in de voet bleef er van de titel niets over. Verticaal gestapeld rechtsboven,
+   zoals de actieknoppen op de archiefkaartjes. */
+.dm-rb-item-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 2;
+}
+.dm-rb-item-actions .dm-rb-reveal-btn {
+  padding: 3px 5px;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.45);
+  opacity: 0.92;
+}
+.dm-rb-item-actions .dm-rb-reveal-btn:hover { opacity: 1; }
 .dm-rb-reveal-btn--vaag   { background: var(--blue-ink, #2a5a8a); }
 .dm-rb-reveal-btn--vaag:hover { background: #3a6aa0; }
 .dm-rb-reveal-btn--geheim { background: var(--seal, #8b2a2a); }
@@ -14149,6 +14169,11 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 @keyframes brief-cine-in  { from{ opacity:0; } to{ opacity:1; } }
 @keyframes brief-cine-out { from{ opacity:1; } to{ opacity:0; } }
 .brief-cinematic-scene { display:flex; flex-direction:column; align-items:center; gap:22px; }
+/* De twee fasen (verzegeld / geopend) zijn gewone divs en werden dus zo breed
+   als hun breedste kind — meestal de tekst. De brief van 300px plakte daardoor
+   tegen de linkerrand terwijl de tekst eronder wél gecentreerd stond. */
+.brief-cinematic-sealed { display:flex; flex-direction:column; align-items:center; gap:20px; }
+.brief-cinematic-sealed.hidden { display:none; }
 .brief-cinematic-brief {
   position:relative; width:300px; height:200px; border-radius:6px;
   background: linear-gradient(170deg,#f7eed7 0%,#ecdcb8 100%);

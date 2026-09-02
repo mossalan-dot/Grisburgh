@@ -1,16 +1,16 @@
-import { api } from './api.js?v=243';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=116";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=63";
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=13';
-import { renderDungeon } from './render-dungeon.js?v=26';
-import { renderRelatiemap } from './render-relatiemap.js?v=16';
-import { renderProgressie } from './render-progressie.js?v=38';
-import { renderBestiarium } from './render-bestiarium.js?v=15';
-import { renderSpreuken } from './render-spreuken.js?v=7';
+import { api } from './api.js?v=244';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=117";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=64";
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=14';
+import { renderDungeon } from './render-dungeon.js?v=27';
+import { renderRelatiemap } from './render-relatiemap.js?v=17';
+import { renderProgressie } from './render-progressie.js?v=39';
+import { renderBestiarium } from './render-bestiarium.js?v=16';
+import { renderSpreuken } from './render-spreuken.js?v=8';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=51";
-import { initDmPanel } from "./dm-panel.js?v=138";
-import './media-picker.js?v=2';
+import { initSocket } from "./socket-client.js?v=52";
+import { initDmPanel } from "./dm-panel.js?v=139";
+import './media-picker.js?v=3';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -5337,6 +5337,7 @@ window._rustCinematic = (payload) => {
   const { type, locatie, backdropId, loopFileId, roddels = [], perPlayer = {}, herbergNaam, gebeurtenissen = [] } = payload;
   const isLong = type === 'long';
   const isDisplay = !!window._isDisplayMode;
+  const isDM = !!window.app?.isDM?.();
   const myCharId = window.app?.state?.characterId;
   // Op het gedeelde tafelscherm (geen eigen karakter) tonen we een party-brede variant.
   const mine = (!isDisplay && myCharId) ? perPlayer[myCharId] : null;
@@ -5409,23 +5410,42 @@ window._rustCinematic = (payload) => {
       ${hitDiceHtml}
       ${eventHtml}
       ${roddelHtml}
-      <button class="rust-cinematic-sluit">${(!isLong && hitDiceHtml) ? 'Klaar met rusten' : 'Sluiten'}</button>
-      ${(isLong || !hitDiceHtml) ? '<div class="rust-cinematic-hint">klik buiten het venster om te sluiten</div>' : ''}
+      <button class="rust-cinematic-sluit">${(!isLong && hitDiceHtml) ? 'Klaar met rusten' : (isDM ? 'Sluiten voor iedereen' : 'Sluiten')}</button>
+      <div class="rust-cinematic-hint">${isDM
+        ? 'sluit het rustscherm bij iedereen — ook op de tablet'
+        : 'sluit alleen jouw scherm'}</div>
     </div>`;
 
+  // Lokaal sluiten: overlay weg én de rustloop stoppen. Er is bewust géén timer
+  // meer — met een reeks onthulde roddels las niemand het op tijd. De DM bepaalt
+  // wanneer het weg mag; een speler kan zijn eigen scherm wegklikken.
   const dismiss = () => {
     if (ov.dataset.dicht) return; ov.dataset.dicht = '1';
     window.soundManager?.stopRestLoop?.();
     ov.classList.add('rust-cinematic-overlay--uit');
     setTimeout(() => ov.remove(), 420);
+    if (window._rustSluitLokaal === dismiss) window._rustSluitLokaal = null;
   };
+  // Sluit de overlay op álle schermen. Alleen de DM doet dit; de tablet heeft
+  // niemand die erop klikt, dus die moet van buitenaf dicht kunnen.
+  const dismissAlles = () => { api.closeRest().catch(() => {}); dismiss(); };
+
+  // Haak voor de socket: een 'party:rest-close' van de DM sluit dit scherm.
+  window._rustSluitLokaal = dismiss;
+
   if (loopFileId) window.soundManager?.playRestLoop?.(loopFileId);
-  ov.querySelector('.rust-cinematic-sluit')?.addEventListener('click', dismiss);
-  // Klik buiten de scene sluit; alleen de interactieve korte rust (Hit Dice-paneel) blijft staan
-  ov.addEventListener('click', (e) => { if (!e.target.closest('.rust-cinematic-scene')) dismiss(); });
-  if (isLong || !hitDiceHtml) setTimeout(dismiss, isLong ? 14000 : 9000);
+  const sluitActie = isDM ? dismissAlles : dismiss;
+  ov.querySelector('.rust-cinematic-sluit')?.addEventListener('click', sluitActie);
+  // Klik buiten de scene sluit ook; alleen de interactieve korte rust met het
+  // Hit Dice-paneel blijft staan, zodat je daar niet per ongeluk uit klikt.
+  ov.addEventListener('click', (e) => {
+    if (!e.target.closest('.rust-cinematic-scene') && (isLong || !hitDiceHtml)) sluitActie();
+  });
   document.body.appendChild(ov);
 };
+
+// Van buitenaf (socket) het rustscherm sluiten.
+window._rustSluit = () => { window._rustSluitLokaal?.(); };
 
 window._updateBerichtenBadge = function() {
   const count = window._berichtenUnread || 0;
