@@ -100,7 +100,13 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    kaarten, sfeerbeelden, andermans uploads) vraagt een sessie in díé campagne.
    *Harde voorwaarde vooraf:* een testsuite die als DM 2 inlogt en dan probéért
    bij Grisburgh te komen — lezen én schrijven, elk endpoint. Slaagt die aanval
-   ergens, dan gaat er niemand op. Na deze stap kan DM 2 er al op, met alles aan.
+   ergens, dan gaat er niemand op.
+   **Staat er: `tests/campagne-isolatie.test.js`** — elf tests, allemaal rood,
+   met een `todo`-vlag zodat `npm test` groen blijft voor ander werk. Los te
+   draaien met `npm run test:isolatie`. De aannames over de nieuwe API staan in
+   drie helpers boven in dat bestand; kiest de implementatie een andere vorm,
+   pas dan alleen die aan. Zodra de stap af is: todo-vlag weg, dan zijn het
+   echte poortwachters. Na deze stap kan DM 2 er al op, met alles aan.
 2. **Backups automatisch.** Dagelijks alle JSON per campagne met rotatie (klein:
    kilobytes) plus een kopie bij Alan. Vóór stap 3, want daarna wordt er aan
    gedeelde code gezeten.
