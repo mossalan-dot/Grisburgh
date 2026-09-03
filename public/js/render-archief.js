@@ -272,7 +272,7 @@ export async function renderLogboek() {
       <input type="text" class="logboek-search-input" id="logboek-search-input"
         placeholder="Zoek in het logboek…" value="${esc(logboekSearch)}"
         oninput="window._logboekSearch(this.value)"${isDM() ? ' style="padding-right:46px"' : ''}>
-      ${isDM() ? `<button class="sbs-add-btn" onclick="window.app.onFabClick()" title="Nieuwe log-entry" style="position:absolute;right:30px;top:50%;transform:translateY(-50%)">${icon('plus')}</button>` : ''}
+
     </div>
     <div class="flex-1 overflow-y-auto px-6 pb-6" id="logboek-body">
       ${_buildLogboekBody(visibleEntries, hk)}
@@ -649,7 +649,7 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
       <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">
         ${logboekSearch ? 'Geen resultaten gevonden.' : 'Het archief is nog leeg...'}
       </div>
-      ${!logboekSearch && isDM() ? `<div class="text-xs font-fell italic mt-1">Gebruik de <span class="font-mono px-1 py-0.5 bg-room-elevated rounded">+</span> knop om een sessieverslag toe te voegen. Nieuwe aktes maak je in Meesterkamer → Aktes.</div>` : ''}
+      ${!logboekSearch && isDM() ? `<div class="text-xs font-fell italic mt-1">Sessieverslagen en aktes beheer je in Meesterkamer → Aktes. Hier zie je wat de spelers zien; verborgen items staan gedimd.</div>` : ''}
     </div>`;
   }
 
@@ -1022,14 +1022,9 @@ function renderSessieEntry(e, sessieNum = null, chLabel = null) {
   return `
     <div class="logboek-tl-entry logboek-tl-entry--h${isDM() && !e.visible ? ' logboek-entry--hidden' : ''}"
       onclick="window._openSessieDetail('${e.id}')">
-      ${isDM() ? `
-        <div class="dm-only absolute top-2 right-2 z-10 flex gap-1">
-          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            title="${e.visible ? 'Verbergen' : 'Zichtbaar maken'}" onclick="event.stopPropagation();window._toggleSessieVis('${e.id}',${!!e.visible})">${e.visible ? icon('eye') : icon('lock')}</button>
-          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            title="Bewerken" onclick="event.stopPropagation();window._openSessieEditor('${e.id}')">${icon('pencil')}</button>
-          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-red-700/90 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            title="Verwijderen" onclick="event.stopPropagation();window._deleteSessie('${e.id}')">${icon('x')}</button>
+      ${isDM() && !e.visible ? `
+        <div class="dm-only absolute top-2 right-2 z-10">
+          <span class="logboek-verborgen-badge" title="Verborgen voor spelers — beheer dit in Meesterkamer → Aktes">${icon('lock')}</span>
         </div>
       ` : ''}
       <div class="logboek-tl-card logboek-tl-card--h">
@@ -1117,8 +1112,8 @@ window._saveLogNote = async (sessieId, text) => {
   try { await api.savePlayerNote(sessieId, text); } catch {}
 };
 
-export function openLogboekEditor(editId) {
-  window._openSessieEditor(editId);
+export function openLogboekEditor(editId, voorAkte) {
+  window._openSessieEditor(editId, voorAkte);
 }
 
 window._toggleSessieVis = async (id, currentVisible) => {
@@ -2135,7 +2130,7 @@ window._pickBannerImg = (btn) => {
   }
 };
 
-window._openSessieEditor = async (editId) => {
+window._openSessieEditor = async (editId, voorAkte) => {
   const hk = meta?.hoofdstukken || {};
   let e = null;
   if (editId) {
@@ -2185,7 +2180,7 @@ window._openSessieEditor = async (editId) => {
           <select id="hk-select" name="hoofdstuk" class="flex-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
             <option value="">—</option>
             ${Object.entries(hk).sort(([,a],[,b]) => a.num - b.num).map(([k, v]) =>
-              `<option value="${k}" ${e?.hoofdstuk === k ? 'selected' : ''}>${v.short}</option>`
+              `<option value="${k}" ${(e?.hoofdstuk || voorAkte) === k ? 'selected' : ''}>${v.short}</option>`
             ).join('')}
           </select>
         </div>
@@ -2295,6 +2290,7 @@ window._openSessieEditor = async (editId) => {
       else await api.createSessieLog(payload);
       closeModal();
       renderLogboek();
+      _akteBeheerChanged();   // Aktes-tab in de Meesterkamer mee verversen
     } catch (err) { alert('Fout: ' + err.message); }
   });
 };

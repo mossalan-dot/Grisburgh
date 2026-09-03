@@ -411,6 +411,17 @@ export function initDmPanel() {
 
     // Aktes (voorbereiding & regie — verhuisd vanuit het Logboek)
     akteNieuw:    () => _akteNieuw(),
+    // Sessieverslagen — de editor zelf leeft in render-archief.js, net als bij
+    // het regie-script; hier alleen de aanroepen.
+    verslagNieuw:   (ch) => window._openSessieEditor?.(null, ch),
+    verslagBewerk:  (id) => window._openSessieEditor?.(id),
+    verslagVerwijder: (id) => window._deleteSessie?.(id),
+    async verslagVis(id, zichtbaar) {
+      try {
+        await api.updateSessieLog(id, { visible: !zichtbaar });
+        await _renderAktes(true);
+      } catch (e) { _showToast('Kon zichtbaarheid niet wijzigen'); }
+    },
     akteImport:   () => _akteImportWizard(),
     akteImpAnalyse: () => _akteImpAnalyse(),
     akteImpToggle:  (id) => _akteImpToggle(id),
@@ -782,7 +793,9 @@ async function _renderAktes(preserveScroll = false) {
                   title="${hidden ? 'Akte verborgen voor ' + esc(grpName) + ' — klik om te tonen' : 'Akte zichtbaar voor ' + esc(grpName) + ' — klik om te verbergen'}">
                   ${hidden ? icon('lock') : icon('eye')}</button>` : ''}
               </div>
-              ${open ? `<div class="dm-akte-script logboek-chapter-script" id="logboek-script-section-${esc(ch)}">${(window._akteScriptHtml ? window._akteScriptHtml(ch) : '')}</div>` : ''}
+              ${open ? `
+                <div class="dm-akte-script logboek-chapter-script" id="logboek-script-section-${esc(ch)}">${(window._akteScriptHtml ? window._akteScriptHtml(ch) : '')}</div>
+                ${_akteVerslagenHtml(ch, archief)}` : ''}
             </div>`;
           }).join('')}
     </div>`;
@@ -790,6 +803,44 @@ async function _renderAktes(preserveScroll = false) {
   // Herstel de scrollpositie na een in-place herrender (zie preserveScroll hierboven).
   if (savedScroll != null && scroller) scroller.scrollTop = savedScroll;
 };
+
+// Sessieverslagen van deze akte. Stonden alleen in het Logboek, waardoor je
+// voor het voorbereiden van een akte tussen twee schermen heen en weer moest.
+// Het Logboek is nu puur het overzicht dat de spelers na afloop zien.
+function _akteVerslagenHtml(ch, archief) {
+  const entries = (archief?.sessieLog || [])
+    .filter(e => e.hoofdstuk === ch)
+    .sort((a, b) => String(a.datum || '').localeCompare(String(b.datum || '')));
+  return `
+    <div class="dm-akte-verslagen">
+      <div class="dm-section-label" style="margin-top:2px">
+        ${icon('scroll-text')} Sessieverslagen
+        <button class="dm-btn dm-btn-sm dm-btn-primary" style="margin-left:auto"
+          onclick="event.stopPropagation();window.dmPanel.verslagNieuw('${esc(ch)}')"
+          title="Nieuw sessieverslag voor deze akte">${icon('plus')} Verslag</button>
+      </div>
+      ${entries.length === 0
+        ? '<p class="dm-hint" style="opacity:.7;margin:2px 0 0">Nog geen verslagen voor deze akte.</p>'
+        : `<div class="dm-verslag-lijst">${entries.map(e => {
+            const zichtbaar = !!e.visible;
+            const aantalImg = (e.images || []).length;
+            return `
+              <div class="dm-verslag-rij${zichtbaar ? '' : ' is-verborgen'}">
+                <span class="dm-verslag-titel" title="${esc(e.korteSamenvatting || '')}">${esc(e.korteSamenvatting || 'Naamloos verslag')}</span>
+                ${e.datum ? `<span class="dm-hint">${esc(e.datum)}</span>` : ''}
+                ${aantalImg ? `<span class="dm-hint">${icon('image')} ${aantalImg}</span>` : ''}
+                <span class="dm-verslag-acties">
+                  <button class="dm-btn dm-btn-sm dm-btn-icon" title="${zichtbaar ? 'Zichtbaar voor spelers — klik om te verbergen' : 'Verborgen — klik om te tonen'}"
+                    onclick="event.stopPropagation();window.dmPanel.verslagVis('${esc(e.id)}',${zichtbaar})">${zichtbaar ? icon('eye') : icon('lock')}</button>
+                  <button class="dm-btn dm-btn-sm dm-btn-icon" title="Bewerken"
+                    onclick="event.stopPropagation();window.dmPanel.verslagBewerk('${esc(e.id)}')">${icon('pencil')}</button>
+                  <button class="dm-btn dm-btn-sm dm-btn-icon dm-btn-danger-sm" title="Verwijderen"
+                    onclick="event.stopPropagation();window.dmPanel.verslagVerwijder('${esc(e.id)}')">${icon('trash')}</button>
+                </span>
+              </div>`;
+          }).join('')}</div>`}
+    </div>`;
+}
 
 function _akteNieuw() {
   const meta = window.app?.state?.meta || {};

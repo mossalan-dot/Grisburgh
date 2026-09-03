@@ -4417,6 +4417,34 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-tab-content.active { display: block; }
 .dm-feature-section + .dm-feature-section { border-top: 1px solid rgba(196,168,122,0.45); }
 
+/* ── Sessieverslagen in de aktekaart ─────────────────────────────────────────
+   Stonden alleen in het Logboek; dat is nu puur het overzicht dat spelers na
+   afloop zien. Voorbereiden gebeurt hier. */
+.dm-akte-verslagen { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(196,168,122,0.35); }
+.dm-akte-verslagen .dm-section-label { display: flex; align-items: center; gap: 6px; }
+.dm-verslag-lijst { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+.dm-verslag-rij {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 7px;
+  background: rgba(242,232,210,0.5);
+  border: 1px solid rgba(196,168,122,0.35);
+  border-radius: 5px;
+  font-family: 'Crimson Text', serif;
+  font-size: 12.5px;
+}
+.dm-verslag-rij.is-verborgen { opacity: 0.6; }
+.dm-verslag-titel { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dm-verslag-acties { display: flex; gap: 2px; flex-shrink: 0; }
+.logboek-verborgen-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 5px;
+  background: rgba(0,0,0,0.68);
+  color: rgba(255,255,255,0.85);
+}
+
 /* ── DM Instellingen knop (⚙️) — bovenaan de tab-kolom ──
    Stond onderaan (margin-top:auto), maar daar schuift de regie-balk overheen
    zodra er een akte actief is. */
