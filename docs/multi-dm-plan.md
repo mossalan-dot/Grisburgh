@@ -101,12 +101,23 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    *Harde voorwaarde vooraf:* een testsuite die als DM 2 inlogt en dan probéért
    bij Grisburgh te komen — lezen én schrijven, elk endpoint. Slaagt die aanval
    ergens, dan gaat er niemand op.
-   **Staat er: `tests/campagne-isolatie.test.js`** — elf tests, allemaal rood,
-   met een `todo`-vlag zodat `npm test` groen blijft voor ander werk. Los te
-   draaien met `npm run test:isolatie`. De aannames over de nieuwe API staan in
-   drie helpers boven in dat bestand; kiest de implementatie een andere vorm,
+   **Staat er: `tests/campagne-isolatie.test.js`** — dertien tests, allemaal
+   rood, met een `todo`-vlag zodat `npm test` groen blijft voor ander werk. Los
+   te draaien met `npm run test:isolatie`. De aannames over de nieuwe API staan
+   in drie helpers boven in dat bestand; kiest de implementatie een andere vorm,
    pas dan alleen die aan. Zodra de stap af is: todo-vlag weg, dan zijn het
-   echte poortwachters. Na deze stap kan DM 2 er al op, met alles aan.
+   echte poortwachters.
+   Elf tests dekken de losse gevallen (logins, personagekiezer, bestanden). De
+   twaalfde is een **veegtest**: die haalt alle GET-routes uit de Express-router,
+   vult de pad-parameters met echte ids uit campagne alfa, roept ze als DM van
+   beta aan en faalt zodra er een kanarie-tekenreeks uit alfa in een antwoord
+   opduikt. Zo groeit de dekking mee met elk endpoint dat erbij komt — nu 78 van
+   de 78 GET-routes. De dertiende controleert de socketkamers: een live-update
+   in alfa mag niet bij beta aankomen (`server.js:129` laat een verbinding
+   zonder `campaignId` nu in de gedeelde room `'main'` landen).
+   Beide zijn los bewezen op een gezaaide campagne: de veeg vindt de kanarie
+   dan op `/entities/personages`, `/entities/personages/:id`, `/archief`,
+   `/characters/:id/sheet` en `/monsters`, en het socket-event komt binnen. Na deze stap kan DM 2 er al op, met alles aan.
 2. **Backups automatisch.** Dagelijks alle JSON per campagne met rotatie (klein:
    kilobytes) plus een kopie bij Alan. Vóór stap 3, want daarna wordt er aan
    gedeelde code gezeten.

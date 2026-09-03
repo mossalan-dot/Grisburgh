@@ -4,6 +4,7 @@ const http = require('http');
 const os   = require('os');
 const path = require('path');
 const fs   = require('fs');
+const { io: ioClient } = require('socket.io-client');
 
 // ── Campagne-isolatie ────────────────────────────────────────────────────────
 // Deze suite beschrijft wat waar moet zijn zódra er een tweede DM op de server
@@ -53,6 +54,55 @@ const spelerLogin = (s, campagne, id, wachtwoord) => req(s, 'POST', '/api/auth/p
 // De landingspagina is voor iedereen te bezoeken, dus deze mág zonder sessie.
 const spelerLijst = (s, campagne)               => req(s, 'GET', `/api/auth/players?campagne=${encodeURIComponent(campagne)}`);
 
+// Een onmiskenbare tekenreeks die alleen in campagne alfa voorkomt. Duikt hij
+// op in een antwoord dat je als DM van beta krijgt, dan lekt er iets.
+// Bewust NIET in meta.appTitle: campagnetitels zijn publiek, die heeft de
+// landingspagina nodig.
+const KANARIE = 'KANARIE-ALFA-8f3c1d';
+
+// Alle GET-routes rechtstreeks uit de Express-router, met de pad-parameters
+// ingevuld met échte ids uit alfa. Zo groeit de veegtest vanzelf mee met elk
+// endpoint dat er later bij komt — bij driehonderd endpoints is een
+// handgeschreven lijst binnen een maand achterhaald.
+//
+// Het invullen van parameters is geen bijzaak: bij de eerste opzet sloeg de
+// veeg alle routes mét parameter over, en dat is nou net waar de inhoud zit
+// (`/entities/:type`, `/files/:id`, `/player-profile/:characterId`). De kanarie
+// werd toen op twee van de vijftig routes gevonden in plaats van overal.
+function getRoutes(waarden) {
+  const router = require('../routes/api');
+  const paden = router.stack
+    .filter(laag => laag.route && laag.route.methods.get)
+    .map(laag => laag.route.path)
+    .filter(pad => !pad.includes('*'));
+
+  const gevuld = [], ongedekt = [];
+  for (const pad of paden) {
+    const params = pad.match(/:[a-zA-Z]+/g) || [];
+    if (params.some(par => !(par in waarden))) { ongedekt.push(pad); continue; }
+    gevuld.push(params.reduce((p, par) => p.replace(par, waarden[par]), pad));
+  }
+  return { gevuld, ongedekt };
+}
+
+// Wacht op een socket-event, of geef null terug als het binnen ms niet komt.
+function wachtOp(socket, event, ms = 600) {
+  return new Promise((resolve) => {
+    const t = setTimeout(() => resolve(null), ms);
+    socket.once(event, (data) => { clearTimeout(t); resolve(data); });
+  });
+}
+
+function verbind(port, cookie) {
+  const opts = { transports: ['polling'], forceNew: true };
+  if (cookie) opts.extraHeaders = { Cookie: cookie };
+  const s = ioClient(`http://localhost:${port}`, opts);
+  return new Promise((resolve, reject) => {
+    s.on('connect', () => resolve(s));
+    s.on('connect_error', reject);
+  });
+}
+
 // Een test die zegt "dit mag niet" bewijst niets zolang de gewone weg óók
 // stukloopt — dan slaagt hij omdat er helemaal niets werkt. Elke kruislingse
 // test begint daarom met de legitieme handeling; die moet éérst lukken.
@@ -84,6 +134,32 @@ function zetCampagneKlaar(storage, id, { dmWachtwoord, groepWachtwoord, spelerNa
   return { spelerId, geheimId };
 }
 
+// Strooi de kanarie door de inhoudsbestanden van een campagne, zodat de
+// veegtest hem via zo veel mogelijk endpoints kán tegenkomen.
+function zaaiKanarie(id) {
+  const dir = path.join(CAMPAGNES, id);
+  const lees = (f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+  const schrijf = (f, v) => fs.writeFileSync(path.join(dir, f), JSON.stringify(v, null, 2));
+
+  const entities = lees('entities.json');
+  for (const soort of ['personages', 'locaties', 'organisaties', 'voorwerpen']) {
+    entities[soort].push({ id: `e_${soort}_kanarie`, name: `${KANARIE} ${soort}`, data: { desc: KANARIE } });
+  }
+  schrijf('entities.json', entities);
+
+  const archief = lees('archief.json');
+  archief.documents.push({ id: 'doc_kanarie', title: KANARIE, content: KANARIE });
+  archief.logEntries.push({ id: 'log_kanarie', text: KANARIE });
+  schrijf('archief.json', archief);
+
+  schrijf('monsters.json', [{ id: 'mon_kanarie', name: KANARIE, cr: '1' }]);
+  schrijf('tables.json', { tables: [{ id: 'tbl_kanarie', name: KANARIE, rows: [KANARIE] }] });
+
+  const dmState = lees('dm-state.json');
+  dmState.dmNotes = { kanarie: KANARIE };
+  schrijf('dm-state.json', dmState);
+}
+
 describe('Campagne-isolatie', { todo: 'wordt groen in stap 1 van docs/multi-dm-plan.md' }, () => {
   let server, io, storage, alfa, beta;
 
@@ -99,6 +175,7 @@ describe('Campagne-isolatie', { todo: 'wordt groen in stap 1 van docs/multi-dm-p
     alfa = zetCampagneKlaar(storage, 'alfa', { dmWachtwoord: 'alfa-dm', groepWachtwoord: 'alfa-groep', spelerNaam: 'Lyra' });
     // Bewust dezelfde personagenaam in beide campagnes.
     beta = zetCampagneKlaar(storage, 'beta', { dmWachtwoord: 'beta-dm', groepWachtwoord: 'beta-groep', spelerNaam: 'Lyra' });
+    zaaiKanarie('alfa');
   });
 
   after(async () => {
@@ -185,5 +262,71 @@ describe('Campagne-isolatie', { todo: 'wordt groen in stap 1 van docs/multi-dm-p
     const r = await req(server, 'GET', `/api/files/${alfa.geheimId}`, null, cookie);
     assert.ok(r.status >= 400, 'beta mag niet bij de uploads van alfa');
     assert.ok(!String(r.body).includes('geheim-alfa'), 'en de inhoud mag al helemaal niet meekomen');
+  });
+
+  // ── De veegtest ──
+  // Elf handgeschreven tests dekken zes van de ruim driehonderd endpoints. Deze
+  // loopt ze allemaal af die zonder pad-parameter te bereiken zijn, en groeit
+  // dus mee met elk endpoint dat er later bij komt.
+  it('lekt via geen enkele GET-route inhoud van een andere campagne', async (t) => {
+    // De parameters worden gevuld met echte ids uit alfa — dat ís de aanval:
+    // de DM van beta die het id van iemand anders opvraagt.
+    const { gevuld: paden, ongedekt } = getRoutes({
+      ':type': 'personages',
+      ':id': 'e_personages_kanarie',
+      ':entityId': 'e_personages_kanarie',
+      ':characterId': alfa.spelerId,
+      ':shopId': 'e_personages_kanarie',
+      ':npcId': 'e_personages_kanarie',
+      ':petId': 'e_personages_kanarie',
+      ':key': 'h1',
+      ':index': 'goblin',
+      ':dienst': 'herberg',
+    });
+    assert.ok(paden.length > 60, `de router hoort tientallen GET-routes te hebben, gevonden: ${paden.length} — klopt de enumeratie nog?`);
+    if (ongedekt.length) t.diagnostic(`niet geveegd (onbekende parameter): ${ongedekt.join(', ')}`);
+
+    // Positieve controle: de kanarie moet vanuit alfa wél te zien zijn, anders
+    // zegt een schone veegbeurt alleen dat het zaaien mislukt is.
+    const alfaSessie = moetLukken(await dmLogin(server, 'alfa', 'alfa-dm'), 'inloggen als DM van alfa');
+    const eigen = await req(server, 'GET', '/api/monsters', null, alfaSessie.cookie);
+    assert.ok(JSON.stringify(eigen.body).includes(KANARIE), 'de kanarie hoort in de eigen campagne gewoon zichtbaar te zijn');
+
+    const { cookie } = moetLukken(await dmLogin(server, 'beta', 'beta-dm'), 'inloggen als DM van beta');
+    const lekken = [];
+    for (const pad of paden) {
+      const r = await req(server, 'GET', `/api${pad}`, null, cookie);
+      const tekst = Buffer.isBuffer(r.body) ? r.body.toString('utf8')
+                  : typeof r.body === 'string' ? r.body : JSON.stringify(r.body ?? '');
+      if (tekst.includes(KANARIE)) lekken.push(pad);
+    }
+    assert.deepEqual(lekken, [], `deze routes gaven de DM van beta inhoud uit alfa: ${lekken.join(', ')}`);
+    // De veeg zoekt op tekst; een bestand komt binnen als bytes. Die apart.
+    const bestand = await req(server, 'GET', `/api/files/${alfa.geheimId}`, null, cookie);
+    assert.ok(!bestand.body?.toString?.().includes('geheim-alfa'), 'ook de inhoud van een bestand mag niet meekomen');
+  });
+
+  // ── De socketkamer ──
+  // server.js laat een verbinding zonder campaignId in de room 'main' landen.
+  // Twee DM's die daar allebei in zitten, zien elkaars live-updates.
+  it('stuurt live-updates alleen naar de eigen campagne', async () => {
+    const port = server.address().port;
+    const alfaSessie = moetLukken(await dmLogin(server, 'alfa', 'alfa-dm'), 'inloggen als DM van alfa');
+    const betaSessie = moetLukken(await dmLogin(server, 'beta', 'beta-dm'), 'inloggen als DM van beta');
+
+    const alfaSocket = await verbind(port, alfaSessie.cookie);
+    const betaSocket = await verbind(port, betaSessie.cookie);
+    try {
+      const bijAlfa = wachtOp(alfaSocket, 'entity:updated');
+      const bijBeta = wachtOp(betaSocket, 'entity:updated');
+      await req(server, 'PUT', `/api/entities/personages/${alfa.spelerId}`, { name: 'Lyra de Herziene' }, alfaSessie.cookie);
+
+      // Positieve controle eerst: hoort de eigen campagne het wél?
+      assert.ok(await bijAlfa, 'de DM van alfa hoort zijn eigen wijziging te zien');
+      assert.equal(await bijBeta, null, 'de DM van beta hoort er niets van te merken');
+    } finally {
+      alfaSocket.close();
+      betaSocket.close();
+    }
   });
 });
