@@ -1,4 +1,4 @@
-import { api } from './api.js?v=248';
+import { api } from './api.js?v=249';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=121";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=70";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=20';
 import { renderSpreuken } from './render-spreuken.js?v=12';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=58";
-import { initDmPanel } from "./dm-panel.js?v=161";
+import { initDmPanel } from "./dm-panel.js?v=162";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -2091,6 +2091,9 @@ window.renderGroupSwitcher = async function(groups, activeGroupId) {
   _activeGroupId = activeGroupId;
   window._activeGroupId = activeGroupId; // toegankelijk voor andere modules (render-archief)
   window._groups = groups;               // groepslijst voor naam-opzoeken + DM-paneel
+  // Wie er vanavond niet is (per sessie, door de DM ingesteld). Eén plek voor
+  // alle modules: deze functie draait bij het laden én bij elk groups:updated.
+  window._groepAfwezig = (groups || []).find(g => g.id === activeGroupId)?.afwezig || [];
   const wrap = document.getElementById('group-pill-wrap');
   const pill = document.getElementById('group-pill');
   const dd   = document.getElementById('group-dropdown');

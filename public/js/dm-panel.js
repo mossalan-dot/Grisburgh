@@ -1,4 +1,4 @@
-import { api } from './api.js?v=248';
+import { api } from './api.js?v=249';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=21';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -435,6 +435,7 @@ export function initDmPanel() {
     akteVisToggle:(ch, hidden) => window._toggleChapterVisibility?.(ch, hidden),
 
     // Regie-balk
+    aanwezigheidToggle:      (groepId, charId) => _aanwezigheidToggle(groepId, charId),
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
     regieBalkRust:           (id) => _regieBalkRust(id),
@@ -3859,9 +3860,13 @@ async function _syncSpelerHp() {
 };
 
 async function _autoAddSpelers() {
+  // Wie vanavond niet aan tafel zit, hoort ook niet in het gevecht te staan —
+  // dat was elke sessie handwerk om weer weg te klikken.
+  const weg = new Set(window._groepAfwezig || []);
   const spelers = _setupPersonages.filter(e =>
     e.subtype === 'speler' &&
-    (!window._activeGroupId || e.data?.groep === window._activeGroupId)
+    (!window._activeGroupId || e.data?.groep === window._activeGroupId) &&
+    !weg.has(e.id)
   );
   for (const e of spelers) {
     let maxHp   = parseInt(e.stats?.hp) || 10;
@@ -8845,6 +8850,22 @@ window._dmInstellingenClose = () => {
   if (overlay) overlay.classList.add('hidden');
 };
 
+// Zet één speler op aanwezig/afwezig voor deze sessie. We sturen de hele lijst
+// mee (niet één wijziging), zodat er geen samenvoeg-gedoe op de server nodig is.
+async function _aanwezigheidToggle(groepId, charId) {
+  try {
+    const gr = await api.listGroups();
+    const g  = (gr.groups || []).find(x => x.id === groepId);
+    const weg = new Set(g?.afwezig || []);
+    weg.has(charId) ? weg.delete(charId) : weg.add(charId);
+    const res = await api.setAanwezigheid(groepId, [...weg]);
+    if (groepId === window._activeGroupId) window._groepAfwezig = res.afwezig || [];
+    _renderInstellingen();
+  } catch (e) {
+    window.app?.toast?.('Aanwezigheid opslaan mislukt', 'error');
+  }
+}
+
 async function _renderInstellingen() {
   const body = document.getElementById('dm-instellingen-body');
   if (!body) return;
@@ -8862,6 +8883,25 @@ async function _renderInstellingen() {
     activeCampaign = cp.activeCampaign || '';
   } catch { /* ok */ }
 
+  // Personages erbij, zodat we per party kunnen tonen wie er vanavond is.
+  let alleSpelers = [];
+  try { alleSpelers = (await api.listEntities('personages') || []).filter(e => e.subtype === 'speler'); } catch { /* ok */ }
+
+  const aanwezigheidHtml = (g) => {
+    const leden = alleSpelers.filter(e => e.data?.groep === g.id);
+    if (!leden.length) return '';
+    const weg = new Set(g.afwezig || []);
+    return `<div class="dm-inst-aanwezig">
+      <span class="dm-inst-aanwezig-label">${icon('users')} Vanavond aan tafel</span>
+      ${leden.map(e => `
+        <button type="button" class="dm-aanwezig-chip${weg.has(e.id) ? ' dm-aanwezig-chip--weg' : ''}"
+          onclick="window.dmPanel.aanwezigheidToggle('${esc(g.id)}','${esc(e.id)}')"
+          title="${weg.has(e.id) ? 'Doet niet mee — klik om weer mee te laten doen' : 'Doet mee — klik om als afwezig te markeren'}">
+          ${icon(weg.has(e.id) ? 'x' : 'check')} ${esc(e.name)}
+        </button>`).join('')}
+    </div>`;
+  };
+
   const groupItems = groups.map(g => `
     <div class="dm-inst-group-row" id="dm-inst-group-${esc(g.id)}">
       <input class="dm-input dm-inst-group-name" value="${esc(g.name)}"
@@ -8873,7 +8913,8 @@ async function _renderInstellingen() {
         title="${g.hasPassword ? 'Er is een wachtwoord ingesteld. Typ een nieuw wachtwoord om het te wijzigen, of laat leeg om het te verwijderen.' : 'Wachtwoord instellen voor deze party'}">
       <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
         onclick="window._instGroepDelete('${esc(g.id)}')" title="Party verwijderen">${icon('trash')}</button>
-    </div>`).join('');
+    </div>
+    ${aanwezigheidHtml(g)}`).join('');
 
   const campaignItems = campaigns.map(c => {
     const isActive = c.id === activeCampaign;

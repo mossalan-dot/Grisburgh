@@ -4543,6 +4543,35 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-inst-group-row .dm-input {
   flex: 1;
 }
+/* Aanwezigheid per sessie: één chip per speler onder de party-regel. Aanwezig
+   is de standaard (gouden rand, vinkje); afwezig dooft de chip en zet er een
+   kruis voor. Bewust geen checkbox — een rij namen die je aantikt leest sneller
+   aan het begin van een sessie. */
+.dm-inst-aanwezig {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: -2px 0 4px 2px;
+}
+.dm-inst-aanwezig-label {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .4px;
+  text-transform: uppercase; color: #9a8354; margin-right: 2px;
+}
+.dm-aanwezig-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Crimson Text', Georgia, serif; font-size: 13px; line-height: 1;
+  padding: 4px 9px; border-radius: 11px; cursor: pointer;
+  /* Zelfde inkt als .dm-input: dit venster is licht perkament, geen donker
+     DM-paneel. Lichte letters vielen hier volledig weg. */
+  background: rgba(255,255,255,0.55); color: #3a2410;
+  border: 1px solid #c4a87a;
+}
+.dm-aanwezig-chip:hover { background: rgba(196,168,122,0.28); }
+.dm-aanwezig-chip .icon { width: 12px; height: 12px; }
+.dm-aanwezig-chip--weg {
+  background: transparent; color: #9a8a70;
+  border-color: rgba(154,138,112,0.45); text-decoration: line-through;
+}
+
 .dm-btn-danger {
   color: #a03020;
   border-color: rgba(160,48,32,0.35);

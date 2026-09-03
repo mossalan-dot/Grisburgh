@@ -162,7 +162,25 @@ function groupInfoList(dmState) {
     name:        g.name,
     active:      id === dmState.activeGroup,
     hasPassword: !!g.password,
+    afwezig:     g.afwezig || [],
   }));
+}
+
+// ── Aanwezigheid ──
+// Wie zit er vanavond aan tafel? We bewaren de áfwezigen, niet de aanwezigen:
+// dan is een nieuw personage automatisch van de partij en hoeft er nergens iets
+// bijgewerkt te worden als de party groeit. De lijst geldt tot de DM 'm wijzigt.
+function _afwezigen(dmState, groepId) {
+  return new Set(dmState.groups?.[groepId]?.afwezig || []);
+}
+
+// De spelers van een groep die vanavond meedoen. Gebruik dit overal waar het om
+// wát er aan tafel gebeurt gaat — gevecht, rust, loot. NIET voor administratie
+// die de hele party betreft (character sheets, berichten, factieboons): een
+// speler die er even niet is, blijft lid van de party.
+function _aanwezigeSpelers(dmState, groepId, personages) {
+  const weg = _afwezigen(dmState, groepId);
+  return (personages || []).filter(e => e.subtype === 'speler' && e.data?.groep === groepId && !weg.has(e.id));
 }
 
 // ── Entity player filter ──
@@ -2173,9 +2191,9 @@ router.post('/party/long-rest', requireDM, (req, res) => {
 
   // Alle spelers in de actieve groep
   const activeGroepId = dmState.activeGroup || Object.keys(dmState.groups || {})[0];
-  const spelers = (entities.personages || []).filter(
-    e => e.subtype === 'speler' && e.data?.groep === activeGroepId
-  );
+  // Alleen wie vanavond meedoet rust mee: een afwezige speler hoort niet
+  // stilletjes zijn HP en slots terug te krijgen.
+  const spelers = _aanwezigeSpelers(dmState, activeGroepId, entities.personages);
 
   // Per-speler-samenvatting voor de cinematic
   const perPlayer = {};
@@ -2367,9 +2385,9 @@ router.post('/party/short-rest', requireDM, (req, res) => {
   const g = getGroup(dmState);
 
   const activeGroepId = dmState.activeGroup || Object.keys(dmState.groups || {})[0];
-  const spelers = (entities.personages || []).filter(
-    e => e.subtype === 'speler' && e.data?.groep === activeGroepId
-  );
+  // Alleen wie vanavond meedoet rust mee: een afwezige speler hoort niet
+  // stilletjes zijn HP en slots terug te krijgen.
+  const spelers = _aanwezigeSpelers(dmState, activeGroepId, entities.personages);
 
   if (!g.itemCharges) g.itemCharges = {};
   if (!dmState.playerSpellSlots) dmState.playerSpellSlots = {};
@@ -3610,6 +3628,21 @@ router.put('/groups/:id', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').to(req.session?.campaignId||'main').emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
   res.json({ id, name: dmState.groups[id].name });
+});
+
+// Aanwezigheid voor deze sessie. Body: { afwezig: [characterId, ...] }.
+router.put('/groups/:id/aanwezigheid', requireDM, (req, res) => {
+  const { id }  = req.params;
+  const dmState = readDmState();
+  if (!dmState.groups[id]) return res.status(404).json({ error: 'Groep niet gevonden' });
+  const leden = new Set((storage.readJSON('entities.json').personages || [])
+    .filter(e => e.subtype === 'speler' && e.data?.groep === id).map(e => e.id));
+  // Alleen leden van déze groep; onbekende ids stilzwijgend negeren zou een
+  // typefout onzichtbaar maken, dus die filteren we er hier hard uit.
+  dmState.groups[id].afwezig = [...new Set((req.body.afwezig || []).filter(cid => leden.has(cid)))];
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
+  res.json({ id, afwezig: dmState.groups[id].afwezig });
 });
 
 router.put('/groups/:id/password', requireDM, (req, res) => {
@@ -5911,13 +5944,14 @@ router.put('/combat/winner', requireDM, (req, res) => {
 // (combat.encounterId) of wordt handmatig opgebouwd. Spelers claimen items; bij
 // afsluiting wint de hoogste worp en splitst het goud over de deelnemers.
 
-// Deelnemers = speler-combatants van het lopende gevecht; fallback: actieve groep.
+// Deelnemers = speler-combatants van het lopende gevecht; is er geen gevecht,
+// dan de spelers die vanavond aan tafel zitten.
 function _lootDeelnemers(combat, dmState) {
   const fromCombat = (combat.combatants || []).filter(c => c.type === 'player' && c.entityId).map(c => c.entityId);
   if (fromCombat.length) return [...new Set(fromCombat)];
   const gid = dmState.activeGroup;
   const entities = storage.readJSON('entities.json');
-  return (entities.personages || []).filter(e => e.subtype === 'speler' && e.data?.groep === gid).map(e => e.id);
+  return _aanwezigeSpelers(dmState, gid, entities.personages).map(e => e.id);
 }
 
 // Lootfase voor de client; voor spelers worden claim-namen verborgen (alleen aantal + of jij claimde).
