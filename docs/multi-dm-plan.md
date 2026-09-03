@@ -28,14 +28,15 @@ Bewust **niet** in deze ronde:
 |---|---|
 | Tenant | De campagne. Eén DM mag meerdere campagnes hebben, met meerdere groepen. |
 | Speler | Per campagne een eigen personage en dus een eigen login; groepswachtwoord blijft (geen accounts, geen e-mail). |
-| Wachtwoorden | De nieuwe DM stelt zijn eigen DM- én groepswachtwoorden in. Tabletwachtwoord per campagne. |
+| Wachtwoorden | De nieuwe DM stelt zijn eigen DM- én groepswachtwoorden in. |
+| Inloggen | Op de campagnepagina één wachtwoordveld; wát je intikt bepaalt waar je uitkomt. Groepswachtwoord → personage kiezen. DM-wachtwoord → kiezen tussen DM-modus en tabletmodus. |
 | Uitnodigen | Alan maakt de DM handmatig aan. |
 | Modules aanzetten | Alleen Alan, stapsgewijs, met uitleg erbij als een module vrijgegeven wordt. |
 | Module uit | Verdwijnt volledig uit beeld (geen grijze "binnenkort"-items). |
 | Valuta | D&D-generiek: gp/sp/cp als standaard, hernoembaar. Grisburgh houdt Florinde/Knaker/Centeling. |
-| URL | `grisburgh.nl/<naam>` per campagne; landingspagina verwijst door. |
+| URL | `grisburgh.nl/<naam>` per campagne — Grisburgh wordt dus ook `/grisburgh`. De landingspagina is voor iedereen te bezoeken en toont de campagnes; alleen inloggen is afgeschermd. `grisburgh.nl` zonder pad stuurt door naar `/grisburgh`, zodat bestaande bladwijzers blijven werken. |
 | Progressie & spreuken | Nieuwe campagnes krijgen de **structuur** (namen, levels, school, casting time…) zonder beschrijvingen, met een tekstveld dat de DM zelf vult. Per campagne opgeslagen. |
-| Backups | Automatisch op de server; als een wijziging andermans content raakt ook handmatig vooraf. Plus een kopie bij Alan. |
+| Backups | Automatisch op de server; als een wijziging andermans content raakt ook handmatig vooraf. Plus een kopie op Alans laptop via een geplande taak (launchd) die draait zodra de laptop aan staat — mist hij een dag, dan haalt hij het de volgende keer in. |
 | Deploy tijdens andermans sessie | Even afstemmen per app; geen onderhoudsscherm nodig. |
 | Tempo | Stapsgewijs, met smoke tests per stap. |
 
@@ -49,6 +50,10 @@ Boedel · Progressie · Spreukenboek · Berichten · Gevecht + encounters +
 monsters *(zonder bestiarium-kaartjes; spelers krijgen geen statblocks, alleen
 in de testcampagne)* · Tafels · Geluiden · Dobbelstenen · Herberg · Arena
 *(nu De Tweespalt)* · Detective *(nu De Gock)* · Rust
+
+Van arena en detective gaat de **mechaniek** mee, niet de **content**:
+monsternamen en -stats, onderzoeksresultaten en vaste teksten blijven van
+Grisburgh. Een nieuwe campagne krijgt de functie leeg opgeleverd.
 
 **Nog niet mee** — onvoldoende doorontwikkeld of te campagne-eigen:
 
@@ -84,7 +89,9 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
 
 1. **Isolatie, DM-accounts en `/naam`-routing.**
    Campagne-id uit de URL, gebonden aan de sessie. DM-accounts met gehashte
-   wachtwoorden (Alan wordt account nummer één). Tabletwachtwoord per campagne.
+   wachtwoorden (Alan wordt account nummer één). Eén inlogscherm per campagne
+   waarin het ingetikte wachtwoord de rol bepaalt (groep → personage kiezen;
+   DM → DM-modus of tabletmodus).
    *Harde voorwaarde vooraf:* een testsuite die als DM 2 inlogt en dan probéért
    bij Grisburgh te komen — lezen én schrijven, elk endpoint. Slaagt die aanval
    ergens, dan gaat er niemand op. Na deze stap kan DM 2 er al op, met alles aan.
@@ -97,25 +104,26 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
 5. **Kale progressie en spreuken**, per campagne opgeslagen, met invulvelden.
 6. **Wizard + minicampagne.** Campagnenaam → munten → modules → diensten
    hernoemen → kaart uploaden (optioneel) → eerste groep met wachtwoord →
-   eerste personage.
+   eerste personage: zowel een kaartje in het archief als een speler-personage
+   met profiel en groepskoppeling.
 7. **Handleiding + visuele rondleiding.** Handleiding te downloaden na de wizard
    en terug te vinden bij Instellingen; functioneel, over spelen, niet over code.
-   Rondleiding als doorklikbare pagina met afbeeldingen op een eigen link.
+   Rondleiding als doorklikbare pagina met afbeeldingen op een eigen link, met
+   schermafbeeldingen uit de **minicampagne** — geen spoilers uit Grisburgh.
+   Vereist dus dat stap 6 af is.
 8. **Mediabudget.** Teller per campagne + verkleinen bij upload. Naar voren te
    halen als de schijf eerder knelt.
 
 ## Open vragen
 
-1. Landingspagina: ziet iedereen de lijst met campagnes, of alleen wie zijn
-   eigen `/naam` kent?
-2. Wordt Alan `/grisburgh`? Dan verandert de URL die spelers in hun telefoon
-   hebben staan. Alternatief: `grisburgh.nl` zonder pad blijft Grisburgh en
-   alleen nieuwe DM's krijgen een pad.
-3. Backup naar Alan: script dat hij zelf draait, of automatisch naar iCloud? Hoe
-   lang bewaren — dertig dagen?
-4. Arena en detective: alleen de naam voor DM 2, of ook de mechaniek eronder
-   (arena-gevechten, onderzoeksopdrachten)? Die zijn op Grisburgh geschreven.
-5. "Eerste personage" in de wizard: een kaartje in het archief, of meteen een
-   speler-personage met profiel en groepskoppeling?
-6. Rondleiding: schermafbeeldingen uit Grisburgh (mooier gevuld, maar spoilers
-   voor de eigen spelers) of uit de minicampagne?
+1. **Tabletmodus achter het DM-wachtwoord.** Nu heeft de tablet een eigen
+   wachtwoord, juist omdat dat scherm op tafel ligt waar iedereen erbij kan.
+   Als de tablet voortaan met het DM-wachtwoord wordt geopend, kan een speler
+   die meekijkt datzelfde wachtwoord later als DM gebruiken. Alternatief dat de
+   keuze intact laat: de DM kiest ná het inloggen "stuur dit scherm naar
+   tabletmodus", of er blijft een apart, kort tabletwachtwoord naast staan.
+2. **Media in de backup.** De JSON is klein en gaat dagelijks mee. De 2,2 GB
+   aan portretten en uploads is het onvervangbare deel en staat nu op één schijf.
+   Wekelijks meenemen naar de laptop (niet naar iCloud — te zwaar), of accepteren
+   dat beeldmateriaal alleen op de server leeft?
+3. Hoe lang backups bewaren — dertig dagen?
