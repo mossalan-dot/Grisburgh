@@ -451,6 +451,7 @@ export function initDmPanel() {
     regieBalkToggleMinimize() { _rbMinimized = !_rbMinimized; _renderRegieBalk(); },
     regieBalkBrief() { _openRegieBriefPicker(); },
     regieBalkPauze:          () => _regieBalkPauze(),
+    sheetsPrint:             (groep) => _sheetsPrint(groep),
     rustMenu:                (ev) => _rustMenu(ev),
     sfeerMenu:               (ev) => _sfeerMenu(ev),
     akteHervatToepassen:     () => _akteHervatToepassen(),
@@ -766,6 +767,7 @@ async function _renderAktes(preserveScroll = false) {
     ${_dmTabHead({
       icon: 'clipboard-list', title: 'Aktes', sub: 'voorbereiding & regie',
       actions: `
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.sheetsPrint()" title="Printbare character sheets van de actieve groep">${icon('scroll-text')} Sheets</button>
         <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.akteImport()" title="Importeer een Obsidian-hoofdstuk (.md) als regie-script">${icon('upload')} Importeer</button>
         <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window.dmPanel.akteNieuw()" title="Nieuwe akte">${icon('plus')} Nieuwe akte</button>
         ${helpBtn('dm_aktes')}`,
@@ -2030,6 +2032,7 @@ function _renderRegieBalk() {
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.sfeerMenu(event)" title="Sfeer van het tafelscherm kiezen">${icon('sparkles')} <span class="dm-rb-btn-label">Sfeer</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.tabletNaarSfeer(this)" title="Tablet → sfeerscherm (leeg het gepresenteerde beeld)">${icon('monitor')}</button>
           <span class="dm-rb-sep"></span>
+          <button class="dm-regie-balk-btn" onclick="window.dmPanel.sheetsPrint()" title="Character sheets van de party — printbaar blad per speler">${icon('scroll-text')}</button>
           <button class="dm-regie-balk-btn dm-rb-pauze-btn" onclick="window.dmPanel.regieBalkPauze()" title="Akte pauzeren — legt HP en voortgang vast om later te hervatten">${icon('pause')}</button>
           <div class="dm-rb-venster">
             <button class="dm-regie-balk-btn dm-rb-venster-btn" onclick="window.dmPanel.regieBalkToggleMinimize()" title="Balk minimaliseren">−</button>
@@ -2218,13 +2221,28 @@ function _rustMenu(ev) {
 // Een sessie eindigt zelden op het einde van een akte. Pauzeren legt het moment
 // vast (HP als wónd, level, temp-HP); bij het heropenen toont de balk wat er
 // sindsdien veranderd is en beslis jij per personage wat je overneemt.
+// Open de printbare character sheets van een groep in een nieuw tabblad. De
+// server rendert een blad per speler; de DM drukt op print (of bewaart als pdf)
+// en de hele party gaat met vers papier naar huis. window.open i.p.v. fetch,
+// zodat de browser zelf het printdialoog kan tonen.
+function _sheetsPrint(groep) {
+  const gid = groep || window._activeGroupId || '';
+  window.open(`/api/party/sheets${gid ? `?groep=${encodeURIComponent(gid)}` : ''}`, '_blank', 'noopener');
+}
+
 async function _regieBalkPauze() {
   if (!_rbChapter) return;
   if (!confirm(`Akte "${_rbTitle}" pauzeren?\n\nDe voortgang en de HP van de party worden vastgelegd, zodat je later kunt hervatten.`)) return;
   try {
-    const r = await api.pauzeerAkte(_rbChapter, _rbGroep);
+    const groep = _rbGroep;
+    const r = await api.pauzeerAkte(_rbChapter, groep);
     _showToast(`${icon('pause')} Akte gepauzeerd — ${r.personages} personage(s) vastgelegd.`);
     window.dmPanel.regieBalkClose();
+    // Eind van de sessie is hét moment voor verse sheets: het level, de HP en de
+    // boedel staan nu op hun definitieve stand.
+    if (confirm('Akte gepauzeerd.\n\nNieuwe character sheets voor de party klaarzetten om te printen?')) {
+      _sheetsPrint(groep);
+    }
   } catch (e) {
     _showToast('Pauzeren mislukt: ' + e.message);
   }

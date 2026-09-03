@@ -141,7 +141,7 @@ app.js      : api.js?v=248      render-campagne.js?v=121   render-archief.js?v=7
               render-kaart.js?v=18  render-dungeon.js?v=31  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=58
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=160    render-dashboard.js?v=9
+              dm-panel.js?v=161    render-dashboard.js?v=9
               render-spreuken.js?v=12   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 ```
@@ -212,6 +212,22 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > Óók vanuit de **"Nieuwe akte"-modal** (`dm-panel.js` → `_akteNieuw`): een optioneel
 > afbeelding-veld (`#dm-akte-n-imgs`) hangt na het aanmaken dezelfde `_scriptUploadImages`
 > aan de nieuwe akte, zodat je bij het aanmaken al beeldmateriaal meegeeft.
+
+> **Printbare character sheets (DM).** `lib/character-sheet.js` rendert een print-pagina
+> met een blad per personage; `GET /api/characters/:id/sheet` (één) en `GET /api/party/sheets?groep=`
+> (hele groep) zijn **DM-only**. De DM opent 'm en drukt op print — of bewaart als pdf via het
+> printdialoog. Bewust **geen fillable WotC-pdf**: dat formulier heeft geen vakjes voor boedel,
+> de eigen munt (Florinde/Knaker/Centeling) of factie-titels, knijpt de spreukenlijst dicht op
+> 28 regels en zou een template van 15,5 MB buiten git op de server vragen. De browser is al een
+> prima pdf-generator, dus dit kost géén extra dependency.
+> Blad 1 = abilities/saves/skills/HP/attacks/proficiencies/boedel, blad 2 = spellcasting
+> (alleen bij magie), blad 3 = features & traits uit `progression.json` t/m het huidige level.
+> Overal lege regels om met pen bij te schrijven. Triggers: knop **Sheets** in de Aktes-tabkop,
+> een scroll-icoon in de **regie-balk**, en een herinnering direct na `_regieBalkPauze()`
+> (einde sessie = definitieve stand van level, HP en boedel).
+> Let op bij CSS-wijzigingen: het `@media print`-blok staat **onderaan** de stylesheet — bij
+> gelijke specificiteit wint de laatste regel, en `.balk { display:flex }` overrulde anders
+> `.geenprint { display:none }`.
 
 > **Glossary/hover-uitleg:** geen los `glossary.js`-bestand (die revert staat hieronder). De
 > hover-uitleg van D&D-termen leeft **inline in app.js**: `_SB_GLOSSARY` (termen + tips),

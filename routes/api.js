@@ -7,6 +7,7 @@ const storage = require('../lib/storage');
 const mediaUsage = require('../lib/media-usage');
 const { requireDM, attachRole } = require('./auth');
 const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
+const { sheetHtml } = require('../lib/character-sheet');
 
 let _sharp = null;
 try { _sharp = require('sharp'); } catch {}
@@ -4579,6 +4580,140 @@ router.delete('/progression', requireDM, (req, res) => {
   storage.writeJSON('progression.json', {});
   req.app.get('io').to(req.session?.campaignId || 'main').emit('progression:updated', {});
   res.json({ ok: true });
+});
+
+// ── Printbare character sheets (DM) ──────────────────────────────────────────
+// Bouwt een print-pagina met een blad per personage. De DM opent 'm, drukt op
+// print en de hele party gaat met vers papier naar huis. We bakken bewust geen
+// fillable WotC-pdf: dat formulier heeft geen vakjes voor boedel, de eigen munt
+// (Florinde/Knaker/Centeling) of factie-titels. Opmaak: lib/character-sheet.js.
+
+const _sheetNorm = (s) => String(s || '').trim().toLowerCase();
+
+// Zelfde zoekregels als render-progressie.js: exacte naam, dan aliassen, dan
+// prefix (klasse) / losse includes-match in beide richtingen (subklasse).
+function _sheetVindKlasse(prog, naam) {
+  if (!prog?.classes || !naam) return null;
+  const n = _sheetNorm(naam);
+  for (const [key, data] of Object.entries(prog.classes)) {
+    if (_sheetNorm(key) === n || (data.aliassen || []).some(a => _sheetNorm(a) === n)) return { key, data };
+  }
+  for (const [key, data] of Object.entries(prog.classes)) {
+    if (n.startsWith(_sheetNorm(key))) return { key, data };
+  }
+  return null;
+}
+function _sheetVindSoort(prog, naam) {
+  if (!prog?.species || !naam) return null;
+  const n = _sheetNorm(naam);
+  for (const [key, data] of Object.entries(prog.species)) {
+    if (_sheetNorm(key) === n || (data.aliassen || []).some(a => _sheetNorm(a) === n)) return { key, data };
+  }
+  return null;
+}
+function _sheetVindSub(klasseData, naam) {
+  if (!klasseData?.subclasses || !naam) return null;
+  const n = _sheetNorm(naam);
+  for (const [key, data] of Object.entries(klasseData.subclasses)) {
+    if (_sheetNorm(key) === n || n.includes(_sheetNorm(key)) || _sheetNorm(key).includes(n)) return { key, data };
+  }
+  return null;
+}
+function _sheetVindBackground(prog, naam) {
+  if (!prog?.backgrounds || !naam) return null;
+  const n = _sheetNorm(naam);
+  for (const [key, data] of Object.entries(prog.backgrounds)) {
+    if (_sheetNorm(key) === n || n.includes(_sheetNorm(key))) return { key, data };
+  }
+  return null;
+}
+
+// Verzamel alles wat het personage tot en met zijn huidige level ontgrendeld heeft.
+function _sheetFeatures(prog, profiel) {
+  const totaal  = parseInt(profiel.level ?? profiel.klasseLevel) || 1;
+  const groepen = [];
+  const tot = (data, max) => {
+    const uit = [];
+    for (const lvl of Object.keys(data?.levels || {}).map(Number).sort((a, b) => a - b)) {
+      if (lvl > max) continue;
+      for (const f of (data.levels[lvl] || [])) uit.push({ ...f, level: lvl });
+    }
+    return uit;
+  };
+
+  const klassen = [[profiel.klasse, profiel.klasseLevel ?? profiel.level, profiel.subclass]];
+  if ((profiel.multiclass === true || profiel.multiclass === 'true') && profiel.multiKlasse) {
+    klassen.push([profiel.multiKlasse, profiel.multiKlasseLevel, null]);
+  }
+  for (const [naam, lvl, subNaam] of klassen) {
+    const kl = _sheetVindKlasse(prog, naam);
+    if (!kl) continue;
+    const max = parseInt(lvl) || totaal;
+    groepen.push({ titel: kl.key, items: tot(kl.data, max) });
+    const sub = _sheetVindSub(kl.data, subNaam);
+    if (sub) groepen.push({ titel: `${sub.key} (subclass)`, items: tot(sub.data, max) });
+  }
+
+  const soort = _sheetVindSoort(prog, profiel.origin || profiel.ras);
+  if (soort) groepen.push({ titel: soort.key, items: tot(soort.data, totaal) });
+  const bg = _sheetVindBackground(prog, profiel.background);
+  if (bg) groepen.push({ titel: `${bg.key} (background)`, items: tot(bg.data, 1).map(f => ({ ...f, level: null })) });
+
+  return groepen;
+}
+
+// Bouw de sheet-data voor één personage uit alles wat de campagne bijhoudt.
+function _sheetPersonage(entity, dmState, prog, meta) {
+  const id      = entity.id;
+  const profiel = (dmState.playerProfiles || {})[id] || {};
+  return {
+    naam:      entity.name,
+    campagne:  meta.appTitle || '',
+    profiel,
+    hp:        (dmState.playerHp || {})[id] || {},
+    hitDice:   { pool: _hitDicePool(profiel), spent: (dmState.playerHitDice || {})[id]?.spent || {} },
+    slots:     (dmState.playerSpellSlots || {})[id] || {},
+    currency:  (dmState.playerCurrency || {})[id] || { fl: 0, kn: 0, cl: 0 },
+    muntNamen: meta.currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' },
+    items:     (dmState.playerItems || {})[id] || [],
+    spreuken:  (dmState.playerSpells || {})[id] || [],
+    features:  _sheetFeatures(prog, profiel),
+  };
+}
+
+function _sheetProgressie() {
+  const saved = storage.readJSON('progression.json');
+  const base = (saved && saved.classes && Object.keys(saved.classes).length)
+    ? saved : _readProgressionSeed();
+  if (!base.backgrounds || !Object.keys(base.backgrounds).length) base.backgrounds = _readBackgroundsSeed();
+  return base;
+}
+
+// GET /characters/:id/sheet — één blad
+router.get('/characters/:id/sheet', requireDM, (req, res) => {
+  const entity = (storage.readJSON('entities.json').personages || []).find(e => e.id === req.params.id);
+  if (!entity) return res.status(404).send('Personage niet gevonden');
+  const dmState = readDmState();
+  const meta    = storage.readJSON('meta.json') || {};
+  const p = _sheetPersonage(entity, dmState, _sheetProgressie(), meta);
+  res.type('html').send(sheetHtml([p], { titel: entity.name }));
+});
+
+// GET /party/sheets?groep=<id> — de hele groep in één print-opdracht
+router.get('/party/sheets', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const meta    = storage.readJSON('meta.json') || {};
+  const groepId = req.query.groep || dmState.activeGroup;
+  const spelers = (storage.readJSON('entities.json').personages || [])
+    .filter(e => e.subtype === 'speler' && (!groepId || e.data?.groep === groepId))
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  if (!spelers.length) return res.status(404).send('Geen personages in deze groep');
+  const prog = _sheetProgressie();
+  const naam = dmState.groups?.[groepId]?.name || meta.appTitle || 'Character sheets';
+  res.type('html').send(sheetHtml(
+    spelers.map(e => _sheetPersonage(e, dmState, prog, meta)),
+    { titel: naam }
+  ));
 });
 
 // ── Help-teksten (DM-aanpasbare inhoud van helpknoppen) ──
