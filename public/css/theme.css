@@ -4543,6 +4543,14 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-inst-group-row .dm-input {
   flex: 1;
 }
+/* Het slotje stond als emoji in de placeholder — dat is geen icoon maar tekst
+   in het invoerveld, en het verdween zodra je begon te typen. Nu een echt
+   sprite-icoon naast het veld, dat ook zichtbaar blijft tijdens het typen. */
+.dm-inst-group-slot {
+  display: inline-flex; align-items: center; flex: 0 0 auto;
+  color: #9a8354; opacity: .85;
+}
+.dm-inst-group-slot .icon { width: 14px; height: 14px; }
 /* Aanwezigheid per sessie: één chip per speler onder de party-regel. Aanwezig
    is de standaard (gouden rand, vinkje); afwezig dooft de chip en zet er een
    kruis voor. Bewust geen checkbox — een rij namen die je aantikt leest sneller

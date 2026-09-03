@@ -3806,12 +3806,16 @@ function _setupPresetChange(presetId) {
   const nameEl  = document.getElementById('dm-setup-name');
   const initEl  = document.getElementById('dm-setup-init');
   const maxhpEl = document.getElementById('dm-setup-maxhp');
+  const acEl    = document.getElementById('dm-setup-ac');
   if (m) {
     if (nameEl)  nameEl.value  = m.name;
     if (initEl)  initEl.value  = m.initiative;
     if (maxhpEl) maxhpEl.value = m.maxHp;
+    // Het statblock schrijft AC soms als "15 (natural armor)"; we pakken het getal.
+    if (acEl) acEl.value = parseInt(m.statblock?.ac) || '';
   } else {
     if (nameEl) nameEl.value = '';
+    if (acEl)   acEl.value   = '';
   }
 };
 
@@ -3825,6 +3829,8 @@ async function _setupEntityChange(entityId) {
     return;
   }
   if (nameEl) nameEl.value = e.name;
+  const acEl2 = document.getElementById('dm-setup-ac');
+  if (acEl2) acEl2.value = parseInt(e.stats?.ac) || '';
   // Vul het HP-veld met het actuele HP uit dm-state (niet het statblock-maximum)
   let maxHp   = parseInt(e.stats?.hp) || 10;
   let current = maxHp;
@@ -3922,7 +3928,11 @@ async function _setupAddSubmit() {
     : currentHp;
   if (!name) return;
 
+  // AC hoort bij init en HP: zonder AC moet je tijdens het gevecht alsnog naar
+  // het statblock. Leeg laten mag — dan blijft het veld gewoon leeg.
+  const acVeld = document.getElementById('dm-setup-ac')?.value.trim();
   const payload = { name, type: _setupSelectedType, initiative: init, hp: currentHp, maxHp };
+  if (acVeld !== '' && acVeld != null) payload.ac = acVeld;
 
   if (_setupSelectedType === 'monster' && _setupSelectedPresetId) {
     const m = _monsters.find(x => x.id === _setupSelectedPresetId);
@@ -6971,6 +6981,10 @@ function _renderGevecht() {
             <span class="dm-input-lbl">Max HP</span>
             <input id="dm-setup-maxhp" class="dm-input dm-input-sm" type="number" value="10" style="width:52px">
           </label>
+          <label class="dm-labeled-input">
+            <span class="dm-input-lbl">AC</span>
+            <input id="dm-setup-ac" class="dm-input dm-input-sm" type="number" value="" placeholder="—" style="width:52px">
+          </label>
           <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.dmPanel.setupAddSubmit()" title="Toevoegen">+</button>
         </div>
       </div>
@@ -8892,7 +8906,7 @@ async function _renderInstellingen() {
     if (!leden.length) return '';
     const weg = new Set(g.afwezig || []);
     return `<div class="dm-inst-aanwezig">
-      <span class="dm-inst-aanwezig-label">${icon('users')} Vanavond aan tafel</span>
+      <span class="dm-inst-aanwezig-label">${icon('users')} Momenteel actief</span>
       ${leden.map(e => `
         <button type="button" class="dm-aanwezig-chip${weg.has(e.id) ? ' dm-aanwezig-chip--weg' : ''}"
           onclick="window.dmPanel.aanwezigheidToggle('${esc(g.id)}','${esc(e.id)}')"
@@ -8907,8 +8921,10 @@ async function _renderInstellingen() {
       <input class="dm-input dm-inst-group-name" value="${esc(g.name)}"
         onchange="window._instGroepRename('${esc(g.id)}', this.value)"
         placeholder="Naam party">
+      <span class="dm-inst-group-slot" title="${g.hasPassword ? 'Er is een wachtwoord ingesteld' : 'Nog geen wachtwoord'}">
+        ${icon(g.hasPassword ? 'lock' : 'lock-open')}</span>
       <input class="dm-input dm-inst-group-pw" type="password"
-        placeholder="${g.hasPassword ? '🔒 Wachtwoord wijzigen…' : 'Wachtwoord instellen…'}"
+        placeholder="${g.hasPassword ? 'Wachtwoord wijzigen…' : 'Wachtwoord instellen…'}"
         onchange="window._instGroepSetPw('${esc(g.id)}', this.value)"
         title="${g.hasPassword ? 'Er is een wachtwoord ingesteld. Typ een nieuw wachtwoord om het te wijzigen, of laat leeg om het te verwijderen.' : 'Wachtwoord instellen voor deze party'}">
       <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
