@@ -221,13 +221,24 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > 28 regels en zou een template van 15,5 MB buiten git op de server vragen. De browser is al een
 > prima pdf-generator, dus dit kost géén extra dependency.
 > Bladen: 1 = abilities/saves/skills (met passive Perception/Insight/Investigation als
-> subregel), stats, HP, attacks & cantrips, proficiencies, en een gelinieerd **Notes**-veld
-> dat met `flex:1` precies de restruimte pakt; **Inventory** (voorwerp-kaartjes uit
-> `groups[gid].itemOwners` + losse `playerItems`, plus de beurs) staat erbij, of krijgt een
-> eigen blad zodra het >12 regels zijn; daarna spellcasting + spreukentabel, spell
-> descriptions (volledige teksten) en features & traits uit `progression.json`. Elk blad heeft
-> een voettekst met naam + "blad X van Y" — per personage genummerd, zodat een uitgedeelde
-> stapel te sorteren is. **Beurs:** zelfde regel als `_effectiveCurrency()` — staat de
+> eigen reeks kadertjes), stats, HP, attacks & cantrips, proficiencies, **Class Resources &
+> Traits** (`playerTraits` + `playerTrackers`, gevuld bolletje = verbruikt, met een
+> "blad N"-verwijzing naar de uitleg) en een gelinieerd **Notes**-veld dat met `flex:1` de
+> restruimte pakt. **Inventory** (voorwerp-kaartjes uit `groups[gid].itemOwners` + losse
+> `playerItems`, plus de beurs) krijgt **altijd** een eigen blad — inline onderaan blad 1
+> paste het in de praktijk nooit, en de schatting die dat moest beslissen liet de browser er
+> soms een pagina bij breken; de voorwerp-uitleg vult de rest van dat blad. Daarna
+> spellcasting + spreukentabel, spell descriptions (volledige teksten) en features & traits
+> uit `progression.json`. Elk blad heeft een voettekst met naam + campagne/groep +
+> "blad X van Y" — per personage genummerd, zodat een uitgedeelde stapel te sorteren is.
+> Rechtsboven op blad 1 staan de **party-portretten** (`/api/thumb/<imageId|entityId>` +
+> `imgFocus`, initialen als vangnet).
+> **Zelf pagineren:** `mdBlok()` schat per tekstblok de hoogte (±140 tekens per regel,
+> gekalibreerd op een geprinte pdf) en `pakInBladen()` verdeelt de blokken over bladen, zodat
+> "blad X van Y" niet liegt. Controle: print naar pdf en vergelijk het aantal fysieke
+> pagina's met het laatste "blad X van Y" — die moeten gelijk zijn.
+> **Markdown in bronteksten:** `mdInline()` doet `**vet**`, `*cursief*` en `_cursief_`;
+> `mdBlok()` doet daarnaast `|`-tabellen (Nathair's Mischief) en `###`-kopjes. **Beurs:** zelfde regel als `_effectiveCurrency()` — staat de
 > gedeelde beurs aan, dan is dát de partybeurs en telt `playerCurrency` niet mee.
 > **Tekstopschoning:** SRD-teksten dragen markdown (`**_Sound._**`) en afbreekstreepjes uit
 > de bron-pdf ("repre- sented") mee; `schoon()` + `mdInline()` in `lib/character-sheet.js`

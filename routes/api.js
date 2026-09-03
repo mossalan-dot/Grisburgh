@@ -4694,8 +4694,26 @@ function _sheetVoorwerpen(dmState, characterId) {
   return uit.sort((a, b) => String(a.name).localeCompare(String(b.name)));
 }
 
+// De party in de kop van blad 1: elk medespeler-personage uit dezelfde groep,
+// met de fileId van zijn portret (dezelfde afleiding als api.thumbForEntity:
+// data.imageId, anders het entity-id zelf) en het focuspunt uit imgFocus, zodat
+// een portret dat hoog in het kader staat niet op de kin wordt afgesneden.
+function _sheetParty(dmState, entity, personages) {
+  const gid = _playerGroupId(dmState, entity.id);
+  if (!gid) return [];
+  return (personages || [])
+    .filter(e => e.subtype === 'speler' && e.data?.groep === gid)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)))
+    .map(e => ({
+      naam:  e.name,
+      thumb: e.data?.imageId || e.id,
+      focus: e.data?.imgFocus || '',
+      zelf:  e.id === entity.id,
+    }));
+}
+
 // Bouw de sheet-data voor één personage uit alles wat de campagne bijhoudt.
-function _sheetPersonage(entity, dmState, prog, meta) {
+function _sheetPersonage(entity, dmState, prog, meta, personages) {
   const id      = entity.id;
   const profiel = (dmState.playerProfiles || {})[id] || {};
   const gid     = _playerGroupId(dmState, id);
@@ -4704,6 +4722,7 @@ function _sheetPersonage(entity, dmState, prog, meta) {
     naam:      entity.name,
     campagne:  meta.appTitle || '',
     groepNaam: groep?.name || '',
+    party:     _sheetParty(dmState, entity, personages),
     profiel,
     hp:        (dmState.playerHp || {})[id] || {},
     hitDice:   { pool: _hitDicePool(profiel), spent: (dmState.playerHitDice || {})[id]?.spent || {} },
@@ -4718,6 +4737,11 @@ function _sheetPersonage(entity, dmState, prog, meta) {
     muntNamen:  meta.currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' },
     items:      (dmState.playerItems || {})[id] || [],
     voorwerpen: _sheetVoorwerpen(dmState, id),
+    // Vastgezette kenmerken (Bardic Inspiration, Rage…) en eigen tellers. Beide
+    // gebruiken dezelfde semantiek als in de app: `current`/`currentUses` is het
+    // aantal VERBRUIKTE bolletjes, niet het aantal dat nog over is.
+    traits:     (dmState.playerTraits || {})[id] || [],
+    trackers:   (dmState.playerTrackers || {})[id] || [],
     spreuken:   (dmState.playerSpells || {})[id] || [],
     features:   _sheetFeatures(prog, profiel),
   };
@@ -4733,11 +4757,12 @@ function _sheetProgressie() {
 
 // GET /characters/:id/sheet — één blad
 router.get('/characters/:id/sheet', requireDM, (req, res) => {
-  const entity = (storage.readJSON('entities.json').personages || []).find(e => e.id === req.params.id);
+  const personages = storage.readJSON('entities.json').personages || [];
+  const entity = personages.find(e => e.id === req.params.id);
   if (!entity) return res.status(404).send('Personage niet gevonden');
   const dmState = readDmState();
   const meta    = storage.readJSON('meta.json') || {};
-  const p = _sheetPersonage(entity, dmState, _sheetProgressie(), meta);
+  const p = _sheetPersonage(entity, dmState, _sheetProgressie(), meta, personages);
   res.type('html').send(sheetHtml([p], { titel: entity.name }));
 });
 
@@ -4746,14 +4771,15 @@ router.get('/party/sheets', requireDM, (req, res) => {
   const dmState = readDmState();
   const meta    = storage.readJSON('meta.json') || {};
   const groepId = req.query.groep || dmState.activeGroup;
-  const spelers = (storage.readJSON('entities.json').personages || [])
+  const personages = storage.readJSON('entities.json').personages || [];
+  const spelers = personages
     .filter(e => e.subtype === 'speler' && (!groepId || e.data?.groep === groepId))
     .sort((a, b) => String(a.name).localeCompare(String(b.name)));
   if (!spelers.length) return res.status(404).send('Geen personages in deze groep');
   const prog = _sheetProgressie();
   const naam = dmState.groups?.[groepId]?.name || meta.appTitle || 'Character sheets';
   res.type('html').send(sheetHtml(
-    spelers.map(e => _sheetPersonage(e, dmState, prog, meta)),
+    spelers.map(e => _sheetPersonage(e, dmState, prog, meta, personages)),
     { titel: naam }
   ));
 });
