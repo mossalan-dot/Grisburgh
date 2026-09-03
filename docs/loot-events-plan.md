@@ -82,6 +82,30 @@ uitsluitsel geeft. De telefoons houden hun huidige rol: daar claim je.
 cinematisch moment en daarna een encounter. Technisch is dat één veld op het
 event: een verwijzing naar de encounter die dan start.
 
+### Het beeldmateriaal
+
+Er ligt een Midjourney-animatie van een openende kist (624×624, 5,21s). Die past
+precies op de twee-traps vorm:
+
+- **Frame 0** — de kist dicht. Dit is de poster op de tablet, vóór de klik.
+- **Afspelen** — de vijf seconden waarin het deksel opengaat en het goud
+  zichtbaar wordt.
+- **Laatste frame** — de camera is dan ver ingezoomd: het deksel valt buiten
+  beeld en je ziet vooral goud. Dat werkt als eindbeeld, maar wie de héle open
+  kist in beeld wil, kan beter het frame rond **3,2s** bevriezen; daar staat de
+  kist compleet open en volledig in beeld.
+
+Aandachtspunten bij het inbouwen:
+- Het bronbestand is 5,0 MB voor 624px — dat is ruim 8 Mbps, veel te hoog. Een
+  heromzetting houdt dezelfde afmeting maar halveert het naar 2,2 MB.
+  De losse frames als JPEG zijn ~120 KB tegen ~700 KB als PNG.
+- Dit is **app-materiaal, geen campagne-inhoud**: elke DM krijgt dezelfde kist.
+  Het hoort dus in `public/assets/` (net als de kaartafbeeldingen) en niet in de
+  mediabibliotheek van een campagne, zodat het niet tegen het mediabudget telt.
+- De itemlijst verschijnt ná de animatie. Omdat het eindbeeld een druk
+  goud-close-up is, wil je daar waarschijnlijk overheen vloeien naar het rustiger
+  3,2s-beeld voordat de namen en portretjes erop komen.
+
 ## Aanwezigheid per sessie
 
 Losse vondst tijdens dit ontwerp, en breder dan loot alleen: **er bestaat geen
