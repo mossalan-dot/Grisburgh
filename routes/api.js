@@ -4855,8 +4855,60 @@ router.delete('/help-content/:key', requireDM, (req, res) => {
 
 // ── Meta ──
 
-router.get('/meta', (req, res) => {
-  res.json(storage.readJSON('meta.json'));
+// ── Bereikbaarheid ───────────────────────────────────────────────────────────
+// Wat een party kan bereiken hangt af van wáár ze zijn, en dat volgt uit de akte
+// die ze spelen: wat in de stad staat is bereikbaar tijdens een stads-akte, wat
+// in het Amberwoud staat tijdens een woud-akte. Per akte bewaren we daarom wat
+// er NIET bereikbaar is — uitvinken dus. Komt er later een dienst bij, dan is
+// die overal automatisch bereikbaar en hoef je geen twintig aktes na te lopen.
+//
+// Twee lagen die allebei waar moeten zijn: de groep bepaalt wát een party kent
+// (dienstenToegang), de akte bepaalt waar ze zijn. Daarnaast blijft de
+// handmatige knop "Grisburgh verlaten" bestaan als overschrijving — een akte kan
+// halverwege verhuizen, en dan wil je niet je akte gaan bewerken.
+const _BEREIKBAAR_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo', 'heeren'];
+
+function _bereikbaarheidVoor(meta, dmState, groepId) {
+  // activeAkte is een object {key, num, title} — niet de sleutel zelf.
+  const akte = _activeAkteVoor(dmState, groepId)?.key || null;
+  const ob   = (akte && meta.hoofdstukken?.[akte]?.onbereikbaar) || {};
+  const uit  = {
+    akte,
+    dienstenDicht:   (ob.diensten   || []).filter(k => _BEREIKBAAR_KEYS.includes(k)),
+    entiteitenDicht: [...(ob.entiteiten || [])],
+    allesDicht:      false,
+    vrijgesteld:     [],
+  };
+  if (meta.buitenGrisburgh) {
+    // De party is de stad uit: alles dicht, behalve wat expliciet vrijgesteld is.
+    uit.allesDicht  = true;
+    uit.vrijgesteld = [...(meta.buitenGrisburgEntiteiten || [])];
+  }
+  return uit;
+}
+
+router.get('/meta', attachRole, (req, res) => {
+  const meta    = storage.readJSON('meta.json');
+  const dmState = readDmState();
+  const groepId = req.session?.characterId
+    ? _playerGroupId(dmState, req.session.characterId)
+    : dmState.activeGroup;
+  // Afgeleid, niet opgeslagen: de client hoeft zo niet zelf uit te rekenen welke
+  // akte er loopt en wat daarin dichtzit.
+  res.json({ ...meta, bereikbaarheid: _bereikbaarheidVoor(meta, dmState, groepId) });
+});
+
+// Per akte instellen wat er niet bereikbaar is (diensten + winkel-entiteiten).
+router.put('/meta/akte/:key/bereikbaarheid', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.hoofdstukken?.[req.params.key]) return res.status(404).json({ error: 'Akte niet gevonden' });
+  meta.hoofdstukken[req.params.key].onbereikbaar = {
+    diensten:   (req.body.diensten   || []).filter(k => _BEREIKBAAR_KEYS.includes(k)),
+    entiteiten: (req.body.entiteiten || []).map(String).slice(0, 200),
+  };
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  res.json(meta.hoofdstukken[req.params.key].onbereikbaar);
 });
 
 // Focuspunt (object-position) van een spreukafbeelding, per spell-index.

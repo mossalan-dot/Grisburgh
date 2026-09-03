@@ -1,4 +1,4 @@
-import { api } from './api.js?v=250';
+import { api } from './api.js?v=251';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 const icon = (...a) => window.icon(...a);
@@ -1859,12 +1859,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   let voorraadHtml = '';
   if (heeftVoorraad) {
     const _appMeta = window.app?.state?.meta || {};
-    const _buitenEntiteiten = _appMeta.buitenGrisburgEntiteiten || [];
-    if (!isDM() && _appMeta.buitenGrisburgh && !_buitenEntiteiten.includes(e.id)) {
+    // Bereikbaarheid komt van de server (akte + de handmatige knop); hier alleen
+    // nog opzoeken of dit kaartje er nu bij hoort.
+    if (window._entiteitDicht?.(e.id)) {
       voorraadHtml = `<div style="text-align:center;padding:2rem 1rem">
         <div style="font-size:2rem;margin-bottom:.5rem">${icon('lock')}</div>
         <p style="color:var(--color-ink-dim,.7rem)">${esc(e.name)} is momenteel niet bereikbaar.</p>
-        <p style="font-size:.8rem;opacity:.5">De groep bevindt zich buiten Grisburgh.</p>
+        <p style="font-size:.8rem;opacity:.5">Niet bereikbaar vanaf waar de groep nu is.</p>
       </div>`;
     } else {
     // Gebruik beschikbaarData als die beschikbaar is, anders val terug op ruwe voorraad

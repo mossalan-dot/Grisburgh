@@ -1,4 +1,4 @@
-import { api } from './api.js?v=250';
+import { api } from './api.js?v=251';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -2046,9 +2046,39 @@ window._scriptDrop = async (ev, ch, overId) => {
   await _scriptSave(ch, script);
 };
 
-window._editAkte = (ch) => {
+// Diensten die per akte open of dicht kunnen staan. Sleutel = de sectie in de
+// zijbalk; het label komt uit meta zodat een hernoemde dienst hier meeloopt.
+const _AKTE_DIENSTEN = [
+  { key: 'herberg',   val: (m) => m.herberg?.naam   || 'De herberg' },
+  { key: 'tweespalt', val: (m) => m.tweespalt?.naam || 'De Tweespalt' },
+  { key: 'gock',      val: (m) => m.gock?.naam      || 'De Gock' },
+  { key: 'ursula',    val: (m) => m.ursula?.naam    || 'Madame Ursula' },
+  { key: 'tempel',    val: (m) => m.tempel?.naam    || 'De Tempel' },
+  { key: 'magizoo',   val: (m) => m.magizoo?.naam   || 'De Magizoöloog' },
+  { key: 'heeren',    val: (m) => m.heeren?.naam    || 'De Heeren van de Nacht' },
+];
+
+window._editAkte = async (ch) => {
   const hk = meta?.hoofdstukken || {};
   const info = hk[ch] || {};
+  // Winkels en verkopers: alleen die kunnen onbereikbaar zijn, de rest heeft
+  // geen voorraad om af te sluiten.
+  let winkels = [];
+  try {
+    const [pers, locs] = await Promise.all([
+      api.listEntities('personages').catch(() => []),
+      api.listEntities('locaties').catch(() => []),
+    ]);
+    winkels = [
+      ...pers.filter(e => e.subtype === 'verkoper'),
+      ...locs.filter(e => e.data?.locType === 'Winkel'),
+    ].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  } catch { /* ok */ }
+  window._akteBereikbaar = {
+    diensten:   new Set(info.onbereikbaar?.diensten   || []),
+    entiteiten: new Set(info.onbereikbaar?.entiteiten || []),
+    winkels,
+  };
 
   // Collect all images from entries in this chapter
   const chEntries = (archiefData.sessieLog || []).filter(e => e.hoofdstuk === ch);
@@ -2129,6 +2159,28 @@ window._editAkte = (ch) => {
             class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none">${esc(info.spelersSamenvatting || '')}</textarea>
         </div>
       </div>
+      <div>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Bereikbaar tijdens deze akte</label>
+        <p class="text-[10px] text-ink-dim mb-1">Vink uit wat hier niet te bereiken is. Standaard staat alles aan; de DM ziet altijd alles.</p>
+        <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+          ${_AKTE_DIENSTEN.map(d => `
+            <label class="text-xs text-ink-bright" style="display:inline-flex;align-items:center;gap:5px">
+              <input type="checkbox" data-dienst="${esc(d.key)}"
+                ${window._akteBereikbaar.diensten.has(d.key) ? '' : 'checked'}> ${esc(d.val(meta || {}))}
+            </label>`).join('')}
+        </div>
+        ${winkels.length ? `
+          <div class="mt-2">
+            <p class="text-[10px] text-ink-dim mb-1">Winkels en verkopers</p>
+            <div class="flex flex-wrap gap-x-4 gap-y-1">
+              ${winkels.map(w => `
+                <label class="text-xs text-ink-bright" style="display:inline-flex;align-items:center;gap:5px">
+                  <input type="checkbox" data-winkel="${esc(w.id)}"
+                    ${window._akteBereikbaar.entiteiten.has(w.id) ? '' : 'checked'}> ${esc(w.name)}
+                </label>`).join('')}
+            </div>
+          </div>` : ''}
+      </div>
       <div class="flex gap-2 pt-2">
         <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">${icon('save')} Opslaan</button>
         <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition">${icon('x')}</button>
@@ -2148,6 +2200,10 @@ window._editAkte = (ch) => {
     const short = `A${num} \u00b7 ${title.length > 22 ? title.slice(0, 22) + '\u2026' : title}`;
     try {
       await api.saveHoofdstuk(ch, { num, title, dag, short, bannerFocus, bannerImg, spelersSamenvatting });
+      // Uitgevinkt = onbereikbaar. We bewaren de uitzonderingen, niet de regel.
+      const dicht = (attr) => [...document.querySelectorAll(`#akte-edit-form [data-${attr}]`)]
+        .filter(c => !c.checked).map(c => c.dataset[attr]);
+      await api.saveAkteBereikbaarheid(ch, { diensten: dicht('dienst'), entiteiten: dicht('winkel') });
       const newMeta = await api.meta();
       meta = newMeta;
       if (window.app?.state) window.app.state.meta = newMeta;

@@ -136,8 +136,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=407   app.js?v=559   sound-manager.js?v=8
-app.js      : api.js?v=250      render-campagne.js?v=121   render-archief.js?v=71
+index.html  : theme.css?v=408   app.js?v=560   sound-manager.js?v=8
+app.js      : api.js?v=251      render-campagne.js?v=122   render-archief.js?v=72
               render-kaart.js?v=18  render-dungeon.js?v=32  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
@@ -283,6 +283,23 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > rust, lootdeelnemers en het automatisch vullen van een gevecht — **niet** bij
 > wat de hele party betreft (character sheets, berichten, factieboons).
 > Endpoint: `PUT /groups/:id/aanwezigheid`.
+
+> **Bereikbaarheid per akte.** Wat een party kan bereiken hangt af van wáár ze
+> zijn, en dat volgt uit de akte die ze spelen. Per akte staat in
+> `meta.hoofdstukken[key].onbereikbaar` wat er **niet** bereikbaar is
+> (`{diensten:[], entiteiten:[]}`) — uitvinken dus, zodat een nieuwe dienst
+> overal automatisch bereikbaar is. In te stellen in de akte-editor
+> (*Bereikbaar tijdens deze akte*), endpoint `PUT /meta/akte/:key/bereikbaarheid`.
+> `GET /meta` levert een **afgeleid** `bereikbaarheid`-blok voor de aanvrager
+> (`_bereikbaarheidVoor()`): de client hoeft niet zelf te weten welke akte loopt.
+> Let op: `groups[gid].activeAkte` is een **object** `{key,num,title}`, niet de
+> sleutel. Twee lagen die allebei waar moeten zijn: de groep bepaalt wát een
+> party kent (`dienstenToegang`), de akte bepaalt waar ze zijn. De knop
+> **"Grisburgh verlaten"** (`meta.buitenGrisburgh`) blijft als overschrijving:
+> dan is alles dicht behalve `buitenGrisburgEntiteiten`. Zonder lopende akte
+> geldt de instelling van de laatst gespeelde akte — `activeAkte` wordt nooit
+> leeggemaakt. Client: `window._dienstDicht(key)` en `window._entiteitDicht(id)`;
+> de DM ziet altijd alles.
 
 > **Printbare character sheets (DM).** `lib/character-sheet.js` rendert een print-pagina
 > met een blad per personage; `GET /api/characters/:id/sheet` (één) en `GET /api/party/sheets?groep=`

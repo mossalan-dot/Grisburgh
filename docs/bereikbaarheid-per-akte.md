@@ -1,6 +1,7 @@
 # Bereikbaarheid per akte — ontwerp
 
-Status: **ontwerp, nog niets gebouwd.** Opgesteld 3 sep 2026.
+Status: **gebouwd** (4 sep 2026). Dit document blijft staan als verantwoording
+van de keuzes; de werking staat in CLAUDE.md.
 Vervangt de globale schakelaar "Grisburgh verlaten" door iets dat de akte volgt.
 
 ---

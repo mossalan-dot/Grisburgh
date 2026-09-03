@@ -1,6 +1,6 @@
-import { api } from './api.js?v=250';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=121";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=71";
+import { api } from './api.js?v=251';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=122";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=72";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
 import { renderDungeon } from './render-dungeon.js?v=32';
 import { renderRelatiemap } from './render-relatiemap.js?v=21';
@@ -9500,12 +9500,27 @@ function _dienstNietBereikbaar(el, naam) {
 
 let _herbergActiveTab = 'roddels';   // 'roddels' | 'tap' — onthouden over re-renders
 
+// ── Bereikbaarheid ──────────────────────────────────────────────────────────
+// De server rekent uit wat er dichtzit (akte + de handmatige "buiten
+// Grisburgh"-knop); hier alleen nog opzoeken. De DM ziet altijd alles, anders
+// kan hij een dienst niet voorbereiden terwijl de party elders is.
+window._dienstDicht = (key) => {
+  if (window.app?.isDM?.()) return false;
+  const b = window.app?.state?.meta?.bereikbaarheid || {};
+  return b.allesDicht ? true : (b.dienstenDicht || []).includes(key);
+};
+window._entiteitDicht = (id) => {
+  if (window.app?.isDM?.()) return false;
+  const b = window.app?.state?.meta?.bereikbaarheid || {};
+  return b.allesDicht ? !(b.vrijgesteld || []).includes(id) : (b.entiteitenDicht || []).includes(id);
+};
+
 async function renderHerberg() {
   const el = document.getElementById('section-herberg');
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh && !window.app.isDM()) {
+  if (window._dienstDicht('herberg')) {
     _dienstNietBereikbaar(el, meta.herberg?.naam || 'De herberg');
     return;
   }
@@ -9751,7 +9766,7 @@ async function renderGock() {
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh && !window.app.isDM()) {
+  if (window._dienstDicht('gock')) {
     _dienstNietBereikbaar(el, meta.gock?.naam || 'De Gock');
     return;
   }
@@ -9917,7 +9932,7 @@ async function renderMagizoo() {
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh && !window.app.isDM()) { _dienstNietBereikbaar(el, meta.magizoo?.naam || 'De Magizoöloog'); return; }
+  if (window._dienstDicht('magizoo')) { _dienstNietBereikbaar(el, meta.magizoo?.naam || 'De Magizoöloog'); return; }
 
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
 
@@ -10159,7 +10174,7 @@ async function renderUrsula() {
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh && !window.app.isDM()) { _dienstNietBereikbaar(el, meta.ursula?.naam || 'Madame Ursula'); return; }
+  if (window._dienstDicht('ursula')) { _dienstNietBereikbaar(el, meta.ursula?.naam || 'Madame Ursula'); return; }
 
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
 
@@ -10220,7 +10235,7 @@ async function renderTempel() {
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh && !window.app.isDM()) { _dienstNietBereikbaar(el, meta.tempel?.naam || 'De Tempel'); return; }
+  if (window._dienstDicht('tempel')) { _dienstNietBereikbaar(el, meta.tempel?.naam || 'De Tempel'); return; }
 
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
 
@@ -10522,7 +10537,7 @@ async function renderHeeren() {
   const el = document.getElementById('section-heeren');
   if (!el) return;
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh && !window.app.isDM()) { _dienstNietBereikbaar(el, meta.heeren?.naam || 'De Heeren van de Nacht'); return; }
+  if (window._dienstDicht('heeren')) { _dienstNietBereikbaar(el, meta.heeren?.naam || 'De Heeren van de Nacht'); return; }
 
   el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
   let data;
@@ -10613,7 +10628,7 @@ async function renderTweespalt() {
   if (!el) return;
 
   const meta = window.app?.state?.meta || {};
-  if (meta.buitenGrisburgh && !window.app.isDM()) {
+  if (window._dienstDicht('tweespalt')) {
     _dienstNietBereikbaar(el, 'De Tweespalt');
     return;
   }
@@ -11491,6 +11506,37 @@ const HELP_CONFIG = {
     };
   },
 
+  dungeon: () => ({
+    titel: 'Dungeonkaarten',
+    stappen: [
+      {
+        titel: 'Fog of war',
+        tekst: 'Een dungeon is een plattegrond waarvan de kamers per party onthuld worden. Wat nog niet onthuld is, blijft voor spelers in het duister. Klik een kamer aan en gebruik "Onthul" — of het oogje in de kamerlijst — om hem zichtbaar te maken. Verbergen kan net zo goed weer.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Kamers tekenen',
+        tekst: 'Met de gereedschappen bovenin teken je een rechthoek of een veelhoek over de plattegrond. Met het schakelicoon verbind je twee kamers met een lijn, zodat spelers zien welke doorgangen er zijn.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Symbolen',
+        tekst: 'Per kamer kun je symbolen zetten: vijanden, buit, vergrendeld of uitgewist. Elk symbool kun je zichtbaar of verborgen maken voor de party — zo geef je een hint zonder alles te verklappen.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Vondsten in een kamer',
+        tekst: 'Onder "Vondsten" hangt de buit die in deze kamer te halen valt. Typ wat er te vinden is en druk op plus, of koppel een vondst die je al in het Loot-tabblad gemaakt hebt. De DC ernaast is een aantekening voor jou — de spelers gooien aan tafel en jij beslist. Met het muntje maak je er een verdeling van; het kruisje koppelt de vondst weer los zonder hem weg te gooien.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Party-toegang',
+        tekst: 'Per party stel je in of een dungeon nog niet, nu of al uitgespeeld is. Zo kun je dezelfde kaart voor meerdere groepen gebruiken zonder dat hun voortgang door elkaar loopt.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
   logboek: () => ({
     titel: 'Logboek',
     stappen: [
@@ -11516,6 +11562,20 @@ Object.assign(HELP_CONFIG, {
       { titel: 'Initiative tracker', tekst: 'Voeg spelers en monsters toe aan het gevecht. Klik op "Start gevecht" om de initiative-ronde te beginnen. Het combat-scherm is zichtbaar voor alle spelers.', afbeelding: null },
       { titel: 'HP beheren', tekst: 'Klik op het HP-getal van een combatant om schade of genezing toe te passen. Gebruik het schildicoon voor tijdelijke HP.', afbeelding: null },
       { titel: 'Monsters toevoegen', tekst: 'Ga naar het subtabblad "Monsters" om monsters uit het bestiarium toe te voegen. Kies een encounter of voeg individuele monsters toe.', afbeelding: null },
+    ],
+  }),
+  dm_loot: () => ({
+    titel: 'Loot',
+    stappen: [
+      { titel: 'Wat is een vondst?', tekst: 'Een vondst is één ding dat de party kan vinden: de geldzak in de haard, het zwaard onder de plavuizen. Eén kamer kan er meerdere hebben. Een vondst kan munten bevatten, voorwerpen, of allebei.', afbeelding: null },
+      { titel: 'De DC is een aantekening', tekst: 'Het getal naast een vondst is voor jou, niet voor de app. De spelers gooien aan tafel en jij beslist of ze het vinden — onthullen is altijd een klik. Er hoeft dus nergens een worp ingevoerd te worden, en je kunt de DC net zo goed negeren.', afbeelding: null },
+      { titel: 'Onthullen', tekst: 'Vink één of meer vondsten aan en klik op Onthul. Dat bouwt één verdeling waarin elk voorwerp onthouden heeft waar het vandaan komt ("uit de haard", "onder de plavuizen"). In het venster dat opent kun je nog bijstellen; pas met "Stuur naar spelers" zien zij iets — en gaat op de tablet de kist open.', afbeelding: null },
+      { titel: 'Munten', tekst: 'Vul één bedrag in met een komma: 1,34 is 1 florinde, 3 knakers en 4 centelingen. Wil je het aan het toeval overlaten, vul dan een bereik in bij "Of gerold"; dat wordt pas bij het onthullen gerold, zodat je ziet wat het geworden is voordat het scherm opengaat.', afbeelding: null },
+      { titel: 'Willekeurige voorwerpen', tekst: 'Zet een regel op "willekeurig" met een rarity, dan kiest de app bij het onthullen een bestaand voorwerpkaartje van die zeldzaamheid. Handig voor een kist waarvan de inhoud er niet toe doet.', afbeelding: null },
+      { titel: 'Sjablonen', tekst: 'Een sjabloon is een mal, geen vondst: hij ligt nergens en wordt niet onthuld. Hij staat apart onderaan met de knop "Gebruiken", die er een kopie van maakt in de lijst erboven. Die kopie pas je aan zonder dat het sjabloon verandert — en andersom.', afbeelding: null },
+      { titel: 'Waar een vondst ligt', tekst: 'Bij "Plek" hang je een vondst aan een dungeonkamer; dat kan ook vanuit de kamer zelf. Je kunt een vondst ook als stap in een akte zetten, zodat je hem tijdens het spelen vanuit de regie-balk onthult.', afbeelding: null },
+      { titel: 'Mimic', tekst: 'Koppel je een gevecht aan een vondst, dan is het geen buit maar een mimic. Op het tafelscherm gaat dezelfde kist open, met een heel andere ontknoping — en jij krijgt de vraag of het gevecht meteen moet beginnen.', afbeelding: null },
+      { titel: 'Geluid', tekst: 'Het geluid bij een onthulling stel je één keer in, in de Geluiden-tab onder "Momenten". Het klinkt op het moment dat de spelers de buit zien.', afbeelding: null },
     ],
   }),
   dm_rust: () => ({

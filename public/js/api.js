@@ -327,6 +327,8 @@ export const api = {
   lootVerdeeld:     ()        => request('/combat/loot/verdeeld',       { method: 'POST' }),
   lootCancel:       ()        => request('/combat/loot',                { method: 'DELETE' }),
   // Loot-events: de bibliotheek van vondsten die een lootfase kan vullen.
+  // Per akte: wat is er níét bereikbaar (diensten + winkels).
+  saveAkteBereikbaarheid: (key, data) => request(`/meta/akte/${encodeURIComponent(key)}/bereikbaarheid`, { method: 'PUT', body: JSON.stringify(data) }),
   lootEvents:       ()        => request('/loot/events'),
   lootEventCreate:  (data)    => request('/loot/events',                { method: 'POST',   body: JSON.stringify(data) }),
   lootEventUpdate:  (id, d)   => request(`/loot/events/${id}`,          { method: 'PUT',    body: JSON.stringify(d) }),
