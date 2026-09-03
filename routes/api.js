@@ -4460,6 +4460,9 @@ function _ensureAmbiance(data) {
 // Geldige serviceAmbiance-keys: huidige diensten, per-factie (factie:<id> tegen
 // meta.facties) en de rust-loops. Vervangt de oude vaste _DIENST_KEYS-lijst.
 const _DIENST_SVC_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo'];
+// Eenmalige geluiden bij een moment in het spel — geen sfeerloop, dus een eigen
+// plek in sounds.json (`momenten`) i.p.v. serviceAmbiance.
+const _MOMENT_SOUND_KEYS = new Set(['lootReveal']);
 const _REST_SVC_KEYS = ['rust-veld', 'rust-herberg', 'rust-kort'];
 function _validSvcKey(key) {
   if (_DIENST_SVC_KEYS.includes(key) || _REST_SVC_KEYS.includes(key)) return true;
@@ -4511,6 +4514,14 @@ router.put('/sounds', requireDM, (req, res) => {
       if (!_validSvcKey(k)) continue;                   // diensten + factie:<id> + rust-*
       if (v === null) delete data.serviceAmbiance[k];
       else data.serviceAmbiance[k] = String(v).slice(0, 100);
+    }
+  }
+  if (req.body.momenten && typeof req.body.momenten === 'object') {
+    if (!data.momenten) data.momenten = {};
+    for (const [k, v] of Object.entries(req.body.momenten)) {
+      if (!_MOMENT_SOUND_KEYS.has(k)) continue;
+      if (v === null) delete data.momenten[k];
+      else data.momenten[k] = String(v).slice(0, 100);
     }
   }
   if (req.body.conditions && typeof req.body.conditions === 'object') {
@@ -6068,8 +6079,6 @@ router.post('/loot/events', requireDM, (req, res) => {
     vaardigheid: String(req.body.vaardigheid || '').slice(0, 40),
     goud:        { fl: getalOf(req.body.goud?.fl), kn: getalOf(req.body.goud?.kn), cl: getalOf(req.body.goud?.cl) },
     goudRandom:  req.body.goudRandom || null,
-    geluidFileId: req.body.geluidFileId || null,
-    geluidLabel:  req.body.geluidLabel  || '',
     items:       Array.isArray(req.body.items) ? req.body.items : [],
     sjabloon:    !!req.body.sjabloon,
     dungeonId:   req.body.dungeonId || null,
@@ -6087,7 +6096,7 @@ router.put('/loot/events/:id', requireDM, (req, res) => {
   const data = _leesLoot();
   const ev = data.events.find(e => e.id === req.params.id);
   if (!ev) return res.status(404).json({ error: 'Vondst niet gevonden' });
-  const velden = ['naam', 'vaardigheid', 'dungeonId', 'roomId', 'encounterId', 'mimicEncounterId', 'geluidFileId', 'geluidLabel'];
+  const velden = ['naam', 'vaardigheid', 'dungeonId', 'roomId', 'encounterId', 'mimicEncounterId'];
   for (const v of velden) if (req.body[v] !== undefined) ev[v] = req.body[v];
   if (req.body.dc       !== undefined) ev.dc       = getalOf(req.body.dc);
   if (req.body.goud     !== undefined) ev.goud     = { fl: getalOf(req.body.goud.fl), kn: getalOf(req.body.goud.kn), cl: getalOf(req.body.goud.cl) };
@@ -6218,13 +6227,10 @@ router.post('/combat/loot/reveal', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
   io.to(room).emit('loot:aangeboden', { deelnemers: lp.deelnemers });
-  // Kwam deze verdeling uit een vondst met een geluid, speel dat dan nu — op
-  // het moment dat de spelers de buit te zien krijgen, niet eerder.
-  const vondsten = _leesLoot().events.filter(e => (lp.lootEventIds || []).includes(e.id));
-  const metGeluid = vondsten.find(e => e.geluidFileId);
-  if (metGeluid) {
-    io.to(room).emit('sound:reveal', { fileId: String(metGeluid.geluidFileId), label: metGeluid.geluidLabel || metGeluid.naam || 'Loot', loop: false });
-  }
+  // Het onthullingsgeluid is generiek: één keuze per campagne (Geluiden-tab),
+  // die klinkt op het moment dat de spelers de buit te zien krijgen.
+  const lootGeluid = (storage.readJSON('sounds.json') || {}).momenten?.lootReveal;
+  if (lootGeluid) io.to(room).emit('sound:reveal', { fileId: String(lootGeluid), label: 'Loot', loop: false });
   res.json(_lootForClient(lp, 'dm', null));
 });
 

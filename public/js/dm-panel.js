@@ -376,7 +376,6 @@ export function initDmPanel() {
     lootEvAnnuleer:   _lootEvAnnuleer,
     lootEvVeld:       _lootEvVeld,
     lootEvGoud:       _lootEvGoud,
-    lootEvGeluid:     _lootEvGeluid,
     lootEvRandom:     _lootEvRandom,
     lootEvItemAdd:    _lootEvItemAdd,
     lootEvItemDel:    _lootEvItemDel,
@@ -6581,9 +6580,40 @@ async function _renderGeluiden() {
       <div class="dm-sound-list">${_REST.map(r => svcRow(r.key, r.label)).join('')}</div>
     </div>`;
 
+  // Eenmalige geluiden bij een moment: geen sfeerloop maar een korte klank die
+  // één keer klinkt. Nu alleen de lootonthulling; hier kunnen er later meer bij.
+  const momenten = sounds.momenten || {};
+  const momentRow = (key, label, uitleg) => {
+    const fid = momenten[key];
+    return `
+      <div class="dm-sound-row">
+        <span class="dm-sound-slot-label">${esc(label)}<br><span class="dm-hint">${esc(uitleg)}</span></span>
+        <div class="dm-sound-controls">
+          ${fid
+            ? `<button class="dm-btn dm-btn-sm dm-btn-ghost" title="Testplay" onclick="window._sndPlay('${esc(fid)}', this)">▶</button>
+               <span class="dm-sound-set">${icon('check')} Ingesteld</span>
+               <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._momentRemove('${esc(key)}')" title="Verwijderen">${icon('x')}</button>`
+            : `<span class="dm-sound-empty">Geen geluid</span>`}
+          <label class="dm-btn dm-btn-sm dm-btn-primary dm-sound-upload-btn" title="Uploaden">
+            ${icon('plus')} Upload
+            <input type="file" accept="audio/*" style="display:none" onchange="window._momentUpload('${esc(key)}', this)">
+          </label>
+        </div>
+      </div>`;
+  };
+  const momentSection = `
+    <div class="dm-sound-section">
+      <div class="dm-sound-section-title">${icon('sparkles')} Momenten</div>
+      <p class="dm-hint">Korte klanken die één keer spelen op een vast moment in het spel — geen loop.</p>
+      <div class="dm-sound-list">
+        ${momentRow('lootReveal', 'Loot onthullen', 'klinkt zodra de spelers de buit te zien krijgen')}
+      </div>
+    </div>`;
+
   el.innerHTML = `
     ${_dmTabHead({ icon: 'volume-2', title: 'Geluiden', actions: helpBtn('dm_geluiden') })}
     ${ambSection}
+    ${momentSection}
     ${svcSection}
     <div class="dm-sound-section">
       <div class="dm-sound-section-title">Spelersemotes</div>
@@ -6672,6 +6702,16 @@ async function _renderGeluiden() {
   };
 
   // ── Diensten-sfeerloops (feature #2) ──
+  window._momentUpload = async (key, input) => {
+    const file = input.files[0]; if (!file) return;
+    const fileId = await _sndUploadFile(file); if (!fileId) return;
+    await _sndPatch({ momenten: { [key]: fileId } });
+    _renderGeluiden();
+  };
+  window._momentRemove = async (key) => {
+    await _sndPatch({ momenten: { [key]: null } });
+    _renderGeluiden();
+  };
   window._svcAmbUpload = async (key, input) => {
     const file = input.files[0]; if (!file) return;
     const fileId = await _sndUploadFile(file); if (!fileId) return;
@@ -7062,21 +7102,15 @@ function _muntUitleg(cl) {
   const g = _clNaarGoud(cl);
   return [g.fl && `${g.fl} fl`, g.kn && `${g.kn} kn`, g.cl && `${g.cl} cl`].filter(Boolean).join(' · ');
 }
-let _lootScenes = [];
 
 async function _renderLoot() {
   const el = _tabEl('loot');
   if (!el) return;
   el.innerHTML = _dmLoading('Vondsten laden…');
   try {
-    const [d, vw, snd] = await Promise.all([
-      api.lootEvents(),
-      api.listEntities('voorwerpen').catch(() => []),
-      api.getSounds().catch(() => ({})),
-    ]);
+    const [d, vw] = await Promise.all([api.lootEvents(), api.listEntities('voorwerpen').catch(() => [])]);
     _lootEvents     = d.events || [];
     _lootVoorwerpen = vw || [];
-    _lootScenes     = snd?.ambiance?.scenes || [];
   } catch (e) {
     el.innerHTML = `<div class="dm-feature-section"><p class="dm-hint">Kon de vondsten niet laden: ${esc(e.message)}</p></div>`;
     return;
@@ -7111,7 +7145,6 @@ function _renderLootInner() {
         <span class="dm-loot-meta">${esc(_lootSamenvatting(ev))}</span>
       </div>
       ${ev.dc ? `<span class="dm-loot-dc" title="${esc(ev.vaardigheid || 'Check')} — de spelers gooien aan tafel">DC ${ev.dc}${ev.vaardigheid ? ` ${esc(ev.vaardigheid)}` : ''}</span>` : ''}
-      ${ev.geluidFileId ? `<span class="dm-loot-badge" title="${esc(ev.geluidLabel || 'Geluid')}">geluid</span>` : ''}
       ${ev.onthuld && !isSjabloon ? `<span class="dm-loot-badge dm-loot-badge--op">onthuld</span>` : ''}
       ${isSjabloon
         ? `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.lootEvKopie('${esc(ev.id)}')" title="Maak hier een vondst van">${icon('plus')} Gebruiken</button>`
@@ -7200,15 +7233,6 @@ function _lootEditorHtml() {
           value="${r.totCl ? _clNaarTekst(r.totCl) : ''}" oninput="window.dmPanel.lootEvRandom('totCl', this.value)">
         <span class="dm-hint">gerold bij het onthullen</span>
       </div>
-      <div class="dm-form-row">
-        <label class="dm-form-label">Geluid</label>
-        <select class="dm-input dm-input-sm" style="flex:1;min-width:150px"
-          onchange="window.dmPanel.lootEvGeluid(this.value)">
-          <option value="">— geen geluid —</option>
-          ${(_lootScenes || []).map(sc => `<option value="${esc(sc.id)}" ${c.geluidFileId === sc.fileId ? 'selected' : ''}>${esc(sc.label || 'Scène')}</option>`).join('')}
-        </select>
-        <span class="dm-hint">klinkt zodra de spelers de buit zien</span>
-      </div>
       <div class="dm-section-label" style="margin-top:10px">Voorwerpen
         <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:8px" onclick="window.dmPanel.lootEvItemAdd()">${icon('plus')} Regel</button>
       </div>
@@ -7253,12 +7277,6 @@ function _lootEvRandom(veld, waarde) {
   if (!_lootConcept) return;
   if (!_lootConcept.goudRandom) _lootConcept.goudRandom = { vanCl: 0, totCl: 0 };
   _lootConcept.goudRandom[veld] = _tekstNaarCl(waarde);
-}
-function _lootEvGeluid(sceneId) {
-  if (!_lootConcept) return;
-  const sc = (_lootScenes || []).find(x => x.id === sceneId);
-  _lootConcept.geluidFileId = sc ? sc.fileId : null;
-  _lootConcept.geluidLabel  = sc ? (sc.label || '') : '';
 }
 function _lootEvItemAdd() { if (!_lootConcept) return; (_lootConcept.items ||= []).push(_leegItem()); _renderLootInner(); }
 function _lootEvItemDel(i) { if (!_lootConcept) return; _lootConcept.items.splice(i, 1); _renderLootInner(); }

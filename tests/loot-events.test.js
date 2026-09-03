@@ -115,6 +115,24 @@ describe('Loot-events', () => {
     assert.equal(na.items[0].naam, 'Fakkel', 'het sjabloon aanpassen verandert niets aan wat al ergens ligt');
   });
 
+  it('speelt het generieke onthullingsgeluid uit de geluidenbibliotheek', async () => {
+    // Het geluid hoort bij het moment, niet bij een vondst: één instelling voor
+    // de hele campagne (Geluiden-tab), niet per kist.
+    await req(server, 'PUT', '/api/sounds', { momenten: { lootReveal: 'snd_kist' } }, dm);
+    const g = await req(server, 'GET', '/api/sounds', null, dm);
+    assert.equal(g.body.momenten.lootReveal, 'snd_kist');
+    const ev = (await maak({ naam: 'Kist', goud: { fl: 1 } })).body;
+    await req(server, 'POST', '/api/loot/verdeling', { eventIds: [ev.id] }, dm);
+    const r = await req(server, 'POST', '/api/combat/loot/reveal', {}, dm);
+    assert.equal(r.status, 200, 'onthullen aan de spelers hoort gewoon te lukken');
+  });
+
+  it('weigert een onbekende momentsleutel', async () => {
+    await req(server, 'PUT', '/api/sounds', { momenten: { zomaarWat: 'snd_x' } }, dm);
+    const g = await req(server, 'GET', '/api/sounds', null, dm);
+    assert.equal(g.body.momenten.zomaarWat, undefined, 'alleen bekende momenten worden bewaard');
+  });
+
   it('houdt de vondstenbibliotheek weg bij spelers', async () => {
     const spelerCookie = (await req(server, 'POST', '/api/auth/player-login', { characterId: speler })).cookie;
     const r = await req(server, 'GET', '/api/loot/events', null, spelerCookie);
