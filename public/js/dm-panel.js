@@ -1742,9 +1742,10 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
 
   try {
     // Haal verse meta én archief parallel op
-    const [freshMeta, archief] = await Promise.all([
+    const [freshMeta, archief, encounters] = await Promise.all([
       api.meta(),
       api.listArchief().catch(() => ({ sessieLog: [] })),
+      api.listEncounters().catch(() => []),
     ]);
     if (window.app?.state) window.app.state.meta = freshMeta;
     _rbScript = freshMeta?.hoofdstukken?.[chapterKey]?.script || [];
@@ -1770,6 +1771,22 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
         }
       }
     }
+
+    // Idem voor encounters: die krijgen bij het aanmaken al een akteId mee, dus
+    // ze hier nóg eens handmatig aan het script toevoegen was dubbel werk. De
+    // afbeeldingen hierboven werden al zo aangevuld; encounters bleven achter.
+    const addedEncIds = new Set(_rbScript.filter(x => x.type === 'encounter').map(x => x.encounterId));
+    for (const enc of (encounters || [])) {
+      if (enc.akteId !== chapterKey || addedEncIds.has(enc.id)) continue;
+      _rbScript.push({
+        id:          'auto-' + enc.id,
+        type:        'encounter',
+        encounterId: enc.id,
+        name:        enc.name || 'Encounter',
+      });
+      addedEncIds.add(enc.id);
+    }
+    _encounters = encounters || _encounters;   // meteen bruikbaar voor de titel
   } catch {
     // Fallback naar gecachte meta
     _rbScript = window.app?.state?.meta?.hoofdstukken?.[chapterKey]?.script || [];

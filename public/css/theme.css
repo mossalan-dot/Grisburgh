@@ -3784,6 +3784,10 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   letter-spacing: 0.04em;
 }
 .dm-regie-balk-expand-btn:hover { color: var(--color-ink-bright, #2a1a08); }
+/* De kop liep op een smaller scherm door elkaar heen: links mocht krimpen, maar
+   de filterknoppen dáárin niet, en rechts stond vast met flex-shrink:0. Nu wijkt
+   eerst de filterrij (die is secundair) en pas daarna breekt de kop af naar een
+   tweede regel, zodat niets meer overlapt. */
 .dm-regie-balk-header {
   display: flex;
   align-items: center;
@@ -3792,12 +3796,16 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   border-bottom: 1px solid rgba(196, 168, 122, 0.3);
   flex-shrink: 0;
   gap: 8px;
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
 .dm-regie-balk-header-left {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;      /* nooit over de rechterkant heen */
 }
 .dm-regie-balk-header-right {
   display: flex;
@@ -3823,7 +3831,13 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-regie-balk-filters {
   display: flex;
   gap: 3px;
+  /* Secundair: deze rij geeft als eerste ruimte prijs en schuift desnoods. */
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.dm-regie-balk-filters::-webkit-scrollbar { display: none; }
+.dm-regie-balk-filter { flex-shrink: 0; }
 .dm-regie-balk-filter {
   padding: 2px 9px;
   font-size: 11px;
@@ -4071,6 +4085,11 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 /* Labels bij de knoppen die niet vanzelf spreken (Rust, Pauze, Uitnodiging).
    Een rij kale icoontjes liet zich niet lezen; deze drie krijgen tekst erbij. */
 .dm-rb-btn-label { font-family: 'Cinzel', serif; font-size: 11px; margin-left: 3px; }
+/* Op een krap scherm vallen de woorden weg en blijven icoon plus tooltip over —
+   de knoppen zelf blijven zo altijd bereikbaar. */
+@media (max-width: 1100px) {
+  .dm-rb-btn-label { display: none; }
+}
 
 /* Rustmenu: één knop i.p.v. vier icoontjes waarvan je moest raden wat locatie
    was en wat duur. Hangt aan de body zodat de regie-balk hem niet afknipt. */
