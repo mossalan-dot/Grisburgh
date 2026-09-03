@@ -136,10 +136,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=405   app.js?v=557   sound-manager.js?v=8
+index.html  : theme.css?v=406   app.js?v=558   sound-manager.js?v=8
 app.js      : api.js?v=250      render-campagne.js?v=121   render-archief.js?v=70
               render-kaart.js?v=18  render-dungeon.js?v=32  render-relatiemap.js?v=21
-              render-progressie.js?v=43  socket-client.js?v=58
+              render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
               dm-panel.js?v=168    render-dashboard.js?v=9
               render-spreuken.js?v=12   media-picker.js?v=7
@@ -252,8 +252,19 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > vorm en fog-of-war gaan. Loskoppelen (`dungeonId/roomId → null`) gooit niets
 > weg. Het muntje-knopje in de kamer roept `window.dmPanel.lootVerdelingOpenen()`
 > aan: er is één plek waar loot echt wordt uitgedeeld, namelijk het lootvenster.
-> Nog te bouwen: akte-stap, de tablet-cinematic en de mimic — zie
-> `docs/loot-events-plan.md`.
+> **Op de tablet** (`_isDisplayMode`) is er een eigen onthulling, in dezelfde
+> twee traps als de verzegelde brief: er staat een **gesloten kist**
+> (`public/assets/loot-kist-dicht.jpg`), iemand tikt erop, de animatie speelt
+> (`loot-kist.mp4`, 624×624, stil — het geluid komt uit de geluidenbibliotheek)
+> en daarna verschijnt de buit met portretjes van wie wat claimt: "geclaimd door
+> X", "X, Y en Z maken ruzie om de buit", "gaat naar X". Code: `_lootCinematic()`
+> in `app.js`. Het tafelscherm is **geen speler** en kan claims dus niet uit een
+> sessie afleiden; daarom stuurt de server een eigen payload `loot:display`
+> (`_lootDisplay()`) mét namen en portret-ids — zelfde patroon als
+> `brief:display`. Die gaat uit bij het onthullen, bij elke claim en bij de
+> uitslag; alleen het lijstje wordt dan hertekend, niet de hele cinematic, anders
+> gaat de kist telkens weer dicht.
+> Nog te bouwen: akte-stap en de mimic — zie `docs/loot-events-plan.md`.
 
 > **Aanwezigheid per sessie.** `groups[gid].afwezig` is de lijst met spelers die
 > **niet** meedoen (afwezigen bewaren, niet aanwezigen: dan doet een nieuw

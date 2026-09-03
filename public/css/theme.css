@@ -4551,6 +4551,106 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   color: #9a8354; opacity: .85;
 }
 .dm-inst-group-slot .icon { width: 14px; height: 14px; }
+/* ── Loot op het tafelscherm ─────────────────────────────────────────────────
+   Volle overlay: links de kist (eerst als stilstaand beeld, na de tik de
+   animatie), rechts de buit met wie wat claimt. Bewust donker: het is een
+   moment, geen scherm om in te werken. */
+.loot-cin {
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 45%, rgba(40,26,10,0.92), rgba(10,7,3,0.98));
+  animation: loot-cin-in .5s ease both;
+}
+@keyframes loot-cin-in { from { opacity: 0 } to { opacity: 1 } }
+.loot-cin-scene {
+  display: flex; align-items: center; gap: 4vw;
+  max-width: 92vw; max-height: 92vh;
+}
+.loot-cin-kistwrap { position: relative; flex: 0 0 auto; width: min(46vh, 40vw); aspect-ratio: 1; }
+.loot-cin-kist {
+  position: absolute; inset: 0; padding: 0; border: none; background: none; cursor: pointer;
+  display: flex; align-items: flex-end; justify-content: center;
+  border-radius: 8px; overflow: hidden;
+  box-shadow: 0 0 60px rgba(196,168,122,0.25);
+  transition: opacity .4s ease, transform .4s ease;
+}
+.loot-cin-kist img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.loot-cin-kist--weg { opacity: 0; pointer-events: none; transform: scale(1.04); }
+.loot-cin-hint {
+  position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  font-family: 'Cinzel', serif; font-size: clamp(11px, 1.5vh, 15px); letter-spacing: .1em;
+  text-transform: uppercase; color: #f2e8d2;
+  background: rgba(20,12,4,0.72); border: 1px solid rgba(196,168,122,0.55);
+  border-radius: 20px; padding: 6px 16px;
+  animation: loot-cin-pols 2.2s ease-in-out infinite;
+}
+@keyframes loot-cin-pols { 0%,100% { opacity: .75 } 50% { opacity: 1 } }
+.loot-cin-video {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  border-radius: 8px; opacity: 0; transition: opacity .3s ease;
+  box-shadow: 0 0 80px rgba(196,168,122,0.3);
+}
+.loot-cin-video--aan { opacity: 1; }
+
+.loot-cin-buit {
+  flex: 1 1 auto; min-width: 0; max-width: 46vw; max-height: 88vh; overflow-y: auto;
+  opacity: 0; transform: translateX(18px);
+  transition: opacity .6s ease .2s, transform .6s ease .2s;
+}
+.loot-cin--open .loot-cin-buit { opacity: 1; transform: none; }
+.loot-cin-goud {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Cinzel', serif; font-size: clamp(16px, 2.6vh, 26px); color: #e8c87a;
+  margin-bottom: 14px;
+}
+.loot-cin-goud .icon { width: 1em; height: 1em; }
+.loot-cin-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.loot-cin-item {
+  background: rgba(242,232,210,0.06); border: 1px solid rgba(196,168,122,0.28);
+  border-radius: 6px; padding: 10px 14px;
+}
+.loot-cin-item--leeg { color: #9a8354; font-style: italic; }
+.loot-cin-item-kop { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.loot-cin-item-naam {
+  font-family: 'Crimson Text', Georgia, serif; font-size: clamp(15px, 2.2vh, 22px); color: #f2e8d2;
+}
+.loot-cin-rar {
+  font-family: 'Cinzel', serif; font-size: clamp(9px, 1.2vh, 12px); letter-spacing: .08em;
+  text-transform: uppercase; color: #c4a87a;
+  border: 1px solid rgba(196,168,122,0.5); border-radius: 10px; padding: 1px 8px;
+}
+.loot-cin-rar[data-rarity="uncommon"]  { color: #8fbf96; border-color: rgba(143,191,150,0.6); }
+.loot-cin-rar[data-rarity="rare"]      { color: #93a9d4; border-color: rgba(147,169,212,0.6); }
+.loot-cin-rar[data-rarity="very-rare"] { color: #b193cd; border-color: rgba(177,147,205,0.6); }
+.loot-cin-rar[data-rarity="legendary"] { color: #e0b64f; border-color: rgba(224,182,79,0.7); }
+.loot-cin-bron {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: clamp(11px, 1.5vh, 14px); color: #9a8354; margin-top: 2px;
+}
+.loot-cin-claim {
+  display: flex; align-items: center; gap: 7px; margin-top: 8px; flex-wrap: wrap;
+  font-family: 'Crimson Text', Georgia, serif; font-size: clamp(12px, 1.7vh, 16px); color: #d8c69f;
+}
+.loot-cin-claim--stil { color: #7d6b4c; font-style: italic; }
+.loot-cin-claim--ruzie { color: #e0a860; }
+.loot-cin-claim--winnaar { color: #a8c98f; }
+.loot-cin-portret {
+  width: clamp(22px, 3.4vh, 34px); height: clamp(22px, 3.4vh, 34px);
+  border-radius: 50%; object-fit: cover; border: 1px solid rgba(196,168,122,0.6);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.loot-cin-portret--leeg {
+  background: rgba(196,168,122,0.18); color: #c4a87a;
+  font-family: 'Cinzel', serif; font-size: clamp(11px, 1.6vh, 15px);
+}
+/* Op een staand scherm (een iPad rechtop) past het niet naast elkaar. */
+@media (max-aspect-ratio: 1/1) {
+  .loot-cin-scene { flex-direction: column; gap: 3vh; }
+  .loot-cin-kistwrap { width: min(52vw, 34vh); }
+  .loot-cin-buit { max-width: 88vw; }
+}
+
 /* Vondsten in de kamerzijbalk van een dungeon. Die zijbalk is licht perkament
    (--color-room-elevated), net als de DM-tabs — dus donkere inkt uit de
    thema-variabelen, niet zelf een kleur verzinnen. */

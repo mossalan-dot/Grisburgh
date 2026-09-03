@@ -600,6 +600,11 @@ export function initSocket() {
     window._renderPlayerLoot?.();
     _showToast(`${window.icon?.('coins') || ''} Er is loot te verdelen — open je Boedel.`);
   });
+  // Het tafelscherm is geen speler: die krijgt zijn eigen payload met namen en
+  // portretten, zodat de tafel ziet wie wat claimt.
+  socket.on('loot:display', (data = {}) => {
+    if (window._isDisplayMode) window._lootCinematic?.(data);
+  });
   socket.on('loot:claim-update', ({ itemId, claimCount } = {}) => {
     if (window.app?.isDM?.()) { window.dmPanel?.refreshLoot?.(); return; }
     window._renderPlayerLoot?.();

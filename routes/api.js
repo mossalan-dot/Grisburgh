@@ -5965,6 +5965,26 @@ function _lootDeelnemers(combat, dmState) {
   return _aanwezigeSpelers(dmState, gid, entities.personages).map(e => e.id);
 }
 
+// Wat het tafelscherm van een lootverdeling te zien krijgt. De tablet is geen
+// speler en heeft dus geen sessie waaruit claims af te leiden zijn; daarom een
+// eigen payload mét namen en portret-ids, net als bij brief:display. Wie wat
+// claimt is op het grote scherm juist het leuke — daar draait de ruzie om.
+function _lootDisplay(lp) {
+  const personages = storage.readJSON('entities.json').personages || [];
+  const wie = (id) => {
+    const p = personages.find(x => x.id === id);
+    return { id, naam: p?.name || 'Onbekend', thumb: p?.data?.imageId || id };
+  };
+  return {
+    goud: lp.goud,
+    items: (lp.items || []).map(it => ({
+      id: it.id, naam: it.naam, rariteit: it.rariteit || '', bron: it.bron || '', status: it.status,
+      claimers: (it.claims || []).map(wie),
+      winnaar:  it.winnaar ? wie(it.winnaar) : null,
+    })),
+  };
+}
+
 // Lootfase voor de client; voor spelers worden claim-namen verborgen (alleen aantal + of jij claimde).
 function _lootForClient(lp, role, characterId) {
   if (!lp) return null;
@@ -6227,6 +6247,7 @@ router.post('/combat/loot/reveal', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
   io.to(room).emit('loot:aangeboden', { deelnemers: lp.deelnemers });
+  io.to(room).emit('loot:display', _lootDisplay(lp));
   // Het onthullingsgeluid is generiek: één keuze per campagne (Geluiden-tab),
   // die klinkt op het moment dat de spelers de buit te zien krijgen.
   const lootGeluid = (storage.readJSON('sounds.json') || {}).momenten?.lootReveal;
@@ -6247,7 +6268,9 @@ router.post('/combat/loot/claim', attachRole, (req, res) => {
   const idx = it.claims.indexOf(characterId);
   if (idx >= 0) it.claims.splice(idx, 1); else it.claims.push(characterId);
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('loot:claim-update', { itemId: it.id, claimCount: it.claims.length });
+  const _io = req.app.get('io'); const _room = req.session?.campaignId || 'main';
+  _io.to(_room).emit('loot:claim-update', { itemId: it.id, claimCount: it.claims.length });
+  _io.to(_room).emit('loot:display', _lootDisplay(lp));
   res.json({ ok: true, ikClaim: it.claims.includes(characterId), claimCount: it.claims.length });
 });
 
@@ -6311,6 +6334,7 @@ router.post('/combat/loot/verdeeld', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   for (const cid of geraakt) io.to(room).emit('player:items-updated', { characterId: cid, items: dmState.playerItems[cid] });
   io.to(room).emit('loot:verdeeld', { uitslag });
+  io.to(room).emit('loot:display', { ..._lootDisplay(lp), afgerond: true });
   res.json({ ok: true, uitslag, loot: _lootForClient(lp, 'dm', null) });
 });
 

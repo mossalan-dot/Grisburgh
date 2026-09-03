@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=43';
 import { renderBestiarium } from './render-bestiarium.js?v=20';
 import { renderSpreuken } from './render-spreuken.js?v=12';
 import { renderStatblock } from './render-statblock.js?v=3';
-import { initSocket } from "./socket-client.js?v=58";
+import { initSocket } from "./socket-client.js?v=59";
 import { initDmPanel } from "./dm-panel.js?v=168";
 import './media-picker.js?v=7';
 
@@ -5151,6 +5151,108 @@ function _briefCinematicSound() {
 }
 
 // Cinematische aankomst van een verzegelde factie-uitnodiging.
+// ── Loot op het tafelscherm ─────────────────────────────────────────────────
+// Twee traps, net als de verzegelde brief: er staat een gesloten kist, iemand
+// tikt erop, de animatie speelt, en pas daarna verschijnt de buit met wie wat
+// claimt. Komt er daarna nog een update binnen (een nieuwe claim, de uitslag),
+// dan hertekenen we alleen het lijstje — niet de hele cinematic, want dan zou
+// de kist telkens opnieuw dichtgaan.
+let _lootCinOpen = false;
+
+function _lootCinBedrag(goud) {
+  const c = window.app?.state?.meta?.currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' };
+  const d = [[goud?.fl, c.fl], [goud?.kn, c.kn], [goud?.cl, c.cl]]
+    .filter(([n]) => n > 0).map(([n, naam]) => `${n} ${esc(naam)}`);
+  return d.join(' · ');
+}
+
+function _lootCinPortret(p) {
+  return `<img class="loot-cin-portret" src="/api/thumb/${esc(p.thumb)}" alt=""
+    title="${esc(p.naam)}" onerror="this.replaceWith(Object.assign(document.createElement('span'),
+    {className:'loot-cin-portret loot-cin-portret--leeg', textContent:'${esc((p.naam || '?')[0])}'}))">`;
+}
+
+function _lootCinClaimRegel(it) {
+  if (it.winnaar) return `<span class="loot-cin-claim loot-cin-claim--winnaar">
+    ${_lootCinPortret(it.winnaar)} gaat naar <strong>${esc(it.winnaar.naam)}</strong></span>`;
+  const c = it.claimers || [];
+  if (!c.length) return `<span class="loot-cin-claim loot-cin-claim--stil">nog niemand</span>`;
+  if (c.length === 1) return `<span class="loot-cin-claim">
+    ${_lootCinPortret(c[0])} geclaimd door <strong>${esc(c[0].naam)}</strong></span>`;
+  const namen = c.map(x => esc(x.naam));
+  const laatste = namen.pop();
+  return `<span class="loot-cin-claim loot-cin-claim--ruzie">
+    ${c.map(_lootCinPortret).join('')} <strong>${namen.join(', ')} en ${laatste}</strong> maken ruzie om de buit</span>`;
+}
+
+function _lootCinBuit(data) {
+  const el = document.getElementById('loot-cin-buit');
+  if (!el) return;
+  const bedrag = _lootCinBedrag(data.goud);
+  const items  = (data.items || []).filter(it => it.status !== 'overgeslagen');
+  el.innerHTML = `
+    ${bedrag ? `<div class="loot-cin-goud">${icon('coins')} ${bedrag}</div>` : ''}
+    <ul class="loot-cin-items">
+      ${items.map(it => `
+        <li class="loot-cin-item">
+          <div class="loot-cin-item-kop">
+            <span class="loot-cin-item-naam">${esc(it.naam)}</span>
+            ${it.rariteit ? `<span class="loot-cin-rar" data-rarity="${esc(String(it.rariteit).toLowerCase().replace(/\s+/g, '-'))}">${esc(it.rariteit)}</span>` : ''}
+          </div>
+          ${it.bron ? `<div class="loot-cin-bron">${esc(it.bron)}</div>` : ''}
+          ${_lootCinClaimRegel(it)}
+        </li>`).join('') || '<li class="loot-cin-item loot-cin-item--leeg">Alleen munten.</li>'}
+    </ul>`;
+}
+
+window._lootCinematic = (data = {}) => {
+  let ov = document.getElementById('loot-cinematic');
+  if (!ov) {
+    _lootCinOpen = false;
+    ov = document.createElement('div');
+    ov.id = 'loot-cinematic';
+    ov.className = 'loot-cin';
+    ov.innerHTML = `
+      <div class="loot-cin-scene">
+        <div class="loot-cin-kistwrap">
+          <button class="loot-cin-kist" id="loot-cin-open" type="button">
+            <img src="/assets/loot-kist-dicht.jpg" alt="Een gesloten schatkist">
+            <span class="loot-cin-hint">${icon('mouse-pointer-2')} Tik om te openen</span>
+          </button>
+          <video class="loot-cin-video" id="loot-cin-video" playsinline muted preload="auto"
+            src="/assets/loot-kist.mp4"></video>
+        </div>
+        <div class="loot-cin-buit" id="loot-cin-buit"></div>
+      </div>`;
+    document.body.appendChild(ov);
+
+    const kist  = ov.querySelector('#loot-cin-open');
+    const video = ov.querySelector('#loot-cin-video');
+    kist.addEventListener('click', () => {
+      kist.classList.add('loot-cin-kist--weg');
+      video.classList.add('loot-cin-video--aan');
+      // Stil afspelen: het onthullingsgeluid komt uit de geluidenbibliotheek,
+      // niet uit de videotrack — anders lopen ze door elkaar.
+      video.play().catch(() => { /* geen autoplay: dan blijft het laatste beeld staan */ });
+      video.addEventListener('ended', () => {
+        ov.classList.add('loot-cin--open');
+        _lootCinOpen = true;
+        _lootCinBuit(ov._data || {});
+      }, { once: true });
+    });
+  }
+  ov._data = data;
+  if (_lootCinOpen) _lootCinBuit(data);
+  // Na de uitslag mag het scherm weer terug naar de sfeer; de tafel heeft dan
+  // gezien wie wat kreeg.
+  if (data.afgerond) setTimeout(() => window._lootCinematicSluit?.(), 14000);
+};
+
+window._lootCinematicSluit = () => {
+  document.getElementById('loot-cinematic')?.remove();
+  _lootCinOpen = false;
+};
+
 window._briefCinematic = (msg) => {
   document.getElementById('brief-cinematic')?.remove();
   const kleur = _factieKleurHex(msg.kleur);
