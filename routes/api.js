@@ -4662,22 +4662,64 @@ function _sheetFeatures(prog, profiel) {
   return groepen;
 }
 
+// De boedel van een speler heeft twéé bronnen — dezelfde twee die het
+// Boedel-tabblad toont. `playerItems` zijn losse regels die de DM toevoegt;
+// de voorwerp-kaartjes zijn echte entities waarvan het eigendom in
+// `groups[gid].itemOwners` staat (entityId → owner, of een lijst bij stapelbare
+// items met een aantal). Alleen `playerItems` pakken liet de helft weg.
+function _sheetVoorwerpen(dmState, characterId) {
+  const gid = _playerGroupId(dmState, characterId);
+  const g   = gid ? getGroup(dmState, gid) : null;
+  if (!g?.itemOwners) return [];
+  const alle = storage.readJSON('entities.json').voorwerpen || [];
+  const uit  = [];
+  for (const [entityId, eigenaar] of Object.entries(g.itemOwners)) {
+    const mijn = Array.isArray(eigenaar)
+      ? eigenaar.find(o => o.characterId === characterId)
+      : (eigenaar?.characterId === characterId ? eigenaar : null);
+    if (!mijn || (mijn.qty != null && mijn.qty <= 0)) continue;
+    const v = alle.find(x => x.id === entityId);
+    if (!v) continue;
+    const maxCharges = (g.itemMaxCharges || {})[entityId] ?? (parseInt(v.data?.maxCharges) || 0);
+    uit.push({
+      name:       v.name,
+      itemType:   v.data?.itemType || '',
+      rariteit:   v.data?.rariteit || '',
+      attunement: v.data?.attunement === true || v.data?.attunement === 'true',
+      qty:        Array.isArray(eigenaar) ? (mijn.qty || 1) : null,
+      charges:    maxCharges > 0 ? { nu: (g.itemCharges || {})[entityId] ?? maxCharges, max: maxCharges } : null,
+      desc:       v.data?.desc || '',
+    });
+  }
+  return uit.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+}
+
 // Bouw de sheet-data voor één personage uit alles wat de campagne bijhoudt.
 function _sheetPersonage(entity, dmState, prog, meta) {
   const id      = entity.id;
   const profiel = (dmState.playerProfiles || {})[id] || {};
+  const gid     = _playerGroupId(dmState, id);
+  const groep   = gid ? getGroup(dmState, gid) : null;
   return {
     naam:      entity.name,
     campagne:  meta.appTitle || '',
+    groepNaam: groep?.name || '',
     profiel,
     hp:        (dmState.playerHp || {})[id] || {},
     hitDice:   { pool: _hitDicePool(profiel), spent: (dmState.playerHitDice || {})[id]?.spent || {} },
     slots:     (dmState.playerSpellSlots || {})[id] || {},
-    currency:  (dmState.playerCurrency || {})[id] || { fl: 0, kn: 0, cl: 0 },
-    muntNamen: meta.currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' },
-    items:     (dmState.playerItems || {})[id] || [],
-    spreuken:  (dmState.playerSpells || {})[id] || [],
-    features:  _sheetFeatures(prog, profiel),
+    // Zelfde regel als _effectiveCurrency(): staat de gedeelde beurs aan, dán is
+    // dát de beurs van de party en telt playerCurrency niet meer mee. Anders
+    // andersom niet allebei tonen — dan zou een speler denken dat hij 99 fl
+    // eigen geld heeft terwijl de app dat nergens meer gebruikt.
+    beurs: groep?.sharedPurse?.enabled
+      ? { gedeeld: { fl: groep.sharedPurse.fl || 0, kn: groep.sharedPurse.kn || 0, cl: groep.sharedPurse.cl || 0 } }
+      : { persoonlijk: (dmState.playerCurrency || {})[id] || { fl: 0, kn: 0, cl: 0 } },
+    muntNamen:  meta.currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' },
+    items:      (dmState.playerItems || {})[id] || [],
+    voorwerpen: _sheetVoorwerpen(dmState, id),
+    spreuken:   (dmState.playerSpells || {})[id] || [],
+    features:   _sheetFeatures(prog, profiel),
   };
 }
 

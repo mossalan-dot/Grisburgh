@@ -220,9 +220,18 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > de eigen munt (Florinde/Knaker/Centeling) of factie-titels, knijpt de spreukenlijst dicht op
 > 28 regels en zou een template van 15,5 MB buiten git op de server vragen. De browser is al een
 > prima pdf-generator, dus dit kost géén extra dependency.
-> Blad 1 = abilities/saves/skills/HP/attacks/proficiencies/boedel, blad 2 = spellcasting
-> (alleen bij magie), blad 3 = features & traits uit `progression.json` t/m het huidige level.
-> Overal lege regels om met pen bij te schrijven. Triggers: knop **Sheets** in de Aktes-tabkop,
+> Bladen: 1 = abilities/saves/skills (met passive Perception/Insight/Investigation als
+> subregel), stats, HP, attacks & cantrips, proficiencies, en een gelinieerd **Notes**-veld
+> dat met `flex:1` precies de restruimte pakt; **Inventory** (voorwerp-kaartjes uit
+> `groups[gid].itemOwners` + losse `playerItems`, plus de beurs) staat erbij, of krijgt een
+> eigen blad zodra het >12 regels zijn; daarna spellcasting + spreukentabel, spell
+> descriptions (volledige teksten) en features & traits uit `progression.json`. Elk blad heeft
+> een voettekst met naam + "blad X van Y" — per personage genummerd, zodat een uitgedeelde
+> stapel te sorteren is. **Beurs:** zelfde regel als `_effectiveCurrency()` — staat de
+> gedeelde beurs aan, dan is dát de partybeurs en telt `playerCurrency` niet mee.
+> **Tekstopschoning:** SRD-teksten dragen markdown (`**_Sound._**`) en afbreekstreepjes uit
+> de bron-pdf ("repre- sented") mee; `schoon()` + `mdInline()` in `lib/character-sheet.js`
+> halen die eruit. Triggers: knop **Sheets** in de Aktes-tabkop,
 > een scroll-icoon in de **regie-balk**, en een herinnering direct na `_regieBalkPauze()`
 > (einde sessie = definitieve stand van level, HP en boedel).
 > Let op bij CSS-wijzigingen: het `@media print`-blok staat **onderaan** de stylesheet — bij
