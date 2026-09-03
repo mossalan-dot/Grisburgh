@@ -37,7 +37,7 @@ Bewust **niet** in deze ronde:
 | Valuta | D&D-generiek: gp/sp/cp als standaard, hernoembaar. Grisburgh houdt Florinde/Knaker/Centeling. |
 | URL | `grisburgh.nl/<naam>` per campagne — Grisburgh wordt dus ook `/grisburgh`. De landingspagina is voor iedereen te bezoeken en toont de campagnes; alleen inloggen is afgeschermd. `grisburgh.nl` zonder pad stuurt door naar `/grisburgh`, zodat bestaande bladwijzers blijven werken. |
 | Progressie & spreuken | Nieuwe campagnes krijgen de **structuur** (namen, levels, school, casting time…) zonder beschrijvingen, met een tekstveld dat de DM zelf vult. Per campagne opgeslagen. |
-| Backups | Dagelijks alle JSON per campagne op de server, plus een kopie op Alans laptop via een geplande taak (launchd) die draait zodra de laptop aan staat — mist hij een dag, dan haalt hij het de volgende keer in. Raakt een wijziging andermans content, dan ook handmatig vooraf. **Beeldmateriaal blijft alleen op de server** (bewuste keuze; 2,2 GB is te zwaar om heen en weer te slepen). |
+| Backups | Dagelijks alle JSON per campagne op de server, plus een kopie op Alans laptop via een geplande taak (launchd) die draait zodra de laptop aan staat — mist hij een dag, dan haalt hij het de volgende keer in. Raakt een wijziging andermans content, dan ook handmatig vooraf. De **thumbnails** gaan wél mee (samen 56 MB tegen 2,2 GB originelen): na een ramp staat de app er weer mét beeld, alleen op 600px. De originelen blijven bewust alleen op de server. Bewaartermijn dertig dagen. |
 | Deploy tijdens andermans sessie | Even afstemmen per app; geen onderhoudsscherm nodig. |
 | Tempo | Stapsgewijs, met smoke tests per stap. |
 
@@ -122,7 +122,4 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
 
 ## Open vragen
 
-1. Hoe lang backups bewaren — dertig dagen?
-2. De thumbnails zijn samen maar 56 MB (tegen 2,2 GB originelen). Die alsnog
-   meenemen in de dagelijkse backup? Dan staat na een ramp de app er weer met
-   beeld, alleen niet op volle resolutie. Bijna gratis, maar het is jouw keuze.
+Geen. Stap 1 kan beginnen.
