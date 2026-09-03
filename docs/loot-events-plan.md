@@ -1,6 +1,8 @@
 # Loot-events — ontwerp
 
-Status: **ontwerp, nog niets gebouwd.** Opgesteld 3 sep 2026.
+Status: **eerste deel gebouwd** (3 sep 2026) — de vondsten zelf, het bundelen en
+onthullen, en het Loot-tabblad staan live. Nog te doen: koppeling aan een
+dungeonkamer, het akte-staptype, de tablet-cinematic en de mimic.
 Raakt de akteregie, de dungeonkaarten, de tabletmodus en het begrip "actieve
 groep". Hangt samen met `docs/multi-dm-plan.md` (stap 4, modules).
 

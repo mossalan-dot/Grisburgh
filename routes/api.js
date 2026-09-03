@@ -5963,6 +5963,7 @@ function _lootForClient(lp, role, characterId) {
     deelnemers: lp.deelnemers,
     items: (lp.items || []).map(it => ({
       id: it.id, naam: it.naam, beschrijving: it.beschrijving, rariteit: it.rariteit, entityId: it.entityId || null,
+      bron: it.bron || '',
       status: it.status, winnaar: isDM ? it.winnaar : undefined,
       claimCount: (it.claims || []).length,
       claims: isDM ? it.claims : undefined,
@@ -5987,6 +5988,171 @@ function _addCurrency(dmState, characterId, addCl) {
   dmState.playerCurrency[characterId] = fromCl(toCl(cur) + addCl);
   return dmState.playerCurrency[characterId];
 }
+
+// ── Loot-events ──────────────────────────────────────────────────────────────
+// Een loot-event is één vondst: de geldzak in de haard, het zwaard onder de
+// plavuizen. Eén kamer kan er meerdere hebben. De DC is een **aantekening**,
+// geen mechaniek: de spelers gooien aan tafel en de DM beslist of de vondst
+// onthuld wordt. Daarom hoeft er nergens een worp ingevoerd of per speler
+// bijgehouden te worden.
+//
+// De verdeling zelf (claimen, afrollen, uitdelen) is de bestaande lootPhase —
+// een event vult die alleen. Zo hoeft er aan die machinerie niets te veranderen.
+
+const _lootId = (p) => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+function _leesLoot() {
+  const data = storage.readJSON('loot.json');
+  if (!Array.isArray(data.events)) data.events = [];
+  return data;
+}
+
+// Een item mag "willekeurig" zijn: dan kiest de server bij het onthullen een
+// voorwerp-kaartje van de gevraagde zeldzaamheid. Zo kun je een sjabloon maken
+// ("een common item") dat elke keer iets anders oplevert.
+function _kiesWillekeurigVoorwerp(rariteit) {
+  const alle = (storage.readJSON('entities.json').voorwerpen || [])
+    .filter(v => !rariteit || String(v.data?.rariteit || '').trim().toLowerCase() === String(rariteit).trim().toLowerCase());
+  if (!alle.length) return null;
+  return alle[Math.floor(Math.random() * alle.length)];
+}
+
+const _tussen = (van, tot) => {
+  const a = Math.min(getalOf(van), getalOf(tot));
+  const b = Math.max(getalOf(van), getalOf(tot));
+  return a + Math.floor(Math.random() * (b - a + 1));
+};
+const getalOf = (v) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : 0; };
+
+// Zet een event om in losse lootPhase-items. Toeval wordt hier gerold — dus op
+// het moment van onthullen, zodat de DM ziet wat het geworden is en nog kan
+// ingrijpen voordat het scherm opengaat.
+function _eventNaarItems(ev) {
+  const uit = [];
+  for (const it of (ev.items || [])) {
+    let naam = it.naam, beschrijving = it.beschrijving || '', rariteit = it.rariteit || '', entityId = it.entityId || null;
+    if (it.willekeurig) {
+      const v = _kiesWillekeurigVoorwerp(it.rariteit);
+      if (!v) continue;                       // niets van die zeldzaamheid: sla over
+      naam = v.name; beschrijving = v.data?.desc || ''; rariteit = v.data?.rariteit || ''; entityId = v.id;
+    }
+    if (!naam) continue;
+    uit.push({
+      id: _lootId('li'), naam, beschrijving, rariteit, entityId,
+      bron: ev.naam || '',                    // "uit de haard" — houdt de flavour heel
+      claims: [], winnaar: null, dobbelrol: {}, status: 'open',
+    });
+  }
+  return uit;
+}
+
+function _eventGoud(ev) {
+  const g = { fl: getalOf(ev.goud?.fl), kn: getalOf(ev.goud?.kn), cl: getalOf(ev.goud?.cl) };
+  const r = ev.goudRandom;
+  if (r && (getalOf(r.van) || getalOf(r.tot))) {
+    const munt = ['fl', 'kn', 'cl'].includes(r.munt) ? r.munt : 'fl';
+    g[munt] += _tussen(r.van, r.tot);
+  }
+  return g;
+}
+
+router.get('/loot/events', requireDM, (req, res) => {
+  res.json(_leesLoot());
+});
+
+router.post('/loot/events', requireDM, (req, res) => {
+  const data = _leesLoot();
+  const ev = {
+    id: _lootId('le'),
+    naam:        String(req.body.naam || 'Nieuwe vondst').slice(0, 120),
+    dc:          getalOf(req.body.dc),
+    vaardigheid: String(req.body.vaardigheid || '').slice(0, 40),
+    goud:        { fl: getalOf(req.body.goud?.fl), kn: getalOf(req.body.goud?.kn), cl: getalOf(req.body.goud?.cl) },
+    goudRandom:  req.body.goudRandom || null,
+    items:       Array.isArray(req.body.items) ? req.body.items : [],
+    sjabloon:    !!req.body.sjabloon,
+    dungeonId:   req.body.dungeonId || null,
+    roomId:      req.body.roomId    || null,
+    encounterId: req.body.encounterId || null,
+    mimicEncounterId: req.body.mimicEncounterId || null,
+    onthuld:     false,
+  };
+  data.events.push(ev);
+  storage.writeJSON('loot.json', data);
+  res.status(201).json(ev);
+});
+
+router.put('/loot/events/:id', requireDM, (req, res) => {
+  const data = _leesLoot();
+  const ev = data.events.find(e => e.id === req.params.id);
+  if (!ev) return res.status(404).json({ error: 'Vondst niet gevonden' });
+  const velden = ['naam', 'vaardigheid', 'dungeonId', 'roomId', 'encounterId', 'mimicEncounterId'];
+  for (const v of velden) if (req.body[v] !== undefined) ev[v] = req.body[v];
+  if (req.body.dc       !== undefined) ev.dc       = getalOf(req.body.dc);
+  if (req.body.goud     !== undefined) ev.goud     = { fl: getalOf(req.body.goud.fl), kn: getalOf(req.body.goud.kn), cl: getalOf(req.body.goud.cl) };
+  if (req.body.goudRandom !== undefined) ev.goudRandom = req.body.goudRandom;
+  if (Array.isArray(req.body.items))   ev.items    = req.body.items;
+  if (req.body.sjabloon !== undefined) ev.sjabloon = !!req.body.sjabloon;
+  if (req.body.onthuld  !== undefined) ev.onthuld  = !!req.body.onthuld;
+  storage.writeJSON('loot.json', data);
+  res.json(ev);
+});
+
+router.delete('/loot/events/:id', requireDM, (req, res) => {
+  const data = _leesLoot();
+  const voor = data.events.length;
+  data.events = data.events.filter(e => e.id !== req.params.id);
+  if (data.events.length === voor) return res.status(404).json({ error: 'Vondst niet gevonden' });
+  storage.writeJSON('loot.json', data);
+  res.json({ ok: true });
+});
+
+// Een sjabloon wordt gekopieerd bij gebruik: pas je het sjabloon later aan, dan
+// verandert er niets aan de vondst die al ergens ligt.
+router.post('/loot/events/:id/kopie', requireDM, (req, res) => {
+  const data = _leesLoot();
+  const bron = data.events.find(e => e.id === req.params.id);
+  if (!bron) return res.status(404).json({ error: 'Vondst niet gevonden' });
+  const kopie = { ...bron, id: _lootId('le'), sjabloon: false, onthuld: false,
+    naam: req.body.naam || bron.naam,
+    dungeonId: req.body.dungeonId ?? null, roomId: req.body.roomId ?? null,
+    items: (bron.items || []).map(i => ({ ...i })) };
+  data.events.push(kopie);
+  storage.writeJSON('loot.json', data);
+  res.status(201).json(kopie);
+});
+
+// Zet één of meer vondsten om in een lootfase. Bundelen mag: de DM vinkt aan
+// wat er gevonden is en onthult het in één keer; elk item houdt zijn eigen
+// herkomst, zodat "uit de haard" en "onder de plavuizen" gescheiden blijven.
+// De fase komt NIET meteen actief te staan — de DM kan eerst nog bijstellen en
+// drukt daarna op onthullen (bestaande knop).
+router.post('/loot/verdeling', requireDM, (req, res) => {
+  const ids = Array.isArray(req.body.eventIds) ? req.body.eventIds : [];
+  if (!ids.length) return res.status(400).json({ error: 'Geen vondsten gekozen' });
+  const data    = _leesLoot();
+  const gekozen = data.events.filter(e => ids.includes(e.id));
+  if (!gekozen.length) return res.status(404).json({ error: 'Vondsten niet gevonden' });
+
+  const combat  = storage.readJSON('combat.json');
+  const dmState = readDmState();
+  const goud = { fl: 0, kn: 0, cl: 0 };
+  let items = [];
+  for (const ev of gekozen) {
+    const g = _eventGoud(ev);
+    goud.fl += g.fl; goud.kn += g.kn; goud.cl += g.cl;
+    items = items.concat(_eventNaarItems(ev));
+    ev.onthuld = true;
+  }
+  dmState.lootPhase = {
+    actief: false, encounterId: null, lootEventIds: gekozen.map(e => e.id),
+    deelnemers: _lootDeelnemers(combat, dmState),
+    goud, goudVerdeeld: false, items,
+  };
+  storage.writeJSON('dm-state.json', dmState);
+  storage.writeJSON('loot.json', data);
+  res.json(_lootForClient(dmState.lootPhase, 'dm', null));
+});
 
 router.post('/combat/loot/start', requireDM, (req, res) => {
   const combat  = storage.readJSON('combat.json');

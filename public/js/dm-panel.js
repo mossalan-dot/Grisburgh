@@ -1,4 +1,4 @@
-import { api } from './api.js?v=249';
+import { api } from './api.js?v=250';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=21';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -371,6 +371,21 @@ export function initDmPanel() {
 
     // Lootverdeler
     lootOpen:        _lootOpen,
+    lootEvNieuw:      _lootEvNieuw,
+    lootEvBewerk:     _lootEvBewerk,
+    lootEvAnnuleer:   _lootEvAnnuleer,
+    lootEvVeld:       _lootEvVeld,
+    lootEvGoud:       _lootEvGoud,
+    lootEvRandom:     _lootEvRandom,
+    lootEvItemAdd:    _lootEvItemAdd,
+    lootEvItemDel:    _lootEvItemDel,
+    lootEvItemVeld:   _lootEvItemVeld,
+    lootEvItemKoppel: _lootEvItemKoppel,
+    lootEvOpslaan:    _lootEvOpslaan,
+    lootEvVerwijder:  _lootEvVerwijder,
+    lootEvKopie:      _lootEvKopie,
+    lootSelToggle:    _lootSelToggle,
+    lootOnthulSelectie: _lootOnthulSelectie,
     lootReveal:      _lootReveal,
     lootVerdeeld:    _lootVerdeeld,
     lootCancel:      _lootCancel,
@@ -545,18 +560,19 @@ function _tabToParent(tab) {
 // precies het moment waarop je hem nodig hebt.
 const _DM_TABS = [
   // Spelen
-  { id: 'aktes',     label: 'Aktes',     icoon: 'clipboard-list',                  title: 'Aktes — voorbereiding &amp; regie' },
-  { id: 'gevecht',   label: 'Gevecht',   icoon: 'crossed-swords', cls: 'icon-gi', title: 'Gevecht & Monsters' },
-  { id: 'rust',      label: 'Rust',      icoon: 'moon',                            title: 'Rust — Long &amp; Short Rest' },
+  { id: 'aktes',     groep: 'spelen',    label: 'Aktes',     icoon: 'clipboard-list',                  title: 'Aktes — voorbereiding &amp; regie' },
+  { id: 'gevecht',   groep: 'spelen',    label: 'Gevecht',   icoon: 'crossed-swords', cls: 'icon-gi', title: 'Gevecht & Monsters' },
+  { id: 'loot',      groep: 'spelen',    label: 'Loot',      icoon: 'coins',           title: 'Loot — vondsten &amp; verdeling' },
+  { id: 'rust',      groep: 'spelen',    label: 'Rust',      icoon: 'moon',                            title: 'Rust — Long &amp; Short Rest' },
   // Sfeer en improvisatie
-  { id: 'geluiden',  label: 'Geluiden',  icoon: 'volume-2',                        title: 'Geluiden' },
-  { id: 'tafels',    label: 'Tafels',    icoon: 'dice', cls: 'icon-gi',            title: 'Willekeur — tafels &amp; namen' },
+  { id: 'geluiden',  groep: 'sfeer',     label: 'Geluiden',  icoon: 'volume-2',                        title: 'Geluiden' },
+  { id: 'tafels',    groep: 'sfeer',     label: 'Tafels',    icoon: 'dice', cls: 'icon-gi',            title: 'Willekeur — tafels &amp; namen' },
   // Voorbereiden en beheren
-  { id: 'diensten',  label: 'Diensten',  icoon: 'building',                        title: 'Grisburgh-diensten' },
-  { id: 'media',     label: 'Media',     icoon: 'image',                           title: 'Mediabibliotheek' },
+  { id: 'diensten',  groep: 'beheer',    label: 'Diensten',  icoon: 'building',                        title: 'Grisburgh-diensten' },
+  { id: 'media',     groep: 'beheer',    label: 'Media',     icoon: 'image',                           title: 'Mediabibliotheek' },
   // 'Berichten' past niet op één regel in een kolom van 56px; liever een korter
    // woord dan een afbreking. De tooltip houdt de volledige naam.
-  { id: 'berichten', label: 'Post',      icoon: 'message-circle',                  title: 'Berichten' },
+  { id: 'berichten', groep: 'beheer',    label: 'Post',      icoon: 'message-circle',                  title: 'Berichten' },
 ];
 
 function _buildTabs() {
@@ -567,7 +583,8 @@ function _buildTabs() {
   // regie-balk zodra er een akte actief is.
   container.innerHTML = `
     <button class="dm-tab-btn dm-tab-btn--settings" onclick="window._dmInstellingenOpen()" title="Instellingen">${icon('settings')}</button>`
-    + _DM_TABS.map(t => `
+    + _DM_TABS.map((t, i) => `
+    ${i > 0 && t.groep !== _DM_TABS[i - 1].groep ? '<span class="dm-tab-sep" aria-hidden="true"></span>' : ''}
     <button class="dm-tab-btn${activeParent === t.id ? ' active' : ''}" data-tab="${t.id}"
       onclick="window.dmPanel.switchTab('${t.id}')" title="${t.title}">
       <span class="dm-tab-icon">${icon(t.icoon, t.cls ? { cls: t.cls } : undefined)}</span>
@@ -596,6 +613,7 @@ function _switchTab(tab) {
     c.classList.toggle('active', c.dataset.tab === parentTab);
   });
 
+  if (tab === 'loot')      _renderLoot();
   if (tab === 'rust')      _renderRust();
   if (tab === 'aktes')     _renderAktes();
   if (tab === 'tafels')    _loadAndRenderTafels();
@@ -6801,6 +6819,7 @@ function _renderLootModalBody() {
         <div class="loot-items">
           ${lp.items.map(it => `
             <div class="loot-edit-row">
+              ${it.bron ? `<span class="loot-bron" title="Komt uit deze vondst">${esc(it.bron)}</span>` : ''}
               <input class="dm-input dm-input-sm loot-edit-naam" value="${esc(it.naam)}" placeholder="Naam" onblur="window.dmPanel.lootItemField('${esc(it.id)}','naam',this.value)">
               <input class="dm-input dm-input-sm" value="${esc(it.beschrijving || '')}" placeholder="Beschrijving" onblur="window.dmPanel.lootItemField('${esc(it.id)}','beschrijving',this.value)">
               <select class="dm-select dm-select-sm" onchange="window.dmPanel.lootItemField('${esc(it.id)}','rariteit',this.value)">
@@ -7004,6 +7023,264 @@ function _renderGevecht() {
     </div>
   `;
 };
+
+
+// ── Loot-events ─────────────────────────────────────────────────────────────
+// De bibliotheek van vondsten. De DC ernaast is een aantekening voor de DM —
+// de spelers gooien aan tafel, en onthullen blijft een klik. Meerdere vondsten
+// tegelijk aanvinken mag: die worden dan één verdeling, waarin elk item zijn
+// eigen herkomst houdt.
+
+let _lootEvents   = [];
+let _lootSelectie = new Set();
+let _lootConcept  = null;      // vondst in bewerking (werkkopie)
+let _lootVoorwerpen = [];      // voor de koppeling aan een kaartje
+
+const _LOOT_RARITEITEN = ['', 'Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary'];
+
+const _leegItem = () => ({ naam: '', rariteit: '', entityId: null, beschrijving: '', willekeurig: false });
+
+async function _renderLoot() {
+  const el = _tabEl('loot');
+  if (!el) return;
+  el.innerHTML = _dmLoading('Vondsten laden…');
+  try {
+    const [d, vw] = await Promise.all([api.lootEvents(), api.listEntities('voorwerpen').catch(() => [])]);
+    _lootEvents     = d.events || [];
+    _lootVoorwerpen = vw || [];
+  } catch (e) {
+    el.innerHTML = `<div class="dm-feature-section"><p class="dm-hint">Kon de vondsten niet laden: ${esc(e.message)}</p></div>`;
+    return;
+  }
+  _renderLootInner();
+}
+
+function _lootSamenvatting(ev) {
+  const g = ev.goud || {};
+  const munten = [g.fl && `${g.fl} fl`, g.kn && `${g.kn} kn`, g.cl && `${g.cl} cl`].filter(Boolean).join(' · ');
+  const r = ev.goudRandom;
+  const rand = r && (r.van || r.tot) ? `${r.van}–${r.tot} ${esc(r.munt || 'fl')}` : '';
+  const items = (ev.items || []).length;
+  return [items ? `${items} voorwerp${items === 1 ? '' : 'en'}` : '', munten, rand].filter(Boolean).join(' · ') || 'leeg';
+}
+
+function _renderLootInner() {
+  const el = _tabEl('loot');
+  if (!el) return;
+  const rijen = _lootEvents.map(ev => `
+    <div class="dm-loot-rij${_lootSelectie.has(ev.id) ? ' dm-loot-rij--gekozen' : ''}" data-id="${esc(ev.id)}">
+      <label class="dm-loot-kies" title="Aanvinken om te onthullen">
+        <input type="checkbox" ${_lootSelectie.has(ev.id) ? 'checked' : ''}
+          onchange="window.dmPanel.lootSelToggle('${esc(ev.id)}')">
+      </label>
+      <div class="dm-loot-info">
+        <span class="dm-loot-naam">${esc(ev.naam)}</span>
+        <span class="dm-loot-meta">${esc(_lootSamenvatting(ev))}</span>
+      </div>
+      ${ev.dc ? `<span class="dm-loot-dc" title="${esc(ev.vaardigheid || 'Check')} — de spelers gooien aan tafel">DC ${ev.dc}${ev.vaardigheid ? ` ${esc(ev.vaardigheid)}` : ''}</span>` : ''}
+      ${ev.sjabloon ? `<span class="dm-loot-badge">sjabloon</span>` : ''}
+      ${ev.onthuld  ? `<span class="dm-loot-badge dm-loot-badge--op">onthuld</span>` : ''}
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.lootEvBewerk('${esc(ev.id)}')" title="Bewerken">${icon('pencil')}</button>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.lootEvKopie('${esc(ev.id)}')" title="Kopie maken">${icon('plus')}</button>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.lootEvVerwijder('${esc(ev.id)}')" title="Verwijderen">${icon('trash')}</button>
+    </div>`).join('');
+
+  const n = _lootSelectie.size;
+  el.innerHTML = `
+    ${_dmTabHead({ icon: 'coins', title: 'Loot', sub: 'vondsten — de DC is een aantekening, jij beslist', actions: helpBtn('dm_loot') })}
+    <div class="dm-feature-section">
+      <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="dm-section-label" style="margin-bottom:0">Vondsten</span>
+        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.lootEvNieuw()" title="Nieuwe vondst">${icon('plus')}</button>
+      </div>
+      ${rijen || '<p class="dm-hint">Nog geen vondsten. Maak er een aan en koppel hem later aan een kamer.</p>'}
+      <div class="dm-feature-row" style="margin-top:10px">
+        <button id="dm-loot-onthul" class="dm-btn dm-btn-primary" ${n ? '' : 'disabled'}
+          onclick="window.dmPanel.lootOnthulSelectie()" title="Maak een verdeling van de aangevinkte vondsten">
+          ${icon('coins')} <span id="dm-loot-onthul-lbl">${_lootOnthulLabel()}</span></button>
+        <span class="dm-hint" id="dm-loot-onthul-hint" style="margin-left:8px${n ? '' : ';display:none'}">Je stelt de verdeling daarna nog bij vóór de spelers hem zien.</span>
+      </div>
+    </div>
+    ${_lootConcept ? _lootEditorHtml() : ''}`;
+}
+
+function _lootEditorHtml() {
+  const c = _lootConcept;
+  const dl = `<datalist id="dm-loot-vw-dl">${_lootVoorwerpen.map(v => `<option value="${esc(v.name)}">`).join('')}</datalist>`;
+  const items = (c.items || []).map((it, i) => `
+    <div class="dm-loot-item">
+      <input class="dm-input dm-input-sm" style="flex:2;min-width:120px" placeholder="Naam voorwerp"
+        value="${esc(it.naam || '')}" ${it.willekeurig ? 'disabled' : ''}
+        oninput="window.dmPanel.lootEvItemVeld(${i},'naam',this.value)">
+      <select class="dm-input dm-input-sm" style="flex:1;min-width:96px"
+        onchange="window.dmPanel.lootEvItemVeld(${i},'rariteit',this.value)">
+        ${_LOOT_RARITEITEN.map(r => `<option value="${esc(r)}" ${(it.rariteit || '') === r ? 'selected' : ''}>${r || '— rarity —'}</option>`).join('')}
+      </select>
+      <input class="dm-input dm-input-sm" list="dm-loot-vw-dl" style="flex:1.5;min-width:110px"
+        placeholder="Koppel aan kaartje…" value="${esc(_lootVoorwerpen.find(v => v.id === it.entityId)?.name || '')}"
+        ${it.willekeurig ? 'disabled' : ''}
+        onchange="window.dmPanel.lootEvItemKoppel(${i}, this.value, this)">
+      <label class="dm-loot-check" title="Kies bij het onthullen een willekeurig voorwerp van deze rarity">
+        <input type="checkbox" ${it.willekeurig ? 'checked' : ''}
+          onchange="window.dmPanel.lootEvItemVeld(${i},'willekeurig',this.checked)"> willekeurig
+      </label>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.lootEvItemDel(${i})" title="Regel verwijderen">${icon('x')}</button>
+    </div>`).join('');
+
+  const r = c.goudRandom || { van: 0, tot: 0, munt: 'fl' };
+  return `${dl}
+    <div class="dm-feature-section">
+      <div class="dm-section-label">${c.id ? 'Vondst bewerken' : 'Nieuwe vondst'}</div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Naam</label>
+        <input class="dm-input" value="${esc(c.naam || '')}" placeholder="Geldzak in de haard"
+          oninput="window.dmPanel.lootEvVeld('naam', this.value)">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Check</label>
+        <input class="dm-input dm-input-sm" type="number" style="width:70px" placeholder="DC" value="${c.dc || ''}"
+          oninput="window.dmPanel.lootEvVeld('dc', this.value)">
+        <input class="dm-input dm-input-sm" style="flex:1;min-width:120px" placeholder="Investigation, Perception…"
+          value="${esc(c.vaardigheid || '')}" oninput="window.dmPanel.lootEvVeld('vaardigheid', this.value)">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Munten</label>
+        ${['fl', 'kn', 'cl'].map(m => `<input class="dm-input dm-input-sm" type="number" min="0" style="width:64px"
+          value="${(c.goud || {})[m] || 0}" title="${m}" oninput="window.dmPanel.lootEvGoud('${m}', this.value)">`).join('')}
+        <span class="dm-hint">vast bedrag</span>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Of gerold</label>
+        <input class="dm-input dm-input-sm" type="number" min="0" style="width:64px" placeholder="van" value="${r.van || ''}"
+          oninput="window.dmPanel.lootEvRandom('van', this.value)">
+        <input class="dm-input dm-input-sm" type="number" min="0" style="width:64px" placeholder="tot" value="${r.tot || ''}"
+          oninput="window.dmPanel.lootEvRandom('tot', this.value)">
+        <select class="dm-input dm-input-sm" style="width:70px" onchange="window.dmPanel.lootEvRandom('munt', this.value)">
+          ${['fl', 'kn', 'cl'].map(m => `<option value="${m}" ${r.munt === m ? 'selected' : ''}>${m}</option>`).join('')}
+        </select>
+        <span class="dm-hint">gerold bij het onthullen</span>
+      </div>
+      <div class="dm-section-label" style="margin-top:10px">Voorwerpen
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:8px" onclick="window.dmPanel.lootEvItemAdd()">${icon('plus')} Regel</button>
+      </div>
+      ${items || '<p class="dm-hint">Nog geen voorwerpen in deze vondst.</p>'}
+      <div class="dm-form-row" style="margin-top:10px">
+        <label class="dm-loot-check"><input type="checkbox" ${c.sjabloon ? 'checked' : ''}
+          onchange="window.dmPanel.lootEvVeld('sjabloon', this.checked)"> Sjabloon (kopieer bij gebruik)</label>
+      </div>
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.lootEvOpslaan()" title="Opslaan">${icon('save')} Opslaan</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window.dmPanel.lootEvAnnuleer()" title="Annuleren">${icon('x')}</button>
+      </div>
+    </div>`;
+}
+
+function _lootEvNieuw() {
+  _lootConcept = { naam: '', dc: 0, vaardigheid: '', goud: { fl: 0, kn: 0, cl: 0 },
+                   goudRandom: { van: 0, tot: 0, munt: 'fl' }, items: [], sjabloon: false };
+  _renderLootInner();
+}
+function _lootEvBewerk(id) {
+  const ev = _lootEvents.find(e => e.id === id);
+  if (!ev) return;
+  // Werkkopie: pas bij Opslaan gaat het naar de server.
+  _lootConcept = JSON.parse(JSON.stringify(ev));
+  if (!_lootConcept.goudRandom) _lootConcept.goudRandom = { van: 0, tot: 0, munt: 'fl' };
+  _renderLootInner();
+}
+function _lootEvAnnuleer() { _lootConcept = null; _renderLootInner(); }
+function _lootEvVeld(veld, waarde) {
+  if (!_lootConcept) return;
+  _lootConcept[veld] = veld === 'dc' ? (parseInt(waarde) || 0) : waarde;
+}
+function _lootEvGoud(munt, waarde) {
+  if (!_lootConcept) return;
+  if (!_lootConcept.goud) _lootConcept.goud = {};
+  _lootConcept.goud[munt] = parseInt(waarde) || 0;
+}
+function _lootEvRandom(veld, waarde) {
+  if (!_lootConcept) return;
+  if (!_lootConcept.goudRandom) _lootConcept.goudRandom = { van: 0, tot: 0, munt: 'fl' };
+  _lootConcept.goudRandom[veld] = veld === 'munt' ? waarde : (parseInt(waarde) || 0);
+}
+function _lootEvItemAdd() { if (!_lootConcept) return; (_lootConcept.items ||= []).push(_leegItem()); _renderLootInner(); }
+function _lootEvItemDel(i) { if (!_lootConcept) return; _lootConcept.items.splice(i, 1); _renderLootInner(); }
+function _lootEvItemVeld(i, veld, waarde) {
+  const it = _lootConcept?.items?.[i];
+  if (!it) return;
+  it[veld] = waarde;
+  if (veld === 'willekeurig') _renderLootInner();   // velden aan/uit zetten
+}
+// Naam → id, met een korte foutflits als er geen kaartje met die naam bestaat.
+function _lootEvItemKoppel(i, naam, invoer) {
+  const it = _lootConcept?.items?.[i];
+  if (!it) return;
+  const gezocht = String(naam || '').trim().toLowerCase();
+  if (!gezocht) { it.entityId = null; return; }
+  const v = _lootVoorwerpen.find(x => x.name.toLowerCase() === gezocht);
+  if (!v) {
+    invoer?.classList.add('dm-input--err');
+    setTimeout(() => invoer?.classList.remove('dm-input--err'), 1200);
+    return;
+  }
+  it.entityId  = v.id;
+  if (!it.naam) it.naam = v.name;
+  if (!it.rariteit && v.data?.rariteit) it.rariteit = v.data.rariteit;
+  _renderLootInner();
+}
+async function _lootEvOpslaan() {
+  if (!_lootConcept) return;
+  const c = _lootConcept;
+  if (!String(c.naam || '').trim()) { alert('Geef de vondst een naam.'); return; }
+  try {
+    if (c.id) await api.lootEventUpdate(c.id, c);
+    else      await api.lootEventCreate(c);
+    _lootConcept = null;
+    await _renderLoot();
+  } catch (e) { alert('Opslaan mislukt: ' + e.message); }
+}
+async function _lootEvVerwijder(id) {
+  const ev = _lootEvents.find(e => e.id === id);
+  if (!confirm(`"${ev?.naam || 'Deze vondst'}" verwijderen?`)) return;
+  try { await api.lootEventDelete(id); _lootSelectie.delete(id); await _renderLoot(); }
+  catch (e) { alert('Verwijderen mislukt: ' + e.message); }
+}
+async function _lootEvKopie(id) {
+  try { await api.lootEventKopie(id); await _renderLoot(); }
+  catch (e) { alert('Kopiëren mislukt: ' + e.message); }
+}
+const _lootOnthulLabel = () => {
+  const n = _lootSelectie.size;
+  return n ? `Onthul ${n} vondst${n === 1 ? '' : 'en'}` : 'Onthul selectie';
+};
+// Bewust géén hertekening van de hele lijst: dan verdwijnt het vakje onder je
+// muis terwijl je er nog een tweede wilt aanvinken. Alleen de regel en de knop
+// bijwerken.
+function _lootSelToggle(id) {
+  _lootSelectie.has(id) ? _lootSelectie.delete(id) : _lootSelectie.add(id);
+  document.querySelector(`.dm-loot-rij[data-id="${id}"]`)
+    ?.classList.toggle('dm-loot-rij--gekozen', _lootSelectie.has(id));
+  const knop = document.getElementById('dm-loot-onthul');
+  const lbl  = document.getElementById('dm-loot-onthul-lbl');
+  const hint = document.getElementById('dm-loot-onthul-hint');
+  if (knop) knop.disabled = _lootSelectie.size === 0;
+  if (lbl)  lbl.textContent = _lootOnthulLabel();
+  if (hint) hint.style.display = _lootSelectie.size ? '' : 'none';
+}
+// Bouwt de verdeling en opent de bestaande lootmodal: daar stelt de DM 'm
+// eventueel nog bij en drukt hij op onthullen. Zo blijft er één plek waar
+// claimen, afrollen en uitdelen gebeurt.
+async function _lootOnthulSelectie() {
+  if (!_lootSelectie.size) return;
+  try {
+    _lootData = await api.lootVerdeling([..._lootSelectie]);
+    _lootSelectie.clear();
+    _lootLaatsteUitslag = null;
+    window.app.openModal('Loot verdelen', '', `<div id="loot-modal-body"></div>`);
+    _renderLootModalBody();
+    _renderLoot();
+  } catch (e) { alert('Kon de verdeling niet maken: ' + e.message); }
+}
 
 // ── Rust (eigen tab) — party-brede Long/Short Rest + sfeerconfig ─────────────
 async function _renderRust() {

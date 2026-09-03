@@ -1,4 +1,4 @@
-import { api } from './api.js?v=249';
+import { api } from './api.js?v=250';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=121";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=70";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=20';
 import { renderSpreuken } from './render-spreuken.js?v=12';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=58";
-import { initDmPanel } from "./dm-panel.js?v=164";
+import { initDmPanel } from "./dm-panel.js?v=165";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -9943,6 +9943,7 @@ function _playerLootPanelHtml(loot, charId) {
         ? `<span class="player-loot-link" onclick="window._openDetail('voorwerpen','${esc(it.entityId)}')" title="Bekijk kaartje">${esc(it.naam)} <span class="player-loot-link-ico">${icon('open-book')}</span></span>`
         : esc(it.naam);
       return `<div class="player-loot-item${rk ? ' loot-rar-' + rk : ''}">
+        ${it.bron ? `<div class="player-loot-bron">${esc(it.bron)}</div>` : ''}
         <div class="player-loot-item-main">
           <span class="player-loot-diamond"${rk ? ` data-rarity="${rk}"` : ''}>◆</span>
           <div class="player-loot-item-body">

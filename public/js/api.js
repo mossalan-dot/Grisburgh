@@ -326,6 +326,13 @@ export const api = {
   lootClaim:        (itemId)  => request('/combat/loot/claim',          { method: 'POST',   body: JSON.stringify({ itemId }) }),
   lootVerdeeld:     ()        => request('/combat/loot/verdeeld',       { method: 'POST' }),
   lootCancel:       ()        => request('/combat/loot',                { method: 'DELETE' }),
+  // Loot-events: de bibliotheek van vondsten die een lootfase kan vullen.
+  lootEvents:       ()        => request('/loot/events'),
+  lootEventCreate:  (data)    => request('/loot/events',                { method: 'POST',   body: JSON.stringify(data) }),
+  lootEventUpdate:  (id, d)   => request(`/loot/events/${id}`,          { method: 'PUT',    body: JSON.stringify(d) }),
+  lootEventDelete:  (id)      => request(`/loot/events/${id}`,          { method: 'DELETE' }),
+  lootEventKopie:   (id, d={})=> request(`/loot/events/${id}/kopie`,    { method: 'POST',   body: JSON.stringify(d) }),
+  lootVerdeling:    (ids)     => request('/loot/verdeling',             { method: 'POST',   body: JSON.stringify({ eventIds: ids }) }),
 
   // Berichten
   getBerichten:        ()                   => request('/berichten'),

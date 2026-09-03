@@ -136,12 +136,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=400   app.js?v=550   sound-manager.js?v=8
-app.js      : api.js?v=248      render-campagne.js?v=121   render-archief.js?v=70
+index.html  : theme.css?v=403   app.js?v=554   sound-manager.js?v=8
+app.js      : api.js?v=250      render-campagne.js?v=121   render-archief.js?v=70
               render-kaart.js?v=18  render-dungeon.js?v=31  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=58
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=161    render-dashboard.js?v=9
+              dm-panel.js?v=165    render-dashboard.js?v=9
               render-spreuken.js?v=12   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 ```
@@ -212,6 +212,38 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > Óók vanuit de **"Nieuwe akte"-modal** (`dm-panel.js` → `_akteNieuw`): een optioneel
 > afbeelding-veld (`#dm-akte-n-imgs`) hangt na het aanmaken dezelfde `_scriptUploadImages`
 > aan de nieuwe akte, zodat je bij het aanmaken al beeldmateriaal meegeeft.
+
+> **Loot-events.** Een *vondst* is één ding dat de party kan vinden: de geldzak in
+> de haard, het zwaard onder de plavuizen. Eén kamer kan er meerdere hebben, elk
+> met een eigen **DC — en die DC is een aantekening, geen mechaniek**: de spelers
+> gooien aan tafel, de DM ziet het getal staan en beslist. Onthullen is dus altijd
+> een klik; er wordt nergens een worp ingevoerd of per speler bijgehouden.
+> Opslag: `loot.json` (`{ events: [] }`), beheerd in het **Loot-tabblad** van de
+> Meesterkamer. Endpoints: `GET/POST /loot/events`, `PUT/DELETE /loot/events/:id`,
+> `POST /loot/events/:id/kopie` en `POST /loot/verdeling` (`{eventIds}`).
+> Die laatste bundelt één of meer vondsten tot de bestaande `dmState.lootPhase` —
+> claimen, afrollen en uitdelen blijven dus ongewijzigd. Elk item krijgt een
+> `bron`-veld met de naam van zijn vondst, zodat "uit de haard" en "onder de
+> plavuizen" gescheiden blijven als je ze samen onthult. De fase komt **niet**
+> meteen actief te staan: de DM stelt eerst bij en drukt daarna op onthullen.
+> **Toeval wordt bij het onthullen gerold**, niet bij het aanmaken: een bedrag
+> tussen twee grenzen (`goudRandom`) of een `willekeurig`-item dat een voorwerp-
+> kaartje van de gevraagde rarity uitkiest. Zo ziet de DM wat het geworden is
+> voordat het scherm opengaat. Een **sjabloon** wordt bij gebruik gekopieerd, dus
+> later sleutelen aan het sjabloon verandert niets aan wat al ergens ligt.
+> Deelnemers komen uit het lopende gevecht, of anders uit de spelers die
+> "momenteel actief" staan (zie aanwezigheid). Nog te bouwen: koppeling aan een
+> dungeonkamer, akte-stap, de tablet-cinematic en de mimic — zie
+> `docs/loot-events-plan.md`.
+
+> **Aanwezigheid per sessie.** `groups[gid].afwezig` is de lijst met spelers die
+> **niet** meedoen (afwezigen bewaren, niet aanwezigen: dan doet een nieuw
+> personage automatisch mee). In te stellen bij Instellingen → Party's
+> ("Momenteel actief"). Server-helper `_aanwezigeSpelers()`; client houdt
+> `window._groepAfwezig` bij in `renderGroupSwitcher`. Van kracht bij lange/korte
+> rust, lootdeelnemers en het automatisch vullen van een gevecht — **niet** bij
+> wat de hele party betreft (character sheets, berichten, factieboons).
+> Endpoint: `PUT /groups/:id/aanwezigheid`.
 
 > **Printbare character sheets (DM).** `lib/character-sheet.js` rendert een print-pagina
 > met een blad per personage; `GET /api/characters/:id/sheet` (één) en `GET /api/party/sheets?groep=`
@@ -309,6 +341,7 @@ data/
 | `relations.json` | relatienetwerk (edges, posities) |
 | `dungeon-maps.json` | dungeon-kaarten |
 | `player-notes.json` | per-speler notities |
+| `loot.json` | loot-events: de bibliotheek van vondsten (naam, DC, items, goud, sjablonen) |
 | `media.json` | mediabibliotheek: per fileId weergavenaam + auto-info (type, MIME, afmetingen, upload-datum). Gebruik wordt NIET opgeslagen maar live berekend via `lib/media-usage.js` |
 
 ---
@@ -523,6 +556,13 @@ Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in ren
 - **Vergeten versie te bumpen** → browser toont oude JS/CSS. Check altijd index.html + app.js imports.
 - **`api.getEntities()` bestaat niet** → gebruik `api.listEntities('personages')` etc.
 - **Emoji in HTML-output** → vervang door `icon()`. Emoji zijn onaanvaardbaar in de UI.
+  Let ook op `placeholder=""`-attributen: daar kan geen SVG in, dus zet het icoon
+  ernaast in plaats van een emoji in de tekst.
+- **Lichte tekstkleur in een DM-tab** → onzichtbaar. Alleen de **zijbalk** met de
+  tabknoppen is donker; de tab-inhoud en het instellingenvenster zijn licht
+  perkament. Gebruik `#3a2410` (als `.dm-input`) voor tekst en `#7a6040` (als
+  `.dm-hint`) voor bijschriften. Twee keer misgegaan: de aanwezigheids-chips en
+  de loot-regels.
 - **`sed` met speciale tekens op de server** → schrijf een tijdelijk .js-bestand en voer dat uit met `node`.
 - **DM en speler dezelfde browser** → session cookie gedeeld. Gebruik incognito of ander apparaat voor gelijktijdig testen.
 - **Socket-event naar verkeerde campagne** → altijd `io.to(campaignId).emit()`, nooit `io.emit()`.
