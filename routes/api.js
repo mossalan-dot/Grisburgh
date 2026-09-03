@@ -6046,14 +6046,13 @@ function _eventNaarItems(ev) {
   return uit;
 }
 
-function _eventGoud(ev) {
-  const g = { fl: getalOf(ev.goud?.fl), kn: getalOf(ev.goud?.kn), cl: getalOf(ev.goud?.cl) };
+// Alles in centelingen optellen en pas op het eind terugrekenen: anders krijg
+// je 12 knakers in plaats van 1 florinde en 2 knakers.
+function _eventGoudCl(ev) {
+  let cl = toCl({ fl: getalOf(ev.goud?.fl), kn: getalOf(ev.goud?.kn), cl: getalOf(ev.goud?.cl) });
   const r = ev.goudRandom;
-  if (r && (getalOf(r.van) || getalOf(r.tot))) {
-    const munt = ['fl', 'kn', 'cl'].includes(r.munt) ? r.munt : 'fl';
-    g[munt] += _tussen(r.van, r.tot);
-  }
-  return g;
+  if (r && (getalOf(r.vanCl) || getalOf(r.totCl))) cl += _tussen(r.vanCl, r.totCl);
+  return cl;
 }
 
 router.get('/loot/events', requireDM, (req, res) => {
@@ -6069,6 +6068,8 @@ router.post('/loot/events', requireDM, (req, res) => {
     vaardigheid: String(req.body.vaardigheid || '').slice(0, 40),
     goud:        { fl: getalOf(req.body.goud?.fl), kn: getalOf(req.body.goud?.kn), cl: getalOf(req.body.goud?.cl) },
     goudRandom:  req.body.goudRandom || null,
+    geluidFileId: req.body.geluidFileId || null,
+    geluidLabel:  req.body.geluidLabel  || '',
     items:       Array.isArray(req.body.items) ? req.body.items : [],
     sjabloon:    !!req.body.sjabloon,
     dungeonId:   req.body.dungeonId || null,
@@ -6086,7 +6087,7 @@ router.put('/loot/events/:id', requireDM, (req, res) => {
   const data = _leesLoot();
   const ev = data.events.find(e => e.id === req.params.id);
   if (!ev) return res.status(404).json({ error: 'Vondst niet gevonden' });
-  const velden = ['naam', 'vaardigheid', 'dungeonId', 'roomId', 'encounterId', 'mimicEncounterId'];
+  const velden = ['naam', 'vaardigheid', 'dungeonId', 'roomId', 'encounterId', 'mimicEncounterId', 'geluidFileId', 'geluidLabel'];
   for (const v of velden) if (req.body[v] !== undefined) ev[v] = req.body[v];
   if (req.body.dc       !== undefined) ev.dc       = getalOf(req.body.dc);
   if (req.body.goud     !== undefined) ev.goud     = { fl: getalOf(req.body.goud.fl), kn: getalOf(req.body.goud.kn), cl: getalOf(req.body.goud.cl) };
@@ -6136,14 +6137,14 @@ router.post('/loot/verdeling', requireDM, (req, res) => {
 
   const combat  = storage.readJSON('combat.json');
   const dmState = readDmState();
-  const goud = { fl: 0, kn: 0, cl: 0 };
+  let totaalCl = 0;
   let items = [];
   for (const ev of gekozen) {
-    const g = _eventGoud(ev);
-    goud.fl += g.fl; goud.kn += g.kn; goud.cl += g.cl;
+    totaalCl += _eventGoudCl(ev);
     items = items.concat(_eventNaarItems(ev));
     ev.onthuld = true;
   }
+  const goud = fromCl(totaalCl);
   dmState.lootPhase = {
     actief: false, encounterId: null, lootEventIds: gekozen.map(e => e.id),
     deelnemers: _lootDeelnemers(combat, dmState),
@@ -6215,7 +6216,15 @@ router.post('/combat/loot/reveal', requireDM, (req, res) => {
   if (!lp) return res.status(404).json({ error: 'Geen lootfase' });
   lp.actief = true;
   storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId || 'main').emit('loot:aangeboden', { deelnemers: lp.deelnemers });
+  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  io.to(room).emit('loot:aangeboden', { deelnemers: lp.deelnemers });
+  // Kwam deze verdeling uit een vondst met een geluid, speel dat dan nu — op
+  // het moment dat de spelers de buit te zien krijgen, niet eerder.
+  const vondsten = _leesLoot().events.filter(e => (lp.lootEventIds || []).includes(e.id));
+  const metGeluid = vondsten.find(e => e.geluidFileId);
+  if (metGeluid) {
+    io.to(room).emit('sound:reveal', { fileId: String(metGeluid.geluidFileId), label: metGeluid.geluidLabel || metGeluid.naam || 'Loot', loop: false });
+  }
   res.json(_lootForClient(lp, 'dm', null));
 });
 

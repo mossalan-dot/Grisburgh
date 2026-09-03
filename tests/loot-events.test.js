@@ -82,10 +82,19 @@ describe('Loot-events', () => {
   });
 
   it('rolt het toeval pas bij het onthullen', async () => {
-    const ev = (await maak({ naam: 'Losse munten', goudRandom: { van: 5, tot: 5, munt: 'kn' } })).body;
+    // 50 centelingen = 5 knakers; het bereik is hier één vaste waarde.
+    const ev = (await maak({ naam: 'Losse munten', goudRandom: { vanCl: 50, totCl: 50 } })).body;
     assert.equal(ev.goud.kn, 0, 'in de vondst zelf staat nog geen bedrag');
     const r = await req(server, 'POST', '/api/loot/verdeling', { eventIds: [ev.id] }, dm);
     assert.equal(r.body.goud.kn, 5, 'bij het onthullen wordt er gerold');
+  });
+
+  it('telt munten op in centelingen en rekent netjes terug', async () => {
+    // 8 knakers + 5 knakers is niet 13 knakers maar 1 florinde en 3 knakers.
+    const a = (await maak({ naam: 'Beurs A', goud: { kn: 8 } })).body;
+    const b = (await maak({ naam: 'Beurs B', goud: { kn: 5 } })).body;
+    const r = await req(server, 'POST', '/api/loot/verdeling', { eventIds: [a.id, b.id] }, dm);
+    assert.deepEqual({ fl: r.body.goud.fl, kn: r.body.goud.kn, cl: r.body.goud.cl }, { fl: 1, kn: 3, cl: 0 });
   });
 
   it('kiest een willekeurig voorwerp van de gevraagde rarity', async () => {

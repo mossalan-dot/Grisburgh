@@ -136,12 +136,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=403   app.js?v=554   sound-manager.js?v=8
+index.html  : theme.css?v=404   app.js?v=555   sound-manager.js?v=8
 app.js      : api.js?v=250      render-campagne.js?v=121   render-archief.js?v=70
               render-kaart.js?v=18  render-dungeon.js?v=31  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=58
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=165    render-dashboard.js?v=9
+              dm-panel.js?v=166    render-dashboard.js?v=9
               render-spreuken.js?v=12   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 ```
@@ -226,6 +226,15 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > `bron`-veld met de naam van zijn vondst, zodat "uit de haard" en "onder de
 > plavuizen" gescheiden blijven als je ze samen onthult. De fase komt **niet**
 > meteen actief te staan: de DM stelt eerst bij en drukt daarna op onthullen.
+> **Munten met een komma:** in de editor vul je één bedrag in — `1,34` is
+> 1 florinde, 3 knakers en 4 centelingen (de knaker is een tiende florinde, de
+> centeling een honderdste, dus het leest als gewoon geld; zelfde idee als bij de
+> Tweespalt). Intern telt de server alles in **centelingen** op en rekent pas op
+> het eind terug met `fromCl()`, anders krijg je 13 knakers in plaats van
+> 1 florinde en 3 knakers. Helpers client-side: `_tekstNaarCl` / `_clNaarTekst`.
+> **Geluid bij het onthullen:** een vondst kan een scène uit de geluidenbibliotheek
+> meekrijgen (`geluidFileId`); die klinkt bij `POST /combat/loot/reveal` — dus op
+> het moment dat de spelers de buit zien — via het bestaande `sound:reveal`-event.
 > **Toeval wordt bij het onthullen gerold**, niet bij het aanmaken: een bedrag
 > tussen twee grenzen (`goudRandom`) of een `willekeurig`-item dat een voorwerp-
 > kaartje van de gevraagde rarity uitkiest. Zo ziet de DM wat het geworden is

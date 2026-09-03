@@ -376,6 +376,7 @@ export function initDmPanel() {
     lootEvAnnuleer:   _lootEvAnnuleer,
     lootEvVeld:       _lootEvVeld,
     lootEvGoud:       _lootEvGoud,
+    lootEvGeluid:     _lootEvGeluid,
     lootEvRandom:     _lootEvRandom,
     lootEvItemAdd:    _lootEvItemAdd,
     lootEvItemDel:    _lootEvItemDel,
@@ -7040,14 +7041,42 @@ const _LOOT_RARITEITEN = ['', 'Common', 'Uncommon', 'Rare', 'Very Rare', 'Legend
 
 const _leegItem = () => ({ naam: '', rariteit: '', entityId: null, beschrijving: '', willekeurig: false });
 
+// Munten als één bedrag met een komma, zoals bij de Tweespalt: 1,34 is
+// 1 florinde, 3 knakers en 4 centelingen — de knaker is een tiende florinde en
+// de centeling een honderdste, dus het leest als gewoon geld. Intern blijft
+// alles centelingen; drie losse invoervakjes waren onnodig gepriegel.
+const _clNaarTekst = (cl) => `${Math.floor(cl / 100)},${String(cl % 100).padStart(2, '0')}`;
+function _tekstNaarCl(tekst) {
+  const t = String(tekst ?? '').trim().replace('.', ',');
+  if (!t) return 0;
+  const [heel, deel = ''] = t.split(',');
+  const fl = parseInt(heel, 10) || 0;
+  // "1,3" is 1 florinde en 3 knakers — dus rechts aanvullen, niet links.
+  const rest = parseInt((deel + '00').slice(0, 2), 10) || 0;
+  return fl * 100 + rest;
+}
+const _muntGoudCl = (c) => (c.goud?.fl || 0) * 100 + (c.goud?.kn || 0) * 10 + (c.goud?.cl || 0);
+const _clNaarGoud = (cl) => ({ fl: Math.floor(cl / 100), kn: Math.floor((cl % 100) / 10), cl: cl % 10 });
+function _muntUitleg(cl) {
+  if (!cl) return 'bijv. 1,34 — florinde, knaker, centeling';
+  const g = _clNaarGoud(cl);
+  return [g.fl && `${g.fl} fl`, g.kn && `${g.kn} kn`, g.cl && `${g.cl} cl`].filter(Boolean).join(' · ');
+}
+let _lootScenes = [];
+
 async function _renderLoot() {
   const el = _tabEl('loot');
   if (!el) return;
   el.innerHTML = _dmLoading('Vondsten laden…');
   try {
-    const [d, vw] = await Promise.all([api.lootEvents(), api.listEntities('voorwerpen').catch(() => [])]);
+    const [d, vw, snd] = await Promise.all([
+      api.lootEvents(),
+      api.listEntities('voorwerpen').catch(() => []),
+      api.getSounds().catch(() => ({})),
+    ]);
     _lootEvents     = d.events || [];
     _lootVoorwerpen = vw || [];
+    _lootScenes     = snd?.ambiance?.scenes || [];
   } catch (e) {
     el.innerHTML = `<div class="dm-feature-section"><p class="dm-hint">Kon de vondsten niet laden: ${esc(e.message)}</p></div>`;
     return;
@@ -7056,34 +7085,43 @@ async function _renderLoot() {
 }
 
 function _lootSamenvatting(ev) {
-  const g = ev.goud || {};
-  const munten = [g.fl && `${g.fl} fl`, g.kn && `${g.kn} kn`, g.cl && `${g.cl} cl`].filter(Boolean).join(' · ');
-  const r = ev.goudRandom;
-  const rand = r && (r.van || r.tot) ? `${r.van}–${r.tot} ${esc(r.munt || 'fl')}` : '';
+  const cl = _muntGoudCl(ev);
+  const r  = ev.goudRandom || {};
+  const rand = (r.vanCl || r.totCl) ? `${_clNaarTekst(r.vanCl || 0)}–${_clNaarTekst(r.totCl || 0)} gerold` : '';
   const items = (ev.items || []).length;
-  return [items ? `${items} voorwerp${items === 1 ? '' : 'en'}` : '', munten, rand].filter(Boolean).join(' · ') || 'leeg';
+  return [items ? `${items} voorwerp${items === 1 ? '' : 'en'}` : '', cl ? _clNaarTekst(cl) : '', rand]
+    .filter(Boolean).join(' · ') || 'leeg';
 }
 
 function _renderLootInner() {
   const el = _tabEl('loot');
   if (!el) return;
-  const rijen = _lootEvents.map(ev => `
+  // Een sjabloon is geen vondst die ergens ligt maar een mal: je maakt er een
+  // kopie van, en die kopie leg je neer. Daarom staan ze apart, zonder vinkje
+  // om te onthullen, met een knop "Gebruiken".
+  const _rij = (ev, isSjabloon) => `
     <div class="dm-loot-rij${_lootSelectie.has(ev.id) ? ' dm-loot-rij--gekozen' : ''}" data-id="${esc(ev.id)}">
+      ${isSjabloon ? '<span class="dm-loot-kies"></span>' : `
       <label class="dm-loot-kies" title="Aanvinken om te onthullen">
         <input type="checkbox" ${_lootSelectie.has(ev.id) ? 'checked' : ''}
           onchange="window.dmPanel.lootSelToggle('${esc(ev.id)}')">
-      </label>
+      </label>`}
       <div class="dm-loot-info">
         <span class="dm-loot-naam">${esc(ev.naam)}</span>
         <span class="dm-loot-meta">${esc(_lootSamenvatting(ev))}</span>
       </div>
       ${ev.dc ? `<span class="dm-loot-dc" title="${esc(ev.vaardigheid || 'Check')} — de spelers gooien aan tafel">DC ${ev.dc}${ev.vaardigheid ? ` ${esc(ev.vaardigheid)}` : ''}</span>` : ''}
-      ${ev.sjabloon ? `<span class="dm-loot-badge">sjabloon</span>` : ''}
-      ${ev.onthuld  ? `<span class="dm-loot-badge dm-loot-badge--op">onthuld</span>` : ''}
+      ${ev.geluidFileId ? `<span class="dm-loot-badge" title="${esc(ev.geluidLabel || 'Geluid')}">geluid</span>` : ''}
+      ${ev.onthuld && !isSjabloon ? `<span class="dm-loot-badge dm-loot-badge--op">onthuld</span>` : ''}
+      ${isSjabloon
+        ? `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.lootEvKopie('${esc(ev.id)}')" title="Maak hier een vondst van">${icon('plus')} Gebruiken</button>`
+        : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.lootEvKopie('${esc(ev.id)}')" title="Kopie maken">${icon('plus')}</button>`}
       <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.lootEvBewerk('${esc(ev.id)}')" title="Bewerken">${icon('pencil')}</button>
-      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.lootEvKopie('${esc(ev.id)}')" title="Kopie maken">${icon('plus')}</button>
       <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger" onclick="window.dmPanel.lootEvVerwijder('${esc(ev.id)}')" title="Verwijderen">${icon('trash')}</button>
-    </div>`).join('');
+    </div>`;
+
+  const rijen     = _lootEvents.filter(e => !e.sjabloon).map(e => _rij(e, false)).join('');
+  const sjablonen = _lootEvents.filter(e =>  e.sjabloon).map(e => _rij(e, true)).join('');
 
   const n = _lootSelectie.size;
   el.innerHTML = `
@@ -7100,6 +7138,9 @@ function _renderLootInner() {
           ${icon('coins')} <span id="dm-loot-onthul-lbl">${_lootOnthulLabel()}</span></button>
         <span class="dm-hint" id="dm-loot-onthul-hint" style="margin-left:8px${n ? '' : ';display:none'}">Je stelt de verdeling daarna nog bij vóór de spelers hem zien.</span>
       </div>
+      ${sjablonen ? `<div class="dm-section-label" style="margin-top:14px">Sjablonen</div>
+        <p class="dm-hint" style="margin:-2px 0 4px">Mallen om vondsten mee te maken. "Gebruiken" zet er een kopie van in de lijst hierboven; die kopie pas je aan zonder dat het sjabloon verandert.</p>
+        ${sjablonen}` : ''}
     </div>
     ${_lootConcept ? _lootEditorHtml() : ''}`;
 }
@@ -7145,20 +7186,28 @@ function _lootEditorHtml() {
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Munten</label>
-        ${['fl', 'kn', 'cl'].map(m => `<input class="dm-input dm-input-sm" type="number" min="0" style="width:64px"
-          value="${(c.goud || {})[m] || 0}" title="${m}" oninput="window.dmPanel.lootEvGoud('${m}', this.value)">`).join('')}
-        <span class="dm-hint">vast bedrag</span>
+        <input class="dm-input dm-input-sm" style="width:90px" placeholder="1,34"
+          value="${_muntGoudCl(c) ? _clNaarTekst(_muntGoudCl(c)) : ''}"
+          oninput="window.dmPanel.lootEvGoud(this.value)">
+        <span class="dm-hint" id="dm-loot-munt-uitleg">${_muntUitleg(_muntGoudCl(c))}</span>
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Of gerold</label>
-        <input class="dm-input dm-input-sm" type="number" min="0" style="width:64px" placeholder="van" value="${r.van || ''}"
-          oninput="window.dmPanel.lootEvRandom('van', this.value)">
-        <input class="dm-input dm-input-sm" type="number" min="0" style="width:64px" placeholder="tot" value="${r.tot || ''}"
-          oninput="window.dmPanel.lootEvRandom('tot', this.value)">
-        <select class="dm-input dm-input-sm" style="width:70px" onchange="window.dmPanel.lootEvRandom('munt', this.value)">
-          ${['fl', 'kn', 'cl'].map(m => `<option value="${m}" ${r.munt === m ? 'selected' : ''}>${m}</option>`).join('')}
-        </select>
+        <input class="dm-input dm-input-sm" style="width:80px" placeholder="0,50"
+          value="${r.vanCl ? _clNaarTekst(r.vanCl) : ''}" oninput="window.dmPanel.lootEvRandom('vanCl', this.value)">
+        <span class="dm-hint">tot</span>
+        <input class="dm-input dm-input-sm" style="width:80px" placeholder="2,00"
+          value="${r.totCl ? _clNaarTekst(r.totCl) : ''}" oninput="window.dmPanel.lootEvRandom('totCl', this.value)">
         <span class="dm-hint">gerold bij het onthullen</span>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Geluid</label>
+        <select class="dm-input dm-input-sm" style="flex:1;min-width:150px"
+          onchange="window.dmPanel.lootEvGeluid(this.value)">
+          <option value="">— geen geluid —</option>
+          ${(_lootScenes || []).map(sc => `<option value="${esc(sc.id)}" ${c.geluidFileId === sc.fileId ? 'selected' : ''}>${esc(sc.label || 'Scène')}</option>`).join('')}
+        </select>
+        <span class="dm-hint">klinkt zodra de spelers de buit zien</span>
       </div>
       <div class="dm-section-label" style="margin-top:10px">Voorwerpen
         <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:8px" onclick="window.dmPanel.lootEvItemAdd()">${icon('plus')} Regel</button>
@@ -7166,7 +7215,8 @@ function _lootEditorHtml() {
       ${items || '<p class="dm-hint">Nog geen voorwerpen in deze vondst.</p>'}
       <div class="dm-form-row" style="margin-top:10px">
         <label class="dm-loot-check"><input type="checkbox" ${c.sjabloon ? 'checked' : ''}
-          onchange="window.dmPanel.lootEvVeld('sjabloon', this.checked)"> Sjabloon (kopieer bij gebruik)</label>
+          onchange="window.dmPanel.lootEvVeld('sjabloon', this.checked)"> Bewaar als sjabloon</label>
+        <span class="dm-hint">Een sjabloon ligt nergens en wordt niet onthuld; hij staat apart onderaan met een knop "Gebruiken", die er een kopie van maakt.</span>
       </div>
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.lootEvOpslaan()" title="Opslaan">${icon('save')} Opslaan</button>
@@ -7177,7 +7227,7 @@ function _lootEditorHtml() {
 
 function _lootEvNieuw() {
   _lootConcept = { naam: '', dc: 0, vaardigheid: '', goud: { fl: 0, kn: 0, cl: 0 },
-                   goudRandom: { van: 0, tot: 0, munt: 'fl' }, items: [], sjabloon: false };
+                   goudRandom: { vanCl: 0, totCl: 0 }, items: [], sjabloon: false };
   _renderLootInner();
 }
 function _lootEvBewerk(id) {
@@ -7185,7 +7235,7 @@ function _lootEvBewerk(id) {
   if (!ev) return;
   // Werkkopie: pas bij Opslaan gaat het naar de server.
   _lootConcept = JSON.parse(JSON.stringify(ev));
-  if (!_lootConcept.goudRandom) _lootConcept.goudRandom = { van: 0, tot: 0, munt: 'fl' };
+  if (!_lootConcept.goudRandom) _lootConcept.goudRandom = { vanCl: 0, totCl: 0 };
   _renderLootInner();
 }
 function _lootEvAnnuleer() { _lootConcept = null; _renderLootInner(); }
@@ -7193,15 +7243,22 @@ function _lootEvVeld(veld, waarde) {
   if (!_lootConcept) return;
   _lootConcept[veld] = veld === 'dc' ? (parseInt(waarde) || 0) : waarde;
 }
-function _lootEvGoud(munt, waarde) {
+function _lootEvGoud(tekst) {
   if (!_lootConcept) return;
-  if (!_lootConcept.goud) _lootConcept.goud = {};
-  _lootConcept.goud[munt] = parseInt(waarde) || 0;
+  _lootConcept.goud = _clNaarGoud(_tekstNaarCl(tekst));
+  const hint = document.getElementById('dm-loot-munt-uitleg');
+  if (hint) hint.textContent = _muntUitleg(_muntGoudCl(_lootConcept));
 }
 function _lootEvRandom(veld, waarde) {
   if (!_lootConcept) return;
-  if (!_lootConcept.goudRandom) _lootConcept.goudRandom = { van: 0, tot: 0, munt: 'fl' };
-  _lootConcept.goudRandom[veld] = veld === 'munt' ? waarde : (parseInt(waarde) || 0);
+  if (!_lootConcept.goudRandom) _lootConcept.goudRandom = { vanCl: 0, totCl: 0 };
+  _lootConcept.goudRandom[veld] = _tekstNaarCl(waarde);
+}
+function _lootEvGeluid(sceneId) {
+  if (!_lootConcept) return;
+  const sc = (_lootScenes || []).find(x => x.id === sceneId);
+  _lootConcept.geluidFileId = sc ? sc.fileId : null;
+  _lootConcept.geluidLabel  = sc ? (sc.label || '') : '';
 }
 function _lootEvItemAdd() { if (!_lootConcept) return; (_lootConcept.items ||= []).push(_leegItem()); _renderLootInner(); }
 function _lootEvItemDel(i) { if (!_lootConcept) return; _lootConcept.items.splice(i, 1); _renderLootInner(); }

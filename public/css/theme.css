@@ -4592,8 +4592,9 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 /* Scheidingslijntje tussen de tabgroepen in de Meesterkamer (spelen · sfeer ·
    beheer). Smal en zacht: het moet groeperen, niet opvallen. */
 .dm-tab-sep {
-  display: block; height: 1px; margin: 5px 10px;
-  background: linear-gradient(to right, transparent, rgba(196,168,122,0.45), transparent);
+  display: block; height: 2px; margin: 8px 8px;
+  border-radius: 1px;
+  background: linear-gradient(to right, rgba(196,168,122,0.15), rgba(196,168,122,0.85), rgba(196,168,122,0.15));
 }
 
 /* Aanwezigheid per sessie: één chip per speler onder de party-regel. Aanwezig
