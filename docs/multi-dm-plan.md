@@ -136,6 +136,35 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    Vereist dus dat stap 6 af is.
 8. **Mediabudget.** Teller per campagne + verkleinen bij upload. Naar voren te
    halen als de schijf eerder knelt.
+9. **Gefaseerd uitrollen.** Nieuwe features komen eerst bij Alan terecht, en pas
+   daarna bij de rest. Drie afspraken, geen extra infrastructuur:
+   - **Vlag per campagne.** Een nieuwe feature krijgt een module die alleen bij
+     Alan aan staat (hergebruikt `meta.modules` uit stap 4). Een vlag leeft
+     hooguit een paar sessies: daarna gaat hij eruit, aan- of uitgezet. Blijven
+     ze hangen, dan onderhoud je twee paden door dezelfde code waarvan er één
+     nooit meer gebruikt wordt.
+   - **Deployvolgorde.** Altijd eerst JS en CSS, dán `index.html`. Andersom haalt
+     een browser een halve versie op: het nieuwe `?v=`-nummer verwijst dan naar
+     een bestand dat er nog niet is. Dat raakt iedereen tegelijk en is met geen
+     enkele gefaseerde uitrol te ondervangen.
+   - **Een teruggang die geoefend is.** Vóór elke deploy blijft een kopie van de
+     vorige bestanden op de server staan, met één commando om ze terug te zetten.
+     Nu is de terugweg "opnieuw scp'en vanuit git en hopen dat je de juiste
+     commit pakt" — midden in andermans sessie is dat het verkeerde moment om
+     daarachter te komen.
+
+   Wat we bewust **niet** doen zolang het om twee DM's gaat: een tweede
+   Node-proces als voorproefomgeving (`canary` op 3001 met alleen Grisburgh,
+   `stable` op 3000 voor de rest, Caddy routeert op pad). Dat kan veilig — elk
+   proces schrijft dan alleen in zijn eigen campagnemap — maar het kost twee
+   deploys, twee herstarts en twee versies om uit elkaar te houden, en het geeft
+   schijnzekerheid: wat écht stuk kan gaan zit meestal in gedeelde code die bij
+   promotie alsnog in één klap bij iedereen landt. Vanaf ongeveer vijf DM's
+   verandert die rekensom, want dan is "even afstemmen wanneer iedereen speelt"
+   ook niet meer te doen.
+
+   De voorproef in de tussentijd is de laptop: `npm run dev` op een verse kopie
+   van de productiedata, met een scriptje dat die kopie ophaalt.
 
 ## Open vragen
 
