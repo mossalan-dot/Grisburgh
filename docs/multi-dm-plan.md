@@ -29,14 +29,15 @@ Bewust **niet** in deze ronde:
 | Tenant | De campagne. Eén DM mag meerdere campagnes hebben, met meerdere groepen. |
 | Speler | Per campagne een eigen personage en dus een eigen login; groepswachtwoord blijft (geen accounts, geen e-mail). |
 | Wachtwoorden | De nieuwe DM stelt zijn eigen DM- én groepswachtwoorden in. |
-| Inloggen | Op de campagnepagina één wachtwoordveld; wát je intikt bepaalt waar je uitkomt. Groepswachtwoord → personage kiezen. DM-wachtwoord → kiezen tussen DM-modus en tabletmodus. |
+| Inloggen | Op de campagnepagina één wachtwoordveld; wát je intikt bepaalt waar je uitkomt. Groepswachtwoord → personage kiezen. DM-wachtwoord → DM-modus. |
+| Tabletmodus | Geen eigen wachtwoord meer: de DM logt in en zet **dat scherm** in tabletmodus. Er hoeft dan nooit een wachtwoord getypt te worden op een scherm dat op tafel ligt. |
 | Uitnodigen | Alan maakt de DM handmatig aan. |
 | Modules aanzetten | Alleen Alan, stapsgewijs, met uitleg erbij als een module vrijgegeven wordt. |
 | Module uit | Verdwijnt volledig uit beeld (geen grijze "binnenkort"-items). |
 | Valuta | D&D-generiek: gp/sp/cp als standaard, hernoembaar. Grisburgh houdt Florinde/Knaker/Centeling. |
 | URL | `grisburgh.nl/<naam>` per campagne — Grisburgh wordt dus ook `/grisburgh`. De landingspagina is voor iedereen te bezoeken en toont de campagnes; alleen inloggen is afgeschermd. `grisburgh.nl` zonder pad stuurt door naar `/grisburgh`, zodat bestaande bladwijzers blijven werken. |
 | Progressie & spreuken | Nieuwe campagnes krijgen de **structuur** (namen, levels, school, casting time…) zonder beschrijvingen, met een tekstveld dat de DM zelf vult. Per campagne opgeslagen. |
-| Backups | Automatisch op de server; als een wijziging andermans content raakt ook handmatig vooraf. Plus een kopie op Alans laptop via een geplande taak (launchd) die draait zodra de laptop aan staat — mist hij een dag, dan haalt hij het de volgende keer in. |
+| Backups | Dagelijks alle JSON per campagne op de server, plus een kopie op Alans laptop via een geplande taak (launchd) die draait zodra de laptop aan staat — mist hij een dag, dan haalt hij het de volgende keer in. Raakt een wijziging andermans content, dan ook handmatig vooraf. **Beeldmateriaal blijft alleen op de server** (bewuste keuze; 2,2 GB is te zwaar om heen en weer te slepen). |
 | Deploy tijdens andermans sessie | Even afstemmen per app; geen onderhoudsscherm nodig. |
 | Tempo | Stapsgewijs, met smoke tests per stap. |
 
@@ -69,6 +70,7 @@ regie/Meesterkamer-verhaallijn
 | `render-relatiemap.js:86`, `index.html:120` | "Jonkers prikbord" — eigennaam uit de campagne, moet "Prikbord". |
 | `index.html:6`, `app.js:866` | Hardcoded "Grisburgh" (titel) en "Swarte Cat". |
 | `public/data/spells-2024.json` | 539 spreuken, allemaal `source: "phb2024"` — volledige PHB-teksten, geen SRD. Zelfde afweging als bij de progressiebeschrijvingen: naar buiten toe alleen namen + feitelijke velden. |
+| `routes/auth.js:168` (`attachRole`) | Zet `req.role = 'player'` als er géén sessie is. Daardoor vuurt de controle `if (!req.role)` in `/api/files/:id` en `/api/thumb/:id` **nooit**: elk bestand is zonder inloggen op te halen als je het id kent. Op productie geverifieerd — een portret van 1,7 MB komt er gewoon uit. De ids lekken bovendien via `/api/auth/players`, dat publiek moet zijn voor de landingspagina. Met één campagne onder vrienden was dit een schouderophalen; met een tweede DM erbij is het diens materiaal dat openligt. |
 | `_DIENST_SVC_KEYS` / `_DIENST_AMB_LABELS` / `data-section` | Diensten zijn **vaste secties** met eigen HTML, CSS en endpoints; hun configuratie staat wél al in `meta.json` (naam, afbeeldingen, prijzen), dus hernoemen kan zonder verbouwing. |
 
 ## Serverbudget (gemeten 3 sep 2026)
@@ -91,7 +93,11 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    Campagne-id uit de URL, gebonden aan de sessie. DM-accounts met gehashte
    wachtwoorden (Alan wordt account nummer één). Eén inlogscherm per campagne
    waarin het ingetikte wachtwoord de rol bepaalt (groep → personage kiezen;
-   DM → DM-modus of tabletmodus).
+   DM → DM-modus; tabletmodus wordt daarna vanuit het DM-scherm aangezet).
+   In dezelfde stap: **bestanden achter de campagne-scope**. Alleen de portretten
+   van de personages die `/api/auth/players` toch al toont blijven publiek — dat
+   is precies wat de landingspagina nodig heeft. Al het andere (documenten,
+   kaarten, sfeerbeelden, andermans uploads) vraagt een sessie in díé campagne.
    *Harde voorwaarde vooraf:* een testsuite die als DM 2 inlogt en dan probéért
    bij Grisburgh te komen — lezen én schrijven, elk endpoint. Slaagt die aanval
    ergens, dan gaat er niemand op. Na deze stap kan DM 2 er al op, met alles aan.
@@ -116,14 +122,7 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
 
 ## Open vragen
 
-1. **Tabletmodus achter het DM-wachtwoord.** Nu heeft de tablet een eigen
-   wachtwoord, juist omdat dat scherm op tafel ligt waar iedereen erbij kan.
-   Als de tablet voortaan met het DM-wachtwoord wordt geopend, kan een speler
-   die meekijkt datzelfde wachtwoord later als DM gebruiken. Alternatief dat de
-   keuze intact laat: de DM kiest ná het inloggen "stuur dit scherm naar
-   tabletmodus", of er blijft een apart, kort tabletwachtwoord naast staan.
-2. **Media in de backup.** De JSON is klein en gaat dagelijks mee. De 2,2 GB
-   aan portretten en uploads is het onvervangbare deel en staat nu op één schijf.
-   Wekelijks meenemen naar de laptop (niet naar iCloud — te zwaar), of accepteren
-   dat beeldmateriaal alleen op de server leeft?
-3. Hoe lang backups bewaren — dertig dagen?
+1. Hoe lang backups bewaren — dertig dagen?
+2. De thumbnails zijn samen maar 56 MB (tegen 2,2 GB originelen). Die alsnog
+   meenemen in de dagelijkse backup? Dan staat na een ramp de app er weer met
+   beeld, alleen niet op volle resolutie. Bijna gratis, maar het is jouw keuze.
