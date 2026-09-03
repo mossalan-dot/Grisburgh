@@ -376,6 +376,7 @@ export function initDmPanel() {
     lootEvAnnuleer:   _lootEvAnnuleer,
     lootEvVeld:       _lootEvVeld,
     lootEvGoud:       _lootEvGoud,
+    lootEvDungeon:    _lootEvDungeon,
     lootEvRandom:     _lootEvRandom,
     lootEvItemAdd:    _lootEvItemAdd,
     lootEvItemDel:    _lootEvItemDel,
@@ -386,6 +387,7 @@ export function initDmPanel() {
     lootEvKopie:      _lootEvKopie,
     lootSelToggle:    _lootSelToggle,
     lootOnthulSelectie: _lootOnthulSelectie,
+    lootVerdelingOpenen: _lootVerdelingOpenen,
     lootReveal:      _lootReveal,
     lootVerdeeld:    _lootVerdeeld,
     lootCancel:      _lootCancel,
@@ -7076,6 +7078,7 @@ let _lootEvents   = [];
 let _lootSelectie = new Set();
 let _lootConcept  = null;      // vondst in bewerking (werkkopie)
 let _lootVoorwerpen = [];      // voor de koppeling aan een kaartje
+let _lootDungeons   = [];      // voor de koppeling aan een kamer
 
 const _LOOT_RARITEITEN = ['', 'Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary'];
 
@@ -7108,9 +7111,14 @@ async function _renderLoot() {
   if (!el) return;
   el.innerHTML = _dmLoading('Vondsten laden…');
   try {
-    const [d, vw] = await Promise.all([api.lootEvents(), api.listEntities('voorwerpen').catch(() => [])]);
+    const [d, vw, dungeons] = await Promise.all([
+      api.lootEvents(),
+      api.listEntities('voorwerpen').catch(() => []),
+      api.listDungeons().catch(() => []),
+    ]);
     _lootEvents     = d.events || [];
     _lootVoorwerpen = vw || [];
+    _lootDungeons   = dungeons || [];
   } catch (e) {
     el.innerHTML = `<div class="dm-feature-section"><p class="dm-hint">Kon de vondsten niet laden: ${esc(e.message)}</p></div>`;
     return;
@@ -7118,12 +7126,18 @@ async function _renderLoot() {
   _renderLootInner();
 }
 
+function _lootPlek(ev) {
+  if (!ev.roomId) return '';
+  const d = (_lootDungeons || []).find(x => x.id === ev.dungeonId);
+  const r = (d?.rooms || []).find(x => x.id === ev.roomId);
+  return r ? `${d?.name || 'Dungeon'} · ${r.name || 'kamer'}` : '';
+}
 function _lootSamenvatting(ev) {
   const cl = _muntGoudCl(ev);
   const r  = ev.goudRandom || {};
   const rand = (r.vanCl || r.totCl) ? `${_clNaarTekst(r.vanCl || 0)}–${_clNaarTekst(r.totCl || 0)} gerold` : '';
   const items = (ev.items || []).length;
-  return [items ? `${items} voorwerp${items === 1 ? '' : 'en'}` : '', cl ? _clNaarTekst(cl) : '', rand]
+  return [_lootPlek(ev), items ? `${items} voorwerp${items === 1 ? '' : 'en'}` : '', cl ? _clNaarTekst(cl) : '', rand]
     .filter(Boolean).join(' · ') || 'leeg';
 }
 
@@ -7218,6 +7232,20 @@ function _lootEditorHtml() {
           value="${esc(c.vaardigheid || '')}" oninput="window.dmPanel.lootEvVeld('vaardigheid', this.value)">
       </div>
       <div class="dm-form-row">
+        <label class="dm-form-label">Plek</label>
+        <select class="dm-input dm-input-sm" style="flex:1;min-width:130px"
+          onchange="window.dmPanel.lootEvDungeon(this.value)">
+          <option value="">— los, niet in een dungeon —</option>
+          ${(_lootDungeons || []).map(d => `<option value="${esc(d.id)}" ${c.dungeonId === d.id ? 'selected' : ''}>${esc(d.name || 'Dungeon')}</option>`).join('')}
+        </select>
+        ${c.dungeonId ? `
+        <select class="dm-input dm-input-sm" style="flex:1;min-width:130px"
+          onchange="window.dmPanel.lootEvVeld('roomId', this.value)">
+          <option value="">— kamer kiezen —</option>
+          ${((_lootDungeons || []).find(d => d.id === c.dungeonId)?.rooms || []).map(r => `<option value="${esc(r.id)}" ${c.roomId === r.id ? 'selected' : ''}>${esc(r.name || 'Kamer')}</option>`).join('')}
+        </select>` : ''}
+      </div>
+      <div class="dm-form-row">
         <label class="dm-form-label">Munten</label>
         <input class="dm-input dm-input-sm" style="width:90px" placeholder="1,34"
           value="${_muntGoudCl(c) ? _clNaarTekst(_muntGoudCl(c)) : ''}"
@@ -7266,6 +7294,13 @@ function _lootEvAnnuleer() { _lootConcept = null; _renderLootInner(); }
 function _lootEvVeld(veld, waarde) {
   if (!_lootConcept) return;
   _lootConcept[veld] = veld === 'dc' ? (parseInt(waarde) || 0) : waarde;
+}
+// Van dungeon wisselen maakt de kamerkeuze ongeldig; die hoort dan leeg.
+function _lootEvDungeon(id) {
+  if (!_lootConcept) return;
+  _lootConcept.dungeonId = id || null;
+  _lootConcept.roomId = null;
+  _renderLootInner();
 }
 function _lootEvGoud(tekst) {
   if (!_lootConcept) return;
@@ -7345,14 +7380,19 @@ function _lootSelToggle(id) {
 // Bouwt de verdeling en opent de bestaande lootmodal: daar stelt de DM 'm
 // eventueel nog bij en drukt hij op onthullen. Zo blijft er één plek waar
 // claimen, afrollen en uitdelen gebeurt.
+// Bouwt de verdeling en opent het lootvenster. Ook aangeroepen vanuit de
+// dungeonkaart, zodat er één plek is waar loot daadwerkelijk wordt uitgedeeld.
+async function _lootVerdelingOpenen(ids) {
+  _lootData = await api.lootVerdeling(ids);
+  _lootLaatsteUitslag = null;
+  window.app.openModal('Loot verdelen', '', `<div id="loot-modal-body"></div>`);
+  _renderLootModalBody();
+}
 async function _lootOnthulSelectie() {
   if (!_lootSelectie.size) return;
   try {
-    _lootData = await api.lootVerdeling([..._lootSelectie]);
+    await _lootVerdelingOpenen([..._lootSelectie]);
     _lootSelectie.clear();
-    _lootLaatsteUitslag = null;
-    window.app.openModal('Loot verdelen', '', `<div id="loot-modal-body"></div>`);
-    _renderLootModalBody();
     _renderLoot();
   } catch (e) { alert('Kon de verdeling niet maken: ' + e.message); }
 }

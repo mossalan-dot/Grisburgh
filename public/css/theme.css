@@ -4551,6 +4551,31 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   color: #9a8354; opacity: .85;
 }
 .dm-inst-group-slot .icon { width: 14px; height: 14px; }
+/* Vondsten in de kamerzijbalk van een dungeon. Die zijbalk is licht perkament
+   (--color-room-elevated), net als de DM-tabs — dus donkere inkt uit de
+   thema-variabelen, niet zelf een kleur verzinnen. */
+.dng-loot-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 0; border-bottom: 1px solid rgba(196,168,122,0.35);
+}
+.dng-loot-naam { flex: 1 1 auto; min-width: 0; font-size: 12.5px; color: var(--color-ink-bright); }
+.dng-loot-dc {
+  font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: .3px;
+  color: var(--color-ink-medium); background: rgba(255,255,255,0.4);
+  border: 1px solid var(--color-room-border); border-radius: 8px; padding: 0 5px;
+}
+.dng-loot-acties { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.dng-loot-nieuw-naam, .dng-loot-koppel {
+  flex: 1 1 120px; min-width: 0; font-family: 'Crimson Text', Georgia, serif; font-size: 12px;
+  background: rgba(255,255,255,0.55); color: var(--color-ink-bright);
+  border: 1px solid var(--color-room-border); border-radius: 4px; padding: 3px 6px;
+}
+.dng-loot-nieuw-naam::placeholder { color: var(--color-ink-faint); }
+.dng-sb-hint {
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: 12px;
+  color: var(--color-ink-medium); opacity: .8; margin: 2px 0;
+}
+
 /* ── Loot-events (Meesterkamer) ──────────────────────────────────────────────
    Eén regel per vondst: aanvinken om te onthullen, met de DC als aantekening
    ernaast. De DM-tabs zijn donker, dus lichte inkt op een warme ondergrond. */

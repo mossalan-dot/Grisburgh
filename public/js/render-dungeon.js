@@ -36,12 +36,24 @@ let _zoom        = 1.0;
 let _panX        = 0;
 let _panY        = 0;
 let _panAbort    = null;
+let _lootEvents  = [];      // vondsten van deze campagne (alleen DM)
+
+// Vondsten horen bij een kamer, maar ze leven in loot.json — niet in de
+// dungeonkaart. Zo kun je ze ook los onthullen of vanuit het Loot-tabblad
+// beheren, en blijft de kaart puur over vorm en fog-of-war gaan.
+async function _laadVondsten() {
+  if (!isDM()) { _lootEvents = []; return; }
+  try { _lootEvents = (await api.lootEvents()).events || []; } catch { _lootEvents = []; }
+}
+const _vondstenVanKamer = (mapId, roomId) =>
+  _lootEvents.filter(e => e.dungeonId === mapId && e.roomId === roomId);
 
 // ──────────────────────────────────────────────────────────────────
 // Public entry point
 // ──────────────────────────────────────────────────────────────────
 export async function renderDungeon(container, openId) {
   _maps = await api.listDungeons();
+  await _laadVondsten();
   if (openId) {
     const i = _maps.findIndex(m => m.id === openId);
     if (i >= 0) _mapIdx = i;
@@ -746,6 +758,31 @@ function _renderSidebar(room) {
       }).join('')}
     </div>` : '';
 
+  // ── Vondsten in deze kamer ──
+  const vondsten = isDM() ? _vondstenVanKamer(map.id, room.id) : [];
+  const losseVondsten = isDM() ? _lootEvents.filter(e => !e.roomId && !e.sjabloon) : [];
+  const lootHtml = isDM() ? `
+    <div class="dng-sb-section">
+      <div class="dng-sb-section-hdr">${icon('coins')} Vondsten</div>
+      ${vondsten.map(ev => `
+        <div class="dng-loot-row">
+          <span class="dng-loot-naam">${esc(ev.naam)}${ev.dc ? ` <span class="dng-loot-dc">DC ${ev.dc}</span>` : ''}</span>
+          <button class="dng-btn dng-btn-sm dng-loot-onthul" data-lootid="${esc(ev.id)}"
+            title="Maak hier een verdeling van">${icon('coins')}</button>
+          <button class="dng-btn dng-btn-sm dng-btn-danger dng-loot-los" data-lootid="${esc(ev.id)}"
+            title="Loskoppelen van deze kamer">${icon('x')}</button>
+        </div>`).join('') || '<p class="dng-sb-hint">Nog niets te vinden hier.</p>'}
+      <div class="dng-loot-acties">
+        <input class="dng-loot-nieuw-naam" id="dng-loot-nieuw-naam" placeholder="Wat is hier te vinden?">
+        <button class="dng-btn dng-btn-sm" id="dng-loot-nieuw" title="Vondst toevoegen">${icon('plus')}</button>
+        ${losseVondsten.length ? `
+          <select class="dng-loot-koppel" id="dng-loot-koppel">
+            <option value="">— koppel bestaande —</option>
+            ${losseVondsten.map(e => `<option value="${esc(e.id)}">${esc(e.naam)}</option>`).join('')}
+          </select>` : ''}
+      </div>
+    </div>` : '';
+
   sb.innerHTML = `
     <div class="dng-sb-detail-card">
       <div class="dng-sb-name">${esc(room.name)}</div>
@@ -768,7 +805,44 @@ function _renderSidebar(room) {
         ${condRowsHtml}
       </div>
       ${connsHtml}
+      ${lootHtml}
     </div>`;
+
+  // ── Vondsten ──
+  const _voegVondstToe = async () => {
+    const veld = document.getElementById('dng-loot-nieuw-naam');
+    const naam = veld?.value.trim();
+    if (!naam) { veld?.focus(); return; }
+    await api.lootEventCreate({ naam, dungeonId: map.id, roomId: room.id });
+    await _laadVondsten();
+    _renderSidebar(room);
+  };
+  document.getElementById('dng-loot-nieuw')?.addEventListener('click', _voegVondstToe);
+  document.getElementById('dng-loot-nieuw-naam')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') _voegVondstToe();
+  });
+  document.getElementById('dng-loot-koppel')?.addEventListener('change', async (e) => {
+    if (!e.target.value) return;
+    await api.lootEventUpdate(e.target.value, { dungeonId: map.id, roomId: room.id });
+    await _laadVondsten();
+    _renderSidebar(room);
+  });
+  sb.querySelectorAll('.dng-loot-los').forEach(b => b.addEventListener('click', async () => {
+    // Loskoppelen, niet weggooien: de vondst blijft in de bibliotheek staan.
+    await api.lootEventUpdate(b.dataset.lootid, { dungeonId: null, roomId: null });
+    await _laadVondsten();
+    _renderSidebar(room);
+  }));
+  sb.querySelectorAll('.dng-loot-onthul').forEach(b => b.addEventListener('click', async () => {
+    // De verdeling zelf gebeurt in het lootvenster van de Meesterkamer: daar
+    // stel je 'm bij en druk je op onthullen. Vanaf de kaart is dit dus de
+    // snelkoppeling ernaartoe, niet een tweede plek waar je loot uitdeelt.
+    try {
+      await window.dmPanel.lootVerdelingOpenen([b.dataset.lootid]);
+      await _laadVondsten();
+      _renderSidebar(room);
+    } catch (err) { alert('Kon de verdeling niet maken: ' + err.message); }
+  }));
 
   // ── Events ──
   document.getElementById('dng-reveal-btn')?.addEventListener('click', async () => {

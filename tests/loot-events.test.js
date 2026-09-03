@@ -133,6 +133,17 @@ describe('Loot-events', () => {
     assert.equal(g.body.momenten.zomaarWat, undefined, 'alleen bekende momenten worden bewaard');
   });
 
+  it('koppelt een vondst aan een kamer en laat hem los zonder te verdwijnen', async () => {
+    const ev = (await maak({ naam: 'Kist in de hoek', dungeonId: 'dng_1', roomId: 'r_3' })).body;
+    assert.equal(ev.roomId, 'r_3');
+    // Loskoppelen is geen weggooien: de vondst blijft in de bibliotheek staan,
+    // zodat je 'm ergens anders kunt neerleggen.
+    await req(server, 'PUT', `/api/loot/events/${ev.id}`, { dungeonId: null, roomId: null }, dm);
+    const na = (await req(server, 'GET', '/api/loot/events', null, dm)).body.events.find(e => e.id === ev.id);
+    assert.ok(na, 'de vondst bestaat nog');
+    assert.equal(na.roomId, null);
+  });
+
   it('houdt de vondstenbibliotheek weg bij spelers', async () => {
     const spelerCookie = (await req(server, 'POST', '/api/auth/player-login', { characterId: speler })).cookie;
     const r = await req(server, 'GET', '/api/loot/events', null, spelerCookie);

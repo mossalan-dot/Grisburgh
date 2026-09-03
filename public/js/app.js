@@ -2,14 +2,14 @@ import { api } from './api.js?v=250';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=121";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=70";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
-import { renderDungeon } from './render-dungeon.js?v=31';
+import { renderDungeon } from './render-dungeon.js?v=32';
 import { renderRelatiemap } from './render-relatiemap.js?v=21';
 import { renderProgressie } from './render-progressie.js?v=43';
 import { renderBestiarium } from './render-bestiarium.js?v=20';
 import { renderSpreuken } from './render-spreuken.js?v=12';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=58";
-import { initDmPanel } from "./dm-panel.js?v=167";
+import { initDmPanel } from "./dm-panel.js?v=168";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
