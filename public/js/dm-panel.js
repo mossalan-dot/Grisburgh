@@ -542,13 +542,16 @@ function _buildTabs() {
   const container = document.getElementById('dm-section-tabs');
   if (!container) return;
   const activeParent = _tabToParent(_activeTab);
-  container.innerHTML = _DM_TABS.map(t => `
+  // Instellingen staat bovenaan, niet onderaan: onderin overlapt hij met de
+  // regie-balk zodra er een akte actief is.
+  container.innerHTML = `
+    <button class="dm-tab-btn dm-tab-btn--settings" onclick="window._dmInstellingenOpen()" title="Instellingen">${icon('settings')}</button>`
+    + _DM_TABS.map(t => `
     <button class="dm-tab-btn${activeParent === t.id ? ' active' : ''}" data-tab="${t.id}"
       onclick="window.dmPanel.switchTab('${t.id}')" title="${t.title}">
       <span class="dm-tab-icon">${icon(t.icoon, t.cls ? { cls: t.cls } : undefined)}</span>
       <span class="dm-tab-label">${esc(t.label)}</span>
-    </button>`).join('') + `
-    <button class="dm-tab-btn dm-tab-btn--settings" onclick="window._dmInstellingenOpen()" title="Instellingen">${icon('settings')}</button>`;
+    </button>`).join('');
 };
 
 // ── Tab switching ──
