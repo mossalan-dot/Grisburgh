@@ -538,12 +538,20 @@ function _tabToParent(tab) {
 // niets te herbouwen en zie je toch waar je bent zonder op een tooltip te
 // wachten. De klassen dm-tab-icon/-label bestonden al in de CSS maar werden
 // nergens gebruikt; deze opzet neemt ze weer in gebruik.
+// Volgorde op spelmoment, niet op hoe ze ooit zijn aangegroeid. Drie groepjes:
+// eerst wat je aan tafel gebruikt (een sessie begint bij Aktes, en de regie-balk
+// komt daarvandaan), dan sfeer en improvisatie, en onderaan wat je tússen
+// sessies doet. Komt Loot erbij, dan hoort die tussen Gevecht en Rust — dat is
+// precies het moment waarop je hem nodig hebt.
 const _DM_TABS = [
+  // Spelen
+  { id: 'aktes',     label: 'Aktes',     icoon: 'clipboard-list',                  title: 'Aktes — voorbereiding &amp; regie' },
   { id: 'gevecht',   label: 'Gevecht',   icoon: 'crossed-swords', cls: 'icon-gi', title: 'Gevecht & Monsters' },
   { id: 'rust',      label: 'Rust',      icoon: 'moon',                            title: 'Rust — Long &amp; Short Rest' },
-  { id: 'aktes',     label: 'Aktes',     icoon: 'clipboard-list',                  title: 'Aktes — voorbereiding &amp; regie' },
+  // Sfeer en improvisatie
   { id: 'geluiden',  label: 'Geluiden',  icoon: 'volume-2',                        title: 'Geluiden' },
   { id: 'tafels',    label: 'Tafels',    icoon: 'dice', cls: 'icon-gi',            title: 'Willekeur — tafels &amp; namen' },
+  // Voorbereiden en beheren
   { id: 'diensten',  label: 'Diensten',  icoon: 'building',                        title: 'Grisburgh-diensten' },
   { id: 'media',     label: 'Media',     icoon: 'image',                           title: 'Mediabibliotheek' },
   // 'Berichten' past niet op één regel in een kolom van 56px; liever een korter
