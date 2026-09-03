@@ -136,12 +136,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=406   app.js?v=558   sound-manager.js?v=8
-app.js      : api.js?v=250      render-campagne.js?v=121   render-archief.js?v=70
+index.html  : theme.css?v=407   app.js?v=559   sound-manager.js?v=8
+app.js      : api.js?v=250      render-campagne.js?v=121   render-archief.js?v=71
               render-kaart.js?v=18  render-dungeon.js?v=32  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=168    render-dashboard.js?v=9
+              dm-panel.js?v=169    render-dashboard.js?v=9
               render-spreuken.js?v=12   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 ```
@@ -264,7 +264,16 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > `brief:display`. Die gaat uit bij het onthullen, bij elke claim en bij de
 > uitslag; alleen het lijstje wordt dan hertekend, niet de hele cinematic, anders
 > gaat de kist telkens weer dicht.
-> Nog te bouwen: akte-stap en de mimic — zie `docs/loot-events-plan.md`.
+> **Akte-stap:** het regie-script kent een 7e staptype **`loot`**
+> (`{type:'loot', lootId, name}`), toe te voegen via het muntje in de picker en
+> tijdens het spelen te onthullen met de muntknop in de regie-balk
+> (`_regieBalkLoot` → `_lootVerdelingOpenen`). Sjablonen komen niet in de picker:
+> die liggen nergens.
+> **Mimic:** een vondst met `mimicEncounterId` levert géén verdeling op. De
+> server geeft `{ mimic: {...} }` terug, het tafelscherm krijgt dezelfde kist te
+> zien met een andere ontknoping ("Het is geen kist."), en de DM krijgt de vraag
+> of het gevecht meteen moet starten (`_encStart`). De kist blijft dus tot het
+> laatste moment een kist — dat is de hele grap.
 
 > **Aanwezigheid per sessie.** `groups[gid].afwezig` is de lijst met spelers die
 > **niet** meedoen (afwezigen bewaren, niet aanwezigen: dan doet een nieuw

@@ -6164,6 +6164,17 @@ router.post('/loot/verdeling', requireDM, (req, res) => {
   const gekozen = data.events.filter(e => ids.includes(e.id));
   if (!gekozen.length) return res.status(404).json({ error: 'Vondsten niet gevonden' });
 
+  // Zit er een mimic tussen, dan gaat die vóór: er valt niets te verdelen.
+  const mimic = gekozen.find(e => e.mimicEncounterId);
+  if (mimic) {
+    const enc = (storage.readJSON('encounters.json').encounters || []).find(e => e.id === mimic.mimicEncounterId);
+    mimic.onthuld = true;
+    storage.writeJSON('loot.json', data);
+    req.app.get('io').to(req.session?.campaignId || 'main')
+      .emit('loot:display', { mimic: true, naam: mimic.naam, encounterNaam: enc?.name || '' });
+    return res.json({ mimic: { eventId: mimic.id, naam: mimic.naam, encounterId: mimic.mimicEncounterId, encounterNaam: enc?.name || '' } });
+  }
+
   const combat  = storage.readJSON('combat.json');
   const dmState = readDmState();
   let totaalCl = 0;

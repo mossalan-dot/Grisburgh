@@ -456,6 +456,7 @@ export function initDmPanel() {
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
     regieBalkRust:           (id) => _regieBalkRust(id),
+    regieBalkLoot:           (id) => _regieBalkLoot(id),
     regieBalkStuurBrief:     (id) => _regieBalkStuurBrief(id),
     regieBalkRevealVague:    (id) => _revealRegieBalkItem(id, 'vague'),
     regieBalkRevealSecret:   (id) => _revealRegieBalkSecretItem(id),
@@ -1903,7 +1904,9 @@ function _renderRegieBalkItem(item) {
           ? icon(item.restType === 'long' ? 'moon' : 'zap')
           : item.type === 'brief'
             ? icon('mail')
-            : icon('crossed-swords', { cls: 'icon-gi' });
+            : item.type === 'loot'
+              ? icon('coins')
+              : icon('crossed-swords', { cls: 'icon-gi' });
   const rustLabel = item.type === 'rust'
     ? `${item.restType === 'long' ? 'Long' : 'Short'} Rest — ${item.locatie === 'herberg' ? 'Herberg' : 'Veld'}`
     : '';
@@ -1931,6 +1934,8 @@ function _renderRegieBalkItem(item) {
     thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-rust">${icon(item.restType === 'long' ? 'moon' : 'zap')}</div>`;
   } else if (item.type === 'brief') {
     thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-brief">${icon('mail')}</div>`;
+  } else if (item.type === 'loot') {
+    thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-loot">${icon('coins')}</div>`;
   } else {
     const entityIcon = item.type === 'entity'
       ? (ENTITY_ICONS[item.entityType] || icon('eye'))
@@ -1955,6 +1960,10 @@ function _renderRegieBalkItem(item) {
     // Rust-stap: party-brede rust starten (met de locatie van de stap). Blijft klikbaar
     // (opnieuw triggeren mag); de check-overlay markeert dat 'm gedraaid is.
     actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkRust('${esc(item.id)}')" title="${item.restType === 'long' ? 'Long' : 'Short'} Rest starten (${item.locatie === 'herberg' ? 'herberg' : 'veld'})">${icon('play')}</button>`;
+  } else if (item.type === 'loot') {
+    // Vondst-stap: bouwt de verdeling en opent het lootvenster. Blijft klikbaar —
+    // een kamer kan twee keer bezocht worden.
+    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkLoot('${esc(item.id)}')" title="Vondst onthullen">${icon('coins')}</button>`;
   } else if (item.type === 'brief') {
     // Brief-stap: verstuur naar de gekozen ontvanger(s) + grote reveal op de tablet.
     // Blijft klikbaar (opnieuw sturen mag); de check-overlay markeert dat 'm verstuurd is.
@@ -2341,6 +2350,19 @@ function _regieBalkRust(itemId) {
   window._dmRust?.(item.restType, item.locatie);
   _rbRevealed.add(itemId);
   _rbUpdateItem(itemId);
+}
+
+// Vondst-stap in de regie-balk: bouwt de verdeling en opent het lootvenster —
+// dezelfde weg als het muntje in een dungeonkamer. Blijft klikbaar, want een
+// kamer kan twee keer bezocht worden.
+async function _regieBalkLoot(itemId) {
+  const item = _rbScript.find(x => x.id === itemId);
+  if (!item || item.type !== 'loot' || !item.lootId) return;
+  try {
+    await _lootVerdelingOpenen([item.lootId]);
+    _rbRevealed.add(itemId);
+    _rbUpdateItem(itemId);
+  } catch (e) { alert('Kon de vondst niet onthullen: ' + e.message); }
 }
 
 // Brief-stap in de regie-balk: verstuur de brief naar de gekozen ontvanger(s).
@@ -7079,6 +7101,7 @@ let _lootSelectie = new Set();
 let _lootConcept  = null;      // vondst in bewerking (werkkopie)
 let _lootVoorwerpen = [];      // voor de koppeling aan een kaartje
 let _lootDungeons   = [];      // voor de koppeling aan een kamer
+let _lootEncounters = [];      // voor de mimic: welk gevecht springt eruit
 
 const _LOOT_RARITEITEN = ['', 'Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary'];
 
@@ -7111,14 +7134,16 @@ async function _renderLoot() {
   if (!el) return;
   el.innerHTML = _dmLoading('Vondsten laden…');
   try {
-    const [d, vw, dungeons] = await Promise.all([
+    const [d, vw, dungeons, encs] = await Promise.all([
       api.lootEvents(),
       api.listEntities('voorwerpen').catch(() => []),
       api.listDungeons().catch(() => []),
+      api.listEncounters().catch(() => []),
     ]);
     _lootEvents     = d.events || [];
     _lootVoorwerpen = vw || [];
     _lootDungeons   = dungeons || [];
+    _lootEncounters = encs?.encounters || encs || [];
   } catch (e) {
     el.innerHTML = `<div class="dm-feature-section"><p class="dm-hint">Kon de vondsten niet laden: ${esc(e.message)}</p></div>`;
     return;
@@ -7159,6 +7184,7 @@ function _renderLootInner() {
         <span class="dm-loot-meta">${esc(_lootSamenvatting(ev))}</span>
       </div>
       ${ev.dc ? `<span class="dm-loot-dc" title="${esc(ev.vaardigheid || 'Check')} — de spelers gooien aan tafel">DC ${ev.dc}${ev.vaardigheid ? ` ${esc(ev.vaardigheid)}` : ''}</span>` : ''}
+      ${ev.mimicEncounterId ? `<span class="dm-loot-badge dm-loot-badge--mimic" title="Geen buit maar een gevecht">mimic</span>` : ''}
       ${ev.onthuld && !isSjabloon ? `<span class="dm-loot-badge dm-loot-badge--op">onthuld</span>` : ''}
       ${isSjabloon
         ? `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.lootEvKopie('${esc(ev.id)}')" title="Maak hier een vondst van">${icon('plus')} Gebruiken</button>`
@@ -7230,6 +7256,15 @@ function _lootEditorHtml() {
           oninput="window.dmPanel.lootEvVeld('dc', this.value)">
         <input class="dm-input dm-input-sm" style="flex:1;min-width:120px" placeholder="Investigation, Perception…"
           value="${esc(c.vaardigheid || '')}" oninput="window.dmPanel.lootEvVeld('vaardigheid', this.value)">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Mimic</label>
+        <select class="dm-input dm-input-sm" style="flex:1;min-width:150px"
+          onchange="window.dmPanel.lootEvVeld('mimicEncounterId', this.value || null)">
+          <option value="">— gewone vondst —</option>
+          ${(_lootEncounters || []).map(e => `<option value="${esc(e.id)}" ${c.mimicEncounterId === e.id ? 'selected' : ''}>${esc(e.name || 'Gevecht')}</option>`).join('')}
+        </select>
+        <span class="dm-hint">geen buit maar dit gevecht</span>
       </div>
       <div class="dm-form-row">
         <label class="dm-form-label">Plek</label>
@@ -7383,7 +7418,15 @@ function _lootSelToggle(id) {
 // Bouwt de verdeling en opent het lootvenster. Ook aangeroepen vanuit de
 // dungeonkaart, zodat er één plek is waar loot daadwerkelijk wordt uitgedeeld.
 async function _lootVerdelingOpenen(ids) {
-  _lootData = await api.lootVerdeling(ids);
+  const res = await api.lootVerdeling(ids);
+  // Een mimic levert geen verdeling op maar een gevecht. Het tafelscherm heeft
+  // de ontknoping al; de DM bepaalt zelf wanneer het gevecht begint.
+  if (res?.mimic) {
+    const naam = res.mimic.encounterNaam || 'het gevecht';
+    if (confirm(`"${res.mimic.naam}" is een mimic! ${naam} nu starten?`)) await _encStart(res.mimic.encounterId);
+    return;
+  }
+  _lootData = res;
   _lootLaatsteUitslag = null;
   window.app.openModal('Loot verdelen', '', `<div id="loot-modal-body"></div>`);
   _renderLootModalBody();

@@ -144,6 +144,15 @@ describe('Loot-events', () => {
     assert.equal(na.roomId, null);
   });
 
+  it('levert bij een mimic geen buit maar een gevecht', async () => {
+    const enc = (await req(server, 'POST', '/api/encounters', { name: 'Mimic!', monsters: [] }, dm)).body;
+    const ev  = (await maak({ naam: 'Kist met tanden', mimicEncounterId: enc.id, goud: { fl: 99 } })).body;
+    const r   = await req(server, 'POST', '/api/loot/verdeling', { eventIds: [ev.id] }, dm);
+    assert.ok(r.body.mimic, 'de verdeling hoort een mimic terug te geven');
+    assert.equal(r.body.mimic.encounterId, enc.id);
+    assert.equal(r.body.items, undefined, 'er valt niets te claimen aan een mimic');
+  });
+
   it('houdt de vondstenbibliotheek weg bij spelers', async () => {
     const spelerCookie = (await req(server, 'POST', '/api/auth/player-login', { characterId: speler })).cookie;
     const r = await req(server, 'GET', '/api/loot/events', null, spelerCookie);

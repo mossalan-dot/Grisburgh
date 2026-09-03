@@ -1,6 +1,6 @@
 import { api } from './api.js?v=250';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=121";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=70";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=71";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
 import { renderDungeon } from './render-dungeon.js?v=32';
 import { renderRelatiemap } from './render-relatiemap.js?v=21';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=20';
 import { renderSpreuken } from './render-spreuken.js?v=12';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=59";
-import { initDmPanel } from "./dm-panel.js?v=168";
+import { initDmPanel } from "./dm-panel.js?v=169";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -5188,6 +5188,14 @@ function _lootCinClaimRegel(it) {
 function _lootCinBuit(data) {
   const el = document.getElementById('loot-cin-buit');
   if (!el) return;
+  if (data.mimic) {
+    el.innerHTML = `
+      <div class="loot-cin-mimic">
+        <div class="loot-cin-mimic-kop">Het is geen kist.</div>
+        <p class="loot-cin-mimic-tekst">${esc(data.naam || 'De kist')} heeft tanden${data.encounterNaam ? ` — <strong>${esc(data.encounterNaam)}</strong>` : ''}.</p>
+      </div>`;
+    return;
+  }
   const bedrag = _lootCinBedrag(data.goud);
   const items  = (data.items || []).filter(it => it.status !== 'overgeslagen');
   el.innerHTML = `

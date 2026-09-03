@@ -1265,7 +1265,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
                 ? icon(item.restType === 'long' ? 'moon' : 'zap')
                 : item.type === 'brief'
                   ? icon('mail')
-                  : icon('crossed-swords', { cls: 'icon-gi' });
+                  : item.type === 'loot'
+                    ? icon('coins')
+                    : icon('crossed-swords', { cls: 'icon-gi' });
         // Rust-stap: vaste, niet-bewerkbare label ("Lange rust — Herberg").
         const rustLabel = item.type === 'rust'
           ? `${item.restType === 'long' ? 'Lange' : 'Korte'} rust — ${item.locatie === 'herberg' ? 'Herberg' : 'Veld'}`
@@ -1402,6 +1404,24 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','short','veld')">${icon('zap')} Korte rust — Veld</button>
         <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','short','herberg')">${icon('zap')} Korte rust — Herberg</button>
       </div>`;
+  } else if (pickerState.mode === 'loot') {
+    const vondsten = pickerState.loot;
+    if (vondsten === undefined) {
+      pickerHtml = `<p class="dm-hint">Laden…</p>`;
+    } else if (!vondsten.length) {
+      pickerHtml = `<p class="dm-hint">Nog geen vondsten. Maak ze aan in de Meesterkamer onder Loot.</p>`;
+    } else {
+      pickerHtml = `<p class="dm-hint" style="margin:0 0 6px">Zet een vondst in het script — tijdens het spelen onthul je 'm vanuit de regie-balk:</p>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          ${vondsten.map(v => {
+            const added = (script || []).some(x => x.type === 'loot' && x.lootId === v.id);
+            return `<button class="dm-btn dm-btn-sm${added ? ' dm-btn-ghost' : ''}" ${added ? 'disabled' : ''}
+              style="text-align:left;${added ? 'opacity:.5' : ''}"
+              onclick="window._scriptAddLoot('${esc(ch)}','${esc(v.id)}','${esc(v.naam)}')">
+              ${icon('coins')} ${added ? '✓ ' : ''}${esc(v.naam)}${v.dc ? ` — DC ${v.dc}` : ''}</button>`;
+          }).join('')}
+        </div>`;
+    }
   } else if (pickerState.mode === 'brief') {
     pickerHtml = `<p class="dm-hint" style="margin:0 0 6px">Stel een brief op — tijdens het spelen verstuur je 'm vanuit de regie-balk (groot op de tablet + in Berichten):</p>
       <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._scriptBriefCompose('${esc(ch)}')">${icon('mail')} Nieuwe brief opstellen…</button>`;
@@ -1426,6 +1446,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         <button class="script-add-btn${pickerState.mode === 'rust'? ' is-active' : ''}"
           title="Rust toevoegen (lange/korte)"
           onclick="window._scriptTogglePicker('${esc(ch)}','rust')">${icon('moon')}</button>
+        <button class="script-add-btn${pickerState.mode === 'loot'? ' is-active' : ''}"
+          title="Vondst toevoegen"
+          onclick="window._scriptTogglePicker('${esc(ch)}','loot')">${icon('coins')}</button>
         <button class="script-add-btn${pickerState.mode === 'brief'? ' is-active' : ''}"
           title="Brief toevoegen"
           onclick="window._scriptTogglePicker('${esc(ch)}','brief')">${icon('mail')}</button>
@@ -1618,6 +1641,8 @@ window._scriptTogglePicker = (ch, mode) => {
     _scriptLoadEncounters(ch);
   } else if (state.mode === 'dungeon' && state.dungeons === undefined) {
     _scriptLoadDungeons(ch);
+  } else if (state.mode === 'loot' && state.loot === undefined) {
+    _scriptLoadLoot(ch);
   }
   // Auto-focus search when opening entity picker
   if (state.mode === 'entity') {
@@ -1761,6 +1786,22 @@ window._scriptAddDungeon = async (ch, dungeonId, roomId) => {
 
 // Rust-stap: lange/korte rust + locatie (veld/herberg). Wordt tijdens het spelen
 // vanuit de regie-balk getriggerd (party-brede rust + cinematic).
+// Vondsten voor de picker. Sjablonen laten we weg: die liggen nergens, dus je
+// zet ze ook niet in een script.
+async function _scriptLoadLoot(ch) {
+  const state = _scriptPickerState[ch] || {};
+  try { state.loot = ((await api.lootEvents()).events || []).filter(e => !e.sjabloon); }
+  catch { state.loot = []; }
+  _scriptPickerState[ch] = state;
+  _refreshScriptSection(ch);
+}
+
+window._scriptAddLoot = async (ch, lootId, naam) => {
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  script.push({ id: _scriptGenId(), type: 'loot', lootId, name: naam });
+  await _scriptSave(ch, script);
+};
+
 window._scriptAddRust = async (ch, restType, locatie) => {
   const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
   script.push({ id: _scriptGenId(), type: 'rust', restType, locatie });
