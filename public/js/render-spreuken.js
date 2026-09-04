@@ -345,12 +345,22 @@ function _markAdded(index) {
 }
 
 window.spreuken = {
-  open(index) {
+  // Kan ook aangeroepen worden vanuit een kaartje, en dan is de bibliotheek nog
+  // niet geladen — dus eerst laden, dan tonen.
+  async open(index) {
+    if (!_all) await _load();
     const s = (_all || []).find(x => x.index === index);
     if (!s) return;
     const ov = _ensureOverlay();
     ov.innerHTML = _detailHtml(s);
     ov.classList.add('active');
+  },
+  // Naam + school van een spreuk, voor chips op een kaartje.
+  async info(indexen) {
+    if (!_all) await _load();
+    const set = new Set(indexen || []);
+    return (_all || []).filter(s => set.has(s.index))
+      .map(s => ({ index: s.index, name: s.name, level: s.level, school: _school(s) }));
   },
   // DM: eigen beschrijving bij een spreuk. Buiten Grisburgh komen de spreuken
   // kaal binnen (naam, niveau, school, tijden) en vult de DM de tekst zelf —

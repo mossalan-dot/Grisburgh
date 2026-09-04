@@ -552,6 +552,57 @@ window._lijstRegelErbij = (veld) => {
   host.querySelector('.lijst-regel:last-child textarea')?.focus();
 };
 
+// De chips staan eerst op hun index ("fire-bolt"); zodra de bibliotheek geladen
+// is vervangen we dat door naam en niveau.
+async function _vulSpellChips() {
+  const host = document.getElementById('detail-spell-chips');
+  if (!host || !window.spreuken?.info) return;
+  const knoppen = [...host.querySelectorAll('[data-spell]')];
+  if (!knoppen.length) return;
+  const info = await window.spreuken.info(knoppen.map(k => k.dataset.spell));
+  for (const knop of knoppen) {
+    const sp = info.find(x => x.index === knop.dataset.spell);
+    if (!sp) continue;
+    const niveau = Number(sp.level) === 0 ? 'C' : sp.level;
+    knop.innerHTML = `<b>${niveau}</b>${esc(sp.name)}`;
+    knop.title = `${sp.school || ''}`.trim();
+  }
+}
+
+// ── Gekoppelde spreuken op een kaartje ──
+function _csSpellLees() {
+  const veld = document.getElementById('cs-spell-indexes');
+  try { return JSON.parse(veld?.value || '[]'); } catch { return []; }
+}
+function _csSpellSchrijf(lijst) {
+  const veld = document.getElementById('cs-spell-indexes');
+  if (veld) veld.value = lijst.length ? JSON.stringify(lijst) : '';
+  _csSpellChips();
+}
+function _csSpellChips() {
+  const host = document.getElementById('cs-spell-chips');
+  if (!host) return;
+  const lijst = _csSpellLees();
+  host.innerHTML = lijst.map(idx => {
+    const sp = (_spreukLijst || []).find(x => x.index === idx);
+    const naam = sp?.name || idx;
+    const niveau = sp ? (Number(sp.level) === 0 ? 'C' : sp.level) : '';
+    return `<span class="cs-spell-chip">${niveau !== '' ? `<b>${esc(String(niveau))}</b>` : ''}${esc(naam)}
+      <button type="button" title="Loskoppelen" onclick="window._csSpellWeg('${esc(idx)}')">×</button></span>`;
+  }).join('');
+}
+window._csSpellAdd = (input) => {
+  const naam = (input.value || '').trim().toLowerCase();
+  if (!naam) return;
+  const sp = (_spreukLijst || []).find(x => x.name.toLowerCase() === naam);
+  if (!sp) { input.classList.add('dm-input--err'); setTimeout(() => input.classList.remove('dm-input--err'), 900); return; }
+  const lijst = _csSpellLees();
+  if (!lijst.includes(sp.index)) lijst.push(sp.index);
+  input.value = '';
+  _csSpellSchrijf(lijst);
+};
+window._csSpellWeg = (idx) => _csSpellSchrijf(_csSpellLees().filter(x => x !== idx));
+
 export function initCampagne() {}
 
 // Expose for global search
@@ -1849,10 +1900,19 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">${label}</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s[k])}</div></div>`
       ).join('');
 
-      // Spells
+      // Spells. Gekoppelde spreuken worden chips die het spreukdetail openen; de
+      // losse tekstvelden blijven eronder staan voor wat niet in de bibliotheek zit.
+      let _gekoppeld = [];
+      try { _gekoppeld = JSON.parse(s.spellIndexes || '[]'); } catch { _gekoppeld = []; }
       const _spells = [
+        _gekoppeld.length ? `<div class="mt-3 border-t border-room-border pt-3">
+            <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">Spells</div>
+            <div class="cs-spell-chips" id="detail-spell-chips">${_gekoppeld.map(idx =>
+              `<button type="button" class="cs-spell-chip cs-spell-chip--klik" data-spell="${esc(idx)}"
+                 onclick="window.spreuken.open('${esc(idx)}')">${esc(idx.replace(/-/g, ' '))}</button>`).join('')}</div>
+          </div>` : '',
         s.cantrips ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">Cantrips</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.cantrips)}</div></div>` : '',
-        s.spells ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">Spells</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.spells)}</div></div>` : '',
+        s.spells ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">Spells (los)</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.spells)}</div></div>` : '',
       ].join('');
 
       sheetHtml += `
@@ -2270,6 +2330,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _mSubEl = document.getElementById('m-sub');
   if (_mSubEl) _mSubEl.innerHTML = _subtitleHtml;
   _updateBackButton();
+  _vulSpellChips();   // van index naar nette naam, zodra de bibliotheek er is
 
   // Huisdier: geschaalde statblock ophalen + renderen (tier o.b.v. level van het baasje)
   if (tab === 'personages' && e.subtype === 'dier') {
@@ -2834,6 +2895,7 @@ export function openEditor(type) {
 let allNames = {};
 let _scrollSpellList = null;  // volledige spell-lijst voor de Scroll-spell-picker (lazy)
 let _naamLijsten = null;      // volken, klassen en alignments voor de keuzevelden
+let _spreukLijst = null;      // spreukenbibliotheek voor de koppeling op een kaartje
 
 // ── Huisdier-tier-editor (subtype 'dier') ──
 // _petTiers wordt in openEditor gevuld uit e.statblockTiers en bij submit weer uitgelezen.
@@ -2929,6 +2991,12 @@ window._openEditor = async (tab, editId) => {
   if (tab === 'personages' && !_naamLijsten) {
     try { _naamLijsten = await fetch('/api/bron/volken-klassen').then(r => r.json()); }
     catch { _naamLijsten = { klassen: [], volkenGangbaar: [], volkenOverig: [], alignments: [] }; }
+  }
+  if (tab === 'personages' && !_spreukLijst) {
+    try {
+      const d = await fetch('/api/bron/spells-2024').then(r => r.json());
+      _spreukLijst = (d.results || []).filter(sp => sp.school?.name);
+    } catch { _spreukLijst = []; }
   }
   // Scroll-spell-picker: laad de spell-lijst één keer (voor de datalist + autofill).
   if (tab === 'voorwerpen' && !_scrollSpellList) {
@@ -3545,8 +3613,21 @@ window._openEditor = async (tab, editId) => {
             <div class="grid grid-cols-2 gap-2">
               ${_si('spellSaveDC','Spell Save DC',true)}${_si('spellAttackMod','Spell Attack Mod',true)}
             </div>
-            ${_si('cantrips','Cantrips')}
-            ${_ta('spells','Spells', 3)}
+            <!-- Gekoppelde spreuken: overtypen levert een dood tekstveld op, een
+                 koppeling levert een kaartje op waar je doorheen klikt. De
+                 tekstvelden eronder blijven voor wat niet in de bibliotheek staat. -->
+            <div>
+              <label class="text-[10px] font-cinzel text-ink-dim uppercase">Spreuken uit de bibliotheek</label>
+              <div id="cs-spell-chips" class="cs-spell-chips"></div>
+              <input id="cs-spell-add" list="dl-spreuken" placeholder="Zoek een spreuk\u2026" autocomplete="off"
+                onchange="window._csSpellAdd(this)"
+                class="w-full mt-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              <input type="hidden" name="stat_spellIndexes" id="cs-spell-indexes" value="${esc(s.spellIndexes || '')}">
+              <datalist id="dl-spreuken">${(_spreukLijst || []).map(sp =>
+                `<option value="${esc(sp.name)}">`).join('')}</datalist>
+            </div>
+            ${_si('cantrips','Cantrips (los)')}
+            ${_ta('spells','Spells (los)', 3)}
             ${s.extra ? _ta('extra','Legacy', 2) : ''}
           </div>
         </div>
@@ -3597,6 +3678,7 @@ window._openEditor = async (tab, editId) => {
 
   // ── Ctrl+S sneltoets (#34: gescoped op het formulier i.p.v. een globale
   // document-listener — sterft met de editor, geen collision tussen editors) ──
+  _csSpellChips();   // chips tekenen zodra het formulier in de DOM staat
   const _editorForm = document.getElementById('entity-form');
   if (_editorForm) {
     _editorForm.addEventListener('keydown', (ev) => {

@@ -22225,3 +22225,24 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   color: #2a1a08 !important; background: #d8c25a !important;
   font-weight: 700; font-family: 'Cinzel', serif;
 }
+
+/* Gekoppelde spreuken als chips, op het kaartje en in de editor. */
+.cs-spell-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.cs-spell-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; border-radius: 999px;
+  background: rgba(90,58,140,0.18); border: 1px solid rgba(160,112,204,0.45);
+  color: var(--color-ink-bright, #f2e8d2);
+  font-family: 'Crimson Text', serif; font-size: 12.5px;
+}
+.cs-spell-chip b {
+  font-family: 'Cinzel', serif; font-size: 9.5px; opacity: .75;
+  border-right: 1px solid rgba(160,112,204,0.45); padding-right: 5px;
+}
+.cs-spell-chip button {
+  background: none; border: 0; color: inherit; opacity: .6;
+  cursor: pointer; font-size: 13px; line-height: 1; padding: 0 0 0 2px;
+}
+.cs-spell-chip button:hover { opacity: 1; color: #e07a7a; }
+.cs-spell-chip--klik { cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+.cs-spell-chip--klik:hover { background: rgba(120,80,180,0.32); border-color: rgba(180,130,220,0.7); }

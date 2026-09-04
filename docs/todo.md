@@ -61,8 +61,9 @@ groot het is.
       rest wordt tags (verkoper, questgever, antagonist, medestander, summon,
       rijdier, huurling, gevangene) plus een veld *kant in gevecht*
       (bondgenoot · vijand · neutraal) voor het vullen van een encounter.
-- [ ] **Spreuken koppelen aan de bibliotheek** — chips die het spreukdetail
-      openen, in plaats van overtypen in een tekstveld.
+- [x] **Spreuken koppelen aan de bibliotheek** *(5 sep)* — zoekveld in het
+      Spells-paneel, chips met niveau en naam, klikken opent het spreukdetail.
+      De losse tekstvelden staan er nog voor wat niet in de bibliotheek zit.
 - [ ] **Eigen spreuk kunnen aanmaken** in het spreukentabblad — nodig zodra de
       koppeling er is, want dan kun je een zelfbedachte spreuk nergens meer
       kwijt. Uitzoeken of dat nu al kan.
