@@ -4649,15 +4649,25 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 
 /* Eén wachtwoordveld op de landingspagina; de rol volgt uit wat je intikt. */
-/* De DM-ingang: één veld, geen knop. Het label is er omdat een invoerveld
-   spelers aantrekt terwijl zij via hun portret binnenkomen. */
-.landing-toegang { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+/* De DM-ingang: rechtsboven, tegenover de weg terug linksboven. Eén veld, geen
+   knop, en klein gehouden — een speler komt via zijn portret binnen. */
+.landing-toegang {
+  position: absolute; top: 16px; right: 24px; z-index: 2;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+}
 .landing-toegang.hidden { display: none; }
-.landing-toegang .landing-pw-input { min-width: 210px; }
 .landing-toegang-label {
   font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
   letter-spacing: .18em; text-transform: uppercase;
   color: rgba(196,168,122,0.4);
+}
+.landing-pw-input--dm {
+  width: 190px; font-size: 0.95rem; padding: 7px 12px; text-align: right;
+}
+.landing-toegang .landing-pw-error { font-size: .8rem; }
+@media (max-width: 520px) {
+  .landing-toegang { top: 10px; right: 12px; }
+  .landing-pw-input--dm { width: 150px; }
 }
 
 /* ── Verhaalpaneel naast de regie ────────────────────────────────────────────
@@ -21990,3 +22000,20 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
   width: 34px; height: 34px; object-fit: contain;
   background: #2a1a08; border: 1px solid #c4a87a; border-radius: 3px; padding: 3px;
 }
+
+/* De footer is nu alleen nog een aanhechtpunt voor de inlogprompt; leeg neemt
+   hij geen ruimte in. */
+.landing-footer:empty { display: none; }
+
+/* Eén opslaanknop onderaan Instellingen, met de statusmelding ernaast. */
+.dm-inst-opslaan {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 14px 0 4px; margin-top: 4px; border-top: 1px solid #e0cfa8;
+}
+.dm-inst-opslaan .dm-hint { margin: 0; }
+.dm-beheer-campagnes { margin-top: 10px; }
+
+/* Icoon en tekst in een knop: `display:inline-flex` maakt van de spatie tussen
+   het <svg> en het woord een eigen flex-item van nul breedte, dus die valt weg.
+   Eén gap lost dat overal in één keer op. */
+.dm-btn { gap: 6px; }

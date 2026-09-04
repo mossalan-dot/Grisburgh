@@ -42,6 +42,12 @@ rsync -a --delete "${LINK[@]}" \
   --exclude='*' \
   "$BRON/" "$DOEL/$VANDAAG/"
 
+# Character sheets als leesbare kopie ernaast. De JSON is de echte backup; dit
+# is het blad dat je kunt printen zonder dat er een app draait.
+if ! (cd /var/www/grisburgh && node scripts/sheets-bewaren.js "$DOEL/$VANDAAG" >> "$LOG" 2>&1); then
+  zeg "let op: sheets bewaren mislukt — de datakopie staat er wel"
+fi
+
 ln -sfn "$DOEL/$VANDAAG" "$DOEL/laatste"
 
 # Opruimen: alles ouder dan BEWAAR_DAGEN dagen.

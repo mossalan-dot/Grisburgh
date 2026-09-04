@@ -1241,7 +1241,11 @@ async function _renderDienstenToegang() {
           <tbody>${rows}</tbody>
         </table>
       </div>
-    </div>`;
+    </div>
+    <!-- Waar de party is bepaalt óók wat er bereikbaar is, dus dat hoort hier en
+         niet bij Instellingen. _tabEl('wereld') vindt deze container. -->
+    <div id="dm-diensten-wereld"></div>`;
+  _renderWereldTab();
 };
 
 window._toggleDienstToegang = async (groepId, dienst, huidig) => {
@@ -4883,32 +4887,38 @@ async function _renderBeursTab() {
   let _partyCurrency = { enabled: false, fl: 0, kn: 0, cl: 0 };
   try { _partyCurrency = await api.getPartyCurrency(); } catch { /* ok */ }
 
+  // De knop was een los icoontje zonder tekst: niet te zien of je hem aan- of
+  // uitzette. En de invoervakjes heetten FL/KN/CL — afkortingen van munten die
+  // per campagne anders heten.
+  const n = window._muntNamen();
   el.innerHTML = `
     <div class="dm-feature-section">
       <div class="dm-section-label">Gedeelde beurs</div>
-
-      <div class="dm-form-row" style="align-items:center;gap:12px">
-        <button class="dm-btn${_partyCurrency.enabled ? ' dm-btn-primary' : ''}"
-          id="hb-purse-toggle-btn"
-          onclick="window._hbTogglePurse()">
-          ${_partyCurrency.enabled ? icon('users') : icon('coins')}
+      <p class="dm-hint">Staat hij aan, dan delen alle spelers één saldo en telt hun eigen geld niet mee.</p>
+      <div class="dm-form-row">
+        <button class="dm-btn${_partyCurrency.enabled ? ' dm-btn-danger' : ' dm-btn-primary'}"
+          id="hb-purse-toggle-btn" onclick="window._hbTogglePurse()"
+          title="${_partyCurrency.enabled ? 'Iedereen gebruikt daarna weer zijn eigen beurs' : 'Alle spelers delen daarna één saldo'}">
+          ${_partyCurrency.enabled ? `${icon('coins')} Gedeelde beurs uitzetten` : `${icon('users')} Gedeelde beurs aanzetten`}
         </button>
       </div>
 
       ${_partyCurrency.enabled ? `
-      <div class="dm-form-row" style="gap:8px;flex-wrap:wrap;margin-top:8px">
-        <label class="dm-form-label" style="width:100%">Bedragen bijwerken</label>
-        <input id="hb-purse-fl" class="dm-input" type="number" min="0" style="width:80px"
-          placeholder="FL" value="${_partyCurrency.fl}">
-        <input id="hb-purse-kn" class="dm-input" type="number" min="0" style="width:80px"
-          placeholder="KN" value="${_partyCurrency.kn}">
-        <input id="hb-purse-cl" class="dm-input" type="number" min="0" style="width:80px"
-          placeholder="CL" value="${_partyCurrency.cl}">
-        <button class="dm-btn dm-btn-ghost" onclick="window._hbSavePurse()" title="Bijwerken">${icon('save')}</button>
-      </div>` : `
-      <p style="font-size:12px;color:var(--color-ink-dim,#888);margin-top:8px">
-        Activeer de gedeelde beurs zodat alle spelers hetzelfde saldo zien.
-      </p>`}
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="hb-purse-fl">${esc(n.fl)}</label>
+        <input id="hb-purse-fl" class="dm-input" type="number" min="0" value="${_partyCurrency.fl}">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="hb-purse-kn">${esc(n.kn)}</label>
+        <input id="hb-purse-kn" class="dm-input" type="number" min="0" value="${_partyCurrency.kn}">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="hb-purse-cl">${esc(n.cl)}</label>
+        <input id="hb-purse-cl" class="dm-input" type="number" min="0" value="${_partyCurrency.cl}">
+      </div>
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-ghost" onclick="window._hbSavePurse()" title="Nieuw saldo bewaren">${icon('save')} Saldo bijwerken</button>
+      </div>` : ''}
     </div>`;
 };
 
@@ -7265,10 +7275,23 @@ const _leegItem = () => ({ naam: '', rariteit: '', entityId: null, beschrijving:
 // heten bepaalt de campagne (window._muntNamen). Intern blijft alles in de
 // kleinste munt; drie losse invoervakjes waren onnodig gepriegel.
 const _clNaarTekst = (cl) => `${Math.floor(cl / 100)},${String(cl % 100).padStart(2, '0')}`;
+// Naast een bedrag met komma mag je ook in munten schrijven: "2 pp", "3 ep",
+// "5 gp 2 sp". Electrum (5 zilver) en platinum (10 goud) hebben geen eigen plek
+// in de beurs — ze worden hier omgerekend, dus een vondst mág een platinum stuk
+// bevatten en dat wordt gewoon 10 goud.
+const _MUNT_CL_CLIENT = { fl: 100, gp: 100, kn: 10, sp: 10, cl: 1, cp: 1, ep: 50, pp: 1000 };
+
 function _tekstNaarCl(tekst) {
-  const t = String(tekst ?? '').trim().replace('.', ',');
+  const t = String(tekst ?? '').trim();
   if (!t) return 0;
-  const [heel, deel = ''] = t.split(',');
+  if (/[a-z]/i.test(t)) {
+    let totaal = 0;
+    for (const m of t.matchAll(/(\d+(?:[.,]\d+)?)\s*(fl|kn|cl|gp|sp|cp|ep|pp)\b/gi)) {
+      totaal += parseFloat(m[1].replace(',', '.')) * _MUNT_CL_CLIENT[m[2].toLowerCase()];
+    }
+    if (totaal) return Math.round(totaal);
+  }
+  const [heel, deel = ''] = t.replace('.', ',').split(',');
   const fl = parseInt(heel, 10) || 0;
   // "1,3" is 1 hele munt en 3 tienden — dus rechts aanvullen, niet links.
   const rest = parseInt((deel + '00').slice(0, 2), 10) || 0;
@@ -7278,7 +7301,7 @@ const _muntGoudCl = (c) => (c.goud?.fl || 0) * 100 + (c.goud?.kn || 0) * 10 + (c
 const _clNaarGoud = (cl) => ({ fl: Math.floor(cl / 100), kn: Math.floor((cl % 100) / 10), cl: cl % 10 });
 function _muntUitleg(cl) {
   const n = window._muntNamen();
-  if (!cl) return `bijv. 1,34 — ${n.fl.toLowerCase()}, ${n.kn.toLowerCase()}, ${n.cl.toLowerCase()}`;
+  if (!cl) return `bijv. 1,34 — ${n.fl.toLowerCase()}, ${n.kn.toLowerCase()}, ${n.cl.toLowerCase()} · of "2 pp", "3 ep"`;
   const g = _clNaarGoud(cl);
   return [g.fl && `${g.fl} ${n.fl}`, g.kn && `${g.kn} ${n.kn}`, g.cl && `${g.cl} ${n.cl}`].filter(Boolean).join(' · ');
 }
@@ -9595,9 +9618,10 @@ async function _renderInstellingen() {
 
   body.innerHTML = `
     ${_dmTabHead({ icon: 'settings', title: 'Instellingen', sub: 'campagne, party\'s en beheer' })}
-    <!-- Campagnetitel -->
+
+    <!-- Campagne -->
     <div class="dm-feature-section">
-      <div class="dm-section-label">Campagnetitel</div>
+      <div class="dm-section-label">Campagne</div>
       <div class="dm-form-row">
         <label class="dm-form-label">Titel</label>
         <input id="inst-app-title" class="dm-input" value="${esc(meta.appTitle || '')}" placeholder="Campagnenaam">
@@ -9610,27 +9634,19 @@ async function _renderInstellingen() {
         <label class="dm-form-label">Embleem</label>
         <span class="dm-embleem-rij">
           <img id="inst-embleem-preview" class="dm-embleem-preview${meta.embleem ? '' : ' hidden'}" src="${esc(meta.embleem || '')}" alt="">
-          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instEmbleemKies()">${icon('image')} Kiezen</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instEmbleemKies()"
+            title="Verschijnt op de landingspagina en in de kop">${icon('image')} Kiezen</button>
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instEmbleemWis()" title="Geen embleem">${icon('x')}</button>
           <input type="hidden" id="inst-embleem" value="${esc(meta.embleem || '')}">
         </span>
-      </div>
-      <div class="dm-form-row">
-        <label class="dm-module-item" title="Op grisburgh.nl staat een keuzepagina met alle campagnes">
-          <input type="checkbox" id="inst-in-overzicht" ${meta.inOverzicht === false ? '' : 'checked'}>
-          <span>Toon deze campagne op de openingspagina</span>
-        </label>
-      </div>
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._instTitelSave()" title="Opslaan">${icon('save')}</button>
-        <span id="inst-titel-status" class="bericht-status hidden" style="margin-left:8px"></span>
       </div>
     </div>
 
     <!-- Munten -->
     <div class="dm-feature-section">
       <div class="dm-section-label">Munten</div>
-      <p class="dm-hint">Alleen de namen zijn vrij; de verhouding blijft 1 : 10 : 100, zoals gold, silver en copper.</p>
+      <p class="dm-hint">Alleen de namen zijn vrij; de verhouding blijft 1 : 10 : 100, zoals gold, silver en copper.
+        Electrum (5 zilver) en platinum (10 goud) worden bij het invoeren omgerekend.</p>
       <div class="dm-form-row">
         <label class="dm-form-label">Goud</label>
         <input id="inst-munt-fl" class="dm-input" value="${esc(_munt.fl)}" placeholder="Gold">
@@ -9643,13 +9659,9 @@ async function _renderInstellingen() {
         <label class="dm-form-label">Koper</label>
         <input id="inst-munt-cl" class="dm-input" value="${esc(_munt.cl)}" placeholder="Copper">
       </div>
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-primary" onclick="window._instMuntSave()" title="Opslaan">${icon('save')}</button>
-        <span id="inst-munt-status" class="bericht-status hidden" style="margin-left:8px"></span>
-      </div>
     </div>
 
-    <!-- Groepen -->
+    <!-- Party's -->
     <div class="dm-feature-section">
       <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
         <span class="dm-section-label" style="margin-bottom:0">Party's</span>
@@ -9660,99 +9672,132 @@ async function _renderInstellingen() {
       </div>
     </div>
 
-    <!-- DM-wachtwoord -->
+    <!-- Gedeelde beurs (eigen dm-feature-section) -->
+    <div id="dm-inst-beurs"></div>
+
+    <!-- Beheer: alles wat over toegang en dit scherm gaat -->
     <div class="dm-feature-section">
-      <div class="dm-section-label">Jouw DM-wachtwoord</div>
+      <div class="dm-section-label">Beheer</div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="dm-pw-nieuw"
+          title="Geldt alleen voor deze campagne. Wordt versleuteld opgeslagen, zodat het niet leesbaar in een backup terechtkomt.">DM-wachtwoord</label>
+        <input id="dm-pw-nieuw" class="dm-input" type="password"
+          placeholder="Nieuw wachtwoord (min. 8 tekens)…" autocomplete="new-password"
+          title="Geldt alleen voor deze campagne. Wordt versleuteld opgeslagen.">
+      </div>
       <p class="dm-hint" id="dm-pw-status">Laden…</p>
       <div class="dm-form-row">
-        <input id="dm-pw-nieuw" class="dm-input" type="password" placeholder="Nieuw wachtwoord (min. 8 tekens)…" autocomplete="new-password">
-        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.dmWachtwoordOpslaan()" title="Opslaan">${icon('save')}</button>
+        <label class="dm-module-item" title="grisburgh.nl toont een keuzepagina met alle campagnes die zich laten zien">
+          <input type="checkbox" id="inst-in-overzicht" ${meta.inOverzicht === false ? '' : 'checked'}>
+          <span>Toon deze campagne op de openingspagina</span>
+        </label>
       </div>
-      <p class="dm-hint">Geldt alleen voor <strong>deze</strong> campagne. Het wordt versleuteld opgeslagen, zodat het niet leesbaar in een backup terechtkomt.</p>
-    </div>
-
-    <!-- Tabletmodus -->
-    <div class="dm-feature-section">
-      <div class="dm-section-label">Tafelscherm</div>
-      <p class="dm-hint">Zet <strong>dit</strong> scherm in tabletmodus: het toont dan alleen wat de party mag zien — beelden, kaarten, brieven, de kist. Bedoeld voor het scherm dat op tafel ligt. Je hoeft er dus geen wachtwoord meer op in te tikken; je logt hier in en zet het daarna om.</p>
-      <div class="dm-feature-row">
-        <button class="dm-btn" onclick="window.dmPanel.naarTabletmodus()" title="Dit scherm wordt het tafelscherm">${icon('monitor')} Dit scherm naar tabletmodus</button>
+      <div class="dm-form-row">
+        <button class="dm-btn" onclick="window.dmPanel.naarTabletmodus()"
+          title="Dit scherm toont daarna alleen wat de party mag zien: beelden, kaarten, brieven, de kist. Bedoeld voor het scherm dat op tafel ligt — je hoeft er zelf geen wachtwoord op in te tikken.">${icon('monitor')} Dit scherm naar tafelscherm</button>
       </div>
-    </div>
-
-    <!-- Campagnes (alleen de beheerder) -->
-    ${!magBeheren ? '' : `
-    <div class="dm-feature-section">
-      <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span class="dm-section-label" style="margin-bottom:0">Campagnes</span>
-        <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneCreate()" title="Nieuwe campagne aanmaken">+</button>
-      </div>
-      <div id="dm-campagnes-inst-list">
-        ${campaignItems || '<p class="dm-hint">Geen campagnes gevonden.</p>'}
-      </div>
-      <div id="campagne-create-form" style="display:none;margin-top:10px">
-        <div class="dm-feature-row" style="gap:8px;flex-wrap:wrap">
-          <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">
-          <input id="campagne-new-title"    class="dm-input" placeholder="Naam" style="flex:2;min-width:140px">
-          <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
+      ${!magBeheren ? '' : `
+      <details class="dm-modules dm-beheer-campagnes">
+        <summary>Campagnes en modules</summary>
+        <p class="dm-hint">Bezoekers kiezen hun campagne op de openingspagina; dit is het beheer erachter.</p>
+        <div id="dm-campagnes-inst-list">
+          ${campaignItems || '<p class="dm-hint">Geen campagnes gevonden.</p>'}
         </div>
-        <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
-          <select id="campagne-new-theme" class="dm-input" style="flex:1;min-width:160px">
-            <option value="default">Fantasy (standaard)</option>
-            <option value="hp">Harry Potter</option>
-          </select>
-          <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSubmit()" title="Aanmaken">${icon('check')}</button>
-          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('campagne-create-form').style.display='none'" title="Annuleren">${icon('x')}</button>
+        <div class="dm-form-row">
+          <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneCreate()" title="Nieuwe campagne aanmaken">${icon('plus')} Nieuwe campagne</button>
         </div>
-        <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
-      </div>
-    </div>`}
-
-    <!-- Locatie / Wereld (render functie injecteert eigen dm-feature-section) -->
-    <div id="dm-inst-wereld"></div>
-
-    <!-- Gedeelde beurs (idem) -->
-    <div id="dm-inst-beurs"></div>
+        <div id="campagne-create-form" style="display:none;margin-top:10px">
+          <div class="dm-feature-row" style="gap:8px;flex-wrap:wrap">
+            <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">
+            <input id="campagne-new-title"    class="dm-input" placeholder="Naam" style="flex:2;min-width:140px">
+            <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
+          </div>
+          <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
+            <select id="campagne-new-theme" class="dm-input" style="flex:1;min-width:160px">
+              <option value="default">Fantasy (standaard)</option>
+              <option value="hp">Harry Potter</option>
+            </select>
+            <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSubmit()" title="Aanmaken">${icon('check')}</button>
+            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('campagne-create-form').style.display='none'" title="Annuleren">${icon('x')}</button>
+          </div>
+          <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
+        </div>
+      </details>`}
+    </div>
 
     <!-- Export & backup -->
     <div class="dm-feature-section">
       <div class="dm-section-label">Export &amp; backup</div>
       <div class="dm-form-row" style="flex-direction:column;gap:8px">
-        <a href="/api/export" download class="dm-btn" style="text-align:center;text-decoration:none">
+        <a href="/api/export" download class="dm-btn" style="text-align:center;text-decoration:none"
+          title="HTML-overzicht van alle spelersdata en entities">
           ${icon('download')} Snapshot downloaden
         </a>
-        <a href="/api/export/campagneboek" download class="dm-btn dm-btn-ghost" style="text-align:center;text-decoration:none">
+        <a href="/api/export/campagneboek" download class="dm-btn dm-btn-ghost" style="text-align:center;text-decoration:none"
+          title="Narratief document van de campagne">
           ${icon('book-open')} Campagneboek downloaden
         </a>
         <p class="dm-hint" style="margin:0">
-          Snapshot: HTML-overzicht van alle spelersdata en entities.<br>
-          Campagneboek: narratief document van de campagne.
+          De server bewaart daarnaast elke nacht een kopie van alle data én van de character sheets.
         </p>
       </div>
     </div>
+
+    <!-- Eén opslaanknop voor alles hierboven wat niet vanzelf bewaart -->
+    <div class="dm-inst-opslaan">
+      <button class="dm-btn dm-btn-primary" onclick="window._instOpslaan()" title="Campagne, munten en beheer opslaan">
+        ${icon('save')} Opslaan
+      </button>
+      <span id="inst-status" class="bericht-status hidden"></span>
+      <span class="dm-hint">Party's bewaren zichzelf zodra je ze wijzigt.</span>
+    </div>
   `;
 
-  // Render wereld en beurs in de juiste containers
-  _renderWereldTab();
+  // De beurs heeft zijn eigen render; de wereld-instellingen zijn verhuisd naar
+  // Diensten → Toegang, waar ze thuishoren.
   _renderBeursTab();
   _dmWachtwoordStatus();
 };
 
-window._instTitelSave = async () => {
-  const title    = document.getElementById('inst-app-title')?.value.trim();
-  const subtitle = document.getElementById('inst-app-subtitle')?.value.trim();
-  const status   = document.getElementById('inst-titel-status');
+// Eén knop voor alles wat niet vanzelf bewaart. Party's en hun wachtwoorden
+// slaan zichzelf op zodra je ze wijzigt; die zitten hier bewust niet in.
+window._instOpslaan = async () => {
+  const status = document.getElementById('inst-status');
+  const melden = (tekst, ok = true) => {
+    if (!status) return;
+    status.textContent = tekst;
+    status.className = `bericht-status bericht-status--${ok ? 'ok' : 'err'}`;
+    status.classList.remove('hidden');
+    if (ok) setTimeout(() => status.classList.add('hidden'), 2500);
+  };
   try {
-    const inOverzicht = document.getElementById('inst-in-overzicht')?.checked !== false;
-    const embleem     = document.getElementById('inst-embleem')?.value || '';
-    await api.saveAppMeta({ appTitle: title, appSubtitle: subtitle, inOverzicht, embleem });
-    const newMeta = await api.meta();
-    if (window.app?.state) window.app.state.meta = newMeta;
+    await api.saveAppMeta({
+      appTitle:    document.getElementById('inst-app-title')?.value.trim(),
+      appSubtitle: document.getElementById('inst-app-subtitle')?.value.trim(),
+      embleem:     document.getElementById('inst-embleem')?.value || '',
+      inOverzicht: document.getElementById('inst-in-overzicht')?.checked !== false,
+      currency: {
+        fl: document.getElementById('inst-munt-fl')?.value.trim(),
+        kn: document.getElementById('inst-munt-kn')?.value.trim(),
+        cl: document.getElementById('inst-munt-cl')?.value.trim(),
+      },
+    });
+    const nieuweMeta = await api.meta();
+    if (window.app?.state) window.app.state.meta = nieuweMeta;
+    window._currency = nieuweMeta.currency;
     window.app?.applyAppMeta?.();
-    if (status) { status.textContent = '✓ Opgeslagen'; status.className = 'bericht-status bericht-status--ok'; status.classList.remove('hidden'); }
-    setTimeout(() => status?.classList.add('hidden'), 2500);
+
+    // Het DM-wachtwoord gaat via zijn eigen route (hashing) en alleen als er
+    // iets is ingetikt — anders zou opslaan het per ongeluk wissen.
+    const pwVeld = document.getElementById('dm-pw-nieuw');
+    if (pwVeld?.value) {
+      await api.dmWachtwoordZet(pwVeld.value);
+      pwVeld.value = '';
+      _dmWachtwoordStatus();
+    }
+    melden('✓ Opgeslagen');
   } catch (err) {
-    if (status) { status.textContent = 'Fout: ' + err.message; status.className = 'bericht-status bericht-status--err'; status.classList.remove('hidden'); }
+    melden('Fout: ' + err.message, false);
   }
 };
 
@@ -9786,24 +9831,6 @@ window._instModulesSave = async (campagneId) => {
     // Gaat het over de campagne waar je zelf in zit, dan verandert je eigen
     // scherm mee — anders zie je een tab die er niet meer hoort te zijn.
     if (campagneId === huidigeCampagne()) return window.location.reload();
-    if (status) { status.textContent = '✓ Opgeslagen'; status.className = 'bericht-status bericht-status--ok'; status.classList.remove('hidden'); }
-    setTimeout(() => status?.classList.add('hidden'), 2500);
-  } catch (err) {
-    if (status) { status.textContent = 'Fout: ' + err.message; status.className = 'bericht-status bericht-status--err'; status.classList.remove('hidden'); }
-  }
-};
-
-window._instMuntSave = async () => {
-  const currency = {
-    fl: document.getElementById('inst-munt-fl')?.value.trim(),
-    kn: document.getElementById('inst-munt-kn')?.value.trim(),
-    cl: document.getElementById('inst-munt-cl')?.value.trim(),
-  };
-  const status = document.getElementById('inst-munt-status');
-  try {
-    const bewaard = await api.saveAppMeta({ currency });
-    window._currency = bewaard.currency;
-    if (window.app?.state?.meta) window.app.state.meta.currency = bewaard.currency;
     if (status) { status.textContent = '✓ Opgeslagen'; status.className = 'bericht-status bericht-status--ok'; status.classList.remove('hidden'); }
     setTimeout(() => status?.classList.add('hidden'), 2500);
   } catch (err) {

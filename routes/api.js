@@ -1073,12 +1073,22 @@ router.delete('/post/:characterId/:postId', attachRole, (req, res) => {
 function parsePrijs(str) {
   if (!str) return null;
   const result = { fl: 0, kn: 0, cl: 0 };
-  const re = /(\d+(?:[.,]\d+)?)\s*(fl|kn|cl)\.?/gi;
-  let match, any = false;
+  // Ook gp/sp/cp en de twee muntjes zonder eigen plek in de beurs: electrum
+  // (5 zilver) en platinum (10 goud) worden hier meteen omgerekend.
+  const re = /(\d+(?:[.,]\d+)?)\s*(fl|kn|cl|gp|sp|cp|ep|pp)\.?/gi;
+  let match, any = false, extraCl = 0;
   while ((match = re.exec(String(str))) !== null) {
-    const val = parseFloat(match[1].replace(',', '.'));
-    result[match[2].toLowerCase()] += val;
+    const val  = parseFloat(match[1].replace(',', '.'));
+    const unit = match[2].toLowerCase();
+    if (unit === 'fl' || unit === 'gp')      result.fl += val;
+    else if (unit === 'kn' || unit === 'sp') result.kn += val;
+    else if (unit === 'cl' || unit === 'cp') result.cl += val;
+    else extraCl += val * _MUNT_CL[unit];   // ep en pp
     any = true;
+  }
+  if (extraCl) {
+    const totaal = fromCl(toCl(result) + Math.round(extraCl));
+    result.fl = totaal.fl; result.kn = totaal.kn; result.cl = totaal.cl;
   }
   return any ? result : null;
 }
@@ -2181,7 +2191,12 @@ function _rustLoopFileId(type, locatie) {
   catch { return null; }
 }
 
-const _MUNT_CL = { fl: 100, kn: 10, cl: 1 };
+// Alles wordt in de kleinste munt geteld. Naast de drie eigen munten kent D&D
+// electrum (5 zilver) en platinum (10 goud); die hebben geen eigen plek in de
+// beurs — ze worden bij het invoeren omgerekend, zodat 1 pp gewoon 10 goud
+// wordt en de kommanotatie ongemoeid blijft.
+const _MUNT_CL = { fl: 100, kn: 10, cl: 1, gp: 100, sp: 10, cp: 1, ep: 50, pp: 1000 };
+const _MUNT_EENHEDEN = Object.keys(_MUNT_CL).join('|');
 // Rolt PER SPELER een eigen voorval uit de bij de locatie horende weighted-tabel (d100)
 // en verrekent een eventueel valuta-token {+3kn} / {-1fl} op die speler zelf.
 // Geeft een map terug: { [characterId]: { roll, tekst, currency } } (of null).
@@ -2205,7 +2220,7 @@ function _rolRustGebeurtenis(meta, locatie, dmState, spelers, io, campaignId) {
     if (!tekst) { perSpeler[char.id] = { roll: d100, tekst: '', currency: null }; return; }
 
     // Valuta-token parsen + uit de weergavetekst halen; effect treft de speler zelf.
-    const tok = tekst.match(/\{\s*([+-]\d+)\s*(fl|kn|cl)\s*(?:@party)?\s*\}/i);
+    const tok = tekst.match(new RegExp(`\\{\\s*([+-]\\d+)\\s*(${_MUNT_EENHEDEN})\\s*(?:@party)?\\s*\\}`, 'i'));
     let currency = null;
     if (tok) {
       tekst = tekst.replace(tok[0], '').replace(/\s{2,}/g, ' ').trim();
@@ -10208,4 +10223,8 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
   res.json(combat);
 });
 
+// De backup schrijft de sheets ook als HTML weg (scripts/sheets-bewaren.js);
+// die heeft dezelfde twee helpers nodig als de route hierboven.
 module.exports = router;
+module.exports.sheetPersonage = (...a) => _sheetPersonage(...a);
+module.exports.sheetProgressie = (...a) => _sheetProgressie(...a);

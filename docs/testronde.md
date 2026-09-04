@@ -27,6 +27,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Uitloggen + sessie overleeft herstart** — na `pm2 restart` blijft iedereen ingelogd
 - [ ] **Campagnepad** — `/grisburgh` en `/prewett`; kaal domein stuurt door, `?display=1` blijft werken
 - [ ] **PWA** — installeren op beginscherm, naam en startpad kloppen per campagne
+- [ ] **DM-ingang rechtsboven** (DM) — wachtwoordveld met label, Enter volstaat, verdwijnt zodra een speler een portret kiest
+- [ ] **Partypijl op de landing** (SP) — gouden pijl valt op, tweede party bereikbaar
 
 ## Blok 2 — Archief
 
@@ -92,6 +94,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Verzegelde uitnodigingsbrief** (DM) — per factie of dienst, tweetraps reveal
 - [ ] **Toegang per groep** (DM) — dienst verbergen voor een party
 - [ ] **Bereikbaarheid per akte** (DM) — wat dicht zit volgt de lopende akte; "Grisburgh verlaten" overschrijft
+- [ ] **Wereld-instellingen** (DM) — staan nu onder Diensten → Toegang: de stad verlaten + winkels die open blijven
 
 ## Blok 6 — Meesterkamer: spelen
 
@@ -123,6 +126,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Instellingen — wereld** (DM) — Grisburgh verlaten, winkels die buiten bereikbaar blijven
 - [ ] **Instellingen — gedeelde beurs** (DM) — aan/uit, `_effectiveCurrency()`
 - [ ] **Campagnes** (BEHEER) — lijst, aanmaken, actieve campagne wisselen
+- [ ] **Instellingen — één opslaanknop** (DM) — campagne, munten en beheer in één keer; party's bewaren zichzelf
+- [ ] **Instellingen — beheerblok** (DM) — DM-wachtwoord, openingspagina, tafelscherm, campagnes en modules
+- [ ] **Electrum & platinum** (DM) — "2 pp" en "3 ep" in prijzen, loot en tabeltokens worden omgerekend
+- [ ] **Sheets in de backup** — `<datum>/<campagne>/sheets/<party>.html` naast de datakopie
 
 ## Blok 8 — Tafelscherm en realtime
 
@@ -171,3 +178,13 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 7 | 1 | De weg terug naar de campagnekeuze stond naast het wachtwoordveld, in de weg van de enige handeling die daar telt | opgelost — linksboven |
 | 8 | 4 | Een speler naar een andere party verplaatsen kon zonder waarschuwing, terwijl voorwerpbezit en onthulde geheimen achterblijven | opgelost — de editor vraagt eerst en noemt het aantal voorwerpkaartjes (`GET /characters/:id/verhuis-info`) |
 | 9 | 7 | Instellingen opende als enige in de Meesterkamer als venster over de rest heen, niet als tab | opgelost — gewone tab met vaste tabkop; het tandwiel bovenaan schakelt ernaartoe |
+| 10 | 1 | Ondertitel en voetnoot op de keuzepagina waren overbodig | opgelost — weg |
+| 11 | 1 | De pijl naar de tweede party viel niet op | opgelost — vol goud, groter, met gloed en rustige pulse |
+| 12 | 1 | Spelers tikten hun wachtwoord in het DM-veld; de Verder-knop was overbodig | opgelost — veld naar rechtsboven met label "Dungeon Master", knop weg, Enter volstaat |
+| 13 | 1 | "Wachtwoord voor 2…" — 2 is de partynaam, dat las als een raadsel | opgelost — "Wachtwoord van party 2…", en de DM-ingang verdwijnt zolang die prompt open staat |
+| 14 | 7 | Instellingen had een opslaanknop per blok, uitleg die niemand nodig had, en campagnes prominent in beeld | opgelost — één opslaanknop, uitleg naar hover, nieuw blok *Beheer* met DM-wachtwoord, openingspagina, tafelscherm en (ingeklapt) campagnes + modules |
+| 15 | 5 | Wereld-instellingen ("de stad verlaten") stonden bij Instellingen | opgelost — verhuisd naar Diensten → Toegang |
+| 16 | 7 | Gedeelde beurs: knop zonder tekst, bedragen met FL/KN/CL-afkortingen | opgelost — knop zegt wat hij doet, velden dragen de muntnamen van de campagne |
+| 17 | 7 | Geen spatie tussen icoon en tekst in knoppen | opgelost — `.dm-btn { gap: 6px }`; `inline-flex` slikte de spatie op |
+| 18 | 9 | De backup bevatte geen character sheets | opgelost — `scripts/sheets-bewaren.js` schrijft ze per party als HTML mee |
+| 19 | 7 | Electrum en platinum ontbraken | opgelost — `ep` (5 zilver) en `pp` (10 goud) worden bij invoer omgerekend; kommanotatie blijft |

@@ -135,6 +135,12 @@ telt een hardlink vol mee. Het totaal is wat er echt staat.
 > `--include='*/'`. Andersom haalt die include eerst álle mappen binnen en komen
 > de JSON-bestanden ín `backups/` alsnog mee.
 
+Naast de data schrijft de backup ook de **character sheets** per party weg als
+HTML (`scripts/sheets-bewaren.js` → `<datum>/<campagne>/sheets/<party>.html`).
+De JSON is de echte kopie; dit is de leesbare — een blad dat je kunt printen
+zonder dat er een app draait. Mislukt dat, dan zegt de log het en gaat de
+datakopie gewoon door.
+
 **Op de laptop** haalt een launchd-agent (`nl.grisburgh.backup`, elke dag 19:00,
 script `~/bin/grisburgh-backup-ophalen` uit `scripts/backup-ophalen.sh`) de boel
 op naar `~/Grisburgh-backups/`: `laatste/` is de huidige stand mét thumbnails
@@ -181,12 +187,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=421   app.js?v=576   sound-manager.js?v=8
+index.html  : theme.css?v=422   app.js?v=577   sound-manager.js?v=8
 app.js      : api.js?v=260      render-campagne.js?v=128   render-archief.js?v=75
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=44  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=179    render-dashboard.js?v=9
+              dm-panel.js?v=180    render-dashboard.js?v=9
               render-spreuken.js?v=14   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 ```
@@ -271,6 +277,11 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 > `bron`-veld met de naam van zijn vondst, zodat "uit de haard" en "onder de
 > plavuizen" gescheiden blijven als je ze samen onthult. De fase komt **niet**
 > meteen actief te staan: de DM stelt eerst bij en drukt daarna op onthullen.
+> **Electrum en platinum** hebben geen eigen plek in de beurs: `ep` (5 zilver)
+> en `pp` (10 goud) worden bij het invoeren omgerekend, zowel in prijzen
+> (`parsePrijs`) als in de loot-editor (`_tekstNaarCl`) en de valuta-tokens van
+> tabellen (`{+2pp}`). Een vondst mág dus een platinum stuk bevatten; het staat
+> daarna gewoon als 10 goud in de beurs, en de kommanotatie blijft ongemoeid.
 > **Munten met een komma:** in de editor vul je één bedrag in — `1,34` is
 > 1 florinde, 3 knakers en 4 centelingen (de knaker is een tiende florinde, de
 > centeling een honderdste, dus het leest als gewoon geld; zelfde idee als bij de
