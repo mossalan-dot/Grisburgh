@@ -1063,6 +1063,14 @@ async function showLanding({ alleenGroep = null } = {}) {
   if (subtitleEl) subtitleEl.textContent = state.meta?.appSubtitle || '';
   _zetEmbleem(document.getElementById('landing-crest'), state.meta?.embleem);
 
+  // De DM-ingang wordt verborgen zodra iemand een portret kiest of een
+  // groepswachtwoord intikt. Bij een verse landing hoort hij er weer te staan,
+  // dichtgeklapt — anders is hij na uitloggen als speler nergens meer te vinden.
+  if (!alleenGroep) {
+    document.querySelector('.landing-toegang')?.classList.remove('hidden');
+    _landingDmVeldDicht();
+  }
+
 
   const list = document.getElementById('landing-portraits');
   if (!list) return;
@@ -1443,6 +1451,8 @@ async function playerLogout() {
     await api.playerLogout();
     state.playerName  = null;
     state.characterId = null;
+    // Het onthouden groepswachtwoord hoort bij die sessie, niet bij de browser.
+    _groepsWachtwoord = null;
     // Als we op het eigen tabblad waren, ga naar personages
     if (state.activeSection === 'mijn-karakter') switchSection('personages');
     applyRole();
