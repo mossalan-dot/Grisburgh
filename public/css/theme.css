@@ -8004,27 +8004,42 @@ details.player-dash-collapsible[open] > summary {
   align-items: flex-start;
   padding-top: 12px; /* ruimte voor hover-zweefeffect */
 }
+/* De pijl staat naast een rij portretten op een bijna zwarte grond: te subtiel
+   en een speler ziet niet dat er nog een party achter zit. Vandaar vol goud,
+   een gloed en een rustige pulse die de aandacht trekt zonder te schreeuwen. */
 .landing-carousel-btn {
   flex-shrink: 0;
-  background: none;
-  border: 1px solid rgba(196,168,122,0.3);
-  color: rgba(196,168,122,0.7);
-  font-size: 32px;
+  background: rgba(196,168,64,0.12);
+  border: 2px solid #c4a840;
+  color: #e8cd6a;
+  font-size: 34px;
   line-height: 1;
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
   padding: 0;
+  box-shadow: 0 0 18px rgba(196,168,64,0.25);
+  animation: landing-carousel-pols 2.4s ease-in-out infinite;
 }
-.landing-carousel-btn:hover {
-  border-color: rgba(196,168,122,0.8);
-  color: rgba(196,168,122,1);
-  background: rgba(196,168,122,0.1);
+.landing-carousel-btn:hover,
+.landing-carousel-btn:focus-visible {
+  background: rgba(196,168,64,0.28);
+  color: #fff0b8;
+  transform: scale(1.08);
+  outline: none;
+  animation: none;
+}
+@keyframes landing-carousel-pols {
+  0%, 100% { box-shadow: 0 0 18px rgba(196,168,64,0.25); }
+  50%      { box-shadow: 0 0 26px rgba(196,168,64,0.55); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-carousel-btn { animation: none; }
 }
 .landing-carousel-btn--hidden {
   visibility: hidden;
