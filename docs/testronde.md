@@ -29,6 +29,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **PWA installeren** — via Safari/Chrome "Zet op beginscherm": de app komt als icoon te staan, opent zonder browserbalk, draagt de naam van de campagne en start op haar eigen pad. Het icoon zelf is nog van Grisburgh (staat op de todo)
 - [x] **DM-ingang rechtsboven** (DM) — wachtwoordveld met label, Enter volstaat, verdwijnt zodra een speler een portret kiest
 - [x] **Partypijl op de landing** (SP) — gouden pijl valt op, tweede party bereikbaar
+- [ ] **Kopbalk klapt in** (ALL) — maak het venster smaller en kijk of de tabs op iconen overgaan in plaats van over de titel te schuiven; ook direct na terugkeer uit tafelscherm
 
 ## Blok 2 — Archief
 
@@ -95,6 +96,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Toegang per groep** (DM) — dienst verbergen voor een party
 - [ ] **Bereikbaarheid per akte** (DM) — wat dicht zit volgt de lopende akte; "Grisburgh verlaten" overschrijft
 - [ ] **Wereld-instellingen** (DM) — staan nu onder Diensten → Toegang: de stad verlaten + winkels die open blijven
+- [ ] **Namen van diensten** (DM) — hernoem een dienst in zijn eigen paneel; zijbalk, sectiekop en briefhoofd volgen
 
 ## Blok 6 — Meesterkamer: spelen
 
@@ -130,6 +132,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Instellingen — beheerblok** (DM) — DM-wachtwoord, openingspagina, tafelscherm, campagnes en modules
 - [ ] **Electrum & platinum** (DM) — "2 pp" en "3 ep" in prijzen, loot en tabeltokens worden omgerekend
 - [ ] **Sheets in de backup** — `<datum>/<campagne>/sheets/<party>.html` naast de datakopie
+- [ ] **Campagne aanmaken** (BEHEER) — met DM-wachtwoord in één keer; daarna *Openen* en inloggen
+- [ ] **Wachtwoord per campagne** (BEHEER) — veld op het campagnekaartje, slotje verandert mee
+- [ ] **Ctrl+S in Instellingen** (DM) — slaat op zolang het paneel in beeld is; Enter in een veld ook
 
 ## Blok 8 — Tafelscherm en realtime
 
@@ -143,6 +148,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Gevecht op de tablet** (TAB) — volledige weergave, nooit geminimaliseerd
 - [ ] **Live-updates** (ALL) — entiteit, archief, missies, HP, boedel, geld komen binnen zonder herladen
 - [ ] **Geluid** (TAB) — sfeerloop wisselt per sectie, emote, reveal-klank
+- [ ] **Terug uit tafelscherm** (TAB) — kruisje brengt je terug in je eigen DM-scherm, zonder opnieuw inloggen
+- [ ] **Geen dobbelknop op tafel** (TAB) — d20 en het paneel blijven daar verborgen
 
 ## Blok 9 — Uitvoer en onderhoud
 
@@ -160,6 +167,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Bronteksten** — kale spreuken en features buiten de beheercampagne; eigen tekst blijft
 - [ ] **Generiek** — geen Grisburgh-kaart, -munten of -naam in een tweede campagne
 - [ ] **Beheer** — `/campaigns` alleen voor de beheerder
+- [ ] **Vreemde campagne = bezoeker** (BEHEER) — open `/andere-campagne` als DM: je krijgt haar landingspagina, niet je eigen scherm met haar naam
 
 ---
 
