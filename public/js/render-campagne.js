@@ -3081,10 +3081,10 @@ window._openEditor = async (tab, editId) => {
       <div>
         <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Extra afbeeldingen</div>
         <div id="entity-img-preview" class="editor-img-grid mb-2"></div>
-        <label class="dm-btn dm-btn-ghost dm-btn-sm" style="cursor:pointer" title="Meerdere tegelijk mag">
-          ${icon('image')} Afbeeldingen toevoegen
-          <input type="file" accept="image/*" multiple class="hidden" onchange="window._addEntityImages(this.files)">
-        </label>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+          onclick="window._editorPickExtraImage()" title="Kies uit de bibliotheek of upload nieuw">
+          ${icon('image')} Afbeelding toevoegen
+        </button>
       </div>
       ${e?.id ? `
       <div>
@@ -3729,6 +3729,23 @@ window._openEditor = async (tab, editId) => {
     isNew: false,
     caption: item.caption || '',
   }));
+  // Extra afbeeldingen liepen langs de mediabibliotheek heen: een kaal
+  // bestandsveld dat rechtstreeks uploadde. Daardoor kreeg zo'n afbeelding geen
+  // naam in de bibliotheek en kon je een bestaande niet hergebruiken.
+  window._editorPickExtraImage = () => {
+    const naamHint = (document.querySelector('#entity-form [name="name"]')?.value || '')
+      .trim().toLowerCase().replace(/\s+/g, '-');
+    window.mediaPicker.open({
+      type: 'afbeelding',
+      suggestedName: naamHint ? `${naamHint}-beeld` : 'beeld',
+      onSelect: (fileId) => {
+        if (!fileId || entityEditorImages.some(i => i.id === fileId)) return;
+        entityEditorImages.push({ id: fileId, url: api.fileUrl(fileId), isNew: false, caption: '' });
+        _refreshEntityImages();
+      },
+    });
+  };
+
   window._addEntityImages = (files) => {
     for (const file of files) {
       const id = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
@@ -3738,8 +3755,11 @@ window._openEditor = async (tab, editId) => {
   };
   window._removeEntityImage = (idx) => {
     const img = entityEditorImages[idx];
-    if (!img.isNew) entityEditorImagesToDelete.push(img.id);
-    else URL.revokeObjectURL(img.url);
+    // Loskoppelen is niet hetzelfde als weggooien: sinds afbeeldingen uit de
+    // mediabibliotheek komen, kan hetzelfde bestand ook elders in gebruik zijn.
+    // Het bestand zelf verwijder je in de Media-tab, die laat zien waar het
+    // gebruikt wordt.
+    if (img?.isNew) URL.revokeObjectURL(img.url);
     entityEditorImages.splice(idx, 1);
     _refreshEntityImages();
   };
@@ -4012,6 +4032,8 @@ window._openEditor = async (tab, editId) => {
         if (img.isNew) await api.uploadFile(img.id, img.file);
       }
       // Verwijder verwijderde extra afbeeldingen
+      // (entityEditorImagesToDelete blijft leeg sinds losgekoppelde afbeeldingen
+      // niet meer verwijderd worden — zie _removeEntityImage.)
       for (const id of entityEditorImagesToDelete) {
         await api.deleteFile(id).catch(() => {});
       }
