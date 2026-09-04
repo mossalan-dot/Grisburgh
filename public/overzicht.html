@@ -29,13 +29,9 @@
     .crest { display: block; width: clamp(64px, 10vw, 92px); margin: 0 auto 16px;
       filter: drop-shadow(0 4px 16px rgba(196,168,64,.28)); }
     h1 {
-      font-family: 'Cinzel', serif; font-weight: 700; margin: 0 0 10px;
+      font-family: 'Cinzel', serif; font-weight: 700; margin: 0 0 40px;
       font-size: clamp(1.8rem, 5vw, 3rem); letter-spacing: .1em; color: #c4a840;
       text-shadow: 0 2px 28px rgba(196,168,64,.28), 0 1px 2px rgba(0,0,0,.8);
-    }
-    .sub {
-      font-family: 'IM Fell English', serif; font-style: italic; margin: 0 0 40px;
-      color: rgba(220,195,145,.6); font-size: clamp(.95rem, 2.2vw, 1.15rem);
     }
     .lijst { display: flex; flex-direction: column; gap: 14px; text-align: left; }
     a.kaart {
@@ -52,7 +48,6 @@
     .kaart-sub  { display: block; font-family: 'IM Fell English', serif; font-style: italic; color: rgba(220,195,145,.55); font-size: .95rem; margin-top: 2px; }
     .kaart-pijl { margin-left: auto; color: rgba(196,168,64,.55); font-size: 1.4rem; }
     .leeg, .fout { color: rgba(220,195,145,.5); font-style: italic; }
-    footer { margin-top: 40px; font-size: .85rem; color: rgba(220,195,145,.35); }
     @media (prefers-reduced-motion: reduce) { a.kaart { transition: none; } }
   </style>
 </head>
@@ -60,9 +55,7 @@
   <div class="inner">
     <img class="crest" src="/img/logo-emblem-light.png?v=1" alt="" aria-hidden="true">
     <h1>Campagnes</h1>
-    <p class="sub">Kies de tafel waar je aan zit.</p>
     <div class="lijst" id="lijst"><p class="leeg">Laden…</p></div>
-    <footer>Inloggen gaat per campagne, met het wachtwoord van je DM.</footer>
   </div>
   <script>
     const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
