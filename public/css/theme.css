@@ -21994,3 +21994,27 @@ body.kaart-fs-active { overflow: hidden; }
   padding: 8px; font-family: 'Crimson Text', serif; font-size: 14px; resize: vertical;
 }
 .spreuk-eigen-status { font-size: 11px; color: #c4a87a; margin-left: 8px; }
+
+/* ── Opstarten ────────────────────────────────────────────────────────────
+   Tot de app weet wie er kijkt, blijft alles behalve de landingspagina
+   onzichtbaar op een donkere grond. De landing heeft dezelfde grond, dus voor
+   een uitgelogde bezoeker is er geen overgang te zien; wie wél is ingelogd
+   ziet even donker in plaats van een flits van andermans scherm. */
+body.boot { background: #0c0805 !important; }
+body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
+
+/* Terug naar de campagnekeuze, onder het wachtwoordveld. */
+.landing-terug {
+  display: inline-block; margin-top: 18px;
+  font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: .12em;
+  text-transform: uppercase; color: rgba(220,195,145,.45);
+  text-decoration: none; transition: color .18s ease;
+}
+.landing-terug:hover, .landing-terug:focus-visible { color: #c4a840; outline: none; }
+
+/* Embleem-kiezer in Instellingen (licht perkament → donkere tekst). */
+.dm-embleem-rij { display: flex; align-items: center; gap: 8px; }
+.dm-embleem-preview {
+  width: 34px; height: 34px; object-fit: contain;
+  background: #2a1a08; border: 1px solid #c4a87a; border-radius: 3px; padding: 3px;
+}

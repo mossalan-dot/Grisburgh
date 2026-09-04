@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=258';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=259';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=127";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=75";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=20';
 import { renderSpreuken } from './render-spreuken.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=59";
-import { initDmPanel } from "./dm-panel.js?v=177";
+import { initDmPanel } from "./dm-panel.js?v=178";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -1000,6 +1000,7 @@ async function showLanding({ alleenGroep = null } = {}) {
   const subtitleEl = document.getElementById('landing-subtitle');
   if (titleEl)    titleEl.textContent    = state.meta?.appTitle    || 'Campagne';
   if (subtitleEl) subtitleEl.textContent = state.meta?.appSubtitle || '';
+  _zetEmbleem(document.getElementById('landing-crest'), state.meta?.embleem);
 
 
   const list = document.getElementById('landing-portraits');
@@ -1026,7 +1027,7 @@ async function showLanding({ alleenGroep = null } = {}) {
           data-portrait-video="${c.portraitVideoId ? '1' : ''}"
           onclick="window.app._landingPortraitClick('${esc(c.id)}', this)">
           <div class="landing-portrait-ring">
-            <img src="/api/files/${esc(c.id)}" class="landing-portrait-img"
+            <img src="${api.fileUrl(esc(c.id))}" class="landing-portrait-img"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="landing-portrait-fallback" style="display:none">${icon('user')}</div>
           </div>
@@ -1209,10 +1210,10 @@ async function _landingStartZoom(charId, portraitEl, hasVideo = false) {
 
   zoom.innerHTML = `
     <div class="landing-zoom-portrait">
-      <img class="landing-zoom-img" src="/api/files/${esc(charId)}"
+      <img class="landing-zoom-img" src="${api.fileUrl(esc(charId))}"
         onerror="this.style.display='none'">
       ${hasVideo ? `<video id="landing-zoom-video" class="landing-zoom-video" autoplay muted playsinline>
-        <source src="/api/files/${esc(charId)}_video" type="video/mp4">
+        <source src="${api.fileUrl(esc(charId) + '_video')}" type="video/mp4">
       </video>` : ''}
     </div>
     <svg class="landing-zoom-ring" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -9328,9 +9329,19 @@ function applyAppMeta(meta) {
   document.documentElement.setAttribute('data-theme', theme);
   // Valutanamen opslaan zodat andere onderdelen ze kunnen ophalen
   if (m.currency) window._currency = m.currency;
+  // Embleem: het beeld hoort bij de campagne, niet bij de code. Geen embleem =
+  // geen plaatje, in plaats van dat van Grisburgh.
+  _zetEmbleem(document.getElementById('app-crest'),     m.embleemKop || m.embleem);
+  _zetEmbleem(document.getElementById('landing-crest'), m.embleem);
   // Modules: wat uit staat verdwijnt uit beeld.
   if (m.modules) window._modules = m.modules;
   if (m.verborgen) { window._verborgen = m.verborgen; _pasModulesToe(); }
+}
+
+function _zetEmbleem(el, bron) {
+  if (!el) return;
+  if (bron) { el.src = bron; el.classList.remove('hidden'); }
+  else { el.removeAttribute('src'); el.classList.add('hidden'); }
 }
 
 // ── Modules ──
@@ -9466,6 +9477,9 @@ async function init() {
     showLanding();
   }
 
+  // Nu pas in beeld: hierboven is besloten of iemand de app of de
+  // landingspagina hoort te zien.
+  document.body.classList.remove('boot');
   _scheduleFitHeader(); // eerste meting nadat de header gerenderd is
 }
 

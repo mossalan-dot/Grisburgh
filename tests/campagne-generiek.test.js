@@ -148,6 +148,16 @@ describe('Openingspagina met alle campagnes', () => {
     assert.match(String(eigenPad.body), /<title>Vestingveen<\/title>/);
   });
 
+  it('geeft een bezoeker zonder sessie de meta van de campagne in het pad', async () => {
+    // De landingspagina van Prewett hoorde de titel van Grisburgh te tonen zolang
+    // het API-verzoek zijn campagne niet meenoemde. De client hangt er nu
+    // ?campagne= aan; de server hoort dat te volgen.
+    const eigen  = await req(server, 'GET', '/api/meta?campagne=stilzwijgen');
+    const ander  = await req(server, 'GET', '/api/meta');
+    assert.equal(eigen.body.appTitle, 'Stilzwijgen');
+    assert.equal(ander.body.appTitle, 'Grisburgh', 'zonder campagne blijft het de standaard');
+  });
+
   it('serveert de keuzepagina op het kale domein', async () => {
     const r = await req(server, 'GET', '/');
     assert.equal(r.status, 200);

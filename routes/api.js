@@ -5177,9 +5177,16 @@ router.put('/meta/app', requireDM, (req, res) => {
     ]));
   }
   if (typeof req.body.inOverzicht === 'boolean') meta.inOverzicht = req.body.inOverzicht;
+  // Embleem: een pad binnen deze server (een geüpload bestand of een van de
+  // meegeleverde afbeeldingen). Leeg = geen embleem.
+  if (req.body.embleem !== undefined) {
+    const pad = String(req.body.embleem || '').trim().slice(0, 300);
+    if (!pad) delete meta.embleem;
+    else if (pad.startsWith('/')) meta.embleem = pad;
+  }
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
-  res.json({ appTitle: meta.appTitle, appSubtitle: meta.appSubtitle, currency: meta.currency, inOverzicht: meta.inOverzicht !== false });
+  res.json({ appTitle: meta.appTitle, appSubtitle: meta.appSubtitle, currency: meta.currency, inOverzicht: meta.inOverzicht !== false, embleem: meta.embleem || '' });
 });
 
 router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {

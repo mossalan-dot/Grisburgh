@@ -10,8 +10,18 @@ let _campagne = campagneUitUrl();
 export function huidigeCampagne() { return _campagne; }
 export function zetCampagne(naam) { if (naam) _campagne = naam; }
 
+// Elk verzoek noemt zijn campagne. De server kiest sessie → ?campagne= →
+// standaard, dus voor wie ingelogd is verandert dit niets; voor wie nog niet
+// ingelogd is, is dit het enige dat verklapt dat hij op /prewett staat. Zonder
+// deze regel kreeg de landing van Prewett de titel, ondertitel en portretten
+// van Grisburgh: het pad staat in de adresbalk, niet in het API-verzoek.
+export function metCampagne(pad) {
+  if (!_campagne || pad.includes('campagne=')) return pad;
+  return pad + (pad.includes('?') ? '&' : '?') + 'campagne=' + encodeURIComponent(_campagne);
+}
+
 async function request(path, opts = {}) {
-  const res = await fetch(BASE + path, {
+  const res = await fetch(BASE + metCampagne(path), {
     headers: { 'Content-Type': 'application/json', ...opts.headers },
     ...opts,
   });
@@ -35,7 +45,7 @@ export const api = {
   tabletLogin:       (password)     => request('/auth/tablet-login',   { method: 'POST', body: JSON.stringify({ campagne: _campagne, password }) }),
   logout:            ()             => request('/auth/logout',         { method: 'POST' }),
   role:              ()             => request('/auth/role'),
-  listPlayerChars:   ()             => request(`/auth/players${_campagne ? `?campagne=${encodeURIComponent(_campagne)}` : ''}`),
+  listPlayerChars:   ()             => request('/auth/players'),
   playerLogin:       (characterId, password) => request('/auth/player-login', { method: 'POST', body: JSON.stringify({ campagne: _campagne, characterId, password: password || '' }) }),
   playerLogout:      ()             => request('/auth/player-logout',  { method: 'POST' }),
 
@@ -109,8 +119,8 @@ export const api = {
     if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Import mislukt'); }
     return r.json();
   },
-  fileUrl:  (id) => `${BASE}/files/${id}`,
-  thumbUrl: (id) => `${BASE}/thumb/${id}`,
+  fileUrl:  (id) => metCampagne(`${BASE}/files/${id}`),
+  thumbUrl: (id) => metCampagne(`${BASE}/thumb/${id}`),
   // Portret-/afbeelding-URL voor een record (entiteit óf document): gebruikt het
   // losse imageId als dat gezet is (mediabibliotheek-hergebruik) — entiteiten
   // dragen het in data.imageId, documenten top-level imageId — anders het

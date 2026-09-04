@@ -60,14 +60,19 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=416">
+  <link rel="stylesheet" href="/css/theme.css?v=417">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
 <script>window.goatcounter={path:function(p){return location.host+p}}</script>
 <script data-goatcounter="https://stats.alanmoss.nl/count" async src="https://stats.alanmoss.nl/count.js"></script>
 </head>
-<body class="bg-room-bg text-ink-bright font-crimson min-h-screen">
+<body class="bg-room-bg text-ink-bright font-crimson min-h-screen boot">
+  <!-- `boot` houdt de app onzichtbaar tot bekend is wie er kijkt. Zonder die
+       klasse zag een uitgelogde bezoeker eerst een flits van de app voordat de
+       landingspagina eroverheen viel. De klasse gaat eraf in init(), en anders
+       na vier seconden — een blanco scherm is erger dan een flits. -->
+  <script>setTimeout(function () { document.body.classList.remove('boot'); }, 4000);</script>
   <div class="app player-mode" id="app">
     <!-- ══ App-header: één balk ══ -->
     <header class="app-header" id="app-header">
@@ -75,10 +80,10 @@
       <!-- Links: titel -->
       <div class="app-header-title" id="header-display">
         <div class="app-header-title-row">
-          <img class="app-header-crest" src="/img/logo-emblem-brown.png?v=1" alt="" width="30" height="30">
+          <img class="app-header-crest hidden" id="app-crest" src="" alt="" width="30" height="30">
           <h1 id="app-title" class="app-title"></h1>
         </div>
-        <p id="app-subtitle" class="app-subtitle">Ontdekkingen uit het stadsarchief</p>
+        <p id="app-subtitle" class="app-subtitle"></p>
       </div>
       <!-- Inline titel-editor -->
       <div id="header-editor" class="app-header-editor hidden">
@@ -362,7 +367,7 @@
   <div id="landing-overlay" class="landing-overlay hidden">
     <div class="landing-inner">
       <div class="landing-header">
-        <img class="landing-crest" src="/img/logo-emblem-light.png?v=1" alt="" aria-hidden="true">
+        <img class="landing-crest hidden" id="landing-crest" src="" alt="" aria-hidden="true">
         <h1 class="landing-title" id="landing-title"></h1>
         <p class="landing-subtitle" id="landing-subtitle"></p>
       </div>
@@ -379,6 +384,7 @@
           <button type="submit" class="landing-footer-btn" id="landing-toegang-btn">Verder ↵</button>
         </form>
         <div id="landing-toegang-error" class="landing-pw-error hidden">Verkeerd wachtwoord</div>
+        <a class="landing-terug" href="/">&lsaquo; Andere campagne</a>
       </div>
     </div>
   </div>
@@ -551,6 +557,6 @@
   </div>
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=574"></script>
+  <script type="module" src="/js/app.js?v=575"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=258';
+import { api, huidigeCampagne } from './api.js?v=259';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -9611,6 +9611,15 @@ async function _renderInstellingen() {
         <input id="inst-app-subtitle" class="dm-input" value="${esc(meta.appSubtitle || '')}" placeholder="Ondertitel (optioneel)">
       </div>
       <div class="dm-form-row">
+        <label class="dm-form-label">Embleem</label>
+        <span class="dm-embleem-rij">
+          <img id="inst-embleem-preview" class="dm-embleem-preview${meta.embleem ? '' : ' hidden'}" src="${esc(meta.embleem || '')}" alt="">
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instEmbleemKies()">${icon('image')} Kiezen</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instEmbleemWis()" title="Geen embleem">${icon('x')}</button>
+          <input type="hidden" id="inst-embleem" value="${esc(meta.embleem || '')}">
+        </span>
+      </div>
+      <div class="dm-form-row">
         <label class="dm-module-item" title="Op grisburgh.nl staat een keuzepagina met alle campagnes">
           <input type="checkbox" id="inst-in-overzicht" ${meta.inOverzicht === false ? '' : 'checked'}>
           <span>Toon deze campagne op de openingspagina</span>
@@ -9739,7 +9748,8 @@ window._instTitelSave = async () => {
   const status   = document.getElementById('inst-titel-status');
   try {
     const inOverzicht = document.getElementById('inst-in-overzicht')?.checked !== false;
-    await api.saveAppMeta({ appTitle: title, appSubtitle: subtitle, inOverzicht });
+    const embleem     = document.getElementById('inst-embleem')?.value || '';
+    await api.saveAppMeta({ appTitle: title, appSubtitle: subtitle, inOverzicht, embleem });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     window.app?.applyAppMeta?.();
@@ -9748,6 +9758,26 @@ window._instTitelSave = async () => {
   } catch (err) {
     if (status) { status.textContent = 'Fout: ' + err.message; status.className = 'bericht-status bericht-status--err'; status.classList.remove('hidden'); }
   }
+};
+
+// Het embleem staat op de landingspagina en in de kop. Het is een gewoon
+// mediabestand, dus de picker doet het werk; we bewaren het pad.
+window._instEmbleemKies = () => {
+  window.mediaPicker.open({
+    type: 'afbeelding',
+    suggestedName: 'embleem',
+    onSelect: (fileId) => {
+      const pad = api.fileUrl(fileId);
+      document.getElementById('inst-embleem').value = pad;
+      const img = document.getElementById('inst-embleem-preview');
+      if (img) { img.src = pad; img.classList.remove('hidden'); }
+    },
+  });
+};
+
+window._instEmbleemWis = () => {
+  document.getElementById('inst-embleem').value = '';
+  document.getElementById('inst-embleem-preview')?.classList.add('hidden');
 };
 
 window._instModulesSave = async (campagneId) => {
