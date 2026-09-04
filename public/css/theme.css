@@ -22048,10 +22048,20 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
 
 /* Drie muntbedragen naast elkaar in plaats van onder elkaar: het zijn korte
    getallen, en gestapeld nam de beurs een half scherm in beslag. */
-.dm-munt-rij { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.dm-munt-veld { display: flex; align-items: center; gap: 6px; }
+/* .dm-form-row staat op flex-direction: column, dus zonder deze regel stapelen
+   de bedragen en staan ze bovendien gecentreerd. */
+.dm-munt-rij {
+  display: flex; flex-direction: row; justify-content: flex-start;
+  align-items: center; gap: 12px; flex-wrap: wrap;
+}
+/* Label bóven het bedrag, zoals bij de andere velden in dit paneel. */
+.dm-munt-veld { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
 .dm-munt-veld > span {
   font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
   color: #7a6040; letter-spacing: .06em;
 }
 .dm-munt-veld .dm-input { width: 88px; }
+
+/* Twee wachtwoordvelden naast elkaar: nieuw en herhaal. */
+.dm-pw-veld { width: 210px; }
+@media (max-width: 560px) { .dm-pw-veld { width: 100%; } }

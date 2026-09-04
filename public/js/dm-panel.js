@@ -9706,8 +9706,14 @@ async function _renderInstellingen() {
       <div class="dm-form-row">
         <label class="dm-form-label" for="dm-pw-nieuw"
           title="Geldt alleen voor deze campagne. Wordt versleuteld opgeslagen, zodat het niet leesbaar in een backup terechtkomt.">DM-wachtwoord</label>
-        <input id="dm-pw-nieuw" class="dm-input" type="password"
-          placeholder="Nieuw wachtwoord (min. 8 tekens)…" autocomplete="new-password">
+        <div class="dm-munt-rij">
+          <input id="dm-pw-nieuw" class="dm-input dm-pw-veld" type="password"
+            placeholder="Nieuw wachtwoord (min. 8 tekens)…" autocomplete="new-password">
+          <input id="dm-pw-herhaal" class="dm-input dm-pw-veld" type="password"
+            placeholder="Herhaal…" autocomplete="new-password"
+            title="Twee keer intikken, want met een typefout hierin sluit je jezelf buiten.">
+          <span id="dm-pw-melding" class="bericht-status hidden"></span>
+        </div>
       </div>
       <div class="dm-subgroep-label">Wachtwoorden per party</div>
       ${groups.map(g => `
@@ -9824,20 +9830,31 @@ window._instOpslaan = async () => {
     window.app?.applyAppMeta?.();
 
     // Het DM-wachtwoord gaat via zijn eigen route (hashing) en alleen als er
-    // iets is ingetikt — anders zou opslaan het per ongeluk wissen.
-    const pwVeld = document.getElementById('dm-pw-nieuw');
+    // iets is ingetikt — anders zou opslaan het per ongeluk wissen. Twee keer
+    // intikken: met een typefout hierin sluit je jezelf buiten je eigen
+    // campagne, en dat merk je pas de volgende keer dat je inlogt.
+    const pwVeld    = document.getElementById('dm-pw-nieuw');
+    const pwHerhaal = document.getElementById('dm-pw-herhaal');
+    const pwMelding = document.getElementById('dm-pw-melding');
+    const pwZeg = (tekst, ok) => {
+      if (!pwMelding) return;
+      pwMelding.textContent = tekst;
+      pwMelding.className = `bericht-status bericht-status--${ok ? 'ok' : 'err'}`;
+      pwMelding.classList.remove('hidden');
+      if (ok) setTimeout(() => pwMelding.classList.add('hidden'), 3000);
+    };
     if (pwVeld?.value) {
-      await api.dmWachtwoordZet(pwVeld.value);
-      pwVeld.value = '';
-      pwVeld.placeholder = 'Wachtwoord vervangen…';
-      // Bij het veld zelf melden: de knop staat onderaan en die melding kan
-      // buiten beeld vallen.
-      const pwStatus = document.getElementById('dm-pw-status');
-      if (pwStatus) {
-        pwStatus.textContent = '✓ Wachtwoord opgeslagen';
-        pwStatus.classList.remove('hidden');
-        setTimeout(() => _dmWachtwoordStatus(), 3000);
+      if (pwVeld.value !== (pwHerhaal?.value || '')) {
+        pwZeg('De twee velden verschillen', false);
+        pwHerhaal?.focus();
+        melden('Opgeslagen — behalve het wachtwoord', false);
+        return;
       }
+      await api.dmWachtwoordZet(pwVeld.value);
+      pwVeld.value = ''; pwVeld.placeholder = 'Wachtwoord vervangen…';
+      if (pwHerhaal) pwHerhaal.value = '';
+      pwZeg('✓ Wachtwoord opgeslagen', true);
+      _dmWachtwoordStatus();
     }
     melden('✓ Opgeslagen');
   } catch (err) {
