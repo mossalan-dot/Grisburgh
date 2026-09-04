@@ -2,7 +2,7 @@ import { api } from './api.js?v=252';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=124";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=73";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
-import { renderDungeon } from './render-dungeon.js?v=32';
+import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=21';
 import { renderProgressie } from './render-progressie.js?v=43';
 import { renderBestiarium } from './render-bestiarium.js?v=20';
@@ -2427,6 +2427,12 @@ window._kaartEdit = async function(type, id) {
       <div class="dm-form-row"><label class="dm-form-label">Beschrijving</label>
         <textarea id="kaart-edit-desc" class="dm-input" rows="3" placeholder="Korte omschrijving voor op het kaartje…">${esc(item.description || '')}</textarea></div>
       ${type === 'dungeon' ? `
+      <div class="dm-form-row">
+        <label class="dm-form-label">Verdieping</label>
+        <input id="kaart-edit-verdieping" class="dm-input dm-input-sm" type="number" style="width:80px"
+          value="${item.verdieping ?? ''}" placeholder="—">
+        <span class="dm-hint">0 = begane grond, −1 = kelder. Leeg laten als deze kaart geen verdieping is.</span>
+      </div>
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Thumbnail</label>
         ${item.thumbId ? `<img id="kaart-edit-thumb-prev" src="${api.fileUrl(item.thumbId)}" class="kaart-edit-thumb">` : '<span id="kaart-edit-thumb-prev"></span>'}
@@ -2463,6 +2469,8 @@ window._kaartEditSave = async function(type, id) {
       await api.updateMap(id, { label: naam || undefined, description: desc });
     } else {
       const patch = { name: naam || undefined, description: desc };
+      const vRaw = document.getElementById('kaart-edit-verdieping')?.value.trim();
+      if (vRaw !== undefined) patch.verdieping = vRaw === '' ? null : vRaw;
       if (window._kaartEditThumbPending) patch.thumbId = window._kaartEditThumbPending;
       await api.updateDungeon(id, patch);
     }

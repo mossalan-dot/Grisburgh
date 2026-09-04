@@ -246,7 +246,7 @@ export function initSocket() {
     }
     if (window.app.state.activeSection !== 'kaart') return;
     if (window.app.state.role === 'dm') return; // DM al bijgewerkt via _renderSvg()
-    import('./render-dungeon.js?v=32').then(m => {
+    import('./render-dungeon.js?v=33').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -254,7 +254,7 @@ export function initSocket() {
   // Dungeon meta bijgewerkt (nieuwe map, party-access) → iedereen herlaadt
   socket.on('dungeon:updated', () => {
     if (window.app.state.activeSection !== 'kaart') return;
-    import('./render-dungeon.js?v=32').then(m => {
+    import('./render-dungeon.js?v=33').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });

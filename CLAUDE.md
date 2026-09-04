@@ -136,9 +136,9 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=410   app.js?v=563   sound-manager.js?v=8
+index.html  : theme.css?v=411   app.js?v=564   sound-manager.js?v=8
 app.js      : api.js?v=252      render-campagne.js?v=124   render-archief.js?v=73
-              render-kaart.js?v=18  render-dungeon.js?v=32  render-relatiemap.js?v=21
+              render-kaart.js?v=18  render-dungeon.js?v=33  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
               dm-panel.js?v=170    render-dashboard.js?v=9
@@ -300,6 +300,23 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > geldt de instelling van de laatst gespeelde akte — `activeAkte` wordt nooit
 > leeggemaakt. Client: `window._dienstDicht(key)` en `window._entiteitDicht(id)`;
 > de DM ziet altijd alles.
+
+> **Verdiepingen in een dungeon.** Een kaart kan een `verdieping` hebben
+> (0 = begane grond, negatief = kelder; leeg = hoort niet bij een gebouw met
+> verdiepingen), in te stellen bij *Kaart bewerken* in de kaartengalerij. Welke
+> kaarten samen één gebouw vormen is **afgeleid uit de trappen ertussen** — geen
+> apart `gebouwId`, dus de DM vult alleen het nummer in en tekent de trap.
+> Een **trap is een kamer met `trapNaar: {mapId, roomId}`**: op de kaart een pijl
+> (omlaag, of 180° gedraaid als het omhoog gaat) die je naar die verdieping
+> brengt met de doelkamer geselecteerd — daardoor zweeft een kleine kelderkaart
+> niet meer gecentreerd in het niets. Trappen worden **tweezijdig** gelegd: de
+> tegenhanger wordt automatisch aangemaakt en bij verwijderen ook weer opgeruimd.
+> Een trap **telt niet mee** in de onthul-teller (het is doorgang, geen kamer om
+> te ontdekken). Bovenin staan de verdiepingen als knopjes (BG · 1 · −1);
+> `_verdiepingStripHtml()` bouwt ze, `_verversVerdiepingen()` houdt ze bij.
+> Let op: `_renderMapView()` tekende de kamerlijst pas ná het laden van de
+> afbeelding — bij een kaart zonder afbeelding bleef de lijst van de vórige kaart
+> staan. Dat luistert nu ook naar `error`.
 
 > **Filmpje bij een personage.** Het bestand heet `<entityId>_video`; daar kijkt
 > `routes/auth.js` rechtstreeks naar (het veld `data.portraitVideoId` bleek ooit

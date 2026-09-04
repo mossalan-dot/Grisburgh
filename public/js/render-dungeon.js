@@ -48,6 +48,60 @@ async function _laadVondsten() {
 const _vondstenVanKamer = (mapId, roomId) =>
   _lootEvents.filter(e => e.dungeonId === mapId && e.roomId === roomId);
 
+// ── Verdiepingen ────────────────────────────────────────────────────────────
+// Een gebouw is geen apart veld: welke kaarten bij elkaar horen leiden we af uit
+// de trappen ertussen. Zet je een trap van de begane grond naar de kelder, dan
+// vormen die twee samen een gebouw — meer hoeft de DM niet in te vullen dan het
+// verdiepingsnummer.
+const _isTrap = (room) => !!room?.trapNaar?.mapId;
+const _verdiepingLabel = (v) => (v === 0 ? 'BG' : (v > 0 ? String(v) : String(v)));
+
+function _verdiepingenVan(mapId, gezien = new Set()) {
+  if (gezien.has(mapId)) return gezien;
+  gezien.add(mapId);
+  const m = _maps.find(x => x.id === mapId);
+  for (const r of (m?.rooms || [])) {
+    if (_isTrap(r) && !gezien.has(r.trapNaar.mapId)) _verdiepingenVan(r.trapNaar.mapId, gezien);
+  }
+  // Ook kaarten die naar déze wijzen horen erbij (trappen zijn tweezijdig, maar
+  // een half gelegde koppeling mag het gebouw niet uit elkaar trekken).
+  for (const m2 of _maps) {
+    if (gezien.has(m2.id)) continue;
+    if ((m2.rooms || []).some(r => _isTrap(r) && gezien.has(r.trapNaar.mapId))) _verdiepingenVan(m2.id, gezien);
+  }
+  return gezien;
+}
+
+function _verdiepingStripHtml() {
+  const huidig = _maps[_mapIdx];
+  if (!huidig) return '';
+  const ids = [..._verdiepingenVan(huidig.id)];
+  if (ids.length < 2) return '';
+  const verdiepingen = ids
+    .map(id => _maps.find(m => m.id === id))
+    .filter(m => m && Number.isFinite(m.verdieping))
+    .sort((a, b) => b.verdieping - a.verdieping);   // bovenste verdieping eerst
+  if (verdiepingen.length < 2) return '';
+  return `<div class="dng-verdiepingen" title="Verdiepingen van dit gebouw">
+    ${verdiepingen.map(m => `
+      <button class="dng-verdieping${m.id === huidig.id ? ' dng-verdieping--actief' : ''}"
+        onclick="window._dngNaarVerdieping('${esc(m.id)}')" title="${esc(m.name || '')}">
+        ${esc(_verdiepingLabel(m.verdieping))}</button>`).join('')}
+  </div>`;
+}
+
+window._dngNaarVerdieping = (mapId, roomId) => {
+  const idx = _maps.findIndex(m => m.id === mapId);
+  if (idx === -1) return;
+  _mapIdx = idx;
+  _selectedRoom = roomId || null;
+  _renderMapView();
+  if (roomId) {
+    const r = (_maps[idx].rooms || []).find(x => x.id === roomId);
+    if (r) { _zoomToRoom(r); _renderSidebar(r); }
+  }
+};
+
 // ──────────────────────────────────────────────────────────────────
 // Public entry point
 // ──────────────────────────────────────────────────────────────────
@@ -100,6 +154,7 @@ function _buildShell() {
           <button class="dng-btn dng-btn-sm" id="dng-party-btn">Party-toegang</button>
         </div>
         ` : ''}
+        <span id="dng-verdiepingen-slot">${_verdiepingStripHtml()}</span>
         <span style="margin-left:auto">${window._helpBtn?.('dungeon') ?? ''}</span>
       </div>
       <div class="dng-workspace" id="dng-workspace">
@@ -150,7 +205,13 @@ function _attachShellEvents() {
 // ──────────────────────────────────────────────────────────────────
 // Map view
 // ──────────────────────────────────────────────────────────────────
+function _verversVerdiepingen() {
+  const slot = document.getElementById('dng-verdiepingen-slot');
+  if (slot) slot.innerHTML = _verdiepingStripHtml();
+}
+
 function _renderMapView() {
+  _verversVerdiepingen();
   const area = document.getElementById('dng-map-area');
   if (!area) return;
   if (!_maps.length) { area.innerHTML = ''; _renderEmpty(); return; }
@@ -163,10 +224,21 @@ function _renderMapView() {
       <svg id="dng-svg" class="dng-svg" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>`;
 
+  // De kaartkiezer bovenin moet meelopen als er elders van kaart gewisseld is
+  // (bijvoorbeeld via een trap of de verdiepingsknoppen).
+  const sel = document.getElementById('dng-map-select');
+  if (sel && +sel.value !== _mapIdx) sel.value = String(_mapIdx);
+
   const img = document.getElementById('dng-img');
   const onLoad = () => { _fitZoom(); _renderSvg(); _attachMapEvents(); _renderRoomList(); };
   if (img.complete && img.naturalWidth) onLoad();
-  else img.addEventListener('load', onLoad, { once: true });
+  else {
+    img.addEventListener('load', onLoad, { once: true });
+    // Laadt de afbeelding niet (ontbrekend bestand), dan moet de rest tóch
+    // opnieuw getekend worden — anders blijft de kamerlijst van de vórige kaart
+    // staan.
+    img.addEventListener('error', onLoad, { once: true });
+  }
 }
 
 function _fitZoom() {
@@ -267,6 +339,20 @@ function _renderSvg() {
       text-anchor="middle" dominant-baseline="middle">${esc(r.name)}</text>`;
   }).join('') : '';
 
+  // ── Trappen: pijl omhoog of omlaag, met een klik naar die verdieping ──
+  const trapSvg = rooms.filter(r => _isTrap(r) && (isDM() || revealed.has(r.id))).map(r => {
+    const [cx, cy] = _roomCentroid(r, W, H);
+    const doel     = _maps.find(m => m.id === r.trapNaar.mapId);
+    const omhoog   = Number.isFinite(doel?.verdieping) && Number.isFinite(_maps[_mapIdx]?.verdieping)
+      ? doel.verdieping > _maps[_mapIdx].verdieping : false;
+    const size     = Math.max(W, H) * 0.034;
+    return `<text class="dng-trap-icon" x="${cx}" y="${cy}" font-size="${size}"
+      text-anchor="middle" dominant-baseline="middle"
+      transform="rotate(${omhoog ? 180 : 0} ${cx} ${cy})"
+      onclick="window._dngNaarVerdieping('${esc(r.trapNaar.mapId)}','${esc(r.trapNaar.roomId || '')}')"
+      style="cursor:pointer">&#8595;</text>`;
+  }).join('');
+
   // ── Conditie-iconen: DM ziet alles (verborgen = half-transparant);
   //    spelers zien alleen zichtbare iconen van onthulde kamers ──
   const condSvg = rooms.filter(r => isDM() || revealed.has(r.id)).map(r => {
@@ -319,6 +405,7 @@ function _renderSvg() {
 
     <!-- Conditie-iconen -->
     ${condSvg}
+    ${trapSvg}
 
     <!-- Tekenlaag (bovenop) -->
     <g id="dng-draw-layer"></g>`;
@@ -330,7 +417,8 @@ function _updateRevealCount() {
   const el = document.getElementById('dng-reveal-count');
   if (!el || !isDM() || !_maps.length) return;
   const map     = _maps[_mapIdx];
-  const rooms   = map.rooms || [];
+  // Een trap is doorgang, geen kamer om te ontdekken — die telt niet mee.
+  const rooms   = (map.rooms || []).filter(r => !_isTrap(r));
   const groupId = _activeGroupId();
   const revIds  = map.reveals?.[groupId] || [];
   const revCnt  = revIds.filter(id => rooms.some(r => r.id === id)).length;
@@ -805,8 +893,61 @@ function _renderSidebar(room) {
         ${condRowsHtml}
       </div>
       ${connsHtml}
+      ${isDM() ? `
+      <div class="dng-sb-section">
+        <div class="dng-sb-section-hdr">Trap</div>
+        ${_isTrap(room) ? `
+          <div class="dng-trap-rij">
+            <span>${icon('link')} naar ${esc(_maps.find(m => m.id === room.trapNaar.mapId)?.name || 'andere kaart')}</span>
+            <button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-trap-weg" title="Trap weghalen">${icon('x')}</button>
+          </div>
+          <p class="dng-sb-hint">Klik op de pijl in de kaart om erheen te gaan.</p>
+        ` : `
+          <select class="dng-loot-koppel" id="dng-trap-kaart">
+            <option value="">— maak hier een trap naar… —</option>
+            ${_maps.filter(m => m.id !== map.id).map(m => `<option value="${esc(m.id)}">${esc(m.name || 'Kaart')}${Number.isFinite(m.verdieping) ? ` (${esc(_verdiepingLabel(m.verdieping))})` : ''}</option>`).join('')}
+          </select>
+          <select class="dng-loot-koppel" id="dng-trap-kamer" style="margin-top:5px;display:none"></select>
+        `}
+      </div>` : ''}
       ${lootHtml}
     </div>`;
+
+  // ── Trap ──
+  // Tweezijdig: leg je een trap van hier naar daar, dan komt de tegenhanger er
+  // vanzelf bij. Anders zou je op de andere verdieping vastzitten.
+  const trapKaart = document.getElementById('dng-trap-kaart');
+  const trapKamer = document.getElementById('dng-trap-kamer');
+  trapKaart?.addEventListener('change', () => {
+    const doel = _maps.find(m => m.id === trapKaart.value);
+    if (!doel) { trapKamer.style.display = 'none'; return; }
+    trapKamer.innerHTML = `<option value="">— welke kamer daar? —</option>` +
+      (doel.rooms || []).map(r => `<option value="${esc(r.id)}">${esc(r.name || 'Kamer')}</option>`).join('');
+    trapKamer.style.display = '';
+  });
+  trapKamer?.addEventListener('change', async () => {
+    const doelMapId = trapKaart.value, doelRoomId = trapKamer.value;
+    if (!doelMapId || !doelRoomId) return;
+    const doelMap  = _maps.find(m => m.id === doelMapId);
+    const doelRoom = (doelMap?.rooms || []).find(r => r.id === doelRoomId);
+    if (!doelRoom) return;
+    room.trapNaar     = { mapId: doelMapId, roomId: doelRoomId };
+    doelRoom.trapNaar = { mapId: map.id,    roomId: room.id };
+    await _saveRooms();
+    await api.saveDungeonRooms(doelMap.id, doelMap.rooms, doelMap.connections || []);
+    _renderMapView();
+    _renderSidebar(room);
+  });
+  document.getElementById('dng-trap-weg')?.addEventListener('click', async () => {
+    const doelMap  = _maps.find(m => m.id === room.trapNaar?.mapId);
+    const doelRoom = (doelMap?.rooms || []).find(r => r.trapNaar?.roomId === room.id);
+    delete room.trapNaar;
+    if (doelRoom) delete doelRoom.trapNaar;
+    await _saveRooms();
+    if (doelMap) await api.saveDungeonRooms(doelMap.id, doelMap.rooms, doelMap.connections || []);
+    _renderMapView();
+    _renderSidebar(room);
+  });
 
   // ── Vondsten ──
   const _voegVondstToe = async () => {

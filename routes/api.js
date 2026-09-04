@@ -9639,6 +9639,13 @@ router.put('/dungeons/:id', requireDM, (req, res) => {
   if (req.body.fileId      !== undefined) map.fileId      = req.body.fileId;
   if (req.body.description !== undefined) map.description = String(req.body.description || '').slice(0, 600);
   if (req.body.thumbId     !== undefined) map.thumbId     = req.body.thumbId || '';
+  // Verdieping: 0 = begane grond, negatief = kelder. Leeg betekent "hoort niet
+  // bij een gebouw met verdiepingen"; welke kaarten samen één gebouw vormen
+  // leiden we af uit de trappen ertussen, niet uit een apart veld.
+  if (req.body.verdieping   !== undefined) {
+    const v = parseInt(req.body.verdieping, 10);
+    if (Number.isFinite(v)) map.verdieping = v; else delete map.verdieping;
+  }
   _writeDungeons(maps);
   req.app.get('io').to(req.session?.campaignId||'main').emit('dungeon:updated');
   res.json(map);

@@ -91,6 +91,17 @@ describe('Bereikbaarheid per akte', () => {
     await req(server, 'PUT', '/api/locatie', { buitenGrisburgh: false }, dm);
   });
 
+  it('bewaart een verdieping op een dungeonkaart en negeert onzin', async () => {
+    const map = (await req(server, 'POST', '/api/dungeons', { name: 'Kelder' }, dm)).body;
+    await req(server, 'PUT', `/api/dungeons/${map.id}`, { verdieping: -1 }, dm);
+    let na = (await req(server, 'GET', '/api/dungeons', null, dm)).body.find(m => m.id === map.id);
+    assert.equal(na.verdieping, -1);
+    // Leeggemaakt betekent: deze kaart hoort niet bij een gebouw met verdiepingen.
+    await req(server, 'PUT', `/api/dungeons/${map.id}`, { verdieping: null }, dm);
+    na = (await req(server, 'GET', '/api/dungeons', null, dm)).body.find(m => m.id === map.id);
+    assert.equal(na.verdieping, undefined);
+  });
+
   it('houdt de instelling van de laatste akte aan', async () => {
     // activeAkte wordt nooit leeggemaakt: er verandert pas iets bij de volgende akte.
     const b = (await meta()).bereikbaarheid;
