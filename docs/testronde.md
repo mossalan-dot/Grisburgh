@@ -15,6 +15,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 `public/index.html` (landing) · `routes/auth.js` · `public/js/app.js`
 
+- [x] **Openingspagina** (ALL) — keuzepagina op het kale domein: alle campagnes die zich laten zien *(gebouwd 4 sep)*
 - [ ] **Landingspagina** (ALL) — portretten van de party's, carousel, inzoomen op een portret
 - [ ] **Portretfilmpje bij inzoomen** (ALL) — speelt af, stopt na 6 seconden (`LANDING_VIDEO_MAX_SEC`)
 - [ ] **Eén wachtwoordveld** — groepswachtwoord → alleen díé party in de kiezer; DM-wachtwoord → meteen DM
@@ -22,6 +23,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **DM-wachtwoord wijzigen** (DM) — Instellingen → *Jouw DM-wachtwoord*; oude werkt daarna niet meer
 - [ ] **Groepswachtwoorden** (DM) — Instellingen → Party's, slotje toont of er één staat
 - [ ] **Tafelscherm aanzetten** (DM) — Instellingen → Tafelscherm; dít scherm wordt de tablet
+- [x] **Uitloggen als speler** (SP) — knop rechtsboven vraagt eerst, met de naam van je personage *(gebouwd 4 sep)*
 - [ ] **Uitloggen + sessie overleeft herstart** — na `pm2 restart` blijft iedereen ingelogd
 - [ ] **Campagnepad** — `/grisburgh` en `/prewett`; kaal domein stuurt door, `?display=1` blijft werken
 - [ ] **PWA** — installeren op beginscherm, naam en startpad kloppen per campagne
@@ -160,4 +162,5 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 
 | # | Blok | Wat | Status |
 |---|---|---|---|
-| — | — | *(nog niets)* | — |
+| 1 | 1 | Geen keuzepagina: het kale domein stuurde meteen door naar Grisburgh, dus een tweede campagne was alleen via een getypt pad te bereiken | opgelost — overzicht op `/`, met opt-out per campagne; `?display=1` stuurt nog door |
+| 2 | 1 | De spelersknop rechtsboven gooide je zonder waarschuwing terug naar de landingspagina | opgelost — vraagt eerst, en logt daarna ook echt uit |
