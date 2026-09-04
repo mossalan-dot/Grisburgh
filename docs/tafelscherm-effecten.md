@@ -57,21 +57,33 @@ afbeeldingen nodig, dus het kost niets aan schijfruimte of laadtijd.
 De bestaande drie (bliksem, windvlaag, duister) blijven en verhuizen naar
 dezelfde catalogus.
 
-## Geluid eraan koppelen
+## Geluid: vast aan het effect
 
-Per effect één klank uit de geluidenbibliotheek, in te stellen in de
-**Geluiden-tab** onder *Momenten* — dezelfde plek en hetzelfde patroon als
-`lootReveal`. Opslag: `sounds.json` → `momenten.fx.<effect-id>`.
+Het geluid hoort bij het effect, niet bij de campagne — een wond klinkt overal
+hetzelfde. Dus geen instelling per campagne die een nieuwe DM eerst moet vullen:
+**de klank zit in de catalogus, naast het beeld.**
 
-De server stuurt het geluid mee op het moment dat hij het effect uitstuurt:
+Blijft de vraag waar die klank vandaan komt. Twee wegen:
 
-```js
-io.to(room).emit('display:effect', { effect });
-if (klank) io.to(room).emit('sound:reveal', { fileId: klank, loop: soort === 'toestand' });
-```
+**a. Gemaakt in de browser (voorkeur).** Korte klanken laten zich synthetiseren
+met de WebAudio API: een dreun is een lage sinus die in 200 ms wegzakt met een
+ruisflard eroverheen, een schittering een paar hoge tonen met lange uitloop,
+regen is gefilterde ruis. Kost **nul bestanden**, geen licentiegedoe, geen
+laadtijd, werkt offline, en het is regelbaar per effect (harder, lager, langer).
+Nadeel: het klinkt gemaakt. Voor een dreun of een schittering is dat prima; een
+overtuigende donderslag of echte regen krijg je er niet mee.
 
-Een **toestand** mag een lus zijn (regen die blijft ruisen), een **flits** nooit.
-Dat volgt uit de catalogus, dus de DM hoeft het niet te weten.
+**b. Meegeleverde bestanden.** Een handvol korte CC0-samples in
+`public/assets/sfx/`. Klinkt beter, maar iemand moet ze zoeken en de licentie
+bijhouden, en ze gaan mee in elke deploy. Ik kan ze niet zelf maken — die zou jij
+moeten aanleveren.
+
+Voorstel: **(a) voor alles wat een dreun, tik of glinstering is, (b) later voor
+donder, regen en vuur** als je die echt wilt horen. En voor beide geldt: de DM
+mag een effect alsnog een eigen klank uit de bibliotheek geven
+(`sounds.json` → `momenten.fx.<effect-id>`), maar hoeft dat nooit — het werkt uit
+zichzelf. Een **toestand** mag een lus zijn (regen die blijft ruisen), een
+**flits** nooit; dat volgt uit de catalogus.
 
 ## Vanzelf laten gebeuren
 
@@ -87,6 +99,24 @@ allebei uit gebeurtenissen die er al zijn:
 
 Wel **per campagne aan of uit** (`meta.tafelscherm.autoFx`), want niet elke tafel
 wil dat het scherm meepraat bij elke schrammetje. Standaard uit.
+
+## Over een gevecht heen — nu nog niet
+
+Dit is precies waar het misgaat, en het is niet toevallig het geval waarvoor je
+het wilt: laag HP ontstaat in een gevecht.
+
+`.display-fx` staat nu `position: absolute; z-index: 5` **binnen** `#display-idle`
+— het sfeerscherm. De gevechtsweergave op de tablet is `.combat-overlay`,
+`position: fixed; z-index: 55`, en dekt dat sfeerscherm volledig af. Een effect
+tijdens een gevecht is dus onzichtbaar; het zit eronder, in een container die op
+dat moment niet eens in beeld is.
+
+De oplossing is klein maar moet vóór de rest: **de effectlaag wordt een eigen
+overlay op `<body>`**, `position: fixed`, `inset: 0`, `pointer-events: none`,
+`z-index: 90` — boven het gevecht (55), boven de brief- en lootcinematics, onder
+niets. Dan werkt hetzelfde effect over het sfeerscherm, een getoonde afbeelding,
+de dungeonkaart én het gevecht. Dat is ook waarom de wond-flits pas iets waard
+is als dit eerst gebeurt.
 
 ## Waar het misgaat als we niet opletten
 
@@ -110,3 +140,5 @@ wil dat het scherm meepraat bij elke schrammetje. Standaard uit.
 2. Automatische wond-flits: aan of uit bij Grisburgh?
 3. Moet een toestand ook vanzelf aflopen (bijvoorbeeld mist na tien minuten), of
    blijft hij tot de DM hem wegklikt?
+4. Gesynthetiseerd geluid voor alles, of lever je losse samples aan voor donder,
+   regen en vuur?
