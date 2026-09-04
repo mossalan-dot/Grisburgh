@@ -9780,13 +9780,13 @@ details.player-dash-collapsible[open] > summary {
 .campagne-card-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
+  gap: 8px;
   flex-shrink: 0;
 }
-/* De activeerknop was een los pijltje dat scheef in zijn kader hing. */
-.campagne-card-actions .dm-btn {
-  width: 32px; height: 32px; padding: 0; line-height: 1;
-}
+/* Geen vaste maat meer: die was voor het oude pijltje-zonder-tekst, en kneep de
+   knop "Openen" dicht zodat het woord over de badge ernaast liep. */
+.campagne-card-actions .dm-btn { text-decoration: none; }
 
 .campagne-active-badge {
   color: #8a6320;
