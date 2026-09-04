@@ -22108,3 +22108,33 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
   .landing-pw-input--dm { width: 100%; text-align: center; }
   .landing-toegang .landing-pw-error { text-align: right; }
 }
+
+/* ── Dobbelknop op een telefoon: een schuifje, geen bal ────────────────────
+   Een ronde knop van 38px in de hoek eet ruimte op een scherm waar toch al
+   weinig plek is, en hij ligt boven op wat je aan het lezen bent. Op smalle
+   schermen wordt het daarom een tabje tegen de rechterrand: half zo breed,
+   plakt aan de zijkant, en het icoon staat er nog gewoon in. */
+@media (max-width: 640px) {
+  .dice-fab, .dm-dice-fab {
+    bottom: auto;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 54px;
+    border-radius: 10px 0 0 10px;
+    border-right: 0;
+    font-size: 0.9rem;
+    opacity: .82;
+  }
+  /* De DM heeft twee knoppen; die van hem staat onder de spelersknop in plaats
+     van ernaast, want naast elkaar past niet op 26px. */
+  .dm-dice-fab { right: 0; top: calc(50% + 62px); }
+  .dice-fab:hover, .dm-dice-fab:hover,
+  .dice-fab:active, .dm-dice-fab:active {
+    transform: translateY(-50%) scale(1);
+    opacity: 1;
+  }
+  .dm-dice-fab:hover, .dm-dice-fab:active { transform: translateY(-50%) scale(1); }
+  .dice-fab svg, .dm-dice-fab svg { margin-top: 0; }
+}
