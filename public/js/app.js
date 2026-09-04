@@ -1068,6 +1068,7 @@ function dmToggleClick() {
 
 function hideLanding() {
   document.getElementById('landing-overlay')?.classList.add('hidden');
+  document.body.classList.remove('landing-open');
 }
 
 // Met meer dan een handvol portretten past de kiezer op een telefoon niet meer
@@ -1098,6 +1099,9 @@ async function showLanding({ alleenGroep = null } = {}) {
 
   // Reset animatieklassen + eventuele overgebleven zoom-cirkel van vorige sessie
   overlay.classList.remove('hidden', 'landing-overlay--dimming', 'landing-overlay--out');
+  // Zet de pagina eronder vast. Op een telefoon rekt de scroll door tot in het
+  // document, en dan schoof de app onder de landingspagina vandaan in beeld.
+  document.body.classList.add('landing-open');
   document.getElementById('landing-zoom')?.remove();
 
   // Titels uit meta
@@ -1417,6 +1421,7 @@ async function _landingStartZoom(charId, portraitEl, hasVideo = false) {
   await new Promise(r => setTimeout(r, 400));
 
   landingOverlay?.classList.add('hidden');
+  document.body.classList.remove('landing-open');
   zoom.remove();
 }
 
