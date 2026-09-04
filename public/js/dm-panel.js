@@ -9903,15 +9903,28 @@ window._instGroepCreate = async () => {
 };
 
 window._instGroepRename = async (id, naam) => {
-  if (!naam?.trim()) return;
+  const nieuw = naam?.trim();
+  if (!nieuw) return;
   try {
-    await api.updateGroup(id, naam.trim());
+    await api.updateGroup(id, nieuw);
+    // De naam staat op twee plekken in dit paneel: bij de party zelf en als
+    // label boven haar wachtwoord in Beheer. Die tweede liep achter tot een
+    // herlaadbeurt; hertekenen zou de rest van het formulier wegvagen, dus we
+    // werken alleen dat label bij.
+    const label = document.querySelector(`label[for="pw-${id}"]`);
+    if (label) label.textContent = nieuw;
   } catch (err) { alert('Hernoemen mislukt: ' + err.message); }
 };
 
 window._instGroepSetPw = async (id, pw) => {
   try {
-    await api.setGroupPassword(id, pw.trim());
+    const r = await api.setGroupPassword(id, pw.trim());
+    const veld = document.getElementById(`pw-${id}`);
+    if (veld) { veld.value = ''; veld.placeholder = pw.trim() ? 'Wachtwoord wijzigen…' : 'Wachtwoord instellen…'; }
+    // Het slotje bij de party hoort mee te bewegen.
+    const slot = document.querySelector(`#dm-inst-group-${id} .dm-inst-group-slot`);
+    if (slot) slot.innerHTML = pw.trim() ? icon('lock') : icon('lock-open');
+    return r;
   } catch (err) { alert('Wachtwoord instellen mislukt: ' + err.message); }
 };
 
