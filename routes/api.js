@@ -3839,7 +3839,10 @@ router.put('/dm-wachtwoord', requireDM, (req, res) => {
   const eigen = req.session?.campaignId || storage.getActiveCampaignId();
   const dm = readDmState();
   if (!nieuw.trim()) {
-    if (eigen !== storage.getActiveCampaignId()) {
+    // Leegmaken mag alleen in de beheercampagne: die valt terug op DM_PASSWORD
+    // uit de omgeving. Elke andere campagne zou zonder wachtwoord onbereikbaar
+    // worden. Bewust niet de *actieve* campagne — die is instelbaar.
+    if (eigen !== config.beheerCampagne) {
       return res.status(400).json({ error: 'Deze campagne moet een eigen DM-wachtwoord houden' });
     }
     delete dm.dmPassword;

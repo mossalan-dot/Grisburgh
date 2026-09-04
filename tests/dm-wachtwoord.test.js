@@ -94,6 +94,20 @@ describe('DM-wachtwoord per campagne', () => {
     assert.equal(nogmaals.body.rol, 'dm', 'en werkt daarna nog steeds');
   });
 
+  it('houdt het serverwachtwoord aan de beheercampagne, niet aan de standaard', async () => {
+    // Een andere campagne als standaard aanwijzen zette je buiten je eigen
+    // campagne: die viel dan niet meer terug op DM_PASSWORD.
+    const dmState = path.join(CAMPAGNES, 'grisburgh', 'dm-state.json');
+    const bewaard = JSON.parse(fs.readFileSync(dmState, 'utf8'));
+    delete bewaard.dmPassword;                       // terug naar de env-terugval
+    fs.writeFileSync(dmState, JSON.stringify(bewaard, null, 2));
+
+    await req(server, 'PUT', '/api/campaigns/active', { id: 'tweede' }, dm);
+    const r = await req(server, 'POST', '/api/auth/toegang',
+      { campagne: 'grisburgh', wachtwoord: 'grisburgh-dm' });
+    assert.equal(r.body.rol, 'dm', 'de beheercampagne blijft bereikbaar');
+  });
+
   it('laat een tweede campagne niet zonder wachtwoord achter', async () => {
     const tweedeDm = (await req(server, 'POST', '/api/auth/login', { campagne: 'tweede', password: 'leesbaar-gezet' })).cookie;
     const r = await req(server, 'PUT', '/api/dm-wachtwoord', { wachtwoord: '' }, tweedeDm);

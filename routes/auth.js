@@ -66,9 +66,12 @@ function _dmWachtwoordVan(campagne) {
     try { eigen = storage.readJSON('dm-state.json').dmPassword || null; } catch { /* ok */ }
   });
   if (eigen) return eigen;
-  // Alleen de standaardcampagne valt terug op DM_PASSWORD uit de omgeving,
-  // zodat de bestaande login blijft werken tot daar een eigen wachtwoord staat.
-  return campagne === storage.getActiveCampaignId() ? config.dmPassword : null;
+  // Alleen de beheercampagne valt terug op DM_PASSWORD uit de omgeving, zodat
+  // de bestaande login blijft werken tot daar een eigen wachtwoord staat.
+  // Bewust `config.beheerCampagne` en niet de *actieve* campagne: die is
+  // instelbaar, dus zou het aanwijzen van een andere standaard je buiten je
+  // eigen campagne zetten — precies wat er gebeurde toen "Test" standaard werd.
+  return campagne === config.beheerCampagne ? config.dmPassword : null;
 }
 
 // Controleer én werk zo nodig bij: een leesbaar wachtwoord wordt na een
