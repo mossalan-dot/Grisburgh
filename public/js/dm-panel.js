@@ -9583,7 +9583,8 @@ async function _renderInstellingen() {
       <span class="dm-inst-group-slot" title="${g.hasPassword ? 'Er is een wachtwoord ingesteld — wijzigen doe je bij Beheer' : 'Nog geen wachtwoord — instellen doe je bij Beheer'}">
         ${icon(g.hasPassword ? 'lock' : 'lock-open')}</span>
       <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
-        onclick="window._instGroepDelete('${esc(g.id)}')" title="Party verwijderen">${icon('trash')}</button>
+        onclick="window._instGroepDelete('${esc(g.id)}', '${escJS(g.name)}', ${alleSpelers.filter(e => e.data?.groep === g.id).length})"
+        title="Party verwijderen">${icon('trash')}</button>
     </div>
     ${aanwezigheidHtml(g)}`).join('');
 
@@ -9960,8 +9961,25 @@ window._instGroepSetPw = async (id, pw) => {
   } catch (err) { alert('Wachtwoord instellen mislukt: ' + err.message); }
 };
 
-window._instGroepDelete = async (id) => {
-  if (!confirm('Weet je zeker dat je deze party wilt verwijderen? Alle spelerssessies in deze party worden beëindigd.')) return;
+// Een party is meer dan een naam: alles wat zíj weet en bezit hangt eraan.
+// Daarom staat in de vraag wat er precies verdwijnt — "weet je het zeker?"
+// zonder inhoud is geen waarschuwing.
+window._instGroepDelete = async (id, naam = '', leden = 0) => {
+  const regels = [
+    `Party "${naam || id}" verwijderen?`,
+    '',
+    'Hiermee verdwijnt wat déze party had:',
+    '· wie welk voorwerpkaartje bezit',
+    '· welke geheimen, documenten en facties al onthuld waren',
+    '· haar wachtwoord, gedeelde beurs en dienstentoegang',
+    '',
+    leden
+      ? `${leden} ${leden === 1 ? 'personage blijft' : 'personages blijven'} bestaan, maar ${leden === 1 ? 'hoort' : 'horen'} daarna bij geen enkele party meer.`
+      : 'Er hangen geen personages aan deze party.',
+    '',
+    'Dit kan niet ongedaan worden gemaakt.',
+  ];
+  if (!confirm(regels.join('\n'))) return;
   try {
     await api.deleteGroup(id);
     _renderInstellingen();

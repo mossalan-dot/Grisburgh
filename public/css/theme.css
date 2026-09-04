@@ -22052,8 +22052,11 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
    de bedragen en staan ze bovendien gecentreerd. */
 .dm-munt-rij {
   display: flex; flex-direction: row; justify-content: flex-start;
-  align-items: center; gap: 12px; flex-wrap: wrap;
+  /* Uitlijnen op de onderkant: de velden dragen een label bovenop, dus met
+     `center` zweefde de knop ernaast tussen label en invoervak in. */
+  align-items: flex-end; gap: 12px; flex-wrap: wrap;
 }
+.dm-munt-rij > .dm-btn { margin-bottom: 1px; }
 /* Label bóven het bedrag, zoals bij de andere velden in dit paneel. */
 .dm-munt-veld { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
 .dm-munt-veld > span {
