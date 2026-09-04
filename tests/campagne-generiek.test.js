@@ -98,3 +98,65 @@ describe('Een tweede campagne blijft van zichzelf', () => {
     assert.match(String(ander.body), /<title>Grisburgh<\/title>/);
   });
 });
+
+describe('Openingspagina met alle campagnes', () => {
+  let server, io, storage, dm;
+
+  before(async () => {
+    process.env.GRISBURGH_DATA_DIR = DATA_DIR + '-overzicht';
+    if (fs.existsSync(DATA_DIR + '-overzicht')) fs.rmSync(DATA_DIR + '-overzicht', { recursive: true, force: true });
+    for (const m of ['../server', '../lib/storage', '../routes/api', '../routes/auth']) delete require.cache[require.resolve(m)];
+    const mod = require('../server');
+    server = mod.server; io = mod.io;
+    storage = require('../lib/storage');
+    await new Promise(r => server.listen(0, r));
+    storage.createCampaign('vestingveen', { appTitle: 'Vestingveen', appSubtitle: 'Een veen vol geheimen' });
+    storage.createCampaign('stilzwijgen', { appTitle: 'Stilzwijgen' });
+    dm = (await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
+  });
+
+  after(async () => {
+    await io.close();
+    await new Promise(r => server.close(r));
+    fs.rmSync(DATA_DIR + '-overzicht', { recursive: true, force: true });
+  });
+
+  it('noemt elke campagne bij naam, zonder inloggen', async () => {
+    const r = await req(server, 'GET', '/api/campagnes');
+    assert.equal(r.status, 200);
+    const namen = r.body.map(c => c.titel);
+    assert.ok(namen.includes('Vestingveen') && namen.includes('Stilzwijgen'), 'alle campagnes staan erin');
+    assert.equal(r.body.find(c => c.id === 'vestingveen').ondertitel, 'Een veen vol geheimen');
+    assert.ok(!JSON.stringify(r.body).includes('password'), 'en niets wat geheim hoort te blijven');
+  });
+
+  it('laat een DM zichzelf eruit halen', async () => {
+    fs.writeFileSync(path.join(DATA_DIR + '-overzicht', 'campaigns', 'vestingveen', 'dm-state.json'),
+      JSON.stringify({ dmPassword: 'vestingveen-dm', groups: {} }, null, 2));
+    const eigen = (await req(server, 'POST', '/api/auth/login', { campagne: 'vestingveen', password: 'vestingveen-dm' })).cookie;
+    assert.ok(eigen, 'de DM van Vestingveen is ingelogd');
+
+    const uit = await req(server, 'PUT', '/api/meta/app', { inOverzicht: false }, eigen);
+    assert.equal(uit.body.inOverzicht, false);
+
+    const lijst = (await req(server, 'GET', '/api/campagnes')).body.map(c => c.id);
+    assert.ok(!lijst.includes('vestingveen'), 'wie zich verbergt staat er niet meer in');
+    assert.ok(lijst.includes('stilzwijgen'), 'de rest wel');
+
+    // En hij blijft gewoon bereikbaar op zijn eigen pad.
+    const eigenPad = await req(server, 'GET', '/vestingveen');
+    assert.match(String(eigenPad.body), /<title>Vestingveen<\/title>/);
+  });
+
+  it('serveert de keuzepagina op het kale domein', async () => {
+    const r = await req(server, 'GET', '/');
+    assert.equal(r.status, 200);
+    assert.match(String(r.body), /<title>Campagnes<\/title>/);
+  });
+
+  it('stuurt het tafelscherm nog wel door', async () => {
+    const r = await req(server, 'GET', '/?display=1');
+    assert.equal(r.status, 302, 'een bladwijzer met ?display=1 hoort in de campagne te landen');
+    assert.match(r.body, /grisburgh\?display=1/);
+  });
+});

@@ -183,7 +183,7 @@
         <button id="dm-logout-btn" onclick="window.app.dmLogout()" title="Uitloggen als DM"
           class="app-header-icon-btn app-header-icon-btn--danger hidden"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-x"/></svg></button>
         <!-- Spelerwisselknop → terug naar landingspagina -->
-        <button id="player-switch-btn" onclick="window.app.showLanding()" title="Wissel van karakter"
+        <button id="player-switch-btn" onclick="window.app.playerLogoutVraag()" title="Uitloggen / ander personage kiezen"
           class="app-player-switch-btn hidden"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-user"/></svg></button>
       </div>
     </header>
@@ -551,6 +551,6 @@
   </div>
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=573"></script>
+  <script type="module" src="/js/app.js?v=574"></script>
 </body>
 </html>

@@ -9611,6 +9611,12 @@ async function _renderInstellingen() {
         <input id="inst-app-subtitle" class="dm-input" value="${esc(meta.appSubtitle || '')}" placeholder="Ondertitel (optioneel)">
       </div>
       <div class="dm-form-row">
+        <label class="dm-module-item" title="Op grisburgh.nl staat een keuzepagina met alle campagnes">
+          <input type="checkbox" id="inst-in-overzicht" ${meta.inOverzicht === false ? '' : 'checked'}>
+          <span>Toon deze campagne op de openingspagina</span>
+        </label>
+      </div>
+      <div class="dm-form-row">
         <button class="dm-btn dm-btn-primary" onclick="window._instTitelSave()" title="Opslaan">${icon('save')}</button>
         <span id="inst-titel-status" class="bericht-status hidden" style="margin-left:8px"></span>
       </div>
@@ -9732,7 +9738,8 @@ window._instTitelSave = async () => {
   const subtitle = document.getElementById('inst-app-subtitle')?.value.trim();
   const status   = document.getElementById('inst-titel-status');
   try {
-    await api.saveAppMeta({ appTitle: title, appSubtitle: subtitle });
+    const inOverzicht = document.getElementById('inst-in-overzicht')?.checked !== false;
+    await api.saveAppMeta({ appTitle: title, appSubtitle: subtitle, inOverzicht });
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     window.app?.applyAppMeta?.();

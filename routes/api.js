@@ -5176,9 +5176,10 @@ router.put('/meta/app', requireDM, (req, res) => {
       String(req.body.currency[sleutel] ?? '').trim().slice(0, 24) || storage.MUNT_STANDAARD[sleutel],
     ]));
   }
+  if (typeof req.body.inOverzicht === 'boolean') meta.inOverzicht = req.body.inOverzicht;
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
-  res.json({ appTitle: meta.appTitle, appSubtitle: meta.appSubtitle, currency: meta.currency });
+  res.json({ appTitle: meta.appTitle, appSubtitle: meta.appSubtitle, currency: meta.currency, inOverzicht: meta.inOverzicht !== false });
 });
 
 router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {
@@ -6778,6 +6779,22 @@ router.get('/export/campagneboek', requireDM, async (req, res) => {
 });
 
 // ── Campagnes ──
+
+// Alle campagnes die zich laten zien, voor de keuzepagina op het kale domein.
+// Publiek, want niemand is daar al ingelogd — vandaar alleen naam en ondertitel,
+// geen ids van groepen of personages. Een DM die er liever niet in staat zet
+// `inOverzicht` uit; zijn campagne blijft gewoon bereikbaar via de directe link.
+router.get('/campagnes', (req, res) => {
+  const lijst = storage.listCampaigns()
+    .map(c => storage.runInCampaign(c.id, () => {
+      const meta = storage.readJSON('meta.json');
+      if (meta.inOverzicht === false) return null;
+      return { id: c.id, titel: meta.appTitle || c.id, ondertitel: meta.appSubtitle || '' };
+    }))
+    .filter(Boolean)
+    .sort((a, b) => a.titel.localeCompare(b.titel, 'nl'));
+  res.json(lijst);
+});
 
 // Welke campagne kijkt deze bezoeker? Publiek, want de landingspagina heeft het
 // nodig voordat er iemand is ingelogd. Volgorde: je sessie, anders het pad in de

@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=20';
 import { renderSpreuken } from './render-spreuken.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=59";
-import { initDmPanel } from "./dm-panel.js?v=176";
+import { initDmPanel } from "./dm-panel.js?v=177";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -154,6 +154,7 @@ window.app = {
   closePlayerPicker,
   playerLogin,
   playerLogout,
+  playerLogoutVraag,
   toggleArchiefMenu,
   closeArchiefMenu,
   toggleDienstenMenu,
@@ -1356,6 +1357,16 @@ async function playerLogin(characterId) {
   } catch (err) {
     alert('Inloggen mislukt: ' + err.message);
   }
+}
+
+// Vanaf de knop rechts in de kop: eerst vragen, dan pas weg. Zonder die vraag
+// stond je met één misklik op de landingspagina — en dat vóélt als uitloggen,
+// ook toen de sessie technisch nog leefde.
+async function playerLogoutVraag() {
+  const naam = state.playerName || 'dit personage';
+  if (!confirm(`Uitloggen als ${naam}?\n\nJe komt terug op de landingspagina en moet opnieuw een personage kiezen.`)) return;
+  await playerLogout();
+  await showLanding();
 }
 
 async function playerLogout() {

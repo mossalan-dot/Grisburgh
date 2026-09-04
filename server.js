@@ -97,7 +97,12 @@ app.get('/', (req, res, next) => {
   const doel = storage.getActiveCampaignId();
   if (!doel) return next();
   const vraag = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
-  res.redirect(302, `/${doel}${vraag}`);
+  // Mét querystring blijft het doorsturen: het tafelscherm staat als
+  // `?display=1` in een bladwijzer en hoort niet ineens op een keuzepagina te
+  // belanden. Zonder querystring krijg je het overzicht van de campagnes.
+  if (vraag) return res.redirect(302, `/${doel}${vraag}`);
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.sendFile(path.join(__dirname, 'public', 'overzicht.html'));
 });
 
 // De PWA-manifest per campagne: naam en startpad volgen de campagne, zodat een
