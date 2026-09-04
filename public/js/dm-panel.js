@@ -9762,7 +9762,7 @@ async function _renderInstellingen() {
     <div class="dm-feature-section">
       <div class="dm-section-label">Export &amp; backup</div>
       <div class="dm-feature-row" style="gap:8px;flex-wrap:wrap">
-        <a href="/api/export" download class="dm-btn"
+        <a href="/api/export" download class="dm-btn dm-btn-ghost"
           title="HTML-overzicht van alle spelersdata en entities">${icon('download')} Snapshot</a>
         <a href="/api/export/campagneboek" download class="dm-btn dm-btn-ghost"
           title="Narratief document van de campagne">${icon('book-open')} Campagneboek</a>
