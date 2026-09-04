@@ -136,8 +136,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=411   app.js?v=564   sound-manager.js?v=8
-app.js      : api.js?v=252      render-campagne.js?v=124   render-archief.js?v=73
+index.html  : theme.css?v=412   app.js?v=565   sound-manager.js?v=8
+app.js      : api.js?v=253      render-campagne.js?v=124   render-archief.js?v=74
               render-kaart.js?v=18  render-dungeon.js?v=33  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
@@ -300,6 +300,21 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > geldt de instelling van de laatst gespeelde akte — `activeAkte` wordt nooit
 > leeggemaakt. Client: `window._dienstDicht(key)` en `window._entiteitDicht(id)`;
 > de DM ziet altijd alles.
+
+> **Verhaaltekst per akte.** De lopende tekst van een hoofdstuk staat in
+> `meta.hoofdstukken[key].tekst` en verschijnt als sectie **Verhaal** boven het
+> regie-script in de Aktes-tab. Twee wegen naar binnen: een `.md` inlezen (de
+> **browser** leest het bestand en stuurt de tekst, dus geen aparte upload-route)
+> of plakken met het potlood. Endpoint: `PUT /meta/akte/:key/tekst`.
+> **De `[[ ]]` zijn niet alleen opmaak.** `GET /meta/akte/:key/namen` haalt de
+> wikilinks uit de tekst en zegt per naam: heeft hij een **kaartje**
+> (`entities.json` + documenten, genormaliseerd via `_impNorm`), en is hij
+> **nieuw** of **terugkerend** — dat laatste door te vergelijken met de teksten
+> van alle aktes met een lager `num`. Een alias (`[[Naam|zoals getoond]]`) en een
+> dubbele vermelding tellen als één naam. Namen zonder kaartje krijgen in de
+> namenrij een keuzelijstje om er meteen een aan te maken.
+> Dit is ook de opstap naar het afleiden van `entity.links` uit de teksten (nog
+> te doen; zie de valkuil bij de Verbindingen-tab hieronder).
 
 > **Verdiepingen in een dungeon.** Een kaart kan een `verdieping` hebben
 > (0 = begane grond, negatief = kelder; leeg = hoort niet bij een gebouw met

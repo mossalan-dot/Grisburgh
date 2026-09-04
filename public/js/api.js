@@ -330,6 +330,9 @@ export const api = {
   lootCancel:       ()        => request('/combat/loot',                { method: 'DELETE' }),
   // Loot-events: de bibliotheek van vondsten die een lootfase kan vullen.
   // Per akte: wat is er níét bereikbaar (diensten + winkels).
+  // Verhaaltekst per akte + de namen die eruit volgen.
+  saveAkteTekst:  (key, tekst) => request(`/meta/akte/${encodeURIComponent(key)}/tekst`, { method: 'PUT', body: JSON.stringify({ tekst }) }),
+  akteNamen:      (key)        => request(`/meta/akte/${encodeURIComponent(key)}/namen`),
   saveAkteBereikbaarheid: (key, data) => request(`/meta/akte/${encodeURIComponent(key)}/bereikbaarheid`, { method: 'PUT', body: JSON.stringify(data) }),
   lootEvents:       ()        => request('/loot/events'),
   lootEventCreate:  (data)    => request('/loot/events',                { method: 'POST',   body: JSON.stringify(data) }),

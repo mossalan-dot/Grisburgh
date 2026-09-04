@@ -1,4 +1,4 @@
-import { api } from './api.js?v=252';
+import { api } from './api.js?v=253';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -1224,9 +1224,122 @@ const GRIP_SVG = `<svg width="10" height="16" viewBox="0 0 10 16" fill="currentC
 
 function _renderAkteScript(ch, info, chEntries) {
   return `<div class="logboek-chapter-script dm-only" id="logboek-script-section-${esc(ch)}">
+    ${_verhaalSectieHtml(ch, info)}
     ${_renderAkteScriptInner(ch, info, chEntries)}
   </div>`;
 }
+
+// ── Verhaaltekst per akte ───────────────────────────────────────────────────
+// De lopende tekst van het hoofdstuk. Twee wegen naar binnen: een .md-bestand
+// (de browser leest 'm en stuurt de tekst door) of gewoon plakken. De [[ ]]
+// erin zijn niet alleen opmaak: daaruit leiden we af wie er in deze akte
+// voorkomt, wie nieuw is en wie nog geen kaartje heeft.
+const _verhaalOpen = new Set();     // welke aktes staan in bewerk-stand
+const _verhaalNamen = {};           // ch → namenlijst van de server
+
+function _verhaalSectieHtml(ch, info) {
+  const tekst  = info.tekst || '';
+  const bewerk = _verhaalOpen.has(ch);
+  const namen  = _verhaalNamen[ch];
+
+  const namenHtml = namen === undefined
+    ? (tekst ? '<p class="dm-hint">Namen ophalen…</p>' : '')
+    : !namen.length
+      ? '<p class="dm-hint">Geen [[namen]] in deze tekst.</p>'
+      : `<div class="verhaal-namen">${namen.map(n => `
+          <span class="verhaal-naam${n.kaartje ? '' : ' verhaal-naam--geen'}${n.nieuw ? ' verhaal-naam--nieuw' : ''}">
+            ${n.kaartje
+              ? `<button class="verhaal-naam-knop" onclick="window._openDetail('${esc(n.entityType)}','${esc(n.entityId)}')" title="Kaartje openen">${esc(n.naam)}</button>`
+              : `<span class="verhaal-naam-tekst">${esc(n.naam)}</span>
+                 <select class="verhaal-naam-maak" title="Kaartje aanmaken als…"
+                   onchange="window._verhaalMaakKaartje('${esc(ch)}','${esc(n.naam)}', this.value)">
+                   <option value="">+</option>
+                   <option value="personages">Personage</option>
+                   <option value="locaties">Locatie</option>
+                   <option value="organisaties">Organisatie</option>
+                   <option value="voorwerpen">Voorwerp</option>
+                 </select>`}
+            <span class="verhaal-naam-tag">${n.nieuw ? 'nieuw' : 'terug'}</span>
+          </span>`).join('')}</div>`;
+
+  return `
+    <div class="logboek-verhaal" id="logboek-verhaal-${esc(ch)}">
+      <div class="logboek-script-header">
+        <span class="logboek-script-title">${icon('book-open')} Verhaal</span>
+        <div class="logboek-script-add-btns">
+          <label class="script-add-btn" title="Markdown-bestand inlezen">
+            ${icon('folder-open')}
+            <input type="file" accept=".md,text/markdown,text/plain" style="display:none"
+              onchange="window._verhaalUpload('${esc(ch)}', this.files[0], this)">
+          </label>
+          <button class="script-add-btn${bewerk ? ' is-active' : ''}" title="${bewerk ? 'Bewerken sluiten' : 'Tekst bewerken'}"
+            onclick="window._verhaalToggle('${esc(ch)}')">${icon('pencil')}</button>
+        </div>
+      </div>
+      ${bewerk ? `
+        <textarea class="verhaal-editor" id="verhaal-ta-${esc(ch)}"
+          placeholder="Plak hier het hoofdstuk. Verwijs naar kaartjes met [[Naam]].">${esc(tekst)}</textarea>
+        <div class="dm-feature-row" style="margin-top:6px">
+          <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._verhaalOpslaan('${esc(ch)}')">${icon('save')} Opslaan</button>
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._verhaalToggle('${esc(ch)}')">${icon('x')}</button>
+        </div>
+      ` : tekst
+        ? `<div class="verhaal-tekst">${mdToHtml(tekst)}</div>${namenHtml}`
+        : `<p class="dm-hint">Nog geen tekst. Lees een .md in of plak het hoofdstuk met het potlood.</p>`}
+    </div>`;
+}
+
+window._verhaalToggle = (ch) => {
+  if (_verhaalOpen.has(ch)) _verhaalOpen.delete(ch); else _verhaalOpen.add(ch);
+  _refreshScriptSection(ch);
+};
+
+window._verhaalOpslaan = async (ch) => {
+  const ta = document.getElementById(`verhaal-ta-${ch}`);
+  if (!ta) return;
+  await _verhaalBewaar(ch, ta.value);
+  _verhaalOpen.delete(ch);
+  _refreshScriptSection(ch);
+};
+
+window._verhaalUpload = async (ch, file, invoer) => {
+  if (!file) return;
+  // De browser leest het bestand; de server krijgt gewoon tekst binnen. Zo is er
+  // geen aparte upload-route nodig en zie je meteen wat erin staat.
+  const tekst = await file.text();
+  await _verhaalBewaar(ch, tekst);
+  if (invoer) invoer.value = '';
+  _refreshScriptSection(ch);
+};
+
+async function _verhaalBewaar(ch, tekst) {
+  try {
+    await api.saveAkteTekst(ch, tekst);
+    if (!meta.hoofdstukken) meta.hoofdstukken = {};
+    if (!meta.hoofdstukken[ch]) meta.hoofdstukken[ch] = {};
+    meta.hoofdstukken[ch].tekst = tekst;
+    delete _verhaalNamen[ch];
+    _verhaalLaadNamen(ch);
+  } catch (e) { alert('Opslaan mislukt: ' + e.message); }
+}
+
+async function _verhaalLaadNamen(ch) {
+  try {
+    _verhaalNamen[ch] = (await api.akteNamen(ch)).namen || [];
+  } catch { _verhaalNamen[ch] = []; }
+  _refreshScriptSection(ch);
+}
+
+// Een genoemde naam die nog geen kaartje heeft: meteen aanmaken tijdens het
+// voorbereiden, in plaats van het later terug te moeten zoeken.
+window._verhaalMaakKaartje = async (ch, naam, type) => {
+  if (!type) return;
+  try {
+    await api.createEntity(type, { name: naam });
+    delete _verhaalNamen[ch];
+    _verhaalLaadNamen(ch);
+  } catch (e) { alert('Aanmaken mislukt: ' + e.message); }
+};
 
 function _renderAkteScriptInner(ch, info, chEntries) {
   const script = info.script || [];
@@ -1466,7 +1579,10 @@ function _refreshScriptSection(ch) {
   if (!container) return;
   const info      = meta?.hoofdstukken?.[ch] || {};
   const chEntries = (archiefData.sessieLog || []).filter(e => e.hoofdstuk === ch);
-  container.innerHTML = _renderAkteScriptInner(ch, info, chEntries);
+  container.innerHTML = _verhaalSectieHtml(ch, info) + _renderAkteScriptInner(ch, info, chEntries);
+  // Namen pas ophalen als er tekst is en we ze nog niet hebben; _verhaalLaadNamen
+  // tekent daarna opnieuw.
+  if (info.tekst && _verhaalNamen[ch] === undefined) _verhaalLaadNamen(ch);
 }
 
 // ── Geluid bij een reveal (per script-item: scène of upload + loop) ──
@@ -1617,7 +1733,10 @@ window._scriptPreviewSound = (fileId, btn) => {
 window._akteScriptHtml = (ch) => {
   const info      = meta?.hoofdstukken?.[ch] || {};
   const chEntries = (archiefData.sessieLog || []).filter(e => e.hoofdstuk === ch);
-  return _renderAkteScriptInner(ch, info, chEntries);
+  // Namen ophalen zodra de akte in beeld komt; _verhaalLaadNamen tekent daarna
+  // de sectie opnieuw.
+  if (info.tekst && _verhaalNamen[ch] === undefined) _verhaalLaadNamen(ch);
+  return _verhaalSectieHtml(ch, info) + _renderAkteScriptInner(ch, info, chEntries);
 };
 // Laad archief-data + meta zodat de akte-functies werken vóór het Logboek bezocht is.
 window._loadAkteData = async () => {

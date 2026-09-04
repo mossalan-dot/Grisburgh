@@ -5032,6 +5032,79 @@ router.put('/meta/akte/:key/script', requireDM, (req, res) => {
   res.json({ script: meta.hoofdstukken[req.params.key].script });
 });
 
+// ── Verhaaltekst per akte ────────────────────────────────────────────────────
+// De lopende tekst van een hoofdstuk hoort bij de akte, niet in het regie-script.
+// Twee wegen naar binnen: een .md uploaden (de client leest het bestand en stuurt
+// de tekst) of het gewoon in de app plakken. Uit de [[wikilinks]] leiden we af
+// wie er in deze akte voorkomt — en dat is meteen de bron voor "nieuw of
+// terugkerend" en "heeft nog geen kaartje".
+router.put('/meta/akte/:key/tekst', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.hoofdstukken) meta.hoofdstukken = {};
+  if (!meta.hoofdstukken[req.params.key]) meta.hoofdstukken[req.params.key] = {};
+  meta.hoofdstukken[req.params.key].tekst = String(req.body.tekst || '').slice(0, 400000);
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  res.json({ ok: true, lengte: meta.hoofdstukken[req.params.key].tekst.length });
+});
+
+// Alle [[namen]] uit een tekst, in de volgorde waarin ze voorkomen en zonder
+// dubbelen. Een alias achter een | telt als dezelfde naam ([[Naam|zoals getoond]]).
+function _wikilinkNamen(tekst) {
+  const uit = [];
+  const gezien = new Set();
+  for (const m of String(tekst || '').matchAll(/\[\[([^\]]+)\]\]/g)) {
+    const naam = m[1].split('|')[0].split('#')[0].trim();
+    if (!naam) continue;
+    const sleutel = _impNorm(naam);
+    if (gezien.has(sleutel)) continue;
+    gezien.add(sleutel);
+    uit.push(naam);
+  }
+  return uit;
+}
+
+// Wie komt er in deze akte voor? Per naam: heeft hij een kaartje, en is hij
+// eerder al genoemd in een akte die vóór deze komt?
+router.get('/meta/akte/:key/namen', requireDM, (req, res) => {
+  const meta       = storage.readJSON('meta.json');
+  const hoofdstukken = meta.hoofdstukken || {};
+  const dit        = hoofdstukken[req.params.key];
+  if (!dit) return res.status(404).json({ error: 'Akte niet gevonden' });
+
+  const entities = storage.readJSON('entities.json');
+  const archief  = storage.readJSON('archief.json');
+  const index    = new Map();   // genormaliseerde naam → {type, id, name}
+  for (const type of ENTITY_TYPES) {
+    for (const e of (entities[type] || [])) index.set(_impNorm(e.name), { type, id: e.id, name: e.name });
+  }
+  for (const d of (archief.documents || [])) {
+    if (!index.has(_impNorm(d.title))) index.set(_impNorm(d.title), { type: 'documenten', id: d.id, name: d.title });
+  }
+
+  // "Eerder" = elke akte met een lager nummer. Aktes zonder nummer tellen niet
+  // mee: die staan buiten de volgorde.
+  const nu = Number(dit.num);
+  const eerder = new Set();
+  for (const [k, h] of Object.entries(hoofdstukken)) {
+    if (k === req.params.key) continue;
+    if (!Number.isFinite(Number(h.num)) || !Number.isFinite(nu) || Number(h.num) >= nu) continue;
+    for (const naam of _wikilinkNamen(h.tekst)) eerder.add(_impNorm(naam));
+  }
+
+  const namen = _wikilinkNamen(dit.tekst).map(naam => {
+    const treffer = index.get(_impNorm(naam));
+    return {
+      naam,
+      entityType: treffer?.type || null,
+      entityId:   treffer?.id   || null,
+      kaartje:    !!treffer,
+      nieuw:      !eerder.has(_impNorm(naam)),
+    };
+  });
+  res.json({ namen, tekstLengte: (dit.tekst || '').length });
+});
+
 // De actieve akte is per groep, zodat twee groepen tegelijk middenin een akte
 // kunnen staan. dmState.activeAkte blijft als terugval bestaan voor oudere data
 // (en voor lezers zonder groepscontext).

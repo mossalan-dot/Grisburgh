@@ -1,7 +1,7 @@
 # Ontwerpnotities — vier openstaande wensen
 
-Opgesteld 4 sep 2026. Per punt: wat er al ligt, wat ik zou doen, en wat ik van
-je moet weten. Nog niets gebouwd.
+Opgesteld 4 sep 2026. **Alle vier gebouwd** — dit document blijft staan als
+verantwoording van de keuzes; de werking staat in CLAUDE.md.
 
 ---
 
