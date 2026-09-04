@@ -333,7 +333,7 @@ export const api = {
 
   // Campagnes
   getCampaigns:      ()          => request('/campaigns'),
-  createCampaign:    (id, meta)  => request('/campaigns',        { method: 'POST', body: JSON.stringify({ id, meta }) }),
+  createCampaign:    (id, meta, dmPassword) => request('/campaigns', { method: 'POST', body: JSON.stringify({ id, meta, dmPassword }) }),
   switchCampaign:    (id)        => request('/campaigns/active', { method: 'PUT',  body: JSON.stringify({ id }) }),
   setCampaignModules:(id, modules) => request(`/campaigns/${id}/modules`, { method: 'PUT', body: JSON.stringify({ modules }) }),
   getCampaignMeta:   ()          => request('/campaigns/meta'),

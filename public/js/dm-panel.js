@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=260';
+import { api, huidigeCampagne } from './api.js?v=261';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -4594,6 +4594,9 @@ function _renderCampagnes(el, campaigns, activeCampaign) {
         <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">
         <input id="campagne-new-title"    class="dm-input" placeholder="Naam" style="flex:2;min-width:140px">
         <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
+        <input id="campagne-new-pw" class="dm-input" type="password" autocomplete="new-password"
+          placeholder="DM-wachtwoord (min. 8 tekens)" style="flex:2;min-width:160px"
+          title="Zonder eigen wachtwoord komt niemand in die campagne: alleen de standaardcampagne valt terug op het serverwachtwoord.">
       </div>
       <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
         <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSubmit()" title="Aanmaken">${icon('check')}</button>
@@ -4603,13 +4606,16 @@ function _renderCampagnes(el, campaigns, activeCampaign) {
     </div>`;
 };
 
+// Let op: dit verhuist je niet. Elke campagne heeft haar eigen pad (/naam) en je
+// sessie hoort bij één campagne; "standaard" bepaalt alleen waar het kale domein
+// en een verzoek zónder sessie landen. Wil je erheen: de knop Openen.
 async function _campagneSwitchTo(id) {
-  if (!confirm(`Wil je wisselen naar campagne "${id}"? Alle spelers worden automatisch uitgelogd.`)) return;
+  if (!confirm(`"${id}" de standaardcampagne maken?\n\nDaar komt iemand voortaan uit die grisburgh.nl zonder pad opent. Je blijft zelf gewoon waar je bent.`)) return;
   try {
     await api.switchCampaign(id);
-    // Socket event 'campaign:switched' zorgt voor de rest
+    await _renderInstellingen();
   } catch (err) {
-    alert('Wisselen mislukt: ' + err.message);
+    alert('Instellen mislukt: ' + err.message);
   }
 };
 
@@ -4629,8 +4635,16 @@ async function _campagneSubmit() {
   const errEl    = document.getElementById('campagne-create-error');
   if (!id) { if (errEl) errEl.textContent = 'Vul een ID in.'; return; }
   if (errEl) errEl.textContent = '';
+  const pw = document.getElementById('campagne-new-pw')?.value || '';
+  if (pw && pw.length < 8) { if (errEl) errEl.textContent = 'Kies een DM-wachtwoord van minstens 8 tekens.'; return; }
   try {
-    await api.createCampaign(id, { appTitle: title || id, appSubtitle: subtitle, theme });
+    await api.createCampaign(id, { appTitle: title || id, appSubtitle: subtitle, theme }, pw);
+    // Aangemaakt worden en er niet heen kunnen is een rare uitkomst; dus meteen
+    // de weg wijzen. Openen betekent inloggen met het zojuist gezette wachtwoord.
+    if (confirm(`Campagne "${title || id}" is aangemaakt.\n\nNu openen? Je logt daar in met het wachtwoord dat je net hebt gezet.`)) {
+      location.href = `/${encodeURIComponent(id)}`;
+      return;
+    }
     await _renderInstellingen();
   } catch (err) {
     if (errEl) errEl.textContent = 'Aanmaken mislukt: ' + err.message;
@@ -9588,10 +9602,12 @@ async function _renderInstellingen() {
           <span class="campagne-card-meta">ID: ${esc(c.id)}</span>
         </div>
         <div class="campagne-card-actions">
+          <a class="dm-btn dm-btn-sm" href="/${esc(c.id)}"
+            title="Ga naar deze campagne — je logt daar in met háár DM-wachtwoord">${icon('chevron-right')} Openen</a>
           ${isActive
-            ? '<span class="campagne-active-badge">Actief</span>'
-            : `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSwitchTo('${esc(c.id)}')"
-                 title="Maak dit de standaardcampagne">${icon('play')}</button>`}
+            ? '<span class="campagne-active-badge" title="Hier landen het kale domein en verzoeken zonder sessie">Standaard</span>'
+            : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.campagneSwitchTo('${esc(c.id)}')"
+                 title="Maak dit de standaardcampagne: waar grisburgh.nl naartoe stuurt">Als standaard</button>`}
         </div>
         <details class="dm-modules">
           <summary>Modules</summary>
@@ -9719,6 +9735,9 @@ async function _renderInstellingen() {
             <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">
             <input id="campagne-new-title"    class="dm-input" placeholder="Naam" style="flex:2;min-width:140px">
             <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
+        <input id="campagne-new-pw" class="dm-input" type="password" autocomplete="new-password"
+          placeholder="DM-wachtwoord (min. 8 tekens)" style="flex:2;min-width:160px"
+          title="Zonder eigen wachtwoord komt niemand in die campagne: alleen de standaardcampagne valt terug op het serverwachtwoord.">
           </div>
           <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
             <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSubmit()" title="Aanmaken">${icon('check')}</button>

@@ -188,11 +188,11 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 
 ```
 index.html  : theme.css?v=426   app.js?v=586   sound-manager.js?v=8
-app.js      : api.js?v=260      render-campagne.js?v=128   render-archief.js?v=75
+app.js      : api.js?v=261      render-campagne.js?v=128   render-archief.js?v=75
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=44  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=185    render-dashboard.js?v=9
+              dm-panel.js?v=186    render-dashboard.js?v=9
               render-spreuken.js?v=14   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 ```
@@ -572,6 +572,17 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 ---
 
 ## Authenticatie & rollen
+
+> **"Actieve campagne" is niet waar jij bent.** Sinds elke campagne haar eigen
+> pad heeft (`/grisburgh`), bepaalt `PUT /campaigns/active` alleen nog waar het
+> **kale domein** en een verzoek **zonder sessie** landen — de terugval, verder
+> niets. Je eigen scherm verhuist er niet door mee: daarvoor ga je naar `/naam`
+> (knop *Openen* in het campagneoverzicht) en log je in met het DM-wachtwoord van
+> díé campagne. Het oude `campaign:switched`-event, dat iedereen uitlogde, is weg;
+> dat hoorde bij de tijd dat er één campagne tegelijk kon draaien. Een nieuwe
+> campagne krijgt bij het aanmaken meteen een eigen DM-wachtwoord mee
+> (`POST /campaigns` met `dmPassword`), anders kan niemand erin — alleen de
+> standaardcampagne valt terug op `DM_PASSWORD`.
 
 > **Elke login noemt zijn campagne.** Sinds stap 1 van het multi-DM-plan hoort
 > bij elk inlogverzoek een `campagne`; zonder die naam weet de server niet wiens

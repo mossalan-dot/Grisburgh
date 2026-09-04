@@ -192,3 +192,5 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 21 | 8 | Terug uit tafelscherm vroeg opnieuw inloggen | opgelost — je keert terug naar je eigen scherm, `?display=1` gaat uit de URL |
 | 22 | 1 | De kopbalk klapt niet in en de items vallen over elkaar (o.a. na terugkeer uit tafelscherm) | opgelost — de kop werd gemeten vóórdat Cinzel geladen was, dus paste alles "net"; nu opnieuw meten bij `fonts.ready`, na 400 ms en bij `pageshow` |
 | 23 | 1 | Na uitloggen als speler was de DM-ingang verdwenen | opgelost — een verse landing zet hem terug (dichtgeklapt), en het onthouden groepswachtwoord wordt bij uitloggen gewist |
+| 24 | 8 | De dobbelknop stond op het tafelscherm (sinds de tablet als DM inlogt) | opgelost — beide varianten en het paneel blijven daar verborgen |
+| 25 | 7 | Een nieuwe campagne "activeren" veranderde niets: je bleef in Grisburgh | opgelost — knop *Openen* (naar `/naam`), en "Als standaard" heet nu wat het is: waar het kale domein landt. Aanmaken vraagt meteen een DM-wachtwoord, anders kun je er niet in |

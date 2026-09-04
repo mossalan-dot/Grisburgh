@@ -106,6 +106,27 @@ describe('Modules per campagne', () => {
     assert.equal(eigen.modules.gevecht, true, 'bij de beheerder is er niets veranderd');
   });
 
+  it('geeft een nieuwe campagne meteen een eigen DM-wachtwoord', async () => {
+    const maak = await req(server, 'POST', '/api/campaigns',
+      { id: 'stilzwijgen', meta: { appTitle: 'Stilzwijgen' }, dmPassword: 'stil-en-lang' }, beheerder);
+    assert.equal(maak.status, 201);
+    assert.equal(maak.body.heeftWachtwoord, true);
+
+    const login = await req(server, 'POST', '/api/auth/toegang',
+      { campagne: 'stilzwijgen', wachtwoord: 'stil-en-lang' });
+    assert.equal(login.body.rol, 'dm', 'de DM kan er meteen in');
+
+    const opSchijf = JSON.parse(fs.readFileSync(
+      path.join(DATA_DIR, 'campaigns', 'stilzwijgen', 'dm-state.json'), 'utf8')).dmPassword;
+    assert.ok(opSchijf.startsWith('scrypt$'), 'en het staat gehasht op schijf');
+  });
+
+  it('weigert een te kort wachtwoord bij het aanmaken', async () => {
+    const r = await req(server, 'POST', '/api/campaigns',
+      { id: 'kortje', dmPassword: 'kort' }, beheerder);
+    assert.equal(r.status, 400);
+  });
+
   it('laat de beheerder wel de lijst met modules zien', async () => {
     const r = await req(server, 'GET', '/api/campaigns', null, beheerder);
     assert.equal(r.status, 200);

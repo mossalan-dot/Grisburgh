@@ -6889,18 +6889,32 @@ router.put('/campaigns/:id/modules', requireBeheerder, (req, res) => {
 
 // Nieuwe campagne aanmaken
 router.post('/campaigns', requireBeheerder, (req, res) => {
-  const { id, meta = {} } = req.body;
+  const { id, meta = {}, dmPassword } = req.body;
   if (!id || !/^[a-z0-9_-]+$/i.test(id))
     return res.status(400).json({ error: 'Ongeldige campagne-ID (gebruik alleen letters, cijfers, _ en -)' });
+  const wachtwoord = String(dmPassword || '');
+  if (wachtwoord && wachtwoord.length < 8)
+    return res.status(400).json({ error: 'Kies een DM-wachtwoord van minstens 8 tekens' });
   try {
     storage.createCampaign(id, meta);
-    res.status(201).json({ id, ...meta });
+    // Zonder eigen wachtwoord komt niemand die campagne in: alleen de
+    // standaardcampagne valt terug op DM_PASSWORD uit de omgeving. Daarom hoort
+    // het bij het aanmaken en niet bij een vergeten vervolgstap.
+    if (wachtwoord) {
+      storage.runInCampaign(id, () => {
+        const dm = storage.readJSON('dm-state.json');
+        dm.dmPassword = hashWachtwoord(wachtwoord);
+        storage.writeJSON('dm-state.json', dm);
+      });
+    }
+    res.status(201).json({ id, ...meta, heeftWachtwoord: !!wachtwoord });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Wissel actieve campagne (logt alle spelers uit via socket)
+// Welke campagne is de standaard: waar het kale domein en een verzoek zonder
+// sessie landen. Verandert niets aan wie waar ingelogd is.
 router.put('/campaigns/active', requireBeheerder, (req, res) => {
   const { id } = req.body;
   if (!id) return res.status(400).json({ error: 'id vereist' });
@@ -6910,7 +6924,10 @@ router.put('/campaigns/active', requireBeheerder, (req, res) => {
   storage.setCampaign(id);
   storage.init(); // Herinitialiseer databestanden voor nieuwe campagne
   const meta = storage.readJSON('meta.json');
-  req.app.get('io').to(req.session?.campaignId||'main').emit('campaign:switched', { id, meta });
+  // Geen 'campaign:switched' meer: sinds elke campagne haar eigen pad heeft,
+  // bepaalt dit alleen nog waar het kale domein en een verzoek zónder sessie
+  // landen. Wie in een campagne zit, blijft daar — die uitloggen was een
+  // overblijfsel van toen er één campagne tegelijk kon draaien.
   res.json({ ok: true, activeCampaign: id, meta });
 });
 
