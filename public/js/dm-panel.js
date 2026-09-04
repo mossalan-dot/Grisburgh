@@ -9774,7 +9774,8 @@ async function _renderInstellingen() {
 
     <!-- Eén opslaanknop voor alles hierboven wat niet vanzelf bewaart -->
     <div class="dm-inst-opslaan">
-      <button class="dm-btn dm-btn-primary" onclick="window._instOpslaan()" title="Campagne, munten en beheer opslaan">
+      <button class="dm-btn dm-btn-primary" onclick="window._instOpslaan()"
+        title="Campagne, munten en beheer opslaan — kan ook met Ctrl+S of ⌘S">
         ${icon('save')} Opslaan
       </button>
       <span id="inst-status" class="bericht-status hidden"></span>
@@ -9784,6 +9785,20 @@ async function _renderInstellingen() {
   // Enter in een veld slaat op. Zonder dit gebeurde er niets: de knop staat
   // onderaan, en velden die zichzelf bewaren (party's, campagnes) hebben een
   // eigen onchange — die laten we met rust.
+  // Ctrl+S (of ⌘S) slaat op zolang dit paneel in beeld is. Op document-niveau,
+  // want anders werkt het alleen met de cursor in een veld. De browser wil er
+  // zijn "pagina opslaan"-venster mee openen; dat onderscheppen we.
+  if (!window._instCtrlS) {
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() !== 's' || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+      const paneel = document.getElementById('dm-instellingen-body');
+      if (!paneel || paneel.offsetParent === null) return;   // niet in beeld
+      e.preventDefault();
+      window._instOpslaan();
+    });
+    window._instCtrlS = true;
+  }
+
   if (!body._enterGebonden) {
     body.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
