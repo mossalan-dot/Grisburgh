@@ -56,6 +56,9 @@ export const api = {
   switchGroup:       (groupId)      => request('/groups/active',          { method: 'PUT',    body: JSON.stringify({ groupId }) }),
   updateGroup:       (id, name)     => request(`/groups/${id}`,           { method: 'PUT',    body: JSON.stringify({ name }) }),
   setGroupPassword:  (id, password) => request(`/groups/${id}/password`,  { method: 'PUT',    body: JSON.stringify({ password }) }),
+  // DM-wachtwoord van de eigen campagne (gehasht opgeslagen).
+  dmWachtwoordStatus: ()            => request('/dm-wachtwoord'),
+  dmWachtwoordZet:   (wachtwoord)   => request('/dm-wachtwoord',          { method: 'PUT',    body: JSON.stringify({ wachtwoord }) }),
   // Aanwezigheid voor deze sessie: we sturen wie er NIET is (zie server).
   setAanwezigheid:   (id, afwezig)  => request(`/groups/${id}/aanwezigheid`, { method: 'PUT',  body: JSON.stringify({ afwezig }) }),
   deleteGroup:       (id)           => request(`/groups/${id}`,           { method: 'DELETE' }),

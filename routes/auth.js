@@ -31,16 +31,66 @@ function _zelfdeGeheim(a, b) {
   return crypto.timingSafeEqual(A, B);
 }
 
-// Het DM-wachtwoord van een campagne staat in haar eigen dm-state.json. Alleen
-// de standaardcampagne valt terug op DM_PASSWORD uit de omgeving, zodat de
-// bestaande login blijft werken tot daar een eigen wachtwoord is gezet.
+// ── DM-wachtwoord van een campagne ──────────────────────────────────────────
+// Het staat in haar eigen dm-state.json, **gehasht**. Dat is geen overdaad: de
+// dagelijkse backups nemen die bestanden mee naar een laptop, en daar hoort het
+// wachtwoord van een andere DM niet leesbaar in te staan. Groepswachtwoorden
+// blijven wél leesbaar — die deel je per appje en moet je kunnen opzoeken.
+//
+// Een wachtwoord dat er nog leesbaar staat werkt gewoon, en wordt bij de eerste
+// geslaagde login omgezet naar een hash. Zo hoeft niemand iets te doen.
+const _HASH_PREFIX = 'scrypt$';
+
+function hashWachtwoord(wachtwoord) {
+  const zout = crypto.randomBytes(16);
+  const sleutel = crypto.scryptSync(String(wachtwoord), zout, 32);
+  return `${_HASH_PREFIX}${zout.toString('hex')}$${sleutel.toString('hex')}`;
+}
+
+function _klopWachtwoord(opgeslagen, ingetikt) {
+  if (!opgeslagen) return { ok: false };
+  if (!String(opgeslagen).startsWith(_HASH_PREFIX)) {
+    // Nog leesbaar opgeslagen: vergelijken en daarna omzetten.
+    return { ok: _zelfdeGeheim(ingetikt, opgeslagen), omzetten: true };
+  }
+  const [, zoutHex, sleutelHex] = String(opgeslagen).split('$');
+  try {
+    const sleutel = crypto.scryptSync(String(ingetikt ?? ''), Buffer.from(zoutHex, 'hex'), 32);
+    return { ok: crypto.timingSafeEqual(sleutel, Buffer.from(sleutelHex, 'hex')) };
+  } catch { return { ok: false }; }
+}
+
 function _dmWachtwoordVan(campagne) {
   let eigen = null;
   storage.runInCampaign(campagne, () => {
     try { eigen = storage.readJSON('dm-state.json').dmPassword || null; } catch { /* ok */ }
   });
   if (eigen) return eigen;
+  // Alleen de standaardcampagne valt terug op DM_PASSWORD uit de omgeving,
+  // zodat de bestaande login blijft werken tot daar een eigen wachtwoord staat.
   return campagne === storage.getActiveCampaignId() ? config.dmPassword : null;
+}
+
+// Controleer én werk zo nodig bij: een leesbaar wachtwoord wordt na een
+// geslaagde login een hash.
+function _dmLoginKlopt(campagne, ingetikt) {
+  const opgeslagen = _dmWachtwoordVan(campagne);
+  if (!opgeslagen) return false;
+  const uitslag = _klopWachtwoord(opgeslagen, ingetikt);
+  if (uitslag.ok && uitslag.omzetten) {
+    storage.runInCampaign(campagne, () => {
+      try {
+        const dm = storage.readJSON('dm-state.json');
+        // Alleen omzetten wat écht in dit bestand staat; de env-terugval laten
+        // we met rust (die staat niet in een backup).
+        if (dm.dmPassword && !String(dm.dmPassword).startsWith(_HASH_PREFIX)) {
+          dm.dmPassword = hashWachtwoord(ingetikt);
+          storage.writeJSON('dm-state.json', dm);
+        }
+      } catch { /* ok */ }
+    });
+  }
+  return uitslag.ok;
 }
 
 // ── DM login / logout ──
@@ -48,8 +98,7 @@ function _dmWachtwoordVan(campagne) {
 router.post('/login', (req, res) => {
   const { naam, fout } = _campagneUitBody(req);
   if (fout) return res.status(400).json({ error: fout });
-  const verwacht = _dmWachtwoordVan(naam);
-  if (!verwacht || !_zelfdeGeheim(req.body?.password, verwacht)) {
+  if (!_dmLoginKlopt(naam, req.body?.password)) {
     return res.status(401).json({ error: 'Verkeerd wachtwoord' });
   }
   req.session.role       = 'dm';
@@ -69,8 +118,7 @@ router.post('/toegang', (req, res) => {
   if (fout) return res.status(400).json({ error: fout });
   const wachtwoord = String(req.body?.wachtwoord ?? req.body?.password ?? '');
 
-  const dmPw = _dmWachtwoordVan(naam);
-  if (dmPw && _zelfdeGeheim(wachtwoord, dmPw)) {
+  if (_dmLoginKlopt(naam, wachtwoord)) {
     req.session.role       = 'dm';
     req.session.campaignId = naam;
     delete req.session.playerName;
@@ -252,4 +300,4 @@ function attachRole(req, res, next) {
   next();
 }
 
-module.exports = { router, requireDM, attachRole };
+module.exports = { router, requireDM, attachRole, hashWachtwoord };

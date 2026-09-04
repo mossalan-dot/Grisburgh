@@ -5,7 +5,7 @@ const path    = require('path');
 const { spawn } = require('child_process');
 const storage = require('../lib/storage');
 const mediaUsage = require('../lib/media-usage');
-const { requireDM, attachRole } = require('./auth');
+const { requireDM, attachRole, hashWachtwoord } = require('./auth');
 const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 const { sheetHtml } = require('../lib/character-sheet');
 
@@ -3804,6 +3804,34 @@ router.put('/groups/:id/aanwezigheid', requireDM, (req, res) => {
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').to(req.session?.campaignId||'main').emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
   res.json({ id, afwezig: dmState.groups[id].afwezig });
+});
+
+// ── DM-wachtwoord van de eigen campagne ─────────────────────────────────────
+// Elke DM zet zijn eigen wachtwoord; het wordt gehasht opgeslagen (zie
+// routes/auth.js). Leegmaken mag alleen in de standaardcampagne — die valt dan
+// terug op DM_PASSWORD uit de omgeving. Bij een andere campagne zou leegmaken
+// betekenen dat er niemand meer in kan.
+router.get('/dm-wachtwoord', requireDM, (req, res) => {
+  const dm = readDmState();
+  res.json({ ingesteld: !!dm.dmPassword, gehasht: String(dm.dmPassword || '').startsWith('scrypt$') });
+});
+
+router.put('/dm-wachtwoord', requireDM, (req, res) => {
+  const nieuw = String(req.body?.wachtwoord ?? '');
+  const eigen = req.session?.campaignId || storage.getActiveCampaignId();
+  const dm = readDmState();
+  if (!nieuw.trim()) {
+    if (eigen !== storage.getActiveCampaignId()) {
+      return res.status(400).json({ error: 'Deze campagne moet een eigen DM-wachtwoord houden' });
+    }
+    delete dm.dmPassword;
+    storage.writeJSON('dm-state.json', dm);
+    return res.json({ ingesteld: false });
+  }
+  if (nieuw.length < 8) return res.status(400).json({ error: 'Kies een wachtwoord van minstens 8 tekens' });
+  dm.dmPassword = hashWachtwoord(nieuw);
+  storage.writeJSON('dm-state.json', dm);
+  res.json({ ingesteld: true, gehasht: true });
 });
 
 router.put('/groups/:id/password', requireDM, (req, res) => {

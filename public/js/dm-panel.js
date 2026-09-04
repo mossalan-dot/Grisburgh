@@ -1,4 +1,4 @@
-import { api } from './api.js?v=255';
+import { api } from './api.js?v=256';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=21';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -454,6 +454,7 @@ export function initDmPanel() {
     // Regie-balk
     aanwezigheidToggle:      (groepId, charId) => _aanwezigheidToggle(groepId, charId),
     naarTabletmodus:         () => _naarTabletmodus(),
+    dmWachtwoordOpslaan:     () => _dmWachtwoordOpslaan(),
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
     regieBalkRust:           (id) => _regieBalkRust(id),
@@ -9465,6 +9466,28 @@ async function _aanwezigheidToggle(groepId, charId) {
   }
 }
 
+async function _dmWachtwoordStatus() {
+  const el = document.getElementById('dm-pw-status');
+  if (!el) return;
+  try {
+    const r = await api.dmWachtwoordStatus();
+    el.textContent = r.ingesteld
+      ? (r.gehasht ? 'Er staat een eigen wachtwoord voor deze campagne.' : 'Er staat een wachtwoord, maar nog leesbaar — het wordt versleuteld zodra je opnieuw inlogt.')
+      : 'Nog geen eigen wachtwoord: deze campagne gebruikt het serverwachtwoord.';
+  } catch { el.textContent = ''; }
+}
+
+async function _dmWachtwoordOpslaan() {
+  const veld = document.getElementById('dm-pw-nieuw');
+  if (!veld) return;
+  try {
+    await api.dmWachtwoordZet(veld.value);
+    veld.value = '';
+    await _dmWachtwoordStatus();
+    window.app?.toast?.('DM-wachtwoord opgeslagen');
+  } catch (e) { alert(e.message || 'Opslaan mislukt'); }
+}
+
 // Tabletmodus zonder apart wachtwoord: je bent al ingelogd, dus dit scherm mag
 // zichzelf omzetten. Scheelt een wachtwoord dat op tafel ligt mee te kijken.
 function _naarTabletmodus() {
@@ -9571,6 +9594,17 @@ async function _renderInstellingen() {
       </div>
     </div>
 
+    <!-- DM-wachtwoord -->
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Jouw DM-wachtwoord</div>
+      <p class="dm-hint" id="dm-pw-status">Laden…</p>
+      <div class="dm-form-row">
+        <input id="dm-pw-nieuw" class="dm-input" type="password" placeholder="Nieuw wachtwoord (min. 8 tekens)…" autocomplete="new-password">
+        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.dmWachtwoordOpslaan()" title="Opslaan">${icon('save')}</button>
+      </div>
+      <p class="dm-hint">Geldt alleen voor <strong>deze</strong> campagne. Het wordt versleuteld opgeslagen, zodat het niet leesbaar in een backup terechtkomt.</p>
+    </div>
+
     <!-- Tabletmodus -->
     <div class="dm-feature-section">
       <div class="dm-section-label">Tafelscherm</div>
@@ -9634,6 +9668,7 @@ async function _renderInstellingen() {
   // Render wereld en beurs in de juiste containers
   _renderWereldTab();
   _renderBeursTab();
+  _dmWachtwoordStatus();
 };
 
 window._instTitelSave = async () => {

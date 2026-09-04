@@ -136,12 +136,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=414   app.js?v=569   sound-manager.js?v=8
-app.js      : api.js?v=255      render-campagne.js?v=125   render-archief.js?v=75
+index.html  : theme.css?v=414   app.js?v=570   sound-manager.js?v=8
+app.js      : api.js?v=256      render-campagne.js?v=125   render-archief.js?v=75
               render-kaart.js?v=18  render-dungeon.js?v=33  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=172    render-dashboard.js?v=9
+              dm-panel.js?v=173    render-dashboard.js?v=9
               render-spreuken.js?v=13   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 ```
@@ -518,9 +518,18 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 > **Elke login noemt zijn campagne.** Sinds stap 1 van het multi-DM-plan hoort
 > bij elk inlogverzoek een `campagne`; zonder die naam weet de server niet wiens
 > wachtwoord hij controleert. Een campagne heeft haar eigen DM-wachtwoord in
-> `dm-state.json` (`dmPassword`); alleen de **standaardcampagne** valt terug op
-> `DM_PASSWORD` uit de omgeving, zodat de bestaande login blijft werken tot daar
-> een eigen wachtwoord is gezet. Wachtwoorden worden vergeleken met
+> `dm-state.json` (`dmPassword`), **gehasht met scrypt** (`scrypt$zout$sleutel`)
+> — die bestanden gaan mee in de backups, en daar hoort andermans wachtwoord
+> niet leesbaar in te staan. Een met de hand ingevuld, nog leesbaar wachtwoord
+> werkt gewoon en wordt bij de **eerste geslaagde login** omgezet
+> (`_dmLoginKlopt`). Instellen kan de DM zelf: Instellingen → *Jouw
+> DM-wachtwoord* (`PUT /api/dm-wachtwoord`, minstens 8 tekens). Leegmaken mag
+> alleen in de standaardcampagne — anders zou er niemand meer in kunnen.
+> Alleen de **standaardcampagne** valt terug op `DM_PASSWORD` uit de omgeving,
+> zodat de bestaande login blijft werken tot daar een eigen wachtwoord staat;
+> zodra die campagne een eigen `dmPassword` heeft, telt de env-waarde niet meer.
+> **Groepswachtwoorden blijven bewust leesbaar**: die deel je per appje en moet
+> je kunnen opzoeken. Wachtwoorden worden vergeleken met
 > `crypto.timingSafeEqual` (`_zelfdeGeheim`), zodat de reactietijd niet verklapt
 > hoe ver je kwam. Ook de **tabletlogin** krijgt een campagne mee — zonder
 > campagne-id belandt zijn socket in de algemene kamer en mist hij alles.
