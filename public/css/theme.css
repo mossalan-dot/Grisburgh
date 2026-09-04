@@ -22093,6 +22093,11 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
   .landing-portraits--carousel { flex-wrap: wrap; justify-content: center; gap: 12px; }
   .landing-carousel-track { order: 1; flex: 0 0 100%; }
   .landing-carousel-btn   { order: 2; }
+  /* Naast de portretten mag een uitgeschakelde pijl zijn plek houden (dan
+     springt de rij niet), maar als pager eronder telt hij mee in het midden:
+     één zichtbare pijl kwam daardoor scheef te staan. Dus daar wég in plaats
+     van onzichtbaar. */
+  .landing-carousel-btn--hidden { display: none; }
 }
 
 /* De DM-ingang zweeft rechtsboven; op een telefoon botst dat veld met het wapen
