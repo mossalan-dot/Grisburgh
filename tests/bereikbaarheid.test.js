@@ -46,7 +46,7 @@ describe('Bereikbaarheid per akte', () => {
     const mod = require('../server');
     server = mod.server; io = mod.io;
     await new Promise(r => server.listen(0, r));
-    dm = (await req(server, 'POST', '/api/auth/login', { password: 'grisburgh-dm' })).cookie;
+    dm = (await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
     await req(server, 'PUT', '/api/meta/hoofdstuk/h1', { num: 1, title: 'In de stad' }, dm);
     await req(server, 'PUT', '/api/meta/hoofdstuk/h2', { num: 2, title: 'Het Amberwoud' }, dm);
   });

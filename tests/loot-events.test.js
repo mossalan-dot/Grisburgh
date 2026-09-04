@@ -45,7 +45,7 @@ describe('Loot-events', () => {
     const mod = require('../server');
     server = mod.server; io = mod.io;
     await new Promise(r => server.listen(0, r));
-    dm = (await req(server, 'POST', '/api/auth/login', { password: 'grisburgh-dm' })).cookie;
+    dm = (await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
     speler = (await req(server, 'POST', '/api/entities/personages',
       { name: 'Vinder', subtype: 'speler', data: { groep: 'groep1' } }, dm)).body.id;
     // Twee voorwerpkaartjes om willekeurig uit te kunnen kiezen.
@@ -154,7 +154,7 @@ describe('Loot-events', () => {
   });
 
   it('houdt de vondstenbibliotheek weg bij spelers', async () => {
-    const spelerCookie = (await req(server, 'POST', '/api/auth/player-login', { characterId: speler })).cookie;
+    const spelerCookie = (await req(server, 'POST', '/api/auth/player-login', { campagne: 'grisburgh', characterId: speler })).cookie;
     const r = await req(server, 'GET', '/api/loot/events', null, spelerCookie);
     assert.equal(r.status, 403, 'een speler hoort niet te zien wat er nog te vinden valt');
   });

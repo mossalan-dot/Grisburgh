@@ -70,11 +70,35 @@ function _sniffMedia(buf) {
 
 const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 
+// ── Toegang tot bestanden ────────────────────────────────────────────────────
+// Tot nu toe was elk bestand op te halen zonder in te loggen: `attachRole` zet
+// `req.role` standaard op 'player', waardoor de controle `if (!req.role)` nooit
+// afging. De ids lekken bovendien via de publieke personagekiezer.
+//
+// Nieuwe regel: je moet een sessie hebben in de campagne waar het bestand bij
+// hoort. Eén uitzondering, want de landingspagina toont portretten aan wie nog
+// niet is ingelogd: het portret (en het filmpje) van een personage dat diezelfde
+// pagina toch al opsomt. Meer niet.
+function _isLandingsPortret(id) {
+  const basis = String(id || '').replace(/_video$/, '');
+  try {
+    return (storage.readJSON('entities.json').personages || [])
+      .some(e => e.id === basis && (e.subtype || '').toLowerCase() === 'speler');
+  } catch { return false; }
+}
+
+function _magBestandZien(req, id) {
+  const sessie = req.session || {};
+  const ingelogd = sessie.role === 'dm' || !!sessie.characterId;
+  if (ingelogd) return true;                 // scoping op de campagne doet de middleware
+  return _isLandingsPortret(id);
+}
+
 // ── Thumbnail-cache ──
 // Genereert bij eerste aanvraag een 600px-brede WebP en slaat die op in
 // data/campaigns/<id>/thumbs/. Daarna wordt de gecachte versie direct geserveerd.
 router.get('/thumb/:id', attachRole, async (req, res) => {
-  if (!req.role) return res.status(401).json({ error: 'Niet ingelogd' });
+  if (!_magBestandZien(req, req.params.id)) return res.status(401).json({ error: 'Niet ingelogd' });
   const file = storage.getFile(req.params.id);
   if (!file) return res.status(404).end();
 
@@ -4432,7 +4456,7 @@ router.post('/files/:id', requireDM, uploadMedia.single('file'), async (req, res
 });
 
 router.get('/files/:id', attachRole, (req, res) => {
-  if (!req.role) return res.status(401).json({ error: 'Niet ingelogd' });
+  if (!_magBestandZien(req, req.params.id)) return res.status(401).json({ error: 'Niet ingelogd' });
   const file = storage.getFile(req.params.id);
   if (!file) return res.status(404).json({ error: 'Niet gevonden' });
   res.type(file.mimetype).sendFile(file.path);
@@ -6667,6 +6691,21 @@ router.get('/export/campagneboek', requireDM, async (req, res) => {
 });
 
 // ── Campagnes ──
+
+// Welke campagne kijkt deze bezoeker? Publiek, want de landingspagina heeft het
+// nodig voordat er iemand is ingelogd. Volgorde: je sessie, anders het pad in de
+// URL, anders de standaardcampagne.
+router.get('/campagne', (req, res) => {
+  const uitPad = String(req.query.pad || '').split('/').filter(Boolean)[0] || '';
+  const naam = req.session?.campaignId
+    || (storage.campagneBestaat(uitPad) ? uitPad : null)
+    || storage.getActiveCampaignId();
+  // Uitdrukkelijk in die campagne lezen: de scoping van de middleware kijkt naar
+  // ?campagne=, en dit endpoint krijgt het pad binnen.
+  let meta = {};
+  storage.runInCampaign(naam, () => { meta = storage.readJSON('meta.json') || {}; });
+  res.json({ campagne: naam, titel: meta.appTitle || naam, ondertitel: meta.appSubtitle || '' });
+});
 
 // Lijst alle campagnes
 router.get('/campaigns', requireDM, (req, res) => {

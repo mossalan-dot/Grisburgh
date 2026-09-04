@@ -1,6 +1,15 @@
 // Fetch wrapper for all API calls
 const BASE = '/api';
 
+// ── Welke campagne kijken we? ───────────────────────────────────────────────
+// Elke campagne heeft haar eigen pad (/grisburgh). Bij het inloggen moet de
+// server weten wiens wachtwoord hij controleert, anders zou het wachtwoord van
+// de ene DM toegang geven tot de campagne van de andere.
+export const campagneUitUrl = () => location.pathname.split('/').filter(Boolean)[0] || '';
+let _campagne = campagneUitUrl();
+export function huidigeCampagne() { return _campagne; }
+export function zetCampagne(naam) { if (naam) _campagne = naam; }
+
 async function request(path, opts = {}) {
   const res = await fetch(BASE + path, {
     headers: { 'Content-Type': 'application/json', ...opts.headers },
@@ -17,13 +26,15 @@ async function request(path, opts = {}) {
 
 export const api = {
   // Auth
-  login:             (password)     => request('/auth/login',          { method: 'POST', body: JSON.stringify({ password }) }),
+  login:             (password)     => request('/auth/login',          { method: 'POST', body: JSON.stringify({ campagne: _campagne, password }) }),
+  // Publiek: welke campagne hoort bij dit pad (of bij mijn sessie)?
+  campagneInfo:      ()             => request(`/campagne?pad=${encodeURIComponent(location.pathname)}`),
   sandboxLogin:      (password)     => request('/auth/sandbox-login',  { method: 'POST', body: JSON.stringify({ password: password || '' }) }),
-  tabletLogin:       (password)     => request('/auth/tablet-login',   { method: 'POST', body: JSON.stringify({ password }) }),
+  tabletLogin:       (password)     => request('/auth/tablet-login',   { method: 'POST', body: JSON.stringify({ campagne: _campagne, password }) }),
   logout:            ()             => request('/auth/logout',         { method: 'POST' }),
   role:              ()             => request('/auth/role'),
-  listPlayerChars:   ()             => request('/auth/players'),
-  playerLogin:       (characterId, password) => request('/auth/player-login', { method: 'POST', body: JSON.stringify({ characterId, password: password || '' }) }),
+  listPlayerChars:   ()             => request(`/auth/players${_campagne ? `?campagne=${encodeURIComponent(_campagne)}` : ''}`),
+  playerLogin:       (characterId, password) => request('/auth/player-login', { method: 'POST', body: JSON.stringify({ campagne: _campagne, characterId, password: password || '' }) }),
   playerLogout:      ()             => request('/auth/player-logout',  { method: 'POST' }),
 
   // Entities

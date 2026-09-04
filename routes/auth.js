@@ -1,3 +1,4 @@
+const crypto  = require('crypto');
 const express = require('express');
 const config  = require('../config');
 const storage = require('../lib/storage');
@@ -7,16 +8,55 @@ const router = express.Router();
 // Helper: emit to the correct campaign room
 const _emit = (req, ...args) => req.app.get('io').to(req.session?.campaignId || 'main').emit(...args);
 
+// ── Campagne bij een inlogpoging ────────────────────────────────────────────
+// Elke login noemt de campagne waar hij bij hoort. Zonder die naam weten we
+// niet wiens wachtwoord we controleren — en dan zou het wachtwoord van de ene
+// DM toegang geven tot de campagne van de andere.
+function _campagneUitBody(req) {
+  const naam = String(req.body?.campagne || req.query?.campagne || '').trim();
+  if (!naam) return { fout: 'Geen campagne opgegeven' };
+  if (!storage.campagneBestaat(naam)) return { fout: 'Onbekende campagne' };
+  return { naam };
+}
+
+// Wachtwoorden vergelijken zonder dat de reactietijd verklapt hoe ver je kwam.
+function _zelfdeGeheim(a, b) {
+  const A = Buffer.from(String(a ?? ''), 'utf8');
+  const B = Buffer.from(String(b ?? ''), 'utf8');
+  if (A.length !== B.length) {
+    // Toch één vergelijking doen, zodat een verkeerde lengte niet sneller is.
+    crypto.timingSafeEqual(A, A);
+    return false;
+  }
+  return crypto.timingSafeEqual(A, B);
+}
+
+// Het DM-wachtwoord van een campagne staat in haar eigen dm-state.json. Alleen
+// de standaardcampagne valt terug op DM_PASSWORD uit de omgeving, zodat de
+// bestaande login blijft werken tot daar een eigen wachtwoord is gezet.
+function _dmWachtwoordVan(campagne) {
+  let eigen = null;
+  storage.runInCampaign(campagne, () => {
+    try { eigen = storage.readJSON('dm-state.json').dmPassword || null; } catch { /* ok */ }
+  });
+  if (eigen) return eigen;
+  return campagne === storage.getActiveCampaignId() ? config.dmPassword : null;
+}
+
 // ── DM login / logout ──
 
 router.post('/login', (req, res) => {
-  const { password } = req.body;
-  if (password === config.dmPassword) {
-    req.session.role = 'dm';
-    delete req.session.campaignId; // real campaign = no override
-    return res.json({ role: 'dm', isSandbox: false });
+  const { naam, fout } = _campagneUitBody(req);
+  if (fout) return res.status(400).json({ error: fout });
+  const verwacht = _dmWachtwoordVan(naam);
+  if (!verwacht || !_zelfdeGeheim(req.body?.password, verwacht)) {
+    return res.status(401).json({ error: 'Verkeerd wachtwoord' });
   }
-  res.status(401).json({ error: 'Verkeerd wachtwoord' });
+  req.session.role       = 'dm';
+  req.session.campaignId = naam;
+  delete req.session.playerName;
+  delete req.session.characterId;
+  res.json({ role: 'dm', campagne: naam, isSandbox: naam === 'sandbox' });
 });
 
 // ── Tablet login ──
@@ -27,10 +67,14 @@ router.post('/tablet-login', (req, res) => {
   if (!config.tabletPassword) {
     return res.status(403).json({ error: 'Tablet-login is niet geconfigureerd' });
   }
-  if (typeof password === 'string' && password === config.tabletPassword) {
-    return res.json({ ok: true });
+  if (!_zelfdeGeheim(password, config.tabletPassword)) {
+    return res.status(401).json({ error: 'Verkeerd wachtwoord' });
   }
-  res.status(401).json({ error: 'Verkeerd wachtwoord' });
+  // Ook het tafelscherm hoort bij een campagne: zonder campagne-id belandt zijn
+  // socket in de algemene kamer en mist hij alles wat de DM uitzendt.
+  const { naam } = _campagneUitBody(req);
+  if (naam) req.session.campaignId = naam;
+  res.json({ ok: true, campagne: req.session.campaignId || null });
 });
 
 // ── Sandbox login ──
@@ -108,8 +152,8 @@ router.get('/players', (req, res) => {
 // ── Speler-login: kies karakter op basis van ID ──
 
 router.post('/player-login', (req, res) => {
-  // Player-login altijd in de hoofd-campagne uitvoeren (nooit sandbox),
-  // ook als de sessie nog een sandbox-campaignId heeft.
+  const { naam: campagne, fout } = _campagneUitBody(req);
+  if (fout) return res.status(400).json({ error: fout });
   const doLogin = () => {
     try {
       const { characterId, password } = req.body;
@@ -123,11 +167,10 @@ router.post('/player-login', (req, res) => {
       if (!character) return res.status(404).json({ error: 'Karakter niet gevonden' });
       const groepId = character.data?.groep;
       const groepPw = groepId ? groups[groepId]?.password : null;
-      if (groepPw && password !== groepPw) {
+      if (groepPw && !_zelfdeGeheim(password, groepPw)) {
         return res.status(401).json({ error: 'Verkeerd wachtwoord' });
       }
-      // Wis sandbox-sessie zodat speler in de hoofdcampagne terechtkimt
-      delete req.session.campaignId;
+      req.session.campaignId  = campagne;
       req.session.role        = 'player'; // expliciet, zodat lokale DEV_AUTO_DM-bypass wordt overschreven
       req.session.playerName  = character.name;
       req.session.characterId = character.id;
@@ -137,13 +180,8 @@ router.post('/player-login', (req, res) => {
       res.status(500).json({ error: err.message });
     }
   };
-  // Als sessie in sandbox zit, eerst uit sandbox-context stappen
-  // (naar de actieve hoofdcampagne, niet hardcoded grisburgh)
-  if (req.session?.campaignId && req.session.campaignId !== 'main') {
-    storage.runInCampaign(storage.getActiveCampaignId(), doLogin);
-  } else {
-    doLogin();
-  }
+  // Altijd in de genoemde campagne kijken, niet in die van een vorige sessie.
+  storage.runInCampaign(campagne, doLogin);
 });
 
 // ── Speler-logout: terug naar anoniem ──

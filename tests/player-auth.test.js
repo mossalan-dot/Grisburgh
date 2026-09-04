@@ -46,10 +46,10 @@ describe('Player-scoped auth', () => {
     server = mod.server; io = mod.io;
     await new Promise(r => server.listen(0, r));
 
-    dmCookie = (await req(server, 'POST', '/api/auth/login', { password: 'grisburgh-dm' })).cookie;
+    dmCookie = (await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
     const mkPlayer = async (name) => {
       const c = await req(server, 'POST', '/api/entities/personages', { name, subtype: 'speler', data: { groep: 'groep1' } }, dmCookie);
-      const login = await req(server, 'POST', '/api/auth/player-login', { characterId: c.body.id });
+      const login = await req(server, 'POST', '/api/auth/player-login', { campagne: 'grisburgh', characterId: c.body.id });
       return { id: c.body.id, cookie: login.cookie };
     };
     const pa = await mkPlayer('Speler A'); A = pa.id; cookieA = pa.cookie;

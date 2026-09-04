@@ -48,7 +48,7 @@ describe('Server-side filtering', () => {
     server = mod.server;
     io = mod.io;
     await new Promise(r => server.listen(0, r));
-    const login = await req(server, 'POST', '/api/auth/login', { password: 'grisburgh-dm' });
+    const login = await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' });
     dmCookie = login.cookie;
   });
 
@@ -71,7 +71,7 @@ describe('Server-side filtering', () => {
     const playerChar = await req(server, 'POST', '/api/entities/personages', {
       name: 'Speler Een', subtype: 'speler', data: { groep: 'groep1' },
     }, dmCookie);
-    const login = await req(server, 'POST', '/api/auth/player-login', { characterId: playerChar.body.id });
+    const login = await req(server, 'POST', '/api/auth/player-login', { campagne: 'grisburgh', characterId: playerChar.body.id });
     const playerCookie = login.cookie;
     assert.ok(playerCookie, 'speler moet kunnen inloggen');
 

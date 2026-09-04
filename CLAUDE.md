@@ -136,8 +136,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=413   app.js?v=567   sound-manager.js?v=8
-app.js      : api.js?v=253      render-campagne.js?v=125   render-archief.js?v=75
+index.html  : theme.css?v=413   app.js?v=568   sound-manager.js?v=8
+app.js      : api.js?v=254      render-campagne.js?v=125   render-archief.js?v=75
               render-kaart.js?v=18  render-dungeon.js?v=33  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
@@ -515,8 +515,18 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 
 ## Authenticatie & rollen
 
-- **DM:** POST `/api/auth/login` met `{ password }` → sessie krijgt `role: 'dm'`
-- **Speler:** POST `/api/auth/player-login` met `{ characterId, password }` → sessie krijgt `characterId`
+> **Elke login noemt zijn campagne.** Sinds stap 1 van het multi-DM-plan hoort
+> bij elk inlogverzoek een `campagne`; zonder die naam weet de server niet wiens
+> wachtwoord hij controleert. Een campagne heeft haar eigen DM-wachtwoord in
+> `dm-state.json` (`dmPassword`); alleen de **standaardcampagne** valt terug op
+> `DM_PASSWORD` uit de omgeving, zodat de bestaande login blijft werken tot daar
+> een eigen wachtwoord is gezet. Wachtwoorden worden vergeleken met
+> `crypto.timingSafeEqual` (`_zelfdeGeheim`), zodat de reactietijd niet verklapt
+> hoe ver je kwam. Ook de **tabletlogin** krijgt een campagne mee — zonder
+> campagne-id belandt zijn socket in de algemene kamer en mist hij alles.
+
+- **DM:** POST `/api/auth/login` met `{ campagne, password }` → sessie krijgt `role: 'dm'` + `campaignId`
+- **Speler:** POST `/api/auth/player-login` met `{ campagne, characterId, password }` → sessie krijgt `characterId` + `campaignId`
 - **Testlogin (browser):** `window.app.testLogin()` → overlay met wachtwoord + karakterkeuze
 - **DM-wachtwoord productie:** staat in PM2-env als `DM_PASSWORD` (niet in code)
 - **Groepswachtwoord:** staat in `dm-state.json` → `groups[groepId].password`
@@ -538,6 +548,26 @@ Sessies worden gedeeld per browsertab (één cookie). DM en speler kunnen **niet
 ---
 
 ## Campagnes & scoping
+
+> **Elke campagne heeft haar eigen pad:** `/grisburgh`, `/prewett`. Het kale
+> domein stuurt door naar de standaardcampagne (mét querystring, dus `?display=1`
+> blijft werken), zodat bestaande bladwijzers blijven werken. De client leest de
+> campagne uit `location.pathname` (`campagneUitUrl()` in `api.js`) en stuurt 'm
+> mee bij elke login; komt iemand via een oud adres binnen, dan vertelt
+> `GET /api/campagne` welke campagne erbij hoort. De scoping-middleware in
+> `server.js` kiest in deze volgorde: **sessie → `?campagne=` → standaard**.
+> Die querystring is nodig voor wat vóór het inloggen moet werken (de
+> personagekiezer op de landingspagina).
+>
+> **Bestanden zitten achter die scope.** `/api/files/:id` en `/api/thumb/:id`
+> vragen een sessie; de enige uitzondering is het portret (en portretfilmpje) van
+> een personage dat de landingspagina toch al opsomt — zie `_magBestandZien()`.
+> Vóór stap 1 was élk bestand publiek: `attachRole` zet `req.role` standaard op
+> `'player'`, waardoor de controle `if (!req.role)` nooit afging.
+>
+> **`tests/campagne-isolatie.test.js` bewaakt dit** (14 tests, geen todo meer):
+> logins kruislings, lezen en schrijven in andermans campagne, bestanden, de
+> socketkamers en een veegtest over alle GET-routes met een kanarie.
 
 Storage gebruikt `AsyncLocalStorage` voor per-request campagne-scoping:
 - Actieve campagne: `storage.getActiveCampaignId()` (standaard `'grisburgh'`)

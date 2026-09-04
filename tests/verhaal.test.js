@@ -21,7 +21,7 @@ describe('Verhaaltekst per akte', () => {
     for (const m of ['/server','/lib/storage','/routes/api','/routes/auth']) delete require.cache[require.resolve(REPO+m)];
     const mod = require(REPO + '/server'); server = mod.server; io = mod.io;
     await new Promise(r => server.listen(0, r));
-    dm = (await req(server,'POST','/api/auth/login',{password:'grisburgh-dm'})).cookie;
+    dm = (await req(server,'POST','/api/auth/login', { campagne: 'grisburgh', password:'grisburgh-dm'})).cookie;
     await req(server,'PUT','/api/meta/hoofdstuk/h1',{num:1,title:'Eerste'},dm);
     await req(server,'PUT','/api/meta/hoofdstuk/h2',{num:2,title:'Tweede'},dm);
     await req(server,'POST','/api/entities/personages',{name:'Brÿlwaen'},dm);

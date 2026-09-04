@@ -45,7 +45,7 @@ describe('Voorwerp aan een medespeler geven', () => {
     const mod = require('../server');
     server = mod.server; io = mod.io;
     await new Promise(r => server.listen(0, r));
-    dm = (await req(server, 'POST', '/api/auth/login', { password: 'grisburgh-dm' })).cookie;
+    dm = (await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
 
     const speler = async (naam, groep) => (await req(server, 'POST', '/api/entities/personages',
       { name: naam, subtype: 'speler', data: { groep } }, dm)).body.id;
@@ -59,7 +59,7 @@ describe('Voorwerp aan een medespeler geven', () => {
 
     zwaard = (await req(server, 'POST', '/api/entities/voorwerpen', { name: 'Zwaard' }, dm)).body.id;
     await req(server, 'PUT', `/api/items/${zwaard}/owner`, { characterId: A, playerName: 'Gever', groupId: 'groep1' }, dm);
-    cookieA = (await req(server, 'POST', '/api/auth/player-login', { characterId: A })).cookie;
+    cookieA = (await req(server, 'POST', '/api/auth/player-login', { campagne: 'grisburgh', characterId: A })).cookie;
   });
 
   after(async () => {

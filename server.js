@@ -80,9 +80,24 @@ if (config.devAutoDM) {
 // When session.campaignId is set (e.g. sandbox), run all storage operations in
 // that campaign's directory via AsyncLocalStorage. No changes needed in api.js.
 app.use((req, res, next) => {
-  const cid = req.session?.campaignId;
+  // Volgorde: de campagne van je sessie wint; anders mag een verzoek er één
+  // aanwijzen met ?campagne= (nodig vóór het inloggen, bijvoorbeeld voor de
+  // personagekiezer op de landingspagina); anders de standaardcampagne.
+  const cid = req.session?.campaignId
+    || (storage.campagneBestaat(req.query?.campagne) ? String(req.query.campagne) : null);
   if (cid) return storage.runInCampaign(cid, next);
   next();
+});
+
+// ── Campagne in de URL ───────────────────────────────────────────────────────
+// Elke campagne heeft haar eigen pad: /grisburgh, /prewett. Het kale domein
+// stuurt door naar de standaardcampagne, zodat bestaande bladwijzers blijven
+// werken. De querystring gaat mee (?display=1 voor het tafelscherm).
+app.get('/', (req, res, next) => {
+  const doel = storage.getActiveCampaignId();
+  if (!doel) return next();
+  const vraag = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+  res.redirect(302, `/${doel}${vraag}`);
 });
 
 // Static files

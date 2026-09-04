@@ -61,12 +61,12 @@ describe('API', () => {
 
   // Auth
   it('should reject wrong password', async () => {
-    const res = await req(server, 'POST', '/api/auth/login', { password: 'wrong' });
+    const res = await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'wrong' });
     assert.strictEqual(res.status, 401);
   });
 
   it('should login with correct password', async () => {
-    const res = await req(server, 'POST', '/api/auth/login', { password: 'grisburgh-dm' });
+    const res = await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' });
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.body.role, 'dm');
     dmCookie = res.cookie;

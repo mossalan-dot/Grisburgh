@@ -66,10 +66,10 @@ describe('Socket sound:emote authority', () => {
     await new Promise(r => server.listen(0, r));
     port = server.address().port;
 
-    dmCookie = (await httpReq(server, 'POST', '/api/auth/login', { password: 'grisburgh-dm' })).cookie;
+    dmCookie = (await httpReq(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
     const c = await httpReq(server, 'POST', '/api/entities/personages', { name: 'Emoter A', subtype: 'speler', data: { groep: 'groep1' } }, dmCookie);
     A = c.body.id;
-    cookieA = (await httpReq(server, 'POST', '/api/auth/player-login', { characterId: A })).cookie;
+    cookieA = (await httpReq(server, 'POST', '/api/auth/player-login', { campagne: 'grisburgh', characterId: A })).cookie;
 
     listener = await connect(port, dmCookie);   // ontvanger in dezelfde room
   });

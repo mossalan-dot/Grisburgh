@@ -46,7 +46,7 @@ describe('Aanwezigheid per sessie', () => {
     server = mod.server; io = mod.io;
     await new Promise(r => server.listen(0, r));
 
-    dm = (await req(server, 'POST', '/api/auth/login', { password: 'grisburgh-dm' })).cookie;
+    dm = (await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
     const maak = async (naam) => (await req(server, 'POST', '/api/entities/personages',
       { name: naam, subtype: 'speler', data: { groep: 'groep1' } }, dm)).body.id;
     aanwezig = await maak('Blijft Thuisloos');

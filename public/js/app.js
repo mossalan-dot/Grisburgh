@@ -1,4 +1,4 @@
-import { api } from './api.js?v=253';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=254';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=125";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=75";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
@@ -9275,6 +9275,12 @@ function cancelHeader() {
 }
 
 async function init() {
+  // Welke campagne kijken we? Normaal staat die in het pad (/grisburgh); komt
+  // iemand via een oude bladwijzer binnen, dan vertelt de server het.
+  if (!campagneUitUrl()) {
+    try { zetCampagne((await api.campagneInfo()).campagne); } catch { /* ok */ }
+  }
+
   try {
     const me = await api.role();
     state.role        = me.role        || 'player';

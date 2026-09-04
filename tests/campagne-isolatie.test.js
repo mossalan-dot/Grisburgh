@@ -7,11 +7,10 @@ const fs   = require('fs');
 const { io: ioClient } = require('socket.io-client');
 
 // ── Campagne-isolatie ────────────────────────────────────────────────────────
-// Deze suite beschrijft wat waar moet zijn zódra er een tweede DM op de server
-// staat (stap 1 van docs/multi-dm-plan.md). Hij is nu bewust `todo`: de tests
-// falen tot die stap gebouwd is, maar houden `npm test` groen zodat ze niet in
-// de weg zitten bij ander werk. Draai ze los met `npm run test:isolatie` om de
-// echte fouten te zien; haal de todo-vlag hieronder weg zodra stap 1 af is.
+// Deze suite bewaakt de scheiding tussen campagnes: één verkeerd afgeleide
+// campagne-id en de ene DM schrijft in de gegevens van de andere. Geschreven
+// vóór stap 1 van docs/multi-dm-plan.md (toen dertien keer rood), sinds die stap
+// een harde poortwachter. Los te draaien met `npm run test:isolatie`.
 //
 // Alles wat de suite aanneemt over de nog te bouwen API staat in de helpers
 // `dmLogin`, `spelerLogin` en `spelerLijst` — kiest de implementatie een andere
@@ -160,7 +159,7 @@ function zaaiKanarie(id) {
   schrijf('dm-state.json', dmState);
 }
 
-describe('Campagne-isolatie', { todo: 'wordt groen in stap 1 van docs/multi-dm-plan.md' }, () => {
+describe('Campagne-isolatie', () => {
   let server, io, storage, alfa, beta;
 
   before(async () => {
@@ -304,6 +303,17 @@ describe('Campagne-isolatie', { todo: 'wordt groen in stap 1 van docs/multi-dm-p
     // De veeg zoekt op tekst; een bestand komt binnen als bytes. Die apart.
     const bestand = await req(server, 'GET', `/api/files/${alfa.geheimId}`, null, cookie);
     assert.ok(!bestand.body?.toString?.().includes('geheim-alfa'), 'ook de inhoud van een bestand mag niet meekomen');
+  });
+
+  it('zet het tafelscherm in de campagne waar het bij hoort', async () => {
+    // Zonder campagne-id landt de socket van de tablet in de algemene kamer en
+    // mist hij alles wat de DM uitzendt.
+    process.env.TABLET_PASSWORD = process.env.TABLET_PASSWORD || '';
+    const r = await req(server, 'POST', '/api/auth/tablet-login', { campagne: 'beta', password: 'x' });
+    // Zonder ingesteld tabletwachtwoord is de login uitgeschakeld (403) — dan is
+    // er ook niets te scopen. Wél of niet: nooit een 200 zonder campagne-id.
+    if (r.status === 200) assert.equal(r.body.campagne, 'beta');
+    else assert.ok([401, 403].includes(r.status), `onverwachte status ${r.status}`);
   });
 
   // ── De socketkamer ──

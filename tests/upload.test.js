@@ -69,7 +69,7 @@ describe('Upload-validatie', () => {
     for (const m of ['../server', '../lib/storage', '../routes/api', '../routes/auth']) delete require.cache[require.resolve(m)];
     const mod = require('../server'); server = mod.server; io = mod.io;
     await new Promise(r => server.listen(0, r));
-    dmCookie = (await jsonReq(server, 'POST', '/api/auth/login', { password: 'grisburgh-dm' })).cookie;
+    dmCookie = (await jsonReq(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
   });
 
   after(async () => {

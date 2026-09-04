@@ -47,10 +47,10 @@ describe('Storage concurrency', () => {
     const mod = require('../server');
     server = mod.server; io = mod.io;
     await new Promise(r => server.listen(0, r));
-    dmCookie = (await req(server, 'POST', '/api/auth/login', { password: 'grisburgh-dm' })).cookie;
+    dmCookie = (await req(server, 'POST', '/api/auth/login', { campagne: 'grisburgh', password: 'grisburgh-dm' })).cookie;
     const c = await req(server, 'POST', '/api/entities/personages', { name: 'Racer', subtype: 'speler', data: { groep: 'groep1' } }, dmCookie);
     charId = c.body.id;
-    cookie = (await req(server, 'POST', '/api/auth/player-login', { characterId: charId })).cookie;
+    cookie = (await req(server, 'POST', '/api/auth/player-login', { campagne: 'grisburgh', characterId: charId })).cookie;
   });
 
   after(async () => {
