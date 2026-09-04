@@ -136,8 +136,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=412   app.js?v=565   sound-manager.js?v=8
-app.js      : api.js?v=253      render-campagne.js?v=124   render-archief.js?v=74
+index.html  : theme.css?v=412   app.js?v=566   sound-manager.js?v=8
+app.js      : api.js?v=253      render-campagne.js?v=125   render-archief.js?v=74
               render-kaart.js?v=18  render-dungeon.js?v=33  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
@@ -669,13 +669,15 @@ Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in ren
 - **Vergeten versie te bumpen** → browser toont oude JS/CSS. Check altijd index.html + app.js imports.
 - **`api.getEntities()` bestaat niet** → gebruik `api.listEntities('personages')` etc.
 - **Verbindingen-tab bestaat niet meer.** Koppelingen leg je in de tekst met
-  `[[Naam]]`; `mdToHtml()` in `app.js` maakt daar klikbare links van, los van het
-  veld `entity.links`. Dat veld bestáát nog en wordt nog gelézen door de
-  kaartjes-preview, het zoeken, het dashboard en de campagneboek-export — het
-  wordt alleen niet meer met de hand bijgehouden. Wil je die vier plekken weer
-  kloppend krijgen, dan moet `links` afgeleid worden uit de `[[ ]]` in de tekst
-  (nog te doen; let op dat handmatig gelegde links die niet in de tekst staan
-  dan verdwijnen).
+  `[[Naam]]`; `mdToHtml()` in `app.js` maakt daar klikbare links van. Het veld
+  `entity.links` bestaat nog — kaartjes-preview, zoeken, dashboard en de
+  campagneboek-export lezen het — en wordt bij het **uitserveren aangevuld** met
+  de `[[ ]]` uit de eigen tekst (`_linksMetTekst()` in `routes/api.js`, met een
+  naam→type-index die op mtime cachet). **Aanvullen, niet vervangen**: van de
+  1041 handmatig gelegde verbindingen in deze campagne staat maar 40% ook in de
+  tekst — puur afleiden zou er 632 wegvagen. Wat opgeslagen is blijft dus staan.
+  De editor stuurt `links` niet meer mee bij het opslaan, anders zouden de
+  afgeleide verbindingen ongemerkt vastgelegd worden.
 - **Emoji in HTML-output** → vervang door `icon()`. Emoji zijn onaanvaardbaar in de UI.
   Let ook op `placeholder=""`-attributen: daar kan geen SVG in, dus zet het icoon
   ernaast in plaats van een emoji in de tekst.

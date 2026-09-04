@@ -43,6 +43,26 @@ describe('Verhaaltekst per akte', () => {
     assert.equal(map['Harmen Jonker'], true, 'die is nieuw');
   });
 
+  it('vult verbindingen aan met [[namen]] uit de eigen tekst', async () => {
+    const waard = (await req(server,'POST','/api/entities/personages',{name:'Waard'},dm)).body;
+    const herberg = (await req(server,'POST','/api/entities/locaties',
+      { name: 'De Herberg', data: { desc: 'Hier schenkt [[Waard]] in. Ook [[Iemand Anders]] komt hier.' } }, dm)).body;
+    const opgehaald = (await req(server,'GET',`/api/entities/locaties/${herberg.id}`,null,dm)).body;
+    assert.deepEqual(opgehaald.links.personages, ['Waard'], 'de genoemde naam met kaartje wordt een verbinding');
+    assert.ok(!JSON.stringify(opgehaald.links).includes('Iemand Anders'), 'een naam zonder kaartje niet');
+  });
+
+  it('laat handmatig gelegde verbindingen staan', async () => {
+    // Zes van de tien verbindingen in de echte campagne staan niet in de tekst;
+    // afleiden mag ze dus niet vervangen maar alleen aanvullen.
+    const e = (await req(server,'POST','/api/entities/organisaties',
+      { name: 'Het Gilde', links: { personages: ['Handmatig Gelegd'], locaties: [], organisaties: [], voorwerpen: [], archief: [] },
+        data: { desc: 'Het gilde vergadert met [[Waard]].' } }, dm)).body;
+    const opgehaald = (await req(server,'GET',`/api/entities/organisaties/${e.id}`,null,dm)).body;
+    assert.deepEqual(opgehaald.links.personages.sort(), ['Handmatig Gelegd', 'Waard'],
+      'de bestaande verbinding blijft, de afgeleide komt erbij');
+  });
+
   it('telt een alias en een dubbele vermelding als één naam', async () => {
     await req(server,'PUT','/api/meta/akte/h1/tekst',{tekst:'[[Brÿlwaen|de waard]] schenkt in. Later zegt [[Brÿlwaen]] iets.'},dm);
     const r = await req(server,'GET','/api/meta/akte/h1/namen',null,dm);

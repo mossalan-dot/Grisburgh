@@ -3710,7 +3710,10 @@ window._openEditor = async (tab, editId) => {
       name: form.get('name'),
       subtype: form.get('subtype') || '',
       data,
-      links: { ...editorTags },
+      // links wordt niet meer meegestuurd: de Verbindingen-editor is vervallen en
+      // de server vult het veld bij het uitserveren aan met de [[ ]] uit de
+      // tekst. Zou de client het terugsturen, dan zouden die afgeleide
+      // verbindingen ongemerkt vastgelegd worden.
       stats: tab === 'personages' ? stats : null,
     };
     // Huisdier-tiers meesturen (alleen relevant bij subtype 'dier')

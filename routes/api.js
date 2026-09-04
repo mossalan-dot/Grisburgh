@@ -306,6 +306,57 @@ function filterDocForPlayer(doc, dmState, groupId) {
 
 // ── Entity CRUD ──
 
+// ── Verbindingen uit de tekst ────────────────────────────────────────────────
+// De Verbindingen-editor is vervallen: koppelingen leg je met [[Naam]] in de
+// tekst. Vier plekken lezen `entity.links` nog (kaartjes-preview, zoeken,
+// dashboard, campagneboek-export), dus vullen we dat veld bij het uitserveren
+// aan met wat er in de eigen tekst genoemd wordt.
+//
+// Bewust **samenvoegen** en niet vervangen: van de 1041 handmatig gelegde
+// verbindingen in deze campagne staat maar 40% ook als [[ ]] in de tekst. Puur
+// afleiden zou er dus ruim zeshonderd wegvagen. Wat opgeslagen is blijft staan;
+// wat in de tekst genoemd wordt komt erbij.
+const _LINK_TEKSTVELDEN = ['desc', 'persoonlijkheid', 'flavour', 'geheim', 'notities'];
+let _naamIndexCache = null;   // { mtimeMs, index: Map(genormaliseerde naam → type) }
+
+function _naamIndex() {
+  const fp = path.join(storage.DATA_DIR, 'entities.json');
+  let mtimeMs = -1;
+  try { mtimeMs = fs.statSync(fp).mtimeMs; } catch {}
+  if (_naamIndexCache?.mtimeMs === mtimeMs) return _naamIndexCache.index;
+  const entities = storage.readJSON('entities.json');
+  const index = new Map();
+  for (const type of ENTITY_TYPES) {
+    for (const e of (entities[type] || [])) index.set(_impNorm(e.name), { type, name: e.name });
+  }
+  _naamIndexCache = { mtimeMs, index };
+  return index;
+}
+
+function _linksMetTekst(entity) {
+  const tekst = _LINK_TEKSTVELDEN.map(v => entity.data?.[v] || '').join('\n');
+  if (!tekst.includes('[[')) return entity.links;
+  const index = _naamIndex();
+  const links = {
+    personages:   [...(entity.links?.personages   || [])],
+    locaties:     [...(entity.links?.locaties     || [])],
+    organisaties: [...(entity.links?.organisaties || [])],
+    voorwerpen:   [...(entity.links?.voorwerpen   || [])],
+    archief:      [...(entity.links?.archief      || [])],
+  };
+  const alGenoemd = new Set(Object.values(links).flat().map(_impNorm));
+  for (const naam of _wikilinkNamen(tekst)) {
+    const sleutel = _impNorm(naam);
+    if (sleutel === _impNorm(entity.name)) continue;      // niet naar zichzelf
+    if (alGenoemd.has(sleutel)) continue;
+    const treffer = index.get(sleutel);
+    if (!treffer) continue;                                // geen kaartje: geen verbinding
+    links[treffer.type].push(treffer.name);
+    alGenoemd.add(sleutel);
+  }
+  return links;
+}
+
 router.get('/entities/:type', attachRole, (req, res) => {
   const { type } = req.params;
   if (!ENTITY_TYPES.includes(type)) return res.status(400).json({ error: 'Ongeldig type' });
@@ -319,12 +370,16 @@ router.get('/entities/:type', attachRole, (req, res) => {
     const pg = getGroup(dmState, playerGid);
     list = list.map(e => {
       const fe = filterEntityForPlayer(e, dmState, playerGid);
-      if (fe) fe._gockOnderzocht = !!pg.gockOnderzocht?.[e.id];
+      if (fe) {
+        fe._gockOnderzocht = !!pg.gockOnderzocht?.[e.id];
+        if (fe.links) fe.links = _linksMetTekst(fe);
+      }
       return fe;
     }).filter(Boolean);
   } else {
     list = list.map(e => ({
       ...e,
+      links:         _linksMetTekst(e),
       _visibility:   g.visibility[e.id]    || 'hidden',
       _secretReveal: !!g.secretReveals[e.id],
       _deceased:     !!(g.deceased?.[e.id]),
@@ -348,10 +403,12 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
     const playerGid = _playerGroupId(dmState, req.session.characterId);
     const filtered = filterEntityForPlayer(entity, dmState, playerGid);
     if (!filtered) return res.status(404).json({ error: 'Niet gevonden' });
+    if (filtered.links) filtered.links = _linksMetTekst(filtered);
     return res.json(filtered);
   }
   res.json({
     ...entity,
+    links:         _linksMetTekst(entity),
     _visibility:   g.visibility[entity.id]    || 'hidden',
     _secretReveal: !!g.secretReveals[entity.id],
     _deceased:     !!(g.deceased?.[entity.id]),
