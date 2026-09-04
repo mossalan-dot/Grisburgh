@@ -192,12 +192,17 @@ router.post('/logout', (req, res) => {
 
 // ── Rol ophalen (DM én speler) ──
 
+// Wie ben ik hier? Nadrukkelijk hier: op een andere campagne dan die van je
+// sessie ben je een bezoeker, en dan hoort de app je ook de landingspagina te
+// tonen in plaats van een half werkend DM-scherm.
 router.get('/role', (req, res) => {
+  const hier = sessieHoortHier(req);
   res.json({
-    role:        req.session.role        || 'player',
-    playerName:  req.session.playerName  || null,
-    characterId: req.session.characterId || null,
-    isSandbox:   req.session.campaignId  === 'sandbox',
+    role:        (hier && req.session.role)        || 'player',
+    playerName:  (hier && req.session.playerName)  || null,
+    characterId: (hier && req.session.characterId) || null,
+    isSandbox:   hier && req.session.campaignId === 'sandbox',
+    andereCampagne: !hier && !!req.session?.campaignId ? req.session.campaignId : null,
   });
 });
 
@@ -288,8 +293,18 @@ router.post('/player-logout', (req, res) => {
 
 // ── Middleware ──
 
+// Hoort deze sessie bij de campagne waarin dit verzoek draait? Een DM van
+// campagne A is op /B een bezoeker: hij mag daar niets lezen of schrijven tot
+// hij met B's wachtwoord inlogt. Zonder deze controle zou het pad (of
+// `?campagne=`) genoeg zijn om in andermans campagne te komen.
+function sessieHoortHier(req) {
+  const hier = storage.huidigeCampagne();
+  const van  = req.session?.campaignId;
+  return van ? van === hier : hier === storage.getActiveCampaignId();
+}
+
 function requireDM(req, res, next) {
-  if (req.session.role === 'dm') return next();
+  if (req.session.role === 'dm' && sessieHoortHier(req)) return next();
   res.status(403).json({ error: 'DM-only' });
 }
 
@@ -299,15 +314,16 @@ function requireDM(req, res, next) {
 // verzetten waar campagne A op binnenkomt.
 function requireBeheerder(req, res, next) {
   const eigen = req.session?.campaignId || storage.getActiveCampaignId();
-  if (req.session?.role === 'dm' && eigen === config.beheerCampagne) return next();
+  if (req.session?.role === 'dm' && eigen === config.beheerCampagne && sessieHoortHier(req)) return next();
   res.status(403).json({ error: 'Alleen de beheerder' });
 }
 
 function attachRole(req, res, next) {
-  req.role        = req.session.role        || 'player';
-  req.playerName  = req.session.playerName  || null;
-  req.characterId = req.session.characterId || null;
+  const hier = sessieHoortHier(req);
+  req.role        = (hier && req.session.role)        || 'player';
+  req.playerName  = (hier && req.session.playerName)  || null;
+  req.characterId = (hier && req.session.characterId) || null;
   next();
 }
 
-module.exports = { router, requireDM, requireBeheerder, attachRole, hashWachtwoord };
+module.exports = { router, requireDM, requireBeheerder, attachRole, hashWachtwoord, sessieHoortHier };

@@ -80,11 +80,17 @@ if (config.devAutoDM) {
 // When session.campaignId is set (e.g. sandbox), run all storage operations in
 // that campaign's directory via AsyncLocalStorage. No changes needed in api.js.
 app.use((req, res, next) => {
-  // Volgorde: de campagne van je sessie wint; anders mag een verzoek er één
-  // aanwijzen met ?campagne= (nodig vóór het inloggen, bijvoorbeeld voor de
-  // personagekiezer op de landingspagina); anders de standaardcampagne.
-  const cid = req.session?.campaignId
-    || (storage.campagneBestaat(req.query?.campagne) ? String(req.query.campagne) : null);
+  // Volgorde: het verzoek mag zelf een campagne aanwijzen (`?campagne=`, wat de
+  // client meestuurt op basis van het pad in de adresbalk); anders die van je
+  // sessie; anders de standaardcampagne.
+  //
+  // Let op waaróm de querystring vóór de sessie gaat: een DM van campagne A die
+  // /B opent, hoort B te zien — niet A met B's naam erboven. Dat maakt de
+  // querystring niet tot een sleutel: `attachRole` en `requireDM` tellen een
+  // sessie alleen mee als die bij díé campagne hoort (zie routes/auth.js), dus
+  // wie hier iets anders invult wordt gewoon een bezoeker zonder rol.
+  const cid = (storage.campagneBestaat(req.query?.campagne) ? String(req.query.campagne) : null)
+    || req.session?.campaignId;
   if (cid) return storage.runInCampaign(cid, next);
   next();
 });

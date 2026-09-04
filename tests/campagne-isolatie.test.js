@@ -281,6 +281,30 @@ describe('Campagne-isolatie', () => {
   // Elf handgeschreven tests dekken zes van de ruim driehonderd endpoints. Deze
   // loopt ze allemaal af die zonder pad-parameter te bereiken zijn, en groeit
   // dus mee met elk endpoint dat er later bij komt.
+  it('maakt van een DM een bezoeker zodra hij een andere campagne opent', async () => {
+    // Het pad (en dus ?campagne=) bepaalt sinds 5 sep in welke campagne een
+    // verzoek draait — anders zag een DM die /beta opent nog steeds alfa. Dat
+    // mag geen sleutel worden: zijn sessie hoort bij alfa, dus in beta is hij
+    // niemand.
+    const dm = (await dmLogin(server, 'beta', 'beta-dm')).cookie;
+    assert.ok(dm, 'de DM van beta is ingelogd');
+
+    const rol = await req(server, 'GET', '/api/auth/role?campagne=alfa', null, dm);
+    assert.equal(rol.body.role, 'player', 'in alfa is hij geen DM');
+    assert.equal(rol.body.characterId, null);
+
+    const lezen = await req(server, 'GET', '/api/entities/personages?campagne=alfa', null, dm);
+    assert.ok(!JSON.stringify(lezen.body).includes(KANARIE), 'en leest daar niets van');
+
+    const schrijven = await req(server, 'POST', '/api/entities/personages?campagne=alfa',
+      { name: 'Insluiper' }, dm);
+    assert.equal(schrijven.status, 403, 'en schrijft er zeker niets');
+
+    // In zijn eigen campagne is hij nog gewoon DM.
+    const thuis = await req(server, 'GET', '/api/auth/role?campagne=beta', null, dm);
+    assert.equal(thuis.body.role, 'dm');
+  });
+
   it('lekt via geen enkele GET-route inhoud van een andere campagne', async (t) => {
     // De parameters worden gevuld met echte ids uit alfa — dat ís de aanval:
     // de DM van beta die het id van iemand anders opvraagt.

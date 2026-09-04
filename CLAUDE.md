@@ -748,6 +748,16 @@ app-iconen zijn nog van Grisburgh; eigen beeld per campagne is werk voor later.
 > Die querystring is nodig voor wat vóór het inloggen moet werken (de
 > personagekiezer op de landingspagina).
 >
+> **Het pad bepaalt de campagne, de sessie bepaalt je rol.** De client hangt
+> `?campagne=` aan elk verzoek (uit het pad in de adresbalk) en die wint van de
+> sessie — anders zag een DM van A die `/B` opent nog steeds A. Dat maakt de
+> querystring géén sleutel: `sessieHoortHier()` in `routes/auth.js` telt een
+> sessie alleen mee als haar `campaignId` gelijk is aan de campagne waarin het
+> verzoek draait (`storage.huidigeCampagne()`). `attachRole`, `requireDM`,
+> `requireBeheerder` én `GET /auth/role` gebruiken die controle, dus in een
+> vreemde campagne ben je een bezoeker: je krijgt de landingspagina en logt in
+> met háár wachtwoord. `tests/campagne-isolatie.test.js` bewaakt precies dat.
+
 > **Bestanden zitten achter die scope.** `/api/files/:id` en `/api/thumb/:id`
 > vragen een sessie; de enige uitzondering is het portret (en portretfilmpje) van
 > een personage dat de landingspagina toch al opsomt — zie `_magBestandZien()`.
