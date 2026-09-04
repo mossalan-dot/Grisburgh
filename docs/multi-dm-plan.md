@@ -167,6 +167,19 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    hernoemen → kaart uploaden (optioneel) → eerste groep met wachtwoord →
    eerste personage: zowel een kaartje in het archief als een speler-personage
    met profiel en groepskoppeling.
+   **Waarschuwen bij het indelen van party's:** twee party's zijn later niet
+   samen te voegen. Een personage verhuizen kan wel (`entity.data.groep`), maar
+   alles wat de *groep* over hem onthoudt blijft achter: `itemOwners`
+   (voorwerpbezit!), `secretReveals`, `visibility`, `docVisibility`,
+   `companions`, `itemCharges`, `sharedPurse`, `factieZichtbaar`,
+   `voorspellingen`, `dienstenToegang`, `bestiarium`, `deceased`. Alleen
+   `playerItems` en `playerCurrency` hangen aan het personage zelf en reizen
+   mee — dus je krijgt een halve verhuizing: losse boedelregels en geld gaan
+   mee, voorwerpkaartjes en alles wat al onthuld was niet. Een nieuwe DM moet
+   dus vooraf weten hoe hij zijn tafels indeelt; de wizard zegt dat met zoveel
+   woorden. Als dit vaker gaat spelen is de echte oplossing een
+   *samenvoegen*-actie die die twaalf velden per groep omzet, geen losse
+   verhuisknop.
 7. **Handleiding + visuele rondleiding.** Handleiding te downloaden na de wizard
    en terug te vinden bij Instellingen; functioneel, over spelen, niet over code.
    Rondleiding als doorklikbare pagina met afbeeldingen op een eigen link, met

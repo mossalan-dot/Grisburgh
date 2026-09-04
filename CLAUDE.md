@@ -886,6 +886,14 @@ Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in ren
   tekst — puur afleiden zou er 632 wegvagen. Wat opgeslagen is blijft dus staan.
   De editor stuurt `links` niet meer mee bij het opslaan, anders zouden de
   afgeleide verbindingen ongemerkt vastgelegd worden.
+- **Personages tussen party's verhuizen** → halve verhuizing. `entity.data.groep`
+  is één veld, maar de groep houdt zelf `itemOwners`, `secretReveals`,
+  `visibility`, `docVisibility`, `companions`, `itemCharges`, `sharedPurse`,
+  `factieZichtbaar`, `voorspellingen`, `dienstenToegang`, `bestiarium` en
+  `deceased` bij. Die blijven achter; alleen `playerItems` en `playerCurrency`
+  (per characterId) reizen mee. Twee party's samenvoegen kan dus niet zonder die
+  velden bewust om te zetten — voorwerpbezit en onthulde geheimen raak je anders
+  kwijt.
 - **Een eigennaam van Grisburgh in gedeelde code** → een tweede campagne ziet
   hem ook. Munten via `window._muntNamen()` / `storage.MUNT_STANDAARD`,
   plaatsnamen via `window._campagneNaam()`, geen ingebouwde kaart als vangnet.
