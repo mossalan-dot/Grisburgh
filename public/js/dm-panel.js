@@ -4916,20 +4916,14 @@ async function _renderBeursTab() {
       </div>
 
       ${_partyCurrency.enabled ? `
-      <div class="dm-form-row">
-        <label class="dm-form-label" for="hb-purse-fl" title="${esc(n.fl)}">gp</label>
-        <input id="hb-purse-fl" class="dm-input" type="number" min="0" value="${_partyCurrency.fl}">
-      </div>
-      <div class="dm-form-row">
-        <label class="dm-form-label" for="hb-purse-kn" title="${esc(n.kn)}">sp</label>
-        <input id="hb-purse-kn" class="dm-input" type="number" min="0" value="${_partyCurrency.kn}">
-      </div>
-      <div class="dm-form-row">
-        <label class="dm-form-label" for="hb-purse-cl" title="${esc(n.cl)}">cp</label>
-        <input id="hb-purse-cl" class="dm-input" type="number" min="0" value="${_partyCurrency.cl}">
-      </div>
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-ghost" onclick="window._hbSavePurse()" title="Nieuw saldo bewaren">${icon('save')} Saldo bijwerken</button>
+      <div class="dm-form-row dm-munt-rij">
+        <label class="dm-munt-veld" title="${esc(n.fl)}"><span>gp</span>
+          <input id="hb-purse-fl" class="dm-input" type="number" min="0" value="${_partyCurrency.fl}"></label>
+        <label class="dm-munt-veld" title="${esc(n.kn)}"><span>sp</span>
+          <input id="hb-purse-kn" class="dm-input" type="number" min="0" value="${_partyCurrency.kn}"></label>
+        <label class="dm-munt-veld" title="${esc(n.cl)}"><span>cp</span>
+          <input id="hb-purse-cl" class="dm-input" type="number" min="0" value="${_partyCurrency.cl}"></label>
+        <button class="dm-btn dm-btn-ghost" onclick="window._hbSavePurse()" title="Nieuw saldo bewaren">${icon('save')} Bijwerken</button>
       </div>` : ''}
     </div>`;
 };

@@ -22045,3 +22045,13 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
 
 /* Wachtwoordveld op een campagnekaartje: over de volle breedte onder de naam. */
 .campagne-card-pw { grid-column: 1 / -1; margin-top: 6px; }
+
+/* Drie muntbedragen naast elkaar in plaats van onder elkaar: het zijn korte
+   getallen, en gestapeld nam de beurs een half scherm in beslag. */
+.dm-munt-rij { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dm-munt-veld { display: flex; align-items: center; gap: 6px; }
+.dm-munt-veld > span {
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+  color: #7a6040; letter-spacing: .06em;
+}
+.dm-munt-veld .dm-input { width: 88px; }
