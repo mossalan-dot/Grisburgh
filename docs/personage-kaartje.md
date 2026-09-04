@@ -90,7 +90,32 @@ Het vrije veld blijft ernaast staan, want een eigen bedachte spreuk moet je
 gewoon kunnen intypen. Zelfde patroon als bij loot: gekoppeld waar het kan,
 los waar het moet.
 
-## 5. Wat de kaart nog mist
+## 5. Rollen: welke tags zijn het waard?
+
+Als `subtype` alleen nog zegt wát iets is (persoon, dier, god), dan draagt de
+tag wat het **doet**. Wat de moeite is:
+
+| Tag | Waarvoor |
+|---|---|
+| **Verkoper** | heeft een voorraad; hangt aan de winkel-mechaniek |
+| **Questgever** | staat aan de basis van een missie — handig om te filteren als je een draad zoekt |
+| **Antagonist** | verhaalrol, geeft kleur op het kaartje |
+| **Medestander** | reist met de party mee (`companions` bestaat al per groep) |
+| **Summon** | tijdelijk opgeroepen; verdwijnt na het gevecht of de duur |
+| **Rijdier** | eigen initiatief maar geen eigen wil |
+| **Huurling** | vecht mee tegen betaling — economisch, niet emotioneel |
+| **Gevangene** | zit ergens vast; verandert wat de party met hem kan |
+| **Factielid** | hangt al aan `meta.facties`, maar als tag ook los bruikbaar |
+
+**Voor de gevechtseconomie telt vooral iets anders dan de tag**: aan wélke kant
+staat dit wezen als het in een gevecht komt. Dat is een eigen veldje —
+*bondgenoot · vijand · neutraal* — en het is precies wat het encounter-vullen
+nodig heeft om te weten of iets bij de party of tegenover de party in de
+initiatieflijst hoort. Medestander, summon, rijdier en huurling zijn dan
+allemaal "bondgenoot", maar om verschillende redenen; die reden hoort in de tag
+en niet in de kant.
+
+## 6. Wat de kaart nog mist
 
 Wat je aan tafel nodig hebt in de seconde vóórdat je die NPC speelt, staat er
 niet:
@@ -109,7 +134,7 @@ niet:
 De eerste vier zou ik samen in één blok zetten (*Aan tafel*), boven het
 statblok: dat is de volgorde waarin je ze nodig hebt.
 
-## 6. Kleinere dingen
+## 7. Kleinere dingen
 
 - **"Roddel uitgesproken door de waard"** staat als knopje in de editor, maar
   het is geen eigenschap van het personage — het is de stand van de herberg
@@ -124,8 +149,8 @@ statblok: dat is de volgorde waarin je ze nodig hebt.
 
 ## Volgorde die ik zou aanhouden
 
-1. **Ras en klasse als keuzelijst** — kleinste ingreep, meteen betere filters
-   en een betrouwbaardere match met de progressie.
+1. **Ras en klasse als keuzelijst** — *gedaan 5 sep, samen met Alignment.*
+   Lijsten staan in `bronnen/volken-klassen.json` en gaan via `/api/bron/`.
 2. **Meerdere geheimen** — raakt hoe je speelt, en de reveal-strook bestaat al.
 3. **Velden voor aan tafel** (eerste indruk, stem, wil, vreest) — puur
    toevoegen, niets breekt.

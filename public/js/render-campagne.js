@@ -142,8 +142,9 @@ const SCHEMA = {
       // de labels zeggen nu wat het veld ís. 'rol' was zo vaag dat het van alles
       // werd, 'persoonlijkheid' gaat in de praktijk over hoe jíj hem speelt.
       { key: 'rol', label: 'Korte omschrijving', type: 'text' },
-      { key: 'ras', label: 'Ras', type: 'text' },
-      { key: 'klasse', label: 'Klasse', type: 'text' },
+      { key: 'ras', label: 'Ras', type: 'lijst', lijst: 'volken' },
+      { key: 'klasse', label: 'Klasse', type: 'lijst', lijst: 'klassen' },
+      { key: 'alignment', label: 'Alignment', type: 'lijst', lijst: 'alignments' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'geheim', label: 'Geheim', type: 'textarea' },
       { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
@@ -2768,6 +2769,7 @@ export function openEditor(type) {
 
 let allNames = {};
 let _scrollSpellList = null;  // volledige spell-lijst voor de Scroll-spell-picker (lazy)
+let _naamLijsten = null;      // volken, klassen en alignments voor de keuzevelden
 
 // ── Huisdier-tier-editor (subtype 'dier') ──
 // _petTiers wordt in openEditor gevuld uit e.statblockTiers en bij submit weer uitgelezen.
@@ -2859,6 +2861,11 @@ window._openEditor = async (tab, editId) => {
     try { e = await api.getEntity(tab, editId); } catch { return; }
   }
   allNames = await api.allNames();
+  // Namenlijsten voor ras, klasse en alignment — één keer ophalen en bewaren.
+  if (tab === 'personages' && !_naamLijsten) {
+    try { _naamLijsten = await fetch('/api/bron/volken-klassen').then(r => r.json()); }
+    catch { _naamLijsten = { klassen: [], volkenGangbaar: [], volkenOverig: [], alignments: [] }; }
+  }
   // Scroll-spell-picker: laad de spell-lijst één keer (voor de datalist + autofill).
   if (tab === 'voorwerpen' && !_scrollSpellList) {
     try { _scrollSpellList = (await fetch('/api/bron/spells-2024').then(r => r.json())).results || []; }
@@ -2876,6 +2883,17 @@ window._openEditor = async (tab, editId) => {
   }
 
   let body = `<form id="entity-form" class="space-y-4">`;
+
+  // De datalists staan één keer bovenaan het formulier; de velden verwijzen
+  // ernaar met `list=`. Gangbare volken eerst, daarna de rest — anders scrol je
+  // door zevenenveertig namen voordat je bij Human bent.
+  if (tab === 'personages' && _naamLijsten) {
+    const opties = (arr) => (arr || []).map(v => `<option value="${esc(v)}">`).join('');
+    body += `
+      <datalist id="dl-klassen">${opties(_naamLijsten.klassen)}</datalist>
+      <datalist id="dl-volken">${opties(_naamLijsten.volkenGangbaar)}${opties(_naamLijsten.volkenOverig)}</datalist>
+      <datalist id="dl-alignments">${opties(_naamLijsten.alignments)}</datalist>`;
+  }
 
   // ── DM-toggle vars (vroeg berekend, gebruikt in rechterkolom én textarea-sectie) ──
   const _valUitgesproken = e?.data?.flavourUitgesproken === true || e?.data?.flavourUitgesproken === 'true';
@@ -3087,6 +3105,17 @@ window._openEditor = async (tab, editId) => {
             <option value="">—</option>
             ${field.options.map(o => typeof o === 'object' ? `<option value="${o.value}" ${val === o.value ? 'selected' : ''}>${o.label}</option>` : `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
           </select>
+        </div>
+      `;
+    } else if (field.type === 'lijst') {
+      // Zoekbaar invoerveld met een datalist: typen filtert, en wat er niet in
+      // staat mag je alsnog intikken — een campagne met eigen volken of klassen
+      // wordt zo niet klemgezet. De lijsten komen uit bronnen/volken-klassen.json.
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input name="data_${field.key}" list="dl-${field.lijst}" value="${esc(val)}" autocomplete="off"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
         </div>
       `;
     } else if (field.type === 'weapon-tags') {

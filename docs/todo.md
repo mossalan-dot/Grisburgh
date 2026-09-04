@@ -48,6 +48,24 @@ groot het is.
       en `state.dmPreview` staan er nog. Laten staan tot zeker is dat je hem niet
       terugwilt.
 
+## Personage-kaartje → `docs/personage-kaartje.md`
+
+- [x] **Ras, klasse en alignment als keuzelijst** *(5 sep)* — zoekbaar, met vrije
+      invoer; lijsten in `bronnen/volken-klassen.json`.
+- [ ] **Meerdere geheimen per kaartje** — lijst van `{tekst, onthuld}`, per regel
+      te onthullen, badge wordt "1 van 3".
+- [ ] **Flavour op dezelfde manier** — meerdere regels, per stuk vrij te geven;
+      de herberg pikt er dan één op die nog niet verteld is.
+- [ ] **Subtypes opsplitsen** — `subtype` = wat het is (persoon, dier, god), de
+      rest wordt tags (verkoper, questgever, antagonist, medestander, summon,
+      rijdier, huurling, gevangene) plus een veld *kant in gevecht*
+      (bondgenoot · vijand · neutraal) voor het vullen van een encounter.
+- [ ] **Spreuken koppelen aan de bibliotheek** — chips die het spreukdetail
+      openen, in plaats van overtypen in een tekstveld.
+- [ ] **Eigen spreuk kunnen aanmaken** in het spreukentabblad — nodig zodra de
+      koppeling er is, want dan kun je een zelfbedachte spreuk nergens meer
+      kwijt. Uitzoeken of dat nu al kan.
+
 ## Op de telefoon
 
 - [ ] **Alles nog eens doorlopen op een telefoon.** De app wordt aan tafel op
