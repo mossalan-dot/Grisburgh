@@ -48,6 +48,20 @@ groot het is.
       en `state.dmPreview` staan er nog. Laten staan tot zeker is dat je hem niet
       terugwilt.
 
+## Stijlen per campagne
+
+- [ ] **Een echte reeks stijlen bedenken.** Er waren twee thema's — fantasy en
+      Harry Potter — en dat is geen keuze maar een restant van één one-shot. De
+      keuzelijst is uit het paneel gehaald (5 sep); nieuwe campagnes krijgen het
+      standaardthema, bestaande houden wat ze hebben.
+      Denkrichting: **steampunk, sci-fi, noir/detective, gothic horror, mythisch
+      Grieks, wildwest, post-apocalyptisch**. Per stijl gaat het om dezelfde
+      handvol dingen: een palet (grond, inkt, accent), twee lettertypes (kop en
+      broodtekst), de textuur van het papier, en de vorm van randen en zegels.
+      De app leest dat al via `data-theme` op de root, dus een stijl is een blok
+      CSS-variabelen — geen tweede set componenten. Pas als er drie of vier
+      overtuigend staan, hoort de keuze terug in de wizard.
+
 ## Afgesproken maar nog niet ingepland
 
 - [ ] **Samenvoegen van party's** — verhuizen laat voorwerpbezit en onthulde
