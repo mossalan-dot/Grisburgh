@@ -297,9 +297,24 @@ window.addEventListener('resize', _scheduleFitHeader);
 // smaller dan hij wordt, past alles "net" en klapt hij niet in — waarna de
 // echte letters over elkaar heen vallen. Dus opnieuw meten zodra de fonts er
 // zijn, nog een keer kort daarna, en bij terugkeer uit de bfcache.
-if (document.fonts?.ready) document.fonts.ready.then(_scheduleFitHeader).catch(() => {});
-setTimeout(_scheduleFitHeader, 400);
+if (document.fonts?.ready) document.fonts.ready.then(() => _scheduleFitHeader()).catch(() => {});
+for (const ms of [400, 1200]) setTimeout(_scheduleFitHeader, ms);
 window.addEventListener('pageshow', _scheduleFitHeader);
+// De kop groeit ook ná het meten: de aktechip, de partybalk en de groepspil
+// komen los binnen. Eén waarnemer op de balk vangt dat allemaal op — hij kijkt
+// alleen naar de breedte van de balk zelf, dus het toevoegen van de compacte
+// klasse zet geen lus in gang.
+if (window.ResizeObserver) {
+  let _laatsteBreedte = -1;
+  const _ro = new ResizeObserver(([entry]) => {
+    const breedte = Math.round(entry.contentRect.width);
+    if (breedte === _laatsteBreedte) return;
+    _laatsteBreedte = breedte;
+    _scheduleFitHeader();
+  });
+  const _kop = document.getElementById('app-header');
+  if (_kop) _ro.observe(_kop);
+}
 
 function switchSection(section) {
   // Sluit overlays als ze open zijn — position:fixed volgt de sectie niet
@@ -948,11 +963,15 @@ function applyRole() {
   const sandboxBadge = document.getElementById('sandbox-badge');
   if (sandboxBadge) sandboxBadge.classList.toggle('hidden', !state.isSandbox);
 
-  // Dice FAB: spelers zien het reguliere, DM ziet de DM-variant
+  // Dice FAB: spelers zien het reguliere, DM ziet de DM-variant. Op het
+  // tafelscherm geen van beide: dat scherm ligt op tafel en gooit niet — en
+  // sinds de tablet als DM inlogt kwam de DM-variant er anders bij.
   const diceFab   = document.getElementById('dice-fab');
   const dmDiceFab = document.getElementById('dm-dice-fab');
-  if (diceFab)   diceFab.classList.toggle('hidden', isDmActive);
-  if (dmDiceFab) dmDiceFab.classList.toggle('hidden', !isDmActive);
+  const opTafel   = !!window._isDisplayMode;
+  if (diceFab)   diceFab.classList.toggle('hidden', opTafel || isDmActive);
+  if (dmDiceFab) dmDiceFab.classList.toggle('hidden', opTafel || !isDmActive);
+  if (opTafel) document.getElementById('dice-panel')?.classList.add('hidden');
 
   // Meesterkamer-tab: alleen zichtbaar voor actieve DM
   const dmTab = document.getElementById('dm-tab');
@@ -1021,6 +1040,9 @@ function applyRole() {
 
   updateFab();
   _scheduleFitHeader(); // rolwissel toont/verbergt tabs → herbereken de fit
+  // Nog een keer nadat de browser alles heeft neergezet: de chip en de partybalk
+  // komen soms een tel later binnen en maken de kop dan alsnog te breed.
+  setTimeout(_scheduleFitHeader, 250);
 }
 
 function dmToggleClick() {

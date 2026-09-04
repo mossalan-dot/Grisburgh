@@ -3377,6 +3377,10 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   justify-content: center;
   gap: 0;
   min-width: 0;
+  /* Bewust `visible`: de dropdowns van Archief, Logboek en Diensten hangen als
+     absoluut gepositioneerde menu's ín deze nav. Met `hidden` zou de balk niet
+     meer over de titel schuiven, maar zouden die menu's afgeknipt worden — het
+     middel is dan erger dan de kwaal. Passen doet de rij dankzij _fitHeader(). */
   overflow: visible;
   align-self: stretch;
 }
