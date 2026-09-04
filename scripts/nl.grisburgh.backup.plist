@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>nl.grisburgh.backup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/alan/bin/grisburgh-backup-ophalen</string>
+  </array>
+  <!-- Elke dag om 19:00. Staat de laptop dan uit, dan draait launchd de
+       gemiste beurt zodra hij weer aan gaat — precies wat we wilden. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>19</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/Users/alan/Grisburgh-backups/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/alan/Grisburgh-backups/launchd.log</string>
+</dict>
+</plist>

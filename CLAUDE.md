@@ -114,6 +114,51 @@ Bij nieuwe JS-bestanden ook het `public/data/`-mapje deployen als daar bestanden
 
 ---
 
+### Backups draaien vanzelf
+
+Elke nacht om **05:15** draait op de server `/usr/local/bin/grisburgh-backup`
+(bron: `scripts/backup-campagnes.sh`, via cron van root). Die maakt in
+`/var/backups/grisburgh/<datum>/` een snapshot van **alle campagnes**: alle JSON
+plus de `thumbs/`. Bewust níét mee: `files/` (2,2 GB originelen — die blijven
+alleen op de server) en `campaigns/*/backups/` (de per-schrijfactie-kopieën die
+`lib/storage.js` zelf al bijhoudt).
+
+Dertig dagen historie kost geen dertig keer de ruimte: `rsync --link-dest`
+hardlinkt ongewijzigde bestanden aan de vorige dag, dus twee snapshots van 58 MB
+staan samen voor 59 MB op schijf. Een oude dag weggooien blijft daardoor veilig
+— pas als de laatste link weg is, verdwijnt het bestand echt. Let bij het lezen
+van `/var/log/grisburgh-backup.log` op: de maat van één dag zegt niets, `du`
+telt een hardlink vol mee. Het totaal is wat er echt staat.
+
+> **De volgorde van de rsync-filters telt.** rsync neemt de eerste regel die
+> past, dus `--exclude='files/'` en `--exclude='backups/'` staan vóór
+> `--include='*/'`. Andersom haalt die include eerst álle mappen binnen en komen
+> de JSON-bestanden ín `backups/` alsnog mee.
+
+**Op de laptop** haalt een launchd-agent (`nl.grisburgh.backup`, elke dag 19:00,
+script `~/bin/grisburgh-backup-ophalen` uit `scripts/backup-ophalen.sh`) de boel
+op naar `~/Grisburgh-backups/`: `laatste/` is de huidige stand mét thumbnails
+(58 MB), `json/<datum>/` is dertig dagen JSON-historie (~2,4 MB per dag). Staat
+de laptop om 19:00 uit, dan draait launchd de gemiste beurt zodra hij weer aan
+gaat. De historie is daar JSON-only omdat macOS `openrsync` levert, dat geen
+hardlinks kopieert — dertig volle dagen zouden dan 1,7 GB kosten.
+
+Handmatig draaien of terugzetten:
+
+```bash
+ssh root@46.224.156.154 "/usr/local/bin/grisburgh-backup"     # nu een snapshot
+~/bin/grisburgh-backup-ophalen                                 # nu ophalen
+
+# Eén bestand terug (voorbeeld):
+ssh root@46.224.156.154 "cp /var/backups/grisburgh/2026-09-04/grisburgh/archief.json \
+  /var/www/grisburgh/data/campaigns/grisburgh/ && pm2 restart grisburgh"
+```
+
+De handmatige backup vóór een wijziging aan spelersdata (zie boven) blijft
+staan: de nachtelijke is van vannacht, niet van vijf minuten geleden.
+
+---
+
 ## Versienummers — ALTIJD bumpen bij deploy
 
 De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt oud bestand op.**

@@ -1,6 +1,6 @@
 # Grisburgh voor meerdere DM's — werkdocument
 
-Status: **plan, nog niets gebouwd.** Bijgewerkt 3 sep 2026.
+Status: **stap 1 en 2 af.** Bijgewerkt 4 sep 2026.
 Dit document leeft naast `CLAUDE.md`; als een stap af is, verhuist de blijvende
 kennis daarheen en blijft hier alleen de voortgang staan.
 
@@ -121,9 +121,17 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    Beide zijn los bewezen op een gezaaide campagne: de veeg vindt de kanarie
    dan op `/entities/personages`, `/entities/personages/:id`, `/archief`,
    `/characters/:id/sheet` en `/monsters`, en het socket-event komt binnen. Na deze stap kan DM 2 er al op, met alles aan.
-2. **Backups automatisch.** Dagelijks alle JSON per campagne met rotatie (klein:
-   kilobytes) plus een kopie bij Alan. Vóór stap 3, want daarna wordt er aan
-   gedeelde code gezeten.
+2. **Backups automatisch.** — **af (4 sep 2026)**. Cron op de server om 05:15
+   (`/usr/local/bin/grisburgh-backup`) maakt een snapshot van alle JSON plus de
+   thumbnails van élke campagne, dertig dagen terug, met `--link-dest` zodat de
+   historie hardlinks deelt (twee dagen van 58 MB = 59 MB op schijf). Een
+   launchd-agent op de laptop haalt om 19:00 de huidige stand mét thumbnails op
+   en houdt daarnaast dertig dagen JSON-historie; een gemiste dag wordt bij het
+   volgende opstarten ingehaald. Gecontroleerd: de 27 JSON-bestanden in de
+   snapshot parsen en zijn identiek aan live, en het ophalen draait vanuit
+   launchd (exit 0). Wat er bewust níét in zit: `files/` (2,2 GB originelen) en
+   het PM2-configuratiebestand met de wachtwoorden in de omgeving — na een
+   totale ramp moet die met de hand terug. Zie CLAUDE.md voor het terugzetten.
 3. **Namen, munten en kaart generiek.** Zie "bekende scherven".
 4. **Modules per campagne.** `meta.modules`, gefilterd in zijbalk én
    Meesterkamer. Grisburgh alles op `true` — dat is meteen de smoke test.
