@@ -9613,10 +9613,11 @@ async function _renderInstellingen() {
         <div class="dm-form-row campagne-card-pw">
           <label class="dm-form-label" for="cpw-${esc(c.id)}"
             title="${wachtwoorden[c.id] ? 'Er staat een wachtwoord; typ een nieuw om het te vervangen' : 'Zonder wachtwoord kan niemand deze campagne in'}">
-            ${wachtwoorden[c.id] ? icon('lock') : icon('lock-open')} DM-wachtwoord</label>
+            <span id="cpw-slot-${esc(c.id)}">${wachtwoorden[c.id] ? icon('lock') : icon('lock-open')}</span> DM-wachtwoord</label>
           <input id="cpw-${esc(c.id)}" class="dm-input" type="password" autocomplete="new-password"
             placeholder="${wachtwoorden[c.id] ? 'Wachtwoord vervangen…' : 'Nog geen wachtwoord — instellen…'}"
             onchange="window._instCampagnePw('${esc(c.id)}', this.value)">
+          <span id="cpw-status-${esc(c.id)}" class="bericht-status hidden"></span>
         </div>
         <details class="dm-modules">
           <summary>Modules</summary>
@@ -9849,12 +9850,30 @@ window._instEmbleemWis = () => {
   document.getElementById('inst-embleem-preview')?.classList.add('hidden');
 };
 
+// Bewust géén hertekening van het hele paneel: dat klapte de uitklap dicht en
+// gooide je naar boven, zonder dat je zag of het gelukt was. Alleen de regel
+// zelf praat terug.
 window._instCampagnePw = async (campagneId, wachtwoord) => {
   if (!wachtwoord) return;
+  const veld   = document.getElementById(`cpw-${campagneId}`);
+  const status = document.getElementById(`cpw-status-${campagneId}`);
+  const melden = (tekst, ok) => {
+    if (!status) return;
+    status.textContent = tekst;
+    status.className = `bericht-status bericht-status--${ok ? 'ok' : 'err'}`;
+    status.classList.remove('hidden');
+    if (ok) setTimeout(() => status.classList.add('hidden'), 3000);
+  };
   try {
     await api.setCampaignDmPw(campagneId, wachtwoord);
-    await _renderInstellingen();
-  } catch (err) { alert('Instellen mislukt: ' + err.message); }
+    if (veld) { veld.value = ''; veld.placeholder = 'Wachtwoord vervangen…'; }
+    const slot = document.getElementById(`cpw-slot-${campagneId}`);
+    if (slot) slot.innerHTML = icon('lock');
+    melden('✓ Wachtwoord ingesteld', true);
+  } catch (err) {
+    melden(err.message || 'Instellen mislukt', false);
+    veld?.focus();
+  }
 };
 
 window._instModulesSave = async (campagneId) => {
