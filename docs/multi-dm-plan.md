@@ -89,10 +89,10 @@ thumbnail 600px is. Verkleinen bij upload scheelt een factor honderd.
 
 Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
 
-1. **Isolatie, DM-accounts en `/naam`-routing.** — **server-kant af (4 sep 2026)**;
-   de veertien isolatietests staan groen en zijn geen `todo` meer. Nog te doen:
-   het gecombineerde inlogscherm (één wachtwoordveld dat de rol bepaalt) en
-   tabletmodus vanuit het DM-scherm.
+1. **Isolatie, DM-accounts en `/naam`-routing.** — **af (4 sep 2026)**. De
+   vijftien isolatietests staan groen en zijn geen `todo` meer: routing per
+   campagne, login mét campagne, bestanden achter de scope, één wachtwoordveld
+   dat de rol bepaalt, en tabletmodus vanuit het DM-scherm.
    Campagne-id uit de URL, gebonden aan de sessie. DM-accounts met gehashte
    wachtwoorden (Alan wordt account nummer één). Eén inlogscherm per campagne
    waarin het ingetikte wachtwoord de rol bepaalt (groep → personage kiezen;

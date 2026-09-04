@@ -223,6 +223,20 @@ describe('Campagne-isolatie', () => {
     assert.ok(!namen.includes('Indringer'), 'wat beta aanmaakt hoort nooit in de map van alfa te landen');
   });
 
+  it('laat één wachtwoordveld de rol bepalen, per campagne', async () => {
+    const dm = await req(server, 'POST', '/api/auth/toegang', { campagne: 'alfa', wachtwoord: 'alfa-dm' });
+    assert.equal(dm.status, 200);
+    assert.equal(dm.body.rol, 'dm');
+
+    const groep = await req(server, 'POST', '/api/auth/toegang', { campagne: 'alfa', wachtwoord: 'alfa-groep' });
+    assert.equal(groep.body.rol, 'groep', 'een groepswachtwoord geeft de personages van die party');
+    assert.ok(groep.body.personages.some(p => p.id === alfa.spelerId));
+
+    // Het wachtwoord van de buurcampagne opent hier niets.
+    const kruislings = await req(server, 'POST', '/api/auth/toegang', { campagne: 'alfa', wachtwoord: 'beta-groep' });
+    assert.equal(kruislings.status, 401);
+  });
+
   // ── De speler ──
   it('laat een speler geen personage uit een andere campagne kiezen', async () => {
     moetLukken(await spelerLogin(server, 'alfa', alfa.spelerId, 'alfa-groep'), 'inloggen op het eigen personage');

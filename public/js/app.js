@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=254';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=255';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=125";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=75";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=20';
 import { renderSpreuken } from './render-spreuken.js?v=13';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=59";
-import { initDmPanel } from "./dm-panel.js?v=171";
+import { initDmPanel } from "./dm-panel.js?v=172";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -136,6 +136,7 @@ window.app = {
   cancelHeader,
   applyAppMeta,
   showLanding,
+  landingToegang,
   hideLanding,
   _landingPortraitClick,
   openPlayerPicker,
@@ -651,6 +652,57 @@ async function testLoginSubmit() {
   }
 }
 
+// ── Toegang: één veld, de rol volgt ─────────────────────────────────────────
+// Je hoeft niet eerst te bedenken of je DM bent of speler: het wachtwoord zegt
+// het. Bij een groepswachtwoord blijven alleen de personages van díé party
+// staan, en onthouden we het wachtwoord even zodat de speler het niet twee keer
+// hoeft in te tikken bij het kiezen van zijn personage.
+let _groepsWachtwoord = null;
+
+window.app = window.app || {};
+async function landingToegang() {
+  const veld = document.getElementById('landing-toegang-pw');
+  const fout = document.getElementById('landing-toegang-error');
+  const knop = document.getElementById('landing-toegang-btn');
+  if (!veld) return;
+  fout?.classList.add('hidden');
+  if (knop) knop.disabled = true;
+  try {
+    const r = await api.toegang(veld.value);
+    if (r.rol === 'dm') {
+      state.role = 'dm';
+      applyRole();
+      try {
+        const { groups, activeGroup } = await api.listGroups();
+        _activeGroupId = activeGroup;
+        window.renderGroupSwitcher(groups, activeGroup);
+      } catch { /* ok */ }
+      _rebuildEntityIndex();
+      refreshAll();
+      window.dmPanel?.refreshCombatOverlay();
+      return;
+    }
+    // Een party: laat alleen haar personages staan en onthoud het wachtwoord.
+    _groepsWachtwoord = veld.value;
+    veld.value = '';
+    await _landingToonGroep(r);
+  } catch {
+    fout?.classList.remove('hidden');
+    veld.select();
+  } finally {
+    if (knop) knop.disabled = false;
+  }
+}
+
+async function _landingToonGroep(r) {
+  // Opnieuw tekenen met alleen deze party: de kiezer is een carrousel met een
+  // slide per party, en losse portretten verstoppen breekt die indeling.
+  await showLanding({ alleenGroep: r.groep?.id || null });
+  const sub = document.getElementById('landing-subtitle');
+  if (sub && r.groep?.naam) sub.textContent = `Kies je personage — ${r.groep.naam}`;
+  document.querySelector('.landing-toegang')?.classList.add('hidden');
+}
+
 // ── Landing footer: inline login-prompts (vervangt modal-overlays op de landingspagina) ──
 
 function _landingShowFooterPrompt({ title, iconName, placeholder, submitLabel, onSubmit }) {
@@ -920,7 +972,7 @@ function hideLanding() {
   document.getElementById('landing-overlay')?.classList.add('hidden');
 }
 
-async function showLanding() {
+async function showLanding({ alleenGroep = null } = {}) {
   const overlay = document.getElementById('landing-overlay');
   if (!overlay) return;
 
@@ -940,7 +992,10 @@ async function showLanding() {
   list.innerHTML = '<p class="landing-loading">Laden…</p>';
 
   try {
-    const chars = await api.listPlayerChars();
+    let chars = await api.listPlayerChars();
+    // Is er een groepswachtwoord ingetikt, dan hoort de kiezer alleen die party
+    // te tonen — je kiest niet uit een andere party.
+    if (alleenGroep) chars = chars.filter(c => c.groep === alleenGroep);
     if (chars.length === 0) {
       list.innerHTML = '<p class="landing-loading">Geen spelerskarakters gevonden.</p>';
       return;
@@ -1028,6 +1083,19 @@ async function _landingPortraitClick(charId, portraitEl) {
 
   const hasPassword  = portraitEl.dataset.hasPassword === '1';
   const hasVideo     = portraitEl.dataset.portraitVideo === '1';
+  // Al een groepswachtwoord ingetikt op de landingspagina? Dan niet nóg eens
+  // vragen: inloggen met dat wachtwoord en meteen de animatie starten.
+  if (_groepsWachtwoord) {
+    try {
+      const result = await api.playerLogin(charId, _groepsWachtwoord);
+      await _landingStartZoom(charId, portraitEl, hasVideo);
+      _landingFinishLogin(result);
+    } catch {
+      _groepsWachtwoord = null;
+      _landingCancelPassword();
+    }
+    return;
+  }
   if (hasPassword) {
     _landingShowPasswordPrompt(charId, portraitEl, hasVideo);
   } else {

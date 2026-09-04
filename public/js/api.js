@@ -29,6 +29,8 @@ export const api = {
   login:             (password)     => request('/auth/login',          { method: 'POST', body: JSON.stringify({ campagne: _campagne, password }) }),
   // Publiek: welke campagne hoort bij dit pad (of bij mijn sessie)?
   campagneInfo:      ()             => request(`/campagne?pad=${encodeURIComponent(location.pathname)}`),
+  // Eén wachtwoordveld: het antwoord vertelt of je DM bent of welke party het is.
+  toegang:           (wachtwoord)   => request('/auth/toegang',        { method: 'POST', body: JSON.stringify({ campagne: _campagne, wachtwoord }) }),
   sandboxLogin:      (password)     => request('/auth/sandbox-login',  { method: 'POST', body: JSON.stringify({ password: password || '' }) }),
   tabletLogin:       (password)     => request('/auth/tablet-login',   { method: 'POST', body: JSON.stringify({ campagne: _campagne, password }) }),
   logout:            ()             => request('/auth/logout',         { method: 'POST' }),

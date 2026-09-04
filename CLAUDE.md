@@ -136,12 +136,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=413   app.js?v=568   sound-manager.js?v=8
-app.js      : api.js?v=254      render-campagne.js?v=125   render-archief.js?v=75
+index.html  : theme.css?v=414   app.js?v=569   sound-manager.js?v=8
+app.js      : api.js?v=255      render-campagne.js?v=125   render-archief.js?v=75
               render-kaart.js?v=18  render-dungeon.js?v=33  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=171    render-dashboard.js?v=9
+              dm-panel.js?v=172    render-dashboard.js?v=9
               render-spreuken.js?v=13   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 ```
@@ -525,6 +525,15 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 > hoe ver je kwam. Ook de **tabletlogin** krijgt een campagne mee — zonder
 > campagne-id belandt zijn socket in de algemene kamer en mist hij alles.
 
+- **Eén wachtwoordveld:** POST `/api/auth/toegang` met `{ campagne, wachtwoord }` →
+  `{rol:'dm'}` (meteen ingelogd) of `{rol:'groep', groep, personages}` (de kiezer
+  toont dan alleen díé party; het wachtwoord wordt onthouden zodat de speler het
+  niet twee keer intikt). Dat veld staat op de landingspagina in plaats van de
+  knoppen *Dungeon Master* en *Tablet*.
+- **Tabletmodus** heeft geen eigen wachtwoord meer: je logt in als DM en zet dít
+  scherm om via Instellingen → Tafelscherm. Zo hoeft er niets getypt te worden op
+  een scherm dat op tafel ligt. `/api/auth/tablet-login` bestaat nog (en zet nu
+  wél een `campaignId`), maar de knop ernaartoe is weg.
 - **DM:** POST `/api/auth/login` met `{ campagne, password }` → sessie krijgt `role: 'dm'` + `campaignId`
 - **Speler:** POST `/api/auth/player-login` met `{ campagne, characterId, password }` → sessie krijgt `characterId` + `campaignId`
 - **Testlogin (browser):** `window.app.testLogin()` → overlay met wachtwoord + karakterkeuze

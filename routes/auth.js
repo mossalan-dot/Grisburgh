@@ -59,6 +59,48 @@ router.post('/login', (req, res) => {
   res.json({ role: 'dm', campagne: naam, isSandbox: naam === 'sandbox' });
 });
 
+// ── Toegang: één wachtwoordveld, de rol volgt ────────────────────────────────
+// Op de campagnepagina staat één veld. Wat je intikt bepaalt waar je uitkomt:
+// het DM-wachtwoord logt je in als DM, een groepswachtwoord laat de personages
+// van díé party zien om uit te kiezen. Zo hoeft niemand eerst te bedenken wat
+// hij is.
+router.post('/toegang', (req, res) => {
+  const { naam, fout } = _campagneUitBody(req);
+  if (fout) return res.status(400).json({ error: fout });
+  const wachtwoord = String(req.body?.wachtwoord ?? req.body?.password ?? '');
+
+  const dmPw = _dmWachtwoordVan(naam);
+  if (dmPw && _zelfdeGeheim(wachtwoord, dmPw)) {
+    req.session.role       = 'dm';
+    req.session.campaignId = naam;
+    delete req.session.playerName;
+    delete req.session.characterId;
+    return res.json({ rol: 'dm', campagne: naam });
+  }
+
+  let antwoord = null;
+  storage.runInCampaign(naam, () => {
+    const dmState  = storage.readJSON('dm-state.json');
+    const entities = storage.readJSON('entities.json');
+    const groepen  = dmState.groups || {};
+    const treffer  = Object.entries(groepen)
+      .find(([, g]) => g.password && _zelfdeGeheim(wachtwoord, g.password));
+    if (!treffer) return;
+    const [groepId, groep] = treffer;
+    // Nog niet inloggen: eerst kiest de speler zijn personage, en dan pas gaat
+    // dezelfde login-route in met hetzelfde wachtwoord.
+    const personages = (entities.personages || [])
+      .filter(e => (e.subtype || '').toLowerCase() === 'speler' && e.data?.groep === groepId && !e.data?.testOnly)
+      .map(e => ({
+        id: e.id, name: e.name, ras: e.data?.ras || '', klasse: e.data?.klasse || '',
+        portraitVideoId: e.data?.portraitVideoId || (storage.getFile(`${e.id}_video`) ? `${e.id}_video` : null),
+      }));
+    antwoord = { rol: 'groep', campagne: naam, groep: { id: groepId, naam: groep.name || '' }, personages };
+  });
+  if (antwoord) return res.json(antwoord);
+  res.status(401).json({ error: 'Verkeerd wachtwoord' });
+});
+
 // ── Tablet login ──
 // Alleen wachtwoordcontrole — geen sessierol-wijziging.
 // Zonder TABLET_PASSWORD in de omgeving is tablet-login uitgeschakeld.

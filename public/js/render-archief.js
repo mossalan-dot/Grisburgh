@@ -1,4 +1,4 @@
-import { api } from './api.js?v=254';
+import { api } from './api.js?v=255';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);

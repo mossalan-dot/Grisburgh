@@ -4700,6 +4700,11 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   .loot-cin-buit { max-width: 88vw; }
 }
 
+/* Eén wachtwoordveld op de landingspagina; de rol volgt uit wat je intikt. */
+.landing-toegang { display: flex; align-items: center; gap: 8px; }
+.landing-toegang.hidden { display: none; }
+.landing-toegang .landing-pw-input { min-width: 210px; }
+
 /* ── Verhaalpaneel naast de regie ────────────────────────────────────────────
    Neemt de helft van het scherm — de plek waar tijdens het spelen Obsidian
    stond — en duwt de app opzij in plaats van eroverheen te vallen. De andere

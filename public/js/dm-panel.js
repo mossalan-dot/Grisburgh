@@ -1,4 +1,4 @@
-import { api } from './api.js?v=254';
+import { api } from './api.js?v=255';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=21';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -453,6 +453,7 @@ export function initDmPanel() {
 
     // Regie-balk
     aanwezigheidToggle:      (groepId, charId) => _aanwezigheidToggle(groepId, charId),
+    naarTabletmodus:         () => _naarTabletmodus(),
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
     regieBalkRust:           (id) => _regieBalkRust(id),
@@ -9464,6 +9465,14 @@ async function _aanwezigheidToggle(groepId, charId) {
   }
 }
 
+// Tabletmodus zonder apart wachtwoord: je bent al ingelogd, dus dit scherm mag
+// zichzelf omzetten. Scheelt een wachtwoord dat op tafel ligt mee te kijken.
+function _naarTabletmodus() {
+  if (!confirm('Dit scherm omzetten naar tabletmodus?\n\nJe ziet dan alleen nog wat de party te zien krijgt. Terug kan met het kruisje rechtsboven.')) return;
+  try { localStorage.setItem('displayMode', '1'); } catch { /* ok */ }
+  location.reload();
+}
+
 async function _renderInstellingen() {
   const body = document.getElementById('dm-instellingen-body');
   if (!body) return;
@@ -9559,6 +9568,15 @@ async function _renderInstellingen() {
       </div>
       <div id="inst-groepen-list" style="display:flex;flex-direction:column;gap:6px">
         ${groupItems || '<p class="dm-hint">Nog geen party\'s.</p>'}
+      </div>
+    </div>
+
+    <!-- Tabletmodus -->
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Tafelscherm</div>
+      <p class="dm-hint">Zet <strong>dit</strong> scherm in tabletmodus: het toont dan alleen wat de party mag zien — beelden, kaarten, brieven, de kist. Bedoeld voor het scherm dat op tafel ligt. Je hoeft er dus geen wachtwoord meer op in te tikken; je logt hier in en zet het daarna om.</p>
+      <div class="dm-feature-row">
+        <button class="dm-btn" onclick="window.dmPanel.naarTabletmodus()" title="Dit scherm wordt het tafelscherm">${icon('monitor')} Dit scherm naar tabletmodus</button>
       </div>
     </div>
 

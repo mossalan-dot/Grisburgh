@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=413">
+  <link rel="stylesheet" href="/css/theme.css?v=414">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -370,8 +370,15 @@
         <p class="landing-loading">Laden…</p>
       </div>
       <div class="landing-footer">
-        <button class="landing-footer-btn" onclick="window.app._landingDmLogin()"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-crossed-swords"/></svg> Dungeon Master</button>
-        <button class="landing-footer-btn landing-footer-btn--ipad" onclick="window.app._landingTabletLogin()" title="Tabletweergave activeren"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-monitor"/></svg> Tablet</button>
+        <!-- Eén wachtwoordveld: het ingetikte wachtwoord bepaalt waar je uitkomt.
+             DM-wachtwoord → DM-modus; groepswachtwoord → de personages van die
+             party. Tabletmodus zet je daarna aan vanuit het DM-scherm. -->
+        <form class="landing-toegang" onsubmit="event.preventDefault();window.app.landingToegang()">
+          <input id="landing-toegang-pw" type="password" class="landing-pw-input"
+            placeholder="Wachtwoord…" autocomplete="current-password" aria-label="Wachtwoord">
+          <button type="submit" class="landing-footer-btn" id="landing-toegang-btn">Verder ↵</button>
+        </form>
+        <div id="landing-toegang-error" class="landing-pw-error hidden">Verkeerd wachtwoord</div>
       </div>
     </div>
   </div>
@@ -544,6 +551,6 @@
   </div>
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=568"></script>
+  <script type="module" src="/js/app.js?v=569"></script>
 </body>
 </html>
