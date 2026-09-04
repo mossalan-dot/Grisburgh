@@ -4924,6 +4924,7 @@ async function _renderBeursTab() {
         <label class="dm-munt-veld" title="${esc(n.cl)}"><span>cp</span>
           <input id="hb-purse-cl" class="dm-input" type="number" min="0" value="${_partyCurrency.cl}"></label>
         <button class="dm-btn dm-btn-ghost" onclick="window._hbSavePurse()" title="Nieuw saldo bewaren">${icon('save')} Bijwerken</button>
+        <span id="hb-purse-status" class="bericht-status hidden"></span>
       </div>` : ''}
     </div>`;
 };
@@ -6478,10 +6479,24 @@ window._hbSavePurse = async () => {
   const fl = Math.max(0, parseInt(document.getElementById('hb-purse-fl')?.value) || 0);
   const kn = Math.max(0, parseInt(document.getElementById('hb-purse-kn')?.value) || 0);
   const cl = Math.max(0, parseInt(document.getElementById('hb-purse-cl')?.value) || 0);
+  const status = document.getElementById('hb-purse-status');
   try {
     await api.patchPartyCurrency({ fl, kn, cl });
-    await _renderBeursTab();
-  } catch (err) { alert('Fout: ' + err.message); }
+    // Niet hertekenen: dan verdween de melding meteen weer, en dat was precies
+    // waarom het leek alsof er niets gebeurde. De velden staan al goed.
+    if (status) {
+      status.textContent = '✓ Saldo bijgewerkt';
+      status.className = 'bericht-status bericht-status--ok';
+      status.classList.remove('hidden');
+      setTimeout(() => status.classList.add('hidden'), 3000);
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = 'Fout: ' + err.message;
+      status.className = 'bericht-status bericht-status--err';
+      status.classList.remove('hidden');
+    } else alert('Fout: ' + err.message);
+  }
 };
 
 // ── Geluiden ──────────────────────────────────────────────────────────────────
