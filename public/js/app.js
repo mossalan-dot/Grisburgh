@@ -1128,19 +1128,23 @@ async function _landingPortraitClick(charId, portraitEl) {
 
 function _landingShowPasswordPrompt(charId, portraitEl, hasVideo = false) {
   document.getElementById('landing-pw-prompt')?.remove();
-  const groepNaam = portraitEl.dataset.groepNaam || 'je groep';
+  // "Wachtwoord voor 2…" las als een raadsel: 2 is de naam van de party. Zeg dat
+  // er dan ook bij, en verberg intussen de DM-ingang — twee wachtwoordvelden
+  // onder elkaar is één te veel.
+  const groepNaam = portraitEl.dataset.groepNaam || '';
   const prompt = document.createElement('div');
   prompt.id = 'landing-pw-prompt';
   prompt.className = 'landing-pw-prompt';
   prompt.innerHTML = `
     <input id="landing-pw-input" type="password" class="landing-pw-input"
-      placeholder="Wachtwoord voor ${esc(groepNaam)}…" autocomplete="current-password">
+      placeholder="${groepNaam ? `Wachtwoord van party ${esc(groepNaam)}…` : 'Wachtwoord van je party…'}" autocomplete="current-password">
     <div id="landing-pw-error" class="landing-pw-error hidden">Verkeerd wachtwoord</div>
     <div class="landing-pw-actions">
       <button class="landing-pw-cancel" id="landing-pw-cancel">Annuleren</button>
       <button class="landing-pw-submit" id="landing-pw-submit">Inloggen ↵</button>
     </div>`;
   document.getElementById('landing-portraits')?.after(prompt);
+  document.querySelector('.landing-toegang')?.classList.add('hidden');
   requestAnimationFrame(() => prompt.classList.add('landing-pw-prompt--in'));
   const input = document.getElementById('landing-pw-input');
   input?.focus();
@@ -1174,6 +1178,9 @@ async function _landingSubmitPassword(charId, portraitEl, hasVideo = false) {
 
 function _landingCancelPassword() {
   document.getElementById('landing-pw-prompt')?.remove();
+  // Alleen terughalen als er geen groepswachtwoord is ingetikt: dan is de kiezer
+  // al gefilterd op één party en heeft de DM-ingang daar niets meer te zoeken.
+  if (!_groepsWachtwoord) document.querySelector('.landing-toegang')?.classList.remove('hidden');
   document.querySelectorAll('.landing-portrait').forEach(p => {
     p.classList.remove('landing-portrait--chosen', 'landing-portrait--dimmed');
   });

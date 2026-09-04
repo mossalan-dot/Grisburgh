@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=420">
+  <link rel="stylesheet" href="/css/theme.css?v=421">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -380,13 +380,16 @@
         <p class="landing-loading">Laden…</p>
       </div>
       <div class="landing-footer">
-        <!-- Eén wachtwoordveld: het ingetikte wachtwoord bepaalt waar je uitkomt.
-             DM-wachtwoord → DM-modus; groepswachtwoord → de personages van die
-             party. Tabletmodus zet je daarna aan vanuit het DM-scherm. -->
+        <!-- De weg naar binnen voor de DM. Een speler klikt zijn portret en krijgt
+             dán pas om het groepswachtwoord gevraagd; zonder dit label typte hij
+             hier, want een invoerveld trekt nu eenmaal. Het veld accepteert nog
+             steeds een groepswachtwoord — dat filtert de kiezer op die party.
+             Geen knop: Enter is genoeg, en de knop suggereerde een stap die er
+             niet is. Tabletmodus zet je daarna aan vanuit het DM-scherm. -->
         <form class="landing-toegang" onsubmit="event.preventDefault();window.app.landingToegang()">
+          <label class="landing-toegang-label" for="landing-toegang-pw">Dungeon Master</label>
           <input id="landing-toegang-pw" type="password" class="landing-pw-input"
-            placeholder="Wachtwoord…" autocomplete="current-password" aria-label="Wachtwoord">
-          <button type="submit" class="landing-footer-btn" id="landing-toegang-btn">Verder ↵</button>
+            placeholder="Wachtwoord… &#8629;" autocomplete="current-password" aria-label="DM-wachtwoord">
         </form>
         <div id="landing-toegang-error" class="landing-pw-error hidden">Verkeerd wachtwoord</div>
       </div>
@@ -552,6 +555,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=575"></script>
+  <script type="module" src="/js/app.js?v=576"></script>
 </body>
 </html>

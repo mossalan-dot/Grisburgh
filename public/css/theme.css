@@ -4649,9 +4649,16 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 
 /* Eén wachtwoordveld op de landingspagina; de rol volgt uit wat je intikt. */
-.landing-toegang { display: flex; align-items: center; gap: 8px; }
+/* De DM-ingang: één veld, geen knop. Het label is er omdat een invoerveld
+   spelers aantrekt terwijl zij via hun portret binnenkomen. */
+.landing-toegang { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .landing-toegang.hidden { display: none; }
 .landing-toegang .landing-pw-input { min-width: 210px; }
+.landing-toegang-label {
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .18em; text-transform: uppercase;
+  color: rgba(196,168,122,0.4);
+}
 
 /* ── Verhaalpaneel naast de regie ────────────────────────────────────────────
    Neemt de helft van het scherm — de plek waar tijdens het spelen Obsidian
