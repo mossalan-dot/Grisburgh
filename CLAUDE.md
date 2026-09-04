@@ -192,7 +192,7 @@ app.js      : api.js?v=262      render-campagne.js?v=128   render-archief.js?v=7
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=44  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=190    render-dashboard.js?v=9
+              dm-panel.js?v=191    render-dashboard.js?v=9
               render-spreuken.js?v=14   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 ```

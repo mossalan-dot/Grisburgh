@@ -9780,6 +9780,19 @@ async function _renderInstellingen() {
     </div>
   `;
 
+  // Enter in een veld slaat op. Zonder dit gebeurde er niets: de knop staat
+  // onderaan, en velden die zichzelf bewaren (party's, campagnes) hebben een
+  // eigen onchange — die laten we met rust.
+  if (!body._enterGebonden) {
+    body.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+      if (e.target.type === 'checkbox' || e.target.hasAttribute('onchange')) return;
+      e.preventDefault();
+      window._instOpslaan();
+    });
+    body._enterGebonden = true;
+  }
+
   // De beurs heeft zijn eigen render; de wereld-instellingen zijn verhuisd naar
   // Diensten → Toegang, waar ze thuishoren.
   _renderBeursTab();
@@ -9822,7 +9835,15 @@ window._instOpslaan = async () => {
     if (pwVeld?.value) {
       await api.dmWachtwoordZet(pwVeld.value);
       pwVeld.value = '';
-      _dmWachtwoordStatus();
+      pwVeld.placeholder = 'Wachtwoord vervangen…';
+      // Bij het veld zelf melden: de knop staat onderaan en die melding kan
+      // buiten beeld vallen.
+      const pwStatus = document.getElementById('dm-pw-status');
+      if (pwStatus) {
+        pwStatus.textContent = '✓ Wachtwoord opgeslagen';
+        pwStatus.classList.remove('hidden');
+        setTimeout(() => _dmWachtwoordStatus(), 3000);
+      }
     }
     melden('✓ Opgeslagen');
   } catch (err) {
