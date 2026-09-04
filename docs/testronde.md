@@ -24,7 +24,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Groepswachtwoorden** (DM) — Instellingen → Party's, slotje toont of er één staat
 - [x] **Tafelscherm aanzetten** (DM) — knop in de balk rechtsboven; dít scherm wordt de tablet, kruisje brengt je terug
 - [x] **Uitloggen als speler** (SP) — knop rechtsboven vraagt eerst, met de naam van je personage *(gebouwd 4 sep)*
-- [ ] **Sessie overleeft een herstart** — deploy een serverbestand, `pm2 restart grisburgh`, en kijk of je nog ingelogd bent (DM, speler én tablet). Sessies staan in `data/sessions/`; voorheen logde elke herstart iedereen uit
+- [x] **Sessie overleeft een herstart** *(geverifieerd 5 sep: DM-sessie bleef geldig over `pm2 restart` heen)* — deploy een serverbestand, `pm2 restart grisburgh`, en kijk of je nog ingelogd bent (DM, speler én tablet). Sessies staan in `data/sessions/`; voorheen logde elke herstart iedereen uit
 - [x] **Campagnepad** — `/grisburgh` en `/prewett`; kaal domein stuurt door, `?display=1` blijft werken
 - [ ] **PWA installeren** — via Safari/Chrome "Zet op beginscherm": de app komt als icoon te staan, opent zonder browserbalk, draagt de naam van de campagne en start op haar eigen pad. Het icoon zelf is nog van Grisburgh (staat op de todo)
 - [x] **DM-ingang rechtsboven** (DM) — wachtwoordveld met label, Enter volstaat, verdwijnt zodra een speler een portret kiest
