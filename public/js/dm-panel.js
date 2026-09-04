@@ -4596,10 +4596,6 @@ function _renderCampagnes(el, campaigns, activeCampaign) {
         <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
       </div>
       <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
-        <select id="campagne-new-theme" class="dm-input" style="flex:1;min-width:160px">
-          <option value="default">Fantasy (standaard)</option>
-          <option value="hp">Harry Potter</option>
-        </select>
         <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSubmit()" title="Aanmaken">${icon('check')}</button>
         <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('campagne-create-form').style.display='none'" title="Annuleren">${icon('x')}</button>
       </div>
@@ -4626,7 +4622,10 @@ async function _campagneSubmit() {
   const id       = document.getElementById('campagne-new-id')?.value.trim();
   const title    = document.getElementById('campagne-new-title')?.value.trim();
   const subtitle = document.getElementById('campagne-new-subtitle')?.value.trim();
-  const theme    = document.getElementById('campagne-new-theme')?.value || 'default';
+  // Themakeuze is uit het paneel: twee smaken (fantasy en Harry Potter) is geen
+  // keuze maar een restant. Een nieuwe campagne krijgt het standaardthema; de
+  // bestaande houden wat ze hebben. Zie docs/todo.md — er komt een echte reeks.
+  const theme    = 'default';
   const errEl    = document.getElementById('campagne-create-error');
   if (!id) { if (errEl) errEl.textContent = 'Vul een ID in.'; return; }
   if (errEl) errEl.textContent = '';
@@ -9722,10 +9721,6 @@ async function _renderInstellingen() {
             <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
           </div>
           <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
-            <select id="campagne-new-theme" class="dm-input" style="flex:1;min-width:160px">
-              <option value="default">Fantasy (standaard)</option>
-              <option value="hp">Harry Potter</option>
-            </select>
             <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSubmit()" title="Aanmaken">${icon('check')}</button>
             <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('campagne-create-form').style.display='none'" title="Annuleren">${icon('x')}</button>
           </div>
