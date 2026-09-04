@@ -22156,3 +22156,18 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
    app onder de vaste overlay vandaan in beeld, inclusief de kopbalk. */
 body.landing-open { overflow: hidden; }
 .landing-overlay { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+/* Wachtwoordprompt boven het toetsenbord: vastgezet in het zichtbare deel, met
+   een eigen achtergrond zodat hij niet over de portretten heen leest. De
+   `bottom` wordt in app.js gezet — die hangt van de hoogte van het toetsenbord af. */
+.landing-pw-prompt--boven-toetsenbord {
+  position: fixed;
+  left: 12px; right: 12px;
+  z-index: 70;
+  background: rgba(18,12,6,0.94);
+  border: 1px solid rgba(196,168,64,0.4);
+  border-radius: 12px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 -6px 28px rgba(0,0,0,0.55);
+}
+.landing-pw-prompt--boven-toetsenbord .landing-pw-input { width: 100%; }

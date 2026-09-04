@@ -1244,16 +1244,31 @@ async function _landingPortraitClick(charId, portraitEl) {
   }
 }
 
+// Zorgen dat je ziet wat je tikt. Scrollen alleen is niet genoeg: de overlay
+// centreert zijn inhoud, dus wat erboven of eronder valt is soms niet eens te
+// bereiken. Op een telefoon met open toetsenbord plakken we de prompt daarom
+// vast net boven dat toetsenbord; zodra het weg is, valt hij terug in de flow.
 function _landingPromptInBeeld() {
   const prompt  = document.getElementById('landing-pw-prompt');
   const overlay = document.getElementById('landing-overlay');
   if (!prompt || !overlay) { window.visualViewport?.removeEventListener('resize', _landingPromptInBeeld); return; }
-  const vv        = window.visualViewport;
+
+  const vv = window.visualViewport;
+  const toetsenbord = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+  const smal = window.innerWidth <= 640;
+
+  if (smal && toetsenbord > 80) {
+    prompt.classList.add('landing-pw-prompt--boven-toetsenbord');
+    prompt.style.bottom = `${toetsenbord + 12}px`;
+    return;
+  }
+  prompt.classList.remove('landing-pw-prompt--boven-toetsenbord');
+  prompt.style.bottom = '';
+
   const zichtbaar = vv ? vv.height : window.innerHeight;
   const boven     = vv ? vv.offsetTop : 0;
   const vak       = prompt.getBoundingClientRect();
-  // Midden van de prompt naar het midden van wat er nog zichtbaar is.
-  const verschil = (vak.top + vak.height / 2) - (boven + zichtbaar / 2);
+  const verschil  = (vak.top + vak.height / 2) - (boven + zichtbaar / 2);
   if (Math.abs(verschil) > 8) overlay.scrollBy({ top: verschil, behavior: 'smooth' });
 }
 
