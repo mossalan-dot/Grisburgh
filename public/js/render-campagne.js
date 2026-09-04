@@ -1783,25 +1783,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     }
   }
 
-  // ── Tab: Verbindingen ──
-  let verbHtml = '';
-  for (const lt of LINK_TYPES) {
-    const names = e.links?.[lt] || [];
-    if (names.length === 0) continue;
-    const lm = TYPE_META[lt] || { get icon() { return icon('scroll-text'); }, chip: 'chip-doc' };
-    verbHtml += `
-      <div class="mb-4">
-        <div class="detail-label mb-2">${LINK_LABELS[lt] || lt}</div>
-        <div class="flex flex-wrap gap-1.5">
-          ${names.map(n => `<span class="chip ${lm.chip} cursor-pointer" data-tab="${lt}" data-name="${esc(n)}" onclick="window._navigateTo(this.dataset.tab,this.dataset.name)">${lm.svgIcon || lm.icon} ${esc(n)}</span>`).join('')}
-        </div>
-      </div>
-    `;
-  }
-  if (!verbHtml) {
-    verbHtml = `<div class="text-center py-10 text-ink-faint font-fell italic">Geen verbindingen</div>`;
-  }
-
   // ── Tab: Eigenaren (stapelbare & gedeelde voorwerpen, DM only) ──
   const _gebruik = tab === 'voorwerpen' ? (_getGebruik(e) ) : 'uniek';
   const isStapelbaarVoorwerp = _gebruik === 'stapelbaar';
@@ -2159,7 +2140,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ...(isStapelbaarVoorwerp && isDM() ? [{ key: 'eigenaren', label: 'Eigenaren' }] : []),
     ...(heeftVoorraad ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
     ...(heeftVoorraad && isDM() ? [{ key: 'log', label: 'Log' }] : []),
-    ...(isDM() ? [{ key: 'verbindingen', label: 'Verbindingen' }] : []),
   ];
 
   const tabNav = detailTabs.map((t, i) => `
@@ -2174,7 +2154,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ${isStapelbaarVoorwerp && isDM() ? `<div id="dtab-eigenaren" class="hidden">${eigenarenHtml}</div>` : ''}
     ${heeftVoorraad ? `<div id="dtab-voorraad" class="hidden">${voorraadHtml}</div>` : ''}
     ${heeftVoorraad && isDM() ? `<div id="dtab-log" class="hidden">${logHtml}</div>` : ''}
-    <div id="dtab-verbindingen" class="hidden">${verbHtml}</div>
   `;
 
   const _subParts = [
@@ -3342,40 +3321,10 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
-  // Link editors (uitklapbaar)
-  body += `
-    <details class="cs-accordion">
-      <summary class="cs-accordion-head">
-        <span>Verbindingen</span>
-        <span class="cs-accordion-chevron">\u25be</span>
-      </summary>
-      <div class="cs-accordion-body space-y-3">
-  `;
-  for (const lt of LINK_TYPES) {
-    const lm = TYPE_META[lt] || { get svgIcon() { return icon('scroll-text'); }, icon: '\ud83d\udcdc', label: lt, chip: 'chip-doc' };
-    body += `
-      <div>
-        <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">${LINK_LABELS[lt] || lm.label || lt}</div>
-        <div id="tags-${lt}" class="flex flex-wrap gap-1 mb-1">
-          ${editorTags[lt].map(n => `
-            <span class="chip ${lm.chip}">${esc(n)} <span class="cursor-pointer ml-1" data-lt="${lt}" data-name="${esc(n)}" onclick="window._removeTag(this.dataset.lt,this.dataset.name)">\u00d7</span></span>
-          `).join('')}
-        </div>
-        <div class="flex gap-1">
-          <div class="flex-1 autocomplete-wrap">
-            <input id="tag-input-${lt}" placeholder="${LINK_LABELS[lt] || lm.label || lt}..."
-              class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none"
-              oninput="window._showSuggestions('${lt}')"
-              onkeydown="window._handleTagKey(event,'${lt}')">
-            <div id="tag-suggestions-${lt}" class="autocomplete-list"></div>
-          </div>
-          <button type="button" onclick="window._addTag('${lt}')"
-            class="px-2 py-1 bg-room-elevated border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright">+</button>
-        </div>
-      </div>
-    `;
-  }
-  body += `</div></details>`;
+  // De Verbindingen-editor is vervallen: koppelingen leg je in de tekst zelf met
+  // [[Naam]], en die worden overal als klikbare link gerenderd. Het veld
+  // `links` blijft bestaan (kaartjes, dashboard, zoeken en de export lezen het
+  // nog) maar wordt niet meer met de hand bijgehouden.
 
   // Buttons
   body += `

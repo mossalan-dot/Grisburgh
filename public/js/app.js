@@ -1,15 +1,15 @@
 import { api } from './api.js?v=251';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=122";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=72";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=123";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=73";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
 import { renderDungeon } from './render-dungeon.js?v=32';
 import { renderRelatiemap } from './render-relatiemap.js?v=21';
 import { renderProgressie } from './render-progressie.js?v=43';
 import { renderBestiarium } from './render-bestiarium.js?v=20';
-import { renderSpreuken } from './render-spreuken.js?v=12';
+import { renderSpreuken } from './render-spreuken.js?v=13';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=59";
-import { initDmPanel } from "./dm-panel.js?v=169";
+import { initDmPanel } from "./dm-panel.js?v=170";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -11375,12 +11375,40 @@ const HELP_CONFIG = {
     ],
   }),
 
+  // Een speler dacht dat de hele bibliotheek haar eigen spreuken waren. Vandaar
+  // dat deze uitleg met dat misverstand begint in plaats van met de functies.
+  spreuken: () => ({
+    titel: 'Spreuken — het naslagwerk',
+    stappen: [
+      {
+        titel: 'Dit zijn niet jouw spreuken',
+        tekst: 'Deze bibliotheek bevat álle spreuken die in deze wereld bestaan — honderden, van elke klasse en elk niveau. Het is een naslagwerk, zoals een woordenboek: je kunt er alles in opzoeken, maar je kent het niet uit je hoofd. Wat jouw personage daadwerkelijk kan, staat in je eigen Spreukenboek onder je personage.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Waar staan mijn eigen spreuken dan?',
+        tekst: 'Ga naar je personage en kies het tabblad Spreukenboek. Daar staat alleen wat jij kent, met je Spell Save DC, je spell attack bonus en je spell slots. Wat je daar niet ziet, kun je ook niet casten — hoe verleidelijk het hier ook staat.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Waar is het dan goed voor?',
+        tekst: 'Om op te zoeken wat een spreuk van een tegenstander doet, om te kijken wat je bij een volgend level zou kunnen leren, of om een scroll of staf op te zoeken die je gevonden hebt. Filter op klasse, niveau of school, of zoek op naam.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Nieuwe spreuken leren',
+        tekst: 'Spreuken komen in je eigen boek terecht via je klasse (bij een levelup), via een scroll of via de DM. Rondkijken in de bibliotheek voegt niets toe aan je boek — vraag het je DM als je denkt dat er iets ontbreekt.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
   spreukenboek: () => ({
     titel: 'Spreukenboek',
     stappen: [
       {
         titel: 'Spreukenboek',
-        tekst: 'Hier staan al je spreuken, geordend op level. Bovenaan zie je je Spell Save DC, spell attack bonus en beschikbare spell slots. Klik op een spreuk voor de volledige beschrijving.',
+        tekst: 'Hier staan JOUW spreuken, geordend op level — niet te verwarren met het tabblad Spreuken in de zijbalk, dat een naslagwerk is met alle spreuken die bestaan. Bovenaan zie je je Spell Save DC, spell attack bonus en beschikbare spell slots. Klik op een spreuk voor de volledige beschrijving.',
         afbeelding: null,
       },
       {

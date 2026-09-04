@@ -234,7 +234,7 @@ export async function renderSpreuken(container) {
         <div class="section-banner-icon-wrap">${icon('sparkles')}</div>
         <div class="section-banner-info">
           <div class="section-banner-label">Spreuken</div>
-          <div class="section-banner-desc-line">De magische bibliotheek</div>
+          <div class="section-banner-desc-line">Naslagwerk — alle spreuken die er bestaan, niet die van jou</div>
         </div>
         <div class="section-banner-search">
           <div class="sbs-input-wrap">
@@ -243,6 +243,7 @@ export async function renderSpreuken(container) {
               value="${esc(_filters.q)}" oninput="window.spreuken.search(this.value)">
           </div>
         </div>
+        <div style="margin-left:8px">${window._helpBtn?.('spreuken') ?? ''}</div>
       </div>
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
     </div>

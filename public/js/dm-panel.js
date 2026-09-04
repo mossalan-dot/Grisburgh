@@ -6876,9 +6876,10 @@ function _renderLootModalBody() {
       <div class="loot-modal">
         <div class="loot-goud-row">
           <span class="loot-lbl">${icon('coins')} Goud</span>
-          <input type="number" min="0" class="dm-input dm-input-sm" style="width:60px" value="${goud.fl || 0}" onchange="window.dmPanel.lootGoudChange('fl',this.value)"> fl
-          <input type="number" min="0" class="dm-input dm-input-sm" style="width:60px" value="${goud.kn || 0}" onchange="window.dmPanel.lootGoudChange('kn',this.value)"> kn
-          <input type="number" min="0" class="dm-input dm-input-sm" style="width:60px" value="${goud.cl || 0}" onchange="window.dmPanel.lootGoudChange('cl',this.value)"> cl
+          <input class="dm-input dm-input-sm" style="width:90px" placeholder="1,34"
+            value="${_muntGoudCl({ goud }) ? _clNaarTekst(_muntGoudCl({ goud })) : ''}"
+            onchange="window.dmPanel.lootGoudChange(this.value)">
+          <span class="dm-hint">${_muntUitleg(_muntGoudCl({ goud }))}</span>
         </div>
         <div class="dm-section-label" style="margin-top:10px">Items <button class="dm-btn dm-btn-ghost dm-btn-sm" style="margin-left:8px" onclick="window.dmPanel.lootItemAdd()">${icon('plus')} Toevoegen</button></div>
         <div class="loot-items">
@@ -6958,7 +6959,13 @@ async function _lootSave() {
   try { _lootData = await api.lootUpdate({ goud: _lootData.goud, items: _lootData.items }); }
   catch (e) { alert('Fout: ' + e.message); }
 }
-function _lootGoudChange(veld, val) { if (_lootData) { _lootData.goud = _lootData.goud || {}; _lootData.goud[veld] = parseInt(val) || 0; _lootSave(); } }
+// Eén bedrag met een komma (1,34), net als in de vondst-editor; intern blijft
+// het drie munten.
+function _lootGoudChange(tekst) {
+  if (!_lootData) return;
+  _lootData.goud = _clNaarGoud(_tekstNaarCl(tekst));
+  _lootSave().then(_renderLootModalBody);
+}
 function _lootItemAdd() { if (_lootData) { _lootData.items.push({ id: '', naam: '', beschrijving: '', rariteit: '', entityId: null, claimCount: 0, ikClaim: false, status: 'open' }); _lootSave().then(_renderLootModalBody); } }
 function _lootItemRemove(id) { if (_lootData) { _lootData.items = _lootData.items.filter(i => i.id !== id); _lootSave().then(_renderLootModalBody); } }
 function _lootItemField(id, veld, val) { if (_lootData) { const it = _lootData.items.find(i => i.id === id); if (it) { it[veld] = val; _lootSave(); } } }

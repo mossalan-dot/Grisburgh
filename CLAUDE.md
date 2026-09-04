@@ -136,13 +136,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=408   app.js?v=560   sound-manager.js?v=8
-app.js      : api.js?v=251      render-campagne.js?v=122   render-archief.js?v=72
+index.html  : theme.css?v=409   app.js?v=561   sound-manager.js?v=8
+app.js      : api.js?v=251      render-campagne.js?v=123   render-archief.js?v=73
               render-kaart.js?v=18  render-dungeon.js?v=32  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=169    render-dashboard.js?v=9
-              render-spreuken.js?v=12   media-picker.js?v=7
+              dm-panel.js?v=170    render-dashboard.js?v=9
+              render-spreuken.js?v=13   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 ```
 
@@ -611,6 +611,14 @@ Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in ren
 
 - **Vergeten versie te bumpen** → browser toont oude JS/CSS. Check altijd index.html + app.js imports.
 - **`api.getEntities()` bestaat niet** → gebruik `api.listEntities('personages')` etc.
+- **Verbindingen-tab bestaat niet meer.** Koppelingen leg je in de tekst met
+  `[[Naam]]`; `mdToHtml()` in `app.js` maakt daar klikbare links van, los van het
+  veld `entity.links`. Dat veld bestáát nog en wordt nog gelézen door de
+  kaartjes-preview, het zoeken, het dashboard en de campagneboek-export — het
+  wordt alleen niet meer met de hand bijgehouden. Wil je die vier plekken weer
+  kloppend krijgen, dan moet `links` afgeleid worden uit de `[[ ]]` in de tekst
+  (nog te doen; let op dat handmatig gelegde links die niet in de tekst staan
+  dan verdwijnen).
 - **Emoji in HTML-output** → vervang door `icon()`. Emoji zijn onaanvaardbaar in de UI.
   Let ook op `placeholder=""`-attributen: daar kan geen SVG in, dus zet het icoon
   ernaast in plaats van een emoji in de tekst.

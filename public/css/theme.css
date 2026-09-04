@@ -20747,6 +20747,9 @@ textarea:focus-visible { outline: none; box-shadow: var(--gb-ring); }
   cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.35); backdrop-filter: blur(4px); transition: background .15s ease;
 }
 .kaart-fs-close:hover { background: rgba(40,26,8,0.92); }
+/* De ronde sluitknop zweeft rechtsboven over alles heen; de topbar van de
+   dungeonmaker eindigt daar met zijn helpknop. Ruimte vrijhouden. */
+.kaart-fs-content .dng-topbar { padding-right: 64px; }
 .kaart-fs-close .icon { width: 19px; height: 19px; }
 body.kaart-fs-active { overflow: hidden; }
 

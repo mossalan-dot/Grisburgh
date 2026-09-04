@@ -2959,45 +2959,10 @@ window._openArchiefEditor = async (editId) => {
     `;
   }
 
-  // ── Verbindingen (uitklapbaar) ──
-  const tagMeta = {
-    npcs:  { icon: icon('user'),                        label: 'Personages',    chip: 'chip-npc',  nameKey: 'personages' },
-    locs:  { icon: icon('castle', {cls:'icon-gi'}),     label: 'Locaties',      chip: 'chip-loc',  nameKey: 'locaties' },
-    orgs:  { icon: icon('landmark'),                    label: 'Organisaties',  chip: 'chip-org',  nameKey: 'organisaties' },
-    items: { icon: icon('package'),                     label: 'Voorwerpen',    chip: 'chip-item', nameKey: 'voorwerpen' },
-    docs:  { icon: icon('scroll-text'),                 label: 'Documenten',    chip: 'chip-doc',  nameKey: 'archief' },
-  };
-  const _hasAnyTags = Object.values(editorTags).some(arr => arr.length > 0);
-  body += `
-    <details class="cs-accordion"${_hasAnyTags ? ' open' : ''}>
-      <summary class="cs-accordion-head">
-        <span>Verbindingen</span>
-        <span class="cs-accordion-chevron">▾</span>
-      </summary>
-      <div class="cs-accordion-body space-y-3">
-  `;
-  for (const [field, fm] of Object.entries(tagMeta)) {
-    body += `
-      <div>
-        <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">${fm.label}</div>
-        <div id="atags-${field}" class="flex flex-wrap gap-1 mb-1">
-          ${editorTags[field].map(n => `<span class="chip ${fm.chip}">${esc(n)} <span class="cursor-pointer ml-1" data-field="${field}" data-name="${esc(n)}" onclick="window._removeATag(this.dataset.field,this.dataset.name)">×</span></span>`).join('')}
-        </div>
-        <div class="flex gap-1">
-          <div class="flex-1 autocomplete-wrap">
-            <input id="atag-input-${field}" placeholder="${fm.label}..."
-              class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none"
-              oninput="window._showASuggestions('${field}','${fm.nameKey}')"
-              onkeydown="window._handleATagKey(event,'${field}')">
-            <div id="atag-suggestions-${field}" class="autocomplete-list"></div>
-          </div>
-          <button type="button" onclick="window._addATag('${field}')"
-            class="px-2 py-1 bg-room-elevated border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright">+</button>
-        </div>
-      </div>
-    `;
-  }
-  body += `</div></details>`;
+  // De Verbindingen-editor is vervallen: koppelingen leg je in de tekst zelf met
+  // [[Naam]]. De bestaande tags blijven bewaard (ze worden hieronder gewoon
+  // meegestuurd bij het opslaan) — ze worden alleen niet meer met de hand
+  // bijgehouden.
 
   // ── DM Notities (uitklapbaar) ──
   if (editId) {
