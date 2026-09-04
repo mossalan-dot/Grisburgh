@@ -6866,12 +6866,32 @@ router.get('/campaigns', requireBeheerder, (req, res) => {
     c.id,
     storage.runInCampaign(c.id, () => modulesVoor(storage.readJSON('meta.json'))),
   ]));
+  const wachtwoorden = Object.fromEntries(storage.listCampaigns().map(c => [
+    c.id,
+    storage.runInCampaign(c.id, () => !!storage.readJSON('dm-state.json').dmPassword),
+  ]));
   res.json({
     campaigns:      storage.listCampaigns(),
     activeCampaign: storage.getActiveCampaignId(),
     catalogus:      MODULES.map(({ id, label, groep, startset }) => ({ id, label, groep, startset })),
     modules,
+    wachtwoorden,
   });
+});
+
+// Het DM-wachtwoord van een ándere campagne zetten. Nodig omdat het veld bij
+// Instellingen alleen over de campagne gaat waar je in zit: een campagne zonder
+// wachtwoord kun je niet openen, dus zou je er ook nooit een kunnen zetten.
+router.put('/campaigns/:id/dm-wachtwoord', requireBeheerder, (req, res) => {
+  if (!storage.campagneBestaat(req.params.id)) return res.status(404).json({ error: 'Campagne niet gevonden' });
+  const wachtwoord = String(req.body?.wachtwoord || '');
+  if (wachtwoord.length < 8) return res.status(400).json({ error: 'Kies een wachtwoord van minstens 8 tekens' });
+  storage.runInCampaign(req.params.id, () => {
+    const dm = storage.readJSON('dm-state.json');
+    dm.dmPassword = hashWachtwoord(wachtwoord);
+    storage.writeJSON('dm-state.json', dm);
+  });
+  res.json({ ok: true });
 });
 
 // Modules van één campagne aan- of uitzetten.

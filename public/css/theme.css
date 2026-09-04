@@ -22042,3 +22042,6 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
   margin: 14px 0 6px; padding-top: 10px; border-top: 1px solid #e8dcc0;
 }
 .dm-subgroep-label:first-of-type { margin-top: 4px; padding-top: 0; border-top: 0; }
+
+/* Wachtwoordveld op een campagnekaartje: over de volle breedte onder de naam. */
+.campagne-card-pw { grid-column: 1 / -1; margin-top: 6px; }

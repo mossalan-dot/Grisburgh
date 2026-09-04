@@ -335,6 +335,7 @@ export const api = {
   getCampaigns:      ()          => request('/campaigns'),
   createCampaign:    (id, meta, dmPassword) => request('/campaigns', { method: 'POST', body: JSON.stringify({ id, meta, dmPassword }) }),
   switchCampaign:    (id)        => request('/campaigns/active', { method: 'PUT',  body: JSON.stringify({ id }) }),
+  setCampaignDmPw:   (id, wachtwoord) => request(`/campaigns/${id}/dm-wachtwoord`, { method: 'PUT', body: JSON.stringify({ wachtwoord }) }),
   setCampaignModules:(id, modules) => request(`/campaigns/${id}/modules`, { method: 'PUT', body: JSON.stringify({ modules }) }),
   getCampaignMeta:   ()          => request('/campaigns/meta'),
 

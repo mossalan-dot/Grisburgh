@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=261';
+import { api, huidigeCampagne } from './api.js?v=262';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -9547,7 +9547,7 @@ async function _renderInstellingen() {
   let groups = [], activeCampaign = '', campaigns = [];
   // Campagnebeheer is niet voor elke DM: het endpoint geeft 403 aan wie geen
   // beheerder is, en dan laten we de hele sectie weg.
-  let magBeheren = false, catalogus = [], modulesPer = {};
+  let magBeheren = false, catalogus = [], modulesPer = {}, wachtwoorden = {};
   try {
     const gr = await api.listGroups();
     groups = gr.groups || [];
@@ -9558,6 +9558,7 @@ async function _renderInstellingen() {
     activeCampaign = cp.activeCampaign || '';
     catalogus    = cp.catalogus    || [];
     modulesPer   = cp.modules      || {};
+    wachtwoorden = cp.wachtwoorden || {};
     magBeheren   = true;
   } catch { /* geen beheerder */ }
 
@@ -9608,6 +9609,14 @@ async function _renderInstellingen() {
             ? '<span class="campagne-active-badge" title="Hier landen het kale domein en verzoeken zonder sessie">Standaard</span>'
             : `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.campagneSwitchTo('${esc(c.id)}')"
                  title="Maak dit de standaardcampagne: waar grisburgh.nl naartoe stuurt">Als standaard</button>`}
+        </div>
+        <div class="dm-form-row campagne-card-pw">
+          <label class="dm-form-label" for="cpw-${esc(c.id)}"
+            title="${wachtwoorden[c.id] ? 'Er staat een wachtwoord; typ een nieuw om het te vervangen' : 'Zonder wachtwoord kan niemand deze campagne in'}">
+            ${wachtwoorden[c.id] ? icon('lock') : icon('lock-open')} DM-wachtwoord</label>
+          <input id="cpw-${esc(c.id)}" class="dm-input" type="password" autocomplete="new-password"
+            placeholder="${wachtwoorden[c.id] ? 'Wachtwoord vervangen…' : 'Nog geen wachtwoord — instellen…'}"
+            onchange="window._instCampagnePw('${esc(c.id)}', this.value)">
         </div>
         <details class="dm-modules">
           <summary>Modules</summary>
@@ -9838,6 +9847,14 @@ window._instEmbleemKies = () => {
 window._instEmbleemWis = () => {
   document.getElementById('inst-embleem').value = '';
   document.getElementById('inst-embleem-preview')?.classList.add('hidden');
+};
+
+window._instCampagnePw = async (campagneId, wachtwoord) => {
+  if (!wachtwoord) return;
+  try {
+    await api.setCampaignDmPw(campagneId, wachtwoord);
+    await _renderInstellingen();
+  } catch (err) { alert('Instellen mislukt: ' + err.message); }
 };
 
 window._instModulesSave = async (campagneId) => {
