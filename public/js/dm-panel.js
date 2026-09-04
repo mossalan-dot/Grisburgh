@@ -9683,12 +9683,14 @@ async function _renderInstellingen() {
     <!-- Beheer: alles wat over toegang en dit scherm gaat -->
     <div class="dm-feature-section">
       <div class="dm-section-label">Beheer</div>
+      <div class="dm-subgroep-label">Jouw eigen wachtwoord</div>
       <div class="dm-form-row">
         <label class="dm-form-label" for="dm-pw-nieuw"
           title="Geldt alleen voor deze campagne. Wordt versleuteld opgeslagen, zodat het niet leesbaar in een backup terechtkomt.">DM-wachtwoord</label>
         <input id="dm-pw-nieuw" class="dm-input" type="password"
           placeholder="Nieuw wachtwoord (min. 8 tekens)…" autocomplete="new-password">
       </div>
+      <div class="dm-subgroep-label">Wachtwoorden per party</div>
       ${groups.map(g => `
       <div class="dm-form-row">
         <label class="dm-form-label" for="pw-${esc(g.id)}"

@@ -22029,3 +22029,12 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
    het <svg> en het woord een eigen flex-item van nul breedte, dus die valt weg.
    Eén gap lost dat overal in één keer op. */
 .dm-btn { gap: 6px; }
+
+/* Tussenkopje binnen een sectie: scheidt bijvoorbeeld het eigen DM-wachtwoord
+   van de wachtwoorden per party, zonder er twee secties van te maken. */
+.dm-subgroep-label {
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: #9a815c;
+  margin: 14px 0 6px; padding-top: 10px; border-top: 1px solid #e8dcc0;
+}
+.dm-subgroep-label:first-of-type { margin-top: 4px; padding-top: 0; border-top: 0; }

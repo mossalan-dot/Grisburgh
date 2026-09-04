@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=20';
 import { renderSpreuken } from './render-spreuken.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=59";
-import { initDmPanel } from "./dm-panel.js?v=181";
+import { initDmPanel } from "./dm-panel.js?v=182";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -9644,6 +9644,16 @@ window._displayExit = function() {
   window._isDisplayMode = false;
   document.body.classList.remove('display-mode');
   document.getElementById('display-canvas')?.classList.add('hidden');
+  // Terug naar waar je vandaan kwam. Wie nog een sessie heeft — meestal de DM
+  // die dit scherm zelf omzette — hoort niet opnieuw te moeten inloggen; die
+  // landde eerst op de landingspagina. `?display=1` moet wél uit de URL, anders
+  // zet init() het scherm meteen weer om.
+  if (state.role === 'dm' || state.characterId) {
+    const url = new URL(location.href);
+    url.searchParams.delete('display');
+    location.replace(url.toString());
+    return;
+  }
   showLanding();
 };
 

@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=424">
+  <link rel="stylesheet" href="/css/theme.css?v=425">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -178,11 +178,9 @@
           <button class="group-pill" id="group-pill" onclick="window.app.toggleGroupDropdown()" title="Wissel van groep"></button>
           <div class="group-dropdown hidden" id="group-dropdown"></div>
         </div>
-        <!-- DM-zegel: alleen zichtbaar als DM ingelogd (voor preview-toggle) -->
-        <button class="dm-seal hidden" id="dm-toggle" onclick="window.app.dmToggleClick()" title="Dungeon Master modus">
-          <span class="dm-seal-icon"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-crossed-swords"/></svg></span>
-          <span class="dm-seal-label" id="dm-toggle-label">DM</span>
-        </button>
+        <!-- Het DM-zegel (spelerweergave-preview) is eruit: als DM zie je toch al
+             wat spelers zien, en de knop nam plaats in naast het tafelscherm.
+             De code eronder (dmToggleClick, state.dmPreview) blijft staan. -->
         <!-- Sandbox badge: getoond wanneer ingelogd als sandbox-DM -->
         <div id="sandbox-badge" class="sandbox-badge hidden" title="Je werkt in de sandbox-omgeving. Echte campagnedata is niet zichtbaar."><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-flask-conical"/></svg> Sandbox</div>
         <!-- Naar het tafelscherm: in de balk, waar je hem tijdens het spelen nodig
@@ -564,6 +562,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=581"></script>
+  <script type="module" src="/js/app.js?v=582"></script>
 </body>
 </html>
