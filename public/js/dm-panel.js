@@ -9641,9 +9641,9 @@ async function _renderInstellingen() {
       </div>
     </div>
 
-    <!-- Munten -->
+    <!-- Namen voor valuta -->
     <div class="dm-feature-section">
-      <div class="dm-section-label">Munten</div>
+      <div class="dm-section-label">Namen voor valuta</div>
       <div class="dm-form-row">
         <label class="dm-form-label" for="inst-munt-fl" title="De hele munt; alles rekent hierop terug">Gold piece (gp)</label>
         <input id="inst-munt-fl" class="dm-input" value="${esc(_munt.fl)}" placeholder="Gold">
