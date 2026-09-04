@@ -16,19 +16,19 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 `public/index.html` (landing) · `routes/auth.js` · `public/js/app.js`
 
 - [x] **Openingspagina** (ALL) — keuzepagina op het kale domein: alle campagnes die zich laten zien *(gebouwd 4 sep)*
-- [ ] **Landingspagina** (ALL) — portretten van de party's, carousel, inzoomen op een portret *(titel, embleem en portretten per campagne: gefikst 4 sep)*
+- [x] **Landingspagina** (ALL) — portretten van de party's, carousel, inzoomen op een portret *(titel, embleem en portretten per campagne: gefikst 4 sep)*
 - [ ] **Portretfilmpje bij inzoomen** (ALL) — speelt af, stopt na 6 seconden (`LANDING_VIDEO_MAX_SEC`)
-- [ ] **Eén wachtwoordveld** — groepswachtwoord → alleen díé party in de kiezer; DM-wachtwoord → meteen DM
-- [ ] **Personagekiezer** — de speler kiest zijn personage, wachtwoord wordt onthouden
+- [x] **Eén wachtwoordveld** — groepswachtwoord → alleen díé party in de kiezer; DM-wachtwoord → meteen DM
+- [x] **Personagekiezer** — de speler kiest zijn personage, wachtwoord wordt onthouden
 - [ ] **DM-wachtwoord wijzigen** (DM) — Instellingen → *Jouw DM-wachtwoord*; oude werkt daarna niet meer
 - [ ] **Groepswachtwoorden** (DM) — Instellingen → Party's, slotje toont of er één staat
-- [ ] **Tafelscherm aanzetten** (DM) — Instellingen → Tafelscherm; dít scherm wordt de tablet
+- [x] **Tafelscherm aanzetten** (DM) — knop in de balk rechtsboven; dít scherm wordt de tablet, kruisje brengt je terug
 - [x] **Uitloggen als speler** (SP) — knop rechtsboven vraagt eerst, met de naam van je personage *(gebouwd 4 sep)*
-- [ ] **Uitloggen + sessie overleeft herstart** — na `pm2 restart` blijft iedereen ingelogd
-- [ ] **Campagnepad** — `/grisburgh` en `/prewett`; kaal domein stuurt door, `?display=1` blijft werken
-- [ ] **PWA** — installeren op beginscherm, naam en startpad kloppen per campagne
-- [ ] **DM-ingang rechtsboven** (DM) — wachtwoordveld met label, Enter volstaat, verdwijnt zodra een speler een portret kiest
-- [ ] **Partypijl op de landing** (SP) — gouden pijl valt op, tweede party bereikbaar
+- [ ] **Sessie overleeft een herstart** — deploy een serverbestand, `pm2 restart grisburgh`, en kijk of je nog ingelogd bent (DM, speler én tablet). Sessies staan in `data/sessions/`; voorheen logde elke herstart iedereen uit
+- [x] **Campagnepad** — `/grisburgh` en `/prewett`; kaal domein stuurt door, `?display=1` blijft werken
+- [ ] **PWA installeren** — via Safari/Chrome "Zet op beginscherm": de app komt als icoon te staan, opent zonder browserbalk, draagt de naam van de campagne en start op haar eigen pad. Het icoon zelf is nog van Grisburgh (staat op de todo)
+- [x] **DM-ingang rechtsboven** (DM) — wachtwoordveld met label, Enter volstaat, verdwijnt zodra een speler een portret kiest
+- [x] **Partypijl op de landing** (SP) — gouden pijl valt op, tweede party bereikbaar
 
 ## Blok 2 — Archief
 
