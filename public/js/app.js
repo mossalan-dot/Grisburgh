@@ -160,6 +160,7 @@ window.app = {
   applyAppMeta,
   showLanding,
   landingToegang,
+  landingDmVeld,
   hideLanding,
   _landingPortraitClick,
   openPlayerPicker,
@@ -684,6 +685,28 @@ async function testLoginSubmit() {
 let _groepsWachtwoord = null;
 
 window.app = window.app || {};
+// De DM-ingang staat dicht: alleen het woord "Dungeon Master", en pas als je
+// erop klikt komt het wachtwoordveld tevoorschijn. Een zichtbaar invoerveld
+// trekt spelers aan, terwijl zij via hun portret binnenkomen.
+function landingDmVeld() {
+  const knop = document.getElementById('landing-toegang-knop');
+  const form = document.getElementById('landing-toegang-form');
+  if (!form) return;
+  knop?.classList.add('hidden');
+  form.classList.remove('hidden');
+  const veld = document.getElementById('landing-toegang-pw');
+  veld?.focus();
+  veld?.addEventListener('keydown', (e) => { if (e.key === 'Escape') _landingDmVeldDicht(); }, { once: true });
+}
+
+function _landingDmVeldDicht() {
+  const veld = document.getElementById('landing-toegang-pw');
+  if (veld) veld.value = '';
+  document.getElementById('landing-toegang-error')?.classList.add('hidden');
+  document.getElementById('landing-toegang-form')?.classList.add('hidden');
+  document.getElementById('landing-toegang-knop')?.classList.remove('hidden');
+}
+
 async function landingToegang() {
   const veld = document.getElementById('landing-toegang-pw');
   const fout = document.getElementById('landing-toegang-error');

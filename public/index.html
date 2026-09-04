@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=422">
+  <link rel="stylesheet" href="/css/theme.css?v=423">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -376,12 +376,16 @@
          invoerveld trekt nu eenmaal. Het accepteert nog steeds een
          groepswachtwoord (dat filtert de kiezer op die party), maar nodigt er
          niet meer toe uit. Geen knop: Enter is genoeg. -->
-    <form class="landing-toegang" onsubmit="event.preventDefault();window.app.landingToegang()">
-      <label class="landing-toegang-label" for="landing-toegang-pw">Dungeon Master</label>
-      <input id="landing-toegang-pw" type="password" class="landing-pw-input landing-pw-input--dm"
-        placeholder="Wachtwoord… &#8629;" autocomplete="current-password" aria-label="DM-wachtwoord">
-      <div id="landing-toegang-error" class="landing-pw-error hidden">Verkeerd wachtwoord</div>
-    </form>
+    <div class="landing-toegang">
+      <button type="button" class="landing-toegang-knop" id="landing-toegang-knop"
+        onclick="window.app.landingDmVeld()">Dungeon Master</button>
+      <form class="landing-toegang-form hidden" id="landing-toegang-form"
+        onsubmit="event.preventDefault();window.app.landingToegang()">
+        <input id="landing-toegang-pw" type="password" class="landing-pw-input landing-pw-input--dm"
+          placeholder="Wachtwoord… &#8629;" autocomplete="current-password" aria-label="DM-wachtwoord">
+        <div id="landing-toegang-error" class="landing-pw-error hidden">Verkeerd wachtwoord</div>
+      </form>
+    </div>
     <div class="landing-inner">
       <div class="landing-header">
         <img class="landing-crest hidden" id="landing-crest" src="" alt="" aria-hidden="true">
@@ -555,6 +559,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=578"></script>
+  <script type="module" src="/js/app.js?v=579"></script>
 </body>
 </html>
