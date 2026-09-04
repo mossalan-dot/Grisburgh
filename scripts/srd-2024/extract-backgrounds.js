@@ -1,5 +1,5 @@
 // Extraheer 2024 (XPHB) backgrounds uit 5etools → progressie-bibliotheek.
-// Output: public/data/backgrounds-2024.json  → { "Acolyte": { levels: { "1": [{name,desc}] } }, ... }
+// Output: bronnen/backgrounds-2024.json  → { "Acolyte": { levels: { "1": [{name,desc}] } }, ... }
 const fs = require('fs');
 
 const DICE_TAGS = new Set(['dice','damage','hit','dc','scaledice','scaledamage','d20','chance']);
@@ -30,7 +30,7 @@ for (const b of xphb) {
   if (features.length) out[b.name] = { levels: { '1': features } };
 }
 
-const path = '/Users/alan/Library/Mobile Documents/com~apple~CloudDocs/DnD app/Grisburgh-main/public/data/backgrounds-2024.json';
+const path = '/Users/alan/Library/Mobile Documents/com~apple~CloudDocs/DnD app/Grisburgh-main/bronnen/backgrounds-2024.json';
 fs.writeFileSync(path, JSON.stringify(out, null, 2) + '\n');
 console.log('Backgrounds:', Object.keys(out).length);
 console.log('Voorbeeld Acolyte:', JSON.stringify(out['Acolyte'], null, 1));

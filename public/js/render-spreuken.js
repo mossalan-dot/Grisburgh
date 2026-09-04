@@ -11,7 +11,7 @@
  * met die van het spreukenboek (_SB_SCHOOLS in app.js).
  */
 
-import { api } from './api.js?v=257';
+import { api } from './api.js?v=258';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
@@ -59,7 +59,7 @@ function _focusMap() { return window.app?.state?.meta?.spellImageFocus || {}; }
 
 async function _load() {
   if (_all) return _all;
-  const url = _isHp() ? '/data/hp-spells.json' : '/data/spells-2024.json';
+  const url = _isHp() ? '/api/bron/hp-spells' : '/api/bron/spells-2024';
   try {
     const d = await fetch(url).then(r => r.json());
     const raw = (d.results || d.spells || (Array.isArray(d) ? d : [])).filter(Boolean);
@@ -299,6 +299,16 @@ function _detailHtml(s) {
       </div>
       ${desc   ? `<div class="spreuk-detail-desc">${fmt(desc)}</div>` : ''}
       ${higher ? `<div class="spreuk-detail-higher"><span class="spreuk-detail-higher-lbl">At Higher Levels.</span> ${fmt(higher)}</div>` : ''}
+      ${isDM() ? `
+        <details class="spreuk-eigen" ${desc ? '' : 'open'}>
+          <summary>${icon('pencil')} ${s._eigen ? 'Jouw beschrijving' : desc ? 'Eigen beschrijving schrijven' : 'Beschrijving invullen'}</summary>
+          <p class="spreuk-eigen-hint">Wat je hier schrijft is wat jouw spelers zien. Leeg laten zet het terug.</p>
+          <textarea class="spreuk-eigen-tekst" id="spreuk-eigen-${esc(s.index)}" rows="6"
+            placeholder="Wat doet deze spreuk aan jouw tafel?">${esc(s._eigen ? desc : '')}</textarea>
+          <button class="spreuk-detail-imgbtn" onclick="window.spreuken.saveTekst('${esc(s.index)}')">
+            ${icon('save')} Beschrijving opslaan</button>
+          <span class="spreuk-eigen-status" id="spreuk-eigen-status-${esc(s.index)}"></span>
+        </details>` : ''}
       ${classes.length ? `<div class="spreuk-detail-classes">${classes.map(c => {
         const cc = _CLASS_COL[c] || '#5a3a8c';
         return `<span class="spreuk-class-pill" style="--class-c:${cc}">${esc(c)}</span>`;
@@ -341,6 +351,24 @@ window.spreuken = {
     const ov = _ensureOverlay();
     ov.innerHTML = _detailHtml(s);
     ov.classList.add('active');
+  },
+  // DM: eigen beschrijving bij een spreuk. Buiten Grisburgh komen de spreuken
+  // kaal binnen (naam, niveau, school, tijden) en vult de DM de tekst zelf —
+  // zie lib/bronnen.js.
+  async saveTekst(index) {
+    const ta = document.getElementById(`spreuk-eigen-${index}`);
+    if (!ta) return;
+    try {
+      const r = await api.setSpreukTekst(index, ta.value);
+      const s = (_all || []).find(x => x.index === index);
+      if (s) { s.desc = r.desc; s._eigen = !!r.desc.length; }
+      const st = document.getElementById(`spreuk-eigen-status-${index}`);
+      if (st) st.textContent = r.desc.length ? '✓ Opgeslagen' : '✓ Gewist';
+      setTimeout(() => window.spreuken.open(index), 700);
+    } catch (e) {
+      const st = document.getElementById(`spreuk-eigen-status-${index}`);
+      if (st) st.textContent = 'Fout: ' + e.message;
+    }
   },
   // Speler: voeg deze spreuk toe aan het eigen spreukenboek (server dedupliceert op index).
   async addToBook(index, btn) {

@@ -181,13 +181,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=415   app.js?v=572   sound-manager.js?v=8
-app.js      : api.js?v=257      render-campagne.js?v=126   render-archief.js?v=75
+index.html  : theme.css?v=416   app.js?v=573   sound-manager.js?v=8
+app.js      : api.js?v=258      render-campagne.js?v=127   render-archief.js?v=75
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
-              render-progressie.js?v=43  socket-client.js?v=59
+              render-progressie.js?v=44  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=175    render-dashboard.js?v=9
-              render-spreuken.js?v=13   media-picker.js?v=7
+              dm-panel.js?v=176    render-dashboard.js?v=9
+              render-spreuken.js?v=14   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 ```
 
@@ -473,6 +473,10 @@ lib/storage.js         Lees/schrijf JSON-bestanden, per-campagne via AsyncLocalS
 lib/snapshot.js        HTML-export (/api/export + /api/export/campagneboek)
 routes/api.js          Alle REST-endpoints (~3000 regels)
 routes/auth.js         Login (DM + speler), session
+bronnen/               Meegeleverde brondata (spreuken, class features, backgrounds).
+                       Stond in public/data/ — nu buiten public/, dus alleen via
+                       GET /api/bron/:naam (achter een sessie, kaal buiten de
+                       beheercampagne). Zie lib/bronnen.js.
 public/
   index.html           SPA shell, Tailwind CDN, alle <script> imports
   css/theme.css        ~17k regels custom CSS (geen Tailwind in CSS)
@@ -488,8 +492,6 @@ public/
     api.js             Client-side API wrapper (fetch)
     socket-client.js   Socket.io client
     dm-panel.js        DM-configuratiepaneel
-  data/
-    class-progression.json  Seed-data voor skill trees (12 klassen, 13 soorten)
   img/
     icons.svg          Lucide SVG-sprite (zie iconlijst hieronder)
 data/
@@ -607,6 +609,35 @@ Sessies worden gedeeld per browsertab (één cookie). DM en speler kunnen **niet
 > mogelijke heropleving. `window.app.testLogin()` werkt nog vanaf de console. Wil je het
 > ooit écht weghalen: knoppen+modals zijn al weg, dus dan rest het opruimen van die
 > handlers + de sandbox-routing.
+
+---
+
+## Bronteksten: structuur naar buiten, tekst binnen
+
+De 539 spreuken, de class features en de backgrounds stonden in `public/data/`
+en waren dus **zonder inloggen** op te halen — 760 kB volledige PHB-tekst voor
+wie het pad raadde. Ze staan nu in `bronnen/` (buiten `public/`) en gaan via
+`GET /api/bron/:naam`, met een whitelist van vijf namen.
+
+- **Wie krijgt wat?** `meta.bronTeksten` bepaalt het; ontbreekt die, dan geldt
+  "alleen de beheercampagne" (`config.beheerCampagne`). Een andere campagne
+  krijgt **structuur zonder tekst**: naam, niveau, school, casting time, range,
+  components, duration en klassen blijven staan — genoeg om een spreuk te
+  herkennen en te kiezen — maar `desc` en `higher_level` komen leeg binnen.
+  Hetzelfde geldt voor `/api/progression` (features houden naam en level,
+  verliezen hun `desc`) en voor de backgrounds.
+- **Wat de DM zelf schrijft is van hem** en gaat altijd mee, ook in een kale
+  campagne: `spells.json` per campagne (`{ eigen: { <index>: { desc, higher_level } } }`),
+  te bewerken in het spreukdetail (`PUT /bron/spreuk/:index`). Leeg opslaan wist
+  het weer. Een campagne met een **eigen** `progression.json` (zoals Grisburgh)
+  krijgt die ongemoeid terug — kaal maken geldt alleen voor de meegeleverde seed.
+- **`attachRole` is geen inlogcontrole.** Die zet de rol standaard op `'player'`,
+  dus `if (!req.role)` gaat nooit af. De bron-route kijkt daarom expliciet naar
+  `session.role === 'dm' || session.characterId` — dezelfde valkuil als eerder
+  bij `/api/files/:id`.
+
+Regenereren van de bronbestanden: zie `scripts/srd-2024/` (paden wijzen nu naar
+`bronnen/`).
 
 ---
 
@@ -785,7 +816,7 @@ Context voor lazy render staat in `window._lastPlayerProfile`, `window._lastPlay
 ## Skill trees / Progressie
 
 - Data: `GET/PUT /api/progression` (DM-only voor schrijven)
-- Seed: `public/data/class-progression.json` (12 klassen, 13 soorten — 2024 PHB)
+- Seed: `bronnen/class-progression.json` (12 klassen, 13 soorten — 2024 PHB)
 - Klassenamen: Engels, case-insensitief, aliassen ondersteund
 - Subklasse-matching: fuzzy (`includes`-check in beide richtingen)
 - Keuze-features: `feat.choice: true` of `_kind: 'shared'` (ASI, Epic Boon)
@@ -817,7 +848,7 @@ Een background = `{ levels: { "1": [{name, desc}] } }` (zelfde vorm als species,
 species-rendering en de level-editor — maar zonder level-labels). Onderdelen: Ability Scores,
 Origin-feat, Skill Proficiencies, Tool Proficiency, Equipment.
 
-- **Bibliotheek:** 16 PHB-2024-backgrounds in `public/data/backgrounds-2024.json` (geëxtraheerd uit
+- **Bibliotheek:** 16 PHB-2024-backgrounds in `bronnen/backgrounds-2024.json` (geëxtraheerd uit
   5etools via `scripts/srd-2024/extract-backgrounds.js`).
 - **Server:** `GET /api/progression` vult `backgrounds` aan uit dat bestand als de campagne nog geen
   eigen versie heeft opgeslagen (`PUT` bewaart `body.backgrounds`). Net als de class-seed-fallback.

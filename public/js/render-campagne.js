@@ -1,4 +1,4 @@
-import { api } from './api.js?v=257';
+import { api } from './api.js?v=258';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 const icon = (...a) => window.icon(...a);
@@ -2829,7 +2829,7 @@ window._openEditor = async (tab, editId) => {
   allNames = await api.allNames();
   // Scroll-spell-picker: laad de spell-lijst één keer (voor de datalist + autofill).
   if (tab === 'voorwerpen' && !_scrollSpellList) {
-    try { _scrollSpellList = (await fetch('/data/spells-2024.json').then(r => r.json())).results || []; }
+    try { _scrollSpellList = (await fetch('/api/bron/spells-2024').then(r => r.json())).results || []; }
     catch { _scrollSpellList = []; }
   }
   let _editorGroups = [];

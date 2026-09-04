@@ -2,7 +2,7 @@
 /**
  * import-spells-2024.js
  * Parses the ~/Downloads/Spells/ markdown collection (2024 PHB format)
- * and writes public/data/spells-2024.json
+ * and writes bronnen/spells-2024.json
  *
  * Usage: node scripts/import-spells-2024.js [path/to/Spells]
  */
@@ -12,7 +12,7 @@ const path = require('path');
 
 const SPELLS_DIR = process.argv[2]
   || path.join(process.env.HOME, 'Downloads', 'Spells');
-const OUT_FILE   = path.join(__dirname, '..', 'public', 'data', 'spells-2024.json');
+const OUT_FILE   = path.join(__dirname, '..', 'bronnen', 'spells-2024.json');
 
 const SCHOOLS = [
   'Abjuration','Conjuration','Divination','Enchantment',

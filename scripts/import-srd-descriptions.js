@@ -6,7 +6,7 @@
  *
  * Gebruik: node scripts/import-srd-descriptions.js
  *
- * Output: public/data/feature-descriptions.json
+ * Output: bronnen/feature-descriptions.json
  * Structuur: { "Feature Name": "description text", ... }
  *
  * Beschrijvingen zijn in het Engels (2024 PHB SRD).
@@ -18,7 +18,7 @@ const fs    = require('fs');
 const path  = require('path');
 
 const BASE_URL = 'https://raw.githubusercontent.com/downfallx/dnd-5e-srd-markdown/master/';
-const OUT_FILE = path.join(__dirname, '..', 'public', 'data', 'feature-descriptions.json');
+const OUT_FILE = path.join(__dirname, '..', 'bronnen', 'feature-descriptions.json');
 
 function fetch(url) {
   return new Promise((resolve, reject) => {

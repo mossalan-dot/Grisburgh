@@ -1,6 +1,6 @@
 # Grisburgh voor meerdere DM's — werkdocument
 
-Status: **stap 1, 2 en 3 af.** Bijgewerkt 4 sep 2026.
+Status: **stap 1 t/m 5 af.** Bijgewerkt 4 sep 2026.
 Dit document leeft naast `CLAUDE.md`; als een stap af is, verhuist de blijvende
 kennis daarheen en blijft hier alleen de voortgang staan.
 
@@ -64,12 +64,11 @@ regie/Meesterkamer-verhaallijn
 ## Bekende scherven (gevonden in de code, nog niet gefikst)
 
 Het bestandslek is in stap 1 gedicht (`_magBestandZien()`); de kaart-fallback,
-de munten, "Jonkers prikbord" en de hardcoded titel in stap 3. Wat hieronder
-staat is wat er nog ligt.
+de munten, "Jonkers prikbord" en de hardcoded titel in stap 3; de PHB-teksten in
+stap 5. Wat hieronder staat is wat er nog ligt.
 
 | Waar | Wat |
 |---|---|
-| `public/data/spells-2024.json` | 539 spreuken, allemaal `source: "phb2024"` — volledige PHB-teksten, geen SRD. Zelfde afweging als bij de progressiebeschrijvingen: naar buiten toe alleen namen + feitelijke velden. |
 | `_DIENST_SVC_KEYS` / `_DIENST_AMB_LABELS` / `data-section` | Diensten zijn **vaste secties** met eigen HTML, CSS en endpoints; hun configuratie staat wél al in `meta.json` (naam, afbeeldingen, prijzen), dus hernoemen kan zonder verbouwing. |
 
 ## Serverbudget (gemeten 3 sep 2026)
@@ -156,7 +155,14 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    campagne wisselen) stond op `requireDM`, dus kon de DM van campagne B de
    standaardcampagne verzetten. Dat is nu `requireBeheerder`
    (`config.beheerCampagne`). Zes tests in `tests/modules.test.js`.
-5. **Kale progressie en spreuken**, per campagne opgeslagen, met invulvelden.
+5. **Kale progressie en spreuken.** — **af (4 sep 2026)**. De bronbestanden zijn
+   uit `public/data/` gehaald (ze waren zonder inloggen op te halen) en gaan via
+   `GET /api/bron/:naam`. Buiten de beheercampagne komt er structuur zonder
+   tekst: naam, niveau, school, casting time, range, components, duration en
+   klassen wél, `desc` niet — hetzelfde voor class features en backgrounds. De
+   DM schrijft zijn eigen beschrijving in het spreukdetail; die staat in
+   `spells.json` van zijn campagne en is van hem. Negen tests in
+   `tests/bronnen.test.js`.
 6. **Wizard + minicampagne.** Campagnenaam → munten → modules → diensten
    hernoemen → kaart uploaden (optioneel) → eerste groep met wachtwoord →
    eerste personage: zowel een kaartje in het archief als een speler-personage

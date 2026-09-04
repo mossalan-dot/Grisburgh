@@ -1,15 +1,15 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=257';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=126";
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=258';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=127";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=75";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
-import { renderProgressie } from './render-progressie.js?v=43';
+import { renderProgressie } from './render-progressie.js?v=44';
 import { renderBestiarium } from './render-bestiarium.js?v=20';
-import { renderSpreuken } from './render-spreuken.js?v=13';
+import { renderSpreuken } from './render-spreuken.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=59";
-import { initDmPanel } from "./dm-panel.js?v=175";
+import { initDmPanel } from "./dm-panel.js?v=176";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -3952,7 +3952,7 @@ window._sbOpenAddSpells = async function() {
   // Spreukenlijst laden indien nodig
   if (!_playerSpellList) {
     // Alleen echte spreuken: niet-spell-entries (magische voorwerpen) hebben een lege school.
-    try { _playerSpellList = ((await fetch('/data/spells-2024.json').then(r => r.json())).results || []).filter(s => s.school?.name); }
+    try { _playerSpellList = ((await fetch('/api/bron/spells-2024').then(r => r.json())).results || []).filter(s => s.school?.name); }
     catch { _playerSpellList = []; }
   }
   _addSp.selected = new Set();
@@ -4264,7 +4264,7 @@ function _sbRenderTocList(q) {
   } else {
     // Zoekterm: zoek in volledige spellenlijst
     if (!_playerSpellList) {
-      fetch('/data/spells-2024.json').then(r => r.json()).then(d => {
+      fetch('/api/bron/spells-2024').then(r => r.json()).then(d => {
         _playerSpellList = d.results || [];
         _sbRenderTocList(q);
       }).catch(() => {});
@@ -4331,7 +4331,7 @@ async function _sbFetchDesc(spell) {
     // Laad de lokale lijst als die er nog niet is
     if (!_playerSpellList) {
       try {
-        const d = await fetch('/data/spells-2024.json').then(r => r.json());
+        const d = await fetch('/api/bron/spells-2024').then(r => r.json());
         _playerSpellList = d.results || [];
       } catch { _playerSpellList = []; }
     }
@@ -7339,7 +7339,7 @@ async function renderMijnKarakter(opts = {}) {
         let s;
         if (_isHpCampaign()) {
           if (!_playerSpellList) {
-            const r = await fetch('/data/hp-spells.json');
+            const r = await fetch('/api/bron/hp-spells');
             const d = await r.json();
             _playerSpellList = d.results || [];
           }
@@ -8464,7 +8464,7 @@ async function renderMijnKarakter(opts = {}) {
     if (!_playerSpellList) {
       resultsEl.innerHTML = '<div class="player-spell-loading">Laden…</div>';
       try {
-        const url = _isHpCampaign() ? '/data/hp-spells.json' : '/data/spells-2024.json';
+        const url = _isHpCampaign() ? '/api/bron/hp-spells' : '/api/bron/spells-2024';
         const r = await fetch(url);
         const d = await r.json();
         _playerSpellList = d.results || [];
@@ -8473,7 +8473,7 @@ async function renderMijnKarakter(opts = {}) {
     // Laad aanvullende spreuklijst (custom/homebrew)
     if (!_extraSpellList) {
       try {
-        const r = await fetch('/data/extra-spells.json');
+        const r = await fetch('/api/bron/extra-spells');
         const d = await r.json();
         _extraSpellList = d.results || [];
       } catch { _extraSpellList = []; }
@@ -8760,7 +8760,7 @@ async function renderMijnKarakter(opts = {}) {
       if (_isHpCampaign()) {
         s = (_playerSpellList || []).find(sp => sp.index === index);
         if (!s) {
-          const r = await fetch('/data/hp-spells.json');
+          const r = await fetch('/api/bron/hp-spells');
           const d = await r.json();
           _playerSpellList = d.results || [];
           s = _playerSpellList.find(sp => sp.index === index) || {};

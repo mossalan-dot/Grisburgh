@@ -2,7 +2,7 @@
  * render-progressie.js — Skill trees / klasse-progressie op het personagetabblad
  */
 
-import { api } from './api.js?v=257';
+import { api } from './api.js?v=258';
 
 // ── Hulpfuncties ───────────────────────────────────────────────────
 const esc  = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -48,14 +48,14 @@ function _md(text) {
 }
 
 // ── SRD-beschrijvingen (Engels, 2024 PHB) ─────────────────────────
-// Geladen via /data/feature-descriptions.json.
+// Geladen via /api/bron/feature-descriptions (buiten public/, dus achter een sessie).
 // DM-beschrijvingen in class-progression.json hebben altijd prioriteit.
 let _srd = null;
 let _srdPromise = null;
 async function _loadSrd() {
   if (_srd && Object.keys(_srd).length > 0) return _srd;
   if (!_srdPromise) {
-    _srdPromise = fetch('/data/feature-descriptions.json')
+    _srdPromise = fetch('/api/bron/feature-descriptions')
       .then(r => r.json())
       .then(d => { _srd = d; return d; })
       .catch(() => { _srd = {}; _srdPromise = null; return {}; });
@@ -81,7 +81,7 @@ let _bgPromise = null;
 async function _loadBackgrounds() {
   if (_bgLib) return _bgLib;
   if (!_bgPromise) {
-    _bgPromise = fetch('/data/backgrounds-2024.json')
+    _bgPromise = fetch('/api/bron/backgrounds-2024')
       .then(r => r.json())
       .then(d => { _bgLib = d; return d; })
       .catch(() => { _bgLib = {}; _bgPromise = null; return {}; });

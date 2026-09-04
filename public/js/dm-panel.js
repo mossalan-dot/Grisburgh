@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=257';
+import { api, huidigeCampagne } from './api.js?v=258';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -1357,7 +1357,7 @@ function _renderDelen(subTab) {
 
 async function _loadSpells() {
   const url = _isHpCampaign()
-    ? '/data/hp-spells.json'
+    ? '/api/bron/hp-spells'
     : 'https://www.dnd5eapi.co/api/spells';
   try {
     const r = await fetch(url);
@@ -8565,7 +8565,7 @@ function _attachCombatSpellAccordionListeners(container) {
         let s;
         if (typeof _isHpCampaign === 'function' && _isHpCampaign()) {
           if (!_coSpellList) {
-            const r = await fetch('/data/hp-spells.json');
+            const r = await fetch('/api/bron/hp-spells');
             const d = await r.json();
             _coSpellList = d.results || [];
           }

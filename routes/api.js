@@ -9,6 +9,8 @@ const { requireDM, requireBeheerder, attachRole, hashWachtwoord } = require('./a
 const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 const { sheetHtml } = require('../lib/character-sheet');
 const { MODULES, modulesVoor, schoneModules, verborgenUI } = require('../lib/modules');
+const bronnen = require('../lib/bronnen');
+const config  = require('../config');
 
 let _sharp = null;
 try { _sharp = require('sharp'); } catch {}
@@ -4763,11 +4765,11 @@ router.post('/sounds/reveal', requireDM, (req, res) => {
 
 // ── Klasse-progressie (skill trees) ──────────────────────────────
 // GET geeft de campagne-eigen progressie terug, of anders de meegeleverde
-// 2024-seed (public/data/class-progression.json). De DM kan een eigen versie
+// 2024-seed (bronnen/class-progression.json). De DM kan een eigen versie
 // opslaan; resetten verwijdert de override.
 
-const _PROGRESSION_SEED = path.join(__dirname, '..', 'public', 'data', 'class-progression.json');
-const _BACKGROUNDS_SEED = path.join(__dirname, '..', 'public', 'data', 'backgrounds-2024.json');
+const _PROGRESSION_SEED = path.join(bronnen.DIR, 'class-progression.json');
+const _BACKGROUNDS_SEED = path.join(bronnen.DIR, 'backgrounds-2024.json');
 
 function _readProgressionSeed() {
   try { return JSON.parse(fs.readFileSync(_PROGRESSION_SEED, 'utf8')); }
@@ -4778,17 +4780,65 @@ function _readBackgroundsSeed() {
   catch { return {}; }
 }
 
+// ── Bronbestanden (spreuken, features, backgrounds) ──────────────────────────
+// Mag deze campagne de volledige teksten zien? Standaard alleen de campagne van
+// de beheerder; `meta.bronTeksten` kan het per campagne omzetten (bijvoorbeeld
+// als een DM zijn eigen materiaal invoert of er recht op heeft).
+function _magBronTeksten(req) {
+  const meta = storage.readJSON('meta.json');
+  if (typeof meta.bronTeksten === 'boolean') return meta.bronTeksten;
+  return (req.session?.campaignId || storage.getActiveCampaignId()) === config.beheerCampagne;
+}
+
+// Eigen spreukteksten van de campagne: { index: { desc: [], higher_level: [] } }
+function _eigenSpreuken() {
+  const d = storage.readJSON('spells.json');
+  return (d && typeof d.eigen === 'object' && d.eigen) || {};
+}
+
+router.get('/bron/:naam', attachRole, (req, res) => {
+  // Wél een sessie vereist: `attachRole` zet de rol standaard op 'player', dus
+  // een controle op req.role zou hier nooit afgaan (zelfde valkuil als bij de
+  // bestanden). Vóór het inloggen heeft niemand een spreukenlijst nodig.
+  const ingelogd = req.session?.role === 'dm' || !!req.session?.characterId;
+  if (!ingelogd) return res.status(401).json({ error: 'Niet ingelogd' });
+  const data = bronnen.bronVoor(req.params.naam, {
+    volledig: _magBronTeksten(req),
+    eigen:    _eigenSpreuken(),
+  });
+  if (!data) return res.status(404).json({ error: 'Onbekende bron' });
+  res.json(data);
+});
+
+// De DM schrijft zijn eigen beschrijving bij een spreuk. Leeg = terug naar wat
+// de bron zegt (of, in een kale campagne, weer geen tekst).
+router.put('/bron/spreuk/:index', requireDM, (req, res) => {
+  const index = String(req.params.index).slice(0, 120);
+  const d = storage.readJSON('spells.json');
+  if (!d.eigen || typeof d.eigen !== 'object') d.eigen = {};
+  const naarRegels = (v) => (Array.isArray(v) ? v : String(v ?? '').split(/\n\s*\n/))
+    .map(r => String(r).trim()).filter(Boolean).slice(0, 60);
+  const desc   = naarRegels(req.body?.desc);
+  const hoger  = naarRegels(req.body?.higher_level);
+  if (!desc.length && !hoger.length) delete d.eigen[index];
+  else d.eigen[index] = { desc, higher_level: hoger };
+  storage.writeJSON('spells.json', d);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:updated', { index });
+  res.json({ index, desc, higher_level: hoger });
+});
+
 router.get('/progression', attachRole, (req, res) => {
   const saved = storage.readJSON('progression.json');
-  const base = (saved && saved.classes && Object.keys(saved.classes).length)
-    ? { ...saved, _custom: true }
-    : { ..._readProgressionSeed(), _custom: false };
+  const eigen = !!(saved && saved.classes && Object.keys(saved.classes).length);
+  const base = eigen ? { ...saved, _custom: true } : { ..._readProgressionSeed(), _custom: false };
   // Backgrounds-fallback: vul de meegeleverde 2024-bibliotheek aan als er nog
   // geen campagne-eigen backgrounds zijn opgeslagen.
   if (!base.backgrounds || !Object.keys(base.backgrounds).length) {
     base.backgrounds = _readBackgroundsSeed();
   }
-  res.json(base);
+  // Wat de DM zelf heeft geschreven blijft staan; de meegeleverde seed gaat
+  // kaal de deur uit als deze campagne de brontekst niet mag zien.
+  res.json((eigen || _magBronTeksten(req)) ? base : bronnen.kaleProgressie(base));
 });
 
 router.put('/progression', requireDM, (req, res) => {

@@ -1,5 +1,5 @@
 node_modules/
 data/
-!public/data/
+!bronnen/
 .DS_Store
 CLAUDE.local.md
