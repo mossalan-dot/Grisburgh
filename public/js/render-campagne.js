@@ -138,13 +138,16 @@ const SCHEMA = {
   personages: {
     subtypes: ['NPC', 'speler', 'antagonist', 'god', 'dier', 'verkoper'],
     fields: [
-      { key: 'rol', label: 'Rol', type: 'text' },
+      // De sleutels blijven zoals ze zijn (daar hangt opgeslagen data aan); alleen
+      // de labels zeggen nu wat het veld ís. 'rol' was zo vaag dat het van alles
+      // werd, 'persoonlijkheid' gaat in de praktijk over hoe jíj hem speelt.
+      { key: 'rol', label: 'Korte omschrijving', type: 'text' },
       { key: 'ras', label: 'Ras', type: 'text' },
       { key: 'klasse', label: 'Klasse', type: 'text' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'geheim', label: 'Geheim', type: 'textarea' },
-      { key: 'flavour', label: 'Roddel', type: 'textarea' },
-      { key: 'persoonlijkheid', label: 'Persoonlijkheid', type: 'textarea', dmOnly: true },
+      { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
+      { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
   },
   locaties: {
@@ -468,14 +471,43 @@ window._modalGoBack = async () => {
 window._clearHistory = _clearHistory;
 
 // Kleine B/I toolbar boven een textarea
+// Dezelfde opmaakbalk als bij de aktes en de helpteksten: vet, cursief,
+// onderstreept, doorhalen, markeren, kleur en een scheidingslijn. Hij stond hier
+// op alleen vet en cursief, terwijl `mdToHtml` de rest allang aankan.
 function fmtToolbar(id) {
-  return `<div class="flex gap-1 mb-1">
-    <button type="button" title="Vet (Ctrl+B)" onclick="window._fmt('${id}','**')"
-      class="w-7 h-6 text-xs font-black border border-room-border rounded bg-room-bg hover:bg-room-elevated transition font-cinzel leading-none">B</button>
-    <button type="button" title="Cursief (Ctrl+I)" onclick="window._fmt('${id}','*')"
-      class="w-7 h-6 text-xs border border-room-border rounded bg-room-bg hover:bg-room-elevated transition font-fell italic leading-none">I</button>
+  const hex = window._FMT_KLEUR_HEX || {};
+  const kleuren = Object.keys(hex).map(k =>
+    `<option value="${k}" style="background:#1a1410;color:${hex[k]}">${k}</option>`).join('');
+  return `<div class="fmt-toolbar">
+    <button type="button" class="fmt-btn fmt-btn-b" title="Vet (Ctrl+B)" onclick="window._fmt('${id}','**')">B</button>
+    <button type="button" class="fmt-btn fmt-btn-i" title="Cursief (Ctrl+I)" onclick="window._fmt('${id}','*')">I</button>
+    <button type="button" class="fmt-btn fmt-btn-u" title="Onderstreept" onclick="window._fmt('${id}','__')">U</button>
+    <button type="button" class="fmt-btn fmt-btn-s" title="Doorhalen" onclick="window._fmt('${id}','~~')">S</button>
+    <button type="button" class="fmt-btn fmt-btn-mark" title="Markering" onclick="window._fmt('${id}','==')">▌</button>
+    <button type="button" class="fmt-btn" title="Scheidingslijn" onclick="window._fmtHr('${id}')">—</button>
+    <div class="fmt-toolbar-sep"></div>
+    <div class="fmt-kleur-wrap">
+      <select class="fmt-kleur-select" id="fmt-kleur-${id}" onchange="window._fmtKleurSelect('${id}', this)">
+        <option value="">kleur</option>${kleuren}
+      </select>
+      <span class="fmt-kleur-dot" id="fmt-kleur-dot-${id}"></span>
+    </div>
   </div>`;
 }
+
+// Een ability score zegt weinig zonder zijn modifier; die rekent iedereen toch
+// in zijn hoofd uit. 10 en 11 geven +0, elke twee punten daarboven of daaronder
+// één stap.
+function _abilityMod(waarde) {
+  const n = parseInt(String(waarde ?? '').match(/-?\d+/)?.[0] ?? '', 10);
+  if (Number.isNaN(n)) return '';
+  const mod = Math.floor((n - 10) / 2);
+  return mod >= 0 ? `+${mod}` : String(mod);
+}
+window._csModUpdate = (k, waarde) => {
+  const el = document.getElementById(`cs-mod-${k}`);
+  if (el) el.textContent = _abilityMod(waarde);
+};
 
 export function initCampagne() {}
 
@@ -2898,11 +2930,9 @@ window._openEditor = async (tab, editId) => {
       </div>
       <div>
         <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Extra afbeeldingen</div>
-        <div id="entity-img-preview" class="editor-img-grid mb-2">
-          <span class="text-xs text-ink-faint italic">Nog geen</span>
-        </div>
-        <label class="inline-flex items-center gap-1 px-2 py-1 bg-room-elevated border border-room-border rounded text-ink-dim text-xs hover:text-ink-bright cursor-pointer transition">
-          + Toevoegen
+        <div id="entity-img-preview" class="editor-img-grid mb-2"></div>
+        <label class="flex items-center gap-2 px-2 py-1.5 bg-room-elevated border border-room-border rounded cursor-pointer hover:border-gold-dim transition text-sm text-ink-dim w-full">
+          ${icon('image')} <span>Afbeeldingen toevoegen</span>
           <input type="file" accept="image/*" multiple class="hidden" onchange="window._addEntityImages(this.files)">
         </label>
       </div>
@@ -3347,14 +3377,14 @@ window._openEditor = async (tab, editId) => {
     body += `
       <details class="cs-accordion"${_hasStats ? ' open' : ''}>
         <summary class="cs-accordion-head">
-          <span>${icon('swords')} Character Sheet</span>
+          <span>Character Sheet</span>
           <span class="cs-accordion-chevron">▾</span>
         </summary>
         <div class="cs-accordion-body">
           <div class="cs-tabs-bar">
-            <button type="button" class="cs-tab-btn cs-tab-active" onclick="window._csTab('gevecht')">Gevecht</button>
-            <button type="button" class="cs-tab-btn" onclick="window._csTab('acties')">Acties</button>
-            <button type="button" class="cs-tab-btn" onclick="window._csTab('spreuken')">Spreuken</button>
+            <button type="button" class="cs-tab-btn cs-tab-active" onclick="window._csTab('gevecht')">Combat</button>
+            <button type="button" class="cs-tab-btn" onclick="window._csTab('acties')">Actions</button>
+            <button type="button" class="cs-tab-btn" onclick="window._csTab('spreuken')">Spells</button>
           </div>
 
           <div id="cs-panel-gevecht" class="cs-sub-body space-y-2">
@@ -3365,12 +3395,19 @@ window._openEditor = async (tab, editId) => {
               ${_si('cr','Challenge Rating',true)}${_si('profBonus','Prof. Bonus',true)}
             </div>
             <div class="cs-divider"></div>
-            <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Eigenschappen</div>
+            <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Ability Scores</div>
             <div class="grid grid-cols-3 gap-2">
-              ${['str','dex','con','int','wis','cha'].map(k => _si(k, k.toUpperCase(), true)).join('')}
+              ${['str','dex','con','int','wis','cha'].map(k => `
+                <div>
+                  <label class="text-[10px] font-cinzel text-ink-dim uppercase">${k.toUpperCase()}
+                    <span class="cs-mod" id="cs-mod-${k}">${_abilityMod(s[k])}</span></label>
+                  <input name="stat_${k}" value="${esc(s[k] || '')}" inputmode="numeric"
+                    oninput="window._csModUpdate('${k}', this.value)"
+                    class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm text-center focus:border-gold-dim focus:outline-none">
+                </div>`).join('')}
             </div>
             <div class="cs-divider"></div>
-            <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Proficiencies &amp; Verdedigingen</div>
+            <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Proficiencies &amp; Defenses</div>
             <div class="space-y-2">
               ${_si('savingThrows','Saving Throws')}
               ${_si('skills','Skills')}
@@ -3380,15 +3417,18 @@ window._openEditor = async (tab, editId) => {
               ${_si('conditionImmunities','Condition Immunities')}
             </div>
             <div class="cs-divider"></div>
-            <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Zintuigen &amp; Talen</div>
+            <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Senses &amp; Languages</div>
             <div class="space-y-2">
               ${_si('senses','Senses')}
               ${_si('languages','Languages')}
             </div>
+            <div class="cs-divider"></div>
+            <!-- Traits horen bij het statblok en niet bij Actions: het zijn
+                 passieve eigenschappen, geen dingen die je op je beurt doet. -->
+            ${_ta('traits','Traits', 3)}
           </div>
 
           <div id="cs-panel-acties" class="cs-sub-body space-y-2" style="display:none">
-            ${_ta('traits','Traits', 3)}
             ${_ta('actions','Actions', 4)}
             ${_ta('bonusActions','Bonus Actions', 2)}
             ${_ta('reactions','Reactions', 2)}

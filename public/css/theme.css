@@ -22177,3 +22177,9 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   box-shadow: 0 -6px 28px rgba(0,0,0,0.55);
 }
 .landing-pw-prompt--boven-toetsenbord .landing-pw-input { width: 100%; }
+
+/* De modifier naast een ability score in de entiteit-editor. */
+.cs-mod {
+  margin-left: 4px; color: #c4a840; font-family: 'Crimson Text', serif;
+  font-size: 11px; font-weight: 600; letter-spacing: 0;
+}

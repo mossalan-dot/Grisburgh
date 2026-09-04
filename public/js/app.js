@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=262';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=128";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=129";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=75";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -2222,6 +2222,9 @@ window._fmt = (id, marker) => {
 
 // Wraps selected text in {kleur:...} — via selectievenstertje
 const _FMT_KLEUR_HEX = { rood:'#e05555', groen:'#5aaa6a', blauw:'#5b8fd4', goud:'#c4a840', paars:'#a070cc', oranje:'#e08840', grijs:'#888888' };
+// Ook buiten app.js te gebruiken: de opmaakbalk van de entiteit-editor tekent
+// dezelfde kleurenlijst, en twee lijstjes die uiteenlopen is vragen om gedoe.
+window._FMT_KLEUR_HEX = _FMT_KLEUR_HEX;
 window._fmtKleur = (id, kleur) => {
   const ta = document.getElementById(id);
   if (!ta) return;
