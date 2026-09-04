@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=256';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=257';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=126";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=75";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=20';
 import { renderSpreuken } from './render-spreuken.js?v=13';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=59";
-import { initDmPanel } from "./dm-panel.js?v=174";
+import { initDmPanel } from "./dm-panel.js?v=175";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -918,7 +918,10 @@ function applyRole() {
   // Diensten dropdown: zichtbaar voor benoemde spelers én voor de DM
   // (DM kan zo elke dienst openen en inspecteren zoals spelers die zien).
   const dienstenGroup = document.getElementById('diensten-nav-group');
-  if (dienstenGroup) dienstenGroup.classList.toggle('hidden', !isNamedPlayer && !window.app.isDM());
+  // Staan alle diensten uit als module, dan heeft het menu niets te tonen.
+  const geenDiensten = [...document.querySelectorAll('#diensten-menu > *')]
+    .every(el => el.classList.contains('module-uit'));
+  if (dienstenGroup) dienstenGroup.classList.toggle('hidden', geenDiensten || (!isNamedPlayer && !window.app.isDM()));
 
   // Herberg-item in dropdown: label aanpassen + verbergen als niet geconfigureerd
   const herbergItem = document.getElementById('diensten-herberg-item');
@@ -6236,16 +6239,16 @@ async function renderMijnKarakter(opts = {}) {
           data-tab="party" onclick="window._setPlayerSubTab('party')">${icon('users')} Party</button>
         <button class="player-subtab${_playerSubTab === 'personage' ? ' active' : ''}"
           data-tab="personage" onclick="window._setPlayerSubTab('personage')">${icon('swords')} Personage</button>
-        <button class="player-subtab${_playerSubTab === 'facties' ? ' active' : ''}"
-          data-tab="facties" onclick="window._setPlayerSubTab('facties')">${icon('landmark')} Facties</button>
+        ${window._spelerTabAan('facties') ? `<button class="player-subtab${_playerSubTab === 'facties' ? ' active' : ''}"
+          data-tab="facties" onclick="window._setPlayerSubTab('facties')">${icon('landmark')} Facties</button>` : ''}
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
           data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">${icon('scroll-text')} Boedel${(lootData?.actief && lootData.deelnemers?.includes(charId)) ? '<span class="player-loot-badge" id="loot-tab-badge"></span>' : ''}</button>
-        <button class="player-subtab${_playerSubTab === 'progressie' ? ' active' : ''}"
-          data-tab="progressie" onclick="window._setPlayerSubTab('progressie')">${icon('clipboard-list')} Progressie</button>
-        <button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
-          data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('sparkles')} Spreukenboek</button>
-        <button class="player-subtab${_playerSubTab === 'berichten' ? ' active' : ''}"
-          data-tab="berichten" onclick="window._setPlayerSubTab('berichten')">${icon('message-circle')} Berichten${window._berichtenUnread ? ` <span class="bericht-badge">${window._berichtenUnread}</span>` : ''}</button>
+        ${window._spelerTabAan('progressie') ? `<button class="player-subtab${_playerSubTab === 'progressie' ? ' active' : ''}"
+          data-tab="progressie" onclick="window._setPlayerSubTab('progressie')">${icon('clipboard-list')} Progressie</button>` : ''}
+        ${window._spelerTabAan('spreukenboek') ? `<button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
+          data-tab="spreukenboek" onclick="window._setPlayerSubTab('spreukenboek')">${icon('sparkles')} Spreukenboek</button>` : ''}
+        ${window._spelerTabAan('berichten') ? `<button class="player-subtab${_playerSubTab === 'berichten' ? ' active' : ''}"
+          data-tab="berichten" onclick="window._setPlayerSubTab('berichten')">${icon('message-circle')} Berichten${window._berichtenUnread ? ` <span class="bericht-badge">${window._berichtenUnread}</span>` : ''}</button>` : ''}
       </div>
 
       <!-- ═══ TAB: Party ═══ -->
@@ -9314,6 +9317,39 @@ function applyAppMeta(meta) {
   document.documentElement.setAttribute('data-theme', theme);
   // Valutanamen opslaan zodat andere onderdelen ze kunnen ophalen
   if (m.currency) window._currency = m.currency;
+  // Modules: wat uit staat verdwijnt uit beeld.
+  if (m.modules) window._modules = m.modules;
+  if (m.verborgen) { window._verborgen = m.verborgen; _pasModulesToe(); }
+}
+
+// ── Modules ──
+// Welke knoppen weg moeten rekent de server uit (lib/modules.js), zodat de
+// koppeling module → knop op één plek staat. Hier alleen nog het verbergen.
+window._moduleAan = (id) => window._modules?.[id] !== false;
+const _verborgenLijst = (soort) => window._verborgen?.[soort] || [];
+window._spelerTabAan = (tab) => !_verborgenLijst('spelerTabs').includes(tab);
+window._dmTabAan     = (tab) => !_verborgenLijst('dmTabs').includes(tab);
+
+function _pasModulesToe() {
+  // Eerst schoonvegen: zet de beheerder een module weer aan, dan moet de knop
+  // terugkomen zonder dat er een herlaadbeurt aan te pas komt.
+  document.querySelectorAll('.module-uit').forEach(el => el.classList.remove('module-uit'));
+  for (const sectie of _verborgenLijst('secties')) {
+    document.querySelectorAll(`[data-section="${sectie}"]`).forEach(el => el.classList.add('module-uit'));
+  }
+  for (const tab of _verborgenLijst('logtabs')) {
+    document.querySelectorAll(`[data-logtab="${tab}"]`).forEach(el => el.classList.add('module-uit'));
+  }
+  if (!window._moduleAan('dobbelstenen')) {
+    document.getElementById('dice-fab')?.classList.add('module-uit');
+    document.getElementById('dm-dice-fab')?.classList.add('module-uit');
+  }
+  // Een menuknop met alleen nog uitgezette items heeft niets meer te openen.
+  for (const [knop, menu] of [['archief-nav-group', 'archief-menu'], ['logboek-nav-group', 'logboek-menu'], ['diensten-nav-group', 'diensten-menu']]) {
+    const items = document.querySelectorAll(`#${menu} > *`);
+    const over  = [...items].filter(el => !el.classList.contains('module-uit'));
+    document.getElementById(knop)?.classList.toggle('module-uit', items.length > 0 && over.length === 0);
+  }
 }
 
 function editHeader() {

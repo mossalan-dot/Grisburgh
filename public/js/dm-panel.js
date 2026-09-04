@@ -1,4 +1,4 @@
-import { api } from './api.js?v=256';
+import { api, huidigeCampagne } from './api.js?v=257';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=3';
 
@@ -588,12 +588,14 @@ function _buildTabs() {
   const container = document.getElementById('dm-section-tabs');
   if (!container) return;
   const activeParent = _tabToParent(_activeTab);
+  // Een uitgezette module heeft hier geen tab; zie lib/modules.js.
+  const _zichtbareTabs = _DM_TABS.filter(t => window._dmTabAan?.(t.id) !== false);
   // Instellingen staat bovenaan, niet onderaan: onderin overlapt hij met de
   // regie-balk zodra er een akte actief is.
   container.innerHTML = `
     <button class="dm-tab-btn dm-tab-btn--settings" onclick="window._dmInstellingenOpen()" title="Instellingen">${icon('settings')}</button>`
-    + _DM_TABS.map((t, i) => `
-    ${i > 0 && t.groep !== _DM_TABS[i - 1].groep ? '<span class="dm-tab-sep" aria-hidden="true"></span>' : ''}
+    + _zichtbareTabs.map((t, i) => `
+    ${i > 0 && t.groep !== _zichtbareTabs[i - 1].groep ? '<span class="dm-tab-sep" aria-hidden="true"></span>' : ''}
     <button class="dm-tab-btn${activeParent === t.id ? ' active' : ''}" data-tab="${t.id}"
       onclick="window.dmPanel.switchTab('${t.id}')" title="${t.title}">
       <span class="dm-tab-icon">${icon(t.icoon, t.cls ? { cls: t.cls } : undefined)}</span>
@@ -736,16 +738,20 @@ function _renderDiensten(subTab) {
     nav.className = 'dm-subtab-nav';
     el.prepend(nav);
   }
-  el.querySelector('.dm-subtab-nav').innerHTML = `
-    <button class="dm-subtab-btn${_dienstenSubTab==='herberg'   ?' active':''}" onclick="window.dmPanel.switchTab('herberg')" title="Herberg">${icon('beer')}</button>
-    <button class="dm-subtab-btn${_dienstenSubTab==='tweespalt' ?' active':''}" onclick="window.dmPanel.switchTab('tweespalt')" title="Tweespalt">${icon('dice',{cls:'icon-gi'})}</button>
-    <button class="dm-subtab-btn${_dienstenSubTab==='gock'      ?' active':''}" onclick="window.dmPanel.switchTab('gock')" title="De Gock">${icon('search')}</button>
- <button class="dm-subtab-btn${_dienstenSubTab==='ursula'    ?' active':''}" onclick="window.dmPanel.switchTab('ursula')" title="Madame Ursula">${icon('sparkles')}</button>
-    <button class="dm-subtab-btn${_dienstenSubTab==='tempel'    ?' active':''}" onclick="window.dmPanel.switchTab('tempel')" title="De Tempel">${icon('church')}</button>
-    <button class="dm-subtab-btn${_dienstenSubTab==='facties'   ?' active':''}" onclick="window.dmPanel.switchTab('facties')" title="Facties & Aanzien">${icon('landmark')}</button>
-    <button class="dm-subtab-btn${_dienstenSubTab==='magizoo'   ?' active':''}" onclick="window.dmPanel.switchTab('magizoo')" title="De Magizoöloog">${icon('paw-print')}</button>
-    <button class="dm-subtab-btn${_dienstenSubTab==='toegang'   ?' active':''}" onclick="window.dmPanel.switchTab('toegang')" title="Toegang per groep">${icon('lock')}</button>
-  `;
+  // Dezelfde modules als de zijbalk: een dienst die uit staat heeft ook geen
+  // instelvenster nodig. "Toegang per groep" blijft altijd staan.
+  const _dienstNav = [
+    { key: 'herberg',   titel: 'Herberg',            ic: 'beer' },
+    { key: 'tweespalt', titel: 'Tweespalt',          ic: 'dice', cls: 'icon-gi' },
+    { key: 'gock',      titel: 'De Gock',            ic: 'search' },
+    { key: 'ursula',    titel: 'Madame Ursula',      ic: 'sparkles' },
+    { key: 'tempel',    titel: 'De Tempel',          ic: 'church' },
+    { key: 'facties',   titel: 'Facties & Aanzien',  ic: 'landmark' },
+    { key: 'magizoo',   titel: 'De Magizoöloog',     ic: 'paw-print' },
+    { key: 'toegang',   titel: 'Toegang per groep',  ic: 'lock', altijd: true },
+  ].filter(d => d.altijd || !(window._verborgen?.secties || []).includes(d.key));
+  el.querySelector('.dm-subtab-nav').innerHTML = _dienstNav.map(d => `
+    <button class="dm-subtab-btn${_dienstenSubTab===d.key ?' active':''}" onclick="window.dmPanel.switchTab('${d.key}')" title="${esc(d.titel)}">${icon(d.ic, d.cls ? { cls: d.cls } : undefined)}</button>`).join('');
 
   // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
   ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo','toegang'].forEach(name => {
@@ -9506,6 +9512,9 @@ async function _renderInstellingen() {
   // Haal data op
   const meta = window.app?.state?.meta || {};
   let groups = [], activeCampaign = '', campaigns = [];
+  // Campagnebeheer is niet voor elke DM: het endpoint geeft 403 aan wie geen
+  // beheerder is, en dan laten we de hele sectie weg.
+  let magBeheren = false, catalogus = [], modulesPer = {};
   try {
     const gr = await api.listGroups();
     groups = gr.groups || [];
@@ -9514,7 +9523,10 @@ async function _renderInstellingen() {
     const cp = await api.getCampaigns();
     campaigns    = cp.campaigns    || [];
     activeCampaign = cp.activeCampaign || '';
-  } catch { /* ok */ }
+    catalogus    = cp.catalogus    || [];
+    modulesPer   = cp.modules      || {};
+    magBeheren   = true;
+  } catch { /* geen beheerder */ }
 
   // Personages erbij, zodat we per party kunnen tonen wie er vanavond is.
   let alleSpelers = [];
@@ -9565,6 +9577,22 @@ async function _renderInstellingen() {
             ? '<span class="campagne-active-badge">● Actief</span>'
             : `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSwitchTo('${esc(c.id)}')" title="Activeer campagne">▶</button>`}
         </div>
+        <details class="dm-modules">
+          <summary>Modules</summary>
+          <p class="dm-hint">Wat uit staat verdwijnt uit beeld — bij de DM én bij zijn spelers.</p>
+          <div class="dm-modules-grid">
+            ${catalogus.map(m => `
+              <label class="dm-module-item">
+                <input type="checkbox" data-campagne="${esc(c.id)}" data-module="${esc(m.id)}"
+                  ${modulesPer[c.id]?.[m.id] ? 'checked' : ''}>
+                <span>${esc(m.label)}</span>
+              </label>`).join('')}
+          </div>
+          <div class="dm-form-row">
+            <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._instModulesSave('${esc(c.id)}')" title="Modules opslaan">${icon('save')}</button>
+            <span class="bericht-status hidden" id="modules-status-${esc(c.id)}"></span>
+          </div>
+        </details>
       </div>`;
   }).join('');
 
@@ -9641,7 +9669,8 @@ async function _renderInstellingen() {
       </div>
     </div>
 
-    <!-- Campagnes -->
+    <!-- Campagnes (alleen de beheerder) -->
+    ${!magBeheren ? '' : `
     <div class="dm-feature-section">
       <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
         <span class="dm-section-label" style="margin-bottom:0">Campagnes</span>
@@ -9666,7 +9695,7 @@ async function _renderInstellingen() {
         </div>
         <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
       </div>
-    </div>
+    </div>`}
 
     <!-- Locatie / Wereld (render functie injecteert eigen dm-feature-section) -->
     <div id="dm-inst-wereld"></div>
@@ -9707,6 +9736,23 @@ window._instTitelSave = async () => {
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     window.app?.applyAppMeta?.();
+    if (status) { status.textContent = '✓ Opgeslagen'; status.className = 'bericht-status bericht-status--ok'; status.classList.remove('hidden'); }
+    setTimeout(() => status?.classList.add('hidden'), 2500);
+  } catch (err) {
+    if (status) { status.textContent = 'Fout: ' + err.message; status.className = 'bericht-status bericht-status--err'; status.classList.remove('hidden'); }
+  }
+};
+
+window._instModulesSave = async (campagneId) => {
+  const modules = {};
+  document.querySelectorAll(`input[data-campagne="${campagneId}"][data-module]`)
+    .forEach(cb => { modules[cb.dataset.module] = cb.checked; });
+  const status = document.getElementById(`modules-status-${campagneId}`);
+  try {
+    await api.setCampaignModules(campagneId, modules);
+    // Gaat het over de campagne waar je zelf in zit, dan verandert je eigen
+    // scherm mee — anders zie je een tab die er niet meer hoort te zijn.
+    if (campagneId === huidigeCampagne()) return window.location.reload();
     if (status) { status.textContent = '✓ Opgeslagen'; status.className = 'bericht-status bericht-status--ok'; status.classList.remove('hidden'); }
     setTimeout(() => status?.classList.add('hidden'), 2500);
   } catch (err) {

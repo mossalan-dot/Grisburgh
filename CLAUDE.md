@@ -181,12 +181,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=414   app.js?v=571   sound-manager.js?v=8
-app.js      : api.js?v=256      render-campagne.js?v=126   render-archief.js?v=75
+index.html  : theme.css?v=415   app.js?v=572   sound-manager.js?v=8
+app.js      : api.js?v=257      render-campagne.js?v=126   render-archief.js?v=75
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=174    render-dashboard.js?v=9
+              dm-panel.js?v=175    render-dashboard.js?v=9
               render-spreuken.js?v=13   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 ```
@@ -607,6 +607,41 @@ Sessies worden gedeeld per browsertab (één cookie). DM en speler kunnen **niet
 > mogelijke heropleving. `window.app.testLogin()` werkt nog vanaf de console. Wil je het
 > ooit écht weghalen: knoppen+modals zijn al weg, dus dan rest het opruimen van die
 > handlers + de sandbox-routing.
+
+---
+
+## Modules per campagne
+
+Niet elke campagne heeft alles nodig, en niet alles is klaar om buiten Grisburgh
+gebruikt te worden. `lib/modules.js` is de **enige** plek waar staat welke module
+welke knoppen dekt: `secties` (zijbalk, `data-section`), `logtabs` (Logboek-menu),
+`dmTabs` (Meesterkamer) en `spelerTabs` (subtabs van het spelerstabblad).
+
+- **Stand per campagne:** `meta.modules` (`{ id: true|false }`). Ontbreekt een
+  sleutel, dan geldt `startset` uit de catalogus — zo krijgt een bestaande
+  campagne een nieuwe module vanzelf. Grisburgh staat expliciet op alles `true`.
+- **De client rekent niets uit.** `GET /meta` levert `modules` (id → bool) én
+  `verborgen` (de vier lijstjes hierboven). `_pasModulesToe()` in `app.js` zet
+  `.module-uit` (`display:none !important`) op wat weg moet en veegt eerst schoon,
+  zodat aanzetten ook zonder herladen werkt. Client-helpers: `window._moduleAan`,
+  `window._dmTabAan`, `window._spelerTabAan`.
+- **Uit is weg**, geen grijze "binnenkort"-knop. Een menuknop waarvan alle items
+  uit staan verdwijnt zelf ook (Archief, Logboek, Diensten).
+- **Alleen de beheerder zet modules aan**: Instellingen → Campagnes, per campagne
+  een uitklap met vinkjes (`PUT /campaigns/:id/modules`).
+
+> **Beheer is niet hetzelfde als DM zijn.** `requireBeheerder` (in `routes/auth.js`)
+> laat alleen de DM van `config.beheerCampagne` (env `BEHEER_CAMPAGNE`, standaard
+> `grisburgh`) bij `/campaigns` (lijst, aanmaken, actieve campagne wisselen) en bij
+> de modules. Dat was eerder `requireDM`, en daarmee kon de DM van campagne B de
+> **actieve** campagne verzetten — de campagne waar het kale domein naartoe
+> stuurt en waar een verzoek zonder sessie in landt. Bewust een vaste naam uit de
+> config en niet "de actieve campagne": die kan wisselen, en dan zou iemand
+> zichzelf het beheer in kunnen schuiven.
+
+**Een nieuwe module toevoegen:** regel erbij in `MODULES` (id, label, groep,
+`startset`, en de UI-sleutels die hij dekt) — verder niets. De filtering,
+de catalogus in het beheerscherm en de `verborgen`-lijstjes volgen daaruit.
 
 ---
 

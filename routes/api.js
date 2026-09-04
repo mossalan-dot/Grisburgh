@@ -5,9 +5,10 @@ const path    = require('path');
 const { spawn } = require('child_process');
 const storage = require('../lib/storage');
 const mediaUsage = require('../lib/media-usage');
-const { requireDM, attachRole, hashWachtwoord } = require('./auth');
+const { requireDM, requireBeheerder, attachRole, hashWachtwoord } = require('./auth');
 const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 const { sheetHtml } = require('../lib/character-sheet');
+const { MODULES, modulesVoor, schoneModules, verborgenUI } = require('../lib/modules');
 
 let _sharp = null;
 try { _sharp = require('sharp'); } catch {}
@@ -5084,7 +5085,7 @@ router.get('/meta', attachRole, (req, res) => {
     : dmState.activeGroup;
   // Afgeleid, niet opgeslagen: de client hoeft zo niet zelf uit te rekenen welke
   // akte er loopt en wat daarin dichtzit.
-  res.json({ ...meta, bereikbaarheid: _bereikbaarheidVoor(meta, dmState, groepId) });
+  res.json({ ...meta, modules: modulesVoor(meta), verborgen: verborgenUI(meta), bereikbaarheid: _bereikbaarheidVoor(meta, dmState, groepId) });
 });
 
 // Per akte instellen wat er niet bereikbaar is (diensten + winkel-entiteiten).
@@ -6743,16 +6744,36 @@ router.get('/campagne', (req, res) => {
   res.json({ campagne: naam, titel: meta.appTitle || naam, ondertitel: meta.appSubtitle || '' });
 });
 
-// Lijst alle campagnes
-router.get('/campaigns', requireDM, (req, res) => {
+// Lijst alle campagnes — beheer, dus niet voor elke DM: de lijst verklapt welke
+// campagnes er nog meer op deze server staan.
+router.get('/campaigns', requireBeheerder, (req, res) => {
+  const modules = Object.fromEntries(storage.listCampaigns().map(c => [
+    c.id,
+    storage.runInCampaign(c.id, () => modulesVoor(storage.readJSON('meta.json'))),
+  ]));
   res.json({
     campaigns:      storage.listCampaigns(),
     activeCampaign: storage.getActiveCampaignId(),
+    catalogus:      MODULES.map(({ id, label, groep, startset }) => ({ id, label, groep, startset })),
+    modules,
   });
 });
 
+// Modules van één campagne aan- of uitzetten.
+router.put('/campaigns/:id/modules', requireBeheerder, (req, res) => {
+  if (!storage.campagneBestaat(req.params.id)) return res.status(404).json({ error: 'Campagne niet gevonden' });
+  const modules = storage.runInCampaign(req.params.id, () => {
+    const meta = storage.readJSON('meta.json');
+    meta.modules = { ...(meta.modules || {}), ...schoneModules(req.body?.modules) };
+    storage.writeJSON('meta.json', meta);
+    return modulesVoor(meta);
+  });
+  req.app.get('io').to(req.params.id).emit('meta:updated');
+  res.json({ modules });
+});
+
 // Nieuwe campagne aanmaken
-router.post('/campaigns', requireDM, (req, res) => {
+router.post('/campaigns', requireBeheerder, (req, res) => {
   const { id, meta = {} } = req.body;
   if (!id || !/^[a-z0-9_-]+$/i.test(id))
     return res.status(400).json({ error: 'Ongeldige campagne-ID (gebruik alleen letters, cijfers, _ en -)' });
@@ -6765,7 +6786,7 @@ router.post('/campaigns', requireDM, (req, res) => {
 });
 
 // Wissel actieve campagne (logt alle spelers uit via socket)
-router.put('/campaigns/active', requireDM, (req, res) => {
+router.put('/campaigns/active', requireBeheerder, (req, res) => {
   const { id } = req.body;
   if (!id) return res.status(400).json({ error: 'id vereist' });
   const campaigns = storage.listCampaigns();

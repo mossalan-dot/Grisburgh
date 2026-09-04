@@ -21957,3 +21957,25 @@ body.kaart-fs-active { overflow: hidden; }
   .player-dash-hero { flex-direction: column; }
   .player-dash-hero-info { width: 100%; }
 }
+
+/* ── Modules ──────────────────────────────────────────────────────────────
+   Een uitgezette module verdwijnt volledig; geen grijze "binnenkort"-knop.
+   !important omdat de knoppen die dit raakt (zijbalk, menu-items, de dobbel-
+   knop) hun eigen display-regels hebben. */
+.module-uit { display: none !important; }
+
+/* Modules per campagne (Instellingen → Campagnes). Lichte perkamentachtergrond,
+   dus donkere tekst — een lichte kleur is hier onleesbaar. */
+.dm-modules { margin-top: 8px; }
+.dm-modules > summary {
+  cursor: pointer; font-size: 12px; color: #7a6040;
+  font-family: 'Cinzel', serif; letter-spacing: .04em;
+}
+.dm-modules-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px 12px; margin: 6px 0 8px;
+}
+.dm-module-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: #3a2410; cursor: pointer;
+}

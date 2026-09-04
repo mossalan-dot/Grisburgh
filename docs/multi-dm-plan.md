@@ -145,8 +145,17 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    Blijft staan: de app-iconen en het logo-embleem zijn van Grisburgh, en de
    `[[ ]]`-teksten van facties/tempel noemen de stad — die modules zitten niet
    in de startset.
-4. **Modules per campagne.** `meta.modules`, gefilterd in zijbalk én
-   Meesterkamer. Grisburgh alles op `true` — dat is meteen de smoke test.
+4. **Modules per campagne.** — **af (4 sep 2026)**. `lib/modules.js` houdt de
+   catalogus (twintig modules) én de koppeling naar de UI; `GET /meta` levert de
+   stand plus de lijstjes met wat verborgen moet worden, zodat de client niets
+   naloopt. Gefilterd in de zijbalk, het Logboek- en Dienstenmenu, de
+   Meesterkamer-tabs, de diensten-subtabs en de spelerssubtabs; een menuknop
+   waarvan alles uit staat verdwijnt zelf ook. Grisburgh staat expliciet op
+   alles `true` — de smoke test is dat er niets veranderde.
+   In dezelfde stap een gat gedicht: `/campaigns` (lijst, aanmaken, actieve
+   campagne wisselen) stond op `requireDM`, dus kon de DM van campagne B de
+   standaardcampagne verzetten. Dat is nu `requireBeheerder`
+   (`config.beheerCampagne`). Zes tests in `tests/modules.test.js`.
 5. **Kale progressie en spreuken**, per campagne opgeslagen, met invulvelden.
 6. **Wizard + minicampagne.** Campagnenaam → munten → modules → diensten
    hernoemen → kaart uploaden (optioneel) → eerste groep met wachtwoord →

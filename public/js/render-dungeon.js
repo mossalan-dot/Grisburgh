@@ -10,7 +10,7 @@
  *   • Party-toegang (3-state: Geen / Actief / Uitgespeeld)
  */
 
-import { api } from './api.js?v=256';
+import { api } from './api.js?v=257';
 
 const icon = (...a) => window.icon(...a);
 

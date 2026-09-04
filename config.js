@@ -10,4 +10,9 @@ module.exports = {
   // Alleen aan als DEV_AUTO_DM=1 — dat staat uitsluitend in het `npm run dev`-script,
   // dus productie (PM2 → `node server.js`) krijgt dit NOOIT.
   devAutoDM:       process.env.DEV_AUTO_DM === '1',
+  // De campagne waarvan de DM het beheer doet: campagnes aanmaken, de actieve
+  // campagne wisselen en modules aan- of uitzetten. Bewust een vaste naam en
+  // niet "de actieve campagne", want die kan wisselen — dan zou een andere DM
+  // zichzelf het beheer in kunnen schuiven.
+  beheerCampagne:  process.env.BEHEER_CAMPAGNE  || 'grisburgh',
 };

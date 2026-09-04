@@ -293,6 +293,16 @@ function requireDM(req, res, next) {
   res.status(403).json({ error: 'DM-only' });
 }
 
+// Beheer is niet hetzelfde als DM zijn. Campagnes aanmaken, de actieve campagne
+// wisselen en modules aanzetten raakt álle campagnes; dat blijft bij de DM van
+// de beheercampagne. Zonder deze grens kon de DM van campagne B de standaard
+// verzetten waar campagne A op binnenkomt.
+function requireBeheerder(req, res, next) {
+  const eigen = req.session?.campaignId || storage.getActiveCampaignId();
+  if (req.session?.role === 'dm' && eigen === config.beheerCampagne) return next();
+  res.status(403).json({ error: 'Alleen de beheerder' });
+}
+
 function attachRole(req, res, next) {
   req.role        = req.session.role        || 'player';
   req.playerName  = req.session.playerName  || null;
@@ -300,4 +310,4 @@ function attachRole(req, res, next) {
   next();
 }
 
-module.exports = { router, requireDM, attachRole, hashWachtwoord };
+module.exports = { router, requireDM, requireBeheerder, attachRole, hashWachtwoord };
