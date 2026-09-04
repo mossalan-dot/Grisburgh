@@ -22246,3 +22246,17 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .cs-spell-chip button:hover { opacity: 1; color: #e07a7a; }
 .cs-spell-chip--klik { cursor: pointer; transition: background .15s ease, border-color .15s ease; }
 .cs-spell-chip--klik:hover { background: rgba(120,80,180,0.32); border-color: rgba(180,130,220,0.7); }
+
+/* ── Kaartje zonder afbeelding ──────────────────────────────────────────────
+   Dan valt de beeldstrook weg en is de kaart nog maar een paar regels hoog,
+   terwijl de DM-knoppen als kolom onder elkaar staan — die liepen er zo
+   onderuit. Zonder beeld staan ze naast elkaar in de bovenhoek. */
+.entity-card.no-img > .dm-only {
+  top: 6px;
+  right: 6px;
+  flex-direction: row;
+}
+.entity-card.no-img > .dm-only button { width: 24px; height: 24px; }
+.entity-card.no-img .card-secret-badge { width: 24px; height: 24px; top: 6px; left: 6px; }
+/* De titel begint anders onder de knoppenrij; iets meer lucht bovenin. */
+.entity-card.no-img .card-body { padding-top: 34px; }
