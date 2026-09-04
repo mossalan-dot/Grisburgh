@@ -167,6 +167,14 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    hernoemen → kaart uploaden (optioneel) → eerste groep met wachtwoord →
    eerste personage: zowel een kaartje in het archief als een speler-personage
    met profiel en groepskoppeling.
+   **Namen van diensten horen in de wizard.** Elke dienst heeft zijn naam al in
+   `meta.<dienst>.naam` (herberg, tweespalt, gock, ursula, tempel, magizoo) en is
+   te hernoemen in zijn eigen paneel onder Diensten. De zijbalk gebruikt die naam
+   sinds 4 sep; zonder eigen naam staat er wát het is (Herberg, Arena, Detective,
+   Waarzegger, Tempel, Magizoöloog) in plaats van hoe het in Grisburgh heet.
+   De wizard loopt ze langs, want een dienst die "De Swarte Cat" heet in een
+   andere campagne is precies het soort scherf waar stap 3 over ging.
+
    **Waarschuwen bij het indelen van party's:** twee party's zijn later niet
    samen te voegen. Een personage verhuizen kan wel (`entity.data.groep`), maar
    alles wat de *groep* over hem onthoudt blijft achter: `itemOwners`

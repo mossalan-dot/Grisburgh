@@ -33,6 +33,26 @@ window._muntNamen = () => window._currency || window.app?.state?.meta?.currency 
 // stond er tot nu toe letterlijk in.
 window._campagneNaam = () => window.app?.state?.meta?.appTitle || 'de campagne';
 
+// ── Namen van diensten ──
+// Elke dienst heeft zijn naam al in meta staan (meta.herberg.naam en zo); alleen
+// de zijbalk toonde nog de namen van Grisburgh, hardcoded in de HTML. Zonder
+// eigen naam valt hij terug op wát het is, niet op hoe het hier heet.
+const _DIENST_STANDAARD = {
+  herberg: 'Herberg', tweespalt: 'Arena', gock: 'Detective', ursula: 'Waarzegger',
+  tempel: 'Tempel', magizoo: 'Magizoöloog', facties: 'Facties', heeren: 'Dievengilde',
+};
+window._dienstNaam = (key) => {
+  const eigen = window.app?.state?.meta?.[key]?.naam;
+  return (typeof eigen === 'string' && eigen.trim()) || _DIENST_STANDAARD[key] || key;
+};
+
+function _zetDienstLabels() {
+  for (const key of Object.keys(_DIENST_STANDAARD)) {
+    const el = document.getElementById(`diensten-${key}-label`);
+    if (el) el.textContent = window._dienstNaam(key);
+  }
+}
+
 // ── Display mode detectie (iPad kiosk) ──
 // `?display=1` zette elk bezoekend scherm meteen in tabletmodus, ook zonder
 // inloggen — en omdat het in localStorage belandt, blijft dat scherm er daarna
@@ -962,14 +982,10 @@ function applyRole() {
     .every(el => el.classList.contains('module-uit'));
   if (dienstenGroup) dienstenGroup.classList.toggle('hidden', geenDiensten || (!isNamedPlayer && !window.app.isDM()));
 
-  // Herberg-item in dropdown: label aanpassen + verbergen als niet geconfigureerd
-  const herbergItem = document.getElementById('diensten-herberg-item');
-  if (herbergItem) {
-    herbergItem.classList.toggle('hidden', !state.meta?.herberg);
-    const herbergNaam = state.meta?.herberg?.naam;
-    const herbergLabel = document.getElementById('diensten-herberg-label');
-    if (herbergLabel) herbergLabel.textContent = herbergNaam || 'De herberg';
-  }
+  // Elke dienst draagt zijn eigen naam uit meta; de herberg verdwijnt bovendien
+  // als hij niet is ingericht.
+  _zetDienstLabels();
+  document.getElementById('diensten-herberg-item')?.classList.toggle('hidden', !state.meta?.herberg);
 
   // Diensten-knop active-state als een diensten-sectie actief is
   const DIENSTEN_SECTIONS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'magizoo'];
@@ -5273,10 +5289,10 @@ function _factieKleurHex(kleur) {
 function _briefLetterhead(m) {
   const thema = typeof m === 'string' ? m : m?.thema;
   switch (thema) {
-    case 'ursula':    return '<span class="lh-zegel">✦</span> Madame Ursula <span class="lh-sub">— Waarzegster der Sterren</span>';
-    case 'gock':      return '<span class="lh-zegel">⌖</span> DE GOCK <span class="lh-sub">— Onderzoeksbureau</span>';
-    case 'tweespalt': return `<span class="lh-zegel">${icon('dice')}</span> De Tweespalt`;
-    case 'heeren':    return `<span class="lh-zegel">${icon('moon')}</span> De Heeren van de Nacht`;
+    case 'ursula':    return `<span class="lh-zegel">✦</span> ${esc(window._dienstNaam('ursula'))}`;
+    case 'gock':      return `<span class="lh-zegel">⌖</span> ${esc(window._dienstNaam('gock'))}`;
+    case 'tweespalt': return `<span class="lh-zegel">${icon('dice')}</span> ${esc(window._dienstNaam('tweespalt'))}`;
+    case 'heeren':    return `<span class="lh-zegel">${icon('moon')}</span> ${esc(window._dienstNaam('heeren'))}`;
     case 'factie': {
       const emb  = (typeof m === 'object' && m.embleem) ? m.embleem : 'landmark';
       const naam = (typeof m === 'object' && (m.kop || m.afzender)) || 'Een factie';
@@ -9378,6 +9394,7 @@ function applyAppMeta(meta) {
   // geen plaatje, in plaats van dat van Grisburgh.
   _zetEmbleem(document.getElementById('app-crest'),     m.embleemKop || m.embleem);
   _zetEmbleem(document.getElementById('landing-crest'), m.embleem);
+  _zetDienstLabels();
   // Modules: wat uit staat verdwijnt uit beeld.
   if (m.modules) window._modules = m.modules;
   if (m.verborgen) { window._verborgen = m.verborgen; _pasModulesToe(); }
