@@ -69,6 +69,8 @@ stap 5. Wat hieronder staat is wat er nog ligt.
 
 | Waar | Wat |
 |---|---|
+| `meta.heeren` bestaat niet | De Heeren van de Nacht hebben als enige dienst geen configuratieblok in `meta.json`, dus ook geen naamveld. In de zijbalk valt hij terug op "Dievengilde"; hernoemen kan niet. Zelfde patroon als de andere diensten volstaat: een blok met `naam` (+ afbeelding/backdrop) en een veld in zijn paneel. |
+| Facties & Aanzien heeft geen sectienaam | Elke factie heeft een naam (`meta.facties[].naam`), maar de sectie zelf niet — die staat als "Facties" in de terugval. Een campagne die haar gilden anders noemt ("Huizen", "Ordes") kan dat kopje niet zetten. Kleinste oplossing: `meta.factiesLabel`. |
 | `_DIENST_SVC_KEYS` / `_DIENST_AMB_LABELS` / `data-section` | Diensten zijn **vaste secties** met eigen HTML, CSS en endpoints; hun configuratie staat wél al in `meta.json` (naam, afbeeldingen, prijzen), dus hernoemen kan zonder verbouwing. |
 
 ## Serverbudget (gemeten 3 sep 2026)
