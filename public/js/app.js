@@ -1,4 +1,4 @@
-import { api } from './api.js?v=251';
+import { api } from './api.js?v=252';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=123";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=73";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
@@ -5151,6 +5151,50 @@ function _briefCinematicSound() {
 }
 
 // Cinematische aankomst van een verzegelde factie-uitnodiging.
+// ── Een voorwerp aan een medespeler geven ───────────────────────────────────
+// Direct, zonder tussenkomst van de DM: aan tafel schuif je een ding over de
+// tafel en dan is het van de ander. De DM kan het per party uitzetten.
+window._geefItemMenu = async (itemId, knop) => {
+  document.getElementById('geef-menu')?.remove();
+  let leden = [];
+  try {
+    const party = await api.getPartyMembers();
+    leden = (Array.isArray(party) ? party : [])
+      .filter(p => p.id !== window.app?.state?.characterId);
+  } catch { /* ok */ }
+  const menu = document.createElement('div');
+  menu.id = 'geef-menu';
+  menu.className = 'geef-menu';
+  menu.innerHTML = leden.length
+    ? `<div class="geef-menu-kop">Geven aan…</div>${leden.map(p => `
+        <button class="geef-menu-rij" onclick="window._geefItem('${esc(itemId)}','${esc(p.id)}')">
+          <img class="geef-menu-portret" src="/api/thumb/${esc(p.id)}" alt="" onerror="this.remove()">
+          <span>${esc(p.name)}</span>
+        </button>`).join('')}`
+    : `<div class="geef-menu-kop">Geen medespelers in je party.</div>`;
+  document.body.appendChild(menu);
+  const r = knop.getBoundingClientRect();
+  menu.style.left = `${Math.min(r.left, window.innerWidth - menu.offsetWidth - 12)}px`;
+  menu.style.top  = `${Math.min(r.bottom + 6, window.innerHeight - menu.offsetHeight - 12)}px`;
+  // Eén klik ergens anders sluit hem weer.
+  setTimeout(() => document.addEventListener('click', function sluit(ev) {
+    if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('click', sluit); }
+  }), 0);
+};
+
+window._geefItem = async (itemId, targetId) => {
+  document.getElementById('geef-menu')?.remove();
+  try {
+    const r = await api.geefItem(itemId, targetId);
+    _showToast?.(`${window.icon?.('package') || ''} <strong>${esc(r.itemNaam)}</strong> is nu van ${esc(r.naar)}`);
+    window._knapzakCarouselItems = (window._knapzakCarouselItems || []).filter(i => i.id !== itemId);
+    window._knapzakCarouselIdx = 0;
+    window._knapzakCarouselRender?.();
+  } catch (e) {
+    alert('Geven mislukt: ' + (e.message || e));
+  }
+};
+
 // ── Loot op het tafelscherm ─────────────────────────────────────────────────
 // Twee traps, net als de verzegelde brief: er staat een gesloten kist, iemand
 // tikt erop, de animatie speelt, en pas daarna verschijnt de buit met wie wat
@@ -6875,6 +6919,10 @@ async function renderMijnKarakter(opts = {}) {
                 })()}
                 ${qtyHtml}
                 ${chargesHtml}
+                <div class="item-carousel-geef" onclick="event.stopPropagation()">
+                  <button class="item-geef-btn" onclick="window._geefItemMenu('${esc(item.id)}', this)"
+                    title="Dit voorwerp aan een medespeler geven">${icon('users')} Geven aan…</button>
+                </div>
               </div>`;
             };
             const _dotsHtml = sortedItems.length > 1 ? `
@@ -8056,6 +8104,10 @@ async function renderMijnKarakter(opts = {}) {
         </div>` : ''}
         ${qtyHtml}
         ${chargesHtml}
+        <div class="item-carousel-geef" onclick="event.stopPropagation()">
+          <button class="item-geef-btn" onclick="window._geefItemMenu('${esc(item.id)}', this)"
+            title="Dit voorwerp aan een medespeler geven">${icon('users')} Geven aan…</button>
+        </div>
       </div>`;
 
       // Update dots

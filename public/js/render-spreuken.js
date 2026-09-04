@@ -11,7 +11,7 @@
  * met die van het spreukenboek (_SB_SCHOOLS in app.js).
  */
 
-import { api } from './api.js?v=251';
+import { api } from './api.js?v=252';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);

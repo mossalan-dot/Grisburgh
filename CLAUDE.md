@@ -136,8 +136,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=409   app.js?v=561   sound-manager.js?v=8
-app.js      : api.js?v=251      render-campagne.js?v=123   render-archief.js?v=73
+index.html  : theme.css?v=410   app.js?v=562   sound-manager.js?v=8
+app.js      : api.js?v=252      render-campagne.js?v=123   render-archief.js?v=73
               render-kaart.js?v=18  render-dungeon.js?v=32  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
@@ -300,6 +300,18 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > geldt de instelling van de laatst gespeelde akte — `activeAkte` wordt nooit
 > leeggemaakt. Client: `window._dienstDicht(key)` en `window._entiteitDicht(id)`;
 > de DM ziet altijd alles.
+
+> **Spelers geven elkaar voorwerpen.** `POST /items/:itemId/geef` met
+> `{targetId}` — **direct**, zonder tussenkomst van de DM: aan tafel schuif je een
+> ding over de tafel en dan is het van de ander. Knop *"Geven aan…"* onder een
+> voorwerp in de Boedel, met een klein menu van je medespelers (portret + naam).
+> Werkt voor voorwerp-kaartjes (`itemOwners`, ook stapelbaar — de hele stapel
+> verhuist en telt op bij de ontvanger) én losse boedelregels (`playerItems`).
+> Grenzen: alleen je eigen spullen, alleen binnen je eigen party, niet aan
+> jezelf, en de DM kan het per party uitzetten met `tradeAllowed`. **Geld gaat
+> niet zo** — dat heeft zijn eigen wegen (gedeelde beurs, losse munten).
+> Het oudere verzoek-met-goedkeuring (`/items/:itemId/request`, `type:'trade'`)
+> blijft bestaan maar wordt door de frontend niet gebruikt.
 
 > **Printbare character sheets (DM).** `lib/character-sheet.js` rendert een print-pagina
 > met een blad per personage; `GET /api/characters/:id/sheet` (één) en `GET /api/party/sheets?groep=`

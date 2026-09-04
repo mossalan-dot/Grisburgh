@@ -217,6 +217,8 @@ export const api = {
   // Voorwerpen claimen & ruilen
   getItemOwnership:    ()              => request('/items/ownership'),
   requestItem:         (id, body)      => request(`/items/${id}/request`,              { method: 'POST',   body: JSON.stringify(body) }),
+  // Direct aan een medespeler geven (geen goedkeuring van de DM nodig).
+  geefItem:            (id, targetId)  => request(`/items/${id}/geef`,                 { method: 'POST',   body: JSON.stringify({ targetId }) }),
   approveItemRequest:  (reqId)         => request(`/items/request/${reqId}/approve`,   { method: 'POST' }),
   rejectItemRequest:   (reqId)         => request(`/items/request/${reqId}/reject`,    { method: 'POST' }),
   removeItemOwner:     (id)            => request(`/items/${id}/owner`,                { method: 'DELETE' }),

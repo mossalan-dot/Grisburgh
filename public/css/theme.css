@@ -4572,6 +4572,34 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 /* Vondst-stap in de regie-balk: zelfde vorm als de andere staptypes. */
 .dm-rb-entity-loot { color: #e0b64f; }
 
+/* "Geven aan…" in de boedel: knop onder het voorwerp + een klein zwevend
+   menuutje met de medespelers. Bewust geen modal — het is één klik aan tafel. */
+.item-carousel-geef { display: flex; justify-content: center; margin-top: 8px; }
+.item-geef-btn {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .04em;
+  color: var(--color-ink-medium, #5a4030); background: rgba(255,255,255,0.5);
+  border: 1px solid var(--color-room-border, #c4a87a); border-radius: 14px; padding: 4px 12px;
+}
+.item-geef-btn:hover { background: rgba(196,168,122,0.28); }
+.item-geef-btn .icon { width: 13px; height: 13px; }
+.geef-menu {
+  position: fixed; z-index: 9500; min-width: 190px;
+  background: #f3e9d2; border: 1px solid var(--color-room-border, #c4a87a);
+  border-radius: 6px; box-shadow: 0 8px 26px rgba(0,0,0,0.32); overflow: hidden;
+}
+.geef-menu-kop {
+  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: #8a7350; padding: 8px 12px 5px;
+}
+.geef-menu-rij {
+  display: flex; align-items: center; gap: 9px; width: 100%; cursor: pointer;
+  background: none; border: 0; text-align: left; padding: 7px 12px;
+  font-family: 'Crimson Text', Georgia, serif; font-size: 14px; color: #2a1a08;
+}
+.geef-menu-rij:hover { background: rgba(196,168,122,0.3); }
+.geef-menu-portret { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(196,168,122,0.6); }
+
 /* ── Loot op het tafelscherm ─────────────────────────────────────────────────
    Volle overlay: links de kist (eerst als stilstaand beeld, na de tik de
    animatie), rechts de buit met wie wat claimt. Bewust donker: het is een

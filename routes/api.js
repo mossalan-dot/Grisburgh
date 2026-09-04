@@ -1823,6 +1823,76 @@ router.post('/items/request/:reqId/reject', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Speler geeft een voorwerp aan een medespeler ─────────────────────────────
+// Direct, zonder tussenkomst van de DM: aan tafel schuif je een ding over de
+// tafel en dan is het van de ander. De DM houdt één knop om het uit te zetten
+// (`tradeAllowed` per party). Alleen voorwerpen — geld gaat niet zo, want een
+// gedeelde beurs en losse munten hebben hun eigen wegen.
+router.post('/items/:itemId/geef', attachRole, (req, res) => {
+  const vanId = req.session.characterId;
+  if (!vanId) return res.status(403).json({ error: 'Niet ingelogd als speler' });
+  const naarId = String(req.body.targetId || '');
+  if (!naarId)          return res.status(400).json({ error: 'targetId vereist' });
+  if (naarId === vanId) return res.status(400).json({ error: 'Je kunt het niet aan jezelf geven' });
+
+  const dmState = readDmState();
+  const gid = _playerGroupId(dmState, vanId);
+  const g   = gid ? getGroup(dmState, gid) : null;
+  if (!g) return res.status(404).json({ error: 'Geen party gevonden' });
+  if (g.tradeAllowed === false) return res.status(403).json({ error: 'Ruilen staat uit voor deze party' });
+  // Alleen binnen de eigen party: buiten de tafel om spullen doorschuiven kan niet.
+  if (_playerGroupId(dmState, naarId) !== gid) return res.status(403).json({ error: 'Die speler zit niet in jouw party' });
+
+  const { itemId } = req.params;
+  const entities   = storage.readJSON('entities.json');
+  const isEntity   = (entities.voorwerpen || []).some(v => v.id === itemId);
+  const naamVan    = (id) => (entities.personages || []).find(e => e.id === id)?.name || 'iemand';
+
+  let itemNaam = '';
+  if (isEntity) {
+    // Voorwerp-kaartje: eigendom staat in itemOwners, als object óf als lijst
+    // (stapelbare items met een aantal per eigenaar).
+    if (!g.itemOwners) g.itemOwners = {};
+    const eigenaar = g.itemOwners[itemId];
+    const mijn = Array.isArray(eigenaar)
+      ? eigenaar.find(o => o.characterId === vanId)
+      : (eigenaar?.characterId === vanId ? eigenaar : null);
+    if (!mijn) return res.status(403).json({ error: 'Dit voorwerp is niet van jou' });
+    if (Array.isArray(eigenaar)) {
+      // Hele stapel verhuist; had de ander al zo'n stapel, dan tellen ze op.
+      const bestaand = eigenaar.find(o => o.characterId === naarId);
+      if (bestaand) { bestaand.qty = (bestaand.qty || 1) + (mijn.qty || 1); }
+      else          { mijn.characterId = naarId; mijn.playerName = naamVan(naarId); }
+      if (bestaand) g.itemOwners[itemId] = eigenaar.filter(o => o !== mijn);
+    } else {
+      g.itemOwners[itemId] = { characterId: naarId, playerName: naamVan(naarId) };
+    }
+    itemNaam = (entities.voorwerpen || []).find(v => v.id === itemId)?.name || 'Voorwerp';
+  } else {
+    // Losse boedelregel: verhuist als rij van de ene speler naar de andere.
+    if (!dmState.playerItems) dmState.playerItems = {};
+    const lijst = dmState.playerItems[vanId] || [];
+    const idx   = lijst.findIndex(i => i.id === itemId);
+    if (idx === -1) return res.status(404).json({ error: 'Voorwerp niet gevonden in je boedel' });
+    const [regel] = lijst.splice(idx, 1);
+    dmState.playerItems[vanId] = lijst;
+    if (!dmState.playerItems[naarId]) dmState.playerItems[naarId] = [];
+    dmState.playerItems[naarId].push(regel);
+    itemNaam = regel.name || 'Voorwerp';
+  }
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io'); const room = req.session?.campaignId || 'main';
+  io.to(room).emit('items:ownership-updated', {
+    owners: g.itemOwners || {}, requests: g.itemRequests || [], tradeAllowed: g.tradeAllowed !== false,
+  });
+  for (const cid of [vanId, naarId]) {
+    io.to(room).emit('player:items-updated', { characterId: cid, items: (dmState.playerItems || {})[cid] || [] });
+  }
+  io.to(room).emit('item:gegeven', { van: naamVan(vanId), naar: naamVan(naarId), naarId, itemNaam });
+  res.json({ ok: true, itemNaam, naar: naamVan(naarId) });
+});
+
 // DM geeft voorwerp rechtstreeks aan een speler (specifieke groep via groupId)
 router.put('/items/:itemId/owner', requireDM, (req, res) => {
   const { itemId } = req.params;

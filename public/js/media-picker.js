@@ -9,7 +9,7 @@
 //     onSelect: (fileId) => { … }  // bestaand id óf vers geüpload id
 //   });
 
-import { api } from './api.js?v=251';
+import { api } from './api.js?v=252';
 
 const icon = (...a) => window.icon(...a);
 const esc  = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
