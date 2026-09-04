@@ -293,6 +293,13 @@ function _scheduleFitHeader() {
   _fitHeaderRaf = requestAnimationFrame(() => { _fitHeaderRaf = null; _fitHeader(); });
 }
 window.addEventListener('resize', _scheduleFitHeader);
+// Meten kan te vroeg gebeuren: zolang Cinzel nog niet geladen is, is de kop
+// smaller dan hij wordt, past alles "net" en klapt hij niet in — waarna de
+// echte letters over elkaar heen vallen. Dus opnieuw meten zodra de fonts er
+// zijn, nog een keer kort daarna, en bij terugkeer uit de bfcache.
+if (document.fonts?.ready) document.fonts.ready.then(_scheduleFitHeader).catch(() => {});
+setTimeout(_scheduleFitHeader, 400);
+window.addEventListener('pageshow', _scheduleFitHeader);
 
 function switchSection(section) {
   // Sluit overlays als ze open zijn — position:fixed volgt de sectie niet
@@ -9395,6 +9402,7 @@ function applyAppMeta(meta) {
   _zetEmbleem(document.getElementById('app-crest'),     m.embleemKop || m.embleem);
   _zetEmbleem(document.getElementById('landing-crest'), m.embleem);
   _zetDienstLabels();
+  _scheduleFitHeader();   // titel en dienstnamen bepalen de breedte van de kop
   // Modules: wat uit staat verdwijnt uit beeld.
   if (m.modules) window._modules = m.modules;
   if (m.verborgen) { window._verborgen = m.verborgen; _pasModulesToe(); }

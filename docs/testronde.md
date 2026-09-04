@@ -189,3 +189,5 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 | 18 | 9 | De backup bevatte geen character sheets | opgelost — `scripts/sheets-bewaren.js` schrijft ze per party als HTML mee |
 | 19 | 7 | Electrum en platinum ontbraken | opgelost — `ep` (5 zilver) en `pp` (10 goud) worden bij invoer omgerekend; kommanotatie blijft |
 | 20 | 1 | `?display=1` zette elk bezoekend scherm in tabletmodus, zonder inloggen — en dat bleef hangen in localStorage | opgelost — de vlag wordt pas ingelost als er een sessie is (DM of speler) |
+| 21 | 8 | Terug uit tafelscherm vroeg opnieuw inloggen | opgelost — je keert terug naar je eigen scherm, `?display=1` gaat uit de URL |
+| 22 | 1 | De kopbalk klapt niet in en de items vallen over elkaar (o.a. na terugkeer uit tafelscherm) | opgelost — de kop werd gemeten vóórdat Cinzel geladen was, dus paste alles "net"; nu opnieuw meten bij `fonts.ready`, na 400 ms en bij `pageshow` |
