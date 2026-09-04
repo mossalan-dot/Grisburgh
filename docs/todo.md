@@ -48,6 +48,18 @@ groot het is.
       en `state.dmPreview` staan er nog. Laten staan tot zeker is dat je hem niet
       terugwilt.
 
+## Wat alleen de beheerder mag
+
+- [ ] **Helpteksten vastzetten.** `PUT/DELETE /help-content/:key` staat op
+      `requireDM`, dus elke DM kan de uitleg in zijn eigen campagne herschrijven.
+      Ze staan per campagne in `dm-state.json` (`helpContent`), dus hij verpest er
+      niets van een ander — maar het is wél de uitleg die wij schrijven om de app
+      te leren kennen, en die hoort niet half overschreven te raken. Zet die twee
+      routes op `requireBeheerder` en laat de bewerkknop bij een andere DM weg.
+      Denk daarbij aan de vervolgvraag: wil een tweede DM straks tóch eigen
+      uitleg (zijn eigen huisregels), dan is dat een aparte laag bovenop de onze,
+      geen vervanging ervan.
+
 ## Stijlen per campagne
 
 - [ ] **Een echte reeks stijlen bedenken.** Er waren twee thema's — fantasy en
