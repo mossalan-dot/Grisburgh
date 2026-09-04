@@ -83,7 +83,7 @@ export async function renderRelatiemap(containerEl) {
     container.innerHTML = `
     <div class="rel-toolbar">
       <div class="rel-toolbar-left">
-        <span class="rel-toolbar-label">Jonkers prikbord</span>
+        <span class="rel-toolbar-label">Prikbord</span>
       </div>
       <div class="rel-toolbar-right">
         <button class="rel-btn" onclick="window._pbAddCard()">＋ kaartje</button>

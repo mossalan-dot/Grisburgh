@@ -1801,7 +1801,7 @@ function _drawWinScreen(ctx, W, H, winner, t) {
   ctx.restore();
 
   // Sub-text
-  const subText     = isVictory ? 'De helden zegevieren!' : 'De avonturiers zijn verslagen... Betekent dit het einde voor Grisburgh?';
+  const subText     = isVictory ? 'De helden zegevieren!' : `De avonturiers zijn verslagen... Betekent dit het einde voor ${window._campagneNaam?.() || 'de campagne'}?`;
   const subFontSize = Math.min(W * 0.045, H * 0.065, 18);
   const subFadeIn   = Math.max(0, Math.min(1, (t - 0.6) / 0.8));
   ctx.save();

@@ -181,14 +181,14 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=414   app.js?v=570   sound-manager.js?v=8
-app.js      : api.js?v=256      render-campagne.js?v=125   render-archief.js?v=75
-              render-kaart.js?v=18  render-dungeon.js?v=33  render-relatiemap.js?v=21
+index.html  : theme.css?v=414   app.js?v=571   sound-manager.js?v=8
+app.js      : api.js?v=256      render-campagne.js?v=126   render-archief.js?v=75
+              render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=173    render-dashboard.js?v=9
+              dm-panel.js?v=174    render-dashboard.js?v=9
               render-spreuken.js?v=13   media-picker.js?v=7
-dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
+dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 ```
 
 > **Eén bestand = één URL.** ES-modules met verschillende `?v=`-nummers zijn aparte
@@ -610,6 +610,38 @@ Sessies worden gedeeld per browsertab (één cookie). DM en speler kunnen **niet
 
 ---
 
+## Niets van Grisburgh in gedeelde code
+
+De app draait meerdere campagnes; wat van Grisburgh is, hoort in Grisburghs
+**data** te staan, niet in de code. Drie plekken waar dat mis kan gaan:
+
+- **Munten.** `meta.currency` bepaalt de namen; de sleutels `fl`/`kn`/`cl`
+  blijven de gouden, zilveren en koperen plek in de verhouding 1:10:100 (daar
+  hangt te veel opgeslagen bezit aan). Vangnet is `storage.MUNT_STANDAARD`
+  (`Gold`/`Silver`/`Copper`), client-side `window._muntNamen()` — **nooit** een
+  eigen `|| { fl: 'Florinde', … }` in nieuwe code. De DM hernoemt ze bij
+  Instellingen → *Munten* (`PUT /meta/app` met `currency`). Grisburgh heeft zijn
+  Florinde/Knaker/Centeling nu expliciet in `meta.json` staan; daarvóór kwam die
+  uit een fallback in de code, waardoor een tweede campagne ze ook kreeg.
+- **Plaatsnamen in teksten.** `window._campagneNaam()` (= `meta.appTitle`) voor
+  regels als "In {naam} — klik om te verlaten" of "Ontdekt in {naam}". De
+  datasleutels blijven zoals ze zijn (`meta.buitenGrisburgh`,
+  `buitenGrisburgEntiteiten`) — die hernoemen kost een migratie en levert niets.
+- **Kaarten.** Er is géén ingebouwd vangnet meer: Grisburgh heeft zijn stadskaart
+  en Isfār gewoon in `map.json`. Een campagne zonder kaarten toont een lege staat
+  (`_legeStaat()` in `render-kaart.js`) in plaats van andermans stadskaart.
+
+**Titel en PWA-manifest komen van de server.** `index.html` is één bestand voor
+alle campagnes, dus staat er in de shell geen naam meer. De SPA-fallback in
+`server.js` vult `<title>` en `apple-mobile-web-app-title` in en hangt
+`?campagne=<id>` aan de manifest-link; `GET /manifest.webmanifest` serveert daarop
+naam, `start_url` en `scope` van díé campagne. Welke campagne dat is bepaalt
+`_campagneVan(req)`: **eerst het pad**, dan `?campagne=`, dan de sessie — een
+bezoeker zonder sessie op `/prewett` hoort niet Grisburghs titel te zien. De
+app-iconen zijn nog van Grisburgh; eigen beeld per campagne is werk voor later.
+
+---
+
 ## Campagnes & scoping
 
 > **Elke campagne heeft haar eigen pad:** `/grisburgh`, `/prewett`. Het kale
@@ -788,6 +820,9 @@ Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in ren
   tekst — puur afleiden zou er 632 wegvagen. Wat opgeslagen is blijft dus staan.
   De editor stuurt `links` niet meer mee bij het opslaan, anders zouden de
   afgeleide verbindingen ongemerkt vastgelegd worden.
+- **Een eigennaam van Grisburgh in gedeelde code** → een tweede campagne ziet
+  hem ook. Munten via `window._muntNamen()` / `storage.MUNT_STANDAARD`,
+  plaatsnamen via `window._campagneNaam()`, geen ingebouwde kaart als vangnet.
 - **Emoji in HTML-output** → vervang door `icon()`. Emoji zijn onaanvaardbaar in de UI.
   Let ook op `placeholder=""`-attributen: daar kan geen SVG in, dus zet het icoon
   ernaast in plaats van een emoji in de tekst.

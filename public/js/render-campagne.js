@@ -2981,7 +2981,7 @@ window._openEditor = async (tab, editId) => {
           <label for="pet-adopt-cb" class="text-xs font-cinzel text-ink-dim font-bold tracking-wide cursor-pointer">Adopteerbaar via De Magizoöloog</label>
         </div>
         <div class="pet-editor-row">
-          <label class="pet-fld pet-fld--sm"><span>Prijs (florinde)</span>
+          <label class="pet-fld pet-fld--sm"><span>Prijs (${esc(window._muntNamen().fl.toLowerCase())})</span>
             <input type="number" min="0" name="data_adoptiePrijsFl" value="${esc(_prijsFl)}"></label>
           <label class="pet-fld"><span>Soort-label</span>
             <input name="data_soortLabel" value="${esc(e?.data?.soortLabel || '')}" placeholder="Hond"></label>

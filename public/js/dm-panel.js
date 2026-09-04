@@ -1,5 +1,5 @@
 import { api } from './api.js?v=256';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=21';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 // ── DM Panel ──
@@ -577,7 +577,7 @@ const _DM_TABS = [
   { id: 'geluiden',  groep: 'sfeer',     label: 'Geluiden',  icoon: 'volume-2',                        title: 'Geluiden' },
   { id: 'tafels',    groep: 'sfeer',     label: 'Tafels',    icoon: 'dice', cls: 'icon-gi',            title: 'Willekeur — tafels &amp; namen' },
   // Voorbereiden en beheren
-  { id: 'diensten',  groep: 'beheer',    label: 'Diensten',  icoon: 'building',                        title: 'Grisburgh-diensten' },
+  { id: 'diensten',  groep: 'beheer',    label: 'Diensten',  icoon: 'building',                        title: 'Diensten' },
   { id: 'media',     groep: 'beheer',    label: 'Media',     icoon: 'image',                           title: 'Mediabibliotheek' },
   // 'Berichten' past niet op één regel in een kolom van 56px; liever een korter
    // woord dan een afbreking. De tooltip houdt de volledige naam.
@@ -4637,6 +4637,7 @@ async function _renderWereldTab() {
 
   const meta = window.app?.state?.meta || {};
   const buitenGrisburgh = !!meta.buitenGrisburgh;
+  const _plaats = window._campagneNaam();
   const buitenEntiteiten = meta.buitenGrisburgEntiteiten || [];
 
   // Load all verkopers + winkels
@@ -4659,21 +4660,21 @@ async function _renderWereldTab() {
       <div class="dm-form-row" style="flex-direction:column;gap:10px">
         <button id="wereld-toggle-btn" class="dm-btn${buitenGrisburgh ? ' dm-btn-danger' : ' dm-btn-primary'}"
           onclick="window._wereldToggle()" style="font-size:1rem;padding:10px 18px">
-          ${buitenGrisburgh ? `${icon('lock')} Grisburgh verlaten — klik om terug te keren` : `${icon('castle')} In Grisburgh — klik om te verlaten`}
+          ${buitenGrisburgh ? `${icon('lock')} ${esc(_plaats)} verlaten — klik om terug te keren` : `${icon('castle')} In ${esc(_plaats)} — klik om te verlaten`}
         </button>
         <p style="font-size:11px;opacity:.6">
-          Als de groep Grisburgh verlaat, worden alle Grisburgh-diensten
-          (herberg, Tweespalt, Gock) en winkels geblokkeerd voor spelers.
-          Winkels die je hieronder markeert als "buiten Grisburgh" blijven altijd bereikbaar.
+          Als de groep ${esc(_plaats)} verlaat, worden alle diensten en winkels
+          geblokkeerd voor spelers. Winkels die je hieronder markeert als
+          "buiten ${esc(_plaats)}" blijven altijd bereikbaar.
         </p>
       </div>
     </div>
 
     ${verkopers.length > 0 ? `
     <div class="dm-feature-section" style="margin-top:14px">
-      <div class="dm-section-label">Bereikbaar buiten Grisburgh</div>
+      <div class="dm-section-label">Bereikbaar buiten ${esc(_plaats)}</div>
       <p style="font-size:11px;opacity:.6;margin-bottom:10px">
-        Gemarkeerde winkels/verkopers blijven toegankelijk wanneer de groep buiten Grisburgh is.
+        Gemarkeerde winkels/verkopers blijven toegankelijk wanneer de groep buiten ${esc(_plaats)} is.
       </p>
       ${verkopers.map(v => `
         <div class="dm-form-row" style="align-items:center;gap:10px;margin-bottom:6px">
@@ -4766,7 +4767,7 @@ async function _renderHerbergSettings() {
 
       <div class="dm-form-row">
         <label class="dm-form-label">Naam van de herberg</label>
-        <input id="hb-naam" class="dm-input" value="${esc(config.naam || '')}" placeholder="De Swarte Cat…">
+        <input id="hb-naam" class="dm-input" value="${esc(config.naam || '')}" placeholder="Naam van de herberg…">
       </div>
 
       <div class="dm-form-row">
@@ -7251,25 +7252,27 @@ const _LOOT_RARITEITEN = ['', 'Common', 'Uncommon', 'Rare', 'Very Rare', 'Legend
 const _leegItem = () => ({ naam: '', rariteit: '', entityId: null, beschrijving: '', willekeurig: false });
 
 // Munten als één bedrag met een komma, zoals bij de Tweespalt: 1,34 is
-// 1 florinde, 3 knakers en 4 centelingen — de knaker is een tiende florinde en
-// de centeling een honderdste, dus het leest als gewoon geld. Intern blijft
-// alles centelingen; drie losse invoervakjes waren onnodig gepriegel.
+// 1 gouden, 3 zilveren en 4 koperen munten — de tweede is een tiende van de
+// eerste en de derde een honderdste, dus het leest als gewoon geld. Hoe ze
+// heten bepaalt de campagne (window._muntNamen). Intern blijft alles in de
+// kleinste munt; drie losse invoervakjes waren onnodig gepriegel.
 const _clNaarTekst = (cl) => `${Math.floor(cl / 100)},${String(cl % 100).padStart(2, '0')}`;
 function _tekstNaarCl(tekst) {
   const t = String(tekst ?? '').trim().replace('.', ',');
   if (!t) return 0;
   const [heel, deel = ''] = t.split(',');
   const fl = parseInt(heel, 10) || 0;
-  // "1,3" is 1 florinde en 3 knakers — dus rechts aanvullen, niet links.
+  // "1,3" is 1 hele munt en 3 tienden — dus rechts aanvullen, niet links.
   const rest = parseInt((deel + '00').slice(0, 2), 10) || 0;
   return fl * 100 + rest;
 }
 const _muntGoudCl = (c) => (c.goud?.fl || 0) * 100 + (c.goud?.kn || 0) * 10 + (c.goud?.cl || 0);
 const _clNaarGoud = (cl) => ({ fl: Math.floor(cl / 100), kn: Math.floor((cl % 100) / 10), cl: cl % 10 });
 function _muntUitleg(cl) {
-  if (!cl) return 'bijv. 1,34 — florinde, knaker, centeling';
+  const n = window._muntNamen();
+  if (!cl) return `bijv. 1,34 — ${n.fl.toLowerCase()}, ${n.kn.toLowerCase()}, ${n.cl.toLowerCase()}`;
   const g = _clNaarGoud(cl);
-  return [g.fl && `${g.fl} fl`, g.kn && `${g.kn} kn`, g.cl && `${g.cl} cl`].filter(Boolean).join(' · ');
+  return [g.fl && `${g.fl} ${n.fl}`, g.kn && `${g.kn} ${n.kn}`, g.cl && `${g.cl} ${n.cl}`].filter(Boolean).join(' · ');
 }
 
 async function _renderLoot() {
@@ -8491,7 +8494,7 @@ function _buildCombatKnapzakPanel(simpleItems, currency, ownership, voorwerpen, 
     }
   }
   const myItems   = voorwerpen.filter(item => item.id in myItemMap);
-  const cNames    = window._currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' };
+  const cNames    = window._muntNamen();
 
   const currencyHtml = `
     <div class="co-currency-row">
@@ -9565,6 +9568,8 @@ async function _renderInstellingen() {
       </div>`;
   }).join('');
 
+  const _munt = meta.currency || window._muntNamen();
+
   body.innerHTML = `
     <!-- Campagnetitel -->
     <div class="dm-feature-section">
@@ -9580,6 +9585,28 @@ async function _renderInstellingen() {
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-primary" onclick="window._instTitelSave()" title="Opslaan">${icon('save')}</button>
         <span id="inst-titel-status" class="bericht-status hidden" style="margin-left:8px"></span>
+      </div>
+    </div>
+
+    <!-- Munten -->
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Munten</div>
+      <p class="dm-hint">Alleen de namen zijn vrij; de verhouding blijft 1 : 10 : 100, zoals gold, silver en copper.</p>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Goud</label>
+        <input id="inst-munt-fl" class="dm-input" value="${esc(_munt.fl)}" placeholder="Gold">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Zilver</label>
+        <input id="inst-munt-kn" class="dm-input" value="${esc(_munt.kn)}" placeholder="Silver">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Koper</label>
+        <input id="inst-munt-cl" class="dm-input" value="${esc(_munt.cl)}" placeholder="Copper">
+      </div>
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-primary" onclick="window._instMuntSave()" title="Opslaan">${icon('save')}</button>
+        <span id="inst-munt-status" class="bericht-status hidden" style="margin-left:8px"></span>
       </div>
     </div>
 
@@ -9680,6 +9707,24 @@ window._instTitelSave = async () => {
     const newMeta = await api.meta();
     if (window.app?.state) window.app.state.meta = newMeta;
     window.app?.applyAppMeta?.();
+    if (status) { status.textContent = '✓ Opgeslagen'; status.className = 'bericht-status bericht-status--ok'; status.classList.remove('hidden'); }
+    setTimeout(() => status?.classList.add('hidden'), 2500);
+  } catch (err) {
+    if (status) { status.textContent = 'Fout: ' + err.message; status.className = 'bericht-status bericht-status--err'; status.classList.remove('hidden'); }
+  }
+};
+
+window._instMuntSave = async () => {
+  const currency = {
+    fl: document.getElementById('inst-munt-fl')?.value.trim(),
+    kn: document.getElementById('inst-munt-kn')?.value.trim(),
+    cl: document.getElementById('inst-munt-cl')?.value.trim(),
+  };
+  const status = document.getElementById('inst-munt-status');
+  try {
+    const bewaard = await api.saveAppMeta({ currency });
+    window._currency = bewaard.currency;
+    if (window.app?.state?.meta) window.app.state.meta.currency = bewaard.currency;
     if (status) { status.textContent = '✓ Opgeslagen'; status.className = 'bericht-status bericht-status--ok'; status.classList.remove('hidden'); }
     setTimeout(() => status?.classList.add('hidden'), 2500);
   } catch (err) {

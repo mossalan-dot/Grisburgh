@@ -1,6 +1,6 @@
 # Grisburgh voor meerdere DM's — werkdocument
 
-Status: **stap 1 en 2 af.** Bijgewerkt 4 sep 2026.
+Status: **stap 1, 2 en 3 af.** Bijgewerkt 4 sep 2026.
 Dit document leeft naast `CLAUDE.md`; als een stap af is, verhuist de blijvende
 kennis daarheen en blijft hier alleen de voortgang staan.
 
@@ -63,14 +63,13 @@ regie/Meesterkamer-verhaallijn
 
 ## Bekende scherven (gevonden in de code, nog niet gefikst)
 
+Het bestandslek is in stap 1 gedicht (`_magBestandZien()`); de kaart-fallback,
+de munten, "Jonkers prikbord" en de hardcoded titel in stap 3. Wat hieronder
+staat is wat er nog ligt.
+
 | Waar | Wat |
 |---|---|
-| `render-kaart.js:43` | Valt terug op de **ingebouwde** kaart `/assets/map-grisburgh.jpg` zodra een campagne er zelf geen heeft. DM 2 ziet dan Grisburgh's stadskaart met zijn eigen campagnenaam eronder. |
-| `routes/api.js`, `lib/character-sheet.js` | Munteenheid Florinde/Knaker/Centeling zit als **fallback in de code**; `meta.json` van Grisburgh heeft helemaal geen `currency`. Moet omgekeerd: expliciet in meta, gp/sp/cp als standaard. |
-| `render-relatiemap.js:86`, `index.html:120` | "Jonkers prikbord" — eigennaam uit de campagne, moet "Prikbord". |
-| `index.html:6`, `app.js:866` | Hardcoded "Grisburgh" (titel) en "Swarte Cat". |
 | `public/data/spells-2024.json` | 539 spreuken, allemaal `source: "phb2024"` — volledige PHB-teksten, geen SRD. Zelfde afweging als bij de progressiebeschrijvingen: naar buiten toe alleen namen + feitelijke velden. |
-| `routes/auth.js:168` (`attachRole`) | Zet `req.role = 'player'` als er géén sessie is. Daardoor vuurt de controle `if (!req.role)` in `/api/files/:id` en `/api/thumb/:id` **nooit**: elk bestand is zonder inloggen op te halen als je het id kent. Op productie geverifieerd — een portret van 1,7 MB komt er gewoon uit. De ids lekken bovendien via `/api/auth/players`, dat publiek moet zijn voor de landingspagina. Met één campagne onder vrienden was dit een schouderophalen; met een tweede DM erbij is het diens materiaal dat openligt. |
 | `_DIENST_SVC_KEYS` / `_DIENST_AMB_LABELS` / `data-section` | Diensten zijn **vaste secties** met eigen HTML, CSS en endpoints; hun configuratie staat wél al in `meta.json` (naam, afbeeldingen, prijzen), dus hernoemen kan zonder verbouwing. |
 
 ## Serverbudget (gemeten 3 sep 2026)
@@ -132,7 +131,20 @@ Elke stap eindigt met: Grisburgh doet nog exact wat het deed.
    launchd (exit 0). Wat er bewust níét in zit: `files/` (2,2 GB originelen) en
    het PM2-configuratiebestand met de wachtwoorden in de omgeving — na een
    totale ramp moet die met de hand terug. Zie CLAUDE.md voor het terugzetten.
-3. **Namen, munten en kaart generiek.** Zie "bekende scherven".
+3. **Namen, munten en kaart generiek.** — **af (4 sep 2026)**. De munten staan
+   nu in `meta.json` van elke campagne (Grisburgh's Florinde/Knaker/Centeling
+   expliciet weggeschreven), met gold/silver/copper als standaard en een
+   hernoemveld bij Instellingen. De ingebouwde kaart-fallback is weg: geen
+   kaarten geeft een lege staat, niet Grisburghs stadskaart. Titel en
+   PWA-manifest komen per campagne van de server, de shell bevat geen naam meer.
+   Verder opgeruimd: "Jonkers prikbord" → "Prikbord", "De Swarte Cat" als
+   herbergnaam-vangnet, "Grisburgh-diensten" als tabtitel, en de teksten in het
+   wereldpaneel, het spelersdashboard, de locatie-help en het einde-van-het-
+   gevecht-scherm gebruiken nu de campagnenaam. Zes tests in
+   `tests/campagne-generiek.test.js`.
+   Blijft staan: de app-iconen en het logo-embleem zijn van Grisburgh, en de
+   `[[ ]]`-teksten van facties/tempel noemen de stad — die modules zitten niet
+   in de startset.
 4. **Modules per campagne.** `meta.modules`, gefilterd in zijbalk én
    Meesterkamer. Grisburgh alles op `true` — dat is meteen de smoke test.
 5. **Kale progressie en spreuken**, per campagne opgeslagen, met invulvelden.

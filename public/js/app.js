@@ -1,15 +1,15 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=256';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=125";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=126";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=75";
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
-import { renderRelatiemap } from './render-relatiemap.js?v=21';
+import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=43';
 import { renderBestiarium } from './render-bestiarium.js?v=20';
 import { renderSpreuken } from './render-spreuken.js?v=13';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=59";
-import { initDmPanel } from "./dm-panel.js?v=173";
+import { initDmPanel } from "./dm-panel.js?v=174";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -21,6 +21,17 @@ window.icon = function icon(name, { cls = '', title = '' } = {}) {
   return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=8#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
+
+// ── Muntnamen ──
+// De campagne bepaalt hoe haar munten heten; valt die keuze weg, dan is de
+// D&D-standaard het vangnet — niet Grisburgh's Florinde/Knaker/Centeling, want
+// die zag een andere campagne dan ineens in haar eigen beurs staan.
+const MUNT_STANDAARD = { fl: 'Gold', kn: 'Silver', cl: 'Copper' };
+window._muntNamen = () => window._currency || window.app?.state?.meta?.currency || MUNT_STANDAARD;
+
+// Waar de tekst een plaatsnaam noemt, is dat de naam van de campagne — Grisburgh
+// stond er tot nu toe letterlijk in.
+window._campagneNaam = () => window.app?.state?.meta?.appTitle || 'de campagne';
 
 // ── Display mode detectie (iPad kiosk) ──
 {
@@ -915,7 +926,7 @@ function applyRole() {
     herbergItem.classList.toggle('hidden', !state.meta?.herberg);
     const herbergNaam = state.meta?.herberg?.naam;
     const herbergLabel = document.getElementById('diensten-herberg-label');
-    if (herbergLabel) herbergLabel.textContent = herbergNaam || 'De Swarte Cat';
+    if (herbergLabel) herbergLabel.textContent = herbergNaam || 'De herberg';
   }
 
   // Diensten-knop active-state als een diensten-sectie actief is
@@ -983,7 +994,7 @@ async function showLanding({ alleenGroep = null } = {}) {
   // Titels uit meta
   const titleEl    = document.getElementById('landing-title');
   const subtitleEl = document.getElementById('landing-subtitle');
-  if (titleEl)    titleEl.textContent    = state.meta?.appTitle    || 'Grisburgh';
+  if (titleEl)    titleEl.textContent    = state.meta?.appTitle    || 'Campagne';
   if (subtitleEl) subtitleEl.textContent = state.meta?.appSubtitle || '';
 
 
@@ -4774,7 +4785,7 @@ function _sbRender() {
 // BOEDELINVENTARIS — officiële eigendomsopgave voor spelers
 // ════════════════════════════════════════════════════════════
 
-const _invState = { items: [], selectedIdx: -1, charName: '', currency: { fl:0, kn:0, cl:0 }, partyCurrency: null, currencyNames: { fl:'Florinde', kn:'Knaker', cl:'Centeling' }, page: 0, partyMembers: [] };
+const _invState = { items: [], selectedIdx: -1, charName: '', currency: { fl:0, kn:0, cl:0 }, partyCurrency: null, currencyNames: { ...MUNT_STANDAARD }, page: 0, partyMembers: [] };
 const INV_PAGE_SIZE = 8;
 
 function _invTallyMarks(n) {
@@ -4914,7 +4925,7 @@ window._openInventaris = function(items, simpleItems, charName, currency, partyC
     _invState.page = 0;
     _invState.currency = currency || { fl:0, kn:0, cl:0 };
     _invState.partyCurrency = partyCurrency || null;
-    _invState.currencyNames = currencyNames || { fl:'Florinde', kn:'Knaker', cl:'Centeling' };
+    _invState.currencyNames = currencyNames || window._muntNamen();
     _invState.partyMembers = partyMembers || [];
     _ensureInventarisOverlay();
     _invRender();
@@ -5070,13 +5081,13 @@ function _invRender() {
     beurs.innerHTML = `
       <div class="inv-beurs-row">
         <span class="inv-beurs-amount">${cur.fl ?? 0}</span>
-        <span class="inv-beurs-name">${esc(cn.fl || 'Florinde')}</span>
+        <span class="inv-beurs-name">${esc(cn.fl || MUNT_STANDAARD.fl)}</span>
         <span class="inv-beurs-sep">·</span>
         <span class="inv-beurs-amount">${cur.kn ?? 0}</span>
-        <span class="inv-beurs-name">${esc(cn.kn || 'Knaker')}</span>
+        <span class="inv-beurs-name">${esc(cn.kn || MUNT_STANDAARD.kn)}</span>
         <span class="inv-beurs-sep">·</span>
         <span class="inv-beurs-amount">${cur.cl ?? 0}</span>
-        <span class="inv-beurs-name">${esc(cn.cl || 'Centeling')}</span>
+        <span class="inv-beurs-name">${esc(cn.cl || MUNT_STANDAARD.cl)}</span>
       </div>
       ${deeltMsg ? `<div class="inv-beurs-shared">${deeltMsg}</div>` : ''}`;
   }
@@ -5293,7 +5304,7 @@ window._geefItem = async (itemId, targetId) => {
 let _lootCinOpen = false;
 
 function _lootCinBedrag(goud) {
-  const c = window.app?.state?.meta?.currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' };
+  const c = window._muntNamen();
   const d = [[goud?.fl, c.fl], [goud?.kn, c.kn], [goud?.cl, c.cl]]
     .filter(([n]) => n > 0).map(([n, naam]) => `${n} ${esc(naam)}`);
   return d.join(' · ');
@@ -6062,7 +6073,7 @@ async function renderMijnKarakter(opts = {}) {
     const adj  = _skillAdj[skill.key] || 0;
     return _mod(skill.ab) + (prof === 'expert' ? _profBonusNum * 2 : prof === 'prof' ? _profBonusNum : 0) + adj;
   };
-  const _cNames = window._currency || state.meta?.currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' };
+  const _cNames = window._muntNamen();
   const isHp = state.meta?.skillSet === 'hp';
 
   // Origin- en subclass-opties uit de progressie-data (voorkomt alias-mismatch).
@@ -6264,7 +6275,7 @@ async function renderMijnKarakter(opts = {}) {
           }).join('');
           if (!rows.trim()) return '';
           return `<div class="player-dash-section ontdek-section">
-            <div class="player-dash-section-title">${icon('eye')} Ontdekt in Grisburgh</div>
+            <div class="player-dash-section-title">${icon('eye')} Ontdekt in ${esc(window._campagneNaam())}</div>
             <div class="ontdek-meters">${rows}</div>
           </div>`;
         })()}
@@ -6788,7 +6799,7 @@ async function renderMijnKarakter(opts = {}) {
             <div class="player-currency-item player-currency-gold">
               <span class="player-currency-coin" style="display:inline-flex;align-items:center;justify-content:center"><span style="display:inline-block;width:.9em;height:.9em;border-radius:50%;background:#c9a227;box-shadow:0 0 0 1px rgba(0,0,0,.2)"></span></span>
               <div class="player-currency-body">
-                <span class="player-currency-name">${esc(_cNames.fl || 'Florinde')}</span>
+                <span class="player-currency-name">${esc(_cNames.fl || MUNT_STANDAARD.fl)}</span>
                 <input class="player-currency-input" type="number" min="0" id="dash-cur-fl"
                   value="${partyCurrency.enabled ? partyCurrency.fl : currency.fl}"
                   oninput="window._dashCurrencySave()">
@@ -6797,7 +6808,7 @@ async function renderMijnKarakter(opts = {}) {
             <div class="player-currency-item player-currency-silver">
               <span class="player-currency-coin" style="display:inline-flex;align-items:center;justify-content:center"><span style="display:inline-block;width:.9em;height:.9em;border-radius:50%;background:#9090a8;box-shadow:0 0 0 1px rgba(0,0,0,.2)"></span></span>
               <div class="player-currency-body">
-                <span class="player-currency-name">${esc(_cNames.kn || 'Knaker')}</span>
+                <span class="player-currency-name">${esc(_cNames.kn || MUNT_STANDAARD.kn)}</span>
                 <input class="player-currency-input" type="number" min="0" id="dash-cur-kn"
                   value="${partyCurrency.enabled ? partyCurrency.kn : currency.kn}"
                   oninput="window._dashCurrencySave()">
@@ -6806,7 +6817,7 @@ async function renderMijnKarakter(opts = {}) {
             <div class="player-currency-item player-currency-copper">
               <span class="player-currency-coin" style="display:inline-flex;align-items:center;justify-content:center"><span style="display:inline-block;width:.9em;height:.9em;border-radius:50%;background:#9a5530;box-shadow:0 0 0 1px rgba(0,0,0,.2)"></span></span>
               <div class="player-currency-body">
-                <span class="player-currency-name">${esc(_cNames.cl || 'Centeling')}</span>
+                <span class="player-currency-name">${esc(_cNames.cl || MUNT_STANDAARD.cl)}</span>
                 <input class="player-currency-input" type="number" min="0" id="dash-cur-cl"
                   value="${partyCurrency.enabled ? partyCurrency.cl : currency.cl}"
                   oninput="window._dashCurrencySave()">
@@ -9509,8 +9520,8 @@ function _initDisplayMode() {
   api.getMeta?.().then(meta => {
     const titleEl = document.getElementById('display-campaign-title');
     const subEl   = document.querySelector('.display-campaign-sub');
-    if (titleEl) titleEl.textContent = meta?.appTitle || meta?.title || 'Grisburgh';
-    if (subEl && meta?.appSubtitle) subEl.textContent = meta.appSubtitle;
+    if (titleEl) titleEl.textContent = meta?.appTitle || meta?.title || 'Campagne';
+    if (subEl) subEl.textContent = meta?.appSubtitle || '';
   }).catch(() => {});
   _buildIdleEmbers(_huidigeSfeer);
   // Het tafelscherm heeft een eigen, volledige gevechtsweergave (.co-display in
@@ -9640,7 +9651,7 @@ function _dienstNietBereikbaar(el, naam) {
       <div class="herberg-content" style="text-align:center;padding:2rem 1.5rem">
         <div style="font-size:2.2rem;margin-bottom:.6rem">${icon('lock')}</div>
         <p class="herberg-groet" style="margin:0">${esc(naam)} is momenteel niet bereikbaar.</p>
-        <p style="opacity:.5;font-size:.85rem;margin-top:.5rem">De groep bevindt zich buiten Grisburgh.</p>
+        <p style="opacity:.5;font-size:.85rem;margin-top:.5rem">De groep bevindt zich buiten ${esc(window._campagneNaam())}.</p>
       </div>
     </div>`;
 }
@@ -10975,7 +10986,7 @@ window._arenaAanmeld = async (boutId) => {
   } catch (err) { _tsToast(err.message || 'Aanmelden mislukt'); }
 };
 
-// Parseert decimale florinde-invoer: "1,28" of "1.28" → { fl:1, kn:2, cl:8, bedragCl:128 }
+// Parseert een bedrag met komma: "1,28" of "1.28" → { fl:1, kn:2, cl:8, bedragCl:128 }
 function _tsParseInzet(raw) {
   const s = (raw || '').trim().replace(',', '.');
   const m = s.match(/^(\d+)(?:\.(\d{1,2}))?$/);
@@ -11379,7 +11390,7 @@ window._dmMissieGoedkeuren = async (id, titel, toastEl) => {
 
 const HELP_CONFIG = {
   personages: () => ({ titel: 'Personages', stappen: [{ titel: 'Personages', tekst: 'Hier vind je de **personages** die je hebt ontmoet — NPC’s én de avonturiers van het gezelschap. Klik een kaart voor details, geheimen en relaties. De DM bepaalt wie zichtbaar is.', afbeelding: null }] }),
-  locaties:   () => ({ titel: 'Locaties', stappen: [{ titel: 'Locaties', tekst: 'De **plekken** van Grisburgh en daarbuiten. Een locatie met het type *Winkel* heeft een voorraad waar je kunt kopen en verkopen. Filter via de trechter op o.a. *Winkel*. Klik een kaart voor meer.', afbeelding: null }] }),
+  locaties:   () => ({ titel: 'Locaties', stappen: [{ titel: 'Locaties', tekst: `De **plekken** van ${window._campagneNaam()} en daarbuiten. Een locatie met het type *Winkel* heeft een voorraad waar je kunt kopen en verkopen. Filter via de trechter op o.a. *Winkel*. Klik een kaart voor meer.`, afbeelding: null }] }),
   organisaties: () => ({ titel: 'Organisaties', stappen: [{ titel: 'Organisaties', tekst: 'Gilden, ordes en groeperingen in de wereld. Klik een kaart voor hun doel, leden en banden met andere partijen.', afbeelding: null }] }),
   voorwerpen: () => ({ titel: 'Voorwerpen', stappen: [{ titel: 'Voorwerpen', tekst: 'Wapens, uitrusting en magische items. Je kunt voorwerpen claimen, ruilen en in winkels kopen/verkopen. **Zegeningen & Gunsten** (tempel- en factie-beloningen) staan onder een eigen filter, los van de gewone spullen.', afbeelding: null }] }),
   documenten: () => ({ titel: 'Documenten', stappen: [{ titel: 'Documenten', tekst: 'Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzamelt. De DM onthult documenten wanneer ze relevant worden.', afbeelding: null }] }),
@@ -11745,7 +11756,7 @@ Object.assign(HELP_CONFIG, {
       { titel: 'Wat is een vondst?', tekst: 'Een vondst is één ding dat de party kan vinden: de geldzak in de haard, het zwaard onder de plavuizen. Eén kamer kan er meerdere hebben. Een vondst kan munten bevatten, voorwerpen, of allebei.', afbeelding: null },
       { titel: 'De DC is een aantekening', tekst: 'Het getal naast een vondst is voor jou, niet voor de app. De spelers gooien aan tafel en jij beslist of ze het vinden — onthullen is altijd een klik. Er hoeft dus nergens een worp ingevoerd te worden, en je kunt de DC net zo goed negeren.', afbeelding: null },
       { titel: 'Onthullen', tekst: 'Vink één of meer vondsten aan en klik op Onthul. Dat bouwt één verdeling waarin elk voorwerp onthouden heeft waar het vandaan komt ("uit de haard", "onder de plavuizen"). In het venster dat opent kun je nog bijstellen; pas met "Stuur naar spelers" zien zij iets — en gaat op de tablet de kist open.', afbeelding: null },
-      { titel: 'Munten', tekst: 'Vul één bedrag in met een komma: 1,34 is 1 florinde, 3 knakers en 4 centelingen. Wil je het aan het toeval overlaten, vul dan een bereik in bij "Of gerold"; dat wordt pas bij het onthullen gerold, zodat je ziet wat het geworden is voordat het scherm opengaat.', afbeelding: null },
+      { titel: 'Munten', tekst: `Vul één bedrag in met een komma: 1,34 is 1 ${window._muntNamen().fl}, 3 ${window._muntNamen().kn} en 4 ${window._muntNamen().cl}. Wil je het aan het toeval overlaten, vul dan een bereik in bij "Of gerold"; dat wordt pas bij het onthullen gerold, zodat je ziet wat het geworden is voordat het scherm opengaat.`, afbeelding: null },
       { titel: 'Willekeurige voorwerpen', tekst: 'Zet een regel op "willekeurig" met een rarity, dan kiest de app bij het onthullen een bestaand voorwerpkaartje van die zeldzaamheid. Handig voor een kist waarvan de inhoud er niet toe doet.', afbeelding: null },
       { titel: 'Sjablonen', tekst: 'Een sjabloon is een mal, geen vondst: hij ligt nergens en wordt niet onthuld. Hij staat apart onderaan met de knop "Gebruiken", die er een kopie van maakt in de lijst erboven. Die kopie pas je aan zonder dat het sjabloon verandert — en andersom.', afbeelding: null },
       { titel: 'Waar een vondst ligt', tekst: 'Bij "Plek" hang je een vondst aan een dungeonkamer; dat kan ook vanuit de kamer zelf. Je kunt een vondst ook als stap in een akte zetten, zodat je hem tijdens het spelen vanuit de regie-balk onthult.', afbeelding: null },

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grisburgh</title>
+  <title>Campagne</title>
   <!-- PWA: installeerbaar als app-icoon op het beginscherm -->
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#1c2a6b">
@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="/img/app-icon-180.png?v=2">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Grisburgh">
+  <meta name="apple-mobile-web-app-title" content="Campagne">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <script>
     if ('serviceWorker' in navigator) {
@@ -75,8 +75,8 @@
       <!-- Links: titel -->
       <div class="app-header-title" id="header-display">
         <div class="app-header-title-row">
-          <img class="app-header-crest" src="/img/logo-emblem-brown.png?v=1" alt="Grisburgh" width="30" height="30">
-          <h1 id="app-title" class="app-title">Grisburgh</h1>
+          <img class="app-header-crest" src="/img/logo-emblem-brown.png?v=1" alt="" width="30" height="30">
+          <h1 id="app-title" class="app-title"></h1>
         </div>
         <p id="app-subtitle" class="app-subtitle">Ontdekkingen uit het stadsarchief</p>
       </div>
@@ -117,7 +117,7 @@
             <button class="archief-menu-item" data-logtab="verslagen"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-book-open"/></svg> Logboek</button>
             <button class="archief-menu-item" data-section="kaart"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-map"/></svg> Kaarten</button>
             <button class="archief-menu-item" data-logtab="quests"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-map-pin"/></svg> Missies</button>
-            <button class="archief-menu-item" data-logtab="prikbord"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-map"/></svg> Jonkers prikbord</button>
+            <button class="archief-menu-item" data-logtab="prikbord"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-map"/></svg> Prikbord</button>
           </div>
         </div>
         <!-- Diensten dropdown -->
@@ -363,7 +363,7 @@
     <div class="landing-inner">
       <div class="landing-header">
         <img class="landing-crest" src="/img/logo-emblem-light.png?v=1" alt="" aria-hidden="true">
-        <h1 class="landing-title" id="landing-title">Grisburgh</h1>
+        <h1 class="landing-title" id="landing-title"></h1>
         <p class="landing-subtitle" id="landing-subtitle"></p>
       </div>
       <div class="landing-portraits" id="landing-portraits">
@@ -440,7 +440,7 @@
       <div class="display-idle-inner">
         <div class="display-idle-ornament" aria-hidden="true">&#10022;</div>
         <div id="display-campaign-title" class="display-campaign-title"></div>
-        <div class="display-campaign-sub">Grisburgh</div>
+        <div class="display-campaign-sub"></div>
       </div>
     </div>
     <div id="display-image-screen" class="display-screen" style="display:none">
@@ -551,6 +551,6 @@
   </div>
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=570"></script>
+  <script type="module" src="/js/app.js?v=571"></script>
 </body>
 </html>

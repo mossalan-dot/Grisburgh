@@ -38,9 +38,13 @@ function _mapImgSrc(map) {
 // ── Public entry point ──
 export async function renderKaart(container, openId) {
   MAPS = await api.listMaps();
+  // Geen kaarten is geen kaart. Vroeger sprong hier Grisburghs stadskaart in
+  // als vangnet — met de naam van de andere campagne eronder.
   if (!MAPS.length) {
-    const title = window.app?.state?.meta?.appTitle || 'Wereld';
-    MAPS = [{ id: 'grisburgh', label: title, src: '/assets/map-grisburgh.jpg' }];
+    const section = container || document.getElementById('section-kaart');
+    section.innerHTML = _legeStaat();
+    document.getElementById('map-leeg-add')?.addEventListener('click', _openMapAdder);
+    return;
   }
   // Optioneel: open direct een specifieke kaart (vanuit de galerij).
   if (openId) {
@@ -76,6 +80,17 @@ export async function renderKaart(container, openId) {
 // ── Shell ──
 // Compacte weergave in de fullscreen-galerij-overlay: alleen centreren + zoomen.
 // Navigeren/toevoegen/hernoemen gaat via de kaartgalerij.
+function _legeStaat() {
+  return `
+    <div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 p-8 text-center bg-room-bg">
+      <div class="text-gold opacity-60">${icon('map', { cls: 'icon-lg' })}</div>
+      <p class="text-ink-dim text-sm">${isDM()
+        ? 'Deze campagne heeft nog geen kaart.'
+        : 'De DM heeft nog geen kaart toegevoegd.'}</p>
+      ${isDM() ? `<button id="map-leeg-add" class="text-xs bg-gold/20 hover:bg-gold/30 text-gold border border-gold/30 rounded px-3 py-1.5 transition font-cinzel">${icon('plus')} Kaart toevoegen</button>` : ''}
+    </div>`;
+}
+
 function _buildShell() {
   return `
     <div class="flex-1 min-h-0 overflow-auto bg-room-bg flex flex-col items-center pt-3 pb-6 px-4" id="map-scroll">

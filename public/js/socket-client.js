@@ -79,7 +79,7 @@ export function initSocket() {
     const section = window.app.state.activeSection;
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
       // Herlaad alleen de relatiemap, niet het hele logboek
-      import('./render-relatiemap.js?v=21').then(m => {
+      import('./render-relatiemap.js?v=22').then(m => {
         const el = document.getElementById('pb-relatiemap-container');
         if (el) m.renderRelatiemap(el);
       });
@@ -234,7 +234,7 @@ export function initSocket() {
 
   socket.on('map:updated', () => {
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=18').then(m => m.renderKaart());
+      import('./render-kaart.js?v=19').then(m => m.renderKaart());
     }
   });
 
@@ -263,7 +263,7 @@ export function initSocket() {
   socket.on('map:pinRevealed', () => {
     // Herlaad kaart als de speler daar is (toast wordt al getoond via entity:visibility)
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=18').then(m => m.renderKaart());
+      import('./render-kaart.js?v=19').then(m => m.renderKaart());
     }
   });
 
@@ -276,7 +276,7 @@ export function initSocket() {
       8000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=18').then(m => m.renderKaart());
+      import('./render-kaart.js?v=19').then(m => m.renderKaart());
     }
   });
 
@@ -287,7 +287,7 @@ export function initSocket() {
       6000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=18').then(m => m.renderKaart());
+      import('./render-kaart.js?v=19').then(m => m.renderKaart());
     }
   });
 
@@ -298,7 +298,7 @@ export function initSocket() {
       5000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=18').then(m => m.renderKaart());
+      import('./render-kaart.js?v=19').then(m => m.renderKaart());
     }
   });
 
@@ -755,13 +755,13 @@ export function initSocket() {
 
   socket.on('relations:updated', () => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=21').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=22').then(m => m.renderRelatiemap());
     }
   });
 
   socket.on('relations:revealed', ({ id } = {}) => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=21').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=22').then(m => m.renderRelatiemap());
     }
     if (!window.app.isDM()) {
       _showToast(`🕸️ <strong>Nieuwe verbinding onthuld!</strong>`, () => {

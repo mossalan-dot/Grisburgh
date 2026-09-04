@@ -100,6 +100,25 @@ app.get('/', (req, res, next) => {
   res.redirect(302, `/${doel}${vraag}`);
 });
 
+// De PWA-manifest per campagne: naam en startpad volgen de campagne, zodat een
+// tweede DM de app onder zijn eigen naam op het beginscherm zet. De iconen zijn
+// nog van Grisburgh — eigen beeld per campagne is werk voor later.
+app.get('/manifest.webmanifest', (req, res) => {
+  const cid  = _campagneVan(req);
+  const meta = _campagneMeta(req);
+  let basis = {};
+  try { basis = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'manifest.webmanifest'), 'utf8')); } catch {}
+  const naam = meta.appTitle || 'Campagne';
+  res.type('application/manifest+json').json({
+    ...basis,
+    name:        naam,
+    short_name:  naam,
+    description: meta.appSubtitle ? `${naam} — ${meta.appSubtitle}` : `${naam} — campagnebeheer`,
+    start_url:   `/${cid}`,
+    scope:       `/${cid}`,
+  });
+});
+
 // Static files
 // — HTML/JS/CSS nooit cachen: etag+lastModified UIT zodat server nooit 304 teruggeeft.
 //   De ?v=xx querystring in index.html zorgt voor cache-busting van JS/CSS.
@@ -123,12 +142,48 @@ app.use(express.static(path.join(__dirname, 'public'), {
 app.use('/api/auth', authRouter);
 app.use('/api', apiRoutes);
 
-// SPA fallback — nooit cachen, geen ETag
+// ── SPA fallback ─────────────────────────────────────────────────────────────
+// Nooit cachen, geen ETag. En: de <title> wordt hier al ingevuld met de naam van
+// de campagne uit het pad. index.html is één bestand voor alle campagnes, dus
+// stond er tot nu toe "Grisburgh" in de tab tot de JS de meta had opgehaald —
+// en zo heette ook de bladwijzer die iemand ondertussen maakte.
+const SHELL_PAD = path.join(__dirname, 'public', 'index.html');
+let _shell = { mtime: 0, html: '' };
+function _shellHtml() {
+  const mtime = fs.statSync(SHELL_PAD).mtimeMs;
+  if (mtime !== _shell.mtime) _shell = { mtime, html: fs.readFileSync(SHELL_PAD, 'utf8') };
+  return _shell.html;
+}
+
+// Het pad wint: een bezoeker zonder sessie die /prewett opent hoort niet de
+// titel van de standaardcampagne te zien.
+function _campagneVan(req) {
+  const uitPad = req.path.split('/')[1];
+  if (storage.campagneBestaat(uitPad)) return uitPad;
+  const uitQuery = req.query?.campagne;
+  if (storage.campagneBestaat(uitQuery)) return String(uitQuery);
+  return req.session?.campaignId || storage.getActiveCampaignId();
+}
+
+function _campagneMeta(req) {
+  try { return storage.runInCampaign(_campagneVan(req), () => storage.readJSON('meta.json')) || {}; }
+  catch { return {}; }
+}
+
 app.get('*', (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const cid   = _campagneVan(req);
+  const titel = String(_campagneMeta(req).appTitle || 'Campagne')
+    .replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+  const html = _shellHtml()
+    .replace(/<title>[^<]*<\/title>/, `<title>${titel}</title>`)
+    .replace(/(<meta name="apple-mobile-web-app-title" content=")[^"]*(">)/, `$1${titel}$2`)
+    // De manifest krijgt de campagne mee, anders installeert elke campagne zich
+    // als "Grisburgh" op het beginscherm.
+    .replace('href="/manifest.webmanifest"', `href="/manifest.webmanifest?campagne=${encodeURIComponent(cid)}"`);
+  res.type('html').send(html);
 });
 
 // Track which socket belongs to which characterId (for direct messaging)

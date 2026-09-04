@@ -4819,7 +4819,7 @@ router.delete('/progression', requireDM, (req, res) => {
 // Bouwt een print-pagina met een blad per personage. De DM opent 'm, drukt op
 // print en de hele party gaat met vers papier naar huis. We bakken bewust geen
 // fillable WotC-pdf: dat formulier heeft geen vakjes voor boedel, de eigen munt
-// (Florinde/Knaker/Centeling) of factie-titels. Opmaak: lib/character-sheet.js.
+// (Florinde/Knaker/Centeling in deze campagne) of factie-titels. Opmaak: lib/character-sheet.js.
 
 const _sheetNorm = (s) => String(s || '').trim().toLowerCase();
 
@@ -4967,7 +4967,7 @@ function _sheetPersonage(entity, dmState, prog, meta, personages) {
     beurs: groep?.sharedPurse?.enabled
       ? { gedeeld: { fl: groep.sharedPurse.fl || 0, kn: groep.sharedPurse.kn || 0, cl: groep.sharedPurse.cl || 0 } }
       : { persoonlijk: (dmState.playerCurrency || {})[id] || { fl: 0, kn: 0, cl: 0 } },
-    muntNamen:  meta.currency || { fl: 'Florinde', kn: 'Knaker', cl: 'Centeling' },
+    muntNamen:  meta.currency || storage.MUNT_STANDAARD,
     items:      (dmState.playerItems || {})[id] || [],
     voorwerpen: _sheetVoorwerpen(dmState, id),
     // Vastgezette kenmerken (Bardic Inspiration, Rage…) en eigen tellers. Beide
@@ -5116,9 +5116,18 @@ router.put('/meta/app', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
   if (req.body.appTitle    !== undefined) meta.appTitle    = String(req.body.appTitle).trim()    || meta.appTitle;
   if (req.body.appSubtitle !== undefined) meta.appSubtitle = String(req.body.appSubtitle).trim() || meta.appSubtitle;
+  // Munten: alleen de namen zijn vrij. De sleutels fl/kn/cl blijven de gouden,
+  // zilveren en koperen plek in de verhouding 1:10:100 — daar hangt te veel
+  // opgeslagen bezit aan om ze te laten verschuiven.
+  if (req.body.currency && typeof req.body.currency === 'object') {
+    meta.currency = Object.fromEntries(['fl', 'kn', 'cl'].map(sleutel => [
+      sleutel,
+      String(req.body.currency[sleutel] ?? '').trim().slice(0, 24) || storage.MUNT_STANDAARD[sleutel],
+    ]));
+  }
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
-  res.json({ appTitle: meta.appTitle, appSubtitle: meta.appSubtitle });
+  res.json({ appTitle: meta.appTitle, appSubtitle: meta.appSubtitle, currency: meta.currency });
 });
 
 router.put('/meta/hoofdstuk/:key', requireDM, (req, res) => {
@@ -5395,14 +5404,13 @@ router.put('/meta/rust', requireDM, (req, res) => {
 
 // ── Kaart ──
 
-const DEFAULT_MAPS = [
-  { id: 'grisburgh', label: 'Grisburgh', src: '/assets/map-grisburgh.jpg' },
-  { id: 'isfar',     label: 'Isfār',     src: '/assets/map-isfar.jpg' },
-];
-
+// Geen ingebouwde kaarten meer als vangnet: Grisburgh heeft zijn stadskaart en
+// Isfār gewoon in map.json staan, en een andere campagne kreeg ze er anders
+// ongevraagd bij — mét de eigen campagnenaam eronder. Geen kaarten is nu ook
+// echt geen kaarten; de galerij toont dan een lege staat.
 function getMaps() {
   const mapData = storage.readJSON('map.json');
-  return mapData.maps?.length ? mapData.maps : DEFAULT_MAPS;
+  return Array.isArray(mapData.maps) ? mapData.maps : [];
 }
 
 router.get('/map/maps', attachRole, (req, res) => {
@@ -5413,7 +5421,7 @@ router.post('/map/maps', requireDM, (req, res) => {
   const { label } = req.body;
   if (!label) return res.status(400).json({ error: 'Label vereist' });
   const mapData = storage.readJSON('map.json');
-  if (!mapData.maps) mapData.maps = [...DEFAULT_MAPS];
+  if (!mapData.maps) mapData.maps = [];
   const map = { id: 'map_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4), label };
   if (req.body.imageId) map.imageId = req.body.imageId;  // mediabibliotheek-afbeelding
   mapData.maps.push(map);
@@ -5425,7 +5433,7 @@ router.post('/map/maps', requireDM, (req, res) => {
 router.put('/map/maps/:id', requireDM, (req, res) => {
   const { label } = req.body;
   const mapData = storage.readJSON('map.json');
-  if (!mapData.maps) mapData.maps = [...DEFAULT_MAPS];
+  if (!mapData.maps) mapData.maps = [];
   const map = mapData.maps.find(m => m.id === req.params.id);
   if (!map) return res.status(404).json({ error: 'Niet gevonden' });
   if (label) map.label = label;
@@ -5437,7 +5445,7 @@ router.put('/map/maps/:id', requireDM, (req, res) => {
 
 router.delete('/map/maps/:id', requireDM, (req, res) => {
   const mapData = storage.readJSON('map.json');
-  if (!mapData.maps) mapData.maps = [...DEFAULT_MAPS];
+  if (!mapData.maps) mapData.maps = [];
   const map = mapData.maps.find(m => m.id === req.params.id);
   mapData.maps = mapData.maps.filter(m => m.id !== req.params.id);
   mapData.pins = (mapData.pins || []).filter(p => (p.mapId || 'grisburgh') !== req.params.id);
