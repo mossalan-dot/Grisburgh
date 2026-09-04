@@ -4700,6 +4700,75 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   .loot-cin-buit { max-width: 88vw; }
 }
 
+/* ── Verhaalpaneel naast de regie ────────────────────────────────────────────
+   Neemt de helft van het scherm — de plek waar tijdens het spelen Obsidian
+   stond — en duwt de app opzij in plaats van eroverheen te vallen. De andere
+   helft blijft dus volledig bruikbaar. */
+:root { --verhaal-breedte: 50vw; }
+.verhaal-paneel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: var(--verhaal-breedte);
+  z-index: 60; display: flex; flex-direction: column;
+  background: #f3e9d2; border-left: 2px solid #c4a87a;
+  box-shadow: -8px 0 24px rgba(0,0,0,0.18);
+}
+body.verhaal-open .app { margin-right: var(--verhaal-breedte); }
+/* De app schakelt naar zijn compacte indeling op vensterbreedte, en het venster
+   wordt niet smaller — alleen de ruimte die de app krijgt. Daarom hier dezelfde
+   ingrepen als de smal-scherm-regels hieronder, anders lopen de titel en de
+   navigatie over elkaar heen. */
+body.verhaal-open .app-header { padding: 0 6px 0 10px; min-height: 48px; gap: 0; }
+body.verhaal-open .app-header-title { width: auto; padding-right: 6px; }
+body.verhaal-open .app-title,
+body.verhaal-open .app-subtitle,
+body.verhaal-open .app-search-label,
+body.verhaal-open .dm-seal-label,
+body.verhaal-open .dm-rb-btn-label { display: none; }
+body.verhaal-open .dm-regie-balk { right: var(--verhaal-breedte); }
+body.verhaal-open .kaart-fs-overlay { right: var(--verhaal-breedte); }
+.verhaal-paneel-kop {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; border-bottom: 1px solid rgba(196,168,122,0.6);
+  background: linear-gradient(180deg, #f5eacb 0%, #e8dbb4 100%);
+}
+.verhaal-paneel-titel { font-family: 'Cinzel', serif; font-size: 14px; color: #2a1a08; display: inline-flex; align-items: center; gap: 7px; }
+.verhaal-paneel-nav { display: flex; align-items: center; gap: 4px; }
+.verhaal-paneel-teller { font-family: 'Cinzel', serif; font-size: 11px; color: #7a6040; min-width: 44px; text-align: center; }
+.verhaal-paneel-secties {
+  display: flex; gap: 5px; overflow-x: auto; padding: 7px 12px;
+  border-bottom: 1px solid rgba(196,168,122,0.45); flex: 0 0 auto;
+}
+.verhaal-paneel-sectie {
+  flex: 0 0 auto; cursor: pointer; white-space: nowrap;
+  font-family: 'Crimson Text', Georgia, serif; font-size: 12.5px; color: #5a4030;
+  background: rgba(255,255,255,0.5); border: 1px solid #c4a87a; border-radius: 12px; padding: 3px 10px;
+}
+.verhaal-paneel-sectie:hover { background: rgba(196,168,122,0.28); }
+.verhaal-paneel-sectie.is-actief { background: #2a1a08; color: #f2e8d2; border-color: #2a1a08; }
+.verhaal-paneel-tekst {
+  flex: 1 1 auto; overflow-y: auto; padding: 16px 20px 40px;
+  font-family: 'Crimson Text', Georgia, serif; font-size: 15.5px; line-height: 1.62; color: #2a1a08;
+}
+.verhaal-paneel-tekst h3 {
+  font-family: 'Cinzel', serif; font-size: 16px; color: #7a5c2e;
+  margin: 0 0 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(196,168,122,0.6);
+}
+.verhaal-paneel-tekst p { margin: 0 0 12px; }
+
+/* Sectiekop in de regie-balk: een streep met een naam tussen de stappen. */
+.dm-rb-kop {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 0 10px; cursor: pointer; align-self: stretch;
+}
+.dm-rb-kop-lijn { width: 1px; flex: 1 1 auto; background: linear-gradient(to bottom, transparent, rgba(196,168,122,0.85), transparent); }
+.dm-rb-kop-titel {
+  font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase;
+  color: #9a8354; white-space: nowrap; max-width: 110px; overflow: hidden; text-overflow: ellipsis;
+}
+.dm-rb-kop:hover .dm-rb-kop-titel { color: #f2e8d2; }
+.dm-rb-kop--gemarkeerd .dm-rb-kop-titel { color: #e8c87a; }
+/* Sectiekop in de scriptlijst: naam over de volle breedte, als scheiding. */
+.script-item-name--kop { font-family: 'Cinzel', serif; letter-spacing: .05em; color: #7a5c2e; }
+
 /* Verhaaltekst bij een akte (Meesterkamer). De tekst zelf leest als proza; de
    namenrij eronder vat samen wie er in deze akte voorkomt. */
 .logboek-verhaal { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(196,168,122,0.3); }

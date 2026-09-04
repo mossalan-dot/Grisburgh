@@ -136,12 +136,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=412   app.js?v=566   sound-manager.js?v=8
-app.js      : api.js?v=253      render-campagne.js?v=125   render-archief.js?v=74
+index.html  : theme.css?v=413   app.js?v=567   sound-manager.js?v=8
+app.js      : api.js?v=253      render-campagne.js?v=125   render-archief.js?v=75
               render-kaart.js?v=18  render-dungeon.js?v=33  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=170    render-dashboard.js?v=9
+              dm-panel.js?v=171    render-dashboard.js?v=9
               render-spreuken.js?v=13   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 ```
@@ -300,6 +300,23 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > geldt de instelling van de laatst gespeelde akte — `activeAkte` wordt nooit
 > leeggemaakt. Client: `window._dienstDicht(key)` en `window._entiteitDicht(id)`;
 > de DM ziet altijd alles.
+
+> **Verhaal naast de regie + secties.** Het regie-script kent een staptype
+> **`kop`** (`{type:'kop', titel}`): een sectiekop die niets onthult maar de
+> strook opdeelt — geen tweede niveau in de data, dus niets aan bestaande aktes
+> hoeft te veranderen. De **`##`-koppen uit de verhaaltekst worden bij het
+> importeren vanzelf sectiekoppen** (`_parseAkteMarkdown` hield de sectie al bij
+> per token), waardoor tekst en script dezelfde indeling en dezelfde namen delen.
+> Naast de regie-balk schuift een **verhaalpaneel** open (knop *Verhaal*), dat de
+> helft van het scherm inneemt — de plek waar tijdens het spelen Obsidian stond.
+> Het **duwt de app opzij** (`body.verhaal-open`) in plaats van eroverheen te
+> vallen, zodat de andere helft blijft werken. Let op: de app schakelt naar zijn
+> compacte indeling op **vensterbreedte**, en het venster wordt niet smaller —
+> daarom herhaalt `body.verhaal-open` een handvol smal-scherm-regels, anders
+> lopen de titel en de navigatie over elkaar.
+> Klikken werkt **beide kanten op**: een sectie in het paneel schuift de balk
+> naar de bijbehorende kop (die kort oplicht), en een kop in de balk springt naar
+> die sectie in de tekst — gekoppeld op genormaliseerde titel.
 
 > **Verhaaltekst per akte.** De lopende tekst van een hoofdstuk staat in
 > `meta.hoofdstukken[key].tekst` en verschijnt als sectie **Verhaal** boven het

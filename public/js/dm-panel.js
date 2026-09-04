@@ -457,6 +457,10 @@ export function initDmPanel() {
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
     regieBalkRust:           (id) => _regieBalkRust(id),
     regieBalkLoot:           (id) => _regieBalkLoot(id),
+    verhaalToggle:           () => _verhaalToggleP(),
+    verhaalStap:             (d) => _verhaalStap(d),
+    verhaalGaNaar:           (i) => _verhaalGaNaar(i),
+    verhaalNaarSectie:       (t) => _verhaalNaarSectie(t),
     regieBalkStuurBrief:     (id) => _regieBalkStuurBrief(id),
     regieBalkRevealVague:    (id) => _revealRegieBalkItem(id, 'vague'),
     regieBalkRevealSecret:   (id) => _revealRegieBalkSecretItem(id),
@@ -1033,6 +1037,13 @@ function _renderAkteImpPlan() {
   const rows = plan.map(s => {
     const off = s.include ? '' : ' style="opacity:.4"';
     const chk = `<input type="checkbox" ${s.include ? 'checked' : ''} onchange="window.dmPanel.akteImpToggle('${s.id}')">`;
+    if (s.type === 'kop') {
+      return `<div class="dm-imp-row"${off}>
+        ${chk} ${icon('minus')}
+        <input class="dm-input dm-input-sm" style="flex:1" value="${esc(s.titel || '')}"
+          oninput="window.dmPanel.akteImpField('${s.id}','titel',this.value)" placeholder="Sectiekop">
+        <span class="dm-imp-tag dm-imp-tag--ok">sectie</span></div>`;
+    }
     if (s.type === 'image') {
       const miss = s._status === 'missing';
       return `<div class="dm-imp-row"${off}>
@@ -1893,6 +1904,16 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
 };
 
 function _renderRegieBalkItem(item) {
+  // Een sectiekop onthult niets; hij deelt de strook op zodat je ziet waar je
+  // bent. Klikken springt naar dezelfde sectie in het verhaalpaneel.
+  if (item.type === 'kop') {
+    return `<div class="dm-rb-kop" data-kop="${esc(item.id)}" data-titel="${esc(item.titel || '')}"
+      onclick="window.dmPanel.verhaalNaarSectie('${esc(item.titel || '')}')"
+      title="Ga naar deze sectie in het verhaal">
+      <span class="dm-rb-kop-lijn"></span>
+      <span class="dm-rb-kop-titel">${esc(item.titel || 'Sectie')}</span>
+    </div>`;
+  }
   const revealed = _rbRevealed.has(item.id);
   const typeIcon  = item.type === 'image'
     ? icon('image')
@@ -2070,6 +2091,7 @@ function _renderRegieBalk() {
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.sfeerMenu(event)" title="Sfeer van het tafelscherm kiezen">${icon('sparkles')} <span class="dm-rb-btn-label">Sfeer</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.tabletNaarSfeer(this)" title="Tablet → sfeerscherm (leeg het gepresenteerde beeld)">${icon('monitor')}</button>
           <span class="dm-rb-sep"></span>
+          <button class="dm-regie-balk-btn" onclick="window.dmPanel.verhaalToggle()" title="Verhaal ernaast openen (neemt de helft van het scherm)">${icon('book-open')} <span class="dm-rb-btn-label">Verhaal</span></button>
           <button class="dm-regie-balk-btn" onclick="window.dmPanel.sheetsPrint()" title="Character sheets van de party — printbaar blad per speler">${icon('scroll-text')}</button>
           <button class="dm-regie-balk-btn dm-rb-pauze-btn" onclick="window.dmPanel.regieBalkPauze()" title="Akte pauzeren — legt HP en voortgang vast om later te hervatten">${icon('pause')}</button>
           <div class="dm-rb-venster">
@@ -2098,6 +2120,118 @@ function _renderRegieBalk() {
   document.body.classList.add('dm-rb-active');
   requestAnimationFrame(_rbInitDrag);
 };
+
+// ── Verhaalpaneel ───────────────────────────────────────────────────────────
+// Tijdens het spelen staat op een laptop meestal Obsidian op de helft van het
+// scherm. Dit paneel neemt die plek in: het duwt de app opzij in plaats van er
+// overheen te vallen, zodat de andere helft blijft werken zoals hij werkte.
+// Tekst en regie delen dezelfde indeling: de ##-koppen in de tekst en de
+// sectiekoppen in het script. Klikken werkt daarom beide kanten op.
+let _verhaalSecties = [];   // [{titel, tekst}]
+let _verhaalIdx     = 0;
+
+const _kopNorm = (v) => String(v || '').toLowerCase().normalize('NFD')
+  .replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+
+// Splits op ##-koppen; wat vóór de eerste kop staat is de inleiding.
+function _splitsSecties(tekst) {
+  const regels = String(tekst || '').split('\n');
+  const uit = [];
+  let huidig = { titel: '', regels: [] };
+  for (const r of regels) {
+    const m = r.match(/^\s*#{2,3}\s+(.+?)\s*$/);
+    if (m) {
+      if (huidig.titel || huidig.regels.join('').trim()) uit.push(huidig);
+      huidig = { titel: m[1], regels: [] };
+    } else huidig.regels.push(r);
+  }
+  if (huidig.titel || huidig.regels.join('').trim()) uit.push(huidig);
+  return uit.map(s => ({ titel: s.titel, tekst: s.regels.join('\n').trim() }));
+}
+
+function _verhaalOpen() { return document.body.classList.contains('verhaal-open'); }
+
+window.dmPanel = window.dmPanel || {};
+
+function _verhaalToggleP() {
+  if (_verhaalOpen()) return _verhaalSluit();
+  const meta = window.app?.state?.meta || {};
+  const tekst = meta.hoofdstukken?.[_rbChapter]?.tekst || '';
+  _verhaalSecties = _splitsSecties(tekst);
+  _verhaalIdx = 0;
+  let paneel = document.getElementById('verhaal-paneel');
+  if (!paneel) {
+    paneel = document.createElement('aside');
+    paneel.id = 'verhaal-paneel';
+    paneel.className = 'verhaal-paneel';
+    document.body.appendChild(paneel);
+  }
+  document.body.classList.add('verhaal-open');
+  _verhaalRender();
+}
+
+function _verhaalSluit() {
+  document.body.classList.remove('verhaal-open');
+  document.getElementById('verhaal-paneel')?.remove();
+}
+
+function _verhaalRender() {
+  const paneel = document.getElementById('verhaal-paneel');
+  if (!paneel) return;
+  const s = _verhaalSecties[_verhaalIdx];
+  const heeftTekst = _verhaalSecties.length > 0;
+  paneel.innerHTML = `
+    <div class="verhaal-paneel-kop">
+      <span class="verhaal-paneel-titel">${icon('book-open')} ${esc(_rbTitle || 'Verhaal')}</span>
+      <div class="verhaal-paneel-nav">
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" ${_verhaalIdx <= 0 ? 'disabled' : ''}
+          onclick="window.dmPanel.verhaalStap(-1)" title="Vorige sectie">${icon('chevron-left')}</button>
+        <span class="verhaal-paneel-teller">${heeftTekst ? `${_verhaalIdx + 1} / ${_verhaalSecties.length}` : '—'}</span>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" ${_verhaalIdx >= _verhaalSecties.length - 1 ? 'disabled' : ''}
+          onclick="window.dmPanel.verhaalStap(1)" title="Volgende sectie">${icon('chevron-right')}</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.verhaalToggle()" title="Sluiten">${icon('x')}</button>
+      </div>
+    </div>
+    ${heeftTekst ? `
+      <nav class="verhaal-paneel-secties">
+        ${_verhaalSecties.map((sec, i) => `
+          <button class="verhaal-paneel-sectie${i === _verhaalIdx ? ' is-actief' : ''}"
+            onclick="window.dmPanel.verhaalGaNaar(${i})">${esc(sec.titel || 'Inleiding')}</button>`).join('')}
+      </nav>
+      <div class="verhaal-paneel-tekst" id="verhaal-paneel-tekst">
+        ${s.titel ? `<h3>${esc(s.titel)}</h3>` : ''}
+        ${window.app.mdToHtml(s.tekst || '')}
+      </div>`
+    : `<p class="dm-hint" style="padding:14px">Deze akte heeft nog geen verhaaltekst. Voeg er een toe in de Aktes-tab: lees een .md in of plak het hoofdstuk.</p>`}`;
+}
+
+// Sectie kiezen → tekst tonen én de balk naar de bijbehorende sectiekop
+// schuiven. Andersom werkt via _verhaalNaarSectie.
+function _verhaalGaNaar(i, ookBalk = true) {
+  if (i < 0 || i >= _verhaalSecties.length) return;
+  _verhaalIdx = i;
+  _verhaalRender();
+  document.getElementById('verhaal-paneel-tekst')?.scrollTo({ top: 0 });
+  if (ookBalk) _balkNaarKop(_verhaalSecties[i].titel);
+}
+
+function _verhaalStap(delta) { _verhaalGaNaar(_verhaalIdx + delta); }
+
+function _balkNaarKop(titel) {
+  if (!titel) return;
+  const doel = [...document.querySelectorAll('.dm-rb-kop')]
+    .find(el => _kopNorm(el.dataset.titel) === _kopNorm(titel));
+  doel?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+  doel?.classList.add('dm-rb-kop--gemarkeerd');
+  setTimeout(() => doel?.classList.remove('dm-rb-kop--gemarkeerd'), 1200);
+}
+
+// Vanuit de balk: open het paneel als het dicht is en spring naar die sectie.
+function _verhaalNaarSectie(titel) {
+  if (!_verhaalOpen()) _verhaalToggleP();
+  const i = _verhaalSecties.findIndex(s => _kopNorm(s.titel) === _kopNorm(titel));
+  if (i >= 0) _verhaalGaNaar(i, false);
+}
 
 // Voortgang wegschrijven. Gebundeld met een korte vertraging: tijdens het
 // spelen klik je soms een reeks onthullingen achter elkaar, en dat hoeft geen

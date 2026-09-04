@@ -1380,7 +1380,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
                   ? icon('mail')
                   : item.type === 'loot'
                     ? icon('coins')
-                    : icon('crossed-swords', { cls: 'icon-gi' });
+                    : item.type === 'kop'
+                      ? icon('minus')
+                      : icon('crossed-swords', { cls: 'icon-gi' });
         // Rust-stap: vaste, niet-bewerkbare label ("Lange rust — Herberg").
         const rustLabel = item.type === 'rust'
           ? `${item.restType === 'long' ? 'Lange' : 'Korte'} rust — ${item.locatie === 'herberg' ? 'Herberg' : 'Veld'}`
@@ -1395,7 +1397,11 @@ function _renderAkteScriptInner(ch, info, chEntries) {
           ? `<input class="script-item-name script-item-name--input" value="${esc(item.caption || '')}" placeholder="Onderschrift…"
                onchange="window._scriptRename('${esc(ch)}','${esc(item.id)}',this.value)"
                onkeydown="if(event.key==='Enter'){this.blur();}">`
-          : `<span class="script-item-name">${esc(item.type === 'rust' ? rustLabel : item.type === 'brief' ? briefLabel : (item.name || '—'))}</span>`;
+          : item.type === 'kop'
+            ? `<input class="script-item-name script-item-name--input script-item-name--kop" value="${esc(item.titel || '')}" placeholder="Naam van de sectie…"
+                 onchange="window._scriptKopHernoem('${esc(ch)}','${esc(item.id)}',this.value)"
+                 onkeydown="if(event.key==='Enter'){this.blur();}">`
+            : `<span class="script-item-name">${esc(item.type === 'rust' ? rustLabel : item.type === 'brief' ? briefLabel : (item.name || '—'))}</span>`;
         // Thumbnail-box met placeholder-icoon eronder: laadt de afbeelding niet (of
         // ontbreekt fileId, bv. bij een geluid-stap), dan blijft het nette icoon staan
         // i.p.v. het lelijke browser-"broken image"-vraagteken (onerror verwijdert de img).
@@ -1517,6 +1523,13 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','short','veld')">${icon('zap')} Korte rust — Veld</button>
         <button class="dm-btn dm-btn-sm" onclick="window._scriptAddRust('${esc(ch)}','short','herberg')">${icon('zap')} Korte rust — Herberg</button>
       </div>`;
+  } else if (pickerState.mode === 'kop') {
+    pickerHtml = `<p class="dm-hint" style="margin:0 0 6px">Een sectiekop deelt het script op. Onthult niets — hij zet er alleen een streep met een naam tussen, zodat je tijdens het spelen ziet waar je bent. Komt de tekst uit een .md, dan worden de <strong>##</strong>-koppen hier vanzelf ook secties.</p>
+      <div style="display:flex;gap:6px">
+        <input class="dm-input" id="script-kop-naam-${esc(ch)}" placeholder="Bijv. Aankomst in de haven"
+          style="flex:1;font-size:12px" onkeydown="if(event.key==='Enter')window._scriptAddKop('${esc(ch)}')">
+        <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._scriptAddKop('${esc(ch)}')">${icon('plus')}</button>
+      </div>`;
   } else if (pickerState.mode === 'loot') {
     const vondsten = pickerState.loot;
     if (vondsten === undefined) {
@@ -1559,6 +1572,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         <button class="script-add-btn${pickerState.mode === 'rust'? ' is-active' : ''}"
           title="Rust toevoegen (lange/korte)"
           onclick="window._scriptTogglePicker('${esc(ch)}','rust')">${icon('moon')}</button>
+        <button class="script-add-btn${pickerState.mode === 'kop'? ' is-active' : ''}"
+          title="Sectiekop toevoegen"
+          onclick="window._scriptTogglePicker('${esc(ch)}','kop')">${icon('minus')}</button>
         <button class="script-add-btn${pickerState.mode === 'loot'? ' is-active' : ''}"
           title="Vondst toevoegen"
           onclick="window._scriptTogglePicker('${esc(ch)}','loot')">${icon('coins')}</button>
@@ -1914,6 +1930,23 @@ async function _scriptLoadLoot(ch) {
   _scriptPickerState[ch] = state;
   _refreshScriptSection(ch);
 }
+
+window._scriptAddKop = async (ch) => {
+  const veld = document.getElementById(`script-kop-naam-${ch}`);
+  const titel = veld?.value.trim();
+  if (!titel) { veld?.focus(); return; }
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  script.push({ id: _scriptGenId(), type: 'kop', titel });
+  await _scriptSave(ch, script);
+};
+
+window._scriptKopHernoem = async (ch, id, titel) => {
+  const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  const item = script.find(x => x.id === id);
+  if (!item) return;
+  item.titel = titel.trim();
+  await _scriptSave(ch, script);
+};
 
 window._scriptAddLoot = async (ch, lootId, naam) => {
   const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];

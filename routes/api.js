@@ -3574,7 +3574,15 @@ function _buildAktePlan(md, imageNames) {
   let sid = 0;
   const nid = () => 'pi_' + (sid++).toString(36) + '_' + Math.random().toString(36).slice(2, 6);
 
+  // De ##-koppen uit het hoofdstuk worden sectiekoppen in het script. Daarmee
+  // volgen de regie-balk en het verhaalpaneel dezelfde indeling: dezelfde
+  // secties, dezelfde namen.
+  let laatsteSectie = null;
   for (const tk of tokens) {
+    if (tk.section && tk.section !== laatsteSectie) {
+      laatsteSectie = tk.section;
+      plan.push({ id: nid(), type: 'kop', titel: tk.section, include: true });
+    }
     if (tk.kind === 'image') {
       const ok = provided.has(_impNorm(tk.file));
       plan.push({ id: nid(), type: 'image', file: tk.file, caption: _impCaptionFromFile(tk.file),
@@ -3647,7 +3655,9 @@ router.post('/import/akte/apply', requireDM, uploadMedia.array('images', 100), (
 
   for (const step of plan) {
     if (step.include === false) continue;
-    if (step.type === 'image') {
+    if (step.type === 'kop') {
+      script.push({ id: newId('s'), type: 'kop', titel: step.titel || '' });
+    } else if (step.type === 'image') {
       const f = fileByName[_impNorm(step.file)];
       if (!f || !_sniffMedia(f.buffer)) continue;
       const fid = 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);

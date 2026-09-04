@@ -1,7 +1,8 @@
 # Verhaal naast de regie, en ordening per hoofdstuk
 
-Opgesteld 4 sep 2026. Twee vragen die op één antwoord uitkomen. Nog niets
-gebouwd.
+Opgesteld 4 sep 2026, **gebouwd** dezelfde dag. Twee vragen die op één antwoord
+uitkwamen. Dit document blijft staan als verantwoording; de werking staat in
+CLAUDE.md.
 
 ---
 
