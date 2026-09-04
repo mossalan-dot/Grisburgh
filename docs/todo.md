@@ -48,6 +48,18 @@ groot het is.
       en `state.dmPreview` staan er nog. Laten staan tot zeker is dat je hem niet
       terugwilt.
 
+## Op de telefoon
+
+- [ ] **Alles nog eens doorlopen op een telefoon.** De app wordt aan tafel op
+      laptops en een tablet gebruikt, dus daar is hij op gebouwd — maar spelers
+      pakken hun telefoon. Wat er tot nu toe uitkwam: de partypijl hing halverwege
+      een gestapelde rij portretten, er was geen teken dat je verder kon scrollen,
+      en het DM-wachtwoordveld liep over het wapen heen (alle drie gefikst 5 sep).
+      Dat is precies het soort ding dat je alleen ziet door het vast te houden.
+      Loop de blokken uit `testronde.md` daarom nog een keer door op een telefoon
+      — in elk geval blok 1 (binnenkomen), 4 (spelerstabblad) en 5 (diensten),
+      want dat is wat een speler daadwerkelijk in zijn hand heeft.
+
 ## Wat alleen de beheerder mag
 
 - [ ] **Helpteksten vastzetten.** `PUT/DELETE /help-content/:key` staat op

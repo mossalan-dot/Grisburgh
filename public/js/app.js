@@ -1070,6 +1070,28 @@ function hideLanding() {
   document.getElementById('landing-overlay')?.classList.add('hidden');
 }
 
+// Met meer dan een handvol portretten past de kiezer op een telefoon niet meer
+// op één scherm, en niets verraadt dat er onder de vouw nog iemand staat. Dit
+// pijltje wel — en het verdwijnt zodra je onderaan bent.
+function _landingScrollHint() {
+  const overlay = document.getElementById('landing-overlay');
+  const hint    = document.getElementById('landing-scrollhint');
+  if (!overlay || !hint) return;
+  const bijwerken = () => {
+    const restant = overlay.scrollHeight - overlay.clientHeight - overlay.scrollTop;
+    hint.classList.toggle('hidden', restant < 24);
+  };
+  if (!overlay._scrollHintGebonden) {
+    overlay.addEventListener('scroll', bijwerken, { passive: true });
+    window.addEventListener('resize', bijwerken);
+    overlay._scrollHintGebonden = true;
+  }
+  // Na het tekenen meten: de portretten bepalen de hoogte, en die zijn er pas
+  // als de browser ze heeft neergezet.
+  requestAnimationFrame(bijwerken);
+  setTimeout(bijwerken, 400);
+}
+
 async function showLanding({ alleenGroep = null } = {}) {
   const overlay = document.getElementById('landing-overlay');
   if (!overlay) return;
@@ -1085,6 +1107,7 @@ async function showLanding({ alleenGroep = null } = {}) {
   if (subtitleEl) subtitleEl.textContent = state.meta?.appSubtitle || '';
   _zetEmbleem(document.getElementById('landing-crest'), state.meta?.embleem);
 
+  _landingScrollHint();
   // De DM-ingang wordt verborgen zodra iemand een portret kiest of een
   // groepswachtwoord intikt. Bij een verse landing hoort hij er weer te staan,
   // dichtgeklapt — anders is hij na uitloggen als speler nergens meer te vinden.
