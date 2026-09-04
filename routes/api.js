@@ -304,14 +304,55 @@ function filterEntityForPlayer(entity, dmState, groupId) {
     };
   }
   // Visible: full entity, strip DM-only fields
-  const revealed = !!g.secretReveals[entity.id];
   const e = { ...entity, data: { ...entity.data } };
-  if (!revealed) delete e.data.geheim;
+
+  const geheimen = _tekstLijst(entity.data, 'geheimen', 'geheim');
+  const onthuld  = _onthuld(g.secretReveals[entity.id], geheimen.length);
+  const zichtbareGeheimen = geheimen.filter((_, i) => onthuld[i]);
+  if (zichtbareGeheimen.length) e.data.geheimen = JSON.stringify(zichtbareGeheimen);
+  else delete e.data.geheimen;
+  if (zichtbareGeheimen.length) e.data.geheim = zichtbareGeheimen[0];
+  else delete e.data.geheim;
+
+  // Flavour: per regel bijgehouden of de waard hem al verteld heeft.
+  const flavours = _tekstLijst(entity.data, 'flavours', 'flavour');
+  const gezegd   = _onthuld(entity.data?.flavoursUitgesproken
+    ?? (entity.data?.flavourUitgesproken === true || entity.data?.flavourUitgesproken === 'true'), flavours.length);
+  const zichtbareFlavours = flavours.filter((_, i) => gezegd[i]);
+  if (zichtbareFlavours.length) { e.data.flavours = JSON.stringify(zichtbareFlavours); e.data.flavour = zichtbareFlavours[0]; }
+  else { delete e.data.flavours; delete e.data.flavour; }
+
   delete e.stats;
   e._visibility   = 'visible';
-  e._secretReveal = revealed;
+  e._secretReveal = zichtbareGeheimen.length > 0;
+  e._geheimTotaal = geheimen.length;
+  e._geheimOnthuld = zichtbareGeheimen.length;
   e._deceased     = !!(g.deceased?.[entity.id]);
   return e;
+}
+
+// ── Geheimen en flavour: lijsten in plaats van één veld ──────────────────────
+// Een NPC heeft zelden één geheim. `data.geheimen` (JSON-array) is het echte
+// veld; het oude `data.geheim` blijft bestaan als eerste regel, zodat alles wat
+// al geschreven is gewoon blijft staan. Zelfde verhaal voor flavour.
+function _tekstLijst(data, meervoud, enkelvoud) {
+  const rauw = data?.[meervoud];
+  if (rauw) {
+    try {
+      const arr = typeof rauw === 'string' ? JSON.parse(rauw) : rauw;
+      if (Array.isArray(arr)) return arr.map(v => String(v ?? '').trim()).filter(Boolean);
+    } catch { /* val terug op het oude veld */ }
+  }
+  const los = String(data?.[enkelvoud] ?? '').trim();
+  return los ? [los] : [];
+}
+
+// Welke regels zijn onthuld? Oude waarde `true` betekende "het geheim is uit",
+// en dat was er precies één — dus die wordt de eerste regel.
+function _onthuld(waarde, aantal) {
+  if (Array.isArray(waarde)) return Array.from({ length: aantal }, (_, i) => !!waarde[i]);
+  const alles = waarde === true;
+  return Array.from({ length: aantal }, (_, i) => alles && i === 0);
 }
 
 function filterDocForPlayer(doc, dmState, groupId) {
@@ -408,7 +449,9 @@ router.get('/entities/:type', attachRole, (req, res) => {
       ...e,
       links:         _linksMetTekst(e),
       _visibility:   g.visibility[e.id]    || 'hidden',
-      _secretReveal: !!g.secretReveals[e.id],
+      _secretReveal: _onthuld(g.secretReveals[e.id], _tekstLijst(e.data, 'geheimen', 'geheim').length).some(Boolean),
+      _geheimTotaal: _tekstLijst(e.data, 'geheimen', 'geheim').length,
+      _geheimOnthuld: _onthuld(g.secretReveals[e.id], _tekstLijst(e.data, 'geheimen', 'geheim').length).filter(Boolean).length,
       _deceased:     !!(g.deceased?.[e.id]),
       _dmNote:       dmState.dmNotes[e.id]  || '',
       _gockOnderzocht: !!g.gockOnderzocht?.[e.id],
@@ -437,7 +480,10 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
     ...entity,
     links:         _linksMetTekst(entity),
     _visibility:   g.visibility[entity.id]    || 'hidden',
-    _secretReveal: !!g.secretReveals[entity.id],
+    _secretReveal: _onthuld(g.secretReveals[entity.id], _tekstLijst(entity.data, 'geheimen', 'geheim').length).some(Boolean),
+    _geheimTotaal: _tekstLijst(entity.data, 'geheimen', 'geheim').length,
+    _geheimOnthuld: _onthuld(g.secretReveals[entity.id], _tekstLijst(entity.data, 'geheimen', 'geheim').length).filter(Boolean).length,
+    _onthuld: _onthuld(g.secretReveals[entity.id], _tekstLijst(entity.data, 'geheimen', 'geheim').length),
     _deceased:     !!(g.deceased?.[entity.id]),
     _dmNote:       dmState.dmNotes[entity.id]  || '',
   });
@@ -782,29 +828,36 @@ router.post('/entities/:type/:id/shop-reveal', attachRole, (req, res) => {
   res.json({ visibility: 'visible', changed: true });
 });
 
+// Eén geheim onthullen of verbergen. Zonder `index` gaat het over het eerste —
+// dat is precies wat de oude knop deed, dus alles wat die aanroept blijft werken.
 router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
   const { type, id } = req.params;
   const entities = storage.readJSON('entities.json');
   const entity   = (entities[type] || []).find(e => e.id === id);
   const dmState  = readDmState();
   const g        = getGroup(dmState);
-  g.secretReveals[id] = !g.secretReveals[id];
-  // Geheime antagonist: wissel subtype mee bij onthulling
+
+  const geheimen = _tekstLijst(entity?.data, 'geheimen', 'geheim');
+  const aantal   = Math.max(geheimen.length, 1);
+  const index    = Math.min(Math.max(parseInt(req.body?.index, 10) || 0, 0), aantal - 1);
+  const stand    = _onthuld(g.secretReveals[id], aantal);
+  stand[index]   = !stand[index];
+  g.secretReveals[id] = stand;
+
+  const ietsOnthuld = stand.some(Boolean);
+  // Geheime antagonist: wissel subtype mee zodra er iets uit is
   if (entity && entity.data?.geheimeAntagonist === 'true') {
-    if (g.secretReveals[id]) {
-      entity.subtype = 'antagonist';
-    } else {
-      entity.subtype = 'NPC';
-    }
+    entity.subtype = ietsOnthuld ? 'antagonist' : 'NPC';
     storage.writeJSON('entities.json', entities);
   }
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').to(req.session?.campaignId||'main').emit('entity:secret', {
     id, type,
     name:         entity?.name || '',
-    secretReveal: g.secretReveals[id],
+    secretReveal: ietsOnthuld,
+    onthuld:      stand,
   });
-  res.json({ secretReveal: g.secretReveals[id] });
+  res.json({ secretReveal: ietsOnthuld, onthuld: stand });
 });
 
 router.put('/entities/:type/:id/deceased', requireDM, (req, res) => {
@@ -2494,17 +2547,26 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     }
     // 2 roddels per speler onthullen uit de gedeelde pool (personages + locaties)
     const aantal = 2 * spelers.length;
+    // Per regel, niet per personage: iemand met drie roddels levert er drie op,
+    // over drie avonden verspreid, in plaats van één vlaggetje voor alles.
     const pool = [];
     for (const type of ['personages', 'locaties']) {
       (entities[type] || []).forEach(e => {
-        const uitgesproken = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
-        if (e.data?.flavour && !uitgesproken) pool.push({ type, e });
+        const regels = _tekstLijst(e.data, 'flavours', 'flavour');
+        const gezegd = _onthuld(e.data?.flavoursUitgesproken
+          ?? (e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true'), regels.length);
+        regels.forEach((tekst, i) => { if (!gezegd[i]) pool.push({ type, e, i, tekst }); });
       });
     }
     for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-    pool.slice(0, aantal).forEach(({ type, e }) => {
-      e.data.flavourUitgesproken = 'true';
-      roddels.push({ id: e.id, type, name: e.name, flavour: e.data.flavour });
+    pool.slice(0, aantal).forEach(({ type, e, i, tekst }) => {
+      const regels = _tekstLijst(e.data, 'flavours', 'flavour');
+      const gezegd = _onthuld(e.data?.flavoursUitgesproken
+        ?? (e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true'), regels.length);
+      gezegd[i] = true;
+      e.data.flavoursUitgesproken = gezegd;
+      if (gezegd.every(Boolean)) e.data.flavourUitgesproken = 'true';   // oude vlag blijft kloppen
+      roddels.push({ id: e.id, type, name: e.name, flavour: tekst });
       if (io) io.to(req.session?.campaignId||'main').emit('entity:updated', { type, id: e.id });
     });
     if (roddels.length) storage.writeJSON('entities.json', entities);

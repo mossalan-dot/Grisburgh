@@ -22183,3 +22183,45 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   margin-left: 4px; color: #c4a840; font-family: 'Crimson Text', serif;
   font-size: 11px; font-weight: 600; letter-spacing: 0;
 }
+
+/* ── Lijstvelden in de editor (geheimen, flavour) ──────────────────────────── */
+.lijst-veld { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.lijst-regel-rij { display: flex; align-items: flex-start; gap: 6px; }
+.lijst-regel-tekst {
+  flex: 1; padding: 6px 8px; border-radius: 4px;
+  background: var(--color-room-bg); border: 1px solid var(--color-room-border);
+  color: var(--color-ink-bright); font-family: 'Crimson Text', serif; font-size: 14px;
+  resize: vertical;
+}
+.lijst-regel-tekst:focus { border-color: var(--color-gold-dim); outline: none; }
+
+/* Eén geheim per blok, met het oogje ervoor. */
+.geheim-regel { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.geheim-regel .detail-dm-block { flex: 1; }
+.geheim-regel:not(.geheim-regel--onthuld) .detail-dm-block { opacity: .75; }
+.geheim-oog { flex-shrink: 0; margin-top: 2px; }
+.geheim-teller {
+  font-family: 'Crimson Text', serif; font-style: italic; text-transform: none;
+  letter-spacing: 0; opacity: .7; margin-left: 6px; font-size: 11px;
+}
+.card-secret-count { font-size: 9px; margin-left: 2px; font-family: 'Crimson Text', serif; }
+
+/* Kleuren als stippen in plaats van een keuzelijst: in een <select> tekent de
+   browser de kleur van een <option> niet, dus zag je zeven grijze woorden met
+   "kleur" als vinkje ervoor. Zo zie je meteen wát je kiest. */
+.fmt-kleuren { display: flex; align-items: center; gap: 4px; }
+.fmt-kleur-knop {
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--k); border: 1px solid rgba(0,0,0,.35);
+  cursor: pointer; padding: 0; flex-shrink: 0;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.fmt-kleur-knop:hover, .fmt-kleur-knop:focus-visible {
+  transform: scale(1.2); box-shadow: 0 0 0 2px rgba(196,168,64,.35); outline: none;
+}
+/* Markeren: een letter met een markeerstift-achtergrond leest als markeren; het
+   losse blokje ervoor leek een kleurstaal. */
+.fmt-btn-mark {
+  color: #2a1a08 !important; background: #d8c25a !important;
+  font-weight: 700; font-family: 'Cinzel', serif;
+}

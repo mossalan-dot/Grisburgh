@@ -1,5 +1,5 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=262';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=130";
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=263';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=131";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=75";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -12143,20 +12143,18 @@ window._helpStap = (idx) => {
 // Compacte opmaak-werkbalk voor een help-textarea (hergebruikt de globale
 // _fmt/_fmtKleurSelect-helpers en dezelfde markdown als mdToHtml).
 function _helpFmtBar(id) {
-  const kleuren = Object.keys(_FMT_KLEUR_HEX).map(k =>
-    `<option value="${k}" style="background:#1a1410;color:${_FMT_KLEUR_HEX[k]}">${k}</option>`).join('');
+  const hex = _FMT_KLEUR_HEX;
   return `<div class="fmt-toolbar">
     <button type="button" class="fmt-btn fmt-btn-b" title="Vet (Ctrl+B)" onclick="window._fmt('${id}','**')">B</button>
     <button type="button" class="fmt-btn fmt-btn-i" title="Cursief (Ctrl+I)" onclick="window._fmt('${id}','*')">I</button>
     <button type="button" class="fmt-btn fmt-btn-u" title="Onderstreept" onclick="window._fmt('${id}','__')">U</button>
     <button type="button" class="fmt-btn fmt-btn-s" title="Doorhalen" onclick="window._fmt('${id}','~~')">S</button>
-    <button type="button" class="fmt-btn fmt-btn-mark" title="Markering" onclick="window._fmt('${id}','==')">▌</button>
+    <button type="button" class="fmt-btn fmt-btn-mark" title="Markeren" onclick="window._fmt('${id}','==')">A</button>
     <div class="fmt-toolbar-sep"></div>
-    <div class="fmt-kleur-wrap">
-      <select class="fmt-kleur-select" id="fmt-kleur-${id}" onchange="window._fmtKleurSelect('${id}', this)">
-        <option value="">🎨 kleur</option>${kleuren}
-      </select>
-      <span class="fmt-kleur-dot" id="fmt-kleur-dot-${id}"></span>
+    <div class="fmt-kleuren">
+      ${Object.entries(hex).map(([naam, kleur]) =>
+        `<button type="button" class="fmt-kleur-knop" style="--k:${kleur}" title="${naam}"
+          onclick="window._fmtKleur('${id}','${naam}')"></button>`).join('')}
     </div>
   </div>`;
 }

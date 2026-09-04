@@ -187,8 +187,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=441   app.js?v=591   sound-manager.js?v=8
-app.js      : api.js?v=262      render-campagne.js?v=130   render-archief.js?v=75
+index.html  : theme.css?v=442   app.js?v=592   sound-manager.js?v=8
+app.js      : api.js?v=263      render-campagne.js?v=131   render-archief.js?v=75
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=44  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
@@ -666,6 +666,27 @@ wie het pad raadde. Ze staan nu in `bronnen/` (buiten `public/`) en gaan via
 
 Regenereren van de bronbestanden: zie `scripts/srd-2024/` (paden wijzen nu naar
 `bronnen/`).
+
+---
+
+## Geheimen en flavour zijn lijsten
+
+Een NPC heeft zelden één geheim. `data.geheimen` en `data.flavours` zijn
+JSON-arrays; de oude velden `geheim` en `flavour` blijven bestaan als **eerste
+regel**, zodat alles wat al geschreven was blijft staan. Server-helpers:
+`_tekstLijst(data, meervoud, enkelvoud)` en `_onthuld(waarde, aantal)` in
+`routes/api.js`, client-kant `_tekstLijstUit()` in `render-campagne.js`.
+
+- **Onthullen gaat per regel en per party.** `groups[gid].secretReveals[id]` is
+  nu een array van booleans; een oude `true` betekent "de eerste regel is uit".
+  `PUT /entities/:type/:id/secret` neemt een `index` mee (zonder index: de
+  eerste, dus oude aanroepen blijven werken).
+- **Flavour houdt zijn stand op de entiteit** (`data.flavoursUitgesproken`),
+  want dat is campagne-breed: de waard heeft die roddel verteld of niet. De
+  herberg pikt bij een lange rust een régel die nog niet verteld is, niet een
+  personage — iemand met drie roddels levert er dus drie op, over drie avonden.
+- **In beeld:** de kaart toont "1/3" bij meerdere geheimen, het detailvenster
+  geeft de DM een oogje per regel, en de speler ziet alleen wat onthuld is.
 
 ---
 

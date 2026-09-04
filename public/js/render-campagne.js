@@ -1,4 +1,4 @@
-import { api } from './api.js?v=262';
+import { api } from './api.js?v=263';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 const icon = (...a) => window.icon(...a);
@@ -146,8 +146,8 @@ const SCHEMA = {
       { key: 'klasse', label: 'Klasse', type: 'lijst', lijst: 'klassen' },
       { key: 'alignment', label: 'Alignment', type: 'lijst', lijst: 'alignments' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
-      { key: 'geheim', label: 'Geheim', type: 'textarea' },
-      { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
+      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
   },
@@ -157,8 +157,8 @@ const SCHEMA = {
       { key: 'wijk', label: 'Wijk', type: 'text' },
       { key: 'eigenaar', label: 'Eigenaar', type: 'text' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
-      { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
-      { key: 'geheim', label: 'Geheim', type: 'textarea' },
+      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
     ],
   },
   organisaties: {
@@ -477,21 +477,18 @@ window._clearHistory = _clearHistory;
 // op alleen vet en cursief, terwijl `mdToHtml` de rest allang aankan.
 function fmtToolbar(id) {
   const hex = window._FMT_KLEUR_HEX || {};
-  const kleuren = Object.keys(hex).map(k =>
-    `<option value="${k}" style="background:#1a1410;color:${hex[k]}">${k}</option>`).join('');
   return `<div class="fmt-toolbar">
     <button type="button" class="fmt-btn fmt-btn-b" title="Vet (Ctrl+B)" onclick="window._fmt('${id}','**')">B</button>
     <button type="button" class="fmt-btn fmt-btn-i" title="Cursief (Ctrl+I)" onclick="window._fmt('${id}','*')">I</button>
     <button type="button" class="fmt-btn fmt-btn-u" title="Onderstreept" onclick="window._fmt('${id}','__')">U</button>
     <button type="button" class="fmt-btn fmt-btn-s" title="Doorhalen" onclick="window._fmt('${id}','~~')">S</button>
-    <button type="button" class="fmt-btn fmt-btn-mark" title="Markering" onclick="window._fmt('${id}','==')">▌</button>
-    <button type="button" class="fmt-btn" title="Scheidingslijn" onclick="window._fmtHr('${id}')">—</button>
+    <button type="button" class="fmt-btn fmt-btn-mark" title="Markeren" onclick="window._fmt('${id}','==')">A</button>
+    <button type="button" class="fmt-btn fmt-btn-hr" title="Scheidingslijn" onclick="window._fmtHr('${id}')">—</button>
     <div class="fmt-toolbar-sep"></div>
-    <div class="fmt-kleur-wrap">
-      <select class="fmt-kleur-select" id="fmt-kleur-${id}" onchange="window._fmtKleurSelect('${id}', this)">
-        <option value="">kleur</option>${kleuren}
-      </select>
-      <span class="fmt-kleur-dot" id="fmt-kleur-dot-${id}"></span>
+    <div class="fmt-kleuren">
+      ${Object.entries(hex).map(([naam, kleur]) =>
+        `<button type="button" class="fmt-kleur-knop" style="--k:${kleur}" title="${naam}"
+          onclick="window._fmtKleur('${id}','${naam}')"></button>`).join('')}
     </div>
   </div>`;
 }
@@ -508,6 +505,51 @@ function _abilityMod(waarde) {
 window._csModUpdate = (k, waarde) => {
   const el = document.getElementById(`cs-mod-${k}`);
   if (el) el.textContent = _abilityMod(waarde);
+};
+
+// Geheimen en flavour zijn lijsten geworden. Wat er al stond (één tekstveld)
+// blijft de eerste regel; zo raakt niemand iets kwijt.
+function _tekstLijstUit(data, meervoud, enkelvoud) {
+  const rauw = data?.[meervoud];
+  if (rauw) {
+    try {
+      const arr = typeof rauw === 'string' ? JSON.parse(rauw) : rauw;
+      if (Array.isArray(arr)) return arr.map(v => String(v ?? '')).filter(v => v.trim());
+    } catch { /* val terug */ }
+  }
+  const los = String(data?.[enkelvoud] ?? '').trim();
+  return los ? [los] : [];
+}
+window._tekstLijstUit = _tekstLijstUit;
+
+// Eén regel in de editor: tekstvak met opmaakbalk en een prullenbak.
+function _lijstRegelHtml(veld, tekst, i) {
+  const id = `lt-${veld}-${i}`;
+  return `<div class="lijst-regel" data-veld="${veld}">
+    ${fmtToolbar(id)}
+    <div class="lijst-regel-rij">
+      <textarea id="${id}" rows="2" class="lijst-regel-tekst" onkeydown="window._fmtKey(event)"
+        placeholder="Nog een regel\u2026">${esc(tekst)}</textarea>
+      <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
+        title="Regel verwijderen" onclick="window._lijstRegelWeg(this)">${icon('trash')}</button>
+    </div>
+  </div>`;
+}
+
+window._lijstRegelWeg = (knop) => {
+  const regel = knop.closest('.lijst-regel');
+  const host  = regel?.parentElement;
+  regel?.remove();
+  // Nooit helemaal leeg: dan is er geen veld meer om in te typen.
+  if (host && !host.querySelector('.lijst-regel')) window._lijstRegelErbij(host.dataset.veld);
+};
+
+window._lijstRegelErbij = (veld) => {
+  const host = document.getElementById(`lijst-${veld}`);
+  if (!host) return;
+  const i = host.querySelectorAll('.lijst-regel').length + Date.now() % 1000;
+  host.insertAdjacentHTML('beforeend', _lijstRegelHtml(veld, '', i));
+  host.querySelector('.lijst-regel:last-child textarea')?.focus();
 };
 
 export function initCampagne() {}
@@ -971,11 +1013,14 @@ function renderCard(type, e) {
             title="Verwijderen">${icon('x')}</button>
         </div>
       ` : ''}
-      ${e.data?.geheim && (isDM() || e._secretReveal) ? (isDM()
+      ${(e._geheimTotaal || e.data?.geheim) && (isDM() || e._secretReveal) ? (isDM()
         ? `<button class="card-secret-badge${e._secretReveal ? ' card-secret-badge--revealed' : ''}"
-             onclick="event.stopPropagation();window._toggleSecretCard('${type}','${e.id}')"
-             title="${e._secretReveal ? 'Geheim zichtbaar voor spelers — klik om te verbergen' : 'Geheim verborgen voor spelers — klik om te onthullen'}">
-             ${e._secretReveal ? icon('eye') : icon('lock')}</button>`
+             onclick="event.stopPropagation();window._openDetail('${type}','${e.id}')"
+             title="${(e._geheimTotaal || 1) > 1
+               ? `${e._geheimOnthuld || 0} van ${e._geheimTotaal} geheimen onthuld — open het kaartje om te kiezen`
+               : (e._secretReveal ? 'Geheim zichtbaar voor spelers' : 'Geheim verborgen voor spelers')}">
+             ${e._secretReveal ? icon('eye') : icon('lock')}${(e._geheimTotaal || 1) > 1
+               ? `<span class="card-secret-count">${e._geheimOnthuld || 0}/${e._geheimTotaal}</span>` : ''}</button>`
         : `<span class="card-secret-badge card-secret-badge--revealed card-secret-badge--player" title="Geheim onthuld">${icon('eye')}</span>`
       ) : ''}
       <div class="card-accent bar-${type}"></div>
@@ -1398,7 +1443,7 @@ function _refreshEntityImages() {
             oninput="window._updateEntityImageCaption(${i}, this.value)"
             class="w-full mt-0.5 px-1 py-0.5 text-[9px] bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
         </div>`).join('')
-    : '<span class="text-xs text-ink-faint italic">Nog geen</span>';
+    : '';   // leeg is leeg; de knop eronder zegt al wat je kunt doen
 }
 
 // ── Detail view ──
@@ -1634,36 +1679,55 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   }
 
   // Flavour scroll (parchment scroll — zichtbaar voor spelers als uitgesproken, altijd voor DM)
-  const flavourVal = e.data?.flavour;
-  const flavourUitgespr = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
+  const flavourRegels = _tekstLijstUit(e.data, 'flavours', 'flavour');
+  const _gezegd = (() => {
+    const rauw = e.data?.flavoursUitgesproken;
+    if (Array.isArray(rauw)) return flavourRegels.map((_, i) => !!rauw[i]);
+    const alles = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
+    return flavourRegels.map((_, i) => alles && i === 0);
+  })();
   const _audioId   = e.data?.audioId || '';
-  const flavourZichtbaar = isDM() || flavourUitgespr;
-  if ((flavourVal && flavourZichtbaar) || (isDM() && !flavourVal && _audioId)) {
+  const zichtbareFlavours = flavourRegels.map((tekst, i) => ({ tekst, i, gezegd: _gezegd[i] }))
+    .filter(r => isDM() || r.gezegd);
+  if (zichtbareFlavours.length || (isDM() && !flavourRegels.length && _audioId)) {
     infoHtml += `<div class="detail-divider">— ✦ —</div>`;
-    if (flavourVal && flavourZichtbaar) {
-      infoHtml += `
-        <div class="flavour-scroll${isDM() && !flavourUitgespr ? ' flavour-scroll--ongespoken' : ''}">
+    // Elke roddel een eigen rol perkament; wat de waard nog niet verteld heeft
+    // ziet de DM lichter.
+    infoHtml += zichtbareFlavours.map(({ tekst, gezegd }, n) => `
+        <div class="flavour-scroll${isDM() && !gezegd ? ' flavour-scroll--ongespoken' : ''}">
           <div class="flavour-scroll-rod"></div>
           <div class="flavour-scroll-content">
-            <p class="flavour-text">\u201e${esc(flavourVal)}\u201c</p>
-            ${_audioId ? `
+            <p class="flavour-text">\u201e${esc(tekst)}\u201c</p>
+            ${(_audioId && n === 0) ? `
               <div class="flavour-audio-wrap">
                 <button type="button" class="flavour-audio-play" data-audio-btn data-audio-btn-id="${esc(_audioId)}"
                   onclick="window._audioToggle('${esc(_audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>
               </div>` : ''}
           </div>
           <div class="flavour-scroll-rod"></div>
-        </div>`;
-    }
+        </div>`).join('');
   }
 
-  // Geheim field
-  const geheimVal = e.data?.geheim;
-  if (geheimVal && (isDM() || e._secretReveal)) {
+  // Geheimen: één blok per regel. De DM ziet ze allemaal met een oogje ernaast
+  // om die ene vrij te geven; de speler ziet alleen wat onthuld is.
+  const geheimRegels = _tekstLijstUit(e.data, 'geheimen', 'geheim');
+  const _geheimOnthuld = Array.isArray(e._onthuld)
+    ? geheimRegels.map((_, i) => !!e._onthuld[i])
+    : geheimRegels.map((_, i) => !!e._secretReveal && i === 0);
+  const zichtbareGeheimen = geheimRegels.map((tekst, i) => ({ tekst, i, onthuld: _geheimOnthuld[i] }))
+    .filter(r => isDM() || r.onthuld);
+  if (zichtbareGeheimen.length) {
     infoHtml += `
       <div class="mb-4">
-        <div class="detail-field-label detail-field-label--secret">\ud83d\udd12 Geheim</div>
-        <div class="detail-dm-block detail-dm-block--secret">${mdToHtml(geheimVal)}</div>
+        <div class="detail-field-label detail-field-label--secret">\ud83d\udd12 ${zichtbareGeheimen.length > 1 ? 'Geheimen' : 'Geheim'}${
+          isDM() && geheimRegels.length > 1 ? ` <span class="geheim-teller">${_geheimOnthuld.filter(Boolean).length} van ${geheimRegels.length} onthuld</span>` : ''}</div>
+        ${zichtbareGeheimen.map(({ tekst, i, onthuld }) => `
+          <div class="geheim-regel${onthuld ? ' geheim-regel--onthuld' : ''}">
+            ${isDM() ? `<button class="dm-btn dm-btn-icon dm-btn-sm geheim-oog${onthuld ? ' dm-btn--active' : ''}"
+              title="${onthuld ? 'Weer verbergen voor spelers' : 'Aan de spelers onthullen'}"
+              onclick="window._toggleSecret('${tab}','${e.id}',${i})">${onthuld ? icon('eye') : icon('lock')}</button>` : ''}
+            <div class="detail-dm-block detail-dm-block--secret">${mdToHtml(tekst)}</div>
+          </div>`).join('')}
       </div>
     `;
   }
@@ -2514,8 +2578,8 @@ function _secretToast(revealed) {
   setTimeout(() => { toast.classList.remove('bookmark-toast--visible'); setTimeout(() => toast.remove(), 300); }, 2500);
 }
 
-window._toggleSecret = async (tab, id) => {
-  const res = await api.toggleSecret(tab, id);
+window._toggleSecret = async (tab, id, index = 0) => {
+  const res = await api.toggleSecret(tab, id, index);
   _secretToast(res.secretReveal);
   window._openDetail(tab, id);
 };
@@ -2949,8 +3013,8 @@ window._openEditor = async (tab, editId) => {
       <div>
         <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Extra afbeeldingen</div>
         <div id="entity-img-preview" class="editor-img-grid mb-2"></div>
-        <label class="flex items-center gap-2 px-2 py-1.5 bg-room-elevated border border-room-border rounded cursor-pointer hover:border-gold-dim transition text-sm text-ink-dim w-full">
-          ${icon('image')} <span>Afbeeldingen toevoegen</span>
+        <label class="dm-btn dm-btn-ghost dm-btn-sm" style="cursor:pointer" title="Meerdere tegelijk mag">
+          ${icon('image')} Afbeeldingen toevoegen
           <input type="file" accept="image/*" multiple class="hidden" onchange="window._addEntityImages(this.files)">
         </label>
       </div>
@@ -3105,6 +3169,19 @@ window._openEditor = async (tab, editId) => {
             <option value="">—</option>
             ${field.options.map(o => typeof o === 'object' ? `<option value="${o.value}" ${val === o.value ? 'selected' : ''}>${o.label}</option>` : `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
           </select>
+        </div>
+      `;
+    } else if (field.type === 'lijst-tekst') {
+      const regels = _tekstLijstUit(e?.data, field.key, field.enkelvoud);
+      if (!regels.length) regels.push('');
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <div id="lijst-${field.key}" class="lijst-veld" data-veld="${field.key}">
+            ${regels.map((t, i) => _lijstRegelHtml(field.key, t, i)).join('')}
+          </div>
+          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
+            onclick="window._lijstRegelErbij('${field.key}')">${icon('plus')} Regel toevoegen</button>
         </div>
       `;
     } else if (field.type === 'lijst') {
@@ -3770,6 +3847,15 @@ window._openEditor = async (tab, editId) => {
     if (tab === 'personages' || tab === 'locaties') {
       const validItems = _voorraadItems.filter(i => i.naam || i.prijs);
       data.voorraad = validItems.length > 0 ? JSON.stringify(validItems) : '';
+    }
+    // Lijstvelden (geheimen, flavours) serialiseren. Het oude enkelvoudige veld
+    // houden we bij als eerste regel, want de Gock en oudere weergaven lezen dat.
+    for (const veld of (SCHEMA[tab]?.fields || []).filter(f => f.type === 'lijst-tekst')) {
+      const host = document.getElementById(`lijst-${veld.key}`);
+      if (!host) continue;
+      const regels = [...host.querySelectorAll('textarea')].map(t => t.value.trim()).filter(Boolean);
+      data[veld.key] = regels.length ? JSON.stringify(regels) : '';
+      data[veld.enkelvoud] = regels[0] || '';
     }
     // Extra afbeeldingen serialiseren
     data.extraImages = entityEditorImages.length > 0

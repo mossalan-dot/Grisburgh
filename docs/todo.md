@@ -52,10 +52,11 @@ groot het is.
 
 - [x] **Ras, klasse en alignment als keuzelijst** *(5 sep)* — zoekbaar, met vrije
       invoer; lijsten in `bronnen/volken-klassen.json`.
-- [ ] **Meerdere geheimen per kaartje** — lijst van `{tekst, onthuld}`, per regel
-      te onthullen, badge wordt "1 van 3".
-- [ ] **Flavour op dezelfde manier** — meerdere regels, per stuk vrij te geven;
-      de herberg pikt er dan één op die nog niet verteld is.
+- [x] **Meerdere geheimen per kaartje** *(5 sep)* — lijst in `data.geheimen`, per
+      regel te onthullen, badge toont "1/3".
+- [x] **Flavour op dezelfde manier** *(5 sep)* — `data.flavours`, en de herberg
+      pikt per avond een regel die nog niet verteld is in plaats van één vlag per
+      personage.
 - [ ] **Subtypes opsplitsen** — `subtype` = wat het is (persoon, dier, god), de
       rest wordt tags (verkoper, questgever, antagonist, medestander, summon,
       rijdier, huurling, gevangene) plus een veld *kant in gevecht*
