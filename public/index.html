@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=418">
+  <link rel="stylesheet" href="/css/theme.css?v=419">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -279,6 +279,10 @@
           <!-- Export tab -->
           <div class="dm-tab-content" data-tab="export">
             <div id="dm-export-content"></div>
+          </div>
+          <!-- Instellingen tab — was een modal; nu een tab als alle andere -->
+          <div class="dm-tab-content" data-tab="instellingen">
+            <div id="dm-instellingen-body" class="dm-instellingen-body"></div>
           </div>
           <!-- Wereld tab -->
           <div class="dm-tab-content" data-tab="wereld"></div>
@@ -546,15 +550,6 @@
   </div>
 
   <!-- DM Instellingen modal -->
-  <div id="dm-instellingen-overlay" class="dm-instellingen-overlay hidden" onclick="if(event.target===this)window._dmInstellingenClose()">
-    <div class="dm-instellingen-modal" onclick="event.stopPropagation()">
-      <div class="dm-instellingen-head">
-        <span class="dm-instellingen-title"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-settings"/></svg> Instellingen</span>
-        <button class="dm-instellingen-close" onclick="window._dmInstellingenClose()" title="Sluiten">×</button>
-      </div>
-      <div id="dm-instellingen-body" class="dm-instellingen-body"></div>
-    </div>
-  </div>
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
   <script type="module" src="/js/app.js?v=575"></script>

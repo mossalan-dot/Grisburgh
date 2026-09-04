@@ -593,7 +593,8 @@ function _buildTabs() {
   // Instellingen staat bovenaan, niet onderaan: onderin overlapt hij met de
   // regie-balk zodra er een akte actief is.
   container.innerHTML = `
-    <button class="dm-tab-btn dm-tab-btn--settings" onclick="window._dmInstellingenOpen()" title="Instellingen">${icon('settings')}</button>`
+    <button class="dm-tab-btn dm-tab-btn--settings${activeParent === 'instellingen' ? ' active' : ''}" data-tab="instellingen"
+      onclick="window.dmPanel.switchTab('instellingen')" title="Instellingen">${icon('settings')}</button>`
     + _zichtbareTabs.map((t, i) => `
     ${i > 0 && t.groep !== _zichtbareTabs[i - 1].groep ? '<span class="dm-tab-sep" aria-hidden="true"></span>' : ''}
     <button class="dm-tab-btn${activeParent === t.id ? ' active' : ''}" data-tab="${t.id}"
@@ -631,6 +632,7 @@ function _switchTab(tab) {
   if (tab === 'geluiden')  _renderGeluiden();
   if (tab === 'berichten') _renderBerichten();
   if (tab === 'media')     _renderMedia();
+  if (tab === 'instellingen') _renderInstellingen();
   if (tab === 'gevecht' || tab === 'monsters' || tab === 'encounters') _renderGevechtEnMonsters(tab);
   if (tab === 'diensten' || _DIENSTEN_TABS.has(tab)) _renderDiensten(tab);
 };
@@ -9445,19 +9447,12 @@ async function _sjabloonDelete(index) {
   _renderBerichten();
 };
 
-// ── DM Instellingen modal ─────────────────────────────────────────────────────
-
-window._dmInstellingenOpen = () => {
-  const overlay = document.getElementById('dm-instellingen-overlay');
-  if (!overlay) return;
-  overlay.classList.remove('hidden');
-  _renderInstellingen();
-};
-
-window._dmInstellingenClose = () => {
-  const overlay = document.getElementById('dm-instellingen-overlay');
-  if (overlay) overlay.classList.add('hidden');
-};
+// ── DM Instellingen ───────────────────────────────────────────────────────────
+// Was een modal boven de Meesterkamer; nu een tab als alle andere, zodat je er
+// niet uit hoeft te klikken om iets anders te bekijken. De oude naam blijft
+// bestaan voor wie hem nog aanroept.
+window._dmInstellingenOpen = () => _switchTab('instellingen');
+window._dmInstellingenClose = () => {};
 
 // Zet één speler op aanwezig/afwezig voor deze sessie. We sturen de hele lijst
 // mee (niet één wijziging), zodat er geen samenvoeg-gedoe op de server nodig is.
@@ -9599,6 +9594,7 @@ async function _renderInstellingen() {
   const _munt = meta.currency || window._muntNamen();
 
   body.innerHTML = `
+    ${_dmTabHead({ icon: 'settings', title: 'Instellingen', sub: 'campagne, party\'s en beheer' })}
     <!-- Campagnetitel -->
     <div class="dm-feature-section">
       <div class="dm-section-label">Campagnetitel</div>

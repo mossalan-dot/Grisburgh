@@ -4480,61 +4480,9 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-subtab-btn:hover:not(.active) { color: var(--color-ink-medium, #5a4030); }
 
 /* ── DM Instellingen modal ── */
-.dm-instellingen-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(20,15,8,0.6);
-  z-index: 300;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  backdrop-filter: blur(2px);
-}
-.dm-instellingen-overlay.hidden { display: none; }
-.dm-instellingen-modal {
-  background: #f8f0de;
-  border: 1px solid #c4a87a;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 560px;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 8px 40px rgba(40,20,5,0.4);
-  overflow: hidden;
-}
-.dm-instellingen-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px 12px;
-  background: linear-gradient(to bottom, #ede0b8, #f8f0de);
-  border-bottom: 1px solid #c4a87a;
-  flex-shrink: 0;
-}
-.dm-instellingen-title {
-  font-family: 'Cinzel', serif;
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #5a4010;
-}
-.dm-instellingen-close {
-  width: 28px; height: 28px;
-  font-size: 22px; color: #8a7050;
-  background: none; border: none; cursor: pointer;
-  border-radius: 4px;
-  display: flex; align-items: center; justify-content: center;
-  transition: color 0.15s, background 0.15s;
-}
-.dm-instellingen-close:hover { color: #2a1a08; background: rgba(60,40,10,0.07); }
-.dm-instellingen-body {
-  overflow-y: auto;
-  flex: 1;
-  padding: 0 0 16px;
-}
+/* Instellingen is een tab, geen venster meer: geen eigen scrollbalk en geen
+   max-hoogte, anders krijg je een kader in een kader. */
+.dm-instellingen-body { padding: 0 0 16px; }
 .dm-inst-group-row {
   display: flex;
   gap: 8px;
