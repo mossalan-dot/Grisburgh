@@ -136,8 +136,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=410   app.js?v=562   sound-manager.js?v=8
-app.js      : api.js?v=252      render-campagne.js?v=123   render-archief.js?v=73
+index.html  : theme.css?v=410   app.js?v=563   sound-manager.js?v=8
+app.js      : api.js?v=252      render-campagne.js?v=124   render-archief.js?v=73
               render-kaart.js?v=18  render-dungeon.js?v=32  render-relatiemap.js?v=21
               render-progressie.js?v=43  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
@@ -300,6 +300,19 @@ dm-panel.js : combat-canvas.js?v=21   render-statblock.js?v=3
 > geldt de instelling van de laatst gespeelde akte — `activeAkte` wordt nooit
 > leeggemaakt. Client: `window._dienstDicht(key)` en `window._entiteitDicht(id)`;
 > de DM ziet altijd alles.
+
+> **Filmpje bij een personage.** Het bestand heet `<entityId>_video`; daar kijkt
+> `routes/auth.js` rechtstreeks naar (het veld `data.portraitVideoId` bleek ooit
+> onbetrouwbaar). Het speelt op de **landingspagina** tijdens het inzoomen op een
+> portret, en in het spelersdashboard bij een klik op het portret. Uploaden gaat
+> nu via de personage-editor (sectie *Filmpje*, alleen bij een bestaand kaartje).
+> **Er is geen ffmpeg** — niet lokaal en niet op de server — dus knippen of
+> hercoderen kan niet: te groot (>8 MB) weigeren we vóór het uploaden, en te lang
+> laten we toe maar het **afspelen** stopt na 6 seconden
+> (`LANDING_VIDEO_MAX_SEC` in `app.js`). De duur wordt vóór het uploaden in de
+> browser gemeten met een `<video>`-element, dus er gaat niets onnodig over de
+> lijn. In het dashboard speelt het filmpje wél helemaal uit: daar klikt de
+> speler er zelf op.
 
 > **Spelers geven elkaar voorwerpen.** `POST /items/:itemId/geef` met
 > `{targetId}` — **direct**, zonder tussenkomst van de DM: aan tafel schuif je een

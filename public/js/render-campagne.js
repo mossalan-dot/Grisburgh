@@ -2626,6 +2626,78 @@ window._editorPickImage = () => {
   });
 };
 
+// ── Filmpje bij een personage ───────────────────────────────────────────────
+// Het bestand heet <entityId>_video; daar kijkt de landingspagina rechtstreeks
+// naar (routes/auth.js). Er is geen ffmpeg op de server, dus we kunnen niet
+// knippen of hercoderen: te groot weigeren we, te lang laten we toe maar het
+// afspelen stopt vanzelf na MAX_VIDEO_SEC.
+const MAX_VIDEO_MB  = 8;
+const MAX_VIDEO_SEC = 6;
+
+// Duur uitlezen zonder te uploaden: de browser kan dat zelf.
+function _videoDuur(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(v.duration || 0); };
+    v.onerror = () => { URL.revokeObjectURL(url); resolve(0); };
+    v.src = url;
+  });
+}
+
+window._charVideoStatus = async (entityId) => {
+  const el = document.getElementById('editor-video-status');
+  const del = document.getElementById('editor-video-del');
+  if (!el) return;
+  try {
+    const r = await fetch(`/api/files/${encodeURIComponent(entityId)}_video`, { method: 'HEAD' });
+    if (r.ok) {
+      const mb = (+r.headers.get('content-length') || 0) / 1048576;
+      el.textContent = `Er staat een filmpje klaar${mb ? ` (${mb.toFixed(1)} MB)` : ''}.`;
+      del?.classList.remove('hidden');
+    } else {
+      el.textContent = 'Nog geen filmpje.';
+      del?.classList.add('hidden');
+    }
+  } catch { el.textContent = 'Nog geen filmpje.'; }
+};
+
+window._uploadCharVideo = async (entityId, file, invoer) => {
+  if (!file) return;
+  const el = document.getElementById('editor-video-status');
+  if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+    alert(`Dit filmpje is ${(file.size / 1048576).toFixed(1)} MB. Maximaal ${MAX_VIDEO_MB} MB — maak het korter of exporteer het kleiner.`);
+    if (invoer) invoer.value = '';
+    return;
+  }
+  const duur = await _videoDuur(file);
+  if (el) el.textContent = 'Uploaden…';
+  try {
+    await api.uploadFile(`${entityId}_video`, file);
+    if (el) {
+      el.textContent = duur > MAX_VIDEO_SEC + 0.2
+        ? `Klaar — het filmpje duurt ${duur.toFixed(1)} s en stopt vanzelf na ${MAX_VIDEO_SEC} s.`
+        : `Klaar — ${duur ? `${duur.toFixed(1)} s` : 'geüpload'}.`;
+    }
+    document.getElementById('editor-video-del')?.classList.remove('hidden');
+  } catch (err) {
+    if (el) el.textContent = '';
+    alert('Uploaden mislukt: ' + (err.message || err));
+  }
+  if (invoer) invoer.value = '';
+};
+
+window._removeCharVideo = async (entityId) => {
+  if (!confirm('Het filmpje van dit personage verwijderen?')) return;
+  try {
+    await api.deleteFile(`${entityId}_video`);
+    const el = document.getElementById('editor-video-status');
+    if (el) el.textContent = 'Nog geen filmpje.';
+    document.getElementById('editor-video-del')?.classList.add('hidden');
+  } catch (err) { alert('Verwijderen mislukt: ' + (err.message || err)); }
+};
+
 window._uploadFile = async (tab, id, file) => {
   if (!file) return;
   if (file.size > 10 * 1024 * 1024) return alert('Max 10MB');
@@ -2834,6 +2906,21 @@ window._openEditor = async (tab, editId) => {
           <input type="file" accept="image/*" multiple class="hidden" onchange="window._addEntityImages(this.files)">
         </label>
       </div>
+      ${e?.id ? `
+      <div>
+        <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Filmpje</div>
+        <p class="text-[10px] text-ink-dim mb-1">Speelt op de landingspagina terwijl er op dit portret wordt ingezoomd. Maximaal 8 MB; langer dan 6 seconden mag, maar stopt dan vanzelf.</p>
+        <div id="editor-video-status" class="text-xs text-ink-faint italic mb-1">Controleren…</div>
+        <div class="flex items-center gap-2">
+          <label class="inline-flex items-center gap-1 px-2 py-1 bg-room-elevated border border-room-border rounded text-ink-dim text-xs hover:text-ink-bright cursor-pointer transition">
+            ${icon('camera')} Filmpje kiezen
+            <input type="file" accept="video/mp4,video/webm" class="hidden"
+              onchange="window._uploadCharVideo('${esc(e.id)}', this.files[0], this)">
+          </label>
+          <button type="button" id="editor-video-del" class="dm-btn dm-btn-ghost dm-btn-sm hidden"
+            onclick="window._removeCharVideo('${esc(e.id)}')" title="Filmpje verwijderen">${icon('trash')}</button>
+        </div>
+      </div>` : ''}
     `;
   }
   body += `</div>`; // end editor-col-left
@@ -3347,6 +3434,9 @@ window._openEditor = async (tab, editId) => {
 
   // Huisdier-tier-editor vullen (no-op als de sectie er niet is)
   window._renderPetTiers();
+
+  // Staat er al een filmpje bij dit personage? (no-op zonder die sectie)
+  if (e?.id) window._charVideoStatus(e.id);
 
   // ── CS tab switcher ──
   window._csTab = (name) => {

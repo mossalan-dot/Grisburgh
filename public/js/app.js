@@ -1,5 +1,5 @@
 import { api } from './api.js?v=252';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=123";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=124";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=73";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=18';
 import { renderDungeon } from './render-dungeon.js?v=32';
@@ -1178,6 +1178,9 @@ async function _landingStartZoom(charId, portraitEl, hasVideo = false) {
   }));
 
   // 5. Wachten tot de video klaar is, of fallback als er geen video is
+  // Een langer filmpje mag, maar we tonen er hooguit een paar seconden van:
+  // het speelt tijdens het inzoomen en dat duurt niet langer.
+  const LANDING_VIDEO_MAX_SEC = 6;
   const vid = document.getElementById('landing-zoom-video');
   await new Promise(resolve => {
     const cap = setTimeout(resolve, 12_000); // 12s harde grens
@@ -1185,6 +1188,16 @@ async function _landingStartZoom(charId, portraitEl, hasVideo = false) {
     if (!vid) { clearTimeout(cap); setTimeout(resolve, 1000); return; }
 
     vid.addEventListener('ended', () => { clearTimeout(cap); resolve(); });
+
+    // Duurt het filmpje langer dan we willen tonen, stop het dan zelf. Zonder
+    // ffmpeg kunnen we het bestand niet inkorten, dus begrenzen we het afspelen.
+    vid.addEventListener('timeupdate', () => {
+      if (vid.currentTime >= LANDING_VIDEO_MAX_SEC) {
+        vid.pause();
+        clearTimeout(cap);
+        resolve();
+      }
+    });
 
     // Geen video-bestand: 'error' vuurt snel → korte pauze dan verder
     vid.addEventListener('error', () => {
