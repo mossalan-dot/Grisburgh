@@ -22099,11 +22099,15 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
    en met de weg terug. Daar zakt hij daarom in de flow: knop rechts, en het
    geopende veld over de volle breedte eronder. */
 @media (max-width: 640px) {
+  /* De overlay is een flexrij; een statische ingang werd daardoor een kolom
+     naast de portretten en perste zichzelf tot twee regels. Met wrap krijgt hij
+     een eigen regel bovenaan. */
+  .landing-overlay { flex-wrap: wrap; align-content: center; }
   .landing-toegang {
-    position: static; align-items: stretch;
-    margin: 26px 0 -8px; padding: 0 4px;
+    position: static; order: -1; flex: 0 0 100%;
+    align-items: stretch; margin: 18px 0 6px; padding: 0 4px;
   }
-  .landing-toegang-knop { align-self: flex-end; }
+  .landing-toegang-knop { align-self: flex-end; white-space: nowrap; }
   .landing-toegang-form { align-items: stretch; }
   .landing-pw-input--dm { width: 100%; text-align: center; }
   .landing-toegang .landing-pw-error { text-align: right; }
