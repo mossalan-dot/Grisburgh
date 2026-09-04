@@ -9571,7 +9571,7 @@ async function _renderInstellingen() {
     if (!leden.length) return '';
     const weg = new Set(g.afwezig || []);
     return `<div class="dm-inst-aanwezig">
-      <span class="dm-inst-aanwezig-label">${icon('users')} Momenteel actief</span>
+      <span class="dm-inst-aanwezig-label" title="Wie er vanavond meespeelt. Bepaalt wie meedoet bij rust, loot en het vullen van een gevecht — niet welke party actief is.">${icon('users')} Actieve spelers</span>
       ${leden.map(e => `
         <button type="button" class="dm-aanwezig-chip${weg.has(e.id) ? ' dm-aanwezig-chip--weg' : ''}"
           onclick="window.dmPanel.aanwezigheidToggle('${esc(g.id)}','${esc(e.id)}')"

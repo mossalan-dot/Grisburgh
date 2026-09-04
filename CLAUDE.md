@@ -192,7 +192,7 @@ app.js      : api.js?v=262      render-campagne.js?v=128   render-archief.js?v=7
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=44  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=188    render-dashboard.js?v=9
+              dm-panel.js?v=189    render-dashboard.js?v=9
               render-spreuken.js?v=14   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 ```
@@ -334,7 +334,8 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 > **Aanwezigheid per sessie.** `groups[gid].afwezig` is de lijst met spelers die
 > **niet** meedoen (afwezigen bewaren, niet aanwezigen: dan doet een nieuw
 > personage automatisch mee). In te stellen bij Instellingen → Party's
-> ("Momenteel actief"). Server-helper `_aanwezigeSpelers()`; client houdt
+> ("Actieve spelers" — bewust niet "momenteel actief", dat las als de
+> actieve *party*). Server-helper `_aanwezigeSpelers()`; client houdt
 > `window._groepAfwezig` bij in `renderGroupSwitcher`. Van kracht bij lange/korte
 > rust, lootdeelnemers en het automatisch vullen van een gevecht — **niet** bij
 > wat de hele party betreft (character sheets, berichten, factieboons).
