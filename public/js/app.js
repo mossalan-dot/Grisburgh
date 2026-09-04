@@ -1163,16 +1163,16 @@ async function _landingPortraitClick(charId, portraitEl) {
 
 function _landingShowPasswordPrompt(charId, portraitEl, hasVideo = false) {
   document.getElementById('landing-pw-prompt')?.remove();
-  // "Wachtwoord voor 2…" las als een raadsel: 2 is de naam van de party. Zeg dat
-  // er dan ook bij, en verberg intussen de DM-ingang — twee wachtwoordvelden
-  // onder elkaar is één te veel.
-  const groepNaam = portraitEl.dataset.groepNaam || '';
+  // Gewoon "Wachtwoord…": je hebt net een portret gekozen, dus welk wachtwoord
+  // het is spreekt voor zich. De partynaam erbij zetten maakte het alleen langer
+  // (en liep bij een lange naam uit het veld). Intussen verdwijnt de DM-ingang —
+  // twee wachtwoordvelden onder elkaar is er één te veel.
   const prompt = document.createElement('div');
   prompt.id = 'landing-pw-prompt';
   prompt.className = 'landing-pw-prompt';
   prompt.innerHTML = `
     <input id="landing-pw-input" type="password" class="landing-pw-input"
-      placeholder="${groepNaam ? `Wachtwoord van party ${esc(groepNaam)}…` : 'Wachtwoord van je party…'}" autocomplete="current-password">
+      placeholder="Wachtwoord…" autocomplete="current-password">
     <div id="landing-pw-error" class="landing-pw-error hidden">Verkeerd wachtwoord</div>
     <div class="landing-pw-actions">
       <button class="landing-pw-cancel" id="landing-pw-cancel">Annuleren</button>
