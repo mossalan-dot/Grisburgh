@@ -34,13 +34,25 @@ window._muntNamen = () => window._currency || window.app?.state?.meta?.currency 
 window._campagneNaam = () => window.app?.state?.meta?.appTitle || 'de campagne';
 
 // ── Display mode detectie (iPad kiosk) ──
-{
-  const _p = new URLSearchParams(location.search);
-  if (_p.get('display') === '1') localStorage.setItem('displayMode', '1');
-  else if (_p.get('display') === '0') localStorage.removeItem('displayMode');
-}
+// `?display=1` zette elk bezoekend scherm meteen in tabletmodus, ook zonder
+// inloggen — en omdat het in localStorage belandt, blijft dat scherm er daarna
+// in hangen. Sinds tabletmodus geen eigen wachtwoord meer heeft, hoort de vraag
+// bij een sessie: de DM zet dít scherm om. De vlag wordt daarom pas ingelost in
+// init(), zodra bekend is wie er kijkt. Een scherm dat al is omgezet blijft
+// gewoon tabletmodus houden.
+const _displayGevraagd = new URLSearchParams(location.search).get('display');
+if (_displayGevraagd === '0') localStorage.removeItem('displayMode');
 window._isDisplayMode = localStorage.getItem('displayMode') === '1';
 if (window._isDisplayMode) document.body.classList.add('display-mode');
+
+// Zet dit scherm alsnog om, nu de rol bekend is.
+function _displayModeInlossen() {
+  if (window._isDisplayMode || _displayGevraagd !== '1') return;
+  if (state.role !== 'dm' && !state.characterId) return;   // niemand ingelogd: geen kiosk
+  try { localStorage.setItem('displayMode', '1'); } catch { /* privémodus */ }
+  window._isDisplayMode = true;
+  document.body.classList.add('display-mode');
+}
 
 // ── App State ──
 const state = {
@@ -9475,6 +9487,7 @@ async function init() {
   switchSection(startSection === 'mijn-karakter' && !state.playerName ? 'personages' : startSection);
 
   // iPad kiosk-modus: sla landingspagina over, toon display canvas
+  _displayModeInlossen();
   if (window._isDisplayMode) {
     _initDisplayMode();
   } else if (state.role === 'player' && state.playerName && state.characterId) {

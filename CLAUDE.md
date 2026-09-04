@@ -187,7 +187,7 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=422   app.js?v=577   sound-manager.js?v=8
+index.html  : theme.css?v=422   app.js?v=578   sound-manager.js?v=8
 app.js      : api.js?v=260      render-campagne.js?v=128   render-archief.js?v=75
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=44  socket-client.js?v=59
@@ -598,7 +598,12 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
   niet twee keer intikt). Dat veld staat op de landingspagina in plaats van de
   knoppen *Dungeon Master* en *Tablet*.
 - **Tabletmodus** heeft geen eigen wachtwoord meer: je logt in als DM en zet dít
-  scherm om via Instellingen → Tafelscherm. Zo hoeft er niets getypt te worden op
+  scherm om via Instellingen → Tafelscherm. **`?display=1` doet dat alleen voor
+  wie is ingelogd** (DM of speler): zonder sessie werd elk bezoekend scherm
+  anders meteen een kiosk, en omdat de vlag in `localStorage` belandt bleef het
+  dat ook. Een scherm dat al is omgezet houdt tabletmodus; `?display=0` haalt
+  het eraf. De inlossing gebeurt in `_displayModeInlossen()` in `init()`, dus
+  ná het ophalen van de rol. Zo hoeft er niets getypt te worden op
   een scherm dat op tafel ligt. `/api/auth/tablet-login` bestaat nog (en zet nu
   wél een `campaignId`), maar de knop ernaartoe is weg.
 - **DM:** POST `/api/auth/login` met `{ campagne, password }` → sessie krijgt `role: 'dm'` + `campaignId`
