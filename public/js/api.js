@@ -152,6 +152,7 @@ export const api = {
   getSounds:      ()            => request('/sounds'),
   revealSound:    (data)        => request('/sounds/reveal', { method: 'POST', body: JSON.stringify(data) }),
   saveAppMeta: (data) => request('/meta/app', { method: 'PUT', body: JSON.stringify(data) }),
+  verhuisInfo: (charId) => request(`/characters/${charId}/verhuis-info`),
   setSpreukTekst: (index, desc) => request(`/bron/spreuk/${encodeURIComponent(index)}`, { method: 'PUT', body: JSON.stringify({ desc }) }),
   saveHerberg: (data) => request('/meta/herberg', { method: 'PUT', body: JSON.stringify(data) }),
   saveRust:    (data) => request('/meta/rust',    { method: 'PUT', body: JSON.stringify(data) }),

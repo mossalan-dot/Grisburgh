@@ -22003,13 +22003,15 @@ body.kaart-fs-active { overflow: hidden; }
 body.boot { background: #0c0805 !important; }
 body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
 
-/* Terug naar de campagnekeuze, onder het wachtwoordveld. */
+/* Terug naar de campagnekeuze. Linksboven, waar een weg-terug hoort — naast het
+   wachtwoordveld stond hij in de weg van de enige handeling die telt. */
 .landing-terug {
-  display: inline-block; margin-top: 18px;
+  position: absolute; top: 20px; left: 24px; z-index: 2;
   font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: .12em;
   text-transform: uppercase; color: rgba(220,195,145,.45);
   text-decoration: none; transition: color .18s ease;
 }
+@media (max-width: 520px) { .landing-terug { top: 14px; left: 14px; font-size: 11px; } }
 .landing-terug:hover, .landing-terug:focus-visible { color: #c4a840; outline: none; }
 
 /* Embleem-kiezer in Instellingen (licht perkament → donkere tekst). */

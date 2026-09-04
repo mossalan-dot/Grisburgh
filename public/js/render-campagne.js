@@ -1,4 +1,4 @@
-import { api } from './api.js?v=259';
+import { api } from './api.js?v=260';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 const icon = (...a) => window.icon(...a);
@@ -3719,6 +3719,33 @@ window._openEditor = async (tab, editId) => {
     // Huisdier-tiers meesturen (alleen relevant bij subtype 'dier')
     if (tab === 'personages' && payload.subtype === 'dier') {
       payload.statblockTiers = _petTiersCollect().filter(t => t.label || t.minLevel != null || Object.keys(t.statblock || {}).some(k => k !== 'alignment'));
+    }
+    // Verhuist een speler naar een andere party? Dan blijft daar meer achter dan
+    // het ene veld doet vermoeden: voorwerpkaartjes horen bij de party, niet bij
+    // het personage. Zie de valkuil in CLAUDE.md.
+    if (tab === 'personages' && editId && payload.subtype === 'speler') {
+      const oudeGroep = e?.data?.groep || '';
+      const nieuweGroep = data.groep || '';
+      if (oudeGroep && nieuweGroep !== oudeGroep) {
+        let info = { groepNaam: '', voorwerpen: 0 };
+        try { info = await api.verhuisInfo(editId); } catch { /* dan maar zonder aantallen */ }
+        const naar = _editorGroups.find(g => g.id === nieuweGroep)?.name || 'geen party';
+        const van  = info.groepNaam || _editorGroups.find(g => g.id === oudeGroep)?.name || 'de oude party';
+        const stuks = info.voorwerpen === 1 ? '1 voorwerpkaartje' : `${info.voorwerpen} voorwerpkaartjes`;
+        const regels = [
+          `${payload.name || 'Dit personage'} verhuist van ${van} naar ${naar}.`,
+          '',
+          info.voorwerpen
+            ? `${stuks} blijft bij ${van} achter — voorwerpbezit hoort bij de party, niet bij het personage.`
+            : `Voorwerpbezit hoort bij de party, niet bij het personage.`,
+          `Ook wat ${van} al ontdekt had (geheimen, documenten, facties, bestiarium) telt niet mee naar ${naar}.`,
+          '',
+          'Losse boedelregels en geld gaan wél mee.',
+          '',
+          'Doorgaan?',
+        ];
+        if (!confirm(regels.join('\n'))) return;
+      }
     }
     // Duplicaatdetectie voor voorwerpen (unieke naam vereist)
     if (tab === 'voorwerpen') {

@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=417">
+  <link rel="stylesheet" href="/css/theme.css?v=418">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -365,6 +365,7 @@
 
   <!-- Landing page — paginavullend portretkiezer voor niet-ingelogde bezoekers -->
   <div id="landing-overlay" class="landing-overlay hidden">
+    <a class="landing-terug" href="/">&lsaquo; Andere campagne</a>
     <div class="landing-inner">
       <div class="landing-header">
         <img class="landing-crest hidden" id="landing-crest" src="" alt="" aria-hidden="true">
@@ -384,7 +385,6 @@
           <button type="submit" class="landing-footer-btn" id="landing-toegang-btn">Verder ↵</button>
         </form>
         <div id="landing-toegang-error" class="landing-pw-error hidden">Verkeerd wachtwoord</div>
-        <a class="landing-terug" href="/">&lsaquo; Andere campagne</a>
       </div>
     </div>
   </div>

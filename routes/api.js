@@ -5039,6 +5039,25 @@ function _sheetProgressie() {
   return base;
 }
 
+// Wat blijft er achter als dit personage naar een andere party gaat? Verhuizen
+// is één veld (`entity.data.groep`), maar de party houdt zelf bij wie welk
+// voorwerpkaartje heeft en wat er al onthuld is. Die tellingen maken de
+// waarschuwing in de editor concreet in plaats van vaag.
+router.get('/characters/:id/verhuis-info', requireDM, (req, res) => {
+  const charId  = req.params.id;
+  const dmState = readDmState();
+  const gid     = _playerGroupId(dmState, charId);
+  const groep   = gid ? dmState.groups?.[gid] : null;
+  if (!groep) return res.json({ groep: null, groepNaam: '', voorwerpen: 0 });
+
+  const vanHem = (bezit) => Array.isArray(bezit)
+    ? bezit.some(b => b?.characterId === charId)
+    : bezit?.characterId === charId;
+  const voorwerpen = Object.values(groep.itemOwners || {}).filter(vanHem).length;
+
+  res.json({ groep: gid, groepNaam: groep.name || '', voorwerpen });
+});
+
 // GET /characters/:id/sheet — één blad
 router.get('/characters/:id/sheet', requireDM, (req, res) => {
   const personages = storage.readJSON('entities.json').personages || [];
