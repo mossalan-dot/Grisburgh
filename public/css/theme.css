@@ -9744,22 +9744,23 @@ details.player-dash-collapsible[open] > summary {
   gap: 8px;
 }
 
+/* De campagnekaartjes staan in Instellingen — lichte perkamentgrond, dus
+   donkere tekst. Ze stonden op lichte tekst uit een tijd dat dit paneel donker
+   was; dat was praktisch onleesbaar. */
 .campagne-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(180,140,60,0.35);
+  gap: 4px 12px;
+  background: #fbf5e7;
+  border: 1px solid #ddc9a0;
   border-radius: 8px;
   padding: 10px 14px;
+  margin-bottom: 8px;
   transition: border-color 0.15s;
 }
 
-.campagne-card--active {
-  border-color: #f0b429;
-  background: rgba(240,180,41,0.1);
-}
+.campagne-card--active { border-color: #c49a2a; background: #f6ecd0; }
 
 .campagne-card-info {
   display: flex;
@@ -9768,30 +9769,33 @@ details.player-dash-collapsible[open] > summary {
   min-width: 0;
 }
 
-.campagne-card-title {
-  color: #f0d8a8;
-  font-size: 1em;
-}
-
-.campagne-card-sub {
-  color: #c8a87a;
-  font-size: 0.82em;
-}
-
-.campagne-card-meta {
-  color: #8a7050;
-  font-size: 0.78em;
-}
+.campagne-card-title { color: #3a2410; font-size: 1em; }
+.campagne-card-sub   { color: #7a6040; font-size: 0.82em; font-style: italic; }
+.campagne-card-meta  { color: #9a815c; font-size: 0.75em; font-family: ui-monospace, Menlo, monospace; }
 
 .campagne-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+}
+/* De activeerknop was een los pijltje dat scheef in zijn kader hing. */
+.campagne-card-actions .dm-btn {
+  width: 32px; height: 32px; padding: 0; line-height: 1;
 }
 
 .campagne-active-badge {
-  color: #f0b429;
-  font-size: 0.85em;
+  color: #8a6320;
+  font-size: 0.8em;
   font-weight: 600;
+  font-family: 'Cinzel', serif;
+  letter-spacing: .04em;
+  white-space: nowrap;
 }
+
+/* Modules onder een campagnekaartje: over de volle breedte, niet in de kolom
+   van de knop. */
+.campagne-card .dm-modules { grid-column: 1 / -1; }
 
 /* ── Harry-Potter thema ────────────────────────────────────────────────────── */
 

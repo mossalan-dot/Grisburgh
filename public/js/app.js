@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=20';
 import { renderSpreuken } from './render-spreuken.js?v=14';
 import { renderStatblock } from './render-statblock.js?v=3';
 import { initSocket } from "./socket-client.js?v=59";
-import { initDmPanel } from "./dm-panel.js?v=180";
+import { initDmPanel } from "./dm-panel.js?v=181";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -913,6 +913,9 @@ function applyRole() {
   if (logoutBtn) {
     logoutBtn.classList.toggle('hidden', state.role !== 'dm');
   }
+  // Tafelscherm-knop hoort bij de DM en niet op het tafelscherm zelf.
+  document.getElementById('dm-tafelscherm-btn')
+    ?.classList.toggle('hidden', state.role !== 'dm' || window._isDisplayMode);
 
   // Sandbox badge: only visible when logged in as sandbox DM
   const sandboxBadge = document.getElementById('sandbox-badge');

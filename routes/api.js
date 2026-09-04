@@ -5205,10 +5205,17 @@ router.put('/meta/app', requireDM, (req, res) => {
   // zilveren en koperen plek in de verhouding 1:10:100 — daar hangt te veel
   // opgeslagen bezit aan om ze te laten verschuiven.
   if (req.body.currency && typeof req.body.currency === 'object') {
-    meta.currency = Object.fromEntries(['fl', 'kn', 'cl'].map(sleutel => [
+    const schoon = Object.fromEntries(['fl', 'kn', 'cl'].map(sleutel => [
       sleutel,
       String(req.body.currency[sleutel] ?? '').trim().slice(0, 24) || storage.MUNT_STANDAARD[sleutel],
     ]));
+    // Electrum en platinum zijn optioneel: ze hebben geen eigen plek in de
+    // beurs, alleen een naam voor wie ze gebruikt.
+    for (const sleutel of ['ep', 'pp']) {
+      const naam = String(req.body.currency[sleutel] ?? '').trim().slice(0, 24);
+      if (naam) schoon[sleutel] = naam;
+    }
+    meta.currency = schoon;
   }
   if (typeof req.body.inOverzicht === 'boolean') meta.inOverzicht = req.body.inOverzicht;
   // Embleem: een pad binnen deze server (een geüpload bestand of een van de

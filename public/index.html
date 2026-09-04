@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=423">
+  <link rel="stylesheet" href="/css/theme.css?v=424">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -185,6 +185,11 @@
         </button>
         <!-- Sandbox badge: getoond wanneer ingelogd als sandbox-DM -->
         <div id="sandbox-badge" class="sandbox-badge hidden" title="Je werkt in de sandbox-omgeving. Echte campagnedata is niet zichtbaar."><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-flask-conical"/></svg> Sandbox</div>
+        <!-- Naar het tafelscherm: in de balk, waar je hem tijdens het spelen nodig
+             hebt, in plaats van weggestopt bij Instellingen. -->
+        <button id="dm-tafelscherm-btn" onclick="window.dmPanel.naarTabletmodus()"
+          title="Dit scherm wordt het tafelscherm: het toont dan alleen wat de party mag zien."
+          class="app-header-icon-btn hidden"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-monitor"/></svg></button>
         <button id="dm-logout-btn" onclick="window.app.dmLogout()" title="Uitloggen als DM"
           class="app-header-icon-btn app-header-icon-btn--danger hidden"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-x"/></svg></button>
         <!-- Spelerwisselknop → terug naar landingspagina -->
@@ -559,6 +564,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=580"></script>
+  <script type="module" src="/js/app.js?v=581"></script>
 </body>
 </html>

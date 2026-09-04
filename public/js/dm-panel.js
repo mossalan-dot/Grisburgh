@@ -4888,13 +4888,12 @@ async function _renderBeursTab() {
   try { _partyCurrency = await api.getPartyCurrency(); } catch { /* ok */ }
 
   // De knop was een los icoontje zonder tekst: niet te zien of je hem aan- of
-  // uitzette. En de invoervakjes heetten FL/KN/CL — afkortingen van munten die
-  // per campagne anders heten.
+  // uitzette. De velden dragen de D&D-afkorting (gp/sp/cp) met de eigen
+  // muntnaam als tooltip — dat blijft kloppen als een campagne hernoemt.
   const n = window._muntNamen();
   el.innerHTML = `
     <div class="dm-feature-section">
       <div class="dm-section-label">Gedeelde beurs</div>
-      <p class="dm-hint">Staat hij aan, dan delen alle spelers één saldo en telt hun eigen geld niet mee.</p>
       <div class="dm-form-row">
         <button class="dm-btn${_partyCurrency.enabled ? ' dm-btn-danger' : ' dm-btn-primary'}"
           id="hb-purse-toggle-btn" onclick="window._hbTogglePurse()"
@@ -4905,15 +4904,15 @@ async function _renderBeursTab() {
 
       ${_partyCurrency.enabled ? `
       <div class="dm-form-row">
-        <label class="dm-form-label" for="hb-purse-fl">${esc(n.fl)}</label>
+        <label class="dm-form-label" for="hb-purse-fl" title="${esc(n.fl)}">gp</label>
         <input id="hb-purse-fl" class="dm-input" type="number" min="0" value="${_partyCurrency.fl}">
       </div>
       <div class="dm-form-row">
-        <label class="dm-form-label" for="hb-purse-kn">${esc(n.kn)}</label>
+        <label class="dm-form-label" for="hb-purse-kn" title="${esc(n.kn)}">sp</label>
         <input id="hb-purse-kn" class="dm-input" type="number" min="0" value="${_partyCurrency.kn}">
       </div>
       <div class="dm-form-row">
-        <label class="dm-form-label" for="hb-purse-cl">${esc(n.cl)}</label>
+        <label class="dm-form-label" for="hb-purse-cl" title="${esc(n.cl)}">cp</label>
         <input id="hb-purse-cl" class="dm-input" type="number" min="0" value="${_partyCurrency.cl}">
       </div>
       <div class="dm-form-row">
@@ -9498,9 +9497,12 @@ async function _dmWachtwoordStatus() {
   if (!el) return;
   try {
     const r = await api.dmWachtwoordStatus();
-    el.textContent = r.ingesteld
-      ? (r.gehasht ? 'Er staat een eigen wachtwoord voor deze campagne.' : 'Er staat een wachtwoord, maar nog leesbaar — het wordt versleuteld zodra je opnieuw inlogt.')
-      : 'Nog geen eigen wachtwoord: deze campagne gebruikt het serverwachtwoord.';
+    // Alleen melden wat je moet weten: dat een leesbaar wachtwoord nog omgezet
+    // wordt. Verder zwijgt hij — een slotje in het veld zegt genoeg.
+    el.textContent = (r.ingesteld && !r.gehasht)
+      ? 'Het huidige wachtwoord staat nog leesbaar; het wordt versleuteld zodra je opnieuw inlogt.'
+      : '';
+    el.classList.toggle('hidden', !el.textContent);
   } catch { el.textContent = ''; }
 }
 
@@ -9570,12 +9572,8 @@ async function _renderInstellingen() {
       <input class="dm-input dm-inst-group-name" value="${esc(g.name)}"
         onchange="window._instGroepRename('${esc(g.id)}', this.value)"
         placeholder="Naam party">
-      <span class="dm-inst-group-slot" title="${g.hasPassword ? 'Er is een wachtwoord ingesteld' : 'Nog geen wachtwoord'}">
+      <span class="dm-inst-group-slot" title="${g.hasPassword ? 'Er is een wachtwoord ingesteld — wijzigen doe je bij Beheer' : 'Nog geen wachtwoord — instellen doe je bij Beheer'}">
         ${icon(g.hasPassword ? 'lock' : 'lock-open')}</span>
-      <input class="dm-input dm-inst-group-pw" type="password"
-        placeholder="${g.hasPassword ? 'Wachtwoord wijzigen…' : 'Wachtwoord instellen…'}"
-        onchange="window._instGroepSetPw('${esc(g.id)}', this.value)"
-        title="${g.hasPassword ? 'Er is een wachtwoord ingesteld. Typ een nieuw wachtwoord om het te wijzigen, of laat leeg om het te verwijderen.' : 'Wachtwoord instellen voor deze party'}">
       <button class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
         onclick="window._instGroepDelete('${esc(g.id)}')" title="Party verwijderen">${icon('trash')}</button>
     </div>
@@ -9592,8 +9590,9 @@ async function _renderInstellingen() {
         </div>
         <div class="campagne-card-actions">
           ${isActive
-            ? '<span class="campagne-active-badge">● Actief</span>'
-            : `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSwitchTo('${esc(c.id)}')" title="Activeer campagne">▶</button>`}
+            ? '<span class="campagne-active-badge">Actief</span>'
+            : `<button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSwitchTo('${esc(c.id)}')"
+                 title="Maak dit de standaardcampagne">${icon('play')}</button>`}
         </div>
         <details class="dm-modules">
           <summary>Modules</summary>
@@ -9645,19 +9644,25 @@ async function _renderInstellingen() {
     <!-- Munten -->
     <div class="dm-feature-section">
       <div class="dm-section-label">Munten</div>
-      <p class="dm-hint">Alleen de namen zijn vrij; de verhouding blijft 1 : 10 : 100, zoals gold, silver en copper.
-        Electrum (5 zilver) en platinum (10 goud) worden bij het invoeren omgerekend.</p>
       <div class="dm-form-row">
-        <label class="dm-form-label">Goud</label>
+        <label class="dm-form-label" for="inst-munt-fl" title="De hele munt; alles rekent hierop terug">Gold piece (gp)</label>
         <input id="inst-munt-fl" class="dm-input" value="${esc(_munt.fl)}" placeholder="Gold">
       </div>
       <div class="dm-form-row">
-        <label class="dm-form-label">Zilver</label>
+        <label class="dm-form-label" for="inst-munt-kn" title="Een tiende van een gp">Silver piece (sp)</label>
         <input id="inst-munt-kn" class="dm-input" value="${esc(_munt.kn)}" placeholder="Silver">
       </div>
       <div class="dm-form-row">
-        <label class="dm-form-label">Koper</label>
+        <label class="dm-form-label" for="inst-munt-cl" title="Een honderdste van een gp">Copper piece (cp)</label>
         <input id="inst-munt-cl" class="dm-input" value="${esc(_munt.cl)}" placeholder="Copper">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-munt-ep" title="5 sp. Heeft geen eigen plek in de beurs: wordt bij het invoeren omgerekend.">Electrum piece (ep)</label>
+        <input id="inst-munt-ep" class="dm-input" value="${esc(_munt.ep || '')}" placeholder="Electrum">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-munt-pp" title="10 gp. Heeft geen eigen plek in de beurs: wordt bij het invoeren omgerekend.">Platinum piece (pp)</label>
+        <input id="inst-munt-pp" class="dm-input" value="${esc(_munt.pp || '')}" placeholder="Platinum">
       </div>
     </div>
 
@@ -9682,19 +9687,21 @@ async function _renderInstellingen() {
         <label class="dm-form-label" for="dm-pw-nieuw"
           title="Geldt alleen voor deze campagne. Wordt versleuteld opgeslagen, zodat het niet leesbaar in een backup terechtkomt.">DM-wachtwoord</label>
         <input id="dm-pw-nieuw" class="dm-input" type="password"
-          placeholder="Nieuw wachtwoord (min. 8 tekens)…" autocomplete="new-password"
-          title="Geldt alleen voor deze campagne. Wordt versleuteld opgeslagen.">
+          placeholder="Nieuw wachtwoord (min. 8 tekens)…" autocomplete="new-password">
       </div>
-      <p class="dm-hint" id="dm-pw-status">Laden…</p>
+      ${groups.map(g => `
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="pw-${esc(g.id)}"
+          title="${g.hasPassword ? 'Er staat een wachtwoord. Typ een nieuw om het te wijzigen, of laat leeg om het te verwijderen.' : 'Nog geen wachtwoord voor deze party'}">${esc(g.name)}</label>
+        <input id="pw-${esc(g.id)}" class="dm-input" type="password" autocomplete="new-password"
+          placeholder="${g.hasPassword ? 'Wachtwoord wijzigen…' : 'Wachtwoord instellen…'}"
+          onchange="window._instGroepSetPw('${esc(g.id)}', this.value)">
+      </div>`).join('')}
       <div class="dm-form-row">
         <label class="dm-module-item" title="grisburgh.nl toont een keuzepagina met alle campagnes die zich laten zien">
           <input type="checkbox" id="inst-in-overzicht" ${meta.inOverzicht === false ? '' : 'checked'}>
           <span>Toon deze campagne op de openingspagina</span>
         </label>
-      </div>
-      <div class="dm-form-row">
-        <button class="dm-btn" onclick="window.dmPanel.naarTabletmodus()"
-          title="Dit scherm toont daarna alleen wat de party mag zien: beelden, kaarten, brieven, de kist. Bedoeld voor het scherm dat op tafel ligt — je hoeft er zelf geen wachtwoord op in te tikken.">${icon('monitor')} Dit scherm naar tafelscherm</button>
       </div>
       ${!magBeheren ? '' : `
       <details class="dm-modules dm-beheer-campagnes">
@@ -9728,18 +9735,13 @@ async function _renderInstellingen() {
     <!-- Export & backup -->
     <div class="dm-feature-section">
       <div class="dm-section-label">Export &amp; backup</div>
-      <div class="dm-form-row" style="flex-direction:column;gap:8px">
-        <a href="/api/export" download class="dm-btn" style="text-align:center;text-decoration:none"
-          title="HTML-overzicht van alle spelersdata en entities">
-          ${icon('download')} Snapshot downloaden
-        </a>
-        <a href="/api/export/campagneboek" download class="dm-btn dm-btn-ghost" style="text-align:center;text-decoration:none"
-          title="Narratief document van de campagne">
-          ${icon('book-open')} Campagneboek downloaden
-        </a>
-        <p class="dm-hint" style="margin:0">
-          De server bewaart daarnaast elke nacht een kopie van alle data én van de character sheets.
-        </p>
+      <div class="dm-feature-row" style="gap:8px;flex-wrap:wrap">
+        <a href="/api/export" download class="dm-btn"
+          title="HTML-overzicht van alle spelersdata en entities">${icon('download')} Snapshot</a>
+        <a href="/api/export/campagneboek" download class="dm-btn dm-btn-ghost"
+          title="Narratief document van de campagne">${icon('book-open')} Campagneboek</a>
+        <a href="/api/party/sheets" target="_blank" rel="noopener" class="dm-btn dm-btn-ghost"
+          title="Character sheets van de actieve party — printen of als pdf bewaren">${icon('scroll-text')} Character sheets</a>
       </div>
     </div>
 
@@ -9749,7 +9751,6 @@ async function _renderInstellingen() {
         ${icon('save')} Opslaan
       </button>
       <span id="inst-status" class="bericht-status hidden"></span>
-      <span class="dm-hint">Party's bewaren zichzelf zodra je ze wijzigt.</span>
     </div>
   `;
 
@@ -9780,6 +9781,8 @@ window._instOpslaan = async () => {
         fl: document.getElementById('inst-munt-fl')?.value.trim(),
         kn: document.getElementById('inst-munt-kn')?.value.trim(),
         cl: document.getElementById('inst-munt-cl')?.value.trim(),
+        ep: document.getElementById('inst-munt-ep')?.value.trim(),
+        pp: document.getElementById('inst-munt-pp')?.value.trim(),
       },
     });
     const nieuweMeta = await api.meta();
