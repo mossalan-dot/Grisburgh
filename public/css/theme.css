@@ -22154,8 +22154,14 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
 /* Zolang de landingspagina open staat, staat de pagina eronder stil. Zonder dit
    rekt de scroll op een telefoon door tot in het document — en dan schoof de
    app onder de vaste overlay vandaan in beeld, inclusief de kopbalk. */
-body.landing-open { overflow: hidden; }
+body.landing-open { overflow: hidden; background: #0c0805; }
 .landing-overlay { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+/* En de app zelf onzichtbaar houden zolang de landing er is. De overlay dekt de
+   layout-viewport, maar de strook achter de statusbalk van een telefoon valt
+   daarbuiten — daar zag je de kopbalk van de app doorschemeren. Zelfde
+   aanpak als `boot`: alleen de landingspagina (en de inzoom-cirkel) blijven
+   zichtbaar. */
+body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { visibility: hidden; }
 
 /* Wachtwoordprompt boven het toetsenbord: vastgezet in het zichtbare deel, met
    een eigen achtergrond zodat hij niet over de portretten heen leest. De
