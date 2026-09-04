@@ -1244,6 +1244,19 @@ async function _landingPortraitClick(charId, portraitEl) {
   }
 }
 
+function _landingPromptInBeeld() {
+  const prompt  = document.getElementById('landing-pw-prompt');
+  const overlay = document.getElementById('landing-overlay');
+  if (!prompt || !overlay) { window.visualViewport?.removeEventListener('resize', _landingPromptInBeeld); return; }
+  const vv        = window.visualViewport;
+  const zichtbaar = vv ? vv.height : window.innerHeight;
+  const boven     = vv ? vv.offsetTop : 0;
+  const vak       = prompt.getBoundingClientRect();
+  // Midden van de prompt naar het midden van wat er nog zichtbaar is.
+  const verschil = (vak.top + vak.height / 2) - (boven + zichtbaar / 2);
+  if (Math.abs(verschil) > 8) overlay.scrollBy({ top: verschil, behavior: 'smooth' });
+}
+
 function _landingShowPasswordPrompt(charId, portraitEl, hasVideo = false) {
   document.getElementById('landing-pw-prompt')?.remove();
   // Gewoon "Wachtwoord…": je hebt net een portret gekozen, dus welk wachtwoord
@@ -1266,6 +1279,12 @@ function _landingShowPasswordPrompt(charId, portraitEl, hasVideo = false) {
   requestAnimationFrame(() => prompt.classList.add('landing-pw-prompt--in'));
   const input = document.getElementById('landing-pw-input');
   input?.focus();
+  // Op een telefoon schuift het toetsenbord over het veld heen: je tikt blind.
+  // Daarom het veld actief in het zichtbare deel trekken — dat is niet de
+  // gewone viewport maar `visualViewport`, want die krimpt mét het toetsenbord.
+  _landingPromptInBeeld();
+  setTimeout(_landingPromptInBeeld, 300);
+  window.visualViewport?.addEventListener('resize', _landingPromptInBeeld);
   input?.addEventListener('keydown', e => {
     if (e.key === 'Enter')  _landingSubmitPassword(charId, portraitEl, hasVideo);
     if (e.key === 'Escape') _landingCancelPassword();
@@ -1283,6 +1302,7 @@ async function _landingSubmitPassword(charId, portraitEl, hasVideo = false) {
   if (submitBtn) submitBtn.disabled = true;
   try {
     const result = await api.playerLogin(charId, input?.value || '');
+    window.visualViewport?.removeEventListener('resize', _landingPromptInBeeld);
     document.getElementById('landing-pw-prompt')?.remove();
     await _landingStartZoom(charId, portraitEl, hasVideo);
     _landingFinishLogin(result);
@@ -1295,6 +1315,7 @@ async function _landingSubmitPassword(charId, portraitEl, hasVideo = false) {
 }
 
 function _landingCancelPassword() {
+  window.visualViewport?.removeEventListener('resize', _landingPromptInBeeld);
   document.getElementById('landing-pw-prompt')?.remove();
   // Alleen terughalen als er geen groepswachtwoord is ingetikt: dan is de kiezer
   // al gefilterd op één party en heeft de DM-ingang daar niets meer te zoeken.
