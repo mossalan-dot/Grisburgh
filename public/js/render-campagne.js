@@ -1652,6 +1652,121 @@ window._printStatblock = (titel) => {
   w.addEventListener('load', () => w.focus());
 };
 
+// ── Character sheet in het detailvenster ────────────────────────────────────
+// Nagebouwd naar het printbare blad (lib/character-sheet.js): links de abilities
+// met saving throws en skills, rechts de kerngetallen, HP en proficiencies. Zo
+// zie je op het scherm hetzelfde als op papier. Attacks, boedel en features
+// staan er bewust niet op — die maken het blad lang terwijl je ze tijdens het
+// spelen op de print of in de Boedel-tab hebt.
+const _BL_ABILITIES = [['str','Strength'],['dex','Dexterity'],['con','Constitution'],
+                       ['int','Intelligence'],['wis','Wisdom'],['cha','Charisma']];
+const _BL_SKILLS = [
+  ['str', [['athletics','Athletics']]],
+  ['dex', [['acrobatics','Acrobatics'],['sleight of hand','Sleight of Hand'],['stealth','Stealth']]],
+  ['int', [['arcana','Arcana'],['history','History'],['investigation','Investigation'],['nature','Nature'],['religion','Religion']]],
+  ['wis', [['animal handling','Animal Handling'],['insight','Insight'],['medicine','Medicine'],['perception','Perception'],['survival','Survival']]],
+  ['cha', [['deception','Deception'],['intimidation','Intimidation'],['performance','Performance'],['persuasion','Persuasion']]],
+];
+const _BL_PASSIEF = { perception: 'Passive Perception', insight: 'Passive Insight', investigation: 'Passive Investigation' };
+
+const _blMod   = (score) => Math.floor(((Number(score) || 10) - 10) / 2);
+const _blTeken = (n) => (n >= 0 ? '+' : '−') + Math.abs(n);
+const _blGetal = (v) => { const n = parseInt(String(v ?? '').replace(/[^\d-]/g, ''), 10); return Number.isFinite(n) ? n : 0; };
+const _blObject = (v) => {
+  if (v && typeof v === 'object' && !Array.isArray(v)) return v;
+  if (typeof v === 'string' && v.trim().startsWith('{')) { try { return JSON.parse(v); } catch { return {}; } }
+  return {};
+};
+
+function _bladHtml(profiel, hp, e) {
+  const prof = _blGetal(profiel.profBonus) || 2;
+  const saves = String(profiel.saveProfs || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+  const skillProfs = _blObject(profiel.skillProfs);
+  const skillAdj   = _blObject(profiel.skillAdj);
+
+  const pip = (niveau) => `<span class="bl-pip bl-pip--${niveau}"></span>`;
+  const skillBonus = (sleutel, ability) => {
+    const niveau = String(skillProfs[sleutel] || '').toLowerCase();
+    const extra  = niveau === 'expert' || niveau === 'exp' ? prof * 2 : niveau === 'prof' ? prof : 0;
+    return { niveau, extra, bonus: _blMod(profiel[ability]) + extra + _blGetal(skillAdj[sleutel]) };
+  };
+
+  const abilities = _BL_ABILITIES.map(([k, label]) => `
+    <div class="bl-abil">
+      <span class="bl-abil-lbl">${label}</span>
+      <span class="bl-abil-score">${esc(profiel[k] ?? '—')}</span>
+      <span class="bl-abil-mod">${_blTeken(_blMod(profiel[k]))}</span>
+    </div>`).join('');
+
+  const savesHtml = _BL_ABILITIES.map(([k, label]) => {
+    const heeft = saves.includes(k);
+    return `<li>${pip(heeft ? 'prof' : 'geen')}<span class="bl-naam">${label}</span>
+      <span class="bl-waarde">${_blTeken(_blMod(profiel[k]) + (heeft ? prof : 0))}</span></li>`;
+  }).join('');
+
+  let skillsHtml = '';
+  for (const [ability, lijst] of _BL_SKILLS) {
+    for (const [sleutel, label] of lijst) {
+      const { niveau, extra, bonus } = skillBonus(sleutel, ability);
+      skillsHtml += `<li>${pip(niveau === 'expert' || niveau === 'exp' ? 'expert' : extra ? 'prof' : 'geen')}
+        <span class="bl-naam">${label} <em>${ability}</em></span>
+        <span class="bl-waarde">${_blTeken(bonus)}</span></li>`;
+    }
+  }
+
+  const passief = Object.entries(_BL_PASSIEF).map(([sleutel, label]) => {
+    const ability = _BL_SKILLS.find(([, l]) => l.some(([k]) => k === sleutel))[0];
+    return `<div class="bl-stat"><span class="bl-stat-lbl">${label}</span><b>${10 + skillBonus(sleutel, ability).bonus}</b></div>`;
+  }).join('');
+
+  const paren = [
+    ['Armor', profiel.armorProfs], ['Weapons', profiel.weaponProfs],
+    ['Tools', profiel.toolProfs], ['Languages', profiel.languages], ['Senses', profiel.senses],
+  ].filter(([, v]) => v && String(v).trim());
+
+  return `
+    <div class="bl-blad">
+      <div class="bl-kolommen">
+        <section class="bl-kol bl-kol--smal">
+          <div class="bl-abils">${abilities}</div>
+          <h3 class="bl-kop">Saving Throws</h3>
+          <ul class="bl-rijen">${savesHtml}</ul>
+          <h3 class="bl-kop">Skills</h3>
+          <ul class="bl-rijen bl-rijen--skills">${skillsHtml}</ul>
+        </section>
+        <section class="bl-kol">
+          <div class="bl-stats">
+            <div class="bl-stat"><span class="bl-stat-lbl">Armor Class</span><b>${esc(profiel.ac || '—')}</b></div>
+            <div class="bl-stat"><span class="bl-stat-lbl">Initiative</span><b>${esc(profiel.initiative || _blTeken(_blMod(profiel.dex)))}</b></div>
+            <div class="bl-stat"><span class="bl-stat-lbl">Speed</span><b>${esc(profiel.speed || '—')}</b></div>
+            <div class="bl-stat"><span class="bl-stat-lbl">Proficiency</span><b>${_blTeken(prof)}</b></div>
+          </div>
+          <div class="bl-stats bl-stats--passief">${passief}</div>
+          <div class="bl-stats bl-stats--hp">
+            <div class="bl-stat"><span class="bl-stat-lbl">Hit Points</span><b>${hp?.current ?? '—'} / ${hp?.max ?? '—'}</b></div>
+            <div class="bl-stat"><span class="bl-stat-lbl">Spell Save DC</span><b>${esc(profiel.spellSaveDC || '—')}</b></div>
+            <div class="bl-stat"><span class="bl-stat-lbl">Spell Attack</span><b>${profiel.spellAttackBonus ? _blTeken(_blGetal(profiel.spellAttackBonus)) : '—'}</b></div>
+          </div>
+          ${paren.length ? `
+            <h3 class="bl-kop">Proficiencies &amp; Languages</h3>
+            <dl class="bl-paren">${paren.map(([l, v]) => `<dt>${l}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}
+          ${(() => {
+            // Gekoppelde spreuken: chips die het spreukdetail openen, gegroepeerd
+            // per niveau zodra de bibliotheek geladen is (_vulSpellChips).
+            let idx = [];
+            try { idx = JSON.parse(e.stats?.spellIndexes || '[]'); } catch { idx = []; }
+            if (!idx.length) return '';
+            return `
+              <h3 class="bl-kop">Spells</h3>
+              <div class="cs-spell-chips" id="detail-spell-chips">${idx.map(i =>
+                `<button type="button" class="cs-spell-chip cs-spell-chip--klik" data-spell="${esc(i)}"
+                   onclick="window.spreuken.open('${esc(i)}')">${esc(String(i).replace(/-/g, ' '))}</button>`).join('')}</div>`;
+          })()}
+        </section>
+      </div>
+    </div>`;
+}
+
 // ── Bladwijzers ──
 window._toggleBookmark = async function(type, id, name) {
   const charId = window.app?.state?.characterId;
@@ -2041,6 +2156,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   window._currentDetailId  = id;
 
   let e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData;
+  let _bladProfiel = null, _bladHp = null;
   let shopLogData = null;
   let shopHumeurData = null;
   const _isShopTab = (tab === 'locaties' || tab === 'personages');
@@ -2061,6 +2177,14 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           ]).then(([player, party]) => ({ player, party }))
         : Promise.resolve(null),
     ]);
+    // Het blad van een speler komt uit hetzelfde profiel als de print, zodat
+    // scherm en papier hetzelfde laten zien.
+    if (tab === 'personages' && isDM() && e?.subtype === 'speler') {
+      [_bladProfiel, _bladHp] = await Promise.all([
+        api.getPlayerProfile(id).catch(() => null),
+        api.getPlayerHp(id).catch(() => null),
+      ]);
+    }
   } catch { return; }
   if (_isShopTab && isDM()) {
     [shopLogData, shopHumeurData] = await Promise.all([
@@ -2434,93 +2558,20 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // openen op (zie _vulPetStatblock verderop).
     sheetHtml += `<div id="pet-statblock-slot" class="pet-statblock-slot"><p class="text-center text-ink-faint font-fell italic py-4">Statblock laden…</p></div>`;
   }
-  if (showSheet && !_isDier) {
-    const s = e.stats || {};
-    const hasStats = Object.values(s).some(v => v);
-    if (hasStats) {
-      const mod = (v) => {
-        if (!v) return '\u2014';
-        const m = Math.floor((parseInt(v) - 10) / 2);
-        return m >= 0 ? `+${m}` : `${m}`;
-      };
-      // Combat header (AC, HP, Speed, CR, Prof Bonus)
-      const _KOPJE = { ac: 'AC', hp: 'HP', initiative: 'Init', speed: 'Speed' };
-      const _kerncijfer = (lbl, waarde) =>
-        `<div class="blad-kern"><span class="blad-kern-lbl">${esc(lbl)}</span><span class="blad-kern-val">${esc(waarde)}</span></div>`;
-      const _combatStats = ['ac','hp','initiative','speed'].filter(k => s[k]).map(k => _kerncijfer(_KOPJE[k], s[k])).join('');
-      const _crStat   = s.cr ? _kerncijfer('CR', s.cr) : '';
-      const _profStat = s.profBonus ? _kerncijfer('Prof', s.profBonus) : '';
-      // "Medium Humanoid" als regel boven het statblok, zoals in het Monster Manual.
-      const _soortRegel = (s.size || s.creatureType)
-        ? `<div class="text-xs font-cinzel text-ink-dim italic mb-2">${esc([s.size, s.creatureType].filter(Boolean).join(' '))}</div>` : '';
-
-      // Property rows
-      const _propRows = [
-        ['savingThrows','Saving Throws'],
-        ['skills','Skills'],
-        ['gear','Gear'],
-        ['vulnerabilities','Damage Vulnerabilities'],
-        ['resistances','Damage Resistances'],
-        ['immunities','Damage Immunities'],
-        ['conditionImmunities','Condition Immunities'],
-        ['senses','Senses'],
-        ['languages','Languages'],
-      ].filter(([k]) => s[k]).map(([k, label]) =>
-        // Gear heeft dezelfde opmaakbalk als Traits, dus die regel gaat door de
-        // markdown-renderer; de rest is een kale opsomming.
-        `<div class="blad-rij"><span class="blad-rij-lbl">${label}</span><span class="blad-rij-val sheet-narrative">${k === 'gear' ? mdToHtml(s[k]) : esc(s[k])}</span></div>`
-      ).join('');
-      const _propTable = _propRows ? `<div class="blad-rijen">${_propRows}</div>` : '';
-
-      // Narrative sections
-      const _narrative = [
-        ['traits','Traits'],
-        ['actions','Actions'],
-        ['bonusActions','Bonus Actions'],
-        ['reactions','Reactions'],
-        ['legendaryActions','Legendary/Mythic Actions'],
-        ['lairActions','Lair Actions'],
-      ].filter(([k]) => s[k]).map(([k, label]) =>
-        `<div class="blad-sectie"><div class="blad-sectie-kop">${label}</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s[k])}</div></div>`
-      ).join('');
-
-      // Spells. Gekoppelde spreuken worden chips die het spreukdetail openen; de
-      // losse tekstvelden blijven eronder staan voor wat niet in de bibliotheek zit.
-      let _gekoppeld = [];
-      try { _gekoppeld = JSON.parse(s.spellIndexes || '[]'); } catch { _gekoppeld = []; }
-      const _spells = [
-        _gekoppeld.length ? `<div class="blad-sectie">
-            <div class="blad-sectie-kop">Spells</div>
-            <div class="cs-spell-chips" id="detail-spell-chips">${_gekoppeld.map(idx =>
-              `<button type="button" class="cs-spell-chip cs-spell-chip--klik" data-spell="${esc(idx)}"
-                 onclick="window.spreuken.open('${esc(idx)}')">${esc(idx.replace(/-/g, ' '))}</button>`).join('')}</div>
-          </div>` : '',
-        s.cantrips ? `<div class="blad-sectie"><div class="blad-sectie-kop">Cantrips</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.cantrips)}</div></div>` : '',
-        s.spells ? `<div class="blad-sectie"><div class="blad-sectie-kop">Niet in de bibliotheek</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.spells)}</div></div>` : '',
-      ].join('');
-
-      sheetHtml += `
-        <div class="detail-blad">
-          ${_soortRegel}
-          <div class="blad-kernrij">${_combatStats}${_crStat}${_profStat}</div>
-          <div class="stat-grid">
-            ${['str','dex','con','int','wis','cha'].map(a => `
-              <div class="stat-box">
-                <div class="stat-label">${a.toUpperCase()}</div>
-                <div class="stat-val">${s[a] || '\u2014'}</div>
-                <div class="stat-mod">${mod(s[a])}</div>
-              </div>
-            `).join('')}
-          </div>
-          ${_propTable}
-          ${_narrative}
-          ${_spells}
-          ${s.extra ? `<div class="mt-3 border-t border-room-border pt-3 text-sm text-ink-medium sheet-narrative">${mdToHtml(s.extra)}</div>` : ''}
-        </div>
-      `;
-    } else {
-      sheetHtml = `<div class="text-center py-10 text-ink-faint font-fell italic">Nog geen statistieken ingevuld</div>`;
-    }
+  if (showSheet && _isSpeler && _bladProfiel) {
+    sheetHtml += _bladHtml(_bladProfiel, _bladHp, e);
+  }
+  // Een NPC of god is een wezen, geen personage met een sheet: dan het statblock
+  // in dezelfde vorm als in het bestiarium.
+  if (showSheet && !_isDier && !_isSpeler && Object.values(e.stats || {}).some(v => String(v ?? '').trim())) {
+    const st = e.stats || {};
+    sheetHtml += renderStatblock(
+      { name: e.name, statblock: st, maxHp: parseInt(String(st.hp ?? '').match(/\d+/)?.[0] ?? '') || null, description: '' },
+      { niveau: 'volledig' });
+  }
+  // Staat er niets? Dan zeggen we dat, in plaats van een leeg blad.
+  if (showSheet && !sheetHtml.replace(/<div class="sheet-print-balk[\s\S]*?<\/div>/, '').trim()) {
+    sheetHtml += `<div class="text-center py-10 text-ink-faint font-fell italic">Nog geen gegevens ingevuld</div>`;
   }
 
   // ── Tab: Eigenaren (stapelbare & gedeelde voorwerpen, DM only) ──

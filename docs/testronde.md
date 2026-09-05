@@ -58,6 +58,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Zichtbaarheid per party** (DM) — een kaartje vrijgeven aan de ene party en niet aan de andere; wissel van party en controleer beide kanten
 - [ ] **Voorwerp aan een speler geven** (DM) — vanuit het kaartje toewijzen aan een personage; het verschijnt in zijn boedel met de juiste rariteit
 - [ ] **Voorraad van een winkel** (DM) — regels toevoegen, prijzen zetten, uitverkocht markeren per party
+- [ ] **Character sheet als het printblad** (DM) — het tabblad van een speler toont dezelfde indeling als de pdf: links abilities met saving throws en skills (bolletje voor proficiency, dubbel voor expertise), rechts AC/Initiative/Speed/Proficiency, de passieve scores, HP en spell save DC, daaronder proficiencies en de spreuken per niveau. De cijfers komen uit hetzelfde profiel als de print, dus scherm en papier zeggen hetzelfde
+- [ ] **NPC toont een statblock** (DM) — bij een NPC of god staat op dat tabblad het statblock in de vorm van het bestiarium, niet een half ingevuld character sheet
+- [ ] **Uitleg bewerken** (DM) — het potlood náást de helpknop is weg; open de uitleg en er staat rechtsboven *Bewerken* (alleen voor de DM)
+
 - [ ] **Blad afdrukken** (DM) — open het tabblad van een spelerspersonage: het heet *Character Sheet* en de knop *Blad afdrukken* opent zijn eigen blad in een nieuw tabblad (printen of bewaren als pdf). Bij een NPC, dier of god heet het tabblad *Statblock* en opent *Statblock afdrukken* een printvenster met alleen dat blok — bij een huisdier het tier dat bij het level van het baasje hoort
 
 - [ ] **God-kaartje** (DM) — type *god*: Origin en Class verdwijnen uit de editor, Domein en Heilig symbool komen ervoor in de plaats; het domein staat op het kaartje en in de kopregel van het detailvenster. Wissel van type en terug: de velden verschijnen en verdwijnen meteen

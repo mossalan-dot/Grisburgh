@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=268';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=191";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=192";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -12295,10 +12295,10 @@ let _helpOverrides = {};
 
 window._helpBtn = function _helpBtn(key, opts = {}) {
   const cls = opts.cls || '';
-  const editBtn = window.app?.isDM?.()
-    ? `<button class="help-edit-btn" onclick="event.stopPropagation();window._openHelpEditor('${key}')" title="Help-tekst bewerken">${icon('pencil')}</button>`
-    : '';
-  return `<span class="help-btn-wrap">${editBtn}<button class="help-btn ${cls}" onclick="event.stopPropagation();window._openHelp('${key}')" title="Uitleg">${icon('book-open')}</button></span>`;
+  // Het potloodje stond náást de helpknop en zei niets tegen een speler (die
+  // het niet eens ziet). Bewerken zit nu in de uitleg zelf: de DM ziet daar een
+  // knop, de speler leest alleen.
+  return `<span class="help-btn-wrap"><button class="help-btn ${cls}" data-help-key="${key}" onclick="event.stopPropagation();window._openHelp('${key}')" title="Uitleg">${icon('book-open')}</button></span>`;
 }
 
 function _resolveHelp(key) {
@@ -12312,6 +12312,7 @@ window._openHelp = (key) => {
   document.getElementById('help-modal')?.remove();
   const config = _resolveHelp(key);
   if (!config) return;
+  window._helpModalKey = key;
   _renderHelpModal(config, 0);
 };
 
@@ -12331,6 +12332,9 @@ function _renderHelpModal(config, idx) {
         <span class="help-modal-titel">${icon('book-open')} ${esc(config.titel)}</span>
         <div class="help-modal-nav-info">
           ${totaal > 1 ? `<span class="help-modal-stap">${idx + 1} / ${totaal}</span>` : ''}
+          ${window.app?.isDM?.() && window._helpModalKey
+            ? `<button class="help-modal-edit" onclick="event.stopPropagation();window._openHelpEditor('${esc(window._helpModalKey)}')" title="Deze uitleg aanpassen">${icon('pencil')} Bewerken</button>`
+            : ''}
           <button class="help-modal-close" onclick="document.getElementById('help-modal').remove()">${icon('x')}</button>
         </div>
       </div>

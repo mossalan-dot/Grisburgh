@@ -14157,21 +14157,17 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .help-btn .icon { width: 15px; height: 15px; }
 
 .help-btn-wrap { display: inline-flex; align-items: center; gap: 3px; }
-.help-edit-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: rgba(196,168,122,0.35);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  transition: color 0.15s;
+/* Bewerken van een uitleg zit in de uitleg zelf (alleen voor de DM). */
+.help-modal-edit {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid rgba(196,168,122,.45);
+  background: rgba(196,168,122,.16);
+  border-radius: 6px; padding: 3px 9px; cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: .04em;
+  color: #7a6040;
 }
-.help-edit-btn:hover { color: rgba(196,168,122,0.8); }
-.help-edit-btn .icon { width: 10px; height: 10px; }
+.help-modal-edit:hover { background: rgba(196,168,122,.32); color: #2a1a08; }
+.help-modal-edit .icon { width: 12px; height: 12px; }
 
 .help-editor-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; max-height: 60vh; overflow-y: auto; }
 .help-editor-label { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; letter-spacing: .05em; color: #9a8050; text-transform: uppercase; }
@@ -22646,6 +22642,82 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   margin-bottom: 16px;
 }
 .detail-blad .detail-field-label { margin-top: 10px; }
+
+/* ── Character sheet in het detailvenster ────────────────────────────────────
+   Nagebouwd naar het printbare blad: links de abilities met saves en skills,
+   rechts de kerngetallen. Zo lijkt het scherm op wat er uit de printer komt. */
+.bl-blad { font-family: 'Crimson Text', Georgia, serif; color: #2a1a08; }
+.bl-kolommen { display: flex; gap: 16px; align-items: flex-start; }
+.bl-kol { flex: 1 1 0; min-width: 0; }
+.bl-kol--smal { flex: 0 0 40%; }
+@media (max-width: 640px) {
+  .bl-kolommen { flex-direction: column; }
+  .bl-kol--smal { flex: 1 1 auto; width: 100%; }
+}
+
+/* Abilities: score groot, modifier eronder in een pilletje. */
+.bl-abils { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.bl-abil {
+  text-align: center; padding: 6px 2px 5px;
+  border: 1px solid rgba(196,168,122,.55); border-radius: 5px;
+  background: rgba(255,255,255,.5);
+}
+.bl-abil-lbl {
+  display: block; font-family: 'Cinzel', serif; font-size: 8px;
+  letter-spacing: .06em; text-transform: uppercase; color: #9a8060;
+}
+.bl-abil-score { display: block; font-family: 'Cinzel', serif; font-size: 20px; font-weight: 700; line-height: 1.2; }
+.bl-abil-mod {
+  display: inline-block; margin-top: 1px; padding: 0 7px;
+  border: 1px solid rgba(196,168,122,.6); border-radius: 999px;
+  background: rgba(255,255,255,.7); font-size: 12px; color: #5a4030;
+}
+
+.bl-kop {
+  font-family: 'Cinzel', serif; font-size: 10.5px; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: #8a6d3f;
+  margin: 14px 0 5px; padding-bottom: 3px;
+  border-bottom: 1px solid rgba(196,168,122,.5);
+}
+
+/* Saves en skills: bolletje (proficient/expertise), naam, waarde rechts. */
+.bl-rijen { list-style: none; margin: 0; padding: 0; }
+.bl-rijen li {
+  display: flex; align-items: baseline; gap: 7px;
+  padding: 1.5px 0; font-size: 13.5px;
+}
+.bl-rijen li + li { border-top: 1px dotted rgba(196,168,122,.45); }
+.bl-naam { flex: 1; min-width: 0; }
+.bl-naam em { font-size: 9px; text-transform: uppercase; letter-spacing: .05em; color: #9a8060; font-style: normal; }
+.bl-waarde { font-family: 'Cinzel', serif; font-size: 13px; color: #2a1a08; }
+.bl-pip {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  border: 1px solid rgba(122,96,64,.6); background: transparent;
+}
+.bl-pip--prof   { background: #8a6d3f; }
+.bl-pip--expert { background: #8a6d3f; box-shadow: 0 0 0 2px rgba(138,109,63,.28); }
+
+/* Kerngetallen rechts: vakjes met label boven de waarde. */
+.bl-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.bl-stats--passief { grid-template-columns: repeat(3, 1fr); margin-top: 6px; }
+.bl-stats--hp { grid-template-columns: repeat(3, 1fr); margin-top: 6px; }
+.bl-stat {
+  text-align: center; padding: 6px 4px 5px;
+  border: 1px solid rgba(196,168,122,.55); border-radius: 5px;
+  background: rgba(255,255,255,.5);
+}
+.bl-stat-lbl {
+  display: block; font-family: 'Cinzel', serif; font-size: 8px;
+  letter-spacing: .05em; text-transform: uppercase; color: #9a8060;
+}
+.bl-stat b { font-family: 'Cinzel', serif; font-size: 15px; }
+
+.bl-paren { display: grid; grid-template-columns: 74px 1fr; gap: 2px 8px; margin: 0; font-size: 13px; }
+.bl-paren dt {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .05em;
+  text-transform: uppercase; color: #9a8060; padding-top: 2px;
+}
+.bl-paren dd { margin: 0; }
 
 /* Kerncijfers (AC, HP, INIT…) als één strook met scheidingslijntjes: label
    klein erboven, waarde eronder. Losse blokjes met veel lucht ertussen lazen
