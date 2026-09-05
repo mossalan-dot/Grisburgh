@@ -22103,11 +22103,21 @@ body.kaart-fs-active { overflow: hidden; }
   font-family: 'Cinzel', serif; letter-spacing: .04em;
 }
 .spreuk-eigen-hint { font-size: 11px; color: #a8916d; margin: 6px 0; font-style: italic; }
+/* Het spreukvenster is perkament, geen donker paneel: een zwart tekstvak met
+   lichte letters viel er als een grijs blok in. */
 .spreuk-eigen-tekst {
-  width: 100%; background: rgba(0,0,0,.25); color: #f2e8d2;
-  border: 1px solid rgba(196,168,122,.3); border-radius: 4px;
+  width: 100%; background: rgba(255,255,255,.5); color: #2a1a08;
+  border: 1px solid rgba(122,96,64,.35); border-radius: 4px;
   padding: 8px; font-family: 'Crimson Text', serif; font-size: 14px; resize: vertical;
 }
+.spreuk-eigen-tekst:focus { outline: none; border-color: rgba(196,168,122,.9); background: #fff; }
+.spreuk-eigen-tekst::placeholder { color: #9a8060; }
+/* Verwijzing naar een andere spreuk in de brontekst. */
+.spreuk-verwijzing {
+  color: #5a3a8c; text-decoration: underline; text-decoration-style: dotted;
+  cursor: pointer;
+}
+.spreuk-verwijzing:hover { color: #2a1a08; }
 .spreuk-eigen-status { font-size: 11px; color: #c4a87a; margin-left: 8px; }
 
 /* ── Opstarten ────────────────────────────────────────────────────────────

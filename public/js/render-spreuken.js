@@ -271,9 +271,22 @@ function _detailHtml(s) {
   // Rijke spreuk-opmaak hergebruiken uit het spreukenboek: damage-getinte dice,
   // DC/saves/range-highlights, bullet-lijsten (- item) en tabellen. Valt terug op mdToHtml.
   // renderSpellDesc annoteert zelf al (glossary), dus geen extra annot() eromheen.
-  const fmt = (t) => window.app?.renderSpellDesc
+  // De SRD-teksten verwijzen naar andere spreuken met [[Wall of Force]]. Dat is
+  // geen kaartje in het archief, dus de gewone wikilink-resolver kent hem niet
+  // en liet de haken staan. Hier zoeken we in de spreukenlijst zelf: gevonden =
+  // klikbaar, niet gevonden = gewoon de naam.
+  const spreukLinks = (html) => String(html).replace(
+    /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g,
+    (_, naam, alias) => {
+      const doel = (_all || []).find(x => (x.name || '').toLowerCase() === naam.trim().toLowerCase());
+      const tekst = esc((alias || naam).trim());
+      return doel
+        ? `<a class="spreuk-verwijzing" onclick="window.spreuken.open('${esc(doel.index)}')" title="Open ${tekst}">${tekst}</a>`
+        : tekst;
+    });
+  const fmt = (t) => spreukLinks(window.app?.renderSpellDesc
     ? window.app.renderSpellDesc(t, { diceColor })
-    : annot((window.app?.mdToHtml || (x => esc(x).replace(/\n/g, '<br>')))(t));
+    : annot((window.app?.mdToHtml || (x => esc(x).replace(/\n/g, '<br>')))(t)));
   return `
     <div class="spreuk-detail-card" style="--school-c1:${col.c1};--school-c2:${col.c2}">
       <button class="spreuk-detail-close" onclick="window.spreuken.close()" title="Sluiten">${icon('x')}</button>
@@ -300,7 +313,7 @@ function _detailHtml(s) {
       ${isDM() ? `
         <details class="spreuk-eigen" ${desc ? '' : 'open'}>
           <summary>${icon('pencil')} ${s._eigen ? 'Jouw beschrijving' : desc ? 'Eigen beschrijving schrijven' : 'Beschrijving invullen'}</summary>
-          <p class="spreuk-eigen-hint">Wat je hier schrijft is wat jouw spelers zien. Leeg laten zet het terug.</p>
+          <p class="spreuk-eigen-hint">Vervangt de tekst hierboven — jouw spelers zien alleen wat jij hier schrijft. Maak je het veld leeg, dan komt de oorspronkelijke tekst terug.</p>
           <textarea class="spreuk-eigen-tekst" id="spreuk-eigen-${esc(s.index)}" rows="6"
             placeholder="Wat doet deze spreuk aan jouw tafel?">${esc(s._eigen ? desc : '')}</textarea>
           <button class="spreuk-detail-imgbtn" onclick="window.spreuken.saveTekst('${esc(s.index)}')">
