@@ -1187,9 +1187,18 @@ function filterEntities(type, list) {
   const q  = searchQueries[type];
   const sf = subtypeFilters[type] || null;
   let filtered = list;
+  // Score per kaartje bewaren: die bepaalt straks de volgorde. Zonder dit werd
+  // er alleen gefilterd en bleef de alfabetische volgorde staan — dan stond een
+  // kaartje dat de naam in zijn beschrijving noemt vóór het kaartje zelf.
+  let scores = null;
   if (q) {
     const tokens = _searchTokens(q);
-    filtered = filtered.filter(e => _searchScore(e, tokens) >= 0);
+    scores = new Map();
+    filtered = filtered.filter(e => {
+      const sc = _searchScore(e, tokens);
+      if (sc >= 0) scores.set(e.id, sc);
+      return sc >= 0;
+    });
   }
   if (sf === '__winkel__' && type === 'locaties') {
     filtered = filtered.filter(e => e.data?.locType === 'Winkel');
@@ -1203,6 +1212,12 @@ function filterEntities(type, list) {
     filtered = filtered.filter(e => !['Blessing', 'Boon'].includes(e.data?.itemType));
   }
   return filtered.slice().sort((a, b) => {
+    // Tijdens het zoeken wint de treffer: naam vóór beschrijving. Bij gelijke
+    // score valt hij terug op de gewone volgorde hieronder.
+    if (scores) {
+      const verschil = (scores.get(b.id) || 0) - (scores.get(a.id) || 0);
+      if (verschil) return verschil;
+    }
     if (type === 'locaties') {
       const wa = a.data?.wijk || '';
       const wb = b.data?.wijk || '';
