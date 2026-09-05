@@ -1,4 +1,4 @@
-import { api } from './api.js?v=265';
+import { api } from './api.js?v=266';
 import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);
@@ -1338,20 +1338,19 @@ function renderCard(type, e) {
       ` : ''}
       <!-- Voor de DM stond hier een slotje dat vertelde of het geheim uit was.
            Dat sloeg nergens meer op zodra een kaartje meerdere geheimen kan
-           hebben — en het leek bovendien op het zichtbaarheids-oog rechtsboven,
-           dat iets heel anders doet. Onthullen gaat nu per geheim in het
-           detailvenster. Voor spelers blijft het oog: dat zegt "hier is iets
-           prijsgegeven", en zij zien het andere icoon niet. -->
-      ${!isDM() && e._secretReveal
-        ? `<span class="card-secret-badge card-secret-badge--revealed card-secret-badge--player" title="Geheim onthuld">${icon('eye')}</span>`
-        : ''}
+           hebben; onthullen gaat nu per geheim in het detailvenster. Voor de
+           speler is het gebleven, maar als pill bij de andere badges: linksboven
+           lag hij precies op de bladwijzerknop. -->
       <div class="card-accent bar-${type}"></div>
       <div class="card-img-wrap">
         <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbForEntity(e)}"
           style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
           onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
         <div class="card-img-fade"></div>
-        ${badges.length ? `<div class="card-badges">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
+        ${(badges.length || (!isDM() && e._secretReveal)) ? `<div class="card-badges">
+          ${!isDM() && e._secretReveal ? `<span class="card-geheim-pill" title="Er is een geheim over dit kaartje onthuld">${icon('eye')} Geheim onthuld</span>` : ''}
+          ${badges.length ? `<div class="card-badges-rij">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
+        </div>` : ''}
         ${!isDM() && window.app?.state?.characterId ? (() => {
           const _bms = window.app?.state?.bookmarks || [];
           const _bmActive = _bms.some(b => b.id === e.id);
@@ -2101,16 +2100,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         </div>`;
     }
   }
-  // Persoonlijkheid (DM only)
-  const persVal = e.data?.persoonlijkheid;
-  if (persVal && isDM()) {
-    infoHtml += `
-      <div class="dm-only mb-4">
-        <div class="detail-field-label">Aantekeningen voor de DM</div>
-        <div class="detail-dm-block">${mdToHtml(persVal)}</div>
-      </div>
-    `;
-  }
 
   // Flavour scroll (parchment scroll — zichtbaar voor spelers als uitgesproken, altijd voor DM)
   const flavourRegels = _tekstLijstUit(e.data, 'flavours', 'flavour');
@@ -2180,11 +2169,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                      :                    'Zichtbaar maken';
     infoHtml += `
       <div class="dm-only mt-4 pt-4 border-t border-room-border">
-        <!-- Notities eerst: dat is de plek waar je tijdens het spelen typt. De
-             knoppen sluiten het venster af. -->
-        <div class="detail-label mb-1">Snelle notitie</div>
+        <!-- Eén notitieveld: hetzelfde dat in de bewerkmodus "Aantekeningen voor
+             de DM" heet. Er stonden er twee op één kaartje (dit veld en een
+             losse dmNote), met verwarrend gelijke namen. Typen slaat direct op,
+             dus je hoeft de editor niet te openen. -->
+        <div class="detail-label mb-1">Aantekeningen voor de DM</div>
         <textarea id="dm-note-${e.id}" class="w-full min-h-[80px] px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
-          placeholder="Wat je aan tafel wilt onthouden\u2026">${esc(e._dmNote || '')}</textarea>
+          placeholder="Alleen jij ziet dit\u2026">${esc(e.data?.persoonlijkheid || '')}</textarea>
         <div id="note-save-${e.id}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1 mb-3"></div>
         <!-- Vijf gelijke vierkantjes met een pictogram zeiden niet wát ze doen.
              Nu icoon plus woord; de stand staat in het woord ("Zichtbaar" /
@@ -2748,7 +2739,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       ta.addEventListener('input', () => {
         clearTimeout(noteTimer);
         noteTimer = setTimeout(async () => {
-          await api.saveNote(e.id, ta.value);
+          await api.saveAantekeningen(tab, e.id, ta.value);
           const ind = document.getElementById(`note-save-${e.id}`);
           if (ind) {
             ind.textContent = '\u2713 Opgeslagen';

@@ -399,6 +399,22 @@ function _alignmentNaarEvil(waarde) {
   return `${as} Evil`;
 }
 
+// Aantekeningen voor de DM rechtstreeks vanuit het detailvenster bijwerken.
+// Er waren twee notitievelden op één kaartje — dit veld uit de editor en een
+// losse dmNote — en die heetten door elkaar heen. Nu is er één, en dit endpoint
+// raakt alleen dat ene veld aan (een gewone PUT vervangt `data` in zijn geheel).
+router.put('/entities/:type/:id/aantekeningen', requireDM, (req, res) => {
+  const { type, id } = req.params;
+  if (!ENTITY_TYPES.includes(type)) return res.status(400).json({ error: 'Ongeldig type' });
+  const entities = storage.readJSON('entities.json');
+  const entity = (entities[type] || []).find(e => e.id === id);
+  if (!entity) return res.status(404).json({ error: 'Niet gevonden' });
+  if (!entity.data) entity.data = {};
+  entity.data.persoonlijkheid = String(req.body?.tekst ?? '');
+  storage.writeJSON('entities.json', entities);
+  res.json({ ok: true });
+});
+
 // ── Rollen op een personage ──────────────────────────────────────────────────
 // `verkoper` en `antagonist` zijn van subtype naar rol verhuisd (`data.tags`),
 // zodat een verkoper ook antagonist kan zijn. Oude kaartjes dragen de waarde

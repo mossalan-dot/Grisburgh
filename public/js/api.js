@@ -232,6 +232,7 @@ export const api = {
       { method: 'PUT', body: JSON.stringify({ visible }) }),
 
   // Winkel uitverkocht
+  saveAantekeningen: (type, id, tekst) => request(`/entities/${type}/${id}/aantekeningen`, { method: 'PUT', body: JSON.stringify({ tekst }) }),
   getShopUitverkocht:    (shopId)           => request(`/shops/${shopId}/uitverkocht`),
   toggleShopUitverkocht: (shopId, itemNaam) => request(`/shops/${shopId}/uitverkocht`, { method: 'PUT', body: JSON.stringify({ itemNaam }) }),
   getShopBeschikbaar: (shopId)         => request(`/shops/${shopId}/beschikbaar`),

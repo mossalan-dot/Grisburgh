@@ -1,5 +1,5 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=265';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=161";
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=266';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=162";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -2052,7 +2052,16 @@ function _resolveWikilink(name, isFirst) {
   const safeName = name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 
   if (!entry) {
-    // Onbekende naam: subtiele grijs-markering
+    // De index wordt na het inloggen opgehaald; rendert er iets vóór die tijd,
+    // dan is élke naam "onbekend" en zag je overal [[haakjes]] staan. Zo'n naam
+    // markeren we als nog-op-te-lossen en herstellen we zodra de index er is.
+    if (!Object.keys(idx).length) {
+      return `<span class="wikilink-wacht" data-wl="${safeName}">${safeName}</span>`;
+    }
+    // Voor een speler bestaat de naam gewoon niet (of hij mag het kaartje niet
+    // zien): dan is het lopende tekst, geen dubbele haken. De haken blijven voor
+    // de DM, want die zeggen hem "hier hoort nog een kaartje bij".
+    if (!window.app?.isDM()) return safeName;
     return `<span class="wikilink-unknown">[[${safeName}]]</span>`;
   }
 
@@ -2094,7 +2103,23 @@ function _rebuildEntityIndex() {
       .then(a => window._buildEntityIndex('documenten', a.documents))
       .catch(() => {}),
   ]);
+  window._entityIndexReady.then(() => _wikilinksHerstellen()).catch(() => {});
   return window._entityIndexReady;
+}
+
+// Namen die gerenderd werden vóórdat de index bestond alsnog omzetten.
+function _wikilinksHerstellen() {
+  const wachters = document.querySelectorAll('.wikilink-wacht[data-wl]');
+  if (!wachters.length) return;
+  const gezien = new Set();
+  wachters.forEach(el => {
+    const naam = el.dataset.wl;
+    const eerste = !gezien.has(naam);
+    gezien.add(naam);
+    const vervanger = document.createElement('span');
+    vervanger.innerHTML = _resolveWikilink(naam, eerste);
+    el.replaceWith(...vervanger.childNodes);
+  });
 }
 
 function _wlAcInit() {

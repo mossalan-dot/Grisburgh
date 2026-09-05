@@ -87,7 +87,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Roddel toont zijn stand meteen** (DM) — een nog niet vertelde roddel staat lichter zodra het venster opent, niet pas na doorbladeren; de knop en de opmaak zeggen hetzelfde
 - [ ] **Geheimen verspringen niet** (DM) — onthullen verandert het woord op de knop, maar het tekstvak ernaast blijft op zijn plek
-- [ ] **Notitie boven de knoppen** (DM) — het notitieveld ("Snelle notitie") staat boven de DM-acties; de tekst uit de bewerkmodus heet in beide vensters *Aantekeningen voor de DM*
+- [ ] **Eén notitieveld** (DM) — er is nog maar één DM-notitie per kaartje: *Aantekeningen voor de DM*, boven de knoppenbalk. Typ erin, herlaad, en open de bewerkmodus: dezelfde tekst staat er
+- [ ] **Wikilinks bij een speler** (SP) — een `[[Naam]]` naar een kaartje dat de speler niet mag zien staat als gewone tekst in de zin, zónder dubbele haken; een naam die hij wél kent is klikbaar. Herlaad de pagina: de links staan er meteen goed (niet eerst als haakjes)
+- [ ] **Geheim-onthuld op het kaartje** (SP) — bij een onthuld geheim staat een pill *Geheim onthuld* boven de rolbadge, niet meer boven op de bladwijzer-ster
 - [ ] **Wachtwoord opslaan meldt zich** (DM) — een partywachtwoord instellen of wissen geeft een bevestiging, net als het DM-wachtwoord
 
 - [ ] **Detailvenster: kop zegt het al** (ALL) — onder de naam staat rol · origin · class · alignment; diezelfde waarden staan niet nóg eens als pil eronder
