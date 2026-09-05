@@ -370,6 +370,9 @@ function switchSection(section) {
   if (dienstenNavBtn) dienstenNavBtn.classList.toggle('active', ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo'].includes(section));
 
   $$('.section').forEach(s => s.classList.toggle('active', s.id === `section-${section}`));
+  // Een tabblad opent bovenaan: een sectie houdt zijn eigen scrollpositie vast,
+  // en dan lijkt het alsof de app half omlaag staat als je terugkomt.
+  document.getElementById(`section-${section}`)?.scrollTo?.(0, 0);
   // Eenmalige kaart-entree-animatie bij het openen van een sectie (niet bij zoeken/
   // filteren — die renderen zonder deze klasse). CSS: .section-cards-enter .entity-card.
   const _secEl = document.getElementById(`section-${section}`);
@@ -1472,6 +1475,13 @@ function _landingFinishLogin({ playerName, characterId: cid }) {
   if (cid && window._socket) window._socket.emit('player:register', cid);
   window._pendingPlayerSubTab = 'personage';
   switchSection('mijn-karakter');
+  // Na de inlog-animatie kon het scherm een stukje omlaag staan, waardoor de
+  // balk bovenaan (campagnenaam, tabs) niet meteen in beeld was. Zowel het
+  // venster als het tabblad zelf terug naar boven.
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+    document.querySelector('.section.active')?.scrollTo?.(0, 0);
+  });
 }
 
 // ── Speler-karakter kiezer ──
