@@ -3172,6 +3172,7 @@ window._openEditor = async (tab, editId) => {
       </div>
       <div>
         <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Onderschrift</label>
+        <p class="text-[10px] text-ink-dim mb-1">Staat onder de afbeelding op het kaartje en is ook voor spelers zichtbaar &mdash; iets als &bdquo;geschilderd in het jaar 812&ldquo;. Dit is niet de naam in de mediabibliotheek; die is om het bestand terug te vinden.</p>
         <input name="data_imgCaption" value="${esc(e?.data?.imgCaption || '')}"
           placeholder="Bijschrift\u2026"
           class="w-full mt-1 px-2 py-1.5 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
