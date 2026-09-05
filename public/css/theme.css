@@ -129,7 +129,10 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .global-search-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 10, 5, 0.72);
+  /* Zelfde sluier als het detailvenster: warm en doorschijnend in plaats van
+     bijna zwart. */
+  background: rgba(60, 40, 10, 0.5);
+  backdrop-filter: blur(3px);
   z-index: 200;
   display: flex;
   align-items: flex-start;
@@ -138,11 +141,13 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 .global-search-overlay.hidden { display: none; }
 
+/* Zoeken staat middenin de app, dus in dezelfde perkamenttinten als de rest.
+   Het donkere paneel kwam uit een eerdere versie waarin overlays zwart waren. */
 .global-search-box {
-  background: #2e1c0c;
-  border: 1px solid #6a4820;
+  background: #f8f0de;
+  border: 1px solid #c4a87a;
   border-radius: 10px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  box-shadow: 0 12px 40px rgba(60,40,10,0.32), inset 0 1px 0 rgba(255,255,255,0.4);
   width: min(640px, calc(100vw - 32px));
   max-height: 70vh;
   display: flex;
@@ -155,12 +160,12 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   align-items: center;
   gap: 10px;
   padding: 14px 18px;
-  border-bottom: 1px solid #4a3018;
+  border-bottom: 1px solid rgba(196,168,122,.5);
 }
 
 .global-search-icon {
   font-size: 20px;
-  color: #9a7840;
+  color: #8a6d3f;
   flex-shrink: 0;
 }
 
@@ -171,17 +176,17 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   outline: none;
   font-family: 'Cinzel', serif;
   font-size: 15px;
-  color: #f5edd8;
-  caret-color: #c4930a;
+  color: #2a1a08;
+  caret-color: #8a6d3f;
 }
-.global-search-input::placeholder { color: #6a5030; }
+.global-search-input::placeholder { color: #9a8060; }
 
 .gs-type-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   padding: 8px 14px;
-  border-bottom: 1px solid #4a3018;
+  border-bottom: 1px solid rgba(196,168,122,.5);
 }
 
 .gs-type-chip {
@@ -191,15 +196,15 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   letter-spacing: 0.04em;
   padding: 4px 10px;
   border-radius: 20px;
-  border: 1px solid #5a3c18;
-  background: transparent;
-  color: #9a7840;
+  border: 1px solid rgba(122,96,64,.4);
+  background: rgba(255,255,255,.4);
+  color: #7a6040;
   cursor: pointer;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
   white-space: nowrap;
 }
-.gs-type-chip:hover { background: rgba(196,147,10,0.14); color: #e0c070; border-color: #8a6030; }
-.gs-type-chip--active { background: rgba(196,147,10,0.22); color: #f0d080; border-color: #c4930a; }
+.gs-type-chip:hover { background: rgba(196,168,122,.3); color: #2a1a08; border-color: #8a6d3f; }
+.gs-type-chip--active { background: rgba(184,134,11,.22); color: #3a2a0e; border-color: #b8860b; }
 
 .global-search-results {
   overflow-y: auto;
@@ -215,7 +220,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #8a6030;
+  color: #8a6d3f;
   padding: 6px 18px 4px;
 }
 
@@ -231,26 +236,26 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   cursor: pointer;
   transition: background 0.1s;
 }
-.gs-result:hover { background: rgba(196,147,10,0.12); }
+.gs-result:hover { background: rgba(196,168,122,.22); }
 
 .gs-result-name {
   font-family: 'Cinzel', serif;
   font-size: 13px;
-  color: #f0e0c0;
+  color: #2a1a08;
   font-weight: 600;
 }
 
 .gs-result-sub {
   font-family: 'Crimson Text', Georgia, serif;
   font-size: 12px;
-  color: #8a7050;
+  color: #7a6040;
   font-style: italic;
 }
 
 .gs-empty {
   font-family: 'Crimson Text', Georgia, serif;
   font-size: 13px;
-  color: #8a7050;
+  color: #7a6040;
   font-style: italic;
   text-align: center;
   padding: 20px;
