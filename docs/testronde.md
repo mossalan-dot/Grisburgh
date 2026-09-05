@@ -56,6 +56,15 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Helpknop per tab** (ALL) — het vraagteken opent de uitleg met stappen en afbeeldingen; vorige/volgende werken
 - [ ] **Helpteksten bewerken** (DM) — de uitleg aanpassen en opslaan; herlaad en kijk of je tekst er nog staat (let op: dit hoort straks alleen voor de beheerder te zijn — zie `docs/todo.md`)
 - [ ] **Afbeeldingen in het detailvenster** (ALL) — extra afbeeldingen bladeren, lightbox openen, zoomen
+- [ ] **Editor in tabbladen** (DM) — de bewerkmodus heeft tabs: Informatie, Beeld & geluid, Character Sheet en (bij een verkoper) Winkel; wisselen bewaart wat je hebt ingevuld
+- [ ] **DM-velden herkenbaar** (DM) — aantekeningen en geheimen staan in een koele tint met "alleen jij" ernaast — je ziet meteen dat spelers dit niet lezen
+- [ ] **Afbeeldingen en banner** (DM) — één knop voegt toe, de ster maakt er de banner van, het kruisje koppelt los (bestand blijft in de bibliotheek); het focuspunt zit op de banner
+- [ ] **Ras, klasse, alignment** (DM) — keuzelijst in perkament: typen filtert, pijltjes en Enter werken, en iets intikken wat er niet in staat mag ook
+- [ ] **Meerdere geheimen** (DM/SP) — twee geheimen op één kaartje, één onthullen: de speler ziet alleen dat ene, de kaart toont 1/2
+- [ ] **Roddel met de hand vertellen** (DM/SP) — knop op de rol perkament in het detailvenster; daarna ziet de speler die roddel, en terugdraaien kan
+- [ ] **Rollen en kant** (DM) — verkoper aanvinken zet de voorraad aan, antagonist geeft de badge, en de kant bepaalt waar hij in het gevecht bovenaan staat
+- [ ] **Gekoppelde spreuken** (DM/SP) — spreuk zoeken in het Spells-paneel, chip verschijnt, klikken opent het spreukdetail met de volledige tekst
+- [ ] **Missies op een kaartje** (DM) — koppel een gever aan een missie; zijn naam staat op het missiekaartje en de missie staat als blokje op zijn eigen kaartje, met status
 
 ## Blok 3 — Logboek, kaarten en dungeons
 
@@ -78,6 +87,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Dungeon aanmaken** (DM) — nieuwe dungeonkaart met afbeelding, kamers tekenen, namen geven
 - [ ] **Kamerzijbalk** (DM) — beschrijving, monsters, vondsten en trap per kamer
 - [ ] **Dungeon vrijgeven aan een party** (DM) — toegang per groep; een speler zonder toegang ziet de kaart niet
+- [ ] **Missiegever kiezen** (DM) — zoekveld *Gegeven door* in de missie-editor kent personages én organisaties; leeg laten mag
 
 ## Blok 4 — Spelerstabblad
 
@@ -152,6 +162,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Loot na gevecht** (DM) — vondst koppelen aan het gevecht en meteen verdelen
 - [ ] **Rust met herberg-prijs** (DM/SP) — overnachten in de herberg schrijft de prijs per speler af
 - [ ] **Rustgebeurtenis per speler** (SP) — iedere speler krijgt zijn eigen voorval; het tafelscherm toont de lijst
+- [ ] **Kaartje kiezen bij een gevecht** (DM) — bij Monster én Medestander kun je nu een kaartje kiezen; wie op de kaart als vijand of bondgenoot staat, staat bovenaan
 
 ## Blok 7 — Meesterkamer: sfeer en beheer
 

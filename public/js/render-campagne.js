@@ -579,6 +579,44 @@ async function _vulSpellChips() {
   }
 }
 
+// ── Editor in tabbladen ──────────────────────────────────────────────────────
+// De editor werd één lange rol waarin je moest scrollen langs dingen die je op
+// dat moment niet nodig had. De blokken zetten een marker (`<!--P:naam-->`);
+// hier knippen we daarop en maken er panelen van. Een paneel zonder inhoud
+// krijgt geen tabblad.
+const ED_TABS = [
+  { key: 'info',   label: 'Informatie' },
+  { key: 'beeld',  label: 'Beeld & geluid' },
+  { key: 'sheet',  label: 'Character Sheet' },
+  { key: 'winkel', label: 'Winkel' },
+];
+
+function _bouwEditorTabs(html) {
+  const delen = html.split(/<!--P:(\w+)-->/);
+  const panelen = { info: delen[0] || '' };
+  for (let i = 1; i < delen.length; i += 2) {
+    const naam = delen[i];
+    panelen[naam] = (panelen[naam] || '') + (delen[i + 1] || '');
+  }
+  const gevuld = ED_TABS.filter(t => (panelen[t.key] || '').replace(/<[^>]*>|\s/g, '').length > 0
+    || /<(input|textarea|select|img|button)/.test(panelen[t.key] || ''));
+  if (gevuld.length <= 1) return html.replace(/<!--P:\w+-->/g, '');
+
+  const eerste = gevuld[0].key;
+  return `
+    <div class="ed-tabs">
+      ${gevuld.map(t => `<button type="button" class="ed-tab${t.key === eerste ? ' is-actief' : ''}"
+        data-ed-tab="${t.key}" onclick="window._edTab('${t.key}')">${t.label}</button>`).join('')}
+    </div>
+    ${gevuld.map(t => `<div class="ed-paneel${t.key === eerste ? ' is-actief' : ''}" data-ed-paneel="${t.key}">${panelen[t.key]}</div>`).join('')}
+  `;
+}
+
+window._edTab = (naam) => {
+  document.querySelectorAll('[data-ed-tab]').forEach(b => b.classList.toggle('is-actief', b.dataset.edTab === naam));
+  document.querySelectorAll('[data-ed-paneel]').forEach(p => p.classList.toggle('is-actief', p.dataset.edPaneel === naam));
+};
+
 // ── Rollen op een kaartje ────────────────────────────────────────────────────
 // `verkoper` en `antagonist` waren subtypes; nu zijn het rollen in `data.tags`,
 // zodat een verkoper óók antagonist kan zijn. Oude kaartjes hebben die waarde
@@ -3237,11 +3275,13 @@ window._openEditor = async (tab, editId) => {
   const _existingAudioId = e?.data?.audioId || '';
   const _isNpcEditor     = e?.subtype === 'NPC';
 
-  // ── Twee-kolom layout ──
-  body += `<div class="editor-layout">`;
+  // ── Tabbladen ──
+  // De editor is één lange kolom geworden; met markers knippen we hem daarna in
+  // panelen (zie _bouwEditorTabs). Zo hoeft elk blok hieronder niets te weten
+  // van waar het terechtkomt.
 
   // ── Linker kolom: afbeelding ──
-  body += `<div class="editor-col-left">`;
+  body += `<!--P:beeld-->`;
   {
     // Effectief portret-fileId: data.imageId (bibliotheek) of het entity-id zelf.
     const curImgId = e?.data?.imageId || (editId || '');
@@ -3306,10 +3346,10 @@ window._openEditor = async (tab, editId) => {
       </div>` : ''}
     `;
   }
-  body += `</div>`; // end editor-col-left
+
 
   // ── Rechter kolom: naam, type-velden ──
-  body += `<div class="editor-col-right">`;
+  body += `<!--P:info-->`;
   body += `
     <div>
       <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Naam</label>
@@ -3463,9 +3503,11 @@ window._openEditor = async (tab, editId) => {
     } else if (field.type === 'lijst-tekst') {
       const regels = _tekstLijstUit(e?.data, field.key, field.enkelvoud);
       if (!regels.length) regels.push('');
+      const _verborgenVeld = field.key === 'geheimen';
       body += `
-        <div>
-          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+        <div${_verborgenVeld ? ' class="veld-dmonly"' : ''}>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}${
+            _verborgenVeld ? ` <span class="dmonly-merk">${icon('eye-off')} pas zichtbaar als je ze onthult</span>` : ''}</label>
           <div id="lijst-${field.key}" class="lijst-veld" data-veld="${field.key}">
             ${regels.map((t, i) => _lijstRegelHtml(field.key, t, i)).join('')}
           </div>
@@ -3570,8 +3612,7 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
-  body += `</div>`; // end editor-col-right
-  body += `</div>`; // end editor-layout
+
 
   // ── Textarea velden (volledige breedte) ──
   let _hasFlavourField = false;
@@ -3589,9 +3630,9 @@ window._openEditor = async (tab, editId) => {
 
     if (['persoonlijkheid', 'flavour', 'geheim'].includes(field.key)) {
       body += `
-        <details class="cs-accordion"${val ? ' open' : ''}>
+        <details class="cs-accordion${field.dmOnly ? ' veld-dmonly' : ''}"${val ? ' open' : ''}>
           <summary class="cs-accordion-head">
-            <span>${esc(field.label)}</span>
+            <span>${esc(field.label)}${field.dmOnly ? ` <span class="dmonly-merk">${icon('eye-off')} alleen jij</span>` : ''}</span>
             <span class="cs-accordion-chevron">▾</span>
           </summary>
           <div class="cs-accordion-body">${_taHtml}</div>
@@ -3599,15 +3640,16 @@ window._openEditor = async (tab, editId) => {
       `;
     } else {
       body += `
-        <div>
-          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+        <div${field.dmOnly ? ' class="veld-dmonly"' : ''}>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}${field.dmOnly ? ` <span class="dmonly-merk">${icon('eye-off')} alleen jij</span>` : ''}</label>
           <div class="mt-1">${_taHtml}</div>
         </div>
       `;
     }
   }
 
-  // ── Verborgen inputs + audio (code behouden) ──
+  // ── Verborgen inputs + audio ── hoort bij het beeld-tabblad
+  body += `<!--P:beeld-->`;
   if (tab === 'personages' && isDM()) {
     body += `
       <input type="hidden" name="data_flavourUitgesproken" id="inp-flavourUitgesproken" value="${_valUitgesproken ? 'true' : ''}">
@@ -3628,7 +3670,8 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
-  // Voorraad (verkopers & winkels)
+  // Voorraad (verkopers & winkels) — eigen tabblad
+  body += `<!--P:winkel-->`;
   if (tab === 'personages' || tab === 'locaties') {
     const _showVoorraad = tab === 'personages'
       ? window._heeftRol(e, 'verkoper')
@@ -3751,7 +3794,8 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
-  // Stats (personages)
+  // Stats (personages) — eigen tabblad
+  body += `<!--P:sheet-->`;
   if (tab === 'personages') {
     const s = e?.stats || {};
     const _si = (k, label, center = false) => `
@@ -3879,6 +3923,7 @@ window._openEditor = async (tab, editId) => {
     </div>
   </form>`;
 
+  body = _bouwEditorTabs(body);
   openModal(editId ? 'Bewerken' : 'Nieuw', TYPE_META[tab].label, body);
 
   // Huisdier-tier-editor vullen (no-op als de sectie er niet is)

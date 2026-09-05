@@ -20,6 +20,28 @@ daadwerkelijk aanraakt; overdrijf niet.
 
 ---
 
+## Nieuw gebouwd? Schrijf meteen op hoe je het test
+
+Bij elke feature die erbij komt hoort **dezelfde dag een regel in
+`docs/testronde.md`** — in het blok waar hij thuishoort, ook als dat blok pas
+later aan de beurt is. Eén regel, in de vorm van een handeling met een
+verwachting: *wat doe je, en wat hoort er te gebeuren.* Niet "controleer de
+missiegever" maar "koppel een gever aan een missie; zijn naam staat op het
+missiekaartje en de missie staat op zijn eigen kaartje".
+
+Waarom dit een afspraak is en geen goede gewoonte: de app groeit sneller dan de
+lijst, en wat je niet opschrijft op het moment dat je het bouwt, schrijf je
+nooit meer op — je weet dan niet meer wat de randgevallen waren. De lijst is
+ook de plek waar staat wat een feature *hoort* te doen; dat is bij een
+werkdocument als dit vaak de enige specificatie die er is.
+
+Bevindingen komen in dezelfde file, in de tabel onderaan, met wat je gedaan
+hebt. De gepubliceerde versie van de lijst leeft op claude.ai (zie de
+projectgeschiedenis voor de link) en wordt bijgewerkt door `docs/testronde.md`
+opnieuw om te zetten.
+
+---
+
 ## UI & campagne-afspraken
 
 - **Taal: altijd Nederlands.** Labels, knopteksten, toastberichten, foutmeldingen — alles NL.
@@ -187,8 +209,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=448   app.js?v=592   sound-manager.js?v=8
-app.js      : api.js?v=264      render-campagne.js?v=140   render-archief.js?v=76
+index.html  : theme.css?v=449   app.js?v=592   sound-manager.js?v=8
+app.js      : api.js?v=264      render-campagne.js?v=141   render-archief.js?v=76
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=44  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3

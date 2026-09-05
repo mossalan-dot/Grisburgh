@@ -22317,3 +22317,41 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .detail-missie--voltooid { border-left-color: #4b6b3d; }
 .detail-missie--mislukt  { border-left-color: #8c2f26; }
 .detail-missie--verborgen { opacity: .6; }
+
+/* ── Editor in tabbladen ────────────────────────────────────────────────── */
+.ed-tabs {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  border-bottom: 1px solid var(--color-room-border); margin-bottom: 14px;
+}
+.ed-tab {
+  background: none; border: 1px solid transparent; border-bottom: 0;
+  border-radius: 6px 6px 0 0; padding: 6px 12px; cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+  letter-spacing: .05em; color: var(--color-ink-dim);
+  margin-bottom: -1px;
+}
+.ed-tab:hover { color: var(--color-ink-bright); }
+.ed-tab.is-actief {
+  color: var(--color-gold, #c4a840);
+  border-color: var(--color-room-border);
+  background: var(--color-room-elevated, rgba(255,255,255,0.05));
+}
+.ed-paneel { display: none; }
+.ed-paneel.is-actief { display: block; }
+.ed-paneel > * + * { margin-top: 14px; }
+
+/* Wat alleen de DM ziet, ziet er ook anders uit: een koele tint tegenover het
+   warme perkament van de rest, zodat je nooit per ongeluk denkt dat een speler
+   meeleest. */
+.veld-dmonly {
+  border-left: 3px solid rgba(90,120,150,0.55);
+  background: rgba(90,120,150,0.07);
+  border-radius: 0 6px 6px 0;
+  padding: 8px 10px;
+}
+.dmonly-merk {
+  font-family: 'Crimson Text', serif; font-size: 10px; font-style: italic;
+  text-transform: none; letter-spacing: 0; color: #7b93aa; margin-left: 6px;
+  white-space: nowrap;
+}
+.dmonly-merk .icon { width: 11px; height: 11px; vertical-align: -1px; }
