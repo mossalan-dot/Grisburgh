@@ -628,6 +628,9 @@ async function _vulSpellChips() {
   }
   const niveaus = [...perNiveau.keys()].sort((a, b) => a - b);
   host.innerHTML = '';
+  // De host is normaal een flexrij met chips; met rijtjes per niveau moeten die
+  // rijen ónder elkaar staan, niet naast elkaar.
+  host.classList.add('cs-spell-chips--per-niveau');
   for (const lv of niveaus) {
     const rij = document.createElement('div');
     rij.className = 'cs-spell-rij';
@@ -2445,11 +2448,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       };
       // Combat header (AC, HP, Speed, CR, Prof Bonus)
       const _KOPJE = { ac: 'AC', hp: 'HP', initiative: 'Init', speed: 'Speed' };
-      const _combatStats = ['ac','hp','initiative','speed'].filter(k => s[k]).map(k =>
-        `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">${_KOPJE[k]}</div><div class="text-2xl font-bold text-ink-bright">${esc(s[k])}</div></div>`
-      ).join('');
-      const _crStat = s.cr ? `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">CR</div><div class="text-2xl font-bold text-ink-bright">${esc(s.cr)}</div></div>` : '';
-      const _profStat = s.profBonus ? `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">Prof</div><div class="text-2xl font-bold text-ink-bright">${esc(s.profBonus)}</div></div>` : '';
+      const _kerncijfer = (lbl, waarde) =>
+        `<div class="blad-kern"><span class="blad-kern-lbl">${esc(lbl)}</span><span class="blad-kern-val">${esc(waarde)}</span></div>`;
+      const _combatStats = ['ac','hp','initiative','speed'].filter(k => s[k]).map(k => _kerncijfer(_KOPJE[k], s[k])).join('');
+      const _crStat   = s.cr ? _kerncijfer('CR', s.cr) : '';
+      const _profStat = s.profBonus ? _kerncijfer('Prof', s.profBonus) : '';
       // "Medium Humanoid" als regel boven het statblok, zoals in het Monster Manual.
       const _soortRegel = (s.size || s.creatureType)
         ? `<div class="text-xs font-cinzel text-ink-dim italic mb-2">${esc([s.size, s.creatureType].filter(Boolean).join(' '))}</div>` : '';
@@ -2468,9 +2471,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       ].filter(([k]) => s[k]).map(([k, label]) =>
         // Gear heeft dezelfde opmaakbalk als Traits, dus die regel gaat door de
         // markdown-renderer; de rest is een kale opsomming.
-        `<div class="flex gap-2"><span class="font-cinzel text-ink-dim text-[10px] uppercase flex-shrink-0 w-40">${label}</span><span class="text-ink-medium sheet-narrative">${k === 'gear' ? mdToHtml(s[k]) : esc(s[k])}</span></div>`
+        `<div class="blad-rij"><span class="blad-rij-lbl">${label}</span><span class="blad-rij-val sheet-narrative">${k === 'gear' ? mdToHtml(s[k]) : esc(s[k])}</span></div>`
       ).join('');
-      const _propTable = _propRows ? `<div class="mt-3 border-t border-room-border pt-3 text-sm space-y-1">${_propRows}</div>` : '';
+      const _propTable = _propRows ? `<div class="blad-rijen">${_propRows}</div>` : '';
 
       // Narrative sections
       const _narrative = [
@@ -2481,7 +2484,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         ['legendaryActions','Legendary/Mythic Actions'],
         ['lairActions','Lair Actions'],
       ].filter(([k]) => s[k]).map(([k, label]) =>
-        `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">${label}</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s[k])}</div></div>`
+        `<div class="blad-sectie"><div class="blad-sectie-kop">${label}</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s[k])}</div></div>`
       ).join('');
 
       // Spells. Gekoppelde spreuken worden chips die het spreukdetail openen; de
@@ -2489,22 +2492,20 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       let _gekoppeld = [];
       try { _gekoppeld = JSON.parse(s.spellIndexes || '[]'); } catch { _gekoppeld = []; }
       const _spells = [
-        _gekoppeld.length ? `<div class="mt-3 border-t border-room-border pt-3">
-            <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">Spells</div>
+        _gekoppeld.length ? `<div class="blad-sectie">
+            <div class="blad-sectie-kop">Spells</div>
             <div class="cs-spell-chips" id="detail-spell-chips">${_gekoppeld.map(idx =>
               `<button type="button" class="cs-spell-chip cs-spell-chip--klik" data-spell="${esc(idx)}"
                  onclick="window.spreuken.open('${esc(idx)}')">${esc(idx.replace(/-/g, ' '))}</button>`).join('')}</div>
           </div>` : '',
-        s.cantrips ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">Cantrips</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.cantrips)}</div></div>` : '',
-        s.spells ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">Niet in de bibliotheek</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.spells)}</div></div>` : '',
+        s.cantrips ? `<div class="blad-sectie"><div class="blad-sectie-kop">Cantrips</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.cantrips)}</div></div>` : '',
+        s.spells ? `<div class="blad-sectie"><div class="blad-sectie-kop">Niet in de bibliotheek</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.spells)}</div></div>` : '',
       ].join('');
 
       sheetHtml += `
         <div class="detail-blad">
           ${_soortRegel}
-          <div class="flex flex-wrap gap-4 mb-4 text-sm">
-            ${_combatStats}${_crStat}${_profStat}
-          </div>
+          <div class="blad-kernrij">${_combatStats}${_crStat}${_profStat}</div>
           <div class="stat-grid">
             ${['str','dex','con','int','wis','cha'].map(a => `
               <div class="stat-box">

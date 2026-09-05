@@ -22643,8 +22643,70 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   padding: 14px 16px;
   margin-bottom: 16px;
 }
-.detail-blad .stat-box { background: rgba(255,255,255,.5); border-color: rgba(196,168,122,.55); }
 .detail-blad .detail-field-label { margin-top: 10px; }
+
+/* Kerncijfers (AC, HP, INIT…) als één strook met scheidingslijntjes: label
+   klein erboven, waarde eronder. Losse blokjes met veel lucht ertussen lazen
+   als een verzameling in plaats van als één regel. */
+.blad-kernrij {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid rgba(196,168,122,.45);
+  border-radius: 5px;
+  background: rgba(255,255,255,.4);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.blad-kern {
+  flex: 1 1 74px;
+  text-align: center;
+  padding: 7px 6px 8px;
+  border-right: 1px solid rgba(196,168,122,.35);
+}
+.blad-kern:last-child { border-right: 0; }
+.blad-kern-lbl {
+  display: block;
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: #9a8060;
+}
+.blad-kern-val {
+  display: block; margin-top: 2px;
+  font-family: 'Cinzel', serif; font-size: 19px; font-weight: 700; color: #2a1a08;
+}
+
+/* Ability-vakjes: zes op een rij en compacter — als brede, halflege rechthoeken
+   namen ze het halve blad in beslag. */
+.detail-blad .stat-grid { grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.detail-blad .stat-box {
+  background: rgba(255,255,255,.5);
+  border-color: rgba(196,168,122,.55);
+  padding: 6px 4px 5px;
+}
+.detail-blad .stat-label { font-size: 9px; letter-spacing: .08em; }
+.detail-blad .stat-val { font-size: 20px; line-height: 1.15; }
+.detail-blad .stat-mod { font-size: 11px; color: #7a6040; }
+@media (max-width: 620px) { .detail-blad .stat-grid { grid-template-columns: repeat(3, 1fr); } }
+
+/* Eigenschappenrijen: smallere labelkolom, zodat de waarde niet in het midden
+   van het blad begint. */
+.blad-rijen { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(196,168,122,.45); }
+.blad-rij { display: flex; gap: 10px; font-size: 14px; margin-bottom: 3px; }
+.blad-rij-lbl {
+  flex: 0 0 118px;
+  font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: .07em;
+  text-transform: uppercase; color: #9a8060; padding-top: 3px;
+}
+.blad-rij-val { color: #3a2410; }
+
+/* Tekstsecties op het blad (Traits, Actions, Spells…). */
+.blad-sectie { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(196,168,122,.45); }
+.blad-sectie-kop {
+  font-family: 'Cinzel', serif; font-size: 10.5px; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: #8a6d3f; margin-bottom: 6px;
+}
+
+/* Rijtjes spreuken onder elkaar (de host is normaal een flexrij met chips). */
+.cs-spell-chips--per-niveau { display: block; }
 .cs-spell-chip b {
   font-family: 'Cinzel', serif; font-size: 9.5px; opacity: .75;
   border-right: 1px solid rgba(160,112,204,0.45); padding-right: 5px;
