@@ -4232,7 +4232,7 @@ window._openEditor = async (tab, editId) => {
               class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
           </div>
           <div>
-            <label class="text-[10px] font-cinzel text-ink-dim uppercase">Type</label>
+            <label class="text-[10px] font-cinzel text-ink-dim uppercase">Ras</label>
             <input name="data_soortLabel" value="${esc(e?.data?.soortLabel || '')}" placeholder="Hond"
               class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
           </div>
