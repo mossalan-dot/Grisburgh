@@ -1929,7 +1929,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _detailDexMod = (typeof window._playerDexMod === 'number') ? window._playerDexMod : null;
   const _detailAcResult = (tab === 'voorwerpen' && e.data?.armorType) ? _calcArmorAC(e.data, _detailDexMod) : null;
   const _rolVal = e.data?.rol;
-  let _rolInHero = false;
   if (_extraImgs.length > 0) {
     // De banner leeft sinds de mediabibliotheek in data.imageId; alleen oude
     // kaartjes hebben hun portret nog onder het entity-id staan. Stond hier
@@ -1952,16 +1951,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       </div>
       ${_primaryCaption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(_primaryCaption)}</p>` : ''}
     `;
-    if (_rolVal) _rolInHero = true;
   }
 
   // Upload en audio-beheer staan in de bewerkmodus (openEditor), niet in de detailview
 
-  // Rol badge — alleen los tonen als 'ie niet al als overlay op het beeld staat
-  const rolVal = e.data?.rol;
-  if (rolVal && !_rolInHero) {
-    infoHtml += `<div class="text-center mb-4"><span class="detail-role-badge">${esc(rolVal)}</span></div>`;
-  }
+  // De korte omschrijving stond hier nog eens als losse badge onder het beeld.
+  // Sinds hij als eerste deel van de regel onder de naam staat (rol · origin ·
+  // class · alignment) is dat een herhaling.
 
   // Voorwerpen: rariteit + attunement als compacte subtitelrij direct onder hero
   if (tab === 'voorwerpen') {
