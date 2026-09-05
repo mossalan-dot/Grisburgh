@@ -64,6 +64,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Roddel met de hand vertellen** (DM/SP) — knop op de rol perkament in het detailvenster; daarna ziet de speler die roddel, en terugdraaien kan
 - [ ] **Rollen en kant** (DM) — verkoper aanvinken zet de voorraad aan, antagonist geeft de badge, en de kant bepaalt waar hij in het gevecht bovenaan staat
 - [ ] **Gekoppelde spreuken** (DM/SP) — spreuk zoeken in het Spells-paneel, chip verschijnt, klikken opent het spreukdetail met de volledige tekst
+- [ ] **Statblok → monsterbibliotheek** (DM) — vul HP én AC op een personage-kaartje: hij staat meteen in de monsterlijst van de Meesterkamer (met "van kaartje") en is toe te voegen aan een encounter, maar verschijnt **niet** in het bestiarium van de spelers; HP of AC weer leegmaken haalt hem uit de lijst
+- [ ] **Statblok compleet** (DM) — Size en Creature Type als dropdown, Initiative, XP, Gear, Lair Actions en Damage Vulnerabilities zijn in te vullen en komen terug in het detailvenster ("Medium Humanoid" boven het blok)
+- [ ] **Vrije spells** (DM) — het vak "Niet in de bibliotheek" staat dicht bij een leeg kaartje en open zodra er tekst in staat; oude losse cantrips staan er na één keer opslaan bij in
+- [ ] **Dobbelknop van de DM** (DM) — buiten een lopende akte is de d20-knop rechtsonder weg; speel een akte af en hij staat er weer
+
 - [ ] **Missies op een kaartje** (DM) — koppel een gever aan een missie; zijn naam staat op het missiekaartje en de missie staat als blokje op zijn eigen kaartje, met status
 
 ## Blok 3 — Logboek, kaarten en dungeons

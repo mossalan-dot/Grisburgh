@@ -3147,7 +3147,7 @@ function _monsterRow(m) {
     <div class="dm-monster-row">
       <div class="dm-monster-thumb dm-monster-thumb-empty">${icon('skull')}${m.imageId ? `<img src="${api.fileUrl(m.imageId)}" alt="" onerror="this.remove()">` : ''}</div>
       <div class="dm-monster-info">
-        <span class="dm-monster-name">${esc(m.name)}</span>
+        <span class="dm-monster-name">${esc(m.name)}${m.entityId ? ` <span class="dm-monster-bron" title="Komt van een personage-kaartje; bewerk het daar">van kaartje</span>` : ''}</span>
         <span class="dm-monster-meta">HP ${m.maxHp}${(() => { const ac = parseInt(m.statblock?.ac); return Number.isFinite(ac) ? ` · AC ${ac}` : ''; })()}</span>
       </div>
       <div class="dm-monster-actions">

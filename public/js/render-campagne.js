@@ -2099,16 +2099,22 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         return m >= 0 ? `+${m}` : `${m}`;
       };
       // Combat header (AC, HP, Speed, CR, Prof Bonus)
-      const _combatStats = ['ac','hp','speed'].filter(k => s[k]).map(k =>
-        `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">${k.toUpperCase()}</div><div class="text-2xl font-bold text-ink-bright">${esc(s[k])}</div></div>`
+      const _KOPJE = { ac: 'AC', hp: 'HP', initiative: 'Init', speed: 'Speed' };
+      const _combatStats = ['ac','hp','initiative','speed'].filter(k => s[k]).map(k =>
+        `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">${_KOPJE[k]}</div><div class="text-2xl font-bold text-ink-bright">${esc(s[k])}</div></div>`
       ).join('');
       const _crStat = s.cr ? `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">CR</div><div class="text-2xl font-bold text-ink-bright">${esc(s.cr)}</div></div>` : '';
       const _profStat = s.profBonus ? `<div class="text-center"><div class="text-xs text-ink-dim font-cinzel uppercase">Prof</div><div class="text-2xl font-bold text-ink-bright">${esc(s.profBonus)}</div></div>` : '';
+      // "Medium Humanoid" als regel boven het statblok, zoals in het Monster Manual.
+      const _soortRegel = (s.size || s.creatureType)
+        ? `<div class="text-xs font-cinzel text-ink-dim italic mb-2">${esc([s.size, s.creatureType].filter(Boolean).join(' '))}</div>` : '';
 
       // Property rows
       const _propRows = [
         ['savingThrows','Saving Throws'],
         ['skills','Skills'],
+        ['gear','Gear'],
+        ['vulnerabilities','Damage Vulnerabilities'],
         ['resistances','Damage Resistances'],
         ['immunities','Damage Immunities'],
         ['conditionImmunities','Condition Immunities'],
@@ -2126,6 +2132,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         ['bonusActions','Bonus Actions'],
         ['reactions','Reactions'],
         ['legendaryActions','Legendary Actions'],
+        ['lairActions','Lair Actions'],
       ].filter(([k]) => s[k]).map(([k, label]) =>
         `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">${label}</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s[k])}</div></div>`
       ).join('');
@@ -2142,11 +2149,12 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                  onclick="window.spreuken.open('${esc(idx)}')">${esc(idx.replace(/-/g, ' '))}</button>`).join('')}</div>
           </div>` : '',
         s.cantrips ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">Cantrips</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.cantrips)}</div></div>` : '',
-        s.spells ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">Spells (los)</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.spells)}</div></div>` : '',
+        s.spells ? `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">Niet in de bibliotheek</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s.spells)}</div></div>` : '',
       ].join('');
 
       sheetHtml += `
         <div class="mb-4 p-4 bg-room-elevated rounded border border-room-border">
+          ${_soortRegel}
           <div class="flex flex-wrap gap-4 mb-4 text-sm">
             ${_combatStats}${_crStat}${_profStat}
           </div>
@@ -3525,13 +3533,18 @@ window._openEditor = async (tab, editId) => {
             <!-- Kant in gevecht staat in dezelfde rij, achter een streepje: het
                  zijn ook vinkjes, maar er kan er maar één aan staan. Een
                  dropdown ernaast oogde als iets van een andere orde. -->
-            ${[['bondgenoot', 'Bondgenoot'], ['vijand', 'Vijand'], ['neutraal', 'Neutraal']].map(([k, label]) => `
+            ${(() => {
+              // Zonder keuze staat hij neutraal: de meeste kaartjes vechten niet mee,
+              // en een leeg vakje leest als "vergeten in te vullen".
+              const kantNu = e?.data?.kant || 'neutraal';
+              return [['bondgenoot', 'Bondgenoot'], ['vijand', 'Vijand'], ['neutraal', 'Neutraal']].map(([k, label]) => `
               <label class="rol-keuze rol-keuze--kant" title="Waar hij staat als er gevochten wordt">
-                <input type="checkbox" value="${k}" ${(e?.data?.kant || '') === k ? 'checked' : ''}
+                <input type="checkbox" value="${k}" ${kantNu === k ? 'checked' : ''}
                   onchange="window._kantBij(this)">
                 <span>${label}</span>
-              </label>`).join('')}
-            <input type="hidden" name="data_kant" id="kant-veld" value="${esc(e?.data?.kant || '')}">
+              </label>`).join('') + `
+            <input type="hidden" name="data_kant" id="kant-veld" value="${esc(kantNu)}">`;
+            })()}
           </div>
         </div>
       `;
@@ -3838,7 +3851,18 @@ window._openEditor = async (tab, editId) => {
         <input name="stat_${k}" value="${esc(s[k] || '')}"
           class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none${center ? ' text-center' : ''}">
       </div>`;
-    const _ta = (k, label, rows = 3) => {
+    // Vaste lijstjes (Size, Creature Type) horen in een dropdown: er zijn maar
+    // een handvol geldige waarden en typefouten maken filteren onmogelijk.
+    const _sel = (k, label, opties) => `
+      <div>
+        <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
+        <select name="stat_${k}"
+          class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+          <option value="">\u2014</option>
+          ${opties.map(o => `<option value="${esc(o)}"${(s[k] || '') === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}
+        </select>
+      </div>`;
+    const _ta = (k, label, rows = 3, waarde = null) => {
       const taId = `stat_ta_${k}`;
       return `<div>
         <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
@@ -3846,7 +3870,7 @@ window._openEditor = async (tab, editId) => {
           ${fmtToolbar(taId)}
           <textarea id="${taId}" name="stat_${k}" rows="${rows}"
             onkeydown="window._fmtKey(event)"
-            class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(s[k] || '')}</textarea>
+            class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(waarde ?? s[k] ?? '')}</textarea>
         </div>
       </div>`;
     };
@@ -3861,11 +3885,15 @@ window._openEditor = async (tab, editId) => {
           </div>
 
           <div id="cs-panel-gevecht" class="cs-sub-body space-y-2">
-            <div class="grid grid-cols-3 gap-2">
-              ${_si('ac','AC',true)}${_si('hp','HP',true)}${_si('speed','Speed',true)}
-            </div>
             <div class="grid grid-cols-2 gap-2">
-              ${_si('cr','Challenge Rating',true)}${_si('profBonus','Prof. Bonus',true)}
+              ${_sel('size','Size', ['Tiny','Small','Medium','Large','Huge','Gargantuan'])}
+              ${_sel('creatureType','Creature Type', ['Aberration','Beast','Celestial','Construct','Dragon','Elemental','Fey','Fiend','Giant','Humanoid','Monstrosity','Ooze','Plant','Undead'])}
+            </div>
+            <div class="grid grid-cols-4 gap-2">
+              ${_si('ac','AC',true)}${_si('hp','HP',true)}${_si('initiative','Initiative',true)}${_si('speed','Speed',true)}
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              ${_si('cr','Challenge Rating',true)}${_si('xp','XP',true)}${_si('profBonus','Prof. Bonus',true)}
             </div>
             <div class="cs-divider"></div>
             <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Ability Scores</div>
@@ -3894,6 +3922,7 @@ window._openEditor = async (tab, editId) => {
             <div class="space-y-2">
               ${_si('senses','Senses')}
               ${_si('languages','Languages')}
+              ${_si('gear','Gear')}
             </div>
             <div class="cs-divider"></div>
             <!-- Traits horen bij het statblok en niet bij Actions: het zijn
@@ -3906,6 +3935,7 @@ window._openEditor = async (tab, editId) => {
             ${_ta('bonusActions','Bonus Actions', 2)}
             ${_ta('reactions','Reactions', 2)}
             ${_ta('legendaryActions','Legendary Actions', 3)}
+            ${_ta('lairActions','Lair Actions', 2)}
           </div>
 
           <div id="cs-panel-spreuken" class="cs-sub-body space-y-2" style="display:none">
@@ -3916,14 +3946,23 @@ window._openEditor = async (tab, editId) => {
                  koppeling levert een kaartje op waar je doorheen klikt. De
                  tekstvelden eronder blijven voor wat niet in de bibliotheek staat. -->
             <div>
-              <label class="text-[10px] font-cinzel text-ink-dim uppercase">Spreuken uit de bibliotheek</label>
+              <label class="text-[10px] font-cinzel text-ink-dim uppercase">Spells</label>
               <div id="cs-spell-chips" class="cs-spell-chips"></div>
-              ${_keuzeVeldHtml('cs-spell-add', '', '', (_spreukLijst || []).map(sp => sp.name), 'Zoek een spreuk\u2026',
+              ${_keuzeVeldHtml('cs-spell-add', '', '', (_spreukLijst || []).map(sp => sp.name), 'Zoek een spell\u2026',
                 (invoer) => window._csSpellAdd(invoer))}
               <input type="hidden" name="stat_spellIndexes" id="cs-spell-indexes" value="${esc(s.spellIndexes || '')}">
             </div>
-            ${_si('cantrips','Cantrips (los)')}
-            ${_ta('spells','Spells (los)', 3)}
+            <!-- Cantrips en spells die niet in de bibliotheek staan, in één vak.
+                 Een <details> houdt het dicht tot je het nodig hebt; de inhoud
+                 blijft in de DOM, dus hij wordt gewoon meegestuurd bij opslaan. -->
+            <details class="cs-vrij-spells"${(s.cantrips || s.spells) ? ' open' : ''}>
+              <summary>Niet in de bibliotheek</summary>
+              <div class="mt-2">
+                ${_ta('spells','Cantrips &amp; spells (vrij)', 3,
+                  [s.cantrips, s.spells].filter(Boolean).join('\n'))}
+                <input type="hidden" name="stat_cantrips" value="">
+              </div>
+            </details>
             ${s.extra ? _ta('extra','Legacy', 2) : ''}
           </div>
         </div>

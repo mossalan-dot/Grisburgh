@@ -5283,6 +5283,19 @@ body.verhaal-open .kaart-fs-overlay { right: var(--verhaal-breedte); }
   font-size: 10px;
   color: #9a8060;
 }
+/* Afgeleid van een personage-kaartje: hier niet de plek om te bewerken. */
+.dm-monster-bron {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: #7a6040;
+  background: rgba(196,168,122,.28);
+  border: 1px solid rgba(122,96,64,.35);
+  border-radius: 3px;
+  padding: 1px 4px;
+  vertical-align: 1px;
+}
 .dm-monster-actions {
   display: flex;
   gap: 4px;
@@ -16714,6 +16727,10 @@ body.display-mode .combat-overlay { z-index: 60; }
 
 /* Als aktebar actief is: verberg de geminimaliseerde combat-balk (knop zit in aktebar) */
 body.dm-rb-active .combat-overlay.minimized { display: none !important; }
+/* De dobbelknop van de DM hoort bij het spelen. Buiten een lopende akte
+   (body.dm-rb-active = regie-balk staat aan) geeft hij alleen ruimte weg. */
+body:not(.dm-rb-active) .dm-dice-fab,
+body:not(.dm-rb-active) .dm-dice-panel { display: none !important; }
 
 /* ⚔️-knop in aktebar header */
 .dm-rb-combat-btn { font-size: 14px !important; }
@@ -22228,6 +22245,21 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 
 /* Gekoppelde spreuken als chips, op het kaartje en in de editor. */
 .cs-spell-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+/* Vrij tekstvak voor wat niet in de spellbibliotheek staat: dicht tenzij gevuld. */
+.cs-vrij-spells > summary {
+  cursor: pointer;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #9a8060;
+  padding: 4px 0;
+  list-style: none;
+}
+.cs-vrij-spells > summary::-webkit-details-marker { display: none; }
+.cs-vrij-spells > summary::before { content: '\25B8'; margin-right: 5px; }
+.cs-vrij-spells[open] > summary::before { content: '\25BE'; }
+.cs-vrij-spells > summary:hover { color: #c4a87a; }
 .cs-spell-chip {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 2px 8px; border-radius: 999px;

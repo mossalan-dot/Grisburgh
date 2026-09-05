@@ -331,6 +331,45 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   return e;
 }
 
+// ── Kaartjes met een statblok in de monsterbibliotheek ───────────────────────
+// Een NPC met HP en AC wil je in een gevecht kunnen zetten, en dat gaat via de
+// monsterbibliotheek. Maar hij hoort *niet* in het bestiarium: dat is wat de
+// spelers verzamelen aan beesten, en een herbergier is geen beest. Vandaar
+// `inBestiarium: false` en een verwijzing naar het kaartje.
+function _syncMonsterVanKaartje(entity) {
+  const st = entity?.stats || {};
+  const heeftStatblok = String(st.hp ?? '').trim() && String(st.ac ?? '').trim();
+
+  const data = storage.readJSON('monsters.json');
+  if (!Array.isArray(data.monsters)) data.monsters = [];
+  const idx = data.monsters.findIndex(m => m.entityId === entity.id);
+
+  if (!heeftStatblok) {
+    // Statblok leeggemaakt? Dan hoort hij ook niet meer in de lijst.
+    if (idx >= 0) { data.monsters.splice(idx, 1); storage.writeJSON('monsters.json', data); }
+    return;
+  }
+
+  const getal = (v) => parseInt(String(v ?? '').match(/-?\d+/)?.[0] ?? '', 10) || 0;
+  const statblock = { ...st };
+  const regel = {
+    id:            idx >= 0 ? data.monsters[idx].id : `m_ent_${entity.id}`,
+    entityId:      entity.id,          // hieraan herkennen we een afgeleide regel
+    name:          entity.name,
+    maxHp:         getal(st.hp),
+    initiative:    getal(st.initiative) || 10,
+    imageId:       entity.data?.imageId || null,
+    backdropId:    idx >= 0 ? data.monsters[idx].backdropId : null,
+    chapter:       idx >= 0 ? data.monsters[idx].chapter : '',
+    statblock,
+    inBestiarium:  false,              // wél in een encounter, niet in het bestiarium
+    description:   entity.data?.desc || '',
+  };
+  if (idx >= 0) data.monsters[idx] = { ...data.monsters[idx], ...regel };
+  else data.monsters.push(regel);
+  storage.writeJSON('monsters.json', data);
+}
+
 // ── Rollen op een personage ──────────────────────────────────────────────────
 // `verkoper` en `antagonist` zijn van subtype naar rol verhuisd (`data.tags`),
 // zodat een verkoper ook antagonist kan zijn. Oude kaartjes dragen de waarde
@@ -584,6 +623,7 @@ router.post('/entities/:type', requireDM, (req, res) => {
     }
     storage.writeJSON('entities.json', entities);
     storage.writeJSON('dm-state.json', dmState);
+    if (type === 'personages') _syncMonsterVanKaartje(entity);
     req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type, id: entity.id });
     res.status(201).json(entity);
   } catch (err) {
@@ -671,6 +711,9 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
   }
 
   storage.writeJSON('entities.json', entities);
+  // Personage met een statblok? Dan hoort hij in de monsterbibliotheek, zodat je
+  // hem in een encounter kunt zetten.
+  if (type === 'personages') _syncMonsterVanKaartje(updated);
   req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type, id });
   res.json(updated);
 });
