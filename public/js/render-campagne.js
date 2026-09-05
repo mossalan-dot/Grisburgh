@@ -3647,7 +3647,7 @@ window._openEditor = async (tab, editId) => {
               // Zonder keuze staat hij neutraal: de meeste kaartjes vechten niet mee,
               // en een leeg vakje leest als "vergeten in te vullen".
               const kantNu = e?.data?.kant || 'neutraal';
-              return [['bondgenoot', 'Bondgenoot'], ['vijand', 'Vijand'], ['neutraal', 'Neutraal']].map(([k, label]) => `
+              return [['bondgenoot', 'Bondgenoot'], ['neutraal', 'Neutraal'], ['vijand', 'Vijand']].map(([k, label]) => `
               <label class="rol-keuze rol-keuze--kant" title="Aan welke kant dit personage staat als er gevochten wordt">
                 <input type="checkbox" value="${k}" ${kantNu === k ? 'checked' : ''}
                   onchange="window._kantBij(this)">
