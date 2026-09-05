@@ -4687,6 +4687,9 @@ window._openEditor = async (tab, editId) => {
         const sec = document.getElementById(id);
         if (sec) sec.style.display = val === 'dier' ? '' : 'none';
       }
+      // Verkoper/antagonist zeggen niets over een dier; de kant blijft wel.
+      const rolVak = document.querySelector('.rollen-rollen');
+      if (rolVak) rolVak.style.display = val === 'dier' ? 'none' : '';
       // Velden die aan een subtype hangen (Domein bij een god, Origin/Class niet)
       const sub = String(val || '').toLowerCase();
       document.querySelectorAll('[data-voor-subtype], [data-niet-subtype]').forEach(el => {
