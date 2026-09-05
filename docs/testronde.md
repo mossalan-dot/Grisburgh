@@ -76,6 +76,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Meerdere roddels op het kaartje** (DM/SP) — bij twee onthulde flavourregels staat rechtsonder "1/2 ›"; klikken toont de volgende zonder dat het kaartje opengaat, en de DM ziet nog-niet-vertelde regels lichter
 - [ ] **Rollen als badge** (ALL) — een verkoper die ook antagonist is toont bééde badges op het kaartje en in het detailvenster; zonder rol staat er het type (NPC, Speler, Dier, God)
 
+- [ ] **Verkoper wijst naar zijn winkel** (DM) — in de Winkel-tab van een personage kies je een locatie; op zijn kaartje staat dan "Verkoopt bij <locatie>" met een doorklik naar de voorraad daar. Het personage heeft zelf geen voorraadlijst meer
+- [ ] **Voorraad op de locatie** (ALL) — de winkel-tab van een locatie toont de voorraad; ook bij een locatie die géén type *Winkel* heeft maar wel waren (tempel, ziekenhuis)
+
 - [ ] **Kop van de editor** (DM) — nieuw kaartje heet "Nieuw personage" / "Nieuwe locatie" / "Nieuwe organisatie" / "Nieuw voorwerp" / "Nieuw document", bewerken heet "Personage bewerken" enzovoort; er staat geen losse ondertitel meer onder
 
 - [ ] **Volgorde in de editor** (DM) — Informatie loopt van boven naar beneden: korte omschrijving, Origin/Class/Alignment, rollen, Beschrijving, Flavour teksten, Geheimen, Aantekeningen

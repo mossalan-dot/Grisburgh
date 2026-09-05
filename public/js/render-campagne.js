@@ -2340,10 +2340,28 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       </button>`;
   }
 
-  // ── Tab: Voorraad (verkopers & winkels) ──
-  const isVerkoper = window._heeftRol(e, 'verkoper');
-  const isWinkel = tab === 'locaties' && e.data?.locType === 'Winkel';
-  const heeftVoorraad = isVerkoper || isWinkel;
+  // ── Tab: Voorraad (winkels) ──
+  // Een verkoper die naar een locatie wijst heeft zelf geen voorraadtab: daar
+  // staat een doorklik naar de plek waar zijn waren liggen (zie hieronder).
+  const isVerkoper   = window._heeftRol(e, 'verkoper');
+  const _winkelLocId = tab === 'personages' ? (e.data?.winkelLocatieId || '') : '';
+  const isWinkel = tab === 'locaties'
+    && (e.data?.locType === 'Winkel' || (e.data?.voorraad && e.data.voorraad !== '[]'));
+  const heeftVoorraad = (isVerkoper && !_winkelLocId) || isWinkel;
+
+  // "Verkoopt bij <locatie>" in het infopaneel, met doorklik.
+  if (_winkelLocId) {
+    const _locNaam = Object.entries(window._entityNameIndex || {})
+      .find(([, v]) => v.id === _winkelLocId && v.type === 'locaties')?.[0];
+    if (_locNaam) {
+      infoHtml += `
+        <div class="detail-winkel-link mb-4">
+          ${icon('package')}
+          <span>Verkoopt bij</span>
+          <button type="button" onclick="window._openDetail('locaties','${esc(_winkelLocId)}',false,'voorraad')">${esc(_locNaam)}</button>
+        </div>`;
+    }
+  }
   let voorraadHtml = '';
   if (heeftVoorraad) {
     const _appMeta = window.app?.state?.meta || {};
@@ -3857,12 +3875,32 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
-  // Voorraad (verkopers & winkels) — eigen tabblad
+  // ── Tabblad Winkel ──
+  // Een verkoper heeft géén eigen voorraad meer: hij wijst naar de plek waar
+  // zijn waren liggen. Diezelfde lijst stond eerder op allebei de kaartjes en
+  // liep daardoor uiteen. Het personage krijgt dus alleen een keuzelijst met
+  // een doorklik; de voorraad zelf hoort bij de locatie.
   body += `<!--P:winkel-->`;
-  if (tab === 'personages' || tab === 'locaties') {
-    const _showVoorraad = tab === 'personages'
-      ? window._heeftRol(e, 'verkoper')
-      : e?.data?.locType === 'Winkel';
+  if (tab === 'personages') {
+    const _winkelId = e?.data?.winkelLocatieId || '';
+    body += `
+      <div id="voorraad-section"${window._heeftRol(e, 'verkoper') ? '' : ' style="display:none"'}>
+        <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Verkoopt bij</div>
+        <p class="text-xs text-ink-dim mb-2">
+          Kies de plek waar zijn waren liggen. De voorraad, de prijzen en de inkoop
+          staan daar — zo is er één lijst en niet twee die uit elkaar lopen.
+        </p>
+        <input type="hidden" name="data_winkelLocatieId" id="winkel-loc-id" value="${esc(_winkelId)}">
+        <input list="winkel-loc-dl" id="winkel-loc-naam" placeholder="Zoek een locatie\u2026"
+          value=""
+          onchange="window._winkelLocKies(this.value)"
+          class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+        <datalist id="winkel-loc-dl"></datalist>
+        <div id="winkel-loc-link" class="mt-2"></div>
+      </div>`;
+  }
+  if (tab === 'locaties') {
+    const _showVoorraad = true;
     let winkelConfigEditor = {};
     try { winkelConfigEditor = e?.data?.winkelConfig ? JSON.parse(e.data.winkelConfig) : {}; } catch {}
     body += `
@@ -3922,59 +3960,19 @@ window._openEditor = async (tab, editId) => {
         </div>
         <!-- Sfeer & Onderhandelen instellingen -->
         <div>
-          <div class="cs-sectiekop">Sfeer &amp; onderhandelen</div>
-          <div class="space-y-2">
-            <div>
-              <label class="text-xs text-ink-dim block mb-1">Sfeertekst (bovenaan voorraad)</label>
-              <textarea id="wc-sfeer" rows="2" oninput="window._wcUpdate()" placeholder="De schappen liggen vol met…"
-                class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(winkelConfigEditor.sfeerTekst || '')}</textarea>
-            </div>
-            <div class="flex gap-2 items-center">
-              <label class="text-xs text-ink-dim w-32">Onderhandel DC</label>
-              <input type="number" id="wc-onderhandel-dc" min="1" max="30" value="${winkelConfigEditor.onderhandelDC ?? 15}"
-                oninput="window._wcUpdate()"
-                class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-            </div>
-            <div class="flex gap-2 items-center">
-              <label class="text-xs text-ink-dim w-32">Korting bij succes (%)</label>
-              <input type="number" id="wc-onderhandel-korting" min="0" max="90" value="${winkelConfigEditor.onderhandelKorting ?? 10}"
-                oninput="window._wcUpdate()"
-                class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-            </div>
-            <div class="flex gap-2 items-center">
-              <label class="text-xs text-ink-dim w-32">Boete bij falen (%)</label>
-              <input type="number" id="wc-onderhandel-boete" min="0" max="50" value="${winkelConfigEditor.onderhandelBoete ?? 0}"
-                oninput="window._wcUpdate()"
-                class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-            </div>
+          <div class="cs-sectiekop">Sfeer</div>
+          <div>
+            <label class="text-xs text-ink-dim block mb-1">Sfeertekst (bovenaan de voorraad)</label>
+            <textarea id="wc-sfeer" rows="2" oninput="window._wcUpdate()" placeholder="De schappen liggen vol met\u2026"
+              class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(winkelConfigEditor.sfeerTekst || '')}</textarea>
           </div>
         </div>
-        <!-- Inkoop: winkel koopt voorwerpen van spelers -->
         <div>
           <div class="cs-sectiekop">Inkoop</div>
-          <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer mb-2">
-            <input type="checkbox" id="wc-koopt" ${winkelConfigEditor.koopt ? 'checked' : ''} onchange="window._wcUpdate()">
-            Koopt voorwerpen van spelers
-          </label>
-          <div id="wc-koop-extra" class="${winkelConfigEditor.koopt ? '' : 'hidden'} space-y-2 pl-4">
-            <div class="flex gap-2 items-center">
-              <label class="text-xs text-ink-dim w-40" title="Percentage van de voorwerpprijs dat de winkel uitbetaalt">Bod (% van waarde)</label>
-              <input type="number" id="wc-koopratio" min="1" max="100" value="${winkelConfigEditor.koopRatio ?? 50}"
-                oninput="window._wcUpdate()"
-                class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-            </div>
-            <div>
-              <div class="text-xs text-ink-dim mb-1">Koopt deze categorieën <span class="opacity-60">(geen aangevinkt = alles)</span></div>
-              <div class="flex flex-wrap gap-x-3 gap-y-1">
-                ${['Weapon','Armor','Shield','Potion','Scroll','Ring','Amulet','Magic Item','Wondrous item','Consumable','Musical instrument','Other'].map(cat => {
-                  const _on = Array.isArray(winkelConfigEditor.koopCategorieen) && winkelConfigEditor.koopCategorieen.includes(cat);
-                  return `<label class="flex items-center gap-1 text-xs text-ink-medium cursor-pointer">
-                    <input type="checkbox" class="wc-koopcat" data-cat="${esc(cat)}" ${_on ? 'checked' : ''} onchange="window._wcUpdate()"> ${esc(cat)}
-                  </label>`;
-                }).join('')}
-              </div>
-            </div>
-          </div>
+          <p class="text-xs text-ink-dim">
+            Wat de winkel van spelers overneemt bepaal je aan tafel: open het
+            kaartje van de winkel en gebruik daar <em>Inkopen van de party</em>.
+          </p>
         </div>
       </div>
     `;
@@ -4131,7 +4129,12 @@ window._openEditor = async (tab, editId) => {
   </form>`;
 
   // De winkel krijgt alleen een tabblad als dit kaartje er een heeft.
-  body = _bouwEditorTabs(body, tab === 'locaties' ? e?.data?.locType === 'Winkel' : window._heeftRol(e, 'verkoper'));
+  // Een tempel die drankjes verkoopt is geen 'Winkel', maar hoort het tabblad
+  // wél te hebben zodra er waren liggen.
+  const _heeftWaren = !!(e?.data?.voorraad && e.data.voorraad !== '[]');
+  body = _bouwEditorTabs(body, tab === 'locaties'
+    ? (e?.data?.locType === 'Winkel' || _heeftWaren)
+    : window._heeftRol(e, 'verkoper'));
   const _tm = TYPE_META[tab];
   openModal(editId ? (_tm.bewerk || 'Bewerken') : (_tm.nieuw || 'Nieuw'), '', body);
 
@@ -4337,19 +4340,17 @@ window._openEditor = async (tab, editId) => {
         if (!sel) return;
         sel.innerHTML = '<option value="">— kies een winkel/verkoper —</option>';
         try {
-          const [personages, locaties] = await Promise.all([
-            api.listEntities('personages'),
-            api.listEntities('locaties'),
-          ]);
-          const bronnen = [
-            ...personages.filter(p => window._heeftRol(p, 'verkoper') && p.data?.voorraad && p.data.voorraad !== '[]'),
-            ...locaties.filter(l => l.data?.locType === 'Winkel' && l.data?.voorraad && l.data.voorraad !== '[]'),
-          ].filter(b => b.id !== (e?.id || null)); // eigen item niet aanbieden
+          // Alleen locaties: sinds de voorraad daar leeft is een verkoper geen
+          // bron meer om uit te kopiëren.
+          const locaties = await api.listEntities('locaties');
+          const bronnen = locaties
+            .filter(l => l.data?.voorraad && l.data.voorraad !== '[]')
+            .filter(b => b.id !== (e?.id || null)); // eigen kaartje niet aanbieden
           bronnen.forEach(b => {
             const opt = document.createElement('option');
             opt.value = b.id;
-            opt.dataset.type = window._heeftRol(b, 'verkoper') ? 'personages' : 'locaties';
-            opt.textContent = b.name + (window._heeftRol(b, 'verkoper') ? ' (verkoper)' : ' (winkel)');
+            opt.dataset.type = 'locaties';
+            opt.textContent = b.name;
             sel.appendChild(opt);
           });
           if (bronnen.length === 0) sel.innerHTML = '<option value="">— geen winkels gevonden —</option>';
@@ -4366,7 +4367,9 @@ window._openEditor = async (tab, editId) => {
         const bron = await api.getEntity(bronType, sel.value);
         const bronItems = bron?.data?.voorraad ? JSON.parse(bron.data.voorraad) : [];
         if (bronItems.length === 0) return;
-        _voorraadItems = bronItems.map(i => ({ naam: i.naam || '', prijs: i.prijs || '' }));
+        // entityId meenemen: die koppeling is met de hand gelegd en levert het
+        // klikbare voorwerpkaartje in de winkel op.
+        _voorraadItems = bronItems.map(i => ({ naam: i.naam || '', prijs: i.prijs || '', entityId: i.entityId || '' }));
         window._refreshVoorraad();
         // Sluit paneel
         document.getElementById('voorraad-inladen-panel')?.classList.add('hidden');
@@ -4378,27 +4381,67 @@ window._openEditor = async (tab, editId) => {
     window._wcUpdate = () => {
       const roterend = document.getElementById('wc-roterend')?.checked || false;
       document.getElementById('wc-extra')?.classList.toggle('hidden', !roterend);
-      const koopt = document.getElementById('wc-koopt')?.checked || false;
-      document.getElementById('wc-koop-extra')?.classList.toggle('hidden', !koopt);
-      const koopCategorieen = Array.from(document.querySelectorAll('.wc-koopcat:checked')).map(cb => cb.dataset.cat);
+      // Wat er niet meer in de editor staat (onderhandel-DC, inkooppercentage,
+      // categorieën) bewaren we wél: bestaande winkels raken hun instelling niet
+      // kwijt zolang we niet zeker weten dat niemand ze mist.
+      let oud = {};
+      try { oud = JSON.parse(document.getElementById('winkelconfig-hidden')?.value || '{}'); } catch {}
       const config = {
+        ...oud,
         roterend,
         aantalItems: parseInt(document.getElementById('wc-aantal')?.value) || 3,
         refreshUren: parseFloat(document.getElementById('wc-uren')?.value) || 24,
         deelGroep: (document.getElementById('wc-deelgroep')?.value || '').trim(),
         sfeerTekst: (document.getElementById('wc-sfeer')?.value || '').trim(),
-        onderhandelDC: parseInt(document.getElementById('wc-onderhandel-dc')?.value) || 15,
-        onderhandelKorting: parseInt(document.getElementById('wc-onderhandel-korting')?.value) || 10,
-        onderhandelBoete: parseInt(document.getElementById('wc-onderhandel-boete')?.value) || 0,
-        koopt,
-        koopRatio: parseInt(document.getElementById('wc-koopratio')?.value) || 50,
-        koopCategorieen,
       };
       const hidden = document.getElementById('winkelconfig-hidden');
       if (hidden) hidden.value = JSON.stringify(config);
     };
 
     window._refreshVoorraad();
+  }
+
+  // ── Verkoper wijst naar zijn winkel ──
+  if (tab === 'personages' && isDM()) {
+    let _winkelLocs = [];
+    const _vulWinkelLink = () => {
+      const id = document.getElementById('winkel-loc-id')?.value || '';
+      const host = document.getElementById('winkel-loc-link');
+      if (!host) return;
+      const loc = _winkelLocs.find(l => l.id === id);
+      host.innerHTML = loc
+        ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+             onclick="window._openDetail('locaties','${esc(loc.id)}')">
+             ${icon('package')} Voorraad van ${esc(loc.name)} bekijken
+           </button>`
+        : '';
+    };
+    api.listEntities('locaties').then(locs => {
+      _winkelLocs = locs.map(l => ({ id: l.id, name: l.name }));
+      const dl = document.getElementById('winkel-loc-dl');
+      if (dl) dl.innerHTML = _winkelLocs.map(l => `<option value="${esc(l.name)}">`).join('');
+      const veld = document.getElementById('winkel-loc-naam');
+      const id = document.getElementById('winkel-loc-id')?.value || '';
+      if (veld && id) veld.value = _winkelLocs.find(l => l.id === id)?.name || '';
+      _vulWinkelLink();
+    }).catch(() => {});
+
+    // Naam → id, met een korte rode flits als er niets matcht (zelfde patroon
+    // als de andere zoekbare kiezers in de Meesterkamer).
+    window._winkelLocKies = (naam) => {
+      const veld = document.getElementById('winkel-loc-naam');
+      const hidden = document.getElementById('winkel-loc-id');
+      if (!hidden) return;
+      const schoon = (naam || '').trim();
+      if (!schoon) { hidden.value = ''; _vulWinkelLink(); return; }
+      const match = _winkelLocs.find(l => l.name.toLowerCase() === schoon.toLowerCase());
+      hidden.value = match?.id || '';
+      if (!match && veld) {
+        veld.classList.add('dm-input--err');
+        setTimeout(() => veld.classList.remove('dm-input--err'), 900);
+      }
+      _vulWinkelLink();
+    };
   }
 
   // Form submit handler

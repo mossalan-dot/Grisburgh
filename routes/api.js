@@ -1302,15 +1302,32 @@ function fromCl(total) {
   return { fl, kn, cl };
 }
 
+// ── Winkels ───────────────────────────────────────────────────────────────────
+// De voorraad staat op één plek: de locatie. Een verkoper wijst daarheen met
+// `data.winkelLocatieId` — daarvoor stond dezelfde lijst twee keer, op het
+// personage én op de winkel, en die liepen na verloop van tijd uiteen. Alles wat
+// aan een winkel hangt (uitverkocht, humeur, rotatie, log) hoort dus bij de
+// locatie, en daarom geeft deze helper ook het id terug waar je die stand op
+// bewaart.
+function _winkelVan(entities, shopId) {
+  const alle = [...(entities.personages || []), ...(entities.locaties || [])];
+  const gevonden = alle.find(e => e.id === shopId);
+  const wijstNaar = gevonden?.data?.winkelLocatieId;
+  if (!wijstNaar) return gevonden;
+  return alle.find(e => e.id === wijstNaar) || gevonden;
+}
+
 router.get('/shops/:shopId/uitverkocht', attachRole, (req, res) => {
   const dmState = readDmState();
   const g = getGroup(dmState);
-  const uitverkocht = ((g.shopUitverkocht || {})[req.params.shopId]) || [];
+  const winkelId = _winkelVan(storage.readJSON('entities.json'), req.params.shopId)?.id || req.params.shopId;
+  const uitverkocht = ((g.shopUitverkocht || {})[winkelId]) || [];
   res.json({ uitverkocht });
 });
 
 router.put('/shops/:shopId/uitverkocht', requireDM, (req, res) => {
-  const { shopId } = req.params;
+  let { shopId } = req.params;
+  shopId = _winkelVan(storage.readJSON('entities.json'), shopId)?.id || shopId;
   const { itemNaam } = req.body;
   if (!itemNaam) return res.status(400).json({ error: 'itemNaam vereist' });
   const key = itemNaam.toLowerCase().trim();
@@ -1337,11 +1354,11 @@ router.put('/shops/:shopId/uitverkocht', requireDM, (req, res) => {
 
 // ── Winkel: beschikbare items (met rotatie-logica) ──
 router.get('/shops/:shopId/beschikbaar', attachRole, (req, res) => {
-  const { shopId } = req.params;
+  let { shopId } = req.params;
   const entities = storage.readJSON('entities.json');
-  const allEntities = [...(entities.personages || []), ...(entities.locaties || [])];
-  const shop = allEntities.find(e => e.id === shopId);
+  const shop = _winkelVan(entities, shopId);
   if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+  shopId = shop.id;   // de stand hangt aan de locatie, niet aan de verkoper
 
   let voorraadItems = [];
   try { voorraadItems = shop.data?.voorraad ? JSON.parse(shop.data.voorraad) : []; } catch {}
@@ -1439,15 +1456,15 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
   const characterId = req.session?.characterId;
   if (!characterId) return res.status(401).json({ error: 'Log in als speler om te kopen' });
 
-  const { shopId } = req.params;
+  let { shopId } = req.params;
   const { itemNaam, entityId, aantal: aantalRaw } = req.body;
   const aantal = Math.max(1, parseInt(aantalRaw) || 1);
   if (!itemNaam) return res.status(400).json({ error: 'itemNaam vereist' });
 
   const entities = storage.readJSON('entities.json');
-  const allShops = [...(entities.personages || []), ...(entities.locaties || [])];
-  const shop = allShops.find(e => e.id === shopId);
+  const shop = _winkelVan(entities, shopId);
   if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+  shopId = shop.id;   // de stand hangt aan de locatie, niet aan de verkoper
 
   let voorraadItems = [];
   try { voorraadItems = shop.data?.voorraad ? JSON.parse(shop.data.voorraad) : []; } catch {}
@@ -1710,11 +1727,11 @@ router.get('/shops/:shopId/verkoopbaar', attachRole, (req, res) => {
   const characterId = req.session?.characterId;
   if (!characterId) return res.json({ koopt: false, items: [] });
 
-  const { shopId } = req.params;
+  let { shopId } = req.params;
   const entities = storage.readJSON('entities.json');
-  const allShops = [...(entities.personages || []), ...(entities.locaties || [])];
-  const shop = allShops.find(e => e.id === shopId);
+  const shop = _winkelVan(entities, shopId);
   if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+  shopId = shop.id;   // de stand hangt aan de locatie, niet aan de verkoper
 
   let winkelConfig = {};
   try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}
@@ -1764,14 +1781,14 @@ router.post('/shops/:shopId/verkoop', attachRole, (req, res) => {
   const characterId = req.session?.characterId;
   if (!characterId) return res.status(401).json({ error: 'Log in als speler om te verkopen' });
 
-  const { shopId } = req.params;
+  let { shopId } = req.params;
   const { entityId, aantal: aantalRaw } = req.body;
   if (!entityId) return res.status(400).json({ error: 'entityId vereist' });
 
   const entities = storage.readJSON('entities.json');
-  const allShops = [...(entities.personages || []), ...(entities.locaties || [])];
-  const shop = allShops.find(e => e.id === shopId);
+  const shop = _winkelVan(entities, shopId);
   if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+  shopId = shop.id;   // de stand hangt aan de locatie, niet aan de verkoper
 
   let winkelConfig = {};
   try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}
@@ -1858,13 +1875,13 @@ router.post('/shops/:shopId/onderhandel', attachRole, (req, res) => {
   const characterId = req.session?.characterId;
   if (!characterId) return res.status(401).json({ error: 'Log in als speler' });
 
-  const { shopId } = req.params;
+  let { shopId } = req.params;
   const { modifier = 0 } = req.body;
 
   const entities = storage.readJSON('entities.json');
-  const allShops = [...(entities.personages || []), ...(entities.locaties || [])];
-  const shop = allShops.find(e => e.id === shopId);
+  const shop = _winkelVan(entities, shopId);
   if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+  shopId = shop.id;   // de stand hangt aan de locatie, niet aan de verkoper
 
   let winkelConfig = {};
   try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}

@@ -1193,6 +1193,36 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 .flavour-preview-nav:hover { background: rgba(196,168,122,.35); color: #3a2410; }
 
+/* "Verkoopt bij <locatie>" op het kaartje van een verkoper: de waren liggen
+   ergens anders, dus dit is vooral een doorgang. */
+.detail-winkel-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid rgba(196,168,122,.4);
+  border-radius: 5px;
+  background: rgba(196,168,122,.12);
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: #7a6040;
+}
+.detail-winkel-link .icon { width: 16px; height: 16px; opacity: .75; }
+.detail-winkel-link button {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  color: #8a6d3f;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.detail-winkel-link button:hover { color: #2a1a08; }
+
 /* Audio play button — card list */
 .flavour-audio-btn {
   flex-shrink: 0;
