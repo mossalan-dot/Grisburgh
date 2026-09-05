@@ -20878,12 +20878,10 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 .magizoo-adopt-naamveld input:focus { outline: none; border-color: #2a6a3a; }
 
 /* ── Huisdier-editor (DM, in de entity-editor) ── */
-.pet-editor { border: 1px solid rgba(196,168,122,0.4); border-radius: 9px; padding: 12px; background: rgba(196,168,122,0.07); display: flex; flex-direction: column; gap: 10px; }
-.pet-editor-head { font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.9rem; color: #7a4a1a; display: flex; align-items: center; gap: 7px; }
-.pet-editor-head .icon { width: 17px; height: 17px; }
-.pet-editor-subhead { font-family: 'Cinzel', serif; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9a7050; border-top: 1px solid rgba(196,168,122,0.3); padding-top: 8px; }
+/* Het eigen kader om de huisdier-instellingen is vervallen: ze staan nu op het
+   character sheet en volgen de koppen en velden van dat blad. */
 .pet-editor-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.pet-fld { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 90px; font-family: 'Cinzel', serif; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #9a7050; }
+.pet-fld { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 90px; font-family: 'Cinzel', serif; font-size: 10px; font-weight: 400; text-transform: uppercase; letter-spacing: 0.03em; color: #9a8060; }
 .pet-fld--sm { flex: 0 0 90px; }
 .pet-fld--xs { flex: 0 0 52px; min-width: 0; }
 .pet-fld--wide { flex: 1 1 45%; }
@@ -20894,7 +20892,7 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
   background: var(--room-bg, #f2e8d2); color: #2a1a08; width: 100%;
 }
 .pet-fld input:focus, .pet-fld textarea:focus { outline: none; border-color: #c4a87a; }
-.pet-tier-row { border: 1px solid rgba(196,168,122,0.35); border-radius: 8px; padding: 9px; margin-bottom: 8px; background: rgba(245,237,216,0.45); display: flex; flex-direction: column; gap: 7px; }
+.pet-tier-row { border: 1px solid rgba(196,168,122,0.35); border-radius: 5px; padding: 9px; margin-bottom: 8px; background: rgba(255,255,255,0.35); display: flex; flex-direction: column; gap: 7px; }
 .pet-tier-row-head { display: flex; align-items: center; justify-content: space-between; }
 .pet-tier-badge { font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.72rem; color: #7a4a1a; }
 .pet-tier-del { background: none; border: none; color: #9a7050; cursor: pointer; padding: 2px; display: inline-flex; }

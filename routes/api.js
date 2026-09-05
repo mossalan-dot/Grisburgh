@@ -3463,8 +3463,12 @@ function _petStatblockInfo(entity, dmState, gid) {
   return { ...t, ownerLevel: level, ownerName, ownerId };
 }
 
-// Adoptieprijs van een dier-entity (ondersteunt zowel object {fl} als los getal adoptiePrijsFl).
+// Adoptieprijs van een dier-entity. Nieuw is `adoptiePrijsCl`: één bedrag in
+// centelingen, zoals overal waar de DM met een komma tikt (12,34). De oudere
+// vormen — een object {fl} of een los getal in florinden — blijven werken.
 function _adoptiePrijs(e) {
+  const cl = parseInt(e?.data?.adoptiePrijsCl);
+  if (!isNaN(cl)) return fromCl(Math.max(0, cl));
   if (e?.data?.adoptiePrijs && typeof e.data.adoptiePrijs === 'object') return e.data.adoptiePrijs;
   const fl = parseInt(e?.data?.adoptiePrijsFl);
   return { fl: isNaN(fl) ? 0 : fl };

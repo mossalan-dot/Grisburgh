@@ -58,7 +58,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Zichtbaarheid per party** (DM) — een kaartje vrijgeven aan de ene party en niet aan de andere; wissel van party en controleer beide kanten
 - [ ] **Voorwerp aan een speler geven** (DM) — vanuit het kaartje toewijzen aan een personage; het verschijnt in zijn boedel met de juiste rariteit
 - [ ] **Voorraad van een winkel** (DM) — regels toevoegen, prijzen zetten, uitverkocht markeren per party
-- [ ] **Huisdier-kaartje** (DM) — subtype *dier*: adoptieprijs, tiers per level, en of het klopt in de Magizoöloog
+- [ ] **Huisdier-kaartje** (DM) — type *dier*: de adoptie-instellingen en de tiers staan op het tabblad **Character Sheet** (niet bij Informatie) en zien eruit als de rest van dat blad. Adoptieprijs met een komma (12,34 = 12 goud, 3 zilver, 4 koper); *Type* zegt wat voor dier het is; controleer daarna of adopteren klopt bij de dienst die dieren aanbiedt
 - [ ] **Helpknop per tab** (ALL) — het vraagteken opent de uitleg met stappen en afbeeldingen; vorige/volgende werken
 - [ ] **Helpteksten bewerken** (DM) — de uitleg aanpassen en opslaan; herlaad en kijk of je tekst er nog staat (let op: dit hoort straks alleen voor de beheerder te zijn — zie `docs/todo.md`)
 - [ ] **Afbeeldingen in het detailvenster** (ALL) — extra afbeeldingen bladeren, lightbox openen, zoomen

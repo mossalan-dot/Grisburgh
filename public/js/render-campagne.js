@@ -3855,34 +3855,8 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
-  // ── Huisdier-editor (subtype 'dier'): adoptie-instellingen + tier-editor ──
-  if (tab === 'personages') {
-    const isDier   = e?.subtype === 'dier';
-    const _adopt   = e?.data?.adopteerbaar === true || e?.data?.adopteerbaar === 'true';
-    const _prijsFl = e?.data?.adoptiePrijs?.fl ?? e?.data?.adoptiePrijsFl ?? '';
-    body += `
-      <div id="pet-editor-section"${isDier ? '' : ' style="display:none"'} class="pet-editor">
-        <div class="pet-editor-head">${icon('paw-print')} Huisdier — adoptie &amp; tiers</div>
-        <div class="flex items-center gap-2">
-          <input type="hidden" name="data_adopteerbaar" id="pet-adopt-hidden" value="${_adopt ? 'true' : ''}">
-          <input type="checkbox" id="pet-adopt-cb" class="rounded" ${_adopt ? 'checked' : ''}
-            onchange="document.getElementById('pet-adopt-hidden').value=this.checked?'true':''">
-          <label for="pet-adopt-cb" class="text-xs font-cinzel text-ink-dim font-bold tracking-wide cursor-pointer">Adopteerbaar via De Magizoöloog</label>
-        </div>
-        <div class="pet-editor-row">
-          <label class="pet-fld pet-fld--sm"><span>Prijs (${esc(window._muntNamen().fl.toLowerCase())})</span>
-            <input type="number" min="0" name="data_adoptiePrijsFl" value="${esc(_prijsFl)}"></label>
-          <label class="pet-fld"><span>Soort-label</span>
-            <input name="data_soortLabel" value="${esc(e?.data?.soortLabel || '')}" placeholder="Hond"></label>
-          <label class="pet-fld"><span>Naam-suggestie</span>
-            <input name="data_naamSuggestie" value="${esc(e?.data?.naamSuggestie || '')}" placeholder="Jip"></label>
-        </div>
-        <div class="pet-editor-subhead">Tiers — schalen met het level van het baasje</div>
-        <div id="pet-tiers-list"></div>
-        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._petTierAdd()">${icon('plus')} Tier toevoegen</button>
-      </div>
-    `;
-  }
+  // De huisdier-instellingen (adoptie + tiers) stonden hier bij Informatie, maar
+  // het zijn statblok-zaken: ze horen bij Character Sheet. Zie daar.
 
   // Korte velden (niet-textarea) in rechter kolom
   let _revealGroupOpen = null;
@@ -4344,6 +4318,50 @@ window._openEditor = async (tab, editId) => {
         </div>
       </div>
     `;
+
+    // ── Huisdier: adoptie + tiers ──
+    // Alleen zichtbaar bij type 'dier'. Zelfde koppen en velden als de rest van
+    // het blad, want een tier ís een statblok dat met het baasje meeschaalt.
+    const isDier   = e?.subtype === 'dier';
+    const _adopt   = e?.data?.adopteerbaar === true || e?.data?.adopteerbaar === 'true';
+    const _prijsCl = (() => {
+      const cl = parseInt(e?.data?.adoptiePrijsCl);
+      if (!isNaN(cl)) return cl;
+      const fl = parseInt(e?.data?.adoptiePrijs?.fl ?? e?.data?.adoptiePrijsFl);
+      return isNaN(fl) ? null : fl * 100;
+    })();
+    const _mn = window._muntNamen();
+    body += `
+      <div id="pet-editor-section"${isDier ? '' : ' style="display:none"'}>
+        <div class="cs-sectiekop">Adoptie</div>
+        <label class="rol-keuze" style="margin-bottom:6px">
+          <input type="checkbox" id="pet-adopt-cb" ${_adopt ? 'checked' : ''}
+            onchange="document.getElementById('pet-adopt-hidden').value=this.checked?'true':''">
+          <span>Te adopteren door een party</span>
+        </label>
+        <input type="hidden" name="data_adopteerbaar" id="pet-adopt-hidden" value="${_adopt ? 'true' : ''}">
+        <p class="text-[10px] text-ink-dim mb-2">Verschijnt bij de dienst die dieren aanbiedt.</p>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[10px] font-cinzel text-ink-dim uppercase">Adoptieprijs</label>
+            <input name="data_adoptiePrijs_tekst" value="${_prijsCl === null ? '' : `${Math.floor(_prijsCl / 100)},${String(_prijsCl % 100).padStart(2, '0')}`}"
+              placeholder="12,34" inputmode="decimal"
+              title="Eén bedrag met een komma: 12,34 is 12 ${esc(_mn.fl)}, 3 ${esc(_mn.kn)} en 4 ${esc(_mn.cl)}"
+              class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            <p class="text-[10px] text-ink-dim mt-0.5">12,34 = 12 ${esc(_mn.fl)}, 3 ${esc(_mn.kn)}, 4 ${esc(_mn.cl)}</p>
+          </div>
+        </div>
+        <div>
+          <label class="text-[10px] font-cinzel text-ink-dim uppercase">Type</label>
+          <input name="data_soortLabel" value="${esc(e?.data?.soortLabel || '')}" placeholder="Hond"
+            class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+        </div>
+        <div class="cs-sectiekop">Tiers</div>
+        <p class="text-[10px] text-ink-dim mb-2">Elk tier is een statblok dat geldt vanaf een bepaald level van het baasje.</p>
+        <div id="pet-tiers-list"></div>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1" onclick="window._petTierAdd()">${icon('plus')} Tier toevoegen</button>
+      </div>
+    `;
   }
 
   // De Verbindingen-editor is vervallen: koppelingen leg je in de tekst zelf met
@@ -4700,6 +4718,19 @@ window._openEditor = async (tab, editId) => {
     if (tab === 'personages' || tab === 'locaties') {
       const validItems = _voorraadItems.filter(i => i.naam || i.prijs);
       data.voorraad = validItems.length > 0 ? JSON.stringify(validItems) : '';
+    }
+    // Adoptieprijs: één bedrag met een komma (12,34) → centelingen, zoals bij
+    // loot en de diensten. Leeg = geen prijs.
+    if (tab === 'personages') {
+      const ruw = (data.adoptiePrijs_tekst ?? '').toString().trim();
+      delete data.adoptiePrijs_tekst;
+      if (ruw) {
+        const m = ruw.replace(/\s/g, '').match(/^(\d+)(?:[.,](\d{1,2}))?$/);
+        if (m) data.adoptiePrijsCl = String(parseInt(m[1]) * 100 + parseInt((m[2] || '0').padEnd(2, '0')));
+      } else {
+        data.adoptiePrijsCl = '';
+      }
+      data.adoptiePrijsFl = '';   // opgevolgd door het bedrag in centelingen
     }
     // Lijstvelden (geheimen, flavours) serialiseren. Het oude enkelvoudige veld
     // houden we bij als eerste regel, want de Gock en oudere weergaven lezen dat.
