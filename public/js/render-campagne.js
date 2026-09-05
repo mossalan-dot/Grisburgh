@@ -1275,6 +1275,8 @@ function renderCard(type, e) {
   // erdoorheen (de DM ziet ook wat nog niet verteld is, lichter).
   const _flavRegels = _tekstLijstUit(e.data, 'flavours', 'flavour');
   const _flavGezegd = (() => {
+    // Zie het detailvenster: een speler krijgt alleen de vertelde regels binnen.
+    if (!isDM()) return _flavRegels.map(() => true);
     const rauw = e.data?.flavoursUitgesproken;
     if (Array.isArray(rauw)) return _flavRegels.map((_, i) => !!rauw[i]);
     const alles = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
@@ -2175,6 +2177,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // Flavour scroll (parchment scroll — zichtbaar voor spelers als uitgesproken, altijd voor DM)
   const flavourRegels = _tekstLijstUit(e.data, 'flavours', 'flavour');
   const _gezegd = (() => {
+    // Een speler krijgt van de server alléén de regels die al verteld zijn —
+    // de bijbehorende ja/nee-lijst hoort bij de volledige tekst en past er dus
+    // niet op. Voor hem is alles wat hij ziet per definitie verteld.
+    if (!isDM()) return flavourRegels.map(() => true);
     const rauw = e.data?.flavoursUitgesproken;
     if (Array.isArray(rauw)) return flavourRegels.map((_, i) => !!rauw[i]);
     const alles = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
@@ -2203,9 +2209,14 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // Geheimen: één blok per regel. De DM ziet ze allemaal met een oogje ernaast
   // om die ene vrij te geven; de speler ziet alleen wat onthuld is.
   const geheimRegels = _tekstLijstUit(e.data, 'geheimen', 'geheim');
-  const _geheimOnthuld = Array.isArray(e._onthuld)
-    ? geheimRegels.map((_, i) => !!e._onthuld[i])
-    : geheimRegels.map((_, i) => !!e._secretReveal && i === 0);
+  // Idem voor geheimen: de speler krijgt alleen de onthulde regels binnen. De
+  // terugval "alleen de eerste telt" is er voor oude kaartjes bij de DM, maar
+  // liet een speler van twee onthulde geheimen er één zien.
+  const _geheimOnthuld = !isDM()
+    ? geheimRegels.map(() => true)
+    : Array.isArray(e._onthuld)
+      ? geheimRegels.map((_, i) => !!e._onthuld[i])
+      : geheimRegels.map((_, i) => !!e._secretReveal && i === 0);
   const zichtbareGeheimen = geheimRegels.map((tekst, i) => ({ tekst, i, onthuld: _geheimOnthuld[i] }))
     .filter(r => isDM() || r.onthuld);
   if (zichtbareGeheimen.length) {
