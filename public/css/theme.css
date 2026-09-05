@@ -226,8 +226,9 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 
 .gs-result {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   width: 100%;
   text-align: left;
   background: none;
@@ -237,6 +238,17 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   transition: background 0.1s;
 }
 .gs-result:hover { background: rgba(196,168,122,.22); }
+.gs-result-kop { display: flex; align-items: baseline; gap: 8px; }
+/* Het stukje tekst waarin de zoekterm gevonden is — verklaart waarom dit
+   kaartje in de lijst staat. */
+.gs-result-fragment {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #7a6040;
+  display: block;
+  max-width: 100%;
+}
 
 .gs-result-name {
   font-family: 'Cinzel', serif;
@@ -20126,9 +20138,13 @@ body.display-mode .combat-overlay.co-has-backdrop .combat-modal {
   color: #9a8458;
 }
 /* ── Globaal zoeken: toetsenbordnavigatie + match-highlight ── */
-.gs-result--active { background: rgba(184,134,11,0.16); outline: 1px solid rgba(184,134,11,0.45); }
-.gs-result.gs-result--active .gs-result-name { color: #3a2a0e; }
-.gs-hl { background: rgba(184,134,11,0.32); color: inherit; border-radius: 3px; padding: 0 1px; font-weight: 700; }
+/* De regel waar je met pijltjes of muis op staat: goud vlak met donkere inkt.
+   Op het oude donkere paneel viel die tekst juist weg. */
+.gs-result--active { background: rgba(196,168,122,.38); outline: 1px solid rgba(184,134,11,0.55); }
+.gs-result.gs-result--active .gs-result-name { color: #2a1a08; }
+.gs-result.gs-result--active .gs-result-sub  { color: #5a4630; }
+.gs-hl { background: rgba(184,134,11,0.3); color: inherit; border-radius: 3px; padding: 0 1px; font-weight: 700; }
+.gs-group-label .icon { width: 13px; height: 13px; vertical-align: -2px; }
 
 /* Desktop: tab-mob-icon is hidden — the JS-updated label provides its own icon */
 @media (min-width: 481px) {

@@ -9480,6 +9480,35 @@ function _gsHighlight(name, tokens) {
   return safe.replace(/\x01/g, '<mark class="gs-hl">').replace(/\x02/g, '</mark>');
 }
 
+// Waaróm staat dit kaartje in de resultaten? Zit de treffer niet in de naam,
+// dan komt hij uit de tekst — en dan tonen we dat stukje tekst eronder. Zonder
+// die regel lijkt een resultaat er zomaar bij te staan.
+function _gsFragment(e, tokens) {
+  const norm = window._normSearch || (s => String(s || '').toLowerCase());
+  if (tokens.some(t => norm(e.name).includes(t))) return '';   // naam verklaart zichzelf
+
+  const velden = [e.data?.rol, e.data?.desc, e.data?.persoonlijkheid,
+                  e.data?.flavours, e.data?.geheimen, e.data?.flavour, e.data?.geheim];
+  for (const ruw of velden) {
+    if (!ruw) continue;
+    // Lijstvelden staan als JSON opgeslagen; die haken en aanhalingstekens
+    // horen niet in een fragment.
+    let tekst = String(ruw);
+    if (/^\s*\[/.test(tekst)) {
+      try { const arr = JSON.parse(tekst); if (Array.isArray(arr)) tekst = arr.join(' · '); } catch { /* dan de ruwe tekst */ }
+    }
+    tekst = tekst.replace(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g, '$1').replace(/[*_`#>]/g, '').replace(/\s+/g, ' ').trim();
+    const genormaliseerd = norm(tekst);
+    const t = tokens.find(x => genormaliseerd.includes(x));
+    if (!t) continue;
+    const pos = genormaliseerd.indexOf(t);
+    const van = Math.max(0, pos - 38);
+    const tot = Math.min(tekst.length, pos + t.length + 42);
+    return `${van > 0 ? '… ' : ''}${tekst.slice(van, tot)}${tot < tekst.length ? ' …' : ''}`;
+  }
+  return '';
+}
+
 window.app._globalSearchRun = async function(q) {
   const resultsEl = document.getElementById('global-search-results');
   if (!q.trim()) { resultsEl.innerHTML = ''; _gsResults = []; _gsActive = -1; return; }
@@ -9505,13 +9534,18 @@ window.app._globalSearchRun = async function(q) {
     const list = cache[type] || [];
     const hits = filter(type, list, q).slice(0, 8);
     if (!hits.length) continue;
-    const m = meta[type] || { icon: '📄', label: type };
-    html += `<div class="gs-group"><div class="gs-group-label">${m.icon} ${m.label}</div>`;
+    // TYPE_META heeft naast het oude emoji-veld een svgIcon; die hoort hier.
+    const m = meta[type] || { label: type };
+    html += `<div class="gs-group"><div class="gs-group-label">${m.svgIcon || icon('scroll-text')} ${m.label}</div>`;
     for (const e of hits) {
       const idx = _gsResults.push({ type, id: e.id }) - 1;
-      html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('${type}','${esc(e.id)}')">
-          <span class="gs-result-name">${_gsHighlight(e.name, tokens)}</span>
-          ${e.subtype ? `<span class="gs-result-sub">${esc(e.subtype)}</span>` : ''}
+      const fragment = _gsFragment(e, tokens);
+      html += `<button class="gs-result${fragment ? ' gs-result--met-fragment' : ''}" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('${type}','${esc(e.id)}')">
+          <span class="gs-result-kop">
+            <span class="gs-result-name">${_gsHighlight(e.name, tokens)}</span>
+            ${e.subtype ? `<span class="gs-result-sub">${esc(e.subtype)}</span>` : ''}
+          </span>
+          ${fragment ? `<span class="gs-result-fragment">${_gsHighlight(fragment, tokens)}</span>` : ''}
         </button>`;
     }
     html += `</div>`;

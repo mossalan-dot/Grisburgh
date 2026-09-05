@@ -50,6 +50,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Geheimen onthullen** (DM) — een geheim vrijgeven komt live binnen bij de speler (`entity:secret`) zonder herladen; terugdraaien verbergt het weer
 - [ ] **Bladwijzers** (SP) — ☆ wordt ★ (duidelijk zichtbaar op elk portret), blijft na herladen, en de gemarkeerde kaartjes staan terug in het spelerstabblad onder *Berichten* → Bladwijzers; klikken opent het kaartje
 - [ ] **Globaal zoeken** — sneltoets of vergrootglas; het venster is perkament (niet donker); resultaten uit alle types door elkaar, klikken opent het juiste kaartje; als speler zie je alleen wat vrijgegeven is
+- [ ] **Zoeken laat zien wáárom** (ALL) — zoek op een naam die alleen in de tekst van een ánder kaartje voorkomt: onder dat kaartje staat het stukje tekst met de term erin gemarkeerd; de regel waar je op staat blijft goed leesbaar en de kopjes hebben SVG-iconen (geen emoji)
 - [ ] **Zoeken zet de naam bovenaan** (ALL) — zoek op een deel van een naam: het kaartje zelf staat boven kaartjes die die naam alleen in hun tekst noemen
 - [ ] **Filters en sortering** (ALL) — de trechter per type (winkel, subtype, rariteit), sorteren op naam, en of de keuze blijft staan als je een kaartje opent en terugkomt
 - [ ] **Zichtbaarheid per party** (DM) — een kaartje vrijgeven aan de ene party en niet aan de andere; wissel van party en controleer beide kanten
