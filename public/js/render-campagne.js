@@ -145,15 +145,13 @@ const SCHEMA = {
       // de labels zeggen nu wat het veld ís. 'rol' was zo vaag dat het van alles
       // werd, 'persoonlijkheid' gaat in de praktijk over hoe jíj hem speelt.
       { key: 'rol', label: 'Korte omschrijving', type: 'text' },
-      { key: 'ras', label: 'Ras', type: 'lijst', lijst: 'volken' },
-      { key: 'klasse', label: 'Klasse', type: 'lijst', lijst: 'klassen' },
+      { key: 'ras', label: 'Origin', type: 'lijst', lijst: 'volken' },
+      { key: 'klasse', label: 'Class', type: 'lijst', lijst: 'klassen' },
       { key: 'alignment', label: 'Alignment', type: 'lijst', lijst: 'alignments' },
       { key: 'tags', label: 'Rollen', type: 'rollen' },
-      { key: 'kant', label: 'Kant in gevecht', type: 'select',
-        options: [{ value: 'bondgenoot', label: 'Bondgenoot' }, { value: 'vijand', label: 'Vijand' }, { value: 'neutraal', label: 'Neutraal' }] },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
-      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
   },
@@ -586,30 +584,43 @@ async function _vulSpellChips() {
 // krijgt geen tabblad.
 const ED_TABS = [
   { key: 'info',   label: 'Informatie' },
-  { key: 'beeld',  label: 'Beeld & geluid' },
+  { key: 'beeld',  label: 'Beeld' },
   { key: 'sheet',  label: 'Character Sheet' },
   { key: 'winkel', label: 'Winkel' },
 ];
 
-function _bouwEditorTabs(html) {
-  const delen = html.split(/<!--P:(\w+)-->/);
+function _bouwEditorTabs(html, toonWinkel) {
+  // Het <form> staat om álles heen; zou hij in het eerste paneel blijven staan,
+  // dan sluit de browser hem daar en vallen de velden van de andere tabbladen
+  // buiten het formulier — die werden dan niet meegestuurd bij het opslaan.
+  const start = html.indexOf('>') + 1;
+  const formTag = html.slice(0, start);
+  let romp = html.slice(start).replace(/<\/form>\s*$/, '');
+
+  const delen = romp.split(/<!--P:(\w+)-->/);
   const panelen = { info: delen[0] || '' };
   for (let i = 1; i < delen.length; i += 2) {
     const naam = delen[i];
     panelen[naam] = (panelen[naam] || '') + (delen[i + 1] || '');
   }
-  const gevuld = ED_TABS.filter(t => (panelen[t.key] || '').replace(/<[^>]*>|\s/g, '').length > 0
-    || /<(input|textarea|select|img|button)/.test(panelen[t.key] || ''));
-  if (gevuld.length <= 1) return html.replace(/<!--P:\w+-->/g, '');
+  const knoppen = panelen.knoppen || '';
+  delete panelen.knoppen;
+
+  const heeftInhoud = (h) => /<(input|textarea|select|img|button|details)/.test(h || '');
+  const gevuld = ED_TABS.filter(t => heeftInhoud(panelen[t.key]) && (t.key !== 'winkel' || toonWinkel));
+  if (gevuld.length <= 1) return formTag + romp.replace(/<!--P:\w+-->/g, '') + knoppen + '</form>';
 
   const eerste = gevuld[0].key;
-  return `
+  const rest = ED_TABS.filter(t => !gevuld.includes(t)).map(t => panelen[t.key] || '').join('');
+  return `${formTag}
     <div class="ed-tabs">
       ${gevuld.map(t => `<button type="button" class="ed-tab${t.key === eerste ? ' is-actief' : ''}"
         data-ed-tab="${t.key}" onclick="window._edTab('${t.key}')">${t.label}</button>`).join('')}
     </div>
     ${gevuld.map(t => `<div class="ed-paneel${t.key === eerste ? ' is-actief' : ''}" data-ed-paneel="${t.key}">${panelen[t.key]}</div>`).join('')}
-  `;
+    <div class="ed-paneel-verborgen">${rest}</div>
+    ${knoppen}
+  </form>`;
 }
 
 window._edTab = (naam) => {
@@ -637,6 +648,15 @@ function _tagsUit(waarde) {
 window._tagsUit = _tagsUit;
 
 // Vinkjes → verborgen veld, en de voorraad hangt aan de rol verkoper.
+// Kant is een keuze uit drie: aanvinken zet de andere twee uit, en nog eens
+// klikken maakt hem weer leeg (onbepaald).
+window._kantBij = (vak) => {
+  const rij = vak.closest('.rollen-rij');
+  rij?.querySelectorAll('.rol-keuze--kant input').forEach(i => { if (i !== vak) i.checked = false; });
+  const veld = document.getElementById('kant-veld');
+  if (veld) veld.value = vak.checked ? vak.value : '';
+};
+
 window._rollenBij = () => {
   const gekozen = [...document.querySelectorAll('.rollen-rij input:checked')].map(i => i.value);
   const veld = document.getElementById('rollen-veld');
@@ -644,6 +664,10 @@ window._rollenBij = () => {
   const isVerkoper = gekozen.includes('verkoper');
   document.getElementById('voorraad-section')?.style.setProperty('display', isVerkoper ? '' : 'none');
   document.getElementById('winkelconfig-section')?.style.setProperty('display', isVerkoper ? '' : 'none');
+  // Tabblad Winkel verschijnt zodra je het vinkje zet, en verdwijnt weer.
+  const winkelTab = document.querySelector('[data-ed-tab="winkel"]');
+  if (winkelTab) winkelTab.classList.toggle('hidden', !isVerkoper);
+  if (!isVerkoper && winkelTab?.classList.contains('is-actief')) window._edTab('info');
 };
 
 window._heeftRol = (e, rol) =>
@@ -3362,7 +3386,7 @@ window._openEditor = async (tab, editId) => {
   if (schema.subtypes) {
     body += `
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Subtype</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Type</label>
         <select name="subtype" id="subtype-select"
           onchange="window._onSubtypeChange(this.value)"
           class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
@@ -3497,6 +3521,17 @@ window._openEditor = async (tab, editId) => {
                   onchange="window._rollenBij()">
                 <span>${esc(r.label)}</span>
               </label>`).join('')}
+            <span class="rollen-scheiding" aria-hidden="true"></span>
+            <!-- Kant in gevecht staat in dezelfde rij, achter een streepje: het
+                 zijn ook vinkjes, maar er kan er maar één aan staan. Een
+                 dropdown ernaast oogde als iets van een andere orde. -->
+            ${[['bondgenoot', 'Bondgenoot'], ['vijand', 'Vijand'], ['neutraal', 'Neutraal']].map(([k, label]) => `
+              <label class="rol-keuze rol-keuze--kant" title="Waar hij staat als er gevochten wordt">
+                <input type="checkbox" value="${k}" ${(e?.data?.kant || '') === k ? 'checked' : ''}
+                  onchange="window._kantBij(this)">
+                <span>${label}</span>
+              </label>`).join('')}
+            <input type="hidden" name="data_kant" id="kant-veld" value="${esc(e?.data?.kant || '')}">
           </div>
         </div>
       `;
@@ -3506,8 +3541,7 @@ window._openEditor = async (tab, editId) => {
       const _verborgenVeld = field.key === 'geheimen';
       body += `
         <div${_verborgenVeld ? ' class="veld-dmonly"' : ''}>
-          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}${
-            _verborgenVeld ? ` <span class="dmonly-merk">${icon('eye-off')} pas zichtbaar als je ze onthult</span>` : ''}</label>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <div id="lijst-${field.key}" class="lijst-veld" data-veld="${field.key}">
             ${regels.map((t, i) => _lijstRegelHtml(field.key, t, i)).join('')}
           </div>
@@ -3632,7 +3666,7 @@ window._openEditor = async (tab, editId) => {
       body += `
         <details class="cs-accordion${field.dmOnly ? ' veld-dmonly' : ''}"${val ? ' open' : ''}>
           <summary class="cs-accordion-head">
-            <span>${esc(field.label)}${field.dmOnly ? ` <span class="dmonly-merk">${icon('eye-off')} alleen jij</span>` : ''}</span>
+            <span>${esc(field.label)}</span>
             <span class="cs-accordion-chevron">▾</span>
           </summary>
           <div class="cs-accordion-body">${_taHtml}</div>
@@ -3641,7 +3675,7 @@ window._openEditor = async (tab, editId) => {
     } else {
       body += `
         <div${field.dmOnly ? ' class="veld-dmonly"' : ''}>
-          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}${field.dmOnly ? ` <span class="dmonly-merk">${icon('eye-off')} alleen jij</span>` : ''}</label>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <div class="mt-1">${_taHtml}</div>
         </div>
       `;
@@ -3818,12 +3852,8 @@ window._openEditor = async (tab, editId) => {
     };
     const _hasStats = Object.values(s).some(v => v);
     body += `
-      <details class="cs-accordion"${_hasStats ? ' open' : ''}>
-        <summary class="cs-accordion-head">
-          <span>Character Sheet</span>
-          <span class="cs-accordion-chevron">▾</span>
-        </summary>
-        <div class="cs-accordion-body">
+      <div class="cs-blok">
+        <div>
           <div class="cs-tabs-bar">
             <button type="button" class="cs-tab-btn cs-tab-active" onclick="window._csTab('gevecht')">Combat</button>
             <button type="button" class="cs-tab-btn" onclick="window._csTab('acties')">Actions</button>
@@ -3897,7 +3927,7 @@ window._openEditor = async (tab, editId) => {
             ${s.extra ? _ta('extra','Legacy', 2) : ''}
           </div>
         </div>
-      </details>
+      </div>
     `;
   }
 
@@ -3906,9 +3936,11 @@ window._openEditor = async (tab, editId) => {
   // `links` blijft bestaan (kaartjes, dashboard, zoeken en de export lezen het
   // nog) maar wordt niet meer met de hand bijgehouden.
 
-  // Buttons
+  // Buttons — met een marker, zodat ze ná de panelen komen en op elk tabblad
+  // zichtbaar zijn. Zonder dat stond de opslaanknop in het laatste paneel.
+  body += `<!--P:knoppen-->`;
   body += `
-    <div class="flex gap-2 pt-2">
+    <div class="flex gap-2 pt-2 ed-knoppen">
       <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">
         ${icon('save')}
       </button>
@@ -3923,7 +3955,8 @@ window._openEditor = async (tab, editId) => {
     </div>
   </form>`;
 
-  body = _bouwEditorTabs(body);
+  // De winkel krijgt alleen een tabblad als dit kaartje er een heeft.
+  body = _bouwEditorTabs(body, tab === 'locaties' ? e?.data?.locType === 'Winkel' : window._heeftRol(e, 'verkoper'));
   openModal(editId ? 'Bewerken' : 'Nieuw', TYPE_META[tab].label, body);
 
   // Huisdier-tier-editor vullen (no-op als de sectie er niet is)

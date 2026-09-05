@@ -22355,3 +22355,18 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   white-space: nowrap;
 }
 .dmonly-merk .icon { width: 11px; height: 11px; vertical-align: -1px; }
+
+/* Panelen die (nog) geen tabblad hebben — bijvoorbeeld de winkel bij een kaartje
+   dat nog geen verkoper is. Ze blijven in het formulier staan zodat hun velden
+   gewoon meegestuurd worden. */
+.ed-paneel-verborgen { display: none; }
+.ed-knoppen { border-top: 1px solid var(--color-room-border); margin-top: 16px; padding-top: 12px; }
+
+/* Kant in gevecht staat in dezelfde rij als de rollen, achter een streepje. */
+.rollen-scheiding {
+  width: 1px; align-self: stretch; min-height: 18px;
+  background: rgba(196,168,122,0.45); margin: 0 4px;
+}
+.rol-keuze--kant { opacity: .92; }
+/* Character Sheet heeft een eigen tabblad; daar hoeft niets meer open te klappen. */
+.cs-blok { margin-top: 0; }
