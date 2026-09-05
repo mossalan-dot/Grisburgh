@@ -85,6 +85,13 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Verkoper wijst naar zijn winkel** (DM) — vink *verkoper* aan: onder de rollen (tab Informatie) verschijnt "Verkoopt bij" met een zoekbare locatielijst. Een personage heeft géén Winkel-tabblad meer; op zijn kaartje staat "Verkoopt bij <locatie>" met een doorklik naar de voorraad daar
 - [ ] **Voorraad op de locatie** (ALL) — de winkel-tab van een locatie toont de voorraad; ook bij een locatie die géén type *Winkel* heeft maar wel waren (tempel, ziekenhuis)
 
+- [ ] **Detailvenster: kop zegt het al** (ALL) — onder de naam staat rol · origin · class · alignment; diezelfde waarden staan niet nóg eens als pil eronder
+- [ ] **Roddels doorbladeren in het detailvenster** (DM/SP) — één rol perkament met "‹ 1/3 ›"; de knop *Vertellen* / *Verteld* hoort bij de regel die je ziet, en stapt mee
+- [ ] **Onthulknoppen uniform** (DM) — roddels en geheimen hebben dezelfde knop op dezelfde plek, met het woord erbij (Vertellen/Verteld, Onthullen/Onthuld)
+- [ ] **DM-acties met tekst** (DM) — de knoppenbalk toont icoon + woord (Zichtbaar/Verborgen, Overleden, Medestander, Bewerken); *Verbergen* verandert meteen zichtbaar van stand
+- [ ] **Lege tabbladen weg** (ALL) — een kaartje zonder character sheet toont die tab niet, en een verkoper zonder eigen voorraad heeft geen Voorraad/Log-tab (die staan bij de winkel)
+- [ ] **Lightbox boven het venster** (ALL) — klik een afbeelding in het detailvenster: de viewer opent er bovenop, niet erachter
+
 - [ ] **Kop van de editor** (DM) — nieuw kaartje heet "Nieuw personage" / "Nieuwe locatie" / "Nieuwe organisatie" / "Nieuw voorwerp" / "Nieuw document", bewerken heet "Personage bewerken" enzovoort; er staat geen losse ondertitel meer onder
 
 - [ ] **Volgorde in de editor** (DM) — Informatie loopt van boven naar beneden: korte omschrijving, Origin/Class/Alignment, rollen, Beschrijving, Flavour teksten, Geheimen, Aantekeningen

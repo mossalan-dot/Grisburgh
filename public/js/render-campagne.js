@@ -805,7 +805,7 @@ async function _vulMedestander(entityId) {
   try { ({ linked } = await api.getCompanionStatus(entityId)); } catch { return; }
   const btn = document.getElementById(`detail-medestander-${entityId}`);
   if (!btn) return;
-  btn.classList.toggle('dm-btn--active', linked.length > 0);
+  btn.classList.toggle('dm-actie--aan', linked.length > 0);
   btn.title = linked.length > 0
     ? 'Loopt met de party mee — klik om los te koppelen'
     : 'Medestander: laat dit personage met de party meelopen';
@@ -1421,7 +1421,45 @@ function renderCard(type, e) {
 // van regel 2 moet ergens anders vandaan komen.
 const _flavCache = {};
 const _flavPos   = {};
+const _flavCtx   = {};   // extra gegevens voor de rol in het detailvenster
 const _flavKort  = (t) => (t.length > 300 ? t.slice(0, 300) + '\u2026' : t);
+
+// De binnenkant van de rol in het detailvenster: één roddel, de knop om hem te
+// vertellen, en pijltjes als er meer zijn. Wordt bij elke stap opnieuw gezet —
+// eenvoudiger dan losse stukjes bijwerken, en het blijft één bron van waarheid.
+function _detFlavInner(key) {
+  const regels = _flavCache[key] || [];
+  const ctx    = _flavCtx[key] || {};
+  const idx    = _flavPos[key] || 0;
+  const r      = regels[idx];
+  if (!r) return '';
+  return `
+    ${isDM() ? `<button class="onthul-knop${r.gezegd ? ' onthul-knop--aan' : ''}"
+      title="${r.gezegd ? 'Toch niet verteld — terugdraaien' : 'Markeer als verteld; de spelers zien de roddel dan'}"
+      onclick="window._toggleFlavour('${esc(ctx.tab)}','${esc(ctx.id)}',${r.i})">${r.gezegd ? icon('beer') : icon('lock')}<span>${r.gezegd ? 'Verteld' : 'Vertellen'}</span></button>` : ''}
+    <p class="flavour-text">\u201e${esc(r.tekst)}\u201c</p>
+    <div class="flavour-scroll-voet">
+      ${ctx.audioId ? `<button type="button" class="flavour-audio-play" data-audio-btn data-audio-btn-id="${esc(ctx.audioId)}"
+        onclick="window._audioToggle('${esc(ctx.audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>` : '<span></span>'}
+      ${regels.length > 1 ? `
+        <span class="flavour-nav">
+          <button type="button" onclick="window._detFlavStap('${esc(key)}',-1)" title="Vorige roddel">\u2039</button>
+          <span>${idx + 1}/${regels.length}</span>
+          <button type="button" onclick="window._detFlavStap('${esc(key)}',1)" title="Volgende roddel">\u203a</button>
+        </span>` : ''}
+    </div>`;
+}
+
+window._detFlavStap = (key, richting) => {
+  const regels = _flavCache[key] || [];
+  if (regels.length < 2) return;
+  _flavPos[key] = ((_flavPos[key] || 0) + richting + regels.length) % regels.length;
+  const host = document.getElementById(`flav-${key}`);
+  const vak  = host?.querySelector('.flavour-scroll-content');
+  if (!vak) return;
+  vak.innerHTML = _detFlavInner(key);
+  host.classList.toggle('flavour-scroll--ongespoken', isDM() && !regels[_flavPos[key]].gezegd);
+};
 
 window._flavStap = (id) => {
   const regels = _flavCache[id] || [];
@@ -1866,7 +1904,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const schema = SCHEMA[tab];
   const vis = e._visibility || 'visible';
   const isPersonage = tab === 'personages';
-  const showSheet = isPersonage && isDM();
+  // Een leeg blad is een lege tab: alleen tonen als er iets in staat. `hp` en
+  // `ac` tellen niet als "iets" wanneer de rest leeg is — dat is de minimale
+  // invulling voor de monsterlijst, geen character sheet.
+  const _sheetGevuld = Object.values(e.stats || {}).some(v => String(v ?? '').trim());
+  const showSheet = isPersonage && isDM() && _sheetGevuld;
   const fileUrl = api.fileForEntity(e);
 
   // ── Tab: Info ──
@@ -2011,6 +2053,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   let _descVal = '';
   for (const field of (schema.fields || [])) {
     if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid', 'nietVerkoopbaar'].includes(field.key)) continue;
+    // Wat al onder de naam staat (rol · origin · class · alignment · type)
+    // hoeft er niet nóg eens als pil onder: dat was de helft van de pillenrij.
+    if (['ras', 'klasse', 'alignment', 'locType', 'wijk', 'orgType', 'itemType', 'rariteit'].includes(field.key)) continue;
     // Geheimen, flavours en rollen hebben verderop hun eigen weergave (rollen
     // een badge, de lijsten een perkamentrol per regel). Als pil toonden ze
     // hun ruwe JSON: ["Groot hater van jam."].
@@ -2040,6 +2085,19 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     infoHtml += `<div class="detail-desc mb-4">${tab === 'voorwerpen' ? (window.glossary?.annotate?.(_descHtml) ?? _descHtml) : _descHtml}</div>`;
   }
 
+  // "Verkoopt bij <locatie>" in het infopaneel, met doorklik.
+  if (_winkelLocId) {
+    const _locNaam = Object.entries(window._entityNameIndex || {})
+      .find(([, v]) => v.id === _winkelLocId && v.type === 'locaties')?.[0];
+    if (_locNaam) {
+      infoHtml += `
+        <div class="detail-winkel-link mb-4">
+          ${icon('package')}
+          <span>Verkoopt bij</span>
+          <button type="button" onclick="window._openDetail('locaties','${esc(_winkelLocId)}',false,'voorraad')">${esc(_locNaam)}</button>
+        </div>`;
+    }
+  }
   // Persoonlijkheid (DM only)
   const persVal = e.data?.persoonlijkheid;
   if (persVal && isDM()) {
@@ -2064,24 +2122,17 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     .filter(r => isDM() || r.gezegd);
   if (zichtbareFlavours.length || (isDM() && !flavourRegels.length && _audioId)) {
     infoHtml += `<div class="detail-divider">— ✦ —</div>`;
-    // Elke roddel een eigen rol perkament; wat de waard nog niet verteld heeft
-    // ziet de DM lichter.
-    infoHtml += zichtbareFlavours.map(({ tekst, gezegd, i }, n) => `
-        <div class="flavour-scroll${isDM() && !gezegd ? ' flavour-scroll--ongespoken' : ''}">
-          <div class="flavour-scroll-rod"></div>
-          <div class="flavour-scroll-content">
-            ${isDM() ? `<button class="dm-btn dm-btn-icon dm-btn-sm flavour-oog${gezegd ? ' dm-btn--active' : ''}"
-              title="${gezegd ? 'Toch niet verteld — terugdraaien' : 'Markeer als verteld; de spelers zien de roddel dan'}"
-              onclick="window._toggleFlavour('${tab}','${e.id}',${i})">${gezegd ? icon('beer') : icon('lock')}</button>` : ''}
-            <p class="flavour-text">\u201e${esc(tekst)}\u201c</p>
-            ${(_audioId && n === 0) ? `
-              <div class="flavour-audio-wrap">
-                <button type="button" class="flavour-audio-play" data-audio-btn data-audio-btn-id="${esc(_audioId)}"
-                  onclick="window._audioToggle('${esc(_audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>
-              </div>` : ''}
-          </div>
-          <div class="flavour-scroll-rod"></div>
-        </div>`).join('');
+    // Eén rol perkament met pijltjes erdoorheen, net als op het kaartje: drie
+    // roddels onder elkaar maakten van een terloopse opmerking een lijst.
+    _flavCache[`det-${e.id}`] = zichtbareFlavours;
+    _flavPos[`det-${e.id}`]   = 0;
+    _flavCtx[`det-${e.id}`]   = { tab, id: e.id, audioId: _audioId };
+    infoHtml += `
+      <div class="flavour-scroll" id="flav-det-${esc(e.id)}">
+        <div class="flavour-scroll-rod"></div>
+        <div class="flavour-scroll-content">${_detFlavInner(`det-${e.id}`)}</div>
+        <div class="flavour-scroll-rod"></div>
+      </div>`;
   }
 
   // Geheimen: één blok per regel. De DM ziet ze allemaal met een oogje ernaast
@@ -2095,13 +2146,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (zichtbareGeheimen.length) {
     infoHtml += `
       <div class="mb-4">
-        <div class="detail-field-label detail-field-label--secret">\ud83d\udd12 ${zichtbareGeheimen.length > 1 ? 'Geheimen' : 'Geheim'}${
+        <div class="detail-field-label detail-field-label--secret">${icon('lock')} ${zichtbareGeheimen.length > 1 ? 'Geheimen' : 'Geheim'}${
           isDM() && geheimRegels.length > 1 ? ` <span class="geheim-teller">${_geheimOnthuld.filter(Boolean).length} van ${geheimRegels.length} onthuld</span>` : ''}</div>
         ${zichtbareGeheimen.map(({ tekst, i, onthuld }) => `
           <div class="geheim-regel${onthuld ? ' geheim-regel--onthuld' : ''}">
-            ${isDM() ? `<button class="dm-btn dm-btn-icon dm-btn-sm geheim-oog${onthuld ? ' dm-btn--active' : ''}"
+            ${isDM() ? `<button class="onthul-knop${onthuld ? ' onthul-knop--aan' : ''}"
               title="${onthuld ? 'Weer verbergen voor spelers' : 'Aan de spelers onthullen'}"
-              onclick="window._toggleSecret('${tab}','${e.id}',${i})">${onthuld ? icon('eye') : icon('lock')}</button>` : ''}
+              onclick="window._toggleSecret('${tab}','${e.id}',${i})">${onthuld ? icon('eye') : icon('lock')}<span>${onthuld ? 'Onthuld' : 'Onthullen'}</span></button>` : ''}
             <div class="detail-dm-block detail-dm-block--secret">${mdToHtml(tekst)}</div>
           </div>`).join('')}
       </div>
@@ -2128,35 +2179,31 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                      :                    'Zichtbaar maken';
     infoHtml += `
       <div class="dm-only mt-4 pt-4 border-t border-room-border">
-        <div class="detail-dm-tools flex flex-wrap gap-2 mb-3">
-          <button class="dm-btn dm-btn-icon${vis !== 'hidden' ? ' dm-btn--active' : ''}"
+        <!-- Vijf gelijke vierkantjes met een pictogram zeiden niet wát ze doen.
+             Nu icoon plus woord; de stand staat in het woord ("Zichtbaar" /
+             "Verborgen"), niet alleen in de kleur. -->
+        <div class="detail-dm-tools">
+          <button class="dm-actie${vis !== 'hidden' ? ' dm-actie--aan' : ''}"
             title="${_mVisTitle}"
             onclick="window._toggleVis('${tab}','${e.id}',event)">
-            ${_mVisIcon}
+            ${_mVisIcon}<span>${vis === 'visible' ? 'Zichtbaar' : vis === 'vague' ? 'Vaag zichtbaar' : 'Verborgen'}</span>
           </button>
-          ${(isPersonage || tab === 'locaties') ? `
-            <button class="dm-btn dm-btn-icon${e._secretReveal ? ' dm-btn--active' : ''}"
-              title="${e._secretReveal ? 'Geheim verbergen voor spelers' : 'Geheim onthullen aan spelers'}"
-              onclick="window._toggleSecret('${tab}','${e.id}')">
-              ${e._secretReveal ? icon('eye') : icon('lock')}
-            </button>
-          ` : ''}
-          <button class="dm-btn dm-btn-icon${e._deceased ? ' dm-btn--active' : ''}"
-            title="${e._deceased ? 'Markering verwijderen' : 'Markeer als deceased'}"
+          <button class="dm-actie${e._deceased ? ' dm-actie--aan' : ''}"
+            title="${e._deceased ? 'Markering verwijderen' : 'Markeer als overleden'}"
             onclick="window._toggleDeceased('${tab}','${e.id}')">
-            ${icon('skull', {cls:'icon-gi'})}
+            ${icon('skull', {cls:'icon-gi'})}<span>Overleden</span>
           </button>
           ${isPersonage && String(e.subtype || '').toLowerCase() === 'npc' ? `
-            <button class="dm-btn dm-btn-icon" id="detail-medestander-${e.id}"
+            <button class="dm-actie" id="detail-medestander-${e.id}"
               title="Medestander: laat dit personage met de party meelopen"
               onclick="window._toggleMedestander('${e.id}')">
-              ${icon('crossed-swords', {cls:'icon-gi'})}
+              ${icon('crossed-swords', {cls:'icon-gi'})}<span>Medestander</span>
             </button>
           ` : ''}
-          <button class="dm-btn dm-btn-icon"
+          <button class="dm-actie"
             title="Bewerk dit kaartje (afbeelding, tekst, geluid)"
             onclick="window._openEditor('${tab}','${e.id}')">
-            ${icon('pencil')}
+            ${icon('pencil')}<span>Bewerken</span>
           </button>
         </div>
         <div class="detail-label mb-1">DM Notities</div>
@@ -2347,21 +2394,12 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _winkelLocId = tab === 'personages' ? (e.data?.winkelLocatieId || '') : '';
   const isWinkel = tab === 'locaties'
     && (e.data?.locType === 'Winkel' || (e.data?.voorraad && e.data.voorraad !== '[]'));
-  const heeftVoorraad = (isVerkoper && !_winkelLocId) || isWinkel;
+  // Een verkoper heeft geen voorraadtab: de waren liggen bij de locatie. Alleen
+  // een nog niet verhuisd kaartje met een eigen lijst houdt hem, anders zou die
+  // voorraad onbereikbaar worden.
+  const _eigenWaren = tab === 'personages' && e.data?.voorraad && e.data.voorraad !== '[]';
+  const heeftVoorraad = _eigenWaren || isWinkel;
 
-  // "Verkoopt bij <locatie>" in het infopaneel, met doorklik.
-  if (_winkelLocId) {
-    const _locNaam = Object.entries(window._entityNameIndex || {})
-      .find(([, v]) => v.id === _winkelLocId && v.type === 'locaties')?.[0];
-    if (_locNaam) {
-      infoHtml += `
-        <div class="detail-winkel-link mb-4">
-          ${icon('package')}
-          <span>Verkoopt bij</span>
-          <button type="button" onclick="window._openDetail('locaties','${esc(_winkelLocId)}',false,'voorraad')">${esc(_locNaam)}</button>
-        </div>`;
-    }
-  }
   let voorraadHtml = '';
   if (heeftVoorraad) {
     const _appMeta = window.app?.state?.meta || {};
@@ -2625,6 +2663,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     e.data?.rol,
     e.data?.ras,
     e.data?.klasse,
+    e.data?.alignment,
     e.data?.locType,
     e.data?.wijk,
     e.data?.orgType,
@@ -3059,6 +3098,11 @@ window._toggleVis = async (tab, id, event) => {
   const toVague = event?.shiftKey && ['personages', 'locaties'].includes(tab);
   await api.toggleVisibility(tab, id, toVague ? 'vague' : undefined);
   renderEntitySection(tab);
+  // Staat het kaartje open, dan moet de knop zijn nieuwe stand tonen — anders
+  // lijkt er niets te gebeuren.
+  if (window._currentDetailId === id && document.getElementById('modal-overlay')?.classList.contains('active')) {
+    window._openDetail(tab, id);
+  }
 };
 
 function _secretToast(revealed) {

@@ -410,6 +410,10 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 #logboek-tab-content { flex: 1; min-height: 0; overflow-y: auto; }
 
 /* Modal overlay */
+/* De lightbox kwam uit Tailwind op z-50 en dook daarmee ónder het
+   detailvenster (z-70) — je klikte op een afbeelding en zag niets gebeuren. */
+#lightbox { z-index: 90; }
+
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(60,40,10,0.5);
@@ -16352,7 +16356,8 @@ a.wikilink:not([class*="wikilink--"]) { color: #6a4a10; background: rgba(184,134
 
 /* DM-knoppenrij als cohesieve, subtiele groep */
 .detail-dm-tools {
-  padding: 5px 6px; border-radius: 9px; width: fit-content;
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;
+  padding: 6px; border-radius: 9px; width: fit-content; max-width: 100%;
   background: rgba(196,168,122,0.09); border: 1px solid rgba(196,168,122,0.24);
 }
 
@@ -22447,8 +22452,81 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 
 /* Knop om een roddel met de hand te vertellen, in de hoek van de rol perkament. */
 .flavour-scroll-content { position: relative; }
-.flavour-oog { position: absolute; top: 4px; right: 4px; }
-.flavour-scroll-content .flavour-text { padding-right: 30px; }
+/* Onthulknop bij een roddel of geheim: overal dezelfde vorm en plek, met het
+   woord erbij — een los slotje zei niet of je aan het onthullen of verbergen
+   was. */
+.onthul-knop {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  border: 1px solid rgba(122,96,64,.4);
+  background: rgba(196,168,122,.2);
+  font-family: 'Cinzel', serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: #7a6040;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.onthul-knop:hover { background: rgba(196,168,122,.38); color: #2a1a08; }
+.onthul-knop .icon { width: 12px; height: 12px; }
+.onthul-knop--aan {
+  background: rgba(58,106,74,.18);
+  border-color: rgba(58,106,74,.5);
+  color: #3a6a4a;
+}
+.onthul-knop--aan:hover { background: rgba(58,106,74,.3); color: #23452e; }
+
+/* Voet van de rol: geluid links, doorbladeren rechts. */
+.flavour-scroll-voet {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+.flavour-nav { display: inline-flex; align-items: center; gap: 6px; font-family: 'Cinzel', serif; font-size: 10px; color: #9a8060; }
+.flavour-nav button {
+  border: 1px solid rgba(122,96,64,.35);
+  background: rgba(196,168,122,.18);
+  border-radius: 10px;
+  padding: 0 7px;
+  line-height: 18px;
+  color: #7a6040;
+  cursor: pointer;
+}
+.flavour-nav button:hover { background: rgba(196,168,122,.38); color: #2a1a08; }
+.flavour-scroll-content .flavour-text { margin: 0; }
+
+/* DM-acties onder een kaartje: icoon plus woord, zodat je ziet wat een knop
+   doet zonder hem aan te wijzen. */
+.dm-actie {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  border: 1px solid rgba(122,96,64,.35);
+  background: rgba(255,255,255,.35);
+  font-family: 'Cinzel', serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: #7a6040;
+  cursor: pointer;
+}
+.dm-actie:hover { background: rgba(196,168,122,.3); color: #2a1a08; }
+.dm-actie .icon { width: 14px; height: 14px; }
+.dm-actie--aan {
+  background: rgba(58,106,74,.18);
+  border-color: rgba(58,106,74,.5);
+  color: #3a6a4a;
+}
+.dm-actie--aan:hover { background: rgba(58,106,74,.3); color: #23452e; }
 
 /* Rollen op een personage-kaartje: vinkjes naast elkaar. */
 .rollen-rij { display: flex; flex-wrap: wrap; gap: 6px 16px; }
