@@ -80,7 +80,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Inkopen van de party** (DM) — onderaan het winkelvenster: boedel ophalen, zoeken, aanvinken, aantal kiezen bij een stapel, bedrag invullen, overnemen. Het voorwerp verdwijnt bij die speler (bij een stapel alleen het gekozen aantal) en het geld komt erbij
 - [ ] **Geen afdingknop meer** (SP) — een speler ziet in de winkel geen "Onderhandelen" en geen eigen verkooplijst; kopen kan hij nog wel
 
-- [ ] **Verkoper wijst naar zijn winkel** (DM) — in de Winkel-tab van een personage kies je een locatie; op zijn kaartje staat dan "Verkoopt bij <locatie>" met een doorklik naar de voorraad daar. Het personage heeft zelf geen voorraadlijst meer
+- [ ] **Verkoper wijst naar zijn winkel** (DM) — vink *verkoper* aan: onder de rollen (tab Informatie) verschijnt "Verkoopt bij" met een zoekbare locatielijst. Een personage heeft géén Winkel-tabblad meer; op zijn kaartje staat "Verkoopt bij <locatie>" met een doorklik naar de voorraad daar
 - [ ] **Voorraad op de locatie** (ALL) — de winkel-tab van een locatie toont de voorraad; ook bij een locatie die géén type *Winkel* heeft maar wel waren (tempel, ziekenhuis)
 
 - [ ] **Kop van de editor** (DM) — nieuw kaartje heet "Nieuw personage" / "Nieuwe locatie" / "Nieuwe organisatie" / "Nieuw voorwerp" / "Nieuw document", bewerken heet "Personage bewerken" enzovoort; er staat geen losse ondertitel meer onder

@@ -3819,6 +3819,20 @@ window._openEditor = async (tab, editId) => {
           </div>
         </div>
       `;
+      // Waar iemand verkoopt hoort bij zijn rollen, niet in een eigen tabblad:
+      // het is één keuzelijst. De waren zelf liggen bij de locatie.
+      if (tab === 'personages' && isDM()) {
+        body += `
+          <div id="voorraad-section"${window._heeftRol(e, 'verkoper') ? '' : ' style="display:none"'}>
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Verkoopt bij</label>
+            <input type="hidden" name="data_winkelLocatieId" id="winkel-loc-id" value="${esc(e?.data?.winkelLocatieId || '')}">
+            <input list="winkel-loc-dl" id="winkel-loc-naam" placeholder="Zoek een locatie\u2026" value=""
+              onchange="window._winkelLocKies(this.value)"
+              class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+            <datalist id="winkel-loc-dl"></datalist>
+            <div id="winkel-loc-link" class="mt-2"></div>
+          </div>`;
+      }
     } else if (field.type === 'lijst-tekst') {
       const regels = _tekstLijstUit(e?.data, field.key, field.enkelvoud);
       if (!regels.length) regels.push('');
@@ -3936,29 +3950,10 @@ window._openEditor = async (tab, editId) => {
   }
 
   // ── Tabblad Winkel ──
-  // Een verkoper heeft géén eigen voorraad meer: hij wijst naar de plek waar
-  // zijn waren liggen. Diezelfde lijst stond eerder op allebei de kaartjes en
-  // liep daardoor uiteen. Het personage krijgt dus alleen een keuzelijst met
-  // een doorklik; de voorraad zelf hoort bij de locatie.
+  // Alleen voor locaties: daar liggen de waren. Een verkoper heeft er maar één
+  // veld voor nodig ("Verkoopt bij"), en dat staat bij Informatie — een heel
+  // tabblad voor één keuzelijst is er een te veel.
   body += `<!--P:winkel-->`;
-  if (tab === 'personages') {
-    const _winkelId = e?.data?.winkelLocatieId || '';
-    body += `
-      <div id="voorraad-section"${window._heeftRol(e, 'verkoper') ? '' : ' style="display:none"'}>
-        <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Verkoopt bij</div>
-        <p class="text-xs text-ink-dim mb-2">
-          Kies de plek waar zijn waren liggen. De voorraad, de prijzen en de inkoop
-          staan daar — zo is er één lijst en niet twee die uit elkaar lopen.
-        </p>
-        <input type="hidden" name="data_winkelLocatieId" id="winkel-loc-id" value="${esc(_winkelId)}">
-        <input list="winkel-loc-dl" id="winkel-loc-naam" placeholder="Zoek een locatie\u2026"
-          value=""
-          onchange="window._winkelLocKies(this.value)"
-          class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-        <datalist id="winkel-loc-dl"></datalist>
-        <div id="winkel-loc-link" class="mt-2"></div>
-      </div>`;
-  }
   if (tab === 'locaties') {
     const _showVoorraad = true;
     let winkelConfigEditor = {};
