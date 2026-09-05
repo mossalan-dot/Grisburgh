@@ -1813,7 +1813,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _rolVal = e.data?.rol;
   let _rolInHero = false;
   if (_extraImgs.length > 0) {
-    const _allImgs = [{ id: e.id, caption: _primaryCaption }, ..._extraImgs];
+    // De banner leeft sinds de mediabibliotheek in data.imageId; alleen oude
+    // kaartjes hebben hun portret nog onder het entity-id staan. Stond hier
+    // hard `e.id`, waardoor de eerste dia een gebroken plaatje was.
+    const _allImgs = [{ id: e.data?.imageId || e.id, caption: _primaryCaption }, ..._extraImgs];
     infoHtml += _entityCarouselHtml(e.id, _allImgs);
   } else {
     infoHtml += `
@@ -1933,6 +1936,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   let _descVal = '';
   for (const field of (schema.fields || [])) {
     if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid', 'nietVerkoopbaar'].includes(field.key)) continue;
+    // Geheimen, flavours en rollen hebben verderop hun eigen weergave (rollen
+    // een badge, de lijsten een perkamentrol per regel). Als pil toonden ze
+    // hun ruwe JSON: ["Groot hater van jam."].
+    if (['lijst-tekst', 'rollen'].includes(field.type)) continue;
     if (tab === 'voorwerpen' && ['itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellPick', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
