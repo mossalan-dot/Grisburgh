@@ -7352,33 +7352,6 @@ details.player-dash-collapsible[open] > summary {
   background: #1e4a2e;
 }
 
-/* ── Editor toggle-knoppen (waard / antagonist / medestander) ── */
-.editor-toggles-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 2px 0 4px;
-}
-.editor-toggle-btn {
-  font-size: 1rem;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-}
-.editor-toggle-btn--active {
-  background: linear-gradient(to bottom, #2a5a3a, #1e4a2e) !important;
-  border-color: #4a8a5a !important;
-  color: #c8e8d0 !important;
-}
-.editor-toggle-btn--active:hover {
-  background: linear-gradient(to bottom, #326644, #244f34) !important;
-}
-
 .player-dash-hp-bar-wrap {
   height: 6px;
   background: rgba(0,0,0,0.15);

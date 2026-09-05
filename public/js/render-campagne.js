@@ -768,6 +768,39 @@ document.addEventListener('click', (ev) => {
 });
 
 // Missies ophalen ná het tekenen: het detailvenster hoeft er niet op te wachten.
+// Medestander aan/uit. Stond als icoontje onderin de editor, maar het is geen
+// eigenschap van het kaartje — het is iets wat je nú doet, net als "markeer als
+// deceased". Vandaar de DM-rij van het detailvenster.
+async function _vulMedestander(entityId) {
+  let linked = [];
+  try { ({ linked } = await api.getCompanionStatus(entityId)); } catch { return; }
+  const btn = document.getElementById(`detail-medestander-${entityId}`);
+  if (!btn) return;
+  btn.classList.toggle('dm-btn--active', linked.length > 0);
+  btn.title = linked.length > 0
+    ? 'Loopt met de party mee — klik om los te koppelen'
+    : 'Medestander: laat dit personage met de party meelopen';
+}
+
+window._toggleMedestander = async (entityId) => {
+  // De actieve party, niet zomaar de eerste: je koppelt hem aan de groep waar
+  // je op dat moment mee speelt.
+  let groepId = window._activeGroupId;
+  if (!groepId) {
+    try { groepId = (await api.listGroups()).groups?.[0]?.id; } catch { /* ok */ }
+  }
+  if (!groepId) return;
+  try {
+    const { linked } = await api.getCompanionStatus(entityId);
+    if (linked.length > 0) await Promise.all(linked.map(gid => api.unlinkCompanion(entityId, gid)));
+    else                   await api.linkCompanion(entityId, groepId);
+  } catch (err) {
+    alert('Medestander koppelen mislukt: ' + err.message);
+    return;
+  }
+  _vulMedestander(entityId);
+};
+
 async function _vulMissies(entityId, tab) {
   const host = () => document.getElementById(`detail-missies-${entityId}`);
   let missies = [];
@@ -2039,6 +2072,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     infoHtml += `<div id="detail-missies-${e.id}"></div>`;
     _vulMissies(e.id, tab);
   }
+  if (isPersonage && isDM() && String(e.subtype || '').toLowerCase() === 'npc') _vulMedestander(e.id);
 
   // DM controls
   if (isDM()) {
@@ -2070,6 +2104,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             onclick="window._toggleDeceased('${tab}','${e.id}')">
             ${icon('skull', {cls:'icon-gi'})}
           </button>
+          ${isPersonage && String(e.subtype || '').toLowerCase() === 'npc' ? `
+            <button class="dm-btn dm-btn-icon" id="detail-medestander-${e.id}"
+              title="Medestander: laat dit personage met de party meelopen"
+              onclick="window._toggleMedestander('${e.id}')">
+              ${icon('crossed-swords', {cls:'icon-gi'})}
+            </button>
+          ` : ''}
           <button class="dm-btn dm-btn-icon"
             title="Bewerk dit kaartje (afbeelding, tekst, geluid)"
             onclick="window._openEditor('${tab}','${e.id}')">
@@ -3746,23 +3787,10 @@ window._openEditor = async (tab, editId) => {
   }
   if (_revealGroupOpen) { body += `</div>`; _revealGroupOpen = null; }
 
-  // ── DM-toggles onder klasseveld (rechterkolom) ──
-  if (tab === 'personages' && isDM()) {
-    body += `
-      <div class="editor-toggles-row">
-        <!-- De knop "roddel uitgesproken door de waard" stond hier, maar dat is
-             geen eigenschap van het personage: het is de stand van de herberg.
-             Sinds flavour een lijst is houdt de server per regel bij of hij al
-             verteld is, en dat regelt de herberg zelf. -->
-        ${editId && _isNpcEditor ? `
-          <button type="button" id="btn-medestander"
-            class="dm-btn dm-btn-ghost editor-toggle-btn"
-            title="Medestander koppelen / ontkoppelen"
-            onclick="window._editorToggleCompanionBtn()">${icon('crossed-swords', {cls:'icon-gi'})}</button>
-        ` : ''}
-      </div>
-    `;
-  }
+  // De toggles-rij is leeg: "roddel uitgesproken" hoort bij de herberg (de server
+  // houdt dat per flavourregel bij) en de medestander-knop staat nu in de DM-rij
+  // van het detailvenster, bij "markeer als deceased" — beide zijn handelingen,
+  // geen velden van het kaartje.
 
 
 
@@ -4095,38 +4123,6 @@ window._openEditor = async (tab, editId) => {
       }
     });
   }
-
-  // ── Medestander toggle (enkelvoudig, aan/uit voor eerste groep) ──
-  if (tab === 'personages' && editId && e?.subtype?.toLowerCase() === 'npc' && isDM() && _editorGroups.length > 0) {
-    const _firstGroupId = _editorGroups[0].id;
-    const _updateMedBtn = (linked) => {
-      const btn = document.getElementById('btn-medestander');
-      if (btn) btn.classList.toggle('editor-toggle-btn--active', linked.length > 0);
-    };
-    api.getCompanionStatus(editId)
-      .then(({ linked }) => _updateMedBtn(linked))
-      .catch(() => {});
-    window._editorToggleCompanionBtn = async () => {
-      const { linked } = await api.getCompanionStatus(editId).catch(() => ({ linked: [] }));
-      if (linked.length > 0) {
-        await Promise.all(linked.map(gid => api.unlinkCompanion(editId, gid)));
-      } else {
-        await api.linkCompanion(editId, _firstGroupId);
-      }
-      const { linked: nl } = await api.getCompanionStatus(editId).catch(() => ({ linked: [] }));
-      _updateMedBtn(nl);
-    };
-  }
-
-  // ── Toggle-knop helper ──
-  window._editorToggleBtn = (inputId, btnId) => {
-    const inp = document.getElementById(inputId);
-    const btn = document.getElementById(btnId);
-    if (!inp || !btn) return;
-    const active = inp.value === 'true';
-    inp.value = active ? '' : 'true';
-    btn.classList.toggle('editor-toggle-btn--active', !active);
-  };
 
   // ── Extra images editor state ──
   entityEditorImagesToDelete = [];

@@ -69,6 +69,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Meerdere afbeeldingen in het detailvenster** (ALL) — een kaartje met banner én extra afbeelding toont een carousel waarin de éérste dia de banner is (geen gebroken plaatje); pijltjes en bolletjes lopen erdoorheen
 - [ ] **Geen ruwe JSON in het detailvenster** (ALL) — geheimen, flavours en rollen staan in hun eigen blok, niet als pil met `["tekst"]` erin
 
+- [ ] **Medestander vanuit het detailvenster** (DM) — het zwaardenicoon in de DM-rij (naast de doodskop) koppelt een NPC als medestander aan de **actieve** party; de knop kleurt op, nogmaals klikken koppelt los, en de bewerkmodus heeft die knop niet meer
+
 - [ ] **Kop van de editor** (DM) — nieuw kaartje heet "Nieuw personage" / "Nieuwe locatie" / "Nieuwe organisatie" / "Nieuw voorwerp" / "Nieuw document", bewerken heet "Personage bewerken" enzovoort; er staat geen losse ondertitel meer onder
 
 - [ ] **Volgorde in de editor** (DM) — Informatie loopt van boven naar beneden: korte omschrijving, Origin/Class/Alignment, rollen, Beschrijving, Flavour teksten, Geheimen, Aantekeningen
