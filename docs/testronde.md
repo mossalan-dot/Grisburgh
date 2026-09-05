@@ -131,6 +131,15 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Lege tabbladen weg** (ALL) — een kaartje zonder character sheet toont die tab niet, en een verkoper zonder eigen voorraad heeft geen Voorraad/Log-tab (die staan bij de winkel)
 - [ ] **Lightbox boven het venster** (ALL) — klik een afbeelding in het detailvenster: de viewer opent er bovenop, niet erachter
 
+- [ ] **Nieuw personage begint als NPC** (DM) — het Type-veld staat meteen op NPC; opslaan zonder te kiezen levert geen typeloos kaartje op
+- [ ] **Knoppen in de bewerkmodus** (DM) — onderaan staat *Aanmaken* / *Opslaan*, *Verwijderen* en *Annuleren* met tekst, niet alleen pictogrammen
+- [ ] **Rollen en kant uit elkaar** (DM) — de vinkjes voor rollen staan op één regel, met daaronder het kopje *Kant in gevecht* en dan pas Bondgenoot/Neutraal/Vijand
+- [ ] **Kaartje zonder afbeelding** (ALL) — geen lege beeldstrook bovenin, en de badge (NPC, Verkoper, Dier) staat gewoon boven de naam
+- [ ] **URL volgt de sectie** (ALL) — plak `#locaties` achter het adres of gebruik de terugknop van de browser: de app springt naar dat tabblad
+- [ ] **Afrekenen meldt zich** (DM) — na afrekenen verschijnt een melding met wie er betaalde en hoeveel
+- [ ] **Losse boedelregels in de inkooplijst** (DM) — spullen die geen voorwerpkaartje zijn (touw, gereedschap) staan óók in *Inkopen van de party*
+- [ ] **Geen doodskop op een locatie** (DM) — *Overleden* staat alleen bij personages, niet bij locaties, organisaties of voorwerpen
+
 - [ ] **Kop van de editor** (DM) — nieuw kaartje heet "Nieuw personage" / "Nieuwe locatie" / "Nieuwe organisatie" / "Nieuw voorwerp" / "Nieuw document", bewerken heet "Personage bewerken" enzovoort; er staat geen losse ondertitel meer onder
 
 - [ ] **Volgorde in de editor** (DM) — Informatie loopt van boven naar beneden: korte omschrijving, Origin/Class/Alignment, rollen, Beschrijving, Flavour teksten, Geheimen, Aantekeningen

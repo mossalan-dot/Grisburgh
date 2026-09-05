@@ -1376,7 +1376,7 @@ function renderCard(type, e) {
   // portret/filmpje wordt overal hergebruikt, dus de kaart staat visueel boven NPC's.
   const _isProtagonist = type === 'personages' && (e.subtype === 'speler');
   return `
-    <div class="entity-card${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}${_isBoon ? ' card-boon' : ''}${_isProtagonist ? ' card-protagonist' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}${_isProtagonist ? ' data-protagonist="true"' : ''}
+    <div class="entity-card${e._beeld === false ? ' no-img' : ''}${vis === 'hidden' && isDM() ? ' card-hidden' : ''}${vis === 'vague' && isDM() ? ' card-vague-dm' : ''}${e._deceased ? ' card-deceased' : ''}${_goddelijkType ? ` card-goddelijk card-goddelijk--${_goddelijkType}` : ''}${_isBoon ? ' card-boon' : ''}${_isProtagonist ? ' card-protagonist' : ''}"${_rarKey ? ` data-rarity="${_rarKey}"` : ''}${_isProtagonist ? ' data-protagonist="true"' : ''}
       onclick="window._openDetail('${type}','${e.id}')">
       ${isDM() ? `
         <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
@@ -1409,12 +1409,15 @@ function renderCard(type, e) {
         </button>`;
       })() : ''}
       <div class="card-accent bar-${type}"></div>
+      <!-- Niet vooraf op 'geen afbeelding' zetten: een verborgen <img loading=lazy>
+           laadt nooit, en dan blijft élk kaartje beeldloos. De lege strook tot de
+           404 binnen is nemen we voor lief. -->
       <div class="card-img-wrap">
         <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbForEntity(e)}"
           style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
           onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
         <div class="card-img-fade"></div>
-        ${(badges.length || (!isDM() && e._secretReveal)) ? `<div class="card-badges">
+        ${(badges.length || (!isDM() && e._secretReveal)) ? `<div class="card-badges card-badges--beeld">
           ${!isDM() && e._secretReveal ? `<span class="card-geheim-pill" title="Er is een geheim over dit kaartje onthuld">${icon('eye')} Geheim onthuld</span>` : ''}
           ${badges.length ? `<div class="card-badges-rij">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
         </div>` : ''}
@@ -1431,6 +1434,7 @@ function renderCard(type, e) {
         ${e._gockOnderzocht ? `<span class="card-gock-badge" title="Onderzocht door De Gock">${icon('search')}</span>` : ''}
       </div>
       <div class="card-body px-3 pt-2 pb-2">
+        ${badges.length ? `<div class="card-badges card-badges--los">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
         <div class="mb-1.5">
           <span class="card-name block" data-fittext>${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
           ${(rol || metaText) ? `<span class="card-name-sep"></span>
@@ -3214,7 +3218,11 @@ window._dmAfrekenenDoen = async (shopId, itemNaam, entityId) => {
   const melding     = document.getElementById('dm-afreken-melding');
   try {
     const r = await api.dmVerkoop(shopId, { characterId, itemNaam, entityId: entityId || undefined, bedrag });
-    if (melding) melding.textContent = `Afgerekend voor ${_muntTekst(r.betaald)}`;
+    // Het venster wordt zo herbouwd, dus een melding ín het paneel zag je nooit;
+    // een toast blijft staan.
+    const wie = document.querySelector('#dm-afreken-speler')?.selectedOptions?.[0]?.textContent || 'de speler';
+    window.app?._tsToast?.(`${icon('check')} ${esc(itemNaam)} afgerekend met ${esc(wie.trim())} voor ${esc(_muntTekst(r.betaald))}`);
+    if (melding) melding.textContent = '';
     // Opnieuw openen zodat uitverkocht en voorraad kloppen; blijf op de tab.
     if (window._currentDetailTab && window._currentDetailId) {
       await window._openDetail(window._currentDetailTab, window._currentDetailId, false, 'voorraad');

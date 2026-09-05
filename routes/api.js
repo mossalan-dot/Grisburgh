@@ -324,6 +324,9 @@ function filterEntityForPlayer(entity, dmState, groupId) {
 
   delete e.stats;
   e._visibility   = 'visible';
+  // Weet de kaartweergave vooraf of er een afbeelding is, dan reserveert hij
+  // geen ruimte voor een plaatje dat er nooit komt.
+  e._beeld        = storage.bestandBestaat(entity.data?.imageId || entity.id);
   e._secretReveal = zichtbareGeheimen.length > 0;
   e._geheimTotaal = geheimen.length;
   e._geheimOnthuld = zichtbareGeheimen.length;
@@ -554,6 +557,7 @@ router.get('/entities/:type', attachRole, (req, res) => {
       _deceased:     !!(g.deceased?.[e.id]),
       _dmNote:       dmState.dmNotes[e.id]  || '',
       _gockOnderzocht: !!g.gockOnderzocht?.[e.id],
+      _beeld:        storage.bestandBestaat(e.data?.imageId || e.id),
     }));
   }
   res.json(list);
@@ -2017,7 +2021,10 @@ router.post('/shops/:shopId/dm-verkoop', requireDM, (req, res) => {
 router.get('/shops/:shopId/party-boedel', requireDM, (req, res) => {
   const entities = storage.readJSON('entities.json');
   const dmState  = readDmState();
-  const g = getGroup(dmState);
+  // De groep zelf heeft geen `id`-veld (getGroup geeft het object terug), dus het
+  // id apart bijhouden — anders viel de filter op losse boedelregels stil.
+  const groepId = dmState.activeGroup || Object.keys(dmState.groups || {})[0];
+  const g = getGroup(dmState, groepId);
   const voorwerpen = entities.voorwerpen || [];
   const regels = [];
 
@@ -2043,7 +2050,8 @@ router.get('/shops/:shopId/party-boedel', requireDM, (req, res) => {
 
   // Losse boedelregels: alleen van spelers uit de actieve groep.
   const eigenSpelers = new Set((entities.personages || [])
-    .filter(p => p.data?.groep === g.id || _playerGroupId(dmState, p.id) === g.id)
+    .filter(p => p.subtype === 'speler'
+      && (p.data?.groep === groepId || _playerGroupId(dmState, p.id) === groepId))
     .map(p => p.id));
   for (const [characterId, lijst] of Object.entries(dmState.playerItems || {})) {
     if (!eigenSpelers.has(characterId)) continue;

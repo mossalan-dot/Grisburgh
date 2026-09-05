@@ -1491,6 +1491,18 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   pointer-events: none;
 }
 .card-badges-rij { display: flex; gap: 5px; flex-wrap: wrap; }
+/* Badges staan over de afbeelding; heeft het kaartje er geen, dan verdween de
+   hele beeldstrook — en de badges dus ook. Er staat nu een tweede rij in de
+   body, en per geval is er precies één zichtbaar. */
+.card-badges--los {
+  position: static;
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+  pointer-events: none;
+}
+.entity-card:not(.no-img) .card-badges--los { display: none; }
+.entity-card.no-img .card-badges--beeld { display: none; }
 /* "Geheim onthuld" stond linksboven, boven op de bladwijzerknop. Als pill bij
    de andere badges valt hij op zonder iets in de weg te zitten. */
 .card-geheim-pill {
@@ -23008,8 +23020,34 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 .dm-actie--aan:hover { background: rgba(58,106,74,.3); color: #23452e; }
 
-/* Rollen op een personage-kaartje: vinkjes naast elkaar. */
-.rollen-rij { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+/* Knoppen onder de bewerkmodus: icoon plus woord, zodat "opslaan" niet als
+   pictogram geraden hoeft te worden. */
+.ed-knop {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid rgba(122,96,64,.4);
+  background: rgba(255,255,255,.4);
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+  letter-spacing: .04em; color: #7a6040;
+}
+.ed-knop:hover { background: rgba(196,168,122,.3); color: #2a1a08; }
+.ed-knop .icon { width: 15px; height: 15px; }
+.ed-knop--opslaan {
+  background: var(--color-gold-dim, #b8860b); border-color: rgba(122,96,64,.5); color: #f8f0de;
+}
+.ed-knop--opslaan:hover { background: var(--color-gold, #c9971a); color: #fff; }
+.ed-knop--weg { color: #8b2a2a; border-color: rgba(139,42,42,.4); background: rgba(139,42,42,.08); }
+.ed-knop--weg:hover { background: rgba(139,42,42,.18); color: #6a1f1f; }
+
+/* Rollen op een personage-kaartje: vinkjes naast elkaar. De kant staat op een
+   eigen regel; achter elkaar op één rij liep het bij smalle vensters door
+   elkaar heen en leek "Antagonist" bij de kant-groep te horen. */
+.rollen-rij { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+/* Het groepje rol-vinkjes (verborgen bij een dier) mag de flexrij niet breken:
+   met display:contents doen zijn kinderen gewoon mee in de rij, zodat de
+   regelafbreking vóór "Kant in gevecht" op de goede plek valt. */
+.rollen-rollen { display: contents; }
+.rollen-rollen[style*="display: none"] { display: none !important; }
 .rol-keuze {
   display: flex; align-items: center; gap: 6px; cursor: pointer;
   font-family: 'Crimson Text', serif; font-size: 14px; color: var(--color-ink-bright);
@@ -23086,11 +23124,16 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .ed-paneel-verborgen { display: none; }
 .ed-knoppen { border-top: 1px solid var(--color-room-border); margin-top: 16px; padding-top: 12px; }
 
-/* Kant in gevecht staat in dezelfde rij als de rollen, achter een streepje. */
+/* Kant in gevecht begint op een eigen regel: als vervolg op dezelfde rij liep
+   het bij smalle vensters door elkaar en leek "Antagonist" bij de kant te horen. */
 .rollen-scheiding {
-  width: 1px; align-self: stretch; min-height: 18px;
-  background: rgba(196,168,122,0.45); margin: 0 4px;
+  flex-basis: 100%; margin: 4px 0 0; border: 0; background: none;
+  /* Geen hoogte 0: het kopje hieronder moet zijn eigen regel krijgen, anders
+     valt het over de vinkjes heen. */
+  font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: .06em;
+  text-transform: uppercase; color: #9a8060; line-height: 1.6;
 }
+.rollen-scheiding::after { content: 'Kant in gevecht'; }
 .rol-keuze--kant { opacity: .92; }
 /* Character Sheet heeft een eigen tabblad; daar hoeft niets meer open te klappen. */
 .cs-blok { margin-top: 0; }

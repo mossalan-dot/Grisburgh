@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=268';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=192";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=194";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -293,6 +293,18 @@ function _scheduleFitHeader() {
   _fitHeaderRaf = requestAnimationFrame(() => { _fitHeaderRaf = null; _fitHeader(); });
 }
 window.addEventListener('resize', _scheduleFitHeader);
+
+// switchSection schrijft de sectie in de hash, maar niemand luisterde terug:
+// een bladwijzer naar #locaties opende het personagesscherm, en de terugknop
+// van de browser deed niets. (Alleen als de rol al bekend is — tijdens de
+// landing is de hash niet leidend.)
+window.addEventListener('hashchange', () => {
+  const sectie = (location.hash || '').replace(/^#/, '');
+  if (!sectie || sectie === state.activeSection) return;
+  if (!document.getElementById(`section-${sectie}`)) return;
+  if (!state.role || document.body.classList.contains('landing-open')) return;
+  switchSection(sectie);
+});
 
 // ── Hoogte van de app = wat je écht ziet ─────────────────────────────────────
 // `100dvh` volgt op een iPad de balken van Safari niet: de onderkant van de app
