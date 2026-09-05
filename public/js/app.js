@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=267';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=268';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=175";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
@@ -2523,6 +2523,29 @@ document.addEventListener('click', e => {
 async function switchGroup(groupId) {
   document.getElementById('group-dropdown')?.classList.add('hidden');
   document.getElementById('group-pill-wrap')?.classList.remove('open');
+
+  // Wisselen midden in een sessie is rommelig: alles wat je daarna onthult komt
+  // bij de andere party terecht. Alleen waarschuwen als er echt iets loopt — een
+  // akte of ingelogde spelers — anders zou de vraag bij elke wissel komen.
+  if (_activeGroupId && _activeGroupId !== groupId) {
+    let st = null;
+    try { st = await api.groepStatus(_activeGroupId); } catch { /* dan zonder waarschuwing */ }
+    const redenen = [];
+    if (st?.akte) redenen.push(`akte ${st.akte.num ? `${st.akte.num} · ` : ''}${st.akte.title || st.akte.key} loopt`);
+    if (st?.online?.length) {
+      redenen.push(st.online.length === 1
+        ? `${st.online[0]} is ingelogd`
+        : `${st.online.length} spelers zijn ingelogd (${st.online.join(', ')})`);
+    }
+    if (redenen.length) {
+      const naar = window._groups?.find(g => g.id === groupId)?.name || 'de andere party';
+      if (!confirm(
+        `Je speelt nu met ${st.naam}: ${redenen.join(' en ')}.\n\n` +
+        `Wissel je naar ${naar}, dan komt alles wat je daarna onthult of uitdeelt bij díé party terecht.\n\nToch wisselen?`
+      )) return;
+    }
+  }
+
   try {
     await api.switchGroup(groupId);
     // groups:updated socket-event verwerkt de rest

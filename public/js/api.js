@@ -66,6 +66,7 @@ export const api = {
   createGroup:       (name)         => request('/groups',                 { method: 'POST',   body: JSON.stringify({ name }) }),
   switchGroup:       (groupId)      => request('/groups/active',          { method: 'PUT',    body: JSON.stringify({ groupId }) }),
   updateGroup:       (id, name)     => request(`/groups/${id}`,           { method: 'PUT',    body: JSON.stringify({ name }) }),
+  groepStatus:       (id)           => request(`/groups/${id}/status`),
   setGroupPassword:  (id, password) => request(`/groups/${id}/password`,  { method: 'PUT',    body: JSON.stringify({ password }) }),
   // DM-wachtwoord van de eigen campagne (gehasht opgeslagen).
   dmWachtwoordStatus: ()            => request('/dm-wachtwoord'),

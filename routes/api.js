@@ -4261,6 +4261,26 @@ router.get('/groups', requireDM, (req, res) => {
   res.json({ groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
 });
 
+// Wat er op dit moment speelt bij een party. De DM wisselt tijdens een sessie
+// makkelijk per ongeluk van party — en onthult dan dingen aan de verkeerde
+// tafel. Hiermee kan de app vóór het wisselen waarschuwen.
+router.get('/groups/:id/status', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const g = dmState.groups?.[req.params.id];
+  if (!g) return res.status(404).json({ error: 'Party niet gevonden' });
+
+  const entities = storage.readJSON('entities.json');
+  const sockets  = req.app.get('playerSockets');
+  const leden = (entities.personages || []).filter(e => e.subtype === 'speler' && e.data?.groep === req.params.id);
+  const online = leden.filter(e => sockets?.get(e.id)).map(e => e.name);
+
+  res.json({
+    naam:  g.name,
+    akte:  g.activeAkte || null,     // {key, num, title} of null
+    online,
+  });
+});
+
 router.post('/groups', requireDM, (req, res) => {
   const dmState  = readDmState();
   const entities = storage.readJSON('entities.json');

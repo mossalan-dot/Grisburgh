@@ -98,6 +98,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Verborgen kaartje in een tekst** (DM/SP) — verberg een kaartje waarnaar een `[[link]]` verwijst: de speler kan er niet meer op klikken (zonder te herladen), en de DM ziet de link als *dicht* gemarkeerd
 
+- [ ] **Waarschuwing bij van party wisselen** (DM) — wissel van party terwijl er een akte loopt of een speler is ingelogd: er komt een vraag die zegt wát er speelt en waar je naartoe gaat. Speelt er niets, dan wissel je zonder vraag
+
 - [ ] **Party samenstellen** (DM) — Instellingen → Party's: onder elke party staan de personages als chips; typ een naam in *Personage toevoegen* om er iemand bij te zetten (met waarschuwing als hij uit een andere party komt) en klik het kruisje om iemand eruit te halen. Op het kaartje zelf blijft het veld *Party* hetzelfde doen
 
 - [ ] **Eén notitieveld** (DM) — er is nog maar één DM-notitie per kaartje: *Aantekeningen voor de DM*, boven de knoppenbalk. Typ erin, herlaad, en open de bewerkmodus: dezelfde tekst staat er
