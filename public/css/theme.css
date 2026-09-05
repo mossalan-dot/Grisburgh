@@ -1410,9 +1410,13 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 
 /* ── Modal type accent bar ── */
+/* De accentbalk zat binnen de rand van het venster, met een kleinere radius dan
+   het venster zelf. Daardoor bleef er een lichte strook perkament bovenlangs
+   zichtbaar. Hij ligt nu óver de rand heen en volgt dezelfde ronding. */
 .modal-accent {
-  height: 7px;
-  border-radius: 9px 9px 0 0;
+  height: 8px;
+  margin: -1px -1px 0;
+  border-radius: 10px 10px 0 0;
   flex-shrink: 0;
   transition: background 0.2s ease;
 }
@@ -3821,6 +3825,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 
   /* ── Modal: volledig scherm ── */
   .modal { width: 100%; max-width: 100%; max-height: 100dvh; border-radius: 0; }
+  .modal-accent { border-radius: 0; }
   .modal-head { padding: 12px 16px; }
   .modal-close { width: 44px; height: 44px; font-size: 32px; }
 
