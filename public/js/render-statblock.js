@@ -91,7 +91,7 @@ export function renderStatblock(m, { niveau = 'volledig' } = {}) {
       ${sb.traits           ? `<div class="sb-rule"></div>${_sbMdBlock(sb.traits)}` : ''}
       ${sb.actions          ? `<div class="sb-rule"></div><div class="sb-section-label">Actions</div>${_sbMdBlock(sb.actions)}` : ''}
       ${sb.reactions        ? `<div class="sb-rule"></div><div class="sb-section-label">Reactions</div>${_sbMdBlock(sb.reactions)}` : ''}
-      ${sb.legendaryActions ? `<div class="sb-rule"></div><div class="sb-section-label">Legendary Actions</div>${_sbMdBlock(sb.legendaryActions)}` : ''}`;
+      ${sb.legendaryActions ? `<div class="sb-rule"></div><div class="sb-section-label">Legendary/Mythic Actions</div>${_sbMdBlock(sb.legendaryActions)}` : ''}`;
   } else {
     // ── Deels: verdedigende props tonen, traits/actions/CR vergrendeld ──
     tail = `${props}

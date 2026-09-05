@@ -22204,6 +22204,21 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 /* ── Lijstvelden in de editor (geheimen, flavour) ──────────────────────────── */
 .lijst-veld { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
 .lijst-regel-rij { display: flex; align-items: flex-start; gap: 6px; }
+/* Per geheim: maakt onthullen hem antagonist? Klein en onder de regel, zodat
+   het bij díé tekst hoort en niet bij het kaartje als geheel. */
+.lijst-regel-antag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 3px 0 0 2px;
+  font-size: 11px;
+  color: #9a8060;
+  cursor: pointer;
+  user-select: none;
+}
+.lijst-regel-antag input { accent-color: #a33; margin: 0; }
+.lijst-regel-antag .icon { width: 13px; height: 13px; opacity: .75; }
+.lijst-regel-antag:hover { color: #c4a87a; }
 .lijst-regel-tekst {
   flex: 1; padding: 6px 8px; border-radius: 4px;
   background: var(--color-room-bg); border: 1px solid var(--color-room-border);
@@ -22244,6 +22259,47 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 
 /* Gekoppelde spreuken als chips, op het kaartje en in de editor. */
+/* Focuspunt-picker: links de hele afbeelding, rechts de echte uitsnedes. */
+.fp-rij { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 4px; }
+.fp-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 150px;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: crosshair;
+  background: rgba(20, 12, 4, .55);
+  border: 1px solid rgba(196, 168, 122, .25);
+}
+.fp-wrap-img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.fp-crosshair {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 22px; height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,.55), inset 0 0 0 1.5px rgba(0,0,0,.3);
+  pointer-events: none;
+}
+.fp-previews { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; text-align: center; }
+.fp-prev { overflow: hidden; border: 1px solid rgba(196, 168, 122, .45); background: rgba(20, 12, 4, .55); }
+.fp-prev img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Zelfde verhouding als het kaartje in de lijst (280 breed, 176 hoog). */
+.fp-prev--kaart { width: 112px; height: 70px; border-radius: 3px; }
+/* En het ronde portret zoals op het printbare blad en in de party-rij. */
+.fp-prev--rond { width: 60px; height: 60px; border-radius: 50%; margin: 0 auto; }
+.fp-prev-label {
+  display: block;
+  margin-top: 2px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: #9a8060;
+}
+
 .cs-spell-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
 /* Vrij tekstvak voor wat niet in de spellbibliotheek staat: dicht tenzij gevuld. */
 .cs-vrij-spells > summary {

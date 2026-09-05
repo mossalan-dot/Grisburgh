@@ -1,6 +1,6 @@
 import { api, huidigeCampagne } from './api.js?v=264';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
-import { renderStatblock } from './render-statblock.js?v=3';
+import { renderStatblock } from './render-statblock.js?v=4';
 
 // ── DM Panel ──
 // icon() helper is defined globally in app.js; grab a local alias for template use.
@@ -3092,7 +3092,7 @@ function _statblockEditorHtml(sb) {
           ${ta('reactions','')}
         </div>
         <div class="dm-form-row">
-          <label class="dm-form-label">Legendary Actions</label>
+          <label class="dm-form-label">Legendary/Mythic Actions</label>
           ${ta('legendaryActions','')}
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { api } from './api.js?v=264';
-import { renderStatblock } from './render-statblock.js?v=3';
+import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);
 
@@ -530,9 +530,31 @@ function _tekstLijstUit(data, meervoud, enkelvoud) {
 }
 window._tekstLijstUit = _tekstLijstUit;
 
+// Welke geheimen maken hem antagonist? Array van booleans naast `geheimen`.
+// Het oude enkelvoudige `geheimeAntagonist` gold voor het hele kaartje; die
+// vertalen we naar "elk geheim", zodat bestaande kaartjes zich niet anders
+// gaan gedragen.
+function _antagUit(data, aantal) {
+  let arr = [];
+  try { const j = JSON.parse(data?.geheimenAntagonist || '[]'); if (Array.isArray(j)) arr = j.map(Boolean); } catch {}
+  if (!arr.length && (data?.geheimeAntagonist === true || data?.geheimeAntagonist === 'true')) {
+    arr = Array(aantal).fill(true);
+  }
+  return Array.from({ length: aantal }, (_, i) => !!arr[i]);
+}
+window._antagUit = _antagUit;
+
 // Eén regel in de editor: tekstvak met opmaakbalk en een prullenbak.
-function _lijstRegelHtml(veld, tekst, i) {
+function _lijstRegelHtml(veld, tekst, i, antag = false) {
   const id = `lt-${veld}-${i}`;
+  // Alleen bij geheimen: per regel aan te vinken of juist díé onthulling hem
+  // antagonist maakt. Eerst was dat één schakelaar voor het hele kaartje, maar
+  // niet elk geheim is een verraad — en welk geheim het is, doet ertoe.
+  const antagRij = veld === 'geheimen' ? `
+    <label class="lijst-regel-antag" title="Onthullen van dit geheim maakt hem antagonist">
+      <input type="checkbox" class="lijst-antag-vink"${antag ? ' checked' : ''}>
+      ${icon('skull')} <span>Maakt hem antagonist</span>
+    </label>` : '';
   return `<div class="lijst-regel" data-veld="${veld}">
     ${fmtToolbar(id)}
     <div class="lijst-regel-rij">
@@ -540,7 +562,7 @@ function _lijstRegelHtml(veld, tekst, i) {
         placeholder="Nog een regel\u2026">${esc(tekst)}</textarea>
       <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
         title="Regel verwijderen" onclick="window._lijstRegelWeg(this)">${icon('trash')}</button>
-    </div>
+    </div>${antagRij}
   </div>`;
 }
 
@@ -1707,9 +1729,7 @@ window._maakBanner = (idx) => {
   if (veld) veld.value = gekozen.id;
   entityEditorImages.splice(idx, 1);
   if (oudeBanner) entityEditorImages.unshift({ id: oudeBanner, url: api.fileUrl(oudeBanner), isNew: false, caption: '' });
-  const voorbeeld = document.getElementById('editor-img-preview');
-  if (voorbeeld) { voorbeeld.src = api.fileUrl(gekozen.id); voorbeeld.parentElement?.classList.remove('hidden'); }
-  document.getElementById('fp-hint')?.classList.remove('hidden');
+  window._fpZetBron(gekozen.id);
   _refreshEntityImages();
 };
 
@@ -2131,7 +2151,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         ['actions','Actions'],
         ['bonusActions','Bonus Actions'],
         ['reactions','Reactions'],
-        ['legendaryActions','Legendary Actions'],
+        ['legendaryActions','Legendary/Mythic Actions'],
         ['lairActions','Lair Actions'],
       ].filter(([k]) => s[k]).map(([k, label]) =>
         `<div class="mt-3 border-t border-room-border pt-3"><div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-1">${label}</div><div class="text-sm text-ink-medium sheet-narrative">${mdToHtml(s[k])}</div></div>`
@@ -2921,23 +2941,70 @@ window._fpMove = (ev) => {
   _fpApply(ev);
 };
 document.addEventListener('mouseup', () => { _fpDragging = false; });
+// Op een telefoon zet je het punt met je vinger. preventDefault houdt de pagina
+// stil terwijl je sleept, anders scrollt het venster onder je vinger weg.
+window._fpTouch = (ev) => {
+  const t = ev.touches?.[0];
+  if (!t) return;
+  ev.preventDefault();
+  _fpApply(t);
+};
+
+// Eén plek waar de bron van picker én previews wordt gezet, anders raken ze
+// uit elkaar zodra je een andere banner kiest.
+window._fpZetBron = (fileId) => {
+  const url = api.fileUrl(fileId);
+  for (const id of ['editor-img-preview', 'fp-card-preview', 'fp-portret-preview']) {
+    const el = document.getElementById(id);
+    if (el) el.src = url;
+  }
+  document.getElementById('fp-rij')?.classList.remove('hidden');
+  document.getElementById('fp-hint')?.classList.remove('hidden');
+  window._fpTeken();
+};
+
+// Waar staat de afbeelding écht binnen het kader? Met object-fit:contain blijven
+// er banden over; een klik in zo'n band hoort geen 0% of 100% op te leveren.
+function _fpBeeldVak(img, wrap) {
+  const nw = img.naturalWidth || 1, nh = img.naturalHeight || 1;
+  const schaal = Math.min(wrap.clientWidth / nw, wrap.clientHeight / nh) || 1;
+  const w = nw * schaal, h = nh * schaal;
+  return { x: (wrap.clientWidth - w) / 2, y: (wrap.clientHeight - h) / 2, w, h };
+}
 
 function _fpApply(ev) {
   const wrap = document.getElementById('fp-wrap');
-  if (!wrap) return;
+  const img  = document.getElementById('editor-img-preview');
+  if (!wrap || !img) return;
   const rect = wrap.getBoundingClientRect();
-  const x = Math.max(0, Math.min(100, Math.round((ev.clientX - rect.left) / rect.width  * 100)));
-  const y = Math.max(0, Math.min(100, Math.round((ev.clientY - rect.top)  / rect.height * 100)));
-  const val = `${x}% ${y}%`;
+  const vak  = _fpBeeldVak(img, wrap);
+  const x = Math.max(0, Math.min(100, Math.round((ev.clientX - rect.left - vak.x) / vak.w * 100)));
+  const y = Math.max(0, Math.min(100, Math.round((ev.clientY - rect.top  - vak.y) / vak.h * 100)));
   const input = document.getElementById('fp-input');
-  if (input) input.value = val;
-  const img = document.getElementById('editor-img-preview');
-  if (img) img.style.objectPosition = val;
-  const card = document.getElementById('fp-card-preview');
-  if (card) card.style.objectPosition = val;
-  const ch = document.getElementById('fp-crosshair');
-  if (ch) { ch.style.left = x + '%'; ch.style.top = y + '%'; }
+  if (input) input.value = `${x}% ${y}%`;
+  _fpTeken();
 }
+
+// Kruisje neerzetten en de previews bijwerken vanuit het opgeslagen percentage.
+// Ook aangeroepen als de afbeelding klaar is met laden: pas dán weten we hoe
+// groot hij in het kader staat.
+window._fpTeken = () => {
+  const wrap = document.getElementById('fp-wrap');
+  const img  = document.getElementById('editor-img-preview');
+  const val  = document.getElementById('fp-input')?.value || '50% 50%';
+  const [x, y] = (val.match(/(\d+)%\s*(\d+)%/) || [null, '50', '50']).slice(1).map(Number);
+  for (const id of ['fp-card-preview', 'fp-portret-preview']) {
+    const el = document.getElementById(id);
+    if (el) el.style.objectPosition = val;
+  }
+  if (!wrap || !img) return;
+  const vak = _fpBeeldVak(img, wrap);
+  const ch = document.getElementById('fp-crosshair');
+  if (ch) {
+    ch.style.left = (vak.x + vak.w * x / 100) + 'px';
+    ch.style.top  = (vak.y + vak.h * y / 100) + 'px';
+  }
+};
 
 // ── File upload ──
 // ── Wapeneigenschappen tag-picker (editor) ──
@@ -3029,12 +3096,7 @@ window._editorPickImage = () => {
       const heeftBanner = !!hidden?.value;
       if (!heeftBanner) {
         if (hidden) hidden.value = fileId;
-        const wrap = document.getElementById('fp-wrap');
-        const img  = document.getElementById('editor-img-preview');
-        const hint = document.getElementById('fp-hint');
-        if (img)  img.src = api.fileUrl(fileId);
-        if (wrap) wrap.classList.remove('hidden');
-        if (hint) hint.classList.remove('hidden');
+        window._fpZetBron(fileId);
         return;
       }
       if (entityEditorImages.some(i => i.id === fileId)) return;
@@ -3303,7 +3365,6 @@ window._openEditor = async (tab, editId) => {
 
   // ── DM-toggle vars (vroeg berekend, gebruikt in rechterkolom én textarea-sectie) ──
   const _valUitgesproken = e?.data?.flavourUitgesproken === true || e?.data?.flavourUitgesproken === 'true';
-  const _isAntagonist    = e?.data?.geheimeAntagonist === true || e?.data?.geheimeAntagonist === 'true';
   const _existingAudioId = e?.data?.audioId || '';
   const _isNpcEditor     = e?.subtype === 'NPC';
 
@@ -3320,27 +3381,43 @@ window._openEditor = async (tab, editId) => {
     const hasImg   = !!(e?.data?.imageId) || !!editId;
     const fileUrl  = hasImg ? api.fileUrl(curImgId) : '';
     const focusVal = e?.data?.imgFocus || '50% 50%';
-    const [fx, fy] = (focusVal.match(/(\d+)%\s*(\d+)%/) || [null,'50','50']).slice(1).map(Number);
     body += `
       <div>
         <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Afbeelding</label>
         <div class="mt-1">
-          <div id="fp-wrap" class="relative rounded overflow-hidden mb-1 select-none${hasImg ? '' : ' hidden'}"
-            style="height:140px;cursor:crosshair"
-            onmousedown="window._fpDown(event)"
-            onmousemove="window._fpMove(event)">
-            <img id="editor-img-preview" src="${fileUrl}"
-              class="w-full h-full object-cover pointer-events-none"
-              style="object-position:${focusVal}"
-              onerror="this.parentElement.classList.add('hidden')">
-            <div id="fp-crosshair" class="absolute pointer-events-none"
-              style="left:${fx}%;top:${fy}%;transform:translate(-50%,-50%)">
-              <div style="width:22px;height:22px;border-radius:50%;
-                border:2px solid #fff;
-                box-shadow:0 0 0 1.5px rgba(0,0,0,0.55),inset 0 0 0 1.5px rgba(0,0,0,0.3)"></div>
+          <!-- De picker toont de héle afbeelding (object-contain): je zet het
+               kruisje op het gezicht, ook als dat in een hoek zit. Daarnaast
+               staan twee live previews met de echte uitsnedes — het kaartje
+               (breed) en het ronde portret op de sheet — want daar wordt wél
+               bijgesneden (object-cover) en dáár doet het focuspunt zijn werk. -->
+          <div class="fp-rij${hasImg ? '' : ' hidden'}" id="fp-rij">
+            <div id="fp-wrap" class="fp-wrap select-none"
+              onmousedown="window._fpDown(event)"
+              onmousemove="window._fpMove(event)"
+              ontouchstart="window._fpTouch(event)"
+              ontouchmove="window._fpTouch(event)">
+              <img id="editor-img-preview" src="${fileUrl}"
+                class="fp-wrap-img pointer-events-none"
+                onload="window._fpTeken()"
+                onerror="document.getElementById('fp-rij')?.classList.add('hidden')">
+              <div id="fp-crosshair" class="fp-crosshair"></div>
+            </div>
+            <div class="fp-previews">
+              <div>
+                <div class="fp-prev fp-prev--kaart">
+                  <img id="fp-card-preview" src="${fileUrl}" style="object-position:${focusVal}" alt="">
+                </div>
+                <span class="fp-prev-label">Kaartje</span>
+              </div>
+              <div>
+                <div class="fp-prev fp-prev--rond">
+                  <img id="fp-portret-preview" src="${fileUrl}" style="object-position:${focusVal}" alt="">
+                </div>
+                <span class="fp-prev-label">Portret</span>
+              </div>
             </div>
           </div>
-          <p class="text-[10px] text-ink-dim mb-1${hasImg ? '' : ' hidden'}" id="fp-hint">Klik om focuspunt in te stellen</p>
+          <p class="text-[10px] text-ink-dim mb-1${hasImg ? '' : ' hidden'}" id="fp-hint">Sleep het kruisje naar wat in beeld moet blijven</p>
           <input type="hidden" name="data_imgFocus" id="fp-input" value="${focusVal}">
           <input type="hidden" name="data_imageId" id="editor-image-id" value="${esc(e?.data?.imageId || '')}">
           <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._editorPickImage()" title="Kies uit de bibliotheek of upload nieuw">
@@ -3453,9 +3530,11 @@ window._openEditor = async (tab, editId) => {
   // Korte velden (niet-textarea) in rechter kolom
   let _revealGroupOpen = null;
   const _curItemType = e?.data?.itemType || '';
+  // Eén doorloop, in schemavolgorde. Tekstvakken hadden een eigen ronde ná deze
+  // lus, waardoor Beschrijving onder Flavour en Geheimen belandde — de volgorde
+  // in SCHEMA klopte al, de rendering niet.
   for (const field of schema.fields) {
     if ((field.key === 'geheim' || field.dmOnly) && !isDM()) continue;
-    if (field.type === 'textarea') continue;
     // Close open reveal group when leaving it
     if (_revealGroupOpen && field.inReveal !== _revealGroupOpen) {
       body += `</div>`; // end reveal-group div
@@ -3499,6 +3578,28 @@ window._openEditor = async (tab, editId) => {
           <label for="cb_${field.key}" class="text-xs font-cinzel text-ink-dim font-bold tracking-wide cursor-pointer">${esc(field.label)}</label>
         </div>
       `;
+    } else if (field.type === 'textarea') {
+      const taId   = `ta_${field.key}`;
+      const _rows  = field.key === 'desc' ? 6 : 4;
+      const _taHtml = `${fmtToolbar(taId)}<textarea id="${taId}" name="data_${field.key}" rows="${_rows}"
+            onkeydown="window._fmtKey(event)"
+            class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(val)}</textarea>`;
+      if (['persoonlijkheid', 'flavour', 'geheim'].includes(field.key)) {
+        body += `
+        <details class="cs-accordion${field.dmOnly ? ' veld-dmonly' : ''}"${val ? ' open' : ''}>
+          <summary class="cs-accordion-head">
+            <span>${esc(field.label)}</span>
+            <span class="cs-accordion-chevron">▾</span>
+          </summary>
+          <div class="cs-accordion-body">${_taHtml}</div>
+        </details>`;
+      } else {
+        body += `
+        <div${field.dmOnly ? ' class="veld-dmonly"' : ''}>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <div class="mt-1">${_taHtml}</div>
+        </div>`;
+      }
     } else if (field.type === 'select') {
       const _selOnchange = (tab === 'locaties' && field.key === 'locType')
         ? ' onchange="window._onLocTypeChange(this.value)"'
@@ -3551,12 +3652,13 @@ window._openEditor = async (tab, editId) => {
     } else if (field.type === 'lijst-tekst') {
       const regels = _tekstLijstUit(e?.data, field.key, field.enkelvoud);
       if (!regels.length) regels.push('');
+      const _antagVlaggen = field.key === 'geheimen' ? _antagUit(e?.data, regels.length) : [];
       const _verborgenVeld = field.key === 'geheimen';
       body += `
         <div${_verborgenVeld ? ' class="veld-dmonly"' : ''}>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <div id="lijst-${field.key}" class="lijst-veld" data-veld="${field.key}">
-            ${regels.map((t, i) => _lijstRegelHtml(field.key, t, i)).join('')}
+            ${regels.map((t, i) => _lijstRegelHtml(field.key, t, i, _antagVlaggen[i])).join('')}
           </div>
           <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
             onclick="window._lijstRegelErbij('${field.key}')">${icon('plus')} Regel toevoegen</button>
@@ -3643,12 +3745,6 @@ window._openEditor = async (tab, editId) => {
              geen eigenschap van het personage: het is de stand van de herberg.
              Sinds flavour een lijst is houdt de server per regel bij of hij al
              verteld is, en dat regelt de herberg zelf. -->
-        <div id="geheime-antagonist-section"${_isNpcEditor ? '' : ' style="display:none"'}>
-          <button type="button" id="btn-geheimeAntagonist"
-            class="dm-btn dm-btn-ghost editor-toggle-btn${_isAntagonist ? ' editor-toggle-btn--active' : ''}"
-            title="Geheime antagonist — subtype wordt antagonist na onthulling"
-            onclick="window._editorToggleBtn('inp-geheimeAntagonist','btn-geheimeAntagonist')">${icon('skull', {cls:'icon-gi'})}</button>
-        </div>
         ${editId && _isNpcEditor ? `
           <button type="button" id="btn-medestander"
             class="dm-btn dm-btn-ghost editor-toggle-btn"
@@ -3661,46 +3757,11 @@ window._openEditor = async (tab, editId) => {
 
 
 
-  // ── Textarea velden (volledige breedte) ──
-  let _hasFlavourField = false;
-
-  for (const field of schema.fields) {
-    const val = e?.data?.[field.key] || '';
-    if ((field.key === 'geheim' || field.dmOnly) && !isDM()) continue;
-    if (field.type !== 'textarea') continue;
-    if (field.key === 'flavour') _hasFlavourField = true;
-    const taId   = `ta_${field.key}`;
-    const _rows  = field.key === 'desc' ? 6 : 4;
-    const _taHtml = `${fmtToolbar(taId)}<textarea id="${taId}" name="data_${field.key}" rows="${_rows}"
-            onkeydown="window._fmtKey(event)"
-            class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(val)}</textarea>`;
-
-    if (['persoonlijkheid', 'flavour', 'geheim'].includes(field.key)) {
-      body += `
-        <details class="cs-accordion${field.dmOnly ? ' veld-dmonly' : ''}"${val ? ' open' : ''}>
-          <summary class="cs-accordion-head">
-            <span>${esc(field.label)}</span>
-            <span class="cs-accordion-chevron">▾</span>
-          </summary>
-          <div class="cs-accordion-body">${_taHtml}</div>
-        </details>
-      `;
-    } else {
-      body += `
-        <div${field.dmOnly ? ' class="veld-dmonly"' : ''}>
-          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
-          <div class="mt-1">${_taHtml}</div>
-        </div>
-      `;
-    }
-  }
-
   // ── Verborgen inputs + audio ── hoort bij het beeld-tabblad
   body += `<!--P:beeld-->`;
   if (tab === 'personages' && isDM()) {
     body += `
       <input type="hidden" name="data_flavourUitgesproken" id="inp-flavourUitgesproken" value="${_valUitgesproken ? 'true' : ''}">
-      <input type="hidden" id="inp-geheimeAntagonist" name="data_geheimeAntagonist" value="${_isAntagonist ? 'true' : ''}">
       <div style="display:none" aria-hidden="true">
         ${_existingAudioId ? `
           <button type="button" id="editor-audio-preview" class="flavour-audio-btn editor-audio-preview"
@@ -3934,7 +3995,7 @@ window._openEditor = async (tab, editId) => {
             ${_ta('actions','Actions', 4)}
             ${_ta('bonusActions','Bonus Actions', 2)}
             ${_ta('reactions','Reactions', 2)}
-            ${_ta('legendaryActions','Legendary Actions', 3)}
+            ${_ta('legendaryActions','Legendary/Mythic Actions', 3)}
             ${_ta('lairActions','Lair Actions', 2)}
           </div>
 
@@ -4180,8 +4241,6 @@ window._openEditor = async (tab, editId) => {
       // vinkje 'verkoper' (zie _rollenBij).
       const groepSec = document.getElementById('groep-section');
       if (groepSec) groepSec.style.display = val === 'speler' ? '' : 'none';
-      const antagonistSec = document.getElementById('geheime-antagonist-section');
-      if (antagonistSec) antagonistSec.style.display = val === 'NPC' ? '' : 'none';
       const rollenRij = document.querySelector('.rollen-rij')?.closest('div')?.parentElement;
       if (rollenRij) rollenRij.style.display = val === 'god' ? 'none' : '';
       const petSec = document.getElementById('pet-editor-section');
@@ -4296,9 +4355,20 @@ window._openEditor = async (tab, editId) => {
     for (const veld of (SCHEMA[tab]?.fields || []).filter(f => f.type === 'lijst-tekst')) {
       const host = document.getElementById(`lijst-${veld.key}`);
       if (!host) continue;
-      const regels = [...host.querySelectorAll('textarea')].map(t => t.value.trim()).filter(Boolean);
-      data[veld.key] = regels.length ? JSON.stringify(regels) : '';
-      data[veld.enkelvoud] = regels[0] || '';
+      // Per regel lopen, zodat het antagonist-vinkje bij zijn eigen tekst blijft
+      // ook als er lege regels tussen staan.
+      const rijen = [...host.querySelectorAll('.lijst-regel')]
+        .map(r => ({
+          tekst: r.querySelector('textarea')?.value.trim() || '',
+          antag: !!r.querySelector('.lijst-antag-vink')?.checked,
+        }))
+        .filter(r => r.tekst);
+      data[veld.key] = rijen.length ? JSON.stringify(rijen.map(r => r.tekst)) : '';
+      data[veld.enkelvoud] = rijen[0]?.tekst || '';
+      if (veld.key === 'geheimen') {
+        data.geheimenAntagonist = rijen.some(r => r.antag) ? JSON.stringify(rijen.map(r => r.antag)) : '';
+        data.geheimeAntagonist  = '';   // opgevolgd door de lijst hierboven
+      }
     }
     // Extra afbeeldingen serialiseren
     data.extraImages = entityEditorImages.length > 0

@@ -370,6 +370,18 @@ function _syncMonsterVanKaartje(entity) {
   storage.writeJSON('monsters.json', data);
 }
 
+// Welke geheimen maken hem antagonist? Array van booleans naast `geheimen`.
+// Het oude `geheimeAntagonist` gold voor het hele kaartje en vertalen we naar
+// "elk geheim", zodat bestaande kaartjes zich niet anders gaan gedragen.
+function _antagVlaggen(data, aantal) {
+  let arr = [];
+  try { const j = JSON.parse(data?.geheimenAntagonist || '[]'); if (Array.isArray(j)) arr = j.map(Boolean); } catch {}
+  if (!arr.length && (data?.geheimeAntagonist === true || data?.geheimeAntagonist === 'true')) {
+    arr = Array(aantal).fill(true);
+  }
+  return Array.from({ length: aantal }, (_, i) => !!arr[i]);
+}
+
 // ── Rollen op een personage ──────────────────────────────────────────────────
 // `verkoper` en `antagonist` zijn van subtype naar rol verhuisd (`data.tags`),
 // zodat een verkoper ook antagonist kan zijn. Oude kaartjes dragen de waarde
@@ -903,11 +915,14 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
   g.secretReveals[id] = stand;
 
   const ietsOnthuld = stand.some(Boolean);
-  // Geheime antagonist: sinds antagonist een rol is, zetten we de rol in plaats
-  // van het subtype om te gooien. Het kaartje blijft dus gewoon een NPC.
-  if (entity && entity.data?.geheimeAntagonist === 'true') {
+  // Geheime antagonist: hangt per geheim, niet aan het hele kaartje — niet elk
+  // geheim is een verraad. Sinds antagonist een rol is, zetten we de rol om en
+  // niet het subtype: het kaartje blijft gewoon een NPC.
+  const vlaggen = _antagVlaggen(entity?.data, aantal);
+  if (entity && vlaggen.some(Boolean)) {
+    const verraden = stand.some((aan, i) => aan && vlaggen[i]);
     const rollen = new Set(_rollenVan(entity));
-    if (ietsOnthuld) rollen.add('antagonist'); else rollen.delete('antagonist');
+    if (verraden) rollen.add('antagonist'); else rollen.delete('antagonist');
     if (!entity.data) entity.data = {};
     entity.data.tags = JSON.stringify([...rollen]);
     if (String(entity.subtype).toLowerCase() === 'antagonist') entity.subtype = 'NPC';
