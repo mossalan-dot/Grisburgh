@@ -60,7 +60,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Voorraad van een winkel** (DM) — regels toevoegen, prijzen zetten, uitverkocht markeren per party
 - [ ] **God-kaartje** (DM) — type *god*: Origin en Class verdwijnen uit de editor, Domein en Heilig symbool komen ervoor in de plaats; het domein staat op het kaartje en in de kopregel van het detailvenster. Wissel van type en terug: de velden verschijnen en verdwijnen meteen
 
-- [ ] **Huisdier-kaartje** (DM) — type *dier*: de adoptie-instellingen en de tiers staan op het tabblad **Character Sheet** (niet bij Informatie) en zien eruit als de rest van dat blad. Adoptieprijs met een komma (12,34 = 12 goud, 3 zilver, 4 koper); *Type* zegt wat voor dier het is; controleer daarna of adopteren klopt bij de dienst die dieren aanbiedt
+- [ ] **Huisdier-kaartje** (DM) — type *dier*: adoptie (te adopteren, prijs, wat voor dier) staat bij **Informatie**, de **tiers** op het tabblad Character Sheet; in het detailvenster staat het geschaalde statblok óók onder Character Sheet en niet bij Informatie. Adoptieprijs met een komma (12,34 = 12 goud, 3 zilver, 4 koper); *Type* zegt wat voor dier het is; controleer daarna of adopteren klopt bij de dienst die dieren aanbiedt
 - [ ] **Helpknop per tab** (ALL) — het vraagteken opent de uitleg met stappen en afbeeldingen; vorige/volgende werken
 - [ ] **Helpteksten bewerken** (DM) — de uitleg aanpassen en opslaan; herlaad en kijk of je tekst er nog staat (let op: dit hoort straks alleen voor de beheerder te zijn — zie `docs/todo.md`)
 - [ ] **Afbeeldingen in het detailvenster** (ALL) — extra afbeeldingen bladeren, lightbox openen, zoomen

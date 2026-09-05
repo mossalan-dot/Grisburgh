@@ -2020,7 +2020,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // `ac` tellen niet als "iets" wanneer de rest leeg is — dat is de minimale
   // invulling voor de monsterlijst, geen character sheet.
   const _sheetGevuld = Object.values(e.stats || {}).some(v => String(v ?? '').trim());
-  const showSheet = isPersonage && isDM() && _sheetGevuld;
+  // Een huisdier heeft zijn statblok in tiers staan, niet in `stats`; het blad
+  // wordt gevuld met het tier dat bij het level van het baasje hoort.
+  const _isDier = isPersonage && String(e.subtype || '').toLowerCase() === 'dier';
+  const showSheet = isPersonage && isDM() && (_sheetGevuld || _isDier);
   const fileUrl = api.fileForEntity(e);
 
   // ── Tab: Info ──
@@ -2351,6 +2354,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
 
   // ── Tab: Character Sheet (DM + personages only) ──
   let sheetHtml = '';
+  if (showSheet && _isDier) {
+    // Het blad van een huisdier is zijn tier-statblok; dat halen we na het
+    // openen op (zie _vulPetStatblock verderop).
+    sheetHtml += `<div id="pet-statblock-slot" class="pet-statblock-slot"><p class="text-center text-ink-faint font-fell italic py-4">Statblock laden…</p></div>`;
+  }
   if (showSheet) {
     const s = e.stats || {};
     const hasStats = Object.values(s).some(v => v);
@@ -2735,14 +2743,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     }
   }
 
-  // Huisdier (subtype 'dier'): geschaalde statblock-sectie (gevuld na openModal)
-  if (tab === 'personages' && e.subtype === 'dier') {
-    infoHtml += `<div id="pet-statblock-slot" class="pet-statblock-slot"><p class="text-center text-ink-faint font-fell italic py-4">Statblock laden…</p></div>`;
-  }
 
   // ── Build tabbed modal body ──
   const detailTabs = [
-    { key: 'info', label: 'Info' },
+    { key: 'info', label: 'Informatie' },
     ...(showSheet ? [{ key: 'sheet', label: 'Character Sheet' }] : []),
     ...(isStapelbaarVoorwerp && isDM() ? [{ key: 'eigenaren', label: 'Eigenaren' }] : []),
     ...(heeftVoorraad ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
@@ -4122,6 +4126,48 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
+  // ── Adoptie (type 'dier') ──
+  // Hoort bij Informatie: het gaat over of en voor hoeveel de party dit dier kan
+  // krijgen, niet over zijn statblok. De tiers staan wél op het sheet.
+  if (tab === 'personages' && isDM()) {
+    const _isDierNu = e?.subtype === 'dier';
+    const _adopt2   = e?.data?.adopteerbaar === true || e?.data?.adopteerbaar === 'true';
+    const _prijsCl2 = (() => {
+      const cl = parseInt(e?.data?.adoptiePrijsCl);
+      if (!isNaN(cl)) return cl;
+      const fl = parseInt(e?.data?.adoptiePrijs?.fl ?? e?.data?.adoptiePrijsFl);
+      return isNaN(fl) ? null : fl * 100;
+    })();
+    const _mn2 = window._muntNamen();
+    body += `
+      <div id="pet-adopt-section"${_isDierNu ? '' : ' style="display:none"'}>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Adoptie</label>
+        <label class="rol-keuze mt-1" style="display:flex">
+          <input type="checkbox" id="pet-adopt-cb" ${_adopt2 ? 'checked' : ''}
+            onchange="document.getElementById('pet-adopt-hidden').value=this.checked?'true':''">
+          <span>Te adopteren door een party</span>
+        </label>
+        <input type="hidden" name="data_adopteerbaar" id="pet-adopt-hidden" value="${_adopt2 ? 'true' : ''}">
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <div>
+            <label class="text-[10px] font-cinzel text-ink-dim uppercase">Adoptieprijs</label>
+            <input name="data_adoptiePrijs_tekst" value="${_prijsCl2 === null ? '' : `${Math.floor(_prijsCl2 / 100)},${String(_prijsCl2 % 100).padStart(2, '0')}`}"
+              placeholder="12,34" inputmode="decimal"
+              title="Eén bedrag met een komma: 12,34 is 12 ${esc(_mn2.fl)}, 3 ${esc(_mn2.kn)} en 4 ${esc(_mn2.cl)}"
+              class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            <p class="text-[10px] text-ink-dim mt-0.5">12,34 = 12 ${esc(_mn2.fl)}, 3 ${esc(_mn2.kn)}, 4 ${esc(_mn2.cl)}</p>
+          </div>
+          <div>
+            <label class="text-[10px] font-cinzel text-ink-dim uppercase">Wat voor dier</label>
+            <input name="data_soortLabel" value="${esc(e?.data?.soortLabel || '')}" placeholder="Hond"
+              class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+          </div>
+        </div>
+        <p class="text-[10px] text-ink-dim mt-1">Verschijnt bij de dienst die dieren aanbiedt.</p>
+      </div>
+    `;
+  }
+
   // ── Tabblad Winkel ──
   // Alleen voor locaties: daar liggen de waren. Een verkoper heeft er maar één
   // veld voor nodig ("Verkoopt bij"), en dat staat bij Informatie — een heel
@@ -4343,31 +4389,10 @@ window._openEditor = async (tab, editId) => {
       return isNaN(fl) ? null : fl * 100;
     })();
     const _mn = window._muntNamen();
+    // Alleen de tiers horen op dit blad: dat zijn statblokken. De adoptie zelf
+    // (te koop, prijs, wat voor dier) staat bij Informatie.
     body += `
-      <div id="pet-editor-section"${isDier ? '' : ' style="display:none"'}>
-        <div class="cs-sectiekop">Adoptie</div>
-        <label class="rol-keuze" style="margin-bottom:6px">
-          <input type="checkbox" id="pet-adopt-cb" ${_adopt ? 'checked' : ''}
-            onchange="document.getElementById('pet-adopt-hidden').value=this.checked?'true':''">
-          <span>Te adopteren door een party</span>
-        </label>
-        <input type="hidden" name="data_adopteerbaar" id="pet-adopt-hidden" value="${_adopt ? 'true' : ''}">
-        <p class="text-[10px] text-ink-dim mb-2">Verschijnt bij de dienst die dieren aanbiedt.</p>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="text-[10px] font-cinzel text-ink-dim uppercase">Adoptieprijs</label>
-            <input name="data_adoptiePrijs_tekst" value="${_prijsCl === null ? '' : `${Math.floor(_prijsCl / 100)},${String(_prijsCl % 100).padStart(2, '0')}`}"
-              placeholder="12,34" inputmode="decimal"
-              title="Eén bedrag met een komma: 12,34 is 12 ${esc(_mn.fl)}, 3 ${esc(_mn.kn)} en 4 ${esc(_mn.cl)}"
-              class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-            <p class="text-[10px] text-ink-dim mt-0.5">12,34 = 12 ${esc(_mn.fl)}, 3 ${esc(_mn.kn)}, 4 ${esc(_mn.cl)}</p>
-          </div>
-        </div>
-        <div>
-          <label class="text-[10px] font-cinzel text-ink-dim uppercase">Type</label>
-          <input name="data_soortLabel" value="${esc(e?.data?.soortLabel || '')}" placeholder="Hond"
-            class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-        </div>
+      <div id="pet-tier-section"${isDier ? '' : ' style="display:none"'}>
         <div class="cs-sectiekop">Tiers</div>
         <p class="text-[10px] text-ink-dim mb-2">Elk tier is een statblok dat geldt vanaf een bepaald level van het baasje.</p>
         <div id="pet-tiers-list"></div>
@@ -4582,8 +4607,10 @@ window._openEditor = async (tab, editId) => {
       if (groepSec) groepSec.style.display = val === 'speler' ? '' : 'none';
       const rollenRij = document.querySelector('.rollen-rij')?.closest('div')?.parentElement;
       if (rollenRij) rollenRij.style.display = val === 'god' ? 'none' : '';
-      const petSec = document.getElementById('pet-editor-section');
-      if (petSec) petSec.style.display = val === 'dier' ? '' : 'none';
+      for (const id of ['pet-tier-section', 'pet-adopt-section']) {
+        const sec = document.getElementById(id);
+        if (sec) sec.style.display = val === 'dier' ? '' : 'none';
+      }
       // Velden die aan een subtype hangen (Domein bij een god, Origin/Class niet)
       const sub = String(val || '').toLowerCase();
       document.querySelectorAll('[data-voor-subtype], [data-niet-subtype]').forEach(el => {
