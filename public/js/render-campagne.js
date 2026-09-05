@@ -3866,9 +3866,8 @@ window._openEditor = async (tab, editId) => {
     let winkelConfigEditor = {};
     try { winkelConfigEditor = e?.data?.winkelConfig ? JSON.parse(e.data.winkelConfig) : {}; } catch {}
     body += `
-      <div id="voorraad-section"${_showVoorraad ? '' : ' style="display:none"'}
-        class="p-4 bg-room-elevated rounded border border-room-border">
-        <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-3">\ud83c\udfec Voorraad</div>
+      <div id="voorraad-section"${_showVoorraad ? '' : ' style="display:none"'}>
+        <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Voorraad</div>
         <div class="voorraad-inladen-wrap mb-3">
           <button type="button" onclick="window._voorraadInladenToggle()"
             class="text-xs text-ink-dim hover:text-gold transition flex items-center gap-1">
@@ -3886,18 +3885,18 @@ window._openEditor = async (tab, editId) => {
           </div>
         </div>
         <div id="voorraad-rows" class="space-y-2 mb-3"></div>
-        <button type="button" onclick="window._addVoorraadItem()"
+        <button type="button" id="voorraad-add-btn" onclick="window._addVoorraadItem()"
           class="px-3 py-1 bg-room-bg border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright transition">
-          + Voorwerp toevoegen
+          ${icon('plus')} Voorwerp toevoegen
         </button>
-        <!-- Winkelconfig: rotatie-instellingen -->
-        <div class="mt-4 pt-3 border-t border-room-border/60">
-          <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-2">${icon('refresh-cw')} Rotatie-instellingen</div>
+        <!-- Wisselend assortiment: niet alles ligt altijd in de schappen -->
+        <div>
+          <div class="cs-sectiekop">Wisselend assortiment</div>
           <input type="hidden" name="data_winkelConfig" id="winkelconfig-hidden" value="${esc(e?.data?.winkelConfig || '')}">
           <div class="space-y-2">
             <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer">
               <input type="checkbox" id="wc-roterend" ${winkelConfigEditor.roterend ? 'checked' : ''} onchange="window._wcUpdate()">
-              Roterend assortiment
+              Toon steeds maar een deel van de voorraad
             </label>
             <div id="wc-extra" class="${winkelConfigEditor.roterend ? '' : 'hidden'} space-y-2 pl-4">
               <div class="flex gap-2 items-center">
@@ -3913,7 +3912,7 @@ window._openEditor = async (tab, editId) => {
                   class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
               </div>
               <div class="flex gap-2 items-center">
-                <label class="text-xs text-ink-dim w-32" title="Winkels met hetzelfde label delen één rotatie">Gedeeld met</label>
+                <label class="text-xs text-ink-dim w-32" title="Winkels met hetzelfde woord hier tonen samen dezelfde selectie en verversen tegelijk">Zelfde selectie als</label>
                 <input type="text" id="wc-deelgroep" value="${esc(winkelConfigEditor.deelGroep || '')}"
                   oninput="window._wcUpdate()" placeholder="bijv. mystiek-magazijn"
                   class="flex-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
@@ -3922,8 +3921,8 @@ window._openEditor = async (tab, editId) => {
           </div>
         </div>
         <!-- Sfeer & Onderhandelen instellingen -->
-        <div class="mt-4 pt-3 border-t border-room-border/60">
-          <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-2">Sfeer & onderhandelen</div>
+        <div>
+          <div class="cs-sectiekop">Sfeer &amp; onderhandelen</div>
           <div class="space-y-2">
             <div>
               <label class="text-xs text-ink-dim block mb-1">Sfeertekst (bovenaan voorraad)</label>
@@ -3951,8 +3950,8 @@ window._openEditor = async (tab, editId) => {
           </div>
         </div>
         <!-- Inkoop: winkel koopt voorwerpen van spelers -->
-        <div class="mt-4 pt-3 border-t border-room-border/60">
-          <div class="text-xs font-cinzel text-gold-dim font-bold tracking-wide mb-2">${icon('coins')} Inkoop</div>
+        <div>
+          <div class="cs-sectiekop">Inkoop</div>
           <label class="flex items-center gap-2 text-sm text-ink-medium cursor-pointer mb-2">
             <input type="checkbox" id="wc-koopt" ${winkelConfigEditor.koopt ? 'checked' : ''} onchange="window._wcUpdate()">
             Koopt voorwerpen van spelers
@@ -4241,6 +4240,7 @@ window._openEditor = async (tab, editId) => {
     window._refreshVoorraad = () => {
       const rows = document.getElementById('voorraad-rows');
       if (!rows) return;
+      setTimeout(() => window._voorraadAddKnop?.(), 0);
       rows.innerHTML = _voorraadItems.length === 0
         ? `<p class="text-xs text-ink-faint italic">Nog geen items toegevoegd</p>`
         : _voorraadItems.map((item, idx) => {
@@ -4249,9 +4249,9 @@ window._openEditor = async (tab, editId) => {
             ? (_voorraadEntityOptions.find(o => o.id === item.entityId)?.name || item.naam || '')
             : '';
           return `
-          <div class="flex gap-2 items-center flex-wrap">
+          <div class="flex gap-2 items-center flex-wrap voorraad-rij">
             <input placeholder="Naam voorwerp" value="${esc(item.naam || '')}"
-              oninput="window._updateVoorraadItem(${idx},'naam',this.value)"
+              oninput="window._updateVoorraadItem(${idx},'naam',this.value);window._voorraadAddKnop()"
               class="flex-1 min-w-24 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
             <input placeholder="Prijs (bijv. 15 gp)" value="${esc(item.prijs || '')}"
               oninput="window._updateVoorraadItem(${idx},'prijs',this.value)"
@@ -4269,9 +4269,28 @@ window._openEditor = async (tab, editId) => {
           </div>`;
         }).join('') + `<datalist id="voorraad-entity-dl">${_voorraadEntityOptions.map(o => `<option value="${esc(o.name)}">`).join('')}</datalist>`;
     };
-    window._addVoorraadItem = () => { _voorraadItems.push({ naam: '', prijs: '', entityId: '' }); window._refreshVoorraad(); };
+    // Nog een lege regel erbij heeft geen zin: vul eerst de vorige.
+    window._addVoorraadItem = () => {
+      const laatste = _voorraadItems[_voorraadItems.length - 1];
+      if (laatste && !laatste.naam && !laatste.prijs && !laatste.entityId) {
+        document.querySelector('#voorraad-rows .voorraad-rij:last-child input')?.focus();
+        return;
+      }
+      _voorraadItems.push({ naam: '', prijs: '', entityId: '' });
+      window._refreshVoorraad();
+    };
     window._removeVoorraadItem = (idx) => { _voorraadItems.splice(idx, 1); window._refreshVoorraad(); };
     window._updateVoorraadItem = (idx, field, val) => { if (_voorraadItems[idx]) _voorraadItems[idx][field] = val; };
+    // Toevoegen staat uit zolang de onderste regel nog leeg is.
+    window._voorraadAddKnop = () => {
+      const knop = document.getElementById('voorraad-add-btn');
+      if (!knop) return;
+      const laatste = _voorraadItems[_voorraadItems.length - 1];
+      const leeg = !!laatste && !laatste.naam && !laatste.prijs && !laatste.entityId;
+      knop.disabled = leeg;
+      knop.classList.toggle('opacity-40', leeg);
+      knop.title = leeg ? 'Vul eerst de lege regel in' : '';
+    };
     window._updateVoorraadEntityLink = (idx, naam) => {
       if (!_voorraadItems[idx]) return;
       const match = _voorraadEntityOptions.find(o => o.name.toLowerCase() === naam.toLowerCase());
