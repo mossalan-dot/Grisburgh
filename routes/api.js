@@ -860,6 +860,32 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
   res.json({ secretReveal: ietsOnthuld, onthuld: stand });
 });
 
+// Eén roddel als verteld markeren (of terugdraaien). De herberg doet dit
+// vanzelf bij een lange rust, maar soms vertel je er zelf een aan tafel — dan
+// wil je hem hier kunnen aanvinken. Dit staat op de entiteit en niet per party:
+// wat de waard verteld heeft, is verteld.
+router.put('/entities/:type/:id/flavour', requireDM, (req, res) => {
+  const { type, id } = req.params;
+  const entities = storage.readJSON('entities.json');
+  const entity   = (entities[type] || []).find(e => e.id === id);
+  if (!entity) return res.status(404).json({ error: 'Entiteit niet gevonden' });
+
+  const regels = _tekstLijst(entity.data, 'flavours', 'flavour');
+  if (!regels.length) return res.status(400).json({ error: 'Deze entiteit heeft geen flavour tekst' });
+  const index = Math.min(Math.max(parseInt(req.body?.index, 10) || 0, 0), regels.length - 1);
+  const stand = _onthuld(entity.data?.flavoursUitgesproken
+    ?? (entity.data?.flavourUitgesproken === true || entity.data?.flavourUitgesproken === 'true'), regels.length);
+  stand[index] = !stand[index];
+
+  if (!entity.data) entity.data = {};
+  entity.data.flavoursUitgesproken = stand;
+  // De oude vlag blijft kloppen: pas 'true' als alles verteld is.
+  entity.data.flavourUitgesproken = stand.every(Boolean) ? 'true' : '';
+  storage.writeJSON('entities.json', entities);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { type, id });
+  res.json({ uitgesproken: stand });
+});
+
 router.put('/entities/:type/:id/deceased', requireDM, (req, res) => {
   const { type, id } = req.params;
   const entities = storage.readJSON('entities.json');

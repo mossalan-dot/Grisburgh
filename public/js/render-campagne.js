@@ -1,4 +1,4 @@
-import { api } from './api.js?v=263';
+import { api } from './api.js?v=264';
 import { renderStatblock } from './render-statblock.js?v=3';
 
 const icon = (...a) => window.icon(...a);
@@ -1816,10 +1816,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     infoHtml += `<div class="detail-divider">— ✦ —</div>`;
     // Elke roddel een eigen rol perkament; wat de waard nog niet verteld heeft
     // ziet de DM lichter.
-    infoHtml += zichtbareFlavours.map(({ tekst, gezegd }, n) => `
+    infoHtml += zichtbareFlavours.map(({ tekst, gezegd, i }, n) => `
         <div class="flavour-scroll${isDM() && !gezegd ? ' flavour-scroll--ongespoken' : ''}">
           <div class="flavour-scroll-rod"></div>
           <div class="flavour-scroll-content">
+            ${isDM() ? `<button class="dm-btn dm-btn-icon dm-btn-sm flavour-oog${gezegd ? ' dm-btn--active' : ''}"
+              title="${gezegd ? 'Toch niet verteld — terugdraaien' : 'Markeer als verteld; de spelers zien de roddel dan'}"
+              onclick="window._toggleFlavour('${tab}','${e.id}',${i})">${gezegd ? icon('beer') : icon('lock')}</button>` : ''}
             <p class="flavour-text">\u201e${esc(tekst)}\u201c</p>
             ${(_audioId && n === 0) ? `
               <div class="flavour-audio-wrap">
@@ -2710,6 +2713,15 @@ function _secretToast(revealed) {
   setTimeout(() => toast.classList.add('bookmark-toast--visible'), 10);
   setTimeout(() => { toast.classList.remove('bookmark-toast--visible'); setTimeout(() => toast.remove(), 300); }, 2500);
 }
+
+// Een roddel met de hand vertellen (of terugnemen). De herberg doet dit vanzelf
+// bij een lange rust; dit is voor als je hem gewoon aan tafel laat vallen.
+window._toggleFlavour = async (tab, id, index = 0) => {
+  try {
+    await api.toggleFlavour(tab, id, index);
+    window._openDetail(tab, id);
+  } catch (err) { alert('Mislukt: ' + (err.message || err)); }
+};
 
 window._toggleSecret = async (tab, id, index = 0) => {
   const res = await api.toggleSecret(tab, id, index);

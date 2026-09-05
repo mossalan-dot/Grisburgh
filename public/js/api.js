@@ -57,6 +57,7 @@ export const api = {
   deleteEntity: (type, id) => request(`/entities/${type}/${id}`, { method: 'DELETE' }),
   toggleVisibility: (type, id, target) => request(`/entities/${type}/${id}/visibility`, { method: 'PUT', body: JSON.stringify(target ? { target } : {}) }),
   shopRevealItem:   (type, id)          => request(`/entities/${type}/${id}/shop-reveal`, { method: 'POST' }),
+  toggleFlavour: (type, id, index = 0) => request(`/entities/${type}/${id}/flavour`, { method: 'PUT', body: JSON.stringify({ index }) }),
   toggleSecret: (type, id, index = 0) => request(`/entities/${type}/${id}/secret`, { method: 'PUT', body: JSON.stringify({ index }) }),
   toggleDeceased: (type, id) => request(`/entities/${type}/${id}/deceased`, { method: 'PUT' }),
 

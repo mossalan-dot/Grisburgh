@@ -22281,3 +22281,8 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   cursor: pointer;
 }
 .keuzeveld-optie:hover, .keuzeveld-optie.is-actief { background: rgba(196,168,100,0.35); }
+
+/* Knop om een roddel met de hand te vertellen, in de hoek van de rol perkament. */
+.flavour-scroll-content { position: relative; }
+.flavour-oog { position: absolute; top: 4px; right: 4px; }
+.flavour-scroll-content .flavour-text { padding-right: 30px; }
