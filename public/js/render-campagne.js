@@ -1772,24 +1772,28 @@ function _entityCarouselHtml(key, items) {
   }
   _ecp[key] = 0;
   _ecc[key] = items.map(i => i.caption || '');
+  // Vergroten moet dóór de reeks kunnen bladeren: de lightbox kent een variant
+  // met een lijst en pijltjes, maar kreeg hier steeds één losse afbeelding mee.
+  const lbKey = `_ecLb_${key.replace(/[^A-Za-z0-9_]/g, '')}`;
+  window[lbKey] = items.map(i => ({ src: api.fileUrl(i.id), title: i.caption || '' }));
   return `
     <div class="mb-4">
       <div class="relative">
         <div class="overflow-hidden rounded">
           <div id="ec-track-${key}" class="flex" style="transition:transform 0.3s ease">
-            ${items.map(({id}) => {
+            ${items.map(({id}, i) => {
               const url = api.fileUrl(id);
               return `<div class="flex-shrink-0 w-full relative overflow-hidden">
                 <div class="detail-hero-bg" style="background-image:url('${url}')"></div>
                 <img src="${url}" class="detail-portrait w-full max-h-80 object-contain cursor-pointer" style="position:relative;z-index:1"
-                  onclick="window.app.openLightbox('${url}','')">
+                  onclick="window.app.openLightboxAt(window['${lbKey}'],${i})">
               </div>`;
             }).join('')}
           </div>
         </div>
-        <button class="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/65 text-white rounded-full text-lg leading-none flex items-center justify-center transition"
+        <button class="ec-pijl ec-pijl--links" title="Vorige afbeelding"
           onclick="window._ecStep('${key}',-1,${items.length})">\u2039</button>
-        <button class="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/65 text-white rounded-full text-lg leading-none flex items-center justify-center transition"
+        <button class="ec-pijl ec-pijl--rechts" title="Volgende afbeelding"
           onclick="window._ecStep('${key}',1,${items.length})">\u203a</button>
       </div>
       <div class="flex justify-center gap-1.5 mt-2">

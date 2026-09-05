@@ -1226,6 +1226,39 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-inkoop-aantal-vast { width: 56px; text-align: center; color: #9a8060; font-size: 12px; flex-shrink: 0; }
 .dm-inkoop-bedrag { width: 96px; flex-shrink: 0; }
 
+/* Pijlen van de afbeeldingen-carousel. Ze zaten op Tailwinds bg-black/40 met
+   een nauwelijks zichtbare hover; nu lichten ze duidelijk op, zodat je ziet dat
+   er iets te klikken valt. */
+.ec-pijl {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(230,205,150,.35);
+  border-radius: 50%;
+  background: rgba(20,12,4,.5);
+  color: rgba(240,225,190,.85);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, transform .15s ease, box-shadow .15s ease;
+  z-index: 2;
+}
+.ec-pijl--links  { left: 6px; }
+.ec-pijl--rechts { right: 6px; }
+.ec-pijl:hover {
+  background: rgba(196,168,122,.95);
+  border-color: rgba(255,240,200,.8);
+  color: #2a1a08;
+  transform: translateY(-50%) scale(1.08);
+  box-shadow: 0 0 0 3px rgba(196,168,122,.25);
+}
+.ec-pijl:active { transform: translateY(-50%) scale(0.96); }
+
 /* "Verkoopt bij <locatie>" op het kaartje van een verkoper: de waren liggen
    ergens anders, dus dit is vooral een doorgang. */
 .detail-winkel-link {
