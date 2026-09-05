@@ -56,7 +56,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Helpknop per tab** (ALL) — het vraagteken opent de uitleg met stappen en afbeeldingen; vorige/volgende werken
 - [ ] **Helpteksten bewerken** (DM) — de uitleg aanpassen en opslaan; herlaad en kijk of je tekst er nog staat (let op: dit hoort straks alleen voor de beheerder te zijn — zie `docs/todo.md`)
 - [ ] **Afbeeldingen in het detailvenster** (ALL) — extra afbeeldingen bladeren, lightbox openen, zoomen
-- [ ] **Editor in tabbladen** (DM) — de bewerkmodus heeft tabs: Informatie, Beeld & geluid, Character Sheet en (bij een verkoper) Winkel; wisselen bewaart wat je hebt ingevuld
+- [ ] **Editor in tabbladen** (DM) — de bewerkmodus heeft tabs: Informatie, Beeld, Character Sheet en (bij een verkoper) Winkel; wisselen bewaart wat je hebt ingevuld
+- [ ] **Winkel-tab volgt het vinkje** (DM) — vink *verkoper* aan: het tabblad Winkel verschijnt meteen, zonder opnieuw openen; uitvinken laat het verdwijnen en springt terug naar Informatie als je erop stond. Hetzelfde bij een locatie die je op type *Winkel* zet
 - [ ] **DM-velden herkenbaar** (DM) — aantekeningen en geheimen staan in een koele tint met "alleen jij" ernaast — je ziet meteen dat spelers dit niet lezen
 - [ ] **Afbeeldingen en banner** (DM) — één knop voegt toe, de ster maakt er de banner van, het kruisje koppelt los (bestand blijft in de bibliotheek); het focuspunt zit op de banner
 - [ ] **Ras, klasse, alignment** (DM) — keuzelijst in perkament: typen filtert, pijltjes en Enter werken, en iets intikken wat er niet in staat mag ook

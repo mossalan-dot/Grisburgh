@@ -645,14 +645,18 @@ function _bouwEditorTabs(html, toonWinkel) {
   delete panelen.knoppen;
 
   const heeftInhoud = (h) => /<(input|textarea|select|img|button|details)/.test(h || '');
-  const gevuld = ED_TABS.filter(t => heeftInhoud(panelen[t.key]) && (t.key !== 'winkel' || toonWinkel));
+  // Het winkel-paneel doet altijd mee; alleen zijn knop is verborgen zolang het
+  // vinkje 'verkoper' (of locType 'Winkel') uit staat. Zat hij er helemaal niet
+  // in, dan viel er bij het aanvinken ook niets te tonen — je zag het tabblad
+  // pas na opnieuw openen.
+  const gevuld = ED_TABS.filter(t => heeftInhoud(panelen[t.key]));
   if (gevuld.length <= 1) return formTag + romp.replace(/<!--P:\w+-->/g, '') + knoppen + '</form>';
 
   const eerste = gevuld[0].key;
   const rest = ED_TABS.filter(t => !gevuld.includes(t)).map(t => panelen[t.key] || '').join('');
   return `${formTag}
     <div class="ed-tabs">
-      ${gevuld.map(t => `<button type="button" class="ed-tab${t.key === eerste ? ' is-actief' : ''}"
+      ${gevuld.map(t => `<button type="button" class="ed-tab${t.key === eerste ? ' is-actief' : ''}${t.key === 'winkel' && !toonWinkel ? ' hidden' : ''}"
         data-ed-tab="${t.key}" onclick="window._edTab('${t.key}')">${t.label}</button>`).join('')}
     </div>
     ${gevuld.map(t => `<div class="ed-paneel${t.key === eerste ? ' is-actief' : ''}" data-ed-paneel="${t.key}">${panelen[t.key]}</div>`).join('')}
@@ -702,11 +706,17 @@ window._rollenBij = () => {
   const isVerkoper = gekozen.includes('verkoper');
   document.getElementById('voorraad-section')?.style.setProperty('display', isVerkoper ? '' : 'none');
   document.getElementById('winkelconfig-section')?.style.setProperty('display', isVerkoper ? '' : 'none');
-  // Tabblad Winkel verschijnt zodra je het vinkje zet, en verdwijnt weer.
-  const winkelTab = document.querySelector('[data-ed-tab="winkel"]');
-  if (winkelTab) winkelTab.classList.toggle('hidden', !isVerkoper);
-  if (!isVerkoper && winkelTab?.classList.contains('is-actief')) window._edTab('info');
+  _winkelTabTonen(isVerkoper);
 };
+
+// Tabblad Winkel verschijnt zodra het vinkje aan gaat en verdwijnt weer; sta je
+// er op het moment van uitzetten, dan schuif je terug naar Informatie.
+function _winkelTabTonen(aan) {
+  const knop = document.querySelector('[data-ed-tab="winkel"]');
+  if (!knop) return;
+  knop.classList.toggle('hidden', !aan);
+  if (!aan && knop.classList.contains('is-actief')) window._edTab('info');
+}
 
 window._heeftRol = (e, rol) =>
   _tagsUit(e?.data?.tags).includes(rol) || String(e?.subtype || '').toLowerCase() === rol;
@@ -4286,10 +4296,12 @@ window._openEditor = async (tab, editId) => {
 
     // LocType-wissel (locaties)
     window._onLocTypeChange = (val) => {
+      const isWinkel = val === 'Winkel';
       const sec = document.getElementById('voorraad-section');
-      if (sec) sec.style.display = val === 'Winkel' ? '' : 'none';
+      if (sec) sec.style.display = isWinkel ? '' : 'none';
       const wcSec = document.getElementById('winkelconfig-section');
-      if (wcSec) wcSec.style.display = val === 'Winkel' ? '' : 'none';
+      if (wcSec) wcSec.style.display = isWinkel ? '' : 'none';
+      _winkelTabTonen(isWinkel);
     };
 
     // Inladen-paneel toggle

@@ -22440,6 +22440,9 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   border-color: var(--color-room-border);
   background: var(--color-room-elevated, rgba(255,255,255,0.05));
 }
+/* Eigen regel i.p.v. leunen op Tailwinds .hidden: die komt van de CDN en het is
+   niet te garanderen dat hij ná deze stylesheet staat. */
+.ed-tab.hidden { display: none; }
 .ed-paneel { display: none; }
 .ed-paneel.is-actief { display: block; }
 .ed-paneel > * + * { margin-top: 14px; }
