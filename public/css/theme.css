@@ -22286,3 +22286,11 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .flavour-scroll-content { position: relative; }
 .flavour-oog { position: absolute; top: 4px; right: 4px; }
 .flavour-scroll-content .flavour-text { padding-right: 30px; }
+
+/* Rollen op een personage-kaartje: vinkjes naast elkaar. */
+.rollen-rij { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.rol-keuze {
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  font-family: 'Crimson Text', serif; font-size: 14px; color: var(--color-ink-bright);
+}
+.badge-verkoper { background: rgba(150,110,30,0.85); }

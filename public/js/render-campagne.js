@@ -136,7 +136,10 @@ const TYPE_META = {
 
 const SCHEMA = {
   personages: {
-    subtypes: ['NPC', 'speler', 'antagonist', 'god', 'dier', 'verkoper'],
+    // Vier subtypes: wát voor kaartje is dit. Verkoper en antagonist zijn geen
+    // soorten maar rollen — die staan in data.tags. Summon, rijdier en familiar
+    // vallen onder 'dier'.
+    subtypes: ['NPC', 'speler', 'dier', 'god'],
     fields: [
       // De sleutels blijven zoals ze zijn (daar hangt opgeslagen data aan); alleen
       // de labels zeggen nu wat het veld ís. 'rol' was zo vaag dat het van alles
@@ -145,6 +148,9 @@ const SCHEMA = {
       { key: 'ras', label: 'Ras', type: 'lijst', lijst: 'volken' },
       { key: 'klasse', label: 'Klasse', type: 'lijst', lijst: 'klassen' },
       { key: 'alignment', label: 'Alignment', type: 'lijst', lijst: 'alignments' },
+      { key: 'tags', label: 'Rollen', type: 'rollen' },
+      { key: 'kant', label: 'Kant in gevecht', type: 'select',
+        options: [{ value: 'bondgenoot', label: 'Bondgenoot' }, { value: 'vijand', label: 'Vijand' }, { value: 'neutraal', label: 'Neutraal' }] },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
@@ -304,6 +310,10 @@ function getAutoIconSvg(type, e) {
 
 function getSubtypeBadge(type, e) {
   if (type === 'personages') {
+    // Een rol zegt meer dan het subtype: "Antagonist" is interessanter dan
+    // "NPC", en een verkoper herken je liever meteen.
+    if (window._heeftRol?.(e, 'antagonist')) return { label: 'Antagonist', cls: 'badge-antagonist' };
+    if (window._heeftRol?.(e, 'verkoper'))   return { label: 'Verkoper',   cls: 'badge-verkoper' };
     const sub = e.subtype || '';
     if (!sub) return null;
     const labels = { NPC: 'NPC', speler: 'Speler', antagonist: 'Antagonist', god: 'God', godheid: 'God', dier: 'Dier', monster: 'Monster', verkoper: 'Verkoper' };
@@ -568,6 +578,38 @@ async function _vulSpellChips() {
     knop.title = `${sp.school || ''}`.trim();
   }
 }
+
+// ── Rollen op een kaartje ────────────────────────────────────────────────────
+// `verkoper` en `antagonist` waren subtypes; nu zijn het rollen in `data.tags`,
+// zodat een verkoper óók antagonist kan zijn. Oude kaartjes hebben die waarde
+// nog als subtype staan, dus dat telt gewoon mee — geen migratie nodig om het
+// werkend te houden.
+const ROLLEN = [
+  { key: 'verkoper',   label: 'Verkoper',   uitleg: 'Heeft een voorraad om uit te kopen en aan te verkopen' },
+  { key: 'antagonist', label: 'Antagonist', uitleg: 'Staat de party in de weg — kleur en badge op de kaart' },
+];
+
+function _tagsUit(waarde) {
+  if (Array.isArray(waarde)) return waarde.map(String);
+  try {
+    const arr = JSON.parse(waarde || '[]');
+    return Array.isArray(arr) ? arr.map(String) : [];
+  } catch { return []; }
+}
+window._tagsUit = _tagsUit;
+
+// Vinkjes → verborgen veld, en de voorraad hangt aan de rol verkoper.
+window._rollenBij = () => {
+  const gekozen = [...document.querySelectorAll('.rollen-rij input:checked')].map(i => i.value);
+  const veld = document.getElementById('rollen-veld');
+  if (veld) veld.value = JSON.stringify(gekozen);
+  const isVerkoper = gekozen.includes('verkoper');
+  document.getElementById('voorraad-section')?.style.setProperty('display', isVerkoper ? '' : 'none');
+  document.getElementById('winkelconfig-section')?.style.setProperty('display', isVerkoper ? '' : 'none');
+};
+
+window._heeftRol = (e, rol) =>
+  _tagsUit(e?.data?.tags).includes(rol) || String(e?.subtype || '').toLowerCase() === rol;
 
 // ── Keuzelijst in perkament ─────────────────────────────────────────────────
 // Een <datalist> tekent de browser zelf: donkergrijze bak, systeemletters, en
@@ -1635,7 +1677,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
 
   // Image(s) — carousel when extra images exist, else single portrait
   const _extraImgs = _parseExtraImages(e.data?.extraImages);
-  const _primaryCaption = e.data?.imgCaption || '';
+  // Het onderschrift bij het portret staat tijdelijk uit: in de praktijk botste
+  // het met de weergavenaam in de mediabibliotheek. Data en code blijven staan,
+  // dus terugzetten is deze regel terugdraaien. (Onderschriften bij de extra
+  // afbeeldingen in de carousel blijven wél gewoon werken.)
+  const _primaryCaption = '';   // was: e.data?.imgCaption || ''
   const _heroBadge = getSubtypeBadge(tab, e);
   // Afbeelding — simpel gecentreerd met perkamentachtergrond
   const _d = e.data || {};
@@ -2066,7 +2112,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   }
 
   // ── Tab: Voorraad (verkopers & winkels) ──
-  const isVerkoper = e.subtype === 'verkoper';
+  const isVerkoper = window._heeftRol(e, 'verkoper');
   const isWinkel = tab === 'locaties' && e.data?.locType === 'Winkel';
   const heeftVoorraad = isVerkoper || isWinkel;
   let voorraadHtml = '';
@@ -3171,11 +3217,10 @@ window._openEditor = async (tab, editId) => {
         </div>
       </div>
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Onderschrift</label>
-        <p class="text-[10px] text-ink-dim mb-1">Staat onder de afbeelding op het kaartje en is ook voor spelers zichtbaar &mdash; iets als &bdquo;geschilderd in het jaar 812&ldquo;. Dit is niet de naam in de mediabibliotheek; die is om het bestand terug te vinden.</p>
-        <input name="data_imgCaption" value="${esc(e?.data?.imgCaption || '')}"
-          placeholder="Bijschrift\u2026"
-          class="w-full mt-1 px-2 py-1.5 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+        <!-- Onderschrift staat tijdelijk uit (zie _primaryCaption in _openDetail):
+             het viel samen met de weergavenaam in de mediabibliotheek. Het veld
+             blijft verborgen meegaan zodat bestaande teksten niet verdwijnen. -->
+        <input type="hidden" name="data_imgCaption" value="${esc(e?.data?.imgCaption || '')}">
       </div>
       <div>
         <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Extra afbeeldingen</div>
@@ -3340,6 +3385,24 @@ window._openEditor = async (tab, editId) => {
             <option value="">—</option>
             ${field.options.map(o => typeof o === 'object' ? `<option value="${o.value}" ${val === o.value ? 'selected' : ''}>${o.label}</option>` : `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
           </select>
+        </div>
+      `;
+    } else if (field.type === 'rollen') {
+      const _gekozen = _tagsUit(val);
+      // Oud subtype telt mee, zodat een bestaand kaartje meteen goed staat.
+      if (e?.subtype && ROLLEN.some(r => r.key === e.subtype) && !_gekozen.includes(e.subtype)) _gekozen.push(e.subtype);
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input type="hidden" name="data_${field.key}" id="rollen-veld" value="${esc(JSON.stringify(_gekozen))}">
+          <div class="rollen-rij mt-1">
+            ${ROLLEN.map(r => `
+              <label class="rol-keuze" title="${esc(r.uitleg)}">
+                <input type="checkbox" value="${r.key}" ${_gekozen.includes(r.key) ? 'checked' : ''}
+                  onchange="window._rollenBij()">
+                <span>${esc(r.label)}</span>
+              </label>`).join('')}
+          </div>
         </div>
       `;
     } else if (field.type === 'lijst-tekst') {
@@ -3512,7 +3575,9 @@ window._openEditor = async (tab, editId) => {
 
   // Voorraad (verkopers & winkels)
   if (tab === 'personages' || tab === 'locaties') {
-    const _showVoorraad = tab === 'personages' ? e?.subtype === 'verkoper' : e?.data?.locType === 'Winkel';
+    const _showVoorraad = tab === 'personages'
+      ? window._heeftRol(e, 'verkoper')
+      : e?.data?.locType === 'Winkel';
     let winkelConfigEditor = {};
     try { winkelConfigEditor = e?.data?.winkelConfig ? JSON.parse(e.data.winkelConfig) : {}; } catch {}
     body += `
@@ -3939,14 +4004,14 @@ window._openEditor = async (tab, editId) => {
 
     // Subtype-wissel (personages)
     window._onSubtypeChange = (val) => {
-      const sec = document.getElementById('voorraad-section');
-      if (sec) sec.style.display = val === 'verkoper' ? '' : 'none';
-      const wcSec = document.getElementById('winkelconfig-section');
-      if (wcSec) wcSec.style.display = val === 'verkoper' ? '' : 'none';
+      // De voorraad hangt sinds de rollen niet meer aan het subtype maar aan het
+      // vinkje 'verkoper' (zie _rollenBij).
       const groepSec = document.getElementById('groep-section');
       if (groepSec) groepSec.style.display = val === 'speler' ? '' : 'none';
       const antagonistSec = document.getElementById('geheime-antagonist-section');
       if (antagonistSec) antagonistSec.style.display = val === 'NPC' ? '' : 'none';
+      const rollenRij = document.querySelector('.rollen-rij')?.closest('div')?.parentElement;
+      if (rollenRij) rollenRij.style.display = val === 'god' ? 'none' : '';
       const petSec = document.getElementById('pet-editor-section');
       if (petSec) petSec.style.display = val === 'dier' ? '' : 'none';
       const vidSec = document.getElementById('video-section');
@@ -3980,14 +4045,14 @@ window._openEditor = async (tab, editId) => {
             api.listEntities('locaties'),
           ]);
           const bronnen = [
-            ...personages.filter(p => p.subtype === 'verkoper' && p.data?.voorraad && p.data.voorraad !== '[]'),
+            ...personages.filter(p => window._heeftRol(p, 'verkoper') && p.data?.voorraad && p.data.voorraad !== '[]'),
             ...locaties.filter(l => l.data?.locType === 'Winkel' && l.data?.voorraad && l.data.voorraad !== '[]'),
           ].filter(b => b.id !== (e?.id || null)); // eigen item niet aanbieden
           bronnen.forEach(b => {
             const opt = document.createElement('option');
             opt.value = b.id;
-            opt.dataset.type = b.subtype === 'verkoper' ? 'personages' : 'locaties';
-            opt.textContent = b.name + (b.subtype === 'verkoper' ? ' (verkoper)' : ' (winkel)');
+            opt.dataset.type = window._heeftRol(b, 'verkoper') ? 'personages' : 'locaties';
+            opt.textContent = b.name + (window._heeftRol(b, 'verkoper') ? ' (verkoper)' : ' (winkel)');
             sel.appendChild(opt);
           });
           if (bronnen.length === 0) sel.innerHTML = '<option value="">— geen winkels gevonden —</option>';

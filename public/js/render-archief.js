@@ -2222,7 +2222,7 @@ window._editAkte = async (ch) => {
       api.listEntities('locaties').catch(() => []),
     ]);
     winkels = [
-      ...pers.filter(e => e.subtype === 'verkoper'),
+      ...pers.filter(e => window._heeftRol?.(e, 'verkoper')),
       ...locs.filter(e => e.data?.locType === 'Winkel'),
     ].sort((a, b) => String(a.name).localeCompare(String(b.name)));
   } catch { /* ok */ }

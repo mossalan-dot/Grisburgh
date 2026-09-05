@@ -187,12 +187,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=446   app.js?v=592   sound-manager.js?v=8
-app.js      : api.js?v=264      render-campagne.js?v=136   render-archief.js?v=75
+index.html  : theme.css?v=447   app.js?v=592   sound-manager.js?v=8
+app.js      : api.js?v=264      render-campagne.js?v=137   render-archief.js?v=75
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=44  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=197    render-dashboard.js?v=9
+              dm-panel.js?v=198    render-dashboard.js?v=9
               render-spreuken.js?v=15   media-picker.js?v=7
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 ```
@@ -666,6 +666,36 @@ wie het pad raadde. Ze staan nu in `bronnen/` (buiten `public/`) en gaan via
 
 Regenereren van de bronbestanden: zie `scripts/srd-2024/` (paden wijzen nu naar
 `bronnen/`).
+
+---
+
+## Subtype, rollen en kant in gevecht
+
+Een personage-kaartje beantwoordt drie verschillende vragen, en die zaten door
+elkaar in één veld:
+
+- **`subtype` — wat voor kaartje is dit?** Vier waarden: `NPC` (de standaard),
+  `speler` (ontsluit party, boedel, progressie, sheet, login), `dier` (statblock
+  dat meeschaalt met het baasje via `statblockTiers`, adoptie, meelopen — hier
+  vallen ook summon, rijdier en familiar onder; tiers zijn optioneel) en `god`
+  (de Tempel).
+- **`data.tags` — welke rol speelt hij?** JSON-array, meerdere tegelijk:
+  `verkoper` (zet de voorraad aan) en `antagonist` (kleur en badge). Zo kan een
+  verkoper óók antagonist zijn.
+- **`data.kant` — aan welke kant staat hij in een gevecht?** `bondgenoot`,
+  `vijand` of `neutraal`. De kaart zegt wat iemand ís; `dmState.activeAllies`
+  blijft zeggen wie er *nu* meeloopt.
+
+> **Oude subtypes blijven meetellen.** `_heeftRol(e, 'verkoper')` (client:
+> `window._heeftRol`, server: `_heeftRol` in `routes/api.js`) kijkt naar de tags
+> én naar het oude subtype. Code die iets van een rol wil weten hoort die helper
+> te gebruiken en niet zelf `subtype === 'verkoper'` te schrijven — anders valt
+> een kaartje dat nog niet gemigreerd is buiten de boot.
+> Opschonen kan met `scripts/migreer-rollen.js <campagne> --schrijf` (zet
+> verkoper/antagonist om, geeft antagonisten `kant: vijand`, maakt een kopie).
+
+De "geheime antagonist"-schakelaar zet nu de **rol** in plaats van het subtype
+om te gooien bij het onthullen van een geheim.
 
 ---
 

@@ -4141,7 +4141,7 @@ async function _setupAddSubmit() {
     }
   }
 
-  if ((_setupSelectedType === 'player' || _setupSelectedType === 'ally') && _setupSelectedEntityId) {
+  if (['player', 'ally', 'monster'].includes(_setupSelectedType) && _setupSelectedEntityId) {
     payload.entityId = _setupSelectedEntityId;
   }
 
@@ -4673,7 +4673,7 @@ async function _renderWereldTab() {
       api.listEntities('locaties').catch(() => []),
     ]);
     verkopers = [
-      ...p.filter(e => e.subtype === 'verkoper'),
+      ...p.filter(e => window._heeftRol?.(e, 'verkoper')),
       ...l.filter(e => e.data?.locType === 'Winkel'),
     ];
   } catch {}
@@ -7233,16 +7233,23 @@ function _renderGevecht() {
             ${_setupPersonages.filter(e => e.subtype === 'speler' && (!window._activeGroupId || e.data?.groep === window._activeGroupId)).map(e => `<option value="${esc(e.id)}" ${_setupSelectedEntityId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}
           </select>
         ` : ''}
-        ${_setupSelectedType === 'ally' && _setupPersonages.some(e => e.stats && Object.values(e.stats).some(v => v !== null && v !== undefined && String(v).trim() !== '')) ? `
+        ${(_setupSelectedType === 'ally' || _setupSelectedType === 'monster') && _setupPersonages.some(e => e.stats && Object.values(e.stats).some(v => v !== null && v !== undefined && String(v).trim() !== '')) ? (() => {
+          // Kaartjes met stats, gesorteerd op hun kant: wie op de kaart als
+          // bondgenoot staat, staat bovenaan bij Medestander; vijanden bovenaan
+          // bij Monster. Zo hoef je niet te zoeken tussen honderd namen.
+          const _kant = (e) => e.data?.kant || '';
+          const _gewenst = _setupSelectedType === 'ally' ? 'bondgenoot' : 'vijand';
+          const _kandidaten = _setupPersonages
+            .filter(e => e.stats && Object.values(e.stats).some(v => v !== null && v !== undefined && String(v).trim() !== ''))
+            .sort((a, b) => (_kant(b) === _gewenst) - (_kant(a) === _gewenst) || String(a.name).localeCompare(String(b.name), 'nl'));
+          const _merk = { bondgenoot: ' · bondgenoot', vijand: ' · vijand', neutraal: ' · neutraal' };
+          return `
           <select id="dm-setup-entity" class="dm-select"
               onchange="window.dmPanel.setupEntityChange(this.value)">
             <option value="">— Handmatig invoeren —</option>
-            ${_setupPersonages
-              .filter(e => e.stats && Object.values(e.stats).some(v => v !== null && v !== undefined && String(v).trim() !== ''))
-              .map(e => `<option value="${esc(e.id)}" ${_setupSelectedEntityId === e.id ? 'selected' : ''}>${esc(e.name)}${e.stats?.hp ? ' (HP ' + e.stats.hp + ')' : ''}</option>`)
-              .join('')}
-          </select>
-        ` : ''}
+            ${_kandidaten.map(e => `<option value="${esc(e.id)}" ${_setupSelectedEntityId === e.id ? 'selected' : ''}>${esc(e.name)}${_merk[_kant(e)] || ''}${e.stats?.hp ? ' (HP ' + e.stats.hp + ')' : ''}</option>`).join('')}
+          </select>`;
+        })() : ''}
         <div class="dm-feature-row">
           <input id="dm-setup-name" class="dm-input" placeholder="Naam…"
             onkeydown="if(event.key==='Enter')window.dmPanel.setupAddSubmit()">

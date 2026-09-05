@@ -331,6 +331,21 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   return e;
 }
 
+// ── Rollen op een personage ──────────────────────────────────────────────────
+// `verkoper` en `antagonist` zijn van subtype naar rol verhuisd (`data.tags`),
+// zodat een verkoper ook antagonist kan zijn. Oude kaartjes dragen de waarde
+// nog als subtype; die telt gewoon mee.
+function _rollenVan(entity) {
+  const rauw = entity?.data?.tags;
+  let tags = [];
+  if (Array.isArray(rauw)) tags = rauw.map(String);
+  else { try { const a = JSON.parse(rauw || '[]'); if (Array.isArray(a)) tags = a.map(String); } catch { /* leeg */ } }
+  const sub = String(entity?.subtype || '').toLowerCase();
+  if (['verkoper', 'antagonist'].includes(sub) && !tags.includes(sub)) tags.push(sub);
+  return tags;
+}
+function _heeftRol(entity, rol) { return _rollenVan(entity).includes(rol); }
+
 // ── Geheimen en flavour: lijsten in plaats van één veld ──────────────────────
 // Een NPC heeft zelden één geheim. `data.geheimen` (JSON-array) is het echte
 // veld; het oude `data.geheim` blijft bestaan als eerste regel, zodat alles wat
@@ -845,9 +860,14 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
   g.secretReveals[id] = stand;
 
   const ietsOnthuld = stand.some(Boolean);
-  // Geheime antagonist: wissel subtype mee zodra er iets uit is
+  // Geheime antagonist: sinds antagonist een rol is, zetten we de rol in plaats
+  // van het subtype om te gooien. Het kaartje blijft dus gewoon een NPC.
   if (entity && entity.data?.geheimeAntagonist === 'true') {
-    entity.subtype = ietsOnthuld ? 'antagonist' : 'NPC';
+    const rollen = new Set(_rollenVan(entity));
+    if (ietsOnthuld) rollen.add('antagonist'); else rollen.delete('antagonist');
+    if (!entity.data) entity.data = {};
+    entity.data.tags = JSON.stringify([...rollen]);
+    if (String(entity.subtype).toLowerCase() === 'antagonist') entity.subtype = 'NPC';
     storage.writeJSON('entities.json', entities);
   }
   storage.writeJSON('dm-state.json', dmState);

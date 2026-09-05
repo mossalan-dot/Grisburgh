@@ -64,10 +64,9 @@ groot het is.
       in het partytabblad naast de medestanders, met een knop op het kaartje.
 - [ ] **Tier-editor**: zeg dat tiers optioneel zijn (een rijdier of summon groeit
       niet mee met het level van zijn baasje).
-- [ ] **Subtypes opsplitsen** — `subtype` = wat het is (persoon, dier, god), de
-      rest wordt tags (verkoper, questgever, antagonist, medestander, summon,
-      rijdier, huurling, gevangene) plus een veld *kant in gevecht*
-      (bondgenoot · vijand · neutraal) voor het vullen van een encounter.
+- [x] **Subtypes opsplitsen** *(5 sep)* — vier subtypes (NPC, speler, dier, god),
+      twee rollen als tag (verkoper, antagonist) en een veld *kant in gevecht*.
+      33 kaartjes gemigreerd; oude subtypes blijven meetellen via `_heeftRol`.
 - [x] **Spreuken koppelen aan de bibliotheek** *(5 sep)* — zoekveld in het
       Spells-paneel, chips met niveau en naam, klikken opent het spreukdetail.
       De losse tekstvelden staan er nog voor wat niet in de bibliotheek zit.
