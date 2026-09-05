@@ -22686,6 +22686,24 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 .onthul-knop--aan:hover { background: rgba(58,106,74,.3); color: #23452e; }
 
+/* Merkje bij een geheim dat het kaartje omzet (rol, kant, alignment). */
+.verraad-merk {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: #8b2a2a;
+  opacity: .8;
+  white-space: nowrap;
+}
+.verraad-merk .icon { width: 11px; height: 11px; }
+.onthul-knop--verraad { border-color: rgba(139,42,42,.5); }
+.onthul-knop--verraad:hover { background: rgba(139,42,42,.18); color: #8b2a2a; }
+
 /* Voet van de rol: geluid links, doorbladeren rechts. */
 .flavour-scroll-voet {
   display: flex;

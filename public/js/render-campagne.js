@@ -1510,9 +1510,10 @@ function _detFlavInner(key) {
   return `
     <p class="roddel-tekst">${ctx.soort === 'geheim' ? mdToHtml(r.tekst) : esc(r.tekst)}</p>
     <div class="roddel-zij">
-      ${isDM() ? `<button class="onthul-knop${r.gezegd ? ' onthul-knop--aan' : ''}"
+      ${isDM() && r.verraad ? `<span class="verraad-merk" title="Onthullen verandert dit kaartje: rol, kant en alignment">${icon('skull')} Maakt vijand</span>` : ''}
+      ${isDM() ? `<button class="onthul-knop${r.gezegd ? ' onthul-knop--aan' : ''}${r.verraad ? ' onthul-knop--verraad' : ''}"
         title="${r.gezegd ? cfg.titelAan : cfg.titelUit}"
-        onclick="window.${cfg.fn}('${esc(ctx.tab)}','${esc(ctx.id)}',${r.i})">${r.gezegd ? icon(cfg.iconAan) : icon(cfg.iconUit)}<span>${r.gezegd ? cfg.aan : cfg.uit}</span></button>` : ''}
+        onclick="window.${r.verraad ? '_toggleVerraadGeheim' : cfg.fn}('${esc(ctx.tab)}','${esc(ctx.id)}',${r.i}${r.verraad ? `,${r.gezegd},'${escJS(ctx.naam || '')}'` : ''})">${r.gezegd ? icon(cfg.iconAan) : icon(cfg.iconUit)}<span>${r.gezegd ? cfg.aan : cfg.uit}</span></button>` : ''}
       ${ctx.audioId ? `<button type="button" class="flavour-audio-play" data-audio-btn data-audio-btn-id="${esc(ctx.audioId)}"
         onclick="window._audioToggle('${esc(ctx.audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>` : ''}
       ${regels.length > 1 ? `
@@ -1523,6 +1524,19 @@ function _detFlavInner(key) {
         </span>` : ''}
     </div>`;
 }
+
+// Een geheim met het vinkje "maakt het personage een vijand" verandert méér dan
+// de tekst: rol, kant en alignment schuiven mee. Zoiets hoort niet per ongeluk
+// te gebeuren met één klik, dus eerst vragen — zie de afspraak over
+// onomkeerbare DM-acties in CLAUDE.md.
+window._toggleVerraadGeheim = (tab, id, index, wasOnthuld, naam) => {
+  const wie = naam || 'dit personage';
+  const vraag = wasOnthuld
+    ? `Dit geheim terugdraaien?\n\n${wie} verliest de rol antagonist, en zijn kant en alignment gaan terug naar wat ze waren.`
+    : `Dit geheim onthullen?\n\n${wie} wordt daarmee antagonist, komt in een gevecht aan de kant van de vijand te staan en zijn alignment schuift naar Evil.`;
+  if (!confirm(vraag)) return;
+  window._toggleSecret(tab, id, index);
+};
 
 window._detFlavStap = (key, richting) => {
   const regels = _flavCache[key] || [];
@@ -2222,9 +2236,12 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (zichtbareGeheimen.length) {
     // Zelfde blok als de roddels: doorbladeren in plaats van alles uitklappen.
     // Drie geheimen onder elkaar duwden de rest van het kaartje van het scherm.
-    _flavCache[`geh-${e.id}`] = zichtbareGeheimen.map(g => ({ tekst: g.tekst, i: g.i, gezegd: g.onthuld }));
+    const _antagVlag = isDM() ? _antagUit(e.data, geheimRegels.length) : [];
+    _flavCache[`geh-${e.id}`] = zichtbareGeheimen.map(g => ({
+      tekst: g.tekst, i: g.i, gezegd: g.onthuld, verraad: !!_antagVlag[g.i],
+    }));
     _flavPos[`geh-${e.id}`]   = 0;
-    _flavCtx[`geh-${e.id}`]   = { tab, id: e.id, soort: 'geheim' };
+    _flavCtx[`geh-${e.id}`]   = { tab, id: e.id, soort: 'geheim', naam: e.name };
     infoHtml += `
       <div class="mb-4">
         <div class="detail-field-label detail-field-label--secret">
