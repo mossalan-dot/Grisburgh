@@ -1618,20 +1618,38 @@ window._ecGo = (key, idx, total) => {
 function _refreshEntityImages() {
   const c = document.getElementById('entity-img-preview');
   if (!c) return;
-  c.innerHTML = entityEditorImages.length
-    ? entityEditorImages.map((img, i) => `
+  // Geen onderschriften meer, wel een ster: die maakt van deze afbeelding de
+  // banner (het beeld op de kaart en bovenaan het detailvenster).
+  c.innerHTML = entityEditorImages.map((img, i) => `
         <div>
           <div class="relative rounded overflow-hidden border border-room-border bg-room-elevated" style="height:56px">
             <img src="${img.url}" class="w-full h-full object-cover">
-            <button type="button" onclick="window._removeEntityImage(${i})"
+            <button type="button" onclick="window._maakBanner(${i})" title="Maak dit de banner"
+              class="absolute top-0.5 left-0.5 w-5 h-5 bg-black/60 hover:bg-black/85 text-white rounded-full text-[11px] flex items-center justify-center transition">\u2606</button>
+            <button type="button" onclick="window._removeEntityImage(${i})" title="Loskoppelen"
               class="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded-full text-xs flex items-center justify-center transition">\u00d7</button>
           </div>
-          <input type="text" placeholder="Onderschrift\u2026" value="${esc(img.caption || '')}"
-            oninput="window._updateEntityImageCaption(${i}, this.value)"
-            class="w-full mt-0.5 px-1 py-0.5 text-[9px] bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-        </div>`).join('')
-    : '';   // leeg is leeg; de knop eronder zegt al wat je kunt doen
+        </div>`).join('');
 }
+
+// De banner is `data.imageId`; wat je hier aanwijst wisselt van plek met wat er
+// stond. Een nieuw kaartje zonder banner krijgt hem gewoon.
+window._maakBanner = (idx) => {
+  const gekozen = entityEditorImages[idx];
+  if (!gekozen || gekozen.isNew) {
+    if (gekozen?.isNew) alert('Sla eerst op; een net toegevoegde afbeelding kan daarna banner worden.');
+    return;
+  }
+  const veld = document.getElementById('editor-image-id');
+  const oudeBanner = veld?.value || '';
+  if (veld) veld.value = gekozen.id;
+  entityEditorImages.splice(idx, 1);
+  if (oudeBanner) entityEditorImages.unshift({ id: oudeBanner, url: api.fileUrl(oudeBanner), isNew: false, caption: '' });
+  const voorbeeld = document.getElementById('editor-img-preview');
+  if (voorbeeld) { voorbeeld.src = api.fileUrl(gekozen.id); voorbeeld.parentElement?.classList.remove('hidden'); }
+  document.getElementById('fp-hint')?.classList.remove('hidden');
+  _refreshEntityImages();
+};
 
 // ── Detail view ──
 let _detailToken = 0;   // Annuleer concurrent _openDetail aanroepen
@@ -2927,20 +2945,31 @@ window._onRevealToggle = (groupId, checked) => {
 
 // Portret kiezen/uploaden via de mediabibliotheek. Zet het verborgen
 // data_imageId-veld (gaat mee in de payload) en werkt de preview bij.
+// Eén knop voor alle afbeeldingen: is er nog geen banner, dan wordt dit 'm;
+// anders komt de nieuwe erbij en blijft de banner staan. Wisselen doe je met de
+// ster op een miniatuur.
 window._editorPickImage = () => {
   const naamHint = (document.querySelector('[name="name"]')?.value || '').trim().toLowerCase().replace(/\s+/g, '-');
   window.mediaPicker.open({
     type: 'afbeelding',
     suggestedName: naamHint || '',
     onSelect: (fileId) => {
+      if (!fileId) return;
       const hidden = document.getElementById('editor-image-id');
-      if (hidden) hidden.value = fileId;
-      const wrap = document.getElementById('fp-wrap');
-      const img  = document.getElementById('editor-img-preview');
-      const hint = document.getElementById('fp-hint');
-      if (img)  img.src = api.fileUrl(fileId);
-      if (wrap) wrap.classList.remove('hidden');
-      if (hint) hint.classList.remove('hidden');
+      const heeftBanner = !!hidden?.value;
+      if (!heeftBanner) {
+        if (hidden) hidden.value = fileId;
+        const wrap = document.getElementById('fp-wrap');
+        const img  = document.getElementById('editor-img-preview');
+        const hint = document.getElementById('fp-hint');
+        if (img)  img.src = api.fileUrl(fileId);
+        if (wrap) wrap.classList.remove('hidden');
+        if (hint) hint.classList.remove('hidden');
+        return;
+      }
+      if (entityEditorImages.some(i => i.id === fileId)) return;
+      entityEditorImages.push({ id: fileId, url: api.fileUrl(fileId), isNew: false, caption: '' });
+      _refreshEntityImages();
     },
   });
 };
@@ -3242,24 +3271,19 @@ window._openEditor = async (tab, editId) => {
           <p class="text-[10px] text-ink-dim mb-1${hasImg ? '' : ' hidden'}" id="fp-hint">Klik om focuspunt in te stellen</p>
           <input type="hidden" name="data_imgFocus" id="fp-input" value="${focusVal}">
           <input type="hidden" name="data_imageId" id="editor-image-id" value="${esc(e?.data?.imageId || '')}">
-          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._editorPickImage()" title="Kies uit bibliotheek of upload nieuw">
-            ${icon('image')} ${hasImg ? 'Afbeelding wijzigen' : 'Afbeelding kiezen'}
+          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._editorPickImage()" title="Kies uit de bibliotheek of upload nieuw">
+            ${icon('image')} ${hasImg ? 'Afbeelding toevoegen' : 'Afbeelding kiezen'}
           </button>
         </div>
       </div>
       <div>
-        <!-- Onderschrift staat tijdelijk uit (zie _primaryCaption in _openDetail):
-             het viel samen met de weergavenaam in de mediabibliotheek. Het veld
-             blijft verborgen meegaan zodat bestaande teksten niet verdwijnen. -->
+        <!-- Onderschrift staat uit (zie _primaryCaption in _openDetail); het veld
+             gaat verborgen mee zodat bestaande teksten niet verdwijnen. -->
         <input type="hidden" name="data_imgCaption" value="${esc(e?.data?.imgCaption || '')}">
-      </div>
-      <div>
-        <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Extra afbeeldingen</div>
-        <div id="entity-img-preview" class="editor-img-grid mb-2"></div>
-        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
-          onclick="window._editorPickExtraImage()" title="Kies uit de bibliotheek of upload nieuw">
-          ${icon('image')} Afbeelding toevoegen
-        </button>
+        <!-- De overige afbeeldingen staan onder dezelfde kop: één knop, en de
+             ster bepaalt welke de banner is. Twee aparte blokken met elk een
+             eigen knop leidde alleen maar tot de vraag welke je moest hebben. -->
+        <div id="entity-img-preview" class="editor-img-grid mt-2"></div>
       </div>
       ${tab === 'personages' ? `
       <!-- Alleen bij een spelerspersonage: het filmpje speelt op de
@@ -3930,7 +3954,7 @@ window._openEditor = async (tab, editId) => {
   // Extra afbeeldingen liepen langs de mediabibliotheek heen: een kaal
   // bestandsveld dat rechtstreeks uploadde. Daardoor kreeg zo'n afbeelding geen
   // naam in de bibliotheek en kon je een bestaande niet hergebruiken.
-  window._editorPickExtraImage = () => {
+  window._editorPickExtraImage = () => {   // zelfde als de knop hierboven; blijft voor oude aanroepen
     const naamHint = (document.querySelector('#entity-form [name="name"]')?.value || '')
       .trim().toLowerCase().replace(/\s+/g, '-');
     window.mediaPicker.open({
