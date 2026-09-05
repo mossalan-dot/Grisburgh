@@ -4493,6 +4493,10 @@ router.post('/quests', requireDM, (req, res) => {
     description: req.body.description || '',
     chapter:     req.body.chapter || '',
     notes:       req.body.notes || '',
+    // Wie gaf deze missie? Een personage- of organisatie-kaartje. Daarmee is
+    // "missiegever" afgeleid in plaats van een vinkje dat je bij moet houden.
+    geverId:     req.body.geverId   || null,
+    geverType:   req.body.geverType || 'personages',
     createdAt:   new Date().toISOString(),
   };
   data.quests.push(quest);

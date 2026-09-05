@@ -340,6 +340,19 @@ async function _renderPrikbord(container) {
   let facties = [];
   try { const fd = await api.getFacties(); facties = (fd.facties || []).filter(f => (f.rang?.index ?? 0) > 0); } catch {}
 
+  // Namen van de missiegevers: alleen ophalen als er ook echt missies met een
+  // gever zijn, anders is het twee verzoeken voor niets.
+  const _geverNamen = {};
+  if (quests.some(q => q.geverId)) {
+    try {
+      const [pers, orgs] = await Promise.all([
+        api.listEntities('personages').catch(() => []),
+        api.listEntities('organisaties').catch(() => []),
+      ]);
+      for (const e of [...pers, ...orgs]) _geverNamen[e.id] = e.name;
+    } catch { /* dan zonder naam */ }
+  }
+
   const hk = meta?.hoofdstukken || {};
 
   const visibleQuests = isDm ? quests : quests.filter(q => q.status !== 'verborgen');
@@ -379,6 +392,7 @@ async function _renderPrikbord(container) {
         <div class="quest-card-title">${q.title.replace(/</g,'&lt;')}</div>
         ${showDesc ? `<div class="quest-card-desc">${q.description.replace(/</g,'&lt;')}</div>` : ''}
         ${chLabel ? `<div class="quest-card-chapter">${chLabel.replace(/</g,'&lt;')}</div>` : ''}
+        ${q.geverId && _geverNamen[q.geverId] ? `<div class="quest-card-gever">${icon('user')} ${esc(_geverNamen[q.geverId])}</div>` : ''}
         ${q.factieId ? `<div class="quest-card-factie">${icon('landmark')} Factie-missie</div>` : ''}
       </div>`;
   };
@@ -488,6 +502,23 @@ async function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
     .map(([k,v]) => `<option value="${k}" ${existingQuest?.chapter === k ? 'selected' : ''}>${(v.short || k).replace(/</g,'&lt;')}</option>`)
     .join('');
 
+  // Wie kan een missie geven: personages en organisaties. De naam is wat je
+  // typt; bij het opslaan zoeken we het id erbij.
+  let _gevers = [];
+  try {
+    const [pers, orgs] = await Promise.all([
+      api.listEntities('personages').catch(() => []),
+      api.listEntities('organisaties').catch(() => []),
+    ]);
+    _gevers = [
+      ...pers.map(e => ({ id: e.id, naam: e.name, type: 'personages' })),
+      ...orgs.map(e => ({ id: e.id, naam: e.name, type: 'organisaties' })),
+    ];
+  } catch { /* leeg */ }
+  window._questGevers = _gevers;
+  const _geverNaam = _gevers.find(g => g.id === existingQuest?.geverId)?.naam || '';
+  const _geverOpties = _gevers.map(g => `<option value="${esc(g.naam)}">`).join('');
+
   // Laad facties voor de koppeling
   let factieOpties = '<option value="">— geen factie —</option>';
   try {
@@ -521,6 +552,12 @@ async function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
           <option value="voltooid"      ${(existingQuest?.status ?? defaultStatus) === 'voltooid'      ? 'selected':''}>Voltooid</option>
           <option value="mislukt"       ${(existingQuest?.status ?? defaultStatus) === 'mislukt'       ? 'selected':''}>Mislukt</option>
         </select>
+      </div>
+      <div class="quest-modal-row">
+        <label class="quest-modal-label">Gegeven door</label>
+        <input id="qm-gever" class="dm-input" list="qm-gever-dl" autocomplete="off"
+          placeholder="Personage of organisatie\u2026" value="${esc(_geverNaam)}">
+        <datalist id="qm-gever-dl">${_geverOpties}</datalist>
       </div>
       <div class="quest-modal-row">
         <label class="quest-modal-label">Akte</label>
@@ -583,8 +620,11 @@ async function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
     const cl = parseInt(document.getElementById('qm-valuta-cl')?.value) || 0;
     const valuta = (fl || kn || cl) ? { fl, kn, cl } : null;
     if (!title) { alert('Vul een titel in.'); return; }
+    const geverNaam = (document.getElementById('qm-gever')?.value || '').trim().toLowerCase();
+    const gever = (window._questGevers || []).find(g => g.naam.toLowerCase() === geverNaam);
     const payload = { title, description: desc, status, chapter,
-      factieId: factieId || null, vereistRenown, renownBeloning, valuta };
+      factieId: factieId || null, vereistRenown, renownBeloning, valuta,
+      geverId: gever?.id || null, geverType: gever?.type || 'personages' };
     try {
       if (id) await api.updateQuest(id, payload);
       else    await api.createQuest(payload);

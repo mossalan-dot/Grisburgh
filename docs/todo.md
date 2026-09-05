@@ -57,11 +57,13 @@ groot het is.
 - [x] **Flavour op dezelfde manier** *(5 sep)* — `data.flavours`, en de herberg
       pikt per avond een regel die nog niet verteld is in plaats van één vlag per
       personage.
-- [ ] **Missiegever afleiden uit de missie** — `missie.geverId` erbij, in de
-      Missies-tab tonen, en op het kaartje een blokje met de draden die aan deze
-      persoon hangen. Dan hoeft niemand een tag bij te houden.
+- [x] **Missiegever afleiden uit de missie** *(5 sep)* — `geverId` op de missie,
+      zoekveld in de missie-editor, naam op het missiekaartje, en een blokje
+      *Missies* op het personage- of organisatiekaartje.
 - [ ] **Gevangene als toestand** — `groups[gid].gevangenen[entityId]`, zichtbaar
       in het partytabblad naast de medestanders, met een knop op het kaartje.
+      **Oppakken wanneer we de partytab doen**, want daar willen we toch al
+      portretjes van medestanders laten zien.
 - [ ] **Tier-editor**: zeg dat tiers optioneel zijn (een rijdier of summon groeit
       niet mee met het level van zijn baasje).
 - [x] **Subtypes opsplitsen** *(5 sep)* — vier subtypes (NPC, speler, dier, god),

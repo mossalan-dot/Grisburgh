@@ -683,6 +683,29 @@ document.addEventListener('click', (ev) => {
   document.querySelectorAll('.keuzeveld-lijst').forEach(l => l.classList.add('hidden'));
 });
 
+// Missies ophalen ná het tekenen: het detailvenster hoeft er niet op te wachten.
+async function _vulMissies(entityId, tab) {
+  const host = () => document.getElementById(`detail-missies-${entityId}`);
+  let missies = [];
+  try { missies = await api.listQuests(); } catch { return; }
+  const mijn = missies.filter(q => q.geverId === entityId);
+  const el = host();
+  if (!el || !mijn.length) return;
+  const label = { verborgen: 'Verborgen', actief: 'Beschikbaar', aangevraagd: 'Aangevraagd',
+                  'in-uitvoering': 'In uitvoering', voltooid: 'Voltooid', mislukt: 'Mislukt' };
+  el.innerHTML = `
+    <div class="mb-4">
+      <div class="detail-field-label">${icon('map-pin')} ${mijn.length > 1 ? 'Missies' : 'Missie'}</div>
+      <div class="detail-missies">
+        ${mijn.map(q => `
+          <div class="detail-missie detail-missie--${esc(q.status || 'verborgen')}">
+            <span class="detail-missie-titel">${esc(q.title || '')}</span>
+            <span class="detail-missie-status">${esc(label[q.status] || q.status || '')}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
 // ── Gekoppelde spreuken op een kaartje ──
 function _csSpellLees() {
   const veld = document.getElementById('cs-spell-indexes');
@@ -1901,6 +1924,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           </div>`).join('')}
       </div>
     `;
+  }
+
+  // Missies die aan dit kaartje hangen. Dat maakt "missiegever" een afgeleide:
+  // wie een missie gaf, is missiegever — niets om apart bij te houden.
+  if (['personages', 'organisaties'].includes(tab)) {
+    infoHtml += `<div id="detail-missies-${e.id}"></div>`;
+    _vulMissies(e.id, tab);
   }
 
   // DM controls

@@ -22294,3 +22294,26 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   font-family: 'Crimson Text', serif; font-size: 14px; color: var(--color-ink-bright);
 }
 .badge-verkoper { background: rgba(150,110,30,0.85); }
+
+/* Missiegever op een missiekaartje. */
+.quest-card-gever {
+  font-family: 'Crimson Text', serif; font-size: 11.5px; font-style: italic;
+  color: #7a6040; margin-top: 4px; display: flex; align-items: center; gap: 4px;
+}
+.quest-card-gever .icon { width: 11px; height: 11px; }
+
+/* Missies die aan een kaartje hangen, in het detailvenster. */
+.detail-missies { display: flex; flex-direction: column; gap: 4px; }
+.detail-missie {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding: 5px 9px; border-radius: 5px;
+  background: rgba(196,168,122,0.10); border-left: 3px solid rgba(196,168,122,0.5);
+}
+.detail-missie-titel { font-family: 'Crimson Text', serif; font-size: 14px; }
+.detail-missie-status {
+  font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: .06em;
+  text-transform: uppercase; opacity: .7; white-space: nowrap;
+}
+.detail-missie--voltooid { border-left-color: #4b6b3d; }
+.detail-missie--mislukt  { border-left-color: #8c2f26; }
+.detail-missie--verborgen { opacity: .6; }
