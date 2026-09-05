@@ -1423,6 +1423,50 @@ const _flavPos   = {};
 const _flavCtx   = {};   // extra gegevens voor de rol in het detailvenster
 const _flavKort  = (t) => (t.length > 300 ? t.slice(0, 300) + '\u2026' : t);
 
+// Wat de spelers zelf bij dit kaartje noteren. Ze stonden allemaal onder elkaar
+// onder de knoppenbalk; nu één tegelijk met pijltjes, boven de knoppen, zodat
+// je ziet van wie je leest en het venster niet uitdijt bij vier spelers.
+const _spnCache = {};
+const _spnPos   = {};
+
+function _spelersNotitiesHtml(entityId, data) {
+  const regels = Object.entries(data?.notes || {}).filter(([, t]) => String(t || '').trim());
+  if (!regels.length) return '';
+  _spnCache[entityId] = regels;
+  _spnPos[entityId]   = 0;
+  return `
+    <div class="dm-only mb-3" id="spn-${esc(entityId)}">
+      <div class="detail-label mb-1">Aantekeningen van de spelers</div>
+      <div class="spn-binnen">${_spelersNotitieInner(entityId)}</div>
+    </div>`;
+}
+
+function _spelersNotitieInner(entityId) {
+  const regels = _spnCache[entityId] || [];
+  const idx    = _spnPos[entityId] || 0;
+  const [naam, tekst] = regels[idx] || [];
+  if (!naam) return '';
+  return `
+    <div class="spn-kop">
+      <span class="spn-naam">${esc(naam)}</span>
+      ${regels.length > 1 ? `
+        <span class="flavour-nav">
+          <button type="button" onclick="window._spnStap('${esc(entityId)}',-1)" title="Vorige speler">\u2039</button>
+          <span>${idx + 1}/${regels.length}</span>
+          <button type="button" onclick="window._spnStap('${esc(entityId)}',1)" title="Volgende speler">\u203a</button>
+        </span>` : ''}
+    </div>
+    <div class="spn-tekst">${esc(tekst)}</div>`;
+}
+
+window._spnStap = (entityId, richting) => {
+  const regels = _spnCache[entityId] || [];
+  if (regels.length < 2) return;
+  _spnPos[entityId] = ((_spnPos[entityId] || 0) + richting + regels.length) % regels.length;
+  const vak = document.querySelector(`#spn-${CSS.escape(entityId)} .spn-binnen`);
+  if (vak) vak.innerHTML = _spelersNotitieInner(entityId);
+};
+
 // Roddels en geheimen delen één blok: de tekst links, en rechts een kolom met
 // de onthulknop bovenaan en de navigatie eronder. Eerder stonden geheimen
 // allemaal onder elkaar en had elk zijn eigen knop; dat duwde de rest van het
@@ -2195,6 +2239,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
              de DM" heet. Er stonden er twee op één kaartje (dit veld en een
              losse dmNote), met verwarrend gelijke namen. Typen slaat direct op,
              dus je hoeft de editor niet te openen. -->
+        ${_spelersNotitiesHtml(e.id, playerNotesData)}
         <div class="detail-label mb-1">Aantekeningen voor de DM</div>
         <textarea id="dm-note-${e.id}" class="w-full min-h-[80px] px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
           placeholder="Alleen jij ziet dit\u2026">${esc(e.data?.persoonlijkheid || '')}</textarea>
@@ -2229,20 +2274,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       </div>
     `;
 
-    // DM ziet de aantekeningen van alle spelers (read-only, gelabeld)
-    if (playerNotesData?.notes && Object.keys(playerNotesData.notes).length > 0) {
-      infoHtml += `
-        <div class="dm-only mt-3 pt-3 border-t border-room-border/50">
-          <div class="detail-label mb-2">Spelersaantekeningen</div>
-          ${Object.entries(playerNotesData.notes).map(([name, text]) => `
-            <div class="mb-2">
-              <div class="text-xs text-gold font-cinzel font-semibold mb-0.5">${esc(name)}</div>
-              <div class="text-sm text-ink-medium bg-room-bg border border-room-border/50 rounded px-3 py-2 font-crimson">${esc(text)}</div>
-            </div>
-          `).join('')}
-        </div>
-      `;
-    }
   }
 
   // Eigen spelersaantekening (zichtbaar voor ingelogde speler)

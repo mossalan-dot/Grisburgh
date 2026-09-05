@@ -1226,6 +1226,35 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-inkoop-aantal-vast { width: 56px; text-align: center; color: #9a8060; font-size: 12px; flex-shrink: 0; }
 .dm-inkoop-bedrag { width: 96px; flex-shrink: 0; }
 
+/* Aantekeningen van de spelers: één speler tegelijk, naam en pijltjes op één
+   regel erboven. */
+.spn-binnen {
+  border: 1px solid rgba(196,168,122,.4);
+  border-radius: 5px;
+  background: rgba(255,255,255,.35);
+  padding: 8px 12px;
+}
+.spn-kop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.spn-naam {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: #8a6d3f;
+}
+.spn-tekst {
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: #3a2410;
+  white-space: pre-wrap;
+}
+
 /* Pijlen in de vergrote weergave: zelfde oplichting als in de carousel, zodat
    overal duidelijk is dat er iets te klikken valt. */
 .lb-pijl {
