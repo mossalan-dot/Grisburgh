@@ -2056,6 +2056,10 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 .detail-field-label--secret { color: #8b2a2a; }
 .detail-field-label--secret::before { background: #8b2a2a; }
+/* Roddels krijgen dezelfde kop als de geheimen, in het warme goud. */
+.detail-field-label--roddel { color: #8a6d3f; }
+.detail-field-label--roddel::before { background: #8a6d3f; }
+.detail-field-label .icon { width: 13px; height: 13px; vertical-align: -2px; }
 
 /* Field value — manuscript typography */
 .detail-field-value {

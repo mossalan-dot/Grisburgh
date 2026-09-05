@@ -1473,9 +1473,9 @@ window._spnStap = (entityId, richting) => {
 // kaartje van het scherm en zag er anders uit dan de roddels.
 const _ONTHUL_SOORT = {
   roddel: {
-    klasse: 'roddel', aan: 'Verteld', uit: 'Vertellen', iconAan: 'beer', iconUit: 'lock',
+    klasse: 'roddel', aan: 'Onthuld', uit: 'Onthullen', iconAan: 'eye', iconUit: 'lock',
     titelAan: 'Toch niet verteld — terugdraaien',
-    titelUit: 'Markeer als verteld; de spelers zien de roddel dan',
+    titelUit: 'Vertel deze roddel; de spelers zien hem dan',
     fn: '_toggleFlavour', vorige: 'Vorige roddel', volgende: 'Volgende roddel',
   },
   geheim: {
@@ -2190,7 +2190,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     _flavCache[`det-${e.id}`] = zichtbareFlavours;
     _flavPos[`det-${e.id}`]   = 0;
     _flavCtx[`det-${e.id}`]   = { tab, id: e.id, audioId: _audioId, soort: 'roddel' };
-    infoHtml += _onthulBlok(`det-${e.id}`);
+    const _verteld = _gezegd.filter(Boolean).length;
+    infoHtml += `
+      <div class="mb-4">
+        <div class="detail-field-label detail-field-label--roddel">${icon('beer')} ${flavourRegels.length > 1 ? 'Roddels' : 'Roddel'}${
+          isDM() && flavourRegels.length ? ` <span class="geheim-teller">${_verteld} van ${flavourRegels.length} onthuld</span>` : ''}</div>
+        ${_onthulBlok(`det-${e.id}`)}
+      </div>`;
   }
 
   // Geheimen: één blok per regel. De DM ziet ze allemaal met een oogje ernaast

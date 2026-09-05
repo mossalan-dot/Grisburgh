@@ -98,7 +98,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Detailvenster: kop zegt het al** (ALL) — onder de naam staat rol · origin · class · alignment; diezelfde waarden staan niet nóg eens als pil eronder
 - [ ] **Roddels doorbladeren in het detailvenster** (DM/SP) — één rol perkament met "‹ 1/3 ›"; de knop *Vertellen* / *Verteld* hoort bij de regel die je ziet, en stapt mee
 - [ ] **Geheimen als doorbladerblok** (DM) — geheimen staan in hetzelfde blok als de roddels: één tekst, rechts de knop (Onthullen/Onthuld) met de pijltjes eronder; een geheim is te herkennen aan de rode rand en rechte letters
-- [ ] **Onthulknoppen uniform** (DM) — roddels en geheimen hebben dezelfde knop op dezelfde plek, met het woord erbij (Vertellen/Verteld, Onthullen/Onthuld)
+- [ ] **Onthulknoppen uniform** (DM) — roddels en geheimen hebben dezelfde knop op dezelfde plek en dezelfde woorden (Onthullen / Onthuld), en allebei een kop met teller: *Roddels — 1 van 3 onthuld*, *Geheimen — 1 van 2 onthuld*
 - [ ] **Vergrote weergave loopt rond** (ALL) — in de lightbox blijven beide pijlen staan en ga je van de laatste afbeelding naar de eerste; ze lichten op bij hover, net als de pijlen in de carousel en in het logboek
 - [ ] **DM-acties met tekst** (DM) — de knoppenbalk toont icoon + woord (Zichtbaar/Verborgen, Overleden, Medestander, Bewerken); *Verbergen* verandert meteen zichtbaar van stand
 - [ ] **Lege tabbladen weg** (ALL) — een kaartje zonder character sheet toont die tab niet, en een verkoper zonder eigen voorraad heeft geen Voorraad/Log-tab (die staan bij de winkel)
