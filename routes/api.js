@@ -382,6 +382,16 @@ function _antagVlaggen(data, aantal) {
   return Array.from({ length: aantal }, (_, i) => !!arr[i]);
 }
 
+// Wie zich als vijand ontpopt, schuift op de morele as naar Evil; de as
+// lawful/neutral/chaotic blijft staan — dat is hoe hij te werk gaat, niet aan
+// wiens kant hij staat. "Unaligned" (beesten, constructen) laten we met rust.
+function _alignmentNaarEvil(waarde) {
+  const a = String(waarde || '').trim();
+  if (!a || /unaligned/i.test(a) || /evil/i.test(a)) return a;
+  const as = /lawful/i.test(a) ? 'Lawful' : /chaotic/i.test(a) ? 'Chaotic' : 'Neutral';
+  return `${as} Evil`;
+}
+
 // ── Rollen op een personage ──────────────────────────────────────────────────
 // `verkoper` en `antagonist` zijn van subtype naar rol verhuisd (`data.tags`),
 // zodat een verkoper ook antagonist kan zijn. Oude kaartjes dragen de waarde
@@ -655,6 +665,18 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
   const oldLinks = entities[type][idx].links || {};
   const newName  = req.body.name;
   const updated  = { ...entities[type][idx], ...req.body, id };
+  // `data` wordt in zijn geheel vervangen door wat de editor stuurt, en die kent
+  // de administratie van een onthuld verraad niet. Zonder dit zou een tussentijdse
+  // opslag het terugdraaien onmogelijk maken (kant en alignment kwamen dan niet
+  // meer terug op wat ze waren).
+  if (req.body.data) {
+    const oudeData = entities[type][idx].data || {};
+    for (const sleutel of ['kantVoorVerraad', 'alignmentVoorVerraad']) {
+      if (oudeData[sleutel] !== undefined && updated.data[sleutel] === undefined) {
+        updated.data[sleutel] = oudeData[sleutel];
+      }
+    }
+  }
   entities[type][idx] = updated;
 
   // ── Cascade rename: update alle link-verwijzingen bij naamswijziging ──
@@ -931,9 +953,18 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
     if (verraden) {
       if (entity.data.kant !== 'vijand') entity.data.kantVoorVerraad = entity.data.kant || 'neutraal';
       entity.data.kant = 'vijand';
+      const nieuwAl = _alignmentNaarEvil(entity.data.alignment);
+      if (nieuwAl !== entity.data.alignment) {
+        entity.data.alignmentVoorVerraad = entity.data.alignment || '';
+        entity.data.alignment = nieuwAl;
+      }
     } else if (entity.data.kant === 'vijand') {
       entity.data.kant = entity.data.kantVoorVerraad || 'neutraal';
       delete entity.data.kantVoorVerraad;
+      if (entity.data.alignmentVoorVerraad !== undefined) {
+        entity.data.alignment = entity.data.alignmentVoorVerraad;
+        delete entity.data.alignmentVoorVerraad;
+      }
     }
     if (String(entity.subtype).toLowerCase() === 'antagonist') entity.subtype = 'NPC';
     storage.writeJSON('entities.json', entities);
