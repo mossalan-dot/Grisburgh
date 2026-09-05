@@ -551,9 +551,9 @@ function _lijstRegelHtml(veld, tekst, i, antag = false) {
   // antagonist maakt. Eerst was dat één schakelaar voor het hele kaartje, maar
   // niet elk geheim is een verraad — en welk geheim het is, doet ertoe.
   const antagRij = veld === 'geheimen' ? `
-    <label class="lijst-regel-antag" title="Onthullen van dit geheim geeft hem de rol antagonist en zet zijn kant op vijand">
+    <label class="lijst-regel-antag" title="Dit geheim onthullen geeft het personage de rol antagonist en zet de kant op vijand">
       <input type="checkbox" class="lijst-antag-vink"${antag ? ' checked' : ''}>
-      ${icon('skull')} <span>Maakt hem antagonist &amp; vijand</span>
+      ${icon('skull')} <span>Onthullen maakt het personage een vijand</span>
     </label>` : '';
   return `<div class="lijst-regel" data-veld="${veld}">
     ${fmtToolbar(id)}
@@ -3641,7 +3641,7 @@ window._openEditor = async (tab, editId) => {
               // en een leeg vakje leest als "vergeten in te vullen".
               const kantNu = e?.data?.kant || 'neutraal';
               return [['bondgenoot', 'Bondgenoot'], ['vijand', 'Vijand'], ['neutraal', 'Neutraal']].map(([k, label]) => `
-              <label class="rol-keuze rol-keuze--kant" title="Waar hij staat als er gevochten wordt">
+              <label class="rol-keuze rol-keuze--kant" title="Aan welke kant dit personage staat als er gevochten wordt">
                 <input type="checkbox" value="${k}" ${kantNu === k ? 'checked' : ''}
                   onchange="window._kantBij(this)">
                 <span>${label}</span>

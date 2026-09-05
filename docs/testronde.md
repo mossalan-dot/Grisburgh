@@ -64,7 +64,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Roddel met de hand vertellen** (DM/SP) — knop op de rol perkament in het detailvenster; daarna ziet de speler die roddel, en terugdraaien kan
 - [ ] **Rollen en kant** (DM) — verkoper aanvinken zet de voorraad aan, antagonist geeft de badge, en de kant bepaalt waar hij in het gevecht bovenaan staat
 - [ ] **Gekoppelde spreuken** (DM/SP) — spreuk zoeken in het Spells-paneel, chip verschijnt, klikken opent het spreukdetail met de volledige tekst
-- [ ] **Geheime antagonist per geheim** (DM) — vink bij één van twee geheimen "maakt hem antagonist & vijand" aan; dat geheim onthullen geeft hem de badge én zet zijn kant op vijand, het andere geheim doet niets; terugdraaien haalt de badge weg en zet zijn oude kant terug
+- [ ] **Geheime antagonist per geheim** (DM) — vink bij één van twee geheimen "Onthullen maakt het personage een vijand" aan; dat geheim onthullen geeft hem de badge én zet zijn kant op vijand, het andere geheim doet niets; terugdraaien haalt de badge weg en zet zijn oude kant terug
 - [ ] **Focuspunt met preview** (DM) — de picker toont de héle afbeelding; sleep het kruisje en de twee voorbeelden (kaartje + rond portret) schuiven mee; klikken in de zwarte band naast het beeld springt niet naar 0%/100%
 - [ ] **Volgorde in de editor** (DM) — Informatie loopt van boven naar beneden: korte omschrijving, Origin/Class/Alignment, rollen, Beschrijving, Flavour teksten, Geheimen, Aantekeningen
 
