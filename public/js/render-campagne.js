@@ -1178,16 +1178,15 @@ function renderCard(type, e) {
             title="Verwijderen">${icon('x')}</button>
         </div>
       ` : ''}
-      ${(e._geheimTotaal || e.data?.geheim) && (isDM() || e._secretReveal) ? (isDM()
-        ? `<button class="card-secret-badge${e._secretReveal ? ' card-secret-badge--revealed' : ''}"
-             onclick="event.stopPropagation();window._openDetail('${type}','${e.id}')"
-             title="${(e._geheimTotaal || 1) > 1
-               ? `${e._geheimOnthuld || 0} van ${e._geheimTotaal} geheimen onthuld — open het kaartje om te kiezen`
-               : (e._secretReveal ? 'Geheim zichtbaar voor spelers' : 'Geheim verborgen voor spelers')}">
-             ${e._secretReveal ? icon('eye') : icon('lock')}${(e._geheimTotaal || 1) > 1
-               ? `<span class="card-secret-count">${e._geheimOnthuld || 0}/${e._geheimTotaal}</span>` : ''}</button>`
-        : `<span class="card-secret-badge card-secret-badge--revealed card-secret-badge--player" title="Geheim onthuld">${icon('eye')}</span>`
-      ) : ''}
+      <!-- Voor de DM stond hier een slotje dat vertelde of het geheim uit was.
+           Dat sloeg nergens meer op zodra een kaartje meerdere geheimen kan
+           hebben — en het leek bovendien op het zichtbaarheids-oog rechtsboven,
+           dat iets heel anders doet. Onthullen gaat nu per geheim in het
+           detailvenster. Voor spelers blijft het oog: dat zegt "hier is iets
+           prijsgegeven", en zij zien het andere icoon niet. -->
+      ${!isDM() && e._secretReveal
+        ? `<span class="card-secret-badge card-secret-badge--revealed card-secret-badge--player" title="Geheim onthuld">${icon('eye')}</span>`
+        : ''}
       <div class="card-accent bar-${type}"></div>
       <div class="card-img-wrap">
         <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbForEntity(e)}"
@@ -2775,9 +2774,11 @@ window._toggleSecret = async (tab, id, index = 0) => {
   window._openDetail(tab, id);
 };
 
-// Toggle vanuit de kaart — detail hoeft niet heropend; socket-event herrendert de kaarten.
-window._toggleSecretCard = async (type, id) => {
-  const res = await api.toggleSecret(type, id);
+// Onthullen vanaf de kaart bestaat niet meer: sinds een kaartje meerdere
+// geheimen kan hebben, kies je in het detailvenster wélk geheim eruit gaat.
+// De functie blijft staan voor het geval er ergens nog een knop naar wijst.
+window._toggleSecretCard = async (type, id, index = 0) => {
+  const res = await api.toggleSecret(type, id, index);
   _secretToast(res.secretReveal);
 };
 
