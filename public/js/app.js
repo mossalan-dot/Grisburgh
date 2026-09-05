@@ -293,6 +293,26 @@ function _scheduleFitHeader() {
   _fitHeaderRaf = requestAnimationFrame(() => { _fitHeaderRaf = null; _fitHeader(); });
 }
 window.addEventListener('resize', _scheduleFitHeader);
+
+// ── Hoogte van de app = wat je écht ziet ─────────────────────────────────────
+// `100dvh` volgt op een iPad de balken van Safari niet: de onderkant van de app
+// viel buiten beeld, waardoor het laatste rijtje kaartjes half afgesneden bleef
+// en er een strook leeg perkament onder leek te staan. De visualViewport weet
+// wel hoe hoog het zichtbare deel is.
+function _zetAppHoogte() {
+  const vv = window.visualViewport;
+  // Toetsenbord open? Dan de hoogte niet aanpassen — anders klapt de hele app
+  // in elkaar zodra iemand in een veld tikt.
+  const actief = document.activeElement;
+  if (actief && /^(INPUT|TEXTAREA)$/.test(actief.tagName)) return;
+  const h = vv ? vv.height : window.innerHeight;
+  if (h > 200) document.documentElement.style.setProperty('--app-h', `${Math.round(h)}px`);
+}
+_zetAppHoogte();
+window.addEventListener('resize', _zetAppHoogte);
+window.addEventListener('orientationchange', () => setTimeout(_zetAppHoogte, 200));
+window.visualViewport?.addEventListener('resize', _zetAppHoogte);
+window.visualViewport?.addEventListener('scroll', _zetAppHoogte);
 // Meten kan te vroeg gebeuren: zolang Cinzel nog niet geladen is, is de kop
 // smaller dan hij wordt, past alles "net" en klapt hij niet in — waarna de
 // echte letters over elkaar heen vallen. Dus opnieuw meten zodra de fonts er

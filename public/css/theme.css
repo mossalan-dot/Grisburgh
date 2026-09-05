@@ -3429,7 +3429,9 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 #app {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  /* --app-h komt uit de visualViewport (zie _zetAppHoogte in app.js); 100dvh is
+     de terugval voor browsers zonder die API. */
+  height: var(--app-h, 100dvh);
   overflow: hidden;
 }
 

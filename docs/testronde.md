@@ -75,6 +75,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Medestander vanuit het detailvenster** (DM) — het zwaardenicoon in de DM-rij (naast de doodskop) koppelt een NPC als medestander aan de **actieve** party; de knop kleurt op, nogmaals klikken koppelt los, en de bewerkmodus heeft die knop niet meer
 
+- [ ] **Volle hoogte op een tablet** (ALL) — open een tab met veel kaartjes op de iPad: het laatste rijtje is helemaal te bereiken en er staat geen lege strook perkament onder; draai het scherm en controleer opnieuw
+
 - [ ] **Kaartjes bij hover** (ALL) — een kaartje tilt op als je erover gaat, maar kantelt niet meer met de muis mee
 - [ ] **Meerdere roddels op het kaartje** (DM/SP) — bij twee onthulde flavourregels staat rechtsonder "1/2 ›"; klikken toont de volgende zonder dat het kaartje opengaat, en de DM ziet nog-niet-vertelde regels lichter
 - [ ] **Rollen blijven rollen** (DM) — vink een kant aan (Bondgenoot/Neutraal/Vijand) en sla op: die waarde komt níét als rol in `data.tags` terecht (geen "Vijand"-badge naast Verkoper)
