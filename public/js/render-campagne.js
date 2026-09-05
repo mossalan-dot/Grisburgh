@@ -148,8 +148,9 @@ const SCHEMA = {
       // Origin en Class zeggen niets over een god; domein en symbool wel.
       { key: 'ras', label: 'Origin', type: 'lijst', lijst: 'volken', nietBij: ['god'] },
       { key: 'klasse', label: 'Class', type: 'lijst', lijst: 'klassen', nietBij: ['god'] },
-      { key: 'domein', label: 'Domein', type: 'text', alleenBij: ['god'], hint: 'Waar gaat deze god over? Bijvoorbeeld: kennis en uitvinding' },
-      { key: 'symbool', label: 'Heilig symbool', type: 'text', alleenBij: ['god'], hint: 'Bijvoorbeeld: een purperen waterrad' },
+      // De grijze voorbeeldtekst zegt genoeg; een uitleg erboven is dubbelop.
+      { key: 'domein', label: 'Domein', type: 'text', alleenBij: ['god'], hint: 'Kennis en uitvinding' },
+      { key: 'symbool', label: 'Heilig symbool', type: 'text', alleenBij: ['god'], hint: 'Een purperen waterrad' },
       { key: 'alignment', label: 'Alignment', type: 'lijst', lijst: 'alignments' },
       { key: 'tags', label: 'Rollen', type: 'rollen' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
@@ -1609,15 +1610,22 @@ window._printStatblock = (titel) => {
     <style>
       body { background: #f8f0de; margin: 0; padding: 24px; }
       .print-kop { font-family: 'Cinzel', serif; font-size: 20px; color: #7a4a1a; margin: 0 0 12px; }
-      @media print { body { padding: 0; } .print-kop { margin-bottom: 8px; } }
+      .print-knop {
+        font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: .04em;
+        padding: 6px 14px; border-radius: 6px; cursor: pointer;
+        border: 1px solid #c4a87a; background: #f5edd8; color: #7a4a1a;
+        position: absolute; top: 20px; right: 24px;
+      }
+      .print-knop:hover { background: #efe3c4; }
+      @media print { body { padding: 0; } .print-kop { margin-bottom: 8px; } .geenprint { display: none !important; } }
     </style>
   </head><body>
     <h1 class="print-kop">${esc(titel)}</h1>
+    <button type="button" class="print-knop geenprint" onclick="window.print()">Printen</button>
     ${kopie.innerHTML}
   </body></html>`);
   w.document.close();
-  // Wachten tot de stylesheet er is, anders print hij kale HTML.
-  w.addEventListener('load', () => { w.focus(); w.print(); });
+  w.addEventListener('load', () => w.focus());
 };
 
 // ── Bladwijzers ──
@@ -2402,7 +2410,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // openen op (zie _vulPetStatblock verderop).
     sheetHtml += `<div id="pet-statblock-slot" class="pet-statblock-slot"><p class="text-center text-ink-faint font-fell italic py-4">Statblock laden…</p></div>`;
   }
-  if (showSheet) {
+  if (showSheet && !_isDier) {
     const s = e.stats || {};
     const hasStats = Object.values(s).some(v => v);
     if (hasStats) {

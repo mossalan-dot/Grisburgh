@@ -3420,7 +3420,12 @@ router.delete('/companions/:npcId/:groupId', requireDM, (req, res) => {
 function _activeTier(entity, ownerLevel) {
   const tiers = Array.isArray(entity?.statblockTiers) ? entity.statblockTiers.slice() : [];
   if (!tiers.length) {
-    return { statblock: entity?.statblock || {}, maxHp: entity?.maxHp, label: entity?.name, index: 0, count: 0, next: null };
+    // Geen tiers? Dan is het statblok van het kaartje zelf het antwoord. Dat
+    // staat in `stats` (entities hebben geen `statblock`-veld) — zonder deze
+    // terugval kwam er een leeg blok met allemaal tienen uit.
+    const eigen = entity?.statblock || entity?.stats || {};
+    const hp = parseInt(String(eigen.hp ?? '').match(/\d+/)?.[0] ?? '');
+    return { statblock: eigen, maxHp: entity?.maxHp ?? (isNaN(hp) ? null : hp), label: entity?.name, index: 0, count: 0, next: null };
   }
   tiers.sort((a, b) => (a.minLevel || 0) - (b.minLevel || 0));
   const lvl = parseInt(ownerLevel) || 1;
