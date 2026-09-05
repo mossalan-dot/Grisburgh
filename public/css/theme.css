@@ -5124,14 +5124,19 @@ body.verhaal-open .kaart-fs-overlay { right: var(--verhaal-breedte); }
    is de standaard (gouden rand, vinkje); afwezig dooft de chip en zet er een
    kruis voor. Bewust geen checkbox — een rij namen die je aantikt leest sneller
    aan het begin van een sessie. */
-.dm-inst-aanwezig {
+/* Personages en Actief staan onder elkaar: zelfde rij-opbouw en een label met
+   vaste breedte, zodat de chips van beide regels op dezelfde kolom beginnen. */
+.dm-inst-aanwezig,
+.dm-inst-leden {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
   margin: -2px 0 4px 2px;
+  padding: 0;
 }
 .dm-inst-aanwezig-label {
   display: inline-flex; align-items: center; gap: 5px;
   font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .4px;
-  text-transform: uppercase; color: #9a8354; margin-right: 2px;
+  text-transform: uppercase; color: #9a8354;
+  width: 8.5em; flex-shrink: 0;
 }
 .dm-aanwezig-chip {
   display: inline-flex; align-items: center; gap: 4px;
@@ -22694,23 +22699,17 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 
 /* Leden van een party in de Meesterkamer: chips met een kruisje, plus een
    zoekveld om er iemand bij te zetten. */
-.dm-inst-leden {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 2px 2px;
-}
 .dm-lid-chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 6px 3px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(122,96,64,.35);
-  background: rgba(196,168,122,.18);
-  font-family: 'Crimson Text', serif;
+  padding: 4px 7px 4px 9px;
+  border-radius: 11px;
+  border: 1px solid #c4a87a;
+  background: rgba(255,255,255,0.55);
+  font-family: 'Crimson Text', Georgia, serif;
   font-size: 13px;
+  line-height: 1;
   color: #3a2410;
 }
 .dm-lid-chip button {
