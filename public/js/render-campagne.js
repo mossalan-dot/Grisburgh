@@ -144,6 +144,7 @@ const SCHEMA = {
       // De sleutels blijven zoals ze zijn (daar hangt opgeslagen data aan); alleen
       // de labels zeggen nu wat het veld ís. 'rol' was zo vaag dat het van alles
       // werd, 'persoonlijkheid' gaat in de praktijk over hoe jíj hem speelt.
+      { key: 'soortLabel', label: 'Ras', type: 'text', alleenBij: ['dier'], hint: 'Hond' },
       { key: 'rol', label: 'Korte omschrijving', type: 'text' },
       // Origin en Class zeggen niets over een god; domein en symbool wel.
       // Een god heeft geen volk of klasse, een dier evenmin — dat is bij hem het
@@ -4046,13 +4047,15 @@ window._openEditor = async (tab, editId) => {
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <input type="hidden" name="data_${field.key}" id="rollen-veld" value="${esc(JSON.stringify(_gekozen))}">
           <div class="rollen-rij mt-1">
-            ${ROLLEN.map(r => `
-              <label class="rol-keuze" title="${esc(r.uitleg)}">
-                <input type="checkbox" value="${r.key}" ${_gekozen.includes(r.key) ? 'checked' : ''}
-                  onchange="window._rollenBij()">
-                <span>${esc(r.label)}</span>
-              </label>`).join('')}
-            <span class="rollen-scheiding" aria-hidden="true"></span>
+            <span class="rollen-rollen"${String(e?.subtype || '').toLowerCase() === 'dier' ? ' style="display:none"' : ''}>
+              ${ROLLEN.map(r => `
+                <label class="rol-keuze" title="${esc(r.uitleg)}">
+                  <input type="checkbox" value="${r.key}" ${_gekozen.includes(r.key) ? 'checked' : ''}
+                    onchange="window._rollenBij()">
+                  <span>${esc(r.label)}</span>
+                </label>`).join('')}
+              <span class="rollen-scheiding" aria-hidden="true"></span>
+            </span>
             <!-- Kant in gevecht staat in dezelfde rij, achter een streepje: het
                  zijn ook vinkjes, maar er kan er maar één aan staan. Een
                  dropdown ernaast oogde als iets van een andere orde. -->
@@ -4071,6 +4074,42 @@ window._openEditor = async (tab, editId) => {
           </div>
         </div>
       `;
+      // ── Adoptie (type 'dier') ──
+      // Direct onder de rollen: het gaat over of en voor hoeveel de party dit
+      // dier kan krijgen. Zijn statblok (de tiers) staat op het sheet.
+      if (tab === 'personages' && isDM()) {
+        const _isDierNu = e?.subtype === 'dier';
+        const _adopt2   = e?.data?.adopteerbaar === true || e?.data?.adopteerbaar === 'true';
+        const _prijsCl2 = (() => {
+          const cl = parseInt(e?.data?.adoptiePrijsCl);
+          if (!isNaN(cl)) return cl;
+          const fl = parseInt(e?.data?.adoptiePrijs?.fl ?? e?.data?.adoptiePrijsFl);
+          return isNaN(fl) ? null : fl * 100;
+        })();
+        const _mn2 = window._muntNamen();
+        body += `
+          <div id="pet-adopt-section"${_isDierNu ? '' : ' style="display:none"'}>
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Adoptie</label>
+            <label class="rol-keuze mt-1" style="display:flex">
+              <input type="checkbox" id="pet-adopt-cb" ${_adopt2 ? 'checked' : ''}
+                onchange="document.getElementById('pet-adopt-hidden').value=this.checked?'true':''">
+              <span>Te adopteren door een party</span>
+            </label>
+            <input type="hidden" name="data_adopteerbaar" id="pet-adopt-hidden" value="${_adopt2 ? 'true' : ''}">
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <label class="text-[10px] font-cinzel text-ink-dim uppercase">Adoptieprijs</label>
+                <input name="data_adoptiePrijs_tekst" value="${_prijsCl2 === null ? '' : `${Math.floor(_prijsCl2 / 100)},${String(_prijsCl2 % 100).padStart(2, '0')}`}"
+                  placeholder="12,34" inputmode="decimal"
+                  title="Eén bedrag met een komma: 12,34 is 12 ${esc(_mn2.fl)}, 3 ${esc(_mn2.kn)} en 4 ${esc(_mn2.cl)}"
+                  class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              </div>
+            </div>
+            <p class="text-[10px] text-ink-dim mt-1">Verschijnt bij de dienst die dieren aanbiedt.</p>
+          </div>
+        `;
+      }
+
       // Waar iemand verkoopt hoort bij zijn rollen, niet in een eigen tabblad:
       // het is één keuzelijst. De waren zelf liggen bij de locatie.
       if (tab === 'personages' && isDM()) {
@@ -4199,49 +4238,6 @@ window._openEditor = async (tab, editId) => {
         <div id="editor-audio-name" class="hidden"></div>
       </div>
       <input type="hidden" name="data_audioId" id="editor-audio-id" value="${esc(_existingAudioId)}">
-    `;
-  }
-
-  // ── Adoptie (type 'dier') ──
-  // Hoort bij Informatie: het gaat over of en voor hoeveel de party dit dier kan
-  // krijgen, niet over zijn statblok. De tiers staan wél op het sheet. De marker
-  // moet er expliciet bij: het vorige blok zette de panelen op 'beeld'.
-  body += `<!--P:info-->`;
-  if (tab === 'personages' && isDM()) {
-    const _isDierNu = e?.subtype === 'dier';
-    const _adopt2   = e?.data?.adopteerbaar === true || e?.data?.adopteerbaar === 'true';
-    const _prijsCl2 = (() => {
-      const cl = parseInt(e?.data?.adoptiePrijsCl);
-      if (!isNaN(cl)) return cl;
-      const fl = parseInt(e?.data?.adoptiePrijs?.fl ?? e?.data?.adoptiePrijsFl);
-      return isNaN(fl) ? null : fl * 100;
-    })();
-    const _mn2 = window._muntNamen();
-    body += `
-      <div id="pet-adopt-section"${_isDierNu ? '' : ' style="display:none"'}>
-        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Adoptie</label>
-        <label class="rol-keuze mt-1" style="display:flex">
-          <input type="checkbox" id="pet-adopt-cb" ${_adopt2 ? 'checked' : ''}
-            onchange="document.getElementById('pet-adopt-hidden').value=this.checked?'true':''">
-          <span>Te adopteren door een party</span>
-        </label>
-        <input type="hidden" name="data_adopteerbaar" id="pet-adopt-hidden" value="${_adopt2 ? 'true' : ''}">
-        <div class="grid grid-cols-2 gap-2 mt-2">
-          <div>
-            <label class="text-[10px] font-cinzel text-ink-dim uppercase">Adoptieprijs</label>
-            <input name="data_adoptiePrijs_tekst" value="${_prijsCl2 === null ? '' : `${Math.floor(_prijsCl2 / 100)},${String(_prijsCl2 % 100).padStart(2, '0')}`}"
-              placeholder="12,34" inputmode="decimal"
-              title="Eén bedrag met een komma: 12,34 is 12 ${esc(_mn2.fl)}, 3 ${esc(_mn2.kn)} en 4 ${esc(_mn2.cl)}"
-              class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-          </div>
-          <div>
-            <label class="text-[10px] font-cinzel text-ink-dim uppercase">Ras</label>
-            <input name="data_soortLabel" value="${esc(e?.data?.soortLabel || '')}" placeholder="Hond"
-              class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-          </div>
-        </div>
-        <p class="text-[10px] text-ink-dim mt-1">Verschijnt bij de dienst die dieren aanbiedt.</p>
-      </div>
     `;
   }
 
