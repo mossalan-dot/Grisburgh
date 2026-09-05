@@ -55,6 +55,74 @@ pikt ze al één voor één op.
 
 ## 3. Subtypes: kind en rol door elkaar
 
+> **Uitgewerkt voorstel, 5 sep.** Wat hieronder in dit hoofdstuk staat was de
+> eerste schets; het voorstel dat we gaan bouwen staat in *3a*.
+
+## 3a. Voorstel: vier subtypes, drie rollen, één kant
+
+**Wat er nu staat** (Grisburgh, 168 personages): NPC 96 · god 23 · antagonist 20 ·
+verkoper 10 · speler 10 · dier 6 · leeg 3.
+
+### Subtype — wat voor kaartje is dit? (één waarde)
+
+| Subtype | Wat het ontsluit in de app |
+|---|---|
+| **NPC** | de standaard. Iedereen die de party kan tegenkomen. 96 kaartjes. |
+| **Speler** | party-tab, boedel, progressie, spreukenboek, character sheet, HP en Hit Dice, login via de personagekiezer, meedoen aan loot en rust. Dit is verreweg de zwaarste schakelaar in de app. |
+| **Dier** | statblock dat meeschaalt met het level van het baasje (`statblockTiers`), adoptie via de Magizoöloog, en meelopen als medestander. **Summon, rijdier en familiar vallen hieronder** — dat is geen apart soort kaartje, dat is een dier met een rol. |
+| **God** | de Tempel: eden, zegeningen, priesters. 23 kaartjes. |
+
+Daarmee is de vraag "waar blijft de generieke NPC" beantwoord: **NPC blijft
+gewoon het subtype**, en is meteen de standaardwaarde. Wat verdwijnt zijn
+*verkoper* en *antagonist* — dat zijn geen soorten kaartjes maar rollen.
+
+### Rollen — wat doet dit personage? (tags, meerdere tegelijk)
+
+| Tag | Wat het doet |
+|---|---|
+| **Verkoper** | zet de voorraad-sectie aan: kopen, verkopen, uitverkocht per party. Nu een subtype, straks een tag — dan kan een verkoper ook antagonist zijn, en dat is het leukste soort verkoper. |
+| **Missiegever** | filter: bij wie loopt een draad? *Missiegever* en niet *questgever*, want de app noemt ze Missies. |
+| **Antagonist** | kleur en badge op de kaart. De bestaande "geheime antagonist"-schakelaar zet straks de tag in plaats van het subtype. |
+
+**Niet opgenomen, en waarom:**
+- *Huurling* — dat is een medestander die betaald wordt; het verschil zit in het
+  verhaal, niet in wat de app moet doen.
+- *Gevangene* — een toestand, geen rol. Hoort in de tekst of in een geheim.
+- *Summon* en *rijdier* — een dier met een taak; het subtype dekt het al.
+- *Medestander* — **bestaat al**, maar als toestand: `dmState.activeAllies` is de
+  lijst met wie er nú meeloopt, en het gevecht vult ze automatisch aan. Een tag
+  ernaast zou hetzelfde twee keer zeggen.
+
+### Kant in gevecht — het stuk dat echt iets oplevert
+
+Het gevecht kent al drie soorten deelnemers: `player`, `ally` en `monster`.
+Spelers en monsters komen automatisch binnen; medestanders komen uit
+`dmState.activeAllies`. Wat ontbreekt is een antwoord op de vraag *aan welke
+kant hoort deze NPC als hij in een gevecht belandt* — nu wordt alles wat je met
+de hand toevoegt een `monster`.
+
+Voorstel: één veld op de kaart, `data.kant` — **bondgenoot · vijand · neutraal**
+(leeg = onbepaald). Daarmee kan:
+
+- het toevoegen van een NPC aan een gevecht meteen het juiste type kiezen
+  (bondgenoot → `ally`, vijand → `monster`), inclusief de juiste kleur en plek
+  in de initiatieflijst;
+- de encounter-vuller voorstellen doen ("deze drie bondgenoten staan in deze
+  akte naast de party");
+- het tafelscherm bondgenoten en vijanden uit elkaar houden.
+
+`activeAllies` blijft wat het is: wie er op dít moment meeloopt. De kaart zegt
+wat iemand *is*, dm-state zegt wat er *nu* aan de hand is.
+
+### Migratie
+
+Automatisch, zonder handwerk: subtype `verkoper` → subtype NPC + tag verkoper
+(10 kaartjes), subtype `antagonist` → subtype NPC + tag antagonist + kant vijand
+(20 kaartjes). De drie kaartjes zonder subtype worden NPC. Filters, de
+winkel-mechaniek en de geheime-antagonist-schakelaar gaan mee.
+
+## 3b. De eerste schets (achterhaald)
+
 Nu: NPC, speler, antagonist, god, dier, verkoper. Die zes zitten op drie
 verschillende assen:
 
