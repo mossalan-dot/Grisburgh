@@ -1,4 +1,4 @@
-import { api } from './api.js?v=266';
+import { api } from './api.js?v=267';
 import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);
@@ -3467,6 +3467,38 @@ window._charVideoStatus = async (entityId) => {
 // personage is aangemaakt.
 let _pendingVideoFile = null;
 
+// Filmpje kiezen gaat net als een afbeelding via de mediabibliotheek: daar
+// staat wat je eerder hebt geüpload en kun je nieuw materiaal toevoegen. De app
+// zoekt het filmpje op onder de vaste naam `<entityId>_video`, dus na het kiezen
+// maken we daar een kopie van — het origineel blijft gewoon in de bibliotheek.
+window._editorPickVideo = (entityId) => {
+  const naamHint = (document.querySelector('[name="name"]')?.value || '').trim().toLowerCase().replace(/\s+/g, '-');
+  window.mediaPicker.open({
+    type: 'video',
+    suggestedName: naamHint ? `${naamHint}-filmpje` : '',
+    onSelect: async (fileId) => {
+      if (!fileId) return;
+      const el = document.getElementById('editor-video-status');
+      if (!entityId) {
+        // Nieuw kaartje: het id bestaat nog niet, dus onthouden tot het opslaan.
+        _pendingVideoBron = fileId;
+        if (el) el.textContent = 'Klaar om te bewaren; wordt gekoppeld zodra je opslaat.';
+        return;
+      }
+      if (el) el.textContent = 'Koppelen\u2026';
+      try {
+        await api.copyFile(`${entityId}_video`, fileId);
+        if (el) el.textContent = 'Klaar — filmpje gekoppeld.';
+        document.getElementById('editor-video-del')?.classList.remove('hidden');
+      } catch (err) {
+        if (el) el.textContent = '';
+        alert('Koppelen mislukt: ' + (err.message || err));
+      }
+    },
+  });
+};
+let _pendingVideoBron = null;   // gekozen bibliotheek-id, nog te koppelen
+
 window._kiesCharVideo = async (entityId, file, invoer) => {
   if (!file) return;
   if (entityId) return window._uploadCharVideo(entityId, file, invoer);
@@ -3669,6 +3701,7 @@ window._openEditor = async (tab, editId) => {
   editorTags = {};
   pendingAudioFile = null;
   _pendingVideoFile = null;
+  _pendingVideoBron = null;
   _petTiers = Array.isArray(e?.statblockTiers) ? JSON.parse(JSON.stringify(e.statblockTiers)) : [];
   _editorOldAudioId = e?.data?.audioId || null;
   for (const lt of LINK_TYPES) {
@@ -3763,11 +3796,11 @@ window._openEditor = async (tab, editId) => {
         <p class="text-[10px] text-ink-dim mb-1">Speelt op de landingspagina terwijl er op dit portret wordt ingezoomd. Maximaal 8 MB; langer dan 6 seconden mag, maar stopt dan vanzelf.</p>
         <div id="editor-video-status" class="text-xs text-ink-faint italic mb-1">${e?.id ? 'Controleren…' : ''}</div>
         <div class="flex items-center gap-2">
-          <label class="dm-btn dm-btn-ghost dm-btn-sm" style="cursor:pointer">
+          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+            onclick="window._editorPickVideo('${esc(e?.id || '')}')"
+            title="Kies uit de mediabibliotheek of upload nieuw">
             ${icon('camera')} Filmpje kiezen
-            <input type="file" accept="video/mp4,video/webm" class="hidden"
-              onchange="window._kiesCharVideo('${esc(e?.id || '')}', this.files[0], this)">
-          </label>
+          </button>
           <button type="button" id="editor-video-del" class="dm-btn dm-btn-ghost dm-btn-sm hidden"
             onclick="window._removeCharVideo('${esc(e?.id || '')}')" title="Filmpje verwijderen">${icon('trash')}</button>
         </div>
@@ -3802,6 +3835,12 @@ window._openEditor = async (tab, editId) => {
   }
 
   // Groep-selector (alleen voor personages met subtype speler)
+  // Bij één party valt er niets te kiezen, maar het veld moet wél meegestuurd
+  // worden: zonder waarde las het opslaan het als "verhuist naar geen party" en
+  // kreeg je die verhuiswaarschuwing bij elke wijziging.
+  if (tab === 'personages' && _editorGroups.length <= 1) {
+    body += `<input type="hidden" name="data_groep" value="${esc(e?.data?.groep || (e?.subtype === 'speler' ? (_editorGroups[0]?.id || '') : ''))}">`;
+  }
   if (tab === 'personages' && _editorGroups.length > 1) {
     const isSpeler = e?.subtype === 'speler';
     const currentGroep = e?.data?.groep || '';
@@ -4751,6 +4790,11 @@ window._openEditor = async (tab, editId) => {
       if (_pendingVideoFile && _nieuwId) {
         await api.uploadFile(`${_nieuwId}_video`, _pendingVideoFile).catch(() => {});
         _pendingVideoFile = null;
+      }
+      // Idem voor een filmpje dat uit de bibliotheek gekozen is.
+      if (_pendingVideoBron && _nieuwId) {
+        await api.copyFile(`${_nieuwId}_video`, _pendingVideoBron).catch(() => {});
+        _pendingVideoBron = null;
       }
       // Upload/verwijder audio
       if (pendingAudioFile && data.audioId) {

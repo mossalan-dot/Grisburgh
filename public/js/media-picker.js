@@ -4,18 +4,25 @@
 // een editor kan openen die zelf het hoofd-modal gebruikt.
 //
 //   window.mediaPicker.open({
-//     type: 'afbeelding',          // 'afbeelding' | 'audio' — filtert de bibliotheek
+//     type: 'afbeelding',          // 'afbeelding' | 'audio' | 'video' — filtert de bibliotheek
 //     suggestedName: 'gareth-personages',  // vooraf ingevulde naam bij upload (optioneel)
 //     onSelect: (fileId) => { … }  // bestaand id óf vers geüpload id
 //   });
 
-import { api } from './api.js?v=266';
+import { api } from './api.js?v=267';
 
 const icon = (...a) => window.icon(...a);
 const esc  = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const escJS = (s) => String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '');
 
 let _state = null;   // { type, onSelect, suggestedName, tab, files, query, pendingFile }
+
+// Per mediasoort: hoe de picker heet, welk icoon hij toont en wat hij accepteert.
+const _SOORT = {
+  afbeelding: { titel: 'Kies afbeelding', icoon: 'image',     accept: 'image/*',                  voorbeeld: 'gareth-personages' },
+  audio:      { titel: 'Kies geluid',     icoon: 'volume-2',  accept: 'audio/*',  icoonCel: 'volume-2', voorbeeld: 'kampvuur-ambiance' },
+  video:      { titel: 'Kies filmpje',    icoon: 'camera',    accept: 'video/mp4,video/webm', icoonCel: 'camera', voorbeeld: 'wilmer-intro' },
+};
 
 function _fmtGrootte(b) {
   if (!b && b !== 0) return '';
@@ -70,11 +77,11 @@ function _filtered() {
 function _paint() {
   const ov = _overlay();
   if (!ov || !_state) return;
-  const isAudio = _state.type === 'audio';
+  const soort = _SOORT[_state.type] || _SOORT.afbeelding;
   ov.innerHTML = `
     <div class="media-picker" role="dialog" aria-label="Mediabibliotheek">
       <div class="media-picker-head">
-        <span class="media-picker-title">${icon(isAudio ? 'volume-2' : 'image')} ${isAudio ? 'Kies geluid' : 'Kies afbeelding'}</span>
+        <span class="media-picker-title">${icon(soort.icoon)} ${soort.titel}</span>
         <button class="media-picker-close" onclick="window.mediaPicker.close()" title="Sluiten">${icon('x')}</button>
       </div>
       <div class="media-picker-tabs">
@@ -108,11 +115,12 @@ function _paintGrid() {
     grid.innerHTML = `<div class="media-picker-empty">${_state.files.length ? 'Niets gevonden voor dit filter.' : 'Nog niets in de bibliotheek — upload een nieuw bestand.'}</div>`;
     return;
   }
-  const isAudio = _state.type === 'audio';
+  const soort = _SOORT[_state.type] || _SOORT.afbeelding;
   grid.innerHTML = lijst.map(f => {
     const meta = [_fmtGrootte(f.grootte), (f.breedte && f.hoogte) ? `${f.breedte}×${f.hoogte}` : ''].filter(Boolean).join(' · ');
-    const preview = isAudio
-      ? `<div class="media-picker-cell-audio">${icon('volume-2', { cls: 'icon-lg' })}</div>`
+    // Van een filmpje bestaat geen thumbnail: een icoon zegt genoeg.
+    const preview = soort.icoonCel
+      ? `<div class="media-picker-cell-audio">${icon(soort.icoonCel, { cls: 'icon-lg' })}</div>`
       : `<div class="media-picker-cell-img"><img src="${api.thumbUrl(f.id)}" loading="lazy" alt="${esc(f.naam)}"
            onerror="this.parentElement.classList.add('broken')"></div>`;
     return `
@@ -125,8 +133,8 @@ function _paintGrid() {
 }
 
 function _uploadHtml() {
-  const isAudio = _state.type === 'audio';
-  const accept  = isAudio ? 'audio/*' : 'image/*';
+  const soort  = _SOORT[_state.type] || _SOORT.afbeelding;
+  const accept = soort.accept;
   const f = _state.pendingFile;
   return `
     <div class="media-picker-upload">
@@ -137,13 +145,13 @@ function _uploadHtml() {
         ondrop="event.preventDefault();this.classList.remove('drag');window.mediaPicker._fileChosen(event.dataTransfer.files[0])">
         ${f
           ? `<div class="media-picker-drop-chosen">${icon('check-circle')} ${esc(f.name)} <span class="media-picker-drop-size">(${_fmtGrootte(f.size)})</span></div>`
-          : `<div class="media-picker-drop-hint">${icon(isAudio ? 'volume-2' : 'image')} Sleep een bestand hierheen of klik om te kiezen</div>`}
+          : `<div class="media-picker-drop-hint">${icon(soort.icoon)} Sleep een bestand hierheen of klik om te kiezen</div>`}
       </div>
       <input type="file" id="media-picker-file" accept="${accept}" style="display:none"
         onchange="window.mediaPicker._fileChosen(this.files[0])">
       <label class="media-picker-naam-label">Weergavenaam
         <input type="text" id="media-picker-naam" class="dm-input dm-input-sm"
-          placeholder="bijv. ${isAudio ? 'kampvuur-ambiance' : 'gareth-personages'}"
+          placeholder="bijv. ${soort.voorbeeld}"
           value="${esc(_state.suggestedName)}">
       </label>
       <div class="media-picker-upload-actions">

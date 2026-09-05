@@ -130,6 +130,9 @@ export const api = {
   fileForEntity: (e) => `${BASE}/files/${e?.data?.imageId || e?.imageId || e?.id}`,
   thumbForEntity:(e) => `${BASE}/thumb/${e?.data?.imageId || e?.imageId || e?.id}`,
   deleteFile: (id) => request(`/files/${id}`, { method: 'DELETE' }),
+  // Kopie onder een vaste naam (bv. <entityId>_video): het bronbestand blijft in
+  // de bibliotheek staan, de kopie is de afgeleide die de app opzoekt.
+  copyFile:   (id, bronId) => request(`/files/${id}/copy-from/${bronId}`, { method: 'POST' }),
 
   // Sessie Log
   createSessieLog: (data) => request('/sessieLog', { method: 'POST', body: JSON.stringify(data) }),

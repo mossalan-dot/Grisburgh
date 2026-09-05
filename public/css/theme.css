@@ -16952,6 +16952,12 @@ body.display-mode .combat-overlay { z-index: 60; }
 
 /* Als aktebar actief is: verberg de geminimaliseerde combat-balk (knop zit in aktebar) */
 body.dm-rb-active .combat-overlay.minimized { display: none !important; }
+/* De formule-invoer in het dobbelpaneel staat uit: aan tafel gooi je met de
+   knoppen, en het invoerveld nam de halve hoogte in. Markup en handlers blijven
+   staan (window.dice.rollText werkt nog, o.a. vanaf een damage-pill), dus
+   terugzetten is deze regel weghalen. */
+.dice-formula-toggle, .dice-formula { display: none !important; }
+
 /* De dobbelknop van de DM hoort bij het spelen. Buiten een lopende akte
    (body.dm-rb-active = regie-balk staat aan) geeft hij alleen ruimte weg. */
 body:not(.dm-rb-active) .dm-dice-fab,

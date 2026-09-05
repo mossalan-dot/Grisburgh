@@ -2,7 +2,7 @@
  * render-progressie.js — Skill trees / klasse-progressie op het personagetabblad
  */
 
-import { api } from './api.js?v=266';
+import { api } from './api.js?v=267';
 
 // ── Hulpfuncties ───────────────────────────────────────────────────
 const esc  = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

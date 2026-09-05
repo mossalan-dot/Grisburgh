@@ -36,7 +36,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 `public/js/render-campagne.js` · `render-bestiarium.js` · `render-statblock.js` · `render-spreuken.js`
 
 - [ ] **Personages** (ALL) — kaartjes met portret; filter op subtype (speler, NPC, dier), zoeken op naam én op tekst; klik opent het detailvenster met portret, stats en beschrijving; `[[Naam]]` in een tekst is klikbaar en springt naar dat kaartje
-- [ ] **Personage-editor** (DM) — alle velden bewaren; portret uit de mediabibliotheek met versleepbaar focuspunt; extra afbeeldingen; filmpje uploaden (weigert boven 8 MB); zichtbaarheid per party; van party wisselen waarschuwt eerst
+- [ ] **Personage-editor** (DM) — alle velden bewaren; portret uit de mediabibliotheek met versleepbaar focuspunt; extra afbeeldingen; **filmpje via dezelfde mediabibliotheek** (kiezen uit wat er staat of nieuw uploaden); zichtbaarheid per party; van party wisselen waarschuwt eerst — maar bij één party mag die waarschuwing níét komen
+- [ ] **Dobbelpaneel** (ALL) — het formulier-invoerveld is weg; gooien gaat met de dobbelknoppen
 - [ ] **Locaties** (ALL) — type *Winkel* geeft een voorraad met prijzen — koop en verkoop als speler en controleer geld én boedel; een gepinde locatie toont de kaartknop die naar de juiste plek vliegt
 - [ ] **Organisaties** (ALL) — kaartjes, leden die eraan hangen, detailvenster, zichtbaarheid per party
 - [ ] **Voorwerpen** (ALL) — gekleurde rand per rarity (grijs → goud), gloed en shimmer bij Very Rare en Legendary; damage-pill klikken opent het dobbelpaneel met die formule; rariteit in kleur in het detailvenster

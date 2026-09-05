@@ -5027,9 +5027,10 @@ router.post('/files/:id/copy-from/:src', requireDM, async (req, res) => {
   let buffer;
   try { buffer = fs.readFileSync(src.path); } catch { return res.status(500).json({ error: 'Lezen mislukt' }); }
   storage.saveFile(req.params.id, buffer, src.mimetype);
-  // spell-img-<index> is een afgeleide weergavekopie, geen bibliotheek-asset:
-  // niet registreren (anders staat 'ie dubbel naast het bronbestand).
-  if (/^spell-img-/.test(req.params.id)) _unregisterMedia(req.params.id);
+  // spell-img-<index> en <entityId>_video zijn afgeleide kopieën, geen
+  // bibliotheek-assets: niet registreren (anders staan ze dubbel naast het
+  // bronbestand dat de DM koos).
+  if (/^spell-img-/.test(req.params.id) || /_video$/.test(req.params.id)) _unregisterMedia(req.params.id);
   else await _registerMedia(req.params.id, { mime: src.mimetype, grootte: buffer.length, buffer });
   res.json({ ok: true });
 });
