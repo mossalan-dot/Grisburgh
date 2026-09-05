@@ -12214,6 +12214,16 @@ body.herberg-actief #app { position: relative; z-index: 1; }
   background: rgba(20,12,4,0.62);
   border-color: rgba(240,200,64,0.55);
 }
+/* Kaartje zonder afbeelding: de ster staat dan boven de naam, dus daar ruimte
+   voor maken. (De knop hing eerst in de afbeeldingswrapper — die wordt bij zo'n
+   kaartje verborgen, en daarmee verdween de ster helemaal.) */
+.entity-card.no-img .card-bookmark-btn {
+  background: rgba(196,168,122,.28);
+  border-color: rgba(122,96,64,.35);
+  color: #8a6d3f;
+}
+.entity-card.no-img .card-bookmark-btn:hover { background: rgba(196,168,122,.5); color: #7a4a1a; }
+.entity-card.no-img .card-body { padding-top: 34px; }
 
 /* ── Kaart-knop op locatie-cards ── */
 .card-map-btn {

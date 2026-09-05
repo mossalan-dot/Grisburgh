@@ -1373,6 +1373,16 @@ function renderCard(type, e) {
            hebben; onthullen gaat nu per geheim in het detailvenster. Voor de
            speler is het gebleven, maar als pill bij de andere badges: linksboven
            lag hij precies op de bladwijzerknop. -->
+      ${!isDM() && window.app?.state?.characterId ? (() => {
+        const _bms = window.app?.state?.bookmarks || [];
+        const _bmActive = _bms.some(b => b.id === e.id);
+        return `<button class="card-bookmark-btn${_bmActive ? ' card-bookmark-btn--active' : ''}"
+          onclick="event.stopPropagation();window._toggleBookmark(this.dataset.btype,this.dataset.bid,this.dataset.bname)"
+          data-btype="${esc(type)}" data-bid="${esc(e.id)}" data-bname="${esc(e.name)}"
+          title="${_bmActive ? 'Bladwijzer verwijderen' : 'Bladwijzer toevoegen'}">
+          ${_bmActive ? '★' : '☆'}
+        </button>`;
+      })() : ''}
       <div class="card-accent bar-${type}"></div>
       <div class="card-img-wrap">
         <img class="card-img w-full object-cover" loading="lazy" src="${api.thumbForEntity(e)}"
@@ -1383,16 +1393,6 @@ function renderCard(type, e) {
           ${!isDM() && e._secretReveal ? `<span class="card-geheim-pill" title="Er is een geheim over dit kaartje onthuld">${icon('eye')} Geheim onthuld</span>` : ''}
           ${badges.length ? `<div class="card-badges-rij">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
         </div>` : ''}
-        ${!isDM() && window.app?.state?.characterId ? (() => {
-          const _bms = window.app?.state?.bookmarks || [];
-          const _bmActive = _bms.some(b => b.id === e.id);
-          return `<button class="card-bookmark-btn${_bmActive ? ' card-bookmark-btn--active' : ''}"
-            onclick="event.stopPropagation();window._toggleBookmark(this.dataset.btype,this.dataset.bid,this.dataset.bname)"
-            data-btype="${esc(type)}" data-bid="${esc(e.id)}" data-bname="${esc(e.name)}"
-            title="${_bmActive ? 'Bladwijzer verwijderen' : 'Bladwijzer toevoegen'}">
-            ${_bmActive ? '★' : '☆'}
-          </button>`;
-        })() : ''}
         ${type === 'locaties' && window._pinnedLocIds?.has(e.id) ? `<button class="card-map-btn"
           onclick="event.stopPropagation();window._toonOpKaart('${esc(e.id)}')"
           title="Toon op kaart">${icon('map-pin')}</button>` : ''}
