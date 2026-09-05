@@ -114,6 +114,43 @@ Voorstel: één veld op de kaart, `data.kant` — **bondgenoot · vijand · neut
 `activeAllies` blijft wat het is: wie er op dít moment meeloopt. De kaart zegt
 wat iemand *is*, dm-state zegt wat er *nu* aan de hand is.
 
+### Drie vragen die het voorstel scherper maakten
+
+**Niet elk dier schaalt mee.** Klopt, en dat is geen bezwaar: `statblockTiers`
+is optioneel. `_activeTier()` in `routes/api.js` valt zonder tiers netjes terug
+op het vaste `statblock` van de entiteit — precies wat je wilt voor een rijdier
+of een summon, die niet meegroeien met het level van hun baasje. Van de zes
+dieren in Grisburgh heeft er nu nul tiers, en dat werkt gewoon. De tier-editor
+moet dan wel ophouden te doen alsof je er minstens één *moet* maken: de tekst
+wordt "zonder tiers gebruikt dit dier zijn vaste statblock — dat is wat je wilt
+voor een rijdier of een opgeroepen wezen".
+
+**Missiegever hangt nergens aan.** Ook waar, en dat is een reden om het
+*géén* tag te maken. Een missie heeft nu `id, title, description, status,
+chapter, notes` — geen gever. Beter dan een handmatig vinkje dat verjaart:
+
+- **`missie.geverId`** erbij (een personage- of organisatie-kaartje).
+- De **Missies-tab** toont "Gegeven door —" met een klik naar dat kaartje.
+- Het **kaartje zelf** krijgt een blokje *Missies*: welke draden hangen aan deze
+  persoon, met hun status. Dat is de winst — je opent een NPC en ziet meteen
+  wat er met hem loopt.
+- De **akte** koppelt al aan `chapter`, dus een regie-script kan tonen welke
+  missies in deze akte spelen en wie ze gaf.
+- De rol "missiegever" wordt daarmee **afgeleid**, niet ingevuld: wie een missie
+  gaf, is missiegever. Niets om bij te houden.
+
+**Gevangene: geen tag maar een toestand.** Net als een medestander is dit iets
+wat *nu* het geval is, niet wat iemand ís. Zelfde vorm als `companions`:
+`groups[gid].gevangenen[entityId] = { sinds, notitie }`.
+
+- Zichtbaar in het **partytabblad** onder de medestanders: "In bewaring", met
+  portret en sinds wanneer.
+- De DM zet het aan vanaf het kaartje (knop naast overleden-markeren).
+- Voor het **gevecht**: wie in bewaring is, doet niet vanzelf mee — en als je
+  hem toevoegt, is hij geen bondgenoot maar een aanwezige die iets kan doen.
+- Later kan de party hem vrijlaten, uitleveren of overtuigen; dat zijn dan
+  gewoon knoppen bij die regel.
+
 ### Migratie
 
 Automatisch, zonder handwerk: subtype `verkoper` → subtype NPC + tag verkoper
