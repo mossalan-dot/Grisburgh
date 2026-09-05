@@ -14136,23 +14136,25 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 }
 .tempel-god-eed-badge .icon { width: 10px; height: 10px; }
 /* ── Help-knop & modal ──────────────────────────────────────────────────────*/
+/* Even groot en even duidelijk als de filterknop ernaast: hij stond op 22px in
+   een vaag goud en verdween daardoor half naast zijn buren. */
 .help-btn {
   background: none;
-  border: 1px solid rgba(196,168,122,0.35);
-  border-radius: 50%;
-  width: 22px;
-  height: 22px;
+  border: 1px solid var(--color-room-border, #c4a87a);
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   cursor: pointer;
-  color: rgba(196,168,122,0.6);
+  color: var(--color-ink-dim, #8a7050);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: color 0.15s, border-color 0.15s;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
-.help-btn:hover { color: #c4a87a; border-color: rgba(196,168,122,0.7); }
-.help-btn .icon { width: 12px; height: 12px; }
+.help-btn:hover { background: rgba(196,168,122,0.15); color: var(--color-ink-bright, #2a1a08); }
+.help-btn .icon { width: 15px; height: 15px; }
 
 .help-btn-wrap { display: inline-flex; align-items: center; gap: 3px; }
 .help-edit-btn {

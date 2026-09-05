@@ -1068,7 +1068,9 @@ async function renderEntitySection(type) {
               oninput="window._entitySearch('${type}',this.value)">
           </div>
           ${_showSf ? `<button class="sf-toggle-btn${sfActive ? ' sf-toggle-btn--active' : ''}" onclick="window._toggleSubtypeBar('${type}')" title="Filter op subtype"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : ''}
-          <span class="results-count sbs-count">${list.length} resultaten</span>
+          <!-- De resultatenteller stond hier; hij telde iets anders dan de
+               ontdekkingsmeter in de kop (die laat zien hoeveel de party van de
+               wereld kent, zónder de spelers zelf) en dat las als een fout. -->
           ${window._helpBtn?.(type) ?? ''}
           ${isDM() ? `<button class="sbs-add-btn" onclick="window.app.onFabClick()" title="Nieuw: ${TYPE_META[type].label.toLowerCase()}">${window.icon('plus')}</button>` : ''}
         </div>
@@ -1102,8 +1104,6 @@ async function renderEntitySection(type) {
     const filtered = filterEntities(t, entities[t] || []);
     const c = $(`#section-${t}`);
     _refreshGrid(t, filtered, c);
-    const countEl = c.querySelector('.results-count');
-    if (countEl) countEl.textContent = `${filtered.length} resultaten`;
   };
 
   window._entitySubtypeFilter = (t, subtype) => {
@@ -1111,8 +1111,6 @@ async function renderEntitySection(type) {
     const filtered = filterEntities(t, entities[t] || []);
     const c = $(`#section-${t}`);
     _refreshGrid(t, filtered, c);
-    const countEl = c.querySelector('.results-count');
-    if (countEl) countEl.textContent = `${filtered.length} resultaten`;
     c.querySelectorAll('.sf-chip').forEach(btn => {
       btn.classList.toggle('sf-chip--active', btn.dataset.sfVal === (subtype || ''));
     });
@@ -1200,8 +1198,6 @@ function _refreshGrid(type, list, container) {
     grid.querySelectorAll('[data-fittext]').forEach(_fitText);
     grid.scrollTop = savedGridScroll; // als láátste, ná fittext (dat celhoogtes kan wijzigen)
   });
-  const countEl = container.querySelector('.results-count');
-  if (countEl) countEl.textContent = `${list.length} resultaten`;
 }
 
 // De kaartjes tilden vroeger met de muis mee (3D-rotatie op mousemove). Het
