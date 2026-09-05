@@ -4201,7 +4201,9 @@ window._openEditor = async (tab, editId) => {
 
   // ── Adoptie (type 'dier') ──
   // Hoort bij Informatie: het gaat over of en voor hoeveel de party dit dier kan
-  // krijgen, niet over zijn statblok. De tiers staan wél op het sheet.
+  // krijgen, niet over zijn statblok. De tiers staan wél op het sheet. De marker
+  // moet er expliciet bij: het vorige blok zette de panelen op 'beeld'.
+  body += `<!--P:info-->`;
   if (tab === 'personages' && isDM()) {
     const _isDierNu = e?.subtype === 'dier';
     const _adopt2   = e?.data?.adopteerbaar === true || e?.data?.adopteerbaar === 'true';
