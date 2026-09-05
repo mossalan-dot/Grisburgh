@@ -4230,10 +4230,9 @@ window._openEditor = async (tab, editId) => {
               placeholder="12,34" inputmode="decimal"
               title="Eén bedrag met een komma: 12,34 is 12 ${esc(_mn2.fl)}, 3 ${esc(_mn2.kn)} en 4 ${esc(_mn2.cl)}"
               class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-            <p class="text-[10px] text-ink-dim mt-0.5">12,34 = 12 ${esc(_mn2.fl)}, 3 ${esc(_mn2.kn)}, 4 ${esc(_mn2.cl)}</p>
           </div>
           <div>
-            <label class="text-[10px] font-cinzel text-ink-dim uppercase">Wat voor dier</label>
+            <label class="text-[10px] font-cinzel text-ink-dim uppercase">Type</label>
             <input name="data_soortLabel" value="${esc(e?.data?.soortLabel || '')}" placeholder="Hond"
               class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
           </div>
