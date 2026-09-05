@@ -145,8 +145,11 @@ const SCHEMA = {
       // de labels zeggen nu wat het veld ís. 'rol' was zo vaag dat het van alles
       // werd, 'persoonlijkheid' gaat in de praktijk over hoe jíj hem speelt.
       { key: 'rol', label: 'Korte omschrijving', type: 'text' },
-      { key: 'ras', label: 'Origin', type: 'lijst', lijst: 'volken' },
-      { key: 'klasse', label: 'Class', type: 'lijst', lijst: 'klassen' },
+      // Origin en Class zeggen niets over een god; domein en symbool wel.
+      { key: 'ras', label: 'Origin', type: 'lijst', lijst: 'volken', nietBij: ['god'] },
+      { key: 'klasse', label: 'Class', type: 'lijst', lijst: 'klassen', nietBij: ['god'] },
+      { key: 'domein', label: 'Domein', type: 'text', alleenBij: ['god'], hint: 'Waar gaat deze god over? Bijvoorbeeld: kennis en uitvinding' },
+      { key: 'symbool', label: 'Heilig symbool', type: 'text', alleenBij: ['god'], hint: 'Bijvoorbeeld: een purperen waterrad' },
       { key: 'alignment', label: 'Alignment', type: 'lijst', lijst: 'alignments' },
       { key: 'tags', label: 'Rollen', type: 'rollen' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
@@ -1294,7 +1297,7 @@ function renderCard(type, e) {
   const _itemMeta = type === 'voorwerpen'
     ? [_rarityLabel(e.data?.rariteit), (e.data?.attunement === 'true' || e.data?.attunement === true) ? 'Attunement' : null].filter(Boolean).join(' · ')
     : null;
-  const metaText = [e.data?.locType, e.data?.orgType, _itemMeta, e.data?.ras, e.data?.klasse].filter(Boolean).join(' \u00b7 ');
+  const metaText = [e.data?.locType, e.data?.orgType, _itemMeta, e.data?.domein, e.data?.ras, e.data?.klasse].filter(Boolean).join(' \u00b7 ');
   const badges  = getCardBadges(type, e);
   const desc = e.data?.desc || '';
   // Flavour is een lijst geworden; het kaartje toonde nog alleen het oude
@@ -2160,7 +2163,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     if (['geheim', 'flavour', 'rol', 'stapelbaar', 'gedeeld', 'gebruik', 'attunement', 'persoonlijkheid', 'nietVerkoopbaar'].includes(field.key)) continue;
     // Wat al onder de naam staat (rol · origin · class · alignment · type)
     // hoeft er niet nóg eens als pil onder: dat was de helft van de pillenrij.
-    if (['ras', 'klasse', 'alignment', 'locType', 'wijk', 'orgType', 'itemType', 'rariteit'].includes(field.key)) continue;
+    if (['ras', 'klasse', 'alignment', 'domein', 'locType', 'wijk', 'orgType', 'itemType', 'rariteit'].includes(field.key)) continue;
     // Geheimen, flavours en rollen hebben verderop hun eigen weergave (rollen
     // een badge, de lijsten een perkamentrol per regel). Als pil toonden ze
     // hun ruwe JSON: ["Groot hater van jam."].
@@ -2762,6 +2765,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
 
   const _subParts = [
     e.data?.rol,
+    e.data?.domein,
     e.data?.ras,
     e.data?.klasse,
     e.data?.alignment,
@@ -3872,6 +3876,13 @@ window._openEditor = async (tab, editId) => {
       _revealGroupOpen = null;
     }
     const val = e?.data?.[field.key] || '';
+    // Velden die bij één subtype horen (of er juist niet): dezelfde aanpak als
+    // showFor hieronder, maar dan op het type van het kaartje.
+    const _sub = String(e?.subtype || '').toLowerCase();
+    if (field.alleenBij || field.nietBij) {
+      const zichtbaar = field.alleenBij ? field.alleenBij.includes(_sub) : !field.nietBij.includes(_sub);
+      body += `<div data-voor-subtype="${(field.alleenBij || []).join(',')}" data-niet-subtype="${(field.nietBij || []).join(',')}"${zichtbaar ? '' : ' style="display:none"'}>`;
+    }
     // showFor: wrap in a togglable div, initially hidden if itemType doesn't match
     if (field.showFor) {
       const _vis = field.showFor.includes(_curItemType);
@@ -4072,13 +4083,14 @@ window._openEditor = async (tab, editId) => {
       body += `
         <div>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
-          <input name="data_${field.key}" value="${esc(val)}"
+          <input name="data_${field.key}" value="${esc(val)}"${field.hint ? ` placeholder="${esc(field.hint)}"` : ''}
             class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
         </div>
       `;
     }
     if (field.showFor) body += `</div>`; // close showFor wrapper
     if (field.hideFor) body += `</div>`; // close hideFor wrapper
+    if (field.alleenBij || field.nietBij) body += `</div>`;
   }
   if (_revealGroupOpen) { body += `</div>`; _revealGroupOpen = null; }
 
@@ -4572,6 +4584,14 @@ window._openEditor = async (tab, editId) => {
       if (rollenRij) rollenRij.style.display = val === 'god' ? 'none' : '';
       const petSec = document.getElementById('pet-editor-section');
       if (petSec) petSec.style.display = val === 'dier' ? '' : 'none';
+      // Velden die aan een subtype hangen (Domein bij een god, Origin/Class niet)
+      const sub = String(val || '').toLowerCase();
+      document.querySelectorAll('[data-voor-subtype], [data-niet-subtype]').forEach(el => {
+        const alleen = (el.dataset.voorSubtype || '').split(',').filter(Boolean);
+        const niet   = (el.dataset.nietSubtype || '').split(',').filter(Boolean);
+        const zichtbaar = alleen.length ? alleen.includes(sub) : !niet.includes(sub);
+        el.style.display = zichtbaar ? '' : 'none';
+      });
       const vidSec = document.getElementById('video-section');
       if (vidSec) vidSec.style.display = val === 'speler' ? '' : 'none';
     };
