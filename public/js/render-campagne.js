@@ -610,12 +610,34 @@ async function _vulSpellChips() {
   const knoppen = [...host.querySelectorAll('[data-spell]')];
   if (!knoppen.length) return;
   const info = await window.spreuken.info(knoppen.map(k => k.dataset.spell));
+
+  // Op een rij door elkaar heen zegt een spreukenlijst weinig; een caster denkt
+  // in niveaus. Dus een rijtje per niveau, cantrips eerst.
+  const perNiveau = new Map();
   for (const knop of knoppen) {
     const sp = info.find(x => x.index === knop.dataset.spell);
-    if (!sp) continue;
-    const niveau = Number(sp.level) === 0 ? 'C' : sp.level;
-    knop.innerHTML = `<b>${niveau}</b>${esc(sp.name)}`;
-    knop.title = `${sp.school || ''}`.trim();
+    const lv = sp ? Number(sp.level) || 0 : -1;   // onbekend achteraan
+    if (sp) {
+      knop.innerHTML = esc(sp.name);
+      knop.title = `${sp.school || ''}`.trim();
+    }
+    if (!perNiveau.has(lv)) perNiveau.set(lv, []);
+    perNiveau.get(lv).push(knop);
+  }
+  const niveaus = [...perNiveau.keys()].sort((a, b) => a - b);
+  host.innerHTML = '';
+  for (const lv of niveaus) {
+    const rij = document.createElement('div');
+    rij.className = 'cs-spell-rij';
+    const label = document.createElement('span');
+    label.className = 'cs-spell-rij-lbl';
+    label.textContent = lv === 0 ? 'Cantrips' : lv < 0 ? 'Overig' : `Level ${lv}`;
+    rij.appendChild(label);
+    const vak = document.createElement('span');
+    vak.className = 'cs-spell-rij-chips';
+    perNiveau.get(lv).forEach(k => vak.appendChild(k));
+    rij.appendChild(vak);
+    host.appendChild(rij);
   }
 }
 
@@ -2476,7 +2498,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       ].join('');
 
       sheetHtml += `
-        <div class="mb-4 p-4 bg-room-elevated rounded border border-room-border">
+        <div class="detail-blad">
           ${_soortRegel}
           <div class="flex flex-wrap gap-4 mb-4 text-sm">
             ${_combatStats}${_crStat}${_profStat}
