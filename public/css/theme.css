@@ -22740,6 +22740,10 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 .onthul-knop--aan:hover { background: rgba(58,106,74,.3); color: #23452e; }
 
+/* Balkje met de afdrukknop boven een blad of statblock. */
+.sheet-print-balk { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+.sheet-print-balk .dm-actie { text-decoration: none; }
+
 /* Leden van een party in de Meesterkamer: chips met een kruisje, plus een
    zoekveld om er iemand bij te zetten. */
 .dm-lid-chip {

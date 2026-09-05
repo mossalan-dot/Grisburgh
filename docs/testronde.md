@@ -58,6 +58,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Zichtbaarheid per party** (DM) — een kaartje vrijgeven aan de ene party en niet aan de andere; wissel van party en controleer beide kanten
 - [ ] **Voorwerp aan een speler geven** (DM) — vanuit het kaartje toewijzen aan een personage; het verschijnt in zijn boedel met de juiste rariteit
 - [ ] **Voorraad van een winkel** (DM) — regels toevoegen, prijzen zetten, uitverkocht markeren per party
+- [ ] **Blad afdrukken** (DM) — open het tabblad van een spelerspersonage: het heet *Character Sheet* en de knop *Blad afdrukken* opent zijn eigen blad in een nieuw tabblad (printen of bewaren als pdf). Bij een NPC, dier of god heet het tabblad *Statblock* en opent *Statblock afdrukken* een printvenster met alleen dat blok — bij een huisdier het tier dat bij het level van het baasje hoort
+
 - [ ] **God-kaartje** (DM) — type *god*: Origin en Class verdwijnen uit de editor, Domein en Heilig symbool komen ervoor in de plaats; het domein staat op het kaartje en in de kopregel van het detailvenster. Wissel van type en terug: de velden verschijnen en verdwijnen meteen
 
 - [ ] **Huisdier-kaartje** (DM) — type *dier*: adoptie (te adopteren, prijs, wat voor dier) staat bij **Informatie**, de **tiers** op het tabblad Character Sheet; in het detailvenster staat het geschaalde statblok óók onder Character Sheet en niet bij Informatie. Adoptieprijs met een komma (12,34 = 12 goud, 3 zilver, 4 koper); *Type* zegt wat voor dier het is; controleer daarna of adopteren klopt bij de dienst die dieren aanbiedt

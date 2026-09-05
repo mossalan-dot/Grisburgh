@@ -630,7 +630,7 @@ const ED_TABS = [
   { key: 'winkel', label: 'Winkel' },
 ];
 
-function _bouwEditorTabs(html, toonWinkel) {
+function _bouwEditorTabs(html, toonWinkel, sheetLabel) {
   // Het <form> staat om álles heen; zou hij in het eerste paneel blijven staan,
   // dan sluit de browser hem daar en vallen de velden van de andere tabbladen
   // buiten het formulier — die werden dan niet meegestuurd bij het opslaan.
@@ -660,7 +660,7 @@ function _bouwEditorTabs(html, toonWinkel) {
   return `${formTag}
     <div class="ed-tabs">
       ${gevuld.map(t => `<button type="button" class="ed-tab${t.key === eerste ? ' is-actief' : ''}${t.key === 'winkel' && !toonWinkel ? ' hidden' : ''}"
-        data-ed-tab="${t.key}" onclick="window._edTab('${t.key}')">${t.label}</button>`).join('')}
+        data-ed-tab="${t.key}" onclick="window._edTab('${t.key}')">${t.key === 'sheet' && sheetLabel ? sheetLabel : t.label}</button>`).join('')}
     </div>
     ${gevuld.map(t => `<div class="ed-paneel${t.key === eerste ? ' is-actief' : ''}" data-ed-paneel="${t.key}">${panelen[t.key]}</div>`).join('')}
     <div class="ed-paneel-verborgen">${rest}</div>
@@ -1592,6 +1592,34 @@ window._flavStap = (id) => {
   if (nav) nav.textContent = `${i + 1}/${regels.length} \u203a`;
 };
 
+// Statblock afdrukken. Geen tweede sjabloon op de server: we printen wat er al
+// staat. Dat scheelt een renderer die uit de pas gaat lopen én het klopt vanzelf
+// voor een huisdier, waar het statblok van het tier van het baasje afhangt.
+window._printStatblock = (titel) => {
+  const bron = document.getElementById('dtab-sheet');
+  if (!bron) return;
+  const kopie = bron.cloneNode(true);
+  kopie.querySelectorAll('.geenprint').forEach(el => el.remove());
+  const css = document.querySelector('link[href*="theme.css"]')?.getAttribute('href') || '/css/theme.css';
+  const w = window.open('', '_blank', 'width=820,height=1000');
+  if (!w) { alert('Sta pop-ups toe om af te drukken.'); return; }
+  w.document.write(`<!doctype html><html lang="nl"><head><meta charset="utf-8">
+    <title>${esc(titel)}</title>
+    <link rel="stylesheet" href="${esc(css)}">
+    <style>
+      body { background: #f8f0de; margin: 0; padding: 24px; }
+      .print-kop { font-family: 'Cinzel', serif; font-size: 20px; color: #7a4a1a; margin: 0 0 12px; }
+      @media print { body { padding: 0; } .print-kop { margin-bottom: 8px; } }
+    </style>
+  </head><body>
+    <h1 class="print-kop">${esc(titel)}</h1>
+    ${kopie.innerHTML}
+  </body></html>`);
+  w.document.close();
+  // Wachten tot de stylesheet er is, anders print hij kale HTML.
+  w.addEventListener('load', () => { w.focus(); w.print(); });
+};
+
 // ── Bladwijzers ──
 window._toggleBookmark = async function(type, id, name) {
   const charId = window.app?.state?.characterId;
@@ -2022,7 +2050,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _sheetGevuld = Object.values(e.stats || {}).some(v => String(v ?? '').trim());
   // Een huisdier heeft zijn statblok in tiers staan, niet in `stats`; het blad
   // wordt gevuld met het tier dat bij het level van het baasje hoort.
-  const _isDier = isPersonage && String(e.subtype || '').toLowerCase() === 'dier';
+  const _isDier   = isPersonage && String(e.subtype || '').toLowerCase() === 'dier';
+  const _isSpeler = isPersonage && String(e.subtype || '').toLowerCase() === 'speler';
   const showSheet = isPersonage && isDM() && (_sheetGevuld || _isDier);
   const fileUrl = api.fileForEntity(e);
 
@@ -2354,6 +2383,20 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
 
   // ── Tab: Character Sheet (DM + personages only) ──
   let sheetHtml = '';
+  if (showSheet) {
+    // Een speler heeft een echt blad (server-route, inclusief boedel, spreuken en
+    // features); bij de rest is het statblok wat je naast je scherm legt.
+    sheetHtml += `
+      <div class="sheet-print-balk geenprint">
+        ${_isSpeler
+          ? `<a class="dm-actie" href="/api/characters/${esc(e.id)}/sheet" target="_blank" rel="noopener"
+               title="Opent het blad in een nieuw tabblad; printen of bewaren als pdf doe je daar">
+               ${icon('scroll-text')}<span>Blad afdrukken</span></a>`
+          : `<button type="button" class="dm-actie" onclick="window._printStatblock('${escJS(e.name)}')"
+               title="Opent een printvenster met alleen het statblock">
+               ${icon('scroll-text')}<span>Statblock afdrukken</span></button>`}
+      </div>`;
+  }
   if (showSheet && _isDier) {
     // Het blad van een huisdier is zijn tier-statblok; dat halen we na het
     // openen op (zie _vulPetStatblock verderop).
@@ -2747,7 +2790,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // ── Build tabbed modal body ──
   const detailTabs = [
     { key: 'info', label: 'Informatie' },
-    ...(showSheet ? [{ key: 'sheet', label: 'Character Sheet' }] : []),
+    ...(showSheet ? [{ key: 'sheet', label: _isSpeler ? 'Character Sheet' : 'Statblock' }] : []),
     ...(isStapelbaarVoorwerp && isDM() ? [{ key: 'eigenaren', label: 'Eigenaren' }] : []),
     ...(heeftVoorraad ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
     ...(heeftVoorraad && isDM() ? [{ key: 'log', label: 'Log' }] : []),
@@ -4429,9 +4472,12 @@ window._openEditor = async (tab, editId) => {
   // Een tempel die drankjes verkoopt is geen 'Winkel', maar hoort het tabblad
   // wél te hebben zodra er waren liggen.
   const _heeftWaren = !!(e?.data?.voorraad && e.data.voorraad !== '[]');
+  // Een blad heet naar wat erop staat: een speler heeft een character sheet, de
+  // rest een statblock.
+  const _sheetLabel = (tab === 'personages' && e?.subtype !== 'speler') ? 'Statblock' : null;
   body = _bouwEditorTabs(body, tab === 'locaties'
     ? (e?.data?.locType === 'Winkel' || _heeftWaren)
-    : window._heeftRol(e, 'verkoper'));
+    : window._heeftRol(e, 'verkoper'), _sheetLabel);
   const _tm = TYPE_META[tab];
   openModal(editId ? (_tm.bewerk || 'Bewerken') : (_tm.nieuw || 'Nieuw'), '', body);
 
