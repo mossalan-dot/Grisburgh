@@ -913,13 +913,18 @@ function _searchScore(e, tokens) {
   const h = _entityHaystacks(e);
   let score = 0;
   for (const t of tokens) {
+    // Hoe korter het woord, hoe strenger. Bij één letter zoeken in álle teksten
+    // levert bijna de hele campagne op — dat is geen zoekresultaat maar een
+    // lijst. Eén letter kijkt dus alleen naar het begin van een naam, twee
+    // letters naar de naam en de korte velden, en vanaf drie letters naar alles.
+    const kort = t.length;
     let best = 0;
     if (h.name === t) best = 1000;
     else if (h.name.startsWith(t)) best = 600;
     else if (new RegExp('\\b' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(h.name)) best = 400;
-    else if (h.name.includes(t)) best = 250;
-    else if (h.meta.includes(t)) best = 120;
-    else if (h.rest.includes(t)) best = 60;
+    else if (kort >= 2 && h.name.includes(t)) best = 250;
+    else if (kort >= 2 && h.meta.includes(t)) best = 120;
+    else if (kort >= 3 && h.rest.includes(t)) best = 60;
     if (best === 0) return -1;   // dit woord komt nergens voor → geen match
     score += best;
   }
@@ -1007,6 +1012,10 @@ async function renderEntitySection(type) {
   const _specialChips = type === 'locaties'   ? [{ val: '__winkel__', label: `${icon('building')} Winkel` }]
                       : type === 'voorwerpen' ? [{ val: '__gewijd__', label: `${icon('sparkles')} Zegeningen & Gunsten` }]
                       : [];
+  // Alleen zinvol als je er zelf hebt: de speler filtert zijn tabblad terug tot
+  // wat hij gemarkeerd heeft.
+  const _mijnBm = (window.app?.state?.bookmarks || []).filter(b => b.type === type);
+  if (_mijnBm.length) _specialChips.unshift({ val: '__bladwijzer__', label: `★ Bladwijzers` });
   // Filterbalk tonen als er een speciale chip is, of als er ≥2 gewone subtype-waarden zijn
   const _showSf = _specialChips.length > 0 || sfVals.length >= 2;
 
@@ -1200,7 +1209,10 @@ function filterEntities(type, list) {
       return sc >= 0;
     });
   }
-  if (sf === '__winkel__' && type === 'locaties') {
+  if (sf === '__bladwijzer__') {
+    const bmIds = new Set((window.app?.state?.bookmarks || []).map(b => b.id));
+    filtered = filtered.filter(e => bmIds.has(e.id));
+  } else if (sf === '__winkel__' && type === 'locaties') {
     filtered = filtered.filter(e => e.data?.locType === 'Winkel');
   } else if (sf === '__gewijd__' && type === 'voorwerpen') {
     filtered = filtered.filter(e => ['Blessing', 'Boon'].includes(e.data?.itemType));
@@ -1592,16 +1604,6 @@ window._toggleBookmark = async function(type, id, name) {
   await api.patchPlayerProfile(charId, { bookmarks: bms });
   // Update state cache
   if (window.app?.state) window.app.state.bookmarks = bms;
-  // Direct DOM update: verwijder of voeg toe in bladwijzerlijst (mijn-karakter)
-  const wasRemoved = !bms.some(b => b.id === id);
-  if (wasRemoved) {
-    document.querySelector(`.player-bookmark-item[data-bid="${CSS.escape(id)}"]`)?.remove();
-    // Verberg de sectieheader als de lijst leeg is
-    const list = document.querySelector('.player-bookmarks-list');
-    if (list && !list.querySelector('.player-bookmark-item')) {
-      list.closest('.player-dash-section')?.remove();
-    }
-  }
   // Update knop direct in-place
   const active = bms.some(b => b.id === id);
   const btn = document.querySelector(`.card-bookmark-btn[data-bid="${CSS.escape(id)}"]`);

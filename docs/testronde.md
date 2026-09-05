@@ -48,7 +48,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Eigen spreukbeschrijving** (DM) — uitklap in het spreukdetail: schrijf een tekst, sla op, herlaad — hij blijft en vervangt de bron; leeg opslaan zet hem terug
 - [ ] **Overleden markeren** (DM) — kaartje markeren; de speler ziet het meteen (`entity:deceased`), party en archief tonen hem als overleden
 - [ ] **Geheimen onthullen** (DM) — een geheim vrijgeven komt live binnen bij de speler (`entity:secret`) zonder herladen; terugdraaien verbergt het weer
-- [ ] **Bladwijzers** (SP) — ☆ wordt ★ (duidelijk zichtbaar op elk portret), blijft na herladen, en de gemarkeerde kaartjes staan terug in het spelerstabblad onder *Berichten* → Bladwijzers; klikken opent het kaartje
+- [ ] **Bladwijzers** (SP) — ☆ wordt ★ (duidelijk zichtbaar op elk portret) en blijft na herladen. Terugvinden kan op twee plekken: open het zoekvenster en typ niets — je bladwijzers staan er onder *Jouw bladwijzers* — en in het tabblad zelf staat een chip **★ Bladwijzers** in de filterbalk die de lijst terugbrengt tot wat je gemarkeerd hebt
+- [ ] **Korte zoekterm** (ALL) — typ één letter: je krijgt alleen kaartjes waarvan de naam daarmee begint, niet de halve campagne. Vanaf twee letters telt de hele naam mee, vanaf drie ook de teksten
 - [ ] **Globaal zoeken** — sneltoets of vergrootglas; het venster is perkament (niet donker); resultaten uit alle types door elkaar, klikken opent het juiste kaartje; als speler zie je alleen wat vrijgegeven is
 - [ ] **Zoeken laat zien wáárom** (ALL) — zoek op een naam die alleen in de tekst van een ánder kaartje voorkomt: onder dat kaartje staat het stukje tekst met de term erin gemarkeerd; de regel waar je op staat blijft goed leesbaar en de kopjes hebben SVG-iconen (geen emoji)
 - [ ] **Zoeken zet de naam bovenaan** (ALL) — zoek op een deel van een naam: het kaartje zelf staat boven kaartjes die die naam alleen in hun tekst noemen

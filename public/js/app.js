@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=268';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=175";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=176";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -7474,20 +7474,9 @@ async function renderMijnKarakter(opts = {}) {
       <!-- ═══ TAB: Berichten ═══ -->
       <div id="pst-berichten" class="player-subtab-panel${_playerSubTab !== 'berichten' ? ' hidden' : ''}">
 
-        <!-- Bladwijzers -->
-        ${(state.bookmarks || []).length > 0 ? `
-        <div class="player-dash-section">
-          <div class="player-dash-section-title">${icon('star')} Bladwijzers</div>
-          <div class="player-bookmarks-list">
-            ${(state.bookmarks || []).map(b => `
-              <div class="player-bookmark-item" data-bid="${esc(b.id)}" onclick="window._navigateTo('${esc(b.type)}','${esc(b.name)}')">
-                <span class="player-bookmark-icon">${b.type === 'personages' ? icon('user') : b.type === 'locaties' ? icon('map-pin') : b.type === 'organisaties' ? icon('building') : icon('package')}</span>
-                <span class="player-bookmark-name">${esc(b.name)}</span>
-                <button class="player-bookmark-remove" onclick="event.stopPropagation();window._toggleBookmark('${esc(b.type)}','${esc(b.id)}','${esc(b.name)}')" title="Verwijderen">${icon('x')}</button>
-              </div>
-            `).join('')}
-          </div>
-        </div>` : ''}
+        <!-- Bladwijzers stonden hier, maar ze horen bij navigatie en niet bij
+             post: ze staan nu in het zoekvenster (leeg veld) en als ster-filter
+             boven een tabblad. -->
 
         ${(() => {
           const brieven   = berichtenLijst.filter(m => m.type === 'brief');
@@ -9480,6 +9469,11 @@ function _gsHighlight(name, tokens) {
   return safe.replace(/\x01/g, '<mark class="gs-hl">').replace(/\x02/g, '</mark>');
 }
 
+const _GS_TYPE_LABEL = {
+  personages: 'personage', locaties: 'locatie', organisaties: 'organisatie',
+  voorwerpen: 'voorwerp', documenten: 'document',
+};
+
 // Waaróm staat dit kaartje in de resultaten? Zit de treffer niet in de naam,
 // dan komt hij uit de tekst — en dan tonen we dat stukje tekst eronder. Zonder
 // die regel lijkt een resultaat er zomaar bij te staan.
@@ -9511,7 +9505,27 @@ function _gsFragment(e, tokens) {
 
 window.app._globalSearchRun = async function(q) {
   const resultsEl = document.getElementById('global-search-results');
-  if (!q.trim()) { resultsEl.innerHTML = ''; _gsResults = []; _gsActive = -1; return; }
+  if (!q.trim()) {
+    // Leeg veld? Dan je bladwijzers: zoeken is waar je heen gaat als je "ergens
+    // naartoe" wilt, en dat is precies waar een bladwijzer voor is.
+    _gsResults = []; _gsActive = -1;
+    const bm = state.bookmarks || [];
+    resultsEl.innerHTML = bm.length ? `
+      <div class="gs-group">
+        <div class="gs-group-label">${icon('star')} Jouw bladwijzers</div>
+        ${bm.map(b => {
+          const idx = _gsResults.push({ type: b.type, id: b.id }) - 1;
+          return `<button class="gs-result" data-gs-idx="${idx}"
+            onclick="window.app._globalSearchGo('${esc(b.type)}','${esc(b.id)}')">
+            <span class="gs-result-kop">
+              <span class="gs-result-name">${esc(b.name)}</span>
+              <span class="gs-result-sub">${esc(_GS_TYPE_LABEL[b.type] || b.type)}</span>
+            </span>
+          </button>`;
+        }).join('')}
+      </div>` : '';
+    return;
+  }
 
   const TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
   const meta  = window._entityTypeMeta || {};
