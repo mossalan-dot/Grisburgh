@@ -1,4 +1,4 @@
-import { api } from './api.js?v=264';
+import { api } from './api.js?v=265';
 import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);
@@ -1827,12 +1827,12 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   window._currentDetailTab = tab;
   window._currentDetailId  = id;
 
-  let e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData, shopVerkoopData;
+  let e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData;
   let shopLogData = null;
   let shopHumeurData = null;
   const _isShopTab = (tab === 'locaties' || tab === 'personages');
   try {
-    [e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData, shopVerkoopData] = await Promise.all([
+    [e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData] = await Promise.all([
       api.getEntity(tab, id),
       api.getPlayerNotes(id).catch(() => null),
       _isShopTab
@@ -1846,9 +1846,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             api.getPlayerCurrency(window.app?.state?.characterId).catch(() => ({ fl: 0, kn: 0, cl: 0 })),
             api.getPartyCurrency().catch(() => ({ enabled: false, fl: 0, kn: 0, cl: 0 })),
           ]).then(([player, party]) => ({ player, party }))
-        : Promise.resolve(null),
-      (_isShopTab && !isDM())
-        ? api.getShopVerkoopbaar(id).catch(() => null)
         : Promise.resolve(null),
     ]);
   } catch { return; }
@@ -2429,89 +2426,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         ? `<div class="shop-korting-banner shop-korting-banner--malus">${icon('dice',{cls:'icon-gi'})} Prijs ${Math.abs(discountPct)}% hoger</div>`
         : '';
 
-    // ── Inkoop: speler verkoopt voorwerpen aan de winkel ──
-    const verkoopHtml = (!isDM() && shopVerkoopData?.koopt) ? (() => {
-      const _cN = window._currency || { fl: 'fl', kn: 'kn', cl: 'cl' };
-      const _fmt = (b) => b ? `${b.fl} ${esc(_cN.fl)} · ${b.kn} ${esc(_cN.kn)} · ${b.cl} ${esc(_cN.cl)}` : '—';
-      const _items = shopVerkoopData.items || [];
-      const _ratio = shopVerkoopData.ratio || 50;
-      const _bonusPct = shopVerkoopData.bonusPct || 0;
-      const rijen = _items.length ? _items.map((it, i) => `
-        <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0${it.verkoopbaar ? '' : ' shop-verkoop-rij--nope'}">
-          <td class="px-4 py-2.5 font-crimson">
-            <span class="cursor-pointer hover:text-gold transition underline decoration-dotted"
-              onclick="window._openDetailFromShop('${esc(it.entityId)}')">${esc(it.naam)}</span>
-            ${it.itemType ? `<span class="shop-verkoop-cat">${esc(it.itemType)}</span>` : ''}
-            ${it.qty > 1 ? `<span class="shop-verkoop-qty">×${it.qty}</span>` : ''}
-          </td>
-          <td class="px-4 py-2.5 text-right font-crimson text-ink-medium">
-            ${it.verkoopbaar ? _fmt(it.aanbod) : `<span class="shop-verkoop-reden">${esc(it.reden)}</span>`}
-          </td>
-          <td class="px-2 py-2.5 text-right">
-            ${it.verkoopbaar ? `
-              <div class="flex items-center gap-1 justify-end">
-                ${it.stapelbaar && it.qty > 1 ? `<input type="number" min="1" max="${it.qty}" value="1"
-                  class="shop-qty-input" id="shop-verkoop-qty-${i}"
-                  onclick="event.stopPropagation()" oninput="this.value=Math.min(${it.qty},Math.max(1,parseInt(this.value)||1))">` : ''}
-                <button class="shop-verkoop-btn"
-                  onclick="window._verkoopItem('${esc(_shopId)}','${esc(it.entityId)}',this,${it.stapelbaar && it.qty > 1 ? `parseInt(document.getElementById('shop-verkoop-qty-${i}')?.value)||1` : '1'})">
-                  Verkopen
-                </button>
-              </div>` : ''}
-          </td>
-        </tr>`).join('') : `<tr><td colspan="3" class="text-center py-6 text-ink-faint font-fell italic">Je hebt niets dat deze winkel inkoopt</td></tr>`;
-      return `
-        <div class="shop-verkoop-section">
-          <div class="shop-verkoop-head">${icon('coins')} Verkopen aan deze winkel
-            <span class="shop-verkoop-ratio">koopt voor ${_ratio}% van de waarde</span>
-            ${_bonusPct > 0 ? `<span class="shop-korting-badge">+${_bonusPct}% onderhandeld</span>` : ''}
-          </div>
-          <div class="rounded border border-room-border overflow-hidden">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="bg-room-elevated border-b border-room-border">
-                  <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] tracking-wide">Jouw voorwerp</th>
-                  <th class="px-4 py-2.5 text-right font-cinzel text-ink-dim text-[10px] tracking-wide">Bod</th>
-                  <th class="px-2 py-2.5"></th>
-                </tr>
-              </thead>
-              <tbody>${rijen}</tbody>
-            </table>
-          </div>
-          <div id="shop-verkoop-feedback" class="shop-koop-feedback hidden"></div>
-        </div>`;
-    })() : '';
+    // De speler verkocht hier zelf spullen aan de winkel; dat gaat nu via de
+    // DM ("Inkopen van de party" onderaan dit venster), zodat er één plek is
+    // waar prijs en eigendom tegelijk veranderen.
 
     if (voorraadItems.length > 0) {
-      // Onderhandelen button (alleen voor spelers) — met winkelier-humeur
-      const _oh = beschikbaarData?.onderhandel || null;
-      const humeurHtml = _oh?.tekst
-        ? `<div class="shop-humeur shop-humeur--${esc(_oh.tier)}">${icon('message-circle')} <span>${esc(_oh.tekst)}</span></div>`
-        : '';
-      const onderhandelHtml = !isDM() ? `
-        <div id="shop-onderhandel-wrap" class="shop-onderhandel-wrap">
-          ${humeurHtml}
-          ${_oh && !_oh.kan ? `
-          <button class="shop-onderhandel-btn" disabled title="${esc(_oh.reden)}">
-            ${icon('dice')} Onderhandelen
-          </button>
-          <span class="shop-onderhandel-geblokkeerd">${esc(_oh.reden)}</span>` : `
-          <button class="shop-onderhandel-btn" onclick="window._onderhandelOpen('${esc(_shopId)}')">
-            ${icon('dice')} Onderhandelen
-          </button>`}
-          <div id="shop-onderhandel-panel-${esc(_shopId)}" class="shop-onderhandel-panel hidden">
-            <div class="flex items-center gap-2">
-              <label class="text-xs text-ink-dim">CHA-modifier:</label>
-              <input type="number" id="shop-cha-mod-${esc(_shopId)}" value="0" min="-5" max="10"
-                class="shop-cha-input" style="width:56px">
-              <button class="shop-onderhandel-roll-btn"
-                onclick="window._onderhandelRoll('${esc(_shopId)}')">Gooien</button>
-              <button class="shop-onderhandel-annuleer"
-                onclick="document.getElementById('shop-onderhandel-panel-${esc(_shopId)}').classList.add('hidden')">${icon('x')}</button>
-            </div>
-          </div>
-          <div id="shop-onderhandel-result-${esc(_shopId)}" class="shop-onderhandel-result hidden"></div>
-        </div>` : '';
+      // De onderhandelknop met DC-worp is vervallen: afdingen gebeurt aan
+      // tafel en de DM tikt het afgesproken bedrag in.
 
       voorraadHtml = `
         ${sfeerHtml}
@@ -2526,6 +2447,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                 <th class="px-4 py-2.5 text-right font-cinzel text-ink-dim text-[10px] tracking-wide">Prijs</th>
                 ${isDM() && roterend ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] uppercase" title="Actief voor spelers">✦</th>` : ''}
                 ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide" title="Uitverkocht">UV</th>` : ''}
+                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide" title="Afrekenen aan tafel">\u2014</th>` : ''}
                 ${!isDM() ? `<th class="px-2 py-2.5"></th>` : ''}
               </tr>
             </thead>
@@ -2559,6 +2481,12 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                     <input type="checkbox" class="winkel-uitverkocht-cb" title="Uitverkocht voor deze party"
                       ${uitverkocht ? 'checked' : ''}
                       onchange="window._toggleShopUitverkocht('${esc(_shopId)}','${esc(item.naam || '')}',this)">
+                  </td>
+                  <td class="px-3 py-2.5 text-center">
+                    <button class="dm-btn dm-btn-sm dm-btn-icon" title="Afrekenen met een speler"
+                      onclick="window._dmAfrekenen('${esc(_shopId)}','${escJS(item.naam || '')}','${esc(item.entityId || '')}','${escJS(item.prijs || '')}')">
+                      ${icon('coins')}
+                    </button>
                   </td>` : ''}
                   ${!isDM() ? `
                   <td class="px-2 py-2.5 text-right">
@@ -2581,11 +2509,20 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             </tbody>
           </table>
         </div>
-        ${onderhandelHtml}
+        <!-- Afdingen gaat aan tafel: de DM tikt het afgesproken bedrag in
+             (muntknop per regel). Vandaar hier geen onderhandelknop meer. -->
         <div id="shop-koop-feedback" class="shop-koop-feedback hidden"></div>
-        ${verkoopHtml}`;
+        ${isDM() ? `
+          <div id="dm-afreken-paneel" class="dm-winkel-paneel hidden"></div>
+          <div class="dm-winkel-paneel">
+            <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Inkopen van de party</div>
+            <p class="text-xs text-ink-dim mb-2">Vink aan wat de winkel overneemt, zet er een bedrag bij en reken af. Het voorwerp verdwijnt uit de boedel, het geld gaat naar die speler.</p>
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._dmInkoopOpen('${esc(_shopId)}')">${icon('package')} Boedel van de party bekijken</button>
+            <div id="dm-inkoop-lijst" class="mt-2"></div>
+          </div>` : ''}
+        `;
     } else {
-      voorraadHtml = `${sfeerHtml}${kortingBannerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>${verkoopHtml}`;
+      voorraadHtml = `${sfeerHtml}${kortingBannerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>`;
     }
     } // end else (niet buitenGrisburgh)
   }
@@ -2947,6 +2884,129 @@ window._dmHumeurBump = async (shopId, characterId, delta) => {
 };
 
 // ── Winkel uitverkocht toggle ──
+// ── DM rekent af aan tafel ───────────────────────────────────────────────────
+// Aan tafel wordt gepingeld en komt er een bedrag uit dat de DM noemt. Eén veld
+// dus, voorgevuld met de vraagprijs: overtypen en afrekenen.
+let _dmPartySpelers = [];   // {id, name} van de actieve party
+
+// {fl,kn,cl} → "1 Florinde 3 Knaker"; de muntnamen komen uit meta.
+function _muntTekst(cur) {
+  const n = window._muntNamen?.() || { fl: 'Gold', kn: 'Silver', cl: 'Copper' };
+  return [['fl', n.fl], ['kn', n.kn], ['cl', n.cl]]
+    .filter(([k]) => cur?.[k]).map(([k, naam]) => `${cur[k]} ${naam}`).join(' ') || '0';
+}
+
+async function _laadPartySpelers() {
+  if (_dmPartySpelers.length) return _dmPartySpelers;
+  try {
+    const lijst = await api.listEntities('personages');
+    const groep = window._activeGroupId;
+    _dmPartySpelers = lijst
+      .filter(p => p.subtype === 'speler' && (!groep || p.data?.groep === groep))
+      .map(p => ({ id: p.id, name: p.name }));
+  } catch { _dmPartySpelers = []; }
+  return _dmPartySpelers;
+}
+
+window._dmAfrekenen = async (shopId, itemNaam, entityId, prijs) => {
+  const host = document.getElementById('dm-afreken-paneel');
+  if (!host) return;
+  const spelers = await _laadPartySpelers();
+  if (!spelers.length) { host.classList.remove('hidden'); host.innerHTML = `<p class="dm-hint">Geen spelers in deze party.</p>`; return; }
+  host.classList.remove('hidden');
+  host.innerHTML = `
+    <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Afrekenen \u2014 ${esc(itemNaam)}</div>
+    <div class="dm-winkel-rij">
+      <select id="dm-afreken-speler" class="dm-input dm-input-sm">
+        ${spelers.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}
+      </select>
+      <input id="dm-afreken-bedrag" class="dm-input dm-input-sm" style="max-width:120px"
+        value="${esc(prijs || '')}" placeholder="bijv. 12 fl">
+      <button class="dm-btn dm-btn-sm dm-btn-primary"
+        onclick="window._dmAfrekenenDoen('${esc(shopId)}','${escJS(itemNaam)}','${esc(entityId || '')}')">Afrekenen</button>
+      <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('dm-afreken-paneel').classList.add('hidden')">Annuleren</button>
+    </div>
+    <div id="dm-afreken-melding" class="dm-hint mt-1"></div>`;
+  document.getElementById('dm-afreken-bedrag')?.select();
+};
+
+window._dmAfrekenenDoen = async (shopId, itemNaam, entityId) => {
+  const characterId = document.getElementById('dm-afreken-speler')?.value;
+  const bedrag      = document.getElementById('dm-afreken-bedrag')?.value || '';
+  const melding     = document.getElementById('dm-afreken-melding');
+  try {
+    const r = await api.dmVerkoop(shopId, { characterId, itemNaam, entityId: entityId || undefined, bedrag });
+    if (melding) melding.textContent = `Afgerekend voor ${_muntTekst(r.betaald)}`;
+    // Opnieuw openen zodat uitverkocht en voorraad kloppen; blijf op de tab.
+    if (window._currentDetailTab && window._currentDetailId) {
+      await window._openDetail(window._currentDetailTab, window._currentDetailId, false, 'voorraad');
+    }
+  } catch (err) {
+    if (melding) melding.textContent = err.message || 'Afrekenen mislukt';
+  }
+};
+
+// ── DM koopt spullen van de party ──
+window._dmInkoopOpen = async (shopId) => {
+  const host = document.getElementById('dm-inkoop-lijst');
+  if (!host) return;
+  host.innerHTML = `<p class="dm-hint">Laden\u2026</p>`;
+  let regels = [];
+  try { ({ regels } = await api.getPartyBoedel(shopId)); } catch (err) {
+    host.innerHTML = `<p class="dm-hint">Kon de boedel niet ophalen: ${esc(err.message)}</p>`; return;
+  }
+  if (!regels.length) { host.innerHTML = `<p class="dm-hint">De party heeft niets in de boedel.</p>`; return; }
+  window._dmInkoopRegels = regels;
+  host.innerHTML = `
+    <input id="dm-inkoop-zoek" class="dm-input dm-input-sm" placeholder="Zoeken\u2026"
+      oninput="window._dmInkoopFilter(this.value)">
+    <div id="dm-inkoop-rijen" class="dm-inkoop-rijen mt-2">
+      ${regels.map((r, i) => `
+        <label class="dm-inkoop-rij" data-zoek="${esc((r.naam + ' ' + r.speler).toLowerCase())}">
+          <input type="checkbox" data-i="${i}">
+          <span class="dm-inkoop-naam">${esc(r.naam)}</span>
+          <span class="dm-inkoop-speler">${esc(r.speler)}</span>
+          ${r.aantal > 1 ? `<input type="number" min="1" max="${r.aantal}" value="1" class="dm-input dm-input-sm dm-inkoop-aantal" title="Hoeveel van de ${r.aantal}?">` : `<span class="dm-inkoop-aantal-vast">1</span>`}
+          <input class="dm-input dm-input-sm dm-inkoop-bedrag" value="${esc(r.prijs || '')}" placeholder="bedrag">
+        </label>`).join('')}
+    </div>
+    <div class="dm-winkel-rij mt-2">
+      <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._dmInkoopDoen('${esc(shopId)}')">Overnemen</button>
+      <span id="dm-inkoop-melding" class="dm-hint"></span>
+    </div>`;
+};
+
+window._dmInkoopFilter = (term) => {
+  const t = (term || '').toLowerCase().trim();
+  document.querySelectorAll('#dm-inkoop-rijen .dm-inkoop-rij').forEach(rij => {
+    rij.classList.toggle('hidden', !!t && !rij.dataset.zoek.includes(t));
+  });
+};
+
+window._dmInkoopDoen = async (shopId) => {
+  const melding = document.getElementById('dm-inkoop-melding');
+  const regels = [];
+  document.querySelectorAll('#dm-inkoop-rijen .dm-inkoop-rij').forEach(rij => {
+    const cb = rij.querySelector('input[type=checkbox]');
+    if (!cb?.checked) return;
+    const bron = window._dmInkoopRegels[parseInt(cb.dataset.i)];
+    if (!bron) return;
+    regels.push({
+      ...bron,
+      aantal: parseInt(rij.querySelector('.dm-inkoop-aantal')?.value) || 1,
+      bedrag: rij.querySelector('.dm-inkoop-bedrag')?.value || '',
+    });
+  });
+  if (!regels.length) { if (melding) melding.textContent = 'Niets aangevinkt.'; return; }
+  try {
+    const r = await api.dmInkoop(shopId, { regels });
+    if (melding) melding.textContent = `${r.gedaan.length} overgenomen.`;
+    await window._dmInkoopOpen(shopId);
+  } catch (err) {
+    if (melding) melding.textContent = err.message || 'Overnemen mislukt';
+  }
+};
+
 window._toggleShopUitverkocht = async (shopId, itemNaam, cbEl) => {
   try {
     await api.toggleShopUitverkocht(shopId, itemNaam);

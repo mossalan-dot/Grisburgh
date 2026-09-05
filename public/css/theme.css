@@ -1193,6 +1193,35 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 .flavour-preview-nav:hover { background: rgba(196,168,122,.35); color: #3a2410; }
 
+/* DM-panelen in het winkelvenster: afrekenen aan tafel en inkopen uit de boedel. */
+.dm-winkel-paneel {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(196,168,122,.4);
+  border-radius: 5px;
+  background: rgba(236,224,196,.35);
+}
+.dm-winkel-rij { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dm-inkoop-rijen { max-height: 320px; overflow-y: auto; border: 1px solid rgba(196,168,122,.35); border-radius: 4px; }
+.dm-inkoop-rij {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(196,168,122,.22);
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: #3a2410;
+}
+.dm-inkoop-rij:last-child { border-bottom: 0; }
+.dm-inkoop-rij:hover { background: rgba(196,168,122,.18); }
+.dm-inkoop-naam { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dm-inkoop-speler { font-size: 11px; color: #7a6040; flex-shrink: 0; }
+.dm-inkoop-aantal { width: 56px; flex-shrink: 0; }
+.dm-inkoop-aantal-vast { width: 56px; text-align: center; color: #9a8060; font-size: 12px; flex-shrink: 0; }
+.dm-inkoop-bedrag { width: 96px; flex-shrink: 0; }
+
 /* "Verkoopt bij <locatie>" op het kaartje van een verkoper: de waren liggen
    ergens anders, dus dit is vooral een doorgang. */
 .detail-winkel-link {

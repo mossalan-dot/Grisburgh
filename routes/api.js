@@ -1870,6 +1870,256 @@ router.post('/shops/:shopId/verkoop', attachRole, (req, res) => {
   res.json({ ok: true, itemNaam: vw.name, aantal, opbrengst: fromCl(opbrengstCl), currency: dmState.playerCurrency[characterId] });
 });
 
+// Kleine helpers voor de DM-afrekening aan tafel.
+function _spelerNaam(entities, characterId) {
+  return (entities.personages || []).find(p => p.id === characterId)?.name || '';
+}
+
+// "1 fl 3 kn" — de muntnamen komen uit meta, dus geen Grisburgh in de code.
+function _muntTekst(cur) {
+  const namen = { ...storage.MUNT_STANDAARD, ...(storage.readJSON('meta.json').currency || {}) };
+  const delen = [];
+  if (cur.fl) delen.push(`${cur.fl} ${namen.fl}`);
+  if (cur.kn) delen.push(`${cur.kn} ${namen.kn}`);
+  if (cur.cl) delen.push(`${cur.cl} ${namen.cl}`);
+  return delen.join(' ') || '0';
+}
+
+function _shopLogRegel(shopId, regel) {
+  try {
+    const shopLog = storage.readJSON('shop-log.json');
+    if (!shopLog[shopId]) shopLog[shopId] = [];
+    shopLog[shopId].push({ ts: new Date().toISOString(), ...regel });
+    if (shopLog[shopId].length > 200) shopLog[shopId] = shopLog[shopId].slice(-200);
+    storage.writeJSON('shop-log.json', shopLog);
+  } catch { /* stil falen — een log is geen reden om de verkoop te blokkeren */ }
+}
+
+// ── Winkel: de DM rekent af aan tafel ────────────────────────────────────────
+// Aan tafel wordt gepingeld, en wat er uit komt is een bedrag dat de DM zelf
+// noemt. Vandaar geen DC-worp met een percentage korting, maar één veld: dít
+// betaalt de speler. `bedragCl` is het eindbedrag in centelingen; laat je het
+// leeg, dan geldt de prijs uit de voorraad.
+router.post('/shops/:shopId/dm-verkoop', requireDM, (req, res) => {
+  let { shopId } = req.params;
+  const { characterId, itemNaam, entityId, aantal: aantalRaw, bedrag, bedragCl: bedragRaw } = req.body || {};
+  if (!characterId) return res.status(400).json({ error: 'characterId vereist' });
+  if (!itemNaam)    return res.status(400).json({ error: 'itemNaam vereist' });
+  const aantal = Math.max(1, parseInt(aantalRaw) || 1);
+
+  const entities = storage.readJSON('entities.json');
+  const shop = _winkelVan(entities, shopId);
+  if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+  shopId = shop.id;
+
+  let voorraadItems = [];
+  try { voorraadItems = shop.data?.voorraad ? JSON.parse(shop.data.voorraad) : []; } catch {}
+  const itemKey = (itemNaam || '').toLowerCase().trim();
+  const item = voorraadItems.find(i => (i.naam || '').toLowerCase().trim() === itemKey);
+  if (!item) return res.status(404).json({ error: 'Voorwerp niet gevonden in voorraad' });
+
+  const dmState = readDmState();
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
+
+  const bedragCl = (typeof bedrag === 'string' && bedrag.trim())
+    ? toCl(parsePrijs(bedrag) || { fl: 0, kn: 0, cl: 0 })
+    : (bedragRaw === undefined || bedragRaw === null || bedragRaw === ''
+        ? toCl(parsePrijs(item.prijs) || { fl: 0, kn: 0, cl: 0 }) * aantal
+        : Math.max(0, Math.round(Number(bedragRaw))));
+
+  if (bedragCl > 0) {
+    const beurs = _effectiveCurrency(dmState, characterId);
+    if (toCl(beurs) < bedragCl) {
+      return res.status(402).json({ error: 'Niet genoeg geld in de beurs', tekort: fromCl(bedragCl - toCl(beurs)) });
+    }
+    _deductCurrency(dmState, characterId, bedragCl);
+  }
+
+  const _rawEntityId   = entityId || item.entityId || null;
+  const _entityItem    = _rawEntityId ? (entities.voorwerpen || []).find(e => e.id === _rawEntityId) : null;
+  const effectiveId    = _entityItem ? _rawEntityId : null;
+  const isStapelbaar   = _entityItem?.data?.stapelbaar === 'true';
+  const playerName     = _spelerNaam(entities, characterId);
+
+  if (effectiveId) {
+    if (!g.itemOwners) g.itemOwners = {};
+    if (isStapelbaar) {
+      if (!Array.isArray(g.itemOwners[effectiveId])) g.itemOwners[effectiveId] = [];
+      const bestaand = g.itemOwners[effectiveId].find(o => o.characterId === characterId);
+      if (bestaand) bestaand.qty = (bestaand.qty || 1) + aantal;
+      else g.itemOwners[effectiveId].push({ characterId, playerName, qty: aantal });
+    } else {
+      g.itemOwners[effectiveId] = { characterId, playerName };
+    }
+    if (!g.visibility) g.visibility = {};
+    if ((g.visibility[effectiveId] || 'hidden') === 'hidden') g.visibility[effectiveId] = 'visible';
+  } else {
+    if (!dmState.playerItems) dmState.playerItems = {};
+    if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];
+    for (let i = 0; i < aantal; i++) {
+      dmState.playerItems[characterId].push({
+        id: 'pi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        name: item.naam,
+        note: bedragCl ? `Gekocht voor ${_muntTekst(fromCl(bedragCl / aantal))}` : '',
+      });
+    }
+  }
+
+  if (!isStapelbaar) {
+    if (!g.shopUitverkocht) g.shopUitverkocht = {};
+    if (!g.shopUitverkocht[shopId]) g.shopUitverkocht[shopId] = [];
+    if (!g.shopUitverkocht[shopId].map(k => (k || '').toLowerCase()).includes(itemKey)) {
+      g.shopUitverkocht[shopId].push(item.naam);
+    }
+  }
+
+  storage.writeJSON('dm-state.json', dmState);
+  _shopLogRegel(shopId, { playerName, itemNaam: item.naam, prijs: _muntTekst(fromCl(bedragCl)), aantal });
+  const io   = req.app.get('io');
+  const kamer = req.session?.campaignId || 'main';
+  io.to(kamer).emit('shop:uitverkocht-updated', { shopId, uitverkocht: g.shopUitverkocht?.[shopId] || [] });
+  io.to(kamer).emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
+  if (effectiveId) {
+    io.to(kamer).emit('items:ownership-updated', {
+      owners: g.itemOwners || {}, requests: g.itemRequests || [], tradeAllowed: g.tradeAllowed !== false,
+    });
+    io.to(kamer).emit('entity:visibility', { id: effectiveId, type: 'voorwerpen', name: _entityItem?.name || '', visibility: 'visible' });
+  } else {
+    io.to(kamer).emit('player:items-updated', { characterId });
+  }
+  res.json({ ok: true, betaald: fromCl(bedragCl) });
+});
+
+// ── Winkel: wat heeft de party in de boedel? (voor de inkoop door de DM) ──
+router.get('/shops/:shopId/party-boedel', requireDM, (req, res) => {
+  const entities = storage.readJSON('entities.json');
+  const dmState  = readDmState();
+  const g = getGroup(dmState);
+  const voorwerpen = entities.voorwerpen || [];
+  const regels = [];
+
+  for (const [entityId, eigenaar] of Object.entries(g.itemOwners || {})) {
+    const vw = voorwerpen.find(e => e.id === entityId);
+    if (!vw) continue;
+    const rijen = Array.isArray(eigenaar) ? eigenaar : (eigenaar ? [{ ...eigenaar, qty: 1 }] : []);
+    for (const r of rijen) {
+      if (!r.characterId) continue;
+      regels.push({
+        soort: 'kaartje',
+        entityId,
+        characterId: r.characterId,
+        speler: _spelerNaam(entities, r.characterId) || r.playerName || '?',
+        naam: vw.name,
+        itemType: vw.data?.itemType || '',
+        prijs: vw.data?.prijs || '',
+        prijsCl: toCl(parsePrijs(vw.data?.prijs) || { fl: 0, kn: 0, cl: 0 }),
+        aantal: Math.max(1, r.qty || 1),
+      });
+    }
+  }
+
+  // Losse boedelregels: alleen van spelers uit de actieve groep.
+  const eigenSpelers = new Set((entities.personages || [])
+    .filter(p => p.data?.groep === g.id || _playerGroupId(dmState, p.id) === g.id)
+    .map(p => p.id));
+  for (const [characterId, lijst] of Object.entries(dmState.playerItems || {})) {
+    if (!eigenSpelers.has(characterId)) continue;
+    for (const it of (lijst || [])) {
+      regels.push({
+        soort: 'los',
+        itemId: it.id,
+        characterId,
+        speler: _spelerNaam(entities, characterId) || '?',
+        naam: it.name || '(naamloos)',
+        itemType: '',
+        prijs: '',
+        prijsCl: 0,
+        aantal: 1,
+      });
+    }
+  }
+
+  regels.sort((a, b) => a.speler.localeCompare(b.speler, 'nl') || a.naam.localeCompare(b.naam, 'nl'));
+  res.json({ regels });
+});
+
+// ── Winkel: de DM koopt spullen van de party ──
+// Per regel een eigen bedrag: één totaal over meerdere spelers is niet te
+// verdelen zonder te gokken wie wat krijgt.
+router.post('/shops/:shopId/dm-inkoop', requireDM, (req, res) => {
+  let { shopId } = req.params;
+  const regels = Array.isArray(req.body?.regels) ? req.body.regels : [];
+  if (!regels.length) return res.status(400).json({ error: 'Geen regels' });
+
+  const entities = storage.readJSON('entities.json');
+  const shop = _winkelVan(entities, shopId);
+  if (!shop) return res.status(404).json({ error: 'Winkel niet gevonden' });
+  shopId = shop.id;
+
+  const dmState = readDmState();
+  const gedaan = [];
+
+  for (const r of regels) {
+    const characterId = r.characterId;
+    if (!characterId) continue;
+    const g = getGroup(dmState, _playerGroupId(dmState, characterId));
+    const aantal   = Math.max(1, parseInt(r.aantal) || 1);
+    const bedragCl = (typeof r.bedrag === 'string' && r.bedrag.trim())
+      ? toCl(parsePrijs(r.bedrag) || { fl: 0, kn: 0, cl: 0 })
+      : Math.max(0, Math.round(Number(r.bedragCl) || 0));
+    let naam = r.naam || '';
+
+    if (r.soort === 'kaartje' && r.entityId) {
+      const eigenaar = g.itemOwners?.[r.entityId];
+      if (Array.isArray(eigenaar)) {
+        const idx = eigenaar.findIndex(o => o.characterId === characterId);
+        if (idx === -1) continue;
+        const heeft = Math.max(1, eigenaar[idx].qty || 1);
+        if (aantal >= heeft) eigenaar.splice(idx, 1);
+        else eigenaar[idx].qty = heeft - aantal;
+        if (eigenaar.length === 0) delete g.itemOwners[r.entityId];
+      } else if (eigenaar?.characterId === characterId) {
+        delete g.itemOwners[r.entityId];
+      } else {
+        continue;
+      }
+      naam = naam || (entities.voorwerpen || []).find(e => e.id === r.entityId)?.name || '';
+    } else if (r.soort === 'los' && r.itemId) {
+      const lijst = dmState.playerItems?.[characterId] || [];
+      const idx = lijst.findIndex(i => i.id === r.itemId);
+      if (idx === -1) continue;
+      naam = naam || lijst[idx].name || '';
+      lijst.splice(idx, 1);
+    } else {
+      continue;
+    }
+
+    if (bedragCl > 0) _deductCurrency(dmState, characterId, -bedragCl);   // bijschrijven
+    gedaan.push({ characterId, naam, aantal, bedrag: fromCl(bedragCl) });
+    _shopLogRegel(shopId, {
+      playerName: _spelerNaam(entities, characterId),
+      itemNaam: `${naam} (ingekocht)`,
+      prijs: '+' + _muntTekst(fromCl(bedragCl)),
+      aantal,
+    });
+  }
+
+  if (!gedaan.length) return res.status(409).json({ error: 'Niets kunnen overnemen — is de boedel intussen gewijzigd?' });
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io    = req.app.get('io');
+  const kamer = req.session?.campaignId || 'main';
+  const groep = getGroup(dmState);
+  io.to(kamer).emit('items:ownership-updated', {
+    owners: groep.itemOwners || {}, requests: groep.itemRequests || [], tradeAllowed: groep.tradeAllowed !== false,
+  });
+  for (const cid of new Set(gedaan.map(x => x.characterId))) {
+    io.to(kamer).emit('player:items-updated', { characterId: cid });
+    io.to(kamer).emit('player:currency-updated', { characterId: cid, currency: _effectiveCurrency(dmState, cid) });
+  }
+  res.json({ ok: true, gedaan });
+});
+
 // ── Winkel: onderhandelen ──
 router.post('/shops/:shopId/onderhandel', attachRole, (req, res) => {
   const characterId = req.session?.characterId;

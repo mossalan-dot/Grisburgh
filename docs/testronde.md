@@ -76,6 +76,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Meerdere roddels op het kaartje** (DM/SP) — bij twee onthulde flavourregels staat rechtsonder "1/2 ›"; klikken toont de volgende zonder dat het kaartje opengaat, en de DM ziet nog-niet-vertelde regels lichter
 - [ ] **Rollen als badge** (ALL) — een verkoper die ook antagonist is toont bééde badges op het kaartje en in het detailvenster; zonder rol staat er het type (NPC, Speler, Dier, God)
 
+- [ ] **Afrekenen aan tafel** (DM) — muntknop achter een voorraadregel: kies een speler, tik een ander bedrag in dan de vraagprijs, afrekenen. Het bedrag gaat van de (gedeelde of eigen) beurs af, het voorwerp staat in zijn boedel, en de regel is uitverkocht
+- [ ] **Inkopen van de party** (DM) — onderaan het winkelvenster: boedel ophalen, zoeken, aanvinken, aantal kiezen bij een stapel, bedrag invullen, overnemen. Het voorwerp verdwijnt bij die speler (bij een stapel alleen het gekozen aantal) en het geld komt erbij
+- [ ] **Geen afdingknop meer** (SP) — een speler ziet in de winkel geen "Onderhandelen" en geen eigen verkooplijst; kopen kan hij nog wel
+
 - [ ] **Verkoper wijst naar zijn winkel** (DM) — in de Winkel-tab van een personage kies je een locatie; op zijn kaartje staat dan "Verkoopt bij <locatie>" met een doorklik naar de voorraad daar. Het personage heeft zelf geen voorraadlijst meer
 - [ ] **Voorraad op de locatie** (ALL) — de winkel-tab van een locatie toont de voorraad; ook bij een locatie die géén type *Winkel* heeft maar wel waren (tempel, ziekenhuis)
 

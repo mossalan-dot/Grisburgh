@@ -239,6 +239,11 @@ export const api = {
   getShopVerkoopbaar: (shopId)         => request(`/shops/${shopId}/verkoopbaar`),
   verkoopShopItem:    (shopId, data)   => request(`/shops/${shopId}/verkoop`, { method: 'POST', body: JSON.stringify(data) }),
   getShopLog:         (shopId)         => request(`/shops/${shopId}/log`),
+  // DM rekent aan tafel af: verkopen met een zelf getypt bedrag, en inkopen
+  // uit de boedel van de party.
+  dmVerkoop:          (shopId, data)   => request(`/shops/${shopId}/dm-verkoop`, { method: 'POST', body: JSON.stringify(data) }),
+  getPartyBoedel:     (shopId)         => request(`/shops/${shopId}/party-boedel`),
+  dmInkoop:           (shopId, data)   => request(`/shops/${shopId}/dm-inkoop`, { method: 'POST', body: JSON.stringify(data) }),
   onderhandelShop:    (shopId, data)   => request(`/shops/${shopId}/onderhandel`, { method: 'POST', body: JSON.stringify(data) }),
   getShopHumeur:      (shopId)         => request(`/shops/${shopId}/humeur`),
   bumpShopHumeur:     (shopId, data)   => request(`/shops/${shopId}/humeur`, { method: 'POST', body: JSON.stringify(data) }),
