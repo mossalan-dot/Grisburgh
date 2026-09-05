@@ -1434,19 +1434,21 @@ function _detFlavInner(key) {
   const r      = regels[idx];
   if (!r) return '';
   return `
-    ${isDM() ? `<button class="onthul-knop${r.gezegd ? ' onthul-knop--aan' : ''}"
-      title="${r.gezegd ? 'Toch niet verteld — terugdraaien' : 'Markeer als verteld; de spelers zien de roddel dan'}"
-      onclick="window._toggleFlavour('${esc(ctx.tab)}','${esc(ctx.id)}',${r.i})">${r.gezegd ? icon('beer') : icon('lock')}<span>${r.gezegd ? 'Verteld' : 'Vertellen'}</span></button>` : ''}
-    <p class="flavour-text">\u201e${esc(r.tekst)}\u201c</p>
-    <div class="flavour-scroll-voet">
-      ${ctx.audioId ? `<button type="button" class="flavour-audio-play" data-audio-btn data-audio-btn-id="${esc(ctx.audioId)}"
-        onclick="window._audioToggle('${esc(ctx.audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>` : '<span></span>'}
-      ${regels.length > 1 ? `
-        <span class="flavour-nav">
-          <button type="button" onclick="window._detFlavStap('${esc(key)}',-1)" title="Vorige roddel">\u2039</button>
-          <span>${idx + 1}/${regels.length}</span>
-          <button type="button" onclick="window._detFlavStap('${esc(key)}',1)" title="Volgende roddel">\u203a</button>
-        </span>` : ''}
+    <p class="roddel-tekst">${esc(r.tekst)}</p>
+    <div class="roddel-voet">
+      ${isDM() ? `<button class="onthul-knop${r.gezegd ? ' onthul-knop--aan' : ''}"
+        title="${r.gezegd ? 'Toch niet verteld — terugdraaien' : 'Markeer als verteld; de spelers zien de roddel dan'}"
+        onclick="window._toggleFlavour('${esc(ctx.tab)}','${esc(ctx.id)}',${r.i})">${r.gezegd ? icon('beer') : icon('lock')}<span>${r.gezegd ? 'Verteld' : 'Vertellen'}</span></button>` : '<span></span>'}
+      <span class="roddel-voet-rechts">
+        ${ctx.audioId ? `<button type="button" class="flavour-audio-play" data-audio-btn data-audio-btn-id="${esc(ctx.audioId)}"
+          onclick="window._audioToggle('${esc(ctx.audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>` : ''}
+        ${regels.length > 1 ? `
+          <span class="flavour-nav">
+            <button type="button" onclick="window._detFlavStap('${esc(key)}',-1)" title="Vorige roddel">\u2039</button>
+            <span>${idx + 1}/${regels.length}</span>
+            <button type="button" onclick="window._detFlavStap('${esc(key)}',1)" title="Volgende roddel">\u203a</button>
+          </span>` : ''}
+      </span>
     </div>`;
 }
 
@@ -1455,10 +1457,10 @@ window._detFlavStap = (key, richting) => {
   if (regels.length < 2) return;
   _flavPos[key] = ((_flavPos[key] || 0) + richting + regels.length) % regels.length;
   const host = document.getElementById(`flav-${key}`);
-  const vak  = host?.querySelector('.flavour-scroll-content');
+  const vak  = host?.querySelector('.roddel-binnen');
   if (!vak) return;
   vak.innerHTML = _detFlavInner(key);
-  host.classList.toggle('flavour-scroll--ongespoken', isDM() && !regels[_flavPos[key]].gezegd);
+  host.classList.toggle('roddel--ongespoken', isDM() && !regels[_flavPos[key]].gezegd);
 };
 
 window._flavStap = (id) => {
@@ -2104,7 +2106,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (persVal && isDM()) {
     infoHtml += `
       <div class="dm-only mb-4">
-        <div class="detail-field-label">Persoonlijkheid</div>
+        <div class="detail-field-label">Aantekeningen voor de DM</div>
         <div class="detail-dm-block">${mdToHtml(persVal)}</div>
       </div>
     `;
@@ -2129,10 +2131,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     _flavPos[`det-${e.id}`]   = 0;
     _flavCtx[`det-${e.id}`]   = { tab, id: e.id, audioId: _audioId };
     infoHtml += `
-      <div class="flavour-scroll" id="flav-det-${esc(e.id)}">
-        <div class="flavour-scroll-rod"></div>
-        <div class="flavour-scroll-content">${_detFlavInner(`det-${e.id}`)}</div>
-        <div class="flavour-scroll-rod"></div>
+      <div class="roddel${isDM() && !zichtbareFlavours[0].gezegd ? ' roddel--ongespoken' : ''}" id="flav-det-${esc(e.id)}">
+        <div class="roddel-binnen">${_detFlavInner(`det-${e.id}`)}</div>
       </div>`;
   }
 
@@ -2180,6 +2180,12 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                      :                    'Zichtbaar maken';
     infoHtml += `
       <div class="dm-only mt-4 pt-4 border-t border-room-border">
+        <!-- Notities eerst: dat is de plek waar je tijdens het spelen typt. De
+             knoppen sluiten het venster af. -->
+        <div class="detail-label mb-1">Snelle notitie</div>
+        <textarea id="dm-note-${e.id}" class="w-full min-h-[80px] px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
+          placeholder="Wat je aan tafel wilt onthouden\u2026">${esc(e._dmNote || '')}</textarea>
+        <div id="note-save-${e.id}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1 mb-3"></div>
         <!-- Vijf gelijke vierkantjes met een pictogram zeiden niet wát ze doen.
              Nu icoon plus woord; de stand staat in het woord ("Zichtbaar" /
              "Verborgen"), niet alleen in de kleur. -->
@@ -2207,10 +2213,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             ${icon('pencil')}<span>Bewerken</span>
           </button>
         </div>
-        <div class="detail-label mb-1">DM Notities</div>
-        <textarea id="dm-note-${e.id}" class="w-full min-h-[80px] px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
-          placeholder="Notities...">${esc(e._dmNote || '')}</textarea>
-        <div id="note-save-${e.id}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>
       </div>
     `;
 

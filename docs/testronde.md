@@ -85,6 +85,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Verkoper wijst naar zijn winkel** (DM) — vink *verkoper* aan: onder de rollen (tab Informatie) verschijnt "Verkoopt bij" met een zoekbare locatielijst. Een personage heeft géén Winkel-tabblad meer; op zijn kaartje staat "Verkoopt bij <locatie>" met een doorklik naar de voorraad daar
 - [ ] **Voorraad op de locatie** (ALL) — de winkel-tab van een locatie toont de voorraad; ook bij een locatie die géén type *Winkel* heeft maar wel waren (tempel, ziekenhuis)
 
+- [ ] **Roddel toont zijn stand meteen** (DM) — een nog niet vertelde roddel staat lichter zodra het venster opent, niet pas na doorbladeren; de knop en de opmaak zeggen hetzelfde
+- [ ] **Geheimen verspringen niet** (DM) — onthullen verandert het woord op de knop, maar het tekstvak ernaast blijft op zijn plek
+- [ ] **Notitie boven de knoppen** (DM) — het notitieveld ("Snelle notitie") staat boven de DM-acties; de tekst uit de bewerkmodus heet in beide vensters *Aantekeningen voor de DM*
+- [ ] **Wachtwoord opslaan meldt zich** (DM) — een partywachtwoord instellen of wissen geeft een bevestiging, net als het DM-wachtwoord
+
 - [ ] **Detailvenster: kop zegt het al** (ALL) — onder de naam staat rol · origin · class · alignment; diezelfde waarden staan niet nóg eens als pil eronder
 - [ ] **Roddels doorbladeren in het detailvenster** (DM/SP) — één rol perkament met "‹ 1/3 ›"; de knop *Vertellen* / *Verteld* hoort bij de regel die je ziet, en stapt mee
 - [ ] **Onthulknoppen uniform** (DM) — roddels en geheimen hebben dezelfde knop op dezelfde plek, met het woord erbij (Vertellen/Verteld, Onthullen/Onthuld)

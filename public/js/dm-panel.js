@@ -9517,7 +9517,7 @@ async function _aanwezigheidToggle(groepId, charId) {
     if (groepId === window._activeGroupId) window._groepAfwezig = res.afwezig || [];
     _renderInstellingen();
   } catch (e) {
-    window.app?.toast?.('Aanwezigheid opslaan mislukt', 'error');
+    _showToast(`${icon('x')} Aanwezigheid opslaan mislukt`);
   }
 }
 
@@ -9542,7 +9542,7 @@ async function _dmWachtwoordOpslaan() {
     await api.dmWachtwoordZet(veld.value);
     veld.value = '';
     await _dmWachtwoordStatus();
-    window.app?.toast?.('DM-wachtwoord opgeslagen');
+    _showToast(`${icon('check')} DM-wachtwoord opgeslagen`);
   } catch (e) { alert(e.message || 'Opslaan mislukt'); }
 }
 
@@ -9991,6 +9991,9 @@ window._instGroepSetPw = async (id, pw) => {
     const r = await api.setGroupPassword(id, pw.trim());
     const veld = document.getElementById(`pw-${id}`);
     if (veld) { veld.value = ''; veld.placeholder = pw.trim() ? 'Wachtwoord wijzigen…' : 'Wachtwoord instellen…'; }
+    // Zelfde bevestiging als bij het DM-wachtwoord: zonder melding weet je niet
+    // of er iets gebeurd is — het veld leegt zichzelf immers ook bij een fout.
+    _showToast(`${icon('check')} ${pw.trim() ? 'Partywachtwoord opgeslagen' : 'Partywachtwoord verwijderd'}`);
     // Het slotje bij de party hoort mee te bewegen.
     const slot = document.querySelector(`#dm-inst-group-${id} .dm-inst-group-slot`);
     if (slot) slot.innerHTML = pw.trim() ? icon('lock') : icon('lock-open');

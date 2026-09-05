@@ -22452,6 +22452,38 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 
 /* Knop om een roddel met de hand te vertellen, in de hoek van de rol perkament. */
 .flavour-scroll-content { position: relative; }
+/* Een roddel is een terloopse opmerking, geen oorkonde: geen gouden rollen en
+   geen gecentreerde cursief meer, maar een citaat met een streep ernaast en de
+   knoppen op één voet eronder. */
+.roddel {
+  position: relative;
+  margin: 0 0 10px;
+  padding: 12px 16px 10px 20px;
+  border-left: 3px solid rgba(196,168,122,.75);
+  border-radius: 0 5px 5px 0;
+  background: rgba(236,224,196,.4);
+}
+.roddel--ongespoken { opacity: .62; }
+.roddel--ongespoken .roddel-tekst { color: #7a6040; }
+.roddel-tekst {
+  margin: 0;
+  font-family: 'IM Fell English', 'Crimson Text', serif;
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.45;
+  color: #3a2410;
+}
+.roddel-tekst::before { content: '\201E'; margin-right: 1px; opacity: .55; }
+.roddel-tekst::after  { content: '\201C'; margin-left: 1px;  opacity: .55; }
+.roddel-voet {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+.roddel-voet-rechts { display: inline-flex; align-items: center; gap: 8px; }
+
 /* Onthulknop bij een roddel of geheim: overal dezelfde vorm en plek, met het
    woord erbij — een los slotje zei niet of je aan het onthullen of verbergen
    was. */
@@ -22473,6 +22505,9 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   white-space: nowrap;
 }
 .onthul-knop:hover { background: rgba(196,168,122,.38); color: #2a1a08; }
+/* Vaste breedte: "Onthullen" en "Onthuld" zijn niet even lang, en zonder dit
+   verspringt het tekstvak ernaast zodra je klikt. */
+.onthul-knop { min-width: 118px; justify-content: center; }
 .onthul-knop .icon { width: 12px; height: 12px; }
 .onthul-knop--aan {
   background: rgba(58,106,74,.18);

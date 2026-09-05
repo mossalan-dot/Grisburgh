@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=265';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=160";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=161";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=21';
 import { renderSpreuken } from './render-spreuken.js?v=16';
 import { renderStatblock } from './render-statblock.js?v=4';
 import { initSocket } from "./socket-client.js?v=59";
-import { initDmPanel } from "./dm-panel.js?v=200";
+import { initDmPanel } from "./dm-panel.js?v=201";
 import './media-picker.js?v=7';
 
 // ── Icon helper ──
@@ -2463,7 +2463,10 @@ async function renameGroup(id, currentName) {
 async function setGroupPassword(id, groupName) {
   const newPw = prompt(`Wachtwoord voor "${groupName}":\n(leeg laten = geen wachtwoord vereist)`,'');
   if (newPw === null) return; // geannuleerd
-  try { await api.setGroupPassword(id, newPw.trim()); }
+  try {
+    await api.setGroupPassword(id, newPw.trim());
+    _tsToast(`${icon('check')} ${newPw.trim() ? 'Partywachtwoord opgeslagen' : 'Partywachtwoord verwijderd'}`);
+  }
   catch (e) { alert('Fout: ' + e.message); }
 }
 
