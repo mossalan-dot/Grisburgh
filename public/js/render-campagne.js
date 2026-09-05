@@ -146,8 +146,10 @@ const SCHEMA = {
       // werd, 'persoonlijkheid' gaat in de praktijk over hoe jíj hem speelt.
       { key: 'rol', label: 'Korte omschrijving', type: 'text' },
       // Origin en Class zeggen niets over een god; domein en symbool wel.
-      { key: 'ras', label: 'Origin', type: 'lijst', lijst: 'volken', nietBij: ['god'] },
-      { key: 'klasse', label: 'Class', type: 'lijst', lijst: 'klassen', nietBij: ['god'] },
+      // Een god heeft geen volk of klasse, een dier evenmin — dat is bij hem het
+      // ras, en dat staat bij de adoptie-instellingen.
+      { key: 'ras', label: 'Origin', type: 'lijst', lijst: 'volken', nietBij: ['god', 'dier'] },
+      { key: 'klasse', label: 'Class', type: 'lijst', lijst: 'klassen', nietBij: ['god', 'dier'] },
       // De grijze voorbeeldtekst zegt genoeg; een uitleg erboven is dubbelop.
       { key: 'domein', label: 'Domein', type: 'text', alleenBij: ['god'], hint: 'Kennis en uitvinding' },
       { key: 'symbool', label: 'Heilig symbool', type: 'text', alleenBij: ['god'], hint: 'Een purperen waterrad' },
