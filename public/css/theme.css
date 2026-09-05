@@ -12184,10 +12184,11 @@ body.herberg-actief #app { position: relative; z-index: 1; }
    een donker schijfje eronder zodat hij op elk portret leesbaar blijft. */
 .card-bookmark-btn {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  width: 30px;
-  height: 30px;
+  /* Iets naar binnen: op 6px raakte hij de accentbalk en de buitenrand. */
+  top: 12px;
+  left: 9px;
+  width: 27px;
+  height: 27px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12195,7 +12196,7 @@ body.herberg-actief #app { position: relative; z-index: 1; }
   border: 1px solid rgba(196,168,122,0.3);
   border-radius: 50%;
   color: rgba(240,225,190,0.85);
-  font-size: 17px;
+  font-size: 15px;
   line-height: 1;
   padding: 0;
   cursor: pointer;
@@ -12223,7 +12224,7 @@ body.herberg-actief #app { position: relative; z-index: 1; }
   color: #8a6d3f;
 }
 .entity-card.no-img .card-bookmark-btn:hover { background: rgba(196,168,122,.5); color: #7a4a1a; }
-.entity-card.no-img .card-body { padding-top: 34px; }
+.entity-card.no-img .card-body { padding-top: 36px; }
 
 /* ── Kaart-knop op locatie-cards ── */
 .card-map-btn {
@@ -22647,7 +22648,7 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .entity-card.no-img > .dm-only button { width: 24px; height: 24px; }
 .entity-card.no-img .card-secret-badge { width: 24px; height: 24px; top: 6px; left: 6px; }
 /* De titel begint anders onder de knoppenrij; iets meer lucht bovenin. */
-.entity-card.no-img .card-body { padding-top: 34px; }
+.entity-card.no-img .card-body { padding-top: 36px; }
 
 /* ── Keuzelijst in perkament ────────────────────────────────────────────────
    Vervangt de native <datalist>-popup, die de browser zelf tekent (donkergrijs,
