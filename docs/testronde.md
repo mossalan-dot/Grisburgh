@@ -75,6 +75,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Medestander vanuit het detailvenster** (DM) — het zwaardenicoon in de DM-rij (naast de doodskop) koppelt een NPC als medestander aan de **actieve** party; de knop kleurt op, nogmaals klikken koppelt los, en de bewerkmodus heeft die knop niet meer
 
+- [ ] **Wachtwoordveld boven het toetsenbord** (SP) — kies op een tablet een personage met wachtwoord: het invoerveld schuift boven het toetsenbord in beeld en blijft zichtbaar tijdens het typen
+
 - [ ] **Volle hoogte op een tablet** (ALL) — open een tab met veel kaartjes op de iPad: het laatste rijtje is helemaal te bereiken en er staat geen lege strook perkament onder; draai het scherm en controleer opnieuw
 
 - [ ] **Kaartjes bij hover** (ALL) — een kaartje tilt op als je erover gaat, maar kantelt niet meer met de muis mee

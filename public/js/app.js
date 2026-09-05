@@ -1278,9 +1278,11 @@ function _landingPromptInBeeld() {
 
   const vv = window.visualViewport;
   const toetsenbord = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
-  const smal = window.innerWidth <= 640;
 
-  if (smal && toetsenbord > 80) {
+  // Niet op schermbreedte kijken maar op wat er écht gebeurt: een iPad is breed
+  // genoeg om "geen telefoon" te lijken, maar zijn toetsenbord dekt de helft van
+  // het scherm af — en het wachtwoordveld zat er precies onder.
+  if (toetsenbord > 80) {
     prompt.classList.add('landing-pw-prompt--boven-toetsenbord');
     prompt.style.bottom = `${toetsenbord + 12}px`;
     return;

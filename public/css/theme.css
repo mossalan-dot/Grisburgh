@@ -22431,9 +22431,13 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 /* Wachtwoordprompt boven het toetsenbord: vastgezet in het zichtbare deel, met
    een eigen achtergrond zodat hij niet over de portretten heen leest. De
    `bottom` wordt in app.js gezet — die hangt van de hoogte van het toetsenbord af. */
+/* Boven het toetsenbord geplakt. Op een tablet is het scherm breed, dus daar
+   niet de volle breedte: een strook van 12 tot 12 wordt dan een lint. */
 .landing-pw-prompt--boven-toetsenbord {
   position: fixed;
   left: 12px; right: 12px;
+  max-width: 420px;
+  margin: 0 auto;
   z-index: 70;
   background: rgba(18,12,6,0.94);
   border: 1px solid rgba(196,168,64,0.4);
