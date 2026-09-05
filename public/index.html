@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=480">
+  <link rel="stylesheet" href="/css/theme.css?v=481">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -208,7 +208,7 @@
       <div class="global-search-input-wrap">
         <span class="global-search-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-search"/></svg></span>
         <input id="global-search-input" class="global-search-input" type="text"
-          placeholder="Zoek personages, locaties, voorwerpen… (↑↓ Enter)"
+          placeholder="Zoeken in de campagne…"
           autocomplete="off" spellcheck="false"
           oninput="window.app._globalSearchRun(this.value)"
           onkeydown="window.app._gsKey(event)">
@@ -220,6 +220,8 @@
         <button class="gs-type-chip" data-gs-type="organisaties" onclick="window.app._gsSetTypeFilter('organisaties')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-landmark"/></svg> Organisaties</button>
         <button class="gs-type-chip" data-gs-type="voorwerpen"   onclick="window.app._gsSetTypeFilter('voorwerpen')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-package"/></svg> Voorwerpen</button>
         <button class="gs-type-chip" data-gs-type="documenten"   onclick="window.app._gsSetTypeFilter('documenten')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-scroll-text"/></svg> Documenten</button>
+        <button class="gs-type-chip" data-gs-type="spreuken"     onclick="window.app._gsSetTypeFilter('spreuken')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-sparkles"/></svg> Spreuken</button>
+        <button class="gs-type-chip" data-gs-type="bestiarium"   onclick="window.app._gsSetTypeFilter('bestiarium')"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=8#icon-paw-print"/></svg> Bestiarium</button>
       </div>
       <div id="global-search-results" class="global-search-results"></div>
     </div>
@@ -565,6 +567,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=603"></script>
+  <script type="module" src="/js/app.js?v=604"></script>
 </body>
 </html>

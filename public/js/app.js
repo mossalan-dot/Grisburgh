@@ -5,8 +5,8 @@ import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=44';
-import { renderBestiarium } from './render-bestiarium.js?v=21';
-import { renderSpreuken } from './render-spreuken.js?v=17';
+import { renderBestiarium } from './render-bestiarium.js?v=22';
+import { renderSpreuken } from './render-spreuken.js?v=18';
 import { renderStatblock } from './render-statblock.js?v=4';
 import { initSocket } from "./socket-client.js?v=61";
 import { initDmPanel } from "./dm-panel.js?v=203";
@@ -9565,6 +9565,57 @@ window.app._globalSearchRun = async function(q) {
     html += `</div>`;
   }
 
+  // Spreuken: naam, school en niveau. Een spreuk is geen kaartje, dus hij heeft
+  // zijn eigen venster (window.spreuken.open).
+  if (!_gsTypeFilter || _gsTypeFilter === 'spreuken') {
+    const norm = window._normSearch || (s => String(s || '').toLowerCase());
+    let spreuken = [];
+    try { spreuken = await window.spreuken?.alle?.() || []; } catch { spreuken = []; }
+    const treffers = spreuken.filter(sp => {
+      const naam = norm(sp.name);
+      return tokens.every(t => t.length >= 2 ? naam.includes(t) : naam.startsWith(t));
+    }).slice(0, 8);
+    if (treffers.length) {
+      html += `<div class="gs-group"><div class="gs-group-label">${icon('sparkles')} Spreuken</div>`;
+      for (const sp of treffers) {
+        const idx = _gsResults.push({ type: 'spreuken', id: sp.index }) - 1;
+        const niveau = Number(sp.level) === 0 ? 'Cantrip' : `Level ${sp.level}`;
+        html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('spreuken','${esc(sp.index)}')">
+            <span class="gs-result-kop">
+              <span class="gs-result-name">${_gsHighlight(sp.name, tokens)}</span>
+              <span class="gs-result-sub">${esc(niveau)}${sp.school?.name ? ` · ${esc(sp.school.name)}` : ''}</span>
+            </span>
+          </button>`;
+      }
+      html += `</div>`;
+    }
+  }
+
+  // Bestiarium: alleen wat deze kijker mag zien — de server filtert dat al.
+  if (!_gsTypeFilter || _gsTypeFilter === 'bestiarium') {
+    const norm = window._normSearch || (s => String(s || '').toLowerCase());
+    let monsters = [];
+    try { monsters = await window.bestiarium?.alle?.() || []; } catch { monsters = []; }
+    const treffers = monsters.filter(m => {
+      const naam = norm(m.name);
+      return tokens.every(t => t.length >= 2 ? naam.includes(t) : naam.startsWith(t));
+    }).slice(0, 8);
+    if (treffers.length) {
+      html += `<div class="gs-group"><div class="gs-group-label">${icon('paw-print')} Bestiarium</div>`;
+      for (const m of treffers) {
+        const idx = _gsResults.push({ type: 'bestiarium', id: m.id }) - 1;
+        const sub = [m.statblock?.size, m.statblock?.creatureType || m.statblock?.type].filter(Boolean).join(' ');
+        html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('bestiarium','${esc(m.id)}')">
+            <span class="gs-result-kop">
+              <span class="gs-result-name">${_gsHighlight(m.name, tokens)}</span>
+              ${sub ? `<span class="gs-result-sub">${esc(sub)}</span>` : ''}
+            </span>
+          </button>`;
+      }
+      html += `</div>`;
+    }
+  }
+
   // Documenten (archief) — genormaliseerd matchen
   if (!_gsTypeFilter || _gsTypeFilter === 'documenten') {
     const norm = window._normSearch || (s => String(s || '').toLowerCase());
@@ -9611,6 +9662,18 @@ window.app._gsKey = function(e) {
 
 window.app._globalSearchGo = function(type, id) {
   document.getElementById('global-search-overlay')?.classList.add('hidden');
+  // Een spreuk en een monster hebben geen entiteit-detailvenster maar hun eigen
+  // weergave; de rest gaat via het kaartje.
+  if (type === 'spreuken') {
+    switchSection('spreuken');
+    setTimeout(() => window.spreuken?.open?.(id), 120);
+    return;
+  }
+  if (type === 'bestiarium') {
+    switchSection('bestiarium');
+    setTimeout(() => window.bestiarium?.openId?.(id), 200);
+    return;
+  }
   if (type === 'documenten') {
     switchSection('documenten');
   } else {

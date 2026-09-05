@@ -174,8 +174,10 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   background: transparent;
   border: none;
   outline: none;
-  font-family: 'Cinzel', serif;
-  font-size: 15px;
+  /* Wat je zelf typt is tekst, geen opschrift: Cinzel maakte er kleinkapitalen
+     van en dat leest in een invoerveld niet prettig. */
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 17px;
   color: #2a1a08;
   caret-color: #8a6d3f;
 }
@@ -190,11 +192,11 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 
 .gs-type-chip {
-  font-family: 'Cinzel', serif;
-  font-size: 10px;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 4px 10px;
+  letter-spacing: 0;
+  padding: 3px 11px;
   border-radius: 20px;
   border: 1px solid rgba(122,96,64,.4);
   background: rgba(255,255,255,.4);
@@ -216,10 +218,9 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 
 .gs-group-label {
   font-family: 'Cinzel', serif;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   color: #8a6d3f;
   padding: 6px 18px 4px;
 }
@@ -251,8 +252,8 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 
 .gs-result-name {
-  font-family: 'Cinzel', serif;
-  font-size: 13px;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 15px;
   color: #2a1a08;
   font-weight: 600;
 }

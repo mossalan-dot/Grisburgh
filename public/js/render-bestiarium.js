@@ -122,6 +122,17 @@ function _card(m, i, dm) {
 }
 
 window.bestiarium = {
+  // Wat deze kijker van het bestiarium mag zien (server filtert al), zodat het
+  // globale zoeken erin kan zoeken zonder de sectie te openen.
+  async alle() {
+    if (!_data?.monsters?.length) { try { _data = await api.bestiarium(); } catch { return []; } }
+    return _data.monsters || [];
+  },
+  // Openen op id in plaats van op positie — het globale zoeken kent geen index.
+  openId(id) {
+    const i = (_data?.monsters || []).findIndex(m => m.id === id);
+    if (i >= 0) this.open(i);
+  },
   open(i) {
     const m = _data.monsters?.[i];
     if (!m) return;

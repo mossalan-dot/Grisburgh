@@ -356,6 +356,8 @@ function _markAdded(index) {
 }
 
 window.spreuken = {
+  // De hele lijst, voor wie er zelf in wil zoeken (globaal zoeken).
+  async alle() { if (!_all) await _load(); return _all || []; },
   // Kan ook aangeroepen worden vanuit een kaartje, en dan is de bibliotheek nog
   // niet geladen — dus eerst laden, dan tonen.
   async open(index) {
