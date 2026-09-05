@@ -22692,6 +22692,39 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 .onthul-knop--aan:hover { background: rgba(58,106,74,.3); color: #23452e; }
 
+/* Leden van een party in de Meesterkamer: chips met een kruisje, plus een
+   zoekveld om er iemand bij te zetten. */
+.dm-inst-leden {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 2px 2px;
+}
+.dm-lid-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px 3px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(122,96,64,.35);
+  background: rgba(196,168,122,.18);
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  color: #3a2410;
+}
+.dm-lid-chip button {
+  display: inline-flex;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: #9a8060;
+}
+.dm-lid-chip button:hover { color: #8b2a2a; }
+.dm-lid-chip .icon { width: 11px; height: 11px; }
+.dm-lid-toevoegen input { max-width: 190px; }
+
 /* Merkje bij een geheim dat het kaartje omzet (rol, kant, alignment). */
 .verraad-merk {
   display: inline-flex;

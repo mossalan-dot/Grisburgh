@@ -94,6 +94,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Verborgen kaartje in een tekst** (DM/SP) — verberg een kaartje waarnaar een `[[link]]` verwijst: de speler kan er niet meer op klikken (zonder te herladen), en de DM ziet de link als *dicht* gemarkeerd
 
+- [ ] **Party samenstellen** (DM) — Instellingen → Party's: onder elke party staan de personages als chips; typ een naam in *Personage toevoegen* om er iemand bij te zetten (met waarschuwing als hij uit een andere party komt) en klik het kruisje om iemand eruit te halen. Op het kaartje zelf blijft het veld *Party* hetzelfde doen
+
 - [ ] **Eén notitieveld** (DM) — er is nog maar één DM-notitie per kaartje: *Aantekeningen voor de DM*, boven de knoppenbalk. Typ erin, herlaad, en open de bewerkmodus: dezelfde tekst staat er
 - [ ] **Wikilinks bij een speler** (SP) — een `[[Naam]]` naar een kaartje dat de speler niet mag zien staat als gewone tekst in de zin, zónder dubbele haken; een naam die hij wél kent is klikbaar. Herlaad de pagina: de links staan er meteen goed (niet eerst als haakjes)
 - [ ] **Geheim-onthuld op het kaartje** (SP) — bij een onthuld geheim staat een pill *Geheim onthuld* boven de rolbadge, niet meer boven op de bladwijzer-ster

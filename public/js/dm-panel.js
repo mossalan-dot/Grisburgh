@@ -455,6 +455,8 @@ export function initDmPanel() {
     aanwezigheidToggle:      (groepId, charId) => _aanwezigheidToggle(groepId, charId),
     naarTabletmodus:         () => _naarTabletmodus(),
     dmWachtwoordOpslaan:     () => _dmWachtwoordOpslaan(),
+    partyLidErbij:           (gid, veld) => _partyLidErbij(gid, veld),
+    partyLidWeg:             (id, naam, party) => _partyLidWeg(id, naam, party),
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
     regieBalkRust:           (id) => _regieBalkRust(id),
@@ -9521,6 +9523,51 @@ async function _aanwezigheidToggle(groepId, charId) {
   }
 }
 
+// Een personage aan een party koppelen (of eruit halen) vanuit de Meesterkamer.
+// Verhuizen laat meer achter dan dit ene veld — voorwerpbezit en onthullingen
+// horen bij de party — dus daar waarschuwen we voor, net als in de editor.
+async function _partyNaarGroep(entityId, naam, groepId, vraag) {
+  if (vraag && !confirm(vraag)) return false;
+  try {
+    const e = await api.getEntity('personages', entityId);
+    await api.updateEntity('personages', entityId, { data: { ...(e.data || {}), groep: groepId } });
+    return true;
+  } catch (err) {
+    alert('Koppelen mislukt: ' + (err.message || err));
+    return false;
+  }
+}
+
+async function _partyLidErbij(groepId, veld) {
+  const naam = (veld?.value || '').trim();
+  if (!naam) return;
+  let lijst = [];
+  try { lijst = (await api.listEntities('personages') || []).filter(e => e.subtype === 'speler'); } catch { /* ok */ }
+  const doel = lijst.find(e => e.name.toLowerCase() === naam.toLowerCase());
+  if (!doel) {
+    veld.classList.add('dm-input--err');
+    setTimeout(() => veld.classList.remove('dm-input--err'), 900);
+    return;
+  }
+  const oude = doel.data?.groep || '';
+  const vraag = oude && oude !== groepId
+    ? `${doel.name} zit al in een andere party.\n\nVerhuizen? Voorwerpkaartjes en wat die party al ontdekt had blijven daar achter; losse boedelregels en geld gaan mee.`
+    : '';
+  if (await _partyNaarGroep(doel.id, doel.name, groepId, vraag)) {
+    _showToast(`${icon('check')} ${doel.name} toegevoegd aan de party`);
+    _renderInstellingen();
+  }
+  veld.value = '';
+}
+
+async function _partyLidWeg(entityId, naam, party) {
+  if (!confirm(`${naam} uit ${party} halen?\n\nHij hoort daarna bij geen enkele party en ziet niets meer van deze campagne. Voorwerpkaartjes en onthullingen blijven bij ${party}.`)) return;
+  if (await _partyNaarGroep(entityId, naam, '', '')) {
+    _showToast(`${icon('check')} ${naam} uit de party gehaald`);
+    _renderInstellingen();
+  }
+}
+
 async function _dmWachtwoordStatus() {
   const el = document.getElementById('dm-pw-status');
   if (!el) return;
@@ -9582,6 +9629,31 @@ async function _renderInstellingen() {
   let alleSpelers = [];
   try { alleSpelers = (await api.listEntities('personages') || []).filter(e => e.subtype === 'speler'); } catch { /* ok */ }
 
+  // Leden van een party: wie erin zit, en een lijstje om er iemand bij te zetten.
+  // Koppelen kon alleen op het kaartje zelf; hier zie je de party als geheel.
+  const ledenHtml = (g) => {
+    const leden = alleSpelers.filter(e => e.data?.groep === g.id);
+    const vrij  = alleSpelers.filter(e => (e.data?.groep || '') !== g.id);
+    return `<div class="dm-inst-leden">
+      <span class="dm-inst-aanwezig-label" title="Welke spelerspersonages bij deze party horen">${icon('user')} Personages</span>
+      ${leden.length
+        ? leden.map(e => `
+          <span class="dm-lid-chip">${esc(e.name)}
+            <button type="button" title="Uit deze party halen"
+              onclick="window.dmPanel.partyLidWeg('${esc(e.id)}','${escJS(e.name)}','${escJS(g.name)}')">${icon('x')}</button>
+          </span>`).join('')
+        : '<span class="dm-hint" style="margin:0">Nog niemand.</span>'}
+      ${vrij.length ? `
+        <span class="dm-lid-toevoegen">
+          <input list="dm-party-pc-dl-${esc(g.id)}" class="dm-input dm-input-sm" placeholder="Personage toevoegen…"
+            onchange="window.dmPanel.partyLidErbij('${esc(g.id)}', this)">
+          <datalist id="dm-party-pc-dl-${esc(g.id)}">
+            ${vrij.map(e => `<option value="${esc(e.name)}">${e.data?.groep ? 'nu in een andere party' : 'geen party'}</option>`).join('')}
+          </datalist>
+        </span>` : ''}
+    </div>`;
+  };
+
   const aanwezigheidHtml = (g) => {
     const leden = alleSpelers.filter(e => e.data?.groep === g.id);
     if (!leden.length) return '';
@@ -9608,6 +9680,7 @@ async function _renderInstellingen() {
         onclick="window._instGroepDelete('${esc(g.id)}', '${escJS(g.name)}', ${alleSpelers.filter(e => e.data?.groep === g.id).length})"
         title="Party verwijderen">${icon('trash')}</button>
     </div>
+    ${ledenHtml(g)}
     ${aanwezigheidHtml(g)}`).join('');
 
   const campaignItems = campaigns.map(c => {
