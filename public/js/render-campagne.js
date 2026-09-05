@@ -2193,8 +2193,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _verteld = _gezegd.filter(Boolean).length;
     infoHtml += `
       <div class="mb-4">
-        <div class="detail-field-label detail-field-label--roddel">${icon('beer')} ${flavourRegels.length > 1 ? 'Roddels' : 'Roddel'}${
-          isDM() && flavourRegels.length ? ` <span class="geheim-teller">${_verteld} van ${flavourRegels.length} onthuld</span>` : ''}</div>
+        <div class="detail-field-label detail-field-label--roddel">
+          <span class="dfl-titel">${icon('beer')} ${flavourRegels.length > 1 ? 'Roddels' : 'Roddel'}</span>${
+          isDM() && flavourRegels.length ? `<span class="geheim-teller">${_verteld} van ${flavourRegels.length} onthuld</span>` : ''}</div>
         ${_onthulBlok(`det-${e.id}`)}
       </div>`;
   }
@@ -2215,8 +2216,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     _flavCtx[`geh-${e.id}`]   = { tab, id: e.id, soort: 'geheim' };
     infoHtml += `
       <div class="mb-4">
-        <div class="detail-field-label detail-field-label--secret">${icon('lock')} ${zichtbareGeheimen.length > 1 ? 'Geheimen' : 'Geheim'}${
-          isDM() && geheimRegels.length > 1 ? ` <span class="geheim-teller">${_geheimOnthuld.filter(Boolean).length} van ${geheimRegels.length} onthuld</span>` : ''}</div>
+        <div class="detail-field-label detail-field-label--secret">
+          <span class="dfl-titel">${icon('lock')} ${zichtbareGeheimen.length > 1 ? 'Geheimen' : 'Geheim'}</span>${
+          isDM() && geheimRegels.length ? `<span class="geheim-teller">${_geheimOnthuld.filter(Boolean).length} van ${geheimRegels.length} onthuld</span>` : ''}</div>
         ${_onthulBlok(`geh-${e.id}`)}
       </div>`;
   }

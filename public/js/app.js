@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=266';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=169";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=170";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=44';
 import { renderBestiarium } from './render-bestiarium.js?v=21';
 import { renderSpreuken } from './render-spreuken.js?v=17';
 import { renderStatblock } from './render-statblock.js?v=4';
-import { initSocket } from "./socket-client.js?v=59";
+import { initSocket } from "./socket-client.js?v=60";
 import { initDmPanel } from "./dm-panel.js?v=201";
 import './media-picker.js?v=7';
 
@@ -2077,6 +2077,10 @@ function _resolveWikilink(name, isFirst) {
     return `<span class="wikilink-hidden" title="Nog niet onthuld">${safeName}</span>`;
   }
 
+  // De DM mag overal heen, maar hoort wel te zien dat de party dit kaartje nog
+  // niet kent — anders verwijst hij in het spel naar iets wat dicht staat.
+  const dicht = window.app?.isDM() && (vis === 'hidden' || vis === 'vague');
+
   // Tweede of latere vermelding: plain tekst (geen link)
   if (!isFirst) return safeName;
 
@@ -2085,7 +2089,9 @@ function _resolveWikilink(name, isFirst) {
   const open = type === 'documenten'
     ? `window._openDoc('${id}')`
     : `window._openDetail('${type}','${id}')`;
-  return `<a class="wikilink wikilink--${type}" data-wl-type="${type}" onclick="event.stopPropagation();${open}" title="${safeName}">${safeName}</a>`;
+  return `<a class="wikilink wikilink--${type}${dicht ? ' wikilink--dicht' : ''}" data-wl-type="${type}"
+    onclick="event.stopPropagation();${open}"
+    title="${safeName}${dicht ? ' — nog niet zichtbaar voor de party' : ''}">${safeName}</a>`;
 }
 
 // ── Wikilink autocomplete ───────────────────────────────────────────
@@ -2093,6 +2099,16 @@ let _wlAcTriggerEl = null;
 
 // Herbouw de wikilink-naamindex op basis van de huidige sessie (speler of DM).
 // Aanroepen na elke login/logout zodat de index altijd de juiste zichtbare entiteiten bevat.
+// De index wordt bij het inloggen opgebouwd en bleef daarna staan. Verberg je
+// een kaartje, dan bleef de naam in de tekst van een ánder kaartje gewoon
+// klikbaar — de speler kwam dan bij iets uit dat hij niet mag zien. Gedempt,
+// want bij het onthullen van een reeks komen de gebeurtenissen achter elkaar.
+let _indexHerbouwTimer = null;
+window._planEntityIndexHerbouw = () => {
+  clearTimeout(_indexHerbouwTimer);
+  _indexHerbouwTimer = setTimeout(() => _rebuildEntityIndex(), 400);
+};
+
 function _rebuildEntityIndex() {
   const WL_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
   window._entityNameIndex = {};           // leeg voordat we herbouwen

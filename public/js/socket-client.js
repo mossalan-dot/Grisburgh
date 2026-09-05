@@ -28,6 +28,7 @@ export function initSocket() {
   }
 
   socket.on('entity:updated', () => {
+    window._planEntityIndexHerbouw?.();   // naam kan gewijzigd zijn
     const section = window.app.state.activeSection;
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
@@ -40,6 +41,9 @@ export function initSocket() {
   });
 
   socket.on('entity:visibility', ({ id, type, name, visibility } = {}) => {
+    // De naamindex draagt de zichtbaarheid mee; zonder herbouw blijft een
+    // zojuist verborgen kaartje klikbaar in de tekst van een ander kaartje.
+    window._planEntityIndexHerbouw?.();
     const section = window.app.state.activeSection;
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);

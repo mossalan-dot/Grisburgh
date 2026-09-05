@@ -2070,6 +2070,10 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 .detail-field-label--secret { color: #8b2a2a; }
 .detail-field-label--secret::before { background: #8b2a2a; }
+/* De tellers van Roddels en Geheimen beginnen op dezelfde kolom: het woord
+   ervoor krijgt een vaste breedte, anders schuift "0 van 2 onthuld" mee met de
+   lengte van de kop. */
+.dfl-titel { display: inline-block; min-width: 8.6em; }
 /* Roddels krijgen dezelfde kop als de geheimen, in het warme goud. */
 .detail-field-label--roddel { color: #8a6d3f; }
 .detail-field-label--roddel::before { background: #8a6d3f; }
@@ -16422,6 +16426,18 @@ a.wikilink--documenten   { color: #4a1e6a; background: rgba(100,52,140,0.13); }
 a.wikilink:not([class*="wikilink--"]) { color: #6a4a10; background: rgba(184,134,11,0.14); }
 .wikilink-hidden { color: rgba(140,120,90,0.45); cursor: default; font-style: italic; }
 .wikilink-unknown { color: rgba(150,110,80,0.5); font-style: italic; }
+/* Alleen voor de DM: de link werkt, maar de party kent dit kaartje nog niet.
+   Onderbroken streep, zodat je het ziet zonder dat het schreeuwt. */
+.wikilink--dicht { text-decoration-style: dashed; opacity: .78; }
+.wikilink--dicht::after {
+  content: '\00B7 dicht';
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: .04em;
+  opacity: .6;
+  margin-left: 3px;
+  vertical-align: 1px;
+}
 
 /* ── Wikilink autocomplete dropdown ── */
 .wikilink-ac { position: fixed; z-index: 9999; background: var(--color-room-bg, #1a1008); border: 1px solid rgba(196,168,100,0.4); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.55); overflow: hidden; max-height: 320px; overflow-y: auto; }

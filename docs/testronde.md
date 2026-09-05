@@ -90,6 +90,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Geheimen verspringen niet** (DM) — onthullen verandert het woord op de knop, maar het tekstvak ernaast blijft op zijn plek
 - [ ] **Aantekeningen van de spelers** (DM) — schrijf met twee spelers een aantekening bij hetzelfde kaartje: de DM ziet er één tegelijk, mét naam en "‹ 1/2 ›" om tussen spelers te wisselen, boven de knoppenbalk
 
+- [ ] **Verborgen kaartje in een tekst** (DM/SP) — verberg een kaartje waarnaar een `[[link]]` verwijst: de speler kan er niet meer op klikken (zonder te herladen), en de DM ziet de link als *dicht* gemarkeerd
+
 - [ ] **Eén notitieveld** (DM) — er is nog maar één DM-notitie per kaartje: *Aantekeningen voor de DM*, boven de knoppenbalk. Typ erin, herlaad, en open de bewerkmodus: dezelfde tekst staat er
 - [ ] **Wikilinks bij een speler** (SP) — een `[[Naam]]` naar een kaartje dat de speler niet mag zien staat als gewone tekst in de zin, zónder dubbele haken; een naam die hij wél kent is klikbaar. Herlaad de pagina: de links staan er meteen goed (niet eerst als haakjes)
 - [ ] **Geheim-onthuld op het kaartje** (SP) — bij een onthuld geheim staat een pill *Geheim onthuld* boven de rolbadge, niet meer boven op de bladwijzer-ster
