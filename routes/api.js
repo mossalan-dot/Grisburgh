@@ -925,6 +925,16 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
     if (verraden) rollen.add('antagonist'); else rollen.delete('antagonist');
     if (!entity.data) entity.data = {};
     entity.data.tags = JSON.stringify([...rollen]);
+    // Wie zich als antagonist ontpopt, staat ook aan de andere kant van het
+    // gevecht. Zijn oude kant bewaren we, zodat terugdraaien hem niet
+    // klakkeloos op neutraal zet als hij bondgenoot was.
+    if (verraden) {
+      if (entity.data.kant !== 'vijand') entity.data.kantVoorVerraad = entity.data.kant || 'neutraal';
+      entity.data.kant = 'vijand';
+    } else if (entity.data.kant === 'vijand') {
+      entity.data.kant = entity.data.kantVoorVerraad || 'neutraal';
+      delete entity.data.kantVoorVerraad;
+    }
     if (String(entity.subtype).toLowerCase() === 'antagonist') entity.subtype = 'NPC';
     storage.writeJSON('entities.json', entities);
   }

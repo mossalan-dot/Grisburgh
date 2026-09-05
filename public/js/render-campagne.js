@@ -551,9 +551,9 @@ function _lijstRegelHtml(veld, tekst, i, antag = false) {
   // antagonist maakt. Eerst was dat één schakelaar voor het hele kaartje, maar
   // niet elk geheim is een verraad — en welk geheim het is, doet ertoe.
   const antagRij = veld === 'geheimen' ? `
-    <label class="lijst-regel-antag" title="Onthullen van dit geheim maakt hem antagonist">
+    <label class="lijst-regel-antag" title="Onthullen van dit geheim geeft hem de rol antagonist en zet zijn kant op vijand">
       <input type="checkbox" class="lijst-antag-vink"${antag ? ' checked' : ''}>
-      ${icon('skull')} <span>Maakt hem antagonist</span>
+      ${icon('skull')} <span>Maakt hem antagonist &amp; vijand</span>
     </label>` : '';
   return `<div class="lijst-regel" data-veld="${veld}">
     ${fmtToolbar(id)}
@@ -2141,7 +2141,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         ['senses','Senses'],
         ['languages','Languages'],
       ].filter(([k]) => s[k]).map(([k, label]) =>
-        `<div class="flex gap-2"><span class="font-cinzel text-ink-dim text-[10px] uppercase flex-shrink-0 w-40">${label}</span><span class="text-ink-medium">${esc(s[k])}</span></div>`
+        // Gear heeft dezelfde opmaakbalk als Traits, dus die regel gaat door de
+        // markdown-renderer; de rest is een kale opsomming.
+        `<div class="flex gap-2"><span class="font-cinzel text-ink-dim text-[10px] uppercase flex-shrink-0 w-40">${label}</span><span class="text-ink-medium sheet-narrative">${k === 'gear' ? mdToHtml(s[k]) : esc(s[k])}</span></div>`
       ).join('');
       const _propTable = _propRows ? `<div class="mt-3 border-t border-room-border pt-3 text-sm space-y-1">${_propRows}</div>` : '';
 
@@ -3926,7 +3928,7 @@ window._openEditor = async (tab, editId) => {
     const _ta = (k, label, rows = 3, waarde = null) => {
       const taId = `stat_ta_${k}`;
       return `<div>
-        <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
+        ${label ? `<label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>` : ''}
         <div class="mt-0.5">
           ${fmtToolbar(taId)}
           <textarea id="${taId}" name="stat_${k}" rows="${rows}"
@@ -3956,8 +3958,7 @@ window._openEditor = async (tab, editId) => {
             <div class="grid grid-cols-3 gap-2">
               ${_si('cr','Challenge Rating',true)}${_si('xp','XP',true)}${_si('profBonus','Prof. Bonus',true)}
             </div>
-            <div class="cs-divider"></div>
-            <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Ability Scores</div>
+            <div class="cs-sectiekop">Ability Scores</div>
             <div class="grid grid-cols-3 gap-2">
               ${['str','dex','con','int','wis','cha'].map(k => `
                 <div>
@@ -3968,27 +3969,25 @@ window._openEditor = async (tab, editId) => {
                     class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm text-center focus:border-gold-dim focus:outline-none">
                 </div>`).join('')}
             </div>
-            <div class="cs-divider"></div>
-            <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Proficiencies &amp; Defenses</div>
+            <div class="cs-sectiekop">Proficiencies &amp; Defenses</div>
             <div class="space-y-2">
               ${_si('savingThrows','Saving Throws')}
               ${_si('skills','Skills')}
+              ${_ta('gear','Gear', 2)}
               ${_si('vulnerabilities','Damage Vulnerabilities')}
               ${_si('resistances','Damage Resistances')}
               ${_si('immunities','Damage Immunities')}
               ${_si('conditionImmunities','Condition Immunities')}
             </div>
-            <div class="cs-divider"></div>
-            <div class="text-[10px] font-cinzel text-ink-dim tracking-wide">Senses &amp; Languages</div>
+            <div class="cs-sectiekop">Senses &amp; Languages</div>
             <div class="space-y-2">
               ${_si('senses','Senses')}
               ${_si('languages','Languages')}
-              ${_si('gear','Gear')}
             </div>
-            <div class="cs-divider"></div>
             <!-- Traits horen bij het statblok en niet bij Actions: het zijn
                  passieve eigenschappen, geen dingen die je op je beurt doet. -->
-            ${_ta('traits','Traits', 3)}
+            <div class="cs-sectiekop">Traits</div>
+            ${_ta('traits','', 3)}
           </div>
 
           <div id="cs-panel-acties" class="cs-sub-body space-y-2" style="display:none">

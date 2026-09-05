@@ -64,11 +64,13 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Roddel met de hand vertellen** (DM/SP) — knop op de rol perkament in het detailvenster; daarna ziet de speler die roddel, en terugdraaien kan
 - [ ] **Rollen en kant** (DM) — verkoper aanvinken zet de voorraad aan, antagonist geeft de badge, en de kant bepaalt waar hij in het gevecht bovenaan staat
 - [ ] **Gekoppelde spreuken** (DM/SP) — spreuk zoeken in het Spells-paneel, chip verschijnt, klikken opent het spreukdetail met de volledige tekst
-- [ ] **Geheime antagonist per geheim** (DM) — vink bij één van twee geheimen "maakt hem antagonist" aan; dat geheim onthullen geeft hem de badge, het andere niet, en terugdraaien haalt de badge weer weg
+- [ ] **Geheime antagonist per geheim** (DM) — vink bij één van twee geheimen "maakt hem antagonist & vijand" aan; dat geheim onthullen geeft hem de badge én zet zijn kant op vijand, het andere geheim doet niets; terugdraaien haalt de badge weg en zet zijn oude kant terug
 - [ ] **Focuspunt met preview** (DM) — de picker toont de héle afbeelding; sleep het kruisje en de twee voorbeelden (kaartje + rond portret) schuiven mee; klikken in de zwarte band naast het beeld springt niet naar 0%/100%
 - [ ] **Volgorde in de editor** (DM) — Informatie loopt van boven naar beneden: korte omschrijving, Origin/Class/Alignment, rollen, Beschrijving, Flavour teksten, Geheimen, Aantekeningen
 
 - [ ] **Statblok → monsterbibliotheek** (DM) — vul HP én AC op een personage-kaartje: hij staat meteen in de monsterlijst van de Meesterkamer (met "van kaartje") en is toe te voegen aan een encounter, maar verschijnt **niet** in het bestiarium van de spelers; HP of AC weer leegmaken haalt hem uit de lijst
+- [ ] **Statblok leesbaar ingedeeld** (DM) — Ability Scores, Proficiencies & Defenses, Senses & Languages en Traits staan als gouden sectiekop met een streep erboven, duidelijk anders dan de veldlabels; Gear staat bij Skills (niet bij Languages) en heeft de opmaakbalk, dus **vet** komt vet terug in het detailvenster
+
 - [ ] **Statblok compleet** (DM) — Size en Creature Type als dropdown, Initiative, XP, Gear, Lair Actions en Damage Vulnerabilities zijn in te vullen en komen terug in het detailvenster ("Medium Humanoid" boven het blok)
 - [ ] **Vrije spells** (DM) — het vak "Niet in de bibliotheek" staat dicht bij een leeg kaartje en open zodra er tekst in staat; oude losse cantrips staan er na één keer opslaan bij in
 - [ ] **Dobbelknop van de DM** (DM) — buiten een lopende akte is de d20-knop rechtsonder weg; speel een akte af en hij staat er weer
