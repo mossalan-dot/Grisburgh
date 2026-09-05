@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=464">
+  <link rel="stylesheet" href="/css/theme.css?v=465">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -432,10 +432,10 @@
     <button onclick="event.stopPropagation();window.app.closeLightbox()" class="absolute top-3 right-4 text-white text-4xl z-10 leading-none" style="text-shadow:0 0 8px #000">&times;</button>
     <!-- Navigatiepijlen -->
     <button id="lb-nav-left" onclick="event.stopPropagation();window.app.lbNavigate(-1)"
-      class="hidden absolute left-3 top-1/2 -translate-y-1/2 text-white text-5xl z-10 w-14 h-14 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70 transition-colors select-none"
+      class="hidden lb-pijl absolute left-3 top-1/2 -translate-y-1/2 text-5xl z-10 w-14 h-14 flex items-center justify-center select-none"
       style="text-shadow:0 0 8px #000">&#8249;</button>
     <button id="lb-nav-right" onclick="event.stopPropagation();window.app.lbNavigate(1)"
-      class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-white text-5xl z-10 w-14 h-14 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70 transition-colors select-none"
+      class="hidden lb-pijl absolute right-3 top-1/2 -translate-y-1/2 text-5xl z-10 w-14 h-14 flex items-center justify-center select-none"
       style="text-shadow:0 0 8px #000">&#8250;</button>
     <!-- Afbeelding -->
     <img id="lb-img" class="max-w-[82vw] max-h-[88vh] object-contain rounded" src="" style="touch-action:none;will-change:transform" onclick="event.stopPropagation()" draggable="false">
@@ -565,6 +565,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=595"></script>
+  <script type="module" src="/js/app.js?v=596"></script>
 </body>
 </html>

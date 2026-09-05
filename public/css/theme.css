@@ -1226,6 +1226,27 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .dm-inkoop-aantal-vast { width: 56px; text-align: center; color: #9a8060; font-size: 12px; flex-shrink: 0; }
 .dm-inkoop-bedrag { width: 96px; flex-shrink: 0; }
 
+/* Pijlen in de vergrote weergave: zelfde oplichting als in de carousel, zodat
+   overal duidelijk is dat er iets te klikken valt. */
+.lb-pijl {
+  border: 1px solid rgba(230,205,150,.3);
+  border-radius: 50%;
+  background: rgba(20,12,4,.45);
+  color: rgba(245,235,210,.9);
+  text-shadow: 0 0 8px #000;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.lb-pijl:hover {
+  background: rgba(196,168,122,.95);
+  border-color: rgba(255,240,200,.85);
+  color: #2a1a08;
+  text-shadow: none;
+  transform: translateY(-50%) scale(1.08);
+  box-shadow: 0 0 0 4px rgba(196,168,122,.25);
+}
+.lb-pijl:active { transform: translateY(-50%) scale(0.96); }
+
 /* Pijlen van de afbeeldingen-carousel. Ze zaten op Tailwinds bg-black/40 met
    een nauwelijks zichtbare hover; nu lichten ze duidelijk op, zodat je ziet dat
    er iets te klikken valt. */
@@ -11326,8 +11347,9 @@ details.player-dash-collapsible[open] > summary {
 .logboek-img-strip-arrow--left  { border-radius: 4px 0 0 4px; margin-left: 24px; }
 .logboek-img-strip-arrow--right { border-radius: 0 4px 4px 0; margin-right: 24px; }
 .logboek-img-strip-arrow:hover {
-  background: rgba(196,168,122,0.22);
-  border-color: rgba(196,168,122,0.55);
+  background: rgba(196,168,122,0.85);
+  border-color: rgba(255,240,200,0.7);
+  box-shadow: 0 0 0 3px rgba(196,168,122,.2);
   color: rgba(196,168,122,1);
 }
 
@@ -22541,14 +22563,28 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 .roddel-tekst::before { content: '\201E'; margin-right: 1px; opacity: .55; }
 .roddel-tekst::after  { content: '\201C'; margin-left: 1px;  opacity: .55; }
-.roddel-voet {
+/* Tekst links, en rechts een kolom met de onthulknop boven de navigatie: zo
+   heeft die kant één functie en blijft de tekst op zijn plek staan. */
+.roddel-binnen { display: flex; align-items: center; gap: 14px; }
+.roddel-binnen .roddel-tekst { flex: 1; min-width: 0; }
+.roddel-zij {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
 }
-.roddel-voet-rechts { display: inline-flex; align-items: center; gap: 8px; }
+/* Een geheim is geen roddel: rechte letters, en de rode tint van de DM-blokken. */
+.roddel--geheim {
+  border-left-color: rgba(139,42,42,.55);
+  background: rgba(139,42,42,.07);
+}
+.roddel--geheim .roddel-tekst {
+  font-family: 'Crimson Text', serif;
+  font-style: normal;
+}
+.roddel--geheim .roddel-tekst::before,
+.roddel--geheim .roddel-tekst::after { content: none; }
 
 /* Onthulknop bij een roddel of geheim: overal dezelfde vorm en plek, met het
    woord erbij — een los slotje zei niet of je aan het onthullen of verbergen

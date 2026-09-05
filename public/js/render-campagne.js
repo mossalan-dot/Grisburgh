@@ -1423,31 +1423,58 @@ const _flavPos   = {};
 const _flavCtx   = {};   // extra gegevens voor de rol in het detailvenster
 const _flavKort  = (t) => (t.length > 300 ? t.slice(0, 300) + '\u2026' : t);
 
-// De binnenkant van de rol in het detailvenster: één roddel, de knop om hem te
-// vertellen, en pijltjes als er meer zijn. Wordt bij elke stap opnieuw gezet —
-// eenvoudiger dan losse stukjes bijwerken, en het blijft één bron van waarheid.
+// Roddels en geheimen delen één blok: de tekst links, en rechts een kolom met
+// de onthulknop bovenaan en de navigatie eronder. Eerder stonden geheimen
+// allemaal onder elkaar en had elk zijn eigen knop; dat duwde de rest van het
+// kaartje van het scherm en zag er anders uit dan de roddels.
+const _ONTHUL_SOORT = {
+  roddel: {
+    klasse: 'roddel', aan: 'Verteld', uit: 'Vertellen', iconAan: 'beer', iconUit: 'lock',
+    titelAan: 'Toch niet verteld — terugdraaien',
+    titelUit: 'Markeer als verteld; de spelers zien de roddel dan',
+    fn: '_toggleFlavour', vorige: 'Vorige roddel', volgende: 'Volgende roddel',
+  },
+  geheim: {
+    klasse: 'roddel roddel--geheim', aan: 'Onthuld', uit: 'Onthullen', iconAan: 'eye', iconUit: 'lock',
+    titelAan: 'Weer verbergen voor spelers',
+    titelUit: 'Aan de spelers onthullen',
+    fn: '_toggleSecret', vorige: 'Vorig geheim', volgende: 'Volgend geheim',
+  },
+};
+
+function _onthulBlok(key) {
+  const ctx = _flavCtx[key] || {};
+  const cfg = _ONTHUL_SOORT[ctx.soort] || _ONTHUL_SOORT.roddel;
+  const eerste = (_flavCache[key] || [])[0];
+  return `
+    <div class="${cfg.klasse}${isDM() && eerste && !eerste.gezegd ? ' roddel--ongespoken' : ''}" id="flav-${esc(key)}">
+      <div class="roddel-binnen">${_detFlavInner(key)}</div>
+    </div>`;
+}
+
+// De binnenkant: één regel met zijn eigen knop en, als er meer zijn, pijltjes.
+// Wordt bij elke stap opnieuw gezet — eenvoudiger dan losse stukjes bijwerken.
 function _detFlavInner(key) {
   const regels = _flavCache[key] || [];
   const ctx    = _flavCtx[key] || {};
+  const cfg    = _ONTHUL_SOORT[ctx.soort] || _ONTHUL_SOORT.roddel;
   const idx    = _flavPos[key] || 0;
   const r      = regels[idx];
   if (!r) return '';
   return `
-    <p class="roddel-tekst">${esc(r.tekst)}</p>
-    <div class="roddel-voet">
+    <p class="roddel-tekst">${ctx.soort === 'geheim' ? mdToHtml(r.tekst) : esc(r.tekst)}</p>
+    <div class="roddel-zij">
       ${isDM() ? `<button class="onthul-knop${r.gezegd ? ' onthul-knop--aan' : ''}"
-        title="${r.gezegd ? 'Toch niet verteld — terugdraaien' : 'Markeer als verteld; de spelers zien de roddel dan'}"
-        onclick="window._toggleFlavour('${esc(ctx.tab)}','${esc(ctx.id)}',${r.i})">${r.gezegd ? icon('beer') : icon('lock')}<span>${r.gezegd ? 'Verteld' : 'Vertellen'}</span></button>` : '<span></span>'}
-      <span class="roddel-voet-rechts">
-        ${ctx.audioId ? `<button type="button" class="flavour-audio-play" data-audio-btn data-audio-btn-id="${esc(ctx.audioId)}"
-          onclick="window._audioToggle('${esc(ctx.audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>` : ''}
-        ${regels.length > 1 ? `
-          <span class="flavour-nav">
-            <button type="button" onclick="window._detFlavStap('${esc(key)}',-1)" title="Vorige roddel">\u2039</button>
-            <span>${idx + 1}/${regels.length}</span>
-            <button type="button" onclick="window._detFlavStap('${esc(key)}',1)" title="Volgende roddel">\u203a</button>
-          </span>` : ''}
-      </span>
+        title="${r.gezegd ? cfg.titelAan : cfg.titelUit}"
+        onclick="window.${cfg.fn}('${esc(ctx.tab)}','${esc(ctx.id)}',${r.i})">${r.gezegd ? icon(cfg.iconAan) : icon(cfg.iconUit)}<span>${r.gezegd ? cfg.aan : cfg.uit}</span></button>` : ''}
+      ${ctx.audioId ? `<button type="button" class="flavour-audio-play" data-audio-btn data-audio-btn-id="${esc(ctx.audioId)}"
+        onclick="window._audioToggle('${esc(ctx.audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>` : ''}
+      ${regels.length > 1 ? `
+        <span class="flavour-nav">
+          <button type="button" onclick="window._detFlavStap('${esc(key)}',-1)" title="${cfg.vorige}">\u2039</button>
+          <span>${idx + 1}/${regels.length}</span>
+          <button type="button" onclick="window._detFlavStap('${esc(key)}',1)" title="${cfg.volgende}">\u203a</button>
+        </span>` : ''}
     </div>`;
 }
 
@@ -2118,11 +2145,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // roddels onder elkaar maakten van een terloopse opmerking een lijst.
     _flavCache[`det-${e.id}`] = zichtbareFlavours;
     _flavPos[`det-${e.id}`]   = 0;
-    _flavCtx[`det-${e.id}`]   = { tab, id: e.id, audioId: _audioId };
-    infoHtml += `
-      <div class="roddel${isDM() && !zichtbareFlavours[0].gezegd ? ' roddel--ongespoken' : ''}" id="flav-det-${esc(e.id)}">
-        <div class="roddel-binnen">${_detFlavInner(`det-${e.id}`)}</div>
-      </div>`;
+    _flavCtx[`det-${e.id}`]   = { tab, id: e.id, audioId: _audioId, soort: 'roddel' };
+    infoHtml += _onthulBlok(`det-${e.id}`);
   }
 
   // Geheimen: één blok per regel. De DM ziet ze allemaal met een oogje ernaast
@@ -2134,19 +2158,17 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const zichtbareGeheimen = geheimRegels.map((tekst, i) => ({ tekst, i, onthuld: _geheimOnthuld[i] }))
     .filter(r => isDM() || r.onthuld);
   if (zichtbareGeheimen.length) {
+    // Zelfde blok als de roddels: doorbladeren in plaats van alles uitklappen.
+    // Drie geheimen onder elkaar duwden de rest van het kaartje van het scherm.
+    _flavCache[`geh-${e.id}`] = zichtbareGeheimen.map(g => ({ tekst: g.tekst, i: g.i, gezegd: g.onthuld }));
+    _flavPos[`geh-${e.id}`]   = 0;
+    _flavCtx[`geh-${e.id}`]   = { tab, id: e.id, soort: 'geheim' };
     infoHtml += `
       <div class="mb-4">
         <div class="detail-field-label detail-field-label--secret">${icon('lock')} ${zichtbareGeheimen.length > 1 ? 'Geheimen' : 'Geheim'}${
           isDM() && geheimRegels.length > 1 ? ` <span class="geheim-teller">${_geheimOnthuld.filter(Boolean).length} van ${geheimRegels.length} onthuld</span>` : ''}</div>
-        ${zichtbareGeheimen.map(({ tekst, i, onthuld }) => `
-          <div class="geheim-regel${onthuld ? ' geheim-regel--onthuld' : ''}">
-            ${isDM() ? `<button class="onthul-knop${onthuld ? ' onthul-knop--aan' : ''}"
-              title="${onthuld ? 'Weer verbergen voor spelers' : 'Aan de spelers onthullen'}"
-              onclick="window._toggleSecret('${tab}','${e.id}',${i})">${onthuld ? icon('eye') : icon('lock')}<span>${onthuld ? 'Onthuld' : 'Onthullen'}</span></button>` : ''}
-            <div class="detail-dm-block detail-dm-block--secret">${mdToHtml(tekst)}</div>
-          </div>`).join('')}
-      </div>
-    `;
+        ${_onthulBlok(`geh-${e.id}`)}
+      </div>`;
   }
 
   // Missies die aan dit kaartje hangen. Dat maakt "missiegever" een afgeleide:

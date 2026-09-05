@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=266';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=165";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=166";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -1663,8 +1663,10 @@ function _lbUpdateNav() {
   const multi = (_lbImages?.length || 0) > 1;
   const left  = $('#lb-nav-left');
   const right = $('#lb-nav-right');
-  if (left)  left.classList.toggle('hidden',  !multi || _lbIdx <= 0);
-  if (right) right.classList.toggle('hidden', !multi || _lbIdx >= _lbImages.length - 1);
+  // Beide pijlen blijven staan zolang er meer dan één afbeelding is: de reeks
+  // loopt rond, dus er is altijd een volgende en een vorige.
+  if (left)  left.classList.toggle('hidden',  !multi);
+  if (right) right.classList.toggle('hidden', !multi);
 }
 
 function _lbShowCurrent() {
@@ -1709,7 +1711,10 @@ function openLightboxAt(images, startIdx = 0) {
 
 function lbNavigate(dir) {
   if (!_lbImages?.length) return;
-  _lbIdx = Math.max(0, Math.min(_lbImages.length - 1, _lbIdx + dir));
+  // Rond: van de laatste naar de eerste. Bij een reeks van drie is doorklikken
+  // handiger dan terugklikken, en de pijl hoefde daarvoor niet te verdwijnen.
+  const n = _lbImages.length;
+  _lbIdx = ((_lbIdx + dir) % n + n) % n;
   _lbShowCurrent();
 }
 
