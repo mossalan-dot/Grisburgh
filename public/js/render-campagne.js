@@ -3834,22 +3834,19 @@ window._openEditor = async (tab, editId) => {
     `;
   }
 
-  // Groep-selector (alleen voor personages met subtype speler)
-  // Bij één party valt er niets te kiezen, maar het veld moet wél meegestuurd
-  // worden: zonder waarde las het opslaan het als "verhuist naar geen party" en
-  // kreeg je die verhuiswaarschuwing bij elke wijziging.
-  if (tab === 'personages' && _editorGroups.length <= 1) {
-    body += `<input type="hidden" name="data_groep" value="${esc(e?.data?.groep || (e?.subtype === 'speler' ? (_editorGroups[0]?.id || '') : ''))}">`;
-  }
-  if (tab === 'personages' && _editorGroups.length > 1) {
+  // Groep-selector voor personages met subtype speler. Stond er alleen bij twee
+  // of meer party's; met één party zag je dus niet aan welke hij hangt — en het
+  // veld werd helemaal niet meegestuurd, wat het opslaan las als "verhuist naar
+  // geen party". Nu altijd zichtbaar zodra er een party bestaat.
+  if (tab === 'personages' && _editorGroups.length) {
     const isSpeler = e?.subtype === 'speler';
-    const currentGroep = e?.data?.groep || '';
+    const currentGroep = e?.data?.groep || (isSpeler && _editorGroups.length === 1 ? _editorGroups[0].id : '');
     body += `
       <div id="groep-section"${isSpeler ? '' : ' style="display:none"'}>
-        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Spelersgroep</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Party</label>
         <select name="data_groep"
           class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-          <option value="">Alle groepen</option>
+          <option value="">Geen party</option>
           ${_editorGroups.map(g => `<option value="${esc(g.id)}"${currentGroep === g.id ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}
         </select>
       </div>
