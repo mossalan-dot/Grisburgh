@@ -2668,7 +2668,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     : `${getAutoIconSvg(tab, e)}  ${esc(meta.label)}`;
   openModal(e.name, '', body);
   const _mSubEl = document.getElementById('m-sub');
-  if (_mSubEl) _mSubEl.innerHTML = _subtitleHtml;
+  // openModal krijgt hier een lege ondertitel en verbergt het vakje daarom;
+  // wij vullen het meteen daarna, dus moet het ook weer zichtbaar worden. Zonder
+  // dit verdween de regel "rol · origin · class · alignment" onder de naam.
+  if (_mSubEl) { _mSubEl.innerHTML = _subtitleHtml; _mSubEl.classList.remove('hidden'); }
   _updateBackButton();
   _vulSpellChips();   // van index naar nette naam, zodra de bibliotheek er is
 
