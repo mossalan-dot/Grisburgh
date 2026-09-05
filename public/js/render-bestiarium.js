@@ -68,9 +68,7 @@ function _renderGrid() {
   _container.innerHTML = `${head}<div class="best-wrap">
     <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">${cards}</div>
   </div>`;
-  // Zelfde 3D-tilt bij hover als de archief-tabbladen.
   const grid = _container.querySelector('.cards-grid');
-  if (grid && typeof window._attachCardTilt === 'function') window._attachCardTilt(grid);
 }
 
 function _card(m, i, dm) {

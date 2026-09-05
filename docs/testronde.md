@@ -71,6 +71,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Medestander vanuit het detailvenster** (DM) — het zwaardenicoon in de DM-rij (naast de doodskop) koppelt een NPC als medestander aan de **actieve** party; de knop kleurt op, nogmaals klikken koppelt los, en de bewerkmodus heeft die knop niet meer
 
+- [ ] **Kaartjes bij hover** (ALL) — een kaartje tilt op als je erover gaat, maar kantelt niet meer met de muis mee
+- [ ] **Meerdere roddels op het kaartje** (DM/SP) — bij twee onthulde flavourregels staat rechtsonder "1/2 ›"; klikken toont de volgende zonder dat het kaartje opengaat, en de DM ziet nog-niet-vertelde regels lichter
+- [ ] **Rollen als badge** (ALL) — een verkoper die ook antagonist is toont bééde badges op het kaartje en in het detailvenster; zonder rol staat er het type (NPC, Speler, Dier, God)
+
 - [ ] **Kop van de editor** (DM) — nieuw kaartje heet "Nieuw personage" / "Nieuwe locatie" / "Nieuwe organisatie" / "Nieuw voorwerp" / "Nieuw document", bewerken heet "Personage bewerken" enzovoort; er staat geen losse ondertitel meer onder
 
 - [ ] **Volgorde in de editor** (DM) — Informatie loopt van boven naar beneden: korte omschrijving, Origin/Class/Alignment, rollen, Beschrijving, Flavour teksten, Geheimen, Aantekeningen

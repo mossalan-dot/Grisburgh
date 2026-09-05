@@ -211,7 +211,6 @@ function _refreshDocGrid(docs, container) {
   requestAnimationFrame(() => grid.querySelectorAll('[data-fittext]').forEach(_fitTextDoc));
   const countEl = container.querySelector('.results-count');
   if (countEl) countEl.textContent = `${docs.length} resultaten`;
-  requestAnimationFrame(() => window._attachCardTilt?.(grid));
 }
 
 export async function renderLogboek() {

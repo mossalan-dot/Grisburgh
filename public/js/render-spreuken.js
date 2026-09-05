@@ -197,8 +197,6 @@ function _paintGrid() {
   grid.innerHTML = list.length
     ? list.map(_card).join('')
     : `<p class="spreuk-empty">Geen spreuken gevonden.</p>`;
-  // Zelfde 3D-hover-tilt als de entiteitskaartjes (gedeelde helper uit render-campagne).
-  window._attachCardTilt?.(grid);
 }
 
 export async function renderSpreuken(container) {

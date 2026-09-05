@@ -306,6 +306,22 @@ function getAutoIconSvg(type, e) {
   return map[key] || TYPE_META[type].svgIcon;
 }
 
+// Alle badges van een kaartje. Rollen zijn sinds kort meervoudig — een verkoper
+// kán ook antagonist zijn — dus geeft dit een lijst terug in plaats van de ene
+// die toevallig wint. Zonder rol valt hij terug op het subtype.
+function getCardBadges(type, e) {
+  if (type !== 'personages') {
+    const b = getSubtypeBadge(type, e);
+    return b ? [b] : [];
+  }
+  const rollen = [];
+  if (window._heeftRol?.(e, 'antagonist')) rollen.push({ label: 'Antagonist', cls: 'badge-antagonist' });
+  if (window._heeftRol?.(e, 'verkoper'))   rollen.push({ label: 'Verkoper',   cls: 'badge-verkoper' });
+  if (rollen.length) return rollen;
+  const b = getSubtypeBadge(type, e);
+  return b ? [b] : [];
+}
+
 function getSubtypeBadge(type, e) {
   if (type === 'personages') {
     // Een rol zegt meer dan het subtype: "Antagonist" is interessanter dan
@@ -1128,37 +1144,15 @@ function _refreshGrid(type, list, container) {
   requestAnimationFrame(() => {
     window.scrollTo(0, savedScrollY);
     grid.querySelectorAll('[data-fittext]').forEach(_fitText);
-    _attachCardTilt(grid);
     grid.scrollTop = savedGridScroll; // als láátste, ná fittext (dat celhoogtes kan wijzigen)
   });
   const countEl = container.querySelector('.results-count');
   if (countEl) countEl.textContent = `${list.length} resultaten`;
 }
 
-// ── 3D kaart-tilt bij hover ──
-function _onCardTiltMove(e) {
-  const card = this;
-  if (!card.classList.contains('card-tilting')) card.classList.add('card-tilting');
-  const rect = card.getBoundingClientRect();
-  const dx = (e.clientX - (rect.left + rect.width  / 2)) / (rect.width  / 2); // -1..1
-  const dy = (e.clientY - (rect.top  + rect.height / 2)) / (rect.height / 2); // -1..1
-  const rx = (-dy * 7).toFixed(2);
-  const ry = ( dx * 7).toFixed(2);
-  card.style.transform = `perspective(700px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-5px)`;
-}
-function _onCardTiltLeave() {
-  this.classList.remove('card-tilting');
-  this.style.transform = '';
-}
-function _attachCardTilt(container) {
-  container.querySelectorAll('.entity-card:not(.card-vague)').forEach(card => {
-    card.removeEventListener('mousemove',  _onCardTiltMove);
-    card.removeEventListener('mouseleave', _onCardTiltLeave);
-    card.addEventListener('mousemove',  _onCardTiltMove);
-    card.addEventListener('mouseleave', _onCardTiltLeave);
-  });
-}
-window._attachCardTilt = _attachCardTilt;
+// De kaartjes tilden vroeger met de muis mee (3D-rotatie op mousemove). Het
+// optillen bij hover doet de CSS al (.entity-card:hover); het meekantelen gaf
+// vooral onrust, dus dat is eruit.
 
 export async function renderPersonages() { return renderEntitySection('personages'); }
 export async function renderLocaties() { return renderEntitySection('locaties'); }
@@ -1261,10 +1255,21 @@ function renderCard(type, e) {
     ? [_rarityLabel(e.data?.rariteit), (e.data?.attunement === 'true' || e.data?.attunement === true) ? 'Attunement' : null].filter(Boolean).join(' · ')
     : null;
   const metaText = [e.data?.locType, e.data?.orgType, _itemMeta, e.data?.ras, e.data?.klasse].filter(Boolean).join(' \u00b7 ');
-  const badge   = getSubtypeBadge(type, e);
+  const badges  = getCardBadges(type, e);
   const desc = e.data?.desc || '';
-  const flavour = e.data?.flavour || '';
-  const flavourUitgesproken = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
+  // Flavour is een lijst geworden; het kaartje toonde nog alleen het oude
+  // enkelvoudige veld. Nu alle regels die deze kijker mag zien, met pijltjes
+  // erdoorheen (de DM ziet ook wat nog niet verteld is, lichter).
+  const _flavRegels = _tekstLijstUit(e.data, 'flavours', 'flavour');
+  const _flavGezegd = (() => {
+    const rauw = e.data?.flavoursUitgesproken;
+    if (Array.isArray(rauw)) return _flavRegels.map((_, i) => !!rauw[i]);
+    const alles = e.data?.flavourUitgesproken === true || e.data?.flavourUitgesproken === 'true';
+    return _flavRegels.map((_, i) => alles && i === 0);
+  })();
+  const _flavTonen = _flavRegels
+    .map((tekst, i) => ({ tekst, gezegd: _flavGezegd[i] }))
+    .filter(r => r.tekst && (isDM() || r.gezegd));
 
   const chips = [];
   if (e.links) {
@@ -1333,7 +1338,7 @@ function renderCard(type, e) {
           style="${e.data?.imgFocus ? `object-position:${e.data.imgFocus}` : ''}"
           onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
         <div class="card-img-fade"></div>
-        ${badge ? `<div class="card-subtype-badge ${badge.cls}">${esc(badge.label)}</div>` : ''}
+        ${badges.length ? `<div class="card-badges">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
         ${!isDM() && window.app?.state?.characterId ? (() => {
           const _bms = window.app?.state?.bookmarks || [];
           const _bmActive = _bms.some(b => b.id === e.id);
@@ -1380,16 +1385,43 @@ function renderCard(type, e) {
         <!-- relatie-chips verborgen (code bewaard); vervangen door wikilinks in beschrijving -->
         <!-- ${chips.length ? `<div class="flex flex-wrap gap-1">${chips.join('')}</div>` : ''} -->
       </div>
-      ${flavour && (isDM() || flavourUitgesproken) ? `
-        <div class="flavour-preview${isDM() && !flavourUitgesproken ? ' flavour-preview--ongespoken' : ''}">
+      ${_flavTonen.length ? (() => {
+        _flavCache[e.id] = _flavTonen;
+        const eerste = _flavTonen[0];
+        return `
+        <div class="flavour-preview${isDM() && !eerste.gezegd ? ' flavour-preview--ongespoken' : ''}" id="flav-${esc(e.id)}">
           ${e.data?.audioId ? `<button type="button" class="flavour-audio-btn" data-audio-btn data-audio-btn-id="${esc(e.data.audioId)}" onclick="event.stopPropagation();window._audioToggle('${esc(e.data.audioId)}')" title="Sfeer afspelen">▶</button>` : ''}
-          <span class="flavour-preview-text">\u201e${esc(flavour.length > 300 ? flavour.slice(0, 300) + '\u2026' : flavour)}\u201c</span>
-        </div>
-      ` : ''}
+          <span class="flavour-preview-text">\u201e${esc(_flavKort(eerste.tekst))}\u201c</span>
+          ${_flavTonen.length > 1 ? `
+            <button type="button" class="flavour-preview-nav"
+              onclick="event.stopPropagation();window._flavStap('${esc(e.id)}')"
+              title="Volgende roddel">1/${_flavTonen.length} \u203a</button>` : ''}
+        </div>`;
+      })() : ''}
       ${type === 'voorwerpen' ? _itemOwnershipBadge(e.id) : ''}
     </div>
   `;
 }
+
+// Roddels op een kaartje: welke regels er staan en waar we zijn. Module-state,
+// net als bij de afbeelding-carousel — het kaartje is een string, dus de tekst
+// van regel 2 moet ergens anders vandaan komen.
+const _flavCache = {};
+const _flavPos   = {};
+const _flavKort  = (t) => (t.length > 300 ? t.slice(0, 300) + '\u2026' : t);
+
+window._flavStap = (id) => {
+  const regels = _flavCache[id] || [];
+  if (regels.length < 2) return;
+  const i = ((_flavPos[id] || 0) + 1) % regels.length;
+  _flavPos[id] = i;
+  const host = document.getElementById(`flav-${id}`);
+  if (!host) return;
+  host.querySelector('.flavour-preview-text').textContent = `\u201e${_flavKort(regels[i].tekst)}\u201c`;
+  host.classList.toggle('flavour-preview--ongespoken', isDM() && !regels[i].gezegd);
+  const nav = host.querySelector('.flavour-preview-nav');
+  if (nav) nav.textContent = `${i + 1}/${regels.length} \u203a`;
+};
 
 // ── Bladwijzers ──
 window._toggleBookmark = async function(type, id, name) {
@@ -1837,7 +1869,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // dus terugzetten is deze regel terugdraaien. (Onderschriften bij de extra
   // afbeeldingen in de carousel blijven wél gewoon werken.)
   const _primaryCaption = '';   // was: e.data?.imgCaption || ''
-  const _heroBadge = getSubtypeBadge(tab, e);
+  const _heroBadges = getCardBadges(tab, e);
   // Afbeelding — simpel gecentreerd met perkamentachtergrond
   const _d = e.data || {};
   // Armor AC pill — berekend voor hero-overlay en chips-sectie
@@ -1862,7 +1894,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         ${_detailAcResult
           ? `<span class="detail-hero-ac-badge" data-wptip="${escJS(_detailAcResult.tooltip)}">${esc(_detailAcResult.pill)}</span>`
           : `<div class="detail-hero-icon">${getAutoIconSvg(tab, e)}</div>`}
-        ${_heroBadge ? `<div class="detail-hero-badge badge ${_heroBadge.cls}">${esc(_heroBadge.label)}</div>` : ''}
+        ${_heroBadges.length ? `<div class="detail-hero-badges">${_heroBadges.map(b => `<span class="detail-hero-badge badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
         ${_rolVal ? `<div class="detail-hero-rol">${esc(_rolVal)}</div>` : ''}
       </div>
       ${_primaryCaption ? `<p class="text-center text-xs text-ink-dim font-crimson -mt-3 mb-3 italic">${esc(_primaryCaption)}</p>` : ''}

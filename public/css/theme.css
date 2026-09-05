@@ -779,10 +779,6 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 .entity-card:has(.bar-documenten)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f5f2f8 100%); }
 .entity-card:has(.bar-bestiarium)  .card-img-fade { background: linear-gradient(to bottom, transparent 0%, #f8efef 100%); z-index: 2; }
 
-/* ── 3D tilt: tijdens muisbeweging alleen box-shadow transitioneren, transform instant ── */
-.entity-card.card-tilting {
-  transition: box-shadow 0.18s ease !important;
-}
 
 /* Deceased card */
 .entity-card.card-deceased {
@@ -1079,9 +1075,6 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 
 /* ── Subtype badge overlaid on image ── */
 .card-subtype-badge {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
   padding: 3px 9px;
   border-radius: 20px;
   font-size: 9.5px;
@@ -1089,7 +1082,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   letter-spacing: 0.07em;
   text-transform: uppercase;
   white-space: nowrap;
-  max-width: calc(100% - 20px);
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   pointer-events: none;
@@ -1182,6 +1175,24 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   align-items: flex-start;
   gap: 6px;
 }
+/* Doorklikken naar de volgende roddel; het kaartje eronder mag niet openen,
+   dus de knop vangt de klik zelf op (stopPropagation in de handler). */
+.flavour-preview-nav {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(122,96,64,.35);
+  background: rgba(196,168,122,.18);
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: .04em;
+  color: #7a6040;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.flavour-preview-nav:hover { background: rgba(196,168,122,.35); color: #3a2410; }
+
 /* Audio play button — card list */
 .flavour-audio-btn {
   flex-shrink: 0;
@@ -1275,11 +1286,28 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   background: linear-gradient(to top, rgba(25,12,3,0.62) 0%, rgba(25,12,3,0.14) 38%, transparent 62%);
   pointer-events: none;
 }
-.detail-hero-badge {
+/* Meerdere rollen naast elkaar: de wrapper doet de plaatsing, de badge alleen
+   nog zijn eigen vorm. Los gepositioneerd zouden ze op elkaar liggen. */
+.detail-hero-badges {
   position: absolute;
   top: 10px;
   left: 12px;
   z-index: 3;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.card-badges {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+.detail-hero-badge {
   font-size: 9.5px;
   font-family: 'Cinzel', serif;
   font-weight: 700;
