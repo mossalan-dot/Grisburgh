@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=44';
 import { renderBestiarium } from './render-bestiarium.js?v=21';
 import { renderSpreuken } from './render-spreuken.js?v=17';
 import { renderStatblock } from './render-statblock.js?v=4';
-import { initSocket } from "./socket-client.js?v=60";
+import { initSocket } from "./socket-client.js?v=61";
 import { initDmPanel } from "./dm-panel.js?v=201";
 import './media-picker.js?v=7';
 

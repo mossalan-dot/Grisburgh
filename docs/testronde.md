@@ -99,6 +99,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Detailvenster: kop zegt het al** (ALL) — onder de naam staat rol · origin · class · alignment; diezelfde waarden staan niet nóg eens als pil eronder
 - [ ] **Roddels doorbladeren in het detailvenster** (DM/SP) — één rol perkament met "‹ 1/3 ›"; de knop *Vertellen* / *Verteld* hoort bij de regel die je ziet, en stapt mee
+- [ ] **Open kaartje gaat live mee** (SP) — laat de speler een kaartje openhouden en onthul als DM een geheim of roddel: het venster werkt zichzelf meteen bij, zonder sluiten en opnieuw openen, en blijft op het tabblad waar hij stond
+
 - [ ] **Speler ziet álles wat onthuld is** (SP) — onthul twee geheimen en twee roddels: de speler ziet er twee van elk, met "‹ 1/2 ›" om door te bladeren (niet alleen de eerste)
 
 - [ ] **Geheimen als doorbladerblok** (DM) — geheimen staan in hetzelfde blok als de roddels: één tekst, rechts de knop (Onthullen/Onthuld) met de pijltjes eronder; een geheim is te herkennen aan de rode rand en rechte letters

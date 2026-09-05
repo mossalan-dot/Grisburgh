@@ -27,8 +27,22 @@ export function initSocket() {
     }
   }
 
-  socket.on('entity:updated', () => {
+// Staat het kaartje open terwijl de DM er iets aan verandert (een geheim
+// onthullen, een roddel vertellen, zichtbaarheid), dan hoort het venster mee te
+// gaan. Anders zag een speler zijn eigen scherm niet veranderen en moest hij
+// het kaartje sluiten en opnieuw openen.
+function _ververOpenKaartje(id) {
+  if (!id || window._currentDetailId !== id) return;
+  if (!document.getElementById('modal-overlay')?.classList.contains('active')) return;
+  // Blijf op het tabblad waar de kijker stond; opnieuw openen valt anders terug
+  // op Info, en dat is midden in een sessie irritant.
+  const actief = document.querySelector('.detail-tab--active')?.dataset.dtab || null;
+  window._openDetail?.(window._currentDetailTab, id, false, actief);
+}
+
+  socket.on('entity:updated', ({ id } = {}) => {
     window._planEntityIndexHerbouw?.();   // naam kan gewijzigd zijn
+    _ververOpenKaartje(id);
     const section = window.app.state.activeSection;
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
@@ -44,6 +58,7 @@ export function initSocket() {
     // De naamindex draagt de zichtbaarheid mee; zonder herbouw blijft een
     // zojuist verborgen kaartje klikbaar in de tekst van een ander kaartje.
     window._planEntityIndexHerbouw?.();
+    _ververOpenKaartje(id);
     const section = window.app.state.activeSection;
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
@@ -71,6 +86,7 @@ export function initSocket() {
     if (ENTITY_SECTIONS.includes(section)) {
       _refreshEntitySection(section);
     }
+    _ververOpenKaartje(id);
     // Melding voor spelers bij onthulling van een geheimenis
     if (!window.app?.isDM?.() && secretReveal && name) {
       _showToast(`🔓 Geheim van <strong>${name}</strong> onthuld`, () => {
