@@ -12162,23 +12162,40 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .player-dash-item-card--stapelbaar { padding-bottom: 2px; }
 
 /* ── Bladwijzer-knop op kaartje ── */
+/* De ster was zo licht dat je hem op een afbeelding niet zag; nu groter, met
+   een donker schijfje eronder zodat hij op elk portret leesbaar blijft. */
 .card-bookmark-btn {
   position: absolute;
   top: 6px;
   left: 6px;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  color: rgba(196,168,122,0.5);
-  font-size: 13px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20,12,4,0.45);
+  border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 50%;
+  color: rgba(240,225,190,0.85);
+  font-size: 17px;
   line-height: 1;
-  padding: 3px 5px;
+  padding: 0;
   cursor: pointer;
   z-index: 10;
-  transition: color 0.15s, background 0.15s;
+  text-shadow: 0 1px 3px rgba(0,0,0,.6);
+  transition: color .15s, background .15s, transform .15s, border-color .15s;
 }
-.card-bookmark-btn:hover { color: #f0c840; background: rgba(0,0,0,0.12); }
-.card-bookmark-btn--active { color: #f0c840 !important; }
+.card-bookmark-btn:hover {
+  color: #f0c840;
+  background: rgba(20,12,4,0.7);
+  border-color: rgba(240,200,64,0.6);
+  transform: scale(1.08);
+}
+.card-bookmark-btn--active {
+  color: #f0c840 !important;
+  background: rgba(20,12,4,0.62);
+  border-color: rgba(240,200,64,0.55);
+}
 
 /* ── Kaart-knop op locatie-cards ── */
 .card-map-btn {
