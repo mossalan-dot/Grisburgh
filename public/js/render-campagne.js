@@ -2245,11 +2245,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
              de DM" heet. Er stonden er twee op één kaartje (dit veld en een
              losse dmNote), met verwarrend gelijke namen. Typen slaat direct op,
              dus je hoeft de editor niet te openen. -->
-        ${_spelersNotitiesHtml(e.id, playerNotesData)}
+        <!-- Eerst je eigen aantekeningen, dan die van de spelers: dit is jouw
+             venster, en wat je zelf typt hoort bovenaan. -->
         <div class="detail-label mb-1">Aantekeningen voor de DM</div>
-        <textarea id="dm-note-${e.id}" class="w-full min-h-[80px] px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
+        <textarea id="dm-note-${e.id}" class="notitie-vak"
           placeholder="Alleen jij ziet dit\u2026">${esc(e.data?.persoonlijkheid || '')}</textarea>
         <div id="note-save-${e.id}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1 mb-3"></div>
+        ${_spelersNotitiesHtml(e.id, playerNotesData)}
         <!-- Vijf gelijke vierkantjes met een pictogram zeiden niet wát ze doen.
              Nu icoon plus woord; de stand staat in het woord ("Zichtbaar" /
              "Verborgen"), niet alleen in de kleur. -->

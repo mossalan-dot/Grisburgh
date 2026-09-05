@@ -1228,12 +1228,26 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 
 /* Aantekeningen van de spelers: één speler tegelijk, naam en pijltjes op één
    regel erboven. */
-.spn-binnen {
+/* Eén vorm voor beide notitieblokken: het vak van de DM en dat van de spelers
+   verschilden in rand, vulling en achtergrond, waardoor ze niet bij elkaar
+   leken te horen. */
+.spn-binnen,
+.notitie-vak {
   border: 1px solid rgba(196,168,122,.4);
   border-radius: 5px;
   background: rgba(255,255,255,.35);
   padding: 8px 12px;
 }
+.notitie-vak {
+  width: 100%;
+  min-height: 84px;
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: #3a2410;
+  resize: vertical;
+}
+.notitie-vak:focus { outline: none; border-color: rgba(196,168,122,.95); background: #fff; }
+.notitie-vak::placeholder { color: #9a8060; }
 .spn-kop {
   display: flex;
   align-items: center;
