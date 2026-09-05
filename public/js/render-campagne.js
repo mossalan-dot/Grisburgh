@@ -2086,6 +2086,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   }
 
   // "Verkoopt bij <locatie>" in het infopaneel, met doorklik.
+  const _winkelLocId = tab === 'personages' ? (e.data?.winkelLocatieId || '') : '';
   if (_winkelLocId) {
     const _locNaam = Object.entries(window._entityNameIndex || {})
       .find(([, v]) => v.id === _winkelLocId && v.type === 'locaties')?.[0];
@@ -2391,7 +2392,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // Een verkoper die naar een locatie wijst heeft zelf geen voorraadtab: daar
   // staat een doorklik naar de plek waar zijn waren liggen (zie hieronder).
   const isVerkoper   = window._heeftRol(e, 'verkoper');
-  const _winkelLocId = tab === 'personages' ? (e.data?.winkelLocatieId || '') : '';
   const isWinkel = tab === 'locaties'
     && (e.data?.locType === 'Winkel' || (e.data?.voorraad && e.data.voorraad !== '[]'));
   // Een verkoper heeft geen voorraadtab: de waren liggen bij de locatie. Alleen
