@@ -22260,3 +22260,24 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .entity-card.no-img .card-secret-badge { width: 24px; height: 24px; top: 6px; left: 6px; }
 /* De titel begint anders onder de knoppenrij; iets meer lucht bovenin. */
 .entity-card.no-img .card-body { padding-top: 34px; }
+
+/* ── Keuzelijst in perkament ────────────────────────────────────────────────
+   Vervangt de native <datalist>-popup, die de browser zelf tekent (donkergrijs,
+   systeemletters) en die met geen enkele CSS bij te sturen is. */
+.keuzeveld { position: relative; }
+.keuzeveld-lijst {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+  z-index: 200; max-height: 240px; overflow-y: auto;
+  background: linear-gradient(160deg, #f5e9ce 0%, #ede0bc 100%);
+  border: 1px solid rgba(196,168,122,0.7); border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(60,40,10,0.28);
+  padding: 4px;
+}
+.keuzeveld-lijst.hidden { display: none; }
+.keuzeveld-optie {
+  display: block; width: 100%; text-align: left;
+  padding: 5px 8px; border: 0; border-radius: 4px; background: none;
+  font-family: 'Crimson Text', serif; font-size: 14px; color: #3a2410;
+  cursor: pointer;
+}
+.keuzeveld-optie:hover, .keuzeveld-optie.is-actief { background: rgba(196,168,100,0.35); }

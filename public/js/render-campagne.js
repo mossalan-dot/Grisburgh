@@ -569,6 +569,78 @@ async function _vulSpellChips() {
   }
 }
 
+// ── Keuzelijst in perkament ─────────────────────────────────────────────────
+// Een <datalist> tekent de browser zelf: donkergrijze bak, systeemletters, en
+// er is geen CSS die daar iets aan verandert. Dus een eigen lijstje: een input
+// met een gefilterde lijst eronder, in dezelfde stijl als de andere menu's.
+const _keuzeLijsten = {};   // veldId → array met opties
+const _keuzeNa = {};        // veldId → wat er ná een keuze moet gebeuren
+
+function _keuzeVeldHtml(id, naam, waarde, opties, placeholder = '', naKeuze = null) {
+  _keuzeLijsten[id] = opties || [];
+  _keuzeNa[id] = naKeuze;
+  return `<div class="keuzeveld">
+    <input id="${id}" name="${naam}" value="${esc(waarde || '')}" autocomplete="off" placeholder="${esc(placeholder)}"
+      class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none"
+      oninput="window._keuzeFilter('${id}')" onfocus="window._keuzeFilter('${id}')"
+      onkeydown="window._keuzeToets(event,'${id}')">
+    <div class="keuzeveld-lijst hidden" id="${id}-lijst"></div>
+  </div>`;
+}
+
+function _keuzeSluit(id) {
+  document.getElementById(`${id}-lijst`)?.classList.add('hidden');
+}
+
+window._keuzeFilter = (id) => {
+  const invoer = document.getElementById(id);
+  const lijst  = document.getElementById(`${id}-lijst`);
+  if (!invoer || !lijst) return;
+  const zoek = invoer.value.trim().toLowerCase();
+  const treffers = (_keuzeLijsten[id] || [])
+    .filter(o => !zoek || String(o).toLowerCase().includes(zoek))
+    .slice(0, 60);
+  if (!treffers.length) { lijst.classList.add('hidden'); return; }
+  lijst.innerHTML = treffers.map((o, i) =>
+    `<button type="button" class="keuzeveld-optie${i === 0 ? ' is-actief' : ''}"
+      onmousedown="event.preventDefault();window._keuzeKies('${id}', this.dataset.waarde)"
+      data-waarde="${esc(o)}">${esc(o)}</button>`).join('');
+  lijst.classList.remove('hidden');
+};
+
+window._keuzeKies = (id, waarde) => {
+  const invoer = document.getElementById(id);
+  if (invoer) { invoer.value = waarde; invoer.dispatchEvent(new Event('change', { bubbles: true })); }
+  _keuzeSluit(id);
+  if (typeof _keuzeNa[id] === 'function') _keuzeNa[id](invoer);
+};
+
+window._keuzeToets = (ev, id) => {
+  const lijst = document.getElementById(`${id}-lijst`);
+  if (!lijst || lijst.classList.contains('hidden')) return;
+  const opties = [...lijst.querySelectorAll('.keuzeveld-optie')];
+  const nu = opties.findIndex(o => o.classList.contains('is-actief'));
+  if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+    ev.preventDefault();
+    const volgende = ev.key === 'ArrowDown'
+      ? Math.min(nu + 1, opties.length - 1)
+      : Math.max(nu - 1, 0);
+    opties.forEach((o, i) => o.classList.toggle('is-actief', i === volgende));
+    opties[volgende]?.scrollIntoView({ block: 'nearest' });
+  } else if (ev.key === 'Enter' && nu >= 0) {
+    ev.preventDefault();
+    window._keuzeKies(id, opties[nu].dataset.waarde);
+  } else if (ev.key === 'Escape') {
+    _keuzeSluit(id);
+  }
+};
+
+// Buiten de lijst klikken sluit hem.
+document.addEventListener('click', (ev) => {
+  if (ev.target.closest('.keuzeveld')) return;
+  document.querySelectorAll('.keuzeveld-lijst').forEach(l => l.classList.add('hidden'));
+});
+
 // ── Gekoppelde spreuken op een kaartje ──
 function _csSpellLees() {
   const veld = document.getElementById('cs-spell-indexes');
@@ -2821,6 +2893,25 @@ window._charVideoStatus = async (entityId) => {
   } catch { el.textContent = 'Nog geen filmpje.'; }
 };
 
+// Bij een nieuw kaartje bestaat het id nog niet, en de upload heet
+// `<id>_video`. Dus bewaren we het bestand en uploaden we het zodra het
+// personage is aangemaakt.
+let _pendingVideoFile = null;
+
+window._kiesCharVideo = async (entityId, file, invoer) => {
+  if (!file) return;
+  if (entityId) return window._uploadCharVideo(entityId, file, invoer);
+  if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+    alert(`Dit filmpje is ${(file.size / 1048576).toFixed(1)} MB. Maximaal ${MAX_VIDEO_MB} MB — maak het korter of exporteer het kleiner.`);
+    if (invoer) invoer.value = '';
+    return;
+  }
+  _pendingVideoFile = file;
+  const duur = await _videoDuur(file);
+  const el = document.getElementById('editor-video-status');
+  if (el) el.textContent = `Klaar om te bewaren${duur ? ` — ${duur.toFixed(1)} s` : ''}; wordt geüpload zodra je opslaat.`;
+};
+
 window._uploadCharVideo = async (entityId, file, invoer) => {
   if (!file) return;
   const el = document.getElementById('editor-video-status');
@@ -3008,6 +3099,7 @@ window._openEditor = async (tab, editId) => {
 
   editorTags = {};
   pendingAudioFile = null;
+  _pendingVideoFile = null;
   _petTiers = Array.isArray(e?.statblockTiers) ? JSON.parse(JSON.stringify(e.statblockTiers)) : [];
   _editorOldAudioId = e?.data?.audioId || null;
   for (const lt of LINK_TYPES) {
@@ -3019,13 +3111,7 @@ window._openEditor = async (tab, editId) => {
   // De datalists staan één keer bovenaan het formulier; de velden verwijzen
   // ernaar met `list=`. Gangbare volken eerst, daarna de rest — anders scrol je
   // door zevenenveertig namen voordat je bij Human bent.
-  if (tab === 'personages' && _naamLijsten) {
-    const opties = (arr) => (arr || []).map(v => `<option value="${esc(v)}">`).join('');
-    body += `
-      <datalist id="dl-klassen">${opties(_naamLijsten.klassen)}</datalist>
-      <datalist id="dl-volken">${opties(_naamLijsten.volkenGangbaar)}${opties(_naamLijsten.volkenOverig)}</datalist>
-      <datalist id="dl-alignments">${opties(_naamLijsten.alignments)}</datalist>`;
-  }
+
 
   // ── DM-toggle vars (vroeg berekend, gebruikt in rechterkolom én textarea-sectie) ──
   const _valUitgesproken = e?.data?.flavourUitgesproken === true || e?.data?.flavourUitgesproken === 'true';
@@ -3086,19 +3172,23 @@ window._openEditor = async (tab, editId) => {
           ${icon('image')} Afbeelding toevoegen
         </button>
       </div>
-      ${e?.id ? `
-      <div>
+      ${tab === 'personages' ? `
+      <!-- Alleen bij een spelerspersonage: het filmpje speelt op de
+           landingspagina terwijl er op dát portret wordt ingezoomd. Bij een
+           nieuw kaartje bewaren we het bestand tot het personage bestaat, want
+           de upload heet naar zijn id. -->
+      <div id="video-section"${e?.subtype === 'speler' ? '' : ' style="display:none"'}>
         <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Filmpje</div>
         <p class="text-[10px] text-ink-dim mb-1">Speelt op de landingspagina terwijl er op dit portret wordt ingezoomd. Maximaal 8 MB; langer dan 6 seconden mag, maar stopt dan vanzelf.</p>
-        <div id="editor-video-status" class="text-xs text-ink-faint italic mb-1">Controleren…</div>
+        <div id="editor-video-status" class="text-xs text-ink-faint italic mb-1">${e?.id ? 'Controleren…' : ''}</div>
         <div class="flex items-center gap-2">
-          <label class="inline-flex items-center gap-1 px-2 py-1 bg-room-elevated border border-room-border rounded text-ink-dim text-xs hover:text-ink-bright cursor-pointer transition">
+          <label class="dm-btn dm-btn-ghost dm-btn-sm" style="cursor:pointer">
             ${icon('camera')} Filmpje kiezen
             <input type="file" accept="video/mp4,video/webm" class="hidden"
-              onchange="window._uploadCharVideo('${esc(e.id)}', this.files[0], this)">
+              onchange="window._kiesCharVideo('${esc(e?.id || '')}', this.files[0], this)">
           </label>
           <button type="button" id="editor-video-del" class="dm-btn dm-btn-ghost dm-btn-sm hidden"
-            onclick="window._removeCharVideo('${esc(e.id)}')" title="Filmpje verwijderen">${icon('trash')}</button>
+            onclick="window._removeCharVideo('${esc(e?.id || '')}')" title="Filmpje verwijderen">${icon('trash')}</button>
         </div>
       </div>` : ''}
     `;
@@ -3256,11 +3346,13 @@ window._openEditor = async (tab, editId) => {
       // Zoekbaar invoerveld met een datalist: typen filtert, en wat er niet in
       // staat mag je alsnog intikken — een campagne met eigen volken of klassen
       // wordt zo niet klemgezet. De lijsten komen uit bronnen/volken-klassen.json.
+      const _opties = field.lijst === 'volken'
+        ? [...(_naamLijsten?.volkenGangbaar || []), ...(_naamLijsten?.volkenOverig || [])]
+        : (_naamLijsten?.[field.lijst] || []);
       body += `
         <div>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
-          <input name="data_${field.key}" list="dl-${field.lijst}" value="${esc(val)}" autocomplete="off"
-            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          ${_keuzeVeldHtml(`kv-${field.key}`, `data_${field.key}`, val, _opties, 'Typ of kies\u2026')}
         </div>
       `;
     } else if (field.type === 'weapon-tags') {
@@ -3327,10 +3419,10 @@ window._openEditor = async (tab, editId) => {
   if (tab === 'personages' && isDM()) {
     body += `
       <div class="editor-toggles-row">
-        <button type="button" id="btn-uitgesproken"
-          class="dm-btn dm-btn-ghost editor-toggle-btn${_valUitgesproken ? ' editor-toggle-btn--active' : ''}"
-          title="Roddel uitgesproken door de waard"
-          onclick="window._editorToggleBtn('inp-flavourUitgesproken','btn-uitgesproken')">${icon('beer')}</button>
+        <!-- De knop "roddel uitgesproken door de waard" stond hier, maar dat is
+             geen eigenschap van het personage: het is de stand van de herberg.
+             Sinds flavour een lijst is houdt de server per regel bij of hij al
+             verteld is, en dat regelt de herberg zelf. -->
         <div id="geheime-antagonist-section"${_isNpcEditor ? '' : ' style="display:none"'}>
           <button type="button" id="btn-geheimeAntagonist"
             class="dm-btn dm-btn-ghost editor-toggle-btn${_isAntagonist ? ' editor-toggle-btn--active' : ''}"
@@ -3619,12 +3711,9 @@ window._openEditor = async (tab, editId) => {
             <div>
               <label class="text-[10px] font-cinzel text-ink-dim uppercase">Spreuken uit de bibliotheek</label>
               <div id="cs-spell-chips" class="cs-spell-chips"></div>
-              <input id="cs-spell-add" list="dl-spreuken" placeholder="Zoek een spreuk\u2026" autocomplete="off"
-                onchange="window._csSpellAdd(this)"
-                class="w-full mt-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+              ${_keuzeVeldHtml('cs-spell-add', '', '', (_spreukLijst || []).map(sp => sp.name), 'Zoek een spreuk\u2026',
+                (invoer) => window._csSpellAdd(invoer))}
               <input type="hidden" name="stat_spellIndexes" id="cs-spell-indexes" value="${esc(s.spellIndexes || '')}">
-              <datalist id="dl-spreuken">${(_spreukLijst || []).map(sp =>
-                `<option value="${esc(sp.name)}">`).join('')}</datalist>
             </div>
             ${_si('cantrips','Cantrips (los)')}
             ${_ta('spells','Spells (los)', 3)}
@@ -3847,6 +3936,8 @@ window._openEditor = async (tab, editId) => {
       if (antagonistSec) antagonistSec.style.display = val === 'NPC' ? '' : 'none';
       const petSec = document.getElementById('pet-editor-section');
       if (petSec) petSec.style.display = val === 'dier' ? '' : 'none';
+      const vidSec = document.getElementById('video-section');
+      if (vidSec) vidSec.style.display = val === 'speler' ? '' : 'none';
     };
 
     // LocType-wissel (locaties)
@@ -4015,10 +4106,18 @@ window._openEditor = async (tab, editId) => {
     try {
       // Portret loopt nu via data.imageId (mediabibliotheek) — geen losse
       // upload-naar-entity-id meer; de picker heeft het bestand al opgeslagen.
+      let _nieuwId = editId;
       if (editId) {
         await api.updateEntity(tab, editId, payload);
       } else {
-        await api.createEntity(tab, payload);
+        const gemaakt = await api.createEntity(tab, payload);
+        _nieuwId = gemaakt?.id || null;
+      }
+      // Filmpje dat bij een nieuw kaartje gekozen is: nu pas uploaden, want nu
+      // pas is er een id om het naar te vernoemen.
+      if (_pendingVideoFile && _nieuwId) {
+        await api.uploadFile(`${_nieuwId}_video`, _pendingVideoFile).catch(() => {});
+        _pendingVideoFile = null;
       }
       // Upload/verwijder audio
       if (pendingAudioFile && data.audioId) {
