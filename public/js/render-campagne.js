@@ -700,7 +700,10 @@ window._kantBij = (vak) => {
 };
 
 window._rollenBij = () => {
-  const gekozen = [...document.querySelectorAll('.rollen-rij input:checked')].map(i => i.value);
+  // Alleen de rol-vinkjes: de kant-vinkjes staan in dezelfde rij en belandden
+  // anders óók in data.tags ("vijand" als rol).
+  const gekozen = [...document.querySelectorAll('.rollen-rij .rol-keuze:not(.rol-keuze--kant) input:checked')]
+    .map(i => i.value);
   const veld = document.getElementById('rollen-veld');
   if (veld) veld.value = JSON.stringify(gekozen);
   const isVerkoper = gekozen.includes('verkoper');

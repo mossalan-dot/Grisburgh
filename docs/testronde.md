@@ -74,6 +74,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Kaartjes bij hover** (ALL) — een kaartje tilt op als je erover gaat, maar kantelt niet meer met de muis mee
 - [ ] **Meerdere roddels op het kaartje** (DM/SP) — bij twee onthulde flavourregels staat rechtsonder "1/2 ›"; klikken toont de volgende zonder dat het kaartje opengaat, en de DM ziet nog-niet-vertelde regels lichter
+- [ ] **Rollen blijven rollen** (DM) — vink een kant aan (Bondgenoot/Neutraal/Vijand) en sla op: die waarde komt níét als rol in `data.tags` terecht (geen "Vijand"-badge naast Verkoper)
+
 - [ ] **Rollen als badge** (ALL) — een verkoper die ook antagonist is toont bééde badges op het kaartje en in het detailvenster; zonder rol staat er het type (NPC, Speler, Dier, God)
 
 - [ ] **Afrekenen aan tafel** (DM) — muntknop achter een voorraadregel: kies een speler, tik een ander bedrag in dan de vraagprijs, afrekenen. Het bedrag gaat van de (gedeelde of eigen) beurs af, het voorwerp staat in zijn boedel, en de regel is uitverkocht
@@ -87,7 +89,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Volgorde in de editor** (DM) — Informatie loopt van boven naar beneden: korte omschrijving, Origin/Class/Alignment, rollen, Beschrijving, Flavour teksten, Geheimen, Aantekeningen
 
-- [ ] **Statblok → monsterbibliotheek** (DM) — vul HP én AC op een personage-kaartje: hij staat meteen in de monsterlijst van de Meesterkamer (met "van kaartje") en is toe te voegen aan een encounter, maar verschijnt **niet** in het bestiarium van de spelers; HP of AC weer leegmaken haalt hem uit de lijst
+- [ ] **Statblok → monsterbibliotheek** (DM) — vul HP én AC op een NPC-kaartje: hij staat meteen in de monsterlijst van de Meesterkamer (met "van kaartje") en is toe te voegen aan een encounter, maar verschijnt **niet** in het bestiarium van de spelers; HP of AC weer leegmaken haalt hem uit de lijst. Een kaartje met subtype *speler* komt er nooit in
 - [ ] **Statblok leesbaar ingedeeld** (DM) — Ability Scores, Proficiencies & Defenses, Senses & Languages en Traits staan als gouden sectiekop met een streep erboven, duidelijk anders dan de veldlabels; Gear staat bij Skills (niet bij Languages) en heeft de opmaakbalk, dus **vet** komt vet terug in het detailvenster
 
 - [ ] **Statblok compleet** (DM) — Size en Creature Type als dropdown, Initiative, XP, Gear, Lair Actions en Damage Vulnerabilities zijn in te vullen en komen terug in het detailvenster ("Medium Humanoid" boven het blok)

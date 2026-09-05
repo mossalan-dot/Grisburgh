@@ -338,9 +338,16 @@ function filterEntityForPlayer(entity, dmState, groupId) {
 // `inBestiarium: false` en een verwijzing naar het kaartje.
 function _syncMonsterVanKaartje(entity) {
   const st = entity?.stats || {};
-  const heeftStatblok = String(st.hp ?? '').trim() && String(st.ac ?? '').trim();
+  // Spelerspersonages horen er niet in: je zet je eigen party niet als monster
+  // in een encounter, die staat er al in als deelnemer.
+  const heeftStatblok = String(entity?.subtype || '').toLowerCase() !== 'speler'
+    && String(st.hp ?? '').trim() && String(st.ac ?? '').trim();
 
-  const data = storage.readJSON('monsters.json');
+  // Een verse campagne heeft `[]` staan; alle schrijvers normaliseren dat naar
+  // { monsters: [] }. Zonder deze stap zet je een eigenschap op een array, en
+  // die gooit JSON.stringify stilzwijgend weg.
+  const raw  = storage.readJSON('monsters.json');
+  const data = Array.isArray(raw) ? { monsters: [] } : (raw || { monsters: [] });
   if (!Array.isArray(data.monsters)) data.monsters = [];
   const idx = data.monsters.findIndex(m => m.entityId === entity.id);
 
