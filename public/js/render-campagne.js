@@ -128,10 +128,10 @@ export function setOwnership(data) {
 // Expose op window zodat socket-client.js altijd de correcte module-instantie gebruikt
 window._setOwnership = setOwnership;
 const TYPE_META = {
-  personages:   { icon: '\ud83d\udc64', get svgIcon() { return icon('user'); },                    label: 'Personages',   color: 'green-wax', chip: 'chip-npc' },
-  locaties:     { icon: '\ud83c\udff0', get svgIcon() { return icon('castle', {cls:'icon-gi'}); }, label: 'Locaties',     color: 'blue-ink',  chip: 'chip-loc' },
-  organisaties: { icon: '\ud83c\udfdb\ufe0f', get svgIcon() { return icon('landmark'); },         label: 'Organisaties', color: 'seal',      chip: 'chip-org' },
-  voorwerpen:   { icon: '🎺',              get svgIcon() { return icon('package'); },                label: 'Voorwerpen',   color: 'orange',    chip: 'chip-item' },
+  personages:   { icon: '\ud83d\udc64', get svgIcon() { return icon('user'); },                    label: 'Personages',   nieuw: 'Nieuw personage',    bewerk: 'Personage bewerken',   color: 'green-wax', chip: 'chip-npc' },
+  locaties:     { icon: '\ud83c\udff0', get svgIcon() { return icon('castle', {cls:'icon-gi'}); }, label: 'Locaties',     nieuw: 'Nieuwe locatie',     bewerk: 'Locatie bewerken',     color: 'blue-ink',  chip: 'chip-loc' },
+  organisaties: { icon: '\ud83c\udfdb\ufe0f', get svgIcon() { return icon('landmark'); },         label: 'Organisaties', nieuw: 'Nieuwe organisatie', bewerk: 'Organisatie bewerken', color: 'seal',      chip: 'chip-org' },
+  voorwerpen:   { icon: '🎺',              get svgIcon() { return icon('package'); },                label: 'Voorwerpen',   nieuw: 'Nieuw voorwerp',     bewerk: 'Voorwerp bewerken',    color: 'orange',    chip: 'chip-item' },
 };
 
 const SCHEMA = {
@@ -4063,7 +4063,8 @@ window._openEditor = async (tab, editId) => {
 
   // De winkel krijgt alleen een tabblad als dit kaartje er een heeft.
   body = _bouwEditorTabs(body, tab === 'locaties' ? e?.data?.locType === 'Winkel' : window._heeftRol(e, 'verkoper'));
-  openModal(editId ? 'Bewerken' : 'Nieuw', TYPE_META[tab].label, body);
+  const _tm = TYPE_META[tab];
+  openModal(editId ? (_tm.bewerk || 'Bewerken') : (_tm.nieuw || 'Nieuw'), '', body);
 
   // Huisdier-tier-editor vullen (no-op als de sectie er niet is)
   window._renderPetTiers();

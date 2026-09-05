@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=264';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=148";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=149";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=76";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -1563,7 +1563,11 @@ function openModal(title, subtitle, bodyHtml) {
     _mPortraitImg.src = '';
   }
   $('#m-title').innerHTML = title;
-  $('#m-sub').textContent = subtitle;
+  // Lege ondertitel = geen regel. Anders houdt het lege blokje ruimte vast
+  // onder de kop (de editor zet zijn type nu in de titel zelf).
+  const _sub = $('#m-sub');
+  _sub.textContent = subtitle || '';
+  _sub.classList.toggle('hidden', !subtitle);
   $('#m-body').innerHTML = bodyHtml;
   $('#modal-overlay').classList.add('active');
   // Vergrendel de minimale hoogte zodat tabwisseling de modal niet laat krimpen.

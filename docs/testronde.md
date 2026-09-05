@@ -69,6 +69,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Meerdere afbeeldingen in het detailvenster** (ALL) — een kaartje met banner én extra afbeelding toont een carousel waarin de éérste dia de banner is (geen gebroken plaatje); pijltjes en bolletjes lopen erdoorheen
 - [ ] **Geen ruwe JSON in het detailvenster** (ALL) — geheimen, flavours en rollen staan in hun eigen blok, niet als pil met `["tekst"]` erin
 
+- [ ] **Kop van de editor** (DM) — nieuw kaartje heet "Nieuw personage" / "Nieuwe locatie" / "Nieuwe organisatie" / "Nieuw voorwerp" / "Nieuw document", bewerken heet "Personage bewerken" enzovoort; er staat geen losse ondertitel meer onder
+
 - [ ] **Volgorde in de editor** (DM) — Informatie loopt van boven naar beneden: korte omschrijving, Origin/Class/Alignment, rollen, Beschrijving, Flavour teksten, Geheimen, Aantekeningen
 
 - [ ] **Statblok → monsterbibliotheek** (DM) — vul HP én AC op een personage-kaartje: hij staat meteen in de monsterlijst van de Meesterkamer (met "van kaartje") en is toe te voegen aan een encounter, maar verschijnt **niet** in het bestiarium van de spelers; HP of AC weer leegmaken haalt hem uit de lijst
