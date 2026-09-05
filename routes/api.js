@@ -1297,6 +1297,13 @@ router.delete('/post/:characterId/:postId', attachRole, (req, res) => {
 // ── Prijs parser: "5 fl.", "10 kn", "2 fl, 3 kn" etc. ──
 function parsePrijs(str) {
   if (!str) return null;
+  // Eén bedrag met een komma is de notatie van het huis: 12,34 = 12 florinde,
+  // 3 knakers, 4 centelingen (tiende en honderdste, zoals gewoon geld). Wie in
+  // munten schrijft ("5 gp 2 sp", "2 pp") wordt hieronder alsnog begrepen.
+  const kaal = String(str).trim().replace(/\s+/g, '');
+  const komma = kaal.match(/^(\d+)[.,](\d{1,2})$/);
+  if (komma) return fromCl(parseInt(komma[1]) * 100 + parseInt(komma[2].padEnd(2, '0')));
+
   const result = { fl: 0, kn: 0, cl: 0 };
   // Ook gp/sp/cp en de twee muntjes zonder eigen plek in de beurs: electrum
   // (5 zilver) en platinum (10 goud) worden hier meteen omgerekend.

@@ -136,6 +136,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Rollen en kant uit elkaar** (DM) — de vinkjes voor rollen staan op één regel, met daaronder het kopje *Kant in gevecht* en dan pas Bondgenoot/Neutraal/Vijand
 - [ ] **Kaartje zonder afbeelding** (ALL) — geen lege beeldstrook bovenin, en de badge (NPC, Verkoper, Dier) staat gewoon boven de naam
 - [ ] **URL volgt de sectie** (ALL) — plak `#locaties` achter het adres of gebruik de terugknop van de browser: de app springt naar dat tabblad
+- [ ] **Eén geldnotatie** (DM) — overal waar je een bedrag intikt (afrekenen, inkopen, adoptieprijs, loot) werkt `12,34`; munten mogen ook (`5 gp 2 sp`, `2 pp`, `3 ep`) en worden omgerekend. Bij loot blijft de uitleg in muntnamen staan: *23 Florinde · 5 Knaker*, niet 23,5
 - [ ] **Afrekenen meldt zich** (DM) — na afrekenen verschijnt een melding met wie er betaalde en hoeveel
 - [ ] **Losse boedelregels in de inkooplijst** (DM) — spullen die geen voorwerpkaartje zijn (touw, gereedschap) staan óók in *Inkopen van de party*
 - [ ] **Geen doodskop op een locatie** (DM) — *Overleden* staat alleen bij personages, niet bij locaties, organisaties of voorwerpen

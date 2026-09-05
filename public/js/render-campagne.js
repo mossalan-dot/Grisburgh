@@ -3171,6 +3171,26 @@ window._dmHumeurBump = async (shopId, characterId, delta) => {
 // dus, voorgevuld met de vraagprijs: overtypen en afrekenen.
 let _dmPartySpelers = [];   // {id, name} van de actieve party
 
+// Bedragen kennen één notatie in de hele app: één getal met een komma, waarbij
+// de tweede munt een tiende is en de derde een honderdste (12,34 = 12 florinde,
+// 3 knakers, 4 centelingen). Wie in munten schrijft — "5 gp 2 sp", "2 pp" —
+// wordt ook begrepen; de server (parsePrijs) kent beide vormen.
+const _MUNT_CL_KAART = { fl: 100, gp: 100, kn: 10, sp: 10, cl: 1, cp: 1, ep: 50, pp: 1000 };
+function _prijsNaarCl(tekst) {
+  const t = String(tekst ?? '').trim().replace(/\s+/g, '');
+  if (!t) return null;
+  const komma = t.match(/^(\d+)[.,](\d{1,2})$/);
+  if (komma) return parseInt(komma[1]) * 100 + parseInt(komma[2].padEnd(2, '0'));
+  let cl = 0, iets = false;
+  for (const m of t.matchAll(/(\d+(?:[.,]\d+)?)(fl|kn|cl|gp|sp|cp|ep|pp)\.?/gi)) {
+    cl += parseFloat(m[1].replace(',', '.')) * (_MUNT_CL_KAART[m[2].toLowerCase()] || 0);
+    iets = true;
+  }
+  if (iets) return Math.round(cl);
+  return /^\d+$/.test(t) ? parseInt(t) * 100 : null;   // kaal getal = hele munten
+}
+const _clNaarKomma = (cl) => `${Math.floor(cl / 100)},${String(cl % 100).padStart(2, '0')}`;
+
 // {fl,kn,cl} → "1 Florinde 3 Knaker"; de muntnamen komen uit meta.
 function _muntTekst(cur) {
   const n = window._muntNamen?.() || { fl: 'Gold', kn: 'Silver', cl: 'Copper' };
@@ -3202,8 +3222,9 @@ window._dmAfrekenen = async (shopId, itemNaam, entityId, prijs) => {
       <select id="dm-afreken-speler" class="dm-input dm-input-sm">
         ${spelers.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}
       </select>
-      <input id="dm-afreken-bedrag" class="dm-input dm-input-sm" style="max-width:120px"
-        value="${esc(prijs || '')}" placeholder="bijv. 12 fl">
+      <input id="dm-afreken-bedrag" class="dm-input dm-input-sm" style="max-width:120px" inputmode="decimal"
+        value="${esc((() => { const cl = _prijsNaarCl(prijs); return cl === null ? '' : _clNaarKomma(cl); })())}"
+        placeholder="12,34" title="Eén bedrag met een komma; munten mogen ook: 5 gp 2 sp, 2 pp">
       <button class="dm-btn dm-btn-sm dm-btn-primary"
         onclick="window._dmAfrekenenDoen('${esc(shopId)}','${escJS(itemNaam)}','${esc(entityId || '')}')">Afrekenen</button>
       <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('dm-afreken-paneel').classList.add('hidden')">Annuleren</button>
@@ -3253,7 +3274,9 @@ window._dmInkoopOpen = async (shopId) => {
           <span class="dm-inkoop-naam">${esc(r.naam)}</span>
           <span class="dm-inkoop-speler">${esc(r.speler)}</span>
           ${r.aantal > 1 ? `<input type="number" min="1" max="${r.aantal}" value="1" class="dm-input dm-input-sm dm-inkoop-aantal" title="Hoeveel van de ${r.aantal}?">` : `<span class="dm-inkoop-aantal-vast">1</span>`}
-          <input class="dm-input dm-input-sm dm-inkoop-bedrag" value="${esc(r.prijs || '')}" placeholder="bedrag">
+          <input class="dm-input dm-input-sm dm-inkoop-bedrag" inputmode="decimal"
+            value="${esc((() => { const cl = _prijsNaarCl(r.prijs); return cl === null ? '' : _clNaarKomma(cl); })())}"
+            placeholder="12,34" title="Eén bedrag met een komma; munten mogen ook">
         </label>`).join('')}
     </div>
     <div class="dm-winkel-rij mt-2">
@@ -4156,7 +4179,7 @@ window._openEditor = async (tab, editId) => {
                 <label class="text-[10px] font-cinzel text-ink-dim uppercase">Adoptieprijs</label>
                 <input name="data_adoptiePrijs_tekst" value="${_prijsCl2 === null ? '' : `${Math.floor(_prijsCl2 / 100)},${String(_prijsCl2 % 100).padStart(2, '0')}`}"
                   placeholder="12,34" inputmode="decimal"
-                  title="Eén bedrag met een komma: 12,34 is 12 ${esc(_mn2.fl)}, 3 ${esc(_mn2.kn)} en 4 ${esc(_mn2.cl)}"
+                  title="Eén bedrag met een komma: 12,34 is 12 ${esc(_mn2.fl)}, 3 ${esc(_mn2.kn)} en 4 ${esc(_mn2.cl)}. Munten mogen ook: 5 gp 2 sp, 2 pp."
                   class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
               </div>
             </div>
@@ -4906,8 +4929,9 @@ window._openEditor = async (tab, editId) => {
       const ruw = (data.adoptiePrijs_tekst ?? '').toString().trim();
       delete data.adoptiePrijs_tekst;
       if (ruw) {
-        const m = ruw.replace(/\s/g, '').match(/^(\d+)(?:[.,](\d{1,2}))?$/);
-        if (m) data.adoptiePrijsCl = String(parseInt(m[1]) * 100 + parseInt((m[2] || '0').padEnd(2, '0')));
+        // Zelfde lezer als de rest van de app: komma of munten (ook pp en ep).
+        const cl = _prijsNaarCl(ruw);
+        if (cl !== null) data.adoptiePrijsCl = String(cl);
       } else {
         data.adoptiePrijsCl = '';
       }
