@@ -22988,7 +22988,27 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
    invoerveld laat zien of het gevonden is (doorklikken) of nog niet bestaat
    (aanmaken). */
 .link-status { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 6px; }
-.link-status:empty { margin-top: 0; }
+.link-status:empty { margin-top: 0; display: none; }
+
+/* Gevonden kaartje: het pictogram staat ín het veld, rechts. Een chip eronder
+   herhaalde alleen de naam die je net had ingetikt. */
+.link-veld { position: relative; display: block; }
+.link-veld > input { padding-right: 34px !important; }
+.link-veld-icoon {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center;
+}
+.link-veld-icoon:empty { display: none; }
+.link-veld-knop {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; padding: 0; cursor: pointer;
+  background: rgba(196,168,122,0.22); border: 1px solid rgba(196,168,122,0.6);
+  border-radius: 50%; color: #6a4a1a;
+  transition: background .15s ease, color .15s ease;
+}
+.link-veld-knop:hover { background: rgba(196,168,122,0.45); color: #2a1a08; }
+.link-veld-knop .icon,
+.link-veld-knop svg { width: 12px; height: 12px; }
 .link-chip {
   display: inline-flex; align-items: center; gap: 5px;
   font-family: 'Crimson Text', Georgia, serif; font-size: 0.85rem;
@@ -23036,26 +23056,58 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
    perkament en niet het donkere paneel. */
 .veld-uitleg { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.82rem; color: #7a6040; margin: 2px 0 6px; }
 
-/* In het detailvenster: wie hoort hier bij. */
-.detail-betrokkenen { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 14px; }
-.betrokken-chip { display: inline-flex; align-items: center; gap: 5px; }
-.betrokken-chip .pill-lbl { font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: .06em; color: #9a815c; }
-.betrokken-naam { font-family: 'Crimson Text', Georgia, serif; font-size: 0.9rem; color: #3a2410; }
-/* De andere kant op: waar dít kaartje bij hoort. Eigen kopje, want anders leest
-   het als "deze mensen horen bij mij" in plaats van andersom. */
-.detail-hoortbij { align-items: center; }
-.hoortbij-kop {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
-  letter-spacing: .06em; color: #9a815c; margin-right: 2px;
+/* In het detailvenster: één regel per rol. Iemand kan eigenaar zijn van drie
+   panden, en dan is "Eigenaar" met drie namen op een hoop niet te lezen. */
+.detail-betrekking { margin: 0 0 14px; }
+.detail-betrekking-rijen { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.detail-betrekking-rij { display: flex; align-items: center; gap: 8px; }
+.detail-betrekking-rol {
+  font-family: 'Cinzel', serif; font-size: 9.5px; font-weight: 700;
+  letter-spacing: .06em; color: #9a815c;
+  width: 7.5em; flex-shrink: 0; text-align: right;
 }
-.hoortbij-kop .icon { width: 12px; height: 12px; }
+.betrokken-naam { font-family: 'Crimson Text', Georgia, serif; font-size: 0.9rem; color: #3a2410; }
+@media (max-width: 520px) {
+  .detail-betrekking-rij { align-items: flex-start; }
+  .detail-betrekking-rol { width: 5.5em; }
+}
+/* Sectie in de editor waarmee je vanaf een personage aangeeft waar hij bij
+   hoort; dezelfde rijen als "Wie hoort hier bij?", andere doelsoorten. */
+.hoortbij-sectie { margin-top: 6px; }
 
 /* ── Koppelingen op een kaartje ─────────────────────────────────────────────
    Wat dit kaartje elders is: de herberg, de tempel van een god, de factie, een
    dungeonkaart. Eigen sectie, want het gaat niet over het kaartje zelf maar
    over waar het aan vastzit. */
 .koppel-sectie { margin-top: 6px; }
+/* Kort oplichten wanneer je er vanuit de typemelding naartoe springt, anders
+   scrollt het scherm en weet je niet waarnaar je moet kijken. */
+.koppel-sectie--licht-op {
+  animation: koppel-licht-op 1.4s ease-out;
+  border-radius: 6px;
+}
+@keyframes koppel-licht-op {
+  0%, 60% { background: rgba(196,168,122,0.28); box-shadow: 0 0 0 6px rgba(196,168,122,0.28); }
+  100%    { background: transparent;            box-shadow: 0 0 0 6px transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .koppel-sectie--licht-op { animation: none; } }
+
+/* Melding onder een keuzelijst: wat dit gekozen type extra oplevert. Staat er
+   alleen als er iets te melden valt, dus geen lege ruimte bij de rest. */
+.veld-melding {
+  display: flex; align-items: flex-start; gap: 6px;
+  margin-top: 6px;
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: 0.85rem; line-height: 1.35; color: #7a6040;
+}
+.veld-melding:empty { display: none; }
+.veld-melding .icon { width: 13px; height: 13px; flex-shrink: 0; margin-top: 3px; color: #b08d4a; }
+.veld-melding b { font-style: normal; font-weight: 600; color: #5a4020; }
+.veld-melding-link {
+  font: inherit; font-style: normal; color: #8a6000; background: none; border: none;
+  padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+}
+.veld-melding-link:hover { color: #5a4020; }
 .koppel-rij { margin-bottom: 12px; }
 .koppel-duo { display: flex; gap: 8px; flex-wrap: wrap; }
 .koppel-duo > .koppel-select { flex: 1 1 160px; min-width: 0; }

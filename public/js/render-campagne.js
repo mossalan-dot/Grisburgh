@@ -1,4 +1,4 @@
-import { api } from './api.js?v=272';
+import { api } from './api.js?v=273';
 import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);
@@ -190,6 +190,14 @@ const LOC_TYPE_GROEPEN = [
   ]},
 ];
 
+// Wat een gekozen type extra oplevert. Alleen deze drie hebben iets; de rest
+// van de lijst zegt niets meer dan wat voor plek het is.
+const LOC_TYPE_MELDINGEN = {
+  Winkel:  'Krijgt een eigen tabblad <b>Winkel</b>, met voorraad, prijzen en een wisselend assortiment.',
+  Herberg: 'Kan <b>de herberg van de campagne</b> worden — aan te vinken bij @Koppelingen, onderaan dit tabblad.',
+  Tempel:  'Kan aan <b>een god uit de Tempel</b> gekoppeld worden — bij @Koppelingen, onderaan dit tabblad.',
+};
+
 const SCHEMA = {
   personages: {
     // Vier subtypes: wát voor kaartje is dit. Verkoper en antagonist zijn geen
@@ -224,7 +232,10 @@ const SCHEMA = {
       // veranderen, zodat geen enkel bestaand kaartje zijn type kwijtraakt.
       // De eerste groep is meteen de markering uit vraag 2: dít zijn de types
       // die verderop een eigen tabblad of een dienstkoppeling krijgen.
-      { key: 'locType', label: 'Type', type: 'select', optionGroups: LOC_TYPE_GROEPEN },
+      { key: 'locType', label: 'Type', type: 'select', optionGroups: LOC_TYPE_GROEPEN,
+        // Zodra je gekozen hebt toont de lijst alleen nog "Herberg", en dan is
+        // niet meer te zien dat dit een type met extra's is.
+        meldingen: LOC_TYPE_MELDINGEN },
       // 'wijk' heet nu Gebied: het veld werd allang gebruikt voor een land, een
       // streek of een bovenliggend gebouw ("Hogwarts, tweede verdieping"). De
       // sleutel blijft `wijk` — daar hangt de sortering en de zoekindex aan.
@@ -761,6 +772,38 @@ window._antagUit = _antagUit;
 // Opties van een select: een platte lijst, of groepen (optionGroups). Een
 // waarde die in geen enkele groep meer voorkomt krijgt zijn eigen regel, zodat
 // opslaan hem niet stilletjes leegmaakt — daar zou een oud kaartje op stuklopen.
+// De melding onder een keuzelijst. `@Koppelingen` wordt een knopje dat naar die
+// sectie scrolt: erheen wijzen zonder de weg te tonen helpt niemand.
+function _veldMeldingHtml(meldingen, val) {
+  const tekst = meldingen[val];
+  if (!tekst) return '';
+  const metLink = tekst.replace(/@Koppelingen/g,
+    `<button type="button" class="veld-melding-link" onclick="window._naarKoppelingen()">Koppelingen</button>`);
+  return `${icon('sparkles')}<span>${metLink}</span>`;
+}
+
+window._naarKoppelingen = () => {
+  const sec = document.getElementById('koppel-sectie');
+  if (!sec) {
+    window.app?._tsToast?.(`${icon('x')} Koppelingen verschijnen zodra het kaartje bewaard is`);
+    return;
+  }
+  // scrollIntoView doet niets in dit venster (genest in #m-body); zelf de
+  // scrollbak zoeken en de afstand uitrekenen werkt wél.
+  let bak = sec.parentElement;
+  while (bak && !(/(auto|scroll)/.test(getComputedStyle(bak).overflowY) && bak.scrollHeight > bak.clientHeight)) {
+    bak = bak.parentElement;
+  }
+  if (bak) {
+    // Ronduit toekennen, niet scrollTo({behavior:'smooth'}): dat bleek in dit
+    // venster helemaal niets te doen (gemeten: scrollTop bleef 0). Het kort
+    // oplichten hieronder wijst de plek aan, dus de sprong mag hard zijn.
+    bak.scrollTop = bak.scrollTop + sec.getBoundingClientRect().top - bak.getBoundingClientRect().top - 40;
+  }
+  sec.classList.add('koppel-sectie--licht-op');
+  setTimeout(() => sec.classList.remove('koppel-sectie--licht-op'), 1400);
+};
+
 function _optieHtml(o, val, alGekozen) {
   const v = typeof o === 'object' ? o.value : o;
   const l = typeof o === 'object' ? o.label : o;
@@ -826,17 +869,26 @@ function _linkZoek(doel, naam) {
 // aanmaken als het er nog niet is. Dat tweede is de vraag uit punt 5: een naam
 // mag alvast genoemd worden zonder dat het kaartje er al is.
 function _linkStatus(inp) {
-  const host = document.getElementById(inp.dataset.linkStatus);
+  const host   = document.getElementById(inp.dataset.linkStatus);
+  const icoon  = document.getElementById(inp.dataset.linkIcoon);
   if (!host) return;
   const doel = inp.dataset.linkDoel.split(',');
   const hidden = document.getElementById(inp.dataset.linkId);
   const naam = (inp.value || '').trim();
   const match = _linkZoek(doel, naam);
   if (hidden) hidden.value = match?.id || '';
+  if (icoon) icoon.innerHTML = '';
   if (!naam) { host.innerHTML = ''; return; }
   if (match) {
-    host.innerHTML = `<button type="button" class="link-chip" title="Kaartje openen"
-      onclick="window._openDetail('${match.type}','${esc(match.id)}')">${getAutoIconSvg(match.type, {}) || ''}${esc(match.name)}</button>`;
+    // Een chip die de naam herhaalt die je net intikte voegt niets toe. Wat je
+    // wél wilt weten is dát hij gevonden is en wát voor kaartje het is; dat
+    // past als pictogram in het veld zelf, met de kaartjesnaam als tooltip.
+    host.innerHTML = '';
+    if (icoon) {
+      icoon.innerHTML = `<button type="button" class="link-veld-knop"
+        title="${esc(LINK_ENKELVOUD[match.type] || match.type)} — kaartje openen"
+        onclick="window._openDetail('${match.type}','${esc(match.id)}')">${getAutoIconSvg(match.type, {}) || icon('link')}</button>`;
+    }
     return;
   }
   // Twee knoppen náást elkaar lazen als twee losse handelingen; het is één
@@ -897,16 +949,64 @@ function _betrokkenenUit(data) {
 function _betrokkenRijHtml(r, i) {
   const inId = `betr-naam-${i}`;
   return `<div class="betrokken-rij">
-    <input id="${inId}" class="betr-naam" value="${esc(r.naam || '')}" list="betrokken-dl"
-      data-link-veld="1" data-link-doel="personages,organisaties" data-link-id="betr-id-${i}"
-      data-link-status="betr-st-${i}" oninput="window._linkVeldWijzig(this)"
-      placeholder="Naam van een personage of organisatie">
+    <span class="link-veld">
+      <input id="${inId}" class="betr-naam" value="${esc(r.naam || '')}" list="betrokken-dl"
+        data-link-veld="1" data-link-doel="personages,organisaties" data-link-id="betr-id-${i}"
+        data-link-status="betr-st-${i}" data-link-icoon="betr-ic-${i}" oninput="window._linkVeldWijzig(this)"
+        placeholder="Naam van een personage of organisatie">
+      <span class="link-veld-icoon" id="betr-ic-${i}"></span>
+    </span>
     <input class="betr-rol" value="${esc(r.rol || '')}" list="betrokken-rol-dl" placeholder="Rol">
     <input type="hidden" class="betr-id" id="betr-id-${i}" value="${esc(r.id || '')}">
     <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
       title="Regel verwijderen" onclick="window._betrokkenWeg(this)">${icon('trash')}</button>
     <div id="betr-st-${i}" class="link-status betrokken-status"></div>
   </div>`;
+}
+
+// ── "Hoort bij" vanaf de andere kant ────────────────────────────────────────
+// Op het kaartje van een personage of organisatie zeggen waar hij bij hoort.
+// De koppeling zelf blijft in de betrokkenen-lijst van de locatie staan; de
+// server schrijft hem daar (PUT .../hoortbij), zodat er één waarheid blijft.
+function _hoortRijHtml(r, i) {
+  const inId = `hb-naam-${i}`;
+  return `<div class="betrokken-rij hoort-rij">
+    <span class="link-veld">
+      <input id="${inId}" class="hb-naam" value="${esc(r.name || '')}" list="hoortbij-dl"
+        data-link-veld="1" data-link-doel="locaties,organisaties" data-link-id="hb-id-${i}"
+        data-link-status="hb-st-${i}" data-link-icoon="hb-ic-${i}" oninput="window._linkVeldWijzig(this)"
+        placeholder="Naam van een locatie of organisatie">
+      <span class="link-veld-icoon" id="hb-ic-${i}"></span>
+    </span>
+    <input class="hb-rol" value="${esc(r.rol || '')}" list="betrokken-rol-dl" placeholder="Rol">
+    <input type="hidden" class="hb-id" id="hb-id-${i}" value="${esc(r.id || '')}">
+    <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
+      title="Regel verwijderen" onclick="window._hoortWeg(this)">${icon('trash')}</button>
+    <div id="hb-st-${i}" class="link-status betrokken-status"></div>
+  </div>`;
+}
+
+window._hoortErbij = () => {
+  const host = document.getElementById('hoortbij-lijst');
+  if (!host) return;
+  const i = host.querySelectorAll('.hoort-rij').length + Date.now() % 1000;
+  host.insertAdjacentHTML('beforeend', _hoortRijHtml({}, i));
+  host.querySelector('.hoort-rij:last-child .hb-naam')?.focus();
+  _linkDatalistsVullen();
+};
+
+window._hoortWeg = (btn) => {
+  const rij = btn.closest('.hoort-rij');
+  const host = rij?.parentElement;
+  rij?.remove();
+  if (host && !host.querySelector('.hoort-rij')) window._hoortErbij();
+};
+
+function _hoortLees() {
+  return [...document.querySelectorAll('#hoortbij-lijst .hoort-rij')].map(rij => ({
+    id:  rij.querySelector('.hb-id')?.value || '',
+    rol: rij.querySelector('.hb-rol')?.value.trim() || '',
+  })).filter(r => r.id);
 }
 
 window._betrokkenErbij = () => {
@@ -2829,31 +2929,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (_metaPills.length) {
     infoHtml += `<div class="detail-meta-pills">${_metaPills.join('')}</div>`;
   }
-  // Wie hoort hier bij: gekoppelde namen zijn knoppen naar hun eigen kaartje,
-  // losse namen blijven gewoon leesbaar staan.
-  const _betrokkenen = ['locaties', 'organisaties'].includes(tab) ? _betrokkenenUit(e.data) : [];
-  if (_betrokkenen.length) {
-    infoHtml += `<div class="detail-betrokkenen">
-      ${_betrokkenen.map(r => {
-        const naam = r.id
-          ? `<button type="button" class="link-chip link-chip--sm" onclick="window._openKaartjeOpId('${esc(r.id)}')">${esc(r.naam)}</button>`
-          : `<span class="betrokken-naam">${esc(r.naam)}</span>`;
-        return `<span class="betrokken-chip">${r.rol ? `<span class="pill-lbl">${esc(r.rol)}</span>` : ''}${naam}</span>`;
-      }).join('')}
-    </div>`;
-  }
-  // En de andere kant op: waar dít kaartje bij hoort. Afgeleid door de server
-  // uit de betrokkenen-lijsten van locaties en organisaties, dus er staat nooit
-  // iets anders dan daar ingevuld is.
-  const _hoortBij = Array.isArray(e._hoortBij) ? e._hoortBij : [];
-  if (_hoortBij.length) {
-    infoHtml += `<div class="detail-betrokkenen detail-hoortbij">
-      <span class="hoortbij-kop">${icon('link')} Hoort bij</span>
-      ${_hoortBij.map(r => `<span class="betrokken-chip">${r.rol ? `<span class="pill-lbl">${esc(r.rol)}</span>` : ''}<button
-        type="button" class="link-chip link-chip--sm"
-        onclick="window._openDetail('${esc(r.type)}','${esc(r.id)}')">${esc(r.name)}</button></span>`).join('')}
-    </div>`;
-  }
   if (tab === 'locaties' && window._pinnedLocIds?.has(e.id)) {
     infoHtml += `<div class="detail-map-link-wrap">
       <button class="detail-map-link-btn" onclick="window._toonOpKaart('${esc(e.id)}')">
@@ -2865,6 +2940,44 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // Voorwerpbeschrijvingen krijgen hover-uitleg bij D&D-begrippen
     const _descHtml = mdToHtml(_descVal);
     infoHtml += `<div class="detail-desc mb-4">${tab === 'voorwerpen' ? (window.glossary?.annotate?.(_descHtml) ?? _descHtml) : _descHtml}</div>`;
+  }
+
+  // ── Betrekkingen, ná de beschrijving ──
+  // Eerst lezen wie of wat dit is, dan pas de administratie eromheen. Eén regel
+  // per rol: iemand kan eigenaar zijn van drie panden, en dan is "Eigenaar" op
+  // een hoop met drie namen erachter niet te lezen.
+  const _rolRegels = (kop, rijen) => `
+    <div class="detail-betrekking">
+      <div class="detail-label">${icon('link')} ${esc(kop)}</div>
+      <div class="detail-betrekking-rijen">
+        ${rijen.map(r => `<div class="detail-betrekking-rij">
+          <span class="detail-betrekking-rol">${esc(r.rol || '\u2014')}</span>
+          ${r.knop}
+        </div>`).join('')}
+      </div>
+    </div>`;
+
+  // Wie hoort hier bij: gekoppelde namen zijn knoppen naar hun eigen kaartje,
+  // losse namen blijven gewoon leesbaar staan.
+  const _betrokkenen = ['locaties', 'organisaties'].includes(tab) ? _betrokkenenUit(e.data) : [];
+  if (_betrokkenen.length) {
+    infoHtml += _rolRegels('Wie hoort hier bij', _betrokkenen.map(r => ({
+      rol: r.rol,
+      knop: r.id
+        ? `<button type="button" class="link-chip link-chip--sm" onclick="window._openKaartjeOpId('${esc(r.id)}')">${esc(r.naam)}</button>`
+        : `<span class="betrokken-naam">${esc(r.naam)}</span>`,
+    })));
+  }
+  // En de andere kant op: waar dít kaartje bij hoort. Afgeleid door de server
+  // uit de betrokkenen-lijsten van locaties en organisaties, dus er staat nooit
+  // iets anders dan daar ingevuld is.
+  const _hoortBij = Array.isArray(e._hoortBij) ? e._hoortBij : [];
+  if (_hoortBij.length) {
+    infoHtml += _rolRegels('Hoort bij', _hoortBij.map(r => ({
+      rol: r.rol,
+      knop: `<button type="button" class="link-chip link-chip--sm"
+        onclick="window._openDetail('${esc(r.type)}','${esc(r.id)}')">${getAutoIconSvg(r.type, {}) || ''}${esc(r.name)}</button>`,
+    })));
   }
 
   // "Verkoopt bij <locatie>" in het infopaneel, met doorklik.
@@ -4639,6 +4752,7 @@ window._openEditor = async (tab, editId) => {
             <option value="">—</option>
             ${_optiesHtml(field, val)}
           </select>
+          ${field.meldingen ? `<div class="veld-melding" id="veld-melding-${field.key}">${_veldMeldingHtml(field.meldingen, val)}</div>` : ''}
         </div>
       `;
     } else if (field.type === 'rollen') {
@@ -4701,21 +4815,20 @@ window._openEditor = async (tab, editId) => {
             <input type="hidden" name="data_adopteerbaar" id="pet-adopt-hidden" value="${_adopt2 ? 'true' : ''}">
             <div class="grid grid-cols-2 gap-2 mt-2">
               <div>
-                <label class="text-[10px] font-cinzel text-ink-dim uppercase">Adoptieprijs</label>
+                <label class="text-[10px] font-cinzel text-ink-dim uppercase">Prijs</label>
                 <input name="data_adoptiePrijs_tekst" value="${_prijsCl2 === null ? '' : `${Math.floor(_prijsCl2 / 100)},${String(_prijsCl2 % 100).padStart(2, '0')}`}"
                   placeholder="12,34" inputmode="decimal"
                   title="Eén bedrag met een komma: 12,34 is 12 ${esc(_mn2.fl)}, 3 ${esc(_mn2.kn)} en 4 ${esc(_mn2.cl)}. Munten mogen ook: 5 gp 2 sp, 2 pp."
                   class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
               </div>
             </div>
-            <p class="text-[10px] text-ink-dim mt-1">Verschijnt bij de dienst die dieren aanbiedt.</p>
             <div class="mt-2">
-              <label class="text-[10px] font-cinzel text-ink-dim uppercase">Baasje</label>
+              <label class="text-[10px] font-cinzel text-ink-dim uppercase">Eigenaar</label>
               <select id="pet-baasje" onchange="window._petBaasjeZet('${esc(editId || '')}', this.value)"
+                title="Het dier loopt mee met de party van dit personage: het staat op het partytabblad, is te vullen in een gevecht, en zijn tier volgt diens level."
                 class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
                 <option value="">— nog niemand —</option>
               </select>
-              <p class="text-[10px] text-ink-dim mt-0.5">Het dier loopt dan mee met de party van dit personage: het staat op het partytabblad, is te vullen in een gevecht, en het tier volgt zijn level. Adopteren via de dienst doet hetzelfde.</p>
             </div>
           </div>
         `;
@@ -4772,11 +4885,14 @@ window._openEditor = async (tab, editId) => {
       body += `
         <div>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="${_inId}">${esc(field.label)}</label>
-          <input id="${_inId}" name="data_${field.key}" value="${esc(val)}" list="${_dlId}"
-            data-link-veld="1" data-link-doel="${field.doel.join(',')}" data-link-id="link-hid-${field.key}"
-            data-link-status="link-st-${field.key}"
-            oninput="window._linkVeldWijzig(this)" placeholder="${esc(field.hint || 'Typ of kies\u2026')}"
-            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+          <span class="link-veld">
+            <input id="${_inId}" name="data_${field.key}" value="${esc(val)}" list="${_dlId}"
+              data-link-veld="1" data-link-doel="${field.doel.join(',')}" data-link-id="link-hid-${field.key}"
+              data-link-status="link-st-${field.key}" data-link-icoon="link-ic-${field.key}"
+              oninput="window._linkVeldWijzig(this)" placeholder="${esc(field.hint || 'Typ of kies\u2026')}"
+              class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+            <span class="link-veld-icoon" id="link-ic-${field.key}"></span>
+          </span>
           <datalist id="${_dlId}" data-link-doel="${field.doel.join(',')}"></datalist>
           <input type="hidden" id="link-hid-${field.key}" name="data_${field.key}Id" value="${esc(e?.data?.[field.key + 'Id'] || '')}">
           <div id="link-st-${field.key}" class="link-status"></div>
@@ -4868,6 +4984,25 @@ window._openEditor = async (tab, editId) => {
   // houdt dat per flavourregel bij) en de medestander-knop staat nu in de DM-rij
   // van het detailvenster, bij "markeer als deceased" — beide zijn handelingen,
   // geen velden van het kaartje.
+
+  // ── Hoort bij ──
+  // De andere kant van "Wie hoort hier bij?": vanaf een personage of
+  // organisatie aangeven waar hij bij hoort. Alleen bij een bestaand kaartje,
+  // want de server schrijft in de dóélkaartjes en heeft dus een id nodig.
+  if (['personages', 'organisaties'].includes(tab) && isDM() && e?.id) {
+    const _hb = Array.isArray(e._hoortBij) ? e._hoortBij : [];
+    const _hbRijen = _hb.length ? _hb : [{}];
+    body += `
+      <div class="hoortbij-sectie">
+        <div class="cs-sectiekop">Hoort bij</div>
+        <div id="hoortbij-lijst">${_hbRijen.map((r, i) => _hoortRijHtml(r, i)).join('')}</div>
+        <datalist id="hoortbij-dl" data-link-doel="locaties,organisaties"></datalist>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
+          onclick="window._hoortErbij()">${icon('plus')} Ergens bij zetten</button>
+        <p class="veld-uitleg">Komt terecht in <em>Wie hoort hier bij?</em> van dat kaartje — het staat maar op één plek.</p>
+      </div>
+    `;
+  }
 
   // ── Koppelingen ──
   // Wat dit kaartje elders is: de herberg van de campagne, de tempel van een
@@ -5395,6 +5530,8 @@ window._openEditor = async (tab, editId) => {
       if (wcSec) wcSec.style.display = isWinkel ? '' : 'none';
       _winkelTabTonen(isWinkel);
       _koppelLocTypeToon(val);
+      const melding = document.getElementById('veld-melding-locType');
+      if (melding) melding.innerHTML = _veldMeldingHtml(LOC_TYPE_MELDINGEN, val);
     };
 
     // Inladen-paneel toggle
@@ -5622,6 +5759,10 @@ window._openEditor = async (tab, editId) => {
       data.eigenaar   = baas ? baas.naam : (rijen.length ? '' : (data.eigenaar || ''));
       data.eigenaarId = baas ? (baas.id || '') : '';
     }
+    // "Hoort bij" schrijft in ándere kaartjes en gaat daarom via een eigen
+    // route, ná het opslaan hieronder (de naam kan net gewijzigd zijn).
+    const _hoortRijen = document.getElementById('hoortbij-lijst') ? _hoortLees() : null;
+
     // Voorraad serialiseren voor verkopers & winkels
     if (tab === 'personages' || tab === 'locaties') {
       const validItems = _voorraadItems.filter(i => i.naam || i.prijs);
@@ -5723,6 +5864,13 @@ window._openEditor = async (tab, editId) => {
       } else {
         const gemaakt = await api.createEntity(tab, payload);
         _nieuwId = gemaakt?.id || null;
+      }
+      // "Hoort bij": schrijft in de betrokkenen-lijst van de dóélkaartjes, dus
+      // pas nu — de naam die daar komt te staan is de zojuist bewaarde naam.
+      if (_hoortRijen && _nieuwId) {
+        await api.zetHoortBij(tab, _nieuwId, _hoortRijen).catch(err => {
+          alert('"Hoort bij" bewaren mislukt: ' + (err.message || err));
+        });
       }
       // Filmpje dat bij een nieuw kaartje gekozen is: nu pas uploaden, want nu
       // pas is er een id om het naar te vernoemen.

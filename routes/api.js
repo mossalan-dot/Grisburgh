@@ -3566,6 +3566,52 @@ function _koppelingenVan(type, id) {
   };
 }
 
+// De betrokkenen-lijst vanaf de andere kant bewerken: op het kaartje van een
+// personage zeggen "ik ben eigenaar van De Gouden Gans". De koppeling blijft
+// staan waar hij hoort — in `betrokkenen` van die locatie — dus hier schrijven
+// we in de dóélkaartjes en niet in een tweede lijst. Zo blijft er één waarheid.
+router.put('/entities/:type/:id/hoortbij', requireDM, (req, res) => {
+  const { type, id } = req.params;
+  if (!ENTITY_TYPES.includes(type)) return res.status(400).json({ error: 'Ongeldig type' });
+  const entities = storage.readJSON('entities.json');
+  const zelf = (entities[type] || []).find(e => e.id === id);
+  if (!zelf) return res.status(404).json({ error: 'Niet gevonden' });
+
+  const wil = new Map();
+  for (const r of (Array.isArray(req.body.rijen) ? req.body.rijen : [])) {
+    if (r?.id && r.id !== id) wil.set(String(r.id), String(r.rol || '').trim());
+  }
+
+  const geraakt = [];
+  for (const t of ['locaties', 'organisaties']) {
+    for (const doel of (entities[t] || [])) {
+      const rijen   = _betrokkenenLijst(doel.data);
+      const had     = rijen.some(r => r.id === id);
+      const wilHier = wil.has(doel.id);
+      if (!had && !wilHier) continue;                    // niets te doen
+      const nieuw = rijen.filter(r => r.id !== id);
+      if (wilHier) nieuw.push({ naam: zelf.name, rol: wil.get(doel.id), id });
+      // Zelfde regel als in de editor: `eigenaar` blijft als losse tekst
+      // meelopen, want de campagneboek-export en de zoekindex lezen dat veld.
+      const baas = nieuw.find(r => /eigenaar/i.test(r.rol || ''));
+      doel.data = {
+        ...(doel.data || {}),
+        betrokkenen: nieuw.length ? JSON.stringify(nieuw) : '',
+        eigenaar:    baas ? baas.naam : (nieuw.length ? '' : (doel.data?.eigenaar || '')),
+        eigenaarId:  baas ? (baas.id || '') : '',
+      };
+      geraakt.push({ type: t, id: doel.id });
+    }
+  }
+
+  if (geraakt.length) {
+    storage.writeJSON('entities.json', entities);
+    const io = req.app.get('io');
+    for (const g of geraakt) io.to(req.session?.campaignId || 'main').emit('entity:updated', g);
+  }
+  res.json({ ok: true, aangepast: geraakt.length, hoortBij: _betrokkenBij(id) });
+});
+
 router.get('/entities/:type/:id/koppelingen', requireDM, (req, res) => {
   res.json(_koppelingenVan(req.params.type, req.params.id));
 });

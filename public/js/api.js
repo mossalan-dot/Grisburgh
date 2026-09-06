@@ -54,6 +54,7 @@ export const api = {
   getEntity: (type, id) => request(`/entities/${type}/${id}`),
   createEntity: (type, data) => request(`/entities/${type}`, { method: 'POST', body: JSON.stringify(data) }),
   updateEntity: (type, id, data) => request(`/entities/${type}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  zetHoortBij: (type, id, rijen)   => request(`/entities/${type}/${id}/hoortbij`, { method: 'PUT', body: JSON.stringify({ rijen }) }),
   getKoppelingen: (type, id)       => request(`/entities/${type}/${id}/koppelingen`),
   zetKoppelingen: (type, id, body) => request(`/entities/${type}/${id}/koppelingen`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteEntity: (type, id) => request(`/entities/${type}/${id}`, { method: 'DELETE' }),
