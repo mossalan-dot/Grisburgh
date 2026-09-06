@@ -1078,6 +1078,7 @@ window._betrokkenErbij = () => {
   host.insertAdjacentHTML('beforeend', _betrokkenRijHtml({}, i, host.dataset.chef === '1'));
   host.querySelector('.betrokken-rij:last-child .betr-naam')?.focus();
   _linkDatalistsVullen();
+  window._orgVoorbeeldTeken?.();
 };
 
 window._betrokkenWeg = (btn) => {
@@ -1085,6 +1086,16 @@ window._betrokkenWeg = (btn) => {
   const host = rij?.parentElement;
   rij?.remove();
   if (host && !host.querySelector('.betrokken-rij')) window._betrokkenErbij();
+  window._orgVoorbeeldTeken?.();
+};
+
+// Tekent het organogram opnieuw uit wat er nú in de velden staat.
+let _orgVoorbeeldBeeld = null;
+window._orgVoorbeeldTeken = () => {
+  const host = document.getElementById('org-voorbeeld');
+  if (!host) return;
+  const rijen = _betrokkenenLees();
+  host.innerHTML = rijen.length ? _organogramHtml(rijen, _orgVoorbeeldBeeld) : '';
 };
 
 function _betrokkenenLees() {
@@ -1155,9 +1166,8 @@ function _pinTeken() {
          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger" onclick="window._pinWeg()">${icon('trash')} Van de kaart halen</button>`
       : '';
   }
-  if (uitleg) uitleg.textContent = pin
-    ? `Staat op ${kaart.label}. Klik ergens anders om hem te verplaatsen.`
-    : 'Klik in de kaart om dit kaartje een plek te geven.';
+  // Alleen waar hij staat; hoe je hem zet staat in de uitleg bij het tabblad.
+  if (uitleg) uitleg.textContent = pin ? `Staat op ${kaart.label}.` : '';
 }
 
 window._pinKaartWissel = () => _pinTeken();
@@ -5430,6 +5440,10 @@ window._openEditor = async (tab, editId) => {
           </datalist>
           <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
             onclick="window._betrokkenErbij()">${icon('plus')} Verbinding toevoegen</button>
+          ${tab !== 'organisaties' ? '' : `
+          <!-- Meteen zien wat je bouwt: een tikfout in "Valt onder" is anders
+               pas te merken als je het kaartje weer opent. -->
+          <div id="org-voorbeeld" class="org-voorbeeld"></div>`}
         </div>
       `;
       if (tab === 'organisaties') body += `<!--P:info-->`;
@@ -5567,12 +5581,10 @@ window._openEditor = async (tab, editId) => {
           <div class="koppel-rij" id="koppel-tempel" style="display:none">
             <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-god">God van deze tempel</label>
             <select id="koppel-god" class="koppel-select" onchange="window._koppelZet({ godNaam: this.value })"></select>
-            <div class="veld-uitleg">De Tempel-dienst gebruikt dit kaartje als achtergrond bij die god.</div>
           </div>` : (!_bestaat ? '' : `
           <div class="koppel-rij">
             <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-factie">Factie</label>
             <select id="koppel-factie" class="koppel-select" onchange="window._koppelZet({ factieId: this.value })"></select>
-            <div class="veld-uitleg">Koppelt dit kaartje aan een factie uit het Facties-paneel.</div>
           </div>`)}
         </div>
       </div>
@@ -5603,7 +5615,6 @@ window._openEditor = async (tab, editId) => {
           </div>
           <div class="dm-knoprij mt-1" id="koppel-mapknoppen"></div>
           <p class="veld-uitleg" id="koppel-mapuitleg"></p>
-          ${_bestaat ? '' : `<p class="veld-uitleg">${icon('link')} De koppelingen aan een dienst verschijnen zodra dit kaartje bewaard is.</p>`}
         </div>
         <div class="koppel-rij koppel-rij--gescheiden">
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-dungeon">Dungeonkaart</label>
@@ -6231,6 +6242,15 @@ window._openEditor = async (tab, editId) => {
   // geopende editor; de datalists vullen zichzelf zodra ze binnen zijn.
   if (document.querySelector('[data-link-veld]')) _linkLaden();
 
+  // Live organogram onder de ledenlijst: één handler op de lijst in plaats van
+  // één per veld, want er komen rijen bij en af.
+  const _orgLijst = document.getElementById('betrokkenen-lijst');
+  if (document.getElementById('org-voorbeeld') && _orgLijst) {
+    _orgLijst.addEventListener('input', () => window._orgVoorbeeldTeken());
+    _beeldIndexLaden().then(m => { _orgVoorbeeldBeeld = m; window._orgVoorbeeldTeken(); })
+      .catch(() => window._orgVoorbeeldTeken());
+  }
+
   // ── Koppelingen vullen ──
   if (document.getElementById('koppel-sectie') || document.getElementById('koppel-mapid')) {
     _koppelCtx = { tab, id: e?.id || '', dungeons: [], kaarten: [], pins: [] };
@@ -6248,11 +6268,10 @@ window._openEditor = async (tab, editId) => {
         const uitleg = document.getElementById('koppel-herberg-uitleg');
         // De dienst heeft een eigen naam (meta.herberg.naam); die zegt nog niet
         // aan wélk kaartje hij hangt. Alleen dat laatste is hier interessant.
+        // Alleen de stand; wat het vinkje dóét staat in de uitleg bij het tabblad.
         if (uitleg) uitleg.textContent = k.herberg
           ? 'De herberg-dienst gebruikt dit kaartje.'
-          : (k.herbergNaam
-              ? `De herberg-dienst heet nu \u201c${k.herbergNaam}\u201d. Aanvinken hangt hem aan dit kaartje.`
-              : 'Nog aan geen enkel kaartje gekoppeld.');
+          : (k.herbergNaam ? `De herberg-dienst heet nu \u201c${k.herbergNaam}\u201d.` : '');
       }
       const god = document.getElementById('koppel-god');
       if (god) {

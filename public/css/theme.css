@@ -23236,6 +23236,15 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
    library, en hij past zich vanzelf aan de diepte aan. Breed schema? Dan
    scrollt het doek horizontaal in plaats van de modal. */
 .org-blok { margin: 0 0 14px; }
+/* Het voorbeeld in de editor: hetzelfde schema, maar duidelijk een voorbeeld —
+   ingekaderd en zonder de kop die in het detailvenster wél nodig is. */
+.org-voorbeeld:empty { display: none; }
+.org-voorbeeld {
+  margin-top: 14px; padding: 4px 8px 8px;
+  border: 1px dashed rgba(196,168,122,0.55); border-radius: 6px;
+  background: rgba(255,255,255,0.22);
+}
+.org-voorbeeld .detail-label { font-size: 0.68rem; }
 .org-doek { overflow-x: auto; padding: 10px 2px 4px; }
 .org-boom, .org-kinderen { display: flex; justify-content: center; list-style: none; margin: 0; padding: 0; }
 .org-boom { padding-top: 4px; }
