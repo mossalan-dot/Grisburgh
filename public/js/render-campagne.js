@@ -1,4 +1,4 @@
-import { api } from './api.js?v=273';
+import { api } from './api.js?v=274';
 import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);
@@ -1033,8 +1033,145 @@ function _betrokkenenLees() {
   })).filter(r => r.naam);
 }
 
-// ── Koppelingen: herberg, tempel-god, factie, dungeon ───────────────────────
-let _koppelCtx = { tab: '', id: '', dungeons: [] };
+// ── Koppelingen: herberg, tempel-god, factie, dungeon, kaartspeld ───────────
+let _koppelCtx = { tab: '', id: '', dungeons: [], kaarten: [], pins: [] };
+// Een speld die bij een nog niet bewaard kaartje hoort: pas plaatsen zodra er
+// een id is, net als het filmpje.
+let _pinWacht = null;
+
+// De beeldbron van een kaart. Dezelfde regel als in render-kaart.js: een
+// ingebouwde kaart heeft `src`, een geüploade een imageId (of het kaart-id).
+function _kaartSrc(k) {
+  return k?.src || api.fileUrl(k?.imageId || k?.id);
+}
+
+function _pinHuidig() {
+  const mapId = document.getElementById('koppel-mapid')?.value || '';
+  return _koppelCtx.pins.find(p => p.mapId === mapId) || null;
+}
+
+// Tekent de uitsnede, de speld en de knoppen bij de gekozen kaart.
+function _pinTeken() {
+  const doek   = document.getElementById('koppel-mapdoek');
+  const speld  = document.getElementById('koppel-mappin');
+  const knoppen = document.getElementById('koppel-mapknoppen');
+  const uitleg = document.getElementById('koppel-mapuitleg');
+  const sel    = document.getElementById('koppel-mapid');
+  if (!doek || !sel) return;
+  const kaart = _koppelCtx.kaarten.find(k => k.id === sel.value);
+  if (!kaart) {
+    doek.style.display = 'none';
+    if (knoppen) knoppen.innerHTML = '';
+    if (uitleg) uitleg.textContent = _koppelCtx.kaarten.length
+      ? 'Kies een kaart om dit kaartje een plek te geven.'
+      : 'Er zijn nog geen kaarten in deze campagne.';
+    return;
+  }
+  doek.style.display = '';
+  const img = document.getElementById('koppel-mapimg');
+  const bron = _kaartSrc(kaart);
+  if (img && img.getAttribute('src') !== bron) img.src = bron;
+  const pin = _pinHuidig() || (_pinWacht && _pinWacht.mapId === kaart.id ? _pinWacht : null);
+  if (pin) {
+    speld.style.display = '';
+    speld.style.left = pin.x + '%';
+    speld.style.top  = pin.y + '%';
+  } else {
+    speld.style.display = 'none';
+  }
+  if (knoppen) {
+    knoppen.innerHTML = pin
+      ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._toonOpKaart('${esc(_koppelCtx.id)}')">${icon('map')} Op de grote kaart</button>
+         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger" onclick="window._pinWeg()">${icon('trash')} Van de kaart halen</button>`
+      : '';
+  }
+  if (uitleg) uitleg.textContent = pin
+    ? `Staat op ${kaart.label}. Klik ergens anders om hem te verplaatsen.`
+    : 'Klik in de kaart om dit kaartje een plek te geven.';
+}
+
+window._pinKaartWissel = () => _pinTeken();
+
+// De uitsnede in het detailvenster. `background-position: X% Y%` legt het punt
+// op X%/Y% van de áfbeelding op X%/Y% van het kader; de speld staat op dezelfde
+// percentages en valt er dus precies op — ongeacht hoever je inzoomt.
+// Kaarten en spelden komen via de gewone (ook voor spelers toegankelijke)
+// routes; de DM-koppelingenroute mag hier niet, anders zag een speler niets.
+// Kort gecachet: bij het doorklikken van kaartje naar kaartje is dit anders
+// twee verzoeken per opening.
+let _kaartCache = null;
+async function _kaartGegevens() {
+  if (_kaartCache && Date.now() - _kaartCache.tijd < 30000) return _kaartCache;
+  const maps = await api.listMaps().catch(() => []);
+  const pins = {};
+  await Promise.all((maps || []).map(m =>
+    api.mapPins(m.id).then(p => { pins[m.id] = p || []; }).catch(() => { pins[m.id] = []; })));
+  _kaartCache = { tijd: Date.now(), maps: maps || [], pins };
+  return _kaartCache;
+}
+window._kaartCacheLeeg = () => { _kaartCache = null; };
+
+async function _vulKaartUitsnede(tab, e) {
+  const blok = document.getElementById(`detail-kaartblok-${e?.id}`);
+  const doek = document.getElementById('detail-kaartuitsnede');
+  if (!blok || !doek || tab !== 'locaties' || !e?.id) return;
+  const { maps, pins } = await _kaartGegevens();
+  let kaart = null, pin = null;
+  for (const m of maps) {
+    const p = (pins[m.id] || []).find(x => x.locId === e.id && !x.pending);
+    if (p) { kaart = m; pin = p; break; }
+  }
+  if (!pin || !kaart) { blok.remove(); return; }
+  doek.style.backgroundImage    = `url("${_kaartSrc(kaart)}")`;
+  doek.style.backgroundPosition = `${pin.x}% ${pin.y}%`;
+  const speld = doek.querySelector('.kaartuitsnede-speld');
+  if (speld) { speld.style.left = pin.x + '%'; speld.style.top = pin.y + '%'; }
+  doek.title = kaart.label || '';
+  blok.classList.remove('hidden');
+}
+
+window._pinPlaats = async (ev) => {
+  const doek = document.getElementById('koppel-mapdoek');
+  const sel  = document.getElementById('koppel-mapid');
+  if (!doek || !sel?.value) return;
+  // Meten op de áfbeelding, niet op het doek: die kan lucht boven of onder
+  // hebben en dan zou de speld verschoven op de grote kaart landen.
+  const r = (document.getElementById('koppel-mapimg') || doek).getBoundingClientRect();
+  // In procenten, want de kaart wordt overal op een andere breedte getoond.
+  const x = Math.min(100, Math.max(0, ((ev.clientX - r.left) / r.width)  * 100));
+  const y = Math.min(100, Math.max(0, ((ev.clientY - r.top)  / r.height) * 100));
+  if (!_koppelCtx.id) {
+    // Nog geen kaartje: onthouden en plaatsen zodra het bewaard is.
+    _pinWacht = { mapId: sel.value, x, y };
+    _pinTeken();
+    return;
+  }
+  try {
+    const oud = _pinHuidig();
+    if (oud) await api.deleteMapPin(oud.id);
+    const nieuw = await api.createMapPin({ locId: _koppelCtx.id, mapId: sel.value, x, y });
+    _koppelCtx.pins = _koppelCtx.pins.filter(p => p.mapId !== sel.value).concat([
+      { id: nieuw.id, mapId: sel.value, x, y },
+    ]);
+    _pinTeken();
+    window.app?._tsToast?.(`${icon('map-pin')} Speld geplaatst`);
+  } catch (err) {
+    alert('Speld plaatsen mislukt: ' + (err.message || err));
+  }
+};
+
+window._pinWeg = async () => {
+  const sel = document.getElementById('koppel-mapid');
+  const pin = _pinHuidig();
+  if (!pin) { _pinWacht = null; _pinTeken(); return; }
+  try {
+    await api.deleteMapPin(pin.id);
+    _koppelCtx.pins = _koppelCtx.pins.filter(p => p.id !== pin.id);
+    _pinTeken();
+  } catch (err) {
+    alert('Speld weghalen mislukt: ' + (err.message || err));
+  }
+};
 
 // De herberg- en tempelkoppeling horen alleen bij díé types; anders staat er een
 // keuzelijst die nergens over gaat.
@@ -2929,13 +3066,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (_metaPills.length) {
     infoHtml += `<div class="detail-meta-pills">${_metaPills.join('')}</div>`;
   }
-  if (tab === 'locaties' && window._pinnedLocIds?.has(e.id)) {
-    infoHtml += `<div class="detail-map-link-wrap">
-      <button class="detail-map-link-btn" onclick="window._toonOpKaart('${esc(e.id)}')">
-        ${icon('map-pin')} Toon op kaart
-      </button>
-    </div>`;
-  }
   if (_descVal) {
     // Voorwerpbeschrijvingen krijgen hover-uitleg bij D&D-begrippen
     const _descHtml = mdToHtml(_descVal);
@@ -2971,29 +3101,38 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // En de andere kant op: waar dít kaartje bij hoort. Afgeleid door de server
   // uit de betrokkenen-lijsten van locaties en organisaties, dus er staat nooit
   // iets anders dan daar ingevuld is.
-  const _hoortBij = Array.isArray(e._hoortBij) ? e._hoortBij : [];
+  const _hoortBij = [...(Array.isArray(e._hoortBij) ? e._hoortBij : [])];
+  // "Verkoopt bij" is óók een betrekking — rol Verkoper — en stond in een eigen
+  // blok met een eigen vorm. Eén lijst leest beter, en de doorklik blijft naar
+  // het voorraadtabblad gaan; dáár wil je heen als je op de verkoper klikt.
+  const _winkelLocId = tab === 'personages' ? (e.data?.winkelLocatieId || '') : '';
+  if (_winkelLocId && !_hoortBij.some(r => r.id === _winkelLocId)) {
+    const _locNaam = Object.entries(window._entityNameIndex || {})
+      .find(([, v]) => v.id === _winkelLocId && v.type === 'locaties')?.[0];
+    if (_locNaam) _hoortBij.push({ id: _winkelLocId, name: _locNaam, type: 'locaties', rol: 'Verkoper', tab: 'voorraad' });
+  }
   if (_hoortBij.length) {
     infoHtml += _rolRegels('Hoort bij', _hoortBij.map(r => ({
       rol: r.rol,
       knop: `<button type="button" class="link-chip link-chip--sm"
-        onclick="window._openDetail('${esc(r.type)}','${esc(r.id)}')">${getAutoIconSvg(r.type, {}) || ''}${esc(r.name)}</button>`,
+        onclick="window._openDetail('${esc(r.type)}','${esc(r.id)}'${r.tab ? `,false,'${esc(r.tab)}'` : ''})">${getAutoIconSvg(r.type, {}) || ''}${esc(r.name)}</button>`,
     })));
   }
-
-  // "Verkoopt bij <locatie>" in het infopaneel, met doorklik.
-  const _winkelLocId = tab === 'personages' ? (e.data?.winkelLocatieId || '') : '';
-  if (_winkelLocId) {
-    const _locNaam = Object.entries(window._entityNameIndex || {})
-      .find(([, v]) => v.id === _winkelLocId && v.type === 'locaties')?.[0];
-    if (_locNaam) {
-      infoHtml += `
-        <div class="detail-winkel-link mb-4">
-          ${icon('package')}
-          <span>Verkoopt bij</span>
-          <button type="button" onclick="window._openDetail('locaties','${esc(_winkelLocId)}',false,'voorraad')">${esc(_locNaam)}</button>
-        </div>`;
-    }
+  // Waar ligt dit? Een uitsnede van de kaart rond de speld zegt dat in één
+  // oogopslag; de knop eronder brengt je naar de hele kaart. De uitsnede vult
+  // zichzelf ná het openen, want de kaartgegevens komen per fetch binnen.
+  if (tab === 'locaties') {
+    infoHtml += `<div class="detail-kaartblok hidden" id="detail-kaartblok-${esc(e.id)}">
+      <div class="detail-label">${icon('map-pin')} Op de kaart</div>
+      <div class="detail-kaartuitsnede" id="detail-kaartuitsnede"><div class="kaartuitsnede-speld">${icon('map-pin')}</div></div>
+      <div class="detail-map-link-wrap">
+        <button class="detail-map-link-btn" onclick="window._toonOpKaart('${esc(e.id)}')">
+          ${icon('map')} Toon op de hele kaart
+        </button>
+      </div>
+    </div>`;
   }
+
 
   // Flavour scroll (parchment scroll — zichtbaar voor spelers als uitgesproken, altijd voor DM)
   const flavourRegels = _tekstLijstUit(e.data, 'flavours', 'flavour');
@@ -3515,6 +3654,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (_mSubEl) { _mSubEl.innerHTML = _subtitleHtml; _mSubEl.classList.remove('hidden'); }
   _updateBackButton();
   _vulSpellChips();   // van index naar nette naam, zodra de bibliotheek er is
+  _vulKaartUitsnede(tab, e);   // "waar ligt dit" — kaartbeeld komt per fetch
 
   // Huisdier: geschaalde statblock ophalen + renderen (tier o.b.v. level van het baasje)
   if (tab === 'personages' && e.subtype === 'dier') {
@@ -4822,13 +4962,13 @@ window._openEditor = async (tab, editId) => {
                   class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
               </div>
             </div>
+            <!-- Eén eigenaar per party: hetzelfde dier kan in twee party's
+                 meelopen, elk met een eigen baasje. Wisselen van groep om dat in
+                 te stellen is een omweg die niemand onthoudt. -->
             <div class="mt-2">
               <label class="text-[10px] font-cinzel text-ink-dim uppercase">Eigenaar</label>
-              <select id="pet-baasje" onchange="window._petBaasjeZet('${esc(editId || '')}', this.value)"
-                title="Het dier loopt mee met de party van dit personage: het staat op het partytabblad, is te vullen in een gevecht, en zijn tier volgt diens level."
-                class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-                <option value="">— nog niemand —</option>
-              </select>
+              <div id="pet-baasjes"
+                title="Het dier loopt mee met de party van dit personage: het staat op het partytabblad, is te vullen in een gevecht, en zijn tier volgt diens level."></div>
             </div>
           </div>
         `;
@@ -5011,14 +5151,19 @@ window._openEditor = async (tab, editId) => {
   // meteen bij het wisselen bewaard; de dungeon hoort bij het kaartje zelf en
   // gaat mee met Opslaan. Alleen bij een bestaand kaartje: zonder id valt er
   // niets te koppelen.
-  if (['locaties', 'organisaties'].includes(tab) && isDM() && e?.id) {
-    const _isLoc = tab === 'locaties';
+  // Een nieuw kaartje mag alvast een plek op de kaart krijgen — dat hoort bij
+  // het aanmaken. De koppelingen die in meta.json schrijven (herberg, god,
+  // factie) hebben een id nodig en verschijnen pas na het bewaren.
+  if (['locaties', 'organisaties'].includes(tab) && isDM() && (e?.id || tab === 'locaties')) {
+    const _isLoc  = tab === 'locaties';
+    const _bestaat = !!e?.id;
     body += `
       <div class="koppel-sectie" id="koppel-sectie">
         <div class="cs-sectiekop">Koppelingen</div>
         <div id="koppel-laden" class="veld-uitleg">Laden\u2026</div>
         <div id="koppel-inhoud" class="hidden">
-          ${_isLoc ? `
+          ${!_bestaat ? `<p class="veld-uitleg">${icon('map-pin')} Zet hier vast de plek op de kaart; de koppelingen aan een dienst of dungeon verschijnen zodra het kaartje bewaard is.</p>` : ''}
+          ${(_isLoc && _bestaat) ? `
           <div class="koppel-rij" id="koppel-herberg" style="display:none">
             <label class="koppel-vink">
               <input type="checkbox" id="koppel-herberg-vink" onchange="window._koppelZet({ herberg: this.checked })">
@@ -5030,13 +5175,13 @@ window._openEditor = async (tab, editId) => {
             <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-god">God van deze tempel</label>
             <select id="koppel-god" class="koppel-select" onchange="window._koppelZet({ godNaam: this.value })"></select>
             <div class="veld-uitleg">De Tempel-dienst gebruikt dit kaartje als achtergrond bij die god.</div>
-          </div>` : `
+          </div>` : (!_bestaat ? '' : `
           <div class="koppel-rij">
             <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-factie">Factie</label>
             <select id="koppel-factie" class="koppel-select" onchange="window._koppelZet({ factieId: this.value })"></select>
             <div class="veld-uitleg">Koppelt dit kaartje aan een factie uit het Facties-paneel.</div>
-          </div>`}
-          ${_isLoc ? `
+          </div>`)}
+          ${(_isLoc && _bestaat) ? `
           <div class="koppel-rij">
             <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-dungeon">Dungeonkaart</label>
             <div class="koppel-duo">
@@ -5047,7 +5192,21 @@ window._openEditor = async (tab, editId) => {
             <input type="hidden" name="data_roomId"    id="koppel-room-id"    value="${esc(e?.data?.roomId || '')}">
             <div class="veld-uitleg">Een kamer kiezen mag, maar hoeft niet — de hele kaart volstaat.</div>
           </div>
-          <div class="koppel-rij" id="koppel-kaart"></div>` : ''}
+          <div class="koppel-rij" id="koppel-kaart">
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-mapid">Op de kaart</label>
+            <select id="koppel-mapid" class="koppel-select" onchange="window._pinKaartWissel()"></select>
+            <!-- Coördinaten intikken is onwerkbaar; aanwijzen is de handeling.
+                 Klikken in de kaart zet de speld, nog eens klikken verplaatst hem. -->
+            <!-- De hele kaart in beeld, niet bijgesneden: de speld staat op
+                 procentcoördinaten van de áfbeelding, en met een uitsnede zou
+                 een klik op iets anders uitkomen dan op de grote kaart. -->
+            <div id="koppel-mapdoek" class="pin-doek" style="display:none" onclick="window._pinPlaats(event)">
+              <img id="koppel-mapimg" class="pin-doek-img" alt="">
+              <div id="koppel-mappin" class="pin-doek-speld" style="display:none">${icon('map-pin')}</div>
+            </div>
+            <div class="dm-knoprij mt-1" id="koppel-mapknoppen"></div>
+            <p class="veld-uitleg" id="koppel-mapuitleg"></p>
+          </div>` : ''}
         </div>
       </div>
     `;
@@ -5614,29 +5773,33 @@ window._openEditor = async (tab, editId) => {
   // de metgezellen van de party.
   if (tab === 'personages' && isDM() && e?.subtype === 'dier' && editId) {
     (async () => {
-      const sel = document.getElementById('pet-baasje');
-      if (!sel) return;
-      let spelers = [], huidige = '';
-      try {
-        const lijst = await api.listEntities('personages');
-        spelers = lijst.filter(p => p.subtype === 'speler');
-      } catch { /* dan een lege lijst */ }
-      try {
-        const st = await api.getPetBaasje(editId);
-        huidige = st?.baasje || '';
-      } catch { /* geen baasje */ }
-      sel.innerHTML = `<option value="">— nog niemand —</option>` +
-        spelers.map(p => `<option value="${esc(p.id)}"${p.id === huidige ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
+      const host = document.getElementById('pet-baasjes');
+      if (!host) return;
+      let groepen = [];
+      try { groepen = (await api.getPetBaasje(editId))?.groepen || []; } catch { /* geen gegevens */ }
+      // Party's zonder spelerspersonages laten we weg: daar valt niets te kiezen.
+      const bruikbaar = groepen.filter(g => g.spelers.length);
+      host.innerHTML = bruikbaar.length
+        ? bruikbaar.map(g => `
+            <div class="pet-baasje-rij">
+              <span class="pet-baasje-groep">${esc(g.naam)}</span>
+              <select onchange="window._petBaasjeZet('${esc(editId)}', '${esc(g.id)}', this.value)"
+                class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                <option value="">— nog niemand —</option>
+                ${g.spelers.map(p => `<option value="${esc(p.id)}"${p.id === g.baasje ? ' selected' : ''}>${esc(p.naam)}</option>`).join('')}
+              </select>
+            </div>`).join('')
+        : `<p class="veld-uitleg">Nog geen party met spelerspersonages.</p>`;
     })();
   }
 
-  window._petBaasjeZet = async (petId, characterId) => {
-    if (!petId) return;
+  window._petBaasjeZet = async (petId, groepId, characterId) => {
+    if (!petId || !groepId) return;
     try {
-      const r = await api.setPetBaasje(petId, characterId);
-      window.app?._tsToast?.(r.baasje
-        ? `${icon('check')} Loopt nu mee met ${esc(r.baasje.naam)}`
-        : `${icon('check')} Losgekoppeld van zijn baasje`);
+      await api.setPetBaasje(petId, { [groepId]: characterId });
+      window.app?._tsToast?.(characterId
+        ? `${icon('check')} Eigenaar bijgewerkt`
+        : `${icon('check')} Losgekoppeld in deze party`);
     } catch (err) {
       alert('Koppelen mislukt: ' + (err.message || err));
     }
@@ -5648,8 +5811,9 @@ window._openEditor = async (tab, editId) => {
 
   // ── Koppelingen vullen ──
   if (document.getElementById('koppel-sectie')) {
-    _koppelCtx = { tab, id: e.id, dungeons: [] };
-    api.getKoppelingen(tab, e.id).then(k => {
+    _koppelCtx = { tab, id: e?.id || '', dungeons: [], kaarten: [], pins: [] };
+    _pinWacht = null;
+    api.getKoppelingen(tab, e?.id || '-').then(k => {
       _koppelCtx.dungeons = k.dungeons || [];
       const laden  = document.getElementById('koppel-laden');
       const inhoud = document.getElementById('koppel-inhoud');
@@ -5685,10 +5849,17 @@ window._openEditor = async (tab, editId) => {
         }).join('');
       }
       _koppelDungeonVullen();
-      const kaart = document.getElementById('koppel-kaart');
-      if (kaart) kaart.innerHTML = k.opKaart
-        ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._toonOpKaart('${esc(e.id)}')">${icon('map-pin')} Staat op de kaart \u2014 toon hem</button>`
-        : `<p class="veld-uitleg">${icon('map-pin')} Nog geen speld op de kaart. Die zet je op de kaart zelf, want daar wijs je de plek aan.</p>`;
+      _koppelCtx.kaarten = k.kaarten || [];
+      _koppelCtx.pins    = k.pins    || [];
+      const mapSel = document.getElementById('koppel-mapid');
+      if (mapSel) {
+        // Staat hij al ergens, dan opent die kaart; anders de eerste.
+        const staat = _koppelCtx.pins[0]?.mapId;
+        mapSel.innerHTML = `<option value="">\u2014 geen kaart \u2014</option>` +
+          _koppelCtx.kaarten.map(m => `<option value="${esc(m.id)}"${staat === m.id ? ' selected' : ''}>${esc(m.label || m.id)}</option>`).join('');
+        if (!staat && _koppelCtx.kaarten.length === 1) mapSel.value = _koppelCtx.kaarten[0].id;
+        _pinTeken();
+      }
       _koppelLocTypeToon();
     }).catch(() => {
       const laden = document.getElementById('koppel-laden');
@@ -5864,6 +6035,12 @@ window._openEditor = async (tab, editId) => {
       } else {
         const gemaakt = await api.createEntity(tab, payload);
         _nieuwId = gemaakt?.id || null;
+      }
+      // Een speld die bij een nog niet bewaard kaartje geplaatst was: nu pas
+      // versturen, want nu pas is er een locId om hem aan te hangen.
+      if (_pinWacht && _nieuwId) {
+        await api.createMapPin({ locId: _nieuwId, ..._pinWacht }).catch(() => {});
+        _pinWacht = null;
       }
       // "Hoort bij": schrijft in de betrokkenen-lijst van de dóélkaartjes, dus
       // pas nu — de naam die daar komt te staan is de zojuist bewaarde naam.

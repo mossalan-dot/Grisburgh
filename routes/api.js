@@ -3453,48 +3453,77 @@ router.get('/companions', attachRole, (req, res) => {
 // Magizoöloog gebeurt hetzelfde als een speler adopteert. Het baasje bepaalt op
 // welk tier het dier staat (zijn level) en zet het dier meteen in de party:
 // zichtbaar, op het partytabblad en te vullen in een gevecht.
+// Eén eigenaar per party, niet één in de hele campagne: hetzelfde dierkaartje
+// kan in twee party's meelopen (denk aan een sjabloon-huisdier), en elke party
+// heeft dan zijn eigen baasje. Het datamodel kon dat allang —
+// `groups[gid].companionOwners[petId]` staat per groep — maar de route dwong
+// het terug naar één.
 router.get('/companions/:petId/baasje', requireDM, (req, res) => {
-  const dmState = readDmState();
-  for (const [gid, g] of Object.entries(dmState.groups || {})) {
-    const baasje = g.companionOwners?.[req.params.petId];
-    if (baasje) return res.json({ baasje, groep: gid });
-  }
-  res.json({ baasje: null });
+  const dmState  = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const spelers  = (entities.personages || []).filter(e => e.subtype === 'speler');
+  const groepen = Object.entries(dmState.groups || {}).map(([gid, g]) => ({
+    id: gid,
+    naam: g.name || gid,
+    baasje: g.companionOwners?.[req.params.petId] || '',
+    // Alleen de personages van díé party: kiezen uit alle spelers van de
+    // campagne leverde een lijst op waarin je zelf moest uitzoeken wie waar zit.
+    spelers: spelers.filter(p => (p.data?.groep || '') === gid).map(p => ({ id: p.id, naam: p.name })),
+  }));
+  const eerste = groepen.find(g => g.baasje);
+  res.json({ groepen, baasje: eerste?.baasje || null, groep: eerste?.id || null });
 });
 
+// Body: { perGroep: { <gid>: <characterId of ''> } }. Alleen de genoemde
+// groepen worden aangeraakt, zodat twee schermen elkaar niet overschrijven.
+// De oude vorm { characterId } blijft werken: die zet één baasje en haalt het
+// dier overal anders weg.
 router.put('/companions/:petId/baasje', requireDM, (req, res) => {
   const { petId } = req.params;
-  const characterId = String(req.body?.characterId || '').trim();
   const entities = storage.readJSON('entities.json');
   const pet = (entities.personages || []).find(e => e.id === petId);
   if (!pet) return res.status(404).json({ error: 'Dier niet gevonden' });
 
   const dmState = readDmState();
-  // Eerst overal loskoppelen: een dier hoort bij één party tegelijk.
-  for (const g of Object.values(dmState.groups || {})) {
+  const koppel = (gid, characterId) => {
+    const g = getGroup(dmState, gid);
+    if (!g) return;
     if (Array.isArray(g.companions)) g.companions = g.companions.filter(id => id !== petId);
+    else g.companions = [];
     if (g.companionOwners) delete g.companionOwners[petId];
+    if (!characterId) return;
+    g.companions.push(petId);
+    if (!g.companionOwners) g.companionOwners = {};
+    g.companionOwners[petId] = characterId;
+    if (!g.visibility) g.visibility = {};
+    if ((g.visibility[petId] || 'hidden') === 'hidden') g.visibility[petId] = 'visible';
+  };
+
+  if (req.body?.perGroep && typeof req.body.perGroep === 'object') {
+    for (const [gid, cid] of Object.entries(req.body.perGroep)) {
+      const characterId = String(cid || '').trim();
+      // Een baasje moet wél in díé party zitten, anders klopt de tier-schaling
+      // niet meer met wie het dier meeneemt.
+      if (characterId && _playerGroupId(dmState, characterId) !== gid) {
+        return res.status(400).json({ error: 'Dat personage zit niet in die party' });
+      }
+      koppel(gid, characterId);
+    }
+  } else {
+    const characterId = String(req.body?.characterId || '').trim();
+    for (const gid of Object.keys(dmState.groups || {})) koppel(gid, '');
+    if (characterId) {
+      const gid = _playerGroupId(dmState, characterId);
+      if (!gid) return res.status(400).json({ error: 'Dit personage zit in geen enkele party' });
+      koppel(gid, characterId);
+    }
   }
 
-  if (!characterId) {
-    storage.writeJSON('dm-state.json', dmState);
-    return res.json({ ok: true, baasje: null });
-  }
-
-  const gid = _playerGroupId(dmState, characterId);
-  if (!gid) return res.status(400).json({ error: 'Dit personage zit in geen enkele party' });
-  const g = getGroup(dmState, gid);
-  if (!g.companions) g.companions = [];
-  if (!g.companions.includes(petId)) g.companions.push(petId);
-  if (!g.companionOwners) g.companionOwners = {};
-  g.companionOwners[petId] = characterId;
-  if (!g.visibility) g.visibility = {};
-  if ((g.visibility[petId] || 'hidden') === 'hidden') g.visibility[petId] = 'visible';
   storage.writeJSON('dm-state.json', dmState);
-
-  const naam = (entities.personages || []).find(e => e.id === characterId)?.name || '';
   req.app.get('io')?.to(req.session?.campaignId || 'main').emit('entity:updated', { type: 'personages', id: petId });
-  res.json({ ok: true, baasje: { id: characterId, naam }, groep: gid });
+  const perGroep = {};
+  for (const [gid, g] of Object.entries(dmState.groups || {})) perGroep[gid] = g.companionOwners?.[petId] || '';
+  res.json({ ok: true, perGroep });
 });
 
 router.get('/companions/status/:npcId', requireDM, (req, res) => {
@@ -3562,6 +3591,10 @@ function _koppelingenVan(type, id) {
       id: m.id, name: m.name,
       rooms: (m.rooms || []).map(r => ({ id: r.id, name: r.name })),
     })),
+    // De kaarten mét hun beeldbron, zodat het kaartje zelf een uitsnede kan
+    // tonen zonder de hele kaartmodule te laden.
+    kaarten:   getMaps().map(m => ({ id: m.id, label: m.label, src: m.src || null, imageId: m.imageId || null })),
+    pins:      pins.map(p => ({ id: p.id, mapId: p.mapId || 'grisburgh', x: p.x, y: p.y })),
     opKaart:   pins.length > 0,
   };
 }

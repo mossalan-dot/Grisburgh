@@ -23125,6 +23125,50 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 .koppel-rij .veld-uitleg .icon { width: 13px; height: 13px; vertical-align: -2px; }
 
+/* ── Speld zetten vanaf het kaartje ─────────────────────────────────────────
+   Coördinaten intikken is onwerkbaar; aanwijzen is de handeling. Het doek is
+   de kaart op ware verhouding, klikken zet de speld op procentcoördinaten. */
+/* Eén regel per party bij de eigenaar van een dier: partynaam links, keuze
+   rechts, zodat de lijstjes onder elkaar uitlijnen. */
+.pet-baasje-rij { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+.pet-baasje-groep {
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .03em; color: #7a5c10;
+  width: 8em; flex-shrink: 0; text-align: right;
+}
+@media (max-width: 520px) {
+  .pet-baasje-rij { flex-direction: column; align-items: stretch; gap: 3px; }
+  .pet-baasje-groep { width: auto; text-align: left; }
+}
+
+.pin-doek {
+  position: relative; width: 100%; margin-top: 6px;
+  border: 1px solid rgba(196,168,122,0.6); border-radius: 6px;
+  cursor: crosshair; overflow: hidden; line-height: 0;
+  max-height: 46vh;
+}
+/* De kaart op ware verhouding en helemaal in beeld; `object-fit: contain` houdt
+   de percentages gelijk aan die op de grote kaart. */
+.pin-doek-img { display: block; width: 100%; max-height: 46vh; object-fit: contain; }
+.pin-doek-speld, .kaartuitsnede-speld {
+  position: absolute; transform: translate(-50%, -100%);
+  color: #8b2a2a; pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.55));
+}
+.pin-doek-speld .icon, .kaartuitsnede-speld .icon { width: 20px; height: 20px; }
+
+/* ── "Op de kaart" in het detailvenster ─────────────────────────────────────
+   background-position X% Y% legt het punt op X%/Y% van de áfbeelding op
+   X%/Y% van het kader; de speld staat op dezelfde percentages en valt er dus
+   precies op, hoe ver je ook inzoomt. */
+.detail-kaartblok { margin: 0 0 14px; }
+.detail-kaartuitsnede {
+  position: relative; width: 100%; height: 150px; margin-top: 6px;
+  background-size: 320%; background-repeat: no-repeat;
+  border: 1px solid rgba(196,168,122,0.6); border-radius: 6px;
+}
+.detail-kaartblok .detail-map-link-wrap { margin-top: 6px; }
+
 /* Leden van een party in de Meesterkamer: chips met een kruisje, plus een
    zoekveld om er iemand bij te zetten. */
 .dm-lid-chip {

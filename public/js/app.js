@@ -1,5 +1,5 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=273';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=207";
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=274';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=208";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=44';
 import { renderBestiarium } from './render-bestiarium.js?v=22';
 import { renderSpreuken } from './render-spreuken.js?v=18';
 import { renderStatblock } from './render-statblock.js?v=4';
-import { initSocket } from "./socket-client.js?v=62";
+import { initSocket } from "./socket-client.js?v=63";
 import { initDmPanel } from "./dm-panel.js?v=207";
 import './media-picker.js?v=8';
 
@@ -533,6 +533,9 @@ window._onAmbianceChange = function({ active, label, enabled } = {}) {
 
 // ── Toon locatie op de kaart (aanroepbaar vanuit entity-cards en detail) ──
 window._toonOpKaart = (locId) => {
+  // Vanuit een detailvenster of de editor: het wisselen van sectie gebeurt
+  // áchter de modal, dus zonder dit leek de knop niets te doen.
+  closeModal();
   queueFlyTo(locId);
   switchSection('kaart');
 };
