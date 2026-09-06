@@ -1335,13 +1335,15 @@ function _orgKnoopHtml(r, kinderen, gezien = new Set(), beeld = null) {
   if (gezien.has(r)) return '';
   gezien.add(r);
   const kids = kinderen.get(r) || [];
-  const beeldId = r.id ? (beeld?.get(r.id) || r.id) : '';
+  const beeldId = (r.id && !r.onbekend) ? (beeld?.get(r.id) || r.id) : '';
   const portret = beeldId
     ? `<img class="org-portret" src="${esc(api.thumbUrl(beeldId))}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'org-portret org-portret--leeg'}))">`
-    : `<span class="org-portret org-portret--leeg">${icon('user')}</span>`;
+    : `<span class="org-portret org-portret--leeg${r.onbekend ? ' org-portret--onbekend' : ''}">${icon(r.onbekend ? 'user' : 'user')}</span>`;
   const naam = r.id
     ? `<button type="button" class="org-naam" onclick="window._openKaartjeOpId('${esc(r.id)}')">${esc(r.naam)}</button>`
-    : `<span class="org-naam org-naam--los">${esc(r.naam)}</span>`;
+    : r.onbekend
+      ? `<span class="org-naam org-naam--onbekend">Onbekend</span>`
+      : `<span class="org-naam org-naam--los">${esc(r.naam)}</span>`;
   return `<li class="org-knoop">
     <div class="org-kaartje">${portret}<div class="org-tekst">${naam}${r.rol ? `<span class="org-rol">${esc(r.rol)}</span>` : ''}</div></div>
     ${kids.length ? `<ul class="org-kinderen">${kids.map(k => _orgKnoopHtml(k, kinderen, gezien, beeld)).join('')}</ul>` : ''}
@@ -3414,11 +3416,15 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // losse namen blijven gewoon leesbaar staan.
   const _betrokkenen = ['locaties', 'organisaties'].includes(tab) ? _betrokkenenUit(e.data) : [];
   if (_betrokkenen.length) {
-    infoHtml += _rolRegels('Wie hoort hier bij', _betrokkenen.map(r => ({
+    infoHtml += _rolRegels('Wie hoort hier bij?', _betrokkenen.map(r => ({
       rol: r.rol,
       knop: r.id
         ? `<button type="button" class="link-chip link-chip--sm" onclick="window._openKaartjeOpId('${esc(r.id)}')">${esc(r.naam)}</button>`
-        : `<span class="betrokken-naam">${esc(r.naam)}</span>`,
+        // De server heeft de naam weggehaald van iemand die deze party nog niet
+        // kent; dát er iemand is mag je weten, wie het is niet.
+        : r.onbekend
+          ? `<span class="betrokken-naam betrokken-naam--onbekend">Onbekend</span>`
+          : `<span class="betrokken-naam">${esc(r.naam)}</span>`,
     })));
   }
   // En de andere kant op: waar dít kaartje bij hoort. Afgeleid door de server

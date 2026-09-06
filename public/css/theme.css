@@ -23254,6 +23254,12 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 .org-naam:hover { color: #8a6000; text-decoration: underline; }
 .org-naam--los { cursor: default; }
+/* Iemand die deze party nog niet kent: je ziet dát er een plek is, niet wie
+   hem vult. Gedempt en cursief, zodat het leest als een gat in je kennis. */
+.org-naam--onbekend, .betrokken-naam--onbekend {
+  font-style: italic; color: #9a815c; cursor: default;
+}
+.org-portret--onbekend { opacity: .55; }
 .org-rol {
   font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700;
   letter-spacing: .06em; color: #9a815c;

@@ -330,7 +330,26 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   const zichtbaar = (id) => id && (g.visibility[id] || 'hidden') === 'visible';
   const rijen = _betrokkenenLijst(entity.data);
   if (rijen.length) {
-    e.data.betrokkenen = JSON.stringify(rijen.map(r => zichtbaar(r.id) ? r : { ...r, id: '' }));
+    // Een organisatie ontmantelen is het spel; wie erbij hoort hoort dus niet
+    // op het kaartje te staan zolang je hem niet ontmoet hebt. Een regel die
+    // naar een nog onontdekt kaartje wijst verliest daarom zijn naam, niet
+    // alleen zijn koppeling. Een losse naam (nooit gekoppeld) blijft wél staan:
+    // dat is tekst die de DM hier bewust heeft neergezet.
+    //
+    // `chef` verwijst naar een náám, dus krijgt een verborgen regel een vaste
+    // schuilnaam en schrijven we die ook in de chef-velden terug — anders valt
+    // de tak eronder van de boom af.
+    let n = 0;
+    const schuil = new Map();
+    for (const r of rijen) {
+      if (r.id && !zichtbaar(r.id)) schuil.set(r.naam, `\u2014onbekend-${++n}`);
+    }
+    e.data.betrokkenen = JSON.stringify(rijen.map(r => {
+      const chef = schuil.get(r.chef) || r.chef;
+      const eigen = schuil.get(r.naam);
+      if (eigen) return { naam: eigen, rol: r.rol || '', id: '', onbekend: true, ...(chef ? { chef } : {}) };
+      return { ...r, ...(chef !== r.chef ? { chef } : {}) };
+    }));
   }
   if (e.data.wijkId     && !zichtbaar(e.data.wijkId))     delete e.data.wijkId;
   if (e.data.eigenaarId && !zichtbaar(e.data.eigenaarId)) delete e.data.eigenaarId;

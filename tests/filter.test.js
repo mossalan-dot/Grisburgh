@@ -158,16 +158,23 @@ describe('Server-side filtering', () => {
     assert.strictEqual(res.status, 200, 'de kroeg zelf is zichtbaar');
     const rijen = JSON.parse(res.body.data.betrokkenen);
 
-    // De naam blijft altijd staan: die heeft de DM op dit kaartje geschreven.
-    assert.deepStrictEqual(rijen.map(r => r.naam), ['Bekende Waard', 'Geheime Baas', 'Losse Naam']);
-    // Maar alleen een ontdekt kaartje houdt zijn koppeling.
+    // Een ontdekt kaartje houdt naam én koppeling; een losse naam (nooit
+    // gekoppeld) blijft leesbaar, want die heeft de DM hier bewust neergezet.
+    assert.strictEqual(rijen[0].naam, 'Bekende Waard');
     assert.strictEqual(rijen[0].id, bekend.body.id, 'ontdekte NPC blijft aanklikbaar');
-    assert.strictEqual(rijen[1].id, '', 'onontdekte NPC verliest zijn koppeling');
+    assert.strictEqual(rijen[2].naam, 'Losse Naam');
     assert.strictEqual(rijen[2].id, '', 'losse naam had er nooit een');
     assert.strictEqual(res.body.data.wijkId, undefined, 'gebied naar een verborgen kaartje gaat eraf');
     assert.strictEqual(res.body.data.wijk, 'Verborgen Wijk', 'de gebiedsnaam blijft wel staan');
     assert.strictEqual(res.body.data.dungeonId, undefined, 'dungeonkoppeling is DM-gereedschap');
     assert.strictEqual(res.body.data.roomId, undefined);
+
+    // De naam van een onontdekt kaartje gaat er ook af: een organisatie
+    // ontmantelen is het spel, dus de ledenlijst mag niet gratis zijn.
+    assert.strictEqual(rijen[1].id, '', 'onontdekte NPC verliest zijn koppeling');
+    assert.strictEqual(rijen[1].onbekend, true, 'en is als onbekend gemarkeerd');
+    assert.ok(!rijen[1].naam.includes('Geheime Baas'), 'zijn naam staat er niet meer: ' + rijen[1].naam);
+    assert.strictEqual(rijen[1].rol, 'Beschermheer', 'de rol blijft: dát er een plek is mag je weten');
 
     // En de omgekeerde kant: de verborgen kroeg mag niet opduiken bij de NPC.
     const npcRes = await req(server, 'GET', `/api/entities/personages/${bekend.body.id}`, null, spelerCookie);
@@ -220,6 +227,37 @@ describe('Server-side filtering', () => {
     await req(server, 'PUT', `/api/entities/locaties/${grot.body.id}/visibility`, null, dmCookie);
     const g = (await req(server, 'GET', `/api/entities/locaties/${grot.body.id}`, null, spelerCookie)).body.data;
     assert.strictEqual(g.dungeonId, dngId, 'hele kaart: toegang volstaat');
+  });
+
+  it('een onbekende chef houdt de tak in het organogram bij elkaar', async () => {
+    const speler = await req(server, 'POST', '/api/entities/personages', {
+      name: 'Gilde Speler', subtype: 'speler', data: { groep: 'groep1' },
+    }, dmCookie);
+    const login = await req(server, 'POST', '/api/auth/player-login',
+      { campagne: 'grisburgh', characterId: speler.body.id });
+
+    const baas   = (await req(server, 'POST', '/api/entities/personages', { name: 'De Grootmeester', data: {} }, dmCookie)).body;
+    const knecht = (await req(server, 'POST', '/api/entities/personages', { name: 'De Loopjongen',  data: {} }, dmCookie)).body;
+    await req(server, 'PUT', `/api/entities/personages/${knecht.id}/visibility`, null, dmCookie);
+
+    const gilde = (await req(server, 'POST', '/api/entities/organisaties', {
+      name: 'Het Dievengilde',
+      data: { betrokkenen: JSON.stringify([
+        { naam: 'De Grootmeester', rol: 'Leider', id: baas.id },
+        { naam: 'De Loopjongen',   rol: 'Lid',    id: knecht.id, chef: 'De Grootmeester' },
+      ]) },
+    }, dmCookie)).body;
+    await req(server, 'PUT', `/api/entities/organisaties/${gilde.id}/visibility`, null, dmCookie);
+
+    const rijen = JSON.parse((await req(server, 'GET', `/api/entities/organisaties/${gilde.id}`, null, login.cookie))
+      .body.data.betrokkenen);
+    const top = rijen.find(r => r.rol === 'Leider');
+    const lid = rijen.find(r => r.rol === 'Lid');
+    assert.strictEqual(top.onbekend, true, 'de leider is nog niet ontmoet');
+    assert.ok(!top.naam.includes('Grootmeester'), 'zijn naam staat er niet');
+    assert.strictEqual(lid.naam, 'De Loopjongen', 'de ontdekte loopjongen wel');
+    assert.strictEqual(lid.chef, top.naam,
+      'en zijn "valt onder" wijst naar dezelfde schuilnaam, anders valt de tak van de boom');
   });
 
   it('DM-gereedschap zit niet in het antwoord voor een speler', async () => {

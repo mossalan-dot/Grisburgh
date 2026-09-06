@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=274';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=218";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=219";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -11950,7 +11950,7 @@ const HELP_CONFIG = {
   hulp_bewerk_locaties_info: () => ({ titel: 'Een locatie', stappen: [
     { titel: 'Type', tekst: 'Het **type** zegt wat voor plek dit is. De lijst staat in groepen: gebieden (rijk, streek, stad, dorp, wijk), gebouwen, landschap en overig. Drie types kunnen méér, en onder de keuzelijst staat wat dat is: *Winkel* krijgt een eigen tabblad met voorraad, en *Herberg* en *Tempel* kunnen aan een dienst gekoppeld worden. Kunnen, niet moeten — je kunt drie herbergen hebben waarvan er één de dienst is.', afbeelding: null },
     { titel: 'Gebied', tekst: 'Waar dit in ligt: een stad, een streek, een wijk of een gebouw. Wijst het naar een bestaand locatiekaartje, dan kun je doorklikken en ontstaan er ketens — een herberg in een wijk, in een stad, in een streek. Vrije tekst mag ook; bestaat de naam nog niet, dan biedt hij aan er een kaartje voor te maken.', afbeelding: null },
-    { titel: 'Wie hoort hier bij', tekst: 'Eigenaar, waard, personeel, stamgasten — personages én organisaties, met per regel een rol. Een gekoppelde naam wordt een knop waar je doorheen klikt. Dezelfde regel verschijnt bij *Hoort bij* op het andere kaartje: het staat maar op één plek, dus je kunt hem van beide kanten leggen.', afbeelding: null },
+    { titel: 'Wie hoort hier bij?', tekst: 'Eigenaar, waard, personeel, stamgasten — personages én organisaties, met per regel een rol. Een gekoppelde naam wordt een knop waar je doorheen klikt. Dezelfde regel verschijnt bij *Hoort bij* op het andere kaartje: het staat maar op één plek, dus je kunt hem van beide kanten leggen.', afbeelding: null },
     { titel: 'Flavour & geheimen', tekst: '**Flavour** zijn losse zinnetjes om voor te lezen; de app houdt per regel bij of hij al verteld is, dus iemand met drie roddels levert drie avonden op. **Geheimen** onthul je per regel en per party, in het detailvenster.', afbeelding: null },
     { titel: 'Koppelingen', tekst: 'Onderaan staat wat dit kaartje **elders** is: de herberg van de campagne, of de tempel van een god uit de Tempel-dienst. Die koppeling staat maar op één plek — je kunt hem hier leggen of in het paneel van die dienst, en je ziet aan beide kanten hetzelfde.', afbeelding: null },
   ] }),
