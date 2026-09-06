@@ -23131,6 +23131,8 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 .veld-melding-link:hover { color: #5a4020; }
 .koppel-rij { margin-bottom: 12px; }
+/* Twee onderwerpen op één tabblad: een lijn ertussen scheelt zoeken. */
+.koppel-rij--gescheiden { border-top: 1px solid rgba(196,168,122,0.45); padding-top: 12px; }
 .koppel-duo { display: flex; gap: 8px; flex-wrap: wrap; }
 .koppel-duo > .koppel-select { flex: 1 1 160px; min-width: 0; }
 .koppel-select {
@@ -23218,6 +23220,8 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   border: 1px solid rgba(196,168,122,0.6); border-radius: 6px;
   background: rgba(196,168,122,0.10);
 }
+/* Staat er ook een plattegrond onder, dan mag de uitsnede wat lager zijn. */
+.detail-kaartuitsnede--kort { height: min(38vh, 340px); min-height: 200px; }
 .kaartuitsnede-img {
   position: absolute; left: 50%; top: 50%;
   /* Genoeg om de omgeving te herkennen — op 320% zag je alleen nog daken. */

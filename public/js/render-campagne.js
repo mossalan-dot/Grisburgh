@@ -1101,24 +1101,45 @@ window._pinKaartWissel = () => _pinTeken();
 // procentcoördinaten blijven kloppen — we meten toch op de afbeelding zelf.
 let _pinZoomStand = 1;
 const _PIN_ZOOM = [1, 1.5, 2, 3, 4, 6];
-window._pinZoom = (richting) => {
-  const i = Math.max(0, Math.min(_PIN_ZOOM.length - 1, _PIN_ZOOM.indexOf(_pinZoomStand) + richting));
-  _pinZoomStand = _PIN_ZOOM[i];
+// Zoomen en daarna één punt in het midden zetten. `focus` in procenten van de
+// afbeelding; zonder focus houden we de speld (of het midden) vast.
+function _pinZoomZet(stand, focus) {
+  _pinZoomStand = stand;
   const inner = document.getElementById('koppel-mapinner');
   const doek  = document.getElementById('koppel-mapdoek');
-  const stand = document.getElementById('koppel-mapzoomstand');
-  if (stand) stand.textContent = Math.round(_pinZoomStand * 100) + '%';
+  const balk  = document.getElementById('koppel-mapzoomstand');
+  if (balk) balk.textContent = Math.round(_pinZoomStand * 100) + '%';
   if (!inner || !doek) return;
   inner.style.width = (_pinZoomStand * 100) + '%';
-  // Na het zoomen de speld (of anders het midden) weer in beeld brengen. Niet
-  // in een requestAnimationFrame: de afbeelding is dan nog niet opnieuw
+  // Niet in een requestAnimationFrame: de afbeelding is dan nog niet opnieuw
   // opgemeten en de berekening liep op de oude maten (en werd dus 0).
   setTimeout(() => {
-    const pin = _pinHuidig() || _pinWacht;
+    const pin = focus || _pinHuidig() || _pinWacht;
     const px = (pin ? pin.x : 50) / 100, py = (pin ? pin.y : 50) / 100;
     doek.scrollLeft = px * inner.offsetWidth  - doek.clientWidth  / 2;
     doek.scrollTop  = py * inner.offsetHeight - doek.clientHeight / 2;
   }, 60);
+}
+
+window._pinZoom = (richting) => {
+  const i = Math.max(0, Math.min(_PIN_ZOOM.length - 1, _PIN_ZOOM.indexOf(_pinZoomStand) + richting));
+  _pinZoomZet(_PIN_ZOOM[i]);
+};
+
+// Dubbelklikken zoomt in op de plek waar je klikt. Botst niet met het plaatsen:
+// de eerste klik van de dubbelklik zet de speld daar al neer, en het inzoomen
+// brengt je meteen dichtbij genoeg om hem precies te leggen. Op de hoogste
+// stand zoomt hij weer helemaal uit, zodat je met dezelfde handeling terugkomt.
+window._pinZoomDubbel = (ev) => {
+  const img = document.getElementById('koppel-mapimg');
+  if (!img) return;
+  const r = img.getBoundingClientRect();
+  const focus = {
+    x: Math.min(100, Math.max(0, ((ev.clientX - r.left) / r.width)  * 100)),
+    y: Math.min(100, Math.max(0, ((ev.clientY - r.top)  / r.height) * 100)),
+  };
+  const i = _PIN_ZOOM.indexOf(_pinZoomStand);
+  _pinZoomZet(i >= _PIN_ZOOM.length - 1 ? _PIN_ZOOM[0] : _PIN_ZOOM[i + 1], focus);
 };
 
 // De uitsnede in het detailvenster. `background-position: X% Y%` legt het punt
@@ -1140,6 +1161,29 @@ async function _kaartGegevens() {
 }
 window._kaartCacheLeeg = () => { _kaartCache = null; };
 
+// De speldknop op een kaartje. Hij hing aan window._pinnedLocIds, en die wordt
+// pas gevuld zodra je het Kaart-tabblad hebt geopend — en dan nog alleen voor
+// de kaart die daar toevallig openstond. Dus zag je hem meestal nergens. Nu
+// zoeken we de spelden zelf op (dezelfde korte cache als de uitsnede), over
+// álle kaarten, en zetten we meteen de juiste kaart op de knop.
+async function _kaartKnoppenBijwerken(host) {
+  const knoppen = [...(host || document).querySelectorAll('[data-mapbtn]')];
+  if (!knoppen.length) return;
+  const { maps, pins } = await _kaartGegevens();
+  const perLoc = new Map();
+  for (const m of maps) {
+    for (const p of (pins[m.id] || [])) {
+      if (!p.pending && !perLoc.has(p.locId)) perLoc.set(p.locId, m.id);
+    }
+  }
+  window._pinnedLocIds = new Set(perLoc.keys());
+  for (const knop of knoppen) {
+    const mapId = perLoc.get(knop.dataset.mapbtn);
+    knop.classList.toggle('hidden', !mapId);
+    if (mapId) knop.dataset.mapid = mapId;
+  }
+}
+
 // Waar ligt deze locatie? Geeft de kaart plus de speld terug, of null.
 async function _kaartPlekVan(locId) {
   const { maps, pins } = await _kaartGegevens();
@@ -1154,7 +1198,7 @@ async function _kaartPlekVan(locId) {
 // naar de kaart zelf. background-position X% Y% legt het punt op X%/Y% van de
 // áfbeelding op X%/Y% van het kader, dus een speld op dezelfde percentages valt
 // er precies op — hoe ver je ook inzoomt.
-function _kaartTabHtml(locId, plek) {
+function _kaartTabHtml(locId, plek, alleen = true) {
   const { kaart, pin } = plek;
   // De speld in het midden zetten kan niet met background-position: dat lijnt
   // punt X% van de áfbeelding uit op X% van het kader, niet op het midden. Met
@@ -1163,7 +1207,7 @@ function _kaartTabHtml(locId, plek) {
   return `
     <div class="detail-kaartblok">
       <div class="detail-label">${icon('map-pin')} ${esc(kaart.label || 'Op de kaart')}</div>
-      <div class="detail-kaartuitsnede">
+      <div class="detail-kaartuitsnede${alleen ? '' : ' detail-kaartuitsnede--kort'}">
         <img class="kaartuitsnede-img" alt="" src="${esc(_kaartSrc(kaart))}"
           style="transform:translate(-${pin.x}%, -${pin.y}%)">
         <div class="kaartuitsnede-speld"></div>
@@ -1448,9 +1492,9 @@ const ED_TABS = [
   { key: 'sheet',   label: 'Character Sheet' },
   { key: 'winkel',  label: 'Winkel' },
   // Een kaart en een dungeonplattegrond nemen allebei een half scherm in
-  // beslag; onderin Informatie maakten ze dat tabblad onhandelbaar lang.
-  { key: 'kaart',   label: 'Kaart' },
-  { key: 'dungeon', label: 'Dungeon' },
+  // beslag; onderin Informatie maakten ze dat tabblad onhandelbaar lang. Ze
+  // gaan wél samen: het is allebei "waar ligt dit".
+  { key: 'kaart', label: 'Kaart' },
 ];
 
 function _bouwEditorTabs(html, toonWinkel, sheetLabel) {
@@ -1987,6 +2031,7 @@ function _refreshGrid(type, list, container) {
     </div>
   ` : list.map(e => renderCard(type, e)).join('');
   grid.scrollTop = savedGridScroll; // meteen herstellen (layout is al berekend)
+  if (type === 'locaties') _kaartKnoppenBijwerken(grid);
   requestAnimationFrame(() => {
     window.scrollTo(0, savedScrollY);
     grid.querySelectorAll('[data-fittext]').forEach(_fitText);
@@ -2215,8 +2260,8 @@ function renderCard(type, e) {
           ${!isDM() && e._secretReveal ? `<span class="card-geheim-pill" title="Er is een geheim over dit kaartje onthuld">${icon('eye')} Geheim onthuld</span>` : ''}
           ${badges.length ? `<div class="card-badges-rij">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
         </div>` : ''}
-        ${type === 'locaties' && window._pinnedLocIds?.has(e.id) ? `<button class="card-map-btn"
-          onclick="event.stopPropagation();window._toonOpKaart('${esc(e.id)}')"
+        ${type === 'locaties' ? `<button class="card-map-btn hidden" data-mapbtn="${esc(e.id)}"
+          onclick="event.stopPropagation();window._toonOpKaart('${esc(e.id)}', this.dataset.mapid || '')"
           title="Toon op kaart">${icon('map-pin')}</button>` : ''}
         ${type === 'voorwerpen' && e.data?.damage ? (() => {
           const _isHeal = /heal/i.test(e.data.damage);
@@ -3725,8 +3770,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ...(isStapelbaarVoorwerp && isDM() ? [{ key: 'eigenaren', label: 'Eigenaren' }] : []),
     ...(heeftVoorraad ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
     ...(heeftVoorraad && isDM() ? [{ key: 'log', label: 'Log' }] : []),
-    ...(_kaartPlek   ? [{ key: 'kaart',   label: 'Kaart' }]   : []),
-    ...(_dungeonPlek ? [{ key: 'dungeon', label: 'Dungeon' }] : []),
+    ...((_kaartPlek || _dungeonPlek) ? [{ key: 'kaart', label: 'Kaart' }] : []),
   ];
 
   const tabNav = detailTabs.map((t, i) => `
@@ -3741,8 +3785,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ${isStapelbaarVoorwerp && isDM() ? `<div id="dtab-eigenaren" class="hidden">${eigenarenHtml}</div>` : ''}
     ${heeftVoorraad ? `<div id="dtab-voorraad" class="hidden">${voorraadHtml}</div>` : ''}
     ${heeftVoorraad && isDM() ? `<div id="dtab-log" class="hidden">${logHtml}</div>` : ''}
-    ${_kaartPlek   ? `<div id="dtab-kaart" class="hidden">${_kaartTabHtml(e.id, _kaartPlek)}</div>` : ''}
-    ${_dungeonPlek ? `<div id="dtab-dungeon" class="hidden">${_dungeonTabHtml(_dungeonPlek.kaart, _dungeonPlek.kamer)}</div>` : ''}
+    ${(_kaartPlek || _dungeonPlek) ? `<div id="dtab-kaart" class="hidden">
+      ${_kaartPlek   ? _kaartTabHtml(e.id, _kaartPlek, !_dungeonPlek) : ''}
+      ${_dungeonPlek ? _dungeonTabHtml(_dungeonPlek.kaart, _dungeonPlek.kamer) : ''}
+    </div>` : ''}
   `;
 
   const _subParts = [
@@ -5270,12 +5316,11 @@ window._openEditor = async (tab, editId) => {
   if (['locaties', 'organisaties'].includes(tab) && isDM() && (e?.id || tab === 'locaties')) {
     const _isLoc  = tab === 'locaties';
     const _bestaat = !!e?.id;
-    body += `
+    body += !_bestaat ? '' : `
       <div class="koppel-sectie" id="koppel-sectie">
         <div class="cs-sectiekop">Koppelingen</div>
         <div id="koppel-laden" class="veld-uitleg">Laden\u2026</div>
         <div id="koppel-inhoud" class="hidden">
-          ${!_bestaat ? `<p class="veld-uitleg">${icon('map-pin')} Zet hier vast de plek op de kaart; de koppelingen aan een dienst of dungeon verschijnen zodra het kaartje bewaard is.</p>` : ''}
           ${(_isLoc && _bestaat) ? `
           <div class="koppel-rij" id="koppel-herberg" style="display:none">
             <label class="koppel-vink">
@@ -5312,23 +5357,20 @@ window._openEditor = async (tab, editId) => {
             <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._pinZoom(-1)" title="Uitzoomen">${icon('minus')}</button>
             <span class="pin-zoom-stand" id="koppel-mapzoomstand">100%</span>
             <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._pinZoom(1)" title="Inzoomen">${icon('plus')}</button>
-            <span class="veld-uitleg">Ingezoomd kun je slepen om te schuiven.</span>
           </div>
           <div id="koppel-mapdoek" class="pin-doek" style="display:none"
             onpointerdown="window._pinSleepStart(event)">
-            <div id="koppel-mapinner" class="pin-doek-inner" onclick="window._pinPlaats(event)">
+            <div id="koppel-mapinner" class="pin-doek-inner"
+              onclick="window._pinPlaats(event)" ondblclick="window._pinZoomDubbel(event)">
               <img id="koppel-mapimg" class="pin-doek-img" alt="" draggable="false">
               <div id="koppel-mappin" class="pin-doek-speld" style="display:none"></div>
             </div>
           </div>
           <div class="dm-knoprij mt-1" id="koppel-mapknoppen"></div>
           <p class="veld-uitleg" id="koppel-mapuitleg"></p>
-        </div>`;
-
-      // ── Tabblad Dungeon ──
-      body += `<!--P:dungeon-->`;
-      body += `
-        <div class="koppel-rij">
+          ${_bestaat ? '' : `<p class="veld-uitleg">${icon('link')} De koppelingen aan een dienst verschijnen zodra dit kaartje bewaard is.</p>`}
+        </div>
+        <div class="koppel-rij koppel-rij--gescheiden">
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-dungeon">Dungeonkaart</label>
           <div class="koppel-duo">
             <select id="koppel-dungeon" class="koppel-select" onchange="window._koppelDungeonWissel()"></select>
@@ -5336,7 +5378,6 @@ window._openEditor = async (tab, editId) => {
           </div>
           <input type="hidden" name="data_dungeonId" id="koppel-dungeon-id" value="${esc(e?.data?.dungeonId || '')}">
           <input type="hidden" name="data_roomId"    id="koppel-room-id"    value="${esc(e?.data?.roomId || '')}">
-          <div class="veld-uitleg">Een kamer kiezen mag, maar hoeft niet — de hele kaart volstaat.</div>
           <div class="dm-knoprij mt-1" id="koppel-dungeonknop"></div>
         </div>`;
       body += `<!--P:info-->`;
@@ -5941,7 +5982,7 @@ window._openEditor = async (tab, editId) => {
   if (document.querySelector('[data-link-veld]')) _linkLaden();
 
   // ── Koppelingen vullen ──
-  if (document.getElementById('koppel-sectie')) {
+  if (document.getElementById('koppel-sectie') || document.getElementById('koppel-mapid')) {
     _koppelCtx = { tab, id: e?.id || '', dungeons: [], kaarten: [], pins: [] };
     _pinWacht = null;
     api.getKoppelingen(tab, e?.id || '-').then(k => {
