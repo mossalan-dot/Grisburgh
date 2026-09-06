@@ -20925,6 +20925,21 @@ video.prog-detail-art { width: 100%; height: 180px; object-fit: cover; border-ra
 .pet-tier-del:hover { color: #8b2a2a; }
 .pet-tier-del .icon { width: 15px; height: 15px; }
 .pet-tier-empty { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.85rem; color: #9a7050; }
+.pet-tier-empty { margin: 2px 0 0; }
+
+/* De basis als eerste trede in de tierladder: zelfde omlijning als een tier,
+   maar zonder velden — het statblok zelf staat immers hierboven op het blad.
+   Zonder deze rij las een ingevuld statblok als iets dat de tiers vervingen. */
+.pet-tier-basis {
+  display: flex; align-items: baseline; gap: 8px;
+  border: 1px dashed rgba(196,168,122,0.55); border-radius: 5px;
+  padding: 7px 9px; margin-bottom: 8px; background: rgba(255,255,255,0.2);
+}
+.pet-tier-basis-uitleg { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.82rem; color: #9a7050; }
+/* Regel bovenin een tier: leeg laten = overnemen van de basis. */
+.pet-tier-hint { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.8rem; color: #9a7050; margin: -2px 0 2px; }
+/* Zelfde regel boven het statblok zelf, zodat beide kanten het verband noemen. */
+.cs-basis-uitleg { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.82rem; color: #9a7050; margin: 0 0 6px; }
 .pet-abilities { gap: 5px; }
 
 /* ── Lootverdeler — spelerpaneel (schatkist-stijl) ── */
@@ -22937,6 +22952,34 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
    dezelfde regel als een knop staat houdt zijn onderrand vrij. */
 .dm-knoprij { gap: 8px; flex-wrap: wrap; }
 .dm-section-label--rij { margin-bottom: 0; }
+
+/* ── Instellingen: elke sectie is een uitklap ──────────────────────────────
+   De kop blijft de gewone .dm-section-label (met zijn streepje), maar zit nu
+   in een <summary>. Het standaard driehoekje gaat eraf — Safari heeft er een
+   eigen pseudo-element voor — en we zetten er zelf een chevron naast die
+   meedraait. */
+/* .dm-feature-section zet display:flex; op een <details> haalt dat in Chrome en
+   Safari het inklappen zelf onderuit (de inhoud blijft dan altijd staan). De
+   details blijft dus block en de rijen krijgen hun kolom in een eigen laagje. */
+.dm-inst-sectie { display: block; }
+.dm-inst-sectie-body { display: flex; flex-direction: column; gap: 8px; }
+.dm-inst-sectie > summary { cursor: pointer; margin-bottom: 0; list-style: none; user-select: none; }
+.dm-inst-sectie > summary::-webkit-details-marker { display: none; }
+.dm-inst-sectie[open] > summary { margin-bottom: 10px; }
+.dm-inst-sectie > summary::after {
+  content: ''; margin-left: auto; flex-shrink: 0;
+  width: 7px; height: 7px; border-right: 1.5px solid #9a815c; border-bottom: 1.5px solid #9a815c;
+  transform: rotate(-45deg) translate(-2px, -1px);
+  transition: transform .15s ease;
+}
+.dm-inst-sectie[open] > summary::after { transform: rotate(45deg) translate(-1px, -2px); }
+.dm-inst-sectie > summary:hover { color: #5a4020; }
+/* Een knop in de kop (Party toevoegen) staat links van de chevron. */
+.dm-inst-sectie-acties { margin-left: auto; display: inline-flex; gap: 6px; }
+.dm-inst-sectie-acties + * { margin-left: 0; }
+.dm-inst-sectie > summary:has(.dm-inst-sectie-acties)::after { margin-left: 8px; }
+/* Party's onder elkaar; stond eerder als losse inline-stijl op de div. */
+.dm-inst-groepen { display: flex; flex-direction: column; gap: 6px; }
 
 /* Leden van een party in de Meesterkamer: chips met een kruisje, plus een
    zoekveld om er iemand bij te zetten. */

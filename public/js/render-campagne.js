@@ -3796,13 +3796,14 @@ function _petTierRowHtml(t, i) {
       <button type="button" class="pet-tier-del" onclick="event.preventDefault();window._petTierRemove(${i})" title="Verwijder tier">${icon('trash')}</button>
     </summary>
 
+    <p class="pet-tier-hint">Vul alleen in wat er verandert; wat je leeg laat blijft zoals in het statblok hierboven.</p>
     <div class="grid grid-cols-2 gap-2">
-      ${inp('pt-minlevel', 'Vanaf level', num(t.minLevel), ' type="number" min="1" onchange="window._petTierLevelCheck(this)"')}
+      ${inp('pt-minlevel', 'Vanaf level', num(t.minLevel), ' type="number" min="2" onchange="window._petTierLevelCheck(this)"')}
       ${inp('pt-label', 'Label', t.label, ' placeholder="Guard Dog"')}
     </div>
     <div class="grid grid-cols-2 gap-2">
       ${sel('pt-size', 'Size', _PT_SIZES, sb.size)}
-      ${sel('pt-type', 'Creature Type', _PT_TYPES, sb.type)}
+      ${sel('pt-creatureType', 'Creature Type', _PT_TYPES, sb.creatureType)}
     </div>
     <div class="grid grid-cols-4 gap-2">
       ${inp('pt-ac', 'AC', sb.ac)}
@@ -3852,7 +3853,7 @@ function _petTierRowHtml(t, i) {
 }
 
 // Lees de tier-velden terug uit het DOM naar _petTiers (vóór add/remove en submit).
-const _PT_TEKSTVELDEN = ['size','type','ac','initiative','speed','cr','xp','hp','savingThrows','skills',
+const _PT_TEKSTVELDEN = ['size','creatureType','ac','initiative','speed','cr','xp','hp','savingThrows','skills',
   'gear','vulnerabilities','resistances','immunities','conditionImmunities','senses','languages',
   'traits','actions','bonusActions','reactions'];
 
@@ -3894,15 +3895,22 @@ window._petTierLevelCheck = (veld) => {
 window._renderPetTiers = () => {
   const list = document.getElementById('pet-tiers-list');
   if (!list) return;
-  list.innerHTML = _petTiers.length
+  // De basis staat als eerste trede in de ladder, zodat te zien is dat het
+  // statblok hierboven meedoet — dat was de verwarring: een blok invullen en
+  // daaronder tiers zien die het leken te vervangen.
+  const basis = `<div class="pet-tier-basis">
+      <span class="pet-tier-badge">Basis · vanaf level 1</span>
+      <span class="pet-tier-basis-uitleg">het statblok hierboven</span>
+    </div>`;
+  list.innerHTML = basis + (_petTiers.length
     ? _petTiers.map((t, i) => _petTierRowHtml(t, i)).join('')
-    : `<p class="pet-tier-empty">Nog geen tiers — voeg er minstens één toe (de eerste geldt vanaf level 1).</p>`;
+    : `<p class="pet-tier-empty">Geen tiers: het dier houdt het statblok hierboven, hoe hoog het baasje ook komt.</p>`);
 };
 window._petTierAdd = () => {
   _petTiersCollect();
   // Een nieuw tier begint boven het hoogste dat er al is; twee keer hetzelfde
   // level zou de vraag "welke geldt nu?" onbeantwoordbaar maken.
-  const hoogste = Math.max(0, ..._petTiers.map(t => parseInt(t.minLevel)).filter(v => !isNaN(v)));
+  const hoogste = Math.max(1, ..._petTiers.map(t => parseInt(t.minLevel)).filter(v => !isNaN(v)));
   _petTiers.forEach(t => { t._open = false; });
   _petTiers.push({ minLevel: hoogste + 1, label: '', maxHp: undefined, statblock: {}, _open: true });
   window._renderPetTiers();
@@ -4534,9 +4542,12 @@ window._openEditor = async (tab, editId) => {
       </div>`;
     };
     const _hasStats = Object.values(s).some(v => v);
+    // Bij een dier is dit blok de basis waar de tiers onderaan op verder bouwen;
+    // zonder die regel las het als "een statblok dat toch niets doet".
     body += `
       <div class="cs-blok">
         <div>
+          ${e?.subtype === 'dier' ? '<p class="cs-basis-uitleg">Dit is het dier vanaf level 1. Onderaan dit blad laat je het meegroeien met het baasje.</p>' : ''}
           <div class="cs-tabs-bar">
             <button type="button" class="cs-tab-btn cs-tab-active" onclick="window._csTab('gevecht')">Combat</button>
             <button type="button" class="cs-tab-btn" onclick="window._csTab('acties')">Actions</button>
@@ -4641,8 +4652,8 @@ window._openEditor = async (tab, editId) => {
     // (te koop, prijs, wat voor dier) staat bij Informatie.
     body += `
       <div id="pet-tier-section"${isDier ? '' : ' style="display:none"'}>
-        <div class="cs-sectiekop">Tiers</div>
-        <p class="text-[10px] text-ink-dim mb-2">Elk tier is een statblok dat geldt vanaf een bepaald level van het baasje.</p>
+        <div class="cs-sectiekop">Meegroeien met het baasje</div>
+        <p class="text-[10px] text-ink-dim mb-2">Het statblok hierboven is het dier vanaf level&nbsp;1. Een tier neemt het over zodra het baasje dat level haalt, en zegt alleen wat er verandert.</p>
         <div id="pet-tiers-list"></div>
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1" onclick="window._petTierAdd()">${icon('plus')} Tier toevoegen</button>
       </div>

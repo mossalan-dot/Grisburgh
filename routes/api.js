@@ -3476,27 +3476,51 @@ router.delete('/companions/:npcId/:groupId', requireDM, (req, res) => {
 });
 
 // ── Huisdieren / metgezellen: tier-schaling ──
-// Een dier-entity (subtype 'dier') kan een reeks benoemde statblock-tiers hebben
-// (`statblockTiers: [{ minLevel, label, statblock, maxHp }]`). De actieve tier is de
-// hoogste tier met minLevel <= het level van het baasje. Zonder tiers val terug op
-// een vaste `statblock`/`maxHp` op de entity zelf.
+// Het statblok op het kaartje zelf (`stats`) is de **basis**: dat is het dier
+// vanaf level 1, en zolang niemand een tier toevoegt is het ook het enige dat
+// er is. `statblockTiers: [{ minLevel, label, statblock, maxHp }]` zijn de
+// stappen daarboven: vanaf het level van het baasje neemt de hoogste gehaalde
+// tier het over.
+//
+// Een tier zegt alleen wát er verandert. Wat hij leeg laat komt uit de basis,
+// dus voor "hetzelfde beest, maar taaier" volstaan een AC en een HP. Dat is ook
+// waarom de basis nooit dode data is: hij ligt onder elk tier.
 function _activeTier(entity, ownerLevel) {
-  const tiers = Array.isArray(entity?.statblockTiers) ? entity.statblockTiers.slice() : [];
-  if (!tiers.length) {
-    // Geen tiers? Dan is het statblok van het kaartje zelf het antwoord. Dat
-    // staat in `stats` (entities hebben geen `statblock`-veld) — zonder deze
-    // terugval kwam er een leeg blok met allemaal tienen uit.
-    const eigen = entity?.statblock || entity?.stats || {};
-    const hp = parseInt(String(eigen.hp ?? '').match(/\d+/)?.[0] ?? '');
-    return { statblock: eigen, maxHp: entity?.maxHp ?? (isNaN(hp) ? null : hp), label: entity?.name, index: 0, count: 0, next: null };
-  }
-  tiers.sort((a, b) => (a.minLevel || 0) - (b.minLevel || 0));
+  // Entities hebben geen `statblock`-veld maar `stats`; `statblock` staat er
+  // voor monsterkaartjes die dezelfde helper gebruiken.
+  const basis = entity?.statblock || entity?.stats || {};
+  const hpUit = (sb) => {
+    const m = parseInt(String(sb?.hp ?? '').match(/\d+/)?.[0] ?? '');
+    return isNaN(m) ? null : m;
+  };
+
+  const tiers = (Array.isArray(entity?.statblockTiers) ? entity.statblockTiers.slice() : [])
+    .sort((a, b) => (a.minLevel || 0) - (b.minLevel || 0));
   const lvl = parseInt(ownerLevel) || 1;
-  let idx = 0;
+
+  // Hoogste tier waarvan het level gehaald is. Geen enkele (of geen tiers) →
+  // idx blijft -1 en de basis is het antwoord.
+  let idx = -1;
   for (let i = 0; i < tiers.length; i++) if ((tiers[i].minLevel || 0) <= lvl) idx = i;
-  const t = tiers[idx];
+
+  const t    = idx >= 0 ? tiers[idx] : null;
   const next = tiers[idx + 1] || null;
-  return { statblock: t.statblock || {}, maxHp: t.maxHp, label: t.label || entity?.name, index: idx, count: tiers.length, next: next ? (next.minLevel || null) : null };
+  const statblock = t ? { ...basis, ...(t.statblock || {}) } : { ...basis };
+  // De entiteit-editor noemt het veld `creatureType`, renderStatblock leest
+  // `type` (die kant komt van de monsterkaartjes). Zonder deze regel viel de
+  // creature type van een dier stil weg onder de naam.
+  if (statblock.creatureType && !statblock.type) statblock.type = statblock.creatureType;
+  return {
+    statblock,
+    maxHp: t?.maxHp ?? entity?.maxHp ?? hpUit(statblock),
+    label: (t && t.label) || entity?.name,
+    // De basis telt als eerste trede: met twee tiers zijn er drie stappen, en
+    // op level 1 sta je op 1/3. Zonder tiers is er niets te tellen (count 0),
+    // dan laat het scherm de aanduiding weg.
+    index: idx + 1,
+    count: tiers.length ? tiers.length + 1 : 0,
+    next: next ? (next.minLevel || null) : null,
+  };
 }
 
 // Zoek het baasje (characterId) van een huisdier over alle groepen heen.
@@ -3585,8 +3609,8 @@ function _magizooAdoptabel(dmState, gid) {
       && (e.data?.adopteerbaar === true || e.data?.adopteerbaar === 'true')
       && !owned.has(e.id))
     .map(e => {
-      const tiers = Array.isArray(e.statblockTiers) ? [...e.statblockTiers].sort((a, b) => (a.minLevel || 0) - (b.minLevel || 0)) : [];
-      const sb = (tiers[0]?.statblock) || e.statblock || {};
+      // Het adoptiekaartje toont het dier zoals het bij je komt: de basis.
+      const sb = e.stats || e.statblock || {};
       const samenvatting = (sb.traits || sb.actions || '').split('\n')[0].replace(/\*/g, '').trim().slice(0, 140);
       return {
         id: e.id, name: e.name, imageId: e.id,

@@ -1194,7 +1194,7 @@ const _STAAT_CYCLE = ['verborgen', 'zichtbaar', 'beschikbaar'];
 async function _renderDienstenToegang() {
   const el = _tabEl('toegang');
   if (!el) return;
-  el.innerHTML = '<div class="dm-feature-section"><div class="dm-section-label">Laden…</div></div>';
+  el.innerHTML = _dmLoading('Laden…');
 
   let data;
   try { data = await api.getDienstenToegang(); }
@@ -4907,8 +4907,6 @@ async function _renderBeursTab() {
   // muntnaam als tooltip — dat blijft kloppen als een campagne hernoemt.
   const n = window._muntNamen();
   el.innerHTML = `
-    <div class="dm-feature-section">
-      <div class="dm-section-label">Gedeelde beurs</div>
       <div class="dm-form-row">
         <button class="dm-btn dm-btn-sm dm-btn-ghost"
           id="hb-purse-toggle-btn" onclick="window._hbTogglePurse()"
@@ -4925,10 +4923,9 @@ async function _renderBeursTab() {
           <input id="hb-purse-kn" class="dm-input" type="number" min="0" value="${_partyCurrency.kn}"></label>
         <label class="dm-munt-veld" title="${esc(n.cl)}"><span>cp</span>
           <input id="hb-purse-cl" class="dm-input" type="number" min="0" value="${_partyCurrency.cl}"></label>
-        <button class="dm-btn dm-btn-ghost" onclick="window._hbSavePurse()" title="Nieuw saldo bewaren">${icon('save')} Bijwerken</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._hbSavePurse()" title="Nieuw saldo bewaren">${icon('save')} Bijwerken</button>
         <span id="hb-purse-status" class="bericht-status hidden"></span>
-      </div>` : ''}
-    </div>`;
+      </div>` : ''}`;
 };
 
 window._hbSelectWaard = (entityId) => {
@@ -9601,9 +9598,40 @@ function _naarTabletmodus() {
   location.reload();
 }
 
+// Instellingen is één lange kolom. Elke sectie is daarom een <details>: de DM
+// klapt dicht wat hij niet nodig heeft. De stand bewaren we in localStorage —
+// niet in de DOM — want half het paneel hertekent zichzelf na elke wijziging
+// (party erbij, wachtwoord, modules) en dan zou alles weer openspringen.
+// We onthouden wat DICHT staat, zodat een nieuwe sectie vanzelf open begint.
+const _INST_DICHT_KEY = 'grisburgh:inst-dicht';
+let _instDicht = new Set();
+try { _instDicht = new Set(JSON.parse(localStorage.getItem(_INST_DICHT_KEY) || '[]')); } catch { /* geen stand, alles open */ }
+
+function _instSectie(key, kop, inhoud, acties = '') {
+  return `<details class="dm-feature-section dm-inst-sectie" data-sectie="${key}"${_instDicht.has(key) ? '' : ' open'}>
+    <summary class="dm-section-label">${kop}${acties ? `<span class="dm-inst-sectie-acties">${acties}</span>` : ''}</summary>
+    <div class="dm-inst-sectie-body">${inhoud}</div>
+  </details>`;
+}
+
+// De scrollbak van het instellingenpaneel: welke voorouder ook scrollt.
+function _instScrollBak() {
+  for (let el = document.getElementById('dm-instellingen-body'); el; el = el.parentElement) {
+    const ov = getComputedStyle(el).overflowY;
+    if ((ov === 'auto' || ov === 'scroll') && el.scrollHeight > el.clientHeight) return el;
+  }
+  return null;
+}
+
 async function _renderInstellingen() {
   const body = document.getElementById('dm-instellingen-body');
   if (!body) return;
+
+  // Half het paneel hertekent zichzelf na elke wijziging (party erbij,
+  // wachtwoord, modules). Zonder dit sprong je daarbij naar de bovenkant van
+  // het formulier terug, midden in het invullen.
+  const _bak = _instScrollBak();
+  const _scrollWas = _bak ? _bak.scrollTop : 0;
 
   // Haal data op
   const meta = window.app?.state?.meta || {};
@@ -9734,8 +9762,7 @@ async function _renderInstellingen() {
     ${_dmTabHead({ icon: 'settings', title: 'Instellingen', sub: 'campagne, party\'s en beheer' })}
 
     <!-- Campagne -->
-    <div class="dm-feature-section">
-      <div class="dm-section-label">Campagne</div>
+    ${_instSectie('campagne', 'Campagne', `
       <div class="dm-form-row">
         <label class="dm-form-label">Titel</label>
         <input id="inst-app-title" class="dm-input" value="${esc(meta.appTitle || '')}" placeholder="Campagnenaam">
@@ -9753,12 +9780,10 @@ async function _renderInstellingen() {
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instEmbleemWis()" title="Geen embleem">${icon('x')} Wissen</button>
           <input type="hidden" id="inst-embleem" value="${esc(meta.embleem || '')}">
         </span>
-      </div>
-    </div>
+      </div>`)}
 
     <!-- Namen voor valuta -->
-    <div class="dm-feature-section">
-      <div class="dm-section-label">Namen voor valuta</div>
+    ${_instSectie('valuta', 'Namen voor valuta', `
       <div class="dm-form-row">
         <label class="dm-form-label" for="inst-munt-fl" title="De hele munt; alles rekent hierop terug">Gold piece (gp)</label>
         <input id="inst-munt-fl" class="dm-input" value="${esc(_munt.fl)}" placeholder="Gold">
@@ -9778,26 +9803,21 @@ async function _renderInstellingen() {
       <div class="dm-form-row">
         <label class="dm-form-label" for="inst-munt-pp" title="10 gp. Heeft geen eigen plek in de beurs: wordt bij het invoeren omgerekend.">Platinum piece (pp)</label>
         <input id="inst-munt-pp" class="dm-input" value="${esc(_munt.pp || '')}" placeholder="Platinum">
-      </div>
-    </div>
+      </div>`)}
 
-    <!-- Party's -->
-    <div class="dm-feature-section">
-      <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span class="dm-section-label dm-section-label--rij">Party's</span>
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instGroepCreate()" title="Nieuwe party aanmaken">${icon('plus')} Party toevoegen</button>
-      </div>
-      <div id="inst-groepen-list" style="display:flex;flex-direction:column;gap:6px">
+    <!-- Party's. De knop zit in de summary; stopPropagation houdt de sectie
+         open, want een klik ergens in een summary klapt hem anders dicht. -->
+    ${_instSectie('partys', 'Party\'s', `
+      <div id="inst-groepen-list" class="dm-inst-groepen">
         ${groupItems || '<p class="dm-hint">Nog geen party\'s.</p>'}
-      </div>
-    </div>
+      </div>`,
+      `<button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="event.stopPropagation();window._instGroepCreate()" title="Nieuwe party aanmaken">${icon('plus')} Party toevoegen</button>`)}
 
-    <!-- Gedeelde beurs (eigen dm-feature-section) -->
-    <div id="dm-inst-beurs"></div>
+    <!-- Gedeelde beurs: _renderBeursTab vult alleen de inhoud -->
+    ${_instSectie('beurs', 'Gedeelde beurs', '<div id="dm-inst-beurs"></div>')}
 
     <!-- Beheer: alles wat over toegang en dit scherm gaat -->
-    <div class="dm-feature-section">
-      <div class="dm-section-label">Beheer</div>
+    ${_instSectie('beheer', 'Beheer', `
       <div class="dm-subgroep-label">Jouw eigen wachtwoord</div>
       <div class="dm-form-row">
         <label class="dm-form-label" for="dm-pw-nieuw"
@@ -9851,12 +9871,10 @@ async function _renderInstellingen() {
           </div>
           <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
         </div>
-      </details>`}
-    </div>
+      </details>`}`)}
 
     <!-- Export & backup -->
-    <div class="dm-feature-section">
-      <div class="dm-section-label">Export &amp; backup</div>
+    ${_instSectie('export', 'Export &amp; backup', `
       <div class="dm-feature-row dm-knoprij">
         <a href="/api/export" download class="dm-btn dm-btn-sm dm-btn-ghost"
           title="HTML-overzicht van alle spelersdata en entities">${icon('download')} Snapshot</a>
@@ -9864,8 +9882,7 @@ async function _renderInstellingen() {
           title="Narratief document van de campagne">${icon('book-open')} Campagneboek</a>
         <a href="/api/party/sheets" target="_blank" rel="noopener" class="dm-btn dm-btn-sm dm-btn-ghost"
           title="Character sheets van de actieve party — printen of als pdf bewaren">${icon('scroll-text')} Character sheets</a>
-      </div>
-    </div>
+      </div>`)}
 
     <!-- Eén opslaanknop voor alles hierboven wat niet vanzelf bewaart -->
     <div class="dm-inst-opslaan">
@@ -9904,10 +9921,30 @@ async function _renderInstellingen() {
     body._enterGebonden = true;
   }
 
+  // Onthouden wat de DM dichtklapt. Eén handler op het paneel in plaats van
+  // één per sectie: 'toggle' bubbelt niet, dus vangen we hem in de capture-fase.
+  if (!body._sectiesGebonden) {
+    body.addEventListener('toggle', (e) => {
+      const det = e.target.closest?.('.dm-inst-sectie');
+      if (!det) return;
+      const key = det.dataset.sectie;
+      if (det.open) _instDicht.delete(key); else _instDicht.add(key);
+      try { localStorage.setItem(_INST_DICHT_KEY, JSON.stringify([..._instDicht])); } catch { /* privémodus */ }
+    }, true);
+    body._sectiesGebonden = true;
+  }
+
   // De beurs heeft zijn eigen render; de wereld-instellingen zijn verhuisd naar
   // Diensten → Toegang, waar ze thuishoren.
   _renderBeursTab();
   _dmWachtwoordStatus();
+
+  // Terug naar waar de DM stond. Na de frame waarin de browser de nieuwe
+  // inhoud heeft opgemeten, anders is de bak nog te kort om zo ver te scrollen.
+  if (_scrollWas) requestAnimationFrame(() => {
+    const bak = _instScrollBak();
+    if (bak) bak.scrollTop = _scrollWas;
+  });
 };
 
 // Eén knop voor alles wat niet vanzelf bewaart. Party's en hun wachtwoorden
