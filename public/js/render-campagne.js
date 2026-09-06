@@ -219,11 +219,11 @@ const SCHEMA = {
       { key: 'domein', label: 'Domein', type: 'text', alleenBij: ['god'], hint: 'Kennis en uitvinding' },
       { key: 'symbool', label: 'Heilig symbool', type: 'text', alleenBij: ['god'], hint: 'Een purperen waterrad' },
       { key: 'alignment', label: 'Alignment', type: 'lijst', lijst: 'alignments' },
-      { key: 'tags', label: 'Rollen', type: 'rollen', hulp: 'sec_rollen' },
+      { key: 'tags', label: 'Rollen', type: 'rollen' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
-      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour', hulp: 'sec_flavour' },
-      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim', hulp: 'sec_geheimen' },
-      { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true, hulp: 'sec_aantekeningen' },
+      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
+      { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
   },
   locaties: {
@@ -239,12 +239,12 @@ const SCHEMA = {
       // 'wijk' heet nu Gebied: het veld werd allang gebruikt voor een land, een
       // streek of een bovenliggend gebouw ("Hogwarts, tweede verdieping"). De
       // sleutel blijft `wijk` — daar hangt de sortering en de zoekindex aan.
-      { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'], hulp: 'sec_gebied',
+      { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
         hint: 'De stad, streek of het gebouw waar dit in ligt' },
-      { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen', hulp: 'sec_betrokkenen' },
+      { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
-      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour', hulp: 'sec_flavour' },
-      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim', hulp: 'sec_geheimen' },
+      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
     ],
   },
   organisaties: {
@@ -252,9 +252,9 @@ const SCHEMA = {
       { key: 'orgType', label: 'Type', type: 'select', options: ['Gilde','Factie','Religieus','Politiek','Crimineel','Militair','Overig'] },
       { key: 'motto', label: 'Motto', type: 'text' },
       // Zelfde koppelingen als bij een locatie: waar ze zitten en wie erbij hoort.
-      { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'], hulp: 'sec_gebied',
+      { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
         hint: 'De stad, streek of het gebouw waar dit in zit' },
-      { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen', hulp: 'sec_betrokkenen' },
+      { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
     ],
@@ -804,18 +804,6 @@ window._naarKoppelingen = () => {
   setTimeout(() => sec.classList.remove('koppel-sectie--licht-op'), 1400);
 };
 
-// Uitleg per sectie. Dezelfde sleutels in de aanmaak-, bewerk- en kijkmodus,
-// zodat de DM een tekst maar één keer hoeft aan te passen. `window._helpBtn`
-// woont in app.js; hier alleen aanroepen als hij er is (de editor wordt ook
-// gebruikt voordat app.js klaar is met initialiseren).
-function _hulp(key) {
-  return key ? (window._helpBtn?.(key, { cls: 'help-btn--sectie' }) ?? '') : '';
-}
-// Sectiekop met een uitlegknop ernaast.
-function _sectiekop(titel, hulpKey) {
-  return `<div class="cs-sectiekop">${titel}${_hulp(hulpKey)}</div>`;
-}
-
 function _optieHtml(o, val, alGekozen) {
   const v = typeof o === 'object' ? o.value : o;
   const l = typeof o === 'object' ? o.label : o;
@@ -1218,7 +1206,7 @@ function _kaartTabHtml(locId, plek, alleen = true) {
   // afbeelding zelf) belandt punt X%,Y% precies in het midden — bij elke zoom.
   return `
     <div class="detail-kaartblok">
-      <div class="detail-label">${icon('map-pin')} ${esc(kaart.label || 'Op de kaart')}${_hulp('sec_kaart')}</div>
+      <div class="detail-label">${icon('map-pin')} ${esc(kaart.label || 'Op de kaart')}</div>
       <div class="detail-kaartuitsnede${alleen ? '' : ' detail-kaartuitsnede--kort'}">
         <img class="kaartuitsnede-img" alt="" src="${esc(_kaartSrc(kaart))}"
           style="transform:translate(-${pin.x}%, -${pin.y}%)">
@@ -1238,18 +1226,23 @@ function _dungeonTabHtml(kaart, kamer) {
   // kaartengalerij kiest — dat kan een tekening van de hal zijn en zegt niets
   // over de indeling. Hier wil je de plattegrond, met het sfeerbeeld als
   // vangnet voor een kaart zonder plaatje.
-  const bron = kaart.fileId ? api.fileUrl(kaart.fileId)
+  //
+  // Maar niet voor een speler: de kale plattegrond toont ook de kamers die zijn
+  // party nog niet ontdekt heeft. Hij krijgt de naam en de knop; de plattegrond
+  // zelf ziet hij in de dungeonweergave, mét mist.
+  const bron = !isDM() ? '' :
+               kaart.fileId ? api.fileUrl(kaart.fileId)
              : kaart.thumbId ? api.thumbUrl(kaart.thumbId) : '';
   const beeld = bron ? `<img class="detail-dungeonbeeld" src="${esc(bron)}" alt="">` : '';
   return `
     <div class="detail-kaartblok">
-      <div class="detail-label">${icon('map')} ${esc(kaart.name || 'Dungeon')}${_hulp('sec_kaart')}</div>
+      <div class="detail-label">${icon('map')} ${esc(kaart.name || 'Dungeon')}</div>
       ${beeld}
       ${kamer ? `<p class="veld-uitleg">${icon('map-pin')} Kamer: ${esc(kamer.name || kamer.id)}</p>` : ''}
       ${kaart.description ? `<p class="detail-desc">${esc(kaart.description)}</p>` : ''}
       <div class="detail-map-link-wrap">
         <button class="detail-map-link-btn" onclick="window.app.closeModal();window._openKaartFullscreen('dungeon','${esc(kaart.id)}')">
-          ${icon('maximize-2')} Open de plattegrond
+          ${icon('map')} Toon op de hele kaart
         </button>
       </div>
     </div>`;
@@ -1338,6 +1331,11 @@ function _koppelLocTypeToon(val) {
   const t = document.getElementById('koppel-tempel');
   if (h) h.style.display = type === 'Herberg' ? '' : 'none';
   if (t) t.style.display = type === 'Tempel'  ? '' : 'none';
+  // Bij een locatie heeft alleen een herberg of een tempel iets te koppelen;
+  // bij de rest bleef er een kop over met niets eronder. (Een organisatie
+  // houdt de sectie altijd: daar staat de factiekeuze.)
+  const sec = document.getElementById('koppel-sectie');
+  if (sec && (h || t)) sec.style.display = ['Herberg', 'Tempel'].includes(type) ? '' : 'none';
 }
 
 function _koppelDungeonVullen() {
@@ -1509,7 +1507,20 @@ const ED_TABS = [
   { key: 'kaart', label: 'Kaart' },
 ];
 
-function _bouwEditorTabs(html, toonWinkel, sheetLabel) {
+// Eén uitlegknop rechts in de tabbalk, die meeloopt met het open tabblad. Per
+// sectie een boekje werd een woud; per tabblad past de hele uitleg in één
+// venster met doorklikstappen.
+function _tabHulpHtml(tabType) {
+  return `<span class="tab-hulp" data-tab-hulp="${esc(tabType)}"></span>`;
+}
+function _tabHulpVul(tabType, paneel) {
+  document.querySelectorAll(`[data-tab-hulp="${tabType}"]`).forEach(host => {
+    const sleutel = `hulp_${tabType}_${paneel}`;
+    host.innerHTML = window._heeftHelp?.(sleutel) ? window._helpBtn(sleutel) : '';
+  });
+}
+
+function _bouwEditorTabs(html, toonWinkel, sheetLabel, tabType) {
   // Het <form> staat om álles heen; zou hij in het eerste paneel blijven staan,
   // dan sluit de browser hem daar en vallen de velden van de andere tabbladen
   // buiten het formulier — die werden dan niet meegestuurd bij het opslaan.
@@ -1540,6 +1551,7 @@ function _bouwEditorTabs(html, toonWinkel, sheetLabel) {
     <div class="ed-tabs">
       ${gevuld.map(t => `<button type="button" class="ed-tab${t.key === eerste ? ' is-actief' : ''}${t.key === 'winkel' && !toonWinkel ? ' hidden' : ''}"
         data-ed-tab="${t.key}" onclick="window._edTab('${t.key}')">${t.key === 'sheet' && sheetLabel ? sheetLabel : t.label}</button>`).join('')}
+      ${_tabHulpHtml(tabType)}
     </div>
     ${gevuld.map(t => `<div class="ed-paneel${t.key === eerste ? ' is-actief' : ''}" data-ed-paneel="${t.key}">${panelen[t.key]}</div>`).join('')}
     <div class="ed-paneel-verborgen">${rest}</div>
@@ -1550,6 +1562,8 @@ function _bouwEditorTabs(html, toonWinkel, sheetLabel) {
 window._edTab = (naam) => {
   document.querySelectorAll('[data-ed-tab]').forEach(b => b.classList.toggle('is-actief', b.dataset.edTab === naam));
   document.querySelectorAll('[data-ed-paneel]').forEach(p => p.classList.toggle('is-actief', p.dataset.edPaneel === naam));
+  const host = document.querySelector('.ed-tabs [data-tab-hulp]');
+  if (host) _tabHulpVul(host.dataset.tabHulp, naam);
 };
 
 // ── Rollen op een kaartje ────────────────────────────────────────────────────
@@ -3240,7 +3254,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // een hoop met drie namen erachter niet te lezen.
   const _rolRegels = (kop, rijen) => `
     <div class="detail-betrekking">
-      <div class="detail-label">${icon('link')} ${esc(kop)}${_hulp('sec_betrokkenen')}</div>
+      <div class="detail-label">${icon('link')} ${esc(kop)}</div>
       <div class="detail-betrekking-rijen">
         ${rijen.map(r => `<div class="detail-betrekking-rij">
           <span class="detail-betrekking-rol">${esc(r.rol || '\u2014')}</span>
@@ -3308,7 +3322,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     infoHtml += `
       <div class="mb-4">
         <div class="detail-field-label detail-field-label--roddel">
-          <span class="dfl-titel">${icon('beer')} ${flavourRegels.length > 1 ? 'Roddels' : 'Roddel'}${_hulp('sec_flavour')}</span>${
+          <span class="dfl-titel">${icon('beer')} ${flavourRegels.length > 1 ? 'Roddels' : 'Roddel'}</span>${
           isDM() && flavourRegels.length ? `<span class="geheim-teller">${_verteld} van ${flavourRegels.length} onthuld</span>` : ''}</div>
         ${_onthulBlok(`det-${e.id}`)}
       </div>`;
@@ -3339,7 +3353,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     infoHtml += `
       <div class="mb-4">
         <div class="detail-field-label detail-field-label--secret">
-          <span class="dfl-titel">${icon('lock')} ${zichtbareGeheimen.length > 1 ? 'Geheimen' : 'Geheim'}${isDM() ? _hulp('sec_geheimen') : ''}</span>${
+          <span class="dfl-titel">${icon('lock')} ${zichtbareGeheimen.length > 1 ? 'Geheimen' : 'Geheim'}</span>${
           isDM() && geheimRegels.length ? `<span class="geheim-teller">${_geheimOnthuld.filter(Boolean).length} van ${geheimRegels.length} onthuld</span>` : ''}</div>
         ${_onthulBlok(`geh-${e.id}`)}
       </div>`;
@@ -3371,7 +3385,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
              dus je hoeft de editor niet te openen. -->
         <!-- Eerst je eigen aantekeningen, dan die van de spelers: dit is jouw
              venster, en wat je zelf typt hoort bovenaan. -->
-        <div class="detail-label mb-1">Aantekeningen voor de DM${_hulp('sec_aantekeningen')}</div>
+        <div class="detail-label mb-1">Aantekeningen voor de DM</div>
         <textarea id="dm-note-${e.id}" class="notitie-vak"
           placeholder="Alleen jij ziet dit\u2026">${esc(e.data?.persoonlijkheid || '')}</textarea>
         <div id="note-save-${e.id}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1 mb-3"></div>
@@ -3791,7 +3805,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   `).join('');
 
   const body = `
-    <div class="detail-tab-nav">${tabNav}</div>
+    <div class="detail-tab-nav">${tabNav}${_tabHulpHtml(tab)}</div>
     <div id="dtab-info">${infoHtml}</div>
     ${showSheet ? `<div id="dtab-sheet" class="hidden">${sheetHtml}</div>` : ''}
     ${isStapelbaarVoorwerp && isDM() ? `<div id="dtab-eigenaren" class="hidden">${eigenarenHtml}</div>` : ''}
@@ -3867,6 +3881,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
 
   // Tab switching
   const allTabKeys = detailTabs.map(t => t.key);
+  _tabHulpVul(tab, detailTabs[0]?.key || 'info');
   document.querySelectorAll('.detail-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.dtab;
@@ -3877,6 +3892,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         const panel = document.getElementById(`dtab-${k}`);
         if (panel) panel.classList.toggle('hidden', k !== target);
       });
+      _tabHulpVul(tab, target);
     });
   });
 
@@ -4849,7 +4865,7 @@ window._openEditor = async (tab, editId) => {
     const focusVal = e?.data?.imgFocus || '50% 50%';
     body += `
       <div>
-        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Afbeelding</label>${_hulp('sec_beeld')}
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Afbeelding</label>
         <div class="mt-1">
           <!-- De picker toont de héle afbeelding (object-contain): je zet het
                kruisje op het gezicht, ook als dat in een hoek zit. Daarnaast
@@ -5046,7 +5062,7 @@ window._openEditor = async (tab, editId) => {
       } else {
         body += `
         <div${field.dmOnly ? ' class="veld-dmonly"' : ''}>
-          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>${_hulp(field.hulp)}
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <div class="mt-1">${_taHtml}</div>
         </div>`;
       }
@@ -5072,7 +5088,7 @@ window._openEditor = async (tab, editId) => {
       if (e?.subtype && ROLLEN.some(r => r.key === e.subtype) && !_gekozen.includes(e.subtype)) _gekozen.push(e.subtype);
       body += `
         <div>
-          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>${_hulp(field.hulp)}
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <input type="hidden" name="data_${field.key}" id="rollen-veld" value="${esc(JSON.stringify(_gekozen))}">
           <div class="rollen-rij mt-1">
             <span class="rollen-rollen"${String(e?.subtype || '').toLowerCase() === 'dier' ? ' style="display:none"' : ''}>
@@ -5117,7 +5133,7 @@ window._openEditor = async (tab, editId) => {
         const _mn2 = window._muntNamen();
         body += `
           <div id="pet-adopt-section"${_isDierNu ? '' : ' style="display:none"'}>
-            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Adoptie</label>${_hulp('sec_adoptie')}
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Adoptie</label>
             <label class="rol-keuze mt-1" style="display:flex">
               <input type="checkbox" id="pet-adopt-cb" ${_adopt2 ? 'checked' : ''}
                 onchange="document.getElementById('pet-adopt-hidden').value=this.checked?'true':''">
@@ -5167,7 +5183,7 @@ window._openEditor = async (tab, editId) => {
       const _verborgenVeld = field.key === 'geheimen';
       body += `
         <div${_verborgenVeld ? ' class="veld-dmonly"' : ''}>
-          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>${_hulp(field.hulp)}
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <div id="lijst-${field.key}" class="lijst-veld" data-veld="${field.key}"${_metAntag ? ' data-antag="1"' : ''}>
             ${regels.map((t, i) => _lijstRegelHtml(field.key, t, i, _antagVlaggen[i], _metAntag)).join('')}
           </div>
@@ -5195,7 +5211,7 @@ window._openEditor = async (tab, editId) => {
       const _inId = `link-in-${field.key}`;
       body += `
         <div>
-          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="${_inId}">${esc(field.label)}</label>${_hulp(field.hulp)}
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="${_inId}">${esc(field.label)}</label>
           <span class="link-veld">
             <input id="${_inId}" name="data_${field.key}" value="${esc(val)}" list="${_dlId}"
               data-link-veld="1" data-link-doel="${field.doel.join(',')}" data-link-id="link-hid-${field.key}"
@@ -5218,7 +5234,7 @@ window._openEditor = async (tab, editId) => {
       if (!rijen.length) rijen.push({ naam: '', rol: '' });
       body += `
         <div>
-          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>${_hulp(field.hulp)}
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <div id="betrokkenen-lijst">
             ${rijen.map((r, i) => _betrokkenRijHtml(r, i)).join('')}
           </div>
@@ -5305,7 +5321,7 @@ window._openEditor = async (tab, editId) => {
     const _hbRijen = _hb.length ? _hb : [{}];
     body += `
       <div class="hoortbij-sectie">
-        ${_sectiekop('Hoort bij', 'sec_betrokkenen')}
+        <div class="cs-sectiekop">Hoort bij</div>
         <div id="hoortbij-lijst">${_hbRijen.map((r, i) => _hoortRijHtml(r, i)).join('')}</div>
         <datalist id="hoortbij-dl" data-link-doel="locaties,organisaties"></datalist>
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
@@ -5330,7 +5346,7 @@ window._openEditor = async (tab, editId) => {
     const _bestaat = !!e?.id;
     body += !_bestaat ? '' : `
       <div class="koppel-sectie" id="koppel-sectie">
-        ${_sectiekop('Koppelingen', 'sec_koppelingen')}
+        <div class="cs-sectiekop">Koppelingen</div>
         <div id="koppel-laden" class="veld-uitleg">Laden\u2026</div>
         <div id="koppel-inhoud" class="hidden">
           ${(_isLoc && _bestaat) ? `
@@ -5360,7 +5376,7 @@ window._openEditor = async (tab, editId) => {
       body += `<!--P:kaart-->`;
       body += `
         <div class="koppel-rij" id="koppel-kaart">
-          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-mapid">Op welke kaart</label>${_hulp('sec_kaart')}
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-mapid">Op welke kaart</label>
           <select id="koppel-mapid" class="koppel-select" onchange="window._pinKaartWissel()"></select>
           <!-- Coördinaten intikken is onwerkbaar; aanwijzen is de handeling.
                De kaart staat er op ware verhouding en helemaal in beeld: met een
@@ -5430,7 +5446,7 @@ window._openEditor = async (tab, editId) => {
     try { winkelConfigEditor = e?.data?.winkelConfig ? JSON.parse(e.data.winkelConfig) : {}; } catch {}
     body += `
       <div id="voorraad-section"${_showVoorraad ? '' : ' style="display:none"'}>
-        <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Voorraad${_hulp('sec_winkel')}</div>
+        <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Voorraad</div>
         <div class="voorraad-inladen-wrap mb-3">
           <button type="button" onclick="window._voorraadInladenToggle()"
             class="text-xs text-ink-dim hover:text-gold transition flex items-center gap-1">
@@ -5559,7 +5575,6 @@ window._openEditor = async (tab, editId) => {
     body += `
       <div class="cs-blok">
         <div>
-          ${_sectiekop('Statblock', 'sec_statblock')}
           ${_isDier ? '<p class="cs-basis-uitleg">Dit is het dier vanaf level 1. Onderaan dit blad laat je het meegroeien met het baasje.</p>' : ''}
           <!-- Een dier heeft geen spreukenlijst, en met alleen Combat + Actions
                is een tabbalk een zoekplaatje voor twee panelen. Hij krijgt
@@ -5629,7 +5644,7 @@ window._openEditor = async (tab, editId) => {
     // (te koop, prijs, wat voor dier) staat bij Informatie.
     body += `
       <div id="pet-tier-section"${isDier ? '' : ' style="display:none"'}>
-        ${_sectiekop('Meegroeien met het baasje', 'sec_tiers')}
+        <div class="cs-sectiekop">Meegroeien met het baasje</div>
         <p class="text-[10px] text-ink-dim mb-2">Het statblok hierboven is het dier vanaf level&nbsp;1. Een tier neemt het over zodra het baasje dat level haalt, en zegt alleen wat er verandert.</p>
         <div id="pet-tiers-list"></div>
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1" onclick="window._petTierAdd()">${icon('plus')} Tier toevoegen</button>
@@ -5670,9 +5685,12 @@ window._openEditor = async (tab, editId) => {
   const _sheetLabel = (tab === 'personages' && e?.subtype !== 'speler') ? 'Statblock' : null;
   body = _bouwEditorTabs(body, tab === 'locaties'
     ? (e?.data?.locType === 'Winkel' || _heeftWaren)
-    : window._heeftRol(e, 'verkoper'), _sheetLabel);
+    : window._heeftRol(e, 'verkoper'), _sheetLabel, tab);
   const _tm = TYPE_META[tab];
   openModal(editId ? (_tm.bewerk || 'Bewerken') : (_tm.nieuw || 'Nieuw'), '', body);
+
+  // Uitleg bij het tabblad dat open staat (het eerste met inhoud).
+  _tabHulpVul(tab, document.querySelector('[data-ed-paneel].is-actief')?.dataset.edPaneel || 'info');
 
   // Huisdier-tier-editor vullen (no-op als de sectie er niet is)
   window._renderPetTiers();

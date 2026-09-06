@@ -334,10 +334,15 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   }
   if (e.data.wijkId     && !zichtbaar(e.data.wijkId))     delete e.data.wijkId;
   if (e.data.eigenaarId && !zichtbaar(e.data.eigenaarId)) delete e.data.eigenaarId;
-  // Dungeonkaart en kamer zijn DM-gereedschap; een speler heeft er niets aan en
-  // het verklapt dat er een kaart bestaat.
-  delete e.data.dungeonId;
-  delete e.data.roomId;
+  // ── Dungeonkoppeling ──
+  // Een plattegrond volgt zijn eigen zichtbaarheid: de party moet toegang tot
+  // de kaart hebben, en hangt dit kaartje aan één kamer, dan moet díé kamer
+  // onthuld zijn. Anders verklapt een herbergkaartje dat er een kelder is.
+  // De korte sluiting scheelt een bestandslezing per kaartje zonder dungeon.
+  if (!e.data.dungeonId || !_dungeonZichtbaarVoor(e.data.dungeonId, e.data.roomId, groupId)) {
+    delete e.data.dungeonId;
+    delete e.data.roomId;
+  }
 
   delete e.stats;
   e._visibility   = 'visible';
@@ -3563,6 +3568,19 @@ router.delete('/companions/:npcId/:groupId', requireDM, (req, res) => {
   req.app.get('io').to(req.session?.campaignId||'main').emit('companion:unlink', { npcId, name: entity?.name || '', groupId });
   res.json({ ok: true });
 });
+
+// Mag deze party van deze dungeonkaart (en eventueel díé kamer) weten?
+// Zonder toegang tot de kaart: nee. Met een kamer erbij: alleen als de kamer
+// onthuld is — de rest van de plattegrond blijft dan achter de mist van de
+// dungeonweergave, waar hij hoort.
+function _dungeonZichtbaarVoor(dungeonId, roomId, groupId) {
+  if (!dungeonId || !groupId) return false;
+  const kaart = _readDungeons().find(m => m.id === dungeonId);
+  if (!kaart) return false;
+  if (!(kaart.partyAccess || []).includes(groupId)) return false;
+  if (!roomId) return true;
+  return (kaart.reveals?.[groupId] || []).includes(roomId);
+}
 
 // ── Koppelingen van een kaartje ─────────────────────────────────────────────
 // Een herberg, een tempel en een factie zijn diensten met een eigen config, en

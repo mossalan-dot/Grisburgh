@@ -176,6 +176,52 @@ describe('Server-side filtering', () => {
       'een verborgen locatie komt niet in "hoort bij"');
   });
 
+  it('dungeonkoppeling volgt de zichtbaarheid van de plattegrond', async () => {
+    const speler = await req(server, 'POST', '/api/entities/personages', {
+      name: 'Kelder Speler', subtype: 'speler', data: { groep: 'groep1' },
+    }, dmCookie);
+    const login = await req(server, 'POST', '/api/auth/player-login',
+      { campagne: 'grisburgh', characterId: speler.body.id });
+    const spelerCookie = login.cookie;
+
+    const dng = await req(server, 'POST', '/api/dungeons', { name: 'De Kelders' }, dmCookie);
+    const dngId = dng.body.id;
+    await req(server, 'PUT', `/api/dungeons/${dngId}/rooms`, {
+      rooms: [{ id: 'r_luik', name: 'Het luik' }, { id: 'r_diep', name: 'Diepe gang' }],
+    }, dmCookie);
+
+    const kroeg = await req(server, 'POST', '/api/entities/locaties', {
+      name: 'Kroeg met kelder', data: { dungeonId: dngId, roomId: 'r_diep' },
+    }, dmCookie);
+    await req(server, 'PUT', `/api/entities/locaties/${kroeg.body.id}/visibility`, null, dmCookie);
+    const lees = async () => (await req(server, 'GET', `/api/entities/locaties/${kroeg.body.id}`, null, spelerCookie)).body.data;
+
+    // Geen toegang tot de kaart: de koppeling bestaat niet voor deze speler.
+    assert.strictEqual((await lees()).dungeonId, undefined, 'zonder toegang geen dungeon');
+
+    // Toegang tot de kaart, maar de kamer is nog niet onthuld.
+    await req(server, 'PUT', `/api/dungeons/${dngId}/party-access`, { partyAccess: ['groep1'] }, dmCookie);
+    assert.strictEqual((await lees()).dungeonId, undefined, 'kamer nog niet onthuld');
+
+    // Een ándere kamer onthullen helpt niet.
+    await req(server, 'POST', `/api/dungeons/${dngId}/reveal`, { roomId: 'r_luik', groupId: 'groep1' }, dmCookie);
+    assert.strictEqual((await lees()).dungeonId, undefined, 'andere kamer telt niet');
+
+    // Pas als díé kamer onthuld is.
+    await req(server, 'POST', `/api/dungeons/${dngId}/reveal`, { roomId: 'r_diep', groupId: 'groep1' }, dmCookie);
+    const na = await lees();
+    assert.strictEqual(na.dungeonId, dngId);
+    assert.strictEqual(na.roomId, 'r_diep');
+
+    // Zonder kamer: toegang tot de kaart is genoeg.
+    const grot = await req(server, 'POST', '/api/entities/locaties', {
+      name: 'Grot zonder kamer', data: { dungeonId: dngId, roomId: '' },
+    }, dmCookie);
+    await req(server, 'PUT', `/api/entities/locaties/${grot.body.id}/visibility`, null, dmCookie);
+    const g = (await req(server, 'GET', `/api/entities/locaties/${grot.body.id}`, null, spelerCookie)).body.data;
+    assert.strictEqual(g.dungeonId, dngId, 'hele kaart: toegang volstaat');
+  });
+
   it('tekst content only visible for revealed docs to players', async () => {
     const doc = await req(server, 'POST', '/api/archief', { name: 'Tekst Doc', cat: 'codex' }, dmCookie);
     const id = doc.body.id;
