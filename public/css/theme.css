@@ -23214,7 +23214,8 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 .kaartuitsnede-img {
   position: absolute; left: 50%; top: 50%;
-  width: 320%; max-width: none; user-select: none; -webkit-user-drag: none;
+  /* Genoeg om de omgeving te herkennen — op 320% zag je alleen nog daken. */
+  width: 190%; max-width: none; user-select: none; -webkit-user-drag: none;
 }
 .detail-kaartblok .detail-map-link-wrap { margin-top: 6px; }
 
