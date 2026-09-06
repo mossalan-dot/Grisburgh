@@ -558,9 +558,10 @@ window._kaartFsTerug = () => {
 };
 
 // ── Uitklapmenu's in de kopbalk ─────────────────────────────────────────────
-// Drie knoppen met dezelfde streken. Ze gedragen zich nu als één menubalk:
-// klikken opent er één (en sluit de andere), en zolang er één openstaat schuift
-// hoveren over een buurknop het menu mee — zoals je van een menubalk verwacht.
+// Drie knoppen met dezelfde streken; klikken opent er één en sluit de andere.
+// Bewust géén meeschuiven bij hoveren: naast deze drie staan knoppen zónder
+// menu (Personage, Meesterkamer), en dan bleef het geopende menu bij de een
+// wél en bij de ander niet hangen. Dat las als een haperende menubalk.
 const NAV_MENUS = [
   { menu: 'archief-menu',  knop: 'archief-nav-btn' },
   { menu: 'diensten-menu', knop: 'diensten-nav-btn' },
@@ -590,22 +591,6 @@ function _navMenuToggle(menuId) {
   if (el.classList.contains('hidden')) _navMenuToon(menuId);
   else { el.classList.add('hidden'); el.style.top = ''; }
 }
-
-function _navMenuOpen() {
-  return NAV_MENUS.some(m => {
-    const el = document.getElementById(m.menu);
-    return el && !el.classList.contains('hidden');
-  });
-}
-
-// Eén keer binden: hoveren wisselt alleen als er al iets openstaat, anders
-// zou het menu opengaan terwijl je er per ongeluk langs beweegt.
-document.addEventListener('mouseover', (e) => {
-  const knop = e.target.closest?.('#archief-nav-btn, #diensten-nav-btn, #logboek-nav-btn');
-  if (!knop || !_navMenuOpen()) return;
-  const m = NAV_MENUS.find(x => x.knop === knop.id);
-  if (m) _navMenuToon(m.menu);
-});
 
 function toggleArchiefMenu()  { _navMenuToggle('archief-menu'); }
 function closeArchiefMenu()   { const el = $('#archief-menu');  if (el) { el.classList.add('hidden'); el.style.top = ''; } }
