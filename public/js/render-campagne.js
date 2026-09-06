@@ -1061,6 +1061,8 @@ function _pinTeken() {
   const kaart = _koppelCtx.kaarten.find(k => k.id === sel.value);
   if (!kaart) {
     doek.style.display = 'none';
+    const zb = document.getElementById('koppel-mapzoom');
+    if (zb) zb.style.display = 'none';
     if (knoppen) knoppen.innerHTML = '';
     if (uitleg) uitleg.textContent = _koppelCtx.kaarten.length
       ? 'Kies een kaart om dit kaartje een plek te geven.'
@@ -1068,6 +1070,8 @@ function _pinTeken() {
     return;
   }
   doek.style.display = '';
+  const zoomBalk = document.getElementById('koppel-mapzoom');
+  if (zoomBalk) zoomBalk.style.display = '';
   const img = document.getElementById('koppel-mapimg');
   const bron = _kaartSrc(kaart);
   if (img && img.getAttribute('src') !== bron) img.src = bron;
@@ -1081,7 +1085,7 @@ function _pinTeken() {
   }
   if (knoppen) {
     knoppen.innerHTML = pin
-      ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._toonOpKaart('${esc(_koppelCtx.id)}')">${icon('map')} Op de grote kaart</button>
+      ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._toonOpKaart('${esc(_koppelCtx.id)}','${esc(kaart.id)}')">${icon('map')} Op de grote kaart</button>
          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger" onclick="window._pinWeg()">${icon('trash')} Van de kaart halen</button>`
       : '';
   }
@@ -1091,6 +1095,31 @@ function _pinTeken() {
 }
 
 window._pinKaartWissel = () => _pinTeken();
+
+// Inzoomen bij het plaatsen: op een stadskaart liggen panden soms een paar
+// pixels uit elkaar. De afbeelding groeit binnen een scrollbaar doek, dus de
+// procentcoördinaten blijven kloppen — we meten toch op de afbeelding zelf.
+let _pinZoomStand = 1;
+const _PIN_ZOOM = [1, 1.5, 2, 3, 4, 6];
+window._pinZoom = (richting) => {
+  const i = Math.max(0, Math.min(_PIN_ZOOM.length - 1, _PIN_ZOOM.indexOf(_pinZoomStand) + richting));
+  _pinZoomStand = _PIN_ZOOM[i];
+  const inner = document.getElementById('koppel-mapinner');
+  const doek  = document.getElementById('koppel-mapdoek');
+  const stand = document.getElementById('koppel-mapzoomstand');
+  if (stand) stand.textContent = Math.round(_pinZoomStand * 100) + '%';
+  if (!inner || !doek) return;
+  inner.style.width = (_pinZoomStand * 100) + '%';
+  // Na het zoomen de speld (of anders het midden) weer in beeld brengen. Niet
+  // in een requestAnimationFrame: de afbeelding is dan nog niet opnieuw
+  // opgemeten en de berekening liep op de oude maten (en werd dus 0).
+  setTimeout(() => {
+    const pin = _pinHuidig() || _pinWacht;
+    const px = (pin ? pin.x : 50) / 100, py = (pin ? pin.y : 50) / 100;
+    doek.scrollLeft = px * inner.offsetWidth  - doek.clientWidth  / 2;
+    doek.scrollTop  = py * inner.offsetHeight - doek.clientHeight / 2;
+  }, 60);
+};
 
 // De uitsnede in het detailvenster. `background-position: X% Y%` legt het punt
 // op X%/Y% van de áfbeelding op X%/Y% van het kader; de speld staat op dezelfde
@@ -1111,31 +1140,61 @@ async function _kaartGegevens() {
 }
 window._kaartCacheLeeg = () => { _kaartCache = null; };
 
-async function _vulKaartUitsnede(tab, e) {
-  const blok = document.getElementById(`detail-kaartblok-${e?.id}`);
-  const doek = document.getElementById('detail-kaartuitsnede');
-  if (!blok || !doek || tab !== 'locaties' || !e?.id) return;
+// Waar ligt deze locatie? Geeft de kaart plus de speld terug, of null.
+async function _kaartPlekVan(locId) {
   const { maps, pins } = await _kaartGegevens();
-  let kaart = null, pin = null;
   for (const m of maps) {
-    const p = (pins[m.id] || []).find(x => x.locId === e.id && !x.pending);
-    if (p) { kaart = m; pin = p; break; }
+    const p = (pins[m.id] || []).find(x => x.locId === locId && !x.pending);
+    if (p) return { kaart: m, pin: p };
   }
-  if (!pin || !kaart) { blok.remove(); return; }
-  doek.style.backgroundImage    = `url("${_kaartSrc(kaart)}")`;
-  doek.style.backgroundPosition = `${pin.x}% ${pin.y}%`;
-  const speld = doek.querySelector('.kaartuitsnede-speld');
-  if (speld) { speld.style.left = pin.x + '%'; speld.style.top = pin.y + '%'; }
-  doek.title = kaart.label || '';
-  blok.classList.remove('hidden');
+  return null;
 }
+
+// Het Kaart-tabblad van een locatie: een uitsnede rond de speld, plus de weg
+// naar de kaart zelf. background-position X% Y% legt het punt op X%/Y% van de
+// áfbeelding op X%/Y% van het kader, dus een speld op dezelfde percentages valt
+// er precies op — hoe ver je ook inzoomt.
+function _kaartTabHtml(locId, plek) {
+  const { kaart, pin } = plek;
+  return `
+    <div class="detail-kaartblok">
+      <div class="detail-label">${icon('map-pin')} ${esc(kaart.label || 'Op de kaart')}</div>
+      <div class="detail-kaartuitsnede"
+        style="background-image:url('${esc(_kaartSrc(kaart))}');background-position:${pin.x}% ${pin.y}%">
+        <div class="kaartuitsnede-speld" style="left:${pin.x}%;top:${pin.y}%">${icon('map-pin')}</div>
+      </div>
+      <div class="detail-map-link-wrap">
+        <button class="detail-map-link-btn" onclick="window._toonOpKaart('${esc(locId)}','${esc(kaart.id)}')">
+          ${icon('map')} Toon op de hele kaart
+        </button>
+      </div>
+    </div>`;
+}
+
+// Het Dungeon-tabblad: welke plattegrond hoort bij deze locatie, en welke kamer.
+function _dungeonTabHtml(kaart, kamer) {
+  const thumb = kaart.thumbId || kaart.fileId;
+  return `
+    <div class="detail-kaartblok">
+      <div class="detail-label">${icon('map')} ${esc(kaart.name || 'Dungeon')}</div>
+      ${thumb ? `<img class="detail-dungeonbeeld" src="${esc(api.fileUrl(thumb))}" alt="">` : ''}
+      ${kamer ? `<p class="veld-uitleg">${icon('map-pin')} Kamer: ${esc(kamer.name || kamer.id)}</p>` : ''}
+      ${kaart.description ? `<p class="detail-desc">${esc(kaart.description)}</p>` : ''}
+      <div class="detail-map-link-wrap">
+        <button class="detail-map-link-btn" onclick="window.app.closeModal();window._openKaartFullscreen('dungeon','${esc(kaart.id)}')">
+          ${icon('maximize-2')} Open de plattegrond
+        </button>
+      </div>
+    </div>`;
+}
+
 
 window._pinPlaats = async (ev) => {
   const doek = document.getElementById('koppel-mapdoek');
   const sel  = document.getElementById('koppel-mapid');
   if (!doek || !sel?.value) return;
-  // Meten op de áfbeelding, niet op het doek: die kan lucht boven of onder
-  // hebben en dan zou de speld verschoven op de grote kaart landen.
+  // Meten op de áfbeelding, niet op het doek: die scrollt en kan lucht boven of
+  // onder hebben; dan zou de speld verschoven op de grote kaart landen.
   const r = (document.getElementById('koppel-mapimg') || doek).getBoundingClientRect();
   // In procenten, want de kaart wordt overal op een andere breedte getoond.
   const x = Math.min(100, Math.max(0, ((ev.clientX - r.left) / r.width)  * 100));
@@ -1342,10 +1401,14 @@ async function _vulSpellChips() {
 // hier knippen we daarop en maken er panelen van. Een paneel zonder inhoud
 // krijgt geen tabblad.
 const ED_TABS = [
-  { key: 'info',   label: 'Informatie' },
-  { key: 'beeld',  label: 'Beeld' },
-  { key: 'sheet',  label: 'Character Sheet' },
-  { key: 'winkel', label: 'Winkel' },
+  { key: 'info',    label: 'Informatie' },
+  { key: 'beeld',   label: 'Beeld' },
+  { key: 'sheet',   label: 'Character Sheet' },
+  { key: 'winkel',  label: 'Winkel' },
+  // Een kaart en een dungeonplattegrond nemen allebei een half scherm in
+  // beslag; onderin Informatie maakten ze dat tabblad onhandelbaar lang.
+  { key: 'kaart',   label: 'Kaart' },
+  { key: 'dungeon', label: 'Dungeon' },
 ];
 
 function _bouwEditorTabs(html, toonWinkel, sheetLabel) {
@@ -3118,20 +3181,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         onclick="window._openDetail('${esc(r.type)}','${esc(r.id)}'${r.tab ? `,false,'${esc(r.tab)}'` : ''})">${getAutoIconSvg(r.type, {}) || ''}${esc(r.name)}</button>`,
     })));
   }
-  // Waar ligt dit? Een uitsnede van de kaart rond de speld zegt dat in één
-  // oogopslag; de knop eronder brengt je naar de hele kaart. De uitsnede vult
-  // zichzelf ná het openen, want de kaartgegevens komen per fetch binnen.
-  if (tab === 'locaties') {
-    infoHtml += `<div class="detail-kaartblok hidden" id="detail-kaartblok-${esc(e.id)}">
-      <div class="detail-label">${icon('map-pin')} Op de kaart</div>
-      <div class="detail-kaartuitsnede" id="detail-kaartuitsnede"><div class="kaartuitsnede-speld">${icon('map-pin')}</div></div>
-      <div class="detail-map-link-wrap">
-        <button class="detail-map-link-btn" onclick="window._toonOpKaart('${esc(e.id)}')">
-          ${icon('map')} Toon op de hele kaart
-        </button>
-      </div>
-    </div>`;
-  }
 
 
   // Flavour scroll (parchment scroll — zichtbaar voor spelers als uitgesproken, altijd voor DM)
@@ -3608,6 +3657,25 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   }
 
 
+  // ── Kaart en dungeon als eigen tabblad ──
+  // Allebei nemen ze een half venster in beslag; onder Informatie duwden ze de
+  // tekst weg. Vóór het bouwen ophalen, zodat er geen tabblad verschijnt dat
+  // even later leeg blijkt. De kaartgegevens zijn kort gecachet.
+  let _kaartPlek = null, _dungeonPlek = null;
+  if (tab === 'locaties') {
+    _kaartPlek = await _kaartPlekVan(e.id).catch(() => null);
+    if (e.data?.dungeonId) {
+      const lijst = await api.listDungeons().catch(() => []);
+      // Een speler krijgt alleen de dungeons waar zijn party bij mag; staat hij
+      // er niet tussen, dan komt er ook geen tabblad.
+      const kaart = (lijst || []).find(m => m.id === e.data.dungeonId);
+      if (kaart) {
+        const kamer = (kaart.rooms || []).find(r => r.id === e.data.roomId) || null;
+        _dungeonPlek = { kaart, kamer };
+      }
+    }
+  }
+
   // ── Build tabbed modal body ──
   const detailTabs = [
     { key: 'info', label: 'Informatie' },
@@ -3615,6 +3683,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ...(isStapelbaarVoorwerp && isDM() ? [{ key: 'eigenaren', label: 'Eigenaren' }] : []),
     ...(heeftVoorraad ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
     ...(heeftVoorraad && isDM() ? [{ key: 'log', label: 'Log' }] : []),
+    ...(_kaartPlek   ? [{ key: 'kaart',   label: 'Kaart' }]   : []),
+    ...(_dungeonPlek ? [{ key: 'dungeon', label: 'Dungeon' }] : []),
   ];
 
   const tabNav = detailTabs.map((t, i) => `
@@ -3629,6 +3699,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ${isStapelbaarVoorwerp && isDM() ? `<div id="dtab-eigenaren" class="hidden">${eigenarenHtml}</div>` : ''}
     ${heeftVoorraad ? `<div id="dtab-voorraad" class="hidden">${voorraadHtml}</div>` : ''}
     ${heeftVoorraad && isDM() ? `<div id="dtab-log" class="hidden">${logHtml}</div>` : ''}
+    ${_kaartPlek   ? `<div id="dtab-kaart" class="hidden">${_kaartTabHtml(e.id, _kaartPlek)}</div>` : ''}
+    ${_dungeonPlek ? `<div id="dtab-dungeon" class="hidden">${_dungeonTabHtml(_dungeonPlek.kaart, _dungeonPlek.kamer)}</div>` : ''}
   `;
 
   const _subParts = [
@@ -3654,7 +3726,6 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (_mSubEl) { _mSubEl.innerHTML = _subtitleHtml; _mSubEl.classList.remove('hidden'); }
   _updateBackButton();
   _vulSpellChips();   // van index naar nette naam, zodra de bibliotheek er is
-  _vulKaartUitsnede(tab, e);   // "waar ligt dit" — kaartbeeld komt per fetch
 
   // Huisdier: geschaalde statblock ophalen + renderen (tier o.b.v. level van het baasje)
   if (tab === 'personages' && e.subtype === 'dier') {
@@ -5181,35 +5252,52 @@ window._openEditor = async (tab, editId) => {
             <select id="koppel-factie" class="koppel-select" onchange="window._koppelZet({ factieId: this.value })"></select>
             <div class="veld-uitleg">Koppelt dit kaartje aan een factie uit het Facties-paneel.</div>
           </div>`)}
-          ${(_isLoc && _bestaat) ? `
-          <div class="koppel-rij">
-            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-dungeon">Dungeonkaart</label>
-            <div class="koppel-duo">
-              <select id="koppel-dungeon" class="koppel-select" onchange="window._koppelDungeonWissel()"></select>
-              <select id="koppel-room" class="koppel-select" onchange="window._koppelRoomWissel()"></select>
-            </div>
-            <input type="hidden" name="data_dungeonId" id="koppel-dungeon-id" value="${esc(e?.data?.dungeonId || '')}">
-            <input type="hidden" name="data_roomId"    id="koppel-room-id"    value="${esc(e?.data?.roomId || '')}">
-            <div class="veld-uitleg">Een kamer kiezen mag, maar hoeft niet — de hele kaart volstaat.</div>
-          </div>
-          <div class="koppel-rij" id="koppel-kaart">
-            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-mapid">Op de kaart</label>
-            <select id="koppel-mapid" class="koppel-select" onchange="window._pinKaartWissel()"></select>
-            <!-- Coördinaten intikken is onwerkbaar; aanwijzen is de handeling.
-                 Klikken in de kaart zet de speld, nog eens klikken verplaatst hem. -->
-            <!-- De hele kaart in beeld, niet bijgesneden: de speld staat op
-                 procentcoördinaten van de áfbeelding, en met een uitsnede zou
-                 een klik op iets anders uitkomen dan op de grote kaart. -->
-            <div id="koppel-mapdoek" class="pin-doek" style="display:none" onclick="window._pinPlaats(event)">
-              <img id="koppel-mapimg" class="pin-doek-img" alt="">
-              <div id="koppel-mappin" class="pin-doek-speld" style="display:none">${icon('map-pin')}</div>
-            </div>
-            <div class="dm-knoprij mt-1" id="koppel-mapknoppen"></div>
-            <p class="veld-uitleg" id="koppel-mapuitleg"></p>
-          </div>` : ''}
         </div>
       </div>
     `;
+
+    // ── Tabblad Kaart ── (de inhoud verhuist hierheen zodra hij geladen is)
+    if (_isLoc) {
+      body += `<!--P:kaart-->`;
+      body += `
+        <div class="koppel-rij" id="koppel-kaart">
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-mapid">Op welke kaart</label>
+          <select id="koppel-mapid" class="koppel-select" onchange="window._pinKaartWissel()"></select>
+          <!-- Coördinaten intikken is onwerkbaar; aanwijzen is de handeling.
+               De kaart staat er op ware verhouding en helemaal in beeld: met een
+               uitsnede zou een klik ergens anders uitkomen dan op de grote kaart. -->
+          <div class="pin-zoom" id="koppel-mapzoom" style="display:none">
+            <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._pinZoom(-1)" title="Uitzoomen">${icon('minus')}</button>
+            <span class="pin-zoom-stand" id="koppel-mapzoomstand">100%</span>
+            <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._pinZoom(1)" title="Inzoomen">${icon('plus')}</button>
+            <span class="veld-uitleg">Ingezoomd kun je slepen om te schuiven.</span>
+          </div>
+          <div id="koppel-mapdoek" class="pin-doek" style="display:none">
+            <div id="koppel-mapinner" class="pin-doek-inner" onclick="window._pinPlaats(event)">
+              <img id="koppel-mapimg" class="pin-doek-img" alt="">
+              <div id="koppel-mappin" class="pin-doek-speld" style="display:none">${icon('map-pin')}</div>
+            </div>
+          </div>
+          <div class="dm-knoprij mt-1" id="koppel-mapknoppen"></div>
+          <p class="veld-uitleg" id="koppel-mapuitleg"></p>
+        </div>`;
+
+      // ── Tabblad Dungeon ──
+      body += `<!--P:dungeon-->`;
+      body += `
+        <div class="koppel-rij">
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-dungeon">Dungeonkaart</label>
+          <div class="koppel-duo">
+            <select id="koppel-dungeon" class="koppel-select" onchange="window._koppelDungeonWissel()"></select>
+            <select id="koppel-room" class="koppel-select" onchange="window._koppelRoomWissel()"></select>
+          </div>
+          <input type="hidden" name="data_dungeonId" id="koppel-dungeon-id" value="${esc(e?.data?.dungeonId || '')}">
+          <input type="hidden" name="data_roomId"    id="koppel-room-id"    value="${esc(e?.data?.roomId || '')}">
+          <div class="veld-uitleg">Een kamer kiezen mag, maar hoeft niet — de hele kaart volstaat.</div>
+          <div class="dm-knoprij mt-1" id="koppel-dungeonknop"></div>
+        </div>`;
+      body += `<!--P:info-->`;
+    }
   }
 
 

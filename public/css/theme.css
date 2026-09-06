@@ -23143,15 +23143,27 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   .pet-baasje-groep { width: auto; text-align: left; }
 }
 
+/* Scrollbaar doek: bij 100% past de hele kaart erin, ingezoomd schuif je erin
+   rond. De percentages blijven kloppen doordat we op de áfbeelding meten. */
 .pin-doek {
   position: relative; width: 100%; margin-top: 6px;
   border: 1px solid rgba(196,168,122,0.6); border-radius: 6px;
-  cursor: crosshair; overflow: hidden; line-height: 0;
-  max-height: 46vh;
+  overflow: auto; line-height: 0; max-height: 46vh;
+  overscroll-behavior: contain;
 }
-/* De kaart op ware verhouding en helemaal in beeld; `object-fit: contain` houdt
-   de percentages gelijk aan die op de grote kaart. */
-.pin-doek-img { display: block; width: 100%; max-height: 46vh; object-fit: contain; }
+.pin-doek-inner { position: relative; width: 100%; cursor: crosshair; }
+.pin-doek-img { display: block; width: 100%; max-width: none; }
+.pin-zoom { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.pin-zoom-stand {
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; color: #7a5c10;
+  min-width: 3.4em; text-align: center;
+}
+.pin-zoom .veld-uitleg { margin: 0; }
+/* Beeld van een dungeonkaart op het Dungeon-tabblad. */
+.detail-dungeonbeeld {
+  display: block; width: 100%; margin-top: 6px; border-radius: 6px;
+  border: 1px solid rgba(196,168,122,0.6);
+}
 .pin-doek-speld, .kaartuitsnede-speld {
   position: absolute; transform: translate(-50%, -100%);
   color: #8b2a2a; pointer-events: none;

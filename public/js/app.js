@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=274';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=208";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=209";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -532,11 +532,15 @@ window._onAmbianceChange = function({ active, label, enabled } = {}) {
 };
 
 // ── Toon locatie op de kaart (aanroepbaar vanuit entity-cards en detail) ──
-window._toonOpKaart = (locId) => {
-  // Vanuit een detailvenster of de editor: het wisselen van sectie gebeurt
-  // áchter de modal, dus zonder dit leek de knop niets te doen.
+// Naar de plek van een locatie op de kaart. Vanuit een detailvenster of de
+// editor moet het venster eerst dicht — anders wisselt de sectie erachter en
+// lijkt de knop niets te doen. En met een mapId openen we de kaart zélf
+// (fullscreen, met een sluitknop) in plaats van de galerij: dáár moet je heen,
+// en de galerij heeft geen weg terug naar het kaartje.
+window._toonOpKaart = async (locId, mapId) => {
   closeModal();
   queueFlyTo(locId);
+  if (mapId) return window._openKaartFullscreen('wereld', mapId);
   switchSection('kaart');
 };
 
