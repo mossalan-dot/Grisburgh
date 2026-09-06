@@ -322,6 +322,23 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   if (zichtbareFlavours.length) { e.data.flavours = JSON.stringify(zichtbareFlavours); e.data.flavour = zichtbareFlavours[0]; }
   else { delete e.data.flavours; delete e.data.flavour; }
 
+  // ── Koppelingen naar kaartjes die deze party nog niet kent ──
+  // Zelfde regel als bij [[wikilinks]]: de naam blijft staan (de DM heeft hem
+  // op dít kaartje geschreven, net als de beschrijving), maar de doorklik naar
+  // een onontdekt kaartje gaat eraf. Anders komt een speler bij een 404 uit —
+  // of erger: hij weet dat er iets te vinden is.
+  const zichtbaar = (id) => id && (g.visibility[id] || 'hidden') === 'visible';
+  const rijen = _betrokkenenLijst(entity.data);
+  if (rijen.length) {
+    e.data.betrokkenen = JSON.stringify(rijen.map(r => zichtbaar(r.id) ? r : { ...r, id: '' }));
+  }
+  if (e.data.wijkId     && !zichtbaar(e.data.wijkId))     delete e.data.wijkId;
+  if (e.data.eigenaarId && !zichtbaar(e.data.eigenaarId)) delete e.data.eigenaarId;
+  // Dungeonkaart en kamer zijn DM-gereedschap; een speler heeft er niets aan en
+  // het verklapt dat er een kaart bestaat.
+  delete e.data.dungeonId;
+  delete e.data.roomId;
+
   delete e.stats;
   e._visibility   = 'visible';
   // Weet de kaartweergave vooraf of er een afbeelding is, dan reserveert hij
@@ -511,6 +528,15 @@ function _naamIndex() {
 // kant leiden we af in plaats van hem óók op te slaan: twee lijsten die
 // hetzelfde moeten zeggen lopen vroeg of laat uit elkaar. De index cachet op de
 // mtime van entities.json, net als _naamIndex.
+function _betrokkenenLijst(data) {
+  const rauw = data?.betrokkenen;
+  if (Array.isArray(rauw)) return rauw;
+  if (typeof rauw === 'string' && rauw.trim()) {
+    try { const a = JSON.parse(rauw); return Array.isArray(a) ? a : []; } catch { return []; }
+  }
+  return [];
+}
+
 let _betrokkenIndexCache = null;
 function _betrokkenIndex() {
   const fp = path.join(storage.DATA_DIR, 'entities.json');
@@ -519,16 +545,9 @@ function _betrokkenIndex() {
   if (_betrokkenIndexCache?.mtimeMs === mtimeMs) return _betrokkenIndexCache.index;
   const entities = storage.readJSON('entities.json');
   const index = new Map();   // id van de betrokkene → [{ id, name, type, rol }]
-  const lees = (rauw) => {
-    if (Array.isArray(rauw)) return rauw;
-    if (typeof rauw === 'string' && rauw.trim()) {
-      try { const a = JSON.parse(rauw); return Array.isArray(a) ? a : []; } catch { return []; }
-    }
-    return [];
-  };
   for (const type of ['locaties', 'organisaties']) {
     for (const e of (entities[type] || [])) {
-      for (const r of lees(e.data?.betrokkenen)) {
+      for (const r of _betrokkenenLijst(e.data)) {
         if (!r?.id) continue;                    // losse naam: nergens aan te hangen
         if (!index.has(r.id)) index.set(r.id, []);
         index.get(r.id).push({ id: e.id, name: e.name, type, rol: r.rol || '' });
@@ -622,6 +641,7 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
   res.json({
     ...entity,
     links:         _linksMetTekst(entity),
+    _hoortBij:     _betrokkenBij(entity.id),
     _visibility:   g.visibility[entity.id]    || 'hidden',
     _secretReveal: _onthuld(g.secretReveals[entity.id], _tekstLijst(entity.data, 'geheimen', 'geheim').length).some(Boolean),
     _geheimTotaal: _tekstLijst(entity.data, 'geheimen', 'geheim').length,

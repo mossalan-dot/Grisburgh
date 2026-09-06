@@ -125,6 +125,57 @@ describe('Server-side filtering', () => {
     assert.strictEqual(playerRes.status, 403);
   });
 
+  it('koppelingen naar onontdekte kaartjes zijn niet aanklikbaar voor spelers', async () => {
+    const speler = await req(server, 'POST', '/api/entities/personages', {
+      name: 'Koppel Speler', subtype: 'speler', data: { groep: 'groep1' },
+    }, dmCookie);
+    const login = await req(server, 'POST', '/api/auth/player-login',
+      { campagne: 'grisburgh', characterId: speler.body.id });
+    const spelerCookie = login.cookie;
+
+    // Twee NPC's: één die de party kent, één die verborgen blijft.
+    const bekend  = await req(server, 'POST', '/api/entities/personages', { name: 'Bekende Waard', data: {} }, dmCookie);
+    const geheim  = await req(server, 'POST', '/api/entities/personages', { name: 'Geheime Baas',  data: {} }, dmCookie);
+    const gebied  = await req(server, 'POST', '/api/entities/locaties',   { name: 'Verborgen Wijk', data: {} }, dmCookie);
+    await req(server, 'PUT', `/api/entities/personages/${bekend.body.id}/visibility`, null, dmCookie);
+
+    const kroeg = await req(server, 'POST', '/api/entities/locaties', {
+      name: 'De Koppelkroeg',
+      data: {
+        locType: 'Herberg',
+        wijk: 'Verborgen Wijk', wijkId: gebied.body.id,
+        dungeonId: 'dng_geheim', roomId: 'kamer_1',
+        betrokkenen: JSON.stringify([
+          { naam: 'Bekende Waard', rol: 'Eigenaar', id: bekend.body.id },
+          { naam: 'Geheime Baas',  rol: 'Beschermheer', id: geheim.body.id },
+          { naam: 'Losse Naam',    rol: 'Stamgast', id: '' },
+        ]),
+      },
+    }, dmCookie);
+    await req(server, 'PUT', `/api/entities/locaties/${kroeg.body.id}/visibility`, null, dmCookie);
+
+    const res = await req(server, 'GET', `/api/entities/locaties/${kroeg.body.id}`, null, spelerCookie);
+    assert.strictEqual(res.status, 200, 'de kroeg zelf is zichtbaar');
+    const rijen = JSON.parse(res.body.data.betrokkenen);
+
+    // De naam blijft altijd staan: die heeft de DM op dit kaartje geschreven.
+    assert.deepStrictEqual(rijen.map(r => r.naam), ['Bekende Waard', 'Geheime Baas', 'Losse Naam']);
+    // Maar alleen een ontdekt kaartje houdt zijn koppeling.
+    assert.strictEqual(rijen[0].id, bekend.body.id, 'ontdekte NPC blijft aanklikbaar');
+    assert.strictEqual(rijen[1].id, '', 'onontdekte NPC verliest zijn koppeling');
+    assert.strictEqual(rijen[2].id, '', 'losse naam had er nooit een');
+    assert.strictEqual(res.body.data.wijkId, undefined, 'gebied naar een verborgen kaartje gaat eraf');
+    assert.strictEqual(res.body.data.wijk, 'Verborgen Wijk', 'de gebiedsnaam blijft wel staan');
+    assert.strictEqual(res.body.data.dungeonId, undefined, 'dungeonkoppeling is DM-gereedschap');
+    assert.strictEqual(res.body.data.roomId, undefined);
+
+    // En de omgekeerde kant: de verborgen kroeg mag niet opduiken bij de NPC.
+    const npcRes = await req(server, 'GET', `/api/entities/personages/${bekend.body.id}`, null, spelerCookie);
+    assert.ok(Array.isArray(npcRes.body._hoortBij));
+    assert.ok(npcRes.body._hoortBij.every(x => x.id !== gebied.body.id),
+      'een verborgen locatie komt niet in "hoort bij"');
+  });
+
   it('tekst content only visible for revealed docs to players', async () => {
     const doc = await req(server, 'POST', '/api/archief', { name: 'Tekst Doc', cat: 'codex' }, dmCookie);
     const id = doc.body.id;
