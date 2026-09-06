@@ -22928,6 +22928,11 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 /* Wat na het blad komt niet om de knop laten lopen. */
 #dtab-sheet::after { content: ''; display: block; clear: both; }
 
+/* Instellingen: één maat en één ritme voor knoprijen, en een sectiekop die op
+   dezelfde regel als een knop staat houdt zijn onderrand vrij. */
+.dm-knoprij { gap: 8px; flex-wrap: wrap; }
+.dm-section-label--rij { margin-bottom: 0; }
+
 /* Leden van een party in de Meesterkamer: chips met een kruisje, plus een
    zoekveld om er iemand bij te zetten. */
 .dm-lid-chip {

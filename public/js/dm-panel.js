@@ -9667,7 +9667,7 @@ async function _renderInstellingen() {
           <input list="dm-party-pc-dl-${esc(g.id)}" class="dm-input dm-input-sm" placeholder="Personage toevoegen…"
             onchange="window.dmPanel.partyLidErbij('${esc(g.id)}', this)">
           <datalist id="dm-party-pc-dl-${esc(g.id)}">
-            ${vrij.map(e => `<option value="${esc(e.name)}">${e.data?.groep ? 'nu in een andere party' : 'geen party'}</option>`).join('')}
+            ${vrij.map(e => `<option value="${esc(e.name)}">${e.data?.groep ? 'nu in een andere groep' : 'geen groep'}</option>`).join('')}
           </datalist>
         </span>` : ''}
     </div>`;
@@ -9740,7 +9740,7 @@ async function _renderInstellingen() {
               </label>`).join('')}
           </div>
           <div class="dm-form-row">
-            <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._instModulesSave('${esc(c.id)}')" title="Modules opslaan">${icon('save')}</button>
+            <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._instModulesSave('${esc(c.id)}')" title="Modules opslaan">${icon('save')} Modules opslaan</button>
             <span class="bericht-status hidden" id="modules-status-${esc(c.id)}"></span>
           </div>
         </details>
@@ -9769,7 +9769,7 @@ async function _renderInstellingen() {
           <img id="inst-embleem-preview" class="dm-embleem-preview${meta.embleem ? '' : ' hidden'}" src="${esc(meta.embleem || '')}" alt="">
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instEmbleemKies()"
             title="Verschijnt op de landingspagina en in de kop">${icon('image')} Kiezen</button>
-          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instEmbleemWis()" title="Geen embleem">${icon('x')}</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instEmbleemWis()" title="Geen embleem">${icon('x')} Wissen</button>
           <input type="hidden" id="inst-embleem" value="${esc(meta.embleem || '')}">
         </span>
       </div>
@@ -9803,8 +9803,8 @@ async function _renderInstellingen() {
     <!-- Party's -->
     <div class="dm-feature-section">
       <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span class="dm-section-label" style="margin-bottom:0">Party's</span>
-        <button class="dm-btn dm-btn-sm" onclick="window._instGroepCreate()" title="Nieuwe party aanmaken">+</button>
+        <span class="dm-section-label dm-section-label--rij">Party's</span>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._instGroepCreate()" title="Nieuwe party aanmaken">${icon('plus')} Party toevoegen</button>
       </div>
       <div id="inst-groepen-list" style="display:flex;flex-direction:column;gap:6px">
         ${groupItems || '<p class="dm-hint">Nog geen party\'s.</p>'}
@@ -9861,10 +9861,10 @@ async function _renderInstellingen() {
           ${campaignItems || '<p class="dm-hint">Geen campagnes gevonden.</p>'}
         </div>
         <div class="dm-form-row">
-          <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneCreate()" title="Nieuwe campagne aanmaken">${icon('plus')} Nieuwe campagne</button>
+          <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.campagneCreate()" title="Nieuwe campagne aanmaken">${icon('plus')} Nieuwe campagne</button>
         </div>
         <div id="campagne-create-form" style="display:none;margin-top:10px">
-          <div class="dm-feature-row" style="gap:8px;flex-wrap:wrap">
+          <div class="dm-feature-row dm-knoprij">
             <input id="campagne-new-id"       class="dm-input" placeholder="ID (bijv. prewett)" style="flex:1;min-width:120px">
             <input id="campagne-new-title"    class="dm-input" placeholder="Naam" style="flex:2;min-width:140px">
             <input id="campagne-new-subtitle" class="dm-input" placeholder="Ondertitel (optioneel)" style="flex:2;min-width:140px">
@@ -9873,8 +9873,8 @@ async function _renderInstellingen() {
           title="Zonder eigen wachtwoord komt niemand in die campagne: alleen de standaardcampagne valt terug op het serverwachtwoord.">
           </div>
           <div class="dm-feature-row" style="gap:8px;margin-top:6px;flex-wrap:wrap">
-            <button class="dm-btn dm-btn-sm" onclick="window.dmPanel.campagneSubmit()" title="Aanmaken">${icon('check')}</button>
-            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('campagne-create-form').style.display='none'" title="Annuleren">${icon('x')}</button>
+            <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.campagneSubmit()">${icon('check')} Aanmaken</button>
+            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="document.getElementById('campagne-create-form').style.display='none'">${icon('x')} Annuleren</button>
           </div>
           <div id="campagne-create-error" style="color:#c44;font-size:.85em;margin-top:6px"></div>
         </div>
@@ -9884,12 +9884,12 @@ async function _renderInstellingen() {
     <!-- Export & backup -->
     <div class="dm-feature-section">
       <div class="dm-section-label">Export &amp; backup</div>
-      <div class="dm-feature-row" style="gap:8px;flex-wrap:wrap">
-        <a href="/api/export" download class="dm-btn dm-btn-ghost"
+      <div class="dm-feature-row dm-knoprij">
+        <a href="/api/export" download class="dm-btn dm-btn-sm dm-btn-ghost"
           title="HTML-overzicht van alle spelersdata en entities">${icon('download')} Snapshot</a>
-        <a href="/api/export/campagneboek" download class="dm-btn dm-btn-ghost"
+        <a href="/api/export/campagneboek" download class="dm-btn dm-btn-sm dm-btn-ghost"
           title="Narratief document van de campagne">${icon('book-open')} Campagneboek</a>
-        <a href="/api/party/sheets" target="_blank" rel="noopener" class="dm-btn dm-btn-ghost"
+        <a href="/api/party/sheets" target="_blank" rel="noopener" class="dm-btn dm-btn-sm dm-btn-ghost"
           title="Character sheets van de actieve party — printen of als pdf bewaren">${icon('scroll-text')} Character sheets</a>
       </div>
     </div>

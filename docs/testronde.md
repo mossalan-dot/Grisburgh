@@ -113,6 +113,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Waarschuwing bij van party wisselen** (DM) — wissel van party terwijl er een akte loopt of een speler is ingelogd: er komt een vraag die zegt wát er speelt en waar je naartoe gaat. Speelt er niets, dan wissel je zonder vraag
 
+- [ ] **Baasje van een huisdier** (DM) — kies bij een dier onder *Adoptie* een baasje: het dier staat daarna op het partytabblad van die speler, is zichtbaar, laadt mee in een gevecht en zijn tier volgt het level van dat personage
+- [ ] **Tiers als statblok** (DM) — *Tier toevoegen* geeft dezelfde velden als het statblok zelf, met daarboven het level vanaf wanneer hij geldt; twee tiers vanaf hetzelfde level kan niet (het tweede schuift op, met een melding)
+- [ ] **Instellingen leest als één scherm** (DM) — alle knoppen even groot, met icoon én woord, en dezelfde soort per bedoeling (goud = opslaan, omlijnd = de rest)
+
 - [ ] **Party samenstellen** (DM) — Instellingen → Party's: onder elke party staan de personages als chips; typ een naam in *Personage toevoegen* om er iemand bij te zetten (met waarschuwing als hij uit een andere party komt) en klik het kruisje om iemand eruit te halen. Op het kaartje zelf blijft het veld *Party* hetzelfde doen
 
 - [ ] **Eén notitieveld** (DM) — er is nog maar één DM-notitie per kaartje: *Aantekeningen voor de DM*, boven de knoppenbalk. Typ erin, herlaad, en open de bewerkmodus: dezelfde tekst staat er
