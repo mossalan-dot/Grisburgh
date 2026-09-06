@@ -23101,6 +23101,18 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
    Wat dit kaartje elders is: de herberg, de tempel van een god, de factie, een
    dungeonkaart. Eigen sectie, want het gaat niet over het kaartje zelf maar
    over waar het aan vastzit. */
+/* ── Uitlegknop naast een sectiekop of veldlabel ───────────────────────────
+   Klein en dof: hij hoort er te staan zonder de aandacht te trekken van wat je
+   aan het invullen bent. */
+.help-btn--sectie {
+  width: 18px; height: 18px; padding: 0; margin-left: 6px;
+  vertical-align: -3px; opacity: .5;
+}
+.help-btn--sectie:hover { opacity: 1; }
+.help-btn--sectie .icon { width: 12px; height: 12px; }
+/* De kop is een blokelement; met flex staat de knop netjes op de regel. */
+.cs-sectiekop { display: flex; align-items: center; }
+
 .koppel-sectie { margin-top: 6px; }
 /* Kort oplichten wanneer je er vanuit de typemelding naartoe springt, anders
    scrollt het scherm en weet je niet waarnaar je moet kijken. */
