@@ -22983,6 +22983,55 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 /* Party's onder elkaar; stond eerder als losse inline-stijl op de div. */
 .dm-inst-groepen { display: flex; flex-direction: column; gap: 6px; }
 
+/* ── Koppelvelden op een kaartje ─────────────────────────────────────────────
+   Een eigenaar of gebied is bijna altijd al een kaartje; het regeltje onder het
+   invoerveld laat zien of het gevonden is (doorklikken) of nog niet bestaat
+   (aanmaken). */
+.link-status { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 6px; }
+.link-status:empty { margin-top: 0; }
+.link-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Crimson Text', Georgia, serif; font-size: 0.85rem;
+  padding: 3px 9px; border-radius: 11px; cursor: pointer;
+  background: rgba(196,168,122,0.16); color: #3a2410;
+  border: 1px solid rgba(196,168,122,0.6);
+  transition: background .15s ease, border-color .15s ease;
+}
+.link-chip:hover { background: rgba(196,168,122,0.32); border-color: #c4a87a; }
+.link-chip .icon { width: 13px; height: 13px; }
+.link-chip--sm { font-size: 0.8rem; padding: 2px 8px; }
+
+/* Eén regel per betrokkene: naam, rol, weg. Op een smal scherm breekt de rol
+   naar de volgende regel in plaats van het veld dicht te knijpen. */
+.betrokken-rij {
+  display: grid;
+  grid-template-columns: minmax(140px, 2fr) minmax(100px, 1fr) auto;
+  gap: 6px; align-items: center; margin-bottom: 6px;
+}
+.betrokken-rij .betr-naam,
+.betrokken-rij .betr-rol {
+  width: 100%; padding: 6px 9px; font-size: 0.9rem;
+  font-family: 'Crimson Text', Georgia, serif;
+  background: var(--room-bg, #f2e8d2); color: #2a1a08;
+  border: 1px solid rgba(196,168,122,0.55); border-radius: 5px;
+}
+.betrokken-rij .betr-naam:focus,
+.betrokken-rij .betr-rol:focus { outline: none; border-color: #c4a87a; }
+.betrokken-status { grid-column: 1 / -1; margin-top: 0; }
+@media (max-width: 520px) {
+  .betrokken-rij { grid-template-columns: 1fr auto; }
+  .betrokken-rij .betr-rol { grid-column: 1 / -1; }
+}
+/* Uitleg onder een veldlabel: dezelfde inkt als .dm-hint, maar dit venster is
+   perkament en niet het donkere paneel. */
+.veld-uitleg { font-family: 'IM Fell English', serif; font-style: italic; font-size: 0.82rem; color: #7a6040; margin: 2px 0 6px; }
+
+/* In het detailvenster: wie hoort hier bij. */
+.detail-betrokkenen { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 14px; }
+.betrokken-chip { display: inline-flex; align-items: center; gap: 5px; }
+.betrokken-chip .pill-lbl { font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: .06em; color: #9a815c; }
+.betrokken-naam { font-family: 'Crimson Text', Georgia, serif; font-size: 0.9rem; color: #3a2410; }
+
 /* Leden van een party in de Meesterkamer: chips met een kruisje, plus een
    zoekveld om er iemand bij te zetten. */
 .dm-lid-chip {

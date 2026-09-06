@@ -134,6 +134,55 @@ const TYPE_META = {
   voorwerpen:   { icon: '🎺',              get svgIcon() { return icon('package'); },                label: 'Voorwerpen',   nieuw: 'Nieuw voorwerp',     bewerk: 'Voorwerp bewerken',    color: 'orange',    chip: 'chip-item' },
 };
 
+// ── Locatietypes ────────────────────────────────────────────────────────────
+// Gegroepeerd in plaats van alleen langer: een platte lijst van dertig regels
+// zoekt niet. De waarden zijn de sleutels die in de data staan — die veranderen
+// nooit, ook niet als het label anders komt te luiden ('Fort' → 'Fort of
+// kasteel'). Wat hier ontbrak bleek uit de kaartjes die op 'Overig' stonden:
+// een continent (Isfār), landstreken (Donderhei, Wrakland), een mijn
+// (Evermijn), een park (Ter Velde) en een schuilplek (Dreghaven).
+const LOC_TYPE_GROEPEN = [
+  { groep: 'Met eigen instellingen', opties: [
+    { value: 'Winkel',  label: 'Winkel' },
+    { value: 'Herberg', label: 'Herberg' },
+    { value: 'Tempel',  label: 'Tempel' },
+  ]},
+  { groep: 'Gebied', opties: [
+    { value: 'Rijk',      label: 'Rijk of continent' },
+    { value: 'Streek',    label: 'Streek' },
+    { value: 'Stad',      label: 'Stad' },
+    { value: 'Dorp',      label: 'Dorp' },
+    { value: 'Stadswijk', label: 'Stadswijk' },
+  ]},
+  { groep: 'Gebouw', opties: [
+    { value: 'Gebouw',     label: 'Gebouw' },
+    { value: 'Taveerne',   label: 'Taveerne' },
+    { value: 'Fort',       label: 'Fort of kasteel' },
+    { value: 'Academie',   label: 'Academie' },
+    { value: 'Ziekenhuis', label: 'Ziekenhuis' },
+    { value: 'Werkplaats', label: 'Werkplaats' },
+    { value: 'Gevangenis', label: 'Gevangenis' },
+    { value: 'Kamer',      label: 'Kamer' },
+  ]},
+  { groep: 'Landschap', opties: [
+    { value: 'Woud',    label: 'Woud' },
+    { value: 'Berg',    label: 'Berg' },
+    { value: 'Zee',     label: 'Zee' },
+    { value: 'Rivier',  label: 'Rivier of meer' },
+    { value: 'Moeras',  label: 'Moeras' },
+    { value: 'Vlakte',  label: 'Vlakte' },
+    { value: 'Eiland',  label: 'Eiland' },
+    { value: 'Grot',    label: 'Grot of mijn' },
+    { value: 'Ruine',   label: 'Ruïne' },
+  ]},
+  { groep: 'Overig', opties: [
+    { value: 'Schip',        label: 'Schip' },
+    { value: 'Schuilplaats', label: 'Schuilplaats' },
+    { value: 'Plein',        label: 'Plein of park' },
+    { value: 'Overig',       label: 'Overig' },
+  ]},
+];
+
 const SCHEMA = {
   personages: {
     // Vier subtypes: wát voor kaartje is dit. Verkoper en antagonist zijn geen
@@ -164,9 +213,18 @@ const SCHEMA = {
   },
   locaties: {
     fields: [
-      { key: 'locType', label: 'Type', type: 'select', options: ['Stadswijk','Gebouw','Herberg','Taveerne','Tempel','Winkel','Fort','Schip','Dorp','Stad','Woud','Berg','Zee','Overig'] },
-      { key: 'wijk', label: 'Wijk', type: 'text' },
-      { key: 'eigenaar', label: 'Eigenaar', type: 'text' },
+      // De opgeslagen waarden blijven staan; alleen de labels en de indeling
+      // veranderen, zodat geen enkel bestaand kaartje zijn type kwijtraakt.
+      // De eerste groep is meteen de markering uit vraag 2: dít zijn de types
+      // die verderop een eigen tabblad of een dienstkoppeling krijgen.
+      { key: 'locType', label: 'Type', type: 'select', optionGroups: LOC_TYPE_GROEPEN },
+      // 'wijk' heet nu Gebied: het veld werd allang gebruikt voor een land, een
+      // streek of een bovenliggend gebouw ("Hogwarts, tweede verdieping"). De
+      // sleutel blijft `wijk` — daar hangt de sortering en de zoekindex aan.
+      { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
+        hint: 'Grisburgh, het Amberwoud, Mistheuvel\u2026' },
+      { key: 'betrokkenen', label: 'Wie hoort hier bij', type: 'betrokkenen',
+        hint: 'Eigenaar, waard, personeel, stamgasten — personages én organisaties.' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
@@ -176,6 +234,11 @@ const SCHEMA = {
     fields: [
       { key: 'orgType', label: 'Type', type: 'select', options: ['Gilde','Factie','Religieus','Politiek','Crimineel','Militair','Overig'] },
       { key: 'motto', label: 'Motto', type: 'text' },
+      // Zelfde koppelingen als bij een locatie: waar ze zitten en wie erbij hoort.
+      { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
+        hint: 'Waar zit deze organisatie?' },
+      { key: 'betrokkenen', label: 'Wie hoort hier bij', type: 'betrokkenen',
+        hint: 'Leider, leden, beschermheer — personages én andere organisaties.' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
     ],
@@ -264,7 +327,22 @@ function _getAutoIconMap(type) {
         'Stad':       icon('map'),
         'Woud':       icon('tree-pine'),
         'Berg':       icon('mountain'),
-        'Zee':        icon('globe'),
+        'Zee':        icon('waves'),
+        'Rijk':       icon('globe'),
+        'Streek':     icon('map'),
+        'Academie':   icon('book-open'),
+        'Ziekenhuis': icon('heart'),
+        'Werkplaats': icon('package'),
+        'Gevangenis': icon('lock'),
+        'Kamer':      icon('square'),
+        'Rivier':     icon('droplet'),
+        'Moeras':     icon('droplet'),
+        'Vlakte':     icon('wind'),
+        'Eiland':     icon('globe'),
+        'Grot':       icon('mountain'),
+        'Ruine':      icon('brick-wall'),
+        'Schuilplaats': icon('eye-off'),
+        'Plein':      icon('tree-pine'),
         'Overig':     icon('map-pin'),
       },
       organisaties: {
@@ -673,12 +751,186 @@ function _antagUit(data, aantal) {
 window._antagUit = _antagUit;
 
 // Eén regel in de editor: tekstvak met opmaakbalk en een prullenbak.
-function _lijstRegelHtml(veld, tekst, i, antag = false) {
+// Opties van een select: een platte lijst, of groepen (optionGroups). Een
+// waarde die in geen enkele groep meer voorkomt krijgt zijn eigen regel, zodat
+// opslaan hem niet stilletjes leegmaakt — daar zou een oud kaartje op stuklopen.
+function _optieHtml(o, val) {
+  const v = typeof o === 'object' ? o.value : o;
+  const l = typeof o === 'object' ? o.label : o;
+  return `<option value="${esc(v)}"${val === v ? ' selected' : ''}>${esc(l)}</option>`;
+}
+function _optiesHtml(field, val) {
+  if (!field.optionGroups) return (field.options || []).map(o => _optieHtml(o, val)).join('');
+  const bekend = field.optionGroups.some(g => g.opties.some(o => (typeof o === 'object' ? o.value : o) === val));
+  return field.optionGroups.map(g =>
+    `<optgroup label="${esc(g.groep)}">${g.opties.map(o => _optieHtml(o, val)).join('')}</optgroup>`
+  ).join('') + ((val && !bekend) ? `<optgroup label="Nog uit een oudere lijst">${_optieHtml(val, val)}</optgroup>` : '');
+}
+
+// ── Koppelvelden: een kaartje aanwijzen in plaats van overtypen ─────────────
+// Een eigenaar, een gebied of een stamgast is bijna altijd al een kaartje. De
+// vrije tekst blijft staan (daar hangt de zoekindex en de export aan) en de
+// koppeling komt er als extra veld naast: `<key>` houdt de naam, `<key>Id` het
+// kaartje. Zo raakt een campagne die nooit koppelt niets kwijt, en wie wél
+// koppelt kan doorklikken.
+let _linkLijsten = { personages: [], locaties: [], organisaties: [] };
+let _linkGeladen = null;
+
+function _linkLaden() {
+  // Eén keer per editor-sessie; de datalists worden daarna gevuld.
+  _linkGeladen = Promise.all(['personages', 'locaties', 'organisaties'].map(t =>
+    api.listEntities(t).then(r => [t, (r || []).map(x => ({ id: x.id, name: x.name }))]).catch(() => [t, []])
+  )).then(paren => {
+    paren.forEach(([t, lijst]) => { _linkLijsten[t] = lijst; });
+    _linkDatalistsVullen();
+    return _linkLijsten;
+  });
+  return _linkGeladen;
+}
+
+function _linkOpties(doel) {
+  return (doel || []).flatMap(t => _linkLijsten[t].map(x => ({ ...x, type: t })));
+}
+
+function _linkDatalistsVullen() {
+  document.querySelectorAll('datalist[data-link-doel]').forEach(dl => {
+    const doel = dl.dataset.linkDoel.split(',');
+    // Namen kunnen in twee tabbladen voorkomen; dubbele regels helpen niemand.
+    const namen = [...new Set(_linkOpties(doel).map(o => o.name))];
+    dl.innerHTML = namen.map(n => `<option value="${esc(n)}">`).join('');
+  });
+  document.querySelectorAll('[data-link-veld]').forEach(inp => _linkStatus(inp));
+}
+
+// Naam → kaartje. Hoofdletterongevoelig, want zo tikt niemand het over.
+function _linkZoek(doel, naam) {
+  const schoon = (naam || '').trim().toLowerCase();
+  if (!schoon) return null;
+  return _linkOpties(doel).find(o => o.name.toLowerCase() === schoon) || null;
+}
+
+// Het regeltje onder een koppelveld: doorklikken als het kaartje bestaat,
+// aanmaken als het er nog niet is. Dat tweede is de vraag uit punt 5: een naam
+// mag alvast genoemd worden zonder dat het kaartje er al is.
+function _linkStatus(inp) {
+  const host = document.getElementById(inp.dataset.linkStatus);
+  if (!host) return;
+  const doel = inp.dataset.linkDoel.split(',');
+  const hidden = document.getElementById(inp.dataset.linkId);
+  const naam = (inp.value || '').trim();
+  const match = _linkZoek(doel, naam);
+  if (hidden) hidden.value = match?.id || '';
+  if (!naam) { host.innerHTML = ''; return; }
+  if (match) {
+    host.innerHTML = `<button type="button" class="link-chip" title="Kaartje openen"
+      onclick="window._openDetail('${match.type}','${esc(match.id)}')">${getAutoIconSvg(match.type, {}) || ''}${esc(match.name)}</button>`;
+    return;
+  }
+  host.innerHTML = doel.map(t => `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+      onclick="window._linkKaartjeMaken('${t}', '${esc(inp.id)}')"
+      title="Maakt een leeg kaartje met deze naam; invullen kan later">
+      ${icon('plus')} Kaartje aanmaken bij ${LINK_LABELS[t] || t}</button>`).join(' ');
+}
+
+window._linkVeldWijzig = (inp) => _linkStatus(inp);
+
+// Een betrokkene weet zijn id maar niet zijn tabblad. De naam-index van app.js
+// heeft allebei; daar zoeken we het type bij op. Lukt dat niet (index nog niet
+// gevuld), dan proberen we personages en organisaties op volgorde.
+window._openKaartjeOpId = async (id) => {
+  await window._entityIndexReady?.catch(() => {});
+  const treffer = Object.values(window._entityNameIndex || {}).find(x => x.id === id);
+  if (treffer) return window._openDetail(treffer.type, id);
+  for (const t of ['personages', 'organisaties', 'locaties']) {
+    const lijst = await api.listEntities(t).catch(() => []);
+    if ((lijst || []).some(x => x.id === id)) return window._openDetail(t, id);
+  }
+  window.app?._tsToast?.(`${icon('x')} Dat kaartje bestaat niet meer`);
+};
+
+// ── Betrokkenen: wie hoort er bij dit kaartje ───────────────────────────────
+// Rollen zijn suggesties, geen keurslijf: een campagne verzint zijn eigen
+// functies en die horen niet op een lijst van ons te wachten.
+const BETROKKEN_ROLLEN = ['Eigenaar', 'Waard', 'Priester', 'Personeel', 'Stamgast',
+  'Bewoner', 'Leider', 'Lid', 'Beschermheer', 'Gevangene'];
+
+function _betrokkenenUit(data) {
+  const rauw = data?.betrokkenen;
+  let rijen = [];
+  if (Array.isArray(rauw)) rijen = rauw;
+  else if (typeof rauw === 'string' && rauw.trim()) {
+    try { const arr = JSON.parse(rauw); if (Array.isArray(arr)) rijen = arr; } catch { /* stuk? dan leeg */ }
+  }
+  rijen = rijen.filter(r => r && (r.naam || r.id));
+  // Wat er al stond als losse tekst wordt de eerste regel. Zo hoeft er niets
+  // gemigreerd te worden: het kaartje leest gewoon allebei.
+  if (!rijen.length && (data?.eigenaar || '').trim()) {
+    rijen = [{ naam: data.eigenaar.trim(), id: data.eigenaarId || '', rol: 'Eigenaar' }];
+  }
+  return rijen;
+}
+
+function _betrokkenRijHtml(r, i) {
+  const inId = `betr-naam-${i}`;
+  return `<div class="betrokken-rij">
+    <input id="${inId}" class="betr-naam" value="${esc(r.naam || '')}" list="betrokken-dl"
+      data-link-veld="1" data-link-doel="personages,organisaties" data-link-id="betr-id-${i}"
+      data-link-status="betr-st-${i}" oninput="window._linkVeldWijzig(this)"
+      placeholder="Naam van een personage of organisatie">
+    <input class="betr-rol" value="${esc(r.rol || '')}" list="betrokken-rol-dl" placeholder="Rol">
+    <input type="hidden" class="betr-id" id="betr-id-${i}" value="${esc(r.id || '')}">
+    <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
+      title="Regel verwijderen" onclick="window._betrokkenWeg(this)">${icon('trash')}</button>
+    <div id="betr-st-${i}" class="link-status betrokken-status"></div>
+  </div>`;
+}
+
+window._betrokkenErbij = () => {
+  const host = document.getElementById('betrokkenen-lijst');
+  if (!host) return;
+  const i = host.querySelectorAll('.betrokken-rij').length + Date.now() % 1000;
+  host.insertAdjacentHTML('beforeend', _betrokkenRijHtml({}, i));
+  host.querySelector('.betrokken-rij:last-child .betr-naam')?.focus();
+  _linkDatalistsVullen();
+};
+
+window._betrokkenWeg = (btn) => {
+  const rij = btn.closest('.betrokken-rij');
+  const host = rij?.parentElement;
+  rij?.remove();
+  if (host && !host.querySelector('.betrokken-rij')) window._betrokkenErbij();
+};
+
+function _betrokkenenLees() {
+  return [...document.querySelectorAll('#betrokkenen-lijst .betrokken-rij')].map(rij => ({
+    naam: rij.querySelector('.betr-naam')?.value.trim() || '',
+    rol:  rij.querySelector('.betr-rol')?.value.trim()  || '',
+    id:   rij.querySelector('.betr-id')?.value          || '',
+  })).filter(r => r.naam);
+}
+
+window._linkKaartjeMaken = async (type, inputId) => {
+  const inp = document.getElementById(inputId);
+  const naam = (inp?.value || '').trim();
+  if (!naam) return;
+  try {
+    const nieuw = await api.createEntity(type, { name: naam, data: {} });
+    _linkLijsten[type].push({ id: nieuw.id, name: nieuw.name || naam });
+    _linkDatalistsVullen();
+    window.app?._tsToast?.(`${icon('check')} Leeg kaartje ${naam} aangemaakt`);
+  } catch (err) {
+    alert('Aanmaken mislukt: ' + (err.message || err));
+  }
+};
+
+function _lijstRegelHtml(veld, tekst, i, antag = false, metAntag = false) {
   const id = `lt-${veld}-${i}`;
-  // Alleen bij geheimen: per regel aan te vinken of juist díé onthulling hem
-  // antagonist maakt. Eerst was dat één schakelaar voor het hele kaartje, maar
-  // niet elk geheim is een verraad — en welk geheim het is, doet ertoe.
-  const antagRij = veld === 'geheimen' ? `
+  // Alleen bij geheimen op een personage: per regel aan te vinken of juist díé
+  // onthulling hem antagonist maakt. Eerst was dat één schakelaar voor het hele
+  // kaartje, maar niet elk geheim is een verraad — en welk geheim het is, doet
+  // ertoe. Een locatie of organisatie heeft geen kant in een gevecht, dus daar
+  // hoort het vinkje niet te staan.
+  const antagRij = (veld === 'geheimen' && metAntag) ? `
     <label class="lijst-regel-antag" title="Dit geheim onthullen geeft het personage de rol antagonist en zet de kant op vijand">
       <input type="checkbox" class="lijst-antag-vink"${antag ? ' checked' : ''}>
       ${icon('skull')} <span>Onthullen maakt het personage een vijand</span>
@@ -706,7 +958,7 @@ window._lijstRegelErbij = (veld) => {
   const host = document.getElementById(`lijst-${veld}`);
   if (!host) return;
   const i = host.querySelectorAll('.lijst-regel').length + Date.now() % 1000;
-  host.insertAdjacentHTML('beforeend', _lijstRegelHtml(veld, '', i));
+  host.insertAdjacentHTML('beforeend', _lijstRegelHtml(veld, '', i, false, host.dataset.antag === '1'));
   host.querySelector('.lijst-regel:last-child textarea')?.focus();
 };
 
@@ -2309,6 +2561,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const schema = SCHEMA[tab];
   const vis = e._visibility || 'visible';
   const isPersonage = tab === 'personages';
+  // Dezelfde markering heet niet overal hetzelfde: een gebouw gaat niet dood.
+  const _wegLabel = { locaties: 'Verwoest', organisaties: 'Opgeheven', voorwerpen: 'Verloren' }[tab] || 'Overleden';
   // Een leeg blad is een lege tab: alleen tonen als er iets in staat. `hp` en
   // `ac` tellen niet als "iets" wanneer de rest leeg is — dat is de minimale
   // invulling voor de monsterlijst, geen character sheet.
@@ -2465,6 +2719,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // een badge, de lijsten een perkamentrol per regel). Als pil toonden ze
     // hun ruwe JSON: ["Groot hater van jam."].
     if (['lijst-tekst', 'rollen'].includes(field.type)) continue;
+    // Betrokkenen heeft zijn eigen rij chips hieronder; als pil kwam zijn ruwe
+    // JSON in beeld.
+    if (field.type === 'betrokkenen') continue;
     if (tab === 'voorwerpen' && ['itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellPick', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
@@ -2476,6 +2733,19 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   }
   if (_metaPills.length) {
     infoHtml += `<div class="detail-meta-pills">${_metaPills.join('')}</div>`;
+  }
+  // Wie hoort hier bij: gekoppelde namen zijn knoppen naar hun eigen kaartje,
+  // losse namen blijven gewoon leesbaar staan.
+  const _betrokkenen = ['locaties', 'organisaties'].includes(tab) ? _betrokkenenUit(e.data) : [];
+  if (_betrokkenen.length) {
+    infoHtml += `<div class="detail-betrokkenen">
+      ${_betrokkenen.map(r => {
+        const naam = r.id
+          ? `<button type="button" class="link-chip link-chip--sm" onclick="window._openKaartjeOpId('${esc(r.id)}')">${esc(r.naam)}</button>`
+          : `<span class="betrokken-naam">${esc(r.naam)}</span>`;
+        return `<span class="betrokken-chip">${r.rol ? `<span class="pill-lbl">${esc(r.rol)}</span>` : ''}${naam}</span>`;
+      }).join('')}
+    </div>`;
   }
   if (tab === 'locaties' && window._pinnedLocIds?.has(e.id)) {
     infoHtml += `<div class="detail-map-link-wrap">
@@ -2608,10 +2878,12 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             onclick="window._toggleVis('${tab}','${e.id}',event)">
             ${_mVisIcon}<span>${vis === 'visible' ? 'Zichtbaar' : vis === 'vague' ? 'Vaag zichtbaar' : 'Verborgen'}</span>
           </button>
+          <!-- Dezelfde markering (dagger + gedempte kaart), maar een gebouw gaat
+               niet dood: per tabblad het woord dat er hoort te staan. -->
           <button class="dm-actie${e._deceased ? ' dm-actie--aan' : ''}"
-            title="${e._deceased ? 'Markering verwijderen' : 'Markeer als overleden'}"
+            title="${e._deceased ? 'Markering verwijderen' : `Markeer als ${_wegLabel.toLowerCase()}`}"
             onclick="window._toggleDeceased('${tab}','${e.id}')">
-            ${icon('skull', {cls:'icon-gi'})}<span>Overleden</span>
+            ${icon('skull', {cls:'icon-gi'})}<span>${_wegLabel}</span>
           </button>
           ${isPersonage && String(e.subtype || '').toLowerCase() === 'npc' ? `
             <button class="dm-actie" id="detail-medestander-${e.id}"
@@ -4258,7 +4530,7 @@ window._openEditor = async (tab, editId) => {
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <select name="data_${field.key}"${_selOnchange} class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
             <option value="">—</option>
-            ${field.options.map(o => typeof o === 'object' ? `<option value="${o.value}" ${val === o.value ? 'selected' : ''}>${o.label}</option>` : `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
+            ${_optiesHtml(field, val)}
           </select>
         </div>
       `;
@@ -4359,13 +4631,14 @@ window._openEditor = async (tab, editId) => {
     } else if (field.type === 'lijst-tekst') {
       const regels = _tekstLijstUit(e?.data, field.key, field.enkelvoud);
       if (!regels.length) regels.push('');
-      const _antagVlaggen = field.key === 'geheimen' ? _antagUit(e?.data, regels.length) : [];
+      const _metAntag = field.key === 'geheimen' && tab === 'personages';
+      const _antagVlaggen = _metAntag ? _antagUit(e?.data, regels.length) : [];
       const _verborgenVeld = field.key === 'geheimen';
       body += `
         <div${_verborgenVeld ? ' class="veld-dmonly"' : ''}>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
-          <div id="lijst-${field.key}" class="lijst-veld" data-veld="${field.key}">
-            ${regels.map((t, i) => _lijstRegelHtml(field.key, t, i, _antagVlaggen[i])).join('')}
+          <div id="lijst-${field.key}" class="lijst-veld" data-veld="${field.key}"${_metAntag ? ' data-antag="1"' : ''}>
+            ${regels.map((t, i) => _lijstRegelHtml(field.key, t, i, _antagVlaggen[i], _metAntag)).join('')}
           </div>
           <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
             onclick="window._lijstRegelErbij('${field.key}')">${icon('plus')} Regel toevoegen</button>
@@ -4382,6 +4655,46 @@ window._openEditor = async (tab, editId) => {
         <div>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           ${_keuzeVeldHtml(`kv-${field.key}`, `data_${field.key}`, val, _opties, 'Typ of kies\u2026')}
+        </div>
+      `;
+    } else if (field.type === 'entiteit') {
+      // Vrije tekst blijft het veld zelf (data_<key>); het kaartje komt er als
+      // data_<key>Id naast. Wie niets koppelt houdt dus gewoon zijn tekst.
+      const _dlId = `link-dl-${field.key}`;
+      const _inId = `link-in-${field.key}`;
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="${_inId}">${esc(field.label)}</label>
+          <input id="${_inId}" name="data_${field.key}" value="${esc(val)}" list="${_dlId}"
+            data-link-veld="1" data-link-doel="${field.doel.join(',')}" data-link-id="link-hid-${field.key}"
+            data-link-status="link-st-${field.key}"
+            oninput="window._linkVeldWijzig(this)" placeholder="${esc(field.hint || 'Typ of kies\u2026')}"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+          <datalist id="${_dlId}" data-link-doel="${field.doel.join(',')}"></datalist>
+          <input type="hidden" id="link-hid-${field.key}" name="data_${field.key}Id" value="${esc(e?.data?.[field.key + 'Id'] || '')}">
+          <div id="link-st-${field.key}" class="link-status"></div>
+        </div>
+      `;
+    } else if (field.type === 'betrokkenen') {
+      // Eén lijst in plaats van losse velden voor eigenaar, personeel en
+      // stamgasten: in de praktijk staan daar allebei personages én
+      // organisaties in, en wie wát is verschilt per kaartje. Bestaande
+      // eigenaar-tekst wordt de eerste regel, zodat niets verdwijnt.
+      const rijen = _betrokkenenUit(e?.data);
+      if (!rijen.length) rijen.push({ naam: '', rol: '' });
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <p class="veld-uitleg">${esc(field.hint || '')}</p>
+          <div id="betrokkenen-lijst">
+            ${rijen.map((r, i) => _betrokkenRijHtml(r, i)).join('')}
+          </div>
+          <datalist id="betrokken-dl" data-link-doel="personages,organisaties"></datalist>
+          <datalist id="betrokken-rol-dl">
+            ${BETROKKEN_ROLLEN.map(r => `<option value="${esc(r)}">`).join('')}
+          </datalist>
+          <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
+            onclick="window._betrokkenErbij()">${icon('plus')} Regel toevoegen</button>
         </div>
       `;
     } else if (field.type === 'weapon-tags') {
@@ -5036,6 +5349,10 @@ window._openEditor = async (tab, editId) => {
     }
   };
 
+  // Kaartjeslijsten voor de koppelvelden (gebied, betrokkenen). Eén keer per
+  // geopende editor; de datalists vullen zichzelf zodra ze binnen zijn.
+  if (document.querySelector('[data-link-veld]')) _linkLaden();
+
   // ── Verkoper wijst naar zijn winkel ──
   if (tab === 'personages' && isDM()) {
     let _winkelLocs = [];
@@ -5088,6 +5405,16 @@ window._openEditor = async (tab, editId) => {
     for (const [key, val] of form.entries()) {
       if (key.startsWith('data_')) data[key.slice(5)] = val;
       else if (key.startsWith('stat_')) stats[key.slice(5)] = val;
+    }
+    // Betrokkenen serialiseren. `eigenaar` blijft meelopen als losse tekst:
+    // de campagneboek-export en de zoekindex lezen dat veld, en een kaartje dat
+    // nooit gekoppeld wordt hoort er niet op achteruit te gaan.
+    if (document.getElementById('betrokkenen-lijst')) {
+      const rijen = _betrokkenenLees();
+      data.betrokkenen = rijen.length ? JSON.stringify(rijen) : '';
+      const baas = rijen.find(r => /eigenaar/i.test(r.rol));
+      data.eigenaar   = baas ? baas.naam : (rijen.length ? '' : (data.eigenaar || ''));
+      data.eigenaarId = baas ? (baas.id || '') : '';
     }
     // Voorraad serialiseren voor verkopers & winkels
     if (tab === 'personages' || tab === 'locaties') {
