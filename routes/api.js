@@ -3475,6 +3475,86 @@ router.delete('/companions/:npcId/:groupId', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Koppelingen van een kaartje ─────────────────────────────────────────────
+// Een herberg, een tempel en een factie zijn diensten met een eigen config, en
+// die config wees allang naar een kaartje (`meta.tempel.goden[].locatieEntityId`,
+// `meta.facties[].entityId`). Wat ontbrak was de weg terug: op het kaartje zelf
+// zag je er niets van. De koppeling blijft dus staan waar hij staat — één
+// opslagplek, twee ingangen — en deze route leest en schrijft hem van deze kant.
+//
+// De dungeon- en kamerkoppeling hoort wél op het kaartje (`data.dungeonId` /
+// `data.roomId`, dezelfde vorm als een loot-vondst) en gaat mee met het gewone
+// opslaan; hier komt alleen de keuzelijst vandaan.
+function _koppelingenVan(type, id) {
+  const meta = storage.readJSON('meta.json');
+  const goden   = Array.isArray(meta.tempel?.goden) ? meta.tempel.goden : [];
+  const facties = Array.isArray(meta.facties) ? meta.facties : [];
+  const pins    = (storage.readJSON('map.json').pins || []).filter(p => p.locId === id);
+  return {
+    herberg:   meta.herberg?.locatieEntityId === id,
+    herbergNaam: meta.herberg?.naam || '',
+    godNaam:   (goden.find(g => g.locatieEntityId === id) || {}).naam || '',
+    goden:     goden.map(g => ({ naam: g.naam, locatieEntityId: g.locatieEntityId || null })),
+    factieId:  (facties.find(f => f.entityId === id) || {}).id || '',
+    facties:   facties.map(f => ({ id: f.id, naam: f.naam, entityId: f.entityId || null })),
+    // Kamers erbij, zodat de DM een kaartje aan één kamer kan hangen.
+    dungeons:  _readDungeons().map(m => ({
+      id: m.id, name: m.name,
+      rooms: (m.rooms || []).map(r => ({ id: r.id, name: r.name })),
+    })),
+    opKaart:   pins.length > 0,
+  };
+}
+
+router.get('/entities/:type/:id/koppelingen', requireDM, (req, res) => {
+  res.json(_koppelingenVan(req.params.type, req.params.id));
+});
+
+router.put('/entities/:type/:id/koppelingen', requireDM, (req, res) => {
+  const { type, id } = req.params;
+  const meta = storage.readJSON('meta.json');
+  let veranderd = false;
+
+  // De herberg is er één per campagne: het is één veld, dus een andere herberg
+  // aanwijzen laat de vorige vanzelf los. Geen tweede plek om schoon te maken.
+  if (req.body.herberg !== undefined && type === 'locaties') {
+    if (!meta.herberg) meta.herberg = {};
+    meta.herberg.locatieEntityId = req.body.herberg ? id : null;
+    veranderd = true;
+  }
+
+  // Een tempel hoort bij één god; een god kan meerdere tempels hebben, maar de
+  // dienst toont er één. Daarom hangt de koppeling aan de god.
+  if (req.body.godNaam !== undefined && type === 'locaties') {
+    const goden = Array.isArray(meta.tempel?.goden) ? meta.tempel.goden : [];
+    const wil   = String(req.body.godNaam || '').trim();
+    for (const g of goden) {
+      if (g.locatieEntityId === id) g.locatieEntityId = null;   // eerst losmaken
+      if (wil && g.naam === wil)    g.locatieEntityId = id;
+    }
+    if (!meta.tempel) meta.tempel = {};
+    meta.tempel.goden = goden;
+    veranderd = true;
+  }
+
+  if (req.body.factieId !== undefined && type === 'organisaties') {
+    const facties = Array.isArray(meta.facties) ? meta.facties : [];
+    const wil = String(req.body.factieId || '').trim();
+    for (const f of facties) {
+      if (f.entityId === id) f.entityId = null;
+      if (wil && f.id === wil) f.entityId = id;
+    }
+    meta.facties = facties;
+    veranderd = true;
+  }
+
+  if (veranderd) {
+    storage.writeJSON('meta.json', meta);
+    req.app.get('io').to(req.session?.campaignId || 'main').emit('meta:updated');
+  }
+  res.json(_koppelingenVan(type, id));
+});
+
 // ── Huisdieren / metgezellen: tier-schaling ──
 // Het statblok op het kaartje zelf (`stats`) is de **basis**: dat is het dier
 // vanaf level 1, en zolang niemand een tier toevoegt is het ook het enige dat

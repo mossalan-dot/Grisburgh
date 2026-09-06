@@ -1,4 +1,4 @@
-import { api } from './api.js?v=271';
+import { api } from './api.js?v=272';
 import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);
@@ -908,6 +908,73 @@ function _betrokkenenLees() {
     id:   rij.querySelector('.betr-id')?.value          || '',
   })).filter(r => r.naam);
 }
+
+// ── Koppelingen: herberg, tempel-god, factie, dungeon ───────────────────────
+let _koppelCtx = { tab: '', id: '', dungeons: [] };
+
+// De herberg- en tempelkoppeling horen alleen bij díé types; anders staat er een
+// keuzelijst die nergens over gaat.
+function _koppelLocTypeToon(val) {
+  const type = val ?? document.querySelector('select[name="data_locType"]')?.value ?? '';
+  const h = document.getElementById('koppel-herberg');
+  const t = document.getElementById('koppel-tempel');
+  if (h) h.style.display = type === 'Herberg' ? '' : 'none';
+  if (t) t.style.display = type === 'Tempel'  ? '' : 'none';
+}
+
+function _koppelDungeonVullen() {
+  const sel  = document.getElementById('koppel-dungeon');
+  const hid  = document.getElementById('koppel-dungeon-id');
+  if (!sel) return;
+  sel.innerHTML = `<option value="">— geen dungeonkaart —</option>` +
+    _koppelCtx.dungeons.map(d => `<option value="${esc(d.id)}"${hid.value === d.id ? ' selected' : ''}>${esc(d.name || d.id)}</option>`).join('');
+  _koppelRoomsVullen();
+}
+
+function _koppelRoomsVullen() {
+  const sel = document.getElementById('koppel-room');
+  const dId = document.getElementById('koppel-dungeon-id')?.value || '';
+  const rId = document.getElementById('koppel-room-id')?.value || '';
+  if (!sel) return;
+  const kaart = _koppelCtx.dungeons.find(d => d.id === dId);
+  const kamers = kaart?.rooms || [];
+  // Zonder kaart (of zonder kamers erop) valt er niets te kiezen; dan is de
+  // lijst uitgeschakeld in plaats van misleidend leeg.
+  sel.disabled = !kamers.length;
+  sel.innerHTML = kamers.length
+    ? `<option value="">— hele kaart —</option>` +
+      kamers.map(r => `<option value="${esc(r.id)}"${rId === r.id ? ' selected' : ''}>${esc(r.name || r.id)}</option>`).join('')
+    : `<option value="">${dId ? 'geen kamers op deze kaart' : '— eerst een kaart —'}</option>`;
+}
+
+window._koppelDungeonWissel = () => {
+  const sel = document.getElementById('koppel-dungeon');
+  document.getElementById('koppel-dungeon-id').value = sel.value;
+  // Een kamer uit de vórige kaart slaat nergens op.
+  document.getElementById('koppel-room-id').value = '';
+  _koppelRoomsVullen();
+};
+
+window._koppelRoomWissel = () => {
+  document.getElementById('koppel-room-id').value = document.getElementById('koppel-room').value;
+};
+
+// Herberg, god en factie liggen in meta.json, niet in het kaartje: die bewaren
+// zichzelf meteen, net als het baasje van een huisdier. Wachten op Opslaan zou
+// betekenen dat het formulier meta moet meesturen, en dan zijn er twee wegen
+// naar dezelfde waarde.
+window._koppelZet = async (body) => {
+  try {
+    const k = await api.zetKoppelingen(_koppelCtx.tab, _koppelCtx.id, body);
+    const uitleg = document.getElementById('koppel-herberg-uitleg');
+    if (uitleg && body.herberg !== undefined) {
+      uitleg.textContent = k.herberg ? 'De herberg-dienst gebruikt dit kaartje.' : '';
+    }
+    window.app?._tsToast?.(`${icon('check')} Koppeling bewaard`);
+  } catch (err) {
+    alert('Koppelen mislukt: ' + (err.message || err));
+  }
+};
 
 window._linkKaartjeMaken = async (type, inputId) => {
   const inp = document.getElementById(inputId);
@@ -4763,6 +4830,55 @@ window._openEditor = async (tab, editId) => {
   // van het detailvenster, bij "markeer als deceased" — beide zijn handelingen,
   // geen velden van het kaartje.
 
+  // ── Koppelingen ──
+  // Wat dit kaartje elders is: de herberg van de campagne, de tempel van een
+  // god, het kaartje achter een factie, of een dungeonkaart. De eerste drie
+  // liggen in meta.json (de dienst is de eigenaar van die koppeling) en worden
+  // meteen bij het wisselen bewaard; de dungeon hoort bij het kaartje zelf en
+  // gaat mee met Opslaan. Alleen bij een bestaand kaartje: zonder id valt er
+  // niets te koppelen.
+  if (['locaties', 'organisaties'].includes(tab) && isDM() && e?.id) {
+    const _isLoc = tab === 'locaties';
+    body += `
+      <div class="koppel-sectie" id="koppel-sectie">
+        <div class="cs-sectiekop">Koppelingen</div>
+        <div id="koppel-laden" class="veld-uitleg">Laden\u2026</div>
+        <div id="koppel-inhoud" class="hidden">
+          ${_isLoc ? `
+          <div class="koppel-rij" id="koppel-herberg" style="display:none">
+            <label class="koppel-vink">
+              <input type="checkbox" id="koppel-herberg-vink" onchange="window._koppelZet({ herberg: this.checked })">
+              <span>Dit is de herberg van de campagne</span>
+            </label>
+            <div class="veld-uitleg" id="koppel-herberg-uitleg"></div>
+          </div>
+          <div class="koppel-rij" id="koppel-tempel" style="display:none">
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-god">God van deze tempel</label>
+            <select id="koppel-god" class="koppel-select" onchange="window._koppelZet({ godNaam: this.value })"></select>
+            <div class="veld-uitleg">De Tempel-dienst gebruikt dit kaartje als achtergrond bij die god.</div>
+          </div>` : `
+          <div class="koppel-rij">
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-factie">Factie</label>
+            <select id="koppel-factie" class="koppel-select" onchange="window._koppelZet({ factieId: this.value })"></select>
+            <div class="veld-uitleg">Koppelt dit kaartje aan een factie uit het Facties-paneel.</div>
+          </div>`}
+          ${_isLoc ? `
+          <div class="koppel-rij">
+            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="koppel-dungeon">Dungeonkaart</label>
+            <div class="koppel-duo">
+              <select id="koppel-dungeon" class="koppel-select" onchange="window._koppelDungeonWissel()"></select>
+              <select id="koppel-room" class="koppel-select" onchange="window._koppelRoomWissel()"></select>
+            </div>
+            <input type="hidden" name="data_dungeonId" id="koppel-dungeon-id" value="${esc(e?.data?.dungeonId || '')}">
+            <input type="hidden" name="data_roomId"    id="koppel-room-id"    value="${esc(e?.data?.roomId || '')}">
+            <div class="veld-uitleg">Een kamer kiezen mag, maar hoeft niet — de hele kaart volstaat.</div>
+          </div>
+          <div class="koppel-rij" id="koppel-kaart"></div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
 
 
   // ── Verborgen inputs + audio ── hoort bij het beeld-tabblad
@@ -5239,6 +5355,7 @@ window._openEditor = async (tab, editId) => {
       const wcSec = document.getElementById('winkelconfig-section');
       if (wcSec) wcSec.style.display = isWinkel ? '' : 'none';
       _winkelTabTonen(isWinkel);
+      _koppelLocTypeToon(val);
     };
 
     // Inladen-paneel toggle
@@ -5352,6 +5469,56 @@ window._openEditor = async (tab, editId) => {
   // Kaartjeslijsten voor de koppelvelden (gebied, betrokkenen). Eén keer per
   // geopende editor; de datalists vullen zichzelf zodra ze binnen zijn.
   if (document.querySelector('[data-link-veld]')) _linkLaden();
+
+  // ── Koppelingen vullen ──
+  if (document.getElementById('koppel-sectie')) {
+    _koppelCtx = { tab, id: e.id, dungeons: [] };
+    api.getKoppelingen(tab, e.id).then(k => {
+      _koppelCtx.dungeons = k.dungeons || [];
+      const laden  = document.getElementById('koppel-laden');
+      const inhoud = document.getElementById('koppel-inhoud');
+      if (laden)  laden.classList.add('hidden');
+      if (inhoud) inhoud.classList.remove('hidden');
+
+      const vink = document.getElementById('koppel-herberg-vink');
+      if (vink) {
+        vink.checked = !!k.herberg;
+        const uitleg = document.getElementById('koppel-herberg-uitleg');
+        // De dienst heeft een eigen naam (meta.herberg.naam); die zegt nog niet
+        // aan wélk kaartje hij hangt. Alleen dat laatste is hier interessant.
+        if (uitleg) uitleg.textContent = k.herberg
+          ? 'De herberg-dienst gebruikt dit kaartje.'
+          : (k.herbergNaam
+              ? `De herberg-dienst heet nu \u201c${k.herbergNaam}\u201d. Aanvinken hangt hem aan dit kaartje.`
+              : 'Nog aan geen enkel kaartje gekoppeld.');
+      }
+      const god = document.getElementById('koppel-god');
+      if (god) {
+        god.innerHTML = `<option value="">\u2014 geen god \u2014</option>` + (k.goden || []).map(g => {
+          // Een god die al aan een ánder kaartje hangt mag je kiezen, maar dan
+          // hoort erbij te staan dat je hem daar weghaalt.
+          const elders = g.locatieEntityId && g.locatieEntityId !== e.id;
+          return `<option value="${esc(g.naam)}"${k.godNaam === g.naam ? ' selected' : ''}>${esc(g.naam)}${elders ? ' \u00b7 staat nu elders' : ''}</option>`;
+        }).join('');
+      }
+      const factie = document.getElementById('koppel-factie');
+      if (factie) {
+        factie.innerHTML = `<option value="">\u2014 geen factie \u2014</option>` + (k.facties || []).map(f => {
+          const elders = f.entityId && f.entityId !== e.id;
+          return `<option value="${esc(f.id)}"${k.factieId === f.id ? ' selected' : ''}>${esc(f.naam)}${elders ? ' \u00b7 staat nu elders' : ''}</option>`;
+        }).join('');
+      }
+      _koppelDungeonVullen();
+      const kaart = document.getElementById('koppel-kaart');
+      if (kaart) kaart.innerHTML = k.opKaart
+        ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._toonOpKaart('${esc(e.id)}')">${icon('map-pin')} Staat op de kaart \u2014 toon hem</button>`
+        : `<p class="veld-uitleg">${icon('map-pin')} Nog geen speld op de kaart. Die zet je op de kaart zelf, want daar wijs je de plek aan.</p>`;
+      _koppelLocTypeToon();
+    }).catch(() => {
+      const laden = document.getElementById('koppel-laden');
+      if (laden) laden.textContent = 'Koppelingen konden niet geladen worden.';
+    });
+  }
 
   // ── Verkoper wijst naar zijn winkel ──
   if (tab === 'personages' && isDM()) {

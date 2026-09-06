@@ -23032,6 +23032,28 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .betrokken-chip .pill-lbl { font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: .06em; color: #9a815c; }
 .betrokken-naam { font-family: 'Crimson Text', Georgia, serif; font-size: 0.9rem; color: #3a2410; }
 
+/* ── Koppelingen op een kaartje ─────────────────────────────────────────────
+   Wat dit kaartje elders is: de herberg, de tempel van een god, de factie, een
+   dungeonkaart. Eigen sectie, want het gaat niet over het kaartje zelf maar
+   over waar het aan vastzit. */
+.koppel-sectie { margin-top: 6px; }
+.koppel-rij { margin-bottom: 12px; }
+.koppel-duo { display: flex; gap: 8px; flex-wrap: wrap; }
+.koppel-duo > .koppel-select { flex: 1 1 160px; min-width: 0; }
+.koppel-select {
+  width: 100%; margin-top: 4px; padding: 8px 11px;
+  font-family: 'Crimson Text', Georgia, serif; font-size: 0.95rem;
+  background: var(--room-bg, #f2e8d2); color: #2a1a08;
+  border: 1px solid rgba(196,168,122,0.55); border-radius: 5px;
+}
+.koppel-select:focus { outline: none; border-color: #c4a87a; }
+.koppel-select:disabled { opacity: .55; cursor: not-allowed; }
+.koppel-vink {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  font-family: 'Crimson Text', Georgia, serif; font-size: 0.95rem; color: #3a2410;
+}
+.koppel-rij .veld-uitleg .icon { width: 13px; height: 13px; vertical-align: -2px; }
+
 /* Leden van een party in de Meesterkamer: chips met een kruisje, plus een
    zoekveld om er iemand bij te zetten. */
 .dm-lid-chip {
