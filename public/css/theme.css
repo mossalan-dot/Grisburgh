@@ -1637,14 +1637,151 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   border-radius: 20px;
 }
 
-/* ── Metadata pills ── */
-.detail-item-subtitle {
+
+/* ── Voorwerp: één kenmerkenstrook ──
+   Was vier losse rijen (rariteit, schade, wapeneigenschappen, prijs), elk met
+   een eigen uitlijning. Nu één omkaderd blok: bovenin wat het kost en vraagt,
+   eronder wat je ermee doet. */
+.item-kenmerken {
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 8px;
+  background: rgba(236,220,186,0.35);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.item-kenmerken-kop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  font-family: 'IM Fell English', serif;
+  font-size: 13px;
+  color: #5a4030;
+}
+.item-kenmerken-kop .ik-prijs {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #9a7008;
+}
+.item-kenmerken-kop .ik-prijs svg { width: 14px; height: 14px; }
+.item-kenmerken-kop .ik-los,
+.item-kenmerken-kop .ik-att {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-style: italic;
+  color: var(--color-ink-dim);
+}
+.item-kenmerken-kop .ik-los svg { width: 13px; height: 13px; opacity: 0.7; }
+.item-kenmerken-kop .ik-att {
+  border: 1px solid rgba(196,168,122,0.5);
+  border-radius: 10px;
+  padding: 1px 9px;
+  font-size: 11.5px;
+}
+/* De schadeknop is het enige aanklikbare hier en houdt daarom zijn accent;
+   de eigenschappen eromheen blijven vlak. */
+.item-kenmerken-doen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.item-kenmerken-doen .item-damage-pill { margin: 0; }
+/* Het uitvakje voor de worp staat er altijd; leeg mag het geen gat trekken. */
+.item-kenmerken-doen .dmg-inline-result:empty { display: none; }
+
+/* ── Voorwerp: tabblad Bezit ── */
+.bezit-blok { display: flex; flex-direction: column; }
+/* Een losse actieknop in een kolom-flex rekt anders over de volle breedte —
+   zelfde regel als bij .dm-form-row in de Meesterkamer. */
+.bezit-blok > .dm-btn { align-self: flex-start; }
+.bezit-leeg {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  color: var(--color-ink-dim);
+  padding: 14px 0;
+}
+.bezit-groep + .bezit-groep { margin-top: 14px; }
+.bezit-groep-kop {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
+  gap: 6px;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #9a7008;
+  border-bottom: 1px solid rgba(196,168,122,0.4);
+  padding-bottom: 4px;
+  margin-bottom: 6px;
 }
+.bezit-groep-kop svg { width: 13px; height: 13px; }
+.bezit-rij {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 2px;
+  border-bottom: 1px solid rgba(196,168,122,0.2);
+}
+.bezit-rij:last-child { border-bottom: 0; }
+.bezit-naam {
+  flex: 1;
+  font-family: 'Crimson Text', serif;
+  font-size: 15px;
+  color: #3a2410;
+}
+.bezit-charges {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: #7a6040;
+}
+.bezit-charges svg { width: 12px; height: 12px; }
+.bezit-aantal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Cinzel', serif;
+  color: #3a2410;
+}
+.bezit-rij--los .bezit-naam { color: #7a6040; }
+.bezit-los-label {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: #7a6040;
+}
+
+/* Terugnemen vanuit de geef-modal: één klik te veel moet je daar kunnen
+   rechtzetten, zonder eerst naar het tabblad Bezit te lopen. */
+.item-give-minus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(196,168,122,0.5);
+  border-radius: 6px;
+  background: transparent;
+  color: #8a5a3a;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.item-give-minus:hover { background: rgba(160,60,40,0.12); color: #a03c28; }
+.item-give-minus svg { width: 14px; height: 14px; }
+
+/* ── Metadata pills ── */
 .detail-item-rarity {
   font-family: 'IM Fell English', serif;
   font-style: italic;
@@ -1692,13 +1829,6 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 
 /* ── Voorwerp: Schade / Genezing pill ── */
-.detail-item-damage-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 14px;
-}
 .item-damage-pill {
   display: inline-flex;
   align-items: center;
@@ -1825,12 +1955,6 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   background: rgba(196,168,122,0.10);
 }
 /* ── Wapeneigenschappen — detailmodal chips + tooltip ── */
-.detail-weapon-props {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 14px;
-}
 .detail-weapon-tag {
   font-family: 'Cinzel', serif;
   font-size: 11px;
@@ -1910,12 +2034,6 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   border: 1px solid rgba(160,120,30,0.40);
 }
 /* ── Pantsereigenschappen — detailmodal chips ── */
-.detail-armor-props {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 14px;
-}
 .detail-armor-tag {
   font-family: 'Cinzel', serif;
   font-size: 11px;

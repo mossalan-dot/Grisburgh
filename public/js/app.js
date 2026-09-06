@@ -1,5 +1,5 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=274';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=229";
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=275';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=230";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -5609,7 +5609,7 @@ window._geefItem = async (itemId, targetId) => {
   document.getElementById('geef-menu')?.remove();
   try {
     const r = await api.geefItem(itemId, targetId);
-    _showToast?.(`${window.icon?.('package') || ''} <strong>${esc(r.itemNaam)}</strong> is nu van ${esc(r.naar)}`);
+    window._melding?.(`${window.icon?.('package') || ''} <strong>${esc(r.itemNaam)}</strong> is nu van ${esc(r.naar)}`);
     window._knapzakCarouselItems = (window._knapzakCarouselItems || []).filter(i => i.id !== itemId);
     window._knapzakCarouselIdx = 0;
     window._knapzakCarouselRender?.();
@@ -11984,9 +11984,11 @@ const HELP_CONFIG = {
   ] }),
 
   hulp_bewerk_voorwerpen_info: () => ({ titel: 'Een voorwerp', stappen: [
-    { titel: 'Type en rarity', tekst: 'Het **type** bepaalt welke velden erbij komen: een Weapon krijgt schade en wapeneigenschappen, Armor een base AC, een Scroll een spellkiezer. De **rarity** kleurt de rand van het kaartje — Very Rare en Legendary krijgen bovendien een gloed.', afbeelding: null },
-    { titel: 'Prijs en gebruik', tekst: 'De **prijs** mag met een komma (`12,34`) of in munten (`5 gp 2 sp`). Bij **gebruik** kies je of het voorwerp uniek is, gedeeld (meerdere spelers, elk één) of stapelbaar (meerdere exemplaren per speler). Wat winkels niet mogen overnemen zet je uit met *Niet verkoopbaar*.', afbeelding: null },
-    { titel: 'Charges', tekst: 'Heeft het voorwerp ladingen, zet dan *Heeft charges* aan: je bepaalt het maximum, wanneer het herlaadt (lange rust, korte rust, dageraad, of een dobbelrol) en of de speler het maximum zelf mag bijstellen.', afbeelding: null },
+    { titel: 'Type en rarity', tekst: 'Het **type** staat in groepen (wapens & harnas, magische voorwerpen, verbruik, uitrusting) en bepaalt welke velden erbij komen — onder de keuzelijst staat wat je krijgt. De **rarity** kleurt de rand van het kaartje; Very Rare en Legendary krijgen bovendien een gloed.', afbeelding: null },
+    { titel: 'Prijs en exemplaren', tekst: 'De **prijs** mag met een komma (`12,34`) of in munten (`5 gp 2 sp`). Bij **exemplaren** kies je of er maar één van is, of meerdere spelers er elk één van kunnen hebben, of ieder er een aantal van bijhoudt (met teller). Wat winkels niet mogen overnemen vink je aan bij *Niet te verkopen aan winkels*.', afbeelding: null },
+    { titel: 'Charges', tekst: 'Heeft het voorwerp ladingen, zet dan *Charges* aan. Het **maximum** is een getal. **Herlaadt bij** kent drie standen: helemaal vol na een lange rust, helemaal vol na een korte rust, of een deel terug met een worp — dan verschijnt het veld waarin je die worp zet (`1d3`). *Speler mag zijn eigen maximum bijstellen* geeft de speler ±-knopjes bij de bolletjes in zijn boedel; handig als het maximum per exemplaar verschilt.', afbeelding: null },
+    { titel: 'Wie heeft het', tekst: 'Bij een bestaand voorwerp staat rechts het tabblad **Bezit**: wie het heeft, in welke party, hoeveel exemplaren en hoeveel charges er nog in zitten. Daar deel je het ook uit — en neem je het weer af als je één keer te veel klikte.', afbeelding: null },
+    { titel: 'Waar het te koop is', tekst: 'Dat leg je niet hier vast maar in de **voorraad van de winkel**. Het voorwerp toont daarna vanzelf een regel *Te koop* met de winkel erachter — één plek, twee kanten, net als bij de betrokkenen op een locatie.', afbeelding: null },
   ] }),
 
   tempel: () => {

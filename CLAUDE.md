@@ -209,8 +209,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=520   app.js?v=592   sound-manager.js?v=8
-app.js      : api.js?v=274      render-campagne.js?v=197   render-archief.js?v=76
+index.html  : theme.css?v=521   app.js?v=623   sound-manager.js?v=8
+app.js      : api.js?v=275      render-campagne.js?v=230   render-archief.js?v=77
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=44  socket-client.js?v=59
               render-bestiarium.js?v=20  render-statblock.js?v=3
@@ -495,6 +495,65 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 > `_sbApplyGlossary_DOM()` (wrapt termen in `.sb-gloss`-spans) en een globale tooltip-handler
 > (`_initGlobalGlossary`, geactiveerd in `init()`). Publieke API: `window.glossary.applyDom(el)`.
 > Gebruikt door spreukenboek én het progressie-detailmodal.
+
+---
+
+## Voorwerpen
+
+- **Types staan in groepen** (`ITEM_TYPE_GROEPEN` in `render-campagne.js`), zelfde
+  vorm als bij locaties en organisaties: waarden blijven exact zoals ze
+  opgeslagen zijn, alleen de indeling verandert. `ITEM_TYPE_MELDINGEN` zegt onder
+  de keuzelijst wat een type extra oplevert (Weapon → schade, Armor → Base AC,
+  Scroll → spellkiezer, Blessing → Tempel-velden) — anders is na het kiezen niet
+  meer te zien dát dit een type met extra's was.
+- **`_optiesHtml` verliest geen waarde meer.** Ook een platte `options`-lijst
+  krijgt een extra regel "(oude waarde)" voor een opgeslagen waarde die niet meer
+  in de lijst staat. Zonder dat stond zo'n veld op "—" en was de waarde na één
+  keer opslaan stil verdwenen — precies wat er bij het schrappen van `dawn`
+  gebeurd zou zijn.
+- **`showWhen: { key, values }`** hangt een veld aan de waarde van een ánder veld
+  op hetzelfde blad (keuzelijst óf vinkje); `showFor` kan alleen op `itemType`.
+  Eén gedelegeerde `change`-luisteraar op `#m-body` houdt ze bij
+  (`window._showWhenBijwerken`). Gebruikt door *Hoeveel komt er terug* (alleen bij
+  `rechargeOn === 'longRestRoll'`) en *Attunement alleen door*.
+- **Charges.** `maxCharges` is een getal (`type: 'getal'`), `rechargeOn` kent nog
+  drie standen: `longRest` en `shortRest` zetten hem weer vol, `longRestRoll`
+  rolt `rechargeRoll` en telt dat erbij tot het maximum. De vierde stand `dawn`
+  is uit de keuzelijst gehaald — de server deed er precies hetzelfde mee als bij
+  een lange rust en een dageraad-mechaniek bestaat niet. De terugval in
+  `routes/api.js` blijft staan voor campagnes die de waarde nog hebben; Grisburgh
+  is omgezet. `playerMaxAdjustable` geeft de speler ±-knopjes bij de bolletjes in
+  zijn boedel (`groups[gid].itemMaxCharges[charId][itemId]`), voor als het
+  maximum per exemplaar verschilt.
+- **`gebruik` heet in beeld *Exemplaren*** — uniek (één speler), gedeeld
+  (meerdere spelers, ieder één) of stapelbaar (ieder een aantal, met teller). De
+  sleutel blijft `gebruik`; oude kaartjes met losse vinkjes `stapelbaar`/`gedeeld`
+  tellen mee via `_gebruikVan()` (server) / `_getGebruik()` (client).
+- **Wie het heeft staat per party.** `groups[gid].itemOwners` — dus de DM zag
+  alleen de party waar hij toevallig naar keek. `GET /items/:id/bezit` (DM-only)
+  loopt alle party's langs en geeft per groep de eigenaren met aantal en charges,
+  plus de losse boedelregels (`playerItems`) die dezelfde naam dragen. Het
+  tabblad **Bezit** in het detailvenster leeft daarop, en de geef-picker gebruikt
+  het voor zijn tellers. `PATCH /items/:id/owner/:charId` zoekt de groep nu op bij
+  het karakter (of `body.groupId`) in plaats van bij de actieve DM-groep; dat gaf
+  een 404 zodra de speler in een andere party zat.
+- **Waar het te koop is, is afgeleid.** Geen veld op het voorwerp: de voorraad
+  van de winkel is de enige plek waar dat staat. `_betrokkenIndex()` in
+  `routes/api.js` neemt `data.voorraad` van locaties en personages mee en levert
+  het als `_hoortBij`-regel met rol *Te koop* en `tab: 'voorraad'`. Zelfde regel
+  als bij de betrokkenen: één plek, twee kanten.
+- **Het detailvenster heeft één kenmerkenstrook** (`.item-kenmerken`) in plaats
+  van vier rijen losse pillen. Rariteit en type staan al in de ondertitel onder de
+  naam (de rariteit daar in zijn kleur), dus die worden niet herhaald. De
+  schadeknop is het enige aanklikbare in de strook en houdt daarom als enige zijn
+  accent.
+- **Geen knop *Verloren* meer bij een voorwerp.** Een kaartje dat "verloren" heet
+  maar nog in de boedel staat leest als een misverstand; weg is weg. Alleen een
+  kaartje dat de markering al draagt houdt de knop, anders viel hij niet terug te
+  draaien.
+- **Geen verzonnen categorie in de filterbalk.** De chip *Zegeningen & Gunsten*
+  (Blessing + Boon samen, en die twee standaard uit de lijst gehouden) was een
+  Grisburgh-indeling. Het zijn gewone PHB-termen en dus gewone chips.
 
 ---
 

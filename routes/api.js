@@ -590,6 +590,25 @@ function _betrokkenIndex() {
       }
     }
   }
+  // Waar een voorwerp te koop is, is ook een betrekking — en hij staat al ergens
+  // opgeschreven: in de voorraad van de winkel. Geen tweede veld op het voorwerp
+  // dus, net als bij de betrokkenen: één plek, twee kanten. Een verkoper die naar
+  // een locatie wijst heeft zelf geen lijst; de locatie die hem houdt komt hier
+  // dus vanzelf uit.
+  for (const type of ['locaties', 'personages']) {
+    for (const e of (entities[type] || [])) {
+      let waren = [];
+      try { waren = e.data?.voorraad ? JSON.parse(e.data.voorraad) : []; } catch { waren = []; }
+      if (!Array.isArray(waren)) continue;
+      for (const w of waren) {
+        if (!w?.entityId) continue;              // losse regel zonder kaartje
+        if (!index.has(w.entityId)) index.set(w.entityId, []);
+        const bij = index.get(w.entityId);
+        if (bij.some(x => x.id === e.id && x.rol === 'Te koop')) continue;
+        bij.push({ id: e.id, name: e.name, type, rol: 'Te koop', tab: 'voorraad' });
+      }
+    }
+  }
   _betrokkenIndexCache = { mtimeMs, index };
   return index;
 }
@@ -2423,6 +2442,12 @@ router.get('/shops/:shopId/log', requireDM, (req, res) => {
 //                     targetId?, targetName?, status:'pending'|'approved'|'rejected' } ]
 //   tradeAllowed: boolean
 
+// Wat een voorwerp qua exemplaren is. Oude kaartjes hebben nog losse vinkjes
+// `stapelbaar`/`gedeeld` in plaats van het veld `gebruik`; die tellen mee.
+function _gebruikVan(d) {
+  return d?.gebruik || (d?.stapelbaar === 'true' ? 'stapelbaar' : d?.gedeeld === 'true' ? 'gedeeld' : 'uniek');
+}
+
 router.get('/items/ownership', attachRole, (req, res) => {
   const dmState = readDmState();
   // Spelers zien altijd hun eigen groep — niet de actief geselecteerde DM-groep.
@@ -2718,6 +2743,49 @@ router.delete('/items/:itemId/owner', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// Wie heeft dit voorwerp? `itemOwners` staat per party, dus zonder deze route
+// zag de DM alleen de party waar hij toevallig naar keek. Hier komen ze
+// allemaal langs, mét de losse boedelregels die dezelfde naam dragen — die
+// hangen niet aan een kaartje-id, maar de DM zoekt naar een voorwerp en niet
+// naar een gegevensvorm.
+router.get('/items/:itemId/bezit', requireDM, (req, res) => {
+  const { itemId } = req.params;
+  const dmState  = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const item = (entities.voorwerpen || []).find(e => e.id === itemId);
+  if (!item) return res.status(404).json({ error: 'Niet gevonden' });
+  const itemNaam = String(item.name || '').toLowerCase().trim();
+  const naamVan = (cid) => (entities.personages || []).find(e => e.id === cid)?.name || '';
+
+  const groepen = [];
+  for (const [gid, g] of Object.entries(dmState.groups || {})) {
+    const rijen = [];
+    const eigenaren = (g.itemOwners || {})[itemId];
+    for (const o of (Array.isArray(eigenaren) ? eigenaren : eigenaren ? [eigenaren] : [])) {
+      const basisMax = parseInt(item.data?.maxCharges) || 0;
+      const max = ((g.itemMaxCharges || {})[o.characterId] || {})[itemId] ?? basisMax;
+      const nu  = ((g.itemCharges    || {})[o.characterId] || {})[itemId];
+      rijen.push({
+        characterId: o.characterId,
+        naam: naamVan(o.characterId) || o.playerName || '',
+        aantal: o.qty || 1,
+        bron: 'kaartje',
+        charges: max > 0 ? { nu: nu ?? max, max } : null,
+      });
+    }
+    // Losse regels in de boedel dragen alleen een naam; ze tellen wel mee voor
+    // de vraag "wie heeft dit".
+    for (const [cid, regels] of Object.entries(dmState.playerItems || {})) {
+      if (_playerGroupId(dmState, cid) !== gid) continue;
+      const raak = (regels || []).filter(r => String(r?.name || '').toLowerCase().trim() === itemNaam);
+      if (!raak.length) continue;
+      rijen.push({ characterId: cid, naam: naamVan(cid), aantal: raak.length, bron: 'boedel', charges: null });
+    }
+    if (rijen.length) groepen.push({ id: gid, naam: g.name || gid, rijen });
+  }
+  res.json({ itemId, gebruik: _gebruikVan(item.data), groepen });
+});
+
 // Speler of DM past hoeveelheid aan van een stapelbaar voorwerp
 router.patch('/items/:itemId/owner/:characterId', attachRole, (req, res) => {
   const { itemId, characterId } = req.params;
@@ -2734,7 +2802,13 @@ router.patch('/items/:itemId/owner/:characterId', attachRole, (req, res) => {
   if (_pgeb(patchItem?.data) === 'gedeeld') {
     return res.status(403).json({ error: 'Gedeeld eigendom kan niet worden aangepast' });
   }
-  const g = getGroup(dmState);
+  // De DM kan naar groep 3 kijken terwijl deze speler in groep 1 zit; dan stond
+  // het eigendom in een andere groep dan waar hier gekeken werd en gaf een + of −
+  // een 404. De groep van het karakter is leidend; body.groupId mag hem overrulen.
+  const _eigenGid = _playerGroupId(dmState, characterId);
+  const g = req.role === 'dm'
+    ? (dmState.groups[req.body.groupId] || dmState.groups[_eigenGid] || getGroup(dmState))
+    : getGroup(dmState, _eigenGid);
   if (!g.itemOwners) return res.status(404).json({ error: 'Niet gevonden' });
   const owners = g.itemOwners[itemId];
   if (!Array.isArray(owners)) return res.status(400).json({ error: 'Geen stapelbaar eigendom' });

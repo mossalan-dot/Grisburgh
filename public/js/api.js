@@ -263,9 +263,13 @@ export const api = {
   geefItem:            (id, targetId)  => request(`/items/${id}/geef`,                 { method: 'POST',   body: JSON.stringify({ targetId }) }),
   approveItemRequest:  (reqId)         => request(`/items/request/${reqId}/approve`,   { method: 'POST' }),
   rejectItemRequest:   (reqId)         => request(`/items/request/${reqId}/reject`,    { method: 'POST' }),
-  removeItemOwner:     (id)            => request(`/items/${id}/owner`,                { method: 'DELETE' }),
-  removeStackOwner:    (id, charId)    => request(`/items/${id}/owner?characterId=${encodeURIComponent(charId)}`, { method: 'DELETE' }),
-  patchItemOwnerQty:   (id, charId, delta) => request(`/items/${id}/owner/${charId}`, { method: 'PATCH', body: JSON.stringify({ delta }) }),
+  removeItemOwner:     (id, groupId)   => request(`/items/${id}/owner${groupId ? `?groupId=${encodeURIComponent(groupId)}` : ''}`, { method: 'DELETE' }),
+  // groupId meesturen: eigendom staat per party, en de DM kijkt lang niet altijd
+  // naar de party waar deze speler in zit.
+  removeStackOwner:    (id, charId, groupId) => request(`/items/${id}/owner?characterId=${encodeURIComponent(charId)}${groupId ? `&groupId=${encodeURIComponent(groupId)}` : ''}`, { method: 'DELETE' }),
+  patchItemOwnerQty:   (id, charId, delta, groupId) => request(`/items/${id}/owner/${charId}`, { method: 'PATCH', body: JSON.stringify({ delta, groupId: groupId || undefined }) }),
+  // Wie heeft dit voorwerp, over alle party's heen (DM-only).
+  getItemBezit:        (id)            => request(`/items/${id}/bezit`),
   patchItemCharges:    (itemId, charId, charges)    => request(`/items/${itemId}/owner/${charId}/charges`,    { method: 'PATCH', body: JSON.stringify({ charges }) }),
   patchItemMaxCharges: (itemId, charId, maxCharges) => request(`/items/${itemId}/owner/${charId}/maxCharges`, { method: 'PATCH', body: JSON.stringify({ maxCharges }) }),
   longRest:            (charId) => request(`/characters/${charId}/long-rest`, { method: 'POST' }),

@@ -1,4 +1,4 @@
-import { api } from './api.js?v=274';
+import { api } from './api.js?v=275';
 import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);
@@ -230,6 +230,66 @@ const ORG_TYPE_GROEPEN = [
   ]},
 ];
 
+// Zelfde vorm als bij locaties en organisaties: groeperen in plaats van één
+// lange rij. De waarden blijven exact wat er opgeslagen staat — alleen de
+// indeling verandert, dus geen enkel bestaand kaartje raakt zijn type kwijt.
+// Erbij gekomen: de DMG-categorieën die ontbraken (Rod, Staff, Wand) en de
+// gewone uitrusting waar 'Other' anders voor moest doorgaan.
+const ITEM_TYPE_GROEPEN = [
+  { groep: 'Wapens & harnas', opties: [
+    { value: 'Weapon',     label: 'Weapon' },
+    { value: 'Ammunition', label: 'Ammunition' },
+    { value: 'Armor',      label: 'Armor' },
+    { value: 'Shield',     label: 'Shield' },
+  ]},
+  { groep: 'Magische voorwerpen', opties: [
+    { value: 'Magic Item',    label: 'Magic Item' },
+    { value: 'Wondrous item', label: 'Wondrous Item' },
+    { value: 'Ring',          label: 'Ring' },
+    { value: 'Amulet',        label: 'Amulet' },
+    { value: 'Rod',           label: 'Rod' },
+    { value: 'Staff',         label: 'Staff' },
+    { value: 'Wand',          label: 'Wand' },
+  ]},
+  { groep: 'Verbruik', opties: [
+    { value: 'Potion',     label: 'Potion' },
+    { value: 'Scroll',     label: 'Scroll' },
+    { value: 'Poison',     label: 'Poison' },
+    { value: 'Consumable', label: 'Consumable' },
+  ]},
+  { groep: 'Uitrusting', opties: [
+    { value: 'Adventuring Gear',   label: 'Adventuring Gear' },
+    { value: 'Tools',              label: 'Tools' },
+    { value: 'Gaming Set',         label: 'Gaming Set' },
+    { value: 'Musical instrument', label: 'Musical Instrument' },
+    { value: 'Spellbook',          label: 'Spellbook' },
+    { value: 'Trade Good',         label: 'Trade Good' },
+    { value: 'Vehicle',            label: 'Mount or Vehicle' },
+  ]},
+  { groep: 'Goddelijk', opties: [
+    { value: 'Blessing', label: 'Blessing' },
+    { value: 'Boon',     label: 'Boon' },
+  ]},
+  { groep: 'Overig', opties: [
+    { value: 'Treasure', label: 'Treasure' },
+    { value: 'Feature',  label: 'Feature' },
+    { value: 'Other',    label: 'Other' },
+  ]},
+];
+
+// Welke types verderop extra velden opleveren. Zonder deze melding is na het
+// kiezen niet meer te zien dát dit een type met extra's is — dezelfde reden als
+// bij de locaties.
+const ITEM_TYPE_MELDINGEN = {
+  Weapon:     'Krijgt velden voor <b>schade</b> en <b>wapeneigenschappen</b>; die komen ook op het kaartje te staan.',
+  Ammunition: 'Krijgt velden voor <b>schade</b> en <b>wapeneigenschappen</b>; die komen ook op het kaartje te staan.',
+  Armor:      'Krijgt velden voor <b>Base AC</b>, Dex cap en Stealth. De app rekent de AC per speler uit.',
+  Shield:     'Krijgt een veld voor de <b>AC-bonus</b>; die telt op bij de AC van de drager.',
+  Scroll:     'Krijgt een <b>spell-kiezer</b> die casting time, range, components, duration én de beschrijving invult.',
+  Blessing:   'Hoort bij de <b>Tempel</b>: god, zegening/eed/vloek, eedtekst en permanente zegen.',
+  Boon:       'Verschijnt onder <b>Zegeningen &amp; Gunsten</b> in het voorwerpenarchief.',
+};
+
 const SCHEMA = {
   personages: {
     // Vier subtypes: wát voor kaartje is dit. Verkoper en antagonist zijn geen
@@ -300,37 +360,43 @@ const SCHEMA = {
   },
   voorwerpen: {
     fields: [
-      { key: 'itemType', label: 'Type', type: 'select', options: ['Weapon','Magic Item','Potion','Armor','Shield','Scroll','Ring','Amulet','Consumable','Wondrous item','Musical instrument','Feature','Blessing','Boon','Other'] },
+      { key: 'itemType', label: 'Type', type: 'select', optionGroups: ITEM_TYPE_GROEPEN,
+        meldingen: ITEM_TYPE_MELDINGEN },
       { key: 'rariteit', label: 'Rarity', type: 'select', options: ['Common','Uncommon','Rare','Very Rare','Legendary'] },
       { key: 'prijs', label: 'Prijs', type: 'text' },
-      { key: 'nietVerkoopbaar', label: 'Niet verkoopbaar (winkels kopen dit niet in)', type: 'checkbox' },
-      { key: 'attunement', label: 'Requires attunement', type: 'checkbox' },
-      { key: 'gebruik', label: 'Gebruik', type: 'select', options: [
-        { value: 'uniek',      label: 'Uniek — één speler heeft het voorwerp' },
-        { value: 'gedeeld',    label: 'Gedeeld — meerdere spelers, elk 1 exemplaar' },
-        { value: 'stapelbaar', label: 'Stapelbaar — meerdere spelers, meerdere exemplaren' },
+      // Stond onder de twee vinkjes, maar hoort bij de prijs: allebei gaan ze
+      // over hoe dit voorwerp in de wereld rondgaat.
+      { key: 'gebruik', label: 'Exemplaren', type: 'select', options: [
+        { value: 'uniek',      label: 'Eén exemplaar — maar één speler kan het hebben' },
+        { value: 'gedeeld',    label: 'Meerdere spelers — ieder één exemplaar' },
+        { value: 'stapelbaar', label: 'Meerdere spelers — ieder een aantal, met teller' },
       ]},
-      { key: '_chargesToggle', label: 'Heeft charges', type: 'reveal-toggle' },
-      { key: 'maxCharges', label: 'Max. charges', type: 'text', inReveal: '_chargesToggle' },
+      // "Heeft charges" als koptekst boven een vinkje was dubbelop: het vinkje
+      // zégt al dat het er wel of niet is.
+      { key: '_chargesToggle', label: 'Charges', type: 'reveal-toggle' },
+      { key: 'maxCharges', label: 'Maximum', type: 'getal', inReveal: '_chargesToggle', hint: '3' },
+      // 'Dageraad' is weg: de server behandelde het precies als een lange rust,
+      // en een dageraad-mechaniek bestaat niet in deze app. Wat opgeslagen staat
+      // blijft werken (zie de terugval in routes/api.js).
       { key: 'rechargeOn', label: 'Herlaadt bij', type: 'select', inReveal: '_chargesToggle', options: [
-        { value: 'longRest',     label: 'Lange rust' },
-        { value: 'shortRest',    label: 'Korte rust' },
-        { value: 'dawn',         label: 'Dageraad' },
-        { value: 'longRestRoll', label: 'Lange rust (dobbelrol)' },
+        { value: 'longRest',     label: 'Lange rust — weer helemaal vol' },
+        { value: 'shortRest',    label: 'Korte rust — weer helemaal vol' },
+        { value: 'longRestRoll', label: 'Lange rust — een deel terug, met een worp' },
       ]},
-      { key: 'rechargeRoll', label: 'Dobbelformule (bijv. 1d3)', type: 'text', inReveal: '_chargesToggle' },
-      { key: 'playerMaxAdjustable', label: 'Max. door spelers in te stellen', type: 'checkbox', inReveal: '_chargesToggle' },
-      { key: 'godNaam', label: 'God', type: 'text', showFor: ['Blessing'] },
-      { key: 'goddelijkType', label: 'Soort', type: 'select', showFor: ['Blessing'], options: [
-        { value: 'zegen', label: 'Zegening' },
-        { value: 'eed',   label: 'Eed' },
-        { value: 'vloek', label: 'Vloek' },
-      ]},
-      { key: 'effect', label: 'Effect (eedtitel of vloek-mechaniek — niet voor zegen)', type: 'textarea', showFor: ['Blessing'] },
-      { key: 'permanenteZegen', label: 'Permanente zegen (alleen op de eed-kaart)', type: 'text', showFor: ['Blessing'] },
-      { key: 'eedTekst', label: 'Eedtekst (volledige belofte, op de eed-kaart)', type: 'textarea', showFor: ['Blessing'] },
-      { key: 'damage', label: 'Schade / Genezing (bijv. 1d8+1 Slashing)', type: 'text', showFor: ['Weapon', 'Wapen'] },
-      { key: 'weaponProperties', label: 'Wapeneigenschappen', type: 'weapon-tags', showFor: ['Weapon', 'Wapen'] },
+      // Alleen zichtbaar bij die derde keuze; los ernaast was niet te zien
+      // waar de worp bij hoorde.
+      { key: 'rechargeRoll', label: 'Hoeveel komt er terug', type: 'text', inReveal: '_chargesToggle',
+        hint: '1d3', showWhen: { key: 'rechargeOn', values: ['longRestRoll'] } },
+      { key: 'playerMaxAdjustable', label: 'Speler mag zijn eigen maximum bijstellen', type: 'checkbox', inReveal: '_chargesToggle' },
+      { key: 'attunement', label: 'Vereist attunement', type: 'checkbox' },
+      { key: 'attunementEis', label: 'Attunement alleen door', type: 'text',
+        hint: 'a Wizard', showWhen: { key: 'attunement', values: ['true'] } },
+      { key: 'nietVerkoopbaar', label: 'Niet te verkopen aan winkels', type: 'checkbox' },
+      // Naar boven gehaald: de beschrijving is de hoofdtekst, niet iets wat na
+      // vier blokken invulvelden komt.
+      { key: 'desc', label: 'Beschrijving', type: 'textarea' },
+      { key: 'damage', label: 'Schade- of genezingsformule', type: 'text', showFor: ['Weapon', 'Wapen', 'Ammunition'], hint: '1d8+1 Slashing' },
+      { key: 'weaponProperties', label: 'Wapeneigenschappen', type: 'weapon-tags', showFor: ['Weapon', 'Wapen', 'Ammunition'] },
       { key: 'armorType', label: 'Harnas type', type: 'select', showFor: ['Armor', 'Shield'], options: [
         { value: 'light',  label: 'Light — volledig Dex' },
         { value: 'medium', label: 'Medium — Dex max +2' },
@@ -347,8 +413,19 @@ const SCHEMA = {
       { key: 'spellRange',       label: 'Range',         type: 'text', showFor: ['Scroll'] },
       { key: 'spellComponents',  label: 'Components',    type: 'text', showFor: ['Scroll'] },
       { key: 'spellDuration',    label: 'Duration',      type: 'text', showFor: ['Scroll'] },
-      { key: 'desc', label: 'Beschrijving', type: 'textarea' },
-      { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
+      { key: 'godNaam', label: 'God', type: 'text', showFor: ['Blessing'] },
+      { key: 'goddelijkType', label: 'Soort', type: 'select', showFor: ['Blessing'], options: [
+        { value: 'zegen', label: 'Zegening' },
+        { value: 'eed',   label: 'Eed' },
+        { value: 'vloek', label: 'Vloek' },
+      ]},
+      { key: 'effect', label: 'Effect (eedtitel of vloek-mechaniek — niet voor zegen)', type: 'textarea', showFor: ['Blessing'] },
+      { key: 'permanenteZegen', label: 'Permanente zegen (alleen op de eed-kaart)', type: 'text', showFor: ['Blessing'] },
+      { key: 'eedTekst', label: 'Eedtekst (volledige belofte, op de eed-kaart)', type: 'textarea', showFor: ['Blessing'] },
+      // Net als bij personages, locaties en organisaties: allebei lijsten, per
+      // regel te onthullen. De oude losse tekst blijft de eerste regel.
+      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
   },
@@ -438,6 +515,23 @@ function _getAutoIconMap(type) {
         'Other':      icon('package'),  'Overig':     icon('package'),
         'Feature':    icon('star'),
         'Consumable': icon('flask-conical'), 'Wondrous': icon('flask-conical'),
+        // Nieuw in de typenlijst; zonder eigen icoon valt zo'n kaartje terug op
+        // het algemene pakketje en zie je aan de kaart niet meer wat het is.
+        'Wondrous item':    icon('sparkles'),
+        'Ammunition':       icon('target'),
+        'Rod':              icon('stiletto', { cls: 'icon-gi' }),
+        'Staff':            icon('stiletto', { cls: 'icon-gi' }),
+        'Wand':             icon('sparkles'),
+        'Poison':           icon('flask-conical'),
+        'Adventuring Gear': icon('package'),
+        'Tools':            icon('settings'),
+        'Gaming Set':       icon('dice'),
+        'Musical instrument': icon('music'),
+        'Spellbook':        icon('book-open'),
+        'Trade Good':       icon('coins'),
+        'Vehicle':          icon('map'),
+        'Treasure':         icon('coins'),
+        'Boon':             icon('star'),
       },
     };
   }
@@ -869,7 +963,15 @@ function _optieHtml(o, val, alGekozen) {
 }
 function _optiesHtml(field, val) {
   const gekozen = new Set();
-  if (!field.optionGroups) return (field.options || []).map(o => _optieHtml(o, val, gekozen)).join('');
+  if (!field.optionGroups) {
+    // Ook een platte lijst kan een waarde tegenkomen die er niet meer in staat
+    // (bv. het geschrapte 'dawn' bij Herlaadt bij). Die kreeg dan géén optie en
+    // stond dus op "—": één keer opslaan en de waarde was stil verdwenen.
+    const opties = (field.options || []);
+    const bekendPlat = opties.some(o => (typeof o === 'object' ? o.value : o) === val);
+    return opties.map(o => _optieHtml(o, val, gekozen)).join('')
+      + ((val && !bekendPlat) ? _optieHtml({ value: val, label: `${val} (oude waarde)` }, val, gekozen) : '');
+  }
   const bekend = field.optionGroups.some(g => g.opties.some(o => (typeof o === 'object' ? o.value : o) === val));
   return field.optionGroups.map(g =>
     `<optgroup label="${esc(g.groep)}">${g.opties.map(o => _optieHtml(o, val, gekozen)).join('')}</optgroup>`
@@ -2089,13 +2191,14 @@ async function renderEntitySection(type) {
     const v = (_getEntitySubtypeVal(type, e) || '').trim();
     if (v && !_sfSeen.has(v.toLowerCase())) _sfSeen.set(v.toLowerCase(), v);
   });
-  let sfVals = [..._sfSeen.values()].sort((a, b) => a.localeCompare(b, 'nl'));
-  // Voorwerpen: Blessing/Boon niet als losse chips — die vallen onder "Zegeningen & Gunsten"
-  if (type === 'voorwerpen') sfVals = sfVals.filter(v => !['Blessing', 'Boon'].includes(v));
+  // Blessing en Boon stonden hier samengeknepen onder één verzonnen chip
+  // "Zegeningen & Gunsten", en werden bovendien standaard uit de lijst gehouden.
+  // Dat is een Grisburgh-indeling: het zijn gewone PHB-termen en dus gewone
+  // chips, net als elk ander type.
+  const sfVals = [..._sfSeen.values()].sort((a, b) => a.localeCompare(b, 'nl'));
   const sfActive = subtypeFilters[type] || '';
   // Speciale chips per type (los van de auto-verzamelde subtype-waarden)
   const _specialChips = type === 'locaties'   ? [{ val: '__winkel__', label: `${icon('building')} Winkel` }]
-                      : type === 'voorwerpen' ? [{ val: '__gewijd__', label: `${icon('sparkles')} Zegeningen & Gunsten` }]
                       : [];
   // Alleen zinvol als je er zelf hebt: de speler filtert zijn tabblad terug tot
   // wat hij gemarkeerd heeft.
@@ -2296,14 +2399,8 @@ function filterEntities(type, list) {
     filtered = filtered.filter(e => bmIds.has(e.id));
   } else if (sf === '__winkel__' && type === 'locaties') {
     filtered = filtered.filter(e => e.data?.locType === 'Winkel');
-  } else if (sf === '__gewijd__' && type === 'voorwerpen') {
-    filtered = filtered.filter(e => ['Blessing', 'Boon'].includes(e.data?.itemType));
   } else if (sf) {
     filtered = filtered.filter(e => _getEntitySubtypeVal(type, e) === sf);
-  } else if (type === 'voorwerpen' && !q) {
-    // Standaard-browse: zegeningen/gunsten (Blessing/Boon) uit de hoofdlijst houden.
-    // (Tijdens zoeken niet uitsluiten, zodat alles vindbaar blijft.)
-    filtered = filtered.filter(e => !['Blessing', 'Boon'].includes(e.data?.itemType));
   }
   return filtered.slice().sort((a, b) => {
     // Tijdens het zoeken wint de treffer: naam vóór beschrijving. Bij gelijke
@@ -2985,8 +3082,10 @@ async function _buildItemGivePicker(itemId, spelers, groupNames) {
   const isGedeeld    = _ownership.gedeeld.has(itemId);
   const owners       = _ownership.owners[itemId];
 
-  // Huidige eigendom per characterId opzoeken
+  // Huidige eigendom per characterId. `_giveBezit` komt van de server en dekt
+  // alle party's; `owners` is de terugval voor de party waar de DM nu naar kijkt.
   function currentQty(charId) {
+    if (_giveBezit.has(charId)) return _giveBezit.get(charId);
     if (Array.isArray(owners)) {
       const entry = owners.find(o => o.characterId === charId);
       return entry ? (entry.qty || 1) : 0;
@@ -3020,6 +3119,10 @@ async function _buildItemGivePicker(itemId, spelers, groupNames) {
                 <span>${esc(s.name)}</span>
                 ${qtyBadge}
               </div>
+              <!-- Eén te veel geklikt moet je hier kunnen rechtzetten; anders
+                   moest je het venster uit naar het tabblad Bezit. -->
+              ${hasIt ? `<button class="item-give-minus" title="Eén exemplaar terugnemen"
+                onclick="window._itemAfnemen('${esc(itemId)}','${esc(s.id)}','${escJS(s.data?.groep || '')}')">${icon('minus')}</button>` : ''}
               <input type="number" min="1" value="1" id="igq-${esc(s.id)}"
                 class="item-give-qty-input" onclick="event.stopPropagation()">
               <button class="item-give-confirm-btn"
@@ -3050,8 +3153,24 @@ async function _buildItemGivePicker(itemId, spelers, groupNames) {
   return { html: `<div class="item-give-picker">${sections}</div>`, subtitle };
 }
 
+// Kleine bevestiging in beeld. Zonder dit was schenken een klik zonder gevolg:
+// de picker blijft open en de teller stond (over party's heen) toch al scheef.
+function _melding(tekst) {
+  const el = document.createElement('div');
+  el.className = 'bookmark-toast';
+  el.innerHTML = tekst;
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add('bookmark-toast--visible'), 10);
+  setTimeout(() => { el.classList.remove('bookmark-toast--visible'); setTimeout(() => el.remove(), 300); }, 2200);
+}
+window._melding = _melding;
+
 // Cache spelers/groepen zodat herrender na toewijzing snel is
 let _givePickerCache = null;
+// Wie het voorwerp heeft, over álle party's. `_ownership` kent alleen de party
+// waar de DM nu naar kijkt, dus daarmee bleef een speler uit een andere groep
+// eeuwig op nul staan — ook nadat je hem net iets gegeven had.
+let _giveBezit = new Map();   // characterId → aantal
 
 window._itemGiveToPlayer = async function(itemId) {
   try {
@@ -3062,6 +3181,7 @@ window._itemGiveToPlayer = async function(itemId) {
     const spelers = allPersonages.filter(e => e.subtype?.toLowerCase() === 'speler');
     if (!spelers.length) { alert('Geen spelerskarakters gevonden.'); return; }
     const groupNames = Object.fromEntries((allGroups?.groups || allGroups || []).map(g => [g.id, g.name]));
+    await _giveBezitLaden(itemId);
     _givePickerCache = { itemId, spelers, groupNames };
 
     const { html, subtitle } = await _buildItemGivePicker(itemId, spelers, groupNames);
@@ -3071,20 +3191,56 @@ window._itemGiveToPlayer = async function(itemId) {
   }
 };
 
+// Haalt op wie het voorwerp heeft, over alle party's. Mislukt dat (of ben je
+// geen DM), dan valt de picker terug op de stand van de eigen party.
+async function _giveBezitLaden(itemId) {
+  _giveBezit = new Map();
+  if (!isDM()) return;
+  try {
+    const bezit = await api.getItemBezit(itemId);
+    for (const groep of (bezit?.groepen || [])) {
+      for (const r of (groep.rijen || [])) {
+        if (r.bron !== 'kaartje') continue;   // losse boedelregels zijn geen eigendom van dít kaartje
+        _giveBezit.set(r.characterId, (_giveBezit.get(r.characterId) || 0) + (r.aantal || 1));
+      }
+    }
+  } catch { /* terugval op de eigen party */ }
+}
+
+async function _givePickerHertekenen(itemId) {
+  await _giveBezitLaden(itemId);
+  if (_givePickerCache?.itemId !== itemId) return;
+  const { itemId: id, spelers, groupNames } = _givePickerCache;
+  const { html } = await _buildItemGivePicker(id, spelers, groupNames);
+  const body = document.getElementById('m-body');
+  if (body) body.innerHTML = html;
+}
+
 window._itemAssignToPlayer = async function(itemId, characterId, playerName, groupId, qty) {
   try {
-    await api.assignItemOwner(itemId, { characterId, playerName, groupId: groupId || null, qty: qty || 1 });
+    const aantal = qty || 1;
+    await api.assignItemOwner(itemId, { characterId, playerName, groupId: groupId || null, qty: aantal });
     await refreshOwnership();
     renderEntitySection('voorwerpen');
-    // Herrender de picker in de open modal (sluit NIET)
-    if (_givePickerCache?.itemId === itemId) {
-      const { itemId: id, spelers, groupNames } = _givePickerCache;
-      const { html } = await _buildItemGivePicker(id, spelers, groupNames);
-      const body = document.getElementById('m-body');
-      if (body) body.innerHTML = html;
-    }
+    _melding(`${icon('package')} ${aantal > 1 ? `${aantal}× ` : ''}naar ${esc(playerName)}`);
+    await _givePickerHertekenen(itemId);   // picker blijft open
   } catch (e) {
     console.warn('_itemAssignToPlayer fout:', e);
+    _melding(`${icon('x')} Geven mislukt: ${esc(e.message || e)}`);
+  }
+};
+
+// Eén exemplaar terugnemen vanuit de geef-modal. Bij een aantal van 1 haalt de
+// server de speler er helemaal af — dat is precies wat je wilt na één klik te veel.
+window._itemAfnemen = async function(itemId, characterId, groupId) {
+  try {
+    await api.patchItemOwnerQty(itemId, characterId, -1, groupId || null);
+    await refreshOwnership();
+    renderEntitySection('voorwerpen');
+    _melding(`${icon('package')} Eén exemplaar teruggenomen`);
+    await _givePickerHertekenen(itemId);
+  } catch (e) {
+    _melding(`${icon('x')} Terugnemen mislukt: ${esc(e.message || e)}`);
   }
 };
 
@@ -3326,56 +3482,65 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // Sinds hij als eerste deel van de regel onder de naam staat (rol · origin ·
   // class · alignment) is dat een herhaling.
 
-  // Voorwerpen: rariteit + attunement als compacte subtitelrij direct onder hero
+  // Voorwerpen: één kenmerkenstrook in plaats van vier losse rijen pillen.
+  // Er stonden er vier onder elkaar, elk met een eigen uitlijning (rariteit
+  // links, schade gecentreerd, prijs weer links) — dat las als een opsomming
+  // zonder kop. Alles staat nu in één omkaderd blok: wat het kost bovenaan,
+  // wat je ermee doet eronder. Rariteit en type staan al in de ondertitel onder
+  // de naam en worden hier dus niet herhaald.
   if (tab === 'voorwerpen') {
-    const _rar = e.data?.rariteit;
-    const _att = e.data?.attunement === true || e.data?.attunement === 'true';
-    if (_rar || _att) {
-      const _rarK = _rarityKey(_rar);
-      infoHtml += `<div class="detail-item-subtitle">
-        ${_rar ? `<span class="detail-item-rarity"${_rarK ? ` data-rarity="${_rarK}"` : ''}>${esc(_rarityLabel(_rar))}</span>` : ''}
-        ${_att ? `<span class="detail-item-attunement">Requires Attunement</span>` : ''}
-      </div>`;
-    }
-    // Schade / Genezing pill — klikbaar, resultaat direct inline in modal
+    const _att    = e.data?.attunement === true || e.data?.attunement === 'true';
+    const _attEis = String(e.data?.attunementEis || '').trim();
+    const _prijs  = String(e.data?.prijs || '').trim();
+    const _nietTeKoop = e.data?.nietVerkoopbaar === true || e.data?.nietVerkoopbaar === 'true';
+    const _maxCh  = parseInt(e.data?.maxCharges) || 0;
+    const _herlaad = { longRest: 'lange rust', shortRest: 'korte rust', dawn: 'lange rust',
+                       longRestRoll: `lange rust, ${e.data?.rechargeRoll || '1d3'}` }[e.data?.rechargeOn || ''] || '';
+
+    // Bovenregel: de handelskant.
+    const _kopDelen = [];
+    if (_prijs) _kopDelen.push(`<span class="ik-prijs">${icon('coins')} ${esc(_prijs)}</span>`);
+    if (_nietTeKoop) _kopDelen.push(`<span class="ik-los">Winkels kopen dit niet in</span>`);
+    if (_att) _kopDelen.push(`<span class="ik-att">Requires Attunement${_attEis ? ` (${esc(_attEis)})` : ''}</span>`);
+    if (_maxCh > 0) _kopDelen.push(`<span class="ik-los">${icon('zap')} ${_maxCh} charge${_maxCh === 1 ? '' : 's'}${_herlaad ? ` — terug bij ${esc(_herlaad)}` : ''}</span>`);
+
+    // Onderregel: wat je ermee doet. De schadeknop is het enige wat je hier
+    // kunt aanklikken en blijft daarom als enige geaccentueerd.
     const _dmg = e.data?.damage;
-    if (_dmg) {
-      const _isHeal = /heal/i.test(_dmg);
-      infoHtml += `<div class="detail-item-damage-wrap">
-        <button class="item-damage-pill${_isHeal ? ' item-damage-pill--heal' : ''}"
-          onclick="window.dice?.rollFormula('${escJS(_dmg)}','dmg-inline-result')"
-          title="Klik om ${_isHeal ? 'genezing' : 'schade'} te gooien">
-          ${icon('dice',{cls:'icon-gi'})} ${esc(_dmg)}
-        </button>
-        <span class="dmg-inline-result" id="dmg-inline-result"></span>
-      </div>`;
+    const _tags = [];
+    if (_detailAcResult && _extraImgs.length > 0) {
+      // Zonder hero-beeld is er geen plek voor de AC-overlay; dan hoort hij hier.
+      _tags.push(`<span class="detail-armor-tag detail-armor-tag--ac" data-wptip="${escJS(_detailAcResult.tooltip)}">${esc(_detailAcResult.pill)}</span>`);
     }
-    // Wapeneigenschappen chips
-    const _wprops = (() => { try { return JSON.parse(e.data?.weaponProperties || '[]'); } catch { return []; } })();
-    if (_wprops.length) {
-      infoHtml += `<div class="detail-weapon-props">
-        ${_wprops.map(p => {
-          const _base = p.replace(/\s*\(.*\)$/, '').trim();
-          const desc = WEAPON_PROPERTIES[p] || WEAPON_PROPERTIES[_base] || '';
-          return `<span class="detail-weapon-tag" data-wptip="${escJS(desc)}">${esc(p)}</span>`;
-        }).join('')}
-      </div>`;
-    }
-    // Pantsereigenschappen chips (AC zit als overlay in het hero-beeld; hier alleen Stealth en Str)
     if (_detailAcResult) {
       const _stealth = e.data?.stealthDisadvantage === true || e.data?.stealthDisadvantage === 'true';
       const _strReq  = parseInt(e.data?.strengthRequirement) || 0;
-      // AC pill als fallback wanneer er een extra-images-carousel is (geen detail-hero)
-      const _acFallback = _extraImgs.length > 0
-        ? `<span class="detail-armor-tag detail-armor-tag--ac" data-wptip="${escJS(_detailAcResult.tooltip)}">${esc(_detailAcResult.pill)}</span>`
-        : '';
-      if (_stealth || _strReq || _acFallback) {
-        infoHtml += `<div class="detail-armor-props">
-          ${_acFallback}
-          ${_stealth ? `<span class="detail-armor-tag detail-armor-tag--stealth" data-wptip="You have disadvantage on Dexterity (Stealth) checks while wearing this armor.">Stealth ↓</span>` : ''}
-          ${_strReq ? `<span class="detail-armor-tag detail-armor-tag--str" data-wptip="Your speed is reduced by 10 feet unless you have a Strength score of ${_strReq} or higher.">Str ${_strReq}</span>` : ''}
-        </div>`;
-      }
+      if (_stealth) _tags.push(`<span class="detail-armor-tag detail-armor-tag--stealth" data-wptip="You have disadvantage on Dexterity (Stealth) checks while wearing this armor.">Stealth ↓</span>`);
+      if (_strReq)  _tags.push(`<span class="detail-armor-tag detail-armor-tag--str" data-wptip="Your speed is reduced by 10 feet unless you have a Strength score of ${_strReq} or higher.">Str ${_strReq}</span>`);
+    }
+    const _wprops = (() => { try { return JSON.parse(e.data?.weaponProperties || '[]'); } catch { return []; } })();
+    for (const wp of _wprops) {
+      const _base = wp.replace(/\s*\(.*\)$/, '').trim();
+      const desc = WEAPON_PROPERTIES[wp] || WEAPON_PROPERTIES[_base] || '';
+      _tags.push(`<span class="detail-weapon-tag" data-wptip="${escJS(desc)}">${esc(wp)}</span>`);
+    }
+
+    const _onder = [];
+    if (_dmg) {
+      const _isHeal = /heal/i.test(_dmg);
+      _onder.push(`<button class="item-damage-pill${_isHeal ? ' item-damage-pill--heal' : ''}"
+          onclick="window.dice?.rollFormula('${escJS(_dmg)}','dmg-inline-result')"
+          title="Klik om ${_isHeal ? 'genezing' : 'schade'} te gooien">
+          ${icon('dice',{cls:'icon-gi'})} ${esc(_dmg)}
+        </button><span class="dmg-inline-result" id="dmg-inline-result"></span>`);
+    }
+    if (_tags.length) _onder.push(_tags.join(''));
+
+    if (_kopDelen.length || _onder.length) {
+      infoHtml += `<div class="item-kenmerken">
+        ${_kopDelen.length ? `<div class="item-kenmerken-kop">${_kopDelen.join('')}</div>` : ''}
+        ${_onder.length ? `<div class="item-kenmerken-doen">${_onder.join('')}</div>` : ''}
+      </div>`;
     }
   }
 
@@ -3427,7 +3592,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // Betrokkenen heeft zijn eigen rij chips hieronder; als pil kwam zijn ruwe
     // JSON in beeld.
     if (field.type === 'betrokkenen') continue;
-    if (tab === 'voorwerpen' && ['itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellPick', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
+    if (tab === 'voorwerpen' && ['prijs', 'attunementEis', 'maxCharges', 'rechargeOn', 'rechargeRoll', 'playerMaxAdjustable', 'itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellPick', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
     if (field.key === 'desc') {
@@ -3607,12 +3772,18 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
             ${_mVisIcon}<span>${vis === 'visible' ? 'Zichtbaar' : vis === 'vague' ? 'Vaag zichtbaar' : 'Verborgen'}</span>
           </button>
           <!-- Dezelfde markering (dagger + gedempte kaart), maar een gebouw gaat
-               niet dood: per tabblad het woord dat er hoort te staan. -->
+               niet dood: per tabblad het woord dat er hoort te staan.
+               Bij een voorwerp staat de knop er niet meer: een kaartje dat
+               "verloren" heet maar nog gewoon in de boedel staat leest als een
+               misverstand. Weg is weg — je haalt het voorwerp weg. Alleen een
+               kaartje dat de markering al draagt houdt de knop, anders viel hij
+               niet meer terug te draaien. -->
+          ${tab === 'voorwerpen' && !e._deceased ? '' : `
           <button class="dm-actie${e._deceased ? ' dm-actie--aan' : ''}"
             title="${e._deceased ? 'Markering verwijderen' : `Markeer als ${_wegLabel.toLowerCase()}`}"
             onclick="window._toggleDeceased('${tab}','${e.id}')">
             ${icon('skull', {cls:'icon-gi'})}<span>${_wegLabel}</span>
-          </button>
+          </button>`}
           ${isPersonage && String(e.subtype || '').toLowerCase() === 'npc' ? `
             <button class="dm-actie" id="detail-medestander-${e.id}"
               title="Medestander: laat dit personage met de party meelopen"
@@ -3683,55 +3854,14 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     sheetHtml += `<div class="text-center py-10 text-ink-faint font-fell italic">Nog geen gegevens ingevuld</div>`;
   }
 
-  // ── Tab: Eigenaren (stapelbare & gedeelde voorwerpen, DM only) ──
-  const _gebruik = tab === 'voorwerpen' ? (_getGebruik(e) ) : 'uniek';
-  const isStapelbaarVoorwerp = _gebruik === 'stapelbaar';
-  const isGedeeldVoorwerp    = _gebruik === 'gedeeld';
-  let eigenarenHtml = '';
-  if ((isStapelbaarVoorwerp || isGedeeldVoorwerp) && isDM()) {
-    const eigenaren = Array.isArray(_ownership.owners[e.id]) ? _ownership.owners[e.id] : [];
-    if (eigenaren.length > 0) {
-      eigenarenHtml = `
-        <div class="rounded border border-room-border overflow-hidden mb-3">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-room-elevated border-b border-room-border">
-                <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] tracking-wide">Speler</th>
-                ${isStapelbaarVoorwerp ? `<th class="px-4 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide">Aantal</th>` : ''}
-                <th class="px-4 py-2.5 w-8"></th>
-              </tr>
-            </thead>
-            <tbody>
-              ${eigenaren.map((o, i) => `
-                <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0">
-                  <td class="px-4 py-2.5 text-ink-bright font-crimson">${esc(o.playerName)}</td>
-                  ${isStapelbaarVoorwerp ? `<td class="px-4 py-2.5 text-center">
-                    <span class="inline-flex items-center gap-2">
-                      <button onclick="window._eigenaarQtyAdj('${esc(e.id)}','${esc(o.characterId)}',-1)"
-                        class="w-6 h-6 flex items-center justify-center rounded bg-room-bg border border-room-border text-ink-dim hover:text-ink-bright transition">−</button>
-                      <span class="text-ink-bright font-cinzel w-6 text-center">${o.qty || 1}</span>
-                      <button onclick="window._eigenaarQtyAdj('${esc(e.id)}','${esc(o.characterId)}',1)"
-                        class="w-6 h-6 flex items-center justify-center rounded bg-room-bg border border-room-border text-ink-dim hover:text-ink-bright transition">+</button>
-                    </span>
-                  </td>` : ''}
-                  <td class="px-4 py-2.5 text-right">
-                    <button onclick="window._eigenaarVerwijder('${esc(e.id)}','${esc(o.characterId)}')"
-                      class="text-seal hover:bg-seal/20 px-1.5 py-0.5 rounded transition text-xs" title="Verwijder eigendom">${icon('x')}</button>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>`;
-    } else {
-      eigenarenHtml = `<div class="text-center py-6 text-ink-faint font-fell italic">Geen eigenaren</div>`;
-    }
-    eigenarenHtml += `
-      <button onclick="window._itemGiveToPlayer('${esc(e.id)}')"
-        class="px-4 py-2 bg-room-elevated border border-room-border rounded text-ink-dim text-sm hover:text-ink-bright transition">
-        ${isGedeeldVoorwerp ? icon('package')+' Geef aan speler(s)' : icon('package')+' Geef exemplaren aan speler'}
-      </button>`;
-  }
+  // ── Tab: Bezit (DM) ──
+  // Stond er alleen voor stapelbare en gedeelde voorwerpen, en liet bovendien
+  // maar één party zien — `itemOwners` staat per groep. De vraag "wie heeft dit"
+  // geldt voor élk voorwerp en over alle party's, dus haalt dit tabblad zijn
+  // gegevens bij de server op (zie GET /items/:id/bezit). Het venster wacht daar
+  // niet op: de inhoud schuift erin zodra hij binnen is.
+  const toonBezit = tab === 'voorwerpen' && isDM();
+  const bezitHtml = !toonBezit ? '' : `<div id="bezit-inhoud" class="bezit-blok"><p class="bezit-leeg">Bezit ophalen\u2026</p></div>`;
 
   // ── Tab: Voorraad (winkels) ──
   // Een verkoper die naar een locatie wijst heeft zelf geen voorraadtab: daar
@@ -4004,7 +4134,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const detailTabs = [
     { key: 'info', label: 'Informatie' },
     ...(showSheet ? [{ key: 'sheet', label: _isSpeler ? 'Character Sheet' : 'Statblock' }] : []),
-    ...(isStapelbaarVoorwerp && isDM() ? [{ key: 'eigenaren', label: 'Eigenaren' }] : []),
+    ...(toonBezit ? [{ key: 'bezit', label: 'Bezit' }] : []),
     ...(heeftVoorraad ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
     ...(heeftVoorraad && isDM() ? [{ key: 'log', label: 'Log' }] : []),
     ...((_kaartPlek || _dungeonPlek) ? [{ key: 'kaart', label: 'Kaart' }] : []),
@@ -4020,7 +4150,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     <div class="detail-tab-nav">${tabNav}${_tabHulpHtml(tab, 'kijk')}</div>
     <div id="dtab-info">${infoHtml}</div>
     ${showSheet ? `<div id="dtab-sheet" class="hidden">${sheetHtml}</div>` : ''}
-    ${isStapelbaarVoorwerp && isDM() ? `<div id="dtab-eigenaren" class="hidden">${eigenarenHtml}</div>` : ''}
+    ${toonBezit ? `<div id="dtab-bezit" class="hidden">${bezitHtml}</div>` : ''}
     ${heeftVoorraad ? `<div id="dtab-voorraad" class="hidden">${voorraadHtml}</div>` : ''}
     ${heeftVoorraad && isDM() ? `<div id="dtab-log" class="hidden">${logHtml}</div>` : ''}
     ${_orgRijen.length ? `<div id="dtab-organogram" class="hidden">${_organogramHtml(_orgRijen, _orgBeeld)}</div>` : ''}
@@ -4042,8 +4172,14 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     e.data?.itemType ? _normItemType(e.data.itemType) : null,
     e.data?.rariteit ? (({'Gewoon':'Common','Ongewoon':'Uncommon','Zeldzaam':'Rare','Zeer zeldzaam':'Very Rare','Legendarisch':'Legendary'})[e.data.rariteit] || e.data.rariteit) : null,
   ].filter(Boolean);
+  // De rariteit staat hier én stond nog eens als gekleurde pil in de tekst.
+  // Eén plek is genoeg — de kleur verhuist mee naar de ondertitel, want dáár
+  // doet hij zijn werk (blauw = Rare, goud = Legendary).
+  const _subRarK = tab === 'voorwerpen' ? _rarityKey(e.data?.rariteit) : '';
   const _subtitleHtml = _subParts.length
-    ? `${getAutoIconSvg(tab, e)}  ${_subParts.map(p => esc(p)).join(' · ')}`
+    ? `${getAutoIconSvg(tab, e)}  ${_subParts.map((p, i) => (_subRarK && i === _subParts.length - 1)
+        ? `<span class="detail-item-rarity" data-rarity="${_subRarK}">${esc(p)}</span>`
+        : esc(p)).join(' · ')}`
     : `${getAutoIconSvg(tab, e)}  ${esc(meta.label)}`;
   openModal(e.name, '', body);
   const _mSubEl = document.getElementById('m-sub');
@@ -4053,6 +4189,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (_mSubEl) { _mSubEl.innerHTML = _subtitleHtml; _mSubEl.classList.remove('hidden'); }
   _updateBackButton();
   _vulSpellChips();   // van index naar nette naam, zodra de bibliotheek er is
+  if (toonBezit) window._bezitLaden(e.id);
 
   // Huisdier: geschaalde statblock ophalen + renderen (tier o.b.v. level van het baasje)
   if (tab === 'personages' && e.subtype === 'dier') {
@@ -4464,20 +4601,62 @@ window._toggleShopUitverkocht = async (shopId, itemNaam, cbEl) => {
   }
 };
 
-window._eigenaarQtyAdj = async (itemId, characterId, delta) => {
+// Vult het tabblad Bezit. Aparte functie omdat elke knop erin (± en ×) hem
+// daarna opnieuw aanroept: alleen dit blok wordt hertekend, niet het hele venster.
+window._bezitLaden = async (itemId) => {
+  const host = document.getElementById('bezit-inhoud');
+  if (!host) return;
+  let bezit = null;
+  try { bezit = await api.getItemBezit(itemId); } catch {
+    host.innerHTML = `<p class="bezit-leeg">Kon het bezit niet ophalen.</p>`;
+    return;
+  }
+  const stapelbaar = bezit.gebruik === 'stapelbaar';
+  const groepen = bezit.groepen || [];
+  const knop = `<button class="dm-btn dm-btn-ghost dm-btn-sm mt-2"
+      onclick="window._itemGiveToPlayer('${esc(itemId)}')">${icon('package')} Geef aan speler</button>`;
+  if (!groepen.length) {
+    host.innerHTML = `<p class="bezit-leeg">Niemand heeft dit voorwerp.</p>${knop}`;
+    return;
+  }
+  host.innerHTML = groepen.map(g => `
+    <div class="bezit-groep">
+      <div class="bezit-groep-kop">${icon('users')} ${esc(g.naam)}</div>
+      ${g.rijen.map(r => `
+        <div class="bezit-rij${r.bron === 'boedel' ? ' bezit-rij--los' : ''}">
+          <span class="bezit-naam">${esc(r.naam || 'Onbekend')}</span>
+          ${r.charges ? `<span class="bezit-charges">${icon('zap')} ${r.charges.nu}/${r.charges.max}</span>` : ''}
+          ${r.bron === 'boedel'
+            ? `<span class="bezit-los-label">los in de boedel${r.aantal > 1 ? ` (${r.aantal}×)` : ''}</span>`
+            : stapelbaar
+              ? `<span class="bezit-aantal">
+                   <button class="dm-btn dm-btn-icon dm-btn-sm" title="Eén minder"
+                     onclick="window._eigenaarQtyAdj('${esc(itemId)}','${esc(r.characterId)}',-1,'${esc(g.id)}')">${icon('minus')}</button>
+                   <b>${r.aantal}</b>
+                   <button class="dm-btn dm-btn-icon dm-btn-sm" title="Eén meer"
+                     onclick="window._eigenaarQtyAdj('${esc(itemId)}','${esc(r.characterId)}',1,'${esc(g.id)}')">${icon('plus')}</button>
+                 </span>`
+              : ''}
+          ${r.bron === 'boedel' ? '' : `<button class="dm-btn dm-btn-icon dm-btn-sm bezit-weg" title="Eigendom weghalen"
+             onclick="window._eigenaarVerwijder('${esc(itemId)}','${esc(r.characterId)}','${esc(g.id)}')">${icon('x')}</button>`}
+        </div>`).join('')}
+    </div>`).join('') + knop;
+};
+
+window._eigenaarQtyAdj = async (itemId, characterId, delta, groupId) => {
   try {
-    await api.patchItemOwnerQty(itemId, characterId, delta);
+    await api.patchItemOwnerQty(itemId, characterId, delta, groupId || null);
     await refreshOwnership();
-    window._openDetail('voorwerpen', itemId);
+    await window._bezitLaden(itemId);
   } catch (err) { alert('Fout: ' + err.message); }
 };
 
-window._eigenaarVerwijder = async (itemId, characterId) => {
+window._eigenaarVerwijder = async (itemId, characterId, groupId) => {
   if (!confirm('Eigendom verwijderen voor deze speler?')) return;
   try {
-    await api.removeStackOwner(itemId, characterId);
+    await api.removeStackOwner(itemId, characterId, groupId || null);
     await refreshOwnership();
-    window._openDetail('voorwerpen', itemId);
+    await window._bezitLaden(itemId);
   } catch (err) { alert('Fout: ' + err.message); }
 };
 
@@ -4659,6 +4838,13 @@ window._updateWeaponTagParam = (fieldKey, baseProp, paramVal) => {
   }
 };
 
+// Eén luisteraar op het venster in plaats van een handler per veld: welke
+// velden aan een ander veld hangen staat al in de HTML (data-show-when-*), dus
+// hoeft de editor daar bij het bouwen niets extra's voor te doen.
+document.addEventListener('change', ev => {
+  if (ev.target?.closest?.('#m-body')) window._showWhenBijwerken?.();
+});
+
 // ── Wapeneigenschap tooltip (hover) ──
 let _wpTip = null;
 document.addEventListener('mouseover', ev => {
@@ -4679,7 +4865,20 @@ document.addEventListener('mouseout', ev => {
   if (ev.target.closest('[data-wptip]') && _wpTip) _wpTip.classList.remove('weapon-prop-tooltip--visible');
 });
 
+// Eén doorloop over alles wat aan een ander veld hangt. Aangeroepen bij elke
+// wijziging in het formulier, want een vinkje en een keuzelijst melden zich
+// allebei via 'change' — geen aparte handler per veld.
+window._showWhenBijwerken = () => {
+  document.querySelectorAll('[data-show-when-key]').forEach(el => {
+    const veld = document.querySelector(`[name="data_${el.dataset.showWhenKey}"]`);
+    const nu = veld ? String(veld.value || '') : '';
+    el.style.display = el.dataset.showWhenVal.split('|').includes(nu) ? '' : 'none';
+  });
+};
+
 window._onItemTypeChange = (val) => {
+  const melding = document.getElementById('veld-melding-itemType');
+  if (melding) melding.innerHTML = _veldMeldingHtml(ITEM_TYPE_MELDINGEN, val);
   document.querySelectorAll('[data-show-for]').forEach(el => {
     const types = el.dataset.showFor.split(',');
     el.style.display = types.includes(val) ? '' : 'none';
@@ -5220,6 +5419,14 @@ window._openEditor = async (tab, editId) => {
       const zichtbaar = field.alleenBij ? field.alleenBij.includes(_sub) : !field.nietBij.includes(_sub);
       body += `<div data-voor-subtype="${(field.alleenBij || []).join(',')}" data-niet-subtype="${(field.nietBij || []).join(',')}"${zichtbaar ? '' : ' style="display:none"'}>`;
     }
+    // showWhen: hangt aan de waarde van een ánder veld op hetzelfde blad (een
+    // keuzelijst of een vinkje). showFor kijkt alleen naar het itemType; dit
+    // werkt voor elk veld, en de waarde wordt uit het formulier zelf gelezen.
+    if (field.showWhen) {
+      const _nu = String(e?.data?.[field.showWhen.key] ?? '');
+      const _aan = field.showWhen.values.includes(_nu);
+      body += `<div data-show-when-key="${esc(field.showWhen.key)}" data-show-when-val="${esc(field.showWhen.values.join('|'))}"${_aan ? '' : ' style="display:none"'}>`;
+    }
     // showFor: wrap in a togglable div, initially hidden if itemType doesn't match
     if (field.showFor) {
       const _vis = field.showFor.includes(_curItemType);
@@ -5478,7 +5685,7 @@ window._openEditor = async (tab, editId) => {
               if (_isParam) {
                 return `<span class="weapon-tag-pick-group">
                   <button type="button"
-                    class="weapon-tag-pick${_isOn ? ' weapon-tag-pick--on' : ''}"
+                    class="weapon-tag-pick${_isOn ? ' weapon-tag-pick--on' : ''}" data-wptip="${esc(WEAPON_PROPERTIES[prop] || '')}"
                     onclick="window._toggleWeaponTag('${escJS(field.key)}','${escJS(prop)}',this)">${esc(prop)}</button>
                   <input type="text" id="${_safeId}"
                     class="weapon-tag-param-inp${_isOn ? '' : ' hidden'}"
@@ -5489,7 +5696,7 @@ window._openEditor = async (tab, editId) => {
                 </span>`;
               }
               return `<button type="button"
-                class="weapon-tag-pick${_isOn ? ' weapon-tag-pick--on' : ''}"
+                class="weapon-tag-pick${_isOn ? ' weapon-tag-pick--on' : ''}" data-wptip="${esc(WEAPON_PROPERTIES[prop] || '')}"
                 onclick="window._toggleWeaponTag('${escJS(field.key)}','${escJS(prop)}',this)">${esc(prop)}</button>`;
             }).join('')}
           </div>
@@ -5506,6 +5713,17 @@ window._openEditor = async (tab, editId) => {
           <datalist id="scroll-spell-dl">${_spells.map(s => `<option value="${esc(s.name)}"></option>`).join('')}</datalist>
         </div>
       `;
+    } else if (field.type === 'getal') {
+      // Een aantal is een aantal: met type="number" krijg je de juiste
+      // toetsenbord op een tablet en weigert de browser letters. Er zit geen
+      // dobbelformule achter — die staat los, bij het herladen.
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input type="number" min="0" step="1" inputmode="numeric" name="data_${field.key}" value="${esc(val)}"${field.hint ? ` placeholder="${esc(field.hint)}"` : ''}
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+        </div>
+      `;
     } else {
       body += `
         <div>
@@ -5517,6 +5735,7 @@ window._openEditor = async (tab, editId) => {
     }
     if (field.showFor) body += `</div>`; // close showFor wrapper
     if (field.hideFor) body += `</div>`; // close hideFor wrapper
+    if (field.showWhen) body += `</div>`; // close showWhen wrapper
     if (field.alleenBij || field.nietBij) body += `</div>`;
   }
   if (_revealGroupOpen) { body += `</div>`; _revealGroupOpen = null; }
