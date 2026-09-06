@@ -5242,7 +5242,10 @@ window._openEditor = async (tab, editId) => {
       const _taHtml = `${fmtToolbar(taId)}<textarea id="${taId}" name="data_${field.key}" rows="${_rows}"
             onkeydown="window._fmtKey(event)"
             class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(val)}</textarea>`;
-      if (['persoonlijkheid', 'flavour', 'geheim'].includes(field.key)) {
+      // 'persoonlijkheid' zat hier ook in en kreeg dus een uitklapbalk met
+      // chevron, terwijl alle andere velden een gewoon labeltje hebben. Op één
+      // blad drie soorten koppen leest rommelig; hij doet nu mee met de rest.
+      if (['flavour', 'geheim'].includes(field.key)) {
         body += `
         <details class="cs-accordion${field.dmOnly ? ' veld-dmonly' : ''}"${val ? ' open' : ''}>
           <summary class="cs-accordion-head">
@@ -5506,7 +5509,7 @@ window._openEditor = async (tab, editId) => {
     if (tab === 'organisaties') body += `<!--P:organogram-->`;
     body += `
       <div class="hoortbij-sectie">
-        <div class="cs-sectiekop">Wat hoort hier bij?</div>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Wat hoort hier bij?</label>
         <div id="hoortbij-lijst">${_hbRijen.map((r, i) => _hoortRijHtml(r, i)).join('')}</div>
         <datalist id="hoortbij-dl" data-link-doel="locaties,organisaties"></datalist>
         <!-- Eigen rollijst: die van het betrokkenen-veld hangt aan dát veld, en

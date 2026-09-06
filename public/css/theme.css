@@ -23112,6 +23112,9 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 /* Sectie in de editor waarmee je vanaf een personage aangeeft waar hij bij
    hoort; dezelfde rijen als "Wie hoort hier bij?", andere doelsoorten. */
+/* Het label staat op dezelfde hoogte als dat van de velden erboven; de lijst
+   eronder krijgt dezelfde tussenruimte als een gewoon invulveld. */
+.hoortbij-sectie > label { display: block; margin-bottom: 4px; }
 .hoortbij-sectie { margin-top: 6px; }
 /* "Verkoopt bij" hoort in deze sectie thuis maar is een ander soort verbinding;
    een streepje ertussen scheelt zoeken. */
