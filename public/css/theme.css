@@ -103,10 +103,14 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 .section-tab.active {
   color: #3a1e00;
-  background: linear-gradient(to bottom, transparent 30%, rgba(196,147,10,0.11) 100%);
+  /* Geen eigen vlak meer: die goudwas legde een tweede geel over het geel van
+     de kopbalk, en omdat die balk zelf een verloop heeft (licht boven, donker
+     onder) week het vakje er zichtbaar van af. Het streepje eronder zegt al
+     welke open staat; de donkerdere inkt doet de rest.
+     font-weight blijft 700 — anders verspringt de hoogte. */
+  background: none;
   box-shadow: inset 0 -2.5px 0 rgba(196,147,10,0.72);
   border-radius: 6px 6px 0 0;
-  /* font-weight blijft 700 — geen hoogte-verschuiving */
 }
 
 /* ── Nav tab: icoon-span (vergroot dunne Unicode-symbolen naar emoji-grootte) ── */
@@ -23060,15 +23064,22 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   grid-template-columns: minmax(140px, 2fr) minmax(100px, 1fr) auto;
   gap: 6px; align-items: center; margin-bottom: 6px;
 }
+/* De "Hoort bij"-rijen (hb-*) hadden dezelfde vorm maar andere klassen en
+   vielen daardoor buiten deze opmaak: kale browservelden op een perkamenten
+   blad. Nu delen ze de regels. */
 .betrokken-rij .betr-naam,
-.betrokken-rij .betr-rol {
+.betrokken-rij .betr-rol,
+.betrokken-rij .hb-naam,
+.betrokken-rij .hb-rol {
   width: 100%; padding: 6px 9px; font-size: 0.9rem;
   font-family: 'Crimson Text', Georgia, serif;
   background: var(--room-bg, #f2e8d2); color: #2a1a08;
   border: 1px solid rgba(196,168,122,0.55); border-radius: 5px;
 }
 .betrokken-rij .betr-naam:focus,
-.betrokken-rij .betr-rol:focus { outline: none; border-color: #c4a87a; }
+.betrokken-rij .betr-rol:focus,
+.betrokken-rij .hb-naam:focus,
+.betrokken-rij .hb-rol:focus { outline: none; border-color: #c4a87a; }
 .betrokken-status { grid-column: 1 / -1; margin-top: 0; }
 @media (max-width: 520px) {
   .betrokken-rij { grid-template-columns: 1fr auto; }
@@ -23229,6 +23240,14 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .org-kinderen > .org-knoop:first-child::after { left: 50%; }
 .org-kinderen > .org-knoop:last-child::after  { right: 50%; }
 .org-kinderen > .org-knoop:only-child::after  { display: none; }
+/* Een gedeelde bovenste plek: meerdere leiders naast elkaar, met de rest
+   daaronder aan de hele rij gehangen in plaats van aan de eerste. */
+.org-boom--gedeeld { position: relative; padding-bottom: 18px; }
+.org-boom--gedeeld::after {
+  content: ''; position: absolute; left: 50%; bottom: 0; width: 1px; height: 18px;
+  background: rgba(196,168,122,0.75);
+}
+.org-kinderen--gedeeld > .org-knoop::before { top: 0; }
 /* Streep omlaag vanaf een ouder met kinderen. */
 .org-knoop:has(> .org-kinderen) > .org-kaartje { margin-bottom: 18px; }
 .org-knoop:has(> .org-kinderen) > .org-kaartje::after {
@@ -23264,14 +23283,24 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700;
   letter-spacing: .06em; color: #9a815c;
 }
-/* Een chef-veld erbij op de betrokkenen-rij van een organisatie. */
+/* "Valt onder" hoort bij de regel erboven, niet ernaast: als los veld op volle
+   breedte las het als een tweede persoon. Ingesprongen, smaller en met een
+   labeltje ervoor is het zichtbaar een bijzin. */
+.betrokken-rij--chef .betr-chef-rij {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 7px;
+  margin: -1px 0 2px 22px;
+}
+.betrokken-rij--chef .betr-chef-label {
+  font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700;
+  letter-spacing: .06em; color: #9a815c; flex-shrink: 0;
+}
 .betrokken-rij--chef .betr-chef {
-  grid-column: 1 / -1; width: 100%; padding: 5px 9px; font-size: 0.85rem;
-  font-family: 'Crimson Text', Georgia, serif; font-style: italic;
+  flex: 1 1 auto; min-width: 0; max-width: 22em; padding: 4px 9px; font-size: 0.85rem;
+  font-family: 'Crimson Text', Georgia, serif;
   background: var(--room-bg, #f2e8d2); color: #2a1a08;
   border: 1px solid rgba(196,168,122,0.4); border-radius: 5px;
 }
-.betrokken-rij--chef .betr-chef:focus { outline: none; border-color: #c4a87a; font-style: normal; }
+.betrokken-rij--chef .betr-chef:focus { outline: none; border-color: #c4a87a; }
 
 /* Beeld van een dungeonkaart op het Dungeon-tabblad. Een plattegrond is vaak
    hoger dan breed; zonder maximum vulde hij het hele venster. */

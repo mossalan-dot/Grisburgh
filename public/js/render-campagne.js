@@ -277,6 +277,9 @@ const SCHEMA = {
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
+      // Zelfde veld en zelfde plek als bij een personage: het detailvenster
+      // toont dit vak voor élk kaartje, dus hoort het ook overal in de editor.
+      { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
   },
   organisaties: {
@@ -346,6 +349,7 @@ const SCHEMA = {
       { key: 'spellDuration',    label: 'Duration',      type: 'text', showFor: ['Scroll'] },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
+      { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
   },
 };
@@ -1013,8 +1017,11 @@ function _betrokkenRijHtml(r, i, metChef = false) {
     <input type="hidden" class="betr-id" id="betr-id-${i}" value="${esc(r.id || '')}">
     <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
       title="Regel verwijderen" onclick="window._betrokkenWeg(this)">${icon('trash')}</button>
-    ${metChef ? `<input class="betr-chef" value="${esc(r.chef || '')}" list="betrokken-dl"
-      placeholder="Valt onder\u2026" title="Naam van degene boven hem; leeg = bovenaan">` : ''}
+    ${metChef ? `<div class="betr-chef-rij">
+      <span class="betr-chef-label">Valt onder</span>
+      <input class="betr-chef" value="${esc(r.chef || '')}" list="betrokken-dl"
+        placeholder="niemand \u2014 staat bovenaan" title="Naam van iemand anders uit deze lijst">
+    </div>` : ''}
     <div id="betr-st-${i}" class="link-status betrokken-status"></div>
   </div>`;
 }
@@ -1284,7 +1291,8 @@ function _kaartTabHtml(locId, plek, alleen = true) {
 // die nergens ingevuld, dan maken we er een tweelaags schema van op **rol**:
 // wie leidt bovenaan, de rest eronder. Zo is er meteen iets te zien zonder dat
 // de DM eerst overal "valt onder" moet invullen.
-const _ORG_TOP_ROLLEN = ['leider', 'oprichter', 'eigenaar', 'baas', 'meester', 'hoofd', 'kapitein', 'grootmeester'];
+const _ORG_TOP_ROLLEN = ['leider', 'oprichter', 'eigenaar', 'baas', 'meester', 'hoofd',
+  'kapitein', 'grootmeester', 'raadslid', 'bestuurder', 'hoofdman', 'aanvoerder', 'voorzitter'];
 
 // Het portret van een kaartje hangt aan `data.imageId`, niet aan het id zelf;
 // met alleen een id kom je er dus niet. Eén keer ophalen en kort bewaren — het
@@ -1314,6 +1322,10 @@ function _orgBoom(rijen) {
     const leiders = rijen.filter(r => _ORG_TOP_ROLLEN.includes((r.rol || '').toLowerCase()));
     const rest    = rijen.filter(r => !leiders.includes(r));
     if (!leiders.length) return { top: rijen, kinderen, plat: true };
+    // Meer dan één leider is geen fout maar een raad: die delen de bovenste
+    // plek. De rest onder de éérste hangen zou een rangorde suggereren die er
+    // niet is, dus die komt onder de hele rij te staan.
+    if (leiders.length > 1) return { top: leiders, kinderen, rest, plat: true };
     kinderen.set(leiders[0], rest);
     return { top: leiders, kinderen, plat: true };
   }
@@ -1351,12 +1363,17 @@ function _orgKnoopHtml(r, kinderen, gezien = new Set(), beeld = null) {
 }
 
 function _organogramHtml(rijen, beeld) {
-  const { top, kinderen, plat } = _orgBoom(rijen);
+  const { top, kinderen, plat, rest } = _orgBoom(rijen);
   return `
     <div class="org-blok">
       <div class="detail-label">${icon('users')} Organogram</div>
       ${plat ? `<p class="veld-uitleg">Afgeleid uit de rollen. Vul bij <em>Wie hoort hier bij?</em> in wie onder wie valt voor een echte structuur.</p>` : ''}
-      <div class="org-doek"><ul class="org-boom">${top.map(r => _orgKnoopHtml(r, kinderen, new Set(), beeld)).join('')}</ul></div>
+      <div class="org-doek">
+        <ul class="org-boom${(rest && rest.length) ? ' org-boom--gedeeld' : ''}">${top.map(r => _orgKnoopHtml(r, kinderen, new Set(), beeld)).join('')}</ul>
+        ${(rest && rest.length)
+          ? `<ul class="org-kinderen org-kinderen--gedeeld">${rest.map(r => _orgKnoopHtml(r, kinderen, new Set(), beeld)).join('')}</ul>`
+          : ''}
+      </div>
     </div>`;
 }
 
@@ -1645,6 +1662,9 @@ const ED_TABS = [
   // beslag; onderin Informatie maakten ze dat tabblad onhandelbaar lang. Ze
   // gaan wél samen: het is allebei "waar ligt dit".
   { key: 'kaart', label: 'Kaart' },
+  // Bij een organisatie is de ledenlijst het organogram: wie erbij hoort en wie
+  // boven wie staat. Samen op één tabblad, weg uit Informatie.
+  { key: 'organogram', label: 'Organogram' },
 ];
 
 // Eén uitlegknop rechts in de tabbalk, die meeloopt met het open tabblad. Per
@@ -5393,6 +5413,9 @@ window._openEditor = async (tab, editId) => {
         </div>
       `;
     } else if (field.type === 'betrokkenen') {
+      // Bij een organisatie hoort deze lijst op het Organogram-tabblad; bij een
+      // locatie blijft hij gewoon bij Informatie staan.
+      if (tab === 'organisaties') body += `<!--P:organogram-->`;
       // Eén lijst in plaats van losse velden voor eigenaar, personeel en
       // stamgasten: in de praktijk staan daar allebei personages én
       // organisaties in, en wie wát is verschilt per kaartje. Bestaande
@@ -5413,6 +5436,7 @@ window._openEditor = async (tab, editId) => {
             onclick="window._betrokkenErbij()">${icon('plus')} Iemand toevoegen</button>
         </div>
       `;
+      if (tab === 'organisaties') body += `<!--P:info-->`;
     } else if (field.type === 'weapon-tags') {
       const _sel = (() => { try { return JSON.parse(val || '[]'); } catch { return []; } })();
       body += `
@@ -5486,6 +5510,9 @@ window._openEditor = async (tab, editId) => {
   if (['personages', 'organisaties'].includes(tab) && isDM() && e?.id) {
     const _hb = Array.isArray(e._hoortBij) ? e._hoortBij : [];
     const _hbRijen = _hb.length ? _hb : [{}];
+    // Bij een organisatie staat hij onder "Wie hoort hier bij?" op hetzelfde
+    // tabblad: het is dezelfde vraag, van de andere kant.
+    if (tab === 'organisaties') body += `<!--P:organogram-->`;
     body += `
       <div class="hoortbij-sectie">
         <div class="cs-sectiekop">Hoort bij</div>
@@ -5496,6 +5523,7 @@ window._openEditor = async (tab, editId) => {
         <p class="veld-uitleg">Komt terecht in <em>Wie hoort hier bij?</em> van dat kaartje — het staat maar op één plek.</p>
       </div>
     `;
+    if (tab === 'organisaties') body += `<!--P:info-->`;
   }
 
   // ── Koppelingen ──

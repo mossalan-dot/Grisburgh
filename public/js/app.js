@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=274';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=219";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=221";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -557,53 +557,61 @@ window._kaartFsTerug = () => {
   if (terug?.id) window._openDetail?.('locaties', terug.id);
 };
 
-function toggleArchiefMenu() {
-  const menu = $('#archief-menu');
-  if (!menu) return;
-  const willShow = menu.classList.contains('hidden');
-  menu.classList.toggle('hidden');
-  // Op mobiel: bereken top-positie voor position:fixed dropdown
-  if (willShow && window.innerWidth <= 768) {
-    const btn = $('#archief-nav-btn');
-    if (btn) menu.style.top = (btn.getBoundingClientRect().bottom + 4) + 'px';
-  } else {
-    menu.style.top = '';
+// ── Uitklapmenu's in de kopbalk ─────────────────────────────────────────────
+// Drie knoppen met dezelfde streken. Ze gedragen zich nu als één menubalk:
+// klikken opent er één (en sluit de andere), en zolang er één openstaat schuift
+// hoveren over een buurknop het menu mee — zoals je van een menubalk verwacht.
+const NAV_MENUS = [
+  { menu: 'archief-menu',  knop: 'archief-nav-btn' },
+  { menu: 'diensten-menu', knop: 'diensten-nav-btn' },
+  { menu: 'logboek-menu',  knop: 'logboek-nav-btn' },
+];
+
+function _navMenuToon(menuId) {
+  for (const m of NAV_MENUS) {
+    const el = document.getElementById(m.menu);
+    if (!el) continue;
+    if (m.menu !== menuId) { el.classList.add('hidden'); el.style.top = ''; continue; }
+    el.classList.remove('hidden');
+    // Op mobiel hangt het menu aan de viewport (position:fixed), dus daar moet
+    // de bovenkant zelf uitgerekend worden.
+    if (window.innerWidth <= 768) {
+      const knop = document.getElementById(m.knop);
+      if (knop) el.style.top = (knop.getBoundingClientRect().bottom + 4) + 'px';
+    } else {
+      el.style.top = '';
+    }
   }
 }
 
-function closeArchiefMenu() {
-  $('#archief-menu')?.classList.add('hidden');
+function _navMenuToggle(menuId) {
+  const el = document.getElementById(menuId);
+  if (!el) return;
+  if (el.classList.contains('hidden')) _navMenuToon(menuId);
+  else { el.classList.add('hidden'); el.style.top = ''; }
 }
 
-function toggleDienstenMenu() {
-  const menu = $('#diensten-menu');
-  if (!menu) return;
-  const willShow = menu.classList.contains('hidden');
-  menu.classList.toggle('hidden');
-  if (willShow && window.innerWidth <= 768) {
-    const btn = $('#diensten-nav-btn');
-    if (btn) menu.style.top = (btn.getBoundingClientRect().bottom + 4) + 'px';
-  } else {
-    menu.style.top = '';
-  }
+function _navMenuOpen() {
+  return NAV_MENUS.some(m => {
+    const el = document.getElementById(m.menu);
+    return el && !el.classList.contains('hidden');
+  });
 }
 
-function toggleLogboekMenu() {
-  const menu = $('#logboek-menu');
-  if (!menu) return;
-  const willShow = menu.classList.contains('hidden');
-  menu.classList.toggle('hidden');
-  if (willShow && window.innerWidth <= 768) {
-    const btn = $('#logboek-nav-btn');
-    if (btn) menu.style.top = (btn.getBoundingClientRect().bottom + 4) + 'px';
-  } else {
-    menu.style.top = '';
-  }
-}
+// Eén keer binden: hoveren wisselt alleen als er al iets openstaat, anders
+// zou het menu opengaan terwijl je er per ongeluk langs beweegt.
+document.addEventListener('mouseover', (e) => {
+  const knop = e.target.closest?.('#archief-nav-btn, #diensten-nav-btn, #logboek-nav-btn');
+  if (!knop || !_navMenuOpen()) return;
+  const m = NAV_MENUS.find(x => x.knop === knop.id);
+  if (m) _navMenuToon(m.menu);
+});
 
-function closeDienstenMenu() {
-  $('#diensten-menu')?.classList.add('hidden');
-}
+function toggleArchiefMenu()  { _navMenuToggle('archief-menu'); }
+function closeArchiefMenu()   { const el = $('#archief-menu');  if (el) { el.classList.add('hidden'); el.style.top = ''; } }
+function toggleDienstenMenu() { _navMenuToggle('diensten-menu'); }
+function closeDienstenMenu()  { const el = $('#diensten-menu'); if (el) { el.classList.add('hidden'); el.style.top = ''; } }
+function toggleLogboekMenu()  { _navMenuToggle('logboek-menu'); }
 
 function closeLogboekMenu() {
   $('#logboek-menu')?.classList.add('hidden');
@@ -11929,9 +11937,6 @@ const HELP_CONFIG = {
     { titel: 'Wat je ziet', tekst: 'Het type en het motto staan onder de naam; de beschrijving vertelt waar ze voor staan. Onder **Hoort bij** staan de leden die je kent, met hun rol of rang — en of ze een **factie** zijn waar je zelf aanzien bij kunt opbouwen.', afbeelding: null },
     { titel: 'Roddels en geheimen', tekst: 'Wat er over ze verteld wordt staat bij de **roddel**; bij meerdere blader je met de pijltjes. Een **geheim** verschijnt pas als je het ontdekt hebt — bij een gilde of een bende is dat vaak het interessantste dat er over te weten valt.', afbeelding: null },
   ] }),
-  hulp_kijk_organisaties_organogram: () => ({ titel: 'Organogram', stappen: [
-    { titel: 'Wie staat boven wie', tekst: 'De structuur zoals je die kent: bovenaan wie leidt, daaronder wie aan hem rapporteert. Je ziet alleen de mensen die je al hebt ontmoet — de rest van de organisatie kan groter zijn dan dit. Klik een naam om zijn kaartje te openen.', afbeelding: null },
-  ] }),
   hulp_kijk_voorwerpen_info: () => ({ titel: 'Dit voorwerp', stappen: [
     { titel: 'Wat je ziet', tekst: 'De kleur van de rand is de **rarity**: grijs (Common) tot goud (Legendary). Staat er *Requires Attunement*, dan moet je je er tijdens een rust aan binden voordat het werkt. Een schadewaarde is een knop: klik erop om de dobbelsteen te gooien.', afbeelding: null },
     { titel: 'Charges', tekst: 'Heeft het voorwerp ladingen, dan staan die als bolletjes in je boedel. Ze laden vanzelf weer op bij het soort rust dat erbij vermeld staat.', afbeelding: null },
@@ -11978,10 +11983,14 @@ const HELP_CONFIG = {
     { titel: 'Afdrukken', tekst: 'Bij een spelerspersonage heet dit blad *Character Sheet* en kun je het afdrukken of als pdf bewaren; bij een NPC, dier of god drukt hij alleen het statblok af.', afbeelding: null },
   ] }),
 
+  hulp_kijk_organisaties_organogram: () => ({ titel: 'Organogram', stappen: [
+    { titel: 'Wie staat boven wie', tekst: 'De structuur zoals je die kent: bovenaan wie leidt, daaronder wie aan hem rapporteert. Klik een naam om zijn kaartje te openen.', afbeelding: null },
+    { titel: 'Onbekend', tekst: 'Staat er **Onbekend**, dan weet je dát die plek bestaat maar niet wie hem vult — de rol staat er wel bij. Ontmoet je hem later, dan verschijnt zijn naam vanzelf op deze plek.', afbeelding: null },
+  ] }),
   hulp_bewerk_organisaties_organogram: () => ({ titel: 'Organogram', stappen: [
-    { titel: 'Waar het vandaan komt', tekst: 'Het schema tekent zichzelf uit **Wie hoort hier bij?** — één regel per persoon of organisatie, met een rol. Vul je bij een regel *Valt onder* een naam uit diezelfde lijst in, dan komt hij daaronder te hangen.', afbeelding: null },
+    { titel: 'Waar het vandaan komt', tekst: 'De ledenlijst staat op dit tabblad: één regel per persoon of organisatie, met een rol. Vul je bij een regel *Valt onder* een naam uit diezelfde lijst in, dan komt hij daaronder te hangen. Onder de lijst staat **Hoort bij**: dezelfde vraag van de andere kant, voor als deze organisatie zelf ergens onder valt.', afbeelding: null },
     { titel: 'Zonder invullen', tekst: 'Heb je nergens *Valt onder* ingevuld, dan maakt hij er een tweelaags schema van op rol: wie leidt (Leider, Oprichter, Eigenaar, Hoofd, Kapitein…) staat boven, de rest eronder. Dat is een vertrekpunt, geen echte structuur — vul de chefs in en het klopt.', afbeelding: null },
-    { titel: 'Wat spelers zien', tekst: 'Alleen de leden waarvan hun party het kaartje al kent; namen zonder kaartje staan er gewoon als tekst. Een gekoppelde naam is klikbaar naar dat kaartje.', afbeelding: null },
+    { titel: 'Wat spelers zien', tekst: 'Een lid waarvan hun party het kaartje nog niet kent staat er als **Onbekend** — met zijn rol, zonder zijn naam. Zo zien ze de vorm van de organisatie en blijft het uitzoeken wie erin zit het spel. Een naam die je nooit aan een kaartje koppelt blijft wél gewoon leesbaar.', afbeelding: null },
   ] }),
   hulp_bewerk_organisaties_info: () => ({ titel: 'Een organisatie', stappen: [
     { titel: 'Type en motto', tekst: 'Gilden, ordes, facties en bendes. Het **type** en het **motto** komen op het kaartje te staan; de beschrijving vertelt waar ze voor staan.', afbeelding: null },
