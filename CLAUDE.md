@@ -517,6 +517,11 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
   **naam** uit die lijst (niet naar een id), zodat het ook leest als het kaartje
   erachter nog niet bestaat.
 
+> **Eén kaartje, meerdere rollen.** Dezelfde persoon kan op dezelfde plek
+> eigenaar én verkoper zijn: `PUT .../hoortbij` houdt een **lijst** rollen per
+> doelkaartje bij, niet één. Alleen een exacte herhaling (zelfde kaartje,
+> zelfde rol) valt weg — dat is dezelfde verbinding, twee keer ingetikt.
+
 > **Een naam die meeverhuist.** Een regel bewaart een id én de naam zoals hij
 > tóén was. Bij hernoemen loopt de naam mee (`betrokkenen[].naam`, `chef`,
 > `eigenaar` en het gebiedslabel `wijk`) in de entity-PUT; bij verwijderen gaat

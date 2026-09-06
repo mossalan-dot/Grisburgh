@@ -3698,20 +3698,29 @@ router.put('/entities/:type/:id/hoortbij', requireDM, (req, res) => {
   const zelf = (entities[type] || []).find(e => e.id === id);
   if (!zelf) return res.status(404).json({ error: 'Niet gevonden' });
 
+  // Meerdere rollen op dezelfde plek mag: iemand kan eigenaar én verkoper zijn.
+  // Vandaar een lijst rollen per doelkaartje in plaats van één. Alleen een
+  // exacte herhaling (zelfde kaartje, zelfde rol) valt weg — dat is geen tweede
+  // verbinding maar dezelfde, twee keer ingetikt.
   const wil = new Map();
   for (const r of (Array.isArray(req.body.rijen) ? req.body.rijen : [])) {
-    if (r?.id && r.id !== id) wil.set(String(r.id), String(r.rol || '').trim());
+    if (!r?.id || r.id === id) continue;
+    const doelId = String(r.id);
+    const rol = String(r.rol || '').trim();
+    const rollen = wil.get(doelId) || [];
+    if (!rollen.some(x => x.toLowerCase() === rol.toLowerCase())) rollen.push(rol);
+    wil.set(doelId, rollen);
   }
 
   const geraakt = [];
   for (const t of ['locaties', 'organisaties']) {
     for (const doel of (entities[t] || [])) {
-      const rijen   = _betrokkenenLijst(doel.data);
-      const had     = rijen.some(r => r.id === id);
-      const wilHier = wil.has(doel.id);
-      if (!had && !wilHier) continue;                    // niets te doen
+      const rijen  = _betrokkenenLijst(doel.data);
+      const had    = rijen.some(r => r.id === id);
+      const rollen = wil.get(doel.id);
+      if (!had && !rollen) continue;                     // niets te doen
       const nieuw = rijen.filter(r => r.id !== id);
-      if (wilHier) nieuw.push({ naam: zelf.name, rol: wil.get(doel.id), id });
+      for (const rol of (rollen || [])) nieuw.push({ naam: zelf.name, rol, id });
       // Zelfde regel als in de editor: `eigenaar` blijft als losse tekst
       // meelopen, want de campagneboek-export en de zoekindex lezen dat veld.
       const baas = nieuw.find(r => /eigenaar/i.test(r.rol || ''));

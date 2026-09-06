@@ -106,6 +106,43 @@ describe('Koppelingen tussen kaartjes', () => {
     assert.strictEqual(rijen[0].id, '', 'maar de knop naar een weggegooid kaartje gaat eraf');
   });
 
+  it('meerdere rollen op dezelfde plek blijven staan', async () => {
+    const npc = (await req(server, 'POST', '/api/entities/personages', { name: 'De Waard-Verkoper', data: {} }, dm)).body;
+    const kroeg = (await req(server, 'POST', '/api/entities/locaties', { name: 'De Dubbelrol', data: {} }, dm)).body;
+
+    // Iemand kan eigenaar én verkoper zijn op dezelfde plek.
+    await req(server, 'PUT', `/api/entities/personages/${npc.id}/hoortbij`, { rijen: [
+      { id: kroeg.id, rol: 'Eigenaar' },
+      { id: kroeg.id, rol: 'Verkoper' },
+    ] }, dm);
+    let rijen = await rijenVan(kroeg.id);
+    assert.deepStrictEqual(rijen.map(r => r.rol).sort(), ['Eigenaar', 'Verkoper'],
+      'beide rollen staan op het kaartje');
+
+    // En terug te lezen vanaf de andere kant.
+    const na = (await req(server, 'GET', `/api/entities/personages/${npc.id}`, null, dm)).body;
+    assert.strictEqual((na._hoortBij || []).filter(x => x.id === kroeg.id).length, 2);
+
+    // Twee keer exact dezelfde verbinding is geen tweede verbinding.
+    await req(server, 'PUT', `/api/entities/personages/${npc.id}/hoortbij`, { rijen: [
+      { id: kroeg.id, rol: 'Eigenaar' },
+      { id: kroeg.id, rol: 'eigenaar' },
+    ] }, dm);
+    rijen = await rijenVan(kroeg.id);
+    assert.strictEqual(rijen.length, 1, 'een exacte herhaling valt weg: ' + JSON.stringify(rijen.map(r => r.rol)));
+
+    // Eén rol weghalen laat de andere staan.
+    await req(server, 'PUT', `/api/entities/personages/${npc.id}/hoortbij`, { rijen: [
+      { id: kroeg.id, rol: 'Eigenaar' },
+      { id: kroeg.id, rol: 'Verkoper' },
+    ] }, dm);
+    await req(server, 'PUT', `/api/entities/personages/${npc.id}/hoortbij`, { rijen: [
+      { id: kroeg.id, rol: 'Verkoper' },
+    ] }, dm);
+    rijen = await rijenVan(kroeg.id);
+    assert.deepStrictEqual(rijen.map(r => r.rol), ['Verkoper']);
+  });
+
   it('"hoort bij" schrijft in het doelkaartje en haalt het er ook weer uit', async () => {
     const npc = (await req(server, 'POST', '/api/entities/personages', { name: 'De Smid', data: {} }, dm)).body;
     const smidse = (await req(server, 'POST', '/api/entities/locaties', {
