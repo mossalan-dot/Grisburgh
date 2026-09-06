@@ -21238,6 +21238,22 @@ textarea:focus-visible { outline: none; box-shadow: var(--gb-ring); }
   cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.35); backdrop-filter: blur(4px); transition: background .15s ease;
 }
 .kaart-fs-close:hover { background: rgba(40,26,8,0.92); }
+/* Terug naar het kaartje waar je vandaan kwam. Links, tegenover de sluitknop:
+   het ene is "een stap terug", het andere "helemaal weg". */
+.kaart-fs-terug {
+  position: absolute; top: 14px; left: 16px; z-index: 1210;
+  display: inline-flex; align-items: center; gap: 6px;
+  max-width: min(46vw, 340px); padding: 9px 15px 9px 11px; border-radius: 20px;
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; letter-spacing: .02em;
+  background: rgba(40,26,8,0.72); color: #f3e7d4; border: 1px solid rgba(255,255,255,0.25);
+  cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.35); backdrop-filter: blur(4px);
+  transition: background .15s ease;
+}
+.kaart-fs-terug:hover { background: rgba(40,26,8,0.92); }
+.kaart-fs-terug .icon { width: 16px; height: 16px; flex-shrink: 0; }
+.kaart-fs-terug span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* De dungeonmaker heeft daar zijn eigen balk staan. */
+.kaart-fs-content .dng-topbar { padding-left: 64px; }
 /* De ronde sluitknop zweeft rechtsboven over alles heen; de topbar van de
    dungeonmaker eindigt daar met zijn helpknop. Ruimte vrijhouden. */
 .kaart-fs-content .dng-topbar { padding-right: 64px; }
@@ -23152,34 +23168,53 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   overscroll-behavior: contain;
 }
 .pin-doek-inner { position: relative; width: 100%; cursor: crosshair; }
-.pin-doek-img { display: block; width: 100%; max-width: none; }
+/* Geen native beeld-sleep: die opende de jpg in een nieuw tabblad in plaats van
+   te schuiven. `user-select: none` houdt ook de selectie-rechthoek weg. */
+.pin-doek-img { display: block; width: 100%; max-width: none; user-select: none; -webkit-user-drag: none; }
+.pin-doek--sleept { cursor: grabbing; }
+.pin-doek--sleept .pin-doek-inner { cursor: grabbing; }
 .pin-zoom { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .pin-zoom-stand {
   font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; color: #7a5c10;
   min-width: 3.4em; text-align: center;
 }
 .pin-zoom .veld-uitleg { margin: 0; }
-/* Beeld van een dungeonkaart op het Dungeon-tabblad. */
+/* Beeld van een dungeonkaart op het Dungeon-tabblad. Een plattegrond is vaak
+   hoger dan breed; zonder maximum vulde hij het hele venster. */
 .detail-dungeonbeeld {
-  display: block; width: 100%; margin-top: 6px; border-radius: 6px;
+  display: block; width: 100%; max-height: 42vh; object-fit: contain;
+  margin-top: 6px; border-radius: 6px;
   border: 1px solid rgba(196,168,122,0.6);
+  background: rgba(196,168,122,0.10);
 }
+/* Een lijnicoontje verdween in het kaartbeeld. Een gevulde stip met een witte
+   ring valt op elke ondergrond op — en het middelpunt ervan is de plek, wat bij
+   een druppelvorm niet zo is. */
 .pin-doek-speld, .kaartuitsnede-speld {
-  position: absolute; transform: translate(-50%, -100%);
-  color: #8b2a2a; pointer-events: none;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.55));
+  position: absolute; pointer-events: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #c0261c; border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.45);
+  transform: translate(-50%, -50%);
 }
-.pin-doek-speld .icon, .kaartuitsnede-speld .icon { width: 20px; height: 20px; }
+/* In het detailvenster staat hij altijd in het midden. */
+.kaartuitsnede-speld { left: 50%; top: 50%; }
 
 /* ── "Op de kaart" in het detailvenster ─────────────────────────────────────
    background-position X% Y% legt het punt op X%/Y% van de áfbeelding op
    X%/Y% van het kader; de speld staat op dezelfde percentages en valt er dus
    precies op, hoe ver je ook inzoomt. */
 .detail-kaartblok { margin: 0 0 14px; }
+/* Het tabblad heeft de ruimte, dus die mag de kaart ook krijgen. */
 .detail-kaartuitsnede {
-  position: relative; width: 100%; height: 150px; margin-top: 6px;
-  background-size: 320%; background-repeat: no-repeat;
+  position: relative; width: 100%; height: min(60vh, 520px); min-height: 240px;
+  margin-top: 6px; overflow: hidden;
   border: 1px solid rgba(196,168,122,0.6); border-radius: 6px;
+  background: rgba(196,168,122,0.10);
+}
+.kaartuitsnede-img {
+  position: absolute; left: 50%; top: 50%;
+  width: 320%; max-width: none; user-select: none; -webkit-user-drag: none;
 }
 .detail-kaartblok .detail-map-link-wrap { margin-top: 6px; }
 

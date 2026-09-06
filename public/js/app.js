@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=274';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=209";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=210";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -538,10 +538,23 @@ window._onAmbianceChange = function({ active, label, enabled } = {}) {
 // (fullscreen, met een sluitknop) in plaats van de galerij: dáár moet je heen,
 // en de galerij heeft geen weg terug naar het kaartje.
 window._toonOpKaart = async (locId, mapId) => {
+  // Onthouden waar je vandaan komt: de fullscreen-kaart heeft alleen een
+  // sluitknop, en die bracht je terug in de kaartenlijst in plaats van bij het
+  // kaartje dat je aan het lezen was.
+  const naam = Object.entries(window._entityNameIndex || {})
+    .find(([, v]) => v.id === locId)?.[0] || '';
+  window._kaartTerugNaar = { id: locId, naam };
   closeModal();
   queueFlyTo(locId);
   if (mapId) return window._openKaartFullscreen('wereld', mapId);
   switchSection('kaart');
+};
+
+// Terug naar het kaartje waar je vandaan kwam.
+window._kaartFsTerug = () => {
+  const terug = _fsTerug;
+  window._closeKaartFullscreen();
+  if (terug?.id) window._openDetail?.('locaties', terug.id);
 };
 
 function toggleArchiefMenu() {
@@ -2762,7 +2775,12 @@ function _kaartCard(type, m, dm) {
 }
 
 // ── Fullscreen-overlay: hergebruikt de bestaande kaart-/dungeon-weergave ──
+let _fsTerug = null;
 window._openKaartFullscreen = async function(type, id) {
+  // De terugweg geldt één keer: wie de kaart uit de galerij opent hoort geen
+  // "terug naar" te zien van een kaartje dat hij nooit open had.
+  _fsTerug = window._kaartTerugNaar || null;
+  window._kaartTerugNaar = null;
   let ov = document.getElementById('kaart-fs-overlay');
   if (!ov) {
     ov = document.createElement('div');
@@ -2771,6 +2789,8 @@ window._openKaartFullscreen = async function(type, id) {
     document.body.appendChild(ov);
   }
   ov.innerHTML = `
+    ${_fsTerug ? `<button class="kaart-fs-terug" onclick="window._kaartFsTerug()" title="Terug naar het kaartje">
+      ${icon('chevron-left')} <span>${esc(_fsTerug.naam || 'Terug naar het kaartje')}</span></button>` : ''}
     <button class="kaart-fs-close" onclick="window._closeKaartFullscreen()" title="Sluiten (Esc)">${icon('x')}</button>
     <div class="kaart-fs-content" id="kaart-fs-content"></div>`;
   ov.classList.add('open');
@@ -2784,6 +2804,7 @@ window._openKaartFullscreen = async function(type, id) {
 };
 
 window._closeKaartFullscreen = function() {
+  _fsTerug = null;
   const ov = document.getElementById('kaart-fs-overlay');
   if (ov) { ov.classList.remove('open'); ov.innerHTML = ''; }
   document.body.classList.remove('kaart-fs-active');

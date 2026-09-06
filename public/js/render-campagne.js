@@ -1156,12 +1156,17 @@ async function _kaartPlekVan(locId) {
 // er precies op — hoe ver je ook inzoomt.
 function _kaartTabHtml(locId, plek) {
   const { kaart, pin } = plek;
+  // De speld in het midden zetten kan niet met background-position: dat lijnt
+  // punt X% van de áfbeelding uit op X% van het kader, niet op het midden. Met
+  // een <img> op left/top 50% en `translate(-X%, -Y%)` (percentages van de
+  // afbeelding zelf) belandt punt X%,Y% precies in het midden — bij elke zoom.
   return `
     <div class="detail-kaartblok">
       <div class="detail-label">${icon('map-pin')} ${esc(kaart.label || 'Op de kaart')}</div>
-      <div class="detail-kaartuitsnede"
-        style="background-image:url('${esc(_kaartSrc(kaart))}');background-position:${pin.x}% ${pin.y}%">
-        <div class="kaartuitsnede-speld" style="left:${pin.x}%;top:${pin.y}%">${icon('map-pin')}</div>
+      <div class="detail-kaartuitsnede">
+        <img class="kaartuitsnede-img" alt="" src="${esc(_kaartSrc(kaart))}"
+          style="transform:translate(-${pin.x}%, -${pin.y}%)">
+        <div class="kaartuitsnede-speld"></div>
       </div>
       <div class="detail-map-link-wrap">
         <button class="detail-map-link-btn" onclick="window._toonOpKaart('${esc(locId)}','${esc(kaart.id)}')">
@@ -1173,11 +1178,17 @@ function _kaartTabHtml(locId, plek) {
 
 // Het Dungeon-tabblad: welke plattegrond hoort bij deze locatie, en welke kamer.
 function _dungeonTabHtml(kaart, kamer) {
-  const thumb = kaart.thumbId || kaart.fileId;
+  // Een dungeonthumbnail leeft in thumbs/ (eigen route), de kaart zelf in
+  // files/. Lukt de thumb niet, dan valt hij terug op de kaart — anders staat
+  // er een gebroken plaatje ter grootte van een half venster.
+  const beeld = kaart.thumbId
+    ? `<img class="detail-dungeonbeeld" src="${esc(api.thumbUrl(kaart.thumbId))}" alt=""
+         onerror="this.onerror=null;this.src='${esc(kaart.fileId ? api.fileUrl(kaart.fileId) : '')}'">`
+    : (kaart.fileId ? `<img class="detail-dungeonbeeld" src="${esc(api.fileUrl(kaart.fileId))}" alt="">` : '');
   return `
     <div class="detail-kaartblok">
       <div class="detail-label">${icon('map')} ${esc(kaart.name || 'Dungeon')}</div>
-      ${thumb ? `<img class="detail-dungeonbeeld" src="${esc(api.fileUrl(thumb))}" alt="">` : ''}
+      ${beeld}
       ${kamer ? `<p class="veld-uitleg">${icon('map-pin')} Kamer: ${esc(kamer.name || kamer.id)}</p>` : ''}
       ${kaart.description ? `<p class="detail-desc">${esc(kaart.description)}</p>` : ''}
       <div class="detail-map-link-wrap">
@@ -1189,7 +1200,38 @@ function _dungeonTabHtml(kaart, kamer) {
 }
 
 
+// Slepen om te schuiven. Zonder dit pakte de browser zijn eigen beeld-sleep op
+// en opende hij de jpg in een nieuw tabblad — precies wat de uitleg beloofde
+// dat níét zou gebeuren. Een sleep telt niet als klik: pas onder de vier pixels
+// verplaatsing zetten we een speld.
+let _pinSleep = null;
+window._pinSleepStart = (ev) => {
+  const doek = document.getElementById('koppel-mapdoek');
+  if (!doek || ev.button !== 0) return;
+  _pinSleep = { x: ev.clientX, y: ev.clientY, sl: doek.scrollLeft, st: doek.scrollTop, ver: 0 };
+  const beweeg = (e) => {
+    if (!_pinSleep) return;
+    const dx = e.clientX - _pinSleep.x, dy = e.clientY - _pinSleep.y;
+    _pinSleep.ver = Math.max(_pinSleep.ver, Math.abs(dx) + Math.abs(dy));
+    if (_pinSleep.ver > 3) {
+      doek.classList.add('pin-doek--sleept');
+      doek.scrollLeft = _pinSleep.sl - dx;
+      doek.scrollTop  = _pinSleep.st - dy;
+    }
+  };
+  const los = () => {
+    window.removeEventListener('pointermove', beweeg);
+    window.removeEventListener('pointerup', los);
+    doek.classList.remove('pin-doek--sleept');
+    // Even laten staan: de click die hierna komt moet weten dat er gesleept is.
+    setTimeout(() => { _pinSleep = null; }, 0);
+  };
+  window.addEventListener('pointermove', beweeg);
+  window.addEventListener('pointerup', los);
+};
+
 window._pinPlaats = async (ev) => {
+  if (_pinSleep && _pinSleep.ver > 3) return;   // dit was schuiven, geen klik
   const doek = document.getElementById('koppel-mapdoek');
   const sel  = document.getElementById('koppel-mapid');
   if (!doek || !sel?.value) return;
@@ -5272,10 +5314,11 @@ window._openEditor = async (tab, editId) => {
             <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._pinZoom(1)" title="Inzoomen">${icon('plus')}</button>
             <span class="veld-uitleg">Ingezoomd kun je slepen om te schuiven.</span>
           </div>
-          <div id="koppel-mapdoek" class="pin-doek" style="display:none">
+          <div id="koppel-mapdoek" class="pin-doek" style="display:none"
+            onpointerdown="window._pinSleepStart(event)">
             <div id="koppel-mapinner" class="pin-doek-inner" onclick="window._pinPlaats(event)">
-              <img id="koppel-mapimg" class="pin-doek-img" alt="">
-              <div id="koppel-mappin" class="pin-doek-speld" style="display:none">${icon('map-pin')}</div>
+              <img id="koppel-mapimg" class="pin-doek-img" alt="" draggable="false">
+              <div id="koppel-mappin" class="pin-doek-speld" style="display:none"></div>
             </div>
           </div>
           <div class="dm-knoprij mt-1" id="koppel-mapknoppen"></div>
