@@ -222,6 +222,38 @@ describe('Server-side filtering', () => {
     assert.strictEqual(g.dungeonId, dngId, 'hele kaart: toegang volstaat');
   });
 
+  it('DM-gereedschap zit niet in het antwoord voor een speler', async () => {
+    const speler = await req(server, 'POST', '/api/entities/personages', {
+      name: 'Lek Speler', subtype: 'speler', data: { groep: 'groep1' },
+    }, dmCookie);
+    const login = await req(server, 'POST', '/api/auth/player-login',
+      { campagne: 'grisburgh', characterId: speler.body.id });
+
+    const npc = await req(server, 'POST', '/api/entities/personages', {
+      name: 'Waard met notities',
+      data: {
+        desc: 'Zichtbaar',
+        persoonlijkheid: 'Speel hem traag en zwaar; hij verraadt de party in akte 3.',
+        kantVoorVerraad: 'bondgenoot', alignmentVoorVerraad: 'Neutral Good',
+        geheimenAntagonist: JSON.stringify([true]),
+        flavours: JSON.stringify(['Een roddel die nog niet verteld is.']),
+        flavoursUitgesproken: JSON.stringify([false]),
+      },
+    }, dmCookie);
+    await req(server, 'PUT', `/api/entities/personages/${npc.body.id}/visibility`, null, dmCookie);
+
+    const gezien = await req(server, 'GET', `/api/entities/personages/${npc.body.id}`, null, login.cookie);
+    assert.strictEqual(gezien.status, 200);
+    assert.strictEqual(gezien.body.data.desc, 'Zichtbaar', 'de beschrijving komt gewoon door');
+    for (const sleutel of ['persoonlijkheid', 'kantVoorVerraad', 'alignmentVoorVerraad',
+                           'geheimenAntagonist', 'flavoursUitgesproken']) {
+      assert.strictEqual(gezien.body.data[sleutel], undefined, `${sleutel} hoort er niet in te zitten`);
+    }
+    // En de DM ziet ze nog wel.
+    const dmZiet = await req(server, 'GET', `/api/entities/personages/${npc.body.id}`, null, dmCookie);
+    assert.ok(dmZiet.body.data.persoonlijkheid, 'de DM houdt zijn aantekeningen');
+  });
+
   it('tekst content only visible for revealed docs to players', async () => {
     const doc = await req(server, 'POST', '/api/archief', { name: 'Tekst Doc', cat: 'codex' }, dmCookie);
     const id = doc.body.id;

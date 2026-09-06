@@ -344,6 +344,18 @@ function filterEntityForPlayer(entity, dmState, groupId) {
     delete e.data.roomId;
   }
 
+  // ── DM-gereedschap gaat er sowieso af ──
+  // `persoonlijkheid` is het veld "Aantekeningen voor de DM": het detailvenster
+  // toonde het niet aan een speler, maar het zat wél in het antwoord — en dan
+  // staat het in de netwerktab. De verraad-administratie hoort er ook niet in:
+  // die verklapt dat een onthulling gepland is. En welke roddels al verteld
+  // zijn is boekhouding, geen kaartinhoud.
+  for (const sleutel of ['persoonlijkheid', 'kantVoorVerraad', 'alignmentVoorVerraad',
+                         'geheimenAntagonist', 'geheimeAntagonist',
+                         'flavoursUitgesproken', 'flavourUitgesproken']) {
+    delete e.data[sleutel];
+  }
+
   delete e.stats;
   e._visibility   = 'visible';
   // Weet de kaartweergave vooraf of er een afbeelding is, dan reserveert hij
@@ -771,7 +783,31 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
   }
   entities[type][idx] = updated;
 
-  // ── Cascade rename: update alle link-verwijzingen bij naamswijziging ──
+  // ── Cascade rename ──
+  // Koppelingen bewaren een id én de naam zoals hij toen was. Het id blijft
+  // kloppen, maar de naam liep uit de pas: "Hoort bij" toonde de nieuwe naam en
+  // de lijst op het andere kaartje nog de oude. Dus meelopen.
+  if (newName && newName !== oldName) {
+    for (const et of ['locaties', 'organisaties']) {
+      for (const doel of (entities[et] || [])) {
+        const rijen = _betrokkenenLijst(doel.data);
+        if (!rijen.some(r => r.id === id || (r.chef || '') === oldName)) continue;
+        const nieuw = rijen.map(r => ({
+          ...r,
+          ...(r.id === id ? { naam: newName } : {}),
+          // `chef` verwijst naar een naam, niet naar een id — die moet dus ook mee.
+          ...((r.chef || '') === oldName ? { chef: newName } : {}),
+        }));
+        doel.data = { ...(doel.data || {}), betrokkenen: JSON.stringify(nieuw) };
+        if (doel.data.eigenaarId === id) doel.data.eigenaar = newName;
+      }
+      // Het gebied bewaart net zo goed een naam naast zijn id.
+      for (const doel of (entities[et] || [])) {
+        if (doel.data?.wijkId === id) doel.data = { ...doel.data, wijk: newName };
+      }
+    }
+  }
+
   if (newName && newName !== oldName) {
     for (const et of ENTITY_TYPES) {
       for (const entity of (entities[et] || [])) {
@@ -867,6 +903,21 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
   if (!dmState.trash) dmState.trash = [];
   dmState.trash.unshift(trashItem);
   dmState.trash = dmState.trash.slice(0, 10);
+
+  // ── Koppelingen naar dit kaartje ──
+  // De naam blijft staan (de DM heeft hem op dat kaartje geschreven), maar het
+  // id gaat eraf: anders houd je een knop over die naar niets leidt.
+  for (const et of ['locaties', 'organisaties']) {
+    for (const doel of (entities[et] || [])) {
+      const rijen = _betrokkenenLijst(doel.data);
+      if (rijen.some(r => r.id === id)) {
+        doel.data = { ...(doel.data || {}),
+          betrokkenen: JSON.stringify(rijen.map(r => r.id === id ? { ...r, id: '' } : r)) };
+        if (doel.data.eigenaarId === id) doel.data.eigenaarId = '';
+      }
+      if (doel.data?.wijkId === id) doel.data = { ...doel.data, wijkId: '' };
+    }
+  }
 
   // ── Bidirectionele links: verwijder terugverwijzingen bij gelinkte entiteiten ──
   for (const lt of ENTITY_TYPES) {
