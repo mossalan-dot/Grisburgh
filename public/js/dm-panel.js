@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=268';
+import { api, huidigeCampagne } from './api.js?v=269';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=4';
 
@@ -455,6 +455,7 @@ export function initDmPanel() {
     aanwezigheidToggle:      (groepId, charId) => _aanwezigheidToggle(groepId, charId),
     naarTabletmodus:         () => _naarTabletmodus(),
     dmWachtwoordOpslaan:     () => _dmWachtwoordOpslaan(),
+    helpReset:               () => _helpReset(),
     partyLidErbij:           (gid, veld) => _partyLidErbij(gid, veld),
     partyLidWeg:             (id, naam, party) => _partyLidWeg(id, naam, party),
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
@@ -9568,6 +9569,24 @@ async function _partyLidWeg(entityId, naam, party) {
   }
 }
 
+// Helpteksten terugzetten. Een DM mag de uitleg aanpassen, maar dan wil je ook
+// terug kunnen — zeker als een tekst per ongeluk leeggehaald is. Weggooien is
+// onomkeerbaar, dus eerst vragen (zie de afspraak in CLAUDE.md).
+async function _helpReset() {
+  let aantal = 0;
+  try { aantal = Object.keys(await api.getHelpContent() || {}).length; } catch { /* dan zonder aantal */ }
+  if (!aantal) { _showToast(`${icon('check')} Er staat niets aangepast — overal staat de standaardtekst al.`); return; }
+  if (!confirm(`${aantal} aangepaste uitleg${aantal === 1 ? '' : 'teksten'} weggooien?\n\nOveral komt de meegeleverde tekst terug. Dit kan niet ongedaan gemaakt worden.`)) return;
+  try {
+    const r = await api.resetHelpContent();
+    // De app houdt de overrides in het geheugen; die moeten mee terug.
+    if (window._herlaadHelpTeksten) await window._herlaadHelpTeksten();
+    _showToast(`${icon('check')} ${r.aantal || aantal} uitleg${(r.aantal || aantal) === 1 ? '' : 'teksten'} teruggezet.`);
+  } catch (err) {
+    alert('Terugzetten mislukt: ' + (err.message || err));
+  }
+}
+
 async function _dmWachtwoordStatus() {
   const el = document.getElementById('dm-pw-status');
   if (!el) return;
@@ -9825,6 +9844,14 @@ async function _renderInstellingen() {
           <input type="checkbox" id="inst-in-overzicht" ${meta.inOverzicht === false ? '' : 'checked'}>
           <span>Toon deze campagne op de openingspagina</span>
         </label>
+      </div>
+      <div class="dm-subgroep-label">Helpteksten</div>
+      <div class="dm-form-row">
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.helpReset()"
+          title="Gooit de uitleg weg die in deze campagne is aangepast; overal komt de meegeleverde tekst terug">
+          ${icon('refresh-cw')} Terug naar de standaardteksten
+        </button>
+        <span class="dm-hint" style="margin:0 0 0 10px">Alleen de uitleg die je zelf hebt aangepast.</span>
       </div>
       ${!magBeheren ? '' : `
       <details class="dm-modules dm-beheer-campagnes">

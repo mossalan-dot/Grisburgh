@@ -114,6 +114,17 @@ groot het is.
       CSS-variabelen — geen tweede set componenten. Pas als er drie of vier
       overtuigend staan, hoort de keuze terug in de wizard.
 
+## Helpteksten
+
+- [ ] **Een gouden standaard schrijven.** Elke DM mag de uitleg in zijn campagne
+      aanpassen (potlood in het uitlegvenster), en met de resetknop bij
+      Instellingen → Beheer komt de meegeleverde tekst terug. Die meegeleverde
+      tekst is nu gegroeid met de app mee en spreekt niet overal dezelfde taal:
+      soms een rondleiding in stappen, soms één alinea, soms met plaatje en soms
+      zonder. Nodig: één vorm (wat is het, wat kun je ermee, waar klik je), één
+      toon, en per sectie evenveel stappen. Dat is meteen de basis voor de
+      wizard voor een nieuwe DM.
+
 ## Afgesproken maar nog niet ingepland
 
 - [ ] **Samenvoegen van party's** — verhuizen laat voorwerpbezit en onthulde

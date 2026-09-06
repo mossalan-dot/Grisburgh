@@ -149,6 +149,7 @@ export const api = {
   getHelpContent:  ()          => request('/help-content'),
   saveHelpContent: (key, data) => request(`/help-content/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteHelpContent:(key)      => request(`/help-content/${encodeURIComponent(key)}`, { method: 'DELETE' }),
+  resetHelpContent: ()          => request('/help-content', { method: 'DELETE' }),
 
   // Meta
   meta: () => request('/meta'),

@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=268';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=269';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=195";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
@@ -8,8 +8,8 @@ import { renderProgressie } from './render-progressie.js?v=44';
 import { renderBestiarium } from './render-bestiarium.js?v=22';
 import { renderSpreuken } from './render-spreuken.js?v=18';
 import { renderStatblock } from './render-statblock.js?v=4';
-import { initSocket } from "./socket-client.js?v=61";
-import { initDmPanel } from "./dm-panel.js?v=203";
+import { initSocket } from "./socket-client.js?v=62";
+import { initDmPanel } from "./dm-panel.js?v=204";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -9835,7 +9835,7 @@ async function init() {
   await _loadDienstenToegang().catch(() => {});
 
   // Help-overschrijvingen laden
-  api.getHelpContent().then(d => { _helpOverrides = d || {}; }).catch(() => {});
+  window._herlaadHelpTeksten();
 
   // Globale glossary-tooltip (hover-uitleg van D&D-termen) activeren
   _initGlobalGlossary();
@@ -12304,6 +12304,11 @@ Object.assign(HELP_CONFIG, {
 
 // Overschrijvingen vanuit de server (laden in init)
 let _helpOverrides = {};
+// De aangepaste teksten worden één keer opgehaald en in het geheugen gehouden;
+// na een reset in de Meesterkamer moeten ze daar ook weer uit.
+window._herlaadHelpTeksten = async () => {
+  try { _helpOverrides = (await api.getHelpContent()) || {}; } catch { _helpOverrides = {}; }
+};
 
 window._helpBtn = function _helpBtn(key, opts = {}) {
   const cls = opts.cls || '';

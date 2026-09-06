@@ -5676,6 +5676,17 @@ router.delete('/help-content/:key', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// Alle eigen helpteksten weggooien: de app valt dan terug op de meegeleverde
+// uitleg. Geeft terug hoeveel er stonden, zodat het scherm kan zeggen wat er
+// weg is.
+router.delete('/help-content', requireDM, (req, res) => {
+  const dm = readDmState();
+  const aantal = Object.keys(dm.helpContent || {}).length;
+  dm.helpContent = {};
+  storage.writeJSON('dm-state.json', dm);
+  res.json({ ok: true, aantal });
+});
+
 // ── Meta ──
 
 // ── Bereikbaarheid ───────────────────────────────────────────────────────────
