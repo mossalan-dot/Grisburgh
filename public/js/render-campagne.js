@@ -1019,7 +1019,7 @@ function _betrokkenRijHtml(r, i, metChef = false) {
       title="Regel verwijderen" onclick="window._betrokkenWeg(this)">${icon('trash')}</button>
     ${metChef ? `<div class="betr-chef-rij">
       <span class="betr-chef-label">Valt onder</span>
-      <input class="betr-chef" value="${esc(r.chef || '')}" list="betrokken-dl"
+      <input class="betr-chef" value="${esc(r.chef || '')}" list="chef-dl"
         placeholder="niemand \u2014 staat bovenaan" title="Naam van iemand anders uit deze lijst">
     </div>` : ''}
     <div id="betr-st-${i}" class="link-status betrokken-status"></div>
@@ -1092,11 +1092,20 @@ window._betrokkenWeg = (btn) => {
 // Tekent het organogram opnieuw uit wat er nú in de velden staat.
 let _orgVoorbeeldBeeld = null;
 window._orgVoorbeeldTeken = () => {
+  const rijen = _betrokkenenLees();
+  _chefLijstVullen(rijen);
   const host = document.getElementById('org-voorbeeld');
   if (!host) return;
-  const rijen = _betrokkenenLees();
   host.innerHTML = rijen.length ? _organogramHtml(rijen, _orgVoorbeeldBeeld) : '';
 };
+
+// De keuzelijst voor "Valt onder": alleen de namen die in deze lijst staan.
+function _chefLijstVullen(rijen) {
+  const dl = document.getElementById('chef-dl');
+  if (!dl) return;
+  const namen = [...new Set((rijen || _betrokkenenLees()).map(r => r.naam).filter(Boolean))];
+  dl.innerHTML = namen.map(n => `<option value="${esc(n)}">`).join('');
+}
 
 function _betrokkenenLees() {
   return [...document.querySelectorAll('#betrokkenen-lijst .betrokken-rij')].map(rij => {
@@ -5435,6 +5444,10 @@ window._openEditor = async (tab, editId) => {
             ${rijen.map((r, i) => _betrokkenRijHtml(r, i, tab === 'organisaties')).join('')}
           </div>
           <datalist id="betrokken-dl" data-link-doel="personages,organisaties"></datalist>
+          <!-- Onder wie iemand valt kan alleen iemand zijn die hier al staat;
+               de hele campagne aanbieden leverde een lijst op waarin het goede
+               antwoord niet te vinden was. Wordt bijgehouden bij elke wijziging. -->
+          <datalist id="chef-dl"></datalist>
           <datalist id="betrokken-rol-dl">
             ${BETROKKEN_ROLLEN.map(r => `<option value="${esc(r)}">`).join('')}
           </datalist>
@@ -6245,6 +6258,7 @@ window._openEditor = async (tab, editId) => {
   // Live organogram onder de ledenlijst: één handler op de lijst in plaats van
   // één per veld, want er komen rijen bij en af.
   const _orgLijst = document.getElementById('betrokkenen-lijst');
+  if (document.getElementById('chef-dl')) _chefLijstVullen();
   if (document.getElementById('org-voorbeeld') && _orgLijst) {
     _orgLijst.addEventListener('input', () => window._orgVoorbeeldTeken());
     _beeldIndexLaden().then(m => { _orgVoorbeeldBeeld = m; window._orgVoorbeeldTeken(); })
