@@ -12360,7 +12360,10 @@ window._helpBtn = function _helpBtn(key, opts = {}) {
   // Het potloodje stond náást de helpknop en zei niets tegen een speler (die
   // het niet eens ziet). Bewerken zit nu in de uitleg zelf: de DM ziet daar een
   // knop, de speler leest alleen.
-  return `<span class="help-btn-wrap"><button class="help-btn ${cls}" data-help-key="${key}" onclick="event.stopPropagation();window._openHelp('${key}')" title="Uitleg">${icon('book-open')}</button></span>`;
+  // type="button" is niet optioneel: binnen een <form> — en de kaartjeseditor
+  // is er een — is de standaard `submit`, dus klikken op het boekje bewaarde en
+  // sloot het formulier.
+  return `<span class="help-btn-wrap"><button type="button" class="help-btn ${cls}" data-help-key="${key}" onclick="event.stopPropagation();window._openHelp('${key}')" title="Uitleg">${icon('book-open')}</button></span>`;
 }
 
 function _resolveHelp(key) {
