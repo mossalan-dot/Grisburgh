@@ -997,7 +997,11 @@ window._linkKaartjeMaken = async (type, inputId) => {
   const naam = (inp?.value || '').trim();
   if (!naam) return;
   try {
-    const nieuw = await api.createEntity(type, { name: naam, data: {} });
+    // Een leeg personagekaartje krijgt meteen het standaard-subtype; zonder
+    // subtype staat het in een stand die je in de editor niet kunt kiezen.
+    const nieuw = await api.createEntity(type, {
+      name: naam, data: {}, ...(type === 'personages' ? { subtype: 'NPC' } : {}),
+    });
     _linkLijsten[type].push({ id: nieuw.id, name: nieuw.name || naam });
     _linkDatalistsVullen();
     window.app?._tsToast?.(`${icon('check')} Leeg kaartje ${naam} aangemaakt`);
