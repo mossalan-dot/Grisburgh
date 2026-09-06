@@ -23115,6 +23115,15 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 /* Het label staat op dezelfde hoogte als dat van de velden erboven; de lijst
    eronder krijgt dezelfde tussenruimte als een gewoon invulveld. */
 .hoortbij-sectie > label { display: block; margin-bottom: 4px; }
+/* De naam van het kaartje achter de kop van de editor: zelfde regel, maar
+   duidelijk ondergeschikt aan "Locatie bewerken". */
+.modal-titel-naam {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  margin-left: 8px; color: #7a6040; font-weight: 400;
+  max-width: 45vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.modal-titel-naam .icon { width: 14px; height: 14px; opacity: .55; align-self: center; }
+
 .hoortbij-sectie { margin-top: 6px; }
 /* "Verkoopt bij" hoort in deze sectie thuis maar is een ander soort verbinding;
    een streepje ertussen scheelt zoeken. */
