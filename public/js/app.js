@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=274';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=221";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=222";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -11913,13 +11913,13 @@ const HELP_CONFIG = {
   hulp_kijk_personages_info: () => ({ titel: 'Dit personage', stappen: [
     { titel: 'Wie is dit', tekst: 'Onder de naam staan zijn rol, volk en klasse. De beschrijving vertelt wat je van hem weet; namen die je al kent zijn klikbaar. Een badge op de kaart laat zien of hij een verkoper is of je in de weg staat.', afbeelding: null },
     { titel: 'Roddels en geheimen', tekst: 'De **roddel** is wat er over hem verteld wordt — bij meerdere blader je met de pijltjes. Een **geheim** zie je pas als je het ontdekt hebt; onthulde geheimen kunnen alles veranderen wat je van iemand dacht te weten.', afbeelding: null },
-    { titel: 'Waar hij bij hoort', tekst: 'Onder **Hoort bij** staat waar hij verbonden aan is: eigenaar van een herberg, lid van een gilde, verkoper in een winkel. Klik erop om daarheen te gaan.', afbeelding: null },
+    { titel: 'Waar hij bij hoort', tekst: 'Onder **Wat hoort hier bij?** staat waaraan hij verbonden is: eigenaar van een herberg, lid van een gilde, verkoper in een winkel. Klik erop om daarheen te gaan.', afbeelding: null },
   ] }),
   hulp_kijk_personages_sheet: () => ({ titel: 'Het blad', stappen: [
     { titel: 'Statblock', tekst: 'De gevechtsgegevens: **AC** (hoe moeilijk hij te raken is), **HP**, speed, de zes ability scores met hun modifier, en zijn traits en actions. Bij een huisdier hoort het blok dat past bij het level van zijn baasje — hij groeit met je mee.', afbeelding: null },
   ] }),
   hulp_kijk_organisaties_info: () => ({ titel: 'Deze organisatie', stappen: [
-    { titel: 'Wat je ziet', tekst: 'Het type en het motto staan onder de naam; de beschrijving vertelt waar ze voor staan. Onder **Hoort bij** staan de leden die je kent, met hun rol of rang — en of ze een **factie** zijn waar je zelf aanzien bij kunt opbouwen.', afbeelding: null },
+    { titel: 'Wat je ziet', tekst: 'Het type en het motto staan onder de naam; de beschrijving vertelt waar ze voor staan. Onder **Wie hoort hier bij?** staan de leden die je kent, met hun rol of rang; onder **Wat hoort hier bij?** staat waar de organisatie zelf onder valt — en of ze een **factie** zijn waar je aanzien bij kunt opbouwen.', afbeelding: null },
     { titel: 'Roddels en geheimen', tekst: 'Wat er over ze verteld wordt staat bij de **roddel**; bij meerdere blader je met de pijltjes. Een **geheim** verschijnt pas als je het ontdekt hebt — bij een gilde of een bende is dat vaak het interessantste dat er over te weten valt.', afbeelding: null },
   ] }),
   hulp_kijk_voorwerpen_info: () => ({ titel: 'Dit voorwerp', stappen: [
@@ -11940,7 +11940,7 @@ const HELP_CONFIG = {
   hulp_bewerk_locaties_info: () => ({ titel: 'Een locatie', stappen: [
     { titel: 'Type', tekst: 'Het **type** zegt wat voor plek dit is. De lijst staat in groepen: gebieden (rijk, streek, stad, dorp, wijk), gebouwen, landschap en overig. Drie types kunnen méér, en onder de keuzelijst staat wat dat is: *Winkel* krijgt een eigen tabblad met voorraad, en *Herberg* en *Tempel* kunnen aan een dienst gekoppeld worden. Kunnen, niet moeten — je kunt drie herbergen hebben waarvan er één de dienst is.', afbeelding: null },
     { titel: 'Gebied', tekst: 'Waar dit in ligt: een stad, een streek, een wijk of een gebouw. Wijst het naar een bestaand locatiekaartje, dan kun je doorklikken en ontstaan er ketens — een herberg in een wijk, in een stad, in een streek. Vrije tekst mag ook; bestaat de naam nog niet, dan biedt hij aan er een kaartje voor te maken.', afbeelding: null },
-    { titel: 'Wie hoort hier bij?', tekst: 'Eigenaar, waard, personeel, stamgasten — personages én organisaties, met per regel een rol. Een gekoppelde naam wordt een knop waar je doorheen klikt. Dezelfde regel verschijnt bij *Hoort bij* op het andere kaartje: het staat maar op één plek, dus je kunt hem van beide kanten leggen.', afbeelding: null },
+    { titel: 'Wie hoort hier bij?', tekst: 'Eigenaar, waard, personeel, stamgasten — personages én organisaties, met per regel een rol. Een naam die een kaartje heeft wordt een knop waar je doorheen klikt; wat geen kaartje heeft blijft gewoon tekst. Dezelfde regel verschijnt bij *Wat hoort hier bij?* op dát kaartje: een verbinding staat maar op één plek, dus je legt en verwijdert hem van beide kanten.', afbeelding: null },
     { titel: 'Flavour & geheimen', tekst: '**Flavour** zijn losse zinnetjes om voor te lezen; de app houdt per regel bij of hij al verteld is, dus iemand met drie roddels levert drie avonden op. **Geheimen** onthul je per regel en per party, in het detailvenster.', afbeelding: null },
     { titel: 'Koppelingen', tekst: 'Onderaan staat wat dit kaartje **elders** is: de herberg van de campagne, of de tempel van een god uit de Tempel-dienst. Die koppeling staat maar op één plek — je kunt hem hier leggen of in het paneel van die dienst, en je ziet aan beide kanten hetzelfde.', afbeelding: null },
   ] }),
@@ -11958,7 +11958,7 @@ const HELP_CONFIG = {
   hulp_bewerk_personages_info: () => ({ titel: 'Een personage', stappen: [
     { titel: 'Type, rollen en kant', tekst: 'Drie verschillende vragen. **Type** zegt wat voor kaartje dit is: NPC, speler, dier of god. **Rollen** zeggen welke functie hij vervult — *verkoper* zet een voorraad aan, *antagonist* geeft kleur en een badge, allebei tegelijk mag. **Kant** zegt aan welke kant hij in een gevecht staat.', afbeelding: null },
     { titel: 'Flavour & geheimen', tekst: '**Flavour** zijn zinnetjes om voor te lezen; de app onthoudt per regel of hij al verteld is. **Geheimen** onthul je per regel en per party. Bij een personage kun je per geheim aanvinken dat het onthullen hem tot vijand maakt: hij krijgt dan de rol antagonist, komt aan de kant van de vijand te staan en zijn alignment schuift op naar Evil.', afbeelding: null },
-    { titel: 'Hoort bij', tekst: 'Waar hij bij hoort: eigenaar van een herberg, lid van een gilde. Kies een locatie of organisatie plus een rol; die regel komt terecht bij *Wie hoort hier bij?* van dát kaartje. Verkoopt hij ergens, dan verschijnt dat hier ook — met rol Verkoper.', afbeelding: null },
+    { titel: 'Wat hoort hier bij?', tekst: 'Waar dit personage bij hoort: eigenaar van een herberg, lid van een gilde. Kies een locatie of organisatie plus een rol met **Verbinding toevoegen**. Diezelfde regel komt te staan bij *Wie hoort hier bij?* van dát kaartje — een verbinding staat maar op één plek, dus je kunt hem van beide kanten leggen en van beide kanten weghalen. Onderaan staat **Verkoopt bij**: dat is dezelfde soort verbinding, maar dan naar de winkel waar zijn waren liggen.', afbeelding: null },
     { titel: 'Bij een dier', tekst: 'Een dier kun je te adopteren zetten met een prijs, en per party een **eigenaar** geven. Het dier staat dan op hun partytabblad, is te vullen in een gevecht, en zijn statblok groeit mee met het level van dat personage.', afbeelding: null },
     { titel: 'Aantekeningen', tekst: 'Wat je zelf wilt onthouden: hoe je hem speelt, wat er nog moet gebeuren, welke stem hij heeft. Spelers krijgen dit nooit te zien, ook niet als het kaartje zichtbaar is.', afbeelding: null },
   ] }),
@@ -11973,7 +11973,7 @@ const HELP_CONFIG = {
     { titel: 'Onbekend', tekst: 'Staat er **Onbekend**, dan weet je dát die plek bestaat maar niet wie hem vult — de rol staat er wel bij. Ontmoet je hem later, dan verschijnt zijn naam vanzelf op deze plek.', afbeelding: null },
   ] }),
   hulp_bewerk_organisaties_organogram: () => ({ titel: 'Organogram', stappen: [
-    { titel: 'Waar het vandaan komt', tekst: 'De ledenlijst staat op dit tabblad: één regel per persoon of organisatie, met een rol. Vul je bij een regel *Valt onder* een naam uit diezelfde lijst in, dan komt hij daaronder te hangen. Onder de lijst staat **Hoort bij**: dezelfde vraag van de andere kant, voor als deze organisatie zelf ergens onder valt.', afbeelding: null },
+    { titel: 'Waar het vandaan komt', tekst: 'De ledenlijst staat op dit tabblad: één regel per persoon of organisatie, met een rol. Vul je bij een regel *Valt onder* een naam uit diezelfde lijst in, dan komt hij daaronder te hangen. Onder de lijst staat **Wat hoort hier bij?**: dezelfde vraag van de andere kant, voor als deze organisatie zelf ergens onder valt.', afbeelding: null },
     { titel: 'Zonder invullen', tekst: 'Heb je nergens *Valt onder* ingevuld, dan maakt hij er een tweelaags schema van op rol: wie leidt (Leider, Oprichter, Eigenaar, Hoofd, Kapitein…) staat boven, de rest eronder. Dat is een vertrekpunt, geen echte structuur — vul de chefs in en het klopt.', afbeelding: null },
     { titel: 'Wat spelers zien', tekst: 'Een lid waarvan hun party het kaartje nog niet kent staat er als **Onbekend** — met zijn rol, zonder zijn naam. Zo zien ze de vorm van de organisatie en blijft het uitzoeken wie erin zit het spel. Een naam die je nooit aan een kaartje koppelt blijft wél gewoon leesbaar.', afbeelding: null },
   ] }),

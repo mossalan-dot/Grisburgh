@@ -1040,7 +1040,7 @@ function _hoortRijHtml(r, i) {
         placeholder="Naam van een locatie of organisatie">
       <span class="link-veld-icoon" id="hb-ic-${i}"></span>
     </span>
-    <input class="hb-rol" value="${esc(r.rol || '')}" list="betrokken-rol-dl" placeholder="Rol">
+    <input class="hb-rol" value="${esc(r.rol || '')}" list="hoortbij-rol-dl" placeholder="Rol">
     <input type="hidden" class="hb-id" id="hb-id-${i}" value="${esc(r.id || '')}">
     <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
       title="Regel verwijderen" onclick="window._hoortWeg(this)">${icon('trash')}</button>
@@ -1561,7 +1561,12 @@ window._linkKaartjeMaken = async (type, inputId) => {
     });
     _linkLijsten[type].push({ id: nieuw.id, name: nieuw.name || naam });
     _linkDatalistsVullen();
-    window.app?._tsToast?.(`${icon('check')} Leeg kaartje ${naam} aangemaakt`);
+    // Het kaartje bestaat, maar de lijst eronder wist er nog niets van: ging je
+    // erheen om het in te vullen, dan stond het er niet en drukte je op + —
+    // wat een tweede leeg kaartje opleverde. Lijst en naamindex dus meteen bij.
+    if (window.app?.state?.activeSection === type) renderEntitySection(type);
+    window._planEntityIndexHerbouw?.();
+    window.app?._tsToast?.(`${icon('check')} Leeg kaartje ${esc(naam)} aangemaakt — vul het later in bij ${LINK_LABELS[type] || type}`);
   } catch (err) {
     alert('Aanmaken mislukt: ' + (err.message || err));
   }
@@ -3466,7 +3471,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     if (_locNaam) _hoortBij.push({ id: _winkelLocId, name: _locNaam, type: 'locaties', rol: 'Verkoper', tab: 'voorraad' });
   }
   if (_hoortBij.length) {
-    infoHtml += _rolRegels('Hoort bij', _hoortBij.map(r => ({
+    infoHtml += _rolRegels('Wat hoort hier bij?', _hoortBij.map(r => ({
       rol: r.rol,
       knop: r.factieId
         ? `<button type="button" class="link-chip link-chip--sm"
@@ -5348,20 +5353,6 @@ window._openEditor = async (tab, editId) => {
         `;
       }
 
-      // Waar iemand verkoopt hoort bij zijn rollen, niet in een eigen tabblad:
-      // het is één keuzelijst. De waren zelf liggen bij de locatie.
-      if (tab === 'personages' && isDM()) {
-        body += `
-          <div id="voorraad-section"${window._heeftRol(e, 'verkoper') ? '' : ' style="display:none"'}>
-            <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Verkoopt bij</label>
-            <input type="hidden" name="data_winkelLocatieId" id="winkel-loc-id" value="${esc(e?.data?.winkelLocatieId || '')}">
-            <input list="winkel-loc-dl" id="winkel-loc-naam" placeholder="Zoek een locatie\u2026" value=""
-              onchange="window._winkelLocKies(this.value)"
-              class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-            <datalist id="winkel-loc-dl"></datalist>
-            <div id="winkel-loc-link" class="mt-2"></div>
-          </div>`;
-      }
     } else if (field.type === 'lijst-tekst') {
       const regels = _tekstLijstUit(e?.data, field.key, field.enkelvoud);
       if (!regels.length) regels.push('');
@@ -5433,7 +5424,7 @@ window._openEditor = async (tab, editId) => {
             ${BETROKKEN_ROLLEN.map(r => `<option value="${esc(r)}">`).join('')}
           </datalist>
           <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
-            onclick="window._betrokkenErbij()">${icon('plus')} Iemand toevoegen</button>
+            onclick="window._betrokkenErbij()">${icon('plus')} Verbinding toevoegen</button>
         </div>
       `;
       if (tab === 'organisaties') body += `<!--P:info-->`;
@@ -5515,12 +5506,28 @@ window._openEditor = async (tab, editId) => {
     if (tab === 'organisaties') body += `<!--P:organogram-->`;
     body += `
       <div class="hoortbij-sectie">
-        <div class="cs-sectiekop">Hoort bij</div>
+        <div class="cs-sectiekop">Wat hoort hier bij?</div>
         <div id="hoortbij-lijst">${_hbRijen.map((r, i) => _hoortRijHtml(r, i)).join('')}</div>
         <datalist id="hoortbij-dl" data-link-doel="locaties,organisaties"></datalist>
+        <!-- Eigen rollijst: die van het betrokkenen-veld hangt aan dát veld, en
+             een personage heeft er geen — daar vulde de rol dus niets aan. -->
+        <datalist id="hoortbij-rol-dl">
+          ${BETROKKEN_ROLLEN.map(r => `<option value="${esc(r)}">`).join('')}
+        </datalist>
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
-          onclick="window._hoortErbij()">${icon('plus')} Ergens bij zetten</button>
-        <p class="veld-uitleg">Komt terecht in <em>Wie hoort hier bij?</em> van dat kaartje — het staat maar op één plek.</p>
+          onclick="window._hoortErbij()">${icon('plus')} Verbinding toevoegen</button>
+        ${tab !== 'personages' ? '' : `
+        <!-- Waar iemand verkoopt is net zo goed een verbinding; als eigen veld
+             elders op het blad las het als een tweede systeem. -->
+        <div id="voorraad-section" class="hoortbij-verkoop"${window._heeftRol(e, 'verkoper') ? '' : ' style="display:none"'}>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Verkoopt bij</label>
+          <input type="hidden" name="data_winkelLocatieId" id="winkel-loc-id" value="${esc(e?.data?.winkelLocatieId || '')}">
+          <input list="winkel-loc-dl" id="winkel-loc-naam" placeholder="Zoek een locatie\u2026" value=""
+            onchange="window._winkelLocKies(this.value)"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          <datalist id="winkel-loc-dl"></datalist>
+          <div id="winkel-loc-link" class="mt-2"></div>
+        </div>`}
       </div>
     `;
     if (tab === 'organisaties') body += `<!--P:info-->`;

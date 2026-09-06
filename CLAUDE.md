@@ -209,7 +209,7 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=516   app.js?v=592   sound-manager.js?v=8
+index.html  : theme.css?v=517   app.js?v=592   sound-manager.js?v=8
 app.js      : api.js?v=274      render-campagne.js?v=197   render-archief.js?v=76
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=44  socket-client.js?v=59
@@ -495,6 +495,44 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 > `_sbApplyGlossary_DOM()` (wrapt termen in `.sb-gloss`-spans) en een globale tooltip-handler
 > (`_initGlobalGlossary`, geactiveerd in `init()`). Publieke API: `window.glossary.applyDom(el)`.
 > Gebruikt door spreukenboek én het progressie-detailmodal.
+
+---
+
+## Verbindingen tussen kaartjes: één plek, twee kanten
+
+Wie bij een locatie of organisatie hoort staat in **één** lijst:
+`data.betrokkenen` op dát kaartje — een array van `{naam, rol, id, chef}`,
+opgeslagen als JSON-string. Alles eromheen is afgeleid:
+
+- **`Wie hoort hier bij?`** (locaties, organisaties) bewerkt die lijst direct.
+- **`Wat hoort hier bij?`** (personages, organisaties) is dezelfde verbinding
+  van de andere kant. Lezen gaat via `_betrokkenIndex()` in `routes/api.js`
+  (omgekeerde index, gecachet op de mtime van `entities.json`) en komt mee als
+  `_hoortBij`; schrijven gaat via `PUT /entities/:type/:id/hoortbij`, dat in de
+  **doelkaartjes** schrijft. Bewust geen tweede lijst: twee lijsten die
+  hetzelfde moeten zeggen lopen vroeg of laat uit elkaar.
+- **`Verkoopt bij`** is `data.winkelLocatieId` op de verkoper en verschijnt in
+  beide weergaven als een regel met rol *Verkoper*.
+- Het **organogram** tekent zich uit dezelfde lijst; `chef` verwijst naar een
+  **naam** uit die lijst (niet naar een id), zodat het ook leest als het kaartje
+  erachter nog niet bestaat.
+
+> **Een naam die meeverhuist.** Een regel bewaart een id én de naam zoals hij
+> tóén was. Bij hernoemen loopt de naam mee (`betrokkenen[].naam`, `chef`,
+> `eigenaar` en het gebiedslabel `wijk`) in de entity-PUT; bij verwijderen gaat
+> alleen het id eraf en blijft de naam leesbaar staan.
+
+> **Wat een speler ziet.** Een regel die naar een kaartje wijst dat zijn party
+> nog niet kent verliest zijn **naam** en krijgt `onbekend: true` — de rol
+> blijft staan. Een organisatie ontmantelen is het spel, dus de ledenlijst is
+> niet gratis. Een naam die nooit aan een kaartje gekoppeld was blijft wél
+> leesbaar: dat is tekst die de DM daar bewust neerzette. Omdat `chef` naar een
+> naam wijst, krijgt een verborgen regel een vaste schuilnaam die ook in de
+> chef-velden wordt teruggeschreven — anders valt de tak eronder van de boom.
+
+> **Formulieren blijven schoon.** Uitleg hoort in de hulptekst (het boekje
+> rechts in de tabbalk, sleutels `hulp_kijk_*` en `hulp_bewerk_*`), niet als
+> grijze regel onder een veld.
 
 ---
 

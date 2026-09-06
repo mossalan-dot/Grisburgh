@@ -23113,6 +23113,9 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 /* Sectie in de editor waarmee je vanaf een personage aangeeft waar hij bij
    hoort; dezelfde rijen als "Wie hoort hier bij?", andere doelsoorten. */
 .hoortbij-sectie { margin-top: 6px; }
+/* "Verkoopt bij" hoort in deze sectie thuis maar is een ander soort verbinding;
+   een streepje ertussen scheelt zoeken. */
+.hoortbij-verkoop { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(196,168,122,0.45); }
 
 /* ── Koppelingen op een kaartje ─────────────────────────────────────────────
    Wat dit kaartje elders is: de herberg, de tempel van een god, de factie, een
