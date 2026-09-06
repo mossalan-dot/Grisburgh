@@ -1460,8 +1460,9 @@ window._pinPlaats = async (ev) => {
     _koppelCtx.pins = _koppelCtx.pins.filter(p => p.mapId !== sel.value).concat([
       { id: nieuw.id, mapId: sel.value, x, y },
     ]);
+    // Geen melding: de speld verspringt voor je ogen, dat is het bewijs al.
+    // In de bewerkmodus klik je vaak achter elkaar, en dan stapelen de toasts.
     _pinTeken();
-    window.app?._tsToast?.(`${icon('map-pin')} Speld geplaatst`);
   } catch (err) {
     alert('Speld plaatsen mislukt: ' + (err.message || err));
   }
@@ -1543,7 +1544,8 @@ window._koppelZet = async (body) => {
     if (uitleg && body.herberg !== undefined) {
       uitleg.textContent = k.herberg ? 'De herberg-dienst gebruikt dit kaartje.' : '';
     }
-    window.app?._tsToast?.(`${icon('check')} Koppeling bewaard`);
+    // Ook hier geen melding: de keuzelijst (en bij de herberg de regel eronder)
+    // laat de nieuwe stand zelf zien.
   } catch (err) {
     alert('Koppelen mislukt: ' + (err.message || err));
   }
@@ -6204,10 +6206,9 @@ window._openEditor = async (tab, editId) => {
   window._petBaasjeZet = async (petId, groepId, characterId) => {
     if (!petId || !groepId) return;
     try {
+      // De keuzelijst toont zelf wie het geworden is; een melding erbij is in
+      // de bewerkmodus alleen maar ruis.
       await api.setPetBaasje(petId, { [groepId]: characterId });
-      window.app?._tsToast?.(characterId
-        ? `${icon('check')} Eigenaar bijgewerkt`
-        : `${icon('check')} Losgekoppeld in deze party`);
     } catch (err) {
       alert('Koppelen mislukt: ' + (err.message || err));
     }
