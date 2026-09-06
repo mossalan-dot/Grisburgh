@@ -23081,17 +23081,23 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 /* In het detailvenster: één regel per rol. Iemand kan eigenaar zijn van drie
    panden, en dan is "Eigenaar" met drie namen op een hoop niet te lezen. */
 .detail-betrekking { margin: 0 0 14px; }
-.detail-betrekking-rijen { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
-.detail-betrekking-rij { display: flex; align-items: center; gap: 8px; }
+/* Een raster in plaats van een vaste kolombreedte: de rolkolom wordt zo breed
+   als de langste rol ("Beschermheer" liep buiten zijn 7,5em en raakte de chip),
+   en alle rijen blijven uitlijnen. */
+.detail-betrekking-rijen {
+  display: grid; grid-template-columns: max-content minmax(0, 1fr);
+  gap: 5px 10px; align-items: center; margin-top: 6px;
+}
 .detail-betrekking-rol {
   font-family: 'Cinzel', serif; font-size: 9.5px; font-weight: 700;
-  letter-spacing: .06em; color: #9a815c;
-  width: 7.5em; flex-shrink: 0; text-align: right;
+  letter-spacing: .06em; color: #9a815c; text-align: right;
 }
+.detail-betrekking-waarde { min-width: 0; }
 .betrokken-naam { font-family: 'Crimson Text', Georgia, serif; font-size: 0.9rem; color: #3a2410; }
 @media (max-width: 520px) {
-  .detail-betrekking-rij { align-items: flex-start; }
-  .detail-betrekking-rol { width: 5.5em; }
+  /* Smal scherm: rol boven de naam in plaats van ernaast. */
+  .detail-betrekking-rijen { grid-template-columns: 1fr; gap: 2px; }
+  .detail-betrekking-rol { text-align: left; margin-top: 5px; }
 }
 /* Sectie in de editor waarmee je vanaf een personage aangeeft waar hij bij
    hoort; dezelfde rijen als "Wie hoort hier bij?", andere doelsoorten. */
@@ -23104,9 +23110,14 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 /* ── Uitlegknop in een tabbalk ──────────────────────────────────────────────
    Eén per tabblad, helemaal rechts: hij hoort bij de pagina, niet bij één veld.
    `margin-left:auto` duwt hem los van de tabs. */
-.tab-hulp { margin-left: auto; display: inline-flex; align-items: center; padding-left: 8px; }
+.tab-hulp {
+  margin-left: auto; display: inline-flex; align-items: center; padding-left: 8px;
+  /* De tabs staan mét hun onderrand op de lijn; deze knop is een heel kadertje
+     en kwam daardoor op de lijn te hangen. Een paar pixels lucht eronder zet
+     hem er netjes bovenop. */
+  align-self: center; margin-bottom: 5px;
+}
 .tab-hulp:empty { display: none; }
-.ed-tabs, .detail-tab-nav { align-items: center; }
 
 .koppel-sectie { margin-top: 6px; }
 /* Kort oplichten wanneer je er vanuit de typemelding naartoe springt, anders

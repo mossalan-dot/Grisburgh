@@ -3252,10 +3252,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     <div class="detail-betrekking">
       <div class="detail-label">${icon('link')} ${esc(kop)}</div>
       <div class="detail-betrekking-rijen">
-        ${rijen.map(r => `<div class="detail-betrekking-rij">
-          <span class="detail-betrekking-rol">${esc(r.rol || '\u2014')}</span>
-          ${r.knop}
-        </div>`).join('')}
+        ${rijen.map(r => `<span class="detail-betrekking-rol">${esc(r.rol || '\u2014')}</span>
+          <span class="detail-betrekking-waarde">${r.knop}</span>`).join('')}
       </div>
     </div>`;
 
