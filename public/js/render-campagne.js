@@ -3483,7 +3483,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     if (_locNaam) _hoortBij.push({ id: _winkelLocId, name: _locNaam, type: 'locaties', rol: 'Verkoper', tab: 'voorraad' });
   }
   if (_hoortBij.length) {
-    infoHtml += _rolRegels('Wat hoort hier bij?', _hoortBij.map(r => ({
+    infoHtml += _rolRegels('Waar hoort dit bij?', _hoortBij.map(r => ({
       rol: r.rol,
       knop: r.factieId
         ? `<button type="button" class="link-chip link-chip--sm"
@@ -5525,7 +5525,7 @@ window._openEditor = async (tab, editId) => {
     if (tab === 'organisaties') body += `<!--P:organogram-->`;
     body += `
       <div class="hoortbij-sectie">
-        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Wat hoort hier bij?</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Waar hoort dit bij?</label>
         <div id="hoortbij-lijst">${_hbRijen.map((r, i) => _hoortRijHtml(r, i)).join('')}</div>
         <datalist id="hoortbij-dl" data-link-doel="locaties,organisaties"></datalist>
         <!-- Eigen rollijst: die van het betrokkenen-veld hangt aan dát veld, en

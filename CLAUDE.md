@@ -505,8 +505,11 @@ Wie bij een locatie of organisatie hoort staat in **één** lijst:
 opgeslagen als JSON-string. Alles eromheen is afgeleid:
 
 - **`Wie hoort hier bij?`** (locaties, organisaties) bewerkt die lijst direct.
-- **`Wat hoort hier bij?`** (personages, organisaties) is dezelfde verbinding
-  van de andere kant. Lezen gaat via `_betrokkenIndex()` in `routes/api.js`
+- **`Waar hoort dit bij?`** (personages, organisaties) is dezelfde verbinding
+  van de andere kant. De **rol beschrijft altijd de persoon**, aan beide zijden:
+  op de herberg staat `Eigenaar — Bram Kruik`, op Bram `Eigenaar — De Gouden
+  Gans`. Vandaar deze vraagstelling en niet "Wat hoort hier bij?" — dat kaderde
+  de rij als bezit, en dan zou er *Eigendom* moeten staan. Lezen gaat via `_betrokkenIndex()` in `routes/api.js`
   (omgekeerde index, gecachet op de mtime van `entities.json`) en komt mee als
   `_hoortBij`; schrijven gaat via `PUT /entities/:type/:id/hoortbij`, dat in de
   **doelkaartjes** schrijft. Bewust geen tweede lijst: twee lijsten die
