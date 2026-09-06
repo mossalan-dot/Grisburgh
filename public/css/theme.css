@@ -5166,8 +5166,13 @@ body.verhaal-open .kaart-fs-overlay { right: var(--verhaal-breedte); }
 }
 .dm-inst-aanwezig-label {
   display: inline-flex; align-items: center; gap: 5px;
-  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .4px;
-  text-transform: uppercase; color: #9a8354;
+  /* Zelfde kop als .dm-form-label hierboven: het zijn allebei labels bij een
+     invulrij, dus ze horen dezelfde maat, spatiëring en inkt te hebben.
+     text-transform blijft eraf — Cinzel heeft geen onderkast en zet kleine
+     letters vanzelf als kapitaaltjes; uppercase maakte er volle kapitalen van
+     en dus een grotere kop dan de muntvelden ernaast. */
+  font-family: 'Cinzel', serif; font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.02em; color: #7a5c10;
   width: 8.5em; flex-shrink: 0;
 }
 .dm-aanwezig-chip {
@@ -22362,9 +22367,9 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
 .dm-subgroep-label {
   font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
   letter-spacing: .1em; text-transform: uppercase; color: #9a815c;
-  margin: 14px 0 6px; padding-top: 10px; border-top: 1px solid #e8dcc0;
+  margin: 14px 0 6px;
 }
-.dm-subgroep-label:first-of-type { margin-top: 4px; padding-top: 0; border-top: 0; }
+.dm-subgroep-label:first-of-type { margin-top: 4px; }
 
 /* Wachtwoordveld op een campagnekaartje: over de volle breedte onder de naam. */
 .campagne-card-pw { grid-column: 1 / -1; margin-top: 6px; }

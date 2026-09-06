@@ -1,4 +1,4 @@
-import { api } from './api.js?v=270';
+import { api } from './api.js?v=271';
 import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);

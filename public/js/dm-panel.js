@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=270';
+import { api, huidigeCampagne } from './api.js?v=271';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=4';
 
@@ -455,7 +455,6 @@ export function initDmPanel() {
     aanwezigheidToggle:      (groepId, charId) => _aanwezigheidToggle(groepId, charId),
     naarTabletmodus:         () => _naarTabletmodus(),
     dmWachtwoordOpslaan:     () => _dmWachtwoordOpslaan(),
-    helpReset:               () => _helpReset(),
     partyLidErbij:           (gid, veld) => _partyLidErbij(gid, veld),
     partyLidWeg:             (id, naam, party) => _partyLidWeg(id, naam, party),
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
@@ -4911,7 +4910,7 @@ async function _renderBeursTab() {
     <div class="dm-feature-section">
       <div class="dm-section-label">Gedeelde beurs</div>
       <div class="dm-form-row">
-        <button class="dm-btn${_partyCurrency.enabled ? ' dm-btn-danger' : ' dm-btn-primary'}"
+        <button class="dm-btn dm-btn-sm dm-btn-ghost"
           id="hb-purse-toggle-btn" onclick="window._hbTogglePurse()"
           title="${_partyCurrency.enabled ? 'Iedereen gebruikt daarna weer zijn eigen beurs' : 'Alle spelers delen daarna één saldo'}">
           ${_partyCurrency.enabled ? `${icon('coins')} Gedeelde beurs uitzetten` : `${icon('users')} Gedeelde beurs aanzetten`}
@@ -9569,24 +9568,6 @@ async function _partyLidWeg(entityId, naam, party) {
   }
 }
 
-// Helpteksten terugzetten. Een DM mag de uitleg aanpassen, maar dan wil je ook
-// terug kunnen — zeker als een tekst per ongeluk leeggehaald is. Weggooien is
-// onomkeerbaar, dus eerst vragen (zie de afspraak in CLAUDE.md).
-async function _helpReset() {
-  let aantal = 0;
-  try { aantal = Object.keys(await api.getHelpContent() || {}).length; } catch { /* dan zonder aantal */ }
-  if (!aantal) { _showToast(`${icon('check')} Er staat niets aangepast — overal staat de standaardtekst al.`); return; }
-  if (!confirm(`${aantal} aangepaste uitleg${aantal === 1 ? '' : 'teksten'} weggooien?\n\nOveral komt de meegeleverde tekst terug. Dit kan niet ongedaan gemaakt worden.`)) return;
-  try {
-    const r = await api.resetHelpContent();
-    // De app houdt de overrides in het geheugen; die moeten mee terug.
-    if (window._herlaadHelpTeksten) await window._herlaadHelpTeksten();
-    _showToast(`${icon('check')} ${r.aantal || aantal} uitleg${(r.aantal || aantal) === 1 ? '' : 'teksten'} teruggezet.`);
-  } catch (err) {
-    alert('Terugzetten mislukt: ' + (err.message || err));
-  }
-}
-
 async function _dmWachtwoordStatus() {
   const el = document.getElementById('dm-pw-status');
   if (!el) return;
@@ -9830,11 +9811,11 @@ async function _renderInstellingen() {
           <span id="dm-pw-melding" class="bericht-status hidden"></span>
         </div>
       </div>
-      <div class="dm-subgroep-label">Wachtwoorden per party</div>
+      <div class="dm-subgroep-label">Wachtwoorden per groep</div>
       ${groups.map(g => `
       <div class="dm-form-row">
         <label class="dm-form-label" for="pw-${esc(g.id)}"
-          title="${g.hasPassword ? 'Er staat een wachtwoord. Typ een nieuw om het te wijzigen, of laat leeg om het te verwijderen.' : 'Nog geen wachtwoord voor deze party'}">${esc(g.name)}</label>
+          title="${g.hasPassword ? 'Er staat een wachtwoord. Typ een nieuw om het te wijzigen, of laat leeg om het te verwijderen.' : 'Nog geen wachtwoord voor deze groep'}">${esc(g.name)}</label>
         <input id="pw-${esc(g.id)}" class="dm-input" type="password" autocomplete="new-password"
           placeholder="${g.hasPassword ? 'Wachtwoord wijzigen…' : 'Wachtwoord instellen…'}"
           onchange="window._instGroepSetPw('${esc(g.id)}', this.value)">
@@ -9844,14 +9825,6 @@ async function _renderInstellingen() {
           <input type="checkbox" id="inst-in-overzicht" ${meta.inOverzicht === false ? '' : 'checked'}>
           <span>Toon deze campagne op de openingspagina</span>
         </label>
-      </div>
-      <div class="dm-subgroep-label">Helpteksten</div>
-      <div class="dm-form-row">
-        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.helpReset()"
-          title="Gooit de uitleg weg die in deze campagne is aangepast; overal komt de meegeleverde tekst terug">
-          ${icon('refresh-cw')} Terug naar de standaardteksten
-        </button>
-        <span class="dm-hint" style="margin:0 0 0 10px">Alleen de uitleg die je zelf hebt aangepast.</span>
       </div>
       ${!magBeheren ? '' : `
       <details class="dm-modules dm-beheer-campagnes">

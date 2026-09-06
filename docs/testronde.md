@@ -68,7 +68,6 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Huisdier-kaartje** (DM) — type *dier*: adoptie (te adopteren, prijs, wat voor dier) staat bij **Informatie**, de **tiers** op het tabblad Character Sheet; in het detailvenster staat het geschaalde statblok óók onder Character Sheet en niet bij Informatie. Adoptieprijs met een komma (12,34 = 12 goud, 3 zilver, 4 koper); *Type* zegt wat voor dier het is; controleer daarna of adopteren klopt bij de dienst die dieren aanbiedt
 - [ ] **Helpknop per tab** (ALL) — het vraagteken opent de uitleg met stappen en afbeeldingen; vorige/volgende werken
-- [ ] **Helpteksten terugzetten** (DM) — Instellingen → Beheer → *Terug naar de standaardteksten*: vraagt eerst en zegt hoeveel er teruggezet zijn; daarna staat overal weer de meegeleverde uitleg. Staat er niets aangepast, dan zegt hij dat
 - [ ] **Ontdekkingsmeter volgt de party** (DM) — wissel van party: de meter in de kop telt opnieuw voor díé party (een party die niets ontdekt heeft toont 0/…)
 - [ ] **Helpteksten bewerken** (DM) — de uitleg aanpassen en opslaan; herlaad en kijk of je tekst er nog staat (let op: dit hoort straks alleen voor de beheerder te zijn — zie `docs/todo.md`)
 - [ ] **Afbeeldingen in het detailvenster** (ALL) — extra afbeeldingen bladeren, lightbox openen, zoomen
@@ -115,7 +114,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Baasje van een huisdier** (DM) — kies bij een dier onder *Adoptie* een baasje: het dier staat daarna op het partytabblad van die speler, is zichtbaar, laadt mee in een gevecht en zijn tier volgt het level van dat personage
 - [ ] **Tiers als statblok** (DM) — *Tier toevoegen* geeft dezelfde velden als het statblok zelf, met daarboven het level vanaf wanneer hij geldt; twee tiers vanaf hetzelfde level kan niet (het tweede schuift op, met een melding)
-- [ ] **Instellingen leest als één scherm** (DM) — alle knoppen even groot, met icoon én woord, en dezelfde soort per bedoeling (goud = opslaan, omlijnd = de rest)
+- [ ] **Instellingen leest als één scherm** (DM) — alle knoppen even groot, met icoon én woord, en dezelfde soort per bedoeling (goud = opslaan, omlijnd = de rest — óók *Gedeelde beurs aan/uitzetten*); de koppen *Personages* en *Actief* bij een party zijn even groot als die boven de muntvelden; onder *Beheer* staan geen scheidingslijnen tussen de tussenkopjes en het kopje heet *Wachtwoorden per groep*
 
 - [ ] **Party samenstellen** (DM) — Instellingen → Party's: onder elke party staan de personages als chips; typ een naam in *Personage toevoegen* om er iemand bij te zetten (met waarschuwing als hij uit een andere party komt) en klik het kruisje om iemand eruit te halen. Op het kaartje zelf blijft het veld *Party* hetzelfde doen
 
