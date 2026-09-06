@@ -12247,7 +12247,9 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .card-map-btn {
   position: absolute;
   bottom: 6px;
-  left: 6px;
+  /* Linksonder staat de badgerij met het gebied; daar lag deze knop bovenop.
+     Rechtsonder is vrij (de schadepil is alleen voor voorwerpen). */
+  right: 6px;
   width: 26px;
   height: 26px;
   display: flex;
@@ -12257,6 +12259,9 @@ body.herberg-actief #app { position: relative; z-index: 1; }
   background: rgba(0,0,0,0.70);
   backdrop-filter: blur(4px);
   border: 1px solid rgba(196,168,122,0.35);
+  /* Zonder eigen kleur erfde het pictogram de donkere inkt van de kaart: een
+     zwart icoontje op een zwarte schijf, oftewel een vlekje. */
+  color: #f3e7d4;
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
@@ -12264,6 +12269,7 @@ body.herberg-actief #app { position: relative; z-index: 1; }
   transition: opacity 0.2s, background 0.15s, border-color 0.15s;
   z-index: 10;
 }
+.card-map-btn .icon { width: 14px; height: 14px; }
 .entity-card:hover .card-map-btn { opacity: 1; }
 .card-map-btn:hover { background: rgba(196,147,10,0.35); border-color: rgba(196,147,10,0.7); }
 
