@@ -1,4 +1,4 @@
-import { api } from './api.js?v=269';
+import { api } from './api.js?v=270';
 import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);
@@ -3758,66 +3758,155 @@ let _spreukLijst = null;      // spreukenbibliotheek voor de koppeling op een ka
 // _petTiers wordt in openEditor gevuld uit e.statblockTiers en bij submit weer uitgelezen.
 let _petTiers = [];
 
+// Een tier ís een statblok, dus hij gebruikt dezelfde velden en dezelfde
+// indeling als het blad zelf — eerder had de tier-editor een eigen, kleinere
+// set en zag hij er anders uit. Wat erbij komt is het level vanaf wanneer hij
+// geldt, en een label voor in het spel ("Guard Dog").
+const _PT_SIZES = ['Tiny','Small','Medium','Large','Huge','Gargantuan'];
+const _PT_TYPES = ['Aberration','Beast','Celestial','Construct','Dragon','Elemental','Fey','Fiend',
+                   'Giant','Humanoid','Monstrosity','Ooze','Plant','Undead'];
+
 function _petTierRowHtml(t, i) {
-  const sb = t.statblock || {};
+  const sb  = t.statblock || {};
   const num = v => (v === 0 || v) ? esc(v) : '';
-  return `<div class="pet-tier-row" data-idx="${i}">
-    <div class="pet-tier-row-head">
-      <span class="pet-tier-badge">Tier ${i + 1}</span>
-      <button type="button" class="pet-tier-del" onclick="window._petTierRemove(${i})" title="Verwijder tier">${icon('trash')}</button>
+  const inp = (cls, label, waarde, extra = '') => `
+    <div>
+      <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
+      <input class="${cls} w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none"
+        value="${esc(waarde ?? '')}"${extra}>
+    </div>`;
+  const sel = (cls, label, opties, waarde) => `
+    <div>
+      <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
+      <select class="${cls} w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+        <option value="">—</option>
+        ${opties.map(o => `<option value="${esc(o)}"${(waarde || '') === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}
+      </select>
+    </div>`;
+  const ta = (cls, label, waarde, rows = 3) => `
+    <div>
+      <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
+      <textarea class="${cls} w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none"
+        rows="${rows}">${esc(waarde || '')}</textarea>
+    </div>`;
+
+  return `<details class="pet-tier-row" data-idx="${i}"${t._open || i === 0 ? ' open' : ''}>
+    <summary class="pet-tier-row-head">
+      <span class="pet-tier-badge">${t.label ? esc(t.label) : `Tier ${i + 1}`}${t.minLevel ? ` · vanaf level ${esc(t.minLevel)}` : ''}</span>
+      <button type="button" class="pet-tier-del" onclick="event.preventDefault();window._petTierRemove(${i})" title="Verwijder tier">${icon('trash')}</button>
+    </summary>
+
+    <div class="grid grid-cols-2 gap-2">
+      ${inp('pt-minlevel', 'Vanaf level', num(t.minLevel), ' type="number" min="1" onchange="window._petTierLevelCheck(this)"')}
+      ${inp('pt-label', 'Label', t.label, ' placeholder="Guard Dog"')}
     </div>
-    <div class="pet-editor-row">
-      <label class="pet-fld pet-fld--sm"><span>Min. level</span><input type="number" min="1" class="pt-minlevel" value="${num(t.minLevel)}"></label>
-      <label class="pet-fld"><span>Label</span><input class="pt-label" value="${esc(t.label || '')}" placeholder="Guard Dog"></label>
-      <label class="pet-fld pet-fld--sm"><span>Max HP</span><input type="number" min="1" class="pt-maxhp" value="${num(t.maxHp)}"></label>
+    <div class="grid grid-cols-2 gap-2">
+      ${sel('pt-size', 'Size', _PT_SIZES, sb.size)}
+      ${sel('pt-type', 'Creature Type', _PT_TYPES, sb.type)}
     </div>
-    <div class="pet-editor-row">
-      <label class="pet-fld pet-fld--sm"><span>AC</span><input class="pt-ac" value="${esc(sb.ac || '')}"></label>
-      <label class="pet-fld pet-fld--sm"><span>HP (dice)</span><input class="pt-hp" value="${esc(sb.hp || '')}" placeholder="3d8+6"></label>
-      <label class="pet-fld"><span>Speed</span><input class="pt-speed" value="${esc(sb.speed || '')}" placeholder="40 ft."></label>
+    <div class="grid grid-cols-4 gap-2">
+      ${inp('pt-ac', 'AC', sb.ac)}
+      ${inp('pt-maxhp', 'HP', num(t.maxHp), ' type="number" min="1"')}
+      ${inp('pt-initiative', 'Initiative', sb.initiative)}
+      ${inp('pt-speed', 'Speed', sb.speed, ' placeholder="40 ft."')}
     </div>
-    <div class="pet-editor-row">
-      <label class="pet-fld"><span>Size</span><input class="pt-size" value="${esc(sb.size || '')}" placeholder="Medium"></label>
-      <label class="pet-fld"><span>Type</span><input class="pt-type" value="${esc(sb.type || '')}" placeholder="Beast"></label>
-      <label class="pet-fld pet-fld--sm"><span>CR</span><input class="pt-cr" value="${esc(sb.cr || '')}"></label>
+    <div class="grid grid-cols-3 gap-2">
+      ${inp('pt-cr', 'Challenge Rating', sb.cr)}
+      ${inp('pt-xp', 'XP', sb.xp)}
+      ${inp('pt-hp', 'Hit Dice', sb.hp, ' placeholder="3d8+6"')}
     </div>
-    <div class="pet-editor-row pet-abilities">
-      ${['str','dex','con','int','wis','cha'].map(a => `<label class="pet-fld pet-fld--xs"><span>${a.toUpperCase()}</span><input type="number" class="pt-${a}" value="${num(sb[a])}"></label>`).join('')}
+
+    <div class="cs-sectiekop">Ability Scores</div>
+    <div class="grid grid-cols-3 gap-2">
+      ${['str','dex','con','int','wis','cha'].map(a =>
+        inp('pt-' + a, a.toUpperCase(), num(sb[a]), ' type="number" inputmode="numeric"')).join('')}
     </div>
-    <div class="pet-editor-row">
-      <label class="pet-fld pet-fld--wide"><span>Skills</span><input class="pt-skills" value="${esc(sb.skills || '')}" placeholder="Perception +4"></label>
-      <label class="pet-fld pet-fld--wide"><span>Senses</span><input class="pt-senses" value="${esc(sb.senses || '')}" placeholder="Passive Perception 14"></label>
+
+    <div class="cs-sectiekop">Proficiencies &amp; Defenses</div>
+    <div class="space-y-2">
+      ${inp('pt-savingThrows', 'Saving Throws', sb.savingThrows)}
+      ${inp('pt-skills', 'Skills', sb.skills, ' placeholder="Perception +4"')}
+      ${inp('pt-gear', 'Gear', sb.gear)}
+      ${inp('pt-vulnerabilities', 'Damage Vulnerabilities', sb.vulnerabilities)}
+      ${inp('pt-resistances', 'Damage Resistances', sb.resistances)}
+      ${inp('pt-immunities', 'Damage Immunities', sb.immunities)}
+      ${inp('pt-conditionImmunities', 'Condition Immunities', sb.conditionImmunities)}
     </div>
-    <label class="pet-fld pet-fld--full"><span>Traits</span><textarea class="pt-traits" rows="2" placeholder="***Keen Hearing and Smell.*** …">${esc(sb.traits || '')}</textarea></label>
-    <label class="pet-fld pet-fld--full"><span>Actions</span><textarea class="pt-actions" rows="2" placeholder="***Bite.*** Melee Attack Roll: +5…">${esc(sb.actions || '')}</textarea></label>
-  </div>`;
+
+    <div class="cs-sectiekop">Senses &amp; Languages</div>
+    <div class="space-y-2">
+      ${inp('pt-senses', 'Senses', sb.senses, ' placeholder="Passive Perception 14"')}
+      ${inp('pt-languages', 'Languages', sb.languages)}
+    </div>
+
+    <div class="cs-sectiekop">Traits</div>
+    ${ta('pt-traits', '', sb.traits, 3)}
+
+    <div class="cs-sectiekop">Actions</div>
+    <div class="space-y-2">
+      ${ta('pt-actions', 'Actions', sb.actions, 3)}
+      ${ta('pt-bonusActions', 'Bonus Actions', sb.bonusActions, 2)}
+      ${ta('pt-reactions', 'Reactions', sb.reactions, 2)}
+    </div>
+  </details>`;
 }
 
 // Lees de tier-velden terug uit het DOM naar _petTiers (vóór add/remove en submit).
+const _PT_TEKSTVELDEN = ['size','type','ac','initiative','speed','cr','xp','hp','savingThrows','skills',
+  'gear','vulnerabilities','resistances','immunities','conditionImmunities','senses','languages',
+  'traits','actions','bonusActions','reactions'];
+
 function _petTiersCollect() {
   const out = [];
   document.querySelectorAll('#pet-tiers-list .pet-tier-row').forEach(row => {
     const g = cls => (row.querySelector('.' + cls)?.value ?? '');
     const n = cls => { const v = parseInt(g(cls)); return isNaN(v) ? undefined : v; };
     const sb = {};
-    [['size','pt-size'],['type','pt-type'],['ac','pt-ac'],['hp','pt-hp'],['speed','pt-speed'],['skills','pt-skills'],['senses','pt-senses'],['cr','pt-cr'],['traits','pt-traits'],['actions','pt-actions']]
-      .forEach(([k, c]) => { const v = g(c).trim(); if (v) sb[k] = v; });
+    _PT_TEKSTVELDEN.forEach(k => { const v = g('pt-' + k).trim(); if (v) sb[k] = v; });
     ['str','dex','con','int','wis','cha'].forEach(a => { const v = n('pt-' + a); if (v !== undefined) sb[a] = v; });
     if (!sb.alignment) sb.alignment = 'Unaligned';
-    out.push({ minLevel: n('pt-minlevel'), label: g('pt-label').trim(), maxHp: n('pt-maxhp'), statblock: sb });
+    out.push({
+      minLevel: n('pt-minlevel'), label: g('pt-label').trim(), maxHp: n('pt-maxhp'),
+      statblock: sb, _open: row.hasAttribute('open'),
+    });
   });
   _petTiers = out;
   return out;
 }
+
+// Twee tiers vanaf hetzelfde level kan niet: dan is niet te zeggen welke geldt.
+window._petTierLevelCheck = (veld) => {
+  const rij = veld.closest('.pet-tier-row');
+  const mijn = parseInt(veld.value);
+  if (isNaN(mijn)) return;
+  const bezet = [...document.querySelectorAll('#pet-tiers-list .pet-tier-row')]
+    .filter(r => r !== rij)
+    .map(r => parseInt(r.querySelector('.pt-minlevel')?.value))
+    .filter(v => !isNaN(v));
+  if (!bezet.includes(mijn)) return;
+  veld.classList.add('dm-input--err');
+  setTimeout(() => veld.classList.remove('dm-input--err'), 900);
+  const vrij = Math.max(0, ...bezet, mijn) + 1;
+  veld.value = vrij;
+  window.app?._tsToast?.(`${icon('x')} Er is al een tier vanaf level ${mijn}; deze staat nu op ${vrij}.`);
+};
 
 window._renderPetTiers = () => {
   const list = document.getElementById('pet-tiers-list');
   if (!list) return;
   list.innerHTML = _petTiers.length
     ? _petTiers.map((t, i) => _petTierRowHtml(t, i)).join('')
-    : `<p class="pet-tier-empty">Nog geen tiers — voeg er minstens één toe (Tier 1 = laagste level).</p>`;
+    : `<p class="pet-tier-empty">Nog geen tiers — voeg er minstens één toe (de eerste geldt vanaf level 1).</p>`;
 };
-window._petTierAdd = () => { _petTiersCollect(); _petTiers.push({ minLevel: _petTiers.length ? undefined : 1, label: '', maxHp: undefined, statblock: {} }); window._renderPetTiers(); };
+window._petTierAdd = () => {
+  _petTiersCollect();
+  // Een nieuw tier begint boven het hoogste dat er al is; twee keer hetzelfde
+  // level zou de vraag "welke geldt nu?" onbeantwoordbaar maken.
+  const hoogste = Math.max(0, ..._petTiers.map(t => parseInt(t.minLevel)).filter(v => !isNaN(v)));
+  _petTiers.forEach(t => { t._open = false; });
+  _petTiers.push({ minLevel: hoogste + 1, label: '', maxHp: undefined, statblock: {}, _open: true });
+  window._renderPetTiers();
+};
 window._petTierRemove = (idx) => { _petTiersCollect(); _petTiers.splice(idx, 1); window._renderPetTiers(); };
 
 // Scroll-spell-picker: vult bij keuze de scroll-statvelden + omschrijving (+ naam indien leeg).
@@ -4184,6 +4273,14 @@ window._openEditor = async (tab, editId) => {
               </div>
             </div>
             <p class="text-[10px] text-ink-dim mt-1">Verschijnt bij de dienst die dieren aanbiedt.</p>
+            <div class="mt-2">
+              <label class="text-[10px] font-cinzel text-ink-dim uppercase">Baasje</label>
+              <select id="pet-baasje" onchange="window._petBaasjeZet('${esc(editId || '')}', this.value)"
+                class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                <option value="">— nog niemand —</option>
+              </select>
+              <p class="text-[10px] text-ink-dim mt-0.5">Het dier loopt dan mee met de party van dit personage: het staat op het partytabblad, is te vullen in een gevecht, en het tier volgt zijn level. Adopteren via de dienst doet hetzelfde.</p>
+            </div>
           </div>
         `;
       }
@@ -4864,6 +4961,39 @@ window._openEditor = async (tab, editId) => {
 
     window._refreshVoorraad();
   }
+
+  // ── Baasje van een huisdier ──
+  // Vullen na het tekenen: de spelers komen uit de API en het huidige baasje uit
+  // de metgezellen van de party.
+  if (tab === 'personages' && isDM() && e?.subtype === 'dier' && editId) {
+    (async () => {
+      const sel = document.getElementById('pet-baasje');
+      if (!sel) return;
+      let spelers = [], huidige = '';
+      try {
+        const lijst = await api.listEntities('personages');
+        spelers = lijst.filter(p => p.subtype === 'speler');
+      } catch { /* dan een lege lijst */ }
+      try {
+        const st = await api.getPetBaasje(editId);
+        huidige = st?.baasje || '';
+      } catch { /* geen baasje */ }
+      sel.innerHTML = `<option value="">— nog niemand —</option>` +
+        spelers.map(p => `<option value="${esc(p.id)}"${p.id === huidige ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
+    })();
+  }
+
+  window._petBaasjeZet = async (petId, characterId) => {
+    if (!petId) return;
+    try {
+      const r = await api.setPetBaasje(petId, characterId);
+      window.app?._tsToast?.(r.baasje
+        ? `${icon('check')} Loopt nu mee met ${esc(r.baasje.naam)}`
+        : `${icon('check')} Losgekoppeld van zijn baasje`);
+    } catch (err) {
+      alert('Koppelen mislukt: ' + (err.message || err));
+    }
+  };
 
   // ── Verkoper wijst naar zijn winkel ──
   if (tab === 'personages' && isDM()) {

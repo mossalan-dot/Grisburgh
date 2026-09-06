@@ -307,6 +307,8 @@ export const api = {
   getCompanions:       ()                   => request('/companions'),
   getCompanionStatus:  (npcId)              => request(`/companions/status/${npcId}`),
   linkCompanion:       (npcId, groupId)     => request(`/companions/${npcId}/${groupId}`, { method: 'POST' }),
+  setPetBaasje:        (petId, characterId) => request(`/companions/${petId}/baasje`, { method: 'PUT', body: JSON.stringify({ characterId }) }),
+  getPetBaasje:        (petId)               => request(`/companions/${petId}/baasje`),
   unlinkCompanion:     (npcId, groupId)     => request(`/companions/${npcId}/${groupId}`, { method: 'DELETE' }),
 
   // Inspiratie

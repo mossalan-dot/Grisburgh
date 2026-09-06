@@ -3389,6 +3389,54 @@ router.get('/companions', attachRole, (req, res) => {
 });
 
 // Geeft terug aan welke groepen een NPC gekoppeld is (DM only)
+// Wie is het baasje van dit dier? De DM kan het rechtstreeks koppelen; via de
+// Magizoöloog gebeurt hetzelfde als een speler adopteert. Het baasje bepaalt op
+// welk tier het dier staat (zijn level) en zet het dier meteen in de party:
+// zichtbaar, op het partytabblad en te vullen in een gevecht.
+router.get('/companions/:petId/baasje', requireDM, (req, res) => {
+  const dmState = readDmState();
+  for (const [gid, g] of Object.entries(dmState.groups || {})) {
+    const baasje = g.companionOwners?.[req.params.petId];
+    if (baasje) return res.json({ baasje, groep: gid });
+  }
+  res.json({ baasje: null });
+});
+
+router.put('/companions/:petId/baasje', requireDM, (req, res) => {
+  const { petId } = req.params;
+  const characterId = String(req.body?.characterId || '').trim();
+  const entities = storage.readJSON('entities.json');
+  const pet = (entities.personages || []).find(e => e.id === petId);
+  if (!pet) return res.status(404).json({ error: 'Dier niet gevonden' });
+
+  const dmState = readDmState();
+  // Eerst overal loskoppelen: een dier hoort bij één party tegelijk.
+  for (const g of Object.values(dmState.groups || {})) {
+    if (Array.isArray(g.companions)) g.companions = g.companions.filter(id => id !== petId);
+    if (g.companionOwners) delete g.companionOwners[petId];
+  }
+
+  if (!characterId) {
+    storage.writeJSON('dm-state.json', dmState);
+    return res.json({ ok: true, baasje: null });
+  }
+
+  const gid = _playerGroupId(dmState, characterId);
+  if (!gid) return res.status(400).json({ error: 'Dit personage zit in geen enkele party' });
+  const g = getGroup(dmState, gid);
+  if (!g.companions) g.companions = [];
+  if (!g.companions.includes(petId)) g.companions.push(petId);
+  if (!g.companionOwners) g.companionOwners = {};
+  g.companionOwners[petId] = characterId;
+  if (!g.visibility) g.visibility = {};
+  if ((g.visibility[petId] || 'hidden') === 'hidden') g.visibility[petId] = 'visible';
+  storage.writeJSON('dm-state.json', dmState);
+
+  const naam = (entities.personages || []).find(e => e.id === characterId)?.name || '';
+  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('entity:updated', { type: 'personages', id: petId });
+  res.json({ ok: true, baasje: { id: characterId, naam }, groep: gid });
+});
+
 router.get('/companions/status/:npcId', requireDM, (req, res) => {
   const { npcId } = req.params;
   const dmState = readDmState();
