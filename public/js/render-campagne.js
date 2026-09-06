@@ -1178,13 +1178,13 @@ function _kaartTabHtml(locId, plek) {
 
 // Het Dungeon-tabblad: welke plattegrond hoort bij deze locatie, en welke kamer.
 function _dungeonTabHtml(kaart, kamer) {
-  // Een dungeonthumbnail leeft in thumbs/ (eigen route), de kaart zelf in
-  // files/. Lukt de thumb niet, dan valt hij terug op de kaart — anders staat
-  // er een gebroken plaatje ter grootte van een half venster.
-  const beeld = kaart.thumbId
-    ? `<img class="detail-dungeonbeeld" src="${esc(api.thumbUrl(kaart.thumbId))}" alt=""
-         onerror="this.onerror=null;this.src='${esc(kaart.fileId ? api.fileUrl(kaart.fileId) : '')}'">`
-    : (kaart.fileId ? `<img class="detail-dungeonbeeld" src="${esc(api.fileUrl(kaart.fileId))}" alt="">` : '');
+  // `fileId` is de plattegrond; `thumbId` is het sfeerbeeld dat de DM voor de
+  // kaartengalerij kiest — dat kan een tekening van de hal zijn en zegt niets
+  // over de indeling. Hier wil je de plattegrond, met het sfeerbeeld als
+  // vangnet voor een kaart zonder plaatje.
+  const bron = kaart.fileId ? api.fileUrl(kaart.fileId)
+             : kaart.thumbId ? api.thumbUrl(kaart.thumbId) : '';
+  const beeld = bron ? `<img class="detail-dungeonbeeld" src="${esc(bron)}" alt="">` : '';
   return `
     <div class="detail-kaartblok">
       <div class="detail-label">${icon('map')} ${esc(kaart.name || 'Dungeon')}</div>
