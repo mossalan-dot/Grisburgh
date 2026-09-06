@@ -23000,6 +23000,16 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .link-chip:hover { background: rgba(196,168,122,0.32); border-color: #c4a87a; }
 .link-chip .icon { width: 13px; height: 13px; }
 .link-chip--sm { font-size: 0.8rem; padding: 2px 8px; }
+/* De vraag bij een naam zonder kaartje. De knoppen staan ín de zin, dus de
+   tekst moet op dezelfde regel uitlijnen als de knoppen ernaast. */
+.link-vraag {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: 0.85rem; color: #7a6040; align-self: center;
+}
+.link-status:has(.link-vraag) { gap: 5px; align-items: center; }
+/* Het vraagteken sluit de zin af en hoort dus tegen de laatste knop aan, niet
+   op een gap-afstand alsof het een eigen woord is. */
+.link-vraag:last-child { margin-left: -4px; }
 
 /* Eén regel per betrokkene: naam, rol, weg. Op een smal scherm breekt de rol
    naar de volgende regel in plaats van het veld dicht te knijpen. */

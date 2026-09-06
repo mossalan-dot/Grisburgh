@@ -305,6 +305,8 @@ const SCHEMA = {
 
 const LINK_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'archief'];
 const LINK_LABELS = { personages: 'Personages', locaties: 'Locaties', organisaties: 'Organisaties', voorwerpen: 'Voorwerpen', archief: 'Documenten' };
+// Enkelvoud, voor zinnen als "aanmaken als Personage of Organisatie?"
+const LINK_ENKELVOUD = { personages: 'Personage', locaties: 'Locatie', organisaties: 'Organisatie', voorwerpen: 'Voorwerp', archief: 'Document' };
 
 // ── Auto-icons per subtype / type-field (lazy SVG, avoids module-init timing issue) ──
 let _autoIconsCache = null;
@@ -837,10 +839,16 @@ function _linkStatus(inp) {
       onclick="window._openDetail('${match.type}','${esc(match.id)}')">${getAutoIconSvg(match.type, {}) || ''}${esc(match.name)}</button>`;
     return;
   }
-  host.innerHTML = doel.map(t => `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+  // Twee knoppen náást elkaar lazen als twee losse handelingen; het is één
+  // vraag met twee antwoorden — een naam kan net zo goed een organisatie zijn
+  // als een personage. Niets kiezen mag ook: dan blijft het gewoon tekst, en
+  // dat is precies wat je wilt bij "Alfira en Ramella Bleekhamer".
+  host.innerHTML = `<span class="link-vraag">\u201c${esc(naam)}\u201d heeft nog geen kaartje. Aanmaken als</span>`
+    + doel.map(t => `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
       onclick="window._linkKaartjeMaken('${t}', '${esc(inp.id)}')"
       title="Maakt een leeg kaartje met deze naam; invullen kan later">
-      ${icon('plus')} Kaartje aanmaken bij ${LINK_LABELS[t] || t}</button>`).join(' ');
+      ${icon('plus')} ${LINK_ENKELVOUD[t] || t}</button>`).join('')
+    + `<span class="link-vraag">?</span>`;
 }
 
 window._linkVeldWijzig = (inp) => _linkStatus(inp);
