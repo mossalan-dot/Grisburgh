@@ -22829,15 +22829,17 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
    Dan valt de beeldstrook weg en is de kaart nog maar een paar regels hoog,
    terwijl de DM-knoppen als kolom onder elkaar staan — die liepen er zo
    onderuit. Zonder beeld staan ze naast elkaar in de bovenhoek. */
+/* 11px = de 7px hoge .card-accent plus vier pixels lucht; op 6px lag de bovenrand
+   van de knoppen nog net op de gekleurde balk. */
 .entity-card.no-img > .dm-only {
-  top: 6px;
+  top: 11px;
   right: 6px;
   flex-direction: row;
 }
 .entity-card.no-img > .dm-only button { width: 24px; height: 24px; }
-.entity-card.no-img .card-secret-badge { width: 24px; height: 24px; top: 6px; left: 6px; }
+.entity-card.no-img .card-secret-badge { width: 24px; height: 24px; top: 11px; left: 6px; }
 /* De titel begint anders onder de knoppenrij; iets meer lucht bovenin. */
-.entity-card.no-img .card-body { padding-top: 36px; }
+.entity-card.no-img .card-body { padding-top: 40px; }
 
 /* ── Keuzelijst in perkament ────────────────────────────────────────────────
    Vervangt de native <datalist>-popup, die de browser zelf tekent (donkergrijs,

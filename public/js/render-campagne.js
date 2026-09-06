@@ -4607,22 +4607,30 @@ window._openEditor = async (tab, editId) => {
     };
 
     const _hasStats = Object.values(s).some(v => v);
+    const _isDier   = e?.subtype === 'dier';
     // Bij een dier is dit blok de basis waar de tiers onderaan op verder bouwen;
     // zonder die regel las het als "een statblok dat toch niets doet".
     body += `
       <div class="cs-blok">
         <div>
-          ${e?.subtype === 'dier' ? '<p class="cs-basis-uitleg">Dit is het dier vanaf level 1. Onderaan dit blad laat je het meegroeien met het baasje.</p>' : ''}
+          ${_isDier ? '<p class="cs-basis-uitleg">Dit is het dier vanaf level 1. Onderaan dit blad laat je het meegroeien met het baasje.</p>' : ''}
+          <!-- Een dier heeft geen spreukenlijst, en met alleen Combat + Actions
+               is een tabbalk een zoekplaatje voor twee panelen. Hij krijgt
+               daarom dezelfde platte vorm als een tier: alles onder elkaar met
+               Actions onderaan. NPC's houden de tabs — die hebben wél spells. -->
+          ${_isDier ? '' : `
           <div class="cs-tabs-bar">
             <button type="button" class="cs-tab-btn cs-tab-active" onclick="window._csTab('gevecht')">Combat</button>
             <button type="button" class="cs-tab-btn" onclick="window._csTab('acties')">Actions</button>
             <button type="button" class="cs-tab-btn" onclick="window._csTab('spreuken')">Spells</button>
-          </div>
+          </div>`}
 
           <div id="cs-panel-gevecht" class="cs-sub-body space-y-2">
             ${_sbCombatHtml(_hBlad)}
+            ${_isDier ? `<div class="cs-sectiekop">Actions</div>${_sbActiesHtml(_hBlad)}` : ''}
           </div>
 
+          ${_isDier ? '' : `
           <div id="cs-panel-acties" class="cs-sub-body space-y-2" style="display:none">
             ${_sbActiesHtml(_hBlad)}
           </div>
@@ -4653,7 +4661,7 @@ window._openEditor = async (tab, editId) => {
               </div>
             </details>
             ${s.extra ? _ta('extra','Legacy', 2) : ''}
-          </div>
+          </div>`}
         </div>
       </div>
     `;
@@ -4661,7 +4669,7 @@ window._openEditor = async (tab, editId) => {
     // ── Huisdier: adoptie + tiers ──
     // Alleen zichtbaar bij type 'dier'. Zelfde koppen en velden als de rest van
     // het blad, want een tier ís een statblok dat met het baasje meeschaalt.
-    const isDier   = e?.subtype === 'dier';
+    const isDier   = _isDier;
     const _adopt   = e?.data?.adopteerbaar === true || e?.data?.adopteerbaar === 'true';
     const _prijsCl = (() => {
       const cl = parseInt(e?.data?.adoptiePrijsCl);
