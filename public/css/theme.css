@@ -23205,6 +23205,68 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   min-width: 3.4em; text-align: center;
 }
 .pin-zoom .veld-uitleg { margin: 0; }
+/* ── Organogram ─────────────────────────────────────────────────────────────
+   Een boom van geneste lijsten met verbindingslijnen van CSS-randen: geen
+   library, en hij past zich vanzelf aan de diepte aan. Breed schema? Dan
+   scrollt het doek horizontaal in plaats van de modal. */
+.org-blok { margin: 0 0 14px; }
+.org-doek { overflow-x: auto; padding: 10px 2px 4px; }
+.org-boom, .org-kinderen { display: flex; justify-content: center; list-style: none; margin: 0; padding: 0; }
+.org-boom { padding-top: 4px; }
+.org-knoop { position: relative; padding: 18px 8px 0; text-align: center; }
+/* Verticale streep omhoog vanaf elk kind. */
+.org-knoop::before {
+  content: ''; position: absolute; top: 0; left: 50%; width: 1px; height: 18px;
+  background: rgba(196,168,122,0.75);
+}
+.org-boom > .org-knoop::before { display: none; }
+/* Horizontale streep tussen de kinderen van dezelfde ouder; de buitenste
+   helften worden weggehaald zodat de lijn precies tussen hen loopt. */
+.org-kinderen > .org-knoop::after {
+  content: ''; position: absolute; top: 0; left: -1px; right: -1px; height: 1px;
+  background: rgba(196,168,122,0.75);
+}
+.org-kinderen > .org-knoop:first-child::after { left: 50%; }
+.org-kinderen > .org-knoop:last-child::after  { right: 50%; }
+.org-kinderen > .org-knoop:only-child::after  { display: none; }
+/* Streep omlaag vanaf een ouder met kinderen. */
+.org-knoop:has(> .org-kinderen) > .org-kaartje { margin-bottom: 18px; }
+.org-knoop:has(> .org-kinderen) > .org-kaartje::after {
+  content: ''; position: absolute; left: 50%; bottom: -18px; width: 1px; height: 18px;
+  background: rgba(196,168,122,0.75);
+}
+.org-kaartje {
+  position: relative; display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px 6px 6px; border-radius: 22px;
+  background: rgba(255,255,255,0.45); border: 1px solid rgba(196,168,122,0.6);
+  white-space: nowrap;
+}
+.org-portret { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.org-portret--leeg {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(196,168,122,0.25); color: #9a815c;
+}
+.org-portret--leeg .icon { width: 15px; height: 15px; }
+.org-tekst { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+.org-naam {
+  font-family: 'Crimson Text', Georgia, serif; font-size: 0.95rem; color: #2a1a08;
+  background: none; border: 0; padding: 0; cursor: pointer;
+}
+.org-naam:hover { color: #8a6000; text-decoration: underline; }
+.org-naam--los { cursor: default; }
+.org-rol {
+  font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700;
+  letter-spacing: .06em; color: #9a815c;
+}
+/* Een chef-veld erbij op de betrokkenen-rij van een organisatie. */
+.betrokken-rij--chef .betr-chef {
+  grid-column: 1 / -1; width: 100%; padding: 5px 9px; font-size: 0.85rem;
+  font-family: 'Crimson Text', Georgia, serif; font-style: italic;
+  background: var(--room-bg, #f2e8d2); color: #2a1a08;
+  border: 1px solid rgba(196,168,122,0.4); border-radius: 5px;
+}
+.betrokken-rij--chef .betr-chef:focus { outline: none; border-color: #c4a87a; font-style: normal; }
+
 /* Beeld van een dungeonkaart op het Dungeon-tabblad. Een plattegrond is vaak
    hoger dan breed; zonder maximum vulde hij het hele venster. */
 .detail-dungeonbeeld {

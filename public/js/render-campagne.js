@@ -194,6 +194,42 @@ const LOC_TYPE_MELDINGEN = {
   Tempel:  'Kan aan <b>een god uit de Tempel</b> gekoppeld worden — bij @Koppelingen, onderaan dit tabblad.',
 };
 
+// Zelfde aanpak als bij de locaties: groeperen in plaats van alleen verlengen,
+// en de opgeslagen waarden blijven wat ze zijn. Wat ontbrak bleek uit de data —
+// scholen, kloosters en adelhuizen stonden allemaal op 'Overig'.
+const ORG_TYPE_GROEPEN = [
+  { groep: 'Macht & bestuur', opties: [
+    { value: 'Politiek',  label: 'Politiek' },
+    { value: 'Adelhuis',  label: 'Adelhuis' },
+    { value: 'Militair',  label: 'Militair' },
+    { value: 'Wacht',     label: 'Wacht of garde' },
+    { value: 'Orde',      label: 'Orde' },
+  ]},
+  { groep: 'Handel & ambacht', opties: [
+    { value: 'Gilde',        label: 'Gilde' },
+    { value: 'Handelshuis',  label: 'Handelshuis' },
+    { value: 'Compagnie',    label: 'Compagnie' },
+  ]},
+  { groep: 'Geloof & kennis', opties: [
+    { value: 'Religieus',   label: 'Religieus' },
+    { value: 'Klooster',    label: 'Klooster' },
+    { value: 'Cultus',      label: 'Cultus' },
+    { value: 'Genootschap', label: 'Genootschap' },
+    { value: 'School',      label: 'School of academie' },
+  ]},
+  { groep: 'Onderwereld', opties: [
+    { value: 'Crimineel', label: 'Crimineel' },
+    { value: 'Bende',     label: 'Bende' },
+    { value: 'Huurlingen', label: 'Huurlingen' },
+  ]},
+  { groep: 'Overig', opties: [
+    { value: 'Factie',  label: 'Factie' },
+    { value: 'Volk',    label: 'Volk of stam' },
+    { value: 'Familie', label: 'Familie' },
+    { value: 'Overig',  label: 'Overig' },
+  ]},
+];
+
 const SCHEMA = {
   personages: {
     // Vier subtypes: wát voor kaartje is dit. Verkoper en antagonist zijn geen
@@ -245,14 +281,18 @@ const SCHEMA = {
   },
   organisaties: {
     fields: [
-      { key: 'orgType', label: 'Type', type: 'select', options: ['Gilde','Factie','Religieus','Politiek','Crimineel','Militair','Overig'] },
+      { key: 'orgType', label: 'Type', type: 'select', optionGroups: ORG_TYPE_GROEPEN },
       { key: 'motto', label: 'Motto', type: 'text' },
       // Zelfde koppelingen als bij een locatie: waar ze zitten en wie erbij hoort.
       { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
         hint: 'De stad, streek of het gebouw waar dit in zit' },
       { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
-      { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
+      // Waren één tekstvak; nu lijsten, zoals bij personages en locaties — de
+      // oude tekst blijft de eerste regel (_tekstLijstUit leest allebei).
+      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
+      { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
   },
   voorwerpen: {
@@ -360,13 +400,26 @@ function _getAutoIconMap(type) {
         'Overig':     icon('map-pin'),
       },
       organisaties: {
-        'Gilde':      icon('swords'),
-        'Factie':     icon('swords'),
-        'Religieus':  icon('sparkles'),
-        'Politiek':   icon('landmark'),
-        'Crimineel':  icon('stiletto', { cls: 'icon-gi' }),
-        'Militair':   icon('shield'),
-        'Overig':     icon('landmark'),
+        'Politiek':    icon('landmark'),
+        'Adelhuis':    icon('castle', { cls: 'icon-gi' }),
+        'Militair':    icon('shield'),
+        'Wacht':       icon('shield-half'),
+        'Orde':        icon('star'),
+        'Gilde':       icon('package'),
+        'Handelshuis': icon('coins'),
+        'Compagnie':   icon('building'),
+        'Religieus':   icon('church'),
+        'Klooster':    icon('church'),
+        'Cultus':      icon('sparkles'),
+        'Genootschap': icon('book-open'),
+        'School':      icon('book-open'),
+        'Crimineel':   icon('stiletto', { cls: 'icon-gi' }),
+        'Bende':       icon('skull'),
+        'Huurlingen':  icon('swords'),
+        'Factie':      icon('swords'),
+        'Volk':        icon('users'),
+        'Familie':     icon('house'),
+        'Overig':      icon('landmark'),
       },
       voorwerpen: {
         'Weapon':     icon('sword'),    'Wapen':      icon('sword'),
@@ -906,6 +959,7 @@ window._linkVeldWijzig = (inp) => _linkStatus(inp);
 // gevuld), dan proberen we personages en organisaties op volgorde.
 window._openKaartjeOpId = async (id) => {
   await window._entityIndexReady?.catch(() => {});
+
   const treffer = Object.values(window._entityNameIndex || {}).find(x => x.id === id);
   if (treffer) return window._openDetail(treffer.type, id);
   for (const t of ['personages', 'organisaties', 'locaties']) {
@@ -942,9 +996,12 @@ function _betrokkenenUit(data) {
   return rijen;
 }
 
-function _betrokkenRijHtml(r, i) {
+// `metChef`: bij een organisatie mag je per regel zeggen onder wie iemand valt.
+// Dat is de enige extra gegeven die een organogram nodig heeft — de rest (naam,
+// rol, portret) staat er al.
+function _betrokkenRijHtml(r, i, metChef = false) {
   const inId = `betr-naam-${i}`;
-  return `<div class="betrokken-rij">
+  return `<div class="betrokken-rij${metChef ? ' betrokken-rij--chef' : ''}">
     <span class="link-veld">
       <input id="${inId}" class="betr-naam" value="${esc(r.naam || '')}" list="betrokken-dl"
         data-link-veld="1" data-link-doel="personages,organisaties" data-link-id="betr-id-${i}"
@@ -956,6 +1013,8 @@ function _betrokkenRijHtml(r, i) {
     <input type="hidden" class="betr-id" id="betr-id-${i}" value="${esc(r.id || '')}">
     <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
       title="Regel verwijderen" onclick="window._betrokkenWeg(this)">${icon('trash')}</button>
+    ${metChef ? `<input class="betr-chef" value="${esc(r.chef || '')}" list="betrokken-dl"
+      placeholder="Valt onder\u2026" title="Naam van degene boven hem; leeg = bovenaan">` : ''}
     <div id="betr-st-${i}" class="link-status betrokken-status"></div>
   </div>`;
 }
@@ -1009,7 +1068,7 @@ window._betrokkenErbij = () => {
   const host = document.getElementById('betrokkenen-lijst');
   if (!host) return;
   const i = host.querySelectorAll('.betrokken-rij').length + Date.now() % 1000;
-  host.insertAdjacentHTML('beforeend', _betrokkenRijHtml({}, i));
+  host.insertAdjacentHTML('beforeend', _betrokkenRijHtml({}, i, host.dataset.chef === '1'));
   host.querySelector('.betrokken-rij:last-child .betr-naam')?.focus();
   _linkDatalistsVullen();
 };
@@ -1022,11 +1081,15 @@ window._betrokkenWeg = (btn) => {
 };
 
 function _betrokkenenLees() {
-  return [...document.querySelectorAll('#betrokkenen-lijst .betrokken-rij')].map(rij => ({
-    naam: rij.querySelector('.betr-naam')?.value.trim() || '',
-    rol:  rij.querySelector('.betr-rol')?.value.trim()  || '',
-    id:   rij.querySelector('.betr-id')?.value          || '',
-  })).filter(r => r.naam);
+  return [...document.querySelectorAll('#betrokkenen-lijst .betrokken-rij')].map(rij => {
+    const chef = rij.querySelector('.betr-chef')?.value.trim() || '';
+    return {
+      naam: rij.querySelector('.betr-naam')?.value.trim() || '',
+      rol:  rij.querySelector('.betr-rol')?.value.trim()  || '',
+      id:   rij.querySelector('.betr-id')?.value          || '',
+      ...(chef ? { chef } : {}),
+    };
+  }).filter(r => r.naam);
 }
 
 // ── Koppelingen: herberg, tempel-god, factie, dungeon, kaartspeld ───────────
@@ -1213,6 +1276,85 @@ function _kaartTabHtml(locId, plek, alleen = true) {
           ${icon('map')} Toon op de hele kaart
         </button>
       </div>
+    </div>`;
+}
+
+// ── Organogram ──────────────────────────────────────────────────────────────
+// Wie staat er boven wie. De boom komt uit `chef` op de betrokkenen-regels; is
+// die nergens ingevuld, dan maken we er een tweelaags schema van op **rol**:
+// wie leidt bovenaan, de rest eronder. Zo is er meteen iets te zien zonder dat
+// de DM eerst overal "valt onder" moet invullen.
+const _ORG_TOP_ROLLEN = ['leider', 'oprichter', 'eigenaar', 'baas', 'meester', 'hoofd', 'kapitein', 'grootmeester'];
+
+// Het portret van een kaartje hangt aan `data.imageId`, niet aan het id zelf;
+// met alleen een id kom je er dus niet. Eén keer ophalen en kort bewaren — het
+// organogram vraagt er tien tegelijk.
+let _beeldIndex = null;
+async function _beeldIndexLaden() {
+  if (_beeldIndex && Date.now() - _beeldIndex.tijd < 30000) return _beeldIndex.map;
+  const map = new Map();
+  await Promise.all(['personages', 'organisaties'].map(t =>
+    api.listEntities(t).then(lijst => (lijst || []).forEach(x => map.set(x.id, x.data?.imageId || x.id)))
+      .catch(() => {})));
+  _beeldIndex = { tijd: Date.now(), map };
+  return map;
+}
+
+function _orgBoom(rijen) {
+  // Namen zijn de sleutel: `chef` verwijst naar een naam, niet naar een id —
+  // dat leest ook nog als het kaartje erachter (nog) niet bestaat.
+  const opNaam = new Map();
+  rijen.forEach(r => opNaam.set((r.naam || '').toLowerCase(), r));
+  const kinderen = new Map();
+  const top = [];
+
+  if (!rijen.some(r => (r.chef || '').trim())) {
+    // Niemand heeft een chef ingevuld: dan leiden we een tweelaags schema af uit
+    // de rol. Beter iets dan een leeg tabblad, en het wijst de DM de weg.
+    const leiders = rijen.filter(r => _ORG_TOP_ROLLEN.includes((r.rol || '').toLowerCase()));
+    const rest    = rijen.filter(r => !leiders.includes(r));
+    if (!leiders.length) return { top: rijen, kinderen, plat: true };
+    kinderen.set(leiders[0], rest);
+    return { top: leiders, kinderen, plat: true };
+  }
+
+  for (const r of rijen) {
+    const chef  = (r.chef || '').trim().toLowerCase();
+    const ouder = (chef && chef !== (r.naam || '').toLowerCase()) ? opNaam.get(chef) : null;
+    if (ouder) kinderen.set(ouder, [...(kinderen.get(ouder) || []), r]);
+    else top.push(r);
+  }
+  // Een kring (A onder B, B onder A) laat niemand bovenaan over; dan valt er
+  // geen boom te tekenen en zetten we iedereen naast elkaar.
+  if (!top.length) return { top: rijen, kinderen: new Map(), plat: true };
+  return { top, kinderen, plat: false };
+}
+
+function _orgKnoopHtml(r, kinderen, gezien = new Set(), beeld = null) {
+  // Een kring elders in de boom mag geen oneindige recursie geven.
+  if (gezien.has(r)) return '';
+  gezien.add(r);
+  const kids = kinderen.get(r) || [];
+  const beeldId = r.id ? (beeld?.get(r.id) || r.id) : '';
+  const portret = beeldId
+    ? `<img class="org-portret" src="${esc(api.thumbUrl(beeldId))}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'org-portret org-portret--leeg'}))">`
+    : `<span class="org-portret org-portret--leeg">${icon('user')}</span>`;
+  const naam = r.id
+    ? `<button type="button" class="org-naam" onclick="window._openKaartjeOpId('${esc(r.id)}')">${esc(r.naam)}</button>`
+    : `<span class="org-naam org-naam--los">${esc(r.naam)}</span>`;
+  return `<li class="org-knoop">
+    <div class="org-kaartje">${portret}<div class="org-tekst">${naam}${r.rol ? `<span class="org-rol">${esc(r.rol)}</span>` : ''}</div></div>
+    ${kids.length ? `<ul class="org-kinderen">${kids.map(k => _orgKnoopHtml(k, kinderen, gezien, beeld)).join('')}</ul>` : ''}
+  </li>`;
+}
+
+function _organogramHtml(rijen, beeld) {
+  const { top, kinderen, plat } = _orgBoom(rijen);
+  return `
+    <div class="org-blok">
+      <div class="detail-label">${icon('users')} Organogram</div>
+      ${plat ? `<p class="veld-uitleg">Afgeleid uit de rollen. Vul bij <em>Wie hoort hier bij?</em> in wie onder wie valt voor een echte structuur.</p>` : ''}
+      <div class="org-doek"><ul class="org-boom">${top.map(r => _orgKnoopHtml(r, kinderen, new Set(), beeld)).join('')}</ul></div>
     </div>`;
 }
 
@@ -3027,6 +3169,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   let _bladProfiel = null, _bladHp = null;
   let shopLogData = null;
   let shopHumeurData = null;
+  // Is dit organisatiekaartje een factie? De lijst is voor een speler al
+  // gefilterd op wat zijn party kent, dus een nog verborgen factie komt er
+  // vanzelf niet in.
+  let _factie = null;
   const _isShopTab = (tab === 'locaties' || tab === 'personages');
   try {
     [e, playerNotesData, uitverkochtData, beschikbaarData, shopCurrencyData] = await Promise.all([
@@ -3059,6 +3205,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       api.getShopLog(id).catch(() => null),
       api.getShopHumeur(id).catch(() => null),
     ]);
+  }
+  if (tab === 'organisaties') {
+    const _fl = await api.getFacties().catch(() => null);
+    _factie = (_fl?.facties || _fl || []).find(f => f.entityId === e.id) || null;
   }
   // Zorg dat de wikilink-naamindex volledig geladen is voor we de beschrijving renderen
   await window._entityIndexReady?.catch(() => {});
@@ -3279,6 +3429,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // blok met een eigen vorm. Eén lijst leest beter, en de doorklik blijft naar
   // het voorraadtabblad gaan; dáár wil je heen als je op de verkoper klikt.
   const _winkelLocId = tab === 'personages' ? (e.data?.winkelLocatieId || '') : '';
+  // Een factie is geen kaartje maar een dienst; als betrekking hoort hij wel
+  // in dit rijtje thuis — en de knop brengt je naar dat paneel.
+  if (_factie) {
+    _hoortBij.unshift({ rol: 'Factie', factieId: _factie.id, name: _factie.naam || '' });
+  }
   if (_winkelLocId && !_hoortBij.some(r => r.id === _winkelLocId)) {
     const _locNaam = Object.entries(window._entityNameIndex || {})
       .find(([, v]) => v.id === _winkelLocId && v.type === 'locaties')?.[0];
@@ -3287,8 +3442,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (_hoortBij.length) {
     infoHtml += _rolRegels('Hoort bij', _hoortBij.map(r => ({
       rol: r.rol,
-      knop: `<button type="button" class="link-chip link-chip--sm"
-        onclick="window._openDetail('${esc(r.type)}','${esc(r.id)}'${r.tab ? `,false,'${esc(r.tab)}'` : ''})">${getAutoIconSvg(r.type, {}) || ''}${esc(r.name)}</button>`,
+      knop: r.factieId
+        ? `<button type="button" class="link-chip link-chip--sm"
+             onclick="window.app.closeModal();window.app.switchSection('facties');window._factieOpen('${esc(r.factieId)}')">${icon('swords')}${esc(r.name)}</button>`
+        : `<button type="button" class="link-chip link-chip--sm"
+             onclick="window._openDetail('${esc(r.type)}','${esc(r.id)}'${r.tab ? `,false,'${esc(r.tab)}'` : ''})">${getAutoIconSvg(r.type, {}) || ''}${esc(r.name)}</button>`,
     })));
   }
 
@@ -3767,6 +3925,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   }
 
 
+  // Een organogram valt alleen te tekenen als er iemand bij hoort.
+  const _orgRijen = tab === 'organisaties' ? _betrokkenenUit(e.data) : [];
+  const _orgBeeld = _orgRijen.length ? await _beeldIndexLaden().catch(() => null) : null;
+
   // ── Kaart en dungeon als eigen tabblad ──
   // Allebei nemen ze een half venster in beslag; onder Informatie duwden ze de
   // tekst weg. Vóór het bouwen ophalen, zodat er geen tabblad verschijnt dat
@@ -3794,6 +3956,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ...(heeftVoorraad ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
     ...(heeftVoorraad && isDM() ? [{ key: 'log', label: 'Log' }] : []),
     ...((_kaartPlek || _dungeonPlek) ? [{ key: 'kaart', label: 'Kaart' }] : []),
+    ...(_orgRijen.length ? [{ key: 'organogram', label: 'Organogram' }] : []),
   ];
 
   const tabNav = detailTabs.map((t, i) => `
@@ -3808,6 +3971,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ${isStapelbaarVoorwerp && isDM() ? `<div id="dtab-eigenaren" class="hidden">${eigenarenHtml}</div>` : ''}
     ${heeftVoorraad ? `<div id="dtab-voorraad" class="hidden">${voorraadHtml}</div>` : ''}
     ${heeftVoorraad && isDM() ? `<div id="dtab-log" class="hidden">${logHtml}</div>` : ''}
+    ${_orgRijen.length ? `<div id="dtab-organogram" class="hidden">${_organogramHtml(_orgRijen, _orgBeeld)}</div>` : ''}
     ${(_kaartPlek || _dungeonPlek) ? `<div id="dtab-kaart" class="hidden">
       ${_kaartPlek   ? _kaartTabHtml(e.id, _kaartPlek, !_dungeonPlek) : ''}
       ${_dungeonPlek ? _dungeonTabHtml(_dungeonPlek.kaart, _dungeonPlek.kamer) : ''}
@@ -5232,8 +5396,8 @@ window._openEditor = async (tab, editId) => {
       body += `
         <div>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
-          <div id="betrokkenen-lijst">
-            ${rijen.map((r, i) => _betrokkenRijHtml(r, i)).join('')}
+          <div id="betrokkenen-lijst"${tab === 'organisaties' ? ' data-chef="1"' : ''}>
+            ${rijen.map((r, i) => _betrokkenRijHtml(r, i, tab === 'organisaties')).join('')}
           </div>
           <datalist id="betrokken-dl" data-link-doel="personages,organisaties"></datalist>
           <datalist id="betrokken-rol-dl">

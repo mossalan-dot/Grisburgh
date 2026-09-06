@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=274';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=217";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=218";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -11926,7 +11926,11 @@ const HELP_CONFIG = {
     { titel: 'Statblock', tekst: 'De gevechtsgegevens: **AC** (hoe moeilijk hij te raken is), **HP**, speed, de zes ability scores met hun modifier, en zijn traits en actions. Bij een huisdier hoort het blok dat past bij het level van zijn baasje — hij groeit met je mee.', afbeelding: null },
   ] }),
   hulp_kijk_organisaties_info: () => ({ titel: 'Deze organisatie', stappen: [
-    { titel: 'Wat je ziet', tekst: 'Het type en het motto staan onder de naam; de beschrijving vertelt waar ze voor staan. Onder **Wie hoort hier bij** staan de leden die je kent, met hun rol of rang.', afbeelding: null },
+    { titel: 'Wat je ziet', tekst: 'Het type en het motto staan onder de naam; de beschrijving vertelt waar ze voor staan. Onder **Hoort bij** staan de leden die je kent, met hun rol of rang — en of ze een **factie** zijn waar je zelf aanzien bij kunt opbouwen.', afbeelding: null },
+    { titel: 'Roddels en geheimen', tekst: 'Wat er over ze verteld wordt staat bij de **roddel**; bij meerdere blader je met de pijltjes. Een **geheim** verschijnt pas als je het ontdekt hebt — bij een gilde of een bende is dat vaak het interessantste dat er over te weten valt.', afbeelding: null },
+  ] }),
+  hulp_kijk_organisaties_organogram: () => ({ titel: 'Organogram', stappen: [
+    { titel: 'Wie staat boven wie', tekst: 'De structuur zoals je die kent: bovenaan wie leidt, daaronder wie aan hem rapporteert. Je ziet alleen de mensen die je al hebt ontmoet — de rest van de organisatie kan groter zijn dan dit. Klik een naam om zijn kaartje te openen.', afbeelding: null },
   ] }),
   hulp_kijk_voorwerpen_info: () => ({ titel: 'Dit voorwerp', stappen: [
     { titel: 'Wat je ziet', tekst: 'De kleur van de rand is de **rarity**: grijs (Common) tot goud (Legendary). Staat er *Requires Attunement*, dan moet je je er tijdens een rust aan binden voordat het werkt. Een schadewaarde is een knop: klik erop om de dobbelsteen te gooien.', afbeelding: null },
@@ -11974,6 +11978,11 @@ const HELP_CONFIG = {
     { titel: 'Afdrukken', tekst: 'Bij een spelerspersonage heet dit blad *Character Sheet* en kun je het afdrukken of als pdf bewaren; bij een NPC, dier of god drukt hij alleen het statblok af.', afbeelding: null },
   ] }),
 
+  hulp_bewerk_organisaties_organogram: () => ({ titel: 'Organogram', stappen: [
+    { titel: 'Waar het vandaan komt', tekst: 'Het schema tekent zichzelf uit **Wie hoort hier bij?** — één regel per persoon of organisatie, met een rol. Vul je bij een regel *Valt onder* een naam uit diezelfde lijst in, dan komt hij daaronder te hangen.', afbeelding: null },
+    { titel: 'Zonder invullen', tekst: 'Heb je nergens *Valt onder* ingevuld, dan maakt hij er een tweelaags schema van op rol: wie leidt (Leider, Oprichter, Eigenaar, Hoofd, Kapitein…) staat boven, de rest eronder. Dat is een vertrekpunt, geen echte structuur — vul de chefs in en het klopt.', afbeelding: null },
+    { titel: 'Wat spelers zien', tekst: 'Alleen de leden waarvan hun party het kaartje al kent; namen zonder kaartje staan er gewoon als tekst. Een gekoppelde naam is klikbaar naar dat kaartje.', afbeelding: null },
+  ] }),
   hulp_bewerk_organisaties_info: () => ({ titel: 'Een organisatie', stappen: [
     { titel: 'Type en motto', tekst: 'Gilden, ordes, facties en bendes. Het **type** en het **motto** komen op het kaartje te staan; de beschrijving vertelt waar ze voor staan.', afbeelding: null },
     { titel: 'Gebied en leden', tekst: 'Bij **Gebied** koppel je waar ze zitten. Bij **Wie hoort hier bij?** zet je de leider en de leden neer, met per regel hun rang of rol — personages én andere organisaties. Die regels verschijnen ook op hun eigen kaartjes.', afbeelding: null },
