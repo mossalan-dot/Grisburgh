@@ -533,10 +533,115 @@ function _abilityMod(waarde) {
   const mod = Math.floor((n - 10) / 2);
   return mod >= 0 ? `+${mod}` : String(mod);
 }
-window._csModUpdate = (k, waarde) => {
-  const el = document.getElementById(`cs-mod-${k}`);
+window._sbModUpdate = (spanId, waarde) => {
+  const el = document.getElementById(spanId);
   if (el) el.textContent = _abilityMod(waarde);
 };
+
+// ── Statblokvelden: één bron voor het blad én voor elk tier ──────────────────
+// Beide vroegen om dezelfde velden maar stonden in twee stukken HTML, en dus
+// liepen ze uit elkaar: op een tier stond Hit Dice waar het blad Prof. Bonus
+// heeft, de ability-modifiers werden niet uitgerekend en de Actions misten hun
+// opmaakbalk. De volgorde en de labels staan nu hier; `h` levert alleen de
+// bouwstenen — het blad schrijft `name="stat_…"`, een tier `class="pt-…"`.
+const _SB_SIZES = ['Tiny','Small','Medium','Large','Huge','Gargantuan'];
+const _SB_TYPES = ['Aberration','Beast','Celestial','Construct','Dragon','Elemental','Fey','Fiend',
+                   'Giant','Humanoid','Monstrosity','Ooze','Plant','Undead'];
+// De sleutels die een statblok kent, in de volgorde waarin ze hieronder staan.
+// `_petTiersCollect` leest hiermee een tier terug uit het DOM.
+const _SB_TEKSTVELDEN = ['size','creatureType','ac','hp','initiative','speed','cr','xp','profBonus',
+  'savingThrows','skills','gear','vulnerabilities','resistances','immunities','conditionImmunities',
+  'senses','languages','traits','actions','bonusActions','reactions','legendaryActions','lairActions'];
+const _SB_ABILITIES = ['str','dex','con','int','wis','cha'];
+
+function _sbCombatHtml(h) {
+  return `
+    <div class="grid grid-cols-2 gap-2">
+      ${h.sel('size', 'Size', _SB_SIZES)}
+      ${h.sel('creatureType', 'Creature Type', _SB_TYPES)}
+    </div>
+    <div class="grid grid-cols-4 gap-2">
+      ${h.inp('ac', 'AC', { center: true })}
+      ${h.inp('hp', 'HP', { center: true, ph: '32 (5d8+10)' })}
+      ${h.inp('initiative', 'Initiative', { center: true })}
+      ${h.inp('speed', 'Speed', { center: true, ph: '40 ft.' })}
+    </div>
+    <div class="grid grid-cols-3 gap-2">
+      ${h.inp('cr', 'Challenge Rating', { center: true })}
+      ${h.inp('xp', 'XP', { center: true })}
+      ${h.inp('profBonus', 'Prof. Bonus', { center: true })}
+    </div>
+    <div class="cs-sectiekop">Ability Scores</div>
+    <div class="grid grid-cols-3 gap-2">
+      ${_SB_ABILITIES.map(k => h.abil(k)).join('')}
+    </div>
+    <div class="cs-sectiekop">Proficiencies &amp; Defenses</div>
+    <div class="space-y-2">
+      ${h.inp('savingThrows', 'Saving Throws')}
+      ${h.inp('skills', 'Skills', { ph: 'Perception +4' })}
+      ${h.ta('gear', 'Gear', 2)}
+      ${h.inp('vulnerabilities', 'Damage Vulnerabilities')}
+      ${h.inp('resistances', 'Damage Resistances')}
+      ${h.inp('immunities', 'Damage Immunities')}
+      ${h.inp('conditionImmunities', 'Condition Immunities')}
+    </div>
+    <div class="cs-sectiekop">Senses &amp; Languages</div>
+    <div class="space-y-2">
+      ${h.inp('senses', 'Senses', { ph: 'Passive Perception 14' })}
+      ${h.inp('languages', 'Languages')}
+    </div>
+    <!-- Traits horen bij het statblok en niet bij Actions: het zijn passieve
+         eigenschappen, geen dingen die je op je beurt doet. -->
+    <div class="cs-sectiekop">Traits</div>
+    ${h.ta('traits', '', 3)}`;
+}
+
+function _sbActiesHtml(h) {
+  return `
+    ${h.ta('actions', 'Actions', 4)}
+    ${h.ta('bonusActions', 'Bonus Actions', 2)}
+    ${h.ta('reactions', 'Reactions', 2)}
+    ${h.ta('legendaryActions', 'Legendary/Mythic Actions', 3)}
+    ${h.ta('lairActions', 'Lair Actions', 2)}`;
+}
+
+// Bouwstenen voor één tier: dezelfde velden, maar herkenbaar aan een class in
+// plaats van een name (een tier zit niet in het <form> van het kaartje).
+function _sbTierBouwstenen(sb, i) {
+  const veldCls = 'w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none';
+  const kop = (label) => label ? `<label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>` : '';
+  return {
+    inp: (k, label, o = {}) => `
+      <div>${kop(label)}
+        <input class="pt-${k} ${veldCls}${o.center ? ' text-center' : ''}" value="${esc(sb[k] ?? '')}"${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}>
+      </div>`,
+    sel: (k, label, opties) => `
+      <div>${kop(label)}
+        <select class="pt-${k} ${veldCls}">
+          <option value="">—</option>
+          ${opties.map(o => `<option value="${esc(o)}"${(sb[k] || '') === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}
+        </select>
+      </div>`,
+    ta: (k, label, rows) => {
+      const id = `pt${i}-ta-${k}`;
+      return `<div>${kop(label)}
+        <div class="mt-0.5">
+          ${fmtToolbar(id)}
+          <textarea id="${id}" class="pt-${k} ${veldCls}" rows="${rows}" onkeydown="window._fmtKey(event)">${esc(sb[k] || '')}</textarea>
+        </div>
+      </div>`;
+    },
+    abil: (k) => {
+      const modId = `pt${i}-mod-${k}`;
+      return `<div>
+        <label class="text-[10px] font-cinzel text-ink-dim uppercase">${k.toUpperCase()}
+          <span class="cs-mod" id="${modId}">${_abilityMod(sb[k])}</span></label>
+        <input class="pt-${k} ${veldCls} text-center" value="${esc(sb[k] ?? '')}" inputmode="numeric"
+          oninput="window._sbModUpdate('${modId}', this.value)">
+      </div>`;
+    },
+  };
+}
 
 // Geheimen en flavour zijn lijsten geworden. Wat er al stond (één tekstveld)
 // blijft de eerste regel; zo raakt niemand iets kwijt.
@@ -3762,35 +3867,14 @@ let _petTiers = [];
 // indeling als het blad zelf — eerder had de tier-editor een eigen, kleinere
 // set en zag hij er anders uit. Wat erbij komt is het level vanaf wanneer hij
 // geldt, en een label voor in het spel ("Guard Dog").
-const _PT_SIZES = ['Tiny','Small','Medium','Large','Huge','Gargantuan'];
-const _PT_TYPES = ['Aberration','Beast','Celestial','Construct','Dragon','Elemental','Fey','Fiend',
-                   'Giant','Humanoid','Monstrosity','Ooze','Plant','Undead'];
-
 function _petTierRowHtml(t, i) {
-  const sb  = t.statblock || {};
-  const num = v => (v === 0 || v) ? esc(v) : '';
-  const inp = (cls, label, waarde, extra = '') => `
-    <div>
-      <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
-      <input class="${cls} w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none"
-        value="${esc(waarde ?? '')}"${extra}>
-    </div>`;
-  const sel = (cls, label, opties, waarde) => `
-    <div>
-      <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
-      <select class="${cls} w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-        <option value="">—</option>
-        ${opties.map(o => `<option value="${esc(o)}"${(waarde || '') === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}
-      </select>
-    </div>`;
-  const ta = (cls, label, waarde, rows = 3) => `
-    <div>
-      <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
-      <textarea class="${cls} w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none"
-        rows="${rows}">${esc(waarde || '')}</textarea>
-    </div>`;
+  const sb = t.statblock || {};
+  const h  = _sbTierBouwstenen(sb, i);
+  const veldCls = 'w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none';
 
-  return `<details class="pet-tier-row" data-idx="${i}"${t._open || i === 0 ? ' open' : ''}>
+  // Alleen open wat de DM zelf openzette (of net toevoegde). Eerder stond het
+  // eerste tier altijd open; dichtklappen hield dan geen stand.
+  return `<details class="pet-tier-row" data-idx="${i}"${t._open ? ' open' : ''}>
     <summary class="pet-tier-row-head">
       <span class="pet-tier-badge">${t.label ? esc(t.label) : `Tier ${i + 1}`}${t.minLevel ? ` · vanaf level ${esc(t.minLevel)}` : ''}</span>
       <button type="button" class="pet-tier-del" onclick="event.preventDefault();window._petTierRemove(${i})" title="Verwijder tier">${icon('trash')}</button>
@@ -3798,76 +3882,41 @@ function _petTierRowHtml(t, i) {
 
     <p class="pet-tier-hint">Vul alleen in wat er verandert; wat je leeg laat blijft zoals in het statblok hierboven.</p>
     <div class="grid grid-cols-2 gap-2">
-      ${inp('pt-minlevel', 'Vanaf level', num(t.minLevel), ' type="number" min="2" onchange="window._petTierLevelCheck(this)"')}
-      ${inp('pt-label', 'Label', t.label, ' placeholder="Guard Dog"')}
-    </div>
-    <div class="grid grid-cols-2 gap-2">
-      ${sel('pt-size', 'Size', _PT_SIZES, sb.size)}
-      ${sel('pt-creatureType', 'Creature Type', _PT_TYPES, sb.creatureType)}
-    </div>
-    <div class="grid grid-cols-4 gap-2">
-      ${inp('pt-ac', 'AC', sb.ac)}
-      ${inp('pt-maxhp', 'HP', num(t.maxHp), ' type="number" min="1"')}
-      ${inp('pt-initiative', 'Initiative', sb.initiative)}
-      ${inp('pt-speed', 'Speed', sb.speed, ' placeholder="40 ft."')}
-    </div>
-    <div class="grid grid-cols-3 gap-2">
-      ${inp('pt-cr', 'Challenge Rating', sb.cr)}
-      ${inp('pt-xp', 'XP', sb.xp)}
-      ${inp('pt-hp', 'Hit Dice', sb.hp, ' placeholder="3d8+6"')}
+      <div>
+        <label class="text-[10px] font-cinzel text-ink-dim uppercase">Vanaf level</label>
+        <input class="pt-minlevel ${veldCls}" type="number" min="2" value="${(t.minLevel === 0 || t.minLevel) ? esc(t.minLevel) : ''}"
+          onchange="window._petTierLevelCheck(this)">
+      </div>
+      <div>
+        <label class="text-[10px] font-cinzel text-ink-dim uppercase">Label</label>
+        <input class="pt-label ${veldCls}" value="${esc(t.label ?? '')}" placeholder="Guard Dog">
+      </div>
     </div>
 
-    <div class="cs-sectiekop">Ability Scores</div>
-    <div class="grid grid-cols-3 gap-2">
-      ${['str','dex','con','int','wis','cha'].map(a =>
-        inp('pt-' + a, a.toUpperCase(), num(sb[a]), ' type="number" inputmode="numeric"')).join('')}
-    </div>
-
-    <div class="cs-sectiekop">Proficiencies &amp; Defenses</div>
-    <div class="space-y-2">
-      ${inp('pt-savingThrows', 'Saving Throws', sb.savingThrows)}
-      ${inp('pt-skills', 'Skills', sb.skills, ' placeholder="Perception +4"')}
-      ${inp('pt-gear', 'Gear', sb.gear)}
-      ${inp('pt-vulnerabilities', 'Damage Vulnerabilities', sb.vulnerabilities)}
-      ${inp('pt-resistances', 'Damage Resistances', sb.resistances)}
-      ${inp('pt-immunities', 'Damage Immunities', sb.immunities)}
-      ${inp('pt-conditionImmunities', 'Condition Immunities', sb.conditionImmunities)}
-    </div>
-
-    <div class="cs-sectiekop">Senses &amp; Languages</div>
-    <div class="space-y-2">
-      ${inp('pt-senses', 'Senses', sb.senses, ' placeholder="Passive Perception 14"')}
-      ${inp('pt-languages', 'Languages', sb.languages)}
-    </div>
-
-    <div class="cs-sectiekop">Traits</div>
-    ${ta('pt-traits', '', sb.traits, 3)}
+    ${_sbCombatHtml(h)}
 
     <div class="cs-sectiekop">Actions</div>
-    <div class="space-y-2">
-      ${ta('pt-actions', 'Actions', sb.actions, 3)}
-      ${ta('pt-bonusActions', 'Bonus Actions', sb.bonusActions, 2)}
-      ${ta('pt-reactions', 'Reactions', sb.reactions, 2)}
-    </div>
+    ${_sbActiesHtml(h)}
   </details>`;
 }
 
 // Lees de tier-velden terug uit het DOM naar _petTiers (vóór add/remove en submit).
-const _PT_TEKSTVELDEN = ['size','creatureType','ac','initiative','speed','cr','xp','hp','savingThrows','skills',
-  'gear','vulnerabilities','resistances','immunities','conditionImmunities','senses','languages',
-  'traits','actions','bonusActions','reactions'];
-
+// De sleutels komen uit _SB_TEKSTVELDEN, dezelfde lijst waar het formulier op
+// gebouwd is: een veld erbij hoeft dus maar op één plek.
 function _petTiersCollect() {
   const out = [];
   document.querySelectorAll('#pet-tiers-list .pet-tier-row').forEach(row => {
     const g = cls => (row.querySelector('.' + cls)?.value ?? '');
     const n = cls => { const v = parseInt(g(cls)); return isNaN(v) ? undefined : v; };
     const sb = {};
-    _PT_TEKSTVELDEN.forEach(k => { const v = g('pt-' + k).trim(); if (v) sb[k] = v; });
-    ['str','dex','con','int','wis','cha'].forEach(a => { const v = n('pt-' + a); if (v !== undefined) sb[a] = v; });
+    _SB_TEKSTVELDEN.forEach(k => { const v = g('pt-' + k).trim(); if (v) sb[k] = v; });
+    _SB_ABILITIES.forEach(a => { const v = n('pt-' + a); if (v !== undefined) sb[a] = v; });
     if (!sb.alignment) sb.alignment = 'Unaligned';
+    // Geen apart maxHp-veld meer: de HP staat als tekst in het statblok
+    // ("32 (5d8+10)"), net als op het blad, en de server leest daar het getal
+    // uit. Zo is er één plek waar de HP van een tier staat.
     out.push({
-      minLevel: n('pt-minlevel'), label: g('pt-label').trim(), maxHp: n('pt-maxhp'),
+      minLevel: n('pt-minlevel'), label: g('pt-label').trim(),
       statblock: sb, _open: row.hasAttribute('open'),
     });
   });
@@ -3912,7 +3961,7 @@ window._petTierAdd = () => {
   // level zou de vraag "welke geldt nu?" onbeantwoordbaar maken.
   const hoogste = Math.max(1, ..._petTiers.map(t => parseInt(t.minLevel)).filter(v => !isNaN(v)));
   _petTiers.forEach(t => { t._open = false; });
-  _petTiers.push({ minLevel: hoogste + 1, label: '', maxHp: undefined, statblock: {}, _open: true });
+  _petTiers.push({ minLevel: hoogste + 1, label: '', statblock: {}, _open: true });
   window._renderPetTiers();
 };
 window._petTierRemove = (idx) => { _petTiersCollect(); _petTiers.splice(idx, 1); window._renderPetTiers(); };
@@ -4512,19 +4561,19 @@ window._openEditor = async (tab, editId) => {
   body += `<!--P:sheet-->`;
   if (tab === 'personages') {
     const s = e?.stats || {};
-    const _si = (k, label, center = false) => `
+    const _veldCls = 'w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none';
+    const _si = (k, label, o = {}) => `
       <div>
         <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
-        <input name="stat_${k}" value="${esc(s[k] || '')}"
-          class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none${center ? ' text-center' : ''}">
+        <input name="stat_${k}" value="${esc(s[k] || '')}"${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}
+          class="${_veldCls}${o.center ? ' text-center' : ''}">
       </div>`;
     // Vaste lijstjes (Size, Creature Type) horen in een dropdown: er zijn maar
     // een handvol geldige waarden en typefouten maken filteren onmogelijk.
     const _sel = (k, label, opties) => `
       <div>
         <label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>
-        <select name="stat_${k}"
-          class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+        <select name="stat_${k}" class="${_veldCls}">
           <option value="">\u2014</option>
           ${opties.map(o => `<option value="${esc(o)}"${(s[k] || '') === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}
         </select>
@@ -4541,6 +4590,22 @@ window._openEditor = async (tab, editId) => {
         </div>
       </div>`;
     };
+    // Dezelfde bouwstenen als een tier, maar met name="stat_…" zodat het
+    // formulier van het kaartje ze meestuurt.
+    const _hBlad = {
+      inp: _si,
+      sel: _sel,
+      ta:  (k, label, rows) => _ta(k, label, rows),
+      abil: (k) => `
+        <div>
+          <label class="text-[10px] font-cinzel text-ink-dim uppercase">${k.toUpperCase()}
+            <span class="cs-mod" id="cs-mod-${k}">${_abilityMod(s[k])}</span></label>
+          <input name="stat_${k}" value="${esc(s[k] || '')}" inputmode="numeric"
+            oninput="window._sbModUpdate('cs-mod-${k}', this.value)"
+            class="${_veldCls} text-center">
+        </div>`,
+    };
+
     const _hasStats = Object.values(s).some(v => v);
     // Bij een dier is dit blok de basis waar de tiers onderaan op verder bouwen;
     // zonder die regel las het als "een statblok dat toch niets doet".
@@ -4555,59 +4620,16 @@ window._openEditor = async (tab, editId) => {
           </div>
 
           <div id="cs-panel-gevecht" class="cs-sub-body space-y-2">
-            <div class="grid grid-cols-2 gap-2">
-              ${_sel('size','Size', ['Tiny','Small','Medium','Large','Huge','Gargantuan'])}
-              ${_sel('creatureType','Creature Type', ['Aberration','Beast','Celestial','Construct','Dragon','Elemental','Fey','Fiend','Giant','Humanoid','Monstrosity','Ooze','Plant','Undead'])}
-            </div>
-            <div class="grid grid-cols-4 gap-2">
-              ${_si('ac','AC',true)}${_si('hp','HP',true)}${_si('initiative','Initiative',true)}${_si('speed','Speed',true)}
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-              ${_si('cr','Challenge Rating',true)}${_si('xp','XP',true)}${_si('profBonus','Prof. Bonus',true)}
-            </div>
-            <div class="cs-sectiekop">Ability Scores</div>
-            <div class="grid grid-cols-3 gap-2">
-              ${['str','dex','con','int','wis','cha'].map(k => `
-                <div>
-                  <label class="text-[10px] font-cinzel text-ink-dim uppercase">${k.toUpperCase()}
-                    <span class="cs-mod" id="cs-mod-${k}">${_abilityMod(s[k])}</span></label>
-                  <input name="stat_${k}" value="${esc(s[k] || '')}" inputmode="numeric"
-                    oninput="window._csModUpdate('${k}', this.value)"
-                    class="w-full mt-0.5 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm text-center focus:border-gold-dim focus:outline-none">
-                </div>`).join('')}
-            </div>
-            <div class="cs-sectiekop">Proficiencies &amp; Defenses</div>
-            <div class="space-y-2">
-              ${_si('savingThrows','Saving Throws')}
-              ${_si('skills','Skills')}
-              ${_ta('gear','Gear', 2)}
-              ${_si('vulnerabilities','Damage Vulnerabilities')}
-              ${_si('resistances','Damage Resistances')}
-              ${_si('immunities','Damage Immunities')}
-              ${_si('conditionImmunities','Condition Immunities')}
-            </div>
-            <div class="cs-sectiekop">Senses &amp; Languages</div>
-            <div class="space-y-2">
-              ${_si('senses','Senses')}
-              ${_si('languages','Languages')}
-            </div>
-            <!-- Traits horen bij het statblok en niet bij Actions: het zijn
-                 passieve eigenschappen, geen dingen die je op je beurt doet. -->
-            <div class="cs-sectiekop">Traits</div>
-            ${_ta('traits','', 3)}
+            ${_sbCombatHtml(_hBlad)}
           </div>
 
           <div id="cs-panel-acties" class="cs-sub-body space-y-2" style="display:none">
-            ${_ta('actions','Actions', 4)}
-            ${_ta('bonusActions','Bonus Actions', 2)}
-            ${_ta('reactions','Reactions', 2)}
-            ${_ta('legendaryActions','Legendary/Mythic Actions', 3)}
-            ${_ta('lairActions','Lair Actions', 2)}
+            ${_sbActiesHtml(_hBlad)}
           </div>
 
           <div id="cs-panel-spreuken" class="cs-sub-body space-y-2" style="display:none">
             <div class="grid grid-cols-2 gap-2">
-              ${_si('spellSaveDC','Spell Save DC',true)}${_si('spellAttackMod','Spell Attack Mod',true)}
+              ${_si('spellSaveDC','Spell Save DC',{center:true})}${_si('spellAttackMod','Spell Attack Mod',{center:true})}
             </div>
             <!-- Gekoppelde spreuken: overtypen levert een dood tekstveld op, een
                  koppeling levert een kaartje op waar je doorheen klikt. De
