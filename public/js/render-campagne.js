@@ -142,15 +142,11 @@ const TYPE_META = {
 // een continent (Isfār), landstreken (Donderhei, Wrakland), een mijn
 // (Evermijn), een park (Ter Velde) en een schuilplek (Dreghaven).
 const LOC_TYPE_GROEPEN = [
-  // Deze drie staan hier én bij Gebouw, met dezelfde waarde. Bewust dubbel: het
-  // type zegt wat voor pand het is, niet dat het aan een dienst hangt. Een
-  // campagne kan drie herbergen hebben waarvan er één de dienst is, en dan hoort
-  // "Herberg" gewoon bij de gebouwen te staan.
-  { groep: 'Kan aan een dienst hangen', opties: [
-    { value: 'Winkel',  label: 'Winkel' },
-    { value: 'Herberg', label: 'Herberg' },
-    { value: 'Tempel',  label: 'Tempel' },
-  ]},
+  // Winkel, Herberg en Tempel stonden hier ook in een eigen groep "Kan aan een
+  // dienst hangen". Dat is niet nodig: het type zegt alleen wat voor pand het
+  // is, en de melding onder de keuzelijst vertelt wat zo'n type extra kan.
+  // Koppelen aan een dienst blijft een aparte handeling, dus drie herbergen
+  // waarvan er één de dienst is kan gewoon.
   { groep: 'Gebied', opties: [
     { value: 'Rijk',      label: 'Rijk of continent' },
     { value: 'Streek',    label: 'Streek' },
