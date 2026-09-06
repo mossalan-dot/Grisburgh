@@ -5919,17 +5919,24 @@ window._openEditor = async (tab, editId) => {
     : window._heeftRol(e, 'verkoper'), _sheetLabel, tab);
   const _tm = TYPE_META[tab];
   // De naam erbij in de kop: het blad is lang genoeg om onderin kwijt te raken
-  // welk kaartje je aan het bewerken bent. Hij loopt mee terwijl je hem tikt.
-  openModal(editId
-    ? `${_tm.bewerk || 'Bewerken'}<span class="modal-titel-naam">${icon('chevron-right')}<span id="ed-titel-naam">${esc(e?.name || '')}</span></span>`
-    : (_tm.nieuw || 'Nieuw'), '', body);
+  // welk kaartje je onder handen hebt. Hij loopt mee terwijl je hem tikt — ook
+  // bij een nieuw kaartje, waar de kop anders "Nieuwe locatie" blijft heten
+  // terwijl je al drie tabbladen verder bent.
+  const _kopNaam = editId ? (e?.name || '') : '';
+  openModal(`${editId ? (_tm.bewerk || 'Bewerken') : (_tm.nieuw || 'Nieuw')}`
+    + `<span class="modal-titel-naam" id="ed-titel-wrap"${_kopNaam ? '' : ' hidden'}>`
+    + `${icon('chevron-right')}<span id="ed-titel-naam">${esc(_kopNaam)}</span></span>`, '', body);
 
   // Naam in de kop meelaten lopen met het naamveld.
   const _naamVeld = document.querySelector('#entity-form [name="name"]');
   const _titelNaam = document.getElementById('ed-titel-naam');
+  const _titelWrap = document.getElementById('ed-titel-wrap');
   if (_naamVeld && _titelNaam) {
     _naamVeld.addEventListener('input', () => {
-      _titelNaam.textContent = _naamVeld.value.trim();
+      const naam = _naamVeld.value.trim();
+      _titelNaam.textContent = naam;
+      // Zonder naam ook geen losse chevron in de kop.
+      if (_titelWrap) _titelWrap.hidden = !naam;
     });
   }
 
