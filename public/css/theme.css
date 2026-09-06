@@ -23134,7 +23134,9 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .pet-baasje-groep {
   font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
   letter-spacing: .03em; color: #7a5c10;
-  width: 8em; flex-shrink: 0; text-align: right;
+  /* Vaste breedte houdt de keuzelijsten op één kolom; links uitlijnen zodat de
+     partynamen op dezelfde marge beginnen als het label "Eigenaar" erboven. */
+  width: 8em; flex-shrink: 0; text-align: left;
 }
 @media (max-width: 520px) {
   .pet-baasje-rij { flex-direction: column; align-items: stretch; gap: 3px; }
