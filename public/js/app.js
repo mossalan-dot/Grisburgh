@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=274';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=216";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=217";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=77";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -11898,53 +11898,89 @@ const HELP_CONFIG = {
   dungeon:    () => ({ titel: 'Dungeon-kaarten', stappen: [{ titel: 'Dungeon verkennen', tekst: 'Verken kerkers en gebouwen kamer voor kamer. De DM onthult ruimtes naarmate je vordert; verbindingen tonen hoe alles samenhangt.', afbeelding: null }] }),
 
   // ── Uitleg per tabblad van een kaartje ──
+  // Twee smaken: `hulp_kijk_*` voor het detailvenster (lezen — dat is vooral
+  // wat een speler doet) en `hulp_bewerk_*` voor de editor (invullen, alleen
+  // de DM). Eén tekst voor allebei beloofde in de viewer dingen die je daar
+  // niet kunt. Ontbreekt `hulp_<modus>_<type>_<tabblad>`, dan valt hij terug op
+  // `hulp_<modus>_<tabblad>`.
+
+  hulp_kijk_locaties_info: () => ({ titel: 'Deze plek', stappen: [
+    { titel: 'Wat je ziet', tekst: 'De beschrijving vertelt wat deze plek is. Onder de naam staat het **type** en het gebied waarin het ligt. Namen in de tekst die je al kent zijn klikbaar: zo loop je van een herberg naar zijn waard en verder.', afbeelding: null },
+    { titel: 'Wie hier bij hoort', tekst: 'Onder de beschrijving staat wie aan deze plek verbonden is — de eigenaar, de waard, vaste gasten — met hun rol ervoor. Staat er een knop omheen, dan heb je dat kaartje al ontdekt en kun je erop klikken.', afbeelding: null },
+    { titel: 'Roddels en geheimen', tekst: 'De **roddel** is wat je hier hebt opgevangen; er komen er soms meer bij naarmate je vaker langsgaat. Bij meerdere blader je met de pijltjes. Een **geheim** verschijnt pas als je het ontdekt hebt — wat je niet ziet, weet je nog niet.', afbeelding: null },
+  ] }),
+  hulp_kijk_locaties_kaart: () => ({ titel: 'Waar ligt dit', stappen: [
+    { titel: 'Op de kaart', tekst: 'Een uitsnede van de kaart rond deze plek, met een rode stip erop. *Toon op de hele kaart* opent de kaart zelf; linksboven kom je met één klik weer terug bij dit kaartje.', afbeelding: null },
+    { titel: 'Plattegrond', tekst: 'Staat er een plattegrond bij, dan hoort die bij dit gebouw of deze kelder. Je ziet er alleen de ruimtes op die je party al ontdekt heeft — de rest blijft in het donker tot je er bent geweest.', afbeelding: null },
+  ] }),
+  hulp_kijk_locaties_voorraad: () => ({ titel: 'De voorraad', stappen: [
+    { titel: 'Kopen', tekst: 'Wat hier in de schappen ligt, met de prijs in de munt van de campagne. Klik een voorwerp om het te kopen; het bedrag gaat van je beurs af (of van de gedeelde beurs, als je die gebruikt) en het voorwerp komt in je boedel.', afbeelding: null },
+    { titel: 'Niet alles ligt er altijd', tekst: 'Sommige winkels tonen maar een deel van hun voorraad en verversen dat om de zoveel tijd. Kom je later terug, dan kan er iets anders liggen.', afbeelding: null },
+  ] }),
+  hulp_kijk_personages_info: () => ({ titel: 'Dit personage', stappen: [
+    { titel: 'Wie is dit', tekst: 'Onder de naam staan zijn rol, volk en klasse. De beschrijving vertelt wat je van hem weet; namen die je al kent zijn klikbaar. Een badge op de kaart laat zien of hij een verkoper is of je in de weg staat.', afbeelding: null },
+    { titel: 'Roddels en geheimen', tekst: 'De **roddel** is wat er over hem verteld wordt — bij meerdere blader je met de pijltjes. Een **geheim** zie je pas als je het ontdekt hebt; onthulde geheimen kunnen alles veranderen wat je van iemand dacht te weten.', afbeelding: null },
+    { titel: 'Waar hij bij hoort', tekst: 'Onder **Hoort bij** staat waar hij verbonden aan is: eigenaar van een herberg, lid van een gilde, verkoper in een winkel. Klik erop om daarheen te gaan.', afbeelding: null },
+  ] }),
+  hulp_kijk_personages_sheet: () => ({ titel: 'Het blad', stappen: [
+    { titel: 'Statblock', tekst: 'De gevechtsgegevens: **AC** (hoe moeilijk hij te raken is), **HP**, speed, de zes ability scores met hun modifier, en zijn traits en actions. Bij een huisdier hoort het blok dat past bij het level van zijn baasje — hij groeit met je mee.', afbeelding: null },
+  ] }),
+  hulp_kijk_organisaties_info: () => ({ titel: 'Deze organisatie', stappen: [
+    { titel: 'Wat je ziet', tekst: 'Het type en het motto staan onder de naam; de beschrijving vertelt waar ze voor staan. Onder **Wie hoort hier bij** staan de leden die je kent, met hun rol of rang.', afbeelding: null },
+  ] }),
+  hulp_kijk_voorwerpen_info: () => ({ titel: 'Dit voorwerp', stappen: [
+    { titel: 'Wat je ziet', tekst: 'De kleur van de rand is de **rarity**: grijs (Common) tot goud (Legendary). Staat er *Requires Attunement*, dan moet je je er tijdens een rust aan binden voordat het werkt. Een schadewaarde is een knop: klik erop om de dobbelsteen te gooien.', afbeelding: null },
+    { titel: 'Charges', tekst: 'Heeft het voorwerp ladingen, dan staan die als bolletjes in je boedel. Ze laden vanzelf weer op bij het soort rust dat erbij vermeld staat.', afbeelding: null },
+  ] }),
+
+
   // Eén boekje rechts in de tabbalk, met doorklikstappen. De sleutel is
   // `hulp_<type>_<tabblad>`; ontbreekt die, dan valt hij terug op
   // `hulp_<tabblad>`. Dezelfde tekst bij aanmaken, bewerken en bekijken, zodat
   // de DM hem maar één keer hoeft aan te passen.
-  hulp_beeld: () => ({ titel: 'Beeld', stappen: [
+  hulp_bewerk_beeld: () => ({ titel: 'Beeld', stappen: [
     { titel: 'Afbeelding', tekst: 'Het portret of de gevel van dit kaartje. Met het **focuspunt** bepaal je welk deel in beeld blijft als de afbeelding bijgesneden wordt — handig bij een portret waar het hoofd niet in het midden staat. De twee voorbeelden ernaast tonen de echte uitsnedes: het kaartje (breed) en het ronde portret.', afbeelding: null },
     { titel: 'Meer beelden', tekst: 'Extra afbeeldingen komen als carrousel in het detailvenster te staan. Bij een spelerspersonage kun je ook een kort **filmpje** meegeven: dat speelt op de landingspagina bij het inzoomen op het portret, en in het dashboard als de speler erop klikt.', afbeelding: null },
   ] }),
 
-  hulp_locaties_info: () => ({ titel: 'Een locatie', stappen: [
+  hulp_bewerk_locaties_info: () => ({ titel: 'Een locatie', stappen: [
     { titel: 'Type', tekst: 'Het **type** zegt wat voor plek dit is. De lijst staat in groepen: gebieden (rijk, streek, stad, dorp, wijk), gebouwen, landschap en overig. Drie types kunnen méér, en onder de keuzelijst staat wat dat is: *Winkel* krijgt een eigen tabblad met voorraad, en *Herberg* en *Tempel* kunnen aan een dienst gekoppeld worden. Kunnen, niet moeten — je kunt drie herbergen hebben waarvan er één de dienst is.', afbeelding: null },
     { titel: 'Gebied', tekst: 'Waar dit in ligt: een stad, een streek, een wijk of een gebouw. Wijst het naar een bestaand locatiekaartje, dan kun je doorklikken en ontstaan er ketens — een herberg in een wijk, in een stad, in een streek. Vrije tekst mag ook; bestaat de naam nog niet, dan biedt hij aan er een kaartje voor te maken.', afbeelding: null },
     { titel: 'Wie hoort hier bij', tekst: 'Eigenaar, waard, personeel, stamgasten — personages én organisaties, met per regel een rol. Een gekoppelde naam wordt een knop waar je doorheen klikt. Dezelfde regel verschijnt bij *Hoort bij* op het andere kaartje: het staat maar op één plek, dus je kunt hem van beide kanten leggen.', afbeelding: null },
     { titel: 'Flavour & geheimen', tekst: '**Flavour** zijn losse zinnetjes om voor te lezen; de app houdt per regel bij of hij al verteld is, dus iemand met drie roddels levert drie avonden op. **Geheimen** onthul je per regel en per party, in het detailvenster.', afbeelding: null },
     { titel: 'Koppelingen', tekst: 'Onderaan staat wat dit kaartje **elders** is: de herberg van de campagne, of de tempel van een god uit de Tempel-dienst. Die koppeling staat maar op één plek — je kunt hem hier leggen of in het paneel van die dienst, en je ziet aan beide kanten hetzelfde.', afbeelding: null },
   ] }),
-  hulp_locaties_kaart: () => ({ titel: 'Kaart & dungeon', stappen: [
+  hulp_bewerk_locaties_kaart: () => ({ titel: 'Kaart & dungeon', stappen: [
     { titel: 'Op de kaart', tekst: 'Kies een kaart en **klik in het beeld** om de speld te zetten; nog eens klikken verplaatst hem. **Dubbelklikken** zoomt in op die plek (en op de hoogste stand weer helemaal uit), ingezoomd sleep je om te schuiven. Ook bij een nieuw kaartje: de speld wordt geplaatst zodra je opslaat.', afbeelding: null },
     { titel: 'Wat het oplevert', tekst: 'Een kaartje met een speld krijgt rechtsonder een knopje dat meteen de juiste kaart opent, en toont in het detailvenster een uitsnede van zijn omgeving. Vanuit de grote kaart brengt de knop linksboven je terug naar het kaartje.', afbeelding: null },
     { titel: 'Dungeonkaart', tekst: 'Hangt er een plattegrond aan deze plek, kies hem dan hier. Een kamer kiezen mag, maar hoeft niet — de hele kaart volstaat. De plattegrond zelf teken en beheer je bij Dungeons; hier leg je alleen de koppeling.', afbeelding: null },
   ] }),
-  hulp_locaties_winkel: () => ({ titel: 'De winkel', stappen: [
+  hulp_bewerk_locaties_winkel: () => ({ titel: 'De winkel', stappen: [
     { titel: 'Voorraad', tekst: 'Wat hier te koop is. Voeg voorwerpen toe, of laad de voorraad van een andere winkel in als vertrekpunt. Prijzen schrijf je met een komma — `12,34` is 12 goud, 3 zilver en 4 koper — of in munten (`5 gp 2 sp`). De voorraad hoort bij de **locatie**; een verkoper wijst er alleen naar.', afbeelding: null },
     { titel: 'Wisselend assortiment', tekst: 'Niet alles ligt altijd in de schappen: laat de winkel elke zoveel uur een deel van de voorraad tonen. Winkels met hetzelfde woord bij *Zelfde selectie als* verversen tegelijk en tonen dezelfde selectie.', afbeelding: null },
     { titel: 'Verkopen en inkopen', tekst: 'In het detailvenster van de winkel reken je af namens een speler, en koop je met *Inkopen van de party* spullen van hen over: je vinkt aan wat je overneemt en tikt het bedrag in. Wat de winkel niet inkoopt zet je op het voorwerpkaartje zelf uit.', afbeelding: null },
   ] }),
 
-  hulp_personages_info: () => ({ titel: 'Een personage', stappen: [
+  hulp_bewerk_personages_info: () => ({ titel: 'Een personage', stappen: [
     { titel: 'Type, rollen en kant', tekst: 'Drie verschillende vragen. **Type** zegt wat voor kaartje dit is: NPC, speler, dier of god. **Rollen** zeggen welke functie hij vervult — *verkoper* zet een voorraad aan, *antagonist* geeft kleur en een badge, allebei tegelijk mag. **Kant** zegt aan welke kant hij in een gevecht staat.', afbeelding: null },
     { titel: 'Flavour & geheimen', tekst: '**Flavour** zijn zinnetjes om voor te lezen; de app onthoudt per regel of hij al verteld is. **Geheimen** onthul je per regel en per party. Bij een personage kun je per geheim aanvinken dat het onthullen hem tot vijand maakt: hij krijgt dan de rol antagonist, komt aan de kant van de vijand te staan en zijn alignment schuift op naar Evil.', afbeelding: null },
     { titel: 'Hoort bij', tekst: 'Waar hij bij hoort: eigenaar van een herberg, lid van een gilde. Kies een locatie of organisatie plus een rol; die regel komt terecht bij *Wie hoort hier bij?* van dát kaartje. Verkoopt hij ergens, dan verschijnt dat hier ook — met rol Verkoper.', afbeelding: null },
     { titel: 'Bij een dier', tekst: 'Een dier kun je te adopteren zetten met een prijs, en per party een **eigenaar** geven. Het dier staat dan op hun partytabblad, is te vullen in een gevecht, en zijn statblok groeit mee met het level van dat personage.', afbeelding: null },
     { titel: 'Aantekeningen', tekst: 'Wat je zelf wilt onthouden: hoe je hem speelt, wat er nog moet gebeuren, welke stem hij heeft. Spelers krijgen dit nooit te zien, ook niet als het kaartje zichtbaar is.', afbeelding: null },
   ] }),
-  hulp_personages_sheet: () => ({ titel: 'Statblock', stappen: [
+  hulp_bewerk_personages_sheet: () => ({ titel: 'Statblock', stappen: [
     { titel: 'Statblock', tekst: 'De gevechtsgegevens: AC, HP, speed, abilities, traits en actions. Vul je hier iets in, dan verschijnt het kaartje in de **monsterbibliotheek** en kun je hem in een gevecht zetten — hij komt níét in het bestiarium, want dat is wat de spelers aan beesten verzamelen. HP schrijf je zoals in een statblock: `32 (5d8+10)`.', afbeelding: null },
     { titel: 'Meegroeien met het baasje', tekst: 'Bij een dier is het blok hierboven het dier vanaf level 1. Een **tier** neemt het over zodra zijn eigenaar dat level haalt, en zegt alleen wát er verandert — wat je leeg laat komt uit de basis. "Hetzelfde beest, maar taaier" is dus een AC en een HP, geen overgetypt blok. Twee tiers vanaf hetzelfde level kan niet.', afbeelding: null },
     { titel: 'Afdrukken', tekst: 'Bij een spelerspersonage heet dit blad *Character Sheet* en kun je het afdrukken of als pdf bewaren; bij een NPC, dier of god drukt hij alleen het statblok af.', afbeelding: null },
   ] }),
 
-  hulp_organisaties_info: () => ({ titel: 'Een organisatie', stappen: [
+  hulp_bewerk_organisaties_info: () => ({ titel: 'Een organisatie', stappen: [
     { titel: 'Type en motto', tekst: 'Gilden, ordes, facties en bendes. Het **type** en het **motto** komen op het kaartje te staan; de beschrijving vertelt waar ze voor staan.', afbeelding: null },
     { titel: 'Gebied en leden', tekst: 'Bij **Gebied** koppel je waar ze zitten. Bij **Wie hoort hier bij?** zet je de leider en de leden neer, met per regel hun rang of rol — personages én andere organisaties. Die regels verschijnen ook op hun eigen kaartjes.', afbeelding: null },
     { titel: 'Factie', tekst: 'Onderaan koppel je dit kaartje aan een **factie** uit het Facties-paneel. Dat is dezelfde koppeling die daar staat, dus je kunt hem van twee kanten leggen; renown, rangen en boons blijven in dat paneel.', afbeelding: null },
   ] }),
 
-  hulp_voorwerpen_info: () => ({ titel: 'Een voorwerp', stappen: [
+  hulp_bewerk_voorwerpen_info: () => ({ titel: 'Een voorwerp', stappen: [
     { titel: 'Type en rarity', tekst: 'Het **type** bepaalt welke velden erbij komen: een Weapon krijgt schade en wapeneigenschappen, Armor een base AC, een Scroll een spellkiezer. De **rarity** kleurt de rand van het kaartje — Very Rare en Legendary krijgen bovendien een gloed.', afbeelding: null },
     { titel: 'Prijs en gebruik', tekst: 'De **prijs** mag met een komma (`12,34`) of in munten (`5 gp 2 sp`). Bij **gebruik** kies je of het voorwerp uniek is, gedeeld (meerdere spelers, elk één) of stapelbaar (meerdere exemplaren per speler). Wat winkels niet mogen overnemen zet je uit met *Niet verkoopbaar*.', afbeelding: null },
     { titel: 'Charges', tekst: 'Heeft het voorwerp ladingen, zet dan *Heeft charges* aan: je bepaalt het maximum, wanneer het herlaadt (lange rust, korte rust, dageraad, of een dobbelrol) en of de speler het maximum zelf mag bijstellen.', afbeelding: null },
@@ -12409,11 +12445,14 @@ function _resolveHelp(key) {
   if (fn) return fn();
   // `hulp_locaties_beeld` bestaat niet, `hulp_beeld` wel: een tabblad dat voor
   // elk soort kaartje hetzelfde werkt hoeft niet vier keer opgeschreven.
-  const m = /^hulp_[a-z]+_([a-z]+)$/.exec(key);
+  // `hulp_bewerk_locaties_beeld` bestaat niet, `hulp_bewerk_beeld` wel: een
+  // tabblad dat voor elk soort kaartje hetzelfde werkt hoeft niet vier keer
+  // opgeschreven.
+  const m = /^(hulp_(?:kijk|bewerk))_[a-z]+_([a-z]+)$/.exec(key);
   if (m) {
-    const alg = _helpOverrides[`hulp_${m[1]}`];
+    const alg = _helpOverrides[`${m[1]}_${m[2]}`];
     if (alg?.stappen?.length) return alg;
-    const algFn = HELP_CONFIG[`hulp_${m[1]}`];
+    const algFn = HELP_CONFIG[`${m[1]}_${m[2]}`];
     if (algFn) return algFn();
   }
   return null;

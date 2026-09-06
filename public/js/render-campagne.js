@@ -1506,12 +1506,15 @@ const ED_TABS = [
 // Eén uitlegknop rechts in de tabbalk, die meeloopt met het open tabblad. Per
 // sectie een boekje werd een woud; per tabblad past de hele uitleg in één
 // venster met doorklikstappen.
-function _tabHulpHtml(tabType) {
-  return `<span class="tab-hulp" data-tab-hulp="${esc(tabType)}"></span>`;
+// `modus` is 'kijk' of 'bewerk': in het detailvenster lees je en onthul je, in
+// de editor vul je in. Dat zijn andere handelingen, dus ook andere uitleg — één
+// tekst voor allebei beloofde in de viewer dingen die daar niet kunnen.
+function _tabHulpHtml(tabType, modus) {
+  return `<span class="tab-hulp" data-tab-hulp="${esc(tabType)}" data-tab-modus="${esc(modus)}"></span>`;
 }
-function _tabHulpVul(tabType, paneel) {
-  document.querySelectorAll(`[data-tab-hulp="${tabType}"]`).forEach(host => {
-    const sleutel = `hulp_${tabType}_${paneel}`;
+function _tabHulpVul(tabType, paneel, modus) {
+  document.querySelectorAll(`[data-tab-hulp="${tabType}"][data-tab-modus="${modus}"]`).forEach(host => {
+    const sleutel = `hulp_${modus}_${tabType}_${paneel}`;
     host.innerHTML = window._heeftHelp?.(sleutel) ? window._helpBtn(sleutel) : '';
   });
 }
@@ -1547,7 +1550,7 @@ function _bouwEditorTabs(html, toonWinkel, sheetLabel, tabType) {
     <div class="ed-tabs">
       ${gevuld.map(t => `<button type="button" class="ed-tab${t.key === eerste ? ' is-actief' : ''}${t.key === 'winkel' && !toonWinkel ? ' hidden' : ''}"
         data-ed-tab="${t.key}" onclick="window._edTab('${t.key}')">${t.key === 'sheet' && sheetLabel ? sheetLabel : t.label}</button>`).join('')}
-      ${_tabHulpHtml(tabType)}
+      ${_tabHulpHtml(tabType, 'bewerk')}
     </div>
     ${gevuld.map(t => `<div class="ed-paneel${t.key === eerste ? ' is-actief' : ''}" data-ed-paneel="${t.key}">${panelen[t.key]}</div>`).join('')}
     <div class="ed-paneel-verborgen">${rest}</div>
@@ -1559,7 +1562,7 @@ window._edTab = (naam) => {
   document.querySelectorAll('[data-ed-tab]').forEach(b => b.classList.toggle('is-actief', b.dataset.edTab === naam));
   document.querySelectorAll('[data-ed-paneel]').forEach(p => p.classList.toggle('is-actief', p.dataset.edPaneel === naam));
   const host = document.querySelector('.ed-tabs [data-tab-hulp]');
-  if (host) _tabHulpVul(host.dataset.tabHulp, naam);
+  if (host) _tabHulpVul(host.dataset.tabHulp, naam, 'bewerk');
 };
 
 // ── Rollen op een kaartje ────────────────────────────────────────────────────
@@ -3799,7 +3802,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   `).join('');
 
   const body = `
-    <div class="detail-tab-nav">${tabNav}${_tabHulpHtml(tab)}</div>
+    <div class="detail-tab-nav">${tabNav}${_tabHulpHtml(tab, 'kijk')}</div>
     <div id="dtab-info">${infoHtml}</div>
     ${showSheet ? `<div id="dtab-sheet" class="hidden">${sheetHtml}</div>` : ''}
     ${isStapelbaarVoorwerp && isDM() ? `<div id="dtab-eigenaren" class="hidden">${eigenarenHtml}</div>` : ''}
@@ -3875,7 +3878,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
 
   // Tab switching
   const allTabKeys = detailTabs.map(t => t.key);
-  _tabHulpVul(tab, detailTabs[0]?.key || 'info');
+  _tabHulpVul(tab, detailTabs[0]?.key || 'info', 'kijk');
   document.querySelectorAll('.detail-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.dtab;
@@ -3886,7 +3889,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         const panel = document.getElementById(`dtab-${k}`);
         if (panel) panel.classList.toggle('hidden', k !== target);
       });
-      _tabHulpVul(tab, target);
+      _tabHulpVul(tab, target, 'kijk');
     });
   });
 
@@ -5684,7 +5687,7 @@ window._openEditor = async (tab, editId) => {
   openModal(editId ? (_tm.bewerk || 'Bewerken') : (_tm.nieuw || 'Nieuw'), '', body);
 
   // Uitleg bij het tabblad dat open staat (het eerste met inhoud).
-  _tabHulpVul(tab, document.querySelector('[data-ed-paneel].is-actief')?.dataset.edPaneel || 'info');
+  _tabHulpVul(tab, document.querySelector('[data-ed-paneel].is-actief')?.dataset.edPaneel || 'info', 'bewerk');
 
   // Huisdier-tier-editor vullen (no-op als de sectie er niet is)
   window._renderPetTiers();
