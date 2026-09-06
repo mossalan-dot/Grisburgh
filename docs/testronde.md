@@ -73,6 +73,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Zichtbaarheid per party** (DM) — een kaartje vrijgeven aan de ene party en niet aan de andere; wissel van party en controleer beide kanten
 - [ ] **Voorwerp aan een speler geven** (DM) — vanuit het kaartje toewijzen aan een personage; het verschijnt in zijn boedel met de juiste rariteit
 - [ ] **Voorraad van een winkel** (DM) — regels toevoegen, prijzen zetten, uitverkocht markeren per party
+- [ ] **Stapelbaar kopen levert het aantal dat je betaalt** (SP) — koop er drie van een stapelbaar voorwerp: er gaat drie keer de prijs af én er staan er drie in je boedel. Koop daarna nog eens: de winkel is niet "uitverkocht"
+- [ ] **Gedeelde beurs betaalt in de winkel** (SP) — zet de gedeelde beurs aan, maak je eigen beurs leeg en koop iets: het lukt en het geld gaat van de partybeurs. Verkopen aan de winkel schrijft ook dáár bij
+- [ ] **Gedeeld voorwerp heeft geen aantal-knopjes** (SP) — een voorwerp op *Meerdere spelers — ieder één exemplaar* toont in de Boedel géén − en +; die gaven een foutmelding omdat de server een aantal daar niet aanpast
+- [ ] **Hit Dice na een lange rust** (SP) — verbruik er vier van de vijf (Wizard 5): je krijgt er twee terug, niet drie. Met maar één Hit Die in totaal krijg je die ene terug
+- [ ] **Overnachting staat in beeld** (SP) — lange rust in de herberg: in de overlay staat wat het je kostte ("2 Florinde voor de overnachting"), en de knop *Sluiten* staat op zijn eigen regel onder het lijstje
 - [ ] **Character sheet als het printblad** (DM) — het tabblad van een speler toont dezelfde indeling als de pdf: links abilities met saving throws en skills (bolletje voor proficiency, dubbel voor expertise), rechts AC/Initiative/Speed/Proficiency, de passieve scores, HP en spell save DC, daaronder proficiencies en de spreuken per niveau. De cijfers komen uit hetzelfde profiel als de print, dus scherm en papier zeggen hetzelfde
 - [ ] **NPC toont een statblock** (DM) — bij een NPC of god staat op dat tabblad het statblock in de vorm van het bestiarium, niet een half ingevuld character sheet
 - [ ] **Uitleg bewerken** (DM) — het potlood náást de helpknop is weg; open de uitleg en er staat rechtsboven *Bewerken* (alleen voor de DM)

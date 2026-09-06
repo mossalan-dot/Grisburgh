@@ -209,7 +209,7 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=521   app.js?v=623   sound-manager.js?v=8
+index.html  : theme.css?v=522   app.js?v=624   sound-manager.js?v=8
 app.js      : api.js?v=275      render-campagne.js?v=230   render-archief.js?v=77
               render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
               render-progressie.js?v=44  socket-client.js?v=59
@@ -1085,6 +1085,32 @@ Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in ren
 | Rare / Zeldzaam | `data-rarity="rare"` | blauw |
 | Very Rare / Zeer zeldzaam | `data-rarity="very-rare"` | paars |
 | Legendary / Legendarisch | `data-rarity="legendary"` | goud |
+
+---
+
+## Exemplaren: één helper, geen tweede kopie
+
+`data.gebruik` zegt of een voorwerp uniek, gedeeld of stapelbaar is; oude
+kaartjes hebben in plaats daarvan de losse vinkjes `stapelbaar`/`gedeeld`.
+**Lees dat nooit rechtstreeks uit** — gebruik `_gebruikVan(data)` (server,
+bovenaan `routes/api.js`) of `_getGebruik(entity)` (client). De winkelroutes
+keken naar `data.stapelbaar === 'true'` en zagen een modern stapelbaar kaartje
+dus voor uniek aan: je betaalde er drie, kreeg er één, en het voorwerp ging
+meteen op uitverkocht. Toekennen loopt via `_eigendomErbij()`, zodat DM-geven,
+winkelverkoop en DM-verkoop niet elk hun eigen versie van dezelfde drie regels
+houden.
+
+**Geld gaat via `_effectiveCurrency()` en `_deductCurrency()`.** Staat de
+gedeelde beurs aan, dan is dát de portemonnee van de party. `POST /shops/:id/koop`
+en `/verkoop` keken nog rechtstreeks in `dmState.playerCurrency`, waardoor een
+speler met een gedeelde beurs uit zijn eigen zak betaalde terwijl het scherm de
+partybeurs toonde — en de opbrengst van een verkoop in een zak verdween die
+niemand ziet.
+
+**Hit Dice na een lange rust rondt naar beneden af.** De PHB zegt "half your
+total number of them (minimum of 1 die)", en D&D rondt naar beneden tenzij er
+iets anders staat. Met `Math.ceil` kreeg een Wizard 5 (5d6) er drie terug in
+plaats van twee — elke rust één te veel.
 
 ---
 

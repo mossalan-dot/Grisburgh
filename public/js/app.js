@@ -5626,7 +5626,9 @@ window._geefItem = async (itemId, targetId) => {
 // de kist telkens opnieuw dichtgaan.
 let _lootCinOpen = false;
 
-function _lootCinBedrag(goud) {
+// Een bedrag in de muntnamen van de campagne. Heette _lootCinBedrag, maar de
+// rust-overlay heeft precies hetzelfde nodig voor de overnachtingsprijs.
+function _muntRegel(goud) {
   const c = window._muntNamen();
   const d = [[goud?.fl, c.fl], [goud?.kn, c.kn], [goud?.cl, c.cl]]
     .filter(([n]) => n > 0).map(([n, naam]) => `${n} ${esc(naam)}`);
@@ -5663,7 +5665,7 @@ function _lootCinBuit(data) {
       </div>`;
     return;
   }
-  const bedrag = _lootCinBedrag(data.goud);
+  const bedrag = _muntRegel(data.goud);
   const items  = (data.items || []).filter(it => it.status !== 'overgeslagen');
   el.innerHTML = `
     ${bedrag ? `<div class="loot-cin-goud">${icon('coins')} ${bedrag}</div>` : ''}
@@ -5914,7 +5916,7 @@ function _moonSvg(size = 70) {
 window._rustCinematic = (payload) => {
   if (!payload) return;
   document.getElementById('rust-cinematic')?.remove();
-  const { type, locatie, backdropId, loopFileId, roddels = [], perPlayer = {}, herbergNaam, gebeurtenissen = [] } = payload;
+  const { type, locatie, backdropId, loopFileId, roddels = [], perPlayer = {}, herbergNaam, gebeurtenissen = [], kosten = null } = payload;
   const isLong = type === 'long';
   const isDisplay = !!window._isDisplayMode;
   const isDM = !!window.app?.isDM?.();
@@ -5942,6 +5944,9 @@ window._rustCinematic = (payload) => {
     if (mine.slotsHersteld) parts.push(`${icon('sparkles')} ${mine.slotsHersteld} spell slot(s) terug`);
     if (mine.hitDiceTerug) parts.push(`${icon('dice')} ${mine.hitDiceTerug} Hit Dice terug`);
     if (mine.chargesHersteld) parts.push(`${icon('zap')} ${mine.chargesHersteld} voorwerp(en) herladen`);
+    // Wat de overnachting kostte: het verdween van je beurs zonder dat er
+    // ergens stond waarom.
+    if (kosten?.perSpeler) parts.push(`${icon('coins')} ${_muntRegel(kosten.perSpeler)} voor de overnachting`);
     if (parts.length) samenvatting = `<ul class="rust-samenvatting">${parts.map(p => `<li>${p}</li>`).join('')}</ul>`;
   } else if (mine && !isLong) {
     const parts = [];
@@ -6306,11 +6311,15 @@ async function renderMijnKarakter(opts = {}) {
 
   // Geclaimde & stapelbare voorwerpen van deze speler
   const myItemMap = {}; // itemId → { qty }
+  // Gedeeld eigendom wordt net als stapelbaar in een array bewaard, maar je hebt
+  // er altijd precies één van: de server weigert een aantal aan te passen. Zonder
+  // deze lijst kreeg zo'n voorwerp toch ±-knopjes, die dan een foutmelding gaven.
+  const _gedeeldeItems = new Set(ownershipData.gedeeld || []);
   for (const [itemId, ownerData] of Object.entries(ownershipData.owners || {})) {
     if (Array.isArray(ownerData)) {
       const entry = ownerData.find(o => o.characterId === charId);
       if (entry && (entry.qty || 1) > 0)
-        myItemMap[itemId] = { qty: entry.qty || 1 };
+        myItemMap[itemId] = { qty: _gedeeldeItems.has(itemId) ? null : (entry.qty || 1) };
     } else if (ownerData?.characterId === charId) {
       myItemMap[itemId] = { qty: null };
     }

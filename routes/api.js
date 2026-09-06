@@ -213,6 +213,34 @@ function _aanwezigeSpelers(dmState, groepId, personages) {
 // ── Entity player filter ──
 
 // Geeft de effectieve beurs terug: gedeeld als actief voor de groep, anders individueel
+// Wat een voorwerp qua exemplaren is. Oude kaartjes hebben nog losse vinkjes
+// `stapelbaar`/`gedeeld` in plaats van het veld `gebruik`; die tellen mee.
+// Staat hier bovenaan omdat de winkelroutes hem als eerste nodig hebben — die
+// keken naar het losse vinkje en zagen een modern kaartje dus voor uniek aan.
+function _gebruikVan(d) {
+  return d?.gebruik || (d?.stapelbaar === 'true' ? 'stapelbaar' : d?.gedeeld === 'true' ? 'gedeeld' : 'uniek');
+}
+
+// Eigendom toekennen volgens die drie standen. Eén plek, omdat dit op vier
+// plaatsen stond (DM geeft, winkel verkoopt, DM verkoopt namens de winkel) en
+// de kopieën uit elkaar liepen.
+function _eigendomErbij(g, itemId, characterId, playerName, gebruik, aantal = 1) {
+  if (!g.itemOwners) g.itemOwners = {};
+  if (gebruik === 'stapelbaar') {
+    if (!Array.isArray(g.itemOwners[itemId])) g.itemOwners[itemId] = [];
+    const bestaand = g.itemOwners[itemId].find(o => o.characterId === characterId);
+    if (bestaand) bestaand.qty = (bestaand.qty || 1) + Math.max(1, aantal);
+    else g.itemOwners[itemId].push({ characterId, playerName, qty: Math.max(1, aantal) });
+  } else if (gebruik === 'gedeeld') {
+    if (!Array.isArray(g.itemOwners[itemId])) g.itemOwners[itemId] = [];
+    if (!g.itemOwners[itemId].some(o => o.characterId === characterId)) {
+      g.itemOwners[itemId].push({ characterId, playerName, qty: 1 });
+    }
+  } else {
+    g.itemOwners[itemId] = { characterId, playerName };
+  }
+}
+
 function _effectiveCurrency(dmState, characterId) {
   if (!characterId) return null;
   const playerGroupId = _playerGroupId(dmState, characterId);
@@ -1565,7 +1593,7 @@ router.get('/shops/:shopId/beschikbaar', attachRole, (req, res) => {
       ...item,
       desc: ent?.data?.desc || '',
       imageId: ent?.imageId || '',
-      stapelbaar: ent?.data?.stapelbaar === 'true',
+      stapelbaar: _gebruikVan(ent?.data) === 'stapelbaar',
     };
   };
 
@@ -1683,13 +1711,15 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
     if (discActief && tempDisc.percent !== 0) {
       prijsCl = Math.max(1, Math.round(prijsCl * (1 - tempDisc.percent / 100)));
     }
-    if (!dmState.playerCurrency) dmState.playerCurrency = {};
-    const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
-    const heeftCl = toCl(pc);
-    if (heeftCl < prijsCl) {
+    // Staat de gedeelde beurs aan, dan is dát de portemonnee van de party —
+    // dezelfde regel als bij afrekenen en bij de rust. Deze route keek nog
+    // rechtstreeks in playerCurrency, dus kocht een speler met een gedeelde
+    // beurs uit zijn eigen zak terwijl het scherm de partybeurs toonde.
+    const beurs = _effectiveCurrency(dmState, characterId) || { fl: 0, kn: 0, cl: 0 };
+    if (toCl(beurs) < prijsCl) {
       return res.status(402).json({ error: 'Niet genoeg geld', prijs });
     }
-    dmState.playerCurrency[characterId] = fromCl(heeftCl - prijsCl);
+    _deductCurrency(dmState, characterId, prijsCl);
 
     // Klant-loop: een betaalde aankoop stemt de winkelier milder (max 1x per rotatie)
     const moodEntry = g.shopMood?.[shopId]?.[characterId];
@@ -1704,19 +1734,15 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
   const _rawEntityId = entityId || item.entityId || null;
   const _entityItem = _rawEntityId ? (entities.voorwerpen || []).find(e => e.id === _rawEntityId) : null;
   const effectiveEntityId = _entityItem ? _rawEntityId : null;
-  const isStapelbaar = _entityItem?.data?.stapelbaar === 'true';
+  // Keek naar het losse vinkje `stapelbaar`, niet naar het veld `gebruik`. Een
+  // modern stapelbaar kaartje gold daardoor als uniek: je betaalde er drie en
+  // kreeg er één, en de winkel zette het meteen op uitverkocht.
+  const koopGebruik  = _gebruikVan(_entityItem?.data);
+  const isStapelbaar = koopGebruik === 'stapelbaar';
 
   const playerName = req.playerName || 'Speler';
   if (effectiveEntityId) {
-    if (!g.itemOwners) g.itemOwners = {};
-    if (isStapelbaar) {
-      if (!Array.isArray(g.itemOwners[effectiveEntityId])) g.itemOwners[effectiveEntityId] = [];
-      const existing = g.itemOwners[effectiveEntityId].find(o => o.characterId === characterId);
-      if (existing) { existing.qty = (existing.qty || 1) + aantal; }
-      else { g.itemOwners[effectiveEntityId].push({ characterId, playerName, qty: aantal }); }
-    } else {
-      g.itemOwners[effectiveEntityId] = { characterId, playerName };
-    }
+    _eigendomErbij(g, effectiveEntityId, characterId, playerName, koopGebruik, aantal);
     // Auto-onthul het kaartje als het nog verborgen is
     if (!g.visibility) g.visibility = {};
     if ((g.visibility[effectiveEntityId] || 'hidden') === 'hidden') {
@@ -1734,7 +1760,9 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
     }
   }
 
-  if (!isStapelbaar) {
+  // Alleen een écht uniek voorwerp is na één verkoop op; van een gedeeld
+  // voorwerp kan de volgende speler er ook nog een kopen.
+  if (koopGebruik === 'uniek') {
     if (!g.shopUitverkocht) g.shopUitverkocht = {};
     if (!g.shopUitverkocht[shopId]) g.shopUitverkocht[shopId] = [];
     if (!g.shopUitverkocht[shopId].map(k => (k || '').toLowerCase()).includes(itemKey)) {
@@ -1779,7 +1807,7 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
     io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: (dmState.playerItems || {})[characterId] || [] });
   }
 
-  if (!isStapelbaar) {
+  if (koopGebruik === 'uniek') {
     io.to(req.session?.campaignId||'main').emit('shop:uitverkocht-updated', { shopId, uitverkocht: g.shopUitverkocht[shopId] });
   }
 
@@ -1952,7 +1980,7 @@ router.get('/shops/:shopId/verkoopbaar', attachRole, (req, res) => {
       naam: vw.name,
       itemType: vw.data?.itemType || '',
       prijs: vw.data?.prijs || '',
-      stapelbaar: vw.data?.stapelbaar === 'true',
+      stapelbaar: _gebruikVan(vw.data) === 'stapelbaar',
       qty,
       verkoopbaar: check.ok,
       reden: check.reden || '',
@@ -1994,7 +2022,7 @@ router.post('/shops/:shopId/verkoop', attachRole, (req, res) => {
   const g = getGroup(dmState, buyerGroupId);
   if (!g.itemOwners) g.itemOwners = {};
   const owner = g.itemOwners[entityId];
-  const isStapelbaar = vw.data?.stapelbaar === 'true';
+  const isStapelbaar = _gebruikVan(vw.data) === 'stapelbaar';
 
   // Eigendom + aantal controleren
   let bezit = 0, ownerEntry = null;
@@ -2022,10 +2050,9 @@ router.post('/shops/:shopId/verkoop', attachRole, (req, res) => {
     delete g.itemOwners[entityId];
   }
 
-  // Munten bijschrijven
-  if (!dmState.playerCurrency) dmState.playerCurrency = {};
-  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
-  dmState.playerCurrency[characterId] = fromCl(toCl(pc) + opbrengstCl);
+  // Munten bijschrijven — naar de gedeelde beurs als die aanstaat, net als bij
+  // het kopen. Anders verdween de opbrengst in een eigen zak die niemand toont.
+  _deductCurrency(dmState, characterId, -opbrengstCl);
 
   storage.writeJSON('dm-state.json', dmState);
 
@@ -2126,19 +2153,12 @@ router.post('/shops/:shopId/dm-verkoop', requireDM, (req, res) => {
   const _rawEntityId   = entityId || item.entityId || null;
   const _entityItem    = _rawEntityId ? (entities.voorwerpen || []).find(e => e.id === _rawEntityId) : null;
   const effectiveId    = _entityItem ? _rawEntityId : null;
-  const isStapelbaar   = _entityItem?.data?.stapelbaar === 'true';
+  const dmvGebruik     = _gebruikVan(_entityItem?.data);
+  const isStapelbaar   = dmvGebruik === 'stapelbaar';
   const playerName     = _spelerNaam(entities, characterId);
 
   if (effectiveId) {
-    if (!g.itemOwners) g.itemOwners = {};
-    if (isStapelbaar) {
-      if (!Array.isArray(g.itemOwners[effectiveId])) g.itemOwners[effectiveId] = [];
-      const bestaand = g.itemOwners[effectiveId].find(o => o.characterId === characterId);
-      if (bestaand) bestaand.qty = (bestaand.qty || 1) + aantal;
-      else g.itemOwners[effectiveId].push({ characterId, playerName, qty: aantal });
-    } else {
-      g.itemOwners[effectiveId] = { characterId, playerName };
-    }
+    _eigendomErbij(g, effectiveId, characterId, playerName, dmvGebruik, aantal);
     if (!g.visibility) g.visibility = {};
     if ((g.visibility[effectiveId] || 'hidden') === 'hidden') g.visibility[effectiveId] = 'visible';
   } else {
@@ -2153,7 +2173,9 @@ router.post('/shops/:shopId/dm-verkoop', requireDM, (req, res) => {
     }
   }
 
-  if (!isStapelbaar) {
+  // Alleen een écht uniek voorwerp is na één verkoop op; van een gedeeld
+  // voorwerp kan de volgende speler er ook nog een kopen.
+  if (dmvGebruik === 'uniek') {
     if (!g.shopUitverkocht) g.shopUitverkocht = {};
     if (!g.shopUitverkocht[shopId]) g.shopUitverkocht[shopId] = [];
     if (!g.shopUitverkocht[shopId].map(k => (k || '').toLowerCase()).includes(itemKey)) {
@@ -2442,12 +2464,6 @@ router.get('/shops/:shopId/log', requireDM, (req, res) => {
 //                     targetId?, targetName?, status:'pending'|'approved'|'rejected' } ]
 //   tradeAllowed: boolean
 
-// Wat een voorwerp qua exemplaren is. Oude kaartjes hebben nog losse vinkjes
-// `stapelbaar`/`gedeeld` in plaats van het veld `gebruik`; die tellen mee.
-function _gebruikVan(d) {
-  return d?.gebruik || (d?.stapelbaar === 'true' ? 'stapelbaar' : d?.gedeeld === 'true' ? 'gedeeld' : 'uniek');
-}
-
 router.get('/items/ownership', attachRole, (req, res) => {
   const dmState = readDmState();
   // Spelers zien altijd hun eigen groep — niet de actief geselecteerde DM-groep.
@@ -2460,9 +2476,8 @@ router.get('/items/ownership', attachRole, (req, res) => {
   let stapelbaar = [], gedeeld = [];
   try {
     const entities = storage.readJSON('entities.json');
-    const _gebruik = d => d?.gebruik || (d?.stapelbaar === 'true' ? 'stapelbaar' : d?.gedeeld === 'true' ? 'gedeeld' : 'uniek');
-    stapelbaar = (entities.voorwerpen || []).filter(e => _gebruik(e.data) === 'stapelbaar').map(e => e.id);
-    gedeeld    = (entities.voorwerpen || []).filter(e => _gebruik(e.data) === 'gedeeld').map(e => e.id);
+    stapelbaar = (entities.voorwerpen || []).filter(e => _gebruikVan(e.data) === 'stapelbaar').map(e => e.id);
+    gedeeld    = (entities.voorwerpen || []).filter(e => _gebruikVan(e.data) === 'gedeeld').map(e => e.id);
   } catch { /* ok */ }
   res.json({
     owners:       g.itemOwners   || {},
@@ -2658,9 +2673,9 @@ router.put('/items/:itemId/owner', requireDM, (req, res) => {
   const dmState  = readDmState();
   const entities = storage.readJSON('entities.json');
   const item     = (entities.voorwerpen || []).find(e => e.id === itemId);
-  const _geb = d => d?.gebruik || (d?.stapelbaar === 'true' ? 'stapelbaar' : d?.gedeeld === 'true' ? 'gedeeld' : 'uniek');
-  const isStapelbaar = _geb(item?.data) === 'stapelbaar';
-  const isGedeeld    = _geb(item?.data) === 'gedeeld';
+  const putGebruik   = _gebruikVan(item?.data);
+  const isStapelbaar = putGebruik === 'stapelbaar';
+  const isGedeeld    = putGebruik === 'gedeeld';
   // groupId uit body heeft voorrang; daarna de eigen groep van het karakter; dan de actieve DM-groep.
   const targetId = groupId || _playerGroupId(dmState, characterId) || dmState.activeGroup;
   const g = dmState.groups[targetId];
@@ -2798,8 +2813,7 @@ router.patch('/items/:itemId/owner/:characterId', attachRole, (req, res) => {
   const dmState  = readDmState();
   const entities = storage.readJSON('entities.json');
   const patchItem = (entities.voorwerpen || []).find(e => e.id === itemId);
-  const _pgeb = d => d?.gebruik || (d?.stapelbaar === 'true' ? 'stapelbaar' : d?.gedeeld === 'true' ? 'gedeeld' : 'uniek');
-  if (_pgeb(patchItem?.data) === 'gedeeld') {
+  if (_gebruikVan(patchItem?.data) === 'gedeeld') {
     return res.status(403).json({ error: 'Gedeeld eigendom kan niet worden aangepast' });
   }
   // De DM kan naar groep 3 kijken terwijl deze speler in groep 1 zit; dan stond
@@ -3121,7 +3135,11 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     if (totaal <= 0) return;
     const hd = (dmState.playerHitDice[char.id] = dmState.playerHitDice[char.id] || { spent: {} });
     if (!hd.spent) hd.spent = {};
-    const terug = _herstelHitDice(pool, hd.spent, Math.max(1, Math.ceil(totaal / 2)));
+    // Naar beneden afronden, niet naar boven: de PHB zegt "half your total
+    // number of them (minimum of 1 die)", en D&D rondt af naar beneden tenzij er
+    // iets anders staat. Met ceil kreeg een Wizard 5 (5d6) er drie terug in
+    // plaats van twee — elke lange rust één te veel.
+    const terug = _herstelHitDice(pool, hd.spent, Math.max(1, Math.floor(totaal / 2)));
     _sum(char.id).hitDiceTerug = terug;
   });
 
@@ -3252,6 +3270,9 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     backdropId: _rustBackdrop('long', locatie, meta),
     loopFileId: _rustLoopFileId('long', locatie),
     waard: herberg.waard || '', herbergNaam: herberg.naam || '',
+    // Kosten meesturen: het geld gaat van de beurs van de speler af, dus hoort
+    // hij het ook te zien. De DM kreeg het al terug, de speler nergens.
+    kosten,
     roddels, perPlayer, gebeurtenissen,
   });
 

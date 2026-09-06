@@ -15361,7 +15361,7 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .hd-dot.gebruikt { background:transparent; border-color:rgba(120,100,60,0.5); opacity:0.5; }
 .hd-dot.vrij { background:#c4930a; }
 .rust-cinematic-sluit {
-  margin-top:8px; font-family:'Cinzel',serif; font-size:0.85rem; color:#f2e8d2;
+  display:block; margin:8px auto 0; font-family:'Cinzel',serif; font-size:0.85rem; color:#f2e8d2;
   background:rgba(196,168,122,0.14); border:1px solid rgba(196,168,122,0.45); border-radius:7px; padding:8px 20px; cursor:pointer;
 }
 .rust-cinematic-sluit:hover { background:rgba(196,168,122,0.26); }
