@@ -331,6 +331,9 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   e._geheimTotaal = geheimen.length;
   e._geheimOnthuld = zichtbareGeheimen.length;
   e._deceased     = !!(g.deceased?.[entity.id]);
+  // Waar dit kaartje bij hoort — maar alleen de kaartjes die deze party mag
+  // zien, anders verklapt de omgekeerde verwijzing dat er iets verborgens is.
+  e._hoortBij     = _betrokkenBij(entity.id).filter(x => (g.visibility[x.id] || 'hidden') === 'visible');
   return e;
 }
 
@@ -503,6 +506,42 @@ function _naamIndex() {
   return index;
 }
 
+// ── "Hoort bij": de andere kant van de betrokkenen-lijst ────────────────────
+// Een locatie noemt zijn eigenaar, maar het personage wist er niets van. Die
+// kant leiden we af in plaats van hem óók op te slaan: twee lijsten die
+// hetzelfde moeten zeggen lopen vroeg of laat uit elkaar. De index cachet op de
+// mtime van entities.json, net als _naamIndex.
+let _betrokkenIndexCache = null;
+function _betrokkenIndex() {
+  const fp = path.join(storage.DATA_DIR, 'entities.json');
+  let mtimeMs = -1;
+  try { mtimeMs = fs.statSync(fp).mtimeMs; } catch {}
+  if (_betrokkenIndexCache?.mtimeMs === mtimeMs) return _betrokkenIndexCache.index;
+  const entities = storage.readJSON('entities.json');
+  const index = new Map();   // id van de betrokkene → [{ id, name, type, rol }]
+  const lees = (rauw) => {
+    if (Array.isArray(rauw)) return rauw;
+    if (typeof rauw === 'string' && rauw.trim()) {
+      try { const a = JSON.parse(rauw); return Array.isArray(a) ? a : []; } catch { return []; }
+    }
+    return [];
+  };
+  for (const type of ['locaties', 'organisaties']) {
+    for (const e of (entities[type] || [])) {
+      for (const r of lees(e.data?.betrokkenen)) {
+        if (!r?.id) continue;                    // losse naam: nergens aan te hangen
+        if (!index.has(r.id)) index.set(r.id, []);
+        index.get(r.id).push({ id: e.id, name: e.name, type, rol: r.rol || '' });
+      }
+    }
+  }
+  _betrokkenIndexCache = { mtimeMs, index };
+  return index;
+}
+function _betrokkenBij(id) {
+  return _betrokkenIndex().get(id) || [];
+}
+
 function _linksMetTekst(entity) {
   const tekst = _LINK_TEKSTVELDEN.map(v => entity.data?.[v] || '').join('\n');
   if (!tekst.includes('[[')) return entity.links;
@@ -558,6 +597,7 @@ router.get('/entities/:type', attachRole, (req, res) => {
       _dmNote:       dmState.dmNotes[e.id]  || '',
       _gockOnderzocht: !!g.gockOnderzocht?.[e.id],
       _beeld:        storage.bestandBestaat(e.data?.imageId || e.id),
+      _hoortBij:     _betrokkenBij(e.id),
     }));
   }
   res.json(list);

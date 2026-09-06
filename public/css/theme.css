@@ -23031,6 +23031,15 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .betrokken-chip { display: inline-flex; align-items: center; gap: 5px; }
 .betrokken-chip .pill-lbl { font-family: 'Cinzel', serif; font-size: 9.5px; letter-spacing: .06em; color: #9a815c; }
 .betrokken-naam { font-family: 'Crimson Text', Georgia, serif; font-size: 0.9rem; color: #3a2410; }
+/* De andere kant op: waar dít kaartje bij hoort. Eigen kopje, want anders leest
+   het als "deze mensen horen bij mij" in plaats van andersom. */
+.detail-hoortbij { align-items: center; }
+.hoortbij-kop {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .06em; color: #9a815c; margin-right: 2px;
+}
+.hoortbij-kop .icon { width: 12px; height: 12px; }
 
 /* ── Koppelingen op een kaartje ─────────────────────────────────────────────
    Wat dit kaartje elders is: de herberg, de tempel van een god, de factie, een

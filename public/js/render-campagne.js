@@ -142,7 +142,11 @@ const TYPE_META = {
 // een continent (Isfār), landstreken (Donderhei, Wrakland), een mijn
 // (Evermijn), een park (Ter Velde) en een schuilplek (Dreghaven).
 const LOC_TYPE_GROEPEN = [
-  { groep: 'Met eigen instellingen', opties: [
+  // Deze drie staan hier én bij Gebouw, met dezelfde waarde. Bewust dubbel: het
+  // type zegt wat voor pand het is, niet dat het aan een dienst hangt. Een
+  // campagne kan drie herbergen hebben waarvan er één de dienst is, en dan hoort
+  // "Herberg" gewoon bij de gebouwen te staan.
+  { groep: 'Kan aan een dienst hangen', opties: [
     { value: 'Winkel',  label: 'Winkel' },
     { value: 'Herberg', label: 'Herberg' },
     { value: 'Tempel',  label: 'Tempel' },
@@ -156,7 +160,10 @@ const LOC_TYPE_GROEPEN = [
   ]},
   { groep: 'Gebouw', opties: [
     { value: 'Gebouw',     label: 'Gebouw' },
+    { value: 'Herberg',    label: 'Herberg' },
     { value: 'Taveerne',   label: 'Taveerne' },
+    { value: 'Winkel',     label: 'Winkel' },
+    { value: 'Tempel',     label: 'Tempel' },
     { value: 'Fort',       label: 'Fort of kasteel' },
     { value: 'Academie',   label: 'Academie' },
     { value: 'Ziekenhuis', label: 'Ziekenhuis' },
@@ -222,9 +229,8 @@ const SCHEMA = {
       // streek of een bovenliggend gebouw ("Hogwarts, tweede verdieping"). De
       // sleutel blijft `wijk` — daar hangt de sortering en de zoekindex aan.
       { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
-        hint: 'Grisburgh, het Amberwoud, Mistheuvel\u2026' },
-      { key: 'betrokkenen', label: 'Wie hoort hier bij', type: 'betrokkenen',
-        hint: 'Eigenaar, waard, personeel, stamgasten — personages én organisaties.' },
+        hint: 'De stad, streek of het gebouw waar dit in ligt' },
+      { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
@@ -236,9 +242,8 @@ const SCHEMA = {
       { key: 'motto', label: 'Motto', type: 'text' },
       // Zelfde koppelingen als bij een locatie: waar ze zitten en wie erbij hoort.
       { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
-        hint: 'Waar zit deze organisatie?' },
-      { key: 'betrokkenen', label: 'Wie hoort hier bij', type: 'betrokkenen',
-        hint: 'Leider, leden, beschermheer — personages én andere organisaties.' },
+        hint: 'De stad, streek of het gebouw waar dit in zit' },
+      { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavour', label: 'Flavour tekst', type: 'textarea' },
     ],
@@ -754,17 +759,23 @@ window._antagUit = _antagUit;
 // Opties van een select: een platte lijst, of groepen (optionGroups). Een
 // waarde die in geen enkele groep meer voorkomt krijgt zijn eigen regel, zodat
 // opslaan hem niet stilletjes leegmaakt — daar zou een oud kaartje op stuklopen.
-function _optieHtml(o, val) {
+function _optieHtml(o, val, alGekozen) {
   const v = typeof o === 'object' ? o.value : o;
   const l = typeof o === 'object' ? o.label : o;
-  return `<option value="${esc(v)}"${val === v ? ' selected' : ''}>${esc(l)}</option>`;
+  // Een waarde mag in twee groepen staan (Herberg hoort bij de diensten én bij
+  // de gebouwen). Alleen de eerste krijgt `selected`; met twee gemarkeerde
+  // opties wint in HTML de laatste, en dan lijkt de keuze verschoven.
+  const kies = val === v && !alGekozen.has(v);
+  if (kies) alGekozen.add(v);
+  return `<option value="${esc(v)}"${kies ? ' selected' : ''}>${esc(l)}</option>`;
 }
 function _optiesHtml(field, val) {
-  if (!field.optionGroups) return (field.options || []).map(o => _optieHtml(o, val)).join('');
+  const gekozen = new Set();
+  if (!field.optionGroups) return (field.options || []).map(o => _optieHtml(o, val, gekozen)).join('');
   const bekend = field.optionGroups.some(g => g.opties.some(o => (typeof o === 'object' ? o.value : o) === val));
   return field.optionGroups.map(g =>
-    `<optgroup label="${esc(g.groep)}">${g.opties.map(o => _optieHtml(o, val)).join('')}</optgroup>`
-  ).join('') + ((val && !bekend) ? `<optgroup label="Nog uit een oudere lijst">${_optieHtml(val, val)}</optgroup>` : '');
+    `<optgroup label="${esc(g.groep)}">${g.opties.map(o => _optieHtml(o, val, gekozen)).join('')}</optgroup>`
+  ).join('') + ((val && !bekend) ? `<optgroup label="Nog uit een oudere lijst">${_optieHtml(val, val, gekozen)}</optgroup>` : '');
 }
 
 // ── Koppelvelden: een kaartje aanwijzen in plaats van overtypen ─────────────
@@ -851,8 +862,13 @@ window._openKaartjeOpId = async (id) => {
 // ── Betrokkenen: wie hoort er bij dit kaartje ───────────────────────────────
 // Rollen zijn suggesties, geen keurslijf: een campagne verzint zijn eigen
 // functies en die horen niet op een lijst van ons te wachten.
-const BETROKKEN_ROLLEN = ['Eigenaar', 'Waard', 'Priester', 'Personeel', 'Stamgast',
-  'Bewoner', 'Leider', 'Lid', 'Beschermheer', 'Gevangene'];
+// Op volgorde van hoe vaak je ze nodig hebt: een organisatie heeft vooral leden,
+// een pand vooral een eigenaar en personeel. Wat ontbrak: bewaker, verkoper,
+// oprichter, rivaal en bondgenoot. Het is een datalist, dus wie iets anders
+// bedenkt tikt het gewoon in.
+const BETROKKEN_ROLLEN = ['Eigenaar', 'Lid', 'Personeel', 'Leider', 'Bewoner',
+  'Stamgast', 'Bewaker', 'Verkoper', 'Waard', 'Priester', 'Oprichter',
+  'Beschermheer', 'Bondgenoot', 'Rivaal', 'Gevangene'];
 
 function _betrokkenenUit(data) {
   const rauw = data?.betrokkenen;
@@ -2814,6 +2830,18 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       }).join('')}
     </div>`;
   }
+  // En de andere kant op: waar dít kaartje bij hoort. Afgeleid door de server
+  // uit de betrokkenen-lijsten van locaties en organisaties, dus er staat nooit
+  // iets anders dan daar ingevuld is.
+  const _hoortBij = Array.isArray(e._hoortBij) ? e._hoortBij : [];
+  if (_hoortBij.length) {
+    infoHtml += `<div class="detail-betrokkenen detail-hoortbij">
+      <span class="hoortbij-kop">${icon('link')} Hoort bij</span>
+      ${_hoortBij.map(r => `<span class="betrokken-chip">${r.rol ? `<span class="pill-lbl">${esc(r.rol)}</span>` : ''}<button
+        type="button" class="link-chip link-chip--sm"
+        onclick="window._openDetail('${esc(r.type)}','${esc(r.id)}')">${esc(r.name)}</button></span>`).join('')}
+    </div>`;
+  }
   if (tab === 'locaties' && window._pinnedLocIds?.has(e.id)) {
     infoHtml += `<div class="detail-map-link-wrap">
       <button class="detail-map-link-btn" onclick="window._toonOpKaart('${esc(e.id)}')">
@@ -4752,7 +4780,6 @@ window._openEditor = async (tab, editId) => {
       body += `
         <div>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
-          <p class="veld-uitleg">${esc(field.hint || '')}</p>
           <div id="betrokkenen-lijst">
             ${rijen.map((r, i) => _betrokkenRijHtml(r, i)).join('')}
           </div>
@@ -4761,7 +4788,7 @@ window._openEditor = async (tab, editId) => {
             ${BETROKKEN_ROLLEN.map(r => `<option value="${esc(r)}">`).join('')}
           </datalist>
           <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
-            onclick="window._betrokkenErbij()">${icon('plus')} Regel toevoegen</button>
+            onclick="window._betrokkenErbij()">${icon('plus')} Iemand toevoegen</button>
         </div>
       `;
     } else if (field.type === 'weapon-tags') {
