@@ -52,15 +52,47 @@ onderhoud kosten.
 
 ## Wat document-eigen blijft
 
-Drie dingen, en alleen die:
+Twee dingen, en alleen die:
 
 1. **De perkamentweergave** (`renderParchment`, met `---titel---` en
    `--handtekening--`) — dat is de reden dat een brief een brief is. Wordt een
-   weergave van `data.tekst`.
+   weergave van `data.tekst`. Zie de laatste paragraaf: hier valt nog veel meer
+   mee te doen.
 2. **Onthullen schrijft een regel in het logboek** (`archief.logEntries`) en
    speelt de reveal-animatie. Blijft als haak op de zichtbaarheidswissel.
-3. **`hoofdstuk`** — een document hangt aan een akte. Wordt `data.hoofdstuk`,
-   en levert meteen de bestaande groepering in het Logboek.
+
+## De koppeling aan een akte hoort bij de akte
+
+Op het kaartje staat nu een veld `hoofdstuk`. Dat is een tweede manier om iets
+te zeggen dat al ergens anders staat: het regie-script van een akte kent een
+`entity`-stap met `entityType: 'documenten'`, dus een document is daar al aan te
+wijzen. Het veld gaat weg; de akte blijft de plek waar de koppeling ligt.
+
+**Maar let op wat de data zegt** (Grisburgh, 7 sep 2026):
+
+| | |
+|---|---|
+| documenten | 31 |
+| met een ingevuld `hoofdstuk`-veld | 31 |
+| als stap in een aktescript | 3 |
+| beide ingevuld en het eens | 2 |
+| beide ingevuld en **oneens** | 1 |
+| alleen het veld | 28 |
+
+Precies het probleem van twee waarheden: ze zijn het in één geval al oneens, en
+de kant die de DM in de praktijk invult is het veld, niet het script. Zomaar het
+veld schrappen kost dus 28 documenten hun akte, en het Logboek zijn groepering.
+
+Het zijn ook niet helemáál dezelfde vraag. Het script zegt *wanneer* iets
+onthuld wordt — een volgorde. Het veld zegt *waar het bij hoort* — een
+indeling. Allebei horen ze bij de akte, geen van beide bij het kaartje.
+
+**Voorstel:** de akte krijgt naast zijn script een lijst
+`meta.hoofdstukken[key].documenten` (id's), gevuld door de migratie uit de
+huidige 31 `hoofdstuk`-waarden en te beheren vanuit de akte-editor. Het Logboek
+groepeert daarop. Het script blijft doen wat het doet: het onthulmoment tijdens
+het spelen. Eén plek — de akte — met twee vragen die eerlijk verschillen, en het
+kaartje zelf is er niets meer van kwijt.
 
 ## Wat we onderweg zouden opruimen
 
@@ -101,3 +133,21 @@ kaartjesbak maar het journaal en de regie van de DM. Die blijven waar ze zijn.
 4. De negen `/archief/:id/…`-routes opruimen, met uitzondering van wat het
    logboek en de aktes nodig hebben.
 5. Migratie draaien op de drie campagnes, met backup.
+
+## Later: de perkamentweergave verdient meer
+
+Nu is er één perkamentstijl. Een brief, een dreigbrief, een krant, een kasboek
+en een gebed zien er hetzelfde uit, terwijl het type al bekend is. Ideeën voor
+als we hieraan toekomen:
+
+- **handschrift** voor brieven en aantekeningen, met verschillende handen zodat
+  twee schrijvers herkenbaar verschillen;
+- **typemachine** voor rapporten, kasboeken en officiële stukken;
+- **uitgeknipte krantenletters** voor een dreigbrief — losse vlakjes met
+  wisselende letterhoogte en achtergrond;
+- **gezet drukwerk** voor kranten en folders, met kolommen.
+
+Te sturen op `data.docType` (of een eigen veld *briefstijl*, zoals de
+factie-uitnodiging dat al heeft), zodat de DM het per document kan overrulen.
+Dit is een aparte ronde, ná de samenvoeging — het is presentatie, en die is
+makkelijker als het datamodel al klopt.
