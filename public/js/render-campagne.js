@@ -315,7 +315,9 @@ function _werkingUit(data) {
   if (dmg && /heal|genez/i.test(dmg)) uit.push('healing');
   if (String(d.healing || '').trim()) { if (!uit.includes('healing')) uit.push('healing'); }
   if (String(d.armorType || '').trim() || String(d.armorBaseAC || '').trim()) uit.push('defense');
-  if (d.itemType === 'Scroll' || String(d.spellCastingTime || '').trim()) uit.push('spell');
+  let _gek = [];
+  try { _gek = JSON.parse(d.spellIndexes || '[]'); } catch { /* ok */ }
+  if (d.itemType === 'Scroll' || (Array.isArray(_gek) && _gek.length)) uit.push('spell');
   return uit;
 }
 window._werkingUit = _werkingUit;
@@ -415,7 +417,6 @@ const SCHEMA = {
       { key: 'werking', label: 'Werking', type: 'werking' },
       { key: 'damage', label: 'Schadeformule', type: 'text', showWerking: 'attack', hint: '1d8+1 Slashing' },
       { key: 'weaponProperties', label: 'Wapeneigenschappen', type: 'weapon-tags', showWerking: 'attack' },
-      { key: 'healing', label: 'Genezingsformule', type: 'text', showWerking: 'healing', hint: '2d4+2' },
       // Heet niet meer "Harnas type": sinds Defense los van het type staat kan
       // ook een ring of een paar bracers hier terecht. De keuze zegt nu wat er
       // met de Dex-modifier gebeurt, want dát is wat de app ermee rekent.
@@ -432,11 +433,8 @@ const SCHEMA = {
         hint: 'alleen bij Other', showWhen: { key: 'armorType', values: ['other'] } },
       { key: 'stealthDisadvantage', label: 'Stealth Disadvantage', type: 'checkbox', showWerking: 'defense' },
       { key: 'strengthRequirement', label: 'Strength Requirement', type: 'text', showWerking: 'defense' },
+      { key: 'healing', label: 'Genezingsformule', type: 'text', showWerking: 'healing', hint: '2d4+2' },
       { key: 'spellIndexes', label: 'Gekoppelde spreuken', type: 'spell-picker', showWerking: 'spell' },
-      { key: 'spellCastingTime', label: 'Casting Time', type: 'text', showWerking: 'spell' },
-      { key: 'spellRange',       label: 'Range',         type: 'text', showWerking: 'spell' },
-      { key: 'spellComponents',  label: 'Components',    type: 'text', showWerking: 'spell' },
-      { key: 'spellDuration',    label: 'Duration',      type: 'text', showWerking: 'spell' },
       { key: 'godNaam', label: 'God', type: 'text', showFor: ['Blessing'] },
       { key: 'goddelijkType', label: 'Soort', type: 'select', showFor: ['Blessing'], options: [
         { value: 'zegen', label: 'Zegening' },
@@ -3710,7 +3708,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // Betrokkenen heeft zijn eigen rij chips hieronder; als pil kwam zijn ruwe
     // JSON in beeld.
     if (field.type === 'betrokkenen') continue;
-    if (tab === 'voorwerpen' && ['werking', 'healing', 'prijs', 'attunementEis', 'maxCharges', 'rechargeOn', 'rechargeRoll', 'playerMaxAdjustable', 'itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellPick', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
+    if (tab === 'voorwerpen' && ['werking', 'healing', 'spellIndexes', 'prijs', 'attunementEis', 'maxCharges', 'rechargeOn', 'rechargeRoll', 'playerMaxAdjustable', 'itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellPick', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
     if (field.key === 'desc') {
@@ -5493,14 +5491,9 @@ window._scrollPickSpell = (naam) => {
   if (!sp) return;
   const form = document.getElementById('entity-form');
   if (!form) return;
-  const setVal = (n, v) => { const el = form.querySelector(`[name="${n}"]`); if (el) el.value = v; };
-  const comp = (Array.isArray(sp.components) ? sp.components.join(', ') : (sp.components || '')) + (sp.material ? ` (${sp.material})` : '');
-  setVal('data_spellCastingTime', sp.casting_time || '');
-  setVal('data_spellRange',       sp.range || '');
-  setVal('data_spellComponents',  comp);
-  setVal('data_spellDuration',    sp.duration || '');
-  // Alleen invullen als het vak nog leeg is: een eigen omschrijving overschrijven
-  // is precies waarom kopiëren een slecht idee was.
+  // Casting time, range, components en duration werden hier ingevuld; die staan
+  // in de spreuk zelf en zijn één klik verderop. Wat blijft is het gemak: een
+  // lege naam en een lege beschrijving krijgen een voorzet.
   const _descEl = form.querySelector('[name="data_desc"]');
   if (_descEl && !_descEl.value.trim()) _descEl.value = (sp.desc || []).join('\n\n');
   const nameEl = form.querySelector('[name="name"]');
@@ -5693,6 +5686,7 @@ window._openEditor = async (tab, editId) => {
 
   // Korte velden (niet-textarea) in rechter kolom
   let _revealGroupOpen = null;
+  let _werkingGroepOpen = null;
   const _curItemType = e?.data?.itemType || '';
   // Eén doorloop, in schemavolgorde. Tekstvakken hadden een eigen ronde ná deze
   // lus, waardoor Beschrijving onder Flavour en Geheimen belandde — de volgorde
@@ -5720,9 +5714,18 @@ window._openEditor = async (tab, editId) => {
       const _aan = field.showWhen.values.includes(_nu);
       body += `<div data-show-when-key="${esc(field.showWhen.key)}" data-show-when-val="${esc(field.showWhen.values.join('|'))}"${_aan ? '' : ' style="display:none"'}>`;
     }
-    if (field.showWerking) {
+    // Alle velden van één werking in één omkaderd blok met een kopje: los onder
+    // elkaar was niet te zien welk veld bij welk vinkje hoorde.
+    if (_werkingGroepOpen && field.showWerking !== _werkingGroepOpen) {
+      body += `</div>`;
+      _werkingGroepOpen = null;
+    }
+    if (field.showWerking && field.showWerking !== _werkingGroepOpen) {
       const _aan = _werkingUit(e?.data).includes(field.showWerking);
-      body += `<div data-werking="${esc(field.showWerking)}"${_aan ? '' : ' style="display:none"'}>`;
+      const _w = WERKINGEN.find(w => w.key === field.showWerking);
+      body += `<div class="werking-groep" data-werking="${esc(field.showWerking)}"${_aan ? '' : ' style="display:none"'}>
+        <div class="werking-groep-kop">${esc(_w ? _w.label : field.showWerking)}</div>`;
+      _werkingGroepOpen = field.showWerking;
     }
     // showFor: wrap in a togglable div, initially hidden if itemType doesn't match
     if (field.showFor) {
@@ -6062,12 +6065,12 @@ window._openEditor = async (tab, editId) => {
         </div>
       `;
     }
-    if (field.showWerking) body += `</div>`;
     if (field.showFor) body += `</div>`; // close showFor wrapper
     if (field.hideFor) body += `</div>`; // close hideFor wrapper
     if (field.showWhen) body += `</div>`; // close showWhen wrapper
     if (field.alleenBij || field.nietBij) body += `</div>`;
   }
+  if (_werkingGroepOpen) { body += `</div>`; _werkingGroepOpen = null; }
   if (_revealGroupOpen) { body += `</div>`; _revealGroupOpen = null; }
 
   // De toggles-rij is leeg: "roddel uitgesproken" hoort bij de herberg (de server

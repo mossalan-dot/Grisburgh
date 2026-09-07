@@ -1804,6 +1804,29 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   color: #8a7a5a;
 }
 
+/* De velden die bij één werking horen, als eigen blok met een kopje. Los onder
+   elkaar was niet te zien welk veld bij welk vinkje hoorde — en met twee
+   werkingen tegelijk (een Staff of Fire slaat én cast) liepen ze door elkaar. */
+.werking-groep {
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 8px;
+  padding: 10px 12px 12px;
+  margin: 2px 0 4px;
+  background: rgba(236,220,186,0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.werking-groep-kop {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #9a7008;
+  margin-bottom: -2px;
+}
+
 /* Scheiding tussen twee groepen velden in een editor. Zonder streep leken de
    losse vinkjes onder een uitklapblok daar nog bij te horen. */
 .veld-scheiding {
