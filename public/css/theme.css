@@ -8262,15 +8262,40 @@ details.player-dash-collapsible[open] > summary {
 .item-owner-badge--other {
   background: rgba(255,255,255,0.06);
 }
-.item-owner-remove {
-  margin-left: auto;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #8b2a2a;
-  font-size: 10px;
-  padding: 0 2px;
+/* Eén vorm voor de voetregel: links wie het heeft, rechts dezelfde knoppen.
+   Er waren drie varianten, die per kaartje anders uitvielen. */
+.item-owner-badge .iob-wie {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
 }
+.item-owner-badge .iob-wie > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.item-owner-badge .iob-wie svg { width: 13px; height: 13px; flex-shrink: 0; opacity: 0.8; }
+.item-owner-badge .iob-acties { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.item-owner-badge--klik { cursor: pointer; transition: background 0.15s; }
+.item-owner-badge--klik:hover { background: rgba(196,147,10,0.2); }
+.iob-knop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  border: 0; border-radius: 4px;
+  background: none;
+  color: inherit;
+  opacity: 0.65;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+}
+.iob-knop:hover { opacity: 1; background: rgba(255,255,255,0.35); }
+.iob-knop svg { width: 13px; height: 13px; }
+.iob-knop--weg { color: #8b2a2a; }
+.iob-knop--weg:hover { background: rgba(139,42,42,0.15); }
 .item-claim-btn {
   display: block;
   width: 100%;
@@ -10148,33 +10173,8 @@ details.player-dash-collapsible[open] > summary {
 /* ══════════════════════════════════════════════════
    ITEM GEVEN AAN SPELER (DM)
    ══════════════════════════════════════════════════ */
-.item-give-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
-  padding: 0 2px;
-  opacity: 0.7;
-  transition: opacity 0.15s;
-  vertical-align: middle;
-}
-.item-give-btn:hover { opacity: 1; }
-
-.item-give-btn--standalone {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: 'Cinzel', serif;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border: 1px solid #c4a87a !important;
-  border-radius: 4px;
-  background: rgba(255,255,255,0.5) !important;
-  color: #6a4820;
-  opacity: 1;
-}
-.item-give-btn--standalone:hover { background: #f0b429 !important; color: #3a2410; border-color: #d4a020 !important; }
+/* .item-give-btn en --standalone zijn vervallen: de voetregel van een
+   voorwerpkaartje heeft nu overal dezelfde vorm (.iob-knop). */
 
 .item-give-picker { display: flex; flex-direction: column; gap: 14px; }
 .item-give-group-label {

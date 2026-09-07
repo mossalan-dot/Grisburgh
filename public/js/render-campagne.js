@@ -3012,57 +3012,48 @@ function _itemOwnershipBadge(itemId) {
   const myName       = window.app?.state?.playerName;
   const isDm         = window.app?.isDM?.();
 
-  // ── Gedeeld: array-eigendom, elk precies 1 exemplaar ──
-  if (isGedeeld) {
-    const eigenaren = Array.isArray(owner) ? owner : [];
-    if (isDm) {
-      const label = eigenaren.length > 0
-        ? `${icon('package')} ${eigenaren.length} speler${eigenaren.length !== 1 ? 's' : ''}`
-        : `${icon('package')} Geef aan speler`;
-      return `
-        <div class="item-owner-badge item-owner-badge--stapelbaar item-owner-badge--give" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')">
-          <span>${label}</span>
-          <span class="item-give-btn">${icon('plus')}</span>
-        </div>`;
-    }
-    const myEntry = myId ? eigenaren.find(o => o.characterId === myId) : null;
-    if (myEntry) {
-      return `<div class="item-owner-badge item-owner-badge--mine" onclick="event.stopPropagation()">${icon('package')} Jouw exemplaar</div>`;
-    }
-    return '';
-  }
+  // Eén vorm voor alle gevallen. Er waren er drie: bij een eigenaar stond zijn
+  // naam links met twee icoontjes rechts, zonder eigenaar was de hele regel de
+  // knop "Geef aan speler", en een stapel had weer een andere tekst. Nu links
+  // altijd wát de stand is en rechts altijd dezelfde knoppen; de hele strook
+  // blijft aanklikbaar om uit te delen.
+  const strook = (klas, wie, wegTitel, wegActie) => `
+    <div class="item-owner-badge${klas ? ' ' + klas : ''}${isDm ? ' item-owner-badge--klik' : ''}"
+      ${isDm ? `onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan speler"` : 'onclick="event.stopPropagation()"'}>
+      <span class="iob-wie">${icon('package')}<span>${wie}</span></span>
+      ${isDm ? `<span class="iob-acties">
+        ${wegActie ? `<button class="iob-knop iob-knop--weg" title="${esc(wegTitel)}"
+          onclick="event.stopPropagation();${wegActie}">${icon('x')}</button>` : ''}
+        <button class="iob-knop" title="Geef aan speler"
+          onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')">${icon('plus')}</button>
+      </span>` : ''}
+    </div>`;
 
-  // ── Stapelbaar: array-eigendom ──
-  if (isStapelbaar) {
+  // ── Gedeeld en stapelbaar: array-eigendom ──
+  if (isGedeeld || isStapelbaar) {
     const eigenaren = Array.isArray(owner) ? owner : [];
     if (isDm) {
       const total = eigenaren.reduce((s, o) => s + (o.qty || 1), 0);
-      const label = eigenaren.length > 0
-        ? `${icon('package')} ${eigenaren.length} speler${eigenaren.length !== 1 ? 's' : ''} · ${total}×`
-        : `${icon('package')} Geef aan speler`;
-      return `
-        <div class="item-owner-badge item-owner-badge--stapelbaar item-owner-badge--give" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')">
-          <span>${label}</span>
-          <span class="item-give-btn">${icon('plus')}</span>
-        </div>`;
+      const wie = eigenaren.length === 0
+        ? 'Nog van niemand'
+        : `${eigenaren.length} speler${eigenaren.length !== 1 ? 's' : ''}${isStapelbaar ? ` · ${total}×` : ''}`;
+      return strook('item-owner-badge--stapelbaar', esc(wie), '', '');
     }
     const myEntry = myId ? eigenaren.find(o => o.characterId === myId) : null;
     if (myEntry && (myEntry.qty || 1) > 0) {
-      return `<div class="item-owner-badge item-owner-badge--mine" onclick="event.stopPropagation()">${icon('package')} ×${myEntry.qty || 1}</div>`;
+      return strook('item-owner-badge--mine',
+        isStapelbaar ? `Jouw exemplaren · ${myEntry.qty || 1}×` : 'Jouw exemplaar', '', '');
     }
     return '';
   }
 
-  // ── Uniek eigendom (bestaande logica) ──
+  // ── Uniek eigendom ──
   if (owner && !Array.isArray(owner)) {
     const isMine = myId && owner.characterId === myId;
-    const color  = isMine ? '' : `color:${_playerColor(owner.characterId)};border-color:${_playerColor(owner.characterId)}40`;
-    return `
-      <div class="item-owner-badge ${isMine ? 'item-owner-badge--mine' : 'item-owner-badge--other'}" style="${color}" onclick="event.stopPropagation()">
-        ${isMine ? `${icon('package')} Jouw eigendom` : `${icon('package')} ${esc(owner.playerName)}`}
-        ${isDm ? `<button class="item-owner-remove" onclick="event.stopPropagation();window._itemRemoveOwner('${esc(itemId)}','${escJS(owner.playerName || '')}')" title="Uit de inventaris van ${esc(owner.playerName || 'deze speler')} halen">${icon('x')}</button>` : ''}
-        ${isDm ? `<button class="item-give-btn" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan andere speler">${icon('package')}</button>` : ''}
-      </div>`;
+    return strook(isMine ? 'item-owner-badge--mine' : 'item-owner-badge--other',
+      isMine ? 'Jouw eigendom' : esc(owner.playerName || 'Een speler'),
+      `Uit de inventaris van ${owner.playerName || 'deze speler'} halen`,
+      `window._itemRemoveOwner('${esc(itemId)}','${escJS(owner.playerName || '')}')`);
   }
 
   // Pending verzoek van deze speler
@@ -3073,17 +3064,7 @@ function _itemOwnershipBadge(itemId) {
     return `<div class="item-claim-pending" onclick="event.stopPropagation()">${icon('hourglass')} Wacht op DM…</div>`;
   }
 
-  // Geef-knop voor DM (geen eigenaar). Dezelfde strook als bij een stapelbaar
-  // of gedeeld voorwerp: daar was het hele vlak aanklikbaar en hier alleen het
-  // knopje, terwijl het om precies dezelfde handeling gaat.
-  if (isDm) {
-    return `
-      <div class="item-owner-badge item-owner-badge--stapelbaar item-owner-badge--give"
-        onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan speler">
-        <span>${icon('package')} Geef aan speler</span>
-        <span class="item-give-btn">${icon('plus')}</span>
-      </div>`;
-  }
+  if (isDm) return strook('', 'Nog van niemand', '', '');
 
   // Claim-knop voor ingelogde speler (niet stapelbaar)
   if (myName && !isDm) {
