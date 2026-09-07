@@ -416,15 +416,20 @@ const SCHEMA = {
       { key: 'damage', label: 'Schadeformule', type: 'text', showWerking: 'attack', hint: '1d8+1 Slashing' },
       { key: 'weaponProperties', label: 'Wapeneigenschappen', type: 'weapon-tags', showWerking: 'attack' },
       { key: 'healing', label: 'Genezingsformule', type: 'text', showWerking: 'healing', hint: '2d4+2' },
-      { key: 'armorType', label: 'Harnas type', type: 'select', showWerking: 'defense', options: [
-        { value: 'light',  label: 'Light — volledig Dex' },
-        { value: 'medium', label: 'Medium — Dex max +2' },
-        { value: 'heavy',  label: 'Heavy — geen Dex' },
-        { value: 'shield', label: 'Shield — bonus op bestaande AC' },
-        { value: 'other',  label: 'Other — zie Dex cap' },
+      // Heet niet meer "Harnas type": sinds Defense los van het type staat kan
+      // ook een ring of een paar bracers hier terecht. De keuze zegt nu wat er
+      // met de Dex-modifier gebeurt, want dát is wat de app ermee rekent.
+      { key: 'armorType', label: 'Hoe telt de AC', type: 'select', showWerking: 'defense', options: [
+        { value: 'light',  label: 'Light — Base AC plus je volledige Dex-modifier' },
+        { value: 'medium', label: 'Medium — Base AC plus Dex, maar hoogstens +2' },
+        { value: 'heavy',  label: 'Heavy — alleen de Base AC, Dex telt niet mee' },
+        { value: 'shield', label: 'Shield — telt als bonus op bij de AC die je al hebt' },
+        { value: 'other',  label: 'Other — Base AC plus Dex tot de cap hieronder' },
       ]},
-      { key: 'armorBaseAC', label: 'Base AC (of bonus voor Shield)', type: 'text', showWerking: 'defense' },
-      { key: 'armorDexCap', label: 'Dex cap (alleen bij Other)', type: 'text', showWerking: 'defense' },
+      { key: 'armorBaseAC', label: 'Base AC', type: 'text', showWerking: 'defense',
+        hint: '14 — bij Shield de bonus, dus 2' },
+      { key: 'armorDexCap', label: 'Dex cap', type: 'text', showWerking: 'defense',
+        hint: 'alleen bij Other', showWhen: { key: 'armorType', values: ['other'] } },
       { key: 'stealthDisadvantage', label: 'Stealth Disadvantage', type: 'checkbox', showWerking: 'defense' },
       { key: 'strengthRequirement', label: 'Strength Requirement', type: 'text', showWerking: 'defense' },
       { key: 'spellIndexes', label: 'Gekoppelde spreuken', type: 'spell-picker', showWerking: 'spell' },
@@ -3095,7 +3100,7 @@ function _itemOwnershipBadge(itemId) {
     if (isDm) {
       const total = eigenaren.reduce((s, o) => s + (o.qty || 1), 0);
       const wie = eigenaren.length === 0
-        ? 'Nog van niemand'
+        ? 'Niemand'
         : `${eigenaren.length} speler${eigenaren.length !== 1 ? 's' : ''}${isStapelbaar ? ` · ${total}×` : ''}`;
       return strook('item-owner-badge--stapelbaar', esc(wie), '', '');
     }
@@ -3124,7 +3129,7 @@ function _itemOwnershipBadge(itemId) {
     return `<div class="item-claim-pending" onclick="event.stopPropagation()">${icon('hourglass')} Wacht op DM…</div>`;
   }
 
-  if (isDm) return strook('', 'Nog van niemand', '', '');
+  if (isDm) return strook('', 'Niemand', '', '');
 
   // Claim-knop voor ingelogde speler (niet stapelbaar)
   if (myName && !isDm) {
@@ -5087,7 +5092,13 @@ window._showWhenBijwerken = () => {
 
 // De vinkjes schrijven naar één verborgen veld, net als bij de rollen van een
 // personage, en tonen of verbergen meteen de velden die eraan hangen.
-window._werkingBij = () => {
+// Onthoudt wat we zelf hebben aangevinkt bij het kiezen van een type. Zolang de
+// DM daar niet aan gezeten heeft mag een volgende typekeuze het vervangen —
+// anders bleef "Attack" staan als je van Weapon naar Armor ging. Zodra hij zelf
+// een vinkje omzet is het een keuze en blijven we eraf.
+window._werkingAutoWaarde = null;
+
+window._werkingBij = (vanZelf) => {
   const aan = [...document.querySelectorAll('.rollen-rij input[type=checkbox]')]
     .filter(c => c.checked && WERKINGEN.some(w => w.key === c.value))
     .map(c => c.value);
@@ -5096,6 +5107,7 @@ window._werkingBij = () => {
   document.querySelectorAll('[data-werking]').forEach(el => {
     el.style.display = aan.includes(el.dataset.werking) ? '' : 'none';
   });
+  if (!vanZelf) window._werkingAutoWaarde = null;   // met de hand omgezet
 };
 
 window._onItemTypeChange = (val) => {
@@ -5106,11 +5118,15 @@ window._onItemTypeChange = (val) => {
     let nu = [];
     try { nu = JSON.parse(veld.value || '[]'); } catch { /* ok */ }
     const suggestie = ITEM_TYPE_WERKING[val] || [];
-    if (!nu.length && suggestie.length) {
+    // Vervangen mag als er nog niets staat, of als wat er staat door een vorige
+    // typekeuze is neergezet en sindsdien niet is aangeraakt.
+    const magVervangen = !nu.length || JSON.stringify(nu) === window._werkingAutoWaarde;
+    if (magVervangen) {
       document.querySelectorAll('.rollen-rij input[type=checkbox]').forEach(c => {
-        if (suggestie.includes(c.value)) c.checked = true;
+        if (WERKINGEN.some(w => w.key === c.value)) c.checked = suggestie.includes(c.value);
       });
-      window._werkingBij();
+      window._werkingBij(true);
+      window._werkingAutoWaarde = suggestie.length ? JSON.stringify(suggestie) : null;
     }
   }
   const melding = document.getElementById('veld-melding-itemType');

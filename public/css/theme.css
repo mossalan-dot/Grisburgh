@@ -8272,14 +8272,17 @@ details.player-dash-collapsible[open] > summary {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
+  padding: 5px 10px;
   background: rgba(154,106,42,0.12);
   border-top: 1px solid rgba(154,106,42,0.2);
   font-family: 'Cinzel', serif;
+  /* Was 9px met 0.06em spatiëring in kapitalen: op een smal kaartje werd
+     daardoor elke naam afgekapt ("WILMER VL…"). Iets kleinere spatiëring en
+     minder padding scheelt genoeg om een normale naam heel te laten. */
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
   color: #7a5a20;
 }
 .item-owner-badge--mine {

@@ -83,6 +83,16 @@ opnieuw om te zetten.
 
 ## Testomgeving
 
+> **Er zijn twee testplekken; verwar ze niet.** De campagne **`Test`**
+> ("Een testomgeving", te bereiken op `/Test`) is de plek om vrij te spelen:
+> eigen spelers (Wilmer Vlasbaard, Rozemarijn Doorn, Johannes Kanonnen), eigen
+> voorwerpen, twee party's. Dáár horen nieuwe testkaartjes. De **Testgroep**
+> hieronder is een party *binnen Grisburgh* en dient om te kijken hoe echte
+> campagnedata zich gedraagt. Zegt de gebruiker "de testomgeving" of "de
+> testruimte", dan bedoelt hij de campagne. Let op: het DM-wachtwoord van `Test`
+> is gehasht, dus via de API inloggen kan niet zonder dat wachtwoord; een
+> gegevenswijziging daar gaat met een node-script op de server (backup eerst).
+
 **Testgroep:** Groep 3 (ID: `groep_1777039899017_94g1`)
 
 | Karakter | ID | Klasse |
