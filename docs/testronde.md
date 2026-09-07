@@ -56,6 +56,15 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Eén klik te veel terugnemen** (DM) — bij een stapelbaar voorwerp staat in het geef-venster een min-knop achter een speler die het al heeft; klikken haalt er één af (en bij de laatste verdwijnt hij uit de lijst)
 - [ ] **Te koop bij** (DM/SP) — zet een voorwerp in de voorraad van een winkel: op het voorwerp-kaartje staat onder *Waar hoort dit bij?* een regel **Te koop** met die winkel erachter, doorklikbaar naar het voorraadtabblad. Haal je hem uit de voorraad, dan verdwijnt de regel (het is afgeleid, niet opgeslagen)
 - [ ] **Geen verzonnen categorie in de filterbalk** (ALL) — in Voorwerpen staat geen chip *Zegeningen & Gunsten* meer; Blessing en Boon zijn gewone chips en staan gewoon in de lijst
+- [ ] **Documentkaartje zonder afbeelding** (ALL) — een document zonder beeld toont geen lege beeldstrook meer; de typebadge is dezelfde paarse pil als bij een kaartje mét beeld (was een balk over de volle breedte)
+- [ ] **DM-knoppen in de documentviewer** (DM) — onderaan staan *Zichtbaar/Vaag zichtbaar/Verborgen*, *Bewerken* en *Verwijderen* met icoon én woord, niet drie naamloze vierkantjes
+- [ ] **Schadepil op het kaartje** (ALL) — een wapen zonder afbeelding toont zijn schadeformule in de kaartbody en die is klikbaar (rolt in het dobbelpaneel); met afbeelding ligt hij als vanouds rechtsboven over het beeld
+- [ ] **Geef-knop even groot** (DM) — bij een uniek voorwerp is de hele strook *Geef aan speler* aanklikbaar, net als bij een stapelbaar of gedeeld voorwerp
+- [ ] **Typegebonden velden staan waar de melding ze belooft** (DM) — kies *Weapon*: de melding zegt dat je velden voor schade en wapeneigenschappen krijgt, en die staan direct eronder (niet pas onder de beschrijving)
+- [ ] **Streep onder het charges-blok** (DM) — *Vereist attunement* en *Niet te verkopen aan winkels* staan onder een scheidingslijn, zodat ze niet bij de charges lijken te horen
+- [ ] **Maximum accepteert alleen cijfers** (DM) — typ `e`, `-` of een punt in *Maximum*: er komt niets in het veld
+- [ ] **Kenmerken zonder kader** (ALL) — in het detailvenster staan prijs, attunement en charges als losse chips op één regel, zonder omkadering die als invoerveld leest
+- [ ] **Verwijderen zegt wie** (DM) — de bevestiging luidt "<voorwerp> verwijderen uit de inventaris van <speler>?"
 - [ ] **Documenten** (ALL) — eigen editor en viewer (niet het detailvenster van de andere tabs); markdown met `[[links]]`; per party vrijgeven en weer verbergen
 - [ ] **Bestiarium** (DM) — kaartjes, statblock-modal met acties en eigenschappen, eigen editor in de Meesterkamer; spelers zien deze tab niet
 - [ ] **Spreuken** (ALL) — filters op niveau en klasse, zoeken, detailvenster met casting time, range, components en duration; afbeelding kiezen en focuspunt zetten; glossary-tooltips op D&D-termen
