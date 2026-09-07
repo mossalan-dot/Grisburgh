@@ -1623,19 +1623,27 @@ router.get('/shops/:shopId/beschikbaar', attachRole, (req, res) => {
 
   // Roterende winkel
   const deelGroep = winkelConfig.deelGroep?.trim() || shopId;
-  const aantalItems = Math.max(1, parseInt(winkelConfig.aantalItems) || 3);
+  const verversBij = _verversBij(winkelConfig);
   const refreshMs = Math.max(1, parseFloat(winkelConfig.refreshUren) || 24) * 3600000;
 
   if (!g.shopRotatie) g.shopRotatie = {};
   let rotatie = g.shopRotatie[deelGroep];
   const now = Date.now();
-  const geldig = rotatie && rotatie.geldigTot && new Date(rotatie.geldigTot).getTime() > now && rotatie.items?.length;
+  const stand = _rustStand(g, verversBij === 'short' ? 'short' : 'long');
+  const geldig = rotatie && rotatie.items?.length && (verversBij === 'uren'
+    ? (rotatie.geldigTot && new Date(rotatie.geldigTot).getTime() > now)
+    : rotatie.rustStand === stand);
 
   if (!geldig) {
     const pool = [...voorraadItems].filter(item => !uitverkochtSet.has((item.naam || '').toLowerCase().trim()));
     const shuffled = pool.sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, aantalItems).map(i => i.naam);
-    rotatie = { items: selected, geldigTot: new Date(now + refreshMs).toISOString() };
+    const selected = shuffled.slice(0, _hoeveelInDeSchappen(winkelConfig, pool.length)).map(i => i.naam);
+    rotatie = {
+      items: selected,
+      gemaakt: new Date(now).toISOString(),
+      rustStand: stand,
+      geldigTot: new Date(now + refreshMs).toISOString(),
+    };
     g.shopRotatie[deelGroep] = rotatie;
     storage.writeJSON('dm-state.json', dmState);
   }
@@ -1665,7 +1673,7 @@ router.get('/shops/:shopId/beschikbaar', attachRole, (req, res) => {
   const discountPct = _discountActief ? _tempDiscount.percent : 0;
   const sfeerTekst = winkelConfig.sfeerTekst || '';
   res.json({
-    items: filtered, roterend: true, geldigTot: rotatie.geldigTot, sfeerTekst, discountPct,
+    items: filtered, roterend: true, geldigTot: rotatie.geldigTot, verversBij, sfeerTekst, discountPct,
     onderhandel: _onderhandelStatus(_pg, shopId, _characterId, winkelConfig),
   });
 });
@@ -1900,10 +1908,42 @@ function _bumpShopMood(g, shopId, characterId, delta, playerName) {
 // Begin van het huidige onderhandel-window: de lopende rotatie, of anders
 // een glijdend window van 24 uur. Eén onderhandelpoging en één klantbonus
 // per window.
+// Een winkel ververst zijn schappen na een rust, niet op de klok: de party
+// speelt geen realtime uren. 'uren' blijft bestaan voor winkels die al zo
+// stonden. Bij een lange rust telt ook de korte mee — er is een nacht voorbij.
+function _verversBij(winkelConfig) {
+  const v = winkelConfig?.verversBij;
+  return (v === 'short' || v === 'uren') ? v : 'long';
+}
+function _rustStand(g, soort) {
+  return (g.rustTellers || {})[soort] || 0;
+}
+function _bumpRustTellers(dmState, soorten) {
+  for (const g of Object.values(dmState.groups || {})) {
+    if (!g.rustTellers) g.rustTellers = { long: 0, short: 0 };
+    for (const s of soorten) g.rustTellers[s] = (g.rustTellers[s] || 0) + 1;
+  }
+}
+// "3" is drie, "1d8" is een worp. Altijd minstens één, en nooit meer dan het
+// opgegeven maximum of dan er in de voorraad ligt.
+function _hoeveelInDeSchappen(winkelConfig, poolLengte) {
+  const rauw = String(winkelConfig.aantalFormule ?? winkelConfig.aantalItems ?? 3).trim();
+  let n;
+  if (/^\d+$/.test(rauw)) n = parseInt(rauw);
+  else n = rollDice(rauw) || parseInt(winkelConfig.aantalItems) || 3;
+  const max = parseInt(winkelConfig.maxItems);
+  if (max > 0) n = Math.min(n, max);
+  return Math.max(1, Math.min(n, poolLengte || 1));
+}
+
 function _shopWindowStart(g, shopId, winkelConfig) {
   if (winkelConfig.roterend) {
     const deelGroep = winkelConfig.deelGroep?.trim() || shopId;
     const rotatie = g.shopRotatie?.[deelGroep];
+    // Rust-gestuurd: het venster begint wanneer de selectie gemaakt is.
+    if (rotatie?.gemaakt && _verversBij(winkelConfig) !== 'uren') {
+      return new Date(rotatie.gemaakt).getTime();
+    }
     if (rotatie?.geldigTot) {
       const refreshMs = Math.max(1, parseFloat(winkelConfig.refreshUren) || 24) * 3600000;
       const eind = new Date(rotatie.geldigTot).getTime();
@@ -3265,6 +3305,10 @@ router.post('/party/long-rest', requireDM, (req, res) => {
     });
   }
 
+  // Winkels met een wisselend assortiment verversen na een rust; een lange rust
+  // telt ook als korte, want er is een nacht voorbij.
+  _bumpRustTellers(dmState, ['long', 'short']);
+
   storage.writeJSON('dm-state.json', dmState);
 
   // Cinematic naar alle spelers in de campagne
@@ -3342,6 +3386,9 @@ router.post('/party/short-rest', requireDM, (req, res) => {
     if (!hd.spent) hd.spent = {};
     perPlayer[cid] = { chargesHersteld, pactReset, hitDice: { pool, spent: hd.spent, conMod: _conMod(profile) } };
   });
+
+  // Winkels die op "na een korte rust" staan, verversen nu hun schappen.
+  _bumpRustTellers(dmState, ['short']);
 
   storage.writeJSON('dm-state.json', dmState);
 
@@ -3558,7 +3605,12 @@ router.put('/party-currency/toggle', requireDM, (req, res) => {
   const dmState = readDmState();
   const g = getGroup(dmState);
   if (!g.sharedPurse) g.sharedPurse = { enabled: false, fl: 0, kn: 0, cl: 0 };
-  g.sharedPurse.enabled = !g.sharedPurse.enabled;
+  // De knop van de DM stuurt niets mee en verwacht een schakelaar. Wie wél een
+  // stand meestuurt krijgt die stand — anders zet een aanroep met
+  // {enabled:true} hem uit als hij al aan stond.
+  g.sharedPurse.enabled = typeof req.body?.enabled === 'boolean'
+    ? req.body.enabled
+    : !g.sharedPurse.enabled;
   storage.writeJSON('dm-state.json', dmState);
   req.app.get('io').to(req.session?.campaignId||'main').emit('party-currency:updated', { groupId: dmState.activeGroup, currency: g.sharedPurse, actor: 'DM' });
   res.json(g.sharedPurse);

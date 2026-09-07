@@ -82,6 +82,15 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Zichtbaarheid per party** (DM) — een kaartje vrijgeven aan de ene party en niet aan de andere; wissel van party en controleer beide kanten
 - [ ] **Voorwerp aan een speler geven** (DM) — vanuit het kaartje toewijzen aan een personage; het verschijnt in zijn boedel met de juiste rariteit
 - [ ] **Voorraad van een winkel** (DM) — regels toevoegen, prijzen zetten, uitverkocht markeren per party
+- [ ] **Tabvolgorde bij een locatie** (DM) — de bewerkmodus toont Informatie, Beeld, Kaart, Winkel in die volgorde; het detailvenster zet Kaart vóór Voorraad
+- [ ] **Voorraad inladen: erbij of in plaats van** (DM) — laad een winkel in terwijl er al regels staan: er wordt gevraagd of je toevoegt of vervangt, en bij toevoegen komen dubbele namen er niet twee keer in
+- [ ] **Voorraadrijen even breed** (DM) — een regel mét gekoppeld kaartje is even breed als een regel zonder; het vinkje houdt zijn plek
+- [ ] **Prijzen met een komma in de winkel** (SP) — zet `1,50` als prijs in de voorraad en koop er twee: er gaat 3 florinde af
+- [ ] **Wisselend assortiment ververst op rust** (DM/SP) — zet *Toon steeds maar een deel*, vul `1d8` bij aantal en kies *na een lange rust*: de schappen blijven gelijk tot je rust, en daarna ligt er iets anders. Met `3` liggen er altijd precies drie; *nooit meer dan* begrenst de worp
+- [ ] **Kolomkoppen in de voorraad** (DM) — de kolommen heten *In schap*, *Uitverkocht* en *Afrekenen*, niet ✦, UV en —
+- [ ] **Inventory van de party klapt open en dicht** (DM) — de knop onder de voorraad opent de lijst en sluit hem weer; de kolommen lopen gelijk, ook op regels met een aantal-teller
+- [ ] **Inkopen** (DM) — de knop heet *Inkopen*; na afloop staat er hoeveel er ingekocht is en is de lijst bijgewerkt. Met de gedeelde beurs aan gaat het geld naar de partybeurs, anders naar de speler
+- [ ] **Knoppen onder de bewerkmodus** (DM) — *Opslaan*, *Verwijderen* en *Annuleren* staan met icoon én woord; verwijderen is rood
 - [ ] **Stapelbaar kopen levert het aantal dat je betaalt** (SP) — koop er drie van een stapelbaar voorwerp: er gaat drie keer de prijs af én er staan er drie in je boedel. Koop daarna nog eens: de winkel is niet "uitverkocht"
 - [ ] **Gedeelde beurs betaalt in de winkel** (SP) — zet de gedeelde beurs aan, maak je eigen beurs leeg en koop iets: het lukt en het geld gaat van de partybeurs. Verkopen aan de winkel schrijft ook dáár bij
 - [ ] **Gedeeld voorwerp heeft geen aantal-knopjes** (SP) — een voorwerp op *Meerdere spelers — ieder één exemplaar* toont in de Boedel géén − en +; die gaven een foutmelding omdat de server een aantal daar niet aanpast

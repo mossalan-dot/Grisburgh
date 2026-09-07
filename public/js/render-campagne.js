@@ -1789,11 +1789,12 @@ const ED_TABS = [
   { key: 'info',    label: 'Informatie' },
   { key: 'beeld',   label: 'Beeld' },
   { key: 'sheet',   label: 'Character Sheet' },
-  { key: 'winkel',  label: 'Winkel' },
   // Een kaart en een dungeonplattegrond nemen allebei een half scherm in
   // beslag; onderin Informatie maakten ze dat tabblad onhandelbaar lang. Ze
-  // gaan wél samen: het is allebei "waar ligt dit".
+  // gaan wél samen: het is allebei "waar ligt dit". En dat komt vóór de
+  // voorraad: eerst waar het pand staat, dan wat er in de schappen ligt.
   { key: 'kaart', label: 'Kaart' },
+  { key: 'winkel',  label: 'Winkel' },
   // Bij een organisatie is de ledenlijst het organogram: wie erbij hoort en wie
   // boven wie staat. Samen op één tabblad, weg uit Informatie.
   { key: 'organogram', label: 'Organogram' },
@@ -3955,6 +3956,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       const m = Math.floor((diff % 3600000) / 60000);
       roterendHtml = `<div class="shop-rotatie-info">${icon('refresh-cw')} Assortiment ververst over ${h > 0 ? h + 'u ' : ''}${m}m</div>`;
     }
+    if (roterend && beschikbaarData?.verversBij && beschikbaarData.verversBij !== 'uren') {
+      const _wanneer = beschikbaarData.verversBij === 'short' ? 'korte rust' : 'lange rust';
+      roterendHtml = `<div class="shop-rotatie-info">${icon('refresh-cw')} Nieuwe schappen na de volgende ${_wanneer}</div>`;
+    }
 
     const _shopId = e.id;
     const discountPct = beschikbaarData?.discountPct || 0;
@@ -3993,9 +3998,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
               <tr class="bg-room-elevated border-b border-room-border">
                 <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] tracking-wide">Voorwerp</th>
                 <th class="px-4 py-2.5 text-right font-cinzel text-ink-dim text-[10px] tracking-wide">Prijs</th>
-                ${isDM() && roterend ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] uppercase" title="Actief voor spelers">✦</th>` : ''}
-                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide" title="Uitverkocht">UV</th>` : ''}
-                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide" title="Afrekenen aan tafel">\u2014</th>` : ''}
+                <!-- ✦, UV en — waren alleen te begrijpen met een tooltip. -->
+                ${isDM() && roterend ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide shop-kol" title="Ligt nu in de schappen">In schap</th>` : ''}
+                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide shop-kol" title="Uitverkocht voor deze party">Uitverkocht</th>` : ''}
+                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide shop-kol" title="Afrekenen aan tafel">Afrekenen</th>` : ''}
                 ${!isDM() ? `<th class="px-2 py-2.5"></th>` : ''}
               </tr>
             </thead>
@@ -4065,7 +4071,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           <div class="dm-winkel-paneel">
             <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Inkopen van de party</div>
             <p class="text-xs text-ink-dim mb-2">Vink aan wat de winkel overneemt, zet er een bedrag bij en reken af. Het voorwerp verdwijnt uit de boedel, het geld gaat naar die speler.</p>
-            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._dmInkoopOpen('${esc(_shopId)}')">${icon('package')} Boedel van de party bekijken</button>
+            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._dmInkoopOpen('${esc(_shopId)}')"><span id="dm-inkoop-chevron">▸</span> ${icon('package')} Inventory van de party</button>
             <div id="dm-inkoop-lijst" class="mt-2"></div>
           </div>` : ''}
         `;
@@ -4167,9 +4173,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     { key: 'info', label: 'Informatie' },
     ...(showSheet ? [{ key: 'sheet', label: _isSpeler ? 'Character Sheet' : 'Statblock' }] : []),
     ...(toonBezit ? [{ key: 'bezit', label: 'Bezit' }] : []),
+    ...((_kaartPlek || _dungeonPlek) ? [{ key: 'kaart', label: 'Kaart' }] : []),
     ...(heeftVoorraad ? [{ key: 'voorraad', label: 'Voorraad' }] : []),
     ...(heeftVoorraad && isDM() ? [{ key: 'log', label: 'Log' }] : []),
-    ...((_kaartPlek || _dungeonPlek) ? [{ key: 'kaart', label: 'Kaart' }] : []),
     ...(_orgRijen.length ? [{ key: 'organogram', label: 'Organogram' }] : []),
   ];
 
@@ -4566,6 +4572,16 @@ window._dmAfrekenenDoen = async (shopId, itemNaam, entityId) => {
 window._dmInkoopOpen = async (shopId) => {
   const host = document.getElementById('dm-inkoop-lijst');
   if (!host) return;
+  // Tweede klik klapt hem weer dicht: zonder dat leek de knop niets te doen
+  // zodra de lijst er al stond.
+  if (host.dataset.open === '1') {
+    host.dataset.open = '';
+    host.innerHTML = '';
+    document.getElementById('dm-inkoop-chevron')?.replaceChildren(document.createTextNode('▸'));
+    return;
+  }
+  host.dataset.open = '1';
+  document.getElementById('dm-inkoop-chevron')?.replaceChildren(document.createTextNode('▾'));
   host.innerHTML = `<p class="dm-hint">Laden\u2026</p>`;
   let regels = [];
   try { ({ regels } = await api.getPartyBoedel(shopId)); } catch (err) {
@@ -4582,14 +4598,20 @@ window._dmInkoopOpen = async (shopId) => {
           <input type="checkbox" data-i="${i}">
           <span class="dm-inkoop-naam">${esc(r.naam)}</span>
           <span class="dm-inkoop-speler">${esc(r.speler)}</span>
-          ${r.aantal > 1 ? `<input type="number" min="1" max="${r.aantal}" value="1" class="dm-input dm-input-sm dm-inkoop-aantal" title="Hoeveel van de ${r.aantal}?">` : `<span class="dm-inkoop-aantal-vast">1</span>`}
+          <!-- Altijd dezelfde cel: een spinner op de ene rij en een los cijfer
+               op de andere zette de kolommen ernaast scheef. -->
+          <span class="dm-inkoop-aantal">
+            ${r.aantal > 1
+              ? `<input type="number" min="1" max="${r.aantal}" value="1" class="dm-input dm-input-sm" title="Hoeveel van de ${r.aantal}?">`
+              : `<span class="dm-inkoop-aantal-vast">1</span>`}
+          </span>
           <input class="dm-input dm-input-sm dm-inkoop-bedrag" inputmode="decimal"
             value="${esc((() => { const cl = _prijsNaarCl(r.prijs); return cl === null ? '' : _clNaarKomma(cl); })())}"
             placeholder="12,34" title="Eén bedrag met een komma; munten mogen ook">
         </label>`).join('')}
     </div>
     <div class="dm-winkel-rij mt-2">
-      <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._dmInkoopDoen('${esc(shopId)}')">Overnemen</button>
+      <button class="dm-btn dm-btn-primary" onclick="window._dmInkoopDoen('${esc(shopId)}')">${icon('coins')} Inkopen</button>
       <span id="dm-inkoop-melding" class="dm-hint"></span>
     </div>`;
 };
@@ -4611,17 +4633,20 @@ window._dmInkoopDoen = async (shopId) => {
     if (!bron) return;
     regels.push({
       ...bron,
-      aantal: parseInt(rij.querySelector('.dm-inkoop-aantal')?.value) || 1,
+      aantal: parseInt(rij.querySelector('.dm-inkoop-aantal input')?.value) || 1,
       bedrag: rij.querySelector('.dm-inkoop-bedrag')?.value || '',
     });
   });
   if (!regels.length) { if (melding) melding.textContent = 'Niets aangevinkt.'; return; }
   try {
     const r = await api.dmInkoop(shopId, { regels });
-    if (melding) melding.textContent = `${r.gedaan.length} overgenomen.`;
+    if (melding) melding.textContent = `${r.gedaan.length} ingekocht.`;
+    // Opnieuw vullen, niet dichtklappen: de knop is nu een schakelaar.
+    const _host = document.getElementById('dm-inkoop-lijst');
+    if (_host) _host.dataset.open = '';
     await window._dmInkoopOpen(shopId);
   } catch (err) {
-    if (melding) melding.textContent = err.message || 'Overnemen mislukt';
+    if (melding) melding.textContent = err.message || 'Inkopen mislukt';
   }
 };
 
@@ -5991,19 +6016,36 @@ window._openEditor = async (tab, editId) => {
             </label>
             <div id="wc-extra" class="${winkelConfigEditor.roterend ? '' : 'hidden'} space-y-2 pl-4">
               <div class="flex gap-2 items-center">
-                <label class="text-xs text-ink-dim w-32">Aantal tegelijk</label>
-                <input type="number" id="wc-aantal" min="1" max="50" value="${winkelConfigEditor.aantalItems || 3}"
+                <!-- Een vast getal of een worp: "3" legt er altijd drie neer,
+                     "1d8" elke keer een ander aantal. -->
+                <label class="text-xs text-ink-dim w-32">Aantal in de schappen</label>
+                <input type="text" id="wc-aantal" value="${esc(winkelConfigEditor.aantalFormule || winkelConfigEditor.aantalItems || '3')}"
+                  oninput="window._wcUpdate()" placeholder="3 of 1d8"
+                  class="w-24 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                <label class="text-xs text-ink-dim">nooit meer dan</label>
+                <input type="number" id="wc-max" min="1" max="50" value="${winkelConfigEditor.maxItems || 8}"
                   oninput="window._wcUpdate()"
-                  class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                  class="w-16 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
               </div>
               <div class="flex gap-2 items-center">
-                <label class="text-xs text-ink-dim w-32">Refresh na (uur)</label>
+                <!-- De party speelt geen realtime uren; een winkel ververst
+                     zijn schappen als er gerust is. -->
+                <label class="text-xs text-ink-dim w-32">Ververst</label>
+                <select id="wc-ververs" onchange="window._wcUpdate()"
+                  class="flex-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                  <option value="long"${(winkelConfigEditor.verversBij || 'long') === 'long' ? ' selected' : ''}>na een lange rust</option>
+                  <option value="short"${winkelConfigEditor.verversBij === 'short' ? ' selected' : ''}>na een korte rust</option>
+                  <option value="uren"${winkelConfigEditor.verversBij === 'uren' ? ' selected' : ''}>na een aantal uur</option>
+                </select>
+              </div>
+              <div class="flex gap-2 items-center${winkelConfigEditor.verversBij === 'uren' ? '' : ' hidden'}" id="wc-uren-rij">
+                <label class="text-xs text-ink-dim w-32">Aantal uur</label>
                 <input type="number" id="wc-uren" min="1" value="${winkelConfigEditor.refreshUren || 24}"
                   oninput="window._wcUpdate()"
                   class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
               </div>
               <div class="flex gap-2 items-center">
-                <label class="text-xs text-ink-dim w-32" title="Winkels met hetzelfde woord hier tonen samen dezelfde selectie en verversen tegelijk">Zelfde selectie als</label>
+                <label class="text-xs text-ink-dim w-32" title="Twee winkels met hetzelfde woord delen één selectie en verversen tegelijk">Deelt schappen met</label>
                 <input type="text" id="wc-deelgroep" value="${esc(winkelConfigEditor.deelGroep || '')}"
                   oninput="window._wcUpdate()" placeholder="bijv. mystiek-magazijn"
                   class="flex-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
@@ -6015,18 +6057,12 @@ window._openEditor = async (tab, editId) => {
         <div>
           <div class="cs-sectiekop">Sfeer</div>
           <div>
-            <label class="text-xs text-ink-dim block mb-1">Sfeertekst (bovenaan de voorraad)</label>
+            <label class="text-xs text-ink-dim block mb-1">Sfeertekst</label>
             <textarea id="wc-sfeer" rows="2" oninput="window._wcUpdate()" placeholder="De schappen liggen vol met\u2026"
               class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(winkelConfigEditor.sfeerTekst || '')}</textarea>
           </div>
         </div>
-        <div>
-          <div class="cs-sectiekop">Inkoop</div>
-          <p class="text-xs text-ink-dim">
-            Wat de winkel van spelers overneemt bepaal je aan tafel: open het
-            kaartje van de winkel en gebruik daar <em>Inkopen van de party</em>.
-          </p>
-        </div>
+
       </div>
     `;
   }
@@ -6174,17 +6210,16 @@ window._openEditor = async (tab, editId) => {
   body += `<!--P:knoppen-->`;
   body += `
     <div class="flex gap-2 pt-2 ed-knoppen">
-      <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">
-        ${icon('save')}
-      </button>
+      <!-- Drie naamloze pictogrammen, waarvan de middelste onherstelbaar is:
+           opslaan en verwijderen stonden naast elkaar zonder één woord erbij.
+           Icoon plus woord, zoals de rest van de bewerkmodus. -->
+      <button type="submit" class="ed-knop ed-knop--opslaan">${icon('save')}<span>Opslaan</span></button>
       ${editId ? `
         <button type="button" onclick="window._deleteEntity('${tab}','${editId}')"
-          class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition">
-          ${icon('trash')}
-        </button>
+          class="ed-knop ed-knop--weg">${icon('trash')}<span>Verwijderen</span></button>
       ` : ''}
       <button type="button" onclick="window.app.closeModal()"
-        class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition" title="Annuleren">${icon('x')}</button>
+        class="ed-knop">${icon('x')}<span>Annuleren</span></button>
     </div>
   </form>`;
 
@@ -6351,7 +6386,7 @@ window._openEditor = async (tab, editId) => {
                 onchange="window._updateVoorraadEntityLink(${idx}, this.value)"
                 title="Koppel aan een bestaand voorwerpkaartje"
                 class="w-36 px-2 py-1 bg-room-bg border rounded text-sm focus:border-gold-dim focus:outline-none ${linked ? 'border-green-wax/60 text-green-wax' : 'border-room-border text-ink-dim'}">
-              ${linked ? '<span class="text-green-wax text-xs" title="Gekoppeld">✓</span>' : ''}
+              <span class="voorraad-vink${linked ? ' voorraad-vink--aan' : ''}" title="${linked ? 'Gekoppeld aan een voorwerpkaartje' : ''}">${icon('check')}</span>
             </div>
             <button type="button" onclick="window._removeVoorraadItem(${idx})"
               class="w-7 h-7 flex items-center justify-center rounded text-seal hover:bg-seal/20 text-lg leading-none transition">&times;</button>
@@ -6440,7 +6475,7 @@ window._openEditor = async (tab, editId) => {
         // Vul de select met winkels/verkopers die voorraad hebben
         const sel = document.getElementById('voorraad-inladen-select');
         if (!sel) return;
-        sel.innerHTML = '<option value="">— kies een winkel/verkoper —</option>';
+        sel.innerHTML = '<option value="">— kies een winkel —</option>';
         try {
           // Alleen locaties: sinds de voorraad daar leeft is een verkoper geen
           // bron meer om uit te kopiëren.
@@ -6469,9 +6504,28 @@ window._openEditor = async (tab, editId) => {
         const bron = await api.getEntity(bronType, sel.value);
         const bronItems = bron?.data?.voorraad ? JSON.parse(bron.data.voorraad) : [];
         if (bronItems.length === 0) return;
+        // Vervangen was de enige mogelijkheid en dat is zelden wat je wilt als
+        // er al iets in de schappen ligt: twee kruideniers verkopen allebei
+        // touw én ieder hun eigen waar.
+        const heeftAl = _voorraadItems.some(i => i.naam || i.prijs || i.entityId);
+        let toevoegen = false;
+        if (heeftAl) {
+          const keuze = confirm(
+            `Deze winkel heeft al ${_voorraadItems.length} regel${_voorraadItems.length === 1 ? '' : 's'} in de schappen.\n\n` +
+            `OK = de waren van ${bron.name} eraan toevoegen\n` +
+            `Annuleren = de huidige lijst vervangen`);
+          toevoegen = keuze;
+        }
         // entityId meenemen: die koppeling is met de hand gelegd en levert het
         // klikbare voorwerpkaartje in de winkel op.
-        _voorraadItems = bronItems.map(i => ({ naam: i.naam || '', prijs: i.prijs || '', entityId: i.entityId || '' }));
+        const nieuw = bronItems.map(i => ({ naam: i.naam || '', prijs: i.prijs || '', entityId: i.entityId || '' }));
+        if (toevoegen) {
+          // Wat er al ligt niet dubbel neerleggen.
+          const alDaar = new Set(_voorraadItems.map(i => (i.naam || '').toLowerCase().trim()).filter(Boolean));
+          _voorraadItems = [..._voorraadItems, ...nieuw.filter(i => !alDaar.has((i.naam || '').toLowerCase().trim()))];
+        } else {
+          _voorraadItems = nieuw;
+        }
         window._refreshVoorraad();
         // Sluit paneel
         document.getElementById('voorraad-inladen-panel')?.classList.add('hidden');
@@ -6488,10 +6542,17 @@ window._openEditor = async (tab, editId) => {
       // kwijt zolang we niet zeker weten dat niemand ze mist.
       let oud = {};
       try { oud = JSON.parse(document.getElementById('winkelconfig-hidden')?.value || '{}'); } catch {}
+      const _ververs = document.getElementById('wc-ververs')?.value || 'long';
+      document.getElementById('wc-uren-rij')?.classList.toggle('hidden', _ververs !== 'uren');
+      const _formule = (document.getElementById('wc-aantal')?.value || '3').trim();
       const config = {
         ...oud,
         roterend,
-        aantalItems: parseInt(document.getElementById('wc-aantal')?.value) || 3,
+        aantalFormule: _formule,
+        // aantalItems blijft als terugval voor een oude client of een kapotte formule
+        aantalItems: parseInt(_formule) || parseInt(oud.aantalItems) || 3,
+        maxItems: parseInt(document.getElementById('wc-max')?.value) || 8,
+        verversBij: _ververs,
         refreshUren: parseFloat(document.getElementById('wc-uren')?.value) || 24,
         deelGroep: (document.getElementById('wc-deelgroep')?.value || '').trim(),
         sfeerTekst: (document.getElementById('wc-sfeer')?.value || '').trim(),
