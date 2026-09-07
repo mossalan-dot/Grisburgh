@@ -4659,14 +4659,33 @@ window._dmInkoopDoen = async (shopId) => {
     });
   });
   if (!regels.length) { if (melding) melding.textContent = 'Niets aangevinkt.'; return; }
+
+  // Eerst laten zien wat je koopt en voor hoeveel. Het ging tot nu toe direct
+  // door, sprong daarna naar boven en zei nergens dat er iets gebeurd was.
+  let totaalCl = 0;
+  const opsomming = regels.map(r => {
+    const perStukCl = _prijsNaarCl(r.bedrag) || 0;
+    const rijCl = perStukCl * (r.aantal || 1);
+    totaalCl += rijCl;
+    return `  ${r.aantal > 1 ? r.aantal + '× ' : ''}${r.naam} van ${r.speler} — ${perStukCl ? _clNaarKomma(rijCl) : 'geen bedrag'}`;
+  }).join('\n');
+  if (!confirm(`De winkel koopt in:\n\n${opsomming}\n\nTotaal ${_clNaarKomma(totaalCl)}. `
+    + `Dat bedrag gaat naar de spelers; de voorwerpen verdwijnen uit hun boedel.\n\nDoorgaan?`)) return;
+
   try {
     const r = await api.dmInkoop(shopId, { regels });
-    if (melding) melding.textContent = `${r.gedaan.length} ingekocht.`;
+    const _aantal = r.gedaan.length;
+    _melding(`${icon('coins')} ${_aantal} ${_aantal === 1 ? 'voorwerp' : 'voorwerpen'} ingekocht voor ${_clNaarKomma(totaalCl)}`);
+    if (melding) melding.textContent = '';
     // Opnieuw vullen, niet dichtklappen: de knop is nu een schakelaar.
     const _host = document.getElementById('dm-inkoop-lijst');
     if (_host) _host.dataset.open = '';
     await window._dmInkoopOpen(shopId);
+    // De lijst wordt korter, dus het venster schoot naar boven — terugbrengen
+    // naar waar de DM stond.
+    document.getElementById('dm-inkoop-lijst')?.scrollIntoView({ block: 'nearest' });
   } catch (err) {
+    _melding(`${icon('x')} Inkopen mislukt: ${esc(err.message || err)}`);
     if (melding) melding.textContent = err.message || 'Inkopen mislukt';
   }
 };
