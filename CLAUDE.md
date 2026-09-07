@@ -91,6 +91,16 @@ opnieuw om te zetten.
 | Dummy Drakenbaard | `e_test_1779133509945_f2rbc` | — |
 | Proto Toverstaf | `e_test_1779133509946_yzhly` | — |
 
+> **Testen doe je in de testgroep — ook in een wegwerpkopie.** Voor een speelronde
+> draai ik vaak een tweede server op een eigen poort met `GRISBURGH_DATA_DIR` naar
+> een kopie van de productiedata; productie blijft dan gegarandeerd ongemoeid.
+> Dat is niet genoeg: gebruik binnen die kopie ook **Groep 3** en zijn karakters,
+> niet een party die echt gespeeld wordt. Twee redenen. Wie meekijkt ziet anders
+> de naam van een echte speler in de uitvoer langskomen en kan niet zien of het
+> nu een kopie was of niet. En één verkeerde poort of een vergeten env-var, en je
+> schrijft in de boedel van iemand die volgende week verder speelt. Nieuwe
+> testgegevens maak je in de testgroep aan; laat de bestaande party's met rust.
+
 **Browser-testlogin** (als speler): `window.app.testLogin()` → wachtwoord + karakterkeuze.
 Wachtwoord groep 3: zie `CLAUDE.local.md`.
 
