@@ -139,3 +139,11 @@ groot het is.
       zijn goedgekeurd op 7 sep 2026; dit derde stuk is bewust uitgesteld tot
       die twee staan — het is de vaagste categorie en raakt als enige de
       berekeningen op het blad.
+
+- [ ] **Een winkel heeft geen kas.** Inkopen van de party lukt altijd, hoe duur
+      het ook is: het geld komt uit het niets. Voor kopen en afrekenen wordt de
+      beurs van de speler (of de partybeurs) wél gecontroleerd. Als dat gaat
+      knellen: een `kas` op de winkel, met een weigering en een melding zodra
+      die op is. Nu bewust niet gebouwd — de DM beslist aan tafel of de
+      handelaar het kan betalen, en een lege kas die je eerst moet bijvullen is
+      meer administratie dan spel. Vastgesteld 7 sep 2026.

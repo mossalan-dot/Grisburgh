@@ -94,6 +94,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Deelt schappen met** (DM) — wijs een andere winkel aan in de keuzelijst: onder het veld staat met welke winkel je deelt, klikbaar naar dat kaartje. Beide winkels tonen daarna dezelfde selectie en verversen tegelijk. Zet je de koppeling leeg, dan krijgt deze winkel weer een eigen selectie — de voorraadlijst blijft ongemoeid
 - [ ] **Eén kaartje per voorraadregel** (DM) — koppel hetzelfde voorwerpkaartje aan een tweede regel: dat wordt geweigerd met de melding aan welke regel het al hangt
 - [ ] **Kaartje dat verdwijnt zegt dat** (ALL) — laat een geopend kaartje ondertussen verwijderen of verbergen en ververs het venster: er staat "Dit kaartje is niet meer beschikbaar" in plaats van oude inhoud waar je niets mee kunt
+- [ ] **Te weinig geld zegt hoeveel** (SP/DM) — koop iets van 500 fl met 12,50 op zak: er staat "Niet genoeg geld — je komt 487 Florinde 5 Knaker tekort". Bij *Afrekenen* door de DM staat hetzelfde tekort in het paneel. Met de gedeelde beurs aan wordt die gemeten, niet de eigen
 - [ ] **Inkoopbedrag is per stuk** (DM) — neem drie stuks over à 2,00: er wordt 6 florinde bijgeschreven, en naast het veld staat `= 6,00`
 - [ ] **Kolomkoppen in de voorraad** (DM) — de kolommen heten *In schap*, *Uitverkocht* en *Afrekenen*, niet ✦, UV en —
 - [ ] **Inventory van de party klapt open en dicht** (DM) — de knop onder de voorraad opent de lijst en sluit hem weer; de kolommen lopen gelijk, ook op regels met een aantal-teller

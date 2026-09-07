@@ -27,7 +27,12 @@ async function request(path, opts = {}) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || res.statusText);
+    // Meer dan de tekst alleen: routes sturen soms bruikbare cijfers mee (wat
+    // een aankoop kost, hoeveel er tekort is). Die gingen hier verloren.
+    const fout = new Error(err.error || res.statusText);
+    fout.status = res.status;
+    fout.data = err;
+    throw fout;
   }
   return res.json().catch(() => {
     throw new Error(`Route ${path} bestaat niet op deze server (geen JSON antwoord)`);

@@ -1732,7 +1732,8 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
     // beurs uit zijn eigen zak terwijl het scherm de partybeurs toonde.
     const beurs = _effectiveCurrency(dmState, characterId) || { fl: 0, kn: 0, cl: 0 };
     if (toCl(beurs) < prijsCl) {
-      return res.status(402).json({ error: 'Niet genoeg geld', prijs });
+      // Ook zeggen hoevéél er ontbreekt; de DM-kant deed dat al.
+      return res.status(402).json({ error: 'Niet genoeg geld', prijs, tekort: fromCl(prijsCl - toCl(beurs)) });
     }
     _deductCurrency(dmState, characterId, prijsCl);
 

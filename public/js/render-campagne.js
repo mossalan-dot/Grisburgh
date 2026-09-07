@@ -1,4 +1,4 @@
-import { api } from './api.js?v=275';
+import { api } from './api.js?v=276';
 import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);
@@ -4401,7 +4401,11 @@ window._koopItem = async (shopId, itemNaam, entityId, btn, aantal = 1) => {
     // Refresh knapzak zodat het nieuwe item meteen zichtbaar is
     window.app?.refreshSection?.('mijn-karakter');
   } catch (err) {
-    const msg = err.message || 'Kon niet kopen';
+    // De server stuurt bij te weinig geld ook het tekort mee; dat is bruikbaarder
+    // dan "Niet genoeg geld" alleen.
+    const _tekort = err?.data?.tekort;
+    const msg = (err.message || 'Kon niet kopen')
+      + (_tekort ? ` — je komt ${_muntTekst(_tekort)} tekort` : '');
     if (feedback) {
       feedback.textContent = '⚠ ' + msg;
       feedback.className = 'shop-koop-feedback shop-koop-feedback--fout';
@@ -4578,7 +4582,9 @@ window._dmAfrekenenDoen = async (shopId, itemNaam, entityId) => {
       await window._openDetail(window._currentDetailTab, window._currentDetailId, false, 'voorraad');
     }
   } catch (err) {
-    if (melding) melding.textContent = err.message || 'Afrekenen mislukt';
+    const _tekort = err?.data?.tekort;
+    if (melding) melding.textContent = (err.message || 'Afrekenen mislukt')
+      + (_tekort ? ` — ${_muntTekst(_tekort)} te kort` : '');
   }
 };
 
