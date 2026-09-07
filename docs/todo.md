@@ -125,6 +125,20 @@ groot het is.
       toon, en per sectie evenveel stappen. Dat is meteen de basis voor de
       wizard voor een nieuwe DM.
 
+## Boedel
+
+- [ ] **Healen doet nog niets.** Klikken op de genezingsknop in de boedel gooit
+      alleen de formule in het dobbelpaneel: er gaat geen HP omhoog en er wordt
+      geen charge afgeschreven. Wat het moet worden: rollen, het resultaat bij
+      de HP optellen (gemaximeerd op het maximum), en één charge afschrijven als
+      het voorwerp die heeft — met een weigering als ze op zijn, plus een
+      melding "+7 HP · <voorwerp>". Alleen voor de speler in zijn eigen boedel,
+      niet in het archief van de DM.
+- [ ] **Verbruikt bij gebruik.** Een Potion of Healing zonder charges is na één
+      slok leeg, maar de app kent geen "verdwijnt bij gebruik". Een vinkje bij de
+      werking zou de stapel met één laten afnemen. Hoort bij het punt hierboven;
+      samen oppakken zodra we bij de boedel zijn. Afgesproken 7 sep 2026.
+
 ## Geld en schuld → `docs/voorstel-op-de-pof.md`
 
 Opgepakt zodra we met de **diensten** aan de slag gaan; de winkelkant haken we
