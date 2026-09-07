@@ -125,6 +125,44 @@ groot het is.
       toon, en per sectie evenveel stappen. Dat is meteen de basis voor de
       wizard voor een nieuwe DM.
 
+## Geld en schuld → `docs/voorstel-op-de-pof.md`
+
+Opgepakt zodra we met de **diensten** aan de slag gaan; de winkelkant haken we
+daar dan in. Volgorde is hier belangrijk: de eerste is een fout die nu al speelt,
+de rest is nieuw werk dat erop voortbouwt.
+
+- [ ] **Vier diensten omzeilen de gedeelde beurs.** `/ursula/voorspel`,
+      `/gock/opdracht`, `/tweespalt/leen` en `/heeren/job/:id/uitslag` lezen en
+      schrijven rechtstreeks in `dmState.playerCurrency` in plaats van via
+      `_effectiveCurrency()` / `_deductCurrency()`. Alle drie de party's in
+      Grisburgh spelen met de gedeelde beurs aan, dus **dit gaat vandaag al
+      mis**: een speler met 0 op zak kan Ursula niet betalen terwijl de
+      partybeurs vol zit, en geleend geld landt in een beurs die het scherm niet
+      toont. Zelfde fout als de winkel had (rechtgezet 7 sep 2026), zelfde
+      recept. Dit hoort vóór al het andere hieronder.
+- [ ] **De rente van de Tweespalt loopt op de kalender.** 30% per dag,
+      samengesteld, op echte dagen. De ene openstaande lening in Grisburgh
+      (28,80 florinde, aangegaan 26 april) staat daardoor op 5,8 × 10¹⁸
+      centeling. Omzetten naar rente per lange rust (`g.rustTellers.long`, sinds
+      7 sep beschikbaar) en die ene lening herstellen.
+- [ ] **Eén schuldenregister** (`dmState.schulden`) waar de Tweespalt-lening een
+      soort van wordt, met een DM-overzicht (wie, bij wie, hoofdsom, wat er nu
+      staat) en knoppen om af te betalen — ook deels — of kwijt te schelden. Dat
+      overzicht ontbreekt nu helemaal: een schuld die niemand ziet is geen
+      verhaallijn.
+- [ ] **Op de pof in de winkel.** Per winkel: schrijft aan ja/nee, tot welk
+      bedrag, welke rente per lange rust. Bij te weinig geld komt er naast de
+      weigering een knop *Op de pof*; de speler krijgt het voorwerp en een
+      schuldbrief in zijn boedel. Bij een lange rust meldt een opeisbaar
+      geworden schuld zich bij de DM — bij voorkeur als verzegelde brief van de
+      schuldeiser (`_bezorgBrief` ligt er al), zodat het aan tafel binnenkomt.
+      Wat er daarna gebeurt verzint de DM.
+- [ ] **Een winkel heeft geen kas.** Inkopen van de party lukt altijd, hoe duur
+      ook: dat geld komt uit het niets. Bewust zo gelaten — de DM beslist aan
+      tafel of de handelaar het kan betalen, en een kas die je eerst moet
+      bijvullen is meer administratie dan spel. Heroverwegen zodra het krediet
+      hierboven er is, want dan wordt "de smid is blut" opeens wél een verhaal.
+
 ## Afgesproken maar nog niet ingepland
 
 - [ ] **Samenvoegen van party's** — verhuizen laat voorwerpbezit en onthulde
@@ -139,11 +177,3 @@ groot het is.
       zijn goedgekeurd op 7 sep 2026; dit derde stuk is bewust uitgesteld tot
       die twee staan — het is de vaagste categorie en raakt als enige de
       berekeningen op het blad.
-
-- [ ] **Een winkel heeft geen kas.** Inkopen van de party lukt altijd, hoe duur
-      het ook is: het geld komt uit het niets. Voor kopen en afrekenen wordt de
-      beurs van de speler (of de partybeurs) wél gecontroleerd. Als dat gaat
-      knellen: een `kas` op de winkel, met een weigering en een melding zodra
-      die op is. Nu bewust niet gebouwd — de DM beslist aan tafel of de
-      handelaar het kan betalen, en een lege kas die je eerst moet bijvullen is
-      meer administratie dan spel. Vastgesteld 7 sep 2026.
