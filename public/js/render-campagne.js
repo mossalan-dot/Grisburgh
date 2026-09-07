@@ -427,7 +427,7 @@ const SCHEMA = {
       { key: 'armorDexCap', label: 'Dex cap (alleen bij Other)', type: 'text', showWerking: 'defense' },
       { key: 'stealthDisadvantage', label: 'Stealth Disadvantage', type: 'checkbox', showWerking: 'defense' },
       { key: 'strengthRequirement', label: 'Strength Requirement', type: 'text', showWerking: 'defense' },
-      { key: 'spellPick', label: 'Spell kiezen — vult de velden hieronder + de omschrijving', type: 'spell-picker', showWerking: 'spell' },
+      { key: 'spellIndexes', label: 'Gekoppelde spreuken', type: 'spell-picker', showWerking: 'spell' },
       { key: 'spellCastingTime', label: 'Casting Time', type: 'text', showWerking: 'spell' },
       { key: 'spellRange',       label: 'Range',         type: 'text', showWerking: 'spell' },
       { key: 'spellComponents',  label: 'Components',    type: 'text', showWerking: 'spell' },
@@ -3636,6 +3636,19 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _worp = _worpen.length
       ? _worpen.join('') + `<span class="dmg-inline-result" id="dmg-inline-result"></span>`
       : '';
+    // Gekoppelde spreuken: dezelfde chips als op een statblock, dus één klik
+    // naar de volledige spreuk in plaats van een verouderde kopie in de tekst.
+    let _spellIdx = [];
+    try { _spellIdx = JSON.parse(e.data?.spellIndexes || '[]'); } catch { /* ok */ }
+    if (Array.isArray(_spellIdx) && _spellIdx.length) {
+      infoHtml += `<div class="item-spellrij">
+        <span class="item-spellrij-kop">${icon('sparkles')} ${_spellIdx.length === 1 ? 'Spreuk' : 'Spreuken'}</span>
+        <span class="cs-spell-chips" id="detail-spell-chips">${_spellIdx.map(i =>
+          `<button type="button" class="cs-spell-chip cs-spell-chip--klik" data-spell="${esc(i)}"
+             onclick="window.spreuken.open('${escJS(i)}')">${esc(String(i).replace(/-/g, ' '))}</button>`).join('')}</span>
+      </div>`;
+    }
+
     if (_worp || _tags.length) {
       infoHtml += `<div class="item-kenmerken">
         ${_worp ? `<div class="item-kenmerken-rij item-kenmerken-rij--worp">${_worp}</div>` : ''}
@@ -5421,6 +5434,44 @@ window._petTierAdd = () => {
 window._petTierRemove = (idx) => { _petTiersCollect(); _petTiers.splice(idx, 1); window._renderPetTiers(); };
 
 // Scroll-spell-picker: vult bij keuze de scroll-statvelden + omschrijving (+ naam indien leeg).
+// De chips onder het zoekveld: wat er gekoppeld is, met een kruisje.
+window._itemSpellChipsTeken = () => {
+  const host = document.getElementById('item-spell-chips');
+  if (!host) return;
+  const lijst = window._itemSpells || [];
+  if (!lijst.length) { host.innerHTML = '<span class="veld-uitleg">Nog geen spreuk gekoppeld.</span>'; return; }
+  host.innerHTML = lijst.map(idx => {
+    const sp = (_scrollSpellList || []).find(x => x.index === idx);
+    const naam = sp ? sp.name : String(idx).replace(/-/g, ' ');
+    const lvl = sp ? (Number(sp.level) === 0 ? 'Cantrip' : `Level ${sp.level}`) : '';
+    return `<span class="cs-spell-chip">${lvl ? `<b>${esc(lvl)}</b> ` : ''}${esc(naam)}
+      <button type="button" class="cs-spell-chip-x" title="Loskoppelen"
+        onclick="window._itemSpellEraf('${escJS(idx)}')">\u00d7</button></span>`;
+  }).join('');
+};
+
+window._itemSpellErbij = (naam) => {
+  const sp = (_scrollSpellList || []).find(x => (x.name || '').toLowerCase() === String(naam || '').trim().toLowerCase());
+  const inp = document.getElementById('scroll-spell-pick');
+  if (!sp) { if (inp) inp.value = ''; return; }
+  if (!window._itemSpells) window._itemSpells = [];
+  if (!window._itemSpells.includes(sp.index)) window._itemSpells.push(sp.index);
+  const veld = document.getElementById('item-spells-veld');
+  if (veld) veld.value = JSON.stringify(window._itemSpells);
+  window._itemSpellChipsTeken();
+  if (inp) inp.value = '';
+  // De eerste spreuk vult ook de losse velden en de naam — handig bij een
+  // scroll, en het blijft gewoon tekst die je daarna mag aanpassen.
+  if (window._itemSpells.length === 1) window._scrollPickSpell(sp.name);
+};
+
+window._itemSpellEraf = (idx) => {
+  window._itemSpells = (window._itemSpells || []).filter(x => x !== idx);
+  const veld = document.getElementById('item-spells-veld');
+  if (veld) veld.value = JSON.stringify(window._itemSpells);
+  window._itemSpellChipsTeken();
+};
+
 window._scrollPickSpell = (naam) => {
   const sp = (_scrollSpellList || []).find(s => (s.name || '').toLowerCase() === String(naam || '').toLowerCase());
   if (!sp) return;
@@ -5432,7 +5483,10 @@ window._scrollPickSpell = (naam) => {
   setVal('data_spellRange',       sp.range || '');
   setVal('data_spellComponents',  comp);
   setVal('data_spellDuration',    sp.duration || '');
-  setVal('data_desc',             (sp.desc || []).join('\n\n'));
+  // Alleen invullen als het vak nog leeg is: een eigen omschrijving overschrijven
+  // is precies waarom kopiëren een slecht idee was.
+  const _descEl = form.querySelector('[name="data_desc"]');
+  if (_descEl && !_descEl.value.trim()) _descEl.value = (sp.desc || []).join('\n\n');
   const nameEl = form.querySelector('[name="name"]');
   if (nameEl && !nameEl.value.trim()) nameEl.value = `Scroll of ${sp.name}`;
 };
@@ -5952,12 +6006,20 @@ window._openEditor = async (tab, editId) => {
         </div>
       `;
     } else if (field.type === 'spell-picker') {
+      // Was één keuze die de spreuktekst in de beschrijving plakte — een kopie
+      // die veroudert. Nu een lijst koppelingen: een Wand of Staff kan er
+      // meerdere hebben en één klik brengt je naar de volledige spreuk.
       const _spells = _scrollSpellList || [];
+      let _gekoppeld = [];
+      try { _gekoppeld = JSON.parse(e?.data?.spellIndexes || '[]'); } catch { /* ok */ }
+      window._itemSpells = Array.isArray(_gekoppeld) ? _gekoppeld.map(String) : [];
       body += `
         <div>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
-          <input list="scroll-spell-dl" id="scroll-spell-pick" placeholder="Zoek een spell…" autocomplete="off"
-            onchange="window._scrollPickSpell(this.value)"
+          <input type="hidden" name="data_spellIndexes" id="item-spells-veld" value="${esc(JSON.stringify(window._itemSpells))}">
+          <div id="item-spell-chips" class="cs-spell-chips mt-1"></div>
+          <input list="scroll-spell-dl" id="scroll-spell-pick" placeholder="Zoek een spreuk\u2026" autocomplete="off"
+            onchange="window._itemSpellErbij(this.value)"
             class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
           <datalist id="scroll-spell-dl">${_spells.map(s => `<option value="${esc(s.name)}"></option>`).join('')}</datalist>
         </div>
@@ -6409,6 +6471,9 @@ window._openEditor = async (tab, editId) => {
   openModal(`${editId ? (_tm.bewerk || 'Bewerken') : (_tm.nieuw || 'Nieuw')}`
     + `<span class="modal-titel-naam" id="ed-titel-wrap"${_kopNaam ? '' : ' hidden'}>`
     + `${icon('chevron-right')}<span id="ed-titel-naam">${esc(_kopNaam)}</span></span>`, '', body);
+
+  // De chips van gekoppelde spreuken tekenen: pas nu staat het veld in de DOM.
+  window._itemSpellChipsTeken?.();
 
   // Naam in de kop meelaten lopen met het naamveld.
   const _naamVeld = document.querySelector('#entity-form [name="name"]');

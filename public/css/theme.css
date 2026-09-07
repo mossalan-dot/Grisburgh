@@ -1694,6 +1694,33 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 
 
+/* Gekoppelde spreuken op een voorwerp: kop links, chips ernaast. */
+.item-spellrij {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-bottom: 14px;
+}
+.item-spellrij-kop {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: #9a7008;
+}
+.item-spellrij-kop svg { width: 13px; height: 13px; }
+/* Kruisje om een spreuk los te koppelen in de bewerkmodus. */
+.cs-spell-chip-x {
+  border: 0; background: none; cursor: pointer;
+  color: #8b2a2a; padding: 0 0 0 4px; font-size: 12px; line-height: 1;
+}
+.cs-spell-chip-x:hover { color: #a03c28; }
+
 /* ── Voorwerp: kenmerken rond de beschrijving ──
    Volgorde: wat je ermee gooit, waar het goed in is, de tekst, en dan pas wat
    het van je vraagt en wat het kost. Geen kader: dat las als een invoerveld. */
