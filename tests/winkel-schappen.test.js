@@ -64,7 +64,7 @@ describe('Winkel met een wisselend assortiment', () => {
     winkel = (await req(server, 'POST', '/api/entities/locaties', {
       name: 'De Schapwinkel', data: {
         locType: 'Winkel', voorraad: JSON.stringify(waren),
-        winkelConfig: JSON.stringify({ roterend: true, aantalFormule: '3', maxItems: 8, verversBij: 'long' }),
+        winkelConfig: JSON.stringify({ roterend: true, minItems: 3, maxItems: 3, verversBij: 'long' }),
       },
     }, dm)).body;
     for (const gid of ['groep1', andere]) {

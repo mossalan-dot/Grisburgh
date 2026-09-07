@@ -1929,15 +1929,23 @@ function _bumpRustTellers(g, soorten) {
   if (!g.rustTellers) g.rustTellers = { long: 0, short: 0 };
   for (const s of soorten) g.rustTellers[s] = (g.rustTellers[s] || 0) + 1;
 }
-// "3" is drie, "1d8" is een worp. Altijd minstens één, en nooit meer dan het
-// opgegeven maximum of dan er in de voorraad ligt.
+// Hoeveel er in de schappen ligt: een aantal tussen het minimum en het maximum,
+// elke keer opnieuw geloot. Een dobbelformule ("1d8") was verwarrend naast een
+// los maximum — een bereik zegt hetzelfde en leest als een bereik.
+// `aantalFormule`/`aantalItems` blijven als terugval voor winkels die nog niet
+// opnieuw bewaard zijn.
 function _hoeveelInDeSchappen(winkelConfig, poolLengte) {
-  const rauw = String(winkelConfig.aantalFormule ?? winkelConfig.aantalItems ?? 3).trim();
+  const max0 = parseInt(winkelConfig.maxItems);
+  const min0 = parseInt(winkelConfig.minItems);
   let n;
-  if (/^\d+$/.test(rauw)) n = parseInt(rauw);
-  else n = rollDice(rauw) || parseInt(winkelConfig.aantalItems) || 3;
-  const max = parseInt(winkelConfig.maxItems);
-  if (max > 0) n = Math.min(n, max);
+  if (min0 > 0 || max0 > 0) {
+    const min = Math.max(1, min0 || 1);
+    const max = Math.max(min, max0 || min);
+    n = min + Math.floor(Math.random() * (max - min + 1));
+  } else {
+    const rauw = String(winkelConfig.aantalFormule ?? winkelConfig.aantalItems ?? 3).trim();
+    n = /^\d+$/.test(rauw) ? parseInt(rauw) : (rollDice(rauw) || parseInt(winkelConfig.aantalItems) || 3);
+  }
   return Math.max(1, Math.min(n, poolLengte || 1));
 }
 

@@ -3425,7 +3425,21 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
         api.getPlayerHp(id).catch(() => null),
       ]);
     }
-  } catch { return; }
+  } catch {
+    // Lukt het laden niet (verwijderd, of voor deze party niet meer zichtbaar),
+    // dan bleef een al geopend venster staan met de vorige inhoud: het zag er
+    // normaal uit maar sloeg nergens meer op. Liever eerlijk zeggen dat het weg
+    // is dan een kaartje laten staan waar je niets mee kunt.
+    if (myToken === _detailToken && document.getElementById('modal-overlay')?.classList.contains('active')) {
+      const _body = document.getElementById('m-body');
+      if (_body) _body.innerHTML = `<div class="text-center py-12 text-ink-faint font-fell italic">
+        Dit kaartje is niet meer beschikbaar.<br><span class="text-xs">Het is verwijderd of niet langer zichtbaar voor deze party.</span>
+      </div>`;
+      const _sub = document.getElementById('m-sub');
+      if (_sub) _sub.classList.add('hidden');
+    }
+    return;
+  }
   if (_isShopTab && isDM()) {
     [shopLogData, shopHumeurData] = await Promise.all([
       api.getShopLog(id).catch(() => null),
@@ -4674,8 +4688,9 @@ window._dmInkoopDoen = async (shopId) => {
 
   try {
     const r = await api.dmInkoop(shopId, { regels });
-    const _aantal = r.gedaan.length;
-    _melding(`${icon('coins')} ${_aantal} ${_aantal === 1 ? 'voorwerp' : 'voorwerpen'} ingekocht voor ${_clNaarKomma(totaalCl)}`);
+    // r.gedaan telt regels; drie flessen op één regel zijn drie voorwerpen.
+    const _stuks = r.gedaan.reduce((n, g) => n + (g.aantal || 1), 0);
+    _melding(`${icon('coins')} ${_stuks} ${_stuks === 1 ? 'voorwerp' : 'voorwerpen'} ingekocht voor ${_clNaarKomma(totaalCl)}`);
     if (melding) melding.textContent = '';
     // Opnieuw vullen, niet dichtklappen: de knop is nu een schakelaar.
     const _host = document.getElementById('dm-inkoop-lijst');
@@ -6056,15 +6071,15 @@ window._openEditor = async (tab, editId) => {
             </label>
             <div id="wc-extra" class="${winkelConfigEditor.roterend ? '' : 'hidden'} space-y-2 pl-4">
               <div class="flex gap-2 items-center">
-                <!-- Een vast getal of een worp: "3" legt er altijd drie neer,
-                     "1d8" elke keer een ander aantal. -->
+                <!-- Een bereik in plaats van een dobbelformule met een los
+                     plafond: de app loot elke keer een aantal hiertussen. -->
                 <label class="text-xs text-ink-dim w-32">Aantal in de schappen</label>
-                <input type="text" id="wc-aantal" value="${esc(winkelConfigEditor.aantalFormule || winkelConfigEditor.aantalItems || '3')}"
-                  oninput="window._wcUpdate()" placeholder="3 of 1d8"
-                  class="w-24 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
-                <label class="text-xs text-ink-dim">nooit meer dan</label>
-                <input type="number" id="wc-max" min="1" max="50" value="${winkelConfigEditor.maxItems || 8}"
-                  oninput="window._wcUpdate()"
+                <input type="number" id="wc-min" min="1" max="50"
+                  value="${winkelConfigEditor.minItems || 1}" oninput="window._wcUpdate()"
+                  class="w-16 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                <label class="text-xs text-ink-dim">tot en met</label>
+                <input type="number" id="wc-max" min="1" max="50"
+                  value="${winkelConfigEditor.maxItems || parseInt(winkelConfigEditor.aantalItems) || 3}" oninput="window._wcUpdate()"
                   class="w-16 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
               </div>
               <div class="flex gap-2 items-center">
@@ -6085,11 +6100,13 @@ window._openEditor = async (tab, editId) => {
                   class="w-20 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
               </div>
               <div class="flex gap-2 items-center">
-                <label class="text-xs text-ink-dim w-32" title="Twee winkels met hetzelfde woord delen één selectie en verversen tegelijk">Deelt schappen met</label>
-                <input type="text" id="wc-deelgroep" value="${esc(winkelConfigEditor.deelGroep || '')}"
-                  oninput="window._wcUpdate()" placeholder="bijv. mystiek-magazijn"
+                <label class="text-xs text-ink-dim w-32" title="Beide winkels tonen dezelfde selectie en verversen tegelijk">Deelt schappen met</label>
+                <input type="text" id="wc-deelgroep" list="wc-deel-dl" value="${esc(winkelConfigEditor.deelGroep || '')}"
+                  onchange="window._wcDeelKies()" oninput="window._wcUpdate()" placeholder="Zoek een winkel\u2026"
                   class="flex-1 px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+                <datalist id="wc-deel-dl"></datalist>
               </div>
+              <div id="wc-deel-uitleg" class="text-xs text-ink-dim pl-32"></div>
             </div>
           </div>
         </div>
@@ -6458,6 +6475,18 @@ window._openEditor = async (tab, editId) => {
     window._updateVoorraadEntityLink = (idx, naam) => {
       if (!_voorraadItems[idx]) return;
       const match = _voorraadEntityOptions.find(o => o.name.toLowerCase() === naam.toLowerCase());
+      // Eén kaartje hoort bij één regel: twee regels die naar hetzelfde
+      // voorwerp wijzen leveren twee prijzen voor hetzelfde ding, en bij het
+      // kopen wint er willekeurig één.
+      if (match) {
+        const alGekoppeld = _voorraadItems.findIndex((it, i) => i !== idx && it.entityId === match.id);
+        if (alGekoppeld !== -1) {
+          alert(`${match.name} hangt al aan de regel "${_voorraadItems[alGekoppeld].naam || 'zonder naam'}".\n\n`
+            + 'Eén voorwerpkaartje kan maar aan één regel hangen.');
+          window._refreshVoorraad();
+          return;
+        }
+      }
       _voorraadItems[idx].entityId = match?.id || '';
       // Re-render om het ✓ icoon en stijl bij te werken
       window._refreshVoorraad();
@@ -6574,6 +6603,52 @@ window._openEditor = async (tab, editId) => {
       } catch { /* stil falen */ }
     };
 
+    // Winkels om schappen mee te delen. Een opgeslagen waarde kan een id zijn
+    // (nieuw) of een los woord (zoals het vroeger werkte); allebei blijven werken.
+    let _deelWinkels = [];
+    if (isDM()) {
+      api.listEntities('locaties').then(locs => {
+        _deelWinkels = locs
+          .filter(l => l.id !== (e?.id || null))
+          .filter(l => l.data?.locType === 'Winkel' || (l.data?.voorraad && l.data.voorraad !== '[]'))
+          .map(l => ({ id: l.id, name: l.name }));
+        const dl = document.getElementById('wc-deel-dl');
+        if (dl) dl.innerHTML = _deelWinkels.map(w => `<option value="${esc(w.name)}">`).join('');
+        // Staat er een id opgeslagen, dan tonen we de naam in het veld.
+        const inp = document.getElementById('wc-deelgroep');
+        if (inp) {
+          const bij = _deelWinkels.find(w => w.id === inp.value);
+          if (bij) inp.value = bij.name;
+        }
+        window._wcDeelUitleg();
+      }).catch(() => {});
+    }
+
+    // Wat er bewaard wordt: leeg veld → niets, een aangewezen winkel → haar id,
+    // en anders de getypte tekst (zo werkte het vroeger, met een los trefwoord).
+    const _deelGroepWaarde = () => {
+      const tekst = (document.getElementById('wc-deelgroep')?.value || '').trim();
+      if (!tekst) return '';
+      const w = _deelWinkels.find(x => x.name.toLowerCase() === tekst.toLowerCase());
+      return w ? w.id : tekst;
+    };
+
+    window._wcDeelKies = () => { window._wcUpdate(); window._wcDeelUitleg(); };
+
+    window._wcDeelUitleg = () => {
+      const host = document.getElementById('wc-deel-uitleg');
+      if (!host) return;
+      const inp = document.getElementById('wc-deelgroep');
+      const naam = (inp?.value || '').trim();
+      if (!naam) { host.innerHTML = 'Leeg: deze winkel heeft zijn eigen schappen.'; return; }
+      const w = _deelWinkels.find(x => x.name.toLowerCase() === naam.toLowerCase());
+      host.innerHTML = w
+        ? `Deelt één selectie met <button type="button" class="link-chip link-chip--sm"
+             onclick="window.app.closeModal();window._openDetail('locaties','${esc(w.id)}',false,'voorraad')">${esc(w.name)}</button> —
+           de voorraadlijsten blijven van elkaar gescheiden.`
+        : `Geen winkel met die naam; het blijft een los trefwoord (zo werkte het vroeger).`;
+    };
+
     window._wcUpdate = () => {
       const roterend = document.getElementById('wc-roterend')?.checked || false;
       document.getElementById('wc-extra')?.classList.toggle('hidden', !roterend);
@@ -6584,17 +6659,18 @@ window._openEditor = async (tab, editId) => {
       try { oud = JSON.parse(document.getElementById('winkelconfig-hidden')?.value || '{}'); } catch {}
       const _ververs = document.getElementById('wc-ververs')?.value || 'long';
       document.getElementById('wc-uren-rij')?.classList.toggle('hidden', _ververs !== 'uren');
-      const _formule = (document.getElementById('wc-aantal')?.value || '3').trim();
+      const _min = Math.max(1, parseInt(document.getElementById('wc-min')?.value) || 1);
+      const _max = Math.max(_min, parseInt(document.getElementById('wc-max')?.value) || _min);
       const config = {
         ...oud,
         roterend,
-        aantalFormule: _formule,
-        // aantalItems blijft als terugval voor een oude client of een kapotte formule
-        aantalItems: parseInt(_formule) || parseInt(oud.aantalItems) || 3,
-        maxItems: parseInt(document.getElementById('wc-max')?.value) || 8,
+        minItems: _min,
+        maxItems: _max,
+        // Terugval voor een winkel die nog met een formule bewaard was
+        aantalItems: _min,
         verversBij: _ververs,
         refreshUren: parseFloat(document.getElementById('wc-uren')?.value) || 24,
-        deelGroep: (document.getElementById('wc-deelgroep')?.value || '').trim(),
+        deelGroep: _deelGroepWaarde(),
         sfeerTekst: (document.getElementById('wc-sfeer')?.value || '').trim(),
       };
       const hidden = document.getElementById('winkelconfig-hidden');
