@@ -1098,6 +1098,34 @@ Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in ren
 
 ---
 
+## Wat een voorwerp is, en wat het doet
+
+`data.itemType` zegt wát het is (badge, icoon, winkelindeling); `data.werking`
+zegt wat het **doet** — een JSON-array met `attack`, `defense`, `healing` en/of
+`spell`. Die twee lopen in D&D niet gelijk: een Staff kan slaan én spreuken
+casten, een Ring kan AC geven, een Wondrous Item kan genezen. De mechanische
+velden hingen aan het type en waren daardoor onbereikbaar voor driekwart van de
+categorieën (31 Wondrous/Ring/Amulet-kaartjes in deze campagne hadden geen
+enkele mechaniek, niet omdat ze niets doen maar omdat het niet kón).
+
+- **Lees het nooit rechtstreeks uit.** `_werkingUit(data)` leidt het af als het
+  veld ontbreekt: `damage` → attack (of healing als er "heal" in staat),
+  `armorType`/`armorBaseAC` → defense, Scroll of een ingevulde casting time →
+  spell. Daardoor is er **niets gemigreerd**: bestaande kaartjes komen goed
+  binnen en er wordt pas iets opgeslagen als de DM ze zelf bewaart.
+- **Velden hangen aan een werking** met `showWerking: 'attack'` in `SCHEMA`, niet
+  meer aan `showFor: ['Weapon']`. `window._werkingBij()` toont en verbergt ze.
+- **Het type stelt een werking voor**, meer niet: `ITEM_TYPE_WERKING` vinkt bij
+  het kiezen van een type de gebruikelijke werking aan, maar alleen zolang er
+  nog niets aanstaat — een bewuste keuze wordt nooit overschreven.
+- **Genezing is een eigen veld** (`data.healing`) in plaats van een `damage` waar
+  toevallig "heal" in stond. Die oude vorm blijft gelezen worden.
+
+Zie `docs/voorstel-voorwerp-werking.md` voor het hele plan; stap 2 (spells
+koppelen in plaats van kopiëren) staat daar nog open.
+
+---
+
 ## Exemplaren: één helper, geen tweede kopie
 
 `data.gebruik` zegt of een voorwerp uniek, gedeeld of stapelbaar is; oude

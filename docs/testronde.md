@@ -60,6 +60,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **DM-knoppen in de documentviewer** (DM) — onderaan staan *Zichtbaar/Vaag zichtbaar/Verborgen*, *Bewerken* en *Verwijderen* met icoon én woord, niet drie naamloze vierkantjes
 - [ ] **Schadepil op het kaartje** (ALL) — een wapen zonder afbeelding toont zijn schadeformule in de kaartbody en die is klikbaar (rolt in het dobbelpaneel); met afbeelding ligt hij als vanouds rechtsboven over het beeld
 - [ ] **Geef-knop even groot** (DM) — bij een uniek voorwerp is de hele strook *Geef aan speler* aanklikbaar, net als bij een stapelbaar of gedeeld voorwerp
+- [ ] **Werking los van type** (DM) — open een Wondrous Item, Ring of Amulet: bij *Werking* vink je Attack, Defense, Healing of Spell aan en de bijbehorende velden verschijnen. Een Ring kan dus AC geven en een Wondrous Item genezen; dat kon eerst niet
+- [ ] **Type stelt een werking voor** (DM) — kies *Weapon* op een nieuw kaartje: Attack staat meteen aan. Kies daarna *Armor*: de al aangevinkte werking blijft staan (een keuze wordt nooit overschreven)
+- [ ] **Bestaande kaartjes kloppen vanzelf** (DM) — een wapen met schade komt binnen met Attack aan, een harnas met Defense, een scroll met Spell. Er is niets gemigreerd: het wordt afgeleid uit wat er ingevuld staat
+- [ ] **Genezing is een eigen veld** (ALL) — vul een *Genezingsformule* in: op het kaartje en in het detailvenster staat een groene knop met een hartje die de formule gooit, naast (niet in plaats van) een schadeknop
 - [ ] **Typegebonden velden staan waar de melding ze belooft** (DM) — kies *Weapon*: de melding zegt dat je velden voor schade en wapeneigenschappen krijgt, en die staan direct eronder (niet pas onder de beschrijving)
 - [ ] **Streep onder het charges-blok** (DM) — *Vereist attunement* en *Niet te verkopen aan winkels* staan onder een scheidingslijn, zodat ze niet bij de charges lijken te horen
 - [ ] **Maximum accepteert alleen cijfers** (DM) — typ `e`, `-` of een punt in *Maximum*: er komt niets in het veld

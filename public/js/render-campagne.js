@@ -280,12 +280,57 @@ const ITEM_TYPE_GROEPEN = [
 // Welke types verderop extra velden opleveren. Zonder deze melding is na het
 // kiezen niet meer te zien dát dit een type met extra's is — dezelfde reden als
 // bij de locaties.
+// Wat een voorwerp dóét staat los van wat het ís. Een Staff kan een wapen zijn
+// én spreuken casten, een Ring kan AC geven, een Wondrous Item kan genezen. De
+// mechanische velden hingen aan het type en waren daardoor onbereikbaar voor
+// driekwart van de categorieën. Zelfde splitsing als bij personages: `subtype`
+// zegt wat het kaartje is, `data.tags` welke rol het speelt.
+const WERKINGEN = [
+  { key: 'attack',  label: 'Attack',  uitleg: 'Doet schade — schadeformule en wapeneigenschappen' },
+  { key: 'defense', label: 'Defense', uitleg: 'Verhoogt AC — harnastype, Base AC, Dex cap' },
+  { key: 'healing', label: 'Healing', uitleg: 'Geneest — genezingsformule' },
+  { key: 'spell',   label: 'Spell',   uitleg: 'Cast een spreuk — kies er een uit de bibliotheek' },
+];
+
+// Welke werking hoort er meestal bij welk type? Alleen als suggestie: bij het
+// kiezen van een type worden deze aangevinkt zolang er nog niets aanstaat.
+const ITEM_TYPE_WERKING = {
+  Weapon: ['attack'], Ammunition: ['attack'],
+  Armor: ['defense'], Shield: ['defense'],
+  Potion: ['healing'],
+  Scroll: ['spell'], Wand: ['spell'], Staff: ['spell'], Rod: ['spell'],
+};
+
+// Bestaande kaartjes hebben nog geen `werking`; die leiden we af uit wat er
+// ingevuld staat. Zo hoeft er niets gemigreerd te worden en verandert er niets
+// tot de DM het kaartje zelf een keer opslaat.
+function _werkingUit(data) {
+  const d = data || {};
+  if (d.werking) {
+    try { const a = JSON.parse(d.werking); if (Array.isArray(a)) return a.map(String); } catch { /* ok */ }
+  }
+  const uit = [];
+  const dmg = String(d.damage || '').trim();
+  if (dmg && !/heal|genez/i.test(dmg)) uit.push('attack');
+  if (dmg && /heal|genez/i.test(dmg)) uit.push('healing');
+  if (String(d.healing || '').trim()) { if (!uit.includes('healing')) uit.push('healing'); }
+  if (String(d.armorType || '').trim() || String(d.armorBaseAC || '').trim()) uit.push('defense');
+  if (d.itemType === 'Scroll' || String(d.spellCastingTime || '').trim()) uit.push('spell');
+  return uit;
+}
+window._werkingUit = _werkingUit;
+const _heeftWerking = (data, key) => _werkingUit(data).includes(key);
+
 const ITEM_TYPE_MELDINGEN = {
-  Weapon:     'Krijgt velden voor <b>schade</b> en <b>wapeneigenschappen</b>; die komen ook op het kaartje te staan.',
-  Ammunition: 'Krijgt velden voor <b>schade</b> en <b>wapeneigenschappen</b>; die komen ook op het kaartje te staan.',
-  Armor:      'Krijgt velden voor <b>Base AC</b>, Dex cap en Stealth. De app rekent de AC per speler uit.',
-  Shield:     'Krijgt een veld voor de <b>AC-bonus</b>; die telt op bij de AC van de drager.',
-  Scroll:     'Krijgt een <b>spell-kiezer</b> die casting time, range, components, duration én de beschrijving invult.',
+  Weapon:     'Krijgt <b>Attack</b> aangevinkt bij Werking — daar staan schade en wapeneigenschappen.',
+  Ammunition: 'Krijgt <b>Attack</b> aangevinkt bij Werking — daar staan schade en wapeneigenschappen.',
+  Armor:      'Krijgt <b>Defense</b> aangevinkt bij Werking — daar staan Base AC, Dex cap en Stealth.',
+  Shield:     'Krijgt <b>Defense</b> aangevinkt bij Werking; de AC-bonus telt op bij de drager.',
+  Potion:     'Krijgt <b>Healing</b> aangevinkt bij Werking. Doet het iets anders, vink dan gewoon iets anders aan.',
+  Scroll:     'Krijgt <b>Spell</b> aangevinkt bij Werking — daar kies je de spreuk.',
+  Wand:       'Krijgt <b>Spell</b> aangevinkt bij Werking; met <b>Charges</b> erbij heb je een wand zoals in de DMG.',
+  Staff:      'Krijgt <b>Spell</b> aangevinkt bij Werking. Slaat hij ook? Vink er dan <b>Attack</b> bij aan.',
+  Rod:        'Krijgt <b>Spell</b> aangevinkt bij Werking.',
   Blessing:   'Hoort bij de <b>Tempel</b>: god, zegening/eed/vloek, eedtekst en permanente zegen.',
   Boon:       'Verschijnt onder <b>Zegeningen &amp; Gunsten</b> in het voorwerpenarchief.',
 };
@@ -366,24 +411,27 @@ const SCHEMA = {
       // Wat het type oplevert staat hier, direct onder de melding die het
       // belooft. Stond eerst onder de beschrijving: je koos Weapon, las dat je
       // velden voor schade kreeg, en zag ze nergens.
-      { key: 'damage', label: 'Schade- of genezingsformule', type: 'text', showFor: ['Weapon', 'Wapen', 'Ammunition'], hint: '1d8+1 Slashing' },
-      { key: 'weaponProperties', label: 'Wapeneigenschappen', type: 'weapon-tags', showFor: ['Weapon', 'Wapen', 'Ammunition'] },
-      { key: 'armorType', label: 'Harnas type', type: 'select', showFor: ['Armor', 'Shield'], options: [
+      // Werking in plaats van type: een Staff kan slaan, een Ring kan AC geven.
+      { key: 'werking', label: 'Werking', type: 'werking' },
+      { key: 'damage', label: 'Schadeformule', type: 'text', showWerking: 'attack', hint: '1d8+1 Slashing' },
+      { key: 'weaponProperties', label: 'Wapeneigenschappen', type: 'weapon-tags', showWerking: 'attack' },
+      { key: 'healing', label: 'Genezingsformule', type: 'text', showWerking: 'healing', hint: '2d4+2' },
+      { key: 'armorType', label: 'Harnas type', type: 'select', showWerking: 'defense', options: [
         { value: 'light',  label: 'Light — volledig Dex' },
         { value: 'medium', label: 'Medium — Dex max +2' },
         { value: 'heavy',  label: 'Heavy — geen Dex' },
         { value: 'shield', label: 'Shield — bonus op bestaande AC' },
         { value: 'other',  label: 'Other — zie Dex cap' },
       ]},
-      { key: 'armorBaseAC', label: 'Base AC (of bonus voor Shield)', type: 'text', showFor: ['Armor', 'Shield'] },
-      { key: 'armorDexCap', label: 'Dex cap (alleen bij Other)', type: 'text', showFor: ['Armor', 'Shield'] },
-      { key: 'stealthDisadvantage', label: 'Stealth Disadvantage', type: 'checkbox', showFor: ['Armor', 'Shield'] },
-      { key: 'strengthRequirement', label: 'Strength Requirement', type: 'text', showFor: ['Armor', 'Shield'] },
-      { key: 'spellPick', label: 'Spell kiezen — vult de velden hieronder + de omschrijving', type: 'spell-picker', showFor: ['Scroll'] },
-      { key: 'spellCastingTime', label: 'Casting Time', type: 'text', showFor: ['Scroll'] },
-      { key: 'spellRange',       label: 'Range',         type: 'text', showFor: ['Scroll'] },
-      { key: 'spellComponents',  label: 'Components',    type: 'text', showFor: ['Scroll'] },
-      { key: 'spellDuration',    label: 'Duration',      type: 'text', showFor: ['Scroll'] },
+      { key: 'armorBaseAC', label: 'Base AC (of bonus voor Shield)', type: 'text', showWerking: 'defense' },
+      { key: 'armorDexCap', label: 'Dex cap (alleen bij Other)', type: 'text', showWerking: 'defense' },
+      { key: 'stealthDisadvantage', label: 'Stealth Disadvantage', type: 'checkbox', showWerking: 'defense' },
+      { key: 'strengthRequirement', label: 'Strength Requirement', type: 'text', showWerking: 'defense' },
+      { key: 'spellPick', label: 'Spell kiezen — vult de velden hieronder + de omschrijving', type: 'spell-picker', showWerking: 'spell' },
+      { key: 'spellCastingTime', label: 'Casting Time', type: 'text', showWerking: 'spell' },
+      { key: 'spellRange',       label: 'Range',         type: 'text', showWerking: 'spell' },
+      { key: 'spellComponents',  label: 'Components',    type: 'text', showWerking: 'spell' },
+      { key: 'spellDuration',    label: 'Duration',      type: 'text', showWerking: 'spell' },
       { key: 'godNaam', label: 'God', type: 'text', showFor: ['Blessing'] },
       { key: 'goddelijkType', label: 'Soort', type: 'select', showFor: ['Blessing'], options: [
         { value: 'zegen', label: 'Zegening' },
@@ -2580,11 +2628,18 @@ function renderCard(type, e) {
         ${type === 'locaties' ? `<button class="card-map-btn hidden" data-mapbtn="${esc(e.id)}"
           onclick="event.stopPropagation();window._toonOpKaart('${esc(e.id)}', this.dataset.mapid || '')"
           title="Toon op kaart">${icon('map-pin')}</button>` : ''}
-        ${type === 'voorwerpen' && e.data?.damage ? (() => {
-          const _isHeal = /heal/i.test(e.data.damage);
-          return `<button class="card-damage-pill${_isHeal ? ' card-damage-pill--heal' : ''}"
-            onclick="event.stopPropagation();window.dice?.rollFormula('${escJS(e.data.damage)}')"
-            title="Gooi ${escJS(e.data.damage)}">${icon('dice',{cls:'icon-gi'})} ${esc(e.data.damage)}</button>`;
+        ${type === 'voorwerpen' ? (() => {
+          const _d = String(e.data?.damage || '').trim();
+          const _isHeal = _d && /heal|genez/i.test(_d);
+          const _h = String(e.data?.healing || '').trim() || (_isHeal ? _d : '');
+          const _p = [];
+          if (_d && !_isHeal) _p.push(`<button class="card-damage-pill"
+            onclick="event.stopPropagation();window.dice?.rollFormula('${escJS(_d)}')"
+            title="Gooi ${escJS(_d)}">${icon('dice',{cls:'icon-gi'})} ${esc(_d)}</button>`);
+          if (_h) _p.push(`<button class="card-damage-pill card-damage-pill--heal"
+            onclick="event.stopPropagation();window.dice?.rollFormula('${escJS(_h)}')"
+            title="Gooi ${escJS(_h)}">${icon('heart',{cls:'icon-gi'})} ${esc(_h)}</button>`);
+          return _p.join('');
         })() : ''}
         ${_cardAcr ? `<span class="card-armor-ac-pill" title="${escJS(_cardAcr.tooltip)}">${esc(_cardAcr.pill)}</span>` : ''}
         ${e._gockOnderzocht ? `<span class="card-gock-badge" title="Onderzocht door De Gock">${icon('search')}</span>` : ''}
@@ -2595,11 +2650,16 @@ function renderCard(type, e) {
           // Zonder afbeelding staan schade en AC hier; met afbeelding liggen ze
           // erover en verbergt de CSS deze rij.
           const _los = [];
-          if (type === 'voorwerpen' && e.data?.damage) {
-            const _isHeal = /heal/i.test(e.data.damage);
-            _los.push(`<button class="card-damage-pill${_isHeal ? ' card-damage-pill--heal' : ''}"
-              onclick="event.stopPropagation();window.dice?.rollFormula('${escJS(e.data.damage)}')"
-              title="Gooi ${escJS(e.data.damage)}">${icon('dice',{cls:'icon-gi'})} ${esc(e.data.damage)}</button>`);
+          if (type === 'voorwerpen') {
+            const _d = String(e.data?.damage || '').trim();
+            const _isHeal = _d && /heal|genez/i.test(_d);
+            const _h = String(e.data?.healing || '').trim() || (_isHeal ? _d : '');
+            if (_d && !_isHeal) _los.push(`<button class="card-damage-pill"
+              onclick="event.stopPropagation();window.dice?.rollFormula('${escJS(_d)}')"
+              title="Gooi ${escJS(_d)}">${icon('dice',{cls:'icon-gi'})} ${esc(_d)}</button>`);
+            if (_h) _los.push(`<button class="card-damage-pill card-damage-pill--heal"
+              onclick="event.stopPropagation();window.dice?.rollFormula('${escJS(_h)}')"
+              title="Gooi ${escJS(_h)}">${icon('heart',{cls:'icon-gi'})} ${esc(_h)}</button>`);
           }
           if (_cardAcr) _los.push(`<span class="card-armor-ac-pill" title="${escJS(_cardAcr.tooltip)}">${esc(_cardAcr.pill)}</span>`);
           return _los.length ? `<div class="card-doen--los">${_los.join('')}</div>` : '';
@@ -3554,15 +3614,28 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       _tags.push(`<span class="detail-weapon-tag" data-wptip="${escJS(desc)}">${esc(wp)}</span>`);
     }
 
-    let _worp = '';
-    if (_dmg) {
-      const _isHeal = /heal/i.test(_dmg);
-      _worp = `<button class="item-damage-pill${_isHeal ? ' item-damage-pill--heal' : ''}"
+    // Genezing heeft een eigen veld gekregen; een oud kaartje met "2d4 healing"
+    // in het schadeveld blijft als genezing lezen.
+    const _legacyHeal = _dmg && /heal|genez/i.test(_dmg);
+    const _heal = String(e.data?.healing || '').trim() || (_legacyHeal ? _dmg : '');
+    const _worpen = [];
+    if (_dmg && !_legacyHeal) {
+      _worpen.push(`<button class="item-damage-pill"
           onclick="window.dice?.rollFormula('${escJS(_dmg)}','dmg-inline-result')"
-          title="Klik om ${_isHeal ? 'genezing' : 'schade'} te gooien">
+          title="Klik om schade te gooien">
           ${icon('dice',{cls:'icon-gi'})} ${esc(_dmg)}
-        </button><span class="dmg-inline-result" id="dmg-inline-result"></span>`;
+        </button>`);
     }
+    if (_heal) {
+      _worpen.push(`<button class="item-damage-pill item-damage-pill--heal"
+          onclick="window.dice?.rollFormula('${escJS(_heal)}','dmg-inline-result')"
+          title="Klik om genezing te gooien">
+          ${icon('heart',{cls:'icon-gi'})} ${esc(_heal)}
+        </button>`);
+    }
+    const _worp = _worpen.length
+      ? _worpen.join('') + `<span class="dmg-inline-result" id="dmg-inline-result"></span>`
+      : '';
     if (_worp || _tags.length) {
       infoHtml += `<div class="item-kenmerken">
         ${_worp ? `<div class="item-kenmerken-rij item-kenmerken-rij--worp">${_worp}</div>` : ''}
@@ -3619,7 +3692,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // Betrokkenen heeft zijn eigen rij chips hieronder; als pil kwam zijn ruwe
     // JSON in beeld.
     if (field.type === 'betrokkenen') continue;
-    if (tab === 'voorwerpen' && ['prijs', 'attunementEis', 'maxCharges', 'rechargeOn', 'rechargeRoll', 'playerMaxAdjustable', 'itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellPick', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
+    if (tab === 'voorwerpen' && ['werking', 'healing', 'prijs', 'attunementEis', 'maxCharges', 'rechargeOn', 'rechargeRoll', 'playerMaxAdjustable', 'itemType', 'rariteit', 'damage', 'weaponProperties', 'armorType', 'armorBaseAC', 'armorDexCap', 'stealthDisadvantage', 'strengthRequirement', 'spellPick', 'spellCastingTime', 'spellRange', 'spellComponents', 'spellDuration', 'godNaam', 'goddelijkType', 'effect', 'permanenteZegen', 'eedTekst'].includes(field.key)) continue;
     const val = e.data?.[field.key];
     if (!val) continue;
     if (field.key === 'desc') {
@@ -4999,7 +5072,34 @@ window._showWhenBijwerken = () => {
   });
 };
 
+// De vinkjes schrijven naar één verborgen veld, net als bij de rollen van een
+// personage, en tonen of verbergen meteen de velden die eraan hangen.
+window._werkingBij = () => {
+  const aan = [...document.querySelectorAll('.rollen-rij input[type=checkbox]')]
+    .filter(c => c.checked && WERKINGEN.some(w => w.key === c.value))
+    .map(c => c.value);
+  const veld = document.getElementById('werking-veld');
+  if (veld) veld.value = JSON.stringify(aan);
+  document.querySelectorAll('[data-werking]').forEach(el => {
+    el.style.display = aan.includes(el.dataset.werking) ? '' : 'none';
+  });
+};
+
 window._onItemTypeChange = (val) => {
+  // Een gekozen type vinkt zijn gebruikelijke werking aan — maar alleen zolang
+  // er nog niets aanstaat, zodat een bewuste keuze nooit overschreven wordt.
+  const veld = document.getElementById('werking-veld');
+  if (veld) {
+    let nu = [];
+    try { nu = JSON.parse(veld.value || '[]'); } catch { /* ok */ }
+    const suggestie = ITEM_TYPE_WERKING[val] || [];
+    if (!nu.length && suggestie.length) {
+      document.querySelectorAll('.rollen-rij input[type=checkbox]').forEach(c => {
+        if (suggestie.includes(c.value)) c.checked = true;
+      });
+      window._werkingBij();
+    }
+  }
   const melding = document.getElementById('veld-melding-itemType');
   if (melding) melding.innerHTML = _veldMeldingHtml(ITEM_TYPE_MELDINGEN, val);
   document.querySelectorAll('[data-show-for]').forEach(el => {
@@ -5550,6 +5650,10 @@ window._openEditor = async (tab, editId) => {
       const _aan = field.showWhen.values.includes(_nu);
       body += `<div data-show-when-key="${esc(field.showWhen.key)}" data-show-when-val="${esc(field.showWhen.values.join('|'))}"${_aan ? '' : ' style="display:none"'}>`;
     }
+    if (field.showWerking) {
+      const _aan = _werkingUit(e?.data).includes(field.showWerking);
+      body += `<div data-werking="${esc(field.showWerking)}"${_aan ? '' : ' style="display:none"'}>`;
+    }
     // showFor: wrap in a togglable div, initially hidden if itemType doesn't match
     if (field.showFor) {
       const _vis = field.showFor.includes(_curItemType);
@@ -5559,6 +5663,24 @@ window._openEditor = async (tab, editId) => {
     if (field.hideFor) {
       const _hid = field.hideFor.includes(_curItemType);
       body += `<div data-hide-for="${field.hideFor.join(',')}" style="${_hid ? 'display:none' : ''}">`;
+    }
+    if (field.type === 'werking') {
+      const _aan = _werkingUit(e?.data);
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <input type="hidden" name="data_werking" id="werking-veld" value="${esc(JSON.stringify(_aan))}">
+          <div class="rollen-rij mt-1">
+            ${WERKINGEN.map(w => `
+              <label class="rol-keuze" title="${esc(w.uitleg)}">
+                <input type="checkbox" value="${w.key}" ${_aan.includes(w.key) ? 'checked' : ''}
+                  onchange="window._werkingBij()">
+                <span>${esc(w.label)}</span>
+              </label>`).join('')}
+          </div>
+        </div>
+      `;
+      continue;
     }
     if (field.type === 'scheiding') {
       body += `<hr class="veld-scheiding">`;
@@ -5862,6 +5984,7 @@ window._openEditor = async (tab, editId) => {
         </div>
       `;
     }
+    if (field.showWerking) body += `</div>`;
     if (field.showFor) body += `</div>`; // close showFor wrapper
     if (field.hideFor) body += `</div>`; // close hideFor wrapper
     if (field.showWhen) body += `</div>`; // close showWhen wrapper
