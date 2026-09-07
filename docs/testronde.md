@@ -87,6 +87,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Voorraadrijen even breed** (DM) — een regel mét gekoppeld kaartje is even breed als een regel zonder; het vinkje houdt zijn plek
 - [ ] **Prijzen met een komma in de winkel** (SP) — zet `1,50` als prijs in de voorraad en koop er twee: er gaat 3 florinde af
 - [ ] **Wisselend assortiment ververst op rust** (DM/SP) — zet *Toon steeds maar een deel*, vul `1d8` bij aantal en kies *na een lange rust*: de schappen blijven gelijk tot je rust, en daarna ligt er iets anders. Met `3` liggen er altijd precies drie; *nooit meer dan* begrenst de worp
+- [ ] **De speler ziet niet wat er níét ligt** (SP) — bij een wisselend assortiment krijgt de speler alleen de actieve regels; de kolom *In schap* is DM-only en de rest van de voorraad is voor hem onzichtbaar. Kopen van iets dat er niet ligt lukt niet, ook niet als je de naam kent
+- [ ] **Elke party haar eigen schappen** (DM/SP) — laat party 1 rusten: de schappen van party 2 blijven staan. En wat een speler ziet hangt aan zíjn party, niet aan de party waar de DM naar kijkt
+- [ ] **Inkoopbedrag is per stuk** (DM) — neem drie stuks over à 2,00: er wordt 6 florinde bijgeschreven, en naast het veld staat `= 6,00`
 - [ ] **Kolomkoppen in de voorraad** (DM) — de kolommen heten *In schap*, *Uitverkocht* en *Afrekenen*, niet ✦, UV en —
 - [ ] **Inventory van de party klapt open en dicht** (DM) — de knop onder de voorraad opent de lijst en sluit hem weer; de kolommen lopen gelijk, ook op regels met een aantal-teller
 - [ ] **Inkopen** (DM) — de knop heet *Inkopen*; na afloop staat er hoeveel er ingekocht is en is de lijst bijgewerkt. Met de gedeelde beurs aan gaat het geld naar de partybeurs, anders naar de speler

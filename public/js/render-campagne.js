@@ -4592,7 +4592,10 @@ window._dmInkoopOpen = async (shopId) => {
   host.innerHTML = `
     <input id="dm-inkoop-zoek" class="dm-input dm-input-sm" placeholder="Zoeken\u2026"
       oninput="window._dmInkoopFilter(this.value)">
-    <div id="dm-inkoop-rijen" class="dm-inkoop-rijen mt-2">
+    <div class="dm-inkoop-kop">
+      <span></span><span>Voorwerp</span><span>Speler</span><span>Aantal</span><span>Prijs per stuk</span>
+    </div>
+    <div id="dm-inkoop-rijen" class="dm-inkoop-rijen">
       ${regels.map((r, i) => `
         <label class="dm-inkoop-rij" data-zoek="${esc((r.naam + ' ' + r.speler).toLowerCase())}">
           <input type="checkbox" data-i="${i}">
@@ -4602,18 +4605,36 @@ window._dmInkoopOpen = async (shopId) => {
                op de andere zette de kolommen ernaast scheef. -->
           <span class="dm-inkoop-aantal">
             ${r.aantal > 1
-              ? `<input type="number" min="1" max="${r.aantal}" value="1" class="dm-input dm-input-sm" title="Hoeveel van de ${r.aantal}?">`
+              ? `<input type="number" min="1" max="${r.aantal}" value="1" oninput="window._dmInkoopTotaal(this)" title="Hoeveel van de ${r.aantal}?" class="dm-input dm-input-sm">`
               : `<span class="dm-inkoop-aantal-vast">1</span>`}
           </span>
-          <input class="dm-input dm-input-sm dm-inkoop-bedrag" inputmode="decimal"
-            value="${esc((() => { const cl = _prijsNaarCl(r.prijs); return cl === null ? '' : _clNaarKomma(cl); })())}"
-            placeholder="12,34" title="Eén bedrag met een komma; munten mogen ook">
+          <span class="dm-inkoop-bedrag-cel">
+            <input class="dm-input dm-input-sm dm-inkoop-bedrag" inputmode="decimal"
+              oninput="window._dmInkoopTotaal(this)"
+              value="${esc((() => { const cl = _prijsNaarCl(r.prijs); return cl === null ? '' : _clNaarKomma(cl); })())}"
+              placeholder="12,34" title="Prijs per stuk; één bedrag met een komma, munten mogen ook">
+            <!-- Bij meerdere stuks was niet te zien of het bedrag per stuk of
+                 voor de hele stapel was. Het is per stuk; het totaal staat erbij. -->
+            <span class="dm-inkoop-totaal"></span>
+          </span>
         </label>`).join('')}
     </div>
     <div class="dm-winkel-rij mt-2">
       <button class="ed-knop ed-knop--opslaan" onclick="window._dmInkoopDoen('${esc(shopId)}')">${icon('coins')}<span>Inkopen</span></button>
       <span id="dm-inkoop-melding" class="dm-hint"></span>
     </div>`;
+};
+
+// Toont naast het bedrag wat de hele stapel oplevert. Het ingevulde getal is de
+// prijs per stuk — het veld wordt ook met de stuksprijs voorgevuld.
+window._dmInkoopTotaal = (el) => {
+  const rij = el.closest('.dm-inkoop-rij');
+  if (!rij) return;
+  const aantal = parseInt(rij.querySelector('.dm-inkoop-aantal input')?.value) || 1;
+  const cl = _prijsNaarCl(rij.querySelector('.dm-inkoop-bedrag')?.value || '');
+  const uit = rij.querySelector('.dm-inkoop-totaal');
+  if (!uit) return;
+  uit.textContent = (aantal > 1 && cl) ? `= ${_clNaarKomma(cl * aantal)}` : '';
 };
 
 window._dmInkoopFilter = (term) => {

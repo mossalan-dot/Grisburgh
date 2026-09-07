@@ -1585,7 +1585,8 @@ router.get('/shops/:shopId/beschikbaar', attachRole, (req, res) => {
   try { winkelConfig = shop.data?.winkelConfig ? JSON.parse(shop.data.winkelConfig) : {}; } catch {}
 
   const dmState = readDmState();
-  const g = getGroup(dmState);
+  const _kijkerId = req.session?.characterId;
+  const g = _kijkerId ? getGroup(dmState, _playerGroupId(dmState, _kijkerId)) : getGroup(dmState);
   const uitverkochtSet = new Set((g.shopUitverkocht?.[shopId] || []).map(k => (k || '').toLowerCase().trim()));
 
   // Beschrijving ophalen voor gelinkte kaartjes
@@ -1710,6 +1711,9 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
   const uitverkochtLijst = (g.shopUitverkocht?.[shopId] || []).map(k => (k || '').toLowerCase().trim());
   if (uitverkochtLijst.includes(itemKey)) {
     return res.status(409).json({ error: 'Dit voorwerp is uitverkocht' });
+  }
+  if (!_ligtInDeSchappen(g, shopId, winkelConfig, item.naam)) {
+    return res.status(409).json({ error: 'Dat ligt hier vandaag niet in de schappen' });
   }
 
   const prijs = parsePrijs(item.prijs);
@@ -1918,11 +1922,12 @@ function _verversBij(winkelConfig) {
 function _rustStand(g, soort) {
   return (g.rustTellers || {})[soort] || 0;
 }
-function _bumpRustTellers(dmState, soorten) {
-  for (const g of Object.values(dmState.groups || {})) {
-    if (!g.rustTellers) g.rustTellers = { long: 0, short: 0 };
-    for (const s of soorten) g.rustTellers[s] = (g.rustTellers[s] || 0) + 1;
-  }
+// Alleen de party die rust. De teller stond eerst op álle groepen, waardoor een
+// nacht van de ene party de schappen van de andere ververste.
+function _bumpRustTellers(g, soorten) {
+  if (!g) return;
+  if (!g.rustTellers) g.rustTellers = { long: 0, short: 0 };
+  for (const s of soorten) g.rustTellers[s] = (g.rustTellers[s] || 0) + 1;
 }
 // "3" is drie, "1d8" is een worp. Altijd minstens één, en nooit meer dan het
 // opgegeven maximum of dan er in de voorraad ligt.
@@ -1934,6 +1939,25 @@ function _hoeveelInDeSchappen(winkelConfig, poolLengte) {
   const max = parseInt(winkelConfig.maxItems);
   if (max > 0) n = Math.min(n, max);
   return Math.max(1, Math.min(n, poolLengte || 1));
+}
+
+// Bij een wisselend assortiment ligt niet alles in de schappen. De koop-route
+// keek daar niet naar: wie de naam kende (uit een vorige sessie, of van een
+// medespeler) kon iets kopen dat er niet lag — precies de verrassing waar de
+// rotatie voor bedoeld is. Is er nog geen selectie gemaakt, dan houden we het
+// ruim: de eerste blik in de winkel maakt er een.
+function _ligtInDeSchappen(g, shopId, winkelConfig, itemNaam) {
+  if (!winkelConfig?.roterend) return true;
+  const deelGroep = winkelConfig.deelGroep?.trim() || shopId;
+  const rotatie = g.shopRotatie?.[deelGroep];
+  if (!rotatie?.items?.length) return true;
+  const verversBij = _verversBij(winkelConfig);
+  const geldig = verversBij === 'uren'
+    ? (rotatie.geldigTot && new Date(rotatie.geldigTot).getTime() > Date.now())
+    : rotatie.rustStand === _rustStand(g, verversBij === 'short' ? 'short' : 'long');
+  if (!geldig) return true;
+  const sleutel = (itemNaam || '').toLowerCase().trim();
+  return rotatie.items.some(n => (n || '').toLowerCase().trim() === sleutel);
 }
 
 function _shopWindowStart(g, shopId, winkelConfig) {
@@ -2351,12 +2375,16 @@ router.post('/shops/:shopId/dm-inkoop', requireDM, (req, res) => {
       continue;
     }
 
-    if (bedragCl > 0) _deductCurrency(dmState, characterId, -bedragCl);   // bijschrijven
-    gedaan.push({ characterId, naam, aantal, bedrag: fromCl(bedragCl) });
+    // Het bedrag is de prijs per stuk (het veld wordt ook met de stuksprijs
+    // voorgevuld). Er werd één keer bijgeschreven, ook als de DM er drie
+    // overnam — dan kreeg de speler een derde van wat was afgesproken.
+    const totaalCl = bedragCl * aantal;
+    if (totaalCl > 0) _deductCurrency(dmState, characterId, -totaalCl);   // bijschrijven
+    gedaan.push({ characterId, naam, aantal, bedrag: fromCl(totaalCl) });
     _shopLogRegel(shopId, {
       playerName: _spelerNaam(entities, characterId),
       itemNaam: `${naam} (ingekocht)`,
-      prijs: '+' + _muntTekst(fromCl(bedragCl)),
+      prijs: '+' + _muntTekst(fromCl(totaalCl)),
       aantal,
     });
   }
@@ -3307,7 +3335,7 @@ router.post('/party/long-rest', requireDM, (req, res) => {
 
   // Winkels met een wisselend assortiment verversen na een rust; een lange rust
   // telt ook als korte, want er is een nacht voorbij.
-  _bumpRustTellers(dmState, ['long', 'short']);
+  _bumpRustTellers(g, ['long', 'short']);
 
   storage.writeJSON('dm-state.json', dmState);
 
@@ -3388,7 +3416,7 @@ router.post('/party/short-rest', requireDM, (req, res) => {
   });
 
   // Winkels die op "na een korte rust" staan, verversen nu hun schappen.
-  _bumpRustTellers(dmState, ['short']);
+  _bumpRustTellers(g, ['short']);
 
   storage.writeJSON('dm-state.json', dmState);
 
