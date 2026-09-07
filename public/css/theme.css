@@ -12446,10 +12446,11 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .item-give-confirm-btn:hover { background: rgba(196,168,122,0.3); }
 
 /* ── Stapelbaar badge op kaart ── */
-.item-owner-badge--stapelbaar { background: rgba(196,168,122,0.15); border: 1px solid rgba(196,168,122,0.4); border-radius: 4px; padding: 2px 6px; font-size: 0.72rem; color: var(--color-ink-medium); display: flex; align-items: center; gap: 4px; }
-/* Klikbare variant: volledige breedte, pointer + hover ── */
-.item-owner-badge--give { cursor: pointer; transition: background 0.15s; }
-.item-owner-badge--give:hover { background: rgba(196,147,10,0.2); border-color: rgba(196,147,10,0.5); color: var(--color-ink-bright); }
+/* .item-owner-badge--stapelbaar en --give stonden hier en overschreven de
+   voetregel van een voorwerpkaartje met een eigen lettergrootte, rand en
+   padding — vandaar dat "Niemand" op het ene kaartje groter stond dan op het
+   andere. De voetregel heeft nu overal één vorm (.item-owner-badge met
+   .iob-wie / .iob-acties); deze twee zijn vervallen. */
 
 /* ── Stapelbaar: qty badge & controls in knapzak ── */
 .player-item-qty-badge { position: absolute; bottom: 3px; right: 3px; background: rgba(196,168,122,0.85); color: #1a1410; font-size: 0.65rem; font-weight: 700; font-family: 'Cinzel', serif; padding: 1px 4px; border-radius: 3px; line-height: 1.4; pointer-events: none; }

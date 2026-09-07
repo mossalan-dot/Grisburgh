@@ -3100,7 +3100,7 @@ function _itemOwnershipBadge(itemId) {
       const wie = eigenaren.length === 0
         ? 'Niemand'
         : `${eigenaren.length} speler${eigenaren.length !== 1 ? 's' : ''}${isStapelbaar ? ` · ${total}×` : ''}`;
-      return strook('item-owner-badge--stapelbaar', esc(wie), '', '');
+      return strook('', esc(wie), '', '');
     }
     const myEntry = myId ? eigenaren.find(o => o.characterId === myId) : null;
     if (myEntry && (myEntry.qty || 1) > 0) {
