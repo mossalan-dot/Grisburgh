@@ -130,3 +130,12 @@ groot het is.
 - [ ] **Samenvoegen van party's** — verhuizen laat voorwerpbezit en onthulde
       geheimen achter. Als dit vaker gaat spelen: één actie die de twaalf
       groepsvelden echt omzet, geen losse verhuisknop.
+
+- [ ] **Voorwerp-werking koppelen aan de stats van een speler** — stap 3 uit
+      `docs/voorstel-voorwerp-werking.md`: een vrij bonus-vinkje
+      (ability/skill/save + waarde) voor dingen als Gauntlets of Ogre Power of
+      een Cloak of Protection, en dat laten doorwerken in het character sheet.
+      Stap 1 (werking los van type) en stap 2 (spells koppelen i.p.v. kopiëren)
+      zijn goedgekeurd op 7 sep 2026; dit derde stuk is bewust uitgesteld tot
+      die twee staan — het is de vaagste categorie en raakt als enige de
+      berekeningen op het blad.

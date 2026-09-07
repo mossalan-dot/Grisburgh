@@ -1,6 +1,7 @@
 # Voorstel: werking los van type (voorwerpen)
 
-*Opgesteld 7 sep 2026. Nog niet gebouwd — ligt ter beoordeling.*
+*Opgesteld 7 sep 2026. Stap 1 en 2 goedgekeurd, nog niet gebouwd. Stap 3
+(koppeling aan de stats) staat op de todo-lijst.*
 
 ## Wat de 2024-regels doen
 
