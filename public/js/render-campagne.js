@@ -4070,8 +4070,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           <div id="dm-afreken-paneel" class="dm-winkel-paneel hidden"></div>
           <div class="dm-winkel-paneel">
             <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Inkopen van de party</div>
-            <p class="text-xs text-ink-dim mb-2">Vink aan wat de winkel overneemt, zet er een bedrag bij en reken af. Het voorwerp verdwijnt uit de boedel, het geld gaat naar die speler.</p>
-            <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._dmInkoopOpen('${esc(_shopId)}')"><span id="dm-inkoop-chevron">▸</span> ${icon('package')} Inventory van de party</button>
+            <p class="text-xs text-ink-dim mb-2">Vink aan wat de winkel overneemt, zet er een bedrag bij en reken af. Het voorwerp verdwijnt uit de boedel; het geld gaat naar de partybeurs als die gedeeld is, anders naar die speler.</p>
+            <button class="ed-knop" onclick="window._dmInkoopOpen('${esc(_shopId)}')"><span id="dm-inkoop-chevron">▸</span>${icon('package')}<span>Inventory van de party</span></button>
             <div id="dm-inkoop-lijst" class="mt-2"></div>
           </div>` : ''}
         `;
@@ -4611,7 +4611,7 @@ window._dmInkoopOpen = async (shopId) => {
         </label>`).join('')}
     </div>
     <div class="dm-winkel-rij mt-2">
-      <button class="dm-btn dm-btn-primary" onclick="window._dmInkoopDoen('${esc(shopId)}')">${icon('coins')} Inkopen</button>
+      <button class="ed-knop ed-knop--opslaan" onclick="window._dmInkoopDoen('${esc(shopId)}')">${icon('coins')}<span>Inkopen</span></button>
       <span id="dm-inkoop-melding" class="dm-hint"></span>
     </div>`;
 };
