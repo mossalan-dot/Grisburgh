@@ -363,38 +363,9 @@ const SCHEMA = {
       { key: 'itemType', label: 'Type', type: 'select', optionGroups: ITEM_TYPE_GROEPEN,
         meldingen: ITEM_TYPE_MELDINGEN },
       { key: 'rariteit', label: 'Rarity', type: 'select', options: ['Common','Uncommon','Rare','Very Rare','Legendary'] },
-      { key: 'prijs', label: 'Prijs', type: 'text' },
-      // Stond onder de twee vinkjes, maar hoort bij de prijs: allebei gaan ze
-      // over hoe dit voorwerp in de wereld rondgaat.
-      { key: 'gebruik', label: 'Exemplaren', type: 'select', options: [
-        { value: 'uniek',      label: 'Eén exemplaar — maar één speler kan het hebben' },
-        { value: 'gedeeld',    label: 'Meerdere spelers — ieder één exemplaar' },
-        { value: 'stapelbaar', label: 'Meerdere spelers — ieder een aantal, met teller' },
-      ]},
-      // "Heeft charges" als koptekst boven een vinkje was dubbelop: het vinkje
-      // zégt al dat het er wel of niet is.
-      { key: '_chargesToggle', label: 'Charges', type: 'reveal-toggle' },
-      { key: 'maxCharges', label: 'Maximum', type: 'getal', inReveal: '_chargesToggle', hint: '3' },
-      // 'Dageraad' is weg: de server behandelde het precies als een lange rust,
-      // en een dageraad-mechaniek bestaat niet in deze app. Wat opgeslagen staat
-      // blijft werken (zie de terugval in routes/api.js).
-      { key: 'rechargeOn', label: 'Herlaadt bij', type: 'select', inReveal: '_chargesToggle', options: [
-        { value: 'longRest',     label: 'Lange rust — weer helemaal vol' },
-        { value: 'shortRest',    label: 'Korte rust — weer helemaal vol' },
-        { value: 'longRestRoll', label: 'Lange rust — een deel terug, met een worp' },
-      ]},
-      // Alleen zichtbaar bij die derde keuze; los ernaast was niet te zien
-      // waar de worp bij hoorde.
-      { key: 'rechargeRoll', label: 'Hoeveel komt er terug', type: 'text', inReveal: '_chargesToggle',
-        hint: '1d3', showWhen: { key: 'rechargeOn', values: ['longRestRoll'] } },
-      { key: 'playerMaxAdjustable', label: 'Speler mag zijn eigen maximum bijstellen', type: 'checkbox', inReveal: '_chargesToggle' },
-      { key: 'attunement', label: 'Vereist attunement', type: 'checkbox' },
-      { key: 'attunementEis', label: 'Attunement alleen door', type: 'text',
-        hint: 'a Wizard', showWhen: { key: 'attunement', values: ['true'] } },
-      { key: 'nietVerkoopbaar', label: 'Niet te verkopen aan winkels', type: 'checkbox' },
-      // Naar boven gehaald: de beschrijving is de hoofdtekst, niet iets wat na
-      // vier blokken invulvelden komt.
-      { key: 'desc', label: 'Beschrijving', type: 'textarea' },
+      // Wat het type oplevert staat hier, direct onder de melding die het
+      // belooft. Stond eerst onder de beschrijving: je koos Weapon, las dat je
+      // velden voor schade kreeg, en zag ze nergens.
       { key: 'damage', label: 'Schade- of genezingsformule', type: 'text', showFor: ['Weapon', 'Wapen', 'Ammunition'], hint: '1d8+1 Slashing' },
       { key: 'weaponProperties', label: 'Wapeneigenschappen', type: 'weapon-tags', showFor: ['Weapon', 'Wapen', 'Ammunition'] },
       { key: 'armorType', label: 'Harnas type', type: 'select', showFor: ['Armor', 'Shield'], options: [
@@ -422,6 +393,39 @@ const SCHEMA = {
       { key: 'effect', label: 'Effect (eedtitel of vloek-mechaniek — niet voor zegen)', type: 'textarea', showFor: ['Blessing'] },
       { key: 'permanenteZegen', label: 'Permanente zegen (alleen op de eed-kaart)', type: 'text', showFor: ['Blessing'] },
       { key: 'eedTekst', label: 'Eedtekst (volledige belofte, op de eed-kaart)', type: 'textarea', showFor: ['Blessing'] },
+      { key: 'prijs', label: 'Prijs', type: 'text' },
+      // Stond onder de twee vinkjes, maar hoort bij de prijs: allebei gaan ze
+      // over hoe dit voorwerp in de wereld rondgaat.
+      { key: 'gebruik', label: 'Exemplaren', type: 'select', options: [
+        { value: 'uniek',      label: 'Eén exemplaar — maar één speler kan het hebben' },
+        { value: 'gedeeld',    label: 'Meerdere spelers — ieder één exemplaar' },
+        { value: 'stapelbaar', label: 'Meerdere spelers — ieder een aantal, met teller' },
+      ]},
+      // "Heeft charges" als koptekst boven een vinkje was dubbelop: het vinkje
+      // zégt al dat het er wel of niet is.
+      { key: '_chargesToggle', label: 'Charges', type: 'reveal-toggle' },
+      { key: 'maxCharges', label: 'Maximum', type: 'getal', inReveal: '_chargesToggle', hint: '3' },
+      // 'Dageraad' is weg: de server behandelde het precies als een lange rust,
+      // en een dageraad-mechaniek bestaat niet in deze app. Wat opgeslagen staat
+      // blijft werken (zie de terugval in routes/api.js).
+      { key: 'rechargeOn', label: 'Herlaadt bij', type: 'select', inReveal: '_chargesToggle', options: [
+        { value: 'longRest',     label: 'Lange rust — weer helemaal vol' },
+        { value: 'shortRest',    label: 'Korte rust — weer helemaal vol' },
+        { value: 'longRestRoll', label: 'Lange rust — een deel terug, met een worp' },
+      ]},
+      // Alleen zichtbaar bij die derde keuze; los ernaast was niet te zien
+      // waar de worp bij hoorde.
+      { key: 'rechargeRoll', label: 'Hoeveel komt er terug', type: 'text', inReveal: '_chargesToggle',
+        hint: '1d3', showWhen: { key: 'rechargeOn', values: ['longRestRoll'] } },
+      { key: 'playerMaxAdjustable', label: 'Speler mag zijn eigen maximum bijstellen', type: 'checkbox', inReveal: '_chargesToggle' },
+      { key: '_naChargesStreep', type: 'scheiding' },
+      { key: 'attunement', label: 'Vereist attunement', type: 'checkbox' },
+      { key: 'attunementEis', label: 'Attunement alleen door', type: 'text',
+        hint: 'Wizard', showWhen: { key: 'attunement', values: ['true'] } },
+      { key: 'nietVerkoopbaar', label: 'Niet te verkopen aan winkels', type: 'checkbox' },
+      // Naar boven gehaald: de beschrijving is de hoofdtekst, niet iets wat na
+      // vier blokken invulvelden komt.
+      { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       // Net als bij personages, locaties en organisaties: allebei lijsten, per
       // regel te onthullen. De oude losse tekst blijft de eerste regel.
       { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
@@ -2586,6 +2590,19 @@ function renderCard(type, e) {
       </div>
       <div class="card-body px-3 pt-2 pb-2">
         ${badges.length ? `<div class="card-badges card-badges--los">${badges.map(b => `<span class="card-subtype-badge ${b.cls}">${esc(b.label)}</span>`).join('')}</div>` : ''}
+        ${(() => {
+          // Zonder afbeelding staan schade en AC hier; met afbeelding liggen ze
+          // erover en verbergt de CSS deze rij.
+          const _los = [];
+          if (type === 'voorwerpen' && e.data?.damage) {
+            const _isHeal = /heal/i.test(e.data.damage);
+            _los.push(`<button class="card-damage-pill${_isHeal ? ' card-damage-pill--heal' : ''}"
+              onclick="event.stopPropagation();window.dice?.rollFormula('${escJS(e.data.damage)}')"
+              title="Gooi ${escJS(e.data.damage)}">${icon('dice',{cls:'icon-gi'})} ${esc(e.data.damage)}</button>`);
+          }
+          if (_cardAcr) _los.push(`<span class="card-armor-ac-pill" title="${escJS(_cardAcr.tooltip)}">${esc(_cardAcr.pill)}</span>`);
+          return _los.length ? `<div class="card-doen--los">${_los.join('')}</div>` : '';
+        })()}
         <div class="mb-1.5">
           <span class="card-name block" data-fittext>${esc(e.name)}${e._deceased ? '<span class="card-name-dagger">†</span>' : ''}</span>
           ${(rol || metaText) ? `<span class="card-name-sep"></span>
@@ -3042,7 +3059,7 @@ function _itemOwnershipBadge(itemId) {
     return `
       <div class="item-owner-badge ${isMine ? 'item-owner-badge--mine' : 'item-owner-badge--other'}" style="${color}" onclick="event.stopPropagation()">
         ${isMine ? `${icon('package')} Jouw eigendom` : `${icon('package')} ${esc(owner.playerName)}`}
-        ${isDm ? `<button class="item-owner-remove" onclick="event.stopPropagation();window._itemRemoveOwner('${esc(itemId)}')" title="Eigendom verwijderen">${icon('x')}</button>` : ''}
+        ${isDm ? `<button class="item-owner-remove" onclick="event.stopPropagation();window._itemRemoveOwner('${esc(itemId)}','${escJS(owner.playerName || '')}')" title="Uit de inventaris van ${esc(owner.playerName || 'deze speler')} halen">${icon('x')}</button>` : ''}
         ${isDm ? `<button class="item-give-btn" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan andere speler">${icon('package')}</button>` : ''}
       </div>`;
   }
@@ -3052,15 +3069,19 @@ function _itemOwnershipBadge(itemId) {
     r => r.itemId === itemId && r.requesterId === myId && r.status === 'pending'
   );
   if (pending) {
-    return `<div class="item-claim-pending" onclick="event.stopPropagation()">⏳ Wacht op DM…</div>`;
+    return `<div class="item-claim-pending" onclick="event.stopPropagation()">${icon('hourglass')} Wacht op DM…</div>`;
   }
 
-  // Geef-knop voor DM (geen eigenaar, niet stapelbaar)
+  // Geef-knop voor DM (geen eigenaar). Dezelfde strook als bij een stapelbaar
+  // of gedeeld voorwerp: daar was het hele vlak aanklikbaar en hier alleen het
+  // knopje, terwijl het om precies dezelfde handeling gaat.
   if (isDm) {
     return `
-      <button class="item-give-btn item-give-btn--standalone" onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan speler">
-        ${icon('package')} Geef aan speler
-      </button>`;
+      <div class="item-owner-badge item-owner-badge--stapelbaar item-owner-badge--give"
+        onclick="event.stopPropagation();window._itemGiveToPlayer('${esc(itemId)}')" title="Geef aan speler">
+        <span>${icon('package')} Geef aan speler</span>
+        <span class="item-give-btn">${icon('plus')}</span>
+      </div>`;
   }
 
   // Claim-knop voor ingelogde speler (niet stapelbaar)
@@ -3497,12 +3518,13 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _herlaad = { longRest: 'lange rust', shortRest: 'korte rust', dawn: 'lange rust',
                        longRestRoll: `lange rust, ${e.data?.rechargeRoll || '1d3'}` }[e.data?.rechargeOn || ''] || '';
 
-    // Bovenregel: de handelskant.
+    // Eén rij, geen kader. De prijs staat vooraan en is de enige die kleur
+    // krijgt; de rest zijn gelijke chips.
     const _kopDelen = [];
     if (_prijs) _kopDelen.push(`<span class="ik-prijs">${icon('coins')} ${esc(_prijs)}</span>`);
-    if (_nietTeKoop) _kopDelen.push(`<span class="ik-los">Winkels kopen dit niet in</span>`);
-    if (_att) _kopDelen.push(`<span class="ik-att">Requires Attunement${_attEis ? ` (${esc(_attEis)})` : ''}</span>`);
-    if (_maxCh > 0) _kopDelen.push(`<span class="ik-los">${icon('zap')} ${_maxCh} charge${_maxCh === 1 ? '' : 's'}${_herlaad ? ` — terug bij ${esc(_herlaad)}` : ''}</span>`);
+    if (_att) _kopDelen.push(`<span class="ik-chip">Requires Attunement${_attEis ? ` — ${esc(_attEis)}` : ''}</span>`);
+    if (_maxCh > 0) _kopDelen.push(`<span class="ik-chip">${icon('zap')} ${_maxCh} charge${_maxCh === 1 ? '' : 's'}${_herlaad ? ` — terug bij ${esc(_herlaad)}` : ''}</span>`);
+    if (_nietTeKoop) _kopDelen.push(`<span class="ik-chip">Winkels kopen dit niet in</span>`);
 
     // Onderregel: wat je ermee doet. De schadeknop is het enige wat je hier
     // kunt aanklikken en blijft daarom als enige geaccentueerd.
@@ -3538,8 +3560,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
 
     if (_kopDelen.length || _onder.length) {
       infoHtml += `<div class="item-kenmerken">
-        ${_kopDelen.length ? `<div class="item-kenmerken-kop">${_kopDelen.join('')}</div>` : ''}
-        ${_onder.length ? `<div class="item-kenmerken-doen">${_onder.join('')}</div>` : ''}
+        ${_kopDelen.length ? `<div class="item-kenmerken-rij">${_kopDelen.join('')}</div>` : ''}
+        ${_onder.length ? `<div class="item-kenmerken-rij item-kenmerken-rij--doen">${_onder.join('')}</div>` : ''}
       </div>`;
     }
   }
@@ -4306,8 +4328,11 @@ window._itemClaim = async (itemId) => {
   }
 };
 
-window._itemRemoveOwner = async (itemId) => {
-  if (!confirm('Eigendom verwijderen van dit voorwerp?')) return;
+window._itemRemoveOwner = async (itemId, spelerNaam) => {
+  // "Eigendom verwijderen van dit voorwerp?" zei niet wát er weggaat en bij wie.
+  const _naam = spelerNaam || 'deze speler';
+  const _item = (window._entityCache?.voorwerpen || []).find(e => e.id === itemId)?.name || 'Dit voorwerp';
+  if (!confirm(`${_item} verwijderen uit de inventaris van ${_naam}?`)) return;
   try {
     await api.removeItemOwner(itemId);
     await refreshOwnership();
@@ -4637,8 +4662,8 @@ window._bezitLaden = async (itemId) => {
                      onclick="window._eigenaarQtyAdj('${esc(itemId)}','${esc(r.characterId)}',1,'${esc(g.id)}')">${icon('plus')}</button>
                  </span>`
               : ''}
-          ${r.bron === 'boedel' ? '' : `<button class="dm-btn dm-btn-icon dm-btn-sm bezit-weg" title="Eigendom weghalen"
-             onclick="window._eigenaarVerwijder('${esc(itemId)}','${esc(r.characterId)}','${esc(g.id)}')">${icon('x')}</button>`}
+          ${r.bron === 'boedel' ? '' : `<button class="dm-btn dm-btn-icon dm-btn-sm bezit-weg" title="Uit de inventaris van ${esc(r.naam || 'deze speler')} halen"
+             onclick="window._eigenaarVerwijder('${esc(itemId)}','${esc(r.characterId)}','${esc(g.id)}','${escJS(r.naam || '')}')">${icon('x')}</button>`}
         </div>`).join('')}
     </div>`).join('') + knop;
 };
@@ -4651,8 +4676,10 @@ window._eigenaarQtyAdj = async (itemId, characterId, delta, groupId) => {
   } catch (err) { alert('Fout: ' + err.message); }
 };
 
-window._eigenaarVerwijder = async (itemId, characterId, groupId) => {
-  if (!confirm('Eigendom verwijderen voor deze speler?')) return;
+window._eigenaarVerwijder = async (itemId, characterId, groupId, spelerNaam) => {
+  const _naam = spelerNaam || 'deze speler';
+  const _item = (window._entityCache?.voorwerpen || []).find(e => e.id === itemId)?.name || 'Dit voorwerp';
+  if (!confirm(`${_item} verwijderen uit de inventaris van ${_naam}?`)) return;
   try {
     await api.removeStackOwner(itemId, characterId, groupId || null);
     await refreshOwnership();
@@ -5437,6 +5464,10 @@ window._openEditor = async (tab, editId) => {
       const _hid = field.hideFor.includes(_curItemType);
       body += `<div data-hide-for="${field.hideFor.join(',')}" style="${_hid ? 'display:none' : ''}">`;
     }
+    if (field.type === 'scheiding') {
+      body += `<hr class="veld-scheiding">`;
+      continue;
+    }
     if (field.type === 'reveal-toggle') {
       const hasData = schema.fields
         .filter(f => f.inReveal === field.key)
@@ -5721,6 +5752,8 @@ window._openEditor = async (tab, editId) => {
         <div>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <input type="number" min="0" step="1" inputmode="numeric" name="data_${field.key}" value="${esc(val)}"${field.hint ? ` placeholder="${esc(field.hint)}"` : ''}
+            onkeydown="if(['e','E','+','-','.',','].includes(event.key))event.preventDefault()"
+            onpaste="const t=(event.clipboardData||window.clipboardData).getData('text');if(!/^\\d*$/.test(t.trim()))event.preventDefault()"
             class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
         </div>
       `;

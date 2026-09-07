@@ -8,19 +8,8 @@ window._shiftHeld = false;
 document.addEventListener('keydown', e => { if (e.key === 'Shift') window._shiftHeld = true; });
 document.addEventListener('keyup',   e => { if (e.key === 'Shift') window._shiftHeld = false; });
 
-const CATEGORIES = [
-  { key: 'alle', label: 'Alle', icon: '' },
-  { key: 'brieven', label: 'Brieven & Documenten', icon: '\ud83d\udcdc' },
-  { key: 'pers', label: 'Gedrukte Pers', icon: '\ud83d\uddde' },
-  { key: 'kaarten', label: 'Kaarten', icon: '\ud83d\uddfa' },
-  { key: 'codex', label: 'Codex & Emblema', icon: '\ud83d\udd0f' },
-  { key: 'audio', label: 'Geluid', icon: '\ud83c\udfb5' },
-];
-
 const DOC_TYPES = ['Brief','Krant','Kaart','Manuscript','Kasboek','Notities','Folder','Gebed','Blauwdruk','Embleem','Visitekaartje','Gedicht','Dreigbrief','Catalogus','Menu','Stadskaart','Wereldkaart','Dungeon map','Audiofragment','Overig'];
-const DOC_CATS = ['brieven','pers','kaarten','codex','logboek','audio'];
 
-let activeCat = 'alle';
 let logboekSearch = '';
 let _logboekInitialized = false;
 let _collapsedChapters = new Set();
@@ -2700,18 +2689,6 @@ function filterDocs() {
   return docs;
 }
 
-function renderDocGrid(docs) {
-  if (docs.length === 0) {
-    return `<div class="text-center py-16 text-ink-faint">
-      <div class="text-4xl mb-3">\ud83d\udcdc</div>
-      <div class="font-fell italic">Geen documenten gevonden</div>
-    </div>`;
-  }
-  return `<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5">
-    ${docs.map(d => renderDocCard(d)).join('')}
-  </div>`;
-}
-
 function renderDocCardCompact(d) {
   const state = (isDM() && d._activeState !== undefined) ? d._activeState : (d.state || 'hidden');
   const isBlurred = !isDM() && state === 'blurred';
@@ -2725,7 +2702,9 @@ function renderDocCardCompact(d) {
         <div class="text-[11px] font-cinzel font-semibold text-ink-bright leading-tight truncate${isBlurred ? ' blur-sm select-none' : ''}">${esc(d.name)}</div>
         ${d.type ? `<div class="text-[10px] text-ink-faint italic mt-0.5">${esc(d.type)}</div>` : ''}
       </div>
-      ${dimmed ? `<div class="text-[11px] pr-1.5 shrink-0">${state === 'blurred' ? '\ud83d\udc41' : '\ud83d\udd12'}</div>` : ''}
+      ${dimmed ? `<div class="text-[11px] pr-1.5 shrink-0 text-ink-faint"
+        title="${state === 'blurred' ? 'Vaag zichtbaar voor spelers' : 'Verborgen voor spelers'}"
+        >${state === 'blurred' ? icon('eye-off') : icon('lock')}</div>` : ''}
     </div>
   `;
 }
@@ -2760,11 +2739,15 @@ function renderDocCard(d) {
       <div class="card-accent bar-documenten"></div>
       <div class="card-img-wrap">
         <img class="card-img w-full object-cover${isBlurred ? ' blur-lg select-none pointer-events-none' : ''}"
-          loading="lazy" src="${api.thumbForEntity(d)}" onerror="this.style.display='none'">
+          loading="lazy" src="${api.thumbForEntity(d)}"
+          onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
         <div class="card-img-fade"></div>
-        ${d.type ? `<div class="card-subtype-badge badge-doc">${esc(d.type)}</div>` : ''}
+        ${d.type ? `<div class="card-badges card-badges--beeld"><div class="card-badges-rij">
+          <span class="card-subtype-badge badge-doc">${esc(d.type)}</span></div></div>` : ''}
       </div>
       <div class="card-body px-3 pt-2 pb-2">
+        ${d.type ? `<div class="card-badges card-badges--los">
+          <span class="card-subtype-badge badge-doc">${esc(d.type)}</span></div>` : ''}
         <div class="mb-1.5">
           <span class="card-name block" data-fittext>${esc(d.name)}</span>
           ${chapterLabel ? `<span class="card-name-sep"></span>
@@ -2834,16 +2817,19 @@ window._openDoc = async (id) => {
   // ── DM controls (onderaan) ──
   if (isDM()) {
     body += `
-      <div class="dm-only mt-4 pt-4 border-t border-room-border flex gap-2">
-        <button class="dm-btn dm-btn-icon${state !== 'hidden' ? ' dm-btn--active' : ''}"
+      <!-- Drie gelijke vierkantjes met een pictogram zeiden niet wát ze doen —
+           dezelfde reden waarom de entiteit-viewer icoon plus woord kreeg. De
+           stand staat nu in het woord, niet alleen in de kleur. -->
+      <div class="dm-only detail-dm-tools mt-4 pt-4 border-t border-room-border">
+        <button class="dm-actie${state !== 'hidden' ? ' dm-actie--aan' : ''}"
           title="${_visTitle}"
           onclick="window._toggleDocState('${d.id}','${state}',event.shiftKey)">
-          ${_visIcon}
+          ${_visIcon}<span>${state === 'revealed' ? 'Zichtbaar' : state === 'blurred' ? 'Vaag zichtbaar' : 'Verborgen'}</span>
         </button>
-        <button class="dm-btn dm-btn-icon" title="Bewerken"
-          onclick="window._openArchiefEditor('${d.id}')">${icon('pencil')}</button>
-        <button class="dm-btn dm-btn-icon dm-btn-danger" title="Verwijderen"
-          onclick="window._deleteDoc('${d.id}')">${icon('trash')}</button>
+        <button class="dm-actie" title="Bewerken"
+          onclick="window._openArchiefEditor('${d.id}')">${icon('pencil')}<span>Bewerken</span></button>
+        <button class="dm-actie dm-actie--gevaar" title="Verwijderen"
+          onclick="window._deleteDoc('${d.id}')">${icon('trash')}<span>Verwijderen</span></button>
       </div>
     `;
   }
