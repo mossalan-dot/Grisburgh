@@ -1649,51 +1649,88 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 }
 
 
-/* ── Voorwerp: kenmerken onder de titel ──
-   Was eerst één omkaderd blok, maar dat kader las als een invoerveld: met
-   alleen een prijs erin leek het een valutaveld, en de attunement-pill leek
-   erin te staan. Zonder kader is het gewoon een rij eigenschappen. */
+/* ── Voorwerp: kenmerken rond de beschrijving ──
+   Volgorde: wat je ermee gooit, waar het goed in is, de tekst, en dan pas wat
+   het van je vraagt en wat het kost. Geen kader: dat las als een invoerveld. */
 .item-kenmerken {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 7px;
+  margin-bottom: 15px;
 }
 .item-kenmerken-rij {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: 6px;
+}
+/* De schadeknop is het enige aanklikbare op dit blad en staat daarom alleen op
+   zijn regel, met het accent voor zichzelf. */
+.item-kenmerken-rij--worp { gap: 10px; }
+.item-kenmerken-rij--worp .item-damage-pill { margin: 0; }
+.item-kenmerken-rij--worp .dmg-inline-result:empty { display: none; }
+
+/* Eigenschappen zijn bijschrift, geen knop: dunner, kleiner, zonder vulling.
+   Als gevulde pillen van 11px vet vochten ze met de schadeknop om aandacht. */
+.item-kenmerken-rij--eigenschappen .detail-weapon-tag,
+.item-kenmerken-rij--eigenschappen .detail-armor-tag {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  background: transparent;
+  border-width: 1px;
+  border-color: rgba(196,168,122,0.6);
+  color: #7a6040;
+  padding: 2px 9px;
+}
+.item-kenmerken-rij--eigenschappen .detail-weapon-tag:hover {
+  background: rgba(196,168,122,0.18);
+  color: #5a3a1a;
+}
+
+/* Na de beschrijving: wat het van je vraagt, en onderaan wat het kost. Een
+   dunne lijn erboven scheidt het van de tekst zonder een kader te worden. */
+.item-navraag {
+  display: flex;
+  flex-direction: column;
   gap: 7px;
+  margin: 0 0 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(196,168,122,0.35);
 }
-/* De prijs is het enige met kleur: die zoek je op een voorwerpkaartje. */
-.item-kenmerken .ik-prijs {
+.item-navraag .ik-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 12.5px;
+  color: #5a4030;
+  background: rgba(236,220,186,0.5);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 11px;
+  padding: 2px 11px;
+}
+.item-navraag .ik-chip svg { width: 12px; height: 12px; opacity: 0.7; }
+/* De prijs is een feit, geen chip: gewoon een regel in de muntkleur. */
+.item-kenmerken-rij--kost { gap: 10px; }
+.item-navraag .ik-prijs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: 'Cinzel', serif;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
+  letter-spacing: 0.03em;
   color: #9a7008;
-  margin-right: 3px;
 }
-.item-kenmerken .ik-prijs svg { width: 14px; height: 14px; }
-.item-kenmerken .ik-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+.item-navraag .ik-prijs svg { width: 15px; height: 15px; }
+.item-navraag .ik-noot {
   font-family: 'IM Fell English', serif;
   font-style: italic;
   font-size: 12px;
-  color: #5a4030;
-  background: rgba(236,220,186,0.55);
-  border: 1px solid rgba(196,168,122,0.45);
-  border-radius: 11px;
-  padding: 2px 10px;
+  color: #8a7a5a;
 }
-.item-kenmerken .ik-chip svg { width: 12px; height: 12px; opacity: 0.75; }
-/* De schadeknop is het enige aanklikbare hier en houdt als enige zijn accent. */
-.item-kenmerken-rij--doen .item-damage-pill { margin: 0; }
-.item-kenmerken-rij--doen .dmg-inline-result:empty { display: none; }
 
 /* Scheiding tussen twee groepen velden in een editor. Zonder streep leken de
    losse vinkjes onder een uitklapblok daar nog bij te horen. */

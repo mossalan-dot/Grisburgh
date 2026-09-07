@@ -1077,7 +1077,10 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
   const dmState  = readDmState();
   const g        = getGroup(dmState);
   const current  = g.visibility[id] || 'hidden';
-  const threeState = ['personages', 'locaties'].includes(type);
+  // Ook een organisatie kent de vage stand: dat het gilde bestaat mag je weten,
+  // wie erin zit niet. Bij een voorwerp slaat het nergens op — dat heb je of je
+  // hebt het niet.
+  const threeState = ['personages', 'locaties', 'organisaties'].includes(type);
   let next;
   if (req.body?.target === 'visible') {
     next = 'visible';

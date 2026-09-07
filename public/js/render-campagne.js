@@ -2516,7 +2516,7 @@ function renderCard(type, e) {
   const _cardStrReq  = parseInt(e.data?.strengthRequirement) || 0;
 
   // ── DM toggle icon / title — 3-state for personages + locaties ──
-  const _threeState = ['personages', 'locaties'].includes(type);
+  const _threeState = ['personages', 'locaties', 'organisaties'].includes(type);
   const _visIcon  = vis === 'visible' ? icon('eye')
                   : vis === 'vague'   ? icon('eye-off')
                   :                    icon('lock');
@@ -3503,6 +3503,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // Sinds hij als eerste deel van de regel onder de naam staat (rol · origin ·
   // class · alignment) is dat een herhaling.
 
+  // Wat na de beschrijving komt (attunement, charges, prijs) — daar gebouwd,
+  // hier ingevoegd, want de tekst zelf wordt pas verderop gerenderd.
+  let _naDesc = '';
   // Voorwerpen: één kenmerkenstrook in plaats van vier losse rijen pillen.
   // Er stonden er vier onder elkaar, elk met een eigen uitlijning (rariteit
   // links, schade gecentreerd, prijs weer links) — dat las als een opsomming
@@ -3518,13 +3521,21 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _herlaad = { longRest: 'lange rust', shortRest: 'korte rust', dawn: 'lange rust',
                        longRestRoll: `lange rust, ${e.data?.rechargeRoll || '1d3'}` }[e.data?.rechargeOn || ''] || '';
 
-    // Eén rij, geen kader. De prijs staat vooraan en is de enige die kleur
-    // krijgt; de rest zijn gelijke chips.
-    const _kopDelen = [];
-    if (_prijs) _kopDelen.push(`<span class="ik-prijs">${icon('coins')} ${esc(_prijs)}</span>`);
-    if (_att) _kopDelen.push(`<span class="ik-chip">Requires Attunement${_attEis ? ` — ${esc(_attEis)}` : ''}</span>`);
-    if (_maxCh > 0) _kopDelen.push(`<span class="ik-chip">${icon('zap')} ${_maxCh} charge${_maxCh === 1 ? '' : 's'}${_herlaad ? ` — terug bij ${esc(_herlaad)}` : ''}</span>`);
-    if (_nietTeKoop) _kopDelen.push(`<span class="ik-chip">Winkels kopen dit niet in</span>`);
+    // Wat je ermee doet staat vóór de beschrijving, wat het van je vraagt en
+    // wat het kost erna: eerst het voorwerp, dan het verhaal, dan de kleine
+    // letters. `_naDesc` wordt verderop ingevoegd, direct onder de tekst.
+    const _vraagt = [];
+    if (_att) _vraagt.push(`<span class="ik-chip">${icon('lock')} Requires Attunement${_attEis ? ` — ${esc(_attEis)}` : ''}</span>`);
+    if (_maxCh > 0) _vraagt.push(`<span class="ik-chip">${icon('zap')} ${_maxCh} charge${_maxCh === 1 ? '' : 's'}${_herlaad ? ` — terug bij ${esc(_herlaad)}` : ''}</span>`);
+    const _kost = [];
+    if (_prijs) _kost.push(`<span class="ik-prijs">${icon('coins')} ${esc(_prijs)}</span>`);
+    if (_nietTeKoop) _kost.push(`<span class="ik-noot">winkels kopen dit niet in</span>`);
+    if (_vraagt.length || _kost.length) {
+      _naDesc = `<div class="item-navraag">
+        ${_vraagt.length ? `<div class="item-kenmerken-rij">${_vraagt.join('')}</div>` : ''}
+        ${_kost.length ? `<div class="item-kenmerken-rij item-kenmerken-rij--kost">${_kost.join('')}</div>` : ''}
+      </div>`;
+    }
 
     // Onderregel: wat je ermee doet. De schadeknop is het enige wat je hier
     // kunt aanklikken en blijft daarom als enige geaccentueerd.
@@ -3547,21 +3558,19 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       _tags.push(`<span class="detail-weapon-tag" data-wptip="${escJS(desc)}">${esc(wp)}</span>`);
     }
 
-    const _onder = [];
+    let _worp = '';
     if (_dmg) {
       const _isHeal = /heal/i.test(_dmg);
-      _onder.push(`<button class="item-damage-pill${_isHeal ? ' item-damage-pill--heal' : ''}"
+      _worp = `<button class="item-damage-pill${_isHeal ? ' item-damage-pill--heal' : ''}"
           onclick="window.dice?.rollFormula('${escJS(_dmg)}','dmg-inline-result')"
           title="Klik om ${_isHeal ? 'genezing' : 'schade'} te gooien">
           ${icon('dice',{cls:'icon-gi'})} ${esc(_dmg)}
-        </button><span class="dmg-inline-result" id="dmg-inline-result"></span>`);
+        </button><span class="dmg-inline-result" id="dmg-inline-result"></span>`;
     }
-    if (_tags.length) _onder.push(_tags.join(''));
-
-    if (_kopDelen.length || _onder.length) {
+    if (_worp || _tags.length) {
       infoHtml += `<div class="item-kenmerken">
-        ${_kopDelen.length ? `<div class="item-kenmerken-rij">${_kopDelen.join('')}</div>` : ''}
-        ${_onder.length ? `<div class="item-kenmerken-rij item-kenmerken-rij--doen">${_onder.join('')}</div>` : ''}
+        ${_worp ? `<div class="item-kenmerken-rij item-kenmerken-rij--worp">${_worp}</div>` : ''}
+        ${_tags.length ? `<div class="item-kenmerken-rij item-kenmerken-rij--eigenschappen">${_tags.join('')}</div>` : ''}
       </div>`;
     }
   }
@@ -3631,6 +3640,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _descHtml = mdToHtml(_descVal);
     infoHtml += `<div class="detail-desc mb-4">${tab === 'voorwerpen' ? (window.glossary?.annotate?.(_descHtml) ?? _descHtml) : _descHtml}</div>`;
   }
+  infoHtml += _naDesc;
 
   // ── Betrekkingen, ná de beschrijving ──
   // Eerst lezen wie of wat dit is, dan pas de administratie eromheen. Eén regel
@@ -3763,7 +3773,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
 
   // DM controls
   if (isDM()) {
-    const _ts = ['personages', 'locaties'].includes(tab);
+    const _ts = ['personages', 'locaties', 'organisaties'].includes(tab);
     const _mVisIcon  = vis === 'visible' ? icon('eye')
                      : vis === 'vague'   ? icon('eye-off')
                      :                    icon('lock');
@@ -4705,7 +4715,26 @@ window._itemRejectRequest = async (reqId) => {
 
 // ── Visibility / Secret / Deceased toggles ──
 window._toggleVis = async (tab, id, event) => {
-  const toVague = event?.shiftKey && ['personages', 'locaties'].includes(tab);
+  const toVague = event?.shiftKey && ['personages', 'locaties', 'organisaties'].includes(tab);
+  // Een voorwerp verbergen haalt het uit de boedel van wie het draagt: de
+  // spelerslijst wordt op zichtbaarheid gefilterd, dus het verdwijnt uit zijn
+  // knapzak. Dat gebeurt in de praktijk per ongeluk — vandaar de vraag. Het
+  // eigendom zelf blijft staan, dus zichtbaar maken zet alles terug.
+  if (tab === 'voorwerpen' && !toVague && isDM()) {
+    const nu = (window._entityCache?.voorwerpen || []).find(e => e.id === id)?._visibility;
+    if (nu && nu !== 'hidden') {
+      const bezit = await api.getItemBezit(id).catch(() => null);
+      const dragers = [...new Set((bezit?.groepen || [])
+        .flatMap(g => (g.rijen || []).filter(r => r.bron === 'kaartje').map(r => r.naam || 'een speler')))];
+      if (dragers.length) {
+        const wie = dragers.length === 1 ? dragers[0]
+          : dragers.slice(0, -1).join(', ') + ' en ' + dragers[dragers.length - 1];
+        const heeft = dragers.length === 1 ? 'heeft' : 'hebben';
+        // Geen "zijn/haar": we weten niet wie er achter een personage zit.
+        if (!confirm(`${wie} ${heeft} dit voorwerp. Verbergen haalt het daar weg.\n\nHet eigendom blijft bestaan: zichtbaar maken zet het terug.\n\nToch verbergen?`)) return;
+      }
+    }
+  }
   await api.toggleVisibility(tab, id, toVague ? 'vague' : undefined);
   renderEntitySection(tab);
   // Staat het kaartje open, dan moet de knop zijn nieuwe stand tonen — anders
