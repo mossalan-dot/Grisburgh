@@ -2199,7 +2199,6 @@ window._editAkte = async (ch) => {
   const bannerImgSrc = bannerImgId ? api.fileUrl(bannerImgId) : null;
 
   const focusVal = info.bannerFocus || '50% 30%';
-  const [fx, fy] = (focusVal.match(/(\d+)%\s*(\d+)%/) || [null, '50', '30']).slice(1).map(Number);
 
   const body = `
     <form id="akte-edit-form" class="space-y-4">
@@ -2236,23 +2235,14 @@ window._editAkte = async (ch) => {
       <div>
         <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Bannerfocus</label>
         ${bannerImgSrc ? `
-          <div id="fp-wrap" class="relative rounded overflow-hidden mt-1 mb-1 select-none"
-            style="height:140px;cursor:crosshair"
-            onmousedown="window._fpDown(event)"
-            onmousemove="window._fpMove(event)">
-            <img id="editor-img-preview" src="${bannerImgSrc}"
-              class="w-full h-full object-cover pointer-events-none"
-              style="object-position:${focusVal}"
-              onerror="this.parentElement.style.display='none'">
-            <div id="fp-crosshair" class="absolute pointer-events-none"
-              style="left:${fx}%;top:${fy}%;transform:translate(-50%,-50%)">
-              <div style="width:22px;height:22px;border-radius:50%;
-                border:2px solid #fff;
-                box-shadow:0 0 0 1.5px rgba(0,0,0,0.55),inset 0 0 0 1.5px rgba(0,0,0,0.3)"></div>
-            </div>
-          </div>
-          <p class="text-[10px] text-ink-dim mb-1">Klik of sleep om het focuspunt van de bannerafbeelding in te stellen</p>
-          <input type="hidden" id="fp-input" value="${focusVal}">
+          <!-- Zelfde kiezer als op een kaartje (window._fpBlokHtml). Dit blok
+               had zijn eigen bouwsel met een cover-afbeelding, terwijl _fpApply
+               contain-wiskunde doet — je klik landde dus ergens anders dan waar
+               je wees. -->
+          ${window._fpBlokHtml({
+            src: bannerImgSrc, value: focusVal,
+            previews: [{ cls: 'fp-prev--banner', label: 'Banner' }],
+          })}
         ` : `
           <p class="text-xs text-ink-faint mt-1 font-fell italic">Geen bannerafbeelding — voeg een afbeelding toe aan het eerste hoofdstuk van deze akte.</p>
         `}
@@ -2313,7 +2303,7 @@ window._editAkte = async (ch) => {
     const num   = parseInt(document.getElementById('akte-num').value) || info.num || 99;
     const title = document.getElementById('akte-title').value.trim() || info.title || '';
     const dag   = document.getElementById('akte-dag').value.trim();
-    const bannerFocus = document.getElementById('fp-input')?.value || focusVal;
+    const bannerFocus = window._fpWaarde?.() || focusVal;
     const bannerImg   = document.getElementById('banner-img-input')?.value || '';
     const spelersSamenvatting = document.getElementById('akte-samenvatting-ta').value.trim();
     const short = `A${num} \u00b7 ${title.length > 22 ? title.slice(0, 22) + '\u2026' : title}`;
@@ -2382,12 +2372,9 @@ window._pickBannerImg = (btn) => {
   btn.classList.add('banner-img-thumb--sel');
   const imgId = btn.dataset.imgId;
   document.getElementById('banner-img-input').value = imgId;
-  // Update de focuspicker-preview
-  const preview = document.getElementById('editor-img-preview');
-  if (preview) {
-    preview.src = api.fileUrl(imgId);
-    document.getElementById('fp-wrap')?.style.removeProperty('display');
-  }
+  // Eén helper zet de bron van de kiezer én van de previews, anders raken die
+  // uit elkaar zodra je een andere banner kiest.
+  window._fpZetBron?.(imgId);
 };
 
 window._openSessieEditor = async (editId, voorAkte) => {

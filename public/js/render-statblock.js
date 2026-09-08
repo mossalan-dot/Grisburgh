@@ -10,7 +10,21 @@
  */
 
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const _sbMod = score => { const m = Math.floor(((score || 10) - 10) / 2); return (m >= 0 ? '+' : '') + m; };
+// Een monster uit de bibliotheek heeft `str: 16`; op een personage-kaartje staat
+// er "16 (+3)" — de DM tikt daar de modifier zelf mee. Beide moeten hier door,
+// dus: haal het eerste getal eruit, en staat de modifier al in de tekst, gebruik
+// dan díé. Zonder dit stond er onder elke ability een keurige `(NaN)`.
+const _sbGetal = v => { const m = String(v ?? '').match(/-?\d+/); return m ? parseInt(m[0], 10) : null; };
+const _sbMod = score => {
+  const eigen = String(score ?? '').match(/\(\s*([+-]\s*\d+)\s*\)/);
+  if (eigen) return eigen[1].replace(/\s+/g, '');
+  const n = _sbGetal(score);
+  const m = Math.floor(((n == null ? 10 : n) - 10) / 2);
+  return (m >= 0 ? '+' : '') + m;
+};
+// Het getal zoals het in het vakje hoort: "16 (+3)" toont als 16, want de
+// modifier staat er al onder.
+const _sbScore = v => { const n = _sbGetal(v); return n == null ? (v ?? 10) : n; };
 const _sbMdLine = t => (t || '')
   .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
   .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -35,6 +49,17 @@ const _sbMdBlock = t => (t || '').split('\n').filter(l => l.trim())
     return `<p class="sb-p">${h}</p>`;
   }).join('');
 const _icon = (...a) => window.icon?.(...a) || '';
+
+// De haakjes zijn er voor de worp: "27 (5d8+5)". Maar `maxHp` en het tekstveld
+// zeggen vaak allebei hetzelfde getal, en dan stond er "70 (70)" — of, als de
+// tekst het getal al mét de worp draagt, "27 (27 (5d8+5))". Begint de tekst met
+// hetzelfde getal, dan is de tekst het hele antwoord.
+function _sbHp(maxHp, hpTekst) {
+  const tekst = String(hpTekst ?? '').trim();
+  if (!tekst) return String(maxHp ?? '');
+  if (!maxHp) return esc(tekst);
+  return _sbGetal(tekst) === Number(maxHp) ? esc(tekst) : `${maxHp} (${esc(tekst)})`;
+}
 
 const _TIERS = { naam: 0, deels: 1, volledig: 2 };
 
@@ -89,14 +114,14 @@ export function renderStatblock(m, { niveau = 'volledig', kop = true } = {}) {
 
   const defensive = `
     ${sb.ac    ? `<div class="sb-prop"><span class="sb-prop-label">Armor Class</span>${esc(sb.ac)}</div>` : ''}
-    ${(sb.hp || m.maxHp) ? `<div class="sb-prop"><span class="sb-prop-label">Hit Points</span>${m.maxHp}${sb.hp ? ` (${esc(sb.hp)})` : ''}</div>` : ''}
+    ${(sb.hp || m.maxHp) ? `<div class="sb-prop"><span class="sb-prop-label">Hit Points</span>${_sbHp(m.maxHp, sb.hp)}</div>` : ''}
     ${sb.speed ? `<div class="sb-prop"><span class="sb-prop-label">Speed</span>${esc(sb.speed)}</div>` : ''}`;
 
   const scores = `
     <div class="sb-scores">
       ${LABELS.map((lbl, i) => `<div class="sb-score-cell">
         <div class="sb-score-label">${lbl}</div>
-        <div class="sb-score-val">${sb[ATTRS[i]] ?? 10}</div>
+        <div class="sb-score-val">${esc(_sbScore(sb[ATTRS[i]] ?? 10))}</div>
         <div class="sb-score-mod">(${_sbMod(sb[ATTRS[i]] ?? 10)})</div>
       </div>`).join('')}
     </div>`;
@@ -105,7 +130,7 @@ export function renderStatblock(m, { niveau = 'volledig', kop = true } = {}) {
   if (tier >= 2) {
     // ── Volledig: props + CR + traits/actions ──
     const cr = (sb.cr || sb.xp)
-      ? `<div class="sb-prop"><span class="sb-prop-label">Challenge</span>${esc(sb.cr || '?')}${sb.xp ? ` (${sb.xp} XP)` : ''}</div>`
+      ? `<div class="sb-prop"><span class="sb-prop-label">Challenge</span>${esc(sb.cr || '?')}${(sb.xp && !/xp/i.test(String(sb.cr || ''))) ? ` (${esc(sb.xp)} XP)` : ''}</div>`
       : '';
     tail = `${props}${cr}
       ${sb.traits           ? `<div class="sb-rule"></div>${_sbMdBlock(sb.traits)}` : ''}

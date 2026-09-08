@@ -10,7 +10,7 @@
  */
 
 import { api } from './api.js?v=280';
-import { renderStatblock } from './render-statblock.js?v=7';
+import { renderStatblock } from './render-statblock.js?v=8';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);

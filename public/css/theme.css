@@ -22558,14 +22558,6 @@ body.kaart-fs-active { overflow: hidden; }
   border-radius: 8px; margin: 14px 0 4px;
 }
 .spreuk-detail-img.is-on { display: block; }
-.spreuk-detail-img[onclick] { cursor: crosshair; }
-.spreuk-focus-hint {
-  position: absolute; left: 8px; bottom: 12px; z-index: 2;
-  font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
-  color: #fff; background: rgba(20,12,4,0.6); border-radius: 6px; padding: 3px 8px;
-  pointer-events: none; display: none;
-}
-.spreuk-detail-img.is-on + .spreuk-focus-hint { display: block; }
 .spreuk-detail-imgbtn {
   display: inline-flex; align-items: center; gap: 5px; margin: 10px 0 2px;
   font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; cursor: pointer;
@@ -24290,3 +24282,40 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   text-decoration-color: rgba(106,58,138,0.45); text-underline-offset: 2px;
 }
 .sb-spell:hover { color: #8a4aae; text-decoration-color: currentColor; }
+
+/* Uitsnedes die alleen elders voorkomen: de aktebanner en het spreukkaartje.
+   Zelfde verhouding als waar de afbeelding echt terechtkomt, anders liegt de
+   preview over wat er wegvalt. */
+.fp-prev--banner { width: 112px; height: 42px; border-radius: 3px; }
+.fp-prev--breed  { width: 112px; height: 48px; border-radius: 3px; }
+
+/* Het focuspunt van een spreukafbeelding zit in een uitklapper: het detail is
+   een leesvenster, niet een editor, dus de kiezer hoort er niet standaard
+   opengeklapt in te staan. */
+.spreuk-focus-blok { margin: 6px 0 2px; }
+.spreuk-focus-blok > summary {
+  display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: 0.04em;
+  color: #6a4aa0; list-style: none;
+}
+.spreuk-focus-blok > summary::-webkit-details-marker { display: none; }
+.spreuk-focus-blok > summary:hover { color: #8a4aae; }
+.spreuk-focus-blok > summary .icon { width: 13px; height: 13px; }
+.spreuk-focus-body { margin-top: 6px; }
+
+/* Alles van één focuspunt-kiezer bij elkaar. De id's binnenin zijn vast, dus
+   dit blok is wat de code gebruikt om te weten wélke kiezer in beeld staat —
+   en dat kan alleen als het zelf een box heeft (`display:contents` zou
+   `offsetParent` op null zetten en de kiezer dus onvindbaar maken). */
+.fp-blok { display: block; }
+
+/* Onder een monsterregel in de encounter-editor: welke gedaante deze party
+   kent. Ingesprongen, want hij hoort bij de regel erboven. */
+.dm-enc-tier-rij {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin: -2px 0 8px 10px; padding-left: 8px;
+  border-left: 2px solid rgba(196,168,122,0.45);
+  font-family: 'Crimson Text', serif; font-size: 0.82rem; color: #7a6040;
+}
+.dm-enc-tier-rij .icon { width: 13px; height: 13px; }
+.dm-enc-tier-rij .dm-select { max-width: 220px; }

@@ -229,13 +229,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=551   app.js?v=686   sound-manager.js?v=8
-app.js      : api.js?v=280  dm-panel.js?v=211  media-picker.js?v=8
-              render-archief.js?v=81  render-bestiarium.js?v=25  render-campagne.js?v=267
+index.html  : theme.css?v=554   app.js?v=691   sound-manager.js?v=8
+app.js      : api.js?v=280  dm-panel.js?v=212  media-picker.js?v=8
+              render-archief.js?v=83  render-bestiarium.js?v=25  render-campagne.js?v=270
               render-dashboard.js?v=9  render-dungeon.js?v=33  render-kaart.js?v=19
-              render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=34
-              render-statblock.js?v=7  socket-client.js?v=66
-dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=7
+              render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=35
+              render-statblock.js?v=8  socket-client.js?v=66
+dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=8
 ```
 
 > **Eén bestand = één URL.** ES-modules met verschillende `?v=`-nummers zijn aparte
@@ -448,6 +448,22 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=7
 > afbeelding — bij een kaart zonder afbeelding bleef de lijst van de vórige kaart
 > staan. Dat luistert nu ook naar `error`.
 
+> **De focuspunt-kiezer staat op één plek.** `window._fpBlokHtml({src, value,
+> previews, naam})` in `render-campagne.js` bouwt het blok; `_fpDown/_fpMove/
+> _fpTouch/_fpApply/_fpTeken` bedienen het en `_fpZetBron(fileId)` verzet de
+> bron. Gebruikt door de kaartjes-editor (previews *Kaartje* + *Portret*), de
+> **aktebanner** (`render-archief.js`, preview *Banner*) en het **spreukdetail**
+> (`render-spreuken.js`, in een uitklapper; bewaart meteen via de hook
+> `window._fpOnChange`). Er waren drie eigen versies, en twee ervan toonden de
+> afbeelding **cover** terwijl `_fpApply` contain-wiskunde doet — je klik landde
+> daar dus ergens anders dan waar je wees. De kiezer toont altijd de héle
+> afbeelding; de previews laten de echte uitsnede zien.
+> Let op: de id's binnenin (`fp-wrap`, `fp-input`…) zijn vast en er kan meer dan
+> één kiezer in de DOM staan (een spreukvenster bovenop een editor). Daarom zoekt
+> `_fpBlok()` het laatste **zichtbare** `.fp-blok` en worden de velden dáárbinnen
+> gezocht — vandaar ook dat `.fp-blok` een echte box moet houden
+> (`display:contents` zou `offsetParent` op null zetten).
+
 > **Meerdere statblokken op één kaartje (tiers).** Dezelfde man is niet elke akte
 > dezelfde tegenstander. `statblockTiers` op een personage-kaartje bewaart de
 > extra versies; `stats` blijft de **basis** en ligt onder elke tier, dus een tier
@@ -468,6 +484,13 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=7
 > als bij een dier, maar zonder "vanaf level" (`_tierVoorDier` in
 > `render-campagne.js`).
 >
+> **Bij het bouwen van een encounter** staat onder een monsterregel die van een
+> kaartje komt de regel *"Deze party kent hem als"* met een keuzelijst
+> (`_encTierRegel` / `encTierChange` in `dm-panel.js`); `GET /monsters` levert
+> daarvoor `_tiers` en `_tierActief` mee. Omzetten verzet de **party**-stand —
+> niet iets in de encounter zelf, want dan zou het gevecht iets anders zeggen dan
+> het kaartje dat de spelers zien. De Max HP van de regel loopt mee.
+
 > **De 19 losse NPC-statblokken zijn samengevoegd** met hun kaartje
 > (`scripts/npc-statblok-naar-kaartje.js`, 8 sep 2026): 11 hadden een kaartje en
 > kregen `entityId` + de ontbrekende velden uit de bibliotheek; het monster-id

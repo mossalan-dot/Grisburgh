@@ -419,10 +419,15 @@ function _detailHtml(s) {
       <div class="spreuk-detail-imgwrap">
         <img class="spreuk-detail-img" id="spreuk-detail-img" src="${_imgUrl(s)}" alt=""
           data-index="${esc(s.index)}" style="${focus ? `object-position:${esc(focus)}` : ''}"
-          onload="this.classList.add('is-on'); window.spreuken._imgReady(true)" onerror="this.classList.remove('is-on'); window.spreuken._imgReady(false)"
-          ${isDM() ? `onclick="window.spreuken.setFocus(event)"` : ''}>
-        ${isDM() ? `<span class="spreuk-focus-hint" id="spreuk-focus-hint">Klik op de afbeelding om het focuspunt te kiezen</span>` : ''}
+          onload="this.classList.add('is-on'); window.spreuken._imgReady(true)" onerror="this.classList.remove('is-on'); window.spreuken._imgReady(false)">
       </div>
+      ${isDM() ? `<details class="spreuk-focus-blok" id="spreuk-focus-blok" hidden>
+        <summary>${icon('image')} Focuspunt bijstellen</summary>
+        <div class="spreuk-focus-body">${window._fpBlokHtml({
+          src: _imgUrl(s), value: focus || '50% 50%',
+          previews: [{ cls: 'fp-prev--breed', label: 'Kaartje' }],
+        })}</div>
+      </details>` : ''}
       ${isDM() ? `<div class="spreuk-dm-knoppen">
         <button class="spreuk-detail-imgbtn dm-only" onclick="window.spreuken.setImage('${esc(s.index)}','${esc((s.name||'').replace(/'/g,''))}')">
           ${icon('image')} Afbeelding kiezen of uploaden</button>
@@ -703,6 +708,11 @@ window.spreuken = {
     const ov = _ensureOverlay();
     ov.innerHTML = _detailHtml(s);
     ov.classList.add('active');
+    // De gedeelde kiezer schrijft in een hidden input; hier is geen formulier,
+    // dus hangen we er een bewaarfunctie aan. Weer weghalen doet het volgende
+    // blok dat 'm claimt (of _fpOnChange = null bij het sluiten).
+    window._fpOnChange = isDM() ? (v => window.spreuken.setFocus(v)) : null;
+    window._fpTeken?.();
     if (isDM()) _wieLaden(s.index);
   },
   // Naam + school van een spreuk, voor chips op een kaartje.
@@ -763,6 +773,7 @@ window.spreuken = {
   close() {
     const ov = document.getElementById('spreuk-detail-overlay');
     if (ov) { ov.classList.remove('active'); ov.innerHTML = ''; }
+    window._fpOnChange = null;   // anders schrijft de volgende kiezer nog naar een spreuk
   },
   search(v)    { _filters.q = v; _paintGrid(); },
   setLevel(lv) { _filters.level = lv; _refreshFilterBar(); _paintGrid(); },
@@ -818,9 +829,12 @@ window.spreuken = {
     _paintGrid();
   },
   // Toont/verbergt de focus-hint afhankelijk van of er een afbeelding is.
+  // Of er een afbeelding is, blijkt pas als hij geladen is (of 404't): de url is
+  // altijd hetzelfde pad. Dus staat de focuskiezer er wél, maar verborgen tot
+  // dat antwoord binnen is.
   _imgReady(ok) {
-    const hint = document.getElementById('spreuk-focus-hint');
-    if (hint) hint.style.display = ok ? '' : 'none';
+    const blok = document.getElementById('spreuk-focus-blok');
+    if (blok) blok.hidden = !ok;
   },
   // DM: kies/upload een afbeelding voor deze spreuk via de mediabibliotheek.
   setImage(index, naam) {
@@ -839,15 +853,18 @@ window.spreuken = {
       },
     });
   },
-  // DM: klik op de afbeelding zet het focuspunt (object-position) en bewaart het.
-  async setFocus(ev) {
-    const img = ev.currentTarget;
-    const index = img.dataset.index;
-    const r = img.getBoundingClientRect();
-    const x = Math.round(Math.min(100, Math.max(0, ((ev.clientX - r.left) / r.width) * 100)));
-    const y = Math.round(Math.min(100, Math.max(0, ((ev.clientY - r.top) / r.height) * 100)));
-    const focus = `${x}% ${y}%`;
+  // Het focuspunt van een spreukafbeelding. Wordt aangeroepen door de gedeelde
+  // kiezer (`window._fpOnChange`), niet meer door een klik op de afbeelding
+  // zelf — die rekende met de verkeerde aanname én zag er anders uit dan de
+  // kiezer op een kaartje. Bewaren gaat meteen: dit staat niet in een
+  // formulier met een opslaanknop.
+  async setFocus(focus) {
+    const img = document.getElementById('spreuk-detail-img');
+    const index = img?.dataset.index;
+    if (!index) return;
     img.style.objectPosition = focus;
+    clearTimeout(this._focusTimer);
+    await new Promise(r => { this._focusTimer = setTimeout(r, 350); });   // niet bij elke sleepstap schrijven
     try {
       await fetch(`/api/meta/spell-image-focus/${index}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include',

@@ -1,6 +1,6 @@
 import { api, huidigeCampagne } from './api.js?v=280';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
-import { renderStatblock } from './render-statblock.js?v=7';
+import { renderStatblock } from './render-statblock.js?v=8';
 
 // ── DM Panel ──
 // icon() helper is defined globally in app.js; grab a local alias for template use.
@@ -269,6 +269,7 @@ export function initDmPanel() {
     monsterNew:          _monsterNew,
     monsterEdit:         _monsterEdit,
     monsterModal:        _monsterModal,
+    encTierChange:       _encTierChange,
     monsterCancel:       _monsterCancel,
     monsterSave:         _monsterSave,
     monsterDelete:       _monsterDelete,
@@ -3714,6 +3715,24 @@ function _renderEncounterList(el) {
 function _encFilterChapter(chapter) { _encChapterFilter = chapter; _encPage = 0; _renderEncounters(); }
 function _encPage_set(page)         { _encPage = page; _renderEncounters(); }
 
+// Een NPC met meerdere statblokken: welke gedaante staat er voor deze party?
+// De keuze zit niet in de encounter maar op de party (`tierStand`) — anders zou
+// het gevecht iets anders zeggen dan het kaartje dat de spelers zien, en dan
+// heb je twee waarheden. Hier staat 'm dus wél binnen handbereik, want dit is
+// het moment waarop je erover nadenkt.
+function _encTierRegel(r, i) {
+  const m = _monsters.find(x => x.id === r.monsterId);
+  if (!m?._tiers?.length) return '';
+  const opts = [{ id: 'basis', label: 'Basis (het kaartje zelf)' }, ...m._tiers];
+  return `<div class="dm-enc-tier-rij">
+    ${icon('users')}
+    <span>Deze party kent hem als</span>
+    <select class="dm-select dm-select-sm" onchange="window.dmPanel.encTierChange(${i}, this.value)">
+      ${opts.map(o => `<option value="${esc(o.id)}"${(m._tierActief || 'basis') === o.id ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}
+    </select>
+  </div>`;
+}
+
 function _renderEncounterEditor(el) {
   const isNew  = _encIsNew;
   const name   = _encName;
@@ -3758,7 +3777,8 @@ function _renderEncounterEditor(el) {
               onchange="window.dmPanel.encRowChange(${i}, 'hp', this.value)">
           </label>
           <button class="script-icon-btn script-icon-btn--del" onclick="window.dmPanel.encRemoveRow(${i})" title="Verwijderen">${icon('x')}</button>
-        </div>`).join('');
+        </div>
+        ${_encTierRegel(r, i)}`).join('');
 
   el.innerHTML = `
     <div class="dm-feature-section">
@@ -4002,6 +4022,23 @@ function _encRowChange(idx, field, value) {
   const num = parseInt(value);
   _encMonsterRows[idx][field] = isNaN(num) ? value : num;
 };
+
+// De gedaante omzetten geldt voor de hele party, niet alleen voor dit gevecht.
+// De server hersynchroniseert de bibliotheekregel, dus daarna halen we de
+// monsters opnieuw op en zetten we de HP van deze rij op wat de nieuwe versie
+// zegt — anders staat er een gedaante met de cijfers van de vorige.
+async function _encTierChange(idx, tierId) {
+  const rij = _encMonsterRows[idx];
+  const m = _monsters.find(x => x.id === rij?.monsterId);
+  if (!m?.entityId) return;
+  try {
+    await api.setTier('personages', m.entityId, tierId);
+    _monsters = ((await api.listMonsters()).monsters || []).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl'));
+    const nieuw = _monsters.find(x => x.id === rij.monsterId);
+    if (nieuw) rij.hp = nieuw.maxHp ?? rij.hp;
+    _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+  } catch (e) { alert('Gedaante omzetten mislukt: ' + e.message); }
+}
 
 function _encPickBackdrop() {
   window.mediaPicker.open({

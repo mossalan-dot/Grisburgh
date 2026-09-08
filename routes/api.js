@@ -7270,7 +7270,23 @@ router.delete('/tables/:id', requireDM, (req, res) => {
 // ── Monsters (Library) ──
 
 router.get('/monsters', requireDM, (req, res) => {
-  res.json(storage.readJSON('monsters.json'));
+  const data = storage.readJSON('monsters.json');
+  const lijst = Array.isArray(data) ? data : (data.monsters || []);
+  // Bij een regel die van een kaartje komt: welke gedaantes bestaan er, en welke
+  // staat er voor de actieve party? Anders zou de encounter-editor per monster
+  // een eigen verzoek moeten doen om dat te weten.
+  const personages = storage.readJSON('entities.json').personages || [];
+  const g = getGroup(readDmState());
+  for (const m of lijst) {
+    if (!m.entityId) continue;
+    const kaart = personages.find(e => e.id === m.entityId);
+    if (!kaart) continue;
+    const tiers = _tierRegels(kaart);
+    if (!tiers.length) continue;
+    m._tiers      = tiers.map(t => ({ id: t.id, label: t.label || 'Naamloos statblok' }));
+    m._tierActief = _tierStand(g, kaart)?.id || null;
+  }
+  res.json(Array.isArray(data) ? lijst : { ...data, monsters: lijst });
 });
 
 router.post('/monsters', requireDM, (req, res) => {

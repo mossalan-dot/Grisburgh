@@ -1,5 +1,5 @@
 import { api } from './api.js?v=280';
-import { renderStatblock } from './render-statblock.js?v=7';
+import { renderStatblock } from './render-statblock.js?v=8';
 
 const icon = (...a) => window.icon(...a);
 
@@ -5445,6 +5445,63 @@ window._toggleDeceased = async (tab, id) => {
 // ── Focal point picker ──
 let _fpDragging = false;
 
+// ── De focuspunt-kiezer, één keer ──────────────────────────────────────────
+// Er waren er drie: deze (kaartjes), een eigen bouwsel voor de aktebanner en
+// een klik-op-de-afbeelding bij een spreuk. Twee daarvan rekenden met de
+// verkeerde aanname: `_fpApply` gaat uit van `object-fit: contain` (de hele
+// afbeelding in beeld, met banden ernaast), terwijl die twee de afbeelding
+// **cover** toonden. Een klik leverde daar dus een ander percentage op dan waar
+// je wees. Vandaar één blok, overal hetzelfde: de hele afbeelding zichtbaar,
+// een sleepbaar kruisje, en previews die de échte uitsnede tonen.
+//
+//   src      — url van de afbeelding (leeg = het blok staat verborgen)
+//   value    — huidige waarde, "50% 50%"
+//   previews — [{cls, label}] met de uitsnedes die hier van toepassing zijn
+//   naam     — name-attribuut van het hidden input (leeg bij een los venster)
+window._fpBlokHtml = ({ src = '', value = '50% 50%', previews = [], naam = '' } = {}) => `
+  <div class="fp-blok">
+  <div class="fp-rij${src ? '' : ' hidden'}" id="fp-rij">
+    <div id="fp-wrap" class="fp-wrap select-none"
+      onmousedown="window._fpDown(event)"
+      onmousemove="window._fpMove(event)"
+      ontouchstart="window._fpTouch(event)"
+      ontouchmove="window._fpTouch(event)">
+      <img id="editor-img-preview" src="${src}" class="fp-wrap-img pointer-events-none"
+        onload="window._fpTeken()"
+        onerror="document.getElementById('fp-rij')?.classList.add('hidden')">
+      <div id="fp-crosshair" class="fp-crosshair"></div>
+    </div>
+    ${previews.length ? `<div class="fp-previews">
+      ${previews.map((p, i) => `<div>
+        <div class="fp-prev ${p.cls}"><img id="fp-prev-${i}" src="${src}" style="object-position:${value}" alt=""></div>
+        <span class="fp-prev-label">${esc(p.label)}</span>
+      </div>`).join('')}
+    </div>` : ''}
+  </div>
+  <p class="text-[10px] text-ink-dim mb-1${src ? '' : ' hidden'}" id="fp-hint">Sleep het kruisje naar wat in beeld moet blijven</p>
+  <input type="hidden"${naam ? ` name="${naam}"` : ''} id="fp-input" value="${value}">
+  </div>`;
+
+// Wie het blok buiten een formulier gebruikt (het spreukdetail bewaart meteen)
+// hangt hier een functie in. Bij het openen van een nieuw blok weer leegmaken.
+window._fpOnChange = null;
+
+// De huidige waarde uitlezen, voor wie het blok buiten een formulier gebruikt.
+window._fpWaarde = () => _fpEl('fp-input')?.value || '50% 50%';
+
+// De kiezer gebruikt vaste id's, en er kan er meer dan één in de DOM staan: het
+// spreukdetail is een eigen overlay die bovenop een geopende editor kan liggen,
+// en een gesloten venster laat zijn markup gewoon staan. `getElementById` geeft
+// dan de eerste, en dat is net zo goed de verkeerde als de laatste — welke het
+// is hangt af van de volgorde waarin de vensters in de pagina staan.
+// Daarom: het laatste blok dat **zichtbaar** is (`offsetParent`), en de velden
+// worden dáárbinnen gezocht.
+function _fpBlok() {
+  const blokken = [...document.querySelectorAll('.fp-blok')].filter(b => b.offsetParent !== null);
+  return blokken[blokken.length - 1] || null;
+}
+const _fpEl = (id) => _fpBlok()?.querySelector('#' + id) || null;
+
 window._fpDown = (ev) => {
   _fpDragging = true;
   _fpApply(ev);
@@ -5467,12 +5524,11 @@ window._fpTouch = (ev) => {
 // uit elkaar zodra je een andere banner kiest.
 window._fpZetBron = (fileId) => {
   const url = api.fileUrl(fileId);
-  for (const id of ['editor-img-preview', 'fp-card-preview', 'fp-portret-preview']) {
-    const el = document.getElementById(id);
-    if (el) el.src = url;
-  }
-  document.getElementById('fp-rij')?.classList.remove('hidden');
-  document.getElementById('fp-hint')?.classList.remove('hidden');
+  const el0 = _fpEl('editor-img-preview');
+  if (el0) el0.src = url;
+  _fpBlok()?.querySelectorAll('.fp-prev img').forEach(img => { img.src = url; });
+  _fpEl('fp-rij')?.classList.remove('hidden');
+  _fpEl('fp-hint')?.classList.remove('hidden');
   window._fpTeken();
 };
 
@@ -5486,33 +5542,31 @@ function _fpBeeldVak(img, wrap) {
 }
 
 function _fpApply(ev) {
-  const wrap = document.getElementById('fp-wrap');
-  const img  = document.getElementById('editor-img-preview');
+  const wrap = _fpEl('fp-wrap');
+  const img  = _fpEl('editor-img-preview');
   if (!wrap || !img) return;
   const rect = wrap.getBoundingClientRect();
   const vak  = _fpBeeldVak(img, wrap);
   const x = Math.max(0, Math.min(100, Math.round((ev.clientX - rect.left - vak.x) / vak.w * 100)));
   const y = Math.max(0, Math.min(100, Math.round((ev.clientY - rect.top  - vak.y) / vak.h * 100)));
-  const input = document.getElementById('fp-input');
+  const input = _fpEl('fp-input');
   if (input) input.value = `${x}% ${y}%`;
   _fpTeken();
+  try { window._fpOnChange?.(`${x}% ${y}%`); } catch {}
 }
 
 // Kruisje neerzetten en de previews bijwerken vanuit het opgeslagen percentage.
 // Ook aangeroepen als de afbeelding klaar is met laden: pas dán weten we hoe
 // groot hij in het kader staat.
 window._fpTeken = () => {
-  const wrap = document.getElementById('fp-wrap');
-  const img  = document.getElementById('editor-img-preview');
-  const val  = document.getElementById('fp-input')?.value || '50% 50%';
+  const wrap = _fpEl('fp-wrap');
+  const img  = _fpEl('editor-img-preview');
+  const val  = _fpEl('fp-input')?.value || '50% 50%';
   const [x, y] = (val.match(/(\d+)%\s*(\d+)%/) || [null, '50', '50']).slice(1).map(Number);
-  for (const id of ['fp-card-preview', 'fp-portret-preview']) {
-    const el = document.getElementById(id);
-    if (el) el.style.objectPosition = val;
-  }
+  _fpBlok()?.querySelectorAll('.fp-prev img').forEach(i => { i.style.objectPosition = val; });
   if (!wrap || !img) return;
   const vak = _fpBeeldVak(img, wrap);
-  const ch = document.getElementById('fp-crosshair');
+  const ch = _fpEl('fp-crosshair');
   if (ch) {
     ch.style.left = (vak.x + vak.w * x / 100) + 'px';
     ch.style.top  = (vak.y + vak.h * y / 100) + 'px';
@@ -6076,6 +6130,7 @@ window._openEditor = async (tab, editId) => {
   pendingAudioFile = null;
   _pendingVideoFile = null;
   _pendingVideoBron = null;
+  window._fpOnChange = null;   // dit blok zit in een formulier; opslaan gaat via de knop
   _petTiers = Array.isArray(e?.statblockTiers) ? JSON.parse(JSON.stringify(e.statblockTiers)) : [];
   _tierVoorDier = String(e?.subtype || '').toLowerCase() === 'dier';
   _editorOldAudioId = e?.data?.audioId || null;
@@ -6117,35 +6172,10 @@ window._openEditor = async (tab, editId) => {
                staan twee live previews met de echte uitsnedes — het kaartje
                (breed) en het ronde portret op de sheet — want daar wordt wél
                bijgesneden (object-cover) en dáár doet het focuspunt zijn werk. -->
-          <div class="fp-rij${hasImg ? '' : ' hidden'}" id="fp-rij">
-            <div id="fp-wrap" class="fp-wrap select-none"
-              onmousedown="window._fpDown(event)"
-              onmousemove="window._fpMove(event)"
-              ontouchstart="window._fpTouch(event)"
-              ontouchmove="window._fpTouch(event)">
-              <img id="editor-img-preview" src="${fileUrl}"
-                class="fp-wrap-img pointer-events-none"
-                onload="window._fpTeken()"
-                onerror="document.getElementById('fp-rij')?.classList.add('hidden')">
-              <div id="fp-crosshair" class="fp-crosshair"></div>
-            </div>
-            <div class="fp-previews">
-              <div>
-                <div class="fp-prev fp-prev--kaart">
-                  <img id="fp-card-preview" src="${fileUrl}" style="object-position:${focusVal}" alt="">
-                </div>
-                <span class="fp-prev-label">Kaartje</span>
-              </div>
-              <div>
-                <div class="fp-prev fp-prev--rond">
-                  <img id="fp-portret-preview" src="${fileUrl}" style="object-position:${focusVal}" alt="">
-                </div>
-                <span class="fp-prev-label">Portret</span>
-              </div>
-            </div>
-          </div>
-          <p class="text-[10px] text-ink-dim mb-1${hasImg ? '' : ' hidden'}" id="fp-hint">Sleep het kruisje naar wat in beeld moet blijven</p>
-          <input type="hidden" name="data_imgFocus" id="fp-input" value="${focusVal}">
+          ${window._fpBlokHtml({
+            src: fileUrl, value: focusVal, naam: 'data_imgFocus',
+            previews: [{ cls: 'fp-prev--kaart', label: 'Kaartje' }, { cls: 'fp-prev--rond', label: 'Portret' }],
+          })}
           <input type="hidden" name="data_imageId" id="editor-image-id" value="${esc(e?.data?.imageId || '')}">
           <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._editorPickImage()" title="Kies uit de bibliotheek of upload nieuw">
             ${icon('image')} ${hasImg ? 'Afbeelding toevoegen' : 'Afbeelding kiezen'}
