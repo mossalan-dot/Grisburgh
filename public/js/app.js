@@ -3249,6 +3249,26 @@ const _SB_GLOSSARY = [
   { t: /\bPsychic\b/gi,         tip: 'Psychic damage: a mental assault that assails the mind. Few creatures have resistance to it.' },
   { t: /\bForce\b/gi,           tip: 'Force damage: pure magical energy. Almost nothing is immune or resistant to it.' },
   { t: /\bThunder\b/gi,         tip: 'Thunder damage: concussive sonic energy — a burst of sound or a shockwave.' },
+  // Damage types — de fysieke en elementaire helft. Stonden er niet in, terwijl
+  // juist die in voorwerpteksten staan ("resistance tegen bludgeoning").
+  { t: /\bBludgeoning\b/gi,   tip: 'Bludgeoning damage: blunt force — hammers, falling, constriction.' },
+  { t: /\bPiercing\b/gi,      tip: 'Piercing damage: puncturing and impaling — spears, arrows, bites.' },
+  { t: /\bSlashing\b/gi,      tip: 'Slashing damage: cuts from swords, axes and claws.' },
+  { t: /\bFire\b/gi,          tip: 'Fire damage: flames and searing heat. Many creatures native to the Elemental Plane of Fire are immune.' },
+  { t: /\bCold\b/gi,          tip: 'Cold damage: freezing air and icy blasts.' },
+  { t: /\bLightning\b/gi,     tip: 'Lightning damage: a bolt or arc of electrical energy.' },
+  { t: /\bAcid\b/gi,          tip: 'Acid damage: corrosive spray or a caustic pool that eats through material and flesh.' },
+  { t: /\bPoison\b/gi,        tip: 'Poison damage: venom and toxic fumes. Undead and constructs are usually immune.' },
+  // Hoe schade aankomt — het gereedschap van bijna elk magisch voorwerp
+  { t: /\bResistance\b/gi,    tip: 'Resistance: you take half damage of that type (rounded down). It is applied after all other modifiers and does not stack with itself.' },
+  { t: /\bVulnerabilit(?:y|ies)\b/gi, tip: 'Vulnerability: you take double damage of that type. It is applied last, after resistances and every other modifier.' },
+  { t: /\bImmunit(?:y|ies)\b/gi,     tip: 'Immunity: you take no damage of that type at all — or are unaffected by that condition.' },
+  // Voorwerpen
+  { t: /\bRequires Attunement\b/gi, tip: 'Requires Attunement: the item only works once you bond with it over a Short Rest. You can be attuned to at most three items at a time.' },
+  { t: /\bAttunement\b/gi,    tip: 'Attunement: bonding with a magic item over a Short Rest so its properties work for you. At most three attuned items at a time.' },
+  { t: /\bCharge\b/gi,        tip: 'Charges: uses stored in a magic item. Spend one to activate an effect; the item regains charges at the stated moment (often at dawn or on a Long Rest).' },
+  { t: /\bCursed\b/gi,        tip: 'Cursed: the drawback only reveals itself once you use or attune to the item, and it usually cannot be discarded without Remove Curse or similar magic.' },
+  { t: /\bCritical Hit\b/gi,  tip: 'Critical Hit: a natural 20 on an attack roll. It always hits, and you roll the attack\'s damage dice twice, adding your modifiers once.' },
   // Conditions
   { t: /\bFrightened\b/gi,      tip: 'Frightened: Disadvantage on Ability Checks and Attack Rolls while the source of fear is in line of sight. Can\'t willingly move closer to it.' },
   { t: /\bCharmed\b/gi,         tip: 'Charmed: can\'t attack the charmer or target it with harmful effects. The charmer has Advantage on social checks against the creature.' },

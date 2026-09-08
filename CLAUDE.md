@@ -514,7 +514,20 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 > hover-uitleg van D&D-termen leeft **inline in app.js**: `_SB_GLOSSARY` (termen + tips),
 > `_sbApplyGlossary_DOM()` (wrapt termen in `.sb-gloss`-spans) en een globale tooltip-handler
 > (`_initGlobalGlossary`, geactiveerd in `init()`). Publieke API: `window.glossary.applyDom(el)`.
-> Gebruikt door spreukenboek én het progressie-detailmodal.
+> Gebruikt door het spreukenboek, het progressie-detailmodal, de
+> voorwerp-beschrijving in het detailvenster én het voorwerpblad in de Boedel
+> (die laatste twee via `window.glossary.annotate(html)`; die geeft een string
+> terug in plaats van een DOM-node te bewerken).
+>
+> **De lijst dekt ook de voorwerptaal.** Het mechaniek werkte al voor items, maar
+> juist hún woorden ontbraken: de fysieke en elementaire schadesoorten
+> (bludgeoning, piercing, slashing, fire, cold, lightning, acid, poison),
+> resistance/vulnerability/immunity, attunement, charges, cursed en critical hit.
+> Zonder die regels bleef een tekst als "resistance tegen bludgeoning damage"
+> onaangeraakt terwijl "Bonus Action" ernaast wél een tip kreeg. Een term wordt
+> **één keer per blok** uitgelegd (`seen` in `_sbGlossWalk`), en bij gelijke
+> startpositie wint de langste match — vandaar dat "Requires Attunement" naast
+> "Attunement" kan staan.
 
 ---
 
