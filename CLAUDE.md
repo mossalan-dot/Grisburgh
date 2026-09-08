@@ -1130,6 +1130,24 @@ Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in ren
 
 ---
 
+## Geld loopt altijd via twee helpers
+
+`_effectiveCurrency(dmState, characterId)` om te lezen en `_deductCurrency(dmState,
+characterId, cl)` om te betalen (een negatief bedrag schrijft bij). Staat de
+gedeelde beurs van de party aan, dan is dát de portemonnee; anders de eigen.
+**Schrijf nooit rechtstreeks in `dmState.playerCurrency`** — twee plekken mogen
+dat: de helpers zelf, en `PATCH /player-currency/:id` (dat gaat expliciet over de
+eigen beurs).
+
+Ging eerder mis bij de winkel (7 sep) en daarna bij Ursula, De Gock, de
+Tweespalt en De Heeren (8 sep): dertien plekken die betaalden uit — en zestien
+die meldden over — een zak die het scherm niet toont zodra de gedeelde beurs
+aanstaat. Gevolg: geld dat gestrand raakte, en een uitbetaling die nergens
+zichtbaar werd. Ook de melding terug (`player:currency-updated` en het
+antwoord van de route) hoort `_effectiveCurrency` te gebruiken.
+
+---
+
 ## Kaartjes zijn agnostisch
 
 Een kaartje beschrijft **wát iets is**, niet wanneer het in het verhaal

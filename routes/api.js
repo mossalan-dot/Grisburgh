@@ -1909,7 +1909,7 @@ router.post('/shops/:shopId/koop', attachRole, (req, res) => {
   const io = req.app.get('io');
 
   if (prijs && (prijs.fl > 0 || prijs.kn > 0 || prijs.cl > 0)) {
-    io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+    io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
   }
 
   if (effectiveEntityId) {
@@ -2252,14 +2252,14 @@ router.post('/shops/:shopId/verkoop', attachRole, (req, res) => {
   } catch { /* stil falen */ }
 
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
   io.to(req.session?.campaignId||'main').emit('items:ownership-updated', {
     owners: g.itemOwners || {},
     requests: g.itemRequests || [],
     tradeAllowed: g.tradeAllowed !== false,
   });
 
-  res.json({ ok: true, itemNaam: vw.name, aantal, opbrengst: fromCl(opbrengstCl), currency: dmState.playerCurrency[characterId] });
+  res.json({ ok: true, itemNaam: vw.name, aantal, opbrengst: fromCl(opbrengstCl), currency: _effectiveCurrency(dmState, characterId) });
 });
 
 // Kleine helpers voor de DM-afrekening aan tafel.
@@ -7661,10 +7661,8 @@ function _lootItemToPlayerItem(it) {
 
 // Voeg valuta toe aan een speler (individueel).
 function _addCurrency(dmState, characterId, addCl) {
-  if (!dmState.playerCurrency) dmState.playerCurrency = {};
-  const cur = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
-  dmState.playerCurrency[characterId] = fromCl(toCl(cur) + addCl);
-  return dmState.playerCurrency[characterId];
+  _deductCurrency(dmState, characterId, -addCl);
+  return _effectiveCurrency(dmState, characterId);
 }
 
 // ── Loot-events ──────────────────────────────────────────────────────────────
@@ -8539,8 +8537,7 @@ router.post('/ursula/voorspel', attachRole, (req, res) => {
 
   const prijs = config.prijs || { fl: 20 };
   const prijsCl = toCl(prijs);
-  if (!dmState.playerCurrency) dmState.playerCurrency = {};
-  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  const pc = _effectiveCurrency(dmState, characterId) || { fl: 0, kn: 0, cl: 0 };
   if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
 
   const pool = [0, 1, 2, 3, 4].filter(i => (def[URSULA_ZINTUIGEN[i].key] || '').trim());
@@ -8558,7 +8555,7 @@ router.post('/ursula/voorspel', attachRole, (req, res) => {
     doorNaam: req.session.playerName || '', op: new Date().toISOString(),
   };
 
-  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  _deductCurrency(dmState, characterId, prijsCl);
   storage.writeJSON('dm-state.json', dmState);
 
   // Bezorg de voorspelling ook als brief in het berichtentabblad
@@ -8579,10 +8576,10 @@ router.post('/ursula/voorspel', attachRole, (req, res) => {
   }
 
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
   io.to(req.session?.campaignId||'main').emit('ursula:updated');
 
-  res.json({ ok: true, roll, onthuld, currency: dmState.playerCurrency[characterId] });
+  res.json({ ok: true, roll, onthuld, currency: _effectiveCurrency(dmState, characterId) });
 });
 
 // DM: lijst van aktes met hun (eventuele) voorspelling-inhoud
@@ -8711,8 +8708,7 @@ router.post('/gock/opdracht', attachRole, (req, res) => {
   const tidbits = config.tidbits?.length ? config.tidbits : GOCK_TIDBITS_DEFAULT;
 
   const prijsCl = toCl(prijs);
-  if (!dmState.playerCurrency) dmState.playerCurrency = {};
-  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  const pc = _effectiveCurrency(dmState, characterId) || { fl: 0, kn: 0, cl: 0 };
   if (toCl(pc) < prijsCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
 
   const entities = storage.readJSON('entities.json');
@@ -8727,7 +8723,7 @@ router.post('/gock/opdracht', attachRole, (req, res) => {
     tekst = tidbits[Math.floor(Math.random() * tidbits.length)].replace(/\{naam\}/g, entity.name);
   }
 
-  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - prijsCl);
+  _deductCurrency(dmState, characterId, prijsCl);
   const klaarOp = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   dmState.gockState[characterId] = {
     entityId, entityType, entityName: entity.name,
@@ -8738,8 +8734,8 @@ router.post('/gock/opdracht', attachRole, (req, res) => {
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
-  res.json({ ok: true, klaarOp, currency: dmState.playerCurrency[characterId] });
+  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
+  res.json({ ok: true, klaarOp, currency: _effectiveCurrency(dmState, characterId) });
 });
 
 router.put('/gock/opgehaald', attachRole, (req, res) => {
@@ -9516,10 +9512,8 @@ router.post('/heeren/job/:id/uitslag', requireDM, (req, res) => {
 
   const io = req.app.get('io');
   if (uitkomst === 'geslaagd' && job.doorId) {
-    if (!dmState.playerCurrency) dmState.playerCurrency = {};
-    const pc = dmState.playerCurrency[job.doorId] || { fl: 0, kn: 0, cl: 0 };
-    dmState.playerCurrency[job.doorId] = fromCl(toCl(pc) + job.payout * 100);
-    io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId: job.doorId, currency: dmState.playerCurrency[job.doorId] });
+    _deductCurrency(dmState, job.doorId, -(job.payout * 100));
+    io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId: job.doorId, currency: _effectiveCurrency(dmState, job.doorId) });
   } else if (uitkomst === 'gearresteerd' && job.doorId) {
     if (!dmState.heerenBoetes) dmState.heerenBoetes = {};
     if (!dmState.heerenBoetes[job.doorId]) dmState.heerenBoetes[job.doorId] = [];
@@ -9561,17 +9555,16 @@ router.post('/heeren/boete/:boeteId/betaal', attachRole, (req, res) => {
   const lijst = (dmState.heerenBoetes || {})[characterId] || [];
   const boete = lijst.find(b => b.id === req.params.boeteId);
   if (!boete) return res.status(404).json({ error: 'Boete niet gevonden' });
-  if (!dmState.playerCurrency) dmState.playerCurrency = {};
-  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  const pc = _effectiveCurrency(dmState, characterId) || { fl: 0, kn: 0, cl: 0 };
   if (toCl(pc) < boete.bedragCl) return res.status(400).json({ error: 'Onvoldoende saldo' });
-  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - boete.bedragCl);
+  _deductCurrency(dmState, characterId, boete.bedragCl);
   _heerenWisBoete(dmState, characterId, boete.id);
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
   io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] || [] });
   io.to(req.session?.campaignId||'main').emit('heeren:updated');
-  res.json({ ok: true, currency: dmState.playerCurrency[characterId] });
+  res.json({ ok: true, currency: _effectiveCurrency(dmState, characterId) });
 });
 
 // Advocaat (Zilvertong en Zemelaar) inhuren: honorarium + pleidooi-worp (d20 + Persuasion)
@@ -9586,10 +9579,9 @@ router.post('/heeren/boete/:boeteId/advocaat', attachRole, (req, res) => {
   if (!boete) return res.status(404).json({ error: 'Boete niet gevonden' });
 
   const honorariumCl = toCl(config.honorarium);
-  if (!dmState.playerCurrency) dmState.playerCurrency = {};
-  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  const pc = _effectiveCurrency(dmState, characterId) || { fl: 0, kn: 0, cl: 0 };
   if (toCl(pc) < honorariumCl) return res.status(400).json({ error: 'Onvoldoende saldo voor het honorarium' });
-  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - honorariumCl);
+  _deductCurrency(dmState, characterId, honorariumCl);
 
   const profile = (dmState.playerProfiles || {})[characterId] || {};
   const bonus = _persuasionBonus(profile);
@@ -9602,10 +9594,10 @@ router.post('/heeren/boete/:boeteId/advocaat', attachRole, (req, res) => {
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
   io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId, items: dmState.playerItems[characterId] || [] });
   io.to(req.session?.campaignId||'main').emit('heeren:updated');
-  res.json({ ok: true, worp, bonus, totaal, uitkomst, kwijt, currency: dmState.playerCurrency[characterId] });
+  res.json({ ok: true, worp, bonus, totaal, uitkomst, kwijt, currency: _effectiveCurrency(dmState, characterId) });
 });
 
 // DM scheldt een boete kwijt (correctie / rechtszaak-uitkomst aan tafel)
@@ -10206,11 +10198,9 @@ router.post('/missies/:id/voltooien', requireDM, (req, res) => {
       g.sharedPurse.enabled = true;
     } else if (spelers.length > 0) {
       const perSpeler = Math.floor(toCl(missie.valuta) / spelers.length);
-      if (!dmState.playerCurrency) dmState.playerCurrency = {};
       for (const charId of spelers) {
-        const cur = dmState.playerCurrency[charId] || { fl: 0, kn: 0, cl: 0 };
-        dmState.playerCurrency[charId] = fromCl(toCl(cur) + perSpeler);
-        io.to(room).emit('player:currency-updated', { characterId: charId, currency: dmState.playerCurrency[charId] });
+        _deductCurrency(dmState, charId, -perSpeler);
+        io.to(room).emit('player:currency-updated', { characterId: charId, currency: _effectiveCurrency(dmState, charId) });
       }
     }
     storage.writeJSON('dm-state.json', dmState);
@@ -10510,8 +10500,7 @@ function _tsResolveEvent(dmState, event, io, campaignId = 'main') {
     uitbetalingen[charId] = { gewonnen, inzetCl: inzet.bedragCl };
     if (gewonnen && winnaarOptie) {
       const terug = inzet.bedragCl + inzet.bedragCl * winnaarOptie.payout;
-      const pc = dmState.playerCurrency[charId] || { fl: 0, kn: 0, cl: 0 };
-      dmState.playerCurrency[charId] = fromCl(toCl(pc) + terug);
+      _deductCurrency(dmState, charId, -terug);
       uitbetalingen[charId].uitbetaaldCl = terug;
     }
   }
@@ -10543,7 +10532,7 @@ function _tsResolveEvent(dmState, event, io, campaignId = 'main') {
     });
     for (const [charId, ut] of Object.entries(uitbetalingen)) {
       if (ut.gewonnen) {
-        io.to(campaignId).emit('player:currency-updated', { characterId: charId, currency: dmState.playerCurrency[charId] });
+        io.to(campaignId).emit('player:currency-updated', { characterId: charId, currency: _effectiveCurrency(dmState, charId) });
       }
     }
   }
@@ -10690,10 +10679,8 @@ router.delete('/tweespalt/events/:id', requireDM, (req, res) => {
 
   const event = ts.events[idx];
   if (event.status === 'open') {
-    if (!dmState.playerCurrency) dmState.playerCurrency = {};
     for (const [charId, inzet] of Object.entries(event.inzetten || {})) {
-      const pc = dmState.playerCurrency[charId] || { fl: 0, kn: 0, cl: 0 };
-      dmState.playerCurrency[charId] = fromCl(toCl(pc) + inzet.bedragCl);
+      _deductCurrency(dmState, charId, -inzet.bedragCl);
     }
   }
 
@@ -10723,19 +10710,18 @@ router.post('/tweespalt/events/:id/wedden', attachRole, (req, res) => {
   const bedragCl = _tsCl(bedrag);
   if (bedragCl <= 0) return res.status(400).json({ error: 'Inzet moet groter zijn dan 0' });
 
-  if (!dmState.playerCurrency) dmState.playerCurrency = {};
-  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
+  const pc = _effectiveCurrency(dmState, characterId) || { fl: 0, kn: 0, cl: 0 };
   if (toCl(pc) < bedragCl) return res.status(400).json({ error: 'Onvoldoende saldo', code: 'te_weinig' });
 
-  dmState.playerCurrency[characterId] = fromCl(toCl(pc) - bedragCl);
+  _deductCurrency(dmState, characterId, bedragCl);
   if (!event.inzetten) event.inzetten = {};
   event.inzetten[characterId] = { optieId, bedragCl, geplaatst: new Date().toISOString() };
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
   io.to(req.session?.campaignId||'main').emit('tweespalt:updated');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
-  res.json({ ok: true, currency: dmState.playerCurrency[characterId] });
+  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
+  res.json({ ok: true, currency: _effectiveCurrency(dmState, characterId) });
 });
 
 router.post('/tweespalt/events/:id/uitslag', requireDM, (req, res) => {
@@ -10866,9 +10852,7 @@ router.post('/tweespalt/leen', attachRole, (req, res) => {
   const lening = { bedragCl, aangegaan: new Date().toISOString(), rentePerDag: 30 };
   ts.leningen[characterId] = lening;
 
-  if (!dmState.playerCurrency) dmState.playerCurrency = {};
-  const pc = dmState.playerCurrency[characterId] || { fl: 0, kn: 0, cl: 0 };
-  dmState.playerCurrency[characterId] = fromCl(toCl(pc) + bedragCl);
+  _deductCurrency(dmState, characterId, -bedragCl);
 
   const bedragFormatted = _tsFormatCl(bedragCl);
   const iouNaam = '📜 Schuldbewijs — Taevin Woekeling';
@@ -10884,9 +10868,9 @@ router.post('/tweespalt/leen', attachRole, (req, res) => {
 
   storage.writeJSON('dm-state.json', dmState);
   const io = req.app.get('io');
-  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: dmState.playerCurrency[characterId] });
+  io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
   io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId });
-  res.json({ ok: true, currency: dmState.playerCurrency[characterId], lening });
+  res.json({ ok: true, currency: _effectiveCurrency(dmState, characterId), lening });
 });
 
 router.get('/tweespalt/log', requireDM, (req, res) => {

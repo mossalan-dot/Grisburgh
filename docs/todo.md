@@ -169,18 +169,9 @@ groot het is.
 ## Geld en schuld → `docs/voorstel-op-de-pof.md`
 
 Opgepakt zodra we met de **diensten** aan de slag gaan; de winkelkant haken we
-daar dan in. Volgorde is hier belangrijk: de eerste is een fout die nu al speelt,
-de rest is nieuw werk dat erop voortbouwt.
+daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — is op
+8 sep 2026 al gedaan.)
 
-- [ ] **Vier diensten omzeilen de gedeelde beurs.** `/ursula/voorspel`,
-      `/gock/opdracht`, `/tweespalt/leen` en `/heeren/job/:id/uitslag` lezen en
-      schrijven rechtstreeks in `dmState.playerCurrency` in plaats van via
-      `_effectiveCurrency()` / `_deductCurrency()`. Alle drie de party's in
-      Grisburgh spelen met de gedeelde beurs aan, dus **dit gaat vandaag al
-      mis**: een speler met 0 op zak kan Ursula niet betalen terwijl de
-      partybeurs vol zit, en geleend geld landt in een beurs die het scherm niet
-      toont. Zelfde fout als de winkel had (rechtgezet 7 sep 2026), zelfde
-      recept. Dit hoort vóór al het andere hieronder.
 - [ ] **De rente van de Tweespalt loopt op de kalender.** 30% per dag,
       samengesteld, op echte dagen. De ene openstaande lening in Grisburgh
       (28,80 florinde, aangegaan 26 april) staat daardoor op 5,8 × 10¹⁸
