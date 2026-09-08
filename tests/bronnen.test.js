@@ -162,6 +162,22 @@ describe('Bronteksten blijven binnen de campagne die ze mag zien', () => {
     assert.equal(Object.values(acoliet.levels)[0][0].desc, '');
   });
 
+  // De SRD 5.2 staat onder CC BY 4.0 en mag dus wél compleet naar buiten — ook
+  // naar een campagne die de PHB-teksten niet krijgt.
+  it('geeft de standaard-statblokken compleet aan elke campagne', async () => {
+    const kaal = await req(server, 'GET', '/api/bron/srd-monsters', null, andereDm);
+    const vol  = await req(server, 'GET', '/api/bron/srd-monsters', null, beheerder);
+    assert.ok(Array.isArray(kaal.body) && kaal.body.length > 300, 'lijst met wezens verwacht');
+    assert.deepStrictEqual(kaal.body, vol.body, 'kaal en volledig horen hetzelfde te zijn');
+    const guard = kaal.body.find(m => m.name === 'Guard');
+    assert.ok(guard, 'Guard hoort erin te staan');
+    assert.ok(guard.npc, 'Guard is een generieke NPC');
+    assert.ok(guard.statblock.actions.includes('Spear'), 'met zijn acties erbij');
+    assert.equal(guard.statblock.size, 'Small or Medium');
+    assert.ok(!/natural armor/.test(guard.statblock.ac), 'geen verzonnen armor_detail');
+    assert.equal(guard.statblock.speed, '30 ft.', 'geen afgeleide klim-/zwemsnelheden');
+  });
+
   it('kent geen andere bestanden dan de bronnenlijst', async () => {
     const r = await req(server, 'GET', '/api/bron/..%2F..%2Fconfig', null, beheerder);
     assert.equal(r.status, 404);

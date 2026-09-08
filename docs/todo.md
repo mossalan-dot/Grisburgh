@@ -234,17 +234,10 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       die twee staan — het is de vaagste categorie en raakt als enige de
       berekeningen op het blad.
 
-- [ ] **Standaard-statblokken voor NPC's (presets).** Nu de tiers er zijn, is een
-      preset-lijst een kleine stap: *Commoner*, *Guard*, *Bandit*, *Pirate*,
-      *Acolyte*, *Veteran* — kiezen bij het aanmaken van een personage en het
-      statblok is gevuld. Twee dingen die er al klaar voor liggen. Ten eerste
-      staan de **acht overgebleven losse bibliotheekmonsters** precies in die
-      categorie (Maenfortmatroos, Maenfortofficier, Wervelingpiraat,
-      Wervelingbootsman, Kaptein Haringh, Duergar, Gereanimeerde stadswacht) —
-      dat zijn troepen, geen personen, en samen de eerste presetlijst. Ten tweede
-      mag een preset gewoon als **tier** naast een kaartje staan: de herbergier
-      die zich als *Guard* verweert is dezelfde man, niet een tweede kaartje.
-      Werk: een bron met SRD-statblokken (die mogen we voluit meeleveren, zie de
-      SRD-sectie in CLAUDE.md), een kiezer in de personage-editor die `stats`
-      vult, en een opschoonronde over de losse monsters.
-      *(Idee van de gebruiker, 8 sep 2026.)*
+- [x] **Standaard-statblokken voor NPC's (presets).** Gedaan op 8 sep 2026: de
+      SRD 5.2 wordt meegeleverd (`bronnen/srd-monsters.json`, 331 wezens waarvan
+      26 generieke NPC's) en vult een kaartje, een tier of een monster. Wat nog
+      open staat: de **acht overgebleven losse bibliotheekmonsters**
+      (Maenfortmatroos, Wervelingpiraat, Kaptein Haringh, Duergar,
+      Gereanimeerde stadswacht…) opruimen — dat zijn troepen die je nu net zo
+      goed uit de SRD haalt, of houden als eigen variant met een eigen naam.

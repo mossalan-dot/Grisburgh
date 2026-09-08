@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=280';
+import { api, huidigeCampagne } from './api.js?v=281';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=8';
 
@@ -3006,7 +3006,7 @@ function _statblockEditorHtml(sb) {
             <label class="dm-form-label">Size</label>
             <select id="dm-mon-sb-size" class="dm-select dm-select-sm" style="width:100%">
               <option value="">—</option>
-              ${['Tiny','Small','Medium','Large','Huge','Gargantuan'].map(s => opt(s,s)).join('')}
+              ${['Tiny','Small','Small or Medium','Medium','Large','Huge','Gargantuan'].map(s => opt(s,s)).join('')}
             </select>
           </div>
           <div style="flex:2;min-width:100px">
@@ -3197,8 +3197,12 @@ function _renderMonsters() {
   if (_monsterEditorHost) {
     // Het venster toont alleen de editor. Is die klaar, dan sluit het venster.
     if (_editingMonsterId === null) { _monsterModalKlaar(); return; }
-    if (document.body.contains(_monsterEditorHost)) { _renderMonsterEditor(_monsterEditorHost); return; }
-    _monsterEditorHost = null;   // venster is weg (Esc, kruisje)
+    // `contains` is niet genoeg: het sluiten van een venster laat de markup in
+    // de DOM staan. Sluit je met het kruisje of Esc, dan bleef de editor dus in
+    // een onzichtbaar venster tekenen en leek het potlood in de Meesterkamer
+    // niets te doen. `offsetParent` zegt of hij écht in beeld staat.
+    if (_monsterEditorHost.offsetParent !== null) { _renderMonsterEditor(_monsterEditorHost); return; }
+    _monsterEditorHost = null;
   }
   const el = document.getElementById('dm-monsters-content');
   if (!el) return;
@@ -3272,10 +3276,11 @@ function _renderMonsterEditor(el) {
   el.innerHTML = `
     <div class="dm-feature-section">
       <details class="dm-srd-import-panel" id="dm-srd-panel">
-        <summary class="dm-srd-summary">${icon('search')} SRD importeren</summary>
+        <summary class="dm-srd-summary" onclick="setTimeout(()=>window.dmPanel.srdSearch(),0)">${icon('search')} Standaard statblok (SRD 5.2)</summary>
         <div class="dm-srd-search-row">
-          <input id="dm-srd-q" class="dm-input dm-input-sm" placeholder="Zoek monster…"
-            onkeydown="if(event.key==='Enter')window.dmPanel.srdSearch()">
+          <input id="dm-srd-q" class="dm-input dm-input-sm" placeholder="Guard, Pirate, Commoner…"
+            oninput="window.dmPanel.srdSearch()"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();window.dmPanel.srdSearch();}">
           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.srdSearch()" title="Zoeken">${icon('search')}</button>
         </div>
         <div id="dm-srd-results" class="dm-srd-results"></div>
@@ -3391,28 +3396,35 @@ function _monsterCancel() {
   _renderMonsters();
 };
 
+// Zoeken in de **meegeleverde** SRD 5.2 (bronnen/srd-monsters.json), niet meer
+// live bij dnd5eapi.co. Twee redenen: dat was een externe host in het pad van
+// een DM die om zeven uur 's avonds een wachtpost nodig heeft, en het was de
+// SRD van 2014. Zoeken is nu ook meteen klaar, dus het mag per toetsaanslag.
 async function _srdSearch() {
-  const q = document.getElementById('dm-srd-q')?.value.trim();
-  if (!q) return;
+  const q = (document.getElementById('dm-srd-q')?.value || '').trim().toLowerCase();
   const resultsEl = document.getElementById('dm-srd-results');
-  if (resultsEl) resultsEl.innerHTML = '<div class="dm-hint">Zoeken…</div>';
-  try {
-    const { results } = await api.srdSearchMonsters(q);
-    if (!resultsEl) return;
-    if (!results.length) { resultsEl.innerHTML = '<div class="dm-hint">Geen resultaten.</div>'; return; }
-    resultsEl.innerHTML = results.map(m =>
-      `<button class="dm-srd-result-btn" onclick="window.dmPanel.srdImport('${esc(m.index)}')">${esc(m.name)}</button>`
-    ).join('');
-  } catch (err) {
-    if (resultsEl) resultsEl.innerHTML = `<div class="dm-hint" style="color:#c44">Fout: ${esc(err.message)}</div>`;
+  if (!resultsEl) return;
+  const lijst = await window._statblokPresets();
+  if (!q) {
+    // Zonder zoekterm: de generieke NPC's, want dat is waar je meestal voor komt.
+    const npcs = lijst.filter(m => m.npc);
+    resultsEl.innerHTML = `<div class="dm-hint">Veelgebruikte NPC's — of typ een naam.</div>`
+      + npcs.map(_srdKnop).join('');
+    return;
   }
+  const treffers = lijst.filter(m => m.name.toLowerCase().includes(q)).slice(0, 30);
+  resultsEl.innerHTML = treffers.length
+    ? treffers.map(_srdKnop).join('')
+    : '<div class="dm-hint">Niets gevonden in de SRD 5.2.</div>';
 };
 
-async function _srdImport(index) {
+const _srdKnop = (m) => `<button class="dm-srd-result-btn" onclick="window.dmPanel.srdImport('${esc(m.key)}')">${esc(m.name)} <span class="dm-srd-cr">CR ${esc(m.cr)}</span></button>`;
+
+async function _srdImport(key) {
   const resultsEl = document.getElementById('dm-srd-results');
-  if (resultsEl) resultsEl.innerHTML = '<div class="dm-hint">Importeren…</div>';
   try {
-    const m = await api.srdGetMonster(index);
+    const m = (await window._statblokPresets()).find(x => x.key === key);
+    if (!m) throw new Error('Niet gevonden in de meegeleverde SRD-lijst');
     const nameEl = document.getElementById('dm-mon-name');
     const hpEl   = document.getElementById('dm-mon-hp');
     const initEl = document.getElementById('dm-mon-init');
@@ -3444,6 +3456,7 @@ async function _srdImport(index) {
     v('senses',                sb.senses);
     v('languages',             sb.languages);
     v('cr',                    sb.cr);
+    v('alignment',             sb.alignment);
     const xpEl = document.getElementById('dm-mon-sb-xp');
     if (xpEl) xpEl.value = sb.xp || '';
     v('traits',           sb.traits);

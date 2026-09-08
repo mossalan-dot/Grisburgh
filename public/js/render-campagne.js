@@ -1,4 +1,4 @@
-import { api } from './api.js?v=280';
+import { api } from './api.js?v=281';
 import { renderStatblock } from './render-statblock.js?v=8';
 
 const icon = (...a) => window.icon(...a);
@@ -924,7 +924,11 @@ window._sbModUpdate = (spanId, waarde) => {
 // heeft, de ability-modifiers werden niet uitgerekend en de Actions misten hun
 // opmaakbalk. De volgorde en de labels staan nu hier; `h` levert alleen de
 // bouwstenen — het blad schrijft `name="stat_…"`, een tier `class="pt-…"`.
-const _SB_SIZES = ['Tiny','Small','Medium','Large','Huge','Gargantuan'];
+// "Small or Medium" is een echte waarde in de 2024-statblokken: een Guard of een
+// Bandit kan elk volk zijn, dus de maat ligt niet vast. Zonder die optie viel
+// hij bij het invullen van een standaard statblok stilzwijgend weg — een select
+// negeert een waarde die niet in de lijst staat.
+const _SB_SIZES = ['Tiny','Small','Small or Medium','Medium','Large','Huge','Gargantuan'];
 const _SB_TYPES = ['Aberration','Beast','Celestial','Construct','Dragon','Elemental','Fey','Fiend',
                    'Giant','Humanoid','Monstrosity','Ooze','Plant','Undead'];
 // De sleutels die een statblok kent, in de volgorde waarin ze hieronder staan.
@@ -933,6 +937,98 @@ const _SB_TEKSTVELDEN = ['size','creatureType','ac','hp','initiative','speed','c
   'savingThrows','skills','gear','vulnerabilities','resistances','immunities','conditionImmunities',
   'senses','languages','traits','actions','bonusActions','reactions','legendaryActions','lairActions'];
 const _SB_ABILITIES = ['str','dex','con','int','wis','cha'];
+
+// ── Standaard-statblokken (SRD 5.2) ─────────────────────────────────────────
+// Een herbergier die zich verweert is een *Guard*, een matroos een *Pirate*.
+// Dat hoef je niet elke keer over te tikken: `bronnen/srd-monsters.json` bevat
+// de 331 wezens uit de SRD 5.2 (CC BY 4.0, meegeleverd — geen netwerkoproep
+// tijdens het spelen), waarvan 26 generieke NPC's.
+//
+// De sleutels van de bron zijn die van een monsterkaartje; ons blad gebruikt
+// eigen namen. Deze tabel is de enige plek waar die twee elkaar raken.
+const _PRESET_VELD = {
+  size: 'size', type: 'creatureType', ac: 'ac', hp: 'hp', speed: 'speed',
+  str: 'str', dex: 'dex', con: 'con', int: 'int', wis: 'wis', cha: 'cha',
+  savingThrows: 'savingThrows', skills: 'skills',
+  damageVulnerabilities: 'vulnerabilities', damageResistances: 'resistances',
+  damageImmunities: 'immunities', conditionImmunities: 'conditionImmunities',
+  senses: 'senses', languages: 'languages', cr: 'cr', xp: 'xp',
+  profBonus: 'profBonus', initiative: 'initiative',
+  traits: 'traits', actions: 'actions', reactions: 'reactions',
+  legendaryActions: 'legendaryActions',
+};
+
+let _presets = null;
+window._statblokPresets = async () => {
+  if (!_presets) {
+    try { _presets = await fetch('/api/bron/srd-monsters').then(r => r.json()); }
+    catch { _presets = []; }
+    if (!Array.isArray(_presets)) _presets = [];
+    // NPC's eerst: dat is waar een kaartje mee gevuld wordt. De rest blijft
+    // vindbaar door te typen.
+    _presets.sort((a, b) => (b.npc ? 1 : 0) - (a.npc ? 1 : 0) || a.name.localeCompare(b.name, 'en'));
+  }
+  return _presets;
+};
+
+// Eén datalist voor alle kiezers op het blad; de NPC's staan bovenaan met hun
+// CR erbij, zodat "Guard · CR 1/8" meteen zegt wat je krijgt.
+window._presetDatalist = async () => {
+  const host = document.getElementById('preset-dl');
+  if (!host || host.dataset.gevuld) return;
+  const lijst = await window._statblokPresets();
+  host.innerHTML = lijst.map(m =>
+    `<option value="${esc(m.name)}">${m.npc ? 'NPC · ' : ''}CR ${esc(m.cr)}</option>`).join('');
+  host.dataset.gevuld = '1';
+};
+
+// De kiezerregel. `tier` is de index van een tier-rij, of null voor het blad
+// zelf — dat bepaalt waar de velden staan (`name="stat_…"` tegen `.pt-…`).
+window._presetRijHtml = (tier = null) => `
+  <div class="preset-rij">
+    <label class="preset-label">${icon('skull')} Standaard statblok</label>
+    <input class="preset-zoek" list="preset-dl" placeholder="Guard, Pirate, Commoner…"
+      onfocus="window._presetDatalist()"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();window._presetVullen(this,${tier === null ? 'null' : tier});}">
+    <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+      onclick="window._presetVullen(this.previousElementSibling,${tier === null ? 'null' : tier})">Invullen</button>
+    <span class="preset-bron" title="System Reference Document 5.2, Wizards of the Coast, CC BY 4.0">SRD 5.2</span>
+  </div>`;
+
+// Invullen overschrijft het hele statblok: "maak hem een Guard" is één keuze,
+// geen samenraapsel van oud en nieuw. Staat er al iets, dan vragen we het even.
+window._presetVullen = async (invoer, tier = null) => {
+  const naam = String(invoer?.value || '').trim();
+  if (!naam) return;
+  const lijst = await window._statblokPresets();
+  const p = lijst.find(x => x.name.toLowerCase() === naam.toLowerCase());
+  if (!p) {
+    invoer.classList.add('dm-input--err');
+    setTimeout(() => invoer.classList.remove('dm-input--err'), 900);
+    window.app?._tsToast?.(`${icon('x')} Geen standaard statblok met de naam \u201c${esc(naam)}\u201d`);
+    return;
+  }
+  const veld = (k) => tier === null
+    ? document.querySelector(`[name="stat_${k}"]`)
+    : document.querySelector(`.pet-tier-row[data-idx="${tier}"] .pt-${k}`);
+
+  const gevuld = Object.values(_PRESET_VELD).some(k => String(veld(k)?.value || '').trim());
+  if (gevuld && !confirm(`Het statblok hieronder wordt vervangen door dat van ${p.name}. Doorgaan?`)) return;
+
+  for (const [bronKey, onze] of Object.entries(_PRESET_VELD)) {
+    const el = veld(onze);
+    if (el) el.value = p.statblock[bronKey] ?? '';
+  }
+  // De modifier onder een ability wordt bij het typen bijgewerkt; nu er niet
+  // getypt is, moeten we hem zelf laten hertekenen.
+  for (const a of _SB_ABILITIES) {
+    const id = tier === null ? `cs-mod-${a}` : `pt${tier}-mod-${a}`;
+    window._sbModUpdate?.(id, veld(a)?.value);
+  }
+  if (tier !== null) window.app?._tsToast?.(`${icon('check')} Tier gevuld met <strong>${esc(p.name)}</strong>`);
+  else window.app?._tsToast?.(`${icon('check')} Statblok gevuld met <strong>${esc(p.name)}</strong> (SRD 5.2)`);
+};
+
 
 function _sbCombatHtml(h) {
   return `
@@ -5958,6 +6054,7 @@ function _petTierRowHtml(t, i) {
     </summary>
 
     <p class="pet-tier-hint">Vul alleen in wat er verandert; wat je leeg laat blijft zoals in het statblok hierboven.</p>
+    ${window._presetRijHtml(i)}
     <div class="${_tierVoorDier ? 'grid grid-cols-2 gap-2' : ''}">
       ${_tierVoorDier ? `<div>
         <label class="text-[10px] font-cinzel text-ink-dim uppercase">Vanaf level</label>
@@ -6983,8 +7080,10 @@ window._openEditor = async (tab, editId) => {
     // zonder die regel las het als "een statblok dat toch niets doet".
     body += `
       <div class="cs-blok">
+        <datalist id="preset-dl"></datalist>
         <div>
           ${_isDier ? '<p class="cs-basis-uitleg">Dit is het dier vanaf level 1. Onderaan dit blad laat je het meegroeien met het baasje.</p>' : ''}
+          ${window._presetRijHtml(null)}
           <!-- Een dier heeft geen spreukenlijst, en met alleen Combat + Actions
                is een tabbalk een zoekplaatje voor twee panelen. Hij krijgt
                daarom dezelfde platte vorm als een tier: alles onder elkaar met
@@ -7132,6 +7231,12 @@ window._openEditor = async (tab, editId) => {
 
   // Huisdier-tier-editor vullen (no-op als de sectie er niet is)
   window._renderPetTiers();
+
+  // De lijst met standaard-statblokken alvast in de datalist zetten. Eerst hing
+  // dat aan `onfocus` van het zoekveld, maar een veld dat programmatisch focus
+  // krijgt (of een browser die de focus elders laat) sloeg dat over — en dan
+  // stelt het veld niets voor. Het is één verzoek dat daarna gecachet is.
+  window._presetDatalist();
 
   // Staat er al een filmpje bij dit personage? (no-op zonder die sectie)
   if (e?.id) window._charVideoStatus(e.id);

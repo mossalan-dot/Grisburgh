@@ -7406,74 +7406,11 @@ router.put('/bestiarium/:monsterId', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
-// ── SRD Monster Import (proxy naar dnd5eapi) ──
-router.get('/srd/monsters', attachRole, requireDM, async (req, res) => {
-  const q = (req.query.q || '').trim();
-  if (!q) return res.json({ results: [] });
-  try {
-    const url = `https://www.dnd5eapi.co/api/monsters?name=${encodeURIComponent(q)}`;
-    const resp = await fetch(url);
-    if (!resp.ok) return res.status(502).json({ error: 'SRD niet bereikbaar' });
-    const data = await resp.json();
-    const results = (data.results || []).slice(0, 20).map(m => ({
-      index: m.index,
-      name:  m.name,
-      url:   m.url,
-    }));
-    res.json({ results });
-  } catch (err) {
-    res.status(502).json({ error: err.message });
-  }
-});
-
-router.get('/srd/monsters/:index', attachRole, requireDM, async (req, res) => {
-  try {
-    const url = `https://www.dnd5eapi.co/api/monsters/${encodeURIComponent(req.params.index)}`;
-    const resp = await fetch(url);
-    if (!resp.ok) return res.status(404).json({ error: 'Niet gevonden' });
-    const m = await resp.json();
-    const mod = score => Math.floor(((score || 10) - 10) / 2);
-    const mapCond = (arr) => (arr || []).map(x => x.name || x.index || x).join(', ');
-    const sbStr = arr => (arr || []).map(x => {
-      const bonus = x.value != null ? ` +${x.value}` : '';
-      return `${x.name || x.ability_score?.name || ''}${bonus}`;
-    }).join(', ');
-
-    const avgHp = m.hit_points || 10;
-
-    const sb = {
-      size:                  m.size || '',
-      type:                  m.type || '',
-      alignment:             m.alignment || '',
-      ac:                    (m.armor_class || []).map(a => `${a.value}${a.type ? ' ('+a.type+')' : ''}`).join(', '),
-      hp:                    m.hit_points_roll || '',
-      speed:                 Object.entries(m.speed || {}).map(([k,v]) => `${k} ${v}`).join(', '),
-      str:                   m.strength || 10,
-      dex:                   m.dexterity || 10,
-      con:                   m.constitution || 10,
-      int:                   m.intelligence || 10,
-      wis:                   m.wisdom || 10,
-      cha:                   m.charisma || 10,
-      savingThrows:          sbStr(m.proficiencies?.filter(p => p.proficiency?.name?.startsWith('Saving'))),
-      skills:                sbStr(m.proficiencies?.filter(p => p.proficiency?.name?.startsWith('Skill'))),
-      damageVulnerabilities: mapCond(m.damage_vulnerabilities),
-      damageResistances:     mapCond(m.damage_resistances),
-      damageImmunities:      mapCond(m.damage_immunities),
-      conditionImmunities:   mapCond(m.condition_immunities),
-      senses:                Object.entries(m.senses || {}).map(([k,v]) => `${k.replace(/_/g,' ')} ${v}`).join(', '),
-      languages:             m.languages || '',
-      cr:                    String(m.challenge_rating || ''),
-      xp:                    m.xp || 0,
-      traits:                (m.special_abilities || []).map(a => `***${a.name}.*** ${a.desc}`).join('\n\n'),
-      actions:               (m.actions || []).map(a => `***${a.name}.*** ${a.desc}`).join('\n\n'),
-      reactions:             (m.reactions || []).map(a => `***${a.name}.*** ${a.desc}`).join('\n\n'),
-      legendaryActions:      (m.legendary_actions || []).map(a => `***${a.name}.*** ${a.desc}`).join('\n\n'),
-    };
-    res.json({ name: m.name, maxHp: avgHp, initiative: 10 + mod(m.dexterity), statblock: sb });
-  } catch (err) {
-    res.status(502).json({ error: err.message });
-  }
-});
+// De live SRD-import (dnd5eapi.co) is vervallen: de SRD 5.2 wordt meegeleverd
+// in `bronnen/srd-monsters.json` en gaat via `GET /api/bron/srd-monsters`. Dat
+// is een editie nieuwer, het werkt zonder externe host midden in een sessie, en
+// dezelfde lijst voedt nu ook de statblok-presets op een kaartje.
+// Zie scripts/srd-2024/srd-monsters.js.
 
 // ── Gevecht (Combat) ──
 

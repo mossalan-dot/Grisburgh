@@ -24319,3 +24319,33 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 .dm-enc-tier-rij .icon { width: 13px; height: 13px; }
 .dm-enc-tier-rij .dm-select { max-width: 220px; }
+
+/* De kiezer voor een standaard statblok (SRD). Eén regel boven het blad en
+   boven elke tier: zoekveld, knop, en de bron erbij — want die tekst is van
+   Wizards en dat hoort erbij te staan. */
+.preset-rij {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  margin: 0 0 10px; padding: 7px 9px;
+  border: 1px dashed rgba(196,168,122,0.55); border-radius: 6px;
+  background: rgba(255,255,255,0.2);
+}
+.preset-label {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Cinzel', serif; font-size: 0.68rem; text-transform: uppercase;
+  letter-spacing: 0.05em; color: #7a6040;
+}
+.preset-label .icon { width: 13px; height: 13px; }
+.preset-zoek {
+  flex: 1; min-width: 130px;
+  font-family: 'Crimson Text', serif; font-size: 0.88rem; color: #2a1a08;
+  padding: 3px 8px; border: 1px solid rgba(196,168,122,0.6); border-radius: 5px;
+  background: var(--room-bg, #f2e8d2);
+}
+.preset-zoek:focus { outline: none; border-color: #c4a87a; }
+.preset-bron {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: 0.72rem; color: #9a7050; cursor: help;
+}
+/* CR achter een SRD-zoekresultaat: het verschil tussen een Guard en een Guard
+   Captain zie je zo zonder te importeren. */
+.dm-srd-cr { font-family: 'IM Fell English', serif; font-style: italic; color: #9a7050; font-size: 0.8em; margin-left: 4px; }

@@ -222,8 +222,6 @@ export const api = {
   },
 
   // SRD Monster Import
-  srdSearchMonsters: (q)     => request(`/srd/monsters?q=${encodeURIComponent(q)}`),
-  srdGetMonster:     (index) => request(`/srd/monsters/${encodeURIComponent(index)}`),
 
   // Quests
   listQuests:   (groepId)    => request(`/quests${groepId ? `?groepId=${encodeURIComponent(groepId)}` : ''}`),

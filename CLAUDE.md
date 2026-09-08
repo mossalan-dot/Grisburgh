@@ -229,9 +229,9 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=554   app.js?v=691   sound-manager.js?v=8
-app.js      : api.js?v=280  dm-panel.js?v=212  media-picker.js?v=8
-              render-archief.js?v=83  render-bestiarium.js?v=25  render-campagne.js?v=270
+index.html  : theme.css?v=555   app.js?v=695   sound-manager.js?v=8
+app.js      : api.js?v=281  dm-panel.js?v=215  media-picker.js?v=8
+              render-archief.js?v=83  render-bestiarium.js?v=25  render-campagne.js?v=273
               render-dashboard.js?v=9  render-dungeon.js?v=33  render-kaart.js?v=19
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=35
               render-statblock.js?v=8  socket-client.js?v=66
@@ -463,6 +463,29 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=8
 > `_fpBlok()` het laatste **zichtbare** `.fp-blok` en worden de velden dáárbinnen
 > gezocht — vandaar ook dat `.fp-blok` een echte box moet houden
 > (`display:contents` zou `offsetParent` op null zetten).
+
+> **Standaard-statblokken (SRD 5.2) worden meegeleverd.** `bronnen/srd-monsters.json`
+> (331 wezens, 466 kB) komt uit `node scripts/srd-2024/srd-monsters.js --schrijf`
+> — Open5e, document `srd-2024`. Die tekst staat onder CC BY 4.0 en gaat dus bij
+> **elke** campagne compleet de deur uit; `bronVoor()` kent er geen kale variant
+> van, want dat onderscheid bestaat alleen voor bestanden met PHB-tekst.
+> Vervangt de oude live-import bij `dnd5eapi.co`: dat was een externe host in het
+> pad van een DM midden in een sessie, én de editie van 2014.
+>
+> **Waar je ze gebruikt:** de regel *Standaard statblok* boven het statblok in de
+> personage-editor én boven elke tier (`window._presetRijHtml(tier)` /
+> `_presetVullen` in `render-campagne.js`; `_PRESET_VELD` is de enige plek waar
+> de sleutels van de bron en die van ons blad elkaar raken), en de uitklapper in
+> de monster-editor (`_srdSearch`/`_srdImport` in `dm-panel.js`, nu lokaal en dus
+> per toetsaanslag). 26 generieke NPC's (`npc: true`) staan vooraan — een
+> herbergier die zich verweert is een *Guard*, geen Aboleth.
+>
+> **Drie dingen zet het script recht** (systematisch fout bij Open5e, zie de
+> commentaren daar): `armor_detail` staat op "natural armor" bij 330 van de 331,
+> `speed_all` vult de afgeleide kruip-/klim-/zwemsnelheden in die in 2024 voor
+> iedereen gelden, en `size` is "Small" bij álle humanoids waar de SRD
+> "Small or Medium" schrijft. Die laatste waarde staat daarom ook in `_SB_SIZES`
+> — een `<select>` slikt een waarde die niet in de lijst staat stilzwijgend in.
 
 > **Meerdere statblokken op één kaartje (tiers).** Dezelfde man is niet elke akte
 > dezelfde tegenstander. `statblockTiers` op een personage-kaartje bewaart de
