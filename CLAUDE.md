@@ -574,12 +574,28 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > scholen bij. Een school is een van de acht PHB-termen; de server bewaakt dat
 > voor eigen spreuken (`_SPREUK_SCHOLEN`).
 
+> **Dezelfde regel voor class features, species traits en feats.** De SRD 5.2
+> dekt daar zelfs **80%** van de seed (133 van 148 class features, 27 van 53
+> species traits). `bronnen/srd-features.json` is de koppeling, gegenereerd met
+> `node scripts/srd-2024/srd-featureteksten.js --schrijf` uit
+> `5e-bits/5e-database` (Features, Traits, Feats). Sleutels zijn dezelfde als in
+> `feature-descriptions.json` — `"Klasse|Naam"`, `"Subklasse|Naam"`,
+> `"Soort|Naam"`, `"feat|Naam"` en de kale `"Naam"` — zodat `_srdDesc()` in
+> `render-progressie.js` er zonder aanpassing mee overweg kan. `kaleProgressie()`
+> zet de tekst terug waar de SRD hem heeft (`_srd`) en laat de rest leeg
+> (`_geenTekst`), en `GET /bron/feature-descriptions` geeft aan een kale campagne
+> dat SRD-deel in plaats van `{}`.
+> **Backgrounds blijven kaal**: de SRD geeft daar alleen structuur
+> (ability scores, proficiencies), geen beschrijvingen.
+
 > **Waar wijst de app naartoe als een tekst er niet mag staan?** Eén sjabloon
 > voor de hele app: `meta.bronLink` met `{naam}` en `{soort}`, in te stellen bij
 > Instellingen → *Naslag elders*. Leeg = de standaard (de zoekpagina van
 > D&D Beyond). Client-helper: `window.app.bronLink(naam, soort)`. Gebruikt door
 > het spreukdetail en het progressie-detailvenster, allebei alleen waar de server
-> `_geenTekst: true` meestuurde — nooit naast tekst die er wél staat.
+> `_geenTekst: true` meestuurde — nooit naast tekst die er wél staat. Op het
+> spreukkaartje in het overzicht staat daarnaast een chip **Naslag**, zodat je de
+> spreuk niet eerst hoeft te openen; die opent in een nieuw tabblad.
 >
 > **Bewust een zoek-URL en geen diepe link.** Het adres van een spreuk op
 > D&D Beyond bevat een nummer dat nergens uit af te leiden is; een diepe link zou

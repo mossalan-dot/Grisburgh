@@ -24202,3 +24202,11 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 .prog-geen-tekst-knop:hover { background: rgba(196,168,122,0.32); color: #2a1a08; }
 .prog-geen-tekst-knop svg { width: 14px; height: 14px; }
+
+/* Spreuk zonder tekst: de verwijzing staat op het kaartje, zodat je hem niet
+   eerst hoeft te openen. Opent in een nieuw tabblad. */
+.spreuk-tag--naslag {
+  background: rgba(90,58,122,0.1); border-color: rgba(90,58,122,0.35); color: #5a3a7a;
+  text-decoration: none; cursor: pointer;
+}
+.spreuk-tag--naslag:hover { background: rgba(90,58,122,0.2); color: #3a2455; }

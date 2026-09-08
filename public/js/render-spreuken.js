@@ -201,10 +201,16 @@ function _card(s) {
   const school = _school(s);
   const col    = _schoolCol(school);
   const focus  = _focus(s);
+  // Staat de tekst er niet (geen SRD, geen eigen tekst), dan hoeft de kijker daar
+  // niet eerst de spreuk voor te openen: de verwijzing staat op het kaartje zelf
+  // en gaat in een nieuw tabblad open.
+  const naslag = s._geenTekst ? _spreukLink(s.name) : '';
   const markers = [
     s.source === 'eigen' ? `<span class="spreuk-tag spreuk-tag--eigen" title="Eigen spreuk van deze campagne">${icon('sparkles')} Eigen</span>` : '',
     s.ritual        ? `<span class="spreuk-tag" title="Ritual">${icon('scroll-text')} Ritual</span>` : '',
     s.concentration ? `<span class="spreuk-tag" title="Concentration">${icon('eye')} Concentration</span>` : '',
+    naslag ? `<a class="spreuk-tag spreuk-tag--naslag" href="${esc(naslag)}" target="_blank" rel="noopener"
+      onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')} Naslag</a>` : '',
   ].filter(Boolean).join('');
   // "Concentration, up to 1 minute" én een aparte Concentration-tag eronder is
   // twee keer hetzelfde; op het kaartje volstaat de duur zonder het voorvoegsel.

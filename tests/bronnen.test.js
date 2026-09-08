@@ -126,19 +126,37 @@ describe('Bronteksten blijven binnen de campagne die ze mag zien', () => {
     assert.equal(fireball._srd, true, 'en daarmee valt hij terug op de SRD-tekst');
   });
 
-  it('doet hetzelfde met class features', async () => {
+  // Class features volgen dezelfde regel als de spreuken: staat de feature in de
+  // SRD 5.2 (CC BY 4.0), dan mag de tekst mee; anders blijft hij leeg.
+  it('geeft SRD-features hun tekst, andere niet', async () => {
     const kaal = await req(server, 'GET', '/api/progression', null, andereDm);
     const rage = kaal.body.classes.Barbarian.levels['1'].find(f => f.name === 'Rage');
     assert.equal(rage.name, 'Rage', 'de feature staat er, op het juiste niveau');
-    assert.equal(rage.desc, '',     'zonder tekst');
+    assert.ok(rage.desc.length > 50, 'Rage staat in de SRD, dus met tekst');
+    assert.equal(rage._srd, true);
+
+    // Een subklasse die niet in de SRD staat houdt zijn tekst wél voor zich.
+    const alles = Object.values(kaal.body.classes).flatMap(c => Object.values(c.levels || {}).flat());
+    const zonder = alles.filter(f => f._geenTekst);
+    assert.ok(zonder.length > 0, 'niet alles zit in de SRD');
+    assert.ok(zonder.every(f => f.desc === ''), 'en die hebben geen tekst');
 
     const vol = await req(server, 'GET', '/api/progression', null, beheerder);
     assert.ok(vol.body.classes.Barbarian.levels['1'].find(f => f.name === 'Rage').desc.length > 50);
   });
 
-  it('houdt de features-bibliotheek en backgrounds net zo kaal', async () => {
+  it('geeft van de features-bibliotheek alleen het SRD-deel', async () => {
     const feats = await req(server, 'GET', '/api/bron/feature-descriptions', null, andereDm);
-    assert.deepEqual(feats.body, {}, 'geen losse SRD-teksten');
+    assert.ok(Object.keys(feats.body).length > 100, 'de SRD-teksten mogen mee');
+    assert.ok(feats.body['Barbarian|Rage'], 'op dezelfde sleutel als de volledige lijst');
+
+    // De volledige lijst heeft teksten die niet in de SRD staan (niet-SRD
+    // subklassen en soorten); die horen in de kale versie te ontbreken.
+    const vol = await req(server, 'GET', '/api/bron/feature-descriptions', null, beheerder);
+    const alleenVolledig = Object.keys(vol.body).filter(k => !feats.body[k]);
+    assert.ok(alleenVolledig.length > 0, 'niet alles uit de volledige lijst mag mee');
+
+    // Backgrounds staan niet in de SRD (alleen hun structuur), dus die blijven kaal.
     const bg = await req(server, 'GET', '/api/bron/backgrounds-2024', null, andereDm);
     const acoliet = Object.values(bg.body)[0];
     assert.equal(Object.values(acoliet.levels)[0][0].desc, '');
