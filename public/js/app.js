@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=278';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=260";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=265";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=81";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -1544,15 +1544,17 @@ async function _landingAutoLogin(charId, playerName) {
   // Wacht één extra frame zodat de DOM zeker gereed is
   await new Promise(r => requestAnimationFrame(r));
   const portraitEl = document.querySelector(`.landing-portrait[data-char-id="${CSS.escape(charId)}"]`);
-  if (!portraitEl) { switchSection('mijn-karakter'); return; }
+  // Staat het portret er niet, of loopt de inzoom-animatie stuk, dan is de
+  // sessie nog steeds geldig — dus gewoon inloggen, zónder de animatie. Deze
+  // twee paden sprongen naar het karaktertabblad maar lieten de landingspagina
+  // eroverheen staan: je zat vast op het portrettenscherm.
+  if (!portraitEl) { _landingFinishLogin({ playerName, characterId: charId }); return; }
   portraitEl.classList.add('landing-portrait--chosen');
   const hasVideo = portraitEl.dataset.portraitVideo === '1';
   try {
     await _landingStartZoom(charId, portraitEl, hasVideo);
-    _landingFinishLogin({ playerName, characterId: charId });
-  } catch {
-    switchSection('mijn-karakter');
-  }
+  } catch { /* animatie mislukt: dan zonder */ }
+  _landingFinishLogin({ playerName, characterId: charId });
 }
 
 async function playerLogin(characterId) {
@@ -6293,6 +6295,10 @@ async function renderMijnKarakter(opts = {}) {
 
   // Bookmarks in state cachen zodat renderCard ze kan lezen
   state.bookmarks = Array.isArray(playerProfile.bookmarks) ? playerProfile.bookmarks : [];
+  // Het profiel komt vaak ná de eerste render van een archief-tabblad binnen; de
+  // filterbalk wordt daarna niet opnieuw gebouwd, dus zou de chip "★ Bladwijzers"
+  // pas na een herlaad verschijnen.
+  ENTITY_SECTIONS.forEach(t => window._bladwijzerChipBijwerken?.(t));
 
   // Sla context op voor lazy-render van het progressie-subtabblad
   window._lastPlayerProfile = playerProfile;

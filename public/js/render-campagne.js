@@ -723,6 +723,10 @@ function getSubtypeBadge(type, e) {
     const w = e.data?.wijk;
     return w ? { label: w, cls: 'badge-loc' } : null;
   }
+  if (type === 'documenten') {
+    const t = e.data?.docType;
+    return t ? { label: t, cls: 'badge-doc' } : null;
+  }
   if (type === 'organisaties') {
     const t = e.data?.orgType;
     return t ? { label: t, cls: 'badge-org' } : null;
@@ -2318,7 +2322,7 @@ function _entityHaystacks(e) {
   const d = e.data || {};
   return {
     name: _normSearch(e.name),
-    meta: _normSearch([e.subtype, d.rol, d.ras, d.klasse, d.locType, d.orgType, d.itemType, d.wijk, d.rariteit, d.motto].filter(Boolean).join(' ')),
+    meta: _normSearch([e.subtype, d.rol, d.ras, d.klasse, d.locType, d.orgType, d.itemType, d.docType, d.wijk, d.rariteit, d.motto].filter(Boolean).join(' ')),
     rest: _normSearch([...Object.values(d), ...Object.values(e.links || {}).flat()].join(' ')),
   };
 }
@@ -2386,7 +2390,8 @@ async function renderEntitySection(type) {
   }
 
   try {
-    entities[type] = await api.listEntities(type);
+    const [lijst] = await Promise.all([api.listEntities(type), _bladwijzersZorgen()]);
+    entities[type] = lijst;
   } catch (e) {
     entities[type] = [];
   }
@@ -2794,11 +2799,21 @@ async function _pdfViewer(container, url) {
   }
 }
 
+const _docGroep = (docType) => {
+  if (!docType) return '';
+  const g = DOC_TYPE_GROEPEN.find(gr => gr.opties.some(o => o.value === docType));
+  return g ? g.groep : 'Overig';
+};
+
 function _getEntitySubtypeVal(type, e) {
   if (type === 'locaties')     return e.data?.wijk     || '';
   if (type === 'organisaties') return e.data?.orgType  || '';
   if (type === 'voorwerpen')   return e.data?.itemType || '';
-  if (type === 'documenten')   return e.data?.docType  || '';
+  // Documenten filteren op de gróép, niet op het exacte type: zestien chips
+  // waarvan de helft één kaartje dekt is geen filter maar een inhoudsopgave.
+  // Het exacte type staat als badge op het kaartje. Dit is dezelfde indeling die
+  // vroeger `cat` heette (brieven/pers/kaarten/codex/audio).
+  if (type === 'documenten')   return _docGroep(e.data?.docType);
   return e.subtype || '';
 }
 
@@ -2898,6 +2913,8 @@ function renderCard(type, e) {
   const _itemMeta = type === 'voorwerpen'
     ? [_rarityLabel(e.data?.rariteit), (e.data?.attunement === 'true' || e.data?.attunement === true) ? 'Attunement' : null].filter(Boolean).join(' · ')
     : null;
+  // Het documenttype staat al als badge op het kaartje (zie getSubtypeBadge),
+  // net als bij een voorwerp; hier zou het een tweede keer staan.
   const metaText = [e.data?.locType, e.data?.orgType, _itemMeta, e.data?.domein, e.data?.ras, e.data?.klasse].filter(Boolean).join(' \u00b7 ');
   const badges  = getCardBadges(type, e);
   const desc = e.data?.desc || '';
@@ -2937,7 +2954,7 @@ function renderCard(type, e) {
   const _cardStrReq  = parseInt(e.data?.strengthRequirement) || 0;
 
   // ── DM toggle icon / title — 3-state for personages + locaties ──
-  const _threeState = ['personages', 'locaties', 'organisaties'].includes(type);
+  const _threeState = ['personages', 'locaties', 'organisaties', 'documenten'].includes(type);
   const _visIcon  = vis === 'visible' ? icon('eye')
                   : vis === 'vague'   ? icon('eye-off')
                   :                    icon('lock');
@@ -3373,6 +3390,41 @@ function _bladHtml(profiel, hp, e) {
 }
 
 // ── Bladwijzers ──
+// De bladwijzers van een speler stonden alleen in `state` zodra hij zijn eigen
+// tabblad had geopend. Ging hij meteen naar Personages, dan stond op elk kaartje
+// een lege ster — ook op kaartjes die hij wél gemarkeerd had. Eén keer ophalen,
+// vóór het eerste kaartje getekend wordt.
+let _bmGeladen = null;
+function _bladwijzersZorgen() {
+  const st = window.app?.state;
+  if (!st?.characterId || Array.isArray(st.bookmarks)) return Promise.resolve();
+  if (!_bmGeladen) {
+    _bmGeladen = api.getPlayerProfile(st.characterId)
+      .then(p => { st.bookmarks = Array.isArray(p?.bookmarks) ? p.bookmarks : []; })
+      .catch(() => { st.bookmarks = []; });
+  }
+  return _bmGeladen;
+}
+
+// Zet of haalt de chip in de filterbalk van één tabblad, zonder de hele balk
+// opnieuw op te bouwen (dat zou de scrollpositie en een actief filter wissen).
+function _bladwijzerChipBijwerken(type) {
+  const bar = document.querySelector(`#section-${type} .subtype-filter-bar`);
+  if (!bar) return;                       // geen filterbalk op dit tabblad
+  const heeft = (window.app?.state?.bookmarks || []).some(b => b.type === type);
+  const chip  = bar.querySelector('[data-sf-val="__bladwijzer__"]');
+  if (heeft && !chip) {
+    bar.querySelector('[data-sf-val=""]')?.insertAdjacentHTML('afterend',
+      `<button class="sf-chip sf-chip--special" data-sf-val="__bladwijzer__"
+        onclick="window._entitySubtypeFilter('${type}', this.classList.contains('sf-chip--active') ? null : this.dataset.sfVal)">\u2605 Bladwijzers</button>`);
+  } else if (!heeft && chip) {
+    // Stond het filter nog aan, dan zou je naar een lege lijst kijken.
+    if (chip.classList.contains('sf-chip--active')) window._entitySubtypeFilter(type, null);
+    chip.remove();
+  }
+}
+window._bladwijzerChipBijwerken = _bladwijzerChipBijwerken;
+
 window._toggleBookmark = async function(type, id, name) {
   const charId = window.app?.state?.characterId;
   if (!charId) return;
@@ -3402,6 +3454,12 @@ window._toggleBookmark = async function(type, id, name) {
   document.body.appendChild(toast);
   setTimeout(() => toast.classList.add('bookmark-toast--visible'), 10);
   setTimeout(() => { toast.classList.remove('bookmark-toast--visible'); setTimeout(() => toast.remove(), 300); }, 2000);
+
+  // De chip "★ Bladwijzers" hoort meteen te verschijnen. Hij wordt gebouwd
+  // wanneer de filterbalk gebouwd wordt, en die wordt bij een volgende render
+  // juist overgeslagen (alleen de grid ververst) — dus zonder dit zag je hem
+  // pas na een herlaad.
+  _bladwijzerChipBijwerken(type);
 
   // Als mijn-karakter actief is: herrender zodat de sectie direct zichtbaar is
   if (window.app?.state?.activeSection === 'mijn-karakter') {
@@ -4268,7 +4326,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
 
   // DM controls
   if (isDM()) {
-    const _ts = ['personages', 'locaties', 'organisaties'].includes(tab);
+    const _ts = ['personages', 'locaties', 'organisaties', 'documenten'].includes(tab);
     const _mVisIcon  = vis === 'visible' ? icon('eye')
                      : vis === 'vague'   ? icon('eye-off')
                      :                    icon('lock');
