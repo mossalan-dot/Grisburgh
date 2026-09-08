@@ -1,6 +1,6 @@
 import { api, huidigeCampagne } from './api.js?v=279';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
-import { renderStatblock } from './render-statblock.js?v=4';
+import { renderStatblock } from './render-statblock.js?v=5';
 
 // ── DM Panel ──
 // icon() helper is defined globally in app.js; grab a local alias for template use.

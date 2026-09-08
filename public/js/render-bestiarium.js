@@ -10,13 +10,18 @@
  */
 
 import { api } from './api.js?v=279';
-import { renderStatblock } from './render-statblock.js?v=4';
+import { renderStatblock } from './render-statblock.js?v=5';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
 
 let _container = null;
 let _data = { role: 'player', monsters: [] };
+// Zoeken en filteren, zoals op de andere archief-tabbladen. `type` is de
+// hoofdgroep van het creature type ("Humanoid (goblinoid)" → Humanoid), want
+// daar denk je in; het haakje is een verbijzondering.
+let _zoek = '';
+let _type = null;
 
 // Kennisniveaus, cyclend: Onbekend → Naam → Deels → Volledig → Onbekend.
 const _NIV_ORDER  = ['', 'naam', 'deels', 'volledig'];
@@ -34,6 +39,46 @@ export async function renderBestiarium(container) {
   _renderGrid();
 }
 
+const _hoofdType = (m) => String(m.statblock?.type || '').split(/[(,]/)[0].trim();
+
+// Zelfde regels als bij de kaartjes: genormaliseerd, meerdere woorden, en hoe
+// korter het woord hoe strenger. Naam eerst, dan de korte velden, dan de tekst.
+function _score(m, tokens) {
+  const norm = window._normSearch || (x => String(x || '').toLowerCase());
+  const sb = m.statblock || {};
+  const naam = norm(m.name);
+  const meta = norm([sb.type, sb.size, sb.alignment, sb.cr != null ? `CR ${sb.cr}` : '',
+                     _NIV_LABEL[m._niveau || '']].filter(Boolean).join(' '));
+  const rest = norm([m.description, m.roddel || m._roddel, sb.traits, sb.actions,
+                     sb.languages, sb.senses].filter(Boolean).join(' '));
+  let totaal = 0;
+  for (const t of tokens) {
+    let best = 0;
+    if (naam === t) best = 1000;
+    else if (naam.startsWith(t)) best = 600;
+    else if (t.length >= 2 && naam.includes(t)) best = 250;
+    else if (t.length >= 2 && meta.includes(t)) best = 120;
+    else if (t.length >= 3 && rest.includes(t)) best = 60;
+    if (best === 0) return -1;
+    totaal += best;
+  }
+  return totaal;
+}
+
+function _gefilterd(monsters) {
+  const tokens = window._searchTokens?.(_zoek) || [];
+  const scores = new Map();
+  const uit = monsters.filter(m => {
+    if (_type && _hoofdType(m) !== _type) return false;
+    if (!tokens.length) return true;
+    const sc = _score(m, tokens);
+    if (sc < 0) return false;
+    scores.set(m.id, sc);
+    return true;
+  });
+  return tokens.length ? uit.sort((a, b) => scores.get(b.id) - scores.get(a.id)) : uit;
+}
+
 function _renderGrid() {
   const dm = _data.role === 'dm';
   const monsters = _data.monsters || [];
@@ -47,9 +92,13 @@ function _renderGrid() {
           <div class="section-banner-desc-line">Wezens en hun geheimen</div>
         </div>
         <div class="section-banner-search">
+          <div class="sbs-input-wrap">
+            <span class="sbs-icon">\u2315</span>
+            <input type="text" class="sbs-input search-input" placeholder="Zoek wezen\u2026"
+              value="${esc(_zoek)}" oninput="window.bestiarium.zoek(this.value)">
+          </div>
           ${dm ? `<button class="best-lib-btn" onclick="window.bestiarium.openLibrary()"
             title="Naar de monsterbibliotheek in de Meesterkamer">${icon('book-open')} Monsterbibliotheek</button>` : ''}
-          <span class="results-count sbs-count">${monsters.length} ${monsters.length === 1 ? 'wezen' : 'wezens'}</span>
           ${window._helpBtn?.('bestiarium') ?? ''}
         </div>
       </div>
@@ -64,11 +113,36 @@ function _renderGrid() {
     </div>`;
     return;
   }
-  const cards = monsters.map((m, i) => _card(m, i, dm)).join('');
+  // Chips op de hoofdgroep van het creature type — hetzelfde gebaar als de
+  // typechips op de andere tabbladen. Pas tonen als er iets te kiezen valt.
+  const typen = [...new Set(monsters.map(_hoofdType).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'nl'));
+  const chips = typen.length >= 2 ? `
+    <div class="best-typefilter">
+      <button class="sf-chip${_type ? '' : ' sf-chip--active'}" onclick="window.bestiarium.filterType(null)">Alle</button>
+      ${typen.map(t => `<button class="sf-chip${_type === t ? ' sf-chip--active' : ''}"
+        onclick="window.bestiarium.filterType('${esc(t)}')">${esc(t)}</button>`).join('')}
+    </div>` : '';
+
+  const zichtbaar = _gefilterd(monsters);
+  const cards = zichtbaar.length
+    ? zichtbaar.map((m) => _card(m, monsters.indexOf(m), dm)).join('')
+    : `<p class="best-empty">Geen wezens gevonden.</p>`;
   _container.innerHTML = `${head}<div class="best-wrap">
+    ${chips}
     <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">${cards}</div>
   </div>`;
-  const grid = _container.querySelector('.cards-grid');
+}
+
+// Alleen de kaartjes opnieuw tekenen; het zoekveld houdt zo zijn cursor.
+function _tekenKaarten() {
+  const grid = _container?.querySelector('.cards-grid');
+  if (!grid) return _renderGrid();
+  const dm = _data.role === 'dm';
+  const monsters = _data.monsters || [];
+  const zichtbaar = _gefilterd(monsters);
+  grid.innerHTML = zichtbaar.length
+    ? zichtbaar.map((m) => _card(m, monsters.indexOf(m), dm)).join('')
+    : `<p class="best-empty">Geen wezens gevonden.</p>`;
 }
 
 function _card(m, i, dm) {
@@ -102,7 +176,7 @@ function _card(m, i, dm) {
         ${hasImg ? `<img class="card-img best-card-img" loading="lazy" src="${api.fileUrl(m.imageId)}"
           onerror="this.style.display='none'">` : ''}
         <div class="card-img-fade"></div>
-        ${typePill ? `<span class="best-type-pill">${typePill}</span>` : ''}
+        ${typePill ? `<span class="best-type-pill" title="${typePill}">${typePill}</span>` : ''}
         ${viaMagizoo ? `<span class="best-bron-badge" title="Onderzocht door de Magizoöloog">${icon('paw-print')}</span>` : ''}
       </div>
       <div class="card-body px-3 pt-2 pb-2">
@@ -141,7 +215,9 @@ window.bestiarium = {
     const niveau = dm ? 'volledig' : (m._niveau || 'naam');
     const sb = m.statblock || {};
     const subtitle = [sb.size, sb.type, sb.alignment].filter(Boolean).join(' ');
-    window.app.openModal(m.name, subtitle, renderStatblock(m, { niveau }));
+    // De modalkop toont naam en ondertitel al; het statblock hoeft dat niet
+    // te herhalen.
+    window.app.openModal(m.name, subtitle, renderStatblock(m, { niveau, kop: false }));
   },
   // Cycle het kennisniveau: Onbekend → Naam → Deels → Volledig → Onbekend.
   async cycleNiveau(monsterId, btnEl) {
@@ -180,6 +256,14 @@ window.bestiarium = {
     if (!confirm(`"${name}" volledig uit de monsterbibliotheek verwijderen?`)) return;
     try { await api.deleteMonster(monsterId); } catch {}
     renderBestiarium();
+  },
+  zoek(v) { _zoek = v; _tekenKaarten(); },
+  filterType(t) {
+    _type = t || null;
+    _container?.querySelectorAll('.best-typefilter .sf-chip').forEach(b => {
+      b.classList.toggle('sf-chip--active', (b.textContent.trim() === (t || 'Alle')));
+    });
+    _tekenKaarten();
   },
   refresh() { if (_container && window.app?.state?.activeSection === 'bestiarium') renderBestiarium(); },
 };

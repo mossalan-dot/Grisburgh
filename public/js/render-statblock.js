@@ -21,17 +21,20 @@ const _icon = (...a) => window.icon?.(...a) || '';
 
 const _TIERS = { naam: 0, deels: 1, volledig: 2 };
 
-export function renderStatblock(m, { niveau = 'volledig' } = {}) {
+// `kop: false` laat de naamregel weg — voor wie het statblock in een venster
+// zet dat de naam en de ondertitel zelf al toont (het Bestiarium deed dat, en
+// dan stond "Wolf · Medium Beast Unaligned" er twee keer onder elkaar).
+export function renderStatblock(m, { niveau = 'volledig', kop = true } = {}) {
   const sb   = m.statblock || {};
   const tier = _TIERS[niveau] ?? 2;
   const ATTRS  = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
   const LABELS = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 
-  const header = `
+  const header = kop ? `
     <div class="sb-header">
       <div class="sb-name">${esc(m.name)}</div>
       <div class="sb-sub">${[sb.size, sb.type, sb.alignment].filter(Boolean).map(esc).join(' ')}</div>
-    </div>`;
+    </div>` : '';
 
   const description = m.description
     ? `<div class="sb-description">${_sbMdBlock(m.description)}</div>`

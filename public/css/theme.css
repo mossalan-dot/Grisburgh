@@ -24210,3 +24210,6 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   text-decoration: none; cursor: pointer;
 }
 .spreuk-tag--naslag:hover { background: rgba(90,58,122,0.2); color: #3a2455; }
+
+/* Typefilter in het bestiarium — zelfde chips als op de kaartjes-tabbladen. */
+.best-typefilter { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 24px 12px; }

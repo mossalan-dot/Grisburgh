@@ -1,5 +1,5 @@
 import { api } from './api.js?v=279';
-import { renderStatblock } from './render-statblock.js?v=4';
+import { renderStatblock } from './render-statblock.js?v=5';
 
 const icon = (...a) => window.icon(...a);
 

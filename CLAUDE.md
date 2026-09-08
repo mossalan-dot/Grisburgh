@@ -622,6 +622,34 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 
 ---
 
+## Bestiarium
+
+Het bestiarium is **wat de party ontdekt heeft**, niet de monsterbibliotheek:
+`groups[gid].bestiarium[monsterId]` houdt per party een kennisniveau bij
+(`naam` → `deels` → `volledig`) en `_bestiariumForTier()` in `routes/api.js`
+knipt het statblock daarop af vóór het de deur uit gaat. De DM ziet alles, met
+de niet-ontdekte kaartjes gedimd en een letterknop (O/N/D/V) om het niveau te
+wisselen. Beheren (aanmaken, bewerken, verwijderen) gebeurt in de Meesterkamer →
+Monsters; het tabblad linkt erheen.
+
+> **`renderStatblock(m, { niveau, kop })`.** Het statblock tekent zijn eigen
+> naamregel, want in het DM-paneel staat het zonder venstertitel. Het Bestiarium
+> zet het in een modal die de naam al toont, en gaf dus twee keer
+> "Wolf / Medium Beast Unaligned" onder elkaar — vandaar `kop: false`.
+
+> **Creature types en alignments zijn D&D-termen.** In `monsters.json` stonden
+> zestien schrijfwijzen voor tien types ("Beest" naast "beast" en "Beast",
+> "ongebonden" naast "unaligned"), waardoor filteren onmogelijk was én de
+> terminologie-afspraak werd geschonden. `node scripts/monster-termen.js
+> <campagne> --schrijf` trekt ze recht (kopie ernaast). Twee regels die het
+> script bewust aanhoudt: alleen aanraken als er een **herkend** creature type
+> in staat — anders is het tekst van de DM — en alles **na de eerste komma**
+> blijft woordelijk staan ("Humanoid (half-orc), Circle of Spores Druid (4)").
+> Namen worden nooit aangeraakt; dubbele namen (2× Wolf, 2× Goblin in Grisburgh)
+> worden gemeld maar niet samengevoegd, want dat is een keuze van de DM.
+
+---
+
 ## Voorwerpen
 
 - **Types staan in groepen** (`ITEM_TYPE_GROEPEN` in `render-campagne.js`), zelfde
