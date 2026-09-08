@@ -97,7 +97,9 @@ function _renderGrid() {
             <input type="text" class="sbs-input search-input" placeholder="Zoek wezen\u2026"
               value="${esc(_zoek)}" oninput="window.bestiarium.zoek(this.value)">
           </div>
-          ${dm ? `<button class="best-lib-btn" onclick="window.bestiarium.openLibrary()"
+          ${dm ? `<button class="best-lib-btn best-lib-btn--nieuw" onclick="window.bestiarium.nieuw()"
+            title="Een nieuw wezen aanmaken, hier in het tabblad">${icon('plus')} Nieuw wezen</button>
+          <button class="best-lib-btn" onclick="window.bestiarium.openLibrary()"
             title="Naar de monsterbibliotheek in de Meesterkamer">${icon('book-open')} Monsterbibliotheek</button>` : ''}
           ${window._helpBtn?.('bestiarium') ?? ''}
         </div>
@@ -108,8 +110,9 @@ function _renderGrid() {
   if (!monsters.length) {
     _container.innerHTML = `${head}<div class="best-wrap">
       <p class="best-empty">${dm
-        ? 'Nog geen monsters in de bibliotheek. Voeg ze toe in de Meesterkamer → Monsters.'
+        ? 'Nog geen wezens. Maak er een met <strong>Nieuw wezen</strong> hierboven.'
         : 'Nog niets ontdekt. Versla monsters in de strijd om hun geheimen te leren.'}</p>
+      ${dm ? _voetnoot() : ''}
     </div>`;
     return;
   }
@@ -130,7 +133,21 @@ function _renderGrid() {
   _container.innerHTML = `${head}<div class="best-wrap">
     ${chips}
     <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">${cards}</div>
+    ${_voetnoot()}
   </div>`;
+}
+
+// Waarom staat de herbergier hier niet, en de kapitein die de party bevocht ook
+// niet? Omdat het bestiarium over **wezens** gaat en zij personen zijn: hun
+// statblok hoort bij hun kaartje. Dat is een terechte vraag om te krijgen, dus
+// staat het antwoord eronder in plaats van in iemands hoofd. Alleen voor de DM:
+// de speler heeft geen personagelijst met statblokken.
+function _voetnoot() {
+  if (_data.role !== 'dm') return '';
+  return `<p class="best-voetnoot">${icon('user')}
+    Personen — NPC's, antagonisten, bondgenoten — staan hier niet: hun statblok hoort bij hun
+    <button type="button" class="best-voetnoot-link" onclick="window.bestiarium.naarPersonages()">kaartje bij Personages</button>.
+    Ze doen wel gewoon mee in een gevecht, en een kaartje kan meerdere statblokken hebben.</p>`;
 }
 
 // Alleen de kaartjes opnieuw tekenen; het zoekveld houdt zo zijn cursor.
@@ -234,19 +251,13 @@ window.bestiarium = {
       btnEl.closest('.entity-card')?.classList.toggle('card-hidden', !next);
     }
   },
-  // Bewerken: spring naar de Meesterkamer → Monsters en open de editor.
-  edit(monsterId) {
-    this.openLibrary();
-    setTimeout(() => {
-      let tries = 0;
-      const tryEdit = () => {
-        tries++;
-        try { window.dmPanel?.monsterEdit?.(monsterId); } catch {}
-        if (!document.getElementById('dm-mon-name') && tries < 12) setTimeout(tryEdit, 120);
-      };
-      tryEdit();
-    }, 200);
-  },
+  // Bewerken gebeurt hier, in een venster met dezelfde editor als in de
+  // Meesterkamer — je hoeft het tabblad niet meer te verlaten om een wezen bij
+  // te schaven. De knop naar de bibliotheek blijft staan voor het overzicht
+  // (aktes, paginering, SRD-import).
+  edit(monsterId) { window.dmPanel?.monsterModal?.(monsterId); },
+  nieuw()         { window.dmPanel?.monsterModal?.(); },
+  naarPersonages() { try { window.app?.switchSection?.('personages'); } catch {} },
   // Naar de monsterbibliotheek (Meesterkamer → Monsters).
   openLibrary() {
     try { window.app?.switchSection?.('meesterkamer'); } catch {}

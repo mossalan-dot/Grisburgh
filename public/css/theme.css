@@ -2807,6 +2807,11 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   display: flex;
   align-items: center;
   gap: 14px;
+  /* De actieknoppen rechts krimpen niet (flex-shrink:0), dus zonder wrap werd
+     de titelkolom platgedrukt zodra er een knop bij kwam — "Wezens en hun
+     geheimen" viel dan over drie regels. Nu zakt het hele blok naar de
+     volgende regel zodra het er niet meer naast past. */
+  flex-wrap: wrap;
 }
 .section-banner-icon-wrap {
   width: 44px;
@@ -2821,7 +2826,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(var(--bc),0.14), inset 0 1px 0 rgba(255,255,255,0.4);
 }
-.section-banner-info { flex: 1; min-width: 0; }
+.section-banner-info { flex: 1; min-width: 190px; }
 /* ── Geïntegreerde zoekbalk in de banner-header ── */
 .section-banner-search {
   display: flex;
@@ -24239,3 +24244,39 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .tier-chip:hover { background: rgba(196,168,122,0.28); }
 .tier-chip--aan { background: #7a4a1a; border-color: #7a4a1a; color: #f2e8d2; font-weight: 600; }
 .tier-chip--aan:hover { background: #7a4a1a; }
+
+/* ── Bestiarium: aanmaken vanuit het tabblad ──
+   `margin-left:auto` staat op .best-lib-btn, dus alleen de eerste knop van de
+   twee duwt zichzelf naar rechts; de tweede zou anders opnieuw een gat maken. */
+.best-lib-btn--nieuw + .best-lib-btn { margin-left: 0; }
+.best-lib-btn--nieuw {
+  color: #5a3a18; background: rgba(196,168,122,0.16); border-color: rgba(196,168,122,0.55);
+}
+.best-lib-btn--nieuw:hover { background: rgba(196,168,122,0.3); border-color: #c4a87a; }
+
+/* De monster-editor als venster (geleend uit de Meesterkamer). De DM-tabs zijn
+   licht perkament, dus de velden hoeven hier niets extra's — alleen ruimte. */
+.mon-editor-host { padding: 2px 0 4px; }
+.mon-editor-host .dm-feature-section { background: none; border: none; padding: 0; }
+
+/* Waarom personen hier niet staan. Een voetnoot, geen waarschuwing: hij hoort
+   onder het raster te staan en niet de aandacht te trekken. */
+.best-voetnoot {
+  display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap;
+  margin: 18px 2px 4px; padding-top: 12px;
+  border-top: 1px dashed rgba(196,168,122,0.45);
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: 0.86rem; color: #7a6040; line-height: 1.5;
+}
+.best-voetnoot .icon { width: 14px; height: 14px; flex: none; position: relative; top: 2px; }
+.best-voetnoot-link {
+  font: inherit; color: #7a2a2a; background: none; border: none; padding: 0;
+  cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+}
+.best-voetnoot-link:hover { color: #8b2a2a; }
+
+/* Vinkjes in de Meesterkamer stonden op het systeemblauw van de browser — de
+   enige moderne kleur in een perkamenten venster. `accent-color` verft het
+   vakje zonder het te hertekenen, dus de toetsenbordbediening blijft heel. */
+.dm-form-checkbox input[type="checkbox"],
+.dm-feature-section input[type="checkbox"] { accent-color: #8a6d3f; }

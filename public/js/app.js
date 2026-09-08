@@ -5,11 +5,11 @@ import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
-import { renderBestiarium } from './render-bestiarium.js?v=23';
+import { renderBestiarium } from './render-bestiarium.js?v=24';
 import { renderSpreuken } from './render-spreuken.js?v=32';
 import { renderStatblock } from './render-statblock.js?v=5';
 import { initSocket } from "./socket-client.js?v=66";
-import { initDmPanel } from "./dm-panel.js?v=209";
+import { initDmPanel } from "./dm-panel.js?v=210";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──

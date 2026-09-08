@@ -659,6 +659,16 @@ de niet-ontdekte kaartjes gedimd en een letterknop (O/N/D/V) om het niveau te
 wisselen. Beheren (aanmaken, bewerken, verwijderen) gebeurt in de Meesterkamer →
 Monsters; het tabblad linkt erheen.
 
+> **Aanmaken en bewerken gebeurt in het tabblad zelf.** *Nieuw wezen* en het
+> potlood op een kaartje openen de **editor uit de Meesterkamer als venster**
+> (`dmPanel.monsterModal(id?)`): `_renderMonsters()` tekent in `_monsterEditorHost`
+> zodra die gezet is, en `_monsterModalKlaar()` sluit het venster en ververst het
+> bestiarium. Bewust één formulier op twee plekken — een tweede editor gaat uit de
+> pas lopen. De knop *Monsterbibliotheek* blijft voor het overzicht (aktes,
+> paginering, SRD-import). Onder het raster staat een **voetnoot** die uitlegt
+> waarom personen (NPC's, antagonisten) hier niet staan, met een link naar
+> Personages: hun statblok hoort bij hun kaartje.
+
 > **`renderStatblock(m, { niveau, kop })`.** Het statblock tekent zijn eigen
 > naamregel, want in het DM-paneel staat het zonder venstertitel. Het Bestiarium
 > zet het in een modal die de naam al toont, en gaf dus twee keer

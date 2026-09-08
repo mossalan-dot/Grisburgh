@@ -268,6 +268,7 @@ export function initDmPanel() {
     // Monster library
     monsterNew:          _monsterNew,
     monsterEdit:         _monsterEdit,
+    monsterModal:        _monsterModal,
     monsterCancel:       _monsterCancel,
     monsterSave:         _monsterSave,
     monsterDelete:       _monsterDelete,
@@ -3184,7 +3185,18 @@ function _hkOptions(selectedKey) {
 
 const MONSTER_PAGE_SIZE = 5;
 
+// Waar de monster-editor nu staat. Normaal de Meesterkamer-tab, maar het
+// bestiarium leent hem als venster — zie `monsterModal`. Eén editor dus, twee
+// plekken; een tweede formulier zou meteen uit de pas gaan lopen.
+let _monsterEditorHost = null;
+
 function _renderMonsters() {
+  if (_monsterEditorHost) {
+    // Het venster toont alleen de editor. Is die klaar, dan sluit het venster.
+    if (_editingMonsterId === null) { _monsterModalKlaar(); return; }
+    if (document.body.contains(_monsterEditorHost)) { _renderMonsterEditor(_monsterEditorHost); return; }
+    _monsterEditorHost = null;   // venster is weg (Esc, kruisje)
+  }
   const el = document.getElementById('dm-monsters-content');
   if (!el) return;
   if (_editingMonsterId !== null) { _renderMonsterEditor(el); return; }
@@ -3321,6 +3333,34 @@ function _monsterNew() {
   _editingMonsterImageId   = null;
   _renderMonsters();
 };
+
+// De monster-editor als venster, zodat je vanuit het Bestiarium een wezen kunt
+// maken of bijschaven zonder eerst naar de Meesterkamer te lopen. `id` leeg =
+// een nieuw wezen.
+async function _monsterModal(id = null) {
+  if (!_monsters.length) {
+    try { _monsters = ((await api.listMonsters()).monsters || []).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl')); } catch {}
+  }
+  if (id) {
+    const m = _monsters.find(x => x.id === id);
+    if (!m) return;
+    _editingMonsterId = id; _editingMonsterIsNew = false; _editingMonsterImageId = m.imageId || null;
+  } else {
+    _editingMonsterId = 'm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+    _editingMonsterIsNew = true; _editingMonsterImageId = null;
+  }
+  window.app.openModal(id ? 'Wezen bewerken' : 'Nieuw wezen', '',
+    `<div id="mon-editor-host" class="mon-editor-host"></div>`);
+  _monsterEditorHost = document.getElementById('mon-editor-host');
+  if (_monsterEditorHost) _renderMonsterEditor(_monsterEditorHost);
+}
+
+// Opslaan of annuleren zet _editingMonsterId op null; dan is het venster klaar.
+function _monsterModalKlaar() {
+  _monsterEditorHost = null;
+  try { window.app.closeModal(); } catch {}
+  try { window.bestiarium?.refresh?.(); } catch {}
+}
 
 function _monsterEdit(id) {
   const m = _monsters.find(x => x.id === id);
