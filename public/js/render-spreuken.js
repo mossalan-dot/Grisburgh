@@ -42,7 +42,7 @@ const _CLASS_COL = {
 
 let _all       = null;      // null = nog niet geladen
 let _container = null;
-let _filters   = { q: '', level: null, klasse: null, mijnKlasse: true };
+let _filters   = { q: '', level: null, klasse: null, school: null, mijnKlasse: true };
 let _classes   = [];
 let _myBook    = new Set(); // index-set van de spreuken in het eigen spreukenboek (speler)
 let _myClasses = [];        // genormaliseerde EN-klassenamen van de speler
@@ -60,12 +60,20 @@ function _focusMap() { return window.app?.state?.meta?.spellImageFocus || {}; }
 async function _load() {
   if (_all) return _all;
   const url = _isHp() ? '/api/bron/hp-spells' : '/api/bron/spells-2024';
-  try {
-    const d = await fetch(url).then(r => r.json());
-    const raw = (d.results || d.spells || (Array.isArray(d) ? d : [])).filter(Boolean);
-    // Alleen echte spreuken: niet-spell-entries (magische voorwerpen) hebben een lege school.
-    _all = raw.filter(s => _school(s));
-  } catch { _all = []; }
+  const lees = async (u) => {
+    try {
+      const d = await fetch(u).then(r => r.json());
+      return (d.results || d.spells || (Array.isArray(d) ? d : [])).filter(Boolean);
+    } catch { return []; }
+  };
+  // De aanvullende lijst (Silvery Barbs, Tasha's Caustic Brew, …) hing alleen aan
+  // de spreukenkiezer van de speler; in dit naslagwerk bestonden ze niet. Twee
+  // plekken die iets anders "alle spreuken" noemen is er één te veel.
+  const [basis, extra] = await Promise.all([lees(url), _isHp() ? [] : lees('/api/bron/extra-spells')]);
+  const gezien = new Set(basis.map(s => s.index));
+  const raw = [...basis, ...extra.filter(s => !gezien.has(s.index))];
+  // Alleen echte spreuken: niet-spell-entries (magische voorwerpen) hebben een lege school.
+  _all = raw.filter(s => _school(s));
   const set = new Set();
   for (const s of _all) for (const c of _classNames(s)) set.add(c);
   _classes = [...set].sort();
@@ -103,25 +111,75 @@ function _componentsHtml(s) {
 function _imgUrl(s)     { return `/api/files/spell-img-${s.index}`; }
 function _focus(s)      { return _focusMap()[s.index] || ''; }
 
+// ── Zoeken ──────────────────────────────────────────────────────────────────
+// Deed een kale `name.includes(q)`: geen diakrieten, geen tweede woord, en niet
+// in de school of de tekst. Bij 517 spreuken leverde "necromancy" of "fire
+// damage" dus niets op. Dit zijn dezelfde drie bakken en dezelfde scores als op
+// de kaartjes-tabbladen (`_searchScore` in render-campagne.js): hoe korter het
+// woord, hoe strenger — één letter kijkt alleen naar het begin van de naam.
+const _norm = s => window._normSearch?.(s) ?? String(s ?? '').toLowerCase();
+
+function _hooibergen(s) {
+  return {
+    name: _norm(s.name),
+    meta: _norm([_school(s), _levelLabel(s.level), ..._classNames(s),
+                 _str(s.casting_time), _str(s.range), _str(s.duration), _components(s),
+                 s.ritual ? 'ritual' : '', s.concentration ? 'concentration' : ''].join(' ')),
+    rest: _norm(_desc(s) + ' ' + _higher(s)),
+  };
+}
+
+function _score(s, tokens) {
+  const h = _hooibergen(s);
+  let totaal = 0;
+  for (const t of tokens) {
+    let best = 0;
+    if (h.name === t) best = 1000;
+    else if (h.name.startsWith(t)) best = 600;
+    else if (new RegExp('\\b' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(h.name)) best = 400;
+    else if (t.length >= 2 && h.name.includes(t)) best = 250;
+    else if (t.length >= 2 && h.meta.includes(t)) best = 120;
+    else if (t.length >= 3 && h.rest.includes(t))  best = 60;
+    if (best === 0) return -1;                 // dit woord komt nergens voor
+    totaal += best;
+  }
+  return totaal;
+}
+
 function _filtered() {
-  const q = _filters.q.trim().toLowerCase();
+  const tokens  = window._searchTokens?.(_filters.q) || [];
   const useMine = isPlayer() && _isCaster && _filters.mijnKlasse && _myClasses.length > 0;
-  return (_all || []).filter(s => {
-    if (q && !(s.name || '').toLowerCase().includes(q)) return false;
+  const scores  = new Map();
+  const lijst = (_all || []).filter(s => {
+    if (tokens.length) {
+      const sc = _score(s, tokens);
+      if (sc < 0) return false;
+      scores.set(s.index, sc);
+    }
     if (_filters.level !== null && Number(s.level) !== Number(_filters.level)) return false;
+    if (_filters.school && _school(s) !== _filters.school) return false;
     if (useMine) {
       if (!_myClasses.some(cEN => _matchClass(s, cEN))) return false;
     } else if (_filters.klasse && !_classNames(s).some(n => n === _filters.klasse)) {
       return false;
     }
     return true;
-  }).sort((a, b) => (a.level - b.level) || String(a.name).localeCompare(b.name));
+  });
+  // Zoek je, dan bepaalt de relevantie de volgorde (anders staat een spreuk die
+  // je naam alleen in zijn tekst noemt vóór de spreuk zelf); anders op niveau.
+  return tokens.length
+    ? lijst.sort((a, b) => (scores.get(b.index) - scores.get(a.index))
+        || (a.level - b.level) || String(a.name).localeCompare(b.name))
+    : lijst.sort((a, b) => (a.level - b.level) || String(a.name).localeCompare(b.name));
 }
 
 // ── Eén kaartje ──
+// Een statcel is smal; "S, M (a melee weapon worth 1+ SP)" past er nooit in.
+// Afkappen mag, maar dan hoort de hele tekst wel in de tooltip te staan.
 function _statCell(label, val) {
-  return val && String(val).trim()
-    ? `<div class="spreuk-stat"><span class="spreuk-stat-lbl">${esc(label)}</span><span class="spreuk-stat-val">${esc(val)}</span></div>` : '';
+  const v = String(val ?? '').trim();
+  return v
+    ? `<div class="spreuk-stat"><span class="spreuk-stat-lbl">${esc(label)}</span><span class="spreuk-stat-val" title="${esc(v)}">${esc(v)}</span></div>` : '';
 }
 function _card(s) {
   const school = _school(s);
@@ -131,9 +189,12 @@ function _card(s) {
     s.ritual        ? `<span class="spreuk-tag" title="Ritual">${icon('scroll-text')} Ritual</span>` : '',
     s.concentration ? `<span class="spreuk-tag" title="Concentration">${icon('eye')} Concentration</span>` : '',
   ].filter(Boolean).join('');
+  // "Concentration, up to 1 minute" én een aparte Concentration-tag eronder is
+  // twee keer hetzelfde; op het kaartje volstaat de duur zonder het voorvoegsel.
+  const duur = _str(s.duration).replace(/^concentration,\s*(up to\s*)?/i, '');
   const stats = [
     _statCell('Casting', s.casting_time), _statCell('Range', s.range),
-    _statCell('Components', _components(s)), _statCell('Duration', s.duration),
+    _statCell('Components', _components(s)), _statCell('Duration', duur),
   ].join('');
   return `
     <div class="entity-card spreuk-card" onclick="window.spreuken.open('${esc(s.index)}')" title="${esc(s.name)}"
@@ -176,11 +237,25 @@ function _filterBar() {
   const select = (_isCaster && _filters.mijnKlasse)
     ? ''
     : `<select class="spreuk-class-select" onchange="window.spreuken.setKlasse(this.value)">${klasOpts.join('')}</select>`;
+  // De school stond wel groot op elk kaartje (met een eigen kleur) maar viel niet
+  // te filteren, terwijl dat de indeling is waar een caster in denkt. Zelfde rij
+  // als de niveaus, in de kleur van de school zelf.
+  const scholen = [...new Set((_all || []).map(_school).filter(Boolean))].sort();
+  const schoolRij = scholen.length ? `
+    <div class="spreuk-scholen">
+      <button class="spreuk-school-btn${_filters.school ? '' : ' active'}" onclick="window.spreuken.setSchool(null)">Alle scholen</button>
+      ${scholen.map(sc => {
+        const c = _schoolCol(sc);
+        return `<button class="spreuk-school-btn${_filters.school === sc ? ' active' : ''}"
+          style="--school-c2:${c.c2}" onclick="window.spreuken.setSchool('${esc(sc)}')">${icon(c.icon)} ${esc(sc)}</button>`;
+      }).join('')}
+    </div>` : '';
   return `
     <div class="spreuk-filters">
       <div class="spreuk-levels">${levels.join('')}</div>
       ${toggle}
       ${select}
+      ${schoolRij}
     </div>`;
 }
 
@@ -430,6 +505,7 @@ window.spreuken = {
   search(v)    { _filters.q = v; _paintGrid(); },
   setLevel(lv) { _filters.level = lv; _refreshFilterBar(); _paintGrid(); },
   setKlasse(k) { _filters.klasse = k || null; _paintGrid(); },
+  setSchool(sc) { _filters.school = sc || null; _refreshFilterBar(); _paintGrid(); },
   // Toggle "Alleen mijn klasse" (speler) — herrendert filterrij + grid, geen herfetch.
   toggleMijnKlasse() {
     _filters.mijnKlasse = !_filters.mijnKlasse;

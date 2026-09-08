@@ -24058,3 +24058,29 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   .perk-blad--om { animation: none; }
   .perk-kolommen { transition: none; }
 }
+
+/* ── Schoolfilter in het spreukenoverzicht ───────────────────────────────────
+   De school stond wel op elk kaartje maar viel niet te filteren. Zelfde rij als
+   de niveaus, met de kleur van de school zelf als accent. */
+.spreuk-scholen {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  flex-basis: 100%; margin-top: 8px;
+}
+.spreuk-school-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 999px;
+  background: rgba(255,255,255,0.5);
+  border: 1px solid rgba(122,96,64,0.28);
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .03em;
+  color: #5a4630; cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.spreuk-school-btn svg { width: 13px; height: 13px; color: var(--school-c2, #5a3a8c); }
+.spreuk-school-btn:hover { border-color: var(--school-c2, #7a6040); color: #2a1a08; }
+.spreuk-school-btn.active {
+  background: var(--school-c2, #5a3a8c); border-color: var(--school-c2, #5a3a8c); color: #f5edd8;
+}
+.spreuk-school-btn.active svg { color: #f5edd8; }
+
+/* Afgekapte statwaarde: het hele antwoord staat in de tooltip. */
+.spreuk-stat-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
