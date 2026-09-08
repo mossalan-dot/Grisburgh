@@ -380,7 +380,11 @@ function _detailHtml(s) {
     ['Casting Time', annot(esc(_str(s.casting_time)))],
     ['Range', annot(esc(_str(s.range)))],
     ['Components', _componentsHtml(s)],
-    ['Duration', annot(esc(_str(s.duration) + (s.concentration ? ' (concentration)' : '')))],
+    // Staat "Concentration" al in de duurtekst zelf ("Concentration, up to 1
+    // minute"), dan is het achtervoegsel een herhaling — zelfde regel als op het
+    // kaartje in het overzicht.
+    ['Duration', annot(esc(_str(s.duration)
+      + ((s.concentration && !/concentration/i.test(_str(s.duration))) ? ' (concentration)' : '')))],
   ].filter(([, v]) => v && v.replace(/<[^>]*>/g, '').trim());
   const classes = _classNames(s);
   const desc    = _desc(s);
@@ -651,9 +655,45 @@ function _markAdded(index) {
   });
 }
 
+// Naam → index, één keer opgebouwd. Genormaliseerd op kleine letters zonder
+// leestekens, want in een statblok staat "Blindness/Deafness" en in de
+// bibliotheek "blindness-deafness".
+let _naamIndex = null;
+const _spNorm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
 window.spreuken = {
   // De hele lijst, voor wie er zelf in wil zoeken (globaal zoeken).
   async alle() { if (!_all) await _load(); return _all || []; },
+
+  // Maak van de spreuknamen in een statblok klikbare namen. Bewust **alleen**
+  // binnen de lijstjes die renderStatblock heeft gemarkeerd (`Cantrips: …`,
+  // `1st (3): …`): buiten die lijstjes zou "Shield" net zo goed een schild zijn
+  // en "Light" gewoon licht. Zo blijft een verkeerde link uitgesloten in plaats
+  // van onwaarschijnlijk.
+  async linkInDom(rootEl) {
+    const lijsten = rootEl?.querySelectorAll?.('.sb-spellijst');
+    if (!lijsten?.length) return;
+    if (!_all) await _load();
+    if (!_naamIndex) {
+      _naamIndex = new Map();
+      for (const sp of (_all || [])) _naamIndex.set(_spNorm(sp.name), sp.index);
+    }
+    for (const el of lijsten) {
+      if (el.dataset.gelinkt) continue;
+      el.dataset.gelinkt = '1';
+      // Splitsen op komma's: de namen staan altijd als opsomming. Wat geen
+      // spreuk blijkt te zijn laten we woordelijk staan.
+      el.innerHTML = el.innerHTML.split(',').map(deel => {
+        const m = deel.match(/^(\s*)(.*?)(\s*)$/s);
+        const [, voor, naam, na] = m;
+        const kaal = naam.replace(/<[^>]+>/g, '');
+        const idx = _naamIndex.get(_spNorm(kaal));
+        if (!idx) return deel;
+        return `${voor}<button type="button" class="sb-spell" title="Open ${kaal.replace(/"/g, '&quot;')} in het spreukenboek"
+          onclick="event.stopPropagation();window.spreuken.open('${idx}')">${naam}</button>${na}`;
+      }).join(',');
+    }
+  },
   // Kan ook aangeroepen worden vanuit een kaartje, en dan is de bibliotheek nog
   // niet geladen — dus eerst laden, dan tonen.
   async open(index) {

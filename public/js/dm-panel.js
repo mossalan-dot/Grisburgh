@@ -1,6 +1,6 @@
 import { api, huidigeCampagne } from './api.js?v=280';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
-import { renderStatblock } from './render-statblock.js?v=5';
+import { renderStatblock } from './render-statblock.js?v=7';
 
 // ── DM Panel ──
 // icon() helper is defined globally in app.js; grab a local alias for template use.
@@ -2977,6 +2977,7 @@ function _showStatblock(mId) {
   const sb = m.statblock || {};
   const subtitle = [sb.size, sb.type, sb.alignment].filter(Boolean).join(' ');
   window.app.openModal(m.name, subtitle, _statblockHtml(m));
+  window.spreuken?.linkInDom?.(document.getElementById('m-body'));
 };
 
 function _showStatblockForCombatant(cId) {
@@ -2987,6 +2988,7 @@ function _showStatblockForCombatant(cId) {
   const sb = m.statblock || {};
   const subtitle = [sb.size, sb.type, sb.alignment].filter(Boolean).join(' ');
   window.app.openModal(m.name, subtitle, _statblockHtml(m));
+  window.spreuken?.linkInDom?.(document.getElementById('m-body'));
 };
 
 function _statblockEditorHtml(sb) {

@@ -24280,3 +24280,13 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
    vakje zonder het te hertekenen, dus de toetsenbordbediening blijft heel. */
 .dm-form-checkbox input[type="checkbox"],
 .dm-feature-section input[type="checkbox"] { accent-color: #8a6d3f; }
+
+/* Een spreuknaam in een statblok. Bewust ánders dan .sb-gloss: die legt uit bij
+   hover (stippellijn, cursor: help), dit brengt je ergens heen. Vandaar een
+   doorlopende onderlijn en een handje. */
+.sb-spell {
+  font: inherit; color: #6a3a8a; background: none; border: none; padding: 0;
+  cursor: pointer; text-decoration: underline;
+  text-decoration-color: rgba(106,58,138,0.45); text-underline-offset: 2px;
+}
+.sb-spell:hover { color: #8a4aae; text-decoration-color: currentColor; }

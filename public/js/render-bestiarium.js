@@ -10,7 +10,7 @@
  */
 
 import { api } from './api.js?v=280';
-import { renderStatblock } from './render-statblock.js?v=5';
+import { renderStatblock } from './render-statblock.js?v=7';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
@@ -235,6 +235,8 @@ window.bestiarium = {
     // De modalkop toont naam en ondertitel al; het statblock hoeft dat niet
     // te herhalen.
     window.app.openModal(m.name, subtitle, renderStatblock(m, { niveau, kop: false }));
+    // Spreuknamen in het statblok klikbaar maken; de bibliotheek laadt lui.
+    window.spreuken?.linkInDom?.(document.getElementById('m-body'));
   },
   // Cycle het kennisniveau: Onbekend → Naam → Deels → Volledig → Onbekend.
   async cycleNiveau(monsterId, btnEl) {

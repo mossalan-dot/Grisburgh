@@ -1,5 +1,5 @@
 import { api } from './api.js?v=280';
-import { renderStatblock } from './render-statblock.js?v=5';
+import { renderStatblock } from './render-statblock.js?v=7';
 
 const icon = (...a) => window.icon(...a);
 
@@ -4795,6 +4795,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (_mSubEl) { _mSubEl.innerHTML = _subtitleHtml; _mSubEl.classList.remove('hidden'); }
   _updateBackButton();
   _vulSpellChips();   // van index naar nette naam, zodra de bibliotheek er is
+  window.spreuken?.linkInDom?.(document.getElementById('m-body'));  // spreuknamen in een statblok
   if (toonBezit) window._bezitLaden(e.id);
   if (tab === 'documenten' && e._visibility !== 'vague') _docBestandLaden(e.id);
 

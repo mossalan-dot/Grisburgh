@@ -15,8 +15,25 @@ const _sbMdLine = t => (t || '')
   .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
   .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
   .replace(/\*(.+?)\*/g, '<em>$1</em>');
+// Elke prozaregel van een statblok gaat langs twee bewerkingen. **Het lexicon**
+// legt de D&D-termen uit die hier nu juist het dichtst op elkaar staan
+// (advantage, saving throw, difficult terrain, bludgeoning) — dat mechaniek
+// bestond al voor spreuken en voorwerpen maar raakte statblokken nooit. En de
+// **spreuklijsten** (`Cantrips: …`, `1st (3): …`) worden gemarkeerd, zodat een
+// tweede, asynchrone stap er klikbare namen van kan maken; welke woorden echt
+// spreuken zijn weet alleen de bibliotheek, en die is hier nog niet geladen.
+// De `(?:<\/[a-z]+>)*` vangt een kop die vet gezet is: `**Cantrips**:` is op dit
+// punt al `<strong>Cantrips</strong>:` geworden, en zonder dat stukje glipt zo'n
+// lijst er ongemerkt doorheen.
+const _SPELLIJST = /((?:cantrips?|at[- ]will|innate|\d\s*\/\s*day(?:\s+each)?|\d(?:st|nd|rd|th)(?:\s+level)?(?:\s*\(\d+(?:\s*slots?)?\))?)(?:<\/[a-z]+>)*\s*:\s*)([^.;]+)/gi;
+const _sbMarkeerSpells = h => h.replace(_SPELLIJST, (_, kop, lijst) => `${kop}<span class="sb-spellijst">${lijst}</span>`);
 const _sbMdBlock = t => (t || '').split('\n').filter(l => l.trim())
-  .map(l => `<p class="sb-p">${_sbMdLine(esc(l))}</p>`).join('');
+  .map(l => {
+    let h = _sbMdLine(esc(l));
+    h = _sbMarkeerSpells(h);
+    h = window.glossary?.annotate?.(h) ?? h;
+    return `<p class="sb-p">${h}</p>`;
+  }).join('');
 const _icon = (...a) => window.icon?.(...a) || '';
 
 const _TIERS = { naam: 0, deels: 1, volledig: 2 };

@@ -229,14 +229,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=522   app.js?v=624   sound-manager.js?v=8
-app.js      : api.js?v=275      render-campagne.js?v=230   render-archief.js?v=77
-              render-kaart.js?v=19  render-dungeon.js?v=33  render-relatiemap.js?v=22
-              render-progressie.js?v=44  socket-client.js?v=59
-              render-bestiarium.js?v=20  render-statblock.js?v=3
-              dm-panel.js?v=207    render-dashboard.js?v=9
-              render-spreuken.js?v=15   media-picker.js?v=7
-dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
+index.html  : theme.css?v=551   app.js?v=686   sound-manager.js?v=8
+app.js      : api.js?v=280  dm-panel.js?v=211  media-picker.js?v=8
+              render-archief.js?v=81  render-bestiarium.js?v=25  render-campagne.js?v=267
+              render-dashboard.js?v=9  render-dungeon.js?v=33  render-kaart.js?v=19
+              render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=34
+              render-statblock.js?v=7  socket-client.js?v=66
+dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=7
 ```
 
 > **Eén bestand = één URL.** ES-modules met verschillende `?v=`-nummers zijn aparte
@@ -668,6 +667,21 @@ Monsters; het tabblad linkt erheen.
 > paginering, SRD-import). Onder het raster staat een **voetnoot** die uitlegt
 > waarom personen (NPC's, antagonisten) hier niet staan, met een link naar
 > Personages: hun statblok hoort bij hun kaartje.
+
+> **Het lexicon leest mee in een statblok, en spreuknamen zijn klikbaar.**
+> Beide gebeuren in `_sbMdBlock()` in `render-statblock.js`, de enige plek waar
+> proza van een statblok door de renderer gaat — dus meteen in het bestiarium,
+> op een personage-kaartje én in de Meesterkamer. Het lexicon draait via
+> `window.glossary.annotate()` (string → string); statblokken stonden er vol mee
+> (advantage, saving throw, difficult terrain, bludgeoning) en kregen als enige
+> nooit uitleg.
+> Spreuknamen gaan in twee stappen omdat de spreukenbibliotheek lui laadt:
+> `_sbMarkeerSpells()` markeert bij het renderen alleen de **lijstjes**
+> (`Cantrips: …`, `1st (3): …`, `2/day each: …`) als `.sb-spellijst`, en
+> `window.spreuken.linkInDom(el)` maakt daarbinnen van elke naam die in de
+> bibliotheek bestaat een `.sb-spell`-knop. Bewust alleen bínnen die lijstjes:
+> buiten een spreuklijst is "Shield" een schild en "Light" gewoon licht. De
+> drie aanroepers roepen `linkInDom` aan na het openen van hun venster.
 
 > **`renderStatblock(m, { niveau, kop })`.** Het statblock tekent zijn eigen
 > naamregel, want in het DM-paneel staat het zonder venstertitel. Het Bestiarium
