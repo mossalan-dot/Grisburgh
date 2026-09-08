@@ -79,15 +79,28 @@ describe('Bronteksten blijven binnen de campagne die ze mag zien', () => {
     assert.ok(fireball.desc.join(' ').length > 100, 'de beschrijving staat erin');
   });
 
-  it('geeft een andere campagne de structuur zonder de tekst', async () => {
+  // De SRD 5.2 staat onder CC BY 4.0 en dekt tweederde van de lijst; die teksten
+  // mogen we wél doorgeven, mits de app de bron vermeldt. Wat er niet in staat
+  // blijft leeg — daar wijst de app naar buiten.
+  it('geeft een andere campagne de SRD-tekst waar die bestaat', async () => {
     const r = await req(server, 'GET', '/api/bron/spells-2024', null, andereDm);
     const fireball = vind(r.body.results, 'Fireball');
     assert.equal(fireball.name, 'Fireball',   'de naam blijft');
     assert.equal(fireball.level, 3,           'het niveau blijft');
     assert.equal(fireball.school.name, 'Evocation', 'de school blijft');
     assert.equal(fireball.casting_time, 'Action',   'de casting time blijft');
-    assert.deepEqual(fireball.desc, [],       'de beschrijving niet');
-    assert.deepEqual(fireball.higher_level, []);
+    assert.ok(fireball.desc.join(' ').length > 100, 'Fireball staat in de SRD, dus met tekst');
+    assert.equal(fireball._srd, true, 'gemarkeerd, zodat de app de bron kan noemen');
+  });
+
+  it('houdt een spreuk buiten de SRD wél leeg', async () => {
+    const r = await req(server, 'GET', '/api/bron/spells-2024', null, andereDm);
+    const bb = vind(r.body.results, 'Booming Blade');
+    assert.equal(bb.name, 'Booming Blade', 'de naam blijft');
+    assert.deepEqual(bb.desc, [],          'maar niet de tekst');
+    assert.deepEqual(bb.higher_level, []);
+    assert.equal(bb._geenTekst, true, 'gemarkeerd, zodat de app kan verwijzen');
+    assert.ok(!bb._srd);
   });
 
   it('laat de DM zijn eigen beschrijving schrijven, en die blijft van hem', async () => {
@@ -108,7 +121,9 @@ describe('Bronteksten blijven binnen de campagne die ze mag zien', () => {
   it('wist de eigen beschrijving als het veld leeg is', async () => {
     await req(server, 'PUT', '/api/bron/spreuk/fireball', { desc: '   ' }, andereDm);
     const r = await req(server, 'GET', '/api/bron/spells-2024', null, andereDm);
-    assert.deepEqual(vind(r.body.results, 'Fireball').desc, []);
+    const fireball = vind(r.body.results, 'Fireball');
+    assert.ok(!fireball._eigen, 'de eigen tekst is weg');
+    assert.equal(fireball._srd, true, 'en daarmee valt hij terug op de SRD-tekst');
   });
 
   it('doet hetzelfde met class features', async () => {

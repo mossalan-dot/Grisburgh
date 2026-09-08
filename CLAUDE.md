@@ -925,6 +925,22 @@ wie het pad raadde. Ze staan nu in `bronnen/` (buiten `public/`) en gaan via
   herkennen en te kiezen — maar `desc` en `higher_level` komen leeg binnen.
   Hetzelfde geldt voor `/api/progression` (features houden naam en level,
   verliezen hun `desc`) en voor de backgrounds.
+- **De SRD 5.2 mág wél mee.** "Geen teksten naar buiten" was te streng: de
+  **System Reference Document 5.2** staat onder **CC BY 4.0**, en die dekt
+  **331 van onze 517 spreuken**. Een campagne zonder `bronTeksten` krijgt voor
+  die spreuken dus de volledige SRD-tekst (`_srd: true`, waarop de app de
+  verplichte bronvermelding toont) in plaats van een lege huls. Wat er níét in
+  staat blijft leeg (`_geenTekst: true`) en de app zet er een verwijzing naar
+  buiten bij — **linken mag, overnemen niet**. Het koppelbestand is
+  `bronnen/srd-spells.json`, gegenereerd met
+  `node scripts/srd-2024/srd-spelteksten.js --schrijf` (haalt document
+  `srd-2024` bij Open5e op). Matchen gaat op naam, met één correctie: de SRD
+  laat de ontwerpersnaam weg ("Tiny Hut" waar de PHB "Leomund's Tiny Hut"
+  schrijft). De link is instelbaar met `meta.spreukLink` (sjabloon met
+  `{naam}`); standaard de zoekpagina van D&D Beyond.
+  Acht SRD-spreuken ontbreken nog in onze lijst (Arcane Hand, Arcane Sword,
+  Arcanist's Magic Aura, Confusion, Disintegrate, Flame Blade, Greater
+  Restoration, Vitriolic Sphere) — die zouden er gratis bij kunnen.
 - **Wat de DM zelf schrijft is van hem** en gaat altijd mee, ook in een kale
   campagne: `spells.json` per campagne (`{ eigen: { <index>: { desc, higher_level } } }`),
   te bewerken in het spreukdetail (`PUT /bron/spreuk/:index`). Leeg opslaan wist

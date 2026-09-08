@@ -243,12 +243,12 @@ function _filterBar() {
   for (let i = 0; i <= 9; i++) {
     levels.push(`<button class="spreuk-lvl-btn${_filters.level === i ? ' active' : ''}" onclick="window.spreuken.setLevel(${i})">${i === 0 ? 'C' : i}</button>`);
   }
-  const klasOpts = ['<option value="">Alle klassen</option>']
+  const klasOpts = ['<option value="">Alle classes</option>']
     .concat(_classes.map(c => `<option value="${esc(c)}"${_filters.klasse === c ? ' selected' : ''}>${esc(c)}</option>`));
   // Speler met spreuk-klasse(n): toggle "Alleen mijn klasse" (standaard aan).
   const toggle = _isCaster
     ? `<button class="spreuk-klasfilter${_filters.mijnKlasse ? ' active' : ''}" onclick="window.spreuken.toggleMijnKlasse()"
-         title="Toon alleen spreuken van jouw klasse${_myClasses.length ? ` (${_myClasses.join(', ')})` : ''}">${icon('user')} Alleen mijn klasse</button>`
+         title="Toon alleen spreuken van jouw class${_myClasses.length ? ` (${_myClasses.join(', ')})` : ''}">${icon('user')} Alleen mijn class</button>`
     : '';
   // De handmatige klasse-select is overbodig zolang "alleen mijn klasse" aan staat.
   const select = (_isCaster && _filters.mijnKlasse)
@@ -430,6 +430,7 @@ function _detailHtml(s) {
       </div>
       ${desc   ? `<div class="spreuk-detail-desc">${fmt(desc)}</div>` : ''}
       ${higher ? `<div class="spreuk-detail-higher"><span class="spreuk-detail-higher-lbl">At Higher Levels.</span> ${fmt(higher)}</div>` : ''}
+      ${_bronRegel(s)}
       <!-- De overschrijf-tekst is er voor bróntekst; bij een eigen spreuk bewerk
            je gewoon de spreuk zelf, anders zijn er twee plekken met dezelfde tekst. -->
       ${isDM() && s.source !== 'eigen' ? `
@@ -520,7 +521,7 @@ function _eigFormHtml(s) {
           </div>
         </div>
         <div class="spreuk-eig-veld spreuk-eig-veld--breed">
-          <span class="spreuk-eig-lbl">Klassen</span>
+          <span class="spreuk-eig-lbl">Classes</span>
           <div class="spreuk-eig-vinkjes">
             ${_EIG_KLASSEN.map(k => `<label><input type="checkbox" id="eig-kl-${k}"${klassen.includes(k) ? ' checked' : ''}> ${k}</label>`).join('')}
           </div>
@@ -583,6 +584,39 @@ async function _wieLaden(index) {
           ${r.concentratie ? `<span class="spreuk-wie-merk spreuk-wie-merk--conc" title="Concentreert hier nu op">${icon('eye')} Actief</span>` : ''}
         </span>`).join('')}
     </div>`;
+}
+
+// ── Waar komt de tekst vandaan? ─────────────────────────────────────────────
+// Een campagne die de PHB-teksten niet mag zien krijgt van de server de
+// SRD 5.2-tekst waar die bestaat (`_srd`) — CC BY 4.0, dus mét bronvermelding —
+// en anders niets (`_geenTekst`). In dat laatste geval heeft het geen zin om een
+// leeg vak te tonen: dan wijzen we naar een plek waar de spreuk wél staat.
+// Linken mag; overnemen niet.
+const _SRD_TIP = 'Deze tekst komt uit de System Reference Document 5.2 van Wizards of the Coast, '
+  + 'onder de Creative Commons Attribution 4.0 International License.';
+
+function _spreukLink(naam) {
+  const sjabloon = window.app?.state?.meta?.spreukLink
+    || 'https://www.dndbeyond.com/spells?filter-search={naam}';
+  return sjabloon.replace('{naam}', encodeURIComponent(naam || ''));
+}
+
+function _bronRegel(s) {
+  if (s._srd) {
+    return `<p class="spreuk-bronregel" title="${esc(_SRD_TIP)}">
+      ${icon('scroll-text')} Tekst uit de <a href="https://www.dndbeyond.com/srd" target="_blank" rel="noopener">SRD 5.2</a>,
+      Wizards of the Coast &middot; <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>
+    </p>`;
+  }
+  if (s._geenTekst) {
+    return `<div class="spreuk-geen-tekst">
+      <p>De beschrijving van deze spreuk staat niet in de vrij te gebruiken SRD, dus hij staat hier niet.</p>
+      <a class="spreuk-detail-imgbtn" href="${esc(_spreukLink(s.name))}" target="_blank" rel="noopener">
+        ${icon('book-open')} Lees hem elders</a>
+      ${isDM() ? `<p class="spreuk-geen-tekst-dm">Of schrijf hem hieronder in je eigen woorden — dat is dan jouw tekst.</p>` : ''}
+    </div>`;
+  }
+  return '';
 }
 
 function _ensureOverlay() {
