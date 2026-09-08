@@ -4,12 +4,12 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
-import { renderProgressie } from './render-progressie.js?v=44';
+import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=22';
-import { renderSpreuken } from './render-spreuken.js?v=29';
+import { renderSpreuken } from './render-spreuken.js?v=31';
 import { renderStatblock } from './render-statblock.js?v=4';
 import { initSocket } from "./socket-client.js?v=66";
-import { initDmPanel } from "./dm-panel.js?v=208";
+import { initDmPanel } from "./dm-panel.js?v=209";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -168,6 +168,7 @@ window.app = {
   sbDiceColor: _sbDiceColor,
   spellClassEN: _spellClassEN,
   spellMatchesClass: _spellMatchesClass,
+  bronLink: _bronLink,
   switchGroup,
   toggleGroupDropdown,
   renameGroup,
@@ -1108,6 +1109,26 @@ function dmToggleClick() {
     // Not logged in → open login
     toggleLoginModal();
   }
+}
+
+// ── Waar wijzen we naartoe als een tekst er niet mag staan? ─────────────────
+// Een campagne zonder `bronTeksten` krijgt van de SRD wat mag; de rest blijft
+// leeg. Linken naar een plek waar het wél staat mag wel — overnemen niet. Eén
+// sjabloon voor de hele app (`meta.bronLink`, met {naam} en {soort}); niets
+// ingevuld = de standaard hieronder.
+//
+// Bewust een zoek-URL en geen diepe link: het adres van een spreuk op D&D
+// Beyond bevat een nummer dat nergens uit af te leiden is, dus een diepe link
+// zou een koppeltabel vragen die we moeten schrapen en eeuwig bijhouden — en
+// die stil 404't zodra zij hun adressen wijzigen. Een zoekpagina verlept niet.
+const BRON_LINK_STANDAARD = 'https://www.dndbeyond.com/search?q={naam}';
+
+function _bronLink(naam, soort = '') {
+  const sjabloon = state.meta?.bronLink || BRON_LINK_STANDAARD;
+  if (!sjabloon) return '';
+  return sjabloon
+    .replace('{naam}', encodeURIComponent(naam || ''))
+    .replace('{soort}', encodeURIComponent(soort || ''));
 }
 
 // ── Landing page ──

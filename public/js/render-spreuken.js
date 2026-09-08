@@ -595,11 +595,9 @@ async function _wieLaden(index) {
 const _SRD_TIP = 'Deze tekst komt uit de System Reference Document 5.2 van Wizards of the Coast, '
   + 'onder de Creative Commons Attribution 4.0 International License.';
 
-function _spreukLink(naam) {
-  const sjabloon = window.app?.state?.meta?.spreukLink
-    || 'https://www.dndbeyond.com/spells?filter-search={naam}';
-  return sjabloon.replace('{naam}', encodeURIComponent(naam || ''));
-}
+// Eén sjabloon voor de hele app (`meta.bronLink`), gedeeld met de progressie —
+// zie window.app.bronLink.
+const _spreukLink = (naam) => window.app?.bronLink?.(naam, 'spells') || '';
 
 function _bronRegel(s) {
   if (s._srd) {
@@ -611,8 +609,8 @@ function _bronRegel(s) {
   if (s._geenTekst) {
     return `<div class="spreuk-geen-tekst">
       <p>De beschrijving van deze spreuk staat niet in de vrij te gebruiken SRD, dus hij staat hier niet.</p>
-      <a class="spreuk-detail-imgbtn" href="${esc(_spreukLink(s.name))}" target="_blank" rel="noopener">
-        ${icon('book-open')} Lees hem elders</a>
+      ${_spreukLink(s.name) ? `<a class="spreuk-detail-imgbtn" href="${esc(_spreukLink(s.name))}" target="_blank" rel="noopener">
+        ${icon('book-open')} Lees hem elders</a>` : ''}
       ${isDM() ? `<p class="spreuk-geen-tekst-dm">Of schrijf hem hieronder in je eigen woorden — dat is dan jouw tekst.</p>` : ''}
     </div>`;
   }

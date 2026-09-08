@@ -24183,3 +24183,22 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 .spreuk-geen-tekst .spreuk-detail-imgbtn { display: inline-flex; margin: 0; text-decoration: none; }
 .spreuk-geen-tekst-dm { font-size: 12px; font-style: italic; margin: 10px 0 0; }
+
+
+/* Zelfde verwijsblok als bij een spreuk, in het progressie-detailvenster. */
+.prog-geen-tekst {
+  padding: 14px 16px; margin-top: 4px;
+  background: rgba(255,255,255,0.4);
+  border: 1px dashed rgba(122,96,64,0.35); border-radius: 7px;
+}
+.prog-geen-tekst p {
+  font-family: 'Crimson Text', serif; font-size: 14px; color: #5a4630; margin: 0 0 10px;
+}
+.prog-geen-tekst-knop {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 6px;
+  background: rgba(196,168,122,0.18); border: 1px solid rgba(122,96,64,0.35);
+  font-family: 'Cinzel', serif; font-size: 12px; color: #5a4630; text-decoration: none;
+}
+.prog-geen-tekst-knop:hover { background: rgba(196,168,122,0.32); color: #2a1a08; }
+.prog-geen-tekst-knop svg { width: 14px; height: 14px; }

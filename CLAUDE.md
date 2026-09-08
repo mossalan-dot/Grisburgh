@@ -574,6 +574,18 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > scholen bij. Een school is een van de acht PHB-termen; de server bewaakt dat
 > voor eigen spreuken (`_SPREUK_SCHOLEN`).
 
+> **Waar wijst de app naartoe als een tekst er niet mag staan?** Eén sjabloon
+> voor de hele app: `meta.bronLink` met `{naam}` en `{soort}`, in te stellen bij
+> Instellingen → *Naslag elders*. Leeg = de standaard (de zoekpagina van
+> D&D Beyond). Client-helper: `window.app.bronLink(naam, soort)`. Gebruikt door
+> het spreukdetail en het progressie-detailvenster, allebei alleen waar de server
+> `_geenTekst: true` meestuurde — nooit naast tekst die er wél staat.
+>
+> **Bewust een zoek-URL en geen diepe link.** Het adres van een spreuk op
+> D&D Beyond bevat een nummer dat nergens uit af te leiden is; een diepe link zou
+> een koppeltabel vragen die geschraapt en eeuwig bijgehouden moet worden, en die
+> stil 404't zodra zij hun adressen wijzigen. Een zoekpagina verlept niet.
+
 > **Wie kent deze spreuk?** `GET /spells/:index/wie` (DM-only) loopt
 > `dmState.playerSpells` langs en geeft per speler naam, party, prepared en of
 > er nú op geconcentreerd wordt. Zelfde vraag en zelfde reden als
@@ -938,9 +950,14 @@ wie het pad raadde. Ze staan nu in `bronnen/` (buiten `public/`) en gaan via
   laat de ontwerpersnaam weg ("Tiny Hut" waar de PHB "Leomund's Tiny Hut"
   schrijft). De link is instelbaar met `meta.spreukLink` (sjabloon met
   `{naam}`); standaard de zoekpagina van D&D Beyond.
-  Acht SRD-spreuken ontbreken nog in onze lijst (Arcane Hand, Arcane Sword,
-  Arcanist's Magic Aura, Confusion, Disintegrate, Flame Blade, Greater
-  Restoration, Vitriolic Sphere) — die zouden er gratis bij kunnen.
+  Vijf SRD-spreuken die in onze lijst ontbraken zijn erbij gezet met
+  `node scripts/srd-2024/srd-ontbrekende-spreuken.js --schrijf` (Confusion,
+  Disintegrate, Flame Blade, Greater Restoration, Vitriolic Sphere). **Let op de
+  hernoemde drie**: de SRD haalt de ontwerpersnaam weg, dus "Arcane Hand" is
+  onze *Bigby's Hand*, "Arcane Sword" die van Mordenkainen en "Arcanist's Magic
+  Aura" die van Nystul. Die staan er dus al — zonder `scripts/srd-2024/srd-namen.js`
+  waren ze als nieuw toegevoegd (dubbel) én hadden ze hun SRD-tekst niet gekregen.
+  Na het toevoegen van spreuken moet `srd-spelteksten.js --schrijf` opnieuw.
 - **Wat de DM zelf schrijft is van hem** en gaat altijd mee, ook in een kale
   campagne: `spells.json` per campagne (`{ eigen: { <index>: { desc, higher_level } } }`),
   te bewerken in het spreukdetail (`PUT /bron/spreuk/:index`). Leeg opslaan wist

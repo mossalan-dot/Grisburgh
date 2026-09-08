@@ -714,6 +714,18 @@ function _speciesCards(prog, species, ctx, charId, favs) {
 
 
 // ── Publieke API (window.progressie) ──────────────────────────────
+// Wat je niet mag tonen, wijs je aan. Zelfde regel als bij de spreuken: de
+// SRD-tekst geven we door, de rest niet — maar linken naar een plek waar het wél
+// staat mag wel. Leeg sjabloon (`meta.bronLink`) = alleen de mededeling.
+function _geenTekstBlok(naam) {
+  const link = window.app?.bronLink?.(naam, 'features') || '';
+  return `<div class="prog-geen-tekst">
+    <p>Deze beschrijving maakt geen deel uit van de vrij te gebruiken SRD, dus hij staat hier niet.</p>
+    ${link ? `<a class="prog-geen-tekst-knop" href="${esc(link)}" target="_blank" rel="noopener">
+      ${icon('book-open')} Lees hem elders</a>` : ''}
+  </div>`;
+}
+
 window.progressie = {
   // Aangeroepen vanuit app.js na level-/klasse-wijziging, zonder dat het Progressie-tabblad open hoeft te zijn.
   async triggerSync(charId, ctx) {
@@ -838,10 +850,7 @@ window.progressie = {
     window.app.openModal(featName, 'Feat',
       desc
         ? `<div class="prog-detail-desc">${_md(desc)}</div>`
-        : `<p class="prog-detail-desc" style="font-style:italic;color:#8a7050">
-             Deze feat maakt geen deel uit van de vrije SRD.<br>
-             Zie de <em>Player's Handbook</em> voor de volledige beschrijving.
-           </p>`
+        : _geenTekstBlok(featName)
     );
 
     if (desc) _applyGlossaryToModal();
@@ -869,7 +878,13 @@ window.progressie = {
             <span class="prog-detail-chip prog-chip--${f.kind || 'class'}">${_kindLabel(f.kind)}</span>
             ${favBtn}
           </div>
-          <div class="prog-detail-desc">${_md(f.desc || _srdDesc(f.name, f.clsName) || 'Geen beschrijving.')}</div>
+          ${(() => {
+            const tekst = f.desc || _srdDesc(f.name, f.clsName);
+            if (tekst) return `<div class="prog-detail-desc">${_md(tekst)}</div>`;
+            // Geen tekst omdat deze campagne de bronteksten niet mag zien:
+            // dan geen leeg vak maar een verwijzing. Zie window.app.bronLink.
+            return _geenTekstBlok(f.name);
+          })()}
           ${detailChoice}
         </div>
       </div>`);

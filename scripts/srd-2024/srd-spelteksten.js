@@ -11,8 +11,9 @@
 // legt ze naast onze lijst. Uitvoer: `bronnen/srd-spells.json` —
 // { "<onze index>": { name, desc: [], higher_level: [] } }.
 //
-// Matchen gaat op naam, met één correctie: de SRD noemt spreuken zonder de
-// ontwerpersnaam ervoor ("Tiny Hut" waar de PHB "Leomund's Tiny Hut" zegt).
+// Matchen gaat op naam, met twee correcties: de SRD laat de ontwerpersnaam vaak
+// weg ("Tiny Hut" waar de PHB "Leomund's Tiny Hut" zegt), en drie spreuken zijn
+// écht hernoemd — die staan in `SRD_HERNOEMD` (scripts/srd-2024/srd-namen.js).
 //
 //   node scripts/srd-2024/srd-spelteksten.js [--schrijf]
 const fs   = require('fs');
@@ -21,6 +22,8 @@ const path = require('path');
 const API = 'https://api.open5e.com/v2/spells/?document__key=srd-2024&limit=500';
 const BRON = path.join(__dirname, '..', '..', 'bronnen', 'spells-2024.json');
 const DOEL = path.join(__dirname, '..', '..', 'bronnen', 'srd-spells.json');
+
+const { SRD_HERNOEMD } = require('./srd-namen');
 
 const sleutel = (n) => String(n || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const zonderOntwerper = (n) => String(n || '').replace(/^[A-Za-z]+[’']s\s+/, '');
@@ -34,7 +37,12 @@ const alinea = (t) => String(t || '').split(/\n\s*\n/).map(r => r.trim()).filter
   const schrijf = process.argv.includes('--schrijf');
   const d = await fetch(API).then(r => r.json());
   const srd = d.results || [];
-  const opNaam = new Map(srd.map(s => [sleutel(s.name), s]));
+  const opNaam = new Map();
+  for (const s of srd) {
+    opNaam.set(sleutel(s.name), s);
+    // Hernoemd: leg hem óók onder de naam die de PHB (en onze lijst) gebruikt.
+    if (SRD_HERNOEMD[s.name]) opNaam.set(sleutel(SRD_HERNOEMD[s.name]), s);
+  }
 
   const bron = JSON.parse(fs.readFileSync(BRON, 'utf8'));
   // Zelfde zeef als de app: regels zonder school zijn geen spreuk maar een
@@ -55,7 +63,10 @@ const alinea = (t) => String(t || '').split(/\n\s*\n/).map(r => r.trim()).filter
   }
 
   const onzeSleutels = new Set(onze.flatMap(s => [sleutel(s.name), sleutel(zonderOntwerper(s.name))]));
-  const gemist = srd.filter(s => !onzeSleutels.has(sleutel(s.name))).map(s => s.name);
+  // De hernoemde drie zitten er wél in, onder hun PHB-naam; die zijn geen gemis.
+  const gemist = srd
+    .filter(s => !onzeSleutels.has(sleutel(s.name)) && !onzeSleutels.has(sleutel(SRD_HERNOEMD[s.name] || '')))
+    .map(s => s.name);
 
   console.log(`SRD 5.2: ${srd.length} spreuken · onze lijst: ${onze.length}`);
   console.log(`Met SRD-tekst: ${Object.keys(uit).length} (${Math.round(Object.keys(uit).length / onze.length * 100)}%)`);

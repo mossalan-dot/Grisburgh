@@ -9843,6 +9843,15 @@ async function _renderInstellingen() {
           <span>Toon deze campagne op de openingspagina</span>
         </label>
       </div>
+      <!-- Waar wijst de app naartoe als een beschrijving er niet mag staan? Een
+           spreuk of feature die niet in de vrije SRD zit heeft hier geen tekst;
+           linken naar een plek waar hij wél staat mag wel. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="inst-bron-link">Naslag elders</label>
+        <input id="inst-bron-link" class="dm-input" type="url"
+          placeholder="https://www.dndbeyond.com/search?q={naam}"
+          value="${esc(meta.bronLink ?? '')}">
+      </div>
       ${!magBeheren ? '' : `
       <details class="dm-modules dm-beheer-campagnes">
         <summary>Campagnes en modules</summary>
@@ -9961,6 +9970,7 @@ window._instOpslaan = async () => {
       appSubtitle: document.getElementById('inst-app-subtitle')?.value.trim(),
       embleem:     document.getElementById('inst-embleem')?.value || '',
       inOverzicht: document.getElementById('inst-in-overzicht')?.checked !== false,
+      bronLink:    document.getElementById('inst-bron-link')?.value.trim() ?? '',
       currency: {
         fl: document.getElementById('inst-munt-fl')?.value.trim(),
         kn: document.getElementById('inst-munt-kn')?.value.trim(),
