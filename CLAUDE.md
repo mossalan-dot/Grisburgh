@@ -600,8 +600,9 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
   erachter nog niet bestaat.
 
 > **Een verbinding kan geheim zijn.** Een regel in `betrokkenen` mag
-> `geheim: { id, i }` dragen: een verwijzing naar regel `i` van de geheimen op
-> kaartje `id`. Zolang die regel voor een party dicht staat bestaat de verbinding
+> `geheim: { id, gid }` dragen: een verwijzing naar geheimregel `gid` op
+> kaartje `id` (de oude vorm `{ id, i }` wees naar regel *i* en wordt nog
+> gelezen). Zolang die regel voor een party dicht staat bestaat de verbinding
 > voor die party niet — niet op het kaartje, niet op de afgeleide andere kant, en
 > er komt ook géén "onbekend"-regel voor in de plaats (anders verklap je dát er
 > iemand is, en dat is nou juist de clou). Server-kant: `_geheimOpen()` in
@@ -610,16 +611,25 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > in de chef-keten. Zelfde patroon als `geheimenAntagonist`: een geheimregel die
 > een gevolg draagt. Zie `docs/voorstel-geheime-verbindingen.md`.
 
-> **Een geheimregel wordt op positie geadresseerd — en dat schuift.** De
-> onthulstand per party (`groups[gid].secretReveals[id]`, een array booleans),
-> de antagonist-vlaggen en een geheime verbinding wijzen allemaal naar *regel N*
-> van `data.geheimen`. Haalt de DM regel 0 weg, dan schuift alles op. Daarom
-> herschikt `PUT /entities/:type/:id` die verwijzingen mee zodra de geheimen
-> veranderen: `_geheimKaart(oud, nieuw)` legt oude op nieuwe posities (eerst wat
-> woordelijk gelijk is, de rest op volgorde), `_geheimVerwijzingenBij()` past dat
-> toe. Zonder dat ging een onthuld geheim na één bewerking over een ándere regel.
-> Een echte oplossing is een stabiel id per geheimregel; dat staat op de
-> todo-lijst.
+> **Een geheimregel heeft een eigen id.** `data.geheimen` is een lijst
+> `{ id, tekst, antagonist? }`; de onthulstand per party
+> (`groups[gid].secretReveals[id]` = `{ <regel-id>: true }`) en een geheime
+> verbinding (`geheim.gid`) wijzen naar dát id. Verslepen, bijschaven of er een
+> tussenuit halen raakt de administratie dus niet meer. Lezen gaat **altijd** via
+> `_geheimRegels(data)` (server) of `_geheimRegelsUit(data)` (client) — schrijf
+> nergens zelf een `JSON.parse(data.geheimen)`, want die helper vouwt vier oudere
+> vormen in één: een lijst kale teksten, het enkelvoudige `data.geheim`, de
+> losse vlaggenlijst `geheimenAntagonist` en het kaartjesbrede
+> `geheimeAntagonist`. `_onthuldeIds(stand, regels)` doet hetzelfde voor de
+> onthulstand (array booleans, id-object, of een kale `true`).
+>
+> Een kaartje dat nog niet om is krijgt `i0`, `i1`… als noodid — precies de
+> positie waar zijn bestaande stand al naar wees. Zolang dat zo is blijft de
+> stand een **array** (`_echteIds()` beslist dat in `PUT .../secret`) en schuift
+> `_geheimKaart(oud, nieuw)` + `_geheimVerwijzingenBij()` de verwijzingen mee bij
+> een bewerking, zoals vroeger. Omzetten doe je met
+> `node scripts/geheim-ids.js <campagne> --schrijf`: dat geeft elke regel een id,
+> zet de standen om naar id-vorm en `{id,i}` naar `{id,gid}`.
 
 > **Eén kaartje, meerdere rollen.** Dezelfde persoon kan op dezelfde plek
 > eigenaar én verkoper zijn: `PUT .../hoortbij` houdt een **lijst** rollen per
@@ -877,8 +887,9 @@ regel**, zodat alles wat al geschreven was blijft staan. Server-helpers:
 `routes/api.js`, client-kant `_tekstLijstUit()` in `render-campagne.js`.
 
 - **Onthullen gaat per regel en per party.** `groups[gid].secretReveals[id]` is
-  nu een array van booleans; een oude `true` betekent "de eerste regel is uit".
-  `PUT /entities/:type/:id/secret` neemt een `index` mee (zonder index: de
+  `{ <regel-id>: true }`; een oude array booleans of een kale `true` (= "de
+  eerste regel is uit") wordt nog gelezen. `PUT /entities/:type/:id/secret`
+  neemt bij voorkeur een `gid` mee, anders een `index` (zonder allebei: de
   eerste, dus oude aanroepen blijven werken).
 - **Flavour houdt zijn stand op de entiteit** (`data.flavoursUitgesproken`),
   want dat is campagne-breed: de waard heeft die roddel verteld of niet. De

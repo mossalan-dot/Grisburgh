@@ -66,7 +66,8 @@ export const api = {
   toggleVisibility: (type, id, target) => request(`/entities/${type}/${id}/visibility`, { method: 'PUT', body: JSON.stringify(target ? { target } : {}) }),
   shopRevealItem:   (type, id)          => request(`/entities/${type}/${id}/shop-reveal`, { method: 'POST' }),
   toggleFlavour: (type, id, index = 0) => request(`/entities/${type}/${id}/flavour`, { method: 'PUT', body: JSON.stringify({ index }) }),
-  toggleSecret: (type, id, index = 0) => request(`/entities/${type}/${id}/secret`, { method: 'PUT', body: JSON.stringify({ index }) }),
+  // `gid` is het id van de geheimregel; index blijft meegaan als terugval.
+  toggleSecret: (type, id, index = 0, gid = '') => request(`/entities/${type}/${id}/secret`, { method: 'PUT', body: JSON.stringify({ index, gid }) }),
   toggleDeceased: (type, id) => request(`/entities/${type}/${id}/deceased`, { method: 'PUT' }),
 
   // Groepen

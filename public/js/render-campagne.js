@@ -1,4 +1,4 @@
-import { api } from './api.js?v=276';
+import { api } from './api.js?v=277';
 import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);
@@ -956,19 +956,30 @@ function _tekstLijstUit(data, meervoud, enkelvoud) {
 }
 window._tekstLijstUit = _tekstLijstUit;
 
-// Welke geheimen maken hem antagonist? Array van booleans naast `geheimen`.
-// Het oude enkelvoudige `geheimeAntagonist` gold voor het hele kaartje; die
-// vertalen we naar "elk geheim", zodat bestaande kaartjes zich niet anders
-// gaan gedragen.
-function _antagUit(data, aantal) {
+// Zelfde vorm als op de server: een geheimregel is { id, tekst, antagonist }.
+// Een lijst losse teksten (oude kaartjes) krijgt i0, i1… als id — precies waar
+// de bestaande onthulstand al naar wees. Het oude `geheimenAntagonist` (een
+// lijst booleans ernaast) en het nog oudere `geheimeAntagonist` (gold voor het
+// hele kaartje) worden hier ingevouwen, zodat er verderop maar één vorm is.
+function _geheimRegelsUit(data) {
   let arr = [];
-  try { const j = JSON.parse(data?.geheimenAntagonist || '[]'); if (Array.isArray(j)) arr = j.map(Boolean); } catch {}
-  if (!arr.length && (data?.geheimeAntagonist === true || data?.geheimeAntagonist === 'true')) {
-    arr = Array(aantal).fill(true);
+  const rauw = data?.geheimen;
+  if (Array.isArray(rauw)) arr = rauw;
+  else if (typeof rauw === 'string' && rauw.trim()) {
+    try { const j = JSON.parse(rauw); if (Array.isArray(j)) arr = j; } catch { arr = [rauw]; }
   }
-  return Array.from({ length: aantal }, (_, i) => !!arr[i]);
+  if (!arr.length && data?.geheim) arr = [data.geheim];
+  let antagOud = [];
+  try { const j = JSON.parse(data?.geheimenAntagonist || '[]'); if (Array.isArray(j)) antagOud = j.map(Boolean); } catch { /* ok */ }
+  if (!antagOud.length && (data?.geheimeAntagonist === true || data?.geheimeAntagonist === 'true')) {
+    antagOud = arr.map(() => true);
+  }
+  return arr.map((r, i) => (typeof r === 'string' || r == null)
+    ? { id: 'i' + i, tekst: String(r || ''), antagonist: !!antagOud[i] }
+    : { id: r.id || ('i' + i), tekst: String(r.tekst ?? ''), antagonist: !!(r.antagonist ?? antagOud[i]) });
 }
-window._antagUit = _antagUit;
+window._geheimRegelsUit = _geheimRegelsUit;
+const _nieuwGeheimId = () => 'g_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 // Eén regel in de editor: tekstvak met opmaakbalk en een prullenbak.
 // Opties van een select: een platte lijst, of groepen (optionGroups). Een
@@ -1264,9 +1275,13 @@ window._betrokkenGeheim = async (btn) => {
   const ctx = window._edCtx || {};
   const opties = [];
   // Eigen kaartje: uit het formulier, dus ook wat je net getikt hebt.
-  document.querySelectorAll('#lijst-geheimen .lijst-regel-tekst').forEach((ta, i) => {
-    const t = (ta.value || '').trim();
-    if (t) opties.push({ id: ctx.id || '', i, kaart: ctx.naam || 'dit kaartje', tekst: t });
+  document.querySelectorAll('#lijst-geheimen .lijst-regel').forEach((rgl, i) => {
+    const t = (rgl.querySelector('.lijst-regel-tekst')?.value || '').trim();
+    // Een regel die nog niet opgeslagen is heeft nog geen id; die krijgt hij nu,
+    // zodat de koppeling meteen aan het juiste geheim hangt en niet aan plek i.
+    let gid = rgl.dataset.gid;
+    if (!gid) { gid = _nieuwGeheimId(); rgl.dataset.gid = gid; }
+    if (t) opties.push({ id: ctx.id || '', i, gid, kaart: ctx.naam || 'dit kaartje', tekst: t });
   });
   // De andere kant.
   const doelId = rij.querySelector('.betr-id')?.value || '';
@@ -1275,15 +1290,17 @@ window._betrokkenGeheim = async (btn) => {
     for (const t of ['personages', 'organisaties', 'locaties']) {
       const ent = await api.getEntity(t, doelId).catch(() => null);
       if (!ent) continue;
-      _tekstLijstUit(ent.data, 'geheimen', 'geheim').forEach((tekst, i) => {
-        if (tekst.trim()) opties.push({ id: doelId, i, kaart: ent.name || doelNaam, tekst: tekst.trim() });
+      _geheimRegelsUit(ent.data).forEach((r, i) => {
+        if (r.tekst.trim()) opties.push({ id: doelId, i, gid: r.id, kaart: ent.name || doelNaam, tekst: r.tekst.trim() });
       });
       break;
     }
   }
 
-  const kies = (o) => `<button type="button" class="betr-geheim-optie${huidig && huidig.id === o.id && Number(huidig.i) === o.i ? ' betr-geheim-optie--aan' : ''}"
-      onclick="window._betrokkenGeheimKies(this,'${escJS(o.id)}',${o.i})">
+  const isHuidig = (o) => !!huidig && huidig.id === o.id
+    && (huidig.gid ? huidig.gid === o.gid : Number(huidig.i) === o.i);
+  const kies = (o) => `<button type="button" class="betr-geheim-optie${isHuidig(o) ? ' betr-geheim-optie--aan' : ''}"
+      onclick="window._betrokkenGeheimKies(this,'${escJS(o.id)}','${escJS(o.gid)}')">
       <span class="bgo-kaart">${esc(o.kaart)}</span>
       <span class="bgo-tekst">${esc(o.tekst.length > 90 ? o.tekst.slice(0, 90) + '\u2026' : o.tekst)}</span>
     </button>`;
@@ -1295,14 +1312,14 @@ window._betrokkenGeheim = async (btn) => {
         Nog geen geheim om aan te hangen. Schrijf er een bij <b>Geheimen</b> op dit kaartje
         ${doelId ? `of op <b>${esc(doelNaam)}</b>` : ''}, dan kun je hem hier kiezen.</p>`}
       <button type="button" class="betr-geheim-optie betr-geheim-optie--geen${huidig ? '' : ' betr-geheim-optie--aan'}"
-        onclick="window._betrokkenGeheimKies(this,'',-1)">Geen — de verbinding is gewoon zichtbaar</button>
+        onclick="window._betrokkenGeheimKies(this,'','')">Geen — de verbinding is gewoon zichtbaar</button>
     </div>`);
 };
 
-window._betrokkenGeheimKies = (el, id, i) => {
+window._betrokkenGeheimKies = (el, id, gid) => {
   const rij = el.closest('.betrokken-rij');
   const veld = rij?.querySelector('.betr-geheim');
-  if (veld) veld.value = id ? JSON.stringify({ id, i }) : '';
+  if (veld) veld.value = id ? JSON.stringify({ id, gid }) : '';
   const slot = rij?.querySelector('.betr-slot');
   if (slot) {
     slot.classList.toggle('betr-slot--aan', !!id);
@@ -1827,7 +1844,7 @@ window._linkKaartjeMaken = async (type, inputId) => {
   }
 };
 
-function _lijstRegelHtml(veld, tekst, i, antag = false, metAntag = false) {
+function _lijstRegelHtml(veld, tekst, i, antag = false, metAntag = false, gid = '') {
   const id = `lt-${veld}-${i}`;
   // Alleen bij geheimen op een personage: per regel aan te vinken of juist díé
   // onthulling hem antagonist maakt. Eerst was dat één schakelaar voor het hele
@@ -1839,7 +1856,7 @@ function _lijstRegelHtml(veld, tekst, i, antag = false, metAntag = false) {
       <input type="checkbox" class="lijst-antag-vink"${antag ? ' checked' : ''}>
       ${icon('skull')} <span>Onthullen maakt het personage een vijand</span>
     </label>` : '';
-  return `<div class="lijst-regel" data-veld="${veld}">
+  return `<div class="lijst-regel" data-veld="${veld}"${gid ? ` data-gid="${esc(gid)}"` : ''}>
     ${fmtToolbar(id)}
     <div class="lijst-regel-rij">
       <textarea id="${id}" rows="2" class="lijst-regel-tekst" onkeydown="window._fmtKey(event)"
@@ -2881,7 +2898,7 @@ function _detFlavInner(key) {
       ${isDM() && r.verraad ? `<span class="verraad-merk" title="Onthullen verandert dit kaartje: rol, kant en alignment">${icon('skull')} Maakt vijand</span>` : ''}
       ${isDM() ? `<button class="onthul-knop${r.gezegd ? ' onthul-knop--aan' : ''}${r.verraad ? ' onthul-knop--verraad' : ''}"
         title="${r.gezegd ? cfg.titelAan : cfg.titelUit}"
-        onclick="window.${r.verraad ? '_toggleVerraadGeheim' : cfg.fn}('${esc(ctx.tab)}','${esc(ctx.id)}',${r.i}${r.verraad ? `,${r.gezegd},'${escJS(ctx.naam || '')}'` : ''})">${r.gezegd ? icon(cfg.iconAan) : icon(cfg.iconUit)}<span>${r.gezegd ? cfg.aan : cfg.uit}</span></button>` : ''}
+        onclick="window.${r.verraad ? '_toggleVerraadGeheim' : cfg.fn}('${esc(ctx.tab)}','${esc(ctx.id)}',${r.i},'${escJS(r.gid || '')}'${r.verraad ? `,${r.gezegd},'${escJS(ctx.naam || '')}'` : ''})">${r.gezegd ? icon(cfg.iconAan) : icon(cfg.iconUit)}<span>${r.gezegd ? cfg.aan : cfg.uit}</span></button>` : ''}
       ${ctx.audioId ? `<button type="button" class="flavour-audio-play" data-audio-btn data-audio-btn-id="${esc(ctx.audioId)}"
         onclick="window._audioToggle('${esc(ctx.audioId)}')" title="Sfeer afspelen / pauzeren">▶</button>` : ''}
       ${regels.length > 1 ? `
@@ -2897,13 +2914,13 @@ function _detFlavInner(key) {
 // de tekst: rol, kant en alignment schuiven mee. Zoiets hoort niet per ongeluk
 // te gebeuren met één klik, dus eerst vragen — zie de afspraak over
 // onomkeerbare DM-acties in CLAUDE.md.
-window._toggleVerraadGeheim = (tab, id, index, wasOnthuld, naam) => {
+window._toggleVerraadGeheim = (tab, id, index, gid, wasOnthuld, naam) => {
   const wie = naam || 'dit personage';
   const vraag = wasOnthuld
     ? `Dit geheim terugdraaien?\n\n${wie} verliest de rol antagonist, en zijn kant en alignment gaan terug naar wat ze waren.`
     : `Dit geheim onthullen?\n\n${wie} wordt daarmee antagonist, komt in een gevecht aan de kant van de vijand te staan en zijn alignment schuift naar Evil.`;
   if (!confirm(vraag)) return;
-  window._toggleSecret(tab, id, index);
+  window._toggleSecret(tab, id, index, gid);
 };
 
 window._detFlavStap = (key, richting) => {
@@ -3899,7 +3916,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
 
   // Geheimen: één blok per regel. De DM ziet ze allemaal met een oogje ernaast
   // om die ene vrij te geven; de speler ziet alleen wat onthuld is.
-  const geheimRegels = _tekstLijstUit(e.data, 'geheimen', 'geheim');
+  // Bij de DM zijn dit objecten met een id, bij een speler kale teksten die
+  // _geheimRegelsUit een positie-id geeft — allebei goed.
+  const _geheimObj = _geheimRegelsUit(e.data);
+  const geheimRegels = _geheimObj.map(r => r.tekst);
   // Idem voor geheimen: de speler krijgt alleen de onthulde regels binnen. De
   // terugval "alleen de eerste telt" is er voor oude kaartjes bij de DM, maar
   // liet een speler van twee onthulde geheimen er één zien.
@@ -3908,14 +3928,14 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     : Array.isArray(e._onthuld)
       ? geheimRegels.map((_, i) => !!e._onthuld[i])
       : geheimRegels.map((_, i) => !!e._secretReveal && i === 0);
-  const zichtbareGeheimen = geheimRegels.map((tekst, i) => ({ tekst, i, onthuld: _geheimOnthuld[i] }))
+  const zichtbareGeheimen = _geheimObj.map((r, i) => ({ tekst: r.tekst, i, gid: r.id, onthuld: _geheimOnthuld[i] }))
     .filter(r => isDM() || r.onthuld);
   if (zichtbareGeheimen.length) {
     // Zelfde blok als de roddels: doorbladeren in plaats van alles uitklappen.
     // Drie geheimen onder elkaar duwden de rest van het kaartje van het scherm.
-    const _antagVlag = isDM() ? _antagUit(e.data, geheimRegels.length) : [];
     _flavCache[`geh-${e.id}`] = zichtbareGeheimen.map(g => ({
-      tekst: g.tekst, i: g.i, gezegd: g.onthuld, verraad: !!_antagVlag[g.i],
+      tekst: g.tekst, i: g.i, gid: g.gid, gezegd: g.onthuld,
+      verraad: isDM() ? !!_geheimObj[g.i]?.antagonist : false,
     }));
     _flavPos[`geh-${e.id}`]   = 0;
     _flavCtx[`geh-${e.id}`]   = { tab, id: e.id, soort: 'geheim', naam: e.name };
@@ -4998,8 +5018,8 @@ window._toggleFlavour = async (tab, id, index = 0) => {
   } catch (err) { alert('Mislukt: ' + (err.message || err)); }
 };
 
-window._toggleSecret = async (tab, id, index = 0) => {
-  const res = await api.toggleSecret(tab, id, index);
+window._toggleSecret = async (tab, id, index = 0, gid = '') => {
+  const res = await api.toggleSecret(tab, id, index, gid);
   _secretToast(res.secretReveal);
   window._openDetail(tab, id);
 };
@@ -5987,16 +6007,19 @@ window._openEditor = async (tab, editId) => {
       }
 
     } else if (field.type === 'lijst-tekst') {
-      const regels = _tekstLijstUit(e?.data, field.key, field.enkelvoud);
-      if (!regels.length) regels.push('');
-      const _metAntag = field.key === 'geheimen' && tab === 'personages';
-      const _antagVlaggen = _metAntag ? _antagUit(e?.data, regels.length) : [];
-      const _verborgenVeld = field.key === 'geheimen';
+      // Geheimen dragen een id; flavours zijn nog gewone teksten.
+      const _isGeheim = field.key === 'geheimen';
+      const _rijen = _isGeheim
+        ? (_geheimRegelsUit(e?.data).length ? _geheimRegelsUit(e?.data) : [{ id: '', tekst: '', antagonist: false }])
+        : (() => { const r = _tekstLijstUit(e?.data, field.key, field.enkelvoud); if (!r.length) r.push(''); 
+                   return r.map(t => ({ id: '', tekst: t, antagonist: false })); })();
+      const _metAntag = _isGeheim && tab === 'personages';
+      const _verborgenVeld = _isGeheim;
       body += `
         <div${_verborgenVeld ? ' class="veld-dmonly"' : ''}>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <div id="lijst-${field.key}" class="lijst-veld" data-veld="${field.key}"${_metAntag ? ' data-antag="1"' : ''}>
-            ${regels.map((t, i) => _lijstRegelHtml(field.key, t, i, _antagVlaggen[i], _metAntag)).join('')}
+            ${_rijen.map((r, i) => _lijstRegelHtml(field.key, r.tekst, i, r.antagonist, _metAntag, r.id)).join('')}
           </div>
           <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
             onclick="window._lijstRegelErbij('${field.key}')">${icon('plus')} Regel toevoegen</button>
@@ -7160,15 +7183,24 @@ window._openEditor = async (tab, editId) => {
       // ook als er lege regels tussen staan.
       const rijen = [...host.querySelectorAll('.lijst-regel')]
         .map(r => ({
+          gid:   r.dataset.gid || '',
           tekst: r.querySelector('textarea')?.value.trim() || '',
           antag: !!r.querySelector('.lijst-antag-vink')?.checked,
         }))
         .filter(r => r.tekst);
-      data[veld.key] = rijen.length ? JSON.stringify(rijen.map(r => r.tekst)) : '';
-      data[veld.enkelvoud] = rijen[0]?.tekst || '';
       if (veld.key === 'geheimen') {
-        data.geheimenAntagonist = rijen.some(r => r.antag) ? JSON.stringify(rijen.map(r => r.antag)) : '';
-        data.geheimeAntagonist  = '';   // opgevolgd door de lijst hierboven
+        // Een geheim is { id, tekst, antagonist }. Het id blijft van de regel,
+        // ook als je hem versleept of er een boven weghaalt — daar hing de
+        // onthulstand van elke party aan, en die schoof vroeger mee.
+        data.geheimen = rijen.length ? JSON.stringify(rijen.map(r => ({
+          id: r.gid || _nieuwGeheimId(), tekst: r.tekst, ...(r.antag ? { antagonist: true } : {}),
+        }))) : '';
+        data.geheim = rijen[0]?.tekst || '';
+        data.geheimenAntagonist = '';   // opgegaan in de regels zelf
+        data.geheimeAntagonist  = '';
+      } else {
+        data[veld.key] = rijen.length ? JSON.stringify(rijen.map(r => r.tekst)) : '';
+        data[veld.enkelvoud] = rijen[0]?.tekst || '';
       }
     }
     // Extra afbeeldingen serialiseren

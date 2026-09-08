@@ -334,9 +334,11 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   // Visible: full entity, strip DM-only fields
   const e = { ...entity, data: { ...entity.data } };
 
-  const geheimen = _tekstLijst(entity.data, 'geheimen', 'geheim');
-  const onthuld  = _onthuld(g.secretReveals[entity.id], geheimen.length);
-  const zichtbareGeheimen = geheimen.filter((_, i) => onthuld[i]);
+  const geheimen = _geheimRegels(entity.data);
+  const open     = _onthuldeIds(g.secretReveals[entity.id], geheimen);
+  // De speler krijgt alleen de tekst van wat onthuld is — geen id's, geen
+  // vinkjes: dat is administratie van de DM.
+  const zichtbareGeheimen = geheimen.filter(r => open.has(r.id)).map(r => r.tekst);
   if (zichtbareGeheimen.length) e.data.geheimen = JSON.stringify(zichtbareGeheimen);
   else delete e.data.geheimen;
   if (zichtbareGeheimen.length) e.data.geheim = zichtbareGeheimen[0];
@@ -487,12 +489,8 @@ function _syncMonsterVanKaartje(entity) {
 // Het oude `geheimeAntagonist` gold voor het hele kaartje en vertalen we naar
 // "elk geheim", zodat bestaande kaartjes zich niet anders gaan gedragen.
 function _antagVlaggen(data, aantal) {
-  let arr = [];
-  try { const j = JSON.parse(data?.geheimenAntagonist || '[]'); if (Array.isArray(j)) arr = j.map(Boolean); } catch {}
-  if (!arr.length && (data?.geheimeAntagonist === true || data?.geheimeAntagonist === 'true')) {
-    arr = Array(aantal).fill(true);
-  }
-  return Array.from({ length: aantal }, (_, i) => !!arr[i]);
+  const regels = _geheimRegels(data);
+  return Array.from({ length: aantal }, (_, i) => !!regels[i]?.antagonist);
 }
 
 // Wie zich als vijand ontpopt, schuift op de morele as naar Evil; de as
@@ -554,6 +552,47 @@ function _tekstLijst(data, meervoud, enkelvoud) {
 
 // Welke regels zijn onthuld? Oude waarde `true` betekende "het geheim is uit",
 // en dat was er precies één — dus die wordt de eerste regel.
+// ── Geheimregels hebben een eigen id ────────────────────────────────────────
+// Ze werden overal op positie geadresseerd (de onthulstand per party, de
+// antagonist-vlaggen, een geheime verbinding) en posities schuiven zodra de DM
+// een regel weghaalt of versleept. Een regel is nu `{ id, tekst, antagonist }`.
+//
+// Oude data blijft werken: een lijst losse teksten krijgt `i0`, `i1`… als id,
+// precies de posities waar de bestaande onthulstand al naar wees. Zo'n kaartje
+// migreert zichzelf zodra de DM het een keer opslaat — de editor geeft elke
+// regel zonder id er een.
+function _geheimRegels(data) {
+  let arr = [];
+  const rauw = data?.geheimen;
+  if (Array.isArray(rauw)) arr = rauw;
+  else if (typeof rauw === 'string' && rauw.trim()) {
+    try { const j = JSON.parse(rauw); if (Array.isArray(j)) arr = j; } catch { arr = [rauw]; }
+  }
+  if (!arr.length && data?.geheim) arr = [data.geheim];
+  // De oude parallelle lijst met antagonist-vinkjes.
+  let antagOud = [];
+  try { const j = JSON.parse(data?.geheimenAntagonist || '[]'); if (Array.isArray(j)) antagOud = j.map(Boolean); } catch { /* ok */ }
+  if (!antagOud.length && (data?.geheimeAntagonist === true || data?.geheimeAntagonist === 'true')) {
+    antagOud = arr.map(() => true);
+  }
+  return arr.map((r, i) => (typeof r === 'string' || r == null)
+    ? { id: 'i' + i, tekst: String(r || ''), antagonist: !!antagOud[i] }
+    : { id: r.id || ('i' + i), tekst: String(r.tekst ?? ''), antagonist: !!(r.antagonist ?? antagOud[i]) });
+}
+
+// De onthulstand van één kaartje voor één party, als verzameling regel-id's.
+// Oud formaat (een lijst booleans op positie) en het losse `true` van heel
+// vroeger blijven leesbaar.
+// Kale teksten krijgen i0, i1… als noodid — dat is een positie, geen id.
+const _echteIds = (regels) => regels.length > 0 && regels.every(r => r.id && !/^i\d+$/.test(r.id));
+
+function _onthuldeIds(stand, regels) {
+  if (Array.isArray(stand)) return new Set(regels.filter((_, i) => stand[i]).map(r => r.id));
+  if (stand && typeof stand === 'object') return new Set(Object.keys(stand).filter(k => stand[k]));
+  if (stand === true || stand === 'true') return new Set(regels.length ? [regels[0].id] : []);
+  return new Set();
+}
+
 function _onthuld(waarde, aantal) {
   if (Array.isArray(waarde)) return Array.from({ length: aantal }, (_, i) => !!waarde[i]);
   const alles = waarde === true;
@@ -626,9 +665,11 @@ function _geheimOpen(rij, dmState, groupId) {
     if (bron) break;
   }
   if (!bron) return true;                       // kaartje weg: dan maar zichtbaar
-  const aantal = _tekstLijst(bron.data, 'geheimen', 'geheim').length;
-  const stand  = _onthuld(groep.secretReveals?.[g.id], aantal);
-  return !!stand[Number(g.i) || 0];
+  const regels = _geheimRegels(bron.data);
+  const open   = _onthuldeIds(groep.secretReveals?.[g.id], regels);
+  // `gid` is het regel-id; `i` is de oude vorm en blijft leesbaar.
+  const doel = g.gid || regels[Number(g.i) || 0]?.id;
+  return !!doel && open.has(doel);
 }
 
 function _geheimKaart(oud, nieuw) {
@@ -646,13 +687,20 @@ function _geheimKaart(oud, nieuw) {
 }
 
 // Past die kaart toe op alles wat naar een geheimregel van dit kaartje wijst.
-function _geheimVerwijzingenBij(dmState, entities, kaartId, kaart) {
+// `nieuweRegels` is de nieuwe stand van de geheimen; heeft die echte ids, dan
+// wordt een oude standenlijst meteen omgezet naar de id-vorm, zodat er nergens
+// meer een regelnummer blijft rondslingeren.
+function _geheimVerwijzingenBij(dmState, entities, kaartId, kaart, nieuweRegels = []) {
   for (const g of Object.values(dmState.groups || {})) {
     const stand = g.secretReveals?.[kaartId];
-    if (Array.isArray(stand)) {
+    if (Array.isArray(stand) || stand === true || stand === 'true') {
+      const oud = Array.isArray(stand) ? stand : [true];
       const nieuw = [];
-      stand.forEach((aan, i) => { const j = kaart[i]; if (j >= 0 && aan) nieuw[j] = true; });
-      g.secretReveals[kaartId] = Array.from({ length: nieuw.length }, (_, i) => !!nieuw[i]);
+      oud.forEach((aan, i) => { const j = kaart[i]; if (j >= 0 && aan) nieuw[j] = true; });
+      const opId = nieuweRegels.filter((r, i) => nieuw[i] && r.id && !/^i\d+$/.test(r.id));
+      g.secretReveals[kaartId] = opId.length
+        ? Object.fromEntries(opId.map(r => [r.id, true]))
+        : Array.from({ length: nieuw.length }, (_, i) => !!nieuw[i]);
     }
   }
   for (const t of ['locaties', 'organisaties']) {
@@ -661,6 +709,8 @@ function _geheimVerwijzingenBij(dmState, entities, kaartId, kaart) {
       if (!rijen.some(r => r.geheim?.id === kaartId)) continue;
       doel.data = { ...(doel.data || {}), betrokkenen: JSON.stringify(rijen.map(r => {
         if (r.geheim?.id !== kaartId) return r;
+        // Hangt hij aan een regel-id, dan schuift er niets meer: laat met rust.
+        if (r.geheim.gid) return r;
         const j = kaart[Number(r.geheim.i) || 0];
         const uit = { ...r };
         // Wijst hij nergens meer heen, dan is het geheim weg: de verbinding is
@@ -774,9 +824,9 @@ router.get('/entities/:type', attachRole, (req, res) => {
       ...e,
       links:         _linksMetTekst(e),
       _visibility:   g.visibility[e.id]    || 'hidden',
-      _secretReveal: _onthuld(g.secretReveals[e.id], _tekstLijst(e.data, 'geheimen', 'geheim').length).some(Boolean),
-      _geheimTotaal: _tekstLijst(e.data, 'geheimen', 'geheim').length,
-      _geheimOnthuld: _onthuld(g.secretReveals[e.id], _tekstLijst(e.data, 'geheimen', 'geheim').length).filter(Boolean).length,
+      _secretReveal: _onthuldeIds(g.secretReveals[e.id], _geheimRegels(e.data)).size > 0,
+      _geheimTotaal: _geheimRegels(e.data).length,
+      _geheimOnthuld: _onthuldeIds(g.secretReveals[e.id], _geheimRegels(e.data)).size,
       _deceased:     !!(g.deceased?.[e.id]),
       _dmNote:       dmState.dmNotes[e.id]  || '',
       _gockOnderzocht: !!g.gockOnderzocht?.[e.id],
@@ -808,10 +858,12 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
     links:         _linksMetTekst(entity),
     _hoortBij:     _betrokkenBij(entity.id),
     _visibility:   g.visibility[entity.id]    || 'hidden',
-    _secretReveal: _onthuld(g.secretReveals[entity.id], _tekstLijst(entity.data, 'geheimen', 'geheim').length).some(Boolean),
-    _geheimTotaal: _tekstLijst(entity.data, 'geheimen', 'geheim').length,
-    _geheimOnthuld: _onthuld(g.secretReveals[entity.id], _tekstLijst(entity.data, 'geheimen', 'geheim').length).filter(Boolean).length,
-    _onthuld: _onthuld(g.secretReveals[entity.id], _tekstLijst(entity.data, 'geheimen', 'geheim').length),
+    _secretReveal: _onthuldeIds(g.secretReveals[entity.id], _geheimRegels(entity.data)).size > 0,
+    _geheimTotaal: _geheimRegels(entity.data).length,
+    _geheimOnthuld: _onthuldeIds(g.secretReveals[entity.id], _geheimRegels(entity.data)).size,
+    // Per regel: is hij open? De client rekent zelf niet met posities.
+    _onthuld: (() => { const r = _geheimRegels(entity.data), o = _onthuldeIds(g.secretReveals[entity.id], r);
+      return r.map(x => o.has(x.id)); })(),
     _deceased:     !!(g.deceased?.[entity.id]),
     _dmNote:       dmState.dmNotes[entity.id]  || '',
   });
@@ -932,11 +984,12 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
   // Zijn de geheimen van dit kaartje veranderd, dan verschuift alles wat naar
   // een regelnummer wijst mee: de onthulstand per party en geheime verbindingen.
   if (req.body.data) {
-    const oudeGeheimen = _tekstLijst(entities[type][idx].data, 'geheimen', 'geheim');
-    const nieuweGeheimen = _tekstLijst(updated.data, 'geheimen', 'geheim');
+    const nieuweRegels   = _geheimRegels(updated.data);
+    const oudeGeheimen   = _geheimRegels(entities[type][idx].data).map(r => r.tekst);
+    const nieuweGeheimen = nieuweRegels.map(r => r.tekst);
     if (JSON.stringify(oudeGeheimen) !== JSON.stringify(nieuweGeheimen)) {
       const dmStateG = readDmState();
-      _geheimVerwijzingenBij(dmStateG, entities, id, _geheimKaart(oudeGeheimen, nieuweGeheimen));
+      _geheimVerwijzingenBij(dmStateG, entities, id, _geheimKaart(oudeGeheimen, nieuweGeheimen), nieuweRegels);
       storage.writeJSON('dm-state.json', dmStateG);
     }
   }
@@ -1242,13 +1295,22 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
   const dmState  = readDmState();
   const g        = getGroup(dmState);
 
-  const geheimen = _tekstLijst(entity?.data, 'geheimen', 'geheim');
-  const aantal   = Math.max(geheimen.length, 1);
-  const index    = Math.min(Math.max(parseInt(req.body?.index, 10) || 0, 0), aantal - 1);
-  const stand    = _onthuld(g.secretReveals[id], aantal);
-  stand[index]   = !stand[index];
-  g.secretReveals[id] = stand;
+  const regels = _geheimRegels(entity?.data);
+  const aantal = Math.max(regels.length, 1);
+  // Bij voorkeur het regel-id; een index blijft werken voor een oude client.
+  const index  = Math.min(Math.max(parseInt(req.body?.index, 10) || 0, 0), aantal - 1);
+  const gid    = req.body?.gid || regels[index]?.id || ('i' + index);
+  const open   = _onthuldeIds(g.secretReveals[id], regels);
+  if (open.has(gid)) open.delete(gid); else open.add(gid);
 
+  const stand = regels.map(r => open.has(r.id));
+  // Heeft dit kaartje echte regel-ids, dan bewaren we de stand daarop en schuift
+  // er niets meer. Een kaartje dat nog niet om is (kale teksten, dus i0/i1 als
+  // noodid) houdt de oude lijst booleans: die wordt bij het bewerken meegeschoven
+  // en zou als id-lijst juist stilvallen.
+  g.secretReveals[id] = _echteIds(regels)
+    ? Object.fromEntries([...open].map(k => [k, true]))
+    : stand;
   const ietsOnthuld = stand.some(Boolean);
   // Geheime antagonist: hangt per geheim, niet aan het hele kaartje — niet elk
   // geheim is een verraad. Sinds antagonist een rol is, zetten we de rol om en
@@ -8643,7 +8705,9 @@ function _gockCheckReady(dmState, io, campaignId) {
         if (entity) {
           const g = getGroup(dmState);
           if (!g.secretReveals) g.secretReveals = {};
-          g.secretReveals[geval.entityId] = true;
+          // Het rapport onthult het eerste geheim; noteer dat op zijn id.
+          const eerste = _geheimRegels(entity.data)[0];
+          if (eerste) g.secretReveals[geval.entityId] = { [eerste.id]: true };
           if (io) {
             io.to(room).emit('entity:secret', { id: geval.entityId, type: geval.entityType, name: entity.name, secretReveal: true });
             io.to(room).emit('entity:updated', { type: geval.entityType, id: geval.entityId });

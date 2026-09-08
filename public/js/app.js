@@ -1,5 +1,5 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=276';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=250";
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=277';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=251";
 import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=78";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -9531,7 +9531,8 @@ function _gsFragment(e, tokens) {
     // horen niet in een fragment.
     let tekst = String(ruw);
     if (/^\s*\[/.test(tekst)) {
-      try { const arr = JSON.parse(tekst); if (Array.isArray(arr)) tekst = arr.join(' · '); } catch { /* dan de ruwe tekst */ }
+      // Geheimen zijn objecten ({id, tekst}); daar willen we alleen de tekst uit.
+      try { const arr = JSON.parse(tekst); if (Array.isArray(arr)) tekst = arr.map(r => (r && typeof r === 'object' ? r.tekst : r) || '').join(' · '); } catch { /* dan de ruwe tekst */ }
     }
     tekst = tekst.replace(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g, '$1').replace(/[*_`#>]/g, '').replace(/\s+/g, ' ').trim();
     const genormaliseerd = norm(tekst);
