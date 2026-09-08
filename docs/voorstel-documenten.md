@@ -61,38 +61,34 @@ Twee dingen, en alleen die:
 2. **Onthullen schrijft een regel in het logboek** (`archief.logEntries`) en
    speelt de reveal-animatie. Blijft als haak op de zichtbaarheidswissel.
 
-## De koppeling aan een akte hoort bij de akte
+## Een kaartje weet niets van aktes
 
-Op het kaartje staat nu een veld `hoofdstuk`. Dat is een tweede manier om iets
-te zeggen dat al ergens anders staat: het regie-script van een akte kent een
-`entity`-stap met `entityType: 'documenten'`, dus een document is daar al aan te
-wijzen. Het veld gaat weg; de akte blijft de plek waar de koppeling ligt.
+Op het documentkaartje staat een veld `hoofdstuk`. Dat is de enige plek in de
+hele app waar een kaartje een akte noemt:
 
-**Maar let op wat de data zegt** (Grisburgh, 7 sep 2026):
+| kaarttype | kaartjes | met een akte-veld |
+|---|---|---|
+| personages | 168 | 0 |
+| locaties | 99 | 0 |
+| organisaties | 7 | 0 |
+| voorwerpen | 249 | 0 |
+| **documenten** | 31 | **31** |
 
-| | |
-|---|---|
-| documenten | 31 |
-| met een ingevuld `hoofdstuk`-veld | 31 |
-| als stap in een aktescript | 3 |
-| beide ingevuld en het eens | 2 |
-| beide ingevuld en **oneens** | 1 |
-| alleen het veld | 28 |
+De regel geldt dus al overal; het document is de uitzondering. Die gaat eraf.
+Een kaartje beschrijft wát iets is, niet wanneer het in het verhaal voorkomt —
+daar zijn de aktevorm, de akteregie en straks de verhaaltekst per akte voor,
+waarin de DM het gewoon leest.
 
-Precies het probleem van twee waarheden: ze zijn het in één geval al oneens, en
-de kant die de DM in de praktijk invult is het veld, niet het script. Zomaar het
-veld schrappen kost dus 28 documenten hun akte, en het Logboek zijn groepering.
+Dat betekent niet dat een akte geen kaartjes mag noemen. Andersom mag prima, en
+gebeurt al: het regie-script kent een `entity`-stap met
+`entityType: 'documenten'`, dus een document is daar al aan te wijzen. Wat er
+bij komt is een lijst **`meta.hoofdstukken[key].documenten`** (id's) voor "deze
+documenten horen bij deze akte", te beheren vanuit de akte-editor. Het Logboek
+groepeert daarop; het script blijft het onthulmoment tijdens het spelen.
 
-Het zijn ook niet helemáál dezelfde vraag. Het script zegt *wanneer* iets
-onthuld wordt — een volgorde. Het veld zegt *waar het bij hoort* — een
-indeling. Allebei horen ze bij de akte, geen van beide bij het kaartje.
-
-**Voorstel:** de akte krijgt naast zijn script een lijst
-`meta.hoofdstukken[key].documenten` (id's), gevuld door de migratie uit de
-huidige 31 `hoofdstuk`-waarden en te beheren vanuit de akte-editor. Het Logboek
-groepeert daarop. Het script blijft doen wat het doet: het onthulmoment tijdens
-het spelen. Eén plek — de akte — met twee vragen die eerlijk verschillen, en het
-kaartje zelf is er niets meer van kwijt.
+De migratie vult die lijst uit de 31 bestaande `hoofdstuk`-waarden, dus er gaat
+niets verloren — en de discrepantie die er nu is (één document waarvan het veld
+en het script een andere akte noemen) lossen we in die stap op.
 
 ## Wat we onderweg zouden opruimen
 

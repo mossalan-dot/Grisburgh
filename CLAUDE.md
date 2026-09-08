@@ -1108,6 +1108,22 @@ Veld: `entity.data.rariteit` (NL of EN, genormaliseerd via `_rarityKey()` in ren
 
 ---
 
+## Kaartjes zijn agnostisch
+
+Een kaartje beschrijft **wát iets is**, niet wanneer het in het verhaal
+voorkomt. Er staat dus geen akte, geen hoofdstuk en geen sessienummer op een
+personage, locatie, organisatie of voorwerp — en dat hoort ook niet te
+gebeuren. Waar iets in het verhaal thuishoort staat aan de **akte**-kant: de
+aktevorm, het regie-script (`meta.hoofdstukken[key].script`) en de verhaaltekst
+per akte. Andersom mag wél: een akte noemt kaartjes.
+
+Waarom dit een regel is en geen smaak: zodra het aan twee kanten staat lopen ze
+uiteen. Bij de documenten gebeurde dat ook — 31 van de 31 hadden een
+`hoofdstuk`-veld, 3 stonden in een aktescript, en in één geval noemden die twee
+een andere akte. Zie `docs/voorstel-documenten.md`.
+
+---
+
 ## Wat een voorwerp is, en wat het doet
 
 `data.itemType` zegt wát het is (badge, icoon, winkelindeling); `data.werking`
