@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=44';
 import { renderBestiarium } from './render-bestiarium.js?v=22';
-import { renderSpreuken } from './render-spreuken.js?v=27';
+import { renderSpreuken } from './render-spreuken.js?v=28';
 import { renderStatblock } from './render-statblock.js?v=4';
 import { initSocket } from "./socket-client.js?v=66";
 import { initDmPanel } from "./dm-panel.js?v=208";
@@ -4092,7 +4092,7 @@ window._sbToggleHigher = function(checked) {
     if (!spell?.higher_level) { el.style.display = 'none'; return; }
     const lvl = _sbState.castSlotLevel;
     el.innerHTML = (lvl && lvl > spell.level)
-      ? `<strong>Op slotniveau ${lvl}:</strong> ${_spellMd(spell.higher_level)}`
+      ? `<strong>Op Spell Slot level ${lvl}:</strong> ${_spellMd(spell.higher_level)}`
       : _spellMd(spell.higher_level);
     el.style.display = '';
   } else {
@@ -5067,7 +5067,7 @@ function _sbRender() {
         }</div>` : ''}
         ${hasHigher ? `<label class="sb-higher-toggle">
           <input type="checkbox" id="sb-higher-check" onchange="window._sbToggleHigher(this.checked)">
-          <span>Op hoger slotniveau</span>
+          <span>Op een hoger Spell Slot level</span>
         </label>
         <div class="sb-slot-higher" id="sb-slot-higher" style="display:none">${higherText}</div>` : ''}
         ${(badges || metaRows.length) ? '<div class="sb-divider"></div>' : ''}
@@ -9111,7 +9111,7 @@ async function renderMijnKarakter(opts = {}) {
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>');
       const desc   = (s.desc || []).map(_md2).join('<br><br>');
-      const higher = s.higher_level?.length ? `<p class="mt-2"><strong>Op hogere niveaus:</strong> ${s.higher_level.join(' ')}</p>` : '';
+      const higher = s.higher_level?.length ? `<p class="mt-2"><strong>At Higher Levels:</strong> ${s.higher_level.join(' ')}</p>` : '';
       window.app.openModal(
         s.name,
         `${levelStr} · ${schoolNl} · ${s.casting_time || ''} · Range: ${s.range || ''}`,
@@ -12143,7 +12143,7 @@ const HELP_CONFIG = {
       },
       {
         titel: 'Waar is het dan goed voor?',
-        tekst: 'Om op te zoeken wat een spreuk van een tegenstander doet, om te kijken wat je bij een volgend level zou kunnen leren, of om een scroll of staf op te zoeken die je gevonden hebt. Filter op klasse, niveau of school, of zoek op naam.',
+        tekst: 'Om op te zoeken wat een spreuk van een tegenstander doet, om te kijken wat je bij een volgend level zou kunnen leren, of om een scroll of staf op te zoeken die je gevonden hebt. Filter op class, level of school, of zoek op naam.',
         afbeelding: null,
       },
       {
@@ -12382,7 +12382,7 @@ Object.assign(HELP_CONFIG, {
   dm_spreuken: () => ({
     titel: 'Spreukenbibliotheek',
     stappen: [
-      { titel: 'Spreuken beheren', tekst: 'Zoek en bekijk spreukbeschrijvingen. Filter op niveau, klasse, **Ritual** of **Concentration**; de acht scholen zitten achter het trechtertje.', afbeelding: null },
+      { titel: 'Spreuken beheren', tekst: 'Zoek en bekijk spreukbeschrijvingen. Filter op level, class, **Ritual** of **Concentration**; de acht scholen zitten achter het trechtertje.', afbeelding: null },
       { titel: 'Spellbron', tekst: 'De spellbron (2014 of 2024 PHB) stel je in via de campagne-instellingen. Dit bepaalt welke spreuklijst getoond wordt.', afbeelding: null },
       { titel: 'Eigen spreuk schrijven', tekst: 'Met de **+** in de kop maak je een spreuk die alleen in deze campagne bestaat. **Alleen de naam is verplicht** — al het andere vul je in wat je nodig hebt. Vink je geen klasse aan, dan hoort de spreuk bij niemand in het bijzonder en valt hij buiten het filter *Alleen mijn klasse* van een speler. Eigen spreuken herken je aan de tag **Eigen**; bewerken en verwijderen gaat via de spreuk zelf.', afbeelding: null },
       { titel: 'Wie kent deze spreuk?', tekst: 'Onder in een spreuk staat welke personages hem in hun boek hebben, uit welke party ze komen en of hij *prepared* staat — handig als je je afvraagt wie er kan tegenspreken.', afbeelding: null },

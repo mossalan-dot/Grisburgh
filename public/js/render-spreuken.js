@@ -489,7 +489,7 @@ function _eigFormHtml(s) {
       <div class="spreuk-eig-raster">
         ${_eigVeld('Naam', 'eig-name', s?.name, 'Vloek van de Vlasbaard', true)}
         <label class="spreuk-eig-veld">
-          <span class="spreuk-eig-lbl">Niveau</span>
+          <span class="spreuk-eig-lbl">Level</span>
           <select id="eig-level">
             ${[0,1,2,3,4,5,6,7,8,9].map(i => `<option value="${i}"${Number(s?.level) === i ? ' selected' : ''}>${i === 0 ? 'Cantrip' : `Level ${i}`}</option>`).join('')}
           </select>
