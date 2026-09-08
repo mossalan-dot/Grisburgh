@@ -649,6 +649,22 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > naam wijst, krijgt een verborgen regel een vaste schuilnaam die ook in de
 > chef-velden wordt teruggeschreven — anders valt de tak eronder van de boom.
 
+> **Vaag is vaag, ook in het bestand.** Een vaag kaartje (`visibility: 'vague'`)
+> en een vaag document (`docVisibility: 'blurred'`) werden alleen met opmaak
+> verstopt: een donkere laag met `backdrop-filter: blur(3px)` over het portret,
+> een `blur-sm` over de documentbeschrijving. Het origineel stond gewoon op
+> `/api/thumb/<id>` en de beschrijving in de netwerktab — en de documentzoeker
+> vond een document op een woord dat de speler niet mocht lezen. Nu beslist de
+> server: `_waasVoor(req, id)` in `routes/api.js` kijkt of dit bestand bij een
+> vaag kaartje of document van *deze party* hoort, `_waasBestand()` maakt met
+> sharp een onomkeerbare waas (eerst naar 40px, dan blurren en weer opschalen —
+> een CSS-blur is terug te draaien, dit niet) en cachet die als
+> `thumbs/<id>.waas.webp`. Een pdf of geluidsfragment valt niet te vervagen en
+> gaat er dus helemaal niet uit (403). `filterDocForPlayer` haalt `desc` eraf.
+> De set bestanden per party wordt gecachet op de mtime van entities.json,
+> archief.json en dm-state.json samen (`_waasStand()`), inclusief de geparste
+> dm-state — anders parseert één kaartjespagina die 250 kB veertig keer.
+
 > **Formulieren blijven schoon.** Uitleg hoort in de hulptekst (het boekje
 > rechts in de tabbalk, sleutels `hulp_kijk_*` en `hulp_bewerk_*`), niet als
 > grijze regel onder een veld.

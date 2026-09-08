@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=277';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=251";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=79";
+import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=80";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=44';
 import { renderBestiarium } from './render-bestiarium.js?v=22';
 import { renderSpreuken } from './render-spreuken.js?v=18';
 import { renderStatblock } from './render-statblock.js?v=4';
-import { initSocket } from "./socket-client.js?v=64";
+import { initSocket } from "./socket-client.js?v=65";
 import { initDmPanel } from "./dm-panel.js?v=207";
 import './media-picker.js?v=8';
 

@@ -2696,10 +2696,10 @@ function renderDocCardCompact(d) {
   return `
     <div class="flex items-center gap-2 w-44 shrink-0 bg-room-elevated border border-room-border rounded-lg overflow-hidden cursor-pointer hover:border-room-border-light transition${dimmed ? ' opacity-60' : ''}"
       onclick="window._openDoc('${d.id}')">
-      <img class="w-10 h-12 object-cover shrink-0${isBlurred ? ' blur-sm' : ''}"
+      <img class="w-10 h-12 object-cover shrink-0"
         src="${api.fileForEntity(d)}" onerror="this.style.display='none'">
       <div class="min-w-0 flex-1 py-1.5 pr-2">
-        <div class="text-[11px] font-cinzel font-semibold text-ink-bright leading-tight truncate${isBlurred ? ' blur-sm select-none' : ''}">${esc(d.name)}</div>
+        <div class="text-[11px] font-cinzel font-semibold text-ink-bright leading-tight truncate">${esc(d.name)}</div>
         ${d.type ? `<div class="text-[10px] text-ink-faint italic mt-0.5">${esc(d.type)}</div>` : ''}
       </div>
       ${dimmed ? `<div class="text-[11px] pr-1.5 shrink-0 text-ink-faint"
@@ -2738,7 +2738,7 @@ function renderDocCard(d) {
       })() : ''}
       <div class="card-accent bar-documenten"></div>
       <div class="card-img-wrap">
-        <img class="card-img w-full object-cover${isBlurred ? ' blur-lg select-none pointer-events-none' : ''}"
+        <img class="card-img w-full object-cover"
           loading="lazy" src="${api.thumbForEntity(d)}"
           onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
         <div class="card-img-fade"></div>
@@ -2814,8 +2814,10 @@ window._openDoc = async (id) => {
   body += `<div class="mb-4" id="doc-file-container-${d.id}"></div>`;
 
   // ── Perkament tekst ──
+  // De server stuurt de perkamenttekst alleen bij 'revealed' mee, dus bij een
+  // vaag document is `tekst` hier gewoon leeg.
   if (tekst) {
-    body += `<div class="parchment-block mb-4 ${isBlurred ? 'blur-md select-none pointer-events-none' : ''}">${renderParchment(tekst)}</div>`;
+    body += `<div class="parchment-block mb-4">${renderParchment(tekst)}</div>`;
   }
 
   // ── DM controls (onderaan) ──
@@ -2848,18 +2850,22 @@ window._openDoc = async (id) => {
   // Laad bestand asynchroon in container
   const fileContainer = document.getElementById(`doc-file-container-${d.id}`);
   if (fileContainer) {
+    // Bij een vaag document hoeven we niets op te halen: de server geeft het
+    // bestand toch niet vrij (een pdf of geluidsfragment is de inhoud), en de
+    // afbeelding staat al vervaagd in de hero. Eén slot, geen tweede plaatje.
+    if (isBlurred) {
+      fileContainer.innerHTML = `<div class="rounded bg-room-elevated p-8 text-center">
+        <div class="text-4xl mb-2 opacity-30">${icon('lock')}</div>
+        <div class="text-ink-faint text-sm italic">Document nog niet volledig onthuld</div>
+      </div>`;
+      return;
+    }
     try {
       const headRes = await fetch(fileUrl, { method: 'HEAD' });
       if (!headRes.ok) { fileContainer.style.display = 'none'; }
       else {
         const ct = headRes.headers.get('content-type') || '';
-        if (isBlurred) {
-          if (ct.includes('image')) {
-            fileContainer.innerHTML = `<img src="${fileUrl}" class="w-full max-h-80 object-contain rounded blur-xl select-none pointer-events-none">`;
-          } else {
-            fileContainer.innerHTML = `<div class="rounded bg-room-elevated p-8 text-center select-none"><div class="text-4xl mb-2 opacity-30">${icon('lock')}</div><div class="text-ink-faint text-sm italic">Document nog niet volledig onthuld</div></div>`;
-          }
-        } else if (ct.includes('audio')) {
+        if (ct.includes('audio')) {
           fileContainer.innerHTML = `<div class="bg-room-elevated rounded-lg p-4">
             <div class="detail-label mb-2">${icon('volume-2')} Geluidsfragment</div>
             <audio controls class="w-full" src="${fileUrl}"></audio>

@@ -97,6 +97,93 @@ function _magBestandZien(req, id) {
   return _isLandingsPortret(id);
 }
 
+// ── Vaag is vaag, ook in het bestand ─────────────────────────────────────────
+// Een vaag kaartje kreeg een donkere laag met `backdrop-filter: blur(3px)` over
+// het portret, en een vaag document een `blur-sm` over zijn afbeelding. Dat is
+// opmaak: het origineel stond gewoon op `/api/thumb/<id>` en was met één klik in
+// de netwerktab te bekijken. De server maakt daarom zelf een vervaagde variant,
+// en wat hij niet mag laten zien stuurt hij niet mee.
+//
+// De waas is onomkeerbaar: eerst kleiner maken (de details zijn dan echt weg),
+// dan pas blurren en weer opschalen. Een CSS-blur terugdraaien kan; dit niet.
+const _WAAS_KLEIN = 40;
+
+// Welke bestanden moeten voor deze party vervaagd worden? Dat hangt aan de
+// zichtbaarheid, dus rekenen we het één keer uit per stand van de drie
+// bestanden waar het uit volgt — een kaartjespagina vraagt anders veertig keer
+// dezelfde 800 kB opnieuw op.
+const _waasCache = new Map();   // datadir → { stempel, dmState, perGroep: Map(gid → Set) }
+
+// Eén stand van de drie bestanden = één cache. Zo wordt dm-state.json (een kwart
+// megabyte) niet veertig keer per kaartjespagina opnieuw geparsed.
+function _waasStand() {
+  const dir = storage.DATA_DIR;
+  const stempel = ['entities.json', 'archief.json', 'dm-state.json'].map(n => {
+    try { return fs.statSync(path.join(dir, n)).mtimeMs; } catch { return 0; }
+  }).join('|');
+  let c = _waasCache.get(dir);
+  if (!c || c.stempel !== stempel) {
+    c = { stempel, dmState: readDmState(), perGroep: new Map() };
+    _waasCache.set(dir, c);
+  }
+  return c;
+}
+
+function _waasBestanden(groupId) {
+  const c = _waasStand();
+  if (c.perGroep.has(groupId)) return c.perGroep.get(groupId);
+
+  const set = new Set();
+  const dmState = c.dmState;
+  const g = getGroup(dmState, groupId);
+  const entities = storage.readJSON('entities.json');
+  // Beide ids erin: een kaartje kan zijn beeld onder een eigen `imageId` hebben
+  // óf onder zijn eigen id, en een vaag kaartje krijgt zijn data leeg mee — dan
+  // vraagt de kaartweergave om het kaartje-id.
+  for (const t of ENTITY_TYPES) {
+    for (const e of (entities[t] || [])) {
+      if ((g?.visibility?.[e.id] || 'hidden') !== 'vague') continue;
+      set.add(e.id);
+      if (e.data?.imageId) set.add(e.data.imageId);
+    }
+  }
+  const archief = storage.readJSON('archief.json');
+  for (const d of (archief.documents || [])) {
+    const stand = (g?.docVisibility && d.id in g.docVisibility)
+      ? g.docVisibility[d.id]
+      : (dmState.docStates?.[d.id] || 'hidden');
+    if (stand !== 'blurred') continue;
+    set.add(d.id);
+    if (d.imageId) set.add(d.imageId);
+  }
+  c.perGroep.set(groupId, set);
+  return set;
+}
+
+// De DM ziet alles scherp; een tafelscherm is de DM, dus die ook.
+function _waasVoor(req, id) {
+  if (req.role === 'dm' || !req.session?.characterId) return false;
+  const gid = _playerGroupId(_waasStand().dmState, req.session.characterId);
+  // `<id>_video` hoort bij hetzelfde kaartje; een filmpje kunnen we niet
+  // vervagen (geen ffmpeg), dus dat valt verderop gewoon weg.
+  return _waasBestanden(gid).has(String(id).replace(/_video$/, ''));
+}
+
+// Maakt (of hergebruikt) de vervaagde variant en geeft het pad terug.
+async function _waasBestand(id, bronPad) {
+  const thumbDir = path.join(storage.DATA_DIR, 'thumbs');
+  const doel = path.join(thumbDir, `${id}.waas.webp`);
+  if (!fs.existsSync(doel)) {
+    fs.mkdirSync(thumbDir, { recursive: true });
+    const klein = await _sharp(bronPad)
+      .resize(_WAAS_KLEIN, null, { withoutEnlargement: false })
+      .blur(3)
+      .toBuffer();
+    await _sharp(klein).resize(600, null).blur(12).webp({ quality: 70 }).toFile(doel);
+  }
+  return doel;
+}
+
 // ── Thumbnail-cache ──
 // Genereert bij eerste aanvraag een 600px-brede WebP en slaat die op in
 // data/campaigns/<id>/thumbs/. Daarna wordt de gecachte versie direct geserveerd.
@@ -104,6 +191,15 @@ router.get('/thumb/:id', attachRole, async (req, res) => {
   if (!_magBestandZien(req, req.params.id)) return res.status(401).json({ error: 'Niet ingelogd' });
   const file = storage.getFile(req.params.id);
   if (!file) return res.status(404).end();
+
+  // Vaag kaartje of vaag document: een echte waas in plaats van het origineel.
+  if (_sharp && (file.mimetype || '').startsWith('image/') && _waasVoor(req, req.params.id)) {
+    try {
+      const pad = await _waasBestand(req.params.id, file.path);
+      res.setHeader('Cache-Control', 'private, max-age=60');
+      return res.type('image/webp').sendFile(pad);
+    } catch { return res.status(404).end(); }
+  }
 
   const mime = file.mimetype || '';
   const isResizeable = mime.startsWith('image/') && mime !== 'image/svg+xml' && mime !== 'image/gif';
@@ -5792,10 +5888,23 @@ router.post('/files/:id', requireDM, uploadMedia.single('file'), async (req, res
   res.json({ filename });
 });
 
-router.get('/files/:id', attachRole, (req, res) => {
+router.get('/files/:id', attachRole, async (req, res) => {
   if (!_magBestandZien(req, req.params.id)) return res.status(401).json({ error: 'Niet ingelogd' });
   const file = storage.getFile(req.params.id);
   if (!file) return res.status(404).json({ error: 'Niet gevonden' });
+  // Hoort het bij een vaag kaartje of document, dan gaat het origineel er niet
+  // uit: een afbeelding wordt de vervaagde variant, en een pdf of geluidsbestand
+  // valt helemaal weg — daar is geen waas voor, en het ís de inhoud.
+  if (_waasVoor(req, req.params.id)) {
+    if (!_sharp || !(file.mimetype || '').startsWith('image/')) {
+      return res.status(403).json({ error: 'Nog niet onthuld' });
+    }
+    try {
+      const pad = await _waasBestand(req.params.id, file.path);
+      res.setHeader('Cache-Control', 'private, max-age=60');
+      return res.type('image/webp').sendFile(pad);
+    } catch { return res.status(404).json({ error: 'Niet gevonden' }); }
+  }
   res.type(file.mimetype).sendFile(file.path);
 });
 
