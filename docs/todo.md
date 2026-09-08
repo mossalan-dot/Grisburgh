@@ -236,8 +236,25 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
 
 - [x] **Standaard-statblokken voor NPC's (presets).** Gedaan op 8 sep 2026: de
       SRD 5.2 wordt meegeleverd (`bronnen/srd-monsters.json`, 331 wezens waarvan
-      26 generieke NPC's) en vult een kaartje, een tier of een monster. Wat nog
-      open staat: de **acht overgebleven losse bibliotheekmonsters**
-      (Maenfortmatroos, Wervelingpiraat, Kaptein Haringh, Duergar,
-      Gereanimeerde stadswacht…) opruimen — dat zijn troepen die je nu net zo
-      goed uit de SRD haalt, of houden als eigen variant met een eigen naam.
+      26 generieke NPC's) en vult een kaartje, een tier of een monster. De acht overgebleven
+      losse bibliotheekmonsters zijn nagelopen: het bleken geen wegwerpregels
+      maar troepen met een campagnenaam, waarvan er vijf in encounters zitten.
+      Ze zijn dus blijven staan; wat wél weg moest was de rommel van de oude
+      importer (zie `scripts/monster-opschonen.js`).
+
+
+- [ ] **Twee vragen die uit het opschonen kwamen** (8 sep 2026, `monster-opschonen.js`
+      meldt ze elke keer opnieuw):
+      **Xerxes en Sarabi** heeft `maxHp 4` terwijl de worp `4d10+4` gemiddeld 26
+      geeft — in een gevecht valt hij dus meteen om. Het hp-veld is met rust
+      gelaten tot iemand weet welk getal klopt.
+      **Kaptein Haringh** heeft exact het statblok van de Wervelingbootsman, en
+      staat in geen enkele encounter. Een kapitein die precies zijn bootsman is,
+      is waarschijnlijk een kopie die nog bijgesteld moest worden.
+      Idem, maar wél bedoeld: Maenfortmatroos = Wervelingpiraat (twee facties,
+      dezelfde troep).
+
+- [ ] **Roos?** — een volledig uitgewerkt spellcaster-statblok in de
+      monsterbibliotheek, met een vraagteken in de naam, zonder kaartje, zonder
+      beschrijving en zonder encounter. Ofwel er hoort een personage-kaartje bij
+      (zoals de elf andere NPC's er een kregen), ofwel het is een restant.

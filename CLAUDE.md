@@ -734,6 +734,21 @@ Monsters; het tabblad linkt erheen.
 > zet het in een modal die de naam al toont, en gaf dus twee keer
 > "Wolf / Medium Beast Unaligned" onder elkaar — vandaar `kop: false`.
 
+> **De sporen van de oude importer zijn opgeruimd.** `node scripts/monster-opschonen.js
+> <campagne> --schrijf` haalt vier dingen weg die de live SRD-import (2014)
+> achterliet en die nergens anders in de app voorkomen: `speed: "walk 30 ft."`
+> (de sleutel voor de waarde geplakt), `ac: "12 (armor)"` (een invulwoord),
+> `cr: "0.125"` in plaats van `1/8`, en een `hp`-veld met alleen de worp of
+> helemaal leeg terwijl het gemiddelde in `maxHp` staat. Gedraaid 8 sep 2026:
+> grisburgh 48 velden, Test 4; kopie ernaast als
+> `monsters.voor-opschonen.<datum>.json`.
+> Het script raakt **geen** namen, beschrijvingen, traits, actions of HP-totalen
+> aan en gooit nooit iets weg. Twee wezens met hetzelfde statblok onder een
+> andere naam (Maenfortmatroos = Wervelingpiraat) worden gemeld, niet
+> samengevoegd — dat zijn twee facties, geen fout. En past `maxHp` niet bij de
+> worp (Xerxes en Sarabi: 4 tegen gemiddeld 26), dan blijft het hp-veld met rust
+> en komt er een melding: anders zet je het vermoedelijk foute getal juist vast.
+
 > **Creature types en alignments zijn D&D-termen.** In `monsters.json` stonden
 > zestien schrijfwijzen voor tien types ("Beest" naast "beast" en "Beast",
 > "ongebonden" naast "unaligned"), waardoor filteren onmogelijk was én de
