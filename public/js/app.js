@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=278';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=279';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=265";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=81";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=44';
 import { renderBestiarium } from './render-bestiarium.js?v=22';
-import { renderSpreuken } from './render-spreuken.js?v=20';
+import { renderSpreuken } from './render-spreuken.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=4';
 import { initSocket } from "./socket-client.js?v=66";
 import { initDmPanel } from "./dm-panel.js?v=208";
@@ -9877,7 +9877,10 @@ async function init() {
 
   renderParty();
   const hashSection   = location.hash.replace('#', '');
-  const validSections = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'logboek', 'kaart', 'mijn-karakter'];
+  // Alles wat een eigen tabblad heeft mag ook een adres hebben. Spreuken,
+  // bestiarium en relatiemap ontbraken: wie #spreuken opende (of de pagina daar
+  // herlaadde) belandde op Personages.
+  const validSections = [...ARCHIEF_SECTIONS, 'logboek', 'kaart', 'mijn-karakter'];
   const startSection  = validSections.includes(hashSection) ? hashSection : 'personages';
   // Wacht op de entity-index zodat wikilinks al bij de eerste render werken
   await (window._entityIndexReady || Promise.resolve());

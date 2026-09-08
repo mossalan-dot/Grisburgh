@@ -531,6 +531,55 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 
 ---
 
+## Spreuken
+
+De bibliotheek is een **naslagwerk**: alle spreuken die er bestaan, niet die van
+de speler. Zijn eigen boek staat in het spelerstabblad. Drie bronnen lopen samen
+in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
+
+1. `bronnen/spells-2024.json` (539 regels, waarvan 22 zonder school — dat zijn
+   magische voorwerpen en die vallen weg), of `hp-spells.json` in een
+   Wands & Wizards-campagne;
+2. `bronnen/extra-spells.json` — meegeleverde aanvullingen (Silvery Barbs, …);
+3. `GET /spreuken/eigen` — wat **deze campagne** zelf verzon.
+
+> **Een eigen spreuk hoort in de campagne, niet in de broncode.** Homebrew ging
+> via het met de hand bijwerken van `bronnen/extra-spells.json` op de server, en
+> dat is gedeelde broncode: wat de ene campagne verzint kregen alle andere erbij.
+> Nu staat hij in `spells.json` → `eigenSpreuken[]`, in **exact het formaat van
+> de bron** (`index`, `name`, `level`, `school`, `classes[{name}]`,
+> `casting_time`, `range`, `components[V/S/M]`, `material`, `duration`,
+> `ritual`, `concentration`, `damage`, `desc[]`, `higher_level[]`, `source`).
+> Daardoor hoeven kaartje, detailvenster, spreukenboek en zoeken er niets van te
+> weten. Alleen de naam is verplicht; wat leeg blijft laat `_spreukUitBody()`
+> weg. Het id is `eigen-<slug>`, met een teller bij een dubbele naam.
+> Routes: `GET /spreuken/eigen` (elke ingelogde), `POST`/`PUT`/`DELETE`
+> (DM-only). Een eigen spreuk krijgt de tag **Eigen** op zijn kaartje en heeft
+> geen overschrijf-tekstvak — die is er voor bróntekst.
+>
+> **Let op de schoolnamen.** De tien spreuken in `extra-spells.json` stonden in
+> het Nederlands (*Betovering*, *Bezwering*, *Evoking*), tegen de
+> terminologie-afspraak in — en het schoolfilter kreeg er daardoor zes verzonnen
+> scholen bij. Een school is een van de acht PHB-termen; de server bewaakt dat
+> voor eigen spreuken (`_SPREUK_SCHOLEN`).
+
+> **Wie kent deze spreuk?** `GET /spells/:index/wie` (DM-only) loopt
+> `dmState.playerSpells` langs en geeft per speler naam, party, prepared en of
+> er nú op geconcentreerd wordt. Zelfde vraag en zelfde reden als
+> `GET /items/:id/bezit` bij een voorwerp: de administratie staat per speler, dus
+> zonder deze route moet de DM elk spelersboek los openen. Kijkt over álle
+> party's heen — een spreuk hoort bij een personage, niet bij een groep.
+
+> **Zoeken werkt hier net als op de kaartjes-tabbladen** (`_score` in
+> `render-spreuken.js`): dezelfde drie bakken (naam / korte velden / tekst) en
+> dezelfde scores, met de relevantie als volgorde zolang je zoekt. Filteren gaat
+> op niveau, school, klasse (of "alleen mijn klasse" voor een speler), ritual en
+> concentration. De filterbalk staat hier **bewust permanent open** in plaats van
+> achter een trechterknop: zoeken en filteren is in een bibliotheek van 500+
+> spreuken de normale handeling, niet de uitzondering.
+
+---
+
 ## Voorwerpen
 
 - **Types staan in groepen** (`ITEM_TYPE_GROEPEN` in `render-campagne.js`), zelfde

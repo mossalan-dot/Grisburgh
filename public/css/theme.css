@@ -24084,3 +24084,73 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 
 /* Afgekapte statwaarde: het hele antwoord staat in de tooltip. */
 .spreuk-stat-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Ritual/Concentration staan naast de scholen maar zijn geen school: eigen
+   accent, zodat de rij niet leest als tien scholen. */
+.spreuk-eig-btn { --school-c2: #7a5a20; margin-left: 2px; }
+.spreuk-eig-btn:first-of-type { margin-left: 10px; }
+
+/* ── Eigen spreuk: markering, editor en "wie kent hem" ───────────────────── */
+.spreuk-tag--eigen { background: rgba(122,90,32,0.14); border-color: rgba(122,90,32,0.4); color: #6a4a10; }
+
+.spreuk-dm-knoppen { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.spreuk-dm-knoppen .spreuk-detail-imgbtn { margin: 0; }
+.spreuk-btn-weg { border-color: rgba(139,42,42,0.4); color: #8b2a2a; }
+.spreuk-btn-weg:hover { background: rgba(139,42,42,0.1); }
+
+.spreuk-wie { margin: 10px 0 4px; }
+.spreuk-wie-kop {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600;
+  letter-spacing: .05em; color: #6a5230; margin-bottom: 5px;
+}
+.spreuk-wie-kop svg { width: 13px; height: 13px; }
+.spreuk-wie-leeg { font-family: 'Crimson Text', serif; font-style: italic; font-size: 13px; color: #7a6040; }
+.spreuk-wie-rijen { display: flex; flex-wrap: wrap; gap: 6px; }
+.spreuk-wie-rij {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: 999px;
+  background: rgba(255,255,255,0.55); border: 1px solid rgba(122,96,64,0.28);
+}
+.spreuk-wie-naam  { font-family: 'Cinzel', serif; font-size: 11px; color: #2a1a08; }
+.spreuk-wie-groep { font-family: 'Crimson Text', serif; font-size: 11px; font-style: italic; color: #7a6040; }
+.spreuk-wie-merk {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-family: 'Crimson Text', serif; font-size: 10px; letter-spacing: .03em;
+  padding: 1px 6px; border-radius: 999px;
+  background: rgba(122,90,32,0.14); color: #6a4a10;
+}
+.spreuk-wie-merk--conc { background: rgba(90,58,122,0.14); color: #5a3a7a; }
+.spreuk-wie-merk svg { width: 10px; height: 10px; }
+
+.spreuk-eig-form { max-width: 720px; }
+.spreuk-eig-raster {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px 14px; margin-top: 12px;
+}
+.spreuk-eig-veld { display: flex; flex-direction: column; gap: 4px; }
+.spreuk-eig-veld--breed { grid-column: 1 / -1; }
+.spreuk-eig-lbl {
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase; color: #7a6040;
+}
+.spreuk-eig-form input[type="text"], .spreuk-eig-form input:not([type]),
+.spreuk-eig-form select, .spreuk-eig-form textarea {
+  width: 100%; padding: 6px 9px;
+  background: rgba(255,255,255,0.6); border: 1px solid rgba(122,96,64,0.32);
+  border-radius: 5px; color: #2a1a08;
+  font-family: 'Crimson Text', serif; font-size: 14px;
+}
+.spreuk-eig-form textarea { font-size: 13px; line-height: 1.55; resize: vertical; }
+.spreuk-eig-form input:focus, .spreuk-eig-form select:focus, .spreuk-eig-form textarea:focus {
+  outline: none; border-color: #c4a87a;
+}
+.spreuk-eig-vinkjes { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.spreuk-eig-vinkjes label {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Crimson Text', serif; font-size: 13px; color: #3a2410; cursor: pointer;
+}
+.spreuk-eig-mat { flex: 1 1 160px; min-width: 140px; }
+.spreuk-eig-hint { font-family: 'Crimson Text', serif; font-style: italic; font-size: 11px; color: #7a6040; margin-top: 3px; }
+.spreuk-eig-knoppen { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+.spreuk-eig-knoppen .spreuk-detail-imgbtn { margin: 0; }

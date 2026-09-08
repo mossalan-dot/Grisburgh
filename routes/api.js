@@ -4575,6 +4575,41 @@ router.get('/player-spells/:characterId', attachRole, (req, res) => {
   res.json((dmState.playerSpells || {})[characterId] || []);
 });
 
+// Wie kent deze spreuk? Dezelfde vraag als "wie heeft dit voorwerp" bij een
+// kaartje (GET /items/:id/bezit), en dezelfde reden: de administratie staat per
+// speler, dus zonder deze route moet de DM elf spelersboeken langslopen. Kijkt
+// over álle party's heen — een spreuk hoort bij een personage, niet bij een groep.
+router.get('/spells/:index/wie', requireDM, (req, res) => {
+  const index    = String(req.params.index);
+  const dmState  = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const naam = {};
+  for (const e of (entities.personages || [])) naam[e.id] = e.name;
+
+  const groepVan = {};
+  for (const [gid, g] of Object.entries(dmState.groups || {})) {
+    groepVan[gid] = g.name || gid;
+  }
+
+  const uit = [];
+  for (const [charId, lijst] of Object.entries(dmState.playerSpells || {})) {
+    const s = (lijst || []).find(x => x.index === index);
+    if (!s) continue;
+    const ent = (entities.personages || []).find(e => e.id === charId);
+    uit.push({
+      characterId: charId,
+      naam:  naam[charId] || 'Onbekend personage',
+      groep: groepVan[ent?.data?.groep] || '',
+      prepared: !!s.prepared,
+      alwaysPrepared: !!s.alwaysPrepared,
+      // Een spreuk die nú actief is met concentratie — handig tijdens een gevecht.
+      concentratie: !!s.concentrationActive,
+    });
+  }
+  uit.sort((a, b) => String(a.naam).localeCompare(String(b.naam), 'nl'));
+  res.json({ index, spelers: uit });
+});
+
 router.post('/player-spells/:characterId', attachRole, (req, res) => {
   const { characterId } = req.params;
   if (req.role !== 'dm' && req.session.characterId !== characterId)
@@ -5968,6 +6003,103 @@ router.get('/bron/:naam', attachRole, (req, res) => {
   });
   if (!data) return res.status(404).json({ error: 'Onbekende bron' });
   res.json(data);
+});
+
+// ── Eigen spreuken ──────────────────────────────────────────────────────────
+// Homebrew ging tot nu toe via het met de hand bijwerken van
+// `bronnen/extra-spells.json` op de server — dat is gedeelde broncode, dus wat
+// de ene campagne verzint kregen alle andere er ook bij. Een eigen spreuk hoort
+// in de campagne: `spells.json` → `eigenSpreuken[]`, in exact het formaat van de
+// bron, zodat kaartje, detailvenster en spreukenboek er niets van hoeven te weten.
+const _SPREUK_SCHOLEN = ['Abjuration', 'Conjuration', 'Divination', 'Enchantment',
+                         'Evocation', 'Illusion', 'Necromancy', 'Transmutation'];
+const _SPREUK_KLASSEN = ['Artificer', 'Bard', 'Cleric', 'Druid', 'Paladin',
+                         'Ranger', 'Sorcerer', 'Warlock', 'Wizard'];
+
+function _eigenSpreukLijst() {
+  const d = storage.readJSON('spells.json');
+  return Array.isArray(d?.eigenSpreuken) ? d.eigenSpreuken : [];
+}
+
+// Eén plek waar een ingestuurde spreuk in vorm wordt gebracht. Alles is optioneel
+// behalve de naam; wat leeg blijft laten we weg, zodat een kaal kaartje niet vol
+// lege regels komt te staan.
+function _spreukUitBody(body, index) {
+  const tekst = (v, max = 400) => String(v ?? '').trim().slice(0, max);
+  const regels = (v) => (Array.isArray(v) ? v : String(v ?? '').split(/\n\s*\n/))
+    .map(r => String(r).trim()).filter(Boolean).slice(0, 60);
+  const comps = (Array.isArray(body?.components) ? body.components : [])
+    .map(c => String(c).toUpperCase().trim()).filter(c => ['V', 'S', 'M'].includes(c));
+  const school = _SPREUK_SCHOLEN.includes(tekst(body?.school)) ? tekst(body.school) : '';
+  const klassen = (Array.isArray(body?.classes) ? body.classes : [])
+    .map(c => tekst(c.name || c, 40)).filter(c => _SPREUK_KLASSEN.includes(c));
+  const uit = {
+    index,
+    name:  tekst(body?.name, 120),
+    level: Math.min(Math.max(parseInt(body?.level, 10) || 0, 0), 9),
+    school,
+    classes: klassen.map(name => ({ name })),
+    source: 'eigen',
+  };
+  for (const [k, v] of Object.entries({
+    casting_time: tekst(body?.casting_time, 80),
+    range:        tekst(body?.range, 80),
+    duration:     tekst(body?.duration, 80),
+    material:     tekst(body?.material, 300),
+    damage:       tekst(body?.damage, 80),
+  })) if (v) uit[k] = v;
+  if (comps.length) uit.components = comps;
+  if (body?.ritual)        uit.ritual = true;
+  if (body?.concentration) uit.concentration = true;
+  const desc  = regels(body?.desc);
+  const hoger = regels(body?.higher_level);
+  if (desc.length)  uit.desc = desc;
+  if (hoger.length) uit.higher_level = hoger;
+  return uit;
+}
+
+// Iedereen die ingelogd is mag ze zien: een eigen spreuk is gewoon een spreuk.
+router.get('/spreuken/eigen', attachRole, (req, res) => {
+  if (!(req.session?.role === 'dm' || req.session?.characterId)) {
+    return res.status(401).json({ error: 'Niet ingelogd' });
+  }
+  res.json({ results: _eigenSpreukLijst(), scholen: _SPREUK_SCHOLEN, klassen: _SPREUK_KLASSEN });
+});
+
+router.post('/spreuken/eigen', requireDM, (req, res) => {
+  const naam = String(req.body?.name || '').trim();
+  if (!naam) return res.status(400).json({ error: 'Een spreuk heeft een naam nodig' });
+  const d = storage.readJSON('spells.json');
+  if (!Array.isArray(d.eigenSpreuken)) d.eigenSpreuken = [];
+  // Het id volgt uit de naam (zoals in de bron), met een teller als hij bestaat.
+  const basis = naam.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'spreuk';
+  let index = `eigen-${basis}`, n = 2;
+  while (d.eigenSpreuken.some(s => s.index === index)) index = `eigen-${basis}-${n++}`;
+  const spreuk = _spreukUitBody(req.body, index);
+  d.eigenSpreuken.push(spreuk);
+  storage.writeJSON('spells.json', d);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:updated', { index });
+  res.status(201).json(spreuk);
+});
+
+router.put('/spreuken/eigen/:index', requireDM, (req, res) => {
+  const d = storage.readJSON('spells.json');
+  if (!Array.isArray(d.eigenSpreuken)) d.eigenSpreuken = [];
+  const i = d.eigenSpreuken.findIndex(s => s.index === req.params.index);
+  if (i === -1) return res.status(404).json({ error: 'Niet gevonden' });
+  if (!String(req.body?.name || '').trim()) return res.status(400).json({ error: 'Een spreuk heeft een naam nodig' });
+  d.eigenSpreuken[i] = _spreukUitBody(req.body, req.params.index);
+  storage.writeJSON('spells.json', d);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:updated', { index: req.params.index });
+  res.json(d.eigenSpreuken[i]);
+});
+
+router.delete('/spreuken/eigen/:index', requireDM, (req, res) => {
+  const d = storage.readJSON('spells.json');
+  d.eigenSpreuken = (d.eigenSpreuken || []).filter(s => s.index !== req.params.index);
+  storage.writeJSON('spells.json', d);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:updated', { index: req.params.index });
+  res.json({ ok: true });
 });
 
 // De DM schrijft zijn eigen beschrijving bij een spreuk. Leeg = terug naar wat

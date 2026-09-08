@@ -11,7 +11,7 @@
  * met die van het spreukenboek (_SB_SCHOOLS in app.js).
  */
 
-import { api } from './api.js?v=278';
+import { api } from './api.js?v=279';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
@@ -42,7 +42,7 @@ const _CLASS_COL = {
 
 let _all       = null;      // null = nog niet geladen
 let _container = null;
-let _filters   = { q: '', level: null, klasse: null, school: null, mijnKlasse: true };
+let _filters   = { q: '', level: null, klasse: null, school: null, ritual: false, concentratie: false, mijnKlasse: true };
 let _classes   = [];
 let _myBook    = new Set(); // index-set van de spreuken in het eigen spreukenboek (speler)
 let _myClasses = [];        // genormaliseerde EN-klassenamen van de speler
@@ -69,9 +69,13 @@ async function _load() {
   // De aanvullende lijst (Silvery Barbs, Tasha's Caustic Brew, …) hing alleen aan
   // de spreukenkiezer van de speler; in dit naslagwerk bestonden ze niet. Twee
   // plekken die iets anders "alle spreuken" noemen is er één te veel.
-  const [basis, extra] = await Promise.all([lees(url), _isHp() ? [] : lees('/api/bron/extra-spells')]);
+  const [basis, extra, eigen] = await Promise.all([
+    lees(url),
+    _isHp() ? [] : lees('/api/bron/extra-spells'),
+    lees('/api/spreuken/eigen'),          // wat deze campagne zelf verzon
+  ]);
   const gezien = new Set(basis.map(s => s.index));
-  const raw = [...basis, ...extra.filter(s => !gezien.has(s.index))];
+  const raw = [...basis, ...extra.filter(s => !gezien.has(s.index)), ...eigen];
   // Alleen echte spreuken: niet-spell-entries (magische voorwerpen) hebben een lege school.
   _all = raw.filter(s => _school(s));
   const set = new Set();
@@ -158,6 +162,8 @@ function _filtered() {
     }
     if (_filters.level !== null && Number(s.level) !== Number(_filters.level)) return false;
     if (_filters.school && _school(s) !== _filters.school) return false;
+    if (_filters.ritual       && !s.ritual)        return false;
+    if (_filters.concentratie && !s.concentration) return false;
     if (useMine) {
       if (!_myClasses.some(cEN => _matchClass(s, cEN))) return false;
     } else if (_filters.klasse && !_classNames(s).some(n => n === _filters.klasse)) {
@@ -186,6 +192,7 @@ function _card(s) {
   const col    = _schoolCol(school);
   const focus  = _focus(s);
   const markers = [
+    s.source === 'eigen' ? `<span class="spreuk-tag spreuk-tag--eigen" title="Eigen spreuk van deze campagne">${icon('sparkles')} Eigen</span>` : '',
     s.ritual        ? `<span class="spreuk-tag" title="Ritual">${icon('scroll-text')} Ritual</span>` : '',
     s.concentration ? `<span class="spreuk-tag" title="Concentration">${icon('eye')} Concentration</span>` : '',
   ].filter(Boolean).join('');
@@ -250,12 +257,20 @@ function _filterBar() {
           style="--school-c2:${c.c2}" onclick="window.spreuken.setSchool('${esc(sc)}')">${icon(c.icon)} ${esc(sc)}</button>`;
       }).join('')}
     </div>` : '';
+  // Ritual en concentration stonden al als tag op het kaartje, maar je kon er
+  // niet op filteren — terwijl "welke van mijn spreuken kosten concentratie?"
+  // een vraag is die je aan tafel stelt.
+  const eigenschappen = `
+    <button class="spreuk-school-btn spreuk-eig-btn${_filters.ritual ? ' active' : ''}"
+      onclick="window.spreuken.toggleEigenschap('ritual')" title="Alleen spreuken die als ritual gecast kunnen worden">${icon('scroll-text')} Ritual</button>
+    <button class="spreuk-school-btn spreuk-eig-btn${_filters.concentratie ? ' active' : ''}"
+      onclick="window.spreuken.toggleEigenschap('concentratie')" title="Alleen spreuken die concentration vragen">${icon('eye')} Concentration</button>`;
   return `
     <div class="spreuk-filters">
       <div class="spreuk-levels">${levels.join('')}</div>
       ${toggle}
       ${select}
-      ${schoolRij}
+      ${schoolRij ? schoolRij.replace('</div>', `${eigenschappen}</div>`) : `<div class="spreuk-scholen">${eigenschappen}</div>`}
     </div>`;
 }
 
@@ -317,6 +332,7 @@ export async function renderSpreuken(container) {
           </div>
         </div>
         <div style="margin-left:8px">${window._helpBtn?.('spreuken') ?? ''}</div>
+        ${isDM() ? `<button class="sbs-add-btn" style="margin-left:8px" onclick="window.spreuken.nieuw()" title="Eigen spreuk toevoegen">${icon('plus')}</button>` : ''}
       </div>
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
     </div>
@@ -376,8 +392,16 @@ function _detailHtml(s) {
           ${isDM() ? `onclick="window.spreuken.setFocus(event)"` : ''}>
         ${isDM() ? `<span class="spreuk-focus-hint" id="spreuk-focus-hint">Klik op de afbeelding om het focuspunt te kiezen</span>` : ''}
       </div>
-      ${isDM() ? `<button class="spreuk-detail-imgbtn dm-only" onclick="window.spreuken.setImage('${esc(s.index)}','${esc((s.name||'').replace(/'/g,''))}')">
-        ${icon('image')} Afbeelding kiezen of uploaden</button>` : ''}
+      ${isDM() ? `<div class="spreuk-dm-knoppen">
+        <button class="spreuk-detail-imgbtn dm-only" onclick="window.spreuken.setImage('${esc(s.index)}','${esc((s.name||'').replace(/'/g,''))}')">
+          ${icon('image')} Afbeelding kiezen of uploaden</button>
+        ${s.source === 'eigen' ? `
+          <button class="spreuk-detail-imgbtn dm-only" onclick="window.spreuken.bewerk('${esc(s.index)}')">${icon('pencil')} Bewerken</button>
+          <button class="spreuk-detail-imgbtn dm-only spreuk-btn-weg" onclick="window.spreuken.verwijder('${esc(s.index)}')">${icon('trash')} Verwijderen</button>` : ''}
+      </div>
+      <!-- Wie kent deze spreuk? Zelfde vraag als "wie heeft dit voorwerp" bij
+           een kaartje; de administratie staat per speler, dus die halen we op. -->
+      <div class="spreuk-wie" id="spreuk-wie-${esc(s.index)}"></div>` : ''}
       ${isPlayer() ? `<button class="spreuk-detail-addbtn${_myBook.has(s.index) ? ' is-added' : ''}" data-idx="${esc(s.index)}"
         onclick="window.spreuken.addToBook('${esc(s.index)}',this)">${icon(_myBook.has(s.index) ? 'check' : 'plus')} ${_myBook.has(s.index) ? 'In je spreukenboek' : 'Toevoegen aan mijn spreukenboek'}</button>` : ''}
       <div class="spreuk-detail-props">
@@ -385,7 +409,9 @@ function _detailHtml(s) {
       </div>
       ${desc   ? `<div class="spreuk-detail-desc">${fmt(desc)}</div>` : ''}
       ${higher ? `<div class="spreuk-detail-higher"><span class="spreuk-detail-higher-lbl">At Higher Levels.</span> ${fmt(higher)}</div>` : ''}
-      ${isDM() ? `
+      <!-- De overschrijf-tekst is er voor bróntekst; bij een eigen spreuk bewerk
+           je gewoon de spreuk zelf, anders zijn er twee plekken met dezelfde tekst. -->
+      ${isDM() && s.source !== 'eigen' ? `
         <details class="spreuk-eigen" ${desc ? '' : 'open'}>
           <summary>${icon('pencil')} ${s._eigen ? 'Jouw beschrijving' : desc ? 'Eigen beschrijving schrijven' : 'Beschrijving invullen'}</summary>
           <p class="spreuk-eigen-hint">Vervangt de tekst hierboven — jouw spelers zien alleen wat jij hier schrijft. Maak je het veld leeg, dan komt de oorspronkelijke tekst terug.</p>
@@ -399,6 +425,134 @@ function _detailHtml(s) {
         const cc = _CLASS_COL[c] || '#5a3a8c';
         return `<span class="spreuk-class-pill" style="--class-c:${cc}">${esc(c)}</span>`;
       }).join('')}</div>` : ''}
+    </div>`;
+}
+
+// ── Eigen spreuk schrijven (DM) ─────────────────────────────────────────────
+// Welke velden? Precies die van het bronformaat, niet meer en niet minder — dan
+// hoeven kaartje, detailvenster, spreukenboek en het zoeken niets van een eigen
+// spreuk te weten. Alleen de naam is verplicht; wat leeg blijft laat de server
+// weg, zodat een korte spreuk geen rij lege regels krijgt.
+const _EIG_SCHOLEN = ['Abjuration', 'Conjuration', 'Divination', 'Enchantment',
+                      'Evocation', 'Illusion', 'Necromancy', 'Transmutation'];
+const _EIG_KLASSEN = ['Artificer', 'Bard', 'Cleric', 'Druid', 'Paladin',
+                      'Ranger', 'Sorcerer', 'Warlock', 'Wizard'];
+
+function _eigVeld(label, id, waarde, hint = '', breed = false) {
+  return `
+    <label class="spreuk-eig-veld${breed ? ' spreuk-eig-veld--breed' : ''}">
+      <span class="spreuk-eig-lbl">${esc(label)}</span>
+      <input id="${id}" value="${esc(waarde ?? '')}" placeholder="${esc(hint)}">
+    </label>`;
+}
+
+function _eigFormHtml(s) {
+  const comps = (s?.components || []).map(c => String(c).toUpperCase());
+  const klassen = _classNames(s || {});
+  return `
+    <div class="spreuk-detail-card spreuk-eig-form">
+      <button class="spreuk-detail-close" onclick="window.spreuken.close()" title="Sluiten">${icon('x')}</button>
+      <div class="spreuk-detail-head">
+        <div class="spreuk-detail-title">${s ? 'Spreuk bewerken' : 'Eigen spreuk'}</div>
+        <div class="spreuk-detail-sub">Alleen de naam is verplicht — de rest vul je in wat je nodig hebt</div>
+      </div>
+      <div class="spreuk-eig-raster">
+        ${_eigVeld('Naam', 'eig-name', s?.name, 'Vloek van de Vlasbaard', true)}
+        <label class="spreuk-eig-veld">
+          <span class="spreuk-eig-lbl">Niveau</span>
+          <select id="eig-level">
+            ${[0,1,2,3,4,5,6,7,8,9].map(i => `<option value="${i}"${Number(s?.level) === i ? ' selected' : ''}>${i === 0 ? 'Cantrip' : `Level ${i}`}</option>`).join('')}
+          </select>
+        </label>
+        <label class="spreuk-eig-veld">
+          <span class="spreuk-eig-lbl">School</span>
+          <select id="eig-school">
+            <option value="">— kies —</option>
+            ${_EIG_SCHOLEN.map(sc => `<option${_school(s || {}) === sc ? ' selected' : ''}>${sc}</option>`).join('')}
+          </select>
+        </label>
+        ${_eigVeld('Casting Time', 'eig-casting', s?.casting_time, 'Action')}
+        ${_eigVeld('Range', 'eig-range', s?.range, '60 feet')}
+        ${_eigVeld('Duration', 'eig-duration', s?.duration, 'Instantaneous')}
+        ${_eigVeld('Damage', 'eig-damage', s?.damage, '2d6 fire')}
+        <div class="spreuk-eig-veld spreuk-eig-veld--breed">
+          <span class="spreuk-eig-lbl">Components</span>
+          <div class="spreuk-eig-vinkjes">
+            ${['V','S','M'].map(c => `<label><input type="checkbox" id="eig-comp-${c}"${comps.includes(c) ? ' checked' : ''}> ${c}</label>`).join('')}
+            <input id="eig-material" class="spreuk-eig-mat" value="${esc(s?.material ?? '')}" placeholder="materiaal (bij M)">
+          </div>
+        </div>
+        <div class="spreuk-eig-veld spreuk-eig-veld--breed">
+          <span class="spreuk-eig-lbl">Eigenschappen</span>
+          <div class="spreuk-eig-vinkjes">
+            <label><input type="checkbox" id="eig-ritual"${s?.ritual ? ' checked' : ''}> Ritual</label>
+            <label><input type="checkbox" id="eig-conc"${s?.concentration ? ' checked' : ''}> Concentration</label>
+          </div>
+        </div>
+        <div class="spreuk-eig-veld spreuk-eig-veld--breed">
+          <span class="spreuk-eig-lbl">Klassen</span>
+          <div class="spreuk-eig-vinkjes">
+            ${_EIG_KLASSEN.map(k => `<label><input type="checkbox" id="eig-kl-${k}"${klassen.includes(k) ? ' checked' : ''}> ${k}</label>`).join('')}
+          </div>
+          <p class="spreuk-eig-hint">Vink niets aan en de spreuk hoort bij niemand in het bijzonder — hij valt dan buiten "Alleen mijn klasse".</p>
+        </div>
+        <label class="spreuk-eig-veld spreuk-eig-veld--breed">
+          <span class="spreuk-eig-lbl">Beschrijving</span>
+          <textarea id="eig-desc" rows="7" placeholder="Wat doet de spreuk? Een lege regel begint een nieuwe alinea.">${esc((s?.desc || []).join ? s.desc.join('\n\n') : (s?.desc ?? ''))}</textarea>
+        </label>
+        <label class="spreuk-eig-veld spreuk-eig-veld--breed">
+          <span class="spreuk-eig-lbl">At Higher Levels</span>
+          <textarea id="eig-hoger" rows="3" placeholder="Wat verandert er met een hogere Spell Slot?">${esc((s?.higher_level || []).join ? s.higher_level.join('\n\n') : (s?.higher_level ?? ''))}</textarea>
+        </label>
+      </div>
+      <div class="spreuk-eig-knoppen">
+        <button class="spreuk-detail-imgbtn" onclick="window.spreuken.eigenOpslaan('${esc(s?.index || '')}')">${icon('save')} Opslaan</button>
+        <button class="spreuk-detail-imgbtn" onclick="window.spreuken.close()">${icon('x')} Annuleren</button>
+        <span class="spreuk-eigen-status" id="eig-status"></span>
+      </div>
+    </div>`;
+}
+
+function _eigLees() {
+  const v = id => document.getElementById(id)?.value ?? '';
+  const aan = id => !!document.getElementById(id)?.checked;
+  return {
+    name: v('eig-name').trim(),
+    level: parseInt(v('eig-level'), 10) || 0,
+    school: v('eig-school'),
+    casting_time: v('eig-casting').trim(),
+    range: v('eig-range').trim(),
+    duration: v('eig-duration').trim(),
+    damage: v('eig-damage').trim(),
+    material: v('eig-material').trim(),
+    components: ['V','S','M'].filter(c => aan(`eig-comp-${c}`)),
+    ritual: aan('eig-ritual'),
+    concentration: aan('eig-conc'),
+    classes: _EIG_KLASSEN.filter(k => aan(`eig-kl-${k}`)),
+    desc: v('eig-desc'),
+    higher_level: v('eig-hoger'),
+  };
+}
+
+// ── Wie kent deze spreuk? (DM) ──────────────────────────────────────────────
+async function _wieLaden(index) {
+  const host = document.getElementById(`spreuk-wie-${index}`);
+  if (!host) return;
+  let data = null;
+  try { data = await api.spreukWie(index); } catch { host.innerHTML = ''; return; }
+  const rijen = data?.spelers || [];
+  if (!rijen.length) { host.innerHTML = `<div class="spreuk-wie-leeg">Niemand heeft deze spreuk in zijn boek.</div>`; return; }
+  host.innerHTML = `
+    <div class="spreuk-wie-kop">${icon('users')} Wie kent deze spreuk?</div>
+    <div class="spreuk-wie-rijen">
+      ${rijen.map(r => `
+        <span class="spreuk-wie-rij">
+          <span class="spreuk-wie-naam">${esc(r.naam)}</span>
+          ${r.groep ? `<span class="spreuk-wie-groep">${esc(r.groep)}</span>` : ''}
+          ${r.alwaysPrepared ? `<span class="spreuk-wie-merk" title="Altijd prepared">Always prepared</span>`
+            : r.prepared ? `<span class="spreuk-wie-merk" title="Nu prepared">Prepared</span>` : ''}
+          ${r.concentratie ? `<span class="spreuk-wie-merk spreuk-wie-merk--conc" title="Concentreert hier nu op">${icon('eye')} Actief</span>` : ''}
+        </span>`).join('')}
     </div>`;
 }
 
@@ -442,6 +596,7 @@ window.spreuken = {
     const ov = _ensureOverlay();
     ov.innerHTML = _detailHtml(s);
     ov.classList.add('active');
+    if (isDM()) _wieLaden(s.index);
   },
   // Naam + school van een spreuk, voor chips op een kaartje.
   async info(indexen) {
@@ -506,6 +661,47 @@ window.spreuken = {
   setLevel(lv) { _filters.level = lv; _refreshFilterBar(); _paintGrid(); },
   setKlasse(k) { _filters.klasse = k || null; _paintGrid(); },
   setSchool(sc) { _filters.school = sc || null; _refreshFilterBar(); _paintGrid(); },
+  toggleEigenschap(welke) { _filters[welke] = !_filters[welke]; _refreshFilterBar(); _paintGrid(); },
+
+  // ── Eigen spreuken (DM) ──
+  nieuw() {
+    const ov = _ensureOverlay();
+    ov.innerHTML = _eigFormHtml(null);
+    ov.classList.add('active');
+  },
+  bewerk(index) {
+    const s = (_all || []).find(x => x.index === index);
+    if (!s) return;
+    const ov = _ensureOverlay();
+    ov.innerHTML = _eigFormHtml(s);
+    ov.classList.add('active');
+  },
+  async eigenOpslaan(index) {
+    const body = _eigLees();
+    const st = document.getElementById('eig-status');
+    if (!body.name) { if (st) st.textContent = 'Geef de spreuk een naam.'; return; }
+    if (st) st.textContent = 'Opslaan…';
+    try {
+      const bewaard = index ? await api.eigenSpreukOpslaan(index, body) : await api.eigenSpreukNieuw(body);
+      _all = null;                       // lijst opnieuw ophalen: de spreuk is nieuw of veranderd
+      await _load();
+      _paintGrid();
+      _refreshFilterBar();
+      window.spreuken.open(bewaard.index);
+    } catch (e) {
+      if (st) st.textContent = 'Mislukt: ' + (e.message || 'onbekende fout');
+    }
+  },
+  async verwijder(index) {
+    const s = (_all || []).find(x => x.index === index);
+    if (!confirm(`"${s?.name || 'Deze spreuk'}" verwijderen?\n\nHij verdwijnt uit de bibliotheek. Spelers die hem in hun boek hebben houden hun kopie.`)) return;
+    await api.eigenSpreukWeg(index);
+    _all = null;
+    await _load();
+    window.spreuken.close();
+    _paintGrid();
+    _refreshFilterBar();
+  },
   // Toggle "Alleen mijn klasse" (speler) — herrendert filterrij + grid, geen herfetch.
   toggleMijnKlasse() {
     _filters.mijnKlasse = !_filters.mijnKlasse;

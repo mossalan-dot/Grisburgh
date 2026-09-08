@@ -329,6 +329,11 @@ export const api = {
 
   // Vastgezette spreuken
   getPlayerSpells:    (charId)             => request(`/player-spells/${charId}`),
+  spreukWie:          (index)              => request(`/spells/${encodeURIComponent(index)}/wie`),
+  eigenSpreuken:      ()                   => request('/spreuken/eigen'),
+  eigenSpreukNieuw:   (data)               => request('/spreuken/eigen', { method: 'POST', body: JSON.stringify(data) }),
+  eigenSpreukOpslaan: (index, data)        => request(`/spreuken/eigen/${encodeURIComponent(index)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  eigenSpreukWeg:     (index)              => request(`/spreuken/eigen/${encodeURIComponent(index)}`, { method: 'DELETE' }),
   addPlayerSpell:     (charId, data)       => request(`/player-spells/${charId}`, { method: 'POST', body: JSON.stringify(data) }),
   removePlayerSpell:  (charId, spellIdx)   => request(`/player-spells/${charId}/${spellIdx}`, { method: 'DELETE' }),
   updatePlayerSpell:  (charId, spellIdx, data) => request(`/player-spells/${charId}/${spellIdx}`, { method: 'PATCH', body: JSON.stringify(data) }),
