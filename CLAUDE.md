@@ -576,7 +576,10 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > op niveau, school, klasse (of "alleen mijn klasse" voor een speler), ritual en
 > concentration. De filterbalk staat hier **bewust permanent open** in plaats van
 > achter een trechterknop: zoeken en filteren is in een bibliotheek van 500+
-> spreuken de normale handeling, niet de uitzondering.
+> spreuken de normale handeling, niet de uitzondering. Eén uitzondering: de acht
+> **scholen** zitten wél achter een trechterknop — dat is een brede rij die je
+> minder vaak nodig hebt. Hij klapt vanzelf open zodra er een school gekozen is,
+> zodat een actief filter nooit onzichtbaar is.
 
 ---
 

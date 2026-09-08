@@ -24066,6 +24066,9 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   display: flex; flex-wrap: wrap; gap: 6px;
   flex-basis: 100%; margin-top: 8px;
 }
+/* Acht scholen is een brede rij; hij komt pas in beeld via de trechterknop
+   (of vanzelf zodra er een school gekozen is). */
+.spreuk-scholen--dicht { display: none; }
 .spreuk-school-btn {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 4px 10px; border-radius: 999px;
@@ -24087,8 +24090,7 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 
 /* Ritual/Concentration staan naast de scholen maar zijn geen school: eigen
    accent, zodat de rij niet leest als tien scholen. */
-.spreuk-eig-btn { --school-c2: #7a5a20; margin-left: 2px; }
-.spreuk-eig-btn:first-of-type { margin-left: 10px; }
+.spreuk-eig-btn { --school-c2: #7a5a20; }
 
 /* ── Eigen spreuk: markering, editor en "wie kent hem" ───────────────────── */
 .spreuk-tag--eigen { background: rgba(122,90,32,0.14); border-color: rgba(122,90,32,0.4); color: #6a4a10; }

@@ -44,6 +44,7 @@ let _all       = null;      // null = nog niet geladen
 let _container = null;
 let _filters   = { q: '', level: null, klasse: null, school: null, ritual: false, concentratie: false, mijnKlasse: true };
 let _classes   = [];
+let _scholenOpen = false;    // staat de schoolrij uitgeklapt?
 let _myBook    = new Set(); // index-set van de spreuken in het eigen spreukenboek (speler)
 let _myClasses = [];        // genormaliseerde EN-klassenamen van de speler
 let _isCaster  = false;     // heeft de speler een klasse met spreuken?
@@ -245,11 +246,17 @@ function _filterBar() {
     ? ''
     : `<select class="spreuk-class-select" onchange="window.spreuken.setKlasse(this.value)">${klasOpts.join('')}</select>`;
   // De school stond wel groot op elk kaartje (met een eigen kleur) maar viel niet
-  // te filteren, terwijl dat de indeling is waar een caster in denkt. Zelfde rij
-  // als de niveaus, in de kleur van de school zelf.
+  // te filteren, terwijl dat de indeling is waar een caster in denkt. Acht
+  // scholen is wel een brede rij, dus die zit achter dezelfde trechterknop als
+  // op de andere tabbladen — niveau, klasse en de twee eigenschappen staan er
+  // altijd, want daar grijp je het vaakst naar.
   const scholen = [...new Set((_all || []).map(_school).filter(Boolean))].sort();
+  const scholenUit = !_scholenOpen && !_filters.school;
+  const schoolKnop = scholen.length ? `
+    <button class="sf-toggle-btn${_filters.school ? ' sf-toggle-btn--active' : ''}" onclick="window.spreuken.toggleScholen()"
+      title="Filter op school"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : '';
   const schoolRij = scholen.length ? `
-    <div class="spreuk-scholen">
+    <div class="spreuk-scholen${scholenUit ? ' spreuk-scholen--dicht' : ''}">
       <button class="spreuk-school-btn${_filters.school ? '' : ' active'}" onclick="window.spreuken.setSchool(null)">Alle scholen</button>
       ${scholen.map(sc => {
         const c = _schoolCol(sc);
@@ -270,7 +277,9 @@ function _filterBar() {
       <div class="spreuk-levels">${levels.join('')}</div>
       ${toggle}
       ${select}
-      ${schoolRij ? schoolRij.replace('</div>', `${eigenschappen}</div>`) : `<div class="spreuk-scholen">${eigenschappen}</div>`}
+      ${eigenschappen}
+      ${schoolKnop}
+      ${schoolRij}
     </div>`;
 }
 
@@ -324,15 +333,18 @@ export async function renderSpreuken(container) {
           <div class="section-banner-label">Spreuken</div>
           <div class="section-banner-desc-line">Naslagwerk — alle spreuken die er bestaan, niet die van jou</div>
         </div>
+        <!-- Zoekvak, boekje en + horen in dezelfde flexrij als op de andere
+             tabbladen; het boekje hing hier in een eigen div met een losse
+             marge, en de +-knop stond er daarna nóg eens naast. -->
         <div class="section-banner-search">
           <div class="sbs-input-wrap">
             <span class="sbs-icon">⌕</span>
             <input type="text" class="sbs-input search-input" placeholder="Zoek spreuk…"
               value="${esc(_filters.q)}" oninput="window.spreuken.search(this.value)">
           </div>
+          ${window._helpBtn?.('spreuken') ?? ''}
+          ${isDM() ? `<button class="sbs-add-btn" onclick="window.spreuken.nieuw()" title="Eigen spreuk toevoegen">${icon('plus')}</button>` : ''}
         </div>
-        <div style="margin-left:8px">${window._helpBtn?.('spreuken') ?? ''}</div>
-        ${isDM() ? `<button class="sbs-add-btn" style="margin-left:8px" onclick="window.spreuken.nieuw()" title="Eigen spreuk toevoegen">${icon('plus')}</button>` : ''}
       </div>
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
     </div>
@@ -449,6 +461,10 @@ function _eigVeld(label, id, waarde, hint = '', breed = false) {
 function _eigFormHtml(s) {
   const comps = (s?.components || []).map(c => String(c).toUpperCase());
   const klassen = _classNames(s || {});
+  // `desc` en `higher_level` zijn in de bron een lijst alinea's; in het
+  // tekstvak worden dat lege regels ertussen. Bij een nieuwe spreuk is er
+  // helemaal niets — vandaar één helper in plaats van een ternary op `s`.
+  const alinea = v => Array.isArray(v) ? v.join('\n\n') : String(v ?? '');
   return `
     <div class="spreuk-detail-card spreuk-eig-form">
       <button class="spreuk-detail-close" onclick="window.spreuken.close()" title="Sluiten">${icon('x')}</button>
@@ -498,11 +514,11 @@ function _eigFormHtml(s) {
         </div>
         <label class="spreuk-eig-veld spreuk-eig-veld--breed">
           <span class="spreuk-eig-lbl">Beschrijving</span>
-          <textarea id="eig-desc" rows="7" placeholder="Wat doet de spreuk? Een lege regel begint een nieuwe alinea.">${esc((s?.desc || []).join ? s.desc.join('\n\n') : (s?.desc ?? ''))}</textarea>
+          <textarea id="eig-desc" rows="7" placeholder="Wat doet de spreuk? Een lege regel begint een nieuwe alinea.">${esc(alinea(s?.desc))}</textarea>
         </label>
         <label class="spreuk-eig-veld spreuk-eig-veld--breed">
           <span class="spreuk-eig-lbl">At Higher Levels</span>
-          <textarea id="eig-hoger" rows="3" placeholder="Wat verandert er met een hogere Spell Slot?">${esc((s?.higher_level || []).join ? s.higher_level.join('\n\n') : (s?.higher_level ?? ''))}</textarea>
+          <textarea id="eig-hoger" rows="3" placeholder="Wat verandert er met een hogere Spell Slot?">${esc(alinea(s?.higher_level))}</textarea>
         </label>
       </div>
       <div class="spreuk-eig-knoppen">
@@ -660,7 +676,8 @@ window.spreuken = {
   search(v)    { _filters.q = v; _paintGrid(); },
   setLevel(lv) { _filters.level = lv; _refreshFilterBar(); _paintGrid(); },
   setKlasse(k) { _filters.klasse = k || null; _paintGrid(); },
-  setSchool(sc) { _filters.school = sc || null; _refreshFilterBar(); _paintGrid(); },
+  setSchool(sc) { _filters.school = sc || null; if (sc) _scholenOpen = true; _refreshFilterBar(); _paintGrid(); },
+  toggleScholen() { _scholenOpen = !_scholenOpen; _refreshFilterBar(); },
   toggleEigenschap(welke) { _filters[welke] = !_filters[welke]; _refreshFilterBar(); _paintGrid(); },
 
   // ── Eigen spreuken (DM) ──
