@@ -6,6 +6,13 @@ groot het is.
 
 ## Nu aan de beurt
 
+- [ ] **Conditions in het Nederlands** — `_COND_INFO` en `COND_LBL_MAP` in
+      `app.js` vertalen de PHB-conditions (Verblind, Betoverd, Bevreesd,
+      Vastgehouden, Verdoofd, Bewusteloos, Concentratie…). Tegen de afspraak in
+      dat D&D-termen Engels blijven. Zit in de statusweergave van de speler en
+      op de combat-tokens; twee tabellen plus wat losse plekken. Doen zodra we
+      aan het gevecht of het personagetabblad toe zijn.
+
 - [ ] **Spelerstabbladen natesten** — de reviewrondes van sep 2026 (voorwerpen,
       documenten, spreuken) zijn vooral vanuit de DM getest. Wat aan de
       spelerskant nog langs moet, met een échte spelerssessie:

@@ -3508,32 +3508,6 @@ window.glossary = {
   },
 };
 
-// Dutch translations for common D&D metadata values
-function _sbNl(s) {
-  if (!s) return s;
-  return String(s)
-    .replace(/\bInstantaneous\b/gi, 'Onmiddellijk')
-    .replace(/\bConcentration,\s*/gi, 'Concentratie, ')
-    .replace(/\bConcentration\b/gi, 'Concentratie')
-    .replace(/\bup to\b/gi, 'tot')
-    .replace(/\b1 action\b/gi, '1 actie')
-    .replace(/\b1 bonus action\b/gi, '1 bonusactie')
-    .replace(/\b1 reaction\b/gi, '1 reactie')
-    .replace(/\bTouch\b/gi, 'Aanraking')
-    .replace(/\bSelf\b/gi, 'Zichzelf')
-    .replace(/\bSpecial\b/gi, 'Speciaal')
-    .replace(/\bUntil dispelled\b/gi, 'Tot verwijdering')
-    .replace(/\b1 minute\b/gi, '1 minuut')
-    .replace(/\b(\d+) minutes\b/gi, (_, n) => `${n} minuten`)
-    .replace(/\b1 hour\b/gi, '1 uur')
-    .replace(/\b(\d+) hours\b/gi, (_, n) => `${n} uur`)
-    .replace(/\b1 round\b/gi, '1 ronde')
-    .replace(/\b(\d+) rounds\b/gi, (_, n) => `${n} rondes`)
-    .replace(/\b1 day\b/gi, '1 dag')
-    .replace(/\bVSM\b/g, 'V, S, M')
-    .trim();
-}
-
 function _sbSchoolKey(school) {
   if (!school) return null;
   const s = typeof school === 'object' ? (school.name || '') : school;
@@ -3563,8 +3537,8 @@ function _ensureSpellbookOverlay() {
       <button class="sb-ctrl-btn" id="sb-manage-btn" onclick="window._sbToggleManage()" title="Beheer">
         ${icon('pencil')} Beheer
       </button>
-      <button class="sb-ctrl-btn sb-ctrl-conc" id="sb-conc-ctrl-btn" onclick="window._sbToggleConcentration()" title="Concentratie" style="display:none">
-        🕯 Concentratie
+      <button class="sb-ctrl-btn sb-ctrl-conc" id="sb-conc-ctrl-btn" onclick="window._sbToggleConcentration()" title="Concentration" style="display:none">
+        ${icon('flame')} Concentration
       </button>
       <div class="sb-prepared-zone" id="sb-prepared-zone"></div>
       <button class="sb-ctrl-btn sb-ctrl-help" id="sb-help-btn" onclick="window._sbToggleHelp()" title="Help">
@@ -3670,9 +3644,9 @@ function _ensureSpellbookOverlay() {
             </div>
           </div>
           <div class="sb-manage-section" id="sb-manage-conc-section" style="display:none">
-            <div class="sb-manage-label">Concentratie</div>
+            <div class="sb-manage-label">Concentration</div>
             <button class="sb-manage-conc-btn" id="sb-manage-conc-btn"
-              onclick="window._sbToggleConcentration()">🕯 Inactief</button>
+              onclick="window._sbToggleConcentration()">${icon('flame')} Inactief</button>
           </div>
           <div class="sb-manage-section">
             <div class="sb-manage-label">Marginalia</div>
@@ -3700,7 +3674,7 @@ function _ensureSpellbookOverlay() {
             <div class="sb-help-section-title">${icon('pencil')} Beheer</div>
             <p><strong>Incantatie</strong> — schrijf de spreukformule die jij uitspreekt. Verschijnt als een briefje op de linkerpagina.</p>
             <p><strong>Level verkregen</strong> — op welk level heb je deze spreuk geleerd? Puur ter herinnering.</p>
-            <p><strong>Concentratie</strong> — activeer/deactiveer de concentratie-tracker voor een actieve spreuk.</p>
+            <p><strong>Concentration</strong> — activeer of stop de concentratie-teller voor een lopende spreuk.</p>
             <p><strong>Marginalia</strong> — kleine symbolen in de kantlijn die het type spreuk aangeven (schade, healing, utility…). Kies een icoon, typ optioneel een toelichting en klik +.</p>
           </div>
           <div class="sb-help-section">
@@ -3997,7 +3971,7 @@ function _sbManageRefresh() {
   if (concSec) concSec.style.display = spell.concentration ? '' : 'none';
   if (concBtn) {
     const on = !!spell.concentrationActive;
-    concBtn.textContent = on ? '🕯 Actief — klik om te stoppen' : '🕯 Inactief — klik om te activeren';
+    concBtn.innerHTML = icon('flame') + (on ? ' Actief — klik om te stoppen' : ' Inactief — klik om te activeren');
     concBtn.classList.toggle('sb-manage-conc-btn--active', on);
   }
   // Marginalia list
@@ -4252,11 +4226,13 @@ function _spellMatchesClass(spell, klasseEN) {
   return (spell.classes || []).some(c => (c.name || '').toLowerCase() === klasseEN.toLowerCase());
 }
 // Afgeleide roltypes uit de spreukdata (een spreuk kan meerdere tags hebben).
+// De sleutels blijven zoals ze zijn (daar hangt de filterstand aan); de labels
+// zijn PHB-termen en horen dus Engels te zijn.
 const _SP_TYPE_DEFS = [
-  { key: 'schade',   label: 'Schade',   test: s => !!s.damage },
-  { key: 'gebied',   label: 'Gebied',   test: s => /\b(cone|cube|sphere|line|cylinder|emanation|radius|each creature)\b/i.test((s.desc||[]).join(' ') + ' ' + (s.range||'')) },
-  { key: 'genezing', label: 'Genezing', test: s => /regain|hit points|heal/i.test((s.desc||[]).join(' ')) },
-  { key: 'controle', label: 'Controle', test: s => /\b(restrained|stunned|paralyzed|frightened|charmed|prone|grappled|incapacitated|blinded|deafened|poisoned|can.t move|can.t take|speed becomes 0)\b/i.test((s.desc||[]).join(' ')) },
+  { key: 'schade',   label: 'Damage',   test: s => !!s.damage },
+  { key: 'gebied',   label: 'Area',     test: s => /\b(cone|cube|sphere|line|cylinder|emanation|radius|each creature)\b/i.test((s.desc||[]).join(' ') + ' ' + (s.range||'')) },
+  { key: 'genezing', label: 'Healing',  test: s => /regain|hit points|heal/i.test((s.desc||[]).join(' ')) },
+  { key: 'controle', label: 'Control',  test: s => /\b(restrained|stunned|paralyzed|frightened|charmed|prone|grappled|incapacitated|blinded|deafened|poisoned|can.t move|can.t take|speed becomes 0)\b/i.test((s.desc||[]).join(' ')) },
 ];
 function _spellTypes(s) {
   const t = new Set();
@@ -4264,7 +4240,7 @@ function _spellTypes(s) {
   if (!t.has('schade') && !t.has('genezing') && !t.has('controle')) t.add('hulp'); // utility/buff
   return t;
 }
-const _SP_TYPE_LABELS = { schade:'Schade', gebied:'Gebied', genezing:'Genezing', controle:'Controle', hulp:'Hulp' };
+const _SP_TYPE_LABELS = { schade:'Damage', gebied:'Area', genezing:'Healing', controle:'Control', hulp:'Utility' };
 
 // Cantrips known per klasse (2024) — drempel-levels, waarde geldt vanaf dat level.
 const _CANTRIPS_KNOWN = {
@@ -4296,7 +4272,9 @@ function _sbAddSpHint() {
     ? `je <strong>spreukenboek</strong> groeit met <strong>2 spreuken</strong> per level`
     : (_sbState.preparedMax ? `je kunt tot <strong>${_sbState.preparedMax} spreuken</strong> voorbereiden` : 'je bereidt spreuken voor uit je lijst');
   const cantripDeel = knownC ? `doorgaans <strong>${knownC} cantrip${knownC === 1 ? '' : 's'}</strong> (je hebt er nu ${curC})` : 'geen cantrips';
-  return `<div class="sb-addspells-hint">${icon('sparkles')} Als <strong>${esc(klasseEN)}</strong> op level ${lvl}: ${cantripDeel}, en ${spreukDeel}. Je boek telt nu ${curC} cantrip${curC === 1 ? '' : 's'} en ${curS} spreuk${curS === 1 ? '' : 'en'}.</div>`;
+  // Alles in één <span>: de hint is een flexrij (icoon | tekst), en zonder dit
+  // omhulsel werd elk <strong> een eigen flexitem — met gaten ertussen.
+  return `<div class="sb-addspells-hint">${icon('sparkles')}<span>Als <strong>${esc(klasseEN)}</strong> op level ${lvl}: ${cantripDeel}, en ${spreukDeel}. Je boek telt nu ${curC} cantrip${curC === 1 ? '' : 's'} en ${curS} spreuk${curS === 1 ? '' : 'en'}.</span></div>`;
 }
 
 // De spreukenlijst voor de speler: de bron plus wat deze campagne zelf verzon.
@@ -4379,13 +4357,13 @@ function _sbAddSpRenderFilters() {
   if (!el) return;
   const pool = _sbAddSpPool();
   const levelsPresent = [...new Set(pool.map(s => s.level || 0))].sort((a, b) => a - b);
-  const levelChips = levelsPresent.map(l => `<button class="sb-addsp-chip${_addSp.levels.has(l) ? ' on' : ''}" onclick="window._sbAddSpToggleLevel(${l})">${l === 0 ? 'Cantrips' : 'Lvl ' + l}</button>`).join('');
+  const levelChips = levelsPresent.map(l => `<button class="sb-addsp-chip${_addSp.levels.has(l) ? ' on' : ''}" onclick="window._sbAddSpToggleLevel(${l})">${l === 0 ? 'Cantrips' : 'Level ' + l}</button>`).join('');
   const typeChips = Object.entries(_SP_TYPE_LABELS).map(([k, lbl]) => `<button class="sb-addsp-chip sb-addsp-chip--type${_addSp.types.has(k) ? ' on' : ''}" onclick="window._sbAddSpToggleType('${k}')">${esc(lbl)}</button>`).join('');
   el.innerHTML = `
     <div class="sb-addsp-chiprow">${levelChips}</div>
     <div class="sb-addsp-chiprow">${typeChips}
-      <button class="sb-addsp-chip sb-addsp-chip--flag${_addSp.ritueel ? ' on' : ''}" onclick="window._sbAddSpToggleFlag('ritueel')">Ritueel</button>
-      <button class="sb-addsp-chip sb-addsp-chip--flag${_addSp.concentratie ? ' on' : ''}" onclick="window._sbAddSpToggleFlag('concentratie')">Concentratie</button>
+      <button class="sb-addsp-chip sb-addsp-chip--flag${_addSp.ritueel ? ' on' : ''}" onclick="window._sbAddSpToggleFlag('ritueel')">Ritual</button>
+      <button class="sb-addsp-chip sb-addsp-chip--flag${_addSp.concentratie ? ' on' : ''}" onclick="window._sbAddSpToggleFlag('concentratie')">Concentration</button>
     </div>`;
 }
 function _sbAddSpFiltered() {
@@ -4411,7 +4389,7 @@ function _sbAddSpRenderList() {
       const sel = _addSp.selected.has(s.index);
       const types = [..._spellTypes(s)].map(t => `<span class="sb-addsp-badge sb-addsp-badge--${t}">${esc(_SP_TYPE_LABELS[t])}</span>`).join('');
       const school = s.school?.name || '';
-      const lvl = (s.level || 0) === 0 ? 'Cantrip' : 'Lvl ' + s.level;
+      const lvl = (s.level || 0) === 0 ? 'Cantrip' : 'Level ' + s.level;
       const preview = (s.desc || []).join(' ').replace(/\s+/g, ' ').slice(0, 130);
       return `<div class="sb-addsp-card${has ? ' sb-addsp-card--has' : ''}${sel ? ' sb-addsp-card--sel' : ''}"
           ${has ? '' : `onclick="window._sbAddSpToggleSelect('${esc(s.index)}')"`}>
@@ -5124,7 +5102,7 @@ function _sbRender() {
     const hasConc = !!spell.concentration;
     const active  = !!spell.concentrationActive;
     concCtrlBtn.style.display = hasConc ? '' : 'none';
-    concCtrlBtn.innerHTML = active ? '🕯 Actief' : '🕯 Concentratie';
+    concCtrlBtn.innerHTML = icon('flame') + (active ? ' Actief' : ' Concentration');
     concCtrlBtn.classList.toggle('sb-ctrl-conc--active', active);
     concCtrlBtn.title = active ? 'Concentratie actief — klik om te stoppen' : 'Klik om concentratie te activeren';
   }
