@@ -130,18 +130,18 @@ describe('Vervaagde bestanden', { skip: !sharp && 'sharp niet beschikbaar' }, ()
   });
 
   it('vervaagt ook de afbeelding van een vaag document', async () => {
-    const doc = (await req(server, 'POST', '/api/archief', { name: 'Wazige Kaart', cat: 'kaarten' }, dm)).body;
+    const doc = (await req(server, 'POST', '/api/entities/documenten', { name: 'Wazige Kaart', data: { docType: 'Wereldkaart' } }, dm)).body;
     await upload(server, `/api/files/${doc.id}`, dm, { filename: 'p.png', contentType: 'image/png', content: png });
-    await req(server, 'PUT', `/api/archief/${doc.id}/state`, { state: 'blurred' }, dm);
+    await req(server, 'PUT', `/api/entities/documenten/${doc.id}/visibility`, { target: 'vague' }, dm);
     const vaag = await req(server, 'GET', `/api/files/${doc.id}`, null, speler, true);
     assert.match(vaag.type, /webp/, 'geen origineel');
   });
 
   it('geeft de pdf van een vaag document helemaal niet vrij', async () => {
-    const doc = (await req(server, 'POST', '/api/archief', { name: 'Wazig Traktaat', cat: 'codex' }, dm)).body;
+    const doc = (await req(server, 'POST', '/api/entities/documenten', { name: 'Wazig Traktaat', data: { docType: 'Manuscript' } }, dm)).body;
     const pdf = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(64, 0x20)]);
     await upload(server, `/api/files/${doc.id}`, dm, { filename: 'a.pdf', contentType: 'application/pdf', content: pdf });
-    await req(server, 'PUT', `/api/archief/${doc.id}/state`, { state: 'blurred' }, dm);
+    await req(server, 'PUT', `/api/entities/documenten/${doc.id}/visibility`, { target: 'vague' }, dm);
 
     const speler403 = await req(server, 'GET', `/api/files/${doc.id}`, null, speler);
     assert.strictEqual(speler403.status, 403, 'een pdf valt niet te vervagen — dan maar niet');

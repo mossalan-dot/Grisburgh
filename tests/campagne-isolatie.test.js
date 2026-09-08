@@ -141,13 +141,12 @@ function zaaiKanarie(id) {
   const schrijf = (f, v) => fs.writeFileSync(path.join(dir, f), JSON.stringify(v, null, 2));
 
   const entities = lees('entities.json');
-  for (const soort of ['personages', 'locaties', 'organisaties', 'voorwerpen']) {
+  for (const soort of ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten']) {
     entities[soort].push({ id: `e_${soort}_kanarie`, name: `${KANARIE} ${soort}`, data: { desc: KANARIE } });
   }
   schrijf('entities.json', entities);
 
   const archief = lees('archief.json');
-  archief.documents.push({ id: 'doc_kanarie', title: KANARIE, content: KANARIE });
   archief.logEntries.push({ id: 'log_kanarie', text: KANARIE });
   schrijf('archief.json', archief);
 

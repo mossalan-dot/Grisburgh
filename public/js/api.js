@@ -94,14 +94,6 @@ export const api = {
 
   // Archief
   listArchief: () => request('/archief'),
-  getArchief: (id) => request(`/archief/${id}`),
-  createArchief: (data) => request('/archief', { method: 'POST', body: JSON.stringify(data) }),
-  updateArchief: (id, data) => request(`/archief/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteArchief: (id) => request(`/archief/${id}`, { method: 'DELETE' }),
-  setArchiefState: (id, state) => request(`/archief/${id}/state`, { method: 'PUT', body: JSON.stringify({ state }) }),
-  setArchiefGroupVisibility: (id, state) => request(`/archief/${id}/group-visibility`, { method: 'PUT', body: JSON.stringify({ state }) }),
-  saveHiddenLinks: (id, links) => request(`/archief/${id}/hidden-links`, { method: 'PUT', body: JSON.stringify(links) }),
-  saveTekst: (id, tekst) => request(`/archief/${id}/tekst`, { method: 'PUT', body: JSON.stringify({ tekst }) }),
 
   // Files
   uploadFile: async (id, file, naam) => {
@@ -389,6 +381,7 @@ export const api = {
   // Verhaaltekst per akte + de namen die eruit volgen.
   saveAkteTekst:  (key, tekst) => request(`/meta/akte/${encodeURIComponent(key)}/tekst`, { method: 'PUT', body: JSON.stringify({ tekst }) }),
   akteNamen:      (key)        => request(`/meta/akte/${encodeURIComponent(key)}/namen`),
+  saveAkteDocumenten: (key, documenten) => request(`/meta/akte/${encodeURIComponent(key)}/documenten`, { method: 'PUT', body: JSON.stringify({ documenten }) }),
   saveAkteBereikbaarheid: (key, data) => request(`/meta/akte/${encodeURIComponent(key)}/bereikbaarheid`, { method: 'PUT', body: JSON.stringify(data) }),
   lootEvents:       ()        => request('/loot/events'),
   lootEventCreate:  (data)    => request('/loot/events',                { method: 'POST',   body: JSON.stringify(data) }),
@@ -513,7 +506,7 @@ export const api = {
 
   // Get all entity names grouped by type (for link autocomplete)
   async allNames() {
-    const types = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+    const types = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
     const result = {};
     await Promise.all(types.map(async t => {
       try {
@@ -521,10 +514,6 @@ export const api = {
         result[t] = list.map(e => e.name);
       } catch { result[t] = []; }
     }));
-    try {
-      const archief = await request('/archief');
-      result.archief = (archief.documents || []).map(d => d.name);
-    } catch { result.archief = []; }
     return result;
   },
 };

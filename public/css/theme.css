@@ -23881,3 +23881,45 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .rol-keuze--kant { opacity: .92; }
 /* Character Sheet heeft een eigen tabblad; daar hoeft niets meer open te klappen. */
 .cs-blok { margin-top: 0; }
+
+/* ── Documentkaartjes in het Logboek ─────────────────────────────────────────
+   Documenten zijn gewone kaartjes geworden; onderaan een akte staan ze als
+   klein chipje met beeld. Vervangt de oude `renderDocCardCompact` uit
+   render-archief.js, die met Tailwind-klassen in de HTML zat. */
+.doc-chip {
+  display: flex; align-items: center; gap: 8px;
+  width: 11rem; flex-shrink: 0;
+  background: var(--room-elevated, #f2e8d2);
+  border: 1px solid rgba(90,58,122,0.28);
+  border-radius: 7px; overflow: hidden; cursor: pointer;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.doc-chip:hover { border-color: rgba(90,58,122,0.6); transform: translateY(-1px); }
+.doc-chip--dim { opacity: .6; }
+.doc-chip-img  { width: 2.5rem; height: 3rem; object-fit: cover; flex-shrink: 0; }
+.doc-chip-body { min-width: 0; flex: 1; padding: 6px 8px 6px 0; }
+.doc-chip-naam {
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600;
+  color: #2a1a08; line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.doc-chip-type { font-size: 10px; font-style: italic; color: #7a6040; margin-top: 1px; }
+.doc-chip-slot { padding-right: 6px; flex-shrink: 0; color: #7a6040; display: flex; }
+.doc-chip-slot svg { width: 13px; height: 13px; }
+
+/* Vaag document: één slot in plaats van inhoud die er niet is. */
+.doc-slot {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 2rem 1rem; margin-bottom: 1rem;
+  background: var(--room-elevated, #f2e8d2);
+  border: 1px dashed rgba(122,96,64,0.4); border-radius: 8px;
+  color: #7a6040; font-family: 'Crimson Text', serif; font-style: italic;
+}
+.doc-slot svg { width: 20px; height: 20px; opacity: .5; }
+
+/* Kruisje om een chip los te koppelen (akte-editor). */
+.log-chip-x {
+  background: none; border: none; cursor: pointer; padding: 0 0 0 4px;
+  color: inherit; opacity: .55; font-size: 13px; line-height: 1;
+}
+.log-chip-x:hover { opacity: 1; }

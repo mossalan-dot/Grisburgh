@@ -1,4 +1,4 @@
-import { api } from './api.js?v=277';
+import { api } from './api.js?v=278';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -8,15 +8,15 @@ window._shiftHeld = false;
 document.addEventListener('keydown', e => { if (e.key === 'Shift') window._shiftHeld = true; });
 document.addEventListener('keyup',   e => { if (e.key === 'Shift') window._shiftHeld = false; });
 
-const DOC_TYPES = ['Brief','Krant','Kaart','Manuscript','Kasboek','Notities','Folder','Gebed','Blauwdruk','Embleem','Visitekaartje','Gedicht','Dreigbrief','Catalogus','Menu','Stadskaart','Wereldkaart','Dungeon map','Audiofragment','Overig'];
-
 let logboekSearch = '';
 let _logboekInitialized = false;
 let _collapsedChapters = new Set();
 let _logboekCache = null;
 let _logboekActiveTab = 'verslagen'; // 'verslagen' | 'quests'
-let searchQuery = '';
-let archiefData = { documents: [], logEntries: [], hiddenLinks: {}, tekstContent: {} };
+let archiefData = { logEntries: [], sessieLog: [] };
+// Documenten zijn kaartjes; het Logboek heeft ze alleen nog nodig om ze per
+// akte te tonen en om namen in chips aanklikbaar te maken.
+let _documenten = [];
 let meta = null;
 
 // ── Regie-script state per akte ──
@@ -112,96 +112,6 @@ function fmtToolbar(id) {
 
 export function initArchief() {}
 
-export async function renderDocumenten() {
-  const container = $('#section-documenten');
-  try {
-    archiefData = await api.listArchief();
-    meta = window.app.state.meta;
-  } catch { /* empty */ }
-
-  const docs = filterDocs();
-
-  // Only build the toolbar on first render; subsequent calls just refresh the grid.
-  // Uitzondering: is de DM-status gewisseld sinds de balk gebouwd werd (inloggen ná een
-  // eerste render als gast), dan volledig herbouwen zodat de +-knop verschijnt/verdwijnt.
-  const existingGrid = container.querySelector('.doc-grid');
-  if (existingGrid && container.dataset.dmBuilt === String(isDM())) {
-    _refreshDocGrid(docs, container);
-    return;
-  }
-
-  container.innerHTML = `
-    <!-- Section banner -->
-    <div class="section-banner section-banner--entity section-banner--documenten">
-      <div class="section-banner-head">
-        <div class="section-banner-icon-wrap">${icon('scroll-text')}</div>
-        <div class="section-banner-info">
-          <div class="section-banner-label">Documenten</div>
-          <div class="section-banner-desc-line">Brieven, kranten, kaarten en manuscripten</div>
-        </div>
-        <div class="section-banner-search">
-          <div class="sbs-input-wrap">
-            <span class="sbs-icon">\u2315</span>
-            <input type="text" class="sbs-input search-input"
-              placeholder="Zoek document\u2026" value="${esc(searchQuery)}" oninput="window._documentenSearch(this.value)">
-          </div>
-          <span class="results-count sbs-count" id="doc-results-count">${docs.length} resultaten</span>
-          ${window._helpBtn?.('documenten') ?? ''}
-          ${isDM() ? `<button class="sbs-add-btn" onclick="window.app.onFabClick()" title="Nieuw document">${icon('plus')}</button>` : ''}
-        </div>
-      </div>
-      <div class="section-banner-rule"><span class="section-banner-ornament">\u25c6</span></div>
-    </div>
-
-    <!-- Content -->
-    <div class="flex-1 overflow-y-auto p-6">
-      <div class="doc-grid grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4"></div>
-    </div>
-  `;
-  container.dataset.dmBuilt = String(isDM());
-
-  _refreshDocGrid(docs, container);
-
-  window._documentenSearch = (q) => {
-    searchQuery = q;
-    const filtered = filterDocs();
-    _refreshDocGrid(filtered, container);
-    const cnt = container.querySelector('#doc-results-count');
-    if (cnt) cnt.textContent = `${filtered.length} resultaten`;
-  };
-}
-
-// Schaalt de kaartnaam terug tot hij op één regel past (gelijk aan render-campagne).
-function _fitTextDoc(el) {
-  el.style.fontSize = '';
-  if (el.scrollWidth <= el.clientWidth) return;
-  for (let size = 13; size >= 9; size--) {
-    el.style.fontSize = size + 'px';
-    if (el.scrollWidth <= el.clientWidth) break;
-  }
-}
-
-function _refreshDocGrid(docs, container) {
-  const grid = container.querySelector('.doc-grid');
-  if (!grid) return;
-  const totalDocs = (archiefData.documents || []).length;
-  grid.innerHTML = docs.length === 0
-    ? `<div class="col-span-full text-center py-20 text-ink-faint">
-        <div class="text-5xl mb-4 opacity-40">${icon('scroll-text')}</div>
-        <div class="font-cinzel text-sm font-semibold text-ink-dim mb-1">
-          ${searchQuery || totalDocs > 0 ? 'Geen documenten gevonden' : 'Het archief is nog leeg...'}
-        </div>
-        ${!searchQuery && totalDocs === 0 && isDM()
-          ? `<div class="text-xs font-fell italic mt-1">Gebruik de <span class="font-mono px-1 py-0.5 bg-room-elevated rounded">+</span> knop om een document toe te voegen</div>`
-          : ''}
-       </div>`
-    : docs.map(d => renderDocCard(d)).join('');
-  // Namen passend maken (zelfde gedrag als de andere entity-kaarten)
-  requestAnimationFrame(() => grid.querySelectorAll('[data-fittext]').forEach(_fitTextDoc));
-  const countEl = container.querySelector('.results-count');
-  if (countEl) countEl.textContent = `${docs.length} resultaten`;
-}
-
 export async function renderLogboek() {
   const container = $('#section-logboek');
 
@@ -210,6 +120,7 @@ export async function renderLogboek() {
 
   try {
     archiefData = await api.listArchief();
+    _documenten = await api.listEntities('documenten').catch(() => []);
     meta = window.app.state.meta;
   } catch { /* empty */ }
 
@@ -699,17 +610,17 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
   }
   const sortedChapters = Object.keys(groups).sort((a, b) => (hk[a]?.num || 99) - (hk[b]?.num || 99));
 
-  const allDocs = archiefData.documents || [];
+  // Welke documenten bij een akte horen staat bij de ákte
+  // (`meta.hoofdstukken[ch].documenten`), niet op het kaartje: een kaartje
+  // beschrijft wát iets is, niet wanneer het in het verhaal voorkomt.
+  // Wat de server niet meestuurt (verborgen voor deze party) valt vanzelf weg.
+  const _docById = new Map(_documenten.map(d => [d.id, d]));
   const docsByChapter = {};
-  for (const d of allDocs) {
-    const _effectiveState = (isDM() && d._activeState !== undefined) ? d._activeState : (d.state || 'hidden');
-    if (!isDM() && _effectiveState === 'hidden') continue;
-    const ch = d.hoofdstuk || '_';
-    if (!docsByChapter[ch]) docsByChapter[ch] = [];
-    docsByChapter[ch].push(d);
-  }
-  for (const ch of Object.keys(docsByChapter)) {
-    docsByChapter[ch].sort((a, b) => _sortKey(a.name).localeCompare(_sortKey(b.name), 'nl', { sensitivity: 'base' }));
+  for (const [ch, info] of Object.entries(hk)) {
+    const lijst = (info.documenten || []).map(id => _docById.get(id)).filter(Boolean);
+    if (!lijst.length) continue;
+    lijst.sort((a, b) => _sortKey(a.name).localeCompare(_sortKey(b.name), 'nl', { sensitivity: 'base' }));
+    docsByChapter[ch] = lijst;
   }
 
   // DM: akte-zichtbaarheid per actieve groep
@@ -761,7 +672,7 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
           <div class="logboek-chapter-docs">
             <div class="logboek-docs-label">${icon('scroll-text')} Documenten</div>
             <div class="flex flex-wrap gap-2">
-              ${(docsByChapter[ch] || []).map(d => renderDocCardCompact(d)).join('')}
+              ${(docsByChapter[ch] || []).map(d => _docChipHtml(d)).join('')}
             </div>
           </div>` : ''}
         </div>
@@ -769,6 +680,23 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
     `;
   }
   return html;
+}
+
+// Een document in het logboek: klein kaartje met beeld en naam, dat het gewone
+// detailvenster opent. Wat de party niet mag zien komt niet mee uit de server,
+// dus hier is geen zichtbaarheidscontrole meer nodig; wél de DM-dimming.
+function _docChipHtml(d) {
+  const vaag = d._visibility === 'vague';
+  const dim  = isDM() && d._visibility !== 'visible';
+  return `
+    <div class="doc-chip${dim ? ' doc-chip--dim' : ''}" onclick="window._openDetail('documenten','${esc(d.id)}')">
+      <img class="doc-chip-img" src="${api.thumbForEntity(d)}" onerror="this.style.display='none'">
+      <div class="doc-chip-body">
+        <div class="doc-chip-naam">${esc(d.name)}</div>
+        ${d.data?.docType ? `<div class="doc-chip-type">${esc(d.data.docType)}</div>` : ''}
+      </div>
+      ${dim ? `<span class="doc-chip-slot" title="${vaag ? 'Vaag zichtbaar voor spelers' : 'Verborgen voor spelers'}">${icon(vaag ? 'eye-off' : 'lock')}</span>` : ''}
+    </div>`;
 }
 
 // ── Chip rows (used in detail modal) ──
@@ -830,8 +758,8 @@ function _renderSessieChips(e) {
   if (docs.length) sections.push({
     label: '\ud83d\udcdc Documenten',
     chips: docs.map(n => {
-      const d = (archiefData.documents || []).find(x => x.name === n);
-      const click = d ? `onclick="window._openDoc('${d.id}')"` : '';
+      const d = _documenten.find(x => x.name === n);
+      const click = d ? `onclick="window._openDetail('documenten','${d.id}')"` : '';
       return `<span class="log-chip log-chip-purple${d ? ' cursor-pointer' : ''}" ${click}>${esc(n)}</span>`;
     }),
   });
@@ -1853,22 +1781,16 @@ function _renderEntityResults(ch, entities, addedEntityIds, query) {
 }
 
 async function _scriptLoadAllEntities(ch) {
-  const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+  const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
   const ICONS = { personages: icon('user'), locaties: icon('map-pin'), organisaties: icon('landmark'), voorwerpen: icon('package'), documenten: icon('scroll-text') };
   try {
-    const [archiefResult, ...entityLists] = await Promise.all([
-      api.listArchief().catch(() => ({ documents: [] })),
-      ...ENTITY_TYPES.map(t => api.listEntities(t).catch(() => []))
-    ]);
+    const entityLists = await Promise.all(ENTITY_TYPES.map(t => api.listEntities(t).catch(() => [])));
     const allEntities = [];
     ENTITY_TYPES.forEach((type, idx) => {
       for (const e of (entityLists[idx] || [])) {
         allEntities.push({ id: e.id, name: e.name, _type: type, _icon: ICONS[type] });
       }
     });
-    for (const doc of (archiefResult.documents || [])) {
-      allEntities.push({ id: doc.id, name: doc.name || doc.title || '(document)', _type: 'documenten', _icon: ICONS.documenten });
-    }
     allEntities.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'nl'));
     const state = _scriptPickerState[ch] || {};
     state.entities = allEntities;
@@ -2260,6 +2182,11 @@ window._editAkte = async (ch) => {
     winkels,
   };
 
+  // Documenten bij deze akte. Ze staan hier en niet op het kaartje: een kaartje
+  // beschrijft wát iets is, niet wanneer het in het verhaal voorkomt.
+  const alleDocs = await api.listEntities('documenten').catch(() => []);
+  window._akteDocs = { gekozen: (info.documenten || []).filter(id => alleDocs.some(d => d.id === id)), alle: alleDocs };
+
   // Collect all images from entries in this chapter
   const chEntries = (archiefData.sessieLog || []).filter(e => e.hoofdstuk === ch);
   const allChImgIds = [...new Set(
@@ -2361,6 +2288,18 @@ window._editAkte = async (ch) => {
             </div>
           </div>` : ''}
       </div>
+      <div>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Documenten bij deze akte</label>
+        <p class="text-[10px] text-ink-dim mb-1">Verschijnen onderaan deze akte in het Logboek. Onthullen doe je op het kaartje zelf.</p>
+        <div id="akte-doc-chips" class="flex flex-wrap gap-1 mb-1">${_akteDocChips()}</div>
+        <div style="display:flex;gap:6px">
+          <input list="akte-doc-dl" id="akte-doc-zoek" placeholder="Zoek een document\u2026"
+            class="flex-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+          <datalist id="akte-doc-dl">${_akteDocOpties()}</datalist>
+          <button type="button" class="px-3 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition"
+            onclick="window._akteDocErbij()" title="Toevoegen">${icon('plus')}</button>
+        </div>
+      </div>
       <div class="flex gap-2 pt-2">
         <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">${icon('save')} Opslaan</button>
         <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition">${icon('x')}</button>
@@ -2384,6 +2323,7 @@ window._editAkte = async (ch) => {
       const dicht = (attr) => [...document.querySelectorAll(`#akte-edit-form [data-${attr}]`)]
         .filter(c => !c.checked).map(c => c.dataset[attr]);
       await api.saveAkteBereikbaarheid(ch, { diensten: dicht('dienst'), entiteiten: dicht('winkel') });
+      await api.saveAkteDocumenten(ch, window._akteDocs.gekozen);
       const newMeta = await api.meta();
       meta = newMeta;
       if (window.app?.state) window.app.state.meta = newMeta;
@@ -2392,6 +2332,49 @@ window._editAkte = async (ch) => {
       _akteBeheerChanged();
     } catch (err) { alert('Fout: ' + err.message); }
   });
+};
+
+// ── Documenten aan een akte hangen ──
+// Zoekbare input met datalist, zoals bij elke kaartjeskiezer in de Meesterkamer:
+// een <select> met alle documenten wordt bij dertig stuks al onhandelbaar.
+function _akteDocChips() {
+  const { gekozen, alle } = window._akteDocs || { gekozen: [], alle: [] };
+  if (!gekozen.length) return '<span class="text-[10px] text-ink-faint italic">Nog geen documenten gekoppeld</span>';
+  return gekozen.map(id => {
+    const d = alle.find(x => x.id === id);
+    return `<span class="log-chip log-chip-purple">${esc(d?.name || id)}
+      <button type="button" class="log-chip-x" onclick="window._akteDocEraf('${esc(id)}')" title="Loskoppelen">\u00d7</button></span>`;
+  }).join('');
+}
+
+function _akteDocOpties() {
+  const { gekozen, alle } = window._akteDocs || { gekozen: [], alle: [] };
+  return alle.filter(d => !gekozen.includes(d.id))
+    .map(d => `<option value="${esc(d.name)}"></option>`).join('');
+}
+
+function _akteDocVerversen() {
+  const chips = document.getElementById('akte-doc-chips');
+  const dl    = document.getElementById('akte-doc-dl');
+  if (chips) chips.innerHTML = _akteDocChips();
+  if (dl) dl.innerHTML = _akteDocOpties();
+}
+
+window._akteDocErbij = () => {
+  const input = document.getElementById('akte-doc-zoek');
+  const naam  = (input?.value || '').trim();
+  if (!naam) return;
+  const d = (window._akteDocs?.alle || []).find(x => x.name.toLowerCase() === naam.toLowerCase());
+  if (!d) { input.classList.add('dm-input--err'); setTimeout(() => input.classList.remove('dm-input--err'), 900); return; }
+  if (!window._akteDocs.gekozen.includes(d.id)) window._akteDocs.gekozen.push(d.id);
+  input.value = '';
+  _akteDocVerversen();
+};
+
+window._akteDocEraf = (id) => {
+  if (!window._akteDocs) return;
+  window._akteDocs.gekozen = window._akteDocs.gekozen.filter(x => x !== id);
+  _akteDocVerversen();
 };
 
 window._pickBannerImg = (btn) => {
@@ -2424,10 +2407,8 @@ window._openSessieEditor = async (editId, voorAkte) => {
     logAllLocatieNames     = (names.locaties     || []).slice().sort();
     logAllOrganisatieNames = (names.organisaties || []).slice().sort();
     logAllVoorwerpNames    = (names.voorwerpen   || []).slice().sort();
+    logAllDocNames         = (names.documenten   || []).slice().sort();
   } catch { /* ignore */ }
-
-  // Document names for autocomplete
-  logAllDocNames = (archiefData.documents || []).map(d => d.name).sort();
 
   logEditorTags = {
     nieuwPersonages:       e?.nieuwPersonages?.slice()       || [],
@@ -2673,644 +2654,4 @@ window._deleteSessie = async (id) => {
   await api.deleteSessieLog(id);
   closeModal();
   renderLogboek();
-};
-
-function filterDocs() {
-  let docs = archiefData.documents || [];
-  if (searchQuery) {
-    const q = searchQuery.toLowerCase();
-    docs = docs.filter(d => {
-      return [d.name, d.type, d.desc, ...(d.npcs||[]), ...(d.locs||[]), ...(d.orgs||[]), ...(d.items||[]), ...(d.docs||[])].join(' ').toLowerCase().includes(q);
-    });
-  }
-  docs = [...docs].sort((a, b) =>
-    _sortKey(a.name).localeCompare(_sortKey(b.name), 'nl', { sensitivity: 'base' })
-  );
-  return docs;
-}
-
-function renderDocCardCompact(d) {
-  const state = (isDM() && d._activeState !== undefined) ? d._activeState : (d.state || 'hidden');
-  const isBlurred = !isDM() && state === 'blurred';
-  const dimmed = isDM() && state !== 'revealed';
-  return `
-    <div class="flex items-center gap-2 w-44 shrink-0 bg-room-elevated border border-room-border rounded-lg overflow-hidden cursor-pointer hover:border-room-border-light transition${dimmed ? ' opacity-60' : ''}"
-      onclick="window._openDoc('${d.id}')">
-      <img class="w-10 h-12 object-cover shrink-0"
-        src="${api.fileForEntity(d)}" onerror="this.style.display='none'">
-      <div class="min-w-0 flex-1 py-1.5 pr-2">
-        <div class="text-[11px] font-cinzel font-semibold text-ink-bright leading-tight truncate">${esc(d.name)}</div>
-        ${d.type ? `<div class="text-[10px] text-ink-faint italic mt-0.5">${esc(d.type)}</div>` : ''}
-      </div>
-      ${dimmed ? `<div class="text-[11px] pr-1.5 shrink-0 text-ink-faint"
-        title="${state === 'blurred' ? 'Vaag zichtbaar voor spelers' : 'Verborgen voor spelers'}"
-        >${state === 'blurred' ? icon('eye-off') : icon('lock')}</div>` : ''}
-    </div>
-  `;
-}
-
-function renderDocCard(d) {
-  const state = (isDM() && d._activeState !== undefined) ? d._activeState : (d.state || 'hidden');
-  const hoofdstuk = meta?.hoofdstukken?.[d.hoofdstuk];
-  const chapterLabel = hoofdstuk ? hoofdstuk.short : '';
-  const isBlurred = !isDM() && state === 'blurred';
-
-  return `
-    <div class="entity-card${isDM() && state === 'hidden' ? ' card-hidden' : isDM() && state === 'blurred' ? ' opacity-60' : ''}"
-      onclick="window._openDoc('${d.id}')">
-      ${isDM() ? (() => {
-        const _visIcon  = state === 'hidden' ? icon('lock') : state === 'blurred' ? icon('eye-off') : icon('eye');
-        const _visTitle = state === 'revealed' ? 'Verbergen  \u00b7  Shift: vaag maken'
-                        : state === 'blurred'  ? 'Onthullen  \u00b7  Shift: verbergen'
-                        :                        'Onthullen  \u00b7  Shift: vaag maken';
-        return `
-        <div class="dm-only absolute top-7 right-2 z-30 flex flex-col gap-1">
-          <button class="w-7 h-7 flex items-center justify-center rounded ${state === 'blurred' ? 'bg-gold-dim/80' : 'bg-black/75'} hover:bg-black/95 backdrop-blur-sm transition text-xs text-white shadow ring-1 ring-white/20"
-            onclick="event.stopPropagation();window._toggleDocState('${d.id}','${state}',window._shiftHeld)"
-            title="${_visTitle}">${_visIcon}</button>
-          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-black/95 backdrop-blur-sm transition text-white shadow ring-1 ring-white/20"
-            onclick="event.stopPropagation();window._openArchiefEditor('${d.id}')"
-            title="Bewerken">${icon('pencil')}</button>
-          <button class="w-7 h-7 flex items-center justify-center rounded bg-black/75 hover:bg-red-700/90 backdrop-blur-sm transition text-white shadow ring-1 ring-white/20"
-            onclick="event.stopPropagation();window._deleteDoc('${d.id}')"
-            title="Verwijderen">${icon('trash')}</button>
-        </div>`;
-      })() : ''}
-      <div class="card-accent bar-documenten"></div>
-      <div class="card-img-wrap">
-        <img class="card-img w-full object-cover"
-          loading="lazy" src="${api.thumbForEntity(d)}"
-          onerror="this.style.display='none';this.closest('.entity-card').classList.add('no-img')">
-        <div class="card-img-fade"></div>
-        ${d.type ? `<div class="card-badges card-badges--beeld"><div class="card-badges-rij">
-          <span class="card-subtype-badge badge-doc">${esc(d.type)}</span></div></div>` : ''}
-      </div>
-      <div class="card-body px-3 pt-2 pb-2">
-        ${d.type ? `<div class="card-badges card-badges--los">
-          <span class="card-subtype-badge badge-doc">${esc(d.type)}</span></div>` : ''}
-        <div class="mb-1.5">
-          <span class="card-name block" data-fittext>${esc(d.name)}</span>
-          ${chapterLabel ? `<span class="card-name-sep"></span>
-          <div class="card-meta"><span class="card-meta-sub">${esc(chapterLabel)}</span></div>` : ''}
-        </div>
-        ${isBlurred
-          ? `<p class="text-xs text-ink-faint italic font-crimson">Nog niet volledig onthuld\u2026</p>`
-          : `${d.desc ? `<p class="text-xs text-ink-medium line-clamp-4 mb-1 font-crimson leading-relaxed">${mdToHtml(d.desc)}</p>` : ''}`
-        }
-      </div>
-    </div>
-  `;
-}
-
-
-// ── Document detail ──
-window._openDoc = async (id) => {
-  let d;
-  try { d = await api.getArchief(id); } catch { return; }
-  // Wikilinks kunnen een document openen vóór de archief-tab ooit geladen is —
-  // haal dan eerst de archiefdata op (nodig voor tekstContent).
-  if (!archiefData.documents.length) {
-    try { archiefData = await api.listArchief(); } catch {}
-  }
-  window._currentArchiefDocId    = id;
-  window._currentArchiefSessieId = null;
-  const state      = (isDM() && d._activeState !== undefined) ? d._activeState : (d.state || 'hidden');
-  const isBlurred  = !isDM() && state === 'blurred';
-  const hoofdstuk  = meta?.hoofdstukken?.[d.hoofdstuk];
-  const tekst      = archiefData.tekstContent?.[id] || '';
-  const thumbUrl   = api.thumbForEntity(d);
-  const fileUrl    = api.fileForEntity(d);
-
-  let body = '';
-
-  // ── DM visibility vars (needed for bottom controls) ──
-  const _visIcon  = state === 'hidden'   ? icon('lock')
-                  : state === 'blurred'  ? icon('eye-off')
-                  :                        icon('eye');
-  const _visTitle = state === 'revealed' ? 'Verbergen · Shift: wazig'
-                  : state === 'blurred'  ? 'Volledig onthullen · Shift: verbergen'
-                  :                        'Onthullen · Shift: wazig';
-
-  // ── Hero afbeelding ──
-  body += `
-    <div class="detail-hero mb-4" onclick="window.app.openLightbox('${fileUrl}','${escJS(d.name)}')">
-      <img src="${thumbUrl}" class="detail-hero-img" onerror="this.closest('.detail-hero').style.display='none'">
-      <div class="detail-hero-overlay"></div>
-      
-      ${d.type ? `<div class="detail-hero-badge badge-doc">${esc(d.type)}</div>` : ''}
-    </div>
-  `;
-
-  // ── Beschrijving ──
-  // Bij een vaag document stuurt de server de beschrijving niet meer mee; hier
-  // staat dan dezelfde regel als op het kaartje, geen wazig gemaakte tekst.
-  if (isBlurred) {
-    body += `<p class="detail-desc mb-4 text-ink-faint italic font-crimson">Nog niet volledig onthuld\u2026</p>`;
-  } else if (d.desc) {
-    body += `<div class="detail-desc mb-4">${mdToHtml(d.desc)}</div>`;
-  }
-
-  // ── Bestand (PDF / audio — geen plain afbeelding, hero toont die al) ──
-  body += `<div class="mb-4" id="doc-file-container-${d.id}"></div>`;
-
-  // ── Perkament tekst ──
-  // De server stuurt de perkamenttekst alleen bij 'revealed' mee, dus bij een
-  // vaag document is `tekst` hier gewoon leeg.
-  if (tekst) {
-    body += `<div class="parchment-block mb-4">${renderParchment(tekst)}</div>`;
-  }
-
-  // ── DM controls (onderaan) ──
-  if (isDM()) {
-    body += `
-      <!-- Drie gelijke vierkantjes met een pictogram zeiden niet wát ze doen —
-           dezelfde reden waarom de entiteit-viewer icoon plus woord kreeg. De
-           stand staat nu in het woord, niet alleen in de kleur. -->
-      <div class="dm-only detail-dm-tools mt-4 pt-4 border-t border-room-border">
-        <button class="dm-actie${state !== 'hidden' ? ' dm-actie--aan' : ''}"
-          title="${_visTitle}"
-          onclick="window._toggleDocState('${d.id}','${state}',event.shiftKey)">
-          ${_visIcon}<span>${state === 'revealed' ? 'Zichtbaar' : state === 'blurred' ? 'Vaag zichtbaar' : 'Verborgen'}</span>
-        </button>
-        <button class="dm-actie" title="Bewerken"
-          onclick="window._openArchiefEditor('${d.id}')">${icon('pencil')}<span>Bewerken</span></button>
-        <button class="dm-actie dm-actie--gevaar" title="Verwijderen"
-          onclick="window._deleteDoc('${d.id}')">${icon('trash')}<span>Verwijderen</span></button>
-      </div>
-    `;
-  }
-
-  const subtitle = [d.type, hoofdstuk?.short].filter(Boolean).join(' · ');
-  openModal(d.name, subtitle, body);
-
-  // Accent bar
-  const _accentEl = document.getElementById('m-accent');
-  if (_accentEl) _accentEl.className = 'modal-accent bar-documenten';
-
-  // Laad bestand asynchroon in container
-  const fileContainer = document.getElementById(`doc-file-container-${d.id}`);
-  if (fileContainer) {
-    // Bij een vaag document hoeven we niets op te halen: de server geeft het
-    // bestand toch niet vrij (een pdf of geluidsfragment is de inhoud), en de
-    // afbeelding staat al vervaagd in de hero. Eén slot, geen tweede plaatje.
-    if (isBlurred) {
-      fileContainer.innerHTML = `<div class="rounded bg-room-elevated p-8 text-center">
-        <div class="text-4xl mb-2 opacity-30">${icon('lock')}</div>
-        <div class="text-ink-faint text-sm italic">Document nog niet volledig onthuld</div>
-      </div>`;
-      return;
-    }
-    try {
-      const headRes = await fetch(fileUrl, { method: 'HEAD' });
-      if (!headRes.ok) { fileContainer.style.display = 'none'; }
-      else {
-        const ct = headRes.headers.get('content-type') || '';
-        if (ct.includes('audio')) {
-          fileContainer.innerHTML = `<div class="bg-room-elevated rounded-lg p-4">
-            <div class="detail-label mb-2">${icon('volume-2')} Geluidsfragment</div>
-            <audio controls class="w-full" src="${fileUrl}"></audio>
-          </div>`;
-        } else if (ct.includes('pdf')) {
-          await renderPdfViewer(fileContainer, fileUrl);
-        } else if (ct.includes('image')) {
-          // Hero afbeelding toont de afbeelding al — geen duplicaat tonen
-          fileContainer.style.display = 'none';
-        } else {
-          fileContainer.style.display = 'none';
-        }
-      }
-    } catch { fileContainer.style.display = 'none'; }
-  }
-};
-
-function renderParchment(text) {
-  if (!text) return '';
-  const lines = text.split('\n');
-  let html = '';
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (line.trim() === '---titel---' && i + 1 < lines.length) {
-      html += `<div class="parch-title">${mdToHtml(lines[i + 1])}</div>`;
-      i += 2; continue;
-    }
-    if (/^---\s*$/.test(line.trim())) {
-      html += '<hr class="parch-rule">';
-      i++; continue;
-    }
-    if (line.trim() === '--handtekening--' && i + 1 < lines.length) {
-      html += `<div class="parch-sig">${mdToHtml(lines[i + 1])}</div>`;
-      i += 2; continue;
-    }
-    html += `<span>${mdToHtml(line)}</span><br>`;
-    i++;
-  }
-  return html;
-}
-
-// ── State change ──
-window._setDocState = async (id, state) => {
-  await api.setArchiefState(id, state);
-  renderDocumenten();
-};
-
-window._toggleDocState = async (id, current, shiftKey) => {
-  let next;
-  if (shiftKey) {
-    next = current === 'blurred' ? 'hidden' : 'blurred';
-  } else {
-    next = current === 'revealed' ? 'hidden' : 'revealed';
-  }
-  await api.setArchiefGroupVisibility(id, next);
-  renderDocumenten();
-};
-
-// ── Hidden link toggle ──
-window._toggleLinkVis = async (docId, field, name) => {
-  const links = archiefData.hiddenLinks[docId] || { npcs: [], locs: [], docs: [] };
-  if (!links[field]) links[field] = [];
-  const idx = links[field].indexOf(name);
-  if (idx >= 0) links[field].splice(idx, 1);
-  else links[field].push(name);
-  archiefData.hiddenLinks[docId] = links;
-  await api.saveHiddenLinks(docId, links);
-  window._openDoc(docId);
-};
-
-// ── Tekst content save ──
-let tekstTimer;
-window._saveTekst = (id) => {
-  clearTimeout(tekstTimer);
-  tekstTimer = setTimeout(async () => {
-    const ta = document.getElementById(`tekst-editor-${id}`);
-    if (!ta) return;
-    await api.saveTekst(id, ta.value);
-    archiefData.tekstContent[id] = ta.value;
-    const ind = document.getElementById(`tekst-save-${id}`);
-    if (ind) { ind.textContent = '\u2713 Tekst opgeslagen'; ind.style.opacity = '1'; setTimeout(() => ind.style.opacity = '0', 1200); }
-  }, 500);
-};
-
-// ── File upload ──
-window._uploadDocFile = async (id, file) => {
-  if (!file) return;
-  if (file.size > 50 * 1024 * 1024) return alert('Max 50MB');
-  await api.uploadFile(id, file);
-  window._openDoc(id);
-};
-
-// Kies een bestaande afbeelding uit de mediabibliotheek voor dit document.
-// Zet het verborgen imageId-veld (gaat mee bij opslaan) en werkt de preview bij.
-window._docPickImage = () => {
-  const naamHint = (document.querySelector('#archief-form [name="name"]')?.value || '').trim().toLowerCase().replace(/\s+/g, '-');
-  window.mediaPicker.open({
-    type: 'afbeelding',
-    suggestedName: naamHint || '',
-    onSelect: (fileId) => {
-      const hidden = document.getElementById('editor-doc-imageid');
-      if (hidden) hidden.value = fileId;
-      const preview = document.getElementById('editor-file-preview');
-      if (preview) preview.innerHTML = `<img src="${api.fileUrl(fileId)}" class="w-full max-h-40 object-contain rounded">`;
-      // Een eventuele upload-keuze vervalt — bibliotheekafbeelding wint
-      const fileInput = document.getElementById('editor-file-input');
-      if (fileInput) fileInput.value = '';
-    },
-  });
-};
-
-// If img fails to load, check if it's a PDF or audio and embed accordingly
-window._tryPdfEmbed = async (id, imgEl) => {
-  const container = document.getElementById(`doc-file-container-${id}`);
-  if (!container) return;
-  try {
-    const res = await fetch(api.fileUrl(id), { method: 'HEAD' });
-    if (!res.ok) { container.style.display = 'none'; return; }
-    const ct = res.headers.get('content-type') || '';
-    if (ct.includes('audio')) {
-      const fileUrl = api.fileUrl(id);
-      container.innerHTML = `<div class="bg-room-elevated rounded-lg p-4">
-        <div class="text-xs font-cinzel text-ink-dim uppercase tracking-wide mb-2">\ud83c\udfb5 Geluidsfragment</div>
-        <audio controls class="w-full" src="${fileUrl}"></audio>
-      </div>`;
-    } else if (ct.includes('pdf')) {
-      renderPdfViewer(container, api.fileUrl(id));
-    } else {
-      container.style.display = 'none';
-    }
-  } catch {
-    container.style.display = 'none';
-  }
-};
-
-// Fallback for editor image preview when file is not an image (e.g. audio/pdf)
-window._docPreviewFallback = async (imgEl, id) => {
-  imgEl.style.display = 'none';
-  try {
-    const res = await fetch(api.fileUrl(id), { method: 'HEAD' });
-    if (!res.ok) return;
-    const ct = res.headers.get('content-type') || '';
-    const preview = document.getElementById('editor-file-preview');
-    if (!preview) return;
-    if (ct.includes('audio')) {
-      preview.innerHTML = `<audio controls class="w-full mt-1" src="${api.fileUrl(id)}"></audio>`;
-    } else if (ct.includes('pdf')) {
-      preview.innerHTML = `<div class="text-sm text-ink-medium p-2 bg-room-elevated rounded">\ud83d\udcc4 PDF-bestand</div>`;
-    }
-  } catch { /* ignore */ }
-};
-
-async function renderPdfViewer(container, url) {
-  const pdf = await window.pdfjsLib.getDocument(url).promise;
-  container.innerHTML = '<div class="flex flex-col gap-3"></div>';
-  const stack = container.firstElementChild;
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const scale = container.clientWidth / page.getViewport({ scale: 1 }).width;
-    const viewport = page.getViewport({ scale });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    canvas.className = 'w-full rounded border border-room-border cursor-pointer hover:border-gold-dim transition';
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-    canvas.addEventListener('click', () => {
-      const dataUrl = canvas.toDataURL();
-      window.app.openLightbox(dataUrl, `Pagina ${i}`);
-    });
-    stack.appendChild(canvas);
-  }
-}
-
-// ── Editor ──
-export function openArchiefEditor(editId) {
-  window._openArchiefEditor(editId);
-}
-
-let editorTags = { npcs: [], locs: [], orgs: [], items: [], docs: [] };
-
-let allNames = {};
-
-window._openArchiefEditor = async (editId) => {
-  let d = null;
-  if (editId) {
-    try { d = await api.getArchief(editId); } catch { return; }
-  }
-  editorTags = {
-    npcs:  d?.npcs?.slice()  || [],
-    locs:  d?.locs?.slice()  || [],
-    orgs:  d?.orgs?.slice()  || [],
-    items: d?.items?.slice() || [],
-    docs:  d?.docs?.slice()  || [],
-  };
-  allNames = await api.allNames();
-
-  let body = `<form id="archief-form" class="space-y-4">`;
-
-  // ── Twee-kolom layout ──
-  body += `<div class="editor-layout">`;
-
-  // ── Linker kolom: bestand ──
-  body += `<div class="editor-col-left">`;
-  body += `
-    <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Bestand</label>
-      <div id="editor-file-preview" class="mt-1 mb-2 rounded overflow-hidden">
-        ${(d?.imageId || editId) ? `<img src="${api.fileForEntity(d)}" class="w-full max-h-40 object-contain rounded" onerror="window._docPreviewFallback(this,'${d?.imageId || editId}')">` : ''}
-      </div>
-      <input type="hidden" id="editor-doc-imageid" value="${esc(d?.imageId || '')}">
-      <div class="flex gap-2 mt-1">
-        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._docPickImage()" title="Kies een afbeelding uit de bibliotheek">${icon('image')} Uit bibliotheek</button>
-        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" onclick="document.getElementById('editor-file-input').click()" title="Afbeelding, PDF of audio uploaden">${icon('folder-open')} Upload bestand</button>
-      </div>
-      <input type="file" id="editor-file-input" accept="image/*,.pdf,application/pdf,audio/mpeg,.mp3,audio/ogg,.ogg,audio/wav,.wav" class="hidden">
-      <div id="editor-file-status" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>
-    </div>
-  `;
-  body += `</div>`; // end editor-col-left
-
-  // ── Rechter kolom: velden ──
-  body += `<div class="editor-col-right">`;
-  body += `
-    <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Titel</label>
-      <input name="name" value="${esc(d?.name || '')}" required
-        class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-    </div>
-    <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Type</label>
-      <select name="type" class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-        ${DOC_TYPES.map(t => `<option value="${t}" ${d?.type === t ? 'selected' : ''}>${t}</option>`).join('')}
-      </select>
-    </div>
-    <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Hoofdstuk</label>
-      <select name="hoofdstuk" class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-        <option value="">—</option>
-        ${Object.entries(meta?.hoofdstukken || {}).map(([k, v]) => `<option value="${k}" ${d?.hoofdstuk === k ? 'selected' : ''}>${v.short}</option>`).join('')}
-      </select>
-    </div>
-  `;
-  body += `</div>`; // end editor-col-right
-  body += `</div>`; // end editor-layout
-
-  // ── Beschrijving (volledige breedte) ──
-  body += `
-    <div>
-      <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Beschrijving</label>
-      <div class="mt-1">
-        ${fmtToolbar('ta_desc')}
-        <textarea id="ta_desc" name="desc" rows="4"
-          onkeydown="window._fmtKey(event)"
-          class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(d?.desc || '')}</textarea>
-      </div>
-    </div>
-  `;
-
-  // ── Perkament tekst (uitklapbaar) ──
-  if (editId) {
-    const tekst = archiefData.tekstContent?.[editId] || '';
-    body += `
-      <details class="cs-accordion"${tekst ? ' open' : ''}>
-        <summary class="cs-accordion-head">
-          <span>Perkament tekst</span>
-          <span class="cs-accordion-chevron">▾</span>
-        </summary>
-        <div class="cs-accordion-body">
-          <textarea id="tekst-editor-${editId}" rows="7"
-            oninput="window._saveTekst('${editId}')"
-            class="w-full px-3 py-2 bg-parchment-letter text-[#2a2015] font-fell text-sm border border-[#d4c9a8] rounded focus:outline-none"
-            placeholder="---titel---\nDocument Titel\n---\nTekst hier...\n--handtekening--\nNaam">${esc(tekst)}</textarea>
-          <div id="tekst-save-${editId}" class="text-xs text-green-wax opacity-0 transition-opacity mt-1"></div>
-        </div>
-      </details>
-    `;
-  }
-
-  // De Verbindingen-editor is vervallen: koppelingen leg je in de tekst zelf met
-  // [[Naam]]. De bestaande tags blijven bewaard (ze worden hieronder gewoon
-  // meegestuurd bij het opslaan) — ze worden alleen niet meer met de hand
-  // bijgehouden.
-
-  // ── DM Notities (uitklapbaar) ──
-  if (editId) {
-    const dmNote = (await api.getNote(editId).catch(() => ({}))).note || '';
-    body += `
-      <details class="cs-accordion"${dmNote ? ' open' : ''}>
-        <summary class="cs-accordion-head">
-          <span>DM Notities</span>
-          <span class="cs-accordion-chevron">▾</span>
-        </summary>
-        <div class="cs-accordion-body">
-          <textarea id="dm-note-editor-${editId}" rows="3"
-            class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-sm text-ink-bright font-crimson focus:border-gold-dim focus:outline-none"
-            placeholder="Notities...">${esc(dmNote)}</textarea>
-        </div>
-      </details>
-    `;
-  }
-
-  body += `
-    <div class="flex gap-2 pt-2">
-      <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition" title="Opslaan">${icon('save')}</button>
-      ${editId ? `<button type="button" onclick="window._deleteDoc('${editId}')" class="px-4 py-2 bg-seal/20 text-seal rounded hover:bg-seal/40 transition" title="Verwijderen">${icon('trash')}</button>` : ''}
-      <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition" title="Annuleren">${icon('x')}</button>
-    </div>
-  </form>`;
-
-  openModal(editId ? 'Document bewerken' : 'Nieuw document', '', body);
-
-
-  // File input preview
-  document.getElementById('editor-file-input').addEventListener('change', (ev) => {
-    const file = ev.target.files[0];
-    if (!file) return;
-    if (file.size > 50 * 1024 * 1024) { alert('Max 50MB'); ev.target.value = ''; return; }
-    // Een nieuwe upload vervangt een eventueel gekozen bibliotheekafbeelding
-    const imgIdEl = document.getElementById('editor-doc-imageid');
-    if (imgIdEl) imgIdEl.value = '';
-    const preview = document.getElementById('editor-file-preview');
-    const status = document.getElementById('editor-file-status');
-    if (file.type.startsWith('audio/')) {
-      const url = URL.createObjectURL(file);
-      preview.innerHTML = `<audio controls class="w-full mt-1" src="${url}"></audio><div class="text-xs text-ink-dim mt-1">\ud83c\udfb5 ${esc(file.name)} (${(file.size / 1024 / 1024).toFixed(1)} MB)</div>`;
-    } else if (file.type === 'application/pdf') {
-      preview.innerHTML = `<div class="text-sm text-ink-medium p-2 bg-room-elevated rounded">\ud83d\udcc4 ${esc(file.name)} (${(file.size / 1024 / 1024).toFixed(1)} MB)</div>`;
-    } else {
-      const url = URL.createObjectURL(file);
-      preview.innerHTML = `<img src="${url}" class="max-h-32 rounded">`;
-    }
-    status.textContent = 'Wordt geüpload bij opslaan';
-    status.style.opacity = '1';
-  });
-
-  document.getElementById('archief-form').addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    const form = new FormData(ev.target);
-    const payload = {
-      name: form.get('name'),
-      type: form.get('type'),
-      hoofdstuk: form.get('hoofdstuk'),
-      desc: form.get('desc'),
-      imageId: document.getElementById('editor-doc-imageid')?.value || '',
-      npcs:  editorTags.npcs,
-      locs:  editorTags.locs,
-      orgs:  editorTags.orgs,
-      items: editorTags.items,
-      docs:  editorTags.docs,
-    };
-    try {
-      let docId = editId;
-      if (editId) await api.updateArchief(editId, payload);
-      else {
-        const created = await api.createArchief(payload);
-        docId = created.id;
-      }
-      // Upload file if one was selected
-      const fileInput = document.getElementById('editor-file-input');
-      if (fileInput?.files?.[0]) {
-        await api.uploadFile(docId, fileInput.files[0]);
-      }
-      // Save parchment text
-      const tekstEl = document.getElementById(`tekst-editor-${docId}`);
-      if (tekstEl) {
-        await api.saveTekst(docId, tekstEl.value);
-        archiefData.tekstContent[docId] = tekstEl.value;
-      }
-      // Save DM note
-      const noteEl = document.getElementById(`dm-note-editor-${docId}`);
-      if (noteEl) {
-        await api.saveNote(docId, noteEl.value);
-      }
-      closeModal();
-      renderDocumenten();
-    } catch (err) { alert('Fout: ' + err.message); }
-  });
-};
-
-const ATAG_NAME_KEY = { npcs: 'personages', locs: 'locaties', orgs: 'organisaties', items: 'voorwerpen', docs: 'archief' };
-
-window._addATag = (field, name) => {
-  const input = document.getElementById(`atag-input-${field}`);
-  const val = (name || input.value).trim();
-  if (!val || editorTags[field].includes(val)) return;
-  editorTags[field].push(val);
-  input.value = '';
-  window._hideASuggestions(field);
-  refreshATags(field);
-};
-
-window._removeATag = (field, name) => {
-  editorTags[field] = editorTags[field].filter(n => n !== name);
-  refreshATags(field);
-};
-
-window._showASuggestions = (field, nameKey) => {
-  const input = document.getElementById(`atag-input-${field}`);
-  const list = document.getElementById(`atag-suggestions-${field}`);
-  const q = input.value.trim().toLowerCase();
-  const names = (allNames[nameKey] || []).filter(n =>
-    !editorTags[field].includes(n) && (!q || n.toLowerCase().includes(q))
-  );
-  if (names.length === 0) { list.classList.remove('open'); return; }
-  list.innerHTML = names.map(n =>
-    `<div class="autocomplete-item" onmousedown="window._addATag('${field}','${esc(n)}')">${esc(n)}</div>`
-  ).join('');
-  list.classList.add('open');
-};
-
-window._hideASuggestions = (field) => {
-  const list = document.getElementById(`atag-suggestions-${field}`);
-  if (list) list.classList.remove('open');
-};
-
-window._handleATagKey = (ev, field) => {
-  if (ev.key === 'Enter') { ev.preventDefault(); window._addATag(field); }
-  if (ev.key === 'Escape') { window._hideASuggestions(field); }
-};
-
-document.addEventListener('focusout', (ev) => {
-  if (ev.target.id?.startsWith('atag-input-')) {
-    const field = ev.target.id.replace('atag-input-', '');
-    setTimeout(() => window._hideASuggestions(field), 150);
-  }
-  if (ev.target.id?.startsWith('log-tag-input-')) {
-    const field = ev.target.id.replace('log-tag-input-', '');
-    setTimeout(() => window._hideLogSuggestions(field), 150);
-  }
-});
-
-function refreshATags(field) {
-  const fm = { npcs: 'chip-npc', locs: 'chip-loc', orgs: 'chip-org', items: 'chip-item', docs: 'chip-doc' };
-  const container = document.getElementById(`atags-${field}`);
-  if (!container) return;
-  container.innerHTML = editorTags[field].map(n =>
-    `<span class="chip ${fm[field]}">${esc(n)} <span class="cursor-pointer ml-1" data-field="${field}" data-name="${esc(n)}" onclick="window._removeATag(this.dataset.field,this.dataset.name)">\u00d7</span></span>`
-  ).join('');
-}
-
-window._deleteDoc = async (id) => {
-  if (!confirm('Document verwijderen?')) return;
-  await api.deleteArchief(id);
-  closeModal();
-  renderDocumenten();
 };

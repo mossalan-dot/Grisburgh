@@ -71,7 +71,10 @@ function _sniffMedia(buf) {
   return false;
 }
 
-const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+// Documenten horen erbij sinds ze een gewoon kaartje zijn: ze stonden in
+// archief.json met een eigen kaart, editor, zichtbaarheid en negen eigen routes,
+// terwijl het hetzelfde ding was. Zie scripts/documenten-naar-kaartjes.js.
+const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
 
 // ── Toegang tot bestanden ────────────────────────────────────────────────────
 // Tot nu toe was elk bestand op te halen zonder in te loggen: `attachRole` zet
@@ -146,15 +149,6 @@ function _waasBestanden(groupId) {
       set.add(e.id);
       if (e.data?.imageId) set.add(e.data.imageId);
     }
-  }
-  const archief = storage.readJSON('archief.json');
-  for (const d of (archief.documents || [])) {
-    const stand = (g?.docVisibility && d.id in g.docVisibility)
-      ? g.docVisibility[d.id]
-      : (dmState.docStates?.[d.id] || 'hidden');
-    if (stand !== 'blurred') continue;
-    set.add(d.id);
-    if (d.imageId) set.add(d.imageId);
   }
   c.perGroep.set(groupId, set);
   return set;
@@ -249,7 +243,6 @@ function readDmState() {
       activeGroup: 'groep1',
       groups:      { groep1: g },
       dmNotes:     state.dmNotes   || {},
-      docStates:   state.docStates || {},
     };
     storage.writeJSON('dm-state.json', migrated);
     return migrated;
@@ -695,28 +688,6 @@ function _onthuld(waarde, aantal) {
   return Array.from({ length: aantal }, (_, i) => alles && i === 0);
 }
 
-function filterDocForPlayer(doc, dmState, groupId) {
-  const groupDocVis = groupId ? dmState.groups?.[groupId]?.docVisibility : null;
-  const state = (groupDocVis != null && doc.id in groupDocVis)
-    ? groupDocVis[doc.id]
-    : (dmState.docStates[doc.id] || 'hidden');
-  if (state === 'hidden') return null;
-  const d = { ...doc, state };
-  if (state === 'blurred') {
-    d.npcs = [];
-    d.locs = [];
-    d.orgs = [];
-    d.items = [];
-    d.docs = [];
-    // De beschrijving ging wél mee en werd alleen met een CSS-waas verstopt:
-    // hij stond dus gewoon in de netwerktab, én de documentzoeker vond het
-    // document op een woord dat de speler nog niet mocht lezen. Zelfde regel
-    // als bij een vaag kaartje: naam en soort blijven, de inhoud niet.
-    delete d.desc;
-  }
-  return d;
-}
-
 // ── Entity CRUD ──
 
 // ── Verbindingen uit de tekst ────────────────────────────────────────────────
@@ -729,7 +700,7 @@ function filterDocForPlayer(doc, dmState, groupId) {
 // verbindingen in deze campagne staat maar 40% ook als [[ ]] in de tekst. Puur
 // afleiden zou er dus ruim zeshonderd wegvagen. Wat opgeslagen is blijft staan;
 // wat in de tekst genoemd wordt komt erbij.
-const _LINK_TEKSTVELDEN = ['desc', 'persoonlijkheid', 'flavour', 'geheim', 'notities'];
+const _LINK_TEKSTVELDEN = ['desc', 'persoonlijkheid', 'flavour', 'geheim', 'notities', 'tekst'];
 let _naamIndexCache = null;   // { mtimeMs, index: Map(genormaliseerde naam → type) }
 
 function _naamIndex() {
@@ -881,13 +852,12 @@ function _linksMetTekst(entity) {
   const tekst = _LINK_TEKSTVELDEN.map(v => entity.data?.[v] || '').join('\n');
   if (!tekst.includes('[[')) return entity.links;
   const index = _naamIndex();
-  const links = {
-    personages:   [...(entity.links?.personages   || [])],
-    locaties:     [...(entity.links?.locaties     || [])],
-    organisaties: [...(entity.links?.organisaties || [])],
-    voorwerpen:   [...(entity.links?.voorwerpen   || [])],
-    archief:      [...(entity.links?.archief      || [])],
-  };
+  // Alle bestaande sleutels overnemen (`archief` is een oude die er nog is), en
+  // de vijf soorten kaartjes gegarandeerd aanwezig: `documenten` viel er anders
+  // uit zodra dit veld herbouwd werd, en daarmee de verwijzingen tussen brieven.
+  const links = {};
+  for (const [k, v] of Object.entries(entity.links || {})) links[k] = [...(v || [])];
+  for (const t of [...ENTITY_TYPES, 'archief']) links[t] = links[t] || [];
   const alGenoemd = new Set(Object.values(links).flat().map(_impNorm));
   for (const naam of _wikilinkNamen(tekst)) {
     const sleutel = _impNorm(naam);
@@ -895,7 +865,7 @@ function _linksMetTekst(entity) {
     if (alGenoemd.has(sleutel)) continue;
     const treffer = index.get(sleutel);
     if (!treffer) continue;                                // geen kaartje: geen verbinding
-    links[treffer.type].push(treffer.name);
+    (links[treffer.type] = links[treffer.type] || []).push(treffer.name);
     alGenoemd.add(sleutel);
   }
   return links;
@@ -996,18 +966,6 @@ router.get('/ontdekkingen', attachRole, (req, res) => {
     }).length;
     out[type] = { ontdekt, totaal: list.length };
   }
-  // Documenten hebben een eigen zichtbaarheidsmodel (hidden|blurred|revealed),
-  // per groep via docVisibility met fallback op globale docStates.
-  const archief    = storage.readJSON('archief.json');
-  const docs       = archief.documents || [];
-  const groupDocVis = g?.docVisibility || null;
-  const docOntdekt = docs.filter(d => {
-    const state = (groupDocVis && d.id in groupDocVis)
-      ? groupDocVis[d.id]
-      : (dmState.docStates?.[d.id] || 'hidden');
-    return state !== 'hidden';
-  }).length;
-  out.documenten = { ontdekt: docOntdekt, totaal: docs.length };
   // Bestiarium: wezens die de groep al kent (≥ naam) van alle bestiarium-monsters.
   const bestMonsters = (storage.readJSON('monsters.json').monsters || []).filter(m => m.inBestiarium !== false);
   const bestKennis   = g?.bestiarium || {};
@@ -1250,18 +1208,12 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
     }
   }
 
-  // ── Verwijder verwijzingen in archiefDocumenten ──
-  const ARCHIEF_FIELD = { personages: 'npcs', locaties: 'locs', organisaties: 'orgs', voorwerpen: 'items' };
-  const archiefField = ARCHIEF_FIELD[type];
-  if (archiefField) {
+  // ── Verwijder verwijzingen in de sessieverslagen ──
+  // De koppelingen op een document lopen nu via `links`, net als bij elk ander
+  // kaartje; die zijn hierboven al opgeruimd. Wat overblijft is het journaal.
+  {
     const archief = storage.readJSON('archief.json');
     let archiefChanged = false;
-    for (const doc of (archief.documents || [])) {
-      if (Array.isArray(doc[archiefField]) && doc[archiefField].includes(dying.name)) {
-        doc[archiefField] = doc[archiefField].filter(n => n !== dying.name);
-        archiefChanged = true;
-      }
-    }
     for (const entry of (archief.sessieLog || [])) {
       for (const field of ['nieuw', 'terugkerend']) {
         if (Array.isArray(entry[field]) && entry[field].includes(dying.name)) {
@@ -1335,7 +1287,7 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
   // Ook een organisatie kent de vage stand: dat het gilde bestaat mag je weten,
   // wie erin zit niet. Bij een voorwerp slaat het nergens op — dat heb je of je
   // hebt het niet.
-  const threeState = ['personages', 'locaties', 'organisaties'].includes(type);
+  const threeState = ['personages', 'locaties', 'organisaties', 'documenten'].includes(type);
   let next;
   if (req.body?.target === 'visible') {
     next = 'visible';
@@ -1359,6 +1311,30 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
     if (hasPin) {
       req.app.get('io').to(req.session?.campaignId||'main').emit('map:pinRevealed', { id, name: entity?.name || '', visibility: next });
     }
+  }
+
+  // Een document dat opengaat is een gebeurtenis: het komt in het logboek te
+  // staan en de spelers krijgen de onthulling te zien. Dit hing vroeger aan de
+  // eigen route `PUT /archief/:id/state`; nu aan de zichtbaarheid, zoals bij
+  // elk ander kaartje.
+  if (type === 'documenten' && next === 'visible' && current !== 'visible' && entity) {
+    // Eén regel in het logboek, de eerste keer dat het document érgens opengaat —
+    // anders krijg je een regel per party die het later ook te zien krijgt.
+    const eerder = Object.values(dmState.groups || {})
+      .some(grp => grp !== g && grp.visibility?.[id] === 'visible');
+    if (!eerder) {
+      const archief = storage.readJSON('archief.json');
+      archief.logEntries = archief.logEntries || [];
+      archief.logEntries.push({ event: entity.name, docId: entity.id, timestamp: Date.now() });
+      storage.writeJSON('archief.json', archief);
+    }
+    req.app.get('io').to(req.session?.campaignId||'main').emit('archief:dramaticReveal', {
+      id: entity.id, name: entity.name,
+      imageId: entity.data?.imageId || entity.id,
+      type:    entity.data?.docType || '',
+      flavour: entity.data?.desc || '',
+      groupId: dmState.activeGroup,
+    });
   }
   res.json({ visibility: next });
 });
@@ -4790,28 +4766,17 @@ function _importMd(content, filename) {
   };
 
   if (type === 'document') {
-    // ── Document ──
+    // Een document is een gewoon kaartje geworden; de tekst uit de md wordt de
+    // perkamenttekst en `hoofdstuk` gaat niet mee — een kaartje noemt geen akte.
     const entities = storage.readJSON('entities.json');
-    const archief  = storage.readJSON('archief.json');
-    if (!archief.documents) archief.documents = [];
-    if (!archief.tekstContent) archief.tekstContent = {};
+    if (!entities.documenten) entities.documenten = [];
     const id = _makeId('doc');
-    archief.documents.push({
-      id,
-      name,
-      type:      fm.docType || 'Notities',
-      cat:       fm.cat     || 'brieven',
-      desc:      fm.desc    || '',
-      icon:      fm.icon    || '📜',
-      hoofdstuk: fm.hoofdstuk || '',
-      npcs:      _cleanLinks(fm.links_personages),
-      locs:      _cleanLinks(fm.links_locaties),
-      orgs:      _cleanLinks(fm.links_organisaties),
-      items:     _cleanLinks(fm.links_voorwerpen),
-      docs:      _cleanLinks(fm.links_documenten),
+    entities.documenten.push({
+      id, name, subtype: '',
+      data: { docType: fm.docType || 'Notities', desc: fm.desc || '', ...(body ? { tekst: body } : {}) },
+      links: { ...links, documenten: _cleanLinks(fm.links_documenten) },
     });
-    if (body) archief.tekstContent[id] = body;
-    storage.writeJSON('archief.json', archief);
+    storage.writeJSON('entities.json', entities);
     return { ok: true, id, name, type: 'document' };
   }
 
@@ -5271,31 +5236,18 @@ function _imgZichtbaar(dmState, groepId, img) {
   return typeof img === 'string' || img.visible !== false;   // terugval: oude data
 }
 
+// Het archief gaat nog maar over twee dingen: het logboek en de sessieverslagen.
+// De documenten zijn kaartjes geworden en lopen via `/entities/documenten`.
 router.get('/archief', attachRole, (req, res) => {
   const archief = storage.readJSON('archief.json');
   const dmState = readDmState();
-  // Bepaal groepsId van de ingelogde speler vroeg, zodat het beschikbaar is voor alle filters
   const playerGroepId = req.role !== 'dm'
     ? _playerGroupId(dmState, req.session?.characterId)
     : null;
-  let docs = archief.documents || [];
-  if (req.role !== 'dm') {
-    docs = docs.map(d => filterDocForPlayer(d, dmState, playerGroepId)).filter(Boolean);
-  } else {
-    const activeGid    = dmState.activeGroup;
-    const activeGDocVis = dmState.groups?.[activeGid]?.docVisibility || {};
-    docs = docs.map(d => ({
-      ...d,
-      state:        dmState.docStates[d.id] || 'hidden',
-      _activeState: activeGDocVis[d.id] ?? (dmState.docStates[d.id] || 'hidden'),
-      _dmNote:      dmState.dmNotes[d.id]   || '',
-    }));
-  }
   // Chapter-visibility: DM ziet alles; spelers alleen zichtbare aktes voor hun groep
   const cv = _readChapterVisibility();
 
   res.json({
-    documents: docs,
     logEntries: archief.logEntries,
     sessieLog: req.role === 'dm'
       ? (archief.sessieLog || []).map(e => ({
@@ -5313,215 +5265,7 @@ router.get('/archief', attachRole, (req, res) => {
             images: (e.images || []).filter(img => _imgZichtbaar(dmState, playerGroepId, img)),
           })),
     chapterVisibility: req.role === 'dm' ? cv : undefined,
-    hiddenLinks:  req.role === 'dm' ? archief.hiddenLinks : {},
-    tekstContent: req.role === 'dm'
-      ? archief.tekstContent
-      : Object.fromEntries(
-          Object.entries(archief.tekstContent || {}).filter(([id]) => {
-            const groupDocVis = playerGroepId ? dmState.groups?.[playerGroepId]?.docVisibility : null;
-            const state = (groupDocVis != null && id in groupDocVis)
-              ? groupDocVis[id]
-              : (dmState.docStates[id] || 'hidden');
-            return state === 'revealed';
-          })
-        ),
   });
-});
-
-router.post('/archief', requireDM, (req, res) => {
-  const archief = storage.readJSON('archief.json');
-  const dmState = readDmState();
-  const doc = {
-    id:        'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-    name:      req.body.name      || 'Naamloos document',
-    type:      req.body.type      || 'Brief',
-    cat:       req.body.cat       || 'brieven',
-    desc:      req.body.desc      || '',
-    icon:      req.body.icon      || '\u2709\ufe0f',
-    hoofdstuk: req.body.hoofdstuk || '',
-    imageId:   req.body.imageId   || '',
-    npcs:      req.body.npcs      || [],
-    locs:      req.body.locs      || [],
-    orgs:      req.body.orgs      || [],
-    items:     req.body.items     || [],
-    docs:      req.body.docs      || [],
-  };
-  archief.documents.push(doc);
-  dmState.docStates[doc.id] = 'hidden';
-  storage.writeJSON('archief.json', archief);
-  storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('archief:updated', { id: doc.id });
-  res.status(201).json(doc);
-});
-
-router.get('/archief/:id', attachRole, (req, res) => {
-  const archief = storage.readJSON('archief.json');
-  const dmState = readDmState();
-  const doc = (archief.documents || []).find(d => d.id === req.params.id);
-  if (!doc) return res.status(404).json({ error: 'Niet gevonden' });
-  if (req.role !== 'dm') {
-    const playerGroupId = _playerGroupId(dmState, req.session?.characterId);
-    const filtered = filterDocForPlayer(doc, dmState, playerGroupId);
-    if (!filtered) return res.status(404).json({ error: 'Niet gevonden' });
-    return res.json(filtered);
-  }
-  const activeGid    = dmState.activeGroup;
-  const activeG      = dmState.groups?.[activeGid];
-  const _activeState = (activeG?.docVisibility && doc.id in activeG.docVisibility)
-    ? activeG.docVisibility[doc.id]
-    : (dmState.docStates[doc.id] || 'hidden');
-  res.json({ ...doc, state: dmState.docStates[doc.id] || 'hidden', _activeState, _dmNote: dmState.dmNotes[doc.id] || '' });
-});
-
-router.put('/archief/:id', requireDM, (req, res) => {
-  const archief = storage.readJSON('archief.json');
-  const idx = (archief.documents || []).findIndex(d => d.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Niet gevonden' });
-  archief.documents[idx] = { ...archief.documents[idx], ...req.body, id: req.params.id };
-  storage.writeJSON('archief.json', archief);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('archief:updated', { id: req.params.id });
-  res.json(archief.documents[idx]);
-});
-
-router.delete('/archief/:id', requireDM, (req, res) => {
-  const archief = storage.readJSON('archief.json');
-  const dmState = readDmState();
-  const deletingDoc = (archief.documents || []).find(d => d.id === req.params.id);
-  archief.documents  = (archief.documents  || []).filter(d => d.id !== req.params.id);
-  archief.logEntries = (archief.logEntries || []).filter(e => e.docId !== req.params.id);
-  // Verwijder terugverwijzingen in andere documenten en logboekentries
-  if (deletingDoc) {
-    for (const doc of (archief.documents || [])) {
-      if (Array.isArray(doc.docs)) doc.docs = doc.docs.filter(n => n !== deletingDoc.name);
-    }
-    for (const entry of (archief.sessieLog || [])) {
-      if (Array.isArray(entry.docs)) entry.docs = entry.docs.filter(n => n !== deletingDoc.name);
-    }
-  }
-  delete archief.hiddenLinks[req.params.id];
-  delete archief.tekstContent[req.params.id];
-  delete dmState.docStates[req.params.id];
-  delete dmState.dmNotes[req.params.id];
-  for (const g of Object.values(dmState.groups)) {
-    if (g.docVisibility) delete g.docVisibility[req.params.id];
-  }
-  storage.writeJSON('archief.json', archief);
-  storage.writeJSON('dm-state.json', dmState);
-  _deleteFileIfUnused(req.params.id);                                                  // bestand op /files/{docId}
-  if (deletingDoc?.imageId) _deleteFileIfUnused(deletingDoc.imageId);                  // bibliotheek-afbeelding
-  req.app.get('io').to(req.session?.campaignId||'main').emit('archief:updated', { id: req.params.id, deleted: true });
-  res.json({ ok: true });
-});
-
-// PUT /api/archief/:id/group-visibility — stel zichtbaarheid in per actieve groep
-router.put('/archief/:id/group-visibility', requireDM, (req, res) => {
-  const { state } = req.body;
-  if (!['hidden', 'blurred', 'revealed'].includes(state)) {
-    return res.status(400).json({ error: 'Ongeldige state' });
-  }
-  const docId   = req.params.id;
-  const archief = storage.readJSON('archief.json');
-  const dmState = readDmState();
-  const doc     = (archief.documents || []).find(d => d.id === docId);
-  if (!doc) return res.status(404).json({ error: 'Niet gevonden' });
-
-  const gid = dmState.activeGroup;
-  const g   = getGroup(dmState);
-  if (!g) return res.status(400).json({ error: 'Geen actieve groep' });
-  if (!g.docVisibility) g.docVisibility = {};
-
-  // Was dit document al eerder onthuld voor enige groep (of globaal)?
-  const wasRevealedAnywhere = dmState.docStates[docId] === 'revealed' ||
-    Object.values(dmState.groups).some(grp => grp.docVisibility?.[docId] === 'revealed');
-
-  g.docVisibility[docId] = state;
-  storage.writeJSON('dm-state.json', dmState);
-
-  // Log een reveal-entry de eerste keer dat het document wordt onthuld
-  if (state === 'revealed' && !wasRevealedAnywhere) {
-    if (!archief.logEntries) archief.logEntries = [];
-    archief.logEntries.push({
-      hoofdstuk: doc.hoofdstuk,
-      event:     doc.name,
-      icon:      doc.icon,
-      docId:     doc.id,
-      timestamp: Date.now(),
-    });
-    storage.writeJSON('archief.json', archief);
-  }
-
-  req.app.get('io').to(req.session?.campaignId||'main').emit('archief:stateChanged', { id: docId, name: doc.name, state, groupId: gid });
-
-  // Dramatische onthulling (alleen voor spelers van de actieve groep)
-  if (state === 'revealed') {
-    req.app.get('io').to(req.session?.campaignId||'main').emit('archief:dramaticReveal', {
-      id:      doc.id,
-      name:    doc.name,
-      imageId: doc.imageId || null,
-      type:    doc.type    || '',
-      flavour: doc.flavour || '',
-      groupId: gid,
-    });
-  }
-  res.json({ state, groupId: gid });
-});
-
-router.put('/archief/:id/state', requireDM, (req, res) => {
-  const { state } = req.body;
-  if (!['hidden', 'blurred', 'revealed'].includes(state)) {
-    return res.status(400).json({ error: 'Ongeldige state' });
-  }
-  const archief = storage.readJSON('archief.json');
-  const dmState = readDmState();
-  const doc     = (archief.documents || []).find(d => d.id === req.params.id);
-  if (!doc) return res.status(404).json({ error: 'Niet gevonden' });
-  const oldState = dmState.docStates[doc.id];
-  dmState.docStates[doc.id] = state;
-  if (state === 'revealed' && oldState !== 'revealed') {
-    archief.logEntries.push({
-      hoofdstuk: doc.hoofdstuk,
-      event:     doc.name,
-      icon:      doc.icon,
-      docId:     doc.id,
-      timestamp: Date.now(),
-    });
-    storage.writeJSON('archief.json', archief);
-  }
-  storage.writeJSON('dm-state.json', dmState);
-  req.app.get('io').to(req.session?.campaignId||'main').emit('archief:stateChanged', { id: doc.id, name: doc.name, state });
-  // Dramatic reveal for players
-  if (state === 'revealed') {
-    const freshArchief = storage.readJSON('archief.json');
-    const revealDoc = (freshArchief.documents || []).find(d => d.id === req.params.id);
-    if (revealDoc) {
-      req.app.get('io').to(req.session?.campaignId||'main').emit('archief:dramaticReveal', {
-        id:      revealDoc.id,
-        name:    revealDoc.name,
-        imageId: revealDoc.imageId || null,
-        type:    revealDoc.type || '',
-        flavour: revealDoc.flavour || '',
-      });
-    }
-  }
-  res.json({ state });
-});
-
-// ── Archief hidden links ──
-
-router.put('/archief/:id/hidden-links', requireDM, (req, res) => {
-  const archief = storage.readJSON('archief.json');
-  archief.hiddenLinks[req.params.id] = req.body;
-  storage.writeJSON('archief.json', archief);
-  res.json({ ok: true });
-});
-
-// ── Archief tekst content ──
-
-router.put('/archief/:id/tekst', requireDM, (req, res) => {
-  const archief = storage.readJSON('archief.json');
-  archief.tekstContent[req.params.id] = req.body.tekst || '';
-  storage.writeJSON('archief.json', archief);
-  res.json({ ok: true });
 });
 
 // ── Relatiemap ──
@@ -6586,6 +6330,20 @@ router.put('/meta/akte/:key/bereikbaarheid', requireDM, (req, res) => {
   res.json(meta.hoofdstukken[req.params.key].onbereikbaar);
 });
 
+// Welke documenten horen bij deze akte? Dat staat aan de akte-kant en niet op
+// het kaartje: een kaartje beschrijft wát iets is, niet wanneer het in het
+// verhaal voorkomt. Het Logboek groepeert hierop.
+router.put('/meta/akte/:key/documenten', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.hoofdstukken?.[req.params.key]) return res.status(404).json({ error: 'Akte niet gevonden' });
+  const bestaat = new Set((storage.readJSON('entities.json').documenten || []).map(d => d.id));
+  meta.hoofdstukken[req.params.key].documenten =
+    [...new Set((req.body.documenten || []).map(String))].filter(id => bestaat.has(id)).slice(0, 200);
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  res.json({ documenten: meta.hoofdstukken[req.params.key].documenten });
+});
+
 // Focuspunt (object-position) van een spreukafbeelding, per spell-index.
 router.put('/meta/spell-image-focus/:index', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');
@@ -6702,13 +6460,9 @@ router.get('/meta/akte/:key/namen', requireDM, (req, res) => {
   if (!dit) return res.status(404).json({ error: 'Akte niet gevonden' });
 
   const entities = storage.readJSON('entities.json');
-  const archief  = storage.readJSON('archief.json');
   const index    = new Map();   // genormaliseerde naam → {type, id, name}
   for (const type of ENTITY_TYPES) {
     for (const e of (entities[type] || [])) index.set(_impNorm(e.name), { type, id: e.id, name: e.name });
-  }
-  for (const d of (archief.documents || [])) {
-    if (!index.has(_impNorm(d.title))) index.set(_impNorm(d.title), { type: 'documenten', id: d.id, name: d.title });
   }
 
   // "Eerder" = elke akte met een lager nummer. Aktes zonder nummer tellen niet

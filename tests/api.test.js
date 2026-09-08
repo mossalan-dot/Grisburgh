@@ -38,7 +38,7 @@ function req(server, method, path, body, cookie) {
 }
 
 describe('API', () => {
-  let server, io, dmCookie;
+  let server, io, dmCookie, spelerCookie;
 
   before(async () => {
     process.env.GRISBURGH_DATA_DIR = DATA_DIR;
@@ -154,57 +154,66 @@ describe('API', () => {
     assert.strictEqual(res.status, 403);
   });
 
-  // Archief
-  it('should create archief document', async () => {
-    const res = await req(server, 'POST', '/api/archief', {
-      name: 'Test Brief', type: 'Brief', cat: 'brieven', desc: 'Een test document',
-      icon: '\u2709\ufe0f', hoofdstuk: 'h1', npcs: ['Test NPC'], locs: ['Grisburgh'], docs: [],
+  // Archief — een document is sinds de samenvoeging een gewoon kaartje, dus het
+  // loopt via de entity-routes. Wat hier overblijft is het logboek.
+  // Een kaartje filteren vraagt om een échte spelerssessie: zonder characterId
+  // weet de server niet naar welke party hij moet kijken en geeft hij niets.
+  it('logt een speler in voor de kaartjes-filtering', async () => {
+    const held = await req(server, 'POST', '/api/entities/personages',
+      { name: 'Leesbare Speler', subtype: 'speler', data: { groep: 'groep1' } }, dmCookie);
+    const login = await req(server, 'POST', '/api/auth/player-login',
+      { campagne: 'grisburgh', characterId: held.body.id });
+    spelerCookie = login.cookie;
+    assert.ok(spelerCookie);
+  });
+
+  it('maakt een document als kaartje aan en verbergt het voor spelers', async () => {
+    const res = await req(server, 'POST', '/api/entities/documenten', {
+      name: 'Test Brief', data: { docType: 'Brief', desc: 'Een test document', tekst: 'Beste lezer,' },
+      links: { personages: ['Test NPC'], locaties: ['Grisburgh'] },
     }, dmCookie);
     assert.strictEqual(res.status, 201);
     assert.ok(res.body.id);
+    const speler = await req(server, 'GET', '/api/entities/documenten', null, spelerCookie);
+    assert.strictEqual(speler.body.length, 0);
   });
 
-  it('should hide archief document from players by default', async () => {
-    const res = await req(server, 'GET', '/api/archief');
-    assert.strictEqual(res.body.documents.length, 0);
+  it('onthult een document en schrijft er een logboekregel bij', async () => {
+    const lijst = await req(server, 'GET', '/api/entities/documenten', null, dmCookie);
+    const id = lijst.body[0].id;
+    await req(server, 'PUT', `/api/entities/documenten/${id}/visibility`, { target: 'visible' }, dmCookie);
+
+    const speler = await req(server, 'GET', '/api/entities/documenten', null, spelerCookie);
+    assert.strictEqual(speler.body.length, 1);
+    assert.strictEqual(speler.body[0].data.tekst, 'Beste lezer,');
+
+    const archief = await req(server, 'GET', '/api/archief', null, dmCookie);
+    assert.ok(archief.body.logEntries.length > 0);
+    assert.strictEqual(archief.body.logEntries[0].event, 'Test Brief');
   });
 
-  it('should change archief state to revealed', async () => {
-    const dmList = await req(server, 'GET', '/api/archief', null, dmCookie);
-    const id = dmList.body.documents[0].id;
-    const res = await req(server, 'PUT', `/api/archief/${id}/state`, { state: 'revealed' }, dmCookie);
-    assert.strictEqual(res.body.state, 'revealed');
-    // Player should see it now
-    const playerList = await req(server, 'GET', '/api/archief');
-    assert.strictEqual(playerList.body.documents.length, 1);
-  });
-
-  it('should add log entry on reveal', async () => {
-    const res = await req(server, 'GET', '/api/archief', null, dmCookie);
-    assert.ok(res.body.logEntries.length > 0);
-    assert.strictEqual(res.body.logEntries[0].event, 'Test Brief');
-  });
-
-  it('should set blurred state and hide connections from player', async () => {
-    // Create second doc
-    const doc = await req(server, 'POST', '/api/archief', {
-      name: 'Blurred Doc', type: 'Kaart', cat: 'kaarten', npcs: ['Hidden NPC'],
+  it('houdt de inhoud van een vaag document weg bij de speler', async () => {
+    const doc = await req(server, 'POST', '/api/entities/documenten', {
+      name: 'Wazig Document', data: { docType: 'Kaart', desc: 'Geheime aanwijzing', tekst: 'Onder de derde plavuis.' },
+      links: { personages: ['Hidden NPC'] },
     }, dmCookie);
-    await req(server, 'PUT', `/api/archief/${doc.body.id}/state`, { state: 'blurred' }, dmCookie);
-    const player = await req(server, 'GET', '/api/archief');
-    const blurred = player.body.documents.find(d => d.name === 'Blurred Doc');
-    assert.ok(blurred);
-    assert.deepStrictEqual(blurred.npcs, []);
+    await req(server, 'PUT', `/api/entities/documenten/${doc.body.id}/visibility`, { target: 'vague' }, dmCookie);
+    const speler = await req(server, 'GET', '/api/entities/documenten', null, spelerCookie);
+    const vaag = speler.body.find(d => d.name === 'Wazig Document');
+    assert.ok(vaag, 'de speler ziet dát het bestaat');
+    assert.strictEqual(vaag._visibility, 'vague');
+    assert.deepStrictEqual(vaag.data, {}, 'maar niets van de inhoud');
   });
 
   // Delete
   it('should delete entity', async () => {
     const list = await req(server, 'GET', '/api/entities/personages', null, dmCookie);
-    const id = list.body[0].id;
-    const res = await req(server, 'DELETE', `/api/entities/personages/${id}`, null, dmCookie);
+    const doelwit = list.body[0];
+    const res = await req(server, 'DELETE', `/api/entities/personages/${doelwit.id}`, null, dmCookie);
     assert.strictEqual(res.body.ok, true);
     const after = await req(server, 'GET', '/api/entities/personages', null, dmCookie);
-    assert.strictEqual(after.body.length, 0);
+    assert.strictEqual(after.body.length, list.body.length - 1);
+    assert.ok(!after.body.some(e => e.id === doelwit.id));
   });
 
   // Meta

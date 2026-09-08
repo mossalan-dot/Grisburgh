@@ -1,6 +1,6 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=277';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=251";
-import { initArchief, renderDocumenten, renderLogboek, openArchiefEditor, openLogboekEditor } from "./render-archief.js?v=80";
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=278';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=254";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=81";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
@@ -8,8 +8,8 @@ import { renderProgressie } from './render-progressie.js?v=44';
 import { renderBestiarium } from './render-bestiarium.js?v=22';
 import { renderSpreuken } from './render-spreuken.js?v=18';
 import { renderStatblock } from './render-statblock.js?v=4';
-import { initSocket } from "./socket-client.js?v=65";
-import { initDmPanel } from "./dm-panel.js?v=207";
+import { initSocket } from "./socket-client.js?v=66";
+import { initDmPanel } from "./dm-panel.js?v=208";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -608,7 +608,7 @@ const LOGBOEK_LABELS = {
   prikbord:  `${icon('map')} Prikbord`,
 };
 
-const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
 const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'spreuken', 'relatiemap'];
 const ARCHIEF_LABELS = {
   personages:   `${icon('user')} Personages`,
@@ -635,8 +635,6 @@ function onFabClick() {
   const section = state.activeSection;
   if (ENTITY_SECTIONS.includes(section)) {
     openEditor(section);
-  } else if (section === 'documenten') {
-    openArchiefEditor();
   } else if (section === 'logboek') {
     openLogboekEditor();
   }
@@ -2142,10 +2140,7 @@ function _resolveWikilink(name, isFirst) {
   if (!isFirst) return safeName;
 
   // Klikbare link met typespecifieke kleur via data-attribuut
-  // Documenten hebben een eigen viewer (render-archief), geen detailvenster
-  const open = type === 'documenten'
-    ? `window._openDoc('${id}')`
-    : `window._openDetail('${type}','${id}')`;
+  const open = `window._openDetail('${type}','${id}')`;
   return `<a class="wikilink wikilink--${type}${dicht ? ' wikilink--dicht' : ''}" data-wl-type="${type}"
     onclick="event.stopPropagation();${open}"
     title="${safeName}${dicht ? ' — nog niet zichtbaar voor de party' : ''}">${safeName}</a>`;
@@ -2167,20 +2162,15 @@ window._planEntityIndexHerbouw = () => {
 };
 
 function _rebuildEntityIndex() {
-  const WL_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+  const WL_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
   window._entityNameIndex = {};           // leeg voordat we herbouwen
-  window._entityIndexReady = Promise.all([
-    ...WL_TYPES.map(t =>
+  window._entityIndexReady = Promise.all(
+    WL_TYPES.map(t =>
       api.listEntities(t)
         .then(list => window._buildEntityIndex(t, list))
         .catch(() => {})
-    ),
-    // Documenten leven onder /api/archief (niet /api/entities); de server
-    // filtert daar al op zichtbaarheid per speler/groep.
-    api.listArchief()
-      .then(a => window._buildEntityIndex('documenten', a.documents))
-      .catch(() => {}),
-  ]);
+    )
+  );
   window._entityIndexReady.then(() => _wikilinksHerstellen()).catch(() => {});
   return window._entityIndexReady;
 }
@@ -9455,7 +9445,6 @@ async function refreshAll() {
 
 // ── Globaal zoeken ──
 
-let _archiefCache  = null;
 let _gsTypeFilter  = null;
 
 window.app._gsSetTypeFilter = function(type) {
@@ -9570,17 +9559,11 @@ window.app._globalSearchRun = async function(q) {
     return;
   }
 
-  const TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
+  const TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
   const meta  = window._entityTypeMeta || {};
   const cache = window._entityCache    || {};
   const filter = window._entityFilter  || (() => []);
   const tokens = window._searchTokens ? window._searchTokens(q) : [q.toLowerCase()];
-
-  // Fetch documenten eenmalig
-  if (!_archiefCache) {
-    try { const r = await api.listArchief(); _archiefCache = r.documents || r || []; }
-    catch { _archiefCache = []; }
-  }
 
   let html = '';
   _gsResults = [];
@@ -9659,25 +9642,6 @@ window.app._globalSearchRun = async function(q) {
     }
   }
 
-  // Documenten (archief) — genormaliseerd matchen
-  if (!_gsTypeFilter || _gsTypeFilter === 'documenten') {
-    const norm = window._normSearch || (s => String(s || '').toLowerCase());
-    const docHits = (_archiefCache).filter(d => {
-      const hay = norm((d.name || d.title || '') + ' ' + (d.type || ''));
-      return tokens.every(t => hay.includes(t));
-    }).slice(0, 8);
-    if (docHits.length) {
-      html += `<div class="gs-group"><div class="gs-group-label">${icon('scroll-text')} Documenten</div>`;
-      for (const d of docHits) {
-        const idx = _gsResults.push({ type: 'documenten', id: d.id }) - 1;
-        html += `<button class="gs-result" data-gs-idx="${idx}" onclick="window.app._globalSearchGo('documenten','${esc(d.id)}')">
-            <span class="gs-result-name">${_gsHighlight(d.name || d.title || d.id, tokens)}</span>
-          </button>`;
-      }
-      html += `</div>`;
-    }
-  }
-
   resultsEl.innerHTML = html || `<p class="gs-empty">Geen resultaten gevonden voor "<em>${esc(q)}</em>".</p>`;
   _gsSetActive(_gsResults.length ? 0 : -1);
 };
@@ -9717,12 +9681,8 @@ window.app._globalSearchGo = function(type, id) {
     setTimeout(() => window.bestiarium?.openId?.(id), 200);
     return;
   }
-  if (type === 'documenten') {
-    switchSection('documenten');
-  } else {
-    switchSection(type);
-    setTimeout(() => window._openDetail?.(type, id), 120);
-  }
+  switchSection(type);
+  setTimeout(() => window._openDetail?.(type, id), 120);
 };
 
 // ── Keyboard shortcuts ──

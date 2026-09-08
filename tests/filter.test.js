@@ -35,7 +35,7 @@ function req(server, method, path, body, cookie) {
 }
 
 describe('Server-side filtering', () => {
-  let server, io, dmCookie;
+  let server, io, dmCookie, spelerCookie;
 
   before(async () => {
     process.env.GRISBURGH_DATA_DIR = DATA_DIR;
@@ -73,6 +73,7 @@ describe('Server-side filtering', () => {
     }, dmCookie);
     const login = await req(server, 'POST', '/api/auth/player-login', { campagne: 'grisburgh', characterId: playerChar.body.id });
     const playerCookie = login.cookie;
+    spelerCookie = playerCookie;      // de documenttests verderop lenen deze sessie
     assert.ok(playerCookie, 'speler moet kunnen inloggen');
 
     const create = await req(server, 'POST', '/api/entities/personages', {
@@ -96,45 +97,31 @@ describe('Server-side filtering', () => {
     assert.strictEqual(npc2.data.geheim, 'Top secret');
   });
 
-  it('hidden archief documents are invisible to players', async () => {
-    await req(server, 'POST', '/api/archief', { name: 'Secret Map', cat: 'kaarten' }, dmCookie);
-    const player = await req(server, 'GET', '/api/archief');
-    const found = player.body.documents.find(d => d.name === 'Secret Map');
-    assert.strictEqual(found, undefined);
+  // Documenten zijn kaartjes; de filtering die hier vroeger apart getest werd
+  // is dezelfde als voor elk ander kaartje. Wat blijft is het bewijs dat de
+  // inhoud van een vaag document niet meegaat.
+  it('houdt een verborgen document buiten de lijst van de speler', async () => {
+    await req(server, 'POST', '/api/entities/documenten', { name: 'Secret Map', data: { docType: 'Wereldkaart' } }, dmCookie);
+    const player = await req(server, 'GET', '/api/entities/documenten', null, spelerCookie);
+    assert.ok(!player.body.some(d => d.name === 'Secret Map'));
   });
 
-  it('blurred archief documents hide connections from players', async () => {
-    const doc = await req(server, 'POST', '/api/archief', {
-      name: 'Blurry Letter', cat: 'brieven', npcs: ['Someone'], locs: ['Somewhere'],
+  it('geeft van een vaag document alleen de naam', async () => {
+    const doc = await req(server, 'POST', '/api/entities/documenten', {
+      name: 'Wazige Brief', data: { docType: 'Brief', desc: 'De sleutel ligt onder de derde plavuis.', tekst: 'Beste C.,' },
+      links: { personages: ['Someone'] },
     }, dmCookie);
-    await req(server, 'PUT', `/api/archief/${doc.body.id}/state`, { state: 'blurred' }, dmCookie);
-    const player = await req(server, 'GET', '/api/archief');
-    const found = player.body.documents.find(d => d.name === 'Blurry Letter');
-    assert.ok(found);
-    assert.deepStrictEqual(found.npcs, []);
-    assert.deepStrictEqual(found.locs, []);
-  });
+    await req(server, 'PUT', `/api/entities/documenten/${doc.body.id}/visibility`, { target: 'vague' }, dmCookie);
 
-  // De beschrijving werd alleen met een CSS-waas verstopt: hij stond in de
-  // netwerktab, en de documentzoeker vond het document op een woord dat de
-  // speler nog niet mocht lezen.
-  it('blurred archief documents hide their description from players', async () => {
-    const doc = await req(server, 'POST', '/api/archief', {
-      name: 'Wazige Brief', cat: 'brieven', desc: 'De sleutel ligt onder de derde plavuis.',
-    }, dmCookie);
-    await req(server, 'PUT', `/api/archief/${doc.body.id}/state`, { state: 'blurred' }, dmCookie);
+    const player = await req(server, 'GET', '/api/entities/documenten', null, spelerCookie);
+    const vaag = player.body.find(d => d.name === 'Wazige Brief');
+    assert.ok(vaag, 'het document is wel te zien');
+    assert.deepStrictEqual(vaag.data, {}, 'maar niets van de inhoud');
+    assert.deepStrictEqual(vaag.links, {}, 'ook de koppelingen niet');
 
-    const lijst = await req(server, 'GET', '/api/archief');
-    const found = lijst.body.documents.find(d => d.name === 'Wazige Brief');
-    assert.ok(found, 'het document is wel te zien');
-    assert.strictEqual(found.desc, undefined, 'maar de beschrijving niet');
-
-    const los = await req(server, 'GET', `/api/archief/${doc.body.id}`);
-    assert.strictEqual(los.body.desc, undefined, 'ook niet als je hem los opvraagt');
-
-    await req(server, 'PUT', `/api/archief/${doc.body.id}/state`, { state: 'revealed' }, dmCookie);
-    const na = await req(server, 'GET', `/api/archief/${doc.body.id}`);
-    assert.match(na.body.desc || '', /derde plavuis/, 'na onthullen wel');
+    await req(server, 'PUT', `/api/entities/documenten/${doc.body.id}/visibility`, { target: 'visible' }, dmCookie);
+    const na = await req(server, 'GET', `/api/entities/documenten/${doc.body.id}`, null, spelerCookie);
+    assert.match(na.body.data.desc || '', /derde plavuis/, 'na onthullen wel');
   });
 
   it('DM notes are never visible to players', async () => {
@@ -314,16 +301,22 @@ describe('Server-side filtering', () => {
     assert.ok(dmZiet.body.data.persoonlijkheid, 'de DM houdt zijn aantekeningen');
   });
 
-  it('tekst content only visible for revealed docs to players', async () => {
-    const doc = await req(server, 'POST', '/api/archief', { name: 'Tekst Doc', cat: 'codex' }, dmCookie);
+  // De perkamenttekst staat op het kaartje (`data.tekst`) en volgt dus gewoon
+  // de zichtbaarheid; alleen een volledig onthuld document geeft hem mee.
+  it('geeft de perkamenttekst pas bij een onthuld document', async () => {
+    const doc = await req(server, 'POST', '/api/entities/documenten',
+      { name: 'Tekst Doc', data: { docType: 'Manuscript', tekst: 'Secret text' } }, dmCookie);
     const id = doc.body.id;
-    await req(server, 'PUT', `/api/archief/${id}/tekst`, { tekst: 'Secret text' }, dmCookie);
-    // As hidden: player gets no tekst
-    let player = await req(server, 'GET', '/api/archief');
-    assert.strictEqual(player.body.tekstContent[id], undefined);
-    // As revealed: player gets tekst
-    await req(server, 'PUT', `/api/archief/${id}/state`, { state: 'revealed' }, dmCookie);
-    player = await req(server, 'GET', '/api/archief');
-    assert.strictEqual(player.body.tekstContent[id], 'Secret text');
+
+    let player = await req(server, 'GET', '/api/entities/documenten', null, spelerCookie);
+    assert.ok(!player.body.some(d => d.id === id), 'verborgen: helemaal niet');
+
+    await req(server, 'PUT', `/api/entities/documenten/${id}/visibility`, { target: 'vague' }, dmCookie);
+    player = await req(server, 'GET', '/api/entities/documenten', null, spelerCookie);
+    assert.strictEqual(player.body.find(d => d.id === id)?.data?.tekst, undefined, 'vaag: geen tekst');
+
+    await req(server, 'PUT', `/api/entities/documenten/${id}/visibility`, { target: 'visible' }, dmCookie);
+    player = await req(server, 'GET', '/api/entities/documenten', null, spelerCookie);
+    assert.strictEqual(player.body.find(d => d.id === id)?.data?.tekst, 'Secret text');
   });
 });

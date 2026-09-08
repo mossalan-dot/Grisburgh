@@ -1,4 +1,4 @@
-import { api } from './api.js?v=277';
+import { api } from './api.js?v=278';
 import { renderStatblock } from './render-statblock.js?v=4';
 
 const icon = (...a) => window.icon(...a);
@@ -132,7 +132,47 @@ const TYPE_META = {
   locaties:     { icon: '\ud83c\udff0', get svgIcon() { return icon('castle', {cls:'icon-gi'}); }, label: 'Locaties',     nieuw: 'Nieuwe locatie',     bewerk: 'Locatie bewerken',     color: 'blue-ink',  chip: 'chip-loc' },
   organisaties: { icon: '\ud83c\udfdb\ufe0f', get svgIcon() { return icon('landmark'); },         label: 'Organisaties', nieuw: 'Nieuwe organisatie', bewerk: 'Organisatie bewerken', color: 'seal',      chip: 'chip-org' },
   voorwerpen:   { icon: '🎺',              get svgIcon() { return icon('package'); },                label: 'Voorwerpen',   nieuw: 'Nieuw voorwerp',     bewerk: 'Voorwerp bewerken',    color: 'orange',    chip: 'chip-item' },
+  documenten:   { icon: '📜',              get svgIcon() { return icon('scroll-text'); },            label: 'Documenten',   nieuw: 'Nieuw document',     bewerk: 'Document bewerken',    color: 'sepia',     chip: 'chip-doc' },
 };
+
+// ── Documenttypes ───────────────────────────────────────────────────────────
+// Een document had twee indelingen naast elkaar: `cat` (vijf grove bakken) en
+// `type` (zestien soorten). Dat is één indeling met twee niveaus, en die vorm
+// kennen de andere tabs al: groepen in de keuzelijst, chips op de waarde. De
+// oude `cat` is dus opgegaan in de groepen hieronder.
+const DOC_TYPE_GROEPEN = [
+  { groep: 'Brieven en aantekeningen', opties: [
+    { value: 'Brief',          label: 'Brief' },
+    { value: 'Dreigbrief',     label: 'Dreigbrief' },
+    { value: 'Notities',       label: 'Notities' },
+    { value: 'Gedicht',        label: 'Gedicht' },
+    { value: 'Gebed',          label: 'Gebed' },
+    { value: 'Visitekaartje',  label: 'Visitekaartje' },
+  ]},
+  { groep: 'Drukwerk', opties: [
+    { value: 'Krant',          label: 'Krant' },
+    { value: 'Folder',         label: 'Folder' },
+    { value: 'Catalogus',      label: 'Catalogus' },
+    { value: 'Menu',           label: 'Menu' },
+    { value: 'Pamflet',        label: 'Pamflet' },
+  ]},
+  { groep: 'Boeken en registers', opties: [
+    { value: 'Manuscript',     label: 'Manuscript' },
+    { value: 'Kasboek',        label: 'Kasboek' },
+    { value: 'Register',       label: 'Register' },
+    { value: 'Contract',       label: 'Contract' },
+  ]},
+  { groep: 'Kaarten en tekeningen', opties: [
+    { value: 'Wereldkaart',    label: 'Wereldkaart' },
+    { value: 'Dungeon map',    label: 'Dungeon map' },
+    { value: 'Blauwdruk',      label: 'Blauwdruk' },
+    { value: 'Tekening',       label: 'Tekening' },
+  ]},
+  { groep: 'Geluid', opties: [
+    { value: 'Audiofragment',  label: 'Audiofragment' },
+    { value: 'Lied',           label: 'Lied' },
+  ]},
+];
 
 // ── Locatietypes ────────────────────────────────────────────────────────────
 // Gegroepeerd in plaats van alleen langer: een platte lijst van dertig regels
@@ -338,6 +378,19 @@ const ITEM_TYPE_MELDINGEN = {
 };
 
 const SCHEMA = {
+  documenten: {
+    fields: [
+      { key: 'docType', label: 'Type', type: 'select', optionGroups: DOC_TYPE_GROEPEN },
+      { key: 'desc', label: 'Beschrijving', type: 'textarea',
+        hint: 'Wat is dit, en waar komt het vandaan? Dit staat op het kaartje.' },
+      // De inhoud zelf. Krijgt in het detailvenster de perkamentweergave, dus
+      // hoort in de editor bij elkaar te staan met zijn opmaakregels.
+      { key: 'tekst', label: 'De tekst zelf', type: 'perkament' },
+      { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
+      { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
+    ],
+  },
   personages: {
     // Vier subtypes: wát voor kaartje is dit. Verkoper en antagonist zijn geen
     // soorten maar rollen — die staan in data.tags. Summon, rijdier en familiar
@@ -789,9 +842,7 @@ window._modalGoBack = async () => {
   const prev = _modalHistory.pop();
   if (!prev) return;
   _updateBackButton();
-  if (prev.type === 'archief') {
-    window._openDoc?.(prev.id);
-  } else if (prev.type === 'sessie') {
+  if (prev.type === 'sessie') {
     window._openSessieDetail?.(prev.id);
   } else {
     await window._openDetail(prev.tab, prev.id, true /* isBack */);
@@ -2333,6 +2384,7 @@ async function renderEntitySection(type) {
     locaties: 'Plaatsen, wijken en gebouwen',
     organisaties: 'Gilden, facties en genootschappen',
     voorwerpen: 'Magische voorwerpen en uitrusting',
+    documenten: 'Brieven, kranten, kaarten en manuscripten',
   };
 
   // Unieke subtype-waarden — case-insensitief dedupliceren
@@ -2514,16 +2566,91 @@ function _refreshGrid(type, list, container) {
 export async function renderPersonages() { return renderEntitySection('personages'); }
 export async function renderLocaties() { return renderEntitySection('locaties'); }
 export async function renderOrganisaties() { return renderEntitySection('organisaties'); }
+export async function renderDocumenten()   { return renderEntitySection('documenten'); }
 export async function renderVoorwerpen() {
   await refreshOwnership();
   return renderEntitySection('voorwerpen');
 }
 
 // Geeft de subtype-waarde terug die gebruikt wordt voor filteren per type
+// ── Perkamentweergave ───────────────────────────────────────────────────────
+// De reden dat een brief een brief is en geen tekstvak. Twee eigen regels boven
+// op markdown: `---titel---` maakt van de volgende regel een kop en
+// `--handtekening--` van de volgende regel een ondertekening; `---` alleen is
+// een scheidingslijn. Verhuisd uit render-archief.js toen documenten kaartjes
+// werden.
+function renderParchment(text) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  let html = '';
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim() === '---titel---' && i + 1 < lines.length) {
+      html += `<div class="parch-title">${mdToHtml(lines[i + 1])}</div>`;
+      i += 2; continue;
+    }
+    if (/^---\s*$/.test(line.trim())) {
+      html += '<hr class="parch-rule">';
+      i++; continue;
+    }
+    if (line.trim() === '--handtekening--' && i + 1 < lines.length) {
+      html += `<div class="parch-sig">${mdToHtml(lines[i + 1])}</div>`;
+      i += 2; continue;
+    }
+    html += `<span>${mdToHtml(line)}</span><br>`;
+    i++;
+  }
+  return html;
+}
+
+// Een document kan een pdf-scan of een geluidsfragment als bestand hebben. Een
+// afbeelding staat al bovenaan als hero, dus die slaan we hier over. De HEAD
+// zegt of er überhaupt iets is: bij een vaag document geeft de server niets.
+async function _docBestandLaden(id) {
+  const host = document.getElementById(`doc-bestand-${id}`);
+  if (!host) return;
+  const url = `/api/files/${id}`;
+  try {
+    const head = await fetch(url, { method: 'HEAD' });
+    if (!head.ok) { host.style.display = 'none'; return; }
+    const ct = head.headers.get('content-type') || '';
+    if (ct.includes('audio')) {
+      host.innerHTML = `<div class="bg-room-elevated rounded-lg p-4">
+        <div class="detail-label mb-2">${icon('volume-2')} Geluidsfragment</div>
+        <audio controls class="w-full" src="${url}"></audio>
+      </div>`;
+    } else if (ct.includes('pdf')) {
+      await _pdfViewer(host, url);
+    } else {
+      host.style.display = 'none';   // afbeelding: de hero toont hem al
+    }
+  } catch { host.style.display = 'none'; }
+}
+
+async function _pdfViewer(container, url) {
+  const pdf = await window.pdfjsLib.getDocument(url).promise;
+  container.innerHTML = '<div class="flex flex-col gap-3"></div>';
+  const stack = container.firstElementChild;
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const scale = container.clientWidth / page.getViewport({ scale: 1 }).width;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    canvas.className = 'w-full rounded border border-room-border cursor-pointer hover:border-gold-dim transition';
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    canvas.addEventListener('click', () => window.app.openLightbox(canvas.toDataURL(), `Pagina ${i}`));
+    stack.appendChild(canvas);
+  }
+}
+
 function _getEntitySubtypeVal(type, e) {
   if (type === 'locaties')     return e.data?.wijk     || '';
   if (type === 'organisaties') return e.data?.orgType  || '';
   if (type === 'voorwerpen')   return e.data?.itemType || '';
+  if (type === 'documenten')   return e.data?.docType  || '';
   return e.subtype || '';
 }
 
@@ -3597,7 +3724,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const vis = e._visibility || 'visible';
   const isPersonage = tab === 'personages';
   // Dezelfde markering heet niet overal hetzelfde: een gebouw gaat niet dood.
-  const _wegLabel = { locaties: 'Verwoest', organisaties: 'Opgeheven', voorwerpen: 'Verloren' }[tab] || 'Overleden';
+  // Een document gaat niet dood en raakt niet verwoest; weg is weg, dus daar
+  // staat de knop niet (zelfde afspraak als bij een voorwerp).
+  const _wegLabel = { locaties: 'Verwoest', organisaties: 'Opgeheven', voorwerpen: 'Verloren', documenten: 'Vernietigd' }[tab] || 'Overleden';
   // Een leeg blad is een lege tab: alleen tonen als er iets in staat. `hp` en
   // `ac` tellen niet als "iets" wanneer de rest leeg is — dat is de minimale
   // invulling voor de monsterlijst, geen character sheet.
@@ -3799,6 +3928,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // een badge, de lijsten een perkamentrol per regel). Als pil toonden ze
     // hun ruwe JSON: ["Groot hater van jam."].
     if (['lijst-tekst', 'rollen'].includes(field.type)) continue;
+    // De perkamenttekst van een document krijgt verderop zijn eigen weergave;
+    // als pil werd een hele brief tot één regel platgeslagen.
+    if (field.type === 'perkament') continue;
+    // Het documenttype staat al in de ondertitel onder de naam.
+    if (tab === 'documenten' && field.key === 'docType') continue;
     // Betrokkenen heeft zijn eigen rij chips hieronder; als pil kwam zijn ruwe
     // JSON in beeld.
     if (field.type === 'betrokkenen') continue;
@@ -3820,6 +3954,19 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     infoHtml += `<div class="detail-desc mb-4">${tab === 'voorwerpen' ? (window.glossary?.annotate?.(_descHtml) ?? _descHtml) : _descHtml}</div>`;
   }
   infoHtml += _naDesc;
+
+  // ── Een document toont zijn eigen inhoud ──
+  // Eerst de tekst op perkament, dan het bestand (een pdf-scan of een
+  // geluidsfragment). Een afbeelding staat al bovenaan als hero, dus die slaan
+  // we hier over. Bij een vaag document geeft de server niets mee; dan één slot.
+  if (tab === 'documenten') {
+    if (e._visibility === 'vague') {
+      infoHtml += `<div class="doc-slot">${icon('lock')}<span>Nog niet volledig onthuld</span></div>`;
+    } else {
+      if (e.data?.tekst) infoHtml += `<div class="parchment-block mb-4">${renderParchment(e.data.tekst)}</div>`;
+      infoHtml += `<div class="mb-4" id="doc-bestand-${esc(e.id)}"></div>`;
+    }
+  }
 
   // ── Betrekkingen, ná de beschrijving ──
   // Eerst lezen wie of wat dit is, dan pas de administratie eromheen. Eén regel
@@ -3995,7 +4142,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                misverstand. Weg is weg — je haalt het voorwerp weg. Alleen een
                kaartje dat de markering al draagt houdt de knop, anders viel hij
                niet meer terug te draaien. -->
-          ${tab === 'voorwerpen' && !e._deceased ? '' : `
+          ${(['voorwerpen', 'documenten'].includes(tab)) && !e._deceased ? '' : `
           <button class="dm-actie${e._deceased ? ' dm-actie--aan' : ''}"
             title="${e._deceased ? 'Markering verwijderen' : `Markeer als ${_wegLabel.toLowerCase()}`}"
             onclick="window._toggleDeceased('${tab}','${e.id}')">
@@ -4391,6 +4538,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     e.data?.locType,
     e.data?.wijk,
     e.data?.orgType,
+    e.data?.docType,
     e.data?.itemType ? _normItemType(e.data.itemType) : null,
     e.data?.rariteit ? (({'Gewoon':'Common','Ongewoon':'Uncommon','Zeldzaam':'Rare','Zeer zeldzaam':'Very Rare','Legendarisch':'Legendary'})[e.data.rariteit] || e.data.rariteit) : null,
   ].filter(Boolean);
@@ -4412,6 +4560,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   _updateBackButton();
   _vulSpellChips();   // van index naar nette naam, zodra de bibliotheek er is
   if (toonBezit) window._bezitLaden(e.id);
+  if (tab === 'documenten' && e._visibility !== 'vague') _docBestandLaden(e.id);
 
   // Huisdier: geschaalde statblock ophalen + renderen (tier o.b.v. level van het baasje)
   if (tab === 'personages' && e.subtype === 'dier') {
@@ -5296,6 +5445,37 @@ function _videoDuur(file) {
   });
 }
 
+// Het bestand van een document: een pdf-scan of een geluidsfragment, opgeslagen
+// onder het kaartje-id (zelfde afspraak als het portret). Een afbeelding gaat
+// via de mediabibliotheek hierboven; dit is voor wat je niet kunt bekijken maar
+// wel moet kunnen openen.
+window._docBestandStatus = async (id) => {
+  const el = document.getElementById('doc-bestand-status');
+  if (!el) return;
+  try {
+    const r = await fetch(`/api/files/${encodeURIComponent(id)}`, { method: 'HEAD' });
+    const ct = r.headers.get('content-type') || '';
+    if (r.ok && (ct.includes('pdf') || ct.includes('audio'))) {
+      const mb = (+r.headers.get('content-length') || 0) / 1048576;
+      el.textContent = `${ct.includes('pdf') ? 'Een pdf' : 'Een geluidsfragment'} staat klaar${mb ? ` (${mb.toFixed(1)} MB)` : ''}.`;
+    } else {
+      el.textContent = 'Nog geen bestand.';
+    }
+  } catch { el.textContent = 'Nog geen bestand.'; }
+};
+
+window._docBestandUpload = async (id, file) => {
+  if (!id || !file) return;
+  const el = document.getElementById('doc-bestand-status');
+  if (el) el.textContent = 'Uploaden\u2026';
+  try {
+    await api.uploadFile(id, file);
+    window._docBestandStatus(id);
+  } catch (err) {
+    if (el) el.textContent = 'Uploaden mislukt: ' + (err.message || 'onbekende fout');
+  }
+};
+
 window._charVideoStatus = async (entityId) => {
   const el = document.getElementById('editor-video-status');
   const del = document.getElementById('editor-video-del');
@@ -5733,6 +5913,22 @@ window._openEditor = async (tab, editId) => {
             onclick="window._removeCharVideo('${esc(e?.id || '')}')" title="Filmpje verwijderen">${icon('trash')}</button>
         </div>
       </div>` : ''}
+      ${tab === 'documenten' ? `
+      <!-- Een document kan behalve een afbeelding ook een scan (pdf) of een
+           geluidsfragment zijn. Dat bestand hangt aan het kaartje-id, net als
+           het portret van een personage — vandaar dat het pas kan zodra het
+           kaartje bestaat. -->
+      <div id="doc-bestand-sectie"${editId ? '' : ' style="display:none"'}>
+        <div class="text-xs font-cinzel text-ink-dim font-bold tracking-wide mb-1">Bestand</div>
+        <p class="text-[10px] text-ink-dim mb-1">Een pdf-scan of een geluidsfragment. Verschijnt onder de tekst in het detailvenster; een afbeelding hoort hierboven.</p>
+        <div id="doc-bestand-status" class="text-xs text-ink-faint italic mb-1">${editId ? 'Controleren…' : ''}</div>
+        <input type="file" id="doc-bestand-input" accept="application/pdf,audio/*" class="hidden"
+          onchange="window._docBestandUpload('${esc(editId || '')}', this.files[0])">
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+          onclick="document.getElementById('doc-bestand-input').click()">
+          ${icon('folder-open')} Bestand kiezen
+        </button>
+      </div>` : ''}
     `;
   }
 
@@ -5911,6 +6107,23 @@ window._openEditor = async (tab, editId) => {
           <div class="mt-1">${_taHtml}</div>
         </div>`;
       }
+    } else if (field.type === 'perkament') {
+      // De inhoud van het document zelf. Krijgt in het detailvenster de
+      // perkamentweergave, dus staan de twee opmaakregels die die weergave kent
+      // hier onder het veld — nergens anders zou je ze tegenkomen.
+      const taId = `ta_${field.key}`;
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
+          <div class="mt-1">
+            ${fmtToolbar(taId)}
+            <textarea id="${taId}" name="data_${field.key}" rows="12" onkeydown="window._fmtKey(event)"
+              class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none"
+              placeholder="Beste C.,&#10;&#10;Ik schrijf je in haast\u2026">${esc(val)}</textarea>
+            <p class="veld-uitleg">Een regel <code>---titel---</code> maakt van de volgende regel een kop,
+              <code>--handtekening--</code> van de volgende regel een ondertekening, en <code>---</code> trekt een lijn.</p>
+          </div>
+        </div>`;
     } else if (field.type === 'select') {
       const _selOnchange = (tab === 'locaties' && field.key === 'locType')
         ? ' onchange="window._onLocTypeChange(this.value)"'
@@ -6622,6 +6835,7 @@ window._openEditor = async (tab, editId) => {
 
   // Staat er al een filmpje bij dit personage? (no-op zonder die sectie)
   if (e?.id) window._charVideoStatus(e.id);
+  if (tab === 'documenten' && e?.id) window._docBestandStatus(e.id);
 
   // ── CS tab switcher ──
   window._csTab = (name) => {

@@ -65,10 +65,10 @@ opnieuw om te zetten.
 - **Archief-tabbladen leven in meerdere bestanden — pas wijzigingen overal toe.** Een UI-/styling-
   aanpassing aan "de archief-tabbladen" raakt niet één bestand:
   - `render-campagne.js` — personages, locaties, organisaties, voorwerpen (kaarten, detailvenster, editor)
-  - `render-archief.js` — **documenten** + logboek + aktes (eigen editor & viewer, NIET het detailvenster van render-campagne)
+  - `render-archief.js` — logboek + sessieverslagen + aktes (documenten zijn sinds 8 sep 2026 gewone kaartjes en leven in `render-campagne.js`)
   - `render-bestiarium.js` + `render-statblock.js` — **bestiarium** (eigen kaart + statblock-modal, eigen editor in `dm-panel.js`)
-  Documenten en bestiarium delen wél de `.entity-card`-kaartstijl, maar hebben **eigen** detail-/editor-
-  vensters. Doe je iets aan labels/kaarten/vensters van de archief-tabs, check dan al deze bestanden.
+  Het bestiarium deelt wél de `.entity-card`-kaartstijl, maar heeft een **eigen** detail-/editorvenster.
+  Doe je iets aan labels/kaarten/vensters van de archief-tabs, check dan al deze bestanden.
 - **Backup vóór elke wijziging aan spelersdata.** Voordat code of data op de server aangepast
   wordt die het spelerstabblad raakt (playerProfiles, playerItems, playerSpells, berichten, boedel),
   eerst een backup maken:
@@ -692,7 +692,7 @@ public/
     dm-panel.js        DM-configuratiepaneel
     render-campagne.js Entiteitskaartjes, detail-modals, zoeken
     render-progressie.js Skill trees / klasse-progressie
-    render-archief.js  Documenten, logboek
+    render-archief.js  Logboek, sessieverslagen, aktes + regie-script
     render-kaart.js    Leaflet-kaart met pins
     render-dungeon.js  Dungeon-kaarten
     render-relatiemap.js Cytoscape relatienetwerk
@@ -712,9 +712,9 @@ data/
 
 | Bestand | Inhoud |
 |---|---|
-| `entities.json` | personages, locaties, organisaties, voorwerpen |
+| `entities.json` | personages, locaties, organisaties, voorwerpen, **documenten** |
 | `dm-state.json` | groepen, zichtbaarheid, playerProfiles, playerItems, combat, tempel-config, … |
-| `archief.json` | documenten, logEntries, sessieLog, brieven |
+| `archief.json` | logEntries, sessieLog (documenten zijn kaartjes geworden) |
 | `combat.json` | actief gevecht, combatants |
 | `map.json` | kaartpins |
 | `monsters.json` | monster-statblokken |
@@ -1190,6 +1190,39 @@ uiteen. Bij de documenten gebeurde dat ook — 31 van de 31 hadden een
 een andere akte. Zie `docs/voorstel-documenten.md`.
 
 ---
+
+## Een document is een kaartje
+
+Sinds 8 sep 2026 is `documenten` het **vijfde entiteitstype**. Daarvoor was het
+hetzelfde ding, twee keer gebouwd: eigen opslag (`archief.json.documents`),
+eigen zichtbaarheid met eigen woorden (`docStates` + `docVisibility`,
+hidden/blurred/revealed), eigen kaart, detailvenster en editor (±615 regels), en
+negen eigen routes. Dat is allemaal weg; wat overblijft is
+`ENTITY_TYPES` + één `SCHEMA`-blok.
+
+| vroeger | nu |
+|---|---|
+| `archief.json.documents[]` | `entities.json.documenten[]` (zelfde id, dus het bestand verhuist mee) |
+| `tekstContent[id]` | `data.tekst` — de perkamenttekst |
+| `type` + `cat` | `data.docType`, met `DOC_TYPE_GROEPEN` als indeling (de oude `cat` is de groep) |
+| `npcs/locs/orgs/items/docs` | `links.{personages,locaties,organisaties,voorwerpen,documenten}` |
+| `docStates` + `docVisibility` | `groups[gid].visibility` — revealed→visible, blurred→vague |
+| `hoofdstuk` op het kaartje | `meta.hoofdstukken[key].documenten` (zie *Kaartjes zijn agnostisch*) |
+| `hiddenLinks` | vervallen |
+| `icon` (emoji) | vervallen; de app tekent zijn eigen iconen |
+
+- **Wat document-eigen bleef:** de **perkamentweergave** (`renderParchment` in
+  `render-campagne.js`, met `---titel---`, `--handtekening--` en `---`), het
+  **bestand** (een pdf-scan of geluidsfragment onder het kaartje-id, met
+  `_docBestandLaden` in het detailvenster en `_docBestandUpload` in de editor),
+  en de **logboekregel + dramatische onthulling** bij het onthullen — die hangt nu
+  aan `PUT /entities/documenten/:id/visibility`, en alleen de eerste keer dat het
+  document érgens opengaat.
+- **De akte noemt het document, niet andersom.** Te beheren in de akte-editor
+  (*Documenten bij deze akte*), endpoint `PUT /meta/akte/:key/documenten`. Het
+  Logboek groepeert daarop.
+- **Migratie:** `node scripts/documenten-naar-kaartjes.js <campagne> --schrijf`
+  (gedraaid op grisburgh 31, prewett 1, Test 1; kopie ernaast).
 
 ## Wat een voorwerp is, en wat het doet
 

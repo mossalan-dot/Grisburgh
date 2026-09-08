@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=277';
+import { api, huidigeCampagne } from './api.js?v=278';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=4';
 
@@ -1905,7 +1905,7 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
   _rbSecretIds = new Set();
   _rbEntityImg = {};
   try {
-    const entTypes = [...new Set(_rbScript.filter(x => x.type === 'entity' && x.entityType && x.entityType !== 'documenten').map(x => x.entityType))];
+    const entTypes = [...new Set(_rbScript.filter(x => x.type === 'entity' && x.entityType).map(x => x.entityType))];
     const lists = await Promise.all(entTypes.map(t => api.listEntities(t).catch(() => [])));
     for (const list of lists) {
       for (const e of (list || [])) {
@@ -1989,8 +1989,8 @@ function _renderRegieBalkItem(item) {
   // Onthul-acties. Entiteiten krijgen meerdere modi (volledig/vaag/geheim) en
   // blijven bedienbaar na een reveal zodat de DM kan opschalen (vaag → volledig
   // → geheim). Overige items (afbeelding/encounter/dungeon) houden één reveal.
-  const isEntity   = item.type === 'entity' && item.entityType !== 'documenten';
-  const canVague   = isEntity && (item.entityType === 'personages' || item.entityType === 'locaties');
+  const isEntity   = item.type === 'entity';
+  const canVague   = isEntity && ['personages', 'locaties', 'documenten'].includes(item.entityType);
   const hasSecret  = isEntity && _rbSecretIds.has(item.entityId);
   let actions;
   if (item.type === 'rust') {
@@ -2551,12 +2551,9 @@ async function _revealRegieBalkItem(itemId, mode = 'visible') {
     if (item.type === 'image') {
       await _revealImage(item.sessieId, item.fileId, item.caption);
     } else if (item.type === 'entity') {
-      if (item.entityType === 'documenten') {
-        await api.setArchiefState(item.entityId, 'visible');
-      } else {
-        // mode = 'visible' (volledig) of 'vague' (vaag, alleen personages/locaties).
-        await api.toggleVisibility(item.entityType, item.entityId, mode === 'vague' ? 'vague' : 'visible');
-      }
+      // mode = 'visible' (volledig) of 'vague' (vaag). Documenten liepen hier
+      // langs een eigen route; sinds ze kaartjes zijn is dat dezelfde weg.
+      await api.toggleVisibility(item.entityType, item.entityId, mode === 'vague' ? 'vague' : 'visible');
     } else if (item.type === 'encounter') {
       await api.startEncounter(item.encounterId);
       const combat = await api.startCombat();
