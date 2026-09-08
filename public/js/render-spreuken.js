@@ -70,15 +70,24 @@ async function _load() {
   // De aanvullende lijst (Silvery Barbs, Tasha's Caustic Brew, …) hing alleen aan
   // de spreukenkiezer van de speler; in dit naslagwerk bestonden ze niet. Twee
   // plekken die iets anders "alle spreuken" noemen is er één te veel.
-  const [basis, extra, eigen] = await Promise.all([
+  const [basis, extra, eigenData] = await Promise.all([
     lees(url),
     _isHp() ? [] : lees('/api/bron/extra-spells'),
-    lees('/api/spreuken/eigen'),          // wat deze campagne zelf verzon
+    // Wat deze campagne zelf verzon — plus de klassenlijst waar de editor uit kiest.
+    fetch('/api/spreuken/eigen').then(r => r.json()).catch(() => ({})),
   ]);
+  const eigen = eigenData?.results || [];
+  if (Array.isArray(eigenData?.klassen) && eigenData.klassen.length) _EIG_KLASSEN = eigenData.klassen;
   const gezien = new Set(basis.map(s => s.index));
-  const raw = [...basis, ...extra.filter(s => !gezien.has(s.index)), ...eigen];
-  // Alleen echte spreuken: niet-spell-entries (magische voorwerpen) hebben een lege school.
-  _all = raw.filter(s => _school(s));
+  // Alleen echte spreuken uit de bron: niet-spell-entries (magische voorwerpen)
+  // hebben daar een lege school. Bij een eigen spreuk geldt die zeef níét — de
+  // DM heeft hem zelf aangemaakt, en alleen de naam is verplicht; met de zeef
+  // verdween een spreuk zonder school stilzwijgend uit de bibliotheek.
+  _all = [
+    ...basis.filter(s => _school(s)),
+    ...extra.filter(s => !gezien.has(s.index) && _school(s)),
+    ...eigen,
+  ];
   const set = new Set();
   for (const s of _all) for (const c of _classNames(s)) set.add(c);
   _classes = [...set].sort();
@@ -447,8 +456,11 @@ function _detailHtml(s) {
 // weg, zodat een korte spreuk geen rij lege regels krijgt.
 const _EIG_SCHOLEN = ['Abjuration', 'Conjuration', 'Divination', 'Enchantment',
                       'Evocation', 'Illusion', 'Necromancy', 'Transmutation'];
-const _EIG_KLASSEN = ['Artificer', 'Bard', 'Cleric', 'Druid', 'Paladin',
-                      'Ranger', 'Sorcerer', 'Warlock', 'Wizard'];
+// De klassenlijst komt van de server: die telt de eigen klassen van de campagne
+// mee (progression.json). De negen PHB-casters staan er altijd bij, en zolang de
+// server nog niet geantwoord heeft is dat het vangnet.
+let _EIG_KLASSEN = ['Artificer', 'Bard', 'Cleric', 'Druid', 'Paladin',
+                    'Ranger', 'Sorcerer', 'Warlock', 'Wizard'];
 
 function _eigVeld(label, id, waarde, hint = '', breed = false) {
   return `
@@ -468,9 +480,11 @@ function _eigFormHtml(s) {
   return `
     <div class="spreuk-detail-card spreuk-eig-form">
       <button class="spreuk-detail-close" onclick="window.spreuken.close()" title="Sluiten">${icon('x')}</button>
+      <!-- Zelfde kop als de kaartjes-editor: handeling, dan de naam van wat je
+           bewerkt. Uitleg hoort in het boekje, niet als grijze regel eronder. -->
       <div class="spreuk-detail-head">
-        <div class="spreuk-detail-title">${s ? 'Spreuk bewerken' : 'Eigen spreuk'}</div>
-        <div class="spreuk-detail-sub">Alleen de naam is verplicht — de rest vul je in wat je nodig hebt</div>
+        <div class="spreuk-detail-title">${s ? 'Spreuk bewerken' : 'Nieuwe spreuk'}${
+          s ? ` <span class="spreuk-eig-naam">\u203a ${esc(s.name)}</span>` : ''}</div>
       </div>
       <div class="spreuk-eig-raster">
         ${_eigVeld('Naam', 'eig-name', s?.name, 'Vloek van de Vlasbaard', true)}
@@ -510,7 +524,6 @@ function _eigFormHtml(s) {
           <div class="spreuk-eig-vinkjes">
             ${_EIG_KLASSEN.map(k => `<label><input type="checkbox" id="eig-kl-${k}"${klassen.includes(k) ? ' checked' : ''}> ${k}</label>`).join('')}
           </div>
-          <p class="spreuk-eig-hint">Vink niets aan en de spreuk hoort bij niemand in het bijzonder — hij valt dan buiten "Alleen mijn klasse".</p>
         </div>
         <label class="spreuk-eig-veld spreuk-eig-veld--breed">
           <span class="spreuk-eig-lbl">Beschrijving</span>

@@ -557,6 +557,17 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > (DM-only). Een eigen spreuk krijgt de tag **Eigen** op zijn kaartje en heeft
 > geen overschrijf-tekstvak — die is er voor bróntekst.
 >
+> **De klassenlijst komt van de server**, niet uit een lijstje in de frontend:
+> `_spreukKlassen()` telt de eigen klassen van de campagne mee
+> (`progression.json`) bovenop de negen PHB-casters, en valideert de invoer
+> tegen diezelfde lijst. Homebrew-klassen kunnen dus gewoon spreuken hebben.
+>
+> **De school-zeef geldt alleen voor de bron.** `_load()` gooit bronregels
+> zonder school weg (dat zijn de 22 magische voorwerpen die in `spells-2024.json`
+> staan). Op een eigen spreuk mag die zeef niet: alleen de naam is verplicht, en
+> een eigen spreuk zonder school verdween er stilzwijgend door uit de
+> bibliotheek.
+>
 > **Let op de schoolnamen.** De tien spreuken in `extra-spells.json` stonden in
 > het Nederlands (*Betovering*, *Bezwering*, *Evoking*), tegen de
 > terminologie-afspraak in — en het schoolfilter kreeg er daardoor zes verzonnen

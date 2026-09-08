@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=44';
 import { renderBestiarium } from './render-bestiarium.js?v=22';
-import { renderSpreuken } from './render-spreuken.js?v=25';
+import { renderSpreuken } from './render-spreuken.js?v=27';
 import { renderStatblock } from './render-statblock.js?v=4';
 import { initSocket } from "./socket-client.js?v=66";
 import { initDmPanel } from "./dm-panel.js?v=208";
@@ -12382,8 +12382,10 @@ Object.assign(HELP_CONFIG, {
   dm_spreuken: () => ({
     titel: 'Spreukenbibliotheek',
     stappen: [
-      { titel: 'Spreuken beheren', tekst: 'Zoek en bekijk spreukbeschrijvingen. Gebruik de filters om op niveau, school of klasse te filteren.', afbeelding: null },
+      { titel: 'Spreuken beheren', tekst: 'Zoek en bekijk spreukbeschrijvingen. Filter op niveau, klasse, **Ritual** of **Concentration**; de acht scholen zitten achter het trechtertje.', afbeelding: null },
       { titel: 'Spellbron', tekst: 'De spellbron (2014 of 2024 PHB) stel je in via de campagne-instellingen. Dit bepaalt welke spreuklijst getoond wordt.', afbeelding: null },
+      { titel: 'Eigen spreuk schrijven', tekst: 'Met de **+** in de kop maak je een spreuk die alleen in deze campagne bestaat. **Alleen de naam is verplicht** — al het andere vul je in wat je nodig hebt. Vink je geen klasse aan, dan hoort de spreuk bij niemand in het bijzonder en valt hij buiten het filter *Alleen mijn klasse* van een speler. Eigen spreuken herken je aan de tag **Eigen**; bewerken en verwijderen gaat via de spreuk zelf.', afbeelding: null },
+      { titel: 'Wie kent deze spreuk?', tekst: 'Onder in een spreuk staat welke personages hem in hun boek hebben, uit welke party ze komen en of hij *prepared* staat — handig als je je afvraagt wie er kan tegenspreken.', afbeelding: null },
     ],
   }),
   dm_tafels: () => ({

@@ -6016,6 +6016,18 @@ const _SPREUK_SCHOLEN = ['Abjuration', 'Conjuration', 'Divination', 'Enchantment
 const _SPREUK_KLASSEN = ['Artificer', 'Bard', 'Cleric', 'Druid', 'Paladin',
                          'Ranger', 'Sorcerer', 'Warlock', 'Wizard'];
 
+// Een campagne mag eigen klassen hebben (progression.json); dan hoort een eigen
+// spreuk daar ook aan te hangen. De negen casters uit de PHB staan er altijd
+// bij, ook als de campagne haar klassenlijst heeft ingekort.
+function _spreukKlassen() {
+  let eigen = [];
+  try {
+    const prog = storage.readJSON('progression.json');
+    eigen = Object.keys(prog?.classes || {});
+  } catch { /* geen eigen progressie */ }
+  return [...new Set([..._SPREUK_KLASSEN, ...eigen])].sort();
+}
+
 function _eigenSpreukLijst() {
   const d = storage.readJSON('spells.json');
   return Array.isArray(d?.eigenSpreuken) ? d.eigenSpreuken : [];
@@ -6031,8 +6043,9 @@ function _spreukUitBody(body, index) {
   const comps = (Array.isArray(body?.components) ? body.components : [])
     .map(c => String(c).toUpperCase().trim()).filter(c => ['V', 'S', 'M'].includes(c));
   const school = _SPREUK_SCHOLEN.includes(tekst(body?.school)) ? tekst(body.school) : '';
+  const toegestaan = _spreukKlassen();
   const klassen = (Array.isArray(body?.classes) ? body.classes : [])
-    .map(c => tekst(c.name || c, 40)).filter(c => _SPREUK_KLASSEN.includes(c));
+    .map(c => tekst(c.name || c, 40)).filter(c => toegestaan.includes(c));
   const uit = {
     index,
     name:  tekst(body?.name, 120),
@@ -6063,7 +6076,7 @@ router.get('/spreuken/eigen', attachRole, (req, res) => {
   if (!(req.session?.role === 'dm' || req.session?.characterId)) {
     return res.status(401).json({ error: 'Niet ingelogd' });
   }
-  res.json({ results: _eigenSpreukLijst(), scholen: _SPREUK_SCHOLEN, klassen: _SPREUK_KLASSEN });
+  res.json({ results: _eigenSpreukLijst(), scholen: _SPREUK_SCHOLEN, klassen: _spreukKlassen() });
 });
 
 router.post('/spreuken/eigen', requireDM, (req, res) => {

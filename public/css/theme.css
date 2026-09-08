@@ -24156,3 +24156,6 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .spreuk-eig-hint { font-family: 'Crimson Text', serif; font-style: italic; font-size: 11px; color: #7a6040; margin-top: 3px; }
 .spreuk-eig-knoppen { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
 .spreuk-eig-knoppen .spreuk-detail-imgbtn { margin: 0; }
+
+/* Naam van de spreuk in de kop van de editor, zoals de kaartjes-editor dat doet. */
+.spreuk-eig-naam { font-family: 'Cinzel', serif; font-weight: 400; color: #7a6040; }
