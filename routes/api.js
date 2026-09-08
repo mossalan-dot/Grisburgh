@@ -631,6 +631,48 @@ function _geheimOpen(rij, dmState, groupId) {
   return !!stand[Number(g.i) || 0];
 }
 
+function _geheimKaart(oud, nieuw) {
+  const kaart = new Array(oud.length).fill(-1);
+  const vrij = new Set(nieuw.map((_, i) => i));
+  // 1. woordelijk dezelfde regel — vangt verwijderen en verslepen
+  oud.forEach((tekst, i) => {
+    const j = nieuw.findIndex((t, k) => vrij.has(k) && t === tekst);
+    if (j !== -1) { kaart[i] = j; vrij.delete(j); }
+  });
+  // 2. wat overblijft op volgorde — vangt een regel die is bijgeschaafd
+  const over = [...vrij].sort((a, b) => a - b);
+  oud.forEach((_, i) => { if (kaart[i] === -1 && over.length) kaart[i] = over.shift(); });
+  return kaart;
+}
+
+// Past die kaart toe op alles wat naar een geheimregel van dit kaartje wijst.
+function _geheimVerwijzingenBij(dmState, entities, kaartId, kaart) {
+  for (const g of Object.values(dmState.groups || {})) {
+    const stand = g.secretReveals?.[kaartId];
+    if (Array.isArray(stand)) {
+      const nieuw = [];
+      stand.forEach((aan, i) => { const j = kaart[i]; if (j >= 0 && aan) nieuw[j] = true; });
+      g.secretReveals[kaartId] = Array.from({ length: nieuw.length }, (_, i) => !!nieuw[i]);
+    }
+  }
+  for (const t of ['locaties', 'organisaties']) {
+    for (const doel of (entities[t] || [])) {
+      const rijen = _betrokkenenLijst(doel.data);
+      if (!rijen.some(r => r.geheim?.id === kaartId)) continue;
+      doel.data = { ...(doel.data || {}), betrokkenen: JSON.stringify(rijen.map(r => {
+        if (r.geheim?.id !== kaartId) return r;
+        const j = kaart[Number(r.geheim.i) || 0];
+        const uit = { ...r };
+        // Wijst hij nergens meer heen, dan is het geheim weg: de verbinding is
+        // dan gewoon zichtbaar. Beter dan hem voor altijd verborgen houden.
+        if (j < 0 || j === undefined) delete uit.geheim;
+        else uit.geheim = { ...r.geheim, i: j };
+        return uit;
+      })) };
+    }
+  }
+}
+
 function _betrokkenenLijst(data) {
   const rauw = data?.betrokkenen;
   if (Array.isArray(rauw)) return rauw;
@@ -885,6 +927,17 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
       if (oudeData[sleutel] !== undefined && updated.data[sleutel] === undefined) {
         updated.data[sleutel] = oudeData[sleutel];
       }
+    }
+  }
+  // Zijn de geheimen van dit kaartje veranderd, dan verschuift alles wat naar
+  // een regelnummer wijst mee: de onthulstand per party en geheime verbindingen.
+  if (req.body.data) {
+    const oudeGeheimen = _tekstLijst(entities[type][idx].data, 'geheimen', 'geheim');
+    const nieuweGeheimen = _tekstLijst(updated.data, 'geheimen', 'geheim');
+    if (JSON.stringify(oudeGeheimen) !== JSON.stringify(nieuweGeheimen)) {
+      const dmStateG = readDmState();
+      _geheimVerwijzingenBij(dmStateG, entities, id, _geheimKaart(oudeGeheimen, nieuweGeheimen));
+      storage.writeJSON('dm-state.json', dmStateG);
     }
   }
   entities[type][idx] = updated;

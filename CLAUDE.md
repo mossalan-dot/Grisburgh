@@ -610,6 +610,17 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > in de chef-keten. Zelfde patroon als `geheimenAntagonist`: een geheimregel die
 > een gevolg draagt. Zie `docs/voorstel-geheime-verbindingen.md`.
 
+> **Een geheimregel wordt op positie geadresseerd — en dat schuift.** De
+> onthulstand per party (`groups[gid].secretReveals[id]`, een array booleans),
+> de antagonist-vlaggen en een geheime verbinding wijzen allemaal naar *regel N*
+> van `data.geheimen`. Haalt de DM regel 0 weg, dan schuift alles op. Daarom
+> herschikt `PUT /entities/:type/:id` die verwijzingen mee zodra de geheimen
+> veranderen: `_geheimKaart(oud, nieuw)` legt oude op nieuwe posities (eerst wat
+> woordelijk gelijk is, de rest op volgorde), `_geheimVerwijzingenBij()` past dat
+> toe. Zonder dat ging een onthuld geheim na één bewerking over een ándere regel.
+> Een echte oplossing is een stabiel id per geheimregel; dat staat op de
+> todo-lijst.
+
 > **Eén kaartje, meerdere rollen.** Dezelfde persoon kan op dezelfde plek
 > eigenaar én verkoper zijn: `PUT .../hoortbij` houdt een **lijst** rollen per
 > doelkaartje bij, niet één. Alleen een exacte herhaling (zelfde kaartje,

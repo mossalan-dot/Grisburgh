@@ -139,6 +139,52 @@ describe('Geheime verbindingen', () => {
     assert.ok(!rijen.some(r => r.geheim), 'de administratie blijft bij de DM');
   });
 
+  // ── Geheimregels worden op positie geadresseerd ──
+  // De onthulstand per party én een geheime verbinding wijzen naar regel N.
+  // Haalt de DM regel 0 weg, dan schuift alles op; zonder correctie gaat de
+  // administratie daarna over een ánder geheim.
+
+  it('houdt de onthulstand bij de juiste regel als er een regel weggaat', async () => {
+    const k = (await req(server, 'POST', '/api/entities/personages',
+      { name: 'Drieluik', data: { geheimen: JSON.stringify(['Eerste.', 'Tweede.', 'Derde.']) } }, dm)).body;
+    await req(server, 'PUT', `/api/entities/personages/${k.id}/visibility`, { target: 'visible' }, dm);
+    await req(server, 'PUT', `/api/entities/personages/${k.id}/secret`, { index: 2 }, dm);
+
+    const zichtbaar = async () => JSON.parse(
+      (await req(server, 'GET', `/api/entities/personages/${k.id}`, null, spelerC)).body.data.geheimen || '[]');
+    assert.deepEqual(await zichtbaar(), ['Derde.']);
+
+    await req(server, 'PUT', `/api/entities/personages/${k.id}`,
+      { data: { geheimen: JSON.stringify(['Tweede.', 'Derde.']) } }, dm);
+    assert.deepEqual(await zichtbaar(), ['Derde.'], 'nog steeds de derde, niet de tweede');
+
+    await req(server, 'PUT', `/api/entities/personages/${k.id}`,
+      { data: { geheimen: JSON.stringify(['Derde.', 'Tweede.']) } }, dm);
+    assert.deepEqual(await zichtbaar(), ['Derde.'], 'ook na omdraaien');
+  });
+
+  it('houdt een geheime verbinding aan het juiste geheim als er een regel weggaat', async () => {
+    const baas = (await req(server, 'POST', '/api/entities/personages',
+      { name: 'Baas', data: { geheimen: JSON.stringify(['Onbelangrijk.', 'Hij leidt de club.']) } }, dm)).body;
+    const club = (await req(server, 'POST', '/api/entities/organisaties', {
+      name: 'De Club',
+      data: { betrokkenen: JSON.stringify([{ naam: 'Baas', rol: 'Leider', id: baas.id, geheim: { id: baas.id, i: 1 } }]) },
+    }, dm)).body;
+    for (const [t, id] of [['personages', baas.id], ['organisaties', club.id]]) {
+      await req(server, 'PUT', `/api/entities/${t}/${id}/visibility`, { target: 'visible' }, dm);
+    }
+    const rollen = async () => JSON.parse(
+      (await req(server, 'GET', `/api/entities/organisaties/${club.id}`, null, spelerC)).body.data.betrokkenen || '[]')
+      .map(r => r.rol);
+    assert.deepEqual(await rollen(), [], 'nog verborgen');
+
+    // Het onbelangrijke geheim gaat weg; het echte schuift naar plek 0.
+    await req(server, 'PUT', `/api/entities/personages/${baas.id}`,
+      { data: { geheimen: JSON.stringify(['Hij leidt de club.']) } }, dm);
+    await req(server, 'PUT', `/api/entities/personages/${baas.id}/secret`, { index: 0 }, dm);
+    assert.deepEqual(await rollen(), ['Leider'], 'de verbinding volgt het geheim');
+  });
+
   it('maakt de verbinding gewoon zichtbaar als het geheim-kaartje verdwijnt', async () => {
     const los = (await req(server, 'POST', '/api/entities/personages',
       { name: 'Tijdelijk Geheim', data: { geheimen: JSON.stringify(['Iets.']) } }, dm)).body;

@@ -140,6 +140,18 @@ groot het is.
       en meenemen dat geheime verbindingen daar dezelfde regel moeten volgen
       (`docs/voorstel-geheime-verbindingen.md`).
 
+## Geheimen
+
+- [ ] **Een stabiel id per geheimregel.** `data.geheimen` is een lijst teksten
+      en alles wat ernaar wijst doet dat op positie: de onthulstand per party
+      (`secretReveals`), de antagonist-vlaggen en sinds 8 sep de geheime
+      verbindingen. Bij het opslaan worden die verwijzingen nu meeverschoven
+      (`_geheimKaart`), wat delete, verslepen en bijschaven opvangt — maar het
+      blijft raden op basis van tekst. Met `{ id, tekst }` per regel is het
+      exact. Kost een migratie van `geheimen`, `geheimenAntagonist` en
+      `secretReveals` in alle campagnes; daarom nu de goedkope reparatie en dit
+      voor later.
+
 ## Boedel
 
 - [ ] **Healen doet nog niets.** Klikken op de genezingsknop in de boedel gooit
