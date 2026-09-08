@@ -1224,6 +1224,27 @@ negen eigen routes. Dat is allemaal weg; wat overblijft is
 - **Migratie:** `node scripts/documenten-naar-kaartjes.js <campagne> --schrijf`
   (gedraaid op grisburgh 31, prewett 1, Test 1; kopie ernaast).
 
+> **Briefstijlen en de brief op ware grootte.** Eén perkamentstijl maakte van een
+> brief, een kasboek en een dreigbrief hetzelfde ding, terwijl het type al bekend
+> was. `_docStijl(e)` leidt de stijl af uit `data.docType` (`DOC_STIJL_BIJ_TYPE`)
+> en `data.briefstijl` overschrijft dat — zo verschillen twee schrijvers
+> herkenbaar. De stijl staat als `data-stijl` op het blok, zodat dezelfde
+> CSS-regels gelden in het detailvenster én in de vergrote weergave. Fonts komen
+> uit de bestaande Google-Fonts-regel in `index.html` (Kalam, Dancing Script,
+> Special Elite, UnifrakturMaguntia). **Uitgeknipte krantenletters** zijn geen
+> lettertype maar opmaak per teken (`_knipselLetters`): de variatie hangt aan de
+> tekencode, niet aan toeval, anders danst de brief bij elke hertekening — en elk
+> woord zit in een `.knip-woord` die niet mag afbreken.
+>
+> **Het bladeren is gratis meegekomen met CSS-kolommen** (`_perkamentGroot`): geef
+> het vel een vaste hoogte en breedte, zet `column-fill: auto`, en het aantal
+> bladen is de totale breedte gedeeld door één vel. Geen tekst opmeten, geen
+> handmatige afbreekpunten. Twee valkuilen: `column-width` neemt **geen
+> percentage** (met `100%` valt de kolomindeling stil en wordt de tekst gewoon
+> afgeknipt), dus die wordt in pixels gezet zodra het vel gemeten is; en gebruik
+> **geen `requestAnimationFrame`** om de overlay te tonen — die staat stil in een
+> tabblad dat niet op de voorgrond is.
+
 ## Wat een voorwerp is, en wat het doet
 
 `data.itemType` zegt wát het is (badge, icoon, winkelindeling); `data.werking`

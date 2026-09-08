@@ -377,6 +377,32 @@ const ITEM_TYPE_MELDINGEN = {
   Boon:       'Verschijnt onder <b>Zegeningen &amp; Gunsten</b> in het voorwerpenarchief.',
 };
 
+// ── Briefstijlen ────────────────────────────────────────────────────────────
+// Een brief, een kasboek en een dreigbrief zagen er hetzelfde uit, terwijl het
+// type al bekend was. De stijl volgt dus uit `docType`; `data.briefstijl`
+// overschrijft dat als de DM iets anders wil (twee schrijvers, twee handen).
+const BRIEF_STIJLEN = [
+  { value: '',          label: 'Automatisch (volgt het type)' },
+  { value: 'hand',      label: 'Handschrift — vlot' },
+  { value: 'hand2',     label: 'Handschrift — sierlijk' },
+  { value: 'machine',   label: 'Typemachine' },
+  { value: 'drukwerk',  label: 'Gezet drukwerk' },
+  { value: 'knipsel',   label: 'Uitgeknipte krantenletters' },
+  { value: 'oud',       label: 'Oud handschrift (standaard)' },
+];
+
+const DOC_STIJL_BIJ_TYPE = {
+  'Brief': 'hand', 'Notities': 'hand', 'Visitekaartje': 'drukwerk',
+  'Gedicht': 'hand2', 'Gebed': 'oud',
+  'Dreigbrief': 'knipsel',
+  'Kasboek': 'machine', 'Register': 'machine', 'Contract': 'machine',
+  'Krant': 'drukwerk', 'Folder': 'drukwerk', 'Catalogus': 'drukwerk',
+  'Menu': 'drukwerk', 'Pamflet': 'drukwerk',
+  'Manuscript': 'oud',
+};
+
+const _docStijl = (e) => e?.data?.briefstijl || DOC_STIJL_BIJ_TYPE[e?.data?.docType] || 'oud';
+
 const SCHEMA = {
   documenten: {
     fields: [
@@ -386,6 +412,7 @@ const SCHEMA = {
       // De inhoud zelf. Krijgt in het detailvenster de perkamentweergave, dus
       // hoort in de editor bij elkaar te staan met zijn opmaakregels.
       { key: 'tekst', label: 'De tekst zelf', type: 'perkament' },
+      { key: 'briefstijl', label: 'Hoe ziet de tekst eruit?', type: 'select', options: BRIEF_STIJLEN },
       { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
@@ -2604,6 +2631,127 @@ function renderParchment(text) {
   return html;
 }
 
+// Een dreigbrief is geplakt uit krantenletters. Dat is geen lettertype maar een
+// opmaak per teken: elk letterteken krijgt zijn eigen vlakje, met een vaste
+// (niet-willekeurige) variatie op basis van de tekencode — anders springt de
+// brief bij elke hertekening alle kanten op.
+function _knipselLetters(html) {
+  let t = 0;
+  return html.replace(/>([^<]+)</g, (heel, tekst) => {
+    // Per woord een omhulsel dat niet mag afbreken: losse letters zijn
+    // inline-blokken, en zonder dit knipt de regelval midden in een woord.
+    const uit = tekst.split(/(\s+)/).map(deel => {
+      if (!deel.trim()) return deel;
+      const letters = [...deel].map((ch) => {
+        const n = (ch.charCodeAt(0) + (t++) * 7) % 6;
+        return `<span class="knip knip--${n}">${ch === '&' ? '&amp;' : ch}</span>`;
+      }).join('');
+      return `<span class="knip-woord">${letters}</span>`;
+    }).join('');
+    return `>${uit}<`;
+  });
+}
+
+// ── De brief op ware grootte ────────────────────────────────────────────────
+// Zelfde gebaar als bij een afbeelding: klikken maakt het groot. Beslaat de
+// tekst meer dan één vel, dan blader je erdoorheen. Het bladeren is gratis
+// meegekomen met CSS-kolommen: je geeft het vel een vaste hoogte en breedte,
+// `column-fill: auto` vult vel voor vel, en het aantal bladen is niets anders
+// dan de totale breedte gedeeld door één vel. Geen tekst opmeten, geen
+// handmatige afbreekpunten.
+let _perkPagina = 0;
+
+window._perkamentGroot = (id) => {
+  const e = (entities.documenten || []).find(x => x.id === id);
+  if (!e?.data?.tekst) return;
+  const stijl = _docStijl(e);
+  let binnen = renderParchment(e.data.tekst);
+  if (stijl === 'knipsel') binnen = _knipselLetters(binnen);
+
+  document.getElementById('perkament-overlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'perkament-overlay';
+  ov.className = 'perk-overlay';
+  ov.innerHTML = `
+    <div class="perk-achtergrond" onclick="window._perkamentSluit()"></div>
+    <button class="perk-sluit" onclick="window._perkamentSluit()" title="Sluiten (Esc)">${icon('x')}</button>
+    <div class="perk-podium">
+      <button class="perk-pijl perk-pijl--links" onclick="window._perkamentBlad(-1)" title="Vorig blad">\u2039</button>
+      <div class="perk-blad" data-stijl="${esc(stijl)}">
+        <div class="perk-viewport"><div class="perk-kolommen" id="perk-kolommen">${binnen}</div></div>
+      </div>
+      <button class="perk-pijl perk-pijl--rechts" onclick="window._perkamentBlad(1)" title="Volgend blad">\u203a</button>
+    </div>
+    <div class="perk-voet"><span class="perk-titel">${esc(e.name)}</span><span class="perk-teller" id="perk-teller"></span></div>`;
+  document.body.appendChild(ov);
+  _perkPagina = 0;
+  // Bewust géén requestAnimationFrame: die staat stil in een tabblad dat niet
+  // op de voorgrond is, en dan blijft de brief onzichtbaar. Eén gedwongen
+  // layout is genoeg om de opacity-overgang te laten lopen.
+  void ov.offsetWidth;
+  ov.classList.add('perk-overlay--in');
+  _perkamentMeten();
+  document.addEventListener('keydown', _perkamentToets);
+};
+
+function _perkamentMeten() {
+  const kol = document.getElementById('perk-kolommen');
+  const vp  = kol?.parentElement;
+  if (!kol || !vp) return;
+  // `column-width` neemt geen percentage; met `100%` viel de kolomindeling stil
+  // en werd de tekst gewoon afgeknipt. Dus in pixels, na het meten van het vel.
+  kol.style.columnWidth = `${vp.clientWidth}px`;
+  const stap = vp.clientWidth + parseFloat(getComputedStyle(kol).columnGap || 0);
+  const totaal = Math.max(1, Math.round(kol.scrollWidth / stap));
+  kol.dataset.bladen = String(totaal);
+  kol.dataset.stap   = String(stap);
+  _perkamentToon();
+}
+
+function _perkamentToon(metOmslag = false) {
+  const kol = document.getElementById('perk-kolommen');
+  if (!kol) return;
+  const totaal = +kol.dataset.bladen || 1;
+  const stap   = +kol.dataset.stap   || 0;
+  _perkPagina = Math.min(Math.max(_perkPagina, 0), totaal - 1);
+  kol.style.transform = `translateX(${-_perkPagina * stap}px)`;
+  const teller = document.getElementById('perk-teller');
+  if (teller) teller.textContent = totaal > 1 ? `Blad ${_perkPagina + 1} van ${totaal}` : '';
+  document.querySelectorAll('.perk-pijl').forEach(b => b.classList.toggle('perk-pijl--uit', totaal < 2));
+  document.querySelector('.perk-pijl--links')?.toggleAttribute('disabled', _perkPagina === 0);
+  document.querySelector('.perk-pijl--rechts')?.toggleAttribute('disabled', _perkPagina >= totaal - 1);
+  // Het omslaan: het vel kantelt even weg en komt terug. Alleen bij een échte
+  // bladwissel — bij het openen stond de brief anders meteen scheef. Puur decor,
+  // dus uit zodra iemand bewegende beelden liever niet heeft.
+  const blad = metOmslag ? document.querySelector('.perk-blad') : null;
+  if (blad) { blad.classList.remove('perk-blad--om'); void blad.offsetWidth; blad.classList.add('perk-blad--om'); }
+}
+
+window._perkamentBlad = (richting) => {
+  const kol = document.getElementById('perk-kolommen');
+  const totaal = +(kol?.dataset.bladen) || 1;
+  const nieuw = Math.min(Math.max(_perkPagina + richting, 0), totaal - 1);
+  const wissel = nieuw !== _perkPagina;
+  _perkPagina = nieuw;
+  _perkamentToon(wissel);
+};
+
+window._perkamentSluit = () => {
+  const ov = document.getElementById('perkament-overlay');
+  document.removeEventListener('keydown', _perkamentToets);
+  if (!ov) return;
+  ov.classList.remove('perk-overlay--in');
+  setTimeout(() => ov.remove(), 220);
+};
+
+function _perkamentToets(ev) {
+  if (ev.key === 'Escape')     { ev.stopPropagation(); window._perkamentSluit(); }
+  if (ev.key === 'ArrowLeft')  window._perkamentBlad(-1);
+  if (ev.key === 'ArrowRight') window._perkamentBlad(1);
+}
+
+window.addEventListener('resize', () => { if (document.getElementById('perk-kolommen')) _perkamentMeten(); });
+
 // Een document kan een pdf-scan of een geluidsfragment als bestand hebben. Een
 // afbeelding staat al bovenaan als hero, dus die slaan we hier over. De HEAD
 // zegt of er überhaupt iets is: bij een vaag document geeft de server niets.
@@ -3963,7 +4111,22 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     if (e._visibility === 'vague') {
       infoHtml += `<div class="doc-slot">${icon('lock')}<span>Nog niet volledig onthuld</span></div>`;
     } else {
-      if (e.data?.tekst) infoHtml += `<div class="parchment-block mb-4">${renderParchment(e.data.tekst)}</div>`;
+      if (e.data?.tekst) {
+        // In het venster staat een inkijk met een vervloeiende onderrand; de
+        // hele brief lees je vergroot, want een lange tekst duwde de rest van
+        // het kaartje van het scherm.
+        const _stijl = _docStijl(e);
+        let _binnen = renderParchment(e.data.tekst);
+        if (_stijl === 'knipsel') _binnen = _knipselLetters(_binnen);
+        infoHtml += `
+          <div class="parchment-wrap mb-4">
+            <div class="parchment-block parchment-block--inkijk" data-stijl="${esc(_stijl)}"
+              onclick="window._perkamentGroot('${esc(e.id)}')">${_binnen}</div>
+            <button type="button" class="parchment-groot-knop" onclick="window._perkamentGroot('${esc(e.id)}')">
+              ${icon('maximize-2')} Lees de hele tekst
+            </button>
+          </div>`;
+      }
       infoHtml += `<div class="mb-4" id="doc-bestand-${esc(e.id)}"></div>`;
     }
   }

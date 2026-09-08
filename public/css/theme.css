@@ -23923,3 +23923,138 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   color: inherit; opacity: .55; font-size: 13px; line-height: 1;
 }
 .log-chip-x:hover { opacity: 1; }
+
+/* ── Briefstijlen ────────────────────────────────────────────────────────────
+   Eén perkamentstijl maakte van een brief, een kasboek en een dreigbrief
+   hetzelfde ding, terwijl het type al bekend was. De stijl volgt uit
+   `data.docType` (of `data.briefstijl`) en staat als `data-stijl` op het blok,
+   zodat dezelfde regels gelden in het detailvenster én in de vergrote weergave. */
+.parchment-block[data-stijl="hand"],
+.perk-blad[data-stijl="hand"] .perk-kolommen {
+  font-family: 'Kalam', 'IM Fell English', cursive;
+  font-size: 16px; line-height: 1.85; color: #2b2418;
+}
+.parchment-block[data-stijl="hand2"],
+.perk-blad[data-stijl="hand2"] .perk-kolommen {
+  font-family: 'Dancing Script', 'Kalam', cursive;
+  font-size: 20px; line-height: 1.7; color: #2a2440;
+}
+.parchment-block[data-stijl="machine"],
+.perk-blad[data-stijl="machine"] .perk-kolommen {
+  font-family: 'Special Elite', 'JetBrains Mono', monospace;
+  font-size: 14px; line-height: 1.75; color: #23201c; letter-spacing: .01em;
+}
+.parchment-block[data-stijl="drukwerk"],
+.perk-blad[data-stijl="drukwerk"] .perk-kolommen {
+  font-family: 'Crimson Text', serif;
+  font-size: 15px; line-height: 1.6; color: #1c1a16; text-align: justify; hyphens: auto;
+}
+/* Een krantenkop is gezet, geen handschrift. */
+.parchment-block[data-stijl="drukwerk"] .parch-title,
+.perk-blad[data-stijl="drukwerk"] .parch-title {
+  font-family: 'UnifrakturMaguntia', 'Cinzel', serif;
+  font-size: 2em; letter-spacing: .02em; margin-bottom: 14px;
+}
+.parchment-block[data-stijl="machine"] .parch-title,
+.perk-blad[data-stijl="machine"] .parch-title {
+  font-family: 'Special Elite', monospace; letter-spacing: .12em; text-transform: uppercase; font-size: 1.1em;
+}
+
+/* Uitgeknipte krantenletters: geen lettertype maar opmaak per teken. De
+   variatie hangt aan de tekencode, dus de brief ziet er bij elke hertekening
+   hetzelfde uit — anders danst hij rond zodra het venster hertekent. */
+.parchment-block[data-stijl="knipsel"],
+.perk-blad[data-stijl="knipsel"] .perk-kolommen { line-height: 2.6; word-spacing: .35em; }
+.knip-woord { white-space: nowrap; }
+.knip {
+  display: inline-block; padding: 1px 2px; margin: 0 .5px;
+  background: #ded7c6; color: #14110d; box-shadow: 0 1px 1px rgba(0,0,0,.25);
+}
+.knip--0 { font-family: 'Cinzel', serif;        transform: rotate(-3deg);  background: #e6e0d0; }
+.knip--1 { font-family: 'Special Elite', serif; transform: rotate(2.5deg); background: #d5cec0; }
+.knip--2 { font-family: 'UnifrakturMaguntia', serif; transform: rotate(-1.5deg); background: #efe9da; font-size: 1.1em; }
+.knip--3 { font-family: 'Crimson Text', serif;  transform: rotate(4deg);   background: #cfc8b8; font-weight: 700; }
+.knip--4 { font-family: 'JetBrains Mono', monospace; transform: rotate(-4deg); background: #e9e3d4; font-size: .9em; }
+.knip--5 { font-family: 'Cinzel', serif;        transform: rotate(1deg);   background: #1d1a15; color: #ece6d6; }
+
+/* ── Inkijk in het detailvenster ─────────────────────────────────────────── */
+.parchment-wrap { position: relative; }
+.parchment-block--inkijk { max-height: 300px; overflow: hidden; cursor: zoom-in; }
+.parchment-block--inkijk::after {
+  content: ''; position: absolute; left: 1px; right: 1px; bottom: 34px; height: 90px;
+  background: linear-gradient(to bottom, rgba(242,230,200,0) 0%, #f2e6c8 88%);
+  pointer-events: none; border-radius: 0 0 4px 4px;
+}
+.parchment-groot-knop {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; margin-top: -1px; padding: 7px 0;
+  background: #ece0c0; border: 1px solid #d4c9a8; border-top: none; border-radius: 0 0 4px 4px;
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600; letter-spacing: .04em;
+  color: #6a5230; cursor: pointer; transition: background .15s ease, color .15s ease;
+}
+.parchment-groot-knop:hover { background: #e2d3ac; color: #3a2410; }
+.parchment-groot-knop svg { width: 13px; height: 13px; }
+
+/* ── De brief op ware grootte ────────────────────────────────────────────── */
+.perk-overlay {
+  position: fixed; inset: 0; z-index: 120;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .22s ease;
+}
+.perk-overlay--in { opacity: 1; }
+.perk-achtergrond { position: absolute; inset: 0; background: rgba(14,9,4,.86); backdrop-filter: blur(3px); }
+.perk-sluit {
+  position: absolute; top: 16px; right: 18px; z-index: 2;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(0,0,0,.5); border: 1px solid rgba(196,168,122,.4);
+  color: #e8dcc0; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.perk-sluit:hover { background: rgba(0,0,0,.75); }
+.perk-podium { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; max-width: 100%; }
+.perk-blad {
+  width: min(680px, 86vw); height: min(78vh, 900px);
+  background: #f2e6c8; color: #2a2015;
+  border: 1px solid #cbbf9c; border-radius: 3px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.6), inset 0 0 60px rgba(160,130,80,.14);
+  padding: 42px 46px; overflow: hidden;
+  transform-origin: left center;
+}
+.perk-blad--om { animation: perk-om .42s ease; }
+@keyframes perk-om {
+  0%   { transform: perspective(1400px) rotateY(0deg); }
+  45%  { transform: perspective(1400px) rotateY(-7deg); box-shadow: 0 24px 60px rgba(0,0,0,.6), -18px 0 30px -18px rgba(0,0,0,.55) inset; }
+  100% { transform: perspective(1400px) rotateY(0deg); }
+}
+.perk-viewport { width: 100%; height: 100%; overflow: hidden; }
+.perk-kolommen {
+  height: 100%;
+  /* column-width wordt in pixels gezet zodra het vel gemeten is (JS). */
+  column-gap: 92px; column-fill: auto;
+  font-family: 'IM Fell English', serif; font-size: 17px; line-height: 1.8;
+  transition: transform .42s cubic-bezier(.4,.05,.2,1);
+}
+.perk-blad .parch-title { font-size: 1.4em; }
+.perk-pijl {
+  width: 42px; height: 42px; flex-shrink: 0;
+  background: rgba(0,0,0,.45); border: 1px solid rgba(196,168,122,.35); border-radius: 50%;
+  color: #e8dcc0; font-size: 22px; line-height: 1; cursor: pointer;
+  transition: background .15s ease, opacity .15s ease;
+}
+.perk-pijl:hover:not([disabled]) { background: rgba(0,0,0,.75); }
+.perk-pijl[disabled] { opacity: .25; cursor: default; }
+.perk-pijl--uit { visibility: hidden; }
+.perk-voet {
+  position: relative; z-index: 1; margin-top: 16px;
+  display: flex; align-items: baseline; gap: 14px; color: #d8c9a4;
+}
+.perk-titel  { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: .06em; }
+.perk-teller { font-family: 'Crimson Text', serif; font-size: 12px; font-style: italic; opacity: .75; }
+
+@media (max-width: 640px) {
+  .perk-blad { padding: 26px 22px; height: 74vh; }
+  .perk-pijl { width: 34px; height: 34px; font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .perk-blad--om { animation: none; }
+  .perk-kolommen { transition: none; }
+}
