@@ -6,6 +6,23 @@ groot het is.
 
 ## Nu aan de beurt
 
+- [ ] **Spelerstabbladen natesten** — de reviewrondes van sep 2026 (voorwerpen,
+      documenten, spreuken) zijn vooral vanuit de DM getest. Wat aan de
+      spelerskant nog langs moet, met een échte spelerssessie:
+      · **Spreukenboek** — een spreuk toevoegen uit de bibliotheek bewaart een
+        *kopie* van de tekst in `playerSpells`. In een campagne zonder
+        bronteksten is dat de SRD-tekst; daar hoort dus ook de bronvermelding te
+        staan, en die toont het spreukenboek nu níét. Ook: een spreuk zonder
+        tekst — krijgt de speler daar de verwijzing te zien?
+      · **Eigen spreuken van de DM** in de spreukenkiezer (nu gerepareerd; nog
+        aan tafel controleren).
+      · **Boedel** — lexicon-uitleg op het voorwerpblad, damage/healing-pillen.
+      · **Documenten als kaartje** — bladwijzer, vaag document (waas + geen
+        beschrijving), perkamentweergave en bladeren op een telefoon.
+      · **Progressie** — het verwijsblok bij een feature zonder tekst.
+      · **Bladwijzers** — de ster klopt meteen na inloggen, ook zonder eerst je
+        eigen tabblad te openen.
+
 - [ ] **Testronde afmaken** — blok 1 rest: portretfilmpje bij inzoomen, en of het
       groepswachtwoord in de DM-ingang echt alleen díé party toont. Daarna blok 2
       t/m 10. → `docs/testronde.md`

@@ -4299,15 +4299,36 @@ function _sbAddSpHint() {
   return `<div class="sb-addspells-hint">${icon('sparkles')} Als <strong>${esc(klasseEN)}</strong> op level ${lvl}: ${cantripDeel}, en ${spreukDeel}. Je boek telt nu ${curC} cantrip${curC === 1 ? '' : 's'} en ${curS} spreuk${curS === 1 ? '' : 'en'}.</div>`;
 }
 
+// De spreukenlijst voor de speler: de bron plus wat deze campagne zelf verzon.
+// Zonder die laatste kon de DM wel een eigen spreuk schrijven (hij staat in de
+// bibliotheek) maar kon de speler hem niet aan zijn boek toevoegen — dezelfde
+// "twee lijsten die allebei alle spreuken heten"-fout als eerder bij
+// extra-spells.json.
+async function _spreukenVoorSpeler() {
+  if (_playerSpellList) return _playerSpellList;
+  const lees = (u) => fetch(u).then(r => r.json()).then(d => d.results || []).catch(() => []);
+  const hp = state.meta?.spellSource === 'wands-wizards';
+  const [bron, extra, eigen] = await Promise.all([
+    lees(hp ? '/api/bron/hp-spells' : '/api/bron/spells-2024'),
+    hp ? [] : lees('/api/bron/extra-spells'),
+    lees('/api/spreuken/eigen'),
+  ]);
+  const gezien = new Set(bron.map(s => s.index));
+  _playerSpellList = [
+    // Alleen echte spreuken uit de bron: regels zonder school zijn magische
+    // voorwerpen die in die lijst terecht zijn gekomen. Voor een eigen spreuk
+    // geldt die zeef niet — daar is alleen de naam verplicht.
+    ...bron.filter(s => s.school?.name || (typeof s.school === 'string' && s.school)),
+    ...extra.filter(s => !gezien.has(s.index)),
+    ...eigen,
+  ];
+  return _playerSpellList;
+}
+
 const _addSp = { klasseOnly: true, levels: new Set(), types: new Set(), ritueel: false, concentratie: false, query: '', selected: new Set() };
 
 window._sbOpenAddSpells = async function() {
-  // Spreukenlijst laden indien nodig
-  if (!_playerSpellList) {
-    // Alleen echte spreuken: niet-spell-entries (magische voorwerpen) hebben een lege school.
-    try { _playerSpellList = ((await fetch('/api/bron/spells-2024').then(r => r.json())).results || []).filter(s => s.school?.name); }
-    catch { _playerSpellList = []; }
-  }
+  await _spreukenVoorSpeler();
   _addSp.selected = new Set();
   _addSp.query = '';
   document.getElementById('sb-addspells')?.remove();
@@ -4617,10 +4638,7 @@ function _sbRenderTocList(q) {
   } else {
     // Zoekterm: zoek in volledige spellenlijst
     if (!_playerSpellList) {
-      fetch('/api/bron/spells-2024').then(r => r.json()).then(d => {
-        _playerSpellList = d.results || [];
-        _sbRenderTocList(q);
-      }).catch(() => {});
+      _spreukenVoorSpeler().then(() => _sbRenderTocList(q));
       list.innerHTML = '<div class="sb-toc-empty">Laden…</div>';
       return;
     }
@@ -4681,13 +4699,7 @@ async function _sbFetchDesc(spell) {
   if (_sbDescCache.has(idx)) return;
   _sbDescCache.set(idx, ''); // mark as fetching
   try {
-    // Laad de lokale lijst als die er nog niet is
-    if (!_playerSpellList) {
-      try {
-        const d = await fetch('/api/bron/spells-2024').then(r => r.json());
-        _playerSpellList = d.results || [];
-      } catch { _playerSpellList = []; }
-    }
+    await _spreukenVoorSpeler();      // bron + aanvullingen + eigen spreuken
     // Try local 2024 list first (fast, no network needed)
     const local = (_playerSpellList || []).find(s => s.index === idx);
     if (local?.desc?.length) {
@@ -7693,11 +7705,7 @@ async function renderMijnKarakter(opts = {}) {
       try {
         let s;
         if (_isHpCampaign()) {
-          if (!_playerSpellList) {
-            const r = await fetch('/api/bron/hp-spells');
-            const d = await r.json();
-            _playerSpellList = d.results || [];
-          }
+          await _spreukenVoorSpeler();
           s = _playerSpellList.find(sp => sp.index === index) || {};
         } else {
           const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
@@ -8808,32 +8816,13 @@ async function renderMijnKarakter(opts = {}) {
   // ── Spreukzoeker ──
   const _isHpCampaign = () => state.meta?.spellSource === 'wands-wizards';
 
-  let _extraSpellList = null;
-
   window._playerSpellSearch = async function(q) {
     const resultsEl = document.getElementById('player-spell-results');
     if (!resultsEl) return;
     const query = q.toLowerCase().trim();
     if (!query) { resultsEl.innerHTML = ''; return; }
-    // Laad spreuklijst (2024 PHB lokaal, of HP-campagne)
-    if (!_playerSpellList) {
-      resultsEl.innerHTML = '<div class="player-spell-loading">Laden…</div>';
-      try {
-        const url = _isHpCampaign() ? '/api/bron/hp-spells' : '/api/bron/spells-2024';
-        const r = await fetch(url);
-        const d = await r.json();
-        _playerSpellList = d.results || [];
-      } catch { _playerSpellList = []; }
-    }
-    // Laad aanvullende spreuklijst (custom/homebrew)
-    if (!_extraSpellList) {
-      try {
-        const r = await fetch('/api/bron/extra-spells');
-        const d = await r.json();
-        _extraSpellList = d.results || [];
-      } catch { _extraSpellList = []; }
-    }
-    const combined = [..._playerSpellList, ..._extraSpellList];
+    if (!_playerSpellList) resultsEl.innerHTML = '<div class="player-spell-loading">Laden…</div>';
+    const combined = await _spreukenVoorSpeler();
     const filtered = combined.filter(s => s.name.toLowerCase().includes(query)).slice(0, 8);
     const pinned = pinnedSpells.map(s => s.index);
     resultsEl.innerHTML = filtered.length
@@ -8852,11 +8841,7 @@ async function renderMijnKarakter(opts = {}) {
   window._playerSpellPin = async function(index, name) {
     if (pinnedSpells.find(s => s.index === index)) return;
     try {
-      // Zoek in alle beschikbare lijsten (extra/homebrew eerst, dan 2024-lijst)
-      const fullSpell =
-        (_extraSpellList   || []).find(s => s.index === index) ||
-        (_playerSpellList  || []).find(s => s.index === index) ||
-        { level: 0, school: {} };
+      const fullSpell = (_playerSpellList || []).find(s => s.index === index) || { level: 0, school: {} };
 
       const desc          = (fullSpell.desc || []).join('\n\n');
       const concentration = !!fullSpell.concentration ||
@@ -9113,13 +9098,8 @@ async function renderMijnKarakter(opts = {}) {
     try {
       let s;
       if (_isHpCampaign()) {
-        s = (_playerSpellList || []).find(sp => sp.index === index);
-        if (!s) {
-          const r = await fetch('/api/bron/hp-spells');
-          const d = await r.json();
-          _playerSpellList = d.results || [];
-          s = _playerSpellList.find(sp => sp.index === index) || {};
-        }
+        await _spreukenVoorSpeler();
+        s = _playerSpellList.find(sp => sp.index === index) || {};
       } else {
         const r = await fetch(`https://www.dnd5eapi.co/api/spells/${index}`);
         s = await r.json();
