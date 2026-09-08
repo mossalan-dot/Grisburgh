@@ -599,6 +599,17 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
   **naam** uit die lijst (niet naar een id), zodat het ook leest als het kaartje
   erachter nog niet bestaat.
 
+> **Een verbinding kan geheim zijn.** Een regel in `betrokkenen` mag
+> `geheim: { id, i }` dragen: een verwijzing naar regel `i` van de geheimen op
+> kaartje `id`. Zolang die regel voor een party dicht staat bestaat de verbinding
+> voor die party niet — niet op het kaartje, niet op de afgeleide andere kant, en
+> er komt ook géén "onbekend"-regel voor in de plaats (anders verklap je dát er
+> iemand is, en dat is nou juist de clou). Server-kant: `_geheimOpen()` in
+> `routes/api.js`, toegepast in `filterEntityForPlayer` en op `_hoortBij`.
+> Hangt er iemand onder een verborgen persoon, dan schuift die een plek omhoog
+> in de chef-keten. Zelfde patroon als `geheimenAntagonist`: een geheimregel die
+> een gevolg draagt. Zie `docs/voorstel-geheime-verbindingen.md`.
+
 > **Eén kaartje, meerdere rollen.** Dezelfde persoon kan op dezelfde plek
 > eigenaar én verkoper zijn: `PUT .../hoortbij` houdt een **lijst** rollen per
 > doelkaartje bij, niet één. Alleen een exacte herhaling (zelfde kaartje,

@@ -125,6 +125,21 @@ groot het is.
       toon, en per sectie evenveel stappen. Dat is meteen de basis voor de
       wizard voor een nieuwe DM.
 
+## Campagneboek en snapshot
+
+- [ ] **Heeft de snapshot nog bestaansrecht?** `lib/snapshot.js` maakt een
+      HTML-export van de hele campagne (`/api/export` + `/api/export/campagneboek`).
+      Dat komt uit de tijd dat de app niet altijd draaide. Nu hij live is, is de
+      vraag wat het nog toevoegt — anders dan de printbare character sheets, die
+      wél een eigen reden hebben (papier aan tafel, en de definitieve stand na
+      een sessie). Eerst beslissen of we hem houden; pas daarna erin sleutelen.
+- [ ] **Lekt het campagneboek geheimen?** De export filtert op `data.geheim`
+      (het oude enkelvoudige veld) terwijl de kaartjes allang `data.geheimen`
+      als lijst gebruiken, per regel te onthullen. Vermoeden: alle regels gaan
+      mee, ook de niet-onthulde. Nakijken zodra we aan de snapshot toekomen —
+      en meenemen dat geheime verbindingen daar dezelfde regel moeten volgen
+      (`docs/voorstel-geheime-verbindingen.md`).
+
 ## Boedel
 
 - [ ] **Healen doet nog niets.** Klikken op de genezingsknop in de boedel gooit

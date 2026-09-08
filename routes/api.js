@@ -367,16 +367,33 @@ function filterEntityForPlayer(entity, dmState, groupId) {
     // `chef` verwijst naar een náám, dus krijgt een verborgen regel een vaste
     // schuilnaam en schrijven we die ook in de chef-velden terug — anders valt
     // de tak eronder van de boom af.
+    // Eerst de geheime verbindingen eruit: die bestaan voor deze party nog niet.
+    // Anders dan een onbekende betrokkene krijgen ze géén schuilnaam — dát er
+    // iemand is, is hier juist de clou. Wie onder zo'n weggevallen regel hing
+    // schuift een plek omhoog, zodat de boom niet aan een dode naam hangt.
+    const weg = new Set();
+    const open = rijen.filter(r => {
+      if (_geheimOpen(r, dmState, groupId)) return true;
+      weg.add(r.naam);
+      return false;
+    });
+    const opnieuwChef = (naam) => {
+      let c = naam, stap = 0;
+      while (c && weg.has(c) && stap++ < 10) c = rijen.find(r => r.naam === c)?.chef || '';
+      return c;
+    };
     let n = 0;
     const schuil = new Map();
-    for (const r of rijen) {
+    for (const r of open) {
       if (r.id && !zichtbaar(r.id)) schuil.set(r.naam, `\u2014onbekend-${++n}`);
     }
-    e.data.betrokkenen = JSON.stringify(rijen.map(r => {
-      const chef = schuil.get(r.chef) || r.chef;
+    e.data.betrokkenen = JSON.stringify(open.map(r => {
+      const chefNa = opnieuwChef(r.chef);
+      const chef = schuil.get(chefNa) || chefNa;
       const eigen = schuil.get(r.naam);
       if (eigen) return { naam: eigen, rol: r.rol || '', id: '', onbekend: true, ...(chef ? { chef } : {}) };
-      return { ...r, ...(chef !== r.chef ? { chef } : {}) };
+      const { geheim, ...rest } = r;            // de verwijzing zelf is DM-administratie
+      return { ...rest, ...(chef !== r.chef ? { chef } : {}) };
     }));
   }
   if (e.data.wijkId     && !zichtbaar(e.data.wijkId))     delete e.data.wijkId;
@@ -414,7 +431,9 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   e._deceased     = !!(g.deceased?.[entity.id]);
   // Waar dit kaartje bij hoort — maar alleen de kaartjes die deze party mag
   // zien, anders verklapt de omgekeerde verwijzing dat er iets verborgens is.
-  e._hoortBij     = _betrokkenBij(entity.id).filter(x => (g.visibility[x.id] || 'hidden') === 'visible');
+  e._hoortBij     = _betrokkenBij(entity.id)
+    .filter(x => (g.visibility[x.id] || 'hidden') === 'visible')
+    .filter(x => _geheimOpen(x, dmState, groupId));
   return e;
 }
 
@@ -592,6 +611,26 @@ function _naamIndex() {
 // kant leiden we af in plaats van hem óók op te slaan: twee lijsten die
 // hetzelfde moeten zeggen lopen vroeg of laat uit elkaar. De index cachet op de
 // mtime van entities.json, net als _naamIndex.
+// Een verbinding kan aan een geheimregel hangen: `{ geheim: { id, i } }` wijst
+// naar regel i van de geheimen op kaartje id. Zolang die regel voor een party
+// niet onthuld is, bestaat de verbinding voor die party niet — niet als naam,
+// niet als rol, en ook niet aan de afgeleide andere kant.
+function _geheimOpen(rij, dmState, groupId) {
+  const g = rij?.geheim;
+  if (!g || !g.id) return true;                 // geen geheim eraan: gewoon zichtbaar
+  const groep = getGroup(dmState, groupId);
+  const entities = storage.readJSON('entities.json');
+  let bron = null;
+  for (const t of ENTITY_TYPES) {
+    bron = (entities[t] || []).find(e => e.id === g.id);
+    if (bron) break;
+  }
+  if (!bron) return true;                       // kaartje weg: dan maar zichtbaar
+  const aantal = _tekstLijst(bron.data, 'geheimen', 'geheim').length;
+  const stand  = _onthuld(groep.secretReveals?.[g.id], aantal);
+  return !!stand[Number(g.i) || 0];
+}
+
 function _betrokkenenLijst(data) {
   const rauw = data?.betrokkenen;
   if (Array.isArray(rauw)) return rauw;
@@ -614,7 +653,8 @@ function _betrokkenIndex() {
       for (const r of _betrokkenenLijst(e.data)) {
         if (!r?.id) continue;                    // losse naam: nergens aan te hangen
         if (!index.has(r.id)) index.set(r.id, []);
-        index.get(r.id).push({ id: e.id, name: e.name, type, rol: r.rol || '' });
+        index.get(r.id).push({ id: e.id, name: e.name, type, rol: r.rol || '',
+          ...(r.geheim ? { geheim: r.geheim } : {}) });
       }
     }
   }
@@ -976,9 +1016,17 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
   for (const et of ['locaties', 'organisaties']) {
     for (const doel of (entities[et] || [])) {
       const rijen = _betrokkenenLijst(doel.data);
-      if (rijen.some(r => r.id === id)) {
-        doel.data = { ...(doel.data || {}),
-          betrokkenen: JSON.stringify(rijen.map(r => r.id === id ? { ...r, id: '' } : r)) };
+      // Ook een verbinding die aan een geheim op dít kaartje hing: laat je die
+      // verwijzing staan, dan hangt hij aan niets en blijft hij voor altijd
+      // verborgen. De verbinding zelf blijft, hij is alleen niet langer geheim.
+      const raakt = rijen.some(r => r.id === id || r.geheim?.id === id);
+      if (raakt) {
+        doel.data = { ...(doel.data || {}), betrokkenen: JSON.stringify(rijen.map(r => {
+          const uit = { ...r };
+          if (uit.id === id) uit.id = '';
+          if (uit.geheim?.id === id) delete uit.geheim;
+          return uit;
+        })) };
         if (doel.data.eigenaarId === id) doel.data.eigenaarId = '';
       }
       if (doel.data?.wijkId === id) doel.data = { ...doel.data, wijkId: '' };

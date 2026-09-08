@@ -1804,6 +1804,48 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   color: #8a7a5a;
 }
 
+.betrekking-slot { color: #9a7008; margin-right: 4px; }
+.betrekking-slot svg { width: 11px; height: 11px; vertical-align: -1px; }
+
+/* ── Geheime verbinding ──
+   Een regel in "Wie hoort hier bij?" kan aan een geheim hangen; het slotje zegt
+   of dat zo is, het paneel eronder wélk geheim. */
+.betr-slot--aan { color: #8a6a10; border-color: rgba(196,147,10,.55); background: rgba(196,147,10,.14); }
+.betr-geheim-paneel {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border: 1px solid rgba(196,168,122,.5);
+  border-radius: 7px;
+  background: rgba(236,220,186,.45);
+}
+.betr-geheim-kop {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Cinzel', serif; font-size: 9.5px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; color: #9a7008;
+  margin-bottom: 2px;
+}
+.betr-geheim-kop svg { width: 13px; height: 13px; }
+.betr-geheim-optie {
+  display: flex; flex-direction: column; gap: 1px;
+  text-align: left; width: 100%;
+  padding: 5px 9px; border-radius: 5px; cursor: pointer;
+  border: 1px solid rgba(196,168,122,.45);
+  background: rgba(255,255,255,.5);
+  font-family: 'Crimson Text', serif; font-size: 13px; color: #3a2410;
+}
+.betr-geheim-optie:hover { background: rgba(196,168,122,.25); }
+.betr-geheim-optie--aan { border-color: rgba(196,147,10,.7); background: rgba(196,147,10,.16); }
+.betr-geheim-optie--geen { font-style: italic; color: #7a6040; }
+.bgo-kaart {
+  font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase; color: #9a7008;
+}
+.bgo-tekst { line-height: 1.35; }
+
 /* De velden die bij één werking horen, als eigen blok met een kopje. Los onder
    elkaar was niet te zien welk veld bij welk vinkje hoorde — en met twee
    werkingen tegelijk (een Staff of Fire slaat én cast) liepen ze door elkaar. */

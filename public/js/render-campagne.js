@@ -1172,6 +1172,12 @@ function _betrokkenRijHtml(r, i, metChef = false) {
     </span>
     <input class="betr-rol" value="${esc(r.rol || '')}" list="betrokken-rol-dl" placeholder="Rol">
     <input type="hidden" class="betr-id" id="betr-id-${i}" value="${esc(r.id || '')}">
+    <input type="hidden" class="betr-geheim" value="${esc(r.geheim ? JSON.stringify(r.geheim) : '')}">
+    <!-- Een verbinding kan geheim zijn: dan hangt hij aan een geheimregel en
+         ziet de party hem pas als die onthuld is. -->
+    <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost betr-slot${r.geheim ? ' betr-slot--aan' : ''}"
+      title="${r.geheim ? 'Geheim — klik om te wijzigen' : 'Deze verbinding geheim maken'}"
+      onclick="window._betrokkenGeheim(this)">${icon(r.geheim ? 'lock' : 'lock-open')}</button>
     <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
       title="Regel verwijderen" onclick="window._betrokkenWeg(this)">${icon('trash')}</button>
     ${metChef ? `<div class="betr-chef-rij">
@@ -1238,6 +1244,74 @@ window._betrokkenErbij = () => {
   window._orgVoorbeeldTeken?.();
 };
 
+// ── Een verbinding aan een geheim hangen ────────────────────────────────────
+// Het paneel klapt ín de rij open in plaats van in een venster: de editor staat
+// al in een modal, en een modal in een modal is niet te sluiten zonder de
+// bewerking kwijt te raken.
+//
+// De geheimen van het kaartje dat je bewerkt komen live uit het formulier — zo
+// kun je er eerst een tikken en hem meteen koppelen, zonder tussendoor op te
+// slaan. Die van de andere kant komen van de server.
+window._betrokkenGeheim = async (btn) => {
+  const rij = btn.closest('.betrokken-rij');
+  if (!rij) return;
+  const bestaand = rij.querySelector('.betr-geheim-paneel');
+  if (bestaand) { bestaand.remove(); return; }
+
+  const huidigRaw = rij.querySelector('.betr-geheim')?.value || '';
+  let huidig = null; try { huidig = JSON.parse(huidigRaw || 'null'); } catch { /* ok */ }
+
+  const ctx = window._edCtx || {};
+  const opties = [];
+  // Eigen kaartje: uit het formulier, dus ook wat je net getikt hebt.
+  document.querySelectorAll('#lijst-geheimen .lijst-regel-tekst').forEach((ta, i) => {
+    const t = (ta.value || '').trim();
+    if (t) opties.push({ id: ctx.id || '', i, kaart: ctx.naam || 'dit kaartje', tekst: t });
+  });
+  // De andere kant.
+  const doelId = rij.querySelector('.betr-id')?.value || '';
+  const doelNaam = rij.querySelector('.betr-naam')?.value.trim() || 'het andere kaartje';
+  if (doelId) {
+    for (const t of ['personages', 'organisaties', 'locaties']) {
+      const ent = await api.getEntity(t, doelId).catch(() => null);
+      if (!ent) continue;
+      _tekstLijstUit(ent.data, 'geheimen', 'geheim').forEach((tekst, i) => {
+        if (tekst.trim()) opties.push({ id: doelId, i, kaart: ent.name || doelNaam, tekst: tekst.trim() });
+      });
+      break;
+    }
+  }
+
+  const kies = (o) => `<button type="button" class="betr-geheim-optie${huidig && huidig.id === o.id && Number(huidig.i) === o.i ? ' betr-geheim-optie--aan' : ''}"
+      onclick="window._betrokkenGeheimKies(this,'${escJS(o.id)}',${o.i})">
+      <span class="bgo-kaart">${esc(o.kaart)}</span>
+      <span class="bgo-tekst">${esc(o.tekst.length > 90 ? o.tekst.slice(0, 90) + '\u2026' : o.tekst)}</span>
+    </button>`;
+
+  rij.insertAdjacentHTML('beforeend', `
+    <div class="betr-geheim-paneel">
+      <div class="betr-geheim-kop">${icon('lock')} Deze verbinding is pas zichtbaar als dit geheim onthuld is</div>
+      ${opties.length ? opties.map(kies).join('') : `<p class="veld-uitleg">
+        Nog geen geheim om aan te hangen. Schrijf er een bij <b>Geheimen</b> op dit kaartje
+        ${doelId ? `of op <b>${esc(doelNaam)}</b>` : ''}, dan kun je hem hier kiezen.</p>`}
+      <button type="button" class="betr-geheim-optie betr-geheim-optie--geen${huidig ? '' : ' betr-geheim-optie--aan'}"
+        onclick="window._betrokkenGeheimKies(this,'',-1)">Geen — de verbinding is gewoon zichtbaar</button>
+    </div>`);
+};
+
+window._betrokkenGeheimKies = (el, id, i) => {
+  const rij = el.closest('.betrokken-rij');
+  const veld = rij?.querySelector('.betr-geheim');
+  if (veld) veld.value = id ? JSON.stringify({ id, i }) : '';
+  const slot = rij?.querySelector('.betr-slot');
+  if (slot) {
+    slot.classList.toggle('betr-slot--aan', !!id);
+    slot.innerHTML = window.icon(id ? 'lock' : 'lock-open');
+    slot.title = id ? 'Geheim — klik om te wijzigen' : 'Deze verbinding geheim maken';
+  }
+  rij?.querySelector('.betr-geheim-paneel')?.remove();
+};
+
 window._betrokkenWeg = (btn) => {
   const rij = btn.closest('.betrokken-rij');
   const host = rij?.parentElement;
@@ -1267,11 +1341,14 @@ function _chefLijstVullen(rijen) {
 function _betrokkenenLees() {
   return [...document.querySelectorAll('#betrokkenen-lijst .betrokken-rij')].map(rij => {
     const chef = rij.querySelector('.betr-chef')?.value.trim() || '';
+    let geheim = null;
+    try { geheim = JSON.parse(rij.querySelector('.betr-geheim')?.value || 'null'); } catch { /* ok */ }
     return {
       naam: rij.querySelector('.betr-naam')?.value.trim() || '',
       rol:  rij.querySelector('.betr-rol')?.value.trim()  || '',
       id:   rij.querySelector('.betr-id')?.value          || '',
       ...(chef ? { chef } : {}),
+      ...(geheim && geheim.id ? { geheim } : {}),
     };
   }).filter(r => r.naam);
 }
@@ -3735,7 +3812,8 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     <div class="detail-betrekking">
       <div class="detail-label">${icon('link')} ${esc(kop)}</div>
       <div class="detail-betrekking-rijen">
-        ${rijen.map(r => `<span class="detail-betrekking-rol">${esc(r.rol || '\u2014')}</span>
+        ${rijen.map(r => `<span class="detail-betrekking-rol">${r.geheim
+            ? `<span class="betrekking-slot" title="Geheim — deze party ziet deze verbinding nog niet">${icon('lock')}</span>` : ''}${esc(r.rol || '\u2014')}</span>
           <span class="detail-betrekking-waarde">${r.knop}</span>`).join('')}
       </div>
     </div>`;
@@ -3746,6 +3824,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (_betrokkenen.length) {
     infoHtml += _rolRegels('Wie hoort hier bij?', _betrokkenen.map(r => ({
       rol: r.rol,
+      geheim: isDM() ? r.geheim : null,
       knop: r.id
         ? `<button type="button" class="link-chip link-chip--sm" onclick="window._openKaartjeOpId('${esc(r.id)}')">${esc(r.naam)}</button>`
         // De server heeft de naam weggehaald van iemand die deze party nog niet
@@ -3776,6 +3855,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (_hoortBij.length) {
     infoHtml += _rolRegels('Waar hoort dit bij?', _hoortBij.map(r => ({
       rol: r.rol,
+      geheim: isDM() ? r.geheim : null,
       knop: r.factieId
         ? `<button type="button" class="link-chip link-chip--sm"
              onclick="window.app.closeModal();window.app.switchSection('facties');window._factieOpen('${esc(r.factieId)}')">${icon('swords')}${esc(r.name)}</button>`
@@ -6490,6 +6570,10 @@ window._openEditor = async (tab, editId) => {
   openModal(`${editId ? (_tm.bewerk || 'Bewerken') : (_tm.nieuw || 'Nieuw')}`
     + `<span class="modal-titel-naam" id="ed-titel-wrap"${_kopNaam ? '' : ' hidden'}>`
     + `${icon('chevron-right')}<span id="ed-titel-naam">${esc(_kopNaam)}</span></span>`, '', body);
+
+  // Welk kaartje er bewerkt wordt — nodig om een verbinding aan een geheim van
+  // dít kaartje te kunnen hangen.
+  window._edCtx = { tab, id: editId || '', naam: e?.name || '' };
 
   // De chips van gekoppelde spreuken tekenen: pas nu staat het veld in de DOM.
   window._itemSpellChipsTeken?.();
