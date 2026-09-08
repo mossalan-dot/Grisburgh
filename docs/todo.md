@@ -233,3 +233,18 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       zijn goedgekeurd op 7 sep 2026; dit derde stuk is bewust uitgesteld tot
       die twee staan — het is de vaagste categorie en raakt als enige de
       berekeningen op het blad.
+
+- [ ] **Standaard-statblokken voor NPC's (presets).** Nu de tiers er zijn, is een
+      preset-lijst een kleine stap: *Commoner*, *Guard*, *Bandit*, *Pirate*,
+      *Acolyte*, *Veteran* — kiezen bij het aanmaken van een personage en het
+      statblok is gevuld. Twee dingen die er al klaar voor liggen. Ten eerste
+      staan de **acht overgebleven losse bibliotheekmonsters** precies in die
+      categorie (Maenfortmatroos, Maenfortofficier, Wervelingpiraat,
+      Wervelingbootsman, Kaptein Haringh, Duergar, Gereanimeerde stadswacht) —
+      dat zijn troepen, geen personen, en samen de eerste presetlijst. Ten tweede
+      mag een preset gewoon als **tier** naast een kaartje staan: de herbergier
+      die zich als *Guard* verweert is dezelfde man, niet een tweede kaartje.
+      Werk: een bron met SRD-statblokken (die mogen we voluit meeleveren, zie de
+      SRD-sectie in CLAUDE.md), een kiezer in de personage-editor die `stats`
+      vult, en een opschoonronde over de losse monsters.
+      *(Idee van de gebruiker, 8 sep 2026.)*

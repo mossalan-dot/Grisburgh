@@ -525,7 +525,64 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   e._hoortBij     = _betrokkenBij(entity.id)
     .filter(x => (g.visibility[x.id] || 'hidden') === 'visible')
     .filter(x => _geheimOpen(x, dmState, groupId));
+  // De speler ziet de gedaante die zíjn party kent — en alleen die: de andere
+  // tiers verklappen wat er nog komt.
+  if (Array.isArray(e.statblockTiers) && e.statblockTiers.length) {
+    const t = _tierStand(g, entity);
+    e.stats = _tierToegepast(entity, t).statblock;
+    delete e.statblockTiers;
+  }
   return e;
+}
+
+// ── Meerdere statblokken op één kaartje (tiers) ──────────────────────────────
+// Dezelfde man is niet elke akte dezelfde tegenstander. Ursûn Rogarr staat de
+// ene keer in hide armor met een moersleutel en de andere keer in Arcane Armor
+// met een Klauwhamer +1 — dat zijn twee statblokken van één personage, geen
+// twee personages. `statblockTiers` bewaart die extra versies; `stats` op het
+// kaartje blijft de basis en ligt onder elke tier, dus een tier zegt alleen
+// wát er anders is.
+//
+// **Welke versie geldt, is een vraag per party.** De ene groep heeft hem al in
+// zijn tweede gedaante ontmoet, de andere nog niet. De stand staat daarom in
+// `groups[gid].tierStand[entityId]` en niet op het kaartje. Bij een dier gaat
+// het anders: dat schaalt op het level van het baasje (zie `_activeTier`).
+//
+// Een tier heeft een eigen id, net als een geheimregel — verslepen of er een
+// tussenuit halen mag de stand van een party niet verzetten. Kaartjes die nog
+// geen id hebben krijgen `t0`, `t1`…, precies de positie waar hun stand al
+// naar wees.
+function _tierRegels(entity) {
+  const lijst = Array.isArray(entity?.statblockTiers) ? entity.statblockTiers : [];
+  return lijst.map((t, i) => ({ ...t, id: t?.id || `t${i}` }));
+}
+
+// De tier die deze party kent, of null voor de basis. Een stand die naar een
+// verwijderde tier wijst telt als de basis: liever het kaartje zoals het er nu
+// staat dan een statblok dat niet meer bestaat.
+function _tierStand(g, entity) {
+  const wens = (g?.tierStand || {})[entity?.id];
+  if (!wens || wens === 'basis') return null;
+  return _tierRegels(entity).find(t => t.id === wens) || null;
+}
+
+// Basis + tier over elkaar heen. Geeft altijd een statblok terug, ook zonder
+// tiers, zodat aanroepers geen tweede pad nodig hebben.
+function _tierToegepast(entity, tier) {
+  const basis = { ...(entity?.stats || {}) };
+  if (!tier) return { statblock: basis, label: null, tierId: null };
+  const statblock = { ...basis, ...(tier.statblock || {}) };
+  if (statblock.creatureType && !statblock.type) statblock.type = statblock.creatureType;
+  return { statblock, label: tier.label || null, tierId: tier.id };
+}
+
+// Het kaartje zoals déze party het kent: stats vervangen door de staande tier.
+function _metTier(entity, g) {
+  const tiers = _tierRegels(entity);
+  if (!tiers.length) return entity;
+  const tier = _tierStand(g, entity);
+  const { statblock, label } = _tierToegepast(entity, tier);
+  return { ...entity, stats: statblock, _tierLabel: label };
 }
 
 // ── Kaartjes met een statblok in de monsterbibliotheek ───────────────────────
@@ -533,8 +590,13 @@ function filterEntityForPlayer(entity, dmState, groupId) {
 // monsterbibliotheek. Maar hij hoort *niet* in het bestiarium: dat is wat de
 // spelers verzamelen aan beesten, en een herbergier is geen beest. Vandaar
 // `inBestiarium: false` en een verwijzing naar het kaartje.
-function _syncMonsterVanKaartje(entity) {
-  const st = entity?.stats || {};
+// De bibliotheek spiegelt het kaartje **zoals de actieve party het kent**: een
+// gevecht gaat altijd over één groep, en de combatant bevriest zijn cijfers bij
+// het opstellen. Zonder dat stond Ursûn in zijn eerste gedaante in het gevecht
+// terwijl de party allang zijn tweede had gezien.
+function _syncMonsterVanKaartje(entity, dmState) {
+  const g  = getGroup(dmState || readDmState());
+  const st = _tierToegepast(entity, _tierStand(g, entity)).statblock;
   // Spelerspersonages horen er niet in: je zet je eigen party niet als monster
   // in een encounter, die staat er al in als deelnemer.
   const heeftStatblok = String(entity?.subtype || '').toLowerCase() !== 'speler'
@@ -556,10 +618,12 @@ function _syncMonsterVanKaartje(entity) {
 
   const getal = (v) => parseInt(String(v ?? '').match(/-?\d+/)?.[0] ?? '', 10) || 0;
   const statblock = { ...st };
+  const tierLabel = _tierStand(g, entity)?.label || '';
   const regel = {
     id:            idx >= 0 ? data.monsters[idx].id : `m_ent_${entity.id}`,
     entityId:      entity.id,          // hieraan herkennen we een afgeleide regel
     name:          entity.name,
+    tierLabel,                         // welke gedaante hier in de bibliotheek staat
     maxHp:         getal(st.hp),
     initiative:    getal(st.initiative) || 10,
     imageId:       entity.data?.imageId || null,
@@ -903,6 +967,7 @@ router.get('/entities/:type', attachRole, (req, res) => {
       _gockOnderzocht: !!g.gockOnderzocht?.[e.id],
       _beeld:        storage.bestandBestaat(e.data?.imageId || e.id),
       _hoortBij:     _betrokkenBij(e.id),
+      _tierActief:   _tierStand(g, e)?.id || null,
     }));
   }
   res.json(list);
@@ -937,6 +1002,7 @@ router.get('/entities/:type/:id', attachRole, (req, res) => {
       return r.map(x => o.has(x.id)); })(),
     _deceased:     !!(g.deceased?.[entity.id]),
     _dmNote:       dmState.dmNotes[entity.id]  || '',
+    _tierActief:   _tierStand(g, entity)?.id || null,
   });
 });
 
@@ -1039,6 +1105,15 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
         updated.data[sleutel] = oudeData[sleutel];
       }
     }
+  }
+  // Een tier krijgt bij het opslaan een blijvend id. De editor stuurt ze terug
+  // zoals ze op het scherm stonden; zonder id zou de stand van een party
+  // meeschuiven met de volgorde.
+  if (Array.isArray(updated.statblockTiers)) {
+    updated.statblockTiers = updated.statblockTiers.map((t, i) => ({
+      ...t,
+      id: t?.id || `t_${Date.now().toString(36)}_${i}${Math.random().toString(36).slice(2, 5)}`,
+    }));
   }
   // Zijn de geheimen van dit kaartje veranderd, dan verschuift alles wat naar
   // een regelnummer wijst mee: de onthulstand per party en geheime verbindingen.
@@ -1471,6 +1546,38 @@ router.put('/entities/:type/:id/deceased', requireDM, (req, res) => {
     req.app.get('io').to(req.session?.campaignId||'main').emit('entity:deceased', { id, type, name: entity.name });
   }
   res.json({ deceased: g.deceased[id] });
+});
+
+// ── Welke gedaante kent deze party? ──
+// De stand hangt aan de groep, niet aan het kaartje: twee party's kunnen
+// dezelfde man in een ander statblok kennen. `tierId: 'basis'` (of leeg) zet
+// hem terug op het statblok van het kaartje zelf.
+router.put('/entities/:type/:id/tier', requireDM, (req, res) => {
+  const { type, id } = req.params;
+  if (!ENTITY_TYPES.includes(type)) return res.status(400).json({ error: 'Ongeldig type' });
+  const entities = storage.readJSON('entities.json');
+  const entity   = (entities[type] || []).find(e => e.id === id);
+  if (!entity) return res.status(404).json({ error: 'Niet gevonden' });
+
+  const dmState = readDmState();
+  const gid     = req.body.gid || dmState.activeGroup;
+  const g       = getGroup(dmState, gid);
+  const wens    = String(req.body.tierId || 'basis');
+  if (wens !== 'basis' && !_tierRegels(entity).some(t => t.id === wens))
+    return res.status(400).json({ error: 'Onbekende tier' });
+
+  if (!g.tierStand) g.tierStand = {};
+  if (wens === 'basis') delete g.tierStand[id];
+  else g.tierStand[id] = wens;
+  storage.writeJSON('dm-state.json', dmState);
+
+  // De bibliotheekregel spiegelt de actieve party; verzet die stand, dan hoort
+  // het gevecht het ook te weten.
+  if (type === 'personages') _syncMonsterVanKaartje(entity, dmState);
+
+  const tier = _tierStand(g, entity);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('entity:updated', { id, tier: tier?.id || null });
+  res.json({ tierId: tier?.id || null, label: tier?.label || null });
 });
 
 // ── DM Notes ──

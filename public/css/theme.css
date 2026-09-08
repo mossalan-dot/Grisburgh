@@ -24213,3 +24213,29 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 
 /* Typefilter in het bestiarium — zelfde chips als op de kaartjes-tabbladen. */
 .best-typefilter { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 24px 12px; }
+
+/* ── Gedaante-keuze op een NPC-kaartje ──
+   Boven het statblok: welke van de statblokken deze party kent. De strook is
+   een keuze, geen etiket — vandaar knopjes en niet de vlakke pillen die elders
+   een eigenschap tonen. Alleen de DM ziet hem; een speler krijgt zijn versie
+   al door de server toegepast. */
+.tier-strook {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  margin: 0 0 10px; padding: 7px 9px;
+  border: 1px dashed rgba(196,168,122,0.55); border-radius: 6px;
+  background: rgba(255,255,255,0.2);
+}
+.tier-strook-label {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Cinzel', serif; font-size: 0.68rem; text-transform: uppercase;
+  letter-spacing: 0.06em; color: #7a6040; margin-right: 2px;
+}
+.tier-strook-label .icon { width: 13px; height: 13px; }
+.tier-chip {
+  font-family: 'Crimson Text', serif; font-size: 0.85rem; color: #5a3a18;
+  padding: 3px 10px; border: 1px solid rgba(196,168,122,0.6); border-radius: 999px;
+  background: rgba(255,255,255,0.45); cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.tier-chip:hover { background: rgba(196,168,122,0.28); }
+.tier-chip--aan { background: #7a4a1a; border-color: #7a4a1a; color: #f2e8d2; font-weight: 600; }
+.tier-chip--aan:hover { background: #7a4a1a; }

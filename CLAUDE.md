@@ -449,6 +449,33 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=3
 > afbeelding — bij een kaart zonder afbeelding bleef de lijst van de vórige kaart
 > staan. Dat luistert nu ook naar `error`.
 
+> **Meerdere statblokken op één kaartje (tiers).** Dezelfde man is niet elke akte
+> dezelfde tegenstander. `statblockTiers` op een personage-kaartje bewaart de
+> extra versies; `stats` blijft de **basis** en ligt onder elke tier, dus een tier
+> zegt alleen wát er anders is. Twee smaken, één datamodel:
+> een **dier** schaalt op het level van het baasje (`minLevel`, `_activeTier()`),
+> een **NPC** heeft gedaantes waarvan de DM **per party** kiest welke geldt —
+> `groups[gid].tierStand[entityId]`, endpoint `PUT /entities/:type/:id/tier`
+> (`{gid, tierId}`; `'basis'` zet hem terug). Server-helpers: `_tierRegels()`
+> (geeft elke tier een id, terugval `t0`, `t1`… zoals bij de geheimregels),
+> `_tierStand(g, entity)` en `_tierToegepast(entity, tier)`.
+> **Wat de speler ziet:** `filterEntityForPlayer` vervangt `stats` door de tier
+> van zijn eigen party en **haalt `statblockTiers` eraf** — de andere gedaantes
+> verklappen wat er nog komt. **In een gevecht:** `_syncMonsterVanKaartje()`
+> spiegelt het kaartje zoals de **actieve** party het kent (een gevecht gaat over
+> één groep, en de combatant bevriest zijn cijfers bij het opstellen), en de
+> tier-route hersynchroniseert. De keuzestrook staat boven het statblok in het
+> detailvenster (`.tier-strook`, DM-only); de editor toont dezelfde tier-velden
+> als bij een dier, maar zonder "vanaf level" (`_tierVoorDier` in
+> `render-campagne.js`).
+>
+> **De 19 losse NPC-statblokken zijn samengevoegd** met hun kaartje
+> (`scripts/npc-statblok-naar-kaartje.js`, 8 sep 2026): 11 hadden een kaartje en
+> kregen `entityId` + de ontbrekende velden uit de bibliotheek; het monster-id
+> bleef staan want 11 encounters wijzen ernaar. Bewust **geen** automatische
+> tiers — een tier maak je zelf. De 38 gemelde verschillen (kaartje wint) staan
+> in de kopie `.voor-npcstatblok.<datum>.json` naast de datafiles.
+
 > **Filmpje bij een personage.** Het bestand heet `<entityId>_video`; daar kijkt
 > `routes/auth.js` rechtstreeks naar (het veld `data.portraitVideoId` bleek ooit
 > onbetrouwbaar). Het speelt op de **landingspagina** tijdens het inzoomen op een

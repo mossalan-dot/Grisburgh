@@ -68,6 +68,9 @@ export const api = {
   toggleFlavour: (type, id, index = 0) => request(`/entities/${type}/${id}/flavour`, { method: 'PUT', body: JSON.stringify({ index }) }),
   // `gid` is het id van de geheimregel; index blijft meegaan als terugval.
   toggleSecret: (type, id, index = 0, gid = '') => request(`/entities/${type}/${id}/secret`, { method: 'PUT', body: JSON.stringify({ index, gid }) }),
+  // Welke gedaante (tier) van dit kaartje kent deze party? 'basis' = het
+  // statblok op het kaartje zelf.
+  setTier: (type, id, tierId, gid = '') => request(`/entities/${type}/${id}/tier`, { method: 'PUT', body: JSON.stringify({ tierId, gid }) }),
   toggleDeceased: (type, id) => request(`/entities/${type}/${id}/deceased`, { method: 'PUT' }),
 
   // Groepen

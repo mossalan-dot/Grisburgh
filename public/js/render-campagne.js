@@ -1,4 +1,4 @@
-import { api } from './api.js?v=279';
+import { api } from './api.js?v=280';
 import { renderStatblock } from './render-statblock.js?v=5';
 
 const icon = (...a) => window.icon(...a);
@@ -4429,7 +4429,22 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // Een NPC of god is een wezen, geen personage met een sheet: dan het statblock
   // in dezelfde vorm als in het bestiarium.
   if (showSheet && !_isDier && !_isSpeler && Object.values(e.stats || {}).some(v => String(v ?? '').trim())) {
-    const st = e.stats || {};
+    // Heeft dit kaartje meerdere gedaantes, dan kiest de DM hier welke deze
+    // party kent. Een speler krijgt zijn tiers al door de server toegepast en
+    // ziet dus alleen een statblok — vandaar dat de keuzestrook DM-only is.
+    const tiers = isDM() && Array.isArray(e.statblockTiers) ? e.statblockTiers : [];
+    const actief = tiers.find(t => t.id === e._tierActief) || null;
+    const st = { ...(e.stats || {}), ...(actief?.statblock || {}) };
+    if (tiers.length) {
+      const chip = (id, label, aan) =>
+        `<button type="button" class="tier-chip${aan ? ' tier-chip--aan' : ''}"
+           onclick="window._tierKies('${escJS(e.id)}','${escJS(id)}')">${esc(label)}</button>`;
+      sheetHtml += `<div class="tier-strook">
+        <span class="tier-strook-label">${icon('users')} Deze party kent hem als</span>
+        ${chip('basis', 'Basis', !actief)}
+        ${tiers.map((t, i) => chip(t.id || `t${i}`, t.label || `Statblok ${i + 2}`, actief && actief.id === t.id)).join('')}
+      </div>`;
+    }
     sheetHtml += renderStatblock(
       { name: e.name, statblock: st, maxHp: parseInt(String(st.hp ?? '').match(/\d+/)?.[0] ?? '') || null, description: '' },
       { niveau: 'volledig' });
@@ -5402,6 +5417,21 @@ window._toggleSecretCard = async (type, id, index = 0) => {
   _secretToast(res.secretReveal);
 };
 
+// Welke gedaante deze party kent. Het detailvenster wordt daarna opnieuw
+// opgehaald: het statblok eronder verandert mee, en de server heeft de
+// monsterbibliotheek al bijgewerkt zodat een gevecht dezelfde man opstelt.
+window._tierKies = async (id, tierId) => {
+  try {
+    const res = await api.setTier('personages', id, tierId);
+    window.app?._tsToast?.(res.label
+      ? `${icon('users')} Deze party kent hem nu als <strong>${esc(res.label)}</strong>`
+      : `${icon('users')} Deze party kent hem weer zoals het kaartje hem beschrijft`);
+    window._openDetail('personages', id, false, 'sheet');   // blijf op het statblok staan
+  } catch (err) {
+    alert('Kon de gedaante niet omzetten: ' + err.message);
+  }
+};
+
 window._toggleDeceased = async (tab, id) => {
   try {
     await api.toggleDeceased(tab, id);
@@ -5841,9 +5871,19 @@ let _scrollSpellList = null;  // volledige spell-lijst voor de Scroll-spell-pick
 let _naamLijsten = null;      // volken, klassen en alignments voor de keuzevelden
 let _spreukLijst = null;      // spreukenbibliotheek voor de koppeling op een kaartje
 
-// ── Huisdier-tier-editor (subtype 'dier') ──
+// ── Tier-editor: meerdere statblokken op één kaartje ──
 // _petTiers wordt in openEditor gevuld uit e.statblockTiers en bij submit weer uitgelezen.
+// Twee smaken, dezelfde data. Bij een **dier** schaalt de tier mee met het level
+// van het baasje (`minLevel`); bij een **NPC** is het dezelfde man in een andere
+// gedaante en kiest de DM per party welke geldt — daar is een level dus zinloos
+// en telt alleen het label. `_tierVoorDier` bepaalt welke van de twee het scherm
+// laat zien.
 let _petTiers = [];
+let _tierVoorDier = true;
+const _TIER_UITLEG = {
+  dier: 'Het statblok hierboven is het dier vanaf level&nbsp;1. Een tier neemt het over zodra het baasje dat level haalt, en zegt alleen wat er verandert.',
+  npc:  'Dezelfde persoon, een andere ontmoeting. Het statblok hierboven is de basis; elk extra statblok zegt alleen wat er anders is. Welke versie geldt kies je per party, op het kaartje zelf.',
+};
 
 // Een tier ís een statblok, dus hij gebruikt dezelfde velden en dezelfde
 // indeling als het blad zelf — eerder had de tier-editor een eigen, kleinere
@@ -5856,22 +5896,22 @@ function _petTierRowHtml(t, i) {
 
   // Alleen open wat de DM zelf openzette (of net toevoegde). Eerder stond het
   // eerste tier altijd open; dichtklappen hield dan geen stand.
-  return `<details class="pet-tier-row" data-idx="${i}"${t._open ? ' open' : ''}>
+  return `<details class="pet-tier-row" data-idx="${i}" data-tid="${esc(t.id || '')}"${t._open ? ' open' : ''}>
     <summary class="pet-tier-row-head">
-      <span class="pet-tier-badge">${t.label ? esc(t.label) : `Tier ${i + 1}`}${t.minLevel ? ` · vanaf level ${esc(t.minLevel)}` : ''}</span>
+      <span class="pet-tier-badge">${t.label ? esc(t.label) : `Tier ${i + 1}`}${(_tierVoorDier && t.minLevel) ? ` · vanaf level ${esc(t.minLevel)}` : ''}</span>
       <button type="button" class="pet-tier-del" onclick="event.preventDefault();window._petTierRemove(${i})" title="Verwijder tier">${icon('trash')}</button>
     </summary>
 
     <p class="pet-tier-hint">Vul alleen in wat er verandert; wat je leeg laat blijft zoals in het statblok hierboven.</p>
-    <div class="grid grid-cols-2 gap-2">
-      <div>
+    <div class="${_tierVoorDier ? 'grid grid-cols-2 gap-2' : ''}">
+      ${_tierVoorDier ? `<div>
         <label class="text-[10px] font-cinzel text-ink-dim uppercase">Vanaf level</label>
         <input class="pt-minlevel ${veldCls}" type="number" min="2" value="${(t.minLevel === 0 || t.minLevel) ? esc(t.minLevel) : ''}"
           onchange="window._petTierLevelCheck(this)">
-      </div>
+      </div>` : ''}
       <div>
         <label class="text-[10px] font-cinzel text-ink-dim uppercase">Label</label>
-        <input class="pt-label ${veldCls}" value="${esc(t.label ?? '')}" placeholder="Guard Dog">
+        <input class="pt-label ${veldCls}" value="${esc(t.label ?? '')}" placeholder="${_tierVoorDier ? 'Guard Dog' : 'In Arcane Armor'}">
       </div>
     </div>
 
@@ -5898,6 +5938,7 @@ function _petTiersCollect() {
     // ("32 (5d8+10)"), net als op het blad, en de server leest daar het getal
     // uit. Zo is er één plek waar de HP van een tier staat.
     out.push({
+      id: row.dataset.tid || undefined,   // blijft staan, ook als de volgorde wisselt
       minLevel: n('pt-minlevel'), label: g('pt-label').trim(),
       statblock: sb, _open: row.hasAttribute('open'),
     });
@@ -5930,12 +5971,15 @@ window._renderPetTiers = () => {
   // statblok hierboven meedoet — dat was de verwarring: een blok invullen en
   // daaronder tiers zien die het leken te vervangen.
   const basis = `<div class="pet-tier-basis">
-      <span class="pet-tier-badge">Basis · vanaf level 1</span>
+      <span class="pet-tier-badge">Basis${_tierVoorDier ? ' · vanaf level 1' : ''}</span>
       <span class="pet-tier-basis-uitleg">het statblok hierboven</span>
     </div>`;
+  const leeg = _tierVoorDier
+    ? 'Geen tiers: het dier houdt het statblok hierboven, hoe hoog het baasje ook komt.'
+    : 'Geen extra statblokken: iedereen ontmoet hem zoals hij hierboven staat.';
   list.innerHTML = basis + (_petTiers.length
     ? _petTiers.map((t, i) => _petTierRowHtml(t, i)).join('')
-    : `<p class="pet-tier-empty">Geen tiers: het dier houdt het statblok hierboven, hoe hoog het baasje ook komt.</p>`);
+    : `<p class="pet-tier-empty">${leeg}</p>`);
 };
 window._petTierAdd = () => {
   _petTiersCollect();
@@ -5943,7 +5987,7 @@ window._petTierAdd = () => {
   // level zou de vraag "welke geldt nu?" onbeantwoordbaar maken.
   const hoogste = Math.max(1, ..._petTiers.map(t => parseInt(t.minLevel)).filter(v => !isNaN(v)));
   _petTiers.forEach(t => { t._open = false; });
-  _petTiers.push({ minLevel: hoogste + 1, label: '', statblock: {}, _open: true });
+  _petTiers.push({ minLevel: _tierVoorDier ? hoogste + 1 : undefined, label: '', statblock: {}, _open: true });
   window._renderPetTiers();
 };
 window._petTierRemove = (idx) => { _petTiersCollect(); _petTiers.splice(idx, 1); window._renderPetTiers(); };
@@ -6032,6 +6076,7 @@ window._openEditor = async (tab, editId) => {
   _pendingVideoFile = null;
   _pendingVideoBron = null;
   _petTiers = Array.isArray(e?.statblockTiers) ? JSON.parse(JSON.stringify(e.statblockTiers)) : [];
+  _tierVoorDier = String(e?.subtype || '').toLowerCase() === 'dier';
   _editorOldAudioId = e?.data?.audioId || null;
   for (const lt of LINK_TYPES) {
     editorTags[lt] = e?.links?.[lt]?.slice() || [];
@@ -6961,9 +7006,10 @@ window._openEditor = async (tab, editId) => {
       </div>
     `;
 
-    // ── Huisdier: adoptie + tiers ──
-    // Alleen zichtbaar bij type 'dier'. Zelfde koppen en velden als de rest van
-    // het blad, want een tier ís een statblok dat met het baasje meeschaalt.
+    // ── Adoptie (dier) + tiers (dier én NPC) ──
+    // Zelfde koppen en velden als de rest van het blad, want een tier ís een
+    // statblok. Bij een dier schaalt hij mee met het baasje, bij een NPC is het
+    // dezelfde man in een andere gedaante — één editor, twee teksten.
     const isDier   = _isDier;
     const _adopt   = e?.data?.adopteerbaar === true || e?.data?.adopteerbaar === 'true';
     const _prijsCl = (() => {
@@ -6975,12 +7021,14 @@ window._openEditor = async (tab, editId) => {
     const _mn = window._muntNamen();
     // Alleen de tiers horen op dit blad: dat zijn statblokken. De adoptie zelf
     // (te koop, prijs, wat voor dier) staat bij Informatie.
+    // Een speler heeft geen tweede statblok — die groeit op zijn eigen blad.
+    const toonTiers = String(e?.subtype || 'NPC').toLowerCase() !== 'speler';
     body += `
-      <div id="pet-tier-section"${isDier ? '' : ' style="display:none"'}>
-        <div class="cs-sectiekop">Meegroeien met het baasje</div>
-        <p class="text-[10px] text-ink-dim mb-2">Het statblok hierboven is het dier vanaf level&nbsp;1. Een tier neemt het over zodra het baasje dat level haalt, en zegt alleen wat er verandert.</p>
+      <div id="pet-tier-section"${toonTiers ? '' : ' style="display:none"'}>
+        <div class="cs-sectiekop" id="pet-tier-kop">${isDier ? 'Meegroeien met het baasje' : 'Meerdere statblokken'}</div>
+        <p class="text-[10px] text-ink-dim mb-2" id="pet-tier-uitleg">${isDier ? _TIER_UITLEG.dier : _TIER_UITLEG.npc}</p>
         <div id="pet-tiers-list"></div>
-        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1" onclick="window._petTierAdd()">${icon('plus')} Tier toevoegen</button>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1" onclick="window._petTierAdd()">${icon('plus')} ${isDier ? 'Tier' : 'Statblok'} toevoegen</button>
       </div>
     `;
   }
@@ -7236,9 +7284,20 @@ window._openEditor = async (tab, editId) => {
       if (groepSec) groepSec.style.display = val === 'speler' ? '' : 'none';
       const rollenRij = document.querySelector('.rollen-rij')?.closest('div')?.parentElement;
       if (rollenRij) rollenRij.style.display = val === 'god' ? 'none' : '';
-      for (const id of ['pet-tier-section', 'pet-adopt-section']) {
-        const sec = document.getElementById(id);
-        if (sec) sec.style.display = val === 'dier' ? '' : 'none';
+      const adoptSec = document.getElementById('pet-adopt-section');
+      if (adoptSec) adoptSec.style.display = val === 'dier' ? '' : 'none';
+      // Tiers gelden voor elk wezen met een statblok, alleen niet voor een speler.
+      const tierSec = document.getElementById('pet-tier-section');
+      if (tierSec) {
+        tierSec.style.display = val === 'speler' ? 'none' : '';
+        _tierVoorDier = val === 'dier';
+        const kop = document.getElementById('pet-tier-kop');
+        if (kop) kop.textContent = _tierVoorDier ? 'Meegroeien met het baasje' : 'Meerdere statblokken';
+        const uit = document.getElementById('pet-tier-uitleg');
+        if (uit) uit.innerHTML = _tierVoorDier ? _TIER_UITLEG.dier : _TIER_UITLEG.npc;
+        const knop = tierSec.querySelector('button');
+        if (knop) knop.innerHTML = `${icon('plus')} ${_tierVoorDier ? 'Tier' : 'Statblok'} toevoegen`;
+        window._renderPetTiers();   // level-veld verschijnt of verdwijnt
       }
       // Verkoper/antagonist zeggen niets over een dier; de kant blijft wel.
       const rolVak = document.querySelector('.rollen-rollen');
@@ -7654,7 +7713,11 @@ window._openEditor = async (tab, editId) => {
     };
     // Huisdier-tiers meesturen (alleen relevant bij subtype 'dier')
     if (tab === 'personages' && payload.subtype === 'dier') {
-      payload.statblockTiers = _petTiersCollect().filter(t => t.label || t.minLevel != null || Object.keys(t.statblock || {}).some(k => k !== 'alignment'));
+      // Een lege rij telt niet mee. Bij een NPC is er geen level, dus daar is
+      // het label of een ingevuld veld het enige bewijs dat de DM iets bedoelde.
+      payload.statblockTiers = _petTiersCollect()
+        .filter(t => t.label || t.minLevel != null || Object.keys(t.statblock || {}).some(k => k !== 'alignment'))
+        .map(t => { const { _open, ...rest } = t; return rest; });
     }
     // Verhuist een speler naar een andere party? Dan blijft daar meer achter dan
     // het ene veld doet vermoeden: voorwerpkaartjes horen bij de party, niet bij
