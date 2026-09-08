@@ -69,8 +69,11 @@ de plek waar je de verbinding ziet staan.
   verbinding ook niet op het personagekaartje opduikt.
 - `_betrokkenIndex()` blijft ongemoeid: die is campagnebreed en gecachet op
   mtime; het per-party weglaten hoort in de filter, niet in de index.
-- De **campagneboek-export** (`lib/snapshot.js`) en de printbare sheets moeten
-  dezelfde regel volgen, anders lekt het via papier.
+- De **campagneboek-export** (`lib/snapshot.js`) moet dezelfde regel volgen,
+  anders staan de geheime verbindingen wel in het boek. Die export kent
+  `betrokkenen` vandaag helemaal niet. (De printbare character sheets raken dit
+  níét: daar staat geen enkele verbinding op — nagekeken, nul verwijzingen naar
+  `betrokkenen` of `hoortBij`.)
 
 ## Risico's om nu al te noemen
 
