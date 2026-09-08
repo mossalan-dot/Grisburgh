@@ -2802,8 +2802,12 @@ window._openDoc = async (id) => {
   `;
 
   // ── Beschrijving ──
-  if (d.desc) {
-    body += `<div class="detail-desc mb-4 ${isBlurred ? 'blur-sm select-none' : ''}">${mdToHtml(d.desc)}</div>`;
+  // Bij een vaag document stuurt de server de beschrijving niet meer mee; hier
+  // staat dan dezelfde regel als op het kaartje, geen wazig gemaakte tekst.
+  if (isBlurred) {
+    body += `<p class="detail-desc mb-4 text-ink-faint italic font-crimson">Nog niet volledig onthuld\u2026</p>`;
+  } else if (d.desc) {
+    body += `<div class="detail-desc mb-4">${mdToHtml(d.desc)}</div>`;
   }
 
   // ── Bestand (PDF / audio — geen plain afbeelding, hero toont die al) ──

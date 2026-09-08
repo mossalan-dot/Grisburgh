@@ -115,6 +115,28 @@ describe('Server-side filtering', () => {
     assert.deepStrictEqual(found.locs, []);
   });
 
+  // De beschrijving werd alleen met een CSS-waas verstopt: hij stond in de
+  // netwerktab, en de documentzoeker vond het document op een woord dat de
+  // speler nog niet mocht lezen.
+  it('blurred archief documents hide their description from players', async () => {
+    const doc = await req(server, 'POST', '/api/archief', {
+      name: 'Wazige Brief', cat: 'brieven', desc: 'De sleutel ligt onder de derde plavuis.',
+    }, dmCookie);
+    await req(server, 'PUT', `/api/archief/${doc.body.id}/state`, { state: 'blurred' }, dmCookie);
+
+    const lijst = await req(server, 'GET', '/api/archief');
+    const found = lijst.body.documents.find(d => d.name === 'Wazige Brief');
+    assert.ok(found, 'het document is wel te zien');
+    assert.strictEqual(found.desc, undefined, 'maar de beschrijving niet');
+
+    const los = await req(server, 'GET', `/api/archief/${doc.body.id}`);
+    assert.strictEqual(los.body.desc, undefined, 'ook niet als je hem los opvraagt');
+
+    await req(server, 'PUT', `/api/archief/${doc.body.id}/state`, { state: 'revealed' }, dmCookie);
+    const na = await req(server, 'GET', `/api/archief/${doc.body.id}`);
+    assert.match(na.body.desc || '', /derde plavuis/, 'na onthullen wel');
+  });
+
   it('DM notes are never visible to players', async () => {
     const create = await req(server, 'POST', '/api/entities/organisaties', {
       name: 'Test Org', data: {},

@@ -109,9 +109,9 @@ function _ververOpenKaartje(id) {
   socket.on('archief:updated', () => {
     const section = window.app.state.activeSection;
     if (section === 'documenten') {
-      import('./render-archief.js?v=78').then(m => m.renderDocumenten());
+      import('./render-archief.js?v=79').then(m => m.renderDocumenten());
     } else if (section === 'logboek') {
-      import('./render-archief.js?v=78').then(m => m.renderLogboek());
+      import('./render-archief.js?v=79').then(m => m.renderLogboek());
     }
     window._updateDiscoveryChip?.(true); // #5: header-meter (documenten) verversen
   });
@@ -119,9 +119,9 @@ function _ververOpenKaartje(id) {
   socket.on('archief:stateChanged', ({ name, state, groupId } = {}) => {
     const section = window.app.state.activeSection;
     if (section === 'documenten') {
-      import('./render-archief.js?v=78').then(m => m.renderDocumenten());
+      import('./render-archief.js?v=79').then(m => m.renderDocumenten());
     } else if (section === 'logboek') {
-      import('./render-archief.js?v=78').then(m => m.renderLogboek());
+      import('./render-archief.js?v=79').then(m => m.renderLogboek());
     }
     window._updateDiscoveryChip?.(true); // #5: header-meter (documenten) verversen
     if (!window.app.isDM() && state === 'revealed' && name) {
@@ -137,14 +137,14 @@ function _ververOpenKaartje(id) {
 
   socket.on('logboek:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=78').then(m => m.renderLogboek());
+      import('./render-archief.js?v=79').then(m => m.renderLogboek());
     }
   });
 
   socket.on('quests:updated', () => {
     const section = window.app?.state?.activeSection;
     if (section === 'logboek') {
-      import('./render-archief.js?v=78').then(m => m.renderLogboek());
+      import('./render-archief.js?v=79').then(m => m.renderLogboek());
     }
     // Factie-interieur herlaadt ook (missies zijn quests met factieId)
     if (section === 'facties') _refreshSectionDebounced('facties');
@@ -161,7 +161,7 @@ function _ververOpenKaartje(id) {
     if (section === 'facties') _refreshSectionDebounced('facties');
     if (section === 'mijn-karakter') _refreshSectionDebounced('mijn-karakter');
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
-      import('./render-archief.js?v=78').then(m => m.renderLogboek());
+      import('./render-archief.js?v=79').then(m => m.renderLogboek());
     }
     window._updateDienstenMenuFromSocket?.();
   });
@@ -202,7 +202,7 @@ function _ververOpenKaartje(id) {
 
   socket.on('chapter-visibility:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=78').then(m => m.renderLogboek());
+      import('./render-archief.js?v=79').then(m => m.renderLogboek());
     }
   });
 
@@ -222,7 +222,7 @@ function _ververOpenKaartje(id) {
     // betreft. Zonder groupId (oudere events) tonen we het aan iedereen.
     if (groupId && !window._isDisplayMode && window._myGroupId && window._myGroupId !== groupId) return;
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=78').then(m => m.renderLogboek());
+      import('./render-archief.js?v=79').then(m => m.renderLogboek());
     }
     if (!window.app.isDM()) {
       if (window._isDisplayMode) {
@@ -374,7 +374,7 @@ function _ververOpenKaartje(id) {
     }
     // Documenten ook verversen (zichtbaarheid is per groep)
     if (activeSection === 'documenten') {
-      import('./render-archief.js?v=78').then(m => m.renderDocumenten());
+      import('./render-archief.js?v=79').then(m => m.renderDocumenten());
     }
     // De ontdekkingsmeter telt per party; zonder 'force' bleef de stand van de
     // vórige party staan (4/4 bij een party die nog niets ontdekt heeft).

@@ -612,6 +612,11 @@ function filterDocForPlayer(doc, dmState, groupId) {
     d.orgs = [];
     d.items = [];
     d.docs = [];
+    // De beschrijving ging wél mee en werd alleen met een CSS-waas verstopt:
+    // hij stond dus gewoon in de netwerktab, én de documentzoeker vond het
+    // document op een woord dat de speler nog niet mocht lezen. Zelfde regel
+    // als bij een vaag kaartje: naam en soort blijven, de inhoud niet.
+    delete d.desc;
   }
   return d;
 }
