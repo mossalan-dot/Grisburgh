@@ -4109,7 +4109,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   if (tab === 'voorwerpen') {
     const _att    = e.data?.attunement === true || e.data?.attunement === 'true';
     const _attEis = String(e.data?.attunementEis || '').trim();
-    const _prijs  = String(e.data?.prijs || '').trim();
+    // Een streepje is hoe iemand "geen prijs" opschrijft, geen bedrag. Zonder
+    // deze regel kreeg zo'n kaartje een muntje met een liggend streepje ernaast.
+    const _prijsRuw = String(e.data?.prijs || '').trim();
+    const _prijs    = /^[-\u2010-\u2015]+$/.test(_prijsRuw) ? '' : _prijsRuw;
     const _nietTeKoop = e.data?.nietVerkoopbaar === true || e.data?.nietVerkoopbaar === 'true';
     const _maxCh  = parseInt(e.data?.maxCharges) || 0;
     const _herlaad = { longRest: 'lange rust', shortRest: 'korte rust', dawn: 'lange rust',

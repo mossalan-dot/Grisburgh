@@ -243,16 +243,13 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       importer (zie `scripts/monster-opschonen.js`).
 
 
-- [ ] **Twee vragen die uit het opschonen kwamen** (8 sep 2026, `monster-opschonen.js`
-      meldt ze elke keer opnieuw):
-      **Xerxes en Sarabi** heeft `maxHp 4` terwijl de worp `4d10+4` gemiddeld 26
-      geeft — in een gevecht valt hij dus meteen om. Het hp-veld is met rust
-      gelaten tot iemand weet welk getal klopt.
-      **Kaptein Haringh** heeft exact het statblok van de Wervelingbootsman, en
-      staat in geen enkele encounter. Een kapitein die precies zijn bootsman is,
-      is waarschijnlijk een kopie die nog bijgesteld moest worden.
-      Idem, maar wél bedoeld: Maenfortmatroos = Wervelingpiraat (twee facties,
-      dezelfde troep).
+- [x] **Twee vragen uit het opschonen — beantwoord 9 sep 2026.**
+      **Xerxes en Sarabi** stond op `maxHp 4` bij een worp van `4d10+4`; dat is
+      nu het gemiddelde, 26 (`26 (4d10+4)`).
+      **Kaptein Haringh** houdt bewust hetzelfde statblok als de
+      Wervelingbootsman — dat is als preset hergebruikt, geen slordigheid. Net
+      als Maenfortmatroos = Wervelingpiraat. `monster-opschonen.js` blijft ze
+      melden; dat is een signaal, geen fout.
 
 - [ ] **Roos?** — een volledig uitgewerkt spellcaster-statblok in de
       monsterbibliotheek, met een vraagteken in de naam, zonder kaartje, zonder
@@ -297,10 +294,11 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
 - [ ] **Testomgeving vullen met documenten** in verschillende handschriften, om
       de briefstijlen echt te kunnen bekijken.
 
-- [ ] **Voorwerp-detail: leeg valutaveld.** Melding van de gebruiker; in
-      Grisburgh kon ik het niet reproduceren (een prijs die leeg is toont niets).
-      Navragen bij welk voorwerp het speelde — mogelijk een ander veld dan
-      `data.prijs`.
+- [x] **Voorwerp-detail: leeg valutaveld — opgelost 9 sep 2026.** Het was geen
+      weergavefout: *Kroon van Vlas* in de testomgeving had letterlijk
+      `prijs: "—"` opgeslagen. De waarde is leeggemaakt, en het detailvenster
+      leest een los streepje voortaan als "geen prijs" — anders staat er een
+      muntje met een liggend streepje ernaast.
 
 - [ ] **Spreukafbeeldingen meegeven aan een nieuwe campagne.** Grisburgh heeft er
       48 met een focuspunt. Vraag in de aanmaak-wizard: wil je die erbij? Ze zijn

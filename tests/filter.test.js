@@ -319,4 +319,26 @@ describe('Server-side filtering', () => {
     player = await req(server, 'GET', '/api/entities/documenten', null, spelerCookie);
     assert.strictEqual(player.body.find(d => d.id === id)?.data?.tekst, 'Secret text');
   });
+
+  // Wat een speler van een wezen weet loopt via het bestiarium, dat per
+  // kennisniveau afknipt. Het statblok op een personage-kaartje hoort er dus
+  // nooit in te zitten — en de tiers al helemaal niet: dat zijn de gedaantes
+  // die hij nog niet ontmoet heeft.
+  it('stuurt geen statblok en geen tiers van een NPC naar de speler', async () => {
+    const npc = await req(server, 'POST', '/api/entities/personages', {
+      name: 'Statblok Sjaak', subtype: 'NPC',
+      stats: { ac: '16 (Arcane Armor)', hp: '70', traits: 'Relentless Endurance' },
+      statblockTiers: [{ label: 'In hide armor', statblock: { ac: '14', hp: '62' } }],
+    }, dmCookie);
+    const id = npc.body.id;
+    await req(server, 'PUT', `/api/entities/personages/${id}/visibility`, { target: 'visible' }, dmCookie);
+
+    const player = await req(server, 'GET', '/api/entities/personages', null, spelerCookie);
+    const kaart = player.body.find(e => e.id === id);
+    assert.ok(kaart, 'het kaartje zelf is wél zichtbaar');
+    assert.strictEqual(kaart.stats, undefined, 'geen statblok naar de speler');
+    assert.strictEqual(kaart.statblockTiers, undefined, 'en geen andere gedaantes');
+    assert.ok(!JSON.stringify(kaart).includes('Arcane Armor'), 'nergens in het antwoord');
+    assert.ok(!JSON.stringify(kaart).includes('hide armor'), 'ook de tier niet');
+  });
 });

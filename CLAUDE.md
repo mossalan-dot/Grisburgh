@@ -500,9 +500,13 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=8
 > (`{gid, tierId}`; `'basis'` zet hem terug). Server-helpers: `_tierRegels()`
 > (geeft elke tier een id, terugval `t0`, `t1`… zoals bij de geheimregels),
 > `_tierStand(g, entity)` en `_tierToegepast(entity, tier)`.
-> **Wat de speler ziet:** `filterEntityForPlayer` vervangt `stats` door de tier
-> van zijn eigen party en **haalt `statblockTiers` eraf** — de andere gedaantes
-> verklappen wat er nog komt. **In een gevecht:** `_syncMonsterVanKaartje()`
+> **Wat de speler ziet: niets.** `filterEntityForPlayer` gooit `stats` er al af
+> (een statblok gaat nooit naar een speler; wat hij van een wezen weet loopt via
+> het bestiarium, dat per kennisniveau afknipt) en sinds 9 sep ook
+> `statblockTiers` — dat verklapt de gedaantes die hij nog niet ontmoet heeft.
+> Let op de volgorde: een eerste versie zette de tier van de eigen party terug
+> ín `stats`, ná die delete, en dáármee lekte juist elk kaartje mét tiers zijn
+> hele statblok. `tests/filter.test.js` bewaakt het nu. **In een gevecht:** `_syncMonsterVanKaartje()`
 > spiegelt het kaartje zoals de **actieve** party het kent (een gevecht gaat over
 > één groep, en de combatant bevriest zijn cijfers bij het opstellen), en de
 > tier-route hersynchroniseert. De keuzestrook staat boven het statblok in het

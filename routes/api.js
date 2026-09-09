@@ -511,7 +511,12 @@ function filterEntityForPlayer(entity, dmState, groupId) {
     delete e.data[sleutel];
   }
 
+  // Een statblok gaat nooit naar een speler: wat hij van een wezen weet loopt
+  // via het bestiarium, dat per kennisniveau afknipt. `statblockTiers` hoort er
+  // om dezelfde reden af — en dringender: dat zijn de gedaantes die hij nog
+  // niet ontmoet heeft, dus dat verklapt wat er nog komt.
   delete e.stats;
+  delete e.statblockTiers;
   e._visibility   = 'visible';
   // Weet de kaartweergave vooraf of er een afbeelding is, dan reserveert hij
   // geen ruimte voor een plaatje dat er nooit komt.
@@ -525,13 +530,6 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   e._hoortBij     = _betrokkenBij(entity.id)
     .filter(x => (g.visibility[x.id] || 'hidden') === 'visible')
     .filter(x => _geheimOpen(x, dmState, groupId));
-  // De speler ziet de gedaante die zíjn party kent — en alleen die: de andere
-  // tiers verklappen wat er nog komt.
-  if (Array.isArray(e.statblockTiers) && e.statblockTiers.length) {
-    const t = _tierStand(g, entity);
-    e.stats = _tierToegepast(entity, t).statblock;
-    delete e.statblockTiers;
-  }
   return e;
 }
 
