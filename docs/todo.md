@@ -301,3 +301,10 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       Grisburgh kon ik het niet reproduceren (een prijs die leeg is toont niets).
       Navragen bij welk voorwerp het speelde — mogelijk een ander veld dan
       `data.prijs`.
+
+- [ ] **Spreukafbeeldingen meegeven aan een nieuwe campagne.** Grisburgh heeft er
+      48 met een focuspunt. Vraag in de aanmaak-wizard: wil je die erbij? Ze zijn
+      niet van WotC (eigen beeld), dus delen mag — maar het is wel een keuze, en
+      een campagne met een eigen sfeer wil ze misschien niet. Let op de omvang:
+      dit zijn bestanden, geen JSON, dus kopiëren of verwijzen is een echte
+      afweging.
