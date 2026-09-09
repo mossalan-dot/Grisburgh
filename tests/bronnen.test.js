@@ -173,7 +173,9 @@ describe('Bronteksten blijven binnen de campagne die ze mag zien', () => {
     assert.ok(guard, 'Guard hoort erin te staan');
     assert.ok(guard.npc, 'Guard is een generieke NPC');
     assert.ok(guard.statblock.actions.includes('Spear'), 'met zijn acties erbij');
-    assert.equal(guard.statblock.size, 'Small or Medium');
+    // De SRD schrijft "Small or Medium"; een preset vult het blad van één
+    // personage, en daar is die keuze al gemaakt.
+    assert.equal(guard.statblock.size, 'Medium');
     assert.ok(!/natural armor/.test(guard.statblock.ac), 'geen verzonnen armor_detail');
     assert.equal(guard.statblock.speed, '30 ft.', 'geen afgeleide klim-/zwemsnelheden');
   });

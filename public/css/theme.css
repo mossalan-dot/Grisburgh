@@ -18870,7 +18870,10 @@ body.display-mode .combat-overlay.co-has-backdrop .combat-modal {
 .sb-dice-flash {
   position: fixed;
   inset: 0;
-  z-index: 9500;
+  /* Boven een geopend detailvenster (10001), want sinds een voorwerp zijn schade
+     hiermee gooit landt de kaart óp dat venster. Op 9500 zat hij erachter en
+     schemerde hij er vaal doorheen. */
+  z-index: 10050;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -24251,21 +24254,7 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .mon-editor-host { padding: 2px 0 4px; }
 .mon-editor-host .dm-feature-section { background: none; border: none; padding: 0; }
 
-/* Waarom personen hier niet staan. Een voetnoot, geen waarschuwing: hij hoort
-   onder het raster te staan en niet de aandacht te trekken. */
-.best-voetnoot {
-  display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap;
-  margin: 18px 2px 4px; padding-top: 12px;
-  border-top: 1px dashed rgba(196,168,122,0.45);
-  font-family: 'IM Fell English', serif; font-style: italic;
-  font-size: 0.86rem; color: #7a6040; line-height: 1.5;
-}
-.best-voetnoot .icon { width: 14px; height: 14px; flex: none; position: relative; top: 2px; }
-.best-voetnoot-link {
-  font: inherit; color: #7a2a2a; background: none; border: none; padding: 0;
-  cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
-}
-.best-voetnoot-link:hover { color: #8b2a2a; }
+
 
 /* Vinkjes in de Meesterkamer stonden op het systeemblauw van de browser — de
    enige moderne kleur in een perkamenten venster. `accent-color` verft het
@@ -24349,3 +24338,9 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 /* CR achter een SRD-zoekresultaat: het verschil tussen een Guard en een Guard
    Captain zie je zo zonder te importeren. */
 .dm-srd-cr { font-family: 'IM Fell English', serif; font-style: italic; color: #9a7050; font-size: 0.8em; margin-left: 4px; }
+
+/* Een spreukverwijzing op een voorwerp: het niveau zit ín de chip. De host is
+   hier een flex-item, dus zonder deze regel knijpt de rij hem smal en breekt de
+   naam over twee regels — vandaar geen krimp en geen afbreking. */
+.item-spellrij .cs-spell-chips { flex: 0 1 auto; min-width: 0; }
+.item-spellrij .cs-spell-chip { white-space: nowrap; flex: none; }

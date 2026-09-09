@@ -1,15 +1,15 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=281';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=273";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=275";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=83";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
-import { renderBestiarium } from './render-bestiarium.js?v=25';
+import { renderBestiarium } from './render-bestiarium.js?v=26';
 import { renderSpreuken } from './render-spreuken.js?v=35';
 import { renderStatblock } from './render-statblock.js?v=8';
 import { initSocket } from "./socket-client.js?v=66";
-import { initDmPanel } from "./dm-panel.js?v=215";
+import { initDmPanel } from "./dm-panel.js?v=217";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -3817,13 +3817,14 @@ window._sbNext = function() {
 };
 
 // Flashy dice roll overlay
-window._sbFlashRoll = function(formula, spellName) {
-  const m = formula.match(/(\d*)d(\d+)([+-]\d+)?/i);
-  if (!m) return;
-  const num = parseInt(m[1]) || 1, die = parseInt(m[2]), mod = m[3] ? parseInt(m[3]) : 0;
-  let total = mod;
-  for (let i = 0; i < num; i++) total += Math.floor(Math.random() * die) + 1;
-
+// De grote gloeiende worp uit het spreukenboek. Hij stond alleen daar, terwijl
+// het de mooiste weergave is die de app heeft: hij landt midden op wat je aan
+// het lezen bent in plaats van onderin een paneel. Vandaar losgetrokken van het
+// rollen zelf, zodat ook een voorwerp hem kan gebruiken (`window.dice.rollFlash`).
+//
+// `total` is al gerold; `tickMin`/`tickMax` bepalen waartussen de cijfers
+// ratelen voordat hij stilvalt.
+window._sbFlashKaart = function(kop, formule, total, tickMin, tickMax) {
   let el = document.getElementById('sb-dice-flash');
   if (!el) {
     el = document.createElement('div');
@@ -3838,8 +3839,8 @@ window._sbFlashRoll = function(formula, spellName) {
     document.body.appendChild(el);
     el.addEventListener('click', () => el.classList.remove('active'));
   }
-  document.getElementById('sb-dice-spell').textContent = spellName;
-  document.getElementById('sb-dice-formula2').textContent = formula;
+  document.getElementById('sb-dice-spell').textContent = kop || '';
+  document.getElementById('sb-dice-formula2').textContent = formule;
   const resEl = document.getElementById('sb-dice-result');
   resEl.textContent = '—';
 
@@ -3847,10 +3848,10 @@ window._sbFlashRoll = function(formula, spellName) {
   _sbAudio.dice();
 
   // Rolling animation — random numbers cycling then settle
+  const span = Math.max(1, (tickMax ?? total) - (tickMin ?? 1));
   let ticks = 0;
   const interval = setInterval(() => {
-    let fake = mod;
-    for (let i = 0; i < num; i++) fake += Math.floor(Math.random() * die) + 1;
+    const fake = Math.floor(Math.random() * (span + 1)) + (tickMin ?? 1);
     resEl.textContent = fake;
     resEl.classList.toggle('rolling', ticks % 2 === 0);
     if (++ticks >= 14) {
@@ -3878,6 +3879,17 @@ window._sbFlashRoll = function(formula, spellName) {
   // Auto-dismiss
   clearTimeout(el._dismissTimer);
   el._dismissTimer = setTimeout(() => el.classList.remove('active'), 3800);
+};
+
+// Het spreukenboek rolt nog steeds zelf (één worp, geen samengestelde formule)
+// en gebruikt de kaart voor de weergave.
+window._sbFlashRoll = function(formula, spellName) {
+  const m = String(formula).match(/(\d*)d(\d+)([+-]\d+)?/i);
+  if (!m) return;
+  const num = parseInt(m[1]) || 1, die = parseInt(m[2]), mod = m[3] ? parseInt(m[3]) : 0;
+  let total = mod;
+  for (let i = 0; i < num; i++) total += Math.floor(Math.random() * die) + 1;
+  window._sbFlashKaart(spellName, formula, total, num + mod, num * die + mod);
 };
 
 window._sbTogglePin = async function() {
@@ -7362,7 +7374,7 @@ async function renderMijnKarakter(opts = {}) {
                   const _h = /heal/i.test(_itemDmg);
                   return `<div class="item-carousel-damage" onclick="event.stopPropagation()">
                     <button class="item-damage-pill item-damage-pill--sm${_h ? ' item-damage-pill--heal' : ''}"
-                      onclick="window.dice?.rollFormula('${escJS(_itemDmg)}')"
+                      onclick="window.dice?.rollFlash('${escJS(_itemDmg)}','${escJS(item.name || '')}')"
                       title="Gooi ${escJS(_itemDmg)}">${icon('dice',{cls:'icon-gi'})} ${esc(_itemDmg)}</button>
                   </div>`;
                 })() : ''}
@@ -8537,7 +8549,7 @@ async function renderMijnKarakter(opts = {}) {
           const _h = /heal/i.test(_itemDmg);
           return `<div class="item-carousel-damage" onclick="event.stopPropagation()">
             <button class="item-damage-pill item-damage-pill--sm${_h ? ' item-damage-pill--heal' : ''}"
-              onclick="window.dice?.rollFormula('${escJS(_itemDmg)}')"
+              onclick="window.dice?.rollFlash('${escJS(_itemDmg)}','${escJS(item.name || '')}')"
               title="Gooi ${escJS(_itemDmg)}">${icon('dice',{cls:'icon-gi'})} ${esc(_itemDmg)}</button>
           </div>`;
         })() : ''}
@@ -9350,6 +9362,18 @@ async function refreshAll() {
         () => Math.floor(Math.random() * (span + 1)) + r.tickMin,
         r.total, `${fullLabel} \u2014 ${r.breakdown}`,
         { result: r.total, label: r.formula, crit: r.crit, fumble: r.fumble });
+    },
+
+    // Dezelfde worp als `rollFormula`, maar getoond als de grote kaart uit het
+    // spreukenboek: die landt midden op wat je aan het lezen bent, in plaats van
+    // onderin het dobbelpaneel dat je op een geopend kaartje niet ziet.
+    // Eén parser, twee weergaven — een tweede parser zou vroeg of laat een
+    // ander getal geven dan het paneel.
+    rollFlash(formulaStr, label = '') {
+      const r = _rollFormula(formulaStr);
+      if (!r.ok) return;
+      const kop = [label, r.label].filter(Boolean).join(' · ');
+      window._sbFlashKaart(kop, r.formula, r.total, r.tickMin, r.tickMax);
     },
 
     // Rolt de formule uit een invoerveld (paneel).
@@ -12084,6 +12108,11 @@ const HELP_CONFIG = {
       {
         titel: 'Kennisniveaus',
         tekst: 'Naam — je herkent het wezen maar weet verder niets. Deels — je kent de basisstats, wapenresistenties en zintuigen. Volledig — je kent alles: traits, actions en Challenge Rating. De Magizoöloog kan het niveau verhogen.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Waarom staan personen hier niet?',
+        tekst: 'Het bestiarium gaat over **wezens**. Een NPC, antagonist of bondgenoot heeft zijn statblok op zijn eigen kaartje bij **Personages** — daar hoort het, want daar staat ook wie hij is. Ze doen wel gewoon mee in een gevecht, en zo\u2019n kaartje kan meerdere statblokken hebben (dezelfde man in een andere gedaante).',
         afbeelding: null,
       },
     ],

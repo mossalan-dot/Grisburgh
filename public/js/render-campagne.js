@@ -924,11 +924,7 @@ window._sbModUpdate = (spanId, waarde) => {
 // heeft, de ability-modifiers werden niet uitgerekend en de Actions misten hun
 // opmaakbalk. De volgorde en de labels staan nu hier; `h` levert alleen de
 // bouwstenen — het blad schrijft `name="stat_…"`, een tier `class="pt-…"`.
-// "Small or Medium" is een echte waarde in de 2024-statblokken: een Guard of een
-// Bandit kan elk volk zijn, dus de maat ligt niet vast. Zonder die optie viel
-// hij bij het invullen van een standaard statblok stilzwijgend weg — een select
-// negeert een waarde die niet in de lijst staat.
-const _SB_SIZES = ['Tiny','Small','Small or Medium','Medium','Large','Huge','Gargantuan'];
+const _SB_SIZES = ['Tiny','Small','Medium','Large','Huge','Gargantuan'];
 const _SB_TYPES = ['Aberration','Beast','Celestial','Construct','Dragon','Elemental','Fey','Fiend',
                    'Giant','Humanoid','Monstrosity','Ooze','Plant','Undead'];
 // De sleutels die een statblok kent, in de volgorde waarin ze hieronder staan.
@@ -2083,6 +2079,20 @@ async function _vulSpellChips() {
     if (!perNiveau.has(lv)) perNiveau.set(lv, []);
     perNiveau.get(lv).push(knop);
   }
+  // Bij een voorwerp is dit geen spreukenlijst maar een verwijzing: één of twee
+  // spreuken. Een kolom "Level 2" naast één chip leest als een tabel met één
+  // rij — en omdat de host daar een flex-item is, werd de chip zo smal geknepen
+  // dat de naam over twee regels brak. Compact dus: het niveau ín de chip.
+  if (host.dataset.compact) {
+    for (const knop of knoppen) {
+      const sp = info.find(x => x.index === knop.dataset.spell);
+      if (!sp) continue;
+      const lv = Number(sp.level) || 0;
+      knop.innerHTML = `<b>${lv === 0 ? 'Cantrip' : 'Lv ' + lv}</b>${esc(sp.name)}`;
+      knop.title = [sp.school, lv === 0 ? 'Cantrip' : `Level ${lv}`].filter(Boolean).join(' · ');
+    }
+    return;
+  }
   const niveaus = [...perNiveau.keys()].sort((a, b) => a - b);
   host.innerHTML = '';
   // De host is normaal een flexrij met chips; met rijtjes per niveau moeten die
@@ -3119,10 +3129,10 @@ function renderCard(type, e) {
           const _h = String(e.data?.healing || '').trim() || (_isHeal ? _d : '');
           const _p = [];
           if (_d && !_isHeal) _p.push(`<button class="card-damage-pill"
-            onclick="event.stopPropagation();window.dice?.rollFormula('${escJS(_d)}')"
+            onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_d)}','${escJS(e.name)}')"
             title="Gooi ${escJS(_d)}">${icon('dice',{cls:'icon-gi'})} ${esc(_d)}</button>`);
           if (_h) _p.push(`<button class="card-damage-pill card-damage-pill--heal"
-            onclick="event.stopPropagation();window.dice?.rollFormula('${escJS(_h)}')"
+            onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_h)}','${escJS(e.name)}')"
             title="Gooi ${escJS(_h)}">${icon('heart',{cls:'icon-gi'})} ${esc(_h)}</button>`);
           return _p.join('');
         })() : ''}
@@ -3140,10 +3150,10 @@ function renderCard(type, e) {
             const _isHeal = _d && /heal|genez/i.test(_d);
             const _h = String(e.data?.healing || '').trim() || (_isHeal ? _d : '');
             if (_d && !_isHeal) _los.push(`<button class="card-damage-pill"
-              onclick="event.stopPropagation();window.dice?.rollFormula('${escJS(_d)}')"
+              onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_d)}','${escJS(e.name)}')"
               title="Gooi ${escJS(_d)}">${icon('dice',{cls:'icon-gi'})} ${esc(_d)}</button>`);
             if (_h) _los.push(`<button class="card-damage-pill card-damage-pill--heal"
-              onclick="event.stopPropagation();window.dice?.rollFormula('${escJS(_h)}')"
+              onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_h)}','${escJS(e.name)}')"
               title="Gooi ${escJS(_h)}">${icon('heart',{cls:'icon-gi'})} ${esc(_h)}</button>`);
           }
           if (_cardAcr) _los.push(`<span class="card-armor-ac-pill" title="${escJS(_cardAcr.tooltip)}">${esc(_cardAcr.pill)}</span>`);
@@ -4149,21 +4159,21 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _worpen = [];
     if (_dmg && !_legacyHeal) {
       _worpen.push(`<button class="item-damage-pill"
-          onclick="window.dice?.rollFormula('${escJS(_dmg)}','dmg-inline-result')"
+          onclick="window.dice?.rollFlash('${escJS(_dmg)}','${escJS(e.name)}')"
           title="Klik om schade te gooien">
           ${icon('dice',{cls:'icon-gi'})} ${esc(_dmg)}
         </button>`);
     }
     if (_heal) {
       _worpen.push(`<button class="item-damage-pill item-damage-pill--heal"
-          onclick="window.dice?.rollFormula('${escJS(_heal)}','dmg-inline-result')"
+          onclick="window.dice?.rollFlash('${escJS(_heal)}','${escJS(e.name)}')"
           title="Klik om genezing te gooien">
           ${icon('heart',{cls:'icon-gi'})} ${esc(_heal)}
         </button>`);
     }
-    const _worp = _worpen.length
-      ? _worpen.join('') + `<span class="dmg-inline-result" id="dmg-inline-result"></span>`
-      : '';
+    // Geen inline-resultaat meer naast de pil: de worp landt nu als kaart midden
+    // in beeld (window.dice.rollFlash).
+    const _worp = _worpen.join('');
     // Gekoppelde spreuken: dezelfde chips als op een statblock, dus één klik
     // naar de volledige spreuk in plaats van een verouderde kopie in de tekst.
     let _spellIdx = [];
@@ -4171,7 +4181,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     if (Array.isArray(_spellIdx) && _spellIdx.length) {
       infoHtml += `<div class="item-spellrij">
         <span class="item-spellrij-kop">${icon('sparkles')} ${_spellIdx.length === 1 ? 'Spreuk' : 'Spreuken'}</span>
-        <span class="cs-spell-chips" id="detail-spell-chips">${_spellIdx.map(i =>
+        <span class="cs-spell-chips" id="detail-spell-chips" data-compact="1">${_spellIdx.map(i =>
           `<button type="button" class="cs-spell-chip cs-spell-chip--klik" data-spell="${esc(i)}"
              onclick="window.spreuken.open('${escJS(i)}')">${esc(String(i).replace(/-/g, ' '))}</button>`).join('')}</span>
       </div>`;
@@ -6033,7 +6043,7 @@ let _petTiers = [];
 let _tierVoorDier = true;
 const _TIER_UITLEG = {
   dier: 'Het statblok hierboven is het dier vanaf level&nbsp;1. Een tier neemt het over zodra het baasje dat level haalt, en zegt alleen wat er verandert.',
-  npc:  'Dezelfde persoon, een andere ontmoeting. Het statblok hierboven is de basis; elk extra statblok zegt alleen wat er anders is. Welke versie geldt kies je per party, op het kaartje zelf.',
+  npc:  'Dezelfde persoon, een andere ontmoeting. Het statblok hierboven is de basis; elk extra statblok zegt alleen wat er anders is. <strong>Welke versie geldt, kies je na het opslaan</strong> — op het kaartje zelf, in de strook boven het statblok, of onder de monsterregel in een encounter. Die keuze staat per party.',
 };
 
 // Een tier ís een statblok, dus hij gebruikt dezelfde velden en dezelfde
@@ -7847,8 +7857,12 @@ window._openEditor = async (tab, editId) => {
       // verbindingen ongemerkt vastgelegd worden.
       stats: tab === 'personages' ? stats : null,
     };
-    // Huisdier-tiers meesturen (alleen relevant bij subtype 'dier')
-    if (tab === 'personages' && payload.subtype === 'dier') {
+    // Tiers meesturen. Dit stond op `subtype === 'dier'` uit de tijd dat alleen
+    // een huisdier meerdere statblokken kon hebben. Sinds een NPC gedaantes
+    // heeft moet de voorwaarde dezelfde zijn als die van het blok in de editor
+    // (`toonTiers`): alles behalve een speler. Anders vult de DM de velden in,
+    // ziet hij ze op het scherm staan, en wordt er niets verstuurd.
+    if (tab === 'personages' && String(payload.subtype || 'NPC').toLowerCase() !== 'speler') {
       // Een lege rij telt niet mee. Bij een NPC is er geen level, dus daar is
       // het label of een ingevuld veld het enige bewijs dat de DM iets bedoelde.
       payload.statblockTiers = _petTiersCollect()

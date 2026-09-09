@@ -1147,7 +1147,7 @@
   "maxHp": 170,
   "initiative": 12,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "17",
@@ -1185,7 +1185,7 @@
   "maxHp": 97,
   "initiative": 14,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "16",
@@ -1489,7 +1489,7 @@
   "maxHp": 11,
   "initiative": 11,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "12",
@@ -1527,7 +1527,7 @@
   "maxHp": 52,
   "initiative": 13,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "15",
@@ -1755,7 +1755,7 @@
   "maxHp": 67,
   "initiative": 11,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "13",
@@ -2705,7 +2705,7 @@
   "maxHp": 4,
   "initiative": 10,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "10",
@@ -2933,7 +2933,7 @@
   "maxHp": 9,
   "initiative": 11,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "12",
@@ -2971,7 +2971,7 @@
   "maxHp": 44,
   "initiative": 12,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "13",
@@ -3427,7 +3427,7 @@
   "maxHp": 44,
   "initiative": 11,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "13",
@@ -5441,7 +5441,7 @@
   "maxHp": 112,
   "initiative": 12,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "16",
@@ -5973,7 +5973,7 @@
   "maxHp": 11,
   "initiative": 11,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "16",
@@ -6011,7 +6011,7 @@
   "maxHp": 75,
   "initiative": 12,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "18",
@@ -6961,7 +6961,7 @@
   "maxHp": 52,
   "initiative": 10,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "18",
@@ -7265,7 +7265,7 @@
   "maxHp": 81,
   "initiative": 12,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "15",
@@ -7987,7 +7987,7 @@
   "maxHp": 9,
   "initiative": 11,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "15",
@@ -8481,7 +8481,7 @@
   "maxHp": 33,
   "initiative": 13,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "14",
@@ -8519,7 +8519,7 @@
   "maxHp": 84,
   "initiative": 14,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "17",
@@ -8747,7 +8747,7 @@
   "maxHp": 38,
   "initiative": 10,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "13",
@@ -8785,7 +8785,7 @@
   "maxHp": 11,
   "initiative": 10,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "13",
@@ -9583,7 +9583,7 @@
   "maxHp": 16,
   "initiative": 12,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "13",
@@ -10229,7 +10229,7 @@
   "maxHp": 27,
   "initiative": 12,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "12",
@@ -10837,7 +10837,7 @@
   "maxHp": 32,
   "initiative": 11,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "12",
@@ -10875,7 +10875,7 @@
   "maxHp": 82,
   "initiative": 12,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "16",
@@ -11179,7 +11179,7 @@
   "maxHp": 65,
   "initiative": 13,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral evil",
    "ac": "15",
@@ -11483,7 +11483,7 @@
   "maxHp": 9,
   "initiative": 10,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "13",
@@ -11521,7 +11521,7 @@
   "maxHp": 65,
   "initiative": 11,
   "statblock": {
-   "size": "Small or Medium",
+   "size": "Medium",
    "type": "Humanoid",
    "alignment": "neutral",
    "ac": "17",

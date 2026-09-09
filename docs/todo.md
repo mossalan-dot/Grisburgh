@@ -258,3 +258,46 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       monsterbibliotheek, met een vraagteken in de naam, zonder kaartje, zonder
       beschrijving en zonder encounter. Ofwel er hoort een personage-kaartje bij
       (zoals de elf andere NPC's er een kregen), ofwel het is een restant.
+
+
+## Uit de sessie van 8-9 sep 2026 — nog te doen
+
+- [ ] **HP uitrollen bij een encounter.** Nu het hp-veld de worp weer bevat
+      ("11 (2d8+2)") kan een gevecht per monster rollen in plaats van het
+      gemiddelde te nemen. Dat maakt elke ontmoeting net iets anders. Voorstel:
+      een vinkje in de encounter-editor (*HP uitrollen*) dat op de encounter
+      staat, en `POST /encounters/:id/start` rolt dan per exemplaar — vier
+      goblins krijgen dan vier verschillende totalen, wat nu niet kan omdat de
+      rij één getal bewaart. Zonder vinkje verandert er niets.
+
+- [ ] **Monsters zijn niet agnostisch.** De monster-editor heeft een veld
+      *Akte*, precies wat we bij documenten hebben weggehaald ("Kaartjes zijn
+      agnostisch"). Het veld is nu verborgen in het bestiarium-venster, maar
+      staat nog in de Meesterkamer omdat de aktefilter in de monsterlijst erop
+      leunt. Echte oplossing: `chapter` eruit, filter vervangen door de
+      encounters die naar dat monster wijzen.
+
+- [ ] **Documenten: uitleg over `---` naar de knoppenbalk.** De uitleg over de
+      opmaakvormen staat onder het tekstveld; hij hoort bij de knoppen erboven.
+      Idee daarnaast: een **WYSIWYG-tabblad** naast het tekstveld, zodat je de
+      brief ziet zoals de speler hem krijgt terwijl je typt.
+
+- [ ] **Statblokvelden gebruiken markup, geen knoppenbalk.** Traits en actions
+      wil je met dezelfde opmaakknoppen bewerken als de rest van de app, in
+      plaats van met `***vet***` in de tekst.
+
+- [ ] **Spreuken: het is geen naslagwerk meer.** De tab zegt "naslagwerk", maar
+      de DM kan er nu zelf spreuken plaatsen. Tekst bijstellen, en er een veld
+      bij: **is dit overgenomen of zelfbedacht?** Dat scheelt straks bij de
+      vraag wat je wel en niet mag delen met een andere campagne.
+
+- [ ] **Blanco kaartjes in het dashboard**: documenten hebben een andere maat
+      dan de andere archieftabbladen.
+
+- [ ] **Testomgeving vullen met documenten** in verschillende handschriften, om
+      de briefstijlen echt te kunnen bekijken.
+
+- [ ] **Voorwerp-detail: leeg valutaveld.** Melding van de gebruiker; in
+      Grisburgh kon ik het niet reproduceren (een prijs die leeg is toont niets).
+      Navragen bij welk voorwerp het speelde — mogelijk een ander veld dan
+      `data.prijs`.

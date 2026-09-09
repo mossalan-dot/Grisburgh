@@ -46,11 +46,14 @@ const NPC_NAMEN = new Set([
 //    bevat wat er écht staat.
 //
 // 3. `size` is "Small" bij **alle 26 humanoids**, óók bij Knight en Archmage.
-//    De SRD schrijft daar "Small or Medium", omdat het elk volk kan zijn;
-//    Open5e houdt daar de eerste van over. Voor de NPC-statblokken zetten we
-//    dat terug — juist daar is het verschil betekenisvol, want dit zijn de
-//    mensen. Bij de rest (Goblin Warrior is écht Small) laten we het staan.
-const NPC_MAAT = 'Small or Medium';
+//    Dat klopt niet: de SRD schrijft daar "Small or Medium", omdat de statblok
+//    voor elk volk kan gelden. Maar zo zetten we het er niet in. Een preset
+//    vult het statblok van één personage, en op dat blad ís de keuze gemaakt —
+//    deze wachtpost is een mens, geen gnoom. "Small or Medium" hoort bij een
+//    sjabloon, niet bij een exemplaar; **Medium** is de maat waar het gros van
+//    de NPC's op uitkomt en is met één klik te wijzigen.
+//    Bij de rest (Goblin Warrior is écht Small) laten we het staan.
+const NPC_MAAT = 'Medium';
 
 const ABIL = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
 const KORT = { strength: 'STR', dexterity: 'DEX', constitution: 'CON', intelligence: 'INT', wisdom: 'WIS', charisma: 'CHA' };

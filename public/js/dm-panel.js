@@ -3006,7 +3006,7 @@ function _statblockEditorHtml(sb) {
             <label class="dm-form-label">Size</label>
             <select id="dm-mon-sb-size" class="dm-select dm-select-sm" style="width:100%">
               <option value="">—</option>
-              ${['Tiny','Small','Small or Medium','Medium','Large','Huge','Gargantuan'].map(s => opt(s,s)).join('')}
+              ${['Tiny','Small','Medium','Large','Huge','Gargantuan'].map(s => opt(s,s)).join('')}
             </select>
           </div>
           <div style="flex:2;min-width:100px">
@@ -3258,6 +3258,13 @@ function _renderMonsters() {
 };
 
 function _renderMonsterEditor(el) {
+  // Open je de editor vanuit het Bestiarium-tabblad, dan zijn twee velden daar
+  // een raadsel. "Toon in Bestiarium" beantwoordt zichzelf — je staat erin — en
+  // een **akte** hoort er sowieso niet op: waar iets in het verhaal thuishoort
+  // staat aan de aktekant, niet op het ding zelf (zie "Kaartjes zijn agnostisch"
+  // in CLAUDE.md). In de Meesterkamer blijven ze staan zolang de aktefilter in
+  // de monsterlijst erop leunt.
+  const _inBestiariumTab = !!_monsterEditorHost;
   const isNew  = _editingMonsterIsNew;
   const stored = _monsters.find(m => m.id === _editingMonsterId) || {};
   const m = {
@@ -3289,6 +3296,7 @@ function _renderMonsterEditor(el) {
         <label class="dm-form-label">Naam</label>
         <input id="dm-mon-name" class="dm-input" value="${esc(m.name)}" placeholder="Monsternaam…">
       </div>
+      ${_inBestiariumTab ? '' : `
       <div class="dm-form-row">
         <label class="dm-form-label">Akte</label>
         <select id="dm-mon-chapter" class="dm-select dm-select-sm">
@@ -3301,7 +3309,7 @@ function _renderMonsterEditor(el) {
           <input type="checkbox" id="dm-mon-inbest"${m.inBestiarium ? ' checked' : ''}>
           <span>Toon in Bestiarium</span>
         </label>
-      </div>
+      </div>`}
       <div class="dm-form-row">
         <label class="dm-form-label">Beschrijving</label>
         <textarea id="dm-mon-desc" class="dm-input dm-sb-textarea" rows="3"
@@ -3482,12 +3490,17 @@ async function _srdImport(key) {
 
 async function _monsterSave() {
   const name    = document.getElementById('dm-mon-name')?.value.trim();
-  const chapter = document.getElementById('dm-mon-chapter')?.value.trim() || '';
+  // Staan de velden er niet (bestiarium-venster), dan houdt het wezen wat het had.
+  const chapterEl = document.getElementById('dm-mon-chapter');
+  const stored    = _monsters.find(x => x.id === _editingMonsterId) || {};
+  const chapter   = chapterEl ? chapterEl.value.trim() : (stored.chapter || '');
   const maxHp   = parseInt(document.getElementById('dm-mon-hp')?.value)   || 10;
   const init    = parseInt(document.getElementById('dm-mon-init')?.value) || 10;
   if (!name) { alert('Voer een naam in.'); return; }
   const statblock = _readStatblockFromForm();
-  const inBestiarium = document.getElementById('dm-mon-inbest')?.checked !== false;
+  const inbestEl = document.getElementById('dm-mon-inbest');
+  const inBestiarium = inbestEl ? inbestEl.checked
+    : (_editingMonsterIsNew ? true : stored.inBestiarium !== false);
   const description = document.getElementById('dm-mon-desc')?.value?.trim() || '';
   const roddel = document.getElementById('dm-mon-roddel')?.value?.trim() || '';
   const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, statblock, inBestiarium, description, roddel };
@@ -7335,7 +7348,7 @@ function _renderGevecht() {
           <select id="dm-setup-entity" class="dm-select"
               onchange="window.dmPanel.setupEntityChange(this.value)">
             <option value="">— Handmatig invoeren —</option>
-            ${_kandidaten.map(e => `<option value="${esc(e.id)}" ${_setupSelectedEntityId === e.id ? 'selected' : ''}>${esc(e.name)}${_merk[_kant(e)] || ''}${e.stats?.hp ? ' (HP ' + e.stats.hp + ')' : ''}</option>`).join('')}
+            ${_kandidaten.map(e => `<option value="${esc(e.id)}" ${_setupSelectedEntityId === e.id ? 'selected' : ''}>${esc(e.name)}${_merk[_kant(e)] || ''}${parseInt(e.stats?.hp) ? ' (HP ' + parseInt(e.stats.hp) + ')' : ''}</option>`).join('')}
           </select>`;
         })() : ''}
         <div class="dm-feature-row">

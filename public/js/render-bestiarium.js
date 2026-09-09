@@ -112,7 +112,6 @@ function _renderGrid() {
       <p class="best-empty">${dm
         ? 'Nog geen wezens. Maak er een met <strong>Nieuw wezen</strong> hierboven.'
         : 'Nog niets ontdekt. Versla monsters in de strijd om hun geheimen te leren.'}</p>
-      ${dm ? _voetnoot() : ''}
     </div>`;
     return;
   }
@@ -133,33 +132,7 @@ function _renderGrid() {
   _container.innerHTML = `${head}<div class="best-wrap">
     ${chips}
     <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">${cards}</div>
-    ${_voetnoot()}
   </div>`;
-}
-
-// Waarom staat de herbergier hier niet, en de kapitein die de party bevocht ook
-// niet? Omdat het bestiarium over **wezens** gaat en zij personen zijn: hun
-// statblok hoort bij hun kaartje. Dat is een terechte vraag om te krijgen, dus
-// staat het antwoord eronder in plaats van in iemands hoofd. Alleen voor de DM:
-// de speler heeft geen personagelijst met statblokken.
-function _voetnoot() {
-  if (_data.role !== 'dm') return '';
-  return `<p class="best-voetnoot">${icon('user')}
-    Personen — NPC's, antagonisten, bondgenoten — staan hier niet: hun statblok hoort bij hun
-    <button type="button" class="best-voetnoot-link" onclick="window.bestiarium.naarPersonages()">kaartje bij Personages</button>.
-    Ze doen wel gewoon mee in een gevecht, en een kaartje kan meerdere statblokken hebben.</p>`;
-}
-
-// Alleen de kaartjes opnieuw tekenen; het zoekveld houdt zo zijn cursor.
-function _tekenKaarten() {
-  const grid = _container?.querySelector('.cards-grid');
-  if (!grid) return _renderGrid();
-  const dm = _data.role === 'dm';
-  const monsters = _data.monsters || [];
-  const zichtbaar = _gefilterd(monsters);
-  grid.innerHTML = zichtbaar.length
-    ? zichtbaar.map((m) => _card(m, monsters.indexOf(m), dm)).join('')
-    : `<p class="best-empty">Geen wezens gevonden.</p>`;
 }
 
 function _card(m, i, dm) {

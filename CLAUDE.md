@@ -483,9 +483,12 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=8
 > **Drie dingen zet het script recht** (systematisch fout bij Open5e, zie de
 > commentaren daar): `armor_detail` staat op "natural armor" bij 330 van de 331,
 > `speed_all` vult de afgeleide kruip-/klim-/zwemsnelheden in die in 2024 voor
-> iedereen gelden, en `size` is "Small" bij álle humanoids waar de SRD
-> "Small or Medium" schrijft. Die laatste waarde staat daarom ook in `_SB_SIZES`
-> — een `<select>` slikt een waarde die niet in de lijst staat stilzwijgend in.
+> iedereen gelden, en `size` is "Small" bij álle humanoids. Dat laatste klopt
+> niet — de SRD schrijft daar "Small or Medium" — maar zó zetten we het er ook
+> niet in: een preset vult het blad van één personage, en op dat blad is de
+> keuze gemaakt (deze wachtpost is een mens, geen gnoom). Een NPC-preset krijgt
+> dus **Medium**; "Small or Medium" hoort bij een sjabloon, niet bij een
+> exemplaar, en staat daarom ook niet in `_SB_SIZES`.
 
 > **Meerdere statblokken op één kaartje (tiers).** Dezelfde man is niet elke akte
 > dezelfde tegenstander. `statblockTiers` op een personage-kaartje bewaart de
