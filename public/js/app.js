@@ -2,7 +2,7 @@ import { api, campagneUitUrl, zetCampagne } from './api.js?v=283';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=296";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=86";
 import { renderKaart, queueFlyTo, verversPins } from './render-kaart.js?v=26';
-import { renderDungeon } from './render-dungeon.js?v=33';
+import { renderDungeon } from './render-dungeon.js?v=34';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
@@ -2943,6 +2943,13 @@ window._kaartEdit = async function(type, id) {
     else                   item = (await api.listDungeons()).find(m => m.id === id);
   } catch {}
   if (!item) return;
+  // Wie de dungeon mag zien is een eigenschap van de dungeon, geen tekengereedschap.
+  // De knop stond tussen rechthoek, polygoon en verbinding in de werkbalk; hier
+  // staat hij naast naam, beschrijving en verdieping, waar hij thuishoort.
+  let groepen = [];
+  if (type === 'dungeon') {
+    try { groepen = (await api.listGroups()).groups || []; } catch { groepen = []; }
+  }
   const naam = type === 'wereld' ? (item.label || '') : (item.name || '');
   window._kaartEditThumbPending = null;
   const body = `
@@ -2959,6 +2966,24 @@ window._kaartEdit = async function(type, id) {
         <span class="dm-hint">0 = begane grond, −1 = kelder. Leeg laten als deze kaart geen verdieping is.</span>
       </div>
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Toegang per party</label>
+        <div class="dng-party-list" id="kaart-edit-toegang">
+          ${groepen.map(g => {
+            const uitgespeeld = (item.partyCompleted || []).includes(g.id);
+            const actief      = !uitgespeeld && (item.partyAccess || []).includes(g.id);
+            const stand       = uitgespeeld ? 'completed' : actief ? 'active' : 'none';
+            return `<div class="dng-party-row">
+              <span class="dng-party-name">${esc(g.name || g.id)}</span>
+              <div class="dng-party-states" data-gid="${esc(g.id)}">
+                <button type="button" class="dng-state-btn${stand === 'none' ? ' dng-state-btn--on' : ''}" data-state="none" title="Niet zichtbaar voor deze party">Geen</button>
+                <button type="button" class="dng-state-btn${stand === 'active' ? ' dng-state-btn--on' : ''}" data-state="active" title="Zichtbaar, met fog-of-war">${icon('eye')} Actief</button>
+                <button type="button" class="dng-state-btn${stand === 'completed' ? ' dng-state-btn--on' : ''}" data-state="completed" title="Uitgespeeld — de hele kaart is zichtbaar">${icon('check')} Uitgespeeld</button>
+              </div>
+            </div>`;
+          }).join('') || '<span class="dm-hint">Nog geen party\'s in deze campagne.</span>'}
+        </div>
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Thumbnail</label>
         ${item.thumbId ? `<img id="kaart-edit-thumb-prev" src="${api.fileUrl(item.thumbId)}" class="kaart-edit-thumb">` : '<span id="kaart-edit-thumb-prev"></span>'}
         <button type="button" class="dm-btn dm-btn-sm" style="align-self:flex-start" onclick="window._kaartEditPickThumb()" title="Thumbnail kiezen of uploaden">${icon('image')} Afbeelding</button>
@@ -2969,6 +2994,13 @@ window._kaartEdit = async function(type, id) {
       </div>
     </div>`;
   window.app.openModal('Kaart bewerken', naam, body);
+  // Drie standen per party, één ervan aan — zelfde bediening als in het oude venster.
+  document.getElementById('kaart-edit-toegang')?.querySelectorAll('.dng-party-states').forEach(rij => {
+    rij.querySelectorAll('.dng-state-btn').forEach(knop => knop.addEventListener('click', () => {
+      rij.querySelectorAll('.dng-state-btn').forEach(b => b.classList.remove('dng-state-btn--on'));
+      knop.classList.add('dng-state-btn--on');
+    }));
+  });
 };
 
 window._kaartEditPickThumb = function() {
@@ -2998,6 +3030,16 @@ window._kaartEditSave = async function(type, id) {
       if (vRaw !== undefined) patch.verdieping = vRaw === '' ? null : vRaw;
       if (window._kaartEditThumbPending) patch.thumbId = window._kaartEditThumbPending;
       await api.updateDungeon(id, patch);
+      const rijen = document.getElementById('kaart-edit-toegang')?.querySelectorAll('.dng-party-states');
+      if (rijen?.length) {
+        const toegang = [], uitgespeeld = [];
+        rijen.forEach(rij => {
+          const stand = rij.querySelector('.dng-state-btn--on')?.dataset.state || 'none';
+          if (stand === 'active')    toegang.push(rij.dataset.gid);
+          if (stand === 'completed') { toegang.push(rij.dataset.gid); uitgespeeld.push(rij.dataset.gid); }
+        });
+        await api.setDungeonPartyAccess(id, toegang, uitgespeeld);
+      }
     }
     window.app.closeModal();
     _renderKaartGalerij();

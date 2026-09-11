@@ -137,7 +137,7 @@ function _buildShell() {
           ` : '<span class="dng-map-select-empty">Geen dungeon maps</span>'}
           ${isDM() ? `
             <button class="dng-btn dng-btn-sm" id="dng-new-btn">+ Nieuw</button>
-            ${_maps.length ? `<button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-delete-btn">${icon('x')}</button>` : ''}
+            ${_maps.length ? `<button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-delete-btn" title="Deze dungeon verwijderen">${icon('trash')}</button>` : ''}
           ` : ''}
           ${isDM() && _maps.length ? `
             <span class="dng-reveal-chip" id="dng-reveal-count"></span>
@@ -150,8 +150,6 @@ function _buildShell() {
           <button class="dng-tool-btn" data-tool="poly"   title="Polygoon tekenen">${icon('hexagon')}</button>
           <button class="dng-tool-btn" data-tool="conn"   title="Verbinding tekenen">${icon('link')}</button>
           <span class="dng-tool-hint" id="dng-tool-hint"></span>
-          <div class="dng-tool-sep"></div>
-          <button class="dng-btn dng-btn-sm" id="dng-party-btn">Party-toegang</button>
         </div>
         ` : ''}
         <span id="dng-verdiepingen-slot">${_verdiepingStripHtml()}</span>
@@ -186,7 +184,6 @@ function _attachShellEvents() {
 
   document.getElementById('dng-new-btn')?.addEventListener('click', _openNewDungeonDialog);
   document.getElementById('dng-delete-btn')?.addEventListener('click', _deleteCurrentMap);
-  document.getElementById('dng-party-btn')?.addEventListener('click', _openPartyAccessDialog);
 
   document.getElementById('dng-tools')?.querySelectorAll('.dng-tool-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -248,6 +245,17 @@ function _fitZoom() {
   _zoom = Math.min(1, (area.clientWidth - 24) / img.naturalWidth,
                       (area.clientHeight - 24) / img.naturalHeight);
   _applyTransform();
+}
+
+// Passend, ×2, ×4, ×8 — dezelfde trap als op de wereldkaart, zodat dubbelklikken
+// overal hetzelfde doet. Na de laatste stap weer passend.
+function _zoomTrapDng() {
+  const img  = document.getElementById('dng-img');
+  const area = document.getElementById('dng-map-area');
+  if (!img?.naturalWidth || !area) return [1];
+  const passend = Math.min(1, (area.clientWidth - 24) / img.naturalWidth,
+                              (area.clientHeight - 24) / img.naturalHeight);
+  return [...new Set([passend, passend * 2, passend * 4, Math.min(5, passend * 8)])].filter(z => z <= 5);
 }
 
 function _applyTransform() {
@@ -487,6 +495,26 @@ function _attachMapEvents() {
     _zoom = Math.max(0.15, Math.min(5, _zoom + delta));
     _applyTransform();
   }, { passive: false, signal: sig });
+
+  // Dubbelklikken zoomt in op dat punt — zelfde gebaar als op de wereldkaart en
+  // in de kaartkiezer. Alleen met het selecteergereedschap: bij de polygoon
+  // beëindigt een dubbelklik de vorm die je aan het tekenen bent.
+  wrap.addEventListener('dblclick', ev => {
+    if (_tool !== 'select') return;
+    ev.preventDefault();
+    const trap = _zoomTrapDng();
+    const volgende = trap.find(z => z > _zoom + 0.001) ?? trap[0];
+    const wr = wrap.getBoundingClientRect();
+    // De aangewezen plek onder de muis houden: het doek staat gecentreerd, dus
+    // reken vanaf het midden en schaal de afstand mee met de nieuwe zoom.
+    const dx = ev.clientX - (wr.left + wr.width  / 2);
+    const dy = ev.clientY - (wr.top  + wr.height / 2);
+    const factor = volgende / _zoom;
+    if (volgende === trap[0]) { _panX = 0; _panY = 0; }
+    else { _panX = _panX * factor - dx * (factor - 1); _panY = _panY * factor - dy * (factor - 1); }
+    _zoom = volgende;
+    _applyTransform();
+  }, { signal: sig });
 
   let panning=false, panMoved=false, startX=0, startY=0, startPanX=0, startPanY=0;
 
@@ -1284,70 +1312,11 @@ function _openNewDungeonDialog() {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Party-toegang dialog
+// Party-toegang stond hier als eigen venster, met een knop tussen de
+// tekengereedschappen. Wie een dungeon mag zien is geen gereedschap maar een
+// eigenschap van de kaart: het staat nu bij naam, beschrijving en verdieping in
+// *Kaart bewerken* (de galerij). Eén formulier, niet twee die uit de pas lopen.
 // ──────────────────────────────────────────────────────────────────
-async function _openPartyAccessDialog() {
-  const map       = _maps[_mapIdx];
-  const { groups: groupList = [] } = await api.listGroups();
-  const groups    = groupList.map(g => [g.id, g]);
-  const access    = new Set(map.partyAccess    || []);
-  const completed = new Set(map.partyCompleted || []);
-
-  const stateOf = id => completed.has(id) ? 'completed' : access.has(id) ? 'active' : 'none';
-
-  const overlay = _makeOverlay();
-  overlay.innerHTML = `
-    <div class="dng-dialog">
-      <h3 class="dng-dialog-title">Party-toegang: ${esc(map.name)}</h3>
-      <p class="dng-dialog-sub">Stel per party de zichtbaarheid van deze dungeon in.</p>
-      <div class="dng-party-list">
-        ${groups.map(([id,g]) => {
-          const s = stateOf(id);
-          return `
-          <div class="dng-party-row">
-            <span class="dng-party-name">${esc(g.name||id)}</span>
-            <div class="dng-party-states" data-gid="${esc(id)}">
-              <button class="dng-state-btn${s==='none'?' dng-state-btn--on':''}" data-state="none"
-                title="Geen toegang">Geen</button>
-              <button class="dng-state-btn${s==='active'?' dng-state-btn--on':''}" data-state="active"
-                title="Fog-of-war actief">${icon('eye')} Actief</button>
-              <button class="dng-state-btn${s==='completed'?' dng-state-btn--on':''}" data-state="completed"
-                title="Dungeon uitgespeeld — volledige kaart zichtbaar">${icon('check')} Uitgespeeld</button>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-      <div class="dng-dialog-btns">
-        <button class="dng-btn" id="dng-party-ok">Opslaan</button>
-        <button class="dng-btn dng-btn-ghost" id="dng-party-cancel">Annuleren</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-
-  overlay.querySelectorAll('.dng-party-states').forEach(row => {
-    row.querySelectorAll('.dng-state-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        row.querySelectorAll('.dng-state-btn').forEach(b => b.classList.remove('dng-state-btn--on'));
-        btn.classList.add('dng-state-btn--on');
-      });
-    });
-  });
-
-  document.getElementById('dng-party-ok').addEventListener('click', async () => {
-    const newAccess = [], newCompleted = [];
-    overlay.querySelectorAll('.dng-party-states').forEach(row => {
-      const gid   = row.dataset.gid;
-      const state = row.querySelector('.dng-state-btn--on')?.dataset.state || 'none';
-      if (state === 'active')    newAccess.push(gid);
-      if (state === 'completed') { newAccess.push(gid); newCompleted.push(gid); }
-    });
-    await api.setDungeonPartyAccess(map.id, newAccess, newCompleted);
-    map.partyAccess    = newAccess;
-    map.partyCompleted = newCompleted;
-    overlay.remove();
-  });
-  document.getElementById('dng-party-cancel').addEventListener('click', () => overlay.remove());
-}
 
 // ──────────────────────────────────────────────────────────────────
 // Verwijderen

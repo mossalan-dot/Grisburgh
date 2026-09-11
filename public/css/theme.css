@@ -24616,3 +24616,12 @@ body.kaart-fs-active .modal-overlay { z-index: 1300; }
   background: radial-gradient(ellipse 130% 110% at 50% 18%, #faf2de 0%, #f0e2b8 50%, #d8c48c 100%);
 }
 .kaart-fs-overlay #map-scroll { background: transparent; }
+
+/* ── Dungeon in de fullscreen-kaart ──────────────────────────────────────────
+   Zelfde valkuil als bij de locatiekiezer: de dialogen van de dungeon (Nieuwe
+   dungeon, kamer-vensters) stonden op z-index 500 onder de fullscreen-kaart van
+   1200. De DM klikte op "+ Nieuw" en zag niets gebeuren. */
+body.kaart-fs-active .dng-overlay { z-index: 1300; }
+/* De ronde sluitknop van de fullscreen-weergave ligt rechtsboven; de werkbalk
+   liep eronderdoor. Ruimte houden in plaats van eronder schuiven. */
+body.kaart-fs-active .dng-topbar { padding-right: 76px; }
