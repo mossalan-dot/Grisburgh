@@ -52,6 +52,34 @@ groot het is.
       diensten** → kaart → eerste party met wachtwoord → eerste personage.
       Waarschuwen dat party's later niet samen te voegen zijn. Grootste stap.
 - [ ] **7. Handleiding + visuele rondleiding** — leunt op stap 6.
+- [ ] **Checklist vóór het spelen.** Een nieuwe DM weet niet wat er aan tafel
+      allemaal klaar moet staan, en een ervaren DM vergeet het ene ding dat hij
+      deze keer níét standaard had. Een korte lijst die je afvinkt vlak voor je
+      een akte start — geen handleiding, een checklist: één scherm, hooguit acht
+      regels, en wat de app zelf kan controleren staat er al aangevinkt.
+
+      Wat erin hoort:
+      - **Tafelscherm** aan, ingelogd en op tafelstand (`?display=1` of
+        Instellingen → Tafelscherm). *De app kan dit zelf zien: een tablet die
+        verbonden is zit in de campagne-room.*
+      - **Party** — staat de juiste groep actief, en klopt *Actieve spelers*
+        (afwezigen uitgevinkt)? Dat stuurt rust, loot en het vullen van een
+        gevecht.
+      - **Muziek** — Spotify gekoppeld, het juiste apparaat gekozen, en
+        **privésessie aan** (of je sfeerlijsten uitgesloten van je smaakprofiel).
+        *De koppeling en het apparaat weet de app; de privésessie niet — Spotify
+        geeft dat niet vrij, dus dat blijft een handmatig vinkje.*
+      - **Geluid uit de goede boxen** — laptop of tafelscherm op de speaker
+        gekoppeld, en niet per ongeluk op de ingebouwde luidspreker. Dit is de
+        klassieker: alles werkt, maar niemand hoort het.
+      - **Bereikbaarheid** — klopt wat er tijdens deze akte open is (diensten,
+        kaartjes) en staat *Grisburgh verlaten* goed?
+      - **Akte geladen** in de regie-balk, verhaaltekst ernaast open.
+
+      Waar hij hoort: een knop naast *Akte spelen* (de plek waar je de regie-balk
+      laadt), en nog een keer in de handleiding van stap 7. Bewaren hoeft niet —
+      dit is een lijst om te lezen, geen formulier; alleen wat de app zélf kan
+      controleren toont een vinkje.
 - [ ] **8. Mediabudget** — teller per campagne + verkleinen bij upload. Naar voren
       halen als de schijf eerder knelt.
 - [ ] **9. Gefaseerd uitrollen** — vlag per campagne, deployvolgorde, en een
