@@ -389,14 +389,18 @@ const ITEM_TYPE_MELDINGEN = {
 // Een brief, een kasboek en een dreigbrief zagen er hetzelfde uit, terwijl het
 // type al bekend was. De stijl volgt dus uit `docType`; `data.briefstijl`
 // overschrijft dat als de DM iets anders wil (twee schrijvers, twee handen).
+// `stijl` zet het lettertype op de optie zelf: in de keuzelijst staat elke
+// stijl dus geschreven zoals hij eruitkomt. Dat scheelt zeven keer kiezen en
+// kijken. Knipsel is geen lettertype maar opmaak per teken; die leent de
+// krantenletter van een kop, wat er het dichtst bij komt.
 const BRIEF_STIJLEN = [
   { value: '',          label: 'Automatisch (volgt het type)' },
-  { value: 'hand',      label: 'Handschrift — vlot' },
-  { value: 'hand2',     label: 'Handschrift — sierlijk' },
-  { value: 'machine',   label: 'Typemachine' },
-  { value: 'drukwerk',  label: 'Gezet drukwerk' },
-  { value: 'knipsel',   label: 'Uitgeknipte krantenletters' },
-  { value: 'oud',       label: 'Oud handschrift (standaard)' },
+  { value: 'hand',      label: 'Handschrift — vlot',        stijl: "'Kalam', cursive" },
+  { value: 'hand2',     label: 'Handschrift — sierlijk',    stijl: "'Dancing Script', cursive" },
+  { value: 'machine',   label: 'Typemachine',               stijl: "'Special Elite', monospace" },
+  { value: 'drukwerk',  label: 'Gezet drukwerk',            stijl: "'Crimson Text', serif" },
+  { value: 'knipsel',   label: 'Uitgeknipte krantenletters', stijl: "'UnifrakturMaguntia', serif" },
+  { value: 'oud',       label: 'Oud handschrift (standaard)', stijl: "'IM Fell English', serif" },
 ];
 
 const DOC_STIJL_BIJ_TYPE = {
@@ -1236,7 +1240,10 @@ function _optieHtml(o, val, alGekozen) {
   // opties wint in HTML de laatste, en dan lijkt de keuze verschoven.
   const kies = val === v && !alGekozen.has(v);
   if (kies) alGekozen.add(v);
-  return `<option value="${esc(v)}"${kies ? ' selected' : ''}>${esc(l)}</option>`;
+  // Een optie mag zichzelf laten zien: de briefstijlen staan in de keuzelijst
+  // in hun eigen letter.
+  const stijl = (typeof o === 'object' && o.stijl) ? ` style="font-family:${esc(o.stijl)}"` : '';
+  return `<option value="${esc(v)}"${kies ? ' selected' : ''}${stijl}>${esc(l)}</option>`;
 }
 function _optiesHtml(field, val) {
   const gekozen = new Set();
@@ -1382,6 +1389,15 @@ function _betrokkenenUit(data) {
 // `metChef`: bij een organisatie mag je per regel zeggen onder wie iemand valt.
 // Dat is de enige extra gegeven die een organogram nodig heeft — de rest (naam,
 // rol, portret) staat er al.
+// Wissel je het documenttype of de briefstijl terwijl het voorbeeld openstaat,
+// dan hoort het mee te veranderen — anders kijk je naar de vorige keuze.
+document.addEventListener('change', (e) => {
+  const naam = e.target?.name;
+  if (naam !== 'data_briefstijl' && naam !== 'data_docType') return;
+  const vak = document.querySelector('.perkament-voorbeeld:not(.hidden)');
+  if (vak) window._perkamentTab(vak.id.replace(/-voorbeeld$/, ''), 'voorbeeld');
+});
+
 // Schakelen tussen schrijven en kijken. Het voorbeeld gebruikt dezelfde
 // `renderParchment` als het detailvenster en leest de stijl uit de velden die
 // nú in het formulier staan — kies je een ander documenttype of een andere
@@ -6698,7 +6714,10 @@ window._openEditor = async (tab, editId) => {
         <div>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <select name="data_${field.key}"${_selOnchange} class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-            <option value="">—</option>
+            <!-- Een lege regel bovenaan, tenzij de lijst er zelf al een heeft
+                 met een eigen woord erbij ("Automatisch (volgt het type)").
+                 Twee keer "geen keuze" onder elkaar leest als een fout. -->
+            ${(field.options || []).some(o => (typeof o === 'object' ? o.value : o) === '') ? '' : '<option value="">—</option>'}
             ${_optiesHtml(field, val)}
           </select>
           ${field.meldingen ? `<div class="veld-melding" id="veld-melding-${field.key}">${_veldMeldingHtml(field.meldingen, val)}</div>` : ''}
