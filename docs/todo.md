@@ -321,8 +321,7 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       de voorrekening ernaast, bericht terug via `_meldVerzoekAntwoord`. Geen
       automatische weigering; hieronder stond al waarom, en dat blijft gelden.
 
-      *Oorspronkelijke notitie:*
-- [x] ~~**Een spreuk in je boek hoort langs de DM.**~~ Vanuit het spreukentabblad zet
+      *Zoals het er stond:* Vanuit het spreukentabblad zet
       een speler nu rechtstreeks een spreuk in zijn boek: `POST
       /player-spells/:characterId` laat het toe zodra het zijn eigen personage
       is (`render-spreuken.js` → `addToBook`). Bij een **voorwerp** gaat dat
