@@ -93,6 +93,17 @@ opnieuw om te zetten.
 > is gehasht, dus via de API inloggen kan niet zonder dat wachtwoord; een
 > gegevenswijziging daar gaat met een node-script op de server (backup eerst).
 
+> **De campagne `Test` is gevuld om weergaven te kunnen beoordelen** (11 sep 2026).
+> Alle proefkaartjes hebben een herkenbaar id (`t_seed_doc_*`, `e_test_seed_*`,
+> `loc_test_seed_*`, `gv_test_seed_*`) en zijn dus in één greep terug te vinden
+> of weg te gooien. Er staat één document per **briefstijl** (hand, hand2,
+> machine, drukwerk, knipsel, oud), één waarbij `briefstijl` het type
+> overschrijft, één op **vaag** (waas-test), één met een **pdf-scan** en één met
+> een **geluidsfragment**, plus een personage met portret én startscherm-filmpje,
+> een locatie met gevel en een Armor met AC, Stealth-nadeel, Strength-eis en
+> attunement. De media zijn **kopieën uit Grisburgh** met een eigen id; daar
+> raakt dus niets zoek als je hier opruimt.
+
 **Testgroep:** Groep 3 (ID: `groep_1777039899017_94g1`)
 
 | Karakter | ID | Klasse |

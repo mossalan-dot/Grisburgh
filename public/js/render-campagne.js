@@ -4310,9 +4310,17 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // geluidsfragment). Een afbeelding staat al bovenaan als hero, dus die slaan
   // we hier over. Bij een vaag document geeft de server niets mee; dan één slot.
   if (tab === 'documenten') {
-    if (e._visibility === 'vague') {
+    // Een vaag document geeft de server aan een speler leeg mee, dus daar rest
+    // een slot. De **DM** krijgt de tekst wél: hij ziet overal alles, en het is
+    // zijn eigen document — zonder dit moest hij het eerst onthullen om te
+    // kunnen lezen wat hij zelf geschreven had. Wat de party ziet staat als
+    // regel boven de tekst.
+    if (e._visibility === 'vague' && !isDM()) {
       infoHtml += `<div class="doc-slot">${icon('lock')}<span>Nog niet volledig onthuld</span></div>`;
     } else {
+      if (e._visibility === 'vague') {
+        infoHtml += `<div class="doc-vaagmelding">${icon('eye-off')} Staat op <strong>vaag</strong>: de party ziet hier een slot en geen tekst.</div>`;
+      }
       if (e.data?.tekst) {
         // In het venster staat een inkijk met een vervloeiende onderrand; de
         // hele brief lees je vergroot, want een lange tekst duwde de rest van

@@ -291,8 +291,10 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
 - [ ] **Blanco kaartjes in het dashboard**: documenten hebben een andere maat
       dan de andere archieftabbladen.
 
-- [ ] **Testomgeving vullen met documenten** in verschillende handschriften, om
-      de briefstijlen echt te kunnen bekijken.
+- [x] **Testomgeving gevuld** (11 sep 2026): één document per briefstijl, een
+      stijl-override, een vaag document, een pdf-scan, een geluidsfragment, een
+      personage met filmpje, een locatie met gevel en een Armor met alle
+      mechanische velden. Zie de sectie *Testomgeving* in CLAUDE.md.
 
 - [x] **Voorwerp-detail: leeg valutaveld — opgelost 9 sep 2026.** Het was geen
       weergavefout: *Kroon van Vlas* in de testomgeving had letterlijk

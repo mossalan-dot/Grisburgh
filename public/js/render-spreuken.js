@@ -262,23 +262,11 @@ function _filterBar() {
     : `<select class="spreuk-class-select" onchange="window.spreuken.setKlasse(this.value)">${klasOpts.join('')}</select>`;
   // De school stond wel groot op elk kaartje (met een eigen kleur) maar viel niet
   // te filteren, terwijl dat de indeling is waar een caster in denkt. Acht
-  // scholen is wel een brede rij, dus die zit achter dezelfde trechterknop als
-  // op de andere tabbladen — niveau, klasse en de twee eigenschappen staan er
-  // altijd, want daar grijp je het vaakst naar.
+  // scholen is een brede rij, dus die zit achter een trechterknop — en sinds
+  // 11 sep staan Ritual en Concentration daar bij: het zijn filters op een
+  // eigenschap, net als de school, en de balk werd anders een muur van knoppen.
+  // Altijd zichtbaar blijven niveau en klasse; daar grijp je het vaakst naar.
   const scholen = [...new Set((_all || []).map(_school).filter(Boolean))].sort();
-  const scholenUit = !_scholenOpen && !_filters.school;
-  const schoolKnop = scholen.length ? `
-    <button class="sf-toggle-btn${_filters.school ? ' sf-toggle-btn--active' : ''}" onclick="window.spreuken.toggleScholen()"
-      title="Filter op school"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : '';
-  const schoolRij = scholen.length ? `
-    <div class="spreuk-scholen${scholenUit ? ' spreuk-scholen--dicht' : ''}">
-      <button class="spreuk-school-btn${_filters.school ? '' : ' active'}" onclick="window.spreuken.setSchool(null)">Alle scholen</button>
-      ${scholen.map(sc => {
-        const c = _schoolCol(sc);
-        return `<button class="spreuk-school-btn${_filters.school === sc ? ' active' : ''}"
-          style="--school-c2:${c.c2}" onclick="window.spreuken.setSchool('${esc(sc)}')">${icon(c.icon)} ${esc(sc)}</button>`;
-      }).join('')}
-    </div>` : '';
   // Ritual en concentration stonden al als tag op het kaartje, maar je kon er
   // niet op filteren — terwijl "welke van mijn spreuken kosten concentratie?"
   // een vraag is die je aan tafel stelt.
@@ -287,12 +275,26 @@ function _filterBar() {
       onclick="window.spreuken.toggleEigenschap('ritual')" title="Alleen spreuken die als ritual gecast kunnen worden">${icon('scroll-text')} Ritual</button>
     <button class="spreuk-school-btn spreuk-eig-btn${_filters.concentratie ? ' active' : ''}"
       onclick="window.spreuken.toggleEigenschap('concentratie')" title="Alleen spreuken die concentration vragen">${icon('eye')} Concentration</button>`;
+  const _eigAan = !!(_filters.ritual || _filters.concentratie);
+  const scholenUit = !_scholenOpen && !_filters.school && !_eigAan;
+  const schoolKnop = `
+    <button class="sf-toggle-btn${(_filters.school || _eigAan) ? ' sf-toggle-btn--active' : ''}" onclick="window.spreuken.toggleScholen()"
+      title="Filter op school, ritual en concentration"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>`;
+  const schoolRij = `
+    <div class="spreuk-scholen${scholenUit ? ' spreuk-scholen--dicht' : ''}">
+      ${scholen.length ? `<button class="spreuk-school-btn${_filters.school ? '' : ' active'}" onclick="window.spreuken.setSchool(null)">Alle scholen</button>
+      ${scholen.map(sc => {
+        const c = _schoolCol(sc);
+        return `<button class="spreuk-school-btn${_filters.school === sc ? ' active' : ''}"
+          style="--school-c2:${c.c2}" onclick="window.spreuken.setSchool('${esc(sc)}')">${icon(c.icon)} ${esc(sc)}</button>`;
+      }).join('')}` : ''}
+      ${eigenschappen}
+    </div>`;
   return `
     <div class="spreuk-filters">
       <div class="spreuk-levels">${levels.join('')}</div>
       ${toggle}
       ${select}
-      ${eigenschappen}
       ${schoolKnop}
       ${schoolRij}
     </div>`;

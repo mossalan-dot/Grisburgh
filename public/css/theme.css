@@ -24387,3 +24387,14 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   color: #5ecb6e; text-shadow: 0 0 30px rgba(80,210,100,0.7), 0 0 60px rgba(40,160,70,0.3);
 }
 .sb-dice-card--heal .sb-dice-result.rolling { color: rgba(170,235,180,0.45); text-shadow: none; }
+
+/* De DM leest een vaag document gewoon; deze regel zegt wat de party ziet. */
+.doc-vaagmelding {
+  display: flex; align-items: center; gap: 7px;
+  margin: 0 0 10px; padding: 7px 10px;
+  border: 1px dashed rgba(196,168,122,0.6); border-radius: 6px;
+  background: rgba(255,255,255,0.22);
+  font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: 0.86rem; color: #7a6040;
+}
+.doc-vaagmelding .icon { width: 15px; height: 15px; flex: none; }
