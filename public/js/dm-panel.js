@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=283';
+import { api, huidigeCampagne } from './api.js?v=284';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -463,8 +463,60 @@ export function initDmPanel() {
     partyLidWeg:             (id, naam, party) => _partyLidWeg(id, naam, party),
     regieBalkLoad:           (key, title) => _loadRegieBalk(key, title),
     regieBalkReveal:         (id) => _revealRegieBalkItem(id),
+
+    // PKCE: de verifier blijft in deze browser, alleen de code gaat straks naar de
+    // server. Zo staat er nergens een client secret — die bestaat niet eens.
+    async spotifyKoppel() {
+      const clientId = document.getElementById('inst-spotify-client')?.value.trim();
+      if (!clientId) { alert('Vul eerst de client-id in.'); return; }
+      await api.spotifyMeta({ clientId });
+      const verifier = [...crypto.getRandomValues(new Uint8Array(64))]
+        .map(b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'[b % 66]).join('');
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+      const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      sessionStorage.setItem('spotify_verifier', verifier);
+      const st = await api.spotifyStatus();
+      const url = new URL('https://accounts.spotify.com/authorize');
+      url.searchParams.set('client_id', clientId);
+      url.searchParams.set('response_type', 'code');
+      url.searchParams.set('redirect_uri', _spotifyRedirect());
+      url.searchParams.set('code_challenge_method', 'S256');
+      url.searchParams.set('code_challenge', challenge);
+      url.searchParams.set('scope', st.scopes);
+      location.href = url.toString();
+    },
+    async spotifyOntkoppel() {
+      if (!confirm('De koppeling met Spotify verbreken?')) return;
+      await api.spotifyOntkoppel();
+      _spotifyInstellingen();
+    },
+    async spotifyDoel(doel) {
+      await api.spotifyMeta({ doel });
+      _spotifyInstellingen();
+    },
+    async spotifyApparaten() {
+      try {
+        const d = await api.spotifyApparaten();
+        const sel = document.getElementById('inst-spotify-apparaat');
+        if (!sel) return;
+        const lijst = d?.devices || [];
+        sel.innerHTML = `<option value="">— wat op dat moment actief is —</option>`
+          + lijst.map(x => `<option value="${esc(x.id)}"${x.is_active ? ' selected' : ''}>${esc(x.name)}${x.is_active ? ' (actief)' : ''}</option>`).join('');
+        if (!lijst.length) alert('Geen apparaten gevonden. Open Spotify op de computer of telefoon waar het geluid uit moet komen.');
+      } catch (e) { alert(e.message); }
+    },
+    async spotifyApparaatKies(sel) {
+      await api.spotifyMeta({
+        apparaatId: sel.value,
+        apparaatNaam: sel.value ? sel.options[sel.selectedIndex].textContent.replace(/ \(actief\)$/, '') : '',
+      });
+    },
+    async spotifyVolume(v) { await api.spotifyMeta({ volume: v === '' ? undefined : v }); },
     regieBalkRust:           (id) => _regieBalkRust(id),
     regieBalkLoot:           (id) => _regieBalkLoot(id),
+    regieBalkMuziek:         (id) => _regieBalkMuziek(id),
+    regieBalkMuziekPauze:    () => api.spotifyPauze().catch(e => alert(e.message)),
     verhaalToggle:           () => _verhaalToggleP(),
     verhaalStap:             (d) => _verhaalStap(d),
     verhaalGaNaar:           (i) => _verhaalGaNaar(i),
@@ -1977,6 +2029,8 @@ function _renderRegieBalkItem(item) {
     thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-brief">${icon('mail')}</div>`;
   } else if (item.type === 'loot') {
     thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-loot">${icon('coins')}</div>`;
+  } else if (item.type === 'muziek') {
+    thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-muziek">${icon('music')}</div>`;
   } else {
     const entityIcon = item.type === 'entity'
       ? (ENTITY_ICONS[item.entityType] || icon('eye'))
@@ -2005,6 +2059,10 @@ function _renderRegieBalkItem(item) {
     // Vondst-stap: bouwt de verdeling en opent het lootvenster. Blijft klikbaar —
     // een kamer kan twee keer bezocht worden.
     actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkLoot('${esc(item.id)}')" title="Vondst onthullen">${icon('coins')}</button>`;
+  } else if (item.type === 'muziek') {
+    // Muziek-stap: druk op play bij Spotify. Blijft klikbaar — dezelfde sfeer kan
+    // later in de akte terugkomen, en na een pauze wil je 'm opnieuw starten.
+    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkMuziek('${esc(item.id)}')" title="Muziek starten${item.herhaal ? ' (blijft herhalen)' : ''}">${icon('play')}</button>`;
   } else if (item.type === 'brief') {
     // Brief-stap: verstuur naar de gekozen ontvanger(s) + grote reveal op de tablet.
     // Blijft klikbaar (opnieuw sturen mag); de check-overlay markeert dat 'm verstuurd is.
@@ -2509,6 +2567,21 @@ function _regieBalkRust(itemId) {
 // Vondst-stap in de regie-balk: bouwt de verdeling en opent het lootvenster —
 // dezelfde weg als het muntje in een dungeonkamer. Blijft klikbaar, want een
 // kamer kan twee keer bezocht worden.
+// Muziek starten vanuit de balk. De server weet waar het geluid uit moet komen
+// (eigen apparaat of tafelscherm); hier hoeven we alleen te zeggen wat en of het
+// moet blijven herhalen.
+async function _regieBalkMuziek(itemId) {
+  const item = _rbScript.find(x => x.id === itemId);
+  if (!item || item.type !== 'muziek' || !item.uri) return;
+  try {
+    await api.spotifySpeel({ uri: item.uri, herhaal: !!item.herhaal });
+    _rbRevealed.add(itemId);
+    _rbUpdateItem(itemId);
+  } catch (e) {
+    alert(e.message + (/gekoppeld/i.test(e.message) ? '\n\nKoppel Spotify bij Instellingen → Muziek.' : ''));
+  }
+}
+
 async function _regieBalkLoot(itemId) {
   const item = _rbScript.find(x => x.id === itemId);
   if (!item || item.type !== 'loot' || !item.lootId) return;
@@ -10043,6 +10116,13 @@ async function _renderInstellingen() {
         </div>
       </details>`}`)}
 
+    <!-- Muziek uit Spotify: Grisburgh speelt zelf niets af, het drukt op play.
+         Waar dat geluid uitkomt kiest de DM hier. -->
+    ${_instSectie('spotify', 'Muziek (Spotify)', `
+      <div id="inst-spotify">
+        <p class="dm-hint">Laden…</p>
+      </div>`)}
+
     <!-- Export & backup -->
     ${_instSectie('export', 'Export &amp; backup', `
       <div class="dm-feature-row dm-knoprij">
@@ -10063,6 +10143,8 @@ async function _renderInstellingen() {
       <span id="inst-status" class="bericht-status hidden"></span>
     </div>
   `;
+
+  _spotifyInstellingen();
 
   // Enter in een veld slaat op. Zonder dit gebeurde er niets: de knop staat
   // onderaan, en velden die zichzelf bewaren (party's, campagnes) hebben een
@@ -10119,6 +10201,78 @@ async function _renderInstellingen() {
 
 // Eén knop voor alles wat niet vanzelf bewaart. Party's en hun wachtwoorden
 // slaan zichzelf op zodra je ze wijzigt; die zitten hier bewust niet in.
+// ── Spotify-instellingen ─────────────────────────────────────────────────────
+// Drie dingen: koppelen (eenmalig), waar de muziek uit moet komen, en hoe hard.
+// De client-id vult de DM zelf in — die hoort bij zíjn Spotify-app, niet bij
+// onze code, en hij is niet geheim (PKCE kent geen client secret).
+function _spotifyRedirect() {
+  // Precies dit adres moet in het Spotify-dashboard staan. Geen querystring,
+  // geen slash op het eind: Spotify vergelijkt letterlijk.
+  return (location.origin + location.pathname).replace(/\/$/, '');
+}
+
+async function _spotifyInstellingen() {
+  const host = document.getElementById('inst-spotify');
+  if (!host) return;
+  let st = null;
+  try { st = await api.spotifyStatus(); } catch { host.innerHTML = '<p class="dm-hint">Kon de Spotify-status niet ophalen.</p>'; return; }
+
+  const redirect = _spotifyRedirect();
+  host.innerHTML = `
+    <div class="dm-form-row">
+      <label class="dm-form-label" for="inst-spotify-client">Client-id</label>
+      <input id="inst-spotify-client" class="dm-input" value="${esc(st.clientId)}"
+        placeholder="32 tekens uit developer.spotify.com" style="max-width:340px">
+    </div>
+    <p class="dm-hint">Maak op <b>developer.spotify.com/dashboard</b> een app aan en zet dit adres erbij als
+      <i>Redirect URI</i>: <code class="dm-code">${esc(redirect)}</code> — kies daar <i>Web API</i>${st.doel === 'tafel' ? ' én <i>Web Playback SDK</i>' : ''}.</p>
+    <div class="dm-feature-row dm-knoprij">
+      ${st.gekoppeld
+        ? `<span class="dm-spotify-aan">${icon('check-circle')} Gekoppeld${st.naam ? ` als <b>${esc(st.naam)}</b>` : ''}</span>
+           <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.spotifyOntkoppel()">${icon('x')} Ontkoppelen</button>`
+        : `<button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window.dmPanel.spotifyKoppel()">${icon('play')} Koppelen met Spotify</button>`}
+    </div>
+    ${st.gekoppeld && st.premium === false
+      ? `<p class="dm-hint" style="color:#8b2a2a">Dit account heeft geen Premium. Afspelen op afstand werkt daar niet mee — Spotify weigert het.</p>` : ''}
+    <div class="dm-form-row">
+      <label class="dm-form-label">Geluid uit</label>
+      <div class="dm-knoprij">
+        <button class="dm-btn dm-btn-sm${st.doel !== 'tafel' ? ' dm-btn-primary' : ' dm-btn-ghost'}"
+          onclick="window.dmPanel.spotifyDoel('dm')" title="Het apparaat waarop jij Spotify hebt draaien">${icon('monitor')} Mijn eigen apparaat</button>
+        <button class="dm-btn dm-btn-sm${st.doel === 'tafel' ? ' dm-btn-primary' : ' dm-btn-ghost'}"
+          onclick="window.dmPanel.spotifyDoel('tafel')" title="Het tafelscherm meldt zich aan als Spotify-speler">${icon('monitor')} Het tafelscherm</button>
+      </div>
+    </div>
+    ${st.doel === 'tafel'
+      ? `<p class="dm-hint">${st.tafelKlaar
+          ? 'Het tafelscherm heeft zich gemeld en is klaar om te spelen.'
+          : 'Het tafelscherm meldt zich zodra het geopend is en de koppeling staat. Het moet wel geluid mógen maken: tik er één keer op.'}</p>`
+      : `<div class="dm-form-row">
+          <label class="dm-form-label" for="inst-spotify-apparaat">Vast apparaat</label>
+          <!-- Select en knop in één rij: los in een .dm-form-row rekt een knop
+               over de volle breedte uit. -->
+          <div class="dm-knoprij" style="align-items:center">
+            <select id="inst-spotify-apparaat" class="dm-input" style="max-width:280px"
+              onchange="window.dmPanel.spotifyApparaatKies(this)">
+              <option value="">— wat op dat moment actief is —</option>
+              ${st.apparaatId ? `<option value="${esc(st.apparaatId)}" selected>${esc(st.apparaatNaam || st.apparaatId)}</option>` : ''}
+            </select>
+            <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window.dmPanel.spotifyApparaten()"
+              title="Lijst met apparaten ophalen">${icon('refresh-cw')}</button>
+          </div>
+        </div>`}
+    <div class="dm-form-row">
+      <label class="dm-form-label" for="inst-spotify-volume">Volume</label>
+      <input id="inst-spotify-volume" class="dm-input dm-input-sm" type="number" min="0" max="100" style="width:90px"
+        value="${st.volume ?? ''}" placeholder="—" onchange="window.dmPanel.spotifyVolume(this.value)">
+      <span class="dm-hint">Leeg = laten zoals het staat.</span>
+    </div>`;
+
+  document.getElementById('inst-spotify-client')?.addEventListener('change', async (e) => {
+    try { await api.spotifyMeta({ clientId: e.target.value.trim() }); } catch { /* melding volgt bij koppelen */ }
+  });
+}
+
 window._instOpslaan = async () => {
   const status = document.getElementById('inst-status');
   const melden = (tekst, ok = true) => {

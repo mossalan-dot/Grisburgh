@@ -1,6 +1,6 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=283';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=284';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=296";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=86";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=87";
 import { renderKaart, queueFlyTo, verversPins } from './render-kaart.js?v=27';
 import { renderDungeon } from './render-dungeon.js?v=37';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=28';
 import { renderSpreuken } from './render-spreuken.js?v=38';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=72";
-import { initDmPanel } from "./dm-panel.js?v=221";
+import { initDmPanel } from "./dm-panel.js?v=223";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -64,6 +64,39 @@ const _displayGevraagd = new URLSearchParams(location.search).get('display');
 if (_displayGevraagd === '0') localStorage.removeItem('displayMode');
 window._isDisplayMode = localStorage.getItem('displayMode') === '1';
 if (window._isDisplayMode) document.body.classList.add('display-mode');
+
+// ── Terug van Spotify ───────────────────────────────────────────────────────
+// De toestemmingspagina stuurt je terug naar het campagne-adres met `?code=`.
+// De verifier staat nog in deze browser (sessionStorage); samen gaan ze naar de
+// server, die de tokens bewaart — ook voor het tafelscherm, dat zelf nooit door
+// deze dans heen komt.
+async function _spotifyTerugkeer() {
+  const q = new URLSearchParams(location.search);
+  const code = q.get('code');
+  const verifier = sessionStorage.getItem('spotify_verifier');
+  if (!code || !verifier) {
+    // Toestemming geweigerd? Dat zegt Spotify met ?error=, en dat hoort de DM te weten.
+    if (q.get('error')) {
+      history.replaceState({}, '', location.pathname);
+      window._showToast?.(`${window.icon('x')} Spotify-koppeling afgebroken: ${q.get('error')}`, null, 6000);
+    }
+    return;
+  }
+  sessionStorage.removeItem('spotify_verifier');
+  history.replaceState({}, '', location.pathname);   // de code hoort niet in de adresbalk te blijven staan
+  try {
+    const r = await api.spotifyKoppel({
+      code, verifier,
+      redirectUri: (location.origin + location.pathname).replace(/\/$/, ''),
+    });
+    window._showToast?.(`${window.icon('check-circle')} Spotify gekoppeld${r.naam ? ` als <b>${r.naam}</b>` : ''}`, null, 5000);
+    if (r.premium === false) {
+      window._showToast?.(`${window.icon('x')} Let op: dit account heeft geen Premium, dus afspelen op afstand werkt niet.`, null, 8000);
+    }
+  } catch (e) {
+    window._showToast?.(`${window.icon('x')} Spotify koppelen mislukt: ${e.message}`, null, 8000);
+  }
+}
 
 // Zet dit scherm alsnog om, nu de rol bekend is.
 function _displayModeInlossen() {
@@ -10107,6 +10140,7 @@ async function init() {
 
   // iPad kiosk-modus: sla landingspagina over, toon display canvas
   _displayModeInlossen();
+  if (state.role === 'dm') _spotifyTerugkeer();
   if (window._isDisplayMode) {
     _initDisplayMode();
   } else if (state.role === 'player' && state.playerName && state.characterId) {
@@ -10224,12 +10258,54 @@ function _initDisplayMode() {
     if (subEl) subEl.textContent = meta?.appSubtitle || '';
   }).catch(() => {});
   _buildIdleEmbers(_huidigeSfeer);
+  _spotifyTafelspeler();
   // Het tafelscherm heeft een eigen, volledige gevechtsweergave (.co-display in
   // dm-panel.js) — nooit geminimaliseerd. Voorheen werd hier 'minimized' gezet
   // terwijl socket-client.js het er bij elke combat:updated weer afhaalde; die
   // tegenstrijdigheid liet de tablet in de spelerslayout landen, die de kiosk-CSS
   // volledig verbergt (leeg wit scherm). initDmPanel() rendert de overlay al met
   // de juiste staat, dus hier is niets meer nodig.
+}
+
+// Het tafelscherm als Spotify-speler. Alleen als de DM dat zo ingesteld heeft
+// (`meta.spotify.doel === 'tafel'`): dan laadt dit scherm de Web Playback SDK,
+// meldt zich als apparaat "Grisburgh" en geeft zijn device-id aan de server.
+// Vanaf dat moment zijn de play-opdrachten uit de regie voor dít scherm.
+//
+// Twee dingen die een browser nu eenmaal eist: geluid mag pas na een tik op het
+// scherm (daarom de tip in de instellingen), en het token verloopt — de SDK
+// vraagt er zelf een nieuwe op via de callback die we meegeven.
+async function _spotifyTafelspeler() {
+  try {
+    const meta = window.app?.state?.meta || await api.getMeta?.() || {};
+    if (meta.spotify?.doel !== 'tafel') return;
+    let eerste;
+    try { eerste = (await api.spotifyToken()).token; } catch { return; }   // niet gekoppeld
+    if (!eerste) return;
+    await new Promise((klaar, mis) => {
+      const el = document.createElement('script');
+      el.src = 'https://sdk.scdn.co/spotify-player.js';
+      el.onload = klaar; el.onerror = mis;
+      document.head.appendChild(el);
+    });
+    await new Promise(klaar => { window.onSpotifyWebPlaybackSDKReady = klaar; });
+    const speler = new window.Spotify.Player({
+      name: 'Grisburgh (tafelscherm)',
+      volume: (meta.spotify?.volume ?? 60) / 100,
+      getOAuthToken: async (cb) => {
+        try { cb((await api.spotifyToken()).token); } catch { /* dan valt de muziek stil */ }
+      },
+    });
+    speler.addListener('ready', ({ device_id }) => {
+      api.spotifyTafelApparaat(device_id).catch(() => {});
+    });
+    speler.addListener('not_ready', () => { api.spotifyTafelApparaat('').catch(() => {}); });
+    for (const soort of ['initialization_error', 'authentication_error', 'account_error', 'playback_error']) {
+      speler.addListener(soort, ({ message }) => console.warn('[spotify]', soort, message));
+    }
+    speler.connect();
+    window._spotifySpeler = speler;
+  } catch (e) { console.warn('[spotify] tafelspeler niet gestart:', e.message); }
 }
 
 window._displayExit = function() {

@@ -24659,3 +24659,26 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
 .kg-card-vis--none      { color: #d8cdbb; }
 .kg-card-vis--active    { color: #e8c870; }
 .kg-card-vis--completed { color: #86d194; }
+
+/* ── Muziek uit Spotify ──────────────────────────────────────────────────────
+   De zoekuitslag in de akte-picker: een rij met hoesje, naam en soort. */
+.script-muziek-uitslag { display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; }
+.script-muziek-rij {
+  display: flex; align-items: center; gap: 8px; text-align: left; width: 100%;
+  padding: 4px 6px; line-height: 1.25;
+}
+.script-muziek-rij img { width: 32px; height: 32px; object-fit: cover; border-radius: 3px; flex-shrink: 0; }
+.script-muziek-rij .icon { width: 18px; height: 18px; flex-shrink: 0; }
+.script-muziek-rij small { color: #7a6040; font-style: italic; }
+.script-muziek-herhaal {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Crimson Text', Georgia, serif; font-size: 12px; color: #5a4030; white-space: nowrap;
+}
+.dm-rb-entity-muziek { color: #2a6a4a; }
+.dm-spotify-aan { display: inline-flex; align-items: center; gap: 6px; color: #2a6030; font-family: 'Crimson Text', Georgia, serif; }
+.dm-spotify-aan .icon { width: 15px; height: 15px; }
+.dm-code {
+  font-family: 'SFMono-Regular', Menlo, monospace; font-size: 11px;
+  background: rgba(122,90,32,0.1); border: 1px solid rgba(196,168,122,0.4);
+  border-radius: 3px; padding: 1px 5px; user-select: all;
+}

@@ -544,6 +544,15 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 ---
 
+### Muziek (Spotify)
+
+- [ ] **Koppelen** (DM) — Instellingen → Muziek: client-id invullen, *Koppelen met Spotify*, toestemming geven. Je komt terug in de campagne met een melding "Spotify gekoppeld als …"; het adres in de balk bevat daarna geen `?code=` meer
+- [ ] **Zoeken en toevoegen** (DM) — Aktes → regie-script → muzieknoot: typ een titel, kies een resultaat. De stap staat in het script met naam en artiest, en met "— herhalen" als je dat vinkje aan had
+- [ ] **Starten tijdens het spelen** (DM) — muzieknoot in de regie-balk: de muziek begint op het gekozen apparaat. Nog een keer klikken start 'm opnieuw
+- [ ] **Geen Spotify open** (DM) — zet alles uit en klik de stap aan: je krijgt "Geen actief Spotify-apparaat gevonden", geen stille mislukking
+- [ ] **Tafelscherm als speler** (TAB) — zet *Geluid uit* op het tafelscherm, ververs de tablet en tik er één keer op: het meldt zich als apparaat en de muziek komt daar uit
+- [ ] **Herhalen** (DM) — een stap met herhalen blijft doorspelen; zonder herhaling stopt hij na het nummer
+
 ## Bevindingen
 
 Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.

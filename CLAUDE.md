@@ -240,9 +240,9 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=582   app.js?v=734   sound-manager.js?v=8
-app.js      : api.js?v=283  dm-panel.js?v=221  media-picker.js?v=8
-              render-archief.js?v=86  render-bestiarium.js?v=28  render-campagne.js?v=296
+index.html  : theme.css?v=583   app.js?v=736   sound-manager.js?v=8
+app.js      : api.js?v=284  dm-panel.js?v=223  media-picker.js?v=8
+              render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=296
               render-dashboard.js?v=9  render-dungeon.js?v=37  render-kaart.js?v=27
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
@@ -684,6 +684,41 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > **één keer per blok** uitgelegd (`seen` in `_sbGlossWalk`), en bij gelijke
 > startpositie wint de langste match — vandaar dat "Requires Attunement" naast
 > "Attunement" kan staan.
+
+> **Muziek uit Spotify (akteregie).** Grisburgh speelt zelf niets af; het drukt
+> op play bij Spotify. `lib/spotify.js` doet de OAuth (PKCE — er is géén client
+> secret) en de player-endpoints; het regie-script kent een **9e staptype
+> `muziek`** (`{type:'muziek', uri, name, herhaal}`), toe te voegen met de
+> muzieknoot in de picker en tijdens het spelen te starten met de muzieknoot in
+> de regie-balk (`_regieBalkMuziek`).
+>
+> **Waar het geluid uitkomt kiest de DM**: `meta.spotify.doel` is `'dm'` (het
+> apparaat waarop hij Spotify al heeft draaien — de server stuurt een play zonder
+> device-id, of naar een vast gekozen apparaat) of `'tafel'` (het tafelscherm
+> laadt de Web Playback SDK, meldt zich als apparaat en geeft zijn device-id door
+> via `POST /spotify/tafel-apparaat`). Eén keer of in herhaling staat per stap
+> (`herhaal` → `PUT /me/player/repeat`, `track` bij een nummer en `context` bij
+> een album of afspeellijst).
+>
+> **De client-id vult de DM zelf in** (Instellingen → Muziek), want die hoort bij
+> zíjn Spotify-app; hij is niet geheim. De **redirect-URI moet letterlijk het
+> campagne-adres zijn** (`https://grisburgh.nl/grisburgh`) — dat adres staat in
+> het instellingenblok klaar om te kopiëren. Een tweede campagne heeft dus een
+> eigen redirect-URI in het Spotify-dashboard.
+>
+> **Premium is verplicht** (de player-endpoints geven 403 op een gratis account),
+> en er speelt maar **één stream per account**: luistert de DM elders mee, dan
+> kapen ze elkaar. Een app in development mode mag 25 gebruikers hebben — voor
+> één DM ruim genoeg, dus geen quota-aanvraag nodig.
+>
+> **De tokens staan buiten `data/campaigns/`** (in `data/spotify/<campagne>.json`,
+> 0600). De nachtelijke backup kopieert álle JSON uit de campagnemap, en een
+> refresh-token is een sleutel tot iemands account — die hoort niet dertig dagen
+> aan snapshots te staan.
+>
+> De bestaande geluidenbibliotheek blijft wat hij is: korte klanken en sfeerloops
+> horen lokaal, want die moeten precies op het juiste moment klinken en werken
+> zonder account of internet. Spotify is voor de lange muziek eronder.
 
 ---
 

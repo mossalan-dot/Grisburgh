@@ -1,4 +1,4 @@
-import { api } from './api.js?v=283';
+import { api } from './api.js?v=284';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -1344,7 +1344,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
                     ? icon('coins')
                     : item.type === 'kop'
                       ? icon('minus')
-                      : icon('crossed-swords', { cls: 'icon-gi' });
+                      : item.type === 'muziek'
+                        ? icon('music')
+                        : icon('crossed-swords', { cls: 'icon-gi' });
         // Rust-stap: vaste, niet-bewerkbare label ("Lange rust — Herberg").
         const rustLabel = item.type === 'rust'
           ? `${item.restType === 'long' ? 'Lange' : 'Korte'} rust — ${item.locatie === 'herberg' ? 'Herberg' : 'Veld'}`
@@ -1355,6 +1357,10 @@ function _renderAkteScriptInner(ch, info, chEntries) {
           : '';
         // Image-stappen: inline bewerkbaar onderschrift (spelers zien dit bij een reveal).
         // Andere types tonen hun (niet-bewerkbare) entiteit-/encounter-/rust-naam.
+        // Muziek-stap: naam plus of hij blijft herhalen.
+        const muziekLabel = item.type === 'muziek'
+          ? `${item.name || 'Muziek'}${item.herhaal ? ' — herhalen' : ''}`
+          : '';
         const nameHtml = item.type === 'image'
           ? `<input class="script-item-name script-item-name--input" value="${esc(item.caption || '')}" placeholder="Onderschrift…"
                onchange="window._scriptRename('${esc(ch)}','${esc(item.id)}',this.value)"
@@ -1363,7 +1369,10 @@ function _renderAkteScriptInner(ch, info, chEntries) {
             ? `<input class="script-item-name script-item-name--input script-item-name--kop" value="${esc(item.titel || '')}" placeholder="Naam van de sectie…"
                  onchange="window._scriptKopHernoem('${esc(ch)}','${esc(item.id)}',this.value)"
                  onkeydown="if(event.key==='Enter'){this.blur();}">`
-            : `<span class="script-item-name">${esc(item.type === 'rust' ? rustLabel : item.type === 'brief' ? briefLabel : (item.name || '—'))}</span>`;
+            : `<span class="script-item-name">${esc(item.type === 'rust' ? rustLabel
+                : item.type === 'brief' ? briefLabel
+                : item.type === 'muziek' ? muziekLabel
+                : (item.name || '—'))}</span>`;
         // Thumbnail-box met placeholder-icoon eronder: laadt de afbeelding niet (of
         // ontbreekt fileId, bv. bij een geluid-stap), dan blijft het nette icoon staan
         // i.p.v. het lelijke browser-"broken image"-vraagteken (onerror verwijdert de img).
@@ -1510,6 +1519,17 @@ function _renderAkteScriptInner(ch, info, chEntries) {
           }).join('')}
         </div>`;
     }
+  } else if (pickerState.mode === 'muziek') {
+    // Zoeken gaat via de server (die heeft het token); de DM typt en kiest.
+    pickerHtml = `<p class="dm-hint" style="margin:0 0 6px">Zoek een nummer, album of afspeellijst. Tijdens het spelen start je 'm met de muzieknoot in de regie-balk.</p>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+        <input class="dm-input" id="script-muziek-q-${esc(ch)}" placeholder="Zoek in Spotify…"
+          style="flex:1;font-size:12px" oninput="window._scriptMuziekZoek('${esc(ch)}')">
+        <label class="script-muziek-herhaal" title="Blijven herhalen tot je iets anders start">
+          <input type="checkbox" id="script-muziek-herhaal-${esc(ch)}"> herhalen
+        </label>
+      </div>
+      <div id="script-muziek-uitslag-${esc(ch)}" class="script-muziek-uitslag"></div>`;
   } else if (pickerState.mode === 'brief') {
     pickerHtml = `<p class="dm-hint" style="margin:0 0 6px">Stel een brief op — tijdens het spelen verstuur je 'm vanuit de regie-balk (groot op de tablet + in Berichten):</p>
       <button class="dm-btn dm-btn-sm dm-btn-primary" onclick="window._scriptBriefCompose('${esc(ch)}')">${icon('mail')} Nieuwe brief opstellen…</button>`;
@@ -1543,6 +1563,9 @@ function _renderAkteScriptInner(ch, info, chEntries) {
         <button class="script-add-btn${pickerState.mode === 'brief'? ' is-active' : ''}"
           title="Brief toevoegen"
           onclick="window._scriptTogglePicker('${esc(ch)}','brief')">${icon('mail')}</button>
+        <button class="script-add-btn${pickerState.mode === 'muziek'? ' is-active' : ''}"
+          title="Muziek toevoegen (Spotify)"
+          onclick="window._scriptTogglePicker('${esc(ch)}','muziek')">${icon('music')}</button>
       </div>
     </div>
     <div class="logboek-script-items">${scriptHtml}</div>
@@ -1907,6 +1930,39 @@ window._scriptKopHernoem = async (ch, id, titel) => {
 window._scriptAddLoot = async (ch, lootId, naam) => {
   const script = [...(meta?.hoofdstukken?.[ch]?.script || [])];
   script.push({ id: _scriptGenId(), type: 'loot', lootId, name: naam });
+  await _scriptSave(ch, script);
+};
+
+// Zoeken in Spotify, met een korte pauze zodat niet elke toetsaanslag een
+// verzoek wordt. Hetzelfde patroon als de andere zoekvelden in dit paneel.
+let _muziekZoekTimer = null;
+window._scriptMuziekZoek = (ch) => {
+  clearTimeout(_muziekZoekTimer);
+  _muziekZoekTimer = setTimeout(async () => {
+    const q   = document.getElementById(`script-muziek-q-${ch}`)?.value.trim() || '';
+    const bak = document.getElementById(`script-muziek-uitslag-${ch}`);
+    if (!bak) return;
+    if (q.length < 2) { bak.innerHTML = ''; return; }
+    bak.innerHTML = '<p class="dm-hint">Zoeken…</p>';
+    try {
+      const r = await api.spotifyZoek(q);
+      bak.innerHTML = r.length ? r.map(x => `
+        <button class="dm-btn dm-btn-sm script-muziek-rij"
+          onclick="window._scriptAddMuziek('${esc(ch)}','${escJS(x.uri)}','${escJS(x.naam)}','${escJS(x.bij)}')">
+          ${x.beeld ? `<img src="${esc(x.beeld)}" alt="">` : icon('music')}
+          <span><b>${esc(x.naam)}</b>${x.bij ? ` — ${esc(x.bij)}` : ''}<br><small>${esc(x.soort)}</small></span>
+        </button>`).join('') : '<p class="dm-hint">Niets gevonden.</p>';
+    } catch (e) {
+      bak.innerHTML = `<p class="dm-hint">${esc(e.message)}${/gekoppeld/i.test(e.message)
+        ? ' Koppel Spotify bij Instellingen → Muziek.' : ''}</p>`;
+    }
+  }, 350);
+};
+
+window._scriptAddMuziek = async (ch, uri, naam, bij) => {
+  const herhaal = !!document.getElementById(`script-muziek-herhaal-${ch}`)?.checked;
+  const script  = [...(meta?.hoofdstukken?.[ch]?.script || [])];
+  script.push({ id: _scriptGenId(), type: 'muziek', uri, name: bij ? `${naam} — ${bij}` : naam, herhaal });
   await _scriptSave(ch, script);
 };
 

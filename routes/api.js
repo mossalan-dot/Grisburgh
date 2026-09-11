@@ -10,6 +10,7 @@ const { buildSnapshot, buildCampagneboek } = require('../lib/snapshot');
 const { sheetHtml } = require('../lib/character-sheet');
 const { MODULES, modulesVoor, schoneModules, verborgenUI } = require('../lib/modules');
 const bronnen = require('../lib/bronnen');
+const spotify = require('../lib/spotify');
 const config  = require('../config');
 
 let _sharp = null;
@@ -7122,6 +7123,130 @@ router.put('/meta/herberg', requireDM, (req, res) => {
   storage.writeJSON('meta.json', meta);
   req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
   res.json(meta.herberg);
+});
+
+// ── Spotify ─────────────────────────────────────────────────────────────────
+// De muziek onder een scène komt uit Spotify; Grisburgh drukt alleen op play.
+// Waar dat geluid uitkomt kiest de DM zelf (`meta.spotify.doel`): op zijn eigen
+// apparaat — dat is meestal de laptop waarop hij de akteregie bedient — of op
+// het tafelscherm, dat zich dan als Spotify-apparaat aanmeldt. Zie lib/spotify.js
+// voor het waarom van de tokenopslag buiten `data/campaigns/`.
+const _spotifyCampagne = (req) => req.session?.campaignId || storage.huidigeCampagne();
+
+// Welk apparaat moet het worden? Bij 'tafel' het tafelscherm dat zich gemeld
+// heeft; bij 'dm' laten we het leeg, dan kiest Spotify zelf het actieve apparaat
+// (of het apparaat dat de DM in de instellingen heeft vastgezet).
+const _tafelApparaat = new Map();   // campagne → device_id van het tafelscherm
+function _spotifyApparaat(meta, campagne) {
+  const cfg = meta.spotify || {};
+  if (cfg.doel === 'tafel') return _tafelApparaat.get(campagne) || null;
+  return cfg.apparaatId || null;
+}
+
+router.get('/spotify/status', requireDM, (req, res) => {
+  const campagne = _spotifyCampagne(req);
+  const t = spotify.lees(campagne);
+  const meta = storage.readJSON('meta.json');
+  res.json({
+    gekoppeld: !!t?.refreshToken,
+    naam:      t?.naam || '',
+    premium:   t?.premium !== false,
+    clientId:  meta.spotify?.clientId || '',
+    doel:      meta.spotify?.doel || 'dm',
+    apparaatId:   meta.spotify?.apparaatId || '',
+    apparaatNaam: meta.spotify?.apparaatNaam || '',
+    tafelKlaar:   !!_tafelApparaat.get(campagne),
+    scopes:    spotify.SCOPES.join(' '),
+  });
+});
+
+router.put('/meta/spotify', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const cfg  = meta.spotify || {};
+  if (req.body.clientId !== undefined) cfg.clientId = String(req.body.clientId).trim().slice(0, 64);
+  if (req.body.doel     !== undefined) cfg.doel = req.body.doel === 'tafel' ? 'tafel' : 'dm';
+  if (req.body.apparaatId   !== undefined) cfg.apparaatId   = String(req.body.apparaatId || '').slice(0, 120);
+  if (req.body.apparaatNaam !== undefined) cfg.apparaatNaam = String(req.body.apparaatNaam || '').slice(0, 120);
+  if (req.body.volume !== undefined) {
+    const v = parseInt(req.body.volume, 10);
+    if (Number.isFinite(v)) cfg.volume = Math.max(0, Math.min(100, v));
+  }
+  meta.spotify = cfg;
+  storage.writeJSON('meta.json', meta);
+  res.json(meta.spotify);
+});
+
+// De browser doet de PKCE-dans (verifier blijft daar) en stuurt de code hier
+// naartoe; de tokens belanden op de server, zodat ook het tafelscherm eraan kan.
+router.post('/spotify/koppel', requireDM, async (req, res) => {
+  const { code, verifier, redirectUri } = req.body || {};
+  const meta = storage.readJSON('meta.json');
+  const clientId = meta.spotify?.clientId;
+  if (!clientId) return res.status(400).json({ error: 'Vul eerst de client-id in bij Instellingen.' });
+  if (!code || !verifier) return res.status(400).json({ error: 'Onvolledige koppeling' });
+  try {
+    const t = await spotify.koppel({ campagne: _spotifyCampagne(req), clientId, code, verifier, redirectUri });
+    res.json({ ok: true, naam: t.naam || '', premium: t.premium !== false });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+router.post('/spotify/ontkoppel', requireDM, (req, res) => {
+  spotify.wis(_spotifyCampagne(req));
+  res.json({ ok: true });
+});
+
+router.get('/spotify/apparaten', requireDM, async (req, res) => {
+  try { res.json(await spotify.apparaten(_spotifyCampagne(req))); }
+  catch (e) { res.status(400).json({ error: e.message, code: e.code }); }
+});
+
+router.get('/spotify/zoek', requireDM, async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (q.length < 2) return res.json([]);
+  try { res.json(await spotify.zoek(_spotifyCampagne(req), q)); }
+  catch (e) { res.status(400).json({ error: e.message, code: e.code }); }
+});
+
+router.post('/spotify/speel', requireDM, async (req, res) => {
+  const campagne = _spotifyCampagne(req);
+  const meta = storage.readJSON('meta.json');
+  try {
+    await spotify.speel(campagne, {
+      uri:        req.body?.uri,
+      apparaatId: _spotifyApparaat(meta, campagne),
+      volume:     req.body?.volume ?? meta.spotify?.volume,
+      shuffle:    req.body?.shuffle,
+      herhaal:    req.body?.herhaal,
+    });
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ error: e.message, code: e.code }); }
+});
+
+router.post('/spotify/pauze', requireDM, async (req, res) => {
+  const campagne = _spotifyCampagne(req);
+  const meta = storage.readJSON('meta.json');
+  try { await spotify.pauze(campagne, _spotifyApparaat(meta, campagne)); res.json({ ok: true }); }
+  catch (e) { res.status(400).json({ error: e.message, code: e.code }); }
+});
+
+// Het tafelscherm haalt hier een kortlopend token op voor de Web Playback SDK,
+// en meldt daarna welk apparaat-id het geworden is. Geen DM-recht vereist: het
+// tafelscherm is geen DM, maar hoort wel bij deze campagne (sessie vereist).
+router.get('/spotify/token', attachRole, async (req, res) => {
+  if (!(req.session?.role === 'dm' || req.session?.characterId)) return res.status(401).json({ error: 'Niet ingelogd' });
+  try {
+    const token = await spotify.accessToken(_spotifyCampagne(req));
+    if (!token) return res.status(400).json({ error: 'Niet gekoppeld aan Spotify' });
+    res.json({ token });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+router.post('/spotify/tafel-apparaat', attachRole, (req, res) => {
+  if (!(req.session?.role === 'dm' || req.session?.characterId)) return res.status(401).json({ error: 'Niet ingelogd' });
+  const id = String(req.body?.deviceId || '').slice(0, 120);
+  const campagne = _spotifyCampagne(req);
+  if (id) _tafelApparaat.set(campagne, id); else _tafelApparaat.delete(campagne);
+  res.json({ ok: true });
 });
 
 // ── Rust-instellingen (backdrops + gebeurtenissen-tabel) ──
