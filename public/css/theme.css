@@ -1810,7 +1810,7 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
 /* ── Geheime verbinding ──
    Een regel in "Wie hoort hier bij?" kan aan een geheim hangen; het slotje zegt
    of dat zo is, het paneel eronder wélk geheim. */
-.betr-slot--aan { color: #8a6a10; border-color: rgba(196,147,10,.55); background: rgba(196,147,10,.14); }
+/* .betr-slot--aan staat onderaan deze stylesheet: hij moet ná .dm-btn-ghost. */
 .betr-geheim-paneel {
   grid-column: 1 / -1;
   display: flex;
@@ -24344,3 +24344,51 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
    naam over twee regels — vandaar geen krimp en geen afbreking. */
 .item-spellrij .cs-spell-chips { flex: 0 1 auto; min-width: 0; }
 .item-spellrij .cs-spell-chip { white-space: nowrap; flex: none; }
+
+
+/* Een geheime verbinding moet je in één oogopslag zien. De oude regel stond
+   bovenin de stylesheet en verloor het daardoor van `.dm-btn-ghost` (gelijke
+   specificiteit, latere regel wint) — er was dus helemaal geen verschil te
+   zien. Nu staat hij hier, ná die regel, en is de knop gevuld zoals een
+   aangezette chip elders in de app. */
+.betr-slot--aan {
+  color: #f6eeda; background: #8a6a10; border-color: #8a6a10; font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.betr-slot--aan:hover { background: #a07f14; border-color: #a07f14; color: #fff; }
+.betr-slot--aan .icon, .betr-slot--aan svg { color: inherit; }
+
+/* Slot en prullenbak vormen samen de derde kolom van .betrokken-rij; als losse
+   kinderen viel de tweede door naar een volgende rasterregel. */
+.betrokken-knoppen { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Attunement staat tussen de eigenschappen maar is een vóórwaarde, geen
+   eigenschap die je gratis krijgt — vandaar dezelfde vorm in een eigen tint. */
+/* Even specifiek als `.item-kenmerken-rij--eigenschappen .detail-weapon-tag`
+   (twee klassen): met één klasse verloor deze regel en bleef de tag gewoon
+   okerbruin. */
+.item-kenmerken-rij--eigenschappen .detail-weapon-tag--attune,
+.detail-weapon-tag--attune {
+  color: #5a3a72; background: rgba(120,80,180,0.16); border-color: rgba(150,110,205,0.6);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.detail-weapon-tag--attune .icon,
+.detail-weapon-tag--attune svg { width: 12px; height: 12px; }
+.item-kenmerken-rij--eigenschappen .detail-weapon-tag--attune:hover {
+  background: rgba(120,80,180,0.28); border-color: rgba(150,110,205,0.85);
+}
+
+/* Genezing op de worpkaart: dezelfde vorm, groen in plaats van vuur. Je wilt
+   op een tafel vol worpen zonder lezen zien of er iets kapotgaat of heel wordt. */
+.sb-dice-card--heal {
+  background: radial-gradient(ellipse at top, #0e2a12 0%, #050e06 70%);
+  border-color: rgba(90,200,110,0.5);
+  box-shadow: 0 0 60px rgba(60,190,90,0.3), 0 0 120px rgba(30,150,60,0.14), 0 12px 40px rgba(0,0,0,0.8);
+}
+.sb-dice-card--heal .sb-dice-spell   { color: rgba(140,225,150,0.65); }
+.sb-dice-card--heal .sb-dice-formula { color: rgba(170,235,180,0.82); }
+.sb-dice-card--heal .sb-dice-hint    { color: rgba(140,225,150,0.5); }
+.sb-dice-card--heal .sb-dice-result {
+  color: #5ecb6e; text-shadow: 0 0 30px rgba(80,210,100,0.7), 0 0 60px rgba(40,160,70,0.3);
+}
+.sb-dice-card--heal .sb-dice-result.rolling { color: rgba(170,235,180,0.45); text-shadow: none; }

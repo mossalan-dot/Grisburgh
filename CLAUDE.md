@@ -510,7 +510,9 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=8
 > spiegelt het kaartje zoals de **actieve** party het kent (een gevecht gaat over
 > één groep, en de combatant bevriest zijn cijfers bij het opstellen), en de
 > tier-route hersynchroniseert. De keuzestrook staat boven het statblok in het
-> detailvenster (`.tier-strook`, DM-only); de editor toont dezelfde tier-velden
+> detailvenster (`.tier-strook`, DM-only, en `geenprint` — in een afdruk valt er
+> niets te kiezen; de gekozen gedaante komt daar in de **titel** te staan, zodat
+> twee uitdraaien van dezelfde man uit elkaar te houden zijn); de editor toont dezelfde tier-velden
 > als bij een dier, maar zonder "vanaf level" (`_tierVoorDier` in
 > `render-campagne.js`).
 >
@@ -1603,6 +1605,14 @@ plaats van twee — elke rust één te veel.
 - **Emoji in HTML-output** → vervang door `icon()`. Emoji zijn onaanvaardbaar in de UI.
   Let ook op `placeholder=""`-attributen: daar kan geen SVG in, dus zet het icoon
   ernaast in plaats van een emoji in de tekst.
+- **Een nieuwe CSS-regel bovenin de stylesheet verliest.** `theme.css` is één
+  lang bestand en veel basisklassen staan pas op eenvijfde (`.dm-btn-ghost` rond
+  regel 5600). Zet je een variant-regel met dezelfde specificiteit *erboven*,
+  dan wint de basisklasse op volgorde en zie je niets veranderen. Twee keer
+  misgegaan: `.betr-slot--aan` (de knop voor een geheime verbinding stond al
+  maanden ongemarkeerd) en `.detail-weapon-tag--attune`. Nieuwe regels dus
+  **onderaan** toevoegen, en een variant van een regel met twee klassen
+  (`.item-kenmerken-rij--eigenschappen .detail-weapon-tag`) even specifiek maken.
 - **Lichte tekstkleur in een DM-tab** → onzichtbaar. Alleen de **zijbalk** met de
   tabknoppen is donker; de tab-inhoud en het instellingenvenster zijn licht
   perkament. Gebruik `#3a2410` (als `.dm-input`) voor tekst en `#7a6040` (als

@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=281';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=278";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=282";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=83";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -3824,7 +3824,8 @@ window._sbNext = function() {
 //
 // `total` is al gerold; `tickMin`/`tickMax` bepalen waartussen de cijfers
 // ratelen voordat hij stilvalt.
-window._sbFlashKaart = function(kop, formule, total, tickMin, tickMax) {
+window._sbFlashKaart = function(kop, formule, total, tickMin, tickMax, opties = {}) {
+  const { soort = '', geluid = true } = opties;
   let el = document.getElementById('sb-dice-flash');
   if (!el) {
     el = document.createElement('div');
@@ -3845,7 +3846,10 @@ window._sbFlashKaart = function(kop, formule, total, tickMin, tickMax) {
   resEl.textContent = '—';
 
   el.classList.add('active');
-  _sbAudio.dice();
+  // Genezing krijgt een eigen kleur: op een tafel vol worpen wil je zonder
+  // lezen zien of er iets kapotgaat of juist heel wordt.
+  el.querySelector('.sb-dice-card')?.classList.toggle('sb-dice-card--heal', soort === 'heal');
+  if (geluid) _sbAudio.dice();
 
   // Rolling animation — random numbers cycling then settle
   const span = Math.max(1, (tickMax ?? total) - (tickMin ?? 1));
@@ -7374,7 +7378,7 @@ async function renderMijnKarakter(opts = {}) {
                   const _h = /heal/i.test(_itemDmg);
                   return `<div class="item-carousel-damage" onclick="event.stopPropagation()">
                     <button class="item-damage-pill item-damage-pill--sm${_h ? ' item-damage-pill--heal' : ''}"
-                      onclick="window.dice?.rollFlash('${escJS(_itemDmg)}','${escJS(item.name || '')}')"
+                      onclick="window.dice?.rollFlash('${escJS(_itemDmg)}','${escJS(item.name || '')}', _h ? 'heal' : '')"
                       title="Gooi ${escJS(_itemDmg)}">${icon('dice',{cls:'icon-gi'})} ${esc(_itemDmg)}</button>
                   </div>`;
                 })() : ''}
@@ -8549,7 +8553,7 @@ async function renderMijnKarakter(opts = {}) {
           const _h = /heal/i.test(_itemDmg);
           return `<div class="item-carousel-damage" onclick="event.stopPropagation()">
             <button class="item-damage-pill item-damage-pill--sm${_h ? ' item-damage-pill--heal' : ''}"
-              onclick="window.dice?.rollFlash('${escJS(_itemDmg)}','${escJS(item.name || '')}')"
+              onclick="window.dice?.rollFlash('${escJS(_itemDmg)}','${escJS(item.name || '')}', _h ? 'heal' : '')"
               title="Gooi ${escJS(_itemDmg)}">${icon('dice',{cls:'icon-gi'})} ${esc(_itemDmg)}</button>
           </div>`;
         })() : ''}
@@ -9291,7 +9295,7 @@ async function refreshAll() {
     const formula = terms.map((t, i) => {
       const sg = t.sign < 0 ? '−' : (i ? '+' : '');
       return t.kind === 'flat' ? `${sg}${t.value}` : `${sg}${(t.n > 1 || t.keep) ? t.n : ''}d${t.sides}${t.keep || ''}`;
-    }).join(' ').trim() + (adv > 0 ? ' (advantage)' : adv < 0 ? ' (disadvantage)' : '');
+    }).join('').trim() + (adv > 0 ? ' (advantage)' : adv < 0 ? ' (disadvantage)' : '');
 
     return {
       ok: true, total, label, crit, fumble,
@@ -9369,11 +9373,13 @@ async function refreshAll() {
     // onderin het dobbelpaneel dat je op een geopend kaartje niet ziet.
     // Eén parser, twee weergaven — een tweede parser zou vroeg of laat een
     // ander getal geven dan het paneel.
-    rollFlash(formulaStr, label = '') {
+    rollFlash(formulaStr, label = '', soort = '') {
       const r = _rollFormula(formulaStr);
       if (!r.ok) return;
       const kop = [label, r.label].filter(Boolean).join(' · ');
-      window._sbFlashKaart(kop, r.formula, r.total, r.tickMin, r.tickMax);
+      // Bewust stil: dit gooi je terwijl je een kaartje leest, niet als moment
+      // aan tafel. Het spreukenboek houdt zijn geluid wel.
+      window._sbFlashKaart(kop, r.formula, r.total, r.tickMin, r.tickMax, { soort, geluid: false });
     },
 
     // Rolt de formule uit een invoerveld (paneel).

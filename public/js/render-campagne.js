@@ -1366,13 +1366,18 @@ function _betrokkenRijHtml(r, i, metChef = false) {
     <input class="betr-rol" value="${esc(r.rol || '')}" list="betrokken-rol-dl" placeholder="Rol">
     <input type="hidden" class="betr-id" id="betr-id-${i}" value="${esc(r.id || '')}">
     <input type="hidden" class="betr-geheim" value="${esc(r.geheim ? JSON.stringify(r.geheim) : '')}">
-    <!-- Een verbinding kan geheim zijn: dan hangt hij aan een geheimregel en
-         ziet de party hem pas als die onthuld is. -->
-    <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost betr-slot${r.geheim ? ' betr-slot--aan' : ''}"
-      title="${r.geheim ? 'Geheim — klik om te wijzigen' : 'Deze verbinding geheim maken'}"
-      onclick="window._betrokkenGeheim(this)">${icon(r.geheim ? 'lock' : 'lock-open')}</button>
-    <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
-      title="Regel verwijderen" onclick="window._betrokkenWeg(this)">${icon('trash')}</button>
+    <!-- Slot en prullenbak in één cel: het raster heeft drie kolommen, dus als
+         losse kinderen viel de tweede knop door naar de volgende regel en stond
+         de prullenbak onder de verbinding in plaats van ernaast. -->
+    <span class="betrokken-knoppen">
+      <!-- Een verbinding kan geheim zijn: dan hangt hij aan een geheimregel en
+           ziet de party hem pas als die onthuld is. -->
+      <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost betr-slot${r.geheim ? ' betr-slot--aan' : ''}"
+        title="${r.geheim ? 'Geheim — klik om te wijzigen' : 'Deze verbinding geheim maken'}"
+        onclick="window._betrokkenGeheim(this)">${icon(r.geheim ? 'lock' : 'lock-open')}</button>
+      <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
+        title="Regel verwijderen" onclick="window._betrokkenWeg(this)">${icon('trash')}</button>
+    </span>
     ${metChef ? `<div class="betr-chef-rij">
       <span class="betr-chef-label">Valt onder</span>
       <input class="betr-chef" value="${esc(r.chef || '')}" list="chef-dl"
@@ -1398,8 +1403,10 @@ function _hoortRijHtml(r, i) {
     </span>
     <input class="hb-rol" value="${esc(r.rol || '')}" list="hoortbij-rol-dl" placeholder="Rol">
     <input type="hidden" class="hb-id" id="hb-id-${i}" value="${esc(r.id || '')}">
-    <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
-      title="Regel verwijderen" onclick="window._hoortWeg(this)">${icon('trash')}</button>
+    <span class="betrokken-knoppen">
+      <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
+        title="Regel verwijderen" onclick="window._hoortWeg(this)">${icon('trash')}</button>
+    </span>
     <div id="hb-st-${i}" class="link-status betrokken-status"></div>
   </div>`;
 }
@@ -3140,7 +3147,7 @@ function renderCard(type, e) {
             onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_d)}','${escJS(e.name)}')"
             title="Gooi ${escJS(_d)}">${icon('dice',{cls:'icon-gi'})} ${esc(_d)}</button>`);
           if (_h) _p.push(`<button class="card-damage-pill card-damage-pill--heal"
-            onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_h)}','${escJS(e.name)}')"
+            onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_h)}','${escJS(e.name)}','heal')"
             title="Gooi ${escJS(_h)}">${icon('heart',{cls:'icon-gi'})} ${esc(_h)}</button>`);
           return _p.join('');
         })() : ''}
@@ -3161,7 +3168,7 @@ function renderCard(type, e) {
               onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_d)}','${escJS(e.name)}')"
               title="Gooi ${escJS(_d)}">${icon('dice',{cls:'icon-gi'})} ${esc(_d)}</button>`);
             if (_h) _los.push(`<button class="card-damage-pill card-damage-pill--heal"
-              onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_h)}','${escJS(e.name)}')"
+              onclick="event.stopPropagation();window.dice?.rollFlash('${escJS(_h)}','${escJS(e.name)}','heal')"
               title="Gooi ${escJS(_h)}">${icon('heart',{cls:'icon-gi'})} ${esc(_h)}</button>`);
           }
           if (_cardAcr) _los.push(`<span class="card-armor-ac-pill" title="${escJS(_cardAcr.tooltip)}">${esc(_cardAcr.pill)}</span>`);
@@ -3359,6 +3366,10 @@ window._flavStap = (id) => {
 window._printStatblock = (titel) => {
   const bron = document.getElementById('dtab-sheet');
   if (!bron) return;
+  // Welke gedaante staat er? Zonder dat op papier weet je van twee uitdraaien
+  // van dezelfde man niet meer welke de gepantserde was.
+  const _aan = bron.querySelector('.tier-chip--aan')?.textContent.trim();
+  if (_aan && _aan !== 'Basis') titel = `${titel} — ${_aan}`;
   const kopie = bron.cloneNode(true);
   kopie.querySelectorAll('.geenprint').forEach(el => el.remove());
   const css = document.querySelector('link[href*="theme.css"]')?.getAttribute('href') || '/css/theme.css';
@@ -4130,7 +4141,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // wat het kost erna: eerst het voorwerp, dan het verhaal, dan de kleine
     // letters. `_naDesc` wordt verderop ingevoegd, direct onder de tekst.
     const _vraagt = [];
-    if (_att) _vraagt.push(`<span class="ik-chip">${icon('lock')} Requires Attunement${_attEis ? ` — ${esc(_attEis)}` : ''}</span>`);
+    // Attunement staat niet hier maar bij de eigenschappen: het zégt iets over
+    // wat het voorwerp is, net als Light of Finesse, en niet over de handel
+    // eromheen. Zie `_tags` verderop.
     if (_maxCh > 0) _vraagt.push(`<span class="ik-chip">${icon('zap')} ${_maxCh} charge${_maxCh === 1 ? '' : 's'}${_herlaad ? ` — terug bij ${esc(_herlaad)}` : ''}</span>`);
     const _kost = [];
     if (_prijs) _kost.push(`<span class="ik-prijs">${icon('coins')} ${esc(_prijs)}</span>`);
@@ -4146,6 +4159,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // kunt aanklikken en blijft daarom als enige geaccentueerd.
     const _dmg = e.data?.damage;
     const _tags = [];
+    // Vooraan: een voorwerp dat attunement vraagt, vraagt dat vóór al het
+    // andere. Eigen kleur, want het is een voorwaarde en geen eigenschap die je
+    // "gratis" krijgt zoals Finesse.
+    if (_att) _tags.push(`<span class="detail-weapon-tag detail-weapon-tag--attune"
+      data-wptip="${escJS('Dit voorwerp werkt pas volledig als je je eraan afstemt (attunement).' + (_attEis ? ' Alleen door: ' + _attEis : ''))}">${icon('lock')} Requires Attunement${_attEis ? ` · ${esc(_attEis)}` : ''}</span>`);
     if (_detailAcResult && _extraImgs.length > 0) {
       // Zonder hero-beeld is er geen plek voor de AC-overlay; dan hoort hij hier.
       _tags.push(`<span class="detail-armor-tag detail-armor-tag--ac" data-wptip="${escJS(_detailAcResult.tooltip)}">${esc(_detailAcResult.pill)}</span>`);
@@ -4177,7 +4195,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     }
     if (_heal) {
       _worpen.push(`<button class="item-damage-pill item-damage-pill--heal"
-          onclick="window.dice?.rollFlash('${escJS(_heal)}','${escJS(e.name)}')"
+          onclick="window.dice?.rollFlash('${escJS(_heal)}','${escJS(e.name)}','heal')"
           title="Klik om genezing te gooien">
           ${icon('heart',{cls:'icon-gi'})} ${esc(_heal)}
         </button>`);
@@ -4555,8 +4573,10 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     if (tiers.length) {
       const chip = (id, label, aan) =>
         `<button type="button" class="tier-chip${aan ? ' tier-chip--aan' : ''}"
-           onclick="window._tierKies('${escJS(e.id)}','${escJS(id)}')">${esc(label)}</button>`;
-      sheetHtml += `<div class="tier-strook">
+           onclick="window._tierKies('${escJS(e.id)}','${escJS(id)}','${escJS(e.name)}')">${esc(label)}</button>`;
+      // `geenprint`: in een afdruk is kiezen zinloos — je hebt één blad in je
+      // hand. De gekozen gedaante komt in plaats daarvan in de titel te staan.
+      sheetHtml += `<div class="tier-strook geenprint">
         <span class="tier-strook-label">${icon('users')} Deze party kent hem als</span>
         ${chip('basis', 'Basis', !actief)}
         ${tiers.map((t, i) => chip(t.id || `t${i}`, t.label || `Statblok ${i + 2}`, actief && actief.id === t.id)).join('')}
@@ -5538,12 +5558,15 @@ window._toggleSecretCard = async (type, id, index = 0) => {
 // Welke gedaante deze party kent. Het detailvenster wordt daarna opnieuw
 // opgehaald: het statblok eronder verandert mee, en de server heeft de
 // monsterbibliotheek al bijgewerkt zodat een gevecht dezelfde man opstelt.
-window._tierKies = async (id, tierId) => {
+window._tierKies = async (id, tierId, naam = '') => {
   try {
     const res = await api.setTier('personages', id, tierId);
+    // De naam komt mee vanaf de knop: je klikt dit ook vanuit een lijst, en dan
+    // zegt "hem" niet wie er zojuist veranderde.
+    const wie = naam || 'Dit personage';
     window.app?._tsToast?.(res.label
-      ? `${icon('users')} Deze party kent hem nu als <strong>${esc(res.label)}</strong>`
-      : `${icon('users')} Deze party kent hem weer zoals het kaartje hem beschrijft`);
+      ? `${icon('users')} ${esc(wie)} gebruikt nu statblock <strong>${esc(res.label)}</strong>`
+      : `${icon('users')} ${esc(wie)} gebruikt nu het statblock van het kaartje zelf`);
     window._openDetail('personages', id, false, 'sheet');   // blijf op het statblok staan
   } catch (err) {
     alert('Kon de gedaante niet omzetten: ' + err.message);
@@ -6050,6 +6073,41 @@ let _spreukLijst = null;      // spreukenbibliotheek voor de koppeling op een ka
 // gedaante en kiest de DM per party welke geldt — daar is een level dus zinloos
 // en telt alleen het label. `_tierVoorDier` bepaalt welke van de twee het scherm
 // laat zien.
+// Het blok "Waar hoort dit … bij?" — op twee plekken nodig (in de veldenlus bij
+// een personage, en op het organogram-paneel bij een organisatie), dus één keer
+// opgeschreven.
+function _hoortbijHtml(tab, e) {
+  const _hb = Array.isArray(e?._hoortBij) ? e._hoortBij : [];
+  const _hbRijen = _hb.length ? _hb : [{}];
+  return `<!--P:organogram-->`;
+    body += `
+      <div class="hoortbij-sectie">
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(_hoortBijKop(tab))}</label>
+        <div id="hoortbij-lijst">${_hbRijen.map((r, i) => _hoortRijHtml(r, i)).join('')}</div>
+        <datalist id="hoortbij-dl" data-link-doel="locaties,organisaties"></datalist>
+        <!-- Eigen rollijst: die van het betrokkenen-veld hangt aan dát veld, en
+             een personage heeft er geen — daar vulde de rol dus niets aan. -->
+        <datalist id="hoortbij-rol-dl">
+          ${BETROKKEN_ROLLEN.map(r => `<option value="${esc(r)}">`).join('')}
+        </datalist>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
+          onclick="window._hoortErbij()">${icon('plus')} Verbinding toevoegen</button>
+        ${tab !== 'personages' ? '' : `
+        <!-- Waar iemand verkoopt is net zo goed een verbinding; als eigen veld
+             elders op het blad las het als een tweede systeem. -->
+        <div id="voorraad-section" class="hoortbij-verkoop"${window._heeftRol(e, 'verkoper') ? '' : ' style="display:none"'}>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Verkoopt bij</label>
+          <input type="hidden" name="data_winkelLocatieId" id="winkel-loc-id" value="${esc(e?.data?.winkelLocatieId || '')}">
+          <input list="winkel-loc-dl" id="winkel-loc-naam" placeholder="Zoek een locatie\u2026" value=""
+            onchange="window._winkelLocKies(this.value)"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          <datalist id="winkel-loc-dl"></datalist>
+          <div id="winkel-loc-link" class="mt-2"></div>
+        </div>`}
+      </div>
+    `;
+}
+
 let _petTiers = [];
 let _tierVoorDier = true;
 const _TIER_UITLEG = {
@@ -6399,11 +6457,23 @@ window._openEditor = async (tab, editId) => {
   let _revealGroupOpen = null;
   let _werkingGroepOpen = null;
   const _curItemType = e?.data?.itemType || '';
+  // "Waar hoort dit bij?" hoort bij de administratie van het kaartje, en die
+  // staat bóven de aantekeningen — die zijn altijd het laatste woord. Bij een
+  // organisatie verhuist het blok naar het organogram-paneel (daar staat de
+  // andere kant van dezelfde vraag); bij een personage bleef het achteraan
+  // hangen, ná het notitievak. Daarom plaatsen we het hieronder in de lus,
+  // net vóór dat vak, en valt het alleen terug op "achteraan" als dat veld er
+  // niet is.
+  let _hoortbijGeplaatst = false;
   // Eén doorloop, in schemavolgorde. Tekstvakken hadden een eigen ronde ná deze
   // lus, waardoor Beschrijving onder Flavour en Geheimen belandde — de volgorde
   // in SCHEMA klopte al, de rendering niet.
   for (const field of schema.fields) {
     if ((field.key === 'geheim' || field.dmOnly) && !isDM()) continue;
+    if (tab === 'personages' && field.key === 'persoonlijkheid' && isDM() && e?.id && !_hoortbijGeplaatst) {
+      body += _hoortbijHtml(tab, e);
+      _hoortbijGeplaatst = true;
+    }
     // Close open reveal group when leaving it
     if (_revealGroupOpen && field.inReveal !== _revealGroupOpen) {
       body += `</div>`; // end reveal-group div
@@ -6813,38 +6883,11 @@ window._openEditor = async (tab, editId) => {
   // De andere kant van "Wie hoort hier bij?": vanaf een personage of
   // organisatie aangeven waar hij bij hoort. Alleen bij een bestaand kaartje,
   // want de server schrijft in de dóélkaartjes en heeft dus een id nodig.
-  if (['personages', 'organisaties'].includes(tab) && isDM() && e?.id) {
-    const _hb = Array.isArray(e._hoortBij) ? e._hoortBij : [];
-    const _hbRijen = _hb.length ? _hb : [{}];
-    // Bij een organisatie staat hij onder "Wie hoort hier bij?" op hetzelfde
-    // tabblad: het is dezelfde vraag, van de andere kant.
+  if (['personages', 'organisaties'].includes(tab) && isDM() && e?.id && !_hoortbijGeplaatst) {
+    // Een organisatie zet hem op het organogram-paneel; een personage heeft hem
+    // hierboven al in de lus gekregen, dus hier komt alleen de rest langs.
     if (tab === 'organisaties') body += `<!--P:organogram-->`;
-    body += `
-      <div class="hoortbij-sectie">
-        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(_hoortBijKop(tab))}</label>
-        <div id="hoortbij-lijst">${_hbRijen.map((r, i) => _hoortRijHtml(r, i)).join('')}</div>
-        <datalist id="hoortbij-dl" data-link-doel="locaties,organisaties"></datalist>
-        <!-- Eigen rollijst: die van het betrokkenen-veld hangt aan dát veld, en
-             een personage heeft er geen — daar vulde de rol dus niets aan. -->
-        <datalist id="hoortbij-rol-dl">
-          ${BETROKKEN_ROLLEN.map(r => `<option value="${esc(r)}">`).join('')}
-        </datalist>
-        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
-          onclick="window._hoortErbij()">${icon('plus')} Verbinding toevoegen</button>
-        ${tab !== 'personages' ? '' : `
-        <!-- Waar iemand verkoopt is net zo goed een verbinding; als eigen veld
-             elders op het blad las het als een tweede systeem. -->
-        <div id="voorraad-section" class="hoortbij-verkoop"${window._heeftRol(e, 'verkoper') ? '' : ' style="display:none"'}>
-          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Verkoopt bij</label>
-          <input type="hidden" name="data_winkelLocatieId" id="winkel-loc-id" value="${esc(e?.data?.winkelLocatieId || '')}">
-          <input list="winkel-loc-dl" id="winkel-loc-naam" placeholder="Zoek een locatie\u2026" value=""
-            onchange="window._winkelLocKies(this.value)"
-            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
-          <datalist id="winkel-loc-dl"></datalist>
-          <div id="winkel-loc-link" class="mt-2"></div>
-        </div>`}
-      </div>
-    `;
+    body += _hoortbijHtml(tab, e);
     if (tab === 'organisaties') body += `<!--P:info-->`;
   }
 
