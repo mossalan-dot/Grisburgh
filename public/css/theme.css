@@ -24212,7 +24212,7 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .spreuk-tag--naslag:hover { background: rgba(90,58,122,0.2); color: #3a2455; }
 
 /* Typefilter in het bestiarium — zelfde chips als op de kaartjes-tabbladen. */
-.best-typefilter { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 24px 12px; }
+/* .best-typefilter is vervangen door de gedeelde .subtype-filter-bar. */
 
 /* ── Gedaante-keuze op een NPC-kaartje ──
    Boven het statblok: welke van de statblokken deze party kent. De strook is
@@ -24240,14 +24240,9 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .tier-chip--aan { background: #7a4a1a; border-color: #7a4a1a; color: #f2e8d2; font-weight: 600; }
 .tier-chip--aan:hover { background: #7a4a1a; }
 
-/* ── Bestiarium: aanmaken vanuit het tabblad ──
-   `margin-left:auto` staat op .best-lib-btn, dus alleen de eerste knop van de
-   twee duwt zichzelf naar rechts; de tweede zou anders opnieuw een gat maken. */
-.best-lib-btn--nieuw + .best-lib-btn { margin-left: 0; }
-.best-lib-btn--nieuw {
-  color: #5a3a18; background: rgba(196,168,122,0.16); border-color: rgba(196,168,122,0.55);
-}
-.best-lib-btn--nieuw:hover { background: rgba(196,168,122,0.3); border-color: #c4a87a; }
+/* De twee tekstknoppen in de bestiariumkop (Nieuw wezen / Monsterbibliotheek)
+   zijn vervallen: die rij is nu dezelfde als op de andere archieftabbladen —
+   zoekveld, trechter, uitleg, plus, met de bibliotheek als icoonknop ertussen. */
 
 /* De monster-editor als venster (geleend uit de Meesterkamer). De DM-tabs zijn
    licht perkament, dus de velden hoeven hier niets extra's — alleen ruimte. */

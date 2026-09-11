@@ -22,6 +22,7 @@ let _data = { role: 'player', monsters: [] };
 // daar denk je in; het haakje is een verbijzondering.
 let _zoek = '';
 let _type = null;
+let _filterOpen = false;   // staat de trechter open? een gekozen type houdt hem open
 
 // Kennisniveaus, cyclend: Onbekend → Naam → Deels → Volledig → Onbekend.
 const _NIV_ORDER  = ['', 'naam', 'deels', 'volledig'];
@@ -82,6 +83,9 @@ function _gefilterd(monsters) {
 function _renderGrid() {
   const dm = _data.role === 'dm';
   const monsters = _data.monsters || [];
+  // De typechips zitten achter de trechter, zoals de subtype-chips op de andere
+  // tabbladen. De lijst is dus al nodig bij het bouwen van de kop.
+  const _typen = [...new Set(monsters.map(_hoofdType).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'nl'));
   // Sectiekop in dezelfde stijl als de archief-tabbladen (section-banner).
   const head = `
     <div class="section-banner section-banner--entity section-banner--bestiarium">
@@ -97,11 +101,17 @@ function _renderGrid() {
             <input type="text" class="sbs-input search-input" placeholder="Zoek wezen\u2026"
               value="${esc(_zoek)}" oninput="window.bestiarium.zoek(this.value)">
           </div>
-          ${dm ? `<button class="best-lib-btn best-lib-btn--nieuw" onclick="window.bestiarium.nieuw()"
-            title="Een nieuw wezen aanmaken, hier in het tabblad">${icon('plus')} Nieuw wezen</button>
-          <button class="best-lib-btn" onclick="window.bestiarium.openLibrary()"
-            title="Naar de monsterbibliotheek in de Meesterkamer">${icon('book-open')} Monsterbibliotheek</button>` : ''}
+          <!-- Dezelfde knoppenrij als de andere archieftabbladen: zoeken,
+               trechter, uitleg, plus. De monsterbibliotheek staat ertussen als
+               icoonknop — met een **lijstje**, niet met een boek: dat is het
+               icoon van de hulpknop en die twee stonden naast elkaar. -->
+          ${_typen.length >= 2 ? `<button class="sf-toggle-btn${_type ? ' sf-toggle-btn--active' : ''}"
+            onclick="window.bestiarium.toonFilter()" title="Filter op creature type"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : ''}
+          ${dm ? `<button class="sbs-add-btn" onclick="window.bestiarium.openLibrary()"
+            title="Naar de monsterbibliotheek in de Meesterkamer">${icon('clipboard-list')}</button>` : ''}
           ${window._helpBtn?.('bestiarium') ?? ''}
+          ${dm ? `<button class="sbs-add-btn" onclick="window.bestiarium.nieuw()"
+            title="Nieuw wezen">${icon('plus')}</button>` : ''}
         </div>
       </div>
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
@@ -117,11 +127,10 @@ function _renderGrid() {
   }
   // Chips op de hoofdgroep van het creature type — hetzelfde gebaar als de
   // typechips op de andere tabbladen. Pas tonen als er iets te kiezen valt.
-  const typen = [...new Set(monsters.map(_hoofdType).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'nl'));
-  const chips = typen.length >= 2 ? `
-    <div class="best-typefilter">
+  const chips = _typen.length >= 2 ? `
+    <div class="subtype-filter-bar${(_filterOpen || _type) ? '' : ' subtype-filter-bar--hidden'}">
       <button class="sf-chip${_type ? '' : ' sf-chip--active'}" onclick="window.bestiarium.filterType(null)">Alle</button>
-      ${typen.map(t => `<button class="sf-chip${_type === t ? ' sf-chip--active' : ''}"
+      ${_typen.map(t => `<button class="sf-chip${_type === t ? ' sf-chip--active' : ''}"
         onclick="window.bestiarium.filterType('${esc(t)}')">${esc(t)}</button>`).join('')}
     </div>` : '';
 
@@ -133,6 +142,20 @@ function _renderGrid() {
     ${chips}
     <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">${cards}</div>
   </div>`;
+}
+
+// Alleen de kaartjes opnieuw tekenen; het zoekveld houdt zo zijn cursor.
+// (Deze functie sneuvelde bij het weghalen van de voetnoot onder het raster —
+// waarmee zoeken én filteren stilletjes stuk waren.)
+function _tekenKaarten() {
+  const grid = _container?.querySelector('.cards-grid');
+  if (!grid) return _renderGrid();
+  const dm = _data.role === 'dm';
+  const monsters = _data.monsters || [];
+  const zichtbaar = _gefilterd(monsters);
+  grid.innerHTML = zichtbaar.length
+    ? zichtbaar.map((m) => _card(m, monsters.indexOf(m), dm)).join('')
+    : `<p class="best-empty">Geen wezens gevonden.</p>`;
 }
 
 function _card(m, i, dm) {
@@ -232,6 +255,7 @@ window.bestiarium = {
   // (aktes, paginering, SRD-import).
   edit(monsterId) { window.dmPanel?.monsterModal?.(monsterId); },
   nieuw()         { window.dmPanel?.monsterModal?.(); },
+  toonFilter()    { _filterOpen = !_filterOpen; _renderGrid(); },
   naarPersonages() { try { window.app?.switchSection?.('personages'); } catch {} },
   // Naar de monsterbibliotheek (Meesterkamer → Monsters).
   openLibrary() {
@@ -246,9 +270,12 @@ window.bestiarium = {
   zoek(v) { _zoek = v; _tekenKaarten(); },
   filterType(t) {
     _type = t || null;
-    _container?.querySelectorAll('.best-typefilter .sf-chip').forEach(b => {
+    _container?.querySelectorAll('.subtype-filter-bar .sf-chip').forEach(b => {
       b.classList.toggle('sf-chip--active', (b.textContent.trim() === (t || 'Alle')));
     });
+    // De trechter kleurt mee: een actief filter mag niet onzichtbaar zijn als
+    // je de chips weer dichtklapt.
+    _container?.querySelector('.sf-toggle-btn')?.classList.toggle('sf-toggle-btn--active', !!_type);
     _tekenKaarten();
   },
   refresh() { if (_container && window.app?.state?.activeSection === 'bestiarium') renderBestiarium(); },
