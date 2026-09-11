@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=281';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=282";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=285";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=83";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -3496,6 +3496,16 @@ function _initGlobalGlossary() {
 window.glossary = {
   ready: true,
   applyDom: (rootEl) => { _initGlobalGlossary(); _sbApplyGlossary_DOM(rootEl); },
+  // De uitleg bij één term, voor wie er zelf een tooltip mee wil vullen. Zo
+  // staat een zin als die over attunement op één plek: de lijst hierboven.
+  tip: (term) => {
+    const t = String(term || '').trim();
+    for (const g of _SB_GLOSSARY) {
+      const re = new RegExp('^(?:' + g.t.source + ')$', 'i');
+      if (re.test(t)) return g.tip;
+    }
+    return '';
+  },
   // String → string: wrap glossary-termen in al-gerenderde HTML. Gebruikt door
   // voorwerp-beschrijvingen en het speler-spreukpaneel (mdToHtml-output).
   annotate: (html) => {

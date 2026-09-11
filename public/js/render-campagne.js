@@ -468,10 +468,14 @@ const SCHEMA = {
       // sleutel blijft `wijk` — daar hangt de sortering en de zoekindex aan.
       { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
         hint: 'De stad, streek of het gebouw waar dit in ligt' },
-      { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
+      // Wie erbij hoort stond bóven de beschrijving, dus je vulde een ledenlijst
+      // in voordat je had opgeschreven wát dit is. Zelfde volgorde als bij een
+      // personage: eerst wat het is, dan de administratie eromheen, en de
+      // aantekeningen als laatste woord.
+      { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen' },
       // Zelfde veld en zelfde plek als bij een personage: het detailvenster
       // toont dit vak voor élk kaartje, dus hoort het ook overal in de editor.
       { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
@@ -484,12 +488,14 @@ const SCHEMA = {
       // Zelfde koppelingen als bij een locatie: waar ze zitten en wie erbij hoort.
       { key: 'wijk', label: 'Gebied', type: 'entiteit', doel: ['locaties'],
         hint: 'De stad, streek of het gebouw waar dit in zit' },
-      { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       // Waren één tekstvak; nu lijsten, zoals bij personages en locaties — de
       // oude tekst blijft de eerste regel (_tekstLijstUit leest allebei).
       { key: 'flavours', label: 'Flavour teksten', type: 'lijst-tekst', enkelvoud: 'flavour' },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
+      // Staat in dezelfde volgorde als bij een locatie, al valt hij bij een
+      // organisatie toch op het Organogram-tabblad (zie de P:organogram-markers).
+      { key: 'betrokkenen', label: 'Wie hoort hier bij?', type: 'betrokkenen' },
       { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
   },
@@ -4162,8 +4168,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     // Vooraan: een voorwerp dat attunement vraagt, vraagt dat vóór al het
     // andere. Eigen kleur, want het is een voorwaarde en geen eigenschap die je
     // "gratis" krijgt zoals Finesse.
+    // De uitleg komt uit het lexicon, net als bij de wapeneigenschappen ernaast:
+    // dat is Engelse PHB-tekst, en die zin hoort niet twee keer te bestaan. De
+    // eis (wie zich eraan mag afstemmen) staat al op de pil zelf.
     if (_att) _tags.push(`<span class="detail-weapon-tag detail-weapon-tag--attune"
-      data-wptip="${escJS('Dit voorwerp werkt pas volledig als je je eraan afstemt (attunement).' + (_attEis ? ' Alleen door: ' + _attEis : ''))}">${icon('lock')} Requires Attunement${_attEis ? ` · ${esc(_attEis)}` : ''}</span>`);
+      data-wptip="${escJS(window.glossary?.tip?.('Requires Attunement') || 'Requires Attunement: the item only works once you bond with it over a Short Rest.')}">${icon('lock')} Requires Attunement${_attEis ? ` · ${esc(_attEis)}` : ''}</span>`);
     if (_detailAcResult && _extraImgs.length > 0) {
       // Zonder hero-beeld is er geen plek voor de AC-overlay; dan hoort hij hier.
       _tags.push(`<span class="detail-armor-tag detail-armor-tag--ac" data-wptip="${escJS(_detailAcResult.tooltip)}">${esc(_detailAcResult.pill)}</span>`);
@@ -6079,8 +6088,7 @@ let _spreukLijst = null;      // spreukenbibliotheek voor de koppeling op een ka
 function _hoortbijHtml(tab, e) {
   const _hb = Array.isArray(e?._hoortBij) ? e._hoortBij : [];
   const _hbRijen = _hb.length ? _hb : [{}];
-  return `<!--P:organogram-->`;
-    body += `
+  return `
       <div class="hoortbij-sectie">
         <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(_hoortBijKop(tab))}</label>
         <div id="hoortbij-lijst">${_hbRijen.map((r, i) => _hoortRijHtml(r, i)).join('')}</div>
