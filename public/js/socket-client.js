@@ -805,9 +805,13 @@ function _showDramaticReveal(doc) {
       <div class="dramatic-reveal-label">${window.icon('scroll-text')} Nieuw document onthuld</div>
       <div class="dramatic-reveal-title">${(doc.name || '').replace(/</g,'&lt;')}</div>
       ${doc.type ? `<div class="dramatic-reveal-type">${doc.type.replace(/</g,'&lt;')}</div>` : ''}
-      ${doc.imageId ? `<img class="dramatic-reveal-img" src="/api/files/${doc.imageId}" alt="${(doc.name||'').replace(/"/g,'&quot;')}">` : ''}
+      <!-- Vangnet: een bestand kan later weggehaald zijn. Beter niets tonen dan
+           een gebroken icoontje midden in een onthulling. -->
+      ${doc.imageId ? `<img class="dramatic-reveal-img" src="/api/files/${doc.imageId}" alt="${(doc.name||'').replace(/"/g,'&quot;')}" onerror="this.remove()">` : ''}
       ${doc.flavour ? `<p class="dramatic-reveal-flavour">"${doc.flavour.replace(/</g,'&lt;')}"</p>` : ''}
-      <button class="dramatic-reveal-btn" onclick="document.getElementById('dramatic-reveal-overlay').remove()">Bekijken</button>
+      <!-- "Bekijken" sloot alleen het venster; nu brengt hij je naar het
+           document, wat de knop ook belooft. -->
+      <button class="dramatic-reveal-btn" onclick="document.getElementById('dramatic-reveal-overlay').remove();window._openDetail?.('documenten','${(doc.id || '').replace(/'/g, '')}')">Bekijken</button>
     </div>
   `;
   document.body.appendChild(overlay);

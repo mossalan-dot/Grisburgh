@@ -520,7 +520,7 @@ function filterEntityForPlayer(entity, dmState, groupId) {
   e._visibility   = 'visible';
   // Weet de kaartweergave vooraf of er een afbeelding is, dan reserveert hij
   // geen ruimte voor een plaatje dat er nooit komt.
-  e._beeld        = storage.bestandBestaat(entity.data?.imageId || entity.id);
+  e._beeld        = storage.bestandIsBeeld(entity.data?.imageId || entity.id);
   e._secretReveal = zichtbareGeheimen.length > 0;
   e._geheimTotaal = geheimen.length;
   e._geheimOnthuld = zichtbareGeheimen.length;
@@ -963,7 +963,7 @@ router.get('/entities/:type', attachRole, (req, res) => {
       _deceased:     !!(g.deceased?.[e.id]),
       _dmNote:       dmState.dmNotes[e.id]  || '',
       _gockOnderzocht: !!g.gockOnderzocht?.[e.id],
-      _beeld:        storage.bestandBestaat(e.data?.imageId || e.id),
+      _beeld:        storage.bestandIsBeeld(e.data?.imageId || e.id),
       _hoortBij:     _betrokkenBij(e.id),
       _tierActief:   _tierStand(g, e)?.id || null,
     }));
@@ -1403,7 +1403,13 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
     }
     req.app.get('io').to(req.session?.campaignId||'main').emit('archief:dramaticReveal', {
       id: entity.id, name: entity.name,
-      imageId: entity.data?.imageId || entity.id,
+      // Alleen meesturen als het écht een afbeelding is: onder het kaartje-id
+      // van een document hangt net zo vaak een pdf of een mp3, en die laadde de
+      // onthulling als <img> — met een gebroken icoon als resultaat.
+      imageId: (() => {
+        const kandidaat = entity.data?.imageId || entity.id;
+        return storage.bestandIsBeeld(kandidaat) ? kandidaat : '';
+      })(),
       type:    entity.data?.docType || '',
       flavour: entity.data?.desc || '',
       groupId: dmState.activeGroup,

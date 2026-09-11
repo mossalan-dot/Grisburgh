@@ -288,8 +288,9 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       bij: **is dit overgenomen of zelfbedacht?** Dat scheelt straks bij de
       vraag wat je wel en niet mag delen met een andere campagne.
 
-- [ ] **Blanco kaartjes in het dashboard**: documenten hebben een andere maat
-      dan de andere archieftabbladen.
+- [x] **Blanco kaartjes** — opgelost 11 sep 2026. Het lag niet aan de maat maar
+      aan `_beeld`: dat vroeg "bestaat er een bestand met dit id?", en bij een
+      document is dat vaak een pdf of mp3. Nu `storage.bestandIsBeeld()`.
 
 - [x] **Testomgeving gevuld** (11 sep 2026): één document per briefstijl, een
       stijl-override, een vaag document, een pdf-scan, een geluidsfragment, een

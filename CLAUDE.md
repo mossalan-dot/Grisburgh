@@ -1553,6 +1553,17 @@ negen eigen routes. Dat is allemaal weg; wat overblijft is
 > de balk (`fmtToolbar(id, { perkament: true })` → `window._fmtStructuur`), die
 > de markeerregel invoegen en de regel eronder selecteren.
 
+> **`_beeld` betekent "er is een afbeelding", niet "er is een bestand".**
+> `storage.bestandBestaat(id)` kijkt alleen of er iets onder dat id ligt — en
+> onder het kaartje-id van een document ligt net zo vaak een **pdf-scan of een
+> mp3** (15 van de 31 in Grisburgh). Gevolg: het kaartje zette `no-img` niet en
+> reserveerde een leeg beeldvlak, en de onthulling stuurde dat id als `imageId`
+> mee, waarna de speler een **gebroken plaatje** in beeld kreeg. Er is nu
+> `storage.bestandIsBeeld(id)` (de bestandenindex cachet id → extensie); `_beeld`
+> en de `archief:dramaticReveal`-payload gebruiken die. De `<img>` in de
+> onthulling heeft daarnaast een `onerror` als vangnet, voor een bestand dat
+> later weggehaald is.
+
 > **Een documenttype zegt wat het ís, niet hoe het is opgeslagen.** De groep
 > *Geluid* had *Audiofragment* als type — dat is een bestandsformaat: het staat
 > al in het bestand eronder, en het kan geen briefstijl kiezen (zie
