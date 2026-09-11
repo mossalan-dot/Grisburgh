@@ -318,7 +318,7 @@ function _ververOpenKaartje(id) {
   });
 
   socket.on('meta:updated', () => {
-    import('./api.js?v=282').then(({ api }) => api.meta().then(m => {
+    import('./api.js?v=283').then(({ api }) => api.meta().then(m => {
       const prev = window.app?.state?.meta;
       const buitenChanged = prev?.buitenGrisburgh !== m.buitenGrisburgh;
       if (window.app?.state) window.app.state.meta = m;
@@ -505,10 +505,31 @@ function _ververOpenKaartje(id) {
   socket.on('item:verzoek-antwoord', ({ itemName, type, targetName, akkoord } = {}) => {
     const wat = type === 'trade'
       ? `<em>${itemName}</em> ruilen met ${targetName || 'een medespeler'}`
-      : `<em>${itemName}</em>`;
+      : type === 'spreuk'
+        ? `<em>${itemName}</em> in je spreukenboek`
+        : `<em>${itemName}</em>`;
     _showToast(akkoord
       ? `${window.icon('check-circle')} De DM keurde ${wat} goed`
       : `${window.icon('x')} De DM wees ${wat} af`, null, 6000);
+  });
+
+  // ── Spreukverzoeken ──
+  // Zelfde patroon als bij een voorwerp: de DM krijgt een toast die naar het
+  // spreukentabblad springt, en beide kanten werken hun lijst bij.
+  socket.on('spells:request', (data = {}) => {
+    window.spreuken?.setVerzoeken?.(data.requests || []);
+    if (window.app.isDM() && data.requesterName) {
+      _showToast(
+        `${window.icon('mail')} <strong>${data.requesterName}</strong> wil <em>${data.spellName || 'een spreuk'}</em> in zijn spreukenboek`,
+        () => { window.app.switchSection('spreuken'); },
+        6000
+      );
+    }
+  });
+
+  socket.on('spells:requests-updated', (data = {}) => {
+    window.spreuken?.setVerzoeken?.(data.requests || []);
+    _refreshSectionDebounced('mijn-karakter');
   });
 
   socket.on('items:ownership-updated', (data) => {
@@ -878,6 +899,9 @@ function _showConcentrationPrompt(p) {
   );
 }
 
+// De toast leefde alleen hier, terwijl andere modules dezelfde melding willen
+// tonen (een spreukverzoek bijvoorbeeld). Eén implementatie, globaal bereikbaar
+// — beter dan een tweede die er net iets anders uitziet.
 function _showToast(html, onClick, duration = 4500) {
   const toast = document.createElement('div');
   toast.className = 'map-toast' + (onClick ? ' map-toast--clickable' : '');
@@ -897,3 +921,5 @@ function _showToast(html, onClick, duration = 4500) {
   const timer = setTimeout(dismiss, duration);
   if (onClick) toast.addEventListener('click', () => clearTimeout(timer), { once: true });
 }
+
+window._showToast = _showToast;

@@ -337,6 +337,9 @@ export const api = {
   eigenSpreukWeg:     (index)              => request(`/spreuken/eigen/${encodeURIComponent(index)}`, { method: 'DELETE' }),
   addPlayerSpell:     (charId, data)       => request(`/player-spells/${charId}`, { method: 'POST', body: JSON.stringify(data) }),
   removePlayerSpell:  (charId, spellIdx)   => request(`/player-spells/${charId}/${spellIdx}`, { method: 'DELETE' }),
+  getSpellRequests:    ()       => request('/spell-requests'),
+  approveSpellRequest: (reqId)  => request(`/spells/request/${reqId}/approve`, { method: 'POST' }),
+  rejectSpellRequest:  (reqId)  => request(`/spells/request/${reqId}/reject`,  { method: 'POST' }),
   updatePlayerSpell:  (charId, spellIdx, data) => request(`/player-spells/${charId}/${spellIdx}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Vastgezette kenmerken

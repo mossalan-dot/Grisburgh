@@ -4754,31 +4754,186 @@ router.get('/spells/:index/wie', requireDM, (req, res) => {
   res.json({ index, spelers: uit });
 });
 
+// ── Een spreuk in je boek gaat langs de DM ───────────────────────────────────
+// Bij een voorwerp ging dat altijd al zo (`itemRequests`), bij een spreuk niet:
+// de speler schreef rechtstreeks in zijn boek. Dat verschil was niet bedoeld —
+// het spreukenboek is net zo goed administratie waar de DM over gaat.
+//
+// **Automatisch afwijzen doen we niet.** De verleiding is om op class en level
+// te toetsen, maar de uitzonderingen zijn in 5e eerder regel dan uitzondering:
+// multiclass, Magic Initiate, Fey Touched, Ritual Caster, uitgebreide
+// subklasselijsten, een Wizard die uit een scroll overschrijft, en de eigen
+// klassen van deze campagne. Een harde weigering zou vaak genoeg fout zitten dat
+// je hem gaat wantrouwen, en dan is hij erger dan niets. Dus: **de app rekent
+// voor, de DM beslist** — dezelfde regel als bij de loot-DC.
+function _spreukBron(index) {
+  const zoek = String(index || '');
+  const meta = storage.readJSON('meta.json');
+  const hoofd = meta.spellSource === 'hp' ? 'hp-spells' : 'spells-2024';
+  for (const bron of [hoofd, 'extra-spells']) {
+    const d = bronnen.lees(bron);
+    const lijst = Array.isArray(d) ? d : (d?.results || d?.spells || []);
+    const s = lijst.find(x => x?.index === zoek);
+    if (s) return s;
+  }
+  return _eigenSpreukLijst().find(x => x.index === zoek) || null;
+}
+
+// Eén regel die naast het verzoek komt te staan: wie vraagt het, past het bij
+// zijn klasse, en zo niet — is er een gewone verklaring voor? Nooit een oordeel,
+// altijd de feiten die de DM anders zelf zou opzoeken.
+function _spreukVoorrekenen(dmState, characterId, index) {
+  const p = (dmState.playerProfiles || {})[characterId] || {};
+  const klassen = [
+    [p.klasse, p.klasseLevel ?? p.level],
+    (p.multiclass === true || p.multiclass === 'true') ? [p.multiKlasse, p.multiKlasseLevel] : null,
+  ].filter(k => k && k[0]);
+  const wie = klassen.map(([k, lv]) => `${k}${lv ? ' ' + lv : ''}`).join(' / ') || 'klasse onbekend';
+
+  const spreuk = _spreukBron(index);
+  if (!spreuk) return `${wie} · spreuk niet in de bibliotheek gevonden`;
+  const lvl = Number(spreuk.level) || 0;
+  const niveau = lvl === 0 ? 'Cantrip' : `Level ${lvl}`;
+  const lijsten = (spreuk.classes || []).map(c => String(c?.name || c).toLowerCase());
+  const past = klassen.some(([k]) => lijsten.includes(String(k).toLowerCase()));
+  if (!lijsten.length) return `${wie} · ${niveau} · geen klassenlijst bij deze spreuk`;
+  const op = past
+    ? `staat op de ${klassen.find(([k]) => lijsten.includes(String(k).toLowerCase()))[0]}-lijst`
+    : `staat niet op die lijst — wel te verklaren via Magic Initiate, een feat of een scroll`;
+  return `${wie} · ${niveau} · ${op}`;
+}
+
+// Wat de speler zelf aanvroeg (zijn eigen openstaande verzoeken), of voor de DM:
+// alles wat er in álle party's openstaat. Zelfde vorm als /items/ownership.
+router.get('/spell-requests', attachRole, (req, res) => {
+  const dmState = readDmState();
+  if (req.role === 'dm') {
+    const alles = [];
+    for (const g of Object.values(dmState.groups || {})) {
+      for (const r of (g.spellRequests || [])) if (r.status === 'pending') alles.push(r);
+    }
+    return res.json({ requests: alles });
+  }
+  const charId = req.session?.characterId;
+  if (!charId) return res.json({ requests: [] });
+  const g = getGroup(dmState, _playerGroupId(dmState, charId));
+  res.json({ requests: (g.spellRequests || []).filter(r => r.requesterId === charId && r.status === 'pending') });
+});
+
+function _spellRequestsAlles(dmState) {
+  const alles = [];
+  for (const g of Object.values(dmState.groups || {})) {
+    for (const r of (g.spellRequests || [])) if (r.status === 'pending') alles.push(r);
+  }
+  return alles;
+}
+
+// Het verzoek zoeken in álle groepen: de speler kan in een andere party zitten
+// dan de groep die de DM op dat moment geselecteerd heeft.
+function _spellRequestVinden(dmState, reqId) {
+  for (const g of Object.values(dmState.groups || {})) {
+    const i = (g.spellRequests || []).findIndex(r => r.id === reqId);
+    if (i !== -1) return { g, i };
+  }
+  return null;
+}
+
+router.post('/spells/request/:reqId/approve', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const vondst = _spellRequestVinden(dmState, req.params.reqId);
+  if (!vondst) return res.status(404).json({ error: 'Verzoek niet gevonden' });
+  const r = vondst.g.spellRequests[vondst.i];
+  r.status = 'approved';
+  _spreukInBoek(dmState, r.requesterId, r.spreuk || { index: r.index, name: r.spellName });
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:requests-updated', {
+    requests: _spellRequestsAlles(dmState),
+  });
+  _meldVerzoekAntwoord(req, { ...r, itemName: r.spellName, type: 'spreuk' }, true);
+  res.json({ ok: true });
+});
+
+router.post('/spells/request/:reqId/reject', requireDM, (req, res) => {
+  const dmState = readDmState();
+  const vondst = _spellRequestVinden(dmState, req.params.reqId);
+  if (!vondst) return res.status(404).json({ error: 'Verzoek niet gevonden' });
+  const r = vondst.g.spellRequests[vondst.i];
+  r.status = 'rejected';
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:requests-updated', {
+    requests: _spellRequestsAlles(dmState),
+  });
+  _meldVerzoekAntwoord(req, { ...r, itemName: r.spellName, type: 'spreuk' }, false);
+  res.json({ ok: true });
+});
+
+// Eén plek waar een spreuk daadwerkelijk in een boek belandt — of de DM hem er
+// nu zelf in zet of een verzoek goedkeurt. Dedupliceert op index.
+function _spreukInBoek(dmState, characterId, body) {
+  const { index, name, level, school, source, desc, damage, concentration, ritual,
+          casting_time, range, components, duration } = body || {};
+  if (!index || !name) return false;
+  if (!dmState.playerSpells) dmState.playerSpells = {};
+  if (!dmState.playerSpells[characterId]) dmState.playerSpells[characterId] = [];
+  if (dmState.playerSpells[characterId].find(s => s.index === index)) return true;
+  const entry = { index, name, level: level || 0, school: school || '' };
+  if (source)       entry.source        = source;
+  if (desc)         entry.desc          = desc;
+  if (damage)       entry.damage        = damage;
+  if (concentration !== undefined) entry.concentration = concentration;
+  if (ritual !== undefined)        entry.ritual        = ritual;
+  if (casting_time) entry.casting_time = casting_time;
+  if (range)        entry.range        = range;
+  if (components)   entry.components   = components;
+  if (duration)     entry.duration     = duration;
+  dmState.playerSpells[characterId].push(entry);
+  return true;
+}
+
 router.post('/player-spells/:characterId', attachRole, (req, res) => {
   const { characterId } = req.params;
   if (req.role !== 'dm' && req.session.characterId !== characterId)
     return res.status(403).json({ error: 'Geen toegang' });
-  const { index, name, level, school, source, desc, damage, concentration, ritual,
-          casting_time, range, components, duration } = req.body;
+  const { index, name } = req.body;
   if (!index || !name) return res.status(400).json({ error: 'index en name vereist' });
   const dmState = readDmState();
-  if (!dmState.playerSpells) dmState.playerSpells = {};
-  if (!dmState.playerSpells[characterId]) dmState.playerSpells[characterId] = [];
-  if (!dmState.playerSpells[characterId].find(s => s.index === index)) {
-    const entry = { index, name, level: level || 0, school: school || '' };
-    if (source)       entry.source        = source;
-    if (desc)         entry.desc          = desc;
-    if (damage)       entry.damage        = damage;
-    if (concentration !== undefined) entry.concentration = concentration;
-    if (ritual !== undefined)        entry.ritual        = ritual;
-    if (casting_time) entry.casting_time = casting_time;
-    if (range)        entry.range        = range;
-    if (components)   entry.components   = components;
-    if (duration)     entry.duration     = duration;
-    dmState.playerSpells[characterId].push(entry);
+
+  // De DM schrijft rechtstreeks; een speler dient een verzoek in.
+  if (req.role === 'dm') {
+    _spreukInBoek(dmState, characterId, req.body);
+    storage.writeJSON('dm-state.json', dmState);
+    return res.json({ ok: true });
   }
+
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
+  if (!g.spellRequests) g.spellRequests = [];
+  if ((dmState.playerSpells || {})[characterId]?.some(s => s.index === index))
+    return res.json({ ok: true });            // staat er al in; niets te vragen
+  if (g.spellRequests.some(r => r.index === index && r.requesterId === characterId && r.status === 'pending'))
+    return res.status(409).json({ error: 'Al een openstaand verzoek' });
+
+  const verzoek = {
+    id:            'sreq_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    index,
+    spellName:     String(name).slice(0, 120),
+    requesterId:   characterId,
+    requesterName: req.playerName || 'Een speler',
+    // De hele spreuk gaat mee: bij goedkeuren hoeft de server niet opnieuw te
+    // raden welke bron het was, en een eigen spreuk die later gewijzigd wordt
+    // belandt in het boek zoals hij bij het vragen was.
+    spreuk:        req.body,
+    // Voorgerekend op het moment van vragen — dat is de stand waar de speler
+    // het over had. Een levelstijging morgen verandert die regel niet meer.
+    context:       _spreukVoorrekenen(dmState, characterId, index),
+    status:        'pending',
+    createdAt:     new Date().toISOString(),
+  };
+  g.spellRequests.push(verzoek);
   storage.writeJSON('dm-state.json', dmState);
-  res.json({ ok: true });
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('spells:request', {
+    ...verzoek, requests: _spellRequestsAlles(dmState),
+  });
+  res.status(201).json({ ok: true, verzoek: true });
 });
 
 // PATCH /player-spells/:characterId/:spellIndex — werk school/desc/damage bij

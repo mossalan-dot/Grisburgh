@@ -24505,3 +24505,24 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 /* Een overgenomen spreuk krijgt een andere kleur dan een zelfbedachte: het is
    dezelfde soort tag, maar met een andere consequentie bij het delen. */
 .spreuk-tag--overgenomen { background: rgba(139,42,42,0.14); border-color: rgba(139,42,42,0.4); color: #7a2a2a; }
+
+/* ── Spreukverzoeken ─────────────────────────────────────────────────────────
+   Een spreuk in je boek gaat langs de DM, net als een voorwerp. De knop kent
+   dus drie standen: vragen (goud), aangevraagd (blauwgrijs, zandloper) en in je
+   boek (groen). Onderaan de stylesheet, want de basisklassen staan hierboven en
+   bij gelijke specificiteit wint de laatste regel. */
+.spreuk-card-add.is-wachtend { background: rgba(58,70,96,0.9); cursor: default; }
+.spreuk-card-add.is-wachtend:hover { transform: none; background: rgba(58,70,96,0.9); }
+.spreuk-detail-addbtn.is-wachtend {
+  border-color: rgba(58,70,96,0.55); background: rgba(58,70,96,0.12);
+  color: #3a4660; cursor: default;
+}
+.spreuk-detail-addbtn.is-wachtend:hover { background: rgba(58,70,96,0.12); }
+/* De voorrekening naast een verzoek: wat de DM anders zelf zou opzoeken —
+   klasse, level en of de spreuk op die lijst staat. Een aantekening, geen
+   oordeel, dus rustig en op een eigen regel. */
+.claim-request-context {
+  display: block; margin-top: 2px;
+  font-family: 'IM Fell English', Georgia, serif; font-style: italic;
+  font-size: 12px; color: #7a6040;
+}

@@ -240,12 +240,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=570   app.js?v=727   sound-manager.js?v=8
-app.js      : api.js?v=282  dm-panel.js?v=221  media-picker.js?v=8
+index.html  : theme.css?v=571   app.js?v=727   sound-manager.js?v=8
+app.js      : api.js?v=283  dm-panel.js?v=221  media-picker.js?v=8
               render-archief.js?v=86  render-bestiarium.js?v=28  render-campagne.js?v=293
               render-dashboard.js?v=9  render-dungeon.js?v=33  render-kaart.js?v=19
-              render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=37
-              render-statblock.js?v=9  socket-client.js?v=70
+              render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
+              render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 ```
 
@@ -692,6 +692,33 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > terminologie-afspraak in — en het schoolfilter kreeg er daardoor zes verzonnen
 > scholen bij. Een school is een van de acht PHB-termen; de server bewaakt dat
 > voor eigen spreuken (`_SPREUK_SCHOLEN`).
+
+> **Een spreuk in je boek gaat langs de DM.** Een speler schreef vanuit de
+> bibliotheek rechtstreeks in zijn eigen boek, terwijl een **voorwerp** juist wél
+> langs de DM ging (`itemRequests`). Dat verschil was niet bedoeld. Nu komt er
+> een verzoek in `groups[gid].spellRequests` (`POST /player-spells/:id` door een
+> speler geeft `{ok:true, verzoek:true}`; de **DM** schrijft nog steeds direct
+> door). Routes: `GET /spell-requests` (speler: zijn eigen openstaande; DM: die
+> van álle party's), `POST /spells/request/:reqId/approve|reject`. De weg terug
+> hergebruikt `_meldVerzoekAntwoord` met `type:'spreuk'`. Eén plek waar een
+> spreuk echt in een boek belandt: `_spreukInBoek()`.
+>
+> **Automatisch afwijzen doen we niet — voorrekenen wel.** Toetsen op class en
+> level klinkt logisch, maar de uitzonderingen zijn in 5e eerder regel dan
+> uitzondering: multiclass, Magic Initiate, Fey Touched, Ritual Caster,
+> uitgebreide subklasselijsten, een Wizard die uit een scroll overschrijft, en de
+> eigen klassen van de campagne. Een weigering die vaak genoeg fout zit ga je
+> wantrouwen, en dan is hij erger dan niets. Dus staat er naast het verzoek een
+> regel als *"Wizard 8 · Level 1 · staat niet op die lijst — wel te verklaren via
+> Magic Initiate, een feat of een scroll"* (`_spreukVoorrekenen()`, berekend op
+> het moment van vragen, want dát was de stand waar de speler het over had).
+> Zelfde regel als bij de loot-DC: een aantekening, geen mechaniek.
+> De knop in de bibliotheek kent daardoor drie standen — vragen, aangevraagd
+> (zandloper) en in je boek.
+>
+> **De toast woont nu op `window._showToast`.** Die zat opgesloten in
+> `socket-client.js` terwijl andere modules dezelfde melding willen tonen. Eén
+> implementatie is beter dan een tweede die er net iets anders uitziet.
 
 > **Dezelfde regel voor class features, species traits en feats.** De SRD 5.2
 > dekt daar zelfs **80%** van de seed (133 van 148 class features, 27 van 53

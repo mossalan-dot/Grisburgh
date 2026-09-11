@@ -96,9 +96,8 @@ groot het is.
 - [x] **Spreuken koppelen aan de bibliotheek** *(5 sep)* — zoekveld in het
       Spells-paneel, chips met niveau en naam, klikken opent het spreukdetail.
       De losse tekstvelden staan er nog voor wat niet in de bibliotheek zit.
-- [ ] **Eigen spreuk kunnen aanmaken** in het spreukentabblad — nodig zodra de
-      koppeling er is, want dan kun je een zelfbedachte spreuk nergens meer
-      kwijt. Uitzoeken of dat nu al kan.
+- [x] **Eigen spreuk kunnen aanmaken** in het spreukentabblad — kan sinds de
+      +-knop naast het boekje; sinds 11 sep 2026 met een herkomstveld erbij.
 
 ## Op de telefoon
 
@@ -317,7 +316,13 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       dit zijn bestanden, geen JSON, dus kopiëren of verwijzen is een echte
       afweging.
 
-- [ ] **Een spreuk in je boek hoort langs de DM.** Vanuit het spreukentabblad zet
+- [x] **Een spreuk in je boek hoort langs de DM** — gedaan 11 sep 2026.
+      Verzoek in `groups[gid].spellRequests`, balk bovenin het spreukentabblad met
+      de voorrekening ernaast, bericht terug via `_meldVerzoekAntwoord`. Geen
+      automatische weigering; hieronder stond al waarom, en dat blijft gelden.
+
+      *Oorspronkelijke notitie:*
+- [x] ~~**Een spreuk in je boek hoort langs de DM.**~~ Vanuit het spreukentabblad zet
       een speler nu rechtstreeks een spreuk in zijn boek: `POST
       /player-spells/:characterId` laat het toe zodra het zijn eigen personage
       is (`render-spreuken.js` → `addToBook`). Bij een **voorwerp** gaat dat

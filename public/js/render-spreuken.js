@@ -11,7 +11,7 @@
  * met die van het spreukenboek (_SB_SCHOOLS in app.js).
  */
 
-import { api } from './api.js?v=282';
+import { api } from './api.js?v=283';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
@@ -46,6 +46,7 @@ let _filters   = { q: '', level: null, klasse: null, school: null, ritual: false
 let _classes   = [];
 let _scholenOpen = false;    // staat de schoolrij uitgeklapt?
 let _myBook    = new Set(); // index-set van de spreuken in het eigen spreukenboek (speler)
+let _verzoeken = [];        // openstaande spreukverzoeken: eigen (speler) of alle party's (DM)
 let _myClasses = [];        // genormaliseerde EN-klassenamen van de speler
 let _isCaster  = false;     // heeft de speler een klasse met spreuken?
 
@@ -231,9 +232,9 @@ function _card(s) {
       style="--school-c1:${col.c1};--school-c2:${col.c2}">
       <div class="card-accent bar-spreuken"></div>
       <span class="spreuk-card-niv">${_levelShort(s.level)}</span>
-      ${isPlayer() ? `<button class="spreuk-card-add${_myBook.has(s.index) ? ' is-added' : ''}" data-idx="${esc(s.index)}"
+      ${isPlayer() ? `<button class="spreuk-card-add${_myBook.has(s.index) ? ' is-added' : (_wacht(s.index) ? ' is-wachtend' : '')}" data-idx="${esc(s.index)}"
         onclick="event.stopPropagation();window.spreuken.addToBook('${esc(s.index)}',this)"
-        title="${_myBook.has(s.index) ? 'Staat in je spreukenboek' : 'Toevoegen aan je spreukenboek'}">${icon(_myBook.has(s.index) ? 'check' : 'plus')}</button>` : ''}
+        title="${_myBook.has(s.index) ? 'Staat in je spreukenboek' : (_wacht(s.index) ? 'De DM moet dit nog goedkeuren' : 'Vraag de DM om deze spreuk')}">${icon(_myBook.has(s.index) ? 'check' : (_wacht(s.index) ? 'hourglass' : 'plus'))}</button>` : ''}
       <div class="card-img-wrap spreuk-card-img-wrap">
         <div class="spreuk-card-silhouet">${icon(col.icon)}</div>
         <img class="spreuk-card-img" src="${_imgUrl(s)}" alt="" loading="lazy"
@@ -329,6 +330,9 @@ export async function renderSpreuken(container) {
   await _load();
   if (window.app?.state?.activeSection !== 'spreuken') return; // tijdens laden gewisseld
 
+  // Openstaande verzoeken: de speler ziet zijn eigen, de DM die van alle party's.
+  try { _verzoeken = (await api.getSpellRequests())?.requests || []; } catch { _verzoeken = []; }
+
   // Speler: huidig spreukenboek (markeren) + eigen klasse(n) (filter "alleen mijn klasse")
   _myBook = new Set(); _myClasses = []; _isCaster = false;
   if (isPlayer()) {
@@ -373,6 +377,7 @@ export async function renderSpreuken(container) {
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
     </div>
     <div class="spreuk-wrap">
+      <div id="spreuk-verzoeken">${_verzoekenBalkHtml()}</div>
       ${_filterBar()}
       <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4" id="spreuk-grid"></div>
     </div>`;
@@ -447,8 +452,11 @@ function _detailHtml(s) {
       <!-- Wie kent deze spreuk? Zelfde vraag als "wie heeft dit voorwerp" bij
            een kaartje; de administratie staat per speler, dus die halen we op. -->
       <div class="spreuk-wie" id="spreuk-wie-${esc(s.index)}"></div>` : ''}
-      ${isPlayer() ? `<button class="spreuk-detail-addbtn${_myBook.has(s.index) ? ' is-added' : ''}" data-idx="${esc(s.index)}"
-        onclick="window.spreuken.addToBook('${esc(s.index)}',this)">${icon(_myBook.has(s.index) ? 'check' : 'plus')} ${_myBook.has(s.index) ? 'In je spreukenboek' : 'Toevoegen aan mijn spreukenboek'}</button>` : ''}
+      ${isPlayer() ? `<button class="spreuk-detail-addbtn${_myBook.has(s.index) ? ' is-added' : (_wacht(s.index) ? ' is-wachtend' : '')}" data-idx="${esc(s.index)}"
+        onclick="window.spreuken.addToBook('${esc(s.index)}',this)">${icon(_myBook.has(s.index) ? 'check' : (_wacht(s.index) ? 'hourglass' : 'plus'))} ${
+          _myBook.has(s.index) ? 'In je spreukenboek'
+            : _wacht(s.index) ? 'Aangevraagd — wacht op de DM'
+            : 'Vraag de DM om deze spreuk'}</button>` : ''}
       <div class="spreuk-detail-props">
         ${rows.map(([l, v]) => `<div class="spreuk-detail-prop"><span class="spreuk-detail-prop-lbl">${esc(l)}</span><span>${v}</span></div>`).join('')}
       </div>
@@ -680,6 +688,43 @@ function _ensureOverlay() {
   return ov;
 }
 
+// Staat er een verzoek open voor deze spreuk (van mij, of — als DM — van wie dan ook)?
+const _wacht = (index) => _verzoeken.some(r => r.index === index);
+
+// Werk de add-knoppen (kaart + detail) van één spreuk bij naar de "aangevraagd"-staat.
+function _markWachtend(index) {
+  const sel = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(index) : index;
+  document.querySelectorAll(`.spreuk-card-add[data-idx="${sel}"]`).forEach(b => {
+    b.classList.add('is-wachtend'); b.innerHTML = icon('hourglass'); b.title = 'De DM moet dit nog goedkeuren';
+    b.disabled = false;
+  });
+  document.querySelectorAll(`.spreuk-detail-addbtn[data-idx="${sel}"]`).forEach(b => {
+    b.classList.add('is-wachtend'); b.innerHTML = `${icon('hourglass')} Aangevraagd — wacht op de DM`;
+  });
+}
+
+// De DM ziet bovenaan het tabblad wat er openstaat, met de voorrekening ernaast:
+// wie vraagt het, welke klasse en level, en of de spreuk op die lijst staat.
+// Bewust géén automatische weigering — zie de toelichting bij _spreukVoorrekenen
+// in routes/api.js. Eén klik, met de reden ernaast.
+function _verzoekenBalkHtml() {
+  if (!isDM() || !_verzoeken.length) return '';
+  return `<div class="claim-requests-bar">
+    <div class="claim-requests-title">${icon('mail')} Openstaande spreukverzoeken (${_verzoeken.length})</div>
+    ${_verzoeken.map(r => `
+      <div class="claim-request-row">
+        <span class="claim-request-info">
+          <strong>${esc(r.requesterName)}</strong> wil <em>${esc(r.spellName)}</em> in zijn spreukenboek
+          ${r.context ? `<span class="claim-request-context">${esc(r.context)}</span>` : ''}
+        </span>
+        <div class="claim-request-actions">
+          <button class="claim-btn-approve" onclick="window.spreuken.verzoekAntwoord('${esc(r.id)}',true)">${icon('check')} Goedkeuren</button>
+          <button class="claim-btn-reject"  onclick="window.spreuken.verzoekAntwoord('${esc(r.id)}',false)">${icon('x')} Weigeren</button>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
 // Werk de add-knoppen (kaart + detail) van één spreuk bij naar de "toegevoegd"-staat.
 function _markAdded(index) {
   const sel = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(index) : index;
@@ -771,10 +816,12 @@ window.spreuken = {
       if (st) st.textContent = 'Fout: ' + e.message;
     }
   },
-  // Speler: voeg deze spreuk toe aan het eigen spreukenboek (server dedupliceert op index).
+  // Speler: vraag de DM om deze spreuk. Die beslist; pas na goedkeuren staat hij
+  // in het boek. Zelfde weg als bij een voorwerp — het spreukenboek is net zo
+  // goed administratie waar de DM over gaat. De DM zelf schrijft direct door.
   async addToBook(index, btn) {
     const charId = window.app?.state?.characterId;
-    if (!charId || _myBook.has(index)) return;
+    if (!charId || _myBook.has(index) || _wacht(index)) return;
     const s = (_all || []).find(x => x.index === index);
     if (!s) return;
     const payload = {
@@ -793,13 +840,36 @@ window.spreuken = {
     };
     if (btn) btn.disabled = true;
     try {
-      await api.addPlayerSpell(charId, payload);
-      _myBook.add(index);
-      _markAdded(index);
+      const r = await api.addPlayerSpell(charId, payload);
+      if (r?.verzoek) {
+        _verzoeken.push({ index, spellName: s.name, requesterId: charId });
+        _markWachtend(index);
+        window._showToast?.(`${icon('mail')} <em>${esc(s.name)}</em> aangevraagd bij de DM`, null, 4000);
+      } else {
+        _myBook.add(index);
+        _markAdded(index);
+      }
     } catch (e) {
-      console.error('Spell toevoegen aan spreukenboek mislukt:', e);
+      console.error('Spell aanvragen mislukt:', e);
       if (btn) btn.disabled = false;
     }
+  },
+
+  // De DM beslist over één verzoek. De lijst komt daarna via de socket terug,
+  // zodat een tweede DM-scherm hem ook kwijt is.
+  async verzoekAntwoord(reqId, akkoord) {
+    try {
+      await (akkoord ? api.approveSpellRequest(reqId) : api.rejectSpellRequest(reqId));
+    } catch (e) {
+      window._showToast?.(`${icon('x')} Lukte niet: ${esc(e.message)}`, null, 4000);
+    }
+  },
+
+  // Door de socket gevoed: nieuwe lijst, balk opnieuw tekenen.
+  setVerzoeken(lijst) {
+    _verzoeken = Array.isArray(lijst) ? lijst : [];
+    const host = document.getElementById('spreuk-verzoeken');
+    if (host) host.innerHTML = _verzoekenBalkHtml();
   },
   close() {
     const ov = document.getElementById('spreuk-detail-overlay');
