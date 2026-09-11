@@ -259,7 +259,9 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
 
 ## Uit de sessie van 8-9 sep 2026 — nog te doen
 
-- [ ] **HP uitrollen bij een encounter.** Nu het hp-veld de worp weer bevat
+- [x] **HP uitrollen bij een encounter** — gedaan 11 sep 2026, per monsterregel
+      en per exemplaar. Oorspronkelijke notitie:
+- [ ] ~~**HP uitrollen bij een encounter.**~~ Nu het hp-veld de worp weer bevat
       ("11 (2d8+2)") kan een gevecht per monster rollen in plaats van het
       gemiddelde te nemen. Dat maakt elke ontmoeting net iets anders. Voorstel:
       een vinkje in de encounter-editor (*HP uitrollen*) dat op de encounter

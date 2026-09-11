@@ -270,6 +270,8 @@ export function initDmPanel() {
     monsterEdit:         _monsterEdit,
     monsterModal:        _monsterModal,
     encTierChange:       _encTierChange,
+    encRowRoll:          _encRowRoll,
+    encHpAlles:          _encHpAlles,
     monsterCancel:       _monsterCancel,
     monsterSave:         _monsterSave,
     monsterDelete:       _monsterDelete,
@@ -3750,6 +3752,30 @@ function _encPage_set(page)         { _encPage = page; _renderEncounters(); }
 // het gevecht iets anders zeggen dan het kaartje dat de spelers zien, en dan
 // heb je twee waarheden. Hier staat 'm dus wél binnen handbereik, want dit is
 // het moment waarop je erover nadenkt.
+// Kan deze regel überhaupt uitgerold worden? Alleen als het statblok een worp
+// bevat ("65 (10d8+20)"). Van de 57 monsters hebben er 13 alleen een kaal
+// getal; daar bieden we de knop niet aan in plaats van iets te beloven wat de
+// app niet waar kan maken.
+function _encHeeftWorp(monsterId) {
+  const m = _monsters.find(x => x.id === monsterId);
+  return /\d+\s*d\s*\d+/i.test(String(m?.statblock?.hp || ''));
+}
+
+// Eén regel boven de monsters: alles vast of alles uitrollen. Meestal wil je
+// het voor het hele gezelschap tegelijk; per regel bijstellen kan daarna nog.
+function _encHpBalkHtml() {
+  const kan = _encMonsterRows.filter(r => _encHeeftWorp(r.monsterId)).length;
+  if (!kan) return '';
+  const aan = _encMonsterRows.filter(r => r.hpRoll).length;
+  return `<div class="dm-enc-hpbalk">
+    ${icon('dice')} <span>HP van deze monsters</span>
+    <button type="button" class="sf-chip${aan === 0 ? ' sf-chip--active' : ''}"
+      onclick="window.dmPanel.encHpAlles(false)" title="Iedereen het gemiddelde uit het statblok">Gemiddelde</button>
+    <button type="button" class="sf-chip${aan === kan ? ' sf-chip--active' : ''}"
+      onclick="window.dmPanel.encHpAlles(true)" title="Bij het opstellen per exemplaar rollen">Uitrollen</button>
+  </div>`;
+}
+
 function _encTierRegel(r, i) {
   const m = _monsters.find(x => x.id === r.monsterId);
   if (!m?._tiers?.length) return '';
@@ -3783,7 +3809,7 @@ function _renderEncounterEditor(el) {
 
   const rowsHtml = _encMonsterRows.length === 0
     ? `<p class="dm-hint" style="margin:4px 0 8px">Nog geen monsters. Klik + om er een toe te voegen.</p>`
-    : _encMonsterRows.map((r, i) => `
+    : _encHpBalkHtml() + _encMonsterRows.map((r, i) => `
         <div class="dm-enc-monster-row" data-idx="${i}">
           <input class="dm-input dm-input-sm" type="text"
             list="dm-enc-monsters-dl"
@@ -3806,6 +3832,10 @@ function _renderEncounterEditor(el) {
             <input class="dm-input dm-input-sm" type="number" value="${r.hp ?? 10}" style="width:52px"
               onchange="window.dmPanel.encRowChange(${i}, 'hp', this.value)">
           </label>
+          ${_encHeeftWorp(r.monsterId) ? `<button type="button"
+            class="script-icon-btn dm-enc-worp${r.hpRoll ? ' dm-enc-worp--aan' : ''}"
+            onclick="window.dmPanel.encRowRoll(${i})"
+            title="${r.hpRoll ? 'Rolt bij het opstellen — klik voor het gemiddelde' : 'Uitrollen bij het opstellen, per exemplaar'}">${icon('dice')}</button>` : ''}
           <button class="script-icon-btn script-icon-btn--del" onclick="window.dmPanel.encRemoveRow(${i})" title="Verwijderen">${icon('x')}</button>
         </div>
         ${_encTierRegel(r, i)}`).join('');
@@ -4068,6 +4098,20 @@ async function _encTierChange(idx, tierId) {
     if (nieuw) rij.hp = nieuw.maxHp ?? rij.hp;
     _renderEncounterEditor(document.getElementById('dm-encounters-content'));
   } catch (e) { alert('Gedaante omzetten mislukt: ' + e.message); }
+}
+
+function _encRowRoll(idx) {
+  const r = _encMonsterRows[idx];
+  if (!r) return;
+  r.hpRoll = !r.hpRoll;
+  _renderEncounterEditor(document.getElementById('dm-encounters-content'));
+}
+
+function _encHpAlles(aan) {
+  for (const r of _encMonsterRows) {
+    if (_encHeeftWorp(r.monsterId)) r.hpRoll = !!aan;
+  }
+  _renderEncounterEditor(document.getElementById('dm-encounters-content'));
 }
 
 function _encPickBackdrop() {

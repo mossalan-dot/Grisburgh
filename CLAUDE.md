@@ -527,6 +527,21 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=8
 > als bij een dier, maar zonder "vanaf level" (`_tierVoorDier` in
 > `render-campagne.js`).
 >
+> **HP uitrollen of het gemiddelde nemen — per monsterregel.** Het hp-veld van
+> een statblok schrijft allebei op: `"65 (10d8+20)"`. Het getal vooraan is het
+> gemiddelde en blijft de standaard; `row.hpRoll` op een encounterregel zegt dat
+> er gerold moet worden. Dat gebeurt **server-side bij het opstellen**
+> (`_hpUitrollen` in `POST /encounters/:id/start`) en **per exemplaar**: vier
+> goblins krijgen vier totalen. Dat kan niet in de editor, want een regel bewaart
+> één getal. Wat er gerold is komt in de gevechtslog te staan.
+> De keuze staat naast het Max HP-veld waar hij over gaat, met één balk erboven
+> (*Gemiddelde / Uitrollen*) die alle regels ineens omzet. Bewust **geen**
+> campagne-instelling (te bot, en je vergeet dat hij aanstaat) en **geen** vraag
+> bij het starten (elke keer een klik voor iets dat je per encounter één keer
+> beslist). Een monster zónder worp in zijn statblok krijgt de knop niet — 13 van
+> de 57 in Grisburgh hebben alleen een kaal getal, en een knop die niets kan doen
+> is erger dan geen knop.
+
 > **Bij het bouwen van een encounter** staat onder een monsterregel die van een
 > kaartje komt de regel *"Deze party kent hem als"* met een keuzelijst
 > (`_encTierRegel` / `encTierChange` in `dm-panel.js`); `GET /monsters` levert

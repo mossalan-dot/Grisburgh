@@ -3288,6 +3288,23 @@ router.patch('/items/:itemId/owner/:characterId', attachRole, (req, res) => {
   res.json({ ok: true, qty: entry.qty });
 });
 
+// Hit points uitrollen in plaats van het gemiddelde nemen. Het hp-veld van een
+// statblok schrijft allebei op: "65 (10d8+20)". Het getal vooraan is het
+// gemiddelde — dat blijft de standaard — en tussen haakjes staat de worp.
+// Wordt er gerold, dan gebeurt dat **per exemplaar** bij het opstellen: vier
+// goblins krijgen vier verschillende totalen. Daarom rolt de server en niet de
+// editor: die bewaart één getal per regel.
+function _hpUitrollen(hpTekst) {
+  const m = String(hpTekst || '').match(/(\d+)\s*d\s*(\d+)\s*([+-]\s*\d+)?/i);
+  if (!m) return null;
+  const aantal = Math.min(parseInt(m[1]) || 1, 100);   // rem: geen 999d999
+  const zijden = parseInt(m[2]) || 6;
+  const mod    = m[3] ? parseInt(m[3].replace(/\s+/g, '')) : 0;
+  let totaal = mod;
+  for (let i = 0; i < aantal; i++) totaal += Math.floor(Math.random() * zijden) + 1;
+  return Math.max(1, totaal);   // met 0 HP sta je al op de grond
+}
+
 // ── Dice roller helper ──
 function rollDice(formula) {
   const m = (formula || '').trim().match(/^(\d+)d(\d+)$/i);
@@ -11597,6 +11614,7 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
   }
 
   // Monsters uit de encounter (count > 1 → genummerd)
+  const uitgerold = [];   // wat er gerold is, voor de gevechtslog
   for (const row of (enc.monsters || [])) {
     const count = Math.max(1, parseInt(row.count) || 1);
     const preset = row.monsterId ? monstersList.find(m => m.id === row.monsterId) : null;
@@ -11605,14 +11623,19 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
     const mAc = (String(preset?.statblock?.ac ?? '').match(/-?\d+/) || [''])[0];
     for (let i = 1; i <= count; i++) {
       const suffix = count > 1 ? ` ${i}` : '';
+      // Per exemplaar rollen als de regel daarom vraagt; lukt dat niet (geen
+      // worp in het statblok), dan gewoon het getal uit de regel.
+      const gerold = row.hpRoll ? _hpUitrollen(preset?.statblock?.hp) : null;
+      const hp = gerold ?? (parseInt(row.hp) || 10);
+      if (gerold != null) uitgerold.push(`${(row.name || 'Monster') + suffix}: ${gerold}`);
       combatants.push({
         id:         'c_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
         name:       (row.name || 'Monster') + suffix,
         presetId:   row.monsterId || null,
         type:       'monster',
         initiative: parseInt(row.initiative) || 0,
-        hp:         parseInt(row.hp)         || 10,
-        maxHp:      parseInt(row.hp)         || 10,
+        hp,
+        maxHp:      hp,
         ac:         mAc,
         conditions: [],
       });
@@ -11634,7 +11657,8 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
     backdropId:   enc.backdropId   || null,
     canvasPreset: enc.canvasPreset || null,
     canvasColors: enc.canvasColors || null,
-    log:          [`⚔️ Encounter geladen: ${enc.name}`],
+    log:          [`⚔️ Encounter geladen: ${enc.name}`,
+                   ...(uitgerold.length ? [`HP uitgerold — ${uitgerold.join(', ')}`] : [])],
   };
   storage.writeJSON('combat.json', combat);
   req.app.get('io').to(req.session?.campaignId || 'main').emit('combat:updated', combat);
