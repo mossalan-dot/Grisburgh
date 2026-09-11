@@ -1553,6 +1553,15 @@ negen eigen routes. Dat is allemaal weg; wat overblijft is
 > de balk (`fmtToolbar(id, { perkament: true })` → `window._fmtStructuur`), die
 > de markeerregel invoegen en de regel eronder selecteren.
 
+> **Een documenttype zegt wat het ís, niet hoe het is opgeslagen.** De groep
+> *Geluid* had *Audiofragment* als type — dat is een bestandsformaat: het staat
+> al in het bestand eronder, en het kan geen briefstijl kiezen (zie
+> `DOC_STIJL_BIJ_TYPE`). Die groep heet nu **Gesproken en gezongen** met **Lied**
+> en **Opname**; de zes kaartjes die *Audiofragment* droegen waren in
+> werkelijkheid drie liederen en drie voxaalfles-opnames (omgezet 11 sep 2026,
+> backup ernaast). Onder Drukwerk kwam **Aanplakbiljet** erbij — het enige type
+> dat in het spel steeds terugkwam en er niet stond.
+
 > **Briefstijlen en de brief op ware grootte.** Eén perkamentstijl maakte van een
 > brief, een kasboek en een dreigbrief hetzelfde ding, terwijl het type al bekend
 > was. `_docStijl(e)` leidt de stijl af uit `data.docType` (`DOC_STIJL_BIJ_TYPE`)

@@ -159,6 +159,7 @@ const DOC_TYPE_GROEPEN = [
   ]},
   { groep: 'Drukwerk', opties: [
     { value: 'Krant',          label: 'Krant' },
+    { value: 'Aanplakbiljet',  label: 'Aanplakbiljet' },
     { value: 'Folder',         label: 'Folder' },
     { value: 'Catalogus',      label: 'Catalogus' },
     { value: 'Menu',           label: 'Menu' },
@@ -176,9 +177,13 @@ const DOC_TYPE_GROEPEN = [
     { value: 'Blauwdruk',      label: 'Blauwdruk' },
     { value: 'Tekening',       label: 'Tekening' },
   ]},
-  { groep: 'Geluid', opties: [
-    { value: 'Audiofragment',  label: 'Audiofragment' },
+  // Deze groep heette *Geluid* en had *Audiofragment* als type. Dat is een
+  // bestandsformaat, geen soort document: het zegt hoe het is opgeslagen, niet
+  // wat het is — en het kan dus ook geen briefstijl kiezen. Wat er wél in hoort
+  // is het verschil tussen gezongen en gesproken.
+  { groep: 'Gesproken en gezongen', opties: [
     { value: 'Lied',           label: 'Lied' },
+    { value: 'Opname',         label: 'Opname' },
   ]},
 ];
 
@@ -409,7 +414,10 @@ const DOC_STIJL_BIJ_TYPE = {
   'Dreigbrief': 'knipsel',
   'Kasboek': 'machine', 'Register': 'machine', 'Contract': 'machine',
   'Krant': 'drukwerk', 'Folder': 'drukwerk', 'Catalogus': 'drukwerk',
-  'Menu': 'drukwerk', 'Pamflet': 'drukwerk',
+  'Menu': 'drukwerk', 'Pamflet': 'drukwerk', 'Aanplakbiljet': 'drukwerk',
+  // Een lied staat uitgeschreven, meestal in een sierlijke hand. Een opname
+  // heeft zelden tekst; die valt terug op de standaard.
+  'Lied': 'hand2',
   'Manuscript': 'oud',
 };
 
