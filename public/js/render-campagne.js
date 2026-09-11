@@ -405,16 +405,24 @@ const BRIEF_STIJLEN = [
   { value: 'machine',   label: 'Typemachine',               stijl: "'Special Elite', monospace" },
   { value: 'drukwerk',  label: 'Gezet drukwerk',            stijl: "'Crimson Text', serif" },
   { value: 'knipsel',   label: 'Uitgeknipte krantenletters', stijl: "'UnifrakturMaguntia', serif" },
+  { value: 'gotisch',   label: 'Gewijd — gotische letter',  stijl: "'UnifrakturMaguntia', serif" },
+  { value: 'aanplak',   label: 'Aanplakbiljet',             stijl: "'Cinzel', serif" },
   { value: 'oud',       label: 'Oud handschrift (standaard)', stijl: "'IM Fell English', serif" },
 ];
 
 const DOC_STIJL_BIJ_TYPE = {
   'Brief': 'hand', 'Notities': 'hand', 'Visitekaartje': 'drukwerk',
-  'Gedicht': 'hand2', 'Gebed': 'oud',
+  // Een gebed is geen brief maar een gewijde tekst; die staat in de gotische
+  // letter die tot nu toe alleen als krantenkop gebruikt werd.
+  'Gedicht': 'hand2', 'Gebed': 'gotisch',
   'Dreigbrief': 'knipsel',
   'Kasboek': 'machine', 'Register': 'machine', 'Contract': 'machine',
   'Krant': 'drukwerk', 'Folder': 'drukwerk', 'Catalogus': 'drukwerk',
-  'Menu': 'drukwerk', 'Pamflet': 'drukwerk', 'Aanplakbiljet': 'drukwerk',
+  'Menu': 'drukwerk', 'Pamflet': 'drukwerk',
+  // Een aanplakbiljet is geen krant: kort, gecentreerd en van een afstand
+  // leesbaar. Zeven types deelden één drukwerk-uiterlijk; dit is de enige
+  // waarbij dat echt de verkeerde vorm gaf.
+  'Aanplakbiljet': 'aanplak',
   // Een lied staat uitgeschreven, meestal in een sierlijke hand. Een opname
   // heeft zelden tekst; die valt terug op de standaard.
   'Lied': 'hand2',

@@ -1585,6 +1585,18 @@ negen eigen routes. Dat is allemaal weg; wat overblijft is
 > backup ernaast). Onder Drukwerk kwam **Aanplakbiljet** erbij — het enige type
 > dat in het spel steeds terugkwam en er niet stond.
 
+> **Acht briefstijlen, niet één per type.** Zeven van de 22 documenttypes delen
+> `drukwerk` en dat is meestal goed — een folder en een catalogus zien er
+> hetzelfde uit. Twee gaten waren echt: een **gebed** stond in gewoon oud
+> handschrift (nu `gotisch`, de letter die al geladen werd maar alleen als
+> krantenkop diende) en een **aanplakbiljet** kreeg krantenkolommen terwijl het
+> kort, gecentreerd en van een afstand leesbaar hoort te zijn (nu `aanplak`).
+> Beide gebruiken fonts die al in de Google-Fonts-regel stonden, dus het kost
+> geen extra verzoek.
+> **Bewust géén stijl** voor de groep *Kaarten en tekeningen*: van die vier
+> types heeft er in de hele campagne precies één ooit tekst (een blauwdruk).
+> Een eigen lettertype bouwen voor één document is werk zonder lezer.
+
 > **Briefstijlen en de brief op ware grootte.** Eén perkamentstijl maakte van een
 > brief, een kasboek en een dreigbrief hetzelfde ding, terwijl het type al bekend
 > was. `_docStijl(e)` leidt de stijl af uit `data.docType` (`DOC_STIJL_BIJ_TYPE`)

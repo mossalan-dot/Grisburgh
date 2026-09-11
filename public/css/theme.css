@@ -24446,3 +24446,43 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 /* Het oogje is geen opmaakknop maar een kijkknop: helemaal rechts, los van de
    rij waarmee je tekst vormgeeft. */
 .fmt-toolbar .fmt-btn-oog { margin-left: auto; }
+
+/* ── Twee briefstijlen erbij ────────────────────────────────────────────────
+   `gotisch` voor gewijde tekst (een gebed, een heilig manuscript): dezelfde
+   letter die al als krantenkop geladen werd, nu ook voor de tekst zelf.
+   `aanplak` voor een aanplakbiljet: kort, gecentreerd, van een afstand
+   leesbaar — een biljet aan een paal leest niet als een krantenkolom. */
+.parchment-block[data-stijl="gotisch"],
+.perk-blad[data-stijl="gotisch"] .perk-kolommen {
+  font-family: 'UnifrakturMaguntia', 'IM Fell English', serif;
+  font-size: 17px; line-height: 1.95; color: #241c14;
+}
+.parchment-block[data-stijl="gotisch"] .parch-title,
+.perk-blad[data-stijl="gotisch"] .parch-title {
+  font-family: 'UnifrakturMaguntia', serif; font-size: 1.9em;
+  text-align: center; margin-bottom: 16px;
+}
+.parchment-block[data-stijl="gotisch"] .parch-sig,
+.perk-blad[data-stijl="gotisch"] .parch-sig {
+  font-family: 'IM Fell English', serif; font-style: italic;
+}
+
+.parchment-block[data-stijl="aanplak"],
+.perk-blad[data-stijl="aanplak"] .perk-kolommen {
+  font-family: 'Cinzel', serif;
+  font-size: 15px; line-height: 1.9; color: #1e1810;
+  text-align: center; letter-spacing: .06em; text-transform: uppercase;
+}
+.parchment-block[data-stijl="aanplak"] .parch-title,
+.perk-blad[data-stijl="aanplak"] .parch-title {
+  font-family: 'UnifrakturMaguntia', serif;
+  font-size: 2.3em; letter-spacing: 0; text-transform: none;
+  text-align: center; line-height: 1.15; margin-bottom: 14px;
+}
+.parchment-block[data-stijl="aanplak"] .parch-sig,
+.perk-blad[data-stijl="aanplak"] .parch-sig {
+  font-family: 'Cinzel', serif; font-size: .82em; letter-spacing: .1em;
+  text-align: center; text-transform: uppercase; opacity: .8;
+}
+.parchment-block[data-stijl="aanplak"] .parch-rule,
+.perk-blad[data-stijl="aanplak"] .parch-rule { border-top-width: 2px; margin: 14px 0; }
