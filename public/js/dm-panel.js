@@ -10127,7 +10127,7 @@ async function _renderInstellingen() {
     ${_instSectie('spotify', 'Muziek (Spotify)', `
       <div id="inst-spotify">
         <p class="dm-hint">Laden…</p>
-      </div>`)}
+      </div>`, window._helpBtn?.('hulp_muziek') ?? '')}
 
     <!-- Export & backup -->
     ${_instSectie('export', 'Export &amp; backup', `
@@ -10240,6 +10240,13 @@ async function _spotifyInstellingen() {
     </div>
     ${st.gekoppeld && st.premium === false
       ? `<p class="dm-hint" style="color:#8b2a2a">Dit account heeft geen Premium. Afspelen op afstand werkt daar niet mee — Spotify weigert het.</p>` : ''}
+    <!-- Een privésessie kun je niet vanuit een app aanzetten: Spotify heeft daar
+         geen endpoint voor. Wat wél werkt staat hier, want anders kleurt een
+         avond tavernemuziek je Discover Weekly. -->
+    <p class="dm-hint">Speelavonden kleuren je aanbevelingen. Spotify laat een <b>privésessie</b> niet
+      vanuit een app aanzetten — dat doe je zelf in Spotify (je profiel → <i>Privésessie</i>). Wil je het
+      niet elke keer hoeven onthouden: zet je sfeermuziek in een eigen afspeellijst en vink daar in Spotify
+      <i>Uitsluiten van je smaakprofiel</i> aan; die telt dan niet mee.</p>
     <div class="dm-form-row">
       <label class="dm-form-label">Geluid uit</label>
       <div class="dm-knoprij">

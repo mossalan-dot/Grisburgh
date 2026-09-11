@@ -9,7 +9,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=28';
 import { renderSpreuken } from './render-spreuken.js?v=38';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=72";
-import { initDmPanel } from "./dm-panel.js?v=224";
+import { initDmPanel } from "./dm-panel.js?v=225";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -12236,6 +12236,12 @@ const HELP_CONFIG = {
     { titel: 'Wie hoort hier bij?', tekst: 'Eigenaar, waard, personeel, stamgasten — personages én organisaties, met per regel een rol. Een naam die een kaartje heeft wordt een knop waar je doorheen klikt; wat geen kaartje heeft blijft gewoon tekst. Dezelfde regel verschijnt bij *Waar hoort dit \u2026 bij?* op dát kaartje \u2014 de kop noemt daar het soort kaartje: een verbinding staat maar op één plek, dus je legt en verwijdert hem van beide kanten.', afbeelding: null },
     { titel: 'Flavour & geheimen', tekst: '**Flavour** zijn losse zinnetjes om voor te lezen; de app houdt per regel bij of hij al verteld is, dus iemand met drie roddels levert drie avonden op. **Geheimen** onthul je per regel en per party, in het detailvenster.', afbeelding: null },
     { titel: 'Koppelingen', tekst: 'Onderaan staat wat dit kaartje **elders** is: de herberg van de campagne, of de tempel van een god uit de Tempel-dienst. Die koppeling staat maar op één plek — je kunt hem hier leggen of in het paneel van die dienst, en je ziet aan beide kanten hetzelfde.', afbeelding: null },
+  ] }),
+  hulp_muziek: () => ({ titel: 'Muziek uit Spotify', stappen: [
+    { titel: 'Hoe het werkt', tekst: 'Grisburgh speelt zelf niets af: het drukt op **play** bij Spotify. In een akte zet je een muziekstap neer (de muzieknoot in het regie-script); tijdens het spelen start je die met de muzieknoot in de regie-balk. Per stap kies je of het nummer één keer speelt of blijft herhalen.', afbeelding: null },
+    { titel: 'Waar komt het geluid uit', tekst: 'Standaard uit het apparaat waarop jij Spotify hebt draaien — meestal de laptop waarop je de regie bedient. Kies je *Het tafelscherm*, dan meldt de tablet zich zelf aan als Spotify-speler; die moet dan wel open staan en één keer aangeraakt zijn, want een browser mag pas geluid maken na een aanraking.', afbeelding: null },
+    { titel: 'Wat Spotify eist', tekst: '**Premium**, anders weigert Spotify het afspelen op afstand. En er speelt maar **één stream per account**: luistert er iemand anders op hetzelfde account, dan nemen jullie het van elkaar over.', afbeelding: null },
+    { titel: 'Je aanbevelingen', tekst: 'Wat je aan tafel draait telt gewoon mee voor Discover Weekly en Wrapped. Een **privésessie** valt niet vanuit een app aan te zetten — Spotify heeft daar geen knop voor in zijn API. Zet hem zelf aan in Spotify (profiel → *Privésessie*), of — handiger omdat je het niet kunt vergeten — zet je sfeermuziek in eigen afspeellijsten en vink daar *Uitsluiten van je smaakprofiel* aan.', afbeelding: null },
   ] }),
   hulp_kaart_wereld: () => ({ titel: 'Een kaart bewerken', stappen: [
     { titel: 'Naam en beschrijving', tekst: 'De naam staat op het kaartje in de galerij en boven de kaart zelf; de beschrijving staat eronder, zodat je bij zes kaarten nog weet welke welke is.', afbeelding: null },

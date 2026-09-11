@@ -240,8 +240,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=583   app.js?v=737   sound-manager.js?v=8
-app.js      : api.js?v=284  dm-panel.js?v=224  media-picker.js?v=8
+index.html  : theme.css?v=583   app.js?v=738   sound-manager.js?v=8
+app.js      : api.js?v=284  dm-panel.js?v=225  media-picker.js?v=8
               render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=296
               render-dashboard.js?v=9  render-dungeon.js?v=37  render-kaart.js?v=27
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
@@ -715,6 +715,14 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > 0600). De nachtelijke backup kopieert álle JSON uit de campagnemap, en een
 > refresh-token is een sleutel tot iemands account — die hoort niet dertig dagen
 > aan snapshots te staan.
+>
+> **Een privésessie kan de app niet aanzetten.** Spotify heeft daar geen
+> endpoint voor — het is een schakelaar in hun eigen app en er bestaat geen
+> scope voor. Wat een speelavond met je aanbevelingen doet, doet hij dus gewoon.
+> In de instellingen staat daarom het advies dat wél werkt: zet de sfeermuziek
+> in een **eigen afspeellijst** en vink daar in Spotify *Uitsluiten van je
+> smaakprofiel* aan — dat vergeet je niet elke sessie opnieuw, een privésessie
+> wel.
 >
 > De bestaande geluidenbibliotheek blijft wat hij is: korte klanken en sfeerloops
 > horen lokaal, want die moeten precies op het juiste moment klinken en werken
