@@ -24593,3 +24593,26 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
    eronder — en de oude oplossing (de kaart eerst sluiten) maakte van elke pin
    een eenrichtingsweg. */
 body.kaart-fs-active .modal-overlay { z-index: 1300; }
+
+/* De speld in het detailvenster en in de kaartkiezer was een rode stip, terwijl
+   dezelfde locatie op de grote kaart een perkamenten penning met haar eigen
+   icoon is. Eén ding, één gezicht. */
+.pin-doek-speld, .kaartuitsnede-speld {
+  width: 26px; height: 26px;
+  background: #f2e8d2; border: 2px solid #9a7008; color: #3a2410;
+  box-shadow: 0 2px 6px rgba(60,40,10,0.5);
+  display: flex; align-items: center; justify-content: center;
+}
+.pin-doek-speld .icon, .kaartuitsnede-speld .icon { width: 14px; height: 14px; }
+/* De speldknop in de kaartbalk laat zien dat hij "aan" staat. */
+.map-mini-btn--aan { background: rgba(184,134,11,0.3); color: #5a3f08; }
+
+/* Dezelfde vel als de rest van de app. De fullscreen-kaart en haar scrollbak
+   stonden op een vlakke #f5edd8, terwijl de pagina een radiale verloop-parkement
+   is (#faf2de boven → #d8c48c aan de randen). Opengaan veranderde daardoor van
+   papier: langs de randen van de kaart zag je een vlakke plak in een net andere
+   tint. De textuurlaag (body::before, z-index 9998) lag er al overheen. */
+.kaart-fs-overlay {
+  background: radial-gradient(ellipse 130% 110% at 50% 18%, #faf2de 0%, #f0e2b8 50%, #d8c48c 100%);
+}
+.kaart-fs-overlay #map-scroll { background: transparent; }

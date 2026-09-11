@@ -240,10 +240,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=576   app.js?v=728   sound-manager.js?v=8
+index.html  : theme.css?v=578   app.js?v=729   sound-manager.js?v=8
 app.js      : api.js?v=283  dm-panel.js?v=221  media-picker.js?v=8
-              render-archief.js?v=86  render-bestiarium.js?v=28  render-campagne.js?v=294
-              render-dashboard.js?v=9  render-dungeon.js?v=33  render-kaart.js?v=23
+              render-archief.js?v=86  render-bestiarium.js?v=28  render-campagne.js?v=296
+              render-dashboard.js?v=9  render-dungeon.js?v=33  render-kaart.js?v=25
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
@@ -1345,6 +1345,38 @@ app-iconen zijn nog van Grisburgh; eigen beeld per campagne is werk voor later.
 > dat las als een moderne app-marker op een licht vel en is nu perkament met
 > inkt.
 >
+> **Dubbelklikken zoomt — overal.** In de kaartkiezer op een locatiekaartje zet
+> één klik de speld en zoomt een dubbelklik in; op de wereldkaart maakte een
+> dubbelklik juist een nieuwe speld. Twee schermen die dezelfde kaart tonen
+> horen niet het tegenovergestelde te doen. De wereldkaart zoomt nu ook op
+> dubbelklik (`_zoomTrap` = passend ×1/×2/×4/×8, daarna weer passend;
+> `_zoomNaarPunt` houdt de aangewezen plek onder de muis), en neerzetten gaat
+> via de **speldknop in de balk**: hij zet de kaart in speldmodus (kruisdraad,
+> Esc stopt) en de eerstvolgende klik opent de kiezer daar. Op de grote kaart is
+> klikken ook slepen, en een losse klik mag geen locatie aanmaken.
+>
+> **De kiezer opent bij je eigen speld.** Het doek in de editor toonde altijd de
+> linkerbovenhoek; bij een stadskaart keek je dus naar een willekeurige wijk.
+> `_pinNaarMidden()` scrollt ernaartoe, met een paar herkansingen omdat het
+> Kaart-paneel nog verborgen (en dus 0 px breed) kan zijn als het tekent.
+>
+> **De speld is overal dezelfde speld.** Op de wereldkaart, in de kaartkiezer en
+> in het Kaart-tabblad van het detailvenster: een perkamenten penning met het
+> icoon van het locatietype. De laatste twee waren een rode stip.
+>
+> **Zichtbaarheid hangt aan de locatie, niet aan de speld** (zie `GET
+> /map/pins`: `g.visibility[loc.id]`). De plaatser op de wereldkaart zette
+> lokaal `visibility: 'hidden'` op een verse speld, die daardoor gedimd stond
+> terwijl de spelers hem gewoon zagen.
+>
+> **Eén kaartweergave tegelijk.** `renderKaart()` zonder container valt terug op
+> `#section-kaart`, en zo riep de socket-handler van `map:updated` hem aan —
+> terwijl de kaart sinds de galerij in de **fullscreen-overlay** staat. Resultaat:
+> twee weergaven in de DOM met dezelfde id's, en omdat `getElementById` de
+> eerste pakt werkten zoomen, passend maken en het hertekenen van spelden daarna
+> op de onzichtbare kopie. Er is nu één ingang: `window._kaartVerversen()` in
+> `app.js` kiest zelf tussen de fullscreen-kaart en de galerij.
+
 > **Eén klik heen is één klik terug.** Vanaf een kaartje ga je naar de kaart met
 > *Toon op de hele kaart*, en die onthoudt de terugweg (`_kaartTerugNaar`).
 > Andersom sloot een klik op een pin de hele kaart en zette je in de

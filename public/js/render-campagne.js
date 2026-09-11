@@ -1731,9 +1731,36 @@ function _pinTeken() {
   }
   // Alleen waar hij staat; hoe je hem zet staat in de uitleg bij het tabblad.
   if (uitleg) uitleg.textContent = pin ? `Staat op ${kaart.label}.` : '';
+
+  // Openen op de plek waar de speld staat. Het doek toonde altijd de linkerbovenhoek,
+  // dus bij een stadskaart keek je naar een willekeurige wijk terwijl je eigen
+  // speld buiten beeld lag. Eén keer per kaartkeuze, niet bij elke hertekening:
+  // anders springt het doek terug zodra je een speld verzet.
+  if (pin && _pinGecentreerdOp !== kaart.id) {
+    _pinGecentreerdOp = kaart.id;
+    _pinNaarMidden(pin);
+  }
 }
 
-window._pinKaartWissel = () => _pinTeken();
+// Het doek scrollen tot de speld in het midden ligt. Wacht zo nodig op de
+// afbeelding: zonder maten is de berekening 0 en blijf je linksboven staan.
+let _pinGecentreerdOp = null;
+function _pinNaarMidden(pin, pogingen = 12) {
+  const doek  = document.getElementById('koppel-mapdoek');
+  const inner = document.getElementById('koppel-mapinner');
+  if (!doek || !inner) return;
+  // Het Kaart-paneel kan nog verborgen zijn (de editor tekent alle tabbladen,
+  // maar toont er één), en dan zijn alle maten 0. Even opnieuw proberen tot het
+  // doek breedte heeft — goedkoper dan een ResizeObserver voor dit ene geval.
+  if (!doek.clientWidth || !inner.offsetWidth) {
+    if (pogingen > 0) setTimeout(() => _pinNaarMidden(pin, pogingen - 1), 80);
+    return;
+  }
+  doek.scrollLeft = (pin.x / 100) * inner.offsetWidth  - doek.clientWidth  / 2;
+  doek.scrollTop  = (pin.y / 100) * inner.offsetHeight - doek.clientHeight / 2;
+}
+
+window._pinKaartWissel = () => { _pinGecentreerdOp = null; _pinTeken(); };
 
 // Inzoomen bij het plaatsen: op een stadskaart liggen panden soms een paar
 // pixels uit elkaar. De afbeelding groeit binnen een scrollbaar doek, dus de
@@ -1837,7 +1864,7 @@ async function _kaartPlekVan(locId) {
 // naar de kaart zelf. background-position X% Y% legt het punt op X%/Y% van de
 // áfbeelding op X%/Y% van het kader, dus een speld op dezelfde percentages valt
 // er precies op — hoe ver je ook inzoomt.
-function _kaartTabHtml(locId, plek, alleen = true) {
+function _kaartTabHtml(locId, plek, alleen = true, locType = '') {
   const { kaart, pin } = plek;
   // De speld in het midden zetten kan niet met background-position: dat lijnt
   // punt X% van de áfbeelding uit op X% van het kader, niet op het midden. Met
@@ -1849,7 +1876,7 @@ function _kaartTabHtml(locId, plek, alleen = true) {
       <div class="detail-kaartuitsnede${alleen ? '' : ' detail-kaartuitsnede--kort'}">
         <img class="kaartuitsnede-img" alt="" src="${esc(_kaartSrc(kaart))}"
           style="transform:translate(-${pin.x}%, -${pin.y}%)">
-        <div class="kaartuitsnede-speld"></div>
+        <div class="kaartuitsnede-speld">${window._locIcoon?.(locType) || ''}</div>
       </div>
       <div class="detail-map-link-wrap">
         <button class="detail-map-link-btn" onclick="window._toonOpKaart('${esc(locId)}','${esc(kaart.id)}')">
@@ -5022,7 +5049,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ${heeftVoorraad && isDM() ? `<div id="dtab-log" class="hidden">${logHtml}</div>` : ''}
     ${_orgRijen.length ? `<div id="dtab-organogram" class="hidden">${_organogramHtml(_orgRijen, _orgBeeld)}</div>` : ''}
     ${(_kaartPlek || _dungeonPlek) ? `<div id="dtab-kaart" class="hidden">
-      ${_kaartPlek   ? _kaartTabHtml(e.id, _kaartPlek, !_dungeonPlek) : ''}
+      ${_kaartPlek   ? _kaartTabHtml(e.id, _kaartPlek, !_dungeonPlek, e.data?.locType) : ''}
       ${_dungeonPlek ? _dungeonTabHtml(_dungeonPlek.kaart, _dungeonPlek.kamer) : ''}
     </div>` : ''}
   `;
@@ -7084,7 +7111,7 @@ window._openEditor = async (tab, editId) => {
             <div id="koppel-mapinner" class="pin-doek-inner"
               onclick="window._pinPlaats(event)" ondblclick="window._pinZoomDubbel(event)">
               <img id="koppel-mapimg" class="pin-doek-img" alt="" draggable="false">
-              <div id="koppel-mappin" class="pin-doek-speld" style="display:none"></div>
+              <div id="koppel-mappin" class="pin-doek-speld" style="display:none">${window._locIcoon?.(e?.data?.locType) || ''}</div>
             </div>
           </div>
           <div class="dm-knoprij mt-1" id="koppel-mapknoppen"></div>

@@ -1,14 +1,14 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=283';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=294";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=296";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=86";
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=23';
+import { renderKaart, queueFlyTo } from './render-kaart.js?v=25';
 import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
 import { renderSpreuken } from './render-spreuken.js?v=38';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=71";
+import { initSocket } from "./socket-client.js?v=72";
 import { initDmPanel } from "./dm-panel.js?v=221";
 import './media-picker.js?v=8';
 
@@ -2796,6 +2796,7 @@ async function refreshSection(section) {
 // ── Kaart-sectie: toggle tussen Wereldkaarten en Dungeons ──
 // ── Kaarten-galerij (onder Logboek) — hoofdkaarten + dungeons als kaartjes ──
 let _kaartFsType = null; // 'wereld' | 'dungeon' wanneer fullscreen open is
+let _kaartFsId   = null; // welke kaart daar openstaat, om 'm bij te werken
 
 async function _renderKaartSection() {
   const container = document.getElementById('section-kaart');
@@ -2868,6 +2869,21 @@ function _kaartCard(type, m, dm) {
     </div>`;
 }
 
+// Een kaartwijziging (een speld erbij, verplaatst of weg) opnieuw tekenen — op
+// de plek waar de kaart óók echt staat. De socket riep hiervoor `renderKaart()`
+// zónder container aan, en die valt terug op `#section-kaart`: dan stond er een
+// tweede kaartweergave in de DOM, met dezelfde id's als de fullscreen-kaart.
+// `getElementById` pakt de eerste, dus daarna werkten zoomen, passend maken en
+// het hertekenen van spelden op de onzichtbare kopie.
+window._kaartVerversen = async function () {
+  const ov = document.getElementById('kaart-fs-overlay');
+  if (ov?.classList.contains('open') && _kaartFsType === 'wereld') {
+    const host = document.getElementById('kaart-fs-content');
+    if (host) return renderKaart(host, _kaartFsId || undefined);
+  }
+  if (window.app.state.activeSection === 'kaart') return _renderKaartGalerij();
+};
+
 // ── Fullscreen-overlay: hergebruikt de bestaande kaart-/dungeon-weergave ──
 let _fsTerug = null;
 window._openKaartFullscreen = async function(type, id) {
@@ -2890,6 +2906,7 @@ window._openKaartFullscreen = async function(type, id) {
   ov.classList.add('open');
   document.body.classList.add('kaart-fs-active');
   _kaartFsType = type;
+  _kaartFsId   = id || null;
   const fsHost = document.getElementById('kaart-fs-content');
   try {
     if (type === 'wereld') await renderKaart(fsHost, id || undefined);
@@ -2903,6 +2920,7 @@ window._closeKaartFullscreen = function() {
   if (ov) { ov.classList.remove('open'); ov.innerHTML = ''; }
   document.body.classList.remove('kaart-fs-active');
   _kaartFsType = null;
+  _kaartFsId   = null;
   if (state.activeSection === 'kaart') _renderKaartGalerij(); // naam/desc/thumb kunnen gewijzigd zijn
 };
 

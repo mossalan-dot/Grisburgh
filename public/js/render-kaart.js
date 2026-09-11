@@ -106,6 +106,8 @@ function _buildShell() {
         <span class="map-toolbar-sep"></span>
         <button id="map-zoom-fit" class="map-mini-btn" title="Centreren / passend maken">${icon('maximize-2')}</button>
         <span class="map-toolbar-sep"></span>
+        <button id="map-pin-mode" class="map-mini-btn" title="Een locatie op de kaart zetten">${icon('map-pin')}</button>
+        <span class="map-toolbar-sep"></span>
         ${window._helpBtn?.('kaart') ?? ''}
       </div>
       <div class="flex-1 min-h-0 overflow-auto bg-room-bg flex flex-col items-center pt-3 pb-6 px-4" id="map-scroll">
@@ -140,13 +142,13 @@ function _renderMapContent() {
       <div id="map-pins-layer" class="absolute inset-0 pointer-events-none"></div>
     </div>
     ${isDM() ? `
-      <div class="mt-3 text-xs text-ink-dim map-hint flex items-center gap-2">
+      <div class="mt-3 text-xs text-ink-dim map-hint flex items-center gap-2" id="map-hint">
         <span class="w-2 h-2 rounded-full bg-gold inline-block"></span>
-        Dubbelklik op de kaart om een pin te plaatsen
+        Dubbelklik om in te zoomen · ${icon('map-pin')} in de balk om een locatie neer te zetten
       </div>` : _availableForPin.length ? `
-      <div class="mt-3 text-xs text-ink-dim map-hint flex items-center gap-2">
+      <div class="mt-3 text-xs text-ink-dim map-hint flex items-center gap-2" id="map-hint">
         <span class="w-2 h-2 rounded-full bg-gold/40 inline-block"></span>
-        Dubbelklik op de kaart om een locatie voor te stellen
+        Dubbelklik om in te zoomen · ${icon('map-pin')} in de balk om een locatie voor te stellen
       </div>` : ''}`;
 
   _initZoom();
@@ -191,6 +193,56 @@ function _applyZoom() {
   if (label) label.textContent = Math.round(zoomLevel * 100) + '%';
 }
 
+// Dubbelklikken zoomt, net als in de kaartkiezer op een locatiekaartje — daar
+// plaatst één klik de speld en zoomt een dubbelklik in. Twee schermen die
+// dezelfde kaart tonen horen niet het tegenovergestelde te doen bij hetzelfde
+// gebaar. Neerzetten gaat hier via de speldknop in de balk: op de grote kaart
+// is klikken ook slepen, en een losse klik mag geen locatie aanmaken.
+function _zoomTrap(img) {
+  const fit = _fitZoom(img);
+  return [...new Set([fit, fit * 2, fit * 4, Math.min(ZOOM_MAX, fit * 8)])]
+    .filter(z => z <= ZOOM_MAX);
+}
+
+// Zoomen met een vast punt: de plek waar je klikt blijft onder je muis staan.
+// Meten ná het toepassen van de zoom is de eenvoudigste manier — het doek
+// centreert zichzelf, dus vooraf uitrekenen waar het beland is gaat mis.
+function _zoomNaarPunt(nieuweZoom, clientX, clientY) {
+  const wrapper = document.getElementById('map-wrapper');
+  if (!wrapper) return;
+  const voor = wrapper.getBoundingClientRect();
+  const fx = (clientX - voor.left) / voor.width;
+  const fy = (clientY - voor.top)  / voor.height;
+  zoomLevel = nieuweZoom;
+  _applyZoom();
+  const na = wrapper.getBoundingClientRect();
+  panX += clientX - (na.left + fx * na.width);
+  panY += clientY - (na.top  + fy * na.height);
+  _applyPan();
+}
+
+// Speldmodus: aan via de knop in de balk, uit na één plaatsing of Escape. Eén
+// vlag, want er kan maar één kaart tegelijk in beeld staan.
+let _pinModus = false;
+function _pinModusAan() {
+  _pinModus = true;
+  document.getElementById('map-pin-mode')?.classList.add('map-mini-btn--aan');
+  const w = document.getElementById('map-wrapper');
+  if (w) w.style.cursor = 'crosshair';
+  const hint = document.getElementById('map-hint');
+  if (hint) hint.dataset.oud ??= hint.innerHTML;
+  if (hint) hint.innerHTML = `<span class="w-2 h-2 rounded-full bg-gold inline-block"></span>
+    Klik de plek aan waar de locatie hoort — Esc om te stoppen`;
+}
+function _pinModusUit() {
+  _pinModus = false;
+  document.getElementById('map-pin-mode')?.classList.remove('map-mini-btn--aan');
+  const w = document.getElementById('map-wrapper');
+  if (w) w.style.cursor = 'grab';
+  const hint = document.getElementById('map-hint');
+  if (hint?.dataset.oud) hint.innerHTML = hint.dataset.oud;
+}
+
 // ── Navigation ──
 function _attachNavEvents() {
   document.getElementById('map-prev')?.addEventListener('click', () => _switchMap(-1));
@@ -212,6 +264,17 @@ function _attachNavEvents() {
     _applyZoom();
     _applyPan();
   });
+
+  const pinKnop = document.getElementById('map-pin-mode');
+  if (pinKnop) {
+    // Een speler mag alleen voorstellen zolang er nog iets voor te stellen valt.
+    if (!isDM() && !_availableForPin.length) pinKnop.style.display = 'none';
+    else {
+      pinKnop.title = isDM() ? 'Een locatie op de kaart zetten' : 'Een locatie voorstellen';
+      pinKnop.addEventListener('click', () => (_pinModus ? _pinModusUit() : _pinModusAan()));
+    }
+  }
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && _pinModus) _pinModusUit(); });
 
   document.getElementById('map-add-btn')?.addEventListener('click', _openMapAdder);
   document.getElementById('map-rename-btn')?.addEventListener('click', () => _openMapRenamer());
@@ -291,18 +354,29 @@ function _attachPanAndClick() {
     wrapper.style.cursor = 'grab';
   }, { signal });
 
-  // Dubbelklik → pin plaatsen (onderscheidt pan van intentionele plaatsing)
-  wrapper.addEventListener('dblclick', (ev) => {
-    if (ev.target.closest('.map-pin')) return;
-    ev.preventDefault(); // voorkom tekstselectie
+  // Eén klik terwijl de speldmodus aanstaat: dáár komt de locatie. Slepen telt
+  // niet als klik, anders zet elke pan-beweging een speld neer.
+  wrapper.addEventListener('click', (ev) => {
+    if (!_pinModus || panMoved || ev.target.closest('.map-pin')) return;
+    ev.preventDefault();
     const rect = wrapper.getBoundingClientRect();
     const x = ((ev.clientX - rect.left) / rect.width) * 100;
     const y = ((ev.clientY - rect.top) / rect.height) * 100;
-    if (isDM()) {
-      _openPinPlacer(x, y, ev.clientX, ev.clientY);
-    } else if (_availableForPin.length) {
-      _openPlayerPinPlacer(x, y, ev.clientX, ev.clientY);
-    }
+    _pinModusUit();
+    if (isDM()) _openPinPlacer(x, y, ev.clientX, ev.clientY);
+    else if (_availableForPin.length) _openPlayerPinPlacer(x, y, ev.clientX, ev.clientY);
+  }, { signal });
+
+  // Dubbelklik → inzoomen op dat punt, en na de laatste stap weer passend.
+  wrapper.addEventListener('dblclick', (ev) => {
+    if (ev.target.closest('.map-pin')) return;
+    ev.preventDefault(); // voorkom tekstselectie
+    const img = document.getElementById('map-img');
+    if (!img?.naturalWidth) return;
+    const trap = _zoomTrap(img);
+    const volgende = trap.find(z => z > zoomLevel + 0.001) ?? trap[0];
+    if (volgende === trap[0]) { panX = 0; panY = 0; }
+    _zoomNaarPunt(volgende, ev.clientX, ev.clientY);
   }, { signal });
 
   // Touch: dubbelklik-detectie (twee tikken binnen 320 ms op ~dezelfde plek)
@@ -315,13 +389,12 @@ function _attachPanAndClick() {
         && Math.abs(t.clientX - _lastTap.x) < 24
         && Math.abs(t.clientY - _lastTap.y) < 24) {
       ev.preventDefault();
-      const rect = wrapper.getBoundingClientRect();
-      const x = ((t.clientX - rect.left) / rect.width) * 100;
-      const y = ((t.clientY - rect.top) / rect.height) * 100;
-      if (isDM()) {
-        _openPinPlacer(x, y, t.clientX, t.clientY);
-      } else if (_availableForPin.length) {
-        _openPlayerPinPlacer(x, y, t.clientX, t.clientY);
+      const img = document.getElementById('map-img');
+      if (img?.naturalWidth) {
+        const trap = _zoomTrap(img);
+        const volgende = trap.find(z => z > zoomLevel + 0.001) ?? trap[0];
+        if (volgende === trap[0]) { panX = 0; panY = 0; }
+        _zoomNaarPunt(volgende, t.clientX, t.clientY);
       }
       _lastTap = null;
     } else {
@@ -515,7 +588,11 @@ function _openPinPlacer(x, y, clientX, clientY) {
     if (!locId) return;
     try {
       const pin = await api.createMapPin({ locId, x, y, mapId: MAPS[currentMapIdx].id });
-      mapPins.push({ ...pin, locName: allLocaties.find(l => l.id === locId)?.name, visibility: 'hidden' });
+      // Zichtbaarheid hangt aan de lócatie, niet aan de speld (zie GET /map/pins).
+      // Hier 'hidden' invullen liet een pas geplaatste speld gedimd staan terwijl
+      // de spelers hem gewoon zagen — tot de volgende keer ophalen.
+      const _loc = allLocaties.find(l => l.id === locId);
+      mapPins.push({ ...pin, locName: _loc?.name, visibility: _loc?._visibility || 'hidden' });
       _syncPinnedSet();
       _closePopup();
       _renderPins();
