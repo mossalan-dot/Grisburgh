@@ -6633,6 +6633,26 @@ router.put('/meta/akte/:key/documenten', requireDM, (req, res) => {
   res.json({ documenten: meta.hoofdstukken[req.params.key].documenten });
 });
 
+// Welke monsters horen bij deze akte? Zelfde reden als bij documenten: een
+// monsterkaartje beschrijft wát een wezen is, niet wanneer het in het verhaal
+// opduikt. Het veld `chapter` op het monster is daarom vervallen.
+//
+// Waarom een eigen lijst en niet puur afleiden uit de encounters: 11 van de 31
+// monsters mét een akte zaten in géén enkele encounter (troepen die de DM
+// klaarzet, een baas die nog niet ingepland is). Puur afleiden had die
+// koppeling weggegooid.
+router.put('/meta/akte/:key/monsters', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.hoofdstukken?.[req.params.key]) return res.status(404).json({ error: 'Akte niet gevonden' });
+  const rauw = storage.readJSON('monsters.json');
+  const bestaat = new Set((Array.isArray(rauw) ? rauw : (rauw.monsters || [])).map(m => m.id));
+  meta.hoofdstukken[req.params.key].monsters =
+    [...new Set((req.body.monsters || []).map(String))].filter(id => bestaat.has(id)).slice(0, 200);
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(req.session?.campaignId||'main').emit('meta:updated');
+  res.json({ monsters: meta.hoofdstukken[req.params.key].monsters });
+});
+
 // Focuspunt (object-position) van een spreukafbeelding, per spell-index.
 router.put('/meta/spell-image-focus/:index', requireDM, (req, res) => {
   const meta = storage.readJSON('meta.json');

@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=281';
+import { api, huidigeCampagne } from './api.js?v=282';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -3199,6 +3199,17 @@ const MONSTER_PAGE_SIZE = 5;
 // plekken; een tweede formulier zou meteen uit de pas gaan lopen.
 let _monsterEditorHost = null;
 
+// Monster-ids per akte: wat de akte zelf noemt, plus wat er in haar encounters
+// staat. Een monster mag in meerdere aktes voorkomen — een wolf is een wolf.
+function _monstersPerAkte() {
+  const uit = {};
+  const zet = (key, id) => { if (!key || !id) return; (uit[key] = uit[key] || new Set()).add(id); };
+  const hk = _metaHk();
+  for (const [key, info] of Object.entries(hk)) for (const id of (info?.monsters || [])) zet(key, id);
+  for (const e of (_encounters || [])) for (const r of (e.monsters || [])) zet(e.akteId, r.monsterId);
+  return uit;
+}
+
 function _renderMonsters() {
   if (_monsterEditorHost) {
     // Het venster toont alleen de editor. Is die klaar, dan sluit het venster.
@@ -3215,12 +3226,19 @@ function _renderMonsters() {
   if (_editingMonsterId !== null) { _renderMonsterEditor(el); return; }
 
   const hk = _metaHk();
-  const usedKeys = [...new Set(_monsters.map(m => m.chapter || '').filter(Boolean))]
+  // Welke monsters bij een akte horen staat niet meer op het monster (`chapter`
+  // is vervallen) maar aan de aktekant: `meta.hoofdstukken[key].monsters`, plus
+  // alles wat de encounters van die akte gebruiken. Eén plek om te beheren,
+  // twee bronnen om uit te lezen — zoals bij de betrokkenen.
+  const perAkte = _monstersPerAkte();
+  const usedKeys = Object.keys(perAkte)
+    .filter(k => perAkte[k].size)
     .sort((a, b) => (hk[a]?.num ?? 99) - (hk[b]?.num ?? 99));
 
   // Filter + sort alphabetically
-  const filtered = (_monsterChapterFilter
-    ? _monsters.filter(m => (m.chapter || '') === _monsterChapterFilter)
+  const inFilter = _monsterChapterFilter ? perAkte[_monsterChapterFilter] : null;
+  const filtered = (inFilter
+    ? _monsters.filter(m => inFilter.has(m.id))
     : _monsters.slice()
   ).sort((a, b) => a.name.localeCompare(b.name, 'nl'));
 
@@ -3276,7 +3294,7 @@ function _renderMonsterEditor(el) {
   const m = {
     id:         _editingMonsterId,
     name:       stored.name        || '',
-    chapter:    stored.chapter     || _monsterChapterFilter || '',
+
     maxHp:      stored.maxHp       ?? 10,
     initiative: stored.initiative  ?? 10,
     imageId:    _editingMonsterImageId,
@@ -3303,13 +3321,6 @@ function _renderMonsterEditor(el) {
         <input id="dm-mon-name" class="dm-input" value="${esc(m.name)}" placeholder="Monsternaam…">
       </div>
       ${_inBestiariumTab ? '' : `
-      <div class="dm-form-row">
-        <label class="dm-form-label">Akte</label>
-        <select id="dm-mon-chapter" class="dm-select dm-select-sm">
-          <option value="">— geen akte —</option>
-          ${_hkOptions(m.chapter)}
-        </select>
-      </div>
       <div class="dm-form-row">
         <label class="dm-form-checkbox" title="Verschijnt dit wezen als kaart in het Bestiarium? Zet uit voor personages/NPC's die je alleen voor de strijd toevoegt.">
           <input type="checkbox" id="dm-mon-inbest"${m.inBestiarium ? ' checked' : ''}>
@@ -3496,10 +3507,10 @@ async function _srdImport(key) {
 
 async function _monsterSave() {
   const name    = document.getElementById('dm-mon-name')?.value.trim();
-  // Staan de velden er niet (bestiarium-venster), dan houdt het wezen wat het had.
-  const chapterEl = document.getElementById('dm-mon-chapter');
-  const stored    = _monsters.find(x => x.id === _editingMonsterId) || {};
-  const chapter   = chapterEl ? chapterEl.value.trim() : (stored.chapter || '');
+  // `chapter` bestaat niet meer op een monster: waar een wezen in het verhaal
+  // opduikt staat aan de aktekant (meta.hoofdstukken[key].monsters). Wat er nog
+  // in oude data staat laten we met rust; het wordt niet meer getoond of gezet.
+  const stored = _monsters.find(x => x.id === _editingMonsterId) || {};
   const maxHp   = parseInt(document.getElementById('dm-mon-hp')?.value)   || 10;
   const init    = parseInt(document.getElementById('dm-mon-init')?.value) || 10;
   if (!name) { alert('Voer een naam in.'); return; }
@@ -3509,7 +3520,7 @@ async function _monsterSave() {
     : (_editingMonsterIsNew ? true : stored.inBestiarium !== false);
   const description = document.getElementById('dm-mon-desc')?.value?.trim() || '';
   const roddel = document.getElementById('dm-mon-roddel')?.value?.trim() || '';
-  const payload = { name, chapter, maxHp, initiative: init, imageId: _editingMonsterImageId, statblock, inBestiarium, description, roddel };
+  const payload = { name, maxHp, initiative: init, imageId: _editingMonsterImageId, statblock, inBestiarium, description, roddel };
   try {
     if (_editingMonsterIsNew) {
       const created = await api.createMonster({ id: _editingMonsterId, ...payload });

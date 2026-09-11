@@ -269,7 +269,10 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       goblins krijgen dan vier verschillende totalen, wat nu niet kan omdat de
       rij één getal bewaart. Zonder vinkje verandert er niets.
 
-- [ ] **Monsters zijn niet agnostisch.** De monster-editor heeft een veld
+- [x] **Monsters zijn agnostisch gemaakt** (11 sep 2026): `chapter` eruit, de
+      koppeling naar `meta.hoofdstukken[key].monsters`, filter leest die lijst
+      plus de encounters van die akte. Oorspronkelijke notitie:
+- [ ] ~~**Monsters zijn niet agnostisch.**~~ De monster-editor heeft een veld
       *Akte*, precies wat we bij documenten hebben weggehaald ("Kaartjes zijn
       agnostisch"). Het veld is nu verborgen in het bestiarium-venster, maar
       staat nog in de Meesterkamer omdat de aktefilter in de monsterlijst erop

@@ -1,4 +1,4 @@
-import { api } from './api.js?v=281';
+import { api } from './api.js?v=282';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -2193,6 +2193,11 @@ window._editAkte = async (ch) => {
   const alleDocs = await api.listEntities('documenten').catch(() => []);
   window._akteDocs = { gekozen: (info.documenten || []).filter(id => alleDocs.some(d => d.id === id)), alle: alleDocs };
 
+  // Monsters horen hier om dezelfde reden. Het veld `chapter` op een monster is
+  // vervallen; wat er in een akte opduikt staat aan deze kant.
+  const alleMons = await api.listMonsters().then(r => (Array.isArray(r) ? r : (r.monsters || []))).catch(() => []);
+  window._akteMons = { gekozen: (info.monsters || []).filter(id => alleMons.some(m => m.id === id)), alle: alleMons };
+
   // Collect all images from entries in this chapter
   const chEntries = (archiefData.sessieLog || []).filter(e => e.hoofdstuk === ch);
   const allChImgIds = [...new Set(
@@ -2296,6 +2301,18 @@ window._editAkte = async (ch) => {
             onclick="window._akteDocErbij()" title="Toevoegen">${icon('plus')}</button>
         </div>
       </div>
+      <div>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Monsters bij deze akte</label>
+        <p class="text-[10px] text-ink-dim mb-1">Welke wezens hier opduiken. Stond vroeger als <em>Akte</em> op het monster zelf; een kaartje zegt wát iets is, niet wanneer het voorkomt.</p>
+        <div id="akte-mon-chips" class="flex flex-wrap gap-1 mb-1">${_akteMonChips()}</div>
+        <div style="display:flex;gap:6px">
+          <input list="akte-mon-dl" id="akte-mon-zoek" placeholder="Zoek een monster\u2026"
+            class="flex-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">
+          <datalist id="akte-mon-dl">${_akteMonOpties()}</datalist>
+          <button type="button" class="px-3 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition"
+            onclick="window._akteMonErbij()" title="Toevoegen">${icon('plus')}</button>
+        </div>
+      </div>
       <div class="flex gap-2 pt-2">
         <button type="submit" class="px-4 py-2 bg-gold-dim text-room-bg font-cinzel font-semibold rounded hover:bg-gold transition">${icon('save')} Opslaan</button>
         <button type="button" onclick="window.app.closeModal()" class="px-4 py-2 bg-room-elevated text-ink-dim rounded hover:text-ink-bright transition">${icon('x')}</button>
@@ -2320,6 +2337,7 @@ window._editAkte = async (ch) => {
         .filter(c => !c.checked).map(c => c.dataset[attr]);
       await api.saveAkteBereikbaarheid(ch, { diensten: dicht('dienst'), entiteiten: dicht('winkel') });
       await api.saveAkteDocumenten(ch, window._akteDocs.gekozen);
+      await api.saveAkteMonsters(ch, window._akteMons.gekozen);
       const newMeta = await api.meta();
       meta = newMeta;
       if (window.app?.state) window.app.state.meta = newMeta;
@@ -2342,6 +2360,46 @@ function _akteDocChips() {
       <button type="button" class="log-chip-x" onclick="window._akteDocEraf('${esc(id)}')" title="Loskoppelen">\u00d7</button></span>`;
   }).join('');
 }
+
+function _akteMonChips() {
+  const { gekozen, alle } = window._akteMons || { gekozen: [], alle: [] };
+  if (!gekozen.length) return '<span class="text-[10px] text-ink-faint italic">Nog geen monsters gekoppeld</span>';
+  return gekozen.map(id => {
+    const m = alle.find(x => x.id === id);
+    return `<span class="log-chip log-chip-seal">${esc(m?.name || id)}
+      <button type="button" class="log-chip-x" onclick="window._akteMonEraf('${esc(id)}')" title="Loskoppelen">\u00d7</button></span>`;
+  }).join('');
+}
+
+function _akteMonOpties() {
+  const { gekozen, alle } = window._akteMons || { gekozen: [], alle: [] };
+  return alle.filter(m => !gekozen.includes(m.id))
+    .map(m => `<option value="${esc(m.name)}"></option>`).join('');
+}
+
+function _akteMonVerversen() {
+  const chips = document.getElementById('akte-mon-chips');
+  const dl    = document.getElementById('akte-mon-dl');
+  if (chips) chips.innerHTML = _akteMonChips();
+  if (dl) dl.innerHTML = _akteMonOpties();
+}
+
+window._akteMonErbij = () => {
+  const input = document.getElementById('akte-mon-zoek');
+  const naam  = (input?.value || '').trim();
+  if (!naam) return;
+  const m = (window._akteMons?.alle || []).find(x => x.name.toLowerCase() === naam.toLowerCase());
+  if (!m) { input.classList.add('dm-input--err'); setTimeout(() => input.classList.remove('dm-input--err'), 900); return; }
+  if (!window._akteMons.gekozen.includes(m.id)) window._akteMons.gekozen.push(m.id);
+  input.value = '';
+  _akteMonVerversen();
+};
+
+window._akteMonEraf = (id) => {
+  if (!window._akteMons) return;
+  window._akteMons.gekozen = window._akteMons.gekozen.filter(x => x !== id);
+  _akteMonVerversen();
+};
 
 function _akteDocOpties() {
   const { gekozen, alle } = window._akteDocs || { gekozen: [], alle: [] };

@@ -388,6 +388,7 @@ export const api = {
   saveAkteTekst:  (key, tekst) => request(`/meta/akte/${encodeURIComponent(key)}/tekst`, { method: 'PUT', body: JSON.stringify({ tekst }) }),
   akteNamen:      (key)        => request(`/meta/akte/${encodeURIComponent(key)}/namen`),
   saveAkteDocumenten: (key, documenten) => request(`/meta/akte/${encodeURIComponent(key)}/documenten`, { method: 'PUT', body: JSON.stringify({ documenten }) }),
+  saveAkteMonsters:   (key, monsters)   => request(`/meta/akte/${encodeURIComponent(key)}/monsters`,   { method: 'PUT', body: JSON.stringify({ monsters }) }),
   saveAkteBereikbaarheid: (key, data) => request(`/meta/akte/${encodeURIComponent(key)}/bereikbaarheid`, { method: 'PUT', body: JSON.stringify(data) }),
   lootEvents:       ()        => request('/loot/events'),
   lootEventCreate:  (data)    => request('/loot/events',                { method: 'POST',   body: JSON.stringify(data) }),

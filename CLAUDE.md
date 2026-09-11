@@ -1507,6 +1507,20 @@ een andere akte. Zie `docs/voorstel-documenten.md`.
 
 ---
 
+> **Ook een monster is agnostisch.** Het veld *Akte* (`chapter`) op een monster
+> is vervallen — zelfde reden als bij documenten: een kaartje beschrijft wát een
+> wezen is, niet wanneer het opduikt. Waar het thuishoort staat nu aan de
+> aktekant in `meta.hoofdstukken[key].monsters`, te beheren in de akte-editor
+> (*Monsters bij deze akte*), endpoint `PUT /meta/akte/:key/monsters`.
+> De aktefilter in de Meesterkamer leest twee bronnen: die lijst **plus** de
+> monsters die in de encounters van die akte staan (`_monstersPerAkte()` in
+> `dm-panel.js`). Waarom een eigen lijst en niet puur afleiden: 11 van de 31
+> monsters met een akte zaten in géén enkele encounter — troepen die klaarstaan
+> maar nog nergens ingepland. Migratie:
+> `node scripts/monster-akte-naar-meta.js <campagne> --schrijf` (gedraaid
+> 11 sep 2026 op grisburgh en Test; 13 koppelingen overgezet, 18 kwamen al uit
+> de encounters, kopieën ernaast als `*.voor-akteveld.<datum>.json`).
+
 ## Een document is een kaartje
 
 Sinds 8 sep 2026 is `documenten` het **vijfde entiteitstype**. Daarvoor was het
