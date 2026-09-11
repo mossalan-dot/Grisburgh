@@ -1,7 +1,7 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=283';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=296";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=86";
-import { renderKaart, queueFlyTo } from './render-kaart.js?v=25';
+import { renderKaart, queueFlyTo, verversPins } from './render-kaart.js?v=26';
 import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
@@ -2878,6 +2878,10 @@ function _kaartCard(type, m, dm) {
 window._kaartVerversen = async function () {
   const ov = document.getElementById('kaart-fs-overlay');
   if (ov?.classList.contains('open') && _kaartFsType === 'wereld') {
+    // Eerst proberen om alleen de spelden bij te werken: een volledige
+    // hertekening zet zoom en uitsnede terug op passend, en dan moet je na elke
+    // speld opnieuw inzoomen.
+    if (await verversPins()) return;
     const host = document.getElementById('kaart-fs-content');
     if (host) return renderKaart(host, _kaartFsId || undefined);
   }

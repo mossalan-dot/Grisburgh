@@ -77,6 +77,29 @@ export async function renderKaart(container, openId) {
   }
 }
 
+// Alleen de spelden opnieuw ophalen en tekenen. Een `map:updated` liet hiervoor
+// de hele kaart opnieuw opbouwen, en dat zet zoom en uitsnede terug op passend:
+// je plaatste een speld en stond weer helemaal uitgezoomd. Levert `false` op als
+// de kaartenlijst zelf veranderd is (kaart erbij, hernoemd of weg) — dan is een
+// volledige hertekening wél nodig.
+export async function verversPins() {
+  if (!document.getElementById('map-pins-layer')) return false;
+  const huidig = MAPS[currentMapIdx];
+  if (!huidig) return false;
+  const nieuw = await api.listMaps();
+  const zelfde = nieuw.length === MAPS.length
+    && nieuw.every((m, i) => m.id === MAPS[i].id && m.label === MAPS[i].label && m.src === MAPS[i].src);
+  if (!zelfde) { MAPS = nieuw; return false; }
+  mapPins = await api.mapPins(huidig.id);
+  _syncPinnedSet();
+  if (!isDM()) {
+    try { _availableForPin = await api.availableLocations(huidig.id); }
+    catch { _availableForPin = []; }
+  }
+  _renderPins();
+  return true;
+}
+
 // ── Shell ──
 // Compacte weergave in de fullscreen-galerij-overlay: alleen centreren + zoomen.
 // Navigeren/toevoegen/hernoemen gaat via de kaartgalerij.
