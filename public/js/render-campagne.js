@@ -920,6 +920,11 @@ function fmtToolbar(id, { perkament = false } = {}) {
     <button type="button" class="fmt-btn fmt-btn-mark" title="Markeren" onclick="window._fmt('${id}','==')">A</button>
     <button type="button" class="fmt-btn fmt-btn-hr" title="Scheidingslijn" onclick="window._fmtHr('${id}')">—</button>
     <div class="fmt-toolbar-sep"></div>
+    <!-- Kijken hoe het eruitkomt. De markdown blijft opgeslagen zoals hij is;
+         dit is een kijkstand, geen tweede editor. -->
+    <button type="button" class="fmt-btn fmt-btn-oog" title="Voorbeeld — hoe het eruitkomt"
+      onclick="window._fmtVoorbeeld('${id}', this)">${window.icon('eye')}</button>
+    <div class="fmt-toolbar-sep"></div>
     <div class="fmt-kleuren">
       ${Object.entries(hex).map(([naam, kleur]) =>
         `<button type="button" class="fmt-kleur-knop" style="--k:${kleur}" title="${naam}"

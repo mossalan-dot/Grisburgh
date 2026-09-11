@@ -1513,6 +1513,22 @@ negen eigen routes. Dat is allemaal weg; wat overblijft is
 - **Migratie:** `node scripts/documenten-naar-kaartjes.js <campagne> --schrijf`
   (gedraaid op grisburgh 31, prewett 1, Test 1; kopie ernaast).
 
+> **Markdown blijft het opgeslagen formaat; de opmaakbalk heeft een oogje.**
+> De vraag "kunnen die velden niet WYSIWYG?" loopt stuk op de opslagkant: de
+> tekst in `data.desc` en zijn soortgenoten wordt door **zeven** renderers
+> gelezen, waarvan twee op de server (`lib/character-sheet.js` voor het
+> printbare blad, `lib/snapshot.js` voor de campagneboek-export). Het formaat
+> veranderen raakt die allemaal. En een contenteditable die markdown
+> terugschrijft moet het hele dialect lossless kunnen: `**`, `*`, `__`, `~~`,
+> `==`, `^smallcaps^`, `{kleur:tekst}`, `#`-koppen, `---`, en vooral
+> `[[wikilinks]]` — die renderen als knop mét campagnestatus en moeten er weer
+> precies zo uitkomen. Eén fout in die vertaalslag herschrijft bij elke
+> opslagbeurt stilletjes andermans tekst.
+> Daarom: de textarea blijft de bron, en elke opmaakbalk krijgt een **oogje**
+> dat het veld omklapt naar `mdToHtml()` (`window._fmtVoorbeeld`). Kijkstand,
+> geen tweede editor — er kan dus niets stuk. Sneltoetsen: Ctrl+B, Ctrl+I en
+> sinds 11 sep ook Ctrl+U (`window._fmtKey`).
+
 > **De brieftekst heeft twee tabbladen: schrijven en kijken.** Het veld
 > `type: 'perkament'` krijgt boven het tekstvak *Schrijven* / *Zoals de speler
 > het ziet* (`window._perkamentTab`); het voorbeeld draait dezelfde

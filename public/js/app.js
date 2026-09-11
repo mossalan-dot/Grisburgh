@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=281';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=287";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=83";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=288";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=84";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
@@ -2406,10 +2406,43 @@ window._fmtHr = (id) => {
   ta.focus();
 };
 
+// De sneltoetsen die iedereen in zijn vingers heeft. Ctrl+U stond er nog niet
+// bij, terwijl de knop ernaast wél onderstrepen doet.
 window._fmtKey = (e) => {
   if (!(e.ctrlKey || e.metaKey)) return;
-  if (e.key === 'b') { e.preventDefault(); window._fmt(e.target.id, '**'); }
-  if (e.key === 'i') { e.preventDefault(); window._fmt(e.target.id, '*');  }
+  const merk = { b: '**', i: '*', u: '__' }[String(e.key).toLowerCase()];
+  if (!merk) return;
+  e.preventDefault();
+  window._fmt(e.target.id, merk);
+};
+
+// Een tekstvak omklappen naar hoe het eruitkomt. De markdown blíjft wat er
+// opgeslagen wordt — zeven renderers lezen dat veld, waarvan twee op de server
+// (het printbare blad en de campagneboek-export) — dus dit is een kijkstand,
+// geen editor die terugschrijft. Zo kan er ook niets stuk aan.
+window._fmtVoorbeeld = (id, knop) => {
+  const ta = document.getElementById(id);
+  if (!ta) return;
+  let vak = document.getElementById(`${id}-mdvoorbeeld`);
+  if (!vak) {
+    vak = document.createElement('div');
+    vak.id = `${id}-mdvoorbeeld`;
+    vak.className = 'fmt-voorbeeld hidden';
+    ta.insertAdjacentElement('afterend', vak);
+  }
+  const kijken = ta.classList.contains('hidden') === false;
+  if (kijken) {
+    const tekst = ta.value.trim();
+    vak.innerHTML = tekst
+      ? window.app.mdToHtml(ta.value)
+      : '<span class="fmt-voorbeeld-leeg">Nog niets geschreven.</span>';
+    // Even hoog als het vak dat het vervangt, anders springt het formulier.
+    vak.style.minHeight = ta.offsetHeight + 'px';
+  }
+  ta.classList.toggle('hidden', kijken);
+  vak.classList.toggle('hidden', !kijken);
+  knop?.classList.toggle('fmt-btn--aan', kijken);
+  if (!kijken) ta.focus();
 };
 
 // ── Actieve groep ──

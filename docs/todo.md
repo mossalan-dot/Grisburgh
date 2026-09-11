@@ -333,3 +333,15 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       staat dan: *"Wizard 7 · Fireball is Level 3 · staat op de Wizard-lijst"*
       of *"staat niet op de Wizard-lijst — wel te verklaren via Magic Initiate
       of een scroll"*. Eén klik, met de reden ernaast.
+
+- [ ] **Echte WYSIWYG in de tekstvelden?** Gevraagd op 11 sep 2026. Voor nu
+      opgelost met een **oogje** op de opmaakbalk (kijkstand) plus Ctrl+B/I/U.
+      Een echte rich-text editor blijft mogelijk, maar het is geen middagwerk:
+      de markdown is het opgeslagen formaat en wordt door zeven renderers
+      gelezen (twee op de server), dus een contenteditable moet bij élke
+      opslagbeurt het hele dialect lossless terugvertalen — inclusief
+      `[[wikilinks]]`, `{kleur:tekst}` en `^smallcaps^`. De faalstand is stille
+      tekstvervuiling, en dat is precies wat je in een campagne niet wilt.
+      Als het er ooit komt: eerst een round-trip-test over álle bestaande
+      teksten (parse → serialiseer → vergelijk), vóór er ook maar iets
+      opgeslagen wordt.
