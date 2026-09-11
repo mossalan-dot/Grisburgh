@@ -1319,6 +1319,18 @@ Elke verbinding joint de room `campaignId` (of `'main'` als er geen sessie-campa
 Spelers registreren hun `characterId` via `socket.emit('player:register', characterId)`.
 De DM kan directe berichten sturen via `playerSockets.get(characterId)`.
 
+> **Een socket kiest zijn kamer bij het verbinden — dus opnieuw verbinden na
+> inloggen.** `server.js` leest `socket.request.session?.campaignId` op het
+> moment van de handshake. Een bezoeker die de pagina opent is nog niet
+> ingelogd, heeft dus geen campagne, en belandt in `main`. De landingspagina
+> logt in **zonder de pagina te herladen** (`_landingFinishLogin`), dus die
+> socket bleef in `main` terwijl de server naar `grisburgh` of `Test` stuurt:
+> wie net was ingelogd kreeg de hele avond geen onthulling, geen gevechtsupdate
+> en geen beursmelding — tot hij verversde. Elke inlogroute roept nu
+> `window._socketHerverbind()` aan (socket-client.js): één nieuwe handshake
+> leest de verse sessie. De `connect`-handler registreert het characterId
+> daarna zelf opnieuw.
+
 ---
 
 ## Meesterkamer — gouden standaard (DM-tabs)

@@ -4,6 +4,18 @@ export function initSocket() {
   const socket = io();
   window._socket = socket;  // Exposed so players can emit sound:emote events
 
+  // ── Na inloggen opnieuw verbinden ──────────────────────────────────────────
+  // Een socket kiest zijn campagne-kamer bij het **verbinden**, uit de sessie
+  // van dat moment (`server.js`: `socket.request.session?.campaignId || 'main'`).
+  // Een bezoeker die nog niet is ingelogd heeft die niet, dus belandt hij in
+  // `main` — en daar blijft hij, want de landingspagina logt in zónder de
+  // pagina te herladen. Gevolg: wie net inlogt hoort de hele avond niets meer
+  // van de server (onthullingen, gevecht, gedeelde beurs) tot hij ververst.
+  // Eén nieuwe handshake leest de verse sessie en zet hem in de goede kamer.
+  window._socketHerverbind = () => {
+    try { socket.disconnect(); socket.connect(); } catch { /* dan blijft het zoals het was */ }
+  };
+
   const ENTITY_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
 
   // #30: debounce volledige sectie-renders per sectie. Snel opeenvolgende

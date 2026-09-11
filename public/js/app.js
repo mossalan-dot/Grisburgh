@@ -8,7 +8,7 @@ import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
 import { renderSpreuken } from './render-spreuken.js?v=36';
 import { renderStatblock } from './render-statblock.js?v=9';
-import { initSocket } from "./socket-client.js?v=69";
+import { initSocket } from "./socket-client.js?v=70";
 import { initDmPanel } from "./dm-panel.js?v=219";
 import './media-picker.js?v=8';
 
@@ -658,6 +658,7 @@ async function login() {
     await api.login($('#dm-password').value);
     state.role = 'dm';
     applyRole();
+    window._socketHerverbind?.();   // de socket zat nog in de bezoekerskamer
     closeLoginModal();
     // Laad groepen nu DM is ingelogd
     try {
@@ -808,6 +809,7 @@ async function landingToegang() {
     if (r.rol === 'dm') {
       state.role = 'dm';
       applyRole();
+      window._socketHerverbind?.();   // de socket zat nog in de bezoekerskamer
       try {
         const { groups, activeGroup } = await api.listGroups();
         _activeGroupId = activeGroup;
@@ -890,6 +892,7 @@ function _landingDmLogin() {
       document.getElementById('landing-footer-prompt')?.remove();
       state.role = 'dm';
       applyRole();
+      window._socketHerverbind?.();   // de socket zat nog in de bezoekerskamer
       try {
         const { groups, activeGroup } = await api.listGroups();
         _activeGroupId = activeGroup;
@@ -1538,6 +1541,10 @@ function _landingFinishLogin({ playerName, characterId: cid }) {
   applyRole();
   _loadDienstenToegang().catch(() => {});
   try { localStorage.setItem('_lastLogin', JSON.stringify({ charId: cid, ts: Date.now() })); } catch { /* ok */ }
+  // Opnieuw verbinden vóór het registreren: de socket zat tot nu toe in de
+  // kamer van een bezoeker zonder campagne. De `connect`-handler registreert
+  // het characterId daarna zelf opnieuw.
+  window._socketHerverbind?.();
   if (cid && window._socket) window._socket.emit('player:register', cid);
   window._pendingPlayerSubTab = 'personage';
   switchSection('mijn-karakter');
