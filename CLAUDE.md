@@ -835,8 +835,12 @@ Wie bij een locatie of organisatie hoort staat in **één** lijst:
 opgeslagen als JSON-string. Alles eromheen is afgeleid:
 
 - **`Wie hoort hier bij?`** (locaties, organisaties) bewerkt die lijst direct.
-- **`Waar hoort dit bij?`** (personages, organisaties) is dezelfde verbinding
-  van de andere kant. De **rol beschrijft altijd de persoon**, aan beide zijden:
+- **`Waar hoort dit … bij?`** (personages, organisaties) is dezelfde verbinding
+  van de andere kant. De kop noemt het soort kaartje ("Waar hoort dit personage
+  bij?", "Waar hoort deze organisatie bij?") en staat voluit per type in
+  `TYPE_META[...].hoortbij` — niet in elkaar gezet uit "Waar hoort " plus een
+  woord, want het Nederlands wil *dit* personage maar *deze* locatie. Lezen gaat
+  via `_hoortBijKop(tab)`. De **rol beschrijft altijd de persoon**, aan beide zijden:
   op de herberg staat `Eigenaar — Bram Kruik`, op Bram `Eigenaar — De Gouden
   Gans`. Vandaar deze vraagstelling en niet "Wat hoort hier bij?" — dat kaderde
   de rij als bezit, en dan zou er *Eigendom* moeten staan. Lezen gaat via `_betrokkenIndex()` in `routes/api.js`

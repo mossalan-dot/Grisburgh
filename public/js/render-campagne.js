@@ -127,13 +127,21 @@ export function setOwnership(data) {
 }
 // Expose op window zodat socket-client.js altijd de correcte module-instantie gebruikt
 window._setOwnership = setOwnership;
+// `hoortbij` staat hier voluit per type en wordt niet in elkaar gezet uit
+// "Waar hoort " + een woord: het Nederlands wil dit personage maar deze
+// locatie, en dat lijstje hoort op één plek te staan in plaats van in een regel
+// die het lidwoord moet raden.
 const TYPE_META = {
-  personages:   { icon: '\ud83d\udc64', get svgIcon() { return icon('user'); },                    label: 'Personages',   nieuw: 'Nieuw personage',    bewerk: 'Personage bewerken',   color: 'green-wax', chip: 'chip-npc' },
-  locaties:     { icon: '\ud83c\udff0', get svgIcon() { return icon('castle', {cls:'icon-gi'}); }, label: 'Locaties',     nieuw: 'Nieuwe locatie',     bewerk: 'Locatie bewerken',     color: 'blue-ink',  chip: 'chip-loc' },
-  organisaties: { icon: '\ud83c\udfdb\ufe0f', get svgIcon() { return icon('landmark'); },         label: 'Organisaties', nieuw: 'Nieuwe organisatie', bewerk: 'Organisatie bewerken', color: 'seal',      chip: 'chip-org' },
-  voorwerpen:   { icon: '🎺',              get svgIcon() { return icon('package'); },                label: 'Voorwerpen',   nieuw: 'Nieuw voorwerp',     bewerk: 'Voorwerp bewerken',    color: 'orange',    chip: 'chip-item' },
-  documenten:   { icon: '📜',              get svgIcon() { return icon('scroll-text'); },            label: 'Documenten',   nieuw: 'Nieuw document',     bewerk: 'Document bewerken',    color: 'sepia',     chip: 'chip-doc' },
+  personages:   { icon: '\ud83d\udc64', get svgIcon() { return icon('user'); },                    label: 'Personages',   nieuw: 'Nieuw personage',    bewerk: 'Personage bewerken',   hoortbij: 'Waar hoort dit personage bij?',    color: 'green-wax', chip: 'chip-npc' },
+  locaties:     { icon: '\ud83c\udff0', get svgIcon() { return icon('castle', {cls:'icon-gi'}); }, label: 'Locaties',     nieuw: 'Nieuwe locatie',     bewerk: 'Locatie bewerken',     hoortbij: 'Waar hoort deze locatie bij?',     color: 'blue-ink',  chip: 'chip-loc' },
+  organisaties: { icon: '\ud83c\udfdb\ufe0f', get svgIcon() { return icon('landmark'); },         label: 'Organisaties', nieuw: 'Nieuwe organisatie', bewerk: 'Organisatie bewerken', hoortbij: 'Waar hoort deze organisatie bij?', color: 'seal',      chip: 'chip-org' },
+  voorwerpen:   { icon: '🎺',              get svgIcon() { return icon('package'); },                label: 'Voorwerpen',   nieuw: 'Nieuw voorwerp',     bewerk: 'Voorwerp bewerken',    hoortbij: 'Waar hoort dit voorwerp bij?',     color: 'orange',    chip: 'chip-item' },
+  documenten:   { icon: '📜',              get svgIcon() { return icon('scroll-text'); },            label: 'Documenten',   nieuw: 'Nieuw document',     bewerk: 'Document bewerken',    hoortbij: 'Waar hoort dit document bij?',     color: 'sepia',     chip: 'chip-doc' },
 };
+
+// Eén plek waar die kop vandaan komt; een onbekend type valt terug op de
+// algemene vraag in plaats van een lege regel.
+const _hoortBijKop = (tab) => TYPE_META[tab]?.hoortbij || 'Waar hoort dit bij?';
 
 // ── Documenttypes ───────────────────────────────────────────────────────────
 // Een document had twee indelingen naast elkaar: `cat` (vijf grove bakken) en
@@ -4347,7 +4355,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     if (_locNaam) _hoortBij.push({ id: _winkelLocId, name: _locNaam, type: 'locaties', rol: 'Verkoper', tab: 'voorraad' });
   }
   if (_hoortBij.length) {
-    infoHtml += _rolRegels('Waar hoort dit bij?', _hoortBij.map(r => ({
+    infoHtml += _rolRegels(_hoortBijKop(tab), _hoortBij.map(r => ({
       rol: r.rol,
       geheim: isDM() ? r.geheim : null,
       knop: r.factieId
@@ -6813,7 +6821,7 @@ window._openEditor = async (tab, editId) => {
     if (tab === 'organisaties') body += `<!--P:organogram-->`;
     body += `
       <div class="hoortbij-sectie">
-        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">Waar hoort dit bij?</label>
+        <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(_hoortBijKop(tab))}</label>
         <div id="hoortbij-lijst">${_hbRijen.map((r, i) => _hoortRijHtml(r, i)).join('')}</div>
         <datalist id="hoortbij-dl" data-link-doel="locaties,organisaties"></datalist>
         <!-- Eigen rollijst: die van het betrokkenen-veld hangt aan dát veld, en
