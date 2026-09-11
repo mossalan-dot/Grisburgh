@@ -6,7 +6,7 @@ import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
-import { renderSpreuken } from './render-spreuken.js?v=36';
+import { renderSpreuken } from './render-spreuken.js?v=37';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=70";
 import { initDmPanel } from "./dm-panel.js?v=221";
@@ -12241,11 +12241,11 @@ const HELP_CONFIG = {
   // Een speler dacht dat de hele bibliotheek haar eigen spreuken waren. Vandaar
   // dat deze uitleg met dat misverstand begint in plaats van met de functies.
   spreuken: () => ({
-    titel: 'Spreuken — het naslagwerk',
+    titel: 'Spreuken — de bibliotheek',
     stappen: [
       {
         titel: 'Dit zijn niet jouw spreuken',
-        tekst: 'Deze bibliotheek bevat álle spreuken die in deze wereld bestaan — honderden, van elke klasse en elk niveau. Het is een naslagwerk, zoals een woordenboek: je kunt er alles in opzoeken, maar je kent het niet uit je hoofd. Wat jouw personage daadwerkelijk kan, staat in je eigen Spreukenboek onder je personage.',
+        tekst: 'Deze bibliotheek bevat álle spreuken die in deze wereld bestaan — honderden, van elke klasse en elk niveau, en daarnaast wat de DM voor deze campagne zelf verzon. Je kunt er alles in opzoeken, maar je kent het niet uit je hoofd: wat jouw personage daadwerkelijk kan, staat in je eigen Spreukenboek onder je personage.',
         afbeelding: null,
       },
       {
@@ -12271,7 +12271,7 @@ const HELP_CONFIG = {
     stappen: [
       {
         titel: 'Spreukenboek',
-        tekst: 'Hier staan JOUW spreuken, geordend op level — niet te verwarren met het tabblad Spreuken in de zijbalk, dat een naslagwerk is met alle spreuken die bestaan. Bovenaan zie je je Spell Save DC, spell attack bonus en beschikbare spell slots. Klik op een spreuk voor de volledige beschrijving.',
+        tekst: 'Hier staan JOUW spreuken, geordend op level — niet te verwarren met het tabblad Spreuken in de zijbalk, dat de hele bibliotheek toont. Bovenaan zie je je Spell Save DC, spell attack bonus en beschikbare spell slots. Klik op een spreuk voor de volledige beschrijving.',
         afbeelding: null,
       },
       {

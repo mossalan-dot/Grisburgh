@@ -288,10 +288,12 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       statblok-render gebruikt. De monster-editor in de Meesterkamer had er als
       enige nog geen.
 
-- [ ] **Spreuken: het is geen naslagwerk meer.** De tab zegt "naslagwerk", maar
-      de DM kan er nu zelf spreuken plaatsen. Tekst bijstellen, en er een veld
-      bij: **is dit overgenomen of zelfbedacht?** Dat scheelt straks bij de
-      vraag wat je wel en niet mag delen met een andere campagne.
+- [x] **Spreuken: het is geen naslagwerk meer** — gedaan 11 sep 2026. De
+      ondertitel, de hulptekst en de hulp bij het spreukenboek zeggen nu dat de
+      bibliotheek ook bevat wat de campagne zelf verzon. Er is een veld
+      **Herkomst** bij (zelf verzonnen / aangepast / overgenomen), dat als tag
+      op het kaartje staat — een aantekening, geen slot, maar wél de plek waar
+      straks staat wat je niet mag doorgeven.
 
 - [x] **Blanco kaartjes** — opgelost 11 sep 2026. Het lag niet aan de maat maar
       aan `_beeld`: dat vroeg "bestaat er een bestand met dit id?", en bij een

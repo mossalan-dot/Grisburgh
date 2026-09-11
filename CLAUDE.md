@@ -240,13 +240,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=555   app.js?v=695   sound-manager.js?v=8
-app.js      : api.js?v=281  dm-panel.js?v=215  media-picker.js?v=8
-              render-archief.js?v=83  render-bestiarium.js?v=25  render-campagne.js?v=273
+index.html  : theme.css?v=570   app.js?v=727   sound-manager.js?v=8
+app.js      : api.js?v=282  dm-panel.js?v=221  media-picker.js?v=8
+              render-archief.js?v=86  render-bestiarium.js?v=28  render-campagne.js?v=293
               render-dashboard.js?v=9  render-dungeon.js?v=33  render-kaart.js?v=19
-              render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=35
-              render-statblock.js?v=8  socket-client.js?v=66
-dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=8
+              render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=37
+              render-statblock.js?v=9  socket-client.js?v=70
+dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 ```
 
 > **Eén bestand = één URL.** ES-modules met verschillende `?v=`-nummers zijn aparte
@@ -640,8 +640,10 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=8
 
 ## Spreuken
 
-De bibliotheek is een **naslagwerk**: alle spreuken die er bestaan, niet die van
-de speler. Zijn eigen boek staat in het spelerstabblad. Drie bronnen lopen samen
+De bibliotheek is **alles wat er in deze wereld bestaat** — het meegeleverde
+materiaal én wat de campagne zelf verzon — niet wat de speler kent. Zijn eigen
+boek staat in het spelerstabblad. Ze heette hier "naslagwerk", maar sinds de DM
+er zelf spreuken in zet is dat woord te smal geworden. Drie bronnen lopen samen
 in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 
 1. `bronnen/spells-2024.json` (539 regels, waarvan 22 zonder school — dat zijn
@@ -661,8 +663,18 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > weten. Alleen de naam is verplicht; wat leeg blijft laat `_spreukUitBody()`
 > weg. Het id is `eigen-<slug>`, met een teller bij een dubbele naam.
 > Routes: `GET /spreuken/eigen` (elke ingelogde), `POST`/`PUT`/`DELETE`
-> (DM-only). Een eigen spreuk krijgt de tag **Eigen** op zijn kaartje en heeft
+> (DM-only). Een eigen spreuk krijgt een tag op zijn kaartje en heeft
 > geen overschrijf-tekstvak — die is er voor bróntekst.
+>
+> **Herkomst staat erbij, want niet alles mag mee.** `herkomst` is
+> `zelfbedacht`, `aangepast` of `overgenomen` (whitelist `_SPREUK_HERKOMST` in
+> `routes/api.js`; leeg mag ook). De tag op het kaartje toont die keuze — *Eigen*
+> zolang er niets gekozen is, anders *Zelf verzonnen* / *Aangepast* /
+> *Overgenomen*, die laatste in rood (`.spreuk-tag--overgenomen`). Het is
+> bewust een **aantekening van de DM** en geen mechaniek: er wordt nergens iets
+> op geblokkeerd. Maar zodra campagnes materiaal met elkaar gaan delen is dit de
+> enige plek waar staat wat overgeschreven is uit andermans boek en dus niet mee
+> de deur uit mag.
 >
 > **De klassenlijst komt van de server**, niet uit een lijstje in de frontend:
 > `_spreukKlassen()` telt de eigen klassen van de campagne mee

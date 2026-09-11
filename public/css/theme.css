@@ -24502,3 +24502,6 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   background: #8a6a10; border-color: #8a6a10; color: #f6eeda;
 }
 .dm-enc-worp--aan .icon, .dm-enc-worp--aan svg { color: inherit; }
+/* Een overgenomen spreuk krijgt een andere kleur dan een zelfbedachte: het is
+   dezelfde soort tag, maar met een andere consequentie bij het delen. */
+.spreuk-tag--overgenomen { background: rgba(139,42,42,0.14); border-color: rgba(139,42,42,0.4); color: #7a2a2a; }

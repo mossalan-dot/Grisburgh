@@ -6155,6 +6155,12 @@ router.get('/bron/:naam', attachRole, (req, res) => {
 // de ene campagne verzint kregen alle andere er ook bij. Een eigen spreuk hoort
 // in de campagne: `spells.json` → `eigenSpreuken[]`, in exact het formaat van de
 // bron, zodat kaartje, detailvenster en spreukenboek er niets van hoeven te weten.
+// Waar komt een eigen spreuk vandaan? Dat is geen smaakveldje: het beslist wat
+// je met een andere campagne mag delen. Zelf verzonnen mag mee, overgenomen uit
+// uitgegeven materiaal niet — en "aangepast" is het grijze midden dat je alleen
+// zelf kunt beoordelen. Leeg blijft toegestaan: een oude spreuk weet het niet.
+const _SPREUK_HERKOMST = ['zelfbedacht', 'aangepast', 'overgenomen'];
+
 const _SPREUK_SCHOLEN = ['Abjuration', 'Conjuration', 'Divination', 'Enchantment',
                          'Evocation', 'Illusion', 'Necromancy', 'Transmutation'];
 const _SPREUK_KLASSEN = ['Artificer', 'Bard', 'Cleric', 'Druid', 'Paladin',
@@ -6198,6 +6204,8 @@ function _spreukUitBody(body, index) {
     classes: klassen.map(name => ({ name })),
     source: 'eigen',
   };
+  const herkomst = tekst(body?.herkomst, 20);
+  if (_SPREUK_HERKOMST.includes(herkomst)) uit.herkomst = herkomst;
   for (const [k, v] of Object.entries({
     casting_time: tekst(body?.casting_time, 80),
     range:        tekst(body?.range, 80),

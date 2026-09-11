@@ -206,7 +206,14 @@ function _card(s) {
   // en gaat in een nieuw tabblad open.
   const naslag = s._geenTekst ? _spreukLink(s.name) : '';
   const markers = [
-    s.source === 'eigen' ? `<span class="spreuk-tag spreuk-tag--eigen" title="Eigen spreuk van deze campagne">${icon('sparkles')} Eigen</span>` : '',
+    s.source === 'eigen' ? (() => {
+      // "Eigen" zei alleen dát hij van deze campagne is. Is de herkomst
+      // ingevuld, dan zegt de tag ook wélke soort eigen — dat is de vraag die
+      // straks telt bij het delen.
+      const h = _HERKOMST_LABEL[s.herkomst];
+      return `<span class="spreuk-tag spreuk-tag--eigen${s.herkomst === 'overgenomen' ? ' spreuk-tag--overgenomen' : ''}"
+        title="${h ? esc(h) + ' \u2014 van deze campagne' : 'Eigen spreuk van deze campagne'}">${icon('sparkles')} ${esc(h || 'Eigen')}</span>`;
+    })() : '',
     s.ritual        ? `<span class="spreuk-tag" title="Ritual">${icon('scroll-text')} Ritual</span>` : '',
     s.concentration ? `<span class="spreuk-tag" title="Concentration">${icon('eye')} Concentration</span>` : '',
     naslag ? `<a class="spreuk-tag spreuk-tag--naslag" href="${esc(naslag)}" target="_blank" rel="noopener"
@@ -348,7 +355,7 @@ export async function renderSpreuken(container) {
         <div class="section-banner-icon-wrap">${icon('sparkles')}</div>
         <div class="section-banner-info">
           <div class="section-banner-label">Spreuken</div>
-          <div class="section-banner-desc-line">Naslagwerk — alle spreuken die er bestaan, niet die van jou</div>
+          <div class="section-banner-desc-line">Alle spreuken van deze wereld — meegeleverd en zelf verzonnen. Wat jij kent staat in je eigen boek.</div>
         </div>
         <!-- Zoekvak, boekje en + horen in dezelfde flexrij als op de andere
              tabbladen; het boekje hing hier in een eigen div met een losse
@@ -472,6 +479,21 @@ function _detailHtml(s) {
 // hoeven kaartje, detailvenster, spreukenboek en het zoeken niets van een eigen
 // spreuk te weten. Alleen de naam is verplicht; wat leeg blijft laat de server
 // weg, zodat een korte spreuk geen rij lege regels krijgt.
+// Waar een eigen spreuk vandaan komt. Geen smaakveldje: het beslist straks wat
+// je met een andere campagne mag delen — zelf verzonnen mag mee, overgenomen
+// uit uitgegeven materiaal niet.
+const _EIG_HERKOMST = [
+  { value: '',             label: '— niet opgegeven —' },
+  { value: 'zelfbedacht',  label: 'Zelf verzonnen' },
+  { value: 'aangepast',    label: 'Aangepast uit ander materiaal' },
+  { value: 'overgenomen',  label: 'Overgenomen uit ander materiaal' },
+];
+const _HERKOMST_LABEL = {
+  zelfbedacht: 'Zelf verzonnen',
+  aangepast:   'Aangepast',
+  overgenomen: 'Overgenomen',
+};
+
 const _EIG_SCHOLEN = ['Abjuration', 'Conjuration', 'Divination', 'Enchantment',
                       'Evocation', 'Illusion', 'Necromancy', 'Transmutation'];
 // De klassenlijst komt van de server: die telt de eigen klassen van de campagne
@@ -517,6 +539,12 @@ function _eigFormHtml(s) {
           <select id="eig-school">
             <option value="">— kies —</option>
             ${_EIG_SCHOLEN.map(sc => `<option${_school(s || {}) === sc ? ' selected' : ''}>${sc}</option>`).join('')}
+          </select>
+        </label>
+        <label class="spreuk-eig-veld" title="Bepaalt wat je later met een andere campagne mag delen: zelf verzonnen mag mee, overgenomen materiaal niet.">
+          <span class="spreuk-eig-lbl">Herkomst</span>
+          <select id="eig-herkomst">
+            ${_EIG_HERKOMST.map(h => `<option value="${esc(h.value)}"${(s?.herkomst || '') === h.value ? ' selected' : ''}>${esc(h.label)}</option>`).join('')}
           </select>
         </label>
         ${_eigVeld('Casting Time', 'eig-casting', s?.casting_time, 'Action')}
@@ -578,6 +606,7 @@ function _eigLees() {
     classes: _EIG_KLASSEN.filter(k => aan(`eig-kl-${k}`)),
     desc: v('eig-desc'),
     higher_level: v('eig-hoger'),
+    herkomst: v('eig-herkomst'),
   };
 }
 
