@@ -92,9 +92,14 @@ function _legeStaat() {
 }
 
 function _buildShell() {
+  // De knoppenbalk zweeft óver de kaart in plaats van erboven te staan. Stond hij
+  // in de flow, dan at hij hoogte op en brak de kaart onderaan af — precies bij
+  // de grote wereldkaart, waar je juist alles wilt zien. Buiten #map-scroll
+  // gehouden (en niet `sticky`), want een absolute balk ín een scrollende bak
+  // scrollt mee weg.
   return `
-    <div class="flex-1 min-h-0 overflow-auto bg-room-bg flex flex-col items-center pt-3 pb-6 px-4" id="map-scroll">
-      <div class="map-toolbar-min" id="map-toolbar">
+    <div class="flex-1 min-h-0 relative flex flex-col">
+      <div class="map-toolbar-min map-toolbar-float" id="map-toolbar">
         <button id="map-zoom-out" class="map-mini-btn" title="Uitzoomen">${icon('minus')}</button>
         <span id="map-zoom-label" class="map-zoom-label">—</span>
         <button id="map-zoom-in"  class="map-mini-btn" title="Inzoomen">${icon('plus')}</button>
@@ -103,8 +108,21 @@ function _buildShell() {
         <span class="map-toolbar-sep"></span>
         ${window._helpBtn?.('kaart') ?? ''}
       </div>
-      <div id="map-area" class="flex flex-col items-center w-full shrink-0 overflow-hidden"></div>
+      <div class="flex-1 min-h-0 overflow-auto bg-room-bg flex flex-col items-center pt-3 pb-6 px-4" id="map-scroll">
+        <div id="map-area" class="flex flex-col items-center w-full shrink-0 overflow-hidden"></div>
+      </div>
     </div>`;
+}
+
+// Passend maken kijkt naar bréédte én hoogte. Alleen op de breedte fitten liet
+// een staande kaart onderaan buiten beeld vallen, en dan is "passend" een
+// belofte die het knopje niet waarmaakt.
+function _fitZoom(img) {
+  const scroll = document.getElementById('map-scroll');
+  const availW = (scroll ? scroll.clientWidth  : window.innerWidth)  - 48;
+  const availH = (scroll ? scroll.clientHeight : window.innerHeight) - 48;
+  if (!img?.naturalWidth) return 1;
+  return Math.min(1, availW / img.naturalWidth, availH / img.naturalHeight);
 }
 
 // ── Map content ──
@@ -122,11 +140,11 @@ function _renderMapContent() {
       <div id="map-pins-layer" class="absolute inset-0 pointer-events-none"></div>
     </div>
     ${isDM() ? `
-      <div class="mt-3 text-xs text-ink-dim font-mono flex items-center gap-2">
+      <div class="mt-3 text-xs text-ink-dim map-hint flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-gold inline-block"></span>
         Dubbelklik op de kaart om een pin te plaatsen
       </div>` : _availableForPin.length ? `
-      <div class="mt-3 text-xs text-ink-dim font-mono flex items-center gap-2">
+      <div class="mt-3 text-xs text-ink-dim map-hint flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-gold/40 inline-block"></span>
         Dubbelklik op de kaart om een locatie voor te stellen
       </div>` : ''}`;
@@ -143,9 +161,7 @@ function _initZoom() {
   if (!img) return;
 
   const fit = () => {
-    const scroll = document.getElementById('map-scroll');
-    const avail  = scroll ? scroll.clientWidth - 48 : window.innerWidth;
-    zoomLevel = Math.min(1, avail / img.naturalWidth);
+    zoomLevel = _fitZoom(img);
     _applyZoom();
   };
 
@@ -189,10 +205,9 @@ function _attachNavEvents() {
     _applyZoom();
   });
   document.getElementById('map-zoom-fit')?.addEventListener('click', () => {
-    const img    = document.getElementById('map-img');
-    const scroll = document.getElementById('map-scroll');
+    const img = document.getElementById('map-img');
     if (!img?.naturalWidth) return;
-    zoomLevel = Math.min(1, (scroll.clientWidth - 48) / img.naturalWidth);
+    zoomLevel = _fitZoom(img);
     panX = 0; panY = 0;
     _applyZoom();
     _applyPan();
@@ -315,13 +330,12 @@ function _attachPanAndClick() {
   }, { signal });
 }
 
-// Opent het locatie-detail vanaf een pin. Als de kaart in de fullscreen-overlay
-// staat (z-index 1200) moet die eerst dicht, anders opent het detail-modal
-// (z-index 70) onzichtbaar eronder — dit brak sinds de fullscreen-galerij-update.
+// Opent het locatie-detail vanaf een pin. Het venster komt **over** de kaart te
+// liggen (`body.kaart-fs-active .modal-overlay`), zodat je na het sluiten weer
+// op dezelfde plek op de kaart staat. Eerst ging de kaart dicht en stond je in
+// de kaartenlijst — terwijl de weg heen (kaartje → *Toon op de hele kaart*) zijn
+// terugweg wél onthoudt. Eén klik heen hoort één klik terug te zijn.
 function _openLocDetailFromPin(locId) {
-  if (document.getElementById('kaart-fs-overlay')?.classList.contains('open')) {
-    window._closeKaartFullscreen?.();
-  }
   window._openDetail('locaties', locId);
 }
 
@@ -344,7 +358,11 @@ function _renderPins() {
     const isVague  = vis === 'vague';
     const isHidden = vis === 'hidden';
     const label    = (isVague && !isPending) ? '?' : esc(pin.locName || loc.name || '');
-    const _pinIcon  = (isVague && !isPending) ? '?' : (loc.data?.icon || icon('castle',{cls:'icon-gi'}));
+    // Het icoon volgt het type van de locatie (window._locIcoon); een eigen
+    // `data.icon` op het kaartje wint nog, en een vaag kaartje verklapt niets.
+    const _pinIcon  = (isVague && !isPending)
+      ? '?'
+      : (loc.data?.icon || window._locIcoon?.(loc.data?.locType) || icon('map-pin'));
 
     let extraClass = '';
     if (isVague)   extraClass += ' map-pin-vague';
@@ -467,19 +485,17 @@ function _openPinPlacer(x, y, clientX, clientY) {
   popup.id        = 'pin-placer-popup';
   popup.className = 'pin-placer-popup';
   popup.style.cssText = `left:${left}px;top:${top}px`;
+  // Perkament, net als elk ander venster in de app: dit blokje stond als enige
+  // op een donkere ondergrond en viel daardoor als een vreemde plak op de kaart.
   popup.innerHTML = `
-    <div class="text-[11px] font-cinzel text-gold uppercase tracking-wide mb-2">${icon('map-pin')} Locatie koppelen</div>
-    <input id="pin-loc-search" type="text" placeholder="Zoeken…"
-      class="w-full text-sm bg-room-bg border border-room-border rounded px-2 py-1 text-ink-bright mb-1 focus:border-gold-dim focus:outline-none">
-    <select id="pin-loc-select" size="4"
-      class="w-full text-sm bg-room-bg border border-room-border rounded px-1 py-0.5 text-ink-bright mb-2 focus:border-gold-dim focus:outline-none">
+    <div class="pin-placer-kop">${icon('map-pin')} Locatie koppelen</div>
+    <input id="pin-loc-search" type="text" placeholder="Zoeken…" class="pin-placer-input">
+    <select id="pin-loc-select" size="4" class="pin-placer-select">
       ${available.map(l => `<option value="${esc(l.id)}">${esc(l.name)}</option>`).join('')}
     </select>
-    <div class="flex gap-2">
-      <button id="pin-confirm"
-        class="flex-1 text-xs bg-gold/20 hover:bg-gold/30 text-gold border border-gold/30 rounded px-2 py-1 transition" title="Plaatsen">${icon('pin')}</button>
-      <button id="pin-cancel"
-        class="flex-1 text-xs text-ink-dim hover:bg-room-border rounded px-2 py-1 transition" title="Annuleren">${icon('x')}</button>
+    <div class="pin-placer-knoppen">
+      <button id="pin-confirm" class="dm-btn dm-btn-primary dm-btn-sm" title="Plaatsen">${icon('pin')} Plaatsen</button>
+      <button id="pin-cancel"  class="dm-btn dm-btn-ghost dm-btn-sm" title="Annuleren">${icon('x')}</button>
     </div>`;
   document.body.appendChild(popup);
 

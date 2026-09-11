@@ -240,10 +240,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=571   app.js?v=727   sound-manager.js?v=8
+index.html  : theme.css?v=576   app.js?v=728   sound-manager.js?v=8
 app.js      : api.js?v=283  dm-panel.js?v=221  media-picker.js?v=8
-              render-archief.js?v=86  render-bestiarium.js?v=28  render-campagne.js?v=293
-              render-dashboard.js?v=9  render-dungeon.js?v=33  render-kaart.js?v=19
+              render-archief.js?v=86  render-bestiarium.js?v=28  render-campagne.js?v=294
+              render-dashboard.js?v=9  render-dungeon.js?v=33  render-kaart.js?v=23
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
@@ -1056,12 +1056,12 @@ data/
 
 ```javascript
 // Helper beschikbaar als window.icon() overal in de frontend
-icon('sword')                         // → <svg><use href="/img/icons.svg?v=8#icon-sword"/></svg>
+icon('sword')                         // → <svg><use href="/img/icons.svg?v=9#icon-sword"/></svg>
 icon('heart', { cls: 'icon-lg' })     // met extra CSS-klasse
 icon('shield', { title: 'Verdediging' }) // met tooltip
 ```
 
-**Beschikbare iconen** (icons.svg, v=8):
+**Beschikbare iconen** (icons.svg, v=9):
 `beer` `book-open` `building` `camera` `castle` `check` `check-circle`
 `chevron-left` `chevron-right` `church` `clipboard-list` `coins` `crossed-swords`
 `dice` `download` `eye` `eye-off` `flask-conical` `folder-open` `globe`
@@ -1077,6 +1077,18 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 `battery-low` `bed` `brick-wall` `circle-dashed` `droplet` `ear-off` `flame` `ghost`
 `fast-forward` `grab` `hand` `hourglass` `music` `pause` `rabbit` `shield-half` `shield-plus` `sparkle` `venetian-mask`
 `waves` `wind`
+
+**Toegevoegd voor locatietypes** (Lucide, ISC): `anchor` `door-open` `fish`
+`graduation-cap` `hammer` `pickaxe` `store` `tent` `trees` `warehouse` `wheat`
+
+> **Eén icoon per soort plek.** `LOC_TYPE_ICOON` in `render-campagne.js` koppelt
+> elk `data.locType` aan een sprite-naam; lezen doe je met
+> `window._locIcoon(type)` (of `_locIcoonNaam`). De kaartpins toonden allemaal
+> hetzelfde kasteeltje terwijl het type al op het kaartje stond — een haven, een
+> woud en een gevangenis zien er nu uit als wat ze zijn. Onbekend of leeg type
+> geeft `map-pin`, niet `castle`: een speld liegt niet. Een eigen `data.icon` op
+> het kaartje wint nog, en een **vaag** kaartje toont een `?` — het type is ook
+> informatie.
 
 > **Conditie-iconen** leven in `COND_ICON` (`combat-canvas.js`): per conditie een
 > `[sprite-icoon, kleur]`. Drie kleurgroepen — gekleurd = PHB-condition, goud
@@ -1323,6 +1335,23 @@ naam, `start_url` en `scope` van díé campagne. Welke campagne dat is bepaalt
 `_campagneVan(req)`: **eerst het pad**, dan `?campagne=`, dan de sessie — een
 bezoeker zonder sessie op `/prewett` hoort niet Grisburghs titel te zien. De
 app-iconen zijn nog van Grisburgh; eigen beeld per campagne is werk voor later.
+
+> **De kaart: knoppenbalk erover, perkamenten pins.** De zoombalk stond boven de
+> kaart in de flow en at hoogte op, waardoor een grote kaart onderaan afbrak; hij
+> zweeft nu erover (`.map-toolbar-float`, buiten `#map-scroll` — een absolute
+> balk ín een scrollende bak scrollt mee weg). *Passend maken* kijkt sindsdien
+> naar breedte **én** hoogte (`_fitZoom`), anders is "passend" een belofte die
+> het knopje niet waarmaakt. Pins en de locatiekiezer stonden in bijna-zwart;
+> dat las als een moderne app-marker op een licht vel en is nu perkament met
+> inkt.
+>
+> **Eén klik heen is één klik terug.** Vanaf een kaartje ga je naar de kaart met
+> *Toon op de hele kaart*, en die onthoudt de terugweg (`_kaartTerugNaar`).
+> Andersom sloot een klik op een pin de hele kaart en zette je in de
+> kaartenlijst. Het detailvenster komt nu **over** de fullscreen-kaart te liggen
+> (`body.kaart-fs-active .modal-overlay`, z-index 1300) en sluiten brengt je
+> terug op dezelfde plek. Zelfde valkuil trof de locatiekiezer (z-index 200
+> onder een overlay van 1200): de DM dubbelklikte en zag niets gebeuren.
 
 ---
 

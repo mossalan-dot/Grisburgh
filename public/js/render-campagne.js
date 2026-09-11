@@ -239,6 +239,27 @@ const LOC_TYPE_GROEPEN = [
   ]},
 ];
 
+// Eén icoon per soort plek. De kaartpins toonden allemaal hetzelfde kasteeltje,
+// terwijl het type al bekend was — een haven, een woud en een gevangenis zien er
+// op een kaart nu uit als wat ze zijn. Eén map, want de pins, de kaartjes en de
+// kiezers horen hetzelfde te tekenen; lees hem met `window._locIcoon(type)`.
+const LOC_TYPE_ICOON = {
+  // Gebied
+  Rijk: 'globe', Streek: 'map', Stad: 'landmark', Dorp: 'house', Stadswijk: 'brick-wall',
+  // Gebouw
+  Gebouw: 'building', Herberg: 'bed', Taveerne: 'beer', Winkel: 'store', Tempel: 'church',
+  Fort: 'castle', Academie: 'graduation-cap', Ziekenhuis: 'heart', Werkplaats: 'hammer',
+  Gevangenis: 'lock', Kamer: 'door-open',
+  // Landschap
+  Woud: 'trees', Berg: 'mountain', Zee: 'waves', Rivier: 'droplet', Moeras: 'fish',
+  Vlakte: 'wheat', Eiland: 'tree-pine', Grot: 'pickaxe', Ruine: 'skull',
+  // Overig
+  Schip: 'anchor', Schuilplaats: 'tent', Plein: 'users', Overig: 'map-pin',
+};
+// Onbekend of leeg type? Dan de speld — dat is eerlijker dan een kasteel.
+window._locIcoonNaam = (locType) => LOC_TYPE_ICOON[String(locType || '').trim()] || 'map-pin';
+window._locIcoon = (locType, opts) => icon(window._locIcoonNaam(locType), opts);
+
 // Wat een gekozen type extra oplevert. Alleen deze drie hebben iets; de rest
 // van de lijst zegt niets meer dan wat voor plek het is.
 const LOC_TYPE_MELDINGEN = {

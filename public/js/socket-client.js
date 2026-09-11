@@ -249,7 +249,7 @@ function _ververOpenKaartje(id) {
   socket.on('map:updated', () => {
     window._kaartCacheLeeg?.();   // de uitsnede op een kaartje leest hieruit
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=19').then(m => m.renderKaart());
+      import('./render-kaart.js?v=23').then(m => m.renderKaart());
     }
   });
 
@@ -278,7 +278,7 @@ function _ververOpenKaartje(id) {
   socket.on('map:pinRevealed', () => {
     // Herlaad kaart als de speler daar is (toast wordt al getoond via entity:visibility)
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=19').then(m => m.renderKaart());
+      import('./render-kaart.js?v=23').then(m => m.renderKaart());
     }
   });
 
@@ -291,7 +291,7 @@ function _ververOpenKaartje(id) {
       8000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=19').then(m => m.renderKaart());
+      import('./render-kaart.js?v=23').then(m => m.renderKaart());
     }
   });
 
@@ -302,7 +302,7 @@ function _ververOpenKaartje(id) {
       6000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=19').then(m => m.renderKaart());
+      import('./render-kaart.js?v=23').then(m => m.renderKaart());
     }
   });
 
@@ -313,7 +313,7 @@ function _ververOpenKaartje(id) {
       5000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=19').then(m => m.renderKaart());
+      import('./render-kaart.js?v=23').then(m => m.renderKaart());
     }
   });
 

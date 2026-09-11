@@ -24526,3 +24526,70 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   font-family: 'IM Fell English', Georgia, serif; font-style: italic;
   font-size: 12px; color: #7a6040;
 }
+
+/* De kaart-knoppenbalk zweeft over de kaart: hij hoort bij het beeld, niet
+   erboven. Zo houdt de kaart de volle hoogte. */
+.map-toolbar-float {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  z-index: 20; margin: 0;
+}
+/* De aanwijzing onder de kaart stond in JetBrains Mono — een modern lettertype
+   in een perkamenten app. Crimson Text, net als de rest van de broodtekst. */
+.map-hint { font-family: 'Crimson Text', Georgia, serif; font-style: italic; }
+
+/* ── Kaartpins en de locatiekiezer: perkament ────────────────────────────────
+   Allebei stonden ze in bijna-zwart. Op een lichte kaart leest dat als een
+   moderne app-marker; de rest van Grisburgh is warm perkament met inkt. Onderaan
+   de stylesheet, want de basisregels staan eerder in het bestand. */
+.pin-icon {
+  background: #f2e8d2;
+  border: 2px solid #9a7008;
+  color: #3a2410;
+  box-shadow: 0 2px 6px rgba(60,40,10,0.45);
+}
+.pin-icon .icon { width: 15px; height: 15px; }
+.map-pin:hover .pin-icon { box-shadow: 0 3px 10px rgba(60,40,10,0.6); }
+.pin-needle { background: #9a7008; }
+.pin-label {
+  background: rgba(242,232,210,0.95);
+  color: #3a2410;
+  border: 1px solid rgba(154,112,8,0.5);
+  box-shadow: 0 1px 4px rgba(60,40,10,0.3);
+}
+/* Een vaag of verborgen kaartje blijft herkenbaar anders, maar nu binnen het
+   perkament in plaats van met een zwarte plak. */
+.map-pin-vague  .pin-icon { background: rgba(232,220,196,0.85); border-style: dashed; }
+.map-pin-hidden .pin-icon { opacity: 0.55; border-color: #7a6040; }
+
+.pin-placer-popup {
+  background: linear-gradient(180deg, #f6eeda 0%, #efe3c8 100%);
+  border: 1px solid #c4a87a;
+  box-shadow: 0 10px 30px rgba(60,40,10,0.35);
+  width: 230px;
+}
+.pin-placer-kop {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: #7a5a10; margin-bottom: 8px;
+}
+.pin-placer-kop .icon { width: 13px; height: 13px; }
+.pin-placer-input, .pin-placer-select {
+  width: 100%; font-family: 'Crimson Text', Georgia, serif; font-size: 14px;
+  color: #3a2410; background: #fdf8ec;
+  border: 1px solid #c4a87a; border-radius: 4px; padding: 4px 8px;
+}
+.pin-placer-input:focus, .pin-placer-select:focus { outline: none; border-color: #9a7008; }
+.pin-placer-select { margin: 6px 0 8px; padding: 2px; }
+.pin-placer-select option { padding: 2px 6px; }
+.pin-placer-knoppen { display: flex; gap: 6px; }
+.pin-placer-knoppen .dm-btn { flex: 1; justify-content: center; }
+/* De kiezer moet bóven de fullscreen-kaart staan (z-index 1200). Stond hij op
+   200, dan opende de DM hem met een dubbelklik en zag hij niets gebeuren —
+   dezelfde valkuil als bij het locatiedetail vanaf een pin. */
+.pin-placer-popup { z-index: 1300; }
+/* Een detailvenster dat je vanaf een kaartpin opent, moet bóven de
+   fullscreen-kaart (z-index 1200) uitkomen. Anders opende het onzichtbaar
+   eronder — en de oude oplossing (de kaart eerst sluiten) maakte van elke pin
+   een eenrichtingsweg. */
+body.kaart-fs-active .modal-overlay { z-index: 1300; }

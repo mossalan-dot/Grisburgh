@@ -362,6 +362,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Prikbord / relatiemap** (ALL) — netwerk van personages en organisaties, slepen bewaart de positie, onthulde relaties verschijnen bij de speler
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
+- [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen
+- [ ] **Pins dragen het type** (ALL) — een stad heeft een ander icoon dan een woud, een berg of een herberg; een locatie zonder type krijgt een speld, en een vaag kaartje een `?`
+- [ ] **Locatiekiezer is perkament én zichtbaar** (DM) — dubbelklik op een kaart die je fullscreen geopend hebt: het kiezertje verschijnt (niet onzichtbaar achter de kaart) en staat in dezelfde perkamenttint als de rest
+- [ ] **Van pin naar kaartje en terug** (ALL) — klik een pin: het locatievenster opent óver de kaart; sluiten brengt je terug op dezelfde plek op de kaart, niet in de kaartenlijst
 - [ ] **Kaart toevoegen/bewerken** (DM) — nieuwe kaart met naam en afbeelding, hernoemen, verwijderen; zonder kaarten verschijnt de lege staat met een knop
 - [ ] **Dungeon** (ALL) — kamers openklikken, fog-of-war per kamer onthullen, teller onderaan klopt
 - [ ] **Verdiepingen** (DM) — knopjes BG · 1 · −1; een trap brengt je naar de andere verdieping mét doelkamer, de tegenhanger wordt vanzelf aangelegd, en telt niet mee in de teller
