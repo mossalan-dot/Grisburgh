@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=281';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=286";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=287";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=83";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
@@ -8,8 +8,8 @@ import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
 import { renderSpreuken } from './render-spreuken.js?v=36';
 import { renderStatblock } from './render-statblock.js?v=8';
-import { initSocket } from "./socket-client.js?v=66";
-import { initDmPanel } from "./dm-panel.js?v=217";
+import { initSocket } from "./socket-client.js?v=67";
+import { initDmPanel } from "./dm-panel.js?v=218";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -2367,6 +2367,30 @@ window._fmtKleurSelect = (id, sel) => {
   sel.value = '';
   if (dot) setTimeout(() => { dot.style.background = 'transparent'; }, 800);
 };
+// De perkamentweergave kent drie structuurregels: `---titel---` en
+// `--handtekening--` maken van de *volgende* regel een kop of ondertekening,
+// en `---` trekt een lijn. Die stonden als uitleg ónder het tekstvak — je moest
+// ze dus overtikken. Nu zijn het knoppen: de markeerregel komt erin en de
+// cursor staat op de regel eronder, waar de tekst hoort.
+window._fmtStructuur = (id, marker, voorbeeld = '') => {
+  const ta = document.getElementById(id);
+  if (!ta) return;
+  const pos  = ta.selectionStart;
+  const eind = ta.selectionEnd;
+  const gekozen = ta.value.slice(pos, eind).trim();
+  const before = ta.value.slice(0, pos);
+  const after  = ta.value.slice(eind);
+  const nl = before.length && !before.endsWith('\n') ? '\n' : '';
+  const regel = gekozen || voorbeeld;
+  const insert = `${nl}${marker}\n${regel}\n`;
+  ta.value = before + insert + after;
+  // Selecteer de regel eronder: typen vervangt hem dan meteen.
+  const start = before.length + nl.length + marker.length + 1;
+  ta.setSelectionRange(start, start + regel.length);
+  ta.focus();
+  ta.dispatchEvent(new Event('input', { bubbles: true }));
+};
+
 window._fmtHr = (id) => {
   const ta = document.getElementById(id);
   if (!ta) return;
@@ -11268,13 +11292,13 @@ async function renderHeeren() {
 
 window._heerenAanneem = async (id) => {
   if (!confirm("Deze klus aannemen? Speel 'm uit aan tafel; de DM bepaalt de uitkomst.")) return;
-  try { await api.heerenAanneem(id); await renderHeeren(); _tsToast('🌑 Klus aangenomen.'); }
+  try { await api.heerenAanneem(id); await renderHeeren(); _tsToast(`${icon('moon')} Klus aangenomen.`); }
   catch (err) { _tsToast(err.message || 'Kon de klus niet aannemen.'); }
 };
 
 window._heerenBetaal = async (boeteId, label) => {
   if (!confirm(`Boete betalen (${label})?`)) return;
-  try { await api.heerenBetaalBoete(boeteId); await renderHeeren(); _tsToast('⚖️ Boete voldaan.'); }
+  try { await api.heerenBetaalBoete(boeteId); await renderHeeren(); _tsToast(`${icon('landmark')} Boete voldaan.`); }
   catch (err) { _tsToast(err.message || 'Betalen mislukt.'); }
 };
 
@@ -11284,7 +11308,7 @@ window._heerenAdvocaat = async (boeteId) => {
     const r = await api.heerenAdvocaat(boeteId);
     await renderHeeren();
     const uit = r.uitkomst === 'kwijtgescholden' ? 'de boete is kwijtgescholden!' : r.uitkomst === 'gehalveerd' ? 'de boete is gehalveerd.' : 'het mocht niet baten.';
-    _tsToast(`⚖️ Pleidooi: ${r.totaal} (d20 ${r.worp}${r.bonus >= 0 ? '+' : ''}${r.bonus}) — ${uit}`);
+    _tsToast(`${icon('landmark')} Pleidooi: ${r.totaal} (d20 ${r.worp}${r.bonus >= 0 ? '+' : ''}${r.bonus}) — ${uit}`);
   } catch (err) { _tsToast(err.message || 'Inhuren mislukt.'); }
 };
 
@@ -11539,7 +11563,7 @@ window._tsWedden = async (eventId, optieId) => {
   try {
     await api.weddenTweespalt(eventId, { optieId, bedrag: { fl, kn, cl } });
     await renderTweespalt();
-    _tsToast('✓ Inzet geplaatst.');
+    _tsToast(`${icon('check')} Inzet geplaatst.`);
   } catch (err) {
     _tsToast(err.message || 'Fout bij inzetten.');
   }
@@ -11582,7 +11606,7 @@ function _tsTaevinPrompt(eventId, optieId, tekortCl) {
       const parsed2 = _tsParseInzet(inputEl2?.value) || { fl: 0, kn: 0, cl: 0 };
       await api.weddenTweespalt(eventId, { optieId, bedrag: { fl: parsed2.fl, kn: parsed2.kn, cl: parsed2.cl } });
       await renderTweespalt();
-      _tsToast('📜 Geleend van Taevin. Schuldbewijs in je knapzak.');
+      _tsToast(`${icon('scroll-text')} Geleend van Taevin. Schuldbewijs in je knapzak.`);
     } catch (err) {
       _tsToast(err.message || 'Fout.');
     }

@@ -2976,6 +2976,20 @@ router.post('/items/:itemId/request', attachRole, (req, res) => {
   res.status(201).json(reqObj);
 });
 
+// Laat de aanvrager weten wat de DM besloot. Zonder dit hoorde hij niets: het
+// verzoek verdween uit zijn scherm en hij mocht raden of hij het voorwerp had.
+// Eén regel naar zijn eigen socket, net als bij een DM-bericht.
+function _meldVerzoekAntwoord(req, verzoek, akkoord) {
+  const socketId = req.app.get('playerSockets')?.get(verzoek?.requesterId);
+  if (!socketId) return;
+  req.app.get('io').to(socketId).emit('item:verzoek-antwoord', {
+    itemName: verzoek.itemName || 'Een voorwerp',
+    type: verzoek.type || 'claim',
+    targetName: verzoek.targetName || '',
+    akkoord,
+  });
+}
+
 router.post('/items/request/:reqId/approve', requireDM, (req, res) => {
   const dmState = readDmState();
   // Zoek het verzoek in ALLE groepen (speler kan in een andere groep zitten dan de DM's actieve groep)
@@ -2999,6 +3013,7 @@ router.post('/items/request/:reqId/approve', requireDM, (req, res) => {
     owners: g.itemOwners, requests: g.itemRequests,
     tradeAllowed: g.tradeAllowed !== false,
   });
+  _meldVerzoekAntwoord(req, r, true);
   res.json({ ok: true });
 });
 
@@ -3017,6 +3032,7 @@ router.post('/items/request/:reqId/reject', requireDM, (req, res) => {
     owners: g.itemOwners || {}, requests: g.itemRequests,
     tradeAllowed: g.tradeAllowed !== false,
   });
+  _meldVerzoekAntwoord(req, g.itemRequests[idx], false);
   res.json({ ok: true });
 });
 

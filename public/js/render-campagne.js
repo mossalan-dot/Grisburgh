@@ -900,9 +900,19 @@ window._clearHistory = _clearHistory;
 // Dezelfde opmaakbalk als bij de aktes en de helpteksten: vet, cursief,
 // onderstreept, doorhalen, markeren, kleur en een scheidingslijn. Hij stond hier
 // op alleen vet en cursief, terwijl `mdToHtml` de rest allang aankan.
-function fmtToolbar(id) {
+// `perkament: true` voegt de drie structuurknoppen toe die alleen de
+// perkamentweergave kent. Ze stonden als uitleg onder het veld — daar moest je
+// ze overtikken, en op een knoppenbalk hoort te staan wat je kunt doen.
+function fmtToolbar(id, { perkament = false } = {}) {
   const hex = window._FMT_KLEUR_HEX || {};
+  const structuur = !perkament ? '' : `
+    <button type="button" class="fmt-btn fmt-btn-struct" title="Titel — maakt van de volgende regel een kop"
+      onclick="window._fmtStructuur('${id}','---titel---','Titel')">Titel</button>
+    <button type="button" class="fmt-btn fmt-btn-struct" title="Ondertekening — maakt van de volgende regel een handtekening"
+      onclick="window._fmtStructuur('${id}','--handtekening--','Naam')">Ondertekening</button>
+    <div class="fmt-toolbar-sep"></div>`;
   return `<div class="fmt-toolbar">
+    ${structuur}
     <button type="button" class="fmt-btn fmt-btn-b" title="Vet (Ctrl+B)" onclick="window._fmt('${id}','**')">B</button>
     <button type="button" class="fmt-btn fmt-btn-i" title="Cursief (Ctrl+I)" onclick="window._fmt('${id}','*')">I</button>
     <button type="button" class="fmt-btn fmt-btn-u" title="Onderstreept" onclick="window._fmt('${id}','__')">U</button>
@@ -1359,6 +1369,38 @@ function _betrokkenenUit(data) {
 // `metChef`: bij een organisatie mag je per regel zeggen onder wie iemand valt.
 // Dat is de enige extra gegeven die een organogram nodig heeft — de rest (naam,
 // rol, portret) staat er al.
+// Schakelen tussen schrijven en kijken. Het voorbeeld gebruikt dezelfde
+// `renderParchment` als het detailvenster en leest de stijl uit de velden die
+// nú in het formulier staan — kies je een ander documenttype of een andere
+// briefstijl, dan verandert het voorbeeld mee zonder eerst op te slaan.
+window._perkamentTab = (taId, welke) => {
+  const ta   = document.getElementById(taId);
+  const vak  = document.getElementById(`${taId}-voorbeeld`);
+  const wrap = ta?.closest('.perkament-veld');
+  if (!ta || !vak || !wrap) return;
+  const kijken = welke === 'voorbeeld';
+  wrap.querySelectorAll('.perkament-tab').forEach(b =>
+    b.classList.toggle('is-actief', b.dataset.pkTab === welke));
+  wrap.querySelector('.fmt-toolbar')?.classList.toggle('hidden', kijken);
+  ta.classList.toggle('hidden', kijken);
+  vak.classList.toggle('hidden', !kijken);
+  if (!kijken) { ta.focus(); return; }
+
+  const form  = ta.closest('form') || document;
+  const stijl = _docStijl({ data: {
+    briefstijl: form.querySelector('[name="data_briefstijl"]')?.value || '',
+    docType:    form.querySelector('[name="data_docType"]')?.value || '',
+  } });
+  const tekst = ta.value.trim();
+  if (!tekst) {
+    vak.innerHTML = `<p class="perkament-voorbeeld-leeg">Nog geen tekst — schrijf eerst iets op het andere tabblad.</p>`;
+    return;
+  }
+  let binnen = renderParchment(ta.value);
+  if (stijl === 'knipsel') binnen = _knipselLetters(binnen);
+  vak.innerHTML = `<div class="parchment-block" data-stijl="${esc(stijl)}">${binnen}</div>`;
+};
+
 function _betrokkenRijHtml(r, i, metChef = false) {
   const inId = `betr-naam-${i}`;
   return `<div class="betrokken-rij${metChef ? ' betrokken-rij--chef' : ''}">
@@ -6614,15 +6656,23 @@ window._openEditor = async (tab, editId) => {
       // hier onder het veld — nergens anders zou je ze tegenkomen.
       const taId = `ta_${field.key}`;
       body += `
-        <div>
+        <div class="perkament-veld">
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
           <div class="mt-1">
-            ${fmtToolbar(taId)}
+            <!-- Twee tabbladen: schrijven en zien hoe het eruitkomt. De brief
+                 krijgt bij de speler een handschrift en een indeling, en die
+                 kun je niet uit de ruwe tekst aflezen. -->
+            <div class="perkament-tabs">
+              <button type="button" class="perkament-tab is-actief" data-pk-tab="schrijf"
+                onclick="window._perkamentTab('${taId}','schrijf')">${icon('pencil')} Schrijven</button>
+              <button type="button" class="perkament-tab" data-pk-tab="voorbeeld"
+                onclick="window._perkamentTab('${taId}','voorbeeld')">${icon('eye')} Zoals de speler het ziet</button>
+            </div>
+            ${fmtToolbar(taId, { perkament: true })}
             <textarea id="${taId}" name="data_${field.key}" rows="12" onkeydown="window._fmtKey(event)"
               class="w-full px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright text-sm font-crimson focus:border-gold-dim focus:outline-none"
               placeholder="Beste C.,&#10;&#10;Ik schrijf je in haast\u2026">${esc(val)}</textarea>
-            <p class="veld-uitleg">Een regel <code>---titel---</code> maakt van de volgende regel een kop,
-              <code>--handtekening--</code> van de volgende regel een ondertekening, en <code>---</code> trekt een lijn.</p>
+            <div class="perkament-voorbeeld hidden" id="${taId}-voorbeeld"></div>
           </div>
         </div>`;
     } else if (field.type === 'select') {

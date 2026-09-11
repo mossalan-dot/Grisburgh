@@ -1513,6 +1513,18 @@ negen eigen routes. Dat is allemaal weg; wat overblijft is
 - **Migratie:** `node scripts/documenten-naar-kaartjes.js <campagne> --schrijf`
   (gedraaid op grisburgh 31, prewett 1, Test 1; kopie ernaast).
 
+> **De brieftekst heeft twee tabbladen: schrijven en kijken.** Het veld
+> `type: 'perkament'` krijgt boven het tekstvak *Schrijven* / *Zoals de speler
+> het ziet* (`window._perkamentTab`); het voorbeeld draait dezelfde
+> `renderParchment()` als het detailvenster en leest de stijl uit de vélden die
+> op dat moment in het formulier staan — kies je een ander type of een andere
+> briefstijl, dan verandert het voorbeeld mee zonder op te slaan. De
+> opmaakbalk verdwijnt in het voorbeeld; knoppen die niets doen horen er niet.
+> De drie structuurregels (`---titel---`, `--handtekening--`, `---`) stonden als
+> **uitleg onder het veld** — je moest ze dus overtikken. Het zijn nu knoppen op
+> de balk (`fmtToolbar(id, { perkament: true })` → `window._fmtStructuur`), die
+> de markeerregel invoegen en de regel eronder selecteren.
+
 > **Briefstijlen en de brief op ware grootte.** Eén perkamentstijl maakte van een
 > brief, een kasboek en een dreigbrief hetzelfde ding, terwijl het type al bekend
 > was. `_docStijl(e)` leidt de stijl af uit `data.docType` (`DOC_STIJL_BIJ_TYPE`)

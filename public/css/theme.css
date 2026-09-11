@@ -24398,3 +24398,35 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
   font-size: 0.86rem; color: #7a6040;
 }
 .doc-vaagmelding .icon { width: 15px; height: 15px; flex: none; }
+
+/* ── Brieftekst: schrijven of zien hoe het eruitkomt ──
+   Twee tabbladen boven het tekstvak. De opmaakknoppen horen bij het schrijven
+   en verdwijnen dus in het voorbeeld; anders staan er knoppen die niets doen. */
+.perkament-tabs { display: flex; gap: 4px; margin-bottom: 6px; }
+.perkament-tab {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: .04em;
+  color: #7a6040; background: rgba(255,255,255,0.35);
+  border: 1px solid rgba(196,168,122,0.55); border-bottom-color: transparent;
+  border-radius: 6px 6px 0 0; padding: 5px 12px; cursor: pointer;
+}
+.perkament-tab:hover { background: rgba(196,168,122,0.25); }
+.perkament-tab.is-actief {
+  background: var(--room-bg, #f2e8d2); color: #5a3a18; font-weight: 600;
+  border-color: rgba(196,168,122,0.8);
+}
+.perkament-tab .icon { width: 13px; height: 13px; }
+.perkament-voorbeeld {
+  border: 1px solid rgba(196,168,122,0.55); border-radius: 5px;
+  padding: 10px; background: rgba(255,255,255,0.2);
+  max-height: 420px; overflow-y: auto;
+}
+.perkament-voorbeeld-leeg {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  color: #9a7050; text-align: center; padding: 28px 0; margin: 0;
+}
+/* De structuurknoppen dragen een woord in plaats van een letter. */
+.fmt-btn-struct {
+  width: auto; padding: 0 9px;
+  font-family: 'Cinzel', serif; font-size: 0.66rem; letter-spacing: .03em;
+}

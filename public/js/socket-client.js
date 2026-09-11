@@ -92,7 +92,7 @@ function _ververOpenKaartje(id) {
     _ververOpenKaartje(id);
     // Melding voor spelers bij onthulling van een geheimenis
     if (!window.app?.isDM?.() && secretReveal && name) {
-      _showToast(`🔓 Geheim van <strong>${name}</strong> onthuld`, () => {
+      _showToast(`${window.icon('lock-open')} Geheim van <strong>${name}</strong> onthuld`, () => {
         if (type && id) window._openDetail?.(type, id);
       });
     }
@@ -335,7 +335,7 @@ function _ververOpenKaartje(id) {
     _refreshEntitySection(section);
     // Toast voor spelers
     if (!window.app.isDM() && name) {
-      _showToast(`🕯️ <strong>${name}</strong> is overleden`, () => {
+      _showToast(`${window.icon('flame')} <strong>${name}</strong> is overleden`, () => {
         if (type && id) window._openDetail?.(type, id);
       }, 8000);
     }
@@ -488,6 +488,17 @@ function _ververOpenKaartje(id) {
   });
 
   // ── Voorwerpen eigendom ──
+  // Antwoord van de DM op een claim of ruilverzoek. De speler zag alleen zijn
+  // verzoek verdwijnen en moest raden of hij het voorwerp nu had.
+  socket.on('item:verzoek-antwoord', ({ itemName, type, targetName, akkoord } = {}) => {
+    const wat = type === 'trade'
+      ? `<em>${itemName}</em> ruilen met ${targetName || 'een medespeler'}`
+      : `<em>${itemName}</em>`;
+    _showToast(akkoord
+      ? `${window.icon('check-circle')} De DM keurde ${wat} goed`
+      : `${window.icon('x')} De DM wees ${wat} af`, null, 6000);
+  });
+
   socket.on('items:ownership-updated', (data) => {
     if (data) window._setOwnership?.(data);
     if (window.app?.state?.activeSection === 'voorwerpen') {
@@ -499,7 +510,7 @@ function _ververOpenKaartje(id) {
     if (!window.app.isDM() && data?.takenBack) {
       const myCharId = window.app?.state?.characterId;
       if (myCharId && data.takenBack.characterId === myCharId) {
-        _showToast(`📦 <strong>${data.takenBack.itemName}</strong> is teruggenomen door de DM`);
+        _showToast(`${window.icon('package')} <strong>${data.takenBack.itemName}</strong> is teruggenomen door de DM`);
       }
     }
   });
@@ -535,7 +546,7 @@ function _ververOpenKaartje(id) {
     // DM: toast met het verzoek
     if (window.app.isDM() && data.requesterName) {
       _showToast(
-        `📬 <strong>${data.requesterName}</strong> wil <em>${data.itemName || 'een voorwerp'}</em> claimen`,
+        `${window.icon('mail')} <strong>${data.requesterName}</strong> wil <em>${data.itemName || 'een voorwerp'}</em> claimen`,
         () => { window.app.switchSection('voorwerpen'); },
         6000
       );
@@ -567,20 +578,20 @@ function _ververOpenKaartje(id) {
   // ── Speler-aanwezigheid ──
   socket.on('player:joined', ({ playerName } = {}) => {
     if (window.app.isDM() && playerName) {
-      _showToast(`👤 <strong>${playerName}</strong> is verbonden`, null, 4000);
+      _showToast(`${window.icon('user')} <strong>${playerName}</strong> is verbonden`, null, 4000);
     }
   });
 
   socket.on('player:left', ({ playerName } = {}) => {
     if (window.app.isDM() && playerName) {
-      _showToast(`👤 <strong>${playerName}</strong> heeft de sessie verlaten`, null, 3500);
+      _showToast(`${window.icon('user')} <strong>${playerName}</strong> heeft de sessie verlaten`, null, 3500);
     }
   });
 
   // ── Medestanders ──
   socket.on('companion:link', ({ npcId, name, groupId } = {}) => {
     if (!window.app?.isDM?.() && name && groupId === window._myGroupId) {
-      _showToast(`⚔️ <strong>${name}</strong> vergezelt nu de groep`);
+      _showToast(`${window.icon('swords')} <strong>${name}</strong> vergezelt nu de groep`);
     }
     if (window.app?.state?.activeSection === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter');
@@ -589,7 +600,7 @@ function _ververOpenKaartje(id) {
 
   socket.on('companion:unlink', ({ npcId, name, groupId } = {}) => {
     if (!window.app?.isDM?.() && name && groupId === window._myGroupId) {
-      _showToast(`↩ <strong>${name}</strong> heeft de groep verlaten`);
+      _showToast(`${window.icon('chevron-left')} <strong>${name}</strong> heeft de groep verlaten`);
     }
     if (window.app?.state?.activeSection === 'mijn-karakter') {
       _refreshSectionDebounced('mijn-karakter');
@@ -628,7 +639,7 @@ function _ververOpenKaartje(id) {
   socket.on('player:inspiration', ({ characterId, inspired, name } = {}) => {
     const isMe = characterId && characterId === window.app?.state?.characterId;
     if (inspired && isMe) {
-      _showToast('✨ Je hebt inspiratie gekregen!', null, 6000);
+      _showToast(`${window.icon('sparkles')} Je hebt inspiratie gekregen!`, null, 6000);
     } else if (!inspired && isMe) {
       // geen toast bij verbruiken, dat doet de speler zelf
     }
@@ -650,11 +661,11 @@ function _ververOpenKaartje(id) {
     const isDM = window.app?.isDM?.();
     if (isDM) {
       // DM: korte melding en dan pagina herladen zodat alle data (header, spelers, kaarten) ververst
-      _showToast(`🗂 Gewisseld naar <strong>${meta?.appTitle || id}</strong>. Pagina wordt herladen…`, null, 2500);
+      _showToast(`${window.icon('folder-open')} Gewisseld naar <strong>${meta?.appTitle || id}</strong>. Pagina wordt herladen…`, null, 2500);
       setTimeout(() => location.reload(), 2500);
     } else {
       // Spelers: automatisch uitloggen en herladen
-      _showToast(`🗂 De DM heeft de campagne gewisseld. Je wordt uitgelogd…`, null, 2500);
+      _showToast(`${window.icon('folder-open')} De DM heeft de campagne gewisseld. Je wordt uitgelogd…`, null, 2500);
       setTimeout(async () => {
         try { await fetch('/api/auth/player-logout', { method: 'POST' }); } catch {}
         location.reload();
@@ -703,7 +714,7 @@ function _ververOpenKaartje(id) {
       _refreshSectionDebounced('mijn-karakter');
     }
     if (actor && actor !== 'DM' && currency) {
-      _showToast(`💰 <strong>${actor}</strong> heeft de gedeelde beurs bijgewerkt`);
+      _showToast(`${window.icon('coins')} <strong>${actor}</strong> heeft de gedeelde beurs bijgewerkt`);
     }
   });
 
@@ -766,7 +777,7 @@ function _ververOpenKaartje(id) {
       import('./render-relatiemap.js?v=22').then(m => m.renderRelatiemap());
     }
     if (!window.app.isDM()) {
-      _showToast(`🕸️ <strong>Nieuwe verbinding onthuld!</strong>`, () => {
+      _showToast(`${window.icon('link')} <strong>Nieuwe verbinding onthuld!</strong>`, () => {
         window.app.switchSection('relatiemap');
       }, 6000);
     }

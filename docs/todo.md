@@ -274,10 +274,9 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       leunt. Echte oplossing: `chapter` eruit, filter vervangen door de
       encounters die naar dat monster wijzen.
 
-- [ ] **Documenten: uitleg over `---` naar de knoppenbalk.** De uitleg over de
-      opmaakvormen staat onder het tekstveld; hij hoort bij de knoppen erboven.
-      Idee daarnaast: een **WYSIWYG-tabblad** naast het tekstveld, zodat je de
-      brief ziet zoals de speler hem krijgt terwijl je typt.
+- [x] **Documenten: uitleg naar de knoppenbalk + WYSIWYG-tabblad** — gedaan
+      11 sep 2026. Titel en Ondertekening zijn knoppen geworden, en boven het
+      tekstvak staan twee tabbladen (*Schrijven* / *Zoals de speler het ziet*).
 
 - [ ] **Statblokvelden gebruiken markup, geen knoppenbalk.** Traits en actions
       wil je met dezelfde opmaakknoppen bewerken als de rest van de app, in

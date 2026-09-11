@@ -4486,7 +4486,7 @@ async function _combatHpChange(id, delta) {
       // Concentratie-save herinnering
       if (hpDamage > 0 && (c.conditions || []).includes('concentration')) {
         const dc = Math.max(10, Math.ceil(hpDamage / 2));
-        _showToast(`⚡ ${c.name}: concentratie-save DC ${dc}!`);
+        _showToast(`${icon('zap')} ${c.name}: concentratie-save DC ${dc}!`);
       }
 
       const updates = { tempHp: tempHp - tempDrain, hp: newHp };
@@ -4517,7 +4517,7 @@ async function _combatHpInput(id, val) {
     const damage = (c.hp || 0) - clamped;
     if (damage > 0 && (c.conditions || []).includes('concentration')) {
       const dc = Math.max(10, Math.ceil(damage / 2));
-      _showToast(`⚡ ${c.name}: concentratie-save DC ${dc}!`);
+      _showToast(`${icon('zap')} ${c.name}: concentratie-save DC ${dc}!`);
     }
     if (clamped === 0 && c.type === 'player' && (c.hp || 0) > 0)
       updates.deathSaves = { successes: 0, failures: 0 };
@@ -4614,7 +4614,7 @@ async function _combatDeathSave(id, type) {
   } else if (ds.failures >= 3) {
     try { await api.updateCombatant(id, updates); }
     catch (e) { console.error(e); }
-    _showToast(`${c.name} is gestorven ☠️`);
+    _showToast(`${icon('skull')} ${c.name} is gestorven`);
   } else {
     try { await api.updateCombatant(id, updates); }
     catch (e) { console.error(e); }
