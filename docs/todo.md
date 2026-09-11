@@ -307,3 +307,29 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       een campagne met een eigen sfeer wil ze misschien niet. Let op de omvang:
       dit zijn bestanden, geen JSON, dus kopiëren of verwijzen is een echte
       afweging.
+
+- [ ] **Een spreuk in je boek hoort langs de DM.** Vanuit het spreukentabblad zet
+      een speler nu rechtstreeks een spreuk in zijn boek: `POST
+      /player-spells/:characterId` laat het toe zodra het zijn eigen personage
+      is (`render-spreuken.js` → `addToBook`). Bij een **voorwerp** gaat dat
+      juist wél langs de DM (`itemRequests`, met goedkeuren/afwijzen en sinds
+      11 sep een bericht terug). Dat verschil is niet bedoeld: het spreukenboek
+      is net zo goed administratie waar de DM over gaat.
+      Werk: hetzelfde patroon als bij voorwerpen — een verzoek in
+      `groups[gid].spellRequests`, een rij in het DM-paneel, en `_meldVerzoek-
+      Antwoord` hergebruiken voor het bericht terug.
+
+      **Automatisch afwijzen: niet doen — wél voorrekenen.** De verleiding is om
+      op class en level te toetsen, maar de uitzonderingen zijn in 5e eerder
+      regel dan uitzondering: multiclass (twee lijsten, één slottabel), feats
+      als Magic Initiate, Fey Touched en Ritual Caster, uitgebreide
+      subklasselijsten (domein, patroon, Arcane Trickster, Eldritch Knight),
+      een Wizard die uit een scroll overschrijft, en de eigen klassen en
+      `eigenSpreuken` van deze campagne — waar "de juiste class" is wat de DM
+      besloot. Een harde weigering zou vaak genoeg fout zitten dat je hem gaat
+      wantrouwen, en dan is hij erger dan niets.
+      Voorstel: **de app rekent voor, de DM beslist** — dezelfde regel als bij
+      de loot-DC ("de DC is een aantekening, geen mechaniek"). Naast het verzoek
+      staat dan: *"Wizard 7 · Fireball is Level 3 · staat op de Wizard-lijst"*
+      of *"staat niet op de Wizard-lijst — wel te verklaren via Magic Initiate
+      of een scroll"*. Eén klik, met de reden ernaast.
