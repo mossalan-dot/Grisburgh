@@ -162,7 +162,12 @@ function _buildShell() {
         </div>
         ` : ''}
         <span id="dng-verdiepingen-slot">${_verdiepingStripHtml()}</span>
-        <span style="margin-left:auto">${window._helpBtn?.('dungeon') ?? ''}</span>
+        <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px">
+          ${window._helpBtn?.('dungeon') ?? ''}
+          ${document.body.classList.contains('kaart-fs-active') ? `
+            <button class="dng-btn dng-btn-sm" title="Sluiten (Esc)"
+              onclick="window._closeKaartFullscreen()">${icon('x')}</button>` : ''}
+        </span>
       </div>
       <div class="dng-workspace" id="dng-workspace">
         <div class="dng-map-area" id="dng-map-area"></div>

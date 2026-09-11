@@ -7165,6 +7165,8 @@ router.post('/map/maps', requireDM, (req, res) => {
   res.json(map);
 });
 
+const _KAART_SOORTEN = ['Wereld', 'Continent', 'Streek', 'Stad', 'Dorp', 'Gebouw', 'Zee', 'Slagveld', 'Anders'];
+
 router.put('/map/maps/:id', requireDM, (req, res) => {
   const { label } = req.body;
   const mapData = storage.readJSON('map.json');
@@ -7173,6 +7175,15 @@ router.put('/map/maps/:id', requireDM, (req, res) => {
   if (!map) return res.status(404).json({ error: 'Niet gevonden' });
   if (label) map.label = label;
   if (req.body.description !== undefined) map.description = String(req.body.description || '').slice(0, 600);
+  // Wat voor kaart is dit? Een wereldkaart, een stadsplattegrond, een zeekaart —
+  // het staat op het kaartje in de galerij en groepeert de lijst zodra er meer
+  // dan een handvol kaarten zijn. Whitelist, want het is een keuzelijst.
+  if (req.body.soort !== undefined) {
+    const s = String(req.body.soort || '').trim();
+    if (_KAART_SOORTEN.includes(s)) map.soort = s; else delete map.soort;
+  }
+  // Het kaartje in de galerij snijdt de afbeelding bij; dit zegt wat er in beeld blijft.
+  if (req.body.thumbFocus !== undefined) map.thumbFocus = String(req.body.thumbFocus || '').slice(0, 20);
   storage.writeJSON('map.json', mapData);
   req.app.get('io').to(req.session?.campaignId||'main').emit('map:updated');
   res.json(map);
@@ -11601,6 +11612,7 @@ router.put('/dungeons/:id', requireDM, (req, res) => {
   if (req.body.fileId      !== undefined) map.fileId      = req.body.fileId;
   if (req.body.description !== undefined) map.description = String(req.body.description || '').slice(0, 600);
   if (req.body.thumbId     !== undefined) map.thumbId     = req.body.thumbId || '';
+  if (req.body.thumbFocus  !== undefined) map.thumbFocus  = String(req.body.thumbFocus || '').slice(0, 20);
   // Verdieping: 0 = begane grond, negatief = kelder. Leeg betekent "hoort niet
   // bij een gebouw met verdiepingen"; welke kaarten samen één gebouw vormen
   // leiden we af uit de trappen ertussen, niet uit een apart veld.

@@ -132,6 +132,10 @@ function _buildShell() {
         <button id="map-pin-mode" class="map-mini-btn" title="Een locatie op de kaart zetten">${icon('map-pin')}</button>
         <span class="map-toolbar-sep"></span>
         ${window._helpBtn?.('kaart') ?? ''}
+        ${document.body.classList.contains('kaart-fs-active') ? `
+          <span class="map-toolbar-sep"></span>
+          <button class="map-mini-btn map-mini-btn--sluit" title="Sluiten (Esc)"
+            onclick="window._closeKaartFullscreen()">${icon('x')}</button>` : ''}
       </div>
       <div class="flex-1 min-h-0 overflow-auto bg-room-bg flex flex-col items-center pt-3 pb-6 px-4" id="map-scroll">
         <div id="map-area" class="flex flex-col items-center w-full shrink-0 overflow-hidden"></div>

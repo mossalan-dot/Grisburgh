@@ -1,8 +1,8 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=283';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=296";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=86";
-import { renderKaart, queueFlyTo, verversPins } from './render-kaart.js?v=26';
-import { renderDungeon } from './render-dungeon.js?v=36';
+import { renderKaart, queueFlyTo, verversPins } from './render-kaart.js?v=27';
+import { renderDungeon } from './render-dungeon.js?v=37';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
@@ -2842,6 +2842,44 @@ async function _renderKaartGalerij() {
     </div>`;
 }
 
+// Wat voor kaart is dit? Stond nergens: een hoofdkaart had alleen een naam en
+// een beschrijving, en het kaartje in de galerij zei bij alles "Hoofdkaart".
+// Dezelfde lijst als in `_KAART_SOORTEN` (routes/api.js) — die bewaakt hem ook.
+const KAART_SOORTEN = ['Wereld', 'Continent', 'Streek', 'Stad', 'Dorp', 'Gebouw', 'Zee', 'Slagveld', 'Anders'];
+
+// Welke stand heeft deze dungeon voor de party waar de DM nu naar kijkt?
+// `partyAccess`/`partyCompleted` zijn lijsten met groep-id's; uitgespeeld staat
+// in allebei, dus die eerst controleren.
+function _dngToegangStand(m) {
+  const gid = _activeGroupId;
+  if (!gid) return 'none';
+  if ((m.partyCompleted || []).includes(gid)) return 'completed';
+  if ((m.partyAccess    || []).includes(gid)) return 'active';
+  return 'none';
+}
+
+// Verborgen → zichtbaar (met fog) → uitgespeeld → verborgen. Alleen de actieve
+// party verschuift; de andere party's houden hun eigen stand.
+window._dngToegangCycle = async function (id) {
+  const gid = _activeGroupId;
+  if (!gid) return;
+  let dungeons = [];
+  try { dungeons = await api.listDungeons(); } catch { return; }
+  const m = dungeons.find(d => d.id === id);
+  if (!m) return;
+  const stand   = _dngToegangStand(m);
+  const nieuw   = stand === 'none' ? 'active' : stand === 'active' ? 'completed' : 'none';
+  const toegang = new Set(m.partyAccess    || []);
+  const uit     = new Set(m.partyCompleted || []);
+  toegang.delete(gid); uit.delete(gid);
+  if (nieuw === 'active')    toegang.add(gid);
+  if (nieuw === 'completed') { toegang.add(gid); uit.add(gid); }
+  try {
+    await api.setDungeonPartyAccess(id, [...toegang], [...uit]);
+    _renderKaartGalerij();
+  } catch (e) { alert('Zichtbaarheid aanpassen mislukt: ' + e.message); }
+};
+
 function _kaartCard(type, m, dm) {
   const id   = m.id;
   const name = type === 'wereld' ? (m.label || 'Kaart') : (m.name || 'Dungeon');
@@ -2850,14 +2888,28 @@ function _kaartCard(type, m, dm) {
     ? (m.src || api.fileUrl(m.id))
     : (m.thumbId ? api.fileUrl(m.thumbId) : '');
   const thumb = thumbSrc
-    ? `<img class="kg-card-thumb" loading="lazy" src="${thumbSrc}" onerror="this.style.display='none';this.closest('.kg-card').classList.add('kg-card--noimg')">`
+    ? `<img class="kg-card-thumb" loading="lazy" src="${thumbSrc}"${m.thumbFocus ? ` style="object-position:${esc(m.thumbFocus)}"` : ''} onerror="this.style.display='none';this.closest('.kg-card').classList.add('kg-card--noimg')">`
     : '';
   return `
     <div class="kg-card kg-card--${type}${!thumbSrc ? ' kg-card--noimg' : ''}" onclick="window._openKaartFullscreen('${type}','${esc(id)}')">
       <div class="kg-card-thumbwrap">
         ${thumb}
         <div class="kg-card-fallback">${icon(type === 'wereld' ? 'map' : 'swords')}</div>
-        <span class="kg-card-badge kg-badge--${type}">${type === 'wereld' ? 'Hoofdkaart' : 'Dungeon'}</span>
+        <span class="kg-card-badge kg-badge--${type}">${type === 'wereld' ? esc(m.soort || 'Hoofdkaart') : 'Dungeon'}</span>
+        ${dm && type === 'dungeon' ? (() => {
+          // Zichtbaarheid zit waar hij bij alle andere kaartjes zit: op het
+          // kaartje zelf, met een oogje, en hij geldt voor de **actieve party**.
+          // Hij stond in een venster met een tabel van alle party's tegelijk —
+          // dat is nergens anders in de app zo, en je moest er een formulier
+          // voor opslaan om iets te onthullen.
+          const st = _dngToegangStand(m);
+          const t = { none: 'Verborgen voor deze party — klik om te tonen',
+                      active: 'Zichtbaar met fog-of-war — klik om op uitgespeeld te zetten',
+                      completed: 'Uitgespeeld: de hele plattegrond ligt open — klik om te verbergen' }[st];
+          return `<button class="kg-card-vis kg-card-vis--${st}" title="${t}"
+            onclick="event.stopPropagation();window._dngToegangCycle('${esc(id)}')">
+            ${icon(st === 'none' ? 'eye-off' : st === 'active' ? 'eye' : 'check-circle')}</button>`;
+        })() : ''}
         ${dm ? `<button class="kg-card-edit" onclick="event.stopPropagation();window._kaartEdit('${type}','${esc(id)}')" title="Naam/beschrijving${type === 'dungeon' ? '/thumbnail' : ''} bewerken">${icon('pencil')}</button>` : ''}
       </div>
       <div class="kg-card-body">
@@ -2905,7 +2957,9 @@ window._openKaartFullscreen = async function(type, id) {
   ov.innerHTML = `
     ${_fsTerug ? `<button class="kaart-fs-terug" onclick="window._kaartFsTerug()" title="Terug naar het kaartje">
       ${icon('chevron-left')} <span>${esc(_fsTerug.naam || 'Terug naar het kaartje')}</span></button>` : ''}
-    <button class="kaart-fs-close" onclick="window._closeKaartFullscreen()" title="Sluiten (Esc)">${icon('x')}</button>
+    <!-- De sluitknop tekent de kaartweergave zelf, in haar eigen balk: een
+         zwarte ronde knop die over het beeld zweeft hoort niet bij het thema,
+         en hij lag ook nog eens over de werkbalk van de dungeon heen. -->
     <div class="kaart-fs-content" id="kaart-fs-content"></div>`;
   ov.classList.add('open');
   document.body.classList.add('kaart-fs-active');
@@ -2943,13 +2997,7 @@ window._kaartEdit = async function(type, id) {
     else                   item = (await api.listDungeons()).find(m => m.id === id);
   } catch {}
   if (!item) return;
-  // Wie de dungeon mag zien is een eigenschap van de dungeon, geen tekengereedschap.
-  // De knop stond tussen rechthoek, polygoon en verbinding in de werkbalk; hier
-  // staat hij naast naam, beschrijving en verdieping, waar hij thuishoort.
-  let groepen = [];
-  if (type === 'dungeon') {
-    try { groepen = (await api.listGroups()).groups || []; } catch { groepen = []; }
-  }
+
   const naam = type === 'wereld' ? (item.label || '') : (item.name || '');
   window._kaartEditThumbPending = null;
   const body = `
@@ -2958,49 +3006,48 @@ window._kaartEdit = async function(type, id) {
         <input id="kaart-edit-naam" class="dm-input" value="${esc(naam)}"></div>
       <div class="dm-form-row"><label class="dm-form-label">Beschrijving</label>
         <textarea id="kaart-edit-desc" class="dm-input" rows="3" placeholder="Korte omschrijving voor op het kaartje…">${esc(item.description || '')}</textarea></div>
+      ${type === 'wereld' ? `
+      <div class="dm-form-row">
+        <label class="dm-form-label">Soort</label>
+        <select id="kaart-edit-soort" class="dm-input dm-input-sm" style="width:170px">
+          <option value="">— geen —</option>
+          ${KAART_SOORTEN.map(k => `<option value="${k}"${item.soort === k ? ' selected' : ''}>${k}</option>`).join('')}
+        </select>
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;gap:6px">
+        <label class="dm-form-label">Uitsnede op het kaartje</label>
+        <div id="kaart-edit-fp">${window._fpBlokHtml({
+          src: item.src || api.fileUrl(item.imageId || item.id),
+          value: item.thumbFocus || '50% 50%',
+          previews: [{ cls: 'fp-prev--banner', label: 'Kaartje' }],
+        })}</div>
+      </div>` : ''}
       ${type === 'dungeon' ? `
       <div class="dm-form-row">
         <label class="dm-form-label">Verdieping</label>
         <input id="kaart-edit-verdieping" class="dm-input dm-input-sm" type="number" style="width:80px"
           value="${item.verdieping ?? ''}" placeholder="—">
-        <span class="dm-hint">0 = begane grond, −1 = kelder. Leeg laten als deze kaart geen verdieping is.</span>
-      </div>
-      <div class="dm-form-row" style="flex-direction:column;gap:6px">
-        <label class="dm-form-label">Toegang per party</label>
-        <div class="dng-party-list" id="kaart-edit-toegang">
-          ${groepen.map(g => {
-            const uitgespeeld = (item.partyCompleted || []).includes(g.id);
-            const actief      = !uitgespeeld && (item.partyAccess || []).includes(g.id);
-            const stand       = uitgespeeld ? 'completed' : actief ? 'active' : 'none';
-            return `<div class="dng-party-row">
-              <span class="dng-party-name">${esc(g.name || g.id)}</span>
-              <div class="dng-party-states" data-gid="${esc(g.id)}">
-                <button type="button" class="dng-state-btn${stand === 'none' ? ' dng-state-btn--on' : ''}" data-state="none" title="Niet zichtbaar voor deze party">Geen</button>
-                <button type="button" class="dng-state-btn${stand === 'active' ? ' dng-state-btn--on' : ''}" data-state="active" title="Zichtbaar, met fog-of-war">${icon('eye')} Actief</button>
-                <button type="button" class="dng-state-btn${stand === 'completed' ? ' dng-state-btn--on' : ''}" data-state="completed" title="Uitgespeeld — de hele kaart is zichtbaar">${icon('check')} Uitgespeeld</button>
-              </div>
-            </div>`;
-          }).join('') || '<span class="dm-hint">Nog geen party\'s in deze campagne.</span>'}
-        </div>
       </div>
       <div class="dm-form-row" style="flex-direction:column;gap:6px">
         <label class="dm-form-label">Thumbnail</label>
-        ${item.thumbId ? `<img id="kaart-edit-thumb-prev" src="${api.fileUrl(item.thumbId)}" class="kaart-edit-thumb">` : '<span id="kaart-edit-thumb-prev"></span>'}
         <button type="button" class="dm-btn dm-btn-sm" style="align-self:flex-start" onclick="window._kaartEditPickThumb()" title="Thumbnail kiezen of uploaden">${icon('image')} Afbeelding</button>
+        <!-- Dezelfde kiezer als op een kaartje en bij de aktebanner: het kaartje
+             in de galerij snijdt de afbeelding bij (object-fit: cover), dus ook
+             hier bepaal je wat er in beeld blijft. -->
+        <div id="kaart-edit-fp">${item.thumbId ? window._fpBlokHtml({
+          src: api.fileUrl(item.thumbId),
+          value: item.thumbFocus || '50% 50%',
+          previews: [{ cls: 'fp-prev--banner', label: 'Kaartje' }],
+        }) : ''}</div>
       </div>` : ''}
       <div class="dm-feature-row" style="margin-top:6px">
         <button class="dm-btn dm-btn-primary" onclick="window._kaartEditSave('${type}','${esc(id)}')">${icon('save')} Opslaan</button>
         <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
+        <span style="margin-left:auto">${window._helpBtn?.(type === 'dungeon' ? 'hulp_kaart_dungeon' : 'hulp_kaart_wereld') ?? ''}</span>
       </div>
     </div>`;
   window.app.openModal('Kaart bewerken', naam, body);
-  // Drie standen per party, één ervan aan — zelfde bediening als in het oude venster.
-  document.getElementById('kaart-edit-toegang')?.querySelectorAll('.dng-party-states').forEach(rij => {
-    rij.querySelectorAll('.dng-state-btn').forEach(knop => knop.addEventListener('click', () => {
-      rij.querySelectorAll('.dng-state-btn').forEach(b => b.classList.remove('dng-state-btn--on'));
-      knop.classList.add('dng-state-btn--on');
-    }));
-  });
+  window._fpOnChange = null;   // dit blok leeft in een formulier, niet los
 };
 
 window._kaartEditPickThumb = function() {
@@ -3010,10 +3057,13 @@ window._kaartEditPickThumb = function() {
     suggestedName: naamHint ? `${naamHint}-kaart` : '',
     onSelect: (fileId) => {
       window._kaartEditThumbPending = fileId;
-      const prev = document.getElementById('kaart-edit-thumb-prev');
-      const img = document.createElement('img');
-      img.id = 'kaart-edit-thumb-prev'; img.className = 'kaart-edit-thumb'; img.src = api.fileUrl(fileId);
-      prev?.replaceWith(img);
+      // De focuskiezer toont meteen de nieuwe afbeelding; die is zijn eigen
+      // voorbeeld, dus een los previewplaatje ernaast is dubbelop.
+      const host = document.getElementById('kaart-edit-fp');
+      if (host) host.innerHTML = window._fpBlokHtml({
+        src: api.fileUrl(fileId), value: '50% 50%',
+        previews: [{ cls: 'fp-prev--banner', label: 'Kaartje' }],
+      });
     },
   });
 };
@@ -3023,23 +3073,20 @@ window._kaartEditSave = async function(type, id) {
   const desc = document.getElementById('kaart-edit-desc')?.value.trim() || '';
   try {
     if (type === 'wereld') {
-      await api.updateMap(id, { label: naam || undefined, description: desc });
+      await api.updateMap(id, {
+        label: naam || undefined, description: desc,
+        soort: document.getElementById('kaart-edit-soort')?.value || '',
+        thumbFocus: window._fpWaarde?.() || '50% 50%',
+      });
     } else {
       const patch = { name: naam || undefined, description: desc };
       const vRaw = document.getElementById('kaart-edit-verdieping')?.value.trim();
       if (vRaw !== undefined) patch.verdieping = vRaw === '' ? null : vRaw;
       if (window._kaartEditThumbPending) patch.thumbId = window._kaartEditThumbPending;
-      await api.updateDungeon(id, patch);
-      const rijen = document.getElementById('kaart-edit-toegang')?.querySelectorAll('.dng-party-states');
-      if (rijen?.length) {
-        const toegang = [], uitgespeeld = [];
-        rijen.forEach(rij => {
-          const stand = rij.querySelector('.dng-state-btn--on')?.dataset.state || 'none';
-          if (stand === 'active')    toegang.push(rij.dataset.gid);
-          if (stand === 'completed') { toegang.push(rij.dataset.gid); uitgespeeld.push(rij.dataset.gid); }
-        });
-        await api.setDungeonPartyAccess(id, toegang, uitgespeeld);
+      if (document.getElementById('kaart-edit-fp')?.querySelector('#fp-input')) {
+        patch.thumbFocus = window._fpWaarde?.() || '50% 50%';
       }
+      await api.updateDungeon(id, patch);
     }
     window.app.closeModal();
     _renderKaartGalerij();
@@ -12113,6 +12160,15 @@ const HELP_CONFIG = {
     { titel: 'Wie hoort hier bij?', tekst: 'Eigenaar, waard, personeel, stamgasten — personages én organisaties, met per regel een rol. Een naam die een kaartje heeft wordt een knop waar je doorheen klikt; wat geen kaartje heeft blijft gewoon tekst. Dezelfde regel verschijnt bij *Waar hoort dit \u2026 bij?* op dát kaartje \u2014 de kop noemt daar het soort kaartje: een verbinding staat maar op één plek, dus je legt en verwijdert hem van beide kanten.', afbeelding: null },
     { titel: 'Flavour & geheimen', tekst: '**Flavour** zijn losse zinnetjes om voor te lezen; de app houdt per regel bij of hij al verteld is, dus iemand met drie roddels levert drie avonden op. **Geheimen** onthul je per regel en per party, in het detailvenster.', afbeelding: null },
     { titel: 'Koppelingen', tekst: 'Onderaan staat wat dit kaartje **elders** is: de herberg van de campagne, of de tempel van een god uit de Tempel-dienst. Die koppeling staat maar op één plek — je kunt hem hier leggen of in het paneel van die dienst, en je ziet aan beide kanten hetzelfde.', afbeelding: null },
+  ] }),
+  hulp_kaart_wereld: () => ({ titel: 'Een kaart bewerken', stappen: [
+    { titel: 'Naam en beschrijving', tekst: 'De naam staat op het kaartje in de galerij en boven de kaart zelf; de beschrijving staat eronder, zodat je bij zes kaarten nog weet welke welke is.', afbeelding: null },
+    { titel: 'Wie ziet wat', tekst: 'Een hoofdkaart is voor iedereen zichtbaar. Wat een speler erop ziet hangt aan de **locaties**: een speld erft de zichtbaarheid van het kaartje waar hij bij hoort. Verberg dus de locatie, niet de kaart.', afbeelding: null },
+  ] }),
+  hulp_kaart_dungeon: () => ({ titel: 'Een dungeon bewerken', stappen: [
+    { titel: 'Naam, beschrijving en beeld', tekst: 'De thumbnail is het plaatje op het kaartje in de galerij. Dat kaartje snijdt bij, dus sleep het kruisje naar wat in beeld moet blijven — net als bij een personage of een aktebanner.', afbeelding: null },
+    { titel: 'Verdieping', tekst: '**0** is de begane grond, **−1** een kelder, **1** de eerste verdieping. Leeg laten als deze kaart niet bij een gebouw met verdiepingen hoort. Welke kaarten samen één gebouw vormen leidt de app af uit de **trappen** die je ertussen tekent; bovenin verschijnen dan knopjes om te wisselen.', afbeelding: null },
+    { titel: 'Zichtbaarheid', tekst: 'Die zet je niet hier maar op het kaartje zelf, met het oogje — en hij geldt voor de **actieve party**, net als bij elk ander kaartje. Drie standen: verborgen, zichtbaar met fog-of-war (kamers onthul je één voor één), en uitgespeeld (de hele plattegrond ligt open).', afbeelding: null },
   ] }),
   hulp_bewerk_locaties_kaart: () => ({ titel: 'Kaart & dungeon', stappen: [
     { titel: 'Op de kaart', tekst: 'Kies een kaart en **klik in het beeld** om de speld te zetten; nog eens klikken verplaatst hem. **Dubbelklikken** zoomt in op die plek (en op de hoogste stand weer helemaal uit), ingezoomd sleep je om te schuiven. Ook bij een nieuw kaartje: de speld wordt geplaatst zodra je opslaat.', afbeelding: null },

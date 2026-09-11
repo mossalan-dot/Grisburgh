@@ -24639,3 +24639,23 @@ body.kaart-fs-active .dng-topbar { padding-right: 76px; }
 /* Een muntje dat uit een gekoppelde vondst volgt (DM-only) staat er wat
    ingetogener bij dan een icoon dat de DM zelf zette. */
 .dng-cond-icon--afgeleid { opacity: 0.5; stroke-dasharray: 3 2; }
+
+/* De sluitknop staat in de balk van de kaart zelf (zie render-kaart.js /
+   render-dungeon.js), dus de zwevende ronde knop is weg. De werkbalk hoeft
+   daar ook geen ruimte meer voor te houden. */
+body.kaart-fs-active .dng-topbar { padding-right: 14px; }
+.map-mini-btn--sluit:hover { background: rgba(139,42,42,0.18); color: #7a2a2a; }
+/* Het oogje op een dungeonkaartje: zelfde plek en maat als het potlood, maar
+   altijd zichtbaar — zichtbaarheid is een stand die je wilt kunnen aflezen
+   zonder te hoveren, net als bij de kaartjes in het archief. */
+.kg-card-vis {
+  position: absolute; top: 8px; right: 42px; z-index: 3; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center; border-radius: 6px;
+  background: rgba(40,26,8,0.55); color: #fff; border: 1px solid rgba(255,255,255,0.2);
+  cursor: pointer; transition: background .15s ease; backdrop-filter: blur(4px);
+}
+.kg-card-vis:hover { background: rgba(40,26,8,0.85); }
+.kg-card-vis .icon { width: 14px; height: 14px; }
+.kg-card-vis--none      { color: #d8cdbb; }
+.kg-card-vis--active    { color: #e8c870; }
+.kg-card-vis--completed { color: #86d194; }

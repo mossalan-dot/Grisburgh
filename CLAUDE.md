@@ -240,10 +240,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=581   app.js?v=733   sound-manager.js?v=8
+index.html  : theme.css?v=582   app.js?v=734   sound-manager.js?v=8
 app.js      : api.js?v=283  dm-panel.js?v=221  media-picker.js?v=8
               render-archief.js?v=86  render-bestiarium.js?v=28  render-campagne.js?v=296
-              render-dashboard.js?v=9  render-dungeon.js?v=36  render-kaart.js?v=26
+              render-dashboard.js?v=9  render-dungeon.js?v=37  render-kaart.js?v=27
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
@@ -441,6 +441,27 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > namenrij een keuzelijstje om er meteen een aan te maken.
 > Dit is ook de opstap naar het afleiden van `entity.links` uit de teksten (nog
 > te doen; zie de valkuil bij de Verbindingen-tab hieronder).
+
+> **Zichtbaarheid zit op het kaartje en geldt voor de actieve party.** Dat is de
+> regel in de hele app, en een dungeon week ervan af: die had een venster met
+> een tabel van álle party's, achter een knop tussen de tekengereedschappen. Nu
+> staat er een oogje op het dungeonkaartje in de galerij dat drie standen
+> doorloopt voor de **actieve** groep — verborgen → zichtbaar met fog-of-war →
+> uitgespeeld (`_dngToegangStand` / `window._dngToegangCycle`, bovenop
+> `partyAccess`/`partyCompleted`). De andere party's houden hun eigen stand.
+>
+> **Kaart bewerken is een echt formulier geworden.** Een hoofdkaart had alleen
+> naam en beschrijving; er is een **Soort** bij (`_KAART_SOORTEN`, ook
+> server-side bewaakt — Wereld, Continent, Streek, Stad, …) die op het kaartje
+> in de galerij als badge staat in plaats van het generieke "Hoofdkaart", en een
+> **focuspunt** (`thumbFocus`), want dat kaartje snijdt de afbeelding bij. Beide
+> kaartsoorten gebruiken daarvoor de gedeelde kiezer `window._fpBlokHtml`.
+> De uitleg onder *Verdieping* is weg en zit nu in de hulptekst
+> (`hulp_kaart_wereld` / `hulp_kaart_dungeon`), zoals afgesproken.
+>
+> **De sluitknop hoort in de balk.** De zwarte ronde knop zweefde over het beeld
+> (en lag over de werkbalk van de dungeon). Beide weergaven tekenen hem nu zelf
+> in hun eigen balk, in perkamentstijl, wanneer `body.kaart-fs-active` staat.
 
 > **De dungeonkaart hangt in dezelfde fullscreen-overlay, met dezelfde
 > valkuilen.** `.dng-overlay` (elk dungeonvenster, inclusief *Nieuwe dungeon*)

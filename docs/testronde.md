@@ -385,6 +385,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Dubbelklik zoomt in de dungeon** (DM) — met het selecteergereedschap zoomt dubbelklikken in op dat punt; met de polygoon sluit een dubbelklik nog steeds de vorm die je tekent
 - [ ] **Conditie-iconen zijn geen emoji** (ALL) — schedel, munt, slot en vinkje staan als lijnicoon op de kaart, elk in hun eigen kleur
 - [ ] **Het muntje volgt de vondst** (DM) — koppel een vondst aan een kamer: het muntje verschijnt gestippeld op de kaart zonder dat je een conditie toevoegt. De speler ziet het niet, tenzij de DM zelf een zichtbare Buit-conditie zet
+- [ ] **Zichtbaarheid op het dungeonkaartje** (DM) — het oogje op een dungeon in de galerij loopt drie standen af voor de **actieve** party: verborgen, zichtbaar (fog-of-war) en uitgespeeld. Wissel van party: de stand verspringt mee, en de andere party houdt de zijne
+- [ ] **Soort en uitsnede van een hoofdkaart** (DM) — *Kaart bewerken*: kies een soort (Stad, Continent…); die staat als badge op het kaartje. Sleep het kruisje en het kaartje toont die uitsnede
+- [ ] **Sluiten vanuit de balk** (ALL) — zowel bij een hoofdkaart als bij een dungeon staat het kruisje in de balk, in perkamentstijl; er zweeft geen zwarte knop meer over het beeld
 - [ ] **Dungeon vrijgeven aan een party** (DM) — toegang per groep; een speler zonder toegang ziet de kaart niet
 - [ ] **Missiegever kiezen** (DM) — zoekveld *Gegeven door* in de missie-editor kent personages én organisaties; leeg laten mag
 
