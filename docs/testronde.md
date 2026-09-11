@@ -381,6 +381,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Pin voorstellen en goedkeuren** (SP/DM) — speler stelt voor, DM keurt goed of af, beide zien de uitkomst
 - [ ] **Dungeon aanmaken** (DM) — nieuwe dungeonkaart met afbeelding, kamers tekenen, namen geven
 - [ ] **Kamerzijbalk** (DM) — beschrijving, monsters, vondsten en trap per kamer
+- [ ] **Dungeonvensters openen** (DM) — *+ Nieuw* opent het venster *Nieuwe dungeon map* (en niet onzichtbaar achter de kaart). De prullenbak ernaast verwijdert de dungeon; de ronde kruisknop rechtsboven sluit alleen het venster
+- [ ] **Dubbelklik zoomt in de dungeon** (DM) — met het selecteergereedschap zoomt dubbelklikken in op dat punt; met de polygoon sluit een dubbelklik nog steeds de vorm die je tekent
+- [ ] **Conditie-iconen zijn geen emoji** (ALL) — schedel, munt, slot en vinkje staan als lijnicoon op de kaart, elk in hun eigen kleur
+- [ ] **Het muntje volgt de vondst** (DM) — koppel een vondst aan een kamer: het muntje verschijnt gestippeld op de kaart zonder dat je een conditie toevoegt. De speler ziet het niet, tenzij de DM zelf een zichtbare Buit-conditie zet
 - [ ] **Dungeon vrijgeven aan een party** (DM) — toegang per groep; een speler zonder toegang ziet de kaart niet
 - [ ] **Missiegever kiezen** (DM) — zoekveld *Gegeven door* in de missie-editor kent personages én organisaties; leeg laten mag
 

@@ -4,7 +4,7 @@
  * Features:
  *   • Fog-of-war per kamer (onthullen per party)
  *   • Verbindingslijnen tussen kamers (vervangt ingangspijlen)
- *   • Conditie-iconen per kamer (☠️ 💰 🔒 ✓) — DM beheert zichtbaarheid
+ *   • Conditie-iconen per kamer (skull, coins, lock, check) — DM beheert zichtbaarheid
  *   • Zijbalk: alfabetische kamerlijst, snel onthullen, klik → inzoomen
  *   • Onthul-teller in topbar
  *   • Party-toegang (3-state: Geen / Actief / Uitgespeeld)
@@ -18,12 +18,21 @@ const isDM  = () => window.app?.isDM?.();
 const esc   = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const uid   = () => 'r_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 
+// Eén icoonnaam per conditie. Er stond hier ook een emoji-veld, en dát werd op
+// de kaart zelf getekend (als <text>) terwijl de zijbalk en de kiezer de sprite
+// gebruikten: dezelfde conditie met twee gezichten, en emoji horen sowieso niet
+// in de uitvoer.
 const COND_TYPES = [
-  { id: 'enemies',  icon: '☠️', svgName: 'skull',    label: 'Vijanden'    },
-  { id: 'loot',     icon: '💰', svgName: 'coins',    label: 'Buit'        },
-  { id: 'locked',   icon: '🔒', svgName: 'lock',     label: 'Vergrendeld' },
-  { id: 'cleared',  icon: '✓',  svgName: 'check',    label: 'Uitgewist'   },
+  { id: 'enemies',  svgName: 'skull', label: 'Vijanden'    },
+  { id: 'loot',     svgName: 'coins', label: 'Buit'        },
+  { id: 'locked',   svgName: 'lock',  label: 'Vergrendeld' },
+  { id: 'cleared',  svgName: 'check', label: 'Uitgewist'   },
 ];
+// De sprite in een inline-SVG: een genest <svg> met een <use>, zodat het icoon
+// op kaartcoördinaten staat en met de kaart meeschaalt.
+const _condSpriteSvg = (naam, x, y, size, cls) => `<svg x="${x - size / 2}" y="${y - size / 2}"
+  width="${size}" height="${size}" viewBox="0 0 24 24" class="${cls}">
+  <use href="/img/icons.svg?v=9#icon-${naam}"/></svg>`;
 
 // ── State ──
 let _maps        = [];      // alle dungeon maps (gefilterd voor speler)
@@ -364,7 +373,15 @@ function _renderSvg() {
   // ── Conditie-iconen: DM ziet alles (verborgen = half-transparant);
   //    spelers zien alleen zichtbare iconen van onthulde kamers ──
   const condSvg = rooms.filter(r => isDM() || revealed.has(r.id)).map(r => {
-    const conds = (r.conditions || []).filter(c => isDM() || c.visible);
+    const eigen = (r.conditions || []).filter(c => isDM() || c.visible);
+    // Een kamer met een gekoppelde vondst krijgt vanzelf het muntje — alleen op
+    // het scherm van de DM. Anders moest hij "hier ligt iets" twee keer
+    // vastleggen: als vondst in loot.json én als handmatig icoontje, en dan
+    // lopen die twee vroeg of laat uit elkaar. Voor de speler blijft het een
+    // bewuste keuze: hij ziet alleen wat de DM zichtbaar heeft gezet.
+    const afgeleid = isDM() && _vondstenVanKamer(map.id, r.id).length
+      && !eigen.some(c => c.type === 'loot');
+    const conds = afgeleid ? [...eigen, { type: 'loot', visible: false, afgeleid: true }] : eigen;
     if (!conds.length) return '';
     const [cx, cy] = _roomCentroid(r, W, H);
     const size     = Math.max(W, H) * 0.030;
@@ -373,10 +390,10 @@ function _renderSvg() {
     const iconY    = cy + Math.max(W, H) * 0.020;
     return conds.map((c, i) => {
       const ct  = COND_TYPES.find(t => t.id === c.type);
-      const cls = `dng-cond-icon${(!c.visible && isDM()) ? ' dng-cond-icon--hidden' : ''}`;
-      return `<text x="${startX + i * step}" y="${iconY}"
-        class="${cls}" font-size="${size}"
-        text-anchor="middle" dominant-baseline="middle">${ct?.icon || '?'}</text>`;
+      const cls = `dng-cond-icon dng-cond-icon--${esc(c.type)}`
+        + ((!c.visible && isDM()) ? ' dng-cond-icon--hidden' : '')
+        + (c.afgeleid ? ' dng-cond-icon--afgeleid' : '');
+      return _condSpriteSvg(ct?.svgName || 'square', startX + i * step, iconY, size, cls);
     }).join('');
   }).join('');
 
@@ -1347,7 +1364,7 @@ function _renderEmpty() {
   const area = document.getElementById('dng-map-area');
   if (area) area.innerHTML = `
     <div class="dng-empty">
-      <div class="dng-empty-icon">⛓️</div>
+      <div class="dng-empty-icon">${icon('swords', { cls: 'icon-lg' })}</div>
       <div class="dng-empty-title">Geen dungeon maps</div>
       ${isDM() ? '<div class="dng-empty-sub">Klik op "+ Nieuw" om een dungeon map te uploaden.</div>' : ''}
     </div>`;

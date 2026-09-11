@@ -240,10 +240,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=578   app.js?v=730   sound-manager.js?v=8
+index.html  : theme.css?v=581   app.js?v=733   sound-manager.js?v=8
 app.js      : api.js?v=283  dm-panel.js?v=221  media-picker.js?v=8
               render-archief.js?v=86  render-bestiarium.js?v=28  render-campagne.js?v=296
-              render-dashboard.js?v=9  render-dungeon.js?v=33  render-kaart.js?v=26
+              render-dashboard.js?v=9  render-dungeon.js?v=36  render-kaart.js?v=26
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
@@ -441,6 +441,34 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > namenrij een keuzelijstje om er meteen een aan te maken.
 > Dit is ook de opstap naar het afleiden van `entity.links` uit de teksten (nog
 > te doen; zie de valkuil bij de Verbindingen-tab hieronder).
+
+> **De dungeonkaart hangt in dezelfde fullscreen-overlay, met dezelfde
+> valkuilen.** `.dng-overlay` (elk dungeonvenster, inclusief *Nieuwe dungeon*)
+> stond op z-index 500 onder die overlay van 1200: de knop leek kapot terwijl
+> het venster onzichtbaar eronder opende. Ook de werkbalk liep onder de ronde
+> sluitknop door. Beide opgelost met `body.kaart-fs-active`-regels — check dat
+> bij elk nieuw venster dat vanaf een kaart opent.
+>
+> **Dubbelklikken zoomt, overal.** Ook hier (`_zoomTrapDng`), maar alleen met het
+> selecteergereedschap: bij de polygoon sluit een dubbelklik de vorm die je
+> tekent.
+>
+> **Party-toegang is geen gereedschap.** Die knop stond tussen rechthoek,
+> polygoon en verbinding; wie een dungeon mag zien is een eigenschap van de
+> kaart en staat nu in *Kaart bewerken* (galerij), naast naam, beschrijving en
+> verdieping. Het oude venster is verwijderd, niet gedupliceerd.
+>
+> **Conditie-iconen kwamen uit twee bronnen.** `COND_TYPES` had naast `svgName`
+> ook een emoji, en juist die werd op de kaart getekend (als `<text>`) terwijl de
+> zijbalk de sprite gebruikte. Nu één bron: een genest `<svg>` met een `<use>`
+> (`_condSpriteSvg`), met kleur per soort en een donkere gloed zodat een
+> lijnicoon niet wegvalt in een drukke plattegrond.
+>
+> **Het muntje volgt de vondst.** Een kamer met een gekoppelde vondst
+> (`loot.json`) krijgt het Buit-icoon vanzelf, **alleen op het scherm van de
+> DM** en met een stippellijn. Anders leg je "hier ligt iets" twee keer vast —
+> als vondst én als handmatig icoontje — en lopen die uit elkaar. Wat de speler
+> ziet blijft een bewuste keuze van de DM.
 
 > **Verdiepingen in een dungeon.** Een kaart kan een `verdieping` hebben
 > (0 = begane grond, negatief = kelder; leeg = hoort niet bij een gebouw met
