@@ -1,15 +1,15 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=281';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=288";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=84";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=289";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=85";
 import { renderKaart, queueFlyTo } from './render-kaart.js?v=19';
 import { renderDungeon } from './render-dungeon.js?v=33';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
 import { renderSpreuken } from './render-spreuken.js?v=36';
-import { renderStatblock } from './render-statblock.js?v=8';
+import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=67";
-import { initDmPanel } from "./dm-panel.js?v=218";
+import { initDmPanel } from "./dm-panel.js?v=219";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -2416,11 +2416,27 @@ window._fmtKey = (e) => {
   window._fmt(e.target.id, merk);
 };
 
+// Traits en actions hebben allemaal dezelfde vorm: de naam vetgedrukt-cursief
+// met een punt, dan de tekst. Die tikte je met de hand als `***Bite.*** `.
+window._fmtStatblokNaam = (id) => {
+  const ta = document.getElementById(id);
+  if (!ta) return;
+  const start = ta.selectionStart, eind = ta.selectionEnd;
+  const sel = ta.value.slice(start, eind).trim();
+  const naam = (sel || 'Naam').replace(/\.*$/, '');
+  const invoeg = `***${naam}.*** `;
+  ta.value = ta.value.slice(0, start) + invoeg + ta.value.slice(eind);
+  // Zonder selectie: zet de naam klaar om overgetypt te worden.
+  if (sel) { const c = start + invoeg.length; ta.setSelectionRange(c, c); }
+  else ta.setSelectionRange(start + 3, start + 3 + naam.length);
+  ta.focus();
+};
+
 // Een tekstvak omklappen naar hoe het eruitkomt. De markdown blíjft wat er
 // opgeslagen wordt — zeven renderers lezen dat veld, waarvan twee op de server
 // (het printbare blad en de campagneboek-export) — dus dit is een kijkstand,
 // geen editor die terugschrijft. Zo kan er ook niets stuk aan.
-window._fmtVoorbeeld = (id, knop) => {
+window._fmtVoorbeeld = (id, knop, soort = '') => {
   const ta = document.getElementById(id);
   if (!ta) return;
   let vak = document.getElementById(`${id}-mdvoorbeeld`);
@@ -2433,15 +2449,23 @@ window._fmtVoorbeeld = (id, knop) => {
   const kijken = ta.classList.contains('hidden') === false;
   if (kijken) {
     const tekst = ta.value.trim();
+    const render = (soort === 'statblok' && window._sbMdBlokHtml)
+      ? window._sbMdBlokHtml : window.app.mdToHtml;
     vak.innerHTML = tekst
-      ? window.app.mdToHtml(ta.value)
+      ? render(ta.value)
       : '<span class="fmt-voorbeeld-leeg">Nog niets geschreven.</span>';
     // Even hoog als het vak dat het vervangt, anders springt het formulier.
     vak.style.minHeight = ta.offsetHeight + 'px';
   }
   ta.classList.toggle('hidden', kijken);
   vak.classList.toggle('hidden', !kijken);
-  knop?.classList.toggle('fmt-btn--aan', kijken);
+  if (knop) {
+    knop.classList.toggle('fmt-btn--aan', kijken);
+    // In kijkstand wijst de knop terug naar waar hij vandaan kwam: een potlood
+    // om verder te schrijven. Een oog dat al open is zegt niets meer.
+    knop.innerHTML = window.icon(kijken ? 'pencil' : 'eye');
+    knop.title = kijken ? 'Terug naar bewerken' : 'Voorbeeld — hoe het eruitkomt';
+  }
   if (!kijken) ta.focus();
 };
 

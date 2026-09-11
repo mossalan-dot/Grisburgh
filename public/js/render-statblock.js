@@ -50,6 +50,11 @@ const _sbMdBlock = t => (t || '').split('\n').filter(l => l.trim())
   }).join('');
 const _icon = (...a) => window.icon?.(...a) || '';
 
+// De opmaakbalk van een statblokveld leent deze render voor zijn voorbeeld:
+// `***Naam.***` hoort <strong><em> te worden, en `mdToHtml` maakt daar
+// verkeerd geneste tags van (<strong><em>x</strong></em>).
+window._sbMdBlokHtml = (tekst) => _sbMdBlock(tekst);
+
 // De haakjes zijn er voor de worp: "27 (5d8+5)". Maar `maxHp` en het tekstveld
 // zeggen vaak allebei hetzelfde getal, en dan stond er "70 (70)" — of, als de
 // tekst het getal al mét de worp draagt, "27 (27 (5d8+5))". Begint de tekst met

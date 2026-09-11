@@ -1,6 +1,6 @@
 import { api, huidigeCampagne } from './api.js?v=281';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
-import { renderStatblock } from './render-statblock.js?v=8';
+import { renderStatblock } from './render-statblock.js?v=9';
 
 // ── DM Panel ──
 // icon() helper is defined globally in app.js; grab a local alias for template use.
@@ -2996,7 +2996,11 @@ function _statblockEditorHtml(sb) {
   sb = sb || {};
   const opt = (val, label) => `<option value="${esc(val)}"${sb.size === val ? ' selected' : ''}>${label}</option>`;
   const v = (k, placeholder, type='text') => `<input id="dm-mon-sb-${k}" class="dm-input dm-input-sm" type="${type}" value="${esc(sb[k] ?? '')}" placeholder="${placeholder}">`;
-  const ta = (k, placeholder) => `<textarea id="dm-mon-sb-${k}" class="dm-input dm-sb-textarea" placeholder="${placeholder}">${esc(sb[k] || '')}</textarea>`;
+  // Traits en actions zijn markdown; ze hadden hier als enige geen opmaakbalk,
+  // dus tikte je `***Bite.***` met de hand. Dezelfde balk als op een kaartje.
+  const ta = (k, placeholder) => `${window._fmtToolbarHtml?.(`dm-mon-sb-${k}`, { statblok: true }) || ''}
+    <textarea id="dm-mon-sb-${k}" class="dm-input dm-sb-textarea" onkeydown="window._fmtKey(event)"
+      placeholder="${placeholder}">${esc(sb[k] || '')}</textarea>`;
   return `
     <details class="dm-sb-editor" open>
       <summary class="dm-sb-summary">${icon('clipboard-list')} Statblock</summary>

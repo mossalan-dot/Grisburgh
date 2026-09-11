@@ -278,9 +278,10 @@ daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — i
       11 sep 2026. Titel en Ondertekening zijn knoppen geworden, en boven het
       tekstvak staan twee tabbladen (*Schrijven* / *Zoals de speler het ziet*).
 
-- [ ] **Statblokvelden gebruiken markup, geen knoppenbalk.** Traits en actions
-      wil je met dezelfde opmaakknoppen bewerken als de rest van de app, in
-      plaats van met `***vet***` in de tekst.
+- [x] **Statblokvelden hebben een knoppenbalk** — gedaan 11 sep 2026, inclusief
+      een `Naam.`-knop voor de `***Bite.***`-vorm en een voorbeeld dat de
+      statblok-render gebruikt. De monster-editor in de Meesterkamer had er als
+      enige nog geen.
 
 - [ ] **Spreuken: het is geen naslagwerk meer.** De tab zegt "naslagwerk", maar
       de DM kan er nu zelf spreuken plaatsen. Tekst bijstellen, en er een veld

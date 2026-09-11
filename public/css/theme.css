@@ -24443,3 +24443,6 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 .fmt-btn-oog .icon, .fmt-btn-oog svg { width: 13px; height: 13px; }
 .fmt-btn--aan { background: #8a6a10; border-color: #8a6a10; color: #f6eeda; }
 .fmt-btn--aan .icon, .fmt-btn--aan svg { color: inherit; }
+/* Het oogje is geen opmaakknop maar een kijkknop: helemaal rechts, los van de
+   rij waarmee je tekst vormgeeft. */
+.fmt-toolbar .fmt-btn-oog { margin-left: auto; }

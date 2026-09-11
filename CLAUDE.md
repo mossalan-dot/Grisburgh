@@ -1526,8 +1526,20 @@ negen eigen routes. Dat is allemaal weg; wat overblijft is
 > opslagbeurt stilletjes andermans tekst.
 > Daarom: de textarea blijft de bron, en elke opmaakbalk krijgt een **oogje**
 > dat het veld omklapt naar `mdToHtml()` (`window._fmtVoorbeeld`). Kijkstand,
-> geen tweede editor — er kan dus niets stuk. Sneltoetsen: Ctrl+B, Ctrl+I en
-> sinds 11 sep ook Ctrl+U (`window._fmtKey`).
+> geen tweede editor — er kan dus niets stuk. Het oogje staat **helemaal
+> rechts**, los van de opmaakknoppen: het maakt niets op. In kijkstand wordt het
+> een potlood, want een oog dat al open staat zegt niets meer. Sneltoetsen:
+> Ctrl+B, Ctrl+I en sinds 11 sep ook Ctrl+U (`window._fmtKey`).
+>
+> **Statblokvelden hebben dezelfde balk**, met twee verschillen. Er staat een
+> knop **`Naam.`** vooraan (`window._fmtStatblokNaam`) die de vorm zet die elk
+> trait en elke action heeft: `***Bite.*** …`. En het voorbeeld gebruikt daar
+> `window._sbMdBlokHtml` (de render van `render-statblock.js`) in plaats van
+> `mdToHtml` — die laatste maakt van `***Naam.***` verkeerd geneste tags
+> (`<strong><em>x</strong></em>`). De **monster-editor in de Meesterkamer** had
+> als enige nog helemaal geen balk; die leent hem nu via
+> `window._fmtToolbarHtml` uit `render-campagne.js`, zodat er geen derde kopie
+> bij komt.
 
 > **De brieftekst heeft twee tabbladen: schrijven en kijken.** Het veld
 > `type: 'perkament'` krijgt boven het tekstvak *Schrijven* / *Zoals de speler

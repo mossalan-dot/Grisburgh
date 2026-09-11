@@ -1,5 +1,5 @@
 import { api } from './api.js?v=281';
-import { renderStatblock } from './render-statblock.js?v=8';
+import { renderStatblock } from './render-statblock.js?v=9';
 
 const icon = (...a) => window.icon(...a);
 
@@ -903,8 +903,17 @@ window._clearHistory = _clearHistory;
 // `perkament: true` voegt de drie structuurknoppen toe die alleen de
 // perkamentweergave kent. Ze stonden als uitleg onder het veld — daar moest je
 // ze overtikken, en op een knoppenbalk hoort te staan wat je kunt doen.
-function fmtToolbar(id, { perkament = false } = {}) {
+// De Meesterkamer gebruikt dezelfde balk (dm-panel importeert render-campagne
+// niet, vandaar via window). Eén opmaakbalk in plaats van een derde kopie.
+window._fmtToolbarHtml = (id, opts) => fmtToolbar(id, opts);
+
+function fmtToolbar(id, { perkament = false, statblok = false } = {}) {
   const hex = window._FMT_KLEUR_HEX || {};
+  // Elk trait en elke action begint met de naam vetgedrukt-cursief en een punt.
+  const sbKnop = !statblok ? '' : `
+    <button type="button" class="fmt-btn fmt-btn-struct" title="Naam van een trait of action (***Naam.***)"
+      onclick="window._fmtStatblokNaam('${id}')">Naam.</button>
+    <div class="fmt-toolbar-sep"></div>`;
   const structuur = !perkament ? '' : `
     <button type="button" class="fmt-btn fmt-btn-struct" title="Titel — maakt van de volgende regel een kop"
       onclick="window._fmtStructuur('${id}','---titel---','Titel')">Titel</button>
@@ -912,7 +921,7 @@ function fmtToolbar(id, { perkament = false } = {}) {
       onclick="window._fmtStructuur('${id}','--handtekening--','Naam')">Ondertekening</button>
     <div class="fmt-toolbar-sep"></div>`;
   return `<div class="fmt-toolbar">
-    ${structuur}
+    ${sbKnop}${structuur}
     <button type="button" class="fmt-btn fmt-btn-b" title="Vet (Ctrl+B)" onclick="window._fmt('${id}','**')">B</button>
     <button type="button" class="fmt-btn fmt-btn-i" title="Cursief (Ctrl+I)" onclick="window._fmt('${id}','*')">I</button>
     <button type="button" class="fmt-btn fmt-btn-u" title="Onderstreept" onclick="window._fmt('${id}','__')">U</button>
@@ -920,16 +929,15 @@ function fmtToolbar(id, { perkament = false } = {}) {
     <button type="button" class="fmt-btn fmt-btn-mark" title="Markeren" onclick="window._fmt('${id}','==')">A</button>
     <button type="button" class="fmt-btn fmt-btn-hr" title="Scheidingslijn" onclick="window._fmtHr('${id}')">—</button>
     <div class="fmt-toolbar-sep"></div>
-    <!-- Kijken hoe het eruitkomt. De markdown blijft opgeslagen zoals hij is;
-         dit is een kijkstand, geen tweede editor. -->
-    <button type="button" class="fmt-btn fmt-btn-oog" title="Voorbeeld — hoe het eruitkomt"
-      onclick="window._fmtVoorbeeld('${id}', this)">${window.icon('eye')}</button>
-    <div class="fmt-toolbar-sep"></div>
     <div class="fmt-kleuren">
       ${Object.entries(hex).map(([naam, kleur]) =>
         `<button type="button" class="fmt-kleur-knop" style="--k:${kleur}" title="${naam}"
           onclick="window._fmtKleur('${id}','${naam}')"></button>`).join('')}
     </div>
+    <!-- Helemaal rechts, los van de rest: dit maakt niets op, het laat alleen
+         zien hoe het eruitkomt. -->
+    <button type="button" class="fmt-btn fmt-btn-oog" title="Voorbeeld — hoe het eruitkomt"
+      onclick="window._fmtVoorbeeld('${id}', this, '${statblok ? 'statblok' : ''}')">${window.icon('eye')}</button>
   </div>`;
 }
 
@@ -1127,7 +1135,7 @@ function _sbTierBouwstenen(sb, i) {
       const id = `pt${i}-ta-${k}`;
       return `<div>${kop(label)}
         <div class="mt-0.5">
-          ${fmtToolbar(id)}
+          ${fmtToolbar(id, { statblok: true })}
           <textarea id="${id}" class="pt-${k} ${veldCls}" rows="${rows}" onkeydown="window._fmtKey(event)">${esc(sb[k] || '')}</textarea>
         </div>
       </div>`;
@@ -7186,7 +7194,7 @@ window._openEditor = async (tab, editId) => {
       return `<div>
         ${label ? `<label class="text-[10px] font-cinzel text-ink-dim uppercase">${label}</label>` : ''}
         <div class="mt-0.5">
-          ${fmtToolbar(taId)}
+          ${fmtToolbar(taId, { statblok: true })}
           <textarea id="${taId}" name="stat_${k}" rows="${rows}"
             onkeydown="window._fmtKey(event)"
             class="w-full px-2 py-1 bg-room-bg border border-room-border rounded text-ink-bright text-sm focus:border-gold-dim focus:outline-none">${esc(waarde ?? s[k] ?? '')}</textarea>

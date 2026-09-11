@@ -93,10 +93,7 @@ function fmtToolbar(id) {
       class="fmt-btn fmt-btn-s">S</button>
     <button type="button" title="Markering" onclick="window._fmt('${id}','==')"
       class="fmt-btn fmt-btn-mark">▌</button>
-    <!-- Kijken hoe het eruitkomt; de markdown blijft opgeslagen zoals hij is. -->
-    <button type="button" title="Voorbeeld — hoe het eruitkomt"
-      onclick="window._fmtVoorbeeld('${id}', this)"
-      class="fmt-btn fmt-btn-oog">${window.icon('eye')}</button>
+
     <button type="button" title="Kleine kapitalen" onclick="window._fmt('${id}','^')"
       class="fmt-btn fmt-btn-sc">Sc</button>
     <div class="fmt-toolbar-sep"></div>
@@ -111,6 +108,11 @@ function fmtToolbar(id) {
     <div class="fmt-toolbar-sep"></div>
     <button type="button" title="Horizontale lijn" onclick="window._fmtHr('${id}')"
       class="fmt-btn fmt-btn-hr">—</button>
+    <!-- Helemaal rechts: dit maakt niets op, het laat alleen zien hoe het
+       eruitkomt. -->
+    <button type="button" title="Voorbeeld — hoe het eruitkomt"
+      onclick="window._fmtVoorbeeld('${id}', this)"
+      class="fmt-btn fmt-btn-oog">${window.icon('eye')}</button>
   </div>`;
 }
 
