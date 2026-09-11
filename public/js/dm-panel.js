@@ -1999,14 +1999,20 @@ function _renderRegieBalkItem(item) {
             ? icon('mail')
             : item.type === 'loot'
               ? icon('coins')
-              : icon('crossed-swords', { cls: 'icon-gi' });
+              : item.type === 'muziek'
+                ? icon('music')
+                : icon('crossed-swords', { cls: 'icon-gi' });
   const rustLabel = item.type === 'rust'
     ? `${item.restType === 'long' ? 'Long' : 'Short'} Rest — ${item.locatie === 'herberg' ? 'Herberg' : 'Veld'}`
     : '';
   const briefLabel = item.type === 'brief'
     ? `Brief${item.titel ? `: ${item.titel}` : ''} — ${item.ontvangerType === 'groep' ? 'Party' : (item.spelerNaam || 'Speler')}`
     : '';
-  const name      = item.type === 'image' ? (item.caption || 'Afbeelding') : item.type === 'rust' ? rustLabel : item.type === 'brief' ? briefLabel : (item.name || '—');
+  const name      = item.type === 'image' ? (item.caption || 'Afbeelding')
+    : item.type === 'rust'  ? rustLabel
+    : item.type === 'brief' ? briefLabel
+    : item.type === 'muziek' ? `${item.name || 'Muziek'}${item.herhaal ? ' ⟳' : ''}`
+    : (item.name || '—');
 
   const ENTITY_ICONS = {
     personages:    icon('user'),
