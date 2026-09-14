@@ -388,6 +388,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Dungeon aanmaken** (DM) — nieuwe dungeonkaart met afbeelding, kamers tekenen, namen geven
 - [ ] **Kamer verslepen en bijstellen** (DM) — met het selecteergereedschap sleep je een kamer naar een andere plek; de geselecteerde kamer heeft handvatten op zijn punten om hem bij te stellen. Loslaten bewaart. Bij overlappende kamers pak je de bovenste — die je aanwijst
 - [ ] **Ronde kamer** (DM) — met het cirkelgereedschap sleep je een ovaal; hij verschijnt als ronde vorm op de kaart, is aan te klikken (ook net buiten het vierkant eromheen niet), en de zijbalk zegt *Rond*
+- [ ] **Een speler leest geen kamernamen vooruit** (SP) — open een dungeon met onthulde én onbekende kamers en kijk in de netwerktab bij `/api/dungeons`: alleen de onthulde kamers hebben een naam, de rest heeft een lege naam en geen symbolen (de vorm is er wel — daar tekent de mist op)
 - [ ] **Gevecht aan een kamer** (DM) — sectie *Tegenstand*: maak er een aan of koppel een bestaand gevecht; op de kaart verschijnt de schedel gestippeld, en het zwaardje start het gevecht. Loskoppelen laat het gevecht in de bibliotheek staan
 - [ ] **Muntje is de knop** (DM) — klik op het gestippelde muntje van een kamer met een vondst: het lootvenster opent met die vondst erin
 - [ ] **Wegklikken sluit de bewerkstand** (DM) — klik naast een kamer: selectie en handvatten weg, zijbalk leeg

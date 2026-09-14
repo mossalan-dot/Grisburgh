@@ -11821,9 +11821,16 @@ router.get('/dungeons', attachRole, (req, res) => {
         id: m.id, name: m.name, hoofdstukId: m.hoofdstukId, fileId: m.fileId,
         partyCompleted: m.partyCompleted || [],
         rooms: (m.rooms || []).map(r => ({
-          id: r.id, name: r.name, shape: r.shape, points: r.points,
-          // Alleen zichtbare conditie-iconen voor spelers
-          conditions: (r.conditions || []).filter(c => c.visible),
+          id: r.id, shape: r.shape, points: r.points,
+          // De **vorm** van een kamer die nog niet onthuld is moet mee: daar
+          // tekent de client de mist mee. De **naam** niet — die stond gewoon in
+          // de payload, dus wie in de netwerktab keek las "Schatkelder" voordat
+          // zijn personage er ooit geweest was. Zelfde soort lek als bij een
+          // vaag document.
+          name: groupReveals.has(r.id) ? r.name : '',
+          // Alleen zichtbare conditie-iconen voor spelers, en alleen bij een
+          // kamer die hij al kent.
+          conditions: groupReveals.has(r.id) ? (r.conditions || []).filter(c => c.visible) : [],
         })),
         // Verbindingen: toon als minstens één verbonden kamer onthuld is
         connections: (m.connections || []).filter(c =>

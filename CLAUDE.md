@@ -240,10 +240,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=595   app.js?v=760   sound-manager.js?v=8
+index.html  : theme.css?v=597   app.js?v=762   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
               render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=299
-              render-dashboard.js?v=9  render-dungeon.js?v=51  render-kaart.js?v=31
+              render-dashboard.js?v=9  render-dungeon.js?v=53  render-kaart.js?v=31
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
@@ -473,6 +473,17 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > **Dubbelklikken zoomt, overal.** Ook hier (`_zoomTrapDng`), maar alleen met het
 > selecteergereedschap: bij de polygoon sluit een dubbelklik de vorm die je
 > tekent.
+>
+> **De naam van een onthulde kamer is het geheim, niet de vorm.** `GET /dungeons`
+> stuurde een speler álle kamers mét naam; de mist verborg ze alleen in beeld.
+> Wie in de netwerktab keek las "Schatkelder" voordat zijn personage er ooit
+> geweest was. De **vorm** moet wel mee (daar tekent de client de mist mee), dus
+> nu gaat de naam pas mee zodra de kamer voor díé party onthuld is — en de
+> conditie-iconen ook. Zelfde soort lek als destijds bij een vaag document.
+>
+> **`_activeGroupId()` viel terug op de naam `'groep1'`.** Die groep bestaat in
+> geen enkele campagne meer: een onthulling belandde dan bij een partij die
+> niemand heeft, en de spelers zagen niets. Nu de eerste échte groep.
 >
 > **De kamerzijbalk, op één plek herzien.** De naam draagt de verdieping (twee
 > lagen hebben vaak dezelfde kamernaam), onthullen is een **oogje** naast de

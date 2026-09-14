@@ -536,7 +536,14 @@ function _roomCentroid(room, W, H) {
 }
 
 function _activeGroupId() {
-  if (isDM()) return window.app?.state?.dmState?.activeGroup || 'groep1';
+  // Terugval op de eerste échte groep, niet op de naam 'groep1': die bestaat
+  // alleen nog in oude campagnes. Zonder dat viel een onthulling in een groep
+  // die niemand heeft — je klikte op onthullen en de spelers zagen niets.
+  if (isDM()) {
+    return window.app?.state?.dmState?.activeGroup
+      || Object.keys(window.app?.state?.dmState?.groups || {})[0]
+      || 'groep1';
+  }
   const char     = window.app?.state?.characterId;
   const entities = window.app?.state?.entities;
   const p        = (entities?.personages || []).find(e => e.id === char);
@@ -975,8 +982,9 @@ function _renderSidebar(room) {
         const ct = COND_TYPES.find(t => t.id === c.type);
         return `<div class="dng-cond-row">
           <span class="dng-cond-row-icon">${ct ? icon(ct.svgName) : '?'}</span>
-          <button class="dng-cond-vis-btn${c.visible?' dng-cond-vis-btn--on':''}" data-cid="${esc(c.id)}">
-            ${c.visible ? icon('eye')+' Zichtbaar' : icon('eye-off')+' Verborgen'}
+          <button class="dng-cond-vis-btn${c.visible?' dng-cond-vis-btn--on':''}" data-cid="${esc(c.id)}"
+            title="${c.visible ? 'Verbergen voor de spelers' : 'Zichtbaar maken voor de spelers'}">
+            ${c.visible ? icon('moon') : icon('eye')}
           </button>
           <button class="dng-cond-del-btn" data-cid="${esc(c.id)}" title="Verwijderen">${icon('x')}</button>
         </div>`;
@@ -1062,8 +1070,8 @@ function _renderSidebar(room) {
       <div class="dng-sb-kop">
         <div class="dng-sb-name">${esc(room.name)}<span class="dng-sb-verdieping">${esc(verdieping)}</span></div>
         ${!isRev
-          ? `<button class="dng-sb-oog" id="dng-reveal-btn" title="Onthullen voor ${esc(groupId)}">${icon('eye-off')}</button>`
-          : `<button class="dng-sb-oog dng-sb-oog--aan" id="dng-hide-btn" title="Verbergen voor ${esc(groupId)}">${icon('eye')}</button>`}
+          ? `<button class="dng-sb-oog" id="dng-reveal-btn" title="Onthullen voor ${esc(groupId)}">${icon('eye')}</button>`
+          : `<button class="dng-sb-oog dng-sb-oog--aan" id="dng-hide-btn" title="Verbergen voor ${esc(groupId)}">${icon('moon')}</button>`}
       </div>
       ${room.dmNotes
         ? `<div class="dng-sb-notes">${esc(room.dmNotes).replace(/\n/g,'<br>')}</div>`
