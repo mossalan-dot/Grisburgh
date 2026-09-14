@@ -240,9 +240,9 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=586   app.js?v=744   sound-manager.js?v=8
+index.html  : theme.css?v=586   app.js?v=745   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
-              render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=297
+              render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=298
               render-dashboard.js?v=9  render-dungeon.js?v=39  render-kaart.js?v=30
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
@@ -998,7 +998,13 @@ Monsters; het tabblad linkt erheen.
 >   ene kende `data.healing` niet, dus daar verscheen helemaal geen knop.
 > - **Verdwijnt bij gebruik** (`data.verbruikt`, vinkje bij de werking *healing*)
 >   haalt er één van de stapel af. Alleen als het voorwerp géén charges heeft: een
->   Staff of Healing raakt een charge kwijt, geen exemplaar.
+>   Staff of Healing raakt een charge kwijt, geen exemplaar. Een **Potion** krijgt
+>   dat vinkje vanzelf bij het kiezen van het type — een drankje is na één slok op
+>   en heeft geen charges; je hebt er simpelweg meerdere. Zelfde regel als bij de
+>   werking: de suggestie blijft weg zodra de DM het vinkje zelf aanraakt.
+> - **Eerst vragen.** De knop is klein en zit tussen de andere pillen, dus er komt
+>   een bevestiging die zegt wat het kost: "Dat kost één charge; je hebt er nog 3
+>   van de 5" bij een staf, "Je hebt er 3; daarna nog 2" bij een stapel drankjes.
 > - Een speler moet het voorwerp ook echt bezitten (403), de DM mag het namens
 >   iedereen doen.
 

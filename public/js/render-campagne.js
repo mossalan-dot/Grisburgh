@@ -5905,7 +5905,11 @@ window._updateWeaponTagParam = (fieldKey, baseProp, paramVal) => {
 // velden aan een ander veld hangen staat al in de HTML (data-show-when-*), dus
 // hoeft de editor daar bij het bouwen niets extra's voor te doen.
 document.addEventListener('change', ev => {
-  if (ev.target?.closest?.('#m-body')) window._showWhenBijwerken?.();
+  if (!ev.target?.closest?.('#m-body')) return;
+  window._showWhenBijwerken?.();
+  // Zodra de DM het vinkje "Verdwijnt bij gebruik" zelf aanraakt, houdt de
+  // typekeuze eraf (zie _onItemTypeChange) — dezelfde regel als bij de werking.
+  if (ev.target.name === 'data_verbruikt') window._verbruiktAangeraakt = true;
 });
 
 // ── Wapeneigenschap tooltip (hover) ──
@@ -5977,6 +5981,14 @@ window._onItemTypeChange = (val) => {
       window._werkingBij(true);
       window._werkingAutoWaarde = suggestie.length ? JSON.stringify(suggestie) : null;
     }
+  }
+  // Een drankje is na één slok op. Dat is geen charge — een speler heeft er
+  // simpelweg meerdere — dus het vinkje *Verdwijnt bij gebruik* hoort bij een
+  // Potion vanzelf aan te staan. Zelfde regel als bij de werking hierboven:
+  // alleen zolang de DM er zelf nog niet aan gezeten heeft.
+  const verbruiktVeld = document.querySelector('[name="data_verbruikt"]');
+  if (verbruiktVeld && !window._verbruiktAangeraakt) {
+    verbruiktVeld.checked = (val === 'Potion');
   }
   const melding = document.getElementById('veld-melding-itemType');
   if (melding) melding.innerHTML = _veldMeldingHtml(ITEM_TYPE_MELDINGEN, val);
@@ -6433,6 +6445,9 @@ window._scrollPickSpell = (naam) => {
 
 window._openEditor = async (tab, editId) => {
   const schema = SCHEMA[tab];
+  // Per kaartje opnieuw beginnen: wat de DM bij het vórige kaartje aanraakte,
+  // zegt niets over dit kaartje.
+  window._verbruiktAangeraakt = !!editId;
   let e = null;
   if (editId) {
     try { e = await api.getEntity(tab, editId); } catch { return; }

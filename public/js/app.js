@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=285';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=297";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=298";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=87";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=30';
 import { renderDungeon } from './render-dungeon.js?v=39';
@@ -6192,13 +6192,16 @@ window._itemGebruik = async function (knop) {
   const max = parseInt(d.max) || 0;
   const nu  = parseInt(d.charges);
   const aantal = parseInt(d.aantal);
+  // Een staf heeft charges; een drankje niet — daarvan heb je er simpelweg een
+  // aantal. Twee verschillende zinnen dus, en bij een stapel noemen we altijd
+  // hoeveel je er nog hebt, ook als het ding niet opgaat.
   const kosten = max
     ? (Number.isFinite(nu) ? `Dat kost één charge; je hebt er nog ${nu} van de ${max}.` : 'Dat kost één charge.')
     : d.verbruikt
       ? (Number.isFinite(aantal) && aantal > 1
-          ? `Je houdt er daarna ${aantal - 1} over.`
-          : 'Dit exemplaar is daarna op.')
-      : '';
+          ? `Je hebt er ${aantal}; daarna nog ${aantal - 1}.`
+          : 'Dit was je laatste.')
+      : (Number.isFinite(aantal) && aantal > 1 ? `Je hebt er ${aantal}; er gaat er geen af.` : '');
   if (!confirm(`${d.naam || 'Dit voorwerp'} gebruiken?\n\nJe gooit ${d.formule} en telt dat bij je HP op.${kosten ? '\n' + kosten : ''}`)) return;
 
   try {
