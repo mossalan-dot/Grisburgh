@@ -24707,3 +24707,8 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
   font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
   letter-spacing: 0.08em; text-transform: uppercase; color: #7a6040;
 }
+/* Kaart bewerken: de uitlegknop rechtsboven in het venster, net als de tabkoppen. */
+.dm-kaartedit-kop { display: flex; justify-content: flex-end; margin: -4px 0 2px; }
+/* "Staat ook op": dezelfde knop, rustiger, voor de andere kaarten waar deze
+   plek op voorkomt. */
+.detail-map-link-btn--ook { opacity: 0.8; font-size: 12px; }

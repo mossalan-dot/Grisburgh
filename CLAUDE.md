@@ -240,9 +240,9 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=586   app.js?v=745   sound-manager.js?v=8
+index.html  : theme.css?v=588   app.js?v=747   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
-              render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=298
+              render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=299
               render-dashboard.js?v=9  render-dungeon.js?v=39  render-kaart.js?v=30
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
@@ -1491,6 +1491,20 @@ app-iconen zijn nog van Grisburgh; eigen beeld per campagne is werk voor later.
 > in een subtabblad zit toont hij dát (`LOGBOEK_LABELS`). Prikbord en Missies
 > hadden ook al het kaart-icoon; dat zijn nu `pin` en `target`, en de groep
 > *Hoofdkaarten* in de galerij kreeg `globe` omdat de sectiekop zelf `map` is.
+>
+> **Eén plek kan op meerdere kaarten staan** — Het Leemland ligt op de streekkaart
+> én op de continentkaart. Welke toonde het kaartje dan? De eerste kaart in
+> `map.json`, dus de volgorde waarin ze ooit zijn aangemaakt; daar valt niets aan
+> af te lezen. Nu beslist de **soort**: hoe kleiner het gebied, hoe dichterbij je
+> kijkt, dus die wint (`_KAART_SCHAAL` in `render-campagne.js`; een kaart zonder
+> soort valt tussen de bekende in). De andere kaarten staan eronder als knop, dus
+> je kunt er alsnog heen. Geldt ook voor het speldknopje op het kaartje zelf.
+>
+> **Verwijderen kon nergens meer.** De knop voor een hoofdkaart zat in de oude
+> werkbalk boven de kaart en verdween met de galerij; nu staat hij in *Kaart
+> bewerken*, met een `confirm()` die zegt wat er meegaat (spelden, respectievelijk
+> kamers en onthullingen). De uitlegknop staat daar nu rechtsboven in plaats van
+> onderaan tussen de knoppen.
 >
 > **Aanmaken is een eigen formulier, geen halve.** Bij een hoofdkaart én een
 > dungeon kon je alleen een naam en een afbeelding kwijt; de beschrijving stond

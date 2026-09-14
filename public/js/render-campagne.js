@@ -1840,8 +1840,10 @@ async function _kaartKnoppenBijwerken(host) {
   const knoppen = [...(host || document).querySelectorAll('[data-mapbtn]')];
   if (!knoppen.length) return;
   const { maps, pins } = await _kaartGegevens();
+  // Zelfde keuze als in het detailvenster: de kleinste kaart wint, niet de
+  // eerste die toevallig in map.json staat.
   const perLoc = new Map();
-  for (const m of maps) {
+  for (const m of [...maps].sort((a, b) => _kaartSchaal(a) - _kaartSchaal(b))) {
     for (const p of (pins[m.id] || [])) {
       if (!p.pending && !perLoc.has(p.locId)) perLoc.set(p.locId, m.id);
     }
@@ -1854,21 +1856,38 @@ async function _kaartKnoppenBijwerken(host) {
   }
 }
 
-// Waar ligt deze locatie? Geeft de kaart plus de speld terug, of null.
-async function _kaartPlekVan(locId) {
+// Eenzelfde plek kan op meerdere kaarten staan: Het Leemland ligt op de
+// streekkaart én op de continentkaart. Welke toont het kaartje dan? Dat was
+// "de eerste kaart in map.json" — de volgorde waarin ze ooit zijn aangemaakt,
+// en daar kan een DM niets aan aflezen. Nu telt de **soort**: hoe kleiner het
+// gebied, hoe dichterbij je kijkt, dus die wint. Een kaart zonder soort valt
+// tussen de bekende in, en bij gelijke stand beslist de volgorde alsnog.
+const _KAART_SCHAAL = {
+  Gebouw: 1, Dorp: 2, Stad: 3, Slagveld: 3, Zee: 5, Streek: 5, Continent: 6, Wereld: 7,
+};
+const _kaartSchaal = (m) => _KAART_SCHAAL[m?.soort] ?? 4;
+
+// Alle plekken van deze locatie, de meest gedetailleerde eerst.
+async function _kaartPlekkenVan(locId) {
   const { maps, pins } = await _kaartGegevens();
+  const uit = [];
   for (const m of maps) {
     const p = (pins[m.id] || []).find(x => x.locId === locId && !x.pending);
-    if (p) return { kaart: m, pin: p };
+    if (p) uit.push({ kaart: m, pin: p });
   }
-  return null;
+  return uit.sort((a, b) => _kaartSchaal(a.kaart) - _kaartSchaal(b.kaart));
+}
+
+// Waar ligt deze locatie? Geeft de kaart plus de speld terug, of null.
+async function _kaartPlekVan(locId) {
+  return (await _kaartPlekkenVan(locId))[0] || null;
 }
 
 // Het Kaart-tabblad van een locatie: een uitsnede rond de speld, plus de weg
 // naar de kaart zelf. background-position X% Y% legt het punt op X%/Y% van de
 // áfbeelding op X%/Y% van het kader, dus een speld op dezelfde percentages valt
 // er precies op — hoe ver je ook inzoomt.
-function _kaartTabHtml(locId, plek, alleen = true, locType = '') {
+function _kaartTabHtml(locId, plek, alleen = true, locType = '', andere = []) {
   const { kaart, pin } = plek;
   // De speld in het midden zetten kan niet met background-position: dat lijnt
   // punt X% van de áfbeelding uit op X% van het kader, niet op het midden. Met
@@ -1886,6 +1905,12 @@ function _kaartTabHtml(locId, plek, alleen = true, locType = '') {
         <button class="detail-map-link-btn" onclick="window._toonOpKaart('${esc(locId)}','${esc(kaart.id)}')">
           ${icon('map')} Toon op de hele kaart
         </button>
+        ${(andere || []).map(a => `
+          <button class="detail-map-link-btn detail-map-link-btn--ook"
+            onclick="window._toonOpKaart('${esc(locId)}','${esc(a.kaart.id)}')"
+            title="Deze plek staat ook op ${esc(a.kaart.label || 'een andere kaart')}">
+            ${icon('map-pin')} ${esc(a.kaart.label || 'Andere kaart')}
+          </button>`).join('')}
       </div>
     </div>`;
 }
@@ -5013,9 +5038,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   // Allebei nemen ze een half venster in beslag; onder Informatie duwden ze de
   // tekst weg. Vóór het bouwen ophalen, zodat er geen tabblad verschijnt dat
   // even later leeg blijkt. De kaartgegevens zijn kort gecachet.
-  let _kaartPlek = null, _dungeonPlek = null;
+  let _kaartPlek = null, _dungeonPlek = null, _kaartOok = [];
   if (tab === 'locaties') {
-    _kaartPlek = await _kaartPlekVan(e.id).catch(() => null);
+    const _plekken = await _kaartPlekkenVan(e.id).catch(() => []);
+    _kaartPlek   = _plekken[0] || null;
+    _kaartOok    = _plekken.slice(1);
     if (e.data?.dungeonId) {
       const lijst = await api.listDungeons().catch(() => []);
       // Een speler krijgt alleen de dungeons waar zijn party bij mag; staat hij
@@ -5053,7 +5080,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     ${heeftVoorraad && isDM() ? `<div id="dtab-log" class="hidden">${logHtml}</div>` : ''}
     ${_orgRijen.length ? `<div id="dtab-organogram" class="hidden">${_organogramHtml(_orgRijen, _orgBeeld)}</div>` : ''}
     ${(_kaartPlek || _dungeonPlek) ? `<div id="dtab-kaart" class="hidden">
-      ${_kaartPlek   ? _kaartTabHtml(e.id, _kaartPlek, !_dungeonPlek, e.data?.locType) : ''}
+      ${_kaartPlek   ? _kaartTabHtml(e.id, _kaartPlek, !_dungeonPlek, e.data?.locType, _kaartOok) : ''}
       ${_dungeonPlek ? _dungeonTabHtml(_dungeonPlek.kaart, _dungeonPlek.kamer) : ''}
     </div>` : ''}
   `;

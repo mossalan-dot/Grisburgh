@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=285';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=298";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=299";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=87";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=30';
 import { renderDungeon } from './render-dungeon.js?v=39';
@@ -3054,6 +3054,9 @@ window._kaartEdit = async function(type, id) {
   window._kaartEditThumbPending = null;
   const body = `
     <div class="dm-feature-section" style="margin:0">
+      <!-- Uitleg hoort rechtsboven, zoals in elke tabkop; hij stond onderaan
+           tussen de knoppen. -->
+      <div class="dm-kaartedit-kop">${window._helpBtn?.(type === 'dungeon' ? 'hulp_kaart_dungeon' : 'hulp_kaart_wereld') ?? ''}</div>
       <div class="dm-form-row"><label class="dm-form-label">Naam</label>
         <input id="kaart-edit-naam" class="dm-input" value="${esc(naam)}"></div>
       <div class="dm-form-row"><label class="dm-form-label">Beschrijving</label>
@@ -3095,7 +3098,10 @@ window._kaartEdit = async function(type, id) {
       <div class="dm-feature-row" style="margin-top:6px">
         <button class="dm-btn dm-btn-primary" onclick="window._kaartEditSave('${type}','${esc(id)}')">${icon('save')} Opslaan</button>
         <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
-        <span style="margin-left:auto">${window._helpBtn?.(type === 'dungeon' ? 'hulp_kaart_dungeon' : 'hulp_kaart_wereld') ?? ''}</span>
+        <!-- Verwijderen kon nergens meer: bij een hoofdkaart zat die knop in de
+             oude werkbalk boven de kaart, en die is met de galerij verdwenen. -->
+        <button class="dm-btn dm-btn-ghost dm-btn-danger" style="margin-left:auto"
+          onclick="window._kaartVerwijder('${type}','${esc(id)}','${escJS(naam)}')">${icon('trash')} Verwijderen</button>
       </div>
     </div>`;
   window.app.openModal('Kaart bewerken', naam, body);
@@ -3118,6 +3124,19 @@ window._kaartEditPickThumb = function() {
       });
     },
   });
+};
+
+window._kaartVerwijder = async function (type, id, naam) {
+  const wat = type === 'dungeon'
+    ? `Dungeon "${naam}" verwijderen?\n\nDe kamers, verbindingen en wat er onthuld is gaan mee. Vondsten blijven in de bibliotheek staan.`
+    : `Kaart "${naam}" verwijderen?\n\nDe spelden op deze kaart gaan mee; de locatiekaartjes zelf blijven bestaan.`;
+  if (!confirm(wat)) return;
+  try {
+    if (type === 'dungeon') await api.deleteDungeon(id);
+    else                    await api.deleteMap(id);
+    window.app.closeModal();
+    await window._kaartVerversen?.();
+  } catch (e) { alert('Verwijderen mislukt: ' + e.message); }
 };
 
 window._kaartEditSave = async function(type, id) {

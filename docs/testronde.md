@@ -370,6 +370,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Heen en weer tussen kaartje en kaart** (DM) — zet in de editor van een locatie een speld (tabblad *Kaart*): hij staat meteen op de wereldkaart. Sleep hem daar; open de editor opnieuw en de speld staat op de nieuwe plek. *Van de kaart halen* en het kruisje op de speld halen hem er allebei af, aan beide kanten
 - [ ] **De kiezer opent bij je speld** (DM) — een locatie die al op de stadskaart staat: het doek opent gecentreerd op de speld, niet in de linkerbovenhoek
 - [ ] **Eén kaartweergave** (DM) — plaats of verwijder een speld terwijl de kaart fullscreen openstaat: de kaart werkt daarna nog (zoomen, passend maken, spelden hertekenen). Eerder stond er na zo'n wijziging een tweede, onzichtbare kaart in de DOM die alle knoppen opslokte
+- [ ] **Dezelfde plek op twee kaarten** (DM) — pin een locatie op de stadskaart én op de continentkaart: het Kaart-tabblad van dat kaartje toont de **kleinste** kaart (Stad vóór Continent) en zet de andere eronder als knop
+- [ ] **Kaart verwijderen** (DM) — *Kaart bewerken* heeft een verwijderknop met een bevestiging die zegt wat er meegaat; daarna is het kaartje uit de galerij en zijn de spelden weg, maar de locatiekaartjes niet
 - [ ] **Kaart toevoegen/bewerken** (DM) — nieuwe kaart met naam en afbeelding, hernoemen, verwijderen; zonder kaarten verschijnt de lege staat met een knop
 - [ ] **Dungeon** (ALL) — kamers openklikken, fog-of-war per kamer onthullen, teller onderaan klopt
 - [ ] **Verdiepingen** (DM) — knopjes BG · 1 · −1; een trap brengt je naar de andere verdieping mét doelkamer, de tegenhanger wordt vanzelf aangelegd, en telt niet mee in de teller
