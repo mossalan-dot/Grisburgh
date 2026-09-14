@@ -162,6 +162,7 @@ function _buildShell() {
         <div class="dng-tools" id="dng-tools">
           <button class="dng-tool-btn active" data-tool="select" title="Selecteren">${icon('mouse-pointer-2')}</button>
           <button class="dng-tool-btn" data-tool="rect"   title="Rechthoek tekenen">${icon('square')}</button>
+          <button class="dng-tool-btn" data-tool="ovaal"  title="Ronde kamer tekenen">${icon('circle-dashed')}</button>
           <button class="dng-tool-btn" data-tool="poly"   title="Polygoon tekenen">${icon('hexagon')}</button>
           <button class="dng-tool-btn" data-tool="conn"   title="Verbinding tekenen">${icon('link')}</button>
           <span class="dng-tool-hint" id="dng-tool-hint"></span>
@@ -479,11 +480,16 @@ function _updateConnHint() {
 function _roomToSvgShape(room, W, H, cls, extra='', strokeOnly=false, fillColor=null) {
   const fill  = strokeOnly ? 'transparent' : (fillColor ?? 'black');
   const attrs = `class="${cls}" fill="${fill}" ${extra}`;
-  if (room.shape === 'rect' && room.points?.length === 2) {
+  if ((room.shape === 'rect' || room.shape === 'ovaal') && room.points?.length === 2) {
     const [[x1p,y1p],[x2p,y2p]] = room.points;
     const x = Math.min(x1p,x2p)/100*W, y = Math.min(y1p,y2p)/100*H;
     const w = Math.abs(x2p-x1p)/100*W, h = Math.abs(y2p-y1p)/100*H;
-    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" ${attrs}/>`;
+    // Een ronde kamer bewaart hetzelfde omhullende vak als een rechthoek; alleen
+    // de vorm die eruit getekend wordt verschilt. Zo verandert er niets aan de
+    // opslag, de mist-maskers of het slepen.
+    return room.shape === 'ovaal'
+      ? `<ellipse cx="${x + w/2}" cy="${y + h/2}" rx="${w/2}" ry="${h/2}" ${attrs}/>`
+      : `<rect x="${x}" y="${y}" width="${w}" height="${h}" ${attrs}/>`;
   }
   if (room.points?.length >= 3) {
     const pts = room.points.map(([px,py]) => `${px/100*W},${py/100*H}`).join(' ');
@@ -575,7 +581,7 @@ function _attachMapEvents() {
 
 function _toolCursor() {
   if (_tool === 'conn') return _connStart ? 'pointer' : 'crosshair';
-  return { select:'default', rect:'crosshair', poly:'crosshair' }[_tool] || 'default';
+  return { select:'default', rect:'crosshair', ovaal:'crosshair', poly:'crosshair' }[_tool] || 'default';
 }
 function _updateCursor() {
   const wrap = document.getElementById('dng-img-wrap');
@@ -615,8 +621,11 @@ function _handleDrawStart(ev, wrap) {
     return; // SVG onclick op de kamer-shapes regelt _dngClickRoom
   }
 
-  if (_tool === 'rect') {
-    _drawing = { type:'rect', startPct:[pctX,pctY], endPct:[pctX,pctY] };
+  // Een ronde kamer sleep je net als een rechthoek: het omhullende vak bepaalt
+  // de ovaal. Eén sleepbeweging dus, geen middelpunt-plus-straal — en een ovaal
+  // dekt ook de langwerpige zaal waar een strakke cirkel niet past.
+  if (_tool === 'rect' || _tool === 'ovaal') {
+    _drawing = { type: _tool, startPct:[pctX,pctY], endPct:[pctX,pctY] };
     _startRectDrag(img);
     return;
   }
@@ -644,7 +653,7 @@ function _startRectDrag(img) {
   const onUp = () => {
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onUp);
-    if (_drawing?.type === 'rect') _finishRect();
+    if (_drawing?.type === 'rect' || _drawing?.type === 'ovaal') _finishRect();
   };
   document.addEventListener('mousemove', onMove, { signal: sig });
   document.addEventListener('mouseup', onUp);
@@ -657,12 +666,13 @@ function _renderDrawPreview() {
   if (!layer || !img) return;
   const W=img.naturalWidth, H=img.naturalHeight;
 
-  if (_drawing?.type==='rect') {
+  if (_drawing?.type==='rect' || _drawing?.type==='ovaal') {
     const [[x1p,y1p],[x2p,y2p]] = [_drawing.startPct, _drawing.endPct];
     const x=Math.min(x1p,x2p)/100*W, y=Math.min(y1p,y2p)/100*H;
     const w=Math.abs(x2p-x1p)/100*W, h=Math.abs(y2p-y1p)/100*H;
-    layer.innerHTML = `<rect x="${x}" y="${y}" width="${w}" height="${h}"
-      class="dng-draw-preview"/>`;
+    layer.innerHTML = _drawing.type==='ovaal'
+      ? `<ellipse cx="${x+w/2}" cy="${y+h/2}" rx="${w/2}" ry="${h/2}" class="dng-draw-preview"/>`
+      : `<rect x="${x}" y="${y}" width="${w}" height="${h}" class="dng-draw-preview"/>`;
   } else if (_drawing?.type==='poly') {
     const pts = _drawing.points.map(([px,py])=>`${px/100*W},${py/100*H}`).join(' ');
     layer.innerHTML = `
@@ -681,9 +691,10 @@ function _renderDrawPreview() {
 
 function _finishRect() {
   if (!_drawing?.startPct || !_drawing?.endPct) { _cancelDrawing(); return; }
-  const pts = [_drawing.startPct, _drawing.endPct];
+  const pts  = [_drawing.startPct, _drawing.endPct];
+  const vorm = _drawing.type === 'ovaal' ? 'ovaal' : 'rect';
   _cancelDrawing();
-  _openRoomNameDialog({ shape:'rect', points: pts });
+  _openRoomNameDialog({ shape: vorm, points: pts });
 }
 
 function _finishPoly() {
@@ -930,7 +941,10 @@ function _renderSidebar(room) {
   sb.innerHTML = `
     <div class="dng-sb-detail-card">
       <div class="dng-sb-name">${esc(room.name)}</div>
-      <div class="dng-sb-shape">${room.shape === 'rect' ? icon('square')+' Rechthoek' : icon('hexagon')+' Polygoon'}</div>
+      <div class="dng-sb-shape">${
+        room.shape === 'rect'    ? icon('square') + ' Rechthoek'
+        : room.shape === 'ovaal' ? icon('circle-dashed') + ' Rond'
+        : icon('hexagon') + ' Polygoon'}</div>
       ${room.dmNotes ? `<div class="dng-sb-notes">${esc(room.dmNotes).replace(/\n/g,'<br>')}</div>` : ''}
       <div class="dng-sb-actions">
         ${!isRev ? `
@@ -1260,6 +1274,13 @@ function _findRoomAtPoint(map, pctX, pctY) {
 }
 
 function _pointInRoom(room, pctX, pctY) {
+  if (room.shape === 'ovaal' && room.points?.length === 2) {
+    const [[ax,ay],[bx,by]] = room.points;
+    const cx = (ax+bx)/2, cy = (ay+by)/2;
+    const rx = Math.abs(bx-ax)/2, ry = Math.abs(by-ay)/2;
+    if (!rx || !ry) return false;
+    return ((pctX-cx)/rx)**2 + ((pctY-cy)/ry)**2 <= 1;
+  }
   if (room.shape === 'rect' && room.points?.length === 2) {
     const [[x1,y1],[x2,y2]] = room.points;
     return pctX>=Math.min(x1,x2) && pctX<=Math.max(x1,x2)
