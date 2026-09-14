@@ -388,6 +388,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Dungeon aanmaken** (DM) — nieuwe dungeonkaart met afbeelding, kamers tekenen, namen geven
 - [ ] **Kamer verslepen en bijstellen** (DM) — met het selecteergereedschap sleep je een kamer naar een andere plek; de geselecteerde kamer heeft handvatten op zijn punten om hem bij te stellen. Loslaten bewaart. Bij overlappende kamers pak je de bovenste — die je aanwijst
 - [ ] **Ronde kamer** (DM) — met het cirkelgereedschap sleep je een ovaal; hij verschijnt als ronde vorm op de kaart, is aan te klikken (ook net buiten het vierkant eromheen niet), en de zijbalk zegt *Rond*
+- [ ] **Gevecht aan een kamer** (DM) — sectie *Tegenstand*: maak er een aan of koppel een bestaand gevecht; op de kaart verschijnt de schedel gestippeld, en het zwaardje start het gevecht. Loskoppelen laat het gevecht in de bibliotheek staan
+- [ ] **Muntje is de knop** (DM) — klik op het gestippelde muntje van een kamer met een vondst: het lootvenster opent met die vondst erin
+- [ ] **Wegklikken sluit de bewerkstand** (DM) — klik naast een kamer: selectie en handvatten weg, zijbalk leeg
 - [ ] **Kamerzijbalk** (DM) — beschrijving, monsters, vondsten en trap per kamer
 - [ ] **Dungeonvensters openen** (DM) — *+ Nieuw* opent het venster *Nieuwe dungeon map* (en niet onzichtbaar achter de kaart). De prullenbak ernaast verwijdert de dungeon; de ronde kruisknop rechtsboven sluit alleen het venster
 - [ ] **Dubbelklik zoomt in de dungeon** (DM) — met het selecteergereedschap zoomt dubbelklikken in op dat punt; met de polygoon sluit een dubbelklik nog steeds de vorm die je tekent

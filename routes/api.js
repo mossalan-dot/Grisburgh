@@ -11987,6 +11987,12 @@ router.post('/encounters', requireDM, (req, res) => {
     canvasColors: req.body.canvasColors || null,
     monsters:     req.body.monsters     || [],
     loot:         req.body.loot         || { goud: { fl: 0, kn: 0, cl: 0 }, items: [] },
+    // Een gevecht kan aan een dungeonkamer hangen, net als een vondst. De
+    // koppeling staat hier (in encounters.json) en niet in de dungeonkaart: zo
+    // blijft de kaart over vorm en fog-of-war gaan, en kun je het gevecht ook
+    // los starten.
+    dungeonId:    req.body.dungeonId    || null,
+    roomId:       req.body.roomId       || null,
   };
   data.encounters.push(enc);
   storage.writeJSON('encounters.json', data);

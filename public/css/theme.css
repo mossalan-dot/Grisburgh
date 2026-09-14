@@ -24765,3 +24765,34 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.7));
 }
 .dng-handle:hover { fill: #ffd98a; }
+
+/* ── Kamerdetail in de dungeonzijbalk ────────────────────────────────────────
+   De kop: naam met de verdieping, en het onthullen als oogje ernaast. Dat was
+   een groene balk over de volle breedte voor iets wat één klik is. */
+.dng-sb-kop { display: flex; align-items: flex-start; gap: 8px; }
+.dng-sb-kop .dng-sb-name { flex: 1; min-width: 0; }
+.dng-sb-verdieping { color: #8a7550; font-weight: 400; }
+.dng-sb-oog {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: 6px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(196,168,122,0.14); border: 1px solid rgba(196,168,122,0.5);
+  color: #7a6040; transition: background .12s ease, color .12s ease;
+}
+.dng-sb-oog:hover { background: rgba(196,168,122,0.3); }
+.dng-sb-oog--aan { color: #2a6030; border-color: rgba(50,140,60,0.5); background: rgba(50,140,60,0.12); }
+/* Bewerken en verwijderen naast elkaar; ze stonden onder elkaar over de volle
+   breedte en aten zo het halve paneel op. */
+.dng-sb-actions--rij { display: flex; gap: 6px; }
+.dng-sb-actions--rij .dng-btn { flex: 1; justify-content: center; }
+/* Symbolen in hun eigen kleur: een schedel in lijnkleur viel weg tussen de
+   andere drie. Dezelfde kleuren als op de kaart. */
+.dng-cond-btn--enemies { color: #8b3a32; }
+.dng-cond-btn--loot    { color: #8a6a10; }
+.dng-cond-btn--locked  { color: #6a6154; }
+.dng-cond-btn--cleared { color: #2a6030; }
+.dng-cond-btn--on { background: rgba(196,168,122,0.32); border-color: #9a7008; }
+.dng-sb-leeg { padding: 14px 2px; }
+/* Rij in Tegenstand/Vondsten: de naam mag krimpen, de knoppen blijven staan. */
+.dng-loot-row { display: flex; align-items: center; gap: 6px; }
+.dng-loot-naam { flex: 1; min-width: 0; }
+.dng-loot-dc { white-space: nowrap; }

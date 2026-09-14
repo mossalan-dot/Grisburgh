@@ -240,10 +240,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=592   app.js?v=757   sound-manager.js?v=8
+index.html  : theme.css?v=595   app.js?v=760   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
               render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=299
-              render-dashboard.js?v=9  render-dungeon.js?v=48  render-kaart.js?v=31
+              render-dashboard.js?v=9  render-dungeon.js?v=51  render-kaart.js?v=31
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
@@ -473,6 +473,30 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > **Dubbelklikken zoomt, overal.** Ook hier (`_zoomTrapDng`), maar alleen met het
 > selecteergereedschap: bij de polygoon sluit een dubbelklik de vorm die je
 > tekent.
+>
+> **De kamerzijbalk, op één plek herzien.** De naam draagt de verdieping (twee
+> lagen hebben vaak dezelfde kamernaam), onthullen is een **oogje** naast de
+> titel in plaats van een groene balk over de volle breedte, en onder de naam
+> staat de **aantekening van de DM** — niet de vorm van het vlak, die je zelf
+> getekend hebt. *Bewerken* en *Verwijderen* staan naast elkaar. De
+> symboolknoppen dragen hun eigen kleur, zodat de schedel niet wegvalt tussen
+> drie andere lijntekeningen. Wegklikken op een leeg stuk kaart sluit de
+> bewerkstand: selectie los, handvatten weg, zijbalk leeg.
+>
+> **Gevechten koppel je net als vondsten.** Sectie *Tegenstand* in de
+> kamerzijbalk: een nieuw gevecht maken, een bestaand koppelen, starten (via
+> `dmPanel.encStart`, die ook waarschuwt als er al een gevecht loopt) of
+> loskoppelen. De koppeling staat op de **encounter** (`dungeonId`/`roomId` in
+> `encounters.json`), niet in de dungeonkaart — zelfde reden als bij loot: de
+> kaart gaat over vorm en mist, en hetzelfde gevecht moet ook los te starten
+> zijn. De schedel op de kaart volgt die koppeling, zoals het muntje de vondst
+> volgt.
+>
+> **Het afgeleide muntje is de knop.** Klikken op het muntje van een kamer met
+> een gekoppelde vondst bouwt de verdeling en opent het lootvenster — anders zie
+> je het icoon liggen en moet je de vondst alsnog in de zijbalk opzoeken. De
+> schedel blijft bewust een markering: een gevecht start je niet met een klik op
+> een icoontje van een halve centimeter.
 >
 > **Kamers zijn te verslepen en bij te stellen.** Met het selecteergereedschap
 > verschuif je een kamer door hem te slepen; de geselecteerde kamer krijgt

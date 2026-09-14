@@ -30,8 +30,8 @@ const COND_TYPES = [
 ];
 // De sprite in een inline-SVG: een genest <svg> met een <use>, zodat het icoon
 // op kaartcoördinaten staat en met de kaart meeschaalt.
-const _condSpriteSvg = (naam, x, y, size, cls) => `<svg x="${x - size / 2}" y="${y - size / 2}"
-  width="${size}" height="${size}" viewBox="0 0 24 24" class="${cls}">
+const _condSpriteSvg = (naam, x, y, size, cls, extra = '') => `<svg x="${x - size / 2}" y="${y - size / 2}"
+  width="${size}" height="${size}" viewBox="0 0 24 24" class="${cls}" ${extra}>
   <use href="/img/icons.svg?v=10#icon-${naam}"/></svg>`;
 
 // ── State ──
@@ -55,6 +55,18 @@ async function _laadVondsten() {
 }
 const _vondstenVanKamer = (mapId, roomId) =>
   _lootEvents.filter(e => e.dungeonId === mapId && e.roomId === roomId);
+
+// Gevechten hangen op dezelfde manier aan een kamer: de koppeling staat op de
+// encounter (`dungeonId`/`roomId`) in encounters.json, niet in de dungeonkaart.
+// Zo kun je hetzelfde gevecht ook los starten en blijft de kaart over vorm en
+// mist gaan.
+let _encounters = [];
+async function _laadEncounters() {
+  if (!isDM()) { _encounters = []; return; }
+  try { _encounters = await api.listEncounters(); } catch { _encounters = []; }
+}
+const _encountersVanKamer = (mapId, roomId) =>
+  _encounters.filter(e => e.dungeonId === mapId && e.roomId === roomId);
 
 // ── Verdiepingen ────────────────────────────────────────────────────────────
 // Een gebouw is geen apart veld: welke kaarten bij elkaar horen leiden we af uit
@@ -124,6 +136,7 @@ window._dngNaarVerdieping = (mapId, roomId) => {
 export async function renderDungeon(container, openId) {
   _maps = await api.listDungeons();
   await _laadVondsten();
+  await _laadEncounters();
   if (openId) {
     const i = _maps.findIndex(m => m.id === openId);
     if (i >= 0) _mapIdx = i;
@@ -399,7 +412,15 @@ function _renderSvg() {
     // bewuste keuze: hij ziet alleen wat de DM zichtbaar heeft gezet.
     const afgeleid = isDM() && _vondstenVanKamer(map.id, r.id).length
       && !eigen.some(c => c.type === 'loot');
-    const conds = afgeleid ? [...eigen, { type: 'loot', visible: false, afgeleid: true }] : eigen;
+    // Hetzelfde voor een gekoppeld gevecht: de schedel volgt de koppeling, zodat
+    // je op de kaart ziet waar iets wacht zonder het twee keer vast te leggen.
+    const afgeleidEnc = isDM() && _encountersVanKamer(map.id, r.id).length
+      && !eigen.some(c => c.type === 'enemies');
+    const conds = [
+      ...eigen,
+      ...(afgeleid    ? [{ type: 'loot',    visible: false, afgeleid: true }] : []),
+      ...(afgeleidEnc ? [{ type: 'enemies', visible: false, afgeleid: true }] : []),
+    ];
     if (!conds.length) return '';
     const [cx, cy] = _roomCentroid(r, W, H);
     const size     = Math.max(W, H) * 0.030;
@@ -411,7 +432,13 @@ function _renderSvg() {
       const cls = `dng-cond-icon dng-cond-icon--${esc(c.type)}`
         + ((!c.visible && isDM()) ? ' dng-cond-icon--hidden' : '')
         + (c.afgeleid ? ' dng-cond-icon--afgeleid' : '');
-      return _condSpriteSvg(ct?.svgName || 'square', startX + i * step, iconY, size, cls);
+      // Het muntje dat uit een vondst volgt is meteen de knop: klikken opent de
+      // verdeling. Anders zou je het icoon zien liggen en er niets mee kunnen —
+      // en de vondst apart moeten opzoeken in de zijbalk.
+      const klik = (c.afgeleid && c.type === 'loot')
+        ? `onclick="window._dngVondstOnthul('${esc(r.id)}')" style="cursor:pointer"`
+        : '';
+      return _condSpriteSvg(ct?.svgName || 'square', startX + i * step, iconY, size, cls, klik);
     }).join('');
   }).join('');
 
@@ -587,6 +614,14 @@ function _attachMapEvents() {
     if (!panning) return;
     panning=false;
     wrap.style.cursor = _toolCursor();
+    // Naast een kamer klikken sluit de bewerkstand: selectie los, handvatten
+    // weg, zijbalk leeg. Slepen telt niet — dan was je aan het schuiven.
+    if (!panMoved && _tool === 'select' && _selectedRoom) {
+      _selectedRoom = null;
+      _renderSvg();
+      _renderRoomList();
+      _leegZijbalk();
+    }
   }, { signal: sig });
 
   _updateCursor();
@@ -872,6 +907,19 @@ window._dngClickRoom = (roomId) => {
   }
 };
 
+// De vondst van deze kamer onthullen — dezelfde weg als het muntje in de
+// zijbalk: de verdeling wordt gebouwd en het lootvenster gaat open.
+window._dngVondstOnthul = async (roomId) => {
+  const map = _maps[_mapIdx];
+  const ids = _vondstenVanKamer(map.id, roomId).map(v => v.id);
+  if (!ids.length) return;
+  try {
+    await window.dmPanel.lootVerdelingOpenen(ids);
+    await _laadVondsten();
+    _renderSvg();
+  } catch (e) { alert('Kon de verdeling niet maken: ' + e.message); }
+};
+
 window._dngPlayerClickRoom = (roomId) => {
   if (isDM()) return;
   const map  = _maps[_mapIdx];
@@ -893,6 +941,13 @@ window._dngPlayerClickRoom = (roomId) => {
   }, 3000);
 };
 
+// Niets geselecteerd: het detailpaneel leeg, met een regel die zegt wat je kunt
+// doen. Leeg laten voelt als iets wat stuk is.
+function _leegZijbalk() {
+  const sb = document.getElementById('dng-sidebar-detail');
+  if (sb) sb.innerHTML = '<p class="dng-sb-hint dng-sb-leeg">Klik een kamer aan om hem te bekijken of te verslepen.</p>';
+}
+
 function _renderSidebar(room) {
   const map       = _maps[_mapIdx];
   const groupId   = _activeGroupId();
@@ -909,7 +964,7 @@ function _renderSidebar(room) {
   // ── Conditie-toggle knoppen ──
   const condToggleHtml = COND_TYPES.map(ct => {
     const has = conditions.some(c => c.type === ct.id);
-    return `<button class="dng-cond-btn${has?' dng-cond-btn--on':''}"
+    return `<button class="dng-cond-btn dng-cond-btn--${ct.id}${has?' dng-cond-btn--on':''}"
       data-ctype="${ct.id}" title="${ct.label}">${icon(ct.svgName)}</button>`;
   }).join('');
 
@@ -943,6 +998,34 @@ function _renderSidebar(room) {
       }).join('')}
     </div>` : '';
 
+  // ── Gevechten in deze kamer ──
+  // Zelfde weg als bij de vondsten: hier maak je er een of koppel je een
+  // bestaande, en met het zwaardje start je 'm. Het bouwen van het gevecht zelf
+  // (monsters, backdrop, loot) blijft in de Meesterkamer — dit is de koppeling.
+  const gevechten = isDM() ? _encountersVanKamer(map.id, room.id) : [];
+  const losseEnc  = isDM() ? _encounters.filter(e => !e.roomId) : [];
+  const encHtml = isDM() ? `
+    <div class="dng-sb-section">
+      <div class="dng-sb-section-hdr">${icon('crossed-swords', { cls: 'icon-gi' })} Tegenstand</div>
+      ${gevechten.map(e => `
+        <div class="dng-loot-row">
+          <span class="dng-loot-naam">${esc(e.name)}${(e.monsters || []).length ? ` <span class="dng-loot-dc">${(e.monsters || []).length} wezens</span>` : ''}</span>
+          <button class="dng-btn dng-btn-sm dng-enc-start" data-encid="${esc(e.id)}"
+            title="Dit gevecht starten">${icon('play')}</button>
+          <button class="dng-btn dng-btn-sm dng-btn-danger dng-enc-los" data-encid="${esc(e.id)}"
+            title="Loskoppelen van deze kamer">${icon('x')}</button>
+        </div>`).join('') || '<p class="dng-sb-hint">Hier wacht niemand.</p>'}
+      <div class="dng-loot-acties">
+        <input class="dng-loot-nieuw-naam" id="dng-enc-nieuw-naam" placeholder="Wie wacht hier?">
+        <button class="dng-btn dng-btn-sm" id="dng-enc-nieuw" title="Gevecht toevoegen">${icon('plus')}</button>
+        ${losseEnc.length ? `
+          <select class="dng-loot-koppel" id="dng-enc-koppel">
+            <option value="">— koppel bestaand gevecht —</option>
+            ${losseEnc.map(e => `<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('')}
+          </select>` : ''}
+      </div>
+    </div>` : '';
+
   // ── Vondsten in deze kamer ──
   const vondsten = isDM() ? _vondstenVanKamer(map.id, room.id) : [];
   const losseVondsten = isDM() ? _lootEvents.filter(e => !e.roomId && !e.sjabloon) : [];
@@ -968,22 +1051,24 @@ function _renderSidebar(room) {
       </div>
     </div>` : '';
 
+  // De kop: naam met de verdieping erachter (je kijkt vaak naar twee kamers met
+  // dezelfde naam op twee lagen), en het onthullen als oogje ernaast in plaats
+  // van een balk over de volle breedte. Daaronder de aantekening van de DM —
+  // dát wil je zien als je een kamer aanklikt; de vorm van het vlak wist je al,
+  // je hebt hem zelf getekend.
+  const verdieping = Number.isFinite(map.verdieping) ? ` · ${_verdiepingLabel(map.verdieping)}` : '';
   sb.innerHTML = `
     <div class="dng-sb-detail-card">
-      <div class="dng-sb-name">${esc(room.name)}</div>
-      <div class="dng-sb-shape">${
-        room.shape === 'rect'    ? icon('square') + ' Rechthoek'
-        : room.shape === 'ovaal' ? icon('circle-dashed') + ' Rond'
-        : icon('hexagon') + ' Polygoon'}</div>
-      ${room.dmNotes ? `<div class="dng-sb-notes">${esc(room.dmNotes).replace(/\n/g,'<br>')}</div>` : ''}
-      <div class="dng-sb-actions">
-        ${!isRev ? `
-          <button class="dng-btn dng-btn-reveal" id="dng-reveal-btn">
-            ${icon('eye')} Onthul voor ${esc(groupId)}
-          </button>` : `
-          <button class="dng-btn dng-btn-hide" id="dng-hide-btn">
-            ${icon('moon')} Verberg voor ${esc(groupId)}
-          </button>`}
+      <div class="dng-sb-kop">
+        <div class="dng-sb-name">${esc(room.name)}<span class="dng-sb-verdieping">${esc(verdieping)}</span></div>
+        ${!isRev
+          ? `<button class="dng-sb-oog" id="dng-reveal-btn" title="Onthullen voor ${esc(groupId)}">${icon('eye-off')}</button>`
+          : `<button class="dng-sb-oog dng-sb-oog--aan" id="dng-hide-btn" title="Verbergen voor ${esc(groupId)}">${icon('eye')}</button>`}
+      </div>
+      ${room.dmNotes
+        ? `<div class="dng-sb-notes">${esc(room.dmNotes).replace(/\n/g,'<br>')}</div>`
+        : '<p class="dng-sb-hint">Geen aantekeningen. Zet ze erbij met Bewerken.</p>'}
+      <div class="dng-sb-actions dng-sb-actions--rij">
         <button class="dng-btn dng-btn-sm" id="dng-edit-room-btn">${icon('pencil')} Bewerken</button>
         <button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-delete-room-btn">${icon('trash')} Verwijderen</button>
       </div>
@@ -1010,6 +1095,7 @@ function _renderSidebar(room) {
           <select class="dng-loot-koppel" id="dng-trap-kamer" style="margin-top:5px;display:none"></select>
         `}
       </div>` : ''}
+      ${encHtml}
       ${lootHtml}
     </div>`;
 
@@ -1051,6 +1137,41 @@ function _renderSidebar(room) {
     _renderMapView();
     _renderSidebar(room);
   });
+
+  // ── Gevechten ──
+  const _voegGevechtToe = async () => {
+    const veld = document.getElementById('dng-enc-nieuw-naam');
+    const naam = veld?.value.trim();
+    if (!naam) { veld?.focus(); return; }
+    await api.createEncounter({ name: naam, dungeonId: map.id, roomId: room.id });
+    await _laadEncounters();
+    _renderSidebar(room);
+    _renderSvg();
+  };
+  document.getElementById('dng-enc-nieuw')?.addEventListener('click', _voegGevechtToe);
+  document.getElementById('dng-enc-nieuw-naam')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') _voegGevechtToe();
+  });
+  document.getElementById('dng-enc-koppel')?.addEventListener('change', async (e) => {
+    if (!e.target.value) return;
+    await api.updateEncounter(e.target.value, { dungeonId: map.id, roomId: room.id });
+    await _laadEncounters();
+    _renderSidebar(room);
+    _renderSvg();
+  });
+  sb.querySelectorAll('.dng-enc-los').forEach(b => b.addEventListener('click', async () => {
+    // Loskoppelen, niet weggooien: het gevecht blijft in de bibliotheek staan.
+    await api.updateEncounter(b.dataset.encid, { dungeonId: null, roomId: null });
+    await _laadEncounters();
+    _renderSidebar(room);
+    _renderSvg();
+  }));
+  sb.querySelectorAll('.dng-enc-start').forEach(b => b.addEventListener('click', async () => {
+    // Starten gaat via de Meesterkamer, want daar hoort het gevecht thuis: die
+    // waarschuwt ook als er al een gevecht loopt en opent de overlay.
+    try { await window.dmPanel?.encStart?.(b.dataset.encid); }
+    catch (err) { alert('Kon het gevecht niet starten: ' + err.message); }
+  }));
 
   // ── Vondsten ──
   const _voegVondstToe = async () => {
