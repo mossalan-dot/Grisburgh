@@ -240,9 +240,9 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=599   app.js?v=762   sound-manager.js?v=8
+index.html  : theme.css?v=600   app.js?v=762   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
-              render-archief.js?v=89  render-bestiarium.js?v=28  render-campagne.js?v=301
+              render-archief.js?v=91  render-bestiarium.js?v=29  render-campagne.js?v=302
               render-dashboard.js?v=9  render-dungeon.js?v=53  render-kaart.js?v=31
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=39
               render-statblock.js?v=9  socket-client.js?v=71
@@ -821,10 +821,17 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > tijdens het laden bestaat de helper nog niet (`_detailVegen()` hangt hem aan bij
 > het eerste kaartje dat opengaat).
 >
-> Waar het aan hangt: het **detailvenster** van een kaartje (`window._detailBuur`),
-> het **spreukdetail** (`_spreukBuur`), het **bladeren door een brief** (alleen
-> vegen; de pijltjes deden dat al) en de **subtabbladen van de speler** (alleen
-> vegen — in het spreukenboek zijn de pijltjes al bezet).
+> Waar het aan hangt: het **gedeelde venster** (`openModal` bindt het één keer;
+> wie het venster vult zegt via `window._bladerBron` wat "de volgende" is —
+> zonder die haak is het een kaartje uit het archief, mét is het bijvoorbeeld het
+> **bestiarium**), het **spreukdetail**, het **bladeren door een brief**, de
+> **subtabbladen van de speler**, de **beeldcarrousel** in het logboek, de
+> **lightbox** (behalve ingezoomd: dan is slepen pannen) en het **missiebord** op
+> een smal scherm.
+>
+> **Het missiebord op een telefoon** toont één kolom tegelijk met de statusnamen
+> als strip erboven (`.prikbord[data-kolom]`, media-query op 760 px); op een breed
+> scherm staat de strip uit en verandert er niets.
 >
 > **Wat "de volgende" betekent:** de volgende in de lijst **zoals je hem nu
 > gefilterd ziet**. Anders spring je naar iets wat nergens op het scherm ligt.

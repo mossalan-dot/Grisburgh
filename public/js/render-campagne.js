@@ -4148,6 +4148,18 @@ window._maakBanner = (idx) => {
 // Het volgende kaartje is het volgende kaartje **zoals het raster het nu toont**:
 // met het zoekfilter en de sortering die aanstaan. Anders spring je naar iets
 // wat je op het scherm nergens ziet liggen.
+// Eén ingang voor bladeren in het gedeelde venster. Wie het venster vult mag
+// zeggen hoe "de volgende" eruitziet (`window._bladerBron`); staat dat er niet,
+// dan is het een kaartje uit het archief. In de editor bladert er niets — daar
+// staat een formulier.
+window._modalBlader = (richting) => {
+  const ov = document.getElementById('modal-overlay');
+  if (!ov?.classList.contains('active')) return;
+  if (document.querySelector('#m-body form')) return;
+  if (typeof window._bladerBron === 'function') return window._bladerBron(richting);
+  if (window._currentDetailId) return window._detailBuur(richting);
+};
+
 window._detailBuur = async (richting) => {
   const tab = window._currentDetailTab, id = window._currentDetailId;
   if (!tab || !id || !entities[tab]) return;
@@ -4167,12 +4179,9 @@ function _detailVegen() {
   const ov = document.getElementById('modal-overlay');
   if (!ov || ov.dataset.veegKlaar) return;
   ov.dataset.veegKlaar = '1';
-  const actief = () => ov.classList.contains('active')
-    && window._currentDetailId
-    && !document.querySelector('#m-body form');   // in de editor bladert links/rechts niet
   window._veegNavigatie?.(ov, {
-    vorige:   () => { if (actief()) window._detailBuur(-1); },
-    volgende: () => { if (actief()) window._detailBuur(1); },
+    vorige:   () => window._modalBlader(-1),
+    volgende: () => window._modalBlader(1),
   });
 }
 
@@ -4181,6 +4190,7 @@ let _detailToken = 0;   // Annuleer concurrent _openDetail aanroepen
 
 window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   _detailVegen();                   // eerste keer: vegen en pijltjes aanhangen
+  window._bladerBron = null;        // dit venster toont een kaartje, geen statblok
   const myToken = ++_detailToken;   // Uniek token voor deze aanroep
 
   const prevTab = window._currentDetailTab;

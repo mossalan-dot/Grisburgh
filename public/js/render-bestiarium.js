@@ -233,6 +233,15 @@ window.bestiarium = {
     window.app.openModal(m.name, subtitle, renderStatblock(m, { niveau, kop: false }));
     // Spreuknamen in het statblok klikbaar maken; de bibliotheek laadt lui.
     window.spreuken?.linkInDom?.(document.getElementById('m-body'));
+    // Vegen en ← / → bladeren door de **gefilterde** lijst, net als bij de
+    // kaartjes. `open(i)` telt in de volledige lijst; de buren zoeken we in wat
+    // het raster op dit moment toont.
+    window._bladerBron = (richting) => {
+      const zichtbaar = _gefilterd(_data.monsters || []);
+      const pos = zichtbaar.findIndex(x => x.id === m.id);
+      const doel = zichtbaar[pos + richting];
+      if (pos >= 0 && doel) this.openId(doel.id);
+    };
   },
   // Cycle het kennisniveau: Onbekend → Naam → Deels → Volledig → Onbekend.
   async cycleNiveau(monsterId, btnEl) {

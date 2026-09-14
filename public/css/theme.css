@@ -24836,3 +24836,32 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
 .dng-btn-icoon { flex: 0 0 auto; width: 34px; padding: 0; justify-content: center; }
 /* Specifieker dan de rij-regel hierboven (twee klassen), anders blijft flex:1 staan. */
 .dng-sb-actions--rij .dng-btn-icoon { flex: 0 0 34px; width: 34px; padding: 0; }
+
+/* ── Missiebord op een smal scherm ───────────────────────────────────────────
+   Zes kolommen van 220 px passen niet op een telefoon; daar toont het bord er
+   één tegelijk, met de statusnamen als strip erboven en vegen ertussen. Op een
+   breed scherm staat de strip uit en verandert er niets. */
+.prikbord-strip { display: none; }
+@media (max-width: 760px) {
+  .prikbord-strip {
+    display: flex; gap: 6px; overflow-x: auto; padding: 10px 14px 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .prikbord-strip-knop {
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    padding: 5px 10px; border-radius: 999px; cursor: pointer;
+    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.04em;
+    color: #5a4030; background: rgba(196,168,122,0.14);
+    border: 1px solid rgba(196,168,122,0.45);
+  }
+  .prikbord-strip-knop.is-actief { background: rgba(196,168,122,0.38); color: #2a1a08; border-color: #9a7008; }
+  .prikbord-strip-knop .icon { width: 12px; height: 12px; }
+  .prikbord { overflow-x: hidden; }
+  .prikbord .prikbord-col { display: none; max-width: none; }
+  .prikbord[data-kolom="verborgen"]    .prikbord-col--verborgen,
+  .prikbord[data-kolom="aangevraagd"]  .prikbord-col--aangevraagd,
+  .prikbord[data-kolom="actief"]       .prikbord-col--actief,
+  .prikbord[data-kolom="in-uitvoering"] .prikbord-col--in-uitvoering,
+  .prikbord[data-kolom="voltooid"]     .prikbord-col--voltooid,
+  .prikbord[data-kolom="mislukt"]      .prikbord-col--mislukt { display: flex; }
+}

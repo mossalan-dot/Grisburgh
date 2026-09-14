@@ -236,6 +236,28 @@ function _questRot(id) {
   return ((h % 9) - 4) * 0.55; // −2.2° … +2.2°
 }
 
+// Welke kolom je op een smal scherm ziet. Op een breed scherm staan ze allemaal
+// naast elkaar en doet dit niets.
+let _prikbordKolom = null;
+const _prikbordSmal = () => window.innerWidth <= 760;
+
+window._prikbordNaar = (key) => {
+  _prikbordKolom = key;
+  const bord = document.querySelector('.prikbord');
+  if (bord) bord.dataset.kolom = key;
+  document.querySelectorAll('.prikbord-strip-knop').forEach((b, i) => {
+    b.classList.toggle('is-actief', b.getAttribute('onclick')?.includes(`'${key}'`));
+  });
+};
+
+window._prikbordStap = (richting) => {
+  if (!_prikbordSmal()) return;                 // breed scherm: alles staat er al
+  const knoppen = [...document.querySelectorAll('.prikbord-strip-knop')];
+  const i = knoppen.findIndex(b => b.classList.contains('is-actief'));
+  const doel = knoppen[i + richting];
+  if (doel) doel.click();
+};
+
 async function _renderPrikbord(container) {
   const isDm = isDM();
 
@@ -350,8 +372,22 @@ async function _renderPrikbord(container) {
     </div>
     </details>` : '';
 
+  // Op een telefoon passen zes kolommen niet naast elkaar: daar toont het bord er
+  // één tegelijk, met de statusnamen als strip erboven en vegen ertussen. Op een
+  // breed scherm verandert er niets (de strip staat in de CSS uit).
+  if (!_prikbordKolom || !cols.some(c => c.key === _prikbordKolom)) {
+    _prikbordKolom = cols.some(c => c.key === 'actief') ? 'actief' : cols[0]?.key;
+  }
+
   bodyEl.innerHTML = `
-    <div class="prikbord">
+    <div class="prikbord-strip">
+      ${cols.map(col => `
+        <button class="prikbord-strip-knop${col.key === _prikbordKolom ? ' is-actief' : ''}"
+          onclick="window._prikbordNaar('${col.key}')">${col.label}
+          <span class="prikbord-col-count">${visibleQuests.filter(q => q.status === col.key).length}</span>
+        </button>`).join('')}
+    </div>
+    <div class="prikbord" data-kolom="${esc(_prikbordKolom)}">
       ${cols.map(col => `
         <div class="prikbord-col prikbord-col--${col.key}">
           <div class="prikbord-col-header"${col.tip ? ` title="${esc(col.tip)}"` : ''}>
@@ -369,6 +405,14 @@ async function _renderPrikbord(container) {
     </div>
     ${factieBand}
   `;
+
+  // Vegen tussen de kolommen (alleen op een smal scherm; `_prikbordStap` kijkt
+  // daar zelf naar). Geen pijltjestoetsen: op een breed scherm staat alles er al.
+  window._veegNavigatie?.(bodyEl.querySelector('.prikbord'), {
+    vorige:   () => window._prikbordStap(-1),
+    volgende: () => window._prikbordStap(1),
+    toetsen:  false,
+  });
 
   window._factieBandToggle = (open) => { try { localStorage.setItem('factieBandOpen', open ? '1' : '0'); } catch { /* ok */ } };
   window._questNew    = (status) => _openQuestModal(null, status);
@@ -445,23 +489,23 @@ async function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
     ).join('');
   } catch {}
 
-  const overlay = document.createElement('div');
-  overlay.id = 'quest-modal-overlay';
-  overlay.className = 'quest-modal-overlay';
-  overlay.innerHTML = `
-    <div class="quest-modal" onclick="event.stopPropagation()">
-      <div class="quest-modal-title">${existingQuest ? 'Missie bewerken' : 'Nieuwe missie'}</div>
-      <div class="quest-modal-row">
-        <label class="quest-modal-label">Titel</label>
+  // Zelfde venster en dezelfde bouwstenen als de rest van de app
+  // (`window.app.openModal` + dm-form-row / dm-input / dm-btn). Dit formulier had
+  // een eigen overlay met eigen `quest-modal-*`-klassen, en dan krijg je voor
+  // hetzelfde soort werk twee verschillende vensters.
+  window.app.openModal(existingQuest ? 'Missie bewerken' : 'Nieuwe missie', '', `
+    <div class="dm-feature-section" style="margin:0">
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="qm-title">Titel</label>
         <input id="qm-title" class="dm-input" value="${(existingQuest?.title || '').replace(/"/g,'&quot;')}" placeholder="Missietitel…">
       </div>
-      <div class="quest-modal-row">
-        <label class="quest-modal-label">Omschrijving</label>
-        <textarea id="qm-desc" class="dm-textarea" rows="3" placeholder="Korte omschrijving…">${existingQuest?.description || ''}</textarea>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="qm-desc">Omschrijving</label>
+        <textarea id="qm-desc" class="dm-input" rows="3" placeholder="Korte omschrijving…">${existingQuest?.description || ''}</textarea>
       </div>
-      <div class="quest-modal-row">
-        <label class="quest-modal-label">Status</label>
-        <select id="qm-status" class="dm-select">
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="qm-status">Status</label>
+        <select id="qm-status" class="dm-input" style="max-width:260px">
           <!-- Zelfde volgorde als de kolommen op het bord, anders zoek je in het
                venster op een andere plek dan waar je hem net zag staan. -->
           <option value="verborgen"     ${(existingQuest?.status ?? defaultStatus) === 'verborgen'     ? 'selected':''}>Verborgen (alleen DM)</option>
@@ -472,53 +516,54 @@ async function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
           <option value="mislukt"       ${(existingQuest?.status ?? defaultStatus) === 'mislukt'       ? 'selected':''}>Mislukt</option>
         </select>
       </div>
-      <div class="quest-modal-row">
-        <label class="quest-modal-label">Gegeven door</label>
-        <input id="qm-gever" class="dm-input" list="qm-gever-dl" autocomplete="off"
-          placeholder="Personage of organisatie\u2026" value="${esc(_geverNaam)}">
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="qm-gever">Gegeven door</label>
+        <input id="qm-gever" class="dm-input" list="qm-gever-dl" autocomplete="off" style="max-width:300px"
+          placeholder="Personage of organisatie…" value="${esc(_geverNaam)}">
         <datalist id="qm-gever-dl">${_geverOpties}</datalist>
       </div>
-      <div class="quest-modal-row">
-        <label class="quest-modal-label">Akte</label>
-        <select id="qm-chapter" class="dm-select">
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="qm-chapter">Akte</label>
+        <select id="qm-chapter" class="dm-input" style="max-width:260px">
           <option value="">— geen akte —</option>
           ${chOptions}
         </select>
       </div>
-      <hr style="border:none;border-top:1px solid rgba(196,168,122,0.3);margin:8px 0">
-      <div class="quest-modal-row">
-        <label class="quest-modal-label">Factie</label>
-        <select id="qm-factie" class="dm-select">${factieOpties}</select>
+
+      <div class="dm-section-label" style="margin-top:10px">Factie</div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="qm-factie">Hoort bij</label>
+        <select id="qm-factie" class="dm-input" style="max-width:260px">${factieOpties}</select>
       </div>
       <div id="qm-factie-velden" style="${existingQuest?.factieId ? '' : 'display:none'}">
-        <div class="quest-modal-row">
-          <label class="quest-modal-label">Vereist renown</label>
-          <input id="qm-vereist-renown" class="dm-input" type="number" min="0" style="width:80px"
+        <div class="dm-form-row">
+          <label class="dm-form-label" for="qm-vereist-renown">Vereist renown</label>
+          <input id="qm-vereist-renown" class="dm-input dm-input-sm" type="number" min="0" style="width:80px"
             value="${existingQuest?.vereistRenown ?? 0}">
         </div>
-        <div class="quest-modal-row">
-          <label class="quest-modal-label">Renown-beloning</label>
-          <input id="qm-renown-beloning" class="dm-input" type="number" min="0" style="width:80px"
+        <div class="dm-form-row">
+          <label class="dm-form-label" for="qm-renown-beloning">Renown-beloning</label>
+          <input id="qm-renown-beloning" class="dm-input dm-input-sm" type="number" min="0" style="width:80px"
             value="${existingQuest?.renownBeloning ?? 1}">
         </div>
-        <div class="quest-modal-row" style="gap:6px">
-          <label class="quest-modal-label">Valuta-beloning</label>
-          <input id="qm-valuta-fl" class="dm-input" type="number" min="0" style="width:60px" placeholder="fl"
-            value="${existingQuest?.valuta?.fl ?? ''}">
-          <input id="qm-valuta-kn" class="dm-input" type="number" min="0" style="width:60px" placeholder="kn"
-            value="${existingQuest?.valuta?.kn ?? ''}">
-          <input id="qm-valuta-cl" class="dm-input" type="number" min="0" style="width:60px" placeholder="cl"
-            value="${existingQuest?.valuta?.cl ?? ''}">
+        <div class="dm-form-row">
+          <label class="dm-form-label">Valuta-beloning</label>
+          <div class="dm-knoprij">
+            <input id="qm-valuta-fl" class="dm-input dm-input-sm" type="number" min="0" style="width:64px" placeholder="fl"
+              value="${existingQuest?.valuta?.fl ?? ''}">
+            <input id="qm-valuta-kn" class="dm-input dm-input-sm" type="number" min="0" style="width:64px" placeholder="kn"
+              value="${existingQuest?.valuta?.kn ?? ''}">
+            <input id="qm-valuta-cl" class="dm-input dm-input-sm" type="number" min="0" style="width:64px" placeholder="cl"
+              value="${existingQuest?.valuta?.cl ?? ''}">
+          </div>
         </div>
       </div>
-      <div class="quest-modal-actions">
-        <button class="dm-btn dm-btn-ghost" onclick="document.getElementById('quest-modal-overlay').remove()">Annuleren</button>
-        <button class="dm-btn dm-btn-primary" onclick="window._questSave('${existingQuest?.id || ''}')">Opslaan</button>
+
+      <div class="dm-feature-row" style="margin-top:8px">
+        <button class="dm-btn dm-btn-primary" onclick="window._questSave('${existingQuest?.id || ''}')">${icon('save')} Opslaan</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
       </div>
-    </div>
-  `;
-  overlay.addEventListener('click', () => overlay.remove());
-  document.body.appendChild(overlay);
+    </div>`);
   document.getElementById('qm-title')?.focus();
 
   // Toon/verberg factie-velden bij wijziging factie-select
@@ -547,7 +592,7 @@ async function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
     try {
       if (id) await api.updateQuest(id, payload);
       else    await api.createQuest(payload);
-      document.getElementById('quest-modal-overlay')?.remove();
+      window.app.closeModal();
       await renderLogboek();
     } catch (err) { alert('Opslaan mislukt: ' + err.message); }
   };
@@ -840,6 +885,8 @@ function _renderCarousel(key, images, opts = {}) {
   _carouselPos[key]   = 0;
   _carouselCaptions[key] = items.map(i => i.caption || '');
   _carouselItems[key] = items;
+  // De carrousel staat er pas ná deze render; koppel het vegen daarna.
+  if (items.length > 1) setTimeout(() => window._carouselVeeg(key, items.length), 0);
 
   return `
     <div class="mb-4">
@@ -879,6 +926,20 @@ function _renderCarousel(key, images, opts = {}) {
       </div>` : ''}
     </div>`;
 }
+
+// Vegen door de afbeeldingen in het logboek. De carrousel schuift zelf met een
+// transform (geen scrollbalk), dus hij valt niet onder de "dit schuift al zelf"-
+// uitzondering in `_veegNavigatie` — vandaar deze expliciete koppeling.
+window._carouselVeeg = (key, total) => {
+  const el = document.getElementById(`carousel-track-${key}`)?.parentElement;
+  if (!el || el.dataset.veegKlaar) return;
+  el.dataset.veegKlaar = '1';
+  window._veegNavigatie?.(el, {
+    vorige:   () => window._carouselStep(key, -1, total),
+    volgende: () => window._carouselStep(key, 1, total),
+    toetsen:  false,
+  });
+};
 
 window._carouselStep = (key, dir, total) => {
   window._carouselGo(key, ((_carouselPos[key] || 0) + dir + total) % total, total);

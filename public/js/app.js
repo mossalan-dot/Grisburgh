@@ -1,11 +1,11 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=285';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=301";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=89";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=302";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=91";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
-import { renderBestiarium } from './render-bestiarium.js?v=28';
+import { renderBestiarium } from './render-bestiarium.js?v=29';
 import { renderSpreuken } from './render-spreuken.js?v=39';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=72";
@@ -1737,6 +1737,17 @@ async function playerLogout() {
 
 // ── Modal ──
 function openModal(title, subtitle, bodyHtml) {
+  // Bladeren met vegen en ← / → hangt aan het venster zelf, niet aan wie het
+  // vult: élk venster komt hier langs (kaartje, statblok, formulier). Wat "de
+  // volgende" is, bepaalt `window._modalBlader`.
+  const _ov = $('#modal-overlay');
+  if (_ov && !_ov.dataset.veegKlaar) {
+    _ov.dataset.veegKlaar = '1';
+    window._veegNavigatie?.(_ov, {
+      vorige:   () => window._modalBlader?.(-1),
+      volgende: () => window._modalBlader?.(1),
+    });
+  }
   const modal = document.querySelector('#modal-overlay .modal');
   if (modal) { modal.style.minHeight = ''; modal.classList.remove('modal--wide'); }   // reset bij heropenen
   // Annuleer eventueel lopende portret-load van vorige modal
@@ -1780,6 +1791,7 @@ function closeModal() {
   // Reset navigatiehistory en tracking
   window._currentDetailTab = null;
   window._currentDetailId  = null;
+  window._bladerBron       = null;   // wie het venster vulde, bladert niet meer
   if (window._clearHistory) window._clearHistory();
   // Verberg shop-tooltip als die nog zichtbaar was
   document.getElementById('shop-item-tooltip')?.classList.add('hidden');
@@ -1999,6 +2011,14 @@ $('#lb-img').addEventListener('dblclick', (e) => {
   img.addEventListener('pointerup', endPointer);
   img.addEventListener('pointercancel', endPointer);
 })();
+
+// Vegen door de afbeeldingen — behalve ingezoomd: dan is slepen pannen, en dan
+// zou elke duw naar links het volgende plaatje openen.
+window._veegNavigatie?.($('#lightbox'), {
+  vorige:   () => { if (lbZoom <= LB_ZOOM_MIN + 0.001) lbNavigate(-1); },
+  volgende: () => { if (lbZoom <= LB_ZOOM_MIN + 0.001) lbNavigate(1); },
+  toetsen:  false,   // de pijltjes hangen hieronder al
+});
 
 document.addEventListener('keydown', (e) => {
   if ($('#lightbox').classList.contains('hidden')) return;
