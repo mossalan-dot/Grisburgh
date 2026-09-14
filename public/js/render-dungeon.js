@@ -40,7 +40,6 @@ let _mapIdx      = 0;       // huidig gekozen map
 let _tool        = 'select';// 'select' | 'rect' | 'poly' | 'conn'
 let _drawing     = null;    // lopende tekenoperatie
 let _selectedRoom= null;    // geselecteerde kamer-id (DM)
-let _connStart   = null;    // roomId: eerste kamer van verbindingstool
 let _zoom        = 1.0;
 let _panX        = 0;
 let _panY        = 0;
@@ -164,7 +163,6 @@ function _buildShell() {
           <button class="dng-tool-btn" data-tool="rect"   title="Rechthoek tekenen">${icon('square')}</button>
           <button class="dng-tool-btn" data-tool="ovaal"  title="Ronde kamer tekenen">${icon('circle-dashed')}</button>
           <button class="dng-tool-btn" data-tool="poly"   title="Polygoon tekenen">${icon('hexagon')}</button>
-          <button class="dng-tool-btn" data-tool="conn"   title="Verbinding tekenen">${icon('link')}</button>
           <span class="dng-tool-hint" id="dng-tool-hint"></span>
         </div>
         ` : ''}
@@ -207,7 +205,6 @@ function _attachShellEvents() {
       document.querySelectorAll('.dng-tool-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       _cancelDrawing();
-      _connStart = null; // reset verbindingstool bij toolwissel
       _updateCursor();
       _updateConnHint();
       _renderSvg();
@@ -325,12 +322,10 @@ function _renderSvg() {
   const allRoomsSvg = isDM() ? rooms.map(r => {
     const isRevealed = revealed.has(r.id);
     const isSel      = r.id === _selectedRoom;
-    const isConnSt   = r.id === _connStart;
     const cls = [
       'dng-room',
       isRevealed ? 'dng-room-revealed' : '',
       isSel      ? 'dng-room-selected' : '',
-      isConnSt   ? 'dng-conn-start'    : '',
     ].filter(Boolean).join(' ');
     return _roomToSvgShape(r, W, H, cls, `onclick="window._dngClickRoom('${r.id}')"`, true);
   }).join('') : '';
@@ -365,7 +360,7 @@ function _renderSvg() {
       text-anchor="middle" dominant-baseline="middle">${esc(r.name)}</text>`;
   }).join('') : '';
 
-  // ── Trappen: pijl omhoog of omlaag, met een klik naar die verdieping ──
+  // ── Doorgangen: pijl omhoog of omlaag, met een klik naar die verdieping ──
   const trapSvg = rooms.filter(r => _isTrap(r) && (isDM() || revealed.has(r.id))).map(r => {
     const [cx, cy] = _roomCentroid(r, W, H);
     const doel     = _maps.find(m => m.id === r.trapNaar.mapId);
@@ -451,7 +446,7 @@ function _updateRevealCount() {
   const el = document.getElementById('dng-reveal-count');
   if (!el || !isDM() || !_maps.length) return;
   const map     = _maps[_mapIdx];
-  // Een trap is doorgang, geen kamer om te ontdekken — die telt niet mee.
+  // Een doorgang is geen kamer om te ontdekken — die telt niet mee.
   const rooms   = (map.rooms || []).filter(r => !_isTrap(r));
   const groupId = _activeGroupId();
   const revIds  = map.reveals?.[groupId] || [];
@@ -460,21 +455,14 @@ function _updateRevealCount() {
   el.style.display = rooms.length ? '' : 'none';
 }
 
+// De gereedschapshint hing aan het verbindingsgereedschap; dat is eruit. De
+// haak blijft, want het volgende gereedschap dat uitleg nodig heeft kan hem zo
+// weer gebruiken.
 function _updateConnHint() {
   const hint = document.getElementById('dng-tool-hint');
   if (!hint) return;
-  if (_tool === 'conn') {
-    hint.textContent = _connStart
-      ? 'Klik op een tweede kamer om te verbinden (of opnieuw om te annuleren)'
-      : 'Klik op een kamer om te starten';
-    // De volledige tekst in de tooltip: op een smal scherm kort de balk hem af
-    // in plaats van door te lopen op een tweede regel.
-    hint.title = hint.textContent;
-    hint.style.display = 'inline';
-  } else {
-    hint.textContent = '';
-    hint.style.display = 'none';
-  }
+  hint.textContent = '';
+  hint.style.display = 'none';
 }
 
 function _roomToSvgShape(room, W, H, cls, extra='', strokeOnly=false, fillColor=null) {
@@ -580,7 +568,6 @@ function _attachMapEvents() {
 }
 
 function _toolCursor() {
-  if (_tool === 'conn') return _connStart ? 'pointer' : 'crosshair';
   return { select:'default', rect:'crosshair', ovaal:'crosshair', poly:'crosshair' }[_tool] || 'default';
 }
 function _updateCursor() {
@@ -608,18 +595,6 @@ function _handleDrawStart(ev, wrap) {
   if (!img) return;
   const [svgX, svgY] = _svgPoint(ev, img);
   const [pctX, pctY] = _svgToPercent(svgX, svgY, img);
-
-  if (_tool === 'conn') {
-    // Als je buiten een kamer klikt, reset connStart
-    const room = _findRoomAtPoint(_maps[_mapIdx], pctX, pctY);
-    if (!room && _connStart) {
-      _connStart = null;
-      _renderSvg();
-      _updateCursor();
-      _updateConnHint();
-    }
-    return; // SVG onclick op de kamer-shapes regelt _dngClickRoom
-  }
 
   // Een ronde kamer sleep je net als een rechthoek: het omhullende vak bepaalt
   // de ovaal. Eén sleepbeweging dus, geen middelpunt-plus-straal — en een ovaal
@@ -706,7 +681,6 @@ function _finishPoly() {
 
 function _switchToSelect() {
   _tool = 'select';
-  _connStart = null;
   document.querySelectorAll('.dng-tool-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.tool === 'select'));
   _updateCursor();
@@ -723,24 +697,12 @@ function _cancelDrawing() {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Verbindingstool
+// Verbindingslijnen tussen kamers werden met een eigen gereedschap getekend: een
+// stippellijn die spelers zagen zodra één van de twee kamers open was — een hint
+// dat er verderop meer is. In de praktijk voegde dat niets toe naast de kamers
+// zelf, dus het gereedschap is eruit. Wat er al getekend is blijft staan en
+// blijft te verwijderen in de kamerzijbalk; alleen bijtekenen kan niet meer.
 // ──────────────────────────────────────────────────────────────────
-async function _createConnection(fromId, toId) {
-  const map = _maps[_mapIdx];
-  if (!map.connections) map.connections = [];
-
-  // Controleer of verbinding al bestaat (bidirectioneel)
-  const exists = map.connections.some(c =>
-    (c.fromId === fromId && c.toId === toId) ||
-    (c.fromId === toId   && c.toId === fromId)
-  );
-  if (!exists) {
-    map.connections.push({ id: uid(), fromId, toId });
-    await _saveRooms();
-  } else {
-    _renderSvg(); // herrender voor highlight-reset
-  }
-}
 
 // ──────────────────────────────────────────────────────────────────
 // Kamer naam/notities dialog
@@ -821,24 +783,6 @@ window._dngClickRoom = (roomId) => {
     _renderSidebar(room);
     _renderRoomList();
     _scrollToSelected();
-  } else if (_tool === 'conn') {
-    if (!_connStart) {
-      _connStart = roomId;
-      _renderSvg();
-      _updateCursor();
-      _updateConnHint();
-    } else if (_connStart === roomId) {
-      // Klik op dezelfde kamer → annuleer
-      _connStart = null;
-      _renderSvg();
-      _updateCursor();
-      _updateConnHint();
-    } else {
-      _createConnection(_connStart, roomId);
-      _connStart = null;
-      _updateCursor();
-      _updateConnHint();
-    }
   }
 };
 
@@ -965,16 +909,16 @@ function _renderSidebar(room) {
       ${connsHtml}
       ${isDM() ? `
       <div class="dng-sb-section">
-        <div class="dng-sb-section-hdr">Trap</div>
+        <div class="dng-sb-section-hdr">Doorgang</div>
         ${_isTrap(room) ? `
           <div class="dng-trap-rij">
             <span>${icon('link')} naar ${esc(_maps.find(m => m.id === room.trapNaar.mapId)?.name || 'andere kaart')}</span>
-            <button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-trap-weg" title="Trap weghalen">${icon('x')}</button>
+            <button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-trap-weg" title="Doorgang weghalen">${icon('x')}</button>
           </div>
-          <p class="dng-sb-hint">Klik op de pijl in de kaart om erheen te gaan.</p>
+          <p class="dng-sb-hint">Klik op de pijl in de kaart om erheen te gaan. Een doorgang kan een trap zijn, maar net zo goed een lift, een luik of een teleportcirkel.</p>
         ` : `
           <select class="dng-loot-koppel" id="dng-trap-kaart">
-            <option value="">— maak hier een trap naar… —</option>
+            <option value="">— maak hier een doorgang naar… —</option>
             ${_maps.filter(m => m.id !== map.id).map(m => `<option value="${esc(m.id)}">${esc(m.name || 'Kaart')}${Number.isFinite(m.verdieping) ? ` (${esc(_verdiepingLabel(m.verdieping))})` : ''}</option>`).join('')}
           </select>
           <select class="dng-loot-koppel" id="dng-trap-kamer" style="margin-top:5px;display:none"></select>
@@ -983,9 +927,12 @@ function _renderSidebar(room) {
       ${lootHtml}
     </div>`;
 
-  // ── Trap ──
-  // Tweezijdig: leg je een trap van hier naar daar, dan komt de tegenhanger er
+  // ── Doorgang ──
+  // Tweezijdig: leg je er een van hier naar daar, dan komt de tegenhanger er
   // vanzelf bij. Anders zou je op de andere verdieping vastzitten.
+  // De sleutel in de data heet nog `trapNaar` — dat hernoemen kost een migratie
+  // en levert niets op; in beeld heet het overal *doorgang*, want het is net zo
+  // goed een lift of een teleportcirkel.
   const trapKaart = document.getElementById('dng-trap-kaart');
   const trapKamer = document.getElementById('dng-trap-kamer');
   trapKaart?.addEventListener('change', () => {

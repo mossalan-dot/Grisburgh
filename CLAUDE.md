@@ -240,10 +240,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=591   app.js?v=755   sound-manager.js?v=8
+index.html  : theme.css?v=591   app.js?v=756   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
               render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=299
-              render-dashboard.js?v=9  render-dungeon.js?v=46  render-kaart.js?v=31
+              render-dashboard.js?v=9  render-dungeon.js?v=47  render-kaart.js?v=31
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
@@ -474,6 +474,16 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > selecteergereedschap: bij de polygoon sluit een dubbelklik de vorm die je
 > tekent.
 >
+> **Het verbindingsgereedschap is eruit.** Een verbinding was een stippellijn
+> tussen twee kamers die de speler te zien kreeg zodra één ervan onthuld was —
+> een hint dat er verderop meer is. Mechanisch deed hij niets, en naast de kamers
+> zelf voegde hij in de praktijk niets toe. Wat al getekend is blijft staan en
+> blijft te verwijderen in de kamerzijbalk; alleen bijtekenen kan niet meer.
+>
+> **Een trap heet een doorgang.** In beeld dan: het kan net zo goed een lift, een
+> luik of een teleportcirkel zijn. De sleutel in de data heet nog `trapNaar` —
+> hernoemen kost een migratie en levert niets op.
+>
 > **Ronde kamers.** Naast rechthoek en polygoon is er een **ovaal**
 > (`shape: 'ovaal'`). Hij bewaart precies hetzelfde als een rechthoek — twee
 > punten, het omhullende vak — en tekent daar een `<ellipse>` uit. Zo hoefde er
@@ -517,7 +527,7 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > onthuld. `_verdiepingenVan()` kijkt nu eerst naar dat `gebouwId` en daarna pas
 > naar de trappen: trappen teken je later, maar bij elkaar horen ze meteen.
 >
-> **Verdiepingen in een dungeon.** Een kaart kan een `verdieping` hebben
+> **Verdiepingen in een dungeon.** (In beeld heet een trap een *doorgang*.) Een kaart kan een `verdieping` hebben
 > (0 = begane grond, negatief = kelder; leeg = hoort niet bij een gebouw met
 > verdiepingen), in te stellen bij *Kaart bewerken* in de kaartengalerij. Welke
 > kaarten samen één gebouw vormen is **afgeleid uit de trappen ertussen** — geen
