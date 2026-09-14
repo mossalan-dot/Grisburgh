@@ -24723,3 +24723,26 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
   transition: background .12s ease;
 }
 .kg-verdieping:hover { background: rgba(196,168,122,0.34); }
+
+/* Dungeonwerkbalk: de naam van de kaart die je bekijkt staat waar eerst de
+   keuzelijst stond. Wisselen doe je met de verdiepingsstrook; aanmaken en
+   verwijderen horen bij de galerij. */
+.dng-kaart-naam {
+  font-family: 'Cinzel', serif; font-size: 14px; font-weight: 600;
+  color: var(--color-ink-bright, #2a1a08); white-space: nowrap;
+}
+/* Het label naast het verdiepingsnummer in het aanmaakvenster (0 → BG). */
+.dng-laag-rij { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.dng-laag-label {
+  min-width: 26px; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600;
+  color: #7a6040; text-align: center;
+}
+/* De werkbalk brak af zodra de gereedschapshint verscheen ("Klik op een kamer
+   om te starten"): de balk mocht doorlopen op een tweede regel, en dan zakten
+   het boekje en het kruisje eronder. De balk blijft nu één regel en de hint
+   krimpt mee (met een tooltip voor de volledige tekst). */
+.dng-topbar { flex-wrap: nowrap; }
+.dng-tools { min-width: 0; }
+.dng-tool-hint {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}

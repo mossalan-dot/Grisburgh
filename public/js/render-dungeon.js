@@ -96,7 +96,8 @@ function _verdiepingStripHtml() {
   const verdiepingen = ids
     .map(id => _maps.find(m => m.id === id))
     .filter(m => m && Number.isFinite(m.verdieping))
-    .sort((a, b) => b.verdieping - a.verdieping);   // bovenste verdieping eerst
+    .sort((a, b) => a.verdieping - b.verdieping);   // kelder links, zolder rechts —
+                                                   // zoals je een gebouw leest
   if (verdiepingen.length < 2) return '';
   return `<div class="dng-verdiepingen" title="Verdiepingen van dit gebouw">
     ${verdiepingen.map(m => `
@@ -142,22 +143,20 @@ export async function renderDungeon(container, openId) {
 function _buildShell() {
   // Bij een gebouw met verdiepingen heten de kaarten hetzelfde; dan moet de
   // keuzelijst erbij zeggen wélke verdieping je voor je hebt.
-  const mapOpts = _maps.map((m, i) =>
-    `<option value="${i}" ${i===_mapIdx?'selected':''}>${esc(m.name)}${
-      Number.isFinite(m.verdieping) ? ` · ${esc(_verdiepingLabel(m.verdieping))}` : ''}</option>`
-  ).join('');
+  // Welke kaart je bekijkt staat als naam in de kop; wisselen tussen verdiepingen
+  // doe je met de strook rechts. Aanmaken en verwijderen horen bij de galerij —
+  // dáár staan de kaartjes, en een kaart weggooien vanuit de tekenmodus is een
+  // handeling die je nooit halverwege het tekenen wilt doen.
+  const huidig = _maps[_mapIdx];
+  const kopNaam = huidig
+    ? `${huidig.name}${Number.isFinite(huidig.verdieping) ? ` · ${_verdiepingLabel(huidig.verdieping)}` : ''}`
+    : 'Geen dungeonkaarten';
 
   return `
     <div class="dng-shell">
       <div class="dng-topbar">
         <div class="dng-topbar-left">
-          ${_maps.length ? `
-            <select class="dng-map-select" id="dng-map-select">${mapOpts}</select>
-          ` : '<span class="dng-map-select-empty">Geen dungeon maps</span>'}
-          ${isDM() ? `
-            <button class="dng-btn dng-btn-sm" id="dng-new-btn">+ Nieuw</button>
-            ${_maps.length ? `<button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-delete-btn" title="Deze dungeon verwijderen">${icon('trash')}</button>` : ''}
-          ` : ''}
+          <span class="dng-kaart-naam">${esc(kopNaam)}</span>
           ${isDM() && _maps.length ? `
             <span class="dng-reveal-chip" id="dng-reveal-count"></span>
           ` : ''}
@@ -200,14 +199,6 @@ function _buildShell() {
 // Shell events (topbar)
 // ──────────────────────────────────────────────────────────────────
 function _attachShellEvents() {
-  document.getElementById('dng-map-select')?.addEventListener('change', e => {
-    _mapIdx = +e.target.value;
-    _zoom = 1; _panX = 0; _panY = 0;
-    _renderMapView();
-  });
-
-  document.getElementById('dng-new-btn')?.addEventListener('click', _openNewDungeonDialog);
-  document.getElementById('dng-delete-btn')?.addEventListener('click', _deleteCurrentMap);
 
   document.getElementById('dng-tools')?.querySelectorAll('.dng-tool-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -245,10 +236,12 @@ function _renderMapView() {
       <svg id="dng-svg" class="dng-svg" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>`;
 
-  // De kaartkiezer bovenin moet meelopen als er elders van kaart gewisseld is
-  // (bijvoorbeeld via een trap of de verdiepingsknoppen).
-  const sel = document.getElementById('dng-map-select');
-  if (sel && +sel.value !== _mapIdx) sel.value = String(_mapIdx);
+  // De naam in de kop volgt de kaart die je nu bekijkt (trap, verdiepingsknop).
+  const kop = document.querySelector('.dng-kaart-naam');
+  const nu  = _maps[_mapIdx];
+  if (kop && nu) {
+    kop.textContent = `${nu.name}${Number.isFinite(nu.verdieping) ? ` · ${_verdiepingLabel(nu.verdieping)}` : ''}`;
+  }
 
   const img = document.getElementById('dng-img');
   const onLoad = () => { _fitZoom(); _renderSvg(); _attachMapEvents(); _renderRoomList(); };
@@ -473,6 +466,9 @@ function _updateConnHint() {
     hint.textContent = _connStart
       ? 'Klik op een tweede kamer om te verbinden (of opnieuw om te annuleren)'
       : 'Klik op een kamer om te starten';
+    // De volledige tekst in de tooltip: op een smal scherm kort de balk hem af
+    // in plaats van door te lopen op een tweede regel.
+    hint.title = hint.textContent;
     hint.style.display = 'inline';
   } else {
     hint.textContent = '';
@@ -1357,13 +1353,19 @@ function _openNewDungeonDialog() {
       <div class="dng-laag-rij">
         <input type="number" class="dm-input dm-input-sm dng-laag-nr" data-i="${i}" value="${l.verdieping}"
           title="0 = begane grond, −1 = kelder" style="width:64px">
+        <span class="dng-laag-label">${esc(_verdiepingLabel(l.verdieping))}</span>
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dng-laag-kies" data-i="${i}" style="flex:1;justify-content:flex-start">
           ${icon('image')} ${l.fileId ? 'Afbeelding gekozen' : 'Kies of upload een plattegrond…'}
         </button>
         ${lagen.length > 1 ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger dng-laag-weg" data-i="${i}" title="Deze verdieping weghalen">${icon('x')}</button>` : ''}
       </div>`).join('');
-    host.querySelectorAll('.dng-laag-nr').forEach(inp => inp.addEventListener('change', () => {
-      lagen[+inp.dataset.i].verdieping = parseInt(inp.value, 10) || 0;
+    // Het label ernaast zegt wat het getal betekent: 0 is de begane grond, en
+    // "BG" leest nu eenmaal makkelijker dan een nul.
+    host.querySelectorAll('.dng-laag-nr').forEach(inp => inp.addEventListener('input', () => {
+      const v = parseInt(inp.value, 10) || 0;
+      lagen[+inp.dataset.i].verdieping = v;
+      const label = inp.parentElement.querySelector('.dng-laag-label');
+      if (label) label.textContent = _verdiepingLabel(v);
     }));
     host.querySelectorAll('.dng-laag-kies').forEach(knop => knop.addEventListener('click', () => {
       const i = +knop.dataset.i;
@@ -1440,14 +1442,8 @@ function _openNewDungeonDialog() {
 // ──────────────────────────────────────────────────────────────────
 // Verwijderen
 // ──────────────────────────────────────────────────────────────────
-async function _deleteCurrentMap() {
-  const map = _maps[_mapIdx];
-  if (!map || !confirm(`Dungeon "${map.name}" verwijderen?`)) return;
-  await api.deleteDungeon(map.id);
-  _mapIdx = Math.max(0, _mapIdx - 1);
-  const content = document.getElementById('kaart-mode-content');
-  if (content) await renderDungeon(content);
-}
+// Verwijderen gebeurt in de galerij (*Kaart bewerken*), niet vanuit de
+// tekenmodus: daar zit je te tekenen, niet op te ruimen.
 
 // ──────────────────────────────────────────────────────────────────
 // Opslaan
