@@ -14,10 +14,12 @@
  * zelf schreef, dan de SRD, en anders een verwijzing naar buiten.
  */
 
+import { api } from './api.js?v=285';
 import { naslagBron } from './render-progressie.js?v=46';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
+const isDM = () => !!window.app?.isDM?.();
 
 // De zes soorten, elk met een eigen kleur en icoon — dezelfde rol als de
 // scholen bij de spreuken: de indeling waarin je zoekt.
@@ -55,6 +57,17 @@ function _itemIcoon(it) {
   return SOORTEN[it.soort]?.icon || 'hexagon';
 }
 
+// Zelfde drie woorden als bij de spreuken: het is een aantekening van de DM,
+// geen mechaniek — maar wel de enige plek waar staat wat overgeschreven is uit
+// andermans boek en dus niet mee de deur uit mag.
+const HERKOMST = [
+  { value: '',             label: '— niet ingevuld —' },
+  { value: 'zelfbedacht',  label: 'Zelf verzonnen' },
+  { value: 'aangepast',    label: 'Aangepast uit ander materiaal' },
+  { value: 'overgenomen',  label: 'Overgenomen uit ander materiaal' },
+];
+const HERKOMST_LABEL = { zelfbedacht: 'Zelf verzonnen', aangepast: 'Aangepast', overgenomen: 'Overgenomen' };
+
 const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'feat', 'boon', 'background'];
 
 let _all        = null;   // null = nog niet geladen
@@ -77,21 +90,21 @@ async function _load() {
 
   for (const [klasse, data] of Object.entries(prog.classes || {})) {
     for (const [lvl, fs] of Object.entries(data.levels || {})) {
-      for (const f of (fs || [])) zet({ soort: 'class', bron: klasse, level: Number(lvl), naam: f.name, desc: f.desc || '' });
+      for (const f of (fs || [])) zet({ soort: 'class', bron: klasse, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', herkomst: f.herkomst || '' });
     }
     for (const [sub, sdata] of Object.entries(data.subclasses || {})) {
       for (const [lvl, fs] of Object.entries(sdata.levels || {})) {
-        for (const f of (fs || [])) zet({ soort: 'subclass', bron: klasse, sub, level: Number(lvl), naam: f.name, desc: f.desc || '' });
+        for (const f of (fs || [])) zet({ soort: 'subclass', bron: klasse, sub, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', herkomst: f.herkomst || '' });
       }
     }
   }
   for (const [soort, data] of Object.entries(prog.species || {})) {
     for (const [lvl, fs] of Object.entries(data.levels || {})) {
-      for (const f of (fs || [])) zet({ soort: 'species', bron: soort, level: Number(lvl), naam: f.name, desc: f.desc || '' });
+      for (const f of (fs || [])) zet({ soort: 'species', bron: soort, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', herkomst: f.herkomst || '' });
     }
   }
-  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '' });
-  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '' });
+  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', herkomst: f.herkomst || '' });
+  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', herkomst: f.herkomst || '' });
   // Een background is één ding met vijf onderdelen (Ability Scores, Feat,
   // Skill Proficiencies, Tool Proficiency, Equipment). Als losse kaartjes krijg
   // je zestien keer "Ability Scores" in de lijst; als één kaartje per background
@@ -196,7 +209,11 @@ function _card(it) {
       ${it.level ? `<span class="vaardig-card-niv">${it.level}</span>` : ''}
       <div class="card-img-wrap vaardig-card-img-wrap">
         <div class="vaardig-card-silhouet">${icon(_itemIcoon(it))}</div>
+        ${it.img ? `<img class="vaardig-card-img" src="/api/files/${esc(it.img)}" alt="" loading="lazy"
+          onload="this.classList.add('is-on')" onerror="this.remove()">` : ''}
       </div>
+      ${isDM() ? `<button class="vaardig-card-edit" title="Bewerken"
+        onclick="event.stopPropagation();window.vaardigheden.bewerk('${esc(it.key)}')">${icon('pencil')}</button>` : ''}
       <div class="entity-card-body vaardig-card-body">
         <div class="vaardig-card-name">${esc(it.naam)}</div>
         ${(() => {
@@ -207,7 +224,9 @@ function _card(it) {
           return meta ? `<div class="vaardig-card-meta">${meta}</div>` : '';
         })()}
         <div class="vaardig-card-tags">
-          <span class="spreuk-tag vaardig-tag--soort">${icon(s.icon)} ${esc(s.label)}</span>
+          <span class="spreuk-tag vaardig-tag--soort">${icon(_itemIcoon(it))} ${esc(s.label)}</span>
+          ${it.herkomst ? `<span class="spreuk-tag spreuk-tag--eigen${it.herkomst === 'overgenomen' ? ' spreuk-tag--overgenomen' : ''}"
+            title="Van deze campagne">${icon('sparkles')} ${esc(HERKOMST_LABEL[it.herkomst] || 'Eigen')}</span>` : ''}
           ${link ? `<a class="spreuk-tag spreuk-tag--naslag" href="${esc(link)}" target="_blank" rel="noopener"
             onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')} Naslag</a>` : ''}
         </div>
@@ -311,9 +330,192 @@ function _open(key) {
   if (el) window.glossary?.applyDom?.(el);
 }
 
+// ── Bewerken en toevoegen (DM) ────────────────────────────────────
+// Eén venster voor allebei. Wat de DM hier schrijft is campagnedata: de eerste
+// bewerking legt de meegeleverde seed vast in progression.json (zie de route),
+// daarna is het van deze campagne.
+function _bronnenVanSoort(soort) {
+  const prog = _bron?.prog || {};
+  if (soort === 'class' || soort === 'subclass') return Object.keys(prog.classes || {}).sort();
+  if (soort === 'species')    return Object.keys(prog.species || {}).sort();
+  if (soort === 'background') return Object.keys(_bron?.backgrounds || {}).sort();
+  return [];
+}
+function _subklassenVan(klasse) {
+  return Object.keys(_bron?.prog?.classes?.[klasse]?.subclasses || {}).sort();
+}
+
+let _edit = null;    // { oud, soort, bron, sub, level, naam, desc, herkomst, img }
+
+function _editorHtml() {
+  const e = _edit;
+  const bronnen = _bronnenVanSoort(e.soort);
+  const toonBron   = bronnen.length > 0;
+  const toonSub    = e.soort === 'subclass';
+  const toonLevel  = e.soort === 'class' || e.soort === 'subclass' || e.soort === 'species';
+  const subs = toonSub ? _subklassenVan(e.bron) : [];
+  return `
+    <div class="dm-feature-section" style="margin:0">
+      <div class="dm-form-row">
+        <label class="dm-form-label">Soort</label>
+        <select class="dm-input" id="vd-soort" onchange="window.vaardigheden.veld('soort',this.value)">
+          ${SOORT_VOLGORDE.map(k => `<option value="${k}"${e.soort === k ? ' selected' : ''}>${esc(SOORTEN[k].label)}</option>`).join('')}
+        </select>
+      </div>
+      ${toonBron ? `
+      <div class="dm-form-row">
+        <label class="dm-form-label">${e.soort === 'species' ? 'Species' : e.soort === 'background' ? 'Background' : 'Class'}</label>
+        <select class="dm-input" id="vd-bron" onchange="window.vaardigheden.veld('bron',this.value)">
+          ${bronnen.map(b => `<option value="${esc(b)}"${e.bron === b ? ' selected' : ''}>${esc(b)}</option>`).join('')}
+        </select>
+      </div>` : ''}
+      ${toonSub ? `
+      <div class="dm-form-row">
+        <label class="dm-form-label">Subclass</label>
+        <select class="dm-input" id="vd-sub" onchange="window.vaardigheden.veld('sub',this.value)">
+          ${subs.length ? subs.map(b => `<option value="${esc(b)}"${e.sub === b ? ' selected' : ''}>${esc(b)}</option>`).join('')
+                        : '<option value="">(deze class heeft nog geen subclasses)</option>'}
+        </select>
+      </div>` : ''}
+      ${toonLevel ? `
+      <div class="dm-form-row">
+        <label class="dm-form-label">Level</label>
+        <select class="dm-input" id="vd-level">
+          ${Array.from({ length: 20 }, (_, i) => i + 1).map(i => `<option value="${i}"${Number(e.level) === i ? ' selected' : ''}>${i}</option>`).join('')}
+        </select>
+      </div>` : ''}
+      <div class="dm-form-row">
+        <label class="dm-form-label">Naam</label>
+        <input class="dm-input" id="vd-naam" value="${esc(e.naam || '')}" placeholder="Vlasbaards Greep">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Herkomst</label>
+        <select class="dm-input" id="vd-herkomst" title="Wat je later met een andere campagne mag delen: zelf verzonnen mag mee, overgenomen materiaal niet.">
+          ${HERKOMST.map(h => `<option value="${esc(h.value)}"${(e.herkomst || '') === h.value ? ' selected' : ''}>${esc(h.label)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Beschrijving</label>
+        ${window._fmtToolbarHtml?.('vd-desc') ?? ''}
+        <textarea class="dm-input" id="vd-desc" rows="9" placeholder="Wat doet het? Een lege regel begint een nieuwe alinea.">${esc(e.desc || '')}</textarea>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Afbeelding</label>
+        <div class="vaardig-img-rij">
+          <div class="vaardig-img-voor" id="vd-img-voor">
+            ${e.img ? `<img src="/api/files/${esc(e.img)}" alt="">` : `<span class="dm-hint">Geen afbeelding</span>`}
+          </div>
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.vaardigheden.kiesAfbeelding()">${icon('image')} Kiezen</button>
+          ${e.img ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.vaardigheden.wisAfbeelding()">${icon('x')} Weghalen</button>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="dm-feature-row" style="justify-content:flex-end">
+      ${e.oud ? `<button class="dm-btn dm-btn-danger" onclick="window.vaardigheden.verwijder()">${icon('trash')} Verwijderen</button>` : ''}
+      <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
+      <button class="dm-btn dm-btn-primary" onclick="window.vaardigheden.bewaar()">${icon('save')} Opslaan</button>
+    </div>`;
+}
+
+function _editorOpen(it) {
+  // Een background is in deze lijst één kaartje met zijn onderdelen eronder;
+  // dat bewerk je niet als één tekst. (De onderdelen zelf staan in de
+  // progressie-editor.)
+  if (it?.bg) { alert('Een background bewerk je in de progressie-editor — dit kaartje is de samenvatting van zijn onderdelen.'); return; }
+  const eersteKlasse = Object.keys(_bron?.prog?.classes || {})[0] || '';
+  _edit = it
+    ? { oud: { soort: it.soort, bron: it.bron, sub: it.sub, level: it.level, naam: it.naam },
+        soort: it.soort, bron: it.bron, sub: it.sub || '', level: it.level || 1,
+        naam: it.naam, desc: it.desc || '', herkomst: it.herkomst || '', img: it.img || '' }
+    : { oud: null, soort: 'feat', bron: 'Feats', sub: '', level: 1, naam: '', desc: '', herkomst: 'zelfbedacht', img: '' };
+  window.app.openModal(it ? 'Vaardigheid bewerken' : 'Nieuwe vaardigheid', '', _editorHtml());
+}
+
+// Wat er in de velden staat, terug in _edit — nodig zodra het venster
+// zichzelf opnieuw tekent (van soort wisselen wisselt de velden).
+function _editorLees() {
+  const v = id => document.getElementById(id)?.value;
+  if (v('vd-naam') !== undefined) _edit.naam = v('vd-naam');
+  if (v('vd-desc') !== undefined) _edit.desc = v('vd-desc');
+  if (v('vd-herkomst') !== undefined) _edit.herkomst = v('vd-herkomst');
+  if (v('vd-level') !== undefined) _edit.level = Number(v('vd-level')) || 1;
+  if (v('vd-sub') !== undefined) _edit.sub = v('vd-sub');
+  if (v('vd-bron') !== undefined) _edit.bron = v('vd-bron');
+}
+
+function _editorHerteken() {
+  // Het gedeelde venster vult `#m-body`; de minimale hoogte die openModal
+  // vastzet blijft staan, dus het venster springt niet bij het wisselen.
+  const body = document.getElementById('m-body');
+  if (body) body.innerHTML = _editorHtml();
+}
+
 // ── Publieke API ──────────────────────────────────────────────────
 window.vaardigheden = {
   open: _open,
+  nieuw() { _editorOpen(null); },
+  bewerk(key) { _editorOpen((_all || []).find(x => x.key === key)); },
+  veld(naam, waarde) {
+    _editorLees();
+    _edit[naam] = waarde;
+    if (naam === 'soort') {
+      // Van soort wisselen betekent een andere bron: pak de eerste die past.
+      const b = _bronnenVanSoort(waarde);
+      _edit.bron = waarde === 'feat' ? 'Feats' : waarde === 'boon' ? 'Epic Boons' : (b[0] || '');
+      _edit.sub  = waarde === 'subclass' ? (_subklassenVan(_edit.bron)[0] || '') : '';
+    }
+    if (naam === 'bron' && _edit.soort === 'subclass') _edit.sub = _subklassenVan(waarde)[0] || '';
+    _editorHerteken();
+  },
+  kiesAfbeelding() {
+    if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
+    _editorLees();
+    window.mediaPicker.open({
+      type: 'afbeelding',
+      suggestedName: (_edit.naam || 'vaardigheid').toLowerCase().replace(/\s+/g, '-'),
+      onSelect: async (srcId) => {
+        // Een eigen id, zodat de afbeelding blijft staan als de naam verandert.
+        const id = _edit.img || `feat-img-${Math.random().toString(36).slice(2, 10)}`;
+        try {
+          await fetch(`/api/files/${id}/copy-from/${srcId}`, { method: 'POST', credentials: 'include' });
+          _edit.img = id;
+          _editorHerteken();
+        } catch (e) { alert('Afbeelding instellen mislukt: ' + e.message); }
+      },
+    });
+  },
+  wisAfbeelding() { _editorLees(); _edit.img = ''; _editorHerteken(); },
+  async bewaar() {
+    _editorLees();
+    if (!_edit.naam.trim()) { document.getElementById('vd-naam')?.focus(); return; }
+    try {
+      await api.post('/progression/feature', {
+        oud: _edit.oud, soort: _edit.soort, bron: _edit.bron, sub: _edit.sub,
+        level: _edit.level, naam: _edit.naam.trim(), desc: _edit.desc,
+        herkomst: _edit.herkomst, img: _edit.img || null,
+        // Bij een feat of Epic Boon: de bibliotheek mee, zodat de server hem
+        // vastlegt als deze campagne er nog geen eigen had (zie de route).
+        seedFeats: (_edit.soort === 'feat' || _edit.soort === 'boon') ? _bron?.feats : undefined,
+      });
+      window.app.closeModal();
+      _all = null;
+      await _load();
+      _refreshFilterBar();
+      _paint();
+    } catch (e) { alert('Opslaan mislukt: ' + e.message); }
+  },
+  async verwijder() {
+    if (!_edit?.oud) return;
+    if (!confirm(`"${_edit.oud.naam}" verwijderen uit deze campagne?`)) return;
+    try {
+      await api.post('/progression/feature/verwijderen', _edit.oud);
+      window.app.closeModal();
+      _all = null;
+      await _load();
+      _refreshFilterBar();
+      _paint();
+    } catch (e) { alert('Verwijderen mislukt: ' + e.message); }
+  },
   search(q) { _filters.q = q || ''; _paint(); },
   setSoort(k) { _filters.soort = k || null; _filters.bron = null; _filters.level = null; _refreshFilterBar(); _paint(); },
   setBron(b)  { _filters.bron = b || null; _paint(); },
@@ -343,6 +545,7 @@ export async function renderVaardigheden(container) {
               value="${esc(_filters.q)}" oninput="window.vaardigheden.search(this.value)">
           </div>
           ${window._helpBtn?.('vaardigheden') ?? ''}
+          ${isDM() ? `<button class="sbs-add-btn" onclick="window.vaardigheden.nieuw()" title="Eigen vaardigheid toevoegen">${icon('plus')}</button>` : ''}
         </div>
       </div>
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>

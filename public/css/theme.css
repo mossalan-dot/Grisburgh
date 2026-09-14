@@ -25037,3 +25037,27 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
   border-radius: 6px;
 }
 .prikbord-col--doel .prikbord-col-header { color: #5a3c10; }
+
+/* Vaardigheden: eigen afbeelding op het kaartje (zoals bij een spreuk) en het
+   potlood van de DM. */
+.vaardig-card-img {
+  position: absolute; inset: 0; width: 100%; height: 96px; object-fit: cover;
+  opacity: 0; transition: opacity 0.25s ease;
+}
+.vaardig-card-img.is-on { opacity: 1; }
+.vaardig-card-edit {
+  position: absolute; top: 12px; left: 8px; z-index: 6;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20,12,4,0.55); border: 1px solid rgba(255,255,255,0.45);
+  color: #f2e8d2; cursor: pointer;
+}
+.vaardig-card-edit:hover { background: rgba(20,12,4,0.78); }
+.vaardig-card-edit .icon { width: 13px; height: 13px; }
+.vaardig-img-rij { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vaardig-img-voor {
+  width: 120px; height: 68px; border-radius: 4px; overflow: hidden;
+  background: #efe3c8; border: 1px solid rgba(160,130,80,0.4);
+  display: flex; align-items: center; justify-content: center;
+}
+.vaardig-img-voor img { width: 100%; height: 100%; object-fit: cover; }

@@ -382,6 +382,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Missiebord (DM): sleep een missiekaartje naar een andere kolom → het staat er meteen in, de kolom licht op terwijl je erboven hangt
 - [ ] Missiebord: slepen naar *Aangevraagd* kan niet (die kolom licht niet op); eruit slepen wél
 - [ ] Missiebord op een telefoon: de →-knop op het kaartje werkt nog gewoon (daar valt niets te slepen)
+- [ ] Vaardigheden (DM): + rechtsboven → nieuwe vaardigheid met soort, bron, level, naam, herkomst, tekst en een afbeelding uit de mediabibliotheek; na opslaan staat hij meteen in de lijst
+- [ ] Vaardigheden (DM): potlood op een kaartje → bewerken; van soort of level wisselen verplaatst hem (hij staat daarna maar op één plek)
+- [ ] Vaardigheden: een eigen feat toevoegen laat de 51 meegeleverde feats en 12 Epic Boons staan (tellers boven kloppen nog)
+- [ ] Vaardigheden (DM): verwijderen vraagt om bevestiging en haalt hem uit de lijst
+- [ ] Een kaartje met eigen afbeelding toont die in plaats van het silhouet; de herkomst-tag staat erbij (rood bij *Overgenomen*)
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

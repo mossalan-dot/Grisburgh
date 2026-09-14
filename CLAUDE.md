@@ -1005,6 +1005,23 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > De **twintig levels** zitten achter de trechter, net als de scholen bij de
 > spreuken: je zoekt op naam of op soort, niet op "wat krijg ik op 14?".
 
+> **Een eigen vaardigheid hoort in de campagne, niet in de broncode** — zelfde
+> regel als bij de spreuken. `POST /progression/feature` (DM) schrijft één regel
+> weg en `POST /progression/feature/verwijderen` haalt hem eruit; bewust niet
+> het hele blok via `PUT /progression`, want dan overschrijft de laatste
+> opslagbeurt alles wat er tussendoor veranderde — en die tab staat open terwijl
+> je speelt. De eerste bewerking legt de meegeleverde seed vast in
+> `progression.json`; daarna is het campagnedata. Velden op de regel:
+> `herkomst` (zelfde drie waarden als een spreuk, `_SPREUK_HERKOMST`) en `img`
+> (een eigen id `feat-img-<random>`, via `POST /files/:id/copy-from/:srcId`, dus
+> een hernoeming raakt de afbeelding niet).
+> **Valkuil:** de featbibliotheek (51 general feats + 12 Epic Boons) zit **niet**
+> in de progressie-seed maar in `render-progressie.js`. Schreef de DM zijn eerste
+> eigen feat, dan stond er ineens `feats: { general: [dat ene], epic: [] }` en
+> waren de rest verdwenen — ook uit de keuzelijst op de tijdlijn. Daarom stuurt
+> de client bij een feat of boon `seedFeats` mee (de server legt die één keer
+> vast) én telt een **lege** lijst in `naslagBron()` als "nog niets eigens".
+
 > **Een missie verplaats je door te slepen.** De statussen zijn de kolommen van
 > het bord, dus verschuiven is een `status`-wijziging en verder niets —
 > `_prikbordSlepen()` in `render-archief.js` gebruikt dezelfde route als de

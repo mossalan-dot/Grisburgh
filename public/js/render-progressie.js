@@ -742,7 +742,16 @@ function _geenTekstBlok(naam) {
 // de SRD, en anders niets (`geenTekst`, waarop de app naar buiten verwijst).
 export async function naslagBron() {
   const [prog] = await Promise.all([api.progression(), _loadSrd(), _loadBackgrounds()]);
-  const feats  = (prog?.feats && typeof prog.feats === 'object') ? prog.feats : _seedFeatLibrary();
+  // Een **lege** lijst is geen keuze maar een restant: schrijft de DM één eigen
+  // feat weg, dan staat er ineens `feats: { general: [x], epic: [] }` en zouden
+  // de twaalf Epic Boons uit de seed verdwenen zijn — ook uit de keuzelijst op
+  // de tijdlijn. Leeg betekent hier dus "nog niets eigens".
+  const seed = _seedFeatLibrary();
+  const opgeslagen = (prog?.feats && typeof prog.feats === 'object') ? prog.feats : {};
+  const feats = {
+    general: opgeslagen.general?.length ? opgeslagen.general : seed.general,
+    epic:    opgeslagen.epic?.length    ? opgeslagen.epic    : seed.epic,
+  };
   _curFeats = feats;
   return {
     prog,

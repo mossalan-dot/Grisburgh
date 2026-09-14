@@ -6596,6 +6596,110 @@ router.put('/progression', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Eén vaardigheid schrijven (DM) ───────────────────────────────────────────
+// De Vaardigheden-tab bewerkt één regel tegelijk. Dat kán met PUT /progression
+// (het hele blok terugschrijven, zoals de progressie-editor doet), maar dan
+// overschrijft de laatste opslagbeurt alles wat er tussendoor veranderd is —
+// en die tab staat juist open terwijl je aan het spelen bent.
+//
+// Let op: `GET /progression` geeft de **seed** terug zolang deze campagne nog
+// niets eigens heeft. De eerste bewerking legt die seed dus vast in
+// progression.json; daarna is het campagnedata en blijft hij van de campagne.
+const _VAARDIG_SOORTEN = ['class', 'subclass', 'species', 'feat', 'boon', 'background'];
+
+function _progHuidig() {
+  const saved = storage.readJSON('progression.json');
+  const eigen = !!(saved && saved.classes && Object.keys(saved.classes).length);
+  const basis = eigen ? saved : _readProgressionSeed();
+  if (!basis.backgrounds || !Object.keys(basis.backgrounds).length) basis.backgrounds = _readBackgroundsSeed();
+  return basis;
+}
+
+// De lijst waar deze vaardigheid in hoort, aangemaakt als hij er nog niet is.
+// Geeft `null` als de bron niet bestaat: een feature bij een klasse die er niet
+// is, is een typefout — geen reden om een lege klasse aan te maken.
+function _vaardigLijst(prog, { soort, bron, sub, level }, maken = false) {
+  const lvl = String(level || 1);
+  if (soort === 'feat' || soort === 'boon') {
+    prog.feats = prog.feats && typeof prog.feats === 'object' ? prog.feats : {};
+    const sleutel = soort === 'feat' ? 'general' : 'epic';
+    if (!Array.isArray(prog.feats[sleutel])) prog.feats[sleutel] = [];
+    return prog.feats[sleutel];
+  }
+  if (soort === 'background') {
+    const bg = prog.backgrounds?.[bron];
+    if (!bg) return null;
+    bg.levels = bg.levels || {};
+    if (!Array.isArray(bg.levels['1'])) { if (!maken) return null; bg.levels['1'] = []; }
+    return bg.levels['1'];
+  }
+  const houder = soort === 'species' ? prog.species?.[bron]
+    : soort === 'subclass' ? prog.classes?.[bron]?.subclasses?.[sub]
+    : prog.classes?.[bron];
+  if (!houder) return null;
+  houder.levels = houder.levels || {};
+  if (!Array.isArray(houder.levels[lvl])) { if (!maken) return null; houder.levels[lvl] = []; }
+  return houder.levels[lvl];
+}
+
+// POST /api/progression/feature — aanmaken of bijwerken. `oud` (soort/bron/sub/
+// level/naam) zegt welke regel vervangen wordt; zonder `oud` is het een nieuwe.
+router.post('/progression/feature', requireDM, (req, res) => {
+  const b = req.body || {};
+  const soort = String(b.soort || '');
+  const naam  = String(b.naam || '').trim();
+  if (!_VAARDIG_SOORTEN.includes(soort)) return res.status(400).json({ error: 'Onbekende soort' });
+  if (!naam) return res.status(400).json({ error: 'Naam is verplicht' });
+
+  const prog = _progHuidig();
+  // De featbibliotheek zit niet in de meegeleverde progressie-seed maar in de
+  // frontend (de 51 general feats + 12 Epic Boons). Schrijft de DM zijn eerste
+  // eigen feat, dan mag de lijst niet ineens uit dat ene ding bestaan — dus
+  // stuurt de client de bibliotheek mee en leggen we die hier één keer vast.
+  if (b.seedFeats && typeof b.seedFeats === 'object' && !(prog.feats?.general || []).length) {
+    prog.feats = {
+      general: Array.isArray(b.seedFeats.general) ? b.seedFeats.general : [],
+      epic:    Array.isArray(b.seedFeats.epic)    ? b.seedFeats.epic    : [],
+    };
+  }
+  const doelLijst = _vaardigLijst(prog, { soort, bron: b.bron, sub: b.sub, level: b.level }, true);
+  if (!doelLijst) return res.status(400).json({ error: 'Die klasse, soort of background bestaat niet' });
+
+  // De oude regel eruit — ook als hij in een ándere lijst stond (van level
+  // gewisseld, of van klasse). Anders staat hij er straks twee keer.
+  let bestaand = null;
+  if (b.oud?.naam) {
+    const oudeLijst = _vaardigLijst(prog, b.oud);
+    const i = (oudeLijst || []).findIndex(f => f?.name === b.oud.naam);
+    if (i >= 0) { bestaand = oudeLijst[i]; oudeLijst.splice(i, 1); }
+  }
+
+  const regel = { ...(bestaand || {}), name: naam, desc: String(b.desc ?? '') };
+  if (_SPREUK_HERKOMST.includes(b.herkomst)) regel.herkomst = b.herkomst; else delete regel.herkomst;
+  if (b.img) regel.img = String(b.img); else if (b.img === null) delete regel.img;
+  doelLijst.push(regel);
+
+  storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('progression:updated', {});
+  res.json({ ok: true, regel });
+});
+
+// POST /api/progression/feature/verwijderen — de regel eruit halen. Bewust een
+// POST: onze client-wrapper stuurt bij een DELETE geen body mee, en de regel is
+// alleen te vinden met soort + bron + level + naam samen.
+router.post('/progression/feature/verwijderen', requireDM, (req, res) => {
+  const b = req.body || {};
+  if (!b.naam) return res.status(400).json({ error: 'Naam ontbreekt' });
+  const prog = _progHuidig();
+  const lijst = _vaardigLijst(prog, b);
+  const i = (lijst || []).findIndex(f => f?.name === b.naam);
+  if (i < 0) return res.status(404).json({ error: 'Niet gevonden' });
+  lijst.splice(i, 1);
+  storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('progression:updated', {});
+  res.json({ ok: true });
+});
+
 // Reset naar de meegeleverde seed (verwijder de campagne-override).
 router.delete('/progression', requireDM, (req, res) => {
   storage.writeJSON('progression.json', {});
