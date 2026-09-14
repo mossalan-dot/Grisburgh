@@ -386,6 +386,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Een verborgen locatie op de kaart** (DM) — een speld van een locatie die de party nog niet kent is gewoon leesbaar, met een gestippelde rand; hij is niet half doorzichtig en verschijnt niet pas bij hover
 - [ ] **Drankje met bevestiging** (SP) — klikken op de genezingsknop vraagt eerst of je het zeker weet, met wat het kost ("nog 2 van de 3" of "dit exemplaar is daarna op"); annuleren laat alles zoals het was
 - [ ] **Dungeon aanmaken** (DM) — nieuwe dungeonkaart met afbeelding, kamers tekenen, namen geven
+- [ ] **Kamer verslepen en bijstellen** (DM) — met het selecteergereedschap sleep je een kamer naar een andere plek; de geselecteerde kamer heeft handvatten op zijn punten om hem bij te stellen. Loslaten bewaart. Bij overlappende kamers pak je de bovenste — die je aanwijst
 - [ ] **Ronde kamer** (DM) — met het cirkelgereedschap sleep je een ovaal; hij verschijnt als ronde vorm op de kaart, is aan te klikken (ook net buiten het vierkant eromheen niet), en de zijbalk zegt *Rond*
 - [ ] **Kamerzijbalk** (DM) — beschrijving, monsters, vondsten en trap per kamer
 - [ ] **Dungeonvensters openen** (DM) — *+ Nieuw* opent het venster *Nieuwe dungeon map* (en niet onzichtbaar achter de kaart). De prullenbak ernaast verwijdert de dungeon; de ronde kruisknop rechtsboven sluit alleen het venster

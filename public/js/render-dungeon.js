@@ -327,7 +327,8 @@ function _renderSvg() {
       isRevealed ? 'dng-room-revealed' : '',
       isSel      ? 'dng-room-selected' : '',
     ].filter(Boolean).join(' ');
-    return _roomToSvgShape(r, W, H, cls, `onclick="window._dngClickRoom('${r.id}')"`, true);
+    return _roomToSvgShape(r, W, H, cls,
+      `data-room-id="${r.id}" onclick="window._dngClickRoom('${r.id}')"`, true);
   }).join('') : '';
 
   // ── Speler: kameromtrek zichtbaar zodra onthuld (klikbaar voor naam-tooltip) ──
@@ -350,6 +351,19 @@ function _renderSvg() {
     return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
       class="dng-conn-line" stroke-width="${sw}"/>`;
   }).join('');
+
+  // ── Handvatten op de geselecteerde kamer (DM, selecteergereedschap) ──
+  // Elk opgeslagen punt krijgt er een: twee bij een rechthoek of ovaal (het
+  // omhullende vak), één per hoek bij een polygoon. Slepen aan een handvat
+  // verzet dat punt; slepen ín de vorm verschuift de hele kamer.
+  const handlesSvg = (isDM() && _tool === 'select' && _selectedRoom) ? (() => {
+    const r = rooms.find(x => x.id === _selectedRoom);
+    if (!r?.points?.length) return '';
+    const rad = Math.max(W, H) * 0.0055;
+    return r.points.map(([px, py], i) =>
+      `<circle class="dng-handle" data-hi="${i}" cx="${px / 100 * W}" cy="${py / 100 * H}" r="${rad}"/>`
+    ).join('');
+  })() : '';
 
   // ── Kamernamen (alleen DM; spelers zien naam via klik-tooltip) ──
   const namesSvg = isDM() ? rooms.filter(r => revealed.has(r.id)).map(r => {
@@ -435,6 +449,7 @@ function _renderSvg() {
     <!-- Conditie-iconen -->
     ${condSvg}
     ${trapSvg}
+    ${handlesSvg}
 
     <!-- Tekenlaag (bovenop) -->
     <g id="dng-draw-layer"></g>`;
@@ -543,6 +558,16 @@ function _attachMapEvents() {
   wrap.addEventListener('mousedown', ev => {
     if (ev.button !== 0) return;
     if (_tool !== 'select') { _handleDrawStart(ev, wrap); return; }
+    // Met het selecteergereedschap: op een handvat slepen verzet dat punt, op
+    // een kamer slepen verschuift de kamer. Wat je aanwijst is wat je pakt — bij
+    // kamers die elkaar overlappen (elke kamer tekent zijn eigen buitenmuur) is
+    // dat de bovenste, precies zoals je hem ziet liggen.
+    if (isDM()) {
+      const handvat = ev.target?.closest?.('.dng-handle');
+      if (handvat) { _startPuntSleep(ev, +handvat.dataset.hi); return; }
+      const vorm = ev.target?.closest?.('.dng-room');
+      if (vorm?.dataset.roomId) { _startKamerSleep(ev, vorm.dataset.roomId); return; }
+    }
     panning=true; panMoved=false;
     startX=ev.clientX; startY=ev.clientY;
     startPanX=_panX; startPanY=_panY;
@@ -565,6 +590,67 @@ function _attachMapEvents() {
   }, { signal: sig });
 
   _updateCursor();
+}
+
+// Slepen met het selecteergereedschap: de hele kamer, of één punt ervan.
+// Beide werken op `points` in procenten, dus ze delen bijna alles.
+function _sleepPct(ev, img) {
+  const [sx, sy] = _svgPoint(ev, img);
+  return _svgToPercent(sx, sy, img);
+}
+const _klem = (v) => Math.max(0, Math.min(100, v));
+
+function _startKamerSleep(ev, roomId) {
+  const img  = document.getElementById('dng-img');
+  const map  = _maps[_mapIdx];
+  const room = (map.rooms || []).find(r => r.id === roomId);
+  if (!img || !room?.points?.length) return;
+  ev.preventDefault();
+  const [sx, sy] = _sleepPct(ev, img);
+  const origineel = room.points.map(p => [...p]);
+  let verplaatst = false;
+
+  const onMove = (e) => {
+    const [nx, ny] = _sleepPct(e, img);
+    const dx = nx - sx, dy = ny - sy;
+    if (Math.abs(dx) > 0.15 || Math.abs(dy) > 0.15) verplaatst = true;
+    room.points = origineel.map(([x, y]) => [_klem(x + dx), _klem(y + dy)]);
+    _renderSvg();
+  };
+  const onUp = async () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    if (!verplaatst) return;            // dit was een klik, niet een sleep
+    _selectedRoom = roomId;
+    await _saveRooms();
+    _renderSidebar(room);
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+function _startPuntSleep(ev, index) {
+  const img  = document.getElementById('dng-img');
+  const map  = _maps[_mapIdx];
+  const room = (map.rooms || []).find(r => r.id === _selectedRoom);
+  if (!img || !room?.points?.[index]) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  let verplaatst = false;
+
+  const onMove = (e) => {
+    const [nx, ny] = _sleepPct(e, img);
+    room.points[index] = [_klem(nx), _klem(ny)];
+    verplaatst = true;
+    _renderSvg();
+  };
+  const onUp = async () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    if (verplaatst) await _saveRooms();
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
 }
 
 function _toolCursor() {

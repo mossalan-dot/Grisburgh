@@ -240,10 +240,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=591   app.js?v=756   sound-manager.js?v=8
+index.html  : theme.css?v=592   app.js?v=757   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
               render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=299
-              render-dashboard.js?v=9  render-dungeon.js?v=47  render-kaart.js?v=31
+              render-dashboard.js?v=9  render-dungeon.js?v=48  render-kaart.js?v=31
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
@@ -473,6 +473,19 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > **Dubbelklikken zoomt, overal.** Ook hier (`_zoomTrapDng`), maar alleen met het
 > selecteergereedschap: bij de polygoon sluit een dubbelklik de vorm die je
 > tekent.
+>
+> **Kamers zijn te verslepen en bij te stellen.** Met het selecteergereedschap
+> verschuif je een kamer door hem te slepen; de geselecteerde kamer krijgt
+> **handvatten** op elk opgeslagen punt (twee bij een rechthoek of ovaal, één per
+> hoek bij een polygoon) waarmee je hem bijstelt. Alles werkt op dezelfde
+> `points` in procenten, dus vorm en opslag blijven hetzelfde; opslaan gebeurt
+> bij het loslaten. Slepen op een leeg stuk kaart pant nog steeds.
+>
+> **Wat je aanwijst, pak je.** Kamers overlappen elkaar vaak (elke kamer tekent
+> zijn eigen buitenmuur); het slepen gebruikt het SVG-element waarop je drukt, en
+> dat is de bovenste — precies wat je ziet liggen. De selectie was daarnaast een
+> dun goudlijntje op een drukke plattegrond: nu een vollere lijn met een lichte
+> vulling, zodat je ziet wélke kamer je beet hebt.
 >
 > **Het verbindingsgereedschap is eruit.** Een verbinding was een stippellijn
 > tussen twee kamers die de speler te zien kreeg zodra één ervan onthuld was —
