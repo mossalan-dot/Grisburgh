@@ -240,10 +240,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=589   app.js?v=749   sound-manager.js?v=8
+index.html  : theme.css?v=589   app.js?v=750   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
               render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=299
-              render-dashboard.js?v=9  render-dungeon.js?v=40  render-kaart.js?v=30
+              render-dashboard.js?v=9  render-dungeon.js?v=41  render-kaart.js?v=31
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
@@ -1514,6 +1514,13 @@ app-iconen zijn nog van Grisburgh; eigen beeld per campagne is werk voor later.
 > bewerken*, met een `confirm()` die zegt wat er meegaat (spelden, respectievelijk
 > kamers en onthullingen). De uitlegknop staat daar nu rechtsboven in plaats van
 > onderaan tussen de knoppen.
+>
+> **Eén soort venster voor alle kaartformulieren.** *Nieuwe kaart* opende in het
+> kleine zwevende bakje van de locatiekiezer (`.pin-placer-popup`, geen
+> achtergrond), *Nieuwe dungeonkaart* in een eigen overlay en *Kaart bewerken* in
+> het modal van de app — drie vensters voor hetzelfde soort formulier. Alle drie
+> gebruiken nu `window.app.openModal()`. Het zwevende bakje blijft waar het bij
+> hoort: de locatiekiezer, die je op een plek op de kaart aanwijst.
 >
 > **Aanmaken is een eigen formulier, geen halve.** Bij een hoofdkaart én een
 > dungeon kon je alleen een naam en een afbeelding kwijt; de beschrijving stond

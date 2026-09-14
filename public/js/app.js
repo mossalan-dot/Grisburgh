@@ -1,8 +1,8 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=285';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=299";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=87";
-import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=30';
-import { renderDungeon } from './render-dungeon.js?v=40';
+import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
+import { renderDungeon } from './render-dungeon.js?v=41';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
@@ -2899,6 +2899,9 @@ async function _renderKaartGalerij() {
 // een beschrijving, en het kaartje in de galerij zei bij alles "Hoofdkaart".
 // Dezelfde lijst als in `_KAART_SOORTEN` (routes/api.js) — die bewaakt hem ook.
 const KAART_SOORTEN = ['Wereld', 'Continent', 'Streek', 'Stad', 'Dorp', 'Gebouw', 'Zee', 'Slagveld', 'Anders'];
+// Ook het toevoegvenster (render-kaart.js) kiest hieruit; één lijst, en de
+// server bewaakt dezelfde (`_KAART_SOORTEN`).
+window.KAART_SOORTEN = KAART_SOORTEN;
 
 // Welke stand heeft deze dungeon voor de party waar de DM nu naar kijkt?
 // `partyAccess`/`partyCompleted` zijn lijsten met groep-id's; uitgespeeld staat
@@ -2993,7 +2996,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=40');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=41');
   nieuweDungeon();
 };
 

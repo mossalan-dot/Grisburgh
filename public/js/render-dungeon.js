@@ -1303,10 +1303,9 @@ function _openNewDungeonDialog() {
   // botsten de vette kapitalen met de rest. De afbeelding gaat via de
   // mediabibliotheek, net als bij een hoofdkaart — dan kun je er ook een
   // hergebruiken in plaats van alleen uploaden.
-  const overlay = _makeOverlay();
-  overlay.innerHTML = `
-    <div class="dng-dialog">
-      <h3 class="dng-dialog-title">Nieuwe dungeonkaart</h3>
+  // Zelfde venster als de andere kaartformulieren: het modal van de app.
+  window.app.openModal('Nieuwe dungeonkaart', '', `
+    <div class="dm-feature-section" style="margin:0">
       <div class="dm-form-row">
         <label class="dm-form-label" for="dng-new-name">Naam</label>
         <input id="dng-new-name" class="dm-input" placeholder="Bijv. De Crypte van Morthul">
@@ -1335,12 +1334,11 @@ function _openNewDungeonDialog() {
           ${icon('plus')} Verdieping erbij
         </button>
       </div>
-      <div class="dng-dialog-btns">
-        <button class="dm-btn dm-btn-primary dm-btn-sm" id="dng-new-ok">${icon('plus')} Aanmaken</button>
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" id="dng-new-cancel">${icon('x')} Annuleren</button>
+      <div class="dm-feature-row" style="margin-top:6px">
+        <button class="dm-btn dm-btn-primary" id="dng-new-ok">${icon('plus')} Aanmaken</button>
+        <button class="dm-btn dm-btn-ghost" id="dng-new-cancel">${icon('x')} Annuleren</button>
       </div>
-    </div>`;
-  document.body.appendChild(overlay);
+    </div>`);
   setTimeout(() => document.getElementById('dng-new-name')?.focus(), 50);
 
   // Eén gebouw kan meerdere plattegronden hebben: begane grond, zolder, kelder.
@@ -1421,7 +1419,7 @@ function _openNewDungeonDialog() {
           ...(meerdere ? { verdieping: laag.verdieping, gebouwId } : {}),
         });
       }
-      overlay.remove();
+      window.app.closeModal();
       // Eindigen waar je begon: de galerij (of de open kaartweergave) bijwerken.
       // Dit riep `renderDungeon(#kaart-mode-content)` aan — een element dat sinds
       // de galerij niet meer bestaat, dus er gebeurde zichtbaar niets.
@@ -1429,7 +1427,7 @@ function _openNewDungeonDialog() {
     } catch (e) { alert('Aanmaken mislukt: ' + e.message); }
   });
 
-  document.getElementById('dng-new-cancel').addEventListener('click', () => overlay.remove());
+  document.getElementById('dng-new-cancel').addEventListener('click', () => window.app.closeModal());
 }
 
 // ──────────────────────────────────────────────────────────────────

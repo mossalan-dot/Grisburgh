@@ -783,64 +783,68 @@ function _attachPlayerPendingDrag(el) {
 export function nieuweKaart() { _openMapAdder(); }
 
 function _openMapAdder() {
-  document.getElementById('map-adder-popup')?.remove();
+  // Hetzelfde venster als "Kaart bewerken" en "Nieuwe dungeonkaart": het
+  // gedeelde modal van de app, met vervagende achtergrond. Dit blokje gebruikte
+  // `.pin-placer-popup` — het kleine zwevende bakje van de locatiekiezer — en
+  // dan krijg je voor twee keer hetzelfde soort formulier twee verschillende
+  // vensters.
+  window._kaartAddThumb = null;
+  window.app.openModal('Nieuwe kaart', '', `
+    <div class="dm-feature-section" style="margin:0">
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="map-add-label">Naam</label>
+        <input id="map-add-label" class="dm-input" placeholder="Naam van de kaart…">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="map-add-desc">Beschrijving</label>
+        <textarea id="map-add-desc" class="dm-input" rows="2" placeholder="Korte omschrijving voor op het kaartje…"></textarea>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="map-add-soort">Soort</label>
+        <select id="map-add-soort" class="dm-input" style="max-width:170px">
+          <option value="">— geen —</option>
+          ${(window.KAART_SOORTEN || []).map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Afbeelding</label>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" id="map-add-pick" style="justify-content:flex-start">
+          ${icon('image')} <span id="map-add-file-name">Kies of upload een afbeelding…</span>
+        </button>
+      </div>
+      <div class="dm-feature-row" style="margin-top:6px">
+        <button class="dm-btn dm-btn-primary" id="map-add-confirm">${icon('plus')} Toevoegen</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">${icon('x')} Annuleren</button>
+      </div>
+    </div>`);
+  document.getElementById('map-add-label')?.focus();
 
-  // Perkament, net als de locatiekiezer; dit blokje stond nog in de oude,
-  // donkere opmaak. En het eindigt in de galerij: `renderKaart()` zónder
-  // container tekent een kaartweergave in #section-kaart, en dan staat de
-  // galerij weg én er twee kaarten met dezelfde id's in de DOM.
-  const popup = document.createElement('div');
-  popup.id        = 'map-adder-popup';
-  popup.className = 'pin-placer-popup';
-  popup.style.cssText = 'left:50%;top:50%;transform:translate(-50%,-50%);width:300px';
-  popup.innerHTML = `
-    <div class="pin-placer-kop">${icon('map')} Nieuwe kaart</div>
-    <label class="pin-placer-label" for="map-add-label">Naam</label>
-    <input id="map-add-label" type="text" placeholder="Naam van de kaart…" class="pin-placer-input">
-    <label class="pin-placer-label" for="map-add-desc">Beschrijving</label>
-    <textarea id="map-add-desc" rows="2" placeholder="Korte omschrijving voor op het kaartje…"
-      class="pin-placer-input" style="resize:vertical"></textarea>
-    <label class="pin-placer-label" for="map-add-pick">Afbeelding</label>
-    <button type="button" id="map-add-pick" class="dm-btn dm-btn-ghost dm-btn-sm" style="width:100%;justify-content:flex-start">
-      ${icon('image')} <span id="map-add-file-name">Kies of upload een afbeelding…</span>
-    </button>
-    <div class="pin-placer-knoppen" style="margin-top:10px">
-      <button id="map-add-confirm" class="dm-btn dm-btn-primary dm-btn-sm">${icon('plus')} Toevoegen</button>
-      <button id="map-add-cancel"  class="dm-btn dm-btn-ghost dm-btn-sm">${icon('x')} Annuleren</button>
-    </div>`;
-  document.body.appendChild(popup);
-  popup.querySelector('#map-add-label').focus();
-
-  let _pickedImageId = null;
-  popup.querySelector('#map-add-pick').addEventListener('click', () => {
-    const naamHint = (popup.querySelector('#map-add-label').value || '').trim().toLowerCase().replace(/\s+/g, '-');
+  document.getElementById('map-add-pick').addEventListener('click', () => {
+    const naamHint = (document.getElementById('map-add-label').value || '').trim().toLowerCase().replace(/\s+/g, '-');
     window.mediaPicker.open({
       type: 'afbeelding',
       suggestedName: naamHint ? `${naamHint}-kaart` : 'kaart',
       onSelect: (fileId) => {
-        _pickedImageId = fileId;
-        const naam = popup.querySelector('#map-add-file-name');
+        window._kaartAddThumb = fileId;
+        const naam = document.getElementById('map-add-file-name');
         if (naam) naam.textContent = 'Afbeelding gekozen';
       },
     });
   });
 
-  popup.querySelector('#map-add-cancel').addEventListener('click', () => popup.remove());
-  popup.querySelector('#map-add-confirm').addEventListener('click', async () => {
-    const label = popup.querySelector('#map-add-label').value.trim();
-    if (!label) { alert('Vul een naam in.'); return; }
-    if (!_pickedImageId) { alert('Kies een afbeelding.'); return; }
+  document.getElementById('map-add-confirm').addEventListener('click', async () => {
+    const veld  = document.getElementById('map-add-label');
+    const label = veld.value.trim();
+    if (!label) { veld.classList.add('dm-input--err'); setTimeout(() => veld.classList.remove('dm-input--err'), 900); veld.focus(); return; }
+    if (!window._kaartAddThumb) { alert('Kies een afbeelding.'); return; }
     try {
-      const beschrijving = popup.querySelector('#map-add-desc')?.value.trim() || '';
-      const nieuw = await api.createMap({ label, imageId: _pickedImageId });
-      // De beschrijving hoort bij het aanmaken, niet pas in bewerkmodus. De
-      // POST-route kent alleen label + imageId; de rest gaat in één PUT erachteraan.
-      if (beschrijving && nieuw?.id) {
-        try { await api.updateMap(nieuw.id, { description: beschrijving }); } catch { /* naam staat er al */ }
+      const nieuweKaart = await api.createMap({ label, imageId: window._kaartAddThumb });
+      const desc  = document.getElementById('map-add-desc')?.value.trim() || '';
+      const soort = document.getElementById('map-add-soort')?.value || '';
+      if ((desc || soort) && nieuweKaart?.id) {
+        try { await api.updateMap(nieuweKaart.id, { description: desc, soort }); } catch { /* naam staat er al */ }
       }
-      popup.remove();
-      // De galerij (of de open kaartweergave) bijwerken — één ingang die zelf
-      // weet waar de kaart staat.
+      window.app.closeModal();
       await window._kaartVerversen?.();
     } catch (e) { alert('Fout: ' + e.message); }
   });
