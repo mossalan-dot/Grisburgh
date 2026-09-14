@@ -38,7 +38,7 @@ const SOORTEN = {
 const KLASSE_ICOON = {
   Barbarian: 'hand-fist',  Bard: 'music',        Cleric: 'church',
   Druid: 'tree-pine',      Fighter: 'swords',    Monk: 'hand',
-  Paladin: 'shield-plus',  Ranger: 'target',     Rogue: 'stiletto',
+  Paladin: 'shield-plus',  Ranger: 'bow-arrow',  Rogue: 'stiletto',
   Sorcerer: 'flame',       Warlock: 'eye',       Wizard: 'book-open',
   Artificer: 'hammer',
 };

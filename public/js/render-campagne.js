@@ -248,11 +248,11 @@ const LOC_TYPE_ICOON = {
   Rijk: 'globe', Streek: 'map', Stad: 'landmark', Dorp: 'house', Stadswijk: 'brick-wall',
   // Gebouw
   Gebouw: 'building', Herberg: 'bed', Taveerne: 'beer', Winkel: 'store', Tempel: 'church',
-  Fort: 'castle', Academie: 'graduation-cap', Ziekenhuis: 'heart', Werkplaats: 'hammer',
+  Fort: 'castle', Academie: 'graduation-cap', Ziekenhuis: 'heart-pulse', Werkplaats: 'anvil',
   Gevangenis: 'lock', Kamer: 'door-open',
   // Landschap
-  Woud: 'trees', Berg: 'mountain', Zee: 'waves', Rivier: 'droplet', Moeras: 'fish',
-  Vlakte: 'wheat', Eiland: 'tree-pine', Grot: 'pickaxe', Ruine: 'skull',
+  Woud: 'trees', Berg: 'mountain', Zee: 'waves', Rivier: 'droplet', Moeras: 'sprout',
+  Vlakte: 'wheat', Eiland: 'tree-palm', Grot: 'pickaxe', Ruine: 'skull',
   // Overig
   Schip: 'anchor', Schuilplaats: 'tent', Plein: 'users', Overig: 'map-pin',
 };

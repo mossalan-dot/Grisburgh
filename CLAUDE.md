@@ -1375,12 +1375,12 @@ data/
 
 ```javascript
 // Helper beschikbaar als window.icon() overal in de frontend
-icon('sword')                         // → <svg><use href="/img/icons.svg?v=11#icon-sword"/></svg>
+icon('sword')                         // → <svg><use href="/img/icons.svg?v=12#icon-sword"/></svg>
 icon('heart', { cls: 'icon-lg' })     // met extra CSS-klasse
 icon('shield', { title: 'Verdediging' }) // met tooltip
 ```
 
-**Beschikbare iconen** (icons.svg, v=11):
+**Beschikbare iconen** (icons.svg, v=12):
 `beer` `book-open` `building` `camera` `castle` `check` `check-circle`
 `chevron-left` `chevron-right` `church` `clipboard-list` `coins` `crossed-swords`
 `dice` `download` `eye` `eye-off` `flask-conical` `folder-open` `globe`
@@ -1400,7 +1400,14 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 **Toegevoegd voor locatietypes** (Lucide, ISC): `anchor` `door-open` `fish`
 `graduation-cap` `hammer` `pickaxe` `store` `tent` `trees` `warehouse` `wheat`
 **Toegevoegd voor de navigatie** (Lucide, ISC): `compass`
-**Toegevoegd voor de klasse-iconen** (Lucide, ISC): `hand-fist`
+**Toegevoegd voor de klasse-iconen** (Lucide, ISC): `hand-fist` `bow-arrow`
+**Toegevoegd om een verkeerd signaal weg te halen** (Lucide, ISC): `sprout` (moeras — er
+stond een vis), `tree-palm` (eiland — er stond een dennenboom), `anvil` (werkplaats — die
+deelde de hamer met niets), `heart-pulse` (ziekenhuis), `feather` (aantekeningen: een
+ganzenveer in plaats van een grafietpotlood), `crown` (factie-titel en de leiding van een
+factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `backpack`
+(spelerstab Boedel — dat deelde `package` met het archieftabblad Voorwerpen), `vault`
+(de Loot-tab), `dices`
 
 > **Eén icoon per soort plek.** `LOC_TYPE_ICOON` in `render-campagne.js` koppelt
 > elk `data.locType` aan een sprite-naam; lezen doe je met

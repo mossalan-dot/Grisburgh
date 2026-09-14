@@ -1,16 +1,16 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=285';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=304";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=93";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=305";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=94";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
-import { renderRelatiemap } from './render-relatiemap.js?v=25';
+import { renderRelatiemap } from './render-relatiemap.js?v=26';
 import { renderProgressie } from './render-progressie.js?v=47';
 import { renderBestiarium } from './render-bestiarium.js?v=29';
 import { renderSpreuken } from './render-spreuken.js?v=40';
-import { renderVaardigheden } from './render-vaardigheden.js?v=6';
+import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=72";
-import { initDmPanel } from "./dm-panel.js?v=226";
+import { initDmPanel } from "./dm-panel.js?v=227";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -19,7 +19,7 @@ import './media-picker.js?v=8';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=11#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=12#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -7104,7 +7104,7 @@ async function renderMijnKarakter(opts = {}) {
         ${window._spelerTabAan('facties') ? `<button class="player-subtab${_playerSubTab === 'facties' ? ' active' : ''}"
           data-tab="facties" onclick="window._setPlayerSubTab('facties')">${icon('landmark')} Facties</button>` : ''}
         <button class="player-subtab${_playerSubTab === 'knapzak' ? ' active' : ''}"
-          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">${icon('scroll-text')} Boedel${(lootData?.actief && lootData.deelnemers?.includes(charId)) ? '<span class="player-loot-badge" id="loot-tab-badge"></span>' : ''}</button>
+          data-tab="knapzak" onclick="window._setPlayerSubTab('knapzak')">${icon('backpack')} Boedel${(lootData?.actief && lootData.deelnemers?.includes(charId)) ? '<span class="player-loot-badge" id="loot-tab-badge"></span>' : ''}</button>
         ${window._spelerTabAan('progressie') ? `<button class="player-subtab${_playerSubTab === 'progressie' ? ' active' : ''}"
           data-tab="progressie" onclick="window._setPlayerSubTab('progressie')">${icon('clipboard-list')} Progressie</button>` : ''}
         ${window._spelerTabAan('spreukenboek') ? `<button class="player-subtab${_playerSubTab === 'spreukenboek' ? ' active' : ''}"
@@ -12253,7 +12253,7 @@ function _renderFactieInterieur(el, f, missies) {
           <img class="factie-lid-portret" src="${api.fileUrl(l.entityId)}" alt=""
             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <span class="factie-lid-portret factie-lid-portret--fallback" style="display:none">${icon('user')}</span>
-          ${isHoofd ? `<span class="factie-lid-kroon" title="Leiding">${icon('star')}</span>` : ''}
+          ${isHoofd ? `<span class="factie-lid-kroon" title="Leiding">${icon('crown')}</span>` : ''}
         </span>
         <span class="factie-lid-naam">${esc(l.naam)}</span>
         ${l.rol ? `<span class="factie-lid-rol">${esc(l.rol)}</span>` : ''}

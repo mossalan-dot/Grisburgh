@@ -7642,7 +7642,7 @@ function _renderLootInner() {
 
   const n = _lootSelectie.size;
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'coins', title: 'Loot', sub: 'vondsten — de DC is een aantekening, jij beslist', actions: helpBtn('dm_loot') })}
+    ${_dmTabHead({ icon: 'vault', title: 'Loot', sub: 'vondsten — de DC is een aantekening, jij beslist', actions: helpBtn('dm_loot') })}
     <div class="dm-feature-section">
       <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <span class="dm-section-label" style="margin-bottom:0">Vondsten</span>

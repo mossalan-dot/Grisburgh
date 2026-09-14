@@ -391,6 +391,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Vaardigheden: een background toont zijn feat als klikbare verwijzing ("Feat. **Magic Initiate** (Cleric)") die dat feat-kaartje opent
 - [ ] Klik op *Naslag* of *Lees hem elders* → er opent een zoekpagina met "D&D 2024 <soort> <naam>" (niet de zoekpagina van D&D Beyond, die weigert een koude bezoeker)
 - [ ] Progressie-tijdlijn: bij een Ability Score Improvement staat de volledige featlijst in de keuzelijst (67 + 12 Epic Boons), ook nadat de DM in Vaardigheden een eigen feat heeft opgeslagen
+- [ ] Iconen: een moeras toont een plantje (geen vis), een eiland een palm, een werkplaats een aambeeld, een ziekenhuis een hartslag — op het kaartje én als kaartspeld
+- [ ] Een factie-titel en de leiding van een factie dragen een kroon (niet de favorieten-ster); een boon een lintje, of het sprite-icoon dat de DM invulde
+- [ ] Spelerstab Boedel draagt een rugzak, de Loot-tab in de Meesterkamer een kluis
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

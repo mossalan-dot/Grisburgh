@@ -169,7 +169,7 @@ export async function renderLogboek() {
   if (_logboekActiveTab === 'prikbord') {
     tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
     tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
-    const { renderRelatiemap } = await import('./render-relatiemap.js?v=25');
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=26');
     await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
     return;
   }
@@ -405,6 +405,11 @@ async function _renderPrikbord(container) {
   const bodyEl = container.querySelector('#logboek-tab-content');
   if (!bodyEl) return;
 
+  // Een boon droeg zijn eigen teken uit de data (`b.icoon`), en dat was de
+  // laatste plek in de app waar een emoji in gerenderde HTML kon belanden.
+  // Nu: is het een sprite-naam, dan dat icoon; anders het lintje.
+  const _boonIcoon = (b) => icon(/^[a-z0-9-]+$/.test(b?.icoon || '') ? b.icoon : 'award');
+
   const _factieBandOpen = (() => { try { return localStorage.getItem('factieBandOpen') === '1'; } catch { return false; } })();
   const factieBand = facties.length ? `
     <details class="factie-band-details" ${_factieBandOpen ? 'open' : ''} ontoggle="window._factieBandToggle && window._factieBandToggle(this.open)">
@@ -428,8 +433,8 @@ async function _renderPrikbord(container) {
           <div class="factie-ladder-rungs">
             ${rungs.map(r => `
               <div class="factie-rung ${r.bereikt ? 'factie-rung--bereikt' : 'factie-rung--locked'} ${r.huidig ? 'factie-rung--huidig' : ''}">
-                <span class="factie-rung-naam">${r.bereikt ? '' : icon('lock') + ' '}${esc(r.naam || '')}${r.titel ? ` <span class="factie-rung-titel">${icon('star')} ${esc(r.titel)}</span>` : ''}</span>
-                ${(r.boons || []).map(b => `<span class="factie-rung-boon" title="${esc(b.tekst || '')}">${esc(b.icoon || '•')} ${esc(b.naam || '')}</span>`).join('')}
+                <span class="factie-rung-naam">${r.bereikt ? '' : icon('lock') + ' '}${esc(r.naam || '')}${r.titel ? ` <span class="factie-rung-titel">${icon('crown')} ${esc(r.titel)}</span>` : ''}</span>
+                ${(r.boons || []).map(b => `<span class="factie-rung-boon" title="${esc(b.tekst || '')}">${_boonIcoon(b)} ${esc(b.naam || '')}</span>`).join('')}
               </div>`).join('')}
           </div>
         </div>`;
