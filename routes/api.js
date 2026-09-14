@@ -6676,7 +6676,8 @@ router.post('/progression/feature', requireDM, (req, res) => {
 
   const regel = { ...(bestaand || {}), name: naam, desc: String(b.desc ?? '') };
   if (_SPREUK_HERKOMST.includes(b.herkomst)) regel.herkomst = b.herkomst; else delete regel.herkomst;
-  if (b.img) regel.img = String(b.img); else if (b.img === null) delete regel.img;
+  if (b.img) regel.img = String(b.img); else if (b.img === null) { delete regel.img; delete regel.imgFocus; }
+  if (b.imgFocus) regel.imgFocus = String(b.imgFocus).slice(0, 32); else delete regel.imgFocus;
   doelLijst.push(regel);
 
   storage.writeJSON('progression.json', { ...prog, bron: prog.bron || 'Aangepast door de DM' });

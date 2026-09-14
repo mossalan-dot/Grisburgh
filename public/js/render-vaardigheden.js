@@ -90,21 +90,21 @@ async function _load() {
 
   for (const [klasse, data] of Object.entries(prog.classes || {})) {
     for (const [lvl, fs] of Object.entries(data.levels || {})) {
-      for (const f of (fs || [])) zet({ soort: 'class', bron: klasse, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', herkomst: f.herkomst || '' });
+      for (const f of (fs || [])) zet({ soort: 'class', bron: klasse, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '' });
     }
     for (const [sub, sdata] of Object.entries(data.subclasses || {})) {
       for (const [lvl, fs] of Object.entries(sdata.levels || {})) {
-        for (const f of (fs || [])) zet({ soort: 'subclass', bron: klasse, sub, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', herkomst: f.herkomst || '' });
+        for (const f of (fs || [])) zet({ soort: 'subclass', bron: klasse, sub, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '' });
       }
     }
   }
   for (const [soort, data] of Object.entries(prog.species || {})) {
     for (const [lvl, fs] of Object.entries(data.levels || {})) {
-      for (const f of (fs || [])) zet({ soort: 'species', bron: soort, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', herkomst: f.herkomst || '' });
+      for (const f of (fs || [])) zet({ soort: 'species', bron: soort, level: Number(lvl), naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '' });
     }
   }
-  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', herkomst: f.herkomst || '' });
-  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', herkomst: f.herkomst || '' });
+  for (const f of (_bron.feats?.general || [])) zet({ soort: 'feat', bron: 'Feats',      level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '' });
+  for (const f of (_bron.feats?.epic    || [])) zet({ soort: 'boon', bron: 'Epic Boons', level: 0, naam: f.name, desc: f.desc || '', img: f.img || '', imgFocus: f.imgFocus || '', herkomst: f.herkomst || '' });
   // Een background is één ding met vijf onderdelen (Ability Scores, Feat,
   // Skill Proficiencies, Tool Proficiency, Equipment). Als losse kaartjes krijg
   // je zestien keer "Ability Scores" in de lijst; als één kaartje per background
@@ -210,6 +210,7 @@ function _card(it) {
       <div class="card-img-wrap vaardig-card-img-wrap">
         <div class="vaardig-card-silhouet">${icon(_itemIcoon(it))}</div>
         ${it.img ? `<img class="vaardig-card-img" src="/api/files/${esc(it.img)}" alt="" loading="lazy"
+          style="${it.imgFocus ? `object-position:${esc(it.imgFocus)}` : ''}"
           onload="this.classList.add('is-on')" onerror="this.remove()">` : ''}
       </div>
       ${isDM() ? `<button class="vaardig-card-edit" title="Bewerken"
@@ -402,12 +403,17 @@ function _editorHtml() {
       <div class="dm-form-row">
         <label class="dm-form-label">Afbeelding</label>
         <div class="vaardig-img-rij">
-          <div class="vaardig-img-voor" id="vd-img-voor">
-            ${e.img ? `<img src="/api/files/${esc(e.img)}" alt="">` : `<span class="dm-hint">Geen afbeelding</span>`}
-          </div>
-          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.vaardigheden.kiesAfbeelding()">${icon('image')} Kiezen</button>
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.vaardigheden.kiesAfbeelding()">${icon('image')} ${e.img ? 'Andere kiezen' : 'Kiezen of uploaden'}</button>
           ${e.img ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.vaardigheden.wisAfbeelding()">${icon('x')} Weghalen</button>` : ''}
         </div>
+        ${e.img ? `<!-- Dezelfde kiezer als op een kaartje, in het spreukdetail en
+             bij de aktebanner: één plek waar het focuspunt gekozen wordt
+             (window._fpBlokHtml). De preview toont de echte uitsnede. -->
+          ${window._fpBlokHtml?.({
+            src: `/api/files/${esc(e.img)}`,
+            value: e.imgFocus || '50% 50%',
+            previews: [{ cls: 'fp-prev--breed', label: 'Kaartje' }],
+          }) ?? ''}` : ''}
       </div>
     </div>
     <div class="dm-feature-row" style="justify-content:flex-end">
@@ -415,6 +421,19 @@ function _editorHtml() {
       <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
       <button class="dm-btn dm-btn-primary" onclick="window.vaardigheden.bewaar()">${icon('save')} Opslaan</button>
     </div>`;
+}
+
+// Wat er in het tekstvak komt te staan. De SRD-teksten dragen de opmaak van de
+// bron-pdf mee: afbreekstreepjes ("Blud- geoning") en een inspringing aan het
+// begin van elke alinea. In de weergave worden die weggepoetst, maar in de
+// bewerkstand kijk je naar de rauwe tekst — en wat je daar ziet, sla je ook zo
+// weer op. Dus poetsen we hier, bij het inladen.
+function _schoonVoorEditor(tekst) {
+  return _schoonTekst(tekst)
+    .split('\n')
+    .map(r => r.replace(/^[ \t]+/, ''))
+    .join('\n')
+    .trim();
 }
 
 function _editorOpen(it) {
@@ -426,8 +445,12 @@ function _editorOpen(it) {
   _edit = it
     ? { oud: { soort: it.soort, bron: it.bron, sub: it.sub, level: it.level, naam: it.naam },
         soort: it.soort, bron: it.bron, sub: it.sub || '', level: it.level || 1,
-        naam: it.naam, desc: it.desc || '', herkomst: it.herkomst || '', img: it.img || '' }
-    : { oud: null, soort: 'feat', bron: 'Feats', sub: '', level: 1, naam: '', desc: '', herkomst: 'zelfbedacht', img: '' };
+        naam: it.naam, desc: _schoonVoorEditor(it.desc || ''), herkomst: it.herkomst || '', img: it.img || '', imgFocus: it.imgFocus || '' }
+    : { oud: null, soort: 'feat', bron: 'Feats', sub: '', level: 1, naam: '', desc: '', herkomst: 'zelfbedacht', img: '', imgFocus: '' };
+  // De kiezer bewaart hier niet meteen (dat doet het spreukdetail); de waarde
+  // gaat mee met het formulier. Haak dus leegmaken, anders schrijft een eerder
+  // geopend venster mee.
+  window._fpOnChange = null;
   window.app.openModal(it ? 'Vaardigheid bewerken' : 'Nieuwe vaardigheid', '', _editorHtml());
 }
 
@@ -441,6 +464,9 @@ function _editorLees() {
   if (v('vd-level') !== undefined) _edit.level = Number(v('vd-level')) || 1;
   if (v('vd-sub') !== undefined) _edit.sub = v('vd-sub');
   if (v('vd-bron') !== undefined) _edit.bron = v('vd-bron');
+  // De focuskiezer staat buiten de gewone velden; zijn waarde leest hij zelf uit.
+  const fp = window._fpWaarde?.();
+  if (fp && document.querySelector('#m-body .fp-blok')) _edit.imgFocus = fp;
 }
 
 function _editorHerteken() {
@@ -484,7 +510,7 @@ window.vaardigheden = {
       },
     });
   },
-  wisAfbeelding() { _editorLees(); _edit.img = ''; _editorHerteken(); },
+  wisAfbeelding() { _editorLees(); _edit.img = ''; _edit.imgFocus = ''; _editorHerteken(); },
   async bewaar() {
     _editorLees();
     if (!_edit.naam.trim()) { document.getElementById('vd-naam')?.focus(); return; }
@@ -492,7 +518,7 @@ window.vaardigheden = {
       await api.post('/progression/feature', {
         oud: _edit.oud, soort: _edit.soort, bron: _edit.bron, sub: _edit.sub,
         level: _edit.level, naam: _edit.naam.trim(), desc: _edit.desc,
-        herkomst: _edit.herkomst, img: _edit.img || null,
+        herkomst: _edit.herkomst, img: _edit.img || null, imgFocus: _edit.imgFocus || '',
         // Bij een feat of Epic Boon: de bibliotheek mee, zodat de server hem
         // vastlegt als deze campagne er nog geen eigen had (zie de route).
         seedFeats: (_edit.soort === 'feat' || _edit.soort === 'boon') ? _bron?.feats : undefined,

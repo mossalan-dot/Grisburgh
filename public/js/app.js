@@ -7,7 +7,7 @@ import { renderRelatiemap } from './render-relatiemap.js?v=25';
 import { renderProgressie } from './render-progressie.js?v=46';
 import { renderBestiarium } from './render-bestiarium.js?v=29';
 import { renderSpreuken } from './render-spreuken.js?v=40';
-import { renderVaardigheden } from './render-vaardigheden.js?v=2';
+import { renderVaardigheden } from './render-vaardigheden.js?v=4';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=72";
 import { initDmPanel } from "./dm-panel.js?v=225";
@@ -12697,7 +12697,7 @@ const HELP_CONFIG = {
   // Een speler dacht dat de hele bibliotheek haar eigen spreuken waren. Vandaar
   // dat deze uitleg met dat misverstand begint in plaats van met de functies.
   vaardigheden: () => ({
-    titel: 'Vaardigheden — wat een personage kan',
+    titel: 'Vaardigheden',
     stappen: [
       {
         titel: 'Alles bij elkaar, niet alleen wat jij hebt',
