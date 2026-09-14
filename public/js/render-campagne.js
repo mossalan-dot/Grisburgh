@@ -4156,6 +4156,12 @@ window._modalBlader = (richting) => {
   const ov = document.getElementById('modal-overlay');
   if (!ov?.classList.contains('active')) return;
   if (document.querySelector('#m-body form')) return;
+  // Kwam je hier via een link in een tekst, dan staat er linksboven een
+  // terugknop — en die gaat naar het kaartje wáár je vandaan komt, niet naar het
+  // kaartje links in de rij. Twee betekenissen voor één pijl naar links is er
+  // één te veel, dus zolang die terugweg openstaat bladeren we niet. Ben je
+  // teruggegaan (of open je een kaartje vers uit het raster), dan mag het weer.
+  if (_modalHistory.length) return;
   if (typeof window._bladerBron === 'function') return window._bladerBron(richting);
   if (window._currentDetailId) return window._detailBuur(richting);
 };
@@ -4168,7 +4174,10 @@ window._detailBuur = async (richting) => {
   if (i < 0) return;                       // dit kaartje staat niet in de lijst
   const doel = lijst[i + richting];
   if (!doel) return;                       // aan het begin of eind: niets doen
-  await window._openDetail(tab, doel.id);
+  // Opzij bladeren is geen stap dieper: het mag geen terugweg opbouwen, anders
+  // wijst de terugknop straks naar een kaartje dat je alleen maar passeerde —
+  // en dan staat hij er ook nog terwijl je gewoon door de rij loopt.
+  await window._openDetail(tab, doel.id, true /* geen history */);
 };
 
 // Eén keer aanhangen, maar pas bij het eerste kaartje dat opengaat: dit bestand

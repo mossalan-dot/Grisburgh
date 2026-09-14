@@ -242,7 +242,7 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 ```
 index.html  : theme.css?v=600   app.js?v=762   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
-              render-archief.js?v=91  render-bestiarium.js?v=29  render-campagne.js?v=302
+              render-archief.js?v=91  render-bestiarium.js?v=29  render-campagne.js?v=304
               render-dashboard.js?v=9  render-dungeon.js?v=53  render-kaart.js?v=31
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=39
               render-statblock.js?v=9  socket-client.js?v=71
@@ -835,6 +835,14 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 >
 > **Wat "de volgende" betekent:** de volgende in de lijst **zoals je hem nu
 > gefilterd ziet**. Anders spring je naar iets wat nergens op het scherm ligt.
+>
+> **Bladeren en de terugknop sluiten elkaar uit.** Kom je via een `[[link]]` in
+> een kaartje, dan staat er linksboven een terugknop naar het kaartje waar je
+> vandaan komt — en die wijst net zo goed naar rechts in de rij. Twee betekenissen
+> voor één pijl naar links is er één te veel, dus zolang `_modalHistory` gevuld is
+> bladert er niets; na een terugsprong mag het weer. En opzij bladeren **bouwt
+> zelf geen terugweg op** (`_openDetail(..., true)`): het is geen stap dieper,
+> en anders wees de terugknop straks naar een kaartje dat je alleen passeerde.
 
 ---
 
