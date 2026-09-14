@@ -2,7 +2,7 @@ import { api, campagneUitUrl, zetCampagne } from './api.js?v=285';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=299";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=87";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=30';
-import { renderDungeon } from './render-dungeon.js?v=39';
+import { renderDungeon } from './render-dungeon.js?v=40';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
@@ -2866,7 +2866,21 @@ async function _renderKaartGalerij() {
   try { [maps, dungeons] = await Promise.all([api.listMaps(), api.listDungeons()]); } catch { /* leeg */ }
 
   const worldCards = maps.map(m => _kaartCard('wereld', m, dm)).join('');
-  const dngCards   = dungeons.map(d => _kaartCard('dungeon', d, dm)).join('');
+  // Een gebouw met verdiepingen is één kaartje. De kaarten eronder delen een
+  // `gebouwId`; de begane grond (of de laagste die er is) staat op het kaartje,
+  // de rest hangt eronder als verdiepingenrij. Zonder gebouwId blijft het één
+  // kaart per kaartje, precies zoals het was.
+  const gebouwen = new Map();
+  for (const d of dungeons) {
+    const sleutel = d.gebouwId || d.id;
+    if (!gebouwen.has(sleutel)) gebouwen.set(sleutel, []);
+    gebouwen.get(sleutel).push(d);
+  }
+  const dngCards = [...gebouwen.values()].map(lagen => {
+    const gesorteerd = [...lagen].sort((a, b) => (a.verdieping ?? 0) - (b.verdieping ?? 0));
+    const hoofd = gesorteerd.find(x => x.verdieping === 0) || gesorteerd[0];
+    return _kaartCard('dungeon', hoofd, dm, gesorteerd.length > 1 ? gesorteerd : null);
+  }).join('');
 
   host.innerHTML = `
     <div class="kg-group">
@@ -2906,20 +2920,25 @@ window._dngToegangCycle = async function (id) {
   try { dungeons = await api.listDungeons(); } catch { return; }
   const m = dungeons.find(d => d.id === id);
   if (!m) return;
-  const stand   = _dngToegangStand(m);
-  const nieuw   = stand === 'none' ? 'active' : stand === 'active' ? 'completed' : 'none';
-  const toegang = new Set(m.partyAccess    || []);
-  const uit     = new Set(m.partyCompleted || []);
-  toegang.delete(gid); uit.delete(gid);
-  if (nieuw === 'active')    toegang.add(gid);
-  if (nieuw === 'completed') { toegang.add(gid); uit.add(gid); }
+  const stand = _dngToegangStand(m);
+  const nieuw = stand === 'none' ? 'active' : stand === 'active' ? 'completed' : 'none';
+  // Een gebouw is één ding voor de party: de kelder hoort niet dicht te blijven
+  // omdat het oogje op de begane grond stond. Alle verdiepingen schuiven mee.
+  const lagen = m.gebouwId ? dungeons.filter(d => d.gebouwId === m.gebouwId) : [m];
   try {
-    await api.setDungeonPartyAccess(id, [...toegang], [...uit]);
+    for (const laag of lagen) {
+      const toegang = new Set(laag.partyAccess    || []);
+      const uit     = new Set(laag.partyCompleted || []);
+      toegang.delete(gid); uit.delete(gid);
+      if (nieuw === 'active')    toegang.add(gid);
+      if (nieuw === 'completed') { toegang.add(gid); uit.add(gid); }
+      await api.setDungeonPartyAccess(laag.id, [...toegang], [...uit]);
+    }
     _renderKaartGalerij();
   } catch (e) { alert('Zichtbaarheid aanpassen mislukt: ' + e.message); }
 };
 
-function _kaartCard(type, m, dm) {
+function _kaartCard(type, m, dm, verdiepingen = null) {
   const id   = m.id;
   const name = type === 'wereld' ? (m.label || 'Kaart') : (m.name || 'Dungeon');
   const desc = m.description || '';
@@ -2957,6 +2976,11 @@ function _kaartCard(type, m, dm) {
       </div>
       <div class="kg-card-body">
         <div class="kg-card-name">${esc(name)}</div>
+        ${verdiepingen ? `<div class="kg-verdiepingen" onclick="event.stopPropagation()">
+          ${verdiepingen.map(v => `<button class="kg-verdieping" title="${esc(v.name || '')}"
+            onclick="window._openKaartFullscreen('dungeon','${esc(v.id)}')">${
+              v.verdieping === 0 ? 'BG' : esc(String(v.verdieping ?? '?'))}</button>`).join('')}
+        </div>` : ''}
         ${desc
           ? `<p class="kg-card-desc">${esc(desc)}</p>`
           : (dm ? `<p class="kg-card-desc kg-card-desc--empty">Geen beschrijving — klik op ${'✎'} om er een toe te voegen.</p>` : '')}
@@ -2969,7 +2993,7 @@ function _kaartCard(type, m, dm) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=39');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=40');
   nieuweDungeon();
 };
 

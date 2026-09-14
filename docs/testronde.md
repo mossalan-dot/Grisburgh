@@ -374,6 +374,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Kaart verwijderen** (DM) — *Kaart bewerken* heeft een verwijderknop met een bevestiging die zegt wat er meegaat; daarna is het kaartje uit de galerij en zijn de spelden weg, maar de locatiekaartjes niet
 - [ ] **Kaart toevoegen/bewerken** (DM) — nieuwe kaart met naam en afbeelding, hernoemen, verwijderen; zonder kaarten verschijnt de lege staat met een knop
 - [ ] **Dungeon** (ALL) — kamers openklikken, fog-of-war per kamer onthullen, teller onderaan klopt
+- [ ] **Een gebouw in één keer uploaden** (DM) — *Nieuwe dungeonkaart*: naam, omslagafbeelding en drie plattegronden (−1, 0, 1). In de galerij staat één kaartje met knopjes −1 · BG · 1; elk knopje opent die verdieping, en het oogje zet ze alle drie tegelijk zichtbaar
 - [ ] **Verdiepingen** (DM) — knopjes BG · 1 · −1; een trap brengt je naar de andere verdieping mét doelkamer, de tegenhanger wordt vanzelf aangelegd, en telt niet mee in de teller
 - [ ] **Vondsten vanuit de kamer** (DM) — sectie *Vondsten* in de kamerzijbalk: aanmaken of koppelen; het muntje opent het lootvenster; loskoppelen gooit niets weg
 - [ ] **Dungeon op het tafelscherm** (TAB) — de DM toont een dungeonkaart; de tablet toont alleen de onthulde kamers

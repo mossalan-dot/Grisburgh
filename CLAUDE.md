@@ -240,10 +240,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=588   app.js?v=747   sound-manager.js?v=8
+index.html  : theme.css?v=589   app.js?v=749   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
               render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=299
-              render-dashboard.js?v=9  render-dungeon.js?v=39  render-kaart.js?v=30
+              render-dashboard.js?v=9  render-dungeon.js?v=40  render-kaart.js?v=30
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
@@ -491,6 +491,15 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > als vondst én als handmatig icoontje — en lopen die uit elkaar. Wat de speler
 > ziet blijft een bewuste keuze van de DM.
 
+> **Eén kaartje, meerdere plattegronden.** Bij het aanmaken geef je meteen alle
+> verdiepingen op (*Verdieping erbij*), elk met een eigen nummer en afbeelding,
+> plus een **omslagafbeelding** voor op het kaartje. De app maakt er één kaart per
+> verdieping van met een gedeeld **`gebouwId`**; de galerij toont ze als één
+> kaartje met knopjes (−1 · BG · 1) en het oogje zet de zichtbaarheid van het
+> **hele gebouw** — anders bleef de kelder dicht omdat je de begane grond had
+> onthuld. `_verdiepingenVan()` kijkt nu eerst naar dat `gebouwId` en daarna pas
+> naar de trappen: trappen teken je later, maar bij elkaar horen ze meteen.
+>
 > **Verdiepingen in een dungeon.** Een kaart kan een `verdieping` hebben
 > (0 = begane grond, negatief = kelder; leeg = hoort niet bij een gebouw met
 > verdiepingen), in te stellen bij *Kaart bewerken* in de kaartengalerij. Welke

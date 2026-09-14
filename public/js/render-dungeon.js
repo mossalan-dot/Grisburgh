@@ -69,6 +69,13 @@ function _verdiepingenVan(mapId, gezien = new Set()) {
   if (gezien.has(mapId)) return gezien;
   gezien.add(mapId);
   const m = _maps.find(x => x.id === mapId);
+  // Samen geüpload? Dan horen ze bij elkaar, ook als er nog geen trap getekend
+  // is. Trappen blijven werken voor gebouwen die zo gegroeid zijn.
+  if (m?.gebouwId) {
+    for (const ander of _maps) {
+      if (ander.gebouwId === m.gebouwId && !gezien.has(ander.id)) _verdiepingenVan(ander.id, gezien);
+    }
+  }
   for (const r of (m?.rooms || [])) {
     if (_isTrap(r) && !gezien.has(r.trapNaar.mapId)) _verdiepingenVan(r.trapNaar.mapId, gezien);
   }
@@ -133,8 +140,11 @@ export async function renderDungeon(container, openId) {
 // Shell HTML
 // ──────────────────────────────────────────────────────────────────
 function _buildShell() {
+  // Bij een gebouw met verdiepingen heten de kaarten hetzelfde; dan moet de
+  // keuzelijst erbij zeggen wélke verdieping je voor je hebt.
   const mapOpts = _maps.map((m, i) =>
-    `<option value="${i}" ${i===_mapIdx?'selected':''}>${esc(m.name)}</option>`
+    `<option value="${i}" ${i===_mapIdx?'selected':''}>${esc(m.name)}${
+      Number.isFinite(m.verdieping) ? ` · ${esc(_verdiepingLabel(m.verdieping))}` : ''}</option>`
   ).join('');
 
   return `
@@ -1313,9 +1323,16 @@ function _openNewDungeonDialog() {
         </select>
       </div>
       <div class="dm-form-row">
-        <label class="dm-form-label">Plattegrond</label>
-        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" id="dng-new-pick" style="justify-content:flex-start">
-          ${icon('image')} <span id="dng-new-file-name">Kies of upload een afbeelding…</span>
+        <label class="dm-form-label">Omslagafbeelding</label>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" id="dng-new-thumb" style="justify-content:flex-start">
+          ${icon('image')} <span id="dng-new-thumb-naam">Wat op het kaartje komt te staan…</span>
+        </button>
+      </div>
+      <div class="dm-form-row" style="flex-direction:column;align-items:stretch;gap:6px">
+        <label class="dm-form-label">Plattegronden</label>
+        <div id="dng-new-lagen"></div>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" id="dng-new-laag-erbij" style="align-self:flex-start">
+          ${icon('plus')} Verdieping erbij
         </button>
       </div>
       <div class="dng-dialog-btns">
@@ -1326,15 +1343,57 @@ function _openNewDungeonDialog() {
   document.body.appendChild(overlay);
   setTimeout(() => document.getElementById('dng-new-name')?.focus(), 50);
 
-  let gekozenFileId = '';
-  document.getElementById('dng-new-pick').addEventListener('click', () => {
-    const naamHint = (document.getElementById('dng-new-name')?.value || '').trim().toLowerCase().replace(/\s+/g, '-');
+  // Eén gebouw kan meerdere plattegronden hebben: begane grond, zolder, kelder.
+  // Je geeft ze hier in één keer op; de app maakt er één kaart per verdieping van
+  // en houdt ze bij elkaar met een gedeeld `gebouwId`.
+  let thumbId = '';
+  const lagen = [{ verdieping: 0, fileId: '' }];
+
+  const _naamHint = () => (document.getElementById('dng-new-name')?.value || '')
+    .trim().toLowerCase().replace(/\s+/g, '-');
+
+  function _tekenLagen() {
+    const host = document.getElementById('dng-new-lagen');
+    if (!host) return;
+    host.innerHTML = lagen.map((l, i) => `
+      <div class="dng-laag-rij">
+        <input type="number" class="dm-input dm-input-sm dng-laag-nr" data-i="${i}" value="${l.verdieping}"
+          title="0 = begane grond, −1 = kelder" style="width:64px">
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dng-laag-kies" data-i="${i}" style="flex:1;justify-content:flex-start">
+          ${icon('image')} ${l.fileId ? 'Afbeelding gekozen' : 'Kies of upload een plattegrond…'}
+        </button>
+        ${lagen.length > 1 ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-danger dng-laag-weg" data-i="${i}" title="Deze verdieping weghalen">${icon('x')}</button>` : ''}
+      </div>`).join('');
+    host.querySelectorAll('.dng-laag-nr').forEach(inp => inp.addEventListener('change', () => {
+      lagen[+inp.dataset.i].verdieping = parseInt(inp.value, 10) || 0;
+    }));
+    host.querySelectorAll('.dng-laag-kies').forEach(knop => knop.addEventListener('click', () => {
+      const i = +knop.dataset.i;
+      window.mediaPicker.open({
+        type: 'afbeelding',
+        suggestedName: _naamHint() ? `${_naamHint()}-verdieping-${lagen[i].verdieping}` : 'plattegrond',
+        onSelect: (fileId) => { lagen[i].fileId = fileId; _tekenLagen(); },
+      });
+    }));
+    host.querySelectorAll('.dng-laag-weg').forEach(knop => knop.addEventListener('click', () => {
+      lagen.splice(+knop.dataset.i, 1); _tekenLagen();
+    }));
+  }
+  _tekenLagen();
+
+  document.getElementById('dng-new-laag-erbij').addEventListener('click', () => {
+    const hoogste = Math.max(...lagen.map(l => l.verdieping));
+    lagen.push({ verdieping: hoogste + 1, fileId: '' });
+    _tekenLagen();
+  });
+
+  document.getElementById('dng-new-thumb').addEventListener('click', () => {
     window.mediaPicker.open({
       type: 'afbeelding',
-      suggestedName: naamHint ? `${naamHint}-plattegrond` : 'dungeon',
+      suggestedName: _naamHint() ? `${_naamHint()}-omslag` : 'dungeon-omslag',
       onSelect: (fileId) => {
-        gekozenFileId = fileId;
-        const naam = document.getElementById('dng-new-file-name');
+        thumbId = fileId;
+        const naam = document.getElementById('dng-new-thumb-naam');
         if (naam) naam.textContent = 'Afbeelding gekozen';
       },
     });
@@ -1345,12 +1404,23 @@ function _openNewDungeonDialog() {
     const name = naamVeld.value.trim();
     if (!name) { naamVeld.classList.add('dm-input--err'); setTimeout(() => naamVeld.classList.remove('dm-input--err'), 900); naamVeld.focus(); return; }
     try {
-      await api.createDungeon({
+      const basis = {
         name,
         hoofdstukId: document.getElementById('dng-new-hfst').value,
-        fileId: gekozenFileId,
         description: document.getElementById('dng-new-desc').value.trim(),
-      });
+        thumbId,
+      };
+      const meerdere = lagen.length > 1;
+      const gebouwId = meerdere ? 'geb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5) : '';
+      // Op volgorde aanmaken (laagste verdieping eerst), zodat de galerij en de
+      // verdiepingenstrook dezelfde volgorde aanhouden als het gebouw zelf.
+      for (const laag of [...lagen].sort((a, b) => a.verdieping - b.verdieping)) {
+        await api.createDungeon({
+          ...basis,
+          fileId: laag.fileId,
+          ...(meerdere ? { verdieping: laag.verdieping, gebouwId } : {}),
+        });
+      }
       overlay.remove();
       // Eindigen waar je begon: de galerij (of de open kaartweergave) bijwerken.
       // Dit riep `renderDungeon(#kaart-mode-content)` aan — een element dat sinds

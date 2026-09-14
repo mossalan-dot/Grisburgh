@@ -11846,8 +11846,16 @@ router.post('/dungeons', requireDM, (req, res) => {
     // De beschrijving hoort bij het aanmaken; hij werd hier stil weggegooid en
     // kon pas in de bewerkmodus alsnog ingevuld worden.
     description: String(req.body.description || '').slice(0, 600),
+    // Een gebouw met verdiepingen is één kaartje in de galerij en meerdere
+    // kaarten eronder. Welke bij elkaar horen werd afgeleid uit de trappen, maar
+    // die teken je pas later; `gebouwId` legt het vast op het moment dat je ze
+    // samen uploadt. Blijft leeg bij een losse dungeon.
+    gebouwId: String(req.body.gebouwId || '').slice(0, 40),
+    thumbId:  String(req.body.thumbId  || '').slice(0, 80),
     rooms: [], partyAccess: [], reveals: {},
   };
+  const _v = parseInt(req.body.verdieping, 10);
+  if (Number.isFinite(_v)) map.verdieping = _v;
   maps.push(map);
   _writeDungeons(maps);
   req.app.get('io').to(req.session?.campaignId||'main').emit('dungeon:updated');
@@ -11864,6 +11872,7 @@ router.put('/dungeons/:id', requireDM, (req, res) => {
   if (req.body.fileId      !== undefined) map.fileId      = req.body.fileId;
   if (req.body.description !== undefined) map.description = String(req.body.description || '').slice(0, 600);
   if (req.body.thumbId     !== undefined) map.thumbId     = req.body.thumbId || '';
+  if (req.body.gebouwId    !== undefined) map.gebouwId    = String(req.body.gebouwId || '').slice(0, 40);
   if (req.body.thumbFocus  !== undefined) map.thumbFocus  = String(req.body.thumbFocus || '').slice(0, 20);
   // Verdieping: 0 = begane grond, negatief = kelder. Leeg betekent "hoort niet
   // bij een gebouw met verdiepingen"; welke kaarten samen één gebouw vormen
