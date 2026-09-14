@@ -3,7 +3,7 @@ import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, ren
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=92";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
-import { renderRelatiemap } from './render-relatiemap.js?v=24';
+import { renderRelatiemap } from './render-relatiemap.js?v=25';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=29';
 import { renderSpreuken } from './render-spreuken.js?v=39';

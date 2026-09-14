@@ -24961,3 +24961,18 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
 .pb-panel-img--vague .icon { width: 40%; height: 40%; }
 .pb-panel-blank-icon { color: #8a6a30; }
 .pb-panel-blank-icon .icon { width: 30px; height: 30px; }
+
+/* Het silhouet ligt in het paneel onder de afbeelding; die legt zich eroverheen
+   en haalt zichzelf weg als het bestand er niet is (zie render-relatiemap.js). */
+.pb-panel-img--boven { position: absolute; inset: 0; }
+.pb-panel-meer-info,
+.pb-panel-remove {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  font-family: 'Crimson Text', Georgia, serif; font-size: 14px;
+}
+.pb-panel-meer-info .icon,
+.pb-panel-remove .icon,
+.pb-panel-label .icon { width: 14px; height: 14px; }
+.pb-panel-label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+/* De notities zijn de post-it zelf: schrijfmachineletter, zoals op het bord. */
+.pb-panel-notes::placeholder, .pb-panel-input::placeholder { color: #a08c68; }

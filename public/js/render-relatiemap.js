@@ -221,8 +221,8 @@ function _renderGraph() {
                 fill="#f4eed6" stroke="${border}" stroke-width="${bw}"/>
           ${imgSvg}
           ${crossSvg}
-          ${hasNotes ? `<text x="${NODE_W - 7}" y="11" text-anchor="middle" fill="#7a6040"
-            style="font-size:11px;pointer-events:none">📎</text>` : ''}
+          ${hasNotes ? `<use href="/img/icons.svg?v=10#icon-pencil" x="${NODE_W - 13}" y="3"
+            width="9" height="9" style="color:#7a6040;pointer-events:none"/>` : ''}
           ${lines.length === 1
             ? `<text x="${NODE_W / 2}" y="${8 + IMG_H + 19}" text-anchor="middle" fill="#2a1a08"
                      style="font-family:'Courier New',monospace;font-size:9.5px;font-weight:bold;pointer-events:none">${esc(lines[0])}</text>`
@@ -252,8 +252,8 @@ function _renderGraph() {
                    fill="rgba(0,0,0,0.18)"/>
           <rect x="${(NODE_W - 24) / 2}" y="${ofY - 5}" width="24" height="9" rx="2"
                 fill="rgba(225,215,185,0.82)" stroke="rgba(180,155,110,0.5)" stroke-width="0.5"/>
-          ${hasNotes ? `<text x="${NODE_W - 7}" y="${ofY + 14}" text-anchor="middle" fill="#7a6040"
-            style="font-size:11px;pointer-events:none">📎</text>` : ''}
+          ${hasNotes ? `<use href="/img/icons.svg?v=10#icon-pencil" x="${NODE_W - 13}" y="${ofY + 5}"
+            width="9" height="9" style="color:#7a6040;pointer-events:none"/>` : ''}
           ${lines.length === 1
             ? `<text x="${NODE_W / 2}" y="${ofY + PH / 2}" text-anchor="middle" dominant-baseline="middle"
                      fill="#1a1008" style="font-family:'Courier New',monospace;font-size:10px;font-weight:bold;pointer-events:none">${esc(lines[0])}</text>`
@@ -320,10 +320,11 @@ function _renderPanel() {
     <div class="pb-panel-inner">
       ${node.entityId
         ? `<div class="pb-panel-img-wrap" style="position:relative">
+             <div class="pb-panel-img pb-panel-img--vague">${_silhouetIcoon(node.entityType)}</div>
              ${panelShowImg
-               ? `<img src="${api.thumbUrl(node.entityId)}" class="pb-panel-img" alt="${esc(name)}"
-                       onerror="this.style.display='none'">`
-               : `<div class="pb-panel-img pb-panel-img--vague">${_silhouetIcoon(node.entityType)}</div>`
+               ? `<img src="${api.thumbUrl(node.entityId)}" class="pb-panel-img pb-panel-img--boven"
+                       alt="${esc(name)}" onerror="this.remove()">`
+               : ''
              }
              ${panelDeceased ? `<div class="pb-panel-deceased-cross"></div>` : ''}
            </div>`
@@ -333,7 +334,7 @@ function _renderPanel() {
       ${node.entityId && node.entityType
         ? `<button class="pb-panel-meer-info"
              onclick="window._openDetail('${esc(node.entityType)}','${esc(node.entityId)}')">
-             📋 Meer info
+             ${icon('clipboard-list')} Meer info
            </button>`
         : ''
       }
@@ -346,12 +347,12 @@ function _renderPanel() {
         : ''
       }
       <div class="pb-panel-field">
-        <label class="pb-panel-label">📎 Aantekeningen</label>
+        <label class="pb-panel-label">${icon('pencil')} Aantekeningen</label>
         <textarea class="pb-panel-notes" id="pb-notes-ta"
           placeholder="Schrijf hier jullie notities…">${esc(node.notes || '')}</textarea>
       </div>
       <button class="pb-panel-remove" onclick="window._pbRemoveNode('${esc(_selectedNode)}')">
-        🗑 Verwijder van bord
+        ${icon('trash')} Verwijder van bord
       </button>
     </div>
   `;
