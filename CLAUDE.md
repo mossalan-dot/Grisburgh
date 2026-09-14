@@ -240,11 +240,12 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=600   app.js?v=762   sound-manager.js?v=8
+index.html  : theme.css?v=605   app.js?v=774   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
-              render-archief.js?v=91  render-bestiarium.js?v=29  render-campagne.js?v=304
+              render-archief.js?v=92  render-bestiarium.js?v=29  render-campagne.js?v=304
               render-dashboard.js?v=9  render-dungeon.js?v=53  render-kaart.js?v=31
-              render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=39
+              render-progressie.js?v=46  render-relatiemap.js?v=25  render-spreuken.js?v=39
+              render-naslag.js?v=1
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 ```
@@ -973,6 +974,29 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > **scholen** zitten wél achter een trechterknop — dat is een brede rij die je
 > minder vaak nodig hebt. Hij klapt vanzelf open zodra er een school gekozen is,
 > zodat een actief filter nooit onzichtbaar is.
+
+---
+
+> **Naslag: de bibliotheek naast de tijdlijn.** De Progressie-tab toont class
+> features, traits en feats langs de tijdlijn van één personage — je ziet er dus
+> pas iets als jouw level het ontsluit. De archieftab **Naslag**
+> (`render-naslag.js`, sectie `naslag`, module `naslag`) zet dezelfde dingen
+> naast elkaar als doorzoekbare bibliotheek: 148 class features, 73 subclass
+> features, 53 species traits, 51 feats, 12 Epic Boons en 16 backgrounds in
+> Grisburgh. Zelfde machinerie als de spreukenbibliotheek (drie zoekbakken in
+> `_score`, permanent open filterbalk, `.entity-card`).
+> **Eén plek weet waar een tekst vandaan komt:** `naslagBron()` in
+> `render-progressie.js` levert `prog`, `backgrounds`, `feats`, `srdDesc`,
+> `geenTekstBlok` en `md`. Dus geen tweede route en geen tweede regel over wie
+> welke tekst mag zien — `GET /api/progression` knipt buiten de beheercampagne
+> de `desc` er al af, en waar niets overblijft staat de verwijzing naar buiten
+> (`window.app.bronLink`), op het kaartje én in het venster.
+> Een **background** is één kaartje met zijn vijf onderdelen in het detail; als
+> losse regels stond "Ability Scores" zestien keer in de lijst.
+> De SRD-teksten dragen de afbreekstreepjes van de bron-pdf mee ("Ar- mor
+> Class"); `_schoonTekst` in `render-progressie.js` haalt ze weg in `_md`, dus
+> ook de tijdlijn profiteert — zelfde opschoning als `schoon()` in
+> `lib/character-sheet.js`.
 
 ---
 

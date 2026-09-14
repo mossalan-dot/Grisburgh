@@ -24976,3 +24976,37 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
 .pb-panel-label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 /* De notities zijn de post-it zelf: schrijfmachineletter, zoals op het bord. */
 .pb-panel-notes::placeholder, .pb-panel-input::placeholder { color: #a08c68; }
+
+/* De aantekeningen in het prikbordpaneel stonden in Courier — dat is de letter
+   van de post-its op het bord zelf, niet van een invulveld in de zijbalk. */
+.pb-panel-notes { font-family: 'Crimson Text', Georgia, serif; font-size: 14px; }
+
+/* ── Naslag-tab ───────────────────────────────────────────────────────────
+   Leunt op de spreukenkaartjes (.entity-card + .spreuk-*), met een eigen
+   kleur per soort in plaats van per school. */
+.section-banner--naslag .section-banner-icon-wrap { color: #7a5a10; }
+.naslag-card-img-wrap {
+  background: linear-gradient(140deg, var(--soort-c1, #3a2a55), var(--soort-c2, #5a3a8c));
+  display: flex; align-items: center; justify-content: center; min-height: 86px;
+}
+.naslag-card-silhouet { opacity: 0.4; color: #f2e8d2; }
+.naslag-card-silhouet .icon { width: 38px; height: 38px; }
+.naslag-card-niv {
+  position: absolute; top: 6px; right: 8px; z-index: 2;
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: #f2e8d2;
+  background: rgba(20,12,4,0.6); border: 1px solid rgba(196,168,122,0.5);
+  border-radius: 50%; width: 22px; height: 22px; line-height: 20px; text-align: center;
+}
+.naslag-card-body { display: flex; flex-direction: column; gap: 4px; }
+.naslag-card-name { font-family: 'Cinzel', serif; font-size: 14px; color: #2a1a08; line-height: 1.25; }
+.naslag-card-meta { font-size: 12px; color: #7a6040; font-style: italic; }
+.naslag-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.naslag-card-desc {
+  font-size: 12.5px; color: #5a4430; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.naslag-tag--soort { background: rgba(196,168,122,0.18); }
+.naslag-telling { opacity: 0.6; font-size: 11px; margin-left: 2px; }
+.naslag-filters .spreuk-scholen { display: flex; flex-wrap: wrap; gap: 5px; }
+.naslag-accent { background: var(--soort-c2, #5a3a8c); }
+.naslag-card-desc--leeg { font-style: italic; color: #8a7458; }

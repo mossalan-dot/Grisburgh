@@ -4,9 +4,10 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
 import { renderRelatiemap } from './render-relatiemap.js?v=25';
-import { renderProgressie } from './render-progressie.js?v=45';
+import { renderProgressie } from './render-progressie.js?v=46';
 import { renderBestiarium } from './render-bestiarium.js?v=29';
 import { renderSpreuken } from './render-spreuken.js?v=39';
+import { renderNaslag } from './render-naslag.js?v=1';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=72";
 import { initDmPanel } from "./dm-panel.js?v=225";
@@ -711,7 +712,7 @@ const LOGBOEK_LABELS = {
 const AVONTUUR_LABEL = `${icon('compass')} Avontuur`;
 
 const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
-const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'spreuken', 'relatiemap'];
+const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'spreuken', 'naslag', 'relatiemap'];
 const ARCHIEF_LABELS = {
   personages:   `${icon('user')} Personages`,
   locaties:     `${icon('castle', {cls:'icon-gi'})} Locaties`,
@@ -720,6 +721,7 @@ const ARCHIEF_LABELS = {
   documenten:   `${icon('scroll-text')} Documenten`,
   bestiarium:   `${icon('skull')} Bestiarium`,
   spreuken:     `${icon('sparkles')} Spreuken`,
+  naslag:       `${icon('book-open')} Naslag`,
   kaart:        `${icon('map')} Kaarten`,
   relatiemap:   `${icon('users')} Relatiemap`,
 };
@@ -2853,6 +2855,7 @@ async function refreshSection(section) {
   else if (section === 'documenten') await renderDocumenten();
   else if (section === 'bestiarium') await renderBestiarium();
   else if (section === 'spreuken') await renderSpreuken();
+  else if (section === 'naslag') await renderNaslag();
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await _renderKaartSection();
   else if (section === 'relatiemap') await renderRelatiemap();
@@ -12693,6 +12696,27 @@ const HELP_CONFIG = {
 
   // Een speler dacht dat de hele bibliotheek haar eigen spreuken waren. Vandaar
   // dat deze uitleg met dat misverstand begint in plaats van met de functies.
+  naslag: () => ({
+    titel: 'Naslag — wat een personage kan',
+    stappen: [
+      {
+        titel: 'Alles bij elkaar, niet alleen wat jij hebt',
+        tekst: 'Hier staan de **class features**, **subclass features**, **species traits**, **feats**, **Epic Boons** en **backgrounds** van deze wereld bij elkaar. Wat jóuw personage ervan heeft, staat op je tijdlijn onder Progressie; dit is de plek om op te zoeken wat er te krijgen valt.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Waar is het goed voor?',
+        tekst: 'Om te kijken wat *Sentinel* doet vóórdat je hem kiest, om te zien wat een andere subclass op level 6 krijgt, of om na te lezen wat een tegenstander met zijn class feature kan. Filter op soort, op klasse of soort, of op het level waarop iets komt — of zoek gewoon op naam.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Staat er soms geen tekst?',
+        tekst: 'Dan mag hij hier niet staan. De **SRD**-teksten zijn vrij te gebruiken en staan er voluit; de rest niet, en daar staat een knop *Lees hem elders* die je naar een naslagpagina brengt. Wat de DM zelf schreef staat er altijd.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
   spreuken: () => ({
     titel: 'Spreuken — de bibliotheek',
     stappen: [

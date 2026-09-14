@@ -367,6 +367,15 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] *Kaartje*, *Draad leggen* en *Draad bewerken* openen als gewoon perkamentvenster (geen donkere lijst, geen emoji in het zoekveld); de hulpknop staat één keer in beeld
 - [ ] Een kaartje zonder portret toont een silhouet van zijn soort (poppetje / gebouw / speld), geen vraagteken of gebroken plaatje
 - [ ] Lexicon op een telefoon: één tik op een onderstreept woord opent de uitleg meteen (niet pas bij de tweede tik); tikken naast het woord sluit hem
+
+### Naslag (archieftab)
+- [ ] Archief → Naslag toont kaartjes voor class features, subclass features, species traits, feats, Epic Boons en backgrounds; de tellers boven kloppen met wat je ziet
+- [ ] Klik op een soort-chip → alleen die soort, en de bronnen- en levellijst eronder loopt mee (bij Feats is er geen level)
+- [ ] Zoek op "unarmored defense" → de Barbarian- én de Monk-versie staan er allebei, elk met hun eigen klasse eronder
+- [ ] Een background is één kaartje met zijn vijf onderdelen in het detailvenster, niet zestien keer "Ability Scores"
+- [ ] Een feature zonder SRD-tekst (bijv. Sentinel) toont op het kaartje een chip *Naslag* en in het venster de verwijzing "Lees hem elders" — geen leeg vak
+- [ ] Geen afbreekstreepjes uit de bron-pdf in de tekst ("Armor Class", niet "Ar- mor Class") — geldt ook op de Progressie-tijdlijn
+- [ ] D&D-termen in een beschrijving krijgen lexicon-uitleg bij hover/tik
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

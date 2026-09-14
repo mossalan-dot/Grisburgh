@@ -10,7 +10,15 @@ const icon = (...a) => window.icon(...a);
 const isDM = () => !!window.app?.isDM?.();
 
 // Minimale markdown → HTML converter voor SRD-tekst
+// De SRD-teksten komen uit een pdf en dragen de afbreekstreepjes van dáár mee:
+// "Ar- mor Class", "Consti- tution". Op het printbare blad haalt `schoon()` in
+// lib/character-sheet.js ze weg; hier hoort dat net zo goed te gebeuren, want
+// het is dezelfde tekst. Alleen een streepje mét spatie erna en kleine letters
+// eromheen — "half-elf" en "level-2" blijven dus staan.
+const _schoonTekst = t => String(t ?? '').replace(/([a-z])-\s+([a-z])/g, '$1$2');
+
 function _md(text) {
+  text = _schoonTekst(text);
   if (!text) return '';
   let s = esc(text);
   // Bold (**text**)
@@ -724,6 +732,26 @@ function _geenTekstBlok(naam) {
     ${link ? `<a class="prog-geen-tekst-knop" href="${esc(link)}" target="_blank" rel="noopener">
       ${icon('book-open')} Lees hem elders</a>` : ''}
   </div>`;
+}
+
+// ── Bron voor de Naslag-tab ───────────────────────────────────────
+// De Naslag-tab (render-naslag.js) toont dezelfde features, traits en feats,
+// maar dan als doorzoekbare lijst in plaats van langs één personage-tijdlijn.
+// Hij haalt ze hier op en niet zelf bij de API, zodat er maar één plek is die
+// weet waar een beschrijving vandaan komt: eerst wat de DM zelf schreef, dan
+// de SRD, en anders niets (`geenTekst`, waarop de app naar buiten verwijst).
+export async function naslagBron() {
+  const [prog] = await Promise.all([api.progression(), _loadSrd(), _loadBackgrounds()]);
+  const feats  = (prog?.feats && typeof prog.feats === 'object') ? prog.feats : _seedFeatLibrary();
+  _curFeats = feats;
+  return {
+    prog,
+    backgrounds: (prog?.backgrounds && Object.keys(prog.backgrounds).length) ? prog.backgrounds : (_bgLib || {}),
+    feats,
+    srdDesc: _srdDesc,
+    geenTekstBlok: _geenTekstBlok,
+    md: _md,
+  };
 }
 
 window.progressie = {
