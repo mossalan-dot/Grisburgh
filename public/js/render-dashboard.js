@@ -1,4 +1,4 @@
-import { api } from './api.js?v=284';
+import { api } from './api.js?v=285';
 
 const ENTITY_TYPES = ['personages', 'locaties', 'organisaties', 'voorwerpen'];
 const TYPE_META = {

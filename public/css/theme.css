@@ -24682,3 +24682,15 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
   background: rgba(122,90,32,0.1); border: 1px solid rgba(196,168,122,0.4);
   border-radius: 3px; padding: 1px 5px; user-select: all;
 }
+/* De locatiekiezer: kort rood knipperen als er niets gekozen is. */
+.pin-placer-select--err { border-color: #8b2a2a; box-shadow: 0 0 0 2px rgba(139,42,42,0.18); }
+
+/* De mediakiezer opent bovenop alles wat hem aanroept — ook bovenop het
+   kaart-toevoegen-blokje (1300) en de fullscreen-kaart (1200). */
+.media-picker-overlay { z-index: 1400; }
+/* Labels in de kleine kaartvensters, in dezelfde stijl als de rest. */
+.pin-placer-label {
+  display: block; margin: 8px 0 2px;
+  font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; color: #7a6040;
+}

@@ -205,14 +205,26 @@ groot het is.
 
 ## Boedel
 
-- [ ] **Healen doet nog niets.** Klikken op de genezingsknop in de boedel gooit
+- [x] **Healen doet nog niets** — gedaan 14 sep 2026. `POST /items/:id/gebruik`
+      rolt, telt op tot het maximum, schrijft een charge af en laat een eenmalig
+      drankje van de stapel verdwijnen; de melding zegt "+7 HP · <voorwerp>".
+      Let op: in Grisburgh heeft momenteel **geen enkel** voorwerp een
+      genezingsformule, dus de knop verschijnt pas als er een ingevuld wordt.
+
+      *Zoals het er stond:*
+- [x] ~~**Healen doet nog niets.**~~ Klikken op de genezingsknop in de boedel gooit
       alleen de formule in het dobbelpaneel: er gaat geen HP omhoog en er wordt
       geen charge afgeschreven. Wat het moet worden: rollen, het resultaat bij
       de HP optellen (gemaximeerd op het maximum), en één charge afschrijven als
       het voorwerp die heeft — met een weigering als ze op zijn, plus een
       melding "+7 HP · <voorwerp>". Alleen voor de speler in zijn eigen boedel,
       niet in het archief van de DM.
-- [ ] **Verbruikt bij gebruik.** Een Potion of Healing zonder charges is na één
+- [x] **Verbruikt bij gebruik** — gedaan 14 sep 2026, als vinkje *Verdwijnt bij
+      gebruik* bij de werking healing. Doet niets zodra het voorwerp charges
+      heeft: dan raak je een charge kwijt, geen exemplaar.
+
+      *Zoals het er stond:*
+- [x] ~~**Verbruikt bij gebruik.**~~ Een Potion of Healing zonder charges is na één
       slok leeg, maar de app kent geen "verdwijnt bij gebruik". Een vinkje bij de
       werking zou de stapel met één laten afnemen. Hoort bij het punt hierboven;
       samen oppakken zodra we bij de boedel zijn. Afgesproken 7 sep 2026.

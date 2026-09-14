@@ -10,7 +10,7 @@
  *   • Party-toegang (3-state: Geen / Actief / Uitgespeeld)
  */
 
-import { api } from './api.js?v=284';
+import { api } from './api.js?v=285';
 
 const icon = (...a) => window.icon(...a);
 
@@ -32,7 +32,7 @@ const COND_TYPES = [
 // op kaartcoördinaten staat en met de kaart meeschaalt.
 const _condSpriteSvg = (naam, x, y, size, cls) => `<svg x="${x - size / 2}" y="${y - size / 2}"
   width="${size}" height="${size}" viewBox="0 0 24 24" class="${cls}">
-  <use href="/img/icons.svg?v=9#icon-${naam}"/></svg>`;
+  <use href="/img/icons.svg?v=10#icon-${naam}"/></svg>`;
 
 // ── State ──
 let _maps        = [];      // alle dungeon maps (gefilterd voor speler)
@@ -1277,6 +1277,11 @@ function _pointInPolygon(x, y, pts) {
 // ──────────────────────────────────────────────────────────────────
 // Nieuwe dungeon dialog
 // ──────────────────────────────────────────────────────────────────
+// Idem voor dungeons: de +-knop in de galerij opent dit venster rechtstreeks.
+// De lijst met aktes komt uit `window.app.state.meta`, dus dit werkt ook zonder
+// dat er al een dungeon in beeld staat.
+export function nieuweDungeon() { _openNewDungeonDialog(); }
+
 function _openNewDungeonDialog() {
   const meta = window.app?.state?.meta || {};
   const hfst = Object.entries(meta.hoofdstukken || {}).map(([k,v]) =>

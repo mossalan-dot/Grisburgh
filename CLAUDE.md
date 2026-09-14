@@ -240,10 +240,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=583   app.js?v=738   sound-manager.js?v=8
-app.js      : api.js?v=284  dm-panel.js?v=225  media-picker.js?v=8
-              render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=296
-              render-dashboard.js?v=9  render-dungeon.js?v=37  render-kaart.js?v=27
+index.html  : theme.css?v=585   app.js?v=741   sound-manager.js?v=8
+app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
+              render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=297
+              render-dashboard.js?v=9  render-dungeon.js?v=38  render-kaart.js?v=29
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
@@ -985,6 +985,23 @@ Monsters; het tabblad linkt erheen.
   (Blessing + Boon samen, en die twee standaard uit de lijst gehouden) was een
   Grisburgh-indeling. Het zijn gewone PHB-termen en dus gewone chips.
 
+> **Een voorwerp gebruiken om te genezen.** `POST /items/:id/gebruik` rolt de
+> formule, telt de HP op (gemaximeerd op het maximum), schrijft één charge af en
+> laat een eenmalig drankje verdwijnen. Alles server-side, net als bij de Hit
+> Dice: een speler rekent zijn eigen HP niet uit. De knop in de boedel gooide
+> alleen de formule in het dobbelpaneel — een knop die genezing belooft en niets
+> doet.
+> - De formule komt uit `data.healing`, met de oude vorm (`damage: "2d4+2
+>   healing"`) als terugval; `_healingVan()` staat zowel op de server als in
+>   `app.js` (`window._itemHealFormule`), en de twee pillen in de boedel komen
+>   uit één functie (`window._itemWorpPillen`) — die stonden in tweevoud en de
+>   ene kende `data.healing` niet, dus daar verscheen helemaal geen knop.
+> - **Verdwijnt bij gebruik** (`data.verbruikt`, vinkje bij de werking *healing*)
+>   haalt er één van de stapel af. Alleen als het voorwerp géén charges heeft: een
+>   Staff of Healing raakt een charge kwijt, geen exemplaar.
+> - Een speler moet het voorwerp ook echt bezitten (403), de DM mag het namens
+>   iedereen doen.
+
 ---
 
 ## Verbindingen tussen kaartjes: één plek, twee kanten
@@ -1148,12 +1165,12 @@ data/
 
 ```javascript
 // Helper beschikbaar als window.icon() overal in de frontend
-icon('sword')                         // → <svg><use href="/img/icons.svg?v=9#icon-sword"/></svg>
+icon('sword')                         // → <svg><use href="/img/icons.svg?v=10#icon-sword"/></svg>
 icon('heart', { cls: 'icon-lg' })     // met extra CSS-klasse
 icon('shield', { title: 'Verdediging' }) // met tooltip
 ```
 
-**Beschikbare iconen** (icons.svg, v=9):
+**Beschikbare iconen** (icons.svg, v=10):
 `beer` `book-open` `building` `camera` `castle` `check` `check-circle`
 `chevron-left` `chevron-right` `church` `clipboard-list` `coins` `crossed-swords`
 `dice` `download` `eye` `eye-off` `flask-conical` `folder-open` `globe`
@@ -1172,6 +1189,7 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 
 **Toegevoegd voor locatietypes** (Lucide, ISC): `anchor` `door-open` `fish`
 `graduation-cap` `hammer` `pickaxe` `store` `tent` `trees` `warehouse` `wheat`
+**Toegevoegd voor de navigatie** (Lucide, ISC): `compass`
 
 > **Eén icoon per soort plek.** `LOC_TYPE_ICOON` in `render-campagne.js` koppelt
 > elk `data.locType` aan een sprite-naam; lezen doe je met
@@ -1460,6 +1478,27 @@ app-iconen zijn nog van Grisburgh; eigen beeld per campagne is werk voor later.
 > /map/pins`: `g.visibility[loc.id]`). De plaatser op de wereldkaart zette
 > lokaal `visibility: 'hidden'` op een verse speld, die daardoor gedimd stond
 > terwijl de spelers hem gewoon zagen.
+>
+> **De tweede knop heet Avontuur.** Hij dekt logboek, kaarten, missies en
+> prikbord, maar heette zelf "Logboek" — net als zijn eerste menu-item, met
+> hetzelfde boekicoon. Nu een kompas (`icon-compass`) met de groepsnaam; zodra je
+> in een subtabblad zit toont hij dát (`LOGBOEK_LABELS`). Prikbord en Missies
+> hadden ook al het kaart-icoon; dat zijn nu `pin` en `target`, en de groep
+> *Hoofdkaarten* in de galerij kreeg `globe` omdat de sectiekop zelf `map` is.
+>
+> **De +-knop maakt iets nieuws.** Hij riep `_openKaartFullscreen(type, null)`
+> aan, en zonder id valt die terug op de **eerste bestaande kaart**: je drukte op
+> + en keek naar Dreghaven. Nu opent hij het juiste venster
+> (`window._kaartNieuw` → `nieuweKaart()` / `nieuweDungeon()`, allebei geëxporteerd).
+> De kaart-toevoegen-popup eindigde bovendien in `renderKaart()` **zonder**
+> container — precies de duplicaat-DOM hieronder. Nu `window._kaartVerversen()`.
+>
+> **Een `<select size=4>` begint zonder selectie.** In de locatiekiezer op de
+> wereldkaart betekende dat: je ziet de lijst, je drukt op *Plaatsen*, en er
+> gebeurt niets — zonder melding. De bovenste staat nu voorgeselecteerd (ook na
+> filteren), dubbelklikken op een naam plaatst 'm, en is er tóch niets gekozen
+> dan knippert het lijstje rood. Gold voor de DM-kiezer én de spelersvariant,
+> die ook nog in de oude donkere opmaak stond.
 >
 > **Eén kaartweergave tegelijk.** `renderKaart()` zonder container valt terug op
 > `#section-kaart`, en zo riep de socket-handler van `map:updated` hem aan —

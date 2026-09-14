@@ -410,6 +410,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Conditie-uitleg** (SP) — tik op een conditie-icoon voor de uitleg
 - [ ] **Inspiration** (SP/DM) — de DM geeft inspiration, de speler ziet het meteen en kan het inzetten
 - [ ] **Vloek en buffs** (SP/DM) — toekennen en weghalen; de speler ziet het verschil in zijn stats
+- [ ] **Een drankje drinken** (SP) — een voorwerp met een genezingsformule heeft in de boedel een groene knop: klikken rolt, telt de HP op (nooit boven het maximum) en meldt "+7 HP · <voorwerp>". Met charges gaat er één af en op is op; met *Verdwijnt bij gebruik* verdwijnt er één van de stapel
+- [ ] **Andermans flesje** (SP) — een voorwerp dat je niet bezit levert "Dit voorwerp heb je niet"
 - [ ] **Damage-pill gooien** (SP) — klik op de schade van een wapen of spreuk en controleer de worp in het dobbelpaneel
 - [ ] **Voorwerp gebruiken** (SP) — charges verbruiken en na een rust weer terugkrijgen
 - [ ] **Loot claimen** (SP) — tijdens een verdeling claimen, en zien wat je krijgt na het afrollen

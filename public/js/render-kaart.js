@@ -1,4 +1,4 @@
-import { api } from './api.js?v=284';
+import { api } from './api.js?v=285';
 
 const isDM  = () => window.app.isDM();
 const icon  = (...a) => window.icon(...a);
@@ -168,15 +168,7 @@ function _renderMapContent() {
         onerror="this.style.opacity='0.2'">
       <div id="map-pins-layer" class="absolute inset-0 pointer-events-none"></div>
     </div>
-    ${isDM() ? `
-      <div class="mt-3 text-xs text-ink-dim map-hint flex items-center gap-2" id="map-hint">
-        <span class="w-2 h-2 rounded-full bg-gold inline-block"></span>
-        Dubbelklik om in te zoomen · ${icon('map-pin')} in de balk om een locatie neer te zetten
-      </div>` : _availableForPin.length ? `
-      <div class="mt-3 text-xs text-ink-dim map-hint flex items-center gap-2" id="map-hint">
-        <span class="w-2 h-2 rounded-full bg-gold/40 inline-block"></span>
-        Dubbelklik om in te zoomen · ${icon('map-pin')} in de balk om een locatie voor te stellen
-      </div>` : ''}`;
+`;
 
   _initZoom();
   _renderPins();
@@ -253,21 +245,19 @@ function _zoomNaarPunt(nieuweZoom, clientX, clientY) {
 let _pinModus = false;
 function _pinModusAan() {
   _pinModus = true;
-  document.getElementById('map-pin-mode')?.classList.add('map-mini-btn--aan');
+  const knop = document.getElementById('map-pin-mode');
+  knop?.classList.add('map-mini-btn--aan');
+  if (knop) knop.title = 'Klik de plek aan waar de locatie hoort — Esc om te stoppen';
   const w = document.getElementById('map-wrapper');
   if (w) w.style.cursor = 'crosshair';
-  const hint = document.getElementById('map-hint');
-  if (hint) hint.dataset.oud ??= hint.innerHTML;
-  if (hint) hint.innerHTML = `<span class="w-2 h-2 rounded-full bg-gold inline-block"></span>
-    Klik de plek aan waar de locatie hoort — Esc om te stoppen`;
 }
 function _pinModusUit() {
   _pinModus = false;
-  document.getElementById('map-pin-mode')?.classList.remove('map-mini-btn--aan');
+  const knop = document.getElementById('map-pin-mode');
+  knop?.classList.remove('map-mini-btn--aan');
+  if (knop) knop.title = isDM() ? 'Een locatie op de kaart zetten' : 'Een locatie voorstellen';
   const w = document.getElementById('map-wrapper');
   if (w) w.style.cursor = 'grab';
-  const hint = document.getElementById('map-hint');
-  if (hint?.dataset.oud) hint.innerHTML = hint.dataset.oud;
 }
 
 // ── Navigation ──
@@ -590,8 +580,8 @@ function _openPinPlacer(x, y, clientX, clientY) {
   popup.innerHTML = `
     <div class="pin-placer-kop">${icon('map-pin')} Locatie koppelen</div>
     <input id="pin-loc-search" type="text" placeholder="Zoeken…" class="pin-placer-input">
-    <select id="pin-loc-select" size="4" class="pin-placer-select">
-      ${available.map(l => `<option value="${esc(l.id)}">${esc(l.name)}</option>`).join('')}
+    <select id="pin-loc-select" size="4" class="pin-placer-select" ondblclick="document.getElementById('pin-confirm')?.click()">
+      ${available.map((l, i) => `<option value="${esc(l.id)}"${i === 0 ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}
     </select>
     <div class="pin-placer-knoppen">
       <button id="pin-confirm" class="dm-btn dm-btn-primary dm-btn-sm" title="Plaatsen">${icon('pin')} Plaatsen</button>
@@ -601,9 +591,12 @@ function _openPinPlacer(x, y, clientX, clientY) {
 
   popup.querySelector('#pin-loc-search').addEventListener('input', (ev) => {
     const q = ev.target.value.toLowerCase();
+    // De bovenste blijft gekozen. Een `<select size=4>` begint zonder selectie,
+    // en dan deed *Plaatsen* niets: je zag de lijst, drukte op de knop, en er
+    // gebeurde niets — zonder melding.
     popup.querySelector('#pin-loc-select').innerHTML = available
       .filter(l => l.name.toLowerCase().includes(q))
-      .map(l => `<option value="${esc(l.id)}">${esc(l.name)}</option>`)
+      .map((l, i) => `<option value="${esc(l.id)}"${i === 0 ? ' selected' : ''}>${esc(l.name)}</option>`)
       .join('');
   });
   popup.querySelector('#pin-loc-search').focus();
@@ -611,8 +604,15 @@ function _openPinPlacer(x, y, clientX, clientY) {
   const _closePopup = () => { document.activeElement?.blur(); popup.remove(); };
   popup.querySelector('#pin-cancel').addEventListener('click', _closePopup);
   popup.querySelector('#pin-confirm').addEventListener('click', async () => {
-    const locId = popup.querySelector('#pin-loc-select').value;
-    if (!locId) return;
+    const lijst = popup.querySelector('#pin-loc-select');
+    const locId = lijst.value;
+    if (!locId) {
+      // Niets gekozen, of alles weggefilterd: dat hoor je te zien.
+      lijst.classList.add('pin-placer-select--err');
+      setTimeout(() => lijst.classList.remove('pin-placer-select--err'), 900);
+      popup.querySelector('#pin-loc-search')?.focus();
+      return;
+    }
     try {
       const pin = await api.createMapPin({ locId, x, y, mapId: MAPS[currentMapIdx].id });
       // Zichtbaarheid hangt aan de lócatie, niet aan de speld (zie GET /map/pins).
@@ -673,19 +673,17 @@ function _openPlayerPinPlacer(x, y, clientX, clientY) {
   popup.id        = 'pin-placer-popup';
   popup.className = 'pin-placer-popup';
   popup.style.cssText = `left:${left}px;top:${top}px`;
+  // Zelfde blokje als bij de DM (perkament, eerste naam alvast gekozen); alleen
+  // de kop en de knop zeggen "voorstellen" in plaats van "plaatsen".
   popup.innerHTML = `
-    <div class="text-[11px] font-cinzel text-gold uppercase tracking-wide mb-2">${icon('map-pin')} Locatie voorstellen</div>
-    <input id="pin-loc-search" type="text" placeholder="Zoeken…"
-      class="w-full text-sm bg-room-bg border border-room-border rounded px-2 py-1 text-ink-bright mb-1 focus:border-gold-dim focus:outline-none">
-    <select id="pin-loc-select" size="4"
-      class="w-full text-sm bg-room-bg border border-room-border rounded px-1 py-0.5 text-ink-bright mb-2 focus:border-gold-dim focus:outline-none">
-      ${_availableForPin.map(l => `<option value="${esc(l.id)}">${esc(l.name)}</option>`).join('')}
+    <div class="pin-placer-kop">${icon('map-pin')} Locatie voorstellen</div>
+    <input id="pin-loc-search" type="text" placeholder="Zoeken…" class="pin-placer-input">
+    <select id="pin-loc-select" size="4" class="pin-placer-select" ondblclick="document.getElementById('pin-confirm')?.click()">
+      ${_availableForPin.map((l, i) => `<option value="${esc(l.id)}"${i === 0 ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}
     </select>
-    <div class="flex gap-2">
-      <button id="pin-confirm"
-        class="flex-1 text-xs bg-gold/20 hover:bg-gold/30 text-gold border border-gold/30 rounded px-2 py-1 transition" title="Voorstellen">${icon('pin')}</button>
-      <button id="pin-cancel"
-        class="flex-1 text-xs text-ink-dim hover:bg-room-border rounded px-2 py-1 transition" title="Annuleren">${icon('x')}</button>
+    <div class="pin-placer-knoppen">
+      <button id="pin-confirm" class="dm-btn dm-btn-primary dm-btn-sm" title="Voorstellen">${icon('pin')} Voorstellen</button>
+      <button id="pin-cancel"  class="dm-btn dm-btn-ghost dm-btn-sm" title="Annuleren">${icon('x')}</button>
     </div>`;
   document.body.appendChild(popup);
 
@@ -694,7 +692,7 @@ function _openPlayerPinPlacer(x, y, clientX, clientY) {
     const q = ev.target.value.toLowerCase();
     popup.querySelector('#pin-loc-select').innerHTML = available
       .filter(l => l.name.toLowerCase().includes(q))
-      .map(l => `<option value="${esc(l.id)}">${esc(l.name)}</option>`)
+      .map((l, i) => `<option value="${esc(l.id)}"${i === 0 ? ' selected' : ''}>${esc(l.name)}</option>`)
       .join('');
   });
   popup.querySelector('#pin-loc-search').focus();
@@ -702,8 +700,14 @@ function _openPlayerPinPlacer(x, y, clientX, clientY) {
   const _closePlayerPopup = () => { document.activeElement?.blur(); popup.remove(); };
   popup.querySelector('#pin-cancel').addEventListener('click', _closePlayerPopup);
   popup.querySelector('#pin-confirm').addEventListener('click', async () => {
-    const locId = popup.querySelector('#pin-loc-select').value;
-    if (!locId) return;
+    const lijst = popup.querySelector('#pin-loc-select');
+    const locId = lijst.value;
+    if (!locId) {
+      lijst.classList.add('pin-placer-select--err');
+      setTimeout(() => lijst.classList.remove('pin-placer-select--err'), 900);
+      popup.querySelector('#pin-loc-search')?.focus();
+      return;
+    }
     try {
       const pin = await api.createMapPin({ locId, x, y, mapId: MAPS[currentMapIdx].id });
       const loc = available.find(l => l.id === locId);
@@ -773,36 +777,36 @@ function _attachPlayerPendingDrag(el) {
 }
 
 // ── DM: kaart toevoegen ──
+// De +-knop in de galerij komt hier binnen: hij opende de fullscreen-weergave
+// met id `null`, en die valt terug op de eerste bestaande kaart — een plusknop
+// die een bestaande kaart opent.
+export function nieuweKaart() { _openMapAdder(); }
+
 function _openMapAdder() {
   document.getElementById('map-adder-popup')?.remove();
 
+  // Perkament, net als de locatiekiezer; dit blokje stond nog in de oude,
+  // donkere opmaak. En het eindigt in de galerij: `renderKaart()` zónder
+  // container tekent een kaartweergave in #section-kaart, en dan staat de
+  // galerij weg én er twee kaarten met dezelfde id's in de DOM.
   const popup = document.createElement('div');
   popup.id        = 'map-adder-popup';
   popup.className = 'pin-placer-popup';
-  popup.style.cssText = 'left:50%;top:50%;transform:translate(-50%,-50%);width:280px';
+  popup.style.cssText = 'left:50%;top:50%;transform:translate(-50%,-50%);width:300px';
   popup.innerHTML = `
-    <div class="text-[11px] font-cinzel text-gold uppercase tracking-wide mb-2">${icon('map')} Nieuwe kaart</div>
-    <div class="space-y-2">
-      <div>
-        <label class="text-[10px] text-ink-faint uppercase">Naam</label>
-        <input id="map-add-label" type="text" placeholder="Naam van de kaart…"
-          class="w-full text-sm bg-room-bg border border-room-border rounded px-2 py-1 text-ink-bright focus:border-gold-dim focus:outline-none">
-      </div>
-      <div>
-        <label class="text-[10px] text-ink-faint uppercase">Afbeelding</label>
-        <button type="button" id="map-add-pick"
-          class="flex items-center gap-2 mt-1 px-2 py-1.5 bg-room-elevated border border-room-border rounded cursor-pointer hover:border-gold-dim transition text-sm text-ink-dim w-full">
-          ${icon('image')} <span id="map-add-file-name">Kies of upload afbeelding…</span>
-        </button>
-      </div>
-    </div>
-    <div class="flex gap-2 mt-3">
-      <button id="map-add-confirm"
-        class="flex-1 text-xs bg-gold/20 hover:bg-gold/30 text-gold border border-gold/30 rounded px-2 py-1.5 transition font-cinzel">Toevoegen</button>
-      <button id="map-add-cancel"
-        class="flex-1 text-xs text-ink-dim hover:bg-room-border rounded px-2 py-1.5 transition">Annuleren</button>
+    <div class="pin-placer-kop">${icon('map')} Nieuwe kaart</div>
+    <label class="pin-placer-label" for="map-add-label">Naam</label>
+    <input id="map-add-label" type="text" placeholder="Naam van de kaart…" class="pin-placer-input">
+    <label class="pin-placer-label" for="map-add-pick">Afbeelding</label>
+    <button type="button" id="map-add-pick" class="dm-btn dm-btn-ghost dm-btn-sm" style="width:100%;justify-content:flex-start">
+      ${icon('image')} <span id="map-add-file-name">Kies of upload een afbeelding…</span>
+    </button>
+    <div class="pin-placer-knoppen" style="margin-top:10px">
+      <button id="map-add-confirm" class="dm-btn dm-btn-primary dm-btn-sm">${icon('plus')} Toevoegen</button>
+      <button id="map-add-cancel"  class="dm-btn dm-btn-ghost dm-btn-sm">${icon('x')} Annuleren</button>
     </div>`;
   document.body.appendChild(popup);
+  popup.querySelector('#map-add-label').focus();
 
   let _pickedImageId = null;
   popup.querySelector('#map-add-pick').addEventListener('click', () => {
@@ -812,7 +816,8 @@ function _openMapAdder() {
       suggestedName: naamHint ? `${naamHint}-kaart` : 'kaart',
       onSelect: (fileId) => {
         _pickedImageId = fileId;
-        popup.querySelector('#map-add-file-name').textContent = 'Afbeelding gekozen ✓';
+        const naam = popup.querySelector('#map-add-file-name');
+        if (naam) naam.textContent = 'Afbeelding gekozen';
       },
     });
   });
@@ -823,13 +828,11 @@ function _openMapAdder() {
     if (!label) { alert('Vul een naam in.'); return; }
     if (!_pickedImageId) { alert('Kies een afbeelding.'); return; }
     try {
-      const map = await api.createMap({ label, imageId: _pickedImageId });
+      await api.createMap({ label, imageId: _pickedImageId });
       popup.remove();
-      await renderKaart();
-      // Switch to new map
-      currentMapIdx = MAPS.findIndex(m => m.id === map.id);
-      if (currentMapIdx < 0) currentMapIdx = MAPS.length - 1;
-      await renderKaart();
+      // De galerij (of de open kaartweergave) bijwerken — één ingang die zelf
+      // weet waar de kaart staat.
+      await window._kaartVerversen?.();
     } catch (e) { alert('Fout: ' + e.message); }
   });
 }

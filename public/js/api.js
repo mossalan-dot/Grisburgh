@@ -338,6 +338,7 @@ export const api = {
   addPlayerSpell:     (charId, data)       => request(`/player-spells/${charId}`, { method: 'POST', body: JSON.stringify(data) }),
   removePlayerSpell:  (charId, spellIdx)   => request(`/player-spells/${charId}/${spellIdx}`, { method: 'DELETE' }),
   getSpellRequests:    ()       => request('/spell-requests'),
+  gebruikItem: (itemId, characterId) => request(`/items/${itemId}/gebruik`, { method: 'POST', body: JSON.stringify({ characterId }) }),
   spotifyStatus:    ()            => request('/spotify/status'),
   spotifyMeta:      (data)        => request('/meta/spotify', { method: 'PUT', body: JSON.stringify(data) }),
   spotifyKoppel:    (data)        => request('/spotify/koppel', { method: 'POST', body: JSON.stringify(data) }),

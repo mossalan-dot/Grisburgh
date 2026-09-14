@@ -1,8 +1,8 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=284';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=296";
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=285';
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=297";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=87";
-import { renderKaart, queueFlyTo, verversPins } from './render-kaart.js?v=27';
-import { renderDungeon } from './render-dungeon.js?v=37';
+import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=29';
+import { renderDungeon } from './render-dungeon.js?v=38';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
@@ -18,7 +18,7 @@ import './media-picker.js?v=8';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=9#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=10#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -423,7 +423,7 @@ function switchSection(section) {
     const activeTab = window._logboekActiveTab || 'verslagen';
     logboekLabel.innerHTML = isKaart
       ? `${icon('map')} Kaarten`
-      : (isLogboek ? (LOGBOEK_LABELS[activeTab] || `${icon('book-open')} Logboek`) : `${icon('book-open')} Logboek`);
+      : (isLogboek ? (LOGBOEK_LABELS[activeTab] || AVONTUUR_LABEL) : AVONTUUR_LABEL);
   }
   // Logboek dropdown-items
   $$('#logboek-menu .archief-menu-item').forEach(b =>
@@ -636,11 +636,17 @@ function closeLogboekMenu() {
   $('#logboek-menu')?.classList.add('hidden');
 }
 
+// De knop heet **Avontuur**, want hij dekt vier dingen: het logboek, de kaarten,
+// de missies en het prikbord. Hij heette "Logboek" — net als zijn eerste
+// menu-item, met hetzelfde boekicoon ernaast, zodat het leek alsof je twee keer
+// hetzelfde aanklikte. Zolang je in een subtabblad zit toont hij dát; alleen als
+// er niets specifieks te melden valt, staat de groepsnaam er.
 const LOGBOEK_LABELS = {
   verslagen: `${icon('book-open')} Logboek`,
-  quests:    `${icon('map-pin')} Missies`,
-  prikbord:  `${icon('map')} Prikbord`,
+  quests:    `${icon('target')} Missies`,
+  prikbord:  `${icon('pin')} Prikbord`,
 };
+const AVONTUUR_LABEL = `${icon('compass')} Avontuur`;
 
 const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
 const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'spreuken', 'relatiemap'];
@@ -2840,7 +2846,7 @@ async function _renderKaartSection() {
         <div class="section-banner-icon-wrap">${icon('map')}</div>
         <div class="section-banner-info">
           <div class="section-banner-label">Kaarten</div>
-          <div class="section-banner-desc-line">Hoofdkaarten en dungeons van de wereld</div>
+          <div class="section-banner-desc-line">Kaarten van de wereld</div>
         </div>
         <div style="margin-left:auto">${window._helpBtn?.('kaart') ?? ''}</div>
       </div>
@@ -2864,13 +2870,13 @@ async function _renderKaartGalerij() {
 
   host.innerHTML = `
     <div class="kg-group">
-      <div class="kg-group-head">${icon('map')} <span>Hoofdkaarten</span>
-        ${dm ? `<button class="kg-add-btn" onclick="window._openKaartFullscreen('wereld',null)" title="Kaart toevoegen / beheren">${icon('plus')}</button>` : ''}</div>
+      <div class="kg-group-head">${icon('globe')} <span>Hoofdkaarten</span>
+        ${dm ? `<button class="kg-add-btn" onclick="window._kaartNieuw('wereld')" title="Kaart toevoegen">${icon('plus')}</button>` : ''}</div>
       <div class="kg-grid">${worldCards || '<p class="kg-empty">Nog geen hoofdkaarten.</p>'}</div>
     </div>
     <div class="kg-group">
       <div class="kg-group-head">${icon('swords')} <span>Dungeons</span>
-        ${dm ? `<button class="kg-add-btn" onclick="window._openKaartFullscreen('dungeon',null)" title="Dungeon toevoegen / beheren">${icon('plus')}</button>` : ''}</div>
+        ${dm ? `<button class="kg-add-btn" onclick="window._kaartNieuw('dungeon')" title="Dungeon toevoegen">${icon('plus')}</button>` : ''}</div>
       <div class="kg-grid">${dngCards || `<p class="kg-empty">${dm ? 'Nog geen dungeons — gebruik + om er een te maken.' : 'Nog geen dungeons ontdekt.'}</p>`}</div>
     </div>`;
 }
@@ -2953,6 +2959,15 @@ function _kaartCard(type, m, dm) {
       </div>
     </div>`;
 }
+
+// De +-knop boven een groep in de galerij maakt iets níéuws. Hij riep
+// `_openKaartFullscreen(type, null)` aan, en zonder id valt die terug op de
+// eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
+window._kaartNieuw = async function (type) {
+  if (type === 'wereld') return nieuweKaart();
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=38');
+  nieuweDungeon();
+};
 
 // Een kaartwijziging (een speld erbij, verplaatst of weg) opnieuw tekenen — op
 // de plek waar de kaart óók echt staat. De socket riep hiervoor `renderKaart()`
@@ -6122,6 +6137,55 @@ window._loadSheetHitDice = async function(charId, profile) {
   wrap.innerHTML = _hitDiceDotsHtml(pool, spent);
 };
 
+// ── Een voorwerp gebruiken om te genezen ────────────────────────────────────
+// De pil in de boedel gooide alleen de formule in het dobbelpaneel. Nu is het
+// een echte handeling: de server rolt, telt de HP op, schrijft een charge af en
+// laat een eenmalig drankje verdwijnen. Zelfde formule-afleiding als op de
+// server (`_healingVan`), want oude kaartjes hebben "2d4+2 healing" in het
+// schadeveld staan in plaats van in `healing`.
+window._itemHealFormule = (data) => {
+  const heal = String(data?.healing || '').trim();
+  if (heal) return heal;
+  const d = String(data?.damage || '').trim();
+  return /heal|genez/i.test(d) ? d.replace(/\s*(healing|heal|genezing|genez\w*)\s*/i, ' ').trim() : '';
+};
+
+// De twee pillen onder een voorwerp in de boedel: schade (alleen gooien) en
+// genezing (gooien én toepassen). Eén functie, want dit stond op twee plekken in
+// de carrousel en die liepen al uit elkaar — de ene kende `data.healing` niet.
+window._itemWorpPillen = (item) => {
+  const dmg  = String(item.data?.damage || '').trim();
+  const heal = window._itemHealFormule(item.data);
+  const isHeal = heal && (!dmg || /heal|genez/i.test(dmg));
+  const pillen = [];
+  if (dmg && !isHeal) pillen.push(`<button class="item-damage-pill item-damage-pill--sm"
+    onclick="window.dice?.rollFlash('${escJS(dmg)}','${escJS(item.name || '')}')"
+    title="Gooi ${escJS(dmg)}">${icon('dice', { cls: 'icon-gi' })} ${esc(dmg)}</button>`);
+  if (heal) pillen.push(`<button class="item-damage-pill item-damage-pill--sm item-damage-pill--heal"
+    onclick="window._itemGebruik('${esc(item.id)}')"
+    title="Gebruiken: gooit ${escJS(heal)} en telt het bij je HP op">${icon('heart')} ${esc(heal)}</button>`);
+  return pillen.length
+    ? `<div class="item-carousel-damage" onclick="event.stopPropagation()">${pillen.join('')}</div>`
+    : '';
+};
+
+window._itemGebruik = async function (itemId) {
+  const charId = state.characterId;
+  if (!charId) return;
+  try {
+    const r = await api.gebruikItem(itemId, charId);
+    // De worp laten zien met dezelfde flits als het dobbelpaneel, zodat het
+    // voelt als gooien en niet als een getal dat zomaar verschijnt.
+    window.dice?.rollFlash?.(r.formule, r.naam, 'heal');
+    const rest = r.charges !== null && r.charges !== undefined
+      ? ` · nog ${r.charges} van ${r.maxCharges}` : (r.weg ? ' · op' : '');
+    window._showToast?.(`${icon('heart')} <strong>+${r.heal} HP</strong> — ${esc(r.naam)} → ${r.hp.current}${r.hp.max != null ? '/' + r.hp.max : ''}${rest}`, null, 5000);
+    refreshSection('mijn-karakter');
+  } catch (e) {
+    window._showToast?.(`${icon('x')} ${esc(e.message)}`, null, 5000);
+  }
+};
+
 // ── Rust-cinematic (party-breed, DM-getriggerd) ──────────────────────────────
 function _rustHitDicePaneel(charId, hd) {
   const pool = hd.pool || {}, spent = hd.spent || {};
@@ -7616,14 +7680,7 @@ async function renderMijnKarakter(opts = {}) {
                   <span class="item-carousel-name">${esc(item.name)}</span>
                 </div>
                 ${desc ? `<div class="item-carousel-desc">${_mdInline(desc)}</div>` : ''}
-                ${_itemDmg ? (() => {
-                  const _h = /heal/i.test(_itemDmg);
-                  return `<div class="item-carousel-damage" onclick="event.stopPropagation()">
-                    <button class="item-damage-pill item-damage-pill--sm${_h ? ' item-damage-pill--heal' : ''}"
-                      onclick="window.dice?.rollFlash('${escJS(_itemDmg)}','${escJS(item.name || '')}', _h ? 'heal' : '')"
-                      title="Gooi ${escJS(_itemDmg)}">${icon('dice',{cls:'icon-gi'})} ${esc(_itemDmg)}</button>
-                  </div>`;
-                })() : ''}
+                ${window._itemWorpPillen(item)}
                 ${_itemProps.length ? `<div class="item-carousel-props">${_itemProps.map(p => `<span class="card-weapon-tag" title="${esc(_weaponPropTitle(p))}">${esc(p)}</span>`).join('')}</div>` : ''}
                 ${(() => {
                   const _stlth = item.data?.stealthDisadvantage === true || item.data?.stealthDisadvantage === 'true';
@@ -8791,14 +8848,7 @@ async function renderMijnKarakter(opts = {}) {
           <span class="item-carousel-name">${esc(item.name)}</span>
         </div>
         ${desc ? `<div class="item-carousel-desc">${_mdI(desc)}</div>` : ''}
-        ${_itemDmg ? (() => {
-          const _h = /heal/i.test(_itemDmg);
-          return `<div class="item-carousel-damage" onclick="event.stopPropagation()">
-            <button class="item-damage-pill item-damage-pill--sm${_h ? ' item-damage-pill--heal' : ''}"
-              onclick="window.dice?.rollFlash('${escJS(_itemDmg)}','${escJS(item.name || '')}', _h ? 'heal' : '')"
-              title="Gooi ${escJS(_itemDmg)}">${icon('dice',{cls:'icon-gi'})} ${esc(_itemDmg)}</button>
-          </div>`;
-        })() : ''}
+        ${window._itemWorpPillen(item)}
         ${_itemProps.length ? `<div class="item-carousel-props">${_itemProps.map(p => `<span class="card-weapon-tag" title="${esc(_weaponPropTitle(p))}">${esc(p)}</span>`).join('')}</div>` : ''}
         ${(_stlth || _srq) ? `<div class="item-carousel-props">
           ${_stlth ? `<span class="card-armor-tag card-armor-tag--stealth" title="You have disadvantage on Dexterity (Stealth) checks while wearing this armor.">Stealth ↓</span>` : ''}

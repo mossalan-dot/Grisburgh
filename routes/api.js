@@ -3886,6 +3886,130 @@ router.get('/player-hp/:characterId', attachRole, (req, res) => {
   res.json({ ...hp, buffs });
 });
 
+// ── Een voorwerp gebruiken om te genezen ────────────────────────────────────
+// De knop in de boedel gooide alleen de formule in het dobbelpaneel: er ging
+// geen HP omhoog en er werd geen charge afgeschreven. Aan tafel betekende dat
+// een knop die genezing belóóft en niets doet — en dus een DM die het er met de
+// hand bij moest bijhouden.
+//
+// Alles gebeurt hier, niet in de browser: de worp, het optellen (gemaximeerd op
+// het maximum), het afschrijven van de charge en het verdwijnen van een
+// eenmalig drankje. Zelfde reden als bij de Hit Dice: een speler mag zijn eigen
+// HP niet zelf uitrekenen.
+function _healingVan(data) {
+  const heal = String(data?.healing || '').trim();
+  if (heal) return heal;
+  // Oude vorm: een `damage` waar "heal" of "genez" in stond.
+  const d = String(data?.damage || '').trim();
+  return /heal|genez/i.test(d) ? d.replace(/\s*(healing|heal|genezing|genez\w*)\s*/i, ' ').trim() : '';
+}
+
+// `2d4+2`, `1d8`, `5` — met de losse worpen erbij, zodat de speler ziet wat hij
+// gooide en niet alleen het totaal.
+function _rolGenezing(formule) {
+  const m = String(formule || '').match(/(\d*)\s*d\s*(\d+)\s*([+-]\s*\d+)?/i);
+  if (!m) {
+    const plat = parseInt(String(formule || '').match(/\d+/)?.[0]);
+    return Number.isFinite(plat) ? { worpen: [], mod: plat, totaal: plat } : null;
+  }
+  const aantal = Math.min(parseInt(m[1] || '1') || 1, 20);
+  const zijden = parseInt(m[2]) || 4;
+  const mod    = m[3] ? parseInt(m[3].replace(/\s+/g, '')) : 0;
+  const worpen = Array.from({ length: aantal }, () => Math.floor(Math.random() * zijden) + 1);
+  return { worpen, mod, totaal: Math.max(1, worpen.reduce((a, b) => a + b, 0) + mod) };
+}
+
+router.post('/items/:itemId/gebruik', attachRole, (req, res) => {
+  const { itemId } = req.params;
+  const characterId = req.body?.characterId || req.session?.characterId;
+  if (!characterId) return res.status(400).json({ error: 'Geen personage' });
+  if (req.role !== 'dm' && req.session?.characterId !== characterId)
+    return res.status(403).json({ error: 'Geen toegang' });
+
+  const entities = storage.readJSON('entities.json');
+  const item = (entities.voorwerpen || []).find(e => e.id === itemId);
+  if (!item) return res.status(404).json({ error: 'Voorwerp niet gevonden' });
+  const formule = _healingVan(item.data);
+  if (!formule) return res.status(400).json({ error: 'Dit voorwerp geneest niets' });
+
+  const dmState = readDmState();
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
+
+  // Heeft het voorwerp charges? Dan moet er één af, en op is op.
+  const maxCharges = parseInt((g.itemMaxCharges?.[characterId] || {})[itemId] ?? item.data?.maxCharges) || 0;
+  let charges = null;
+  if (maxCharges > 0) {
+    const huidig = (g.itemCharges?.[characterId] || {})[itemId];
+    charges = Number.isFinite(huidig) ? huidig : maxCharges;
+    if (charges <= 0) return res.status(409).json({ error: 'De charges zijn op.' });
+  }
+
+  // Heb je het ding eigenlijk wel? Een speler kan anders uit andermans flesje
+  // drinken. De DM mag het namens iedereen doen (hij deelt ook uit).
+  if (req.role !== 'dm') {
+    const bezit = g.itemOwners?.[itemId];
+    const heeft = Array.isArray(bezit)
+      ? bezit.some(o => o.characterId === characterId)
+      : bezit?.characterId === characterId;
+    if (!heeft) return res.status(403).json({ error: 'Dit voorwerp heb je niet.' });
+  }
+
+  const worp = _rolGenezing(formule);
+  if (!worp) return res.status(400).json({ error: 'Onleesbare genezingsformule' });
+
+  if (!dmState.playerHp) dmState.playerHp = {};
+  const hp = dmState.playerHp[characterId] || { current: 0, max: null };
+  const current = hp.max != null
+    ? Math.min(hp.max, (hp.current || 0) + worp.totaal)
+    : (hp.current || 0) + worp.totaal;
+  dmState.playerHp[characterId] = { ...hp, current };
+
+  if (charges !== null) {
+    if (!g.itemCharges) g.itemCharges = {};
+    if (!g.itemCharges[characterId]) g.itemCharges[characterId] = {};
+    charges -= 1;
+    g.itemCharges[characterId][itemId] = charges;
+  }
+
+  // Eenmalig drankje: één van de stapel af, of helemaal weg als het er maar één
+  // was. Alleen als de DM dat op het kaartje heeft aangevinkt — een Staff of
+  // Healing raakt zijn charges kwijt, geen exemplaar.
+  let weg = false;
+  const verbruikt = item.data?.verbruikt === true || item.data?.verbruikt === 'true';
+  if (verbruikt && charges === null) {
+    const gebruik = _gebruikVan(item.data);
+    if (gebruik === 'stapelbaar' && Array.isArray(g.itemOwners?.[itemId])) {
+      const rij = g.itemOwners[itemId].find(o => o.characterId === characterId);
+      if (rij) {
+        rij.qty = (rij.qty || 1) - 1;
+        if (rij.qty <= 0) {
+          g.itemOwners[itemId] = g.itemOwners[itemId].filter(o => o.characterId !== characterId);
+          weg = true;
+        }
+      }
+    } else if (g.itemOwners?.[itemId]) {
+      delete g.itemOwners[itemId];
+      weg = true;
+    }
+  }
+
+  storage.writeJSON('dm-state.json', dmState);
+  const io = req.app.get('io');
+  if (io) {
+    io.to(req.session?.campaignId || 'main').emit('player:hp-updated', { characterId, current, max: hp.max });
+    if (charges !== null || weg) {
+      io.to(req.session?.campaignId || 'main').emit('items:ownership-updated', {
+        owners: g.itemOwners || {}, requests: g.itemRequests || [], tradeAllowed: g.tradeAllowed !== false,
+      });
+    }
+  }
+  res.json({
+    naam: item.name, formule,
+    worpen: worp.worpen, mod: worp.mod, heal: worp.totaal,
+    hp: { current, max: hp.max }, charges, maxCharges, weg,
+  });
+});
+
 router.patch('/player-hp/:characterId', attachRole, (req, res) => {
   // DM mag alles; speler mag alleen eigen HP
   const { characterId } = req.params;

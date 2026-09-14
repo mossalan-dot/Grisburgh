@@ -1,4 +1,4 @@
-import { api } from './api.js?v=284';
+import { api } from './api.js?v=285';
 import { renderStatblock } from './render-statblock.js?v=9';
 
 const icon = (...a) => window.icon(...a);
@@ -569,6 +569,10 @@ const SCHEMA = {
       { key: 'stealthDisadvantage', label: 'Stealth Disadvantage', type: 'checkbox', showWerking: 'defense' },
       { key: 'strengthRequirement', label: 'Strength Requirement', type: 'text', showWerking: 'defense' },
       { key: 'healing', label: 'Genezingsformule', type: 'text', showWerking: 'healing', hint: '2d4+2' },
+      // Een Potion of Healing is na één slok leeg; een Staff of Healing raakt
+      // alleen een charge kwijt. Alleen dit vinkje laat het exemplaar zelf
+      // verdwijnen — en het doet niets zodra het voorwerp charges heeft.
+      { key: 'verbruikt', label: 'Verdwijnt bij gebruik', type: 'checkbox', showWerking: 'healing' },
       { key: 'spellIndexes', label: 'Gekoppelde spreuken', type: 'spell-picker', showWerking: 'spell' },
       { key: 'godNaam', label: 'God', type: 'text', showFor: ['Blessing'] },
       { key: 'goddelijkType', label: 'Soort', type: 'select', showFor: ['Blessing'], options: [
