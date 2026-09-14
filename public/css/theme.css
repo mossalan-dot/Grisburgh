@@ -24865,3 +24865,45 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
   .prikbord[data-kolom="voltooid"]     .prikbord-col--voltooid,
   .prikbord[data-kolom="mislukt"]      .prikbord-col--mislukt { display: flex; }
 }
+
+/* ── Prikbord in de huisstijl ────────────────────────────────────────────────
+   De balk was donker met JetBrains Mono — ooit bedoeld als detectivebord, maar
+   naast de rest van de app vooral een breuk. Het bord zelf blijft kurk: dat is
+   de metafoor, en de post-its horen erop. */
+.rel-toolbar {
+  background: linear-gradient(180deg, #f2e8d2 0%, #e8dcc0 100%);
+  border-bottom: 1px solid rgba(90,64,24,0.45);
+  box-shadow: 0 3px 10px rgba(40,26,8,0.28), inset 0 -1px 0 rgba(255,255,255,0.3);
+}
+.rel-toolbar-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: none; color: #3a2410;
+}
+.rel-toolbar-label .icon { width: 14px; height: 14px; }
+.rel-search, .rel-input {
+  font-family: 'Crimson Text', Georgia, serif; font-size: 14px;
+  background: #fdf8ec; border: 1px solid #c4a87a; border-radius: 4px; color: #3a2410;
+}
+.rel-modal {
+  background: linear-gradient(180deg, #f6eeda 0%, #efe3c8 100%);
+  border: 1px solid #c4a87a; color: #3a2410;
+}
+.rel-modal-title {
+  font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; color: #7a5a10;
+}
+.rel-modal-label { font-family: 'Crimson Text', Georgia, serif; color: #5a4030; }
+.pb-entity-item {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  padding: 6px 8px; border-radius: 4px; cursor: pointer;
+  font-family: 'Crimson Text', Georgia, serif; font-size: 14px; color: #3a2410;
+  background: rgba(196,168,122,0.1); border: 1px solid rgba(196,168,122,0.35);
+}
+.pb-entity-item:hover { background: rgba(196,168,122,0.26); }
+.pb-entity-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+/* Het paneel naast het bord hoorde bij de donkere stijl. */
+.pb-panel {
+  background: linear-gradient(180deg, #f6eeda 0%, #efe3c8 100%);
+  border-left: 1px solid rgba(90,64,24,0.45);
+  color: #3a2410;
+}

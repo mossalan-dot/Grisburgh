@@ -11683,6 +11683,108 @@ router.post('/party-board/node', attachRole, (req, res) => {
   res.json(node);
 });
 
+// POST /api/party-board/organogram — een organisatie als organogram op het bord
+// De veilige weg: de server bepaalt wát er op het bord komt, met precies dezelfde
+// filter als waarmee een speler dat kaartje zou zien. Zou de client de leden
+// aanleveren, dan hing het van de client af of een geheime verbinding of een nog
+// onbekend kaartje meekwam — en dat is precies het soort ding dat je één keer
+// verkeerd doet en dan niet meer terugdraait.
+router.post('/party-board/organogram', attachRole, (req, res) => {
+  const groepId = _getBoardGroepId(req);
+  if (!groepId) return res.status(403).json({ error: 'Geen groep gevonden' });
+  const orgId = String(req.body?.organisatieId || '');
+  if (!orgId) return res.status(400).json({ error: 'organisatieId vereist' });
+
+  const dmState  = readDmState();
+  const entities = storage.readJSON('entities.json');
+  const org = (entities.organisaties || []).find(e => e.id === orgId);
+  if (!org) return res.status(404).json({ error: 'Organisatie niet gevonden' });
+
+  const g = getGroup(dmState, groepId);
+  if ((g.visibility[org.id] || 'hidden') === 'hidden') {
+    return res.status(403).json({ error: 'Deze organisatie kent de party nog niet' });
+  }
+
+  // De ledenlijst zoals díé party hem mag zien: geheime regels vallen weg, en
+  // een lid waarvan het kaartje nog verborgen is verliest zijn naam.
+  let betrokkenen = [];
+  try {
+    const ruw = org.data?.betrokkenen;
+    betrokkenen = Array.isArray(ruw) ? ruw : JSON.parse(ruw || '[]');
+  } catch { betrokkenen = []; }
+  const zichtbaar = betrokkenen
+    .filter(r => _geheimOpen(r, dmState, groepId))
+    .map(r => {
+      const kaartje = r.id ? ENTITY_TYPES.map(t => (entities[t] || []).find(e => e.id === r.id)).find(Boolean) : null;
+      const vis = r.id ? (g.visibility[r.id] || 'hidden') : 'visible';
+      const kent = !r.id || vis !== 'hidden';
+      return {
+        naam: kent ? (kaartje?.name || r.naam || '') : '',
+        rol:  r.rol || '',
+        chef: r.chef || '',
+        id:   kent && kaartje && vis === 'visible' ? r.id : null,
+        type: kent && kaartje ? ENTITY_TYPES.find(t => (entities[t] || []).some(e => e.id === r.id)) : null,
+      };
+    })
+    .filter(r => r.naam || r.rol);
+
+  const board = _readPartyBoard(groepId);
+  board.nodes = board.nodes || [];
+  board.edges = board.edges || [];
+
+  const maakNode = (velden) => {
+    const node = {
+      id: `node_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      entityId: null, entityType: null, text: null, notes: '',
+      x: 100, y: 100, ...velden,
+    };
+    board.nodes.push(node);
+    return node;
+  };
+
+  // De organisatie zelf bovenaan; daaronder de leden in rijen van vier.
+  const bestaand = board.nodes.find(n => n.entityId === org.id);
+  const kop = bestaand || maakNode({ entityId: org.id, entityType: 'organisaties', x: 400, y: 60 });
+
+  const perNaam = new Map();   // naam → node-id, voor het opzoeken van een chef
+  const nodeVan = [];          // per regel de node, ook als de naam wegviel
+  let i = 0;
+  for (const lid of zichtbaar) {
+    const alOpBord = lid.id ? board.nodes.find(n => n.entityId === lid.id) : null;
+    const node = alOpBord || maakNode({
+      entityId: lid.id || null,
+      entityType: lid.id ? lid.type : null,
+      text: lid.id ? null : `${lid.naam || 'Onbekend'}${lid.rol ? ` — ${lid.rol}` : ''}`,
+      x: 120 + (i % 4) * 190,
+      y: 240 + Math.floor(i / 4) * 170,
+    });
+    if (lid.naam) perNaam.set(lid.naam, node.id);
+    nodeVan.push(node.id);
+    i++;
+  }
+
+  // Draden: naar de chef als die op het bord staat, anders naar de organisatie.
+  // Ook een lid zonder naam (kaartje nog verborgen: "Onbekend — Spion") hangt
+  // aan de organisatie; anders zweeft die post-it los op het bord.
+  for (const [n, lid] of zichtbaar.entries()) {
+    const vanId = nodeVan[n];
+    if (!vanId) continue;
+    const naarId = (lid.chef && perNaam.get(lid.chef)) || kop.id;
+    if (vanId === naarId) continue;
+    const bestaat = board.edges.some(e =>
+      (e.from === vanId && e.to === naarId) || (e.from === naarId && e.to === vanId));
+    if (bestaat) continue;
+    board.edges.push({
+      id: `edge_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      from: vanId, to: naarId, label: lid.rol || '', color: '#8a6a10',
+    });
+  }
+
+  _writePartyBoard(groepId, board);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('party-board:updated', { groepId });
+  res.json({ ok: true, leden: zichtbaar.length });
+});
+
 // DELETE /api/party-board/node/:id
 router.delete('/party-board/node/:id', attachRole, (req, res) => {
   const groepId = _getBoardGroepId(req);

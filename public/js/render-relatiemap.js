@@ -81,14 +81,21 @@ export async function renderRelatiemap(containerEl) {
   const alreadyBuilt = !!document.getElementById('rel-svg');
   if (!alreadyBuilt) {
     container.innerHTML = `
+    <!-- Zelfde balk als de andere tabbladen: naam links, de dingen die je hier
+         doet ernaast (zoals de +-knoppen bij de kaarten), en de uitleg rechts.
+         Dit blok had een eigen donkere balk met monospace-knoppen — ooit een
+         bewuste "detectivebord"-stijl, maar naast de rest van de app is het
+         vooral een breuk. -->
     <div class="rel-toolbar">
       <div class="rel-toolbar-left">
-        <span class="rel-toolbar-label">Prikbord</span>
+        <span class="rel-toolbar-label">${icon('pin')} Prikbord</span>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._pbAddCard()" title="Kaartje op het bord prikken">${icon('plus')} Kaartje</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._pbAddEdge()" title="Draad tussen twee kaartjes spannen">${icon('link')} Draad</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._pbOrganogram()" title="Alle leden van een organisatie in één keer op het bord">${icon('landmark')} Organogram</button>
       </div>
       <div class="rel-toolbar-right">
-        <button class="rel-btn" onclick="window._pbAddCard()">＋ kaartje</button>
-        <button class="rel-btn" onclick="window._pbAddEdge()">＋ draad</button>
-        <button class="rel-btn" onclick="window._pbZoomFit()">⊡ fit</button>
+        <button class="dm-btn dm-btn-sm dm-btn-ghost" onclick="window._pbZoomFit()" title="Alles passend in beeld">${icon('maximize-2')}</button>
+        ${window._helpBtn?.('prikbord') ?? ''}
       </div>
     </div>
     <div class="pb-layout">
@@ -114,6 +121,7 @@ export async function renderRelatiemap(containerEl) {
     _attachSvgEvents();
 
     window._pbAddCard   = _openAddCardDialog;
+    window._pbOrganogram = _openOrganogramDialog;
     window._pbAddEdge   = () => _openAddEdgeDialog(null);
     window._pbZoomFit   = _zoomFit;
     window._pbNodeClick = _onNodeClick;
@@ -378,6 +386,36 @@ window._pbRemoveNode = async id => {
 };
 
 // ── Kaartje toevoegen ──
+// Een organisatie in één keer op het bord: de server bouwt het organogram met
+// dezelfde filter als waarmee deze party het kaartje zou zien, dus geheime
+// verbindingen en nog onbekende leden komen er niet in.
+async function _openOrganogramDialog() {
+  let entities = [];
+  try { entities = await api.get('/party-board/entities'); } catch {}
+  const orgs = entities.filter(e => e.type === 'organisaties');
+  window.app.openModal('Organogram op het bord', '', `
+    <div class="dm-feature-section" style="margin:0">
+      ${orgs.length ? `
+        <p class="dm-hint">De leden komen erbij zoals deze party ze kent — wat nog verborgen is, blijft weg.</p>
+        <div class="pb-entity-list">
+          ${orgs.map(o => `
+            <button class="pb-entity-item" onclick="window._pbOrganogramKies('${esc(o.id)}')">
+              <span class="pb-entity-icon">${icon('landmark')}</span>
+              <span class="pb-entity-name">${esc(o.name)}</span>
+            </button>`).join('')}
+        </div>`
+        : '<p class="dm-hint">Deze party kent nog geen organisaties.</p>'}
+    </div>`);
+
+  window._pbOrganogramKies = async (id) => {
+    try {
+      const r = await api.post('/party-board/organogram', { organisatieId: id });
+      window.app.closeModal();
+      window._showToast?.(`${icon('landmark')} ${r.leden} leden op het bord gezet`, null, 4000);
+    } catch (e) { alert('Inladen mislukt: ' + e.message); }
+  };
+}
+
 async function _openAddCardDialog() {
   document.getElementById('pb-add-card-modal')?.remove();
 

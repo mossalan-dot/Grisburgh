@@ -3,7 +3,7 @@ import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, ren
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=91";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
-import { renderRelatiemap } from './render-relatiemap.js?v=22';
+import { renderRelatiemap } from './render-relatiemap.js?v=23';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=29';
 import { renderSpreuken } from './render-spreuken.js?v=39';
@@ -12477,6 +12477,11 @@ const HELP_CONFIG = {
     { titel: 'Waar komt het geluid uit', tekst: 'Standaard uit het apparaat waarop jij Spotify hebt draaien — meestal de laptop waarop je de regie bedient. Kies je *Het tafelscherm*, dan meldt de tablet zich zelf aan als Spotify-speler; die moet dan wel open staan en één keer aangeraakt zijn, want een browser mag pas geluid maken na een aanraking.', afbeelding: null },
     { titel: 'Wat Spotify eist', tekst: '**Premium**, anders weigert Spotify het afspelen op afstand. En er speelt maar **één stream per account**: luistert er iemand anders op hetzelfde account, dan nemen jullie het van elkaar over.', afbeelding: null },
     { titel: 'Je aanbevelingen', tekst: 'Wat je aan tafel draait telt gewoon mee voor Discover Weekly en Wrapped. Een **privésessie** valt niet vanuit een app aan te zetten — Spotify heeft daar geen knop voor in zijn API. Zet hem zelf aan in Spotify (profiel → *Privésessie*), of — handiger omdat je het niet kunt vergeten — zet je sfeermuziek in eigen afspeellijsten en vink daar *Uitsluiten van je smaakprofiel* aan.', afbeelding: null },
+  ] }),
+  prikbord: () => ({ titel: 'Het prikbord', stappen: [
+    { titel: 'Wat het is', tekst: 'Een bord van de **party**: wie horen bij wie, wie hebben jullie waar gezien, welk vermoeden hangt aan welke naam. Elke party heeft haar eigen bord en iedereen in die party ziet hetzelfde.', afbeelding: null },
+    { titel: 'Prikken en verbinden', tekst: '**Kaartje** zet een personage, locatie of organisatie op het bord — of een blanco post-it met je eigen tekst. **Draad** spant een lijn tussen twee kaartjes; klik op een draad om er een woord bij te zetten of hem weg te halen. Kaartjes sleep je waar je ze hebben wilt.', afbeelding: null },
+    { titel: 'Organogram', tekst: 'Zet een hele organisatie in één keer neer: de leden komen eronder te hangen, met een draad naar hun baas. Wat de party nog niet kent, komt niet mee — ook geen verbinding die achter een geheim zit.', afbeelding: null },
   ] }),
   hulp_kaart_wereld: () => ({ titel: 'Een kaart bewerken', stappen: [
     { titel: 'Naam en beschrijving', tekst: 'De naam staat op het kaartje in de galerij en boven de kaart zelf; de beschrijving staat eronder, zodat je bij zes kaarten nog weet welke welke is.', afbeelding: null },
