@@ -424,7 +424,7 @@ function _detailHtml(s) {
     ? window.app.renderSpellDesc(t, { diceColor })
     : annot((window.app?.mdToHtml || (x => esc(x).replace(/\n/g, '<br>')))(t)));
   return `
-    <div class="spreuk-detail-card" style="--school-c1:${col.c1};--school-c2:${col.c2}">
+    <div class="spreuk-detail-card" data-spreuk-index="${esc(s.index)}" style="--school-c1:${col.c1};--school-c2:${col.c2}">
       <button class="spreuk-detail-close" onclick="window.spreuken.close()" title="Sluiten">${icon('x')}</button>
       <div class="spreuk-detail-head">
         <div class="spreuk-detail-title">${esc(s.name)}</div>
@@ -671,12 +671,29 @@ function _bronRegel(s) {
   return '';
 }
 
+// Het volgende spreukvenster is de volgende spreuk **in de lijst zoals je hem nu
+// gefilterd ziet** — zelfde regel als bij de kaartjes.
+function _spreukBuur(richting) {
+  const ov = document.getElementById('spreuk-detail-overlay');
+  if (!ov?.classList.contains('active')) return;
+  const huidig = ov.querySelector('[data-spreuk-index]')?.dataset.spreukIndex;
+  if (!huidig) return;
+  const lijst = _filtered();
+  const i = lijst.findIndex(x => x.index === huidig);
+  const doel = lijst[i + richting];
+  if (i >= 0 && doel) window.spreuken.open(doel.index);
+}
+
 function _ensureOverlay() {
   let ov = document.getElementById('spreuk-detail-overlay');
   if (!ov) {
     ov = document.createElement('div');
     ov.id = 'spreuk-detail-overlay';
     ov.className = 'spreuk-detail-overlay';
+    window._veegNavigatie?.(ov, {
+      vorige:   () => _spreukBuur(-1),
+      volgende: () => _spreukBuur(1),
+    });
     ov.addEventListener('click', e => { if (e.target === ov) window.spreuken.close(); });
     // Inline dice-notatie (damage-getint) → klik om te gooien, net als in het spreukenboek.
     ov.addEventListener('click', e => {

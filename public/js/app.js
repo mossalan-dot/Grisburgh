@@ -1,12 +1,12 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=285';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=299";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=88";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=301";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=89";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
-import { renderSpreuken } from './render-spreuken.js?v=38';
+import { renderSpreuken } from './render-spreuken.js?v=39';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=72";
 import { initDmPanel } from "./dm-panel.js?v=225";
@@ -589,6 +589,68 @@ window._kaartFsTerug = () => {
   const terug = _fsTerug;
   window._closeKaartFullscreen();
   if (terug?.id) window._openDetail?.('locaties', terug.id);
+};
+
+// ── Vegen en pijltjes: één manier om door een rij te bladeren ────────────────
+// De app zit vol plekken waar je één ding uit een rij bekijkt: een kaartje, een
+// spreuk, een blad van een brief, een subtabblad. Vegen bladert tussen de buren
+// in de lijst waar je al in zit; ← en → doen hetzelfde op een laptop, want de
+// DM zit niet op een telefoon.
+//
+// Twee regels die het gebaar veilig houden:
+//   • Het telt alleen als de beweging duidelijk horizontaal is (≥ 60 px opzij,
+//     < 45 px omhoog/omlaag). Anders kapen we het scrollen.
+//   • Het negeert gebaren die beginnen in iets dat zélf horizontaal schuift (een
+//     carrousel, een kaart die je pant, een tekstveld). Daar hoort de beweging
+//     al ergens bij.
+window._veegNavigatie = function (el, { vorige, volgende, toetsen = true } = {}) {
+  if (!el) return () => {};
+  let x0 = null, y0 = null;
+
+  const magVegen = (doel) => {
+    for (let n = doel; n && n !== el; n = n.parentElement) {
+      if (n.dataset?.geenVeeg !== undefined) return false;
+      if (/input|textarea|select/i.test(n.tagName)) return false;
+      const st = getComputedStyle(n);
+      const schuift = /(auto|scroll)/.test(st.overflowX) && n.scrollWidth > n.clientWidth + 4;
+      if (schuift) return false;
+    }
+    return true;
+  };
+
+  const start = (ev) => {
+    const t = ev.changedTouches?.[0];
+    if (!t || !magVegen(ev.target)) { x0 = null; return; }
+    x0 = t.clientX; y0 = t.clientY;
+  };
+  const eind = (ev) => {
+    if (x0 === null) return;
+    const t = ev.changedTouches?.[0];
+    if (!t) return;
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    x0 = null;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > 45) return;
+    (dx < 0 ? volgende : vorige)?.();
+  };
+  el.addEventListener('touchstart', start, { passive: true });
+  el.addEventListener('touchend', eind, { passive: true });
+
+  const toets = (ev) => {
+    if (!toetsen) return;
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    const a = document.activeElement;
+    if (a && /input|textarea|select/i.test(a.tagName)) return;
+    if (a?.isContentEditable) return;
+    if (ev.key === 'ArrowLeft')  { ev.preventDefault(); vorige?.(); }
+    if (ev.key === 'ArrowRight') { ev.preventDefault(); volgende?.(); }
+  };
+  if (toetsen) document.addEventListener('keydown', toets);
+
+  return () => {
+    el.removeEventListener('touchstart', start);
+    el.removeEventListener('touchend', eind);
+    if (toetsen) document.removeEventListener('keydown', toets);
+  };
 };
 
 // ── Uitklapmenu's in de kopbalk ─────────────────────────────────────────────
@@ -8789,6 +8851,26 @@ async function renderMijnKarakter(opts = {}) {
   }
 
   // ── Subtab switcher ──
+  // Vegen tussen de subtabbladen. Bewust géén pijltjestoetsen: in het
+  // spreukenboek bladeren die al door de spreuken, en twee betekenissen voor
+  // één toets is erger dan geen toets.
+  window._spelerVeegKlaar = window._spelerVeegKlaar || (() => {
+    const host = document.getElementById('section-mijn-karakter');
+    if (!host) return false;
+    const orde = () => ['party', 'personage', 'facties', 'knapzak', 'progressie', 'spreukenboek', 'berichten']
+      .filter(t => document.querySelector(`.player-subtab[data-tab="${t}"]`));
+    const stap = (richting) => {
+      const lijst = orde();
+      const i = lijst.indexOf(_playerSubTab);
+      const doel = lijst[i + richting];
+      if (doel) window._setPlayerSubTab(doel);
+    };
+    window._veegNavigatie?.(host, {
+      vorige: () => stap(-1), volgende: () => stap(1), toetsen: false,
+    });
+    return true;
+  })();
+
   window._setPlayerSubTab = function(tab) {
     // Beurs opslaan vóórdat de DOM vervangen wordt (alleen als dirty)
     if (typeof window._dashCurrencyFlush === 'function') window._dashCurrencyFlush();

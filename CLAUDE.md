@@ -240,11 +240,11 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=597   app.js?v=762   sound-manager.js?v=8
+index.html  : theme.css?v=599   app.js?v=762   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
-              render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=299
+              render-archief.js?v=89  render-bestiarium.js?v=28  render-campagne.js?v=301
               render-dashboard.js?v=9  render-dungeon.js?v=53  render-kaart.js?v=31
-              render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
+              render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=39
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 ```
@@ -811,6 +811,23 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > De bestaande geluidenbibliotheek blijft wat hij is: korte klanken en sfeerloops
 > horen lokaal, want die moeten precies op het juiste moment klinken en werken
 > zonder account of internet. Spotify is voor de lange muziek eronder.
+
+> **Vegen en pijltjes: één hulpje.** `window._veegNavigatie(el, {vorige,
+> volgende, toetsen})` in `app.js` bindt een horizontale veeg (≥ 60 px opzij,
+> < 45 px op of neer) en standaard ← / → op `document`. Het negeert gebaren die
+> beginnen in iets dat zélf horizontaal schuift (een carrousel, een kaart die je
+> pant) of in een invoerveld — daar hoort de beweging al ergens bij. Wie het
+> gebruikt, doet dat **lui**: dit bestand wordt geïmporteerd door `app.js`, dus
+> tijdens het laden bestaat de helper nog niet (`_detailVegen()` hangt hem aan bij
+> het eerste kaartje dat opengaat).
+>
+> Waar het aan hangt: het **detailvenster** van een kaartje (`window._detailBuur`),
+> het **spreukdetail** (`_spreukBuur`), het **bladeren door een brief** (alleen
+> vegen; de pijltjes deden dat al) en de **subtabbladen van de speler** (alleen
+> vegen — in het spreukenboek zijn de pijltjes al bezet).
+>
+> **Wat "de volgende" betekent:** de volgende in de lijst **zoals je hem nu
+> gefilterd ziet**. Anders spring je naar iets wat nergens op het scherm ligt.
 
 ---
 

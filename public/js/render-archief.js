@@ -263,29 +263,37 @@ async function _renderPrikbord(container) {
   const visibleQuests = isDm ? quests : quests.filter(q => q.status !== 'verborgen');
 
   // Verborgen staat links — de →-knop werkt dan van links naar rechts
+  // De wachtrij van de spelers staat vooraan, naast Verborgen: het is het enige
+  // vakje waar iets op jóu ligt te wachten. (Een party vraagt een missie aan bij
+  // een factie — POST /quests/:id/aanvragen — en hij blijft hier tot je hem
+  // gunt.) Alleen de DM ziet die kolom.
   const cols = [
-    ...(isDm ? [{ key: 'verborgen',     label: `${icon('lock')} Verborgen` }] : []),
-    { key: 'actief',        label: `${icon('pin')} Beschikbaar` },
-    // "Aangevraagd" zegt niet wie er vraagt. Het is de wachtrij van de spelers:
-    // vanuit een factie kan een party een missie aanvragen (POST /quests/:id/
-    // aanvragen), en die belandt hier tot de DM hem doorschuift naar
-    // *In uitvoering* of terugzet. Alleen de DM ziet deze kolom.
-    ...(isDm ? [{ key: 'aangevraagd', label: `${icon('clock')} Aangevraagd door een party`,
+    ...(isDm ? [{ key: 'verborgen',   label: `${icon('lock')} Verborgen` }] : []),
+    ...(isDm ? [{ key: 'aangevraagd', label: `${icon('clock')} Aangevraagd`,
                   tip: 'Een party heeft deze missie bij de factie aangevraagd. Schuif hem door naar In uitvoering om hem te gunnen, of zet hem terug naar Beschikbaar.' }] : []),
+    { key: 'actief',        label: `${icon('pin')} Beschikbaar` },
     { key: 'in-uitvoering', label: `${icon('swords')} In uitvoering` },
     { key: 'voltooid',      label: `${icon('check')} Voltooid` },
     { key: 'mislukt',       label: `${icon('x')} Mislukt` },
   ];
 
-  // Volgorde voor de →-knop
-  const STATUS_CYCLE = ['verborgen', 'actief', 'aangevraagd', 'in-uitvoering', 'voltooid', 'mislukt'];
+  // De →-knop schuift een missie naar de volgende stap. *Aangevraagd* zit daar
+  // niet in: dat doet een speler, niet de DM — je zou een verborgen missie
+  // anders "aanvragen" namens niemand. Vanuit Aangevraagd gaat de knop naar
+  // In uitvoering: dat is hem gunnen.
+  const VOLGENDE = {
+    verborgen: 'actief',
+    actief: 'in-uitvoering',
+    aangevraagd: 'in-uitvoering',
+    'in-uitvoering': 'voltooid',
+    voltooid: 'mislukt',
+  };
 
   const questCard = (q, col) => {
     const chLabel    = q.chapter && hk[q.chapter] ? hk[q.chapter].short : '';
     const rot        = _questRot(q.id);
     const showDesc   = q.description && col.key === 'actief';
-    const cycleIdx   = STATUS_CYCLE.indexOf(q.status);
-    const hasNext    = cycleIdx >= 0 && cycleIdx < STATUS_CYCLE.length - 1;
+    const hasNext    = !!VOLGENDE[q.status];
     const clickHandler = isDm
       ? `window._questEdit('${q.id}')`
       : (q.description ? `window._questViewPlayer('${q.id}')` : '');
@@ -373,9 +381,8 @@ async function _renderPrikbord(container) {
   window._questStatusNext = async (id) => {
     const q = quests.find(x => x.id === id);
     if (!q) return;
-    const idx = STATUS_CYCLE.indexOf(q.status);
-    if (idx < 0 || idx >= STATUS_CYCLE.length - 1) return; // al op mislukt
-    const next = STATUS_CYCLE[idx + 1];
+    const next = VOLGENDE[q.status];
+    if (!next) return;                                   // al op mislukt
     try { await api.updateQuest(id, { status: next }); await renderLogboek(); } catch {}
   };
 
@@ -455,9 +462,11 @@ async function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
       <div class="quest-modal-row">
         <label class="quest-modal-label">Status</label>
         <select id="qm-status" class="dm-select">
+          <!-- Zelfde volgorde als de kolommen op het bord, anders zoek je in het
+               venster op een andere plek dan waar je hem net zag staan. -->
           <option value="verborgen"     ${(existingQuest?.status ?? defaultStatus) === 'verborgen'     ? 'selected':''}>Verborgen (alleen DM)</option>
+          <option value="aangevraagd"   ${(existingQuest?.status ?? defaultStatus) === 'aangevraagd'   ? 'selected':''}>Aangevraagd door een party</option>
           <option value="actief"        ${(existingQuest?.status ?? defaultStatus) === 'actief'        ? 'selected':''}>Beschikbaar voor spelers</option>
-          <option value="aangevraagd"   ${(existingQuest?.status ?? defaultStatus) === 'aangevraagd'   ? 'selected':''}>Aangevraagd</option>
           <option value="in-uitvoering" ${(existingQuest?.status ?? defaultStatus) === 'in-uitvoering' ? 'selected':''}>In uitvoering</option>
           <option value="voltooid"      ${(existingQuest?.status ?? defaultStatus) === 'voltooid'      ? 'selected':''}>Voltooid</option>
           <option value="mislukt"       ${(existingQuest?.status ?? defaultStatus) === 'mislukt'       ? 'selected':''}>Mislukt</option>

@@ -2980,6 +2980,12 @@ window._perkamentGroot = (id) => {
     </div>
     <div class="perk-voet"><span class="perk-titel">${esc(e.name)}</span><span class="perk-teller" id="perk-teller"></span></div>`;
   document.body.appendChild(ov);
+  // Bladeren met een veeg; de pijltjestoetsen deden dit al.
+  window._veegNavigatie?.(ov, {
+    vorige:   () => window._perkamentBlad(-1),
+    volgende: () => window._perkamentBlad(1),
+    toetsen:  false,
+  });
   _perkPagina = 0;
   // Bewust géén requestAnimationFrame: die staat stil in een tabblad dat niet
   // op de voorgrond is, en dan blijft de brief onzichtbaar. Eén gedwongen
@@ -4138,10 +4144,43 @@ window._maakBanner = (idx) => {
   _refreshEntityImages();
 };
 
+// ── Bladeren door de lijst waar je in zit ───────────────────────────────────
+// Het volgende kaartje is het volgende kaartje **zoals het raster het nu toont**:
+// met het zoekfilter en de sortering die aanstaan. Anders spring je naar iets
+// wat je op het scherm nergens ziet liggen.
+window._detailBuur = async (richting) => {
+  const tab = window._currentDetailTab, id = window._currentDetailId;
+  if (!tab || !id || !entities[tab]) return;
+  const lijst = filterEntities(tab, entities[tab] || []);
+  const i = lijst.findIndex(e => e.id === id);
+  if (i < 0) return;                       // dit kaartje staat niet in de lijst
+  const doel = lijst[i + richting];
+  if (!doel) return;                       // aan het begin of eind: niets doen
+  await window._openDetail(tab, doel.id);
+};
+
+// Eén keer aanhangen, maar pas bij het eerste kaartje dat opengaat: dit bestand
+// wordt geïmporteerd *door* app.js, dus tijdens het laden bestaat
+// `window._veegNavigatie` nog niet. (Zelfde valkuil als bij een dangling import:
+// het faalt stil.)
+function _detailVegen() {
+  const ov = document.getElementById('modal-overlay');
+  if (!ov || ov.dataset.veegKlaar) return;
+  ov.dataset.veegKlaar = '1';
+  const actief = () => ov.classList.contains('active')
+    && window._currentDetailId
+    && !document.querySelector('#m-body form');   // in de editor bladert links/rechts niet
+  window._veegNavigatie?.(ov, {
+    vorige:   () => { if (actief()) window._detailBuur(-1); },
+    volgende: () => { if (actief()) window._detailBuur(1); },
+  });
+}
+
 // ── Detail view ──
 let _detailToken = 0;   // Annuleer concurrent _openDetail aanroepen
 
 window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
+  _detailVegen();                   // eerste keer: vegen en pijltjes aanhangen
   const myToken = ++_detailToken;   // Uniek token voor deze aanroep
 
   const prevTab = window._currentDetailTab;

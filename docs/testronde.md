@@ -567,6 +567,14 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Tafelscherm als speler** (TAB) — zet *Geluid uit* op het tafelscherm, ververs de tablet en tik er één keer op: het meldt zich als apparaat en de muziek komt daar uit
 - [ ] **Herhalen** (DM) — een stap met herhalen blijft doorspelen; zonder herhaling stopt hij na het nummer
 
+### Bladeren met vegen en pijltjes
+
+- [ ] **Kaartje na kaartje** (ALL) — open een kaartje en druk op → : het volgende kaartje uit het raster opent, ← gaat terug. Met een zoekterm actief blijft hij binnen die gefilterde lijst. Op een telefoon doet vegen hetzelfde
+- [ ] **Spreuk na spreuk** (ALL) — zelfde in het spreukvenster, binnen de filters die aanstaan
+- [ ] **Brief bladeren** (ALL) — vegen blaadert door een lange brief; de pijltjes deden dat al
+- [ ] **Subtabbladen** (SP) — vegen wisselt tussen Party · Personage · Boedel · …; een veeg die in de voorwerp-carrousel begint hoort bij de carrousel en wisselt dus niet van tabblad
+- [ ] **Niet waar het botst** (ALL) — op de wereldkaart en de dungeonkaart blijft slepen pannen, en in een tekstveld doen de pijltjes gewoon wat ze horen te doen
+
 ## Bevindingen
 
 Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
