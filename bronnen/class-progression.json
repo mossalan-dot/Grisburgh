@@ -626,6 +626,60 @@
         },
         "Eldritch Knight": {
           "levels": {}
+        },
+        "Psi Warrior": {
+          "levels": {
+            "3": [
+              {
+                "name": "Psionic Power",
+                "desc": ""
+              },
+              {
+                "name": "Protective Field",
+                "desc": ""
+              },
+              {
+                "name": "Psionic Strike",
+                "desc": ""
+              },
+              {
+                "name": "Telekinetic Movement",
+                "desc": ""
+              }
+            ],
+            "7": [
+              {
+                "name": "Psi-Powered Leap",
+                "desc": ""
+              },
+              {
+                "name": "Telekinetic Adept",
+                "desc": ""
+              },
+              {
+                "name": "Telekinetic Thrust",
+                "desc": ""
+              }
+            ],
+            "10": [
+              {
+                "name": "Guarded Mind",
+                "desc": ""
+              }
+            ],
+            "15": [
+              {
+                "name": "Bulwark of Force",
+                "desc": ""
+              }
+            ],
+            "18": [
+              {
+                "name": "Telekinetic Master",
+                "desc": ""
+              }
+            ]
+          }
         }
       }
     },

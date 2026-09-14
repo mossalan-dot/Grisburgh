@@ -387,6 +387,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Vaardigheden: een eigen feat toevoegen laat de 51 meegeleverde feats en 12 Epic Boons staan (tellers boven kloppen nog)
 - [ ] Vaardigheden (DM): verwijderen vraagt om bevestiging en haalt hem uit de lijst
 - [ ] Een kaartje met eigen afbeelding toont die in plaats van het silhouet; de herkomst-tag staat erbij (rood bij *Overgenomen*)
+- [ ] Vaardigheden: alle vier de subklassen van een klasse staan erin (bijv. Ranger → Hunter, Beast Master, Fey Wanderer, Gloom Stalker); die zonder SRD-tekst dragen de chip *Naslag*
+- [ ] Vaardigheden: een background toont zijn feat als klikbare verwijzing ("Feat. **Magic Initiate** (Cleric)") die dat feat-kaartje opent
+- [ ] Klik op *Naslag* of *Lees hem elders* → er opent een zoekpagina met "D&D 2024 <soort> <naam>" (niet de zoekpagina van D&D Beyond, die weigert een koude bezoeker)
+- [ ] Progressie-tijdlijn: bij een Ability Score Improvement staat de volledige featlijst in de keuzelijst (67 + 12 Epic Boons), ook nadat de DM in Vaardigheden een eigen feat heeft opgeslagen
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

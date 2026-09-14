@@ -230,7 +230,7 @@ export async function renderProgressie(container, ctx) {
   // Data ophalen (progression + SRD + backgrounds parallel)
   let prog;
   try {
-    [prog] = await Promise.all([api.progression(), _loadSrd(), _loadBackgrounds()]);
+    [prog] = await Promise.all([api.progression(), _loadSrd(), _loadBackgrounds(), _loadFeatLib()]);
   } catch(e) {
     getEl().innerHTML = `<p style="color:#8a3020;padding:16px;
       font-family:'IM Fell English',serif;font-style:italic">
@@ -445,10 +445,29 @@ function _featDesc(name) {
   }
   return _srdDesc(name, 'feat') || _srdDesc(name) || '';
 }
-// Bouw een verse feat-bibliotheek uit de ingebouwde lijsten + SRD-tekst (voor de editor-seed).
+// De namenlijst komt uit `bronnen/feats-2024.json` (structuur, geen tekst —
+// dus hij gaat naar elke campagne). De arrays hierboven blijven staan als
+// vangnet: zolang dat bestand nog niet binnen is, of als het ontbreekt.
+let _featLib = null;
+let _featLibPromise = null;
+async function _loadFeatLib() {
+  if (_featLib) return _featLib;
+  if (!_featLibPromise) {
+    _featLibPromise = fetch('/api/bron/feats-2024')
+      .then(r => r.json())
+      .then(d => { _featLib = (d && Array.isArray(d.general)) ? d : {}; return _featLib; })
+      .catch(() => { _featLib = {}; _featLibPromise = null; return {}; });
+  }
+  return _featLibPromise;
+}
+
+// Bouw een verse feat-bibliotheek uit de namenlijst + SRD-tekst (voor de editor-seed).
 function _seedFeatLibrary() {
   const mk = names => names.map(n => ({ name: n, desc: _srdDesc(n, 'feat') || _srdDesc(n) || '' }));
-  return { general: mk(_GENERAL_FEATS), epic: mk(_EPIC_FEATS) };
+  return {
+    general: mk(_featLib?.general?.length ? _featLib.general : _GENERAL_FEATS),
+    epic:    mk(_featLib?.epic?.length    ? _featLib.epic    : _EPIC_FEATS),
+  };
 }
 
 // ── Tijdlijn-weergave ──────────────────────────────────────────────
@@ -741,7 +760,7 @@ function _geenTekstBlok(naam) {
 // weet waar een beschrijving vandaan komt: eerst wat de DM zelf schreef, dan
 // de SRD, en anders niets (`geenTekst`, waarop de app naar buiten verwijst).
 export async function naslagBron() {
-  const [prog] = await Promise.all([api.progression(), _loadSrd(), _loadBackgrounds()]);
+  const [prog] = await Promise.all([api.progression(), _loadSrd(), _loadBackgrounds(), _loadFeatLib()]);
   // Een **lege** lijst is geen keuze maar een restant: schrijft de DM één eigen
   // feat weg, dan staat er ineens `feats: { general: [x], epic: [] }` en zouden
   // de twaalf Epic Boons uit de seed verdwenen zijn — ook uit de keuzelijst op
@@ -955,7 +974,7 @@ window.progressie = {
 
   // ── DM-editor ─────────────────────────────────────────────────
   async openEditor() {
-    const [raw] = await Promise.all([api.progression().catch(() => null), _loadSrd(), _loadBackgrounds()]);
+    const [raw] = await Promise.all([api.progression().catch(() => null), _loadSrd(), _loadBackgrounds(), _loadFeatLib()]);
     if (!raw) { alert('Kon progressiedata niet laden.'); return; }
     _edit = JSON.parse(JSON.stringify(raw));
     if (!_edit.classes) _edit.classes = {};

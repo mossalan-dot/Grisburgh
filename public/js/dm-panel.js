@@ -10092,7 +10092,7 @@ async function _renderInstellingen() {
       <div class="dm-form-row">
         <label class="dm-form-label" for="inst-bron-link">Naslag elders</label>
         <input id="inst-bron-link" class="dm-input" type="url"
-          placeholder="https://www.dndbeyond.com/search?q={naam}"
+          placeholder="https://duckduckgo.com/?q={zoek}"
           value="${esc(meta.bronLink ?? '')}">
       </div>
       ${!magBeheren ? '' : `

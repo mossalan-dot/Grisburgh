@@ -1005,6 +1005,37 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > De **twintig levels** zitten achter de trechter, net als de scholen bij de
 > spreuken: je zoekt op naam of op soort, niet op "wat krijg ik op 14?".
 
+> **Wat er niet in mag staan, mag er wel náár verwijzen.** `scripts/srd-2024/import-structuur.js`
+> haalt de ontbrekende **subklassen en feats** binnen — alleen de **namen en de
+> levels**, met een lege `desc`. Dezelfde afweging als bij de spreuken: de
+> bibliotheek kent ze allemaal, de SRD-tekst gaat mee, de rest krijgt
+> `_geenTekst` en een verwijzing (`window.app.bronLink`). Grisburgh had 15 van
+> de 48 subklassen; een speler die op level 3 koos kon dus niet eens opzoeken
+> wat de andere drie deden. Nu 50 (271 subclass-features, waarvan 198 zonder
+> tekst). De featlijst staat sindsdien in `bronnen/feats-2024.json` (67 + 12
+> Epic Boons) in plaats van als array in `render-progressie.js`; die arrays
+> blijven als vangnet staan. Draaien: eerst de 5etools-bestanden naar `/tmp`
+> (zie de kop van het script), dan `node scripts/srd-2024/import-structuur.js
+> <campagne> --schrijf` — een campagne mét eigen `progression.json` krijgt de
+> seed namelijk niet vanzelf. Het script vult alleen aan en zet een kopie
+> ernaast; een subklasse die bij ons anders heet ("Wild Magic (Chaos)" tegenover
+> "Wild Magic Sorcery") wordt herkend op het kenmerkende woord, anders stond hij
+> er straks twee keer.
+>
+> **De verwijzing gaat naar een zoekmachine, niet naar D&D Beyond.** Hun
+> zoekpagina weigert een bezoeker die er koud binnenkomt (Cloudflare), dus dan
+> opent er niets. `BRON_LINK_STANDAARD` is nu `https://duckduckgo.com/?q={zoek}`,
+> waarbij `{zoek}` de hele opdracht is inclusief context ("D&D 2024 feature
+> Sentinel") — "Sentinel" alleen levert een bewakingscamera op. `{naam}` en
+> `{soort}` blijven werken voor wie zijn eigen sjabloon invult
+> (Instellingen → *Naslag elders*).
+>
+> **Een background noemt een feat, en die staat hier gewoon.** De onderdelen van
+> een background worden als `[[Magic Initiate]]` weggeschreven en het
+> detailvenster maakt daar een knop van (`_verwijzingen()` in
+> `render-vaardigheden.js`) — zelfde truc als bij de spreuken, want de gewone
+> wikilink-resolver kent alleen kaartjes uit het archief.
+
 > **Een eigen vaardigheid hoort in de campagne, niet in de broncode** — zelfde
 > regel als bij de spreuken. `POST /progression/feature` (DM) schrijft één regel
 > weg en `POST /progression/feature/verwijderen` haalt hem eruit; bewust niet
@@ -1344,12 +1375,12 @@ data/
 
 ```javascript
 // Helper beschikbaar als window.icon() overal in de frontend
-icon('sword')                         // → <svg><use href="/img/icons.svg?v=10#icon-sword"/></svg>
+icon('sword')                         // → <svg><use href="/img/icons.svg?v=11#icon-sword"/></svg>
 icon('heart', { cls: 'icon-lg' })     // met extra CSS-klasse
 icon('shield', { title: 'Verdediging' }) // met tooltip
 ```
 
-**Beschikbare iconen** (icons.svg, v=10):
+**Beschikbare iconen** (icons.svg, v=11):
 `beer` `book-open` `building` `camera` `castle` `check` `check-circle`
 `chevron-left` `chevron-right` `church` `clipboard-list` `coins` `crossed-swords`
 `dice` `download` `eye` `eye-off` `flask-conical` `folder-open` `globe`
@@ -1369,6 +1400,7 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 **Toegevoegd voor locatietypes** (Lucide, ISC): `anchor` `door-open` `fish`
 `graduation-cap` `hammer` `pickaxe` `store` `tent` `trees` `warehouse` `wheat`
 **Toegevoegd voor de navigatie** (Lucide, ISC): `compass`
+**Toegevoegd voor de klasse-iconen** (Lucide, ISC): `hand-fist`
 
 > **Eén icoon per soort plek.** `LOC_TYPE_ICOON` in `render-campagne.js` koppelt
 > elk `data.locType` aan een sprite-naam; lezen doe je met

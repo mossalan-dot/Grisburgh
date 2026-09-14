@@ -4,13 +4,13 @@ import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
 import { renderRelatiemap } from './render-relatiemap.js?v=25';
-import { renderProgressie } from './render-progressie.js?v=46';
+import { renderProgressie } from './render-progressie.js?v=47';
 import { renderBestiarium } from './render-bestiarium.js?v=29';
 import { renderSpreuken } from './render-spreuken.js?v=40';
-import { renderVaardigheden } from './render-vaardigheden.js?v=4';
+import { renderVaardigheden } from './render-vaardigheden.js?v=6';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=72";
-import { initDmPanel } from "./dm-panel.js?v=225";
+import { initDmPanel } from "./dm-panel.js?v=226";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -19,7 +19,7 @@ import './media-picker.js?v=8';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=10#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=11#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -1227,14 +1227,24 @@ function dmToggleClick() {
 // Beyond bevat een nummer dat nergens uit af te leiden is, dus een diepe link
 // zou een koppeltabel vragen die we moeten schrapen en eeuwig bijhouden — en
 // die stil 404't zodra zij hun adressen wijzigen. Een zoekpagina verlept niet.
-const BRON_LINK_STANDAARD = 'https://www.dndbeyond.com/search?q={naam}';
+// Waar de app naartoe wijst als een tekst hier niet mag staan. Stond op de
+// zoekpagina van D&D Beyond, maar die weigert een bezoeker die er koud
+// binnenkomt (Cloudflare) en dan opent er niets. Een zoekmachine verlept niet
+// en werkt zonder account; wie liever ergens anders heen wil, zet zijn eigen
+// sjabloon bij Instellingen → Naslag elders.
+const BRON_LINK_STANDAARD = 'https://duckduckgo.com/?q={zoek}';
 
 function _bronLink(naam, soort = '') {
   const sjabloon = state.meta?.bronLink || BRON_LINK_STANDAARD;
   if (!sjabloon) return '';
+  // `{zoek}` is de hele zoekopdracht inclusief context: "Sentinel" alleen
+  // levert een bewakingscamera op, "D&D 2024 feat Sentinel" de regel.
+  const soortWoord = { spells: 'spell', features: 'feature' }[soort] || soort || '';
+  const zoek = `D&D 2024 ${soortWoord} ${naam || ''}`.replace(/\s+/g, ' ').trim();
   return sjabloon
+    .replace('{zoek}', encodeURIComponent(zoek))
     .replace('{naam}', encodeURIComponent(naam || ''))
-    .replace('{soort}', encodeURIComponent(soort || ''));
+    .replace('{soort}', encodeURIComponent(soortWoord));
 }
 
 // ── Landing page ──

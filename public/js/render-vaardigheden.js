@@ -15,7 +15,7 @@
  */
 
 import { api } from './api.js?v=285';
-import { naslagBron } from './render-progressie.js?v=46';
+import { naslagBron } from './render-progressie.js?v=47';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
@@ -36,7 +36,7 @@ const SOORTEN = {
 // een Barbarian-feature hoort er anders uit te zien dan een Wizard-feature.
 // Alles komt uit de bestaande sprite; er is niets bij getekend.
 const KLASSE_ICOON = {
-  Barbarian: 'crossed-swords', Bard: 'music',    Cleric: 'church',
+  Barbarian: 'hand-fist',  Bard: 'music',        Cleric: 'church',
   Druid: 'tree-pine',      Fighter: 'swords',    Monk: 'hand',
   Paladin: 'shield-plus',  Ranger: 'target',     Rogue: 'stiletto',
   Sorcerer: 'flame',       Warlock: 'eye',       Wizard: 'book-open',
@@ -115,6 +115,20 @@ async function _load() {
     zet({
       soort: 'background', bron: 'Backgrounds', level: 0, naam: bg,
       desc: delen.map(f => `**${f.name}.** ${f.desc || ''}`.trim()).join('\n\n'),
+    });
+  }
+
+  // Een background noemt een feat ("Feat. Magic Initiate (Cleric)"), en die
+  // staat hier gewoon als kaartje. Dus schrijven we hem als [[verwijzing]],
+  // net als een wikilink in een kaartje-tekst — het detailvenster maakt er een
+  // knop van. De haakjes erachter ("(Cleric)") horen bij de background, niet
+  // bij de naam van de feat.
+  const featNamen = new Set(uit.filter(x => x.soort === 'feat' || x.soort === 'boon').map(x => x.naam));
+  for (const it of uit) {
+    if (it.soort !== 'background') continue;
+    it.desc = it.desc.replace(/(\*\*Feat\.\*\*\s*)([^(\n]+?)(\s*\([^)]*\))?$/gm, (heel, kop, naam, rest) => {
+      const schoon = naam.trim();
+      return featNamen.has(schoon) ? `${kop}[[${schoon}]]${rest || ''}` : heel;
     });
   }
 
@@ -232,7 +246,7 @@ function _card(it) {
             onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')} Naslag</a>` : ''}
         </div>
         ${tekst
-          ? `<div class="vaardig-card-desc">${esc(tekst.replace(/[*_#]/g, '').slice(0, 130))}…</div>`
+          ? `<div class="vaardig-card-desc">${esc(tekst.replace(/\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]/g, '$1').replace(/[*_#]/g, '').slice(0, 130))}…</div>`
           : `<div class="vaardig-card-desc vaardig-card-desc--leeg">De beschrijving staat hier niet — hij valt buiten de vrij te gebruiken SRD.</div>`}
       </div>
     </div>`;
@@ -307,13 +321,26 @@ function _refreshFilterBar() {
 // ── Detailvenster ─────────────────────────────────────────────────
 // Zelfde opmaak als het progressie-detailvenster (`prog-detail*`), inclusief de
 // verwijzing naar buiten wanneer de tekst hier niet mag staan.
+// [[Naam]] → een knop die dat kaartje opent, als het bestaat. Zelfde truc als
+// bij de spreuken: de gewone wikilink-resolver kent alleen kaartjes uit het
+// archief, en een feat is er daar geen van.
+function _verwijzingen(html) {
+  return String(html).replace(/\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g, (heel, naam, alias) => {
+    const doel = (_all || []).find(x => x.naam.toLowerCase() === naam.trim().toLowerCase());
+    const tekst = esc((alias || naam).trim());
+    return doel
+      ? `<a class="spreuk-verwijzing" onclick="window.vaardigheden.open('${esc(doel.key)}')" title="Open ${tekst}">${tekst}</a>`
+      : tekst;
+  });
+}
+
 function _open(key) {
   const it = (_all || []).find(x => x.key === key);
   if (!it) return;
   const s = SOORTEN[it.soort] || SOORTEN.class;
   const tekst = _tekst(it);
   const body = tekst
-    ? `<div class="prog-detail-desc">${_bron?.md?.(tekst) ?? esc(tekst)}</div>`
+    ? `<div class="prog-detail-desc">${_verwijzingen(_bron?.md?.(tekst) ?? esc(tekst))}</div>`
     : (_bron?.geenTekstBlok?.(it.naam) ?? '');
   window.app.openModal(it.naam, '', `
     <div class="prog-detail">
