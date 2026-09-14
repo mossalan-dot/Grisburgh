@@ -6,6 +6,14 @@ groot het is.
 
 ## Nu aan de beurt
 
+- [ ] **De tekst ís het script** — de akteregie tot één ding maken: de lopende
+      tekst in een lade onderin, met de onthulknoppen ín de tekst in plaats van
+      als aparte strook stappen. Uitwerking en volgorde:
+      [voorstel-akteregie.md](voorstel-akteregie.md). **Stap 1 is blokkerend en
+      los bruikbaar:** `GET /meta` stuurt `hoofdstukken[*].tekst` en `[*].script`
+      naar elke ingelogde speler. Nu leeg, dus onschuldig — maar de eerste akte
+      die je erin plakt staat integraal in de browser van je spelers.
+
 - [ ] **Conditions in het Nederlands** — `_COND_INFO` en `COND_LBL_MAP` in
       `app.js` vertalen de PHB-conditions (Verblind, Betoverd, Bevreesd,
       Vastgehouden, Verdoofd, Bewusteloos, Concentratie…). Tegen de afspraak in
