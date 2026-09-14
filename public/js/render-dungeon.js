@@ -157,9 +157,6 @@ function _buildShell() {
       <div class="dng-topbar">
         <div class="dng-topbar-left">
           <span class="dng-kaart-naam">${esc(kopNaam)}</span>
-          ${isDM() && _maps.length ? `
-            <span class="dng-reveal-chip" id="dng-reveal-count"></span>
-          ` : ''}
         </div>
         ${isDM() && _maps.length ? `
         <div class="dng-tools" id="dng-tools">
@@ -172,6 +169,9 @@ function _buildShell() {
         ` : ''}
         <span id="dng-verdiepingen-slot">${_verdiepingStripHtml()}</span>
         <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px">
+          <!-- De teller staat rechts, naast de uitleg: hij zegt iets over de
+               hele kaart, niet over het gereedschap waar je mee bezig bent. -->
+          ${isDM() && _maps.length ? `<span class="dng-reveal-chip" id="dng-reveal-count"></span>` : ''}
           ${window._helpBtn?.('dungeon') ?? ''}
           ${document.body.classList.contains('kaart-fs-active') ? `
             <button class="dng-btn dng-btn-sm" title="Sluiten (Esc)"
