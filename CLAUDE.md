@@ -245,7 +245,7 @@ app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
               render-archief.js?v=92  render-bestiarium.js?v=29  render-campagne.js?v=304
               render-dashboard.js?v=9  render-dungeon.js?v=53  render-kaart.js?v=31
               render-progressie.js?v=46  render-relatiemap.js?v=25  render-spreuken.js?v=39
-              render-naslag.js?v=1
+              render-vaardigheden.js?v=1
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 ```
@@ -979,10 +979,10 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 
 ---
 
-> **Naslag: de bibliotheek naast de tijdlijn.** De Progressie-tab toont class
+> **Vaardigheden: de bibliotheek naast de tijdlijn.** De Progressie-tab toont class
 > features, traits en feats langs de tijdlijn van één personage — je ziet er dus
-> pas iets als jouw level het ontsluit. De archieftab **Naslag**
-> (`render-naslag.js`, sectie `naslag`, module `naslag`) zet dezelfde dingen
+> pas iets als jouw level het ontsluit. De archieftab **Vaardigheden**
+> (`render-vaardigheden.js`, sectie `vaardigheden`, module `vaardigheden`) zet dezelfde dingen
 > naast elkaar als doorzoekbare bibliotheek: 148 class features, 73 subclass
 > features, 53 species traits, 51 feats, 12 Epic Boons en 16 backgrounds in
 > Grisburgh. Zelfde machinerie als de spreukenbibliotheek (drie zoekbakken in
@@ -999,6 +999,20 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > Class"); `_schoonTekst` in `render-progressie.js` haalt ze weg in `_md`, dus
 > ook de tijdlijn profiteert — zelfde opschoning als `schoon()` in
 > `lib/character-sheet.js`.
+> **Een icoon per class en per species** (`KLASSE_ICOON` / `SPECIES_ICOON`): de
+> soort bepaalt de kleur van het kaartje — dat is waar het filter op staat — en
+> het icoon zegt wáárvan het is. Alles uit de bestaande sprite.
+> De **twintig levels** zitten achter de trechter, net als de scholen bij de
+> spreuken: je zoekt op naam of op soort, niet op "wat krijg ik op 14?".
+
+> **Een missie verplaats je door te slepen.** De statussen zijn de kolommen van
+> het bord, dus verschuiven is een `status`-wijziging en verder niets —
+> `_prikbordSlepen()` in `render-archief.js` gebruikt dezelfde route als de
+> →-knop. Bewust HTML5-drag: de browser regelt het sleepbeeld, het scrollen van
+> een volle kolom en de cursor. Eén ding kan die niet — een `touchstart` wordt
+> nooit een drag — en dáárom blijft de →-knop staan: op een telefoon staat er
+> één kolom in beeld. **Aangevraagd** neemt niets aan: daar zet een spéler iets
+> neer (`POST /quests/:id/aanvragen`); eruit slepen mag wel, dat is hem gunnen.
 
 ---
 

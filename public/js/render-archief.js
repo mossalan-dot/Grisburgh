@@ -263,6 +263,65 @@ window._prikbordStap = (richting) => {
   if (doel) doel.click();
 };
 
+// Slepen op het missiebord. De statussen zijn de kolommen, dus een missie
+// verplaatsen is een `status`-wijziging en verder niets — dezelfde route als de
+// →-knop gebruikt.
+//
+// Eén kolom neemt niets aan: **Aangevraagd**. Daar zet een spéler iets neer
+// (POST /quests/:id/aanvragen); zou de DM er een missie in kunnen slepen, dan
+// stond er "aangevraagd" zonder dat iemand iets gevraagd had. Eruit slepen mag
+// wel — dat is hem gunnen of terugleggen.
+function _prikbordSlepen(bord) {
+  if (!bord) return;
+  const GESLOTEN = new Set(['aangevraagd']);
+  let sleep = null;                       // { id, van }
+
+  bord.addEventListener('dragstart', (e) => {
+    const kaart = e.target?.closest?.('.quest-card');
+    if (!kaart) return;
+    sleep = { id: kaart.dataset.qid, van: kaart.closest('.prikbord-col')?.dataset.status };
+    kaart.classList.add('quest-card--sleept');
+    // Sommige browsers starten geen drag zonder data; de tekst zelf gebruiken we niet.
+    try { e.dataTransfer.setData('text/plain', sleep.id); e.dataTransfer.effectAllowed = 'move'; } catch {}
+  });
+
+  bord.addEventListener('dragend', () => {
+    bord.querySelectorAll('.quest-card--sleept').forEach(k => k.classList.remove('quest-card--sleept'));
+    bord.querySelectorAll('.prikbord-col--doel').forEach(k => k.classList.remove('prikbord-col--doel'));
+    sleep = null;
+  });
+
+  bord.addEventListener('dragover', (e) => {
+    const kolom = e.target?.closest?.('.prikbord-col');
+    if (!sleep || !kolom) return;
+    const status = kolom.dataset.status;
+    if (GESLOTEN.has(status) || status === sleep.van) return;   // geen preventDefault = geen drop
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    bord.querySelectorAll('.prikbord-col--doel').forEach(k => { if (k !== kolom) k.classList.remove('prikbord-col--doel'); });
+    kolom.classList.add('prikbord-col--doel');
+  });
+
+  bord.addEventListener('dragleave', (e) => {
+    const kolom = e.target?.closest?.('.prikbord-col');
+    // `dragleave` vuurt ook bij het oversteken van een kindelement; alleen
+    // opruimen als de muis de kolom écht verlaat.
+    if (kolom && !kolom.contains(e.relatedTarget)) kolom.classList.remove('prikbord-col--doel');
+  });
+
+  bord.addEventListener('drop', async (e) => {
+    const kolom = e.target?.closest?.('.prikbord-col');
+    if (!sleep || !kolom) return;
+    e.preventDefault();
+    const status = kolom.dataset.status;
+    const id = sleep.id;
+    sleep = null;
+    if (!id || !status || GESLOTEN.has(status)) return;
+    try { await api.updateQuest(id, { status }); await renderLogboek(); }
+    catch (err) { alert('Verplaatsen mislukt: ' + err.message); }
+  });
+}
+
 async function _renderPrikbord(container) {
   const isDm = isDM();
 
@@ -327,6 +386,7 @@ async function _renderPrikbord(container) {
     return `
       <div class="quest-card quest-card--${q.status}${q.status === 'verborgen' ? ' quest-card--hidden' : ''}${!isDm && q.description ? ' quest-card--clickable' : ''}"
            style="transform:rotate(${rot}deg)"
+           data-qid="${q.id}"${isDm ? ' draggable="true"' : ''}
            onclick="${clickHandler}">
         ${isDm ? `
           <div class="quest-card-actions">
@@ -394,7 +454,7 @@ async function _renderPrikbord(container) {
     </div>
     <div class="prikbord" data-kolom="${esc(_prikbordKolom)}">
       ${cols.map(col => `
-        <div class="prikbord-col prikbord-col--${col.key}">
+        <div class="prikbord-col prikbord-col--${col.key}" data-status="${col.key}">
           <div class="prikbord-col-header"${col.tip ? ` title="${esc(col.tip)}"` : ''}>
             <span>${col.label}</span>
             <span class="prikbord-col-count">${visibleQuests.filter(q => q.status === col.key).length}</span>
@@ -418,6 +478,16 @@ async function _renderPrikbord(container) {
     volgende: () => window._prikbordStap(1),
     toetsen:  false,
   });
+
+  // Slepen tussen de kolommen (DM). Een missie verschuiven is een beweging op
+  // een bord; een →-knop is daar een omweg voor. Die knop blijft wel staan: op
+  // een telefoon staat er één kolom in beeld en valt er niets te slepen.
+  //
+  // Bewust HTML5-drag en geen eigen muisafhandeling: de browser regelt het
+  // sleepbeeld, het scrollen van een volle kolom en de cursor. Eén ding kan hij
+  // niet — een `touchstart` wordt hier nooit een drag, en dat is precies waarom
+  // de knop blijft.
+  if (isDm) _prikbordSlepen(bodyEl.querySelector('.prikbord'));
 
   window._factieBandToggle = (open) => { try { localStorage.setItem('factieBandOpen', open ? '1' : '0'); } catch { /* ok */ } };
   window._questNew    = (status) => _openQuestModal(null, status);

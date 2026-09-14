@@ -368,8 +368,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Een kaartje zonder portret toont een silhouet van zijn soort (poppetje / gebouw / speld), geen vraagteken of gebroken plaatje
 - [ ] Lexicon op een telefoon: één tik op een onderstreept woord opent de uitleg meteen (niet pas bij de tweede tik); tikken naast het woord sluit hem
 
-### Naslag (archieftab)
-- [ ] Archief → Naslag toont kaartjes voor class features, subclass features, species traits, feats, Epic Boons en backgrounds; de tellers boven kloppen met wat je ziet
+### Vaardigheden (archieftab)
+- [ ] Archief → Vaardigheden toont kaartjes voor class features, subclass features, species traits, feats, Epic Boons en backgrounds; de tellers boven kloppen met wat je ziet
 - [ ] Klik op een soort-chip → alleen die soort, en de bronnen- en levellijst eronder loopt mee (bij Feats is er geen level)
 - [ ] Zoek op "unarmored defense" → de Barbarian- én de Monk-versie staan er allebei, elk met hun eigen klasse eronder
 - [ ] Een background is één kaartje met zijn vijf onderdelen in het detailvenster, niet zestien keer "Ability Scores"
@@ -377,6 +377,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Geen afbreekstreepjes uit de bron-pdf in de tekst ("Armor Class", niet "Ar- mor Class") — geldt ook op de Progressie-tijdlijn
 - [ ] D&D-termen in een beschrijving krijgen lexicon-uitleg bij hover/tik
 - [ ] Hulpvenster met meerdere stappen: veeg naar links/rechts (telefoon) of ← / → (laptop) bladert één stap per keer; na sluiten doet een pijltje niets meer
+- [ ] Vaardigheden: klik op de trechter → de levelrij klapt open; kies een level en de trechter blijft gemarkeerd, ook als je hem weer dichtklapt
+- [ ] Vaardigheden: een Barbarian-feature draagt een ander icoon dan een Wizard-feature (klasse-icoon), een species-trait dat van zijn volk
+- [ ] Missiebord (DM): sleep een missiekaartje naar een andere kolom → het staat er meteen in, de kolom licht op terwijl je erboven hangt
+- [ ] Missiebord: slepen naar *Aangevraagd* kan niet (die kolom licht niet op); eruit slepen wél
+- [ ] Missiebord op een telefoon: de →-knop op het kaartje werkt nog gewoon (daar valt niets te slepen)
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

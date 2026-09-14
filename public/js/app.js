@@ -1,13 +1,13 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=285';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=304";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=92";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=93";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
 import { renderRelatiemap } from './render-relatiemap.js?v=25';
 import { renderProgressie } from './render-progressie.js?v=46';
 import { renderBestiarium } from './render-bestiarium.js?v=29';
 import { renderSpreuken } from './render-spreuken.js?v=40';
-import { renderNaslag } from './render-naslag.js?v=2';
+import { renderVaardigheden } from './render-vaardigheden.js?v=1';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=72";
 import { initDmPanel } from "./dm-panel.js?v=225";
@@ -712,7 +712,7 @@ const LOGBOEK_LABELS = {
 const AVONTUUR_LABEL = `${icon('compass')} Avontuur`;
 
 const ENTITY_SECTIONS  = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten'];
-const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'spreuken', 'naslag', 'relatiemap'];
+const ARCHIEF_SECTIONS = ['personages', 'locaties', 'organisaties', 'voorwerpen', 'documenten', 'bestiarium', 'spreuken', 'vaardigheden', 'relatiemap'];
 const ARCHIEF_LABELS = {
   personages:   `${icon('user')} Personages`,
   locaties:     `${icon('castle', {cls:'icon-gi'})} Locaties`,
@@ -721,7 +721,7 @@ const ARCHIEF_LABELS = {
   documenten:   `${icon('scroll-text')} Documenten`,
   bestiarium:   `${icon('skull')} Bestiarium`,
   spreuken:     `${icon('sparkles')} Spreuken`,
-  naslag:       `${icon('book-open')} Naslag`,
+  vaardigheden: `${icon('graduation-cap')} Vaardigheden`,
   kaart:        `${icon('map')} Kaarten`,
   relatiemap:   `${icon('users')} Relatiemap`,
 };
@@ -2855,7 +2855,7 @@ async function refreshSection(section) {
   else if (section === 'documenten') await renderDocumenten();
   else if (section === 'bestiarium') await renderBestiarium();
   else if (section === 'spreuken') await renderSpreuken();
-  else if (section === 'naslag') await renderNaslag();
+  else if (section === 'vaardigheden') await renderVaardigheden();
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await _renderKaartSection();
   else if (section === 'relatiemap') await renderRelatiemap();
@@ -12696,8 +12696,8 @@ const HELP_CONFIG = {
 
   // Een speler dacht dat de hele bibliotheek haar eigen spreuken waren. Vandaar
   // dat deze uitleg met dat misverstand begint in plaats van met de functies.
-  naslag: () => ({
-    titel: 'Naslag — wat een personage kan',
+  vaardigheden: () => ({
+    titel: 'Vaardigheden — wat een personage kan',
     stappen: [
       {
         titel: 'Alles bij elkaar, niet alleen wat jij hebt',

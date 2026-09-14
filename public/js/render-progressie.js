@@ -734,9 +734,9 @@ function _geenTekstBlok(naam) {
   </div>`;
 }
 
-// ── Bron voor de Naslag-tab ───────────────────────────────────────
-// De Naslag-tab (render-naslag.js) toont dezelfde features, traits en feats,
-// maar dan als doorzoekbare lijst in plaats van langs één personage-tijdlijn.
+// ── Bron voor de Vaardigheden-tab ─────────────────────────────────
+// De Vaardigheden-tab (render-vaardigheden.js) toont dezelfde features, traits
+// en feats, maar dan als doorzoekbare lijst in plaats van langs één tijdlijn.
 // Hij haalt ze hier op en niet zelf bij de API, zodat er maar één plek is die
 // weet waar een beschrijving vandaan komt: eerst wat de DM zelf schreef, dan
 // de SRD, en anders niets (`geenTekst`, waarop de app naar buiten verwijst).

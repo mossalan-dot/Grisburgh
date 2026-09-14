@@ -1,5 +1,5 @@
 /**
- * render-naslag.js — Archief-tab "Naslag": alles wat een personage kán.
+ * render-vaardigheden.js — Archief-tab "Vaardigheden": alles wat een personage kán.
  *
  * Class features, subclass features, species traits, feats, epic boons en
  * backgrounds, doorzoekbaar als bibliotheek. De progressie-tab toont dezelfde
@@ -29,6 +29,32 @@ const SOORTEN = {
   boon:       { label: 'Epic Boon', icon: 'sparkles',       c1: '#301800', c2: '#7a4a08' },
   background: { label: 'Background',icon: 'scroll-text',    c1: '#4a082e', c2: '#962058' },
 };
+// Een icoon per class en per species. De soort bepaalt de kleur van het
+// kaartje (dat is waar het filter op staat), het icoon zegt wáárvan het is —
+// een Barbarian-feature hoort er anders uit te zien dan een Wizard-feature.
+// Alles komt uit de bestaande sprite; er is niets bij getekend.
+const KLASSE_ICOON = {
+  Barbarian: 'crossed-swords', Bard: 'music',    Cleric: 'church',
+  Druid: 'tree-pine',      Fighter: 'swords',    Monk: 'hand',
+  Paladin: 'shield-plus',  Ranger: 'target',     Rogue: 'stiletto',
+  Sorcerer: 'flame',       Warlock: 'eye',       Wizard: 'book-open',
+  Artificer: 'hammer',
+};
+const SPECIES_ICOON = {
+  Human: 'user',        Elf: 'sparkle',       Dwarf: 'pickaxe',
+  Halfling: 'house',    Dragonborn: 'flame',  Gnome: 'flask-conical',
+  Orc: 'shield-half',   Tiefling: 'ghost',    Goliath: 'mountain',
+  Aasimar: 'sparkles',  Aarakocra: 'wind',    Tabaxi: 'paw-print',
+  'Half-Elf': 'users',
+};
+// Het icoon van één regel: klasse of species als we die kennen, anders het
+// icoon van de soort.
+function _itemIcoon(it) {
+  if (it.soort === 'class' || it.soort === 'subclass') return KLASSE_ICOON[it.bron] || SOORTEN[it.soort].icon;
+  if (it.soort === 'species') return SPECIES_ICOON[it.bron] || SOORTEN.species.icon;
+  return SOORTEN[it.soort]?.icon || 'hexagon';
+}
+
 const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'feat', 'boon', 'background'];
 
 let _all        = null;   // null = nog niet geladen
@@ -36,6 +62,7 @@ let _bron       = null;   // wat naslagBron() teruggaf (srdDesc, md, …)
 let _container  = null;
 let _filters    = { q: '', soort: null, bron: null, level: null };
 let _bronnen    = [];     // klassen, soorten en backgrounds die er zijn
+let _levelsOpen = false;  // staat de levelrij uitgeklapt?
 
 // ── Laden ─────────────────────────────────────────────────────────
 // Eén platte lijst: elk item weet zijn soort, waar het bij hoort en op welk
@@ -163,30 +190,30 @@ function _card(it) {
   // voor te openen — zelfde regel als bij de spreuken.
   const link = tekst ? '' : (window.app?.bronLink?.(it.naam, 'features') || '');
   return `
-    <div class="entity-card naslag-card" onclick="window.naslag.open('${esc(it.key)}')" title="${esc(it.naam)}"
+    <div class="entity-card vaardig-card" onclick="window.vaardigheden.open('${esc(it.key)}')" title="${esc(it.naam)}"
       style="--soort-c1:${s.c1};--soort-c2:${s.c2}">
-      <div class="card-accent naslag-accent"></div>
-      ${it.level ? `<span class="naslag-card-niv">${it.level}</span>` : ''}
-      <div class="card-img-wrap naslag-card-img-wrap">
-        <div class="naslag-card-silhouet">${icon(s.icon)}</div>
+      <div class="card-accent vaardig-accent"></div>
+      ${it.level ? `<span class="vaardig-card-niv">${it.level}</span>` : ''}
+      <div class="card-img-wrap vaardig-card-img-wrap">
+        <div class="vaardig-card-silhouet">${icon(_itemIcoon(it))}</div>
       </div>
-      <div class="entity-card-body naslag-card-body">
-        <div class="naslag-card-name">${esc(it.naam)}</div>
+      <div class="entity-card-body vaardig-card-body">
+        <div class="vaardig-card-name">${esc(it.naam)}</div>
         ${(() => {
           // De soort staat al als chip op het kaartje; deze regel zegt waar het
           // bij hoort. Is er niets te zeggen (een feat hoort nergens bij), dan
           // ook geen lege regel.
           const meta = [esc(bronRegel), it.level ? `level ${it.level}` : ''].filter(Boolean).join(' · ');
-          return meta ? `<div class="naslag-card-meta">${meta}</div>` : '';
+          return meta ? `<div class="vaardig-card-meta">${meta}</div>` : '';
         })()}
-        <div class="naslag-card-tags">
-          <span class="spreuk-tag naslag-tag--soort">${icon(s.icon)} ${esc(s.label)}</span>
+        <div class="vaardig-card-tags">
+          <span class="spreuk-tag vaardig-tag--soort">${icon(s.icon)} ${esc(s.label)}</span>
           ${link ? `<a class="spreuk-tag spreuk-tag--naslag" href="${esc(link)}" target="_blank" rel="noopener"
             onclick="event.stopPropagation()" title="De beschrijving staat hier niet — zoek hem elders op">${icon('book-open')} Naslag</a>` : ''}
         </div>
         ${tekst
-          ? `<div class="naslag-card-desc">${esc(tekst.replace(/[*_#]/g, '').slice(0, 130))}…</div>`
-          : `<div class="naslag-card-desc naslag-card-desc--leeg">De beschrijving staat hier niet — hij valt buiten de vrij te gebruiken SRD.</div>`}
+          ? `<div class="vaardig-card-desc">${esc(tekst.replace(/[*_#]/g, '').slice(0, 130))}…</div>`
+          : `<div class="vaardig-card-desc vaardig-card-desc--leeg">De beschrijving staat hier niet — hij valt buiten de vrij te gebruiken SRD.</div>`}
       </div>
     </div>`;
 }
@@ -197,49 +224,63 @@ function _card(it) {
 function _filterBar() {
   const soorten = SOORT_VOLGORDE.filter(k => (_all || []).some(x => x.soort === k));
   const soortRij = [`<button class="spreuk-school-btn${_filters.soort ? '' : ' active'}"
-      onclick="window.naslag.setSoort(null)">Alles</button>`]
+      onclick="window.vaardigheden.setSoort(null)">Alles</button>`]
     .concat(soorten.map(k => {
       const s = SOORTEN[k];
       const n = (_all || []).filter(x => x.soort === k).length;
       return `<button class="spreuk-school-btn${_filters.soort === k ? ' active' : ''}"
-        style="--school-c2:${s.c2}" onclick="window.naslag.setSoort('${k}')">${icon(s.icon)} ${esc(s.label)} <span class="naslag-telling">${n}</span></button>`;
+        style="--school-c2:${s.c2}" onclick="window.vaardigheden.setSoort('${k}')">${icon(s.icon)} ${esc(s.label)} <span class="vaardig-telling">${n}</span></button>`;
     })).join('');
 
   // De bronnenlijst volgt de gekozen soort: bij Feats heeft een klassenkeuze
   // geen betekenis, en andersom.
   const zichtbaar = (_all || []).filter(x => !_filters.soort || x.soort === _filters.soort);
-  const bronnen = [...new Set(zichtbaar.map(x => x.bron))].sort();
+  const bronnen = [...new Set(zichtbaar.map(x => x.bron).filter(b => !_EIGEN_BRON.has(b)))].sort();
   const bronOpts = ['<option value="">Alle bronnen</option>']
     .concat(bronnen.map(b => `<option value="${esc(b)}"${_filters.bron === b ? ' selected' : ''}>${esc(b)}</option>`));
+  const bronSelect = bronnen.length
+    ? `<select class="spreuk-class-select" onchange="window.vaardigheden.setBron(this.value)">${bronOpts.join('')}</select>`
+    : '';
 
+  // Zelfde regel als bij de spreuken: wat je het vaakst gebruikt staat altijd in
+  // beeld (soort en bron), de brede rij zit achter de trechter. Hier zijn dat de
+  // twintig levels — je zoekt meestal op naam of op soort, niet op "wat krijg ik
+  // op 14?". De rij klapt vanzelf open zodra er een level gekozen is, zodat een
+  // actief filter nooit onzichtbaar is.
   const levels = ['<button class="spreuk-lvl-btn' + (_filters.level === null ? ' active' : '') +
-    '" onclick="window.naslag.setLevel(null)">Alle</button>'];
+    '" onclick="window.vaardigheden.setLevel(null)">Alle levels</button>'];
   for (let i = 1; i <= 20; i++) {
     if (!zichtbaar.some(x => x.level === i)) continue;
-    levels.push(`<button class="spreuk-lvl-btn${_filters.level === i ? ' active' : ''}" onclick="window.naslag.setLevel(${i})">${i}</button>`);
+    levels.push(`<button class="spreuk-lvl-btn${_filters.level === i ? ' active' : ''}" onclick="window.vaardigheden.setLevel(${i})">${i}</button>`);
   }
+  const heeftLevels = levels.length > 1;
+  const dicht = !_levelsOpen && _filters.level === null;
+  const trechter = heeftLevels ? `
+    <button class="sf-toggle-btn${_filters.level !== null ? ' sf-toggle-btn--active' : ''}"
+      onclick="window.vaardigheden.toggleLevels()" title="Filter op het level waarop iets komt"><svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor"><polygon points="0,0 13,0 8,5.5 8,11 5,11 5,5.5"/></svg></button>` : '';
 
   return `
-    <div class="spreuk-filters naslag-filters">
+    <div class="spreuk-filters vaardig-filters">
       <div class="spreuk-scholen">${soortRij}</div>
-      <select class="spreuk-class-select" onchange="window.naslag.setBron(this.value)">${bronOpts.join('')}</select>
-      <div class="spreuk-levels">${levels.join('')}</div>
+      ${bronSelect}
+      ${trechter}
+      ${heeftLevels ? `<div class="spreuk-levels vaardig-levels${dicht ? ' vaardig-levels--dicht' : ''}">${levels.join('')}</div>` : ''}
     </div>`;
 }
 
 function _paint() {
-  const grid = document.getElementById('naslag-grid');
+  const grid = document.getElementById('vaardig-grid');
   if (!grid) return;
   const lijst = _filtered();
   grid.innerHTML = lijst.length
     ? lijst.map(_card).join('')
     : `<p class="spreuk-empty">Niets gevonden.</p>`;
-  const tel = document.getElementById('naslag-telling');
+  const tel = document.getElementById('vaardig-telling');
   if (tel) tel.textContent = `${lijst.length} van ${(_all || []).length}`;
 }
 
 function _refreshFilterBar() {
-  const fb = _container?.querySelector('.naslag-filters');
+  const fb = _container?.querySelector('.vaardig-filters');
   if (fb) fb.outerHTML = _filterBar();
 }
 
@@ -258,7 +299,7 @@ function _open(key) {
     <div class="prog-detail">
       <div class="prog-detail-body">
         <div class="prog-detail-chips">
-          <span class="prog-detail-chip">${icon(s.icon)} ${esc(s.label)}</span>
+          <span class="prog-detail-chip">${icon(_itemIcoon(it))} ${esc(s.label)}</span>
           ${_bronRegel(it) ? `<span class="prog-detail-chip">${esc(_bronRegel(it))}</span>` : ''}
           ${it.level ? `<span class="prog-detail-chip">Level ${it.level}</span>` : ''}
         </div>
@@ -271,43 +312,44 @@ function _open(key) {
 }
 
 // ── Publieke API ──────────────────────────────────────────────────
-window.naslag = {
+window.vaardigheden = {
   open: _open,
   search(q) { _filters.q = q || ''; _paint(); },
   setSoort(k) { _filters.soort = k || null; _filters.bron = null; _filters.level = null; _refreshFilterBar(); _paint(); },
   setBron(b)  { _filters.bron = b || null; _paint(); },
   setLevel(l) { _filters.level = (l === null ? null : Number(l)); _refreshFilterBar(); _paint(); },
+  toggleLevels() { _levelsOpen = !_levelsOpen; _refreshFilterBar(); },
 };
 
-export async function renderNaslag(container) {
-  _container = container || document.getElementById('section-naslag');
+export async function renderVaardigheden(container) {
+  _container = container || document.getElementById('section-vaardigheden');
   if (!_container) return;
   _container.innerHTML = `<div class="spreuk-wrap"><p class="spreuk-loading">Naslag laden…</p></div>`;
   await _load();
-  if (window.app?.state?.activeSection !== 'naslag') return;   // tijdens het laden gewisseld
+  if (window.app?.state?.activeSection !== 'vaardigheden') return;   // tijdens het laden gewisseld
 
   _container.innerHTML = `
-    <div class="section-banner section-banner--entity section-banner--naslag">
+    <div class="section-banner section-banner--entity section-banner--vaardigheden">
       <div class="section-banner-head">
-        <div class="section-banner-icon-wrap">${icon('book-open')}</div>
+        <div class="section-banner-icon-wrap">${icon('graduation-cap')}</div>
         <div class="section-banner-info">
-          <div class="section-banner-label">Naslag</div>
+          <div class="section-banner-label">Vaardigheden</div>
           <div class="section-banner-desc-line">Alles wat een personage kan leren.</div>
         </div>
         <div class="section-banner-search">
           <div class="sbs-input-wrap">
             <span class="sbs-icon">⌕</span>
             <input type="text" class="sbs-input search-input" placeholder="Zoek feature, feat…"
-              value="${esc(_filters.q)}" oninput="window.naslag.search(this.value)">
+              value="${esc(_filters.q)}" oninput="window.vaardigheden.search(this.value)">
           </div>
-          ${window._helpBtn?.('naslag') ?? ''}
+          ${window._helpBtn?.('vaardigheden') ?? ''}
         </div>
       </div>
       <div class="section-banner-rule"><span class="section-banner-ornament">◆</span></div>
     </div>
     <div class="spreuk-wrap">
       ${_filterBar()}
-      <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4" id="naslag-grid"></div>
+      <div class="cards-grid grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4" id="vaardig-grid"></div>
     </div>`;
   _paint();
 }

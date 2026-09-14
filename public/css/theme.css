@@ -24981,32 +24981,59 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
    van de post-its op het bord zelf, niet van een invulveld in de zijbalk. */
 .pb-panel-notes { font-family: 'Crimson Text', Georgia, serif; font-size: 14px; }
 
-/* ── Naslag-tab ───────────────────────────────────────────────────────────
-   Leunt op de spreukenkaartjes (.entity-card + .spreuk-*), met een eigen
-   kleur per soort in plaats van per school. */
-.section-banner--naslag .section-banner-icon-wrap { color: #7a5a10; }
-.naslag-card-img-wrap {
-  background: linear-gradient(140deg, var(--soort-c1, #3a2a55), var(--soort-c2, #5a3a8c));
-  display: flex; align-items: center; justify-content: center; min-height: 86px;
+/* ── Vaardigheden-tab ─────────────────────────────────────────────────────
+   Volgt het spreukkaartje op de voet (.spreuk-card hierboven): dezelfde
+   beeldhoogte, dezelfde zachte tint in plaats van een vol vlak, dezelfde
+   binnenmarges en dezelfde typografie. Alleen de kleur komt van de soort
+   in plaats van van de school. */
+.section-banner--vaardigheden .section-banner-icon-wrap { color: #7a5a10; }
+.vaardig-card { cursor: pointer; position: relative; }
+.vaardig-accent { background: var(--soort-c2, #5a3a8c); }
+.vaardig-card-img-wrap {
+  height: 96px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--soort-c2, #5a3a8c) 16%, #faf8fc),
+    color-mix(in srgb, var(--soort-c1, #3a2a55) 6%, #faf8fc));
 }
-.naslag-card-silhouet { opacity: 0.4; color: #f2e8d2; }
-.naslag-card-silhouet .icon { width: 38px; height: 38px; }
-.naslag-card-niv {
-  position: absolute; top: 6px; right: 8px; z-index: 2;
-  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: #f2e8d2;
-  background: rgba(20,12,4,0.6); border: 1px solid rgba(196,168,122,0.5);
-  border-radius: 50%; width: 22px; height: 22px; line-height: 20px; text-align: center;
+.vaardig-card-silhouet { color: color-mix(in srgb, var(--soort-c2, #5a3a8c) 55%, transparent); }
+.vaardig-card-silhouet .icon { width: 50px; height: 50px; }
+.vaardig-card-niv {
+  position: absolute; top: 12px; right: 8px; z-index: 5;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: #fff;
+  background: var(--soort-c2, #5a3a8c); box-shadow: 0 1px 4px rgba(0,0,0,0.35);
 }
-.naslag-card-body { display: flex; flex-direction: column; gap: 4px; }
-.naslag-card-name { font-family: 'Cinzel', serif; font-size: 14px; color: #2a1a08; line-height: 1.25; }
-.naslag-card-meta { font-size: 12px; color: #7a6040; font-style: italic; }
-.naslag-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
-.naslag-card-desc {
-  font-size: 12.5px; color: #5a4430; line-height: 1.4;
+.vaardig-card-body { padding: 10px 12px 12px; }
+.vaardig-card-name {
+  font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; color: #2a1a08;
+  line-height: 1.2; margin-bottom: 3px;
+}
+.vaardig-card-meta {
+  font-family: 'Crimson Text', serif; font-size: 13px; font-weight: 600;
+  color: var(--soort-c2, #6a4aa0);
+}
+.vaardig-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.vaardig-card-desc {
+  font-family: 'Crimson Text', serif; font-size: 12.5px; color: #4a3826;
+  line-height: 1.4; margin-top: 7px;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
-.naslag-tag--soort { background: rgba(196,168,122,0.18); }
-.naslag-telling { opacity: 0.6; font-size: 11px; margin-left: 2px; }
-.naslag-filters .spreuk-scholen { display: flex; flex-wrap: wrap; gap: 5px; }
-.naslag-accent { background: var(--soort-c2, #5a3a8c); }
-.naslag-card-desc--leeg { font-style: italic; color: #8a7458; }
+.vaardig-card-desc--leeg { font-style: italic; color: #8a7458; }
+.vaardig-tag--soort { background: rgba(196,168,122,0.18); }
+.vaardig-telling { opacity: 0.6; font-size: 11px; margin-left: 2px; }
+.vaardig-filters .spreuk-scholen { display: flex; flex-wrap: wrap; gap: 5px; }
+.vaardig-levels--dicht { display: none; }
+
+/* ── Missies slepen tussen de kolommen ────────────────────────────────────
+   Het kaartje dat je vasthebt wordt bleek (de browser tekent zelf een kopie
+   die je meesleept), de kolom waar je het boven houdt licht op. */
+.quest-card[draggable="true"] { cursor: grab; }
+.quest-card--sleept { opacity: 0.35; cursor: grabbing; }
+.prikbord-col--doel {
+  background: rgba(196,168,122,0.22);
+  box-shadow: inset 0 0 0 2px rgba(122,90,16,0.55);
+  border-radius: 6px;
+}
+.prikbord-col--doel .prikbord-col-header { color: #5a3c10; }
