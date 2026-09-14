@@ -1331,7 +1331,7 @@ function _openNewDungeonDialog() {
         <label class="dm-form-label">Plattegronden</label>
         <div id="dng-new-lagen"></div>
         <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" id="dng-new-laag-erbij" style="align-self:flex-start">
-          ${icon('plus')} Verdieping erbij
+          ${icon('plus')} Verdieping toevoegen
         </button>
       </div>
       <div class="dm-feature-row" style="margin-top:6px">
