@@ -827,8 +827,10 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > zonder die haak is het een kaartje uit het archief, mét is het bijvoorbeeld het
 > **bestiarium**), het **spreukdetail**, het **bladeren door een brief**, de
 > **subtabbladen van de speler**, de **beeldcarrousel** in het logboek, de
-> **lightbox** (behalve ingezoomd: dan is slepen pannen) en het **missiebord** op
-> een smal scherm.
+> **lightbox** (behalve ingezoomd: dan is slepen pannen), het **missiebord** op
+> een smal scherm en het **hulpvenster** met meerdere stappen (dat zichzelf per
+> stap opnieuw tekent, dus de binding gaat er telkens af — anders stapelen de
+> keydown-luisteraars zich op en springt één pijltje drie stappen).
 >
 > **Het missiebord op een telefoon** toont één kolom tegelijk met de statusnamen
 > als strip erboven (`.prikbord[data-kolom]`, media-query op 760 px); op een breed

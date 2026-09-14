@@ -359,7 +359,7 @@ export async function renderSpreuken(container) {
         <div class="section-banner-icon-wrap">${icon('sparkles')}</div>
         <div class="section-banner-info">
           <div class="section-banner-label">Spreuken</div>
-          <div class="section-banner-desc-line">Alle spreuken van deze wereld — meegeleverd en zelf verzonnen. Wat jij kent staat in je eigen boek.</div>
+          <div class="section-banner-desc-line">Alle spreuken van deze wereld.</div>
         </div>
         <!-- Zoekvak, boekje en + horen in dezelfde flexrij als op de andere
              tabbladen; het boekje hing hier in een eigen div met een losse

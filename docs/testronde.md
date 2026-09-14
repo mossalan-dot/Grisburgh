@@ -376,6 +376,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Een feature zonder SRD-tekst (bijv. Sentinel) toont op het kaartje een chip *Naslag* en in het venster de verwijzing "Lees hem elders" — geen leeg vak
 - [ ] Geen afbreekstreepjes uit de bron-pdf in de tekst ("Armor Class", niet "Ar- mor Class") — geldt ook op de Progressie-tijdlijn
 - [ ] D&D-termen in een beschrijving krijgen lexicon-uitleg bij hover/tik
+- [ ] Hulpvenster met meerdere stappen: veeg naar links/rechts (telefoon) of ← / → (laptop) bladert één stap per keer; na sluiten doet een pijltje niets meer
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

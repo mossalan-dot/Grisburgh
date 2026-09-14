@@ -292,7 +292,7 @@ export async function renderNaslag(container) {
         <div class="section-banner-icon-wrap">${icon('book-open')}</div>
         <div class="section-banner-info">
           <div class="section-banner-label">Naslag</div>
-          <div class="section-banner-desc-line">Alles wat een personage kan worden of leren — class features, species traits, feats en backgrounds. Wat jíj hebt staat bij Progressie.</div>
+          <div class="section-banner-desc-line">Alles wat een personage kan leren.</div>
         </div>
         <div class="section-banner-search">
           <div class="sbs-input-wrap">

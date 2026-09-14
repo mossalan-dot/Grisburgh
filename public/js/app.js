@@ -6,8 +6,8 @@ import { renderDungeon } from './render-dungeon.js?v=54';
 import { renderRelatiemap } from './render-relatiemap.js?v=25';
 import { renderProgressie } from './render-progressie.js?v=46';
 import { renderBestiarium } from './render-bestiarium.js?v=29';
-import { renderSpreuken } from './render-spreuken.js?v=39';
-import { renderNaslag } from './render-naslag.js?v=1';
+import { renderSpreuken } from './render-spreuken.js?v=40';
+import { renderNaslag } from './render-naslag.js?v=2';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=72";
 import { initDmPanel } from "./dm-panel.js?v=225";
@@ -13065,7 +13065,19 @@ window._openHelp = (key) => {
   _renderHelpModal(config, 0);
 };
 
+// Bladeren door de stappen gaat ook met vegen en ← / →. De uitleg is
+// stap-voor-stap, dus dat is precies dezelfde beweging als bij een kaartje of
+// een brief. Het venster wordt per stap opnieuw getekend, dus de binding moet
+// er telkens af — anders stapelen de keydown-luisteraars op `document` zich op
+// en springt één pijltje straks drie stappen verder.
+let _helpVeegLos = null;
+window._sluitHelp = () => {
+  _helpVeegLos?.(); _helpVeegLos = null;
+  document.getElementById('help-modal')?.remove();
+};
+
 function _renderHelpModal(config, idx) {
+  _helpVeegLos?.(); _helpVeegLos = null;
   document.getElementById('help-modal')?.remove();
   const stap    = config.stappen[idx];
   const totaal  = config.stappen.length;
@@ -13084,7 +13096,7 @@ function _renderHelpModal(config, idx) {
           ${window.app?.isDM?.() && window._helpModalKey
             ? `<button class="help-modal-edit" onclick="event.stopPropagation();window._openHelpEditor('${esc(window._helpModalKey)}')" title="Deze uitleg aanpassen">${icon('pencil')} Bewerken</button>`
             : ''}
-          <button class="help-modal-close" onclick="document.getElementById('help-modal').remove()">${icon('x')}</button>
+          <button class="help-modal-close" onclick="window._sluitHelp()">${icon('x')}</button>
         </div>
       </div>
       ${stap.afbeelding ? `<img src="${esc(stap.afbeelding)}" class="help-modal-afbeelding" alt="">` : ''}
@@ -13101,9 +13113,15 @@ function _renderHelpModal(config, idx) {
         <button class="help-modal-next" onclick="window._helpStap(${idx + 1})" ${isLast ? 'disabled' : ''}>Volgende ${icon('chevron-right')}</button>
       </div>` : ''}
     </div>`;
-  modal.addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', () => window._sluitHelp());
   document.body.appendChild(modal);
   window._helpModalConfig = config;
+  if (totaal > 1) {
+    _helpVeegLos = window._veegNavigatie?.(modal, {
+      vorige:   () => { if (idx > 0)          window._helpStap(idx - 1); },
+      volgende: () => { if (idx < totaal - 1) window._helpStap(idx + 1); },
+    }) || null;
+  }
 }
 
 window._helpStap = (idx) => {
