@@ -24822,3 +24822,17 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
 /* Twee knoppen naast elkaar in een smalle zijbalk: laat ze krimpen, anders
    loopt "Verwijderen" het paneel uit. */
 .dng-sb-actions--rij .dng-btn { min-width: 0; padding-left: 8px; padding-right: 8px; white-space: nowrap; }
+
+/* Werkbalk en zijbalk zijn samen één vlak dat over de kaart heen ligt: dezelfde
+   rand en dezelfde slagschaduw, ook aan de zijkant. De eerdere schaduw viel weg
+   tegen de donkere kaartbak. */
+.dng-sidebar {
+  border-left: 1px solid rgba(90,64,24,0.55);
+  box-shadow: -8px 0 18px rgba(0,0,0,0.45), inset 1px 0 0 rgba(255,255,255,0.3);
+  z-index: 3;
+}
+/* Verwijderen als icoonknop: "Verwijderen" voluit paste niet naast Bewerken in
+   een zijbalk van 260 px. */
+.dng-btn-icoon { flex: 0 0 auto; width: 34px; padding: 0; justify-content: center; }
+/* Specifieker dan de rij-regel hierboven (twee klassen), anders blijft flex:1 staan. */
+.dng-sb-actions--rij .dng-btn-icoon { flex: 0 0 34px; width: 34px; padding: 0; }

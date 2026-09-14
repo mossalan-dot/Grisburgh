@@ -2,7 +2,7 @@ import { api, campagneUitUrl, zetCampagne } from './api.js?v=285';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=299";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=87";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
-import { renderDungeon } from './render-dungeon.js?v=53';
+import { renderDungeon } from './render-dungeon.js?v=54';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
@@ -2996,7 +2996,7 @@ function _kaartCard(type, m, dm, verdiepingen = null) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=53');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=54');
   nieuweDungeon();
 };
 
@@ -12309,7 +12309,12 @@ const HELP_CONFIG = {
   voorwerpen: () => ({ titel: 'Voorwerpen', stappen: [{ titel: 'Voorwerpen', tekst: 'Wapens, uitrusting en magische items. Je kunt voorwerpen claimen, ruilen en in winkels kopen/verkopen. **Zegeningen & Gunsten** (tempel- en factie-beloningen) staan onder een eigen filter, los van de gewone spullen.', afbeelding: null }] }),
   documenten: () => ({ titel: 'Documenten', stappen: [{ titel: 'Documenten', tekst: 'Het **archief**: brieven, aktes, kaarten en aantekeningen die je onderweg verzamelt. De DM onthult documenten wanneer ze relevant worden.', afbeelding: null }] }),
   kaart:      () => ({ titel: 'De kaart', stappen: [{ titel: 'Wereld- en stadskaart', tekst: 'Wissel tussen de **wereldkaart** en de **stadskaart**. Pins markeren ontdekte locaties — klik een pin om het bijbehorende kaartje te openen. Zoom met de knoppen of scroll.', afbeelding: null }] }),
-  dungeon:    () => ({ titel: 'Dungeon-kaarten', stappen: [{ titel: 'Dungeon verkennen', tekst: 'Verken kerkers en gebouwen kamer voor kamer. De DM onthult ruimtes naarmate je vordert; verbindingen tonen hoe alles samenhangt.', afbeelding: null }] }),
+  dungeon:    () => ({ titel: 'Dungeon-kaarten', stappen: [
+    { titel: 'Verkennen', tekst: 'Kerkers en gebouwen gaan kamer voor kamer open: de DM onthult een ruimte als je er binnenstapt. Wat nog bedekt is, blijft in de mist.', afbeelding: null },
+    { titel: 'Kamers tekenen', tekst: 'Kies een vorm — **rechthoek**, **rond** of **polygoon** — en sleep hem over de plattegrond; bij een polygoon klik je de hoeken en sluit je af met een dubbelklik. Met het **pijltje** selecteer je: slepen verplaatst de kamer, de bolletjes op de punten stellen hem bij. Naast een kamer klikken sluit dat weer.', afbeelding: null },
+    { titel: 'Doorgangen', tekst: 'Een **doorgang** verbindt deze kamer met een kamer op een andere plattegrond; op de kaart verschijnt een pijl waarmee je erheen springt. Hij wordt altijd tweezijdig gelegd. Het kan een trap zijn, maar net zo goed een lift, een luik of een teleportcirkel.', afbeelding: null },
+    { titel: 'Symbolen, vondsten en tegenstand', tekst: 'De **symbolen** (schedel, munt, slot, vinkje) zijn markeringen op de kaart; per symbool bepaal je of de spelers hem zien. Koppel je een **vondst** of een **gevecht** aan de kamer, dan verschijnt het bijbehorende symbool vanzelf — gestippeld, en alleen voor jou. Klikken op de munt opent meteen de verdeling.', afbeelding: null },
+  ] }),
 
   // ── Uitleg per tabblad van een kaartje ──
   // Twee smaken: `hulp_kijk_*` voor het detailvenster (lezen — dat is vooral

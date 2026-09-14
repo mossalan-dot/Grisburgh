@@ -952,7 +952,7 @@ window._dngPlayerClickRoom = (roomId) => {
 // doen. Leeg laten voelt als iets wat stuk is.
 function _leegZijbalk() {
   const sb = document.getElementById('dng-sidebar-detail');
-  if (sb) sb.innerHTML = '<p class="dng-sb-hint dng-sb-leeg">Klik een kamer aan om hem te bekijken of te verslepen.</p>';
+  if (sb) sb.innerHTML = '';
 }
 
 function _renderSidebar(room) {
@@ -1022,7 +1022,7 @@ function _renderSidebar(room) {
             title="Dit gevecht starten">${icon('play')}</button>
           <button class="dng-btn dng-btn-sm dng-btn-danger dng-enc-los" data-encid="${esc(e.id)}"
             title="Loskoppelen van deze kamer">${icon('x')}</button>
-        </div>`).join('') || '<p class="dng-sb-hint">Hier wacht niemand.</p>'}
+        </div>`).join('') }
       <div class="dng-loot-acties">
         <input class="dng-loot-nieuw-naam" id="dng-enc-nieuw-naam" placeholder="Wie wacht hier?">
         <button class="dng-btn dng-btn-sm" id="dng-enc-nieuw" title="Gevecht toevoegen">${icon('plus')}</button>
@@ -1047,7 +1047,7 @@ function _renderSidebar(room) {
             title="Maak hier een verdeling van">${icon('coins')}</button>
           <button class="dng-btn dng-btn-sm dng-btn-danger dng-loot-los" data-lootid="${esc(ev.id)}"
             title="Loskoppelen van deze kamer">${icon('x')}</button>
-        </div>`).join('') || '<p class="dng-sb-hint">Nog niets te vinden hier.</p>'}
+        </div>`).join('') }
       <div class="dng-loot-acties">
         <input class="dng-loot-nieuw-naam" id="dng-loot-nieuw-naam" placeholder="Wat is hier te vinden?">
         <button class="dng-btn dng-btn-sm" id="dng-loot-nieuw" title="Vondst toevoegen">${icon('plus')}</button>
@@ -1073,12 +1073,11 @@ function _renderSidebar(room) {
           ? `<button class="dng-sb-oog" id="dng-reveal-btn" title="Onthullen voor ${esc(groupId)}">${icon('eye')}</button>`
           : `<button class="dng-sb-oog dng-sb-oog--aan" id="dng-hide-btn" title="Verbergen voor ${esc(groupId)}">${icon('moon')}</button>`}
       </div>
-      ${room.dmNotes
-        ? `<div class="dng-sb-notes">${esc(room.dmNotes).replace(/\n/g,'<br>')}</div>`
-        : '<p class="dng-sb-hint">Geen aantekeningen. Zet ze erbij met Bewerken.</p>'}
+      ${room.dmNotes ? `<div class="dng-sb-notes">${esc(room.dmNotes).replace(/\n/g,'<br>')}</div>` : ''}
       <div class="dng-sb-actions dng-sb-actions--rij">
         <button class="dng-btn dng-btn-sm" id="dng-edit-room-btn">${icon('pencil')} Bewerken</button>
-        <button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-delete-room-btn">${icon('trash')} Verwijderen</button>
+        <button class="dng-btn dng-btn-sm dng-btn-danger dng-btn-icoon" id="dng-delete-room-btn"
+          title="Kamer verwijderen">${icon('trash')}</button>
       </div>
       <div class="dng-sb-section">
         <div class="dng-sb-section-hdr">Symbolen</div>
@@ -1094,7 +1093,6 @@ function _renderSidebar(room) {
             <span>${icon('link')} naar ${esc(_maps.find(m => m.id === room.trapNaar.mapId)?.name || 'andere kaart')}</span>
             <button class="dng-btn dng-btn-sm dng-btn-danger" id="dng-trap-weg" title="Doorgang weghalen">${icon('x')}</button>
           </div>
-          <p class="dng-sb-hint">Klik op de pijl in de kaart om erheen te gaan. Een doorgang kan een trap zijn, maar net zo goed een lift, een luik of een teleportcirkel.</p>
         ` : `
           <select class="dng-loot-koppel" id="dng-trap-kaart">
             <option value="">— maak hier een doorgang naar… —</option>
