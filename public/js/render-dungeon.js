@@ -1284,55 +1284,79 @@ export function nieuweDungeon() { _openNewDungeonDialog(); }
 
 function _openNewDungeonDialog() {
   const meta = window.app?.state?.meta || {};
-  const hfst = Object.entries(meta.hoofdstukken || {}).map(([k,v]) =>
+  const hfst = Object.entries(meta.hoofdstukken || {}).map(([k, v]) =>
     `<option value="${esc(k)}">${esc(v?.title || k)}</option>`).join('');
 
+  // Zelfde bouwstenen als elk ander formulier in de app (dm-form-row /
+  // dm-input / dm-btn) in plaats van de eigen dng-veldjes: die kwamen uit de
+  // tijd dat dit venster op een donkere ondergrond stond, en op perkament
+  // botsten de vette kapitalen met de rest. De afbeelding gaat via de
+  // mediabibliotheek, net als bij een hoofdkaart — dan kun je er ook een
+  // hergebruiken in plaats van alleen uploaden.
   const overlay = _makeOverlay();
   overlay.innerHTML = `
     <div class="dng-dialog">
-      <h3 class="dng-dialog-title">Nieuwe dungeon map</h3>
-      <label class="dng-label">Naam
-        <input id="dng-new-name" class="dng-input" placeholder="Bijv. De Crypte van Morthul">
-      </label>
-      <label class="dng-label">Akte
-        <select id="dng-new-hfst" class="dng-input">
+      <h3 class="dng-dialog-title">Nieuwe dungeonkaart</h3>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="dng-new-name">Naam</label>
+        <input id="dng-new-name" class="dm-input" placeholder="Bijv. De Crypte van Morthul">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="dng-new-desc">Beschrijving</label>
+        <textarea id="dng-new-desc" class="dm-input" rows="2" placeholder="Korte omschrijving voor op het kaartje…"></textarea>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="dng-new-hfst">Akte</label>
+        <select id="dng-new-hfst" class="dm-input">
           <option value="">— geen —</option>
           ${hfst}
         </select>
-      </label>
-      <label class="dng-label">Kaartafbeelding (PNG/JPG)
-        <input id="dng-new-file" type="file" accept="image/*" class="dng-input">
-      </label>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Plattegrond</label>
+        <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm" id="dng-new-pick" style="justify-content:flex-start">
+          ${icon('image')} <span id="dng-new-file-name">Kies of upload een afbeelding…</span>
+        </button>
+      </div>
       <div class="dng-dialog-btns">
-        <button class="dng-btn" id="dng-new-ok">Aanmaken</button>
-        <button class="dng-btn dng-btn-ghost" id="dng-new-cancel">Annuleren</button>
+        <button class="dm-btn dm-btn-primary dm-btn-sm" id="dng-new-ok">${icon('plus')} Aanmaken</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" id="dng-new-cancel">${icon('x')} Annuleren</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
   setTimeout(() => document.getElementById('dng-new-name')?.focus(), 50);
 
+  let gekozenFileId = '';
+  document.getElementById('dng-new-pick').addEventListener('click', () => {
+    const naamHint = (document.getElementById('dng-new-name')?.value || '').trim().toLowerCase().replace(/\s+/g, '-');
+    window.mediaPicker.open({
+      type: 'afbeelding',
+      suggestedName: naamHint ? `${naamHint}-plattegrond` : 'dungeon',
+      onSelect: (fileId) => {
+        gekozenFileId = fileId;
+        const naam = document.getElementById('dng-new-file-name');
+        if (naam) naam.textContent = 'Afbeelding gekozen';
+      },
+    });
+  });
+
   document.getElementById('dng-new-ok').addEventListener('click', async () => {
-    const name   = document.getElementById('dng-new-name').value.trim();
-    const hfstId = document.getElementById('dng-new-hfst').value;
-    const file   = document.getElementById('dng-new-file').files[0];
-    if (!name) return;
-
-    let fileId = '';
-    if (file) {
-      const fd = new FormData();
-      fd.append('file', file);
-      const newFileId = 'dng_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-      try {
-        await fetch('/api/files/' + newFileId, { method: 'POST', body: fd });
-        fileId = newFileId;
-      } catch {}
-    }
-
-    const created = await api.createDungeon({ name, hoofdstukId: hfstId, fileId });
-    _mapIdx = _maps.length;
-    overlay.remove();
-    const content = document.getElementById('kaart-mode-content');
-    if (content) await renderDungeon(content);
+    const naamVeld = document.getElementById('dng-new-name');
+    const name = naamVeld.value.trim();
+    if (!name) { naamVeld.classList.add('dm-input--err'); setTimeout(() => naamVeld.classList.remove('dm-input--err'), 900); naamVeld.focus(); return; }
+    try {
+      await api.createDungeon({
+        name,
+        hoofdstukId: document.getElementById('dng-new-hfst').value,
+        fileId: gekozenFileId,
+        description: document.getElementById('dng-new-desc').value.trim(),
+      });
+      overlay.remove();
+      // Eindigen waar je begon: de galerij (of de open kaartweergave) bijwerken.
+      // Dit riep `renderDungeon(#kaart-mode-content)` aan — een element dat sinds
+      // de galerij niet meer bestaat, dus er gebeurde zichtbaar niets.
+      await window._kaartVerversen?.();
+    } catch (e) { alert('Aanmaken mislukt: ' + e.message); }
   });
 
   document.getElementById('dng-new-cancel').addEventListener('click', () => overlay.remove());

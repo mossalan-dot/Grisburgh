@@ -24569,8 +24569,21 @@ body.landing-open > *:not(#landing-overlay):not(#landing-zoom):not(script) { vis
 }
 /* Een vaag of verborgen kaartje blijft herkenbaar anders, maar nu binnen het
    perkament in plaats van met een zwarte plak. */
-.map-pin-vague  .pin-icon { background: rgba(232,220,196,0.85); border-style: dashed; }
-.map-pin-hidden .pin-icon { opacity: 0.55; border-color: #7a6040; }
+/* Let op: hierboven in dit bestand staat nog `.map-pin-hidden { opacity: .45 }`
+   op de héle speld. Samen met een tweede opacity op het icoon werd dat 0.45 ×
+   0.55 ≈ 0.25 — een spookspeld waarvan je niet meer zag wát er stond. Eén stand
+   per soort, hier, en de doorzichtigheid gaat eraf: een verborgen locatie is
+   voor de DM gewoon leesbaar, alleen herkenbaar ánders. */
+.map-pin-hidden { opacity: 1; }
+.map-pin-hidden .pin-icon {
+  opacity: 1; background: #e6dbc2; color: #6a5238;
+  border-color: #8a7550; border-style: dashed;
+}
+.map-pin-hidden .pin-label { color: #5a4a32; font-style: italic; }
+.map-pin-vague .pin-icon {
+  opacity: 1; background: rgba(240,232,214,0.95); color: #3a2410; border-style: dashed;
+}
+.map-pin-vague .pin-label { color: #3a2410; }
 
 .pin-placer-popup {
   background: linear-gradient(180deg, #f6eeda 0%, #efe3c8 100%);

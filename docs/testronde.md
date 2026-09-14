@@ -379,6 +379,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Sessieverslag schrijven** (DM) — nieuwe entry, markdown, afbeeldingen uploaden, opslaan en teruglezen
 - [ ] **Missie aanmaken** (DM) — titel, beschrijving, koppeling aan een factie of locatie, en zichtbaar maken
 - [ ] **Pin voorstellen en goedkeuren** (SP/DM) — speler stelt voor, DM keurt goed of af, beide zien de uitkomst
+- [ ] **Kaart of dungeon aanmaken** (DM) — de +-knop boven een groep opent *Nieuwe kaart* respectievelijk *Nieuwe dungeonkaart* (niet de eerste bestaande kaart). Vul naam én beschrijving in, kies een afbeelding uit de bibliotheek: het kaartje staat er meteen, mét beeld en beschrijving, zonder de pagina te herladen
+- [ ] **Een verborgen locatie op de kaart** (DM) — een speld van een locatie die de party nog niet kent is gewoon leesbaar, met een gestippelde rand; hij is niet half doorzichtig en verschijnt niet pas bij hover
+- [ ] **Drankje met bevestiging** (SP) — klikken op de genezingsknop vraagt eerst of je het zeker weet, met wat het kost ("nog 2 van de 3" of "dit exemplaar is daarna op"); annuleren laat alles zoals het was
 - [ ] **Dungeon aanmaken** (DM) — nieuwe dungeonkaart met afbeelding, kamers tekenen, namen geven
 - [ ] **Kamerzijbalk** (DM) — beschrijving, monsters, vondsten en trap per kamer
 - [ ] **Dungeonvensters openen** (DM) — *+ Nieuw* opent het venster *Nieuwe dungeon map* (en niet onzichtbaar achter de kaart). De prullenbak ernaast verwijdert de dungeon; de ronde kruisknop rechtsboven sluit alleen het venster

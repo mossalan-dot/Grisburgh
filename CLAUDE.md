@@ -240,10 +240,10 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : theme.css?v=585   app.js?v=741   sound-manager.js?v=8
+index.html  : theme.css?v=586   app.js?v=744   sound-manager.js?v=8
 app.js      : api.js?v=285  dm-panel.js?v=225  media-picker.js?v=8
               render-archief.js?v=87  render-bestiarium.js?v=28  render-campagne.js?v=297
-              render-dashboard.js?v=9  render-dungeon.js?v=38  render-kaart.js?v=29
+              render-dashboard.js?v=9  render-dungeon.js?v=39  render-kaart.js?v=30
               render-progressie.js?v=45  render-relatiemap.js?v=22  render-spreuken.js?v=38
               render-statblock.js?v=9  socket-client.js?v=71
 dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
@@ -1485,6 +1485,29 @@ app-iconen zijn nog van Grisburgh; eigen beeld per campagne is werk voor later.
 > in een subtabblad zit toont hij dát (`LOGBOEK_LABELS`). Prikbord en Missies
 > hadden ook al het kaart-icoon; dat zijn nu `pin` en `target`, en de groep
 > *Hoofdkaarten* in de galerij kreeg `globe` omdat de sectiekop zelf `map` is.
+>
+> **Aanmaken is een eigen formulier, geen halve.** Bij een hoofdkaart én een
+> dungeon kon je alleen een naam en een afbeelding kwijt; de beschrijving stond
+> pas in de bewerkmodus (en bij een dungeon gooide `POST /dungeons` hem zelfs
+> stil weg). Beide vensters hebben nu naam, beschrijving en een afbeelding **uit
+> de mediabibliotheek** — dat laatste scheelt een tweede weg voor hetzelfde ding:
+> het dungeonvenster had als enige nog een kaal `<input type=file>`, met de
+> systeemtypografie die daarbij hoort.
+>
+> **Een nieuwe kaart was pas na herladen te zien.** Allebei de vensters eindigden
+> in een render die er niet meer is (`renderKaart()` zonder container /
+> `#kaart-mode-content`). Nu `window._kaartVerversen()`.
+>
+> **Het kaartje van een nieuwe kaart bleef leeg.** De galerij zocht het beeld op
+> `api.fileUrl(m.id)`, maar een kaart uit de mediabibliotheek staat onder
+> `imageId` — alleen de meegeleverde kaarten en oude uploads staan onder het
+> kaart-id. De kaart zelf opende wél (die gebruikt `_mapImgSrc`).
+>
+> **Een verborgen speld was een spook.** `.map-pin-hidden` dimde de hele speld
+> (0.45) én het icoon kreeg er later nog eens 0.55 bovenop: samen 0.25, en je zag
+> pas iets als je er met de muis overheen ging. Eén stand per soort, onderaan de
+> stylesheet: een verborgen locatie is voor de DM gewoon leesbaar, met een
+> gestippelde rand in plaats van halfdoorzichtig.
 >
 > **De +-knop maakt iets nieuws.** Hij riep `_openKaartFullscreen(type, null)`
 > aan, en zonder id valt die terug op de **eerste bestaande kaart**: je drukte op

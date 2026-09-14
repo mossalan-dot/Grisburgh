@@ -11843,6 +11843,9 @@ router.post('/dungeons', requireDM, (req, res) => {
   const map = {
     id: 'dng_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
     name, hoofdstukId: hoofdstukId || '', fileId: fileId || '',
+    // De beschrijving hoort bij het aanmaken; hij werd hier stil weggegooid en
+    // kon pas in de bewerkmodus alsnog ingevuld worden.
+    description: String(req.body.description || '').slice(0, 600),
     rooms: [], partyAccess: [], reveals: {},
   };
   maps.push(map);

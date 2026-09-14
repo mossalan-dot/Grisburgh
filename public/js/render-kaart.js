@@ -797,6 +797,9 @@ function _openMapAdder() {
     <div class="pin-placer-kop">${icon('map')} Nieuwe kaart</div>
     <label class="pin-placer-label" for="map-add-label">Naam</label>
     <input id="map-add-label" type="text" placeholder="Naam van de kaart…" class="pin-placer-input">
+    <label class="pin-placer-label" for="map-add-desc">Beschrijving</label>
+    <textarea id="map-add-desc" rows="2" placeholder="Korte omschrijving voor op het kaartje…"
+      class="pin-placer-input" style="resize:vertical"></textarea>
     <label class="pin-placer-label" for="map-add-pick">Afbeelding</label>
     <button type="button" id="map-add-pick" class="dm-btn dm-btn-ghost dm-btn-sm" style="width:100%;justify-content:flex-start">
       ${icon('image')} <span id="map-add-file-name">Kies of upload een afbeelding…</span>
@@ -828,7 +831,13 @@ function _openMapAdder() {
     if (!label) { alert('Vul een naam in.'); return; }
     if (!_pickedImageId) { alert('Kies een afbeelding.'); return; }
     try {
-      await api.createMap({ label, imageId: _pickedImageId });
+      const beschrijving = popup.querySelector('#map-add-desc')?.value.trim() || '';
+      const nieuw = await api.createMap({ label, imageId: _pickedImageId });
+      // De beschrijving hoort bij het aanmaken, niet pas in bewerkmodus. De
+      // POST-route kent alleen label + imageId; de rest gaat in één PUT erachteraan.
+      if (beschrijving && nieuw?.id) {
+        try { await api.updateMap(nieuw.id, { description: beschrijving }); } catch { /* naam staat er al */ }
+      }
       popup.remove();
       // De galerij (of de open kaartweergave) bijwerken — één ingang die zelf
       // weet waar de kaart staat.

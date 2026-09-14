@@ -1,8 +1,8 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=285';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=297";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=87";
-import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=29';
-import { renderDungeon } from './render-dungeon.js?v=38';
+import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=30';
+import { renderDungeon } from './render-dungeon.js?v=39';
 import { renderRelatiemap } from './render-relatiemap.js?v=22';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=28';
@@ -2923,8 +2923,12 @@ function _kaartCard(type, m, dm) {
   const id   = m.id;
   const name = type === 'wereld' ? (m.label || 'Kaart') : (m.name || 'Dungeon');
   const desc = m.description || '';
+  // Een kaart uit de mediabibliotheek staat onder `imageId`, niet onder het
+  // kaart-id: dat laatste geldt alleen voor de meegeleverde kaarten en oude
+  // uploads. Zonder die terugval bleef het kaartje van een nieuwe kaart leeg,
+  // terwijl de kaart zelf (die `_mapImgSrc` gebruikt) wél gewoon opende.
   const thumbSrc = type === 'wereld'
-    ? (m.src || api.fileUrl(m.id))
+    ? (m.src || api.fileUrl(m.imageId || m.id))
     : (m.thumbId ? api.fileUrl(m.thumbId) : '');
   const thumb = thumbSrc
     ? `<img class="kg-card-thumb" loading="lazy" src="${thumbSrc}"${m.thumbFocus ? ` style="object-position:${esc(m.thumbFocus)}"` : ''} onerror="this.style.display='none';this.closest('.kg-card').classList.add('kg-card--noimg')">`
@@ -2965,7 +2969,7 @@ function _kaartCard(type, m, dm) {
 // eerste bestaande kaart: je drukte op + en keek naar Dreghaven.
 window._kaartNieuw = async function (type) {
   if (type === 'wereld') return nieuweKaart();
-  const { nieuweDungeon } = await import('./render-dungeon.js?v=38');
+  const { nieuweDungeon } = await import('./render-dungeon.js?v=39');
   nieuweDungeon();
 };
 
@@ -6161,17 +6165,42 @@ window._itemWorpPillen = (item) => {
   if (dmg && !isHeal) pillen.push(`<button class="item-damage-pill item-damage-pill--sm"
     onclick="window.dice?.rollFlash('${escJS(dmg)}','${escJS(item.name || '')}')"
     title="Gooi ${escJS(dmg)}">${icon('dice', { cls: 'icon-gi' })} ${esc(dmg)}</button>`);
+  // De knop draagt zelf wat er straks in de vraag moet staan: hoeveel charges er
+  // nog zijn, hoeveel er van de stapel over is, en of het exemplaar verdwijnt.
+  // Zo hoeft de handler niets op te zoeken en klopt de vraag met wat je ziet.
   if (heal) pillen.push(`<button class="item-damage-pill item-damage-pill--sm item-damage-pill--heal"
-    onclick="window._itemGebruik('${esc(item.id)}')"
+    onclick="window._itemGebruik(this)"
+    data-id="${esc(item.id)}" data-naam="${esc(item.name || '')}" data-formule="${esc(heal)}"
+    data-charges="${item._maxCharges ? item._charges : ''}" data-max="${item._maxCharges || ''}"
+    data-aantal="${item._qty ?? ''}" data-verbruikt="${item.data?.verbruikt === true || item.data?.verbruikt === 'true' ? '1' : ''}"
     title="Gebruiken: gooit ${escJS(heal)} en telt het bij je HP op">${icon('heart')} ${esc(heal)}</button>`);
   return pillen.length
     ? `<div class="item-carousel-damage" onclick="event.stopPropagation()">${pillen.join('')}</div>`
     : '';
 };
 
-window._itemGebruik = async function (itemId) {
+window._itemGebruik = async function (knop) {
   const charId = state.characterId;
   if (!charId) return;
+  const d = knop?.dataset || {};
+  const itemId = d.id;
+  if (!itemId) return;
+
+  // Eerst even vragen. De knop is klein en zit vlak bij de andere pillen; een
+  // misklik zou een drankje opdrinken dat je nog nodig had. De vraag zegt ook
+  // meteen wat het kost — dat is het hele punt van de bevestiging.
+  const max = parseInt(d.max) || 0;
+  const nu  = parseInt(d.charges);
+  const aantal = parseInt(d.aantal);
+  const kosten = max
+    ? (Number.isFinite(nu) ? `Dat kost één charge; je hebt er nog ${nu} van de ${max}.` : 'Dat kost één charge.')
+    : d.verbruikt
+      ? (Number.isFinite(aantal) && aantal > 1
+          ? `Je houdt er daarna ${aantal - 1} over.`
+          : 'Dit exemplaar is daarna op.')
+      : '';
+  if (!confirm(`${d.naam || 'Dit voorwerp'} gebruiken?\n\nJe gooit ${d.formule} en telt dat bij je HP op.${kosten ? '\n' + kosten : ''}`)) return;
+
   try {
     const r = await api.gebruikItem(itemId, charId);
     // De worp laten zien met dezelfde flits als het dobbelpaneel, zodat het

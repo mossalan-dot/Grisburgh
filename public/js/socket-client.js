@@ -259,7 +259,7 @@ function _ververOpenKaartje(id) {
     }
     if (window.app.state.activeSection !== 'kaart') return;
     if (window.app.state.role === 'dm') return; // DM al bijgewerkt via _renderSvg()
-    import('./render-dungeon.js?v=38').then(m => {
+    import('./render-dungeon.js?v=39').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -267,7 +267,7 @@ function _ververOpenKaartje(id) {
   // Dungeon meta bijgewerkt (nieuwe map, party-access) → iedereen herlaadt
   socket.on('dungeon:updated', () => {
     if (window.app.state.activeSection !== 'kaart') return;
-    import('./render-dungeon.js?v=38').then(m => {
+    import('./render-dungeon.js?v=39').then(m => {
       const content = document.getElementById('kaart-mode-content');
       if (content) m.renderDungeon(content);
     });
@@ -276,7 +276,7 @@ function _ververOpenKaartje(id) {
   socket.on('map:pinRevealed', () => {
     // Herlaad kaart als de speler daar is (toast wordt al getoond via entity:visibility)
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=29').then(m => m.renderKaart());
+      import('./render-kaart.js?v=30').then(m => m.renderKaart());
     }
   });
 
@@ -289,7 +289,7 @@ function _ververOpenKaartje(id) {
       8000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=29').then(m => m.renderKaart());
+      import('./render-kaart.js?v=30').then(m => m.renderKaart());
     }
   });
 
@@ -300,7 +300,7 @@ function _ververOpenKaartje(id) {
       6000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=29').then(m => m.renderKaart());
+      import('./render-kaart.js?v=30').then(m => m.renderKaart());
     }
   });
 
@@ -311,7 +311,7 @@ function _ververOpenKaartje(id) {
       5000
     );
     if (window.app.state.activeSection === 'kaart') {
-      import('./render-kaart.js?v=29').then(m => m.renderKaart());
+      import('./render-kaart.js?v=30').then(m => m.renderKaart());
     }
   });
 
