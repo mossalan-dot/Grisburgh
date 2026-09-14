@@ -24907,3 +24907,57 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
   border-left: 1px solid rgba(90,64,24,0.45);
   color: #3a2410;
 }
+
+/* Lexicon op een aanraakscherm. `cursor: help` is voor een muis het juiste
+   teken, maar Safari op iOS stuurt alleen een click naar een element dat er
+   klikbaar uitziet — met `help` bleef de eerste tik hangen. Daar dus een
+   wijzende cursor, en geen grijze tikflits over het woord. */
+@media (hover: none) {
+  .sb-gloss { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+}
+
+/* ── Prikbord: de laatste resten van de donkere stijl ──────────────────────
+   De lijst met kaartjes en het paneel naast het bord kwamen uit de tijd dat
+   het prikbord een eigen, donker uiterlijk had. Ze staan nu in een perkamenten
+   venster, dus lichte letters op een bijna-zwarte bak lazen niet meer. Deze
+   regels staan bewust onderaan: de oude staan rond regel 15200 en winnen bij
+   gelijke specificiteit anders op volgorde. */
+.pb-entity-list {
+  background: #fdf8ec;
+  border: 1px solid rgba(160,130,80,0.35);
+  border-radius: 6px;
+  padding: 5px;
+  max-height: 300px;
+}
+.pb-entity-item {
+  background: rgba(196,168,122,0.12);
+  border: 1px solid rgba(160,130,80,0.3);
+  color: #3a2410;
+}
+.pb-entity-item:hover { background: rgba(196,168,122,0.3); border-color: rgba(122,90,16,0.5); }
+.pb-entity-name { color: #3a2410; font-size: 14px; }
+.pb-entity-icon { display: flex; color: #7a6040; }
+.pb-entity-icon .icon { width: 15px; height: 15px; }
+
+/* Zoekregel in het toevoegvenster: het vergrootglas hoort een icoon te zijn,
+   geen emoji in de placeholder. */
+.pb-zoek-rij { position: relative; margin-bottom: 8px; }
+.pb-zoek-rij .dm-input { padding-left: 32px; width: 100%; }
+.pb-zoek-icoon {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: #9a8060; pointer-events: none;
+}
+
+/* Het zijpaneel is perkament geworden; de velden erin waren nog donker. */
+.pb-panel-name   { color: #3a2410; border-bottom-color: rgba(122,90,16,0.25); }
+.pb-panel-label  { color: #7a6040; }
+.pb-panel-notes,
+.pb-panel-input  { background: #fdf8ec; border-color: rgba(160,130,80,0.4); color: #3a2410; }
+.pb-panel-notes:focus,
+.pb-panel-input:focus { border-color: rgba(122,90,16,0.7); }
+.pb-panel-meer-info { color: #6a4a10; border-color: rgba(160,130,80,0.45); }
+.pb-panel-img-wrap  { background: #e6d8b8; }
+.pb-panel-img--vague { background: #e0d0aa; color: rgba(90,64,24,0.4); }
+.pb-panel-img--vague .icon { width: 40%; height: 40%; }
+.pb-panel-blank-icon { color: #8a6a30; }
+.pb-panel-blank-icon .icon { width: 30px; height: 30px; }

@@ -190,15 +190,19 @@ function _renderGraph() {
       const bw         = sel ? 2.5 : isDeceased ? 1.5 : 0.8;
 
       // Afbeelding of silhouet
+      // Het silhouet ligt er áltijd onder: valt de afbeelding weg (een kaartje
+      // zonder portret geeft een 404), dan haalt `onerror` de <image> weg en
+      // blijft het silhouet staan. Anders toont de browser daar zijn eigen
+      // gebroken-plaatje-icoon, en dat leest als een storing in de app.
+      const bodem = `<rect x="6" y="8" width="${NODE_W - 12}" height="${IMG_H}" rx="1" fill="#c4b48a"/>
+           ${_silhouetSvg(node.entityType, NODE_W / 2, 8 + IMG_H / 2, 30)}`;
       const imgSvg = showImg
-        ? `<svg x="6" y="8" width="${NODE_W - 12}" height="${IMG_H}" overflow="hidden">
+        ? `${bodem}
+           <svg x="6" y="8" width="${NODE_W - 12}" height="${IMG_H}" overflow="hidden">
              <image href="${api.thumbUrl(node.entityId)}" width="${NODE_W - 12}" height="${IMG_H}"
-                    preserveAspectRatio="xMidYMid slice"/>
+                    preserveAspectRatio="xMidYMid slice" onerror="this.remove()"/>
            </svg>`
-        : `<rect x="6" y="8" width="${NODE_W - 12}" height="${IMG_H}" rx="1" fill="#c4b48a"/>
-           <text x="${NODE_W / 2}" y="${8 + IMG_H / 2}" text-anchor="middle"
-             dominant-baseline="middle" fill="rgba(80,55,20,0.35)"
-             style="font-size:30px;pointer-events:none">?</text>`;
+        : bodem;
 
       // Rood kruis voor overledenen (over de afbeelding heen)
       const crossSvg = isDeceased
@@ -319,11 +323,11 @@ function _renderPanel() {
              ${panelShowImg
                ? `<img src="${api.thumbUrl(node.entityId)}" class="pb-panel-img" alt="${esc(name)}"
                        onerror="this.style.display='none'">`
-               : `<div class="pb-panel-img pb-panel-img--vague">?</div>`
+               : `<div class="pb-panel-img pb-panel-img--vague">${_silhouetIcoon(node.entityType)}</div>`
              }
              ${panelDeceased ? `<div class="pb-panel-deceased-cross"></div>` : ''}
            </div>`
-        : `<div class="pb-panel-blank-icon">📝</div>`
+        : `<div class="pb-panel-blank-icon">${icon('scroll-text')}</div>`
       }
       <div class="pb-panel-name">${esc(name)}</div>
       ${node.entityId && node.entityType
@@ -385,6 +389,22 @@ window._pbRemoveNode = async id => {
   } catch (err) { alert('Verwijderen mislukt: ' + err.message); }
 };
 
+// Een kaartje zonder portret — verborgen, vaag, of gewoon zonder plaatje —
+// kreeg een groot vraagteken. Dat leest als een fout in de app; een silhouet
+// van het soort kaartje zegt wél iets ("we weten dat hier een persoon hoort,
+// alleen zijn gezicht nog niet"). `<use>` haalt de vorm uit dezelfde
+// icons.svg-sprite als de rest van de app.
+const _SILHOUET = { personages: 'user', locaties: 'map-pin', organisaties: 'building', voorwerpen: 'package' };
+const _silhouetIcoon = (type) => icon(_SILHOUET[type] || 'hexagon');
+function _silhouetSvg(type, cx, cy, maat) {
+  const naam = _SILHOUET[type] || 'hexagon';
+  // De sprite-symbolen tekenen met `currentColor`; kleur zetten gaat dus via
+  // `color`, niet via `stroke` — die wordt door het symbool zelf overschreven.
+  return `<use href="/img/icons.svg?v=10#icon-${naam}" x="${cx - maat / 2}" y="${cy - maat / 2}"
+            width="${maat}" height="${maat}" opacity="0.34"
+            style="color:#5a3c10;pointer-events:none"/>`;
+}
+
 // ── Kaartje toevoegen ──
 // Een organisatie in één keer op het bord: de server bouwt het organogram met
 // dezelfde filter als waarmee deze party het kaartje zou zien, dus geheime
@@ -417,22 +437,18 @@ async function _openOrganogramDialog() {
 }
 
 async function _openAddCardDialog() {
-  document.getElementById('pb-add-card-modal')?.remove();
-
   let entities = [];
   try { entities = await api.get('/party-board/entities'); } catch {}
 
-  const onBoard  = new Set(_board.nodes.filter(n => n.entityId).map(n => n.entityId));
+  const onBoard   = new Set(_board.nodes.filter(n => n.entityId).map(n => n.entityId));
   const available = entities.filter(e => !onBoard.has(e.id));
+  const kaartIcoon = t => t === 'personages' ? icon('user') : t === 'locaties' ? icon('map-pin') : icon('building');
 
-  const overlay = document.createElement('div');
-  overlay.id        = 'pb-add-card-modal';
-  overlay.className = 'rel-modal-overlay';
-  overlay.innerHTML = `
-    <div class="rel-modal" onclick="event.stopPropagation()">
-      <div class="rel-modal-title">Kaartje toevoegen</div>
-      <div class="rel-modal-row">
-        <input class="rel-input" id="pb-card-search" placeholder="🔍 Zoek persoon, locatie…"
+  window.app.openModal('Kaartje toevoegen', '', `
+    <div class="dm-feature-section" style="margin:0">
+      <div class="pb-zoek-rij">
+        ${icon('search', { cls: 'pb-zoek-icoon' })}
+        <input class="dm-input" id="pb-card-search" placeholder="Zoek persoon, locatie…"
                autofocus oninput="window._pbCardFilter(this.value)">
       </div>
       <div class="pb-entity-list" id="pb-entity-list">
@@ -441,29 +457,26 @@ async function _openAddCardDialog() {
             <button class="pb-entity-item"
                     data-name="${esc(e.name.toLowerCase())}"
                     onclick="window._pbSelectEntity('${esc(e.id)}','${esc(e.type)}')">
-              <span class="pb-entity-icon">${e.type === 'personages' ? icon('user') : e.type === 'locaties' ? icon('map-pin') : icon('building')}</span>
+              <span class="pb-entity-icon">${kaartIcoon(e.type)}</span>
               <span class="pb-entity-name">${esc(e.name)}</span>
             </button>`).join('')
-          : `<p class="pb-entity-empty">Alle zichtbare kaartjes staan al op het bord.</p>`
+          : '<p class="dm-hint">Alle zichtbare kaartjes staan al op het bord.</p>'
         }
       </div>
-      <div class="pb-blank-row">
-        <label class="rel-modal-label">Of: blanco post-it</label>
-        <div class="pb-blank-inp-row">
-          <input class="rel-input" id="pb-blank-text" placeholder="Omschrijving…">
-          <button class="rel-btn rel-btn-primary" onclick="window._pbAddBlank()">＋ Toevoegen</button>
-        </div>
+    </div>
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Of een blanco post-it</div>
+      <div class="dm-feature-row">
+        <input class="dm-input" id="pb-blank-text" placeholder="Omschrijving…"
+               onkeydown="if(event.key==='Enter')window._pbAddBlank()">
+        <button class="dm-btn dm-btn-primary" onclick="window._pbAddBlank()">${icon('plus')} Toevoegen</button>
       </div>
-      <div class="rel-modal-actions">
-        <button class="rel-btn" onclick="document.getElementById('pb-add-card-modal').remove()">Sluiten</button>
-      </div>
-    </div>`;
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-  document.body.appendChild(overlay);
+    </div>`);
 
   window._pbCardFilter = q => {
+    const zoek = q.toLowerCase();
     document.querySelectorAll('.pb-entity-item').forEach(btn =>
-      btn.classList.toggle('hidden', !btn.dataset.name.includes(q.toLowerCase()))
+      btn.classList.toggle('hidden', !btn.dataset.name.includes(zoek))
     );
   };
 
@@ -472,7 +485,7 @@ async function _openAddCardDialog() {
       const node = await api.post('/party-board/node', { entityId, entityType });
       _board.nodes.push(node);
       _renderGraph();
-      document.getElementById('pb-add-card-modal')?.remove();
+      window.app.closeModal();
     } catch (err) {
       if (err.message?.includes('Al op het bord')) { alert('Dit kaartje staat al op het bord.'); return; }
       alert('Toevoegen mislukt: ' + err.message);
@@ -486,14 +499,13 @@ async function _openAddCardDialog() {
       const node = await api.post('/party-board/node', { text });
       _board.nodes.push(node);
       _renderGraph();
-      document.getElementById('pb-add-card-modal')?.remove();
+      window.app.closeModal();
     } catch (err) { alert('Toevoegen mislukt: ' + err.message); }
   };
 }
 
 // ── Draad toevoegen / bewerken ──
 function _openAddEdgeDialog(existing) {
-  document.getElementById('pb-add-edge-modal')?.remove();
   if (_board.nodes.length < 2) {
     alert('Voeg eerst minstens twee kaartjes toe aan het bord.');
     return;
@@ -506,53 +518,44 @@ function _openAddEdgeDialog(existing) {
   }).join('');
 
   const curColor = existing?.color || THREAD_COLORS[0];
-
   const swatches = THREAD_COLORS.map(c => `
     <button class="pb-color-swatch${c === curColor ? ' pb-color-swatch--active' : ''}"
-      style="background:${c}" data-color="${c}"
+      style="background:${c}" data-color="${c}" title="Touwkleur"
       onclick="window._pbPickColor('${c}')"></button>`).join('');
 
-  const overlay = document.createElement('div');
-  overlay.id        = 'pb-add-edge-modal';
-  overlay.className = 'rel-modal-overlay';
-  overlay.innerHTML = `
-    <div class="rel-modal" onclick="event.stopPropagation()">
-      <div class="rel-modal-title">${existing ? 'Draad bewerken' : 'Draad leggen'}</div>
-      <div class="rel-modal-row">
-        <label class="rel-modal-label">Van</label>
-        <select id="pb-edge-from" class="rel-select">${nodeOpts('from')}</select>
+  window.app.openModal(existing ? 'Draad bewerken' : 'Draad leggen', '', `
+    <div class="dm-feature-section" style="margin:0">
+      <div class="dm-form-row">
+        <label class="dm-form-label">Van</label>
+        <select id="pb-edge-from" class="dm-input">${nodeOpts('from')}</select>
       </div>
-      <div class="rel-modal-row">
-        <label class="rel-modal-label">Naar</label>
-        <select id="pb-edge-to" class="rel-select">${nodeOpts('to')}</select>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Naar</label>
+        <select id="pb-edge-to" class="dm-input">${nodeOpts('to')}</select>
       </div>
-      <div class="rel-modal-row">
-        <label class="rel-modal-label">Label <span class="rel-label-opt">(optioneel)</span></label>
-        <input id="pb-edge-label" class="rel-input" value="${esc(existing?.label || '')}"
+      <div class="dm-form-row">
+        <label class="dm-form-label">Label</label>
+        <input id="pb-edge-label" class="dm-input" value="${esc(existing?.label || '')}"
                placeholder="bijv. zijn vrienden">
       </div>
-      <div class="rel-modal-row">
-        <label class="rel-modal-label">Kleur touw</label>
+      <div class="dm-form-row">
+        <label class="dm-form-label">Kleur touw</label>
         <div class="pb-color-swatches">${swatches}</div>
         <input type="hidden" id="pb-edge-color" value="${esc(curColor)}">
       </div>
-      <div class="rel-modal-actions">
-        ${existing ? `<button class="rel-btn rel-btn-danger"
-          onclick="window._pbDeleteEdge('${esc(existing.id)}')">Verwijderen</button>` : ''}
-        <button class="rel-btn"
-          onclick="document.getElementById('pb-add-edge-modal').remove()">Annuleren</button>
-        <button class="rel-btn rel-btn-primary"
-          onclick="window._pbSaveEdge('${esc(existing?.id || '')}')">
-          ${existing ? 'Opslaan' : 'Leggen'}</button>
-      </div>
-    </div>`;
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-  document.body.appendChild(overlay);
+    </div>
+    <div class="dm-feature-row" style="justify-content:flex-end">
+      ${existing ? `<button class="dm-btn dm-btn-danger"
+        onclick="window._pbDeleteEdge('${esc(existing.id)}')">${icon('trash')} Verwijderen</button>` : ''}
+      <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
+      <button class="dm-btn dm-btn-primary" onclick="window._pbSaveEdge('${esc(existing?.id || '')}')">
+        ${icon('save')} ${existing ? 'Opslaan' : 'Leggen'}</button>
+    </div>`);
 
   window._pbPickColor = color => {
     document.getElementById('pb-edge-color').value = color;
-    document.querySelectorAll('.pb-color-swatch').forEach(s =>
-      s.classList.toggle('pb-color-swatch--active', s.dataset.color === color)
+    document.querySelectorAll('.pb-color-swatch').forEach(sw =>
+      sw.classList.toggle('pb-color-swatch--active', sw.dataset.color === color)
     );
   };
 
@@ -571,7 +574,7 @@ function _openAddEdgeDialog(existing) {
         const edge = await api.post('/party-board/edge', { from, to, label, color });
         _board.edges.push(edge);
       }
-      document.getElementById('pb-add-edge-modal')?.remove();
+      window.app.closeModal();
       _renderGraph();
     } catch (err) { alert('Opslaan mislukt: ' + err.message); }
   };
@@ -581,7 +584,7 @@ function _openAddEdgeDialog(existing) {
     try {
       await api.delete(`/party-board/edge/${id}`);
       _board.edges = _board.edges.filter(e => e.id !== id);
-      document.getElementById('pb-add-edge-modal')?.remove();
+      window.app.closeModal();
       _renderGraph();
     } catch (err) { alert('Verwijderen mislukt: ' + err.message); }
   };

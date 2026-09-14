@@ -1,9 +1,9 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=285';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=304";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=91";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=92";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
-import { renderRelatiemap } from './render-relatiemap.js?v=23';
+import { renderRelatiemap } from './render-relatiemap.js?v=24';
 import { renderProgressie } from './render-progressie.js?v=45';
 import { renderBestiarium } from './render-bestiarium.js?v=29';
 import { renderSpreuken } from './render-spreuken.js?v=39';
@@ -3817,6 +3817,7 @@ function _sbGlossWalk(node, seen) {
 // Werkt voor elke .sb-gloss-span overal in het document (spreukenboek,
 // feature-detailmodal, voorwerp-detail, …). Eén gedeeld zwevend tip-element.
 let _glossTipEl = null;
+let _glossTipVoor = null;   // bij welk woord de tip nu hoort
 function _glossTipGet() {
   _glossTipEl = document.getElementById('sb-gloss-tip');
   if (!_glossTipEl) {
@@ -3828,6 +3829,7 @@ function _glossTipGet() {
 }
 function _glossTipShow(g) {
   const tip = _glossTipGet();
+  _glossTipVoor = g;
   tip.textContent = g.getAttribute('data-tip');
   tip.classList.add('visible');
   const margin = 8, vw = window.innerWidth;
@@ -3842,28 +3844,37 @@ function _glossTipShow(g) {
   tip.style.left = x + 'px';
   tip.style.top  = y + 'px';
 }
-function _glossTipHide() { document.getElementById('sb-gloss-tip')?.classList.remove('visible'); }
+function _glossTipHide() {
+  _glossTipVoor = null;
+  document.getElementById('sb-gloss-tip')?.classList.remove('visible');
+}
 
 let _glossGlobalInit = false;
 function _initGlobalGlossary() {
   if (_glossGlobalInit) return;
   _glossGlobalInit = true;
-  document.addEventListener('mouseenter', e => {
-    const t = e.target;
-    const g = t?.nodeType === 1 ? t.closest('.sb-gloss') : null;
-    if (g) _glossTipShow(g);
+  // Hover alleen voor een échte muis. Een tik op een telefoon stuurt eerst een
+  // nagebootste mouseenter en pas daarna de click: de tip ging open en werd
+  // door die click meteen als "alweer dezelfde" dichtgeklapt, en pas de tweede
+  // tik werkte — want mouseenter komt op hetzelfde element geen tweede keer.
+  // `pointerover` draagt als enige `pointerType`, dus daarop kun je een vinger
+  // van een muis onderscheiden. Anders dan mouseenter bubbelt het wél, vandaar
+  // de controle of de tip al bij dít element hoort.
+  document.addEventListener('pointerover', e => {
+    if (e.pointerType && e.pointerType !== 'mouse') return;
+    const g = e.target?.nodeType === 1 ? e.target.closest('.sb-gloss') : null;
+    if (g && g !== _glossTipVoor) _glossTipShow(g);
   }, true);
-  document.addEventListener('mouseleave', e => {
-    const t = e.target;
-    if (t?.nodeType === 1 && t.closest('.sb-gloss')) _glossTipHide();
+  document.addEventListener('pointerout', e => {
+    if (e.pointerType && e.pointerType !== 'mouse') return;
+    const g = e.target?.nodeType === 1 ? e.target.closest('.sb-gloss') : null;
+    if (g && !(e.relatedTarget?.nodeType === 1 && g.contains(e.relatedTarget))) _glossTipHide();
   }, true);
   document.addEventListener('click', e => {
     const g = e.target?.nodeType === 1 ? e.target.closest('.sb-gloss') : null;
     if (g) {
       e.stopPropagation();
-      const tip = _glossTipGet();
-      const same = tip.classList.contains('visible') && tip.textContent === g.getAttribute('data-tip');
-      if (same) _glossTipHide(); else _glossTipShow(g);
+      if (g === _glossTipVoor) _glossTipHide(); else _glossTipShow(g);
     } else {
       _glossTipHide();
     }

@@ -364,6 +364,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Klik op *Organogram*, kies een organisatie die de party kent → de organisatie staat bovenaan op het bord met haar leden eronder, met draden die de rol als label dragen
 - [ ] Zit er een lid in dat de party nog niet kent, dan staat er *Onbekend — <rol>* zonder naam; een lid achter een nog niet onthulde geheimregel staat er helemaal niet bij
 - [ ] Een organisatie die de party nog niet kent staat niet in de keuzelijst (en het verzoek wordt geweigerd)
+- [ ] *Kaartje*, *Draad leggen* en *Draad bewerken* openen als gewoon perkamentvenster (geen donkere lijst, geen emoji in het zoekveld); de hulpknop staat één keer in beeld
+- [ ] Een kaartje zonder portret toont een silhouet van zijn soort (poppetje / gebouw / speld), geen vraagteken of gebroken plaatje
+- [ ] Lexicon op een telefoon: één tik op een onderstreept woord opent de uitleg meteen (niet pas bij de tweede tik); tikken naast het woord sluit hem
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

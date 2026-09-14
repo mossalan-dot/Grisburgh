@@ -146,7 +146,7 @@ export async function renderLogboek() {
   // Build static skeleton on first render (geen subtabbalk — navigatie via dropdown in header)
   if (!container.querySelector('#logboek-tab-content')) {
     container.innerHTML = `
-      <div style="display:flex;justify-content:flex-end;padding:6px 12px 0">
+      <div id="logboek-help-rij" style="display:flex;justify-content:flex-end;padding:6px 12px 0">
         ${window._helpBtn?.('logboek') ?? ''}
       </div>
       <div id="logboek-tab-content" class="flex-1 overflow-y-auto"></div>`;
@@ -154,6 +154,11 @@ export async function renderLogboek() {
 
   const tabContent = container.querySelector('#logboek-tab-content');
   if (!tabContent) return;
+
+  // Het prikbord draagt zijn eigen hulpknop in de knoppenbalk; dan hoort de
+  // algemene logboek-knop erboven niet óók in beeld te staan.
+  const helpRij = container.querySelector('#logboek-help-rij');
+  if (helpRij) helpRij.style.display = _logboekActiveTab === 'prikbord' ? 'none' : 'flex';
 
   if (_logboekActiveTab === 'quests') {
     tabContent.style.cssText = '';
@@ -164,7 +169,7 @@ export async function renderLogboek() {
   if (_logboekActiveTab === 'prikbord') {
     tabContent.style.cssText = 'flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;';
     tabContent.innerHTML = `<div id="pb-relatiemap-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;"></div>`;
-    const { renderRelatiemap } = await import('./render-relatiemap.js?v=23');
+    const { renderRelatiemap } = await import('./render-relatiemap.js?v=24');
     await renderRelatiemap(document.getElementById('pb-relatiemap-container'));
     return;
   }

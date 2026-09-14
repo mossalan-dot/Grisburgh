@@ -114,7 +114,7 @@ function _ververOpenKaartje(id) {
     const section = window.app.state.activeSection;
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
       // Herlaad alleen de relatiemap, niet het hele logboek
-      import('./render-relatiemap.js?v=23').then(m => {
+      import('./render-relatiemap.js?v=24').then(m => {
         const el = document.getElementById('pb-relatiemap-container');
         if (el) m.renderRelatiemap(el);
       });
@@ -125,20 +125,20 @@ function _ververOpenKaartje(id) {
   // het logboek — daar landt de regel die bij een onthulling geschreven wordt.
   socket.on('archief:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=91').then(m => m.renderLogboek());
+      import('./render-archief.js?v=92').then(m => m.renderLogboek());
     }
   });
 
   socket.on('logboek:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=91').then(m => m.renderLogboek());
+      import('./render-archief.js?v=92').then(m => m.renderLogboek());
     }
   });
 
   socket.on('quests:updated', () => {
     const section = window.app?.state?.activeSection;
     if (section === 'logboek') {
-      import('./render-archief.js?v=91').then(m => m.renderLogboek());
+      import('./render-archief.js?v=92').then(m => m.renderLogboek());
     }
     // Factie-interieur herlaadt ook (missies zijn quests met factieId)
     if (section === 'facties') _refreshSectionDebounced('facties');
@@ -155,7 +155,7 @@ function _ververOpenKaartje(id) {
     if (section === 'facties') _refreshSectionDebounced('facties');
     if (section === 'mijn-karakter') _refreshSectionDebounced('mijn-karakter');
     if (section === 'logboek' && window._logboekActiveTab === 'prikbord') {
-      import('./render-archief.js?v=91').then(m => m.renderLogboek());
+      import('./render-archief.js?v=92').then(m => m.renderLogboek());
     }
     window._updateDienstenMenuFromSocket?.();
   });
@@ -196,7 +196,7 @@ function _ververOpenKaartje(id) {
 
   socket.on('chapter-visibility:updated', () => {
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=91').then(m => m.renderLogboek());
+      import('./render-archief.js?v=92').then(m => m.renderLogboek());
     }
   });
 
@@ -216,7 +216,7 @@ function _ververOpenKaartje(id) {
     // betreft. Zonder groupId (oudere events) tonen we het aan iedereen.
     if (groupId && !window._isDisplayMode && window._myGroupId && window._myGroupId !== groupId) return;
     if (window.app.state.activeSection === 'logboek') {
-      import('./render-archief.js?v=91').then(m => m.renderLogboek());
+      import('./render-archief.js?v=92').then(m => m.renderLogboek());
     }
     if (!window.app.isDM()) {
       if (window._isDisplayMode) {
@@ -799,13 +799,13 @@ function _ververOpenKaartje(id) {
 
   socket.on('relations:updated', () => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=23').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=24').then(m => m.renderRelatiemap());
     }
   });
 
   socket.on('relations:revealed', ({ id } = {}) => {
     if (window.app.state.activeSection === 'relatiemap') {
-      import('./render-relatiemap.js?v=23').then(m => m.renderRelatiemap());
+      import('./render-relatiemap.js?v=24').then(m => m.renderRelatiemap());
     }
     if (!window.app.isDM()) {
       _showToast(`${window.icon('link')} <strong>Nieuwe verbinding onthuld!</strong>`, () => {
