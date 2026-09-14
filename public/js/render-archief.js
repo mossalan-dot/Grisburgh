@@ -266,7 +266,12 @@ async function _renderPrikbord(container) {
   const cols = [
     ...(isDm ? [{ key: 'verborgen',     label: `${icon('lock')} Verborgen` }] : []),
     { key: 'actief',        label: `${icon('pin')} Beschikbaar` },
-    ...(isDm ? [{ key: 'aangevraagd',   label: `${icon('clock')} Aangevraagd` }] : []),
+    // "Aangevraagd" zegt niet wie er vraagt. Het is de wachtrij van de spelers:
+    // vanuit een factie kan een party een missie aanvragen (POST /quests/:id/
+    // aanvragen), en die belandt hier tot de DM hem doorschuift naar
+    // *In uitvoering* of terugzet. Alleen de DM ziet deze kolom.
+    ...(isDm ? [{ key: 'aangevraagd', label: `${icon('clock')} Aangevraagd door een party`,
+                  tip: 'Een party heeft deze missie bij de factie aangevraagd. Schuif hem door naar In uitvoering om hem te gunnen, of zet hem terug naar Beschikbaar.' }] : []),
     { key: 'in-uitvoering', label: `${icon('swords')} In uitvoering` },
     { key: 'voltooid',      label: `${icon('check')} Voltooid` },
     { key: 'mislukt',       label: `${icon('x')} Mislukt` },
@@ -341,7 +346,7 @@ async function _renderPrikbord(container) {
     <div class="prikbord">
       ${cols.map(col => `
         <div class="prikbord-col prikbord-col--${col.key}">
-          <div class="prikbord-col-header">
+          <div class="prikbord-col-header"${col.tip ? ` title="${esc(col.tip)}"` : ''}>
             <span>${col.label}</span>
             <span class="prikbord-col-count">${visibleQuests.filter(q => q.status === col.key).length}</span>
           </div>

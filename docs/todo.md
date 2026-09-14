@@ -127,7 +127,66 @@ groot het is.
 - [x] **Eigen spreuk kunnen aanmaken** in het spreukentabblad — kan sinds de
       +-knop naast het boekje; sinds 11 sep 2026 met een herkomstveld erbij.
 
+## Vegen en pijltjes: één manier om door een rij te bladeren
+
+Gevraagd op 14 sep 2026. De app zit vol plekken waar je één ding uit een rij
+bekijkt en dan het volgende wilt: een kaartje in het archief, een spreuk, een
+subtabblad van de speler, een kolom op het missiebord. Nu is dat telkens
+*sluiten → terug → volgende openen*.
+
+**De regel die ik zou aanhouden:** vegen bladert tussen **buren in de lijst waar
+je al in zit**, en het neemt nooit een gebaar over dat al iets anders doet
+(pannen op een kaart, een carrousel die zelf al veegt, een tekstveld). En elke
+plek die veegt, krijgt **dezelfde toets**: ← en →. De DM zit achter een laptop;
+wat op een telefoon een veeg is, is daar een pijltje.
+
+- [ ] **Eén hulpje voor alles.** `window._veegNavigatie(el, { vorige, volgende })`:
+      luistert op touchstart/touchend, telt alleen als de beweging ≥ 60 px
+      horizontaal en < 40 px verticaal is, negeert gebaren die beginnen in een
+      element dat zelf horizontaal scrollt of in `[data-geen-veeg]`, en hangt
+      zolang het element open staat ← en → aan `document`. Eén implementatie,
+      vier gebruikers — anders krijgen we vier net iets andere drempels.
+
+- [ ] **Detailvenster van een kaartje** (grootste winst). Vegen/pijltjes gaan naar
+      het vorige of volgende kaartje **in de lijst die je op dat moment ziet** —
+      dus mét het zoekfilter en de sortering die aanstaan. Chevrons links en
+      rechts in het venster als zichtbare hint (de knapzak heeft ze al, dus dat
+      patroon staat er).
+
+- [ ] **Spreukdetail** — zelfde mechaniek, zelfde lijst-logica (de gefilterde
+      bibliotheek).
+
+- [ ] **Subtabbladen van de speler** (Party · Personage · Boedel · Progressie ·
+      Spreukenboek · Berichten). Let op: de **boedel-carrousel** veegt zelf al.
+      Daarom de regel hierboven — een veeg die in de carrousel begint hoort bij
+      de carrousel.
+
+- [ ] **Missiebord op een telefoon.** Zes kolommen van 220 px in een zijwaartse
+      scroll: op een telefoon zie je één kolom en een streepje van de volgende.
+      Onder ~700 px: één kolom tegelijk, met de statusnamen als strip erboven en
+      vegen ertussen. Dat is meteen de plek waar vegen het meest natuurlijk is.
+
+- [ ] **Waar we het níét doen:** de wereldkaart en de dungeonkaart (daar is
+      slepen pannen), het tekenen van kamers, en overal waar een tekstveld of
+      een schuifregelaar staat.
+
+- [ ] **Bijwerking: ← en → in het archiefraster zelf** (zonder venster) zou ook
+      kunnen — selectie verplaatsen en Enter opent. Pas doen als het bladeren in
+      het venster er is; anders bouwen we twee toetsmodellen door elkaar.
+
 ## Op de telefoon
+
+- [ ] **Het missiebord heeft geen telefoonweergave.** Zes kolommen naast elkaar
+      in een zijwaartse scroll; er is geen media-query voor `.prikbord`. Zie het
+      blok hierboven — dit is de eerste kandidaat voor vegen.
+
+- [ ] **"Aangevraagd" zegt niet wie het vroeg.** De kolom is de wachtrij van
+      spelersaanvragen (Facties → *Missie aanvragen*), maar op het kaartje staat
+      geen naam: `questStates[questId]` bewaart alleen de status, en wie het
+      vroeg gaat alleen als socket-melding langs. Het label zegt nu *Aangevraagd
+      door een party* met uitleg in de tooltip; de naam erbij vraagt een
+      datawijziging (`{ status, door, opTijd }`) en is dat op zichzelf misschien
+      waard zodra er meerdere party's tegelijk spelen.
 
 - [ ] **Alles nog eens doorlopen op een telefoon.** De app wordt aan tafel op
       laptops en een tablet gebruikt, dus daar is hij op gebouwd — maar spelers
