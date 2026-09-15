@@ -2276,6 +2276,22 @@ naam niets over de herberg zegt.
 - Facties wijkt wél echt af (lichte perkamentkaarten in plaats van het donkere
   paneel); dat is een overzicht en geen bezoek.
 
+> **Het paneel staat op 0,76, en dat is met opzet stevig.** Het stond op 0,52
+> met een blur van 3px, en dat werd per dienst aanmodderen: op een drukke of
+> lichte achtergrond (de magizoöloog, een boekwinkel) moest je de tekstkleur
+> bijstellen om het leesbaar te houden, op een donkere viel het vlak juist weg.
+> Op 0,76 met blur 5px is het een échte ondergrond — je kunt er alles op zetten,
+> tot een tabel met een lichte kop aan toe, zonder per scherm te sleutelen. De
+> sfeer zit ín de achtergrond róndom het paneel, niet eronder.
+> **De herberg viel daar buiten**: die zet zijn achtergrond op
+> `body.herberg-actief` in plaats van als inline style op de scene, dus
+> `.herberg-scene[style]` greep er nooit — de dienst waar de klasse naar
+> vernoemd is, was de enige zónder paneel. Dat viel niet op omdat zijn
+> achtergrond toevallig donker is. Er staat nu een tweede regel voor
+> `body.herberg-actief .herberg-scene .herberg-content`.
+> **Facties houdt bewust zijn eigen vorm** (lichte perkamentkaarten, geen donker
+> paneel): dat is een overzicht en geen bezoek aan iemand.
+
 > **`.herberg-zoek-input` had geen enkele CSS-regel** (15 sep 2026). Het veld
 > stond op de witte browserstandaard terwijl de tekstkleur die het van elders
 > meekreeg bijna wit was: contrast **1,19** — wat je typte was onzichtbaar,

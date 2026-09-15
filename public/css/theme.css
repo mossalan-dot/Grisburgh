@@ -12058,11 +12058,18 @@ body.herberg-actief #app { position: relative; z-index: 1; }
 .herberg-scene[style] .herberg-content {
   position: relative;
   z-index: 1;
-  background: rgba(0,0,0,0.52);
+  /* Dit vlak stond op 0,52 met een blur van 3px, en dat was per dienst
+     aanmodderen: op een drukke of lichte achtergrond (de magizoöloog, de
+     boekwinkel) moest je de tekstkleur bijstellen om het leesbaar te houden, en
+     op een donkere viel het vlak juist weg. Op 0,76 is het een échte
+     ondergrond — je kunt er alles op zetten, inclusief een tabel met een lichte
+     kop, zonder per scherm te gaan sleutelen. De achtergrond blijft zichtbaar
+     rondom het paneel; dáár zit de sfeer, niet eronder. */
+  background: rgba(0,0,0,0.76);
   border-radius: 12px;
   padding: 24px 20px;
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
 }
 
 .herberg-content {
@@ -25767,3 +25774,18 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
 }
 .markt-winkel-waren { margin-top: 14px; text-align: left; }
 @media (max-width: 640px) { .markt-winkel { padding: 14px 12px 24px; } }
+
+/* De herberg zet zijn achtergrond op `body.herberg-actief` in plaats van als
+   inline style op de scene, dus `.herberg-scene[style]` greep daar nooit: de
+   dienst waar de klasse naar vernoemd is, was de enige zónder paneel. Dat viel
+   niet op omdat zijn achtergrond toevallig donker is — zet er een lichte gevel
+   neer en de tekst valt uit elkaar. Zelfde vlak, zelfde regels. */
+body.herberg-actief .herberg-scene .herberg-content {
+  position: relative;
+  z-index: 1;
+  background: rgba(0,0,0,0.76);
+  border-radius: 12px;
+  padding: 24px 20px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
