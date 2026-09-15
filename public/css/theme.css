@@ -25723,3 +25723,19 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
 .dm-markt-gebied input { accent-color: #8a6a2a; }
 .dm-markt-winkels { display: flex; flex-direction: column; gap: 2px; }
 .dm-markt-winkel-naam { min-width: 220px; color: #3a2410; }
+
+/* De Markt leent de gevel van een van zijn winkels. Het inline background-image
+   zet via .herberg-scene[style] vanzelf de tint-overlay en het
+   leesbaarheidspaneel aan, net als bij de andere diensten. */
+.markt-gevel-bijschrift {
+  display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+  margin: 18px 0 0; font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: 0.74rem; color: rgba(240,228,196,0.4);
+}
+.markt-gevel-bijschrift .icon { width: 12px; height: 12px; }
+
+/* "Bekijk het kaartje" was drie dingen tegelijk: een los ↗-teken, een
+   boekicoon en een kale klikbare naam. Nu één gebaar — de pijl uit de sprite,
+   op de maat van de tekst ernaast. */
+.herberg-bubble-card-btn .icon,
+.player-loot-link .icon { width: 11px; height: 11px; vertical-align: -1px; }

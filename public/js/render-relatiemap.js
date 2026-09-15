@@ -221,7 +221,7 @@ function _renderGraph() {
                 fill="#f4eed6" stroke="${border}" stroke-width="${bw}"/>
           ${imgSvg}
           ${crossSvg}
-          ${hasNotes ? `<use href="/img/icons.svg?v=15#icon-pencil" x="${NODE_W - 13}" y="3"
+          ${hasNotes ? `<use href="/img/icons.svg?v=16#icon-pencil" x="${NODE_W - 13}" y="3"
             width="9" height="9" style="color:#7a6040;pointer-events:none"/>` : ''}
           ${lines.length === 1
             ? `<text x="${NODE_W / 2}" y="${8 + IMG_H + 19}" text-anchor="middle" fill="#2a1a08"
@@ -252,7 +252,7 @@ function _renderGraph() {
                    fill="rgba(0,0,0,0.18)"/>
           <rect x="${(NODE_W - 24) / 2}" y="${ofY - 5}" width="24" height="9" rx="2"
                 fill="rgba(225,215,185,0.82)" stroke="rgba(180,155,110,0.5)" stroke-width="0.5"/>
-          ${hasNotes ? `<use href="/img/icons.svg?v=15#icon-pencil" x="${NODE_W - 13}" y="${ofY + 5}"
+          ${hasNotes ? `<use href="/img/icons.svg?v=16#icon-pencil" x="${NODE_W - 13}" y="${ofY + 5}"
             width="9" height="9" style="color:#7a6040;pointer-events:none"/>` : ''}
           ${lines.length === 1
             ? `<text x="${NODE_W / 2}" y="${ofY + PH / 2}" text-anchor="middle" dominant-baseline="middle"
@@ -401,7 +401,7 @@ function _silhouetSvg(type, cx, cy, maat) {
   const naam = _SILHOUET[type] || 'hexagon';
   // De sprite-symbolen tekenen met `currentColor`; kleur zetten gaat dus via
   // `color`, niet via `stroke` — die wordt door het symbool zelf overschreven.
-  return `<use href="/img/icons.svg?v=15#icon-${naam}" x="${cx - maat / 2}" y="${cy - maat / 2}"
+  return `<use href="/img/icons.svg?v=16#icon-${naam}" x="${cx - maat / 2}" y="${cy - maat / 2}"
             width="${maat}" height="${maat}" opacity="0.34"
             style="color:#5a3c10;pointer-events:none"/>`;
 }

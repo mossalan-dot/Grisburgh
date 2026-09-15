@@ -547,6 +547,15 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > data: in Grisburgh hebben *Oosterkwartier* en *Het Oude Glasblazershuis*
 > **zichzelf** als Gebied, dus die twee komen nooit onder Grisburgh uit.
 >
+> **De Markt leent een achtergrond.** Er staat geen gebouw — de Markt ís de
+> optelsom van de winkels die je kent. Dus kiest hij bij elk **bezoek** de gevel
+> van een willekeurige winkel die deze party open ziet (`_marktKiesGevel`), met
+> een bijschrift eronder. Bewust één keuze per bezoek en niet per hertekening:
+> anders wisselt de achtergrond onder je handen terwijl je in het zoekveld typt.
+> Het inline `background-image` zet via de bestaande regel
+> `.herberg-scene[style]` vanzelf de tint-overlay en het leesbaarheidspaneel aan
+> — dezelfde machinerie als bij de andere diensten, dus er hoefde daar niets bij.
+
 > **Nog open (stap 3 en 4 uit `docs/voorstel-markt.md`):** een boodschappenlijst
 > over winkels heen, en één DM-tabel om voorraad en prijzen bij te stellen.
 
@@ -1801,6 +1810,11 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > (Dodging, Cover, Hidden, Flying…). De picker in `dm-panel.js` groepeert met
 > `_CC` en `_SIT`. `USE_SPRITE_COND_ICONS = false` zet de oude geschilderde
 > PNG-set (`public/img/conditions/`) weer aan.
+
+> **Eén gebaar voor "bekijk het kaartje".** Dat was drie dingen tegelijk: een
+> los `↗`-teken (6×), het `open-book`-icoon (dat óók "spreukenboek" betekent) en
+> een kale klikbare naam. Nu overal `icon('arrow-up-right')`. Zoek je er een:
+> `grep "Bekijk kaartje"`.
 
 **Nooit emoji gebruiken in HTML-output.** Altijd `icon()` of Unicode-tekens die een functionele staat hebben (★/☆ voor favorieten).
 

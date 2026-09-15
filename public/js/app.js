@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=73";
-import { initDmPanel } from "./dm-panel.js?v=254";
+import { initDmPanel } from "./dm-panel.js?v=255";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE } from './conditions.js?v=1';
 import './media-picker.js?v=8';
 
@@ -20,7 +20,7 @@ import './media-picker.js?v=8';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=15#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=16#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -7889,7 +7889,7 @@ async function renderMijnKarakter(opts = {}) {
               <li class="player-dash-simple-item">
                 <span class="player-dash-simple-name">${esc(si.name)}</span>
                 ${si.note ? `<span class="player-dash-simple-note">${esc(si.note)}</span>` : ''}
-                ${si.entityId ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:0.65rem;padding:1px 4px;line-height:1.3;" onclick="window._openDetail('${esc(si.entityType)}','${esc(si.entityId)}')" title="Open kaartje">↗</button>` : ''}
+                ${si.entityId ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:0.65rem;padding:1px 4px;line-height:1.3;" onclick="window._openDetail('${esc(si.entityType)}','${esc(si.entityId)}')" title="Open kaartje">${icon('arrow-up-right')}</button>` : ''}
                 <button class="player-dash-simple-del" onclick="window._dashRemoveItem('${esc(si.id)}')" title="Verwijder">×</button>
               </li>`).join('')}</ul>` : '';
           })()}
@@ -7944,7 +7944,7 @@ async function renderMijnKarakter(opts = {}) {
               <div class="item-carousel-namerow">
                 <span class="item-carousel-type-icon" style="color:${typeColor}">${typeIcon}</span>
                 <span class="item-carousel-name">${esc(entityNaam)}</span>
-                ${si.entityId ? `<span style="font-size:0.7rem;opacity:0.5;margin-left:4px" title="Bekijk kaartje">${icon('open-book')}</span>` : ''}
+                ${si.entityId ? `<span style="font-size:0.7rem;opacity:0.5;margin-left:4px" title="Bekijk kaartje">${icon('arrow-up-right')}</span>` : ''}
               </div>
               <div style="font-size:0.65rem;font-family:'Cinzel',serif;letter-spacing:.07em;text-transform:uppercase;color:rgba(100,75,30,0.6);margin-bottom:6px">${esc(godLabel)}</div>
               ${descTekst ? `<div class="item-carousel-desc" onclick="event.stopPropagation()">${mdToHtml(descTekst)}</div>` : ''}
@@ -8054,7 +8054,7 @@ async function renderMijnKarakter(opts = {}) {
                   </div>
                   <div class="speler-brief-body">
                     ${m.afzender ? `<div class="speler-brief-afzender">
-                      Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.65rem;padding:1px 4px;line-height:1.3;margin-left:3px" onclick="event.stopPropagation();window._openDetail('${esc(m.entityType)}','${esc(m.entityId)}')" title="Open kaartje">↗</button>` : ''}
+                      Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.65rem;padding:1px 4px;line-height:1.3;margin-left:3px" onclick="event.stopPropagation();window._openDetail('${esc(m.entityType)}','${esc(m.entityId)}')" title="Open kaartje">${icon('arrow-up-right')}</button>` : ''}
                     </div>` : ''}
                     <div class="speler-brief-tekst">${mdToHtml(m.tekst).replace(/👁/g,icon('eye')).replace(/👂/g,icon('zap')).replace(/👃/g,icon('flask-conical')).replace(/👅/g,icon('potion')).replace(/✋/g,icon('heart'))}</div>
                   </div>
@@ -10732,6 +10732,7 @@ window._entiteitDicht = (id) => {
 let _marktData   = null;
 let _marktZoek   = '';
 let _marktGebied = '';   // '' = alles
+let _marktGevel  = null; // welke winkelgevel er deze keer achter staat
 
 async function renderMarkt() {
   const el = document.getElementById('section-markt');
@@ -10739,7 +10740,19 @@ async function renderMarkt() {
   _dienstLaden(el);
   try { _marktData = await api.markt(); }
   catch (e) { _dienstFout(el, e); return; }
+  _marktGevel = _marktKiesGevel(_marktData.winkels || []);
   _marktTeken();
+}
+
+// De Markt heeft geen eigen gebouw — hij is de optelsom van de winkels die je
+// kent. Dus leent hij een achtergrond: de gevel van een willekeurige winkel die
+// deze party open ziet. Eén keuze per **bezoek**, niet per hertekening, anders
+// wisselt de achtergrond onder je handen terwijl je in het zoekveld typt.
+function _marktKiesGevel(winkels) {
+  const bruikbaar = winkels.filter(w => w.imageId && !w._verborgen && !w._onbereikbaar);
+  if (!bruikbaar.length) return null;
+  const w = bruikbaar[Math.floor(Math.random() * bruikbaar.length)];
+  return { id: w.imageId, naam: w.naam };
 }
 
 function _marktTeken() {
@@ -10749,7 +10762,8 @@ function _marktTeken() {
   const q = _marktZoek.trim();
 
   el.innerHTML = `
-    <div class="herberg-scene markt-scene">
+    <div class="herberg-scene markt-scene"${_marktGevel
+      ? ` style="background-image:url('${api.thumbUrlBreed(_marktGevel.id)}')"` : ''}>
       <div class="herberg-content markt-content">
         ${window._helpBtn?.('markt') ?? ''}
         <div class="markt-kop">
@@ -10770,6 +10784,7 @@ function _marktTeken() {
             : winkels;
           return q ? _marktTreffers(zicht, q) : _marktWinkels(zicht);
         })()}
+        ${_marktGevel ? `<p class="markt-gevel-bijschrift">${icon('image')} Gevel van ${esc(_marktGevel.naam)}</p>` : ''}
       </div>
     </div>`;
 
@@ -11029,7 +11044,7 @@ async function renderHerberg() {
                           </button>
                           <button class="herberg-item-card-btn"
                             onclick="event.stopPropagation();window._openDetail('${esc(e.type)}','${esc(e.id)}')"
-                            title="Bekijk kaartje">↗</button>
+                            title="Bekijk kaartje">${icon('arrow-up-right')}</button>
                         </div>`).join('')}
                   ${beschikbaar.length > 3 ? `
                     <button class="herberg-item herberg-item--shuffle"
@@ -11190,7 +11205,7 @@ window._herbergVraag = async (entityId) => {
           <p class="herberg-bubble-naam">— over ${esc(res.entityName)}</p>
           <button class="herberg-bubble-card-btn"
             onclick="window._openDetail('${esc(res.entityType)}','${esc(res.entityId)}')"
-            title="Bekijk kaartje van ${esc(res.entityName)}">↗</button>
+            title="Bekijk kaartje van ${esc(res.entityName)}">${icon('arrow-up-right')}</button>
         </div>
       </div>`;
     antwoord.innerHTML = bubbleHtml;
@@ -11270,7 +11285,7 @@ async function renderGock() {
             ${geval.isGeheim && geval.entityId
               ? `<button class="herberg-bubble-card-btn gock-kaartje-btn"
                   onclick="window._openDetail('${esc(geval.entityType)}','${esc(geval.entityId)}')"
-                  title="Open kaartje">↗ Bekijk kaartje</button>`
+                  title="Open kaartje">${icon('arrow-up-right')} Bekijk kaartje</button>`
               : ''}
             <button class="ts-wedden-btn" style="margin-top:10px" onclick="window._gockOpgehaald()">Dossier ontvangen</button>
           </div>` : ''}
@@ -12000,7 +12015,7 @@ async function renderHeeren() {
   const portret = config.imageId
     ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
     : `<div class="gock-portret-fallback">${icon('moon')}</div>`;
-  const kaartLink = (e) => (e && e.zichtbaar) ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:.65rem;padding:1px 4px" onclick="window._openDetail('${esc(e.type)}','${esc(e.id)}')" title="Bekijk kaartje">↗</button>` : '';
+  const kaartLink = (e) => (e && e.zichtbaar) ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:.65rem;padding:1px 4px" onclick="window._openDetail('${esc(e.type)}','${esc(e.id)}')" title="Bekijk kaartje">${icon('arrow-up-right')}</button>` : '';
 
   const boetesHtml = boetes.length ? `
     <div class="gock-dossier" style="border-color:rgba(150,40,40,0.6)">

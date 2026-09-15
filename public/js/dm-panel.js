@@ -9680,7 +9680,7 @@ async function _renderBerichten() {
                       <div class="bericht-history-row">
                         <div style="flex:1;min-width:0">
                           ${m.titel ? `<div class="bericht-brief-titel">${esc(m.titel)}</div>` : ''}
-                          ${m.afzender ? `<div class="bericht-brief-afzender">Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.6rem;padding:1px 3px" onclick="window._openDetail('${esc(m.entityType)}','${esc(m.entityId)}')" title="Open kaartje">↗</button>` : ''}</div>` : ''}
+                          ${m.afzender ? `<div class="bericht-brief-afzender">Van: <em>${esc(m.afzender)}</em>${m.entityId ? ` <button class="herberg-bubble-card-btn" style="font-size:0.6rem;padding:1px 3px" onclick="window._openDetail('${esc(m.entityType)}','${esc(m.entityId)}')" title="Open kaartje">${icon('arrow-up-right')}</button>` : ''}</div>` : ''}
                           <div class="bericht-brief-tekst-preview">${esc(m.tekst.substring(0, 120))}${m.tekst.length > 120 ? '…' : ''}</div>
                         </div>
                         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
