@@ -32,6 +32,7 @@ LINK=()
 # binnenhalen en zouden de JSON-bestanden ín backups/ alsnog meekomen.
 rsync -a --delete "${LINK[@]}" \
   --exclude='files/' \
+  --exclude='files-origineel-*/' \
   --exclude='backups/' \
   --exclude='*.bak.*.json' \
   --exclude='*.bak-*.json' \
