@@ -2,17 +2,20 @@
 
 Eén plek voor wat er nog ligt. Bijgewerkt 4 sep 2026. De uitwerking staat in de
 werkdocumenten waar naar verwezen wordt; hier staat alleen wát er ligt en hoe
-groot het is.
+groot het is. Bijgewerkt 15 sep 2026.
 
 ## Nu aan de beurt
 
-- [ ] **De tekst ís het script** — de akteregie tot één ding maken: de lopende
-      tekst in een lade onderin, met de onthulknoppen ín de tekst in plaats van
-      als aparte strook stappen. Uitwerking en volgorde:
-      [voorstel-akteregie.md](voorstel-akteregie.md). **Stap 1 is blokkerend en
-      los bruikbaar:** `GET /meta` stuurt `hoofdstukken[*].tekst` en `[*].script`
-      naar elke ingelogde speler. Nu leeg, dus onschuldig — maar de eerste akte
-      die je erin plakt staat integraal in de browser van je spelers.
+- [x] **De tekst ís het script** — gedaan 14-15 sep 2026. Schrijfscherm
+      (`akte-schrijven.js`) met elf regieblokken, de lade onderin met dezelfde
+      renderer en dezelfde knoppen, secties verslepen, een potlood per blok,
+      naast elkaar schrijven, plaatshouders vanuit de tekst, geheimen onthullen
+      uit de tekst, en "N na te kijken" in de regie-balk. Het blokkerende stuk
+      (`GET /meta` stuurde `tekst`/`script`/`monsters` naar elke ingelogde
+      speler) is dicht en staat in `tests/akte-regie.test.js`.
+      **Wat er aan jouw kant nog ligt:** de vijftien hoofdstukken erin zetten (de
+      importer bewaart de `.md` nu wél), de beelden koppelen, en één sectie
+      echt spelen om te zien of de knoppen doen wat je aan tafel nodig hebt.
 
 - [ ] **Conditions in het Nederlands** — `_COND_INFO` en `COND_LBL_MAP` in
       `app.js` vertalen de PHB-conditions (Verblind, Betoverd, Bevreesd,
@@ -137,56 +140,33 @@ groot het is.
 
 ## Vegen en pijltjes: één manier om door een rij te bladeren
 
-Gevraagd op 14 sep 2026. De app zit vol plekken waar je één ding uit een rij
-bekijkt en dan het volgende wilt: een kaartje in het archief, een spreuk, een
-subtabblad van de speler, een kolom op het missiebord. Nu is dat telkens
-*sluiten → terug → volgende openen*.
+Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
 
-**De regel die ik zou aanhouden:** vegen bladert tussen **buren in de lijst waar
-je al in zit**, en het neemt nooit een gebaar over dat al iets anders doet
-(pannen op een kaart, een carrousel die zelf al veegt, een tekstveld). En elke
-plek die veegt, krijgt **dezelfde toets**: ← en →. De DM zit achter een laptop;
-wat op een telefoon een veeg is, is daar een pijltje.
+- [x] **Eén hulpje voor alles** — `window._veegNavigatie(el, {vorige, volgende,
+      toetsen})` in `app.js`: ≥ 60 px opzij, < 45 px op of neer, negeert gebaren
+      die beginnen in iets dat zélf horizontaal schuift of in een invoerveld, en
+      hangt ← en → aan `document` zolang het element openstaat.
+- [x] **Detailvenster van een kaartje** — buren in de lijst zoals je hem nú
+      gefilterd ziet; `window._bladerBron` laat een ander scherm (bestiarium)
+      dezelfde rij leveren. Bladeren en de terugknop sluiten elkaar uit: zolang
+      `_modalHistory` gevuld is bladert er niets.
+- [x] **Spreukdetail**, **subtabbladen van de speler**, **beeldcarrousel**,
+      **lightbox** (behalve ingezoomd — dan is slepen pannen), **bladeren door
+      een brief** en het **hulpvenster** met meerdere stappen.
+- [x] **Missiebord op een telefoon** — `.prikbord[data-kolom]` met een media-query
+      op 760 px: één kolom tegelijk, statusnamen als strip erboven.
+- [x] **Waar we het níét doen** — de wereldkaart en de dungeonkaart, het tekenen
+      van kamers, en elk veld waar je in typt of schuift.
 
-- [ ] **Eén hulpje voor alles.** `window._veegNavigatie(el, { vorige, volgende })`:
-      luistert op touchstart/touchend, telt alleen als de beweging ≥ 60 px
-      horizontaal en < 40 px verticaal is, negeert gebaren die beginnen in een
-      element dat zelf horizontaal scrollt of in `[data-geen-veeg]`, en hangt
-      zolang het element open staat ← en → aan `document`. Eén implementatie,
-      vier gebruikers — anders krijgen we vier net iets andere drempels.
-
-- [ ] **Detailvenster van een kaartje** (grootste winst). Vegen/pijltjes gaan naar
-      het vorige of volgende kaartje **in de lijst die je op dat moment ziet** —
-      dus mét het zoekfilter en de sortering die aanstaan. Chevrons links en
-      rechts in het venster als zichtbare hint (de knapzak heeft ze al, dus dat
-      patroon staat er).
-
-- [ ] **Spreukdetail** — zelfde mechaniek, zelfde lijst-logica (de gefilterde
-      bibliotheek).
-
-- [ ] **Subtabbladen van de speler** (Party · Personage · Boedel · Progressie ·
-      Spreukenboek · Berichten). Let op: de **boedel-carrousel** veegt zelf al.
-      Daarom de regel hierboven — een veeg die in de carrousel begint hoort bij
-      de carrousel.
-
-- [ ] **Missiebord op een telefoon.** Zes kolommen van 220 px in een zijwaartse
-      scroll: op een telefoon zie je één kolom en een streepje van de volgende.
-      Onder ~700 px: één kolom tegelijk, met de statusnamen als strip erboven en
-      vegen ertussen. Dat is meteen de plek waar vegen het meest natuurlijk is.
-
-- [ ] **Waar we het níét doen:** de wereldkaart en de dungeonkaart (daar is
-      slepen pannen), het tekenen van kamers, en overal waar een tekstveld of
-      een schuifregelaar staat.
-
-- [ ] **Bijwerking: ← en → in het archiefraster zelf** (zonder venster) zou ook
-      kunnen — selectie verplaatsen en Enter opent. Pas doen als het bladeren in
-      het venster er is; anders bouwen we twee toetsmodellen door elkaar.
+- [ ] **Bijwerking: ← en → in het archiefraster zelf** (zonder venster) — selectie
+      verplaatsen en Enter opent. Blijft liggen: het bladeren ín het venster
+      staat er nu, en twee toetsmodellen door elkaar is erger dan één.
 
 ## Op de telefoon
 
-- [ ] **Het missiebord heeft geen telefoonweergave.** Zes kolommen naast elkaar
-      in een zijwaartse scroll; er is geen media-query voor `.prikbord`. Zie het
-      blok hierboven — dit is de eerste kandidaat voor vegen.
+- [x] **Het missiebord heeft geen telefoonweergave** — opgelost 14 sep 2026: één
+      kolom tegelijk onder 760 px, met de statusnamen als strip erboven en vegen
+      ertussen.
 
 - [ ] **"Aangevraagd" zegt niet wie het vroeg.** De kolom is de wachtrij van
       spelersaanvragen (Facties → *Missie aanvragen*), maar op het kaartje staat
