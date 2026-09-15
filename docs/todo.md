@@ -111,21 +111,22 @@ groot het is. Bijgewerkt 15 sep 2026.
 ## In de vriezer — opruimen vanaf 15 oktober 2026
 
 - [ ] **Originelen van de WebP-omzetting weggooien.** Op 15 sep 2026 zijn de
-      beelden van **Test** (78 → 8 MB) en **prewett** (114 → 10 MB) omgezet naar
-      WebP; de originelen staan een maand in
-      `data/campaigns/<campagne>/files-origineel-2026-09-15/` (samen 194 MB).
+      beelden van **alle drie de campagnes** omgezet naar WebP — Grisburgh
+      (2.053 → 208 MB), Test (78 → 8 MB) en prewett (114 → 10 MB). De originelen
+      staan een maand in `data/campaigns/<campagne>/files-origineel-2026-09-15/`
+      (samen 2,3 GB).
       Ze zitten **niet in de nachtelijke backup** (`files/` zit daar sowieso
       nooit in), dus dit is de enige kopie — vandaar de wachttijd.
       Ziet alles er goed uit, dan:
       ```bash
-      ssh root@46.224.156.154 "rm -rf /var/www/grisburgh/data/campaigns/{Test,prewett}/files-origineel-2026-09-15"
+      ssh root@46.224.156.154 "rm -rf /var/www/grisburgh/data/campaigns/*/files-origineel-2026-09-15"
       ```
-      Gecontroleerd op 15 sep: 130 beelden leesbaar, 0 kapot, 0 verwijzingen op
-      een kaartje kwijt.
+      Gecontroleerd op 15 sep: alle 1.252 beelden leesbaar, 0 kapot, 0
+      verwijzingen op een kaartje kwijt.
 
-- [ ] **Grisburgh nog omzetten** (2.053 → 208 MB, 1.122 bestanden). Bewust
-      uitgesteld tot Test en prewett een tijdje meelopen. Zelfde script:
-      `node scripts/beelden-naar-webp.js grisburgh --schrijf`.
+      **Grisburgh is diezelfde dag meegegaan**: 1.122 bestanden, 2.053 → 208 MB;
+      `files/` staat nu op 340 MB (de rest is geluid, video en pdf). De
+      originelen daarvan (2,1 GB) staan in dezelfde map naast de campagne.
 
 ## Scherven (klein, los op te pakken)
 
