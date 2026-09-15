@@ -25529,3 +25529,185 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
   background: linear-gradient(to right,
     rgba(20,10,2,0.95) 0%, rgba(20,10,2,0.85) 40%, rgba(20,10,2,0.45) 75%, rgba(20,10,2,0.3) 100%);
 }
+
+/* Het zoekveld van Gock en de magizoöloog (.herberg-zoek-input) had geen enkele
+   eigen regel: het stond op de witte browserstandaard, terwijl de tekstkleur die
+   het van elders meekreeg bijna wit was — rgba(240,235,225,.93) op #fff, een
+   contrast van 1,19. Wat je typte was dus onzichtbaar; alleen de placeholder was
+   te lezen omdat die zijn eigen kleur heeft. Het deelt nu de opmaak van
+   .herberg-search, die er al was en klopt. Onderaan de stylesheet, want die
+   regel staat op ~12150 en zou anders winnen op volgorde. */
+.herberg-zoek-input {
+  width: 100%;
+  padding: 10px 16px;
+  background: rgba(30, 18, 6, 0.72);
+  border: 1px solid rgba(196,168,122,0.45);
+  border-radius: 8px;
+  color: rgba(240,220,170,0.92);
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 0.92rem;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-sizing: border-box;
+}
+.herberg-zoek-input::placeholder { color: rgba(180,150,90,0.55); }
+.herberg-zoek-input:focus {
+  outline: none;
+  border-color: rgba(212,168,67,0.65);
+  background: rgba(30,18,6,0.85);
+}
+
+/* De laadstand van een dienstscherm stond dertien keer als inline-style in
+   app.js (`style="opacity:.5"`); nu één klasse. */
+.herberg-laden { opacity: .5; }
+
+/* ── De Markt ───────────────────────────────────────────────────────────────
+   Zelfde romp als elk dienstscherm (.herberg-scene > .herberg-content), maar
+   zonder portret: er staat hier geen winkelier — het is een overzicht van waar
+   je heen kunt. Vandaar dat de zoekbalk bovenaan de plek van de groet inneemt. */
+.markt-scene { background: linear-gradient(160deg, #241605 0%, #150c03 100%); }
+/* .herberg-content is een kolom met align-items:center — precies goed voor een
+   portret met een groet eronder, maar daardoor kromp het raster en het zoekveld
+   tot hun eigen inhoud. Hier moeten de kinderen de volle breedte pakken. */
+.markt-content {
+  max-width: 1040px; width: 100%;
+  padding: 22px 26px 30px;
+  align-items: stretch; text-align: left;
+}
+
+.markt-kop {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.markt-zoekwrap { position: relative; flex: 1 1 320px; }
+.markt-zoek { padding-left: 38px !important; }
+.markt-zoek-icoon {
+  position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: rgba(196,168,122,0.6); pointer-events: none;
+}
+.markt-beurs {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: 'Cinzel', serif; font-size: 0.82rem; color: #d4b068;
+  background: rgba(30,18,6,0.6); border: 1px solid rgba(196,168,122,0.3);
+  border-radius: 999px; padding: 7px 15px; white-space: nowrap;
+}
+.markt-beurs .icon { width: 14px; height: 14px; }
+
+.markt-sectie-kop {
+  display: flex; align-items: center; gap: 7px;
+  font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: .12em;
+  text-transform: uppercase; color: rgba(196,168,122,0.75);
+  margin: 22px 0 10px; padding-bottom: 6px;
+  border-bottom: 1px solid rgba(196,168,122,0.18);
+}
+.markt-sectie-kop:first-child { margin-top: 0; }
+.markt-sectie-kop .icon { width: 13px; height: 13px; }
+
+/* ── De winkels ── */
+.markt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.markt-kaart {
+  display: flex; align-items: stretch; gap: 0; text-align: left; cursor: pointer;
+  background: rgba(38,24,10,0.72); border: 1px solid rgba(196,168,122,0.26);
+  border-radius: 9px; overflow: hidden; padding: 0;
+  transition: border-color .18s, background .18s, transform .18s;
+}
+.markt-kaart:hover {
+  background: rgba(52,33,13,0.85); border-color: rgba(212,168,67,0.55);
+  transform: translateY(-2px);
+}
+.markt-kaart--dicht { opacity: .55; border-style: dashed; }
+.markt-kaart-beeld {
+  position: relative; flex: 0 0 76px; width: 76px; background: rgba(20,12,4,0.6);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.markt-kaart-beeld img { width: 100%; height: 100%; object-fit: cover; }
+.markt-kaart-icoon {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: rgba(196,168,122,0.35); pointer-events: none;
+}
+.markt-kaart-beeld img + .markt-kaart-icoon { display: none; }
+.markt-kaart-icoon .icon { width: 26px; height: 26px; }
+.markt-kaart-body { display: flex; flex-direction: column; gap: 3px; padding: 11px 13px; min-width: 0; }
+.markt-kaart-naam { font-family: 'Cinzel', serif; font-size: 0.92rem; color: #f2e3c2; line-height: 1.2; }
+.markt-kaart-type {
+  font-family: 'Cinzel', serif; font-size: 0.6rem; letter-spacing: .1em;
+  text-transform: uppercase; color: rgba(196,168,122,0.7);
+}
+.markt-kaart-tel { font-family: 'Crimson Text', serif; font-size: 0.82rem; color: rgba(240,228,196,0.6); }
+.markt-kaart-dicht {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.72rem; font-style: italic; color: rgba(220,150,110,0.85);
+}
+.markt-kaart-dicht .icon { width: 11px; height: 11px; }
+
+/* ── De treffers ── */
+.markt-treffers { display: flex; flex-direction: column; gap: 10px; }
+.markt-treffer {
+  background: rgba(38,24,10,0.6); border: 1px solid rgba(196,168,122,0.2);
+  border-radius: 9px; padding: 11px 14px;
+}
+.markt-treffer-kop { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.markt-treffer-naam { font-family: 'Cinzel', serif; font-size: 0.9rem; color: #f2e3c2; }
+.markt-treffer-kaart {
+  background: none; border: none; cursor: pointer; padding: 2px;
+  color: rgba(196,168,122,0.6); display: inline-flex;
+}
+.markt-treffer-kaart:hover { color: #d4b068; }
+.markt-treffer-kaart .icon { width: 14px; height: 14px; }
+.markt-aanbod { display: flex; flex-direction: column; gap: 4px; }
+.markt-aanbod-regel {
+  display: flex; align-items: baseline; gap: 10px; width: 100%; cursor: pointer;
+  background: rgba(20,12,4,0.45); border: 1px solid transparent; border-radius: 6px;
+  padding: 6px 11px; text-align: left; transition: background .15s, border-color .15s;
+}
+.markt-aanbod-regel:hover { background: rgba(52,33,13,0.8); border-color: rgba(212,168,67,0.4); }
+.markt-aanbod-winkel { flex: 1; font-family: 'Crimson Text', serif; font-size: 0.88rem; color: rgba(240,228,196,0.9); }
+.markt-aanbod-prijs {
+  font-family: 'Cinzel', serif; font-size: 0.82rem; color: #d4b068;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.markt-aanbod-prijs--teduur { color: rgba(220,130,100,0.9); }
+.markt-aanbod-best, .markt-aanbod-op {
+  font-family: 'Cinzel', serif; font-size: 0.58rem; letter-spacing: .1em;
+  text-transform: uppercase; border-radius: 999px; padding: 2px 8px; white-space: nowrap;
+}
+.markt-aanbod-best { background: rgba(90,168,74,0.2); color: #8fd07a; border: 1px solid rgba(90,168,74,0.4); }
+.markt-aanbod-op   { background: rgba(120,60,40,0.3); color: rgba(220,150,110,0.9); border: 1px solid rgba(160,80,50,0.4); }
+.markt-aanbod-regel--op .markt-aanbod-winkel,
+.markt-aanbod-regel--op .markt-aanbod-prijs { opacity: .55; text-decoration: line-through; }
+.markt-aanbod-regel--best { border-color: rgba(90,168,74,0.3); }
+
+.markt-leeg {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  padding: 44px 20px; font-family: 'IM Fell English', serif; font-style: italic;
+  font-size: 0.95rem; color: rgba(240,228,196,0.55);
+}
+.markt-leeg .icon { width: 18px; height: 18px; opacity: .7; }
+
+@media (max-width: 640px) {
+  .markt-content { padding: 16px 14px 24px; }
+  .markt-grid { grid-template-columns: 1fr; }
+  .markt-beurs { width: 100%; justify-content: center; }
+}
+/* De hulpknop hoort rechtsboven; .markt-content rekt zijn kinderen, dus hij
+   werd anders een balk over de volle breedte met het boekje links. */
+.markt-content > .help-btn-wrap { align-self: flex-end; margin-bottom: 4px; }
+
+/* Gebiedsfilter op de Markt: breed vóór smal (Grisburgh boven Luimpoort). */
+.markt-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 16px; }
+.markt-chip {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: .04em;
+  background: rgba(30,18,6,0.55); border: 1px solid rgba(196,168,122,0.28);
+  color: rgba(240,228,196,0.8); border-radius: 999px; padding: 5px 13px;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.markt-chip:hover { border-color: rgba(212,168,67,0.55); color: #f2e3c2; }
+.markt-chip--aan {
+  background: rgba(212,168,67,0.18); border-color: rgba(212,168,67,0.65); color: #f2e3c2;
+}
+.markt-chip-tel {
+  font-family: 'Crimson Text', serif; font-size: 0.72rem;
+  opacity: .65; font-variant-numeric: tabular-nums;
+}

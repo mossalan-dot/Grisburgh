@@ -1931,6 +1931,137 @@ function _winkelVan(entities, shopId) {
   return alle.find(e => e.id === wijstNaar) || gevonden;
 }
 
+// ── De Markt ────────────────────────────────────────────────────────────────
+// Een winkel was tot nu toe een tabblad óp een kaartje: je moest weten dat Stoom
+// en Staal bestaat, het kaartje opzoeken in Locaties en dan de tab vinden. De
+// machinerie was compleet (rotatie, onderhandelen, humeur, uitverkocht), alleen
+// de ingang ontbrak. Dit is die ingang — een wéérgave, geen tweede opslag: de
+// voorraad blijft op het kaartje staan, en kopen loopt nog steeds via
+// POST /shops/:id/koop.
+//
+// **Eigen leesroute, met opzet.** `GET /shops/:id/beschikbaar` *maakt* de
+// rotatie van een roterende winkel als die er nog niet is, en schrijft
+// dm-state. Een marktoverzicht dat netjes alle winkels opvraagt zou dus in één
+// klap ieders schappen rollen, op een moment dat niemand die winkel bezocht.
+// Hier wordt de rotatie alleen gelézen; bestaat hij nog niet, dan zegt de markt
+// dat je moet langsgaan. Dat is precies wat een wisselend assortiment betekent.
+// Waar ligt deze winkel? Het veld *Gebied* (`data.wijk`) op een locatiekaartje
+// wijst naar een ándere locatie, dus er zit een keten in: Boekenwyrm → Luimpoort
+// → Grisburgh → Continent. Daar kun je op filteren zonder dat de DM iets nieuws
+// hoeft in te vullen — hij heeft het al ingevuld.
+// Twee dingen om te weten: een keten kan naar zichzelf wijzen (dat gebeurt in
+// Grisburgh bij Het Oude Glasblazershuis en Oosterkwartier), vandaar de
+// lusbeveiliging; en het laatste lid dekt alles ("Continent") en is dus
+// nutteloos als filter — dat knipt de client eraf.
+function _gebiedKeten(entity, locOpNaam) {
+  const pad = [];
+  let cur = entity;
+  for (let stap = 0; stap < 8 && cur; stap++) {
+    const w = (cur.data?.wijk || '').trim();
+    if (!w || pad.includes(w)) break;
+    pad.push(w);
+    const volgende = locOpNaam.get(w.toLowerCase());
+    if (!volgende || volgende.id === cur.id) break;
+    cur = volgende;
+  }
+  return pad;
+}
+
+function _marktRegels(shop) {
+  let v = []; try { v = JSON.parse(shop.data?.voorraad || '[]'); } catch { /* geen voorraad */ }
+  return Array.isArray(v) ? v : [];
+}
+
+router.get('/markt', attachRole, (req, res) => {
+  if (!req.role) return res.status(401).json({ error: 'Niet ingelogd' });
+  const entities = storage.readJSON('entities.json');
+  const dmState  = readDmState();
+  const meta     = storage.readJSON('meta.json');
+  const isDM     = req.role === 'dm';
+  const gid      = isDM ? dmState.activeGroup : _playerGroupId(dmState, req.session?.characterId);
+  const g        = getGroup(dmState, gid);
+
+  // Twee lagen die allebei waar moeten zijn, precies zoals elders in de app:
+  // de party moet het kaartje kénnen (visibility) en het moet tijdens deze akte
+  // bereikbaar zijn. De DM ziet alles, met erbij wat er voor de party dicht zit.
+  const bereik = _bereikbaarheidVoor(meta, dmState, gid);
+  const dicht  = new Set(bereik.entiteitenDicht || []);
+  const vrij   = new Set(bereik.vrijgesteld || []);
+  const bereikbaar = (id) => bereik.allesDicht ? vrij.has(id) : !dicht.has(id);
+
+  const voorwerpen = entities.voorwerpen || [];
+  const locOpNaam  = new Map((entities.locaties || []).map(l => [(l.name || '').toLowerCase().trim(), l]));
+  const winkels = [];
+  for (const type of ['locaties', 'personages']) {
+    for (const e of (entities[type] || [])) {
+      const regels = _marktRegels(e);
+      if (!regels.length) continue;
+      const zichtbaar = (g.visibility?.[e.id] || 'hidden') === 'visible';
+      const open      = bereikbaar(e.id);
+      if (!isDM && (!zichtbaar || !open)) continue;
+
+      let cfg = {}; try { cfg = JSON.parse(e.data?.winkelConfig || '{}'); } catch { /* geen config */ }
+      const uitverkocht = new Set(((g.shopUitverkocht?.[e.id]) || []).map(k => (k || '').toLowerCase().trim()));
+
+      // Bij een roterende winkel tonen we alleen wat er vandaag in de schappen
+      // ligt — de hele pool zou de verrassing wegnemen. Is er nog geen selectie,
+      // dan geven we er géén: `rotatieOnbekend` zegt dat je moet langsgaan.
+      const rot = cfg.roterend ? (g.shopRotatie?.[cfg.deelGroep?.trim() || e.id]) : null;
+      const rotatieGeldig = !!(rot?.items?.length);
+      const ligtErIn = (naam) => !cfg.roterend ? true
+        : rot.items.some(n => (n || '').toLowerCase().trim() === (naam || '').toLowerCase().trim());
+
+      // Een roterende winkel die deze party nog niet bezocht heeft, geeft
+      // **niets** prijs. De hele pool meesturen zou de verrassing wegnemen waar
+      // de rotatie juist voor is — en dat is niet op te lossen in de weergave,
+      // want dan staat het alsnog in de netwerktab.
+      const items = (cfg.roterend && !rotatieGeldig) ? [] : regels
+        .filter(r => ligtErIn(r.naam))
+        .map(r => {
+          const kaartje = r.entityId ? voorwerpen.find(v => v.id === r.entityId) : null;
+          const prijs   = parsePrijs(r.prijs);
+          // Naam, prijs en beeld mogen mee: dat ligt in de etalage, de DM heeft
+          // het daar zelf neergezet. Het **id** niet, tenzij de party het
+          // kaartje kent — anders krijgt de speler een knop 'bekijk het
+          // kaartje' die uitkomt op iets wat hij niet mag zien. In Grisburgh
+          // gold dat voor 59 van de 59 gekoppelde regels.
+          const kaartjeBekend = isDM || (kaartje && (g.visibility?.[kaartje.id] || 'hidden') === 'visible');
+          return {
+            naam:        r.naam || '',
+            prijs:       r.prijs || '',
+            prijsCl:     prijs ? toCl(prijs) : null,     // null = niet te lezen, niet 0
+            entityId:    kaartjeBekend ? (r.entityId || null) : null,
+            rariteit:    kaartje?.data?.rariteit || '',
+            imageId:     kaartje?.data?.imageId || kaartje?.id || null,
+            uitverkocht: uitverkocht.has((r.naam || '').toLowerCase().trim()),
+          };
+        });
+
+      winkels.push({
+        id:   e.id,
+        naam: e.name,
+        type: e.data?.locType || e.subtype || '',
+        soort: type,
+        imageId:  e.data?.imageId || e.id,
+        gebieden: _gebiedKeten(e, locOpNaam),
+        sfeerTekst: cfg.sfeerTekst || '',
+        roterend:   !!cfg.roterend,
+        rotatieOnbekend: !!cfg.roterend && !rotatieGeldig,
+        items,
+        // Alleen voor de DM: waarom een winkel er voor de party niet bij staat.
+        ...(isDM ? { _verborgen: !zichtbaar, _onbereikbaar: !open } : {}),
+      });
+    }
+  }
+  winkels.sort((a, b) => a.naam.localeCompare(b.naam, 'nl', { sensitivity: 'base' }));
+
+  res.json({
+    winkels,
+    beurs: _effectiveCurrency(dmState, req.session?.characterId),
+    akte:  bereik.akte || null,
+  });
+});
+
 router.get('/shops/:shopId/uitverkocht', attachRole, (req, res) => {
   const dmState = readDmState();
   const g = getGroup(dmState);

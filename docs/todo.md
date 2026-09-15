@@ -17,7 +17,16 @@ groot het is. Bijgewerkt 15 sep 2026.
       importer bewaart de `.md` nu wél), de beelden koppelen, en één sectie
       echt spelen om te zien of de knoppen doen wat je aan tafel nodig hebt.
 
-- [ ] **De Markt — één plek voor alle winkels** → `docs/voorstel-markt.md`.
+- [x] **De Markt, stap 1 en 2** — gedaan 15 sep 2026: de lijst met winkels,
+      zoeken over alle voorraad heen met de prijzen naast elkaar, en filteren op
+      gebied (afgeleid uit de `Gebied`-keten op het locatiekaartje). Wat nog
+      ligt is **stap 3** (boodschappenlijst met de beurs erbij) en **stap 4**
+      (één DM-tabel om voorraad en prijzen bij te stellen).
+      Losse vondst om zelf te doen: *Oosterkwartier* en *Het Oude
+      Glasblazershuis* hebben **zichzelf** als Gebied, dus die twee winkels
+      komen nooit onder Grisburgh uit.
+
+- [x] ~~**De Markt — één plek voor alle winkels**~~ → `docs/voorstel-markt.md`.
       Gevraagd 15 sep 2026. Negen winkels, 122 voorraadregels, en geen enkel
       scherm waar je ziet dát ze bestaan: je moet het kaartje weten te vinden.
       De machinerie (kopen, verkopen, onderhandelen, humeur, rotatie) staat al —

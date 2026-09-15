@@ -502,6 +502,50 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > kaartjes-kiezer heeft dezelfde uitweg (*Nieuw kaartje met de getypte naam*).
 > De plus hangt aan `_potloden` (voorbereiden), de oogjes aan `_acties` (spelen).
 >
+> **De Markt — alle winkels op één plek.** Module `markt`, sectie `markt`,
+> route `GET /markt`. Een winkel was een tabblad **op een kaartje**: de
+> machinerie was compleet (rotatie, onderhandelen, humeur, uitverkocht), maar er
+> was nergens een scherm waar je zag dát er negen winkels zijn. Dit is een
+> **weergave**, geen tweede opslag: de voorraad blijft op het kaartje en klikken
+> opent dat kaartje op zijn winkeltabblad (`_openDetail(soort, id, false,
+> 'voorraad')`). Zoeken gaat over alle winkels tegelijk en zet de prijzen naast
+> elkaar — in Grisburgh liggen zestien voorwerpen bij meer dan één winkel, en een
+> Potion of Healing kost bij Bobo 40 fl waar hij elders 20 is.
+>
+> **Eigen leesroute, met opzet.** `GET /shops/:id/beschikbaar` *máákt* de rotatie
+> van een roterende winkel als die er nog niet is, en schrijft `dm-state.json`.
+> Een markt die alle winkels opvraagt zou dus in één klap ieders schappen rollen,
+> op een moment dat niemand die winkel bezocht. `GET /markt` leest de rotatie
+> alleen; is er nog geen, dan gaan er **nul items** mee (`rotatieOnbekend`) —
+> de hele pool meesturen zou de verrassing wegnemen, en dat is niet in de
+> weergave op te lossen want dan staat het alsnog in de netwerktab.
+>
+> **Twee onafhankelijke assen voor zichtbaarheid**, allebei bewaakt:
+>  - de **winkel** bepaalt of zijn regels er zijn — `g.visibility[shopId]` plus
+>    de bereikbaarheid van de lopende akte (`_bereikbaarheidVoor`);
+>  - het **voorwerp-kaartje** bepaalt of je kunt doorklikken. Naam, prijs en
+>    beeld gaan mee (dat ligt in de etalage, de DM heeft het daar neergezet),
+>    maar `entityId` alleen als de party het kaartje kent — anders krijgt de
+>    speler een knop naar iets wat hij niet mag zien. In Grisburgh gold dat voor
+>    **59 van de 59** gekoppelde regels.
+>    Nagemeten geval: een kaartje dat de party kent houdt zijn doorklik in élke
+>    winkel die ze kunnen zien, en een verborgen winkel verdwijnt compleet —
+>    inclusief zijn regel voor datzelfde voorwerp.
+>
+> **Filteren op gebied is afgeleid, niet ingesteld.** Het veld *Gebied*
+> (`data.wijk`) op een locatiekaartje wijst naar een ándere locatie, dus er zit
+> een keten in: Boekenwyrm › Luimpoort › Grisburgh › Continent
+> (`_gebiedKeten()`). Een winkel valt onder élk lid van die keten, dus
+> "Grisburgh" vangt ook alles in Luimpoort. Het laatste lid dekt alle winkels en
+> is dus geen keuze — tenzij de keten maar één lid lang is, want dan ís dat het
+> gebied. De chips staan op aantal winkels, breed vóór smal.
+> **Let op twee gebroken ketens in Grisburgh:** *Oosterkwartier* en *Het Oude
+> Glasblazershuis* hebben zichzelf als Gebied, dus die komen nooit bij Grisburgh
+> uit. Te repareren op het locatiekaartje, veld *Gebied*.
+>
+> **Nog open (stap 3 en 4 uit `docs/voorstel-markt.md`):** een boodschappenlijst
+> over winkels heen, en één DM-tabel om voorraad en prijzen bij te stellen.
+
 > **Beelden worden bij binnenkomst WebP.** Gemeten op 15 sep 2026: de
 > bestanden van Grisburgh waren samen **2.053 MB**, gemiddeld 1.853 kB per
 > beeld. Dat zat **niet in de afmetingen** — 843 van de 1.135 beelden zijn maar
@@ -2169,6 +2213,37 @@ De DM kan directe berichten sturen via `playerSockets.get(characterId)`.
 > daarna zelf opnieuw.
 
 ---
+
+## Dienstschermen — de gedeelde romp
+
+Elk dienstscherm (herberg, tempel, Gock, Ursula, magizoo, Tweespalt, Heeren,
+facties, markt) heeft dezelfde opbouw: `.herberg-scene` (schermvullend, met de
+achtergrond) → `.herberg-content` (het paneel) → een rond portret
+(`.herberg-portrait-round`) met een groet eronder. Die klassen heten `herberg-*`
+omdat de herberg er het eerst was; één element draagt zelfs
+`herberg-scene gock-scene facties-lijst-scene`. Hernoemen raakt honderden
+CSS-regels en levert niets op wat je ziet — dus dat blijft zo, maar weet dat de
+naam niets over de herberg zegt.
+
+- **Begin een nieuwe dienst met `_dienstLaden(el)` en `_dienstFout(el, e)`**
+  (in `app.js`, vlak boven `renderHerberg`). Die twee stonden **dertien keer**
+  woordelijk in het bestand, inclusief een inline `style="opacity:.5"`.
+- **`.herberg-content` is een kolom met `align-items: center`** — precies goed
+  voor een portret met een groet, maar het laat een raster of een zoekveld
+  krimpen tot de eigen inhoud. Wil je de volle breedte (zoals de Markt), zet dan
+  `align-items: stretch` op je eigen contentklasse.
+- **Niet elke dienst heeft een portret.** De Tempel gaat rechtstreeks naar een
+  raster van goden, de Markt naar een zoekveld — dat is geen afwijking, daar
+  staat gewoon niemand achter de toonbank.
+- Facties wijkt wél echt af (lichte perkamentkaarten in plaats van het donkere
+  paneel); dat is een overzicht en geen bezoek.
+
+> **`.herberg-zoek-input` had geen enkele CSS-regel** (15 sep 2026). Het veld
+> stond op de witte browserstandaard terwijl de tekstkleur die het van elders
+> meekreeg bijna wit was: contrast **1,19** — wat je typte was onzichtbaar,
+> alleen de placeholder was te lezen omdat die zijn eigen kleur heeft. Het trof
+> Gock en de magizoöloog. Het deelt nu de opmaak van `.herberg-search`, die er al
+> was en klopt.
 
 ## Meesterkamer — gouden standaard (DM-tabs)
 

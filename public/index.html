@@ -60,7 +60,7 @@
       },
     }
   </script>
-  <link rel="stylesheet" href="/css/theme.css?v=636">
+  <link rel="stylesheet" href="/css/theme.css?v=642">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="/socket.io/socket.io.js"></script>
@@ -133,6 +133,7 @@
             <svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=15#icon-landmark"/></svg> <span id="diensten-nav-label" class="tab-label">Diensten</span><span class="diensten-arrow tab-label">▾</span>
           </button>
           <div class="archief-menu hidden" id="diensten-menu">
+            <button class="archief-menu-item" data-section="markt" id="diensten-markt-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=15#icon-store"/></svg><span id="diensten-markt-label">Markt</span></button>
             <button class="archief-menu-item" data-section="herberg" id="diensten-herberg-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=15#icon-beer"/></svg><span id="diensten-herberg-label">Herberg</span></button>
             <button class="archief-menu-item" data-section="tweespalt" id="diensten-tweespalt-item"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=15#icon-dice"/></svg><span id="diensten-tweespalt-label">De Tweespalt</span></button>
             <button class="archief-menu-item" data-section="gock" id="diensten-gock-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=15#icon-search"/></svg><span id="diensten-gock-label">De Gock</span></button>
@@ -239,6 +240,7 @@
       <div class="section" id="section-spreuken"></div>
       <div class="section" id="section-vaardigheden"></div>
       <div class="section" id="section-logboek"></div>
+      <div class="section" id="section-markt"></div>
       <div class="section" id="section-herberg"></div>
       <div class="section" id="section-tweespalt"></div>
       <div class="section" id="section-gock"></div>
@@ -577,6 +579,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=825"></script>
+  <script type="module" src="/js/app.js?v=831"></script>
 </body>
 </html>

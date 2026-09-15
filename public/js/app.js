@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=288';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=289';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=307";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=127";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -2875,6 +2875,7 @@ async function refreshSection(section) {
   else if (section === 'logboek') await renderLogboek();
   else if (section === 'kaart') await _renderKaartSection();
   else if (section === 'relatiemap') await renderRelatiemap();
+  else if (section === 'markt') await renderMarkt();
   else if (section === 'herberg') {
     if (!window.app.isDM() && _getDienstToegang('herberg') === 'zichtbaar') {
       const _el = document.getElementById('section-herberg'); if (_el) _dienstNietBeschikbaar(_el, state.meta?.herberg?.naam || 'De Herberg');
@@ -10716,6 +10717,238 @@ window._entiteitDicht = (id) => {
   return b.allesDicht ? !(b.vrijgesteld || []).includes(id) : (b.entiteitenDicht || []).includes(id);
 };
 
+// ════════════════════════════════════════════════════════════════════════════
+//  DE MARKT — alle winkels op één plek
+// ════════════════════════════════════════════════════════════════════════════
+// Een winkel is een tabblad óp een kaartje: je moest wéten dat Stoom en Staal
+// bestaat om er te kunnen kopen. Dit scherm is de ingang, en verder niets: de
+// voorraad blijft op het kaartje staan en klikken opent dat kaartje op zijn
+// winkeltabblad. Geen tweede koopscherm dat uit de pas gaat lopen.
+//
+// Zoeken gaat over álle winkels tegelijk — dat is de tweede reden dat dit
+// scherm bestaat. In Grisburgh liggen zestien voorwerpen bij meer dan één
+// winkel, en een Potion of Healing kost bij Bobo 40 fl waar hij elders 20 is.
+// Dat verschil bestond al; het was alleen door niemand te zien.
+let _marktData   = null;
+let _marktZoek   = '';
+let _marktGebied = '';   // '' = alles
+
+async function renderMarkt() {
+  const el = document.getElementById('section-markt');
+  if (!el) return;
+  _dienstLaden(el);
+  try { _marktData = await api.markt(); }
+  catch (e) { _dienstFout(el, e); return; }
+  _marktTeken();
+}
+
+function _marktTeken() {
+  const el = document.getElementById('section-markt');
+  if (!el || !_marktData) return;
+  const winkels = _marktData.winkels || [];
+  const q = _marktZoek.trim();
+
+  el.innerHTML = `
+    <div class="herberg-scene markt-scene">
+      <div class="herberg-content markt-content">
+        ${window._helpBtn?.('markt') ?? ''}
+        <div class="markt-kop">
+          <div class="markt-zoekwrap">
+            ${icon('search', { cls: 'markt-zoek-icoon' })}
+            <input type="text" class="herberg-zoek-input markt-zoek" id="markt-zoek"
+              placeholder="Zoek een voorwerp of een winkel…" value="${esc(_marktZoek)}"
+              oninput="window._marktZoek(this.value)">
+          </div>
+          ${_marktData.beurs ? `<div class="markt-beurs" title="Wat de party te besteden heeft">
+            ${icon('coins')} ${esc(_muntTekst(_marktData.beurs))}
+          </div>` : ''}
+        </div>
+        ${_marktGebiedBalk(winkels)}
+        ${(() => {
+          const zicht = _marktGebied
+            ? winkels.filter(w => (w.gebieden || []).includes(_marktGebied))
+            : winkels;
+          return q ? _marktTreffers(zicht, q) : _marktWinkels(zicht);
+        })()}
+      </div>
+    </div>`;
+
+  const inp = document.getElementById('markt-zoek');
+  if (inp && q) { inp.focus(); inp.setSelectionRange(q.length, q.length); }
+}
+
+window._marktZoek = (v) => { _marktZoek = v; _marktTeken(); };
+
+// Waar een winkel ligt komt uit het veld **Gebied** op zijn locatiekaartje, dat
+// naar een ándere locatie wijst — Boekenwyrm › Luimpoort › Grisburgh. Een
+// winkel valt onder élk gebied in die keten, dus "Grisburgh" vangt ook alles
+// wat in Luimpoort ligt. Het laatste lid dekt alle winkels (bij ons
+// "Continent") en is dus geen keuze; die gaat eruit.
+function _marktGebiedBalk(winkels) {
+  const telling = new Map();
+  for (const w of winkels) {
+    const keten = w.gebieden || [];
+    // Het laatste lid van een kéten dekt alle winkels ("Continent") en is dus
+    // geen keuze. Maar een keten van één lid is geen keten: dat is gewoon het
+    // gebied waar die winkel in ligt, en die moet wél te kiezen zijn — anders
+    // valt Stoom en Staal (de grootste winkel) buiten elk filter.
+    const bruikbaar = keten.length > 1 ? keten.slice(0, -1) : keten;
+    for (const g of bruikbaar) {
+      if (!telling.has(g)) telling.set(g, { naam: g, n: 0 });
+      telling.get(g).n++;
+    }
+  }
+  // Breed vóór smal, en "breed" is gewoon: dekt meer winkels. Grisburgh (6) komt
+  // zo vanzelf boven Luimpoort (3), zonder over de diepte van de keten te
+  // hoeven redeneren — die klopt niet overal (zie de losse gebieden hieronder).
+  const gebieden = [...telling.values()]
+    .sort((a, b) => b.n - a.n || a.naam.localeCompare(b.naam, 'nl', { sensitivity: 'base' }));
+  if (gebieden.length < 2) return '';
+  const chip = (naam, label, n) => `<button class="markt-chip${_marktGebied === naam ? ' markt-chip--aan' : ''}"
+    onclick="window._marktGebiedKies('${escJS(naam)}')">${esc(label)}${n != null ? ` <span class="markt-chip-tel">${n}</span>` : ''}</button>`;
+  return `<div class="markt-chips">
+    ${chip('', 'Overal', winkels.length)}
+    ${gebieden.map(g => chip(g.naam, g.naam, g.n)).join('')}
+  </div>`;
+}
+
+window._marktGebiedKies = (g) => { _marktGebied = (_marktGebied === g) ? '' : g; _marktTeken(); };
+
+// ── Zonder zoekterm: de winkels ──
+function _marktWinkels(winkels) {
+  if (!winkels.length) {
+    return `<p class="markt-leeg">${icon('store')} ${_marktGebied
+      ? `Geen winkels in ${esc(_marktGebied)}.`
+      : 'Je kent nog geen winkels — of ze liggen niet op de route van deze akte.'}</p>`;
+  }
+  return `<div class="markt-grid">
+    ${winkels.map(w => {
+      const dicht = w._verborgen || w._onbereikbaar;
+      const reden = w._verborgen ? 'Verborgen voor deze party' : w._onbereikbaar ? 'Niet bereikbaar in deze akte' : '';
+      return `
+      <button class="markt-kaart${dicht ? ' markt-kaart--dicht' : ''}"
+        onclick="window._marktOpen('${esc(w.soort)}','${esc(w.id)}')"
+        title="${esc(w.naam)} openen">
+        <span class="markt-kaart-beeld">
+          ${w.imageId ? `<img src="${api.thumbUrl(w.imageId)}" loading="lazy" alt=""
+             onerror="this.style.display='none'">` : ''}
+          <span class="markt-kaart-icoon">${icon(window._locIcoon?.(w.type) || 'store')}</span>
+        </span>
+        <span class="markt-kaart-body">
+          <span class="markt-kaart-naam">${esc(w.naam)}</span>
+          ${w.type ? `<span class="markt-kaart-type">${esc(w.type)}</span>` : ''}
+          <span class="markt-kaart-tel">${w.rotatieOnbekend
+            ? 'Wisselend assortiment — kom langs om te zien wat er ligt'
+            : `${w.items.length} ${w.items.length === 1 ? 'ding' : 'dingen'} in de schappen`}</span>
+          ${dicht ? `<span class="markt-kaart-dicht">${icon('lock')} ${esc(reden)}</span>` : ''}
+        </span>
+      </button>`;
+    }).join('')}
+  </div>`;
+}
+
+// ── Mét zoekterm: de treffers, per voorwerp, goedkoopste eerst ──
+// Eén regel per voorwerp met alle winkels die het hebben, want dát is de vraag
+// die je stelt: "waar krijg ik dit, en waar is het het goedkoopst?"
+function _marktTreffers(winkels, q) {
+  const norm   = window._normSearch || (x => String(x || '').toLowerCase());
+  const tokens = window._searchTokens ? window._searchTokens(q) : [norm(q)];
+  const past   = (tekst) => { const h = norm(tekst); return tokens.every(t => h.includes(t)); };
+
+  const perNaam = new Map();
+  const winkeltreffers = [];
+  for (const w of winkels) {
+    if (past(`${w.naam} ${w.type}`)) winkeltreffers.push(w);
+    for (const it of w.items) {
+      if (!past(`${it.naam} ${it.rariteit}`)) continue;
+      const sleutel = norm(it.naam);
+      if (!perNaam.has(sleutel)) perNaam.set(sleutel, { naam: it.naam, rariteit: it.rariteit, entityId: it.entityId, imageId: it.imageId, aanbod: [] });
+      perNaam.get(sleutel).aanbod.push({ winkel: w, ...it });
+    }
+  }
+  const treffers = [...perNaam.values()];
+  if (!treffers.length && !winkeltreffers.length) {
+    return `<p class="markt-leeg">${icon('search')} Niets gevonden in de winkels die je kent.</p>`;
+  }
+
+  const beursCl = _marktBeursCl();
+  return `
+    ${winkeltreffers.length ? `<div class="markt-sectie-kop">${icon('store')} Winkels</div>
+      ${_marktWinkels(winkeltreffers)}` : ''}
+    ${treffers.length ? `<div class="markt-sectie-kop">${icon('package')} Voorwerpen</div>
+    <div class="markt-treffers">
+      ${treffers.map(t => {
+        // Onleesbare prijzen (prijsCl === null) achteraan, niet als gratis.
+        const aanbod = t.aanbod.slice().sort((a, b) =>
+          (a.prijsCl ?? Infinity) - (b.prijsCl ?? Infinity));
+        const prijzen = aanbod.map(a => a.prijsCl).filter(v => v != null);
+        const goedkoopste = prijzen.length ? Math.min(...prijzen) : null;
+        // Alleen "goedkoopst" zeggen als er íets te kiezen valt. Drie winkels
+        // die alle drie 20 fl vragen zijn niet elk het goedkoopst; dan is het
+        // label ruis en leer je het afkijken.
+        const meerdere = prijzen.length > 1 && Math.max(...prijzen) > goedkoopste;
+        return `<div class="markt-treffer">
+          <div class="markt-treffer-kop">
+            <span class="markt-treffer-naam"${t.rariteit ? ` data-rarity="${esc(window._rarityKey?.(t.rariteit) || '')}"` : ''}>${esc(t.naam)}</span>
+            ${t.entityId ? `<button class="markt-treffer-kaart" title="Bekijk het kaartje"
+              onclick="window._openDetail('voorwerpen','${esc(t.entityId)}')">${icon('package')}</button>` : ''}
+          </div>
+          <div class="markt-aanbod">
+            ${aanbod.map(a => {
+              const best = meerdere && a.prijsCl != null && a.prijsCl === goedkoopste;
+              const teduur = a.prijsCl != null && beursCl != null && a.prijsCl > beursCl;
+              return `<button class="markt-aanbod-regel${best ? ' markt-aanbod-regel--best' : ''}${a.uitverkocht ? ' markt-aanbod-regel--op' : ''}"
+                onclick="window._marktOpen('${esc(a.winkel.soort)}','${esc(a.winkel.id)}')"
+                title="Naar ${esc(a.winkel.naam)}">
+                <span class="markt-aanbod-winkel">${esc(a.winkel.naam)}</span>
+                <span class="markt-aanbod-prijs${teduur ? ' markt-aanbod-prijs--teduur' : ''}">${esc(a.prijs || '—')}</span>
+                ${a.uitverkocht ? `<span class="markt-aanbod-op">uitverkocht</span>`
+                  : best ? `<span class="markt-aanbod-best">goedkoopst</span>` : ''}
+              </button>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}`;
+}
+
+// De beurs in centelingen, om "kun je dit betalen" te kunnen zeggen.
+function _marktBeursCl() {
+  const b = _marktData?.beurs;
+  if (!b) return null;
+  return (b.fl || 0) * 100 + (b.kn || 0) * 10 + (b.cl || 0);
+}
+
+function _muntTekst(b) {
+  if (!b) return '—';
+  const n = window._muntNamen?.() || { fl: 'Gold', kn: 'Silver', cl: 'Copper' };
+  return [[b.fl, n.fl], [b.kn, n.kn], [b.cl, n.cl]]
+    .filter(([v]) => v > 0).map(([v, naam]) => `${v} ${naam}`).join(' · ') || `0 ${n.cl}`;
+}
+
+// Klikken opent het kaartje op zijn winkeltabblad — daar wordt gekocht, met de
+// winkelier, zijn humeur en het onderhandelen dat daarbij hoort.
+window._marktOpen = (soort, id) => window._openDetail(soort, id, false, 'voorraad');
+
+// ── De vorm van een dienstscherm ────────────────────────────────────────────
+// Elk dienstscherm (herberg, tempel, Gock, Ursula, magizoo, Tweespalt, Heeren,
+// facties) heeft dezelfde romp: een schermvullende achtergrond, daarin een
+// paneel, en daarin een rond portret met een groet eronder. Die romp heet in de
+// CSS `herberg-*` omdat de herberg er het eerst was — één element draagt zelfs
+// `herberg-scene gock-scene facties-lijst-scene`. Hernoemen raakt honderden
+// CSS-regels en levert niets op wat je ziet; wat wél opleverde is dat de
+// laad- en foutstand niet meer dertien keer woordelijk in dit bestand staat.
+//
+// Nieuwe dienst? Begin met deze twee, dan ziet hij er meteen uit als de rest.
+const _dienstLaden = (el) => {
+  if (el) el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p class="herberg-laden">Laden…</p></div></div>';
+};
+const _dienstFout = (el, e) => {
+  if (!el) return;
+  const m = e?.message || 'Er ging iets mis';
+  el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(m)}</p></div></div>`;
+};
+
 async function renderHerberg() {
   const el = document.getElementById('section-herberg');
   if (!el) return;
@@ -10972,12 +11205,12 @@ async function renderGock() {
     return;
   }
 
-  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+  _dienstLaden(el);
 
   let data;
   try { data = await api.getGock(); }
   catch (e) {
-    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)} (${esc(e.constructor?.name || 'Error')})</p></div></div>`;
+    _dienstFout(el, e);
     return;
   }
 
@@ -11135,12 +11368,12 @@ async function renderMagizoo() {
   const meta = window.app?.state?.meta || {};
   if (window._dienstDicht('magizoo')) { _dienstNietBereikbaar(el, meta.magizoo?.naam || 'De Magizoöloog'); return; }
 
-  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+  _dienstLaden(el);
 
   let data;
   try { data = await api.getMagizoo(); }
   catch (e) {
-    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`;
+    _dienstFout(el, e);
     return;
   }
   _magizooData = data;
@@ -11377,11 +11610,11 @@ async function renderUrsula() {
   const meta = window.app?.state?.meta || {};
   if (window._dienstDicht('ursula')) { _dienstNietBereikbaar(el, meta.ursula?.naam || 'Madame Ursula'); return; }
 
-  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+  _dienstLaden(el);
 
   let data;
   try { data = await api.getUrsula(); }
-  catch (e) { el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`; return; }
+  catch (e) { _dienstFout(el, e); return; }
 
   const { config, beschikbaar, geenSessie, geenAkte, alGeworpen, roll, doorNaam, onthuld, currency } = data;
   const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
@@ -11438,11 +11671,11 @@ async function renderTempel() {
   const meta = window.app?.state?.meta || {};
   if (window._dienstDicht('tempel')) { _dienstNietBereikbaar(el, meta.tempel?.naam || 'De Tempel'); return; }
 
-  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+  _dienstLaden(el);
 
   let data, personages = [];
   try { data = await api.getTempel(); }
-  catch (e) { el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`; return; }
+  catch (e) { _dienstFout(el, e); return; }
   try { personages = await api.listEntities('personages'); } catch {}
 
   // Bouw een naam → portret-URL mapping voor auto-matching van god-avatars
@@ -11740,10 +11973,10 @@ async function renderHeeren() {
   const meta = window.app?.state?.meta || {};
   if (window._dienstDicht('heeren')) { _dienstNietBereikbaar(el, meta.heeren?.naam || 'De Heeren van de Nacht'); return; }
 
-  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+  _dienstLaden(el);
   let data;
   try { data = await api.getHeeren(); }
-  catch (e) { el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)}</p></div></div>`; return; }
+  catch (e) { _dienstFout(el, e); return; }
 
   const { config, rang, luimpoort, advocaat, jobs = [], boetes = [], currency } = data;
   const beursTekst = (cur) => [cur?.fl && `${cur.fl} fl`, cur?.kn && `${cur.kn} kn`, cur?.cl && `${cur.cl} cl`].filter(Boolean).join(' · ') || '0 cl';
@@ -11834,12 +12067,12 @@ async function renderTweespalt() {
     return;
   }
 
-  el.innerHTML = '<div class="herberg-scene"><div class="herberg-content"><p style="opacity:.5">Laden…</p></div></div>';
+  _dienstLaden(el);
 
   let data;
   try { data = await api.getTweespalt(); }
   catch (e) {
-    el.innerHTML = `<div class="herberg-scene"><div class="herberg-content"><p class="herberg-err">${esc(e.message)} (${esc(e.constructor?.name || 'Error')})</p></div></div>`;
+    _dienstFout(el, e);
     return;
   }
 
@@ -12567,6 +12800,23 @@ const HELP_CONFIG = {
     { titel: 'Wie heeft het', tekst: 'Bij een bestaand voorwerp staat rechts het tabblad **Bezit**: wie het heeft, in welke party, hoeveel exemplaren en hoeveel charges er nog in zitten. Daar deel je het ook uit — en neem je het weer af als je één keer te veel klikte.', afbeelding: null },
     { titel: 'Waar het te koop is', tekst: 'Dat leg je niet hier vast maar in de **voorraad van de winkel**. Het voorwerp toont daarna vanzelf een regel *Te koop* met de winkel erachter — één plek, twee kanten, net als bij de betrokkenen op een locatie.', afbeelding: null },
   ] }),
+
+  markt: () => ({
+    titel: 'De Markt',
+    stappen: [
+      { titel: 'Waarom dit scherm er is',
+        tekst: 'Een winkel is een tabblad **op een kaartje**: om iets te kopen moest je weten dat die winkel bestaat, hem opzoeken in Locaties en dan het tabblad vinden. De Markt is de ingang — alle winkels die je party kent en nu kan bereiken, op één plek.',
+        afbeelding: null },
+      { titel: 'Zoeken over alle winkels tegelijk',
+        tekst: 'Typ een voorwerp en je ziet **waar het ligt en wat het kost**, goedkoopste bovenaan. Scheelt prijs per winkel, dan staat er *goedkoopst* bij; zijn ze allemaal gelijk, dan staat er niets — dat is dan geen keuze. Een prijs die je met de beurs van de party niet kunt betalen kleurt rood.',
+        afbeelding: null },
+      { titel: 'Kopen doe je in de winkel',
+        tekst: 'Klikken opent het kaartje van die winkel op zijn **winkeltabblad**. Daar reken je af, met de winkelier, zijn humeur en het onderhandelen dat daarbij hoort. De Markt zegt alleen waar je heen kunt.',
+        afbeelding: null },
+      { titel: 'Wat je niet ziet',
+        tekst: 'Alleen winkels die je party **ontdekt heeft** en die tijdens deze akte bereikbaar zijn. Een winkel met een **wisselend assortiment** die je nog niet bezocht hebt, geeft zijn voorraad niet prijs — daar moet je langs. De DM ziet alles, met erbij waarom iets voor de party dicht zit.',
+        afbeelding: null },
+    ] }),
 
   tempel: () => {
     const naam = window.app?.state?.meta?.tempel?.naam || 'De Tempel';

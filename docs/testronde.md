@@ -554,6 +554,12 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Heeren van de Nacht** (SP/DM) — rangen, klussen genereren, advocaat inschakelen, betalen, uitslag verwerken
 - [ ] **Verzegelde uitnodigingsbrief** (DM) — per factie of dienst versturen; de speler krijgt de tweetraps reveal met lakzegel
 - [ ] **Toegang per groep** (DM) — per dienst en per party zichtbaar/beschikbaar zetten; de speler ziet het verschil meteen
+- [ ] **Markt: de winkels** (ALL) — Diensten → Markt toont de winkels die je party kent; klikken opent het kaartje meteen op het winkeltabblad
+- [ ] **Markt: zoeken** (ALL) — zoek "potion of healing": je ziet alle winkels die hem hebben met hun prijs, goedkoopste bovenaan. Vragen ze allemaal hetzelfde, dan staat er géén *goedkoopst*
+- [ ] **Markt: gebied** (ALL) — de chip *Grisburgh* toont ook de winkels in Luimpoort en Kalkwijk; *Overal* zet het filter uit
+- [ ] **Markt: wat een speler niet ziet** (speler) — een winkel die deze party niet kent staat er niet; bij een voorwerp waarvan de party het kaartje niet kent staat wél naam en prijs, maar géén doorklik naar het kaartje
+- [ ] **Markt: wisselend assortiment** (speler) — een roterende winkel die je nog niet bezocht hebt zegt "kom langs om te zien wat er ligt" en stuurt geen voorraad mee (netwerktab)
+- [ ] **Zoekveld bij Gock en de magizoöloog** (ALL) — typ een naam: je ziet wat je typt (het veld was wit-op-wit)
 - [ ] **Wachtwoordveld op een telefoon** (ALL) — open op een smal scherm de DM-ingang op de landingspagina: het veld klapt over de volle breedte open en staat *onder* de regel "‹ Andere campagne", niet eroverheen
 - [ ] **Upload verkleint** (DM) — upload een grote PNG (een paar MB): hij komt terug als `.webp`, ziet er hetzelfde uit, en is in de mediabibliotheek een fractie van de oorspronkelijke grootte. Een gif blijft een gif en blijft bewegen
 - [ ] **Conditie-iconen** (DM) — zet stunned, restrained, poisoned, prone, concentration en mounted op een token: je ziet een spiraal, een gewicht, het biohazard-teken, een pijl naar de grond, hersenen en een schaakpaard — geen ster (dat is favoriet), geen kettingschakel (dat is een koppeling) en geen konijn
