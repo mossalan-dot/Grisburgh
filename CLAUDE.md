@@ -625,6 +625,20 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > De **iconen** liggen op een andere as en blijven waar ze zijn: `COND_ICON` in
 > `combat-canvas.js` (sprite + kleur voor op een token).
 
+> **De toegangsschakelaar per party geldt nu ook op de server.** De DM zet per
+> groep in welke diensten open zijn (Diensten → Toegang per groep):
+> `beschikbaar`, `zichtbaar` (je ziet hem, je kunt er niets) of `verborgen`. Dat
+> werd **alleen in de client** afgedwongen — `switchSection` verbergt de sectie,
+> maar de routes vroegen er niet naar. Een speler bij wie de herberg op
+> verborgen stond kon dus gewoon `POST /herberg/bestel` doen: eten kopen, een
+> zegen kopen, een eed zweren, geld lenen. Geen datalek, wél een gat: die
+> schakelaar is precies de manier waarop de DM zegt "dit bestaat nog niet voor
+> jullie", en een tabblad dat al openstond toen hij hem omzette bleef werken.
+> `vereistDienst('<naam>')` zit nu als middleware op de **veertien**
+> speler-schrijfroutes van de diensten. De DM komt er altijd langs — hij test,
+> en hij handelt namens de tafel. Bewaakt door `tests/diensten-toegang.test.js`
+> (zonder de poort vallen er twee om).
+
 > **De arena-uitslag valt niet meer stil terug op een nederlaag.** Er stond
 > `req.body?.uitkomst === 'overwinning' ? 'overwinning' : 'nederlaag'`, en die
 > route is onomkeerbaar: de inschrijving verdwijnt, de speler krijgt een brief

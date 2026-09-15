@@ -9393,6 +9393,30 @@ const TEMPEL_GODEN_DEFAULT = [
 // ── Diensten toegang per groep ──
 const _DIENSTEN_NAMEN = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'magizoo'];
 
+// De toegangsschakelaar van de DM (Diensten → Toegang per groep) werd alleen in
+// de **client** afgedwongen: `switchSection` verbergt de sectie. De routes zelf
+// vroegen er niet naar, dus een speler bij wie de herberg op 'verborgen' stond
+// kon gewoon POST /herberg/bestel doen — eten kopen, een zegen kopen, een eed
+// zweren. Dat is geen datalek maar wel een gat: de schakelaar is precies de
+// manier waarop de DM zegt "dit bestaat nog niet voor jullie", en een tabblad
+// dat al openstond toen hij hem omzette bleef gewoon werken.
+//
+// 'beschikbaar' = mag; 'zichtbaar' = je ziet hem maar kunt er niets; 'verborgen'
+// = bestaat niet voor deze party. De DM mag altijd — hij test, en hij handelt
+// namens de tafel.
+function vereistDienst(dienstNaam) {
+  return (req, res, next) => {
+    if (req.role === 'dm') return next();
+    const dmState = readDmState();
+    const gid = _playerGroupId(dmState, req.session?.characterId);
+    const staat = _getDienstToegang(dmState, dienstNaam, gid || undefined);
+    if (staat !== 'beschikbaar') {
+      return res.status(403).json({ error: 'Deze dienst is nu niet beschikbaar voor je groep', dienst: dienstNaam, staat });
+    }
+    next();
+  };
+}
+
 function _getDienstToegang(dmState, dienstNaam, groupId) {
   const g = getGroup(dmState, groupId);
   return (g?.dienstenToegang?.[dienstNaam]) || 'beschikbaar';
@@ -9586,7 +9610,7 @@ router.get('/ursula', attachRole, (req, res) => {
   });
 });
 
-router.post('/ursula/voorspel', attachRole, (req, res) => {
+router.post('/ursula/voorspel', attachRole, vereistDienst('ursula'), (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
@@ -9757,7 +9781,7 @@ router.get('/gock', attachRole, (req, res) => {
   });
 });
 
-router.post('/gock/opdracht', attachRole, (req, res) => {
+router.post('/gock/opdracht', attachRole, vereistDienst('gock'), (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
@@ -9808,7 +9832,7 @@ router.post('/gock/opdracht', attachRole, (req, res) => {
   res.json({ ok: true, klaarOp, currency: _effectiveCurrency(dmState, characterId) });
 });
 
-router.put('/gock/opgehaald', attachRole, (req, res) => {
+router.put('/gock/opgehaald', attachRole, vereistDienst('gock'), (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
   const dmState = readDmState();
@@ -9928,7 +9952,7 @@ router.get('/magizoo', attachRole, (req, res) => {
 });
 
 // Adopteer een metgezel bij De Magizoöloog (speler betaalt → companion + baasje + naam vastgelegd).
-router.post('/magizoo/adopteer', attachRole, (req, res) => {
+router.post('/magizoo/adopteer', attachRole, vereistDienst('magizoo'), (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
   const { petId } = req.body;
@@ -9984,7 +10008,7 @@ router.post('/magizoo/adopteer', attachRole, (req, res) => {
   res.json({ ok: true, petId, naam, currency: nieuweSaldo });
 });
 
-router.post('/magizoo/onderzoek', attachRole, (req, res) => {
+router.post('/magizoo/onderzoek', attachRole, vereistDienst('magizoo'), (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
   const { monsterId, modus } = req.body;          // modus: 'stap' | 'volledig'
@@ -10153,7 +10177,7 @@ router.get('/tempel', attachRole, (req, res) => {
 });
 
 // Eenmalige zegen: d{n} kiest welke, d4 bepaalt het aantal keer. Vervalt bij lange rust.
-router.post('/tempel/zegen', attachRole, (req, res) => {
+router.post('/tempel/zegen', attachRole, vereistDienst('tempel'), (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
@@ -10213,7 +10237,7 @@ router.post('/tempel/zegen', attachRole, (req, res) => {
   res.json({ ok: true, item, rolls, currency: _zc });
 });
 
-router.post('/tempel/verbruik', attachRole, (req, res) => {
+router.post('/tempel/verbruik', attachRole, vereistDienst('tempel'), (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
@@ -10238,7 +10262,7 @@ router.post('/tempel/verbruik', attachRole, (req, res) => {
 });
 
 // Eed: blijvende +1 (overleeft lange rust). Eén eed per speler. Verzaking → vloek.
-router.post('/tempel/eed', attachRole, (req, res) => {
+router.post('/tempel/eed', attachRole, vereistDienst('tempel'), (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
@@ -10291,7 +10315,7 @@ router.post('/tempel/eed', attachRole, (req, res) => {
 });
 
 // Boete: speler koopt zich vrij van een vloek.
-router.post('/tempel/boete', attachRole, (req, res) => {
+router.post('/tempel/boete', attachRole, vereistDienst('tempel'), (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
@@ -11380,7 +11404,7 @@ router.get('/herberg', attachRole, (req, res) => {
   });
 });
 
-router.post('/herberg/vraag', attachRole, (req, res) => {
+router.post('/herberg/vraag', attachRole, vereistDienst('herberg'), (req, res) => {
   const meta = storage.readJSON('meta.json');
   const config = meta.herberg;
   if (!config) return res.status(404).json({ error: 'Herberg niet geconfigureerd' });
@@ -11450,7 +11474,7 @@ router.post('/herberg/vraag', attachRole, (req, res) => {
 });
 
 // Aan de tap: bestel een drankje/maaltijd → beurs afschrijven, temp HP + status-buff.
-router.post('/herberg/bestel', attachRole, (req, res) => {
+router.post('/herberg/bestel', attachRole, vereistDienst('herberg'), (req, res) => {
   const meta = storage.readJSON('meta.json');
   const config = meta.herberg;
   if (!config) return res.status(404).json({ error: 'Herberg niet geconfigureerd' });
@@ -11795,7 +11819,7 @@ router.delete('/tweespalt/events/:id', requireDM, (req, res) => {
   res.json({ ok: true });
 });
 
-router.post('/tweespalt/events/:id/wedden', attachRole, (req, res) => {
+router.post('/tweespalt/events/:id/wedden', attachRole, vereistDienst('tweespalt'), (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
@@ -11857,7 +11881,7 @@ router.post('/tweespalt/events/:id/uitslag', requireDM, (req, res) => {
 });
 
 // ── Arena: speler meldt zich aan voor een partij; de DM beslecht het als echt gevecht ──
-router.post('/tweespalt/arena/:boutId/aanmeld', attachRole, (req, res) => {
+router.post('/tweespalt/arena/:boutId/aanmeld', attachRole, vereistDienst('tweespalt'), (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Alleen spelers kunnen het strijdperk betreden' });
 
@@ -11949,7 +11973,7 @@ router.post('/tweespalt/arena/signup/:id/uitslag', requireDM, (req, res) => {
   res.json({ ok: true, uitkomst });
 });
 
-router.post('/tweespalt/leen', attachRole, (req, res) => {
+router.post('/tweespalt/leen', attachRole, vereistDienst('tweespalt'), (req, res) => {
   const characterId = req.session.characterId;
   if (!characterId) return res.status(403).json({ error: 'Geen speler ingelogd' });
 
