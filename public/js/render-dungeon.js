@@ -32,7 +32,7 @@ const COND_TYPES = [
 // op kaartcoördinaten staat en met de kaart meeschaalt.
 const _condSpriteSvg = (naam, x, y, size, cls, extra = '') => `<svg x="${x - size / 2}" y="${y - size / 2}"
   width="${size}" height="${size}" viewBox="0 0 24 24" class="${cls}" ${extra}>
-  <use href="/img/icons.svg?v=14#icon-${naam}"/></svg>`;
+  <use href="/img/icons.svg?v=15#icon-${naam}"/></svg>`;
 
 // ── State ──
 let _maps        = [];      // alle dungeon maps (gefilterd voor speler)

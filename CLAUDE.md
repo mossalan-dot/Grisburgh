@@ -1680,6 +1680,9 @@ icon('shield', { title: 'Verdediging' }) // met tooltip
 `graduation-cap` `hammer` `pickaxe` `store` `tent` `trees` `warehouse` `wheat`
 **Toegevoegd voor de navigatie** (Lucide, ISC): `compass`
 **Toegevoegd voor de klasse-iconen** (Lucide, ISC): `hand-fist` `bow-arrow`
+**Toegevoegd voor de conditie-iconen** (Lucide, ISC, 15 sep 2026): `shell` (stunned — een
+spiraal), `weight` (restrained), `biohazard` (poisoned), `chess-knight` (mounted), `brain`
+(concentration), `arrow-down-to-line` (prone)
 **Toegevoegd om een verkeerd signaal weg te halen** (Lucide, ISC): `sprout` (moeras — er
 stond een vis), `tree-palm` (eiland — er stond een dennenboom), `anvil` (werkplaats — die
 deelde de hamer met niets), `heart-pulse` (ziekenhuis), `feather` (aantekeningen: een
@@ -1696,6 +1699,24 @@ factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `bac
 > geeft `map-pin`, niet `castle`: een speld liegt niet. Een eigen `data.icon` op
 > het kaartje wint nog, en een **vaag** kaartje toont een `?` — het type is ook
 > informatie.
+
+> **Zeven conditie-iconen vervangen (15 sep 2026).** Drie ervan botsten met een
+> betekenis die de app elders al aan datzelfde icoon geeft, en dat is erger dan
+> een matig icoon: `star` betekent hier **favoriet** (12 plekken), `link` een
+> **koppeling** (9) en `refresh-cw` **opnieuw** (13). De andere vier gaven een
+> verkeerd signaal. Wat het werd: stunned `star` → **shell** (een spiraal —
+> `tornado` en `galaxy` waren kandidaat, maar op 16 px valt tornado uiteen in
+> drie streepjes), restrained `link` → **weight** (`lasso` werd op tokenformaat
+> een vlekje; `anchor` was al de haven), tides-of-chaos `refresh-cw` → **dices**
+> (het is letterlijk een d20-mechaniek), poisoned `potion` → **biohazard** (een
+> drankje is een vóórwerp, en `potion` is het icoon van itemtype Potion),
+> mounted `rabbit` → **chess-knight**, concentration `sparkles` → **brain** (dat
+> stond naast `sparkle` voor blessed — twee bijna gelijke tekeningen), en prone
+> `arrow-down` → **arrow-down-to-line**.
+> Beoordeeld op **twee maten**: een icoon dat op 34 px werkt kan op 16 px — de
+> maat op een token — alsnog onleesbaar zijn. De hele Lucide-catalogus met
+> trefwoorden staat op `https://unpkg.com/lucide-static@latest/tags.json`; dat
+> is de snelste weg naar "wat hebben ze voor X".
 
 > **Conditie-iconen** leven in `COND_ICON` (`combat-canvas.js`): per conditie een
 > `[sprite-icoon, kleur]`. Drie kleurgroepen — gekleurd = PHB-condition, goud

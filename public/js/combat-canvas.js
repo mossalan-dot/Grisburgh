@@ -16,6 +16,14 @@ const USE_SPRITE_COND_ICONS = true;
 // allemaal goud, zodat ze als groep te onderscheiden zijn van echte conditions.
 const _CLASS_GOLD = '#d4aa3c';
 const _SIT_STEEL  = '#7fa8c8';   // situationeel/positioneel
+// Zeven iconen zijn op 15 sep 2026 vervangen. Drie daarvan botsten met een
+// betekenis die de app elders al aan datzelfde icoon geeft — en dat is erger
+// dan een matig icoon: `star` is hier *favoriet* (12 plekken), `link` is een
+// koppeling (9) en `refresh-cw` is "opnieuw" (13). De andere vier gaven een
+// verkeerd signaal: een drankje is een vóórwerp en geen vergiftiging, een
+// konijn is geen rijdier, een pijl omlaag is niet hetzelfde als tegen de grond
+// liggen, en `sparkles` (concentration) stond naast `sparkle` (blessed) —
+// twee bijna gelijke tekeningen voor twee verschillende dingen.
 const COND_ICON = {
   blinded:       ['eye-off',       '#8a8a8a'],
   charmed:       ['heart',         '#d06ac0'],
@@ -27,16 +35,16 @@ const COND_ICON = {
   invisible:     ['circle-dashed', '#9ec8e0'],
   paralyzed:     ['zap',           '#e0c040'],
   petrified:     ['brick-wall',   '#9a9a90'],
-  poisoned:      ['potion',        '#5aa84a'],
-  prone:         ['arrow-down',    '#a08050'],
-  restrained:    ['link',         '#9a6a3a'],
-  stunned:       ['star',          '#e0b030'],
+  poisoned:      ['biohazard',     '#5aa84a'],
+  prone:         ['arrow-down-to-line', '#a08050'],
+  restrained:    ['weight',       '#9a6a3a'],
+  stunned:       ['shell',         '#e0b030'],
   unconscious:   ['bed',          '#c0c0b8'],
-  concentration: ['sparkles',      '#7ab0e0'],
+  concentration: ['brain',         '#7ab0e0'],
   bleeding:      ['droplet',       '#c02828'],
   burning:       ['flame',         '#e07020'],
   'bardic-inspiration': ['music',      _CLASS_GOLD],
-  'tides-of-chaos':     ['refresh-cw', _CLASS_GOLD],
+  'tides-of-chaos':     ['dices',      _CLASS_GOLD],
   'twilight-sanctuary': ['moon',       _CLASS_GOLD],
   'patient-defense':    ['shield',     _CLASS_GOLD],
   'steady-aim':         ['target',     _CLASS_GOLD],
@@ -52,7 +60,7 @@ const COND_ICON = {
   'cover-half':           ['shield-half',   _SIT_STEEL],
   'cover-three-quarters': ['shield-plus',   _SIT_STEEL],
   grappling:              ['hand',          _SIT_STEEL],
-  mounted:                ['rabbit',        _SIT_STEEL],
+  mounted:                ['chess-knight',  _SIT_STEEL],
   underwater:             ['waves',         _SIT_STEEL],
 };
 
@@ -67,7 +75,7 @@ const _spriteCache = {};   // "icoon|kleur" → Image, of null zolang hij laadt
 function _ensureSprite() {
   if (_spriteDoc || _spriteBezig) return;
   _spriteBezig = true;
-  fetch('/img/icons.svg?v=14')
+  fetch('/img/icons.svg?v=15')
     .then(r => r.text())
     .then(txt => { _spriteDoc = new DOMParser().parseFromString(txt, 'image/svg+xml'); })
     .catch(() => { _spriteBezig = false; });

@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=73";
-import { initDmPanel } from "./dm-panel.js?v=250";
+import { initDmPanel } from "./dm-panel.js?v=251";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE } from './conditions.js?v=1';
 import './media-picker.js?v=8';
 
@@ -20,7 +20,7 @@ import './media-picker.js?v=8';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=14#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=15#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
