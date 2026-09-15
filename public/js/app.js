@@ -1,16 +1,16 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=288';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=306";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=307";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=127";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=55';
 import { renderRelatiemap } from './render-relatiemap.js?v=26';
-import { renderProgressie } from './render-progressie.js?v=47';
-import { renderBestiarium } from './render-bestiarium.js?v=29';
+import { renderProgressie } from './render-progressie.js?v=48';
+import { renderBestiarium } from './render-bestiarium.js?v=30';
 import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=73";
-import { initDmPanel } from "./dm-panel.js?v=251";
+import { initDmPanel } from "./dm-panel.js?v=252";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE } from './conditions.js?v=1';
 import './media-picker.js?v=8';
 
@@ -1149,7 +1149,7 @@ function applyRole() {
   // Backdrop CSS-variabele voor herbergachtergrond
   const backdropId = state.meta?.herberg?.backdropId;
   if (backdropId) {
-    document.documentElement.style.setProperty('--herberg-backdrop-url', `url('${api.fileUrl(backdropId)}')`);
+    document.documentElement.style.setProperty('--herberg-backdrop-url', `url('${api.thumbUrlBreed(backdropId)}')`);
   } else {
     document.documentElement.style.removeProperty('--herberg-backdrop-url');
   }
@@ -1182,7 +1182,7 @@ function applyRole() {
     myCharTab.classList.toggle('hidden', !isNamedPlayer);
     if (isNamedPlayer && state.playerName) {
       const firstName = state.playerName.split(' ')[0];
-      const avatarUrl = api.fileUrl(state.characterId);
+      const avatarUrl = api.thumbUrl(state.characterId);
       myCharTab.innerHTML = `<img src="${avatarUrl}" class="nav-tab-avatar" alt="" onerror="this.style.display='none'">${esc(firstName)}`;
     } else {
       myCharTab.innerHTML = icon('user') + ' Mijn karakter';
@@ -1329,7 +1329,7 @@ async function showLanding({ alleenGroep = null } = {}) {
           data-portrait-video="${c.portraitVideoId ? '1' : ''}"
           onclick="window.app._landingPortraitClick('${esc(c.id)}', this)">
           <div class="landing-portrait-ring">
-            <img src="${api.fileUrl(esc(c.id))}" class="landing-portrait-img"
+            <img src="${api.thumbUrl(esc(c.id))}" class="landing-portrait-img"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="landing-portrait-fallback" style="display:none">${icon('user')}</div>
           </div>
@@ -6462,7 +6462,7 @@ window._rustCinematic = (payload) => {
   const ov = document.createElement('div');
   ov.id = 'rust-cinematic';
   ov.className = `rust-cinematic-overlay rust-cinematic--${isLong ? 'lang' : 'kort'} rust-cinematic--${esc(locatie || 'veld')}${backdropId ? ' rust-cinematic--has-bg' : ''}`;
-  if (backdropId) ov.style.setProperty('--rust-bg', `url('${api.fileUrl(backdropId)}')`);
+  if (backdropId) ov.style.setProperty('--rust-bg', `url('${api.thumbUrlBreed(backdropId)}')`);
 
   const maanNaam = isLong ? _moonFaseNaam(_moonPhase().frac) : '';
   const sceneEl = isLong
@@ -6945,7 +6945,7 @@ async function renderMijnKarakter(opts = {}) {
   try { weapons = JSON.parse(playerProfile.weapons || '[]'); } catch {}
 
   // Portret
-  const imgUrl = api.fileUrl(charId);
+  const imgUrl = api.thumbUrl(charId);
 
   // Multiclass
   const _isMulticlass = playerProfile.multiclass === 'true' || playerProfile.multiclass === true;
@@ -7937,7 +7937,7 @@ async function renderMijnKarakter(opts = {}) {
             const descTekst = allVoorwerpen.find(v => v.id === si.entityId)?.data?.desc || '';
             return `<div class="item-carousel-slide" ${slideClick}>
               ${imgId ? `<div class="item-carousel-img-wrap">
-                <img src="${api.fileUrl(imgId)}" class="item-carousel-img"
+                <img src="${api.thumbUrl(imgId)}" class="item-carousel-img"
                   onerror="this.closest('.item-carousel-img-wrap').style.display='none'">
               </div>` : ''}
               <div class="item-carousel-namerow">
@@ -10812,7 +10812,7 @@ async function renderHerberg() {
         <div class="dienst-beurs-topbar" style="justify-content:flex-end">${_helpBtn('herberg')}</div>
         <div class="herberg-portrait-wrap">
           ${config.imageId
-            ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round${cooldownActief ? ' herberg-portrait--weg' : ''}" alt="${esc(config.waard)}">`
+            ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round${cooldownActief ? ' herberg-portrait--weg' : ''}" alt="${esc(config.waard)}">`
             : `<div class="herberg-portrait-round herberg-portrait-fallback${cooldownActief ? ' herberg-portrait--weg' : ''}">${icon('beer')}</div>`}
         </div>
         <p class="herberg-groet">${_groetTekst}</p>
@@ -11002,9 +11002,9 @@ async function renderGock() {
     }
   }
 
-  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const backdrop = config.backdropId ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"` : '';
   const portret  = config.imageId
-    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
+    ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
     : `<div class="gock-portret-fallback">${icon('search')}</div>`;
 
   el.innerHTML = `
@@ -11153,9 +11153,9 @@ async function renderMagizoo() {
     cooldownTekst = `De Magizoöloog werkt zijn aantekeningen nog bij — nog ± ${min} min.`;
   }
 
-  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const backdrop = config.backdropId ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"` : '';
   const portret  = config.imageId
-    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
+    ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
     : `<div class="gock-portret-fallback">${icon('paw-print')}</div>`;
 
   const onderzoekbaar = monsters.filter(m => m.volgende || m.niveau !== 'volledig');
@@ -11236,7 +11236,7 @@ function _magizooItemBody(m, cooldownActief) {
 
 function _magizooAdoptKaart(p) {
   const portret = p.imageId
-    ? `<img src="${api.fileUrl(p.imageId)}" class="magizoo-adopt-portret" alt="${esc(p.name)}" onerror="this.style.display='none'">`
+    ? `<img src="${api.thumbUrl(p.imageId)}" class="magizoo-adopt-portret" alt="${esc(p.name)}" onerror="this.style.display='none'">`
     : `<div class="magizoo-adopt-portret magizoo-adopt-portret--fallback">${icon('paw-print')}</div>`;
   return `<div class="magizoo-adopt-kaart">
       ${portret}
@@ -11388,9 +11388,9 @@ async function renderUrsula() {
   const prijsTekst = (p) => [p?.fl && `${p.fl} fl`, p?.kn && `${p.kn} kn`, p?.cl && `${p.cl} cl`].filter(Boolean).join(' ') || 'gratis';
 
   const weg = geenSessie; // Ursula is er niet wanneer er geen sessie/akte loopt
-  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const backdrop = config.backdropId ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"` : '';
   const portret = config.imageId
-    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round${weg ? ' herberg-portrait--weg' : ''}" alt="${esc(config.naam)}">`
+    ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round${weg ? ' herberg-portrait--weg' : ''}" alt="${esc(config.naam)}">`
     : `<div class="herberg-portrait-round herberg-portrait-fallback${weg ? ' herberg-portrait--weg' : ''}">${icon('sparkles')}</div>`;
 
   const groet = geenSessie
@@ -11448,7 +11448,7 @@ async function renderTempel() {
   // Bouw een naam → portret-URL mapping voor auto-matching van god-avatars
   const _godPortraitMap = {};
   for (const p of personages) {
-    if (p.name) _godPortraitMap[p.name.trim().toLowerCase()] = api.fileUrl(p.id);
+    if (p.name) _godPortraitMap[p.name.trim().toLowerCase()] = api.thumbUrl(p.id);
   }
 
   const { config, huidigeZegen, huidigeEed, currency } = data;
@@ -11486,7 +11486,7 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
   }
 
   const backdrop = config.backdropId
-    ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"`
+    ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"`
     : '';
 
   el.innerHTML = `
@@ -11506,7 +11506,7 @@ function _renderTempelLijst(el, goden, config, huidigeEed, huidigeZegen, currenc
                 const actiefEed = huidigeEed && huidigeEed.godId === g.id;
                 // Portret: DM-geconfigureerde imageId → anders automatisch entity-match op naam
                 const portraitUrl = g.imageId
-                  ? api.fileUrl(g.imageId)
+                  ? api.thumbUrl(g.imageId)
                   : godPortraitMap[(g.naam || '').trim().toLowerCase()];
                 const avatar = portraitUrl
                   ? `<img src="${portraitUrl}" class="tempel-god-avatar" alt="${esc(g.naam)}" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=\\'tempel-god-avatar-fallback\\'></div>')">`
@@ -11536,7 +11536,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
 
   const backdropFileId  = g.backdropId   || g.locatieEntityId  || null;
   const priestFileId    = g.priestImageId || g.priesterEntityId || null;
-  const backdrop    = backdropFileId ? `style="background-image:url('${api.fileUrl(backdropFileId)}')"` : '';
+  const backdrop    = backdropFileId ? `style="background-image:url('${api.thumbUrlBreed(backdropFileId)}')"` : '';
   const priesterEntityId = g.priesterEntityId || null;
   const priesterNaam = priesterEntityId
     ? (personages.find(p => p.id === priesterEntityId)?.name || '')
@@ -11545,7 +11545,7 @@ function _renderTempelInterior(el, g, config, huidigeEed, huidigeZegen, currency
     ? `onclick="window._openDetail('personages','${esc(priesterEntityId)}')" style="cursor:pointer" title="Bekijk kaartje"`
     : '';
   const portret     = priestFileId
-    ? `<img src="${api.fileUrl(priestFileId)}" class="herberg-portrait-round" alt="Priester" onerror="this.style.display='none'" ${portretClick}>`
+    ? `<img src="${api.thumbUrl(priestFileId)}" class="herberg-portrait-round" alt="Priester" onerror="this.style.display='none'" ${portretClick}>`
     : `<div class="herberg-portrait-round herberg-portrait-fallback" ${portretClick}>${icon('church')}</div>`;
 
   el.innerHTML = `
@@ -11751,9 +11751,9 @@ async function renderHeeren() {
   const honorariumTekst = beursTekst(config.honorarium);
   const typeIcon = { zakkenrollen: icon('stiletto'), inbraak: icon('lock-open'), oplichting: icon('eye') };
 
-  const backdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const backdrop = config.backdropId ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"` : '';
   const portret = config.imageId
-    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
+    ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam)}">`
     : `<div class="gock-portret-fallback">${icon('moon')}</div>`;
   const kaartLink = (e) => (e && e.zichtbaar) ? `<button class="herberg-bubble-card-btn" style="margin-left:4px;font-size:.65rem;padding:1px 4px" onclick="window._openDetail('${esc(e.type)}','${esc(e.id)}')" title="Bekijk kaartje">↗</button>` : '';
 
@@ -11938,9 +11938,9 @@ async function renderTweespalt() {
           : `${lening.rentePerRust ?? 30}% rente per nacht · ${lening.rusten ?? 0} ${(lening.rusten === 1) ? 'nacht' : 'nachten'} verstreken`}</span>
        </div>` : '';
 
-  const tsBackdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
+  const tsBackdrop = config.backdropId ? `style="background-image:url('${api.thumbUrlBreed(config.backdropId)}')"` : '';
   const tsPortret  = config.imageId
-    ? `<img src="${api.fileUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam || 'De Tweespalt')}">`
+    ? `<img src="${api.thumbUrl(config.imageId)}" class="herberg-portrait-round" alt="${esc(config.naam || 'De Tweespalt')}">`
     : `<div class="ts-portrait-fallback">${icon('dice',{cls:'icon-gi'})}</div>`;
 
   el.innerHTML = `
@@ -12085,7 +12085,7 @@ function _tsTaevinPrompt(eventId, optieId, tekortCl) {
   const leenCl = leenBedrag.fl * 100 + leenBedrag.kn * 10;
   const leenTekst = [leenBedrag.fl && `${leenBedrag.fl} fl`, leenBedrag.kn && `${leenBedrag.kn} kn`].filter(Boolean).join(' en ');
 
-  const taevinPortret = api.fileUrl('e_1773523435098_p3vxjp');
+  const taevinPortret = api.thumbUrl('e_1773523435098_p3vxjp');
 
   const bubble = document.createElement('div');
   bubble.className = 'ts-taevin-bubble';
@@ -12166,7 +12166,7 @@ async function renderFacties() {
       _grisburghLocId = locs.find(l => (l.name || '').trim().toLowerCase() === 'grisburgh')?.id || null;
     } catch { _grisburghLocId = null; }
   }
-  const _factieBackdrop = _grisburghLocId ? `style="background-image:url('${api.fileUrl(_grisburghLocId)}')"` : '';
+  const _factieBackdrop = _grisburghLocId ? `style="background-image:url('${api.thumbUrlBreed(_grisburghLocId)}')"` : '';
 
   if (!zichtbaar.length) {
     el.innerHTML = `<div class="herberg-scene gock-scene facties-lijst-scene facties-lijst-scene--leeg" ${_factieBackdrop}><div class="herberg-content" style="text-align:center"><p class="herberg-groet" style="margin:0">${icon('landmark')} Nog geen facties onthuld.</p></div></div>`;
@@ -12185,14 +12185,14 @@ async function renderFacties() {
 }
 
 function _renderFactieInterieur(el, f, missies) {
-  const backdrop = f.locatieEntityId ? `style="background-image:url('${api.fileUrl(f.locatieEntityId)}')"` : '';
+  const backdrop = f.locatieEntityId ? `style="background-image:url('${api.thumbUrlBreed(f.locatieEntityId)}')"` : '';
   const stijl    = (f.stijl || '').replace(/[^a-z]/gi,'').toLowerCase();
 
   // Dag/nacht NPC: npcEntityIdDag = 06:00–18:00, npcEntityId = 18:00–06:00
   const _uur    = new Date().getHours();
   const _isNacht = _uur < 6 || _uur >= 18;
   const actieveNpcId = (f.npcEntityIdDag && !_isNacht) ? f.npcEntityIdDag : (f.npcEntityId || null);
-  const portretUrl   = actieveNpcId ? api.fileUrl(actieveNpcId) : null;
+  const portretUrl   = actieveNpcId ? api.thumbUrl(actieveNpcId) : null;
   const npcNaam      = f._npcNaam || '';
 
   const portret = portretUrl
@@ -12255,7 +12255,7 @@ function _renderFactieInterieur(el, f, missies) {
     const _lid = (l, isHoofd) => `
       <button class="factie-lid${isHoofd ? ' factie-lid--hoofd' : ''}" onclick="window._openDetail('personages','${esc(l.entityId)}')" title="Bekijk ${esc(l.naam)}">
         <span class="factie-lid-portret-wrap">
-          <img class="factie-lid-portret" src="${api.fileUrl(l.entityId)}" alt=""
+          <img class="factie-lid-portret" src="${api.thumbUrl(l.entityId)}" alt=""
             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <span class="factie-lid-portret factie-lid-portret--fallback" style="display:none">${icon('user')}</span>
           ${isHoofd ? `<span class="factie-lid-kroon" title="Leiding">${icon('crown')}</span>` : ''}

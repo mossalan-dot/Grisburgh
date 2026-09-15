@@ -186,7 +186,7 @@ function _card(m, i, dm) {
       <div class="card-accent bar-bestiarium"></div>
       <div class="card-img-wrap best-card-img-wrap">
         <div class="best-silhouet-fill">${icon('skull')}</div>
-        ${hasImg ? `<img class="card-img best-card-img" loading="lazy" src="${api.fileUrl(m.imageId)}"
+        ${hasImg ? `<img class="card-img best-card-img" loading="lazy" src="${api.thumbUrl(m.imageId)}"
           onerror="this.style.display='none'">` : ''}
         <div class="card-img-fade"></div>
         ${typePill ? `<span class="best-type-pill" title="${typePill}">${typePill}</span>` : ''}

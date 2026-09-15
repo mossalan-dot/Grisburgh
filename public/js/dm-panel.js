@@ -3326,7 +3326,7 @@ async function _loadAndRenderMonsters() {
 function _monsterRow(m) {
   return `
     <div class="dm-monster-row">
-      <div class="dm-monster-thumb dm-monster-thumb-empty">${icon('skull')}${m.imageId ? `<img src="${api.fileUrl(m.imageId)}" alt="" onerror="this.remove()">` : ''}</div>
+      <div class="dm-monster-thumb dm-monster-thumb-empty">${icon('skull')}${m.imageId ? `<img src="${api.thumbUrl(m.imageId)}" alt="" onerror="this.remove()">` : ''}</div>
       <div class="dm-monster-info">
         <span class="dm-monster-name">${esc(m.name)}${m.entityId ? ` <span class="dm-monster-bron" title="Komt van een personage-kaartje; bewerk het daar">van kaartje</span>` : ''}</span>
         <span class="dm-monster-meta">HP ${m.maxHp}${(() => { const ac = parseInt(m.statblock?.ac); return Number.isFinite(ac) ? ` · AC ${ac}` : ''; })()}</span>
@@ -5145,7 +5145,7 @@ async function _renderHerbergSettings() {
       </div>
 
       <div id="hb-portrait-row" class="dm-form-row" style="${selectedP ? '' : 'display:none'}">
-        <img id="hb-portrait-preview" src="${selectedP ? api.fileUrl(selectedP.id) : ''}"
+        <img id="hb-portrait-preview" src="${selectedP ? api.thumbUrl(selectedP.id) : ''}"
           style="width:64px;height:80px;object-fit:cover;border-radius:6px;border:1px solid rgba(196,168,122,0.4)">
       </div>
 
@@ -8231,7 +8231,7 @@ function _coDisplayHtml(combat, currentLabel) {
     return `
       <div class="${klas}">
         ${c.imageId
-          ? `<div class="co-disp-pion-portret" style="background-image:url('${api.fileUrl(c.imageId)}')"></div>`
+          ? `<div class="co-disp-pion-portret" style="background-image:url('${api.thumbUrl(c.imageId)}')"></div>`
           : `<div class="co-disp-pion-portret co-disp-pion-portret--leeg">${icon(isMonster ? 'skull' : 'user')}</div>`}
         <span class="co-disp-pion-naam" title="${esc(c.name || '')}">${esc(c.name || '—')}</span>
         ${staat ? `<span class="co-disp-pion-staat">${esc(staat)}</span>` : ''}
@@ -8445,7 +8445,7 @@ function _renderCombatOverlay(combat, startMinimized = false) {
   if (coBackdropId) {
     const bd = document.createElement('div');
     bd.className = 'co-backdrop-el';
-    bd.style.backgroundImage = `url('${api.fileUrl(coBackdropId)}')`;
+    bd.style.backgroundImage = `url('${api.thumbUrlBreed(coBackdropId)}')`;
     overlay.insertBefore(bd, overlay.firstChild);
     overlay.classList.add('co-has-backdrop');
   } else {

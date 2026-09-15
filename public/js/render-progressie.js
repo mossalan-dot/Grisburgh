@@ -664,7 +664,7 @@ function _backgroundBlock(background, charId, favs) {
 // ── Kaartweergave ──────────────────────────────────────────────────
 function _mediaArt(feat, artKey, big) {
   if (feat?.img) {
-    const url = api.fileUrl(feat.img);
+    const url = api.thumbUrl(feat.img);
     if (feat.imgKind === 'video')
       return `<video class="prog-card-art${big ? ' prog-detail-art' : ''}" src="${url}" autoplay muted loop playsinline></video>`;
     return `<div class="prog-card-art${big ? ' prog-detail-art' : ''}" style="background-image:url('${url}')"></div>`;

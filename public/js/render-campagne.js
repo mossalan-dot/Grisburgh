@@ -4929,7 +4929,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
     const _sfeerImageId = e.imageId || '';
     const sfeerHtml = (_sfeerTekst || _sfeerImageId) ? `
       <div class="shop-sfeer">
-        ${_sfeerImageId ? `<img src="${api.fileUrl(_sfeerImageId)}" class="shop-sfeer-img" alt="">` : ''}
+        ${_sfeerImageId ? `<img src="${api.thumbUrl(_sfeerImageId)}" class="shop-sfeer-img" alt="">` : ''}
         ${_sfeerTekst ? `<p class="shop-sfeer-tekst">${esc(_sfeerTekst)}</p>` : ''}
       </div>` : '';
 
@@ -4970,7 +4970,7 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
                 const uitverkocht = item.uitverkocht;
                 const actief = item.actief;
                 const thumbHtml = item.imageId
-                  ? `<img src="${api.fileUrl(item.imageId)}" class="shop-item-thumb" alt="">`
+                  ? `<img src="${api.thumbUrl(item.imageId)}" class="shop-item-thumb" alt="">`
                   : '';
                 const naamHtml = item.entityId
                   ? `<span class="cursor-pointer hover:text-gold transition underline decoration-dotted${uitverkocht ? ' winkel-uitverkocht-naam' : ''} shop-item-with-desc"
