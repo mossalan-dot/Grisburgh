@@ -54,7 +54,7 @@ function _secties(tekst) {
   const uit = [];
   const regels = String(tekst || '').split('\n');
   regels.forEach((r, i) => {
-    const m = r.match(/^(#{1,3})\s+(.*)$/);
+    const m = r.match(/^(#{1,6})\s+(.*)$/);
     if (m) uit.push({ niveau: m[1].length, titel: m[2].replace(/[[\]]/g, '').trim(), regel: i });
   });
   return uit;
@@ -152,6 +152,106 @@ function _kiezer(titel, rijen, opPick, leegTekst = 'Niets gevonden.') {
 // ── Voorbeeld ────────────────────────────────────────────────────────────────
 // Kijkstand, geen tweede editor — zelfde afspraak als bij de opmaakbalk op een
 // kaartje. De callouts worden hier al kaders, zodat je ziet wat je maakt.
+// Een `|`-tabel. Markdown kent er één vorm: koprij, streepjesrij, dan de rest.
+// `mdToHtml` doet ze niet (dat is de renderer van een kaartje-tekst), maar een
+// akte staat er vol mee — dobbeltabellen vooral.
+function _tabelHtml(regels) {
+  const cellen = (r) => r.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+  const kop = cellen(regels[0]);
+  const rijen = regels.slice(2).map(cellen);
+  // Staat er een dobbelsteen in de eerste kolomkop ("1d4", "d100"), dan is dit
+  // een worptabel. We zetten het erbij zodat de speel-kant er straks een
+  // worpknop aan kan hangen; in de editor verandert er niets aan.
+  const dobbel = (kop[0] || '').match(/\b(\d*d\d+)\b/i);
+  return `<table class="akte-tabel"${dobbel ? ` data-dobbel="${esc(dobbel[1].toLowerCase())}"` : ''}>
+    <thead><tr>${kop.map(c => `<th>${window.app.mdToHtml(c).replace(/<\/?p>/g, '')}</th>`).join('')}</tr></thead>
+    <tbody>${rijen.map(r => `<tr>${r.map(c => `<td>${window.app.mdToHtml(c).replace(/<\/?p>/g, '')}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table>`;
+}
+
+// `![[iets]]` — in Obsidian een ingesloten bestand. Is het een id dat wij
+// kennen, dan tonen we het beeld; is het een bestandsnaam uit een vault, dan
+// hebben wij dat bestand niet en wordt het een **slot**: de naam blijft staan,
+// met een knop om er een bestand uit de bibliotheek aan te hangen. Zo kun je
+// een hoofdstuk uit Obsidian plakken en de beelden er daarna bij zoeken,
+// zonder eerst een import te draaien.
+const _AUDIO = /\.(mp3|wav|m4a|ogg)$/i;
+function _embedHtml(ruw) {
+  const naam = ruw.trim();
+  const isAudio = _AUDIO.test(naam);
+  const isId = /^[A-Za-z0-9_-]{8,}$/.test(naam) && !/\.[a-z0-9]{2,4}$/i.test(naam);
+  if (isId) {
+    return isAudio
+      ? `<div class="akte-embed akte-embed--audio"><audio controls src="/api/files/${esc(naam)}"></audio></div>`
+      : `<div class="akte-embed"><img src="/api/files/${esc(naam)}" alt="" loading="lazy"
+           onerror="this.closest('.akte-embed').classList.add('akte-embed--stuk')"></div>`;
+  }
+  return `<div class="akte-embed akte-embed--slot">
+    <span class="akte-embed-naam">${icon(isAudio ? 'volume-2' : 'image')} ${esc(naam)}</span>
+    <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.akteSchrijven.koppelBeeld('${esc(naam).replace(/'/g, "\\'")}')">
+      ${icon('folder-open')} Bestand kiezen</button>
+  </div>`;
+}
+
+// Een DC in de lopende tekst. Een hoofdstuk schrijft die zoals je hem uitspreekt
+// — "een *DC12 Religion check*" — en niet als los blok. Die maken we zichtbaar
+// als chip, want tijdens het spelen is dat het getal waar je naar zoekt. Het
+// blijft een **aantekening**: er wordt niets gerold en niets bijgehouden,
+// zelfde regel als bij de loot-DC.
+const _DC = /\bDC\s?(\d{1,2})\s*([A-Z][a-zA-Z' ]{2,24}?)?\s*(check|save|saving throw)?\b/g;
+function _dcChips(html) {
+  return html.replace(_DC, (heel, getal, vaardigheid, soort) => {
+    const rest = [vaardigheid && vaardigheid.trim(), soort].filter(Boolean).join(' ');
+    return `<span class="akte-dc" title="Een aantekening — er wordt hier niets gerold">DC ${getal}${rest ? ' ' + rest : ''}</span>`;
+  });
+}
+
+function _prozaHtml(md) {
+  return _dcChips(window.app.mdToHtml(md));
+}
+
+// Alles wat geen callout is: eerst de blokvormen (tabel, lijst, embed), de rest
+// naar `mdToHtml`.// Alles wat geen callout is: eerst de blokvormen (tabel, lijst, embed), de rest
+// naar `mdToHtml`. Die kent de wikilinks en de opmaak van de rest van de app.
+function _gewoonHtml(regels) {
+  const uit = [];
+  let buffer = [];
+  const leeg = () => { if (buffer.join('').trim()) uit.push(_prozaHtml(buffer.join('\n'))); buffer = []; };
+  for (let i = 0; i < regels.length; i++) {
+    const r = regels[i];
+    // Koppen zelf tekenen: `mdToHtml` gaat tot drie hekjes, en juist de
+    // diepere niveaus dragen hier de scènes (`###### Madame Ursula`).
+    const kop = r.match(/^(#{1,6})\s+(.*)$/);
+    if (kop) {
+      leeg();
+      const n = kop[1].length;
+      uit.push(`<h${n} class="akte-kop akte-kop--n${n}">${window.app.mdToHtml(kop[2]).replace(/<\/?p>/g, '')}</h${n}>`);
+      continue;
+    }
+    const embed = r.match(/^\s*!\[\[([^\]]+?)\]\]\s*$/);
+    if (embed) { leeg(); uit.push(_embedHtml(embed[1])); continue; }
+    if (/^\s*\|.*\|\s*$/.test(r) && /^\s*\|[\s:|-]+\|\s*$/.test(regels[i + 1] || '')) {
+      leeg();
+      const tabel = [];
+      while (i < regels.length && /^\s*\|.*\|\s*$/.test(regels[i])) tabel.push(regels[i++]);
+      i--;
+      uit.push(_tabelHtml(tabel));
+      continue;
+    }
+    if (/^\s*[-*]\s+/.test(r)) {
+      leeg();
+      const items = [];
+      while (i < regels.length && /^\s*[-*]\s+/.test(regels[i])) items.push(regels[i++].replace(/^\s*[-*]\s+/, ''));
+      i--;
+      uit.push(`<ul class="akte-lijst">${items.map(it => `<li>${window.app.mdToHtml(it).replace(/<\/?p>/g, '')}</li>`).join('')}</ul>`);
+      continue;
+    }
+    buffer.push(r);
+  }
+  leeg();
+  return uit.join('\n');
+}
+
 export function regieNaarHtml(md) {
   const regels = String(md || '').split('\n');
   const uit = [];
@@ -167,14 +267,15 @@ export function regieNaarHtml(md) {
       const blok = REGIE_BLOKKEN[soort];
       uit.push(`<div class="regie-blok regie-blok--${esc(soort)}">
         <div class="regie-blok-kop">${icon(blok?.icon || 'hexagon')} ${esc(kop || blok?.label || soort)}</div>
-        ${body.length ? `<div class="regie-blok-body">${window.app.mdToHtml(body.join('\n'))}</div>` : ''}
+        ${body.length ? `<div class="regie-blok-body">${_gewoonHtml(body)}</div>` : ''}
       </div>`);
       continue;
     }
-    // Gewone regels in één blok tot de volgende callout; mdToHtml doet de rest.
+    // Gewone regels tot de volgende callout.
     const blokRegels = [];
     while (i < regels.length && !/^>\s*\[!/.test(regels[i])) { blokRegels.push(regels[i]); i++; }
-    if (blokRegels.join('').trim()) uit.push(window.app.mdToHtml(blokRegels.join('\n')));
+    const html = _gewoonHtml(blokRegels);
+    if (html.trim()) uit.push(html);
   }
   return uit.join('\n');
 }
@@ -228,6 +329,8 @@ function _teken() {
           <input type="file" accept=".md,text/markdown,text/plain" style="display:none"
             onchange="window.akteSchrijven.inlezen(this.files[0], this)">
         </label>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Welke [[namen]] hebben nog geen kaartje?"
+          onclick="window.akteSchrijven.namen()">${icon('users')} Namen</button>
         <button class="dm-btn dm-btn-ghost dm-btn-sm" title="De markdown naar het klembord — voor wie hem ook in Obsidian wil"
           onclick="window.akteSchrijven.kopieer(this)">${icon('clipboard-list')} Kopiëren</button>
         <button class="dm-btn dm-btn-ghost dm-btn-sm${_voorbeeld ? ' is-actief' : ''}" title="Zoals het er straks uitziet"
@@ -338,6 +441,67 @@ window.akteSchrijven = {
       return _kiezer('Dungeonkaart invoegen', rijen, (r) => _voegIn(_blokTekst('kaart', r.naam), { blok: true }),
         'Nog geen dungeonkaarten.');
     }
+  },
+
+  // Een beeld-slot vullen: kies een bestand en elke verwijzing met die naam
+  // wordt vervangen. Zo is één keer kiezen genoeg, ook als hetzelfde plaatje
+  // twee keer in het hoofdstuk staat.
+  koppelBeeld(naam) {
+    if (!window.mediaPicker?.open) { alert('Mediabibliotheek niet beschikbaar'); return; }
+    window.mediaPicker.open({
+      // Een .mp3 uit een Obsidian-vault hoort bij de geluiden, niet bij de
+      // afbeeldingen; de kiezer filtert op soort.
+      type: _AUDIO.test(naam) ? 'audio' : 'afbeelding',
+      suggestedName: naam.replace(/\.[a-z0-9]+$/i, '').slice(0, 60),
+      onSelect: (fileId) => {
+        const huidig = _ta()?.value ?? _tekst;
+        const zoek = `![[${naam}]]`;
+        const nieuw = huidig.split(zoek).join(`![[${fileId}]]`);
+        const ta = _ta();
+        if (ta) ta.value = nieuw;
+        _tekst = nieuw;
+        _merkVuil();
+        if (_voorbeeld) _tekenVoorbeeld();
+      },
+    });
+  },
+
+  // Welke [[namen]] hebben nog geen kaartje? Dezelfde vraag als in de
+  // Aktes-tab, maar hier terwijl je schrijft — dan maak je het kaartje
+  // meteen aan in plaats van het later terug te zoeken.
+  async namen() {
+    if (!_bewaard) await _bewaar();
+    let namen = [];
+    try { namen = (await api.akteNamen(_ch)).namen || []; } catch {}
+    const zonder = namen.filter(n => !n.kaartje);
+    window.app.openModal('Namen in deze akte', '', `
+      <div class="dm-feature-section" style="margin:0">
+        <p class="dm-hint">${namen.length} ${namen.length === 1 ? 'naam' : 'namen'} in de tekst, waarvan ${zonder.length} zonder kaartje.</p>
+        <div class="pb-entity-list">
+          ${namen.length ? namen.map(n => `
+            <div class="pb-entity-item" style="cursor:default">
+              <span class="pb-entity-icon">${icon(n.kaartje ? 'check-circle' : 'plus')}</span>
+              <span class="pb-entity-name">${esc(n.naam)}
+                <span class="dm-hint">· ${n.nieuw ? 'nieuw in deze akte' : 'komt terug'}</span></span>
+              ${n.kaartje
+                ? `<button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._openDetail('${esc(n.entityType)}','${esc(n.entityId)}')">Openen</button>`
+                : `<select class="dm-input dm-input-sm" onchange="window.akteSchrijven.maakKaartje('${esc(n.naam).replace(/'/g, "\\'")}', this.value)">
+                     <option value="">Kaartje maken…</option>
+                     <option value="personages">Personage</option>
+                     <option value="locaties">Locatie</option>
+                     <option value="organisaties">Organisatie</option>
+                     <option value="voorwerpen">Voorwerp</option>
+                     <option value="documenten">Document</option>
+                   </select>`}
+            </div>`).join('') : '<p class="dm-hint">Nog geen [[namen]] in de tekst.</p>'}
+        </div>
+      </div>`);
+  },
+
+  async maakKaartje(naam, type) {
+    if (!type) return;
+    try { await api.createEntity(type, { name: naam }); this.namen(); }
+    catch (e) { alert('Aanmaken mislukt: ' + e.message); }
   },
 
   voorbeeld() {

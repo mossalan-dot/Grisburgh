@@ -422,6 +422,17 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > `[!rust]`, `[!check]`) zodat de tekst heen en weer te kopiëren blijft;
 > `REGIE_BLOKKEN` en `regieNaarHtml()` in dat bestand zijn de enige plek waar
 > staat welke er zijn en hoe ze eruitzien. Plan: `docs/voorstel-akteregie.md`.
+> **`regieNaarHtml()` doet meer dan `mdToHtml()`**, want een hoofdstuk bevat
+> dingen die een kaartje-tekst niet heeft: koppen tot **zes** niveaus (`######`
+> draagt in een akte de scènes), `|`-tabellen (een dobbeltabel krijgt
+> `data-dobbel` mee voor de speel-kant), `- `-lijsten, en `![[bestand]]`. Dat
+> laatste is het verschil tussen een vault en een campagne: een id dat wij
+> kennen wordt een beeld, een bestandsnaam uit Obsidian wordt een **slot** met
+> een knop die hem aan een bestand uit de bibliotheek koppelt — en dan meteen
+> overal waar diezelfde naam staat. Een `DC12 Religion check` in de lopende
+> tekst wordt een chip; een aantekening, zoals de loot-DC.
+> **`_wikilinkNamen()` telt `![[…]]` niet meer mee**: een hoofdstuk staat vol
+> ingesloten plaatjes, en die stonden als "naam zonder kaartje" in de lijst.
 >
 > **De verhaaltekst en het script gaan niet meer naar de speler.** `GET /meta`
 > stuurde het hele meta-object naar iedereen met een sessie — inclusief

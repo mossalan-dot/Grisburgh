@@ -405,6 +405,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] *Voorbeeld* toont de blokken als kader: Voorlezen op perkament, Notitie gedempt, Gevecht rood
 - [ ] *Kopiëren* zet de markdown op het klembord; *Inlezen* vraagt eerst of de huidige tekst weg mag
 - [ ] **Speler**: `/api/meta` bevat geen `tekst`, `script` of `monsters` van een akte (netwerktab), wel `num`, `title` en `short`
+- [ ] Plak een heel hoofdstuk uit Obsidian: koppen tot `######` staan in het overzicht (en ingesprongen naar niveau), `|`-tabellen worden echte tabellen, `- `-lijsten worden lijsten
+- [ ] Elke `![[bestand.png]]` wordt een slot met de naam en een knop *Bestand kiezen*; kiezen vervangt álle verwijzingen met diezelfde naam
+- [ ] Een `![[…mp3]]` of `.wav` opent de geluidenbibliotheek in plaats van de afbeeldingen
+- [ ] `DC12 Religion check` in de lopende tekst wordt een blauwe chip (aantekening, er wordt niets gerold)
+- [ ] *Namen* telt alleen echte `[[verwijzingen]]` — een `![[plaatje.png]]` staat er niet meer bij
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

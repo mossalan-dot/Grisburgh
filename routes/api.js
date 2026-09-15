@@ -7183,8 +7183,12 @@ router.put('/meta/akte/:key/tekst', requireDM, (req, res) => {
 function _wikilinkNamen(tekst) {
   const uit = [];
   const gezien = new Set();
-  for (const m of String(tekst || '').matchAll(/\[\[([^\]]+)\]\]/g)) {
-    const naam = m[1].split('|')[0].split('#')[0].trim();
+  // `![[iets]]` is een **ingesloten bestand**, geen verwijzing naar een
+  // kaartje: een hoofdstuk uit Obsidian staat vol met `![[Denava.png]]`, en die
+  // stonden hier als naam in de lijst ("nog geen kaartje" — nee, het is een
+  // plaatje). Zelfde onderscheid dat `_parseAkteMarkdown` al maakt.
+  for (const m of String(tekst || '').matchAll(/(^|[^!])\[\[([^\]]+)\]\]/g)) {
+    const naam = m[2].split('|')[0].split('#')[0].trim();
     if (!naam) continue;
     const sleutel = _impNorm(naam);
     if (gezien.has(sleutel)) continue;
