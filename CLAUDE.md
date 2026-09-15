@@ -502,6 +502,43 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > kaartjes-kiezer heeft dezelfde uitweg (*Nieuw kaartje met de getypte naam*).
 > De plus hangt aan `_potloden` (voorbereiden), de oogjes aan `_acties` (spelen).
 >
+> **Het Logboek, doorgelopen (15 sep 2026).** Vier dingen rechtgezet:
+>
+> 1. **`GET /archief` stuurde `logEntries` ongefilterd naar iedereen.** Daar
+>    staan de onthul-gebeurtenissen in — mét de náám van het document — en
+>    straks de **missies**, die via `GET /missies` juist zorgvuldig per party op
+>    factie, renown en status worden gefilterd. In Grisburgh las een speler er 58
+>    regels, waarvan drie een document noemden dat zijn party niet kent. De
+>    client leest het veld nergens; het gaat nu alleen nog naar de DM.
+> 2. **Beelden gingen als origineel de deur uit.** De kaartjes in de tijdlijn en
+>    de aktebanners gebruikten `api.fileUrl` in plaats van `api.thumbUrl`, en de
+>    kaartjes hadden geen `loading="lazy"` — ook een dichtgeklapte akte haalde
+>    dus alles op. Samen 62 MB om 34 postzegels te tekenen; nu 3 MB. Voor de
+>    banner (een strook van ~1100 px) is 600 px te klein, dus `GET /thumb/:id`
+>    kent één extra maat: `?w=1200`, gecachet als `<id>.w1200.webp`. Bewust een
+>    whitelist van één waarde — een vrij getal schrijft de schijf vol met maten.
+>    Client: `api.thumbUrlBreed(id)`.
+> 3. **De beelddrager stond als verslag in de tijdlijn.** De akte-importer en de
+>    uploadknop bewaren de beelden van een akte in een verborgen sessielog-entry
+>    ("Scène-afbeeldingen"). Dat is een bergplaats, geen verslag, maar hij stond
+>    er als leeg kaartje bij — en één ervan stond op zichtbaar, dus de spelers
+>    keken ernaar. `_isBeelddrager()` houdt hem uit de tijdlijn en uit de
+>    zoekresultaten; zijn beelden blijven in de strip bovenaan de akte. De
+>    importer maakte er bovendien elke keer een nieuwe bij, met een eigen naam
+>    ("Geïmporteerde scène-afbeeldingen"); hij hergebruikt nu dezelfde drager.
+> 4. **Zoeken was diakriet-gevoelig.** `Ursun` gaf nul, `Ursûn` acht. De
+>    kaartjes-tabs, de spreuken en het bestiarium gebruiken al
+>    `window._normSearch`/`_searchTokens`; het logboek deed een kale `includes`.
+>    Nu hetzelfde: diakriet weg, elk woord moet érgens matchen, en de **titel van
+>    de akte** telt mee in de hooiberg. De vier plekken die de lijst opnieuw
+>    tekenden hadden elk hun eigen kopie van dezelfde drie regels — één ervan
+>    vergat de zoekterm, zodat een verslag zichtbaar maken je resultaat wegveegde.
+>    Dat is nu `_logboekHerteken()`.
+>
+> Daarnaast de emoji eruit: de chips in het sessievenster droegen 👤🏰🏛️⚔️📜 als
+> sectiekopje en ✨/↩ per naam. Nu `icon()`, met een tooltip die zegt wat het
+> merkteken betekent — dat stond nergens.
+
 > **Een naam zonder kaartje krijgt óók in de dungeon een plus.** De aantekening
 > van de DM in de kamerzijbalk (`room.dmNotes`) ging als platte tekst door
 > `esc()`; hij gaat nu door `mdToHtml()` (`_notitieHtml` in

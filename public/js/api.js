@@ -127,6 +127,9 @@ export const api = {
   },
   fileUrl:  (id) => metCampagne(`${BASE}/files/${id}`),
   thumbUrl: (id) => metCampagne(`${BASE}/thumb/${id}`),
+  // Voor een beeld dat over de volle breedte van het scherm ligt (de aktebanner
+  // in het logboek). Zie de whitelist in GET /thumb/:id.
+  thumbUrlBreed: (id) => metCampagne(`${BASE}/thumb/${id}?w=1200`),
   // Portret-/afbeelding-URL voor een record (entiteit óf document): gebruikt het
   // losse imageId als dat gezet is (mediabibliotheek-hergebruik) — entiteiten
   // dragen het in data.imageId, documenten top-level imageId — anders het

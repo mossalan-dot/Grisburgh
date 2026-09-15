@@ -481,6 +481,12 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Vondsten vanuit de kamer** (DM) — sectie *Vondsten* in de kamerzijbalk: aanmaken of koppelen; het muntje opent het lootvenster; loskoppelen gooit niets weg
 - [ ] **Dungeon op het tafelscherm** (TAB) — de DM toont een dungeonkaart; de tablet toont alleen de onthulde kamers
 - [ ] **Logboek per akte** (ALL) — verslagen gegroepeerd per akte, met de banner-afbeelding van die akte
+- [ ] **Zoeken in het logboek** (ALL) — `Ursun` vindt net zo veel als `Ursûn`; twee woorden achter elkaar (`rogarr eendragt`) vindt de verslagen waar ze allebei in staan; de naam van een akte (`Lichtmis`) vindt alle verslagen van die akte
+- [ ] **Zoeken blijft staan** (DM) — zoek iets, zet een verslag zichtbaar: je zoekresultaat blijft staan in plaats van terug te springen naar de hele lijst
+- [ ] **Geen bergplaats in de tijdlijn** (ALL) — nergens een leeg kaartje "Scène-afbeeldingen" of "Geïmporteerde scène-afbeeldingen"; die beelden staan wél in de strip bovenaan de akte
+- [ ] **Speler** — `/api/archief` levert een lege `logEntries` (netwerktab); alleen de DM krijgt daar iets in
+- [ ] **Beelden blijven licht** (ALL) — open het Logboek met de netwerktab open: elk beeld komt van `/api/thumb/…`, geen enkele van `/api/files/…`; de banner haalt `?w=1200`
+- [ ] **Chips in het sessievenster** (ALL) — Personages/Locaties/Organisaties/Voorwerpen/Documenten hebben een icoon, geen emoji; het tekentje vóór een naam zegt met een tooltip of hij nieuw is of al eerder voorkwam
 - [ ] **Sessieverslag schrijven** (DM) — nieuwe entry, markdown, afbeeldingen uploaden, opslaan en teruglezen
 - [ ] **Missie aanmaken** (DM) — titel, beschrijving, koppeling aan een factie of locatie, en zichtbaar maken
 - [ ] **Pin voorstellen en goedkeuren** (SP/DM) — speler stelt voor, DM keurt goed of af, beide zien de uitkomst

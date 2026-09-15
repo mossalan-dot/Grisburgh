@@ -1,4 +1,4 @@
-import { api } from './api.js?v=287';
+import { api } from './api.js?v=288';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -100,7 +100,7 @@ function fmtToolbar(id) {
     <div class="fmt-kleur-wrap">
       <select class="fmt-kleur-select" id="fmt-kleur-${id}"
         onchange="window._fmtKleurSelect('${id}', this)">
-        <option value="">🎨 kleur</option>
+        <option value="">Kleur…</option>
         ${kleurOpties}
       </select>
       <span class="fmt-kleur-dot" id="fmt-kleur-dot-${id}"></span>
@@ -191,39 +191,19 @@ export async function renderLogboek() {
 
   window._logboekSearch = (q) => {
     logboekSearch = q;
-    const body = document.getElementById('logboek-body');
-    if (body && _logboekCache) {
-      const filtered = q.trim()
-        ? _logboekCache.allEntries.filter(e => _logboekMatchesSearch(e, q.toLowerCase()))
-        : _logboekCache.allEntries;
-      body.innerHTML = _buildLogboekBody(filtered, _logboekCache.hk, !!q.trim());
-    }
+    _logboekHerteken();
   };
 
   window._toggleChapter = (chKey) => {
     if (_collapsedChapters.has(chKey)) _collapsedChapters.delete(chKey);
     else _collapsedChapters.add(chKey);
-    const body = document.getElementById('logboek-body');
-    if (body && _logboekCache) {
-      const q = logboekSearch;
-      const entries = q.trim()
-        ? _logboekCache.allEntries.filter(e => _logboekMatchesSearch(e, q.toLowerCase()))
-        : _logboekCache.allEntries;
-      body.innerHTML = _buildLogboekBody(entries, _logboekCache.hk, !!q.trim());
-    }
+    _logboekHerteken();
   };
 
   window._toggleScriptPanel = (chKey) => {
     if (_scriptOpenChapters.has(chKey)) _scriptOpenChapters.delete(chKey);
     else _scriptOpenChapters.add(chKey);
-    const body = document.getElementById('logboek-body');
-    if (body && _logboekCache) {
-      const q = logboekSearch;
-      const entries = q.trim()
-        ? _logboekCache.allEntries.filter(e => _logboekMatchesSearch(e, q.toLowerCase()))
-        : _logboekCache.allEntries;
-      body.innerHTML = _buildLogboekBody(entries, _logboekCache.hk, !!q.trim());
-    }
+    _logboekHerteken();
     // Scroll het script-panel in beeld
     if (_scriptOpenChapters.has(chKey)) {
       setTimeout(() => {
@@ -678,14 +658,58 @@ async function _openQuestModal(existingQuest, defaultStatus = 'verborgen') {
   };
 }
 
-function _logboekMatchesSearch(e, q) {
-  return [
-    e.korteSamenvatting, e.samenvatting, e.citaat,
+// Zoeken deed hier een kale `includes` op kleine letters: 'Ursun' vond niets
+// terwijl 'Ursûn' er acht opleverde, en twee woorden achter elkaar ('rogarr
+// eendragt') nooit iets. De kaartjes-tabs, de spreuken en het bestiarium
+// gebruiken al `window._normSearch`/`_searchTokens` — diakriet weg, en elk
+// woord moet érgens matchen. Het logboek was de laatste die achterbleef.
+const _logNorm   = (v) => window._normSearch?.(v) ?? String(v ?? '').toLowerCase();
+const _logTokens = (q) => window._searchTokens?.(q) ?? _logNorm(q).split(/\s+/).filter(Boolean);
+
+function _logboekHooiberg(e, hk) {
+  const ch = hk?.[e.hoofdstuk];
+  return _logNorm([
+    e.korteSamenvatting, e.samenvatting, e.citaat, e.datum,
+    ch?.title, ch?.short,                       // je zoekt ook op de naam van de akte
     ...(e.nieuwPersonages || []), ...(e.terugkerendPersonages || []),
     ...(e.nieuwLocaties || []), ...(e.terugkerendLocaties || []),
-    ...(e.organisaties || []), ...(e.voorwerpen || []),
-  ].some(f => f?.toLowerCase().includes(q));
+    ...(e.organisaties || []), ...(e.voorwerpen || []), ...(e.docs || []),
+  ].filter(Boolean).join(' \u00b7 '));
 }
+
+function _logboekMatchesSearch(e, q, hk) {
+  const tokens = _logTokens(q);
+  if (!tokens.length) return true;
+  const hooi = _logboekHooiberg(e, hk);
+  return tokens.every(t => hooi.includes(t));
+}
+
+// De vier plekken die de body opnieuw bouwden hadden alle vier hun eigen kopie
+// van dezelfde drie regels; de laatste vergat de zoekterm mee te nemen, zodat
+// het zichtbaar maken van een verslag je zoekresultaat stilletjes wegveegde.
+function _logboekHerteken() {
+  const body = document.getElementById('logboek-body');
+  if (!body || !_logboekCache) return;
+  const q = logboekSearch.trim();
+  const entries = q
+    ? _logboekCache.allEntries.filter(e => _logboekMatchesSearch(e, q, _logboekCache.hk))
+    : _logboekCache.allEntries;
+  body.innerHTML = _buildLogboekBody(entries, _logboekCache.hk, !!q);
+}
+
+// Een akte heeft een verborgen sessielog-entry waar de beelden in leven — de
+// akte-importer en de uploadknop in het schrijfscherm schrijven daarin. Dat is
+// een bergplaats, geen verslag, maar hij stond wel als kaartje in de tijdlijn:
+// een leeg kaartje met een boekicoon en 'Geïmporteerde scène-afbeeldingen'
+// erboven. Eén ervan stond in deze campagne zelfs op zichtbaar, dus de spelers
+// keken ernaar. Zijn beelden horen wél in de strip bovenaan de akte — die leest
+// `chEntries` ongefilterd, dus daar verandert niets.
+// De eis 'en verder helemaal leeg' staat er zodat een echt verslag dat toevallig
+// zo heet niet verdwijnt.
+const _isBeelddrager = (e) =>
+  /sc[eè]ne-afbeeldingen/i.test(e.korteSamenvatting || '')
+  && !(e.samenvatting || '').trim()
+  && !(e.citaat || '').trim();
 
 function _buildChapterImgStrip(chEntries, ch) {
   const imgs = [];
@@ -739,7 +763,7 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
 
   if (isSearchMode) {
     return `<div class="logboek-search-results">
-      ${entries.map(e => {
+      ${entries.filter(e => !_isBeelddrager(e)).map(e => {
         const ch = hk[e.hoofdstuk];
         const chLabel = ch ? `A${ch.num}: ${ch.title}` : '';
         return renderSessieEntry(e, null, chLabel);
@@ -788,7 +812,10 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
     const firstRawImg = firstEntryWithImg?.images?.[0];
     const _firstImgId = firstRawImg ? (typeof firstRawImg === 'string' ? firstRawImg : firstRawImg.id) : null;
     const bannerImgId = info.bannerImg || _firstImgId;
-    const bannerImgSrc = bannerImgId ? api.fileUrl(bannerImgId) : null;
+    // Thumbnail, geen origineel: deze tab toonde 52 beelden en haalde er 93 MB
+    // aan originele foto's voor op om er postzegels van te tekenen. Met
+    // /api/thumb is dat 5 MB, en de banner is een verduisterde strook.
+    const bannerImgSrc = bannerImgId ? api.thumbUrlBreed(bannerImgId) : null;
 
     const bannerFocusVal = info.bannerFocus || '50% 30%';
     html += `
@@ -810,7 +837,7 @@ function _buildLogboekBody(entries, hk, isSearchMode = false) {
         <div class="logboek-chapter-content${isCollapsed ? ' hidden' : ''}">
           ${_buildChapterImgStrip(chEntries, ch)}
           <div class="logboek-timeline">
-            ${chEntries.map((e, idx) => renderSessieEntry(e, idx + 1)).join('')}
+            ${chEntries.filter(e => !_isBeelddrager(e)).map((e, idx) => renderSessieEntry(e, idx + 1)).join('')}
             ${(info.spelersSamenvatting || isDM()) ? _renderAkteSamenvattingCard(ch, info) : ''}
           </div>
           ${(docsByChapter[ch] || []).length ? `
@@ -875,33 +902,39 @@ function _renderSessieChips(e) {
   const _oClick  = n => `data-lf="orgs"  data-ln="${esc(n)}" onclick="window._archiefLinkClick(this.dataset.lf,this.dataset.ln)"`;
   const _iClick  = n => `data-lf="items" data-ln="${esc(n)}" onclick="window._archiefLinkClick(this.dataset.lf,this.dataset.ln)"`;
 
+  // Geen emoji in gerenderde HTML — hier stonden 👤🏰🏛️⚔️📜 als sectiekopjes en
+  // ✨/↩ in elke chip. De sprite kent ze allemaal, en een tooltip zegt wat het
+  // teken betekent (dat stond nergens).
+  const _nieuwIcoon = icon('sparkles', { cls: 'log-chip-mark', title: 'Nieuw in deze sessie' });
+  const _terugIcoon = icon('refresh-cw', { cls: 'log-chip-mark', title: 'Kwam al eerder voor' });
+
   const persChips = [
-    ...nieuwP.map(n => `<span class="log-chip log-chip-gold cursor-pointer" ${_pClick(n)}>\u2728 ${esc(n)}</span>`),
-    ...terugP.map(n => `<span class="log-chip log-chip-blue cursor-pointer" ${_pClick(n)}>\u21a9 ${esc(n)}</span>`),
-    ...legNieuw.map(n => `<span class="log-chip log-chip-gold cursor-pointer" ${_pClick(n)}>\u2728 ${esc(n)}</span>`),
-    ...legTerug.map(n => `<span class="log-chip log-chip-blue cursor-pointer" ${_pClick(n)}>\u21a9 ${esc(n)}</span>`),
+    ...nieuwP.map(n => `<span class="log-chip log-chip-gold cursor-pointer" ${_pClick(n)}>${_nieuwIcoon} ${esc(n)}</span>`),
+    ...terugP.map(n => `<span class="log-chip log-chip-blue cursor-pointer" ${_pClick(n)}>${_terugIcoon} ${esc(n)}</span>`),
+    ...legNieuw.map(n => `<span class="log-chip log-chip-gold cursor-pointer" ${_pClick(n)}>${_nieuwIcoon} ${esc(n)}</span>`),
+    ...legTerug.map(n => `<span class="log-chip log-chip-blue cursor-pointer" ${_pClick(n)}>${_terugIcoon} ${esc(n)}</span>`),
   ];
-  if (persChips.length) sections.push({ label: '\ud83d\udc64 Personages', chips: persChips });
+  if (persChips.length) sections.push({ label: `${icon('users')} Personages`, chips: persChips });
 
   const locChips = [
-    ...nieuwL.map(n => `<span class="log-chip log-chip-green-new cursor-pointer" ${_lClick(n)}>\u2728 ${esc(n)}</span>`),
-    ...terugL.map(n => `<span class="log-chip log-chip-green cursor-pointer" ${_lClick(n)}>\u21a9 ${esc(n)}</span>`),
+    ...nieuwL.map(n => `<span class="log-chip log-chip-green-new cursor-pointer" ${_lClick(n)}>${_nieuwIcoon} ${esc(n)}</span>`),
+    ...terugL.map(n => `<span class="log-chip log-chip-green cursor-pointer" ${_lClick(n)}>${_terugIcoon} ${esc(n)}</span>`),
   ];
-  if (locChips.length) sections.push({ label: '\ud83c\udff0 Locaties', chips: locChips });
+  if (locChips.length) sections.push({ label: `${icon('map-pin')} Locaties`, chips: locChips });
 
   const orgs = e.organisaties || [];
   if (orgs.length) sections.push({
-    label: '\ud83c\udfdb\ufe0f Organisaties',
+    label: `${icon('landmark')} Organisaties`,
     chips: orgs.map(n => `<span class="log-chip log-chip-seal cursor-pointer" ${_oClick(n)}>${esc(n)}</span>`),
   });
 
   if (items.length) sections.push({
-    label: '\u2694\ufe0f Voorwerpen',
+    label: `${icon('package')} Voorwerpen`,
     chips: items.map(n => `<span class="log-chip log-chip-orange cursor-pointer" ${_iClick(n)}>${esc(n)}</span>`),
   });
 
   if (docs.length) sections.push({
-    label: '\ud83d\udcdc Documenten',
+    label: `${icon('scroll-text')} Documenten`,
     chips: docs.map(n => {
       const d = _documenten.find(x => x.name === n);
       const click = d ? `onclick="window._openDetail('documenten','${d.id}')"` : '';
@@ -1125,7 +1158,7 @@ function renderSessieEntry(e, sessieNum = null, chLabel = null) {
   const images = e.images || [];
   const firstRaw = images.find(img => typeof img === 'string' || img.visible !== false);
   const firstImgId = firstRaw ? (typeof firstRaw === 'string' ? firstRaw : firstRaw.id) : null;
-  const firstImg = firstImgId ? api.fileUrl(firstImgId) : null;
+  const firstImg = firstImgId ? api.thumbUrl(firstImgId) : null;
 
   const previewNames = [
     ...(e.nieuwPersonages || []).slice(0, 3),
@@ -1147,7 +1180,7 @@ function renderSessieEntry(e, sessieNum = null, chLabel = null) {
       <div class="logboek-tl-card logboek-tl-card--h">
         ${firstImg ? `
           <div class="logboek-card-thumb">
-            <img src="${firstImg}" class="logboek-card-thumb-img" onerror="this.closest('.logboek-card-thumb').style.display='none'">
+            <img src="${firstImg}" loading="lazy" class="logboek-card-thumb-img" onerror="this.closest('.logboek-card-thumb').style.display='none'">
           </div>
         ` : `<div class="logboek-card-thumb logboek-card-thumb--empty">${icon('book-open')}</div>`}
         <div class="logboek-card-hbody">
@@ -1242,11 +1275,8 @@ window._toggleSessieVis = async (id, currentVisible) => {
     entry.visible = !currentVisible;
     entry._chapterHidden = entry._chapterHidden; // ongewijzigd
   }
-  const body = document.getElementById('logboek-body');
-  if (body && _logboekCache) {
-    // DM ziet altijd alles; update _logboekCache niet (socket doet straks een echte refresh)
-    body.innerHTML = _buildLogboekBody(_logboekCache.allEntries, _logboekCache.hk);
-  }
+  // DM ziet altijd alles; _logboekCache blijft staan (de socket doet straks een echte refresh)
+  _logboekHerteken();
 };
 
 let logEditorTags = {

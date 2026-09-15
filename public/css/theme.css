@@ -25471,3 +25471,14 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
 }
 .dm-rb-nakijken:hover { background: rgba(220,120,70,0.32); color: #f7efdc; }
 .dm-rb-nakijken .icon { width: 12px; height: 12px; }
+
+/* Logboek-chips: de emoji zijn iconen geworden. Het sectiekopje krijgt zijn
+   icoon op de basislijn, de chip een klein merkteken vóór de naam. Onderaan de
+   stylesheet, want .log-chip-section-label staat op regel 2637 en zou anders
+   winnen op volgorde. */
+.log-chip-section-label { display: flex; align-items: center; gap: 5px; }
+.log-chip-section-label .icon { width: 13px; height: 13px; opacity: 0.75; }
+.log-chip-mark {
+  width: 10px; height: 10px;
+  vertical-align: -1px; margin-right: 1px; opacity: 0.7;
+}

@@ -205,14 +205,19 @@ router.get('/thumb/:id', attachRole, async (req, res) => {
     return res.type(mime).sendFile(file.path);
   }
 
+  // Eén extra maat, voor plekken die een thumbnail over de volle breedte van het
+  // scherm tekenen — de aktebanner in het logboek is zo'n strook van ~1100 px, en
+  // daar valt 600 px zichtbaar uit elkaar. Bewust een whitelist en geen vrij
+  // getal: anders schrijft één verdwaalde querystring de schijf vol met maten.
+  const breed     = req.query.w === '1200';
   const thumbDir  = path.join(storage.DATA_DIR, 'thumbs');
-  const thumbPath = path.join(thumbDir, `${req.params.id}.webp`);
+  const thumbPath = path.join(thumbDir, `${req.params.id}${breed ? '.w1200' : ''}.webp`);
 
   try {
     if (!fs.existsSync(thumbPath)) {
       fs.mkdirSync(thumbDir, { recursive: true });
       await _sharp(file.path)
-        .resize(600, null, { withoutEnlargement: true })
+        .resize(breed ? 1200 : 600, null, { withoutEnlargement: true })
         .webp({ quality: 82 })
         .toFile(thumbPath);
     }
@@ -5542,13 +5547,23 @@ router.post('/import/akte/apply', requireDM, uploadMedia.array('images', 100), (
   if (sessieImages.length) {
     const archief = storage.readJSON('archief.json');
     if (!archief.sessieLog) archief.sessieLog = [];
-    sessieId = 'sl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 4);
-    archief.sessieLog.push({
-      id: sessieId, hoofdstuk: chapterKey, datum: '', korteSamenvatting: 'Geïmporteerde scène-afbeeldingen',
-      samenvatting: '', images: sessieImages,
-      nieuwPersonages: [], terugkerendPersonages: [], nieuwLocaties: [], terugkerendLocaties: [],
-      organisaties: [], voorwerpen: [], docs: [], nieuw: [], terugkerend: [],
-    });
+    // Eén beelddrager per akte, met dezelfde naam die de uploadknop gebruikt.
+    // Elke import maakte er anders een nieuwe bij, en met een eigen naam
+    // ('Geïmporteerde scène-afbeeldingen'), zodat je er twee naast elkaar kreeg.
+    let drager = archief.sessieLog.find(e =>
+      e.hoofdstuk === chapterKey && /sc[eè]ne-afbeeldingen/i.test(e.korteSamenvatting || ''));
+    if (!drager) {
+      drager = {
+        id: 'sl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 4),
+        hoofdstuk: chapterKey, datum: '', korteSamenvatting: 'Scène-afbeeldingen',
+        samenvatting: '', visible: false, images: [],
+        nieuwPersonages: [], terugkerendPersonages: [], nieuwLocaties: [], terugkerendLocaties: [],
+        organisaties: [], voorwerpen: [], docs: [], nieuw: [], terugkerend: [],
+      };
+      archief.sessieLog.push(drager);
+    }
+    drager.images = [...(drager.images || []), ...sessieImages];
+    sessieId = drager.id;
     storage.writeJSON('archief.json', archief);
     for (const ref of imageScriptRefs) ref.sessieId = sessieId;
   }
@@ -5736,7 +5751,13 @@ router.get('/archief', attachRole, (req, res) => {
   const cv = _readChapterVisibility();
 
   res.json({
-    logEntries: archief.logEntries,
+    // `logEntries` draagt onthul-gebeurtenissen (met de náám van het document)
+    // en de missies. De client leest het nergens — missies lopen via
+    // GET /missies, dat wél per party filtert op factie, renown en status.
+    // Ongefilterd meesturen betekende dus: elke speler kon in de netwerktab de
+    // titels lezen van documenten die zijn party niet kent, en straks van elke
+    // missie van elke factie. Zelfde soort lek als de kamernamen in een dungeon.
+    logEntries: req.role === 'dm' ? archief.logEntries : [],
     sessieLog: req.role === 'dm'
       ? (archief.sessieLog || []).map(e => ({
           ...e,
