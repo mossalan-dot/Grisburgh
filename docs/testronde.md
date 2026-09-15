@@ -440,6 +440,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Potlood op een regieblok (speelstand én lade) → kop aanpassen of *Kies uit de campagne*; opslaan verandert één regel in de tekst
 - [ ] Potlood → *Blok verwijderen* haalt de kopregel én zijn `>`-inhoud weg
 - [ ] Hetzelfde potlood in de lade bewaart meteen en tekent de lade opnieuw
+- [ ] De kop van het schrijfscherm: *Namen* met het aantal namen zonder kaartje, *Tekst en beeld*, *Spelen*, *⋯* (importeren/exporteren), hulpknop, sluiten — en nergens uitleg ónder een knop
+- [ ] *Exporteren* levert een `.md`-bestand met de naam van de akte
+- [ ] Importeer een akte via de Meesterkamer → de verhaaltekst van die akte is meteen gevuld (en bij *aanvullen* blijft bestaande tekst staan)
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

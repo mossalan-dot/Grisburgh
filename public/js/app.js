@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=286';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=305";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=110";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=112";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
 import { renderRelatiemap } from './render-relatiemap.js?v=26';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=73";
-import { initDmPanel } from "./dm-panel.js?v=237";
+import { initDmPanel } from "./dm-panel.js?v=240";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -19,7 +19,7 @@ import './media-picker.js?v=8';
 window.icon = function icon(name, { cls = '', title = '' } = {}) {
   const t   = title ? `<title>${title.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</title>` : '';
   const aria = title ? ' role="img"' : ' aria-hidden="true"';
-  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=13#icon-${name}"/>${t}</svg>`;
+  return `<svg class="icon${cls ? ' '+cls : ''}"${aria} focusable="false"><use href="/img/icons.svg?v=14#icon-${name}"/>${t}</svg>`;
 };
 const icon = (...a) => window.icon(...a);
 
@@ -12725,6 +12725,32 @@ const HELP_CONFIG = {
 
   // Een speler dacht dat de hele bibliotheek haar eigen spreuken waren. Vandaar
   // dat deze uitleg met dat misverstand begint in plaats van met de functies.
+  akte_schrijven: () => ({
+    titel: 'Een akte schrijven',
+    stappen: [
+      {
+        titel: 'Schrijven en spelen in één scherm',
+        tekst: 'Links staan de **secties** van je hoofdstuk — elke `##`-kop is er een. Je kunt ze **verslepen** om een scène te verplaatsen; alles wat eronder hangt gaat mee. Onderaan die kolom staat wat niet bij één plek in de tekst hoort: **Rust** en de **character sheets**.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Invoegen zonder tekens te typen',
+        tekst: 'Onder **Invoegen** staat alles wat je in een akte kwijt kunt: een sectie, een lijst, een tabel, een voorleesblok, een gevecht, een tabel om te rollen, een vondst, een kamer, muziek, een brief. Elk item heeft een sneltoets (**Alt** + de letter erachter). *Kaartje* en *Beeld* staan los, want die gebruik je in bijna elke alinea; een kaartje kan ook met `[[` — dan zoekt de app mee.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Tekst en beeld, en Spelen',
+        tekst: '**Tekst en beeld** zet je tekst links en het perkament rechts, zodat je ziet wat je maakt. **Spelen** toont alleen het perkament, met de knoppen erbij: onthullen bij een naam, *Toon aan spelers* bij een beeld, *Start gevecht* bij een gevechtsblok. Diezelfde weergave krijg je tijdens het spelen in de lade onderin.',
+        afbeelding: null,
+      },
+      {
+        titel: 'Namen, importeren en exporteren',
+        tekst: '**Namen** laat zien welke `[[namen]]` uit je tekst nog geen kaartje hebben — het getal op de knop is dat aantal, en je maakt ze er meteen bij. Achter **⋯** kun je een `.md` **importeren** (dat vervángt de tekst) of je hoofdstuk **exporteren** als bestand, bijvoorbeeld om het in je Obsidian-vault te zetten. Opslaan hoeft niet: dat gebeurt terwijl je typt.',
+        afbeelding: null,
+      },
+    ],
+  }),
+
   vaardigheden: () => ({
     titel: 'Vaardigheden',
     stappen: [

@@ -5481,6 +5481,22 @@ router.post('/import/akte/apply', requireDM, uploadMedia.array('images', 100), (
   if (!chapterKey) return res.status(400).json({ error: 'Geen akte gekozen' });
   const mode = req.body.mode === 'append' ? 'append' : 'replace';
 
+  // De markdown zelf bewaren bij de akte. Tot 15 sep 2026 las de importer het
+  // bestand, haalde er de tokens uit en gooide de tekst weg — precies waarom
+  // Obsidian tijdens het spelen nog openstond. Nu vult hij de akte, zodat je
+  // hem meteen in de lade kunt spelen. Bij 'append' blijft bestaande tekst
+  // staan: dan vul je een akte aan, en overschrijven zou werk weggooien.
+  const md = typeof req.body.md === 'string' ? req.body.md.slice(0, 400000) : '';
+  if (md) {
+    const meta = storage.readJSON('meta.json');
+    if (!meta.hoofdstukken) meta.hoofdstukken = {};
+    const akte = meta.hoofdstukken[chapterKey] = meta.hoofdstukken[chapterKey] || {};
+    if (mode === 'replace' || !akte.tekst) {
+      akte.tekst = md;
+      storage.writeJSON('meta.json', meta);
+    }
+  }
+
   const fileByName = {};
   for (const f of (req.files || [])) fileByName[_impNorm(f.originalname)] = f;
 

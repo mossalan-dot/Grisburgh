@@ -49,6 +49,7 @@ let _timer    = null;
 let _voorbeeld = false;   // kijken/spelen in plaats van schrijven
 let _split     = false;   // schrijven én zien, naast elkaar
 let _splitTimer = null;
+let _namenZonder = null;  // hoeveel [[namen]] nog geen kaartje hebben (null = nog niet geteld)
 let _acties    = false;   // staan de knoppen aan? (speelstand én de lade)
 let _encounters = null;   // lazy: naam → encounter
 let _tabellen  = null;
@@ -92,10 +93,29 @@ async function _bewaar() {
     const hk = window.app?.state?.meta?.hoofdstukken;
     if (hk) { hk[_ch] = hk[_ch] || {}; hk[_ch].tekst = waarde; }
     _zetStatus();
+    _telNamen();
   } catch (e) {
     _bewaard = false;
     _zetStatus('Opslaan mislukt: ' + e.message);
   }
+}
+
+// Hoeveel genoemde namen hebben nog geen kaartje? Dat getal staat op de knop,
+// zodat je zonder klikken ziet of er werk ligt. Alleen na een opslagbeurt: de
+// server leest de bewaarde tekst.
+async function _telNamen() {
+  if (!_ch) return;
+  try {
+    const namen = (await api.akteNamen(_ch)).namen || [];
+    _namenZonder = namen.filter(n => !n.kaartje).length;
+  } catch { _namenZonder = null; }
+  const knop = document.querySelector('.akte-schrijf-kop-acties .dm-btn');
+  if (!knop) return;
+  const badge = knop.querySelector('.akte-badge');
+  if (_namenZonder) {
+    if (badge) badge.textContent = _namenZonder;
+    else knop.insertAdjacentHTML('beforeend', ` <span class="akte-badge">${_namenZonder}</span>`);
+  } else badge?.remove();
 }
 
 function _zetStatus(fout) {
@@ -566,20 +586,32 @@ function _teken() {
       <span class="akte-schrijf-titel">${icon('feather')} ${esc(_titel || 'Akte schrijven')}</span>
       <span class="akte-schrijf-status" id="akte-schrijf-status">${_bewaard ? 'bewaard' : 'opslaan…'}</span>
       <div class="akte-schrijf-kop-acties">
-        <label class="dm-btn dm-btn-ghost dm-btn-sm" title="Markdown-bestand inlezen — vervangt de tekst">
-          ${icon('folder-open')} Inlezen
-          <input type="file" accept=".md,text/markdown,text/plain" style="display:none"
-            onchange="window.akteSchrijven.inlezen(this.files[0], this)">
-        </label>
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Welke [[namen]] hebben nog geen kaartje?"
-          onclick="window.akteSchrijven.namen()">${icon('users')} Namen</button>
-        <button class="dm-btn dm-btn-ghost dm-btn-sm" title="De markdown naar het klembord — voor wie hem ook in Obsidian wil"
-          onclick="window.akteSchrijven.kopieer(this)">${icon('clipboard-list')} Kopiëren</button>
-        <button class="dm-btn dm-btn-ghost dm-btn-sm${_split ? ' is-actief' : ''}" title="Schrijven en zien naast elkaar"
-          onclick="window.akteSchrijven.split()">${icon('square')} Naast elkaar</button>
+        <!-- De knoppen zeggen nu wát ze doen. "Namen" draagt bovendien zijn
+             eigen reden: het getal is het aantal genoemde namen zonder kaartje,
+             dus je ziet zonder klikken of er werk ligt. -->
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Welke genoemde namen hebben nog geen kaartje?"
+          onclick="window.akteSchrijven.namen()">${icon('users')} Namen${
+            _namenZonder ? ` <span class="akte-badge">${_namenZonder}</span>` : ''}</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm${_split ? ' is-actief' : ''}"
+          title="Tekst links, het perkament rechts — schrijven en zien tegelijk"
+          onclick="window.akteSchrijven.split()">${icon('columns-2')} Tekst en beeld</button>
         <button class="dm-btn dm-btn-ghost dm-btn-sm${_voorbeeld ? ' is-actief' : ''}"
           title="${_voorbeeld ? 'Terug naar schrijven' : 'De akte zoals je hem speelt — met knoppen die echt onthullen'}"
           onclick="window.akteSchrijven.voorbeeld()">${icon(_voorbeeld ? 'pencil' : 'play')} ${_voorbeeld ? 'Schrijven' : 'Spelen'}</button>
+        <div class="akte-bestand-wrap">
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Bestand: inlezen of meenemen"
+            onclick="window.akteSchrijven.bestandMenu(event)">⋯</button>
+          <div class="akte-bestand-menu hidden" id="akte-bestand-menu">
+            <label class="akte-invoeg-item">
+              ${icon('folder-open')} <span>Importeren…</span>
+              <input type="file" accept=".md,text/markdown,text/plain" style="display:none"
+                onchange="window.akteSchrijven.inlezen(this.files[0], this)">
+            </label>
+            <button class="akte-invoeg-item" onclick="window.akteSchrijven.exporteer()">
+              ${icon('download')} <span>Exporteren</span></button>
+          </div>
+        </div>
+        ${window._helpBtn?.('akte_schrijven') ?? ''}
         <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Sluiten" onclick="window.akteSchrijven.sluit()">${icon('x')}</button>
       </div>
     </div>
@@ -768,6 +800,20 @@ window.akteSchrijven = {
     if (id === 'breuk')    return _voegIn('---', { blok: true });
     if (id === 'tabel-md') return this.tabelMd();
     return this.blok(id);
+  },
+
+  bestandMenu(ev) {
+    const m = document.getElementById('akte-bestand-menu');
+    if (!m) return;
+    m.classList.toggle('hidden');
+    if (m.classList.contains('hidden')) return;
+    ev?.stopPropagation();
+    setTimeout(() => {
+      const sluit = (e) => {
+        if (!m.contains(e.target)) { m.classList.add('hidden'); document.removeEventListener('click', sluit); }
+      };
+      document.addEventListener('click', sluit);
+    }, 0);
   },
 
   menu(ev) {
@@ -1195,11 +1241,18 @@ window.akteSchrijven = {
     _tekenSecties();
   },
 
-  async kopieer(btn) {
-    try {
-      await navigator.clipboard.writeText(_ta()?.value ?? _tekst);
-      if (btn) { const t = btn.innerHTML; btn.innerHTML = `${icon('check')} Gekopieerd`; setTimeout(() => btn.innerHTML = t, 1500); }
-    } catch { alert('Kopiëren is niet gelukt — selecteer de tekst en gebruik Ctrl+C.'); }
+  // Exporteren in plaats van kopiëren: je krijgt het hoofdstuk als `.md`-bestand,
+  // dat je in je vault kunt zetten. Het klembord deed maar de helft — tekst
+  // selecteren en Ctrl+C kan een tekstvak zelf ook.
+  exporteer() {
+    document.getElementById('akte-bestand-menu')?.classList.add('hidden');
+    const tekst = _ta()?.value ?? _tekst;
+    const naam = (_titel || _ch || 'akte').replace(/[^\w\u00c0-\u024f -]+/g, '').trim() || 'akte';
+    const url = URL.createObjectURL(new Blob([tekst], { type: 'text/markdown;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `${naam}.md`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
   },
 
   async sluit() {
@@ -1241,6 +1294,8 @@ export async function openAkteSchrijven(chapterKey, titel) {
     document.body.appendChild(el);
   }
   document.body.classList.add('akte-schrijf-open');
+  _namenZonder = null;
   _teken();
   _ta()?.focus();
+  _telNamen();
 }

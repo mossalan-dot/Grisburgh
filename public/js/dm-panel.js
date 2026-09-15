@@ -1089,6 +1089,7 @@ async function _akteImpAnalyse() {
   let md = '';
   try { md = await mdFile.text(); } catch { if (out) out.innerHTML = '<p class="dm-hint">Kon het bestand niet lezen.</p>'; return; }
 
+  _akteImp.md = md;      // bewaren, zodat de tekst straks mee de akte in gaat
   try {
     const r = await api.importAktePreview({ md, imageNames, chapterKey: _akteImp.chapterKey });
     _akteImp.plan = r.plan || [];
@@ -1212,6 +1213,10 @@ async function _akteImpApply() {
   fd.append('plan', JSON.stringify(_akteImp.plan));
   fd.append('chapterKey', _akteImp.chapterKey);
   fd.append('mode', mode);
+  // De markdown zelf gaat mee. De importer las hem, haalde de tokens eruit en
+  // gooide hem weg — daarom stond Obsidian tijdens het spelen nog open. Nu is
+  // de tekst van de akte meteen gevuld en kun je hem in de lade spelen.
+  if (_akteImp.md) fd.append('md', _akteImp.md);
   // Alleen bestanden voor opgenomen, aanwezige image-stappen meesturen.
   const sent = new Set();
   for (const s of _akteImp.plan) {
@@ -2277,7 +2282,7 @@ async function _ladeToggle() {
   _ladeIdx = Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=17');
+  const mod = await import('./akte-schrijven.js?v=19');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2300,7 +2305,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=17');
+    const mod = await import('./akte-schrijven.js?v=19');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }

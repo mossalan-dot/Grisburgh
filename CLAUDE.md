@@ -436,6 +436,14 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > ongedaan-maken van het tekstvak kosten en een lossless parse vragen; de
 > afweging staat in `docs/voorstel-akteregie.md`.
 >
+> **De importer bewaart de `.md` nu wél.** Hij las het bestand, haalde de
+> tokens eruit en gooide de tekst weg — precies waarom Obsidian tijdens het
+> spelen nog openstond. `POST /import/akte/apply` neemt `md` mee en vult
+> `meta.hoofdstukken[key].tekst`; bij *aanvullen* blijft bestaande tekst staan.
+> De kop van het schrijfscherm: *Namen* (met het aantal namen zonder kaartje als
+> badge), *Tekst en beeld*, *Spelen*, **⋯** met importeren/exporteren, en de
+> hulpknop — uitleg staat in `hulp_akte_schrijven`, niet onder de knoppen.
+>
 > **De invoegbalk is een menu.** Twaalf pillen naast elkaar lazen als een
 > gereedschapskist; nu staan sectie, kaartje en beeld los (die gebruik je in
 > elke alinea) en zit de rest onder *Invoegen*, gegroepeerd, met **Alt + letter**

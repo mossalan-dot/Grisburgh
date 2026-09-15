@@ -1412,7 +1412,7 @@ function _verhaalSectieHtml(ch, info) {
 // met de rest van het logboek te maken, en het laadt pas als je het opent.
 window._akteSchrijf = async (ch) => {
   const info = meta?.hoofdstukken?.[ch] || {};
-  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=17');
+  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=19');
   openAkteSchrijven(ch, info.short || info.title || ch);
 };
 window._logboekVerversen = () => renderLogboek();
