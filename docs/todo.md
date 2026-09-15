@@ -231,12 +231,14 @@ Gevraagd op 14 sep 2026, gebouwd op 14 sep 2026.
       vraag wat het nog toevoegt — anders dan de printbare character sheets, die
       wél een eigen reden hebben (papier aan tafel, en de definitieve stand na
       een sessie). Eerst beslissen of we hem houden; pas daarna erin sleutelen.
-- [ ] **Lekt het campagneboek geheimen?** De export filtert op `data.geheim`
-      (het oude enkelvoudige veld) terwijl de kaartjes allang `data.geheimen`
-      als lijst gebruiken, per regel te onthullen. Vermoeden: alle regels gaan
-      mee, ook de niet-onthulde. Nakijken zodra we aan de snapshot toekomen —
-      en meenemen dat geheime verbindingen daar dezelfde regel moeten volgen
-      (`docs/voorstel-geheime-verbindingen.md`).
+- [x] **Lekt het campagneboek geheimen?** — nagekeken 15 sep 2026. Het
+      **campagneboek** niet (dat rendert alleen HTML), de **snapshot** wél en
+      erger dan gedacht: die plakt zijn datamodel als JSON in het bestand, dus
+      alles wat de filter laat staan is leesbaar in een teksteditor. 40 van de
+      41 geheimregels gingen mee, plus de antagonist-vlaggen, de DM-
+      aantekeningen en de 619 stappen van het regie-script. Beide exports
+      gebruiken nu `filterEntityForPlayer` uit `routes/api.js` — dezelfde filter
+      als de app, inclusief de geheime verbindingen. `tests/export-geheimen.test.js`.
 
 ## Geheimen
 

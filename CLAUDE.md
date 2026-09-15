@@ -502,6 +502,29 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > kaartjes-kiezer heeft dezelfde uitweg (*Nieuw kaartje met de getypte naam*).
 > De plus hangt aan `_potloden` (voorbereiden), de oogjes aan `_acties` (spelen).
 >
+> **De snapshot had zijn eigen spelersfilter, en die liep jaren achter.**
+> `/api/export` plakt zijn hele datamodel als JSON in het HTML-bestand
+> (`const S = ${JSON.stringify(S)}`), dus alles wat de filter laat staan, staat
+> letterlijk in een bestand dat je aan je spelers geeft — ook wat nergens op het
+> scherm getekend wordt. `lib/snapshot.js` had daarvoor acht eigen regels die
+> alleen het oude enkelvoudige `data.geheim` kenden. Gevolg in Grisburgh: **40
+> van de 41** geheimregels gingen mee terwijl er één onthuld was, plus
+> `geheimenAntagonist`, `persoonlijkheid` (de aantekeningen voor de DM) en de
+> **619 stappen** van het regie-script in `meta.hoofdstukken` — precies het lek
+> dat we in `GET /meta` dichtten, via de achterdeur.
+>
+> Nu gebruiken beide exports de échte filter: `routes/api.js` exporteert
+> `filterEntityForPlayer` en `hoofdstukkenVoorSpeler`, en `snapshot.js` haalt ze
+> op met een **lazy require** (`_apiFilters()`) — api.js laadt snapshot.js
+> bovenin, dus een require bij het laden geeft een half geïnitialiseerde module
+> terug. Wat de export er zelf nog bovenop doet is `_deceased`, want die staat
+> bij de groep. Bewaakt door `tests/export-geheimen.test.js` (10 tests, met
+> kanaries; op de oude code vallen er drie om).
+>
+> Het **campagneboek** lekte niets: dat rendert alleen HTML en heeft geen
+> JSON-blok. Het gebruikte wel dezelfde verouderde filter, dus het is
+> meeveranderd.
+
 > **Het Logboek, doorgelopen (15 sep 2026).** Vier dingen rechtgezet:
 >
 > 1. **`GET /archief` stuurde `logEntries` ongefilterd naar iedereen.** Daar

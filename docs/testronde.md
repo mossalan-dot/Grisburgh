@@ -405,6 +405,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] *Voorbeeld* toont de blokken als kader: Voorlezen op perkament, Notitie gedempt, Gevecht rood
 - [ ] *Kopiëren* zet de markdown op het klembord; *Inlezen* vraagt eerst of de huidige tekst weg mag
 - [ ] **Speler**: `/api/meta` bevat geen `tekst`, `script` of `monsters` van een akte (netwerktab), wel `num`, `title` en `short`
+- [ ] **Export** (DM) — download een snapshot (Instellingen → exporteren) en zoek in het bestand met een teksteditor naar een geheim dat deze party níét kent: dat hoort er niet in te staan. Een geheim dat wél onthuld is staat er wel
 - [ ] Plak een heel hoofdstuk uit Obsidian: koppen tot `######` staan in het overzicht (en ingesprongen naar niveau), `|`-tabellen worden echte tabellen, `- `-lijsten worden lijsten
 - [ ] Elke `![[bestand.png]]` wordt een slot met de naam en een knop *Bestand kiezen*; kiezen vervangt álle verwijzingen met diezelfde naam
 - [ ] Een `![[…mp3]]` of `.wav` opent de geluidenbibliotheek in plaats van de afbeeldingen

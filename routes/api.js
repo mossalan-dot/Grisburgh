@@ -12453,5 +12453,12 @@ router.post('/encounters/:id/start', requireDM, (req, res) => {
 // De backup schrijft de sheets ook als HTML weg (scripts/sheets-bewaren.js);
 // die heeft dezelfde twee helpers nodig als de route hierboven.
 module.exports = router;
+// `lib/snapshot.js` had een eigen, jaren achtergebleven kopie van de
+// spelersfilter (hij kende alleen het enkelvoudige `data.geheim`). Er hoort er
+// één te zijn. De export vraagt hem hier op met een lázy require — snapshot.js
+// wordt bovenin dít bestand geladen, dus een require terug bij het laden zou
+// een halve module opleveren.
+module.exports.filterEntityForPlayer   = (...a) => filterEntityForPlayer(...a);
+module.exports.hoofdstukkenVoorSpeler  = (...a) => _hoofdstukkenVoorSpeler(...a);
 module.exports.sheetPersonage = (...a) => _sheetPersonage(...a);
 module.exports.sheetProgressie = (...a) => _sheetProgressie(...a);
