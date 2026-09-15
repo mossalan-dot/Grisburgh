@@ -547,6 +547,26 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > data: in Grisburgh hebben *Oosterkwartier* en *Het Oude Glasblazershuis*
 > **zichzelf** als Gebied, dus die twee komen nooit onder Grisburgh uit.
 >
+> **Klikken op een winkel opent een scène, geen tabblad.** Zelfde vorm als elke
+> andere dienst: de gevel als achtergrond, een rond portret van de winkelier, de
+> sfeertekst als groet, en een weg terug naar de markt. Daaronder staat
+> **dezelfde voorraadtabel** als op het kaartje — letterlijk dezelfde, want die
+> is uit `_openDetail` gelicht naar `window._winkelVoorraadHtml({e, tab,
+> beschikbaarData, uitverkochtSet, shopCurrencyData, heeftVoorraad})` in
+> `render-campagne.js`, en beide ingangen roepen hem aan. Twee tabellen die
+> hetzelfde moeten zeggen lopen vroeg of laat uit elkaar — zelfde reden waarom
+> er maar één monster-editor is. `window._winkelSceneData(soort, id)` haalt de
+> drie dingen op die de renderer nodig heeft.
+> **Het kaartje-tabblad blijft bestaan**: dat is de toonbank van de DM
+> (uitverkocht zetten, afrekenen, inkopen van de party), en dat wil je tijdens
+> een sessie vanuit het kaartje kunnen, niet via de Markt.
+>
+> **Op het kaartje in het overzicht staat de wínkelier**, niet de gevel — die
+> hangt al als achtergrond achter het hele scherm. Wie dat is komt uit
+> `winkelLocatieId` (alle negen winkels in Grisburgh hebben er een), anders uit
+> een betrokkene met een rol die daarop lijkt (`_MARKT_ROL`). Kent de party die
+> persoon niet, dan komt er geen portret: dat zou verklappen dát er iemand is.
+
 > **De Markt leent een achtergrond.** Er staat geen gebouw — de Markt ís de
 > optelsom van de winkels die je kent. Dus kiest hij bij elk **bezoek** de gevel
 > van een willekeurige winkel die deze party open ziet (`_marktKiesGevel`), met

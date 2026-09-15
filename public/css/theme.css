@@ -25743,3 +25743,27 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
    op de maat van de tekst ernaast. */
 .herberg-bubble-card-btn .icon,
 .player-loot-link .icon { width: 11px; height: 11px; vertical-align: -1px; }
+
+/* ── Eén winkel binnen de Markt ─────────────────────────────────────────────
+   Zelfde vorm als de andere diensten: portret, naam, groet. De voorraadtabel
+   eronder is dezelfde die op het kaartje staat, dus die heeft hier geen eigen
+   opmaak nodig — alleen ruimte. */
+.markt-winkel { max-width: 860px; width: 100%; padding: 18px 24px 30px; text-align: center; }
+.markt-terug {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 5px;
+  background: none; border: none; cursor: pointer; padding: 4px 2px;
+  font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: .06em;
+  color: rgba(196,168,122,0.75);
+}
+.markt-terug:hover { color: #f2e3c2; }
+.markt-terug .icon { width: 13px; height: 13px; }
+.markt-winkel-naam {
+  font-family: 'Cinzel', serif; font-size: 1.35rem; color: #f2e3c2;
+  margin: 10px 0 2px; line-height: 1.2;
+}
+.markt-winkel-wie {
+  font-family: 'Cinzel', serif; font-size: 0.68rem; letter-spacing: .12em;
+  text-transform: uppercase; color: rgba(196,168,122,0.7); margin: 0 0 10px;
+}
+.markt-winkel-waren { margin-top: 14px; text-align: left; }
+@media (max-width: 640px) { .markt-winkel { padding: 14px 12px 24px; } }

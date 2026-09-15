@@ -4214,6 +4214,214 @@ function _detailVegen() {
 // ── Detail view ──
 let _detailToken = 0;   // Annuleer concurrent _openDetail aanroepen
 
+// ── Het winkeltabblad, als losse renderer ───────────────────────────────────
+// Dit blok bouwde de voorraadtabel binnen `_openDetail`. De Markt wil dezelfde
+// tabel laten zien in zijn eigen winkelscène, en twee tabellen die hetzelfde
+// moeten zeggen lopen vroeg of laat uit elkaar — dezelfde reden waarom er maar
+// één monster-editor is. Dus staat hij hier, en roepen allebei hem aan.
+// Alles wat hij nodig heeft komt binnen: het kaartje, wat `/shops/:id/beschikbaar`
+// gaf, de uitverkocht-lijst en de beurs.
+// De Markt opent een winkel als eigen **scène** in plaats van als tabblad in een
+// venster: achtergrond, rond portret van de winkelier, groet, en daaronder
+// precies dezelfde voorraadtabel als op het kaartje (zie hierboven — één
+// renderer, twee ingangen). Het kaartje-tabblad blijft bestaan; dat is de
+// toonbank van de DM, met uitverkocht zetten en inkopen van de party.
+window._winkelSceneData = async function (soort, id) {
+  const e = await api.getEntity(soort, id);
+  const [besch, uitv, beurs] = await Promise.all([
+    api.getShopBeschikbaar(id).catch(() => null),
+    api.getShopUitverkocht(id).catch(() => null),
+    (window.app?.isDM?.() || !window.app?.state?.characterId)
+      ? Promise.resolve(null)
+      : api.getPlayerCurrency(window.app.state.characterId).catch(() => null),
+  ]);
+  const uitverkochtSet = new Set((uitv?.uitverkocht || []).map(k => (k || '').toLowerCase().trim()));
+  return {
+    e,
+    sfeerTekst: besch?.sfeerTekst || '',
+    html: window._winkelVoorraadHtml({
+      e, tab: soort, beschikbaarData: besch, uitverkochtSet,
+      shopCurrencyData: beurs, heeftVoorraad: true,
+    }),
+  };
+};
+
+window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarData, uitverkochtSet, shopCurrencyData, heeftVoorraad }) {
+  let voorraadHtml = '';
+  if (heeftVoorraad) {
+    const _appMeta = window.app?.state?.meta || {};
+    // Bereikbaarheid komt van de server (akte + de handmatige knop); hier alleen
+    // nog opzoeken of dit kaartje er nu bij hoort.
+    if (window._entiteitDicht?.(e.id)) {
+      voorraadHtml = `<div style="text-align:center;padding:2rem 1rem">
+        <div style="font-size:2rem;margin-bottom:.5rem">${icon('lock')}</div>
+        <p style="color:var(--color-ink-dim,.7rem)">${esc(e.name)} is momenteel niet bereikbaar.</p>
+        <p style="font-size:.8rem;opacity:.5">Niet bereikbaar vanaf waar de groep nu is.</p>
+      </div>`;
+    } else {
+    // Gebruik beschikbaarData als die beschikbaar is, anders val terug op ruwe voorraad
+    let voorraadItems;
+    const roterend = beschikbaarData?.roterend || false;
+    const geldigTot = beschikbaarData?.geldigTot || null;
+    if (beschikbaarData?.items) {
+      voorraadItems = beschikbaarData.items;
+    } else {
+      try { voorraadItems = e.data?.voorraad ? JSON.parse(e.data.voorraad) : []; } catch { voorraadItems = []; }
+      voorraadItems = voorraadItems.map(item => ({
+        ...item,
+        uitverkocht: uitverkochtSet.has((item.naam || '').toLowerCase().trim()),
+        actief: true,
+      }));
+    }
+
+    // Beurs weergave (alleen voor spelers) — altijd persoonlijke beurs
+    let beursHtml = '';
+    if (!isDM() && shopCurrencyData) {
+      const cur = shopCurrencyData.player;
+      const _cN = window._currency || { fl: 'fl', kn: 'kn', cl: 'cl' };
+      if (cur) {
+        beursHtml = `<div class="shop-beurs">
+          <span class="shop-beurs-label">${icon('coins')} Jouw beurs</span>
+          <span class="shop-beurs-amount">${cur.fl ?? 0} ${esc(_cN.fl)} · ${cur.kn ?? 0} ${esc(_cN.kn)} · ${cur.cl ?? 0} ${esc(_cN.cl)}</span>
+        </div>`;
+      }
+    }
+
+    // Rotatie-timer
+    let roterendHtml = '';
+    if (roterend && geldigTot) {
+      const diff = new Date(geldigTot) - Date.now();
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      roterendHtml = `<div class="shop-rotatie-info">${icon('refresh-cw')} Assortiment ververst over ${h > 0 ? h + 'u ' : ''}${m}m</div>`;
+    }
+    if (roterend && beschikbaarData?.verversBij && beschikbaarData.verversBij !== 'uren') {
+      const _wanneer = beschikbaarData.verversBij === 'short' ? 'korte rust' : 'lange rust';
+      roterendHtml = `<div class="shop-rotatie-info">${icon('refresh-cw')} Nieuwe schappen na de volgende ${_wanneer}</div>`;
+    }
+
+    const _shopId = e.id;
+    const discountPct = beschikbaarData?.discountPct || 0;
+
+    // Sfeer bovenaan
+    const _sfeerTekst = beschikbaarData?.sfeerTekst || '';
+    const _sfeerImageId = e.imageId || '';
+    const sfeerHtml = (_sfeerTekst || _sfeerImageId) ? `
+      <div class="shop-sfeer">
+        ${_sfeerImageId ? `<img src="${api.thumbUrl(_sfeerImageId)}" class="shop-sfeer-img" alt="">` : ''}
+        ${_sfeerTekst ? `<p class="shop-sfeer-tekst">${esc(_sfeerTekst)}</p>` : ''}
+      </div>` : '';
+
+    const kortingBannerHtml = discountPct > 0
+      ? `<div class="shop-korting-banner shop-korting-banner--ok">${icon('dice',{cls:'icon-gi'})} ${discountPct}% korting actief!</div>`
+      : discountPct < 0
+        ? `<div class="shop-korting-banner shop-korting-banner--malus">${icon('dice',{cls:'icon-gi'})} Prijs ${Math.abs(discountPct)}% hoger</div>`
+        : '';
+
+    // De speler verkocht hier zelf spullen aan de winkel; dat gaat nu via de
+    // DM ("Inkopen van de party" onderaan dit venster), zodat er één plek is
+    // waar prijs en eigendom tegelijk veranderen.
+
+    if (voorraadItems.length > 0) {
+      // De onderhandelknop met DC-worp is vervallen: afdingen gebeurt aan
+      // tafel en de DM tikt het afgesproken bedrag in.
+
+      voorraadHtml = `
+        ${sfeerHtml}
+        ${kortingBannerHtml}
+        ${beursHtml}
+        ${roterendHtml}
+        <div class="rounded border border-room-border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-room-elevated border-b border-room-border">
+                <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] tracking-wide">Voorwerp</th>
+                <th class="px-4 py-2.5 text-right font-cinzel text-ink-dim text-[10px] tracking-wide">Prijs</th>
+                <!-- ✦, UV en — waren alleen te begrijpen met een tooltip. -->
+                ${isDM() && roterend ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide shop-kol" title="Ligt nu in de schappen">In schap</th>` : ''}
+                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide shop-kol" title="Uitverkocht voor deze party">Uitverkocht</th>` : ''}
+                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide shop-kol" title="Afrekenen aan tafel">Afrekenen</th>` : ''}
+                ${!isDM() ? `<th class="px-2 py-2.5"></th>` : ''}
+              </tr>
+            </thead>
+            <tbody>
+              ${voorraadItems.map((item, i) => {
+                const uitverkocht = item.uitverkocht;
+                const actief = item.actief;
+                const thumbHtml = item.imageId
+                  ? `<img src="${api.thumbUrl(item.imageId)}" class="shop-item-thumb" alt="">`
+                  : '';
+                const naamHtml = item.entityId
+                  ? `<span class="cursor-pointer hover:text-gold transition underline decoration-dotted${uitverkocht ? ' winkel-uitverkocht-naam' : ''} shop-item-with-desc"
+                       onclick="window._openDetailFromShop('${esc(item.entityId)}')"
+                       data-desc="${esc(item.desc || '')}">${esc(item.naam || '\u2014')}</span>`
+                  : `<span class="${uitverkocht ? 'winkel-uitverkocht-naam' : ''}">${esc(item.naam || '\u2014')}</span>`;
+                return `
+                <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0${uitverkocht ? ' winkel-uitverkocht-rij' : ''}">
+                  <td class="px-4 py-2.5 font-crimson">
+                    <div class="flex items-center gap-2">
+                      ${thumbHtml}${naamHtml}
+                    </div>
+                  </td>
+                  <td class="px-4 py-2.5 text-right font-crimson ${uitverkocht ? 'text-ink-faint' : 'text-ink-medium'}">
+                    ${esc(item.prijs || '\u2014')}
+                    ${!uitverkocht && discountPct > 0 ? `<span class="shop-korting-badge">-${discountPct}%</span>` : ''}
+                    ${!uitverkocht && discountPct < 0 ? `<span class="shop-korting-badge shop-korting-badge--malus">+${Math.abs(discountPct)}%</span>` : ''}
+                  </td>
+                  ${isDM() && roterend ? `<td class="px-3 py-2.5 text-center">${actief ? '<span class="shop-actief-badge" title="Actief voor spelers">✦</span>' : ''}</td>` : ''}
+                  ${isDM() ? `
+                  <td class="px-3 py-2.5 text-center">
+                    <input type="checkbox" class="winkel-uitverkocht-cb" title="Uitverkocht voor deze party"
+                      ${uitverkocht ? 'checked' : ''}
+                      onchange="window._toggleShopUitverkocht('${esc(_shopId)}','${esc(item.naam || '')}',this)">
+                  </td>
+                  <td class="px-3 py-2.5 text-center">
+                    <button class="dm-btn dm-btn-sm dm-btn-icon" title="Afrekenen met een speler"
+                      onclick="window._dmAfrekenen('${esc(_shopId)}','${escJS(item.naam || '')}','${esc(item.entityId || '')}','${escJS(item.prijs || '')}')">
+                      ${icon('coins')}
+                    </button>
+                  </td>` : ''}
+                  ${!isDM() ? `
+                  <td class="px-2 py-2.5 text-right">
+                    ${uitverkocht ? `<span class="text-xs text-ink-faint italic">Uitverkocht</span>` : `
+                      <div class="flex items-center gap-1 justify-end">
+                        ${item.stapelbaar ? `
+                          <input type="number" min="1" max="99" value="1"
+                            class="shop-qty-input" id="shop-qty-${i}"
+                            onclick="event.stopPropagation()" oninput="this.value=Math.max(1,parseInt(this.value)||1)">
+                        ` : ''}
+                        <button class="shop-koop-btn"
+                          onclick="window._koopItem('${esc(_shopId)}','${esc(item.naam || '')}','${esc(item.entityId || '')}',this,${item.stapelbaar ? `parseInt(document.getElementById('shop-qty-${i}')?.value)||1` : '1'})">
+                          Kopen
+                        </button>
+                      </div>
+                    `}
+                  </td>` : ''}
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <!-- Afdingen gaat aan tafel: de DM tikt het afgesproken bedrag in
+             (muntknop per regel). Vandaar hier geen onderhandelknop meer. -->
+        <div id="shop-koop-feedback" class="shop-koop-feedback hidden"></div>
+        ${isDM() ? `
+          <div id="dm-afreken-paneel" class="dm-winkel-paneel hidden"></div>
+          <div class="dm-winkel-paneel">
+            <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Inkopen van de party</div>
+            <p class="text-xs text-ink-dim mb-2">Vink aan wat de winkel overneemt, zet er een bedrag bij en reken af. Het voorwerp verdwijnt uit de boedel; het geld gaat naar de partybeurs als die gedeeld is, anders naar die speler.</p>
+            <button class="ed-knop" onclick="window._dmInkoopOpen('${esc(_shopId)}')"><span id="dm-inkoop-chevron">▸</span>${icon('package')}<span>Inventory van de party</span></button>
+            <div id="dm-inkoop-lijst" class="mt-2"></div>
+          </div>` : ''}
+        `;
+    } else {
+      voorraadHtml = `${sfeerHtml}${kortingBannerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>`;
+    }
+    } // end else (niet buitenGrisburgh)
+  }
+  return voorraadHtml;
+};
+
 window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   _detailVegen();                   // eerste keer: vegen en pijltjes aanhangen
   window._bladerBron = null;        // dit venster toont een kaartje, geen statblok
@@ -4868,178 +5076,9 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
   const _eigenWaren = tab === 'personages' && e.data?.voorraad && e.data.voorraad !== '[]';
   const heeftVoorraad = _eigenWaren || isWinkel;
 
-  let voorraadHtml = '';
-  if (heeftVoorraad) {
-    const _appMeta = window.app?.state?.meta || {};
-    // Bereikbaarheid komt van de server (akte + de handmatige knop); hier alleen
-    // nog opzoeken of dit kaartje er nu bij hoort.
-    if (window._entiteitDicht?.(e.id)) {
-      voorraadHtml = `<div style="text-align:center;padding:2rem 1rem">
-        <div style="font-size:2rem;margin-bottom:.5rem">${icon('lock')}</div>
-        <p style="color:var(--color-ink-dim,.7rem)">${esc(e.name)} is momenteel niet bereikbaar.</p>
-        <p style="font-size:.8rem;opacity:.5">Niet bereikbaar vanaf waar de groep nu is.</p>
-      </div>`;
-    } else {
-    // Gebruik beschikbaarData als die beschikbaar is, anders val terug op ruwe voorraad
-    let voorraadItems;
-    const roterend = beschikbaarData?.roterend || false;
-    const geldigTot = beschikbaarData?.geldigTot || null;
-    if (beschikbaarData?.items) {
-      voorraadItems = beschikbaarData.items;
-    } else {
-      try { voorraadItems = e.data?.voorraad ? JSON.parse(e.data.voorraad) : []; } catch { voorraadItems = []; }
-      voorraadItems = voorraadItems.map(item => ({
-        ...item,
-        uitverkocht: uitverkochtSet.has((item.naam || '').toLowerCase().trim()),
-        actief: true,
-      }));
-    }
-
-    // Beurs weergave (alleen voor spelers) — altijd persoonlijke beurs
-    let beursHtml = '';
-    if (!isDM() && shopCurrencyData) {
-      const cur = shopCurrencyData.player;
-      const _cN = window._currency || { fl: 'fl', kn: 'kn', cl: 'cl' };
-      if (cur) {
-        beursHtml = `<div class="shop-beurs">
-          <span class="shop-beurs-label">${icon('coins')} Jouw beurs</span>
-          <span class="shop-beurs-amount">${cur.fl ?? 0} ${esc(_cN.fl)} · ${cur.kn ?? 0} ${esc(_cN.kn)} · ${cur.cl ?? 0} ${esc(_cN.cl)}</span>
-        </div>`;
-      }
-    }
-
-    // Rotatie-timer
-    let roterendHtml = '';
-    if (roterend && geldigTot) {
-      const diff = new Date(geldigTot) - Date.now();
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      roterendHtml = `<div class="shop-rotatie-info">${icon('refresh-cw')} Assortiment ververst over ${h > 0 ? h + 'u ' : ''}${m}m</div>`;
-    }
-    if (roterend && beschikbaarData?.verversBij && beschikbaarData.verversBij !== 'uren') {
-      const _wanneer = beschikbaarData.verversBij === 'short' ? 'korte rust' : 'lange rust';
-      roterendHtml = `<div class="shop-rotatie-info">${icon('refresh-cw')} Nieuwe schappen na de volgende ${_wanneer}</div>`;
-    }
-
-    const _shopId = e.id;
-    const discountPct = beschikbaarData?.discountPct || 0;
-
-    // Sfeer bovenaan
-    const _sfeerTekst = beschikbaarData?.sfeerTekst || '';
-    const _sfeerImageId = e.imageId || '';
-    const sfeerHtml = (_sfeerTekst || _sfeerImageId) ? `
-      <div class="shop-sfeer">
-        ${_sfeerImageId ? `<img src="${api.thumbUrl(_sfeerImageId)}" class="shop-sfeer-img" alt="">` : ''}
-        ${_sfeerTekst ? `<p class="shop-sfeer-tekst">${esc(_sfeerTekst)}</p>` : ''}
-      </div>` : '';
-
-    const kortingBannerHtml = discountPct > 0
-      ? `<div class="shop-korting-banner shop-korting-banner--ok">${icon('dice',{cls:'icon-gi'})} ${discountPct}% korting actief!</div>`
-      : discountPct < 0
-        ? `<div class="shop-korting-banner shop-korting-banner--malus">${icon('dice',{cls:'icon-gi'})} Prijs ${Math.abs(discountPct)}% hoger</div>`
-        : '';
-
-    // De speler verkocht hier zelf spullen aan de winkel; dat gaat nu via de
-    // DM ("Inkopen van de party" onderaan dit venster), zodat er één plek is
-    // waar prijs en eigendom tegelijk veranderen.
-
-    if (voorraadItems.length > 0) {
-      // De onderhandelknop met DC-worp is vervallen: afdingen gebeurt aan
-      // tafel en de DM tikt het afgesproken bedrag in.
-
-      voorraadHtml = `
-        ${sfeerHtml}
-        ${kortingBannerHtml}
-        ${beursHtml}
-        ${roterendHtml}
-        <div class="rounded border border-room-border overflow-hidden">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-room-elevated border-b border-room-border">
-                <th class="px-4 py-2.5 text-left font-cinzel text-ink-dim text-[10px] tracking-wide">Voorwerp</th>
-                <th class="px-4 py-2.5 text-right font-cinzel text-ink-dim text-[10px] tracking-wide">Prijs</th>
-                <!-- ✦, UV en — waren alleen te begrijpen met een tooltip. -->
-                ${isDM() && roterend ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide shop-kol" title="Ligt nu in de schappen">In schap</th>` : ''}
-                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide shop-kol" title="Uitverkocht voor deze party">Uitverkocht</th>` : ''}
-                ${isDM() ? `<th class="px-3 py-2.5 text-center font-cinzel text-ink-dim text-[10px] tracking-wide shop-kol" title="Afrekenen aan tafel">Afrekenen</th>` : ''}
-                ${!isDM() ? `<th class="px-2 py-2.5"></th>` : ''}
-              </tr>
-            </thead>
-            <tbody>
-              ${voorraadItems.map((item, i) => {
-                const uitverkocht = item.uitverkocht;
-                const actief = item.actief;
-                const thumbHtml = item.imageId
-                  ? `<img src="${api.thumbUrl(item.imageId)}" class="shop-item-thumb" alt="">`
-                  : '';
-                const naamHtml = item.entityId
-                  ? `<span class="cursor-pointer hover:text-gold transition underline decoration-dotted${uitverkocht ? ' winkel-uitverkocht-naam' : ''} shop-item-with-desc"
-                       onclick="window._openDetailFromShop('${esc(item.entityId)}')"
-                       data-desc="${esc(item.desc || '')}">${esc(item.naam || '\u2014')}</span>`
-                  : `<span class="${uitverkocht ? 'winkel-uitverkocht-naam' : ''}">${esc(item.naam || '\u2014')}</span>`;
-                return `
-                <tr class="${i % 2 === 1 ? 'bg-room-elevated/40' : ''} border-b border-room-border/40 last:border-0${uitverkocht ? ' winkel-uitverkocht-rij' : ''}">
-                  <td class="px-4 py-2.5 font-crimson">
-                    <div class="flex items-center gap-2">
-                      ${thumbHtml}${naamHtml}
-                    </div>
-                  </td>
-                  <td class="px-4 py-2.5 text-right font-crimson ${uitverkocht ? 'text-ink-faint' : 'text-ink-medium'}">
-                    ${esc(item.prijs || '\u2014')}
-                    ${!uitverkocht && discountPct > 0 ? `<span class="shop-korting-badge">-${discountPct}%</span>` : ''}
-                    ${!uitverkocht && discountPct < 0 ? `<span class="shop-korting-badge shop-korting-badge--malus">+${Math.abs(discountPct)}%</span>` : ''}
-                  </td>
-                  ${isDM() && roterend ? `<td class="px-3 py-2.5 text-center">${actief ? '<span class="shop-actief-badge" title="Actief voor spelers">✦</span>' : ''}</td>` : ''}
-                  ${isDM() ? `
-                  <td class="px-3 py-2.5 text-center">
-                    <input type="checkbox" class="winkel-uitverkocht-cb" title="Uitverkocht voor deze party"
-                      ${uitverkocht ? 'checked' : ''}
-                      onchange="window._toggleShopUitverkocht('${esc(_shopId)}','${esc(item.naam || '')}',this)">
-                  </td>
-                  <td class="px-3 py-2.5 text-center">
-                    <button class="dm-btn dm-btn-sm dm-btn-icon" title="Afrekenen met een speler"
-                      onclick="window._dmAfrekenen('${esc(_shopId)}','${escJS(item.naam || '')}','${esc(item.entityId || '')}','${escJS(item.prijs || '')}')">
-                      ${icon('coins')}
-                    </button>
-                  </td>` : ''}
-                  ${!isDM() ? `
-                  <td class="px-2 py-2.5 text-right">
-                    ${uitverkocht ? `<span class="text-xs text-ink-faint italic">Uitverkocht</span>` : `
-                      <div class="flex items-center gap-1 justify-end">
-                        ${item.stapelbaar ? `
-                          <input type="number" min="1" max="99" value="1"
-                            class="shop-qty-input" id="shop-qty-${i}"
-                            onclick="event.stopPropagation()" oninput="this.value=Math.max(1,parseInt(this.value)||1)">
-                        ` : ''}
-                        <button class="shop-koop-btn"
-                          onclick="window._koopItem('${esc(_shopId)}','${esc(item.naam || '')}','${esc(item.entityId || '')}',this,${item.stapelbaar ? `parseInt(document.getElementById('shop-qty-${i}')?.value)||1` : '1'})">
-                          Kopen
-                        </button>
-                      </div>
-                    `}
-                  </td>` : ''}
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-        <!-- Afdingen gaat aan tafel: de DM tikt het afgesproken bedrag in
-             (muntknop per regel). Vandaar hier geen onderhandelknop meer. -->
-        <div id="shop-koop-feedback" class="shop-koop-feedback hidden"></div>
-        ${isDM() ? `
-          <div id="dm-afreken-paneel" class="dm-winkel-paneel hidden"></div>
-          <div class="dm-winkel-paneel">
-            <div class="cs-sectiekop" style="border-top:0;margin-top:0;padding-top:0">Inkopen van de party</div>
-            <p class="text-xs text-ink-dim mb-2">Vink aan wat de winkel overneemt, zet er een bedrag bij en reken af. Het voorwerp verdwijnt uit de boedel; het geld gaat naar de partybeurs als die gedeeld is, anders naar die speler.</p>
-            <button class="ed-knop" onclick="window._dmInkoopOpen('${esc(_shopId)}')"><span id="dm-inkoop-chevron">▸</span>${icon('package')}<span>Inventory van de party</span></button>
-            <div id="dm-inkoop-lijst" class="mt-2"></div>
-          </div>` : ''}
-        `;
-    } else {
-      voorraadHtml = `${sfeerHtml}${kortingBannerHtml}${beursHtml}${roterendHtml}<div class="text-center py-10 text-ink-faint font-fell italic">Geen voorraad beschikbaar</div>`;
-    }
-    } // end else (niet buitenGrisburgh)
-  }
+  const voorraadHtml = heeftVoorraad
+    ? window._winkelVoorraadHtml({ e, tab, beschikbaarData, uitverkochtSet, shopCurrencyData, heeftVoorraad })
+    : '';
 
   // ── Build log HTML for DM ──
   let logHtml = '';

@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=290';
-import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=307";
+import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=308";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=127";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=55';
@@ -10733,6 +10733,7 @@ let _marktData   = null;
 let _marktZoek   = '';
 let _marktGebied = '';   // '' = alles
 let _marktGevel  = null; // welke winkelgevel er deze keer achter staat
+let _marktWinkel = null; // welke winkel je binnen bent ({ w, e, html, sfeerTekst })
 
 async function renderMarkt() {
   const el = document.getElementById('section-markt');
@@ -10740,6 +10741,7 @@ async function renderMarkt() {
   _dienstLaden(el);
   try { _marktData = await api.markt(); }
   catch (e) { _dienstFout(el, e); return; }
+  _marktWinkel = null;                                   // een bezoek begint op de markt
   _marktGevel = _marktKiesGevel(_marktData.winkels || []);
   _marktTeken();
 }
@@ -10758,6 +10760,7 @@ function _marktKiesGevel(winkels) {
 function _marktTeken() {
   const el = document.getElementById('section-markt');
   if (!el || !_marktData) return;
+  if (_marktWinkel) return _marktWinkelTeken(el);
   const winkels = _marktData.winkels || [];
   const q = _marktZoek.trim();
 
@@ -10837,6 +10840,52 @@ function _marktGebiedBalk(winkels) {
     ${chip('', 'Overal', winkels.length)}
     ${gebieden.map(g => chip(g.naam, g.naam, g.n)).join('')}
   </div>`;
+}
+
+// ── Eén winkel: je loopt naar binnen ────────────────────────────────────────
+// Dezelfde vorm als elke andere dienst — gevel als achtergrond, rond portret,
+// een groet — en daaronder de voorraadtabel van `_winkelVoorraadHtml`, dus
+// exact dezelfde tabel als op het kaartje. Kopen loopt door dezelfde routes;
+// dit is een tweede venster, geen tweede boekhouding.
+window._marktWinkelOpen = async (soort, id) => {
+  const w = (_marktData?.winkels || []).find(x => x.id === id);
+  if (!w) return;
+  const el = document.getElementById('section-markt');
+  _dienstLaden(el);
+  try {
+    const data = await window._winkelSceneData(soort, id);
+    _marktWinkel = { w, soort, ...data };
+  } catch (e) { _dienstFout(el, e); return; }
+  _marktTeken();
+  el.scrollTop = 0;
+};
+
+window._marktTerug = () => { _marktWinkel = null; _marktTeken(); };
+
+function _marktWinkelTeken(el) {
+  const { w, sfeerTekst, html } = _marktWinkel;
+  const gevel = w.imageId ? api.thumbUrlBreed(w.imageId) : null;
+  const eig = w.eigenaar;
+  el.innerHTML = `
+    <div class="herberg-scene markt-scene"${gevel ? ` style="background-image:url('${gevel}')"` : ''}>
+      <div class="herberg-content markt-winkel">
+        <button class="markt-terug" onclick="window._marktTerug()">
+          ${icon('chevron-left')} Terug naar de markt</button>
+        ${eig
+          ? `<div class="herberg-portrait-wrap">
+               <img src="${api.thumbUrl(eig.imageId)}" class="herberg-portrait-round"
+                 alt="${esc(eig.naam)}"${eig.imgFocus ? ` style="object-position:${esc(eig.imgFocus)}"` : ''}
+                 onerror="this.style.display='none'">
+             </div>`
+          : ''}
+        <h2 class="markt-winkel-naam">${esc(w.naam)}</h2>
+        ${eig ? `<p class="markt-winkel-wie">${esc(eig.naam)}</p>` : ''}
+        ${sfeerTekst ? `<p class="herberg-groet">${esc(sfeerTekst)}</p>` : ''}
+        <div class="markt-winkel-waren">${html}</div>
+      </div>
+    </div>`;
+  // De voorraadtabel bevat spreuk- en voorwerpnamen die het lexicon kent.
+  window.glossary?.applyDom?.(el);
 }
 
 window._marktGebiedKies = (g) => { _marktGebied = (_marktGebied === g) ? '' : g; _marktTeken(); };
@@ -10958,7 +11007,9 @@ function _muntTekst(b) {
 
 // Klikken opent het kaartje op zijn winkeltabblad — daar wordt gekocht, met de
 // winkelier, zijn humeur en het onderhandelen dat daarbij hoort.
-window._marktOpen = (soort, id) => window._openDetail(soort, id, false, 'voorraad');
+// Klikken opent de winkelscène hierboven. Wil je het kaartje zelf (de toonbank
+// van de DM), dan is dat de knop in de scène.
+window._marktOpen = (soort, id) => window._marktWinkelOpen(soort, id);
 
 // ── De vorm van een dienstscherm ────────────────────────────────────────────
 // Elk dienstscherm (herberg, tempel, Gock, Ursula, magizoo, Tweespalt, Heeren,
