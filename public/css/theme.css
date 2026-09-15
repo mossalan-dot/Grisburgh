@@ -25627,6 +25627,10 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
   color: rgba(196,168,122,0.35); pointer-events: none;
 }
 .markt-kaart-beeld img + .markt-kaart-icoon { display: none; }
+/* Op het kaartje staat de wínkelier, niet de gevel — die hangt al als
+   achtergrond achter het hele scherm. Een portret wil van bovenaf bijgesneden
+   worden, anders kijk je tegen een kin aan. */
+.markt-kaart-portret { object-position: 50% 22%; }
 .markt-kaart-icoon .icon { width: 26px; height: 26px; }
 .markt-kaart-body { display: flex; flex-direction: column; gap: 3px; padding: 11px 13px; min-width: 0; }
 .markt-kaart-naam { font-family: 'Cinzel', serif; font-size: 0.92rem; color: #f2e3c2; line-height: 1.2; }

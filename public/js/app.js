@@ -10857,13 +10857,16 @@ function _marktWinkels(winkels) {
         onclick="window._marktOpen('${esc(w.soort)}','${esc(w.id)}')"
         title="${esc(w.naam)} openen">
         <span class="markt-kaart-beeld">
-          ${w.imageId ? `<img src="${api.thumbUrl(w.imageId)}" loading="lazy" alt=""
+          ${w.eigenaar ? `<img src="${api.thumbUrl(w.eigenaar.imageId)}" loading="lazy" alt=""
+             class="markt-kaart-portret"${w.eigenaar.imgFocus ? ` style="object-position:${esc(w.eigenaar.imgFocus)}"` : ''}
              onerror="this.style.display='none'">` : ''}
           <span class="markt-kaart-icoon">${icon(window._locIcoon?.(w.type) || 'store')}</span>
         </span>
         <span class="markt-kaart-body">
           <span class="markt-kaart-naam">${esc(w.naam)}</span>
-          ${w.type ? `<span class="markt-kaart-type">${esc(w.type)}</span>` : ''}
+          ${w.eigenaar
+            ? `<span class="markt-kaart-type">${esc(w.eigenaar.naam)}</span>`
+            : w.type ? `<span class="markt-kaart-type">${esc(w.type)}</span>` : ''}
           <span class="markt-kaart-tel">${w.rotatieOnbekend
             ? 'Wisselend assortiment — kom langs om te zien wat er ligt'
             : `${w.items.length} ${w.items.length === 1 ? 'ding' : 'dingen'} in de schappen`}</span>

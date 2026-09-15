@@ -1967,6 +1967,36 @@ function _gebiedKeten(entity, locOpNaam) {
   return pad;
 }
 
+// Wie staat er achter de toonbank? Een verkoper wijst met `winkelLocatieId`
+// naar zijn winkel; is dat er niet, dan pakken we een betrokkene met een rol
+// die daarop lijkt. Twee winkels hebben er meer dan één (het ziekenhuis heeft
+// twee artsen) — dan wint de eerste die deze party ként.
+// Kent ze niemand, dan komt er niets: een portret van iemand die je nooit
+// ontmoet hebt verklapt dat er iemand ís.
+const _MARKT_ROL = /verkoper|eigenaar|waard|uitbater|baas|beheerder|handelaar|smid/i;
+
+function _marktEigenaar(shop, personages, g, isDM) {
+  const bekend = (p) => isDM || (g.visibility?.[p.id] || 'hidden') === 'visible';
+  const kandidaten = personages.filter(p => p.data?.winkelLocatieId === shop.id);
+  if (!kandidaten.length) {
+    const rijen = _betrokkenenLijst(shop.data).filter(r => r.id);
+    const gesorteerd = [...rijen].sort((a, b) =>
+      (_MARKT_ROL.test(b.rol || '') ? 1 : 0) - (_MARKT_ROL.test(a.rol || '') ? 1 : 0));
+    for (const r of gesorteerd) {
+      const p = personages.find(x => x.id === r.id);
+      if (p) kandidaten.push(p);
+    }
+  }
+  const p = kandidaten.find(bekend);
+  if (!p) return null;
+  return {
+    id:       p.id,
+    naam:     p.name,
+    imageId:  p.data?.imageId || p.id,
+    imgFocus: p.data?.imgFocus || '',
+  };
+}
+
 function _marktRegels(shop) {
   let v = []; try { v = JSON.parse(shop.data?.voorraad || '[]'); } catch { /* geen voorraad */ }
   return Array.isArray(v) ? v : [];
@@ -1990,6 +2020,7 @@ router.get('/markt', attachRole, (req, res) => {
   const bereikbaar = (id) => bereik.allesDicht ? vrij.has(id) : !dicht.has(id);
 
   const voorwerpen = entities.voorwerpen || [];
+  const personages = entities.personages || [];
   const locOpNaam  = new Map((entities.locaties || []).map(l => [(l.name || '').toLowerCase().trim(), l]));
   const winkels = [];
   for (const type of ['locaties', 'personages']) {
@@ -2044,6 +2075,7 @@ router.get('/markt', attachRole, (req, res) => {
         soort: type,
         imageId:  e.data?.imageId || e.id,
         gebieden: _gebiedKeten(e, locOpNaam),
+        eigenaar: _marktEigenaar(e, personages, g, isDM),
         sfeerTekst: cfg.sfeerTekst || '',
         roterend:   !!cfg.roterend,
         rotatieOnbekend: !!cfg.roterend && !rotatieGeldig,
