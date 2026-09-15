@@ -431,6 +431,20 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > een knop die hem aan een bestand uit de bibliotheek koppelt — en dan meteen
 > overal waar diezelfde naam staat. Een `DC12 Religion check` in de lopende
 > tekst wordt een chip; een aantekening, zoals de loot-DC.
+> **De tweede stand heet Spelen, niet Voorbeeld.** Daar zitten de knoppen: een
+> `[[naam]]` die de party nog niet kent krijgt een oogje (en een half oogje voor
+> vaag) áchter de naam in de zin; kent de party hem al, dan staat er niets —
+> anders staan er in een hoofdstuk veertig vinkjes en zie je de twee die ertoe
+> doen niet meer. Een beeld krijgt *Toon aan spelers* (via dezelfde verborgen
+> `Scène-afbeeldingen`-sessielogentry als de regie-balk), een regieblok krijgt
+> zijn eigen knop (`_blokActie`), en een compendiumlink wordt een chip met een
+> statblok-knop als het wezen in `monsters.json` staat (`_vindOpNaam` probeert
+> ook het enkelvoud: "twig blights" → *Twig Blight*).
+> **Let op de volgorde in `_prozaHtml`:** `mdToHtml` escapet `<` en `>` in zijn
+> invoer, dus HTML die je er vóóraf in zet komt er als zichtbare tekst weer uit.
+> De externe links worden daarom ná `mdToHtml` omgezet — die laat
+> `[label](url)` ongemoeid staan.
+>
 > **`_wikilinkNamen()` telt `![[…]]` niet meer mee**: een hoofdstuk staat vol
 > ingesloten plaatjes, en die stonden als "naam zonder kaartje" in de lijst.
 >

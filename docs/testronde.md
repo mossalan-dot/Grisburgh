@@ -410,6 +410,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Een `![[…mp3]]` of `.wav` opent de geluidenbibliotheek in plaats van de afbeeldingen
 - [ ] `DC12 Religion check` in de lopende tekst wordt een blauwe chip (aantekening, er wordt niets gerold)
 - [ ] *Namen* telt alleen echte `[[verwijzingen]]` — een `![[plaatje.png]]` staat er niet meer bij
+- [ ] Knop **Spelen**: een naam die de party nog niet kent krijgt een oogje en een half oogje áchter de naam; klikken onthult echt (kijk op het spelerstabblad) en de knoppen verdwijnen
+- [ ] Een naam die de party al kent heeft geen knoppen — anders staan er tientallen vinkjes door de tekst
+- [ ] Een beeld in de speelstand heeft *Toon aan spelers*; na klikken staat het in het logboek en ziet de speler het
+- [ ] `> [!tabel] <naam>` → *Rollen* zet de uitslag onder het blok; `> [!gevecht] <naam>` → *Start gevecht* start hem echt
+- [ ] Een monsterlink uit 5e.tools of D&D Beyond wordt een chip met een schedelknop die het statblok opent (meervoud telt: "twig blights" vindt "Twig Blight"); een roll20-link krijgt geen knop
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

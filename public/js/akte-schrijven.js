@@ -43,7 +43,10 @@ let _titel    = '';
 let _tekst    = '';
 let _bewaard  = true;
 let _timer    = null;
-let _voorbeeld = false;
+let _voorbeeld = false;   // kijken/spelen in plaats van schrijven
+let _encounters = null;   // lazy: naam → encounter
+let _tabellen  = null;
+let _vondsten  = null;
 
 const _ta = () => document.getElementById('akte-schrijf-ta');
 
@@ -181,10 +184,18 @@ function _embedHtml(ruw) {
   const isAudio = _AUDIO.test(naam);
   const isId = /^[A-Za-z0-9_-]{8,}$/.test(naam) && !/\.[a-z0-9]{2,4}$/i.test(naam);
   if (isId) {
-    return isAudio
-      ? `<div class="akte-embed akte-embed--audio"><audio controls src="/api/files/${esc(naam)}"></audio></div>`
-      : `<div class="akte-embed"><img src="/api/files/${esc(naam)}" alt="" loading="lazy"
-           onerror="this.closest('.akte-embed').classList.add('akte-embed--stuk')"></div>`;
+    if (isAudio) {
+      return `<div class="akte-embed akte-embed--audio"><audio controls src="/api/files/${esc(naam)}"></audio></div>`;
+    }
+    // In de speelstand is een beeld iets dat je **toont**: dezelfde weg als de
+    // regie-balk (de verborgen sessielog-entry van deze akte), zodat het ook in
+    // het logboek en de carrousel van de speler terechtkomt.
+    const knop = _voorbeeld
+      ? `<button class="dm-btn dm-btn-primary dm-btn-sm akte-beeld-knop"
+           onclick="window.akteSchrijven.toonBeeld('${esc(naam)}', this)">${icon('eye')} Toon aan spelers</button>`
+      : '';
+    return `<div class="akte-embed"><img src="/api/files/${esc(naam)}" alt="" loading="lazy"
+         onerror="this.closest('.akte-embed').classList.add('akte-embed--stuk')">${knop}</div>`;
   }
   return `<div class="akte-embed akte-embed--slot">
     <span class="akte-embed-naam">${icon(isAudio ? 'volume-2' : 'image')} ${esc(naam)}</span>
@@ -206,8 +217,59 @@ function _dcChips(html) {
   });
 }
 
+// Een kaartje-verwijzing wordt in de speelstand een **knop**. `mdToHtml` maakt
+// er al een link van en zet er `wikilink--dicht` op zodra de party het kaartje
+// nog niet kent — precies de toestand die wij nodig hebben. We hangen de
+// onthulknoppen erachter in plaats van de link zelf over te doen: dan blijft er
+// één plek die weet hoe een wikilink eruitziet.
+const _LINK = /<a class="wikilink([^"]*)"[^>]*?_openDetail\('([a-z]+)','([^']+)'\)[^>]*>([^<]*)<\/a>/g;
+function _linkKnoppen(html) {
+  return html.replace(_LINK, (heel, klassen, type, id, naam) => {
+    // Alleen een knop als er iets te doen valt. Een kaartje dat de party al
+    // kent heeft er geen nodig — anders staan er in dit hoofdstuk eenenveertig
+    // vinkjes door de tekst heen, en dan zie je de twee die er wél toe doen
+    // niet meer.
+    if (!/wikilink--dicht/.test(klassen)) return heel;
+    return `<span class="akte-link" data-id="${id}">${heel}<button class="akte-act akte-act--onthul" title="Onthullen voor de party"
+        onclick="window.akteSchrijven.onthul('${type}','${id}','visible',this)">${icon('eye')}</button>
+      <button class="akte-act akte-act--vaag" title="Vaag onthullen — de party ziet dat er iets is"
+        onclick="window.akteSchrijven.onthul('${type}','${id}','vague',this)">${icon('eye-off')}</button></span>`;
+  });
+}
+
+// Een gewone markdown-link `[Stirge](https://roll20.net/…)`. `mdToHtml` doet er
+// niets mee (die kent alleen `[[wikilinks]]`), dus stond de hele URL in de
+// lopende tekst. In een akte zijn dit bijna altijd **monsters en spreuken** uit
+// een compendium — precies waar de importer ooit de encounters uit haalde.
+// Hier worden het chips: klikken opent de bron, en kennen we het wezen in de
+// monsterbibliotheek, dan opent de knop ernaast het statblok. Aan tafel wil je
+// dat blad, niet een tabblad in je browser.
+// Alleen deze twee adressen gáán over een wezen. Een roll20-compendiumlink kan
+// net zo goed een spreuk of een bijl zijn ([Battleaxe+1] staat er ook zo in),
+// dus die krijgt geen statblok-knop — alleen de link.
+const _MONSTERBRON = /(dndbeyond\.com\/monsters|5e\.tools\/bestiary)/i;
+const _MDLINK = /\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g;
+function _externeLinks(md) {
+  return md.replace(_MDLINK, (heel, label, url) => {
+    // Het label komt uit al gerenderde HTML: `*Pass without Trace*` is daar al
+    // `<em>…</em>`. De tags eruit, anders staan ze als tekst in de chip.
+    const naam = label.replace(/<[^>]+>/g, '').replace(/[*_]/g, '').trim();
+    const monster = _MONSTERBRON.test(url);
+    const knop = (monster && _voorbeeld)
+      ? `<button class="akte-act akte-act--statblok" title="Statblok openen"
+           onclick="window.akteSchrijven.statblok('${esc(naam).replace(/'/g, "\\'")}', this)">${icon('skull')}</button>`
+      : '';
+    return `<span class="akte-bron${monster ? ' akte-bron--monster' : ''}"><a href="${esc(url)}" target="_blank" rel="noopener"
+      title="${esc(url)}">${esc(naam)}</a>${knop}</span>`;
+  });
+}
+
 function _prozaHtml(md) {
-  return _dcChips(window.app.mdToHtml(md));
+  // Ná `mdToHtml`, niet ervoor: die escapet `<` en `>` in zijn invoer, dus een
+  // span die je er vooraf in zet komt er als zichtbare tekst weer uit. De
+  // markdown-link zelf laat hij ongemoeid, dus het patroon staat er dan nog.
+  const html = _externeLinks(_dcChips(window.app.mdToHtml(md)));
+  return _voorbeeld ? _linkKnoppen(html) : html;
 }
 
 // Alles wat geen callout is: eerst de blokvormen (tabel, lijst, embed), de rest
@@ -252,6 +314,27 @@ function _gewoonHtml(regels) {
   return uit.join('\n');
 }
 
+// De knop die bij een regieblok hoort. Elk blok doet precies wat het gelijk-
+// namige staptype in de regie-balk doet — dezelfde aanroep, andere plek.
+function _blokActie(soort, kop, body) {
+  const arg = esc(String(kop || '').replace(/'/g, "\\'"));
+  const knop = (fn, label, ico) =>
+    `<button class="dm-btn dm-btn-primary dm-btn-sm regie-blok-knop"
+       onclick="window.akteSchrijven.${fn}('${arg}', this)">${icon(ico)} ${label}</button>`;
+  if (soort === 'gevecht')   return knop('startGevecht', 'Start gevecht', 'swords');
+  if (soort === 'tabel')     return knop('rolTabel', 'Rollen', 'dice');
+  if (soort === 'buit')      return knop('onthulBuit', 'Onthullen', 'vault');
+  if (soort === 'kaart')     return knop('openKaart', 'Openen', 'castle');
+  if (soort === 'rust')      return knop('startRust', 'Rust starten', 'moon');
+  if (soort === 'voorlezen') {
+    // De tekst van het blok zelf gaat mee; die staat niet in de kop.
+    const tekst = esc(body.join('\n').replace(/'/g, "\\'").replace(/\n/g, '\\n'));
+    return `<button class="dm-btn dm-btn-primary dm-btn-sm regie-blok-knop"
+      onclick="window.akteSchrijven.naarTafel('${tekst}', this)">${icon('monitor')} Op tafel</button>`;
+  }
+  return '';
+}
+
 export function regieNaarHtml(md) {
   const regels = String(md || '').split('\n');
   const uit = [];
@@ -266,8 +349,12 @@ export function regieNaarHtml(md) {
       while (i < regels.length && /^>\s?/.test(regels[i])) { body.push(regels[i].replace(/^>\s?/, '')); i++; }
       const blok = REGIE_BLOKKEN[soort];
       uit.push(`<div class="regie-blok regie-blok--${esc(soort)}">
-        <div class="regie-blok-kop">${icon(blok?.icon || 'hexagon')} ${esc(kop || blok?.label || soort)}</div>
+        <div class="regie-blok-kop">
+          ${icon(blok?.icon || 'hexagon')} ${esc(kop || blok?.label || soort)}
+          ${_voorbeeld ? _blokActie(soort, kop, body) : ''}
+        </div>
         ${body.length ? `<div class="regie-blok-body">${_gewoonHtml(body)}</div>` : ''}
+        <div class="regie-blok-uitslag" hidden></div>
       </div>`);
       continue;
     }
@@ -333,8 +420,9 @@ function _teken() {
           onclick="window.akteSchrijven.namen()">${icon('users')} Namen</button>
         <button class="dm-btn dm-btn-ghost dm-btn-sm" title="De markdown naar het klembord — voor wie hem ook in Obsidian wil"
           onclick="window.akteSchrijven.kopieer(this)">${icon('clipboard-list')} Kopiëren</button>
-        <button class="dm-btn dm-btn-ghost dm-btn-sm${_voorbeeld ? ' is-actief' : ''}" title="Zoals het er straks uitziet"
-          onclick="window.akteSchrijven.voorbeeld()">${icon(_voorbeeld ? 'pencil' : 'eye')} ${_voorbeeld ? 'Schrijven' : 'Voorbeeld'}</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm${_voorbeeld ? ' is-actief' : ''}"
+          title="${_voorbeeld ? 'Terug naar schrijven' : 'De akte zoals je hem speelt — met knoppen die echt onthullen'}"
+          onclick="window.akteSchrijven.voorbeeld()">${icon(_voorbeeld ? 'pencil' : 'play')} ${_voorbeeld ? 'Schrijven' : 'Spelen'}</button>
         <button class="dm-btn dm-btn-ghost dm-btn-sm" title="Sluiten" onclick="window.akteSchrijven.sluit()">${icon('x')}</button>
       </div>
     </div>
@@ -357,6 +445,50 @@ function _teken() {
   }
   _tekenSecties();
   if (_voorbeeld) _tekenVoorbeeld();
+}
+
+// Een blok verwijst met een **naam**, want dat is wat je schrijft. Namen zijn
+// niet uniek en niet exact; vandaar dezelfde losse vergelijking als elders:
+// gelijk, anders "begint met", anders "bevat".
+function _vindOpNaam(lijst, naam) {
+  const n = String(naam || '').trim().toLowerCase();
+  if (!n) return null;
+  const naamVan = (x) => String(x.name || x.naam || '').toLowerCase();
+  // Je schrijft "vier twig blights", de bibliotheek kent "Twig Blight". Dus
+  // ook zonder meervoud-s en zonder -en proberen; een zin buigt nu eenmaal.
+  const vormen = [n, n.replace(/s$/, ''), n.replace(/en$/, '')].filter((v, i, a) => v && a.indexOf(v) === i);
+  for (const v of vormen) {
+    const treffer = (lijst || []).find(x => naamVan(x) === v)
+                 || (lijst || []).find(x => naamVan(x).startsWith(v))
+                 || (lijst || []).find(x => naamVan(x).includes(v));
+    if (treffer) return treffer;
+  }
+  return null;
+}
+
+function _geenTreffer(btn, tekst) {
+  const vak = btn.closest('.regie-blok')?.querySelector('.regie-blok-uitslag');
+  if (vak) { vak.hidden = false; vak.innerHTML = `${icon('x')} ${esc(tekst)} — controleer de naam in het blok.`; }
+}
+
+// Zelfde drie soorten als de Tafels-tab: samengesteld, gewogen (d100) en gewoon.
+function _rolTabel(tabel) {
+  if (tabel.type === 'combined') {
+    const a = (tabel.first || []); const b = (tabel.last || []);
+    return `${a[Math.floor(Math.random() * a.length)] || '?'} ${b[Math.floor(Math.random() * b.length)] || '?'}`;
+  }
+  const entries = tabel.entries || [];
+  if (!entries.length) return 'Deze tabel is leeg.';
+  if (tabel.type === 'weighted') {
+    const d100 = Math.floor(Math.random() * 100) + 1;
+    for (const e of entries) {
+      const m = String(e).match(/^(\d+)[-–](\d+):\s*(.+)$/);
+      if (m && d100 >= +m[1] && d100 <= +m[2]) return `d100: ${d100} → ${m[3].trim()}`;
+    }
+    return `d100: ${d100} → (geen treffer)`;
+  }
+  const i = Math.floor(Math.random() * entries.length);
+  return `${i + 1}: ${entries[i]}`;
 }
 
 // ── Publieke API ─────────────────────────────────────────────────────────────
@@ -508,6 +640,105 @@ window.akteSchrijven = {
     _voorbeeld = !_voorbeeld;
     if (_voorbeeld) _tekst = _ta()?.value ?? _tekst;
     _teken();
+  },
+
+  // ── Spelen: wat de knoppen doen ──────────────────────────────────────────
+  // Allemaal dezelfde aanroepen als de regie-balk; alleen de plek verschilt.
+  async onthul(type, id, mode, btn) {
+    try {
+      await api.toggleVisibility(type, id, mode);
+      // De index bijwerken, anders staat het kaartje bij het hertekenen weer
+      // als "dicht" in beeld.
+      const naam = Object.keys(window._entityNameIndex || {}).find(n => window._entityNameIndex[n]?.id === id);
+      if (naam) window._entityNameIndex[naam].vis = mode;
+      const span = btn.closest('.akte-link');
+      if (span) {
+        // Even laten zien dát het gebeurd is, dan verdwijnen de knoppen — er
+        // valt niets meer te doen aan dit kaartje.
+        span.querySelectorAll('.akte-act').forEach(b => b.remove());
+        span.insertAdjacentHTML('beforeend', `<span class="akte-act akte-act--klaar">${icon('check')}</span>`);
+        span.querySelector('a')?.classList.remove('wikilink--dicht');
+        setTimeout(() => span.querySelector('.akte-act--klaar')?.remove(), 2500);
+      }
+    } catch (e) { alert('Onthullen mislukt: ' + e.message); }
+  },
+
+  // Een beeld tonen loopt via de verborgen sessielog-entry van deze akte —
+  // hetzelfde datamodel als de regie-balk en de akte-importer, zodat het beeld
+  // ook in het logboek en de carrousel van de speler verschijnt.
+  async toonBeeld(fileId, btn) {
+    btn.disabled = true;
+    try {
+      const archief = await api.listArchief();
+      let entry = (archief.sessieLog || []).find(e =>
+        e.hoofdstuk === _ch && /sc[eè]ne-afbeeldingen/i.test(e.korteSamenvatting || ''));
+      if (!entry) entry = await api.createSessieLog({ hoofdstuk: _ch, korteSamenvatting: 'Scène-afbeeldingen', datum: '' });
+      const bestaand = (entry.images || []).map(img => typeof img === 'string' ? { id: img, caption: '', visible: false } : img);
+      if (!bestaand.some(i => i.id === fileId)) {
+        await api.updateSessieLog(entry.id, { images: [...bestaand, { id: fileId, caption: '', visible: false }] });
+      }
+      await api.onthulAfbeelding(entry.id, fileId, '', window._activeGroupId || null);
+      btn.innerHTML = `${icon('check')} Getoond`;
+      btn.classList.add('is-klaar');
+    } catch (e) { btn.disabled = false; alert('Tonen mislukt: ' + e.message); }
+  },
+
+  async startGevecht(naam, btn) {
+    if (!_encounters) { try { _encounters = await api.listEncounters(); } catch { _encounters = []; } }
+    const enc = _vindOpNaam(_encounters, naam);
+    if (!enc) return _geenTreffer(btn, `Geen gevecht "${naam}" gevonden`);
+    try { await window.dmPanel.encStart(enc.id); btn.innerHTML = `${icon('check')} Gestart`; btn.classList.add('is-klaar'); }
+    catch (e) { alert('Starten mislukt: ' + e.message); }
+  },
+
+  async rolTabel(naam, btn) {
+    if (!_tabellen) { try { _tabellen = await api.listTables(); } catch { _tabellen = []; } }
+    const tabel = _vindOpNaam(_tabellen, naam);
+    if (!tabel) return _geenTreffer(btn, `Geen tabel "${naam}" gevonden`);
+    const uitslag = _rolTabel(tabel);
+    const vak = btn.closest('.regie-blok')?.querySelector('.regie-blok-uitslag');
+    if (vak) { vak.hidden = false; vak.innerHTML = `${icon('dice')} ${esc(uitslag)}`; }
+  },
+
+  async onthulBuit(naam, btn) {
+    if (!_vondsten) { try { _vondsten = (await api.lootEvents())?.events || []; } catch { _vondsten = []; } }
+    const v = _vindOpNaam(_vondsten, naam);
+    if (!v) return _geenTreffer(btn, `Geen vondst "${naam}" gevonden`);
+    try { await window.dmPanel.lootVerdelingOpenen([v.id]); }
+    catch (e) { alert('Onthullen mislukt: ' + e.message); }
+  },
+
+  async openKaart(naam, btn) {
+    let kaarten = [];
+    try { kaarten = await api.listDungeons(); } catch {}
+    const k = _vindOpNaam(kaarten, naam);
+    if (!k) return _geenTreffer(btn, `Geen kaart "${naam}" gevonden`);
+    window._openKaartFullscreen?.('dungeon', k.id);
+  },
+
+  startRust(kop, btn) {
+    // De rust-knop van de regie-balk kent de keuzes al (lang/kort, veld/herberg);
+    // hier openen we datzelfde menu in plaats van er een tweede van te maken.
+    window.dmPanel.rustMenu?.({ currentTarget: btn, preventDefault() {}, stopPropagation() {} });
+  },
+
+  // Het statblok van een genoemd wezen. We zoeken in de monsterbibliotheek van
+  // de campagne; staat hij er niet, dan zegt de knop dat — de link naar de bron
+  // blijft dan over.
+  async statblok(naam, btn) {
+    let monsters = [];
+    try { monsters = await api.listMonsters(); } catch {}
+    const lijst = Array.isArray(monsters) ? monsters : (monsters.monsters || []);
+    const m = _vindOpNaam(lijst, naam);
+    if (!m) { btn.title = `"${naam}" staat niet in de monsterbibliotheek`; btn.classList.add('is-leeg'); return; }
+    const { renderStatblock } = await import('./render-statblock.js?v=9');
+    window.app.openModal(m.name || naam, '', `<div class="sb-modal-body">${renderStatblock(m, { kop: false })}</div>`);
+    window.glossary?.applyDom?.(document.querySelector('#modal-overlay .sb-modal-body'));
+    window.spreuken?.linkInDom?.(document.querySelector('#modal-overlay .sb-modal-body'));
+  },
+
+  naarTafel(tekst, btn) {
+    alert('Voorleestekst naar het tafelscherm sturen bestaat nog niet — dat is de volgende stap.');
   },
 
   async inlezen(file, invoer) {

@@ -177,9 +177,31 @@ werkplek en dit scherm een kijkdoos. Sinds 15 sep is er daarom een
   het klembord) blijven allebei: wie in Obsidian wil blijven schrijven, kan
   dat, en wie hier begint kan het daar afmaken.
 
+### Tonen is niet hetzelfde als bedienen
+
+De tweede stand van het schrijfscherm heet daarom **Spelen**, niet Voorbeeld:
+daar zit de functionaliteit, niet alleen de opmaak.
+
+- Een **kaartje-verwijzing** die de party nog niet kent krijgt twee knoppen
+  achter de naam, in de zin zelf: onthullen en vaag onthullen. Kent de party
+  hem al, dan staat er niets — in Hoofdstuk 6 zijn 41 van de 53 namen al
+  bekend, en 41 vinkjes door de tekst maken de twee die ertoe doen onvindbaar.
+- Een **beeld** krijgt *Toon aan spelers*, via dezelfde verborgen
+  sessielog-entry als de regie-balk, zodat het ook in het logboek en de
+  carrousel van de speler belandt.
+- Een **regieblok** krijgt de knop die erbij hoort: *Start gevecht*, *Rollen*
+  (met de uitslag eronder), *Onthullen*, *Openen*, *Rust starten*.
+- Een **compendiumlink** (`[twig blights](https://5e.tools/…)`) wordt een chip;
+  staat het wezen in de monsterbibliotheek, dan opent de knop ernaast het
+  statblok. Aan tafel wil je dat blad, geen browsertabblad. Alleen
+  dndbeyond.com/monsters en 5e.tools/bestiary krijgen die knop: een
+  roll20-compendiumlink kan net zo goed een bijl zijn.
+- Een **DC** in de lopende tekst wordt een chip. Aantekening, geen mechaniek.
+
 Wat er nog niet is en er wel bij hoort: schrijven **tijdens** het spelen — een
 potlood in de lade dat de huidige sectie openzet, zodat een inval aan tafel
-meteen op de goede plek belandt.
+meteen op de goede plek belandt. En het voorleesblok heeft nog geen knop naar
+het tafelscherm: daarvoor moet er eerst een `display:tekst`-kanaal komen.
 
 ---
 
