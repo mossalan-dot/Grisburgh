@@ -431,6 +431,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Ganzenveer in de lade → het schrijfscherm van díé akte
 - [ ] Een akte met tekst maar zonder script-items: de balk zegt dat de knoppen in de tekst staan
 - [ ] Zijbalk van het schrijfscherm: *Rust* opent het rustmenu, *Sheets* opent de printbare bladen
+- [ ] De invoegbalk is één menu *Invoegen* met drie groepen; sectie, kaartje en beeld staan er los naast
+- [ ] Alt+S, Alt+L, Alt+T, Alt+K, Alt+G … voegen hetzelfde in als het menu-item ernaast
+- [ ] Enter in een opsomming maakt het volgende streepje; bij een genummerde lijst telt hij door; een lege regel sluit de lijst
+- [ ] Genummerde lijst, citaat (`> `), scènebreuk (`---`) en tabel renderen in de speelstand zoals ze horen
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

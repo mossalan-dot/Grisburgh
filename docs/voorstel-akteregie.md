@@ -205,6 +205,60 @@ het tafelscherm: daarvoor moet er eerst een `display:tekst`-kanaal komen.
 
 ---
 
+## Welke markdown een verhaal nodig heeft
+
+Niet alles wat markdown kan is nuttig voor een hoofdstuk, en andersom mist een
+hoofdstuk dingen die markdown niet kent. Wat de akte-renderer daarom kent
+(`regieNaarHtml`), met waaróm:
+
+| Vorm | Waarvoor in een akte |
+|---|---|
+| `#` t/m `######` | secties en scènes — de diepe koppen dragen de scènes (`###### Madame Ursula`) |
+| `- ` | wat er ligt, wie er staat, welke vijanden er zijn |
+| `1. ` | een reeks die op volgorde gebeurt ("de wacht draait zich om, dan…") |
+| `\|`-tabel | dobbeltabellen en prijzenlijsten; een dobbelsteen in de kop maakt er een worptabel van |
+| `> ` | een citaat: een lied, een inscriptie, een regel uit een brief |
+| `---` | een sprong in tijd of plaats binnen een scène |
+| `**vet**`, `*cursief*` | namen en klemtoon, zoals in elk avontuur |
+| `[[naam]]` | een kaartje — met onthulknop tijdens het spelen |
+| `![[bestand]]` | beeld of geluid — met *Toon aan spelers* |
+| `[label](url)` | een compendiumlink; van een monster opent de knop het statblok |
+| `> [!soort]` | de elf regieblokken |
+
+Wat we bewust **niet** doen: geneste lijsten (een akte is geen handleiding),
+voetnoten, code-blokken, en `- [ ]`-vinkjes — die laatste vragen om opslag per
+party, en dan is het geen tekst meer maar een mechaniek.
+
+De invoegbalk is één **menu** geworden in plaats van twaalf pillen naast
+elkaar: wat je in elke alinea gebruikt staat los (sectie, kaartje, beeld), de
+rest zit onder *Invoegen*, gegroepeerd, met **Alt + letter** ernaast. Enter in
+een lijst maakt het volgende streepje (of nummer) en een lege regel sluit de
+lijst — het teken typ je één keer.
+
+---
+
+## Stap 5: de blokeditor
+
+De tekst blijft markdown, maar het schrijven hoeft niet met tekens. Het plan,
+voor als we eraan toe zijn:
+
+- Elke **alinea, kop, lijst, tabel, embed en regieblok is een blok** in beeld,
+  met een greep om te verslepen en een `+` ertussen om er een toe te voegen.
+- Bij het openen wordt de markdown **geparseerd naar blokken**, bij het opslaan
+  weer **geserialiseerd**. Dat is de enige plek die tekens ziet; de rest van de
+  app blijft met markdown werken (en Obsidian dus ook).
+- Een blok bewerk je in een eigen tekstvakje. Voor een gewone alinea is dat een
+  regel tekst met de bestaande `[[`-autocomplete; voor een regieblok is het een
+  formuliertje (kies het gevecht, kies de tabel), zodat er geen `[!gevecht]`
+  meer te typen valt.
+- **Waarom nog niet nu:** het parsen-en-terugschrijven moet lossless zijn, en
+  precies daar gaat zo'n editor stuk — één rondje door de blokken en je hebt
+  andermans tekst stil herschreven. Dat vraagt een testronde met echte
+  hoofdstukken (Lichtmis en de Gulthiasboom staan klaar) waarin
+  `serialiseer(parse(md)) === md` moet gelden, vóór er ook maar één knop komt.
+
+---
+
 ## Risico's, eerlijk
 
 - **Het meta-lek hierboven.** Tekst en script horen niet in `GET /meta`. Ze

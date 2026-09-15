@@ -105,15 +105,19 @@ function _zetStatus(fout) {
 
 // ── Invoegen ─────────────────────────────────────────────────────────────────
 // Alles gaat door één deur: tekst op de cursorpositie, of om de selectie heen.
-function _voegIn(tekst, { blok = false } = {}) {
+// `blok` zet er lege regels omheen (een kader staat los); `marker` is voor de
+// tekens waar je zélf achter doorschrijft — `## ` en `- `. Die krijgen wel lucht
+// ervóór maar geen lege regel erná, anders staat je cursor twee regels verderop
+// en typ je naast je eigen kop.
+function _voegIn(tekst, { blok = false, marker = false } = {}) {
   const ta = _ta();
   if (!ta) return;
   const s = ta.selectionStart, e = ta.selectionEnd;
   let invoeg = tekst;
-  if (blok) {
+  if (blok || marker) {
     const voor = ta.value.slice(0, s);
     const nodig = voor && !voor.endsWith('\n\n') ? (voor.endsWith('\n') ? '\n' : '\n\n') : '';
-    invoeg = nodig + tekst + '\n\n';
+    invoeg = nodig + tekst + (marker ? '' : '\n\n');
   }
   ta.setRangeText(invoeg, s, e, 'end');
   ta.focus();
@@ -309,9 +313,32 @@ function _gewoonHtml(regels) {
       const items = [];
       while (i < regels.length && /^\s*[-*]\s+/.test(regels[i])) items.push(regels[i++].replace(/^\s*[-*]\s+/, ''));
       i--;
-      uit.push(`<ul class="akte-lijst">${items.map(it => `<li>${window.app.mdToHtml(it).replace(/<\/?p>/g, '')}</li>`).join('')}</ul>`);
+      uit.push(`<ul class="akte-lijst">${items.map(it => `<li>${_prozaHtml(it).replace(/<\/?p>/g, '')}</li>`).join('')}</ul>`);
       continue;
     }
+    // Genummerd: een reeks die op volgorde gebeurt ("1. De wacht draait zich om").
+    if (/^\s*\d+[.)]\s+/.test(r)) {
+      leeg();
+      const items = [];
+      while (i < regels.length && /^\s*\d+[.)]\s+/.test(regels[i])) items.push(regels[i++].replace(/^\s*\d+[.)]\s+/, ''));
+      i--;
+      uit.push(`<ol class="akte-lijst akte-lijst--nr">${items.map(it => `<li>${_prozaHtml(it).replace(/<\/?p>/g, '')}</li>`).join('')}</ol>`);
+      continue;
+    }
+    // Een citaat zonder `[!soort]`: gewoon aangehaalde tekst — een spreuk in
+    // een boek, een regel uit een lied. Geen knop, wel een streep ernaast.
+    if (/^\s*>\s?/.test(r) && !/^\s*>\s*\[!/.test(r)) {
+      leeg();
+      const items = [];
+      while (i < regels.length && /^\s*>\s?/.test(regels[i]) && !/^\s*>\s*\[!/.test(regels[i])) {
+        items.push(regels[i++].replace(/^\s*>\s?/, ''));
+      }
+      i--;
+      uit.push(`<blockquote class="akte-citaat">${_prozaHtml(items.join('\n'))}</blockquote>`);
+      continue;
+    }
+    // `---` op een eigen regel: een sprong in tijd of plaats binnen een scène.
+    if (/^\s*-{3,}\s*$/.test(r)) { leeg(); uit.push('<hr class="akte-breuk">'); continue; }
     buffer.push(r);
   }
   leeg();
@@ -399,22 +426,64 @@ function _tekenVoorbeeld() {
   host.innerHTML = regieNaarHtml(_ta()?.value ?? _tekst) || '<p class="dm-hint">Nog niets geschreven.</p>';
 }
 
+// ── Invoegen ─────────────────────────────────────────────────────────────────
+// Twaalf pillen naast elkaar leest als een gereedschapskist waar je doorheen
+// moet zoeken. Wat je in élke alinea gebruikt staat los (sectie, kaartje,
+// beeld); de rest zit onder één knop, gegroepeerd, met de sneltoets erbij —
+// want wie een hoofdstuk schrijft houdt zijn handen op het toetsenbord.
+const INVOEG_MENU = [
+  { groep: 'Tekst', items: [
+    { id: 'kop',       label: 'Sectie',        icon: 'scroll-text', toets: 'S', hint: 'Een nieuwe sectie (##)' },
+    { id: 'lijst',     label: 'Lijst',         icon: 'clipboard-list', toets: 'L', hint: 'Opsomming; Enter maakt de volgende regel' },
+    { id: 'lijst-nr',  label: 'Genummerd',     icon: 'clipboard-list', toets: 'N', hint: 'Een reeks die op volgorde gebeurt' },
+    { id: 'citaat',    label: 'Citaat',        icon: 'quote',       toets: 'Q', hint: 'Aangehaalde tekst — een lied, een inscriptie' },
+    { id: 'breuk',     label: 'Scènebreuk',    icon: 'minus',       toets: 'H', hint: 'Een sprong in tijd of plaats' },
+    { id: 'tabel-md',  label: 'Tabel',         icon: 'square',      toets: 'T', hint: 'Een tabel met koppen' },
+    { id: 'voorlezen', label: 'Voorlezen',     icon: 'quote',       toets: 'V', hint: 'Wat je letterlijk voorleest — met knop naar het tafelscherm' },
+    { id: 'dm',        label: 'Notitie',       icon: 'eye-off',     toets: 'D', hint: 'Alleen voor jou' },
+    { id: 'check',     label: 'Check',         icon: 'target',      toets: 'C', hint: 'Een DC als aantekening' },
+  ]},
+  { groep: 'Verwijzen', items: [
+    { id: 'kaartje',   label: 'Kaartje',       icon: 'user',        toets: 'K', hint: 'Verwijs naar een kaartje — [[Naam]]' },
+    { id: 'beeld',     label: 'Beeld',         icon: 'image',       toets: 'B', hint: 'Een afbeelding of geluid uit de bibliotheek' },
+    { id: 'kaart',     label: 'Plattegrond',   icon: 'castle',      toets: 'P', hint: 'Een dungeonkaart om te openen' },
+    { id: 'kamer',     label: 'Kamer',         icon: 'door-open',   toets: 'A', hint: 'Eén kamer onthullen' },
+  ]},
+  { groep: 'Gebeurt er iets', items: [
+    { id: 'gevecht',   label: 'Gevecht',       icon: 'swords',      toets: 'G', hint: 'Een encounter die je hier start' },
+    { id: 'tabel',     label: 'Worptabel',     icon: 'dice',        toets: 'W', hint: 'Een tabel uit de campagne om te rollen' },
+    { id: 'buit',      label: 'Buit',          icon: 'vault',       toets: 'U', hint: 'Een vondst om te onthullen' },
+    { id: 'brief',     label: 'Brief',         icon: 'mail',        toets: 'R', hint: 'Een brief die je hier verstuurt' },
+    { id: 'muziek',    label: 'Muziek',        icon: 'music',       toets: 'M', hint: 'Een nummer of afspeellijst' },
+    { id: 'rust',      label: 'Rust',          icon: 'moon',        toets: 'E', hint: 'Lange of korte rust' },
+  ]},
+];
+const _INVOEG_OP_TOETS = {};
+for (const g of INVOEG_MENU) for (const it of g.items) _INVOEG_OP_TOETS[it.toets.toLowerCase()] = it.id;
+
 function _invoegBalk() {
-  const knop = (soort) => {
-    const b = REGIE_BLOKKEN[soort];
-    return `<button class="akte-invoeg-btn" title="${esc(b.hint)}"
-      onclick="window.akteSchrijven.blok('${soort}')">${icon(b.icon)} ${esc(b.label)}</button>`;
-  };
+  const menu = INVOEG_MENU.map(g => `
+    <div class="akte-invoeg-groep">${esc(g.groep)}</div>
+    ${g.items.map(it => `
+      <button class="akte-invoeg-item" title="${esc(it.hint)}"
+        onclick="window.akteSchrijven.invoegen('${it.id}')">
+        ${icon(it.icon)} <span>${esc(it.label)}</span>
+        <kbd>Alt+${esc(it.toets)}</kbd>
+      </button>`).join('')}`).join('');
   return `
     <div class="akte-invoeg-balk">
-      <button class="akte-invoeg-btn" title="Een nieuwe sectie" onclick="window.akteSchrijven.kop()">${icon('scroll-text')} Sectie</button>
-      <button class="akte-invoeg-btn" title="Verwijs naar een kaartje — [[Naam]]" onclick="window.akteSchrijven.kaartje()">${icon('user')} Kaartje</button>
-      <button class="akte-invoeg-btn" title="Een afbeelding uit de mediabibliotheek" onclick="window.akteSchrijven.afbeelding()">${icon('image')} Beeld</button>
+      <div class="akte-invoeg-wrap">
+        <button class="akte-invoeg-btn akte-invoeg-hoofd" onclick="window.akteSchrijven.menu(event)"
+          title="Iets invoegen (Alt + letter)">${icon('plus')} Invoegen <span class="akte-invoeg-pijl">▾</span></button>
+        <div class="akte-invoeg-menu hidden" id="akte-invoeg-menu">${menu}</div>
+      </div>
       <span class="akte-invoeg-sep"></span>
-      ${knop('voorlezen')}${knop('dm')}
+      <button class="akte-invoeg-btn" title="Een nieuwe sectie (Alt+S)" onclick="window.akteSchrijven.invoegen('kop')">${icon('scroll-text')} Sectie</button>
+      <button class="akte-invoeg-btn" title="Verwijs naar een kaartje (Alt+K)" onclick="window.akteSchrijven.invoegen('kaartje')">${icon('user')} Kaartje</button>
+      <button class="akte-invoeg-btn" title="Een afbeelding of geluid (Alt+B)" onclick="window.akteSchrijven.invoegen('beeld')">${icon('image')} Beeld</button>
       <span class="akte-invoeg-sep"></span>
-      ${knop('gevecht')}${knop('tabel')}${knop('buit')}${knop('kaart')}${knop('kamer')}
-      ${knop('rust')}${knop('muziek')}${knop('brief')}${knop('check')}
+      <button class="akte-invoeg-btn" title="Vet (Ctrl+B)" onclick="window._fmt('akte-schrijf-ta','**')"><b>B</b></button>
+      <button class="akte-invoeg-btn" title="Cursief (Ctrl+I)" onclick="window._fmt('akte-schrijf-ta','*')"><i>I</i></button>
     </div>`;
 }
 
@@ -466,7 +535,35 @@ function _teken() {
   const ta = _ta();
   if (ta) {
     ta.addEventListener('input', () => { _merkVuil(); _tekenSecties(); });
-    ta.addEventListener('keydown', (e) => window._fmtKey?.(e, 'akte-schrijf-ta'));
+    ta.addEventListener('keydown', (e) => {
+      window._fmtKey?.(e, 'akte-schrijf-ta');
+      // Alt + letter: invoegen zonder je handen van het toetsenbord te halen.
+      if (e.altKey && !e.ctrlKey && !e.metaKey && /^[a-z]$/i.test(e.key)) {
+        const id = _INVOEG_OP_TOETS[e.key.toLowerCase()];
+        if (id) { e.preventDefault(); window.akteSchrijven.invoegen(id); return; }
+      }
+      // Enter in een opsomming zet vanzelf het volgende streepje; op een lege
+      // regel sluit hij de lijst af. Zo hoef je het teken maar één keer te typen.
+      if (e.key === 'Enter' && !e.shiftKey) {
+        const voor = ta.value.slice(0, ta.selectionStart);
+        const regel = voor.slice(voor.lastIndexOf('\n') + 1);
+        const m = regel.match(/^(\s*)([-*]|\d+[.)])\s+(.*)$/);
+        if (m) {
+          e.preventDefault();
+          // Een genummerde lijst telt door; een opsomming herhaalt zijn teken.
+          const nr = /^\d/.test(m[2]) ? `${parseInt(m[2], 10) + 1}.` : m[2];
+          if (!m[3].trim()) {
+            // Lege bullet: haal hem weg en eindig de lijst.
+            const begin = voor.lastIndexOf('\n') + 1;
+            ta.setRangeText('', begin, ta.selectionStart, 'end');
+            ta.setRangeText('\n', ta.selectionStart, ta.selectionEnd, 'end');
+          } else {
+            ta.setRangeText(`\n${m[1]}${nr} `, ta.selectionStart, ta.selectionEnd, 'end');
+          }
+          _merkVuil();
+        }
+      }
+    });
   }
   _tekenSecties();
   if (_voorbeeld) _tekenVoorbeeld();
@@ -549,7 +646,42 @@ window.akteSchrijven = {
     ta.scrollTop = Math.max(0, regel * rh - rh * 2);
   },
 
-  kop() { _voegIn('## ', { blok: true }); },
+  // Eén ingang: de menu-items, de losse knoppen en de sneltoetsen komen hier
+  // allemaal uit, zodat er maar één plek is die weet wat een soort invoegt.
+  invoegen(id) {
+    document.getElementById('akte-invoeg-menu')?.classList.add('hidden');
+    if (id === 'kop')      return _voegIn('## ', { marker: true });
+    if (id === 'kaartje')  return this.kaartje();
+    if (id === 'beeld')    return this.afbeelding();
+    if (id === 'lijst')    return _voegIn('- ', { marker: true });
+    if (id === 'lijst-nr') return _voegIn('1. ', { marker: true });
+    if (id === 'citaat')   return _voegIn('> ', { marker: true });
+    if (id === 'breuk')    return _voegIn('---', { blok: true });
+    if (id === 'tabel-md') return this.tabelMd();
+    return this.blok(id);
+  },
+
+  menu(ev) {
+    const m = document.getElementById('akte-invoeg-menu');
+    if (!m) return;
+    m.classList.toggle('hidden');
+    if (m.classList.contains('hidden')) return;
+    ev?.stopPropagation();
+    setTimeout(() => {
+      const sluit = (e) => {
+        if (!m.contains(e.target)) { m.classList.add('hidden'); document.removeEventListener('click', sluit); }
+      };
+      document.addEventListener('click', sluit);
+    }, 0);
+  },
+
+  // Een markdown-tabel: kopregel, streepjesregel, één lege rij. De streepjes
+  // zijn het enige wat je nooit uit je hoofd doet — vandaar een knop.
+  tabelMd() {
+    _voegIn('| Kop | Kop |\n| --- | --- |\n|  |  |', { blok: true });
+  },
+
+  kop() { this.invoegen('kop'); },
 
   async kaartje() {
     let rijen = [];

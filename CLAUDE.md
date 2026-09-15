@@ -422,6 +422,13 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > `[!rust]`, `[!check]`) zodat de tekst heen en weer te kopiëren blijft;
 > `REGIE_BLOKKEN` en `regieNaarHtml()` in dat bestand zijn de enige plek waar
 > staat welke er zijn en hoe ze eruitzien. Plan: `docs/voorstel-akteregie.md`.
+> **De invoegbalk is een menu.** Twaalf pillen naast elkaar lazen als een
+> gereedschapskist; nu staan sectie, kaartje en beeld los (die gebruik je in
+> elke alinea) en zit de rest onder *Invoegen*, gegroepeerd, met **Alt + letter**
+> ernaast (`INVOEG_MENU` in `akte-schrijven.js` is de enige lijst — menu, knop
+> en sneltoets komen daar alle drie uit). Enter in een lijst maakt het volgende
+> streepje of nummer; een lege regel sluit hem.
+>
 > **`regieNaarHtml()` doet meer dan `mdToHtml()`**, want een hoofdstuk bevat
 > dingen die een kaartje-tekst niet heeft: koppen tot **zes** niveaus (`######`
 > draagt in een akte de scènes), `|`-tabellen (een dobbeltabel krijgt
