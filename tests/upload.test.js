@@ -94,6 +94,51 @@ describe('Upload-validatie', () => {
     assert.strictEqual(res.status, 400);
   });
 
+  // Beelden gaan bij binnenkomst naar WebP. Gemeten in Grisburgh: 907 PNG's
+  // namen 1.869 MB van de 2.053 MB in, gemiddeld 2.110 kB per stuk — niet door
+  // hun afmetingen (843 van de 1.135 zijn 600–1199 px breed) maar door het
+  // formaat. Dezelfde plaat in WebP is ongeveer een tiende.
+  it('zet een geüploade PNG om naar WebP, kleiner en met dezelfde afmetingen', async () => {
+    let sharp; try { sharp = require('sharp'); } catch { return; }   // zonder sharp geen conversie
+    const png = await sharp({ create: { width: 900, height: 600, channels: 3, background: { r: 120, g: 90, b: 40 } } })
+      .png().toBuffer();
+    const res = await uploadReq(server, '/api/files/test-webp', dmCookie,
+      { filename: 'groot.png', contentType: 'image/png', content: png });
+    assert.strictEqual(res.status, 200);
+    assert.match(res.body, /\.webp/, 'wordt als .webp weggeschreven');
+
+    const dir = path.join(DATA_DIR, 'campaigns', 'grisburgh', 'files');
+    const bestand = fs.readdirSync(dir).find(f => f.startsWith('test-webp.'));
+    const opSchijf = fs.statSync(path.join(dir, bestand)).size;
+    assert.ok(opSchijf < png.length, `${opSchijf} moet kleiner zijn dan ${png.length}`);
+    const m = await sharp(path.join(dir, bestand)).metadata();
+    assert.strictEqual(m.width, 900, 'de afmetingen blijven gelijk onder de bovengrens');
+    assert.strictEqual(m.height, 600);
+  });
+
+  it('knipt een beeld boven de bovengrens terug naar 2560 px', async () => {
+    let sharp; try { sharp = require('sharp'); } catch { return; }
+    const groot = await sharp({ create: { width: 4000, height: 1000, channels: 3, background: { r: 20, g: 60, b: 90 } } })
+      .png().toBuffer();
+    await uploadReq(server, '/api/files/test-breed', dmCookie,
+      { filename: 'breed.png', contentType: 'image/png', content: groot });
+    const dir = path.join(DATA_DIR, 'campaigns', 'grisburgh', 'files');
+    const bestand = fs.readdirSync(dir).find(f => f.startsWith('test-breed.'));
+    const m = await sharp(path.join(dir, bestand)).metadata();
+    assert.strictEqual(m.width, 2560);
+    assert.strictEqual(m.height, 640, 'de verhouding blijft kloppen');
+  });
+
+  it('laat een GIF met rust — die zou zijn animatie verliezen', async () => {
+    let sharp; try { sharp = require('sharp'); } catch { return; }
+    const gif = await sharp({ create: { width: 40, height: 40, channels: 3, background: { r: 1, g: 2, b: 3 } } })
+      .gif().toBuffer();
+    const res = await uploadReq(server, '/api/files/test-gif', dmCookie,
+      { filename: 'a.gif', contentType: 'image/gif', content: gif });
+    assert.strictEqual(res.status, 200, res.body);
+    assert.match(res.body, /\.gif/);
+  });
+
   it('blokkeert upload zonder DM-sessie', async () => {
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     const res = await uploadReq(server, '/api/files/test-anon', null, { filename: 'a.png', contentType: 'image/png', content: png });

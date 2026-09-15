@@ -99,8 +99,12 @@ groot het is. Bijgewerkt 15 sep 2026.
       laadt), en nog een keer in de handleiding van stap 7. Bewaren hoeft niet —
       dit is een lijst om te lezen, geen formulier; alleen wat de app zélf kan
       controleren toont een vinkje.
-- [ ] **8. Mediabudget** — teller per campagne + verkleinen bij upload. Naar voren
-      halen als de schijf eerder knelt.
+- [x] **Verkleinen bij upload** — gedaan 15 sep 2026. Elk binnenkomend beeld
+      wordt WebP (q82, max 2560 px); gif en svg blijven met rust en wat er niet
+      kleiner van wordt ook. De bestaande bestanden gaan met
+      `scripts/beelden-naar-webp.js`.
+- [ ] **8. Mediabudget** — teller per campagne. De helft van dit punt (verkleinen
+      bij upload) is gedaan; wat rest is de DM laten zien hoeveel hij gebruikt.
 - [ ] **9. Gefaseerd uitrollen** — vlag per campagne, deployvolgorde, en een
       teruggang die geoefend is.
 

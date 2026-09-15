@@ -126,7 +126,11 @@ describe('Vervaagde bestanden', { skip: !sharp && 'sharp niet beschikbaar' }, ()
     await req(server, 'PUT', `/api/entities/personages/${npc.id}/visibility`, { target: 'visible' }, dm);
     const scherp = await req(server, 'GET', `/api/files/${npc.id}`, null, speler, true);
     assert.notDeepStrictEqual(scherp.body, vaag.body);
-    assert.match(scherp.type, /png/);
+    // Een beeld wordt bij het uploaden WebP (zie _beeldVerkleinen): een PNG van
+    // een geschilderd portret is tien keer zo groot als dezelfde plaat in WebP.
+    // Dit blijft dus een echt beeld, alleen niet meer in het formaat waarin het
+    // binnenkwam.
+    assert.match(scherp.type, /image\//);
   });
 
   it('vervaagt ook de afbeelding van een vaag document', async () => {

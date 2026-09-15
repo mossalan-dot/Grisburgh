@@ -46,6 +46,44 @@ const uploadText = multer({
 // Magic-byte sniff: verifieert dat de inhoud écht een toegestaan mediatype is,
 // zodat een verkeerd-getypeerd/hernoemd bestand (bv. .exe als .png) wordt geweigerd.
 // SVG is tekst en wordt apart herkend (begint met '<' na optionele BOM/whitespace).
+// ── Beelden worden bij binnenkomst WebP ────────────────────────────────────
+// Gemeten in Grisburgh (15 sep 2026): 907 PNG's namen 1.869 MB van de 2.053 MB
+// in, gemiddeld 2.110 kB per stuk. Het zat niet in de afmetingen — 843 van de
+// 1.135 beelden zijn maar 600–1199 px breed — maar in het formaat: een PNG van
+// een geschilderd portret is tien keer zo groot als dezelfde plaat in WebP.
+// Een proef op tien willekeurige PNG's: 16,9 MB → 1,7 MB, zonder zichtbaar
+// verschil.
+//
+// Daarom gaat elk binnenkomend beeld er één keer doorheen. Wat er níét doorheen
+// gaat: **GIF** (die zou zijn animatie verliezen) en **SVG** (een tekening, geen
+// foto — en sharp raster hem). Video, geluid en pdf blijven zoals ze zijn.
+//
+// De bovengrens van 2560 px is ruim: dat is een 1440p-scherm op ware grootte en
+// een 4K-tafelscherm op tweederde. Dertien bestanden waren breder.
+// Wint de conversie niets (een kleine, al geoptimaliseerde jpeg kan groeien),
+// dan houden we het origineel — een bestand groter maken is geen verbetering.
+const BEELD_MAX_PX  = 2560;
+const BEELD_KWALITEIT = 82;
+
+async function _beeldVerkleinen(buffer, mimetype) {
+  const onaangeroerd = { buffer, mimetype };
+  if (!_sharp || !(mimetype || '').startsWith('image/')) return onaangeroerd;
+  if (mimetype === 'image/gif' || mimetype === 'image/svg+xml') return onaangeroerd;
+  try {
+    const meta = await _sharp(buffer).metadata();
+    if (meta.pages > 1) return onaangeroerd;          // geanimeerde webp/avif
+    const webp = await _sharp(buffer)
+      .rotate()                                       // EXIF-draaiing vastleggen; die gaat anders verloren
+      .resize(BEELD_MAX_PX, BEELD_MAX_PX, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: BEELD_KWALITEIT })
+      .toBuffer();
+    if (webp.length >= buffer.length) return onaangeroerd;
+    return { buffer: webp, mimetype: 'image/webp' };
+  } catch {
+    return onaangeroerd;                              // liever het origineel dan niets
+  }
+}
+
 function _sniffMedia(buf) {
   if (!buf || buf.length < 4) return false;
   const b = buf;
@@ -5478,7 +5516,7 @@ router.post('/import/akte/preview', requireDM, (req, res) => {
 });
 
 // Commit: bouw sessieLog-afbeeldingen, encounters en het regie-script.
-router.post('/import/akte/apply', requireDM, uploadMedia.array('images', 100), (req, res) => {
+router.post('/import/akte/apply', requireDM, uploadMedia.array('images', 100), async (req, res) => {
   let plan;
   try { plan = JSON.parse(req.body.plan || '[]'); } catch { return res.status(400).json({ error: 'Ongeldig plan' }); }
   if (!Array.isArray(plan)) return res.status(400).json({ error: 'Ongeldig plan' });
@@ -5521,7 +5559,8 @@ router.post('/import/akte/apply', requireDM, uploadMedia.array('images', 100), (
       const f = fileByName[_impNorm(step.file)];
       if (!f || !_sniffMedia(f.buffer)) continue;
       const fid = 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-      storage.saveFile(fid, f.buffer, f.mimetype);
+      const klein = await _beeldVerkleinen(f.buffer, f.mimetype);
+      storage.saveFile(fid, klein.buffer, klein.mimetype);
       sessieImages.push({ id: fid, caption: step.caption || '', visible: false });
       const item = { id: newId('s'), type: 'image', fileId: fid, sessieId: null, caption: step.caption || '' };
       script.push(item); imageScriptRefs.push(item);
@@ -6146,14 +6185,18 @@ router.post('/files/:id', requireDM, uploadMedia.single('file'), async (req, res
   if (!req.file) return res.status(400).json({ error: 'Geen bestand of niet-toegestaan type' });
   if (!_sniffMedia(req.file.buffer))
     return res.status(415).json({ error: 'Bestandsinhoud komt niet overeen met een toegestaan mediatype' });
-  const filename = storage.saveFile(req.params.id, req.file.buffer, req.file.mimetype);
+  const klein = await _beeldVerkleinen(req.file.buffer, req.file.mimetype);
+  const filename = storage.saveFile(req.params.id, klein.buffer, klein.mimetype);
+  // Een oudere versie van dit id kan een thumbnail hebben achtergelaten; die
+  // hoort bij het vórige beeld en wordt anders eeuwig doorgeserveerd.
+  storage.deleteThumb?.(req.params.id);
   // Registreer in de mediabibliotheek (naam, MIME, datum, afmetingen).
   await _registerMedia(req.params.id, {
-    mime:          req.file.mimetype,
-    grootte:       req.file.size,
+    mime:          klein.mimetype,
+    grootte:       klein.buffer.length,
     origineleNaam: req.file.originalname || '',
     naam:          (req.body?.naam || '').trim() || null,
-    buffer:        req.file.buffer,
+    buffer:        klein.buffer,
   });
   res.json({ filename });
 });

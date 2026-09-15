@@ -554,6 +554,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Heeren van de Nacht** (SP/DM) — rangen, klussen genereren, advocaat inschakelen, betalen, uitslag verwerken
 - [ ] **Verzegelde uitnodigingsbrief** (DM) — per factie of dienst versturen; de speler krijgt de tweetraps reveal met lakzegel
 - [ ] **Toegang per groep** (DM) — per dienst en per party zichtbaar/beschikbaar zetten; de speler ziet het verschil meteen
+- [ ] **Upload verkleint** (DM) — upload een grote PNG (een paar MB): hij komt terug als `.webp`, ziet er hetzelfde uit, en is in de mediabibliotheek een fractie van de oorspronkelijke grootte. Een gif blijft een gif en blijft bewegen
 - [ ] **Conditie-iconen** (DM) — zet stunned, restrained, poisoned, prone, concentration en mounted op een token: je ziet een spiraal, een gewicht, het biohazard-teken, een pijl naar de grond, hersenen en een schaakpaard — geen ster (dat is favoriet), geen kettingschakel (dat is een koppeling) en geen konijn
 - [ ] **Condities heten overal hetzelfde** (ALL) — zet als DM *Restrained*, *Dodging* en *Raging* op een speler: de speler ziet in Actieve statussen exact diezelfde namen (Engels) met de PHB-uitleg eronder, niet een Nederlandse vertaling en niet een kaal id
 - [ ] **Lening bij Taevin** (speler) — sluit een lening af: de banner zegt "0 nachten verstreken". Na een lange rust staat er 1 nacht en is het bedrag 30% hoger. Hij groeit nooit verder dan vijf keer de hoofdsom

@@ -502,6 +502,35 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > kaartjes-kiezer heeft dezelfde uitweg (*Nieuw kaartje met de getypte naam*).
 > De plus hangt aan `_potloden` (voorbereiden), de oogjes aan `_acties` (spelen).
 >
+> **Beelden worden bij binnenkomst WebP.** Gemeten op 15 sep 2026: de
+> bestanden van Grisburgh waren samen **2.053 MB**, gemiddeld 1.853 kB per
+> beeld. Dat zat **niet in de afmetingen** — 843 van de 1.135 beelden zijn maar
+> 600–1199 px breed — maar in het formaat: **907 PNG's namen 1.869 MB** in,
+> gemiddeld 2.110 kB per stuk, terwijl dezelfde plaat in WebP ongeveer een
+> tiende is (proef op tien willekeurige PNG's: 16,9 MB → 1,7 MB).
+> `_beeldVerkleinen()` in `routes/api.js` zet daarom elk binnenkomend beeld om
+> (q82, bovengrens 2560 px op de langste zijde) vóór `storage.saveFile`. Beide
+> uploadpaden gebruiken hem: `POST /files/:id` en de akte-importer.
+>  - **GIF en SVG blijven met rust** — een gif verliest zijn animatie, een svg is
+>    een tekening en geen foto (sharp rastert hem).
+>  - **Wordt het niet kleiner, dan blijft het origineel.** Een kleine,
+>    al geoptimaliseerde jpeg kan in WebP juist groeien.
+>  - `.rotate()` legt de EXIF-draaiing vast; zonder dat staat een telefoonfoto
+>    die de browser goed toonde na de conversie op zijn kant.
+>  - 2560 px is ruim: een 1440p-scherm op ware grootte, een 4K-tafelscherm op
+>    tweederde. Dertien bestanden waren breder.
+> Bewaakt door `tests/upload.test.js` (omzetting, bovengrens, en dat een gif
+> ongemoeid blijft).
+>
+> **Bestaande bestanden:** `node scripts/beelden-naar-webp.js <campagne>` rekent
+> voor, `--schrijf` doet het. Het **id blijft gelijk**, alleen de extensie
+> verandert — `storage.getFile()` zoekt op het id-deel, dus er hoeft nergens een
+> verwijzing mee. De originelen gaan naar `files-origineel-<datum>/` naast de
+> campagnemap en worden niet weggegooid.
+> Let op: `storage.deleteThumb()` ruimt sinds vandaag ook `<id>.w1200.webp` op
+> (de brede variant voor aktebanners), anders blijft na een nieuwe upload de
+> oude banner staan.
+
 > **Condities staan op één plek: `public/js/conditions.js`.** Er waren er drie,
 > en ze waren uit elkaar gelopen: de picker van de DM had er 38 in het Engels,
 > het spelerstabblad 18 in het Nederlands (`PLAYER_COND_INFO`) en het dashboard
