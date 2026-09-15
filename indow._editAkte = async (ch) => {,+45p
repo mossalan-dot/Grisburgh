@@ -1394,7 +1394,7 @@ function _verhaalSectieHtml(ch, info) {
 
 window._akteSchrijf = async (ch) => {
   const info = meta?.hoofdstukken?.[ch] || {};
-  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=23');
+  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=20');
   openAkteSchrijven(ch, info.short || info.title || ch);
 };
 window._logboekVerversen = () => renderLogboek();

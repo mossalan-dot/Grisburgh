@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=287';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=305";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=117";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=120";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
 import { renderRelatiemap } from './render-relatiemap.js?v=26';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=73";
-import { initDmPanel } from "./dm-panel.js?v=243";
+import { initDmPanel } from "./dm-panel.js?v=247";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -2263,6 +2263,11 @@ window._buildEntityIndex = function(type, entityList) {
       id:   e.id,
       type,
       vis:  e._visibility,   // undefined = DM (altijd zichtbaar)
+      // Hoeveel geheimen heeft dit kaartje, en hoeveel kent de party al? De
+      // akte-tekst zet daar een slotje bij; zonder deze twee getallen zou elk
+      // kaartje er een krijgen, ook als er niets te onthullen valt.
+      geheimTotaal:  e._geheimTotaal ?? 0,
+      geheimOnthuld: e._geheimOnthuld ?? 0,
     };
   });
 };

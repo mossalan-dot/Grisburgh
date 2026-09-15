@@ -477,6 +477,21 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > niet op hun telefoon mee te lezen. Terug naar sfeer gaat met de
 > monitor-knop in de regie-balk (`display:idle`).
 
+> **Geheimen onthul je ook vanuit de tekst.** Een `[[naam]]` van een kaartje met
+> geheimen die deze party nog niet kent draagt een **slotje**; dat opent de
+> regels met per regel een knop (`geheimen`/`geheimToggle` → `PUT
+> /entities/:type/:id/secret`). Een kaartje heeft er zelden één, dus geen blinde
+> "onthul de eerste". De teller komt uit de naamindex, die daarvoor
+> `_geheimTotaal`/`_geheimOnthuld` meedraagt (`_buildEntityIndex` in `app.js`);
+> welke régel open staat leest de server uit (`_onthuld`), zodat de client geen
+> posities telt.
+>
+> **Een naam zonder kaartje krijgt een plus.** Schrijf je `[[Vrouwe Kwartel]]`
+> en bestaat die niet, dan maak je hem ter plekke aan als leeg kaartje
+> (`maakPlaceholder`): kies de soort, en de rest vul je later in. De
+> kaartjes-kiezer heeft dezelfde uitweg (*Nieuw kaartje met de getypte naam*).
+> De plus hangt aan `_potloden` (voorbereiden), de oogjes aan `_acties` (spelen).
+>
 > **Voorbereiden en spelen zijn twee dingen.** In het schrijfscherm staan géén
 > onthulknoppen (wel de potloden om een blok bij te stellen): daar kijk je. De
 > échte knoppen — onthullen, beeld tonen, gevecht starten — zitten in de lade.

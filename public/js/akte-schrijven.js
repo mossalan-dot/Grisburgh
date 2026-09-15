@@ -162,7 +162,7 @@ function _blokTekst(soort, kop = '', inhoud = '') {
 // Een lijstje in het gedeelde venster, met een zoekveld. Bewust niet de
 // datalist-aanpak van de Meesterkamer: je zoekt hier iets op om het ín een
 // zin te zetten, dus je wilt zien wat er is.
-function _kiezer(titel, rijen, opPick, leegTekst = 'Niets gevonden.') {
+function _kiezer(titel, rijen, opPick, leegTekst = 'Niets gevonden.', metNieuw = false) {
   window.app.openModal(titel, '', `
     <div class="dm-feature-section" style="margin:0">
       <div class="pb-zoek-rij">
@@ -170,6 +170,10 @@ function _kiezer(titel, rijen, opPick, leegTekst = 'Niets gevonden.') {
         <input class="dm-input" id="akte-kies-zoek" autofocus placeholder="Zoeken…"
                oninput="window.akteSchrijven._filter(this.value)">
       </div>
+      ${metNieuw ? `<div class="dm-feature-row" style="margin:-2px 0 6px">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.akteSchrijven.nieuwUitZoek()">
+          ${icon('plus')} Nieuw kaartje met de getypte naam</button>
+      </div>` : ''}
       <div class="pb-entity-list" id="akte-kies-lijst">
         ${rijen.length ? rijen.map((r, i) => `
           <button class="pb-entity-item" data-name="${esc((r.naam || '').toLowerCase())}"
@@ -254,17 +258,35 @@ function _dcChips(html) {
 // onthulknoppen erachter in plaats van de link zelf over te doen: dan blijft er
 // één plek die weet hoe een wikilink eruitziet.
 const _LINK = /<a class="wikilink([^"]*)"[^>]*?_openDetail\('([a-z]+)','([^']+)'\)[^>]*>([^<]*)<\/a>/g;
+// Een naam die nog geen kaartje heeft. `mdToHtml` laat die voor de DM als
+// `[[haakjes]]` staan — dat is het signaal "hier hoort nog iets bij". Tijdens
+// het schrijven wil je hem dan ook meteen kunnen aanmaken, al is het maar als
+// leeg kaartje dat je later invult.
+const _LINK_ONBEKEND = /<span class="wikilink-unknown">\[\[([^<\]]+)\]\]<\/span>/g;
 function _linkKnoppen(html) {
+  html = html.replace(_LINK_ONBEKEND, (heel, naam) => _potloden
+    ? `<span class="akte-link akte-link--nieuw">${heel}<button class="akte-act akte-act--nieuw"
+         title="Kaartje aanmaken voor “${esc(naam)}”"
+         onclick="window.akteSchrijven.maakPlaceholder('${esc(naam).replace(/'/g, "\\'")}')">${icon('plus')}</button></span>`
+    : heel);
+  if (!_acties) return html;   // verder alleen knoppen tijdens het spelen
   return html.replace(_LINK, (heel, klassen, type, id, naam) => {
-    // Alleen een knop als er iets te doen valt. Een kaartje dat de party al
-    // kent heeft er geen nodig — anders staan er in dit hoofdstuk eenenveertig
-    // vinkjes door de tekst heen, en dan zie je de twee die er wél toe doen
-    // niet meer.
-    if (!/wikilink--dicht/.test(klassen)) return heel;
+    // Een kaartje dat de party al kent kan nog wél geheimen hebben; dan blijft
+    // het slotje staan. Verder geen knop als er niets te doen valt — anders
+    // staan er in dit hoofdstuk eenenveertig vinkjes door de tekst heen.
+    const idx = Object.values(window._entityNameIndex || {}).find(x => x.id === id) || {};
+    const dichtGeheim = (idx.geheimTotaal || 0) > (idx.geheimOnthuld || 0);
+    const slot = dichtGeheim
+      ? `<button class="akte-act akte-act--geheim" title="Geheimen van dit kaartje"
+           onclick="window.akteSchrijven.geheimen('${type}','${id}')">${icon('lock')}</button>`
+      : '';
+    if (!/wikilink--dicht/.test(klassen)) {
+      return slot ? `<span class="akte-link" data-id="${id}">${heel}${slot}</span>` : heel;
+    }
     return `<span class="akte-link" data-id="${id}">${heel}<button class="akte-act akte-act--onthul" title="Onthullen voor de party"
         onclick="window.akteSchrijven.onthul('${type}','${id}','visible',this)">${icon('eye')}</button>
       <button class="akte-act akte-act--vaag" title="Vaag onthullen — de party ziet dat er iets is"
-        onclick="window.akteSchrijven.onthul('${type}','${id}','vague',this)">${icon('eye-off')}</button></span>`;
+        onclick="window.akteSchrijven.onthul('${type}','${id}','vague',this)">${icon('eye-off')}</button>${slot}</span>`;
   });
 }
 
@@ -300,7 +322,9 @@ function _prozaHtml(md) {
   // span die je er vooraf in zet komt er als zichtbare tekst weer uit. De
   // markdown-link zelf laat hij ongemoeid, dus het patroon staat er dan nog.
   const html = _externeLinks(_dcChips(window.app.mdToHtml(md)));
-  return _acties ? _linkKnoppen(html) : html;
+  // De plus bij een onbekende naam hoort bij het voorbereiden, de oogjes bij
+  // het spelen — dus de bewerking draait zodra een van beide aanstaat.
+  return (_acties || _potloden) ? _linkKnoppen(html) : html;
 }
 
 // Alles wat geen callout is: eerst de blokvormen (tabel, lijst, embed), de rest
@@ -774,6 +798,16 @@ window.akteSchrijven = {
     document.querySelectorAll('#akte-kies-lijst .pb-entity-item').forEach(b =>
       b.classList.toggle('hidden', !b.dataset.name.includes(zoek)));
   },
+  // De naam uit het zoekveld als nieuw kaartje. Hij komt daarna ook in de
+  // tekst te staan, zodat je meteen verder kunt schrijven.
+  nieuwUitZoek() {
+    const naam = document.getElementById('akte-kies-zoek')?.value.trim();
+    if (!naam) { document.getElementById('akte-kies-zoek')?.focus(); return; }
+    window.app.closeModal();
+    _voegIn(`[[${naam}]]`);
+    this.maakPlaceholder(naam);
+  },
+
   _pick(i) {
     const rij = this._rijen[i];
     window.app.closeModal();
@@ -856,7 +890,9 @@ window.akteSchrijven = {
       });
       rijen.sort((a, b) => a.naam.localeCompare(b.naam));
     } catch { /* leeg */ }
-    _kiezer('Kaartje invoegen', rijen, (r) => _voegIn(`[[${r.naam}]]`), 'Nog geen kaartjes.');
+    // Bestaat de naam nog niet? Typ hem in het zoekveld en maak hem hier aan;
+    // dat scheelt een omweg langs de kaartjes-tab.
+    _kiezer('Kaartje invoegen', rijen, (r) => _voegIn(`[[${r.naam}]]`), 'Nog geen kaartjes.', true);
   },
 
   afbeelding() {
@@ -1030,6 +1066,87 @@ window.akteSchrijven = {
             onclick="window.akteSchrijven.onthul('${type}','${id}','vague',this)">${icon('eye-off')}</button>`);
       }
     } catch (e) { alert('Terugdraaien mislukt: ' + e.message); }
+  },
+
+  // Een leeg kaartje aanmaken vanuit de tekst. Je bent aan het schrijven en
+  // noemt een naam die nog niet bestaat; dan wil je hem vastleggen, niet eerst
+  // naar een ander tabblad. Wat voor kaartje het is, is de enige vraag — de
+  // rest vul je later in.
+  maakPlaceholder(naam) {
+    const soorten = [
+      ['personages', 'Personage', 'user'],
+      ['locaties', 'Locatie', 'map-pin'],
+      ['organisaties', 'Organisatie', 'building'],
+      ['voorwerpen', 'Voorwerp', 'package'],
+      ['documenten', 'Document', 'scroll-text'],
+    ];
+    window.app.openModal(`Kaartje maken — ${naam}`, '', `
+      <div class="dm-feature-section" style="margin:0">
+        <div class="pb-entity-list">
+          ${soorten.map(([type, label, ico]) => `
+            <button class="pb-entity-item" onclick="window.akteSchrijven.placeholderMaak('${type}','${esc(naam).replace(/'/g, "\\'")}')">
+              <span class="pb-entity-icon">${icon(ico)}</span>
+              <span class="pb-entity-name">${esc(label)}</span>
+            </button>`).join('')}
+        </div>
+      </div>`);
+  },
+
+  async placeholderMaak(type, naam) {
+    try {
+      const ent = await api.createEntity(type, { name: naam });
+      // Meteen in de naamindex, anders blijft hij in de tekst "onbekend" tot je
+      // de app herlaadt.
+      window._entityNameIndex = window._entityNameIndex || {};
+      window._entityNameIndex[naam] = { id: ent.id, type, vis: 'hidden', geheimTotaal: 0, geheimOnthuld: 0 };
+      window.app.closeModal();
+      if (_voorbeeld || _split) _tekenVoorbeeld();
+      window._ladeHerlaad?.();
+      _telNamen();
+    } catch (e) { alert('Aanmaken mislukt: ' + e.message); }
+  },
+
+  // De geheimen van een kaartje, hier in de tekst. Een kaartje heeft er zelden
+  // één — vandaar een lijstje in plaats van blind de eerste onthullen. Zelfde
+  // route als het oogje op het kaartje zelf: per regel, per party.
+  async geheimen(type, id) {
+    let ent = null;
+    try { ent = await api.getEntity(type, id); } catch { return alert('Kon het kaartje niet ophalen.'); }
+    const regels = window._geheimRegelsUit ? window._geheimRegelsUit(ent.data) : [];
+    // De server rekent zelf uit welke regel open staat (`_onthuld`, per regel);
+    // de client telt geen posities meer — dat ging mis zodra je regels
+    // versleepte of ertussenuit haalde.
+    const onthuld = Array.isArray(ent._onthuld) ? ent._onthuld : [];
+    window.app.openModal(`Geheimen — ${ent.name || ''}`, '', `
+      <div class="dm-feature-section" style="margin:0">
+        ${regels.length ? `<div class="pb-entity-list">
+          ${regels.map((r, i) => {
+            const aan = !!onthuld[i];
+            return `<div class="pb-entity-item" style="cursor:default;align-items:flex-start">
+              <span class="pb-entity-icon">${icon(aan ? 'lock-open' : 'lock')}</span>
+              <span class="pb-entity-name" style="white-space:normal">${esc(r.tekst || '')}</span>
+              <button class="dm-btn dm-btn-sm ${aan ? 'dm-btn-ghost' : 'dm-btn-primary'}"
+                onclick="window.akteSchrijven.geheimToggle('${type}','${id}',${i},'${esc(r.id || '')}')">
+                ${aan ? 'Weer sluiten' : 'Onthullen'}</button>
+            </div>`;
+          }).join('')}</div>`
+          : '<p class="dm-hint">Dit kaartje heeft geen geheimen.</p>'}
+      </div>`);
+  },
+
+  async geheimToggle(type, id, index, gid) {
+    try {
+      await api.toggleSecret(type, id, index, gid);
+      // De teller in de index bijwerken, zodat het slotje klopt zonder herladen.
+      const naam = Object.keys(window._entityNameIndex || {}).find(n => window._entityNameIndex[n]?.id === id);
+      const ent = await api.getEntity(type, id).catch(() => null);
+      if (naam && ent) {
+        const idx = window._entityNameIndex[naam];
+        idx.geheimTotaal  = ent._geheimTotaal ?? idx.geheimTotaal;
+        idx.geheimOnthuld = ent._geheimOnthuld ?? idx.geheimOnthuld;
+      }
+      this.geheimen(type, id);
+    } catch (e) { alert('Onthullen mislukt: ' + e.message); }
   },
 
   // Een beeld tonen loopt via de verborgen sessielog-entry van deze akte —

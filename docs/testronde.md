@@ -452,6 +452,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Zodra de lade openstaat verdwijnt de stappenstrook uit de balk en krimpt die tot één regel
 - [ ] Onthul een naam in de lade → er verschijnt een ongedaan-maken-knop; klikken zet het kaartje weer op verborgen
 - [ ] Een getoond beeld en een onthulde kamer houden een knop om het terug te draaien
+- [ ] Een kaartje met geheimen die de party nog niet kent draagt een slotje in de tekst; klikken toont de regels met een knop *Onthullen* / *Weer sluiten* per regel
+- [ ] Een `[[naam]]` zonder kaartje krijgt een groene **+**: kies personage/locatie/organisatie/voorwerp/document en het kaartje bestaat (verborgen, leeg — later in te vullen)
+- [ ] De kaartjes-kiezer tijdens het schrijven heeft *Nieuw kaartje met de getypte naam*: hij zet de naam in de tekst én maakt het kaartje
+- [ ] Akte-rij: de veer is de tékst, het tandwiel zijn de akte-instellingen
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

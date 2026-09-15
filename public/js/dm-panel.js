@@ -906,7 +906,11 @@ async function _renderAktes(preserveScroll = false) {
                 <!-- Schrijven is sinds de akte-tekst de meest gebruikte actie op
                      deze rij; hij zat twee niveaus diep (uitklappen, scrollen). -->
                 <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window._akteSchrijf('${esc(ch)}')" title="Schrijven — de tekst van deze akte">${icon('feather')}</button>
-                <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window.dmPanel.akteBewerk('${esc(ch)}')" title="Akte bewerken (titel, banner, samenvatting)">${icon('pencil')}</button>
+                <!-- Een veer én een potlood naast elkaar lazen allebei als
+                     "bewerken". De veer is de tékst, dit zijn de eigenschappen
+                     van de akte — dus een tandwiel, zoals overal in de app. -->
+                <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window.dmPanel.akteBewerk('${esc(ch)}')"
+                  title="Akte-instellingen — nummer, dag, titel, banner, spelerssamenvatting, documenten, monsters en bereikbaarheid">${icon('settings')}</button>
                 ${grp ? `<button class="dm-btn dm-btn-sm dm-btn-icon${hidden ? ' dm-btn-danger-sm' : ''}"
                   onclick="window.dmPanel.akteVisToggle('${esc(ch)}',${hidden})"
                   title="${hidden ? 'Akte verborgen voor ' + esc(grpName) + ' — klik om te tonen' : 'Akte zichtbaar voor ' + esc(grpName) + ' — klik om te verbergen'}">
@@ -2291,7 +2295,7 @@ async function _ladeToggle() {
   _ladeIdx = Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=20');
+  const mod = await import('./akte-schrijven.js?v=23');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2317,7 +2321,7 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=20');
+    const mod = await import('./akte-schrijven.js?v=23');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }

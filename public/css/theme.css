@@ -25435,3 +25435,10 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
 /* De oude stappenlijst bij een akte die al tekst heeft: dicht, met één regel. */
 .logboek-script-oud { padding: 6px 2px 2px; }
 .logboek-script-oud .dm-btn { opacity: .75; }
+/* Een kaartje met geheimen die de party nog niet kent, in de akte-tekst. */
+.akte-act--geheim { border-color: rgba(122,58,154,0.5); color: #6a3a9a; }
+.akte-act--geheim:hover { background: #6a3a9a; color: #f7efdc; }
+/* Een naam zonder kaartje in de akte: de haken blijven (dat is het signaal),
+   met een plus om hem alsnog aan te maken. */
+.akte-act--nieuw { border-color: rgba(58,122,48,0.5); color: #3a7a30; }
+.akte-act--nieuw:hover { background: #3a7a30; color: #f7efdc; }
