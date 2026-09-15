@@ -18,7 +18,7 @@
  * docs/voorstel-akteregie.md.
  */
 
-import { api } from './api.js?v=286';
+import { api } from './api.js?v=287';
 
 const esc  = s => window.app?.esc?.(s) ?? String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const icon = (...a) => window.icon(...a);
@@ -50,7 +50,8 @@ let _voorbeeld = false;   // kijken/spelen in plaats van schrijven
 let _split     = false;   // schrijven én zien, naast elkaar
 let _splitTimer = null;
 let _namenZonder = null;  // hoeveel [[namen]] nog geen kaartje hebben (null = nog niet geteld)
-let _acties    = false;   // staan de knoppen aan? (speelstand én de lade)
+let _acties    = false;   // echte knoppen (alleen in de lade tijdens het spelen)
+let _potloden  = false;   // blokken bijstellen (schrijfscherm én lade)
 let _encounters = null;   // lazy: naam → encounter
 let _tabellen  = null;
 let _vondsten  = null;
@@ -398,7 +399,11 @@ function _blokActie(soort, kop, body) {
 export function regieNaarHtml(md, { acties } = {}) {
   // De lade tijdens het spelen gebruikt dezelfde renderer als het
   // schrijfscherm; alleen zegt hij zélf of de knoppen aan moeten.
-  _acties = acties === undefined ? _voorbeeld || _split : !!acties;
+  // `acties` staat alleen aan in de lade — daar speel je. In het schrijfscherm
+  // kijk je (met de potloden om een blok bij te stellen): een oogje is klein en
+  // je bent aan het voorbereiden, niet aan het onthullen.
+  _acties = !!acties;
+  _potloden = acties === undefined ? _voorbeeld || _split : !!acties;
   const regels = String(md || '').split('\n');
   const uit = [];
   let i = 0;
@@ -415,7 +420,7 @@ export function regieNaarHtml(md, { acties } = {}) {
         <div class="regie-blok-kop">
           ${icon(blok?.icon || 'hexagon')} ${esc(kop || blok?.label || soort)}
           ${_acties ? _blokActie(soort, kop, body) : ''}
-          ${_acties ? `<button class="akte-act akte-act--blokpen" title="Dit blok bijstellen"
+          ${_potloden ? `<button class="akte-act akte-act--blokpen" title="Dit blok bijstellen"
             onclick="window.akteSchrijven.blokBewerk('${soort}','${esc(kop).replace(/'/g, "\\'")}')">${icon('pencil')}</button>` : ''}
         </div>
         ${body.length ? `<div class="regie-blok-body">${_gewoonHtml(body)}</div>` : ''}
@@ -996,14 +1001,35 @@ window.akteSchrijven = {
       if (naam) window._entityNameIndex[naam].vis = mode;
       const span = btn.closest('.akte-link');
       if (span) {
-        // Even laten zien dát het gebeurd is, dan verdwijnen de knoppen — er
-        // valt niets meer te doen aan dit kaartje.
+        // Een oogje is klein en een misklik onthult iets dat de party nog niet
+        // hoorde te weten. Dus: even een weg terug, daarna verdwijnt de knop.
         span.querySelectorAll('.akte-act').forEach(b => b.remove());
-        span.insertAdjacentHTML('beforeend', `<span class="akte-act akte-act--klaar">${icon('check')}</span>`);
+        span.insertAdjacentHTML('beforeend',
+          `<button class="akte-act akte-act--terug" title="Onthullen ongedaan maken"
+             onclick="window.akteSchrijven.onthulTerug('${type}','${id}',this)">${icon('refresh-cw')}</button>`);
         span.querySelector('a')?.classList.remove('wikilink--dicht');
-        setTimeout(() => span.querySelector('.akte-act--klaar')?.remove(), 2500);
+        setTimeout(() => span.querySelector('.akte-act--terug')?.remove(), 12000);
       }
     } catch (e) { alert('Onthullen mislukt: ' + e.message); }
+  },
+
+  // Terug naar verborgen. Alleen voor wat je met één klik onthulde: een
+  // gevecht dat je startte of een tabel die je rolde draai je hier niet terug.
+  async onthulTerug(type, id, btn) {
+    try {
+      await api.toggleVisibility(type, id, 'hidden');
+      const naam = Object.keys(window._entityNameIndex || {}).find(n => window._entityNameIndex[n]?.id === id);
+      if (naam) window._entityNameIndex[naam].vis = 'hidden';
+      const span = btn.closest('.akte-link');
+      if (span) {
+        span.querySelector('a')?.classList.add('wikilink--dicht');
+        span.querySelectorAll('.akte-act').forEach(b => b.remove());
+        span.insertAdjacentHTML('beforeend', `<button class="akte-act akte-act--onthul" title="Onthullen voor de party"
+            onclick="window.akteSchrijven.onthul('${type}','${id}','visible',this)">${icon('eye')}</button>
+          <button class="akte-act akte-act--vaag" title="Vaag onthullen"
+            onclick="window.akteSchrijven.onthul('${type}','${id}','vague',this)">${icon('eye-off')}</button>`);
+      }
+    } catch (e) { alert('Terugdraaien mislukt: ' + e.message); }
   },
 
   // Een beeld tonen loopt via de verborgen sessielog-entry van deze akte —
@@ -1023,7 +1049,20 @@ window.akteSchrijven = {
       await api.onthulAfbeelding(entry.id, fileId, '', window._activeGroupId || null);
       btn.innerHTML = `${icon('check')} Getoond`;
       btn.classList.add('is-klaar');
+      btn.disabled = false;
+      btn.setAttribute('onclick', `window.akteSchrijven.beeldTerug('${entry.id}','${fileId}', this)`);
+      btn.title = 'Klik om het weer te verbergen';
     } catch (e) { btn.disabled = false; alert('Tonen mislukt: ' + e.message); }
+  },
+
+  async beeldTerug(sessieId, fileId, btn) {
+    try {
+      await api.verbergAfbeelding(sessieId, fileId, window._activeGroupId || null);
+      btn.innerHTML = `${icon('eye')} Toon aan spelers`;
+      btn.classList.remove('is-klaar');
+      btn.setAttribute('onclick', `window.akteSchrijven.toonBeeld('${fileId}', this)`);
+      btn.title = '';
+    } catch (e) { alert('Verbergen mislukt: ' + e.message); }
   },
 
   async startGevecht(naam, btn) {
@@ -1172,7 +1211,28 @@ window.akteSchrijven = {
       }
       btn.innerHTML = `${icon('check')} Onthuld`;
       btn.classList.add('is-klaar');
+      if (kamerNaam) {
+        btn.setAttribute('onclick', `window.akteSchrijven.kamerTerug('${esc(kaart.id)}','${esc(kop).replace(/'/g, "\\'")}', this)`);
+        btn.title = 'Klik om de kamer weer dicht te doen';
+      }
     } catch (e) { _melding(btn, 'Onthullen mislukt: ' + e.message); }
+  },
+
+  // De kamer weer dichtdoen. De toegang tot de kaart laten we staan: die geef
+  // je bewust, en hem intrekken is zelden wat je bedoelt.
+  async kamerTerug(kaartId, kop, btn) {
+    const kamerNaam = String(kop || '').split(/\s*[·:>|–-]\s*/)[1];
+    const gid = window._activeGroupId;
+    try {
+      const kaarten = await api.listDungeons();
+      const kaart = (kaarten || []).find(k => k.id === kaartId);
+      const kamer = (kaart?.rooms || []).find(r => (r.name || '').toLowerCase().includes((kamerNaam || '').trim().toLowerCase()));
+      if (kamer) await api.hideDungeonRoom(kaartId, { roomId: kamer.id, groupId: gid });
+      btn.innerHTML = `${icon('eye')} Onthullen`;
+      btn.classList.remove('is-klaar');
+      btn.setAttribute('onclick', `window.akteSchrijven.onthulKamer('${esc(kop).replace(/'/g, "\\'")}', this)`);
+      btn.title = '';
+    } catch (e) { _melding(btn, 'Terugdraaien mislukt: ' + e.message); }
   },
 
   // Muziek. In de kop staat de Spotify-uri (die plak je uit Spotify) of de naam

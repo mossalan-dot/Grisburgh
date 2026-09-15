@@ -477,6 +477,23 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > niet op hun telefoon mee te lezen. Terug naar sfeer gaat met de
 > monitor-knop in de regie-balk (`display:idle`).
 
+> **Voorbereiden en spelen zijn twee dingen.** In het schrijfscherm staan géén
+> onthulknoppen (wel de potloden om een blok bij te stellen): daar kijk je. De
+> échte knoppen — onthullen, beeld tonen, gevecht starten — zitten in de lade.
+> `regieNaarHtml(md, { acties })` schakelt dat: `_acties` alleen in de lade,
+> `_potloden` in allebei.
+> **Onthullen kan terug**: na een klik verschijnt twaalf seconden een
+> ongedaan-maken-knop (`onthulTerug`), en een getoond beeld (`beeldTerug`,
+> `POST /sessieLog/:id/verberg`) of een onthulde kamer (`kamerTerug`) houdt zijn
+> knop als "weer verbergen". Een gestart gevecht of een gerolde tabel niet: dat
+> is dan gebeurd.
+> **De lade heeft drie standen** (dicht/half/heel scherm) en de balk geeft zijn
+> stappenstrook op zodra de lade openstaat — samen namen die ruim de helft van
+> het scherm.
+> **Een akte mét tekst toont de oude stappenlijst dichtgeklapt** ("79 stappen
+> uit de oude import — tonen"): de stappen blijven bestaan (daar hangt
+> onthulgeschiedenis aan), maar het is geen tweede lijst meer die hetzelfde zegt.
+>
 > **De tweede stand heet Spelen, niet Voorbeeld.** Daar zitten de knoppen: een
 > `[[naam]]` die de party nog niet kent krijgt een oogje (en een half oogje voor
 > vaag) áchter de naam in de zin; kent de party hem al, dan staat er niets —

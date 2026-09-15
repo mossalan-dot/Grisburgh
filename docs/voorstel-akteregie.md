@@ -300,7 +300,26 @@ gezet, vier vragen blijven staan.
   tekstvak, een losse bestandskiezer). De laatste twee zijn weg; importeren en
   exporteren zitten in het schrijfscherm.
 
-**Blijft staan, als keuze**
+**Daarna ook rechtgezet (dezelfde dag, na jouw keuzes)**
+
+1. **Het schrijfscherm onthult niet meer.** Daar kijk je (en stel je blokken bij
+   met de potloden); de échte knoppen — onthullen, tonen, starten — zitten
+   alleen in de lade. Voorbereiden en spelen zijn nu twee dingen.
+2. **De oude stappenstrook gaat dicht** zodra een akte tekst heeft: één regel
+   ("79 stappen uit de oude import — tonen") in plaats van een tweede lijst die
+   hetzelfde zegt. De stappen zelf blijven staan; daar hangt onthulgeschiedenis
+   aan.
+3. **De lade heeft drie standen** — dicht (alleen de kopregel), half en heel
+   scherm — en de balk geeft zijn stappenstrook op zodra de lade openstaat.
+   Samen namen die ruim de helft van het scherm; nu is de balk 36 px.
+4. **Onthullen kan terug.** Na een klik staat er een korte tijd een
+   ongedaan-maken-knop (twaalf seconden bij een kaartje; bij een beeld en een
+   kamer blijft de knop staan als "weer verbergen"). Een oogje in lopende tekst
+   is klein, en één misklik vertelde de party iets dat ze nog niet hoorden te
+   weten. Wat je níét terugdraait is een gestart gevecht of een gerolde tabel —
+   dat is dan ook gebeurd.
+
+**Eerder blijven staan als keuze (nu beslist)**
 
 1. **Twee speelplekken.** Het schrijfscherm heeft een stand *Spelen* en de lade
    toont hetzelfde met dezelfde knoppen. Handig om te proberen, maar het nodigt

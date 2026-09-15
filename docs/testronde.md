@@ -446,6 +446,12 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Aktes-tab: elke akte-rij heeft ▷ spelen, ✒ schrijven, ✎ bewerken, 👁 zichtbaarheid
 - [ ] Het Verhaal-blok toont één regel feiten (secties, regieblokken, woorden, namen zonder kaartje, beelden zonder bestand) — niet de hele tekst
 - [ ] Er is nog maar één ingang naar de tekst: de ganzenveer (het oude tekstvak en de losse bestandskiezer zijn weg)
+- [ ] Het schrijfscherm heeft géén onthulknoppen meer (wel potloden op de blokken); de lade heeft ze wél
+- [ ] Een akte mét tekst toont de oude stappenlijst dichtgeklapt: "N stappen uit de oude import — tonen"
+- [ ] De lade heeft drie standen (dicht / half / heel scherm) met de greep linksboven
+- [ ] Zodra de lade openstaat verdwijnt de stappenstrook uit de balk en krimpt die tot één regel
+- [ ] Onthul een naam in de lade → er verschijnt een ongedaan-maken-knop; klikken zet het kaartje weer op verborgen
+- [ ] Een getoond beeld en een onthulde kamer houden een knop om het terug te draaien
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

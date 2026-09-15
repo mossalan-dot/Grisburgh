@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=286';
+import { api, huidigeCampagne } from './api.js?v=287';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=22';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -522,7 +522,11 @@ export function initDmPanel() {
     ladeStap:                (d) => _ladeGaNaar(_ladeIdx + d),
     ladeGaNaar:              (i) => _ladeGaNaar(i),
     ladeNaarSectie:          (t) => _ladeNaarSectie(t),
-    ladeHoogte()             { _ladeHoog = !_ladeHoog; _ladeRender(); },
+    // Drie standen, zoals een lade: dicht (alleen de kop), half en heel scherm.
+    ladeHoogte() {
+      _ladeStand = _ladeStand === 'dicht' ? 'half' : _ladeStand === 'half' ? 'hoog' : 'dicht';
+      _ladeRender();
+    },
     ladeZoek(q)              { _ladeZoek = q || ''; _ladeRender(); document.getElementById('regie-lade-zoek')?.focus(); },
     async ladeSchrijf() {
       const ch = _rbChapter;
@@ -2200,7 +2204,7 @@ function _renderRegieBalk() {
           </div>
         </div>
       </div>
-      <div class="dm-regie-balk-scroll-wrap">
+      ${document.getElementById('regie-lade') ? '' : `<div class="dm-regie-balk-scroll-wrap">
         <button class="dm-rb-scroll-btn dm-rb-scroll-btn--left" onclick="window._rbScroll(-1)" title="Naar links">&#8249;</button>
         <div class="dm-regie-balk-scroll" id="dm-rb-scroll">
           ${items.length === 0
@@ -2212,8 +2216,10 @@ function _renderRegieBalk() {
             : items.map(item => _renderRegieBalkItem(item)).join('')}
         </div>
         <button class="dm-rb-scroll-btn dm-rb-scroll-btn--right" onclick="window._rbScroll(1)" title="Naar rechts">&#8250;</button>
-      </div>
+      </div>`}
     </div>`;
+  // De balk is nu smaller of breder geworden (zijn stappenstrook valt weg zodra
+  // de lade openstaat); de lade meet hem opnieuw, anders overlapt hij.
   if (document.getElementById('regie-lade')) _ladeMeetBalk();
   if (prevScroll) {
     const scrollEl = document.getElementById('dm-rb-scroll');
@@ -2236,7 +2242,7 @@ function _renderRegieBalk() {
 let _ladeSecties = [];      // [{titel, tekst}]
 let _ladeIdx     = 0;
 let _ladeTekst   = '';
-let _ladeHoog    = false;   // half (standaard) of hoog
+let _ladeStand   = 'half';  // 'dicht' | 'half' | 'hoog' — de lade is een lade
 let _ladeZoek    = '';
 
 const _kopNorm = (v) => String(v || '').toLowerCase().normalize('NFD')
@@ -2285,7 +2291,7 @@ async function _ladeToggle() {
   _ladeIdx = Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=19');
+  const mod = await import('./akte-schrijven.js?v=20');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2296,6 +2302,9 @@ async function _ladeToggle() {
     document.body.appendChild(lade);
   }
   document.body.classList.add('lade-open');
+  // De balk geeft zijn stappenstrook op zodra de lade openstaat: die stappen
+  // staan dan in de tekst, en samen namen ze ruim de helft van het scherm.
+  _renderRegieBalk();
   _ladeRender();
 }
 
@@ -2308,15 +2317,16 @@ window._ladeHerlaad = async () => {
     _ladeTekst = regie?.tekst || '';
     _ladeSecties = _splitsSecties(_ladeTekst);
     _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
-    const mod = await import('./akte-schrijven.js?v=19');
+    const mod = await import('./akte-schrijven.js?v=20');
     mod.zetAkte(_rbChapter, _ladeTekst);
     _ladeRender();
   } catch { /* de lade blijft staan zoals hij stond */ }
 };
 
 function _ladeSluit() {
-  document.body.classList.remove('lade-open', 'lade-hoog');
+  document.body.classList.remove('lade-open', 'lade-hoog', 'lade-dicht');
   document.getElementById('regie-lade')?.remove();
+  _renderRegieBalk();   // de stappenstrook komt terug
 }
 
 // De lade staat op de regie-balk, en die is nu eens één regel en dan weer twee
@@ -2330,7 +2340,8 @@ function _ladeRender() {
   const lade = document.getElementById('regie-lade');
   if (!lade) return;
   _ladeMeetBalk();
-  document.body.classList.toggle('lade-hoog', _ladeHoog);
+  document.body.classList.toggle('lade-hoog', _ladeStand === 'hoog');
+  document.body.classList.toggle('lade-dicht', _ladeStand === 'dicht');
   const heeftTekst = _ladeSecties.length > 0;
   const s = _ladeSecties[_ladeIdx];
   const treffers = _ladeZoek
@@ -2340,7 +2351,8 @@ function _ladeRender() {
   lade.innerHTML = `
     <div class="regie-lade-kop">
       <button class="regie-lade-greep" onclick="window.dmPanel.ladeHoogte()"
-        title="${_ladeHoog ? 'Half scherm' : 'Groter'}">${icon(_ladeHoog ? 'minus' : 'maximize-2')}</button>
+        title="${_ladeStand === 'hoog' ? 'Half scherm' : _ladeStand === 'half' ? 'Heel scherm' : 'Uitklappen'}">${
+          icon(_ladeStand === 'hoog' ? 'minus' : _ladeStand === 'half' ? 'maximize-2' : 'chevron-right')}</button>
       <span class="regie-lade-titel">${icon('book-open')} ${esc(_rbTitle || 'Verhaal')}</span>
       ${heeftTekst ? `
         <div class="regie-lade-nav">

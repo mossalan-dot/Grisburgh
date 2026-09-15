@@ -5273,6 +5273,10 @@ html { scrollbar-width: thin; scrollbar-color: #b08e58 rgba(196,168,122,0.12); }
   box-shadow: 0 -10px 30px rgba(40,25,5,0.28);
 }
 body.lade-hoog .regie-lade { height: var(--lade-hoogte-hoog); }
+/* Dicht: alleen de kopregel blijft staan, zodat je weet dat hij er is. */
+body.lade-dicht .regie-lade { height: auto; }
+body.lade-dicht .regie-lade-secties,
+body.lade-dicht .regie-lade-body { display: none; }
 
 .regie-lade-kop {
   display: flex; align-items: center; gap: 10px; flex: 0 0 auto;
@@ -25421,3 +25425,13 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
 .verhaal-samenvatting .icon { width: 14px; height: 14px; opacity: .75; }
 .verhaal-samenvatting--let-op { color: #8a2a10; }
 .verhaal-samenvatting--let-op .icon { opacity: 1; }
+/* Ongedaan maken na een onthulling: even zichtbaar, dan weg. */
+.akte-act--terug { border-color: rgba(138,42,16,0.5); color: #8a2a10; }
+.akte-act--terug:hover { background: #8a2a10; color: #f7efdc; }
+/* Staat de lade open, dan heeft de balk zijn stappenstrook afgestaan: dan mag
+   hij ook krimpen tot zijn kopregel, in plaats van 188 px lege ruimte te
+   houden waar de strook stond. */
+body.lade-open .dm-regie-balk-inner { height: auto; }
+/* De oude stappenlijst bij een akte die al tekst heeft: dicht, met één regel. */
+.logboek-script-oud { padding: 6px 2px 2px; }
+.logboek-script-oud .dm-btn { opacity: .75; }

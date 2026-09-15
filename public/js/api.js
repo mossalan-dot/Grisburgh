@@ -446,6 +446,9 @@ export const api = {
   displayEffect:       (effect) => request('/display/effect', { method: 'POST', body: JSON.stringify({ effect }) }),
   onthulAfbeelding:    (sessieId, fileId, caption, groupId) =>
     request(`/sessieLog/${encodeURIComponent(sessieId)}/onthul`, { method: 'POST', body: JSON.stringify({ fileId, caption, groupId }) }),
+  // Onthullen terugdraaien — voor de ongedaan-maken-knop in de akte.
+  verbergAfbeelding: (sessieId, fileId, groupId) =>
+    request(`/sessieLog/${encodeURIComponent(sessieId)}/verberg`, { method: 'POST', body: JSON.stringify({ fileId, groupId }) }),
   setGockGeheim:     (type, id, tekst) => request(`/entities/${type}/${id}/gock-geheim`,   { method: 'PUT',  body: JSON.stringify({ tekst }) }),
 
   // De Gock

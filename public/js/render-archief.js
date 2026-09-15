@@ -1,4 +1,4 @@
-import { api } from './api.js?v=286';
+import { api } from './api.js?v=287';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -1394,7 +1394,7 @@ function _verhaalSectieHtml(ch, info) {
 
 window._akteSchrijf = async (ch) => {
   const info = meta?.hoofdstukken?.[ch] || {};
-  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=19');
+  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=20');
   openAkteSchrijven(ch, info.short || info.title || ch);
 };
 window._logboekVerversen = () => renderLogboek();
@@ -1696,12 +1696,10 @@ function _renderAkteScriptInner(ch, info, chEntries) {
 function _refreshScriptSection(ch) {
   const container = document.getElementById(`logboek-script-section-${ch}`);
   if (!container) return;
-  const info      = meta?.hoofdstukken?.[ch] || {};
-  const chEntries = (archiefData.sessieLog || []).filter(e => e.hoofdstuk === ch);
-  container.innerHTML = _verhaalSectieHtml(ch, info) + _renderAkteScriptInner(ch, info, chEntries);
-  // Namen pas ophalen als er tekst is en we ze nog niet hebben; _verhaalLaadNamen
-  // tekent daarna opnieuw.
-  if (info.tekst && _verhaalNamen[ch] === undefined) _verhaalLaadNamen(ch);
+  // Eén bron voor wat er in dit blok staat: dezelfde functie die het bij het
+  // opbouwen tekent. Deze verversing had een eigen kopie, en daardoor bleef de
+  // oude stappenlijst openstaan als je hem dichtklapte.
+  container.innerHTML = window._akteScriptHtml(ch);
 }
 
 // ── Geluid bij een reveal (per script-item: scène of upload + loop) ──
@@ -1855,7 +1853,26 @@ window._akteScriptHtml = (ch) => {
   // Namen ophalen zodra de akte in beeld komt; _verhaalLaadNamen tekent daarna
   // de sectie opnieuw.
   if (info.tekst && _verhaalNamen[ch] === undefined) _verhaalLaadNamen(ch);
+  // Heeft deze akte tekst, dan is de tekst het script: de oude strook stappen
+  // is dan een tweede lijst die hetzelfde zegt. Hij verdwijnt niet — er staat
+  // onthulgeschiedenis aan vast — maar hij gaat dicht, met één regel die zegt
+  // wat er ligt.
+  const script = info.script || [];
+  if (info.tekst && script.length && !_scriptOpen.has(ch)) {
+    return _verhaalSectieHtml(ch, info) + `
+      <div class="logboek-script-oud">
+        <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._scriptOudToggle('${esc(ch)}')">
+          ${icon('clipboard-list')} ${script.length} stappen uit de oude import — tonen</button>
+      </div>`;
+  }
   return _verhaalSectieHtml(ch, info) + _renderAkteScriptInner(ch, info, chEntries);
+};
+
+// Welke oude scriptstroken staan opengeklapt (alleen bij aktes mét tekst).
+const _scriptOpen = new Set();
+window._scriptOudToggle = (ch) => {
+  if (_scriptOpen.has(ch)) _scriptOpen.delete(ch); else _scriptOpen.add(ch);
+  _refreshScriptSection(ch);
 };
 // Laad archief-data + meta zodat de akte-functies werken vóór het Logboek bezocht is.
 window._loadAkteData = async () => {

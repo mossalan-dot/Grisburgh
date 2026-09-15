@@ -5910,6 +5910,23 @@ router.post('/sessieLog/:id/onthul', requireDM, (req, res) => {
   res.json({ ok: true, groupId: gid, alZichtbaar: wasZichtbaar });
 });
 
+// Onthullen terugdraaien. Een oogje in de tekst is klein, en één misklik
+// betekende tot nu toe: kaartje opzoeken en daar weer dichtzetten. Dit zet
+// alleen de zichtbaarheid van dít beeld voor déze groep terug; het beeld blijft
+// gewoon aan het sessieverslag hangen.
+router.post('/sessieLog/:id/verberg', requireDM, (req, res) => {
+  const { fileId } = req.body || {};
+  if (!fileId) return res.status(400).json({ error: 'Geen fileId' });
+  const dmState = readDmState();
+  const gid = req.body?.groupId || dmState.activeGroup;
+  if (!gid || !dmState.groups?.[gid]) return res.status(400).json({ error: 'Geen actieve groep' });
+  const g = dmState.groups[gid];
+  if (g.imageVis) delete g.imageVis[fileId];
+  storage.writeJSON('dm-state.json', dmState);
+  req.app.get('io')?.to(req.session?.campaignId || 'main').emit('logboek:updated', { id: req.params.id });
+  res.json({ ok: true, groupId: gid });
+});
+
 router.put('/sessieLog/:id', requireDM, (req, res) => {
   const archief = storage.readJSON('archief.json');
   if (!archief.sessieLog) archief.sessieLog = [];
