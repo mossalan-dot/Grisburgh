@@ -47,6 +47,8 @@ let _tekst    = '';
 let _bewaard  = true;
 let _timer    = null;
 let _voorbeeld = false;   // kijken/spelen in plaats van schrijven
+let _split     = false;   // schrijven én zien, naast elkaar
+let _splitTimer = null;
 let _acties    = false;   // staan de knoppen aan? (speelstand én de lade)
 let _encounters = null;   // lazy: naam → encounter
 let _tabellen  = null;
@@ -376,7 +378,7 @@ function _blokActie(soort, kop, body) {
 export function regieNaarHtml(md, { acties } = {}) {
   // De lade tijdens het spelen gebruikt dezelfde renderer als het
   // schrijfscherm; alleen zegt hij zélf of de knoppen aan moeten.
-  _acties = acties === undefined ? _voorbeeld : !!acties;
+  _acties = acties === undefined ? _voorbeeld || _split : !!acties;
   const regels = String(md || '').split('\n');
   const uit = [];
   let i = 0;
@@ -393,6 +395,8 @@ export function regieNaarHtml(md, { acties } = {}) {
         <div class="regie-blok-kop">
           ${icon(blok?.icon || 'hexagon')} ${esc(kop || blok?.label || soort)}
           ${_acties ? _blokActie(soort, kop, body) : ''}
+          ${_acties ? `<button class="akte-act akte-act--blokpen" title="Dit blok bijstellen"
+            onclick="window.akteSchrijven.blokBewerk('${soort}','${esc(kop).replace(/'/g, "\\'")}')">${icon('pencil')}</button>` : ''}
         </div>
         ${body.length ? `<div class="regie-blok-body">${_gewoonHtml(body)}</div>` : ''}
         <div class="regie-blok-uitslag" hidden></div>
@@ -415,9 +419,76 @@ function _tekenSecties() {
   const secties = _secties(_ta()?.value ?? _tekst);
   host.innerHTML = secties.length
     ? secties.map((s, i) => `
-        <button class="akte-sectie-knop akte-sectie-knop--n${s.niveau}"
+        <button class="akte-sectie-knop akte-sectie-knop--n${s.niveau}" draggable="true" data-sectie="${i}"
+          title="Slepen om te verplaatsen"
           onclick="window.akteSchrijven.naarSectie(${s.regel})">${esc(s.titel || '(zonder titel)')}</button>`).join('')
+      + `<div class="akte-sectie-eind" data-sectie="${secties.length}"></div>`
     : `<p class="dm-hint">Nog geen secties. Begin een regel met <code>##</code>.</p>`;
+  _sectiesSlepen(host, secties);
+}
+
+// ── Secties verslepen ────────────────────────────────────────────────────────
+// Een scène verplaatsen was knippen en plakken door 27 kB tekst. Hier sleep je
+// hem in de zijbalk, en verhuizen doet precies wat je zelf zou doen: de regels
+// van die kop tot de volgende kop van hetzelfde niveau, mét wat eronder hangt.
+// Er wordt niets geparseerd en niets herschreven — alleen verschoven. Daarom
+// kan deze ingreep je tekst ook niet stilletjes veranderen.
+function _sectieBereik(regels, secties, i) {
+  const s = secties[i];
+  const start = s.regel;
+  let eind = regels.length;
+  for (let j = i + 1; j < secties.length; j++) {
+    if (secties[j].niveau <= s.niveau) { eind = secties[j].regel; break; }
+  }
+  return [start, eind];
+}
+
+function _sectiesSlepen(host, secties) {
+  let bron = null;
+  host.querySelectorAll('[data-sectie]').forEach(el => {
+    el.addEventListener('dragstart', (e) => {
+      if (!el.classList.contains('akte-sectie-knop')) return;
+      bron = Number(el.dataset.sectie);
+      el.classList.add('akte-sectie-knop--sleept');
+      try { e.dataTransfer.setData('text/plain', String(bron)); e.dataTransfer.effectAllowed = 'move'; } catch {}
+    });
+    el.addEventListener('dragend', () => {
+      host.querySelectorAll('.akte-sectie-knop--sleept, .akte-sectie-doel')
+        .forEach(x => x.classList.remove('akte-sectie-knop--sleept', 'akte-sectie-doel'));
+      bron = null;
+    });
+    el.addEventListener('dragover', (e) => {
+      if (bron === null) return;
+      e.preventDefault();
+      host.querySelectorAll('.akte-sectie-doel').forEach(x => x.classList.remove('akte-sectie-doel'));
+      el.classList.add('akte-sectie-doel');
+    });
+    el.addEventListener('drop', (e) => {
+      if (bron === null) return;
+      e.preventDefault();
+      _sectieVerplaats(bron, Number(el.dataset.sectie), secties);
+      bron = null;
+    });
+  });
+}
+
+function _sectieVerplaats(van, naar, secties) {
+  if (van === naar || van + 1 === naar) return;   // zelfde plek
+  const ta = _ta();
+  const regels = (ta?.value ?? _tekst).split('\n');
+  const [start, eind] = _sectieBereik(regels, secties, van);
+  const stuk = regels.slice(start, eind);
+  // De doelregel ná het weghalen: alles onder het weggehaalde stuk schuift op.
+  const doelRegel = naar >= secties.length ? regels.length : secties[naar].regel;
+  const rest = [...regels.slice(0, start), ...regels.slice(eind)];
+  const offset = doelRegel > start ? doelRegel - (eind - start) : doelRegel;
+  rest.splice(offset, 0, ...stuk);
+  const nieuw = rest.join('\n');
+  if (ta) { ta.value = nieuw; ta.focus(); }
+  _tekst = nieuw;
+  _merkVuil();
+  _tekenSecties();
+  if (_voorbeeld || _split) _tekenVoorbeeld();
 }
 
 function _tekenVoorbeeld() {
@@ -504,6 +575,8 @@ function _teken() {
           onclick="window.akteSchrijven.namen()">${icon('users')} Namen</button>
         <button class="dm-btn dm-btn-ghost dm-btn-sm" title="De markdown naar het klembord — voor wie hem ook in Obsidian wil"
           onclick="window.akteSchrijven.kopieer(this)">${icon('clipboard-list')} Kopiëren</button>
+        <button class="dm-btn dm-btn-ghost dm-btn-sm${_split ? ' is-actief' : ''}" title="Schrijven en zien naast elkaar"
+          onclick="window.akteSchrijven.split()">${icon('square')} Naast elkaar</button>
         <button class="dm-btn dm-btn-ghost dm-btn-sm${_voorbeeld ? ' is-actief' : ''}"
           title="${_voorbeeld ? 'Terug naar schrijven' : 'De akte zoals je hem speelt — met knoppen die echt onthullen'}"
           onclick="window.akteSchrijven.voorbeeld()">${icon(_voorbeeld ? 'pencil' : 'play')} ${_voorbeeld ? 'Schrijven' : 'Spelen'}</button>
@@ -525,16 +598,24 @@ function _teken() {
             title="Character sheets van de party — printbaar blad per speler">${icon('scroll-text')} Sheets</button>
         </div>
       </aside>
-      <div class="akte-schrijf-hoofd">
+      <div class="akte-schrijf-hoofd${_split && !_voorbeeld ? ' akte-schrijf-hoofd--split' : ''}">
         ${_voorbeeld ? '' : _invoegBalk()}
+        <div class="akte-schrijf-panelen">
         <textarea class="akte-schrijf-ta${_voorbeeld ? ' hidden' : ''}" id="akte-schrijf-ta"
           spellcheck="true" placeholder="Schrijf hier het hoofdstuk.&#10;&#10;## Een sectie begint met twee hekjes&#10;&#10;Verwijs naar een kaartje met [[Naam]] — gebruik de knop, dan weet je zeker dat het bestaat.">${esc(_tekst)}</textarea>
-        <div class="akte-schrijf-voorbeeld${_voorbeeld ? '' : ' hidden'}" id="akte-schrijf-voorbeeld"></div>
+        <div class="akte-schrijf-voorbeeld${_voorbeeld || _split ? '' : ' hidden'}" id="akte-schrijf-voorbeeld"></div>
+        </div>
       </div>
     </div>`;
   const ta = _ta();
   if (ta) {
-    ta.addEventListener('input', () => { _merkVuil(); _tekenSecties(); });
+    ta.addEventListener('input', () => {
+      _merkVuil();
+      _tekenSecties();
+      // Naast elkaar: het voorbeeld loopt mee, maar niet bij elke aanslag —
+      // die kant rendert een heel hoofdstuk.
+      if (_split) { clearTimeout(_splitTimer); _splitTimer = setTimeout(_tekenVoorbeeld, 400); }
+    });
     ta.addEventListener('keydown', (e) => {
       window._fmtKey?.(e, 'akte-schrijf-ta');
       // Alt + letter: invoegen zonder je handen van het toetsenbord te halen.
@@ -566,7 +647,7 @@ function _teken() {
     });
   }
   _tekenSecties();
-  if (_voorbeeld) _tekenVoorbeeld();
+  if (_voorbeeld || _split) _tekenVoorbeeld();
 }
 
 // Een blok verwijst met een **naam**, want dat is wat je schrijft. Namen zijn
@@ -618,6 +699,34 @@ function _rolTabel(tabel) {
   }
   const i = Math.floor(Math.random() * entries.length);
   return `${i + 1}: ${entries[i]}`;
+}
+
+// Eén regel in de tekst vervangen (of het hele blok weghalen). Wat er niet
+// gevonden wordt, blijft onaangeroerd — nooit gokken in andermans hoofdstuk.
+function _blokRegelVervang(soort, kop, nieuweRegel) {
+  const ta = _ta();
+  const tekst = ta?.value ?? _tekst;
+  const regels = tekst.split('\n');
+  const zoek = `> [!${soort}]${kop ? ' ' + kop : ''}`;
+  const i = regels.findIndex(r => r.trim() === zoek.trim());
+  if (i < 0) { alert('Dit blok staat niet meer zo in de tekst — hij is intussen aangepast.'); return; }
+  if (nieuweRegel === null) {
+    // Het blok is de kopregel plus alles wat er met `>` onder hangt.
+    let eind = i + 1;
+    while (eind < regels.length && /^\s*>/.test(regels[eind]) && !/^\s*>\s*\[!/.test(regels[eind])) eind++;
+    regels.splice(i, eind - i);
+  } else {
+    regels[i] = nieuweRegel;
+  }
+  const nieuw = regels.join('\n');
+  if (ta) { ta.value = nieuw; }
+  _tekst = nieuw;
+  if (ta) { _merkVuil(); _tekenSecties(); if (_voorbeeld || _split) _tekenVoorbeeld(); }
+  else {
+    // In de lade is er geen tekstvak: meteen bewaren en de lade opnieuw laten
+    // laden, zodat je ziet wat je veranderd hebt.
+    api.saveAkteTekst(_ch, nieuw).then(() => window._ladeHerlaad?.()).catch(e => alert('Opslaan mislukt: ' + e.message));
+  }
 }
 
 // ── Publieke API ─────────────────────────────────────────────────────────────
@@ -813,7 +922,18 @@ window.akteSchrijven = {
     catch (e) { alert('Aanmaken mislukt: ' + e.message); }
   },
 
+  // Naast elkaar schrijven: links de tekst, rechts hetzelfde perkament dat je
+  // straks speelt. Zo kijk je tijdens het schrijven naar de opmaak in plaats
+  // van naar de tekens — zonder dat het tekstvak zijn ongedaan-maken verliest.
+  split() {
+    _split = !_split;
+    if (_split) _voorbeeld = false;
+    _tekst = _ta()?.value ?? _tekst;
+    _teken();
+  },
+
   voorbeeld() {
+    _split = false;
     _voorbeeld = !_voorbeeld;
     if (_voorbeeld) _tekst = _ta()?.value ?? _tekst;
     _teken();
@@ -897,6 +1017,77 @@ window.akteSchrijven = {
     // De rust-knop van de regie-balk kent de keuzes al (lang/kort, veld/herberg);
     // hier openen we datzelfde menu in plaats van er een tweede van te maken.
     window.dmPanel.rustMenu?.({ currentTarget: btn, preventDefault() {}, stopPropagation() {} });
+  },
+
+  // ── Een blok bijstellen ─────────────────────────────────────────────────
+  // Het potlood op een regieblok. Je verandert de kop (en daarmee waar het
+  // blok naar wijst) zonder in de tekst te hoeven zoeken. Wat er in de tekst
+  // gebeurt is één regel vervangen — de rest blijft letterlijk staan.
+  blokBewerk(soort, kop) {
+    const blok = REGIE_BLOKKEN[soort] || {};
+    const metKiezer = ['gevecht', 'tabel', 'buit', 'kaart', 'kamer'].includes(soort);
+    window.app.openModal(`${blok.label || soort} bijstellen`, '', `
+      <div class="dm-feature-section" style="margin:0">
+        <div class="dm-form-row">
+          <label class="dm-form-label">${esc(soort === 'check' ? 'De check' : soort === 'rust' ? 'Soort rust' : 'Waar wijst dit blok naar?')}</label>
+          <input class="dm-input" id="blok-kop" value="${esc(kop || '')}"
+                 placeholder="${esc(blok.hint || '')}">
+        </div>
+        ${metKiezer ? `<div class="dm-feature-row">
+          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window.akteSchrijven.blokKies('${soort}')">
+            ${icon('search')} Kies uit de campagne</button>
+        </div>` : ''}
+        <p class="dm-hint">${esc(blok.hint || '')}</p>
+      </div>
+      <div class="dm-feature-row" style="justify-content:flex-end">
+        <button class="dm-btn dm-btn-danger" onclick="window.akteSchrijven.blokWeg('${soort}','${esc(kop).replace(/'/g, "\\'")}')">
+          ${icon('trash')} Blok verwijderen</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
+        <button class="dm-btn dm-btn-primary" onclick="window.akteSchrijven.blokBewaar('${soort}','${esc(kop).replace(/'/g, "\\'")}')">
+          ${icon('save')} Opslaan</button>
+      </div>`);
+  },
+
+  // De kiezer van het invoegmenu, maar dan om een bestaand blok bij te stellen:
+  // hij vult het veld in plaats van een nieuw blok neer te zetten.
+  async blokKies(soort) {
+    const vul = (naam) => { const el = document.getElementById('blok-kop'); if (el) el.value = naam; };
+    const bewaarModal = document.getElementById('m-body')?.innerHTML;
+    if (soort === 'gevecht') {
+      const lijst = await api.listEncounters().catch(() => []);
+      return _kiezer('Gevecht kiezen', (lijst || []).map(e => ({ naam: e.name || 'Gevecht', icoon: 'swords' })),
+        (r) => { window.app.openModal('Gevecht bijstellen', '', bewaarModal); vul(r.naam); });
+    }
+    if (soort === 'tabel') {
+      const lijst = await api.listTables().catch(() => []);
+      return _kiezer('Tabel kiezen', (lijst || []).map(t => ({ naam: t.name || 'Tabel', icoon: 'dice' })),
+        (r) => { window.app.openModal('Tabel bijstellen', '', bewaarModal); vul(r.naam); });
+    }
+    if (soort === 'buit') {
+      const lijst = (await api.lootEvents().catch(() => ({})))?.events || [];
+      return _kiezer('Vondst kiezen', lijst.map(v => ({ naam: v.naam || 'Vondst', icoon: 'vault' })),
+        (r) => { window.app.openModal('Buit bijstellen', '', bewaarModal); vul(r.naam); });
+    }
+    const kaarten = await api.listDungeons().catch(() => []);
+    if (soort === 'kaart') {
+      return _kiezer('Kaart kiezen', (kaarten || []).map(k => ({ naam: k.name || 'Kaart', icoon: 'castle' })),
+        (r) => { window.app.openModal('Kaart bijstellen', '', bewaarModal); vul(r.naam); });
+    }
+    const rijen = [];
+    for (const k of (kaarten || [])) for (const r of (k.rooms || [])) if (r.name) rijen.push({ naam: `${k.name} · ${r.name}`, icoon: 'door-open' });
+    return _kiezer('Kamer kiezen', rijen, (r) => { window.app.openModal('Kamer bijstellen', '', bewaarModal); vul(r.naam); });
+  },
+
+  blokBewaar(soort, oudeKop) {
+    const nieuw = document.getElementById('blok-kop')?.value.trim() ?? '';
+    _blokRegelVervang(soort, oudeKop, `> [!${soort}]${nieuw ? ' ' + nieuw : ''}`);
+    window.app.closeModal();
+  },
+
+  blokWeg(soort, kop) {
+    if (!confirm('Dit blok uit de tekst halen?')) return;
+    _blokRegelVervang(soort, kop, null);
+    window.app.closeModal();
   },
 
   // Het statblok van een genoemd wezen. We zoeken in de monsterbibliotheek van

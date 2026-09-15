@@ -435,6 +435,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Alt+S, Alt+L, Alt+T, Alt+K, Alt+G … voegen hetzelfde in als het menu-item ernaast
 - [ ] Enter in een opsomming maakt het volgende streepje; bij een genummerde lijst telt hij door; een lege regel sluit de lijst
 - [ ] Genummerde lijst, citaat (`> `), scènebreuk (`---`) en tabel renderen in de speelstand zoals ze horen
+- [ ] Sleep een sectie in de zijbalk naar een andere plek → de hele scène verhuist (ook zijn subkopjes); de tekst is verder onveranderd
+- [ ] Knop *Naast elkaar*: links de tekst, rechts het perkament dat meeloopt terwijl je typt
+- [ ] Potlood op een regieblok (speelstand én lade) → kop aanpassen of *Kies uit de campagne*; opslaan verandert één regel in de tekst
+- [ ] Potlood → *Blok verwijderen* haalt de kopregel én zijn `>`-inhoud weg
+- [ ] Hetzelfde potlood in de lade bewaart meteen en tekent de lade opnieuw
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

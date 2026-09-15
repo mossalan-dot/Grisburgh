@@ -422,6 +422,20 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > `[!rust]`, `[!check]`) zodat de tekst heen en weer te kopiëren blijft;
 > `REGIE_BLOKKEN` en `regieNaarHtml()` in dat bestand zijn de enige plek waar
 > staat welke er zijn en hoe ze eruitzien. Plan: `docs/voorstel-akteregie.md`.
+> **Drie ingrepen in plaats van een blokeditor.** (1) **Secties verslepen** in
+> de zijbalk van het schrijfscherm: `_sectieBereik()` pakt de regels van die kop
+> tot de volgende kop van hetzelfde niveau — inclusief zijn subkoppen — en
+> `_sectieVerplaats()` schuift ze. Er wordt niets geparseerd en niets
+> herschreven, dus dit kan je hoofdstuk niet stil veranderen. (2) Een
+> **potlood op elk regieblok** (`blokBewerk`): dezelfde kiezer als bij het
+> invoegen, of het blok weghalen. `_blokRegelVervang()` vervangt precies één
+> regel en doet níéts als die regel er niet meer zo staat. In de lade is er geen
+> tekstvak: daar bewaart hij meteen en roept `window._ladeHerlaad()`. (3)
+> **Naast elkaar schrijven** (`split`): tekst links, perkament rechts, dat
+> meeloopt met een korte vertraging. Geen blokeditor dus — die zou het
+> ongedaan-maken van het tekstvak kosten en een lossless parse vragen; de
+> afweging staat in `docs/voorstel-akteregie.md`.
+>
 > **De invoegbalk is een menu.** Twaalf pillen naast elkaar lazen als een
 > gereedschapskist; nu staan sectie, kaartje en beeld los (die gebruik je in
 > elke alinea) en zit de rest onder *Invoegen*, gegroepeerd, met **Alt + letter**

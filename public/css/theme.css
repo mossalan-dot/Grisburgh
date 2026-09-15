@@ -25373,3 +25373,27 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
   border: 0; height: 1px; margin: 22px auto; width: 40%;
   background: linear-gradient(to right, transparent, rgba(122,90,16,0.5), transparent);
 }
+
+/* Naast elkaar schrijven: links de tekst, rechts het perkament. Onder de
+   900 px is daar geen ruimte voor; dan blijft het omklappen. */
+.akte-schrijf-panelen { flex: 1; min-height: 0; display: flex; }
+.akte-schrijf-panelen > * { flex: 1; min-width: 0; }
+.akte-schrijf-hoofd--split .akte-schrijf-voorbeeld {
+  border-left: 1px solid rgba(160,130,80,0.35);
+  background: rgba(255,255,255,0.22);
+}
+.akte-schrijf-hoofd--split .akte-schrijf-ta { border-right: 0; }
+@media (max-width: 900px) {
+  .akte-schrijf-hoofd--split .akte-schrijf-voorbeeld { display: none; }
+}
+/* Secties verslepen in de zijbalk: het stuk dat je pakt wordt bleek, de plek
+   waar het terechtkomt krijgt een streep erboven. */
+.akte-sectie-knop[draggable="true"] { cursor: grab; }
+.akte-sectie-knop--sleept { opacity: .4; cursor: grabbing; }
+.akte-sectie-doel { box-shadow: inset 0 2px 0 rgba(122,90,16,0.8); }
+.akte-sectie-eind { height: 26px; border-radius: 4px; }
+.akte-sectie-eind.akte-sectie-doel { box-shadow: inset 0 2px 0 rgba(122,90,16,0.8); }
+/* Het potlood op een regieblok: kleiner dan de actieknop ernaast, want
+   bijstellen doe je zelden en onthullen elke sessie. */
+.akte-act--blokpen { margin-left: 6px; }
+.regie-blok-kop .akte-act--blokpen { align-self: center; }

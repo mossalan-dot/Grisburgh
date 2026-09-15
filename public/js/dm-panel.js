@@ -2277,7 +2277,7 @@ async function _ladeToggle() {
   _ladeIdx = Math.min(_ladePlekLees(), Math.max(0, _ladeSecties.length - 1));
   // De akte-module levert de renderer én de knoppen; die moet weten welke akte
   // er speelt, anders belandt een getoond beeld in de sessielog van niemand.
-  const mod = await import('./akte-schrijven.js?v=14');
+  const mod = await import('./akte-schrijven.js?v=17');
   mod.zetAkte(_rbChapter, _ladeTekst);
   window._akteRegieRender = mod.regieNaarHtml;
   let lade = document.getElementById('regie-lade');
@@ -2290,6 +2290,21 @@ async function _ladeToggle() {
   document.body.classList.add('lade-open');
   _ladeRender();
 }
+
+// De akte-module roept dit aan als er in de lade iets aan een blok is
+// veranderd: verse tekst ophalen en opnieuw tekenen, op dezelfde sectie.
+window._ladeHerlaad = async () => {
+  if (!document.getElementById('regie-lade') || !_rbChapter) return;
+  try {
+    const regie = await api.akteRegie(_rbChapter);
+    _ladeTekst = regie?.tekst || '';
+    _ladeSecties = _splitsSecties(_ladeTekst);
+    _ladeIdx = Math.min(_ladeIdx, Math.max(0, _ladeSecties.length - 1));
+    const mod = await import('./akte-schrijven.js?v=17');
+    mod.zetAkte(_rbChapter, _ladeTekst);
+    _ladeRender();
+  } catch { /* de lade blijft staan zoals hij stond */ }
+};
 
 function _ladeSluit() {
   document.body.classList.remove('lade-open', 'lade-hoog');

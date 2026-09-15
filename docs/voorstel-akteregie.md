@@ -237,7 +237,29 @@ lijst — het teken typ je één keer.
 
 ---
 
-## Stap 5: de blokeditor
+## Stap 5: geen blokeditor, maar drie ingrepen
+
+Bij het afwegen bleek de blokeditor minder op te leveren dan gedacht — het
+invoegmenu met sneltoetsen had zijn halve bestaansrecht al opgegeten. Wat
+overbleef aan echte winst waren drie dingen, en die zijn los gebouwd (15 sep):
+
+- **Secties verslepen** in de zijbalk. Een scène verplaatsen was knippen en
+  plakken door 27 kB tekst. Nu sleep je hem; wat meeverhuist is het bereik van
+  die kop tot de volgende kop van hetzelfde niveau, inclusief wat eronder hangt.
+  **Er wordt niets geparseerd en niets herschreven — alleen verschoven**, dus
+  deze ingreep kan je tekst niet stilletjes veranderen. (Gecontroleerd op
+  Lichtmis: dezelfde regels, dezelfde lengte, andere volgorde.)
+- **Een potlood op elk regieblok** in de speelstand en in de lade: je verandert
+  de kop (en dus waar het blok naar wijst) met dezelfde kiezer als bij het
+  invoegen, of haalt het blok weg. Er wordt één regel vervangen; staat die niet
+  meer zo in de tekst, dan gebeurt er niets en zegt hij dat.
+- **Naast elkaar schrijven**: links de markdown, rechts hetzelfde perkament dat
+  je straks speelt. Dat geeft het "geen tekens zien" van een blokeditor zonder
+  dat het tekstvak zijn ongedaan-maken kwijtraakt.
+
+De blokeditor zelf blijft open staan, met de afweging die er toen lag:
+
+## De blokeditor (nog steeds open)
 
 De tekst blijft markdown, maar het schrijven hoeft niet met tekens. Het plan,
 voor als we eraan toe zijn:
