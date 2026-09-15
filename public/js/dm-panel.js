@@ -2452,9 +2452,18 @@ function _rustMenu(ev) {
     <button class="dm-rust-start" data-type="long">${icon('moon')} <strong>Long Rest</strong></button>
     <button class="dm-rust-start" data-type="short">${icon('zap')} <strong>Short Rest</strong></button>`;
   document.body.appendChild(menu);
+  // Boven of onder de knop, afhankelijk van waar die staat. Het menu hing altijd
+  // bóven de knop — goed voor de regie-balk onderin, maar de rustknop in de
+  // kopbalk duwde hem daarmee van het scherm af.
   const r = knop.getBoundingClientRect();
   menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8))}px`;
-  menu.style.bottom = `${window.innerHeight - r.top + 6}px`;
+  if (r.top < window.innerHeight / 2) {
+    menu.style.top = `${r.bottom + 6}px`;
+    menu.style.bottom = 'auto';
+  } else {
+    menu.style.bottom = `${window.innerHeight - r.top + 6}px`;
+    menu.style.top = 'auto';
+  }
 
   menu.querySelectorAll('.dm-rust-loc-btn').forEach(b => b.addEventListener('click', () => {
     window._dmRustKiesLoc?.(b.dataset.loc);

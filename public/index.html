@@ -184,6 +184,12 @@
              De code eronder (dmToggleClick, state.dmPreview) blijft staan. -->
         <!-- Sandbox badge: getoond wanneer ingelogd als sandbox-DM -->
         <div id="sandbox-badge" class="sandbox-badge hidden" title="Je werkt in de sandbox-omgeving. Echte campagnedata is niet zichtbaar."><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=13#icon-flask-conical"/></svg> Sandbox</div>
+        <!-- Rust hoort niet bij één akte. Hij zat alleen in de regie-balk, en
+             die staat er alleen als je een akte speelt — terwijl een party net
+             zo goed tussen twee aktes in gaat slapen. Zelfde menu. -->
+        <button id="dm-rust-btn" onclick="window.dmPanel.rustMenu(event)"
+          title="Rust — Long of Short Rest voor de hele party"
+          class="app-header-icon-btn dm-only hidden"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=13#icon-moon"/></svg></button>
         <!-- Naar het tafelscherm: in de balk, waar je hem tijdens het spelen nodig
              hebt, in plaats van weggestopt bij Instellingen. -->
         <button id="dm-tafelscherm-btn" onclick="window.dmPanel.naarTabletmodus()"
@@ -577,6 +583,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=8"></script>
-  <script type="module" src="/js/app.js?v=790"></script>
+  <script type="module" src="/js/app.js?v=791"></script>
 </body>
 </html>
