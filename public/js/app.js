@@ -10,7 +10,8 @@ import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=73";
-import { initDmPanel } from "./dm-panel.js?v=249";
+import { initDmPanel } from "./dm-panel.js?v=250";
+import { COND_INFO, COND_LABEL, COND_MET_PLAATJE } from './conditions.js?v=1';
 import './media-picker.js?v=8';
 
 // ── Icon helper ──
@@ -6581,28 +6582,12 @@ window._updateBerichtenBadge = function() {
 
 // Spelervriendelijke uitleg + icoon per status (NL). Gedeeld door renderMijnKarakter
 // en de tap-popover window._condInfo.
-const PLAYER_COND_INFO = {
-  blinded:       { label: 'Verblind',       desc: 'Kan niet zien. Aanvallen tegen jou hebben voordeel; jouw aanvallen hebben nadeel.' },
-  charmed:       { label: 'Betoverd',       desc: 'Je kunt de betoveraar niet aanvallen. Die heeft voordeel op sociale checks tegen jou.' },
-  deafened:      { label: 'Doof',           desc: 'Kan niet horen. Faalt automatisch checks die gehoor vereisen.' },
-  exhaustion:    { label: 'Uitputting',     desc: 'Stapelt in 6 niveaus: 1 nadeel op checks · 2 snelheid gehalveerd · 3 nadeel op saves · 4 snelheid 0 · 5 nadeel op aanvallen · 6 dood.' },
-  frightened:    { label: 'Bevreesd',       desc: 'Nadeel op checks en aanvallen zolang de bron in zicht is. Je kunt niet vrijwillig dichterbij komen.' },
-  grappled:      { label: 'Vastgegrepen',   desc: 'Snelheid wordt 0. Eindigt als de grijper buiten gevecht raakt of je buiten bereik komt.' },
-  incapacitated: { label: 'Buiten gevecht', desc: 'Kan geen acties of reacties nemen.' },
-  invisible:     { label: 'Onzichtbaar',    desc: 'Kan niet gezien worden. Aanvallen tegen jou hebben nadeel; jouw aanvallen hebben voordeel.' },
-  paralyzed:     { label: 'Verlamd',        desc: 'Buiten gevecht, kan niet bewegen of spreken. Faalt STR/DEX-saves. Aanvallen hebben voordeel; treffers binnen 1,5 m zijn kritiek.' },
-  petrified:     { label: 'Versteend',      desc: 'Veranderd in steen. Buiten gevecht. Resistent tegen alle schade. Immuun voor gif en ziekte.' },
-  poisoned:      { label: 'Vergiftigd',     desc: 'Nadeel op aanvallen en ability checks.' },
-  prone:         { label: 'Neergevallen',   desc: 'Nadeel op aanvallen. Aanvallen binnen 1,5 m hebben voordeel, van verder weg nadeel. Opstaan kost de helft van je snelheid.' },
-  restrained:    { label: 'Vastgehouden',   desc: 'Snelheid wordt 0. Nadeel op aanvallen en DEX-saves. Aanvallen tegen jou hebben voordeel.' },
-  stunned:       { label: 'Verdoofd',       desc: 'Buiten gevecht, kan niet bewegen, spreekt hooguit haperend. Faalt STR/DEX-saves. Aanvallen tegen jou hebben voordeel.' },
-  unconscious:   { label: 'Bewusteloos',    desc: 'Buiten gevecht, neergevallen en niet bij bewustzijn. Faalt STR/DEX-saves. Aanvallen hebben voordeel; treffers binnen 1,5 m zijn kritiek.' },
-  concentration: { label: 'Concentratie',   desc: 'Je concentreert op een spreuk. Eindigt bij schade (CON-save, DC 10 of de helft van de schade) of buiten gevecht raken.' },
-  bleeding:      { label: 'Bloedend',       desc: 'Verliest bloed: 1d4 schade aan het begin van elke beurt. Eindigt bij genezing of een geslaagde Medicijnen-check (DC 10).' },
-  burning:       { label: 'In brand',       desc: 'In brand: 1d6 vuurschade aan het begin van elke beurt. Een actie kan de vlammen doven.' },
-};
-// Welke statussen een icoon hebben in /img/conditions/
-const PLAYER_COND_ICONS = new Set(Object.keys(PLAYER_COND_INFO));
+// Conditie-teksten komen uit `conditions.js` — één lijst voor de hele app.
+// Hier stond een eigen, Nederlandse kopie van 18 regels; de picker van de DM
+// had er 38 in het Engels. Dezelfde conditie heette daardoor "Restrained" bij
+// de DM en "Vastgehouden" bij de speler.
+const PLAYER_COND_INFO  = COND_INFO;
+const PLAYER_COND_ICONS = COND_MET_PLAATJE;
 
 // Tap op een status-chip toont/verbergt de uitleg eronder
 window._condInfo = function(cid) {
@@ -6631,7 +6616,7 @@ window._condInfo = function(cid) {
 const _SIGNATURE = {
   barbarian: {
     feature: 'Rage', icon: 'crossed-swords', iconGi: true, key: 'rage', kleur: '#b3402a',
-    activeOff: 'Activeer Rage', activeOn: 'Razend',
+    activeOff: 'Activeer Rage', activeOn: 'Raging',
     naslag: 'Resistance tegen Bludgeoning, Piercing & Slashing damage; Advantage op Strength checks & saves.',
     uses: { 1: 2, 3: 3, 6: 4, 10: 5, 17: 6 },
     extra: lvl => `Rage Damage +${_sigThresh({ 1: 2, 9: 3, 16: 4 }, lvl)}`,
@@ -7251,17 +7236,11 @@ async function renderMijnKarakter(opts = {}) {
                 charmed:'sparkles', deafened:'volume-2', invisible:'eye-off',
                 petrified:'mountain', concentration:'target'
               };
-              const COND_LBL_MAP = {
-                blinded:'Verblind', charmed:'Betoverd', deafened:'Doof', exhaustion:'Uitputting',
-                frightened:'Bevreesd', grappled:'Vastgegrepen', incapacitated:'Buiten gevecht',
-                invisible:'Onzichtbaar', paralyzed:'Verlamd', petrified:'Versteend',
-                poisoned:'Vergiftigd', prone:'Neergevallen', restrained:'Vastgehouden',
-                stunned:'Verdoofd', unconscious:'Bewusteloos', concentration:'Concentratie'
-              };
+              // Derde kopie van dezelfde lijst; nu COND_LABEL uit conditions.js.
               const conds = (c.conditions || []).slice(0, 3);
               const condHtml = conds.map(cid => {
                 const icn = COND_ICONS_MAP[cid] || 'zap';
-                const lbl = COND_LBL_MAP[cid] || cid;
+                const lbl = COND_LABEL[cid];
                 return `<span class="player-dash-init-cond" title="${esc(lbl)}">${icon(icn)}</span>`;
               }).join('');
               const isStudied = c.type === 'monster' && c._niveau && c._niveau !== 'naam';
@@ -11954,7 +11933,9 @@ async function renderTweespalt() {
     ? `<div class="ts-lening-banner">
         ${icon('scroll-text')} Openstaande lening bij Taevin Woekeling — oorspronkelijk ${formatCl(lening.bedragCl)},
         huidig verschuldigd: <strong>${formatCl(lening.huidigVerschuldigdCl)}</strong>
-        <span class="ts-lening-sub">(30% rente per dag)</span>
+        <span class="ts-lening-sub">${lening.afgetopt
+          ? 'Taevin is gestopt met tellen — hij komt het halen.'
+          : `${lening.rentePerRust ?? 30}% rente per nacht · ${lening.rusten ?? 0} ${(lening.rusten === 1) ? 'nacht' : 'nachten'} verstreken`}</span>
        </div>` : '';
 
   const tsBackdrop = config.backdropId ? `style="background-image:url('${api.fileUrl(config.backdropId)}')"` : '';
@@ -12913,7 +12894,7 @@ const HELP_CONFIG = {
         },
         {
           titel: 'Leningen',
-          tekst: 'Als je goud tekortkomt kun je een lening afsluiten bij de bank. Let op: leningen hebben rente en moeten terugbetaald worden. Kom je niet na, dan volgen er consequenties.',
+          tekst: 'Als je goud tekortkomt kun je een lening afsluiten bij Taevin. De rente loopt per nacht dat de party rust, niet per dag op de kalender — en hij telt tot vijf keer de hoofdsom. Daarna stopt hij met tellen en komt hij het halen.',
           afbeelding: null,
         },
       ],

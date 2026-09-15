@@ -502,6 +502,42 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > kaartjes-kiezer heeft dezelfde uitweg (*Nieuw kaartje met de getypte naam*).
 > De plus hangt aan `_potloden` (voorbereiden), de oogjes aan `_acties` (spelen).
 >
+> **Condities staan op één plek: `public/js/conditions.js`.** Er waren er drie,
+> en ze waren uit elkaar gelopen: de picker van de DM had er 38 in het Engels,
+> het spelerstabblad 18 in het Nederlands (`PLAYER_COND_INFO`) en het dashboard
+> nog eens 16 losse labels (`COND_LBL_MAP`). Dezelfde conditie heette dus
+> *Restrained* bij de DM en *Vastgehouden* bij de speler — tegen de afspraak in
+> dat een PHB-term Engels blijft, en een speler die op zijn token iets anders
+> leest dan de DM zegt kan het niet opzoeken. Bijvangst: een conditie die
+> alleen de DM-lijst kende (*Dodging*, *Half Cover*, *Raging*) kwam bij de
+> speler als het kale id in beeld.
+> Exports: `CONDITIONS` (de lijst), `COND_INFO` (id → {label, desc}),
+> `COND_LABEL` (een Proxy die terugvalt op het id zelf, zodat iets eigens
+> leesbaar blijft) en `COND_MET_PLAATJE` — bewust een **eigen** set, want die
+> 18 PNG's in `public/img/conditions/` dekken niet alle 36 condities en
+> afleiden gaf een `<img>` naar een bestand dat er niet is.
+> De **iconen** liggen op een andere as en blijven waar ze zijn: `COND_ICON` in
+> `combat-canvas.js` (sprite + kleur voor op een token).
+
+> **De rente van de Tweespalt loopt per lange rust, niet op de kalender.**
+> Taevin rekende 30% per dag, samengesteld, op échte dagen: de ene lening in
+> Grisburgh (2.880 cl, aangegaan 26 april) stond in september op
+> **4,5 × 10¹⁹ centeling**. Onbetaalbaar is het punt van een woekeraar, maar een
+> getal dat niemand kan uitspreken is geen verhaallijn. Nu telt hij per nacht
+> dat de party rust (`g.rustTellers.long`, zelfde bron als het verversen van een
+> winkel) — de party bepaalt het tempo, niet de klok.
+> Er zit ook een **plafond** op (`TS_MAX_FACTOR`, vijf keer de hoofdsom): zonder
+> dat komt dezelfde fout terug, alleen langzamer — 1,3^50 is nog altijd een half
+> miljoen keer de hoofdsom. Daarna stopt Taevin met tellen en komt hij het
+> halen; dat is een scène, geen som. Eén plek rekent het uit: `_tsSchuld()`, dat
+> ook `rusten` en `afgetopt` teruggeeft zodat de banner het kan navertellen.
+> Een lening van vóór deze wijziging heeft geen `rustStand` en begint bij de
+> hoofdsom — hoeveel nachten er sinds april voorbij zijn valt niet te
+> achterhalen, en een verzonnen getal is erger dan opnieuw beginnen.
+> **Nog open:** er is geen route om een lening áf te lossen. De enige uitweg is
+> dat de DM het schuldbewijs uit de boedel haalt (dat wist de lening mee, zie
+> `DELETE /player-items`). Hoort bij `docs/voorstel-op-de-pof.md`.
+
 > **De snapshot had zijn eigen spelersfilter, en die liep jaren achter.**
 > `/api/export` plakt zijn hele datamodel als JSON in het HTML-bestand
 > (`const S = ${JSON.stringify(S)}`), dus alles wat de filter laat staan, staat

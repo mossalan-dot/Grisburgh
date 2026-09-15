@@ -26,12 +26,11 @@ groot het is. Bijgewerkt 15 sep 2026.
       /shops/:id/beschikbaar` *maakt* de rotatie van een roterende winkel en
       schrijft dm-state; de Markt heeft dus een eigen leesroute nodig.
 
-- [ ] **Conditions in het Nederlands** — `_COND_INFO` en `COND_LBL_MAP` in
-      `app.js` vertalen de PHB-conditions (Verblind, Betoverd, Bevreesd,
-      Vastgehouden, Verdoofd, Bewusteloos, Concentratie…). Tegen de afspraak in
-      dat D&D-termen Engels blijven. Zit in de statusweergave van de speler en
-      op de combat-tokens; twee tabellen plus wat losse plekken. Doen zodra we
-      aan het gevecht of het personagetabblad toe zijn.
+- [x] **Conditions in het Nederlands** — gedaan 15 sep 2026. Het waren er drie
+      lijsten (38 Engels bij de DM, 18 Nederlands bij de speler, 16 in het
+      dashboard); nu één bron in `public/js/conditions.js`. Bijvangst: een
+      conditie die alleen de DM-lijst kende (Dodging, Half Cover, Raging) kwam
+      bij de speler als het kale id in beeld.
 
 - [ ] **Spelerstabbladen natesten** — de reviewrondes van sep 2026 (voorwerpen,
       documenten, spreuken) zijn vooral vanuit de DM getest. Wat aan de
@@ -297,11 +296,16 @@ Opgepakt zodra we met de **diensten** aan de slag gaan; de winkelkant haken we
 daar dan in. (Het eerste punt — diensten die de gedeelde beurs omzeilden — is op
 8 sep 2026 al gedaan.)
 
-- [ ] **De rente van de Tweespalt loopt op de kalender.** 30% per dag,
-      samengesteld, op echte dagen. De ene openstaande lening in Grisburgh
-      (28,80 florinde, aangegaan 26 april) staat daardoor op 5,8 × 10¹⁸
-      centeling. Omzetten naar rente per lange rust (`g.rustTellers.long`, sinds
-      7 sep beschikbaar) en die ene lening herstellen.
+- [x] **De rente van de Tweespalt loopt op de kalender** — opgelost 15 sep 2026.
+      Rente per lange rust (`g.rustTellers.long`), met een plafond van vijf keer
+      de hoofdsom; één plek rekent het uit (`_tsSchuld`). De lening stond op
+      4,5 × 10¹⁹ centeling en staat weer op zijn hoofdsom van 2.880 cl.
+      **Twee dingen kwamen daarbij boven:** die lening staat op naam van
+      `e_1777039913779_c0ud`, een personage dat **niet meer bestaat** in
+      `entities.json` — een weesschuld, die ik heb laten staan omdat weggooien
+      een keuze van de DM is. En er is **geen route om af te lossen**: de enige
+      uitweg is dat de DM het schuldbewijs uit de boedel haalt. Hoort bij
+      `docs/voorstel-op-de-pof.md`.
 - [ ] **Eén schuldenregister** (`dmState.schulden`) waar de Tweespalt-lening een
       soort van wordt, met een DM-overzicht (wie, bij wie, hoofdsom, wat er nu
       staat) en knoppen om af te betalen — ook deels — of kwijt te schelden. Dat

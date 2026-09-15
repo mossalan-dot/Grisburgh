@@ -11292,6 +11292,46 @@ router.post('/herberg/bestel', attachRole, (req, res) => {
 
 // ── Tweespalt / Gokkantoor ──
 
+// De rente van Taevin liep op de kalender: 30% per dag, samengesteld, op échte
+// dagen. Een party speelt geen realtime uren — de ene lening in Grisburgh werd
+// op 26 april aangegaan en stond daardoor in september op 5,8 × 10^18 centeling
+// (2.880 cl aan hoofdsom, maal 1,3^142). Onbetaalbaar is het punt van een
+// woekeraar, maar een getal dat niemand kan uitspreken is geen verhaallijn.
+//
+// Nu telt de rente **per lange rust**, net als het verversen van een winkel:
+// de party bepaalt het tempo, niet de klok. `g.rustTellers.long` houdt dat al
+// bij sinds 7 sep.
+//
+// En er zit een plafond op. Zonder dat komt dezelfde fout terug, alleen
+// langzamer: 1,3^50 is nog altijd een half miljoen keer de hoofdsom. Taevin
+// telt tot vijf keer de hoofdsom en komt het daarna hálen — dat is een scène,
+// geen som. Aan te passen per lening (`maxFactor`).
+const TS_RENTE_PER_RUST = 30;
+const TS_MAX_FACTOR     = 5;
+
+// Wat er nú openstaat. Geeft ook terug hoeveel rustbeurten er geteld zijn, want
+// dat is wat je aan tafel wil kunnen navertellen ("drie nachten verder").
+function _tsSchuld(lening, dmState, characterId) {
+  if (!lening) return null;
+  const g       = getGroup(dmState, _playerGroupId(dmState, characterId));
+  const stand   = (g?.rustTellers || {}).long || 0;
+  // Een lening van vóór deze wijziging heeft geen beginstand. Hoeveel nachten
+  // er sindsdien voorbij zijn valt niet te achterhalen, dus beginnen we bij
+  // nul: de schuld staat op de hoofdsom en loopt vanaf de eerstvolgende rust.
+  const begin   = Number.isFinite(lening.rustStand) ? lening.rustStand : stand;
+  const rusten  = Math.max(0, stand - begin);
+  const rente   = Number.isFinite(lening.rentePerRust) ? lening.rentePerRust : TS_RENTE_PER_RUST;
+  const max     = Number.isFinite(lening.maxFactor) ? lening.maxFactor : TS_MAX_FACTOR;
+  const factor  = Math.min(Math.pow(1 + rente / 100, rusten), max);
+  return {
+    ...lening,
+    rusten,
+    rentePerRust: rente,
+    afgetopt: factor >= max,
+    huidigVerschuldigdCl: Math.ceil(lening.bedragCl * factor),
+  };
+}
+
 function _tsState(dmState) {
   if (!dmState.tweespalt) dmState.tweespalt = {};
   if (!dmState.tweespalt.events) dmState.tweespalt.events = [];
@@ -11400,12 +11440,7 @@ router.get('/tweespalt', attachRole, (req, res) => {
   const characterId = req.session.characterId;
   const currency = _effectiveCurrency(dmState, characterId);
 
-  let lening = characterId ? (ts.leningen[characterId] || null) : null;
-  if (lening) {
-    const dagenVerlopen = (Date.now() - new Date(lening.aangegaan).getTime()) / (1000 * 60 * 60 * 24);
-    const factor = Math.pow(1 + lening.rentePerDag / 100, dagenVerlopen);
-    lening = { ...lening, huidigVerschuldigdCl: Math.ceil(lening.bedragCl * factor) };
-  }
+  const lening = _tsSchuld(characterId ? (ts.leningen[characterId] || null) : null, dmState, characterId);
 
   // Namenlijst: gebruik de tafel met gevulde first/last arrays (bij voorkeur combined-type)
   const tablesData = storage.readJSON('tables.json');
@@ -11688,14 +11723,21 @@ router.post('/tweespalt/leen', attachRole, (req, res) => {
   const ts = _tsState(dmState);
   if (ts.leningen[characterId]) return res.status(400).json({ error: 'Je hebt al een openstaande lening bij Taevin' });
 
-  const lening = { bedragCl, aangegaan: new Date().toISOString(), rentePerDag: 30 };
+  const _g = getGroup(dmState, _playerGroupId(dmState, characterId));
+  const lening = {
+    bedragCl,
+    aangegaan:    new Date().toISOString(),
+    rustStand:    (_g?.rustTellers || {}).long || 0,   // vanaf hier tellen de nachten
+    rentePerRust: TS_RENTE_PER_RUST,
+    maxFactor:    TS_MAX_FACTOR,
+  };
   ts.leningen[characterId] = lening;
 
   _deductCurrency(dmState, characterId, -bedragCl);
 
   const bedragFormatted = _tsFormatCl(bedragCl);
   const iouNaam = '📜 Schuldbewijs — Taevin Woekeling';
-  const iouNote = `Bedrag: ${bedragFormatted}. Woekerrente: 30% per dag. "Ik weet je te vinden, vriend."`;
+  const iouNote = `Bedrag: ${bedragFormatted}. Woekerrente: ${TS_RENTE_PER_RUST}% per nacht, tot ${TS_MAX_FACTOR}× de hoofdsom. "Ik weet je te vinden, vriend."`;
 
   if (!dmState.playerItems) dmState.playerItems = {};
   if (!dmState.playerItems[characterId]) dmState.playerItems[characterId] = [];
@@ -11709,7 +11751,7 @@ router.post('/tweespalt/leen', attachRole, (req, res) => {
   const io = req.app.get('io');
   io.to(req.session?.campaignId||'main').emit('player:currency-updated', { characterId, currency: _effectiveCurrency(dmState, characterId) });
   io.to(req.session?.campaignId||'main').emit('player:items-updated', { characterId });
-  res.json({ ok: true, currency: _effectiveCurrency(dmState, characterId), lening });
+  res.json({ ok: true, currency: _effectiveCurrency(dmState, characterId), lening: _tsSchuld(lening, dmState, characterId) });
 });
 
 router.get('/tweespalt/log', requireDM, (req, res) => {
