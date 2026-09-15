@@ -394,6 +394,17 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Iconen: een moeras toont een plantje (geen vis), een eiland een palm, een werkplaats een aambeeld, een ziekenhuis een hartslag — op het kaartje én als kaartspeld
 - [ ] Een factie-titel en de leiding van een factie dragen een kroon (niet de favorieten-ster); een boon een lintje, of het sprite-icoon dat de DM invulde
 - [ ] Spelerstab Boedel draagt een rugzak, de Loot-tab in de Meesterkamer een kluis
+
+### Akte schrijven
+- [ ] Meesterkamer → Aktes → *Verhaal*: het ganzenveer-knopje opent een schrijfscherm over de volle hoogte
+- [ ] Typ een regel → na een seconde staat er *bewaard*; sluit en heropen → de tekst staat er nog
+- [ ] `##` op een regel → de sectie verschijnt links; klikken zet de cursor op die kop
+- [ ] *Kaartje* → zoek een naam → er komt `[[Naam]]` op de cursorpositie; in het voorbeeld is dat een link (of, zonder kaartje, `[[haakjes]]` voor de DM)
+- [ ] *Beeld* → mediabibliotheek → `![[fileId]]` in de tekst
+- [ ] *Gevecht*, *Tabel*, *Buit* en *Kaart* tonen wat er in de campagne bestaat en zetten een `> [!blok] Naam` neer
+- [ ] *Voorbeeld* toont de blokken als kader: Voorlezen op perkament, Notitie gedempt, Gevecht rood
+- [ ] *Kopiëren* zet de markdown op het klembord; *Inlezen* vraagt eerst of de huidige tekst weg mag
+- [ ] **Speler**: `/api/meta` bevat geen `tekst`, `script` of `monsters` van een akte (netwerktab), wel `num`, `title` en `short`
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

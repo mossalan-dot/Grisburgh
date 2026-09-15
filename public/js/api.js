@@ -401,6 +401,9 @@ export const api = {
   // Verhaaltekst per akte + de namen die eruit volgen.
   saveAkteTekst:  (key, tekst) => request(`/meta/akte/${encodeURIComponent(key)}/tekst`, { method: 'PUT', body: JSON.stringify({ tekst }) }),
   akteNamen:      (key)        => request(`/meta/akte/${encodeURIComponent(key)}/namen`),
+  // Tekst + script van één akte. Staat niet meer in GET /meta: dat ging naar
+  // élke ingelogde speler, inclusief geheimen (docs/voorstel-akteregie.md).
+  akteRegie:      (key)        => request(`/meta/akte/${encodeURIComponent(key)}/regie`),
   saveAkteDocumenten: (key, documenten) => request(`/meta/akte/${encodeURIComponent(key)}/documenten`, { method: 'PUT', body: JSON.stringify({ documenten }) }),
   saveAkteMonsters:   (key, monsters)   => request(`/meta/akte/${encodeURIComponent(key)}/monsters`,   { method: 'PUT', body: JSON.stringify({ monsters }) }),
   saveAkteBereikbaarheid: (key, data) => request(`/meta/akte/${encodeURIComponent(key)}/bereikbaarheid`, { method: 'PUT', body: JSON.stringify(data) }),

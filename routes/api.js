@@ -6988,6 +6988,26 @@ function _bereikbaarheidVoor(meta, dmState, groepId) {
   return uit;
 }
 
+// Wat er van een akte naar een speler mag. Een hoofdstuk draagt de **volledige
+// verhaaltekst** van de DM (`tekst`), het **regie-script** met alles wat er nog
+// onthuld moet worden (`script`) en de **monsters** die erin voorkomen. Dat ging
+// tot nu toe integraal mee in `GET /meta` — voor iedereen met een sessie.
+// Zolang `tekst` overal leeg was viel er niets te halen, maar de eerste akte die
+// je erin plakt zou compleet met geheimen en wendingen in de browser van je
+// spelers staan. Zelfde soort lek als destijds de kamernamen in een dungeon.
+// Wat de speler wél nodig heeft is de kop: nummer, titel en korte naam, want
+// daarop groepeert het logboek en dat labelt een missie.
+const _AKTE_DM_VELDEN = ['tekst', 'script', 'monsters'];
+function _hoofdstukkenVoorSpeler(hoofdstukken) {
+  const uit = {};
+  for (const [key, akte] of Object.entries(hoofdstukken || {})) {
+    const kopie = { ...akte };
+    for (const veld of _AKTE_DM_VELDEN) delete kopie[veld];
+    uit[key] = kopie;
+  }
+  return uit;
+}
+
 router.get('/meta', attachRole, (req, res) => {
   const meta    = storage.readJSON('meta.json');
   const dmState = readDmState();
@@ -6996,7 +7016,20 @@ router.get('/meta', attachRole, (req, res) => {
     : dmState.activeGroup;
   // Afgeleid, niet opgeslagen: de client hoeft zo niet zelf uit te rekenen welke
   // akte er loopt en wat daarin dichtzit.
-  res.json({ ...meta, modules: modulesVoor(meta), verborgen: verborgenUI(meta), bereikbaarheid: _bereikbaarheidVoor(meta, dmState, groepId) });
+  const uit = { ...meta, modules: modulesVoor(meta), verborgen: verborgenUI(meta), bereikbaarheid: _bereikbaarheidVoor(meta, dmState, groepId) };
+  if (req.role !== 'dm') uit.hoofdstukken = _hoofdstukkenVoorSpeler(meta.hoofdstukken);
+  res.json(uit);
+});
+
+// De regie van één akte: de tekst en het script, alleen voor de DM. Bestaat
+// omdat `GET /meta` ze niet meer meestuurt, en omdat vijftien hoofdstukken
+// samen honderden kB zijn — die haal je op als je ze nodig hebt, niet bij elke
+// meta-verversing.
+router.get('/meta/akte/:key/regie', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const akte = meta.hoofdstukken?.[req.params.key];
+  if (!akte) return res.status(404).json({ error: 'Akte niet gevonden' });
+  res.json({ tekst: akte.tekst || '', script: akte.script || [], monsters: akte.monsters || [] });
 });
 
 // Per akte instellen wat er niet bereikbaar is (diensten + winkel-entiteiten).

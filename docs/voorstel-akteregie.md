@@ -154,6 +154,35 @@ akte-editor. Dat is het echte werk aan jouw kant.
 
 ---
 
+## Schrijven, niet alleen spelen
+
+Een akte moet je in de app kunnen **schrijven**, anders blijft Obsidian de
+werkplek en dit scherm een kijkdoos. Sinds 15 sep is er daarom een
+**schrijfscherm** (`public/js/akte-schrijven.js`, het ganzenveer-knopje bij
+*Verhaal* in de Aktes-tab):
+
+- De tekst over de **volle hoogte**, met de secties (`##`) als klikbaar
+  overzicht ernaast. Niet een tekstvak van acht regels in een uitklapper.
+- Een **invoegbalk die de campagne kent**. Dát is het verschil met Obsidian:
+  daar tik je een naam en hóóp je dat er een kaartje bij hoort. Hier kies je
+  uit wat er is — `[[Naam]]` uit alle 554 kaartjes, `![[fileId]]` uit de
+  mediabibliotheek, en een regieblok dat naar een bestáánd gevecht, een tabel,
+  een vondst of een dungeonkaart wijst.
+- **Opslaan tijdens het typen** (gebundeld, 1,2 s), met "bewaard" in de kop.
+  Je bent aan het schrijven, niet aan het administreren.
+- Een **voorbeeld** dat de callouts al als kader toont, zodat je ziet wat je
+  maakt. Kijkstand, geen tweede editor — zelfde afspraak als bij de opmaakbalk
+  op een kaartje.
+- **Inlezen** (een `.md` vervangt de tekst) en **kopiëren** (de markdown naar
+  het klembord) blijven allebei: wie in Obsidian wil blijven schrijven, kan
+  dat, en wie hier begint kan het daar afmaken.
+
+Wat er nog niet is en er wel bij hoort: schrijven **tijdens** het spelen — een
+potlood in de lade dat de huidige sectie openzet, zodat een inval aan tafel
+meteen op de goede plek belandt.
+
+---
+
 ## Risico's, eerlijk
 
 - **Het meta-lek hierboven.** Tekst en script horen niet in `GET /meta`. Ze

@@ -411,6 +411,28 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > leeggemaakt. Client: `window._dienstDicht(key)` en `window._entiteitDicht(id)`;
 > de DM ziet altijd alles.
 
+> **Een akte schrijf je in de app.** `public/js/akte-schrijven.js` — het
+> ganzenveer-knopje bij *Verhaal* in de Aktes-tab — is een schrijfscherm over de
+> volle hoogte: secties (`##`) als overzicht ernaast, opslaan tijdens het typen
+> (gebundeld, 1,2 s), een voorbeeldstand, `.md` inlezen en de markdown
+> kopiëren. Het verschil met Obsidian zit in de **invoegbalk**: die kent de
+> campagne, dus `[[Naam]]`, `![[fileId]]` en een regieblok wijzen altijd naar
+> iets dat bestáát. De regieblokken zijn **Obsidian-callouts**
+> (`> [!voorlezen]`, `[!dm]`, `[!gevecht]`, `[!tabel]`, `[!buit]`, `[!kaart]`,
+> `[!rust]`, `[!check]`) zodat de tekst heen en weer te kopiëren blijft;
+> `REGIE_BLOKKEN` en `regieNaarHtml()` in dat bestand zijn de enige plek waar
+> staat welke er zijn en hoe ze eruitzien. Plan: `docs/voorstel-akteregie.md`.
+>
+> **De verhaaltekst en het script gaan niet meer naar de speler.** `GET /meta`
+> stuurde het hele meta-object naar iedereen met een sessie — inclusief
+> `hoofdstukken[*].tekst`, `[*].script` en `[*].monsters`. Zolang er nergens
+> tekst stond viel er niets te halen, maar de eerste akte die je erin plakt zou
+> compleet met geheimen in de browser van je spelers staan. `GET /meta` knipt
+> die drie velden er nu af voor wie geen DM is (`_hoofdstukkenVoorSpeler`); de
+> kop (num/title/short) blijft, want daarop groepeert het logboek. De DM haalt
+> één akte op met `GET /meta/akte/:key/regie`. Bewaakt door
+> `tests/akte-regie.test.js`.
+
 > **Verhaal naast de regie + secties.** Het regie-script kent een staptype
 > **`kop`** (`{type:'kop', titel}`): een sectiekop die niets onthult maar de
 > strook opdeelt — geen tweede niveau in de data, dus niets aan bestaande aktes
@@ -1375,12 +1397,12 @@ data/
 
 ```javascript
 // Helper beschikbaar als window.icon() overal in de frontend
-icon('sword')                         // → <svg><use href="/img/icons.svg?v=12#icon-sword"/></svg>
+icon('sword')                         // → <svg><use href="/img/icons.svg?v=13#icon-sword"/></svg>
 icon('heart', { cls: 'icon-lg' })     // met extra CSS-klasse
 icon('shield', { title: 'Verdediging' }) // met tooltip
 ```
 
-**Beschikbare iconen** (icons.svg, v=12):
+**Beschikbare iconen** (icons.svg, v=13):
 `beer` `book-open` `building` `camera` `castle` `check` `check-circle`
 `chevron-left` `chevron-right` `church` `clipboard-list` `coins` `crossed-swords`
 `dice` `download` `eye` `eye-off` `flask-conical` `folder-open` `globe`
@@ -1407,7 +1429,7 @@ deelde de hamer met niets), `heart-pulse` (ziekenhuis), `feather` (aantekeningen
 ganzenveer in plaats van een grafietpotlood), `crown` (factie-titel en de leiding van een
 factie — `star` betekent in de app al *favoriet*), `award` (factie-boon), `backpack`
 (spelerstab Boedel — dat deelde `package` met het archieftabblad Voorwerpen), `vault`
-(de Loot-tab), `dices`
+(de Loot-tab), `dices`, `quote` (het voorleesblok in een akte)
 
 > **Eén icoon per soort plek.** `LOC_TYPE_ICOON` in `render-campagne.js` koppelt
 > elk `data.locType` aan een sprite-naam; lezen doe je met

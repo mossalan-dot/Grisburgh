@@ -1,4 +1,4 @@
-import { api } from './api.js?v=285';
+import { api } from './api.js?v=286';
 
 // icon() helper is defined globally in app.js; grab a local alias for template use.
 const icon = (...a) => window.icon(...a);
@@ -1389,7 +1389,9 @@ function _verhaalSectieHtml(ch, info) {
             <input type="file" accept=".md,text/markdown,text/plain" style="display:none"
               onchange="window._verhaalUpload('${esc(ch)}', this.files[0], this)">
           </label>
-          <button class="script-add-btn${bewerk ? ' is-active' : ''}" title="${bewerk ? 'Bewerken sluiten' : 'Tekst bewerken'}"
+          <button class="script-add-btn" title="Schrijven — volledig scherm, met secties en regieblokken"
+            onclick="window._akteSchrijf('${esc(ch)}')">${icon('feather')}</button>
+          <button class="script-add-btn${bewerk ? ' is-active' : ''}" title="${bewerk ? 'Bewerken sluiten' : 'Snel bijwerken in een tekstvak'}"
             onclick="window._verhaalToggle('${esc(ch)}')">${icon('pencil')}</button>
         </div>
       </div>
@@ -1405,6 +1407,15 @@ function _verhaalSectieHtml(ch, info) {
         : `<p class="dm-hint">Nog geen tekst. Lees een .md in of plak het hoofdstuk met het potlood.</p>`}
     </div>`;
 }
+
+// Het schrijfscherm leeft in een eigen module: het is groot, het heeft niets
+// met de rest van het logboek te maken, en het laadt pas als je het opent.
+window._akteSchrijf = async (ch) => {
+  const info = meta?.hoofdstukken?.[ch] || {};
+  const { openAkteSchrijven } = await import('./akte-schrijven.js?v=1');
+  openAkteSchrijven(ch, info.short || info.title || ch);
+};
+window._logboekVerversen = () => renderLogboek();
 
 window._verhaalToggle = (ch) => {
   if (_verhaalOpen.has(ch)) _verhaalOpen.delete(ch); else _verhaalOpen.add(ch);
