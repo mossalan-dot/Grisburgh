@@ -2055,11 +2055,36 @@ router.get('/markt', attachRole, (req, res) => {
   }
   winkels.sort((a, b) => a.naam.localeCompare(b.naam, 'nl', { sensitivity: 'base' }));
 
+  // Welke gebieden als filter getoond worden kiest de **DM**; hij weet welke
+  // indeling in zijn wereld betekenis heeft. `meta.markt.gebieden` is die
+  // keuze. Staat er niets, dan leidt de client hem af uit de ketens — zo werkt
+  // het meteen in een campagne waar niemand er nog naar gekeken heeft.
+  const gekozen = Array.isArray(meta.markt?.gebieden) ? meta.markt.gebieden : null;
+  // De keuzelijst voor de DM: alles wat ergens in een keten staat.
+  const alle = new Set();
+  for (const w of winkels) for (const g of (w.gebieden || [])) alle.add(g);
+
   res.json({
     winkels,
     beurs: _effectiveCurrency(dmState, req.session?.characterId),
     akte:  bereik.akte || null,
+    gebiedKeuze: gekozen,
+    ...(isDM ? { gebiedenBeschikbaar: [...alle].sort((a, b) => a.localeCompare(b, 'nl', { sensitivity: 'base' })) } : {}),
   });
+});
+
+// De DM kiest welke gebieden op de Markt als filter staan. Vrije tekst mag:
+// hij kan een gebied opschrijven dat nog nergens op een kaartje staat.
+router.put('/meta/markt', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  if (!meta.markt) meta.markt = {};
+  if (Array.isArray(req.body?.gebieden)) {
+    meta.markt.gebieden = req.body.gebieden
+      .map(g => String(g || '').trim()).filter(Boolean).slice(0, 40);
+  }
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(req.session?.campaignId || 'main').emit('meta:updated');
+  res.json({ ok: true, markt: meta.markt });
 });
 
 router.get('/shops/:shopId/uitverkocht', attachRole, (req, res) => {

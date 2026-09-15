@@ -556,6 +556,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Toegang per groep** (DM) — per dienst en per party zichtbaar/beschikbaar zetten; de speler ziet het verschil meteen
 - [ ] **Markt: de winkels** (ALL) — Diensten → Markt toont de winkels die je party kent; klikken opent het kaartje meteen op het winkeltabblad
 - [ ] **Markt: zoeken** (ALL) — zoek "potion of healing": je ziet alle winkels die hem hebben met hun prijs, goedkoopste bovenaan. Vragen ze allemaal hetzelfde, dan staat er géén *goedkoopst*
+- [ ] **Markt: gebied kiezen** (DM) — Meesterkamer → Diensten → Markt: vink *Grisburgh* en *Fort Adhmaid* aan; op de Markt staan dan precies die twee knoppen, in die volgorde. *Laat de app kiezen* zet het terug op automatisch
 - [ ] **Markt: gebied** (ALL) — de chip *Grisburgh* toont ook de winkels in Luimpoort en Kalkwijk; *Overal* zet het filter uit
 - [ ] **Markt: wat een speler niet ziet** (speler) — een winkel die deze party niet kent staat er niet; bij een voorwerp waarvan de party het kaartje niet kent staat wél naam en prijs, maar géén doorklik naar het kaartje
 - [ ] **Markt: wisselend assortiment** (speler) — een roterende winkel die je nog niet bezocht hebt zegt "kom langs om te zien wat er ligt" en stuurt geen voorraad mee (netwerktab)

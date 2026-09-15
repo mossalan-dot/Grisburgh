@@ -1,4 +1,4 @@
-import { api, huidigeCampagne } from './api.js?v=289';
+import { api, huidigeCampagne } from './api.js?v=290';
 import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=23';
 import { renderStatblock } from './render-statblock.js?v=9';
 
@@ -577,7 +577,7 @@ export function initDmPanel() {
 // Welke tabs zijn "gevecht & monsters"?
 const _GEVECHT_TABS = new Set(['gevecht', 'monsters', 'encounters']);
 // Welke tabs zijn "diensten"?
-const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'magizoo', 'toegang']);
+const _DIENSTEN_TABS = new Set(['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'heeren', 'facties', 'magizoo', 'markt', 'toegang']);
 // Welke tabs zijn "instellingen" (niet als tab getoond)?
 const _INSTELLINGEN_TABS = new Set(['campagnes', 'wereld', 'beurs', 'dobbelstenen']);
 
@@ -781,13 +781,14 @@ function _renderDiensten(subTab) {
     { key: 'tempel',    titel: 'De Tempel',          ic: 'church' },
     { key: 'facties',   titel: 'Facties & Aanzien',  ic: 'landmark' },
     { key: 'magizoo',   titel: 'De Magizoöloog',     ic: 'paw-print' },
+    { key: 'markt',     titel: 'Markt',              ic: 'store' },
     { key: 'toegang',   titel: 'Toegang per groep',  ic: 'lock', altijd: true },
   ].filter(d => d.altijd || !(window._verborgen?.secties || []).includes(d.key));
   el.querySelector('.dm-subtab-nav').innerHTML = _dienstNav.map(d => `
     <button class="dm-subtab-btn${_dienstenSubTab===d.key ?' active':''}" onclick="window.dmPanel.switchTab('${d.key}')" title="${esc(d.titel)}">${icon(d.ic, d.cls ? { cls: d.cls } : undefined)}</button>`).join('');
 
   // Gooi de legacy tab-content divs om naar sub-divs binnen #diensten
-  ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo','toegang'].forEach(name => {
+  ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo','markt','toegang'].forEach(name => {
     let legacy = document.querySelector(`.dm-tab-content[data-tab="${name}"]`);
     if (legacy && legacy.closest('.dm-tab-content[data-tab="diensten"]') == null) {
       el.appendChild(legacy);
@@ -795,7 +796,7 @@ function _renderDiensten(subTab) {
   });
 
   // Toon alleen de actieve subtab
-  ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo','toegang'].forEach(name => {
+  ['herberg','tweespalt','gock','ursula','tempel','facties','magizoo','markt','toegang'].forEach(name => {
     const div = el.querySelector('.dm-tab-content[data-tab="' + name + '"]');
     if (div) div.classList.toggle('active', name === _dienstenSubTab);
   });
@@ -807,6 +808,7 @@ function _renderDiensten(subTab) {
   if (_dienstenSubTab === 'tempel')    _renderTempelSettings();
   if (_dienstenSubTab === 'facties')   _renderFactiesSettings();
   if (_dienstenSubTab === 'magizoo')   _renderMagizooSettings();
+  if (_dienstenSubTab === 'markt')     _renderMarktSettings();
   if (_dienstenSubTab === 'toegang')   _renderDienstenToegang();
 };
 
@@ -5776,6 +5778,83 @@ window._gockSettingsSave = async () => {
 };
 
 // ── De Magizoöloog — DM-instellingen ──
+// ── Markt ───────────────────────────────────────────────────────────────────
+// Het enige dat hier in te stellen valt: welke gebieden op de Markt als filter
+// staan. Waar een winkel ligt volgt al uit het veld **Gebied** op zijn
+// locatiekaartje (dat naar een andere locatie wijst, dus er zit een keten in) —
+// maar welke laag van die keten betekenis heeft, weet alleen de DM. Alle wijken
+// van de stad als losse chip is zelden wat je wilt.
+async function _renderMarktSettings() {
+  const el = _tabEl('markt');
+  if (!el) return;
+  el.innerHTML = _dmLoading('Laden…');
+
+  let data;
+  try { data = await api.markt(); }
+  catch (e) { el.innerHTML = `<div class="dm-feature-section"><div class="dm-hint">Laden mislukt: ${esc(e.message)}</div></div>`; return; }
+
+  const beschikbaar = data.gebiedenBeschikbaar || [];
+  const gekozen = Array.isArray(data.gebiedKeuze) ? data.gebiedKeuze : null;
+  const perGebied = new Map();
+  for (const w of (data.winkels || [])) for (const g of (w.gebieden || [])) {
+    perGebied.set(g, (perGebied.get(g) || 0) + 1);
+  }
+
+  el.innerHTML = `
+    ${_dmTabHead({ icon: 'store', title: 'Markt',
+      sub: 'Alle winkels op één plek voor je spelers',
+      actions: helpBtn('dm_markt') })}
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Gebieden om op te filteren</div>
+      <p class="dm-hint">Vink aan welke gebieden je spelers als knop te zien krijgen.
+        Een winkel valt onder élk gebied boven zich, dus <em>Grisburgh</em> vangt ook
+        alles in Luimpoort. Vink je niets aan, dan bepaalt de app het zelf.</p>
+      <div class="dm-markt-gebieden">
+        ${beschikbaar.length ? beschikbaar.map(g => `
+          <label class="dm-markt-gebied">
+            <input type="checkbox" value="${esc(g)}" ${gekozen && gekozen.includes(g) ? 'checked' : ''}>
+            <span>${esc(g)}</span>
+            <span class="dm-hint">${perGebied.get(g) || 0}&times;</span>
+          </label>`).join('')
+        : '<p class="dm-hint">Nog geen gebieden — vul het veld <em>Gebied</em> in op de locatiekaartjes van je winkels.</p>'}
+      </div>
+      <div class="dm-feature-row">
+        <button class="dm-btn dm-btn-primary" onclick="window.dmPanel.marktGebiedenOpslaan()">${icon('save')} Opslaan</button>
+        <button class="dm-btn dm-btn-ghost" onclick="window.dmPanel.marktGebiedenLeeg()">Laat de app kiezen</button>
+      </div>
+    </div>
+
+    <div class="dm-feature-section">
+      <div class="dm-section-label">Winkels die de Markt vindt</div>
+      <p class="dm-hint">Afgeleid: elke locatie of verkoper met een voorraad. De keten erachter
+        komt uit het veld <em>Gebied</em>; wijst dat naar zichzelf, dan stopt hij daar.</p>
+      <div class="dm-markt-winkels">
+        ${(data.winkels || []).map(w => `
+          <div class="dm-feature-row-sm">
+            <span class="dm-markt-winkel-naam">${esc(w.naam)}</span>
+            <span class="dm-hint">${(w.gebieden || []).join(' \u203a ') || 'geen gebied ingevuld'}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+window.dmPanel = window.dmPanel || {};
+window.dmPanel.marktGebiedenOpslaan = async () => {
+  const el = _tabEl('markt');
+  const gekozen = [...el.querySelectorAll('.dm-markt-gebied input:checked')].map(i => i.value);
+  try {
+    await api.zetMarktGebieden(gekozen);
+    window._showToast?.(gekozen.length ? `${gekozen.length} gebied(en) bewaard` : 'Geen gebieden gekozen — de app bepaalt het zelf');
+    await _renderMarktSettings();
+  } catch (e) { alert('Opslaan mislukt: ' + e.message); }
+};
+window.dmPanel.marktGebiedenLeeg = async () => {
+  const el = _tabEl('markt');
+  el.querySelectorAll('.dm-markt-gebied input').forEach(i => { i.checked = false; });
+  await window.dmPanel.marktGebiedenOpslaan();
+};
+
 async function _renderMagizooSettings() {
   const el = _tabEl('magizoo');
   if (!el) return;

@@ -25711,3 +25711,15 @@ body.lade-open .dm-regie-balk-inner { height: auto; }
   font-family: 'Crimson Text', serif; font-size: 0.72rem;
   opacity: .65; font-variant-numeric: tabular-nums;
 }
+
+/* Markt-instellingen in de Meesterkamer */
+.dm-markt-gebieden { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
+.dm-markt-gebied {
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  background: rgba(255,255,255,0.45); border: 1px solid rgba(160,130,80,0.35);
+  border-radius: 7px; padding: 6px 12px; color: #3a2410; font-size: 0.86rem;
+}
+.dm-markt-gebied:hover { border-color: rgba(160,130,80,0.7); }
+.dm-markt-gebied input { accent-color: #8a6a2a; }
+.dm-markt-winkels { display: flex; flex-direction: column; gap: 2px; }
+.dm-markt-winkel-naam { min-width: 220px; color: #3a2410; }

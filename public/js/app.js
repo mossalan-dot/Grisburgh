@@ -1,4 +1,4 @@
-import { api, campagneUitUrl, zetCampagne } from './api.js?v=289';
+import { api, campagneUitUrl, zetCampagne } from './api.js?v=290';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=307";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=127";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=73";
-import { initDmPanel } from "./dm-panel.js?v=252";
+import { initDmPanel } from "./dm-panel.js?v=254";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE } from './conditions.js?v=1';
 import './media-picker.js?v=8';
 
@@ -10785,24 +10785,36 @@ window._marktZoek = (v) => { _marktZoek = v; _marktTeken(); };
 // wat in Luimpoort ligt. Het laatste lid dekt alle winkels (bij ons
 // "Continent") en is dus geen keuze; die gaat eruit.
 function _marktGebiedBalk(winkels) {
+  // **De DM kiest welke gebieden hier staan** (Meesterkamer → Diensten → Markt).
+  // Hij weet welke indeling in zijn wereld betekenis heeft; alle wijken van de
+  // stad als aparte chip is zelden wat je wilt. Heeft hij niets gekozen, dan
+  // leiden we ze af uit de ketens — dan werkt het meteen, en zie je meteen
+  // welke namen er te kiezen vallen.
+  const keuze = _marktData?.gebiedKeuze;
   const telling = new Map();
+  const tel = (g) => {
+    if (!telling.has(g)) telling.set(g, { naam: g, n: 0 });
+    telling.get(g).n++;
+  };
   for (const w of winkels) {
     const keten = w.gebieden || [];
-    // Het laatste lid van een kéten dekt alle winkels ("Continent") en is dus
-    // geen keuze. Maar een keten van één lid is geen keten: dat is gewoon het
-    // gebied waar die winkel in ligt, en die moet wél te kiezen zijn — anders
-    // valt Stoom en Staal (de grootste winkel) buiten elk filter.
-    const bruikbaar = keten.length > 1 ? keten.slice(0, -1) : keten;
-    for (const g of bruikbaar) {
-      if (!telling.has(g)) telling.set(g, { naam: g, n: 0 });
-      telling.get(g).n++;
+    if (Array.isArray(keuze)) {
+      for (const g of keuze) if (keten.includes(g)) tel(g);
+    } else {
+      // Het laatste lid van een kéten dekt alle winkels ("Continent") en is dus
+      // geen keuze. Maar een keten van één lid is geen keten: dat is gewoon het
+      // gebied waar die winkel in ligt, en die moet wél te kiezen zijn — anders
+      // valt Stoom en Staal (de grootste winkel) buiten elk filter.
+      for (const g of (keten.length > 1 ? keten.slice(0, -1) : keten)) tel(g);
     }
   }
-  // Breed vóór smal, en "breed" is gewoon: dekt meer winkels. Grisburgh (6) komt
-  // zo vanzelf boven Luimpoort (3), zonder over de diepte van de keten te
-  // hoeven redeneren — die klopt niet overal (zie de losse gebieden hieronder).
-  const gebieden = [...telling.values()]
-    .sort((a, b) => b.n - a.n || a.naam.localeCompare(b.naam, 'nl', { sensitivity: 'base' }));
+  // Heeft de DM gekozen, dan is zijn volgorde de volgorde — dat is een
+  // redactionele keuze. Anders: breed vóór smal, en "breed" is gewoon "dekt
+  // meer winkels", zodat Grisburgh (6) boven Luimpoort (3) komt.
+  const gebieden = Array.isArray(keuze)
+    ? keuze.filter(g => telling.has(g)).map(g => telling.get(g))
+    : [...telling.values()]
+        .sort((a, b) => b.n - a.n || a.naam.localeCompare(b.naam, 'nl', { sensitivity: 'base' }));
   if (gebieden.length < 2) return '';
   const chip = (naam, label, n) => `<button class="markt-chip${_marktGebied === naam ? ' markt-chip--aan' : ''}"
     onclick="window._marktGebiedKies('${escJS(naam)}')">${esc(label)}${n != null ? ` <span class="markt-chip-tel">${n}</span>` : ''}</button>`;

@@ -532,16 +532,20 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 >    winkel die ze kunnen zien, en een verborgen winkel verdwijnt compleet —
 >    inclusief zijn regel voor datzelfde voorwerp.
 >
-> **Filteren op gebied is afgeleid, niet ingesteld.** Het veld *Gebied*
-> (`data.wijk`) op een locatiekaartje wijst naar een ándere locatie, dus er zit
-> een keten in: Boekenwyrm › Luimpoort › Grisburgh › Continent
-> (`_gebiedKeten()`). Een winkel valt onder élk lid van die keten, dus
-> "Grisburgh" vangt ook alles in Luimpoort. Het laatste lid dekt alle winkels en
-> is dus geen keuze — tenzij de keten maar één lid lang is, want dan ís dat het
-> gebied. De chips staan op aantal winkels, breed vóór smal.
-> **Let op twee gebroken ketens in Grisburgh:** *Oosterkwartier* en *Het Oude
-> Glasblazershuis* hebben zichzelf als Gebied, dus die komen nooit bij Grisburgh
-> uit. Te repareren op het locatiekaartje, veld *Gebied*.
+> **Filteren op gebied: de DM kiest, de app leidt af.** Waar een winkel ligt
+> volgt uit het veld *Gebied* (`data.wijk`) op zijn locatiekaartje, dat naar een
+> **ándere locatie** wijst — dus er zit een keten in: Boekenwyrm › Luimpoort ›
+> Grisburgh › Continent (`_gebiedKeten()`, met lusbeveiliging). Een winkel valt
+> onder élk lid van die keten, dus "Grisburgh" vangt ook alles in Luimpoort.
+> **Welke laag van die keten betekenis heeft, weet alleen de DM**: alle wijken
+> van de stad als losse knop is zelden wat je wilt. Hij vinkt ze daarom aan in
+> **Meesterkamer → Diensten → Markt** (`meta.markt.gebieden`, `PUT /meta/markt`);
+> zijn volgorde is de volgorde op het scherm, want dat is een redactionele keuze.
+> Staat er niets, dan leidt de client ze af uit de ketens en sorteert op aantal
+> winkels — zo werkt het meteen in een campagne waar niemand er nog naar keek.
+> Datzelfde scherm toont onderaan de keten per winkel, en dáármee zie je je eigen
+> data: in Grisburgh hebben *Oosterkwartier* en *Het Oude Glasblazershuis*
+> **zichzelf** als Gebied, dus die twee komen nooit onder Grisburgh uit.
 >
 > **Nog open (stap 3 en 4 uit `docs/voorstel-markt.md`):** een boodschappenlijst
 > over winkels heen, en één DM-tabel om voorraad en prijzen bij te stellen.
