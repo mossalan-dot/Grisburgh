@@ -1,6 +1,6 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=286';
 import { initCampagne, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=305";
-import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=112";
+import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=114";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=31';
 import { renderDungeon } from './render-dungeon.js?v=54';
 import { renderRelatiemap } from './render-relatiemap.js?v=26';
@@ -10,7 +10,7 @@ import { renderSpreuken } from './render-spreuken.js?v=40';
 import { renderVaardigheden } from './render-vaardigheden.js?v=7';
 import { renderStatblock } from './render-statblock.js?v=9';
 import { initSocket } from "./socket-client.js?v=73";
-import { initDmPanel } from "./dm-panel.js?v=240";
+import { initDmPanel } from "./dm-panel.js?v=241";
 import './media-picker.js?v=8';
 
 // ── Icon helper ──

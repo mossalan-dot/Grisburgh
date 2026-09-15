@@ -281,6 +281,46 @@ voor als we eraan toe zijn:
 
 ---
 
+## Wat de UX-ronde opleverde (15 sep)
+
+Na het bouwen één keer de hele weg gelopen als DM. Drie dingen meteen recht
+gezet, vier vragen blijven staan.
+
+**Rechtgezet**
+
+- **Schrijven zat twee niveaus diep** (Meesterkamer → Aktes → uitklappen →
+  scrollen). De ganzenveer staat nu op de akte-rij zelf, naast spelen,
+  bewerken en zichtbaarheid.
+- **Het Verhaal-blok dumpte het hele hoofdstuk half gerenderd** in een tab die
+  al vol staat: hekjes van diepe koppen, ruwe tabelregels, zesentwintig
+  gebroken beeldverwijzingen. Nu een regel met feiten — secties, regieblokken,
+  woorden, namen zonder kaartje, **beelden zonder bestand** — plus de knop.
+  Lezen doe je in het schrijfscherm of in de lade.
+- **Drie ingangen naar dezelfde tekst** (ganzenveer, "snel bijwerken" in een
+  tekstvak, een losse bestandskiezer). De laatste twee zijn weg; importeren en
+  exporteren zitten in het schrijfscherm.
+
+**Blijft staan, als keuze**
+
+1. **Twee speelplekken.** Het schrijfscherm heeft een stand *Spelen* en de lade
+   toont hetzelfde met dezelfde knoppen. Handig om te proberen, maar het nodigt
+   ook uit om tijdens het voorbereiden iets te onthullen. Alternatief: in het
+   schrijfscherm alleen kijken (met de potloden), en de échte knoppen alleen in
+   de lade.
+2. **De oude scriptstrook blijft onder elke akte staan**, ook als er tekst is.
+   Dat is bewust tijdens de overgang, maar het leest als dubbel werk. Zodra een
+   akte tekst heeft zou die lijst dichtgeklapt kunnen beginnen.
+3. **Lade plus balk nemen samen ruim de helft van het scherm.** Op een klein
+   laptopscherm blijft er een strook app over. De balk zou zijn stappenstrook
+   kunnen verbergen zodra de lade openstaat — die stappen staan dan toch in de
+   tekst.
+4. **Onthullen heeft geen weg terug in de tekst.** Na één klik verdwijnen de
+   knoppen; terugdraaien doe je op het kaartje zelf. Dat is verdedigbaar (je
+   onthult zelden per ongeluk) maar het is wél de enige onomkeerbare knop in
+   het scherm.
+
+---
+
 ## Risico's, eerlijk
 
 - **Het meta-lek hierboven.** Tekst en script horen niet in `GET /meta`. Ze

@@ -1354,62 +1354,44 @@ function _renderAkteScript(ch, info, chEntries) {
 const _verhaalOpen = new Set();     // welke aktes staan in bewerk-stand
 const _verhaalNamen = {};           // ch → namenlijst van de server
 
+// Het Verhaal-blok in de Aktes-tab. Dit was de hele tekst, half gerenderd:
+// hekjes van diepe koppen, ruwe tabelregels en zesentwintig gebroken
+// beeldverwijzingen in een tab die al vol staat. Wat je hier wilt weten is of
+// er iets ligt en of er werk aan is — lezen doe je in het schrijfscherm of in
+// de lade. Vandaar een samenvatting plus één knop.
 function _verhaalSectieHtml(ch, info) {
   const tekst  = info.tekst || '';
-  const bewerk = _verhaalOpen.has(ch);
   const namen  = _verhaalNamen[ch];
-
-  const namenHtml = namen === undefined
-    ? (tekst ? '<p class="dm-hint">Namen ophalen…</p>' : '')
-    : !namen.length
-      ? '<p class="dm-hint">Geen [[namen]] in deze tekst.</p>'
-      : `<div class="verhaal-namen">${namen.map(n => `
-          <span class="verhaal-naam${n.kaartje ? '' : ' verhaal-naam--geen'}${n.nieuw ? ' verhaal-naam--nieuw' : ''}">
-            ${n.kaartje
-              ? `<button class="verhaal-naam-knop" onclick="window._openDetail('${esc(n.entityType)}','${esc(n.entityId)}')" title="Kaartje openen">${esc(n.naam)}</button>`
-              : `<span class="verhaal-naam-tekst">${esc(n.naam)}</span>
-                 <select class="verhaal-naam-maak" title="Kaartje aanmaken als…"
-                   onchange="window._verhaalMaakKaartje('${esc(ch)}','${esc(n.naam)}', this.value)">
-                   <option value="">+</option>
-                   <option value="personages">Personage</option>
-                   <option value="locaties">Locatie</option>
-                   <option value="organisaties">Organisatie</option>
-                   <option value="voorwerpen">Voorwerp</option>
-                 </select>`}
-            <span class="verhaal-naam-tag">${n.nieuw ? 'nieuw' : 'terug'}</span>
-          </span>`).join('')}</div>`;
+  const zonder = Array.isArray(namen) ? namen.filter(n => !n.kaartje).length : null;
+  const secties = (tekst.match(/^#{1,6}\s+/gm) || []).length;
+  const blokken = (tekst.match(/^>\s*\[!/gm) || []).length;
+  const woorden = tekst ? tekst.trim().split(/\s+/).length : 0;
+  // Een `![[naam.png]]` uit een vault heeft bij ons nog geen bestand. Dat merk
+  // je anders pas aan tafel, als het beeld een leeg kader blijkt.
+  const losseBeelden = (tekst.match(/!\[\[([^\]]+)\]\]/g) || [])
+    .filter(v => /\.[a-z0-9]{2,4}\]\]$/i.test(v)).length;
 
   return `
     <div class="logboek-verhaal" id="logboek-verhaal-${esc(ch)}">
       <div class="logboek-script-header">
         <span class="logboek-script-title">${icon('book-open')} Verhaal</span>
         <div class="logboek-script-add-btns">
-          <label class="script-add-btn" title="Markdown-bestand inlezen">
-            ${icon('folder-open')}
-            <input type="file" accept=".md,text/markdown,text/plain" style="display:none"
-              onchange="window._verhaalUpload('${esc(ch)}', this.files[0], this)">
-          </label>
-          <button class="script-add-btn" title="Schrijven — volledig scherm, met secties en regieblokken"
+          <button class="script-add-btn" title="Schrijven — de tekst van deze akte"
             onclick="window._akteSchrijf('${esc(ch)}')">${icon('feather')}</button>
-          <button class="script-add-btn${bewerk ? ' is-active' : ''}" title="${bewerk ? 'Bewerken sluiten' : 'Snel bijwerken in een tekstvak'}"
-            onclick="window._verhaalToggle('${esc(ch)}')">${icon('pencil')}</button>
         </div>
       </div>
-      ${bewerk ? `
-        <textarea class="verhaal-editor" id="verhaal-ta-${esc(ch)}"
-          placeholder="Plak hier het hoofdstuk. Verwijs naar kaartjes met [[Naam]].">${esc(tekst)}</textarea>
-        <div class="dm-feature-row" style="margin-top:6px">
-          <button class="dm-btn dm-btn-primary dm-btn-sm" onclick="window._verhaalOpslaan('${esc(ch)}')">${icon('save')} Opslaan</button>
-          <button class="dm-btn dm-btn-ghost dm-btn-sm" onclick="window._verhaalToggle('${esc(ch)}')">${icon('x')}</button>
-        </div>
-      ` : tekst
-        ? `<div class="verhaal-tekst">${mdToHtml(tekst)}</div>${namenHtml}`
-        : `<p class="dm-hint">Nog geen tekst. Lees een .md in of plak het hoofdstuk met het potlood.</p>`}
+      ${tekst ? `
+        <div class="verhaal-samenvatting">
+          <span>${icon('scroll-text')} ${secties} ${secties === 1 ? 'sectie' : 'secties'}</span>
+          <span>${icon('quote')} ${blokken} ${blokken === 1 ? 'regieblok' : 'regieblokken'}</span>
+          <span>${icon('book-open')} ${woorden.toLocaleString('nl-NL')} woorden</span>
+          ${zonder ? `<span class="verhaal-samenvatting--let-op">${icon('users')} ${zonder} ${zonder === 1 ? 'naam' : 'namen'} zonder kaartje</span>` : ''}
+          ${losseBeelden ? `<span class="verhaal-samenvatting--let-op">${icon('image')} ${losseBeelden} ${losseBeelden === 1 ? 'beeld' : 'beelden'} zonder bestand</span>` : ''}
+        </div>`
+        : `<p class="dm-hint">Nog geen tekst. Schrijf hem met de ganzenveer, of importeer een .md-bestand daarbinnen.</p>`}
     </div>`;
 }
 
-// Het schrijfscherm leeft in een eigen module: het is groot, het heeft niets
-// met de rest van het logboek te maken, en het laadt pas als je het opent.
 window._akteSchrijf = async (ch) => {
   const info = meta?.hoofdstukken?.[ch] || {};
   const { openAkteSchrijven } = await import('./akte-schrijven.js?v=19');
@@ -1417,39 +1399,9 @@ window._akteSchrijf = async (ch) => {
 };
 window._logboekVerversen = () => renderLogboek();
 
-window._verhaalToggle = (ch) => {
-  if (_verhaalOpen.has(ch)) _verhaalOpen.delete(ch); else _verhaalOpen.add(ch);
-  _refreshScriptSection(ch);
-};
-
-window._verhaalOpslaan = async (ch) => {
-  const ta = document.getElementById(`verhaal-ta-${ch}`);
-  if (!ta) return;
-  await _verhaalBewaar(ch, ta.value);
-  _verhaalOpen.delete(ch);
-  _refreshScriptSection(ch);
-};
-
-window._verhaalUpload = async (ch, file, invoer) => {
-  if (!file) return;
-  // De browser leest het bestand; de server krijgt gewoon tekst binnen. Zo is er
-  // geen aparte upload-route nodig en zie je meteen wat erin staat.
-  const tekst = await file.text();
-  await _verhaalBewaar(ch, tekst);
-  if (invoer) invoer.value = '';
-  _refreshScriptSection(ch);
-};
-
-async function _verhaalBewaar(ch, tekst) {
-  try {
-    await api.saveAkteTekst(ch, tekst);
-    if (!meta.hoofdstukken) meta.hoofdstukken = {};
-    if (!meta.hoofdstukken[ch]) meta.hoofdstukken[ch] = {};
-    meta.hoofdstukken[ch].tekst = tekst;
-    delete _verhaalNamen[ch];
-    _verhaalLaadNamen(ch);
-  } catch (e) { alert('Opslaan mislukt: ' + e.message); }
-}
+// Het tekstvak-in-de-tab en de losse bestandskiezer zijn weg: schrijven,
+// importeren en exporteren zitten allemaal in het schrijfscherm. Drie ingangen
+// naar dezelfde tekst is er twee te veel — en de twee die weggaan konden minder.
 
 async function _verhaalLaadNamen(ch) {
   try {

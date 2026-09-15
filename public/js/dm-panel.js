@@ -899,6 +899,9 @@ async function _renderAktes(preserveScroll = false) {
               </div>
               <div class="dm-akte-actions">
                 <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window.dmPanel.akteSpeel('${esc(ch)}')" title="Speel akte — laad de regie-balk">${icon('play')}</button>
+                <!-- Schrijven is sinds de akte-tekst de meest gebruikte actie op
+                     deze rij; hij zat twee niveaus diep (uitklappen, scrollen). -->
+                <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window._akteSchrijf('${esc(ch)}')" title="Schrijven — de tekst van deze akte">${icon('feather')}</button>
                 <button class="dm-btn dm-btn-sm dm-btn-icon" onclick="window.dmPanel.akteBewerk('${esc(ch)}')" title="Akte bewerken (titel, banner, samenvatting)">${icon('pencil')}</button>
                 ${grp ? `<button class="dm-btn dm-btn-sm dm-btn-icon${hidden ? ' dm-btn-danger-sm' : ''}"
                   onclick="window.dmPanel.akteVisToggle('${esc(ch)}',${hidden})"

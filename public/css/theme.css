@@ -25410,3 +25410,14 @@ body.kaart-fs-active .dng-topbar { padding-right: 14px; }
   border: 1px solid #c4a87a; border-radius: 6px; box-shadow: 0 8px 26px rgba(40,25,5,0.3);
 }
 .akte-bestand-menu .akte-invoeg-item { cursor: pointer; }
+
+/* Samenvatting van de verhaaltekst in de Aktes-tab: staat er iets, en is er
+   werk aan? Lezen doe je in het schrijfscherm of in de lade. */
+.verhaal-samenvatting {
+  display: flex; flex-wrap: wrap; gap: 14px; padding: 4px 2px 2px;
+  font-family: 'Crimson Text', Georgia, serif; font-size: 13px; color: #6a5030;
+}
+.verhaal-samenvatting span { display: inline-flex; align-items: center; gap: 5px; }
+.verhaal-samenvatting .icon { width: 14px; height: 14px; opacity: .75; }
+.verhaal-samenvatting--let-op { color: #8a2a10; }
+.verhaal-samenvatting--let-op .icon { opacity: 1; }

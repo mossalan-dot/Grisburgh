@@ -443,6 +443,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] De kop van het schrijfscherm: *Namen* met het aantal namen zonder kaartje, *Tekst en beeld*, *Spelen*, *⋯* (importeren/exporteren), hulpknop, sluiten — en nergens uitleg ónder een knop
 - [ ] *Exporteren* levert een `.md`-bestand met de naam van de akte
 - [ ] Importeer een akte via de Meesterkamer → de verhaaltekst van die akte is meteen gevuld (en bij *aanvullen* blijft bestaande tekst staan)
+- [ ] Aktes-tab: elke akte-rij heeft ▷ spelen, ✒ schrijven, ✎ bewerken, 👁 zichtbaarheid
+- [ ] Het Verhaal-blok toont één regel feiten (secties, regieblokken, woorden, namen zonder kaartje, beelden zonder bestand) — niet de hele tekst
+- [ ] Er is nog maar één ingang naar de tekst: de ganzenveer (het oude tekstvak en de losse bestandskiezer zijn weg)
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen
