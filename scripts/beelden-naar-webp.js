@@ -88,7 +88,9 @@ const thumbs  = path.join(basis, 'thumbs');
   }
   const mb = b => (b / 1048576).toFixed(0);
   console.log(`  omgezet: ${om}  ·  overgeslagen (werd niet kleiner): ${over}  ·  mislukt: ${mis}  ·  teruggeschaald: ${geschaald}`);
-  console.log(`  ${mb(voor)} MB → ${mb(na)} MB   (${Math.round(100 - na / voor * 100)}% kleiner)`);
+  // Zonder beelden is er niets te delen; "NaN% kleiner" leest als een fout.
+  if (voor === 0) console.log('  Geen om te zetten beelden in deze campagne.');
+  else console.log(`  ${mb(voor)} MB → ${mb(na)} MB   (${Math.round(100 - na / voor * 100)}% kleiner)`);
   if (schrijf) console.log(`  originelen staan in ${bewaar}`);
   else console.log('  Draai opnieuw met --schrijf om het echt te doen.');
 })();
