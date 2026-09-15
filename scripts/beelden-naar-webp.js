@@ -78,9 +78,14 @@ const thumbs  = path.join(basis, 'thumbs');
     if (Math.max(meta.width || 0, meta.height || 0) > MAX_PX) geschaald++;
     na += buf.length; om++;
     if (schrijf) {
-      const id   = naam.slice(0, naam.lastIndexOf('.'));
-      fs.renameSync(bron, path.join(bewaar, naam));
+      const id = naam.slice(0, naam.lastIndexOf('.'));
+      // Eerst schrijven, dán het origineel weghalen. Andersom is er een moment
+      // waarop er géén bestand voor dit id bestaat, en dit script draait tegen
+      // een app die ondertussen gewoon beelden uitserveert. In het tussenmoment
+      // staan er twee; `getFile()` zoekt op het id-deel en vindt er dan één van
+      // de twee — allebei een geldig beeld.
       fs.writeFileSync(path.join(filesDir, `${id}.webp`), buf);
+      if (naam !== `${id}.webp`) fs.renameSync(bron, path.join(bewaar, naam));
       for (const t of [`${id}.webp`, `${id}.w1200.webp`, `${id}.waas.webp`]) {
         try { fs.unlinkSync(path.join(thumbs, t)); } catch {}
       }

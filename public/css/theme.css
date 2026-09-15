@@ -22818,8 +22818,13 @@ body.boot > *:not(#landing-overlay):not(script) { visibility: hidden; }
     position: absolute; top: 12px; right: 14px; left: auto;
     margin: 0; padding: 0;
   }
+  /* En zodra hij over de volle breedte openklapt, ligt hij ook over de wég
+     terug — die staat linksboven op precies dezelfde hoogte. Allebei
+     z-index 2, en `.landing-terug` staat verderop in dit bestand, dus die won:
+     je las "‹ Andere campagne" dwars door het wachtwoordveld heen. Het veld
+     zakt daarom onder die regel. */
   .landing-toegang:has(.landing-toegang-form:not(.hidden)) {
-    left: 12px; right: 12px; align-items: stretch;
+    left: 12px; right: 12px; top: 42px; align-items: stretch;
   }
   .landing-toegang-knop { align-self: flex-end; white-space: nowrap; }
   .landing-toegang-form { align-items: stretch; }
