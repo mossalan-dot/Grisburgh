@@ -502,6 +502,24 @@ dm-panel.js : combat-canvas.js?v=22   render-statblock.js?v=9
 > kaartjes-kiezer heeft dezelfde uitweg (*Nieuw kaartje met de getypte naam*).
 > De plus hangt aan `_potloden` (voorbereiden), de oogjes aan `_acties` (spelen).
 >
+> **Een naam zonder kaartje krijgt óók in de dungeon een plus.** De aantekening
+> van de DM in de kamerzijbalk (`room.dmNotes`) ging als platte tekst door
+> `esc()`; hij gaat nu door `mdToHtml()` (`_notitieHtml` in
+> `render-dungeon.js`) en een `[[naam]]` die nog geen kaartje heeft krijgt
+> dezelfde plus als in een akte — `window._dngMaakKaartje` leent
+> `akteSchrijven.maakPlaceholder()`. Eén weg naar een plaatshouder, twee plekken
+> waar je hem nodig hebt.
+>
+> **De regie-balk zegt wat er nog ligt.** Bij het openen van een akte telt
+> `_loadRegieBalk` namen zonder kaartje + lege kaartjes + beelden zonder bestand
+> en zet dat als één knop in de kop (`.dm-rb-nakijken`, "31 na te kijken") die
+> `window._akteNakijken(ch)` opent. Bewust een regel in de balk en geen venster
+> dat opengaat: je ziet het op het moment dat je de akte opent, en je klikt
+> erop wanneer jij dat wil. Let op dat `_akteNakijken` zijn tekst **vers**
+> ophaalt (`api.akteRegie`): vanuit de balk is de module-`meta` van
+> `render-archief.js` nog nooit gevuld, en dan telde het venster nul beelden
+> terwijl de balk er zevenentwintig zag.
+
 > **Voorbereiden en spelen zijn twee dingen.** In het schrijfscherm staan géén
 > onthulknoppen (wel de potloden om een blok bij te stellen): daar kijk je. De
 > échte knoppen — onthullen, beeld tonen, gevecht starten — zitten in de lade.

@@ -460,6 +460,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Bewaar dat kaartje in de editor → de rand en de chip verdwijnen
 - [ ] Akte-samenvatting: de knop **N na te kijken** opent een lijst met namen zonder kaartje, lege kaartjes en beelden zonder bestand
 - [ ] In die lijst: *Invullen* opent de editor, het vinkje haalt het kaartje uit de lijst zonder te openen, de keuzelijst maakt een kaartje voor een losse naam
+- [ ] Open een akte met openstaand werk in de regie-balk → in de kop staat **N na te kijken**; klikken opent diezelfde lijst, en de drie aantallen daarin tellen op tot N
+- [ ] Een dungeonkamer met een DM-aantekening die `[[Naam]]` noemt: de naam is opgemaakt (geen blokhaken meer), en bestaat het kaartje niet, dan staat er een groene **+** die er een leeg kaartje van maakt
 - [ ] **Kaartengalerij** (ALL) — hoofdkaarten en dungeons als kaartjes, plus-knop voor de DM
 - [ ] **Wereldkaart** (ALL) — zoomen met wiel en knoppen, pannen, pins openen de locatie; een speler stelt een pin voor en de DM keurt goed
 - [ ] **Knoppenbalk over de kaart** (ALL) — open een hoofdkaart: de zoombalk zweeft óver het beeld en de kaart past in één keer helemaal in het venster (geen afgebroken onderkant). *Passend maken* doet hetzelfde na in- of uitzoomen

@@ -133,6 +133,13 @@ window._dngNaarVerdieping = (mapId, roomId) => {
 // ──────────────────────────────────────────────────────────────────
 // Public entry point
 // ──────────────────────────────────────────────────────────────────
+// Een kaartje aanmaken vanuit een kameraantekening. Leent de plaatshouder-
+// kiezer van het schrijfscherm: een plaatshouder ontstaat op een plek.
+window._dngMaakKaartje = async (naam) => {
+  await import('./akte-schrijven.js?v=24');
+  window.akteSchrijven?.maakPlaceholder?.(naam);
+};
+
 export async function renderDungeon(container, openId) {
   _maps = await api.listDungeons();
   await _laadVondsten();
@@ -1059,6 +1066,19 @@ function _renderSidebar(room) {
       </div>
     </div>` : '';
 
+  // De aantekening bij een kamer is gewone tekst, maar je noemt er namen in —
+  // "hier wacht [[Iridan Rogarr]]". Die worden klikbaar, en een naam zonder
+  // kaartje krijgt een plus om hem ter plekke aan te maken. Zelfde afspraak als
+  // in een akte: je bent aan het voorbereiden, niet aan het administreren.
+  const _notitieHtml = (tekst) => {
+    const html = window.app?.mdToHtml?.(String(tekst || '')) ?? esc(tekst).replace(/\n/g, '<br>');
+    if (!isDM()) return html;
+    return html.replace(/<span class="wikilink-unknown">\[\[([^<\]]+)\]\]<\/span>/g, (heel, naam) =>
+      `<span class="akte-link akte-link--nieuw">${heel}<button class="akte-act akte-act--nieuw"
+         title="Kaartje aanmaken"
+         onclick="window._dngMaakKaartje('${esc(naam).replace(/'/g, String.fromCharCode(92) + "'")}')">${icon('plus')}</button></span>`);
+  };
+
   // De kop: naam met de verdieping erachter (je kijkt vaak naar twee kamers met
   // dezelfde naam op twee lagen), en het onthullen als oogje ernaast in plaats
   // van een balk over de volle breedte. Daaronder de aantekening van de DM —
@@ -1073,7 +1093,7 @@ function _renderSidebar(room) {
           ? `<button class="dng-sb-oog" id="dng-reveal-btn" title="Onthullen voor ${esc(groupId)}">${icon('eye')}</button>`
           : `<button class="dng-sb-oog dng-sb-oog--aan" id="dng-hide-btn" title="Verbergen voor ${esc(groupId)}">${icon('moon')}</button>`}
       </div>
-      ${room.dmNotes ? `<div class="dng-sb-notes">${esc(room.dmNotes).replace(/\n/g,'<br>')}</div>` : ''}
+      ${room.dmNotes ? `<div class="dng-sb-notes">${_notitieHtml(room.dmNotes)}</div>` : ''}
       <div class="dng-sb-actions dng-sb-actions--rij">
         <button class="dng-btn dng-btn-sm" id="dng-edit-room-btn">${icon('pencil')} Bewerken</button>
         <button class="dng-btn dng-btn-sm dng-btn-danger dng-btn-icoon" id="dng-delete-room-btn"

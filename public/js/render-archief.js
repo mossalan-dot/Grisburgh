@@ -1403,7 +1403,11 @@ function _verhaalSectieHtml(ch, info) {
 // hoek van het scherm: dit hoort bij het voorbereiden, niet bij het spelen.
 window._akteNakijken = async (ch) => {
   const info  = meta?.hoofdstukken?.[ch] || {};
-  const tekst = info.tekst || '';
+  // De tekst vers ophalen: dit venster gaat ook open vanuit de regie-balk, en
+  // dan is de module-`meta` van het archief nog nooit gevuld — je zag dan nul
+  // beelden zonder bestand terwijl de balk er zevenentwintig telde.
+  let tekst = info.tekst || '';
+  if (!tekst) { try { tekst = (await api.akteRegie(ch))?.tekst || ''; } catch { /* dan maar zonder */ } }
   let namen = _verhaalNamen[ch];
   if (namen === undefined) {
     try { namen = (await api.akteNamen(ch)).namen || []; _verhaalNamen[ch] = namen; } catch { namen = []; }

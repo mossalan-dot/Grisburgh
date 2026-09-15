@@ -1929,6 +1929,21 @@ async function _loadRegieBalk(chapterKey, chapterTitle) {
   _renderRegieBalk();
   // Ambiance-scènes voor de snelknop in de balk laden, dan opnieuw renderen.
   _refreshAmbCache().then(() => _renderRegieBalk());
+  // Wat staat er nog open in deze akte? Eén regel in de balk, geen venster dat
+  // het spel ophoudt: je ziet het op het moment dat je hem opent, en je klikt
+  // erop als je er iets mee wilt.
+  _rbNakijken = 0;
+  api.akteNamen(chapterKey)
+    .then(r => {
+      if (_rbChapter !== chapterKey) return;
+      const namen = r?.namen || [];
+      const tekst = window.app?.state?.meta?.hoofdstukken?.[chapterKey]?.tekst || '';
+      const beelden = new Set((tekst.match(/!\[\[([^\]]+)\]\]/g) || [])
+        .map(v => v.slice(3, -2)).filter(v => /\.[a-z0-9]{2,4}$/i.test(v)));
+      _rbNakijken = namen.filter(n => !n.kaartje).length + namen.filter(n => n.concept).length + beelden.size;
+      _renderRegieBalk();
+    })
+    .catch(() => {});
 
   try {
     // Haal verse meta én archief parallel op
@@ -2168,6 +2183,8 @@ function _renderRegieBalk() {
       <div class="dm-regie-balk-header">
         <div class="dm-regie-balk-header-left">
           <span class="dm-regie-balk-akte-label">${icon('clipboard-list')} ${esc(_rbTitle)}</span>
+          ${_rbNakijken ? `<button class="dm-rb-nakijken" onclick="window._akteNakijken('${esc(_rbChapter)}')"
+            title="Wat er nog te doen is in deze akte">${icon('clipboard-list')} ${_rbNakijken} na te kijken</button>` : ''}
           ${totalCount > 0 ? `<button class="dm-rb-progress dm-rb-progress--btn" onclick="window.dmPanel.regieBalkRevealNext()" title="Volgende onthullen" ${revealedCount >= totalCount ? 'disabled' : ''}>${revealedCount}/${totalCount} ${icon('chevron-right')}</button>` : ''}
           <div class="dm-regie-balk-filters">
             ${FILTER_TABS.map(t => `
@@ -2243,6 +2260,7 @@ function _renderRegieBalk() {
 // Bewust onderin en niet ernaast: een zijpaneel duwt de app in zijn smalle
 // indeling, en je kijkt tijdens het spelen afwisselend naar de tekst en naar de
 // kaartjes erboven — niet naar allebei tegelijk.
+let _rbNakijken  = 0;       // hoeveel er in deze akte nog na te kijken valt
 let _ladeSecties = [];      // [{titel, tekst}]
 let _ladeIdx     = 0;
 let _ladeTekst   = '';
